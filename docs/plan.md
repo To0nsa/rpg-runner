@@ -353,9 +353,9 @@ Each component type owns its own sparse set.
 
 Internal layout:
 
-* `List<int> denseIds`
-* `List<T> denseValues`
-* `List<int> sparseIndexById` (indexed by EntityId, value = dense index or -1)
+* `List<EntityId> denseEntities` (dense list of entity ids that have this component)
+* SoA arrays for component fields aligned with `denseEntities` (e.g. `posX[]`, `posY[]`, ...)
+* `List<int> sparseIndexPlus1ById` (indexed by `EntityId`, value = `denseIndex + 1`, or `0` when absent)
 
 Properties:
 

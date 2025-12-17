@@ -77,17 +77,26 @@ Acceptance:
 
 ---
 
-## Milestone 2 — Core Collision + Player Run/Jump (First “Real Gameplay”)
+## Milestone 2 - Core Collision + Player Run/Jump (First "Real Gameplay")
 
+- [x] ECS foundation (Core):
+  - SoA + sparse-set storage (`EcsWorld`, component stores, swap-remove)
+  - Monotonic, never-reused `EntityId`
 - [ ] Core components:
-  - `Transform`, `Body`, `ColliderAabb`, `CollisionState`
+  - [x] `Transform` (pos/vel)
+  - [x] `PlayerInput` (tick-scoped input decoded from Commands)
+  - [x] `Movement` (grounded + timers: coyote/jump-buffer/dash)
+  - [ ] `Body`
+  - [ ] `ColliderAabb`, `CollisionState`
 - [ ] Core systems:
-  - `MovementSystem` (gravity, integration)
-  - `CollisionSystem` (AABB vs ground band + platforms + obstacles)
-- [ ] Commands:
-  - `MoveAxis` (from joystick, -1..1)
-  - `JumpPressed`
+  - [x] `MovementSystem` (accel/decel, gravity, integration, coyote time, jump buffer, dash)
+  - [ ] `CollisionSystem` (AABB vs ground band + platforms + obstacles)
+- [x] Commands:
+  - [x] `MoveAxis` (from keyboard)
+  - [x] `JumpPressed`
+  - [x] `DashPressed` (wired and has gameplay effect in Core)
 - [ ] Snapshot includes enough data to render player/platforms/obstacles and grounded state (for animation later).
+- [x] Core unit tests for movement feel (accel, jump, buffer, dash)
 
 Acceptance:
 - Player can run left/right and jump; reliably lands on ground/platforms; cannot pass through obstacles.
