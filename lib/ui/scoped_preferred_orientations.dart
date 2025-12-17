@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
@@ -37,6 +38,17 @@ class _ScopedPreferredOrientationsState
   }
 
   @override
+  void didUpdateWidget(covariant ScopedPreferredOrientations oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!listEquals(
+      oldWidget.preferredOrientations,
+      widget.preferredOrientations,
+    )) {
+      SystemChrome.setPreferredOrientations(widget.preferredOrientations);
+    }
+  }
+
+  @override
   void dispose() {
     final restore = widget.restoreOrientations;
     if (restore != null) {
@@ -48,4 +60,3 @@ class _ScopedPreferredOrientationsState
   @override
   Widget build(BuildContext context) => widget.child;
 }
-
