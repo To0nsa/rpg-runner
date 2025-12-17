@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'ui/dev_menu_page.dart';
 
@@ -9,7 +8,7 @@ import 'ui/dev_menu_page.dart';
 /// `RunnerGameWidget` / `createRunnerGameRoute` (see `lib/runner.dart`).
 /// Keep `main.dart` free of assumptions that would prevent embedding.
 void main() {
-  runApp(const ProviderScope(child: _DevApp()));
+  runApp(const _DevApp());
 }
 
 class _DevApp extends StatelessWidget {

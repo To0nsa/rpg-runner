@@ -34,7 +34,7 @@ This document turns `docs/plan.md` into an executable checklist for getting a pl
   - a reusable `Widget` and/or route builder (e.g., `RunnerGameWidget`, `RunnerGameRoute`)
   - keep `lib/main.dart` as a development host/demo only
 - [x] Add dependencies (as needed by code you write):
-  - `flutter_riverpod` (controller injection + UI state)
+  - Controller injection + UI state: keep host/app choice; avoid imposing a DI/state system from the embeddable widget.
 - [x] Add `GameCore` skeleton (no Flutter/Flame imports).
 - [x] Add `GameController` skeleton (owns core + fixed tick loop + command queue + snapshots/events).
 - [x] Add a minimal `FlameGame` that displays *something* and can be launched from `main.dart`.

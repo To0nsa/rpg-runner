@@ -143,7 +143,7 @@ When asked to implement/fix something:
 
 - `lib/core/`    - simulation, components, systems, RNG, commands, snapshots
 - `lib/game/`    - Flame `Game`, entity view components, camera/parallax, render adapters
-- `lib/ui/`      - menus, overlays, Riverpod providers, input widgets
+- `lib/ui/`      - menus, overlays, UI state, input widgets
 - `test/`        - Core unit tests
 
 ---

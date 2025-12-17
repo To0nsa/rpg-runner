@@ -207,11 +207,8 @@ Pixel-art note:
 
 ### State Management
 
-* Use **Riverpod** for:
-
-  * GameController access
-  * UI‑specific state
-  * Dependency injection
+* Keep the mini-game embeddable: pass the `GameController` explicitly to UI, and keep UI-only state local to widgets.
+* If an app uses a DI/state solution, scope it explicitly at the app/route level (avoid the mini-game widget creating its own container).
 
 ---
 
