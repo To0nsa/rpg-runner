@@ -32,15 +32,40 @@ class RunnerGameWidget extends StatefulWidget {
   State<RunnerGameWidget> createState() => _RunnerGameWidgetState();
 }
 
-class _RunnerGameWidgetState extends State<RunnerGameWidget> {
+class _RunnerGameWidgetState extends State<RunnerGameWidget>
+    with WidgetsBindingObserver {
+  bool _pausedByLifecycle = false;
   late final GameController _controller;
   late final RunnerFlameGame _game;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _controller = GameController(core: GameCore(seed: widget.seed));
     _game = RunnerFlameGame(controller: _controller);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) => _onLifecycle(state);
+
+  void _onLifecycle(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (_pausedByLifecycle) {
+        _pausedByLifecycle = false;
+        _controller.setPaused(false);
+      }
+      return;
+    }
+
+    _pausedByLifecycle = true;
+    _controller.setPaused(true);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   @override
