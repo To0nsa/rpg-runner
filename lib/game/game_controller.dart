@@ -20,6 +20,12 @@ class GameController {
     this.tickHz = 60,
     this.inputLead = 1,
   }) : _core = core {
+    if (tickHz <= 0) {
+      throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
+    }
+    if (inputLead < 1) {
+      throw ArgumentError.value(inputLead, 'inputLead', 'must be >= 1');
+    }
     _curr = _core.buildSnapshot();
     _prev = _curr;
   }
@@ -30,6 +36,8 @@ class GameController {
   final int tickHz;
 
   /// How many ticks ahead local input is scheduled by default.
+  ///
+  /// `1` means "next tick".
   final int inputLead;
 
   /// Buffered commands keyed by their target tick.
@@ -78,7 +86,11 @@ class GameController {
 
   /// Pauses/unpauses the simulation.
   void setPaused(bool value) {
+    if (_core.paused == value) return;
     _core.paused = value;
+    _accumulatorSeconds = 0;
+    _prev = _core.buildSnapshot();
+    _curr = _prev;
   }
 
   /// Advances the simulation clock based on a variable frame delta.
@@ -87,6 +99,10 @@ class GameController {
   /// `dtSeconds` is clamped to avoid "spiral of death" after app resumes.
   void advanceFrame(double dtSeconds, {double dtFrameMaxSeconds = 0.1}) {
     if (dtSeconds.isNaN || dtSeconds.isInfinite) return;
+    if (_core.paused) {
+      _accumulatorSeconds = 0;
+      return;
+    }
 
     final clamped = max(0.0, min(dtSeconds, dtFrameMaxSeconds));
     _accumulatorSeconds += clamped;

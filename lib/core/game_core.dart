@@ -64,10 +64,7 @@ class GameCore {
 
   /// Advances the simulation by exactly one fixed tick.
   void stepOneTick() {
-    if (paused) {
-      tick += 1;
-      return;
-    }
+    if (paused) return;
 
     tick += 1;
     playerPos = playerPos + playerVel;
