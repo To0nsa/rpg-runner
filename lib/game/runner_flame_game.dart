@@ -130,9 +130,12 @@ class RunnerFlameGame extends FlameGame {
 
     final player = _findPlayer(snapshot.entities);
     if (player != null) {
-      _player.position = _snapToPixels(Vector2(player.pos.x, player.pos.y));
-      camera.viewfinder.position = _snapToPixels(
-        Vector2(player.pos.x, v0CameraFixedY),
+      final snappedX = player.pos.x.roundToDouble();
+      final snappedY = player.pos.y.roundToDouble();
+      _player.position.setValues(snappedX, snappedY);
+      camera.viewfinder.position.setValues(
+        snappedX,
+        v0CameraFixedY.roundToDouble(),
       );
     }
 
@@ -149,10 +152,9 @@ class RunnerFlameGame extends FlameGame {
     return entities.first;
   }
 
-  Vector2 _snapToPixels(Vector2 value) {
-    return Vector2(
-      value.x.roundToDouble(),
-      value.y.roundToDouble(),
-    );
+  @override
+  void onRemove() {
+    images.clearCache();
+    super.onRemove();
   }
 }
