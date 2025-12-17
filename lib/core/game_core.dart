@@ -9,6 +9,7 @@ import 'commands/command.dart';
 import 'contracts/v0_render_contract.dart';
 import 'ecs/entity_id.dart';
 import 'ecs/systems/movement_system.dart';
+import 'ecs/stores/body_store.dart';
 import 'ecs/world.dart';
 import 'math/vec2.dart';
 import 'snapshots/enums.dart';
@@ -27,6 +28,7 @@ class GameCore {
     required this.seed,
     this.tickHz = v0DefaultTickHz,
     V0MovementTuning movementTuning = const V0MovementTuning(),
+    BodyDef? playerBody,
   }) : _movement = V0MovementTuningDerived.from(
          movementTuning,
          tickHz: tickHz,
@@ -38,11 +40,22 @@ class GameCore {
       80,
       v0GroundTopY.toDouble() - _movement.base.playerRadius,
     );
+    final defaultBody = BodyDef(
+      enabled: true,
+      isKinematic: false,
+      useGravity: true,
+      topOnlyGround: true,
+      gravityScale: 1.0,
+      maxVelX: _movement.base.maxVelX,
+      maxVelY: _movement.base.maxVelY,
+      sideMask: BodyDef.sideLeft | BodyDef.sideRight,
+    );
     _player = _world.createPlayer(
       pos: spawnPos,
       vel: const Vec2(0, 0),
       facing: Facing.right,
       grounded: true,
+      body: playerBody ?? defaultBody,
     );
   }
 

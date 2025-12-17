@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:walkscape_runner/core/commands/command.dart';
 import 'package:walkscape_runner/core/contracts/v0_render_contract.dart';
 import 'package:walkscape_runner/core/game_core.dart';
+import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/math/vec2.dart';
 import 'package:walkscape_runner/core/tuning/v0_movement_tuning.dart';
 
@@ -106,5 +107,54 @@ void main() {
     expect(core.playerVel.x, closeTo(tuning.dashSpeedX, 1e-9));
     expect(core.playerVel.y, closeTo(0, 1e-9));
     expect(core.playerPos.y, closeTo(floorY, 1e-9));
+  });
+
+  test('Body.gravityScale=0 disables gravity integration', () {
+    final core = GameCore(
+      seed: 1,
+      tickHz: v0DefaultTickHz,
+      playerBody: const BodyDef(gravityScale: 0),
+    );
+    final tuning = const V0MovementTuning();
+    final floorY = v0GroundTopY.toDouble() - tuning.playerRadius;
+
+    core.playerPos = core.playerPos.withY(floorY - 120);
+    core.playerVel = const Vec2(0, 0);
+
+    _tick(core);
+
+    expect(core.playerVel.y, closeTo(0, 1e-9));
+    expect(core.playerPos.y, closeTo(floorY - 120, 1e-9));
+  });
+
+  test('Body.isKinematic skips physics integration', () {
+    final core = GameCore(
+      seed: 1,
+      tickHz: v0DefaultTickHz,
+      playerBody: const BodyDef(isKinematic: true),
+    );
+    final tuning = const V0MovementTuning();
+    final floorY = v0GroundTopY.toDouble() - tuning.playerRadius;
+
+    core.playerPos = core.playerPos.withY(floorY - 120);
+    core.playerVel = const Vec2(0, 0);
+
+    _tick(core, axis: 1, jumpPressed: true, dashPressed: true);
+
+    expect(core.playerVel.x, closeTo(0, 1e-9));
+    expect(core.playerVel.y, closeTo(0, 1e-9));
+    expect(core.playerPos.y, closeTo(floorY - 120, 1e-9));
+  });
+
+  test('Body.maxVelY clamps jump velocity', () {
+    final core = GameCore(
+      seed: 1,
+      tickHz: v0DefaultTickHz,
+      playerBody: const BodyDef(maxVelY: 100),
+    );
+
+    _tick(core, jumpPressed: true);
+
+    expect(core.playerVel.y, closeTo(-100, 1e-9));
   });
 }

@@ -86,7 +86,7 @@ Acceptance:
   - [x] `Transform` (pos/vel)
   - [x] `PlayerInput` (tick-scoped input decoded from Commands)
   - [x] `Movement` (grounded + timers: coyote/jump-buffer/dash)
-  - [ ] `Body`
+  - [x] `Body`
   - [ ] `ColliderAabb`, `CollisionState`
 - [ ] Core systems:
   - [x] `MovementSystem` (accel/decel, gravity, integration, coyote time, jump buffer, dash)

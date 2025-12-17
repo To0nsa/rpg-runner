@@ -8,6 +8,7 @@ import '../world.dart';
 /// - Transform
 /// - PlayerInput
 /// - Movement
+/// - Body
 ///
 /// Note: V0 includes a minimal ground constraint using `v0GroundTopY`. Full
 /// collisions against obstacles/platforms come later.
@@ -19,10 +20,21 @@ class MovementSystem {
     // Iterate movement entities; this stays allocation-free and cache-friendly.
     for (var mi = 0; mi < world.movement.denseEntities.length; mi += 1) {
       final EntityId e = world.movement.denseEntities[mi];
-      if (!world.transform.has(e) || !world.playerInput.has(e)) continue;
+      if (!world.transform.has(e) ||
+          !world.playerInput.has(e) ||
+          !world.body.has(e)) {
+        continue;
+      }
 
       final ti = world.transform.indexOf(e);
       final ii = world.playerInput.indexOf(e);
+      final bi = world.body.indexOf(e);
+
+      if (!world.body.enabled[bi]) continue;
+      if (world.body.isKinematic[bi]) {
+        world.movement.grounded[mi] = false;
+        continue;
+      }
 
       // Timers.
       if (world.movement.dashCooldownTicksLeft[mi] > 0) {
@@ -74,15 +86,18 @@ class MovementSystem {
         }
 
         // Gravity.
-        world.transform.velY[ti] += t.gravityY * dt;
+        if (world.body.useGravity[bi]) {
+          final scaledGravity = t.gravityY * world.body.gravityScale[bi];
+          world.transform.velY[ti] += scaledGravity * dt;
+        }
       }
 
       // Clamp speeds.
       world.transform.velX[ti] = world.transform.velX[ti]
-          .clamp(-t.maxVelX, t.maxVelX)
+          .clamp(-world.body.maxVelX[bi], world.body.maxVelX[bi])
           .toDouble();
       world.transform.velY[ti] = world.transform.velY[ti]
-          .clamp(-t.maxVelY, t.maxVelY)
+          .clamp(-world.body.maxVelY[bi], world.body.maxVelY[bi])
           .toDouble();
 
       // Integrate position.
