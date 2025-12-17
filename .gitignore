@@ -90,6 +90,7 @@ web/build/
 # Flame / Assets (keep assets tracked)
 # =========================
 # (Intentionally not ignoring assets/)
+resources/
 
 # =========================
 # Misc
