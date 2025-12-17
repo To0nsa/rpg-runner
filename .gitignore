@@ -1,0 +1,101 @@
+# =========================
+# OS / Editor
+# =========================
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+.vscode/
+.idea/
+*.iml
+
+# =========================
+# Dart / Flutter
+# =========================
+.dart_tool/
+.packages
+.pub/
+.pub-cache/
+build/
+
+# Flutter tool state (usually keep, but safe to ignore if you want)
+# .metadata
+
+# =========================
+# Logs
+# =========================
+*.log
+
+# =========================
+# Android (Gradle)
+# =========================
+android/.gradle/
+android/**/build/
+android/local.properties
+android/key.properties
+
+# Keystores / signing
+*.jks
+*.keystore
+
+# =========================
+# iOS / macOS (Xcode / CocoaPods)
+# =========================
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+ios/Flutter/ephemeral/
+ios/Runner/GeneratedPluginRegistrant.*
+
+macos/Pods/
+macos/Flutter/ephemeral/
+macos/Runner/GeneratedPluginRegistrant.*
+
+# Xcode user data
+**/xcuserdata/
+**/*.xcscmblueprint
+**/*.xccheckout
+**/*.moved-aside
+**/*.pbxuser
+**/*.mode1v3
+**/*.mode2v3
+**/*.perspectivev3
+**/*.hmap
+**/*.ipa
+**/*.dSYM*
+**/.AppleDouble
+**/.LSOverride
+
+# =========================
+# Linux / Windows desktop build outputs
+# =========================
+linux/flutter/ephemeral/
+windows/flutter/ephemeral/
+
+# Visual Studio (Windows runner)
+windows/.vs/
+windows/**/x64/
+windows/**/Debug/
+windows/**/Release/
+
+# =========================
+# Web
+# =========================
+web/.dart_tool/
+web/build/
+
+# =========================
+# Flame / Assets (keep assets tracked)
+# =========================
+# (Intentionally not ignoring assets/)
+
+# =========================
+# Misc
+# =========================
+.env
+.env.*
+*.tmp
+*.swp
+*.swo
