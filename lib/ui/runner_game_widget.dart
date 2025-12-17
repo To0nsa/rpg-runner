@@ -77,7 +77,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
         PixelPerfectViewport(
           virtualWidth: v0VirtualWidth,
           virtualHeight: v0VirtualHeight,
-          child: GameWidget(game: _game),
+          child: GameWidget(game: _game, autofocus: true),
         ),
         if (widget.showExitButton)
           Positioned(

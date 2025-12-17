@@ -3,10 +3,15 @@
 // Reads the latest `GameStateSnapshot` from `GameController` each frame and
 // renders a minimal representation (a player dot + debug text). This file is
 // intentionally tiny and non-authoritative: gameplay truth lives in Core.
+import 'dart:math' as math;
+
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
-import 'package:flutter/painting.dart';
+import 'package:flame/input.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 
+import '../core/commands/command.dart';
 import '../core/contracts/v0_render_contract.dart';
 import '../core/snapshots/entity_render_snapshot.dart';
 import 'components/pixel_parallax_backdrop_component.dart';
@@ -14,20 +19,25 @@ import 'components/tiled_ground_band_component.dart';
 import 'game_controller.dart';
 
 /// Minimal Flame `Game` that renders from snapshots.
-class RunnerFlameGame extends FlameGame {
+class RunnerFlameGame extends FlameGame with KeyboardEvents {
   RunnerFlameGame({required this.controller})
-      : super(
-          camera: CameraComponent.withFixedResolution(
-            width: v0VirtualWidth.toDouble(),
-            height: v0VirtualHeight.toDouble(),
-          ),
-        );
+    : super(
+        camera: CameraComponent.withFixedResolution(
+          width: v0VirtualWidth.toDouble(),
+          height: v0VirtualHeight.toDouble(),
+        ),
+      );
 
   /// Bridge/controller that owns the simulation and produces snapshots.
   final GameController controller;
 
   late final CircleComponent _player;
   late final TextComponent _debugText;
+
+  // Keyboard input (dev/desktop): schedule tick-stamped commands.
+  double _moveAxis = 0;
+  double _lastScheduledAxis = 0;
+  int _axisScheduledThroughTick = 0;
 
   @override
   Future<void> onLoad() async {
@@ -121,6 +131,8 @@ class RunnerFlameGame extends FlameGame {
 
   @override
   void update(double dt) {
+    _enqueueHeldMoveAxis();
+
     super.update(dt);
 
     // Step the deterministic core using the frame delta, then render the
@@ -133,7 +145,7 @@ class RunnerFlameGame extends FlameGame {
       final snappedX = player.pos.x.roundToDouble();
       final snappedY = player.pos.y.roundToDouble();
       _player.position.setValues(snappedX, snappedY);
-      camera.viewfinder.position.setValues(
+      camera.viewfinder.position = Vector2(
         snappedX,
         v0CameraFixedY.roundToDouble(),
       );
@@ -144,6 +156,67 @@ class RunnerFlameGame extends FlameGame {
           'tick=${snapshot.tick} seed=${snapshot.seed} x=${player?.pos.x.toStringAsFixed(1) ?? '-'}';
       return true;
     }());
+  }
+
+  @override
+  KeyEventResult onKeyEvent(
+    KeyEvent event,
+    Set<LogicalKeyboardKey> keysPressed,
+  ) {
+    final heldLeft = keysPressed.contains(LogicalKeyboardKey.arrowLeft);
+    final heldRight = keysPressed.contains(LogicalKeyboardKey.arrowRight);
+
+    if (heldLeft && !heldRight) {
+      _moveAxis = -1;
+    } else if (heldRight && !heldLeft) {
+      _moveAxis = 1;
+    } else {
+      _moveAxis = 0;
+    }
+
+    // Edge-triggered actions.
+    if (event is KeyDownEvent) {
+      if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+        controller.enqueueForNextTick((tick) => JumpPressedCommand(tick: tick));
+      } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+        controller.enqueueForNextTick((tick) => DashPressedCommand(tick: tick));
+      }
+    }
+
+    return KeyEventResult.handled;
+  }
+
+  void _enqueueHeldMoveAxis() {
+    final axis = _moveAxis;
+
+    // Only emit move commands when actively held; when released, core will
+    // decelerate naturally because it resets axis to 0 each tick.
+    if (axis == 0) {
+      _axisScheduledThroughTick = controller.tick;
+      _lastScheduledAxis = 0;
+      return;
+    }
+
+    // If axis direction changed, re-schedule ahead so future ticks override.
+    if (axis != _lastScheduledAxis) {
+      _axisScheduledThroughTick = controller.tick;
+      _lastScheduledAxis = axis;
+    }
+
+    // Cover the maximum number of fixed ticks that could be stepped in one
+    // frame due to dt clamping (GameController defaults to 0.1s).
+    final maxTicksPerFrame = (controller.tickHz * 0.1).ceil();
+    final targetMaxTick =
+        controller.tick + controller.inputLead + maxTicksPerFrame;
+
+    final startTick = math.max(
+      controller.tick + 1,
+      _axisScheduledThroughTick + 1,
+    );
+    for (var t = startTick; t <= targetMaxTick; t += 1) {
+      controller.enqueue(MoveAxisCommand(tick: t, axis: axis));
+    }
+    _axisScheduledThroughTick = targetMaxTick;
   }
 
   /// Finds the player entity in the snapshot (placeholder: first entity).

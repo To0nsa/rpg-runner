@@ -15,17 +15,18 @@ import '../core/snapshots/game_state_snapshot.dart';
 
 /// Owns the simulation clock and provides a stable interface to UI/renderer.
 class GameController {
-  GameController({
-    required GameCore core,
-    this.tickHz = 60,
-    this.inputLead = 1
-  })
-  : _core = core {
+  GameController({required GameCore core, this.tickHz = 60, this.inputLead = 1})
+    : _core = core {
     if (tickHz <= 0) {
       throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
     }
     if (inputLead < 1) {
       throw ArgumentError.value(inputLead, 'inputLead', 'must be >= 1');
+    }
+    if (tickHz != _core.tickHz) {
+      throw ArgumentError(
+        'GameController.tickHz ($tickHz) must match GameCore.tickHz (${_core.tickHz}).',
+      );
     }
     _curr = _core.buildSnapshot();
     _prev = _curr;
