@@ -18,8 +18,9 @@ class GameController {
   GameController({
     required GameCore core,
     this.tickHz = 60,
-    this.inputLead = 1,
-  }) : _core = core {
+    this.inputLead = 1
+  })
+  : _core = core {
     if (tickHz <= 0) {
       throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
     }
@@ -42,11 +43,13 @@ class GameController {
 
   /// Buffered commands keyed by their target tick.
   final Map<int, List<Command>> _commandsByTick = <int, List<Command>>{};
+
   /// Buffered transient events produced by the core.
   final List<GameEvent> _events = <GameEvent>[];
 
   late GameStateSnapshot _prev;
   late GameStateSnapshot _curr;
+
   /// Accumulated time for fixed-tick simulation.
   double _accumulatorSeconds = 0;
 
@@ -91,6 +94,32 @@ class GameController {
     _accumulatorSeconds = 0;
     _prev = _core.buildSnapshot();
     _curr = _prev;
+  }
+
+  /// Permanently stops this controller for the current session.
+  ///
+  /// Use this when leaving the mini-game route (dispose), NOT for backgrounding
+  /// (that's what [setPaused] is for).
+  ///
+  /// What it does:
+  /// - pauses the core
+  /// - clears queued commands (prevents "stuck input" on next mount)
+  /// - clears buffered transient events
+  /// - resets interpolation state (accumulator + snapshots)
+  void shutdown() {
+    // Pause regardless of current state (do NOT early-return like setPaused()).
+    _core.paused = true;
+
+    // Drop any in-flight fixed-tick accumulation.
+    _accumulatorSeconds = 0;
+
+    // Kill transient buffers so nothing leaks across sessions.
+    _commandsByTick.clear();
+    _events.clear();
+
+    // Make snapshots consistent with the paused state.
+    _curr = _core.buildSnapshot();
+    _prev = _curr;
   }
 
   /// Advances the simulation clock based on a variable frame delta.

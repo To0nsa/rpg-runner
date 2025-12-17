@@ -9,8 +9,8 @@ import 'pixel_perfect_viewport.dart';
 
 /// Embed-friendly widget that hosts the mini-game.
 ///
-/// Intended to be mounted by a host app. It can either create its own
-/// [GameController] (widget-owned) or accept one from the host (host-owned).
+/// Intended to be mounted by a host app. It owns its [GameController] and
+/// cleans it up on dispose.
 ///
 /// Pixel scaling is applied by [PixelPerfectViewport] to keep the fixed virtual
 /// resolution letterboxed to the available screen.
@@ -18,16 +18,11 @@ class RunnerGameWidget extends StatefulWidget {
   const RunnerGameWidget({
     super.key,
     this.seed = 1,
-    this.controller,
     this.onExit,
     this.showExitButton = true,
   });
 
-  /// Only used if [controller] is null (widget-owned controller).
   final int seed;
-
-  /// If provided, the host owns the controller lifecycle.
-  final GameController? controller;
 
   final VoidCallback? onExit;
   final bool showExitButton;
@@ -40,8 +35,9 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     with WidgetsBindingObserver {
   bool _pausedByLifecycle = false;
 
-  late final GameController _controller =
-      widget.controller ?? GameController(core: GameCore(seed: widget.seed));
+  late final GameController _controller = GameController(
+    core: GameCore(seed: widget.seed),
+  );
   late final RunnerFlameGame _game = RunnerFlameGame(controller: _controller);
 
   @override
@@ -69,6 +65,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _controller.shutdown();
     super.dispose();
   }
 
