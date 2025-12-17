@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'runner_game_route.dart';
 
@@ -25,7 +26,12 @@ class DevMenuPage extends StatelessWidget {
         child: FilledButton(
           onPressed: () {
             final seed = Random().nextInt(1 << 31);
-            Navigator.of(context).push(createRunnerGameRoute(seed: seed));
+            Navigator.of(context).push(
+              createRunnerGameRoute(
+                seed: seed,
+                restoreOrientations: const [DeviceOrientation.portraitUp],
+              ),
+            );
           },
           child: const Text('Start'),
         ),
