@@ -1,4 +1,3 @@
-import '../../math/vec2.dart';
 import '../entity_id.dart';
 import '../sparse_set.dart';
 
@@ -9,10 +8,17 @@ import '../sparse_set.dart';
 /// - collider center is `pos + offset`
 /// - extents are half-sizes in world units (virtual pixels)
 class ColliderAabbDef {
-  const ColliderAabbDef({required this.halfExtents, this.offset = const Vec2(0, 0)});
+  const ColliderAabbDef({
+    required this.halfX,
+    required this.halfY,
+    this.offsetX = 0,
+    this.offsetY = 0,
+  });
 
-  final Vec2 halfExtents;
-  final Vec2 offset;
+  final double halfX;
+  final double halfY;
+  final double offsetX;
+  final double offsetY;
 }
 
 /// SoA store for AABB collider config (half extents + offset).
@@ -24,10 +30,10 @@ class ColliderAabbStore extends SparseSet {
 
   void add(EntityId entity, ColliderAabbDef def) {
     final i = addEntity(entity);
-    halfX[i] = def.halfExtents.x;
-    halfY[i] = def.halfExtents.y;
-    offsetX[i] = def.offset.x;
-    offsetY[i] = def.offset.y;
+    halfX[i] = def.halfX;
+    halfY[i] = def.halfY;
+    offsetX[i] = def.offsetX;
+    offsetY[i] = def.offsetY;
   }
 
   @override
@@ -51,4 +57,3 @@ class ColliderAabbStore extends SparseSet {
     offsetY.removeLast();
   }
 }
-

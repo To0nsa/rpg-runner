@@ -15,7 +15,7 @@ void main() {
     controller.advanceFrame(1 / controller.tickHz);
 
     expect(core.tick, 1);
-    expect(core.playerVel.x, lessThan(0));
+    expect(core.playerVelX, lessThan(0));
   });
 
   test('GameController merges multiple button presses per tick', () {
@@ -31,8 +31,8 @@ void main() {
     expect(core.tick, 1);
     // Dash cancels vertical velocity and sets dash horizontal speed; assert the
     // net effect occurred even with another press.
-    expect(core.playerVel.y, closeTo(0, 1e-9));
-    expect(core.playerVel.x, greaterThan(0));
+    expect(core.playerVelY, closeTo(0, 1e-9));
+    expect(core.playerVelX, greaterThan(0));
   });
 
   test('GameController dedupes AimDir per tick (last wins)', () {

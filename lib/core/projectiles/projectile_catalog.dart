@@ -1,20 +1,21 @@
 import 'dart:math';
 
-import '../math/vec2.dart';
 import 'projectile_id.dart';
 
 class ProjectileArchetype {
   const ProjectileArchetype({
     required this.speedUnitsPerSecond,
     required this.lifetimeSeconds,
-    required this.colliderSize,
+    required this.colliderSizeX,
+    required this.colliderSizeY,
   });
 
   final double speedUnitsPerSecond;
   final double lifetimeSeconds;
 
   /// Full extents, in world units (virtual pixels).
-  final Vec2 colliderSize;
+  final double colliderSizeX;
+  final double colliderSizeY;
 }
 
 class ProjectileCatalog {
@@ -26,13 +27,15 @@ class ProjectileCatalog {
         return const ProjectileArchetype(
           speedUnitsPerSecond: 1600.0,
           lifetimeSeconds: 1.0,
-          colliderSize: Vec2(18.0, 8.0),
+          colliderSizeX: 18.0,
+          colliderSizeY: 8.0,
         );
       case ProjectileId.lightningBolt:
         return const ProjectileArchetype(
           speedUnitsPerSecond: 900.0,
           lifetimeSeconds: 1.2,
-          colliderSize: Vec2(16.0, 8.0),
+          colliderSizeX: 16.0,
+          colliderSizeY: 8.0,
         );
     }
   }

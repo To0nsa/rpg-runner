@@ -1,4 +1,3 @@
-import '../math/vec2.dart';
 import '../snapshots/enums.dart';
 import 'entity_id.dart';
 import 'stores/body_store.dart';
@@ -42,8 +41,10 @@ class EcsWorld {
   }
 
   EntityId createPlayer({
-    required Vec2 pos,
-    required Vec2 vel,
+    required double posX,
+    required double posY,
+    required double velX,
+    required double velY,
     required Facing facing,
     required bool grounded,
     required BodyDef body,
@@ -53,7 +54,7 @@ class EcsWorld {
     required StaminaDef stamina,
   }) {
     final id = createEntity();
-    transform.add(id, pos: pos, vel: vel);
+    transform.add(id, posX: posX, posY: posY, velX: velX, velY: velY);
     playerInput.add(id);
     movement.add(id, facing: facing);
     this.body.add(id, body);

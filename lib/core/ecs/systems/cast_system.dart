@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import '../../combat/faction.dart';
-import '../../math/vec2.dart';
 import '../../projectiles/projectile_catalog.dart';
 import '../../snapshots/enums.dart';
 import '../../spells/spell_catalog.dart';
@@ -63,28 +62,46 @@ class CastSystem {
     final ti = world.transform.indexOf(player);
     final facing = world.movement.facing[world.movement.indexOf(player)];
 
-    final aimDir = _resolveAimDir(
-      world.playerInput.aimDirX[ii],
-      world.playerInput.aimDirY[ii],
-      facing,
-    );
+    final rawAimX = world.playerInput.aimDirX[ii];
+    final rawAimY = world.playerInput.aimDirY[ii];
+
+    double aimX;
+    double aimY;
+    if (rawAimX == 0 && rawAimY == 0) {
+      aimX = facing == Facing.right ? 1.0 : -1.0;
+      aimY = 0.0;
+    } else {
+      final len2 = rawAimX * rawAimX + rawAimY * rawAimY;
+      if (len2 <= 1e-12) {
+        aimX = facing == Facing.right ? 1.0 : -1.0;
+        aimY = 0.0;
+      } else {
+        final invLen = 1.0 / sqrt(len2);
+        aimX = rawAimX * invLen;
+        aimY = rawAimY * invLen;
+      }
+    }
 
     final spawnOffset = movement.base.playerRadius * 0.5;
-    final origin = Vec2(
-      world.transform.posX[ti] + aimDir.x * spawnOffset,
-      world.transform.posY[ti] + aimDir.y * spawnOffset,
-    );
+    final originX = world.transform.posX[ti] + aimX * spawnOffset;
+    final originY = world.transform.posY[ti] + aimY * spawnOffset;
 
     final projEntity = world.createEntity();
-    world.transform.add(projEntity, pos: origin, vel: const Vec2(0, 0));
+    world.transform.add(
+      projEntity,
+      posX: originX,
+      posY: originY,
+      velX: 0.0,
+      velY: 0.0,
+    );
     world.projectile.add(
       projEntity,
       ProjectileDef(
         projectileId: projectileId,
         faction: Faction.player,
         owner: player,
-        dirX: aimDir.x,
-        dirY: aimDir.y,
+        dirX: aimX,
+        dirY: aimY,
         speedUnitsPerSecond: proj.speedUnitsPerSecond,
         damage: spellStats.damage,
       ),
@@ -94,17 +111,5 @@ class CastSystem {
       projEntity,
       LifetimeDef(ticksLeft: projectiles.lifetimeTicks(projectileId)),
     );
-  }
-
-  Vec2 _resolveAimDir(double x, double y, Facing facing) {
-    if (x == 0 && y == 0) {
-      return Vec2(facing == Facing.right ? 1.0 : -1.0, 0.0);
-    }
-    final len2 = x * x + y * y;
-    if (len2 <= 1e-12) {
-      return Vec2(facing == Facing.right ? 1.0 : -1.0, 0.0);
-    }
-    final invLen = 1.0 / sqrt(len2);
-    return Vec2(x * invLen, y * invLen);
   }
 }

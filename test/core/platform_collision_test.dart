@@ -4,7 +4,6 @@ import 'package:walkscape_runner/core/collision/static_world_geometry.dart';
 import 'package:walkscape_runner/core/commands/command.dart';
 import 'package:walkscape_runner/core/contracts/v0_render_contract.dart';
 import 'package:walkscape_runner/core/game_core.dart';
-import 'package:walkscape_runner/core/math/vec2.dart';
 import 'package:walkscape_runner/core/tuning/v0_movement_tuning.dart';
 
 void _tick(
@@ -35,8 +34,8 @@ void main() {
       ),
     );
 
-    core.playerPos = const Vec2(120, 40);
-    core.playerVel = const Vec2(0, 0);
+    core.setPlayerPosXY(120, 40);
+    core.setPlayerVelXY(0, 0);
 
     // Clear the initial grounded state inherited from spawn-on-ground.
     _tick(core);
@@ -49,9 +48,9 @@ void main() {
     }
 
     expect(safety, greaterThan(0));
-    expect(core.playerPos.y, closeTo(topY - r, 1e-9));
-    expect(core.playerVel.y, closeTo(0, 1e-9));
-    expect(core.playerPos.y, lessThan(v0GroundTopY.toDouble() - r));
+    expect(core.playerPosY, closeTo(topY - r, 1e-9));
+    expect(core.playerVelY, closeTo(0, 1e-9));
+    expect(core.playerPosY, lessThan(v0GroundTopY.toDouble() - r));
   });
 
   test('one-way platform does not block upward motion from below', () {
@@ -71,13 +70,13 @@ void main() {
     );
 
     final startY = topY + 40;
-    core.playerPos = Vec2(120, startY);
-    core.playerVel = const Vec2(0, -800);
+    core.setPlayerPosXY(120, startY);
+    core.setPlayerVelXY(0, -800);
 
     _tick(core);
 
-    expect(core.playerPos.y, lessThan(startY));
-    expect(core.playerPos.y, isNot(closeTo(topY - r, 1e-9)));
+    expect(core.playerPosY, lessThan(startY));
+    expect(core.playerPosY, isNot(closeTo(topY - r, 1e-9)));
   });
 
   test('walking off a platform clears grounded before hitting the ground', () {
@@ -98,13 +97,13 @@ void main() {
     );
 
     // Start on top of the platform.
-    core.playerPos = const Vec2(120, topY - r);
-    core.playerVel = const Vec2(0, 0);
+    core.setPlayerPosXY(120, topY - r);
+    core.setPlayerVelXY(0, 0);
 
     // Let one tick settle the grounded state (gravity pushes down slightly).
     _tick(core);
     expect(core.playerGrounded, isTrue);
-    expect(core.playerPos.y, closeTo(topY - r, 1e-6));
+    expect(core.playerPosY, closeTo(topY - r, 1e-6));
 
     // Walk right until the player's AABB no longer overlaps the platform.
     var leftPlatform = false;
@@ -114,7 +113,7 @@ void main() {
       _tick(core, axis: 1);
       safety -= 1;
 
-      if (!leftPlatform && core.playerPos.x > platformMaxX + r + 1) {
+      if (!leftPlatform && core.playerPosX > platformMaxX + r + 1) {
         leftPlatform = true;
       }
       if (leftPlatform && !core.playerGrounded) {
@@ -125,7 +124,7 @@ void main() {
     expect(safety, greaterThan(0));
     expect(leftPlatform, isTrue);
     expect(sawAirborne, isTrue);
-    expect(core.playerPos.y, greaterThan(topY - r));
-    expect(core.playerPos.y, lessThan(v0GroundTopY.toDouble() - r));
+    expect(core.playerPosY, greaterThan(topY - r));
+    expect(core.playerPosY, lessThan(v0GroundTopY.toDouble() - r));
   });
 }

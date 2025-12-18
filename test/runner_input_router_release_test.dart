@@ -30,7 +30,7 @@ void main() {
     input.pumpHeldInputs();
     controller.advanceFrame(dt);
     expect(core.tick, 1);
-    expect(core.playerVel.x, greaterThan(0));
+    expect(core.playerVelX, greaterThan(0));
 
     input.setMoveAxis(0);
     input.pumpHeldInputs();
@@ -38,7 +38,7 @@ void main() {
     expect(core.tick, 2);
 
     // With a huge deceleration, releasing move input should stop immediately.
-    expect(core.playerVel.x, closeTo(0.0, 1e-9));
+    expect(core.playerVelX, closeTo(0.0, 1e-9));
   });
 
   test('aim clear overwrites buffered future ticks (affects cast direction)', () {

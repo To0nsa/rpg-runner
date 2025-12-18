@@ -43,7 +43,7 @@ void main() {
     final expectedStopX = obstacleMinX - r;
 
     var safety = 240;
-    while (core.playerPos.x < expectedStopX - 1 && safety > 0) {
+    while (core.playerPosX < expectedStopX - 1 && safety > 0) {
       _tick(core, axis: 1);
       safety -= 1;
     }
@@ -54,8 +54,8 @@ void main() {
       _tick(core, axis: 1);
     }
 
-    expect(core.playerPos.x, closeTo(expectedStopX, 1e-6));
-    expect(core.playerVel.x, closeTo(0, 1e-9));
+    expect(core.playerPosX, closeTo(expectedStopX, 1e-6));
+    expect(core.playerVelX, closeTo(0, 1e-9));
   });
 
   test('Body.sideMask can disable right-side collision', () {
@@ -88,7 +88,7 @@ void main() {
       _tick(core, axis: 1);
     }
 
-    expect(core.playerPos.x, greaterThan(obstacleMaxX + r + 5));
+    expect(core.playerPosX, greaterThan(obstacleMaxX + r + 5));
   });
 
   test('walking into obstacle from the right stops on its right wall', () {
@@ -116,8 +116,8 @@ void main() {
     );
 
     // Place the player to the right of the obstacle.
-    core.playerPos = core.playerPos.withX(obstacleMaxX + r + 40);
-    core.playerVel = core.playerVel.withX(0);
+    core.setPlayerPosXY(obstacleMaxX + r + 40, core.playerPosY);
+    core.setPlayerVelXY(0, core.playerVelY);
 
     // Clear spawn grounded state consistency (pos override doesn't change it).
     _tick(core);
@@ -127,7 +127,7 @@ void main() {
       _tick(core, axis: -1);
     }
 
-    expect(core.playerPos.x, closeTo(expectedStopX, 1e-6));
-    expect(core.playerVel.x, closeTo(0, 1e-9));
+    expect(core.playerPosX, closeTo(expectedStopX, 1e-6));
+    expect(core.playerVelX, closeTo(0, 1e-9));
   });
 }

@@ -43,7 +43,8 @@ void main() {
       ),
     );
 
-    final playerPos = core.playerPos;
+    final playerPosX = core.playerPosX;
+    final playerPosY = core.playerPosY;
 
     core.applyCommands(const [CastPressedCommand(tick: 1)]);
     core.stepOneTick();
@@ -54,8 +55,8 @@ void main() {
     expect(projectiles.length, 1);
 
     final p = projectiles.single;
-    expect(p.pos.x, closeTo(playerPos.x + 4.0, 1e-9)); // playerRadius * 0.5
-    expect(p.pos.y, closeTo(playerPos.y, 1e-9));
+    expect(p.pos.x, closeTo(playerPosX + 4.0, 1e-9)); // playerRadius * 0.5
+    expect(p.pos.y, closeTo(playerPosY, 1e-9));
 
     expect(snapshot.hud.mana, closeTo(10.0, 1e-9));
     expect(core.playerCastCooldownTicksLeft, 5); // ceil(0.25s * 20Hz)
@@ -103,4 +104,3 @@ void main() {
     );
   });
 }
-

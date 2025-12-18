@@ -104,11 +104,10 @@ class GameCore {
       movement: _movement,
     );
 
-    final spawnPos = Vec2(
-      80,
-      (this.staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble()) -
-          _movement.base.playerRadius,
-    );
+    final spawnX = 80.0;
+    final spawnY =
+        (this.staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble()) -
+        _movement.base.playerRadius;
     final defaultBody = BodyDef(
       enabled: true,
       isKinematic: false,
@@ -120,16 +119,16 @@ class GameCore {
       sideMask: BodyDef.sideLeft | BodyDef.sideRight,
     );
     _player = _world.createPlayer(
-      pos: spawnPos,
-      vel: const Vec2(0, 0),
+      posX: spawnX,
+      posY: spawnY,
+      velX: 0.0,
+      velY: 0.0,
       facing: Facing.right,
       grounded: true,
       body: playerBody ?? defaultBody,
       collider: ColliderAabbDef(
-        halfExtents: Vec2(
-          _movement.base.playerRadius,
-          _movement.base.playerRadius,
-        ),
+        halfX: _movement.base.playerRadius,
+        halfY: _movement.base.playerRadius,
       ),
       health: HealthDef(
         hp: _resourceTuning.playerHpStart ?? _resourceTuning.playerHpMax,
@@ -201,11 +200,21 @@ class GameCore {
   /// Run progression metric (placeholder).
   double distance = 0;
 
-  Vec2 get playerPos => _world.transform.getPos(_player);
-  set playerPos(Vec2 value) => _world.transform.setPos(_player, value);
+  double get playerPosX =>
+      _world.transform.posX[_world.transform.indexOf(_player)];
+  double get playerPosY =>
+      _world.transform.posY[_world.transform.indexOf(_player)];
 
-  Vec2 get playerVel => _world.transform.getVel(_player);
-  set playerVel(Vec2 value) => _world.transform.setVel(_player, value);
+  void setPlayerPosXY(double x, double y) =>
+      _world.transform.setPosXY(_player, x, y);
+
+  double get playerVelX =>
+      _world.transform.velX[_world.transform.indexOf(_player)];
+  double get playerVelY =>
+      _world.transform.velY[_world.transform.indexOf(_player)];
+
+  void setPlayerVelXY(double x, double y) =>
+      _world.transform.setVelXY(_player, x, y);
 
   bool get playerGrounded =>
       _world.collision.grounded[_world.collision.indexOf(_player)];
@@ -278,7 +287,7 @@ class GameCore {
     _castSystem.step(_world, player: _player);
     _resourceRegenSystem.step(_world, dtSeconds: _movement.dtSeconds);
 
-    distance += max(0.0, playerVel.x) * _movement.dtSeconds;
+    distance += max(0.0, playerVelX) * _movement.dtSeconds;
   }
 
   /// Builds an immutable snapshot for render/UI consumption.
@@ -295,12 +304,15 @@ class GameCore {
     if (dashing) {
       anim = AnimKey.run;
     } else if (!onGround) {
-      anim = playerVel.y < 0 ? AnimKey.jump : AnimKey.fall;
-    } else if (playerVel.x.abs() > tuning.minMoveSpeed) {
+      anim = playerVelY < 0 ? AnimKey.jump : AnimKey.fall;
+    } else if (playerVelX.abs() > tuning.minMoveSpeed) {
       anim = AnimKey.run;
     } else {
       anim = AnimKey.idle;
     }
+
+    final playerPos = Vec2(playerPosX, playerPosY);
+    final playerVel = Vec2(playerVelX, playerVelY);
 
     final entities = <EntityRenderSnapshot>[
       EntityRenderSnapshot(
@@ -322,7 +334,8 @@ class GameCore {
       final ti = _world.transform.indexOf(e);
 
       final projectileId = projectileStore.projectileId[pi];
-      final colliderSize = _projectiles.base.get(projectileId).colliderSize;
+      final proj = _projectiles.base.get(projectileId);
+      final colliderSize = Vec2(proj.colliderSizeX, proj.colliderSizeY);
 
       final dx = projectileStore.dirX[pi];
       final facing = dx >= 0 ? Facing.right : Facing.left;

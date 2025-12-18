@@ -1,4 +1,3 @@
-import '../../math/vec2.dart';
 import '../entity_id.dart';
 import '../sparse_set.dart';
 
@@ -9,34 +8,30 @@ class TransformStore extends SparseSet {
   final List<double> velX = <double>[];
   final List<double> velY = <double>[];
 
-  void add(EntityId entity, {required Vec2 pos, required Vec2 vel}) {
+  void add(
+    EntityId entity, {
+    required double posX,
+    required double posY,
+    required double velX,
+    required double velY,
+  }) {
     final i = addEntity(entity);
-    posX[i] = pos.x;
-    posY[i] = pos.y;
-    velX[i] = vel.x;
-    velY[i] = vel.y;
+    this.posX[i] = posX;
+    this.posY[i] = posY;
+    this.velX[i] = velX;
+    this.velY[i] = velY;
   }
 
-  Vec2 getPos(EntityId entity) {
+  void setPosXY(EntityId entity, double x, double y) {
     final i = indexOf(entity);
-    return Vec2(posX[i], posY[i]);
+    posX[i] = x;
+    posY[i] = y;
   }
 
-  Vec2 getVel(EntityId entity) {
+  void setVelXY(EntityId entity, double x, double y) {
     final i = indexOf(entity);
-    return Vec2(velX[i], velY[i]);
-  }
-
-  void setPos(EntityId entity, Vec2 value) {
-    final i = indexOf(entity);
-    posX[i] = value.x;
-    posY[i] = value.y;
-  }
-
-  void setVel(EntityId entity, Vec2 value) {
-    final i = indexOf(entity);
-    velX[i] = value.x;
-    velY[i] = value.y;
+    velX[i] = x;
+    velY[i] = y;
   }
 
   @override
