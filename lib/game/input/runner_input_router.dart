@@ -14,6 +14,8 @@ class RunnerInputRouter {
 
   final GameController controller;
 
+  static const double _aimQuantizeScale = 256.0;
+
   double _moveAxis = 0;
   double _lastScheduledAxis = 0;
   int _axisScheduledThroughTick = 0;
@@ -26,15 +28,27 @@ class RunnerInputRouter {
   double _lastScheduledAimY = 0;
   int _aimScheduledThroughTick = 0;
 
+  static double _quantizeAim(double value) {
+    if (value == 0) return 0;
+    return (value * _aimQuantizeScale).roundToDouble() / _aimQuantizeScale;
+  }
+
   void setMoveAxis(double axis) {
     _moveAxis = axis.clamp(-1.0, 1.0);
   }
 
   /// Sets the aim direction (should be normalized or near-normalized).
   void setAimDir(double x, double y) {
+    final qx = _quantizeAim(x);
+    final qy = _quantizeAim(y);
+
+    if (_aimSet && qx == _aimX && qy == _aimY) {
+      return;
+    }
+
     _aimSet = true;
-    _aimX = x;
-    _aimY = y;
+    _aimX = qx;
+    _aimY = qy;
   }
 
   void clearAimDir() {
