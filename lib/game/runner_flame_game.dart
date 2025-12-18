@@ -14,6 +14,7 @@ import 'package:flutter/widgets.dart';
 import '../core/commands/command.dart';
 import '../core/contracts/v0_render_contract.dart';
 import '../core/snapshots/entity_render_snapshot.dart';
+import '../core/snapshots/static_solid_snapshot.dart';
 import 'components/pixel_parallax_backdrop_component.dart';
 import 'components/tiled_ground_band_component.dart';
 import 'game_controller.dart';
@@ -33,6 +34,7 @@ class RunnerFlameGame extends FlameGame with KeyboardEvents {
 
   late final CircleComponent _player;
   late final TextComponent _debugText;
+  final List<RectangleComponent> _staticSolids = <RectangleComponent>[];
 
   // Keyboard input (dev/desktop): schedule tick-stamped commands.
   double _moveAxis = 0;
@@ -115,6 +117,8 @@ class RunnerFlameGame extends FlameGame with KeyboardEvents {
     );
     world.add(_player);
 
+    _mountStaticSolids(controller.snapshot.staticSolids);
+
     _debugText = TextComponent(
       text: '',
       position: Vector2(8, 8),
@@ -153,9 +157,28 @@ class RunnerFlameGame extends FlameGame with KeyboardEvents {
 
     assert(() {
       _debugText.text =
-          'tick=${snapshot.tick} seed=${snapshot.seed} x=${player?.pos.x.toStringAsFixed(1) ?? '-'}';
+          'tick=${snapshot.tick} seed=${snapshot.seed} x=${player?.pos.x.toStringAsFixed(1) ?? '-'} y=${player?.pos.y.toStringAsFixed(1) ?? '-'} anim=${player?.anim.name ?? '-'}';
       return true;
     }());
+  }
+
+  void _mountStaticSolids(List<StaticSolidSnapshot> solids) {
+    if (solids.isEmpty) return;
+
+    for (final solid in solids) {
+      final color = solid.oneWayTop
+          ? const Color(0x6648BB78) // green-ish translucent
+          : const Color(0x668B5CF6); // purple translucent
+
+      final rect = RectangleComponent(
+        position: Vector2(solid.minX, solid.minY),
+        size: Vector2(solid.maxX - solid.minX, solid.maxY - solid.minY),
+        paint: Paint()..color = color,
+      );
+      rect.priority = -5;
+      _staticSolids.add(rect);
+      world.add(rect);
+    }
   }
 
   @override

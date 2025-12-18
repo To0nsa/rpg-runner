@@ -5,6 +5,7 @@
 // the app.
 import 'entity_render_snapshot.dart';
 import 'player_hud_snapshot.dart';
+import 'static_solid_snapshot.dart';
 
 /// Snapshot of the current game state at a specific simulation tick.
 class GameStateSnapshot {
@@ -15,6 +16,7 @@ class GameStateSnapshot {
     required this.paused,
     required this.hud,
     required this.entities,
+    required this.staticSolids,
   });
 
   /// Current simulation tick.
@@ -34,4 +36,7 @@ class GameStateSnapshot {
 
   /// Render-only entity list for the current tick.
   final List<EntityRenderSnapshot> entities;
+
+  /// Render-only static collision geometry (platforms/obstacles) for this run.
+  final List<StaticSolidSnapshot> staticSolids;
 }

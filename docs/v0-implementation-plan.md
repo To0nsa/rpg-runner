@@ -99,6 +99,7 @@ Acceptance:
   - [x] `JumpPressed`
   - [x] `DashPressed` (wired and has gameplay effect in Core)
 - [ ] Snapshot includes enough data to render player/platforms/obstacles and grounded state (for animation later).
+- [x] Snapshot includes enough data to render player/platforms/obstacles (via `staticSolids`); grounded is available indirectly via anim key for now.
 - [x] Core unit tests for movement feel (accel, jump, buffer, dash)
 
 Acceptance:

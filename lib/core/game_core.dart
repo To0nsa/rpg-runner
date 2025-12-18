@@ -19,7 +19,32 @@ import 'snapshots/enums.dart';
 import 'snapshots/entity_render_snapshot.dart';
 import 'snapshots/game_state_snapshot.dart';
 import 'snapshots/player_hud_snapshot.dart';
+import 'snapshots/static_solid_snapshot.dart';
 import 'tuning/v0_movement_tuning.dart';
+
+const StaticWorldGeometry v0DefaultStaticWorldGeometry = StaticWorldGeometry(
+  solids: <StaticSolid>[
+    // A small one-way platform to validate collisions/visuals.
+    StaticSolid(
+      minX: 120,
+      minY: 200,
+      maxX: 280,
+      maxY: 216,
+      sides: StaticSolid.sideTop,
+      oneWayTop: true,
+    ),
+
+    // A simple obstacle block to validate side collisions + jumping.
+    StaticSolid(
+      minX: 320,
+      minY: 220,
+      maxX: 344,
+      maxY: v0GroundTopY * 1.0,
+      sides: StaticSolid.sideAll,
+      oneWayTop: false,
+    ),
+  ],
+);
 
 /// Minimal placeholder `GameCore` used to validate architecture wiring.
 ///
@@ -32,11 +57,12 @@ class GameCore {
     this.tickHz = v0DefaultTickHz,
     V0MovementTuning movementTuning = const V0MovementTuning(),
     BodyDef? playerBody,
-    this.staticWorldGeometry = const StaticWorldGeometry(),
+    StaticWorldGeometry? staticWorldGeometry,
   }) : _movement = V0MovementTuningDerived.from(
          movementTuning,
          tickHz: tickHz,
-       ) {
+       ),
+       staticWorldGeometry = staticWorldGeometry ?? v0DefaultStaticWorldGeometry {
     _world = EcsWorld();
     _movementSystem = MovementSystem();
     _collisionSystem = CollisionSystem();
@@ -78,6 +104,20 @@ class GameCore {
 
   /// Static world geometry for this run/session.
   final StaticWorldGeometry staticWorldGeometry;
+
+  late final List<StaticSolidSnapshot> _staticSolidsSnapshot =
+      List<StaticSolidSnapshot>.unmodifiable(
+        staticWorldGeometry.solids.map(
+          (s) => StaticSolidSnapshot(
+            minX: s.minX,
+            minY: s.minY,
+            maxX: s.maxX,
+            maxY: s.maxY,
+            sides: s.sides,
+            oneWayTop: s.oneWayTop,
+          ),
+        ),
+      );
 
   final V0MovementTuningDerived _movement;
 
@@ -201,6 +241,7 @@ class GameCore {
           anim: anim,
         ),
       ],
+      staticSolids: _staticSolidsSnapshot,
     );
   }
 }
