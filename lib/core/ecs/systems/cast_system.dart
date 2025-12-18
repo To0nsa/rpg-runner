@@ -5,6 +5,7 @@ import '../../projectiles/projectile_catalog.dart';
 import '../../snapshots/enums.dart';
 import '../../spells/spell_catalog.dart';
 import '../../spells/spell_id.dart';
+import '../../util/double_math.dart';
 import '../../tuning/v0_ability_tuning.dart';
 import '../../tuning/v0_movement_tuning.dart';
 import '../entity_id.dart';
@@ -53,9 +54,11 @@ class CastSystem {
     final mana = world.mana.mana[mi];
     if (mana < spellStats.manaCost) return;
 
-    world.mana.mana[mi] = (mana - spellStats.manaCost)
-        .clamp(0.0, world.mana.manaMax[mi])
-        .toDouble();
+    world.mana.mana[mi] = clampDouble(
+      mana - spellStats.manaCost,
+      0.0,
+      world.mana.manaMax[mi],
+    );
 
     world.cooldown.castCooldownTicksLeft[ci] = abilities.castCooldownTicks;
 

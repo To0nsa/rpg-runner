@@ -1,5 +1,4 @@
-import 'dart:math';
-
+import '../../util/double_math.dart';
 import '../world.dart';
 
 class ResourceRegenSystem {
@@ -18,7 +17,7 @@ class ResourceRegenSystem {
       if (current >= max) continue;
       final regen = store.regenPerSecond[i];
       if (regen <= 0) continue;
-      store.hp[i] = _clampDouble(current + regen * dtSeconds, 0, max);
+      store.hp[i] = clampDouble(current + regen * dtSeconds, 0.0, max);
     }
   }
 
@@ -31,7 +30,7 @@ class ResourceRegenSystem {
       if (current >= max) continue;
       final regen = store.regenPerSecond[i];
       if (regen <= 0) continue;
-      store.mana[i] = _clampDouble(current + regen * dtSeconds, 0, max);
+      store.mana[i] = clampDouble(current + regen * dtSeconds, 0.0, max);
     }
   }
 
@@ -44,9 +43,7 @@ class ResourceRegenSystem {
       if (current >= max) continue;
       final regen = store.regenPerSecond[i];
       if (regen <= 0) continue;
-      store.stamina[i] = _clampDouble(current + regen * dtSeconds, 0, max);
+      store.stamina[i] = clampDouble(current + regen * dtSeconds, 0.0, max);
     }
   }
-
-  double _clampDouble(double v, double lo, double hi) => max(lo, min(hi, v));
 }

@@ -1,4 +1,5 @@
 import '../../combat/damage.dart';
+import '../../util/double_math.dart';
 import '../world.dart';
 
 class DamageSystem {
@@ -16,10 +17,12 @@ class DamageSystem {
     for (final req in _pending) {
       if (!health.has(req.target)) continue;
       final hi = health.indexOf(req.target);
-      final next = (health.hp[hi] - req.amount).clamp(0.0, health.hpMax[hi]);
-      health.hp[hi] = next.toDouble();
+      health.hp[hi] = clampDouble(
+        health.hp[hi] - req.amount,
+        0.0,
+        health.hpMax[hi],
+      );
     }
     _pending.clear();
   }
 }
-
