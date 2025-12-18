@@ -37,8 +37,6 @@ class CollisionSystem {
       // Kinematic bodies are excluded from physics integration/resolution.
       if (world.body.isKinematic[bi]) {
         world.collision.grounded[coli] = false;
-        final mi = world.movement.tryIndexOf(e);
-        if (mi != null) world.movement.grounded[mi] = false;
         continue;
       }
 
@@ -47,9 +45,6 @@ class CollisionSystem {
       world.collision.hitCeiling[coli] = false;
       world.collision.hitLeft[coli] = false;
       world.collision.hitRight[coli] = false;
-
-      final mi = world.movement.tryIndexOf(e);
-      if (mi != null) world.movement.grounded[mi] = false;
 
       final prevPosX = world.transform.posX[ti];
       final prevPosY = world.transform.posY[ti];
@@ -136,7 +131,6 @@ class CollisionSystem {
           world.transform.velY[ti] = 0;
         }
         world.collision.grounded[coli] = true;
-        if (mi != null) world.movement.grounded[mi] = true;
       } else if (bestBottomY != null) {
         world.transform.posY[ti] = bestBottomY - offsetY + halfY;
         if (world.transform.velY[ti] < 0) {

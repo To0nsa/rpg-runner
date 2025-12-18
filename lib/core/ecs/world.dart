@@ -38,10 +38,11 @@ class EcsWorld {
     final id = createEntity();
     transform.add(id, pos: pos, vel: vel);
     playerInput.add(id);
-    movement.add(id, grounded: grounded, facing: facing);
+    movement.add(id, facing: facing);
     this.body.add(id, body);
     colliderAabb.add(id, collider);
     collision.add(id);
+    collision.grounded[collision.indexOf(id)] = grounded;
     return id;
   }
 }

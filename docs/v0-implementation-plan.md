@@ -85,7 +85,7 @@ Acceptance:
 - [x] Core components:
   - [x] `Transform` (pos/vel)
   - [x] `PlayerInput` (tick-scoped input decoded from Commands)
-  - [x] `Movement` (grounded + timers: coyote/jump-buffer/dash)
+    - [x] `Movement` (timers/state: coyote/jump-buffer/dash; reads grounded from `CollisionState`)
   - [x] `Body`
   - [x] `ColliderAabb`, `CollisionState`
 - [x] Core systems:

@@ -21,17 +21,18 @@ class MovementSystem {
       final EntityId e = world.movement.denseEntities[mi];
       if (!world.transform.has(e) ||
           !world.playerInput.has(e) ||
-          !world.body.has(e)) {
+          !world.body.has(e) ||
+          !world.collision.has(e)) {
         continue;
       }
 
       final ti = world.transform.indexOf(e);
       final ii = world.playerInput.indexOf(e);
       final bi = world.body.indexOf(e);
+      final ci = world.collision.indexOf(e);
 
       if (!world.body.enabled[bi]) continue;
       if (world.body.isKinematic[bi]) {
-        world.movement.grounded[mi] = false;
         continue;
       }
 
@@ -46,7 +47,7 @@ class MovementSystem {
         world.movement.jumpBufferTicksLeft[mi] -= 1;
       }
 
-      final wasGrounded = world.movement.grounded[mi];
+      final wasGrounded = world.collision.grounded[ci];
       if (wasGrounded) {
         world.movement.coyoteTicksLeft[mi] = tuning.coyoteTicks;
       } else if (world.movement.coyoteTicksLeft[mi] > 0) {

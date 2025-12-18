@@ -142,7 +142,7 @@ class GameCore {
   set playerVel(Vec2 value) => _world.transform.setVel(_player, value);
 
   bool get playerGrounded =>
-      _world.movement.grounded[_world.movement.indexOf(_player)];
+      _world.collision.grounded[_world.collision.indexOf(_player)];
 
   Facing get playerFacing =>
       _world.movement.facing[_world.movement.indexOf(_player)];
@@ -203,7 +203,7 @@ class GameCore {
     final tuning = _movement.base;
     final mi = _world.movement.indexOf(_player);
     final dashing = _world.movement.dashTicksLeft[mi] > 0;
-    final onGround = _world.movement.grounded[mi];
+    final onGround = _world.collision.grounded[_world.collision.indexOf(_player)];
 
     final AnimKey anim;
     if (dashing) {

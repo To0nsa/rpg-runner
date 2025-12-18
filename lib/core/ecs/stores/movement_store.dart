@@ -4,7 +4,6 @@ import '../sparse_set.dart';
 
 /// Movement state for platformer-style motion (timers + grounded + facing).
 class MovementStore extends SparseSet {
-  final List<bool> grounded = <bool>[];
   final List<int> coyoteTicksLeft = <int>[];
   final List<int> jumpBufferTicksLeft = <int>[];
 
@@ -14,9 +13,8 @@ class MovementStore extends SparseSet {
 
   final List<Facing> facing = <Facing>[];
 
-  void add(EntityId entity, {required bool grounded, required Facing facing}) {
+  void add(EntityId entity, {required Facing facing}) {
     final i = addEntity(entity);
-    this.grounded[i] = grounded;
     this.facing[i] = facing;
   }
 
@@ -24,7 +22,6 @@ class MovementStore extends SparseSet {
 
   @override
   void onDenseAdded(int denseIndex) {
-    grounded.add(false);
     coyoteTicksLeft.add(0);
     jumpBufferTicksLeft.add(0);
     dashTicksLeft.add(0);
@@ -35,7 +32,6 @@ class MovementStore extends SparseSet {
 
   @override
   void onSwapRemove(int removeIndex, int lastIndex) {
-    grounded[removeIndex] = grounded[lastIndex];
     coyoteTicksLeft[removeIndex] = coyoteTicksLeft[lastIndex];
     jumpBufferTicksLeft[removeIndex] = jumpBufferTicksLeft[lastIndex];
     dashTicksLeft[removeIndex] = dashTicksLeft[lastIndex];
@@ -43,7 +39,6 @@ class MovementStore extends SparseSet {
     dashDirX[removeIndex] = dashDirX[lastIndex];
     facing[removeIndex] = facing[lastIndex];
 
-    grounded.removeLast();
     coyoteTicksLeft.removeLast();
     jumpBufferTicksLeft.removeLast();
     dashTicksLeft.removeLast();

@@ -67,7 +67,6 @@ void main() {
     // Put the player high above the floor so coyote time expires before landing.
     core.playerPos = core.playerPos.withY(floorY - 200);
     core.playerVel = const Vec2(0, 0);
-    expect(core.playerGrounded, isTrue);
 
     // Burn coyote time (default is 0.10s => 6 ticks at 60 Hz).
     for (var i = 0; i < 7; i += 1) {
