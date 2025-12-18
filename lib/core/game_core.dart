@@ -239,6 +239,7 @@ class GameCore {
           vel: playerVel,
           facing: playerFacing,
           anim: anim,
+          grounded: onGround,
         ),
       ],
       staticSolids: _staticSolidsSnapshot,

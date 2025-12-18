@@ -82,15 +82,15 @@ Acceptance:
 - [x] ECS foundation (Core):
   - SoA + sparse-set storage (`EcsWorld`, component stores, swap-remove)
   - Monotonic, never-reused `EntityId`
-- [ ] Core components:
+- [x] Core components:
   - [x] `Transform` (pos/vel)
   - [x] `PlayerInput` (tick-scoped input decoded from Commands)
   - [x] `Movement` (grounded + timers: coyote/jump-buffer/dash)
   - [x] `Body`
   - [x] `ColliderAabb`, `CollisionState`
-- [ ] Core systems:
+- [x] Core systems:
   - [x] `MovementSystem` (accel/decel, gravity, coyote time, jump buffer, dash; writes velocities only)
-  - [ ] `CollisionSystem` (integrates + resolves):
+  - [x] `CollisionSystem` (integrates + resolves):
     - [x] ground band (V0 equivalent of the old clamp)
     - [x] one-way platform tops (AABB, vertical-only)
     - [x] obstacles + side walls (AABB, sideMask; horizontal-only for now)
@@ -98,8 +98,8 @@ Acceptance:
   - [x] `MoveAxis` (from keyboard)
   - [x] `JumpPressed`
   - [x] `DashPressed` (wired and has gameplay effect in Core)
-- [ ] Snapshot includes enough data to render player/platforms/obstacles and grounded state (for animation later).
-- [x] Snapshot includes enough data to render player/platforms/obstacles (via `staticSolids`); grounded is available indirectly via anim key for now.
+- [x] Snapshot includes enough data to render player/platforms/obstacles and grounded state (for animation later).
+- [x] Snapshot includes enough data to render player/platforms/obstacles (via `staticSolids`) and grounded state (via `EntityRenderSnapshot.grounded`).
 - [x] Core unit tests for movement feel (accel, jump, buffer, dash)
 
 Acceptance:
@@ -188,7 +188,7 @@ Acceptance:
 
 ## Minimal Tests (Add When Core Exists)
 
-- [ ] Determinism test: same seed + same command stream => identical snapshots (or snapshot hash) after N ticks.
+- [x] Determinism test: same seed + same command stream => identical snapshots (or snapshot hash) after N ticks.
 - [x] Collision test: jump/land results in grounded at expected ticks.
 - [x] Platform collision tests: land, pass-through from below, walk off ledge.
 - [x] Obstacle collision tests: side walls + sideMask.

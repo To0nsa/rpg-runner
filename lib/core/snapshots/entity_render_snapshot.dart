@@ -13,6 +13,7 @@ class EntityRenderSnapshot {
     required this.pos,
     required this.facing,
     required this.anim,
+    required this.grounded,
     this.vel,
     this.z,
     this.animFrame,
@@ -35,6 +36,11 @@ class EntityRenderSnapshot {
 
   /// Facing direction for choosing sprites/poses.
   final Facing facing;
+
+  /// Whether the entity is grounded at the end of the tick.
+  ///
+  /// This is authoritative collision state from Core (do not infer from anim).
+  final bool grounded;
 
   /// Logical animation selection (renderer maps to assets).
   final AnimKey anim;
