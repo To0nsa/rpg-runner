@@ -1,0 +1,18 @@
+﻿assets/images/entities/player/cast.png
+assets/images/entities/player/dash.png
+assets/images/entities/player/death.png
+assets/images/entities/player/fall.png
+assets/images/entities/player/hit.png
+assets/images/entities/player/idle.png
+assets/images/entities/player/jump.png
+assets/images/entities/player/move.png
+assets/images/parallax/field/Field Layer 01.png
+assets/images/parallax/field/Field Layer 02.png
+assets/images/parallax/field/Field Layer 03.png
+assets/images/parallax/field/Field Layer 04.png
+assets/images/parallax/field/Field Layer 05.png
+assets/images/parallax/field/Field Layer 06.png
+assets/images/parallax/field/Field Layer 07.png
+assets/images/parallax/field/Field Layer 08.png
+assets/images/parallax/field/Field Layer 09.png
+assets/images/parallax/field/Field Layer 10.png

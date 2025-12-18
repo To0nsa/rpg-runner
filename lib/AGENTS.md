@@ -4,7 +4,7 @@ Instructions for AI coding agents (Codex, ChatGPT, etc.) when working in this re
 
 ## Project mission
 
-Port an existing **SFML/C++ 2D runner** into **Flutter (Dart) + Flame** while preserving gameplay feel and making the result **production-grade** (mobile performance, clean architecture, future online-ready).
+Port an existing **SFML/C++ 2D runner** (tools\output\c++implementation.txt)into **Flutter (Dart) + Flame** while preserving gameplay feel and making the result **production-grade** (mobile performance, clean architecture, future online-ready).
 
 ## Working style (how to collaborate)
 
@@ -106,6 +106,10 @@ If you deviate, explain why and keep the same boundaries.
 
 ## Code quality rules (Dart/Flutter)
 
+- Keep the codebase modular and scalable:
+  - prefer small, cohesive modules with clear boundaries
+  - avoid tight coupling across Core/Render/UI; depend on stable contracts instead
+  - keep public embedding API stable (`lib/runner.dart`), treat internal folders as refactorable
 - Keep responsibilities narrow; avoid "god" classes that mix input/sim/render.
 - Prefer explicit data flow: Commands in, snapshots/events out.
 - Keep Core allocation-light: avoid per-tick new Lists/Maps in hot loops.
@@ -113,7 +117,10 @@ If you deviate, explain why and keep the same boundaries.
 - No `dynamic` in gameplay code (prefer typed payloads; if a temporary map is unavoidable, confine it to UI/debug only).
 - Make side effects explicit: Core returns events; render/UI consume them.
 - Keep changes consistent with existing style; avoid renames/reformatting unrelated code.
-- Add unit tests for Core math/systems when possible (`dart test`).
+- Add/extend tests when relevant (especially when new behavior is introduced or existing behavior changes):
+  - Core behavior: unit tests in `test/core/**` (`dart test`)
+  - UI/viewport/widget behavior: widget tests where appropriate
+- Keep docs in sync with code: update relevant docs whenever behavior, contracts, milestones, or public APIs change.
 
 ## What an agent must do on each task
 
@@ -123,11 +130,12 @@ When asked to implement/fix something:
 2. Check for an existing solution/pattern that already fits the goal (repo + Flame + packages).
 3. Propose a minimal plan (1-3 steps) and acceptance criteria.
 4. Implement with deterministic rules intact.
-5. Update docs/comments when a change affects contracts or usage:
+5. Update docs/comments whenever a change affects behavior, contracts, milestones, or usage:
    - update `docs/plan.md` if architecture rules/contracts change
    - update `docs/v0-implementation-plan.md` if milestone checklist changes
    - update top-of-file docs and public API docs (`lib/runner.dart`, route/widget docs) when embedding/API expectations change
-5. Provide:
+6. Add/extend relevant tests when new behavior is introduced or existing behavior changes (especially Core determinism and systems).
+7. Provide:
    - files changed + why
    - how to run/verify (build + quick sanity checks)
    - follow-ups (next incremental step)
