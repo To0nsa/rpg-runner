@@ -92,7 +92,8 @@ Acceptance:
   - [x] `MovementSystem` (accel/decel, gravity, coyote time, jump buffer, dash; writes velocities only)
   - [ ] `CollisionSystem` (integrates + resolves):
     - [x] ground band (V0 equivalent of the old clamp)
-    - [ ] platforms + obstacles (AABB)
+    - [x] one-way platform tops (AABB, vertical-only)
+    - [ ] obstacles + side walls (AABB, sideMask)
 - [x] Commands:
   - [x] `MoveAxis` (from keyboard)
   - [x] `JumpPressed`
@@ -188,3 +189,4 @@ Acceptance:
 
 - [ ] Determinism test: same seed + same command stream => identical snapshots (or snapshot hash) after N ticks.
 - [x] Collision test: jump/land results in grounded at expected ticks.
+- [x] Platform collision tests: land, pass-through from below, walk off ledge.

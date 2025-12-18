@@ -2,9 +2,11 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $root    = (Resolve-Path ".").Path
-$bundle  = Join-Path $root "src-bundle.txt"
-$treeOut = Join-Path $root "tree.txt"
-$assetsOut = Join-Path $root "assets-list.txt"
+$bundle  = Join-Path $root "tools/output/src-bundle-flutter.txt"
+$treeOut = Join-Path $root "tools/output/tree.txt"
+$assetsOut = Join-Path $root "tools/output/assets-list.txt"
+$outputDir = Join-Path $root "tools/output"
+New-Item -ItemType Directory -Force -Path $outputDir
 
 # Prefer git: deterministic + ignores build junk by default
 git rev-parse --is-inside-work-tree *> $null

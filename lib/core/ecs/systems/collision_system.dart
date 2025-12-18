@@ -1,4 +1,5 @@
 import '../../contracts/v0_render_contract.dart';
+import '../../collision/static_world_geometry.dart';
 import '../../tuning/v0_movement_tuning.dart';
 import '../entity_id.dart';
 import '../world.dart';
@@ -10,8 +11,13 @@ import '../world.dart';
 /// - CollisionSystem integrates `pos += vel * dt`, resolves collisions, and
 ///   finalizes grounded/contact state for the tick.
 class CollisionSystem {
-  void step(EcsWorld world, V0MovementTuningDerived tuning) {
+  void step(
+    EcsWorld world,
+    V0MovementTuningDerived tuning, {
+    required StaticWorldGeometry staticWorldGeometry,
+  }) {
     final dt = tuning.dtSeconds;
+    const eps = 1e-3;
 
     // Iterate colliders as the collision "query" for V0.
     for (var ci = 0; ci < world.colliderAabb.denseEntities.length; ci += 1) {
@@ -44,17 +50,60 @@ class CollisionSystem {
       final mi = world.movement.tryIndexOf(e);
       if (mi != null) world.movement.grounded[mi] = false;
 
+      //final prevPosX = world.transform.posX[ti];
+      final prevPosY = world.transform.posY[ti];
+
       // Integrate position from the current velocity.
       world.transform.posX[ti] += world.transform.velX[ti] * dt;
       world.transform.posY[ti] += world.transform.velY[ti] * dt;
 
-      // V0 ground collision:
-      // Treat the ground band as an infinite solid with a top at `v0GroundTopY`.
-      final bottom =
-          world.transform.posY[ti] + world.colliderAabb.offsetY[aabbi] + world.colliderAabb.halfY[aabbi];
-      if (bottom > v0GroundTopY) {
-        world.transform.posY[ti] =
-            v0GroundTopY - world.colliderAabb.offsetY[aabbi] - world.colliderAabb.halfY[aabbi];
+      final halfX = world.colliderAabb.halfX[aabbi];
+      final halfY = world.colliderAabb.halfY[aabbi];
+      final offsetX = world.colliderAabb.offsetX[aabbi];
+      final offsetY = world.colliderAabb.offsetY[aabbi];
+
+      //final prevCenterX = prevPosX + offsetX;
+      final prevCenterY = prevPosY + offsetY;
+      final prevBottom = prevCenterY + halfY;
+
+      final centerX = world.transform.posX[ti] + offsetX;
+      final centerY = world.transform.posY[ti] + offsetY;
+      final minX = centerX - halfX;
+      final maxX = centerX + halfX;
+      final bottom = centerY + halfY;
+
+      // Vertical top resolution (one-way platforms): only while moving downward.
+      double? bestTopY;
+      if (world.transform.velY[ti] > 0) {
+        for (final solid in staticWorldGeometry.solids) {
+          final overlapX = maxX > solid.minX + eps && minX < solid.maxX - eps;
+          if (!overlapX) continue;
+
+          final topY = solid.minY;
+          final crossesTop =
+              prevBottom <= topY + eps && bottom >= topY - eps;
+          if (!crossesTop) continue;
+
+          if (bestTopY == null || topY < bestTopY) {
+            bestTopY = topY;
+          }
+        }
+      }
+
+      // Ground is treated as an infinite solid with a top at `v0GroundTopY`.
+      // It competes with platforms: if a platform is higher (smaller Y), it
+      // should win.
+      final groundTopY = v0GroundTopY.toDouble();
+      if (world.transform.velY[ti] > 0 &&
+          prevBottom <= groundTopY + eps &&
+          bottom >= groundTopY - eps) {
+        if (bestTopY == null || groundTopY < bestTopY) {
+          bestTopY = groundTopY;
+        }
+      }
+
+      if (bestTopY != null) {
+        world.transform.posY[ti] = bestTopY - offsetY - halfY;
         if (world.transform.velY[ti] > 0) {
           world.transform.velY[ti] = 0;
         }
@@ -64,4 +113,3 @@ class CollisionSystem {
     }
   }
 }
-

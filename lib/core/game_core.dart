@@ -6,6 +6,7 @@
 import 'dart:math';
 
 import 'commands/command.dart';
+import 'collision/static_world_geometry.dart';
 import 'contracts/v0_render_contract.dart';
 import 'ecs/entity_id.dart';
 import 'ecs/stores/collider_aabb_store.dart';
@@ -31,6 +32,7 @@ class GameCore {
     this.tickHz = v0DefaultTickHz,
     V0MovementTuning movementTuning = const V0MovementTuning(),
     BodyDef? playerBody,
+    this.staticWorldGeometry = const StaticWorldGeometry(),
   }) : _movement = V0MovementTuningDerived.from(
          movementTuning,
          tickHz: tickHz,
@@ -73,6 +75,9 @@ class GameCore {
 
   /// Fixed simulation tick frequency.
   final int tickHz;
+
+  /// Static world geometry for this run/session.
+  final StaticWorldGeometry staticWorldGeometry;
 
   final V0MovementTuningDerived _movement;
 
@@ -144,7 +149,11 @@ class GameCore {
 
     tick += 1;
     _movementSystem.step(_world, _movement);
-    _collisionSystem.step(_world, _movement);
+    _collisionSystem.step(
+      _world,
+      _movement,
+      staticWorldGeometry: staticWorldGeometry,
+    );
 
     distance += max(0.0, playerVel.x) * _movement.dtSeconds;
   }
