@@ -29,6 +29,7 @@ import 'snapshots/entity_render_snapshot.dart';
 import 'snapshots/game_state_snapshot.dart';
 import 'snapshots/player_hud_snapshot.dart';
 import 'snapshots/static_solid_snapshot.dart';
+import 'projectiles/projectile_catalog.dart';
 import 'spells/spell_catalog.dart';
 import 'tuning/v0_ability_tuning.dart';
 import 'tuning/v0_movement_tuning.dart';
@@ -72,6 +73,7 @@ class GameCore {
     V0ResourceTuning resourceTuning = const V0ResourceTuning(),
     V0AbilityTuning abilityTuning = const V0AbilityTuning(),
     SpellCatalog spellCatalog = const SpellCatalog(),
+    ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
     BodyDef? playerBody,
     StaticWorldGeometry? staticWorldGeometry,
   }) : _movement = V0MovementTuningDerived.from(
@@ -80,7 +82,11 @@ class GameCore {
        ),
        _resourceTuning = resourceTuning,
        _abilities = V0AbilityTuningDerived.from(abilityTuning, tickHz: tickHz),
-       _spells = SpellCatalogDerived.from(spellCatalog, tickHz: tickHz),
+       _spells = spellCatalog,
+       _projectiles = ProjectileCatalogDerived.from(
+         projectileCatalog,
+         tickHz: tickHz,
+       ),
        staticWorldGeometry = staticWorldGeometry ?? v0DefaultStaticWorldGeometry {
     _world = EcsWorld();
     _movementSystem = MovementSystem();
@@ -91,6 +97,7 @@ class GameCore {
     _resourceRegenSystem = ResourceRegenSystem();
     _castSystem = CastSystem(
       spells: _spells,
+      projectiles: _projectiles,
       abilities: _abilities,
       movement: _movement,
     );
@@ -169,7 +176,8 @@ class GameCore {
   final V0MovementTuningDerived _movement;
   final V0ResourceTuning _resourceTuning;
   final V0AbilityTuningDerived _abilities;
-  final SpellCatalogDerived _spells;
+  final SpellCatalog _spells;
+  final ProjectileCatalogDerived _projectiles;
 
   late final EcsWorld _world;
   late final MovementSystem _movementSystem;
@@ -300,16 +308,16 @@ class GameCore {
       ),
     ];
 
-    final projectiles = _world.projectile;
-    for (var pi = 0; pi < projectiles.denseEntities.length; pi += 1) {
-      final e = projectiles.denseEntities[pi];
+    final projectileStore = _world.projectile;
+    for (var pi = 0; pi < projectileStore.denseEntities.length; pi += 1) {
+      final e = projectileStore.denseEntities[pi];
       if (!(_world.transform.has(e))) continue;
       final ti = _world.transform.indexOf(e);
 
-      final spellId = projectiles.spellId[pi];
-      final colliderSize = _spells.base.get(spellId).projectile.colliderSize;
+      final projectileId = projectileStore.projectileId[pi];
+      final colliderSize = _projectiles.base.get(projectileId).colliderSize;
 
-      final dx = projectiles.dirX[pi];
+      final dx = projectileStore.dirX[pi];
       final facing = dx >= 0 ? Facing.right : Facing.left;
 
       entities.add(
@@ -319,6 +327,7 @@ class GameCore {
           pos: Vec2(_world.transform.posX[ti], _world.transform.posY[ti]),
           vel: Vec2(_world.transform.velX[ti], _world.transform.velY[ti]),
           size: colliderSize,
+          projectileId: projectileId,
           facing: facing,
           anim: AnimKey.idle,
           grounded: false,

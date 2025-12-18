@@ -11,6 +11,7 @@ import 'stores/mana_store.dart';
 import 'stores/movement_store.dart';
 import 'stores/player_input_store.dart';
 import 'stores/projectile_store.dart';
+import 'stores/spell_origin_store.dart';
 import 'stores/stamina_store.dart';
 import 'stores/transform_store.dart';
 
@@ -32,6 +33,7 @@ class EcsWorld {
   final StaminaStore stamina = StaminaStore();
   final ProjectileStore projectile = ProjectileStore();
   final LifetimeStore lifetime = LifetimeStore();
+  final SpellOriginStore spellOrigin = SpellOriginStore();
 
   EntityId createEntity() {
     final id = _nextEntityId;
@@ -78,5 +80,6 @@ class EcsWorld {
     stamina.removeEntity(entity);
     projectile.removeEntity(entity);
     lifetime.removeEntity(entity);
+    spellOrigin.removeEntity(entity);
   }
 }

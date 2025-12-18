@@ -3,6 +3,7 @@
 // This is a read-only, serializable view of entity state for rendering only.
 // It must not leak internal core storage details.
 import '../math/vec2.dart';
+import '../projectiles/projectile_id.dart';
 import 'enums.dart';
 
 /// Render-only view of an entity.
@@ -16,6 +17,7 @@ class EntityRenderSnapshot {
     required this.grounded,
     this.vel,
     this.size,
+    this.projectileId,
     this.z,
     this.animFrame,
   });
@@ -36,6 +38,9 @@ class EntityRenderSnapshot {
   ///
   /// Render-only hint for placeholder shapes (e.g. projectile rectangles).
   final Vec2? size;
+
+  /// Optional projectile archetype id (set when [kind] is [EntityKind.projectile]).
+  final ProjectileId? projectileId;
 
   /// Optional sort key for render ordering.
   final double? z;

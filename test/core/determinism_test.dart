@@ -25,6 +25,7 @@ String _digest(GameCore core) {
       if (e.vel != null) 'vy=${e.vel!.y.toStringAsFixed(6)}',
       if (e.size != null) 'sx=${e.size!.x.toStringAsFixed(6)}',
       if (e.size != null) 'sy=${e.size!.y.toStringAsFixed(6)}',
+      if (e.projectileId != null) 'pid=${e.projectileId!.name}',
       'f=${e.facing.name}',
       'a=${e.anim.name}',
       'g=${e.grounded}',

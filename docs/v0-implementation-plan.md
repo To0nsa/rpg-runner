@@ -174,27 +174,30 @@ Design goals:
 
 ### 5.1 Spell data (catalog)
 
-- [ ] Add a minimal `SpellCatalog` in Core (pure data; deterministic; no assets):
-  - `IceBolt` stats: `manaCost=10`, `damage=25`, `speed=1600`, `lifetime=1.0s`, `colliderSize=(18,8)` (from C++ reference)
+- [x] Add a minimal `SpellCatalog` in Core (pure data; deterministic; no assets):
+  - `IceBolt` spell stats: `manaCost=10`, `damage=25`, `projectileId=iceBolt`
+  - (later) `Lightning` spell stats: `manaCost=10`, `damage=10`, `projectileId=lightningBolt` (Milestone 7)
+- [x] Add a minimal `ProjectileCatalog` in Core (pure data; deterministic; no assets):
+  - `IceBolt` projectile stats: `speed=1600`, `lifetime=1.0s`, `colliderSize=(18,8)` (from C++ reference)
     - collider size is full extents; derive AABB half-extents `(9,4)` at runtime
-  - (later) `Lightning` for the flying enemy (Milestone 7)
-- [ ] Decide on time units:
+  - (later) `LightningBolt` projectile stats: `speed=900`, `lifetime=1.2s`, `colliderSize=(16,8)` (Milestone 7)
+- [x] Decide on time units:
   - store tuning as "per second" / "seconds" floats, but convert to integer ticks at runtime (or store both)
   - use `ceil(seconds * tickHz)` for tick conversions (matches existing tuning pattern)
 
 ### 5.2 Casting (player ability)
 
-- [ ] Add `CooldownStore` in Core:
+- [x] Add `CooldownStore` in Core:
   - start with `castCooldownTicksLeft` (later: melee cooldown)
   - decrement it each tick and clamp at 0
-- [ ] Add cast tuning:
+- [x] Add cast tuning:
   - set `castCooldownSeconds = 0.25` and store it as seconds
   - derive to ticks via `ceil(seconds * tickHz)`
-- [ ] Add `CastSystem` (or `AbilitySystem` split into focused systems):
+- [x] Add `CastSystem` (or `AbilitySystem` split into focused systems):
   - reads `PlayerInput.castPressed` (edge-triggered) + `PlayerInput.aimDir`
   - checks `ManaStore` + `CooldownStore` (real cast cooldown)
   - spends mana, starts cooldown, directly creates projectile entities in core
-- [ ] Define cast semantics (match C++ first-pass):
+- [x] Define cast semantics (match C++ first-pass):
   - cast is ignored if insufficient mana
   - aim dir defaults to facing direction if `aimDir` is zero
   - spawn origin: `origin = playerPos + aimDir * (playerRadius * 0.5)` (config constant)
@@ -203,7 +206,8 @@ Design goals:
 ### 5.3 Projectile (ice bolt)
 
 - [x] Add projectile components:
-  - `ProjectileStore` (spellId, faction/owner, dir, speed, damage)
+  - `ProjectileStore` (projectileId, faction/owner, dir, speed, damage)
+  - `SpellOriginStore` (optional; only present for spell-spawned projectiles)
   - `LifetimeStore` (ticks remaining)
 - [x] Add `ProjectileSystem`:
   - integrates projectile position each tick
@@ -215,9 +219,9 @@ Design goals:
 
 ### 5.4 Tests (add as behavior is introduced)
 
-- [ ] Resource tests: regen clamps to max; spending cannot go below 0.
-- [ ] Cast tests: insufficient mana => no projectile; sufficient mana => projectile spawn + mana decrease + cooldown set.
-- [ ] Determinism extension: include resources + ability outputs in snapshot hash.
+- [x] Resource tests: regen clamps to max; spending cannot go below 0.
+- [x] Cast tests: insufficient mana => no projectile; sufficient mana => projectile spawn + mana decrease + cooldown set.
+- [x] Determinism extension: include resources + ability outputs in snapshot hash.
 
 Acceptance:
 - Cast spawns an `IceBolt` projectile; HUD reflects resource changes; no melee yet.

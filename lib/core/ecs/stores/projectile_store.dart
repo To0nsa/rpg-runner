@@ -1,11 +1,11 @@
 import '../../combat/faction.dart';
-import '../../spells/spell_id.dart';
+import '../../projectiles/projectile_id.dart';
 import '../entity_id.dart';
 import '../sparse_set.dart';
 
 class ProjectileDef {
   const ProjectileDef({
-    required this.spellId,
+    required this.projectileId,
     required this.faction,
     required this.owner,
     required this.dirX,
@@ -14,7 +14,7 @@ class ProjectileDef {
     required this.damage,
   });
 
-  final SpellId spellId;
+  final ProjectileId projectileId;
   final Faction faction;
   final EntityId owner;
   final double dirX;
@@ -24,7 +24,7 @@ class ProjectileDef {
 }
 
 class ProjectileStore extends SparseSet {
-  final List<SpellId> spellId = <SpellId>[];
+  final List<ProjectileId> projectileId = <ProjectileId>[];
   final List<Faction> faction = <Faction>[];
   final List<EntityId> owner = <EntityId>[];
   final List<double> dirX = <double>[];
@@ -34,7 +34,7 @@ class ProjectileStore extends SparseSet {
 
   void add(EntityId entity, ProjectileDef def) {
     final i = addEntity(entity);
-    spellId[i] = def.spellId;
+    projectileId[i] = def.projectileId;
     faction[i] = def.faction;
     owner[i] = def.owner;
     dirX[i] = def.dirX;
@@ -45,7 +45,7 @@ class ProjectileStore extends SparseSet {
 
   @override
   void onDenseAdded(int denseIndex) {
-    spellId.add(SpellId.iceBolt);
+    projectileId.add(ProjectileId.iceBolt);
     faction.add(Faction.player);
     owner.add(0);
     dirX.add(1.0);
@@ -56,7 +56,7 @@ class ProjectileStore extends SparseSet {
 
   @override
   void onSwapRemove(int removeIndex, int lastIndex) {
-    spellId[removeIndex] = spellId[lastIndex];
+    projectileId[removeIndex] = projectileId[lastIndex];
     faction[removeIndex] = faction[lastIndex];
     owner[removeIndex] = owner[lastIndex];
     dirX[removeIndex] = dirX[lastIndex];
@@ -64,7 +64,7 @@ class ProjectileStore extends SparseSet {
     speedUnitsPerSecond[removeIndex] = speedUnitsPerSecond[lastIndex];
     damage[removeIndex] = damage[lastIndex];
 
-    spellId.removeLast();
+    projectileId.removeLast();
     faction.removeLast();
     owner.removeLast();
     dirX.removeLast();

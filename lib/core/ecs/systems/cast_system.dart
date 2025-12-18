@@ -2,6 +2,7 @@ import 'dart:math';
 
 import '../../combat/faction.dart';
 import '../../math/vec2.dart';
+import '../../projectiles/projectile_catalog.dart';
 import '../../snapshots/enums.dart';
 import '../../spells/spell_catalog.dart';
 import '../../spells/spell_id.dart';
@@ -11,15 +12,18 @@ import '../entity_id.dart';
 import '../world.dart';
 import '../stores/lifetime_store.dart';
 import '../stores/projectile_store.dart';
+import '../stores/spell_origin_store.dart';
 
 class CastSystem {
   CastSystem({
     required this.spells,
+    required this.projectiles,
     required this.abilities,
     required this.movement,
   });
 
-  final SpellCatalogDerived spells;
+  final SpellCatalog spells;
+  final ProjectileCatalogDerived projectiles;
   final V0AbilityTuningDerived abilities;
   final V0MovementTuningDerived movement;
 
@@ -39,14 +43,20 @@ class CastSystem {
     if (world.cooldown.castCooldownTicksLeft[ci] > 0) return;
 
     const spellId = SpellId.iceBolt;
-    final def = spells.base.get(spellId).projectile;
+    final spell = spells.get(spellId);
+    final projectileId = spell.projectileId;
+    if (projectileId == null) return;
+
+    final spellStats = spell.stats;
+    final proj = projectiles.base.get(projectileId);
 
     final mi = world.mana.indexOf(player);
     final mana = world.mana.mana[mi];
-    if (mana < def.manaCost) return;
+    if (mana < spellStats.manaCost) return;
 
-    world.mana.mana[mi] =
-        (mana - def.manaCost).clamp(0.0, world.mana.manaMax[mi]).toDouble();
+    world.mana.mana[mi] = (mana - spellStats.manaCost)
+        .clamp(0.0, world.mana.manaMax[mi])
+        .toDouble();
 
     world.cooldown.castCooldownTicksLeft[ci] = abilities.castCooldownTicks;
 
@@ -70,18 +80,19 @@ class CastSystem {
     world.projectile.add(
       projEntity,
       ProjectileDef(
-        spellId: spellId,
+        projectileId: projectileId,
         faction: Faction.player,
         owner: player,
         dirX: aimDir.x,
         dirY: aimDir.y,
-        speedUnitsPerSecond: def.speedUnitsPerSecond,
-        damage: def.damage,
+        speedUnitsPerSecond: proj.speedUnitsPerSecond,
+        damage: spellStats.damage,
       ),
     );
+    world.spellOrigin.add(projEntity, const SpellOriginDef(spellId: spellId));
     world.lifetime.add(
       projEntity,
-      LifetimeDef(ticksLeft: spells.lifetimeTicks(spellId)),
+      LifetimeDef(ticksLeft: projectiles.lifetimeTicks(projectileId)),
     );
   }
 

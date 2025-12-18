@@ -1,0 +1,2 @@
+enum ProjectileId { iceBolt, lightningBolt }
+
