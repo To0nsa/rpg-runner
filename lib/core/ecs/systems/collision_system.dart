@@ -1,5 +1,4 @@
-import '../../contracts/v0_render_contract.dart';
-import '../../collision/static_world_geometry.dart';
+import '../../collision/static_world_geometry_index.dart';
 import '../../tuning/v0_movement_tuning.dart';
 import '../entity_id.dart';
 import '../stores/body_store.dart';
@@ -15,7 +14,7 @@ class CollisionSystem {
   void step(
     EcsWorld world,
     V0MovementTuningDerived tuning, {
-    required StaticWorldGeometry staticWorldGeometry,
+    required StaticWorldGeometryIndex staticWorld,
   }) {
     final dt = tuning.dtSeconds;
     const eps = 1e-3;
@@ -72,8 +71,7 @@ class CollisionSystem {
       // Vertical top resolution (one-way platforms): only while moving downward.
       double? bestTopY;
       if (world.transform.velY[ti] > 0) {
-        for (final solid in staticWorldGeometry.solids) {
-          if ((solid.sides & StaticSolid.sideTop) == 0) continue;
+        for (final solid in staticWorld.tops) {
           final overlapX = maxX > solid.minX + eps && minX < solid.maxX - eps;
           if (!overlapX) continue;
 
@@ -97,8 +95,7 @@ class CollisionSystem {
       double? bestBottomY;
       if (world.transform.velY[ti] < 0) {
         final prevTop = prevCenterY - halfY;
-        for (final solid in staticWorldGeometry.solids) {
-          if ((solid.sides & StaticSolid.sideBottom) == 0) continue;
+        for (final solid in staticWorld.bottoms) {
           final overlapX = maxX > solid.minX + eps && minX < solid.maxX - eps;
           if (!overlapX) continue;
 
@@ -116,12 +113,15 @@ class CollisionSystem {
       // Ground is treated as an infinite solid with a top at `v0GroundTopY`.
       // It competes with platforms: if a platform is higher (smaller Y), it
       // should win.
-      final groundTopY = v0GroundTopY.toDouble();
-      if (world.transform.velY[ti] > 0 &&
-          prevBottom <= groundTopY + eps &&
-          bottom >= groundTopY - eps) {
-        if (bestTopY == null || groundTopY < bestTopY) {
-          bestTopY = groundTopY;
+      final groundPlane = staticWorld.groundPlane;
+      if (groundPlane != null) {
+        final groundTopY = groundPlane.topY;
+        if (world.transform.velY[ti] > 0 &&
+            prevBottom <= groundTopY + eps &&
+            bottom >= groundTopY - eps) {
+          if (bestTopY == null || groundTopY < bestTopY) {
+            bestTopY = groundTopY;
+          }
         }
       }
 
@@ -156,8 +156,7 @@ class CollisionSystem {
         final right = resolvedCenterX + halfX;
         double? bestWallX;
 
-        for (final solid in staticWorldGeometry.solids) {
-          if ((solid.sides & StaticSolid.sideLeft) == 0) continue;
+        for (final solid in staticWorld.leftWalls) {
           final overlapY =
               resolvedMaxY > solid.minY + eps && resolvedMinY < solid.maxY - eps;
           if (!overlapY) continue;
@@ -181,8 +180,7 @@ class CollisionSystem {
         final left = resolvedCenterX - halfX;
         double? bestWallX;
 
-        for (final solid in staticWorldGeometry.solids) {
-          if ((solid.sides & StaticSolid.sideRight) == 0) continue;
+        for (final solid in staticWorld.rightWalls) {
           final overlapY =
               resolvedMaxY > solid.minY + eps && resolvedMinY < solid.maxY - eps;
           if (!overlapY) continue;

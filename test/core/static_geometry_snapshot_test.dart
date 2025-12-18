@@ -6,6 +6,7 @@ import 'package:walkscape_runner/core/game_core.dart';
 void main() {
   test('snapshot includes static solids for rendering', () {
     const geometry = StaticWorldGeometry(
+      groundPlane: StaticGroundPlane(topY: 255),
       solids: <StaticSolid>[
         StaticSolid(
           minX: 10,
@@ -31,4 +32,3 @@ void main() {
     expect(s.oneWayTop, isFalse);
   });
 }
-

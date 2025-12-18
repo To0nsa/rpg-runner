@@ -26,6 +26,7 @@ void main() {
       tickHz: v0DefaultTickHz,
       movementTuning: const V0MovementTuning(playerRadius: r),
       staticWorldGeometry: const StaticWorldGeometry(
+        groundPlane: StaticGroundPlane(topY: v0GroundTopY * 1.0),
         solids: <StaticSolid>[
           StaticSolid(
             minX: obstacleMinX,
@@ -68,6 +69,7 @@ void main() {
       movementTuning: const V0MovementTuning(playerRadius: r),
       playerBody: const BodyDef(sideMask: BodyDef.sideLeft),
       staticWorldGeometry: const StaticWorldGeometry(
+        groundPlane: StaticGroundPlane(topY: v0GroundTopY * 1.0),
         solids: <StaticSolid>[
           StaticSolid(
             minX: obstacleMinX,
@@ -99,6 +101,7 @@ void main() {
       tickHz: v0DefaultTickHz,
       movementTuning: const V0MovementTuning(playerRadius: r),
       staticWorldGeometry: const StaticWorldGeometry(
+        groundPlane: StaticGroundPlane(topY: v0GroundTopY * 1.0),
         solids: <StaticSolid>[
           StaticSolid(
             minX: obstacleMinX,

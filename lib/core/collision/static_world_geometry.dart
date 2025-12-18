@@ -2,6 +2,13 @@
 ///
 /// V0 starts with a tiny, hand-authored set (ground band + a couple platforms),
 /// and later milestones replace/extend this with deterministic chunk spawning.
+class StaticGroundPlane {
+  const StaticGroundPlane({required this.topY});
+
+  /// World-space Y coordinate of the ground surface (solid top).
+  final double topY;
+}
+
 class StaticSolid {
   const StaticSolid({
     required this.minX,
@@ -40,7 +47,13 @@ class StaticSolid {
 
 /// Immutable bundle of static solids for a run/session.
 class StaticWorldGeometry {
-  const StaticWorldGeometry({this.solids = const <StaticSolid>[]});
+  const StaticWorldGeometry({
+    this.groundPlane,
+    this.solids = const <StaticSolid>[],
+  });
+
+  /// Optional infinite ground plane (top surface only).
+  final StaticGroundPlane? groundPlane;
 
   final List<StaticSolid> solids;
 }

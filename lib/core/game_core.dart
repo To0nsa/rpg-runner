@@ -7,6 +7,7 @@ import 'dart:math';
 
 import 'commands/command.dart';
 import 'collision/static_world_geometry.dart';
+import 'collision/static_world_geometry_index.dart';
 import 'contracts/v0_render_contract.dart';
 import 'ecs/entity_id.dart';
 import 'ecs/stores/collider_aabb_store.dart';
@@ -23,6 +24,7 @@ import 'snapshots/static_solid_snapshot.dart';
 import 'tuning/v0_movement_tuning.dart';
 
 const StaticWorldGeometry v0DefaultStaticWorldGeometry = StaticWorldGeometry(
+  groundPlane: StaticGroundPlane(topY: v0GroundTopY * 1.0),
   solids: <StaticSolid>[
     // A small one-way platform to validate collisions/visuals.
     StaticSolid(
@@ -69,7 +71,8 @@ class GameCore {
 
     final spawnPos = Vec2(
       80,
-      v0GroundTopY.toDouble() - _movement.base.playerRadius,
+      (this.staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble()) -
+          _movement.base.playerRadius,
     );
     final defaultBody = BodyDef(
       enabled: true,
@@ -104,6 +107,8 @@ class GameCore {
 
   /// Static world geometry for this run/session.
   final StaticWorldGeometry staticWorldGeometry;
+  late final StaticWorldGeometryIndex _staticWorldIndex =
+      StaticWorldGeometryIndex.from(staticWorldGeometry);
 
   late final List<StaticSolidSnapshot> _staticSolidsSnapshot =
       List<StaticSolidSnapshot>.unmodifiable(
@@ -192,7 +197,7 @@ class GameCore {
     _collisionSystem.step(
       _world,
       _movement,
-      staticWorldGeometry: staticWorldGeometry,
+      staticWorld: _staticWorldIndex,
     );
 
     distance += max(0.0, playerVel.x) * _movement.dtSeconds;
