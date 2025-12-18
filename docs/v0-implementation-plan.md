@@ -232,13 +232,17 @@ Acceptance:
 
 Melee is its own milestone because it needs different mechanics than projectiles (timing window, hit once per swing, facing/range rules).
 
-- [ ] Add melee components:
-  - `HitboxStore` (owner, faction, damage, AABB shape, activeTicks)
-  - `HitOnceStore` (per-hitbox: set of already-hit entity IDs, or an equivalent deterministic structure)
-- [ ] Add `MeleeSystem`:
-  - on `AttackPressed`, checks stamina + cooldown, then spawns a short-lived hitbox in front of the player
-  - enforces "hit once per swing"
-- [ ] Add tests:
+- [x] Add melee components:
+  - `FactionStore` (player/enemy; used for filtering damage)
+  - `HitboxStore` (owner, faction, damage, AABB half-extents, offset)
+  - `HitOnceStore` (per-hitbox fixed small buffer; deterministic, no hashing)
+  - reuse `LifetimeStore` for active window
+- [x] Add `MeleeSystem` + hit resolution:
+  - on `AttackPressed`, checks stamina + melee cooldown, spawns a short-lived hitbox in front of the player (facing-only)
+  - `HitboxDamageSystem` applies damage once per target per swing
+- [x] Tick order rule:
+  - `LifetimeSystem` runs last so hitboxes/projectiles get their full final tick to act
+- [x] Add tests:
   - `AttackPressed` spawns hitbox for N ticks
   - hitbox damages only once per target per swing
 

@@ -1,10 +1,14 @@
 import '../snapshots/enums.dart';
+import '../combat/faction.dart';
 import 'entity_id.dart';
 import 'stores/body_store.dart';
 import 'stores/collider_aabb_store.dart';
 import 'stores/collision_state_store.dart';
 import 'stores/cooldown_store.dart';
+import 'stores/faction_store.dart';
 import 'stores/health_store.dart';
+import 'stores/hit_once_store.dart';
+import 'stores/hitbox_store.dart';
 import 'stores/lifetime_store.dart';
 import 'stores/mana_store.dart';
 import 'stores/movement_store.dart';
@@ -27,10 +31,13 @@ class EcsWorld {
   final ColliderAabbStore colliderAabb = ColliderAabbStore();
   final CollisionStateStore collision = CollisionStateStore();
   final CooldownStore cooldown = CooldownStore();
+  final FactionStore faction = FactionStore();
   final HealthStore health = HealthStore();
   final ManaStore mana = ManaStore();
   final StaminaStore stamina = StaminaStore();
   final ProjectileStore projectile = ProjectileStore();
+  final HitboxStore hitbox = HitboxStore();
+  final HitOnceStore hitOnce = HitOnceStore();
   final LifetimeStore lifetime = LifetimeStore();
   final SpellOriginStore spellOrigin = SpellOriginStore();
 
@@ -61,6 +68,7 @@ class EcsWorld {
     colliderAabb.add(id, collider);
     collision.add(id);
     cooldown.add(id);
+    faction.add(id, const FactionDef(faction: Faction.player));
     this.health.add(id, health);
     this.mana.add(id, mana);
     this.stamina.add(id, stamina);
@@ -76,10 +84,13 @@ class EcsWorld {
     colliderAabb.removeEntity(entity);
     collision.removeEntity(entity);
     cooldown.removeEntity(entity);
+    faction.removeEntity(entity);
     health.removeEntity(entity);
     mana.removeEntity(entity);
     stamina.removeEntity(entity);
     projectile.removeEntity(entity);
+    hitbox.removeEntity(entity);
+    hitOnce.removeEntity(entity);
     lifetime.removeEntity(entity);
     spellOrigin.removeEntity(entity);
   }

@@ -7,7 +7,9 @@ class CooldownSystem {
       if (store.castCooldownTicksLeft[i] > 0) {
         store.castCooldownTicksLeft[i] -= 1;
       }
+      if (store.meleeCooldownTicksLeft[i] > 0) {
+        store.meleeCooldownTicksLeft[i] -= 1;
+      }
     }
   }
 }
-

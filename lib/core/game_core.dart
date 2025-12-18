@@ -15,7 +15,9 @@ import 'ecs/systems/collision_system.dart';
 import 'ecs/systems/cooldown_system.dart';
 import 'ecs/systems/cast_system.dart';
 import 'ecs/systems/damage_system.dart';
+import 'ecs/systems/hitbox_damage_system.dart';
 import 'ecs/systems/lifetime_system.dart';
+import 'ecs/systems/melee_system.dart';
 import 'ecs/systems/movement_system.dart';
 import 'ecs/systems/projectile_system.dart';
 import 'ecs/systems/resource_regen_system.dart';
@@ -96,6 +98,8 @@ class GameCore {
     _projectileSystem = ProjectileSystem();
     _lifetimeSystem = LifetimeSystem();
     _damageSystem = DamageSystem();
+    _meleeSystem = MeleeSystem(abilities: _abilities, movement: _movement);
+    _hitboxDamageSystem = HitboxDamageSystem();
     _resourceRegenSystem = ResourceRegenSystem();
     _castSystem = CastSystem(
       spells: _spells,
@@ -187,6 +191,8 @@ class GameCore {
   late final ProjectileSystem _projectileSystem;
   late final LifetimeSystem _lifetimeSystem;
   late final DamageSystem _damageSystem;
+  late final MeleeSystem _meleeSystem;
+  late final HitboxDamageSystem _hitboxDamageSystem;
   late final ResourceRegenSystem _resourceRegenSystem;
   late final CastSystem _castSystem;
   late final EntityId _player;
@@ -227,6 +233,9 @@ class GameCore {
 
   int get playerCastCooldownTicksLeft =>
       _world.cooldown.castCooldownTicksLeft[_world.cooldown.indexOf(_player)];
+
+  int get playerMeleeCooldownTicksLeft =>
+      _world.cooldown.meleeCooldownTicksLeft[_world.cooldown.indexOf(_player)];
 
   /// Applies all commands scheduled for the current tick.
   ///
@@ -282,10 +291,14 @@ class GameCore {
       staticWorld: _staticWorldIndex,
     );
     _projectileSystem.step(_world, _movement);
-    _lifetimeSystem.step(_world);
-    _damageSystem.step(_world);
     _castSystem.step(_world, player: _player);
+    _meleeSystem.step(_world, player: _player);
+    _hitboxDamageSystem.step(_world, _damageSystem.queue);
+    _damageSystem.step(_world);
     _resourceRegenSystem.step(_world, dtSeconds: _movement.dtSeconds);
+
+    // Cleanup last so effect entities get their full last tick to act.
+    _lifetimeSystem.step(_world);
 
     distance += max(0.0, playerVelX) * _movement.dtSeconds;
   }
@@ -350,6 +363,28 @@ class GameCore {
           projectileId: projectileId,
           facing: facing,
           anim: AnimKey.idle,
+          grounded: false,
+        ),
+      );
+    }
+
+    final hitboxes = _world.hitbox;
+    for (var hi = 0; hi < hitboxes.denseEntities.length; hi += 1) {
+      final e = hitboxes.denseEntities[hi];
+      if (!(_world.transform.has(e))) continue;
+      final ti = _world.transform.indexOf(e);
+
+      final size = Vec2(hitboxes.halfX[hi] * 2, hitboxes.halfY[hi] * 2);
+      final facing = hitboxes.offsetX[hi] >= 0 ? Facing.right : Facing.left;
+
+      entities.add(
+        EntityRenderSnapshot(
+          id: e,
+          kind: EntityKind.trigger,
+          pos: Vec2(_world.transform.posX[ti], _world.transform.posY[ti]),
+          size: size,
+          facing: facing,
+          anim: AnimKey.hit,
           grounded: false,
         ),
       );

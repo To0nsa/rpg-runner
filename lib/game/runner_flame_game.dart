@@ -38,6 +38,8 @@ class RunnerFlameGame extends FlameGame {
   final List<RectangleComponent> _staticSolids = <RectangleComponent>[];
   final Map<int, RectangleComponent> _projectiles = <int, RectangleComponent>{};
   final Paint _projectilePaint = Paint()..color = const Color(0xFF60A5FA);
+  final Map<int, RectangleComponent> _hitboxes = <int, RectangleComponent>{};
+  final Paint _hitboxPaint = Paint()..color = const Color(0x66EF4444);
 
   @override
   Future<void> onLoad() async {
@@ -162,6 +164,7 @@ class RunnerFlameGame extends FlameGame {
     }
 
     _syncProjectiles(snapshot.entities);
+    _syncHitboxes(snapshot.entities);
 
     assert(() {
       _debugText.text =
@@ -235,6 +238,47 @@ class RunnerFlameGame extends FlameGame {
     }
     for (final id in toRemove) {
       _projectiles.remove(id)?.removeFromParent();
+    }
+  }
+
+  void _syncHitboxes(List<EntityRenderSnapshot> entities) {
+    final seen = <int>{};
+
+    for (final e in entities) {
+      if (e.kind != EntityKind.trigger) continue;
+      seen.add(e.id);
+
+      var view = _hitboxes[e.id];
+      if (view == null) {
+        final size = e.size;
+        view = RectangleComponent(
+          size: Vector2(size?.x ?? 8.0, size?.y ?? 8.0),
+          anchor: Anchor.center,
+          paint: _hitboxPaint,
+        );
+        view.priority = 1;
+        _hitboxes[e.id] = view;
+        world.add(view);
+      } else {
+        final size = e.size;
+        if (size != null) {
+          view.size.setValues(size.x, size.y);
+        }
+      }
+
+      view.position.setValues(
+        e.pos.x.roundToDouble(),
+        e.pos.y.roundToDouble(),
+      );
+    }
+
+    if (_hitboxes.isEmpty) return;
+    final toRemove = <int>[];
+    for (final id in _hitboxes.keys) {
+      if (!seen.contains(id)) toRemove.add(id);
+    }
+    for (final id in toRemove) {
+      _hitboxes.remove(id)?.removeFromParent();
     }
   }
 
