@@ -12,6 +12,7 @@ import '../core/commands/command.dart';
 import '../core/events/game_event.dart';
 import '../core/game_core.dart';
 import '../core/snapshots/game_state_snapshot.dart';
+import 'tick_input_frame.dart';
 
 /// Owns the simulation clock and provides a stable interface to UI/renderer.
 class GameController {
@@ -43,7 +44,10 @@ class GameController {
   final int inputLead;
 
   /// Buffered commands keyed by their target tick.
-  final Map<int, List<Command>> _commandsByTick = <int, List<Command>>{};
+  final Map<int, TickInputFrame> _inputsByTick = <int, TickInputFrame>{};
+
+  final List<Command> _commandScratch = <Command>[];
+  final TickInputFrame _frameScratch = TickInputFrame();
 
   /// Buffered transient events produced by the core.
   final List<GameEvent> _events = <GameEvent>[];
@@ -71,8 +75,8 @@ class GameController {
 
   /// Enqueues a command to be applied at its declared tick.
   void enqueue(Command command) {
-    final list = _commandsByTick.putIfAbsent(command.tick, () => <Command>[]);
-    list.add(command);
+    final frame = _inputsByTick.putIfAbsent(command.tick, () => TickInputFrame());
+    frame.apply(command);
   }
 
   /// Helper to schedule a command for the next tick (plus `inputLead`).
@@ -115,7 +119,7 @@ class GameController {
     _accumulatorSeconds = 0;
 
     // Kill transient buffers so nothing leaks across sessions.
-    _commandsByTick.clear();
+    _inputsByTick.clear();
     _events.clear();
 
     // Make snapshots consistent with the paused state.
@@ -141,13 +145,37 @@ class GameController {
 
     while (_accumulatorSeconds >= dtTick) {
       final nextTick = _core.tick + 1;
-      final commands = _commandsByTick.remove(nextTick) ?? const <Command>[];
-      _core.applyCommands(commands);
+      final input = _inputsByTick.remove(nextTick) ?? _frameScratch;
+      _applyTickInput(nextTick, input);
       _core.stepOneTick();
 
       _prev = _curr;
       _curr = _core.buildSnapshot();
       _accumulatorSeconds -= dtTick;
     }
+  }
+
+  void _applyTickInput(int tick, TickInputFrame input) {
+    _commandScratch.clear();
+
+    final axis = input.moveAxis;
+    if (axis != 0) {
+      _commandScratch.add(MoveAxisCommand(tick: tick, axis: axis));
+    }
+    if (input.jumpPressed) {
+      _commandScratch.add(JumpPressedCommand(tick: tick));
+    }
+    if (input.dashPressed) {
+      _commandScratch.add(DashPressedCommand(tick: tick));
+    }
+    if (input.attackPressed) {
+      _commandScratch.add(AttackPressedCommand(tick: tick));
+    }
+
+    _core.applyCommands(_commandScratch);
+
+    // If this is a scratch fallback, it will be reset by the next use anyway.
+    // For frames stored in the map we drop the instance after remove().
+    input.reset();
   }
 }
