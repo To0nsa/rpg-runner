@@ -8,8 +8,12 @@ This document turns `docs/plan.md` into an executable checklist for getting a pl
 * Input mapping:
   * Left: on-screen joystick (move left/right).
   * Right: three buttons (Jump, Dash, Attack).
-  * Tap on the game view: reserved for aiming + casting spells (exact cast rules defined later).
-* Ability specs, enemy AI rules, and spawn rules: iterate after “run + jump” is working.
+  * Tap/click on the game view: reserved for aiming + casting spells (exact cast rules defined later).
+  * Optional hardware input (V0):
+    * Keyboard: debug/dev only (not required for V0).
+    * Controller/gamepad: planned post-V0 (not required/supported in V0).
+* V0 target platforms: **mobile only** (iOS + Android).
+* Ability specs, enemy AI rules, and spawn rules: iterate after "run + jump" is working.
 
 ## V0 Success Criteria
 
@@ -107,20 +111,25 @@ Acceptance:
 
 ---
 
-## Milestone 3 — Mobile Controls (Joystick + 3 Buttons + Tap-to-Aim)
+## Milestone 3 - Touch Controls (V0)
 
 - [ ] Flutter overlay for:
   - joystick left
   - Jump/Dash/Attack buttons right
+- [ ] Debug-only keyboard mapping (dev convenience; not required for V0).
 - [ ] Command mapping:
   - joystick -> `MoveAxis`
   - Jump button -> `JumpPressed`
-  - Dash button -> `DashPressed` (wired, no gameplay effect until milestone 4)
+  - Dash button -> `DashPressed`
   - Attack button -> `AttackPressed` (wired, no gameplay effect until milestone 4)
-  - tap/drag on game view -> `AimAt(screenPos)` or `AimAtWorld(worldPos)` (choose one; convert consistently)
+  - Aim (mouse/touch): pointer position is converted to an aim direction command:
+    - `AimDir(dir)` where `dir = normalize(pointerWorldPos - playerWorldPos)`
+  - Touch:
+    - tap on game view -> `CastPressed` (aim dir is computed from the tap position)
+  - Note (post-V0): controller aiming likely uses lock-on / aim assist, but it is out of scope for Milestone 3.
 
 Acceptance:
-- No keyboard required; player can run/jump via touch controls.
+- On iOS/Android: no keyboard required; player can run/jump/dash/attack and cast via touch controls.
 
 ---
 

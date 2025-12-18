@@ -142,17 +142,22 @@ Systems operate over entities that have required components:
 
 #### Commands (Inputs)
 
-* Player and system actions are expressed as commands
-* Commands are queued with a tick index
+  * Player and system actions are expressed as commands
+  * Commands are queued with a tick index
+  
+  Examples:
+  
+  * MoveLeft
+  * Jump
+  * Attack
+  * Pause
 
-Examples:
+  V0 aiming notes:
+  * Aim is pointer-driven: UI computes `AimDir(dir)` from (playerWorldPos -> pointerWorldPos).
+  * Touch: tap triggers `CastPressed` (aim dir computed from the tap position).
+  * Mouse/keyboard/controller mappings are debug-only or post-V0.
 
-* MoveLeft
-* Jump
-* Attack
-* Pause
-
-#### State Snapshots
+  #### State Snapshots
 
 * Core exposes immutable snapshots of game state
 * Renderer and UI **read only**
@@ -196,14 +201,19 @@ Pixel-art note:
 **Rules:**
 
 * UI never touches physics or rules
-* UI sends high‑level intents only
+* UI sends high-level intents only
 
 ### Responsibilities
 
 * App navigation
 * Menus (pause, inventory, settings)
 * Overlays (HUD, debug)
-* Launching and closing the mini‑game
+* Input routing (touch) into tick-stamped Commands
+* Launching and closing the mini-game
+
+V0 note:
+* V0 targets mobile only (iOS + Android).
+* Keyboard/mouse/controller support is debug-only or post-V0.
 
 ### State Management
 

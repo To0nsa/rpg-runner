@@ -162,6 +162,16 @@ class GameController {
     if (axis != 0) {
       _commandScratch.add(MoveAxisCommand(tick: tick, axis: axis));
     }
+
+    if (input.aimDirSet) {
+      _commandScratch.add(
+        AimDirCommand(
+          tick: tick,
+          x: input.aimDirX,
+          y: input.aimDirY,
+        ),
+      );
+    }
     if (input.jumpPressed) {
       _commandScratch.add(JumpPressedCommand(tick: tick));
     }
@@ -170,6 +180,9 @@ class GameController {
     }
     if (input.attackPressed) {
       _commandScratch.add(AttackPressedCommand(tick: tick));
+    }
+    if (input.castPressed) {
+      _commandScratch.add(CastPressedCommand(tick: tick));
     }
 
     _core.applyCommands(_commandScratch);

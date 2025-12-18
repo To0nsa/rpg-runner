@@ -24,6 +24,7 @@ void main() {
 
     controller.enqueue(const JumpPressedCommand(tick: 1));
     controller.enqueue(const DashPressedCommand(tick: 1));
+    controller.enqueue(const CastPressedCommand(tick: 1));
 
     controller.advanceFrame(1 / controller.tickHz);
 
@@ -33,5 +34,16 @@ void main() {
     expect(core.playerVel.y, closeTo(0, 1e-9));
     expect(core.playerVel.x, greaterThan(0));
   });
-}
 
+  test('GameController dedupes AimDir per tick (last wins)', () {
+    final core = GameCore(seed: 1);
+    final controller = GameController(core: core);
+
+    controller.enqueue(const AimDirCommand(tick: 1, x: 1, y: 0));
+    controller.enqueue(const AimDirCommand(tick: 1, x: 0, y: 1));
+
+    controller.advanceFrame(1 / controller.tickHz);
+
+    expect(core.tick, 1);
+  });
+}

@@ -184,6 +184,11 @@ class GameCore {
         case AttackPressedCommand():
           _world.playerInput.attackPressed[inputIndex] = true;
           break;
+        case AimDirCommand(:final x, :final y):
+          _world.playerInput.aimDirX[inputIndex] = x;
+          _world.playerInput.aimDirY[inputIndex] = y;
+        case CastPressedCommand():
+          _world.playerInput.castPressed[inputIndex] = true;
       }
     }
   }

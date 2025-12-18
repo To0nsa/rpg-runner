@@ -35,3 +35,19 @@ final class DashPressedCommand extends Command {
 final class AttackPressedCommand extends Command {
   const AttackPressedCommand({required super.tick});
 }
+
+/// Continuous aim direction for the given tick.
+///
+/// The direction should be normalized (or near-normalized). It is expressed in
+/// world space and used by casting/abilities.
+final class AimDirCommand extends Command {
+  const AimDirCommand({required super.tick, required this.x, required this.y});
+
+  final double x;
+  final double y;
+}
+
+/// One-shot cast press event for the given tick.
+final class CastPressedCommand extends Command {
+  const CastPressedCommand({required super.tick});
+}
