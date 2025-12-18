@@ -15,7 +15,7 @@ $commit = (git rev-parse HEAD).Trim()
 $when   = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 
 # Tracked files only (best signal/noise)
-$files = git ls-files | Sort-Object
+$files = git ls-files -- lib | Sort-Object
 
 # Write tree
 $files | Set-Content -Encoding utf8 $treeOut
