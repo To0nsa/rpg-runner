@@ -248,6 +248,9 @@ class GameCore {
         case AimDirCommand(:final x, :final y):
           _world.playerInput.aimDirX[inputIndex] = x;
           _world.playerInput.aimDirY[inputIndex] = y;
+        case ClearAimDirCommand():
+          _world.playerInput.aimDirX[inputIndex] = 0;
+          _world.playerInput.aimDirY[inputIndex] = 0;
         case CastPressedCommand():
           _world.playerInput.castPressed[inputIndex] = true;
       }

@@ -19,6 +19,7 @@ class RunnerInputRouter {
   int _axisScheduledThroughTick = 0;
 
   bool _aimSet = false;
+  bool _lastScheduledAimSet = false;
   double _aimX = 0;
   double _aimY = 0;
   double _lastScheduledAimX = 0;
@@ -78,13 +79,15 @@ class RunnerInputRouter {
   void _scheduleHeldMoveAxis() {
     final axis = _moveAxis;
 
-    if (axis == 0) {
+    if (axis == 0 && _lastScheduledAxis == 0) {
+      // No held axis and nothing to override.
       _axisScheduledThroughTick = controller.tick;
-      _lastScheduledAxis = 0;
       return;
     }
 
     if (axis != _lastScheduledAxis) {
+      // Axis changed (including to 0); reschedule to overwrite any already
+      // buffered ticks.
       _axisScheduledThroughTick = controller.tick;
       _lastScheduledAxis = axis;
     }
@@ -101,15 +104,21 @@ class RunnerInputRouter {
   }
 
   void _scheduleHeldAimDir() {
-    if (!_aimSet) {
+    if (!_aimSet && !_lastScheduledAimSet) {
+      // No held aim and nothing to override.
       _aimScheduledThroughTick = controller.tick;
-      _lastScheduledAimX = 0;
-      _lastScheduledAimY = 0;
       return;
     }
 
-    // Reschedule ahead when the aim vector changes.
-    if (_aimX != _lastScheduledAimX || _aimY != _lastScheduledAimY) {
+    if (_aimSet != _lastScheduledAimSet) {
+      _aimScheduledThroughTick = controller.tick;
+      _lastScheduledAimSet = _aimSet;
+      _lastScheduledAimX = _aimX;
+      _lastScheduledAimY = _aimY;
+    }
+
+    if (_aimSet && (_aimX != _lastScheduledAimX || _aimY != _lastScheduledAimY)) {
+      // Reschedule ahead when the aim vector changes.
       _aimScheduledThroughTick = controller.tick;
       _lastScheduledAimX = _aimX;
       _lastScheduledAimY = _aimY;
@@ -121,9 +130,12 @@ class RunnerInputRouter {
 
     final startTick = max(controller.tick + 1, _aimScheduledThroughTick + 1);
     for (var t = startTick; t <= targetMaxTick; t += 1) {
-      controller.enqueue(AimDirCommand(tick: t, x: _aimX, y: _aimY));
+      if (_aimSet) {
+        controller.enqueue(AimDirCommand(tick: t, x: _aimX, y: _aimY));
+      } else {
+        controller.enqueue(ClearAimDirCommand(tick: t));
+      }
     }
     _aimScheduledThroughTick = targetMaxTick;
   }
 }
-

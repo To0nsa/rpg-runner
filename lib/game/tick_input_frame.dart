@@ -28,6 +28,10 @@ class TickInputFrame {
         aimDirSet = true;
         aimDirX = x;
         aimDirY = y;
+      case ClearAimDirCommand():
+        aimDirSet = false;
+        aimDirX = 0;
+        aimDirY = 0;
       case CastPressedCommand():
         castPressed = true;
     }

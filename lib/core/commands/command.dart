@@ -47,6 +47,14 @@ final class AimDirCommand extends Command {
   final double y;
 }
 
+/// Clears any held aim direction for the given tick.
+///
+/// This exists so input schedulers that pre-buffer future ticks can overwrite
+/// previously-scheduled aim commands when the player releases aim input.
+final class ClearAimDirCommand extends Command {
+  const ClearAimDirCommand({required super.tick});
+}
+
 /// One-shot cast press event for the given tick.
 final class CastPressedCommand extends Command {
   const CastPressedCommand({required super.tick});
