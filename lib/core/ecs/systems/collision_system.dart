@@ -22,17 +22,13 @@ class CollisionSystem {
     EcsQueries.forColliders(world, (e, ti, bi, coli, aabbi) {
       if (!world.body.enabled[bi]) return;
 
+      // Reset per-tick collision results.
+      world.collision.resetTick(e);
+
       // Kinematic bodies are excluded from physics integration/resolution.
       if (world.body.isKinematic[bi]) {
-        world.collision.grounded[coli] = false;
         return;
       }
-
-      // Reset per-tick collision results.
-      world.collision.grounded[coli] = false;
-      world.collision.hitCeiling[coli] = false;
-      world.collision.hitLeft[coli] = false;
-      world.collision.hitRight[coli] = false;
 
       final prevPosX = world.transform.posX[ti];
       final prevPosY = world.transform.posY[ti];
