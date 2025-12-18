@@ -202,14 +202,14 @@ Design goals:
 
 ### 5.3 Projectile (ice bolt)
 
-- [ ] Add projectile components:
+- [x] Add projectile components:
   - `ProjectileStore` (spellId, faction/owner, dir, speed, damage)
   - `LifetimeStore` (ticks remaining)
-- [ ] Add `ProjectileSystem`:
+- [x] Add `ProjectileSystem`:
   - integrates projectile position each tick
   - despawns on lifetime end
   - (for now) projectile-vs-static collision can be skipped; projectile-vs-actors comes in Milestone 7 with enemies
-- [ ] Add `DamageSystem` (or `CombatSystem`) skeleton:
+- [x] Add `DamageSystem` (or `CombatSystem`) skeleton:
   - applies damage on projectile hits (later expanded for melee + enemy attacks)
   - keeps "damage rules" in core (invuln ticks, death, score hooks later)
 

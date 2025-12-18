@@ -14,6 +14,7 @@ import 'ecs/stores/collider_aabb_store.dart';
 import 'ecs/systems/collision_system.dart';
 import 'ecs/systems/cooldown_system.dart';
 import 'ecs/systems/cast_system.dart';
+import 'ecs/systems/damage_system.dart';
 import 'ecs/systems/movement_system.dart';
 import 'ecs/systems/projectile_system.dart';
 import 'ecs/systems/resource_regen_system.dart';
@@ -86,6 +87,7 @@ class GameCore {
     _collisionSystem = CollisionSystem();
     _cooldownSystem = CooldownSystem();
     _projectileSystem = ProjectileSystem();
+    _damageSystem = DamageSystem();
     _resourceRegenSystem = ResourceRegenSystem();
     _castSystem = CastSystem(
       spells: _spells,
@@ -174,6 +176,7 @@ class GameCore {
   late final CollisionSystem _collisionSystem;
   late final CooldownSystem _cooldownSystem;
   late final ProjectileSystem _projectileSystem;
+  late final DamageSystem _damageSystem;
   late final ResourceRegenSystem _resourceRegenSystem;
   late final CastSystem _castSystem;
   late final EntityId _player;
@@ -256,6 +259,7 @@ class GameCore {
       staticWorld: _staticWorldIndex,
     );
     _projectileSystem.step(_world, _movement);
+    _damageSystem.step(_world);
     _castSystem.step(_world, player: _player);
     _resourceRegenSystem.step(_world, dtSeconds: _movement.dtSeconds);
 
