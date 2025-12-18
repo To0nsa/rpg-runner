@@ -211,7 +211,7 @@ Design goals:
   - `LifetimeStore` (ticks remaining)
 - [x] Add `ProjectileSystem`:
   - integrates projectile position each tick
-  - despawns on lifetime end
+  - lifetime end despawn is handled by a dedicated `LifetimeSystem`
   - (for now) projectile-vs-static collision can be skipped; projectile-vs-actors comes in Milestone 7 with enemies
 - [x] Add `DamageSystem` (or `CombatSystem`) skeleton:
   - applies damage on projectile hits (later expanded for melee + enemy attacks)
