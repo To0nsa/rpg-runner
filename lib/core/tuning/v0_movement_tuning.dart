@@ -1,4 +1,4 @@
-import 'dart:math';
+import '../util/tick_math.dart';
 
 /// V0 movement/physics tuning for the Core simulation.
 ///
@@ -10,11 +10,6 @@ import 'dart:math';
 /// The derived values are computed once per [tickHz] and then used in the hot
 /// per-tick loop to keep the core allocation-light.
 const int v0DefaultTickHz = 60;
-
-int _ticksFromSeconds(double seconds, int tickHz) {
-  if (seconds <= 0) return 0;
-  return max(1, (seconds * tickHz).ceil());
-}
 
 /// Authoritative movement constants (expressed in seconds-based units).
 class V0MovementTuning {
@@ -87,10 +82,10 @@ class V0MovementTuningDerived {
       tickHz: tickHz,
       dtSeconds: 1.0 / tickHz,
       base: base,
-      coyoteTicks: _ticksFromSeconds(base.coyoteTimeSeconds, tickHz),
-      jumpBufferTicks: _ticksFromSeconds(base.jumpBufferSeconds, tickHz),
-      dashDurationTicks: _ticksFromSeconds(base.dashDurationSeconds, tickHz),
-      dashCooldownTicks: _ticksFromSeconds(base.dashCooldownSeconds, tickHz),
+      coyoteTicks: ticksFromSecondsCeil(base.coyoteTimeSeconds, tickHz),
+      jumpBufferTicks: ticksFromSecondsCeil(base.jumpBufferSeconds, tickHz),
+      dashDurationTicks: ticksFromSecondsCeil(base.dashDurationSeconds, tickHz),
+      dashCooldownTicks: ticksFromSecondsCeil(base.dashCooldownSeconds, tickHz),
     );
   }
 

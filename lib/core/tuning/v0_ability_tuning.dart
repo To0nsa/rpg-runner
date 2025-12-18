@@ -1,9 +1,4 @@
-import 'dart:math';
-
-int _ticksFromSecondsCeil(double seconds, int tickHz) {
-  if (seconds <= 0) return 0;
-  return max(1, (seconds * tickHz).ceil());
-}
+import '../util/tick_math.dart';
 
 class V0AbilityTuning {
   const V0AbilityTuning({this.castCooldownSeconds = 0.25});
@@ -29,7 +24,7 @@ class V0AbilityTuningDerived {
     return V0AbilityTuningDerived._(
       tickHz: tickHz,
       base: base,
-      castCooldownTicks: _ticksFromSecondsCeil(base.castCooldownSeconds, tickHz),
+      castCooldownTicks: ticksFromSecondsCeil(base.castCooldownSeconds, tickHz),
     );
   }
 
@@ -38,4 +33,3 @@ class V0AbilityTuningDerived {
 
   final int castCooldownTicks;
 }
-

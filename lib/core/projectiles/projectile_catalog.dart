@@ -1,4 +1,4 @@
-import 'dart:math';
+import '../util/tick_math.dart';
 
 import 'projectile_id.dart';
 
@@ -58,8 +58,6 @@ class ProjectileCatalogDerived {
   final ProjectileCatalog base;
 
   int lifetimeTicks(ProjectileId id) {
-    final seconds = base.get(id).lifetimeSeconds;
-    if (seconds <= 0) return 0;
-    return max(1, (seconds * tickHz).ceil());
+    return ticksFromSecondsCeil(base.get(id).lifetimeSeconds, tickHz);
   }
 }
