@@ -1,7 +1,7 @@
 import '../../snapshots/enums.dart';
 import '../../tuning/v0_movement_tuning.dart';
 import '../../tuning/v0_resource_tuning.dart';
-import '../entity_id.dart';
+import '../queries.dart';
 import '../world.dart';
 
 /// Applies platformer-style movement for entities with:
@@ -21,26 +21,10 @@ class MovementSystem {
     final dt = tuning.dtSeconds;
     final t = tuning.base;
 
-    // Iterate movement entities; this stays allocation-free and cache-friendly.
-    for (var mi = 0; mi < world.movement.denseEntities.length; mi += 1) {
-      final EntityId e = world.movement.denseEntities[mi];
-      if (!world.transform.has(e) ||
-          !world.playerInput.has(e) ||
-          !world.body.has(e) ||
-          !world.collision.has(e) ||
-          !world.stamina.has(e)) {
-        continue;
-      }
-
-      final ti = world.transform.indexOf(e);
-      final ii = world.playerInput.indexOf(e);
-      final bi = world.body.indexOf(e);
-      final ci = world.collision.indexOf(e);
-      final si = world.stamina.indexOf(e);
-
-      if (!world.body.enabled[bi]) continue;
+    EcsQueries.forMovementBodies(world, (e, mi, ti, ii, bi, ci, si) {
+      if (!world.body.enabled[bi]) return;
       if (world.body.isKinematic[bi]) {
-        continue;
+        return;
       }
 
       // Timers.
@@ -118,7 +102,7 @@ class MovementSystem {
       world.transform.velY[ti] = world.transform.velY[ti]
           .clamp(-world.body.maxVelY[bi], world.body.maxVelY[bi])
           .toDouble();
-    }
+    });
   }
 
   double _applyHorizontalMove(

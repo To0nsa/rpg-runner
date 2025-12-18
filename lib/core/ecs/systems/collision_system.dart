@@ -1,6 +1,6 @@
 import '../../collision/static_world_geometry_index.dart';
 import '../../tuning/v0_movement_tuning.dart';
-import '../entity_id.dart';
+import '../queries.dart';
 import '../stores/body_store.dart';
 import '../world.dart';
 
@@ -19,24 +19,13 @@ class CollisionSystem {
     final dt = tuning.dtSeconds;
     const eps = 1e-3;
 
-    // Iterate colliders as the collision "query" for V0.
-    for (var ci = 0; ci < world.colliderAabb.denseEntities.length; ci += 1) {
-      final EntityId e = world.colliderAabb.denseEntities[ci];
-      if (!world.transform.has(e) || !world.body.has(e) || !world.collision.has(e)) {
-        continue;
-      }
-
-      final ti = world.transform.indexOf(e);
-      final bi = world.body.indexOf(e);
-      final coli = world.collision.indexOf(e);
-      final aabbi = world.colliderAabb.indexOf(e);
-
-      if (!world.body.enabled[bi]) continue;
+    EcsQueries.forColliders(world, (e, ti, bi, coli, aabbi) {
+      if (!world.body.enabled[bi]) return;
 
       // Kinematic bodies are excluded from physics integration/resolution.
       if (world.body.isKinematic[bi]) {
         world.collision.grounded[coli] = false;
-        continue;
+        return;
       }
 
       // Reset per-tick collision results.
@@ -200,6 +189,6 @@ class CollisionSystem {
           world.collision.hitLeft[coli] = true;
         }
       }
-    }
+    });
   }
 }
