@@ -1,0 +1,2 @@
+enum Faction { player, enemy }
+

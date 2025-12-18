@@ -15,6 +15,7 @@ class EntityRenderSnapshot {
     required this.anim,
     required this.grounded,
     this.vel,
+    this.size,
     this.z,
     this.animFrame,
   });
@@ -30,6 +31,11 @@ class EntityRenderSnapshot {
 
   /// Optional world velocity (useful for facing/animation).
   final Vec2? vel;
+
+  /// Optional full extents in world units (virtual pixels).
+  ///
+  /// Render-only hint for placeholder shapes (e.g. projectile rectangles).
+  final Vec2? size;
 
   /// Optional sort key for render ordering.
   final double? z;

@@ -12,7 +12,10 @@ import 'contracts/v0_render_contract.dart';
 import 'ecs/entity_id.dart';
 import 'ecs/stores/collider_aabb_store.dart';
 import 'ecs/systems/collision_system.dart';
+import 'ecs/systems/cooldown_system.dart';
+import 'ecs/systems/cast_system.dart';
 import 'ecs/systems/movement_system.dart';
+import 'ecs/systems/projectile_system.dart';
 import 'ecs/systems/resource_regen_system.dart';
 import 'ecs/stores/body_store.dart';
 import 'ecs/stores/health_store.dart';
@@ -25,6 +28,8 @@ import 'snapshots/entity_render_snapshot.dart';
 import 'snapshots/game_state_snapshot.dart';
 import 'snapshots/player_hud_snapshot.dart';
 import 'snapshots/static_solid_snapshot.dart';
+import 'spells/spell_catalog.dart';
+import 'tuning/v0_ability_tuning.dart';
 import 'tuning/v0_movement_tuning.dart';
 import 'tuning/v0_resource_tuning.dart';
 
@@ -64,6 +69,8 @@ class GameCore {
     this.tickHz = v0DefaultTickHz,
     V0MovementTuning movementTuning = const V0MovementTuning(),
     V0ResourceTuning resourceTuning = const V0ResourceTuning(),
+    V0AbilityTuning abilityTuning = const V0AbilityTuning(),
+    SpellCatalog spellCatalog = const SpellCatalog(),
     BodyDef? playerBody,
     StaticWorldGeometry? staticWorldGeometry,
   }) : _movement = V0MovementTuningDerived.from(
@@ -71,11 +78,20 @@ class GameCore {
          tickHz: tickHz,
        ),
        _resourceTuning = resourceTuning,
+       _abilities = V0AbilityTuningDerived.from(abilityTuning, tickHz: tickHz),
+       _spells = SpellCatalogDerived.from(spellCatalog, tickHz: tickHz),
        staticWorldGeometry = staticWorldGeometry ?? v0DefaultStaticWorldGeometry {
     _world = EcsWorld();
     _movementSystem = MovementSystem();
     _collisionSystem = CollisionSystem();
+    _cooldownSystem = CooldownSystem();
+    _projectileSystem = ProjectileSystem();
     _resourceRegenSystem = ResourceRegenSystem();
+    _castSystem = CastSystem(
+      spells: _spells,
+      abilities: _abilities,
+      movement: _movement,
+    );
 
     final spawnPos = Vec2(
       80,
@@ -150,11 +166,16 @@ class GameCore {
 
   final V0MovementTuningDerived _movement;
   final V0ResourceTuning _resourceTuning;
+  final V0AbilityTuningDerived _abilities;
+  final SpellCatalogDerived _spells;
 
   late final EcsWorld _world;
   late final MovementSystem _movementSystem;
   late final CollisionSystem _collisionSystem;
+  late final CooldownSystem _cooldownSystem;
+  late final ProjectileSystem _projectileSystem;
   late final ResourceRegenSystem _resourceRegenSystem;
+  late final CastSystem _castSystem;
   late final EntityId _player;
 
   /// Current simulation tick.
@@ -180,6 +201,9 @@ class GameCore {
   set playerFacing(Facing value) {
     _world.movement.facing[_world.movement.indexOf(_player)] = value;
   }
+
+  int get playerCastCooldownTicksLeft =>
+      _world.cooldown.castCooldownTicksLeft[_world.cooldown.indexOf(_player)];
 
   /// Applies all commands scheduled for the current tick.
   ///
@@ -224,12 +248,15 @@ class GameCore {
     if (paused) return;
 
     tick += 1;
+    _cooldownSystem.step(_world);
     _movementSystem.step(_world, _movement, resources: _resourceTuning);
     _collisionSystem.step(
       _world,
       _movement,
       staticWorld: _staticWorldIndex,
     );
+    _projectileSystem.step(_world, _movement);
+    _castSystem.step(_world, player: _player);
     _resourceRegenSystem.step(_world, dtSeconds: _movement.dtSeconds);
 
     distance += max(0.0, playerVel.x) * _movement.dtSeconds;
@@ -256,6 +283,45 @@ class GameCore {
       anim = AnimKey.idle;
     }
 
+    final entities = <EntityRenderSnapshot>[
+      EntityRenderSnapshot(
+        id: _player,
+        kind: EntityKind.player,
+        pos: playerPos,
+        vel: playerVel,
+        size: Vec2(tuning.playerRadius * 2, tuning.playerRadius * 2),
+        facing: playerFacing,
+        anim: anim,
+        grounded: onGround,
+      ),
+    ];
+
+    final projectiles = _world.projectile;
+    for (var pi = 0; pi < projectiles.denseEntities.length; pi += 1) {
+      final e = projectiles.denseEntities[pi];
+      if (!(_world.transform.has(e))) continue;
+      final ti = _world.transform.indexOf(e);
+
+      final spellId = projectiles.spellId[pi];
+      final colliderSize = _spells.base.get(spellId).projectile.colliderSize;
+
+      final dx = projectiles.dirX[pi];
+      final facing = dx >= 0 ? Facing.right : Facing.left;
+
+      entities.add(
+        EntityRenderSnapshot(
+          id: e,
+          kind: EntityKind.projectile,
+          pos: Vec2(_world.transform.posX[ti], _world.transform.posY[ti]),
+          vel: Vec2(_world.transform.velX[ti], _world.transform.velY[ti]),
+          size: colliderSize,
+          facing: facing,
+          anim: AnimKey.idle,
+          grounded: false,
+        ),
+      );
+    }
+
     return GameStateSnapshot(
       tick: tick,
       seed: seed,
@@ -271,17 +337,7 @@ class GameCore {
         score: 0,
         coins: 0,
       ),
-      entities: [
-        EntityRenderSnapshot(
-          id: _player,
-          kind: EntityKind.player,
-          pos: playerPos,
-          vel: playerVel,
-          facing: playerFacing,
-          anim: anim,
-          grounded: onGround,
-        ),
-      ],
+      entities: entities,
       staticSolids: _staticSolidsSnapshot,
     );
   }

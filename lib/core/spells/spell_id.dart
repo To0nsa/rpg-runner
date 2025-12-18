@@ -1,0 +1,2 @@
+enum SpellId { iceBolt, lightning }
+

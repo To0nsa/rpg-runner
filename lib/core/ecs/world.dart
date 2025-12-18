@@ -4,10 +4,13 @@ import 'entity_id.dart';
 import 'stores/body_store.dart';
 import 'stores/collider_aabb_store.dart';
 import 'stores/collision_state_store.dart';
+import 'stores/cooldown_store.dart';
 import 'stores/health_store.dart';
+import 'stores/lifetime_store.dart';
 import 'stores/mana_store.dart';
 import 'stores/movement_store.dart';
 import 'stores/player_input_store.dart';
+import 'stores/projectile_store.dart';
 import 'stores/stamina_store.dart';
 import 'stores/transform_store.dart';
 
@@ -23,9 +26,12 @@ class EcsWorld {
   final BodyStore body = BodyStore();
   final ColliderAabbStore colliderAabb = ColliderAabbStore();
   final CollisionStateStore collision = CollisionStateStore();
+  final CooldownStore cooldown = CooldownStore();
   final HealthStore health = HealthStore();
   final ManaStore mana = ManaStore();
   final StaminaStore stamina = StaminaStore();
+  final ProjectileStore projectile = ProjectileStore();
+  final LifetimeStore lifetime = LifetimeStore();
 
   EntityId createEntity() {
     final id = _nextEntityId;
@@ -51,10 +57,26 @@ class EcsWorld {
     this.body.add(id, body);
     colliderAabb.add(id, collider);
     collision.add(id);
+    cooldown.add(id);
     this.health.add(id, health);
     this.mana.add(id, mana);
     this.stamina.add(id, stamina);
     collision.grounded[collision.indexOf(id)] = grounded;
     return id;
+  }
+
+  void destroyEntity(EntityId entity) {
+    transform.removeEntity(entity);
+    playerInput.removeEntity(entity);
+    movement.removeEntity(entity);
+    body.removeEntity(entity);
+    colliderAabb.removeEntity(entity);
+    collision.removeEntity(entity);
+    cooldown.removeEntity(entity);
+    health.removeEntity(entity);
+    mana.removeEntity(entity);
+    stamina.removeEntity(entity);
+    projectile.removeEntity(entity);
+    lifetime.removeEntity(entity);
   }
 }

@@ -121,7 +121,7 @@ Acceptance:
   - joystick -> `MoveAxis`
   - Jump button -> `JumpPressed`
   - Dash button -> `DashPressed`
-  - Attack button -> `AttackPressed` (wired, no gameplay effect until milestone 4)
+  - Attack button -> `AttackPressed` (wired, no gameplay effect until Milestone 6)
   - Aim (mouse/touch): pointer position is converted to an aim direction command:
     - `AimDir(dir)` where `dir = normalize(pointerWorldPos - playerWorldPos)`
   - Touch:
@@ -133,13 +133,13 @@ Acceptance:
 
 ---
 
-## Milestone 4 - Resources + Abilities (Minimal First Pass)
+## Milestone 4 - Resources (First Pass)
 
-This milestone adds “combat plumbing” in Core: resources, cooldowns, and the first projectile spell.
+This milestone adds deterministic "combat plumbing" in Core: resources, cooldowns, regen, and costs.
 
 Design goals:
 * Keep it deterministic (tick-based, no wall-clock gameplay logic).
-* Keep it modular/scalable: resources, abilities, projectiles, and damage should not become one giant system.
+* Keep tuning/rules in Core (not UI-owned).
 
 ### 4.1 Core resources (ECS stores)
 
@@ -147,7 +147,6 @@ Design goals:
   - `HealthStore` (hp, hpMax, hpRegenPerSecond)
   - `ManaStore` (mana, manaMax, manaRegenPerSecond)
   - `StaminaStore` (stamina, staminaMax, staminaRegenPerSecond)
-  - `CooldownStore` (cast cooldown, melee cooldown; ticks remaining)
 - [x] Add `ResourceRegenSystem`:
   - regen `mana/stamina/health` up to max each tick
   - keep all tuning/config in Core (no UI-owned rules)
@@ -161,26 +160,47 @@ Design goals:
 Reference (from `tools/output/c++implementation.txt`):
 * Player has hp/mana/stamina with regen; stamina is used for jump/dash costs.
 
-### 4.2 Spell data (catalog)
+Acceptance:
+- Player HUD shows HP/Mana/Stamina and updates deterministically (regen + spending).
+
+---
+
+## Milestone 5 - Spells (Ice Bolt Projectile)
+
+This milestone adds the first spell: cast -> projectile spawn -> lifetime -> (skeleton) damage plumbing.
+
+Design goals:
+* Keep it modular/scalable: abilities, projectiles, and damage should not become one giant system.
+
+### 5.1 Spell data (catalog)
 
 - [ ] Add a minimal `SpellCatalog` in Core (pure data; deterministic; no assets):
   - `IceBolt` stats: `manaCost=10`, `damage=25`, `speed=1600`, `lifetime=1.0s`, `colliderSize=(18,8)` (from C++ reference)
-  - (later) `Lightning` for the flying enemy (Milestone 6)
+    - collider size is full extents; derive AABB half-extents `(9,4)` at runtime
+  - (later) `Lightning` for the flying enemy (Milestone 7)
 - [ ] Decide on time units:
-  - store tuning as “per second” floats, but convert to integer ticks at runtime (or store both)
+  - store tuning as "per second" / "seconds" floats, but convert to integer ticks at runtime (or store both)
+  - use `ceil(seconds * tickHz)` for tick conversions (matches existing tuning pattern)
 
-### 4.3 Casting (player ability)
+### 5.2 Casting (player ability)
 
+- [ ] Add `CooldownStore` in Core:
+  - start with `castCooldownTicksLeft` (later: melee cooldown)
+  - decrement it each tick and clamp at 0
+- [ ] Add cast tuning:
+  - set `castCooldownSeconds = 0.25` and store it as seconds
+  - derive to ticks via `ceil(seconds * tickHz)`
 - [ ] Add `CastSystem` (or `AbilitySystem` split into focused systems):
   - reads `PlayerInput.castPressed` (edge-triggered) + `PlayerInput.aimDir`
-  - checks `ManaStore` + `CooldownStore`
-  - spends mana, starts cooldown, emits `SpawnProjectileEvent` (or directly creates projectile entities in core)
+  - checks `ManaStore` + `CooldownStore` (real cast cooldown)
+  - spends mana, starts cooldown, directly creates projectile entities in core
 - [ ] Define cast semantics (match C++ first-pass):
   - cast is ignored if insufficient mana
   - aim dir defaults to facing direction if `aimDir` is zero
-  - spawn origin is slightly in front of the player along aim (config constant)
+  - spawn origin: `origin = playerPos + aimDir * (playerRadius * 0.5)` (config constant)
+  - render placeholder: projectile is a small `RectangleComponent` (no assets)
 
-### 4.4 Projectile (ice bolt)
+### 5.3 Projectile (ice bolt)
 
 - [ ] Add projectile components:
   - `ProjectileStore` (spellId, faction/owner, dir, speed, damage)
@@ -188,12 +208,12 @@ Reference (from `tools/output/c++implementation.txt`):
 - [ ] Add `ProjectileSystem`:
   - integrates projectile position each tick
   - despawns on lifetime end
-  - (for now) projectile-vs-static collision can be skipped; projectile-vs-actors comes in Milestone 6 with enemies
+  - (for now) projectile-vs-static collision can be skipped; projectile-vs-actors comes in Milestone 7 with enemies
 - [ ] Add `DamageSystem` (or `CombatSystem`) skeleton:
   - applies damage on projectile hits (later expanded for melee + enemy attacks)
-  - keeps “damage rules” in core (invuln ticks, death, score hooks later)
+  - keeps "damage rules" in core (invuln ticks, death, score hooks later)
 
-### 4.6 Tests (add as behavior is introduced)
+### 5.4 Tests (add as behavior is introduced)
 
 - [ ] Resource tests: regen clamps to max; spending cannot go below 0.
 - [ ] Cast tests: insufficient mana => no projectile; sufficient mana => projectile spawn + mana decrease + cooldown set.
@@ -204,7 +224,7 @@ Acceptance:
 
 ---
 
-## Milestone 5 — Melee (Sword Hit)
+## Milestone 6 - Melee (Sword Hit)
 
 Melee is its own milestone because it needs different mechanics than projectiles (timing window, hit once per swing, facing/range rules).
 
@@ -223,7 +243,7 @@ Acceptance:
 
 ---
 
-## Milestone 6 — Enemies (Basic AI + Attacks)
+## Milestone 7 - Enemies (Basic AI + Attacks)
 
 Note: keep AI extremely simple for V0.
 
@@ -241,7 +261,7 @@ Acceptance:
 
 ---
 
-## Milestone 7 — Deterministic Spawning (First Pass)
+## Milestone 8 - Deterministic Spawning (First Pass)
 
 - [ ] Define chunk size and a deterministic “track” generator driven by `seed`.
   - Start simple: a fixed list of hand-authored chunk patterns (ground + platforms + obstacles + pickups).
@@ -252,7 +272,7 @@ Acceptance:
 
 ---
 
-## Milestone 8 — UX Polish + Debugging
+## Milestone 9 - UX Polish + Debugging
 
 - [ ] Pause overlay (freeze simulation).
 - [ ] Debug overlay:

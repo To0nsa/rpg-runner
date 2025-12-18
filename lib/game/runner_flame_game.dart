@@ -9,6 +9,7 @@ import 'package:flutter/widgets.dart';
 
 import '../core/contracts/v0_render_contract.dart';
 import '../core/snapshots/entity_render_snapshot.dart';
+import '../core/snapshots/enums.dart';
 import '../core/snapshots/static_solid_snapshot.dart';
 import 'input/runner_input_router.dart';
 import 'components/pixel_parallax_backdrop_component.dart';
@@ -35,6 +36,8 @@ class RunnerFlameGame extends FlameGame {
   late final CircleComponent _player;
   late final TextComponent _debugText;
   final List<RectangleComponent> _staticSolids = <RectangleComponent>[];
+  final Map<int, RectangleComponent> _projectiles = <int, RectangleComponent>{};
+  final Paint _projectilePaint = Paint()..color = const Color(0xFF60A5FA);
 
   @override
   Future<void> onLoad() async {
@@ -158,6 +161,8 @@ class RunnerFlameGame extends FlameGame {
       );
     }
 
+    _syncProjectiles(snapshot.entities);
+
     assert(() {
       _debugText.text =
           'tick=${snapshot.tick} seed=${snapshot.seed} x=${player?.pos.x.toStringAsFixed(1) ?? '-'} y=${player?.pos.y.toStringAsFixed(1) ?? '-'} anim=${player?.anim.name ?? '-'}';
@@ -184,10 +189,53 @@ class RunnerFlameGame extends FlameGame {
     }
   }
 
-  /// Finds the player entity in the snapshot (placeholder: first entity).
+  /// Finds the player entity in the snapshot.
   EntityRenderSnapshot? _findPlayer(List<EntityRenderSnapshot> entities) {
-    if (entities.isEmpty) return null;
-    return entities.first;
+    for (final e in entities) {
+      if (e.kind == EntityKind.player) return e;
+    }
+    return null;
+  }
+
+  void _syncProjectiles(List<EntityRenderSnapshot> entities) {
+    final seen = <int>{};
+
+    for (final e in entities) {
+      if (e.kind != EntityKind.projectile) continue;
+      seen.add(e.id);
+
+      var view = _projectiles[e.id];
+      if (view == null) {
+        final size = e.size;
+        view = RectangleComponent(
+          size: Vector2(size?.x ?? 8.0, size?.y ?? 8.0),
+          anchor: Anchor.center,
+          paint: _projectilePaint,
+        );
+        view.priority = -1;
+        _projectiles[e.id] = view;
+        world.add(view);
+      } else {
+        final size = e.size;
+        if (size != null) {
+          view.size.setValues(size.x, size.y);
+        }
+      }
+
+      view.position.setValues(
+        e.pos.x.roundToDouble(),
+        e.pos.y.roundToDouble(),
+      );
+    }
+
+    if (_projectiles.isEmpty) return;
+    final toRemove = <int>[];
+    for (final id in _projectiles.keys) {
+      if (!seen.contains(id)) toRemove.add(id);
+    }
+    for (final id in toRemove) {
+      _projectiles.remove(id)?.removeFromParent();
+    }
   }
 
   @override

@@ -5,22 +5,33 @@ import 'package:walkscape_runner/core/game_core.dart';
 
 String _digest(GameCore core) {
   final s = core.buildSnapshot();
-  final e = s.entities.single;
-  return [
+  final parts = <String>[
     't=${s.tick}',
     'dist=${s.distance.toStringAsFixed(6)}',
-    'px=${e.pos.x.toStringAsFixed(6)}',
-    'py=${e.pos.y.toStringAsFixed(6)}',
-    if (e.vel != null) 'vx=${e.vel!.x.toStringAsFixed(6)}',
-    if (e.vel != null) 'vy=${e.vel!.y.toStringAsFixed(6)}',
-    'f=${e.facing.name}',
-    'a=${e.anim.name}',
-    'g=${e.grounded}',
     'hp=${s.hud.hp.toStringAsFixed(6)}',
     'mana=${s.hud.mana.toStringAsFixed(6)}',
     'stamina=${s.hud.stamina.toStringAsFixed(6)}',
     'solids=${s.staticSolids.length}',
-  ].join('|');
+    'ents=${s.entities.length}',
+  ];
+
+  for (final e in s.entities) {
+    parts.addAll([
+      'id=${e.id}',
+      'k=${e.kind.name}',
+      'px=${e.pos.x.toStringAsFixed(6)}',
+      'py=${e.pos.y.toStringAsFixed(6)}',
+      if (e.vel != null) 'vx=${e.vel!.x.toStringAsFixed(6)}',
+      if (e.vel != null) 'vy=${e.vel!.y.toStringAsFixed(6)}',
+      if (e.size != null) 'sx=${e.size!.x.toStringAsFixed(6)}',
+      if (e.size != null) 'sy=${e.size!.y.toStringAsFixed(6)}',
+      'f=${e.facing.name}',
+      'a=${e.anim.name}',
+      'g=${e.grounded}',
+    ]);
+  }
+
+  return parts.join('|');
 }
 
 void main() {
