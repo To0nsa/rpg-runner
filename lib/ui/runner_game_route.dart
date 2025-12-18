@@ -19,6 +19,7 @@ Route<void> createRunnerGameRoute({
       Widget child = RunnerGameWidget(
         seed: seed,
         onExit: () => Navigator.of(context).maybePop(),
+        enableDebugInput: true,
       );
 
       if (lockLandscape) {

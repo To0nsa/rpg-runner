@@ -10,8 +10,8 @@ import 'v0_viewport_mapper.dart';
 ///
 /// - Move: updates AimDir.
 /// - Left click: Attack.
-/// - Middle click: Dash.
-/// - Right click: Cast.
+/// - Middle click (or tertiary): Dash.
+/// - Right click: Cast with aim.
 class DebugMouseAdapter extends StatelessWidget {
   const DebugMouseAdapter({
     super.key,
@@ -33,6 +33,7 @@ class DebugMouseAdapter extends StatelessWidget {
     if (!enabled) return child;
 
     return Listener(
+      behavior: HitTestBehavior.translucent,
       onPointerHover: (e) {
         if (e.kind != PointerDeviceKind.mouse) return;
         final dir = mapper.aimDirFromLocal(e.localPosition, controller.snapshot);
@@ -53,18 +54,17 @@ class DebugMouseAdapter extends StatelessWidget {
           input.setAimDir(dir.x, dir.y);
         }
 
-        if ((e.buttons & kMiddleMouseButton) != 0) {
-          input.pressDash();
-        }
-        if ((e.buttons & kPrimaryMouseButton) != 0) {
-          input.pressAttack();
-        }
-        if ((e.buttons & kSecondaryMouseButton) != 0) {
-          input.pressCastWithAim();
-        }
+        final b = e.buttons;
+
+        final isDash = (b & kMiddleMouseButton) != 0 || (b & kTertiaryButton) != 0;
+        final isAttack = (b & kPrimaryButton) != 0;
+        final isCast = (b & kSecondaryButton) != 0;
+
+        if (isDash) input.pressDash();
+        if (isAttack) input.pressAttack();
+        if (isCast) input.pressCastWithAim();
       },
       child: child,
     );
   }
 }
-
