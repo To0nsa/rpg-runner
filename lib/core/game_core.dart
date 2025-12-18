@@ -8,6 +8,8 @@ import 'dart:math';
 import 'commands/command.dart';
 import 'contracts/v0_render_contract.dart';
 import 'ecs/entity_id.dart';
+import 'ecs/stores/collider_aabb_store.dart';
+import 'ecs/systems/collision_system.dart';
 import 'ecs/systems/movement_system.dart';
 import 'ecs/stores/body_store.dart';
 import 'ecs/world.dart';
@@ -35,6 +37,7 @@ class GameCore {
        ) {
     _world = EcsWorld();
     _movementSystem = MovementSystem();
+    _collisionSystem = CollisionSystem();
 
     final spawnPos = Vec2(
       80,
@@ -56,6 +59,12 @@ class GameCore {
       facing: Facing.right,
       grounded: true,
       body: playerBody ?? defaultBody,
+      collider: ColliderAabbDef(
+        halfExtents: Vec2(
+          _movement.base.playerRadius,
+          _movement.base.playerRadius,
+        ),
+      ),
     );
   }
 
@@ -69,6 +78,7 @@ class GameCore {
 
   late final EcsWorld _world;
   late final MovementSystem _movementSystem;
+  late final CollisionSystem _collisionSystem;
   late final EntityId _player;
 
   /// Current simulation tick.
@@ -85,6 +95,9 @@ class GameCore {
 
   Vec2 get playerVel => _world.transform.getVel(_player);
   set playerVel(Vec2 value) => _world.transform.setVel(_player, value);
+
+  bool get playerGrounded =>
+      _world.movement.grounded[_world.movement.indexOf(_player)];
 
   Facing get playerFacing =>
       _world.movement.facing[_world.movement.indexOf(_player)];
@@ -131,6 +144,7 @@ class GameCore {
 
     tick += 1;
     _movementSystem.step(_world, _movement);
+    _collisionSystem.step(_world, _movement);
 
     distance += max(0.0, playerVel.x) * _movement.dtSeconds;
   }

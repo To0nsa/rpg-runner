@@ -1,4 +1,3 @@
-import '../../contracts/v0_render_contract.dart';
 import '../../snapshots/enums.dart';
 import '../../tuning/v0_movement_tuning.dart';
 import '../entity_id.dart';
@@ -10,8 +9,8 @@ import '../world.dart';
 /// - Movement
 /// - Body
 ///
-/// Note: V0 includes a minimal ground constraint using `v0GroundTopY`. Full
-/// collisions against obstacles/platforms come later.
+/// MovementSystem writes velocities only (input/jump/dash/gravity/clamps).
+/// Position integration and collision resolution are handled by CollisionSystem.
 class MovementSystem {
   void step(EcsWorld world, V0MovementTuningDerived tuning) {
     final dt = tuning.dtSeconds;
@@ -99,20 +98,6 @@ class MovementSystem {
       world.transform.velY[ti] = world.transform.velY[ti]
           .clamp(-world.body.maxVelY[bi], world.body.maxVelY[bi])
           .toDouble();
-
-      // Integrate position.
-      world.transform.posX[ti] += world.transform.velX[ti] * dt;
-      world.transform.posY[ti] += world.transform.velY[ti] * dt;
-
-      // V0 ground constraint.
-      final floorY = v0GroundTopY.toDouble() - t.playerRadius;
-      if (world.transform.posY[ti] > floorY) {
-        world.transform.posY[ti] = floorY;
-        world.transform.velY[ti] = 0;
-        world.movement.grounded[mi] = true;
-      } else {
-        world.movement.grounded[mi] = false;
-      }
     }
   }
 

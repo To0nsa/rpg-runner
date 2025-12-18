@@ -49,12 +49,14 @@ void main() {
         v0GroundTopY.toDouble() - const V0MovementTuning().playerRadius;
 
     expect(core.playerPos.y, closeTo(floorY, 1e-9));
+    expect(core.playerGrounded, isTrue);
 
     _tick(core, jumpPressed: true);
 
     // Jump is applied before gravity, but gravity still affects the final vY.
     expect(core.playerVel.y, lessThan(0));
     expect(core.playerPos.y, lessThan(floorY));
+    expect(core.playerGrounded, isFalse);
   });
 
   test('jump buffer triggers on the tick after landing', () {
@@ -65,11 +67,13 @@ void main() {
     // Put the player high above the floor so coyote time expires before landing.
     core.playerPos = core.playerPos.withY(floorY - 200);
     core.playerVel = const Vec2(0, 0);
+    expect(core.playerGrounded, isTrue);
 
     // Burn coyote time (default is 0.10s => 6 ticks at 60 Hz).
     for (var i = 0; i < 7; i += 1) {
       _tick(core);
       expect(core.playerPos.y, lessThan(floorY));
+      expect(core.playerGrounded, isFalse);
     }
 
     // Snap close to the ground while staying airborne (keeps coyote expired).
@@ -80,6 +84,7 @@ void main() {
     _tick(core, jumpPressed: true);
     expect(core.playerPos.y, lessThan(floorY));
     expect(core.playerVel.y, greaterThan(0)); // still falling after gravity
+    expect(core.playerGrounded, isFalse);
 
     // Simulate until landing.
     var safety = 60;
@@ -90,10 +95,12 @@ void main() {
     expect(safety, greaterThan(0));
     expect(core.playerPos.y, closeTo(floorY, 1e-9));
     expect(core.playerVel.y, closeTo(0, 1e-9));
+    expect(core.playerGrounded, isTrue);
 
     // Next tick: buffered jump should fire due to grounded state from previous tick.
     _tick(core);
     expect(core.playerVel.y, lessThan(0));
+    expect(core.playerGrounded, isFalse);
   });
 
   test('dash sets constant horizontal speed and cancels vertical velocity', () {
