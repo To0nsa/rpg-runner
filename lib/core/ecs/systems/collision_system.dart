@@ -2,6 +2,7 @@ import '../../contracts/v0_render_contract.dart';
 import '../../collision/static_world_geometry.dart';
 import '../../tuning/v0_movement_tuning.dart';
 import '../entity_id.dart';
+import '../stores/body_store.dart';
 import '../world.dart';
 
 /// Integrates positions and resolves collisions (V0: ground band only).
@@ -50,7 +51,7 @@ class CollisionSystem {
       final mi = world.movement.tryIndexOf(e);
       if (mi != null) world.movement.grounded[mi] = false;
 
-      //final prevPosX = world.transform.posX[ti];
+      final prevPosX = world.transform.posX[ti];
       final prevPosY = world.transform.posY[ti];
 
       // Integrate position from the current velocity.
@@ -62,7 +63,7 @@ class CollisionSystem {
       final offsetX = world.colliderAabb.offsetX[aabbi];
       final offsetY = world.colliderAabb.offsetY[aabbi];
 
-      //final prevCenterX = prevPosX + offsetX;
+      final prevCenterX = prevPosX + offsetX;
       final prevCenterY = prevPosY + offsetY;
       final prevBottom = prevCenterY + halfY;
 
@@ -71,11 +72,13 @@ class CollisionSystem {
       final minX = centerX - halfX;
       final maxX = centerX + halfX;
       final bottom = centerY + halfY;
+      final top = centerY - halfY;
 
       // Vertical top resolution (one-way platforms): only while moving downward.
       double? bestTopY;
       if (world.transform.velY[ti] > 0) {
         for (final solid in staticWorldGeometry.solids) {
+          if ((solid.sides & StaticSolid.sideTop) == 0) continue;
           final overlapX = maxX > solid.minX + eps && minX < solid.maxX - eps;
           if (!overlapX) continue;
 
@@ -84,8 +87,33 @@ class CollisionSystem {
               prevBottom <= topY + eps && bottom >= topY - eps;
           if (!crossesTop) continue;
 
+          if (solid.oneWayTop == false) {
+            // Fully solid top surface; same resolution as one-way, just without
+            // any additional gating.
+          }
+
           if (bestTopY == null || topY < bestTopY) {
             bestTopY = topY;
+          }
+        }
+      }
+
+      // Vertical bottom resolution (ceilings): only while moving upward.
+      double? bestBottomY;
+      if (world.transform.velY[ti] < 0) {
+        final prevTop = prevCenterY - halfY;
+        for (final solid in staticWorldGeometry.solids) {
+          if ((solid.sides & StaticSolid.sideBottom) == 0) continue;
+          final overlapX = maxX > solid.minX + eps && minX < solid.maxX - eps;
+          if (!overlapX) continue;
+
+          final bottomY = solid.maxY;
+          final crossesBottom =
+              prevTop >= bottomY - eps && top <= bottomY + eps;
+          if (!crossesBottom) continue;
+
+          if (bestBottomY == null || bottomY > bestBottomY) {
+            bestBottomY = bottomY;
           }
         }
       }
@@ -109,6 +137,76 @@ class CollisionSystem {
         }
         world.collision.grounded[coli] = true;
         if (mi != null) world.movement.grounded[mi] = true;
+      } else if (bestBottomY != null) {
+        world.transform.posY[ti] = bestBottomY - offsetY + halfY;
+        if (world.transform.velY[ti] < 0) {
+          world.transform.velY[ti] = 0;
+        }
+        world.collision.hitCeiling[coli] = true;
+      }
+
+      // Recompute AABB after vertical resolution for stable side overlap tests.
+      final resolvedCenterX = world.transform.posX[ti] + offsetX;
+      final resolvedCenterY = world.transform.posY[ti] + offsetY;
+      //final resolvedMinX = resolvedCenterX - halfX;
+      //final resolvedMaxX = resolvedCenterX + halfX;
+      final resolvedMinY = resolvedCenterY - halfY;
+      final resolvedMaxY = resolvedCenterY + halfY;
+
+      // Horizontal resolution against static solids (V0: obstacles/walls only).
+      final sideMask = world.body.sideMask[bi];
+      final velX = world.transform.velX[ti];
+
+      if (velX > 0 && (sideMask &  BodyDef.sideRight) != 0) {
+        final prevRight = prevCenterX + halfX;
+        final right = resolvedCenterX + halfX;
+        double? bestWallX;
+
+        for (final solid in staticWorldGeometry.solids) {
+          if ((solid.sides & StaticSolid.sideLeft) == 0) continue;
+          final overlapY =
+              resolvedMaxY > solid.minY + eps && resolvedMinY < solid.maxY - eps;
+          if (!overlapY) continue;
+
+          final wallX = solid.minX;
+          final crossesWall = prevRight <= wallX + eps && right >= wallX - eps;
+          if (!crossesWall) continue;
+
+          if (bestWallX == null || wallX < bestWallX) {
+            bestWallX = wallX;
+          }
+        }
+
+        if (bestWallX != null) {
+          world.transform.posX[ti] = bestWallX - offsetX - halfX;
+          world.transform.velX[ti] = 0;
+          world.collision.hitRight[coli] = true;
+        }
+      } else if (velX < 0 && (sideMask & BodyDef.sideLeft) != 0) {
+        final prevLeft = prevCenterX - halfX;
+        final left = resolvedCenterX - halfX;
+        double? bestWallX;
+
+        for (final solid in staticWorldGeometry.solids) {
+          if ((solid.sides & StaticSolid.sideRight) == 0) continue;
+          final overlapY =
+              resolvedMaxY > solid.minY + eps && resolvedMinY < solid.maxY - eps;
+          if (!overlapY) continue;
+
+          final wallX = solid.maxX;
+          final crossesWall = prevLeft >= wallX - eps && left <= wallX + eps;
+          if (!crossesWall) continue;
+
+          if (bestWallX == null || wallX > bestWallX) {
+            bestWallX = wallX;
+          }
+        }
+
+        if (bestWallX != null) {
+          world.transform.posX[ti] = bestWallX - offsetX + halfX;
+          world.transform.velX[ti] = 0;
+          world.collision.hitLeft[coli] = true;
+        }
       }
     }
   }

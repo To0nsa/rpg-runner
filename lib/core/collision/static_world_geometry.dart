@@ -8,6 +8,7 @@ class StaticSolid {
     required this.minY,
     required this.maxX,
     required this.maxY,
+    this.sides = sideTop,
     this.oneWayTop = true,
   }) : assert(maxX >= minX),
        assert(maxY >= minY);
@@ -17,8 +18,24 @@ class StaticSolid {
   final double maxX;
   final double maxY;
 
+  /// Which faces of this solid participate in collision resolution.
+  ///
+  /// For V0:
+  /// - one-way platforms typically use `sideTop` only
+  /// - obstacles typically use `sideAll`
+  final int sides;
+
   /// If true, the top surface only collides while falling (platform behavior).
+  ///
+  /// This only applies when [sides] includes [sideTop].
   final bool oneWayTop;
+
+  static const int sideNone = 0;
+  static const int sideTop = 1 << 0;
+  static const int sideBottom = 1 << 1;
+  static const int sideLeft = 1 << 2;
+  static const int sideRight = 1 << 3;
+  static const int sideAll = sideTop | sideBottom | sideLeft | sideRight;
 }
 
 /// Immutable bundle of static solids for a run/session.
@@ -27,4 +44,3 @@ class StaticWorldGeometry {
 
   final List<StaticSolid> solids;
 }
-

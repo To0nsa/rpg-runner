@@ -93,7 +93,7 @@ Acceptance:
   - [ ] `CollisionSystem` (integrates + resolves):
     - [x] ground band (V0 equivalent of the old clamp)
     - [x] one-way platform tops (AABB, vertical-only)
-    - [ ] obstacles + side walls (AABB, sideMask)
+    - [x] obstacles + side walls (AABB, sideMask; horizontal-only for now)
 - [x] Commands:
   - [x] `MoveAxis` (from keyboard)
   - [x] `JumpPressed`
@@ -190,3 +190,4 @@ Acceptance:
 - [ ] Determinism test: same seed + same command stream => identical snapshots (or snapshot hash) after N ticks.
 - [x] Collision test: jump/land results in grounded at expected ticks.
 - [x] Platform collision tests: land, pass-through from below, walk off ledge.
+- [x] Obstacle collision tests: side walls + sideMask.
