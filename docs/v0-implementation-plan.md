@@ -113,11 +113,11 @@ Acceptance:
 
 ## Milestone 3 - Touch Controls (V0)
 
-- [ ] Flutter overlay for:
+- [x] Flutter overlay for:
   - joystick left
   - Jump/Dash/Attack buttons right
-- [ ] Debug-only keyboard mapping (dev convenience; not required for V0).
-- [ ] Command mapping:
+- [x] Debug-only keyboard mapping (dev convenience; not required for V0).
+- [x] Command mapping:
   - joystick -> `MoveAxis`
   - Jump button -> `JumpPressed`
   - Dash button -> `DashPressed`
@@ -133,27 +133,97 @@ Acceptance:
 
 ---
 
-## Milestone 4 — Resources + Abilities (Minimal First Pass)
+## Milestone 4 - Resources + Abilities (Minimal First Pass)
 
-Note: exact costs/cooldowns can be placeholders until tuned.
+This milestone adds “combat plumbing” in Core: resources, cooldowns, and the first projectile spell.
 
-- [ ] Add core resources:
-  - `Mana`, `Endurance`, `Cooldowns`
-- [ ] Add `AbilitySystem`:
-  - spends mana/endurance
-  - applies cooldown ticks
-  - spawns projectiles/hitboxes via core events
-- [ ] Player abilities:
-  - Sword hit: short-lived melee hitbox in front of player
-  - Ice bolt: projectile with speed + lifetime
-- [ ] HUD shows: health, mana, endurance.
+Design goals:
+* Keep it deterministic (tick-based, no wall-clock gameplay logic).
+* Keep it modular/scalable: resources, abilities, projectiles, and damage should not become one giant system.
+
+### 4.1 Core resources (ECS stores)
+
+- [x] Add resource component stores (separate SoA stores; no "mega Stats struct"):
+  - `HealthStore` (hp, hpMax, hpRegenPerSecond)
+  - `ManaStore` (mana, manaMax, manaRegenPerSecond)
+  - `StaminaStore` (stamina, staminaMax, staminaRegenPerSecond)
+  - `CooldownStore` (cast cooldown, melee cooldown; ticks remaining)
+- [x] Add `ResourceRegenSystem`:
+  - regen `mana/stamina/health` up to max each tick
+  - keep all tuning/config in Core (no UI-owned rules)
+- [x] Add snapshot fields + render/HUD plumbing:
+  - core snapshot exposes health/mana/stamina for the player
+  - Flame shows 3 horizontal bars (top-left): HP/Mana/Stamina
+- [x] Apply stamina costs to movement:
+  - jump costs `2` stamina
+  - dash costs `2` stamina
+
+Reference (from `tools/output/c++implementation.txt`):
+* Player has hp/mana/stamina with regen; stamina is used for jump/dash costs.
+
+### 4.2 Spell data (catalog)
+
+- [ ] Add a minimal `SpellCatalog` in Core (pure data; deterministic; no assets):
+  - `IceBolt` stats: `manaCost=10`, `damage=25`, `speed=1600`, `lifetime=1.0s`, `colliderSize=(18,8)` (from C++ reference)
+  - (later) `Lightning` for the flying enemy (Milestone 6)
+- [ ] Decide on time units:
+  - store tuning as “per second” floats, but convert to integer ticks at runtime (or store both)
+
+### 4.3 Casting (player ability)
+
+- [ ] Add `CastSystem` (or `AbilitySystem` split into focused systems):
+  - reads `PlayerInput.castPressed` (edge-triggered) + `PlayerInput.aimDir`
+  - checks `ManaStore` + `CooldownStore`
+  - spends mana, starts cooldown, emits `SpawnProjectileEvent` (or directly creates projectile entities in core)
+- [ ] Define cast semantics (match C++ first-pass):
+  - cast is ignored if insufficient mana
+  - aim dir defaults to facing direction if `aimDir` is zero
+  - spawn origin is slightly in front of the player along aim (config constant)
+
+### 4.4 Projectile (ice bolt)
+
+- [ ] Add projectile components:
+  - `ProjectileStore` (spellId, faction/owner, dir, speed, damage)
+  - `LifetimeStore` (ticks remaining)
+- [ ] Add `ProjectileSystem`:
+  - integrates projectile position each tick
+  - despawns on lifetime end
+  - (for now) projectile-vs-static collision can be skipped; projectile-vs-actors comes in Milestone 6 with enemies
+- [ ] Add `DamageSystem` (or `CombatSystem`) skeleton:
+  - applies damage on projectile hits (later expanded for melee + enemy attacks)
+  - keeps “damage rules” in core (invuln ticks, death, score hooks later)
+
+### 4.6 Tests (add as behavior is introduced)
+
+- [ ] Resource tests: regen clamps to max; spending cannot go below 0.
+- [ ] Cast tests: insufficient mana => no projectile; sufficient mana => projectile spawn + mana decrease + cooldown set.
+- [ ] Determinism extension: include resources + ability outputs in snapshot hash.
 
 Acceptance:
-- Pressing Attack produces a melee hit; aiming + casting spawns an ice bolt; resources change accordingly.
+- Cast spawns an `IceBolt` projectile; HUD reflects resource changes; no melee yet.
 
 ---
 
-## Milestone 5 — Enemies (Basic AI + Attacks)
+## Milestone 5 — Melee (Sword Hit)
+
+Melee is its own milestone because it needs different mechanics than projectiles (timing window, hit once per swing, facing/range rules).
+
+- [ ] Add melee components:
+  - `HitboxStore` (owner, faction, damage, AABB shape, activeTicks)
+  - `HitOnceStore` (per-hitbox: set of already-hit entity IDs, or an equivalent deterministic structure)
+- [ ] Add `MeleeSystem`:
+  - on `AttackPressed`, checks stamina + cooldown, then spawns a short-lived hitbox in front of the player
+  - enforces "hit once per swing"
+- [ ] Add tests:
+  - `AttackPressed` spawns hitbox for N ticks
+  - hitbox damages only once per target per swing
+
+Acceptance:
+- Attack produces a deterministic short-lived melee hitbox entity and applies damage once per swing.
+
+---
+
+## Milestone 6 — Enemies (Basic AI + Attacks)
 
 Note: keep AI extremely simple for V0.
 
@@ -171,7 +241,7 @@ Acceptance:
 
 ---
 
-## Milestone 6 — Deterministic Spawning (First Pass)
+## Milestone 7 — Deterministic Spawning (First Pass)
 
 - [ ] Define chunk size and a deterministic “track” generator driven by `seed`.
   - Start simple: a fixed list of hand-authored chunk patterns (ground + platforms + obstacles + pickups).
@@ -182,7 +252,7 @@ Acceptance:
 
 ---
 
-## Milestone 7 — UX Polish + Debugging
+## Milestone 8 — UX Polish + Debugging
 
 - [ ] Pause overlay (freeze simulation).
 - [ ] Debug overlay:

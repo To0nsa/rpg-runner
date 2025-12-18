@@ -13,7 +13,11 @@ import 'ecs/entity_id.dart';
 import 'ecs/stores/collider_aabb_store.dart';
 import 'ecs/systems/collision_system.dart';
 import 'ecs/systems/movement_system.dart';
+import 'ecs/systems/resource_regen_system.dart';
 import 'ecs/stores/body_store.dart';
+import 'ecs/stores/health_store.dart';
+import 'ecs/stores/mana_store.dart';
+import 'ecs/stores/stamina_store.dart';
 import 'ecs/world.dart';
 import 'math/vec2.dart';
 import 'snapshots/enums.dart';
@@ -22,6 +26,7 @@ import 'snapshots/game_state_snapshot.dart';
 import 'snapshots/player_hud_snapshot.dart';
 import 'snapshots/static_solid_snapshot.dart';
 import 'tuning/v0_movement_tuning.dart';
+import 'tuning/v0_resource_tuning.dart';
 
 const StaticWorldGeometry v0DefaultStaticWorldGeometry = StaticWorldGeometry(
   groundPlane: StaticGroundPlane(topY: v0GroundTopY * 1.0),
@@ -58,16 +63,19 @@ class GameCore {
     required this.seed,
     this.tickHz = v0DefaultTickHz,
     V0MovementTuning movementTuning = const V0MovementTuning(),
+    V0ResourceTuning resourceTuning = const V0ResourceTuning(),
     BodyDef? playerBody,
     StaticWorldGeometry? staticWorldGeometry,
   }) : _movement = V0MovementTuningDerived.from(
          movementTuning,
          tickHz: tickHz,
        ),
+       _resourceTuning = resourceTuning,
        staticWorldGeometry = staticWorldGeometry ?? v0DefaultStaticWorldGeometry {
     _world = EcsWorld();
     _movementSystem = MovementSystem();
     _collisionSystem = CollisionSystem();
+    _resourceRegenSystem = ResourceRegenSystem();
 
     final spawnPos = Vec2(
       80,
@@ -95,6 +103,22 @@ class GameCore {
           _movement.base.playerRadius,
           _movement.base.playerRadius,
         ),
+      ),
+      health: HealthDef(
+        hp: _resourceTuning.playerHpStart ?? _resourceTuning.playerHpMax,
+        hpMax: _resourceTuning.playerHpMax,
+        regenPerSecond: _resourceTuning.playerHpRegenPerSecond,
+      ),
+      mana: ManaDef(
+        mana: _resourceTuning.playerManaStart ?? _resourceTuning.playerManaMax,
+        manaMax: _resourceTuning.playerManaMax,
+        regenPerSecond: _resourceTuning.playerManaRegenPerSecond,
+      ),
+      stamina: StaminaDef(
+        stamina:
+            _resourceTuning.playerStaminaStart ?? _resourceTuning.playerStaminaMax,
+        staminaMax: _resourceTuning.playerStaminaMax,
+        regenPerSecond: _resourceTuning.playerStaminaRegenPerSecond,
       ),
     );
   }
@@ -125,10 +149,12 @@ class GameCore {
       );
 
   final V0MovementTuningDerived _movement;
+  final V0ResourceTuning _resourceTuning;
 
   late final EcsWorld _world;
   late final MovementSystem _movementSystem;
   late final CollisionSystem _collisionSystem;
+  late final ResourceRegenSystem _resourceRegenSystem;
   late final EntityId _player;
 
   /// Current simulation tick.
@@ -198,12 +224,13 @@ class GameCore {
     if (paused) return;
 
     tick += 1;
-    _movementSystem.step(_world, _movement);
+    _movementSystem.step(_world, _movement, resources: _resourceTuning);
     _collisionSystem.step(
       _world,
       _movement,
       staticWorld: _staticWorldIndex,
     );
+    _resourceRegenSystem.step(_world, dtSeconds: _movement.dtSeconds);
 
     distance += max(0.0, playerVel.x) * _movement.dtSeconds;
   }
@@ -214,6 +241,9 @@ class GameCore {
     final mi = _world.movement.indexOf(_player);
     final dashing = _world.movement.dashTicksLeft[mi] > 0;
     final onGround = _world.collision.grounded[_world.collision.indexOf(_player)];
+    final hi = _world.health.indexOf(_player);
+    final mai = _world.mana.indexOf(_player);
+    final si = _world.stamina.indexOf(_player);
 
     final AnimKey anim;
     if (dashing) {
@@ -231,13 +261,13 @@ class GameCore {
       seed: seed,
       distance: distance,
       paused: paused,
-      hud: const PlayerHudSnapshot(
-        hp: 100,
-        hpMax: 100,
-        mana: 50,
-        manaMax: 50,
-        endurance: 100,
-        enduranceMax: 100,
+      hud: PlayerHudSnapshot(
+        hp: _world.health.hp[hi],
+        hpMax: _world.health.hpMax[hi],
+        mana: _world.mana.mana[mai],
+        manaMax: _world.mana.manaMax[mai],
+        stamina: _world.stamina.stamina[si],
+        staminaMax: _world.stamina.staminaMax[si],
         score: 0,
         coins: 0,
       ),

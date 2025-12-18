@@ -55,7 +55,7 @@ World:
 Player:
 
 * Can run, jump, sword hit, and cast an ice bolt.
-* Has `health`, `mana`, and `endurance` (endurance can gate sword/sprint/dodge later; V0 decides how it is spent).
+* Has `health`, `mana`, and `stamina` (V0: jump/dash spend stamina).
 
 Enemies:
 
@@ -69,7 +69,7 @@ Collectible:
 V0 definition of done:
 
 * Deterministic run given the same `seed` and the same command stream.
-* HUD shows health/mana/endurance and at least one progression stat (distance/score).
+* HUD shows health/mana/stamina and at least one progression stat (distance/score).
 
 ---
 
@@ -288,12 +288,19 @@ Notes:
 
 #### Combat
 
-* **Health**: current, max, invulnTicks
-* **Mana**: current, max, regenPerTick (or regenPerSecond)
-* **Endurance**: current, max, regenPerTick (or regenPerSecond)
-* **Cooldowns**: remainingTicks per ability (jump, sword, icebolt, enemy spells)
+* **Health**: current, max (and later: invulnTicks)
+* **Mana**: current, max, regenPerSecond
+* **Endurance**: current, max, regenPerSecond
+* **Cooldowns**: remainingTicks per ability (sword, icebolt, enemy spells, etc.)
+* **Spellbook/Loadout** (optional for V0): which `SpellId`s an entity can cast
+* **SpellCatalog** (data, not a component): lookup table for spell stats by `SpellId`
 * **DamageOnContact**: damage, knockback, faction filter
 * **Projectile**: speed, lifetimeTicks, pierce, ownerId
+* **Hitbox** (melee): shape, activeTicks, ownerId, hitOnceSet
+
+Implementation note:
+
+* Keep these as separate SoA component stores (`HealthStore`, `ManaStore`, `EnduranceStore`, `CooldownStore`, etc.) unless profiling shows a strong need to pack them together.
 
 #### AI / Behavior
 
@@ -315,14 +322,15 @@ Notes:
 ### 8.3 Minimal Systems (tick order)
 
 1. **InputSystem**: apply Commands to Player (and optionally AI)
-2. **AISystem**: update Brain → writes desired actions/vel
-3. **AbilitySystem**: spend mana/endurance, apply cooldowns, spawn projectiles/hitboxes
-4. **MovementSystem**: integrate velocity with fixed dt (gravity, clamps)
-5. **CollisionSystem**: resolve AABB vs static + dynamic (sets grounded)
-6. **CombatSystem**: apply hits/damage, invuln, emits HitEvents
-7. **ProjectileSystem**: move projectiles, collision, despawn
-8. **SpawnerSystem**: procedural chunk/spawn budget
-9. **CleanupSystem**: despawn by Lifetime/out-of-bounds
+2. **AISystem**: update Brain → writes desired actions
+3. **MovementSystem**: compute velocities only (gravity, accel/decel, jump/dash state)
+4. **CollisionSystem**: integrate positions + resolve collisions (sets grounded)
+5. **ResourceRegenSystem**: regen hp/mana/stamina (tick-based)
+6. **AbilitySystem** (split recommended): spend resources, apply cooldowns, spawn projectiles/hitboxes
+7. **ProjectileSystem**: move projectiles + despawn on lifetime end
+8. **CombatSystem**: apply hits/damage (projectiles + hitboxes), invuln, emits events
+9. **SpawnerSystem**: procedural chunk/spawn budget
+10. **CleanupSystem**: despawn by Lifetime/out-of-bounds
 
 Rule:
 
@@ -610,12 +618,12 @@ Notes:
 
 #### 11.4.2 PlayerHudSnapshot
 
-* `int hp`
-* `int hpMax`
+* `double hp`
+* `double hpMax`
 * `double mana`
 * `double manaMax`
-* `double endurance`
-* `double enduranceMax`
+* `double stamina`
+* `double staminaMax`
 * `int score`
 * `int coins`
 * `int combo` (optional)

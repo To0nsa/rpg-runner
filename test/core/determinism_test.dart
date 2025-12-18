@@ -16,6 +16,9 @@ String _digest(GameCore core) {
     'f=${e.facing.name}',
     'a=${e.anim.name}',
     'g=${e.grounded}',
+    'hp=${s.hud.hp.toStringAsFixed(6)}',
+    'mana=${s.hud.mana.toStringAsFixed(6)}',
+    'stamina=${s.hud.stamina.toStringAsFixed(6)}',
     'solids=${s.staticSolids.length}',
   ].join('|');
 }
@@ -47,4 +50,3 @@ void main() {
     }
   });
 }
-

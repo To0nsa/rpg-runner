@@ -1,5 +1,6 @@
 import '../../snapshots/enums.dart';
 import '../../tuning/v0_movement_tuning.dart';
+import '../../tuning/v0_resource_tuning.dart';
 import '../entity_id.dart';
 import '../world.dart';
 
@@ -12,7 +13,11 @@ import '../world.dart';
 /// MovementSystem writes velocities only (input/jump/dash/gravity/clamps).
 /// Position integration and collision resolution are handled by CollisionSystem.
 class MovementSystem {
-  void step(EcsWorld world, V0MovementTuningDerived tuning) {
+  void step(
+    EcsWorld world,
+    V0MovementTuningDerived tuning, {
+    required V0ResourceTuning resources,
+  }) {
     final dt = tuning.dtSeconds;
     final t = tuning.base;
 
@@ -22,7 +27,8 @@ class MovementSystem {
       if (!world.transform.has(e) ||
           !world.playerInput.has(e) ||
           !world.body.has(e) ||
-          !world.collision.has(e)) {
+          !world.collision.has(e) ||
+          !world.stamina.has(e)) {
         continue;
       }
 
@@ -30,6 +36,7 @@ class MovementSystem {
       final ii = world.playerInput.indexOf(e);
       final bi = world.body.indexOf(e);
       final ci = world.collision.indexOf(e);
+      final si = world.stamina.indexOf(e);
 
       if (!world.body.enabled[bi]) continue;
       if (world.body.isKinematic[bi]) {
@@ -61,7 +68,15 @@ class MovementSystem {
 
       // Dash request.
       if (world.playerInput.dashPressed[ii]) {
-        _tryStartDash(world, mi: mi, ti: ti, ii: ii, tuning: tuning);
+        _tryStartDash(
+          world,
+          mi: mi,
+          ti: ti,
+          ii: ii,
+          si: si,
+          tuning: tuning,
+          staminaCost: resources.dashStaminaCost,
+        );
       }
 
       final dashing = world.movement.dashTicksLeft[mi] > 0;
@@ -80,9 +95,13 @@ class MovementSystem {
         // Jump attempt before gravity (to match the previous behavior).
         if (world.movement.jumpBufferTicksLeft[mi] > 0 &&
             (wasGrounded || world.movement.coyoteTicksLeft[mi] > 0)) {
-          world.transform.velY[ti] = -t.jumpSpeed;
-          world.movement.jumpBufferTicksLeft[mi] = 0;
-          world.movement.coyoteTicksLeft[mi] = 0;
+          if (world.stamina.stamina[si] >= resources.jumpStaminaCost) {
+            world.stamina.stamina[si] -= resources.jumpStaminaCost;
+
+            world.transform.velY[ti] = -t.jumpSpeed;
+            world.movement.jumpBufferTicksLeft[mi] = 0;
+            world.movement.coyoteTicksLeft[mi] = 0;
+          }
         }
 
         // Gravity.
@@ -133,10 +152,13 @@ class MovementSystem {
     required int mi,
     required int ti,
     required int ii,
+    required int si,
     required V0MovementTuningDerived tuning,
+    required double staminaCost,
   }) {
     if (world.movement.dashTicksLeft[mi] > 0) return;
     if (world.movement.dashCooldownTicksLeft[mi] > 0) return;
+    if (world.stamina.stamina[si] < staminaCost) return;
 
     final axis = world.playerInput.moveAxis[ii];
     final dirX = axis != 0
@@ -151,5 +173,7 @@ class MovementSystem {
 
     // Cancel vertical motion so dash doesn't inherit jump/fall.
     world.transform.velY[ti] = 0;
+
+    world.stamina.stamina[si] -= staminaCost;
   }
 }

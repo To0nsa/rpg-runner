@@ -8,17 +8,17 @@ class PlayerHudSnapshot {
     required this.hpMax,
     required this.mana,
     required this.manaMax,
-    required this.endurance,
-    required this.enduranceMax,
+    required this.stamina,
+    required this.staminaMax,
     required this.score,
     required this.coins,
   });
 
   /// Current health.
-  final int hp;
+  final double hp;
 
   /// Maximum health.
-  final int hpMax;
+  final double hpMax;
 
   /// Current mana (resource for spells).
   final double mana;
@@ -26,11 +26,11 @@ class PlayerHudSnapshot {
   /// Maximum mana.
   final double manaMax;
 
-  /// Current endurance (resource for physical actions like dash/attacks).
-  final double endurance;
+  /// Current stamina (resource for physical actions like jump/dash).
+  final double stamina;
 
-  /// Maximum endurance.
-  final double enduranceMax;
+  /// Maximum stamina.
+  final double staminaMax;
 
   /// Run score (placeholder for V0).
   final int score;

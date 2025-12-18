@@ -4,8 +4,11 @@ import 'entity_id.dart';
 import 'stores/body_store.dart';
 import 'stores/collider_aabb_store.dart';
 import 'stores/collision_state_store.dart';
+import 'stores/health_store.dart';
+import 'stores/mana_store.dart';
 import 'stores/movement_store.dart';
 import 'stores/player_input_store.dart';
+import 'stores/stamina_store.dart';
 import 'stores/transform_store.dart';
 
 /// Minimal ECS world container (V0).
@@ -20,6 +23,9 @@ class EcsWorld {
   final BodyStore body = BodyStore();
   final ColliderAabbStore colliderAabb = ColliderAabbStore();
   final CollisionStateStore collision = CollisionStateStore();
+  final HealthStore health = HealthStore();
+  final ManaStore mana = ManaStore();
+  final StaminaStore stamina = StaminaStore();
 
   EntityId createEntity() {
     final id = _nextEntityId;
@@ -34,6 +40,9 @@ class EcsWorld {
     required bool grounded,
     required BodyDef body,
     required ColliderAabbDef collider,
+    required HealthDef health,
+    required ManaDef mana,
+    required StaminaDef stamina,
   }) {
     final id = createEntity();
     transform.add(id, pos: pos, vel: vel);
@@ -42,6 +51,9 @@ class EcsWorld {
     this.body.add(id, body);
     colliderAabb.add(id, collider);
     collision.add(id);
+    this.health.add(id, health);
+    this.mana.add(id, mana);
+    this.stamina.add(id, stamina);
     collision.grounded[collision.indexOf(id)] = grounded;
     return id;
   }

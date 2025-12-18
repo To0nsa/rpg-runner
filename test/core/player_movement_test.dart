@@ -6,6 +6,7 @@ import 'package:walkscape_runner/core/game_core.dart';
 import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/math/vec2.dart';
 import 'package:walkscape_runner/core/tuning/v0_movement_tuning.dart';
+import 'package:walkscape_runner/core/tuning/v0_resource_tuning.dart';
 
 void _tick(
   GameCore core, {
@@ -113,6 +114,70 @@ void main() {
     expect(core.playerVel.x, closeTo(tuning.dashSpeedX, 1e-9));
     expect(core.playerVel.y, closeTo(0, 1e-9));
     expect(core.playerPos.y, closeTo(floorY, 1e-9));
+  });
+
+  test('jump spends stamina (2) when executed', () {
+    final core = GameCore(
+      seed: 1,
+      tickHz: v0DefaultTickHz,
+      resourceTuning: const V0ResourceTuning(
+        playerStaminaMax: 10,
+        playerStaminaStart: 10,
+        playerStaminaRegenPerSecond: 0,
+        jumpStaminaCost: 2,
+      ),
+    );
+
+    _tick(core, jumpPressed: true);
+
+    final hud = core.buildSnapshot().hud;
+    expect(hud.stamina, closeTo(8.0, 1e-9));
+  });
+
+  test('dash spends stamina (2) when started', () {
+    final core = GameCore(
+      seed: 1,
+      tickHz: v0DefaultTickHz,
+      resourceTuning: const V0ResourceTuning(
+        playerStaminaMax: 10,
+        playerStaminaStart: 10,
+        playerStaminaRegenPerSecond: 0,
+        dashStaminaCost: 2,
+      ),
+    );
+
+    _tick(core, dashPressed: true);
+
+    final hud = core.buildSnapshot().hud;
+    expect(hud.stamina, closeTo(8.0, 1e-9));
+  });
+
+  test('insufficient stamina blocks dash and jump', () {
+    final core = GameCore(
+      seed: 1,
+      tickHz: v0DefaultTickHz,
+      resourceTuning: const V0ResourceTuning(
+        playerStaminaMax: 10,
+        playerStaminaStart: 1,
+        playerStaminaRegenPerSecond: 0,
+        jumpStaminaCost: 2,
+        dashStaminaCost: 2,
+      ),
+    );
+
+    final floorY =
+        v0GroundTopY.toDouble() - const V0MovementTuning().playerRadius;
+    expect(core.playerPos.y, closeTo(floorY, 1e-9));
+    expect(core.playerGrounded, isTrue);
+
+    _tick(core, jumpPressed: true, dashPressed: true);
+
+    // Without stamina, the buffered jump won't execute and dash won't start.
+    expect(core.playerVel.y, greaterThanOrEqualTo(0));
+    expect(core.playerVel.x.abs(), lessThan(const V0MovementTuning().dashSpeedX));
+
+    final hud = core.buildSnapshot().hud;
+    expect(hud.stamina, closeTo(1.0, 1e-9));
   });
 
   test('Body.gravityScale=0 disables gravity integration', () {
