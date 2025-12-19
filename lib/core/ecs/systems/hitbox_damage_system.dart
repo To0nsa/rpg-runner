@@ -1,5 +1,6 @@
 import '../../combat/damage.dart';
 import '../../combat/faction.dart';
+import '../hit/aabb_hit_utils.dart';
 import '../world.dart';
 
 class HitboxDamageSystem {
@@ -21,11 +22,6 @@ class HitboxDamageSystem {
       final hbHalfX = hitboxes.halfX[hi];
       final hbHalfY = hitboxes.halfY[hi];
 
-      final hbMinX = hbCx - hbHalfX;
-      final hbMaxX = hbCx + hbHalfX;
-      final hbMinY = hbCy - hbHalfY;
-      final hbMaxY = hbCy + hbHalfY;
-
       final owner = hitboxes.owner[hi];
       final sourceFaction = hitboxes.faction[hi];
 
@@ -36,7 +32,7 @@ class HitboxDamageSystem {
         final fi = world.faction.tryIndexOf(target);
         if (fi == null) continue;
         final targetFaction = world.faction.faction[fi];
-        if (_isFriendlyFire(sourceFaction, targetFaction)) continue;
+        if (isFriendlyFire(sourceFaction, targetFaction)) continue;
 
         final targetTi = world.transform.tryIndexOf(target);
         if (targetTi == null) continue;
@@ -47,15 +43,18 @@ class HitboxDamageSystem {
         final tcy = world.transform.posY[targetTi] + world.colliderAabb.offsetY[aabbi];
         final thx = world.colliderAabb.halfX[aabbi];
         final thy = world.colliderAabb.halfY[aabbi];
-
-        final tMinX = tcx - thx;
-        final tMaxX = tcx + thx;
-        final tMinY = tcy - thy;
-        final tMaxY = tcy + thy;
-
-        final overlaps =
-            hbMinX < tMaxX && hbMaxX > tMinX && hbMinY < tMaxY && hbMaxY > tMinY;
-        if (!overlaps) continue;
+        if (!aabbOverlapsCenters(
+          aCenterX: hbCx,
+          aCenterY: hbCy,
+          aHalfX: hbHalfX,
+          aHalfY: hbHalfY,
+          bCenterX: tcx,
+          bCenterY: tcy,
+          bHalfX: thx,
+          bHalfY: thy,
+        )) {
+          continue;
+        }
 
         if (world.hitOnce.hasHit(hb, target)) continue;
         world.hitOnce.markHit(hb, target);
@@ -64,6 +63,4 @@ class HitboxDamageSystem {
       }
     }
   }
-
-  bool _isFriendlyFire(Faction a, Faction b) => a == b;
 }

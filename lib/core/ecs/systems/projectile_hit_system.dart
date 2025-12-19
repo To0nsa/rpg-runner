@@ -1,6 +1,6 @@
 import '../../combat/damage.dart';
-import '../../combat/faction.dart';
 import '../entity_id.dart';
+import '../hit/aabb_hit_utils.dart';
 import '../world.dart';
 
 class ProjectileHitSystem {
@@ -23,16 +23,6 @@ class ProjectileHitSystem {
       final pti = world.transform.indexOf(p);
       final pa = world.colliderAabb.indexOf(p);
 
-      final pcx = world.transform.posX[pti] + world.colliderAabb.offsetX[pa];
-      final pcy = world.transform.posY[pti] + world.colliderAabb.offsetY[pa];
-      final phx = world.colliderAabb.halfX[pa];
-      final phy = world.colliderAabb.halfY[pa];
-
-      final pMinX = pcx - phx;
-      final pMaxX = pcx + phx;
-      final pMinY = pcy - phy;
-      final pMaxY = pcy + phy;
-
       final owner = projectiles.owner[pi];
       final sourceFaction = projectiles.faction[pi];
 
@@ -44,26 +34,22 @@ class ProjectileHitSystem {
         final fi = world.faction.tryIndexOf(target);
         if (fi == null) continue;
         final targetFaction = world.faction.faction[fi];
-        if (_isFriendlyFire(sourceFaction, targetFaction)) continue;
+        if (isFriendlyFire(sourceFaction, targetFaction)) continue;
 
         final ti = world.transform.tryIndexOf(target);
         if (ti == null) continue;
         final aabbi = world.colliderAabb.tryIndexOf(target);
         if (aabbi == null) continue;
 
-        final tcx = world.transform.posX[ti] + world.colliderAabb.offsetX[aabbi];
-        final tcy = world.transform.posY[ti] + world.colliderAabb.offsetY[aabbi];
-        final thx = world.colliderAabb.halfX[aabbi];
-        final thy = world.colliderAabb.halfY[aabbi];
-
-        final tMinX = tcx - thx;
-        final tMaxX = tcx + thx;
-        final tMinY = tcy - thy;
-        final tMaxY = tcy + thy;
-
-        final overlaps =
-            pMinX < tMaxX && pMaxX > tMinX && pMinY < tMaxY && pMaxY > tMinY;
-        if (!overlaps) continue;
+        if (!aabbOverlapsWorldColliders(
+          world,
+          aTransformIndex: pti,
+          aAabbIndex: pa,
+          bTransformIndex: ti,
+          bAabbIndex: aabbi,
+        )) {
+          continue;
+        }
 
         queueDamage(
           DamageRequest(target: target, amount: projectiles.damage[pi]),
@@ -80,7 +66,4 @@ class ProjectileHitSystem {
       world.destroyEntity(e);
     }
   }
-
-  bool _isFriendlyFire(Faction a, Faction b) => a == b;
 }
-
