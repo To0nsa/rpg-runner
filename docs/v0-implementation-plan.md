@@ -528,12 +528,33 @@ Acceptance:
 
 ## Milestone 12 - Deterministic Spawning (First Pass)
 
-- [ ] Define chunk size and a deterministic “track” generator driven by `seed`.
-  - Start simple: a fixed list of hand-authored chunk patterns (ground + platforms + obstacles + pickups).
-- [ ] Spawn the two enemy types and collectibles via deterministic rules.
+- [ ] Define V0 track spawning config (Core):
+  - chunk width (world units), spawn-ahead margin, and cull-behind margin (relative to camera left/right).
+  - collision-only for V0 (no lava/gaps/hazards yet); ground stays always safe/solid.
+- [ ] Add deterministic track generator (Core):
+  - represent a chunk as a small list of static solids relative to `chunkStartX`:
+    - platforms: one-way top only (match current collision behavior)
+    - obstacles: solid top + walls (match current collision behavior)
+  - start simple: a fixed list of hand-authored chunk patterns (platform layouts + obstacle blocks).
+  - determinism rule: choose chunk pattern from `(seed, chunkIndex)` (not frame time), so spawn order is stable across refactors.
+- [ ] Add streaming chunk spawner (Core):
+  - maintain `nextChunkIndex` / `nextChunkStartX` and spawn chunks while `cameraRight + margin >= nextChunkStartX`.
+  - cull chunks/solids when `chunkEndX < cameraLeft - margin` so the world stays bounded.
+  - rebuild `StaticWorldGeometryIndex` only when geometry changes (spawn/cull), not every tick.
+  - culling implementation detail (deterministic, chunk-based):
+    - maintain an ordered queue/list of active chunks with `startX/endX` and their generated solids.
+    - while the oldest chunk is fully behind the view (`endX < cameraLeft - cullBehindMargin`), pop it.
+    - when chunks are spawned/culled, rebuild `StaticWorldGeometry.solids` by concatenating solids from active chunks (ground plane stays separate/always-on), then rebuild the index.
+- [ ] Add deterministic enemy spawns (Core):
+  - spawn the two enemy types via chunk rules or a separate `(seed, time/chunkIndex)` schedule.
+  - no pickups/collectibles yet
+- [ ] Tests (Core):
+  - same seed + same commands => identical spawned chunk solids after N ticks (including after culling).
+  - platform collision invariants unchanged (one-way top still works).
 
 Acceptance:
-- Same seed produces the same sequence of chunks/spawns and the same outcomes given the same inputs.
+- Same seed produces the same sequence of chunks/solids/enemy spawns and the same outcomes given the same inputs.
+- World streaming stays bounded (culling works) and collision behavior matches the current static-geometry semantics.
 
 ---
 

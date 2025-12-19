@@ -151,7 +151,7 @@ class GameCore {
       ),
     );
 
-    final spawnX = 80.0;
+    final spawnX = 400.0;
     final spawnY =
         (this.staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble()) -
         _movement.base.playerRadius;
