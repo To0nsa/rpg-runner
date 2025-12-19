@@ -373,11 +373,19 @@ class GameCore {
       _movement,
       staticWorld: _staticWorldIndex,
     );
+
+    // Move already-existing projectiles before spawning new ones so newly spawned
+    // projectiles remain at their spawn positions until the next tick.
     _projectileSystem.step(_world, _movement);
-    _projectileHitSystem.step(_world, _damageSystem.queue);
+
+    // Spawn attacks using post-move positions.
     _enemySystem.stepAttacks(_world, player: _player);
     _castSystem.step(_world, player: _player);
     _meleeSystem.step(_world, player: _player);
+
+    // Resolve hits after all attacks have been spawned so both newly spawned
+    // projectiles and hitboxes can hit on their spawn tick.
+    _projectileHitSystem.step(_world, _damageSystem.queue);
     _hitboxDamageSystem.step(_world, _damageSystem.queue);
     _damageSystem.step(_world);
     _deathSystem.step(_world, player: _player);
