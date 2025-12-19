@@ -1,12 +1,12 @@
 import '../../combat/damage.dart';
 import '../entity_id.dart';
-import '../hit/aabb_hit_utils.dart';
+import '../hit/hit_resolver.dart';
 import '../spatial/broadphase_grid.dart';
 import '../world.dart';
 
 class ProjectileHitSystem {
   final List<EntityId> _toDespawn = <EntityId>[];
-  final List<int> _candidateTargets = <int>[];
+  final HitResolver _resolver = HitResolver();
 
   void step(
     EcsWorld world,
@@ -35,52 +35,22 @@ class ProjectileHitSystem {
       final owner = projectiles.owner[pi];
       final sourceFaction = projectiles.faction[pi];
 
-      broadphase.queryAabbMinMax(
-        minX: pcx - phx,
-        minY: pcy - phy,
-        maxX: pcx + phx,
-        maxY: pcy + phy,
-        outTargetIndices: _candidateTargets,
+      final targetIndex = _resolver.firstOrderedOverlapCenters(
+        broadphase: broadphase,
+        centerX: pcx,
+        centerY: pcy,
+        halfX: phx,
+        halfY: phy,
+        owner: owner,
+        sourceFaction: sourceFaction,
       );
-      if (_candidateTargets.isEmpty) continue;
+      if (targetIndex == null) continue;
 
-      // Deterministic "first hit wins": sort candidates by EntityId.
-      _candidateTargets.sort(
-        (a, b) => broadphase.targets.entities[a].compareTo(
-          broadphase.targets.entities[b],
-        ),
+      final target = broadphase.targets.entities[targetIndex];
+      queueDamage(
+        DamageRequest(target: target, amount: projectiles.damage[pi]),
       );
-
-      var hit = false;
-      for (var ci = 0; ci < _candidateTargets.length; ci += 1) {
-        final ti = _candidateTargets[ci];
-        final target = broadphase.targets.entities[ti];
-        if (target == owner) continue;
-
-        if (isFriendlyFire(sourceFaction, broadphase.targets.factions[ti])) continue;
-
-        if (!aabbOverlapsCenters(
-          aCenterX: pcx,
-          aCenterY: pcy,
-          aHalfX: phx,
-          aHalfY: phy,
-          bCenterX: broadphase.targets.centerX[ti],
-          bCenterY: broadphase.targets.centerY[ti],
-          bHalfX: broadphase.targets.halfX[ti],
-          bHalfY: broadphase.targets.halfY[ti],
-        )) {
-          continue;
-        }
-
-        queueDamage(
-          DamageRequest(target: target, amount: projectiles.damage[pi]),
-        );
-        _toDespawn.add(p);
-        hit = true;
-        break;
-      }
-
-      if (hit) continue;
+      _toDespawn.add(p);
     }
 
     for (final e in _toDespawn) {

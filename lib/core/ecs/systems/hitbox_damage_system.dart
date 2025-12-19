@@ -1,10 +1,11 @@
 import '../../combat/damage.dart';
-import '../hit/aabb_hit_utils.dart';
+import '../hit/hit_resolver.dart';
 import '../spatial/broadphase_grid.dart';
 import '../world.dart';
 
 class HitboxDamageSystem {
-  final List<int> _candidateTargets = <int>[];
+  final HitResolver _resolver = HitResolver();
+  final List<int> _overlaps = <int>[];
 
   void step(
     EcsWorld world,
@@ -30,42 +31,21 @@ class HitboxDamageSystem {
       final owner = hitboxes.owner[hi];
       final sourceFaction = hitboxes.faction[hi];
 
-      broadphase.queryAabbMinMax(
-        minX: hbCx - hbHalfX,
-        minY: hbCy - hbHalfY,
-        maxX: hbCx + hbHalfX,
-        maxY: hbCy + hbHalfY,
-        outTargetIndices: _candidateTargets,
+      _resolver.collectOrderedOverlapsCenters(
+        broadphase: broadphase,
+        centerX: hbCx,
+        centerY: hbCy,
+        halfX: hbHalfX,
+        halfY: hbHalfY,
+        owner: owner,
+        sourceFaction: sourceFaction,
+        outTargetIndices: _overlaps,
       );
-      if (_candidateTargets.isEmpty) continue;
+      if (_overlaps.isEmpty) continue;
 
-      // Deterministic multi-hit order: sort candidates by EntityId.
-      _candidateTargets.sort(
-        (a, b) => broadphase.targets.entities[a].compareTo(
-          broadphase.targets.entities[b],
-        ),
-      );
-
-      for (var ci = 0; ci < _candidateTargets.length; ci += 1) {
-        final ti = _candidateTargets[ci];
+      for (var i = 0; i < _overlaps.length; i += 1) {
+        final ti = _overlaps[i];
         final target = broadphase.targets.entities[ti];
-        if (target == owner) continue;
-
-        if (isFriendlyFire(sourceFaction, broadphase.targets.factions[ti])) continue;
-
-        if (!aabbOverlapsCenters(
-          aCenterX: hbCx,
-          aCenterY: hbCy,
-          aHalfX: hbHalfX,
-          aHalfY: hbHalfY,
-          bCenterX: broadphase.targets.centerX[ti],
-          bCenterY: broadphase.targets.centerY[ti],
-          bHalfX: broadphase.targets.halfX[ti],
-          bHalfY: broadphase.targets.halfY[ti],
-        )) {
-          continue;
-        }
-
         if (world.hitOnce.hasHit(hb, target)) continue;
         world.hitOnce.markHit(hb, target);
 

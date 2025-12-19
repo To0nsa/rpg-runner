@@ -456,22 +456,22 @@ Acceptance:
 
 Goal: centralize overlap + filtering + candidate ordering so projectile and hitbox interactions share identical rules and stay deterministic.
 
-- [ ] Create a shared hit resolution module (Core):
+- [x] Create a shared hit resolution module (Core):
   - new module owns:
     - AABB computation (`Transform` + `ColliderAabb` -> min/max)
     - overlap test (AABB vs AABB)
     - friendly-fire / owner exclusion rules
     - deterministic candidate ordering contract ("first hit wins" or stable multi-hit order)
   - module does *not* mutate world mid-iteration; returns hit results or invokes callbacks
-- [ ] Integrate broadphase as the candidate source (Core):
+- [x] Integrate broadphase as the candidate source (Core):
   - hit resolver queries the Milestone 9 grid to obtain candidates
   - preserve determinism: stable cell scan order + stable per-cell insertion order (or sort by `EntityId`)
-- [ ] Refactor systems to use the module (Core):
+- [x] Refactor systems to use the module (Core):
   - `ProjectileHitSystem` becomes thin: "for each projectile, resolve first hit then despawn"
   - `HitboxDamageSystem` becomes thin: "for each hitbox, resolve hits then apply HitOnce gating"
   - ensure both systems share the same faction/owner exclusion logic
-- [ ] Tests:
-  - brute-force equivalence: resolver results match previous brute-force logic on seeded layouts
+- [x] Tests:
+  - brute-force equivalence: resolver results match brute-force on seeded layouts
   - determinism: multiple overlapping targets yields stable selected target for projectiles
   - determinism: multi-hit hitboxes apply damage in stable order (and HitOnce still works)
 
