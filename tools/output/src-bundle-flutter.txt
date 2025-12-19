@@ -1,6 +1,6 @@
 ﻿REPO: C:\dev\walkscape_runner
-COMMIT: bde253bd21babb113d923d0469b21b8f6f41a544
-DATE: 2025-12-18 22:40:51
+COMMIT: 0e9d4c618879cebb2b83e2ce839bfe8df444b147
+DATE: 2025-12-19 11:20:47
 
 
 ===== FILE: lib/AGENTS.md =====
@@ -417,6 +417,147 @@ const double v0CameraFixedY = v0VirtualHeight / 2; // 135.0
 typedef EntityId = int;
 
 
+===== FILE: lib/core/ecs/hit/aabb_hit_utils.dart =====
+import '../../combat/faction.dart';
+import '../entity_id.dart';
+import '../world.dart';
+
+// Shared helpers for hit resolution math + filtering.
+//
+// IMPORTANT:
+// - Keep these helpers allocation-free and deterministic.
+// - Systems still own iteration/selection rules (e.g. "first hit wins") until
+//   Milestone 9 (Hit Resolution Module).
+
+bool isFriendlyFire(Faction a, Faction b) => a == b;
+
+/// Per-tick cache of "damageable collider targets" to reduce repeated sparse
+/// lookups in hot loops.
+///
+/// A target is included iff it has:
+/// - `HealthStore` (source list)
+/// - `FactionStore` (for friendly-fire filtering)
+/// - `TransformStore` + `ColliderAabbStore` (for overlap tests)
+///
+/// Determinism: preserves `HealthStore.denseEntities` iteration order.
+class DamageableTargetCache {
+  final List<EntityId> entities = <EntityId>[];
+  final List<Faction> factions = <Faction>[];
+
+  // World-space collider center and half extents.
+  final List<double> centerX = <double>[];
+  final List<double> centerY = <double>[];
+  final List<double> halfX = <double>[];
+  final List<double> halfY = <double>[];
+
+  int get length => entities.length;
+  bool get isEmpty => entities.isEmpty;
+
+  void rebuild(EcsWorld world) {
+    entities.clear();
+    factions.clear();
+    centerX.clear();
+    centerY.clear();
+    halfX.clear();
+    halfY.clear();
+
+    final health = world.health;
+    if (health.denseEntities.isEmpty) return;
+
+    for (var i = 0; i < health.denseEntities.length; i += 1) {
+      final e = health.denseEntities[i];
+
+      final fi = world.faction.tryIndexOf(e);
+      if (fi == null) continue;
+      final ti = world.transform.tryIndexOf(e);
+      if (ti == null) continue;
+      final aabbi = world.colliderAabb.tryIndexOf(e);
+      if (aabbi == null) continue;
+
+      final cx = world.transform.posX[ti] + world.colliderAabb.offsetX[aabbi];
+      final cy = world.transform.posY[ti] + world.colliderAabb.offsetY[aabbi];
+
+      entities.add(e);
+      factions.add(world.faction.faction[fi]);
+      centerX.add(cx);
+      centerY.add(cy);
+      halfX.add(world.colliderAabb.halfX[aabbi]);
+      halfY.add(world.colliderAabb.halfY[aabbi]);
+    }
+  }
+}
+
+bool aabbOverlapsMinMax({
+  required double aMinX,
+  required double aMaxX,
+  required double aMinY,
+  required double aMaxY,
+  required double bMinX,
+  required double bMaxX,
+  required double bMinY,
+  required double bMaxY,
+}) {
+  return aMinX < bMaxX && aMaxX > bMinX && aMinY < bMaxY && aMaxY > bMinY;
+}
+
+bool aabbOverlapsCenters({
+  required double aCenterX,
+  required double aCenterY,
+  required double aHalfX,
+  required double aHalfY,
+  required double bCenterX,
+  required double bCenterY,
+  required double bHalfX,
+  required double bHalfY,
+}) {
+  return aabbOverlapsMinMax(
+    aMinX: aCenterX - aHalfX,
+    aMaxX: aCenterX + aHalfX,
+    aMinY: aCenterY - aHalfY,
+    aMaxY: aCenterY + aHalfY,
+    bMinX: bCenterX - bHalfX,
+    bMaxX: bCenterX + bHalfX,
+    bMinY: bCenterY - bHalfY,
+    bMaxY: bCenterY + bHalfY,
+  );
+}
+
+/// AABB overlap between two entities whose AABBs are defined by
+/// `Transform` + `ColliderAabb`.
+bool aabbOverlapsWorldColliders(
+  EcsWorld world, {
+  required int aTransformIndex,
+  required int aAabbIndex,
+  required int bTransformIndex,
+  required int bAabbIndex,
+}) {
+  final aCenterX = world.transform.posX[aTransformIndex] +
+      world.colliderAabb.offsetX[aAabbIndex];
+  final aCenterY = world.transform.posY[aTransformIndex] +
+      world.colliderAabb.offsetY[aAabbIndex];
+  final aHalfX = world.colliderAabb.halfX[aAabbIndex];
+  final aHalfY = world.colliderAabb.halfY[aAabbIndex];
+
+  final bCenterX = world.transform.posX[bTransformIndex] +
+      world.colliderAabb.offsetX[bAabbIndex];
+  final bCenterY = world.transform.posY[bTransformIndex] +
+      world.colliderAabb.offsetY[bAabbIndex];
+  final bHalfX = world.colliderAabb.halfX[bAabbIndex];
+  final bHalfY = world.colliderAabb.halfY[bAabbIndex];
+
+  return aabbOverlapsCenters(
+    aCenterX: aCenterX,
+    aCenterY: aCenterY,
+    aHalfX: aHalfX,
+    aHalfY: aHalfY,
+    bCenterX: bCenterX,
+    bCenterY: bCenterY,
+    bHalfX: bHalfX,
+    bHalfY: bHalfY,
+  );
+}
+
+
 ===== FILE: lib/core/ecs/queries.dart =====
 import 'entity_id.dart';
 import 'world.dart';
@@ -808,6 +949,51 @@ class CooldownStore extends SparseSet {
 }
 
 
+===== FILE: lib/core/ecs/stores/enemy_store.dart =====
+import '../../enemies/enemy_id.dart';
+import '../../snapshots/enums.dart';
+import '../entity_id.dart';
+import '../sparse_set.dart';
+
+class EnemyDef {
+  const EnemyDef({
+    required this.enemyId,
+    this.facing = Facing.left,
+  });
+
+  final EnemyId enemyId;
+  final Facing facing;
+}
+
+/// Minimal enemy marker + per-enemy state (expanded in Milestone 7).
+class EnemyStore extends SparseSet {
+  final List<EnemyId> enemyId = <EnemyId>[];
+  final List<Facing> facing = <Facing>[];
+
+  void add(EntityId entity, EnemyDef def) {
+    final i = addEntity(entity);
+    enemyId[i] = def.enemyId;
+    facing[i] = def.facing;
+  }
+
+  @override
+  void onDenseAdded(int denseIndex) {
+    enemyId.add(EnemyId.demon);
+    facing.add(Facing.left);
+  }
+
+  @override
+  void onSwapRemove(int removeIndex, int lastIndex) {
+    enemyId[removeIndex] = enemyId[lastIndex];
+    facing[removeIndex] = facing[lastIndex];
+
+    enemyId.removeLast();
+    facing.removeLast();
+  }
+}
+
+
+
 ===== FILE: lib/core/ecs/stores/faction_store.dart =====
 import '../../combat/faction.dart';
 import '../entity_id.dart';
@@ -1048,6 +1234,40 @@ class HitboxStore extends SparseSet {
   }
 }
 
+
+
+===== FILE: lib/core/ecs/stores/invulnerability_store.dart =====
+import '../entity_id.dart';
+import '../sparse_set.dart';
+
+class InvulnerabilityDef {
+  const InvulnerabilityDef({this.ticksLeft = 0});
+
+  final int ticksLeft;
+}
+
+/// Per-entity invulnerability window after taking damage.
+///
+/// IMPORTANT: In V0 this store is only attached to the player (no enemy i-frames).
+class InvulnerabilityStore extends SparseSet {
+  final List<int> ticksLeft = <int>[];
+
+  void add(EntityId entity, [InvulnerabilityDef def = const InvulnerabilityDef()]) {
+    final i = addEntity(entity);
+    ticksLeft[i] = def.ticksLeft;
+  }
+
+  @override
+  void onDenseAdded(int denseIndex) {
+    ticksLeft.add(0);
+  }
+
+  @override
+  void onSwapRemove(int removeIndex, int lastIndex) {
+    ticksLeft[removeIndex] = ticksLeft[lastIndex];
+    ticksLeft.removeLast();
+  }
+}
 
 
 ===== FILE: lib/core/ecs/stores/lifetime_store.dart =====
@@ -1466,127 +1686,6 @@ class TransformStore extends SparseSet {
 }
 
 
-===== FILE: lib/core/ecs/systems/cast_system.dart =====
-import 'dart:math';
-
-import '../../combat/faction.dart';
-import '../../projectiles/projectile_catalog.dart';
-import '../../snapshots/enums.dart';
-import '../../spells/spell_catalog.dart';
-import '../../spells/spell_id.dart';
-import '../../util/double_math.dart';
-import '../../tuning/v0_ability_tuning.dart';
-import '../../tuning/v0_movement_tuning.dart';
-import '../entity_id.dart';
-import '../world.dart';
-import '../stores/lifetime_store.dart';
-import '../stores/projectile_store.dart';
-import '../stores/spell_origin_store.dart';
-
-class CastSystem {
-  CastSystem({
-    required this.spells,
-    required this.projectiles,
-    required this.abilities,
-    required this.movement,
-  });
-
-  final SpellCatalog spells;
-  final ProjectileCatalogDerived projectiles;
-  final V0AbilityTuningDerived abilities;
-  final V0MovementTuningDerived movement;
-
-  void step(EcsWorld world, {required EntityId player}) {
-    if (!world.playerInput.has(player) ||
-        !world.transform.has(player) ||
-        !world.movement.has(player) ||
-        !world.mana.has(player) ||
-        !world.cooldown.has(player)) {
-      return;
-    }
-
-    final ii = world.playerInput.indexOf(player);
-    if (!world.playerInput.castPressed[ii]) return;
-
-    final ci = world.cooldown.indexOf(player);
-    if (world.cooldown.castCooldownTicksLeft[ci] > 0) return;
-
-    const spellId = SpellId.iceBolt;
-    final spell = spells.get(spellId);
-    final projectileId = spell.projectileId;
-    if (projectileId == null) return;
-
-    final spellStats = spell.stats;
-    final proj = projectiles.base.get(projectileId);
-
-    final mi = world.mana.indexOf(player);
-    final mana = world.mana.mana[mi];
-    if (mana < spellStats.manaCost) return;
-
-    world.mana.mana[mi] = clampDouble(
-      mana - spellStats.manaCost,
-      0.0,
-      world.mana.manaMax[mi],
-    );
-
-    world.cooldown.castCooldownTicksLeft[ci] = abilities.castCooldownTicks;
-
-    final ti = world.transform.indexOf(player);
-    final facing = world.movement.facing[world.movement.indexOf(player)];
-
-    final rawAimX = world.playerInput.aimDirX[ii];
-    final rawAimY = world.playerInput.aimDirY[ii];
-
-    double aimX;
-    double aimY;
-    if (rawAimX == 0 && rawAimY == 0) {
-      aimX = facing == Facing.right ? 1.0 : -1.0;
-      aimY = 0.0;
-    } else {
-      final len2 = rawAimX * rawAimX + rawAimY * rawAimY;
-      if (len2 <= 1e-12) {
-        aimX = facing == Facing.right ? 1.0 : -1.0;
-        aimY = 0.0;
-      } else {
-        final invLen = 1.0 / sqrt(len2);
-        aimX = rawAimX * invLen;
-        aimY = rawAimY * invLen;
-      }
-    }
-
-    final spawnOffset = movement.base.playerRadius * 0.5;
-    final originX = world.transform.posX[ti] + aimX * spawnOffset;
-    final originY = world.transform.posY[ti] + aimY * spawnOffset;
-
-    final projEntity = world.createEntity();
-    world.transform.add(
-      projEntity,
-      posX: originX,
-      posY: originY,
-      velX: 0.0,
-      velY: 0.0,
-    );
-    world.projectile.add(
-      projEntity,
-      ProjectileDef(
-        projectileId: projectileId,
-        faction: Faction.player,
-        owner: player,
-        dirX: aimX,
-        dirY: aimY,
-        speedUnitsPerSecond: proj.speedUnitsPerSecond,
-        damage: spellStats.damage,
-      ),
-    );
-    world.spellOrigin.add(projEntity, const SpellOriginDef(spellId: spellId));
-    world.lifetime.add(
-      projEntity,
-      LifetimeDef(ticksLeft: projectiles.lifetimeTicks(projectileId)),
-    );
-  }
-}
-
-
 ===== FILE: lib/core/ecs/systems/collision_system.dart =====
 import '../../collision/static_world_geometry_index.dart';
 import '../../tuning/v0_movement_tuning.dart';
@@ -1804,6 +1903,9 @@ import '../../util/double_math.dart';
 import '../world.dart';
 
 class DamageSystem {
+  DamageSystem({required this.invulnerabilityTicksOnHit});
+
+  final int invulnerabilityTicksOnHit;
   final List<DamageRequest> _pending = <DamageRequest>[];
 
   void queue(DamageRequest request) {
@@ -1815,32 +1917,358 @@ class DamageSystem {
     if (_pending.isEmpty) return;
 
     final health = world.health;
+    final invuln = world.invulnerability;
     for (final req in _pending) {
       if (!health.has(req.target)) continue;
       final hi = health.indexOf(req.target);
+
+      // Invulnerability applies only to entities that have `InvulnerabilityStore`
+      // attached (currently player-only in V0).
+      if (invuln.has(req.target)) {
+        final ii = invuln.indexOf(req.target);
+        if (invuln.ticksLeft[ii] > 0) continue;
+      }
+
       health.hp[hi] = clampDouble(
         health.hp[hi] - req.amount,
         0.0,
         health.hpMax[hi],
       );
+
+      if (invulnerabilityTicksOnHit > 0 && invuln.has(req.target)) {
+        invuln.ticksLeft[invuln.indexOf(req.target)] = invulnerabilityTicksOnHit;
+      }
     }
     _pending.clear();
   }
 }
 
 
+===== FILE: lib/core/ecs/systems/enemy_system.dart =====
+import '../../combat/faction.dart';
+import '../../enemies/enemy_id.dart';
+import '../../snapshots/enums.dart';
+import '../../spells/spawn_spell_projectile.dart';
+import '../../spells/spell_catalog.dart';
+import '../../spells/spell_id.dart';
+import '../../tuning/v0_enemy_tuning.dart';
+import '../../util/double_math.dart';
+import '../entity_id.dart';
+import '../stores/hitbox_store.dart';
+import '../stores/lifetime_store.dart';
+import '../world.dart';
+import '../../projectiles/projectile_catalog.dart';
+
+class EnemySystem {
+  EnemySystem({
+    required this.tuning,
+    required this.spells,
+    required this.projectiles,
+  });
+
+  final V0EnemyTuningDerived tuning;
+  final SpellCatalog spells;
+  final ProjectileCatalogDerived projectiles;
+
+  void stepSteering(
+    EcsWorld world, {
+    required EntityId player,
+    required double groundTopY,
+  }) {
+    if (!world.transform.has(player)) return;
+
+    final playerTi = world.transform.indexOf(player);
+    final playerX = world.transform.posX[playerTi];
+    final playerY = world.transform.posY[playerTi];
+
+    final enemies = world.enemy;
+    for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
+      final e = enemies.denseEntities[ei];
+      if (!world.transform.has(e)) continue;
+
+      final ti = world.transform.indexOf(e);
+      final ex = world.transform.posX[ti];
+      final ey = world.transform.posY[ti];
+
+      switch (enemies.enemyId[ei]) {
+        case EnemyId.demon:
+          _steerDemon(
+            world,
+            enemyIndex: ei,
+            enemy: e,
+            enemyTi: ti,
+            playerX: playerX,
+            playerY: playerY,
+            ex: ex,
+            ey: ey,
+            groundTopY: groundTopY,
+          );
+        case EnemyId.fireWorm:
+          _steerFireWorm(
+            world,
+            enemyIndex: ei,
+            enemy: e,
+            enemyTi: ti,
+            playerX: playerX,
+            ex: ex,
+          );
+      }
+    }
+  }
+
+  void stepAttacks(EcsWorld world, {required EntityId player}) {
+    if (!world.transform.has(player)) return;
+    final playerTi = world.transform.indexOf(player);
+    final playerX = world.transform.posX[playerTi];
+    final playerY = world.transform.posY[playerTi];
+
+    final enemies = world.enemy;
+    for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
+      final e = enemies.denseEntities[ei];
+      if (!world.transform.has(e)) continue;
+      if (!world.cooldown.has(e)) continue;
+      final enemyCooldownIndex = world.cooldown.indexOf(e);
+
+      final ti = world.transform.indexOf(e);
+      final ex = world.transform.posX[ti];
+      final ey = world.transform.posY[ti];
+
+      switch (enemies.enemyId[ei]) {
+        case EnemyId.demon:
+          _tryDemonCast(
+            world,
+            enemy: e,
+            enemyCooldownIndex: enemyCooldownIndex,
+            ex: ex,
+            ey: ey,
+            playerX: playerX,
+            playerY: playerY,
+          );
+        case EnemyId.fireWorm:
+          _tryFireWormMelee(
+            world,
+            enemy: e,
+            enemyCooldownIndex: enemyCooldownIndex,
+            enemyIndex: ei,
+            ex: ex,
+            ey: ey,
+            playerX: playerX,
+          );
+      }
+    }
+  }
+
+  void _steerDemon(
+    EcsWorld world, {
+    required int enemyIndex,
+    required EntityId enemy,
+    required int enemyTi,
+    required double playerX,
+    required double playerY,
+    required double ex,
+    required double ey,
+    required double groundTopY,
+  }) {
+    final dx = playerX - ex;
+    final distX = dx.abs();
+    if (distX > 1e-6) {
+      world.enemy.facing[enemyIndex] = dx >= 0 ? Facing.right : Facing.left;
+    }
+
+    final desiredRange = tuning.base.demonDesiredRangeX;
+    final slack = tuning.base.demonRangeSlack;
+    final maxSpeedX = tuning.base.demonMaxSpeedX;
+
+    double desiredVelX = 0.0;
+    if (distX > desiredRange + slack) {
+      desiredVelX = (dx >= 0 ? 1.0 : -1.0) * maxSpeedX;
+    } else if (distX < desiredRange - slack) {
+      desiredVelX = (dx >= 0 ? -1.0 : 1.0) * maxSpeedX;
+    }
+
+    final targetY = groundTopY - tuning.base.demonHoverOffsetY;
+    final deltaY = targetY - ey;
+    double desiredVelY = clampDouble(
+      deltaY * tuning.base.demonVerticalKp,
+      -tuning.base.demonMaxSpeedY,
+      tuning.base.demonMaxSpeedY,
+    );
+    if (deltaY.abs() <= tuning.base.demonVerticalDeadzone) {
+      desiredVelY = 0.0;
+    }
+
+    world.transform.velX[enemyTi] = desiredVelX;
+    world.transform.velY[enemyTi] = desiredVelY;
+  }
+
+  void _steerFireWorm(
+    EcsWorld world, {
+    required int enemyIndex,
+    required EntityId enemy,
+    required int enemyTi,
+    required double playerX,
+    required double ex,
+  }) {
+    final dx = playerX - ex;
+    if (dx.abs() <= tuning.base.fireWormStopDistanceX) {
+      world.transform.velX[enemyTi] = 0.0;
+      return;
+    }
+
+    final dirX = dx >= 0 ? 1.0 : -1.0;
+    world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
+    world.transform.velX[enemyTi] = dirX * tuning.base.fireWormSpeedX;
+  }
+
+  void _tryDemonCast(
+    EcsWorld world, {
+    required EntityId enemy,
+    required int enemyCooldownIndex,
+    required double ex,
+    required double ey,
+    required double playerX,
+    required double playerY,
+  }) {
+    if (!world.mana.has(enemy)) return;
+    final ci = enemyCooldownIndex;
+    if (world.cooldown.castCooldownTicksLeft[ci] > 0) return;
+
+    const spellId = SpellId.lightning;
+    final def = spells.get(spellId);
+
+    final mi = world.mana.indexOf(enemy);
+    final mana = world.mana.mana[mi];
+    if (mana < def.stats.manaCost) return;
+
+    // IMPORTANT: `spawnSpellProjectileFromCaster` owns:
+    // - "is this spell a projectile?" checks
+    // - direction normalization (with fallback)
+    // Only spend mana / start cooldown if a projectile was actually spawned.
+    final spawned = spawnSpellProjectileFromCaster(
+      world,
+      spells: spells,
+      projectiles: projectiles,
+      spellId: spellId,
+      faction: Faction.enemy,
+      owner: enemy,
+      casterX: ex,
+      casterY: ey,
+      originOffset: tuning.base.demonCastOriginOffset,
+      dirX: playerX - ex,
+      dirY: playerY - ey,
+      fallbackDirX: 1.0,
+      fallbackDirY: 0.0,
+    );
+    if (spawned == null) return;
+
+    world.mana.mana[mi] = clampDouble(
+      mana - def.stats.manaCost,
+      0.0,
+      world.mana.manaMax[mi],
+    );
+    world.cooldown.castCooldownTicksLeft[ci] = tuning.demonCastCooldownTicks;
+  }
+
+  void _tryFireWormMelee(
+    EcsWorld world, {
+    required EntityId enemy,
+    required int enemyCooldownIndex,
+    required int enemyIndex,
+    required double ex,
+    required double ey,
+    required double playerX,
+  }) {
+    final dx = (playerX - ex).abs();
+    if (dx > tuning.base.fireWormMeleeRangeX) return;
+
+    final ci = enemyCooldownIndex;
+    if (world.cooldown.meleeCooldownTicksLeft[ci] > 0) return;
+
+    final facing = world.enemy.facing[enemyIndex];
+    final dirX = facing == Facing.right ? 1.0 : -1.0;
+
+    final halfX = tuning.base.fireWormMeleeHitboxSizeX * 0.5;
+    final halfY = tuning.base.fireWormMeleeHitboxSizeY * 0.5;
+
+    double ownerHalfX = 12.0;
+    if (world.colliderAabb.has(enemy)) {
+      ownerHalfX = world.colliderAabb.halfX[world.colliderAabb.indexOf(enemy)];
+    }
+    final offsetX = dirX * (ownerHalfX * 0.5 + halfX);
+    const offsetY = 0.0;
+
+    final hitbox = world.createEntity();
+    world.transform.add(hitbox, posX: ex, posY: ey, velX: 0.0, velY: 0.0);
+    world.hitbox.add(
+      hitbox,
+      HitboxDef(
+        owner: enemy,
+        faction: Faction.enemy,
+        damage: tuning.base.fireWormMeleeDamage,
+        halfX: halfX,
+        halfY: halfY,
+        offsetX: offsetX,
+        offsetY: offsetY,
+      ),
+    );
+    world.hitOnce.add(hitbox);
+    world.lifetime.add(
+      hitbox,
+      LifetimeDef(ticksLeft: tuning.fireWormMeleeActiveTicks),
+    );
+
+    world.cooldown.meleeCooldownTicksLeft[ci] = tuning.fireWormMeleeCooldownTicks;
+  }
+}
+
+
+===== FILE: lib/core/ecs/systems/health_despawn_system.dart =====
+import '../entity_id.dart';
+import '../world.dart';
+
+/// Despawns any non-player entity with `HealthStore` and `hp <= 0`.
+///
+/// IMPORTANT: The player is intentionally exempt because player "death" is a
+/// different gameplay flow (game over / respawn / end-run) than despawning an
+/// entity in-place.
+class HealthDespawnSystem {
+  final List<EntityId> _toDespawn = <EntityId>[];
+
+  void step(EcsWorld world, {required EntityId player}) {
+    final health = world.health;
+    if (health.denseEntities.isEmpty) return;
+
+    _toDespawn.clear();
+
+    for (var i = 0; i < health.denseEntities.length; i += 1) {
+      final e = health.denseEntities[i];
+      if (e == player) continue;
+      if (health.hp[i] <= 0.0) {
+        _toDespawn.add(e);
+      }
+    }
+
+    for (final e in _toDespawn) {
+      world.destroyEntity(e);
+    }
+  }
+}
+
+
 ===== FILE: lib/core/ecs/systems/hitbox_damage_system.dart =====
 import '../../combat/damage.dart';
-import '../../combat/faction.dart';
+import '../hit/aabb_hit_utils.dart';
 import '../world.dart';
 
 class HitboxDamageSystem {
+  final DamageableTargetCache _targets = DamageableTargetCache();
+
   void step(EcsWorld world, void Function(DamageRequest request) queueDamage) {
     final hitboxes = world.hitbox;
     if (hitboxes.denseEntities.isEmpty) return;
 
-    final targets = world.health;
-    if (targets.denseEntities.isEmpty) return;
+    _targets.rebuild(world);
+    if (_targets.isEmpty) return;
 
     for (var hi = 0; hi < hitboxes.denseEntities.length; hi += 1) {
       final hb = hitboxes.denseEntities[hi];
@@ -1853,41 +2281,27 @@ class HitboxDamageSystem {
       final hbHalfX = hitboxes.halfX[hi];
       final hbHalfY = hitboxes.halfY[hi];
 
-      final hbMinX = hbCx - hbHalfX;
-      final hbMaxX = hbCx + hbHalfX;
-      final hbMinY = hbCy - hbHalfY;
-      final hbMaxY = hbCy + hbHalfY;
-
       final owner = hitboxes.owner[hi];
       final sourceFaction = hitboxes.faction[hi];
 
-      for (var ti = 0; ti < targets.denseEntities.length; ti += 1) {
-        final target = targets.denseEntities[ti];
+      for (var ti = 0; ti < _targets.length; ti += 1) {
+        final target = _targets.entities[ti];
         if (target == owner) continue;
 
-        final fi = world.faction.tryIndexOf(target);
-        if (fi == null) continue;
-        final targetFaction = world.faction.faction[fi];
-        if (_isFriendlyFire(sourceFaction, targetFaction)) continue;
+        if (isFriendlyFire(sourceFaction, _targets.factions[ti])) continue;
 
-        final targetTi = world.transform.tryIndexOf(target);
-        if (targetTi == null) continue;
-        final aabbi = world.colliderAabb.tryIndexOf(target);
-        if (aabbi == null) continue;
-
-        final tcx = world.transform.posX[targetTi] + world.colliderAabb.offsetX[aabbi];
-        final tcy = world.transform.posY[targetTi] + world.colliderAabb.offsetY[aabbi];
-        final thx = world.colliderAabb.halfX[aabbi];
-        final thy = world.colliderAabb.halfY[aabbi];
-
-        final tMinX = tcx - thx;
-        final tMaxX = tcx + thx;
-        final tMinY = tcy - thy;
-        final tMaxY = tcy + thy;
-
-        final overlaps =
-            hbMinX < tMaxX && hbMaxX > tMinX && hbMinY < tMaxY && hbMaxY > tMinY;
-        if (!overlaps) continue;
+        if (!aabbOverlapsCenters(
+          aCenterX: hbCx,
+          aCenterY: hbCy,
+          aHalfX: hbHalfX,
+          aHalfY: hbHalfY,
+          bCenterX: _targets.centerX[ti],
+          bCenterY: _targets.centerY[ti],
+          bHalfX: _targets.halfX[ti],
+          bHalfY: _targets.halfY[ti],
+        )) {
+          continue;
+        }
 
         if (world.hitOnce.hasHit(hb, target)) continue;
         world.hitOnce.markHit(hb, target);
@@ -1896,9 +2310,53 @@ class HitboxDamageSystem {
       }
     }
   }
-
-  bool _isFriendlyFire(Faction a, Faction b) => a == b;
 }
+
+
+===== FILE: lib/core/ecs/systems/hitbox_follow_owner_system.dart =====
+import '../world.dart';
+
+/// Keeps hitbox entities attached to their owner by applying `HitboxStore` offsets.
+///
+/// IMPORTANT:
+/// - The hitbox position is derived from `owner Transform + Hitbox.offset` every tick.
+/// - Spawners should avoid manually computing hitbox world positions to prevent drift.
+class HitboxFollowOwnerSystem {
+  void step(EcsWorld world) {
+    final hitboxes = world.hitbox;
+    if (hitboxes.denseEntities.isEmpty) return;
+
+    for (var hi = 0; hi < hitboxes.denseEntities.length; hi += 1) {
+      final hitbox = hitboxes.denseEntities[hi];
+      if (!world.transform.has(hitbox)) continue;
+
+      final owner = hitboxes.owner[hi];
+      if (!world.transform.has(owner)) continue;
+
+      final ownerTi = world.transform.indexOf(owner);
+      final x = world.transform.posX[ownerTi] + hitboxes.offsetX[hi];
+      final y = world.transform.posY[ownerTi] + hitboxes.offsetY[hi];
+
+      world.transform.setPosXY(hitbox, x, y);
+    }
+  }
+}
+
+
+
+===== FILE: lib/core/ecs/systems/invulnerability_system.dart =====
+import '../world.dart';
+
+class InvulnerabilitySystem {
+  void step(EcsWorld world) {
+    final store = world.invulnerability;
+    for (var i = 0; i < store.denseEntities.length; i += 1) {
+      final left = store.ticksLeft[i];
+      if (left > 0) store.ticksLeft[i] = left - 1;
+    }
+  }
+}
+
 
 
 ===== FILE: lib/core/ecs/systems/lifetime_system.dart =====
@@ -1939,104 +2397,6 @@ class LifetimeSystem {
   }
 }
 
-
-
-===== FILE: lib/core/ecs/systems/melee_system.dart =====
-import '../../combat/faction.dart';
-import '../../snapshots/enums.dart';
-import '../../tuning/v0_ability_tuning.dart';
-import '../../tuning/v0_movement_tuning.dart';
-import '../entity_id.dart';
-import '../stores/hitbox_store.dart';
-import '../stores/lifetime_store.dart';
-import '../world.dart';
-
-class MeleeSystem {
-  const MeleeSystem({
-    required this.abilities,
-    required this.movement,
-  });
-
-  final V0AbilityTuningDerived abilities;
-  final V0MovementTuningDerived movement;
-
-  void step(EcsWorld world, {required EntityId player}) {
-    _updateHitboxTransforms(world);
-    _trySpawnPlayerMelee(world, player: player);
-  }
-
-  void _trySpawnPlayerMelee(EcsWorld world, {required EntityId player}) {
-    if (!world.playerInput.has(player)) return;
-    if (!world.transform.has(player)) return;
-    if (!world.movement.has(player)) return;
-    if (!world.stamina.has(player)) return;
-    if (!world.cooldown.has(player)) return;
-
-    final ii = world.playerInput.indexOf(player);
-    if (!world.playerInput.attackPressed[ii]) return;
-
-    final si = world.stamina.indexOf(player);
-    if (world.stamina.stamina[si] < abilities.base.meleeStaminaCost) return;
-
-    final ci = world.cooldown.indexOf(player);
-    if (world.cooldown.meleeCooldownTicksLeft[ci] > 0) return;
-
-    final mi = world.movement.indexOf(player);
-    final facing = world.movement.facing[mi];
-    final dirX = (facing == Facing.right) ? 1.0 : -1.0;
-
-    final halfX = abilities.base.meleeHitboxSizeX * 0.5;
-    final halfY = abilities.base.meleeHitboxSizeY * 0.5;
-
-    // origin = playerPos + aimDir * (playerRadius * 0.5) for casts
-    // melee uses facing-only:
-    // center = playerPos + dirX * (playerRadius * 0.5 + halfX)
-    final forward = movement.base.playerRadius * 0.5 + halfX;
-    final offsetX = dirX * forward;
-    const offsetY = 0.0;
-
-    final ti = world.transform.indexOf(player);
-    final hitX = world.transform.posX[ti] + offsetX;
-    final hitY = world.transform.posY[ti] + offsetY;
-
-    final hitbox = world.createEntity();
-    world.transform.add(hitbox, posX: hitX, posY: hitY, velX: 0.0, velY: 0.0);
-    world.hitbox.add(
-      hitbox,
-      HitboxDef(
-        owner: player,
-        faction: Faction.player,
-        damage: abilities.base.meleeDamage,
-        halfX: halfX,
-        halfY: halfY,
-        offsetX: offsetX,
-        offsetY: offsetY,
-      ),
-    );
-    world.hitOnce.add(hitbox);
-    world.lifetime.add(hitbox, LifetimeDef(ticksLeft: abilities.meleeActiveTicks));
-
-    world.cooldown.meleeCooldownTicksLeft[ci] = abilities.meleeCooldownTicks;
-    world.stamina.stamina[si] -= abilities.base.meleeStaminaCost;
-  }
-
-  void _updateHitboxTransforms(EcsWorld world) {
-    final hitboxes = world.hitbox;
-    for (var hi = 0; hi < hitboxes.denseEntities.length; hi += 1) {
-      final e = hitboxes.denseEntities[hi];
-      if (!world.transform.has(e)) continue;
-
-      final owner = hitboxes.owner[hi];
-      if (!world.transform.has(owner)) continue;
-
-      final ownerTi = world.transform.indexOf(owner);
-      final x = world.transform.posX[ownerTi] + hitboxes.offsetX[hi];
-      final y = world.transform.posY[ownerTi] + hitboxes.offsetY[hi];
-
-      world.transform.setPosXY(e, x, y);
-    }
-  }
-}
 
 
 ===== FILE: lib/core/ecs/systems/movement_system.dart =====
@@ -2205,6 +2565,248 @@ class MovementSystem {
 }
 
 
+===== FILE: lib/core/ecs/systems/player_cast_system.dart =====
+import '../../combat/faction.dart';
+import '../../projectiles/projectile_catalog.dart';
+import '../../snapshots/enums.dart';
+import '../../spells/spell_catalog.dart';
+import '../../spells/spell_id.dart';
+import '../../spells/spawn_spell_projectile.dart';
+import '../../util/double_math.dart';
+import '../../tuning/v0_ability_tuning.dart';
+import '../../tuning/v0_movement_tuning.dart';
+import '../entity_id.dart';
+import '../world.dart';
+
+class PlayerCastSystem {
+  PlayerCastSystem({
+    required this.spells,
+    required this.projectiles,
+    required this.abilities,
+    required this.movement,
+  });
+
+  final SpellCatalog spells;
+  final ProjectileCatalogDerived projectiles;
+  final V0AbilityTuningDerived abilities;
+  final V0MovementTuningDerived movement;
+
+  void step(EcsWorld world, {required EntityId player}) {
+    if (!world.playerInput.has(player) ||
+        !world.transform.has(player) ||
+        !world.movement.has(player) ||
+        !world.mana.has(player) ||
+        !world.cooldown.has(player)) {
+      return;
+    }
+
+    final ii = world.playerInput.indexOf(player);
+    if (!world.playerInput.castPressed[ii]) return;
+
+    final ci = world.cooldown.indexOf(player);
+    if (world.cooldown.castCooldownTicksLeft[ci] > 0) return;
+
+    const spellId = SpellId.iceBolt;
+    final spell = spells.get(spellId);
+    final spellStats = spell.stats;
+
+    final mi = world.mana.indexOf(player);
+    final mana = world.mana.mana[mi];
+    if (mana < spellStats.manaCost) return;
+
+    final ti = world.transform.indexOf(player);
+    final facing = world.movement.facing[world.movement.indexOf(player)];
+
+    final rawAimX = world.playerInput.aimDirX[ii];
+    final rawAimY = world.playerInput.aimDirY[ii];
+
+    final spawnOffset = movement.base.playerRadius * 0.5;
+    final fallbackDirX = facing == Facing.right ? 1.0 : -1.0;
+
+    // IMPORTANT: `spawnSpellProjectileFromCaster` owns:
+    // - "is this spell a projectile?" checks
+    // - direction normalization (with facing fallback)
+    // Only spend mana / start cooldown if a projectile was actually spawned.
+    final spawned = spawnSpellProjectileFromCaster(
+      world,
+      spells: spells,
+      projectiles: projectiles,
+      spellId: spellId,
+      faction: Faction.player,
+      owner: player,
+      casterX: world.transform.posX[ti],
+      casterY: world.transform.posY[ti],
+      originOffset: spawnOffset,
+      dirX: rawAimX,
+      dirY: rawAimY,
+      fallbackDirX: fallbackDirX,
+      fallbackDirY: 0.0,
+    );
+    if (spawned == null) return;
+
+    world.mana.mana[mi] = clampDouble(
+      mana - spellStats.manaCost,
+      0.0,
+      world.mana.manaMax[mi],
+    );
+
+    world.cooldown.castCooldownTicksLeft[ci] = abilities.castCooldownTicks;
+  }
+}
+
+
+===== FILE: lib/core/ecs/systems/player_melee_system.dart =====
+import '../../combat/faction.dart';
+import '../../snapshots/enums.dart';
+import '../../tuning/v0_ability_tuning.dart';
+import '../../tuning/v0_movement_tuning.dart';
+import '../entity_id.dart';
+import '../stores/hitbox_store.dart';
+import '../stores/lifetime_store.dart';
+import '../world.dart';
+
+class PlayerMeleeSystem {
+  const PlayerMeleeSystem({
+    required this.abilities,
+    required this.movement,
+  });
+
+  final V0AbilityTuningDerived abilities;
+  final V0MovementTuningDerived movement;
+
+  void step(EcsWorld world, {required EntityId player}) {
+    _trySpawnPlayerMelee(world, player: player);
+  }
+
+  void _trySpawnPlayerMelee(EcsWorld world, {required EntityId player}) {
+    if (!world.playerInput.has(player)) return;
+    if (!world.transform.has(player)) return;
+    if (!world.movement.has(player)) return;
+    if (!world.stamina.has(player)) return;
+    if (!world.cooldown.has(player)) return;
+
+    final ii = world.playerInput.indexOf(player);
+    if (!world.playerInput.attackPressed[ii]) return;
+
+    final si = world.stamina.indexOf(player);
+    if (world.stamina.stamina[si] < abilities.base.meleeStaminaCost) return;
+
+    final ci = world.cooldown.indexOf(player);
+    if (world.cooldown.meleeCooldownTicksLeft[ci] > 0) return;
+
+    final mi = world.movement.indexOf(player);
+    final facing = world.movement.facing[mi];
+    final dirX = (facing == Facing.right) ? 1.0 : -1.0;
+
+    final halfX = abilities.base.meleeHitboxSizeX * 0.5;
+    final halfY = abilities.base.meleeHitboxSizeY * 0.5;
+
+    // origin = playerPos + aimDir * (playerRadius * 0.5) for casts
+    // melee uses facing-only:
+    // center = playerPos + dirX * (playerRadius * 0.5 + halfX)
+    final forward = movement.base.playerRadius * 0.5 + halfX;
+    final offsetX = dirX * forward;
+    const offsetY = 0.0;
+
+    final ti = world.transform.indexOf(player);
+    final hitX = world.transform.posX[ti];
+    final hitY = world.transform.posY[ti];
+
+    final hitbox = world.createEntity();
+    world.transform.add(hitbox, posX: hitX, posY: hitY, velX: 0.0, velY: 0.0);
+    world.hitbox.add(
+      hitbox,
+      HitboxDef(
+        owner: player,
+        faction: Faction.player,
+        damage: abilities.base.meleeDamage,
+        halfX: halfX,
+        halfY: halfY,
+        offsetX: offsetX,
+        offsetY: offsetY,
+      ),
+    );
+    world.hitOnce.add(hitbox);
+    world.lifetime.add(hitbox, LifetimeDef(ticksLeft: abilities.meleeActiveTicks));
+
+    world.cooldown.meleeCooldownTicksLeft[ci] = abilities.meleeCooldownTicks;
+    world.stamina.stamina[si] -= abilities.base.meleeStaminaCost;
+  }
+}
+
+
+===== FILE: lib/core/ecs/systems/projectile_hit_system.dart =====
+import '../../combat/damage.dart';
+import '../entity_id.dart';
+import '../hit/aabb_hit_utils.dart';
+import '../world.dart';
+
+class ProjectileHitSystem {
+  final List<EntityId> _toDespawn = <EntityId>[];
+  final DamageableTargetCache _targets = DamageableTargetCache();
+
+  void step(EcsWorld world, void Function(DamageRequest request) queueDamage) {
+    final projectiles = world.projectile;
+    if (projectiles.denseEntities.isEmpty) return;
+
+    _targets.rebuild(world);
+    if (_targets.isEmpty) return;
+
+    _toDespawn.clear();
+
+    for (var pi = 0; pi < projectiles.denseEntities.length; pi += 1) {
+      final p = projectiles.denseEntities[pi];
+      if (!world.transform.has(p)) continue;
+      if (!world.colliderAabb.has(p)) continue;
+
+      final pti = world.transform.indexOf(p);
+      final pa = world.colliderAabb.indexOf(p);
+      final pcx = world.transform.posX[pti] + world.colliderAabb.offsetX[pa];
+      final pcy = world.transform.posY[pti] + world.colliderAabb.offsetY[pa];
+      final phx = world.colliderAabb.halfX[pa];
+      final phy = world.colliderAabb.halfY[pa];
+
+      final owner = projectiles.owner[pi];
+      final sourceFaction = projectiles.faction[pi];
+
+      var hit = false;
+      for (var ti = 0; ti < _targets.length; ti += 1) {
+        final target = _targets.entities[ti];
+        if (target == owner) continue;
+
+        if (isFriendlyFire(sourceFaction, _targets.factions[ti])) continue;
+
+        if (!aabbOverlapsCenters(
+          aCenterX: pcx,
+          aCenterY: pcy,
+          aHalfX: phx,
+          aHalfY: phy,
+          bCenterX: _targets.centerX[ti],
+          bCenterY: _targets.centerY[ti],
+          bHalfX: _targets.halfX[ti],
+          bHalfY: _targets.halfY[ti],
+        )) {
+          continue;
+        }
+
+        queueDamage(
+          DamageRequest(target: target, amount: projectiles.damage[pi]),
+        );
+        _toDespawn.add(p);
+        hit = true;
+        break;
+      }
+
+      if (hit) continue;
+    }
+
+    for (final e in _toDespawn) {
+      world.destroyEntity(e);
+    }
+  }
+}
+
+
 ===== FILE: lib/core/ecs/systems/projectile_system.dart =====
 import '../../tuning/v0_movement_tuning.dart';
 import '../world.dart';
@@ -2296,9 +2898,11 @@ import 'stores/collider_aabb_store.dart';
 import 'stores/collision_state_store.dart';
 import 'stores/cooldown_store.dart';
 import 'stores/faction_store.dart';
+import 'stores/enemy_store.dart';
 import 'stores/health_store.dart';
 import 'stores/hit_once_store.dart';
 import 'stores/hitbox_store.dart';
+import 'stores/invulnerability_store.dart';
 import 'stores/lifetime_store.dart';
 import 'stores/mana_store.dart';
 import 'stores/movement_store.dart';
@@ -2307,6 +2911,7 @@ import 'stores/projectile_store.dart';
 import 'stores/spell_origin_store.dart';
 import 'stores/stamina_store.dart';
 import 'stores/transform_store.dart';
+import '../enemies/enemy_id.dart';
 
 /// Minimal ECS world container (V0).
 ///
@@ -2323,6 +2928,7 @@ class EcsWorld {
   final CooldownStore cooldown = CooldownStore();
   final FactionStore faction = FactionStore();
   final HealthStore health = HealthStore();
+  final InvulnerabilityStore invulnerability = InvulnerabilityStore();
   final ManaStore mana = ManaStore();
   final StaminaStore stamina = StaminaStore();
   final ProjectileStore projectile = ProjectileStore();
@@ -2330,6 +2936,7 @@ class EcsWorld {
   final HitOnceStore hitOnce = HitOnceStore();
   final LifetimeStore lifetime = LifetimeStore();
   final SpellOriginStore spellOrigin = SpellOriginStore();
+  final EnemyStore enemy = EnemyStore();
 
   EntityId createEntity() {
     final id = _nextEntityId;
@@ -2360,9 +2967,39 @@ class EcsWorld {
     cooldown.add(id);
     faction.add(id, const FactionDef(faction: Faction.player));
     this.health.add(id, health);
+    // Player-only invulnerability window (i-frames) after taking damage.
+    invulnerability.add(id);
     this.mana.add(id, mana);
     this.stamina.add(id, stamina);
     collision.grounded[collision.indexOf(id)] = grounded;
+    return id;
+  }
+
+  EntityId createEnemy({
+    required EnemyId enemyId,
+    required double posX,
+    required double posY,
+    required double velX,
+    required double velY,
+    required Facing facing,
+    required BodyDef body,
+    required ColliderAabbDef collider,
+    required HealthDef health,
+    required ManaDef mana,
+    required StaminaDef stamina,
+  }) {
+    final id = createEntity();
+    transform.add(id, posX: posX, posY: posY, velX: velX, velY: velY);
+    this.body.add(id, body);
+    colliderAabb.add(id, collider);
+    collision.add(id);
+    cooldown.add(id);
+    faction.add(id, const FactionDef(faction: Faction.enemy));
+    this.health.add(id, health);
+    // Intentionally no `InvulnerabilityStore`: invulnerability is player-only in V0.
+    this.mana.add(id, mana);
+    this.stamina.add(id, stamina);
+    enemy.add(id, EnemyDef(enemyId: enemyId, facing: facing));
     return id;
   }
 
@@ -2376,6 +3013,7 @@ class EcsWorld {
     cooldown.removeEntity(entity);
     faction.removeEntity(entity);
     health.removeEntity(entity);
+    invulnerability.removeEntity(entity);
     mana.removeEntity(entity);
     stamina.removeEntity(entity);
     projectile.removeEntity(entity);
@@ -2383,8 +3021,84 @@ class EcsWorld {
     hitOnce.removeEntity(entity);
     lifetime.removeEntity(entity);
     spellOrigin.removeEntity(entity);
+    enemy.removeEntity(entity);
   }
 }
+
+
+===== FILE: lib/core/enemies/enemy_catalog.dart =====
+import '../ecs/stores/body_store.dart';
+import '../ecs/stores/collider_aabb_store.dart';
+import '../ecs/stores/health_store.dart';
+import '../ecs/stores/mana_store.dart';
+import '../ecs/stores/stamina_store.dart';
+import 'enemy_id.dart';
+
+/// Static archetype data for enemies (V0).
+///
+/// IMPORTANT:
+/// - Keeps per-enemy stats in one place to avoid divergence between spawn code,
+///   tests, and future deterministic spawning.
+/// - AI behavior tuning (cooldowns/speeds/ranges) lives in `V0EnemyTuning`.
+class EnemyArchetype {
+  const EnemyArchetype({
+    required this.body,
+    required this.collider,
+    required this.health,
+    required this.mana,
+    required this.stamina,
+  });
+
+  final BodyDef body;
+  final ColliderAabbDef collider;
+  final HealthDef health;
+  final ManaDef mana;
+  final StaminaDef stamina;
+}
+
+class EnemyCatalog {
+  const EnemyCatalog();
+
+  EnemyArchetype get(EnemyId id) {
+    switch (id) {
+      case EnemyId.demon:
+        return const EnemyArchetype(
+          body: BodyDef(
+            isKinematic: false,
+            useGravity: false,
+            gravityScale: 0.0,
+            sideMask: BodyDef.sideNone,
+            maxVelX: 800.0,
+            maxVelY: 800.0,
+          ),
+          collider: ColliderAabbDef(halfX: 12.0, halfY: 12.0),
+          health: HealthDef(hp: 50.0, hpMax: 50.0, regenPerSecond: 0.0),
+          mana: ManaDef(mana: 80.0, manaMax: 80.0, regenPerSecond: 5.0),
+          stamina: StaminaDef(stamina: 0.0, staminaMax: 0.0, regenPerSecond: 0.0),
+        );
+      case EnemyId.fireWorm:
+        return const EnemyArchetype(
+          body: BodyDef(
+            isKinematic: false,
+            useGravity: true,
+            gravityScale: 1.0,
+            sideMask: BodyDef.sideLeft | BodyDef.sideRight,
+          ),
+          collider: ColliderAabbDef(halfX: 12.0, halfY: 12.0),
+          health: HealthDef(hp: 50.0, hpMax: 50.0, regenPerSecond: 0.0),
+          mana: ManaDef(mana: 0.0, manaMax: 0.0, regenPerSecond: 0.0),
+          stamina: StaminaDef(stamina: 0.0, staminaMax: 0.0, regenPerSecond: 0.0),
+        );
+    }
+  }
+}
+
+
+
+===== FILE: lib/core/enemies/enemy_id.dart =====
+/// Enemy archetype identifiers (protocol-stable for snapshots/networking).
+enum EnemyId { demon, fireWorm }
+
 
 
 ===== FILE: lib/core/events/game_event.dart =====
@@ -2414,19 +3128,26 @@ import 'ecs/entity_id.dart';
 import 'ecs/stores/collider_aabb_store.dart';
 import 'ecs/systems/collision_system.dart';
 import 'ecs/systems/cooldown_system.dart';
-import 'ecs/systems/cast_system.dart';
+import 'ecs/systems/player_cast_system.dart';
 import 'ecs/systems/damage_system.dart';
+import 'ecs/systems/health_despawn_system.dart';
+import 'ecs/systems/enemy_system.dart';
 import 'ecs/systems/hitbox_damage_system.dart';
+import 'ecs/systems/hitbox_follow_owner_system.dart';
+import 'ecs/systems/invulnerability_system.dart';
 import 'ecs/systems/lifetime_system.dart';
-import 'ecs/systems/melee_system.dart';
+import 'ecs/systems/player_melee_system.dart';
 import 'ecs/systems/movement_system.dart';
 import 'ecs/systems/projectile_system.dart';
+import 'ecs/systems/projectile_hit_system.dart';
 import 'ecs/systems/resource_regen_system.dart';
 import 'ecs/stores/body_store.dart';
 import 'ecs/stores/health_store.dart';
 import 'ecs/stores/mana_store.dart';
 import 'ecs/stores/stamina_store.dart';
 import 'ecs/world.dart';
+import 'enemies/enemy_catalog.dart';
+import 'enemies/enemy_id.dart';
 import 'math/vec2.dart';
 import 'snapshots/enums.dart';
 import 'snapshots/entity_render_snapshot.dart';
@@ -2436,6 +3157,8 @@ import 'snapshots/static_solid_snapshot.dart';
 import 'projectiles/projectile_catalog.dart';
 import 'spells/spell_catalog.dart';
 import 'tuning/v0_ability_tuning.dart';
+import 'tuning/v0_combat_tuning.dart';
+import 'tuning/v0_enemy_tuning.dart';
 import 'tuning/v0_movement_tuning.dart';
 import 'tuning/v0_resource_tuning.dart';
 
@@ -2476,37 +3199,52 @@ class GameCore {
     V0MovementTuning movementTuning = const V0MovementTuning(),
     V0ResourceTuning resourceTuning = const V0ResourceTuning(),
     V0AbilityTuning abilityTuning = const V0AbilityTuning(),
+    V0CombatTuning combatTuning = const V0CombatTuning(),
+    V0EnemyTuning enemyTuning = const V0EnemyTuning(),
     SpellCatalog spellCatalog = const SpellCatalog(),
     ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
+    EnemyCatalog enemyCatalog = const EnemyCatalog(),
     BodyDef? playerBody,
     StaticWorldGeometry? staticWorldGeometry,
   }) : _movement = V0MovementTuningDerived.from(
-         movementTuning,
-         tickHz: tickHz,
+          movementTuning,
+          tickHz: tickHz,
        ),
        _resourceTuning = resourceTuning,
        _abilities = V0AbilityTuningDerived.from(abilityTuning, tickHz: tickHz),
-       _spells = spellCatalog,
-       _projectiles = ProjectileCatalogDerived.from(
-         projectileCatalog,
-         tickHz: tickHz,
-       ),
-       staticWorldGeometry = staticWorldGeometry ?? v0DefaultStaticWorldGeometry {
+       _combat = V0CombatTuningDerived.from(combatTuning, tickHz: tickHz),
+       _enemyTuning = V0EnemyTuningDerived.from(enemyTuning, tickHz: tickHz),
+        _spells = spellCatalog,
+        _projectiles = ProjectileCatalogDerived.from(
+          projectileCatalog,
+          tickHz: tickHz,
+        ),
+        _enemyCatalog = enemyCatalog,
+        staticWorldGeometry = staticWorldGeometry ?? v0DefaultStaticWorldGeometry {
     _world = EcsWorld();
     _movementSystem = MovementSystem();
     _collisionSystem = CollisionSystem();
     _cooldownSystem = CooldownSystem();
     _projectileSystem = ProjectileSystem();
+    _projectileHitSystem = ProjectileHitSystem();
+    _hitboxFollowOwnerSystem = HitboxFollowOwnerSystem();
     _lifetimeSystem = LifetimeSystem();
-    _damageSystem = DamageSystem();
-    _meleeSystem = MeleeSystem(abilities: _abilities, movement: _movement);
+    _invulnerabilitySystem = InvulnerabilitySystem();
+    _damageSystem = DamageSystem(invulnerabilityTicksOnHit: _combat.invulnerabilityTicks);
+    _healthDespawnSystem = HealthDespawnSystem();
+    _meleeSystem = PlayerMeleeSystem(abilities: _abilities, movement: _movement);
     _hitboxDamageSystem = HitboxDamageSystem();
     _resourceRegenSystem = ResourceRegenSystem();
-    _castSystem = CastSystem(
+    _castSystem = PlayerCastSystem(
       spells: _spells,
       projectiles: _projectiles,
       abilities: _abilities,
       movement: _movement,
+    );
+    _enemySystem = EnemySystem(
+      tuning: _enemyTuning,
+      spells: _spells,
+      projectiles: _projectiles,
     );
 
     final spawnX = 80.0;
@@ -2552,6 +3290,70 @@ class GameCore {
         regenPerSecond: _resourceTuning.playerStaminaRegenPerSecond,
       ),
     );
+
+    // Deterministic enemy spawns for Milestone 7 (no RNG yet).
+    //
+    // These are intentionally hardcoded so combat systems can be tested and
+    // debugged without introducing spawning determinism and world-gen at once.
+    final groundTopY =
+        this.staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble();
+
+    _spawnDemon(spawnX: spawnX + 220.0, groundTopY: groundTopY);
+    _spawnFireWorm(spawnX: spawnX + 300.0, groundTopY: groundTopY);
+  }
+
+  EntityId _spawnDemon({required double spawnX, required double groundTopY}) {
+    // Enemy spawn stats come from a centralized catalog so these hardcoded spawns
+    // don't diverge from future deterministic spawning rules.
+    final archetype = _enemyCatalog.get(EnemyId.demon);
+    final demon = _world.createEnemy(
+      enemyId: EnemyId.demon,
+      posX: spawnX,
+      posY: groundTopY - _enemyTuning.base.demonHoverOffsetY,
+      velX: 0.0,
+      velY: 0.0,
+      facing: Facing.left,
+      body: archetype.body,
+      collider: archetype.collider,
+      health: archetype.health,
+      mana: archetype.mana,
+      stamina: archetype.stamina,
+    );
+
+    // Avoid immediate spawn-tick casting (keeps early-game tests stable).
+    _world.cooldown.castCooldownTicksLeft[_world.cooldown.indexOf(demon)] =
+        _enemyTuning.demonCastCooldownTicks;
+
+    return demon;
+  }
+
+  EntityId _spawnFireWorm({required double spawnX, required double groundTopY}) {
+    final archetype = _enemyCatalog.get(EnemyId.fireWorm);
+
+    // FireWorm uses the archetype, but clamps should stay aligned with the
+    // current movement tuning.
+    return _world.createEnemy(
+      enemyId: EnemyId.fireWorm,
+      posX: spawnX,
+      posY: groundTopY - archetype.collider.halfY,
+      velX: 0.0,
+      velY: 0.0,
+      facing: Facing.left,
+      body: BodyDef(
+        enabled: archetype.body.enabled,
+        isKinematic: archetype.body.isKinematic,
+        useGravity: archetype.body.useGravity,
+        topOnlyGround: archetype.body.topOnlyGround,
+        gravityScale: archetype.body.gravityScale,
+        maxVelX: _movement.base.maxVelX,
+        maxVelY: _movement.base.maxVelY,
+        sideMask: archetype.body.sideMask,
+      ),
+      collider: archetype.collider,
+      health: archetype.health,
+      mana: archetype.mana,
+      stamina: archetype.stamina,
+    );
   }
 
   /// Seed used for deterministic generation/RNG.
@@ -2582,20 +3384,28 @@ class GameCore {
   final V0MovementTuningDerived _movement;
   final V0ResourceTuning _resourceTuning;
   final V0AbilityTuningDerived _abilities;
+  final V0CombatTuningDerived _combat;
+  final V0EnemyTuningDerived _enemyTuning;
   final SpellCatalog _spells;
   final ProjectileCatalogDerived _projectiles;
+  final EnemyCatalog _enemyCatalog;
 
   late final EcsWorld _world;
   late final MovementSystem _movementSystem;
   late final CollisionSystem _collisionSystem;
   late final CooldownSystem _cooldownSystem;
   late final ProjectileSystem _projectileSystem;
+  late final ProjectileHitSystem _projectileHitSystem;
+  late final HitboxFollowOwnerSystem _hitboxFollowOwnerSystem;
   late final LifetimeSystem _lifetimeSystem;
+  late final InvulnerabilitySystem _invulnerabilitySystem;
   late final DamageSystem _damageSystem;
-  late final MeleeSystem _meleeSystem;
+  late final HealthDespawnSystem _healthDespawnSystem;
+  late final EnemySystem _enemySystem;
+  late final PlayerMeleeSystem _meleeSystem;
   late final HitboxDamageSystem _hitboxDamageSystem;
   late final ResourceRegenSystem _resourceRegenSystem;
-  late final CastSystem _castSystem;
+  late final PlayerCastSystem _castSystem;
   late final EntityId _player;
 
   /// Current simulation tick.
@@ -2685,17 +3495,38 @@ class GameCore {
 
     tick += 1;
     _cooldownSystem.step(_world);
+    _invulnerabilitySystem.step(_world);
+
+    final groundTopY =
+        staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble();
+    _enemySystem.stepSteering(_world, player: _player, groundTopY: groundTopY);
+
     _movementSystem.step(_world, _movement, resources: _resourceTuning);
     _collisionSystem.step(
       _world,
       _movement,
       staticWorld: _staticWorldIndex,
     );
+
+    // Move already-existing projectiles before spawning new ones so newly spawned
+    // projectiles remain at their spawn positions until the next tick.
     _projectileSystem.step(_world, _movement);
+
+    // Spawn attacks using post-move positions.
+    _enemySystem.stepAttacks(_world, player: _player);
     _castSystem.step(_world, player: _player);
     _meleeSystem.step(_world, player: _player);
+
+    // Position hitboxes from their owner + offset so spawn-time positions are
+    // consistent and don't drift (single source of truth is `HitboxStore.offset`).
+    _hitboxFollowOwnerSystem.step(_world);
+
+    // Resolve hits after all attacks have been spawned so both newly spawned
+    // projectiles and hitboxes can hit on their spawn tick.
+    _projectileHitSystem.step(_world, _damageSystem.queue);
     _hitboxDamageSystem.step(_world, _damageSystem.queue);
     _damageSystem.step(_world);
+    _healthDespawnSystem.step(_world, player: _player);
     _resourceRegenSystem.step(_world, dtSeconds: _movement.dtSeconds);
 
     // Cleanup last so effect entities get their full last tick to act.
@@ -2787,6 +3618,37 @@ class GameCore {
           facing: facing,
           anim: AnimKey.hit,
           grounded: false,
+        ),
+      );
+    }
+
+    final enemies = _world.enemy;
+    for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
+      final e = enemies.denseEntities[ei];
+      if (!(_world.transform.has(e))) continue;
+      final ti = _world.transform.indexOf(e);
+
+      Vec2? size;
+      if (_world.colliderAabb.has(e)) {
+        final aabbi = _world.colliderAabb.indexOf(e);
+        size = Vec2(
+          _world.colliderAabb.halfX[aabbi] * 2,
+          _world.colliderAabb.halfY[aabbi] * 2,
+        );
+      }
+
+      entities.add(
+        EntityRenderSnapshot(
+          id: e,
+          kind: EntityKind.enemy,
+          pos: Vec2(_world.transform.posX[ti], _world.transform.posY[ti]),
+          vel: Vec2(_world.transform.velX[ti], _world.transform.velY[ti]),
+          size: size,
+          facing: enemies.facing[ei],
+          anim: AnimKey.idle,
+          grounded: _world.collision.has(e)
+              ? _world.collision.grounded[_world.collision.indexOf(e)]
+              : false,
         ),
       );
     }
@@ -3145,6 +4007,186 @@ class StaticSolidSnapshot {
 
 
 
+===== FILE: lib/core/spells/spawn_spell_projectile.dart =====
+import 'dart:math';
+
+import '../combat/faction.dart';
+import '../ecs/entity_id.dart';
+import '../ecs/stores/collider_aabb_store.dart';
+import '../ecs/stores/lifetime_store.dart';
+import '../ecs/stores/projectile_store.dart';
+import '../ecs/stores/spell_origin_store.dart';
+import '../ecs/world.dart';
+import '../projectiles/projectile_catalog.dart';
+import '../projectiles/projectile_id.dart';
+import 'spell_catalog.dart';
+import 'spell_id.dart';
+
+// Centralize spell->projectile checks and direction normalization here so
+// player/enemy casting cannot drift over time.
+const _dirEps2 = 1e-12;
+
+({double x, double y}) _normalizeDirOrFallback(
+  double x,
+  double y, {
+  required double fallbackX,
+  required double fallbackY,
+}) {
+  final len2 = x * x + y * y;
+  if (len2 <= _dirEps2) {
+    final fbLen2 = fallbackX * fallbackX + fallbackY * fallbackY;
+    if (fbLen2 <= _dirEps2) {
+      return (x: 1.0, y: 0.0);
+    }
+    final invLen = 1.0 / sqrt(fbLen2);
+    return (x: fallbackX * invLen, y: fallbackY * invLen);
+  }
+
+  final invLen = 1.0 / sqrt(len2);
+  return (x: x * invLen, y: y * invLen);
+}
+
+EntityId _spawnResolvedSpellProjectile(
+  EcsWorld world, {
+  required ProjectileCatalogDerived projectiles,
+  required SpellId spellId,
+  required ProjectileId projectileId,
+  required Faction faction,
+  required EntityId owner,
+  required double originX,
+  required double originY,
+  required double dirX,
+  required double dirY,
+  required double speedUnitsPerSecond,
+  required double damage,
+}) {
+  final proj = projectiles.base.get(projectileId);
+  final halfX = proj.colliderSizeX * 0.5;
+  final halfY = proj.colliderSizeY * 0.5;
+
+  final entity = world.createEntity();
+  world.transform.add(
+    entity,
+    posX: originX,
+    posY: originY,
+    velX: 0.0,
+    velY: 0.0,
+  );
+  world.projectile.add(
+    entity,
+    ProjectileDef(
+      projectileId: projectileId,
+      faction: faction,
+      owner: owner,
+      dirX: dirX,
+      dirY: dirY,
+      speedUnitsPerSecond: speedUnitsPerSecond,
+      damage: damage,
+    ),
+  );
+  world.spellOrigin.add(entity, SpellOriginDef(spellId: spellId));
+  world.lifetime.add(
+    entity,
+    LifetimeDef(ticksLeft: projectiles.lifetimeTicks(projectileId)),
+  );
+
+  // Projectiles participate in hit resolution using the same AABB model as actors.
+  world.colliderAabb.add(entity, ColliderAabbDef(halfX: halfX, halfY: halfY));
+
+  return entity;
+}
+
+/// Spawns a spell projectile from a caster position with a consistent origin
+/// offset along the cast direction.
+///
+/// Call sites should pass the raw direction (e.g. aim vector, target delta) and
+/// a normalized fallback (e.g. facing direction). This function normalizes once
+/// and guarantees consistent behavior across player/enemy casting.
+EntityId? spawnSpellProjectileFromCaster(
+  EcsWorld world, {
+  required SpellCatalog spells,
+  required ProjectileCatalogDerived projectiles,
+  required SpellId spellId,
+  required Faction faction,
+  required EntityId owner,
+  required double casterX,
+  required double casterY,
+  required double originOffset,
+  required double dirX,
+  required double dirY,
+  required double fallbackDirX,
+  required double fallbackDirY,
+}) {
+  final spell = spells.get(spellId);
+  final projectileId = spell.projectileId;
+  if (projectileId == null) return null;
+
+  final dir = _normalizeDirOrFallback(
+    dirX,
+    dirY,
+    fallbackX: fallbackDirX,
+    fallbackY: fallbackDirY,
+  );
+
+  final originX = casterX + dir.x * originOffset;
+  final originY = casterY + dir.y * originOffset;
+
+  return _spawnResolvedSpellProjectile(
+    world,
+    projectiles: projectiles,
+    spellId: spellId,
+    projectileId: projectileId,
+    faction: faction,
+    owner: owner,
+    originX: originX,
+    originY: originY,
+    dirX: dir.x,
+    dirY: dir.y,
+    speedUnitsPerSecond: projectiles.base.get(projectileId).speedUnitsPerSecond,
+    damage: spell.stats.damage,
+  );
+}
+
+EntityId? spawnSpellProjectile(
+  EcsWorld world, {
+  required SpellCatalog spells,
+  required ProjectileCatalogDerived projectiles,
+  required SpellId spellId,
+  required Faction faction,
+  required EntityId owner,
+  required double originX,
+  required double originY,
+  required double dirX,
+  required double dirY,
+}) {
+  final spell = spells.get(spellId);
+  final projectileId = spell.projectileId;
+  if (projectileId == null) return null;
+
+  final dir = _normalizeDirOrFallback(
+    dirX,
+    dirY,
+    fallbackX: 1.0,
+    fallbackY: 0.0,
+  );
+
+  return _spawnResolvedSpellProjectile(
+    world,
+    projectiles: projectiles,
+    spellId: spellId,
+    projectileId: projectileId,
+    faction: faction,
+    owner: owner,
+    originX: originX,
+    originY: originY,
+    dirX: dir.x,
+    dirY: dir.y,
+    speedUnitsPerSecond: projectiles.base.get(projectileId).speedUnitsPerSecond,
+    damage: spell.stats.damage,
+  );
+}
+
+
 ===== FILE: lib/core/spells/spell_catalog.dart =====
 import '../projectiles/projectile_id.dart';
 import 'spell_id.dart';
@@ -3256,6 +4298,143 @@ class V0AbilityTuningDerived {
   final int meleeCooldownTicks;
   final int meleeActiveTicks;
 }
+
+
+===== FILE: lib/core/tuning/v0_combat_tuning.dart =====
+import '../util/tick_math.dart';
+
+class V0CombatTuning {
+  const V0CombatTuning({this.invulnerabilitySeconds = 0.25});
+
+  final double invulnerabilitySeconds;
+}
+
+class V0CombatTuningDerived {
+  const V0CombatTuningDerived._({
+    required this.tickHz,
+    required this.base,
+    required this.invulnerabilityTicks,
+  });
+
+  factory V0CombatTuningDerived.from(
+    V0CombatTuning base, {
+    required int tickHz,
+  }) {
+    if (tickHz <= 0) {
+      throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
+    }
+
+    return V0CombatTuningDerived._(
+      tickHz: tickHz,
+      base: base,
+      invulnerabilityTicks: ticksFromSecondsCeil(
+        base.invulnerabilitySeconds,
+        tickHz,
+      ),
+    );
+  }
+
+  final int tickHz;
+  final V0CombatTuning base;
+
+  final int invulnerabilityTicks;
+}
+
+
+
+===== FILE: lib/core/tuning/v0_enemy_tuning.dart =====
+import '../util/tick_math.dart';
+
+class V0EnemyTuning {
+  const V0EnemyTuning({
+    this.demonHoverOffsetY = 90.0,
+    this.demonDesiredRangeX = 160.0,
+    this.demonRangeSlack = 20.0,
+    this.demonMaxSpeedX = 180.0,
+    this.demonMaxSpeedY = 120.0,
+    this.demonVerticalKp = 4.0,
+    this.demonVerticalDeadzone = 5.0,
+    this.demonCastCooldownSeconds = 2.0,
+    this.demonCastOriginOffset = 20.0,
+    this.fireWormSpeedX = 140.0,
+    this.fireWormStopDistanceX = 6.0,
+    this.fireWormMeleeRangeX = 26.0,
+    this.fireWormMeleeCooldownSeconds = 1.0,
+    this.fireWormMeleeActiveSeconds = 0.10,
+    this.fireWormMeleeDamage = 15.0,
+    this.fireWormMeleeHitboxSizeX = 28.0,
+    this.fireWormMeleeHitboxSizeY = 16.0,
+  });
+
+  // Demon steering.
+  final double demonHoverOffsetY;
+  final double demonDesiredRangeX;
+  final double demonRangeSlack;
+  final double demonMaxSpeedX;
+  final double demonMaxSpeedY;
+  final double demonVerticalKp;
+  final double demonVerticalDeadzone;
+
+  // Demon attacks.
+  final double demonCastCooldownSeconds;
+  final double demonCastOriginOffset;
+
+  // FireWorm steering.
+  final double fireWormSpeedX;
+  final double fireWormStopDistanceX;
+
+  // FireWorm melee.
+  final double fireWormMeleeRangeX;
+  final double fireWormMeleeCooldownSeconds;
+  final double fireWormMeleeActiveSeconds;
+  final double fireWormMeleeDamage;
+  final double fireWormMeleeHitboxSizeX;
+  final double fireWormMeleeHitboxSizeY;
+}
+
+class V0EnemyTuningDerived {
+  const V0EnemyTuningDerived._({
+    required this.tickHz,
+    required this.base,
+    required this.demonCastCooldownTicks,
+    required this.fireWormMeleeCooldownTicks,
+    required this.fireWormMeleeActiveTicks,
+  });
+
+  factory V0EnemyTuningDerived.from(
+    V0EnemyTuning base, {
+    required int tickHz,
+  }) {
+    if (tickHz <= 0) {
+      throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
+    }
+
+    return V0EnemyTuningDerived._(
+      tickHz: tickHz,
+      base: base,
+      demonCastCooldownTicks: ticksFromSecondsCeil(
+        base.demonCastCooldownSeconds,
+        tickHz,
+      ),
+      fireWormMeleeCooldownTicks: ticksFromSecondsCeil(
+        base.fireWormMeleeCooldownSeconds,
+        tickHz,
+      ),
+      fireWormMeleeActiveTicks: ticksFromSecondsCeil(
+        base.fireWormMeleeActiveSeconds,
+        tickHz,
+      ),
+    );
+  }
+
+  final int tickHz;
+  final V0EnemyTuning base;
+
+  final int demonCastCooldownTicks;
+  final int fireWormMeleeCooldownTicks;
+  final int fireWormMeleeActiveTicks;
+}
+
 
 
 ===== FILE: lib/core/tuning/v0_movement_tuning.dart =====
@@ -4140,6 +5319,11 @@ class RunnerFlameGame extends FlameGame {
   final List<RectangleComponent> _staticSolids = <RectangleComponent>[];
   final Map<int, RectangleComponent> _projectiles = <int, RectangleComponent>{};
   final Paint _projectilePaint = Paint()..color = const Color(0xFF60A5FA);
+  final Map<int, CircleComponent> _enemies = <int, CircleComponent>{};
+  final List<Paint> _enemyPaints = <Paint>[
+    Paint()..color = const Color(0xFFA855F7), // purple
+    Paint()..color = const Color(0xFFF97316), // orange
+  ];
   final Map<int, RectangleComponent> _hitboxes = <int, RectangleComponent>{};
   final Paint _hitboxPaint = Paint()..color = const Color(0x66EF4444);
 
@@ -4265,6 +5449,7 @@ class RunnerFlameGame extends FlameGame {
       );
     }
 
+    _syncEnemies(snapshot.entities);
     _syncProjectiles(snapshot.entities);
     _syncHitboxes(snapshot.entities);
 
@@ -4300,6 +5485,51 @@ class RunnerFlameGame extends FlameGame {
       if (e.kind == EntityKind.player) return e;
     }
     return null;
+  }
+
+  void _syncEnemies(List<EntityRenderSnapshot> entities) {
+    final seen = <int>{};
+
+    for (final e in entities) {
+      if (e.kind != EntityKind.enemy) continue;
+      seen.add(e.id);
+
+      var view = _enemies[e.id];
+      if (view == null) {
+        final size = e.size;
+        final radius =
+            ((size != null) ? (size.x < size.y ? size.x : size.y) : 16.0) * 0.5;
+        final paint = _enemyPaints[e.id % _enemyPaints.length];
+        view = CircleComponent(
+          radius: radius,
+          anchor: Anchor.center,
+          paint: paint,
+        );
+        view.priority = -2;
+        _enemies[e.id] = view;
+        world.add(view);
+      } else {
+        final size = e.size;
+        if (size != null) {
+          final radius = (size.x < size.y ? size.x : size.y) * 0.5;
+          view.radius = radius;
+        }
+      }
+
+      view.position.setValues(
+        e.pos.x.roundToDouble(),
+        e.pos.y.roundToDouble(),
+      );
+    }
+
+    if (_enemies.isEmpty) return;
+    final toRemove = <int>[];
+    for (final id in _enemies.keys) {
+      if (!seen.contains(id)) toRemove.add(id);
+    }
+    for (final id in toRemove) {
+      _enemies.remove(id)?.removeFromParent();
+    }
   }
 
   void _syncProjectiles(List<EntityRenderSnapshot> entities) {

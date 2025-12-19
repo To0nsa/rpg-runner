@@ -193,7 +193,7 @@ Design goals:
 - [x] Add cast tuning:
   - set `castCooldownSeconds = 0.25` and store it as seconds
   - derive to ticks via `ceil(seconds * tickHz)`
-- [x] Add `CastSystem` (or `AbilitySystem` split into focused systems):
+- [x] Add `PlayerCastSystem` (or `AbilitySystem` split into focused systems):
   - reads `PlayerInput.castPressed` (edge-triggered) + `PlayerInput.aimDir`
   - checks `ManaStore` + `CooldownStore` (real cast cooldown)
   - spends mana, starts cooldown, directly creates projectile entities in core
@@ -237,7 +237,7 @@ Melee is its own milestone because it needs different mechanics than projectiles
   - `HitboxStore` (owner, faction, damage, AABB half-extents, offset)
   - `HitOnceStore` (per-hitbox fixed small buffer; deterministic, no hashing)
   - reuse `LifetimeStore` for active window
-- [x] Add `MeleeSystem` + hit resolution:
+- [x] Add `PlayerMeleeSystem` + hit resolution:
   - on `AttackPressed`, checks stamina + melee cooldown, spawns a short-lived hitbox in front of the player (facing-only)
   - `HitboxDamageSystem` applies damage once per target per swing
 - [x] Tick order rule:
@@ -255,52 +255,52 @@ Acceptance:
 
 Note: keep AI extremely simple for V0.
 
-- [ ] Add enemy data + components (Core):
+- [x] Add enemy data + components (Core):
   - `EnemyId` (`demon`, `fireWorm`)
   - `EnemyStore` (id + AI state/timers; keep SoA + scalar-only)
   - `V0EnemyTuning` (speeds/cooldowns/ranges in seconds; derived to ticks at runtime)
   - reuse existing `FactionStore` (`player` vs `enemy`) for filtering
-- [ ] Spawn enemies deterministically (Core):
+- [x] Spawn enemies deterministically (Core):
   - for Milestone 7 keep spawns fixed/hardcoded (no RNG yet) so tests are stable
-  - Milestone 8 will replace this with seeded deterministic generation
-- [ ] Flying enemy (Demon) AI + ranged attack (Core):
+  - Milestone 11 will replace this with seeded deterministic generation
+- [x] Flying enemy (Demon) AI + ranged attack (Core):
   - movement goal: keep a desired X range from the player (C++: 100–250px) and face the player
   - vertical goal (V0): hover at `groundPlaneTopY - hoverOffset` (no per-X ground sampling until world-gen varies)
   - physics config: `isKinematic=false`, `useGravity=false`, `sideMask=0` (so it still integrates `pos += vel * dt` but doesn't resolve wall contacts)
   - periodically casts `SpellId.lightning` at the player (C++: 2.0s cooldown, origin = demonPos + dir * 20)
   - use a shared core helper (e.g. `spawnSpellProjectile(caster, spellId, origin, dir)`) so player/enemy projectile spawn rules stay identical
-- [ ] Ground enemy (FireWorm) AI + melee / cone (Core):
+- [x] Ground enemy (FireWorm) AI + melee / cone (Core):
   - simple horizontal pursuit toward player along ground, with a max speed cap
   - melee hit when in range using the same hitbox mechanism as the player (spawn hitbox with `Faction.enemy`)
   - (defer) fire cone spell: implement later as a new non-projectile spell type (do not mix into Milestone 7)
-- [ ] Add `ProjectileHitSystem` (Core):
+- [x] Add `ProjectileHitSystem` (Core):
   - resolves projectile-vs-actors via AABB overlap (projectile AABB derived from `ProjectileCatalog` collider size)
   - queues damage via `DamageSystem`
   - despawns projectile on hit (deferred destroy; no structural mutation mid-iteration)
-- [ ] Projectiles are real colliders (Core):
+- [x] Projectiles are real colliders (Core):
   - when spawning a projectile, also add `ColliderAabb` with half-extents from `ProjectileCatalog` (so hit resolution uses one data model)
   - (later) projectile-vs-static can reuse the same collider once desired
-- [ ] Damage rules (Core, minimal V0):
-  - add `InvulnerabilityStore` (ticks left); `DamageSystem` ignores damage while invulnerable and sets invuln on hit
-  - add `DeathSystem` (or extend `DamageSystem`) to despawn entities when HP reaches 0
-- [ ] Lock tick order (Core):
+- [x] Damage rules (Core, minimal V0):
+  - add `InvulnerabilityStore` (ticks left, player-only); `DamageSystem` ignores damage while invulnerable and sets invuln on hit
+  - add `HealthDespawnSystem` (or extend `DamageSystem`) to despawn entities when HP reaches 0
+- [x] Lock tick order (Core):
   - AI decide/steer (sets enemy velocities / triggers attacks)
   - movement + collision integration (applies to all non-kinematic bodies)
   - spawn attacks (projectiles/hitboxes) using post-move positions
   - projectile movement (for already-existing projectiles)
   - hit resolution (`ProjectileHitSystem` + `HitboxDamageSystem`)
-  - apply damage + death
+  - apply damage + despawn
   - lifetime cleanup (last)
-- [ ] Micro-steps (recommended implementation sequence):
+- [x] Micro-steps (recommended implementation sequence):
   - spawn 1 Demon + 1 FireWorm deterministically (fixed positions; no RNG)
   - `ProjectileHitSystem` + invuln + death end-to-end with player `IceBolt` (player can kill enemy)
   - Demon casts `SpellId.lightning` and damages the player
   - FireWorm melee hitbox damages the player (fire cone deferred)
-- [ ] Tests:
-  - enemy projectile damages player (`SpellId.lightning`)
-  - player ice bolt damages enemy and enemy despawns at 0 HP
-  - enemy melee hitbox damages player once per swing
-- [ ] Render placeholder (no assets):
+- [x] Tests:
+  - [x] enemy projectile damages player (`SpellId.lightning`)
+  - [x] player ice bolt damages enemy and enemy despawns at 0 HP
+  - [x] enemy melee hitbox damages player once per swing
+- [x] Render placeholder (no assets):
   - render enemies as colored circles (type-stable color in snapshot later; temporary color by entity id is OK for V0)
 
 Acceptance:
@@ -308,7 +308,169 @@ Acceptance:
 
 ---
 
-## Milestone 8 - Deterministic Spawning (First Pass)
+## Milestone 8 - Shared Ability Systems (Player + Enemy Reuse)
+
+Goal: reduce duplicated ability logic across player/enemy by introducing intent components + shared execution systems. Player input and enemy AI emit **intents**; shared systems apply the **rules** (costs/cooldowns/spawn) deterministically.
+
+Key idea: separate ability execution into 3 layers:
+- **Intent** (player input / enemy AI decides *what* to do)
+- **Execution** (shared systems apply the *rules*: costs, cooldowns, spawn)
+- **Resolution** (shared hit resolution + damage rules)
+
+- [ ] Add intent components (Core):
+  - `CastIntentStore` (SoA + scalar-only):
+    - `SpellId spellId`
+    - `double dirX/dirY` (raw aim/target vector; normalization happens in spawn helper)
+    - `double fallbackDirX/fallbackDirY` (e.g. facing direction)
+    - `double originOffset`
+    - `int cooldownTicks` (how long to lock casting after a successful cast)
+    - `int tick` (tick-stamp; only valid when `intent.tick == currentTick`; use `-1` for "no intent")
+  - `MeleeIntentStore` (SoA + scalar-only):
+    - `double damage`, `double halfX/halfY`, `double offsetX/offsetY`
+    - `int activeTicks`
+    - `int cooldownTicks`
+    - optional costs: `double staminaCost` (player uses; enemies use 0 for now)
+    - `int tick` (tick-stamp; only valid when `intent.tick == currentTick`; use `-1` for "no intent")
+  - Intent lifecycle contract (Core):
+    - at most one intent per entity per tick; last write wins
+    - execution systems ignore stale intents where `intent.tick != currentTick`
+    - execution systems invalidate consumed intents by setting `intent.tick = -1` (avoids accidental validity if tick 0 is ever used)
+- [ ] Add shared execution systems (Core):
+  - `SpellCastSystem.step(world, currentTick: tick)` consumes `CastIntentStore` and owns:
+    - cooldown gating (`CooldownStore.castCooldownTicksLeft`)
+    - mana gating + spending (`ManaStore`)
+    - projectile spawning via `spawnSpellProjectileFromCaster(...)` (direction normalization + projectile mapping)
+    - invariant: spend mana + set cooldown **only if** a projectile was actually spawned
+    - invalidates intent after processing (`intent.tick = -1`)
+  - `MeleeAttackSystem.step(world, currentTick: tick)` consumes `MeleeIntentStore` and owns:
+    - cooldown gating (`CooldownStore.meleeCooldownTicksLeft`)
+    - optional stamina gating/spending (`StaminaStore` when present + `staminaCost > 0`)
+    - hitbox spawning (`HitboxStore` + `HitOnceStore` + `LifetimeStore`)
+    - hitbox `owner` and `faction` should be derived from the attacker entity + `FactionStore` (avoid intent/store mismatches)
+    - invalidates intent after processing (`intent.tick = -1`)
+- [ ] Split “hitbox follows owner” into its own reusable system (Core):
+  - `HitboxFollowOwnerSystem`:
+    - updates hitbox transform from `owner Transform + Hitbox.offset`
+    - runs before hit resolution each tick
+  - `PlayerMeleeSystem` becomes a thin adapter (reads input, writes melee intent)
+- [ ] Refactor player systems into intent writers (Core):
+  - `PlayerCastSystem` reads `PlayerInputStore` and writes `CastIntentStore` (no mana/cooldown logic here)
+  - `PlayerMeleeSystem` reads `PlayerInputStore` and writes `MeleeIntentStore` (no stamina/cooldown logic here)
+- [ ] Refactor enemy logic into intent writers (Core):
+  - keep steering separate (can remain in `EnemySystem.stepSteering` for V0)
+  - enemy attack decisions write intents:
+    - Demon writes `CastIntentStore` (lightning at player)
+    - FireWorm writes `MeleeIntentStore` (enemy faction hitbox)
+  - goal: enemy code stops manually spending mana / setting cooldown / duplicating spawn rules
+- [ ] Lock tick order and determinism (Core):
+  - define the contract: “at most one intent per entity per tick; last write wins; stale intents ignored by tick-stamp”
+  - define a stable writer order (so “last write wins” stays deterministic):
+    - enemy intent writer(s) run before player intent writers (or the reverse — pick one and lock it)
+    - optional debug assert: player systems only write intents for the player entity; enemy systems only write intents for enemy entities
+  - lock spawn activation semantics (refactor must not change behavior):
+    - projectiles and hitboxes spawned by intent execution are allowed to hit on the same tick they spawn
+    - newly spawned projectiles do not move until the next tick (projectile movement runs before intent execution)
+  - recommended tick order:
+    - cooldown timers + invulnerability
+    - AI steering
+    - movement + collision
+    - projectile movement (existing projectiles)
+    - intent writers (player input + enemy attack decisions)
+    - intent execution (`SpellCastSystem`, `MeleeAttackSystem`)
+    - hitbox follow owner (after execution, before hit resolution)
+    - hit resolution + damage + despawn
+    - lifetime cleanup (last)
+- [ ] Tests:
+  - `SpellCastSystem`: spending/cooldowns happen only on successful spawn; determinism with identical inputs
+  - `PlayerCastSystem` writes intent and relies on `SpellCastSystem` for cost/cooldown (regression for cast tests)
+  - `MeleeAttackSystem`: hitbox spawn + HitOnce behavior unchanged; stamina spending handled in execution system
+  - enemy casting/melee goes through the same execution systems (no duplicated rules)
+  - `HitboxFollowOwnerSystem` keeps hitboxes attached to their owner across movement
+  - spawn activation semantics are locked:
+    - spawned projectile can hit on its spawn tick but does not move until the next tick
+    - spawned hitbox can hit on its spawn tick
+
+- [ ] Micro-steps (recommended implementation sequence):
+  - add `CastIntentStore`/`MeleeIntentStore` with `tick=-1` invalid state
+  - implement `SpellCastSystem` and migrate player casting first (cast tests stay as regression)
+  - implement `MeleeAttackSystem` and migrate player melee next (melee tests stay as regression)
+  - migrate enemy attacks to intents (remove duplicated mana/cooldown/spawn logic from AI)
+
+Acceptance:
+- Player and enemy share one spell-cast execution path and one melee execution path via intents; systems remain deterministic and tests cover the shared behavior.
+
+Naming:
+- As part of this milestone, rename any system that is strictly player-only to `PlayerXSystem` (e.g. `PlayerCastSystem`, `PlayerMeleeSystem`) to keep responsibilities obvious as enemy reuse increases.
+
+---
+
+## Milestone 9 - Broadphase (Uniform Grid for Dynamic AABBs)
+
+Goal: avoid O(projectiles × actors) and O(hitboxes × actors) narrow-phase checks by adding a deterministic broadphase.
+
+- [ ] Add a uniform grid / spatial hash for dynamic AABBs (Core):
+  - store `cellSize` (world units) and helpers: `cellX = floor(x / cellSize)`
+  - define a deterministic `cellKey(int cx, int cy)` (e.g. pack into `int`)
+  - grid maps `cellKey -> List<EntityId>` (or dense indices) for candidate lookup
+  - build grid each tick after movement/collision (once per tick)
+- [ ] Insert only damageable colliders (Core):
+  - entities with `Transform + ColliderAabb + Health + Faction`
+  - insert into all overlapped cells (AABB spans 1..N cells)
+  - insertion order must be stable (iterate `health.denseEntities` order)
+- [ ] Query for projectiles/hitboxes (Core):
+  - compute query AABB, enumerate overlapped cells in deterministic order (y then x increasing)
+  - gather candidates from those cells, then run narrow-phase AABB overlap
+  - keep current filtering rules (owner exclusion, faction checks, missing components ignored)
+- [ ] Deduplicate candidates deterministically (Core):
+  - use a `List<int> seenStampByEntityId` (ensure capacity by max entity id seen)
+  - per query: increment `stamp`, mark `seenStampByEntityId[targetId] = stamp` to avoid multi-cell duplicates
+- [ ] Determinism rules (Core):
+  - projectile hit selection must be stable when multiple candidates overlap:
+    - preserve insertion order (grid insertion is in stable dense order) and cell scan order, OR
+    - collect unique candidates and sort by `EntityId` before picking the first hit
+  - hitboxes that can hit multiple targets should apply damage in a stable order (same rule as above)
+- [ ] Integration (Core):
+  - build the grid once per tick in `GameCore` after movement/collision and before hit resolution
+  - pass the grid to both `ProjectileHitSystem` and `HitboxDamageSystem` (shared broadphase)
+- [ ] Tests:
+  - broadphase results match brute-force on a randomized-but-seeded layout (same hits, same order)
+  - determinism: multiple overlapping targets yields stable chosen target for projectiles
+  - performance sanity: large N (e.g. 500 targets, 500 projectiles) completes within a reasonable time budget (non-flaky)
+
+Acceptance:
+- Projectile and hitbox resolution no longer scales with the full actor list each time; behavior remains deterministic and matches previous logic.
+
+---
+
+## Milestone 10 - Hit Resolution Module (Shared Narrowphase + Rules)
+
+Goal: centralize overlap + filtering + candidate ordering so projectile and hitbox interactions share identical rules and stay deterministic.
+
+- [ ] Create a shared hit resolution module (Core):
+  - new module owns:
+    - AABB computation (`Transform` + `ColliderAabb` -> min/max)
+    - overlap test (AABB vs AABB)
+    - friendly-fire / owner exclusion rules
+    - deterministic candidate ordering contract ("first hit wins" or stable multi-hit order)
+  - module does *not* mutate world mid-iteration; returns hit results or invokes callbacks
+- [ ] Integrate broadphase as the candidate source (Core):
+  - hit resolver queries the Milestone 9 grid to obtain candidates
+  - preserve determinism: stable cell scan order + stable per-cell insertion order (or sort by `EntityId`)
+- [ ] Refactor systems to use the module (Core):
+  - `ProjectileHitSystem` becomes thin: "for each projectile, resolve first hit then despawn"
+  - `HitboxDamageSystem` becomes thin: "for each hitbox, resolve hits then apply HitOnce gating"
+  - ensure both systems share the same faction/owner exclusion logic
+- [ ] Tests:
+  - brute-force equivalence: resolver results match previous brute-force logic on seeded layouts
+  - determinism: multiple overlapping targets yields stable selected target for projectiles
+  - determinism: multi-hit hitboxes apply damage in stable order (and HitOnce still works)
+
+Acceptance:
+- Projectile and hitbox hit resolution share one codepath for AABB math/filtering/ordering, and behavior remains deterministic.
+
+---
+
+## Milestone 11 - Deterministic Spawning (First Pass)
 
 - [ ] Define chunk size and a deterministic “track” generator driven by `seed`.
   - Start simple: a fixed list of hand-authored chunk patterns (ground + platforms + obstacles + pickups).
@@ -319,7 +481,7 @@ Acceptance:
 
 ---
 
-## Milestone 9 - UX Polish + Debugging
+## Milestone 12 - UX Polish + Debugging
 
 - [ ] Pause overlay (freeze simulation).
 - [ ] Debug overlay:

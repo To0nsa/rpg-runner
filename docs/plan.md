@@ -45,6 +45,7 @@ This enables:
 ### 2.1 V0 Vertical Slice (Playable Runner)
 
 V0 goal: a fully playable offline runner with the final architectural boundaries (core authoritative, Flame as view, Flutter UI for menus/HUD).
+Implementation milestones and checklists live in `docs/v0-implementation-plan.md`.
 
 World:
 
@@ -60,7 +61,7 @@ Player:
 Enemies:
 
 * One flying enemy: follows the player and casts a lightning bolt.
-* One ground enemy: follows the player, can hit the player, and casts a fire cone (V0 may approximate cone as a short-lived hitbox).
+* One ground enemy: follows the player and can hit the player (melee hitbox). (Fire cone can be added later.)
 
 Collectible:
 
