@@ -30,6 +30,7 @@ import 'ecs/stores/health_store.dart';
 import 'ecs/stores/mana_store.dart';
 import 'ecs/stores/stamina_store.dart';
 import 'ecs/world.dart';
+import 'enemies/enemy_catalog.dart';
 import 'enemies/enemy_id.dart';
 import 'math/vec2.dart';
 import 'snapshots/enums.dart';
@@ -86,22 +87,24 @@ class GameCore {
     V0EnemyTuning enemyTuning = const V0EnemyTuning(),
     SpellCatalog spellCatalog = const SpellCatalog(),
     ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
+    EnemyCatalog enemyCatalog = const EnemyCatalog(),
     BodyDef? playerBody,
     StaticWorldGeometry? staticWorldGeometry,
   }) : _movement = V0MovementTuningDerived.from(
-         movementTuning,
-         tickHz: tickHz,
+          movementTuning,
+          tickHz: tickHz,
        ),
        _resourceTuning = resourceTuning,
        _abilities = V0AbilityTuningDerived.from(abilityTuning, tickHz: tickHz),
        _combat = V0CombatTuningDerived.from(combatTuning, tickHz: tickHz),
        _enemyTuning = V0EnemyTuningDerived.from(enemyTuning, tickHz: tickHz),
-       _spells = spellCatalog,
-       _projectiles = ProjectileCatalogDerived.from(
-         projectileCatalog,
-         tickHz: tickHz,
-       ),
-       staticWorldGeometry = staticWorldGeometry ?? v0DefaultStaticWorldGeometry {
+        _spells = spellCatalog,
+        _projectiles = ProjectileCatalogDerived.from(
+          projectileCatalog,
+          tickHz: tickHz,
+        ),
+        _enemyCatalog = enemyCatalog,
+        staticWorldGeometry = staticWorldGeometry ?? v0DefaultStaticWorldGeometry {
     _world = EcsWorld();
     _movementSystem = MovementSystem();
     _collisionSystem = CollisionSystem();
@@ -178,49 +181,48 @@ class GameCore {
     final groundTopY =
         this.staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble();
 
+    // Enemy spawn stats come from a centralized catalog so these hardcoded spawns
+    // don't diverge from future deterministic spawning rules.
+    final demonArchetype = _enemyCatalog.get(EnemyId.demon);
     final demon = _world.createEnemy(
       enemyId: EnemyId.demon,
       posX: spawnX + 220.0,
-      posY: groundTopY - 90.0,
+      posY: groundTopY - _enemyTuning.base.demonHoverOffsetY,
       velX: 0.0,
       velY: 0.0,
       facing: Facing.left,
-      body: const BodyDef(
-        isKinematic: false,
-        useGravity: false,
-        gravityScale: 0.0,
-        sideMask: BodyDef.sideNone,
-        maxVelX: 800.0,
-        maxVelY: 800.0,
-      ),
-      collider: const ColliderAabbDef(halfX: 12.0, halfY: 12.0),
-      health: const HealthDef(hp: 50.0, hpMax: 50.0, regenPerSecond: 0.0),
-      mana: const ManaDef(mana: 80.0, manaMax: 80.0, regenPerSecond: 5.0),
-      stamina: const StaminaDef(stamina: 0.0, staminaMax: 0.0, regenPerSecond: 0.0),
+      body: demonArchetype.body,
+      collider: demonArchetype.collider,
+      health: demonArchetype.health,
+      mana: demonArchetype.mana,
+      stamina: demonArchetype.stamina,
     );
     // Avoid immediate spawn-tick casting (keeps early-game tests stable).
     _world.cooldown.castCooldownTicksLeft[_world.cooldown.indexOf(demon)] =
         _enemyTuning.demonCastCooldownTicks;
 
+    final fireWormArchetype = _enemyCatalog.get(EnemyId.fireWorm);
     _world.createEnemy(
       enemyId: EnemyId.fireWorm,
       posX: spawnX + 300.0,
-      posY: groundTopY - 12.0,
+      posY: groundTopY - fireWormArchetype.collider.halfY,
       velX: 0.0,
       velY: 0.0,
       facing: Facing.left,
       body: BodyDef(
-        isKinematic: false,
-        useGravity: true,
-        gravityScale: 1.0,
+        enabled: fireWormArchetype.body.enabled,
+        isKinematic: fireWormArchetype.body.isKinematic,
+        useGravity: fireWormArchetype.body.useGravity,
+        topOnlyGround: fireWormArchetype.body.topOnlyGround,
+        gravityScale: fireWormArchetype.body.gravityScale,
         maxVelX: _movement.base.maxVelX,
         maxVelY: _movement.base.maxVelY,
-        sideMask: BodyDef.sideLeft | BodyDef.sideRight,
+        sideMask: fireWormArchetype.body.sideMask,
       ),
-      collider: const ColliderAabbDef(halfX: 12.0, halfY: 12.0),
-      health: const HealthDef(hp: 50.0, hpMax: 50.0, regenPerSecond: 0.0),
-      mana: const ManaDef(mana: 0.0, manaMax: 0.0, regenPerSecond: 0.0),
-      stamina: const StaminaDef(stamina: 0.0, staminaMax: 0.0, regenPerSecond: 0.0),
+      collider: fireWormArchetype.collider,
+      health: fireWormArchetype.health,
+      mana: fireWormArchetype.mana,
+      stamina: fireWormArchetype.stamina,
     );
   }
 
@@ -256,6 +258,7 @@ class GameCore {
   final V0EnemyTuningDerived _enemyTuning;
   final SpellCatalog _spells;
   final ProjectileCatalogDerived _projectiles;
+  final EnemyCatalog _enemyCatalog;
 
   late final EcsWorld _world;
   late final MovementSystem _movementSystem;
