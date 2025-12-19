@@ -181,48 +181,61 @@ class GameCore {
     final groundTopY =
         this.staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble();
 
+    _spawnDemon(spawnX: spawnX + 220.0, groundTopY: groundTopY);
+    _spawnFireWorm(spawnX: spawnX + 300.0, groundTopY: groundTopY);
+  }
+
+  EntityId _spawnDemon({required double spawnX, required double groundTopY}) {
     // Enemy spawn stats come from a centralized catalog so these hardcoded spawns
     // don't diverge from future deterministic spawning rules.
-    final demonArchetype = _enemyCatalog.get(EnemyId.demon);
+    final archetype = _enemyCatalog.get(EnemyId.demon);
     final demon = _world.createEnemy(
       enemyId: EnemyId.demon,
-      posX: spawnX + 220.0,
+      posX: spawnX,
       posY: groundTopY - _enemyTuning.base.demonHoverOffsetY,
       velX: 0.0,
       velY: 0.0,
       facing: Facing.left,
-      body: demonArchetype.body,
-      collider: demonArchetype.collider,
-      health: demonArchetype.health,
-      mana: demonArchetype.mana,
-      stamina: demonArchetype.stamina,
+      body: archetype.body,
+      collider: archetype.collider,
+      health: archetype.health,
+      mana: archetype.mana,
+      stamina: archetype.stamina,
     );
+
     // Avoid immediate spawn-tick casting (keeps early-game tests stable).
     _world.cooldown.castCooldownTicksLeft[_world.cooldown.indexOf(demon)] =
         _enemyTuning.demonCastCooldownTicks;
 
-    final fireWormArchetype = _enemyCatalog.get(EnemyId.fireWorm);
-    _world.createEnemy(
+    return demon;
+  }
+
+  EntityId _spawnFireWorm({required double spawnX, required double groundTopY}) {
+    final archetype = _enemyCatalog.get(EnemyId.fireWorm);
+
+    // FireWorm uses the archetype, but clamps should stay aligned with the
+    // current movement tuning.
+    return _world.createEnemy(
       enemyId: EnemyId.fireWorm,
-      posX: spawnX + 300.0,
-      posY: groundTopY - fireWormArchetype.collider.halfY,
+      posX: spawnX,
+      posY: groundTopY - archetype.collider.halfY,
       velX: 0.0,
       velY: 0.0,
       facing: Facing.left,
       body: BodyDef(
-        enabled: fireWormArchetype.body.enabled,
-        isKinematic: fireWormArchetype.body.isKinematic,
-        useGravity: fireWormArchetype.body.useGravity,
-        topOnlyGround: fireWormArchetype.body.topOnlyGround,
-        gravityScale: fireWormArchetype.body.gravityScale,
+        enabled: archetype.body.enabled,
+        isKinematic: archetype.body.isKinematic,
+        useGravity: archetype.body.useGravity,
+        topOnlyGround: archetype.body.topOnlyGround,
+        gravityScale: archetype.body.gravityScale,
         maxVelX: _movement.base.maxVelX,
         maxVelY: _movement.base.maxVelY,
-        sideMask: fireWormArchetype.body.sideMask,
+        sideMask: archetype.body.sideMask,
       ),
-      collider: fireWormArchetype.collider,
-      health: fireWormArchetype.health,
-      mana: fireWormArchetype.mana,
-      stamina: fireWormArchetype.stamina,
+      collider: archetype.collider,
+      health: archetype.health,
+      mana: archetype.mana,
+      stamina: archetype.stamina,
     );
   }
 

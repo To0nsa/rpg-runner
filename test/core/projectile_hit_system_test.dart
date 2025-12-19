@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:walkscape_runner/core/combat/faction.dart';
-import 'package:walkscape_runner/core/enemies/enemy_id.dart';
 import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/collider_aabb_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/health_store.dart';
@@ -15,6 +14,8 @@ import 'package:walkscape_runner/core/snapshots/enums.dart';
 import 'package:walkscape_runner/core/spells/spawn_spell_projectile.dart';
 import 'package:walkscape_runner/core/spells/spell_catalog.dart';
 import 'package:walkscape_runner/core/spells/spell_id.dart';
+
+import 'test_spawns.dart';
 
 void main() {
   test('ProjectileHitSystem damages target and despawns projectile', () {
@@ -34,8 +35,8 @@ void main() {
       stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
     );
 
-    final enemy = world.createEnemy(
-      enemyId: EnemyId.demon,
+    final enemy = spawnDemon(
+      world,
       posX: 140,
       posY: 100,
       velX: 0,

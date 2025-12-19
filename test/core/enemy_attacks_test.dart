@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:walkscape_runner/core/combat/faction.dart';
-import 'package:walkscape_runner/core/enemies/enemy_id.dart';
 import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/collider_aabb_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/health_store.dart';
@@ -18,6 +17,8 @@ import 'package:walkscape_runner/core/spells/spawn_spell_projectile.dart';
 import 'package:walkscape_runner/core/spells/spell_catalog.dart';
 import 'package:walkscape_runner/core/spells/spell_id.dart';
 import 'package:walkscape_runner/core/tuning/v0_enemy_tuning.dart';
+
+import 'test_spawns.dart';
 
 void main() {
   test('enemy projectile (lightning) damages player', () {
@@ -37,8 +38,8 @@ void main() {
       stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
     );
 
-    final demon = world.createEnemy(
-      enemyId: EnemyId.demon,
+    final demon = spawnDemon(
+      world,
       posX: 120,
       posY: 100,
       velX: 0,
@@ -91,8 +92,8 @@ void main() {
       stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
     );
 
-    final worm = world.createEnemy(
-      enemyId: EnemyId.fireWorm,
+    final worm = spawnFireWorm(
+      world,
       posX: 120,
       posY: 100,
       velX: 0,
@@ -141,4 +142,3 @@ void main() {
     expect(world.cooldown.meleeCooldownTicksLeft[world.cooldown.indexOf(worm)], greaterThan(0));
   });
 }
-
