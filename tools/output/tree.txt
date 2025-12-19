@@ -9,7 +9,10 @@ lib/core/ecs/entity_id.dart
 lib/core/ecs/hit/aabb_hit_utils.dart
 lib/core/ecs/queries.dart
 lib/core/ecs/sparse_set.dart
+lib/core/ecs/spatial/broadphase_grid.dart
+lib/core/ecs/spatial/grid_index_2d.dart
 lib/core/ecs/stores/body_store.dart
+lib/core/ecs/stores/cast_intent_store.dart
 lib/core/ecs/stores/collider_aabb_store.dart
 lib/core/ecs/stores/collision_state_store.dart
 lib/core/ecs/stores/cooldown_store.dart
@@ -21,6 +24,7 @@ lib/core/ecs/stores/hitbox_store.dart
 lib/core/ecs/stores/invulnerability_store.dart
 lib/core/ecs/stores/lifetime_store.dart
 lib/core/ecs/stores/mana_store.dart
+lib/core/ecs/stores/melee_intent_store.dart
 lib/core/ecs/stores/movement_store.dart
 lib/core/ecs/stores/player_input_store.dart
 lib/core/ecs/stores/projectile_store.dart
@@ -36,12 +40,14 @@ lib/core/ecs/systems/hitbox_damage_system.dart
 lib/core/ecs/systems/hitbox_follow_owner_system.dart
 lib/core/ecs/systems/invulnerability_system.dart
 lib/core/ecs/systems/lifetime_system.dart
-lib/core/ecs/systems/movement_system.dart
+lib/core/ecs/systems/melee_attack_system.dart
 lib/core/ecs/systems/player_cast_system.dart
 lib/core/ecs/systems/player_melee_system.dart
+lib/core/ecs/systems/player_movement_system.dart
 lib/core/ecs/systems/projectile_hit_system.dart
 lib/core/ecs/systems/projectile_system.dart
 lib/core/ecs/systems/resource_regen_system.dart
+lib/core/ecs/systems/spell_cast_system.dart
 lib/core/ecs/world.dart
 lib/core/enemies/enemy_catalog.dart
 lib/core/enemies/enemy_id.dart
@@ -64,6 +70,7 @@ lib/core/tuning/v0_combat_tuning.dart
 lib/core/tuning/v0_enemy_tuning.dart
 lib/core/tuning/v0_movement_tuning.dart
 lib/core/tuning/v0_resource_tuning.dart
+lib/core/tuning/v0_spatial_grid_tuning.dart
 lib/core/util/double_math.dart
 lib/core/util/tick_math.dart
 lib/game/components/hud_bars_component.dart

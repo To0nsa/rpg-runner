@@ -1,6 +1,6 @@
 ﻿REPO: C:\dev\walkscape_runner
-COMMIT: 0e9d4c618879cebb2b83e2ce839bfe8df444b147
-DATE: 2025-12-19 11:20:47
+COMMIT: 8df7e3f6843e21d59758accc539c32e381baf33b
+DATE: 2025-12-19 13:09:59
 
 
 ===== FILE: lib/AGENTS.md =====
@@ -427,7 +427,7 @@ import '../world.dart';
 // IMPORTANT:
 // - Keep these helpers allocation-free and deterministic.
 // - Systems still own iteration/selection rules (e.g. "first hit wins") until
-//   Milestone 9 (Hit Resolution Module).
+//   Milestone 10 (Hit Resolution Module).
 
 bool isFriendlyFire(Faction a, Faction b) => a == b;
 
@@ -688,6 +688,210 @@ abstract class SparseSet {
 }
 
 
+===== FILE: lib/core/ecs/spatial/broadphase_grid.dart =====
+import '../hit/aabb_hit_utils.dart';
+import '../world.dart';
+import 'grid_index_2d.dart';
+
+/// Deterministic broadphase grid rebuilt each tick from dynamic damageable AABBs.
+///
+/// Buckets store indices into `targets` (not EntityIds) to avoid repeated sparse
+/// lookups during hit queries.
+class BroadphaseGrid {
+  BroadphaseGrid({required GridIndex2D index}) : _index = index;
+
+  final GridIndex2D _index;
+  final DamageableTargetCache targets = DamageableTargetCache();
+
+  // cellKey -> list of target indices into `targets`.
+  final Map<int, List<int>> _buckets = <int, List<int>>{};
+  final List<int> _activeKeys = <int>[];
+  final List<List<int>> _bucketPool = <List<int>>[];
+
+  // Per-query dedup for targets that span multiple cells.
+  final List<int> _seenStampByTargetIndex = <int>[];
+  int _stamp = 0;
+
+  void rebuild(EcsWorld world) {
+    targets.rebuild(world);
+
+    // Keep the map bounded to "active" cells (avoid unbounded growth as the
+    // world scrolls). Reuse lists via a small pool to reduce allocations.
+    for (var i = 0; i < _activeKeys.length; i += 1) {
+      final key = _activeKeys[i];
+      final bucket = _buckets.remove(key);
+      if (bucket == null) continue;
+      bucket.clear();
+      _bucketPool.add(bucket);
+    }
+    _activeKeys.clear();
+
+    if (targets.isEmpty) return;
+
+    for (var ti = 0; ti < targets.length; ti += 1) {
+      final cx = targets.centerX[ti];
+      final cy = targets.centerY[ti];
+      final hx = targets.halfX[ti];
+      final hy = targets.halfY[ti];
+
+      final minX = cx - hx;
+      final maxX = cx + hx;
+      final minY = cy - hy;
+      final maxY = cy + hy;
+
+      final minCx = _index.worldToCellX(minX);
+      final maxCx = _index.worldToCellX(maxX);
+      final minCy = _index.worldToCellY(minY);
+      final maxCy = _index.worldToCellY(maxY);
+
+      for (var cellY = minCy; cellY <= maxCy; cellY += 1) {
+        for (var cellX = minCx; cellX <= maxCx; cellX += 1) {
+          final key = _index.cellKey(cellX, cellY);
+          var bucket = _buckets[key];
+          if (bucket == null) {
+            bucket = _bucketPool.isNotEmpty ? _bucketPool.removeLast() : <int>[];
+            _buckets[key] = bucket;
+            _activeKeys.add(key);
+          }
+          bucket.add(ti);
+        }
+      }
+    }
+  }
+
+  /// Fills [outTargetIndices] with unique target indices whose AABBs may overlap
+  /// the query AABB.
+  ///
+  /// IMPORTANT (determinism):
+  /// - Cell scan order is stable (y then x, increasing).
+  /// - Callers must sort by `targets.entities[targetIndex]` if they need a stable
+  ///   per-query hit selection order.
+  void queryAabbMinMax({
+    required double minX,
+    required double minY,
+    required double maxX,
+    required double maxY,
+    required List<int> outTargetIndices,
+  }) {
+    outTargetIndices.clear();
+    if (targets.isEmpty) return;
+
+    _stamp += 1;
+
+    // Avoid stamp overflow affecting correctness.
+    if (_stamp == 0x7FFFFFFF) {
+      for (var i = 0; i < _seenStampByTargetIndex.length; i += 1) {
+        _seenStampByTargetIndex[i] = 0;
+      }
+      _stamp = 1;
+    }
+
+    final minCx = _index.worldToCellX(minX);
+    final maxCx = _index.worldToCellX(maxX);
+    final minCy = _index.worldToCellY(minY);
+    final maxCy = _index.worldToCellY(maxY);
+
+    if (_seenStampByTargetIndex.length < targets.length) {
+      final missing = targets.length - _seenStampByTargetIndex.length;
+      for (var i = 0; i < missing; i += 1) {
+        _seenStampByTargetIndex.add(0);
+      }
+    }
+
+    for (var cellY = minCy; cellY <= maxCy; cellY += 1) {
+      for (var cellX = minCx; cellX <= maxCx; cellX += 1) {
+        final key = _index.cellKey(cellX, cellY);
+        final bucket = _buckets[key];
+        if (bucket == null || bucket.isEmpty) continue;
+
+        for (var bi = 0; bi < bucket.length; bi += 1) {
+          final targetIndex = bucket[bi];
+          if (_seenStampByTargetIndex[targetIndex] == _stamp) continue;
+          _seenStampByTargetIndex[targetIndex] = _stamp;
+          outTargetIndices.add(targetIndex);
+        }
+      }
+    }
+  }
+}
+
+
+===== FILE: lib/core/ecs/spatial/grid_index_2d.dart =====
+import '../../math/vec2.dart';
+
+class CellAabb {
+  const CellAabb({
+    required this.minX,
+    required this.minY,
+    required this.maxX,
+    required this.maxY,
+  });
+
+  final double minX;
+  final double minY;
+  final double maxX;
+  final double maxY;
+}
+
+/// Generic 2D grid math + hashing utility.
+///
+/// This is intentionally reusable for both:
+/// - dynamic broadphase buckets (Milestone 9), and
+/// - future nav/cost grids (later milestone).
+///
+/// IMPORTANT (determinism):
+/// - `cellKey(cx, cy)` must be stable and must not use Dart `hashCode`.
+class GridIndex2D {
+  GridIndex2D({required this.cellSize}) : invCellSize = 1.0 / cellSize;
+
+  final double cellSize;
+  final double invCellSize;
+
+  int worldToCellX(double x) => (x * invCellSize).floor();
+  int worldToCellY(double y) => (y * invCellSize).floor();
+
+  Vec2 cellToWorldMin(int cx, int cy) => Vec2(cx * cellSize, cy * cellSize);
+
+  CellAabb cellAabb(int cx, int cy) {
+    final minX = cx * cellSize;
+    final minY = cy * cellSize;
+    return CellAabb(
+      minX: minX,
+      minY: minY,
+      maxX: minX + cellSize,
+      maxY: minY + cellSize,
+    );
+  }
+
+  /// Packs signed (cx, cy) into a single int key (two 32-bit lanes).
+  int cellKey(int cx, int cy) {
+    final ux = (cx ^ 0x80000000) & 0xFFFFFFFF;
+    final uy = (cy ^ 0x80000000) & 0xFFFFFFFF;
+    return (uy << 32) | ux;
+  }
+
+  void forNeighbors(
+    int cx,
+    int cy, {
+    bool diagonal = false,
+    required void Function(int nx, int ny) visit,
+  }) {
+    // Stable order (N, W, E, S), then diagonals (NW, NE, SW, SE).
+    visit(cx, cy - 1);
+    visit(cx - 1, cy);
+    visit(cx + 1, cy);
+    visit(cx, cy + 1);
+
+    if (!diagonal) return;
+    visit(cx - 1, cy - 1);
+    visit(cx + 1, cy - 1);
+    visit(cx - 1, cy + 1);
+    visit(cx + 1, cy + 1);
+  }
+}
+
+
+
 ===== FILE: lib/core/ecs/stores/body_store.dart =====
 import '../entity_id.dart';
 import '../sparse_set.dart';
@@ -794,6 +998,105 @@ class BodyStore extends SparseSet {
     maxVelX.removeLast();
     maxVelY.removeLast();
     sideMask.removeLast();
+  }
+}
+
+
+===== FILE: lib/core/ecs/stores/cast_intent_store.dart =====
+import '../../spells/spell_id.dart';
+import '../entity_id.dart';
+import '../sparse_set.dart';
+
+class CastIntentDef {
+  const CastIntentDef({
+    required this.spellId,
+    required this.dirX,
+    required this.dirY,
+    required this.fallbackDirX,
+    required this.fallbackDirY,
+    required this.originOffset,
+    required this.cooldownTicks,
+    required this.tick,
+  });
+
+  final SpellId spellId;
+  final double dirX;
+  final double dirY;
+  final double fallbackDirX;
+  final double fallbackDirY;
+  final double originOffset;
+  final int cooldownTicks;
+
+  /// Tick stamp for this intent.
+  ///
+  /// Use `-1` for "no intent". An intent is valid only when `tick == currentTick`.
+  final int tick;
+}
+
+/// Per-entity "cast a spell this tick" intent.
+///
+/// This is written by player/enemy intent writers and consumed by `SpellCastSystem`.
+class CastIntentStore extends SparseSet {
+  final List<SpellId> spellId = <SpellId>[];
+  final List<double> dirX = <double>[];
+  final List<double> dirY = <double>[];
+  final List<double> fallbackDirX = <double>[];
+  final List<double> fallbackDirY = <double>[];
+  final List<double> originOffset = <double>[];
+  final List<int> cooldownTicks = <int>[];
+  final List<int> tick = <int>[];
+
+  void add(EntityId entity) {
+    addEntity(entity);
+  }
+
+  void set(EntityId entity, CastIntentDef def) {
+    assert(
+      has(entity),
+      'CastIntentStore.set called for entity without CastIntentStore; add the component at spawn time.',
+    );
+    final i = indexOf(entity);
+    spellId[i] = def.spellId;
+    dirX[i] = def.dirX;
+    dirY[i] = def.dirY;
+    fallbackDirX[i] = def.fallbackDirX;
+    fallbackDirY[i] = def.fallbackDirY;
+    originOffset[i] = def.originOffset;
+    cooldownTicks[i] = def.cooldownTicks;
+    tick[i] = def.tick;
+  }
+
+  @override
+  void onDenseAdded(int denseIndex) {
+    spellId.add(SpellId.iceBolt);
+    dirX.add(0.0);
+    dirY.add(0.0);
+    fallbackDirX.add(1.0);
+    fallbackDirY.add(0.0);
+    originOffset.add(0.0);
+    cooldownTicks.add(0);
+    tick.add(-1);
+  }
+
+  @override
+  void onSwapRemove(int removeIndex, int lastIndex) {
+    spellId[removeIndex] = spellId[lastIndex];
+    dirX[removeIndex] = dirX[lastIndex];
+    dirY[removeIndex] = dirY[lastIndex];
+    fallbackDirX[removeIndex] = fallbackDirX[lastIndex];
+    fallbackDirY[removeIndex] = fallbackDirY[lastIndex];
+    originOffset[removeIndex] = originOffset[lastIndex];
+    cooldownTicks[removeIndex] = cooldownTicks[lastIndex];
+    tick[removeIndex] = tick[lastIndex];
+
+    spellId.removeLast();
+    dirX.removeLast();
+    dirY.removeLast();
+    fallbackDirX.removeLast();
+    fallbackDirY.removeLast();
+    originOffset.removeLast();
+    cooldownTicks.removeLast();
+    tick.removeLast();
   }
 }
 
@@ -1094,6 +1397,7 @@ class HitOnceStore extends SparseSet {
   bool hasHit(EntityId entity, EntityId target) {
     final i = indexOf(entity);
     final c = count[i];
+    if (c > 4) return true; // saturated: treat as "already hit everything"
     if (c <= 0) return false;
     if (hit0[i] == target) return true;
     if (c <= 1) return false;
@@ -1107,6 +1411,7 @@ class HitOnceStore extends SparseSet {
   void markHit(EntityId entity, EntityId target) {
     final i = indexOf(entity);
     var c = count[i];
+    if (c > 4) return; // already saturated
     if (c <= 0) {
       hit0[i] = target;
       count[i] = 1;
@@ -1128,6 +1433,10 @@ class HitOnceStore extends SparseSet {
       return;
     }
     // Saturate: in V0 we don't expect more than a few hits per swing.
+    //
+    // IMPORTANT (determinism + safety): once saturated, treat as "already hit"
+    // for any target so a single swing cannot multi-hit due to overflow.
+    count[i] = 5;
   }
 
   @override
@@ -1154,7 +1463,6 @@ class HitOnceStore extends SparseSet {
     hit3.removeLast();
   }
 }
-
 
 
 ===== FILE: lib/core/ecs/stores/hitbox_store.dart =====
@@ -1349,6 +1657,111 @@ class ManaStore extends SparseSet {
   }
 }
 
+
+
+===== FILE: lib/core/ecs/stores/melee_intent_store.dart =====
+import '../entity_id.dart';
+import '../sparse_set.dart';
+
+class MeleeIntentDef {
+  const MeleeIntentDef({
+    required this.damage,
+    required this.halfX,
+    required this.halfY,
+    required this.offsetX,
+    required this.offsetY,
+    required this.activeTicks,
+    required this.cooldownTicks,
+    required this.staminaCost,
+    required this.tick,
+  });
+
+  final double damage;
+  final double halfX;
+  final double halfY;
+  final double offsetX;
+  final double offsetY;
+  final int activeTicks;
+  final int cooldownTicks;
+  final double staminaCost;
+
+  /// Tick stamp for this intent.
+  ///
+  /// Use `-1` for "no intent". An intent is valid only when `tick == currentTick`.
+  final int tick;
+}
+
+/// Per-entity "perform a melee attack this tick" intent.
+///
+/// This is written by player/enemy intent writers and consumed by `MeleeAttackSystem`.
+class MeleeIntentStore extends SparseSet {
+  final List<double> damage = <double>[];
+  final List<double> halfX = <double>[];
+  final List<double> halfY = <double>[];
+  final List<double> offsetX = <double>[];
+  final List<double> offsetY = <double>[];
+  final List<int> activeTicks = <int>[];
+  final List<int> cooldownTicks = <int>[];
+  final List<double> staminaCost = <double>[];
+  final List<int> tick = <int>[];
+
+  void add(EntityId entity) {
+    addEntity(entity);
+  }
+
+  void set(EntityId entity, MeleeIntentDef def) {
+    assert(
+      has(entity),
+      'MeleeIntentStore.set called for entity without MeleeIntentStore; add the component at spawn time.',
+    );
+    final i = indexOf(entity);
+    damage[i] = def.damage;
+    halfX[i] = def.halfX;
+    halfY[i] = def.halfY;
+    offsetX[i] = def.offsetX;
+    offsetY[i] = def.offsetY;
+    activeTicks[i] = def.activeTicks;
+    cooldownTicks[i] = def.cooldownTicks;
+    staminaCost[i] = def.staminaCost;
+    tick[i] = def.tick;
+  }
+
+  @override
+  void onDenseAdded(int denseIndex) {
+    damage.add(0.0);
+    halfX.add(0.0);
+    halfY.add(0.0);
+    offsetX.add(0.0);
+    offsetY.add(0.0);
+    activeTicks.add(0);
+    cooldownTicks.add(0);
+    staminaCost.add(0.0);
+    tick.add(-1);
+  }
+
+  @override
+  void onSwapRemove(int removeIndex, int lastIndex) {
+    damage[removeIndex] = damage[lastIndex];
+    halfX[removeIndex] = halfX[lastIndex];
+    halfY[removeIndex] = halfY[lastIndex];
+    offsetX[removeIndex] = offsetX[lastIndex];
+    offsetY[removeIndex] = offsetY[lastIndex];
+    activeTicks[removeIndex] = activeTicks[lastIndex];
+    cooldownTicks[removeIndex] = cooldownTicks[lastIndex];
+    staminaCost[removeIndex] = staminaCost[lastIndex];
+    tick[removeIndex] = tick[lastIndex];
+
+    damage.removeLast();
+    halfX.removeLast();
+    halfY.removeLast();
+    offsetX.removeLast();
+    offsetY.removeLast();
+    activeTicks.removeLast();
+    cooldownTicks.removeLast();
+    staminaCost.removeLast();
+    tick.removeLast();
+  }
+}
 
 
 ===== FILE: lib/core/ecs/stores/movement_store.dart =====
@@ -1696,7 +2109,7 @@ import '../world.dart';
 /// Integrates positions and resolves collisions (V0: ground band only).
 ///
 /// Order within a tick:
-/// - MovementSystem computes velocities (including gravity, jump/dash).
+/// - PlayerMovementSystem computes velocities (including gravity, jump/dash).
 /// - CollisionSystem integrates `pos += vel * dt`, resolves collisions, and
 ///   finalizes grounded/contact state for the tick.
 class CollisionSystem {
@@ -1945,30 +2358,22 @@ class DamageSystem {
 
 
 ===== FILE: lib/core/ecs/systems/enemy_system.dart =====
-import '../../combat/faction.dart';
 import '../../enemies/enemy_id.dart';
 import '../../snapshots/enums.dart';
-import '../../spells/spawn_spell_projectile.dart';
-import '../../spells/spell_catalog.dart';
 import '../../spells/spell_id.dart';
 import '../../tuning/v0_enemy_tuning.dart';
 import '../../util/double_math.dart';
 import '../entity_id.dart';
-import '../stores/hitbox_store.dart';
-import '../stores/lifetime_store.dart';
+import '../stores/cast_intent_store.dart';
+import '../stores/melee_intent_store.dart';
 import '../world.dart';
-import '../../projectiles/projectile_catalog.dart';
 
 class EnemySystem {
   EnemySystem({
     required this.tuning,
-    required this.spells,
-    required this.projectiles,
   });
 
   final V0EnemyTuningDerived tuning;
-  final SpellCatalog spells;
-  final ProjectileCatalogDerived projectiles;
 
   void stepSteering(
     EcsWorld world, {
@@ -2016,7 +2421,7 @@ class EnemySystem {
     }
   }
 
-  void stepAttacks(EcsWorld world, {required EntityId player}) {
+  void stepAttacks(EcsWorld world, {required EntityId player, required int currentTick}) {
     if (!world.transform.has(player)) return;
     final playerTi = world.transform.indexOf(player);
     final playerX = world.transform.posX[playerTi];
@@ -2027,7 +2432,6 @@ class EnemySystem {
       final e = enemies.denseEntities[ei];
       if (!world.transform.has(e)) continue;
       if (!world.cooldown.has(e)) continue;
-      final enemyCooldownIndex = world.cooldown.indexOf(e);
 
       final ti = world.transform.indexOf(e);
       final ex = world.transform.posX[ti];
@@ -2035,24 +2439,24 @@ class EnemySystem {
 
       switch (enemies.enemyId[ei]) {
         case EnemyId.demon:
-          _tryDemonCast(
+          _writeDemonCastIntent(
             world,
             enemy: e,
-            enemyCooldownIndex: enemyCooldownIndex,
             ex: ex,
             ey: ey,
             playerX: playerX,
             playerY: playerY,
+            currentTick: currentTick,
           );
         case EnemyId.fireWorm:
-          _tryFireWormMelee(
+          _writeFireWormMeleeIntent(
             world,
             enemy: e,
-            enemyCooldownIndex: enemyCooldownIndex,
             enemyIndex: ei,
             ex: ex,
             ey: ey,
             playerX: playerX,
+            currentTick: currentTick,
           );
       }
     }
@@ -2120,69 +2524,67 @@ class EnemySystem {
     world.transform.velX[enemyTi] = dirX * tuning.base.fireWormSpeedX;
   }
 
-  void _tryDemonCast(
+  void _writeDemonCastIntent(
     EcsWorld world, {
-    required EntityId enemy,
-    required int enemyCooldownIndex,
-    required double ex,
-    required double ey,
-    required double playerX,
-    required double playerY,
-  }) {
-    if (!world.mana.has(enemy)) return;
-    final ci = enemyCooldownIndex;
-    if (world.cooldown.castCooldownTicksLeft[ci] > 0) return;
+      required EntityId enemy,
+      required double ex,
+      required double ey,
+      required double playerX,
+      required double playerY,
+      required int currentTick,
+    }) {
+    if (!world.castIntent.has(enemy)) {
+      assert(
+        false,
+        'EnemySystem requires CastIntentStore on enemies; add it at spawn time.',
+      );
+      return;
+    }
 
     const spellId = SpellId.lightning;
-    final def = spells.get(spellId);
 
-    final mi = world.mana.indexOf(enemy);
-    final mana = world.mana.mana[mi];
-    if (mana < def.stats.manaCost) return;
-
-    // IMPORTANT: `spawnSpellProjectileFromCaster` owns:
-    // - "is this spell a projectile?" checks
-    // - direction normalization (with fallback)
-    // Only spend mana / start cooldown if a projectile was actually spawned.
-    final spawned = spawnSpellProjectileFromCaster(
-      world,
-      spells: spells,
-      projectiles: projectiles,
-      spellId: spellId,
-      faction: Faction.enemy,
-      owner: enemy,
-      casterX: ex,
-      casterY: ey,
-      originOffset: tuning.base.demonCastOriginOffset,
-      dirX: playerX - ex,
-      dirY: playerY - ey,
-      fallbackDirX: 1.0,
-      fallbackDirY: 0.0,
+    // IMPORTANT: EnemySystem writes intent only; execution happens in
+    // `SpellCastSystem` which owns mana/cooldown rules and projectile spawning.
+    world.castIntent.set(
+      enemy,
+      CastIntentDef(
+        spellId: spellId,
+        dirX: playerX - ex,
+        dirY: playerY - ey,
+        fallbackDirX: 1.0,
+        fallbackDirY: 0.0,
+        originOffset: tuning.base.demonCastOriginOffset,
+        cooldownTicks: tuning.demonCastCooldownTicks,
+        tick: currentTick,
+      ),
     );
-    if (spawned == null) return;
-
-    world.mana.mana[mi] = clampDouble(
-      mana - def.stats.manaCost,
-      0.0,
-      world.mana.manaMax[mi],
-    );
-    world.cooldown.castCooldownTicksLeft[ci] = tuning.demonCastCooldownTicks;
   }
 
-  void _tryFireWormMelee(
+  void _writeFireWormMeleeIntent(
     EcsWorld world, {
-    required EntityId enemy,
-    required int enemyCooldownIndex,
-    required int enemyIndex,
-    required double ex,
-    required double ey,
-    required double playerX,
-  }) {
+      required EntityId enemy,
+      required int enemyIndex,
+      required double ex,
+      required double ey,
+      required double playerX,
+      required int currentTick,
+    }) {
+    if (!world.meleeIntent.has(enemy)) {
+      assert(
+        false,
+        'EnemySystem requires MeleeIntentStore on enemies; add it at spawn time.',
+      );
+      return;
+    }
+    if (!world.colliderAabb.has(enemy)) {
+      assert(
+        false,
+        'FireWorm melee requires ColliderAabbStore on the enemy to compute hitbox offset.',
+      );
+      return;
+    }
     final dx = (playerX - ex).abs();
     if (dx > tuning.base.fireWormMeleeRangeX) return;
-
-    final ci = enemyCooldownIndex;
-    if (world.cooldown.meleeCooldownTicksLeft[ci] > 0) return;
 
     final facing = world.enemy.facing[enemyIndex];
     final dirX = facing == Facing.right ? 1.0 : -1.0;
@@ -2190,34 +2592,24 @@ class EnemySystem {
     final halfX = tuning.base.fireWormMeleeHitboxSizeX * 0.5;
     final halfY = tuning.base.fireWormMeleeHitboxSizeY * 0.5;
 
-    double ownerHalfX = 12.0;
-    if (world.colliderAabb.has(enemy)) {
-      ownerHalfX = world.colliderAabb.halfX[world.colliderAabb.indexOf(enemy)];
-    }
+    final ownerHalfX = world.colliderAabb.halfX[world.colliderAabb.indexOf(enemy)];
     final offsetX = dirX * (ownerHalfX * 0.5 + halfX);
     const offsetY = 0.0;
 
-    final hitbox = world.createEntity();
-    world.transform.add(hitbox, posX: ex, posY: ey, velX: 0.0, velY: 0.0);
-    world.hitbox.add(
-      hitbox,
-      HitboxDef(
-        owner: enemy,
-        faction: Faction.enemy,
+    world.meleeIntent.set(
+      enemy,
+      MeleeIntentDef(
         damage: tuning.base.fireWormMeleeDamage,
         halfX: halfX,
         halfY: halfY,
         offsetX: offsetX,
         offsetY: offsetY,
+        activeTicks: tuning.fireWormMeleeActiveTicks,
+        cooldownTicks: tuning.fireWormMeleeCooldownTicks,
+        staminaCost: 0.0,
+        tick: currentTick,
       ),
     );
-    world.hitOnce.add(hitbox);
-    world.lifetime.add(
-      hitbox,
-      LifetimeDef(ticksLeft: tuning.fireWormMeleeActiveTicks),
-    );
-
-    world.cooldown.meleeCooldownTicksLeft[ci] = tuning.fireWormMeleeCooldownTicks;
   }
 }
 
@@ -2258,17 +2650,21 @@ class HealthDespawnSystem {
 ===== FILE: lib/core/ecs/systems/hitbox_damage_system.dart =====
 import '../../combat/damage.dart';
 import '../hit/aabb_hit_utils.dart';
+import '../spatial/broadphase_grid.dart';
 import '../world.dart';
 
 class HitboxDamageSystem {
-  final DamageableTargetCache _targets = DamageableTargetCache();
+  final List<int> _candidateTargets = <int>[];
 
-  void step(EcsWorld world, void Function(DamageRequest request) queueDamage) {
+  void step(
+    EcsWorld world,
+    void Function(DamageRequest request) queueDamage,
+    BroadphaseGrid broadphase,
+  ) {
     final hitboxes = world.hitbox;
     if (hitboxes.denseEntities.isEmpty) return;
 
-    _targets.rebuild(world);
-    if (_targets.isEmpty) return;
+    if (broadphase.targets.isEmpty) return;
 
     for (var hi = 0; hi < hitboxes.denseEntities.length; hi += 1) {
       final hb = hitboxes.denseEntities[hi];
@@ -2284,21 +2680,38 @@ class HitboxDamageSystem {
       final owner = hitboxes.owner[hi];
       final sourceFaction = hitboxes.faction[hi];
 
-      for (var ti = 0; ti < _targets.length; ti += 1) {
-        final target = _targets.entities[ti];
+      broadphase.queryAabbMinMax(
+        minX: hbCx - hbHalfX,
+        minY: hbCy - hbHalfY,
+        maxX: hbCx + hbHalfX,
+        maxY: hbCy + hbHalfY,
+        outTargetIndices: _candidateTargets,
+      );
+      if (_candidateTargets.isEmpty) continue;
+
+      // Deterministic multi-hit order: sort candidates by EntityId.
+      _candidateTargets.sort(
+        (a, b) => broadphase.targets.entities[a].compareTo(
+          broadphase.targets.entities[b],
+        ),
+      );
+
+      for (var ci = 0; ci < _candidateTargets.length; ci += 1) {
+        final ti = _candidateTargets[ci];
+        final target = broadphase.targets.entities[ti];
         if (target == owner) continue;
 
-        if (isFriendlyFire(sourceFaction, _targets.factions[ti])) continue;
+        if (isFriendlyFire(sourceFaction, broadphase.targets.factions[ti])) continue;
 
         if (!aabbOverlapsCenters(
           aCenterX: hbCx,
           aCenterY: hbCy,
           aHalfX: hbHalfX,
           aHalfY: hbHalfY,
-          bCenterX: _targets.centerX[ti],
-          bCenterY: _targets.centerY[ti],
-          bHalfX: _targets.halfX[ti],
-          bHalfY: _targets.halfY[ti],
+          bCenterX: broadphase.targets.centerX[ti],
+          bCenterY: broadphase.targets.centerY[ti],
+          bHalfX: broadphase.targets.halfX[ti],
+          bHalfY: broadphase.targets.halfY[ti],
         )) {
           continue;
         }
@@ -2399,7 +2812,230 @@ class LifetimeSystem {
 
 
 
-===== FILE: lib/core/ecs/systems/movement_system.dart =====
+===== FILE: lib/core/ecs/systems/melee_attack_system.dart =====
+import '../stores/hitbox_store.dart';
+import '../stores/lifetime_store.dart';
+import '../world.dart';
+
+/// Executes `MeleeIntentStore` intents by applying costs/cooldowns and spawning
+/// melee hitboxes.
+///
+/// IMPORTANT:
+/// - Only intents with `intent.tick == currentTick` are considered valid.
+/// - Hitbox `faction` is derived from the attacker entity's `FactionStore`.
+/// - Intents are invalidated after processing by setting `intent.tick = -1`.
+class MeleeAttackSystem {
+  void step(EcsWorld world, {required int currentTick}) {
+    final intents = world.meleeIntent;
+    if (intents.denseEntities.isEmpty) return;
+
+    for (var ii = 0; ii < intents.denseEntities.length; ii += 1) {
+      if (intents.tick[ii] != currentTick) continue;
+
+      final attacker = intents.denseEntities[ii];
+
+      // Invalidate now so accidental multi-pass execution in the same tick cannot
+      // double-attack. (Intent is still ignored next tick due to stamp mismatch.)
+      intents.tick[ii] = -1;
+
+      if (!world.transform.has(attacker)) continue;
+      if (!world.cooldown.has(attacker)) continue;
+
+      final ci = world.cooldown.indexOf(attacker);
+      if (world.cooldown.meleeCooldownTicksLeft[ci] > 0) continue;
+
+      final fi = world.faction.tryIndexOf(attacker);
+      if (fi == null) continue;
+      final faction = world.faction.faction[fi];
+
+      final staminaCost = intents.staminaCost[ii];
+      int? si;
+      double? nextStamina;
+      if (staminaCost > 0) {
+        if (!world.stamina.has(attacker)) continue;
+        si = world.stamina.indexOf(attacker);
+        final stamina = world.stamina.stamina[si];
+        if (stamina < staminaCost) continue;
+        nextStamina = stamina - staminaCost;
+      }
+
+      final attackerTi = world.transform.indexOf(attacker);
+      final hitbox = world.createEntity();
+      world.transform.add(
+        hitbox,
+        // HitboxFollowOwnerSystem will position from `owner + offset`.
+        posX: world.transform.posX[attackerTi],
+        posY: world.transform.posY[attackerTi],
+        velX: 0.0,
+        velY: 0.0,
+      );
+      world.hitbox.add(
+        hitbox,
+        HitboxDef(
+          owner: attacker,
+          faction: faction,
+          damage: intents.damage[ii],
+          halfX: intents.halfX[ii],
+          halfY: intents.halfY[ii],
+          offsetX: intents.offsetX[ii],
+          offsetY: intents.offsetY[ii],
+        ),
+      );
+      world.hitOnce.add(hitbox);
+      world.lifetime.add(
+        hitbox,
+        LifetimeDef(ticksLeft: intents.activeTicks[ii]),
+      );
+
+      if (si != null) {
+        world.stamina.stamina[si] = nextStamina!;
+      }
+      world.cooldown.meleeCooldownTicksLeft[ci] = intents.cooldownTicks[ii];
+    }
+  }
+}
+
+
+===== FILE: lib/core/ecs/systems/player_cast_system.dart =====
+import '../../snapshots/enums.dart';
+import '../../spells/spell_id.dart';
+import '../../tuning/v0_ability_tuning.dart';
+import '../../tuning/v0_movement_tuning.dart';
+import '../entity_id.dart';
+import '../stores/cast_intent_store.dart';
+import '../world.dart';
+
+class PlayerCastSystem {
+  const PlayerCastSystem({
+    required this.abilities,
+    required this.movement,
+  });
+
+  final V0AbilityTuningDerived abilities;
+  final V0MovementTuningDerived movement;
+
+  void step(EcsWorld world, {required EntityId player, required int currentTick}) {
+    if (!world.playerInput.has(player) ||
+        !world.transform.has(player) ||
+        !world.movement.has(player)) {
+      return;
+    }
+    if (!world.castIntent.has(player)) {
+      assert(
+        false,
+        'PlayerCastSystem requires CastIntentStore on the player; add it at spawn time.',
+      );
+      return;
+    }
+
+    final ii = world.playerInput.indexOf(player);
+    if (!world.playerInput.castPressed[ii]) return;
+
+    const spellId = SpellId.iceBolt;
+
+    // final ti = world.transform.indexOf(player);
+    final facing = world.movement.facing[world.movement.indexOf(player)];
+
+    final rawAimX = world.playerInput.aimDirX[ii];
+    final rawAimY = world.playerInput.aimDirY[ii];
+
+    final spawnOffset = movement.base.playerRadius * 0.5;
+    final fallbackDirX = facing == Facing.right ? 1.0 : -1.0;
+
+    // IMPORTANT: PlayerCastSystem writes intent only; execution happens in
+    // `SpellCastSystem` which owns mana/cooldown rules and projectile spawning.
+    world.castIntent.set(
+      player,
+      CastIntentDef(
+        spellId: spellId,
+        dirX: rawAimX,
+        dirY: rawAimY,
+        fallbackDirX: fallbackDirX,
+        fallbackDirY: 0.0,
+        originOffset: spawnOffset,
+        cooldownTicks: abilities.castCooldownTicks,
+        tick: currentTick,
+      ),
+    );
+  }
+}
+
+
+===== FILE: lib/core/ecs/systems/player_melee_system.dart =====
+import '../../snapshots/enums.dart';
+import '../../tuning/v0_ability_tuning.dart';
+import '../../tuning/v0_movement_tuning.dart';
+import '../entity_id.dart';
+import '../stores/melee_intent_store.dart';
+import '../world.dart';
+
+class PlayerMeleeSystem {
+  const PlayerMeleeSystem({
+    required this.abilities,
+    required this.movement,
+  });
+
+  final V0AbilityTuningDerived abilities;
+  final V0MovementTuningDerived movement;
+
+  void step(EcsWorld world, {required EntityId player, required int currentTick}) {
+    _trySpawnPlayerMelee(world, player: player, currentTick: currentTick);
+  }
+
+  void _trySpawnPlayerMelee(
+    EcsWorld world, {
+    required EntityId player,
+    required int currentTick,
+  }) {
+    if (!world.playerInput.has(player)) return;
+    if (!world.transform.has(player)) return;
+    if (!world.movement.has(player)) return;
+    if (!world.meleeIntent.has(player)) {
+      assert(
+        false,
+        'PlayerMeleeSystem requires MeleeIntentStore on the player; add it at spawn time.',
+      );
+      return;
+    }
+
+    final ii = world.playerInput.indexOf(player);
+    if (!world.playerInput.attackPressed[ii]) return;
+
+    final mi = world.movement.indexOf(player);
+    final facing = world.movement.facing[mi];
+    final dirX = (facing == Facing.right) ? 1.0 : -1.0;
+
+    final halfX = abilities.base.meleeHitboxSizeX * 0.5;
+    final halfY = abilities.base.meleeHitboxSizeY * 0.5;
+
+    // origin = playerPos + aimDir * (playerRadius * 0.5) for casts
+    // melee uses facing-only:
+    // center = playerPos + dirX * (playerRadius * 0.5 + halfX)
+    final forward = movement.base.playerRadius * 0.5 + halfX;
+    final offsetX = dirX * forward;
+    const offsetY = 0.0;
+
+    // IMPORTANT: PlayerMeleeSystem writes intent only; execution happens in
+    // `MeleeAttackSystem` which owns stamina/cooldown rules and hitbox spawning.
+    world.meleeIntent.set(
+      player,
+      MeleeIntentDef(
+        damage: abilities.base.meleeDamage,
+        halfX: halfX,
+        halfY: halfY,
+        offsetX: offsetX,
+        offsetY: offsetY,
+        activeTicks: abilities.meleeActiveTicks,
+        cooldownTicks: abilities.meleeCooldownTicks,
+        staminaCost: abilities.base.meleeStaminaCost,
+        tick: currentTick,
+      ),
+    );
+  }
+}
+
+
+===== FILE: lib/core/ecs/systems/player_movement_system.dart =====
 import '../../snapshots/enums.dart';
 import '../../tuning/v0_movement_tuning.dart';
 import '../../tuning/v0_resource_tuning.dart';
@@ -2412,9 +3048,9 @@ import '../world.dart';
 /// - Movement
 /// - Body
 ///
-/// MovementSystem writes velocities only (input/jump/dash/gravity/clamps).
+/// PlayerMovementSystem writes velocities only (input/jump/dash/gravity/clamps).
 /// Position integration and collision resolution are handled by CollisionSystem.
-class MovementSystem {
+class PlayerMovementSystem {
   void step(
     EcsWorld world,
     V0MovementTuningDerived tuning, {
@@ -2565,192 +3201,26 @@ class MovementSystem {
 }
 
 
-===== FILE: lib/core/ecs/systems/player_cast_system.dart =====
-import '../../combat/faction.dart';
-import '../../projectiles/projectile_catalog.dart';
-import '../../snapshots/enums.dart';
-import '../../spells/spell_catalog.dart';
-import '../../spells/spell_id.dart';
-import '../../spells/spawn_spell_projectile.dart';
-import '../../util/double_math.dart';
-import '../../tuning/v0_ability_tuning.dart';
-import '../../tuning/v0_movement_tuning.dart';
-import '../entity_id.dart';
-import '../world.dart';
-
-class PlayerCastSystem {
-  PlayerCastSystem({
-    required this.spells,
-    required this.projectiles,
-    required this.abilities,
-    required this.movement,
-  });
-
-  final SpellCatalog spells;
-  final ProjectileCatalogDerived projectiles;
-  final V0AbilityTuningDerived abilities;
-  final V0MovementTuningDerived movement;
-
-  void step(EcsWorld world, {required EntityId player}) {
-    if (!world.playerInput.has(player) ||
-        !world.transform.has(player) ||
-        !world.movement.has(player) ||
-        !world.mana.has(player) ||
-        !world.cooldown.has(player)) {
-      return;
-    }
-
-    final ii = world.playerInput.indexOf(player);
-    if (!world.playerInput.castPressed[ii]) return;
-
-    final ci = world.cooldown.indexOf(player);
-    if (world.cooldown.castCooldownTicksLeft[ci] > 0) return;
-
-    const spellId = SpellId.iceBolt;
-    final spell = spells.get(spellId);
-    final spellStats = spell.stats;
-
-    final mi = world.mana.indexOf(player);
-    final mana = world.mana.mana[mi];
-    if (mana < spellStats.manaCost) return;
-
-    final ti = world.transform.indexOf(player);
-    final facing = world.movement.facing[world.movement.indexOf(player)];
-
-    final rawAimX = world.playerInput.aimDirX[ii];
-    final rawAimY = world.playerInput.aimDirY[ii];
-
-    final spawnOffset = movement.base.playerRadius * 0.5;
-    final fallbackDirX = facing == Facing.right ? 1.0 : -1.0;
-
-    // IMPORTANT: `spawnSpellProjectileFromCaster` owns:
-    // - "is this spell a projectile?" checks
-    // - direction normalization (with facing fallback)
-    // Only spend mana / start cooldown if a projectile was actually spawned.
-    final spawned = spawnSpellProjectileFromCaster(
-      world,
-      spells: spells,
-      projectiles: projectiles,
-      spellId: spellId,
-      faction: Faction.player,
-      owner: player,
-      casterX: world.transform.posX[ti],
-      casterY: world.transform.posY[ti],
-      originOffset: spawnOffset,
-      dirX: rawAimX,
-      dirY: rawAimY,
-      fallbackDirX: fallbackDirX,
-      fallbackDirY: 0.0,
-    );
-    if (spawned == null) return;
-
-    world.mana.mana[mi] = clampDouble(
-      mana - spellStats.manaCost,
-      0.0,
-      world.mana.manaMax[mi],
-    );
-
-    world.cooldown.castCooldownTicksLeft[ci] = abilities.castCooldownTicks;
-  }
-}
-
-
-===== FILE: lib/core/ecs/systems/player_melee_system.dart =====
-import '../../combat/faction.dart';
-import '../../snapshots/enums.dart';
-import '../../tuning/v0_ability_tuning.dart';
-import '../../tuning/v0_movement_tuning.dart';
-import '../entity_id.dart';
-import '../stores/hitbox_store.dart';
-import '../stores/lifetime_store.dart';
-import '../world.dart';
-
-class PlayerMeleeSystem {
-  const PlayerMeleeSystem({
-    required this.abilities,
-    required this.movement,
-  });
-
-  final V0AbilityTuningDerived abilities;
-  final V0MovementTuningDerived movement;
-
-  void step(EcsWorld world, {required EntityId player}) {
-    _trySpawnPlayerMelee(world, player: player);
-  }
-
-  void _trySpawnPlayerMelee(EcsWorld world, {required EntityId player}) {
-    if (!world.playerInput.has(player)) return;
-    if (!world.transform.has(player)) return;
-    if (!world.movement.has(player)) return;
-    if (!world.stamina.has(player)) return;
-    if (!world.cooldown.has(player)) return;
-
-    final ii = world.playerInput.indexOf(player);
-    if (!world.playerInput.attackPressed[ii]) return;
-
-    final si = world.stamina.indexOf(player);
-    if (world.stamina.stamina[si] < abilities.base.meleeStaminaCost) return;
-
-    final ci = world.cooldown.indexOf(player);
-    if (world.cooldown.meleeCooldownTicksLeft[ci] > 0) return;
-
-    final mi = world.movement.indexOf(player);
-    final facing = world.movement.facing[mi];
-    final dirX = (facing == Facing.right) ? 1.0 : -1.0;
-
-    final halfX = abilities.base.meleeHitboxSizeX * 0.5;
-    final halfY = abilities.base.meleeHitboxSizeY * 0.5;
-
-    // origin = playerPos + aimDir * (playerRadius * 0.5) for casts
-    // melee uses facing-only:
-    // center = playerPos + dirX * (playerRadius * 0.5 + halfX)
-    final forward = movement.base.playerRadius * 0.5 + halfX;
-    final offsetX = dirX * forward;
-    const offsetY = 0.0;
-
-    final ti = world.transform.indexOf(player);
-    final hitX = world.transform.posX[ti];
-    final hitY = world.transform.posY[ti];
-
-    final hitbox = world.createEntity();
-    world.transform.add(hitbox, posX: hitX, posY: hitY, velX: 0.0, velY: 0.0);
-    world.hitbox.add(
-      hitbox,
-      HitboxDef(
-        owner: player,
-        faction: Faction.player,
-        damage: abilities.base.meleeDamage,
-        halfX: halfX,
-        halfY: halfY,
-        offsetX: offsetX,
-        offsetY: offsetY,
-      ),
-    );
-    world.hitOnce.add(hitbox);
-    world.lifetime.add(hitbox, LifetimeDef(ticksLeft: abilities.meleeActiveTicks));
-
-    world.cooldown.meleeCooldownTicksLeft[ci] = abilities.meleeCooldownTicks;
-    world.stamina.stamina[si] -= abilities.base.meleeStaminaCost;
-  }
-}
-
-
 ===== FILE: lib/core/ecs/systems/projectile_hit_system.dart =====
 import '../../combat/damage.dart';
 import '../entity_id.dart';
 import '../hit/aabb_hit_utils.dart';
+import '../spatial/broadphase_grid.dart';
 import '../world.dart';
 
 class ProjectileHitSystem {
   final List<EntityId> _toDespawn = <EntityId>[];
-  final DamageableTargetCache _targets = DamageableTargetCache();
+  final List<int> _candidateTargets = <int>[];
 
-  void step(EcsWorld world, void Function(DamageRequest request) queueDamage) {
+  void step(
+    EcsWorld world,
+    void Function(DamageRequest request) queueDamage,
+    BroadphaseGrid broadphase,
+  ) {
     final projectiles = world.projectile;
     if (projectiles.denseEntities.isEmpty) return;
 
-    _targets.rebuild(world);
-    if (_targets.isEmpty) return;
+    if (broadphase.targets.isEmpty) return;
 
     _toDespawn.clear();
 
@@ -2769,22 +3239,39 @@ class ProjectileHitSystem {
       final owner = projectiles.owner[pi];
       final sourceFaction = projectiles.faction[pi];
 
+      broadphase.queryAabbMinMax(
+        minX: pcx - phx,
+        minY: pcy - phy,
+        maxX: pcx + phx,
+        maxY: pcy + phy,
+        outTargetIndices: _candidateTargets,
+      );
+      if (_candidateTargets.isEmpty) continue;
+
+      // Deterministic "first hit wins": sort candidates by EntityId.
+      _candidateTargets.sort(
+        (a, b) => broadphase.targets.entities[a].compareTo(
+          broadphase.targets.entities[b],
+        ),
+      );
+
       var hit = false;
-      for (var ti = 0; ti < _targets.length; ti += 1) {
-        final target = _targets.entities[ti];
+      for (var ci = 0; ci < _candidateTargets.length; ci += 1) {
+        final ti = _candidateTargets[ci];
+        final target = broadphase.targets.entities[ti];
         if (target == owner) continue;
 
-        if (isFriendlyFire(sourceFaction, _targets.factions[ti])) continue;
+        if (isFriendlyFire(sourceFaction, broadphase.targets.factions[ti])) continue;
 
         if (!aabbOverlapsCenters(
           aCenterX: pcx,
           aCenterY: pcy,
           aHalfX: phx,
           aHalfY: phy,
-          bCenterX: _targets.centerX[ti],
-          bCenterY: _targets.centerY[ti],
-          bHalfX: _targets.halfX[ti],
-          bHalfY: _targets.halfY[ti],
+          bCenterX: broadphase.targets.centerX[ti],
+          bCenterY: broadphase.targets.centerY[ti],
+          bHalfX: broadphase.targets.halfX[ti],
+          bHalfY: broadphase.targets.halfY[ti],
         )) {
           continue;
         }
@@ -2889,6 +3376,89 @@ class ResourceRegenSystem {
 }
 
 
+===== FILE: lib/core/ecs/systems/spell_cast_system.dart =====
+import '../../spells/spawn_spell_projectile.dart';
+import '../../spells/spell_catalog.dart';
+import '../../util/double_math.dart';
+import '../world.dart';
+import '../../projectiles/projectile_catalog.dart';
+
+/// Executes `CastIntentStore` intents by applying costs/cooldowns and spawning
+/// spell projectiles.
+///
+/// IMPORTANT:
+/// - Only intents with `intent.tick == currentTick` are considered valid.
+/// - Mana spending + cooldown start happen only if a projectile was spawned.
+/// - Intents are invalidated after processing by setting `intent.tick = -1`.
+class SpellCastSystem {
+  SpellCastSystem({
+    required this.spells,
+    required this.projectiles,
+  });
+
+  final SpellCatalog spells;
+  final ProjectileCatalogDerived projectiles;
+
+  void step(EcsWorld world, {required int currentTick}) {
+    final intents = world.castIntent;
+    if (intents.denseEntities.isEmpty) return;
+
+    for (var ii = 0; ii < intents.denseEntities.length; ii += 1) {
+      if (intents.tick[ii] != currentTick) continue;
+
+      final caster = intents.denseEntities[ii];
+
+      // Invalidate now so accidental multi-pass execution in the same tick cannot
+      // double-cast. (Intent is still ignored next tick due to stamp mismatch.)
+      intents.tick[ii] = -1;
+
+      if (!world.transform.has(caster)) continue;
+      if (!world.cooldown.has(caster)) continue;
+      if (!world.mana.has(caster)) continue;
+
+      final ci = world.cooldown.indexOf(caster);
+      if (world.cooldown.castCooldownTicksLeft[ci] > 0) continue;
+
+      final spellId = intents.spellId[ii];
+      final def = spells.get(spellId);
+
+      final mi = world.mana.indexOf(caster);
+      final mana = world.mana.mana[mi];
+      if (mana < def.stats.manaCost) continue;
+
+      final fi = world.faction.tryIndexOf(caster);
+      if (fi == null) continue;
+      final faction = world.faction.faction[fi];
+
+      final ti = world.transform.indexOf(caster);
+      final spawned = spawnSpellProjectileFromCaster(
+        world,
+        spells: spells,
+        projectiles: projectiles,
+        spellId: spellId,
+        faction: faction,
+        owner: caster,
+        casterX: world.transform.posX[ti],
+        casterY: world.transform.posY[ti],
+        originOffset: intents.originOffset[ii],
+        dirX: intents.dirX[ii],
+        dirY: intents.dirY[ii],
+        fallbackDirX: intents.fallbackDirX[ii],
+        fallbackDirY: intents.fallbackDirY[ii],
+      );
+      if (spawned == null) continue;
+
+      world.mana.mana[mi] = clampDouble(
+        mana - def.stats.manaCost,
+        0.0,
+        world.mana.manaMax[mi],
+      );
+      world.cooldown.castCooldownTicksLeft[ci] = intents.cooldownTicks[ii];
+    }
+  }
+}
+
+
 ===== FILE: lib/core/ecs/world.dart =====
 import '../snapshots/enums.dart';
 import '../combat/faction.dart';
@@ -2897,6 +3467,7 @@ import 'stores/body_store.dart';
 import 'stores/collider_aabb_store.dart';
 import 'stores/collision_state_store.dart';
 import 'stores/cooldown_store.dart';
+import 'stores/cast_intent_store.dart';
 import 'stores/faction_store.dart';
 import 'stores/enemy_store.dart';
 import 'stores/health_store.dart';
@@ -2905,6 +3476,7 @@ import 'stores/hitbox_store.dart';
 import 'stores/invulnerability_store.dart';
 import 'stores/lifetime_store.dart';
 import 'stores/mana_store.dart';
+import 'stores/melee_intent_store.dart';
 import 'stores/movement_store.dart';
 import 'stores/player_input_store.dart';
 import 'stores/projectile_store.dart';
@@ -2926,10 +3498,12 @@ class EcsWorld {
   final ColliderAabbStore colliderAabb = ColliderAabbStore();
   final CollisionStateStore collision = CollisionStateStore();
   final CooldownStore cooldown = CooldownStore();
+  final CastIntentStore castIntent = CastIntentStore();
   final FactionStore faction = FactionStore();
   final HealthStore health = HealthStore();
   final InvulnerabilityStore invulnerability = InvulnerabilityStore();
   final ManaStore mana = ManaStore();
+  final MeleeIntentStore meleeIntent = MeleeIntentStore();
   final StaminaStore stamina = StaminaStore();
   final ProjectileStore projectile = ProjectileStore();
   final HitboxStore hitbox = HitboxStore();
@@ -2965,11 +3539,13 @@ class EcsWorld {
     colliderAabb.add(id, collider);
     collision.add(id);
     cooldown.add(id);
+    castIntent.add(id);
     faction.add(id, const FactionDef(faction: Faction.player));
     this.health.add(id, health);
     // Player-only invulnerability window (i-frames) after taking damage.
     invulnerability.add(id);
     this.mana.add(id, mana);
+    meleeIntent.add(id);
     this.stamina.add(id, stamina);
     collision.grounded[collision.indexOf(id)] = grounded;
     return id;
@@ -2994,10 +3570,12 @@ class EcsWorld {
     colliderAabb.add(id, collider);
     collision.add(id);
     cooldown.add(id);
+    castIntent.add(id);
     faction.add(id, const FactionDef(faction: Faction.enemy));
     this.health.add(id, health);
     // Intentionally no `InvulnerabilityStore`: invulnerability is player-only in V0.
     this.mana.add(id, mana);
+    meleeIntent.add(id);
     this.stamina.add(id, stamina);
     enemy.add(id, EnemyDef(enemyId: enemyId, facing: facing));
     return id;
@@ -3011,10 +3589,12 @@ class EcsWorld {
     colliderAabb.removeEntity(entity);
     collision.removeEntity(entity);
     cooldown.removeEntity(entity);
+    castIntent.removeEntity(entity);
     faction.removeEntity(entity);
     health.removeEntity(entity);
     invulnerability.removeEntity(entity);
     mana.removeEntity(entity);
+    meleeIntent.removeEntity(entity);
     stamina.removeEntity(entity);
     projectile.removeEntity(entity);
     hitbox.removeEntity(entity);
@@ -3126,9 +3706,12 @@ import 'collision/static_world_geometry_index.dart';
 import 'contracts/v0_render_contract.dart';
 import 'ecs/entity_id.dart';
 import 'ecs/stores/collider_aabb_store.dart';
+import 'ecs/spatial/broadphase_grid.dart';
+import 'ecs/spatial/grid_index_2d.dart';
 import 'ecs/systems/collision_system.dart';
 import 'ecs/systems/cooldown_system.dart';
 import 'ecs/systems/player_cast_system.dart';
+import 'ecs/systems/spell_cast_system.dart';
 import 'ecs/systems/damage_system.dart';
 import 'ecs/systems/health_despawn_system.dart';
 import 'ecs/systems/enemy_system.dart';
@@ -3137,7 +3720,8 @@ import 'ecs/systems/hitbox_follow_owner_system.dart';
 import 'ecs/systems/invulnerability_system.dart';
 import 'ecs/systems/lifetime_system.dart';
 import 'ecs/systems/player_melee_system.dart';
-import 'ecs/systems/movement_system.dart';
+import 'ecs/systems/melee_attack_system.dart';
+import 'ecs/systems/player_movement_system.dart';
 import 'ecs/systems/projectile_system.dart';
 import 'ecs/systems/projectile_hit_system.dart';
 import 'ecs/systems/resource_regen_system.dart';
@@ -3161,6 +3745,7 @@ import 'tuning/v0_combat_tuning.dart';
 import 'tuning/v0_enemy_tuning.dart';
 import 'tuning/v0_movement_tuning.dart';
 import 'tuning/v0_resource_tuning.dart';
+import 'tuning/v0_spatial_grid_tuning.dart';
 
 const StaticWorldGeometry v0DefaultStaticWorldGeometry = StaticWorldGeometry(
   groundPlane: StaticGroundPlane(topY: v0GroundTopY * 1.0),
@@ -3201,6 +3786,7 @@ class GameCore {
     V0AbilityTuning abilityTuning = const V0AbilityTuning(),
     V0CombatTuning combatTuning = const V0CombatTuning(),
     V0EnemyTuning enemyTuning = const V0EnemyTuning(),
+    V0SpatialGridTuning spatialGridTuning = const V0SpatialGridTuning(),
     SpellCatalog spellCatalog = const SpellCatalog(),
     ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
     EnemyCatalog enemyCatalog = const EnemyCatalog(),
@@ -3214,6 +3800,7 @@ class GameCore {
        _abilities = V0AbilityTuningDerived.from(abilityTuning, tickHz: tickHz),
        _combat = V0CombatTuningDerived.from(combatTuning, tickHz: tickHz),
        _enemyTuning = V0EnemyTuningDerived.from(enemyTuning, tickHz: tickHz),
+        _spatialGridTuning = spatialGridTuning,
         _spells = spellCatalog,
         _projectiles = ProjectileCatalogDerived.from(
           projectileCatalog,
@@ -3222,11 +3809,14 @@ class GameCore {
         _enemyCatalog = enemyCatalog,
         staticWorldGeometry = staticWorldGeometry ?? v0DefaultStaticWorldGeometry {
     _world = EcsWorld();
-    _movementSystem = MovementSystem();
+    _movementSystem = PlayerMovementSystem();
     _collisionSystem = CollisionSystem();
     _cooldownSystem = CooldownSystem();
     _projectileSystem = ProjectileSystem();
     _projectileHitSystem = ProjectileHitSystem();
+    _broadphaseGrid = BroadphaseGrid(
+      index: GridIndex2D(cellSize: _spatialGridTuning.broadphaseCellSize),
+    );
     _hitboxFollowOwnerSystem = HitboxFollowOwnerSystem();
     _lifetimeSystem = LifetimeSystem();
     _invulnerabilitySystem = InvulnerabilitySystem();
@@ -3235,16 +3825,11 @@ class GameCore {
     _meleeSystem = PlayerMeleeSystem(abilities: _abilities, movement: _movement);
     _hitboxDamageSystem = HitboxDamageSystem();
     _resourceRegenSystem = ResourceRegenSystem();
-    _castSystem = PlayerCastSystem(
-      spells: _spells,
-      projectiles: _projectiles,
-      abilities: _abilities,
-      movement: _movement,
-    );
+    _castSystem = PlayerCastSystem(abilities: _abilities, movement: _movement);
+    _spellCastSystem = SpellCastSystem(spells: _spells, projectiles: _projectiles);
+    _meleeAttackSystem = MeleeAttackSystem();
     _enemySystem = EnemySystem(
       tuning: _enemyTuning,
-      spells: _spells,
-      projectiles: _projectiles,
     );
 
     final spawnX = 80.0;
@@ -3386,16 +3971,18 @@ class GameCore {
   final V0AbilityTuningDerived _abilities;
   final V0CombatTuningDerived _combat;
   final V0EnemyTuningDerived _enemyTuning;
+  final V0SpatialGridTuning _spatialGridTuning;
   final SpellCatalog _spells;
   final ProjectileCatalogDerived _projectiles;
   final EnemyCatalog _enemyCatalog;
 
   late final EcsWorld _world;
-  late final MovementSystem _movementSystem;
+  late final PlayerMovementSystem _movementSystem;
   late final CollisionSystem _collisionSystem;
   late final CooldownSystem _cooldownSystem;
   late final ProjectileSystem _projectileSystem;
   late final ProjectileHitSystem _projectileHitSystem;
+  late final BroadphaseGrid _broadphaseGrid;
   late final HitboxFollowOwnerSystem _hitboxFollowOwnerSystem;
   late final LifetimeSystem _lifetimeSystem;
   late final InvulnerabilitySystem _invulnerabilitySystem;
@@ -3403,9 +3990,11 @@ class GameCore {
   late final HealthDespawnSystem _healthDespawnSystem;
   late final EnemySystem _enemySystem;
   late final PlayerMeleeSystem _meleeSystem;
+  late final MeleeAttackSystem _meleeAttackSystem;
   late final HitboxDamageSystem _hitboxDamageSystem;
   late final ResourceRegenSystem _resourceRegenSystem;
   late final PlayerCastSystem _castSystem;
+  late final SpellCastSystem _spellCastSystem;
   late final EntityId _player;
 
   /// Current simulation tick.
@@ -3508,14 +4097,23 @@ class GameCore {
       staticWorld: _staticWorldIndex,
     );
 
+    // Rebuild broadphase after movement/collision so damageable target positions
+    // are final for the tick before any hit queries run.
+    _broadphaseGrid.rebuild(_world);
+
     // Move already-existing projectiles before spawning new ones so newly spawned
     // projectiles remain at their spawn positions until the next tick.
     _projectileSystem.step(_world, _movement);
 
-    // Spawn attacks using post-move positions.
-    _enemySystem.stepAttacks(_world, player: _player);
-    _castSystem.step(_world, player: _player);
-    _meleeSystem.step(_world, player: _player);
+    // IMPORTANT (determinism): intent writers run in a fixed order (enemy first,
+    // then player), and shared execution consumes only intents stamped for this tick.
+    _enemySystem.stepAttacks(_world, player: _player, currentTick: tick);
+    _castSystem.step(_world, player: _player, currentTick: tick);
+    _meleeSystem.step(_world, player: _player, currentTick: tick);
+
+    // Execute intents after all writers have run.
+    _spellCastSystem.step(_world, currentTick: tick);
+    _meleeAttackSystem.step(_world, currentTick: tick);
 
     // Position hitboxes from their owner + offset so spawn-time positions are
     // consistent and don't drift (single source of truth is `HitboxStore.offset`).
@@ -3523,8 +4121,8 @@ class GameCore {
 
     // Resolve hits after all attacks have been spawned so both newly spawned
     // projectiles and hitboxes can hit on their spawn tick.
-    _projectileHitSystem.step(_world, _damageSystem.queue);
-    _hitboxDamageSystem.step(_world, _damageSystem.queue);
+    _projectileHitSystem.step(_world, _damageSystem.queue, _broadphaseGrid);
+    _hitboxDamageSystem.step(_world, _damageSystem.queue, _broadphaseGrid);
     _damageSystem.step(_world);
     _healthDespawnSystem.step(_world, player: _player);
     _resourceRegenSystem.step(_world, dtSeconds: _movement.dtSeconds);
@@ -4577,6 +5175,28 @@ class V0ResourceTuning {
   final double jumpStaminaCost;
   final double dashStaminaCost;
 }
+
+
+===== FILE: lib/core/tuning/v0_spatial_grid_tuning.dart =====
+/// Simulation tuning/config for grid-based spatial indexing (broadphase now,
+/// navigation later).
+///
+/// Keep this separate from combat tuning: broadphase is a physics/simulation
+/// concern, not a combat rule.
+class V0SpatialGridTuning {
+  const V0SpatialGridTuning({
+    this.broadphaseCellSize = v0BroadphaseCellSize,
+  });
+
+  /// Default broadphase cell size for dynamic AABB queries.
+  ///
+  /// With current V0 collider sizes (player ~16x16, enemies ~24x24), `32.0`
+  /// keeps candidate sets small while keeping grid math cheap.
+  static const double v0BroadphaseCellSize = 32.0;
+
+  final double broadphaseCellSize;
+}
+
 
 
 ===== FILE: lib/core/util/double_math.dart =====

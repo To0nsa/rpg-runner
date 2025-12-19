@@ -380,7 +380,7 @@ Key idea: separate ability execution into 3 layers:
     - hitbox follow owner (after execution, before hit resolution)
     - hit resolution + damage + despawn
     - lifetime cleanup (last)
-- [ ] Tests:
+- [x] Tests:
   - `SpellCastSystem`: spending/cooldowns happen only on successful spawn; determinism with identical inputs
   - `PlayerCastSystem` writes intent and relies on `SpellCastSystem` for cost/cooldown (regression for cast tests)
   - `MeleeAttackSystem`: hitbox spawn + HitOnce behavior unchanged; stamina spending handled in execution system
@@ -408,31 +408,41 @@ Naming:
 
 Goal: avoid O(projectiles × actors) and O(hitboxes × actors) narrow-phase checks by adding a deterministic broadphase.
 
-- [ ] Add a uniform grid / spatial hash for dynamic AABBs (Core):
-  - store `cellSize` (world units) and helpers: `cellX = floor(x / cellSize)`
-  - define a deterministic `cellKey(int cx, int cy)` (e.g. pack into `int`)
-  - grid maps `cellKey -> List<EntityId>` (or dense indices) for candidate lookup
-  - build grid each tick after movement/collision (once per tick)
-- [ ] Insert only damageable colliders (Core):
-  - entities with `Transform + ColliderAabb + Health + Faction`
-  - insert into all overlapped cells (AABB spans 1..N cells)
-  - insertion order must be stable (iterate `health.denseEntities` order)
-- [ ] Query for projectiles/hitboxes (Core):
-  - compute query AABB, enumerate overlapped cells in deterministic order (y then x increasing)
-  - gather candidates from those cells, then run narrow-phase AABB overlap
-  - keep current filtering rules (owner exclusion, faction checks, missing components ignored)
-- [ ] Deduplicate candidates deterministically (Core):
-  - use a `List<int> seenStampByEntityId` (ensure capacity by max entity id seen)
+- [x]Introduce reusable grid math (Core):
+  - create `GridIndex2D`:
+    - `cellSize` (world units)
+    - `worldToCell(x, y) -> (cx, cy)` using `floor(x / cellSize)`
+    - deterministic `cellKey(cx, cy) -> int` (do not use Dart tuple/hashCode)
+    - `cellAabb(cx, cy)` (debug + geometry baking later)
+    - `forNeighbors(cx, cy, diagonal: bool)` (future NavGrid/A* reuse; not used yet)
+  - note: this is a generic indexing utility; it is *not* a “collision-only” structure
+- [x]Add `BroadphaseGrid` for dynamic AABBs (Core):
+  - built on top of `GridIndex2D`
+  - rebuilt once per tick after movement/collision
+  - stores buckets: `cellKey -> List<EntityId>` (or dense indices) for candidate lookup
+  - insert only *damageable* colliders:
+    - entities with `Transform + ColliderAabb + Health + Faction`
+    - insert into all overlapped cells (AABB spans 1..N cells)
+    - insertion order must be stable (iterate `health.denseEntities` order)
+  - query API:
+    - compute query AABB, enumerate overlapped cells in deterministic order (y then x increasing)
+    - gather candidates from buckets, then run narrow-phase AABB overlap (existing rules)
+- [x] Deduplicate candidates deterministically (Core):
+  - use `List<int> seenStampByEntityId` (ensure capacity by max entity id seen)
   - per query: increment `stamp`, mark `seenStampByEntityId[targetId] = stamp` to avoid multi-cell duplicates
-- [ ] Determinism rules (Core):
+- [x] Determinism rules (Core):
   - projectile hit selection must be stable when multiple candidates overlap:
     - preserve insertion order (grid insertion is in stable dense order) and cell scan order, OR
     - collect unique candidates and sort by `EntityId` before picking the first hit
   - hitboxes that can hit multiple targets should apply damage in a stable order (same rule as above)
-- [ ] Integration (Core):
-  - build the grid once per tick in `GameCore` after movement/collision and before hit resolution
-  - pass the grid to both `ProjectileHitSystem` and `HitboxDamageSystem` (shared broadphase)
-- [ ] Tests:
+- [x] Integration (Core):
+  - build the broadphase once per tick in `GameCore` after movement/collision and before hit resolution
+  - pass the broadphase to both `ProjectileHitSystem` and `HitboxDamageSystem`
+- [x] Future-proofing note (Core):
+  - do not reuse `BroadphaseGrid` buckets for A* (it is rebuilt from dynamic AABBs and changes every tick)
+  - later, build a separate `NavGrid/CostGrid` from static world geometry, reusing only `GridIndex2D` math
+  - broadphase cell size and nav cell size can differ (often: broadphase smaller, nav larger)
+- [x] Tests:
   - broadphase results match brute-force on a randomized-but-seeded layout (same hits, same order)
   - determinism: multiple overlapping targets yields stable chosen target for projectiles
   - performance sanity: large N (e.g. 500 targets, 500 projectiles) completes within a reasonable time budget (non-flaky)
