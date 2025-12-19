@@ -10,8 +10,8 @@ import '../../tuning/v0_movement_tuning.dart';
 import '../entity_id.dart';
 import '../world.dart';
 
-class CastSystem {
-  CastSystem({
+class PlayerCastSystem {
+  PlayerCastSystem({
     required this.spells,
     required this.projectiles,
     required this.abilities,

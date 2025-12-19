@@ -13,7 +13,7 @@ import 'ecs/entity_id.dart';
 import 'ecs/stores/collider_aabb_store.dart';
 import 'ecs/systems/collision_system.dart';
 import 'ecs/systems/cooldown_system.dart';
-import 'ecs/systems/cast_system.dart';
+import 'ecs/systems/player_cast_system.dart';
 import 'ecs/systems/damage_system.dart';
 import 'ecs/systems/health_despawn_system.dart';
 import 'ecs/systems/enemy_system.dart';
@@ -118,7 +118,7 @@ class GameCore {
     _meleeSystem = MeleeSystem(abilities: _abilities, movement: _movement);
     _hitboxDamageSystem = HitboxDamageSystem();
     _resourceRegenSystem = ResourceRegenSystem();
-    _castSystem = CastSystem(
+    _castSystem = PlayerCastSystem(
       spells: _spells,
       projectiles: _projectiles,
       abilities: _abilities,
@@ -287,7 +287,7 @@ class GameCore {
   late final MeleeSystem _meleeSystem;
   late final HitboxDamageSystem _hitboxDamageSystem;
   late final ResourceRegenSystem _resourceRegenSystem;
-  late final CastSystem _castSystem;
+  late final PlayerCastSystem _castSystem;
   late final EntityId _player;
 
   /// Current simulation tick.
