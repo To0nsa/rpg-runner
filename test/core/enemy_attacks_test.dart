@@ -8,6 +8,7 @@ import 'package:walkscape_runner/core/ecs/stores/mana_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/stamina_store.dart';
 import 'package:walkscape_runner/core/ecs/systems/damage_system.dart';
 import 'package:walkscape_runner/core/ecs/systems/enemy_system.dart';
+import 'package:walkscape_runner/core/ecs/systems/hitbox_follow_owner_system.dart';
 import 'package:walkscape_runner/core/ecs/systems/hitbox_damage_system.dart';
 import 'package:walkscape_runner/core/ecs/systems/projectile_hit_system.dart';
 import 'package:walkscape_runner/core/ecs/world.dart';
@@ -125,9 +126,11 @@ void main() {
     );
 
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0);
+    final follow = HitboxFollowOwnerSystem();
     final hitboxDamage = HitboxDamageSystem();
 
     system.stepAttacks(world, player: player);
+    follow.step(world);
     hitboxDamage.step(world, damage.queue);
     damage.step(world);
 

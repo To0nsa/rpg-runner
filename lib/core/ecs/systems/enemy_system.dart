@@ -250,11 +250,8 @@ class EnemySystem {
     final offsetX = dirX * (ownerHalfX * 0.5 + halfX);
     const offsetY = 0.0;
 
-    final hitX = ex + offsetX;
-    final hitY = ey + offsetY;
-
     final hitbox = world.createEntity();
-    world.transform.add(hitbox, posX: hitX, posY: hitY, velX: 0.0, velY: 0.0);
+    world.transform.add(hitbox, posX: ex, posY: ey, velX: 0.0, velY: 0.0);
     world.hitbox.add(
       hitbox,
       HitboxDef(

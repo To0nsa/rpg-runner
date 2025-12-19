@@ -17,7 +17,6 @@ class PlayerMeleeSystem {
   final V0MovementTuningDerived movement;
 
   void step(EcsWorld world, {required EntityId player}) {
-    _updateHitboxTransforms(world);
     _trySpawnPlayerMelee(world, player: player);
   }
 
@@ -52,8 +51,8 @@ class PlayerMeleeSystem {
     const offsetY = 0.0;
 
     final ti = world.transform.indexOf(player);
-    final hitX = world.transform.posX[ti] + offsetX;
-    final hitY = world.transform.posY[ti] + offsetY;
+    final hitX = world.transform.posX[ti];
+    final hitY = world.transform.posY[ti];
 
     final hitbox = world.createEntity();
     world.transform.add(hitbox, posX: hitX, posY: hitY, velX: 0.0, velY: 0.0);
@@ -74,22 +73,5 @@ class PlayerMeleeSystem {
 
     world.cooldown.meleeCooldownTicksLeft[ci] = abilities.meleeCooldownTicks;
     world.stamina.stamina[si] -= abilities.base.meleeStaminaCost;
-  }
-
-  void _updateHitboxTransforms(EcsWorld world) {
-    final hitboxes = world.hitbox;
-    for (var hi = 0; hi < hitboxes.denseEntities.length; hi += 1) {
-      final e = hitboxes.denseEntities[hi];
-      if (!world.transform.has(e)) continue;
-
-      final owner = hitboxes.owner[hi];
-      if (!world.transform.has(owner)) continue;
-
-      final ownerTi = world.transform.indexOf(owner);
-      final x = world.transform.posX[ownerTi] + hitboxes.offsetX[hi];
-      final y = world.transform.posY[ownerTi] + hitboxes.offsetY[hi];
-
-      world.transform.setPosXY(e, x, y);
-    }
   }
 }

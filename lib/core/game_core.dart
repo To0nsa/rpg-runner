@@ -18,6 +18,7 @@ import 'ecs/systems/damage_system.dart';
 import 'ecs/systems/health_despawn_system.dart';
 import 'ecs/systems/enemy_system.dart';
 import 'ecs/systems/hitbox_damage_system.dart';
+import 'ecs/systems/hitbox_follow_owner_system.dart';
 import 'ecs/systems/invulnerability_system.dart';
 import 'ecs/systems/lifetime_system.dart';
 import 'ecs/systems/player_melee_system.dart';
@@ -111,6 +112,7 @@ class GameCore {
     _cooldownSystem = CooldownSystem();
     _projectileSystem = ProjectileSystem();
     _projectileHitSystem = ProjectileHitSystem();
+    _hitboxFollowOwnerSystem = HitboxFollowOwnerSystem();
     _lifetimeSystem = LifetimeSystem();
     _invulnerabilitySystem = InvulnerabilitySystem();
     _damageSystem = DamageSystem(invulnerabilityTicksOnHit: _combat.invulnerabilityTicks);
@@ -279,6 +281,7 @@ class GameCore {
   late final CooldownSystem _cooldownSystem;
   late final ProjectileSystem _projectileSystem;
   late final ProjectileHitSystem _projectileHitSystem;
+  late final HitboxFollowOwnerSystem _hitboxFollowOwnerSystem;
   late final LifetimeSystem _lifetimeSystem;
   late final InvulnerabilitySystem _invulnerabilitySystem;
   late final DamageSystem _damageSystem;
@@ -398,6 +401,10 @@ class GameCore {
     _enemySystem.stepAttacks(_world, player: _player);
     _castSystem.step(_world, player: _player);
     _meleeSystem.step(_world, player: _player);
+
+    // Position hitboxes from their owner + offset so spawn-time positions are
+    // consistent and don't drift (single source of truth is `HitboxStore.offset`).
+    _hitboxFollowOwnerSystem.step(_world);
 
     // Resolve hits after all attacks have been spawned so both newly spawned
     // projectiles and hitboxes can hit on their spawn tick.
