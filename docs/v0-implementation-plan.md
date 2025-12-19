@@ -4,7 +4,7 @@ This document turns `docs/plan.md` into an executable checklist for getting a pl
 
 ## V0 Decisions (Locked)
 
-* Runner model: player moves in world coordinates; camera scrolls to follow.
+* Runner model: player moves in world coordinates; camera auto-scrolls right and the player must stay within the view to survive (player can pull the camera forward but not backward).
 * Input mapping:
   * Left: on-screen joystick (move left/right).
   * Right: three buttons (Jump, Dash, Attack).
@@ -262,7 +262,7 @@ Note: keep AI extremely simple for V0.
   - reuse existing `FactionStore` (`player` vs `enemy`) for filtering
 - [x] Spawn enemies deterministically (Core):
   - for Milestone 7 keep spawns fixed/hardcoded (no RNG yet) so tests are stable
-  - Milestone 11 will replace this with seeded deterministic generation
+  - Milestone 12 will replace this with seeded deterministic generation
 - [x] Flying enemy (Demon) AI + ranged attack (Core):
   - movement goal: keep a desired X range from the player (C++: 100–250px) and face the player
   - vertical goal (V0): hover at `groundPlaneTopY - hoverOffset` (no per-X ground sampling until world-gen varies)
@@ -480,7 +480,53 @@ Acceptance:
 
 ---
 
-## Milestone 11 - Deterministic Spawning (First Pass)
+## Milestone 11 - Autoscroll Camera + View Bounds (Player Must Stay In View)
+
+Goal: match the reference runner feel where the camera is not centered on the player: the view auto-scrolls to the right, the player can fall behind, and leaving the view ends the run.
+
+Reference behavior (from `tools/output/c++implementation.txt`):
+- camera has a baseline auto-scroll target speed (slightly below player max speed), with ease-in acceleration
+- camera center eases toward a target X that never moves backward
+- if the player moves beyond a follow threshold (~80% from the left edge), the camera target is allowed to drift toward the player (clamped so it never decreases)
+- if the player's right edge is left of the camera's left edge, the player is killed (run ends)
+
+- [ ] Add camera tuning/config (Core):
+  - introduce `V0CameraTuning` (or similar simulation config) to hold:
+    - `targetSpeedX` derived from `V0MovementTuning.maxSpeedX` (baseline auto-scroll speed, world units / second)
+      - recommended: `targetSpeedX = maxSpeedX - speedLagX` (defaults mimic ref: `500 - 10 = 490`)
+      - define `speedLagX` in the camera tuning/config (not in movement/combat tuning)
+    - `accelX` (ease-in to target speed)
+    - `followThresholdRatio = 0.80` (of view width from the left; locked)
+    - smoothing params for camera center and target catchup (fixed-tick deterministic)
+  - keep this separate from combat/ability tuning (camera is a simulation concern)
+- [ ] Add deterministic camera state in Core:
+  - track camera `centerX`, `targetX`, and `speedX`
+  - update each tick using fixed `dtSeconds` (no frame-dt logic in Core)
+  - rule: `targetX` and `centerX` must never decrease (camera never moves backward)
+- [ ] Expose camera position to render (Core → Snapshot):
+  - add `cameraCenterX` (and keep `cameraCenterY` fixed to current `v0CameraFixedY`)
+  - renderer uses snapshot camera center, not player position, to position `CameraComponent`
+  - keep pixel snapping rules for render (snap camera center to integer world coords before rendering)
+- [ ] Enforce "stay in view" rule (Core):
+  - compute `cameraLeft = cameraCenterX - (v0VirtualWidth / 2)`
+  - locked: if `playerColliderRight < cameraLeft`, the run ends
+  - end-of-run contract (locked):
+    - set an explicit `gameOver` flag in Core state and snapshot
+    - emit a `GameEvent` (e.g. `RunEndedEvent(reason: fellBehindCamera, tick, distance)`) for UI/renderer
+    - simulation should stop advancing after game over (pause/freeze), but snapshots remain readable
+- [ ] Tests (Core):
+  - camera determinism: same seed + same commands => identical camera positions
+  - kill rule: with no forward movement, camera eventually passes player and run ends deterministically
+  - follow threshold: if player sprints ahead past threshold, camera target increases faster than baseline (still monotonic)
+
+Acceptance:
+- The camera auto-scrolls right independently of player input; the player can pull the camera forward but cannot pull it backward.
+- If the player falls behind the left edge of the view, the run ends deterministically.
+- Renderer camera follows snapshot camera state (not player-centered).
+
+---
+
+## Milestone 12 - Deterministic Spawning (First Pass)
 
 - [ ] Define chunk size and a deterministic “track” generator driven by `seed`.
   - Start simple: a fixed list of hand-authored chunk patterns (ground + platforms + obstacles + pickups).
@@ -491,7 +537,7 @@ Acceptance:
 
 ---
 
-## Milestone 12 - UX Polish + Debugging
+## Milestone 13 - UX Polish + Debugging
 
 - [ ] Pause overlay (freeze simulation).
 - [ ] Debug overlay:

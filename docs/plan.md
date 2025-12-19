@@ -52,6 +52,7 @@ World:
 * A continuous ground band (the default collision surface).
 * Platforms (jumpable/landable) and obstacles (must avoid / collide).
 * Parallax background (at least 2 layers).
+* Camera auto-scrolls right; the player must stay within the view to survive (player can pull the camera forward but cannot pull it backward).
 
 Player:
 
