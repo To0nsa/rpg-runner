@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import '../../combat/faction.dart';
 import '../../enemies/enemy_id.dart';
 import '../../snapshots/enums.dart';
@@ -189,40 +187,29 @@ class EnemySystem {
 
     const spellId = SpellId.lightning;
     final def = spells.get(spellId);
-    if (def.projectileId == null) return;
 
     final mi = world.mana.indexOf(enemy);
     final mana = world.mana.mana[mi];
     if (mana < def.stats.manaCost) return;
 
-    final dx = playerX - ex;
-    final dy = playerY - ey;
-    final len2 = dx * dx + dy * dy;
-    double nx;
-    double ny;
-    if (len2 <= 1e-12) {
-      nx = 1.0;
-      ny = 0.0;
-    } else {
-      final invLen = 1.0 / sqrt(len2);
-      nx = dx * invLen;
-      ny = dy * invLen;
-    }
-
-    final originX = ex + nx * tuning.base.demonCastOriginOffset;
-    final originY = ey + ny * tuning.base.demonCastOriginOffset;
-
-    final spawned = spawnSpellProjectile(
+    // IMPORTANT: `spawnSpellProjectileFromCaster` owns:
+    // - "is this spell a projectile?" checks
+    // - direction normalization (with fallback)
+    // Only spend mana / start cooldown if a projectile was actually spawned.
+    final spawned = spawnSpellProjectileFromCaster(
       world,
       spells: spells,
       projectiles: projectiles,
       spellId: spellId,
       faction: Faction.enemy,
       owner: enemy,
-      originX: originX,
-      originY: originY,
-      dirX: nx,
-      dirY: ny,
+      casterX: ex,
+      casterY: ey,
+      originOffset: tuning.base.demonCastOriginOffset,
+      dirX: playerX - ex,
+      dirY: playerY - ey,
+      fallbackDirX: 1.0,
+      fallbackDirY: 0.0,
     );
     if (spawned == null) return;
 
@@ -288,4 +275,3 @@ class EnemySystem {
     world.cooldown.meleeCooldownTicksLeft[ci] = tuning.fireWormMeleeCooldownTicks;
   }
 }
-

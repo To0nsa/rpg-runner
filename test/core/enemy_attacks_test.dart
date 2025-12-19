@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:walkscape_runner/core/combat/damage.dart';
 import 'package:walkscape_runner/core/combat/faction.dart';
 import 'package:walkscape_runner/core/enemies/enemy_id.dart';
 import 'package:walkscape_runner/core/ecs/stores/body_store.dart';

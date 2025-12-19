@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import '../../combat/faction.dart';
 import '../../projectiles/projectile_catalog.dart';
 import '../../snapshots/enums.dart';
@@ -42,13 +40,41 @@ class CastSystem {
 
     const spellId = SpellId.iceBolt;
     final spell = spells.get(spellId);
-    if (spell.projectileId == null) return;
-
     final spellStats = spell.stats;
 
     final mi = world.mana.indexOf(player);
     final mana = world.mana.mana[mi];
     if (mana < spellStats.manaCost) return;
+
+    final ti = world.transform.indexOf(player);
+    final facing = world.movement.facing[world.movement.indexOf(player)];
+
+    final rawAimX = world.playerInput.aimDirX[ii];
+    final rawAimY = world.playerInput.aimDirY[ii];
+
+    final spawnOffset = movement.base.playerRadius * 0.5;
+    final fallbackDirX = facing == Facing.right ? 1.0 : -1.0;
+
+    // IMPORTANT: `spawnSpellProjectileFromCaster` owns:
+    // - "is this spell a projectile?" checks
+    // - direction normalization (with facing fallback)
+    // Only spend mana / start cooldown if a projectile was actually spawned.
+    final spawned = spawnSpellProjectileFromCaster(
+      world,
+      spells: spells,
+      projectiles: projectiles,
+      spellId: spellId,
+      faction: Faction.player,
+      owner: player,
+      casterX: world.transform.posX[ti],
+      casterY: world.transform.posY[ti],
+      originOffset: spawnOffset,
+      dirX: rawAimX,
+      dirY: rawAimY,
+      fallbackDirX: fallbackDirX,
+      fallbackDirY: 0.0,
+    );
+    if (spawned == null) return;
 
     world.mana.mana[mi] = clampDouble(
       mana - spellStats.manaCost,
@@ -57,45 +83,5 @@ class CastSystem {
     );
 
     world.cooldown.castCooldownTicksLeft[ci] = abilities.castCooldownTicks;
-
-    final ti = world.transform.indexOf(player);
-    final facing = world.movement.facing[world.movement.indexOf(player)];
-
-    final rawAimX = world.playerInput.aimDirX[ii];
-    final rawAimY = world.playerInput.aimDirY[ii];
-
-    double aimX;
-    double aimY;
-    if (rawAimX == 0 && rawAimY == 0) {
-      aimX = facing == Facing.right ? 1.0 : -1.0;
-      aimY = 0.0;
-    } else {
-      final len2 = rawAimX * rawAimX + rawAimY * rawAimY;
-      if (len2 <= 1e-12) {
-        aimX = facing == Facing.right ? 1.0 : -1.0;
-        aimY = 0.0;
-      } else {
-        final invLen = 1.0 / sqrt(len2);
-        aimX = rawAimX * invLen;
-        aimY = rawAimY * invLen;
-      }
-    }
-
-    final spawnOffset = movement.base.playerRadius * 0.5;
-    final originX = world.transform.posX[ti] + aimX * spawnOffset;
-    final originY = world.transform.posY[ti] + aimY * spawnOffset;
-
-    spawnSpellProjectile(
-      world,
-      spells: spells,
-      projectiles: projectiles,
-      spellId: spellId,
-      faction: Faction.player,
-      owner: player,
-      originX: originX,
-      originY: originY,
-      dirX: aimX,
-      dirY: aimY,
-    );
   }
 }
