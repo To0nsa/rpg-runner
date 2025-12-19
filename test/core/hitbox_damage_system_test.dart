@@ -10,7 +10,7 @@ import 'package:walkscape_runner/core/ecs/stores/stamina_store.dart';
 import 'package:walkscape_runner/core/ecs/systems/damage_system.dart';
 import 'package:walkscape_runner/core/ecs/systems/hitbox_damage_system.dart';
 import 'package:walkscape_runner/core/ecs/systems/lifetime_system.dart';
-import 'package:walkscape_runner/core/ecs/systems/melee_system.dart';
+import 'package:walkscape_runner/core/ecs/systems/player_melee_system.dart';
 import 'package:walkscape_runner/core/ecs/world.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
 import 'package:walkscape_runner/core/tuning/v0_ability_tuning.dart';
@@ -35,7 +35,7 @@ void main() {
     );
 
     final world = EcsWorld();
-    final melee = MeleeSystem(abilities: abilities, movement: movement);
+    final melee = PlayerMeleeSystem(abilities: abilities, movement: movement);
     final hitboxDamage = HitboxDamageSystem();
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0);
     final lifetime = LifetimeSystem();

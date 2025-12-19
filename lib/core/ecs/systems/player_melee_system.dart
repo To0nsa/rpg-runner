@@ -7,8 +7,8 @@ import '../stores/hitbox_store.dart';
 import '../stores/lifetime_store.dart';
 import '../world.dart';
 
-class MeleeSystem {
-  const MeleeSystem({
+class PlayerMeleeSystem {
+  const PlayerMeleeSystem({
     required this.abilities,
     required this.movement,
   });

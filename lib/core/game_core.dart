@@ -20,7 +20,7 @@ import 'ecs/systems/enemy_system.dart';
 import 'ecs/systems/hitbox_damage_system.dart';
 import 'ecs/systems/invulnerability_system.dart';
 import 'ecs/systems/lifetime_system.dart';
-import 'ecs/systems/melee_system.dart';
+import 'ecs/systems/player_melee_system.dart';
 import 'ecs/systems/movement_system.dart';
 import 'ecs/systems/projectile_system.dart';
 import 'ecs/systems/projectile_hit_system.dart';
@@ -115,7 +115,7 @@ class GameCore {
     _invulnerabilitySystem = InvulnerabilitySystem();
     _damageSystem = DamageSystem(invulnerabilityTicksOnHit: _combat.invulnerabilityTicks);
     _healthDespawnSystem = HealthDespawnSystem();
-    _meleeSystem = MeleeSystem(abilities: _abilities, movement: _movement);
+    _meleeSystem = PlayerMeleeSystem(abilities: _abilities, movement: _movement);
     _hitboxDamageSystem = HitboxDamageSystem();
     _resourceRegenSystem = ResourceRegenSystem();
     _castSystem = PlayerCastSystem(
@@ -284,7 +284,7 @@ class GameCore {
   late final DamageSystem _damageSystem;
   late final HealthDespawnSystem _healthDespawnSystem;
   late final EnemySystem _enemySystem;
-  late final MeleeSystem _meleeSystem;
+  late final PlayerMeleeSystem _meleeSystem;
   late final HitboxDamageSystem _hitboxDamageSystem;
   late final ResourceRegenSystem _resourceRegenSystem;
   late final PlayerCastSystem _castSystem;
