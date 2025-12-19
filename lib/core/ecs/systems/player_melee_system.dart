@@ -26,7 +26,13 @@ class PlayerMeleeSystem {
     if (!world.playerInput.has(player)) return;
     if (!world.transform.has(player)) return;
     if (!world.movement.has(player)) return;
-    if (!world.meleeIntent.has(player)) return;
+    if (!world.meleeIntent.has(player)) {
+      assert(
+        false,
+        'PlayerMeleeSystem requires MeleeIntentStore on the player; add it at spawn time.',
+      );
+      return;
+    }
 
     final ii = world.playerInput.indexOf(player);
     if (!world.playerInput.attackPressed[ii]) return;

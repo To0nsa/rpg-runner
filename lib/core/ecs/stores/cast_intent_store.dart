@@ -46,6 +46,10 @@ class CastIntentStore extends SparseSet {
   }
 
   void set(EntityId entity, CastIntentDef def) {
+    assert(
+      has(entity),
+      'CastIntentStore.set called for entity without CastIntentStore; add the component at spawn time.',
+    );
     final i = indexOf(entity);
     spellId[i] = def.spellId;
     dirX[i] = def.dirX;
@@ -90,4 +94,3 @@ class CastIntentStore extends SparseSet {
     tick.removeLast();
   }
 }
-

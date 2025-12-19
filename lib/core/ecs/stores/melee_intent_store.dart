@@ -48,6 +48,10 @@ class MeleeIntentStore extends SparseSet {
   }
 
   void set(EntityId entity, MeleeIntentDef def) {
+    assert(
+      has(entity),
+      'MeleeIntentStore.set called for entity without MeleeIntentStore; add the component at spawn time.',
+    );
     final i = indexOf(entity);
     damage[i] = def.damage;
     halfX[i] = def.halfX;
@@ -96,4 +100,3 @@ class MeleeIntentStore extends SparseSet {
     tick.removeLast();
   }
 }
-

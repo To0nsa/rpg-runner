@@ -173,7 +173,13 @@ class EnemySystem {
       required double playerY,
       required int currentTick,
     }) {
-    if (!world.castIntent.has(enemy)) return;
+    if (!world.castIntent.has(enemy)) {
+      assert(
+        false,
+        'EnemySystem requires CastIntentStore on enemies; add it at spawn time.',
+      );
+      return;
+    }
 
     const spellId = SpellId.lightning;
 
@@ -203,7 +209,20 @@ class EnemySystem {
       required double playerX,
       required int currentTick,
     }) {
-    if (!world.meleeIntent.has(enemy)) return;
+    if (!world.meleeIntent.has(enemy)) {
+      assert(
+        false,
+        'EnemySystem requires MeleeIntentStore on enemies; add it at spawn time.',
+      );
+      return;
+    }
+    if (!world.colliderAabb.has(enemy)) {
+      assert(
+        false,
+        'FireWorm melee requires ColliderAabbStore on the enemy to compute hitbox offset.',
+      );
+      return;
+    }
     final dx = (playerX - ex).abs();
     if (dx > tuning.base.fireWormMeleeRangeX) return;
 
@@ -213,10 +232,7 @@ class EnemySystem {
     final halfX = tuning.base.fireWormMeleeHitboxSizeX * 0.5;
     final halfY = tuning.base.fireWormMeleeHitboxSizeY * 0.5;
 
-    double ownerHalfX = 12.0;
-    if (world.colliderAabb.has(enemy)) {
-      ownerHalfX = world.colliderAabb.halfX[world.colliderAabb.indexOf(enemy)];
-    }
+    final ownerHalfX = world.colliderAabb.halfX[world.colliderAabb.indexOf(enemy)];
     final offsetX = dirX * (ownerHalfX * 0.5 + halfX);
     const offsetY = 0.0;
 

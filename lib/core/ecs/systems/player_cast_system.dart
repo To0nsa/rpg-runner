@@ -18,8 +18,14 @@ class PlayerCastSystem {
   void step(EcsWorld world, {required EntityId player, required int currentTick}) {
     if (!world.playerInput.has(player) ||
         !world.transform.has(player) ||
-        !world.movement.has(player) ||
-        !world.castIntent.has(player)) {
+        !world.movement.has(player)) {
+      return;
+    }
+    if (!world.castIntent.has(player)) {
+      assert(
+        false,
+        'PlayerCastSystem requires CastIntentStore on the player; add it at spawn time.',
+      );
       return;
     }
 

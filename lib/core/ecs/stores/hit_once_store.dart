@@ -15,6 +15,7 @@ class HitOnceStore extends SparseSet {
   bool hasHit(EntityId entity, EntityId target) {
     final i = indexOf(entity);
     final c = count[i];
+    if (c > 4) return true; // saturated: treat as "already hit everything"
     if (c <= 0) return false;
     if (hit0[i] == target) return true;
     if (c <= 1) return false;
@@ -28,6 +29,7 @@ class HitOnceStore extends SparseSet {
   void markHit(EntityId entity, EntityId target) {
     final i = indexOf(entity);
     var c = count[i];
+    if (c > 4) return; // already saturated
     if (c <= 0) {
       hit0[i] = target;
       count[i] = 1;
@@ -49,6 +51,10 @@ class HitOnceStore extends SparseSet {
       return;
     }
     // Saturate: in V0 we don't expect more than a few hits per swing.
+    //
+    // IMPORTANT (determinism + safety): once saturated, treat as "already hit"
+    // for any target so a single swing cannot multi-hit due to overflow.
+    count[i] = 5;
   }
 
   @override
@@ -75,4 +81,3 @@ class HitOnceStore extends SparseSet {
     hit3.removeLast();
   }
 }
-
