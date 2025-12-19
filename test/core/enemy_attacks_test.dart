@@ -10,6 +10,7 @@ import 'package:walkscape_runner/core/ecs/systems/damage_system.dart';
 import 'package:walkscape_runner/core/ecs/systems/enemy_system.dart';
 import 'package:walkscape_runner/core/ecs/systems/hitbox_follow_owner_system.dart';
 import 'package:walkscape_runner/core/ecs/systems/hitbox_damage_system.dart';
+import 'package:walkscape_runner/core/ecs/systems/melee_attack_system.dart';
 import 'package:walkscape_runner/core/ecs/systems/projectile_hit_system.dart';
 import 'package:walkscape_runner/core/ecs/world.dart';
 import 'package:walkscape_runner/core/projectiles/projectile_catalog.dart';
@@ -121,15 +122,16 @@ void main() {
 
     final system = EnemySystem(
       tuning: enemyTuning,
-      spells: const SpellCatalog(),
-      projectiles: ProjectileCatalogDerived.from(const ProjectileCatalog(), tickHz: 60),
     );
 
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0);
     final follow = HitboxFollowOwnerSystem();
     final hitboxDamage = HitboxDamageSystem();
+    final meleeAttack = MeleeAttackSystem();
 
-    system.stepAttacks(world, player: player);
+    const currentTick = 1;
+    system.stepAttacks(world, player: player, currentTick: currentTick);
+    meleeAttack.step(world, currentTick: currentTick);
     follow.step(world);
     hitboxDamage.step(world, damage.queue);
     damage.step(world);

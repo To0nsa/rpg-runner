@@ -5,6 +5,7 @@ import 'stores/body_store.dart';
 import 'stores/collider_aabb_store.dart';
 import 'stores/collision_state_store.dart';
 import 'stores/cooldown_store.dart';
+import 'stores/cast_intent_store.dart';
 import 'stores/faction_store.dart';
 import 'stores/enemy_store.dart';
 import 'stores/health_store.dart';
@@ -13,6 +14,7 @@ import 'stores/hitbox_store.dart';
 import 'stores/invulnerability_store.dart';
 import 'stores/lifetime_store.dart';
 import 'stores/mana_store.dart';
+import 'stores/melee_intent_store.dart';
 import 'stores/movement_store.dart';
 import 'stores/player_input_store.dart';
 import 'stores/projectile_store.dart';
@@ -34,10 +36,12 @@ class EcsWorld {
   final ColliderAabbStore colliderAabb = ColliderAabbStore();
   final CollisionStateStore collision = CollisionStateStore();
   final CooldownStore cooldown = CooldownStore();
+  final CastIntentStore castIntent = CastIntentStore();
   final FactionStore faction = FactionStore();
   final HealthStore health = HealthStore();
   final InvulnerabilityStore invulnerability = InvulnerabilityStore();
   final ManaStore mana = ManaStore();
+  final MeleeIntentStore meleeIntent = MeleeIntentStore();
   final StaminaStore stamina = StaminaStore();
   final ProjectileStore projectile = ProjectileStore();
   final HitboxStore hitbox = HitboxStore();
@@ -73,11 +77,13 @@ class EcsWorld {
     colliderAabb.add(id, collider);
     collision.add(id);
     cooldown.add(id);
+    castIntent.add(id);
     faction.add(id, const FactionDef(faction: Faction.player));
     this.health.add(id, health);
     // Player-only invulnerability window (i-frames) after taking damage.
     invulnerability.add(id);
     this.mana.add(id, mana);
+    meleeIntent.add(id);
     this.stamina.add(id, stamina);
     collision.grounded[collision.indexOf(id)] = grounded;
     return id;
@@ -102,10 +108,12 @@ class EcsWorld {
     colliderAabb.add(id, collider);
     collision.add(id);
     cooldown.add(id);
+    castIntent.add(id);
     faction.add(id, const FactionDef(faction: Faction.enemy));
     this.health.add(id, health);
     // Intentionally no `InvulnerabilityStore`: invulnerability is player-only in V0.
     this.mana.add(id, mana);
+    meleeIntent.add(id);
     this.stamina.add(id, stamina);
     enemy.add(id, EnemyDef(enemyId: enemyId, facing: facing));
     return id;
@@ -119,10 +127,12 @@ class EcsWorld {
     colliderAabb.removeEntity(entity);
     collision.removeEntity(entity);
     cooldown.removeEntity(entity);
+    castIntent.removeEntity(entity);
     faction.removeEntity(entity);
     health.removeEntity(entity);
     invulnerability.removeEntity(entity);
     mana.removeEntity(entity);
+    meleeIntent.removeEntity(entity);
     stamina.removeEntity(entity);
     projectile.removeEntity(entity);
     hitbox.removeEntity(entity);

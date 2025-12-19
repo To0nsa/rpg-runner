@@ -1,27 +1,19 @@
-import '../../combat/faction.dart';
 import '../../enemies/enemy_id.dart';
 import '../../snapshots/enums.dart';
-import '../../spells/spawn_spell_projectile.dart';
-import '../../spells/spell_catalog.dart';
 import '../../spells/spell_id.dart';
 import '../../tuning/v0_enemy_tuning.dart';
 import '../../util/double_math.dart';
 import '../entity_id.dart';
-import '../stores/hitbox_store.dart';
-import '../stores/lifetime_store.dart';
+import '../stores/cast_intent_store.dart';
+import '../stores/melee_intent_store.dart';
 import '../world.dart';
-import '../../projectiles/projectile_catalog.dart';
 
 class EnemySystem {
   EnemySystem({
     required this.tuning,
-    required this.spells,
-    required this.projectiles,
   });
 
   final V0EnemyTuningDerived tuning;
-  final SpellCatalog spells;
-  final ProjectileCatalogDerived projectiles;
 
   void stepSteering(
     EcsWorld world, {
@@ -69,7 +61,7 @@ class EnemySystem {
     }
   }
 
-  void stepAttacks(EcsWorld world, {required EntityId player}) {
+  void stepAttacks(EcsWorld world, {required EntityId player, required int currentTick}) {
     if (!world.transform.has(player)) return;
     final playerTi = world.transform.indexOf(player);
     final playerX = world.transform.posX[playerTi];
@@ -80,7 +72,6 @@ class EnemySystem {
       final e = enemies.denseEntities[ei];
       if (!world.transform.has(e)) continue;
       if (!world.cooldown.has(e)) continue;
-      final enemyCooldownIndex = world.cooldown.indexOf(e);
 
       final ti = world.transform.indexOf(e);
       final ex = world.transform.posX[ti];
@@ -88,24 +79,24 @@ class EnemySystem {
 
       switch (enemies.enemyId[ei]) {
         case EnemyId.demon:
-          _tryDemonCast(
+          _writeDemonCastIntent(
             world,
             enemy: e,
-            enemyCooldownIndex: enemyCooldownIndex,
             ex: ex,
             ey: ey,
             playerX: playerX,
             playerY: playerY,
+            currentTick: currentTick,
           );
         case EnemyId.fireWorm:
-          _tryFireWormMelee(
+          _writeFireWormMeleeIntent(
             world,
             enemy: e,
-            enemyCooldownIndex: enemyCooldownIndex,
             enemyIndex: ei,
             ex: ex,
             ey: ey,
             playerX: playerX,
+            currentTick: currentTick,
           );
       }
     }
@@ -173,69 +164,48 @@ class EnemySystem {
     world.transform.velX[enemyTi] = dirX * tuning.base.fireWormSpeedX;
   }
 
-  void _tryDemonCast(
+  void _writeDemonCastIntent(
     EcsWorld world, {
-    required EntityId enemy,
-    required int enemyCooldownIndex,
-    required double ex,
-    required double ey,
-    required double playerX,
-    required double playerY,
-  }) {
-    if (!world.mana.has(enemy)) return;
-    final ci = enemyCooldownIndex;
-    if (world.cooldown.castCooldownTicksLeft[ci] > 0) return;
+      required EntityId enemy,
+      required double ex,
+      required double ey,
+      required double playerX,
+      required double playerY,
+      required int currentTick,
+    }) {
+    if (!world.castIntent.has(enemy)) return;
 
     const spellId = SpellId.lightning;
-    final def = spells.get(spellId);
 
-    final mi = world.mana.indexOf(enemy);
-    final mana = world.mana.mana[mi];
-    if (mana < def.stats.manaCost) return;
-
-    // IMPORTANT: `spawnSpellProjectileFromCaster` owns:
-    // - "is this spell a projectile?" checks
-    // - direction normalization (with fallback)
-    // Only spend mana / start cooldown if a projectile was actually spawned.
-    final spawned = spawnSpellProjectileFromCaster(
-      world,
-      spells: spells,
-      projectiles: projectiles,
-      spellId: spellId,
-      faction: Faction.enemy,
-      owner: enemy,
-      casterX: ex,
-      casterY: ey,
-      originOffset: tuning.base.demonCastOriginOffset,
-      dirX: playerX - ex,
-      dirY: playerY - ey,
-      fallbackDirX: 1.0,
-      fallbackDirY: 0.0,
+    // IMPORTANT: EnemySystem writes intent only; execution happens in
+    // `SpellCastSystem` which owns mana/cooldown rules and projectile spawning.
+    world.castIntent.set(
+      enemy,
+      CastIntentDef(
+        spellId: spellId,
+        dirX: playerX - ex,
+        dirY: playerY - ey,
+        fallbackDirX: 1.0,
+        fallbackDirY: 0.0,
+        originOffset: tuning.base.demonCastOriginOffset,
+        cooldownTicks: tuning.demonCastCooldownTicks,
+        tick: currentTick,
+      ),
     );
-    if (spawned == null) return;
-
-    world.mana.mana[mi] = clampDouble(
-      mana - def.stats.manaCost,
-      0.0,
-      world.mana.manaMax[mi],
-    );
-    world.cooldown.castCooldownTicksLeft[ci] = tuning.demonCastCooldownTicks;
   }
 
-  void _tryFireWormMelee(
+  void _writeFireWormMeleeIntent(
     EcsWorld world, {
-    required EntityId enemy,
-    required int enemyCooldownIndex,
-    required int enemyIndex,
-    required double ex,
-    required double ey,
-    required double playerX,
-  }) {
+      required EntityId enemy,
+      required int enemyIndex,
+      required double ex,
+      required double ey,
+      required double playerX,
+      required int currentTick,
+    }) {
+    if (!world.meleeIntent.has(enemy)) return;
     final dx = (playerX - ex).abs();
     if (dx > tuning.base.fireWormMeleeRangeX) return;
-
-    final ci = enemyCooldownIndex;
-    if (world.cooldown.meleeCooldownTicksLeft[ci] > 0) return;
 
     final facing = world.enemy.facing[enemyIndex];
     final dirX = facing == Facing.right ? 1.0 : -1.0;
@@ -250,26 +220,19 @@ class EnemySystem {
     final offsetX = dirX * (ownerHalfX * 0.5 + halfX);
     const offsetY = 0.0;
 
-    final hitbox = world.createEntity();
-    world.transform.add(hitbox, posX: ex, posY: ey, velX: 0.0, velY: 0.0);
-    world.hitbox.add(
-      hitbox,
-      HitboxDef(
-        owner: enemy,
-        faction: Faction.enemy,
+    world.meleeIntent.set(
+      enemy,
+      MeleeIntentDef(
         damage: tuning.base.fireWormMeleeDamage,
         halfX: halfX,
         halfY: halfY,
         offsetX: offsetX,
         offsetY: offsetY,
+        activeTicks: tuning.fireWormMeleeActiveTicks,
+        cooldownTicks: tuning.fireWormMeleeCooldownTicks,
+        staminaCost: 0.0,
+        tick: currentTick,
       ),
     );
-    world.hitOnce.add(hitbox);
-    world.lifetime.add(
-      hitbox,
-      LifetimeDef(ticksLeft: tuning.fireWormMeleeActiveTicks),
-    );
-
-    world.cooldown.meleeCooldownTicksLeft[ci] = tuning.fireWormMeleeCooldownTicks;
   }
 }

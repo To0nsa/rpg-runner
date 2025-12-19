@@ -9,7 +9,9 @@ import 'package:walkscape_runner/core/ecs/stores/mana_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/stamina_store.dart';
 import 'package:walkscape_runner/core/ecs/systems/damage_system.dart';
 import 'package:walkscape_runner/core/ecs/systems/hitbox_damage_system.dart';
+import 'package:walkscape_runner/core/ecs/systems/hitbox_follow_owner_system.dart';
 import 'package:walkscape_runner/core/ecs/systems/lifetime_system.dart';
+import 'package:walkscape_runner/core/ecs/systems/melee_attack_system.dart';
 import 'package:walkscape_runner/core/ecs/systems/player_melee_system.dart';
 import 'package:walkscape_runner/core/ecs/world.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
@@ -36,6 +38,8 @@ void main() {
 
     final world = EcsWorld();
     final melee = PlayerMeleeSystem(abilities: abilities, movement: movement);
+    final meleeAttack = MeleeAttackSystem();
+    final follow = HitboxFollowOwnerSystem();
     final hitboxDamage = HitboxDamageSystem();
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0);
     final lifetime = LifetimeSystem();
@@ -63,7 +67,9 @@ void main() {
     final playerInputIndex = world.playerInput.indexOf(player);
     world.playerInput.attackPressed[playerInputIndex] = true;
 
-    melee.step(world, player: player);
+    melee.step(world, player: player, currentTick: 1);
+    meleeAttack.step(world, currentTick: 1);
+    follow.step(world);
     hitboxDamage.step(world, damage.queue);
     damage.step(world);
     lifetime.step(world);
@@ -72,7 +78,9 @@ void main() {
 
     // Next tick: still overlapping, but should not re-hit the same target.
     world.playerInput.attackPressed[playerInputIndex] = false;
-    melee.step(world, player: player);
+    melee.step(world, player: player, currentTick: 2);
+    meleeAttack.step(world, currentTick: 2);
+    follow.step(world);
     hitboxDamage.step(world, damage.queue);
     damage.step(world);
     lifetime.step(world);

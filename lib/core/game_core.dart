@@ -14,6 +14,7 @@ import 'ecs/stores/collider_aabb_store.dart';
 import 'ecs/systems/collision_system.dart';
 import 'ecs/systems/cooldown_system.dart';
 import 'ecs/systems/player_cast_system.dart';
+import 'ecs/systems/spell_cast_system.dart';
 import 'ecs/systems/damage_system.dart';
 import 'ecs/systems/health_despawn_system.dart';
 import 'ecs/systems/enemy_system.dart';
@@ -22,6 +23,7 @@ import 'ecs/systems/hitbox_follow_owner_system.dart';
 import 'ecs/systems/invulnerability_system.dart';
 import 'ecs/systems/lifetime_system.dart';
 import 'ecs/systems/player_melee_system.dart';
+import 'ecs/systems/melee_attack_system.dart';
 import 'ecs/systems/movement_system.dart';
 import 'ecs/systems/projectile_system.dart';
 import 'ecs/systems/projectile_hit_system.dart';
@@ -120,16 +122,11 @@ class GameCore {
     _meleeSystem = PlayerMeleeSystem(abilities: _abilities, movement: _movement);
     _hitboxDamageSystem = HitboxDamageSystem();
     _resourceRegenSystem = ResourceRegenSystem();
-    _castSystem = PlayerCastSystem(
-      spells: _spells,
-      projectiles: _projectiles,
-      abilities: _abilities,
-      movement: _movement,
-    );
+    _castSystem = PlayerCastSystem(abilities: _abilities, movement: _movement);
+    _spellCastSystem = SpellCastSystem(spells: _spells, projectiles: _projectiles);
+    _meleeAttackSystem = MeleeAttackSystem();
     _enemySystem = EnemySystem(
       tuning: _enemyTuning,
-      spells: _spells,
-      projectiles: _projectiles,
     );
 
     final spawnX = 80.0;
@@ -288,9 +285,11 @@ class GameCore {
   late final HealthDespawnSystem _healthDespawnSystem;
   late final EnemySystem _enemySystem;
   late final PlayerMeleeSystem _meleeSystem;
+  late final MeleeAttackSystem _meleeAttackSystem;
   late final HitboxDamageSystem _hitboxDamageSystem;
   late final ResourceRegenSystem _resourceRegenSystem;
   late final PlayerCastSystem _castSystem;
+  late final SpellCastSystem _spellCastSystem;
   late final EntityId _player;
 
   /// Current simulation tick.
@@ -397,10 +396,15 @@ class GameCore {
     // projectiles remain at their spawn positions until the next tick.
     _projectileSystem.step(_world, _movement);
 
-    // Spawn attacks using post-move positions.
-    _enemySystem.stepAttacks(_world, player: _player);
-    _castSystem.step(_world, player: _player);
-    _meleeSystem.step(_world, player: _player);
+    // IMPORTANT (determinism): intent writers run in a fixed order (enemy first,
+    // then player), and shared execution consumes only intents stamped for this tick.
+    _enemySystem.stepAttacks(_world, player: _player, currentTick: tick);
+    _castSystem.step(_world, player: _player, currentTick: tick);
+    _meleeSystem.step(_world, player: _player, currentTick: tick);
+
+    // Execute intents after all writers have run.
+    _spellCastSystem.step(_world, currentTick: tick);
+    _meleeAttackSystem.step(_world, currentTick: tick);
 
     // Position hitboxes from their owner + offset so spawn-time positions are
     // consistent and don't drift (single source of truth is `HitboxStore.offset`).
