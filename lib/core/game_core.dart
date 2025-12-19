@@ -15,7 +15,7 @@ import 'ecs/systems/collision_system.dart';
 import 'ecs/systems/cooldown_system.dart';
 import 'ecs/systems/cast_system.dart';
 import 'ecs/systems/damage_system.dart';
-import 'ecs/systems/death_system.dart';
+import 'ecs/systems/health_despawn_system.dart';
 import 'ecs/systems/enemy_system.dart';
 import 'ecs/systems/hitbox_damage_system.dart';
 import 'ecs/systems/invulnerability_system.dart';
@@ -114,7 +114,7 @@ class GameCore {
     _lifetimeSystem = LifetimeSystem();
     _invulnerabilitySystem = InvulnerabilitySystem();
     _damageSystem = DamageSystem(invulnerabilityTicksOnHit: _combat.invulnerabilityTicks);
-    _deathSystem = DeathSystem();
+    _healthDespawnSystem = HealthDespawnSystem();
     _meleeSystem = MeleeSystem(abilities: _abilities, movement: _movement);
     _hitboxDamageSystem = HitboxDamageSystem();
     _resourceRegenSystem = ResourceRegenSystem();
@@ -282,7 +282,7 @@ class GameCore {
   late final LifetimeSystem _lifetimeSystem;
   late final InvulnerabilitySystem _invulnerabilitySystem;
   late final DamageSystem _damageSystem;
-  late final DeathSystem _deathSystem;
+  late final HealthDespawnSystem _healthDespawnSystem;
   late final EnemySystem _enemySystem;
   late final MeleeSystem _meleeSystem;
   late final HitboxDamageSystem _hitboxDamageSystem;
@@ -404,7 +404,7 @@ class GameCore {
     _projectileHitSystem.step(_world, _damageSystem.queue);
     _hitboxDamageSystem.step(_world, _damageSystem.queue);
     _damageSystem.step(_world);
-    _deathSystem.step(_world, player: _player);
+    _healthDespawnSystem.step(_world, player: _player);
     _resourceRegenSystem.step(_world, dtSeconds: _movement.dtSeconds);
 
     // Cleanup last so effect entities get their full last tick to act.

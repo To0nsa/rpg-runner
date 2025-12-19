@@ -1,7 +1,12 @@
 import '../entity_id.dart';
 import '../world.dart';
 
-class DeathSystem {
+/// Despawns any non-player entity with `HealthStore` and `hp <= 0`.
+///
+/// IMPORTANT: The player is intentionally exempt because player "death" is a
+/// different gameplay flow (game over / respawn / end-run) than despawning an
+/// entity in-place.
+class HealthDespawnSystem {
   final List<EntityId> _toDespawn = <EntityId>[];
 
   void step(EcsWorld world, {required EntityId player}) {
@@ -23,4 +28,3 @@ class DeathSystem {
     }
   }
 }
-
