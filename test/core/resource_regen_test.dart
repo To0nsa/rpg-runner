@@ -4,12 +4,15 @@ import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/game_core.dart';
 import 'package:walkscape_runner/core/tuning/v0_resource_tuning.dart';
 
+import '../test_tunings.dart';
+
 void main() {
   test('resource regen increases toward max and clamps (via snapshot HUD)', () {
     final core = GameCore(
       seed: 1,
       tickHz: 10,
       playerBody: const BodyDef(isKinematic: true, useGravity: false),
+      cameraTuning: noAutoscrollCameraTuning,
       resourceTuning: const V0ResourceTuning(
         playerHpMax: 100,
         playerHpRegenPerSecond: 10,
@@ -40,4 +43,3 @@ void main() {
     expect(hud.stamina, closeTo(20.0, 1e-9));
   });
 }
-

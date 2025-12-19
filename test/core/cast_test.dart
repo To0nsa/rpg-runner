@@ -6,12 +6,15 @@ import 'package:walkscape_runner/core/game_core.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
 import 'package:walkscape_runner/core/tuning/v0_resource_tuning.dart';
 
+import '../test_tunings.dart';
+
 void main() {
   test('cast: insufficient mana => no projectile', () {
     final core = GameCore(
       seed: 1,
       tickHz: 20,
       playerBody: const BodyDef(isKinematic: true, useGravity: false),
+      cameraTuning: noAutoscrollCameraTuning,
       resourceTuning: const V0ResourceTuning(
         playerManaMax: 10,
         playerManaStart: 0,
@@ -36,6 +39,7 @@ void main() {
       seed: 1,
       tickHz: 20,
       playerBody: const BodyDef(isKinematic: true, useGravity: false),
+      cameraTuning: noAutoscrollCameraTuning,
       resourceTuning: const V0ResourceTuning(
         playerManaMax: 100,
         playerManaStart: 20,
@@ -67,6 +71,7 @@ void main() {
       seed: 1,
       tickHz: 20,
       playerBody: const BodyDef(isKinematic: true, useGravity: false),
+      cameraTuning: noAutoscrollCameraTuning,
       resourceTuning: const V0ResourceTuning(
         playerManaMax: 100,
         playerManaStart: 30,

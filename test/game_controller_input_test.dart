@@ -4,9 +4,11 @@ import 'package:walkscape_runner/core/commands/command.dart';
 import 'package:walkscape_runner/core/game_core.dart';
 import 'package:walkscape_runner/game/game_controller.dart';
 
+import 'test_tunings.dart';
+
 void main() {
   test('GameController dedupes MoveAxis per tick (last wins)', () {
-    final core = GameCore(seed: 1);
+    final core = GameCore(seed: 1, cameraTuning: noAutoscrollCameraTuning);
     final controller = GameController(core: core);
 
     controller.enqueue(const MoveAxisCommand(tick: 1, axis: 1));
@@ -19,7 +21,7 @@ void main() {
   });
 
   test('GameController merges multiple button presses per tick', () {
-    final core = GameCore(seed: 1);
+    final core = GameCore(seed: 1, cameraTuning: noAutoscrollCameraTuning);
     final controller = GameController(core: core);
 
     controller.enqueue(const JumpPressedCommand(tick: 1));
@@ -36,7 +38,7 @@ void main() {
   });
 
   test('GameController dedupes AimDir per tick (last wins)', () {
-    final core = GameCore(seed: 1);
+    final core = GameCore(seed: 1, cameraTuning: noAutoscrollCameraTuning);
     final controller = GameController(core: core);
 
     controller.enqueue(const AimDirCommand(tick: 1, x: 1, y: 0));

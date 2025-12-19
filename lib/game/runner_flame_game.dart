@@ -162,11 +162,11 @@ class RunnerFlameGame extends FlameGame {
       final snappedX = player.pos.x.roundToDouble();
       final snappedY = player.pos.y.roundToDouble();
       _player.position.setValues(snappedX, snappedY);
-      camera.viewfinder.position = Vector2(
-        snappedX,
-        v0CameraFixedY.roundToDouble(),
-      );
     }
+    camera.viewfinder.position = Vector2(
+      snapshot.cameraCenterX.roundToDouble(),
+      snapshot.cameraCenterY.roundToDouble(),
+    );
 
     _syncEnemies(snapshot.entities);
     _syncProjectiles(snapshot.entities);

@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:walkscape_runner/core/collision/static_world_geometry.dart';
 import 'package:walkscape_runner/core/game_core.dart';
 
+import '../test_tunings.dart';
+
 void main() {
   test('snapshot includes static solids for rendering', () {
     const geometry = StaticWorldGeometry(
@@ -19,7 +21,11 @@ void main() {
       ],
     );
 
-    final core = GameCore(seed: 1, staticWorldGeometry: geometry);
+    final core = GameCore(
+      seed: 1,
+      staticWorldGeometry: geometry,
+      cameraTuning: noAutoscrollCameraTuning,
+    );
     final snapshot = core.buildSnapshot();
 
     expect(snapshot.staticSolids, hasLength(1));

@@ -8,12 +8,15 @@ import 'package:walkscape_runner/core/tuning/v0_resource_tuning.dart';
 import 'package:walkscape_runner/game/game_controller.dart';
 import 'package:walkscape_runner/game/input/runner_input_router.dart';
 
+import 'test_tunings.dart';
+
 void main() {
   test('move axis release overwrites buffered future ticks', () {
     final core = GameCore(
       seed: 1,
       tickHz: 60,
       playerBody: const BodyDef(useGravity: false),
+      cameraTuning: noAutoscrollCameraTuning,
       movementTuning: const V0MovementTuning(
         maxSpeedX: 100,
         accelerationX: 100000,
@@ -46,6 +49,7 @@ void main() {
       seed: 1,
       tickHz: 60,
       playerBody: const BodyDef(useGravity: false),
+      cameraTuning: noAutoscrollCameraTuning,
       resourceTuning: const V0ResourceTuning(
         playerManaMax: 100,
         playerManaStart: 20,

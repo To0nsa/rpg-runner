@@ -7,6 +7,8 @@ import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/game_core.dart';
 import 'package:walkscape_runner/core/tuning/v0_movement_tuning.dart';
 
+import '../test_tunings.dart';
+
 void _tick(GameCore core, {double axis = 0}) {
   final targetTick = core.tick + 1;
   core.applyCommands([
@@ -24,6 +26,7 @@ void main() {
     final core = GameCore(
       seed: 1,
       tickHz: v0DefaultTickHz,
+      cameraTuning: noAutoscrollCameraTuning,
       movementTuning: const V0MovementTuning(playerRadius: r),
       staticWorldGeometry: const StaticWorldGeometry(
         groundPlane: StaticGroundPlane(topY: v0GroundTopY * 1.0),
@@ -66,6 +69,7 @@ void main() {
     final core = GameCore(
       seed: 1,
       tickHz: v0DefaultTickHz,
+      cameraTuning: noAutoscrollCameraTuning,
       movementTuning: const V0MovementTuning(playerRadius: r),
       playerBody: const BodyDef(sideMask: BodyDef.sideLeft),
       staticWorldGeometry: const StaticWorldGeometry(
@@ -99,6 +103,7 @@ void main() {
     final core = GameCore(
       seed: 1,
       tickHz: v0DefaultTickHz,
+      cameraTuning: noAutoscrollCameraTuning,
       movementTuning: const V0MovementTuning(playerRadius: r),
       staticWorldGeometry: const StaticWorldGeometry(
         groundPlane: StaticGroundPlane(topY: v0GroundTopY * 1.0),

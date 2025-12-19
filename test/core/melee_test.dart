@@ -6,12 +6,15 @@ import 'package:walkscape_runner/core/game_core.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
 import 'package:walkscape_runner/core/tuning/v0_resource_tuning.dart';
 
+import '../test_tunings.dart';
+
 void main() {
   test('melee: attack spawns hitbox for active ticks', () {
     final core = GameCore(
       seed: 1,
       tickHz: 60,
       playerBody: const BodyDef(isKinematic: true, useGravity: false),
+      cameraTuning: noAutoscrollCameraTuning,
       resourceTuning: const V0ResourceTuning(
         playerStaminaMax: 100,
         playerStaminaStart: 100,
@@ -54,4 +57,3 @@ void main() {
     expect(hitboxes, isEmpty);
   });
 }
-

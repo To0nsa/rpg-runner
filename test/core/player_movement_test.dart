@@ -7,6 +7,8 @@ import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/tuning/v0_movement_tuning.dart';
 import 'package:walkscape_runner/core/tuning/v0_resource_tuning.dart';
 
+import '../test_tunings.dart';
+
 void _tick(
   GameCore core, {
   double axis = 0,
@@ -26,7 +28,11 @@ void _tick(
 
 void main() {
   test('accelerates toward desired horizontal speed', () {
-    final core = GameCore(seed: 1, tickHz: v0DefaultTickHz);
+    final core = GameCore(
+      seed: 1,
+      tickHz: v0DefaultTickHz,
+      cameraTuning: noAutoscrollCameraTuning,
+    );
 
     _tick(core, axis: 1);
     expect(core.playerVelX, greaterThan(0));
@@ -44,7 +50,11 @@ void main() {
   });
 
   test('jump from ground sets upward velocity', () {
-    final core = GameCore(seed: 1, tickHz: v0DefaultTickHz);
+    final core = GameCore(
+      seed: 1,
+      tickHz: v0DefaultTickHz,
+      cameraTuning: noAutoscrollCameraTuning,
+    );
     final floorY =
         v0GroundTopY.toDouble() - const V0MovementTuning().playerRadius;
 
@@ -60,7 +70,11 @@ void main() {
   });
 
   test('jump buffer triggers on the tick after landing', () {
-    final core = GameCore(seed: 1, tickHz: v0DefaultTickHz);
+    final core = GameCore(
+      seed: 1,
+      tickHz: v0DefaultTickHz,
+      cameraTuning: noAutoscrollCameraTuning,
+    );
     final tuning = const V0MovementTuning();
     final floorY = v0GroundTopY.toDouble() - tuning.playerRadius;
 
@@ -103,7 +117,11 @@ void main() {
   });
 
   test('dash sets constant horizontal speed and cancels vertical velocity', () {
-    final core = GameCore(seed: 1, tickHz: v0DefaultTickHz);
+    final core = GameCore(
+      seed: 1,
+      tickHz: v0DefaultTickHz,
+      cameraTuning: noAutoscrollCameraTuning,
+    );
     final tuning = const V0MovementTuning();
     final floorY = v0GroundTopY.toDouble() - tuning.playerRadius;
 
@@ -119,6 +137,7 @@ void main() {
     final core = GameCore(
       seed: 1,
       tickHz: v0DefaultTickHz,
+      cameraTuning: noAutoscrollCameraTuning,
       resourceTuning: const V0ResourceTuning(
         playerStaminaMax: 10,
         playerStaminaStart: 10,
@@ -137,6 +156,7 @@ void main() {
     final core = GameCore(
       seed: 1,
       tickHz: v0DefaultTickHz,
+      cameraTuning: noAutoscrollCameraTuning,
       resourceTuning: const V0ResourceTuning(
         playerStaminaMax: 10,
         playerStaminaStart: 10,
@@ -155,6 +175,7 @@ void main() {
     final core = GameCore(
       seed: 1,
       tickHz: v0DefaultTickHz,
+      cameraTuning: noAutoscrollCameraTuning,
       resourceTuning: const V0ResourceTuning(
         playerStaminaMax: 10,
         playerStaminaStart: 1,
@@ -183,6 +204,7 @@ void main() {
     final core = GameCore(
       seed: 1,
       tickHz: v0DefaultTickHz,
+      cameraTuning: noAutoscrollCameraTuning,
       playerBody: const BodyDef(gravityScale: 0),
     );
     final tuning = const V0MovementTuning();
@@ -201,6 +223,7 @@ void main() {
     final core = GameCore(
       seed: 1,
       tickHz: v0DefaultTickHz,
+      cameraTuning: noAutoscrollCameraTuning,
       playerBody: const BodyDef(isKinematic: true),
     );
     final tuning = const V0MovementTuning();
@@ -220,6 +243,7 @@ void main() {
     final core = GameCore(
       seed: 1,
       tickHz: v0DefaultTickHz,
+      cameraTuning: noAutoscrollCameraTuning,
       playerBody: const BodyDef(maxVelY: 100),
     );
 

@@ -144,14 +144,26 @@ class GameController {
     final dtTick = 1.0 / tickHz;
 
     while (_accumulatorSeconds >= dtTick) {
+      if (_core.paused) {
+        _accumulatorSeconds = 0;
+        break;
+      }
       final nextTick = _core.tick + 1;
       final input = _inputsByTick.remove(nextTick) ?? _frameScratch;
       _applyTickInput(nextTick, input);
       _core.stepOneTick();
+      _events.addAll(_core.drainEvents());
 
       _prev = _curr;
       _curr = _core.buildSnapshot();
       _accumulatorSeconds -= dtTick;
+
+      // If the core became paused during the tick (e.g. game over), stop consuming
+      // accumulator to avoid an infinite loop.
+      if (_core.paused) {
+        _accumulatorSeconds = 0;
+        break;
+      }
     }
   }
 

@@ -8,11 +8,15 @@ String _digest(GameCore core) {
   final parts = <String>[
     't=${s.tick}',
     'dist=${s.distance.toStringAsFixed(6)}',
+    'camx=${s.cameraCenterX.toStringAsFixed(6)}',
+    'camy=${s.cameraCenterY.toStringAsFixed(6)}',
     'hp=${s.hud.hp.toStringAsFixed(6)}',
     'mana=${s.hud.mana.toStringAsFixed(6)}',
     'stamina=${s.hud.stamina.toStringAsFixed(6)}',
     'solids=${s.staticSolids.length}',
     'ents=${s.entities.length}',
+    'paused=${s.paused}',
+    'gameOver=${s.gameOver}',
   ];
 
   for (final e in s.entities) {

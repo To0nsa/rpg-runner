@@ -11,12 +11,15 @@ import 'package:walkscape_runner/core/tuning/v0_resource_tuning.dart';
 import 'package:walkscape_runner/game/game_controller.dart';
 import 'package:walkscape_runner/game/input/runner_input_router.dart';
 
+import 'test_tunings.dart';
+
 void main() {
   test('aim dir is quantized (stable payload) before casting', () {
     final core = GameCore(
       seed: 1,
       tickHz: 60,
       playerBody: const BodyDef(useGravity: false),
+      cameraTuning: noAutoscrollCameraTuning,
       resourceTuning: const V0ResourceTuning(
         playerManaMax: 100,
         playerManaStart: 20,
@@ -55,4 +58,3 @@ void main() {
     expect(p.vel!.y / speed, closeTo(ny, 1e-9));
   });
 }
-

@@ -14,6 +14,9 @@ class GameStateSnapshot {
     required this.seed,
     required this.distance,
     required this.paused,
+    required this.gameOver,
+    required this.cameraCenterX,
+    required this.cameraCenterY,
     required this.hud,
     required this.entities,
     required this.staticSolids,
@@ -30,6 +33,13 @@ class GameStateSnapshot {
 
   /// Whether the simulation is currently paused.
   final bool paused;
+
+  /// Whether the run has ended (simulation is frozen).
+  final bool gameOver;
+
+  /// Camera center used for rendering this snapshot.
+  final double cameraCenterX;
+  final double cameraCenterY;
 
   /// HUD-only player stats.
   final PlayerHudSnapshot hud;

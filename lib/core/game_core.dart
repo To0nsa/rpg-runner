@@ -6,6 +6,7 @@
 import 'dart:math';
 
 import 'commands/command.dart';
+import 'camera/v0_autoscroll_camera.dart';
 import 'collision/static_world_geometry.dart';
 import 'collision/static_world_geometry_index.dart';
 import 'contracts/v0_render_contract.dart';
@@ -37,6 +38,7 @@ import 'ecs/stores/stamina_store.dart';
 import 'ecs/world.dart';
 import 'enemies/enemy_catalog.dart';
 import 'enemies/enemy_id.dart';
+import 'events/game_event.dart';
 import 'math/vec2.dart';
 import 'snapshots/enums.dart';
 import 'snapshots/entity_render_snapshot.dart';
@@ -50,6 +52,7 @@ import 'tuning/v0_combat_tuning.dart';
 import 'tuning/v0_enemy_tuning.dart';
 import 'tuning/v0_movement_tuning.dart';
 import 'tuning/v0_resource_tuning.dart';
+import 'tuning/v0_camera_tuning.dart';
 import 'tuning/v0_spatial_grid_tuning.dart';
 
 const StaticWorldGeometry v0DefaultStaticWorldGeometry = StaticWorldGeometry(
@@ -92,6 +95,7 @@ class GameCore {
     V0CombatTuning combatTuning = const V0CombatTuning(),
     V0EnemyTuning enemyTuning = const V0EnemyTuning(),
     V0SpatialGridTuning spatialGridTuning = const V0SpatialGridTuning(),
+    V0CameraTuning cameraTuning = const V0CameraTuning(),
     SpellCatalog spellCatalog = const SpellCatalog(),
     ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
     EnemyCatalog enemyCatalog = const EnemyCatalog(),
@@ -135,6 +139,16 @@ class GameCore {
     _meleeAttackSystem = MeleeAttackSystem();
     _enemySystem = EnemySystem(
       tuning: _enemyTuning,
+    );
+    _cameraTuning = V0CameraTuningDerived.from(cameraTuning, movement: _movement);
+    _camera = V0AutoscrollCamera(
+      viewWidth: v0VirtualWidth.toDouble(),
+      tuning: _cameraTuning,
+      initial: V0CameraState(
+        centerX: v0VirtualWidth * 0.5,
+        targetX: v0VirtualWidth * 0.5,
+        speedX: 0.0,
+      ),
     );
 
     final spawnX = 80.0;
@@ -277,6 +291,7 @@ class GameCore {
   final V0CombatTuningDerived _combat;
   final V0EnemyTuningDerived _enemyTuning;
   final V0SpatialGridTuning _spatialGridTuning;
+  late final V0CameraTuningDerived _cameraTuning;
   final SpellCatalog _spells;
   final ProjectileCatalogDerived _projectiles;
   final EnemyCatalog _enemyCatalog;
@@ -301,12 +316,18 @@ class GameCore {
   late final PlayerCastSystem _castSystem;
   late final SpellCastSystem _spellCastSystem;
   late final EntityId _player;
+  late final V0AutoscrollCamera _camera;
+
+  final List<GameEvent> _events = <GameEvent>[];
 
   /// Current simulation tick.
   int tick = 0;
 
   /// Whether simulation should advance.
   bool paused = false;
+
+  /// Whether the run has ended (simulation is frozen).
+  bool gameOver = false;
 
   /// Run progression metric (placeholder).
   double distance = 0;
@@ -385,7 +406,7 @@ class GameCore {
 
   /// Advances the simulation by exactly one fixed tick.
   void stepOneTick() {
-    if (paused) return;
+    if (paused || gameOver) return;
 
     tick += 1;
     _cooldownSystem.step(_world);
@@ -401,6 +422,25 @@ class GameCore {
       _movement,
       staticWorld: _staticWorldIndex,
     );
+
+    distance += max(0.0, playerVelX) * _movement.dtSeconds;
+
+    _camera.updateTick(
+      dtSeconds: _movement.dtSeconds,
+      playerX: playerPosX,
+    );
+    if (_checkFellBehindCamera()) {
+      gameOver = true;
+      paused = true;
+      _events.add(
+        RunEndedEvent(
+          tick: tick,
+          distance: distance,
+          reason: RunEndReason.fellBehindCamera,
+        ),
+      );
+      return;
+    }
 
     // Rebuild broadphase after movement/collision so damageable target positions
     // are final for the tick before any hit queries run.
@@ -435,7 +475,25 @@ class GameCore {
     // Cleanup last so effect entities get their full last tick to act.
     _lifetimeSystem.step(_world);
 
-    distance += max(0.0, playerVelX) * _movement.dtSeconds;
+  }
+
+  bool _checkFellBehindCamera() {
+    if (!(_world.transform.has(_player) && _world.colliderAabb.has(_player))) {
+      return false;
+    }
+
+    final ti = _world.transform.indexOf(_player);
+    final ai = _world.colliderAabb.indexOf(_player);
+    final centerX = _world.transform.posX[ti] + _world.colliderAabb.offsetX[ai];
+    final right = centerX + _world.colliderAabb.halfX[ai];
+    return right < _camera.left();
+  }
+
+  List<GameEvent> drainEvents() {
+    if (_events.isEmpty) return const <GameEvent>[];
+    final drained = List<GameEvent>.unmodifiable(_events);
+    _events.clear();
+    return drained;
   }
 
   /// Builds an immutable snapshot for render/UI consumption.
@@ -561,6 +619,9 @@ class GameCore {
       seed: seed,
       distance: distance,
       paused: paused,
+      gameOver: gameOver,
+      cameraCenterX: _camera.state.centerX,
+      cameraCenterY: v0CameraFixedY,
       hud: PlayerHudSnapshot(
         hp: _world.health.hp[hi],
         hpMax: _world.health.hpMax[hi],

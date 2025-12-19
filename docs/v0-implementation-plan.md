@@ -490,7 +490,7 @@ Reference behavior (from `tools/output/c++implementation.txt`):
 - if the player moves beyond a follow threshold (~80% from the left edge), the camera target is allowed to drift toward the player (clamped so it never decreases)
 - if the player's right edge is left of the camera's left edge, the player is killed (run ends)
 
-- [ ] Add camera tuning/config (Core):
+- [x] Add camera tuning/config (Core):
   - introduce `V0CameraTuning` (or similar simulation config) to hold:
     - `targetSpeedX` derived from `V0MovementTuning.maxSpeedX` (baseline auto-scroll speed, world units / second)
       - recommended: `targetSpeedX = maxSpeedX - speedLagX` (defaults mimic ref: `500 - 10 = 490`)
@@ -499,22 +499,22 @@ Reference behavior (from `tools/output/c++implementation.txt`):
     - `followThresholdRatio = 0.80` (of view width from the left; locked)
     - smoothing params for camera center and target catchup (fixed-tick deterministic)
   - keep this separate from combat/ability tuning (camera is a simulation concern)
-- [ ] Add deterministic camera state in Core:
+- [x] Add deterministic camera state in Core:
   - track camera `centerX`, `targetX`, and `speedX`
   - update each tick using fixed `dtSeconds` (no frame-dt logic in Core)
   - rule: `targetX` and `centerX` must never decrease (camera never moves backward)
-- [ ] Expose camera position to render (Core → Snapshot):
+- [x] Expose camera position to render (Core → Snapshot):
   - add `cameraCenterX` (and keep `cameraCenterY` fixed to current `v0CameraFixedY`)
   - renderer uses snapshot camera center, not player position, to position `CameraComponent`
   - keep pixel snapping rules for render (snap camera center to integer world coords before rendering)
-- [ ] Enforce "stay in view" rule (Core):
+- [x] Enforce "stay in view" rule (Core):
   - compute `cameraLeft = cameraCenterX - (v0VirtualWidth / 2)`
   - locked: if `playerColliderRight < cameraLeft`, the run ends
   - end-of-run contract (locked):
     - set an explicit `gameOver` flag in Core state and snapshot
     - emit a `GameEvent` (e.g. `RunEndedEvent(reason: fellBehindCamera, tick, distance)`) for UI/renderer
     - simulation should stop advancing after game over (pause/freeze), but snapshots remain readable
-- [ ] Tests (Core):
+- [x] Tests (Core):
   - camera determinism: same seed + same commands => identical camera positions
   - kill rule: with no forward movement, camera eventually passes player and run ends deterministically
   - follow threshold: if player sprints ahead past threshold, camera target increases faster than baseline (still monotonic)
