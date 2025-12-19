@@ -36,6 +36,7 @@ class RunnerFlameGame extends FlameGame {
   late final CircleComponent _player;
   late final TextComponent _debugText;
   final List<RectangleComponent> _staticSolids = <RectangleComponent>[];
+  List<StaticSolidSnapshot>? _lastStaticSolidsSnapshot;
   final Map<int, RectangleComponent> _projectiles = <int, RectangleComponent>{};
   final Paint _projectilePaint = Paint()..color = const Color(0xFF60A5FA);
   final Map<int, CircleComponent> _enemies = <int, CircleComponent>{};
@@ -123,6 +124,7 @@ class RunnerFlameGame extends FlameGame {
     world.add(_player);
 
     _mountStaticSolids(controller.snapshot.staticSolids);
+    _lastStaticSolidsSnapshot = controller.snapshot.staticSolids;
 
     _debugText = TextComponent(
       text: '',
@@ -156,6 +158,7 @@ class RunnerFlameGame extends FlameGame {
     // newest snapshot.
     controller.advanceFrame(dt);
     final snapshot = controller.snapshot;
+    _syncStaticSolids(snapshot.staticSolids);
 
     final player = _findPlayer(snapshot.entities);
     if (player != null) {
@@ -331,6 +334,20 @@ class RunnerFlameGame extends FlameGame {
     for (final id in toRemove) {
       _hitboxes.remove(id)?.removeFromParent();
     }
+  }
+
+  void _syncStaticSolids(List<StaticSolidSnapshot> solids) {
+    // Core rebuilds the list only when geometry changes (spawn/cull),
+    // so identity check is a cheap "version" check.
+    if (identical(solids, _lastStaticSolidsSnapshot)) return;
+    _lastStaticSolidsSnapshot = solids;
+
+    for (final c in _staticSolids) {
+      c.removeFromParent();
+    }
+    _staticSolids.clear();
+
+    _mountStaticSolids(solids);
   }
 
   @override
