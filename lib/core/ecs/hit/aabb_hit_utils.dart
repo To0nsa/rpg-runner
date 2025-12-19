@@ -7,7 +7,7 @@ import '../world.dart';
 // IMPORTANT:
 // - Keep these helpers allocation-free and deterministic.
 // - Systems still own iteration/selection rules (e.g. "first hit wins") until
-//   Milestone 9 (Hit Resolution Module).
+//   Milestone 10 (Hit Resolution Module).
 
 bool isFriendlyFire(Faction a, Faction b) => a == b;
 

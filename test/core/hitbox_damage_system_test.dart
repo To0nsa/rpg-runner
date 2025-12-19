@@ -7,6 +7,8 @@ import 'package:walkscape_runner/core/ecs/stores/faction_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/health_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/mana_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/stamina_store.dart';
+import 'package:walkscape_runner/core/ecs/spatial/broadphase_grid.dart';
+import 'package:walkscape_runner/core/ecs/spatial/grid_index_2d.dart';
 import 'package:walkscape_runner/core/ecs/systems/damage_system.dart';
 import 'package:walkscape_runner/core/ecs/systems/hitbox_damage_system.dart';
 import 'package:walkscape_runner/core/ecs/systems/hitbox_follow_owner_system.dart';
@@ -17,6 +19,7 @@ import 'package:walkscape_runner/core/ecs/world.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
 import 'package:walkscape_runner/core/tuning/v0_ability_tuning.dart';
 import 'package:walkscape_runner/core/tuning/v0_movement_tuning.dart';
+import 'package:walkscape_runner/core/tuning/v0_spatial_grid_tuning.dart';
 
 void main() {
   test('melee hitbox damages only once per swing', () {
@@ -42,6 +45,9 @@ void main() {
     final follow = HitboxFollowOwnerSystem();
     final hitboxDamage = HitboxDamageSystem();
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0);
+    final broadphase = BroadphaseGrid(
+      index: GridIndex2D(cellSize: V0SpatialGridTuning.v0BroadphaseCellSize),
+    );
     final lifetime = LifetimeSystem();
 
     final player = world.createPlayer(
@@ -70,7 +76,8 @@ void main() {
     melee.step(world, player: player, currentTick: 1);
     meleeAttack.step(world, currentTick: 1);
     follow.step(world);
-    hitboxDamage.step(world, damage.queue);
+    broadphase.rebuild(world);
+    hitboxDamage.step(world, damage.queue, broadphase);
     damage.step(world);
     lifetime.step(world);
 
@@ -81,7 +88,8 @@ void main() {
     melee.step(world, player: player, currentTick: 2);
     meleeAttack.step(world, currentTick: 2);
     follow.step(world);
-    hitboxDamage.step(world, damage.queue);
+    broadphase.rebuild(world);
+    hitboxDamage.step(world, damage.queue, broadphase);
     damage.step(world);
     lifetime.step(world);
 

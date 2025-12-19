@@ -6,6 +6,8 @@ import 'package:walkscape_runner/core/ecs/stores/collider_aabb_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/health_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/mana_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/stamina_store.dart';
+import 'package:walkscape_runner/core/ecs/spatial/broadphase_grid.dart';
+import 'package:walkscape_runner/core/ecs/spatial/grid_index_2d.dart';
 import 'package:walkscape_runner/core/ecs/systems/damage_system.dart';
 import 'package:walkscape_runner/core/ecs/systems/enemy_system.dart';
 import 'package:walkscape_runner/core/ecs/systems/hitbox_follow_owner_system.dart';
@@ -19,6 +21,7 @@ import 'package:walkscape_runner/core/spells/spawn_spell_projectile.dart';
 import 'package:walkscape_runner/core/spells/spell_catalog.dart';
 import 'package:walkscape_runner/core/spells/spell_id.dart';
 import 'package:walkscape_runner/core/tuning/v0_enemy_tuning.dart';
+import 'package:walkscape_runner/core/tuning/v0_spatial_grid_tuning.dart';
 
 import 'test_spawns.dart';
 
@@ -69,8 +72,11 @@ void main() {
     expect(p, isNotNull);
 
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0);
+    final broadphase = BroadphaseGrid(
+      index: GridIndex2D(cellSize: V0SpatialGridTuning.v0BroadphaseCellSize),
+    )..rebuild(world);
     final hit = ProjectileHitSystem();
-    hit.step(world, damage.queue);
+    hit.step(world, damage.queue, broadphase);
     damage.step(world);
 
     expect(world.health.hp[world.health.indexOf(player)], closeTo(90.0, 1e-9));
@@ -125,6 +131,9 @@ void main() {
     );
 
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0);
+    final broadphase = BroadphaseGrid(
+      index: GridIndex2D(cellSize: V0SpatialGridTuning.v0BroadphaseCellSize),
+    );
     final follow = HitboxFollowOwnerSystem();
     final hitboxDamage = HitboxDamageSystem();
     final meleeAttack = MeleeAttackSystem();
@@ -133,13 +142,14 @@ void main() {
     system.stepAttacks(world, player: player, currentTick: currentTick);
     meleeAttack.step(world, currentTick: currentTick);
     follow.step(world);
-    hitboxDamage.step(world, damage.queue);
+    broadphase.rebuild(world);
+    hitboxDamage.step(world, damage.queue, broadphase);
     damage.step(world);
 
     expect(world.health.hp[world.health.indexOf(player)], closeTo(85.0, 1e-9));
 
     // Same tick again should be blocked by HitOnce (hitbox still alive).
-    hitboxDamage.step(world, damage.queue);
+    hitboxDamage.step(world, damage.queue, broadphase);
     damage.step(world);
     expect(world.health.hp[world.health.indexOf(player)], closeTo(85.0, 1e-9));
 

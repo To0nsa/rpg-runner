@@ -6,6 +6,8 @@ import 'package:walkscape_runner/core/ecs/stores/collider_aabb_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/health_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/mana_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/stamina_store.dart';
+import 'package:walkscape_runner/core/ecs/spatial/broadphase_grid.dart';
+import 'package:walkscape_runner/core/ecs/spatial/grid_index_2d.dart';
 import 'package:walkscape_runner/core/ecs/systems/damage_system.dart';
 import 'package:walkscape_runner/core/ecs/systems/projectile_hit_system.dart';
 import 'package:walkscape_runner/core/ecs/world.dart';
@@ -14,6 +16,7 @@ import 'package:walkscape_runner/core/snapshots/enums.dart';
 import 'package:walkscape_runner/core/spells/spawn_spell_projectile.dart';
 import 'package:walkscape_runner/core/spells/spell_catalog.dart';
 import 'package:walkscape_runner/core/spells/spell_id.dart';
+import 'package:walkscape_runner/core/tuning/v0_spatial_grid_tuning.dart';
 
 import 'test_spawns.dart';
 
@@ -65,8 +68,11 @@ void main() {
     expect(projectile, isNotNull);
 
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0);
+    final broadphase = BroadphaseGrid(
+      index: GridIndex2D(cellSize: V0SpatialGridTuning.v0BroadphaseCellSize),
+    )..rebuild(world);
     final hits = ProjectileHitSystem();
-    hits.step(world, damage.queue);
+    hits.step(world, damage.queue, broadphase);
     damage.step(world);
 
     expect(world.health.hp[world.health.indexOf(enemy)], closeTo(75.0, 1e-9));

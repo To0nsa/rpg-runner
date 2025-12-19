@@ -11,6 +11,8 @@ import 'collision/static_world_geometry_index.dart';
 import 'contracts/v0_render_contract.dart';
 import 'ecs/entity_id.dart';
 import 'ecs/stores/collider_aabb_store.dart';
+import 'ecs/spatial/broadphase_grid.dart';
+import 'ecs/spatial/grid_index_2d.dart';
 import 'ecs/systems/collision_system.dart';
 import 'ecs/systems/cooldown_system.dart';
 import 'ecs/systems/player_cast_system.dart';
@@ -48,6 +50,7 @@ import 'tuning/v0_combat_tuning.dart';
 import 'tuning/v0_enemy_tuning.dart';
 import 'tuning/v0_movement_tuning.dart';
 import 'tuning/v0_resource_tuning.dart';
+import 'tuning/v0_spatial_grid_tuning.dart';
 
 const StaticWorldGeometry v0DefaultStaticWorldGeometry = StaticWorldGeometry(
   groundPlane: StaticGroundPlane(topY: v0GroundTopY * 1.0),
@@ -88,6 +91,7 @@ class GameCore {
     V0AbilityTuning abilityTuning = const V0AbilityTuning(),
     V0CombatTuning combatTuning = const V0CombatTuning(),
     V0EnemyTuning enemyTuning = const V0EnemyTuning(),
+    V0SpatialGridTuning spatialGridTuning = const V0SpatialGridTuning(),
     SpellCatalog spellCatalog = const SpellCatalog(),
     ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
     EnemyCatalog enemyCatalog = const EnemyCatalog(),
@@ -101,6 +105,7 @@ class GameCore {
        _abilities = V0AbilityTuningDerived.from(abilityTuning, tickHz: tickHz),
        _combat = V0CombatTuningDerived.from(combatTuning, tickHz: tickHz),
        _enemyTuning = V0EnemyTuningDerived.from(enemyTuning, tickHz: tickHz),
+        _spatialGridTuning = spatialGridTuning,
         _spells = spellCatalog,
         _projectiles = ProjectileCatalogDerived.from(
           projectileCatalog,
@@ -114,6 +119,9 @@ class GameCore {
     _cooldownSystem = CooldownSystem();
     _projectileSystem = ProjectileSystem();
     _projectileHitSystem = ProjectileHitSystem();
+    _broadphaseGrid = BroadphaseGrid(
+      index: GridIndex2D(cellSize: _spatialGridTuning.broadphaseCellSize),
+    );
     _hitboxFollowOwnerSystem = HitboxFollowOwnerSystem();
     _lifetimeSystem = LifetimeSystem();
     _invulnerabilitySystem = InvulnerabilitySystem();
@@ -268,6 +276,7 @@ class GameCore {
   final V0AbilityTuningDerived _abilities;
   final V0CombatTuningDerived _combat;
   final V0EnemyTuningDerived _enemyTuning;
+  final V0SpatialGridTuning _spatialGridTuning;
   final SpellCatalog _spells;
   final ProjectileCatalogDerived _projectiles;
   final EnemyCatalog _enemyCatalog;
@@ -278,6 +287,7 @@ class GameCore {
   late final CooldownSystem _cooldownSystem;
   late final ProjectileSystem _projectileSystem;
   late final ProjectileHitSystem _projectileHitSystem;
+  late final BroadphaseGrid _broadphaseGrid;
   late final HitboxFollowOwnerSystem _hitboxFollowOwnerSystem;
   late final LifetimeSystem _lifetimeSystem;
   late final InvulnerabilitySystem _invulnerabilitySystem;
@@ -392,6 +402,10 @@ class GameCore {
       staticWorld: _staticWorldIndex,
     );
 
+    // Rebuild broadphase after movement/collision so damageable target positions
+    // are final for the tick before any hit queries run.
+    _broadphaseGrid.rebuild(_world);
+
     // Move already-existing projectiles before spawning new ones so newly spawned
     // projectiles remain at their spawn positions until the next tick.
     _projectileSystem.step(_world, _movement);
@@ -412,8 +426,8 @@ class GameCore {
 
     // Resolve hits after all attacks have been spawned so both newly spawned
     // projectiles and hitboxes can hit on their spawn tick.
-    _projectileHitSystem.step(_world, _damageSystem.queue);
-    _hitboxDamageSystem.step(_world, _damageSystem.queue);
+    _projectileHitSystem.step(_world, _damageSystem.queue, _broadphaseGrid);
+    _hitboxDamageSystem.step(_world, _damageSystem.queue, _broadphaseGrid);
     _damageSystem.step(_world);
     _healthDespawnSystem.step(_world, player: _player);
     _resourceRegenSystem.step(_world, dtSeconds: _movement.dtSeconds);

@@ -1,18 +1,22 @@
 import '../../combat/damage.dart';
 import '../entity_id.dart';
 import '../hit/aabb_hit_utils.dart';
+import '../spatial/broadphase_grid.dart';
 import '../world.dart';
 
 class ProjectileHitSystem {
   final List<EntityId> _toDespawn = <EntityId>[];
-  final DamageableTargetCache _targets = DamageableTargetCache();
+  final List<int> _candidateTargets = <int>[];
 
-  void step(EcsWorld world, void Function(DamageRequest request) queueDamage) {
+  void step(
+    EcsWorld world,
+    void Function(DamageRequest request) queueDamage,
+    BroadphaseGrid broadphase,
+  ) {
     final projectiles = world.projectile;
     if (projectiles.denseEntities.isEmpty) return;
 
-    _targets.rebuild(world);
-    if (_targets.isEmpty) return;
+    if (broadphase.targets.isEmpty) return;
 
     _toDespawn.clear();
 
@@ -31,22 +35,39 @@ class ProjectileHitSystem {
       final owner = projectiles.owner[pi];
       final sourceFaction = projectiles.faction[pi];
 
+      broadphase.queryAabbMinMax(
+        minX: pcx - phx,
+        minY: pcy - phy,
+        maxX: pcx + phx,
+        maxY: pcy + phy,
+        outTargetIndices: _candidateTargets,
+      );
+      if (_candidateTargets.isEmpty) continue;
+
+      // Deterministic "first hit wins": sort candidates by EntityId.
+      _candidateTargets.sort(
+        (a, b) => broadphase.targets.entities[a].compareTo(
+          broadphase.targets.entities[b],
+        ),
+      );
+
       var hit = false;
-      for (var ti = 0; ti < _targets.length; ti += 1) {
-        final target = _targets.entities[ti];
+      for (var ci = 0; ci < _candidateTargets.length; ci += 1) {
+        final ti = _candidateTargets[ci];
+        final target = broadphase.targets.entities[ti];
         if (target == owner) continue;
 
-        if (isFriendlyFire(sourceFaction, _targets.factions[ti])) continue;
+        if (isFriendlyFire(sourceFaction, broadphase.targets.factions[ti])) continue;
 
         if (!aabbOverlapsCenters(
           aCenterX: pcx,
           aCenterY: pcy,
           aHalfX: phx,
           aHalfY: phy,
-          bCenterX: _targets.centerX[ti],
-          bCenterY: _targets.centerY[ti],
-          bHalfX: _targets.halfX[ti],
-          bHalfY: _targets.halfY[ti],
+          bCenterX: broadphase.targets.centerX[ti],
+          bCenterY: broadphase.targets.centerY[ti],
+          bHalfX: broadphase.targets.halfX[ti],
+          bHalfY: broadphase.targets.halfY[ti],
         )) {
           continue;
         }

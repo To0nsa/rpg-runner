@@ -1,16 +1,20 @@
 import '../../combat/damage.dart';
 import '../hit/aabb_hit_utils.dart';
+import '../spatial/broadphase_grid.dart';
 import '../world.dart';
 
 class HitboxDamageSystem {
-  final DamageableTargetCache _targets = DamageableTargetCache();
+  final List<int> _candidateTargets = <int>[];
 
-  void step(EcsWorld world, void Function(DamageRequest request) queueDamage) {
+  void step(
+    EcsWorld world,
+    void Function(DamageRequest request) queueDamage,
+    BroadphaseGrid broadphase,
+  ) {
     final hitboxes = world.hitbox;
     if (hitboxes.denseEntities.isEmpty) return;
 
-    _targets.rebuild(world);
-    if (_targets.isEmpty) return;
+    if (broadphase.targets.isEmpty) return;
 
     for (var hi = 0; hi < hitboxes.denseEntities.length; hi += 1) {
       final hb = hitboxes.denseEntities[hi];
@@ -26,21 +30,38 @@ class HitboxDamageSystem {
       final owner = hitboxes.owner[hi];
       final sourceFaction = hitboxes.faction[hi];
 
-      for (var ti = 0; ti < _targets.length; ti += 1) {
-        final target = _targets.entities[ti];
+      broadphase.queryAabbMinMax(
+        minX: hbCx - hbHalfX,
+        minY: hbCy - hbHalfY,
+        maxX: hbCx + hbHalfX,
+        maxY: hbCy + hbHalfY,
+        outTargetIndices: _candidateTargets,
+      );
+      if (_candidateTargets.isEmpty) continue;
+
+      // Deterministic multi-hit order: sort candidates by EntityId.
+      _candidateTargets.sort(
+        (a, b) => broadphase.targets.entities[a].compareTo(
+          broadphase.targets.entities[b],
+        ),
+      );
+
+      for (var ci = 0; ci < _candidateTargets.length; ci += 1) {
+        final ti = _candidateTargets[ci];
+        final target = broadphase.targets.entities[ti];
         if (target == owner) continue;
 
-        if (isFriendlyFire(sourceFaction, _targets.factions[ti])) continue;
+        if (isFriendlyFire(sourceFaction, broadphase.targets.factions[ti])) continue;
 
         if (!aabbOverlapsCenters(
           aCenterX: hbCx,
           aCenterY: hbCy,
           aHalfX: hbHalfX,
           aHalfY: hbHalfY,
-          bCenterX: _targets.centerX[ti],
-          bCenterY: _targets.centerY[ti],
-          bHalfX: _targets.halfX[ti],
-          bHalfY: _targets.halfY[ti],
+          bCenterX: broadphase.targets.centerX[ti],
+          bCenterY: broadphase.targets.centerY[ti],
+          bHalfX: broadphase.targets.halfX[ti],
+          bHalfY: broadphase.targets.halfY[ti],
         )) {
           continue;
         }
