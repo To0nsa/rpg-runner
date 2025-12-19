@@ -15,17 +15,22 @@ import 'ecs/systems/collision_system.dart';
 import 'ecs/systems/cooldown_system.dart';
 import 'ecs/systems/cast_system.dart';
 import 'ecs/systems/damage_system.dart';
+import 'ecs/systems/death_system.dart';
+import 'ecs/systems/enemy_system.dart';
 import 'ecs/systems/hitbox_damage_system.dart';
+import 'ecs/systems/invulnerability_system.dart';
 import 'ecs/systems/lifetime_system.dart';
 import 'ecs/systems/melee_system.dart';
 import 'ecs/systems/movement_system.dart';
 import 'ecs/systems/projectile_system.dart';
+import 'ecs/systems/projectile_hit_system.dart';
 import 'ecs/systems/resource_regen_system.dart';
 import 'ecs/stores/body_store.dart';
 import 'ecs/stores/health_store.dart';
 import 'ecs/stores/mana_store.dart';
 import 'ecs/stores/stamina_store.dart';
 import 'ecs/world.dart';
+import 'enemies/enemy_id.dart';
 import 'math/vec2.dart';
 import 'snapshots/enums.dart';
 import 'snapshots/entity_render_snapshot.dart';
@@ -35,6 +40,8 @@ import 'snapshots/static_solid_snapshot.dart';
 import 'projectiles/projectile_catalog.dart';
 import 'spells/spell_catalog.dart';
 import 'tuning/v0_ability_tuning.dart';
+import 'tuning/v0_combat_tuning.dart';
+import 'tuning/v0_enemy_tuning.dart';
 import 'tuning/v0_movement_tuning.dart';
 import 'tuning/v0_resource_tuning.dart';
 
@@ -75,6 +82,8 @@ class GameCore {
     V0MovementTuning movementTuning = const V0MovementTuning(),
     V0ResourceTuning resourceTuning = const V0ResourceTuning(),
     V0AbilityTuning abilityTuning = const V0AbilityTuning(),
+    V0CombatTuning combatTuning = const V0CombatTuning(),
+    V0EnemyTuning enemyTuning = const V0EnemyTuning(),
     SpellCatalog spellCatalog = const SpellCatalog(),
     ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
     BodyDef? playerBody,
@@ -85,6 +94,8 @@ class GameCore {
        ),
        _resourceTuning = resourceTuning,
        _abilities = V0AbilityTuningDerived.from(abilityTuning, tickHz: tickHz),
+       _combat = V0CombatTuningDerived.from(combatTuning, tickHz: tickHz),
+       _enemyTuning = V0EnemyTuningDerived.from(enemyTuning, tickHz: tickHz),
        _spells = spellCatalog,
        _projectiles = ProjectileCatalogDerived.from(
          projectileCatalog,
@@ -96,8 +107,11 @@ class GameCore {
     _collisionSystem = CollisionSystem();
     _cooldownSystem = CooldownSystem();
     _projectileSystem = ProjectileSystem();
+    _projectileHitSystem = ProjectileHitSystem();
     _lifetimeSystem = LifetimeSystem();
-    _damageSystem = DamageSystem();
+    _invulnerabilitySystem = InvulnerabilitySystem();
+    _damageSystem = DamageSystem(invulnerabilityTicksOnHit: _combat.invulnerabilityTicks);
+    _deathSystem = DeathSystem();
     _meleeSystem = MeleeSystem(abilities: _abilities, movement: _movement);
     _hitboxDamageSystem = HitboxDamageSystem();
     _resourceRegenSystem = ResourceRegenSystem();
@@ -106,6 +120,11 @@ class GameCore {
       projectiles: _projectiles,
       abilities: _abilities,
       movement: _movement,
+    );
+    _enemySystem = EnemySystem(
+      tuning: _enemyTuning,
+      spells: _spells,
+      projectiles: _projectiles,
     );
 
     final spawnX = 80.0;
@@ -151,6 +170,58 @@ class GameCore {
         regenPerSecond: _resourceTuning.playerStaminaRegenPerSecond,
       ),
     );
+
+    // Deterministic enemy spawns for Milestone 7 (no RNG yet).
+    //
+    // These are intentionally hardcoded so combat systems can be tested and
+    // debugged without introducing spawning determinism and world-gen at once.
+    final groundTopY =
+        this.staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble();
+
+    final demon = _world.createEnemy(
+      enemyId: EnemyId.demon,
+      posX: spawnX + 220.0,
+      posY: groundTopY - 90.0,
+      velX: 0.0,
+      velY: 0.0,
+      facing: Facing.left,
+      body: const BodyDef(
+        isKinematic: false,
+        useGravity: false,
+        gravityScale: 0.0,
+        sideMask: BodyDef.sideNone,
+        maxVelX: 800.0,
+        maxVelY: 800.0,
+      ),
+      collider: const ColliderAabbDef(halfX: 12.0, halfY: 12.0),
+      health: const HealthDef(hp: 50.0, hpMax: 50.0, regenPerSecond: 0.0),
+      mana: const ManaDef(mana: 80.0, manaMax: 80.0, regenPerSecond: 5.0),
+      stamina: const StaminaDef(stamina: 0.0, staminaMax: 0.0, regenPerSecond: 0.0),
+    );
+    // Avoid immediate spawn-tick casting (keeps early-game tests stable).
+    _world.cooldown.castCooldownTicksLeft[_world.cooldown.indexOf(demon)] =
+        _enemyTuning.demonCastCooldownTicks;
+
+    _world.createEnemy(
+      enemyId: EnemyId.fireWorm,
+      posX: spawnX + 300.0,
+      posY: groundTopY - 12.0,
+      velX: 0.0,
+      velY: 0.0,
+      facing: Facing.left,
+      body: BodyDef(
+        isKinematic: false,
+        useGravity: true,
+        gravityScale: 1.0,
+        maxVelX: _movement.base.maxVelX,
+        maxVelY: _movement.base.maxVelY,
+        sideMask: BodyDef.sideLeft | BodyDef.sideRight,
+      ),
+      collider: const ColliderAabbDef(halfX: 12.0, halfY: 12.0),
+      health: const HealthDef(hp: 50.0, hpMax: 50.0, regenPerSecond: 0.0),
+      mana: const ManaDef(mana: 0.0, manaMax: 0.0, regenPerSecond: 0.0),
+      stamina: const StaminaDef(stamina: 0.0, staminaMax: 0.0, regenPerSecond: 0.0),
+    );
   }
 
   /// Seed used for deterministic generation/RNG.
@@ -181,6 +252,8 @@ class GameCore {
   final V0MovementTuningDerived _movement;
   final V0ResourceTuning _resourceTuning;
   final V0AbilityTuningDerived _abilities;
+  final V0CombatTuningDerived _combat;
+  final V0EnemyTuningDerived _enemyTuning;
   final SpellCatalog _spells;
   final ProjectileCatalogDerived _projectiles;
 
@@ -189,8 +262,12 @@ class GameCore {
   late final CollisionSystem _collisionSystem;
   late final CooldownSystem _cooldownSystem;
   late final ProjectileSystem _projectileSystem;
+  late final ProjectileHitSystem _projectileHitSystem;
   late final LifetimeSystem _lifetimeSystem;
+  late final InvulnerabilitySystem _invulnerabilitySystem;
   late final DamageSystem _damageSystem;
+  late final DeathSystem _deathSystem;
+  late final EnemySystem _enemySystem;
   late final MeleeSystem _meleeSystem;
   late final HitboxDamageSystem _hitboxDamageSystem;
   late final ResourceRegenSystem _resourceRegenSystem;
@@ -284,6 +361,12 @@ class GameCore {
 
     tick += 1;
     _cooldownSystem.step(_world);
+    _invulnerabilitySystem.step(_world);
+
+    final groundTopY =
+        staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble();
+    _enemySystem.stepSteering(_world, player: _player, groundTopY: groundTopY);
+
     _movementSystem.step(_world, _movement, resources: _resourceTuning);
     _collisionSystem.step(
       _world,
@@ -291,10 +374,13 @@ class GameCore {
       staticWorld: _staticWorldIndex,
     );
     _projectileSystem.step(_world, _movement);
+    _projectileHitSystem.step(_world, _damageSystem.queue);
+    _enemySystem.stepAttacks(_world, player: _player);
     _castSystem.step(_world, player: _player);
     _meleeSystem.step(_world, player: _player);
     _hitboxDamageSystem.step(_world, _damageSystem.queue);
     _damageSystem.step(_world);
+    _deathSystem.step(_world, player: _player);
     _resourceRegenSystem.step(_world, dtSeconds: _movement.dtSeconds);
 
     // Cleanup last so effect entities get their full last tick to act.
@@ -386,6 +472,37 @@ class GameCore {
           facing: facing,
           anim: AnimKey.hit,
           grounded: false,
+        ),
+      );
+    }
+
+    final enemies = _world.enemy;
+    for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
+      final e = enemies.denseEntities[ei];
+      if (!(_world.transform.has(e))) continue;
+      final ti = _world.transform.indexOf(e);
+
+      Vec2? size;
+      if (_world.colliderAabb.has(e)) {
+        final aabbi = _world.colliderAabb.indexOf(e);
+        size = Vec2(
+          _world.colliderAabb.halfX[aabbi] * 2,
+          _world.colliderAabb.halfY[aabbi] * 2,
+        );
+      }
+
+      entities.add(
+        EntityRenderSnapshot(
+          id: e,
+          kind: EntityKind.enemy,
+          pos: Vec2(_world.transform.posX[ti], _world.transform.posY[ti]),
+          vel: Vec2(_world.transform.velX[ti], _world.transform.velY[ti]),
+          size: size,
+          facing: enemies.facing[ei],
+          anim: AnimKey.idle,
+          grounded: _world.collision.has(e)
+              ? _world.collision.grounded[_world.collision.indexOf(e)]
+              : false,
         ),
       );
     }

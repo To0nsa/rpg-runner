@@ -8,7 +8,7 @@ import 'package:walkscape_runner/core/ecs/stores/health_store.dart';
 void main() {
   test('DamageSystem clamps health and ignores missing targets', () {
     final world = EcsWorld();
-    final damage = DamageSystem();
+    final damage = DamageSystem(invulnerabilityTicksOnHit: 0);
 
     final e = world.createEntity();
     world.health.add(
@@ -26,4 +26,3 @@ void main() {
     expect(world.health.hp[hi], closeTo(0.0, 1e-9));
   });
 }
-

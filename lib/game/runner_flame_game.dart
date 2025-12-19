@@ -38,6 +38,11 @@ class RunnerFlameGame extends FlameGame {
   final List<RectangleComponent> _staticSolids = <RectangleComponent>[];
   final Map<int, RectangleComponent> _projectiles = <int, RectangleComponent>{};
   final Paint _projectilePaint = Paint()..color = const Color(0xFF60A5FA);
+  final Map<int, CircleComponent> _enemies = <int, CircleComponent>{};
+  final List<Paint> _enemyPaints = <Paint>[
+    Paint()..color = const Color(0xFFA855F7), // purple
+    Paint()..color = const Color(0xFFF97316), // orange
+  ];
   final Map<int, RectangleComponent> _hitboxes = <int, RectangleComponent>{};
   final Paint _hitboxPaint = Paint()..color = const Color(0x66EF4444);
 
@@ -163,6 +168,7 @@ class RunnerFlameGame extends FlameGame {
       );
     }
 
+    _syncEnemies(snapshot.entities);
     _syncProjectiles(snapshot.entities);
     _syncHitboxes(snapshot.entities);
 
@@ -198,6 +204,51 @@ class RunnerFlameGame extends FlameGame {
       if (e.kind == EntityKind.player) return e;
     }
     return null;
+  }
+
+  void _syncEnemies(List<EntityRenderSnapshot> entities) {
+    final seen = <int>{};
+
+    for (final e in entities) {
+      if (e.kind != EntityKind.enemy) continue;
+      seen.add(e.id);
+
+      var view = _enemies[e.id];
+      if (view == null) {
+        final size = e.size;
+        final radius =
+            ((size != null) ? (size.x < size.y ? size.x : size.y) : 16.0) * 0.5;
+        final paint = _enemyPaints[e.id % _enemyPaints.length];
+        view = CircleComponent(
+          radius: radius,
+          anchor: Anchor.center,
+          paint: paint,
+        );
+        view.priority = -2;
+        _enemies[e.id] = view;
+        world.add(view);
+      } else {
+        final size = e.size;
+        if (size != null) {
+          final radius = (size.x < size.y ? size.x : size.y) * 0.5;
+          view.radius = radius;
+        }
+      }
+
+      view.position.setValues(
+        e.pos.x.roundToDouble(),
+        e.pos.y.roundToDouble(),
+      );
+    }
+
+    if (_enemies.isEmpty) return;
+    final toRemove = <int>[];
+    for (final id in _enemies.keys) {
+      if (!seen.contains(id)) toRemove.add(id);
+    }
+    for (final id in toRemove) {
+      _enemies.remove(id)?.removeFromParent();
+    }
   }
 
   void _syncProjectiles(List<EntityRenderSnapshot> entities) {

@@ -5,14 +5,12 @@ import '../../projectiles/projectile_catalog.dart';
 import '../../snapshots/enums.dart';
 import '../../spells/spell_catalog.dart';
 import '../../spells/spell_id.dart';
+import '../../spells/spawn_spell_projectile.dart';
 import '../../util/double_math.dart';
 import '../../tuning/v0_ability_tuning.dart';
 import '../../tuning/v0_movement_tuning.dart';
 import '../entity_id.dart';
 import '../world.dart';
-import '../stores/lifetime_store.dart';
-import '../stores/projectile_store.dart';
-import '../stores/spell_origin_store.dart';
 
 class CastSystem {
   CastSystem({
@@ -44,11 +42,9 @@ class CastSystem {
 
     const spellId = SpellId.iceBolt;
     final spell = spells.get(spellId);
-    final projectileId = spell.projectileId;
-    if (projectileId == null) return;
+    if (spell.projectileId == null) return;
 
     final spellStats = spell.stats;
-    final proj = projectiles.base.get(projectileId);
 
     final mi = world.mana.indexOf(player);
     final mana = world.mana.mana[mi];
@@ -89,30 +85,17 @@ class CastSystem {
     final originX = world.transform.posX[ti] + aimX * spawnOffset;
     final originY = world.transform.posY[ti] + aimY * spawnOffset;
 
-    final projEntity = world.createEntity();
-    world.transform.add(
-      projEntity,
-      posX: originX,
-      posY: originY,
-      velX: 0.0,
-      velY: 0.0,
-    );
-    world.projectile.add(
-      projEntity,
-      ProjectileDef(
-        projectileId: projectileId,
-        faction: Faction.player,
-        owner: player,
-        dirX: aimX,
-        dirY: aimY,
-        speedUnitsPerSecond: proj.speedUnitsPerSecond,
-        damage: spellStats.damage,
-      ),
-    );
-    world.spellOrigin.add(projEntity, const SpellOriginDef(spellId: spellId));
-    world.lifetime.add(
-      projEntity,
-      LifetimeDef(ticksLeft: projectiles.lifetimeTicks(projectileId)),
+    spawnSpellProjectile(
+      world,
+      spells: spells,
+      projectiles: projectiles,
+      spellId: spellId,
+      faction: Faction.player,
+      owner: player,
+      originX: originX,
+      originY: originY,
+      dirX: aimX,
+      dirY: aimY,
     );
   }
 }

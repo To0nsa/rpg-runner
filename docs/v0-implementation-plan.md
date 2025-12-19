@@ -255,17 +255,56 @@ Acceptance:
 
 Note: keep AI extremely simple for V0.
 
-- [ ] Flying enemy:
-  - follows player with a target offset
-  - periodically casts a lightning bolt projectile toward player
-- [ ] Ground enemy:
-  - follows player on ground (simple horizontal pursuit)
-  - melee hit when in range
-  - fire cone: approximate with a short-lived AABB hitbox area in front
-- [ ] Damage rules + invulnerability ticks in core.
+- [ ] Add enemy data + components (Core):
+  - `EnemyId` (`demon`, `fireWorm`)
+  - `EnemyStore` (id + AI state/timers; keep SoA + scalar-only)
+  - `V0EnemyTuning` (speeds/cooldowns/ranges in seconds; derived to ticks at runtime)
+  - reuse existing `FactionStore` (`player` vs `enemy`) for filtering
+- [ ] Spawn enemies deterministically (Core):
+  - for Milestone 7 keep spawns fixed/hardcoded (no RNG yet) so tests are stable
+  - Milestone 8 will replace this with seeded deterministic generation
+- [ ] Flying enemy (Demon) AI + ranged attack (Core):
+  - movement goal: keep a desired X range from the player (C++: 100–250px) and face the player
+  - vertical goal (V0): hover at `groundPlaneTopY - hoverOffset` (no per-X ground sampling until world-gen varies)
+  - physics config: `isKinematic=false`, `useGravity=false`, `sideMask=0` (so it still integrates `pos += vel * dt` but doesn't resolve wall contacts)
+  - periodically casts `SpellId.lightning` at the player (C++: 2.0s cooldown, origin = demonPos + dir * 20)
+  - use a shared core helper (e.g. `spawnSpellProjectile(caster, spellId, origin, dir)`) so player/enemy projectile spawn rules stay identical
+- [ ] Ground enemy (FireWorm) AI + melee / cone (Core):
+  - simple horizontal pursuit toward player along ground, with a max speed cap
+  - melee hit when in range using the same hitbox mechanism as the player (spawn hitbox with `Faction.enemy`)
+  - (defer) fire cone spell: implement later as a new non-projectile spell type (do not mix into Milestone 7)
+- [ ] Add `ProjectileHitSystem` (Core):
+  - resolves projectile-vs-actors via AABB overlap (projectile AABB derived from `ProjectileCatalog` collider size)
+  - queues damage via `DamageSystem`
+  - despawns projectile on hit (deferred destroy; no structural mutation mid-iteration)
+- [ ] Projectiles are real colliders (Core):
+  - when spawning a projectile, also add `ColliderAabb` with half-extents from `ProjectileCatalog` (so hit resolution uses one data model)
+  - (later) projectile-vs-static can reuse the same collider once desired
+- [ ] Damage rules (Core, minimal V0):
+  - add `InvulnerabilityStore` (ticks left); `DamageSystem` ignores damage while invulnerable and sets invuln on hit
+  - add `DeathSystem` (or extend `DamageSystem`) to despawn entities when HP reaches 0
+- [ ] Lock tick order (Core):
+  - AI decide/steer (sets enemy velocities / triggers attacks)
+  - movement + collision integration (applies to all non-kinematic bodies)
+  - spawn attacks (projectiles/hitboxes) using post-move positions
+  - projectile movement (for already-existing projectiles)
+  - hit resolution (`ProjectileHitSystem` + `HitboxDamageSystem`)
+  - apply damage + death
+  - lifetime cleanup (last)
+- [ ] Micro-steps (recommended implementation sequence):
+  - spawn 1 Demon + 1 FireWorm deterministically (fixed positions; no RNG)
+  - `ProjectileHitSystem` + invuln + death end-to-end with player `IceBolt` (player can kill enemy)
+  - Demon casts `SpellId.lightning` and damages the player
+  - FireWorm melee hitbox damages the player (fire cone deferred)
+- [ ] Tests:
+  - enemy projectile damages player (`SpellId.lightning`)
+  - player ice bolt damages enemy and enemy despawns at 0 HP
+  - enemy melee hitbox damages player once per swing
+- [ ] Render placeholder (no assets):
+  - render enemies as colored circles (type-stable color in snapshot later; temporary color by entity id is OK for V0)
 
 Acceptance:
-- Enemies can damage the player, and the player can defeat them (or at least interact via hits).
+- A Demon and FireWorm can be spawned deterministically, attack the player (projectile + hitbox), and can be defeated with projectiles/melee.
 
 ---
 

@@ -6,9 +6,11 @@ import 'stores/collider_aabb_store.dart';
 import 'stores/collision_state_store.dart';
 import 'stores/cooldown_store.dart';
 import 'stores/faction_store.dart';
+import 'stores/enemy_store.dart';
 import 'stores/health_store.dart';
 import 'stores/hit_once_store.dart';
 import 'stores/hitbox_store.dart';
+import 'stores/invulnerability_store.dart';
 import 'stores/lifetime_store.dart';
 import 'stores/mana_store.dart';
 import 'stores/movement_store.dart';
@@ -17,6 +19,7 @@ import 'stores/projectile_store.dart';
 import 'stores/spell_origin_store.dart';
 import 'stores/stamina_store.dart';
 import 'stores/transform_store.dart';
+import '../enemies/enemy_id.dart';
 
 /// Minimal ECS world container (V0).
 ///
@@ -33,6 +36,7 @@ class EcsWorld {
   final CooldownStore cooldown = CooldownStore();
   final FactionStore faction = FactionStore();
   final HealthStore health = HealthStore();
+  final InvulnerabilityStore invulnerability = InvulnerabilityStore();
   final ManaStore mana = ManaStore();
   final StaminaStore stamina = StaminaStore();
   final ProjectileStore projectile = ProjectileStore();
@@ -40,6 +44,7 @@ class EcsWorld {
   final HitOnceStore hitOnce = HitOnceStore();
   final LifetimeStore lifetime = LifetimeStore();
   final SpellOriginStore spellOrigin = SpellOriginStore();
+  final EnemyStore enemy = EnemyStore();
 
   EntityId createEntity() {
     final id = _nextEntityId;
@@ -70,9 +75,38 @@ class EcsWorld {
     cooldown.add(id);
     faction.add(id, const FactionDef(faction: Faction.player));
     this.health.add(id, health);
+    invulnerability.add(id);
     this.mana.add(id, mana);
     this.stamina.add(id, stamina);
     collision.grounded[collision.indexOf(id)] = grounded;
+    return id;
+  }
+
+  EntityId createEnemy({
+    required EnemyId enemyId,
+    required double posX,
+    required double posY,
+    required double velX,
+    required double velY,
+    required Facing facing,
+    required BodyDef body,
+    required ColliderAabbDef collider,
+    required HealthDef health,
+    required ManaDef mana,
+    required StaminaDef stamina,
+  }) {
+    final id = createEntity();
+    transform.add(id, posX: posX, posY: posY, velX: velX, velY: velY);
+    this.body.add(id, body);
+    colliderAabb.add(id, collider);
+    collision.add(id);
+    cooldown.add(id);
+    faction.add(id, const FactionDef(faction: Faction.enemy));
+    this.health.add(id, health);
+    invulnerability.add(id);
+    this.mana.add(id, mana);
+    this.stamina.add(id, stamina);
+    enemy.add(id, EnemyDef(enemyId: enemyId, facing: facing));
     return id;
   }
 
@@ -86,6 +120,7 @@ class EcsWorld {
     cooldown.removeEntity(entity);
     faction.removeEntity(entity);
     health.removeEntity(entity);
+    invulnerability.removeEntity(entity);
     mana.removeEntity(entity);
     stamina.removeEntity(entity);
     projectile.removeEntity(entity);
@@ -93,5 +128,6 @@ class EcsWorld {
     hitOnce.removeEntity(entity);
     lifetime.removeEntity(entity);
     spellOrigin.removeEntity(entity);
+    enemy.removeEntity(entity);
   }
 }

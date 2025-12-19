@@ -37,7 +37,7 @@ void main() {
     final world = EcsWorld();
     final melee = MeleeSystem(abilities: abilities, movement: movement);
     final hitboxDamage = HitboxDamageSystem();
-    final damage = DamageSystem();
+    final damage = DamageSystem(invulnerabilityTicksOnHit: 0);
     final lifetime = LifetimeSystem();
 
     final player = world.createPlayer(
