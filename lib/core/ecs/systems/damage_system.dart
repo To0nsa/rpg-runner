@@ -22,6 +22,8 @@ class DamageSystem {
       if (!health.has(req.target)) continue;
       final hi = health.indexOf(req.target);
 
+      // Invulnerability applies only to entities that have `InvulnerabilityStore`
+      // attached (currently player-only in V0).
       if (invuln.has(req.target)) {
         final ii = invuln.indexOf(req.target);
         if (invuln.ticksLeft[ii] > 0) continue;

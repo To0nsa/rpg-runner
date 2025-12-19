@@ -75,6 +75,7 @@ class EcsWorld {
     cooldown.add(id);
     faction.add(id, const FactionDef(faction: Faction.player));
     this.health.add(id, health);
+    // Player-only invulnerability window (i-frames) after taking damage.
     invulnerability.add(id);
     this.mana.add(id, mana);
     this.stamina.add(id, stamina);
@@ -103,7 +104,7 @@ class EcsWorld {
     cooldown.add(id);
     faction.add(id, const FactionDef(faction: Faction.enemy));
     this.health.add(id, health);
-    invulnerability.add(id);
+    // Intentionally no `InvulnerabilityStore`: invulnerability is player-only in V0.
     this.mana.add(id, mana);
     this.stamina.add(id, stamina);
     enemy.add(id, EnemyDef(enemyId: enemyId, facing: facing));
