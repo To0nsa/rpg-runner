@@ -93,7 +93,7 @@ Acceptance:
   - [x] `Body`
   - [x] `ColliderAabb`, `CollisionState`
 - [x] Core systems:
-  - [x] `MovementSystem` (accel/decel, gravity, coyote time, jump buffer, dash; writes velocities only)
+  - [x] `PlayerMovementSystem` (accel/decel, gravity, coyote time, jump buffer, dash; writes velocities only)
   - [x] `CollisionSystem` (integrates + resolves):
     - [x] ground band (V0 equivalent of the old clamp)
     - [x] one-way platform tops (AABB, vertical-only)
@@ -317,7 +317,7 @@ Key idea: separate ability execution into 3 layers:
 - **Execution** (shared systems apply the *rules*: costs, cooldowns, spawn)
 - **Resolution** (shared hit resolution + damage rules)
 
-- [ ] Add intent components (Core):
+- [x] Add intent components (Core):
   - `CastIntentStore` (SoA + scalar-only):
     - `SpellId spellId`
     - `double dirX/dirY` (raw aim/target vector; normalization happens in spawn helper)
@@ -335,7 +335,7 @@ Key idea: separate ability execution into 3 layers:
     - at most one intent per entity per tick; last write wins
     - execution systems ignore stale intents where `intent.tick != currentTick`
     - execution systems invalidate consumed intents by setting `intent.tick = -1` (avoids accidental validity if tick 0 is ever used)
-- [ ] Add shared execution systems (Core):
+- [x] Add shared execution systems (Core):
   - `SpellCastSystem.step(world, currentTick: tick)` consumes `CastIntentStore` and owns:
     - cooldown gating (`CooldownStore.castCooldownTicksLeft`)
     - mana gating + spending (`ManaStore`)
@@ -348,21 +348,21 @@ Key idea: separate ability execution into 3 layers:
     - hitbox spawning (`HitboxStore` + `HitOnceStore` + `LifetimeStore`)
     - hitbox `owner` and `faction` should be derived from the attacker entity + `FactionStore` (avoid intent/store mismatches)
     - invalidates intent after processing (`intent.tick = -1`)
-- [ ] Split “hitbox follows owner” into its own reusable system (Core):
+- [x] Split "hitbox follows owner" into its own reusable system (Core):
   - `HitboxFollowOwnerSystem`:
     - updates hitbox transform from `owner Transform + Hitbox.offset`
     - runs before hit resolution each tick
   - `PlayerMeleeSystem` becomes a thin adapter (reads input, writes melee intent)
-- [ ] Refactor player systems into intent writers (Core):
+- [x] Refactor player systems into intent writers (Core):
   - `PlayerCastSystem` reads `PlayerInputStore` and writes `CastIntentStore` (no mana/cooldown logic here)
   - `PlayerMeleeSystem` reads `PlayerInputStore` and writes `MeleeIntentStore` (no stamina/cooldown logic here)
-- [ ] Refactor enemy logic into intent writers (Core):
+- [x] Refactor enemy logic into intent writers (Core):
   - keep steering separate (can remain in `EnemySystem.stepSteering` for V0)
   - enemy attack decisions write intents:
     - Demon writes `CastIntentStore` (lightning at player)
     - FireWorm writes `MeleeIntentStore` (enemy faction hitbox)
   - goal: enemy code stops manually spending mana / setting cooldown / duplicating spawn rules
-- [ ] Lock tick order and determinism (Core):
+- [x] Lock tick order and determinism (Core):
   - define the contract: “at most one intent per entity per tick; last write wins; stale intents ignored by tick-stamp”
   - define a stable writer order (so “last write wins” stays deterministic):
     - enemy intent writer(s) run before player intent writers (or the reverse — pick one and lock it)
@@ -390,7 +390,7 @@ Key idea: separate ability execution into 3 layers:
     - spawned projectile can hit on its spawn tick but does not move until the next tick
     - spawned hitbox can hit on its spawn tick
 
-- [ ] Micro-steps (recommended implementation sequence):
+- [x] Micro-steps (recommended implementation sequence):
   - add `CastIntentStore`/`MeleeIntentStore` with `tick=-1` invalid state
   - implement `SpellCastSystem` and migrate player casting first (cast tests stay as regression)
   - implement `MeleeAttackSystem` and migrate player melee next (melee tests stay as regression)

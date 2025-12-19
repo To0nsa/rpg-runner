@@ -126,7 +126,7 @@ Common components (examples):
 
 Systems operate over entities that have required components:
 
-* `MovementSystem`
+* `PlayerMovementSystem`
 * `CollisionSystem`
 * `CombatSystem`
 * `AISystem`
@@ -324,7 +324,7 @@ Implementation note:
 
 1. **InputSystem**: apply Commands to Player (and optionally AI)
 2. **AISystem**: update Brain → writes desired actions
-3. **MovementSystem**: compute velocities only (gravity, accel/decel, jump/dash state)
+3. **PlayerMovementSystem**: compute velocities only (gravity, accel/decel, jump/dash state)
 4. **CollisionSystem**: integrate positions + resolve collisions (sets grounded)
 5. **ResourceRegenSystem**: regen hp/mana/stamina (tick-based)
 6. **AbilitySystem** (split recommended): spend resources, apply cooldowns, spawn projectiles/hitboxes

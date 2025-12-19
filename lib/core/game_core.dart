@@ -24,7 +24,7 @@ import 'ecs/systems/invulnerability_system.dart';
 import 'ecs/systems/lifetime_system.dart';
 import 'ecs/systems/player_melee_system.dart';
 import 'ecs/systems/melee_attack_system.dart';
-import 'ecs/systems/movement_system.dart';
+import 'ecs/systems/player_movement_system.dart';
 import 'ecs/systems/projectile_system.dart';
 import 'ecs/systems/projectile_hit_system.dart';
 import 'ecs/systems/resource_regen_system.dart';
@@ -109,7 +109,7 @@ class GameCore {
         _enemyCatalog = enemyCatalog,
         staticWorldGeometry = staticWorldGeometry ?? v0DefaultStaticWorldGeometry {
     _world = EcsWorld();
-    _movementSystem = MovementSystem();
+    _movementSystem = PlayerMovementSystem();
     _collisionSystem = CollisionSystem();
     _cooldownSystem = CooldownSystem();
     _projectileSystem = ProjectileSystem();
@@ -273,7 +273,7 @@ class GameCore {
   final EnemyCatalog _enemyCatalog;
 
   late final EcsWorld _world;
-  late final MovementSystem _movementSystem;
+  late final PlayerMovementSystem _movementSystem;
   late final CollisionSystem _collisionSystem;
   late final CooldownSystem _cooldownSystem;
   late final ProjectileSystem _projectileSystem;

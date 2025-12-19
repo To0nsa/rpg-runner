@@ -10,9 +10,9 @@ import '../world.dart';
 /// - Movement
 /// - Body
 ///
-/// MovementSystem writes velocities only (input/jump/dash/gravity/clamps).
+/// PlayerMovementSystem writes velocities only (input/jump/dash/gravity/clamps).
 /// Position integration and collision resolution are handled by CollisionSystem.
-class MovementSystem {
+class PlayerMovementSystem {
   void step(
     EcsWorld world,
     V0MovementTuningDerived tuning, {

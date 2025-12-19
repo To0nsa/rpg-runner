@@ -7,7 +7,7 @@ import '../world.dart';
 /// Integrates positions and resolves collisions (V0: ground band only).
 ///
 /// Order within a tick:
-/// - MovementSystem computes velocities (including gravity, jump/dash).
+/// - PlayerMovementSystem computes velocities (including gravity, jump/dash).
 /// - CollisionSystem integrates `pos += vel * dt`, resolves collisions, and
 ///   finalizes grounded/contact state for the tick.
 class CollisionSystem {
