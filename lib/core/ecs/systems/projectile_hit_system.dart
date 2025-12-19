@@ -5,13 +5,14 @@ import '../world.dart';
 
 class ProjectileHitSystem {
   final List<EntityId> _toDespawn = <EntityId>[];
+  final DamageableTargetCache _targets = DamageableTargetCache();
 
   void step(EcsWorld world, void Function(DamageRequest request) queueDamage) {
     final projectiles = world.projectile;
     if (projectiles.denseEntities.isEmpty) return;
 
-    final health = world.health;
-    if (health.denseEntities.isEmpty) return;
+    _targets.rebuild(world);
+    if (_targets.isEmpty) return;
 
     _toDespawn.clear();
 
@@ -22,31 +23,30 @@ class ProjectileHitSystem {
 
       final pti = world.transform.indexOf(p);
       final pa = world.colliderAabb.indexOf(p);
+      final pcx = world.transform.posX[pti] + world.colliderAabb.offsetX[pa];
+      final pcy = world.transform.posY[pti] + world.colliderAabb.offsetY[pa];
+      final phx = world.colliderAabb.halfX[pa];
+      final phy = world.colliderAabb.halfY[pa];
 
       final owner = projectiles.owner[pi];
       final sourceFaction = projectiles.faction[pi];
 
       var hit = false;
-      for (var hi = 0; hi < health.denseEntities.length; hi += 1) {
-        final target = health.denseEntities[hi];
+      for (var ti = 0; ti < _targets.length; ti += 1) {
+        final target = _targets.entities[ti];
         if (target == owner) continue;
 
-        final fi = world.faction.tryIndexOf(target);
-        if (fi == null) continue;
-        final targetFaction = world.faction.faction[fi];
-        if (isFriendlyFire(sourceFaction, targetFaction)) continue;
+        if (isFriendlyFire(sourceFaction, _targets.factions[ti])) continue;
 
-        final ti = world.transform.tryIndexOf(target);
-        if (ti == null) continue;
-        final aabbi = world.colliderAabb.tryIndexOf(target);
-        if (aabbi == null) continue;
-
-        if (!aabbOverlapsWorldColliders(
-          world,
-          aTransformIndex: pti,
-          aAabbIndex: pa,
-          bTransformIndex: ti,
-          bAabbIndex: aabbi,
+        if (!aabbOverlapsCenters(
+          aCenterX: pcx,
+          aCenterY: pcy,
+          aHalfX: phx,
+          aHalfY: phy,
+          bCenterX: _targets.centerX[ti],
+          bCenterY: _targets.centerY[ti],
+          bHalfX: _targets.halfX[ti],
+          bHalfY: _targets.halfY[ti],
         )) {
           continue;
         }
