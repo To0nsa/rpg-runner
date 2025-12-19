@@ -528,16 +528,29 @@ Acceptance:
 
 ## Milestone 12 - Deterministic Spawning (First Pass)
 
-- [ ] Define V0 track spawning config (Core):
+- [x] Define V0 track spawning config (Core):
   - chunk width (world units), spawn-ahead margin, and cull-behind margin (relative to camera left/right).
   - collision-only for V0 (no lava/gaps/hazards yet); ground stays always safe/solid.
-- [ ] Add deterministic track generator (Core):
-  - represent a chunk as a small list of static solids relative to `chunkStartX`:
+  - V0 defaults (recommended):
+    - `chunkWidth = 480` (one view wide; V0 virtual width is 480 world units)
+    - `spawnAheadMargin = 960` (two views ahead)
+    - `cullBehindMargin = 480` (one view behind)
+  - invariant: `spawnAheadMargin >= chunkWidth` to avoid “running out of track” at high speeds.
+- [x] Add deterministic track generator (Core):
+  - runtime contract: each chunk becomes a small list of `StaticSolid` relative to `chunkStartX`:
     - platforms: one-way top only (match current collision behavior)
     - obstacles: solid top + walls (match current collision behavior)
-  - start simple: a fixed list of hand-authored chunk patterns (platform layouts + obstacle blocks).
-  - determinism rule: choose chunk pattern from `(seed, chunkIndex)` (not frame time), so spawn order is stable across refactors.
-- [ ] Add streaming chunk spawner (Core):
+  - authoring contract: define a `ChunkPattern` library (relative solids + optional enemy spawn markers), then expand to `StaticSolid` at spawn time.
+  - start simple: a fixed list of hand-authored chunk patterns.
+    - recommended V0: 8 patterns total:
+      - 2 recovery/flat patterns
+      - 4 platforming patterns (1–3 platforms)
+      - 2 obstacle patterns (1–2 blocks)
+  - grid snapping (recommended): author all pattern offsets on a `16.0` world-unit grid.
+  - determinism rule (locked): choose chunk pattern from `(seed, chunkIndex)` (not frame time), so spawn order is stable across refactors.
+    - recommended implementation: a pure `mix32(seed, chunkIndex, salt)` hash -> `patternIndex = hash % patterns.length`
+    - do not “step a global RNG” per chunk (refactor-prone).
+- [x] Add streaming chunk spawner (Core):
   - maintain `nextChunkIndex` / `nextChunkStartX` and spawn chunks while `cameraRight + margin >= nextChunkStartX`.
   - cull chunks/solids when `chunkEndX < cameraLeft - margin` so the world stays bounded.
   - rebuild `StaticWorldGeometryIndex` only when geometry changes (spawn/cull), not every tick.
@@ -545,10 +558,12 @@ Acceptance:
     - maintain an ordered queue/list of active chunks with `startX/endX` and their generated solids.
     - while the oldest chunk is fully behind the view (`endX < cameraLeft - cullBehindMargin`), pop it.
     - when chunks are spawned/culled, rebuild `StaticWorldGeometry.solids` by concatenating solids from active chunks (ground plane stays separate/always-on), then rebuild the index.
-- [ ] Add deterministic enemy spawns (Core):
-  - spawn the two enemy types via chunk rules or a separate `(seed, time/chunkIndex)` schedule.
-  - no pickups/collectibles yet
-- [ ] Tests (Core):
+- [x] Add deterministic enemy spawns (Core):
+  - no pickups/collectibles in V0.
+  - recommended V0 policy: tie enemy spawns to chunk patterns via spawn markers.
+    - each pattern declares 0–2 spawn markers (relative X/Y), chosen to be “safe” for that pattern layout.
+    - decide which enemy (if any) to spawn using `(seed, chunkIndex, markerIndex, salt)` for determinism.
+- [x] Tests (Core):
   - same seed + same commands => identical spawned chunk solids after N ticks (including after culling).
   - platform collision invariants unchanged (one-way top still works).
 

@@ -47,6 +47,7 @@ class V0AutoscrollCamera {
   V0CameraState _state;
 
   double left() => _state.centerX - viewWidth * 0.5;
+  double right() => _state.centerX + viewWidth * 0.5;
 
   double followThresholdX() => left() + _tuning.followThresholdRatio * viewWidth;
 
@@ -86,4 +87,3 @@ class V0AutoscrollCamera {
     _state = _state.copyWith(centerX: centerX, targetX: targetX, speedX: speedX);
   }
 }
-

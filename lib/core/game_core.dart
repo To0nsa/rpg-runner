@@ -47,6 +47,7 @@ import 'snapshots/player_hud_snapshot.dart';
 import 'snapshots/static_solid_snapshot.dart';
 import 'projectiles/projectile_catalog.dart';
 import 'spells/spell_catalog.dart';
+import 'track/v0_track_streamer.dart';
 import 'tuning/v0_ability_tuning.dart';
 import 'tuning/v0_combat_tuning.dart';
 import 'tuning/v0_enemy_tuning.dart';
@@ -54,30 +55,12 @@ import 'tuning/v0_movement_tuning.dart';
 import 'tuning/v0_resource_tuning.dart';
 import 'tuning/v0_camera_tuning.dart';
 import 'tuning/v0_spatial_grid_tuning.dart';
+import 'tuning/v0_track_tuning.dart';
 
 const StaticWorldGeometry v0DefaultStaticWorldGeometry = StaticWorldGeometry(
   groundPlane: StaticGroundPlane(topY: v0GroundTopY * 1.0),
-  solids: <StaticSolid>[
-    // A small one-way platform to validate collisions/visuals.
-    StaticSolid(
-      minX: 120,
-      minY: 200,
-      maxX: 280,
-      maxY: 216,
-      sides: StaticSolid.sideTop,
-      oneWayTop: true,
-    ),
-
-    // A simple obstacle block to validate side collisions + jumping.
-    StaticSolid(
-      minX: 320,
-      minY: 220,
-      maxX: 344,
-      maxY: v0GroundTopY * 1.0,
-      sides: StaticSolid.sideAll,
-      oneWayTop: false,
-    ),
-  ],
+  // Chunk streaming (Milestone 12) supplies platforms/obstacles deterministically.
+  solids: <StaticSolid>[],
 );
 
 /// Minimal placeholder `GameCore` used to validate architecture wiring.
@@ -96,6 +79,7 @@ class GameCore {
     V0EnemyTuning enemyTuning = const V0EnemyTuning(),
     V0SpatialGridTuning spatialGridTuning = const V0SpatialGridTuning(),
     V0CameraTuning cameraTuning = const V0CameraTuning(),
+    V0TrackTuning trackTuning = const V0TrackTuning(),
     SpellCatalog spellCatalog = const SpellCatalog(),
     ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
     EnemyCatalog enemyCatalog = const EnemyCatalog(),
@@ -116,7 +100,9 @@ class GameCore {
           tickHz: tickHz,
         ),
         _enemyCatalog = enemyCatalog,
-        staticWorldGeometry = staticWorldGeometry ?? v0DefaultStaticWorldGeometry {
+        _baseStaticWorldGeometry =
+            staticWorldGeometry ?? v0DefaultStaticWorldGeometry,
+        _trackTuning = trackTuning {
     _world = EcsWorld();
     _movementSystem = PlayerMovementSystem();
     _collisionSystem = CollisionSystem();
@@ -151,9 +137,13 @@ class GameCore {
       ),
     );
 
+    _staticWorldGeometry = _baseStaticWorldGeometry;
+    _staticWorldIndex = StaticWorldGeometryIndex.from(_staticWorldGeometry);
+    _staticSolidsSnapshot = _buildStaticSolidsSnapshot(_staticWorldGeometry);
+
     final spawnX = 400.0;
     final spawnY =
-        (this.staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble()) -
+        (_staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble()) -
         _movement.base.playerRadius;
     final defaultBody = BodyDef(
       enabled: true,
@@ -195,15 +185,20 @@ class GameCore {
       ),
     );
 
-    // Deterministic enemy spawns for Milestone 7 (no RNG yet).
+    // Milestone 12: stream deterministic chunks (static solids + enemy spawns).
     //
-    // These are intentionally hardcoded so combat systems can be tested and
-    // debugged without introducing spawning determinism and world-gen at once.
-    final groundTopY =
-        this.staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble();
-
-    _spawnDemon(spawnX: spawnX + 220.0, groundTopY: groundTopY);
-    _spawnFireWorm(spawnX: spawnX + 300.0, groundTopY: groundTopY);
+    // If a custom [staticWorldGeometry] was provided (typically tests), keep the
+    // geometry fixed and skip track streaming unless explicitly enabled later.
+    if (staticWorldGeometry == null && _trackTuning.enabled) {
+      final groundTopY = _staticWorldGeometry.groundPlane?.topY ??
+          v0GroundTopY.toDouble();
+      _trackStreamer = V0TrackStreamer(
+        seed: seed,
+        tuning: _trackTuning,
+        groundTopY: groundTopY,
+      );
+      _trackStreamerStep();
+    }
   }
 
   EntityId _spawnDemon({required double spawnX, required double groundTopY}) {
@@ -266,24 +261,14 @@ class GameCore {
   /// Fixed simulation tick frequency.
   final int tickHz;
 
-  /// Static world geometry for this run/session.
-  final StaticWorldGeometry staticWorldGeometry;
-  late final StaticWorldGeometryIndex _staticWorldIndex =
-      StaticWorldGeometryIndex.from(staticWorldGeometry);
+  /// Base static world geometry for this run/session (hand-authored seed state).
+  final StaticWorldGeometry _baseStaticWorldGeometry;
 
-  late final List<StaticSolidSnapshot> _staticSolidsSnapshot =
-      List<StaticSolidSnapshot>.unmodifiable(
-        staticWorldGeometry.solids.map(
-          (s) => StaticSolidSnapshot(
-            minX: s.minX,
-            minY: s.minY,
-            maxX: s.maxX,
-            maxY: s.maxY,
-            sides: s.sides,
-            oneWayTop: s.oneWayTop,
-          ),
-        ),
-      );
+  /// Current static world geometry (base + any streamed chunk solids).
+  StaticWorldGeometry get staticWorldGeometry => _staticWorldGeometry;
+  late StaticWorldGeometry _staticWorldGeometry;
+  late StaticWorldGeometryIndex _staticWorldIndex;
+  late List<StaticSolidSnapshot> _staticSolidsSnapshot;
 
   final V0MovementTuningDerived _movement;
   final V0ResourceTuning _resourceTuning;
@@ -292,9 +277,12 @@ class GameCore {
   final V0EnemyTuningDerived _enemyTuning;
   final V0SpatialGridTuning _spatialGridTuning;
   late final V0CameraTuningDerived _cameraTuning;
+  final V0TrackTuning _trackTuning;
   final SpellCatalog _spells;
   final ProjectileCatalogDerived _projectiles;
   final EnemyCatalog _enemyCatalog;
+
+  V0TrackStreamer? _trackStreamer;
 
   late final EcsWorld _world;
   late final PlayerMovementSystem _movementSystem;
@@ -409,6 +397,9 @@ class GameCore {
     if (paused || gameOver) return;
 
     tick += 1;
+
+    _trackStreamerStep();
+
     _cooldownSystem.step(_world);
     _invulnerabilitySystem.step(_world);
 
@@ -487,6 +478,63 @@ class GameCore {
     final centerX = _world.transform.posX[ti] + _world.colliderAabb.offsetX[ai];
     final right = centerX + _world.colliderAabb.halfX[ai];
     return right < _camera.left();
+  }
+
+  void _trackStreamerStep() {
+    final streamer = _trackStreamer;
+    if (streamer == null) return;
+
+    final changed = streamer.step(
+      cameraLeft: _camera.left(),
+      cameraRight: _camera.right(),
+      spawnEnemy: (enemyId, x) {
+        final groundTopY = _staticWorldGeometry.groundPlane?.topY ??
+            v0GroundTopY.toDouble();
+        switch (enemyId) {
+          case EnemyId.demon:
+            _spawnDemon(spawnX: x, groundTopY: groundTopY);
+          case EnemyId.fireWorm:
+            _spawnFireWorm(spawnX: x, groundTopY: groundTopY);
+        }
+      },
+    );
+
+    if (!changed) return;
+
+    // Rebuild collision index only when geometry changes (spawn/cull).
+    final combinedSolids = <StaticSolid>[
+      ..._baseStaticWorldGeometry.solids,
+      ...streamer.dynamicSolids,
+    ];
+    _setStaticWorldGeometry(
+      StaticWorldGeometry(
+        groundPlane: _baseStaticWorldGeometry.groundPlane,
+        solids: List<StaticSolid>.unmodifiable(combinedSolids),
+      ),
+    );
+  }
+
+  void _setStaticWorldGeometry(StaticWorldGeometry geometry) {
+    _staticWorldGeometry = geometry;
+    _staticWorldIndex = StaticWorldGeometryIndex.from(geometry);
+    _staticSolidsSnapshot = _buildStaticSolidsSnapshot(geometry);
+  }
+
+  static List<StaticSolidSnapshot> _buildStaticSolidsSnapshot(
+    StaticWorldGeometry geometry,
+  ) {
+    return List<StaticSolidSnapshot>.unmodifiable(
+      geometry.solids.map(
+        (s) => StaticSolidSnapshot(
+          minX: s.minX,
+          minY: s.minY,
+          maxX: s.maxX,
+          maxY: s.maxY,
+          sides: s.sides,
+          oneWayTop: s.oneWayTop,
+        ),
+      ),
+    );
   }
 
   List<GameEvent> drainEvents() {

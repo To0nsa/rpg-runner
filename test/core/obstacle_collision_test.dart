@@ -43,6 +43,11 @@ void main() {
       ),
     );
 
+    // Place the player left of the obstacle so walking right exercises the wall.
+    core.setPlayerPosXY(obstacleMinX - r - 40, core.playerPosY);
+    core.setPlayerVelXY(0, core.playerVelY);
+    _tick(core);
+
     final expectedStopX = obstacleMinX - r;
 
     var safety = 240;
@@ -86,6 +91,11 @@ void main() {
         ],
       ),
     );
+
+    // Place the player left of the obstacle so walking right attempts to collide.
+    core.setPlayerPosXY(obstacleMinX - r - 40, core.playerPosY);
+    core.setPlayerVelXY(0, core.playerVelY);
+    _tick(core);
 
     // Walk right for a while; without right-side collision, we should pass through.
     for (var i = 0; i < 120; i += 1) {

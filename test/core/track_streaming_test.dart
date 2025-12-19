@@ -1,0 +1,58 @@
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:walkscape_runner/core/commands/command.dart';
+import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
+import 'package:walkscape_runner/core/game_core.dart';
+
+void _expectSolidsEqual(GameCore a, GameCore b) {
+  final sa = a.buildSnapshot().staticSolids;
+  final sb = b.buildSnapshot().staticSolids;
+  expect(sb.length, sa.length);
+
+  for (var i = 0; i < sa.length; i += 1) {
+    final x = sa[i];
+    final y = sb[i];
+    expect(y.minX, x.minX);
+    expect(y.minY, x.minY);
+    expect(y.maxX, x.maxX);
+    expect(y.maxY, x.maxY);
+    expect(y.sides, x.sides);
+    expect(y.oneWayTop, x.oneWayTop);
+  }
+}
+
+void main() {
+  test('track streaming is deterministic and stays bounded (culling)', () {
+    const seed = 12345;
+    // Disable right-side wall collision so the player never gets stuck on a
+    // chunk obstacle and can run long enough to exercise spawn/cull.
+    final a = GameCore(seed: seed, playerBody: const BodyDef(sideMask: BodyDef.sideLeft));
+    final b = GameCore(seed: seed, playerBody: const BodyDef(sideMask: BodyDef.sideLeft));
+
+    // Always move right so the player stays in view and the camera keeps advancing.
+    const ticks = 1800; // ~30 seconds at 60Hz (enough to trigger multiple spawn/cull cycles).
+    var maxSolids = 0;
+
+    for (var t = 1; t <= ticks; t += 1) {
+      final cmds = <Command>[MoveAxisCommand(tick: t, axis: 1.0)];
+      a.applyCommands(cmds);
+      b.applyCommands(cmds);
+      a.stepOneTick();
+      b.stepOneTick();
+
+      if (t % 20 == 0) {
+        _expectSolidsEqual(a, b);
+      }
+
+      final solids = a.buildSnapshot().staticSolids.length;
+      if (solids > maxSolids) maxSolids = solids;
+
+      expect(a.gameOver, isFalse);
+      expect(b.gameOver, isFalse);
+    }
+
+    // Culling keeps the streamed world bounded (does not grow without limit).
+    // This threshold is intentionally loose; it only exists to catch “no cull” regressions.
+    expect(maxSolids, lessThan(120));
+  });
+}
