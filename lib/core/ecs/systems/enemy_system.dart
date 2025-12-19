@@ -80,6 +80,7 @@ class EnemySystem {
       final e = enemies.denseEntities[ei];
       if (!world.transform.has(e)) continue;
       if (!world.cooldown.has(e)) continue;
+      final enemyCooldownIndex = world.cooldown.indexOf(e);
 
       final ti = world.transform.indexOf(e);
       final ex = world.transform.posX[ti];
@@ -90,7 +91,7 @@ class EnemySystem {
           _tryDemonCast(
             world,
             enemy: e,
-            enemyCooldownIndex: world.cooldown.indexOf(e),
+            enemyCooldownIndex: enemyCooldownIndex,
             ex: ex,
             ey: ey,
             playerX: playerX,
@@ -100,7 +101,7 @@ class EnemySystem {
           _tryFireWormMelee(
             world,
             enemy: e,
-            enemyCooldownIndex: world.cooldown.indexOf(e),
+            enemyCooldownIndex: enemyCooldownIndex,
             enemyIndex: ei,
             ex: ex,
             ey: ey,
