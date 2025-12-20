@@ -2,6 +2,7 @@ import '../../enemies/enemy_id.dart';
 import '../../snapshots/enums.dart';
 import '../../spells/spell_id.dart';
 import '../../tuning/v0_enemy_tuning.dart';
+import '../../util/deterministic_rng.dart';
 import '../../util/double_math.dart';
 import '../entity_id.dart';
 import '../stores/cast_intent_store.dart';
@@ -19,6 +20,7 @@ class EnemySystem {
     EcsWorld world, {
     required EntityId player,
     required double groundTopY,
+    required double dtSeconds,
   }) {
     if (!world.transform.has(player)) return;
 
@@ -47,6 +49,7 @@ class EnemySystem {
             ex: ex,
             ey: ey,
             groundTopY: groundTopY,
+            dtSeconds: dtSeconds,
           );
         case EnemyId.fireWorm:
           _steerFireWorm(
@@ -112,25 +115,98 @@ class EnemySystem {
     required double ex,
     required double ey,
     required double groundTopY,
+    required double dtSeconds,
   }) {
+    if (dtSeconds <= 0.0) return;
+    if (!world.demonSteering.has(enemy)) {
+      assert(
+        false,
+        'EnemySystem requires DemonSteeringStore on demons; add it at spawn time.',
+      );
+      return;
+    }
+
+    final steering = world.demonSteering;
+    final si = steering.indexOf(enemy);
+
+    var rngState = steering.rngState[si];
+    double nextRange(double min, double max) {
+      rngState = nextUint32(rngState);
+      return rangeDouble(rngState, min, max);
+    }
+
+    if (!steering.initialized[si]) {
+      steering.initialized[si] = true;
+      steering.desiredRangeHoldLeftS[si] = nextRange(
+        tuning.base.demonDesiredRangeHoldMinSeconds,
+        tuning.base.demonDesiredRangeHoldMaxSeconds,
+      );
+      steering.desiredRange[si] = nextRange(
+        tuning.base.demonDesiredRangeMin,
+        tuning.base.demonDesiredRangeMax,
+      );
+      steering.flightTargetHoldLeftS[si] = 0.0;
+      steering.flightTargetAboveGround[si] = nextRange(
+        tuning.base.demonMinHeightAboveGround,
+        tuning.base.demonMaxHeightAboveGround,
+      );
+    }
+
+    var desiredRangeHoldLeftS = steering.desiredRangeHoldLeftS[si];
+    var desiredRange = steering.desiredRange[si];
+
+    // Hold desired range target.
+    if (desiredRangeHoldLeftS > 0.0) {
+      desiredRangeHoldLeftS -= dtSeconds;
+    } else {
+      desiredRangeHoldLeftS = nextRange(
+        tuning.base.demonDesiredRangeHoldMinSeconds,
+        tuning.base.demonDesiredRangeHoldMaxSeconds,
+      );
+      desiredRange = nextRange(
+        tuning.base.demonDesiredRangeMin,
+        tuning.base.demonDesiredRangeMax,
+      );
+    }
+
     final dx = playerX - ex;
     final distX = dx.abs();
     if (distX > 1e-6) {
       world.enemy.facing[enemyIndex] = dx >= 0 ? Facing.right : Facing.left;
     }
 
-    final desiredRange = tuning.base.demonDesiredRangeX;
-    final slack = tuning.base.demonRangeSlack;
-    final maxSpeedX = tuning.base.demonMaxSpeedX;
-
+    final slack = tuning.base.demonHoldSlack;
     double desiredVelX = 0.0;
-    if (distX > desiredRange + slack) {
-      desiredVelX = (dx >= 0 ? 1.0 : -1.0) * maxSpeedX;
-    } else if (distX < desiredRange - slack) {
-      desiredVelX = (dx >= 0 ? -1.0 : 1.0) * maxSpeedX;
+    if (distX > 1e-6) {
+      final dirToPlayerX = dx >= 0 ? 1.0 : -1.0;
+      final error = distX - desiredRange;
+
+      if (error.abs() > slack) {
+        final slowRadiusX = tuning.base.demonSlowRadiusX;
+        final t = slowRadiusX > 0.0
+            ? clampDouble((error.abs() - slack) / slowRadiusX, 0.0, 1.0)
+            : 1.0;
+        final speed = t * tuning.base.demonMaxSpeedX;
+        desiredVelX = (error > 0.0 ? dirToPlayerX : -dirToPlayerX) * speed;
+      }
     }
 
-    final targetY = groundTopY - tuning.base.demonHoverOffsetY;
+    var flightTargetHoldLeftS = steering.flightTargetHoldLeftS[si];
+    var flightTargetAboveGround = steering.flightTargetAboveGround[si];
+    if (flightTargetHoldLeftS > 0.0) {
+      flightTargetHoldLeftS -= dtSeconds;
+    } else {
+      flightTargetHoldLeftS = nextRange(
+        tuning.base.demonFlightTargetHoldMinSeconds,
+        tuning.base.demonFlightTargetHoldMaxSeconds,
+      );
+      flightTargetAboveGround = nextRange(
+        tuning.base.demonMinHeightAboveGround,
+        tuning.base.demonMaxHeightAboveGround,
+      );
+    }
+
+    final targetY = groundTopY - flightTargetAboveGround;
     final deltaY = targetY - ey;
     double desiredVelY = clampDouble(
       deltaY * tuning.base.demonVerticalKp,
@@ -141,8 +217,22 @@ class EnemySystem {
       desiredVelY = 0.0;
     }
 
-    world.transform.velX[enemyTi] = desiredVelX;
+    final currentVelX = world.transform.velX[enemyTi];
+    final accel = desiredVelX == 0.0 ? tuning.base.demonDecelX : tuning.base.demonAccelX;
+    final maxDeltaX = accel * dtSeconds;
+    final deltaVelX = desiredVelX - currentVelX;
+    final nextVelX = deltaVelX.abs() > maxDeltaX
+        ? currentVelX + (deltaVelX > 0.0 ? maxDeltaX : -maxDeltaX)
+        : desiredVelX;
+
+    world.transform.velX[enemyTi] = nextVelX;
     world.transform.velY[enemyTi] = desiredVelY;
+
+    steering.desiredRangeHoldLeftS[si] = desiredRangeHoldLeftS;
+    steering.desiredRange[si] = desiredRange;
+    steering.flightTargetHoldLeftS[si] = flightTargetHoldLeftS;
+    steering.flightTargetAboveGround[si] = flightTargetAboveGround;
+    steering.rngState[si] = rngState;
   }
 
   void _steerFireWorm(

@@ -4,15 +4,15 @@ import 'v0_movement_tuning.dart';
 
 class V0CameraTuning {
   const V0CameraTuning({
-    this.speedLagX = 10.0,
+    this.speedLagMulX = 0.9,
     this.accelX = 1200.0,
-    this.followThresholdRatio = 0.80,
+    this.followThresholdRatio = 0.60,
     this.catchupLerp = 8.0,
     this.targetCatchupLerp = 2.5,
   });
 
-  /// Baseline auto-scroll lags behind `V0MovementTuning.maxSpeedX` by this amount.
-  final double speedLagX;
+  /// Baseline auto-scroll lags behind `V0MovementTuning.maxSpeedX` by this multiplier.
+  final double speedLagMulX;
 
   /// Acceleration used to ease camera speed toward its target speed.
   final double accelX;
@@ -40,7 +40,7 @@ class V0CameraTuningDerived {
     V0CameraTuning tuning, {
     required V0MovementTuningDerived movement,
   }) {
-    final targetSpeedX = max(0.0, movement.base.maxSpeedX - tuning.speedLagX);
+    final targetSpeedX = max(0.0, movement.base.maxSpeedX * tuning.speedLagMulX);
     return V0CameraTuningDerived(
       targetSpeedX: targetSpeedX,
       accelX: tuning.accelX,

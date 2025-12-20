@@ -6,6 +6,7 @@ import 'stores/collider_aabb_store.dart';
 import 'stores/collision_state_store.dart';
 import 'stores/cooldown_store.dart';
 import 'stores/cast_intent_store.dart';
+import 'stores/demon_steering_store.dart';
 import 'stores/faction_store.dart';
 import 'stores/enemy_store.dart';
 import 'stores/health_store.dart';
@@ -22,11 +23,17 @@ import 'stores/spell_origin_store.dart';
 import 'stores/stamina_store.dart';
 import 'stores/transform_store.dart';
 import '../enemies/enemy_id.dart';
+import '../util/deterministic_rng.dart';
 
 /// Minimal ECS world container (V0).
 ///
 /// Entity IDs are monotonic and never reused.
 class EcsWorld {
+  EcsWorld({int seed = 0}) : seed = seed;
+
+  /// Seed used for deterministic RNG in the core.
+  final int seed;
+
   EntityId _nextEntityId = 1;
 
   final TransformStore transform = TransformStore();
@@ -49,6 +56,7 @@ class EcsWorld {
   final LifetimeStore lifetime = LifetimeStore();
   final SpellOriginStore spellOrigin = SpellOriginStore();
   final EnemyStore enemy = EnemyStore();
+  final DemonSteeringStore demonSteering = DemonSteeringStore();
 
   EntityId createEntity() {
     final id = _nextEntityId;
@@ -116,6 +124,9 @@ class EcsWorld {
     meleeIntent.add(id);
     this.stamina.add(id, stamina);
     enemy.add(id, EnemyDef(enemyId: enemyId, facing: facing));
+    if (enemyId == EnemyId.demon) {
+      demonSteering.add(id, DemonSteeringDef(rngState: seedFrom(seed, id)));
+    }
     return id;
   }
 
@@ -140,5 +151,6 @@ class EcsWorld {
     lifetime.removeEntity(entity);
     spellOrigin.removeEntity(entity);
     enemy.removeEntity(entity);
+    demonSteering.removeEntity(entity);
   }
 }

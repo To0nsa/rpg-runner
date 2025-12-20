@@ -15,19 +15,19 @@ const int v0DefaultTickHz = 60;
 class V0MovementTuning {
   const V0MovementTuning({
     this.playerRadius = 8,
-    this.maxSpeedX = 500,
-    this.accelerationX = 1200,
-    this.decelerationX = 800,
+    this.maxSpeedX = 250,
+    this.accelerationX = 600,
+    this.decelerationX = 400,
     this.minMoveSpeed = 5,
-    this.gravityY = 2400,
-    this.maxVelX = 3000,
-    this.maxVelY = 3000,
-    this.jumpSpeed = 1200,
+    this.gravityY = 1200,
+    this.maxVelX = 1500,
+    this.maxVelY = 1500,
+    this.jumpSpeed = 600,
     this.coyoteTimeSeconds = 0.10,
     this.jumpBufferSeconds = 0.12,
-    this.dashSpeedX = 1100,
+    this.dashSpeedX = 550,
     this.dashDurationSeconds = 0.20,
-    this.dashCooldownSeconds = 3.0,
+    this.dashCooldownSeconds = 2.0,
   });
 
   /// Player "collision" radius in world units (used for ground contact in V0).

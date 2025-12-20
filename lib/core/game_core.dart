@@ -103,7 +103,7 @@ class GameCore {
         _baseStaticWorldGeometry =
             staticWorldGeometry ?? v0DefaultStaticWorldGeometry,
         _trackTuning = trackTuning {
-    _world = EcsWorld();
+    _world = EcsWorld(seed: seed);
     _movementSystem = PlayerMovementSystem();
     _collisionSystem = CollisionSystem();
     _cooldownSystem = CooldownSystem();
@@ -405,7 +405,12 @@ class GameCore {
 
     final groundTopY =
         staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble();
-    _enemySystem.stepSteering(_world, player: _player, groundTopY: groundTopY);
+    _enemySystem.stepSteering(
+      _world,
+      player: _player,
+      groundTopY: groundTopY,
+      dtSeconds: _movement.dtSeconds,
+    );
 
     _movementSystem.step(_world, _movement, resources: _resourceTuning);
     _collisionSystem.step(

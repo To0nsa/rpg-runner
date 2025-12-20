@@ -2,13 +2,23 @@ import '../util/tick_math.dart';
 
 class V0EnemyTuning {
   const V0EnemyTuning({
-    this.demonHoverOffsetY = 90.0,
-    this.demonDesiredRangeX = 160.0,
-    this.demonRangeSlack = 20.0,
-    this.demonMaxSpeedX = 180.0,
-    this.demonMaxSpeedY = 120.0,
+    this.demonHoverOffsetY = 150.0,
+    this.demonDesiredRangeMin = 50.0,
+    this.demonDesiredRangeMax = 90.0,
+    this.demonDesiredRangeHoldMinSeconds = 0.60,
+    this.demonDesiredRangeHoldMaxSeconds = 1.40,
+    this.demonHoldSlack = 20.0,
+    this.demonMaxSpeedX = 300.0,
+    this.demonSlowRadiusX = 80.0,
+    this.demonAccelX = 600.0,
+    this.demonDecelX = 400.0,
+    this.demonMinHeightAboveGround = 100.0,
+    this.demonMaxHeightAboveGround = 240.0,
+    this.demonFlightTargetHoldMinSeconds = 1.5,
+    this.demonFlightTargetHoldMaxSeconds = 3.0,
+    this.demonMaxSpeedY = 300.0,
     this.demonVerticalKp = 4.0,
-    this.demonVerticalDeadzone = 5.0,
+    this.demonVerticalDeadzone = 20.0,
     this.demonCastCooldownSeconds = 2.0,
     this.demonCastOriginOffset = 20.0,
     this.fireWormSpeedX = 140.0,
@@ -23,9 +33,19 @@ class V0EnemyTuning {
 
   // Demon steering.
   final double demonHoverOffsetY;
-  final double demonDesiredRangeX;
-  final double demonRangeSlack;
+  final double demonDesiredRangeMin;
+  final double demonDesiredRangeMax;
+  final double demonDesiredRangeHoldMinSeconds;
+  final double demonDesiredRangeHoldMaxSeconds;
+  final double demonHoldSlack;
   final double demonMaxSpeedX;
+  final double demonSlowRadiusX;
+  final double demonAccelX;
+  final double demonDecelX;
+  final double demonMinHeightAboveGround;
+  final double demonMaxHeightAboveGround;
+  final double demonFlightTargetHoldMinSeconds;
+  final double demonFlightTargetHoldMaxSeconds;
   final double demonMaxSpeedY;
   final double demonVerticalKp;
   final double demonVerticalDeadzone;
@@ -89,4 +109,3 @@ class V0EnemyTuningDerived {
   final int fireWormMeleeCooldownTicks;
   final int fireWormMeleeActiveTicks;
 }
-
