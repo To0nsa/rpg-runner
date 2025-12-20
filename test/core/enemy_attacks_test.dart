@@ -83,7 +83,7 @@ void main() {
     expect(world.projectile.has(p!), isFalse);
   });
 
-  test('FireWorm melee spawns enemy hitbox that damages player once', () {
+  test('GroundEnemy melee spawns enemy hitbox that damages player once', () {
     final world = EcsWorld();
 
     final player = world.createPlayer(
@@ -100,7 +100,7 @@ void main() {
       stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
     );
 
-    final worm = spawnFireWorm(
+    final groundEnemy = spawnGroundEnemy(
       world,
       posX: 120,
       posY: 100,
@@ -116,12 +116,12 @@ void main() {
 
     final enemyTuning = V0EnemyTuningDerived.from(
       const V0EnemyTuning(
-        fireWormMeleeRangeX: 50.0,
-        fireWormMeleeCooldownSeconds: 1.0,
-        fireWormMeleeActiveSeconds: 0.10,
-        fireWormMeleeDamage: 15.0,
-        fireWormMeleeHitboxSizeX: 28.0,
-        fireWormMeleeHitboxSizeY: 16.0,
+        groundEnemyMeleeRangeX: 50.0,
+        groundEnemyMeleeCooldownSeconds: 1.0,
+        groundEnemyMeleeActiveSeconds: 0.10,
+        groundEnemyMeleeDamage: 15.0,
+        groundEnemyMeleeHitboxSizeX: 28.0,
+        groundEnemyMeleeHitboxSizeY: 16.0,
       ),
       tickHz: 60,
     );
@@ -153,7 +153,10 @@ void main() {
     damage.step(world);
     expect(world.health.hp[world.health.indexOf(player)], closeTo(85.0, 1e-9));
 
-    // And worm should have a melee cooldown set.
-    expect(world.cooldown.meleeCooldownTicksLeft[world.cooldown.indexOf(worm)], greaterThan(0));
+    // And ground enemy should have a melee cooldown set.
+    expect(
+      world.cooldown.meleeCooldownTicksLeft[world.cooldown.indexOf(groundEnemy)],
+      greaterThan(0),
+    );
   });
 }

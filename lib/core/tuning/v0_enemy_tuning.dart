@@ -21,14 +21,14 @@ class V0EnemyTuning {
     this.flyingEnemyVerticalDeadzone = 20.0,
     this.flyingEnemyCastCooldownSeconds = 2.0,
     this.flyingEnemyCastOriginOffset = 20.0,
-    this.fireWormSpeedX = 140.0,
-    this.fireWormStopDistanceX = 6.0,
-    this.fireWormMeleeRangeX = 26.0,
-    this.fireWormMeleeCooldownSeconds = 1.0,
-    this.fireWormMeleeActiveSeconds = 0.10,
-    this.fireWormMeleeDamage = 15.0,
-    this.fireWormMeleeHitboxSizeX = 28.0,
-    this.fireWormMeleeHitboxSizeY = 16.0,
+    this.groundEnemySpeedX = 140.0,
+    this.groundEnemyStopDistanceX = 6.0,
+    this.groundEnemyMeleeRangeX = 26.0,
+    this.groundEnemyMeleeCooldownSeconds = 1.0,
+    this.groundEnemyMeleeActiveSeconds = 0.10,
+    this.groundEnemyMeleeDamage = 15.0,
+    this.groundEnemyMeleeHitboxSizeX = 28.0,
+    this.groundEnemyMeleeHitboxSizeY = 16.0,
   });
 
   // Flying enemy steering.
@@ -54,17 +54,17 @@ class V0EnemyTuning {
   final double flyingEnemyCastCooldownSeconds;
   final double flyingEnemyCastOriginOffset;
 
-  // FireWorm steering.
-  final double fireWormSpeedX;
-  final double fireWormStopDistanceX;
+  // GroundEnemy steering.
+  final double groundEnemySpeedX;
+  final double groundEnemyStopDistanceX;
 
-  // FireWorm melee.
-  final double fireWormMeleeRangeX;
-  final double fireWormMeleeCooldownSeconds;
-  final double fireWormMeleeActiveSeconds;
-  final double fireWormMeleeDamage;
-  final double fireWormMeleeHitboxSizeX;
-  final double fireWormMeleeHitboxSizeY;
+  // GroundEnemy melee.
+  final double groundEnemyMeleeRangeX;
+  final double groundEnemyMeleeCooldownSeconds;
+  final double groundEnemyMeleeActiveSeconds;
+  final double groundEnemyMeleeDamage;
+  final double groundEnemyMeleeHitboxSizeX;
+  final double groundEnemyMeleeHitboxSizeY;
 }
 
 class V0EnemyTuningDerived {
@@ -72,8 +72,8 @@ class V0EnemyTuningDerived {
     required this.tickHz,
     required this.base,
     required this.flyingEnemyCastCooldownTicks,
-    required this.fireWormMeleeCooldownTicks,
-    required this.fireWormMeleeActiveTicks,
+    required this.groundEnemyMeleeCooldownTicks,
+    required this.groundEnemyMeleeActiveTicks,
   });
 
   factory V0EnemyTuningDerived.from(
@@ -91,12 +91,12 @@ class V0EnemyTuningDerived {
         base.flyingEnemyCastCooldownSeconds,
         tickHz,
       ),
-      fireWormMeleeCooldownTicks: ticksFromSecondsCeil(
-        base.fireWormMeleeCooldownSeconds,
+      groundEnemyMeleeCooldownTicks: ticksFromSecondsCeil(
+        base.groundEnemyMeleeCooldownSeconds,
         tickHz,
       ),
-      fireWormMeleeActiveTicks: ticksFromSecondsCeil(
-        base.fireWormMeleeActiveSeconds,
+      groundEnemyMeleeActiveTicks: ticksFromSecondsCeil(
+        base.groundEnemyMeleeActiveSeconds,
         tickHz,
       ),
     );
@@ -106,6 +106,6 @@ class V0EnemyTuningDerived {
   final V0EnemyTuning base;
 
   final int flyingEnemyCastCooldownTicks;
-  final int fireWormMeleeCooldownTicks;
-  final int fireWormMeleeActiveTicks;
+  final int groundEnemyMeleeCooldownTicks;
+  final int groundEnemyMeleeActiveTicks;
 }

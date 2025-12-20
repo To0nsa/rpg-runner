@@ -47,7 +47,7 @@ class EnemyCatalog {
           mana: ManaDef(mana: 80.0, manaMax: 80.0, regenPerSecond: 5.0),
           stamina: StaminaDef(stamina: 0.0, staminaMax: 0.0, regenPerSecond: 0.0),
         );
-      case EnemyId.fireWorm:
+      case EnemyId.groundEnemy:
         return const EnemyArchetype(
           body: BodyDef(
             isKinematic: false,

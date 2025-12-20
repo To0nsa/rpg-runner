@@ -38,7 +38,7 @@ EntityId spawnFlyingEnemy(
   );
 }
 
-EntityId spawnFireWorm(
+EntityId spawnGroundEnemy(
   EcsWorld world, {
   required double posX,
   required double posY,
@@ -52,7 +52,7 @@ EntityId spawnFireWorm(
   StaminaDef stamina = const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
 }) {
   return world.createEnemy(
-    enemyId: EnemyId.fireWorm,
+    enemyId: EnemyId.groundEnemy,
     posX: posX,
     posY: posY,
     velX: velX,

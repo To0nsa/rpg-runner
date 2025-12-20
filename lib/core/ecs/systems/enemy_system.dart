@@ -51,8 +51,8 @@ class EnemySystem {
             groundTopY: groundTopY,
             dtSeconds: dtSeconds,
           );
-        case EnemyId.fireWorm:
-          _steerFireWorm(
+        case EnemyId.groundEnemy:
+          _steerGroundEnemy(
             world,
             enemyIndex: ei,
             enemy: e,
@@ -91,8 +91,8 @@ class EnemySystem {
             playerY: playerY,
             currentTick: currentTick,
           );
-        case EnemyId.fireWorm:
-          _writeFireWormMeleeIntent(
+        case EnemyId.groundEnemy:
+          _writeGroundEnemyMeleeIntent(
             world,
             enemy: e,
             enemyIndex: ei,
@@ -235,7 +235,7 @@ class EnemySystem {
     steering.rngState[si] = rngState;
   }
 
-  void _steerFireWorm(
+  void _steerGroundEnemy(
     EcsWorld world, {
     required int enemyIndex,
     required EntityId enemy,
@@ -244,14 +244,14 @@ class EnemySystem {
     required double ex,
   }) {
     final dx = playerX - ex;
-    if (dx.abs() <= tuning.base.fireWormStopDistanceX) {
+    if (dx.abs() <= tuning.base.groundEnemyStopDistanceX) {
       world.transform.velX[enemyTi] = 0.0;
       return;
     }
 
     final dirX = dx >= 0 ? 1.0 : -1.0;
     world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
-    world.transform.velX[enemyTi] = dirX * tuning.base.fireWormSpeedX;
+    world.transform.velX[enemyTi] = dirX * tuning.base.groundEnemySpeedX;
   }
 
   void _writeFlyingEnemyCastIntent(
@@ -290,7 +290,7 @@ class EnemySystem {
     );
   }
 
-  void _writeFireWormMeleeIntent(
+  void _writeGroundEnemyMeleeIntent(
     EcsWorld world, {
       required EntityId enemy,
       required int enemyIndex,
@@ -309,18 +309,18 @@ class EnemySystem {
     if (!world.colliderAabb.has(enemy)) {
       assert(
         false,
-        'FireWorm melee requires ColliderAabbStore on the enemy to compute hitbox offset.',
+        'GroundEnemy melee requires ColliderAabbStore on the enemy to compute hitbox offset.',
       );
       return;
     }
     final dx = (playerX - ex).abs();
-    if (dx > tuning.base.fireWormMeleeRangeX) return;
+    if (dx > tuning.base.groundEnemyMeleeRangeX) return;
 
     final facing = world.enemy.facing[enemyIndex];
     final dirX = facing == Facing.right ? 1.0 : -1.0;
 
-    final halfX = tuning.base.fireWormMeleeHitboxSizeX * 0.5;
-    final halfY = tuning.base.fireWormMeleeHitboxSizeY * 0.5;
+    final halfX = tuning.base.groundEnemyMeleeHitboxSizeX * 0.5;
+    final halfY = tuning.base.groundEnemyMeleeHitboxSizeY * 0.5;
 
     final ownerHalfX = world.colliderAabb.halfX[world.colliderAabb.indexOf(enemy)];
     final offsetX = dirX * (ownerHalfX * 0.5 + halfX);
@@ -329,13 +329,13 @@ class EnemySystem {
     world.meleeIntent.set(
       enemy,
       MeleeIntentDef(
-        damage: tuning.base.fireWormMeleeDamage,
+        damage: tuning.base.groundEnemyMeleeDamage,
         halfX: halfX,
         halfY: halfY,
         offsetX: offsetX,
         offsetY: offsetY,
-        activeTicks: tuning.fireWormMeleeActiveTicks,
-        cooldownTicks: tuning.fireWormMeleeCooldownTicks,
+        activeTicks: tuning.groundEnemyMeleeActiveTicks,
+        cooldownTicks: tuning.groundEnemyMeleeCooldownTicks,
         staminaCost: 0.0,
         tick: currentTick,
       ),

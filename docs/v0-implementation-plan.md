@@ -256,7 +256,7 @@ Acceptance:
 Note: keep AI extremely simple for V0.
 
 - [x] Add enemy data + components (Core):
-  - `EnemyId` (`flyingEnemy`, `fireWorm`)
+  - `EnemyId` (`flyingEnemy`, `groundEnemy`)
   - `EnemyStore` (id + AI state/timers; keep SoA + scalar-only)
   - `V0EnemyTuning` (speeds/cooldowns/ranges in seconds; derived to ticks at runtime)
   - reuse existing `FactionStore` (`player` vs `enemy`) for filtering
@@ -269,7 +269,7 @@ Note: keep AI extremely simple for V0.
   - physics config: `isKinematic=false`, `useGravity=false`, `sideMask=0` (so it still integrates `pos += vel * dt` but doesn't resolve wall contacts)
   - periodically casts `SpellId.lightning` at the player (C++: 2.0s cooldown, origin = flyingEnemyPos + dir * 20)
   - use a shared core helper (e.g. `spawnSpellProjectile(caster, spellId, origin, dir)`) so player/enemy projectile spawn rules stay identical
-- [x] Ground enemy (FireWorm) AI + melee / cone (Core):
+- [x] Ground enemy (GroundEnemy) AI + melee / cone (Core):
   - simple horizontal pursuit toward player along ground, with a max speed cap
   - melee hit when in range using the same hitbox mechanism as the player (spawn hitbox with `Faction.enemy`)
   - (defer) fire cone spell: implement later as a new non-projectile spell type (do not mix into Milestone 7)
@@ -292,10 +292,10 @@ Note: keep AI extremely simple for V0.
   - apply damage + despawn
   - lifetime cleanup (last)
 - [x] Micro-steps (recommended implementation sequence):
-  - spawn 1 Flying enemy + 1 FireWorm deterministically (fixed positions; no RNG)
+  - spawn 1 Flying enemy + 1 GroundEnemy deterministically (fixed positions; no RNG)
   - `ProjectileHitSystem` + invuln + death end-to-end with player `IceBolt` (player can kill enemy)
   - Flying enemy casts `SpellId.lightning` and damages the player
-  - FireWorm melee hitbox damages the player (fire cone deferred)
+  - GroundEnemy melee hitbox damages the player (fire cone deferred)
 - [x] Tests:
   - [x] enemy projectile damages player (`SpellId.lightning`)
   - [x] player ice bolt damages enemy and enemy despawns at 0 HP
@@ -304,7 +304,7 @@ Note: keep AI extremely simple for V0.
   - render enemies as colored circles (type-stable color in snapshot later; temporary color by entity id is OK for V0)
 
 Acceptance:
-- A Flying enemy and FireWorm can be spawned deterministically, attack the player (projectile + hitbox), and can be defeated with projectiles/melee.
+- A Flying enemy and GroundEnemy can be spawned deterministically, attack the player (projectile + hitbox), and can be defeated with projectiles/melee.
 
 ---
 
@@ -360,7 +360,7 @@ Key idea: separate ability execution into 3 layers:
   - keep steering separate (can remain in `EnemySystem.stepSteering` for V0)
   - enemy attack decisions write intents:
     - Flying enemy writes `CastIntentStore` (lightning at player)
-    - FireWorm writes `MeleeIntentStore` (enemy faction hitbox)
+    - GroundEnemy writes `MeleeIntentStore` (enemy faction hitbox)
   - goal: enemy code stops manually spending mana / setting cooldown / duplicating spawn rules
 - [x] Lock tick order and determinism (Core):
   - define the contract: “at most one intent per entity per tick; last write wins; stale intents ignored by tick-stamp”

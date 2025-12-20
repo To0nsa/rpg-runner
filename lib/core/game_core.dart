@@ -227,13 +227,13 @@ class GameCore {
     return flyingEnemy;
   }
 
-  EntityId _spawnFireWorm({required double spawnX, required double groundTopY}) {
-    final archetype = _enemyCatalog.get(EnemyId.fireWorm);
+  EntityId _spawnGroundEnemy({required double spawnX, required double groundTopY}) {
+    final archetype = _enemyCatalog.get(EnemyId.groundEnemy);
 
-    // FireWorm uses the archetype, but clamps should stay aligned with the
+    // GroundEnemy uses the archetype, but clamps should stay aligned with the
     // current movement tuning.
     return _world.createEnemy(
-      enemyId: EnemyId.fireWorm,
+      enemyId: EnemyId.groundEnemy,
       posX: spawnX,
       posY: groundTopY - archetype.collider.halfY,
       velX: 0.0,
@@ -499,8 +499,8 @@ class GameCore {
         switch (enemyId) {
           case EnemyId.flyingEnemy:
             _spawnFlyingEnemy(spawnX: x, groundTopY: groundTopY);
-          case EnemyId.fireWorm:
-            _spawnFireWorm(spawnX: x, groundTopY: groundTopY);
+          case EnemyId.groundEnemy:
+            _spawnGroundEnemy(spawnX: x, groundTopY: groundTopY);
         }
       },
     );
