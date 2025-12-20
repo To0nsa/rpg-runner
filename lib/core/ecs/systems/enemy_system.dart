@@ -249,13 +249,45 @@ class EnemySystem {
     required double ex,
     required double dtSeconds,
   }) {
+    if (dtSeconds <= 0.0) return;
     final dx = playerX - ex;
     final tuning = groundEnemyTuning;
+
+    final li = world.groundEnemyLocomotion.tryIndexOf(enemy);
+    if (li == null) {
+      assert(
+        false,
+        'EnemySystem requires GroundEnemyLocomotionStore on ground enemies; add it at spawn time.',
+      );
+      return;
+    }
+
+    var jumpCooldownTicksLeft =
+        world.groundEnemyLocomotion.jumpCooldownTicksLeft[li];
+    if (jumpCooldownTicksLeft > 0) {
+      jumpCooldownTicksLeft -= 1;
+    }
+
     double desiredVelX = 0.0;
     if (dx.abs() > tuning.base.groundEnemyStopDistanceX) {
       final dirX = dx >= 0 ? 1.0 : -1.0;
       world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
       desiredVelX = dirX * tuning.base.groundEnemySpeedX;
+    }
+
+    // Jump if we were blocked by a wall on the previous tick while grounded.
+    final coli = world.collision.tryIndexOf(enemy);
+    final wasGrounded = coli != null && world.collision.grounded[coli];
+    final blockedRight = coli != null && world.collision.hitRight[coli] && dx > 0;
+    final blockedLeft = coli != null && world.collision.hitLeft[coli] && dx < 0;
+    final blocked = blockedRight || blockedLeft;
+    final canJump = wasGrounded &&
+        blocked &&
+        jumpCooldownTicksLeft == 0 &&
+        tuning.groundEnemyJumpCooldownTicks > 0;
+    if (canJump) {
+      world.transform.velY[enemyTi] = -tuning.base.groundEnemyJumpSpeed;
+      jumpCooldownTicksLeft = tuning.groundEnemyJumpCooldownTicks;
     }
 
     final currentVelX = world.transform.velX[enemyTi];
@@ -266,6 +298,9 @@ class EnemySystem {
       accelPerSecond: tuning.base.groundEnemyAccelX,
       decelPerSecond: tuning.base.groundEnemyDecelX,
     );
+
+    world.groundEnemyLocomotion.jumpCooldownTicksLeft[li] =
+        jumpCooldownTicksLeft;
   }
 
   void _writeFlyingEnemyCastIntent(

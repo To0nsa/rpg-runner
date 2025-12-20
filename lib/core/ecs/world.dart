@@ -8,6 +8,7 @@ import 'stores/cooldown_store.dart';
 import 'stores/cast_intent_store.dart';
 import 'stores/gravity_control_store.dart';
 import 'stores/flying_enemy_steering_store.dart';
+import 'stores/ground_enemy_locomotion_store.dart';
 import 'stores/faction_store.dart';
 import 'stores/enemy_store.dart';
 import 'stores/health_store.dart';
@@ -59,6 +60,8 @@ class EcsWorld {
   final SpellOriginStore spellOrigin = SpellOriginStore();
   final EnemyStore enemy = EnemyStore();
   final FlyingEnemySteeringStore flyingEnemySteering = FlyingEnemySteeringStore();
+  final GroundEnemyLocomotionStore groundEnemyLocomotion =
+      GroundEnemyLocomotionStore();
 
   EntityId createEntity() {
     final id = _nextEntityId;
@@ -132,6 +135,9 @@ class EcsWorld {
         FlyingEnemySteeringDef(rngState: seedFrom(seed, id)),
       );
     }
+    if (enemyId == EnemyId.groundEnemy) {
+      groundEnemyLocomotion.add(id);
+    }
     return id;
   }
 
@@ -158,5 +164,6 @@ class EcsWorld {
     spellOrigin.removeEntity(entity);
     enemy.removeEntity(entity);
     flyingEnemySteering.removeEntity(entity);
+    groundEnemyLocomotion.removeEntity(entity);
   }
 }
