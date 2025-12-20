@@ -1,6 +1,6 @@
 ﻿REPO: C:\dev\walkscape_runner
-COMMIT: 8df7e3f6843e21d59758accc539c32e381baf33b
-DATE: 2025-12-19 13:09:59
+COMMIT: b00651a320841dba177b7106c0415af002082943
+DATE: 2025-12-20 13:27:15
 
 
 ===== FILE: lib/AGENTS.md =====
@@ -13,6 +13,15 @@ Instructions for AI coding agents (Codex, ChatGPT, etc.) when working in this re
 Port an existing **SFML/C++ 2D runner** (tools\output\c++implementation.txt)into **Flutter (Dart) + Flame** while preserving gameplay feel and making the result **production-grade** (mobile performance, clean architecture, future online-ready).
 
 ## Working style (how to collaborate)
+
+## Consent before changing code
+
+When the user asks a question (e.g. “how do I…?”, “why…?”, “is it possible…?”) or explicitly says “no code / just answer”:
+
+- **Do not make code changes or run refactors.** Provide an answer with options/tradeoffs only.
+- If implementation would help, **ask for confirmation first** (e.g. “Want me to implement option A?”) before editing files.
+
+Only implement changes when the user clearly requests it (e.g. “please implement”, “make the change”, “can you do X in the repo?”).
 
 For any non-trivial task (anything that affects architecture, touches multiple layers/files, introduces a new subsystem, or changes a core contract):
 
@@ -162,6 +171,98 @@ When asked to implement/fix something:
 
 ---
 If anything here conflicts with repo docs, treat repo docs as the source of truth.
+
+
+===== FILE: lib/core/camera/v0_autoscroll_camera.dart =====
+import '../util/smoothing.dart';
+import '../util/double_math.dart';
+import '../tuning/v0_camera_tuning.dart';
+
+class V0CameraState {
+  const V0CameraState({
+    required this.centerX,
+    required this.targetX,
+    required this.speedX,
+  });
+
+  final double centerX;
+  final double targetX;
+  final double speedX;
+
+  V0CameraState copyWith({
+    double? centerX,
+    double? targetX,
+    double? speedX,
+  }) {
+    return V0CameraState(
+      centerX: centerX ?? this.centerX,
+      targetX: targetX ?? this.targetX,
+      speedX: speedX ?? this.speedX,
+    );
+  }
+}
+
+/// Deterministic auto-scroll camera (Core).
+///
+/// Mirrors the reference behavior:
+/// - baseline target speed with ease-in acceleration
+/// - camera center eases toward a monotonic target X (never moves backward)
+/// - player can pull the target forward only after passing a follow threshold
+class V0AutoscrollCamera {
+  V0AutoscrollCamera({
+    required this.viewWidth,
+    required V0CameraTuningDerived tuning,
+    required V0CameraState initial,
+  })  : _tuning = tuning,
+        _state = initial;
+
+  final double viewWidth;
+  final V0CameraTuningDerived _tuning;
+
+  V0CameraState get state => _state;
+  V0CameraState _state;
+
+  double left() => _state.centerX - viewWidth * 0.5;
+  double right() => _state.centerX + viewWidth * 0.5;
+
+  double followThresholdX() => left() + _tuning.followThresholdRatio * viewWidth;
+
+  void updateTick({
+    required double dtSeconds,
+    required double? playerX,
+  }) {
+    final t = _tuning;
+
+    var speedX = _state.speedX;
+    if (speedX < t.targetSpeedX) {
+      speedX = clampDouble(speedX + t.accelX * dtSeconds, 0.0, t.targetSpeedX);
+    } else if (speedX > t.targetSpeedX) {
+      speedX = clampDouble(speedX - t.accelX * dtSeconds, t.targetSpeedX, speedX);
+    }
+
+    var targetX = _state.targetX + speedX * dtSeconds;
+
+    // If the player passes the follow threshold, allow the target to drift toward
+    // the player (never decreases).
+    if (playerX != null) {
+      final threshold = followThresholdX();
+      if (playerX > threshold) {
+        final alphaT = expSmoothingFactor(t.targetCatchupLerp, dtSeconds);
+        final newTarget = targetX + (playerX - targetX) * alphaT;
+        targetX = targetX > newTarget ? targetX : newTarget;
+      }
+    }
+
+    final alpha = expSmoothingFactor(t.catchupLerp, dtSeconds);
+    var centerX = _state.centerX + (targetX - _state.centerX) * alpha;
+
+    // Determinism/feel: camera never moves backward.
+    if (centerX < _state.centerX) centerX = _state.centerX;
+    if (targetX < _state.targetX) targetX = _state.targetX;
+
+    _state = _state.copyWith(centerX: centerX, targetX: targetX, speedX: speedX);
+  }
+}
 
 
 ===== FILE: lib/core/collision/static_world_geometry.dart =====
@@ -555,6 +656,138 @@ bool aabbOverlapsWorldColliders(
     bHalfX: bHalfX,
     bHalfY: bHalfY,
   );
+}
+
+
+===== FILE: lib/core/ecs/hit/hit_resolver.dart =====
+import '../../combat/faction.dart';
+import '../entity_id.dart';
+import '../spatial/broadphase_grid.dart';
+import 'aabb_hit_utils.dart';
+
+/// Shared narrowphase + deterministic hit candidate ordering.
+///
+/// Responsibilities:
+/// - broadphase query
+/// - filtering (owner exclusion + friendly-fire)
+/// - AABB overlap test
+/// - deterministic ordering (EntityId ascending)
+///
+/// Non-responsibilities:
+/// - world mutation (damage, despawns, HitOnce marking)
+class HitResolver {
+  final List<int> _candidates = <int>[];
+
+  /// Returns an ordered list of target indices (into `broadphase.targets`) that
+  /// overlap the query AABB and pass filtering rules.
+  ///
+  /// Determinism: targets are always returned in `EntityId` ascending order.
+  void collectOrderedOverlapsCenters({
+    required BroadphaseGrid broadphase,
+    required double centerX,
+    required double centerY,
+    required double halfX,
+    required double halfY,
+    required EntityId owner,
+    required Faction sourceFaction,
+    required List<int> outTargetIndices,
+  }) {
+    broadphase.queryAabbMinMax(
+      minX: centerX - halfX,
+      minY: centerY - halfY,
+      maxX: centerX + halfX,
+      maxY: centerY + halfY,
+      outTargetIndices: _candidates,
+    );
+
+    outTargetIndices.clear();
+    if (_candidates.isEmpty) return;
+
+    _sortCandidatesByEntityId(broadphase);
+
+    for (var i = 0; i < _candidates.length; i += 1) {
+      final targetIndex = _candidates[i];
+      final target = broadphase.targets.entities[targetIndex];
+      if (target == owner) continue;
+
+      if (isFriendlyFire(sourceFaction, broadphase.targets.factions[targetIndex])) {
+        continue;
+      }
+
+      if (!aabbOverlapsCenters(
+        aCenterX: centerX,
+        aCenterY: centerY,
+        aHalfX: halfX,
+        aHalfY: halfY,
+        bCenterX: broadphase.targets.centerX[targetIndex],
+        bCenterY: broadphase.targets.centerY[targetIndex],
+        bHalfX: broadphase.targets.halfX[targetIndex],
+        bHalfY: broadphase.targets.halfY[targetIndex],
+      )) {
+        continue;
+      }
+
+      outTargetIndices.add(targetIndex);
+    }
+  }
+
+  /// Returns the first overlapping target index (into `broadphase.targets`) in
+  /// deterministic order, or null if there is no hit.
+  int? firstOrderedOverlapCenters({
+    required BroadphaseGrid broadphase,
+    required double centerX,
+    required double centerY,
+    required double halfX,
+    required double halfY,
+    required EntityId owner,
+    required Faction sourceFaction,
+  }) {
+    broadphase.queryAabbMinMax(
+      minX: centerX - halfX,
+      minY: centerY - halfY,
+      maxX: centerX + halfX,
+      maxY: centerY + halfY,
+      outTargetIndices: _candidates,
+    );
+    if (_candidates.isEmpty) return null;
+
+    _sortCandidatesByEntityId(broadphase);
+
+    for (var i = 0; i < _candidates.length; i += 1) {
+      final targetIndex = _candidates[i];
+      final target = broadphase.targets.entities[targetIndex];
+      if (target == owner) continue;
+
+      if (isFriendlyFire(sourceFaction, broadphase.targets.factions[targetIndex])) {
+        continue;
+      }
+
+      if (!aabbOverlapsCenters(
+        aCenterX: centerX,
+        aCenterY: centerY,
+        aHalfX: halfX,
+        aHalfY: halfY,
+        bCenterX: broadphase.targets.centerX[targetIndex],
+        bCenterY: broadphase.targets.centerY[targetIndex],
+        bHalfX: broadphase.targets.halfX[targetIndex],
+        bHalfY: broadphase.targets.halfY[targetIndex],
+      )) {
+        continue;
+      }
+
+      return targetIndex;
+    }
+
+    return null;
+  }
+
+  void _sortCandidatesByEntityId(BroadphaseGrid broadphase) {
+    _candidates.sort(
+      (a, b) => broadphase.targets.entities[a].compareTo(
+        broadphase.targets.entities[b],
+      ),
+    );
+  }
 }
 
 
@@ -1281,7 +1514,7 @@ class EnemyStore extends SparseSet {
 
   @override
   void onDenseAdded(int denseIndex) {
-    enemyId.add(EnemyId.demon);
+    enemyId.add(EnemyId.flyingEnemy);
     facing.add(Facing.left);
   }
 
@@ -1328,6 +1561,121 @@ class FactionStore extends SparseSet {
   }
 }
 
+
+
+===== FILE: lib/core/ecs/stores/flying_enemy_steering_store.dart =====
+import '../entity_id.dart';
+import '../sparse_set.dart';
+
+class FlyingEnemySteeringDef {
+  const FlyingEnemySteeringDef({
+    required this.rngState,
+  });
+
+  final int rngState;
+}
+
+/// Per flying enemy steering state for deterministic hover behavior.
+class FlyingEnemySteeringStore extends SparseSet {
+  final List<int> rngState = <int>[];
+  final List<bool> initialized = <bool>[];
+  final List<double> desiredRange = <double>[];
+  final List<double> desiredRangeHoldLeftS = <double>[];
+  final List<double> flightTargetAboveGround = <double>[];
+  final List<double> flightTargetHoldLeftS = <double>[];
+
+  void add(EntityId entity, FlyingEnemySteeringDef def) {
+    final i = addEntity(entity);
+    rngState[i] = def.rngState;
+    initialized[i] = false;
+    desiredRange[i] = 0.0;
+    desiredRangeHoldLeftS[i] = 0.0;
+    flightTargetAboveGround[i] = 0.0;
+    flightTargetHoldLeftS[i] = 0.0;
+  }
+
+  @override
+  void onDenseAdded(int denseIndex) {
+    rngState.add(1);
+    initialized.add(false);
+    desiredRange.add(0.0);
+    desiredRangeHoldLeftS.add(0.0);
+    flightTargetAboveGround.add(0.0);
+    flightTargetHoldLeftS.add(0.0);
+  }
+
+  @override
+  void onSwapRemove(int removeIndex, int lastIndex) {
+    rngState[removeIndex] = rngState[lastIndex];
+    initialized[removeIndex] = initialized[lastIndex];
+    desiredRange[removeIndex] = desiredRange[lastIndex];
+    desiredRangeHoldLeftS[removeIndex] = desiredRangeHoldLeftS[lastIndex];
+    flightTargetAboveGround[removeIndex] = flightTargetAboveGround[lastIndex];
+    flightTargetHoldLeftS[removeIndex] = flightTargetHoldLeftS[lastIndex];
+
+    rngState.removeLast();
+    initialized.removeLast();
+    desiredRange.removeLast();
+    desiredRangeHoldLeftS.removeLast();
+    flightTargetAboveGround.removeLast();
+    flightTargetHoldLeftS.removeLast();
+  }
+}
+
+
+===== FILE: lib/core/ecs/stores/gravity_control_store.dart =====
+import '../entity_id.dart';
+import '../sparse_set.dart';
+
+class GravityControlStore extends SparseSet {
+  final List<int> suppressGravityTicksLeft = <int>[];
+
+  void setSuppressForTicks(EntityId entity, int ticks) {
+    if (ticks <= 0) {
+      removeEntity(entity);
+      return;
+    }
+
+    final i = addEntity(entity);
+    suppressGravityTicksLeft[i] = ticks;
+  }
+
+  @override
+  void onDenseAdded(int denseIndex) {
+    suppressGravityTicksLeft.add(0);
+  }
+
+  @override
+  void onSwapRemove(int removeIndex, int lastIndex) {
+    suppressGravityTicksLeft[removeIndex] = suppressGravityTicksLeft[lastIndex];
+    suppressGravityTicksLeft.removeLast();
+  }
+}
+
+
+===== FILE: lib/core/ecs/stores/ground_enemy_locomotion_store.dart =====
+import '../entity_id.dart';
+import '../sparse_set.dart';
+
+class GroundEnemyLocomotionStore extends SparseSet {
+  final List<int> jumpCooldownTicksLeft = <int>[];
+
+  void add(EntityId entity) {
+    final i = addEntity(entity);
+    jumpCooldownTicksLeft[i] = 0;
+  }
+
+  @override
+  void onDenseAdded(int denseIndex) {
+    jumpCooldownTicksLeft.add(0);
+  }
+
+  @override
+  void onSwapRemove(int removeIndex, int lastIndex) {
+    jumpCooldownTicksLeft[removeIndex] = jumpCooldownTicksLeft[lastIndex];
+    jumpCooldownTicksLeft.removeLast();
+  }
+}
 
 
 ===== FILE: lib/core/ecs/stores/health_store.dart =====
@@ -2109,7 +2457,8 @@ import '../world.dart';
 /// Integrates positions and resolves collisions (V0: ground band only).
 ///
 /// Order within a tick:
-/// - PlayerMovementSystem computes velocities (including gravity, jump/dash).
+/// - PlayerMovementSystem computes control velocities (jump/dash/horizontal).
+/// - GravitySystem applies vertical gravity acceleration.
 /// - CollisionSystem integrates `pos += vel * dt`, resolves collisions, and
 ///   finalizes grounded/contact state for the tick.
 class CollisionSystem {
@@ -2361,8 +2710,11 @@ class DamageSystem {
 import '../../enemies/enemy_id.dart';
 import '../../snapshots/enums.dart';
 import '../../spells/spell_id.dart';
-import '../../tuning/v0_enemy_tuning.dart';
+import '../../tuning/v0_flying_enemy_tuning.dart';
+import '../../tuning/v0_ground_enemy_tuning.dart';
+import '../../util/deterministic_rng.dart';
 import '../../util/double_math.dart';
+import '../../util/velocity_math.dart';
 import '../entity_id.dart';
 import '../stores/cast_intent_store.dart';
 import '../stores/melee_intent_store.dart';
@@ -2370,15 +2722,18 @@ import '../world.dart';
 
 class EnemySystem {
   EnemySystem({
-    required this.tuning,
+    required this.flyingEnemyTuning,
+    required this.groundEnemyTuning,
   });
 
-  final V0EnemyTuningDerived tuning;
+  final V0FlyingEnemyTuningDerived flyingEnemyTuning;
+  final V0GroundEnemyTuningDerived groundEnemyTuning;
 
   void stepSteering(
     EcsWorld world, {
     required EntityId player,
     required double groundTopY,
+    required double dtSeconds,
   }) {
     if (!world.transform.has(player)) return;
 
@@ -2396,8 +2751,8 @@ class EnemySystem {
       final ey = world.transform.posY[ti];
 
       switch (enemies.enemyId[ei]) {
-        case EnemyId.demon:
-          _steerDemon(
+        case EnemyId.flyingEnemy:
+          _steerFlyingEnemy(
             world,
             enemyIndex: ei,
             enemy: e,
@@ -2407,15 +2762,17 @@ class EnemySystem {
             ex: ex,
             ey: ey,
             groundTopY: groundTopY,
+            dtSeconds: dtSeconds,
           );
-        case EnemyId.fireWorm:
-          _steerFireWorm(
+        case EnemyId.groundEnemy:
+          _steerGroundEnemy(
             world,
             enemyIndex: ei,
             enemy: e,
             enemyTi: ti,
             playerX: playerX,
             ex: ex,
+            dtSeconds: dtSeconds,
           );
       }
     }
@@ -2438,8 +2795,8 @@ class EnemySystem {
       final ey = world.transform.posY[ti];
 
       switch (enemies.enemyId[ei]) {
-        case EnemyId.demon:
-          _writeDemonCastIntent(
+        case EnemyId.flyingEnemy:
+          _writeFlyingEnemyCastIntent(
             world,
             enemy: e,
             ex: ex,
@@ -2448,8 +2805,8 @@ class EnemySystem {
             playerY: playerY,
             currentTick: currentTick,
           );
-        case EnemyId.fireWorm:
-          _writeFireWormMeleeIntent(
+        case EnemyId.groundEnemy:
+          _writeGroundEnemyMeleeIntent(
             world,
             enemy: e,
             enemyIndex: ei,
@@ -2462,7 +2819,7 @@ class EnemySystem {
     }
   }
 
-  void _steerDemon(
+  void _steerFlyingEnemy(
     EcsWorld world, {
     required int enemyIndex,
     required EntityId enemy,
@@ -2472,59 +2829,190 @@ class EnemySystem {
     required double ex,
     required double ey,
     required double groundTopY,
+    required double dtSeconds,
   }) {
+    if (dtSeconds <= 0.0) return;
+    final tuning = flyingEnemyTuning;
+    if (!world.flyingEnemySteering.has(enemy)) {
+      assert(
+        false,
+        'EnemySystem requires FlyingEnemySteeringStore on flying enemies; add it at spawn time.',
+      );
+      return;
+    }
+
+    final steering = world.flyingEnemySteering;
+    final si = steering.indexOf(enemy);
+
+    var rngState = steering.rngState[si];
+    double nextRange(double min, double max) {
+      rngState = nextUint32(rngState);
+      return rangeDouble(rngState, min, max);
+    }
+
+    if (!steering.initialized[si]) {
+      steering.initialized[si] = true;
+      steering.desiredRangeHoldLeftS[si] = nextRange(
+        tuning.base.flyingEnemyDesiredRangeHoldMinSeconds,
+        tuning.base.flyingEnemyDesiredRangeHoldMaxSeconds,
+      );
+      steering.desiredRange[si] = nextRange(
+        tuning.base.flyingEnemyDesiredRangeMin,
+        tuning.base.flyingEnemyDesiredRangeMax,
+      );
+      steering.flightTargetHoldLeftS[si] = 0.0;
+      steering.flightTargetAboveGround[si] = nextRange(
+        tuning.base.flyingEnemyMinHeightAboveGround,
+        tuning.base.flyingEnemyMaxHeightAboveGround,
+      );
+    }
+
+    var desiredRangeHoldLeftS = steering.desiredRangeHoldLeftS[si];
+    var desiredRange = steering.desiredRange[si];
+
+    // Hold desired range target.
+    if (desiredRangeHoldLeftS > 0.0) {
+      desiredRangeHoldLeftS -= dtSeconds;
+    } else {
+      desiredRangeHoldLeftS = nextRange(
+        tuning.base.flyingEnemyDesiredRangeHoldMinSeconds,
+        tuning.base.flyingEnemyDesiredRangeHoldMaxSeconds,
+      );
+      desiredRange = nextRange(
+        tuning.base.flyingEnemyDesiredRangeMin,
+        tuning.base.flyingEnemyDesiredRangeMax,
+      );
+    }
+
     final dx = playerX - ex;
     final distX = dx.abs();
     if (distX > 1e-6) {
       world.enemy.facing[enemyIndex] = dx >= 0 ? Facing.right : Facing.left;
     }
 
-    final desiredRange = tuning.base.demonDesiredRangeX;
-    final slack = tuning.base.demonRangeSlack;
-    final maxSpeedX = tuning.base.demonMaxSpeedX;
-
+    final slack = tuning.base.flyingEnemyHoldSlack;
     double desiredVelX = 0.0;
-    if (distX > desiredRange + slack) {
-      desiredVelX = (dx >= 0 ? 1.0 : -1.0) * maxSpeedX;
-    } else if (distX < desiredRange - slack) {
-      desiredVelX = (dx >= 0 ? -1.0 : 1.0) * maxSpeedX;
+    if (distX > 1e-6) {
+      final dirToPlayerX = dx >= 0 ? 1.0 : -1.0;
+      final error = distX - desiredRange;
+
+      if (error.abs() > slack) {
+        final slowRadiusX = tuning.base.flyingEnemySlowRadiusX;
+        final t = slowRadiusX > 0.0
+            ? clampDouble((error.abs() - slack) / slowRadiusX, 0.0, 1.0)
+            : 1.0;
+        final speed = t * tuning.base.flyingEnemyMaxSpeedX;
+        desiredVelX = (error > 0.0 ? dirToPlayerX : -dirToPlayerX) * speed;
+      }
     }
 
-    final targetY = groundTopY - tuning.base.demonHoverOffsetY;
+    var flightTargetHoldLeftS = steering.flightTargetHoldLeftS[si];
+    var flightTargetAboveGround = steering.flightTargetAboveGround[si];
+    if (flightTargetHoldLeftS > 0.0) {
+      flightTargetHoldLeftS -= dtSeconds;
+    } else {
+      flightTargetHoldLeftS = nextRange(
+        tuning.base.flyingEnemyFlightTargetHoldMinSeconds,
+        tuning.base.flyingEnemyFlightTargetHoldMaxSeconds,
+      );
+      flightTargetAboveGround = nextRange(
+        tuning.base.flyingEnemyMinHeightAboveGround,
+        tuning.base.flyingEnemyMaxHeightAboveGround,
+      );
+    }
+
+    final targetY = groundTopY - flightTargetAboveGround;
     final deltaY = targetY - ey;
     double desiredVelY = clampDouble(
-      deltaY * tuning.base.demonVerticalKp,
-      -tuning.base.demonMaxSpeedY,
-      tuning.base.demonMaxSpeedY,
+      deltaY * tuning.base.flyingEnemyVerticalKp,
+      -tuning.base.flyingEnemyMaxSpeedY,
+      tuning.base.flyingEnemyMaxSpeedY,
     );
-    if (deltaY.abs() <= tuning.base.demonVerticalDeadzone) {
+    if (deltaY.abs() <= tuning.base.flyingEnemyVerticalDeadzone) {
       desiredVelY = 0.0;
     }
 
-    world.transform.velX[enemyTi] = desiredVelX;
+    final currentVelX = world.transform.velX[enemyTi];
+    world.transform.velX[enemyTi] = applyAccelDecel(
+      current: currentVelX,
+      desired: desiredVelX,
+      dtSeconds: dtSeconds,
+      accelPerSecond: tuning.base.flyingEnemyAccelX,
+      decelPerSecond: tuning.base.flyingEnemyDecelX,
+    );
     world.transform.velY[enemyTi] = desiredVelY;
+
+    steering.desiredRangeHoldLeftS[si] = desiredRangeHoldLeftS;
+    steering.desiredRange[si] = desiredRange;
+    steering.flightTargetHoldLeftS[si] = flightTargetHoldLeftS;
+    steering.flightTargetAboveGround[si] = flightTargetAboveGround;
+    steering.rngState[si] = rngState;
   }
 
-  void _steerFireWorm(
+  void _steerGroundEnemy(
     EcsWorld world, {
     required int enemyIndex,
     required EntityId enemy,
     required int enemyTi,
     required double playerX,
     required double ex,
+    required double dtSeconds,
   }) {
+    if (dtSeconds <= 0.0) return;
     final dx = playerX - ex;
-    if (dx.abs() <= tuning.base.fireWormStopDistanceX) {
-      world.transform.velX[enemyTi] = 0.0;
+    final tuning = groundEnemyTuning;
+
+    final li = world.groundEnemyLocomotion.tryIndexOf(enemy);
+    if (li == null) {
+      assert(
+        false,
+        'EnemySystem requires GroundEnemyLocomotionStore on ground enemies; add it at spawn time.',
+      );
       return;
     }
 
-    final dirX = dx >= 0 ? 1.0 : -1.0;
-    world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
-    world.transform.velX[enemyTi] = dirX * tuning.base.fireWormSpeedX;
+    var jumpCooldownTicksLeft =
+        world.groundEnemyLocomotion.jumpCooldownTicksLeft[li];
+    if (jumpCooldownTicksLeft > 0) {
+      jumpCooldownTicksLeft -= 1;
+    }
+
+    double desiredVelX = 0.0;
+    if (dx.abs() > tuning.base.groundEnemyStopDistanceX) {
+      final dirX = dx >= 0 ? 1.0 : -1.0;
+      world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
+      desiredVelX = dirX * tuning.base.groundEnemySpeedX;
+    }
+
+    // Jump if we were blocked by a wall on the previous tick while grounded.
+    final coli = world.collision.tryIndexOf(enemy);
+    final wasGrounded = coli != null && world.collision.grounded[coli];
+    final blockedRight = coli != null && world.collision.hitRight[coli] && dx > 0;
+    final blockedLeft = coli != null && world.collision.hitLeft[coli] && dx < 0;
+    final blocked = blockedRight || blockedLeft;
+    final canJump = wasGrounded &&
+        blocked &&
+        jumpCooldownTicksLeft == 0 &&
+        tuning.groundEnemyJumpCooldownTicks > 0;
+    if (canJump) {
+      world.transform.velY[enemyTi] = -tuning.base.groundEnemyJumpSpeed;
+      jumpCooldownTicksLeft = tuning.groundEnemyJumpCooldownTicks;
+    }
+
+    final currentVelX = world.transform.velX[enemyTi];
+    world.transform.velX[enemyTi] = applyAccelDecel(
+      current: currentVelX,
+      desired: desiredVelX,
+      dtSeconds: dtSeconds,
+      accelPerSecond: tuning.base.groundEnemyAccelX,
+      decelPerSecond: tuning.base.groundEnemyDecelX,
+    );
+
+    world.groundEnemyLocomotion.jumpCooldownTicksLeft[li] =
+        jumpCooldownTicksLeft;
   }
 
-  void _writeDemonCastIntent(
+  void _writeFlyingEnemyCastIntent(
     EcsWorld world, {
       required EntityId enemy,
       required double ex,
@@ -2533,6 +3021,7 @@ class EnemySystem {
       required double playerY,
       required int currentTick,
     }) {
+    final tuning = flyingEnemyTuning;
     if (!world.castIntent.has(enemy)) {
       assert(
         false,
@@ -2553,14 +3042,14 @@ class EnemySystem {
         dirY: playerY - ey,
         fallbackDirX: 1.0,
         fallbackDirY: 0.0,
-        originOffset: tuning.base.demonCastOriginOffset,
-        cooldownTicks: tuning.demonCastCooldownTicks,
+        originOffset: tuning.base.flyingEnemyCastOriginOffset,
+        cooldownTicks: tuning.flyingEnemyCastCooldownTicks,
         tick: currentTick,
       ),
     );
   }
 
-  void _writeFireWormMeleeIntent(
+  void _writeGroundEnemyMeleeIntent(
     EcsWorld world, {
       required EntityId enemy,
       required int enemyIndex,
@@ -2569,6 +3058,7 @@ class EnemySystem {
       required double playerX,
       required int currentTick,
     }) {
+    final tuning = groundEnemyTuning;
     if (!world.meleeIntent.has(enemy)) {
       assert(
         false,
@@ -2579,18 +3069,18 @@ class EnemySystem {
     if (!world.colliderAabb.has(enemy)) {
       assert(
         false,
-        'FireWorm melee requires ColliderAabbStore on the enemy to compute hitbox offset.',
+        'GroundEnemy melee requires ColliderAabbStore on the enemy to compute hitbox offset.',
       );
       return;
     }
     final dx = (playerX - ex).abs();
-    if (dx > tuning.base.fireWormMeleeRangeX) return;
+    if (dx > tuning.base.groundEnemyMeleeRangeX) return;
 
     final facing = world.enemy.facing[enemyIndex];
     final dirX = facing == Facing.right ? 1.0 : -1.0;
 
-    final halfX = tuning.base.fireWormMeleeHitboxSizeX * 0.5;
-    final halfY = tuning.base.fireWormMeleeHitboxSizeY * 0.5;
+    final halfX = tuning.base.groundEnemyMeleeHitboxSizeX * 0.5;
+    final halfY = tuning.base.groundEnemyMeleeHitboxSizeY * 0.5;
 
     final ownerHalfX = world.colliderAabb.halfX[world.colliderAabb.indexOf(enemy)];
     final offsetX = dirX * (ownerHalfX * 0.5 + halfX);
@@ -2599,17 +3089,75 @@ class EnemySystem {
     world.meleeIntent.set(
       enemy,
       MeleeIntentDef(
-        damage: tuning.base.fireWormMeleeDamage,
+        damage: tuning.base.groundEnemyMeleeDamage,
         halfX: halfX,
         halfY: halfY,
         offsetX: offsetX,
         offsetY: offsetY,
-        activeTicks: tuning.fireWormMeleeActiveTicks,
-        cooldownTicks: tuning.fireWormMeleeCooldownTicks,
+        activeTicks: tuning.groundEnemyMeleeActiveTicks,
+        cooldownTicks: tuning.groundEnemyMeleeCooldownTicks,
         staminaCost: 0.0,
         tick: currentTick,
       ),
     );
+  }
+}
+
+
+===== FILE: lib/core/ecs/systems/gravity_system.dart =====
+import '../../tuning/v0_movement_tuning.dart';
+import '../../tuning/v0_physics_tuning.dart';
+import '../world.dart';
+
+/// Applies gravity to all enabled, non-kinematic bodies that opt into gravity.
+///
+/// Gravity is applied before collision integration/resolution each tick.
+class GravitySystem {
+  void step(
+    EcsWorld world,
+    V0MovementTuningDerived movement, {
+    required V0PhysicsTuning physics,
+  }) {
+    final dt = movement.dtSeconds;
+    if (dt <= 0.0) return;
+
+    final gravityY = physics.gravityY;
+    final bodies = world.body;
+
+    for (var bi = 0; bi < bodies.denseEntities.length; bi += 1) {
+      final e = bodies.denseEntities[bi];
+
+      final ti = world.transform.tryIndexOf(e);
+      if (ti == null) continue;
+
+      if (!bodies.enabled[bi]) continue;
+      if (bodies.isKinematic[bi]) continue;
+      if (!bodies.useGravity[bi]) continue;
+
+      final gci = world.gravityControl.tryIndexOf(e);
+      if (gci != null) {
+        final left = world.gravityControl.suppressGravityTicksLeft[gci];
+        if (left > 0) {
+          final nextLeft = left - 1;
+          if (nextLeft <= 0) {
+            world.gravityControl.removeEntity(e);
+          } else {
+            world.gravityControl.suppressGravityTicksLeft[gci] = nextLeft;
+          }
+          continue;
+        } else {
+          world.gravityControl.removeEntity(e);
+        }
+      }
+
+      final scaledGravityY = gravityY * bodies.gravityScale[bi];
+      world.transform.velY[ti] += scaledGravityY * dt;
+
+      final maxVelY = bodies.maxVelY[bi];
+      world.transform.velY[ti] = world.transform.velY[ti]
+          .clamp(-maxVelY, maxVelY)
+          .toDouble();
+    }
   }
 }
 
@@ -2649,12 +3197,13 @@ class HealthDespawnSystem {
 
 ===== FILE: lib/core/ecs/systems/hitbox_damage_system.dart =====
 import '../../combat/damage.dart';
-import '../hit/aabb_hit_utils.dart';
+import '../hit/hit_resolver.dart';
 import '../spatial/broadphase_grid.dart';
 import '../world.dart';
 
 class HitboxDamageSystem {
-  final List<int> _candidateTargets = <int>[];
+  final HitResolver _resolver = HitResolver();
+  final List<int> _overlaps = <int>[];
 
   void step(
     EcsWorld world,
@@ -2680,42 +3229,21 @@ class HitboxDamageSystem {
       final owner = hitboxes.owner[hi];
       final sourceFaction = hitboxes.faction[hi];
 
-      broadphase.queryAabbMinMax(
-        minX: hbCx - hbHalfX,
-        minY: hbCy - hbHalfY,
-        maxX: hbCx + hbHalfX,
-        maxY: hbCy + hbHalfY,
-        outTargetIndices: _candidateTargets,
+      _resolver.collectOrderedOverlapsCenters(
+        broadphase: broadphase,
+        centerX: hbCx,
+        centerY: hbCy,
+        halfX: hbHalfX,
+        halfY: hbHalfY,
+        owner: owner,
+        sourceFaction: sourceFaction,
+        outTargetIndices: _overlaps,
       );
-      if (_candidateTargets.isEmpty) continue;
+      if (_overlaps.isEmpty) continue;
 
-      // Deterministic multi-hit order: sort candidates by EntityId.
-      _candidateTargets.sort(
-        (a, b) => broadphase.targets.entities[a].compareTo(
-          broadphase.targets.entities[b],
-        ),
-      );
-
-      for (var ci = 0; ci < _candidateTargets.length; ci += 1) {
-        final ti = _candidateTargets[ci];
+      for (var i = 0; i < _overlaps.length; i += 1) {
+        final ti = _overlaps[i];
         final target = broadphase.targets.entities[ti];
-        if (target == owner) continue;
-
-        if (isFriendlyFire(sourceFaction, broadphase.targets.factions[ti])) continue;
-
-        if (!aabbOverlapsCenters(
-          aCenterX: hbCx,
-          aCenterY: hbCy,
-          aHalfX: hbHalfX,
-          aHalfY: hbHalfY,
-          bCenterX: broadphase.targets.centerX[ti],
-          bCenterY: broadphase.targets.centerY[ti],
-          bHalfX: broadphase.targets.halfX[ti],
-          bHalfY: broadphase.targets.halfY[ti],
-        )) {
-          continue;
-        }
-
         if (world.hitOnce.hasHit(hb, target)) continue;
         world.hitOnce.markHit(hb, target);
 
@@ -3039,6 +3567,8 @@ class PlayerMeleeSystem {
 import '../../snapshots/enums.dart';
 import '../../tuning/v0_movement_tuning.dart';
 import '../../tuning/v0_resource_tuning.dart';
+import '../../util/velocity_math.dart';
+import '../entity_id.dart';
 import '../queries.dart';
 import '../world.dart';
 
@@ -3092,6 +3622,7 @@ class PlayerMovementSystem {
       if (world.playerInput.dashPressed[ii]) {
         _tryStartDash(
           world,
+          entity: e,
           mi: mi,
           ti: ti,
           ii: ii,
@@ -3126,19 +3657,11 @@ class PlayerMovementSystem {
           }
         }
 
-        // Gravity.
-        if (world.body.useGravity[bi]) {
-          final scaledGravity = t.gravityY * world.body.gravityScale[bi];
-          world.transform.velY[ti] += scaledGravity * dt;
-        }
       }
 
       // Clamp speeds.
       world.transform.velX[ti] = world.transform.velX[ti]
           .clamp(-world.body.maxVelX[bi], world.body.maxVelX[bi])
-          .toDouble();
-      world.transform.velY[ti] = world.transform.velY[ti]
-          .clamp(-world.body.maxVelY[bi], world.body.maxVelY[bi])
           .toDouble();
     });
   }
@@ -3150,27 +3673,20 @@ class PlayerMovementSystem {
     V0MovementTuningDerived tuning,
   ) {
     final t = tuning.base;
-    if (axis != 0) {
-      final desiredX = axis * t.maxSpeedX;
-      final deltaX = desiredX - velocityX;
-      final maxDelta = t.accelerationX * dt;
-      if (deltaX.abs() > maxDelta) {
-        return velocityX + (deltaX > 0 ? maxDelta : -maxDelta);
-      }
-      return desiredX;
-    }
-
-    final speedX = velocityX.abs();
-    if (speedX <= 0) return 0;
-    final drop = t.decelerationX * dt;
-    if (speedX <= drop || speedX <= t.minMoveSpeed) {
-      return 0;
-    }
-    return velocityX + (velocityX > 0 ? -drop : drop);
+    final desiredX = axis == 0.0 ? 0.0 : axis * t.maxSpeedX;
+    return applyAccelDecel(
+      current: velocityX,
+      desired: desiredX,
+      dtSeconds: dt,
+      accelPerSecond: t.accelerationX,
+      decelPerSecond: t.decelerationX,
+      minStopSpeed: t.minMoveSpeed,
+    );
   }
 
   void _tryStartDash(
     EcsWorld world, {
+    required EntityId entity,
     required int mi,
     required int ti,
     required int ii,
@@ -3195,6 +3711,7 @@ class PlayerMovementSystem {
 
     // Cancel vertical motion so dash doesn't inherit jump/fall.
     world.transform.velY[ti] = 0;
+    world.gravityControl.setSuppressForTicks(entity, tuning.dashDurationTicks);
 
     world.stamina.stamina[si] -= staminaCost;
   }
@@ -3204,13 +3721,13 @@ class PlayerMovementSystem {
 ===== FILE: lib/core/ecs/systems/projectile_hit_system.dart =====
 import '../../combat/damage.dart';
 import '../entity_id.dart';
-import '../hit/aabb_hit_utils.dart';
+import '../hit/hit_resolver.dart';
 import '../spatial/broadphase_grid.dart';
 import '../world.dart';
 
 class ProjectileHitSystem {
   final List<EntityId> _toDespawn = <EntityId>[];
-  final List<int> _candidateTargets = <int>[];
+  final HitResolver _resolver = HitResolver();
 
   void step(
     EcsWorld world,
@@ -3239,52 +3756,22 @@ class ProjectileHitSystem {
       final owner = projectiles.owner[pi];
       final sourceFaction = projectiles.faction[pi];
 
-      broadphase.queryAabbMinMax(
-        minX: pcx - phx,
-        minY: pcy - phy,
-        maxX: pcx + phx,
-        maxY: pcy + phy,
-        outTargetIndices: _candidateTargets,
+      final targetIndex = _resolver.firstOrderedOverlapCenters(
+        broadphase: broadphase,
+        centerX: pcx,
+        centerY: pcy,
+        halfX: phx,
+        halfY: phy,
+        owner: owner,
+        sourceFaction: sourceFaction,
       );
-      if (_candidateTargets.isEmpty) continue;
+      if (targetIndex == null) continue;
 
-      // Deterministic "first hit wins": sort candidates by EntityId.
-      _candidateTargets.sort(
-        (a, b) => broadphase.targets.entities[a].compareTo(
-          broadphase.targets.entities[b],
-        ),
+      final target = broadphase.targets.entities[targetIndex];
+      queueDamage(
+        DamageRequest(target: target, amount: projectiles.damage[pi]),
       );
-
-      var hit = false;
-      for (var ci = 0; ci < _candidateTargets.length; ci += 1) {
-        final ti = _candidateTargets[ci];
-        final target = broadphase.targets.entities[ti];
-        if (target == owner) continue;
-
-        if (isFriendlyFire(sourceFaction, broadphase.targets.factions[ti])) continue;
-
-        if (!aabbOverlapsCenters(
-          aCenterX: pcx,
-          aCenterY: pcy,
-          aHalfX: phx,
-          aHalfY: phy,
-          bCenterX: broadphase.targets.centerX[ti],
-          bCenterY: broadphase.targets.centerY[ti],
-          bHalfX: broadphase.targets.halfX[ti],
-          bHalfY: broadphase.targets.halfY[ti],
-        )) {
-          continue;
-        }
-
-        queueDamage(
-          DamageRequest(target: target, amount: projectiles.damage[pi]),
-        );
-        _toDespawn.add(p);
-        hit = true;
-        break;
-      }
-
-      if (hit) continue;
+      _toDespawn.add(p);
     }
 
     for (final e in _toDespawn) {
@@ -3468,6 +3955,9 @@ import 'stores/collider_aabb_store.dart';
 import 'stores/collision_state_store.dart';
 import 'stores/cooldown_store.dart';
 import 'stores/cast_intent_store.dart';
+import 'stores/gravity_control_store.dart';
+import 'stores/flying_enemy_steering_store.dart';
+import 'stores/ground_enemy_locomotion_store.dart';
 import 'stores/faction_store.dart';
 import 'stores/enemy_store.dart';
 import 'stores/health_store.dart';
@@ -3484,11 +3974,17 @@ import 'stores/spell_origin_store.dart';
 import 'stores/stamina_store.dart';
 import 'stores/transform_store.dart';
 import '../enemies/enemy_id.dart';
+import '../util/deterministic_rng.dart';
 
 /// Minimal ECS world container (V0).
 ///
 /// Entity IDs are monotonic and never reused.
 class EcsWorld {
+  EcsWorld({int seed = 0}) : seed = seed;
+
+  /// Seed used for deterministic RNG in the core.
+  final int seed;
+
   EntityId _nextEntityId = 1;
 
   final TransformStore transform = TransformStore();
@@ -3499,6 +3995,7 @@ class EcsWorld {
   final CollisionStateStore collision = CollisionStateStore();
   final CooldownStore cooldown = CooldownStore();
   final CastIntentStore castIntent = CastIntentStore();
+  final GravityControlStore gravityControl = GravityControlStore();
   final FactionStore faction = FactionStore();
   final HealthStore health = HealthStore();
   final InvulnerabilityStore invulnerability = InvulnerabilityStore();
@@ -3511,6 +4008,9 @@ class EcsWorld {
   final LifetimeStore lifetime = LifetimeStore();
   final SpellOriginStore spellOrigin = SpellOriginStore();
   final EnemyStore enemy = EnemyStore();
+  final FlyingEnemySteeringStore flyingEnemySteering = FlyingEnemySteeringStore();
+  final GroundEnemyLocomotionStore groundEnemyLocomotion =
+      GroundEnemyLocomotionStore();
 
   EntityId createEntity() {
     final id = _nextEntityId;
@@ -3578,6 +4078,15 @@ class EcsWorld {
     meleeIntent.add(id);
     this.stamina.add(id, stamina);
     enemy.add(id, EnemyDef(enemyId: enemyId, facing: facing));
+    if (enemyId == EnemyId.flyingEnemy) {
+      flyingEnemySteering.add(
+        id,
+        FlyingEnemySteeringDef(rngState: seedFrom(seed, id)),
+      );
+    }
+    if (enemyId == EnemyId.groundEnemy) {
+      groundEnemyLocomotion.add(id);
+    }
     return id;
   }
 
@@ -3590,6 +4099,7 @@ class EcsWorld {
     collision.removeEntity(entity);
     cooldown.removeEntity(entity);
     castIntent.removeEntity(entity);
+    gravityControl.removeEntity(entity);
     faction.removeEntity(entity);
     health.removeEntity(entity);
     invulnerability.removeEntity(entity);
@@ -3602,6 +4112,8 @@ class EcsWorld {
     lifetime.removeEntity(entity);
     spellOrigin.removeEntity(entity);
     enemy.removeEntity(entity);
+    flyingEnemySteering.removeEntity(entity);
+    groundEnemyLocomotion.removeEntity(entity);
   }
 }
 
@@ -3619,7 +4131,8 @@ import 'enemy_id.dart';
 /// IMPORTANT:
 /// - Keeps per-enemy stats in one place to avoid divergence between spawn code,
 ///   tests, and future deterministic spawning.
-/// - AI behavior tuning (cooldowns/speeds/ranges) lives in `V0EnemyTuning`.
+/// - AI behavior tuning (cooldowns/speeds/ranges) lives in
+///   `V0FlyingEnemyTuning` and `V0GroundEnemyTuning`.
 class EnemyArchetype {
   const EnemyArchetype({
     required this.body,
@@ -3641,7 +4154,7 @@ class EnemyCatalog {
 
   EnemyArchetype get(EnemyId id) {
     switch (id) {
-      case EnemyId.demon:
+      case EnemyId.flyingEnemy:
         return const EnemyArchetype(
           body: BodyDef(
             isKinematic: false,
@@ -3656,7 +4169,7 @@ class EnemyCatalog {
           mana: ManaDef(mana: 80.0, manaMax: 80.0, regenPerSecond: 5.0),
           stamina: StaminaDef(stamina: 0.0, staminaMax: 0.0, regenPerSecond: 0.0),
         );
-      case EnemyId.fireWorm:
+      case EnemyId.groundEnemy:
         return const EnemyArchetype(
           body: BodyDef(
             isKinematic: false,
@@ -3677,7 +4190,7 @@ class EnemyCatalog {
 
 ===== FILE: lib/core/enemies/enemy_id.dart =====
 /// Enemy archetype identifiers (protocol-stable for snapshots/networking).
-enum EnemyId { demon, fireWorm }
+enum EnemyId { flyingEnemy, groundEnemy }
 
 
 
@@ -3687,8 +4200,30 @@ enum EnemyId { demon, fireWorm }
 /// Events are transient side effects emitted by the simulation (SFX triggers,
 /// screen shake, spawn/despawn notifications, etc.). Render/UI may consume them
 /// once; gameplay truth still comes from snapshots.
+part 'run_events.dart';
+
 sealed class GameEvent {
   const GameEvent();
+}
+
+
+===== FILE: lib/core/events/run_events.dart =====
+part of 'game_event.dart';
+
+enum RunEndReason {
+  fellBehindCamera,
+}
+
+class RunEndedEvent extends GameEvent {
+  const RunEndedEvent({
+    required this.tick,
+    required this.distance,
+    required this.reason,
+  });
+
+  final int tick;
+  final double distance;
+  final RunEndReason reason;
 }
 
 
@@ -3701,6 +4236,7 @@ sealed class GameEvent {
 import 'dart:math';
 
 import 'commands/command.dart';
+import 'camera/v0_autoscroll_camera.dart';
 import 'collision/static_world_geometry.dart';
 import 'collision/static_world_geometry_index.dart';
 import 'contracts/v0_render_contract.dart';
@@ -3710,6 +4246,7 @@ import 'ecs/spatial/broadphase_grid.dart';
 import 'ecs/spatial/grid_index_2d.dart';
 import 'ecs/systems/collision_system.dart';
 import 'ecs/systems/cooldown_system.dart';
+import 'ecs/systems/gravity_system.dart';
 import 'ecs/systems/player_cast_system.dart';
 import 'ecs/systems/spell_cast_system.dart';
 import 'ecs/systems/damage_system.dart';
@@ -3732,6 +4269,7 @@ import 'ecs/stores/stamina_store.dart';
 import 'ecs/world.dart';
 import 'enemies/enemy_catalog.dart';
 import 'enemies/enemy_id.dart';
+import 'events/game_event.dart';
 import 'math/vec2.dart';
 import 'snapshots/enums.dart';
 import 'snapshots/entity_render_snapshot.dart';
@@ -3740,36 +4278,22 @@ import 'snapshots/player_hud_snapshot.dart';
 import 'snapshots/static_solid_snapshot.dart';
 import 'projectiles/projectile_catalog.dart';
 import 'spells/spell_catalog.dart';
+import 'track/v0_track_streamer.dart';
 import 'tuning/v0_ability_tuning.dart';
 import 'tuning/v0_combat_tuning.dart';
-import 'tuning/v0_enemy_tuning.dart';
+import 'tuning/v0_flying_enemy_tuning.dart';
+import 'tuning/v0_ground_enemy_tuning.dart';
 import 'tuning/v0_movement_tuning.dart';
+import 'tuning/v0_physics_tuning.dart';
 import 'tuning/v0_resource_tuning.dart';
+import 'tuning/v0_camera_tuning.dart';
 import 'tuning/v0_spatial_grid_tuning.dart';
+import 'tuning/v0_track_tuning.dart';
 
 const StaticWorldGeometry v0DefaultStaticWorldGeometry = StaticWorldGeometry(
   groundPlane: StaticGroundPlane(topY: v0GroundTopY * 1.0),
-  solids: <StaticSolid>[
-    // A small one-way platform to validate collisions/visuals.
-    StaticSolid(
-      minX: 120,
-      minY: 200,
-      maxX: 280,
-      maxY: 216,
-      sides: StaticSolid.sideTop,
-      oneWayTop: true,
-    ),
-
-    // A simple obstacle block to validate side collisions + jumping.
-    StaticSolid(
-      minX: 320,
-      minY: 220,
-      maxX: 344,
-      maxY: v0GroundTopY * 1.0,
-      sides: StaticSolid.sideAll,
-      oneWayTop: false,
-    ),
-  ],
+  // Chunk streaming (Milestone 12) supplies platforms/obstacles deterministically.
+  solids: <StaticSolid>[],
 );
 
 /// Minimal placeholder `GameCore` used to validate architecture wiring.
@@ -3781,12 +4305,16 @@ class GameCore {
   GameCore({
     required this.seed,
     this.tickHz = v0DefaultTickHz,
+    V0PhysicsTuning physicsTuning = const V0PhysicsTuning(),
     V0MovementTuning movementTuning = const V0MovementTuning(),
     V0ResourceTuning resourceTuning = const V0ResourceTuning(),
     V0AbilityTuning abilityTuning = const V0AbilityTuning(),
     V0CombatTuning combatTuning = const V0CombatTuning(),
-    V0EnemyTuning enemyTuning = const V0EnemyTuning(),
+    V0FlyingEnemyTuning flyingEnemyTuning = const V0FlyingEnemyTuning(),
+    V0GroundEnemyTuning groundEnemyTuning = const V0GroundEnemyTuning(),
     V0SpatialGridTuning spatialGridTuning = const V0SpatialGridTuning(),
+    V0CameraTuning cameraTuning = const V0CameraTuning(),
+    V0TrackTuning trackTuning = const V0TrackTuning(),
     SpellCatalog spellCatalog = const SpellCatalog(),
     ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
     EnemyCatalog enemyCatalog = const EnemyCatalog(),
@@ -3796,10 +4324,18 @@ class GameCore {
           movementTuning,
           tickHz: tickHz,
        ),
+       _physicsTuning = physicsTuning,
        _resourceTuning = resourceTuning,
        _abilities = V0AbilityTuningDerived.from(abilityTuning, tickHz: tickHz),
        _combat = V0CombatTuningDerived.from(combatTuning, tickHz: tickHz),
-       _enemyTuning = V0EnemyTuningDerived.from(enemyTuning, tickHz: tickHz),
+       _flyingEnemyTuning = V0FlyingEnemyTuningDerived.from(
+         flyingEnemyTuning,
+         tickHz: tickHz,
+       ),
+       _groundEnemyTuning = V0GroundEnemyTuningDerived.from(
+         groundEnemyTuning,
+         tickHz: tickHz,
+       ),
         _spatialGridTuning = spatialGridTuning,
         _spells = spellCatalog,
         _projectiles = ProjectileCatalogDerived.from(
@@ -3807,11 +4343,14 @@ class GameCore {
           tickHz: tickHz,
         ),
         _enemyCatalog = enemyCatalog,
-        staticWorldGeometry = staticWorldGeometry ?? v0DefaultStaticWorldGeometry {
-    _world = EcsWorld();
+        _baseStaticWorldGeometry =
+            staticWorldGeometry ?? v0DefaultStaticWorldGeometry,
+        _trackTuning = trackTuning {
+    _world = EcsWorld(seed: seed);
     _movementSystem = PlayerMovementSystem();
     _collisionSystem = CollisionSystem();
     _cooldownSystem = CooldownSystem();
+    _gravitySystem = GravitySystem();
     _projectileSystem = ProjectileSystem();
     _projectileHitSystem = ProjectileHitSystem();
     _broadphaseGrid = BroadphaseGrid(
@@ -3829,12 +4368,27 @@ class GameCore {
     _spellCastSystem = SpellCastSystem(spells: _spells, projectiles: _projectiles);
     _meleeAttackSystem = MeleeAttackSystem();
     _enemySystem = EnemySystem(
-      tuning: _enemyTuning,
+      flyingEnemyTuning: _flyingEnemyTuning,
+      groundEnemyTuning: _groundEnemyTuning,
+    );
+    _cameraTuning = V0CameraTuningDerived.from(cameraTuning, movement: _movement);
+    _camera = V0AutoscrollCamera(
+      viewWidth: v0VirtualWidth.toDouble(),
+      tuning: _cameraTuning,
+      initial: V0CameraState(
+        centerX: v0VirtualWidth * 0.5,
+        targetX: v0VirtualWidth * 0.5,
+        speedX: 0.0,
+      ),
     );
 
-    final spawnX = 80.0;
+    _staticWorldGeometry = _baseStaticWorldGeometry;
+    _staticWorldIndex = StaticWorldGeometryIndex.from(_staticWorldGeometry);
+    _staticSolidsSnapshot = _buildStaticSolidsSnapshot(_staticWorldGeometry);
+
+    final spawnX = 400.0;
     final spawnY =
-        (this.staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble()) -
+        (_staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble()) -
         _movement.base.playerRadius;
     final defaultBody = BodyDef(
       enabled: true,
@@ -3876,25 +4430,30 @@ class GameCore {
       ),
     );
 
-    // Deterministic enemy spawns for Milestone 7 (no RNG yet).
+    // Milestone 12: stream deterministic chunks (static solids + enemy spawns).
     //
-    // These are intentionally hardcoded so combat systems can be tested and
-    // debugged without introducing spawning determinism and world-gen at once.
-    final groundTopY =
-        this.staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble();
-
-    _spawnDemon(spawnX: spawnX + 220.0, groundTopY: groundTopY);
-    _spawnFireWorm(spawnX: spawnX + 300.0, groundTopY: groundTopY);
+    // If a custom [staticWorldGeometry] was provided (typically tests), keep the
+    // geometry fixed and skip track streaming unless explicitly enabled later.
+    if (staticWorldGeometry == null && _trackTuning.enabled) {
+      final groundTopY = _staticWorldGeometry.groundPlane?.topY ??
+          v0GroundTopY.toDouble();
+      _trackStreamer = V0TrackStreamer(
+        seed: seed,
+        tuning: _trackTuning,
+        groundTopY: groundTopY,
+      );
+      _trackStreamerStep();
+    }
   }
 
-  EntityId _spawnDemon({required double spawnX, required double groundTopY}) {
+  EntityId _spawnFlyingEnemy({required double spawnX, required double groundTopY}) {
     // Enemy spawn stats come from a centralized catalog so these hardcoded spawns
     // don't diverge from future deterministic spawning rules.
-    final archetype = _enemyCatalog.get(EnemyId.demon);
-    final demon = _world.createEnemy(
-      enemyId: EnemyId.demon,
+    final archetype = _enemyCatalog.get(EnemyId.flyingEnemy);
+    final flyingEnemy = _world.createEnemy(
+      enemyId: EnemyId.flyingEnemy,
       posX: spawnX,
-      posY: groundTopY - _enemyTuning.base.demonHoverOffsetY,
+      posY: groundTopY - _flyingEnemyTuning.base.flyingEnemyHoverOffsetY,
       velX: 0.0,
       velY: 0.0,
       facing: Facing.left,
@@ -3906,19 +4465,20 @@ class GameCore {
     );
 
     // Avoid immediate spawn-tick casting (keeps early-game tests stable).
-    _world.cooldown.castCooldownTicksLeft[_world.cooldown.indexOf(demon)] =
-        _enemyTuning.demonCastCooldownTicks;
+    _world.cooldown.castCooldownTicksLeft[
+        _world.cooldown.indexOf(flyingEnemy)] =
+        _flyingEnemyTuning.flyingEnemyCastCooldownTicks;
 
-    return demon;
+    return flyingEnemy;
   }
 
-  EntityId _spawnFireWorm({required double spawnX, required double groundTopY}) {
-    final archetype = _enemyCatalog.get(EnemyId.fireWorm);
+  EntityId _spawnGroundEnemy({required double spawnX, required double groundTopY}) {
+    final archetype = _enemyCatalog.get(EnemyId.groundEnemy);
 
-    // FireWorm uses the archetype, but clamps should stay aligned with the
+    // GroundEnemy uses the archetype, but clamps should stay aligned with the
     // current movement tuning.
     return _world.createEnemy(
-      enemyId: EnemyId.fireWorm,
+      enemyId: EnemyId.groundEnemy,
       posX: spawnX,
       posY: groundTopY - archetype.collider.halfY,
       velX: 0.0,
@@ -3947,39 +4507,36 @@ class GameCore {
   /// Fixed simulation tick frequency.
   final int tickHz;
 
-  /// Static world geometry for this run/session.
-  final StaticWorldGeometry staticWorldGeometry;
-  late final StaticWorldGeometryIndex _staticWorldIndex =
-      StaticWorldGeometryIndex.from(staticWorldGeometry);
+  /// Base static world geometry for this run/session (hand-authored seed state).
+  final StaticWorldGeometry _baseStaticWorldGeometry;
 
-  late final List<StaticSolidSnapshot> _staticSolidsSnapshot =
-      List<StaticSolidSnapshot>.unmodifiable(
-        staticWorldGeometry.solids.map(
-          (s) => StaticSolidSnapshot(
-            minX: s.minX,
-            minY: s.minY,
-            maxX: s.maxX,
-            maxY: s.maxY,
-            sides: s.sides,
-            oneWayTop: s.oneWayTop,
-          ),
-        ),
-      );
+  /// Current static world geometry (base + any streamed chunk solids).
+  StaticWorldGeometry get staticWorldGeometry => _staticWorldGeometry;
+  late StaticWorldGeometry _staticWorldGeometry;
+  late StaticWorldGeometryIndex _staticWorldIndex;
+  late List<StaticSolidSnapshot> _staticSolidsSnapshot;
 
   final V0MovementTuningDerived _movement;
+  final V0PhysicsTuning _physicsTuning;
   final V0ResourceTuning _resourceTuning;
   final V0AbilityTuningDerived _abilities;
   final V0CombatTuningDerived _combat;
-  final V0EnemyTuningDerived _enemyTuning;
+  final V0FlyingEnemyTuningDerived _flyingEnemyTuning;
+  final V0GroundEnemyTuningDerived _groundEnemyTuning;
   final V0SpatialGridTuning _spatialGridTuning;
+  late final V0CameraTuningDerived _cameraTuning;
+  final V0TrackTuning _trackTuning;
   final SpellCatalog _spells;
   final ProjectileCatalogDerived _projectiles;
   final EnemyCatalog _enemyCatalog;
+
+  V0TrackStreamer? _trackStreamer;
 
   late final EcsWorld _world;
   late final PlayerMovementSystem _movementSystem;
   late final CollisionSystem _collisionSystem;
   late final CooldownSystem _cooldownSystem;
+  late final GravitySystem _gravitySystem;
   late final ProjectileSystem _projectileSystem;
   late final ProjectileHitSystem _projectileHitSystem;
   late final BroadphaseGrid _broadphaseGrid;
@@ -3996,12 +4553,18 @@ class GameCore {
   late final PlayerCastSystem _castSystem;
   late final SpellCastSystem _spellCastSystem;
   late final EntityId _player;
+  late final V0AutoscrollCamera _camera;
+
+  final List<GameEvent> _events = <GameEvent>[];
 
   /// Current simulation tick.
   int tick = 0;
 
   /// Whether simulation should advance.
   bool paused = false;
+
+  /// Whether the run has ended (simulation is frozen).
+  bool gameOver = false;
 
   /// Run progression metric (placeholder).
   double distance = 0;
@@ -4080,22 +4643,50 @@ class GameCore {
 
   /// Advances the simulation by exactly one fixed tick.
   void stepOneTick() {
-    if (paused) return;
+    if (paused || gameOver) return;
 
     tick += 1;
+
+    _trackStreamerStep();
+
     _cooldownSystem.step(_world);
     _invulnerabilitySystem.step(_world);
 
     final groundTopY =
         staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble();
-    _enemySystem.stepSteering(_world, player: _player, groundTopY: groundTopY);
+    _enemySystem.stepSteering(
+      _world,
+      player: _player,
+      groundTopY: groundTopY,
+      dtSeconds: _movement.dtSeconds,
+    );
 
     _movementSystem.step(_world, _movement, resources: _resourceTuning);
+    _gravitySystem.step(_world, _movement, physics: _physicsTuning);
     _collisionSystem.step(
       _world,
       _movement,
       staticWorld: _staticWorldIndex,
     );
+
+    distance += max(0.0, playerVelX) * _movement.dtSeconds;
+
+    _camera.updateTick(
+      dtSeconds: _movement.dtSeconds,
+      playerX: playerPosX,
+    );
+    if (_checkFellBehindCamera()) {
+      gameOver = true;
+      paused = true;
+      _events.add(
+        RunEndedEvent(
+          tick: tick,
+          distance: distance,
+          reason: RunEndReason.fellBehindCamera,
+        ),
+      );
+      return;
+    }
 
     // Rebuild broadphase after movement/collision so damageable target positions
     // are final for the tick before any hit queries run.
@@ -4130,7 +4721,82 @@ class GameCore {
     // Cleanup last so effect entities get their full last tick to act.
     _lifetimeSystem.step(_world);
 
-    distance += max(0.0, playerVelX) * _movement.dtSeconds;
+  }
+
+  bool _checkFellBehindCamera() {
+    if (!(_world.transform.has(_player) && _world.colliderAabb.has(_player))) {
+      return false;
+    }
+
+    final ti = _world.transform.indexOf(_player);
+    final ai = _world.colliderAabb.indexOf(_player);
+    final centerX = _world.transform.posX[ti] + _world.colliderAabb.offsetX[ai];
+    final right = centerX + _world.colliderAabb.halfX[ai];
+    return right < _camera.left();
+  }
+
+  void _trackStreamerStep() {
+    final streamer = _trackStreamer;
+    if (streamer == null) return;
+
+    final changed = streamer.step(
+      cameraLeft: _camera.left(),
+      cameraRight: _camera.right(),
+      spawnEnemy: (enemyId, x) {
+        final groundTopY = _staticWorldGeometry.groundPlane?.topY ??
+            v0GroundTopY.toDouble();
+        switch (enemyId) {
+          case EnemyId.flyingEnemy:
+            _spawnFlyingEnemy(spawnX: x, groundTopY: groundTopY);
+          case EnemyId.groundEnemy:
+            _spawnGroundEnemy(spawnX: x, groundTopY: groundTopY);
+        }
+      },
+    );
+
+    if (!changed) return;
+
+    // Rebuild collision index only when geometry changes (spawn/cull).
+    final combinedSolids = <StaticSolid>[
+      ..._baseStaticWorldGeometry.solids,
+      ...streamer.dynamicSolids,
+    ];
+    _setStaticWorldGeometry(
+      StaticWorldGeometry(
+        groundPlane: _baseStaticWorldGeometry.groundPlane,
+        solids: List<StaticSolid>.unmodifiable(combinedSolids),
+      ),
+    );
+  }
+
+  void _setStaticWorldGeometry(StaticWorldGeometry geometry) {
+    _staticWorldGeometry = geometry;
+    _staticWorldIndex = StaticWorldGeometryIndex.from(geometry);
+    _staticSolidsSnapshot = _buildStaticSolidsSnapshot(geometry);
+  }
+
+  static List<StaticSolidSnapshot> _buildStaticSolidsSnapshot(
+    StaticWorldGeometry geometry,
+  ) {
+    return List<StaticSolidSnapshot>.unmodifiable(
+      geometry.solids.map(
+        (s) => StaticSolidSnapshot(
+          minX: s.minX,
+          minY: s.minY,
+          maxX: s.maxX,
+          maxY: s.maxY,
+          sides: s.sides,
+          oneWayTop: s.oneWayTop,
+        ),
+      ),
+    );
+  }
+
+  List<GameEvent> drainEvents() {
+    if (_events.isEmpty) return const <GameEvent>[];
+    final drained = List<GameEvent>.unmodifiable(_events);
+    _events.clear();
+    return drained;
   }
 
   /// Builds an immutable snapshot for render/UI consumption.
@@ -4256,6 +4922,9 @@ class GameCore {
       seed: seed,
       distance: distance,
       paused: paused,
+      gameOver: gameOver,
+      cameraCenterX: _camera.state.centerX,
+      cameraCenterY: v0CameraFixedY,
       hud: PlayerHudSnapshot(
         hp: _world.health.hp[hi],
         hpMax: _world.health.hpMax[hi],
@@ -4505,6 +5174,9 @@ class GameStateSnapshot {
     required this.seed,
     required this.distance,
     required this.paused,
+    required this.gameOver,
+    required this.cameraCenterX,
+    required this.cameraCenterY,
     required this.hud,
     required this.entities,
     required this.staticSolids,
@@ -4521,6 +5193,13 @@ class GameStateSnapshot {
 
   /// Whether the simulation is currently paused.
   final bool paused;
+
+  /// Whether the run has ended (simulation is frozen).
+  final bool gameOver;
+
+  /// Camera center used for rendering this snapshot.
+  final double cameraCenterX;
+  final double cameraCenterY;
 
   /// HUD-only player stats.
   final PlayerHudSnapshot hud;
@@ -4837,6 +5516,354 @@ enum SpellId { iceBolt, lightning }
 
 
 
+===== FILE: lib/core/track/v0_track_streamer.dart =====
+import '../collision/static_world_geometry.dart';
+import '../enemies/enemy_id.dart';
+import '../tuning/v0_track_tuning.dart';
+
+typedef SpawnEnemy = void Function(EnemyId enemyId, double x);
+
+class V0ChunkPattern {
+  const V0ChunkPattern({
+    required this.name,
+    this.platforms = const <_PlatformRel>[],
+    this.obstacles = const <_ObstacleRel>[],
+    this.spawnMarkers = const <_SpawnMarker>[],
+  });
+
+  final String name;
+  final List<_PlatformRel> platforms;
+  final List<_ObstacleRel> obstacles;
+  final List<_SpawnMarker> spawnMarkers;
+}
+
+class V0TrackStreamer {
+  V0TrackStreamer({
+    required this.seed,
+    required this.tuning,
+    required this.groundTopY,
+  }) : _nextChunkIndex = 0,
+       _nextChunkStartX = 0.0;
+
+  final int seed;
+  final V0TrackTuning tuning;
+  final double groundTopY;
+
+  int _nextChunkIndex;
+  double _nextChunkStartX;
+
+  final List<_ActiveChunk> _active = <_ActiveChunk>[];
+  List<StaticSolid> _dynamicSolids = const <StaticSolid>[];
+
+  /// Current streamed solids (excluding any caller-provided base solids).
+  List<StaticSolid> get dynamicSolids => _dynamicSolids;
+
+  /// Advances chunk streaming based on the current camera bounds.
+  ///
+  /// Returns true if the streamed geometry changed (spawn/cull occurred).
+  bool step({
+    required double cameraLeft,
+    required double cameraRight,
+    required SpawnEnemy spawnEnemy,
+  }) {
+    if (!tuning.enabled) return false;
+
+    var changed = false;
+
+    // Spawn new chunks ahead of the camera.
+    final spawnLimitX = cameraRight + tuning.spawnAheadMargin;
+    while (_nextChunkStartX <= spawnLimitX) {
+      final chunkIndex = _nextChunkIndex;
+      final startX = _nextChunkStartX;
+      final endX = startX + tuning.chunkWidth;
+
+      final pattern = _patternFor(seed, chunkIndex);
+      final solids = _buildSolids(pattern, chunkStartX: startX);
+      _active.add(
+        _ActiveChunk(
+          index: chunkIndex,
+          startX: startX,
+          endX: endX,
+          solids: solids,
+        ),
+      );
+
+      _spawnEnemiesForChunk(pattern, chunkIndex, chunkStartX: startX, spawnEnemy: spawnEnemy);
+
+      _nextChunkIndex += 1;
+      _nextChunkStartX += tuning.chunkWidth;
+      changed = true;
+    }
+
+    // Cull old chunks behind the camera.
+    final cullLimitX = cameraLeft - tuning.cullBehindMargin;
+    while (_active.isNotEmpty && _active.first.endX < cullLimitX) {
+      _active.removeAt(0);
+      changed = true;
+    }
+
+    if (changed) {
+      final rebuilt = <StaticSolid>[];
+      for (final c in _active) {
+        rebuilt.addAll(c.solids);
+      }
+      _dynamicSolids = List<StaticSolid>.unmodifiable(rebuilt);
+    }
+
+    return changed;
+  }
+
+  void _spawnEnemiesForChunk(
+    V0ChunkPattern pattern,
+    int chunkIndex, {
+    required double chunkStartX,
+    required SpawnEnemy spawnEnemy,
+  }) {
+    // Safety: keep the early run empty so the player isn't immediately swarmed.
+    if (chunkIndex < 6) return;
+
+    for (var i = 0; i < pattern.spawnMarkers.length; i += 1) {
+      final m = pattern.spawnMarkers[i];
+      assert(_withinChunk(m.x, 0.0), 'Spawn marker out of chunk bounds: ${pattern.name}');
+      assert(_snapped(m.x), 'Spawn marker not snapped to grid: ${pattern.name}');
+      final roll = _mix32(seed ^ (chunkIndex * 0x9e3779b9) ^ (i * 0x85ebca6b) ^ m.salt);
+      if ((roll % 100) >= m.chancePercent) continue;
+
+      final x = chunkStartX + m.x;
+      spawnEnemy(m.enemyId, x);
+    }
+  }
+
+  List<StaticSolid> _buildSolids(
+    V0ChunkPattern pattern, {
+    required double chunkStartX,
+  }) {
+    // Preserve author ordering for determinism (pattern order, then chunk order).
+    final solids = <StaticSolid>[];
+
+    for (final p in pattern.platforms) {
+      assert(_withinChunk(p.x, p.width), 'Platform out of chunk bounds: ${pattern.name}');
+      assert(_snapped(p.x) && _snapped(p.width) && _snapped(p.aboveGroundTop),
+          'Platform not snapped to grid: ${pattern.name}');
+      final topY = groundTopY - p.aboveGroundTop;
+      solids.add(
+        StaticSolid(
+          minX: chunkStartX + p.x,
+          minY: topY,
+          maxX: chunkStartX + p.x + p.width,
+          maxY: topY + p.thickness,
+          sides: StaticSolid.sideTop,
+          oneWayTop: true,
+        ),
+      );
+    }
+
+    for (final o in pattern.obstacles) {
+      assert(_withinChunk(o.x, o.width), 'Obstacle out of chunk bounds: ${pattern.name}');
+      assert(_snapped(o.x) && _snapped(o.width) && _snapped(o.height),
+          'Obstacle not snapped to grid: ${pattern.name}');
+      solids.add(
+        StaticSolid(
+          minX: chunkStartX + o.x,
+          minY: groundTopY - o.height,
+          maxX: chunkStartX + o.x + o.width,
+          maxY: groundTopY,
+          sides: StaticSolid.sideAll,
+          oneWayTop: false,
+        ),
+      );
+    }
+
+    return solids;
+  }
+
+  V0ChunkPattern _patternFor(int seed, int chunkIndex) {
+    // Mild early-game safety: pick from easier patterns for the first few chunks.
+    final isEarly = chunkIndex < 3;
+    final pool = isEarly ? _easyPatterns : _allPatterns;
+    final h = _mix32(seed ^ (chunkIndex * 0x9e3779b9) ^ 0x27d4eb2d);
+    final idx = h % pool.length;
+    return pool[idx];
+  }
+
+  // === Pattern library (authoring-layer) ===
+  //
+  // Notes:
+  // - All coordinates are relative to the chunk start (x in [0, chunkWidth)).
+  // - Y is expressed as "above ground top" (so 48 means 48 units above ground).
+  // - Values are authored on a 16-unit grid for stability.
+
+  static const double _t = 16.0; // platform thickness
+
+  static const List<V0ChunkPattern> _easyPatterns = <V0ChunkPattern>[
+    V0ChunkPattern(
+      name: 'recovery-flat',
+      platforms: <_PlatformRel>[],
+      obstacles: <_ObstacleRel>[],
+      spawnMarkers: <_SpawnMarker>[],
+    ),
+    V0ChunkPattern(
+      name: 'single-low-platform',
+      platforms: <_PlatformRel>[
+        _PlatformRel(x: 160, width: 160, aboveGroundTop: 48, thickness: _t),
+      ],
+      obstacles: <_ObstacleRel>[],
+      spawnMarkers: <_SpawnMarker>[],
+    ),
+    V0ChunkPattern(
+      name: 'two-low-platforms',
+      platforms: <_PlatformRel>[
+        _PlatformRel(x: 64, width: 144, aboveGroundTop: 48, thickness: _t),
+        _PlatformRel(x: 272, width: 144, aboveGroundTop: 64, thickness: _t),
+      ],
+      obstacles: <_ObstacleRel>[],
+      spawnMarkers: <_SpawnMarker>[],
+    ),
+  ];
+
+  static const List<V0ChunkPattern> _allPatterns = <V0ChunkPattern>[
+    // Recovery / breathers.
+    ..._easyPatterns,
+
+    // Platforming (optional; ground is always safe in V0).
+    V0ChunkPattern(
+      name: 'staggered-mid-platforms',
+      platforms: <_PlatformRel>[
+        _PlatformRel(x: 48, width: 160, aboveGroundTop: 64, thickness: _t),
+        _PlatformRel(x: 256, width: 160, aboveGroundTop: 96, thickness: _t),
+      ],
+      spawnMarkers: <_SpawnMarker>[
+        _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 352, chancePercent: 35, salt: 0x01),
+      ],
+    ),
+    V0ChunkPattern(
+      name: 'triple-runner-platforms',
+      platforms: <_PlatformRel>[
+        _PlatformRel(x: 32, width: 128, aboveGroundTop: 48, thickness: _t),
+        _PlatformRel(x: 192, width: 128, aboveGroundTop: 80, thickness: _t),
+        _PlatformRel(x: 352, width: 96, aboveGroundTop: 64, thickness: _t),
+      ],
+      spawnMarkers: <_SpawnMarker>[
+        _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 288, chancePercent: 30, salt: 0x02),
+      ],
+    ),
+    V0ChunkPattern(
+      name: 'high-platform-over-obstacle',
+      platforms: <_PlatformRel>[
+        _PlatformRel(x: 224, width: 192, aboveGroundTop: 112, thickness: _t),
+      ],
+      obstacles: <_ObstacleRel>[
+        _ObstacleRel(x: 128, width: 48, height: 64),
+      ],
+      spawnMarkers: <_SpawnMarker>[
+        _SpawnMarker(enemyId: EnemyId.groundEnemy, x: 320, chancePercent: 45, salt: 0x03),
+      ],
+    ),
+
+    // Obstacles (ground blocks that force a jump/dash).
+    V0ChunkPattern(
+      name: 'single-block',
+      obstacles: <_ObstacleRel>[
+        _ObstacleRel(x: 224, width: 48, height: 64),
+      ],
+      spawnMarkers: <_SpawnMarker>[
+        _SpawnMarker(enemyId: EnemyId.groundEnemy, x: 320, chancePercent: 35, salt: 0x04),
+      ],
+    ),
+    V0ChunkPattern(
+      name: 'double-blocks',
+      obstacles: <_ObstacleRel>[
+        _ObstacleRel(x: 160, width: 32, height: 48),
+        _ObstacleRel(x: 288, width: 48, height: 64),
+      ],
+      spawnMarkers: <_SpawnMarker>[
+        _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 96, chancePercent: 25, salt: 0x05),
+        _SpawnMarker(enemyId: EnemyId.groundEnemy, x: 352, chancePercent: 30, salt: 0x06),
+      ],
+    ),
+  ];
+
+  bool _withinChunk(double x, double width) {
+    return x >= 0.0 && (x + width) <= tuning.chunkWidth;
+  }
+
+  bool _snapped(double v) {
+    final s = tuning.gridSnap;
+    final snapped = (v / s).roundToDouble() * s;
+    return (v - snapped).abs() < 1e-9;
+  }
+}
+
+class _ActiveChunk {
+  const _ActiveChunk({
+    required this.index,
+    required this.startX,
+    required this.endX,
+    required this.solids,
+  });
+
+  final int index;
+  final double startX;
+  final double endX;
+  final List<StaticSolid> solids;
+}
+
+class _PlatformRel {
+  const _PlatformRel({
+    required this.x,
+    required this.width,
+    required this.aboveGroundTop,
+    required this.thickness,
+  }) : assert(width > 0),
+       assert(thickness > 0),
+       assert(aboveGroundTop > 0);
+
+  final double x;
+  final double width;
+  final double aboveGroundTop;
+  final double thickness;
+}
+
+class _ObstacleRel {
+  const _ObstacleRel({
+    required this.x,
+    required this.width,
+    required this.height,
+  }) : assert(width > 0),
+       assert(height > 0);
+
+  final double x;
+  final double width;
+  final double height;
+}
+
+class _SpawnMarker {
+  const _SpawnMarker({
+    required this.enemyId,
+    required this.x,
+    required this.chancePercent,
+    required this.salt,
+  }) : assert(chancePercent >= 0),
+       assert(chancePercent <= 100);
+
+  final EnemyId enemyId;
+  final double x;
+  final int chancePercent;
+  final int salt;
+}
+
+int _mix32(int x) {
+  // MurmurHash3 finalizer-like mix. Keep it explicitly 32-bit.
+  var v = x & 0xffffffff;
+  v ^= (v >> 16);
+  v = (v * 0x7feb352d) & 0xffffffff;
+  v ^= (v >> 15);
+  v = (v * 0x846ca68b) & 0xffffffff;
+  v ^= (v >> 16);
+  return v & 0xffffffff;
+}
+
+
 ===== FILE: lib/core/tuning/v0_ability_tuning.dart =====
 import '../util/tick_math.dart';
 
@@ -4898,6 +5925,67 @@ class V0AbilityTuningDerived {
 }
 
 
+===== FILE: lib/core/tuning/v0_camera_tuning.dart =====
+import 'dart:math';
+
+import 'v0_movement_tuning.dart';
+
+class V0CameraTuning {
+  const V0CameraTuning({
+    this.speedLagMulX = 0.9,
+    this.accelX = 1200.0,
+    this.followThresholdRatio = 0.60,
+    this.catchupLerp = 8.0,
+    this.targetCatchupLerp = 2.5,
+  });
+
+  /// Baseline auto-scroll lags behind `V0MovementTuning.maxSpeedX` by this multiplier.
+  final double speedLagMulX;
+
+  /// Acceleration used to ease camera speed toward its target speed.
+  final double accelX;
+
+  /// Threshold ratio (from left edge) after which the player can pull the camera forward.
+  final double followThresholdRatio;
+
+  /// Smoothing for camera center toward its target (per-second).
+  final double catchupLerp;
+
+  /// Smoothing for camera target toward player (per-second).
+  final double targetCatchupLerp;
+}
+
+class V0CameraTuningDerived {
+  const V0CameraTuningDerived({
+    required this.targetSpeedX,
+    required this.accelX,
+    required this.followThresholdRatio,
+    required this.catchupLerp,
+    required this.targetCatchupLerp,
+  });
+
+  factory V0CameraTuningDerived.from(
+    V0CameraTuning tuning, {
+    required V0MovementTuningDerived movement,
+  }) {
+    final targetSpeedX = max(0.0, movement.base.maxSpeedX * tuning.speedLagMulX);
+    return V0CameraTuningDerived(
+      targetSpeedX: targetSpeedX,
+      accelX: tuning.accelX,
+      followThresholdRatio: tuning.followThresholdRatio,
+      catchupLerp: tuning.catchupLerp,
+      targetCatchupLerp: tuning.targetCatchupLerp,
+    );
+  }
+
+  final double targetSpeedX;
+  final double accelX;
+  final double followThresholdRatio;
+  final double catchupLerp;
+  final double targetCatchupLerp;
+}
+
+
 ===== FILE: lib/core/tuning/v0_combat_tuning.dart =====
 import '../util/tick_math.dart';
 
@@ -4940,99 +6028,170 @@ class V0CombatTuningDerived {
 
 
 
-===== FILE: lib/core/tuning/v0_enemy_tuning.dart =====
+===== FILE: lib/core/tuning/v0_flying_enemy_tuning.dart =====
 import '../util/tick_math.dart';
 
-class V0EnemyTuning {
-  const V0EnemyTuning({
-    this.demonHoverOffsetY = 90.0,
-    this.demonDesiredRangeX = 160.0,
-    this.demonRangeSlack = 20.0,
-    this.demonMaxSpeedX = 180.0,
-    this.demonMaxSpeedY = 120.0,
-    this.demonVerticalKp = 4.0,
-    this.demonVerticalDeadzone = 5.0,
-    this.demonCastCooldownSeconds = 2.0,
-    this.demonCastOriginOffset = 20.0,
-    this.fireWormSpeedX = 140.0,
-    this.fireWormStopDistanceX = 6.0,
-    this.fireWormMeleeRangeX = 26.0,
-    this.fireWormMeleeCooldownSeconds = 1.0,
-    this.fireWormMeleeActiveSeconds = 0.10,
-    this.fireWormMeleeDamage = 15.0,
-    this.fireWormMeleeHitboxSizeX = 28.0,
-    this.fireWormMeleeHitboxSizeY = 16.0,
+class V0FlyingEnemyTuning {
+  const V0FlyingEnemyTuning({
+    this.flyingEnemyHoverOffsetY = 150.0,
+    this.flyingEnemyDesiredRangeMin = 50.0,
+    this.flyingEnemyDesiredRangeMax = 90.0,
+    this.flyingEnemyDesiredRangeHoldMinSeconds = 0.60,
+    this.flyingEnemyDesiredRangeHoldMaxSeconds = 1.40,
+    this.flyingEnemyHoldSlack = 20.0,
+    this.flyingEnemyMaxSpeedX = 300.0,
+    this.flyingEnemySlowRadiusX = 80.0,
+    this.flyingEnemyAccelX = 600.0,
+    this.flyingEnemyDecelX = 400.0,
+    this.flyingEnemyMinHeightAboveGround = 100.0,
+    this.flyingEnemyMaxHeightAboveGround = 240.0,
+    this.flyingEnemyFlightTargetHoldMinSeconds = 1.5,
+    this.flyingEnemyFlightTargetHoldMaxSeconds = 3.0,
+    this.flyingEnemyMaxSpeedY = 300.0,
+    this.flyingEnemyVerticalKp = 4.0,
+    this.flyingEnemyVerticalDeadzone = 20.0,
+    this.flyingEnemyCastCooldownSeconds = 2.0,
+    this.flyingEnemyCastOriginOffset = 20.0,
   });
 
-  // Demon steering.
-  final double demonHoverOffsetY;
-  final double demonDesiredRangeX;
-  final double demonRangeSlack;
-  final double demonMaxSpeedX;
-  final double demonMaxSpeedY;
-  final double demonVerticalKp;
-  final double demonVerticalDeadzone;
+  // Flying enemy steering.
+  final double flyingEnemyHoverOffsetY;
+  final double flyingEnemyDesiredRangeMin;
+  final double flyingEnemyDesiredRangeMax;
+  final double flyingEnemyDesiredRangeHoldMinSeconds;
+  final double flyingEnemyDesiredRangeHoldMaxSeconds;
+  final double flyingEnemyHoldSlack;
+  final double flyingEnemyMaxSpeedX;
+  final double flyingEnemySlowRadiusX;
+  final double flyingEnemyAccelX;
+  final double flyingEnemyDecelX;
+  final double flyingEnemyMinHeightAboveGround;
+  final double flyingEnemyMaxHeightAboveGround;
+  final double flyingEnemyFlightTargetHoldMinSeconds;
+  final double flyingEnemyFlightTargetHoldMaxSeconds;
+  final double flyingEnemyMaxSpeedY;
+  final double flyingEnemyVerticalKp;
+  final double flyingEnemyVerticalDeadzone;
 
-  // Demon attacks.
-  final double demonCastCooldownSeconds;
-  final double demonCastOriginOffset;
-
-  // FireWorm steering.
-  final double fireWormSpeedX;
-  final double fireWormStopDistanceX;
-
-  // FireWorm melee.
-  final double fireWormMeleeRangeX;
-  final double fireWormMeleeCooldownSeconds;
-  final double fireWormMeleeActiveSeconds;
-  final double fireWormMeleeDamage;
-  final double fireWormMeleeHitboxSizeX;
-  final double fireWormMeleeHitboxSizeY;
+  // Flying enemy attacks.
+  final double flyingEnemyCastCooldownSeconds;
+  final double flyingEnemyCastOriginOffset;
 }
 
-class V0EnemyTuningDerived {
-  const V0EnemyTuningDerived._({
+class V0FlyingEnemyTuningDerived {
+  const V0FlyingEnemyTuningDerived._({
     required this.tickHz,
     required this.base,
-    required this.demonCastCooldownTicks,
-    required this.fireWormMeleeCooldownTicks,
-    required this.fireWormMeleeActiveTicks,
+    required this.flyingEnemyCastCooldownTicks,
   });
 
-  factory V0EnemyTuningDerived.from(
-    V0EnemyTuning base, {
+  factory V0FlyingEnemyTuningDerived.from(
+    V0FlyingEnemyTuning base, {
     required int tickHz,
   }) {
     if (tickHz <= 0) {
       throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
     }
 
-    return V0EnemyTuningDerived._(
+    return V0FlyingEnemyTuningDerived._(
       tickHz: tickHz,
       base: base,
-      demonCastCooldownTicks: ticksFromSecondsCeil(
-        base.demonCastCooldownSeconds,
-        tickHz,
-      ),
-      fireWormMeleeCooldownTicks: ticksFromSecondsCeil(
-        base.fireWormMeleeCooldownSeconds,
-        tickHz,
-      ),
-      fireWormMeleeActiveTicks: ticksFromSecondsCeil(
-        base.fireWormMeleeActiveSeconds,
+      flyingEnemyCastCooldownTicks: ticksFromSecondsCeil(
+        base.flyingEnemyCastCooldownSeconds,
         tickHz,
       ),
     );
   }
 
   final int tickHz;
-  final V0EnemyTuning base;
+  final V0FlyingEnemyTuning base;
 
-  final int demonCastCooldownTicks;
-  final int fireWormMeleeCooldownTicks;
-  final int fireWormMeleeActiveTicks;
+  final int flyingEnemyCastCooldownTicks;
 }
 
+
+===== FILE: lib/core/tuning/v0_ground_enemy_tuning.dart =====
+import '../util/tick_math.dart';
+
+class V0GroundEnemyTuning {
+  const V0GroundEnemyTuning({
+    this.groundEnemySpeedX = 260.0,
+    this.groundEnemyStopDistanceX = 6.0,
+    this.groundEnemyAccelX = 600.0,
+    this.groundEnemyDecelX = 400.0,
+    this.groundEnemyJumpSpeed = 600.0,
+    this.groundEnemyJumpCooldownSeconds = 0.5,
+    this.groundEnemyMeleeRangeX = 26.0,
+    this.groundEnemyMeleeCooldownSeconds = 1.0,
+    this.groundEnemyMeleeActiveSeconds = 0.10,
+    this.groundEnemyMeleeDamage = 15.0,
+    this.groundEnemyMeleeHitboxSizeX = 28.0,
+    this.groundEnemyMeleeHitboxSizeY = 16.0,
+  });
+
+  // Ground enemy steering.
+  final double groundEnemySpeedX;
+  final double groundEnemyStopDistanceX;
+  final double groundEnemyAccelX;
+  final double groundEnemyDecelX;
+
+  /// Instantaneous jump vertical speed (negative is upward).
+  final double groundEnemyJumpSpeed;
+
+  /// Cooldown between jump attempts (seconds, ceil to ticks).
+  final double groundEnemyJumpCooldownSeconds;
+
+  // Ground enemy melee.
+  final double groundEnemyMeleeRangeX;
+  final double groundEnemyMeleeCooldownSeconds;
+  final double groundEnemyMeleeActiveSeconds;
+  final double groundEnemyMeleeDamage;
+  final double groundEnemyMeleeHitboxSizeX;
+  final double groundEnemyMeleeHitboxSizeY;
+}
+
+class V0GroundEnemyTuningDerived {
+  const V0GroundEnemyTuningDerived._({
+    required this.tickHz,
+    required this.base,
+    required this.groundEnemyJumpCooldownTicks,
+    required this.groundEnemyMeleeCooldownTicks,
+    required this.groundEnemyMeleeActiveTicks,
+  });
+
+  factory V0GroundEnemyTuningDerived.from(
+    V0GroundEnemyTuning base, {
+    required int tickHz,
+  }) {
+    if (tickHz <= 0) {
+      throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
+    }
+
+    return V0GroundEnemyTuningDerived._(
+      tickHz: tickHz,
+      base: base,
+      groundEnemyJumpCooldownTicks: ticksFromSecondsCeil(
+        base.groundEnemyJumpCooldownSeconds,
+        tickHz,
+      ),
+      groundEnemyMeleeCooldownTicks: ticksFromSecondsCeil(
+        base.groundEnemyMeleeCooldownSeconds,
+        tickHz,
+      ),
+      groundEnemyMeleeActiveTicks: ticksFromSecondsCeil(
+        base.groundEnemyMeleeActiveSeconds,
+        tickHz,
+      ),
+    );
+  }
+
+  final int tickHz;
+  final V0GroundEnemyTuning base;
+
+  final int groundEnemyJumpCooldownTicks;
+  final int groundEnemyMeleeCooldownTicks;
+  final int groundEnemyMeleeActiveTicks;
+}
 
 
 ===== FILE: lib/core/tuning/v0_movement_tuning.dart =====
@@ -5053,19 +6212,18 @@ const int v0DefaultTickHz = 60;
 class V0MovementTuning {
   const V0MovementTuning({
     this.playerRadius = 8,
-    this.maxSpeedX = 500,
-    this.accelerationX = 1200,
-    this.decelerationX = 800,
+    this.maxSpeedX = 250,
+    this.accelerationX = 600,
+    this.decelerationX = 400,
     this.minMoveSpeed = 5,
-    this.gravityY = 2400,
-    this.maxVelX = 3000,
-    this.maxVelY = 3000,
-    this.jumpSpeed = 1200,
+    this.maxVelX = 1500,
+    this.maxVelY = 1500,
+    this.jumpSpeed = 600,
     this.coyoteTimeSeconds = 0.10,
     this.jumpBufferSeconds = 0.12,
-    this.dashSpeedX = 1100,
+    this.dashSpeedX = 550,
     this.dashDurationSeconds = 0.20,
-    this.dashCooldownSeconds = 3.0,
+    this.dashCooldownSeconds = 2.0,
   });
 
   /// Player "collision" radius in world units (used for ground contact in V0).
@@ -5076,9 +6234,6 @@ class V0MovementTuning {
   final double accelerationX;
   final double decelerationX;
   final double minMoveSpeed;
-
-  /// Gravity acceleration (positive is downward).
-  final double gravityY;
 
   /// Speed clamps (safety caps).
   final double maxVelX;
@@ -5136,6 +6291,22 @@ class V0MovementTuningDerived {
   final int dashDurationTicks;
   final int dashCooldownTicks;
 }
+
+
+===== FILE: lib/core/tuning/v0_physics_tuning.dart =====
+/// V0 global physics tuning for the Core simulation.
+///
+/// This is intentionally separate from movement/ability/combat tunings so it can
+/// evolve into per-level/biome physics profiles later (e.g. low-gravity zones).
+class V0PhysicsTuning {
+  const V0PhysicsTuning({
+    this.gravityY = 1200,
+  });
+
+  /// Gravity acceleration (positive is downward), in world units / second^2.
+  final double gravityY;
+}
+
 
 
 ===== FILE: lib/core/tuning/v0_resource_tuning.dart =====
@@ -5199,10 +6370,103 @@ class V0SpatialGridTuning {
 
 
 
+===== FILE: lib/core/tuning/v0_track_tuning.dart =====
+/// V0 track streaming / deterministic chunk spawning configuration.
+///
+/// This is simulation config (Core), not combat/ability tuning.
+class V0TrackTuning {
+  const V0TrackTuning({
+    this.enabled = true,
+    this.chunkWidth = 480.0,
+    this.spawnAheadMargin = 960.0,
+    this.cullBehindMargin = 480.0,
+    this.gridSnap = 16.0,
+  }) : assert(chunkWidth > 0),
+       assert(spawnAheadMargin >= 0),
+       assert(cullBehindMargin >= 0),
+       assert(gridSnap > 0);
+
+  /// If false, no chunk streaming is performed (static world only).
+  final bool enabled;
+
+  /// Width of a chunk in world units.
+  final double chunkWidth;
+
+  /// Spawn chunks while `cameraRight + spawnAheadMargin >= nextChunkStartX`.
+  final double spawnAheadMargin;
+
+  /// Cull chunks while `chunkEndX < cameraLeft - cullBehindMargin`.
+  final double cullBehindMargin;
+
+  /// Authoring grid snap for chunk patterns (world units).
+  final double gridSnap;
+}
+
+
+
+===== FILE: lib/core/util/deterministic_rng.dart =====
+const int _mask32 = 0xffffffff;
+const int _nonZeroSeed = 0x6d2b79f5;
+
+/// 32-bit mixing helper for deterministic seeds.
+int mix32(int x) {
+  var v = x & _mask32;
+  v ^= (v >> 16);
+  v = (v * 0x7feb352d) & _mask32;
+  v ^= (v >> 15);
+  v = (v * 0x846ca68b) & _mask32;
+  v ^= (v >> 16);
+  return v & _mask32;
+}
+
+/// Builds a non-zero 32-bit RNG state from a base seed and salt.
+int seedFrom(int seed, int salt) {
+  final mixed = mix32(seed ^ salt);
+  return mixed == 0 ? _nonZeroSeed : mixed;
+}
+
+/// Xorshift32 step. Returns the next 32-bit state.
+int nextUint32(int state) {
+  var x = state & _mask32;
+  if (x == 0) x = _nonZeroSeed;
+  x ^= (x << 13) & _mask32;
+  x ^= (x >> 17);
+  x ^= (x << 5) & _mask32;
+  return x & _mask32;
+}
+
+/// Converts a 32-bit state to a [0, 1] double (inclusive).
+double uint32ToUnitDouble(int value) {
+  return (value & _mask32) / _mask32;
+}
+
+/// Maps a 32-bit state to a [min, max] double range.
+double rangeDouble(int value, double min, double max) {
+  final lo = min <= max ? min : max;
+  final hi = min <= max ? max : min;
+  return lo + (hi - lo) * uint32ToUnitDouble(value);
+}
+
+
 ===== FILE: lib/core/util/double_math.dart =====
 import 'dart:math';
 
 double clampDouble(double v, double lo, double hi) => max(lo, min(hi, v));
+
+
+
+===== FILE: lib/core/util/smoothing.dart =====
+import 'dart:math';
+
+/// Returns a stable exponential smoothing factor in [0, 1] for the given
+/// responsiveness `k` (per-second) and fixed tick dt.
+///
+/// Matches the common pattern: `alpha = 1 - exp(-k * dt)`.
+double expSmoothingFactor(double k, double dtSeconds) {
+  if (k <= 0) return 0.0;
+  if (dtSeconds <= 0) return 0.0;
+  return 1.0 - exp(-k * dtSeconds);
+}
 
 
 
@@ -5222,6 +6486,28 @@ int ticksFromSecondsCeil(double seconds, int tickHz) {
   return max(1, (seconds * tickHz).ceil());
 }
 
+
+
+===== FILE: lib/core/util/velocity_math.dart =====
+double applyAccelDecel({
+  required double current,
+  required double desired,
+  required double dtSeconds,
+  required double accelPerSecond,
+  required double decelPerSecond,
+  double minStopSpeed = 0.0,
+}) {
+  if (dtSeconds <= 0.0) return current;
+  if (desired == 0.0 && current.abs() <= minStopSpeed) return 0.0;
+
+  final accel = desired == 0.0 ? decelPerSecond : accelPerSecond;
+  final maxDelta = accel * dtSeconds;
+  final delta = desired - current;
+  if (delta.abs() > maxDelta) {
+    return current + (delta > 0.0 ? maxDelta : -maxDelta);
+  }
+  return desired;
+}
 
 
 ===== FILE: lib/game/components/hud_bars_component.dart =====
@@ -5679,14 +6965,26 @@ class GameController {
     final dtTick = 1.0 / tickHz;
 
     while (_accumulatorSeconds >= dtTick) {
+      if (_core.paused) {
+        _accumulatorSeconds = 0;
+        break;
+      }
       final nextTick = _core.tick + 1;
       final input = _inputsByTick.remove(nextTick) ?? _frameScratch;
       _applyTickInput(nextTick, input);
       _core.stepOneTick();
+      _events.addAll(_core.drainEvents());
 
       _prev = _curr;
       _curr = _core.buildSnapshot();
       _accumulatorSeconds -= dtTick;
+
+      // If the core became paused during the tick (e.g. game over), stop consuming
+      // accumulator to avoid an infinite loop.
+      if (_core.paused) {
+        _accumulatorSeconds = 0;
+        break;
+      }
     }
   }
 
@@ -5937,6 +7235,7 @@ class RunnerFlameGame extends FlameGame {
   late final CircleComponent _player;
   late final TextComponent _debugText;
   final List<RectangleComponent> _staticSolids = <RectangleComponent>[];
+  List<StaticSolidSnapshot>? _lastStaticSolidsSnapshot;
   final Map<int, RectangleComponent> _projectiles = <int, RectangleComponent>{};
   final Paint _projectilePaint = Paint()..color = const Color(0xFF60A5FA);
   final Map<int, CircleComponent> _enemies = <int, CircleComponent>{};
@@ -6024,6 +7323,7 @@ class RunnerFlameGame extends FlameGame {
     world.add(_player);
 
     _mountStaticSolids(controller.snapshot.staticSolids);
+    _lastStaticSolidsSnapshot = controller.snapshot.staticSolids;
 
     _debugText = TextComponent(
       text: '',
@@ -6057,17 +7357,18 @@ class RunnerFlameGame extends FlameGame {
     // newest snapshot.
     controller.advanceFrame(dt);
     final snapshot = controller.snapshot;
+    _syncStaticSolids(snapshot.staticSolids);
 
     final player = _findPlayer(snapshot.entities);
     if (player != null) {
       final snappedX = player.pos.x.roundToDouble();
       final snappedY = player.pos.y.roundToDouble();
       _player.position.setValues(snappedX, snappedY);
-      camera.viewfinder.position = Vector2(
-        snappedX,
-        v0CameraFixedY.roundToDouble(),
-      );
     }
+    camera.viewfinder.position = Vector2(
+      snapshot.cameraCenterX.roundToDouble(),
+      snapshot.cameraCenterY.roundToDouble(),
+    );
 
     _syncEnemies(snapshot.entities);
     _syncProjectiles(snapshot.entities);
@@ -6232,6 +7533,20 @@ class RunnerFlameGame extends FlameGame {
     for (final id in toRemove) {
       _hitboxes.remove(id)?.removeFromParent();
     }
+  }
+
+  void _syncStaticSolids(List<StaticSolidSnapshot> solids) {
+    // Core rebuilds the list only when geometry changes (spawn/cull),
+    // so identity check is a cheap "version" check.
+    if (identical(solids, _lastStaticSolidsSnapshot)) return;
+    _lastStaticSolidsSnapshot = solids;
+
+    for (final c in _staticSolids) {
+      c.removeFromParent();
+    }
+    _staticSolids.clear();
+
+    _mountStaticSolids(solids);
   }
 
   @override

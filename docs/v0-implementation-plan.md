@@ -586,6 +586,23 @@ Key requirements (locked for this milestone):
 - Drop edges are allowed, but must guarantee the enemy **lands on a walkable surface** (no intentional falling into void).
 - Logic must be reusable for future enemies (not hardcoded to GroundEnemy).
 
+Performance + determinism constraints (locked for this milestone):
+
+- Graph builds only on static-geometry changes (spawn/cull); never per tick.
+- A\* is throttled:
+  - repath cooldown per entity (no per-tick replans),
+  - max expanded nodes per search (fail fast and try again later),
+  - stable tie-breaking (no Map/Set iteration dependence).
+- No per-tick allocations in hot loops for navigation runtime (reuse scratch buffers).
+
+### 13.0 Scope + non-goals (V0)
+
+- Navigation only reasons about **static** geometry (ground plane + `StaticSolid` tops).
+- No moving platforms, no dynamic obstacles, no destructible terrain in this milestone.
+- No wall-jump, wall-climb, ladders, or drop-through mechanics.
+- No local avoidance; the path follower can be “dumb” and rely on collision for crowding.
+- When navigation can’t find a path within budget, enemies fall back to simple chase and retry later (no exponential complexity).
+
 ### 13.1 Data model (Core)
 
 - [ ] Introduce a navigation surface representation:
@@ -598,18 +615,33 @@ Key requirements (locked for this milestone):
   - nodes: `List<WalkSurface>`
   - edges: `WalkEdge`, `JumpEdge`, `DropEdge` (typed edges or a tagged union)
   - deterministic adjacency ordering (stable edge iteration for A\*)
+  - V0 simplification: treat "walking within a surface" as local control (not graph nodes); keep edges for surface-to-surface transitions only.
+    - recommended: aggressively merge adjacent tops so `WalkEdge` stays rare (or optional).
 - [ ] Add a spatial index for surfaces using existing grid math:
   - reuse `GridIndex2D` for `SurfaceSpatialIndex` (cellKey -> List<WalkSurfaceId>)
   - support fast queries:
-    - “which surface am I currently standing on?”
-    - “which candidate landing surfaces are near this takeoff surface?”
+    - "which surface am I currently standing on?"
+    - "which candidate landing surfaces are near this takeoff surface?"
+- [ ] Lock surface extraction rules (keep graph small and stable):
+  - merge/union adjacent top segments at the same `yTop` within `eps` (including across chunk boundaries).
+  - define `eps` values explicitly (avoid “magic tolerances” spread across code).
+  - do not bake agent-specific filters into `WalkSurface` extraction; keep surfaces geometry-only.
+- [ ] Lock an ID scheme tied to streaming chunks (avoid list-index ids):
+  - `StaticSolidId = (chunkIndex, localSolidIndex)` where `localSolidIndex` is the index in the `ChunkPattern.solids[]` authoring list (order == identity).
+  - `WalkSurfaceId = (chunkIndex, localSolidIndex, localSurfaceKind)` (V0: `localSurfaceKind=0` for "top").
+  - `chunkIndex` must be the monotonic spawn index (not "active chunk ordinal"), so IDs remain stable under culling/rebuild.
+  - reserve a stable id for always-on/global surfaces (e.g. ground plane).
 
 ### 13.2 Jump templates (Core)
 
 - [ ] Define a reusable jump profile/config:
+  - `agentHalfWidth` (landing/takeoff inset and “standable width” checks)
   - `jumpSpeed` (initial `velY` impulse, negative upward)
   - `gravityY` (from `V0PhysicsTuning`)
   - `maxAirTicks` (or derived from time horizon)
+  - horizontal motion assumption (must match locomotion reality):
+    - V0: assume constant `airSpeedX = maxRunSpeed` (or a conservative fraction of it) for reachability.
+    - later: allow an accel-based model if needed, but do not overengineer in V0.
   - optional later: horizontal speed assumptions, extra impulse, etc.
 - [ ] Precompute `JumpReachabilityTemplate` deterministically:
   - simulate fixed-tick ballistic arcs for each profile
@@ -618,7 +650,11 @@ Key requirements (locked for this milestone):
   - landing must be onto a walk surface top while descending (or at least with `velY >= 0`)
   - allow ascending through one-way tops (ignore top collisions during ascent)
   - ignore ceiling collisions (bottom faces) when determining reachability
-  - (optional later) add “side wall blocking” checks as a separate feature flag; do not mix into this milestone unless needed for feel
+  - (optional later) add "side wall blocking" checks as a separate feature flag; do not mix into this milestone unless needed for feel
+- [ ] Lock how takeoff/landing points are chosen (controls graph size + determinism):
+  - represent a surface as “standable” only on `[xMin + agentHalfWidth, xMax - agentHalfWidth]`.
+  - for edge generation, sample a small, fixed set of takeoff x positions per surface (e.g. left/right/center of standable range).
+  - keep the sampling strategy deterministic and independent from entity runtime state.
 
 ### 13.3 Drop edges (Core)
 
@@ -642,7 +678,19 @@ Key requirements (locked for this milestone):
 
 - [ ] Add a reusable navigation runtime module (not enemy-specific):
   - `SurfacePathfinder` (A\* over graph edges)
-  - `SurfaceNavigator` (executes the next edge by emitting “locomotion intents”)
+  - `SurfaceNavigator` (executes the next edge by emitting "locomotion intents")
+- [ ] Lock A\* determinism + CPU constraints:
+  - stable priority ordering: compare by `(fScore, gScore, toSurfaceId)` (or similar) so ties are deterministic
+  - implement open set without relying on `Map`/`Set` iteration order
+  - reuse scratch buffers across searches; avoid allocations in the hot path
+  - repath throttle (cooldown) and optional `(startId, goalId, graphVersion)` cache for repeated queries
+  - recommended V0 starting budgets (tune later):
+    - `repathCooldownTicks`: 30
+    - `maxExpandedNodes`: 128
+    - optional global budget: at most 1-2 searches per tick (or ~256 expansions total) across all enemies
+- [ ] Lock path cost model (so tuning stays sane and performance stays predictable):
+  - base costs should approximate time: `walkCost ~ dx / runSpeed`, `jumpCost ~ airTicks`, `dropCost ~ fallTicks`.
+  - heuristic should be cheap and admissible-ish (e.g. `abs(dx) / runSpeed`), with deterministic tie-breaking.
 - [ ] Add per-entity navigation state store(s):
   - current surface id
   - current plan (edge list or next edge)
@@ -659,11 +707,23 @@ Key requirements (locked for this milestone):
   - collision behavior must match navigation assumptions:
     - ensure ceilings (bottom faces) do not stop enemy upward motion
     - one-way tops remain non-blocking on ascent
+  - define and enforce a clear physics contract for ceilings:
+    - prefer an explicit per-entity collision rule (e.g. `ignoreCeilings` or "ignore bottom faces while ascending")
+    - navigation must use the exact same rule, otherwise A\* plans impossible jumps
+  - scope the ceiling rule:
+    - apply it to nav-enabled enemies only (do not silently change player feel).
+- [ ] Define failure + invalidation behavior (so “no path” is not a bug):
+  - if current surface cannot be identified (airborne/unstable), delay planning until grounded.
+  - if A\* hits budget limits, return “no plan” deterministically and retry after cooldown.
+  - if `graphVersion` changes, invalidate current plans and replan (throttled).
 
 ### 13.6 Tests (Core)
 
 - [ ] Surface extraction: given a small static geometry, surfaces match expected segments.
+- [ ] Surface extraction merging: adjacent tops across chunk boundaries merge deterministically.
 - [ ] Jump template determinism: same inputs produce the same template table.
+- [ ] Jump template correctness vs movement contract:
+  - any edge accepted by the template must be reproducible in a small fixed-tick simulation using the same locomotion limits (no "planner says yes, physics says no").
 - [ ] Edge generation determinism: same geometry + same profile -> identical edge set/order.
 - [ ] Drop edge correctness: drop edges always land on a walkable surface, and choose the first surface below.
 - [ ] Pathfinding correctness: A\* returns a valid path to the target surface (when one exists), deterministic for a fixed graph.

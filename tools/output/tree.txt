@@ -1,4 +1,5 @@
 ﻿lib/AGENTS.md
+lib/core/camera/v0_autoscroll_camera.dart
 lib/core/collision/static_world_geometry.dart
 lib/core/collision/static_world_geometry_index.dart
 lib/core/combat/damage.dart
@@ -7,6 +8,7 @@ lib/core/commands/command.dart
 lib/core/contracts/v0_render_contract.dart
 lib/core/ecs/entity_id.dart
 lib/core/ecs/hit/aabb_hit_utils.dart
+lib/core/ecs/hit/hit_resolver.dart
 lib/core/ecs/queries.dart
 lib/core/ecs/sparse_set.dart
 lib/core/ecs/spatial/broadphase_grid.dart
@@ -18,6 +20,9 @@ lib/core/ecs/stores/collision_state_store.dart
 lib/core/ecs/stores/cooldown_store.dart
 lib/core/ecs/stores/enemy_store.dart
 lib/core/ecs/stores/faction_store.dart
+lib/core/ecs/stores/flying_enemy_steering_store.dart
+lib/core/ecs/stores/gravity_control_store.dart
+lib/core/ecs/stores/ground_enemy_locomotion_store.dart
 lib/core/ecs/stores/health_store.dart
 lib/core/ecs/stores/hit_once_store.dart
 lib/core/ecs/stores/hitbox_store.dart
@@ -35,6 +40,7 @@ lib/core/ecs/systems/collision_system.dart
 lib/core/ecs/systems/cooldown_system.dart
 lib/core/ecs/systems/damage_system.dart
 lib/core/ecs/systems/enemy_system.dart
+lib/core/ecs/systems/gravity_system.dart
 lib/core/ecs/systems/health_despawn_system.dart
 lib/core/ecs/systems/hitbox_damage_system.dart
 lib/core/ecs/systems/hitbox_follow_owner_system.dart
@@ -52,6 +58,7 @@ lib/core/ecs/world.dart
 lib/core/enemies/enemy_catalog.dart
 lib/core/enemies/enemy_id.dart
 lib/core/events/game_event.dart
+lib/core/events/run_events.dart
 lib/core/game_core.dart
 lib/core/math/vec2.dart
 lib/core/projectiles/projectile_catalog.dart
@@ -65,14 +72,22 @@ lib/core/snapshots/static_solid_snapshot.dart
 lib/core/spells/spawn_spell_projectile.dart
 lib/core/spells/spell_catalog.dart
 lib/core/spells/spell_id.dart
+lib/core/track/v0_track_streamer.dart
 lib/core/tuning/v0_ability_tuning.dart
+lib/core/tuning/v0_camera_tuning.dart
 lib/core/tuning/v0_combat_tuning.dart
-lib/core/tuning/v0_enemy_tuning.dart
+lib/core/tuning/v0_flying_enemy_tuning.dart
+lib/core/tuning/v0_ground_enemy_tuning.dart
 lib/core/tuning/v0_movement_tuning.dart
+lib/core/tuning/v0_physics_tuning.dart
 lib/core/tuning/v0_resource_tuning.dart
 lib/core/tuning/v0_spatial_grid_tuning.dart
+lib/core/tuning/v0_track_tuning.dart
+lib/core/util/deterministic_rng.dart
 lib/core/util/double_math.dart
+lib/core/util/smoothing.dart
 lib/core/util/tick_math.dart
+lib/core/util/velocity_math.dart
 lib/game/components/hud_bars_component.dart
 lib/game/components/pixel_parallax_backdrop_component.dart
 lib/game/components/tiled_ground_band_component.dart
