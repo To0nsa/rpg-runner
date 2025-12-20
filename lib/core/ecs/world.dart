@@ -6,6 +6,7 @@ import 'stores/collider_aabb_store.dart';
 import 'stores/collision_state_store.dart';
 import 'stores/cooldown_store.dart';
 import 'stores/cast_intent_store.dart';
+import 'stores/gravity_control_store.dart';
 import 'stores/flying_enemy_steering_store.dart';
 import 'stores/faction_store.dart';
 import 'stores/enemy_store.dart';
@@ -44,6 +45,7 @@ class EcsWorld {
   final CollisionStateStore collision = CollisionStateStore();
   final CooldownStore cooldown = CooldownStore();
   final CastIntentStore castIntent = CastIntentStore();
+  final GravityControlStore gravityControl = GravityControlStore();
   final FactionStore faction = FactionStore();
   final HealthStore health = HealthStore();
   final InvulnerabilityStore invulnerability = InvulnerabilityStore();
@@ -142,6 +144,7 @@ class EcsWorld {
     collision.removeEntity(entity);
     cooldown.removeEntity(entity);
     castIntent.removeEntity(entity);
+    gravityControl.removeEntity(entity);
     faction.removeEntity(entity);
     health.removeEntity(entity);
     invulnerability.removeEntity(entity);

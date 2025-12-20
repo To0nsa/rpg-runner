@@ -19,7 +19,6 @@ class V0MovementTuning {
     this.accelerationX = 600,
     this.decelerationX = 400,
     this.minMoveSpeed = 5,
-    this.gravityY = 1200,
     this.maxVelX = 1500,
     this.maxVelY = 1500,
     this.jumpSpeed = 600,
@@ -38,9 +37,6 @@ class V0MovementTuning {
   final double accelerationX;
   final double decelerationX;
   final double minMoveSpeed;
-
-  /// Gravity acceleration (positive is downward).
-  final double gravityY;
 
   /// Speed clamps (safety caps).
   final double maxVelX;

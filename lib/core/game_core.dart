@@ -16,6 +16,7 @@ import 'ecs/spatial/broadphase_grid.dart';
 import 'ecs/spatial/grid_index_2d.dart';
 import 'ecs/systems/collision_system.dart';
 import 'ecs/systems/cooldown_system.dart';
+import 'ecs/systems/gravity_system.dart';
 import 'ecs/systems/player_cast_system.dart';
 import 'ecs/systems/spell_cast_system.dart';
 import 'ecs/systems/damage_system.dart';
@@ -53,6 +54,7 @@ import 'tuning/v0_combat_tuning.dart';
 import 'tuning/v0_flying_enemy_tuning.dart';
 import 'tuning/v0_ground_enemy_tuning.dart';
 import 'tuning/v0_movement_tuning.dart';
+import 'tuning/v0_physics_tuning.dart';
 import 'tuning/v0_resource_tuning.dart';
 import 'tuning/v0_camera_tuning.dart';
 import 'tuning/v0_spatial_grid_tuning.dart';
@@ -73,6 +75,7 @@ class GameCore {
   GameCore({
     required this.seed,
     this.tickHz = v0DefaultTickHz,
+    V0PhysicsTuning physicsTuning = const V0PhysicsTuning(),
     V0MovementTuning movementTuning = const V0MovementTuning(),
     V0ResourceTuning resourceTuning = const V0ResourceTuning(),
     V0AbilityTuning abilityTuning = const V0AbilityTuning(),
@@ -91,6 +94,7 @@ class GameCore {
           movementTuning,
           tickHz: tickHz,
        ),
+       _physicsTuning = physicsTuning,
        _resourceTuning = resourceTuning,
        _abilities = V0AbilityTuningDerived.from(abilityTuning, tickHz: tickHz),
        _combat = V0CombatTuningDerived.from(combatTuning, tickHz: tickHz),
@@ -116,6 +120,7 @@ class GameCore {
     _movementSystem = PlayerMovementSystem();
     _collisionSystem = CollisionSystem();
     _cooldownSystem = CooldownSystem();
+    _gravitySystem = GravitySystem();
     _projectileSystem = ProjectileSystem();
     _projectileHitSystem = ProjectileHitSystem();
     _broadphaseGrid = BroadphaseGrid(
@@ -282,6 +287,7 @@ class GameCore {
   late List<StaticSolidSnapshot> _staticSolidsSnapshot;
 
   final V0MovementTuningDerived _movement;
+  final V0PhysicsTuning _physicsTuning;
   final V0ResourceTuning _resourceTuning;
   final V0AbilityTuningDerived _abilities;
   final V0CombatTuningDerived _combat;
@@ -300,6 +306,7 @@ class GameCore {
   late final PlayerMovementSystem _movementSystem;
   late final CollisionSystem _collisionSystem;
   late final CooldownSystem _cooldownSystem;
+  late final GravitySystem _gravitySystem;
   late final ProjectileSystem _projectileSystem;
   late final ProjectileHitSystem _projectileHitSystem;
   late final BroadphaseGrid _broadphaseGrid;
@@ -425,6 +432,7 @@ class GameCore {
     );
 
     _movementSystem.step(_world, _movement, resources: _resourceTuning);
+    _gravitySystem.step(_world, _movement, physics: _physicsTuning);
     _collisionSystem.step(
       _world,
       _movement,

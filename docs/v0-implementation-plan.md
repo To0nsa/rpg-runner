@@ -258,7 +258,7 @@ Note: keep AI extremely simple for V0.
 - [x] Add enemy data + components (Core):
   - `EnemyId` (`flyingEnemy`, `groundEnemy`)
   - `EnemyStore` (id + AI state/timers; keep SoA + scalar-only)
-  - `V0EnemyTuning` (speeds/cooldowns/ranges in seconds; derived to ticks at runtime)
+  - `V0FlyingEnemyTuning` / `V0GroundEnemyTuning` (speeds/cooldowns/ranges in seconds; derived to ticks at runtime)
   - reuse existing `FactionStore` (`player` vs `enemy`) for filtering
 - [x] Spawn enemies deterministically (Core):
   - for Milestone 7 keep spawns fixed/hardcoded (no RNG yet) so tests are stable

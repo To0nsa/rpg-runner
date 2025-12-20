@@ -2,6 +2,7 @@ import '../../snapshots/enums.dart';
 import '../../tuning/v0_movement_tuning.dart';
 import '../../tuning/v0_resource_tuning.dart';
 import '../../util/velocity_math.dart';
+import '../entity_id.dart';
 import '../queries.dart';
 import '../world.dart';
 
@@ -55,6 +56,7 @@ class PlayerMovementSystem {
       if (world.playerInput.dashPressed[ii]) {
         _tryStartDash(
           world,
+          entity: e,
           mi: mi,
           ti: ti,
           ii: ii,
@@ -89,19 +91,11 @@ class PlayerMovementSystem {
           }
         }
 
-        // Gravity.
-        if (world.body.useGravity[bi]) {
-          final scaledGravity = t.gravityY * world.body.gravityScale[bi];
-          world.transform.velY[ti] += scaledGravity * dt;
-        }
       }
 
       // Clamp speeds.
       world.transform.velX[ti] = world.transform.velX[ti]
           .clamp(-world.body.maxVelX[bi], world.body.maxVelX[bi])
-          .toDouble();
-      world.transform.velY[ti] = world.transform.velY[ti]
-          .clamp(-world.body.maxVelY[bi], world.body.maxVelY[bi])
           .toDouble();
     });
   }
@@ -126,6 +120,7 @@ class PlayerMovementSystem {
 
   void _tryStartDash(
     EcsWorld world, {
+    required EntityId entity,
     required int mi,
     required int ti,
     required int ii,
@@ -150,6 +145,7 @@ class PlayerMovementSystem {
 
     // Cancel vertical motion so dash doesn't inherit jump/fall.
     world.transform.velY[ti] = 0;
+    world.gravityControl.setSuppressForTicks(entity, tuning.dashDurationTicks);
 
     world.stamina.stamina[si] -= staminaCost;
   }
