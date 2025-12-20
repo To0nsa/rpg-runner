@@ -573,7 +573,112 @@ Acceptance:
 
 ---
 
-## Milestone 13 - UX Polish + Debugging
+## Milestone 13 - Enemy Navigation (Surface Graph + Jump Templates)
+
+Goal: make ground enemies (and future enemy types) navigate toward the player across platforms/obstacles/gaps using a reusable, deterministic navigation module.
+
+Key requirements (locked for this milestone):
+
+- Navigation uses a **Surface Graph** of walkable tops + **A\*** pathfinding.
+- Jump reachability is **template-based** (precomputed from physics + jump params).
+- Enemies can **jump up through one-way platforms from below** and land on top.
+- **Ceilings do not block jumps** (navigation and collision behavior must match).
+- Drop edges are allowed, but must guarantee the enemy **lands on a walkable surface** (no intentional falling into void).
+- Logic must be reusable for future enemies (not hardcoded to GroundEnemy).
+
+### 13.1 Data model (Core)
+
+- [ ] Introduce a navigation surface representation:
+  - `WalkSurfaceId` (stable, deterministic id; not derived from list index if geometry can change).
+  - `WalkSurface` with `{xMin, xMax, yTop}` describing a standable top segment in world units.
+  - Define “walkable surface” as:
+    - ground plane top, plus
+    - any `StaticSolid` with `sideTop` enabled (includes obstacles and one-way platforms).
+- [ ] Add a `SurfaceGraph` structure:
+  - nodes: `List<WalkSurface>`
+  - edges: `WalkEdge`, `JumpEdge`, `DropEdge` (typed edges or a tagged union)
+  - deterministic adjacency ordering (stable edge iteration for A\*)
+- [ ] Add a spatial index for surfaces using existing grid math:
+  - reuse `GridIndex2D` for `SurfaceSpatialIndex` (cellKey -> List<WalkSurfaceId>)
+  - support fast queries:
+    - “which surface am I currently standing on?”
+    - “which candidate landing surfaces are near this takeoff surface?”
+
+### 13.2 Jump templates (Core)
+
+- [ ] Define a reusable jump profile/config:
+  - `jumpSpeed` (initial `velY` impulse, negative upward)
+  - `gravityY` (from `V0PhysicsTuning`)
+  - `maxAirTicks` (or derived from time horizon)
+  - optional later: horizontal speed assumptions, extra impulse, etc.
+- [ ] Precompute `JumpReachabilityTemplate` deterministically:
+  - simulate fixed-tick ballistic arcs for each profile
+  - produce a compact reachability representation (e.g., per-tick reachable `dx` range at each `dy` band)
+- [ ] Edge validation rules:
+  - landing must be onto a walk surface top while descending (or at least with `velY >= 0`)
+  - allow ascending through one-way tops (ignore top collisions during ascent)
+  - ignore ceiling collisions (bottom faces) when determining reachability
+  - (optional later) add “side wall blocking” checks as a separate feature flag; do not mix into this milestone unless needed for feel
+
+### 13.3 Drop edges (Core)
+
+- [ ] Add deterministic drop-edge generation:
+  - from a surface, generate candidate drop points (e.g., left/right edges + a few sampled x positions)
+  - for each drop point, find the **first** walkable surface below at that x (small eps inside surface range)
+  - create `DropEdge(from -> landingSurface)` only if a landing surface exists
+  - no “drop through” behavior: the first encountered surface wins
+
+### 13.4 Graph build and lifecycle (Core)
+
+- [ ] Build `SurfaceGraph` only when static geometry changes:
+  - initial build at run start
+  - rebuild when track streaming spawns/culls solids (same moment `StaticWorldGeometryIndex` is rebuilt)
+- [ ] Keep builds deterministic:
+  - iterate solids in the preserved geometry order
+  - ensure any sampling loops are stable and do not depend on hash ordering
+- [ ] Version the graph (`int graphVersion`) and expose it to navigation runtime for cache invalidation.
+
+### 13.5 Pathfinder + runtime controller (Core)
+
+- [ ] Add a reusable navigation runtime module (not enemy-specific):
+  - `SurfacePathfinder` (A\* over graph edges)
+  - `SurfaceNavigator` (executes the next edge by emitting “locomotion intents”)
+- [ ] Add per-entity navigation state store(s):
+  - current surface id
+  - current plan (edge list or next edge)
+  - repath timers / last target surface id
+  - execution state for an active jump/drop (takeoff x, landing id, etc.)
+- [ ] Define an interface for enemy movement to consume navigation:
+  - output should be simple and reusable:
+    - desired horizontal velocity/target x
+    - “jump now” trigger (sets `velY` or writes a jump intent)
+    - “commit to drop” trigger (walk past edge)
+- [ ] Integrate with existing systems:
+  - navigation runs in the AI phase (before physics integration)
+  - movement/accel/decels remain handled by existing helpers
+  - collision behavior must match navigation assumptions:
+    - ensure ceilings (bottom faces) do not stop enemy upward motion
+    - one-way tops remain non-blocking on ascent
+
+### 13.6 Tests (Core)
+
+- [ ] Surface extraction: given a small static geometry, surfaces match expected segments.
+- [ ] Jump template determinism: same inputs produce the same template table.
+- [ ] Edge generation determinism: same geometry + same profile -> identical edge set/order.
+- [ ] Drop edge correctness: drop edges always land on a walkable surface, and choose the first surface below.
+- [ ] Pathfinding correctness: A\* returns a valid path to the target surface (when one exists), deterministic for a fixed graph.
+- [ ] End-to-end behavior test (small synthetic level):
+  - enemy starting on ground reaches a player on an elevated platform by jumping
+  - enemy crosses a simple gap via jump or via a platform chain
+
+Acceptance:
+- Ground enemies can consistently reach the player across platforms/obstacles/gaps using the surface graph.
+- The navigation logic is reusable (no `GroundEnemy` hardcoding in the graph/pathfinder).
+- Behavior is deterministic for the same seed/geometry/inputs.
+
+---
+
+## Milestone 14 - UX Polish + Debugging
 
 - [ ] Pause overlay (freeze simulation).
 - [ ] Debug overlay:
