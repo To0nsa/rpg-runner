@@ -26,7 +26,7 @@ class EnemyStore extends SparseSet {
 
   @override
   void onDenseAdded(int denseIndex) {
-    enemyId.add(EnemyId.demon);
+    enemyId.add(EnemyId.flyingEnemy);
     facing.add(Facing.left);
   }
 

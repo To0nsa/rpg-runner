@@ -214,7 +214,7 @@ class V0TrackStreamer {
         _PlatformRel(x: 256, width: 160, aboveGroundTop: 96, thickness: _t),
       ],
       spawnMarkers: <_SpawnMarker>[
-        _SpawnMarker(enemyId: EnemyId.demon, x: 352, chancePercent: 35, salt: 0x01),
+        _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 352, chancePercent: 35, salt: 0x01),
       ],
     ),
     V0ChunkPattern(
@@ -225,7 +225,7 @@ class V0TrackStreamer {
         _PlatformRel(x: 352, width: 96, aboveGroundTop: 64, thickness: _t),
       ],
       spawnMarkers: <_SpawnMarker>[
-        _SpawnMarker(enemyId: EnemyId.demon, x: 288, chancePercent: 30, salt: 0x02),
+        _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 288, chancePercent: 30, salt: 0x02),
       ],
     ),
     V0ChunkPattern(
@@ -258,7 +258,7 @@ class V0TrackStreamer {
         _ObstacleRel(x: 288, width: 48, height: 64),
       ],
       spawnMarkers: <_SpawnMarker>[
-        _SpawnMarker(enemyId: EnemyId.demon, x: 96, chancePercent: 25, salt: 0x05),
+        _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 96, chancePercent: 25, salt: 0x05),
         _SpawnMarker(enemyId: EnemyId.fireWorm, x: 352, chancePercent: 30, salt: 0x06),
       ],
     ),

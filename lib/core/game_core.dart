@@ -201,14 +201,14 @@ class GameCore {
     }
   }
 
-  EntityId _spawnDemon({required double spawnX, required double groundTopY}) {
+  EntityId _spawnFlyingEnemy({required double spawnX, required double groundTopY}) {
     // Enemy spawn stats come from a centralized catalog so these hardcoded spawns
     // don't diverge from future deterministic spawning rules.
-    final archetype = _enemyCatalog.get(EnemyId.demon);
-    final demon = _world.createEnemy(
-      enemyId: EnemyId.demon,
+    final archetype = _enemyCatalog.get(EnemyId.flyingEnemy);
+    final flyingEnemy = _world.createEnemy(
+      enemyId: EnemyId.flyingEnemy,
       posX: spawnX,
-      posY: groundTopY - _enemyTuning.base.demonHoverOffsetY,
+      posY: groundTopY - _enemyTuning.base.flyingEnemyHoverOffsetY,
       velX: 0.0,
       velY: 0.0,
       facing: Facing.left,
@@ -220,10 +220,11 @@ class GameCore {
     );
 
     // Avoid immediate spawn-tick casting (keeps early-game tests stable).
-    _world.cooldown.castCooldownTicksLeft[_world.cooldown.indexOf(demon)] =
-        _enemyTuning.demonCastCooldownTicks;
+    _world.cooldown.castCooldownTicksLeft[
+        _world.cooldown.indexOf(flyingEnemy)] =
+        _enemyTuning.flyingEnemyCastCooldownTicks;
 
-    return demon;
+    return flyingEnemy;
   }
 
   EntityId _spawnFireWorm({required double spawnX, required double groundTopY}) {
@@ -496,8 +497,8 @@ class GameCore {
         final groundTopY = _staticWorldGeometry.groundPlane?.topY ??
             v0GroundTopY.toDouble();
         switch (enemyId) {
-          case EnemyId.demon:
-            _spawnDemon(spawnX: x, groundTopY: groundTopY);
+          case EnemyId.flyingEnemy:
+            _spawnFlyingEnemy(spawnX: x, groundTopY: groundTopY);
           case EnemyId.fireWorm:
             _spawnFireWorm(spawnX: x, groundTopY: groundTopY);
         }

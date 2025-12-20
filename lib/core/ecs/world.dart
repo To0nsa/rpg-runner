@@ -6,7 +6,7 @@ import 'stores/collider_aabb_store.dart';
 import 'stores/collision_state_store.dart';
 import 'stores/cooldown_store.dart';
 import 'stores/cast_intent_store.dart';
-import 'stores/demon_steering_store.dart';
+import 'stores/flying_enemy_steering_store.dart';
 import 'stores/faction_store.dart';
 import 'stores/enemy_store.dart';
 import 'stores/health_store.dart';
@@ -56,7 +56,7 @@ class EcsWorld {
   final LifetimeStore lifetime = LifetimeStore();
   final SpellOriginStore spellOrigin = SpellOriginStore();
   final EnemyStore enemy = EnemyStore();
-  final DemonSteeringStore demonSteering = DemonSteeringStore();
+  final FlyingEnemySteeringStore flyingEnemySteering = FlyingEnemySteeringStore();
 
   EntityId createEntity() {
     final id = _nextEntityId;
@@ -124,8 +124,11 @@ class EcsWorld {
     meleeIntent.add(id);
     this.stamina.add(id, stamina);
     enemy.add(id, EnemyDef(enemyId: enemyId, facing: facing));
-    if (enemyId == EnemyId.demon) {
-      demonSteering.add(id, DemonSteeringDef(rngState: seedFrom(seed, id)));
+    if (enemyId == EnemyId.flyingEnemy) {
+      flyingEnemySteering.add(
+        id,
+        FlyingEnemySteeringDef(rngState: seedFrom(seed, id)),
+      );
     }
     return id;
   }
@@ -151,6 +154,6 @@ class EcsWorld {
     lifetime.removeEntity(entity);
     spellOrigin.removeEntity(entity);
     enemy.removeEntity(entity);
-    demonSteering.removeEntity(entity);
+    flyingEnemySteering.removeEntity(entity);
   }
 }

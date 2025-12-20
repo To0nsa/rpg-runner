@@ -32,7 +32,7 @@ class EnemyCatalog {
 
   EnemyArchetype get(EnemyId id) {
     switch (id) {
-      case EnemyId.demon:
+      case EnemyId.flyingEnemy:
         return const EnemyArchetype(
           body: BodyDef(
             isKinematic: false,

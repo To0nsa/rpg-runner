@@ -264,7 +264,7 @@ This section defines the **minimum viable component + system set** for the runne
 ### 8.1 Core Entities (kinds)
 
 * Player
-* Enemy (e.g., Demon)
+* Enemy (e.g., Flying enemy)
 * Projectile (player or enemy)
 * Obstacle / Platform piece
 * Pickup (coins, health)

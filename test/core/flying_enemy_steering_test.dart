@@ -13,7 +13,7 @@ import 'package:walkscape_runner/core/tuning/v0_enemy_tuning.dart';
 import 'test_spawns.dart';
 
 void main() {
-  test('demon steering is deterministic for the same seed', () {
+  test('flying enemy steering is deterministic for the same seed', () {
     const seed = 12345;
     final worldA = EcsWorld(seed: seed);
     final worldB = EcsWorld(seed: seed);
@@ -45,8 +45,8 @@ void main() {
       stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
     );
 
-    final demonA = spawnDemon(worldA, posX: 100, posY: 120);
-    final demonB = spawnDemon(worldB, posX: 100, posY: 120);
+    final flyingEnemyA = spawnFlyingEnemy(worldA, posX: 100, posY: 120);
+    final flyingEnemyB = spawnFlyingEnemy(worldB, posX: 100, posY: 120);
 
     final system = EnemySystem(
       tuning: V0EnemyTuningDerived.from(const V0EnemyTuning(), tickHz: 60),
@@ -69,8 +69,8 @@ void main() {
         dtSeconds: dtSeconds,
       );
 
-      final tiA = worldA.transform.indexOf(demonA);
-      final tiB = worldB.transform.indexOf(demonB);
+      final tiA = worldA.transform.indexOf(flyingEnemyA);
+      final tiB = worldB.transform.indexOf(flyingEnemyB);
       expect(worldA.transform.velX[tiA], closeTo(worldB.transform.velX[tiB], 1e-9));
       expect(worldA.transform.velY[tiA], closeTo(worldB.transform.velY[tiB], 1e-9));
     }

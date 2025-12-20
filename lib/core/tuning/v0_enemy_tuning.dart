@@ -2,25 +2,25 @@ import '../util/tick_math.dart';
 
 class V0EnemyTuning {
   const V0EnemyTuning({
-    this.demonHoverOffsetY = 150.0,
-    this.demonDesiredRangeMin = 50.0,
-    this.demonDesiredRangeMax = 90.0,
-    this.demonDesiredRangeHoldMinSeconds = 0.60,
-    this.demonDesiredRangeHoldMaxSeconds = 1.40,
-    this.demonHoldSlack = 20.0,
-    this.demonMaxSpeedX = 300.0,
-    this.demonSlowRadiusX = 80.0,
-    this.demonAccelX = 600.0,
-    this.demonDecelX = 400.0,
-    this.demonMinHeightAboveGround = 100.0,
-    this.demonMaxHeightAboveGround = 240.0,
-    this.demonFlightTargetHoldMinSeconds = 1.5,
-    this.demonFlightTargetHoldMaxSeconds = 3.0,
-    this.demonMaxSpeedY = 300.0,
-    this.demonVerticalKp = 4.0,
-    this.demonVerticalDeadzone = 20.0,
-    this.demonCastCooldownSeconds = 2.0,
-    this.demonCastOriginOffset = 20.0,
+    this.flyingEnemyHoverOffsetY = 150.0,
+    this.flyingEnemyDesiredRangeMin = 50.0,
+    this.flyingEnemyDesiredRangeMax = 90.0,
+    this.flyingEnemyDesiredRangeHoldMinSeconds = 0.60,
+    this.flyingEnemyDesiredRangeHoldMaxSeconds = 1.40,
+    this.flyingEnemyHoldSlack = 20.0,
+    this.flyingEnemyMaxSpeedX = 300.0,
+    this.flyingEnemySlowRadiusX = 80.0,
+    this.flyingEnemyAccelX = 600.0,
+    this.flyingEnemyDecelX = 400.0,
+    this.flyingEnemyMinHeightAboveGround = 100.0,
+    this.flyingEnemyMaxHeightAboveGround = 240.0,
+    this.flyingEnemyFlightTargetHoldMinSeconds = 1.5,
+    this.flyingEnemyFlightTargetHoldMaxSeconds = 3.0,
+    this.flyingEnemyMaxSpeedY = 300.0,
+    this.flyingEnemyVerticalKp = 4.0,
+    this.flyingEnemyVerticalDeadzone = 20.0,
+    this.flyingEnemyCastCooldownSeconds = 2.0,
+    this.flyingEnemyCastOriginOffset = 20.0,
     this.fireWormSpeedX = 140.0,
     this.fireWormStopDistanceX = 6.0,
     this.fireWormMeleeRangeX = 26.0,
@@ -31,28 +31,28 @@ class V0EnemyTuning {
     this.fireWormMeleeHitboxSizeY = 16.0,
   });
 
-  // Demon steering.
-  final double demonHoverOffsetY;
-  final double demonDesiredRangeMin;
-  final double demonDesiredRangeMax;
-  final double demonDesiredRangeHoldMinSeconds;
-  final double demonDesiredRangeHoldMaxSeconds;
-  final double demonHoldSlack;
-  final double demonMaxSpeedX;
-  final double demonSlowRadiusX;
-  final double demonAccelX;
-  final double demonDecelX;
-  final double demonMinHeightAboveGround;
-  final double demonMaxHeightAboveGround;
-  final double demonFlightTargetHoldMinSeconds;
-  final double demonFlightTargetHoldMaxSeconds;
-  final double demonMaxSpeedY;
-  final double demonVerticalKp;
-  final double demonVerticalDeadzone;
+  // Flying enemy steering.
+  final double flyingEnemyHoverOffsetY;
+  final double flyingEnemyDesiredRangeMin;
+  final double flyingEnemyDesiredRangeMax;
+  final double flyingEnemyDesiredRangeHoldMinSeconds;
+  final double flyingEnemyDesiredRangeHoldMaxSeconds;
+  final double flyingEnemyHoldSlack;
+  final double flyingEnemyMaxSpeedX;
+  final double flyingEnemySlowRadiusX;
+  final double flyingEnemyAccelX;
+  final double flyingEnemyDecelX;
+  final double flyingEnemyMinHeightAboveGround;
+  final double flyingEnemyMaxHeightAboveGround;
+  final double flyingEnemyFlightTargetHoldMinSeconds;
+  final double flyingEnemyFlightTargetHoldMaxSeconds;
+  final double flyingEnemyMaxSpeedY;
+  final double flyingEnemyVerticalKp;
+  final double flyingEnemyVerticalDeadzone;
 
-  // Demon attacks.
-  final double demonCastCooldownSeconds;
-  final double demonCastOriginOffset;
+  // Flying enemy attacks.
+  final double flyingEnemyCastCooldownSeconds;
+  final double flyingEnemyCastOriginOffset;
 
   // FireWorm steering.
   final double fireWormSpeedX;
@@ -71,7 +71,7 @@ class V0EnemyTuningDerived {
   const V0EnemyTuningDerived._({
     required this.tickHz,
     required this.base,
-    required this.demonCastCooldownTicks,
+    required this.flyingEnemyCastCooldownTicks,
     required this.fireWormMeleeCooldownTicks,
     required this.fireWormMeleeActiveTicks,
   });
@@ -87,8 +87,8 @@ class V0EnemyTuningDerived {
     return V0EnemyTuningDerived._(
       tickHz: tickHz,
       base: base,
-      demonCastCooldownTicks: ticksFromSecondsCeil(
-        base.demonCastCooldownSeconds,
+      flyingEnemyCastCooldownTicks: ticksFromSecondsCeil(
+        base.flyingEnemyCastCooldownSeconds,
         tickHz,
       ),
       fireWormMeleeCooldownTicks: ticksFromSecondsCeil(
@@ -105,7 +105,7 @@ class V0EnemyTuningDerived {
   final int tickHz;
   final V0EnemyTuning base;
 
-  final int demonCastCooldownTicks;
+  final int flyingEnemyCastCooldownTicks;
   final int fireWormMeleeCooldownTicks;
   final int fireWormMeleeActiveTicks;
 }

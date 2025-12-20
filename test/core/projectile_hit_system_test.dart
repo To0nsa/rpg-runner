@@ -38,7 +38,7 @@ void main() {
       stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
     );
 
-    final enemy = spawnDemon(
+    final enemy = spawnFlyingEnemy(
       world,
       posX: 140,
       posY: 100,

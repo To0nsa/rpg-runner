@@ -1,16 +1,16 @@
 import '../entity_id.dart';
 import '../sparse_set.dart';
 
-class DemonSteeringDef {
-  const DemonSteeringDef({
+class FlyingEnemySteeringDef {
+  const FlyingEnemySteeringDef({
     required this.rngState,
   });
 
   final int rngState;
 }
 
-/// Per-demon steering state for deterministic hover behavior.
-class DemonSteeringStore extends SparseSet {
+/// Per flying enemy steering state for deterministic hover behavior.
+class FlyingEnemySteeringStore extends SparseSet {
   final List<int> rngState = <int>[];
   final List<bool> initialized = <bool>[];
   final List<double> desiredRange = <double>[];
@@ -18,7 +18,7 @@ class DemonSteeringStore extends SparseSet {
   final List<double> flightTargetAboveGround = <double>[];
   final List<double> flightTargetHoldLeftS = <double>[];
 
-  void add(EntityId entity, DemonSteeringDef def) {
+  void add(EntityId entity, FlyingEnemySteeringDef def) {
     final i = addEntity(entity);
     rngState[i] = def.rngState;
     initialized[i] = false;

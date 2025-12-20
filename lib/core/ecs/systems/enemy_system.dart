@@ -38,8 +38,8 @@ class EnemySystem {
       final ey = world.transform.posY[ti];
 
       switch (enemies.enemyId[ei]) {
-        case EnemyId.demon:
-          _steerDemon(
+        case EnemyId.flyingEnemy:
+          _steerFlyingEnemy(
             world,
             enemyIndex: ei,
             enemy: e,
@@ -81,8 +81,8 @@ class EnemySystem {
       final ey = world.transform.posY[ti];
 
       switch (enemies.enemyId[ei]) {
-        case EnemyId.demon:
-          _writeDemonCastIntent(
+        case EnemyId.flyingEnemy:
+          _writeFlyingEnemyCastIntent(
             world,
             enemy: e,
             ex: ex,
@@ -105,7 +105,7 @@ class EnemySystem {
     }
   }
 
-  void _steerDemon(
+  void _steerFlyingEnemy(
     EcsWorld world, {
     required int enemyIndex,
     required EntityId enemy,
@@ -118,15 +118,15 @@ class EnemySystem {
     required double dtSeconds,
   }) {
     if (dtSeconds <= 0.0) return;
-    if (!world.demonSteering.has(enemy)) {
+    if (!world.flyingEnemySteering.has(enemy)) {
       assert(
         false,
-        'EnemySystem requires DemonSteeringStore on demons; add it at spawn time.',
+        'EnemySystem requires FlyingEnemySteeringStore on flying enemies; add it at spawn time.',
       );
       return;
     }
 
-    final steering = world.demonSteering;
+    final steering = world.flyingEnemySteering;
     final si = steering.indexOf(enemy);
 
     var rngState = steering.rngState[si];
@@ -138,17 +138,17 @@ class EnemySystem {
     if (!steering.initialized[si]) {
       steering.initialized[si] = true;
       steering.desiredRangeHoldLeftS[si] = nextRange(
-        tuning.base.demonDesiredRangeHoldMinSeconds,
-        tuning.base.demonDesiredRangeHoldMaxSeconds,
+        tuning.base.flyingEnemyDesiredRangeHoldMinSeconds,
+        tuning.base.flyingEnemyDesiredRangeHoldMaxSeconds,
       );
       steering.desiredRange[si] = nextRange(
-        tuning.base.demonDesiredRangeMin,
-        tuning.base.demonDesiredRangeMax,
+        tuning.base.flyingEnemyDesiredRangeMin,
+        tuning.base.flyingEnemyDesiredRangeMax,
       );
       steering.flightTargetHoldLeftS[si] = 0.0;
       steering.flightTargetAboveGround[si] = nextRange(
-        tuning.base.demonMinHeightAboveGround,
-        tuning.base.demonMaxHeightAboveGround,
+        tuning.base.flyingEnemyMinHeightAboveGround,
+        tuning.base.flyingEnemyMaxHeightAboveGround,
       );
     }
 
@@ -160,12 +160,12 @@ class EnemySystem {
       desiredRangeHoldLeftS -= dtSeconds;
     } else {
       desiredRangeHoldLeftS = nextRange(
-        tuning.base.demonDesiredRangeHoldMinSeconds,
-        tuning.base.demonDesiredRangeHoldMaxSeconds,
+        tuning.base.flyingEnemyDesiredRangeHoldMinSeconds,
+        tuning.base.flyingEnemyDesiredRangeHoldMaxSeconds,
       );
       desiredRange = nextRange(
-        tuning.base.demonDesiredRangeMin,
-        tuning.base.demonDesiredRangeMax,
+        tuning.base.flyingEnemyDesiredRangeMin,
+        tuning.base.flyingEnemyDesiredRangeMax,
       );
     }
 
@@ -175,18 +175,18 @@ class EnemySystem {
       world.enemy.facing[enemyIndex] = dx >= 0 ? Facing.right : Facing.left;
     }
 
-    final slack = tuning.base.demonHoldSlack;
+    final slack = tuning.base.flyingEnemyHoldSlack;
     double desiredVelX = 0.0;
     if (distX > 1e-6) {
       final dirToPlayerX = dx >= 0 ? 1.0 : -1.0;
       final error = distX - desiredRange;
 
       if (error.abs() > slack) {
-        final slowRadiusX = tuning.base.demonSlowRadiusX;
+        final slowRadiusX = tuning.base.flyingEnemySlowRadiusX;
         final t = slowRadiusX > 0.0
             ? clampDouble((error.abs() - slack) / slowRadiusX, 0.0, 1.0)
             : 1.0;
-        final speed = t * tuning.base.demonMaxSpeedX;
+        final speed = t * tuning.base.flyingEnemyMaxSpeedX;
         desiredVelX = (error > 0.0 ? dirToPlayerX : -dirToPlayerX) * speed;
       }
     }
@@ -197,28 +197,28 @@ class EnemySystem {
       flightTargetHoldLeftS -= dtSeconds;
     } else {
       flightTargetHoldLeftS = nextRange(
-        tuning.base.demonFlightTargetHoldMinSeconds,
-        tuning.base.demonFlightTargetHoldMaxSeconds,
+        tuning.base.flyingEnemyFlightTargetHoldMinSeconds,
+        tuning.base.flyingEnemyFlightTargetHoldMaxSeconds,
       );
       flightTargetAboveGround = nextRange(
-        tuning.base.demonMinHeightAboveGround,
-        tuning.base.demonMaxHeightAboveGround,
+        tuning.base.flyingEnemyMinHeightAboveGround,
+        tuning.base.flyingEnemyMaxHeightAboveGround,
       );
     }
 
     final targetY = groundTopY - flightTargetAboveGround;
     final deltaY = targetY - ey;
     double desiredVelY = clampDouble(
-      deltaY * tuning.base.demonVerticalKp,
-      -tuning.base.demonMaxSpeedY,
-      tuning.base.demonMaxSpeedY,
+      deltaY * tuning.base.flyingEnemyVerticalKp,
+      -tuning.base.flyingEnemyMaxSpeedY,
+      tuning.base.flyingEnemyMaxSpeedY,
     );
-    if (deltaY.abs() <= tuning.base.demonVerticalDeadzone) {
+    if (deltaY.abs() <= tuning.base.flyingEnemyVerticalDeadzone) {
       desiredVelY = 0.0;
     }
 
     final currentVelX = world.transform.velX[enemyTi];
-    final accel = desiredVelX == 0.0 ? tuning.base.demonDecelX : tuning.base.demonAccelX;
+    final accel = desiredVelX == 0.0 ? tuning.base.flyingEnemyDecelX : tuning.base.flyingEnemyAccelX;
     final maxDeltaX = accel * dtSeconds;
     final deltaVelX = desiredVelX - currentVelX;
     final nextVelX = deltaVelX.abs() > maxDeltaX
@@ -254,7 +254,7 @@ class EnemySystem {
     world.transform.velX[enemyTi] = dirX * tuning.base.fireWormSpeedX;
   }
 
-  void _writeDemonCastIntent(
+  void _writeFlyingEnemyCastIntent(
     EcsWorld world, {
       required EntityId enemy,
       required double ex,
@@ -283,8 +283,8 @@ class EnemySystem {
         dirY: playerY - ey,
         fallbackDirX: 1.0,
         fallbackDirY: 0.0,
-        originOffset: tuning.base.demonCastOriginOffset,
-        cooldownTicks: tuning.demonCastCooldownTicks,
+        originOffset: tuning.base.flyingEnemyCastOriginOffset,
+        cooldownTicks: tuning.flyingEnemyCastCooldownTicks,
         tick: currentTick,
       ),
     );

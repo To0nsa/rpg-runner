@@ -43,7 +43,7 @@ void main() {
       stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
     );
 
-    final demon = spawnDemon(
+    final flyingEnemy = spawnFlyingEnemy(
       world,
       posX: 120,
       posY: 100,
@@ -63,7 +63,7 @@ void main() {
       projectiles: ProjectileCatalogDerived.from(const ProjectileCatalog(), tickHz: 60),
       spellId: SpellId.lightning,
       faction: Faction.enemy,
-      owner: demon,
+      owner: flyingEnemy,
       originX: 100,
       originY: 100,
       dirX: -1,
