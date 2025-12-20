@@ -1,6 +1,7 @@
 import '../../snapshots/enums.dart';
 import '../../tuning/v0_movement_tuning.dart';
 import '../../tuning/v0_resource_tuning.dart';
+import '../../util/velocity_math.dart';
 import '../queries.dart';
 import '../world.dart';
 
@@ -112,23 +113,15 @@ class PlayerMovementSystem {
     V0MovementTuningDerived tuning,
   ) {
     final t = tuning.base;
-    if (axis != 0) {
-      final desiredX = axis * t.maxSpeedX;
-      final deltaX = desiredX - velocityX;
-      final maxDelta = t.accelerationX * dt;
-      if (deltaX.abs() > maxDelta) {
-        return velocityX + (deltaX > 0 ? maxDelta : -maxDelta);
-      }
-      return desiredX;
-    }
-
-    final speedX = velocityX.abs();
-    if (speedX <= 0) return 0;
-    final drop = t.decelerationX * dt;
-    if (speedX <= drop || speedX <= t.minMoveSpeed) {
-      return 0;
-    }
-    return velocityX + (velocityX > 0 ? -drop : drop);
+    final desiredX = axis == 0.0 ? 0.0 : axis * t.maxSpeedX;
+    return applyAccelDecel(
+      current: velocityX,
+      desired: desiredX,
+      dtSeconds: dt,
+      accelPerSecond: t.accelerationX,
+      decelPerSecond: t.decelerationX,
+      minStopSpeed: t.minMoveSpeed,
+    );
   }
 
   void _tryStartDash(

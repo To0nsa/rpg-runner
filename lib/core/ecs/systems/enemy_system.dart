@@ -5,6 +5,7 @@ import '../../tuning/v0_flying_enemy_tuning.dart';
 import '../../tuning/v0_ground_enemy_tuning.dart';
 import '../../util/deterministic_rng.dart';
 import '../../util/double_math.dart';
+import '../../util/velocity_math.dart';
 import '../entity_id.dart';
 import '../stores/cast_intent_store.dart';
 import '../stores/melee_intent_store.dart';
@@ -62,6 +63,7 @@ class EnemySystem {
             enemyTi: ti,
             playerX: playerX,
             ex: ex,
+            dtSeconds: dtSeconds,
           );
       }
     }
@@ -222,14 +224,13 @@ class EnemySystem {
     }
 
     final currentVelX = world.transform.velX[enemyTi];
-    final accel = desiredVelX == 0.0 ? tuning.base.flyingEnemyDecelX : tuning.base.flyingEnemyAccelX;
-    final maxDeltaX = accel * dtSeconds;
-    final deltaVelX = desiredVelX - currentVelX;
-    final nextVelX = deltaVelX.abs() > maxDeltaX
-        ? currentVelX + (deltaVelX > 0.0 ? maxDeltaX : -maxDeltaX)
-        : desiredVelX;
-
-    world.transform.velX[enemyTi] = nextVelX;
+    world.transform.velX[enemyTi] = applyAccelDecel(
+      current: currentVelX,
+      desired: desiredVelX,
+      dtSeconds: dtSeconds,
+      accelPerSecond: tuning.base.flyingEnemyAccelX,
+      decelPerSecond: tuning.base.flyingEnemyDecelX,
+    );
     world.transform.velY[enemyTi] = desiredVelY;
 
     steering.desiredRangeHoldLeftS[si] = desiredRangeHoldLeftS;
@@ -246,17 +247,25 @@ class EnemySystem {
     required int enemyTi,
     required double playerX,
     required double ex,
+    required double dtSeconds,
   }) {
     final dx = playerX - ex;
     final tuning = groundEnemyTuning;
-    if (dx.abs() <= tuning.base.groundEnemyStopDistanceX) {
-      world.transform.velX[enemyTi] = 0.0;
-      return;
+    double desiredVelX = 0.0;
+    if (dx.abs() > tuning.base.groundEnemyStopDistanceX) {
+      final dirX = dx >= 0 ? 1.0 : -1.0;
+      world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
+      desiredVelX = dirX * tuning.base.groundEnemySpeedX;
     }
 
-    final dirX = dx >= 0 ? 1.0 : -1.0;
-    world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
-    world.transform.velX[enemyTi] = dirX * tuning.base.groundEnemySpeedX;
+    final currentVelX = world.transform.velX[enemyTi];
+    world.transform.velX[enemyTi] = applyAccelDecel(
+      current: currentVelX,
+      desired: desiredVelX,
+      dtSeconds: dtSeconds,
+      accelPerSecond: tuning.base.groundEnemyAccelX,
+      decelPerSecond: tuning.base.groundEnemyDecelX,
+    );
   }
 
   void _writeFlyingEnemyCastIntent(

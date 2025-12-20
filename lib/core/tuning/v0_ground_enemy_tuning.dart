@@ -4,6 +4,8 @@ class V0GroundEnemyTuning {
   const V0GroundEnemyTuning({
     this.groundEnemySpeedX = 140.0,
     this.groundEnemyStopDistanceX = 6.0,
+    this.groundEnemyAccelX = 600.0,
+    this.groundEnemyDecelX = 400.0,
     this.groundEnemyMeleeRangeX = 26.0,
     this.groundEnemyMeleeCooldownSeconds = 1.0,
     this.groundEnemyMeleeActiveSeconds = 0.10,
@@ -15,6 +17,8 @@ class V0GroundEnemyTuning {
   // Ground enemy steering.
   final double groundEnemySpeedX;
   final double groundEnemyStopDistanceX;
+  final double groundEnemyAccelX;
+  final double groundEnemyDecelX;
 
   // Ground enemy melee.
   final double groundEnemyMeleeRangeX;
