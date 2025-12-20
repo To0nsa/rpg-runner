@@ -50,7 +50,8 @@ import 'spells/spell_catalog.dart';
 import 'track/v0_track_streamer.dart';
 import 'tuning/v0_ability_tuning.dart';
 import 'tuning/v0_combat_tuning.dart';
-import 'tuning/v0_enemy_tuning.dart';
+import 'tuning/v0_flying_enemy_tuning.dart';
+import 'tuning/v0_ground_enemy_tuning.dart';
 import 'tuning/v0_movement_tuning.dart';
 import 'tuning/v0_resource_tuning.dart';
 import 'tuning/v0_camera_tuning.dart';
@@ -76,7 +77,8 @@ class GameCore {
     V0ResourceTuning resourceTuning = const V0ResourceTuning(),
     V0AbilityTuning abilityTuning = const V0AbilityTuning(),
     V0CombatTuning combatTuning = const V0CombatTuning(),
-    V0EnemyTuning enemyTuning = const V0EnemyTuning(),
+    V0FlyingEnemyTuning flyingEnemyTuning = const V0FlyingEnemyTuning(),
+    V0GroundEnemyTuning groundEnemyTuning = const V0GroundEnemyTuning(),
     V0SpatialGridTuning spatialGridTuning = const V0SpatialGridTuning(),
     V0CameraTuning cameraTuning = const V0CameraTuning(),
     V0TrackTuning trackTuning = const V0TrackTuning(),
@@ -92,7 +94,14 @@ class GameCore {
        _resourceTuning = resourceTuning,
        _abilities = V0AbilityTuningDerived.from(abilityTuning, tickHz: tickHz),
        _combat = V0CombatTuningDerived.from(combatTuning, tickHz: tickHz),
-       _enemyTuning = V0EnemyTuningDerived.from(enemyTuning, tickHz: tickHz),
+       _flyingEnemyTuning = V0FlyingEnemyTuningDerived.from(
+         flyingEnemyTuning,
+         tickHz: tickHz,
+       ),
+       _groundEnemyTuning = V0GroundEnemyTuningDerived.from(
+         groundEnemyTuning,
+         tickHz: tickHz,
+       ),
         _spatialGridTuning = spatialGridTuning,
         _spells = spellCatalog,
         _projectiles = ProjectileCatalogDerived.from(
@@ -124,7 +133,8 @@ class GameCore {
     _spellCastSystem = SpellCastSystem(spells: _spells, projectiles: _projectiles);
     _meleeAttackSystem = MeleeAttackSystem();
     _enemySystem = EnemySystem(
-      tuning: _enemyTuning,
+      flyingEnemyTuning: _flyingEnemyTuning,
+      groundEnemyTuning: _groundEnemyTuning,
     );
     _cameraTuning = V0CameraTuningDerived.from(cameraTuning, movement: _movement);
     _camera = V0AutoscrollCamera(
@@ -208,7 +218,7 @@ class GameCore {
     final flyingEnemy = _world.createEnemy(
       enemyId: EnemyId.flyingEnemy,
       posX: spawnX,
-      posY: groundTopY - _enemyTuning.base.flyingEnemyHoverOffsetY,
+      posY: groundTopY - _flyingEnemyTuning.base.flyingEnemyHoverOffsetY,
       velX: 0.0,
       velY: 0.0,
       facing: Facing.left,
@@ -222,7 +232,7 @@ class GameCore {
     // Avoid immediate spawn-tick casting (keeps early-game tests stable).
     _world.cooldown.castCooldownTicksLeft[
         _world.cooldown.indexOf(flyingEnemy)] =
-        _enemyTuning.flyingEnemyCastCooldownTicks;
+        _flyingEnemyTuning.flyingEnemyCastCooldownTicks;
 
     return flyingEnemy;
   }
@@ -275,7 +285,8 @@ class GameCore {
   final V0ResourceTuning _resourceTuning;
   final V0AbilityTuningDerived _abilities;
   final V0CombatTuningDerived _combat;
-  final V0EnemyTuningDerived _enemyTuning;
+  final V0FlyingEnemyTuningDerived _flyingEnemyTuning;
+  final V0GroundEnemyTuningDerived _groundEnemyTuning;
   final V0SpatialGridTuning _spatialGridTuning;
   late final V0CameraTuningDerived _cameraTuning;
   final V0TrackTuning _trackTuning;

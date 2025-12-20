@@ -1,0 +1,63 @@
+import '../util/tick_math.dart';
+
+class V0GroundEnemyTuning {
+  const V0GroundEnemyTuning({
+    this.groundEnemySpeedX = 140.0,
+    this.groundEnemyStopDistanceX = 6.0,
+    this.groundEnemyMeleeRangeX = 26.0,
+    this.groundEnemyMeleeCooldownSeconds = 1.0,
+    this.groundEnemyMeleeActiveSeconds = 0.10,
+    this.groundEnemyMeleeDamage = 15.0,
+    this.groundEnemyMeleeHitboxSizeX = 28.0,
+    this.groundEnemyMeleeHitboxSizeY = 16.0,
+  });
+
+  // Ground enemy steering.
+  final double groundEnemySpeedX;
+  final double groundEnemyStopDistanceX;
+
+  // Ground enemy melee.
+  final double groundEnemyMeleeRangeX;
+  final double groundEnemyMeleeCooldownSeconds;
+  final double groundEnemyMeleeActiveSeconds;
+  final double groundEnemyMeleeDamage;
+  final double groundEnemyMeleeHitboxSizeX;
+  final double groundEnemyMeleeHitboxSizeY;
+}
+
+class V0GroundEnemyTuningDerived {
+  const V0GroundEnemyTuningDerived._({
+    required this.tickHz,
+    required this.base,
+    required this.groundEnemyMeleeCooldownTicks,
+    required this.groundEnemyMeleeActiveTicks,
+  });
+
+  factory V0GroundEnemyTuningDerived.from(
+    V0GroundEnemyTuning base, {
+    required int tickHz,
+  }) {
+    if (tickHz <= 0) {
+      throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
+    }
+
+    return V0GroundEnemyTuningDerived._(
+      tickHz: tickHz,
+      base: base,
+      groundEnemyMeleeCooldownTicks: ticksFromSecondsCeil(
+        base.groundEnemyMeleeCooldownSeconds,
+        tickHz,
+      ),
+      groundEnemyMeleeActiveTicks: ticksFromSecondsCeil(
+        base.groundEnemyMeleeActiveSeconds,
+        tickHz,
+      ),
+    );
+  }
+
+  final int tickHz;
+  final V0GroundEnemyTuning base;
+
+  final int groundEnemyMeleeCooldownTicks;
+  final int groundEnemyMeleeActiveTicks;
+}

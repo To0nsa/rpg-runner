@@ -1,7 +1,7 @@
 import '../util/tick_math.dart';
 
-class V0EnemyTuning {
-  const V0EnemyTuning({
+class V0FlyingEnemyTuning {
+  const V0FlyingEnemyTuning({
     this.flyingEnemyHoverOffsetY = 150.0,
     this.flyingEnemyDesiredRangeMin = 50.0,
     this.flyingEnemyDesiredRangeMax = 90.0,
@@ -21,14 +21,6 @@ class V0EnemyTuning {
     this.flyingEnemyVerticalDeadzone = 20.0,
     this.flyingEnemyCastCooldownSeconds = 2.0,
     this.flyingEnemyCastOriginOffset = 20.0,
-    this.groundEnemySpeedX = 140.0,
-    this.groundEnemyStopDistanceX = 6.0,
-    this.groundEnemyMeleeRangeX = 26.0,
-    this.groundEnemyMeleeCooldownSeconds = 1.0,
-    this.groundEnemyMeleeActiveSeconds = 0.10,
-    this.groundEnemyMeleeDamage = 15.0,
-    this.groundEnemyMeleeHitboxSizeX = 28.0,
-    this.groundEnemyMeleeHitboxSizeY = 16.0,
   });
 
   // Flying enemy steering.
@@ -53,59 +45,35 @@ class V0EnemyTuning {
   // Flying enemy attacks.
   final double flyingEnemyCastCooldownSeconds;
   final double flyingEnemyCastOriginOffset;
-
-  // GroundEnemy steering.
-  final double groundEnemySpeedX;
-  final double groundEnemyStopDistanceX;
-
-  // GroundEnemy melee.
-  final double groundEnemyMeleeRangeX;
-  final double groundEnemyMeleeCooldownSeconds;
-  final double groundEnemyMeleeActiveSeconds;
-  final double groundEnemyMeleeDamage;
-  final double groundEnemyMeleeHitboxSizeX;
-  final double groundEnemyMeleeHitboxSizeY;
 }
 
-class V0EnemyTuningDerived {
-  const V0EnemyTuningDerived._({
+class V0FlyingEnemyTuningDerived {
+  const V0FlyingEnemyTuningDerived._({
     required this.tickHz,
     required this.base,
     required this.flyingEnemyCastCooldownTicks,
-    required this.groundEnemyMeleeCooldownTicks,
-    required this.groundEnemyMeleeActiveTicks,
   });
 
-  factory V0EnemyTuningDerived.from(
-    V0EnemyTuning base, {
+  factory V0FlyingEnemyTuningDerived.from(
+    V0FlyingEnemyTuning base, {
     required int tickHz,
   }) {
     if (tickHz <= 0) {
       throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
     }
 
-    return V0EnemyTuningDerived._(
+    return V0FlyingEnemyTuningDerived._(
       tickHz: tickHz,
       base: base,
       flyingEnemyCastCooldownTicks: ticksFromSecondsCeil(
         base.flyingEnemyCastCooldownSeconds,
         tickHz,
       ),
-      groundEnemyMeleeCooldownTicks: ticksFromSecondsCeil(
-        base.groundEnemyMeleeCooldownSeconds,
-        tickHz,
-      ),
-      groundEnemyMeleeActiveTicks: ticksFromSecondsCeil(
-        base.groundEnemyMeleeActiveSeconds,
-        tickHz,
-      ),
     );
   }
 
   final int tickHz;
-  final V0EnemyTuning base;
+  final V0FlyingEnemyTuning base;
 
   final int flyingEnemyCastCooldownTicks;
-  final int groundEnemyMeleeCooldownTicks;
-  final int groundEnemyMeleeActiveTicks;
 }

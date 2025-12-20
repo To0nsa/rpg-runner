@@ -1,7 +1,8 @@
 import '../../enemies/enemy_id.dart';
 import '../../snapshots/enums.dart';
 import '../../spells/spell_id.dart';
-import '../../tuning/v0_enemy_tuning.dart';
+import '../../tuning/v0_flying_enemy_tuning.dart';
+import '../../tuning/v0_ground_enemy_tuning.dart';
 import '../../util/deterministic_rng.dart';
 import '../../util/double_math.dart';
 import '../entity_id.dart';
@@ -11,10 +12,12 @@ import '../world.dart';
 
 class EnemySystem {
   EnemySystem({
-    required this.tuning,
+    required this.flyingEnemyTuning,
+    required this.groundEnemyTuning,
   });
 
-  final V0EnemyTuningDerived tuning;
+  final V0FlyingEnemyTuningDerived flyingEnemyTuning;
+  final V0GroundEnemyTuningDerived groundEnemyTuning;
 
   void stepSteering(
     EcsWorld world, {
@@ -118,6 +121,7 @@ class EnemySystem {
     required double dtSeconds,
   }) {
     if (dtSeconds <= 0.0) return;
+    final tuning = flyingEnemyTuning;
     if (!world.flyingEnemySteering.has(enemy)) {
       assert(
         false,
@@ -244,6 +248,7 @@ class EnemySystem {
     required double ex,
   }) {
     final dx = playerX - ex;
+    final tuning = groundEnemyTuning;
     if (dx.abs() <= tuning.base.groundEnemyStopDistanceX) {
       world.transform.velX[enemyTi] = 0.0;
       return;
@@ -263,6 +268,7 @@ class EnemySystem {
       required double playerY,
       required int currentTick,
     }) {
+    final tuning = flyingEnemyTuning;
     if (!world.castIntent.has(enemy)) {
       assert(
         false,
@@ -299,6 +305,7 @@ class EnemySystem {
       required double playerX,
       required int currentTick,
     }) {
+    final tuning = groundEnemyTuning;
     if (!world.meleeIntent.has(enemy)) {
       assert(
         false,

@@ -8,7 +8,8 @@ import 'package:walkscape_runner/core/ecs/stores/stamina_store.dart';
 import 'package:walkscape_runner/core/ecs/systems/enemy_system.dart';
 import 'package:walkscape_runner/core/ecs/world.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
-import 'package:walkscape_runner/core/tuning/v0_enemy_tuning.dart';
+import 'package:walkscape_runner/core/tuning/v0_flying_enemy_tuning.dart';
+import 'package:walkscape_runner/core/tuning/v0_ground_enemy_tuning.dart';
 
 import 'test_spawns.dart';
 
@@ -49,7 +50,14 @@ void main() {
     final flyingEnemyB = spawnFlyingEnemy(worldB, posX: 100, posY: 120);
 
     final system = EnemySystem(
-      tuning: V0EnemyTuningDerived.from(const V0EnemyTuning(), tickHz: 60),
+      flyingEnemyTuning: V0FlyingEnemyTuningDerived.from(
+        const V0FlyingEnemyTuning(),
+        tickHz: 60,
+      ),
+      groundEnemyTuning: V0GroundEnemyTuningDerived.from(
+        const V0GroundEnemyTuning(),
+        tickHz: 60,
+      ),
     );
 
     const dtSeconds = 1.0 / 60.0;

@@ -10,7 +10,8 @@ import 'enemy_id.dart';
 /// IMPORTANT:
 /// - Keeps per-enemy stats in one place to avoid divergence between spawn code,
 ///   tests, and future deterministic spawning.
-/// - AI behavior tuning (cooldowns/speeds/ranges) lives in `V0EnemyTuning`.
+/// - AI behavior tuning (cooldowns/speeds/ranges) lives in
+///   `V0FlyingEnemyTuning` and `V0GroundEnemyTuning`.
 class EnemyArchetype {
   const EnemyArchetype({
     required this.body,
