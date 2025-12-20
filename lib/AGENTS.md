@@ -8,6 +8,15 @@ Port an existing **SFML/C++ 2D runner** (tools\output\c++implementation.txt)into
 
 ## Working style (how to collaborate)
 
+## Consent before changing code
+
+When the user asks a question (e.g. “how do I…?”, “why…?”, “is it possible…?”) or explicitly says “no code / just answer”:
+
+- **Do not make code changes or run refactors.** Provide an answer with options/tradeoffs only.
+- If implementation would help, **ask for confirmation first** (e.g. “Want me to implement option A?”) before editing files.
+
+Only implement changes when the user clearly requests it (e.g. “please implement”, “make the change”, “can you do X in the repo?”).
+
 For any non-trivial task (anything that affects architecture, touches multiple layers/files, introduces a new subsystem, or changes a core contract):
 
 - Brainstorm 1-3 viable approaches (with tradeoffs) before coding.
