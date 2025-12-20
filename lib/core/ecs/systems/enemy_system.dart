@@ -6,6 +6,9 @@ import '../../tuning/v0_ground_enemy_tuning.dart';
 import '../../util/deterministic_rng.dart';
 import '../../util/double_math.dart';
 import '../../util/velocity_math.dart';
+import '../../navigation/surface_graph.dart';
+import '../../navigation/surface_navigator.dart';
+import '../../navigation/surface_spatial_index.dart';
 import '../entity_id.dart';
 import '../stores/cast_intent_store.dart';
 import '../stores/melee_intent_store.dart';
@@ -15,10 +18,26 @@ class EnemySystem {
   EnemySystem({
     required this.flyingEnemyTuning,
     required this.groundEnemyTuning,
+    required this.surfaceNavigator,
   });
 
   final V0FlyingEnemyTuningDerived flyingEnemyTuning;
   final V0GroundEnemyTuningDerived groundEnemyTuning;
+  final SurfaceNavigator surfaceNavigator;
+
+  SurfaceGraph? _surfaceGraph;
+  SurfaceSpatialIndex? _surfaceIndex;
+  int _surfaceGraphVersion = 0;
+
+  void setSurfaceGraph({
+    required SurfaceGraph graph,
+    required SurfaceSpatialIndex spatialIndex,
+    required int graphVersion,
+  }) {
+    _surfaceGraph = graph;
+    _surfaceIndex = spatialIndex;
+    _surfaceGraphVersion = graphVersion;
+  }
 
   void stepSteering(
     EcsWorld world, {
@@ -31,6 +50,17 @@ class EnemySystem {
     final playerTi = world.transform.indexOf(player);
     final playerX = world.transform.posX[playerTi];
     final playerY = world.transform.posY[playerTi];
+    final playerGrounded = world.collision.has(player)
+        ? world.collision.grounded[world.collision.indexOf(player)]
+        : false;
+    var playerHalfX = 0.0;
+    var playerBottomY = playerY;
+    if (world.colliderAabb.has(player)) {
+      final ai = world.colliderAabb.indexOf(player);
+      playerHalfX = world.colliderAabb.halfX[ai];
+      final offsetY = world.colliderAabb.offsetY[ai];
+      playerBottomY = playerY + offsetY + world.colliderAabb.halfY[ai];
+    }
 
     final enemies = world.enemy;
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
@@ -62,6 +92,9 @@ class EnemySystem {
             enemy: e,
             enemyTi: ti,
             playerX: playerX,
+            playerBottomY: playerBottomY,
+            playerHalfX: playerHalfX,
+            playerGrounded: playerGrounded,
             ex: ex,
             dtSeconds: dtSeconds,
           );
@@ -246,48 +279,74 @@ class EnemySystem {
     required EntityId enemy,
     required int enemyTi,
     required double playerX,
+    required double playerBottomY,
+    required double playerHalfX,
+    required bool playerGrounded,
     required double ex,
     required double dtSeconds,
   }) {
     if (dtSeconds <= 0.0) return;
-    final dx = playerX - ex;
     final tuning = groundEnemyTuning;
 
-    final li = world.groundEnemyLocomotion.tryIndexOf(enemy);
-    if (li == null) {
+    final navIndex = world.surfaceNav.tryIndexOf(enemy);
+    if (navIndex == null) {
       assert(
         false,
-        'EnemySystem requires GroundEnemyLocomotionStore on ground enemies; add it at spawn time.',
+        'EnemySystem requires SurfaceNavStateStore on nav-enabled enemies; add it at spawn time.',
       );
       return;
     }
 
-    var jumpCooldownTicksLeft =
-        world.groundEnemyLocomotion.jumpCooldownTicksLeft[li];
-    if (jumpCooldownTicksLeft > 0) {
-      jumpCooldownTicksLeft -= 1;
+    final graph = _surfaceGraph;
+    final spatialIndex = _surfaceIndex;
+    SurfaceNavIntent intent;
+    if (graph == null || spatialIndex == null || !world.colliderAabb.has(enemy)) {
+      intent = SurfaceNavIntent(
+        desiredX: playerX,
+        jumpNow: false,
+        hasPlan: false,
+      );
+    } else {
+      final ai = world.colliderAabb.indexOf(enemy);
+      final enemyHalfX = world.colliderAabb.halfX[ai];
+      final enemyHalfY = world.colliderAabb.halfY[ai];
+      final offsetY = world.colliderAabb.offsetY[ai];
+      final enemyBottomY = world.transform.posY[enemyTi] + offsetY + enemyHalfY;
+      final grounded = world.collision.has(enemy) &&
+          world.collision.grounded[world.collision.indexOf(enemy)];
+
+      intent = surfaceNavigator.update(
+        navStore: world.surfaceNav,
+        navIndex: navIndex,
+        graph: graph,
+        spatialIndex: spatialIndex,
+        graphVersion: _surfaceGraphVersion,
+        entityX: ex,
+        entityBottomY: enemyBottomY,
+        entityHalfWidth: enemyHalfX,
+        entityGrounded: grounded,
+        targetX: playerX,
+        targetBottomY: playerBottomY,
+        targetHalfWidth: playerHalfX,
+        targetGrounded: playerGrounded,
+        jumpCooldownTicks: tuning.groundEnemyJumpCooldownTicks,
+      );
     }
 
+    final dx = intent.desiredX - ex;
     double desiredVelX = 0.0;
-    if (dx.abs() > tuning.base.groundEnemyStopDistanceX) {
+    if (intent.commitMoveDirX != 0) {
+      final dirX = intent.commitMoveDirX.toDouble();
+      world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
+      desiredVelX = dirX * tuning.base.groundEnemySpeedX;
+    } else if (dx.abs() > tuning.base.groundEnemyStopDistanceX) {
       final dirX = dx >= 0 ? 1.0 : -1.0;
       world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
       desiredVelX = dirX * tuning.base.groundEnemySpeedX;
     }
 
-    // Jump if we were blocked by a wall on the previous tick while grounded.
-    final coli = world.collision.tryIndexOf(enemy);
-    final wasGrounded = coli != null && world.collision.grounded[coli];
-    final blockedRight = coli != null && world.collision.hitRight[coli] && dx > 0;
-    final blockedLeft = coli != null && world.collision.hitLeft[coli] && dx < 0;
-    final blocked = blockedRight || blockedLeft;
-    final canJump = wasGrounded &&
-        blocked &&
-        jumpCooldownTicksLeft == 0 &&
-        tuning.groundEnemyJumpCooldownTicks > 0;
-    if (canJump) {
+    if (intent.jumpNow) {
       world.transform.velY[enemyTi] = -tuning.base.groundEnemyJumpSpeed;
-      jumpCooldownTicksLeft = tuning.groundEnemyJumpCooldownTicks;
     }
 
     final currentVelX = world.transform.velX[enemyTi];
@@ -299,8 +358,6 @@ class EnemySystem {
       decelPerSecond: tuning.base.groundEnemyDecelX,
     );
 
-    world.groundEnemyLocomotion.jumpCooldownTicksLeft[li] =
-        jumpCooldownTicksLeft;
   }
 
   void _writeFlyingEnemyCastIntent(

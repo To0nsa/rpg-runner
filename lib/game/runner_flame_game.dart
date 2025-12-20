@@ -34,7 +34,7 @@ class RunnerFlameGame extends FlameGame {
   final RunnerInputRouter input;
 
   late final CircleComponent _player;
-  late final TextComponent _debugText;
+  //late final TextComponent _debugText;
   final List<RectangleComponent> _staticSolids = <RectangleComponent>[];
   List<StaticSolidSnapshot>? _lastStaticSolidsSnapshot;
   final Map<int, RectangleComponent> _projectiles = <int, RectangleComponent>{};
@@ -126,7 +126,7 @@ class RunnerFlameGame extends FlameGame {
     _mountStaticSolids(controller.snapshot.staticSolids);
     _lastStaticSolidsSnapshot = controller.snapshot.staticSolids;
 
-    _debugText = TextComponent(
+/*     _debugText = TextComponent(
       text: '',
       position: Vector2(8, 8),
       anchor: Anchor.topLeft,
@@ -137,7 +137,7 @@ class RunnerFlameGame extends FlameGame {
         ),
       ),
     );
-    camera.viewport.add(_debugText);
+    camera.viewport.add(_debugText); */
 
     camera.viewport.add(
       HudBarsComponent(
@@ -175,11 +175,11 @@ class RunnerFlameGame extends FlameGame {
     _syncProjectiles(snapshot.entities);
     _syncHitboxes(snapshot.entities);
 
-    assert(() {
+/*     assert(() {
       _debugText.text =
           'tick=${snapshot.tick} seed=${snapshot.seed} x=${player?.pos.x.toStringAsFixed(1) ?? '-'} y=${player?.pos.y.toStringAsFixed(1) ?? '-'} anim=${player?.anim.name ?? '-'}';
       return true;
-    }());
+    }()); */
   }
 
   void _mountStaticSolids(List<StaticSolidSnapshot> solids) {

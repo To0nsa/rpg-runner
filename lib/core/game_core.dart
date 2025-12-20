@@ -41,6 +41,10 @@ import 'enemies/enemy_catalog.dart';
 import 'enemies/enemy_id.dart';
 import 'events/game_event.dart';
 import 'math/vec2.dart';
+import 'navigation/jump_template.dart';
+import 'navigation/surface_graph_builder.dart';
+import 'navigation/surface_navigator.dart';
+import 'navigation/surface_pathfinder.dart';
 import 'snapshots/enums.dart';
 import 'snapshots/entity_render_snapshot.dart';
 import 'snapshots/game_state_snapshot.dart';
@@ -54,11 +58,13 @@ import 'tuning/v0_combat_tuning.dart';
 import 'tuning/v0_flying_enemy_tuning.dart';
 import 'tuning/v0_ground_enemy_tuning.dart';
 import 'tuning/v0_movement_tuning.dart';
+import 'tuning/v0_navigation_tuning.dart';
 import 'tuning/v0_physics_tuning.dart';
 import 'tuning/v0_resource_tuning.dart';
 import 'tuning/v0_camera_tuning.dart';
 import 'tuning/v0_spatial_grid_tuning.dart';
 import 'tuning/v0_track_tuning.dart';
+import 'util/tick_math.dart';
 
 const StaticWorldGeometry v0DefaultStaticWorldGeometry = StaticWorldGeometry(
   groundPlane: StaticGroundPlane(topY: v0GroundTopY * 1.0),
@@ -82,6 +88,7 @@ class GameCore {
     V0CombatTuning combatTuning = const V0CombatTuning(),
     V0FlyingEnemyTuning flyingEnemyTuning = const V0FlyingEnemyTuning(),
     V0GroundEnemyTuning groundEnemyTuning = const V0GroundEnemyTuning(),
+    V0NavigationTuning navigationTuning = const V0NavigationTuning(),
     V0SpatialGridTuning spatialGridTuning = const V0SpatialGridTuning(),
     V0CameraTuning cameraTuning = const V0CameraTuning(),
     V0TrackTuning trackTuning = const V0TrackTuning(),
@@ -106,6 +113,7 @@ class GameCore {
          groundEnemyTuning,
          tickHz: tickHz,
        ),
+       _navigationTuning = navigationTuning,
         _spatialGridTuning = spatialGridTuning,
         _spells = spellCatalog,
         _projectiles = ProjectileCatalogDerived.from(
@@ -137,9 +145,38 @@ class GameCore {
     _castSystem = PlayerCastSystem(abilities: _abilities, movement: _movement);
     _spellCastSystem = SpellCastSystem(spells: _spells, projectiles: _projectiles);
     _meleeAttackSystem = MeleeAttackSystem();
+    _surfaceGraphBuilder = SurfaceGraphBuilder(
+      surfaceGrid: GridIndex2D(cellSize: _spatialGridTuning.broadphaseCellSize),
+      takeoffSampleMaxStep: _navigationTuning.takeoffSampleMaxStep,
+    );
+    _groundEnemyJumpTemplate = JumpReachabilityTemplate.build(
+      JumpProfile(
+        jumpSpeed: _groundEnemyTuning.base.groundEnemyJumpSpeed,
+        gravityY: _physicsTuning.gravityY,
+        maxAirTicks: _groundEnemyMaxAirTicks(),
+        airSpeedX: _groundEnemyTuning.base.groundEnemySpeedX,
+        dtSeconds: _movement.dtSeconds,
+        agentHalfWidth: _enemyCatalog.get(EnemyId.groundEnemy).collider.halfX,
+      ),
+    );
+    _surfacePathfinder = SurfacePathfinder(
+      maxExpandedNodes: _navigationTuning.maxExpandedNodes,
+      runSpeedX: _groundEnemyTuning.base.groundEnemySpeedX,
+      edgePenaltySeconds: _navigationTuning.edgePenaltySeconds,
+    );
+    _surfaceNavigator = SurfaceNavigator(
+      pathfinder: _surfacePathfinder,
+      repathCooldownTicks: _navigationTuning.repathCooldownTicks,
+      surfaceEps: _navigationTuning.surfaceEps,
+      takeoffEps: max(
+        _navigationTuning.takeoffEpsMin,
+        _groundEnemyTuning.base.groundEnemyStopDistanceX,
+      ),
+    );
     _enemySystem = EnemySystem(
       flyingEnemyTuning: _flyingEnemyTuning,
       groundEnemyTuning: _groundEnemyTuning,
+      surfaceNavigator: _surfaceNavigator,
     );
     _cameraTuning = V0CameraTuningDerived.from(cameraTuning, movement: _movement);
     _camera = V0AutoscrollCamera(
@@ -152,9 +189,7 @@ class GameCore {
       ),
     );
 
-    _staticWorldGeometry = _baseStaticWorldGeometry;
-    _staticWorldIndex = StaticWorldGeometryIndex.from(_staticWorldGeometry);
-    _staticSolidsSnapshot = _buildStaticSolidsSnapshot(_staticWorldGeometry);
+    _setStaticWorldGeometry(_baseStaticWorldGeometry);
 
     final spawnX = 400.0;
     final spawnY =
@@ -258,6 +293,7 @@ class GameCore {
         enabled: archetype.body.enabled,
         isKinematic: archetype.body.isKinematic,
         useGravity: archetype.body.useGravity,
+        ignoreCeilings: archetype.body.ignoreCeilings,
         topOnlyGround: archetype.body.topOnlyGround,
         gravityScale: archetype.body.gravityScale,
         maxVelX: _movement.base.maxVelX,
@@ -293,12 +329,16 @@ class GameCore {
   final V0CombatTuningDerived _combat;
   final V0FlyingEnemyTuningDerived _flyingEnemyTuning;
   final V0GroundEnemyTuningDerived _groundEnemyTuning;
+  final V0NavigationTuning _navigationTuning;
   final V0SpatialGridTuning _spatialGridTuning;
   late final V0CameraTuningDerived _cameraTuning;
   final V0TrackTuning _trackTuning;
   final SpellCatalog _spells;
   final ProjectileCatalogDerived _projectiles;
   final EnemyCatalog _enemyCatalog;
+  late final SurfaceGraphBuilder _surfaceGraphBuilder;
+  late final JumpReachabilityTemplate _groundEnemyJumpTemplate;
+  int _surfaceGraphVersion = 0;
 
   V0TrackStreamer? _trackStreamer;
 
@@ -316,6 +356,8 @@ class GameCore {
   late final DamageSystem _damageSystem;
   late final HealthDespawnSystem _healthDespawnSystem;
   late final EnemySystem _enemySystem;
+  late final SurfacePathfinder _surfacePathfinder;
+  late final SurfaceNavigator _surfaceNavigator;
   late final PlayerMeleeSystem _meleeSystem;
   late final MeleeAttackSystem _meleeAttackSystem;
   late final HitboxDamageSystem _hitboxDamageSystem;
@@ -543,6 +585,30 @@ class GameCore {
     _staticWorldGeometry = geometry;
     _staticWorldIndex = StaticWorldGeometryIndex.from(geometry);
     _staticSolidsSnapshot = _buildStaticSolidsSnapshot(geometry);
+    _rebuildSurfaceGraph();
+  }
+
+  void _rebuildSurfaceGraph() {
+    _surfaceGraphVersion += 1;
+    final result = _surfaceGraphBuilder.build(
+      geometry: _staticWorldGeometry,
+      jumpTemplate: _groundEnemyJumpTemplate,
+    );
+    _enemySystem.setSurfaceGraph(
+      graph: result.graph,
+      spatialIndex: result.spatialIndex,
+      graphVersion: _surfaceGraphVersion,
+    );
+  }
+
+  int _groundEnemyMaxAirTicks() {
+    final gravity = _physicsTuning.gravityY;
+    if (gravity <= 0) {
+      return ticksFromSecondsCeil(1.0, tickHz);
+    }
+    final jumpSpeed = _groundEnemyTuning.base.groundEnemyJumpSpeed.abs();
+    final baseAirSeconds = (2.0 * jumpSpeed) / gravity;
+    return ticksFromSecondsCeil(baseAirSeconds * 1.5, tickHz);
   }
 
   static List<StaticSolidSnapshot> _buildStaticSolidsSnapshot(

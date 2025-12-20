@@ -4,7 +4,7 @@ import 'v0_movement_tuning.dart';
 
 class V0CameraTuning {
   const V0CameraTuning({
-    this.speedLagMulX = 0.9,
+    this.speedLagMulX = 0.4,
     this.accelX = 1200.0,
     this.followThresholdRatio = 0.60,
     this.catchupLerp = 8.0,

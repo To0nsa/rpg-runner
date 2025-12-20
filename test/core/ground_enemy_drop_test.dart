@@ -24,18 +24,18 @@ import 'package:walkscape_runner/core/tuning/v0_movement_tuning.dart';
 import 'package:walkscape_runner/core/tuning/v0_physics_tuning.dart';
 
 void main() {
-  test('ground enemy jumps to reach a player on a higher platform', () {
+  test('ground enemy can drop off a platform to reach a player below', () {
     final world = EcsWorld();
 
     const groundTopY = 100.0;
-    const enemyHalf = 8.0;
     const platformTopY = 60.0;
+    const enemyHalf = 8.0;
 
     final player = world.createEntity();
     world.transform.add(
       player,
-      posX: 160.0,
-      posY: platformTopY - enemyHalf,
+      posX: 200.0,
+      posY: groundTopY - enemyHalf,
       velX: 0.0,
       velY: 0.0,
     );
@@ -57,9 +57,9 @@ void main() {
 
     final enemy = world.createEnemy(
       enemyId: EnemyId.groundEnemy,
-      posX: 0.0,
-      posY: groundTopY - enemyHalf,
-      velX: 100.0,
+      posX: 40.0,
+      posY: platformTopY - enemyHalf,
+      velX: 0.0,
       velY: 0.0,
       facing: Facing.right,
       body: const BodyDef(
@@ -78,9 +78,9 @@ void main() {
       groundPlane: const StaticGroundPlane(topY: groundTopY),
       solids: const <StaticSolid>[
         StaticSolid(
-          minX: 120.0,
+          minX: 0.0,
           minY: platformTopY,
-          maxX: 220.0,
+          maxX: 80.0,
           maxY: platformTopY + 16.0,
           sides: StaticSolid.sideTop,
           oneWayTop: true,
@@ -95,7 +95,7 @@ void main() {
       const V0MovementTuning(),
       tickHz: 10,
     );
-    const physics = V0PhysicsTuning(gravityY: 100.0);
+    const physics = V0PhysicsTuning(gravityY: 200.0);
 
     final collision = CollisionSystem();
     final gravity = GravitySystem();
@@ -129,14 +129,16 @@ void main() {
       ),
       groundEnemyTuning: V0GroundEnemyTuningDerived.from(
         const V0GroundEnemyTuning(
+          groundEnemySpeedX: 200.0,
+          groundEnemyStopDistanceX: 6.0,
           groundEnemyJumpSpeed: 300.0,
-          groundEnemyJumpCooldownSeconds: 1.0,
         ),
         tickHz: 10,
       ),
       surfaceNavigator: SurfaceNavigator(
         pathfinder: pathfinder,
         repathCooldownTicks: 5,
+        takeoffEps: 6.0,
       ),
     );
     system.setSurfaceGraph(
@@ -145,8 +147,9 @@ void main() {
       graphVersion: 1,
     );
 
-    var reached = false;
-    for (var tick = 0; tick < 120; tick += 1) {
+    var dropped = false;
+    var reachedGround = false;
+    for (var tick = 0; tick < 200; tick += 1) {
       system.stepSteering(
         world,
         player: player,
@@ -156,17 +159,22 @@ void main() {
       gravity.step(world, movement, physics: physics);
       collision.step(world, movement, staticWorld: staticWorld);
 
-      final ti = world.transform.indexOf(enemy);
       final ci = world.collision.indexOf(enemy);
-      if (world.collision.grounded[ci]) {
+      final grounded = world.collision.grounded[ci];
+      if (!grounded) dropped = true;
+
+      if (grounded) {
+        final ti = world.transform.indexOf(enemy);
         final posY = world.transform.posY[ti];
-        if ((posY - (platformTopY - enemyHalf)).abs() < 1.0) {
-          reached = true;
+        if ((posY - (groundTopY - enemyHalf)).abs() < 1.0) {
+          reachedGround = true;
           break;
         }
       }
     }
 
-    expect(reached, isTrue);
+    expect(dropped, isTrue);
+    expect(reachedGround, isTrue);
   });
 }
+

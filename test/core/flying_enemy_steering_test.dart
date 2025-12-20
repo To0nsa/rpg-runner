@@ -7,6 +7,8 @@ import 'package:walkscape_runner/core/ecs/stores/mana_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/stamina_store.dart';
 import 'package:walkscape_runner/core/ecs/systems/enemy_system.dart';
 import 'package:walkscape_runner/core/ecs/world.dart';
+import 'package:walkscape_runner/core/navigation/surface_navigator.dart';
+import 'package:walkscape_runner/core/navigation/surface_pathfinder.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
 import 'package:walkscape_runner/core/tuning/v0_flying_enemy_tuning.dart';
 import 'package:walkscape_runner/core/tuning/v0_ground_enemy_tuning.dart';
@@ -57,6 +59,12 @@ void main() {
       groundEnemyTuning: V0GroundEnemyTuningDerived.from(
         const V0GroundEnemyTuning(),
         tickHz: 60,
+      ),
+      surfaceNavigator: SurfaceNavigator(
+        pathfinder: SurfacePathfinder(
+          maxExpandedNodes: 1,
+          runSpeedX: 1.0,
+        ),
       ),
     );
 

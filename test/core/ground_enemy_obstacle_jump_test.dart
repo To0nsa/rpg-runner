@@ -14,6 +14,7 @@ import 'package:walkscape_runner/core/ecs/systems/enemy_system.dart';
 import 'package:walkscape_runner/core/ecs/systems/gravity_system.dart';
 import 'package:walkscape_runner/core/ecs/world.dart';
 import 'package:walkscape_runner/core/navigation/jump_template.dart';
+import 'package:walkscape_runner/core/navigation/surface_extractor.dart';
 import 'package:walkscape_runner/core/navigation/surface_graph_builder.dart';
 import 'package:walkscape_runner/core/navigation/surface_navigator.dart';
 import 'package:walkscape_runner/core/navigation/surface_pathfinder.dart';
@@ -24,18 +25,19 @@ import 'package:walkscape_runner/core/tuning/v0_movement_tuning.dart';
 import 'package:walkscape_runner/core/tuning/v0_physics_tuning.dart';
 
 void main() {
-  test('ground enemy jumps to reach a player on a higher platform', () {
+  test('ground enemy jumps over a wall obstacle on the ground', () {
     final world = EcsWorld();
 
     const groundTopY = 100.0;
     const enemyHalf = 8.0;
-    const platformTopY = 60.0;
+    const wallMinX = 40.0;
+    const wallMaxX = 60.0;
 
     final player = world.createEntity();
     world.transform.add(
       player,
       posX: 160.0,
-      posY: platformTopY - enemyHalf,
+      posY: groundTopY - enemyHalf,
       velX: 0.0,
       velY: 0.0,
     );
@@ -59,7 +61,7 @@ void main() {
       enemyId: EnemyId.groundEnemy,
       posX: 0.0,
       posY: groundTopY - enemyHalf,
-      velX: 100.0,
+      velX: 0.0,
       velY: 0.0,
       facing: Facing.right,
       body: const BodyDef(
@@ -74,16 +76,18 @@ void main() {
       stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
     );
 
-    final geometry = StaticWorldGeometry(
-      groundPlane: const StaticGroundPlane(topY: groundTopY),
-      solids: const <StaticSolid>[
+    const geometry = StaticWorldGeometry(
+      groundPlane: StaticGroundPlane(topY: groundTopY),
+      solids: <StaticSolid>[
+        // Wall obstacle: blocks horizontal motion, but has no walkable top. This
+        // forces a same-ground jump rather than a "step onto the obstacle".
         StaticSolid(
-          minX: 120.0,
-          minY: platformTopY,
-          maxX: 220.0,
-          maxY: platformTopY + 16.0,
-          sides: StaticSolid.sideTop,
-          oneWayTop: true,
+          minX: wallMinX,
+          minY: groundTopY - 40.0,
+          maxX: wallMaxX,
+          maxY: groundTopY,
+          sides: StaticSolid.sideLeft | StaticSolid.sideRight,
+          oneWayTop: false,
           chunkIndex: 0,
           localSolidIndex: 0,
         ),
@@ -95,13 +99,14 @@ void main() {
       const V0MovementTuning(),
       tickHz: 10,
     );
-    const physics = V0PhysicsTuning(gravityY: 100.0);
+    const physics = V0PhysicsTuning(gravityY: 200.0);
 
     final collision = CollisionSystem();
     final gravity = GravitySystem();
 
     final graphBuilder = SurfaceGraphBuilder(
       surfaceGrid: GridIndex2D(cellSize: 32),
+      extractor: SurfaceExtractor(groundPadding: 200.0),
     );
     final jumpTemplate = JumpReachabilityTemplate.build(
       JumpProfile(
@@ -119,8 +124,9 @@ void main() {
     );
 
     final pathfinder = SurfacePathfinder(
-      maxExpandedNodes: 64,
+      maxExpandedNodes: 128,
       runSpeedX: 200.0,
+      edgePenaltySeconds: 0.05,
     );
     final system = EnemySystem(
       flyingEnemyTuning: V0FlyingEnemyTuningDerived.from(
@@ -129,14 +135,16 @@ void main() {
       ),
       groundEnemyTuning: V0GroundEnemyTuningDerived.from(
         const V0GroundEnemyTuning(
+          groundEnemySpeedX: 200.0,
+          groundEnemyStopDistanceX: 6.0,
           groundEnemyJumpSpeed: 300.0,
-          groundEnemyJumpCooldownSeconds: 1.0,
         ),
         tickHz: 10,
       ),
       surfaceNavigator: SurfaceNavigator(
         pathfinder: pathfinder,
         repathCooldownTicks: 5,
+        takeoffEps: 6.0,
       ),
     );
     system.setSurfaceGraph(
@@ -145,8 +153,9 @@ void main() {
       graphVersion: 1,
     );
 
-    var reached = false;
-    for (var tick = 0; tick < 120; tick += 1) {
+    var jumped = false;
+    var clearedObstacle = false;
+    for (var tick = 0; tick < 250; tick += 1) {
       system.stepSteering(
         world,
         player: player,
@@ -156,17 +165,23 @@ void main() {
       gravity.step(world, movement, physics: physics);
       collision.step(world, movement, staticWorld: staticWorld);
 
-      final ti = world.transform.indexOf(enemy);
       final ci = world.collision.indexOf(enemy);
-      if (world.collision.grounded[ci]) {
-        final posY = world.transform.posY[ti];
-        if ((posY - (platformTopY - enemyHalf)).abs() < 1.0) {
-          reached = true;
-          break;
-        }
+      final grounded = world.collision.grounded[ci];
+      if (!grounded) jumped = true;
+
+      final ti = world.transform.indexOf(enemy);
+      final ex = world.transform.posX[ti];
+      final ey = world.transform.posY[ti];
+      if (ex > wallMaxX + enemyHalf &&
+          grounded &&
+          (ey - (groundTopY - enemyHalf)).abs() < 1.0) {
+        clearedObstacle = true;
+        break;
       }
     }
 
-    expect(reached, isTrue);
+    expect(jumped, isTrue);
+    expect(clearedObstacle, isTrue);
   });
 }
+

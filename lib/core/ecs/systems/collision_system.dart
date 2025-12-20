@@ -79,7 +79,7 @@ class CollisionSystem {
 
       // Vertical bottom resolution (ceilings): only while moving upward.
       double? bestBottomY;
-      if (world.transform.velY[ti] < 0) {
+      if (world.transform.velY[ti] < 0 && !world.body.ignoreCeilings[bi]) {
         final prevTop = prevCenterY - halfY;
         for (final solid in staticWorld.bottoms) {
           final overlapX = maxX > solid.minX + eps && minX < solid.maxX - eps;

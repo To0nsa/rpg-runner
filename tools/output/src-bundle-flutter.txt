@@ -1,6 +1,6 @@
 ﻿REPO: C:\dev\walkscape_runner
-COMMIT: b00651a320841dba177b7106c0415af002082943
-DATE: 2025-12-20 13:27:15
+COMMIT: 482b3bad2849d98336ece880c5b7cf3714f7fa63
+DATE: 2025-12-20 23:41:48
 
 
 ===== FILE: lib/AGENTS.md =====
@@ -285,6 +285,8 @@ class StaticSolid {
     required this.maxY,
     this.sides = sideTop,
     this.oneWayTop = true,
+    this.chunkIndex = noChunk,
+    this.localSolidIndex = -1,
   }) : assert(maxX >= minX),
        assert(maxY >= minY);
 
@@ -305,12 +307,27 @@ class StaticSolid {
   /// This only applies when [sides] includes [sideTop].
   final bool oneWayTop;
 
+  /// Chunk index this solid was generated from (streaming), or [noChunk] for
+  /// base/static geometry.
+  final int chunkIndex;
+
+  /// Stable local index within the chunk pattern authoring list.
+  ///
+  /// If negative, callers should derive a stable index from the owning list.
+  final int localSolidIndex;
+
   static const int sideNone = 0;
   static const int sideTop = 1 << 0;
   static const int sideBottom = 1 << 1;
   static const int sideLeft = 1 << 2;
   static const int sideRight = 1 << 3;
   static const int sideAll = sideTop | sideBottom | sideLeft | sideRight;
+
+  /// Sentinel for solids not tied to a streamed chunk.
+  static const int noChunk = -2;
+
+  /// Reserved chunk index for always-on surfaces (e.g. ground plane).
+  static const int groundChunk = -1;
 }
 
 /// Immutable bundle of static solids for a run/session.
@@ -1140,6 +1157,7 @@ class BodyDef {
     this.enabled = true,
     this.isKinematic = false,
     this.useGravity = true,
+    this.ignoreCeilings = false,
     this.topOnlyGround = true,
     this.gravityScale = 1.0,
     this.maxVelX = 3000,
@@ -1155,6 +1173,9 @@ class BodyDef {
 
   /// Whether gravity affects this body.
   final bool useGravity;
+
+  /// If true, upward motion ignores bottom faces (ceilings).
+  final bool ignoreCeilings;
 
   /// If true, collision should resolve only top contacts (platformer-style).
   /// Used by `CollisionSystem` (later milestone).
@@ -1180,6 +1201,7 @@ class BodyStore extends SparseSet {
   final List<bool> enabled = <bool>[];
   final List<bool> isKinematic = <bool>[];
   final List<bool> useGravity = <bool>[];
+  final List<bool> ignoreCeilings = <bool>[];
   final List<bool> topOnlyGround = <bool>[];
 
   final List<double> gravityScale = <double>[];
@@ -1193,6 +1215,7 @@ class BodyStore extends SparseSet {
     enabled[i] = def.enabled;
     isKinematic[i] = def.isKinematic;
     useGravity[i] = def.useGravity;
+    ignoreCeilings[i] = def.ignoreCeilings;
     topOnlyGround[i] = def.topOnlyGround;
     gravityScale[i] = def.gravityScale;
     maxVelX[i] = def.maxVelX;
@@ -1205,6 +1228,7 @@ class BodyStore extends SparseSet {
     enabled.add(true);
     isKinematic.add(false);
     useGravity.add(true);
+    ignoreCeilings.add(false);
     topOnlyGround.add(true);
     gravityScale.add(1);
     maxVelX.add(3000);
@@ -1217,6 +1241,7 @@ class BodyStore extends SparseSet {
     enabled[removeIndex] = enabled[lastIndex];
     isKinematic[removeIndex] = isKinematic[lastIndex];
     useGravity[removeIndex] = useGravity[lastIndex];
+    ignoreCeilings[removeIndex] = ignoreCeilings[lastIndex];
     topOnlyGround[removeIndex] = topOnlyGround[lastIndex];
     gravityScale[removeIndex] = gravityScale[lastIndex];
     maxVelX[removeIndex] = maxVelX[lastIndex];
@@ -1226,6 +1251,7 @@ class BodyStore extends SparseSet {
     enabled.removeLast();
     isKinematic.removeLast();
     useGravity.removeLast();
+    ignoreCeilings.removeLast();
     topOnlyGround.removeLast();
     gravityScale.removeLast();
     maxVelX.removeLast();
@@ -1649,31 +1675,6 @@ class GravityControlStore extends SparseSet {
   void onSwapRemove(int removeIndex, int lastIndex) {
     suppressGravityTicksLeft[removeIndex] = suppressGravityTicksLeft[lastIndex];
     suppressGravityTicksLeft.removeLast();
-  }
-}
-
-
-===== FILE: lib/core/ecs/stores/ground_enemy_locomotion_store.dart =====
-import '../entity_id.dart';
-import '../sparse_set.dart';
-
-class GroundEnemyLocomotionStore extends SparseSet {
-  final List<int> jumpCooldownTicksLeft = <int>[];
-
-  void add(EntityId entity) {
-    final i = addEntity(entity);
-    jumpCooldownTicksLeft[i] = 0;
-  }
-
-  @override
-  void onDenseAdded(int denseIndex) {
-    jumpCooldownTicksLeft.add(0);
-  }
-
-  @override
-  void onSwapRemove(int removeIndex, int lastIndex) {
-    jumpCooldownTicksLeft[removeIndex] = jumpCooldownTicksLeft[lastIndex];
-    jumpCooldownTicksLeft.removeLast();
   }
 }
 
@@ -2529,7 +2530,7 @@ class CollisionSystem {
 
       // Vertical bottom resolution (ceilings): only while moving upward.
       double? bestBottomY;
-      if (world.transform.velY[ti] < 0) {
+      if (world.transform.velY[ti] < 0 && !world.body.ignoreCeilings[bi]) {
         final prevTop = prevCenterY - halfY;
         for (final solid in staticWorld.bottoms) {
           final overlapX = maxX > solid.minX + eps && minX < solid.maxX - eps;
@@ -2715,6 +2716,9 @@ import '../../tuning/v0_ground_enemy_tuning.dart';
 import '../../util/deterministic_rng.dart';
 import '../../util/double_math.dart';
 import '../../util/velocity_math.dart';
+import '../../navigation/surface_graph.dart';
+import '../../navigation/surface_navigator.dart';
+import '../../navigation/surface_spatial_index.dart';
 import '../entity_id.dart';
 import '../stores/cast_intent_store.dart';
 import '../stores/melee_intent_store.dart';
@@ -2724,10 +2728,26 @@ class EnemySystem {
   EnemySystem({
     required this.flyingEnemyTuning,
     required this.groundEnemyTuning,
+    required this.surfaceNavigator,
   });
 
   final V0FlyingEnemyTuningDerived flyingEnemyTuning;
   final V0GroundEnemyTuningDerived groundEnemyTuning;
+  final SurfaceNavigator surfaceNavigator;
+
+  SurfaceGraph? _surfaceGraph;
+  SurfaceSpatialIndex? _surfaceIndex;
+  int _surfaceGraphVersion = 0;
+
+  void setSurfaceGraph({
+    required SurfaceGraph graph,
+    required SurfaceSpatialIndex spatialIndex,
+    required int graphVersion,
+  }) {
+    _surfaceGraph = graph;
+    _surfaceIndex = spatialIndex;
+    _surfaceGraphVersion = graphVersion;
+  }
 
   void stepSteering(
     EcsWorld world, {
@@ -2740,6 +2760,17 @@ class EnemySystem {
     final playerTi = world.transform.indexOf(player);
     final playerX = world.transform.posX[playerTi];
     final playerY = world.transform.posY[playerTi];
+    final playerGrounded = world.collision.has(player)
+        ? world.collision.grounded[world.collision.indexOf(player)]
+        : false;
+    var playerHalfX = 0.0;
+    var playerBottomY = playerY;
+    if (world.colliderAabb.has(player)) {
+      final ai = world.colliderAabb.indexOf(player);
+      playerHalfX = world.colliderAabb.halfX[ai];
+      final offsetY = world.colliderAabb.offsetY[ai];
+      playerBottomY = playerY + offsetY + world.colliderAabb.halfY[ai];
+    }
 
     final enemies = world.enemy;
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
@@ -2771,6 +2802,9 @@ class EnemySystem {
             enemy: e,
             enemyTi: ti,
             playerX: playerX,
+            playerBottomY: playerBottomY,
+            playerHalfX: playerHalfX,
+            playerGrounded: playerGrounded,
             ex: ex,
             dtSeconds: dtSeconds,
           );
@@ -2955,48 +2989,74 @@ class EnemySystem {
     required EntityId enemy,
     required int enemyTi,
     required double playerX,
+    required double playerBottomY,
+    required double playerHalfX,
+    required bool playerGrounded,
     required double ex,
     required double dtSeconds,
   }) {
     if (dtSeconds <= 0.0) return;
-    final dx = playerX - ex;
     final tuning = groundEnemyTuning;
 
-    final li = world.groundEnemyLocomotion.tryIndexOf(enemy);
-    if (li == null) {
+    final navIndex = world.surfaceNav.tryIndexOf(enemy);
+    if (navIndex == null) {
       assert(
         false,
-        'EnemySystem requires GroundEnemyLocomotionStore on ground enemies; add it at spawn time.',
+        'EnemySystem requires SurfaceNavStateStore on nav-enabled enemies; add it at spawn time.',
       );
       return;
     }
 
-    var jumpCooldownTicksLeft =
-        world.groundEnemyLocomotion.jumpCooldownTicksLeft[li];
-    if (jumpCooldownTicksLeft > 0) {
-      jumpCooldownTicksLeft -= 1;
+    final graph = _surfaceGraph;
+    final spatialIndex = _surfaceIndex;
+    SurfaceNavIntent intent;
+    if (graph == null || spatialIndex == null || !world.colliderAabb.has(enemy)) {
+      intent = SurfaceNavIntent(
+        desiredX: playerX,
+        jumpNow: false,
+        hasPlan: false,
+      );
+    } else {
+      final ai = world.colliderAabb.indexOf(enemy);
+      final enemyHalfX = world.colliderAabb.halfX[ai];
+      final enemyHalfY = world.colliderAabb.halfY[ai];
+      final offsetY = world.colliderAabb.offsetY[ai];
+      final enemyBottomY = world.transform.posY[enemyTi] + offsetY + enemyHalfY;
+      final grounded = world.collision.has(enemy) &&
+          world.collision.grounded[world.collision.indexOf(enemy)];
+
+      intent = surfaceNavigator.update(
+        navStore: world.surfaceNav,
+        navIndex: navIndex,
+        graph: graph,
+        spatialIndex: spatialIndex,
+        graphVersion: _surfaceGraphVersion,
+        entityX: ex,
+        entityBottomY: enemyBottomY,
+        entityHalfWidth: enemyHalfX,
+        entityGrounded: grounded,
+        targetX: playerX,
+        targetBottomY: playerBottomY,
+        targetHalfWidth: playerHalfX,
+        targetGrounded: playerGrounded,
+        jumpCooldownTicks: tuning.groundEnemyJumpCooldownTicks,
+      );
     }
 
+    final dx = intent.desiredX - ex;
     double desiredVelX = 0.0;
-    if (dx.abs() > tuning.base.groundEnemyStopDistanceX) {
+    if (intent.commitMoveDirX != 0) {
+      final dirX = intent.commitMoveDirX.toDouble();
+      world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
+      desiredVelX = dirX * tuning.base.groundEnemySpeedX;
+    } else if (dx.abs() > tuning.base.groundEnemyStopDistanceX) {
       final dirX = dx >= 0 ? 1.0 : -1.0;
       world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
       desiredVelX = dirX * tuning.base.groundEnemySpeedX;
     }
 
-    // Jump if we were blocked by a wall on the previous tick while grounded.
-    final coli = world.collision.tryIndexOf(enemy);
-    final wasGrounded = coli != null && world.collision.grounded[coli];
-    final blockedRight = coli != null && world.collision.hitRight[coli] && dx > 0;
-    final blockedLeft = coli != null && world.collision.hitLeft[coli] && dx < 0;
-    final blocked = blockedRight || blockedLeft;
-    final canJump = wasGrounded &&
-        blocked &&
-        jumpCooldownTicksLeft == 0 &&
-        tuning.groundEnemyJumpCooldownTicks > 0;
-    if (canJump) {
+    if (intent.jumpNow) {
       world.transform.velY[enemyTi] = -tuning.base.groundEnemyJumpSpeed;
-      jumpCooldownTicksLeft = tuning.groundEnemyJumpCooldownTicks;
     }
 
     final currentVelX = world.transform.velX[enemyTi];
@@ -3008,8 +3068,6 @@ class EnemySystem {
       decelPerSecond: tuning.base.groundEnemyDecelX,
     );
 
-    world.groundEnemyLocomotion.jumpCooldownTicksLeft[li] =
-        jumpCooldownTicksLeft;
   }
 
   void _writeFlyingEnemyCastIntent(
@@ -3957,7 +4015,6 @@ import 'stores/cooldown_store.dart';
 import 'stores/cast_intent_store.dart';
 import 'stores/gravity_control_store.dart';
 import 'stores/flying_enemy_steering_store.dart';
-import 'stores/ground_enemy_locomotion_store.dart';
 import 'stores/faction_store.dart';
 import 'stores/enemy_store.dart';
 import 'stores/health_store.dart';
@@ -3972,6 +4029,7 @@ import 'stores/player_input_store.dart';
 import 'stores/projectile_store.dart';
 import 'stores/spell_origin_store.dart';
 import 'stores/stamina_store.dart';
+import 'stores/surface_nav_state_store.dart';
 import 'stores/transform_store.dart';
 import '../enemies/enemy_id.dart';
 import '../util/deterministic_rng.dart';
@@ -4007,10 +4065,9 @@ class EcsWorld {
   final HitOnceStore hitOnce = HitOnceStore();
   final LifetimeStore lifetime = LifetimeStore();
   final SpellOriginStore spellOrigin = SpellOriginStore();
+  final SurfaceNavStateStore surfaceNav = SurfaceNavStateStore();
   final EnemyStore enemy = EnemyStore();
   final FlyingEnemySteeringStore flyingEnemySteering = FlyingEnemySteeringStore();
-  final GroundEnemyLocomotionStore groundEnemyLocomotion =
-      GroundEnemyLocomotionStore();
 
   EntityId createEntity() {
     final id = _nextEntityId;
@@ -4085,7 +4142,7 @@ class EcsWorld {
       );
     }
     if (enemyId == EnemyId.groundEnemy) {
-      groundEnemyLocomotion.add(id);
+      surfaceNav.add(id);
     }
     return id;
   }
@@ -4111,9 +4168,9 @@ class EcsWorld {
     hitOnce.removeEntity(entity);
     lifetime.removeEntity(entity);
     spellOrigin.removeEntity(entity);
+    surfaceNav.removeEntity(entity);
     enemy.removeEntity(entity);
     flyingEnemySteering.removeEntity(entity);
-    groundEnemyLocomotion.removeEntity(entity);
   }
 }
 
@@ -4174,6 +4231,7 @@ class EnemyCatalog {
           body: BodyDef(
             isKinematic: false,
             useGravity: true,
+            ignoreCeilings: true,
             gravityScale: 1.0,
             sideMask: BodyDef.sideLeft | BodyDef.sideRight,
           ),
@@ -4271,6 +4329,10 @@ import 'enemies/enemy_catalog.dart';
 import 'enemies/enemy_id.dart';
 import 'events/game_event.dart';
 import 'math/vec2.dart';
+import 'navigation/jump_template.dart';
+import 'navigation/surface_graph_builder.dart';
+import 'navigation/surface_navigator.dart';
+import 'navigation/surface_pathfinder.dart';
 import 'snapshots/enums.dart';
 import 'snapshots/entity_render_snapshot.dart';
 import 'snapshots/game_state_snapshot.dart';
@@ -4284,11 +4346,13 @@ import 'tuning/v0_combat_tuning.dart';
 import 'tuning/v0_flying_enemy_tuning.dart';
 import 'tuning/v0_ground_enemy_tuning.dart';
 import 'tuning/v0_movement_tuning.dart';
+import 'tuning/v0_navigation_tuning.dart';
 import 'tuning/v0_physics_tuning.dart';
 import 'tuning/v0_resource_tuning.dart';
 import 'tuning/v0_camera_tuning.dart';
 import 'tuning/v0_spatial_grid_tuning.dart';
 import 'tuning/v0_track_tuning.dart';
+import 'util/tick_math.dart';
 
 const StaticWorldGeometry v0DefaultStaticWorldGeometry = StaticWorldGeometry(
   groundPlane: StaticGroundPlane(topY: v0GroundTopY * 1.0),
@@ -4312,6 +4376,7 @@ class GameCore {
     V0CombatTuning combatTuning = const V0CombatTuning(),
     V0FlyingEnemyTuning flyingEnemyTuning = const V0FlyingEnemyTuning(),
     V0GroundEnemyTuning groundEnemyTuning = const V0GroundEnemyTuning(),
+    V0NavigationTuning navigationTuning = const V0NavigationTuning(),
     V0SpatialGridTuning spatialGridTuning = const V0SpatialGridTuning(),
     V0CameraTuning cameraTuning = const V0CameraTuning(),
     V0TrackTuning trackTuning = const V0TrackTuning(),
@@ -4336,6 +4401,7 @@ class GameCore {
          groundEnemyTuning,
          tickHz: tickHz,
        ),
+       _navigationTuning = navigationTuning,
         _spatialGridTuning = spatialGridTuning,
         _spells = spellCatalog,
         _projectiles = ProjectileCatalogDerived.from(
@@ -4367,9 +4433,38 @@ class GameCore {
     _castSystem = PlayerCastSystem(abilities: _abilities, movement: _movement);
     _spellCastSystem = SpellCastSystem(spells: _spells, projectiles: _projectiles);
     _meleeAttackSystem = MeleeAttackSystem();
+    _surfaceGraphBuilder = SurfaceGraphBuilder(
+      surfaceGrid: GridIndex2D(cellSize: _spatialGridTuning.broadphaseCellSize),
+      takeoffSampleMaxStep: _navigationTuning.takeoffSampleMaxStep,
+    );
+    _groundEnemyJumpTemplate = JumpReachabilityTemplate.build(
+      JumpProfile(
+        jumpSpeed: _groundEnemyTuning.base.groundEnemyJumpSpeed,
+        gravityY: _physicsTuning.gravityY,
+        maxAirTicks: _groundEnemyMaxAirTicks(),
+        airSpeedX: _groundEnemyTuning.base.groundEnemySpeedX,
+        dtSeconds: _movement.dtSeconds,
+        agentHalfWidth: _enemyCatalog.get(EnemyId.groundEnemy).collider.halfX,
+      ),
+    );
+    _surfacePathfinder = SurfacePathfinder(
+      maxExpandedNodes: _navigationTuning.maxExpandedNodes,
+      runSpeedX: _groundEnemyTuning.base.groundEnemySpeedX,
+      edgePenaltySeconds: _navigationTuning.edgePenaltySeconds,
+    );
+    _surfaceNavigator = SurfaceNavigator(
+      pathfinder: _surfacePathfinder,
+      repathCooldownTicks: _navigationTuning.repathCooldownTicks,
+      surfaceEps: _navigationTuning.surfaceEps,
+      takeoffEps: max(
+        _navigationTuning.takeoffEpsMin,
+        _groundEnemyTuning.base.groundEnemyStopDistanceX,
+      ),
+    );
     _enemySystem = EnemySystem(
       flyingEnemyTuning: _flyingEnemyTuning,
       groundEnemyTuning: _groundEnemyTuning,
+      surfaceNavigator: _surfaceNavigator,
     );
     _cameraTuning = V0CameraTuningDerived.from(cameraTuning, movement: _movement);
     _camera = V0AutoscrollCamera(
@@ -4382,9 +4477,7 @@ class GameCore {
       ),
     );
 
-    _staticWorldGeometry = _baseStaticWorldGeometry;
-    _staticWorldIndex = StaticWorldGeometryIndex.from(_staticWorldGeometry);
-    _staticSolidsSnapshot = _buildStaticSolidsSnapshot(_staticWorldGeometry);
+    _setStaticWorldGeometry(_baseStaticWorldGeometry);
 
     final spawnX = 400.0;
     final spawnY =
@@ -4488,6 +4581,7 @@ class GameCore {
         enabled: archetype.body.enabled,
         isKinematic: archetype.body.isKinematic,
         useGravity: archetype.body.useGravity,
+        ignoreCeilings: archetype.body.ignoreCeilings,
         topOnlyGround: archetype.body.topOnlyGround,
         gravityScale: archetype.body.gravityScale,
         maxVelX: _movement.base.maxVelX,
@@ -4523,12 +4617,16 @@ class GameCore {
   final V0CombatTuningDerived _combat;
   final V0FlyingEnemyTuningDerived _flyingEnemyTuning;
   final V0GroundEnemyTuningDerived _groundEnemyTuning;
+  final V0NavigationTuning _navigationTuning;
   final V0SpatialGridTuning _spatialGridTuning;
   late final V0CameraTuningDerived _cameraTuning;
   final V0TrackTuning _trackTuning;
   final SpellCatalog _spells;
   final ProjectileCatalogDerived _projectiles;
   final EnemyCatalog _enemyCatalog;
+  late final SurfaceGraphBuilder _surfaceGraphBuilder;
+  late final JumpReachabilityTemplate _groundEnemyJumpTemplate;
+  int _surfaceGraphVersion = 0;
 
   V0TrackStreamer? _trackStreamer;
 
@@ -4546,6 +4644,8 @@ class GameCore {
   late final DamageSystem _damageSystem;
   late final HealthDespawnSystem _healthDespawnSystem;
   late final EnemySystem _enemySystem;
+  late final SurfacePathfinder _surfacePathfinder;
+  late final SurfaceNavigator _surfaceNavigator;
   late final PlayerMeleeSystem _meleeSystem;
   late final MeleeAttackSystem _meleeAttackSystem;
   late final HitboxDamageSystem _hitboxDamageSystem;
@@ -4773,6 +4873,30 @@ class GameCore {
     _staticWorldGeometry = geometry;
     _staticWorldIndex = StaticWorldGeometryIndex.from(geometry);
     _staticSolidsSnapshot = _buildStaticSolidsSnapshot(geometry);
+    _rebuildSurfaceGraph();
+  }
+
+  void _rebuildSurfaceGraph() {
+    _surfaceGraphVersion += 1;
+    final result = _surfaceGraphBuilder.build(
+      geometry: _staticWorldGeometry,
+      jumpTemplate: _groundEnemyJumpTemplate,
+    );
+    _enemySystem.setSurfaceGraph(
+      graph: result.graph,
+      spatialIndex: result.spatialIndex,
+      graphVersion: _surfaceGraphVersion,
+    );
+  }
+
+  int _groundEnemyMaxAirTicks() {
+    final gravity = _physicsTuning.gravityY;
+    if (gravity <= 0) {
+      return ticksFromSecondsCeil(1.0, tickHz);
+    }
+    final jumpSpeed = _groundEnemyTuning.base.groundEnemyJumpSpeed.abs();
+    final baseAirSeconds = (2.0 * jumpSpeed) / gravity;
+    return ticksFromSecondsCeil(baseAirSeconds * 1.5, tickHz);
   }
 
   static List<StaticSolidSnapshot> _buildStaticSolidsSnapshot(
@@ -5578,7 +5702,11 @@ class V0TrackStreamer {
       final endX = startX + tuning.chunkWidth;
 
       final pattern = _patternFor(seed, chunkIndex);
-      final solids = _buildSolids(pattern, chunkStartX: startX);
+      final solids = _buildSolids(
+        pattern,
+        chunkStartX: startX,
+        chunkIndex: chunkIndex,
+      );
       _active.add(
         _ActiveChunk(
           index: chunkIndex,
@@ -5637,9 +5765,11 @@ class V0TrackStreamer {
   List<StaticSolid> _buildSolids(
     V0ChunkPattern pattern, {
     required double chunkStartX,
+    required int chunkIndex,
   }) {
     // Preserve author ordering for determinism (pattern order, then chunk order).
     final solids = <StaticSolid>[];
+    var localSolidIndex = 0;
 
     for (final p in pattern.platforms) {
       assert(_withinChunk(p.x, p.width), 'Platform out of chunk bounds: ${pattern.name}');
@@ -5654,8 +5784,11 @@ class V0TrackStreamer {
           maxY: topY + p.thickness,
           sides: StaticSolid.sideTop,
           oneWayTop: true,
+          chunkIndex: chunkIndex,
+          localSolidIndex: localSolidIndex,
         ),
       );
+      localSolidIndex += 1;
     }
 
     for (final o in pattern.obstacles) {
@@ -5670,8 +5803,11 @@ class V0TrackStreamer {
           maxY: groundTopY,
           sides: StaticSolid.sideAll,
           oneWayTop: false,
+          chunkIndex: chunkIndex,
+          localSolidIndex: localSolidIndex,
         ),
       );
+      localSolidIndex += 1;
     }
 
     return solids;
@@ -5932,7 +6068,7 @@ import 'v0_movement_tuning.dart';
 
 class V0CameraTuning {
   const V0CameraTuning({
-    this.speedLagMulX = 0.9,
+    this.speedLagMulX = 0.4,
     this.accelX = 1200.0,
     this.followThresholdRatio = 0.60,
     this.catchupLerp = 8.0,
@@ -6115,7 +6251,7 @@ import '../util/tick_math.dart';
 
 class V0GroundEnemyTuning {
   const V0GroundEnemyTuning({
-    this.groundEnemySpeedX = 260.0,
+    this.groundEnemySpeedX = 300.0,
     this.groundEnemyStopDistanceX = 6.0,
     this.groundEnemyAccelX = 600.0,
     this.groundEnemyDecelX = 400.0,
@@ -7233,7 +7369,7 @@ class RunnerFlameGame extends FlameGame {
   final RunnerInputRouter input;
 
   late final CircleComponent _player;
-  late final TextComponent _debugText;
+  //late final TextComponent _debugText;
   final List<RectangleComponent> _staticSolids = <RectangleComponent>[];
   List<StaticSolidSnapshot>? _lastStaticSolidsSnapshot;
   final Map<int, RectangleComponent> _projectiles = <int, RectangleComponent>{};
@@ -7325,7 +7461,7 @@ class RunnerFlameGame extends FlameGame {
     _mountStaticSolids(controller.snapshot.staticSolids);
     _lastStaticSolidsSnapshot = controller.snapshot.staticSolids;
 
-    _debugText = TextComponent(
+/*     _debugText = TextComponent(
       text: '',
       position: Vector2(8, 8),
       anchor: Anchor.topLeft,
@@ -7336,7 +7472,7 @@ class RunnerFlameGame extends FlameGame {
         ),
       ),
     );
-    camera.viewport.add(_debugText);
+    camera.viewport.add(_debugText); */
 
     camera.viewport.add(
       HudBarsComponent(
@@ -7374,11 +7510,11 @@ class RunnerFlameGame extends FlameGame {
     _syncProjectiles(snapshot.entities);
     _syncHitboxes(snapshot.entities);
 
-    assert(() {
+/*     assert(() {
       _debugText.text =
           'tick=${snapshot.tick} seed=${snapshot.seed} x=${player?.pos.x.toStringAsFixed(1) ?? '-'} y=${player?.pos.y.toStringAsFixed(1) ?? '-'} anim=${player?.anim.name ?? '-'}';
       return true;
-    }());
+    }()); */
   }
 
   void _mountStaticSolids(List<StaticSolidSnapshot> solids) {

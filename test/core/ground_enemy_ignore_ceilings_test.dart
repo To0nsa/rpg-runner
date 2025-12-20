@@ -24,12 +24,13 @@ import 'package:walkscape_runner/core/tuning/v0_movement_tuning.dart';
 import 'package:walkscape_runner/core/tuning/v0_physics_tuning.dart';
 
 void main() {
-  test('ground enemy jumps to reach a player on a higher platform', () {
+  test('ground enemy ignores ceilings and can still jump to a higher platform', () {
     final world = EcsWorld();
 
     const groundTopY = 100.0;
-    const enemyHalf = 8.0;
     const platformTopY = 60.0;
+    const ceilingBottomY = 80.0;
+    const enemyHalf = 8.0;
 
     final player = world.createEntity();
     world.transform.add(
@@ -59,12 +60,13 @@ void main() {
       enemyId: EnemyId.groundEnemy,
       posX: 0.0,
       posY: groundTopY - enemyHalf,
-      velX: 100.0,
+      velX: 0.0,
       velY: 0.0,
       facing: Facing.right,
       body: const BodyDef(
         isKinematic: false,
         useGravity: true,
+        ignoreCeilings: true,
         gravityScale: 1.0,
         maxVelY: 9999,
       ),
@@ -87,6 +89,17 @@ void main() {
           chunkIndex: 0,
           localSolidIndex: 0,
         ),
+        // A ceiling slab whose bottom face would normally cancel upward motion.
+        StaticSolid(
+          minX: -50.0,
+          minY: ceilingBottomY - 10.0,
+          maxX: 120.0,
+          maxY: ceilingBottomY,
+          sides: StaticSolid.sideBottom,
+          oneWayTop: false,
+          chunkIndex: 0,
+          localSolidIndex: 1,
+        ),
       ],
     );
     final staticWorld = StaticWorldGeometryIndex.from(geometry);
@@ -95,7 +108,7 @@ void main() {
       const V0MovementTuning(),
       tickHz: 10,
     );
-    const physics = V0PhysicsTuning(gravityY: 100.0);
+    const physics = V0PhysicsTuning(gravityY: 200.0);
 
     final collision = CollisionSystem();
     final gravity = GravitySystem();
@@ -129,14 +142,16 @@ void main() {
       ),
       groundEnemyTuning: V0GroundEnemyTuningDerived.from(
         const V0GroundEnemyTuning(
+          groundEnemySpeedX: 200.0,
+          groundEnemyStopDistanceX: 6.0,
           groundEnemyJumpSpeed: 300.0,
-          groundEnemyJumpCooldownSeconds: 1.0,
         ),
         tickHz: 10,
       ),
       surfaceNavigator: SurfaceNavigator(
         pathfinder: pathfinder,
         repathCooldownTicks: 5,
+        takeoffEps: 6.0,
       ),
     );
     system.setSurfaceGraph(
@@ -146,7 +161,7 @@ void main() {
     );
 
     var reached = false;
-    for (var tick = 0; tick < 120; tick += 1) {
+    for (var tick = 0; tick < 180; tick += 1) {
       system.stepSteering(
         world,
         player: player,
@@ -170,3 +185,4 @@ void main() {
     expect(reached, isTrue);
   });
 }
+

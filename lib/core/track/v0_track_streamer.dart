@@ -59,7 +59,11 @@ class V0TrackStreamer {
       final endX = startX + tuning.chunkWidth;
 
       final pattern = _patternFor(seed, chunkIndex);
-      final solids = _buildSolids(pattern, chunkStartX: startX);
+      final solids = _buildSolids(
+        pattern,
+        chunkStartX: startX,
+        chunkIndex: chunkIndex,
+      );
       _active.add(
         _ActiveChunk(
           index: chunkIndex,
@@ -118,9 +122,11 @@ class V0TrackStreamer {
   List<StaticSolid> _buildSolids(
     V0ChunkPattern pattern, {
     required double chunkStartX,
+    required int chunkIndex,
   }) {
     // Preserve author ordering for determinism (pattern order, then chunk order).
     final solids = <StaticSolid>[];
+    var localSolidIndex = 0;
 
     for (final p in pattern.platforms) {
       assert(_withinChunk(p.x, p.width), 'Platform out of chunk bounds: ${pattern.name}');
@@ -135,8 +141,11 @@ class V0TrackStreamer {
           maxY: topY + p.thickness,
           sides: StaticSolid.sideTop,
           oneWayTop: true,
+          chunkIndex: chunkIndex,
+          localSolidIndex: localSolidIndex,
         ),
       );
+      localSolidIndex += 1;
     }
 
     for (final o in pattern.obstacles) {
@@ -151,8 +160,11 @@ class V0TrackStreamer {
           maxY: groundTopY,
           sides: StaticSolid.sideAll,
           oneWayTop: false,
+          chunkIndex: chunkIndex,
+          localSolidIndex: localSolidIndex,
         ),
       );
+      localSolidIndex += 1;
     }
 
     return solids;

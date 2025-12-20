@@ -12,6 +12,7 @@ class BodyDef {
     this.enabled = true,
     this.isKinematic = false,
     this.useGravity = true,
+    this.ignoreCeilings = false,
     this.topOnlyGround = true,
     this.gravityScale = 1.0,
     this.maxVelX = 3000,
@@ -27,6 +28,9 @@ class BodyDef {
 
   /// Whether gravity affects this body.
   final bool useGravity;
+
+  /// If true, upward motion ignores bottom faces (ceilings).
+  final bool ignoreCeilings;
 
   /// If true, collision should resolve only top contacts (platformer-style).
   /// Used by `CollisionSystem` (later milestone).
@@ -52,6 +56,7 @@ class BodyStore extends SparseSet {
   final List<bool> enabled = <bool>[];
   final List<bool> isKinematic = <bool>[];
   final List<bool> useGravity = <bool>[];
+  final List<bool> ignoreCeilings = <bool>[];
   final List<bool> topOnlyGround = <bool>[];
 
   final List<double> gravityScale = <double>[];
@@ -65,6 +70,7 @@ class BodyStore extends SparseSet {
     enabled[i] = def.enabled;
     isKinematic[i] = def.isKinematic;
     useGravity[i] = def.useGravity;
+    ignoreCeilings[i] = def.ignoreCeilings;
     topOnlyGround[i] = def.topOnlyGround;
     gravityScale[i] = def.gravityScale;
     maxVelX[i] = def.maxVelX;
@@ -77,6 +83,7 @@ class BodyStore extends SparseSet {
     enabled.add(true);
     isKinematic.add(false);
     useGravity.add(true);
+    ignoreCeilings.add(false);
     topOnlyGround.add(true);
     gravityScale.add(1);
     maxVelX.add(3000);
@@ -89,6 +96,7 @@ class BodyStore extends SparseSet {
     enabled[removeIndex] = enabled[lastIndex];
     isKinematic[removeIndex] = isKinematic[lastIndex];
     useGravity[removeIndex] = useGravity[lastIndex];
+    ignoreCeilings[removeIndex] = ignoreCeilings[lastIndex];
     topOnlyGround[removeIndex] = topOnlyGround[lastIndex];
     gravityScale[removeIndex] = gravityScale[lastIndex];
     maxVelX[removeIndex] = maxVelX[lastIndex];
@@ -98,6 +106,7 @@ class BodyStore extends SparseSet {
     enabled.removeLast();
     isKinematic.removeLast();
     useGravity.removeLast();
+    ignoreCeilings.removeLast();
     topOnlyGround.removeLast();
     gravityScale.removeLast();
     maxVelX.removeLast();

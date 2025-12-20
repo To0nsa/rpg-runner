@@ -53,6 +53,7 @@ class EnemyCatalog {
           body: BodyDef(
             isKinematic: false,
             useGravity: true,
+            ignoreCeilings: true,
             gravityScale: 1.0,
             sideMask: BodyDef.sideLeft | BodyDef.sideRight,
           ),

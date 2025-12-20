@@ -8,7 +8,6 @@ import 'stores/cooldown_store.dart';
 import 'stores/cast_intent_store.dart';
 import 'stores/gravity_control_store.dart';
 import 'stores/flying_enemy_steering_store.dart';
-import 'stores/ground_enemy_locomotion_store.dart';
 import 'stores/faction_store.dart';
 import 'stores/enemy_store.dart';
 import 'stores/health_store.dart';
@@ -23,6 +22,7 @@ import 'stores/player_input_store.dart';
 import 'stores/projectile_store.dart';
 import 'stores/spell_origin_store.dart';
 import 'stores/stamina_store.dart';
+import 'stores/surface_nav_state_store.dart';
 import 'stores/transform_store.dart';
 import '../enemies/enemy_id.dart';
 import '../util/deterministic_rng.dart';
@@ -58,10 +58,9 @@ class EcsWorld {
   final HitOnceStore hitOnce = HitOnceStore();
   final LifetimeStore lifetime = LifetimeStore();
   final SpellOriginStore spellOrigin = SpellOriginStore();
+  final SurfaceNavStateStore surfaceNav = SurfaceNavStateStore();
   final EnemyStore enemy = EnemyStore();
   final FlyingEnemySteeringStore flyingEnemySteering = FlyingEnemySteeringStore();
-  final GroundEnemyLocomotionStore groundEnemyLocomotion =
-      GroundEnemyLocomotionStore();
 
   EntityId createEntity() {
     final id = _nextEntityId;
@@ -136,7 +135,7 @@ class EcsWorld {
       );
     }
     if (enemyId == EnemyId.groundEnemy) {
-      groundEnemyLocomotion.add(id);
+      surfaceNav.add(id);
     }
     return id;
   }
@@ -162,8 +161,8 @@ class EcsWorld {
     hitOnce.removeEntity(entity);
     lifetime.removeEntity(entity);
     spellOrigin.removeEntity(entity);
+    surfaceNav.removeEntity(entity);
     enemy.removeEntity(entity);
     flyingEnemySteering.removeEntity(entity);
-    groundEnemyLocomotion.removeEntity(entity);
   }
 }

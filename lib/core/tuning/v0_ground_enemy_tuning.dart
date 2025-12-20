@@ -2,7 +2,7 @@ import '../util/tick_math.dart';
 
 class V0GroundEnemyTuning {
   const V0GroundEnemyTuning({
-    this.groundEnemySpeedX = 260.0,
+    this.groundEnemySpeedX = 300.0,
     this.groundEnemyStopDistanceX = 6.0,
     this.groundEnemyAccelX = 600.0,
     this.groundEnemyDecelX = 400.0,

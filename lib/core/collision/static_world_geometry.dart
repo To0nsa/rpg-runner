@@ -17,6 +17,8 @@ class StaticSolid {
     required this.maxY,
     this.sides = sideTop,
     this.oneWayTop = true,
+    this.chunkIndex = noChunk,
+    this.localSolidIndex = -1,
   }) : assert(maxX >= minX),
        assert(maxY >= minY);
 
@@ -37,12 +39,27 @@ class StaticSolid {
   /// This only applies when [sides] includes [sideTop].
   final bool oneWayTop;
 
+  /// Chunk index this solid was generated from (streaming), or [noChunk] for
+  /// base/static geometry.
+  final int chunkIndex;
+
+  /// Stable local index within the chunk pattern authoring list.
+  ///
+  /// If negative, callers should derive a stable index from the owning list.
+  final int localSolidIndex;
+
   static const int sideNone = 0;
   static const int sideTop = 1 << 0;
   static const int sideBottom = 1 << 1;
   static const int sideLeft = 1 << 2;
   static const int sideRight = 1 << 3;
   static const int sideAll = sideTop | sideBottom | sideLeft | sideRight;
+
+  /// Sentinel for solids not tied to a streamed chunk.
+  static const int noChunk = -2;
+
+  /// Reserved chunk index for always-on surfaces (e.g. ground plane).
+  static const int groundChunk = -1;
 }
 
 /// Immutable bundle of static solids for a run/session.

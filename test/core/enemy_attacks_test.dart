@@ -15,6 +15,8 @@ import 'package:walkscape_runner/core/ecs/systems/hitbox_damage_system.dart';
 import 'package:walkscape_runner/core/ecs/systems/melee_attack_system.dart';
 import 'package:walkscape_runner/core/ecs/systems/projectile_hit_system.dart';
 import 'package:walkscape_runner/core/ecs/world.dart';
+import 'package:walkscape_runner/core/navigation/surface_navigator.dart';
+import 'package:walkscape_runner/core/navigation/surface_pathfinder.dart';
 import 'package:walkscape_runner/core/projectiles/projectile_catalog.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
 import 'package:walkscape_runner/core/spells/spawn_spell_projectile.dart';
@@ -134,6 +136,12 @@ void main() {
     final system = EnemySystem(
       flyingEnemyTuning: flyingEnemyTuning,
       groundEnemyTuning: groundEnemyTuning,
+      surfaceNavigator: SurfaceNavigator(
+        pathfinder: SurfacePathfinder(
+          maxExpandedNodes: 1,
+          runSpeedX: 1.0,
+        ),
+      ),
     );
 
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0);
