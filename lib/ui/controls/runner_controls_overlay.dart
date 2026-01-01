@@ -42,31 +42,41 @@ class RunnerControlsOverlay extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _ActionButton(
-                  label: 'Jump',
-                  icon: Icons.arrow_upward,
-                  onPressed: onJumpPressed,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DirectionalActionButton(
+                      label: 'Spell',
+                      icon: Icons.auto_awesome,
+                      onAimDir: onAimDir,
+                      onAimClear: onAimClear,
+                      onCommit: onCastCommitted,
+                      aimPreview: aimPreview,
+                    ),
+                    const SizedBox(width: 12),
+                    _ActionButton(
+                      label: 'Jump',
+                      icon: Icons.arrow_upward,
+                      onPressed: onJumpPressed,
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
-                _ActionButton(
-                  label: 'Dash',
-                  icon: Icons.flash_on,
-                  onPressed: onDashPressed,
-                ),
-                const SizedBox(height: 12),
-                _ActionButton(
-                  label: 'Atk',
-                  icon: Icons.close,
-                  onPressed: onAttackPressed,
-                ),
-                const SizedBox(height: 12),
-                DirectionalActionButton(
-                  label: 'Spell',
-                  icon: Icons.auto_awesome,
-                  onAimDir: onAimDir,
-                  onAimClear: onAimClear,
-                  onCommit: onCastCommitted,
-                  aimPreview: aimPreview,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _ActionButton(
+                      label: 'Atk',
+                      icon: Icons.close,
+                      onPressed: onAttackPressed,
+                    ),
+                    const SizedBox(width: 12),
+                    _ActionButton(
+                      label: 'Dash',
+                      icon: Icons.flash_on,
+                      onPressed: onDashPressed,
+                    ),
+                  ],
                 ),
               ],
             ),

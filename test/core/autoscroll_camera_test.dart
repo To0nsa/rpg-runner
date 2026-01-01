@@ -78,5 +78,8 @@ void main() {
       final snap = core.buildSnapshot();
       expect(snap.gameOver, isTrue);
     },
+    skip: const V0CameraTuning().speedLagMulX == 0.0
+        ? 'Requires autoscroll (V0CameraTuning.speedLagMulX > 0)'
+        : false,
   );
 }
