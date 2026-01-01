@@ -1,6 +1,6 @@
 ﻿REPO: C:\dev\walkscape_runner
-COMMIT: 482b3bad2849d98336ece880c5b7cf3714f7fa63
-DATE: 2025-12-20 23:41:48
+COMMIT: 4eacbeb99574ff5746674286411e3efb9b4bba0d
+DATE: 2026-01-01 18:09:09
 
 
 ===== FILE: lib/AGENTS.md =====
@@ -2388,6 +2388,56 @@ class StaminaStore extends SparseSet {
 
 
 
+===== FILE: lib/core/ecs/stores/surface_nav_state_store.dart =====
+import '../../navigation/surface_id.dart';
+import '../entity_id.dart';
+import '../sparse_set.dart';
+
+class SurfaceNavStateStore extends SparseSet {
+  final List<int> graphVersion = <int>[];
+  final List<int> repathTicksLeft = <int>[];
+  final List<int> currentSurfaceId = <int>[];
+  final List<int> targetSurfaceId = <int>[];
+  final List<int> activeEdgeIndex = <int>[];
+  final List<int> pathCursor = <int>[];
+  final List<List<int>> pathEdges = <List<int>>[];
+
+  void add(EntityId entity) {
+    addEntity(entity);
+  }
+
+  @override
+  void onDenseAdded(int denseIndex) {
+    graphVersion.add(-1);
+    repathTicksLeft.add(0);
+    currentSurfaceId.add(surfaceIdUnknown);
+    targetSurfaceId.add(surfaceIdUnknown);
+    activeEdgeIndex.add(-1);
+    pathCursor.add(0);
+    pathEdges.add(<int>[]);
+  }
+
+  @override
+  void onSwapRemove(int removeIndex, int lastIndex) {
+    graphVersion[removeIndex] = graphVersion[lastIndex];
+    repathTicksLeft[removeIndex] = repathTicksLeft[lastIndex];
+    currentSurfaceId[removeIndex] = currentSurfaceId[lastIndex];
+    targetSurfaceId[removeIndex] = targetSurfaceId[lastIndex];
+    activeEdgeIndex[removeIndex] = activeEdgeIndex[lastIndex];
+    pathCursor[removeIndex] = pathCursor[lastIndex];
+    pathEdges[removeIndex] = pathEdges[lastIndex];
+
+    graphVersion.removeLast();
+    repathTicksLeft.removeLast();
+    currentSurfaceId.removeLast();
+    targetSurfaceId.removeLast();
+    activeEdgeIndex.removeLast();
+    pathCursor.removeLast();
+    pathEdges.removeLast();
+  }
+}
+
+
 ===== FILE: lib/core/ecs/stores/transform_store.dart =====
 import '../entity_id.dart';
 import '../sparse_set.dart';
@@ -3039,7 +3089,6 @@ class EnemySystem {
         targetBottomY: playerBottomY,
         targetHalfWidth: playerHalfX,
         targetGrounded: playerGrounded,
-        jumpCooldownTicks: tuning.groundEnemyJumpCooldownTicks,
       );
     }
 
@@ -4299,7 +4348,6 @@ import 'collision/static_world_geometry.dart';
 import 'collision/static_world_geometry_index.dart';
 import 'contracts/v0_render_contract.dart';
 import 'ecs/entity_id.dart';
-import 'ecs/stores/collider_aabb_store.dart';
 import 'ecs/spatial/broadphase_grid.dart';
 import 'ecs/spatial/grid_index_2d.dart';
 import 'ecs/systems/collision_system.dart';
@@ -4321,9 +4369,6 @@ import 'ecs/systems/projectile_system.dart';
 import 'ecs/systems/projectile_hit_system.dart';
 import 'ecs/systems/resource_regen_system.dart';
 import 'ecs/stores/body_store.dart';
-import 'ecs/stores/health_store.dart';
-import 'ecs/stores/mana_store.dart';
-import 'ecs/stores/stamina_store.dart';
 import 'ecs/world.dart';
 import 'enemies/enemy_catalog.dart';
 import 'enemies/enemy_id.dart';
@@ -4333,6 +4378,7 @@ import 'navigation/jump_template.dart';
 import 'navigation/surface_graph_builder.dart';
 import 'navigation/surface_navigator.dart';
 import 'navigation/surface_pathfinder.dart';
+import 'players/player_catalog.dart';
 import 'snapshots/enums.dart';
 import 'snapshots/entity_render_snapshot.dart';
 import 'snapshots/game_state_snapshot.dart';
@@ -4353,12 +4399,6 @@ import 'tuning/v0_camera_tuning.dart';
 import 'tuning/v0_spatial_grid_tuning.dart';
 import 'tuning/v0_track_tuning.dart';
 import 'util/tick_math.dart';
-
-const StaticWorldGeometry v0DefaultStaticWorldGeometry = StaticWorldGeometry(
-  groundPlane: StaticGroundPlane(topY: v0GroundTopY * 1.0),
-  // Chunk streaming (Milestone 12) supplies platforms/obstacles deterministically.
-  solids: <StaticSolid>[],
-);
 
 /// Minimal placeholder `GameCore` used to validate architecture wiring.
 ///
@@ -4383,12 +4423,11 @@ class GameCore {
     SpellCatalog spellCatalog = const SpellCatalog(),
     ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
     EnemyCatalog enemyCatalog = const EnemyCatalog(),
-    BodyDef? playerBody,
-    StaticWorldGeometry? staticWorldGeometry,
-  }) : _movement = V0MovementTuningDerived.from(
-          movementTuning,
-          tickHz: tickHz,
-       ),
+    PlayerCatalog playerCatalog = const PlayerCatalog(),
+    StaticWorldGeometry staticWorldGeometry = const StaticWorldGeometry(
+      groundPlane: StaticGroundPlane(topY: v0GroundTopY * 1.0),
+    ),
+  }) : _movement = V0MovementTuningDerived.from(movementTuning, tickHz: tickHz),
        _physicsTuning = physicsTuning,
        _resourceTuning = resourceTuning,
        _abilities = V0AbilityTuningDerived.from(abilityTuning, tickHz: tickHz),
@@ -4402,16 +4441,16 @@ class GameCore {
          tickHz: tickHz,
        ),
        _navigationTuning = navigationTuning,
-        _spatialGridTuning = spatialGridTuning,
-        _spells = spellCatalog,
-        _projectiles = ProjectileCatalogDerived.from(
-          projectileCatalog,
-          tickHz: tickHz,
-        ),
-        _enemyCatalog = enemyCatalog,
-        _baseStaticWorldGeometry =
-            staticWorldGeometry ?? v0DefaultStaticWorldGeometry,
-        _trackTuning = trackTuning {
+       _spatialGridTuning = spatialGridTuning,
+       _spells = spellCatalog,
+       _projectiles = ProjectileCatalogDerived.from(
+         projectileCatalog,
+         tickHz: tickHz,
+       ),
+       _enemyCatalog = enemyCatalog,
+       _playerCatalog = playerCatalog,
+       _baseStaticWorldGeometry = staticWorldGeometry,
+       _trackTuning = trackTuning {
     _world = EcsWorld(seed: seed);
     _movementSystem = PlayerMovementSystem();
     _collisionSystem = CollisionSystem();
@@ -4425,13 +4464,21 @@ class GameCore {
     _hitboxFollowOwnerSystem = HitboxFollowOwnerSystem();
     _lifetimeSystem = LifetimeSystem();
     _invulnerabilitySystem = InvulnerabilitySystem();
-    _damageSystem = DamageSystem(invulnerabilityTicksOnHit: _combat.invulnerabilityTicks);
+    _damageSystem = DamageSystem(
+      invulnerabilityTicksOnHit: _combat.invulnerabilityTicks,
+    );
     _healthDespawnSystem = HealthDespawnSystem();
-    _meleeSystem = PlayerMeleeSystem(abilities: _abilities, movement: _movement);
+    _meleeSystem = PlayerMeleeSystem(
+      abilities: _abilities,
+      movement: _movement,
+    );
     _hitboxDamageSystem = HitboxDamageSystem();
     _resourceRegenSystem = ResourceRegenSystem();
     _castSystem = PlayerCastSystem(abilities: _abilities, movement: _movement);
-    _spellCastSystem = SpellCastSystem(spells: _spells, projectiles: _projectiles);
+    _spellCastSystem = SpellCastSystem(
+      spells: _spells,
+      projectiles: _projectiles,
+    );
     _meleeAttackSystem = MeleeAttackSystem();
     _surfaceGraphBuilder = SurfaceGraphBuilder(
       surfaceGrid: GridIndex2D(cellSize: _spatialGridTuning.broadphaseCellSize),
@@ -4466,7 +4513,10 @@ class GameCore {
       groundEnemyTuning: _groundEnemyTuning,
       surfaceNavigator: _surfaceNavigator,
     );
-    _cameraTuning = V0CameraTuningDerived.from(cameraTuning, movement: _movement);
+    _cameraTuning = V0CameraTuningDerived.from(
+      cameraTuning,
+      movement: _movement,
+    );
     _camera = V0AutoscrollCamera(
       viewWidth: v0VirtualWidth.toDouble(),
       tuning: _cameraTuning,
@@ -4480,56 +4530,35 @@ class GameCore {
     _setStaticWorldGeometry(_baseStaticWorldGeometry);
 
     final spawnX = 400.0;
+    final playerArchetype = PlayerCatalogDerived.from(
+      _playerCatalog,
+      movement: _movement,
+      resources: _resourceTuning,
+    ).archetype;
+    final playerCollider = playerArchetype.collider;
     final spawnY =
         (_staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble()) -
-        _movement.base.playerRadius;
-    final defaultBody = BodyDef(
-      enabled: true,
-      isKinematic: false,
-      useGravity: true,
-      topOnlyGround: true,
-      gravityScale: 1.0,
-      maxVelX: _movement.base.maxVelX,
-      maxVelY: _movement.base.maxVelY,
-      sideMask: BodyDef.sideLeft | BodyDef.sideRight,
-    );
+        (playerCollider.offsetY + playerCollider.halfY);
     _player = _world.createPlayer(
       posX: spawnX,
       posY: spawnY,
       velX: 0.0,
       velY: 0.0,
-      facing: Facing.right,
+      facing: playerArchetype.facing,
       grounded: true,
-      body: playerBody ?? defaultBody,
-      collider: ColliderAabbDef(
-        halfX: _movement.base.playerRadius,
-        halfY: _movement.base.playerRadius,
-      ),
-      health: HealthDef(
-        hp: _resourceTuning.playerHpStart ?? _resourceTuning.playerHpMax,
-        hpMax: _resourceTuning.playerHpMax,
-        regenPerSecond: _resourceTuning.playerHpRegenPerSecond,
-      ),
-      mana: ManaDef(
-        mana: _resourceTuning.playerManaStart ?? _resourceTuning.playerManaMax,
-        manaMax: _resourceTuning.playerManaMax,
-        regenPerSecond: _resourceTuning.playerManaRegenPerSecond,
-      ),
-      stamina: StaminaDef(
-        stamina:
-            _resourceTuning.playerStaminaStart ?? _resourceTuning.playerStaminaMax,
-        staminaMax: _resourceTuning.playerStaminaMax,
-        regenPerSecond: _resourceTuning.playerStaminaRegenPerSecond,
-      ),
+      body: playerArchetype.body,
+      collider: playerCollider,
+      health: playerArchetype.health,
+      mana: playerArchetype.mana,
+      stamina: playerArchetype.stamina,
     );
 
     // Milestone 12: stream deterministic chunks (static solids + enemy spawns).
-    //
-    // If a custom [staticWorldGeometry] was provided (typically tests), keep the
-    // geometry fixed and skip track streaming unless explicitly enabled later.
-    if (staticWorldGeometry == null && _trackTuning.enabled) {
-      final groundTopY = _staticWorldGeometry.groundPlane?.topY ??
-          v0GroundTopY.toDouble();
+    // Track streaming is controlled by `trackTuning.enabled`. When enabled, the
+    // streamed solids are merged on top of the provided base geometry.
+    if (_trackTuning.enabled) {
+      final groundTopY =
+          _staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble();
       _trackStreamer = V0TrackStreamer(
         seed: seed,
         tuning: _trackTuning,
@@ -4539,7 +4568,10 @@ class GameCore {
     }
   }
 
-  EntityId _spawnFlyingEnemy({required double spawnX, required double groundTopY}) {
+  EntityId _spawnFlyingEnemy({
+    required double spawnX,
+    required double groundTopY,
+  }) {
     // Enemy spawn stats come from a centralized catalog so these hardcoded spawns
     // don't diverge from future deterministic spawning rules.
     final archetype = _enemyCatalog.get(EnemyId.flyingEnemy);
@@ -4558,14 +4590,18 @@ class GameCore {
     );
 
     // Avoid immediate spawn-tick casting (keeps early-game tests stable).
-    _world.cooldown.castCooldownTicksLeft[
-        _world.cooldown.indexOf(flyingEnemy)] =
+    _world.cooldown.castCooldownTicksLeft[_world.cooldown.indexOf(
+          flyingEnemy,
+        )] =
         _flyingEnemyTuning.flyingEnemyCastCooldownTicks;
 
     return flyingEnemy;
   }
 
-  EntityId _spawnGroundEnemy({required double spawnX, required double groundTopY}) {
+  EntityId _spawnGroundEnemy({
+    required double spawnX,
+    required double groundTopY,
+  }) {
     final archetype = _enemyCatalog.get(EnemyId.groundEnemy);
 
     // GroundEnemy uses the archetype, but clamps should stay aligned with the
@@ -4624,6 +4660,7 @@ class GameCore {
   final SpellCatalog _spells;
   final ProjectileCatalogDerived _projectiles;
   final EnemyCatalog _enemyCatalog;
+  final PlayerCatalog _playerCatalog;
   late final SurfaceGraphBuilder _surfaceGraphBuilder;
   late final JumpReachabilityTemplate _groundEnemyJumpTemplate;
   int _surfaceGraphVersion = 0;
@@ -4763,18 +4800,11 @@ class GameCore {
 
     _movementSystem.step(_world, _movement, resources: _resourceTuning);
     _gravitySystem.step(_world, _movement, physics: _physicsTuning);
-    _collisionSystem.step(
-      _world,
-      _movement,
-      staticWorld: _staticWorldIndex,
-    );
+    _collisionSystem.step(_world, _movement, staticWorld: _staticWorldIndex);
 
     distance += max(0.0, playerVelX) * _movement.dtSeconds;
 
-    _camera.updateTick(
-      dtSeconds: _movement.dtSeconds,
-      playerX: playerPosX,
-    );
+    _camera.updateTick(dtSeconds: _movement.dtSeconds, playerX: playerPosX);
     if (_checkFellBehindCamera()) {
       gameOver = true;
       paused = true;
@@ -4820,7 +4850,6 @@ class GameCore {
 
     // Cleanup last so effect entities get their full last tick to act.
     _lifetimeSystem.step(_world);
-
   }
 
   bool _checkFellBehindCamera() {
@@ -4843,8 +4872,8 @@ class GameCore {
       cameraLeft: _camera.left(),
       cameraRight: _camera.right(),
       spawnEnemy: (enemyId, x) {
-        final groundTopY = _staticWorldGeometry.groundPlane?.topY ??
-            v0GroundTopY.toDouble();
+        final groundTopY =
+            _staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble();
         switch (enemyId) {
           case EnemyId.flyingEnemy:
             _spawnFlyingEnemy(spawnX: x, groundTopY: groundTopY);
@@ -4928,7 +4957,8 @@ class GameCore {
     final tuning = _movement.base;
     final mi = _world.movement.indexOf(_player);
     final dashing = _world.movement.dashTicksLeft[mi] > 0;
-    final onGround = _world.collision.grounded[_world.collision.indexOf(_player)];
+    final onGround =
+        _world.collision.grounded[_world.collision.indexOf(_player)];
     final hi = _world.health.indexOf(_player);
     final mai = _world.mana.indexOf(_player);
     final si = _world.stamina.indexOf(_player);
@@ -5095,6 +5125,1376 @@ class Vec2 {
   /// Scalar multiplication.
   Vec2 scale(double factor) => Vec2(x * factor, y * factor);
 }
+
+
+===== FILE: lib/core/navigation/jump_template.dart =====
+import 'nav_tolerances.dart';
+
+class JumpProfile {
+  const JumpProfile({
+    required this.jumpSpeed,
+    required this.gravityY,
+    required this.maxAirTicks,
+    required this.airSpeedX,
+    required this.dtSeconds,
+    required this.agentHalfWidth,
+  }) : assert(maxAirTicks > 0),
+       assert(dtSeconds > 0);
+
+  /// Instantaneous jump vertical speed (negative is upward).
+  final double jumpSpeed;
+
+  /// Gravity acceleration (positive is downward).
+  final double gravityY;
+
+  /// Fixed tick timestep (seconds).
+  final double dtSeconds;
+
+  /// Maximum air time horizon to consider (ticks).
+  final int maxAirTicks;
+
+  /// Assumed constant horizontal speed while airborne.
+  final double airSpeedX;
+
+  /// Collider half-width (used by callers when clamping landing ranges).
+  final double agentHalfWidth;
+}
+
+class JumpSample {
+  const JumpSample({
+    required this.tick,
+    required this.prevY,
+    required this.y,
+    required this.velY,
+    required this.maxDx,
+  });
+
+  final int tick;
+  final double prevY;
+  final double y;
+  final double velY;
+  final double maxDx;
+}
+
+class JumpLanding {
+  const JumpLanding({required this.tick, required this.maxDx});
+
+  final int tick;
+  final double maxDx;
+}
+
+class JumpReachabilityTemplate {
+  JumpReachabilityTemplate._({
+    required this.profile,
+    required this.samples,
+    required this.minDy,
+    required this.maxDy,
+    required this.maxDx,
+  });
+
+  final JumpProfile profile;
+  final List<JumpSample> samples;
+  final double minDy;
+  final double maxDy;
+  final double maxDx;
+
+  factory JumpReachabilityTemplate.build(JumpProfile profile) {
+    final samples = <JumpSample>[];
+
+    var y = 0.0;
+    var velY = -profile.jumpSpeed;
+    final dt = profile.dtSeconds;
+    var minDy = 0.0;
+    var maxDy = 0.0;
+    var maxDxOverall = 0.0;
+
+    for (var tick = 1; tick <= profile.maxAirTicks; tick += 1) {
+      final prevY = y;
+      velY += profile.gravityY * dt;
+      y += velY * dt;
+      final maxDx = profile.airSpeedX * dt * tick;
+      if (y < minDy) minDy = y;
+      if (y > maxDy) maxDy = y;
+      if (maxDx > maxDxOverall) maxDxOverall = maxDx;
+      samples.add(
+        JumpSample(
+          tick: tick,
+          prevY: prevY,
+          y: y,
+          velY: velY,
+          maxDx: maxDx,
+        ),
+      );
+    }
+
+    return JumpReachabilityTemplate._(
+      profile: profile,
+      samples: List<JumpSample>.unmodifiable(samples),
+      minDy: minDy,
+      maxDy: maxDy,
+      maxDx: maxDxOverall,
+    );
+  }
+
+  /// Returns the earliest landing tick whose vertical crossing is descending
+  /// and whose horizontal reach overlaps [dxMin, dxMax].
+  JumpLanding? findFirstLanding({
+    required double dy,
+    required double dxMin,
+    required double dxMax,
+    double eps = navGeomEps,
+  }) {
+    if (dxMin > dxMax) return null;
+
+    for (final sample in samples) {
+      if (sample.velY < 0) continue; // Still ascending.
+      final crosses =
+          (sample.prevY <= dy + eps) && (sample.y >= dy - eps);
+      if (!crosses) continue;
+
+      final maxDx = sample.maxDx;
+      if (dxMin > maxDx + eps) continue;
+      if (dxMax < -maxDx - eps) continue;
+      return JumpLanding(tick: sample.tick, maxDx: maxDx);
+    }
+
+    return null;
+  }
+}
+
+int estimateFallTicks({
+  required double dy,
+  required double gravityY,
+  required double dtSeconds,
+  required int maxTicks,
+}) {
+  if (dy <= 0) return 0;
+  var y = 0.0;
+  var velY = 0.0;
+  for (var tick = 1; tick <= maxTicks; tick += 1) {
+    velY += gravityY * dtSeconds;
+    y += velY * dtSeconds;
+    if (y >= dy) return tick;
+  }
+  return maxTicks;
+}
+
+
+===== FILE: lib/core/navigation/nav_tolerances.dart =====
+/// Navigation-wide numeric tolerances.
+///
+/// Keep this intentionally small: for now we use one epsilon everywhere so
+/// tuning stays straightforward. The aliases keep callsites semantically clear
+/// and make it easy to split values later if needed.
+library;
+
+/// Default epsilon used across navigation.
+const double navEps = 1e-6;
+
+/// Epsilon for "these two world-space doubles should be equal" cases.
+const double navGeomEps = navEps;
+
+/// Epsilon used for runtime spatial queries / thickness.
+const double navSpatialEps = navEps;
+
+/// Epsilon used for deterministic tie-breaking in comparisons (e.g., A* f/g
+/// ties).
+const double navTieEps = navEps;
+
+
+===== FILE: lib/core/navigation/surface_extractor.dart =====
+import '../collision/static_world_geometry.dart';
+import 'nav_tolerances.dart';
+import 'surface_id.dart';
+import 'walk_surface.dart';
+
+class SurfaceExtractor {
+  SurfaceExtractor({
+    this.mergeEps = navGeomEps,
+    this.groundPadding = 1024.0,
+  });
+
+  final double mergeEps;
+  final double groundPadding;
+
+  List<WalkSurface> extract(StaticWorldGeometry geometry) {
+    final segments = <_SurfaceSegment>[];
+
+    var minX = double.infinity;
+    var maxX = double.negativeInfinity;
+    for (var i = 0; i < geometry.solids.length; i += 1) {
+      final solid = geometry.solids[i];
+      if (solid.minX < minX) minX = solid.minX;
+      if (solid.maxX > maxX) maxX = solid.maxX;
+
+      if ((solid.sides & StaticSolid.sideTop) == 0) continue;
+
+      var localSolidIndex = solid.localSolidIndex;
+      if (localSolidIndex < 0) {
+        if (solid.chunkIndex != StaticSolid.noChunk) {
+          throw StateError(
+            'Chunk solid is missing a localSolidIndex; check track streamer.',
+          );
+        }
+        localSolidIndex = i;
+      }
+
+      final id = packSurfaceId(
+        chunkIndex: solid.chunkIndex,
+        localSolidIndex: localSolidIndex,
+      );
+      segments.add(
+        _SurfaceSegment(
+          id: id,
+          xMin: solid.minX,
+          xMax: solid.maxX,
+          yTop: solid.minY,
+        ),
+      );
+    }
+
+    final groundPlane = geometry.groundPlane;
+    if (groundPlane != null) {
+      final baseMinX = minX.isFinite ? minX : 0.0;
+      final baseMaxX = maxX.isFinite ? maxX : 0.0;
+      final groundMinX = baseMinX - groundPadding;
+      final groundMaxX = baseMaxX + groundPadding;
+      final blockers =
+          _collectGroundBlockers(geometry.solids, groundPlane.topY, mergeEps);
+      final groundSegments = _subtractRanges(
+        groundMinX,
+        groundMaxX,
+        blockers,
+        mergeEps,
+      );
+      for (var i = 0; i < groundSegments.length; i += 1) {
+        final seg = groundSegments[i];
+        segments.add(
+          _SurfaceSegment(
+            id: packSurfaceId(
+              chunkIndex: StaticSolid.groundChunk,
+              localSolidIndex: i,
+            ),
+            xMin: seg.min,
+            xMax: seg.max,
+            yTop: groundPlane.topY,
+          ),
+        );
+      }
+    }
+
+    if (segments.isEmpty) {
+      return const <WalkSurface>[];
+    }
+
+    segments.sort(_compareSegments);
+
+    final merged = <WalkSurface>[];
+    var current = segments.first;
+    for (var i = 1; i < segments.length; i += 1) {
+      final next = segments[i];
+      final sameY = (next.yTop - current.yTop).abs() <= mergeEps;
+      final touches = next.xMin <= current.xMax + mergeEps;
+      if (sameY && touches) {
+        if (next.xMax > current.xMax) {
+          current = current.copyWith(xMax: next.xMax);
+        }
+      } else {
+        merged.add(
+          WalkSurface(
+            id: current.id,
+            xMin: current.xMin,
+            xMax: current.xMax,
+            yTop: current.yTop,
+          ),
+        );
+        current = next;
+      }
+    }
+
+    merged.add(
+      WalkSurface(
+        id: current.id,
+        xMin: current.xMin,
+        xMax: current.xMax,
+        yTop: current.yTop,
+      ),
+    );
+
+    return List<WalkSurface>.unmodifiable(merged);
+  }
+}
+
+class _SurfaceSegment {
+  const _SurfaceSegment({
+    required this.id,
+    required this.xMin,
+    required this.xMax,
+    required this.yTop,
+  });
+
+  final int id;
+  final double xMin;
+  final double xMax;
+  final double yTop;
+
+  _SurfaceSegment copyWith({double? xMax}) {
+    return _SurfaceSegment(
+      id: id,
+      xMin: xMin,
+      xMax: xMax ?? this.xMax,
+      yTop: yTop,
+    );
+  }
+}
+
+class _Range {
+  _Range(this.min, this.max);
+
+  double min;
+  double max;
+}
+
+List<_Range> _collectGroundBlockers(
+  List<StaticSolid> solids,
+  double groundTopY,
+  double eps,
+) {
+  final blockers = <_Range>[];
+  for (final solid in solids) {
+    final hasWalls =
+        (solid.sides & (StaticSolid.sideLeft | StaticSolid.sideRight)) != 0;
+    if (!hasWalls) continue;
+    final touchesGround =
+        solid.minY <= groundTopY + eps && solid.maxY >= groundTopY - eps;
+    if (!touchesGround) continue;
+    blockers.add(_Range(solid.minX, solid.maxX));
+  }
+
+  if (blockers.isEmpty) return blockers;
+
+  blockers.sort((a, b) => a.min.compareTo(b.min));
+  final merged = <_Range>[blockers.first];
+  for (var i = 1; i < blockers.length; i += 1) {
+    final current = blockers[i];
+    final last = merged.last;
+    if (current.min <= last.max + eps) {
+      if (current.max > last.max) {
+        last.max = current.max;
+      }
+    } else {
+      merged.add(_Range(current.min, current.max));
+    }
+  }
+
+  return merged;
+}
+
+List<_Range> _subtractRanges(
+  double min,
+  double max,
+  List<_Range> blockers,
+  double eps,
+) {
+  if (blockers.isEmpty) {
+    return <_Range>[_Range(min, max)];
+  }
+
+  final segments = <_Range>[];
+  var cursor = min;
+  for (final blocker in blockers) {
+    if (blocker.max <= min + eps) continue;
+    if (blocker.min >= max - eps) break;
+    final blockMin = blocker.min < min ? min : blocker.min;
+    final blockMax = blocker.max > max ? max : blocker.max;
+    if (blockMin > cursor + eps) {
+      segments.add(_Range(cursor, blockMin));
+    }
+    if (blockMax > cursor) {
+      cursor = blockMax;
+    }
+  }
+  if (cursor < max - eps) {
+    segments.add(_Range(cursor, max));
+  }
+  return segments;
+}
+
+int _compareSegments(_SurfaceSegment a, _SurfaceSegment b) {
+  if (a.yTop < b.yTop) return -1;
+  if (a.yTop > b.yTop) return 1;
+  if (a.xMin < b.xMin) return -1;
+  if (a.xMin > b.xMin) return 1;
+  if (a.xMax < b.xMax) return -1;
+  if (a.xMax > b.xMax) return 1;
+  if (a.id < b.id) return -1;
+  if (a.id > b.id) return 1;
+  return 0;
+}
+
+
+===== FILE: lib/core/navigation/surface_graph.dart =====
+import 'walk_surface.dart';
+
+enum SurfaceEdgeKind { jump, drop }
+
+class SurfaceEdge {
+  const SurfaceEdge({
+    required this.to,
+    required this.kind,
+    required this.takeoffX,
+    required this.landingX,
+    required this.travelTicks,
+    required this.cost,
+  });
+
+  final int to;
+  final SurfaceEdgeKind kind;
+  final double takeoffX;
+  final double landingX;
+  final int travelTicks;
+  final double cost;
+}
+
+class SurfaceGraph {
+  SurfaceGraph({
+    required List<WalkSurface> surfaces,
+    required List<int> edgeOffsets,
+    required List<SurfaceEdge> edges,
+    required Map<int, int> indexById,
+  })  : surfaces = List<WalkSurface>.unmodifiable(surfaces),
+        edgeOffsets = List<int>.unmodifiable(edgeOffsets),
+        edges = List<SurfaceEdge>.unmodifiable(edges),
+        _indexById = Map<int, int>.unmodifiable(indexById);
+
+  final List<WalkSurface> surfaces;
+  final List<int> edgeOffsets;
+  final List<SurfaceEdge> edges;
+  final Map<int, int> _indexById;
+
+  int? indexOfSurfaceId(int id) => _indexById[id];
+
+  Iterable<SurfaceEdge> edgesFor(int surfaceIndex) sync* {
+    final start = edgeOffsets[surfaceIndex];
+    final end = edgeOffsets[surfaceIndex + 1];
+    for (var i = start; i < end; i += 1) {
+      yield edges[i];
+    }
+  }
+}
+
+
+
+===== FILE: lib/core/navigation/surface_graph_builder.dart =====
+import '../collision/static_world_geometry.dart';
+import '../ecs/spatial/grid_index_2d.dart';
+import 'jump_template.dart';
+import 'nav_tolerances.dart';
+import 'surface_extractor.dart';
+import 'surface_graph.dart';
+import 'surface_spatial_index.dart';
+import 'walk_surface.dart';
+
+class SurfaceGraphBuildResult {
+  const SurfaceGraphBuildResult({
+    required this.graph,
+    required this.spatialIndex,
+  });
+
+  final SurfaceGraph graph;
+  final SurfaceSpatialIndex spatialIndex;
+}
+
+class SurfaceGraphBuilder {
+  SurfaceGraphBuilder({
+    required GridIndex2D surfaceGrid,
+    SurfaceExtractor? extractor,
+    this.standableEps = navGeomEps,
+    this.dropSampleOffset = navSpatialEps,
+    this.takeoffSampleMaxStep = 64.0,
+  })  : _surfaceGrid = surfaceGrid,
+        _extractor = extractor ?? SurfaceExtractor();
+
+  final GridIndex2D _surfaceGrid;
+  final SurfaceExtractor _extractor;
+  final double standableEps;
+  final double dropSampleOffset;
+  final double takeoffSampleMaxStep;
+
+  SurfaceGraphBuildResult build({
+    required StaticWorldGeometry geometry,
+    required JumpReachabilityTemplate jumpTemplate,
+  }) {
+    final surfaces = _extractor.extract(geometry);
+    final spatialIndex = SurfaceSpatialIndex(index: _surfaceGrid);
+    spatialIndex.rebuild(surfaces);
+
+    final indexById = <int, int>{};
+    for (var i = 0; i < surfaces.length; i += 1) {
+      indexById[surfaces[i].id] = i;
+    }
+
+    final edges = <SurfaceEdge>[];
+    final edgeOffsets = List<int>.filled(surfaces.length + 1, 0);
+    final tempCandidates = <int>[];
+
+    for (var i = 0; i < surfaces.length; i += 1) {
+      edgeOffsets[i] = edges.length;
+      final from = surfaces[i];
+      final standable = _standableRange(
+        from,
+        jumpTemplate.profile.agentHalfWidth,
+        standableEps,
+      );
+      if (standable == null) {
+        edgeOffsets[i + 1] = edges.length;
+        continue;
+      }
+
+      final takeoffXs = _takeoffSamples(
+        standable.min,
+        standable.max,
+        jumpTemplate.maxDx,
+        takeoffSampleMaxStep,
+      );
+
+      final dropSamples = _dropSamples(standable.min, standable.max);
+      final dropMid = (standable.min + standable.max) * 0.5;
+      for (final dropX in dropSamples) {
+        final landingIndex = _findFirstSurfaceBelow(
+          surfaces,
+          dropX,
+          from.yTop,
+          jumpTemplate.profile.agentHalfWidth,
+        );
+        if (landingIndex == null) continue;
+        final landingSurface = surfaces[landingIndex];
+        final dy = landingSurface.yTop - from.yTop;
+        final fallTicks = estimateFallTicks(
+          dy: dy,
+          gravityY: jumpTemplate.profile.gravityY,
+          dtSeconds: jumpTemplate.profile.dtSeconds,
+          maxTicks: jumpTemplate.profile.maxAirTicks,
+        );
+        final offset = dropX <= dropMid ? -dropSampleOffset : dropSampleOffset;
+        final takeoffX = dropX + offset;
+        final edge = SurfaceEdge(
+          to: landingIndex,
+          kind: SurfaceEdgeKind.drop,
+          takeoffX: takeoffX,
+          landingX: _clamp(
+            dropX,
+            landingSurface.xMin + jumpTemplate.profile.agentHalfWidth,
+            landingSurface.xMax - jumpTemplate.profile.agentHalfWidth,
+          ),
+          travelTicks: fallTicks,
+          cost: fallTicks * jumpTemplate.profile.dtSeconds,
+        );
+        edges.add(edge);
+      }
+
+      for (final takeoffX in takeoffXs) {
+        final minX = takeoffX - jumpTemplate.maxDx;
+        final maxX = takeoffX + jumpTemplate.maxDx;
+        final minY = from.yTop + jumpTemplate.minDy;
+        final maxY = from.yTop + jumpTemplate.maxDy;
+
+        spatialIndex.queryAabb(
+          minX: minX,
+          minY: minY,
+          maxX: maxX,
+          maxY: maxY,
+          outSurfaceIndices: tempCandidates,
+        );
+
+        tempCandidates.sort(
+          (a, b) => surfaces[a].id.compareTo(surfaces[b].id),
+        );
+
+        for (final targetIndex in tempCandidates) {
+          if (targetIndex == i) continue;
+          final target = surfaces[targetIndex];
+          final landing = _standableRange(
+            target,
+            jumpTemplate.profile.agentHalfWidth,
+            standableEps,
+          );
+          if (landing == null) continue;
+
+          final dy = target.yTop - from.yTop;
+          final dxMin = landing.min - takeoffX;
+          final dxMax = landing.max - takeoffX;
+          final landingTick = jumpTemplate.findFirstLanding(
+            dy: dy,
+            dxMin: dxMin,
+            dxMax: dxMax,
+          );
+          if (landingTick == null) continue;
+
+          final reachMin = takeoffX - landingTick.maxDx;
+          final reachMax = takeoffX + landingTick.maxDx;
+          final low = reachMin > landing.min ? reachMin : landing.min;
+          final high = reachMax < landing.max ? reachMax : landing.max;
+          if (low > high + standableEps) continue;
+
+          final edge = SurfaceEdge(
+            to: targetIndex,
+            kind: SurfaceEdgeKind.jump,
+            takeoffX: takeoffX,
+            landingX: (low + high) * 0.5,
+            travelTicks: landingTick.tick,
+            cost: landingTick.tick * jumpTemplate.profile.dtSeconds,
+          );
+          edges.add(edge);
+        }
+      }
+
+      edgeOffsets[i + 1] = edges.length;
+    }
+
+    return SurfaceGraphBuildResult(
+      graph: SurfaceGraph(
+        surfaces: surfaces,
+        edgeOffsets: edgeOffsets,
+        edges: edges,
+        indexById: indexById,
+      ),
+      spatialIndex: spatialIndex,
+    );
+  }
+}
+
+class _Range {
+  const _Range(this.min, this.max);
+
+  final double min;
+  final double max;
+}
+
+_Range? _standableRange(WalkSurface surface, double halfWidth, double eps) {
+  final min = surface.xMin + halfWidth;
+  final max = surface.xMax - halfWidth;
+  if (min > max + eps) return null;
+  return _Range(min, max);
+}
+
+List<double> _takeoffSamples(
+  double min,
+  double max,
+  double maxDx,
+  double maxStep,
+) {
+  if (max <= min) {
+    return <double>[min];
+  }
+
+  var step = maxDx;
+  if (maxStep > 0 && step > maxStep) {
+    step = maxStep;
+  }
+
+  if (step <= navGeomEps || (max - min) <= step) {
+    final mid = (min + max) * 0.5;
+    return _dedupeSamples(<double>[min, mid, max]);
+  }
+
+  final samples = <double>[];
+  for (var x = min; x <= max; x += step) {
+    samples.add(x);
+  }
+  if ((max - samples.last).abs() > navGeomEps) {
+    samples.add(max);
+  }
+  return _dedupeSamples(samples);
+}
+
+List<double> _dropSamples(double min, double max) {
+  final samples = <double>[min, max];
+  return _dedupeSamples(samples);
+}
+
+List<double> _dedupeSamples(
+  List<double> samples, {
+  double eps = navGeomEps,
+}) {
+  samples.sort();
+  final deduped = <double>[];
+  for (final s in samples) {
+    if (deduped.isEmpty || (s - deduped.last).abs() > eps) {
+      deduped.add(s);
+    }
+  }
+  return deduped;
+}
+
+int? _findFirstSurfaceBelow(
+  List<WalkSurface> surfaces,
+  double x,
+  double fromY,
+  double halfWidth,
+) {
+  int? bestIndex;
+  double? bestY;
+
+  for (var i = 0; i < surfaces.length; i += 1) {
+    final s = surfaces[i];
+    if (s.yTop <= fromY) continue;
+    final minX = s.xMin + halfWidth;
+    final maxX = s.xMax - halfWidth;
+    if (minX > maxX) continue;
+    if (x < minX || x > maxX) continue;
+    if (bestY == null || s.yTop < bestY) {
+      bestY = s.yTop;
+      bestIndex = i;
+    } else if ((s.yTop - bestY).abs() < navTieEps) {
+      if (s.id < surfaces[bestIndex!].id) {
+        bestIndex = i;
+      }
+    }
+  }
+
+  return bestIndex;
+}
+
+double _clamp(double v, double min, double max) {
+  if (v < min) return min;
+  if (v > max) return max;
+  return v;
+}
+
+
+===== FILE: lib/core/navigation/surface_id.dart =====
+const int surfaceKindTop = 0;
+const int surfaceIdUnknown = -1;
+
+/// Packs a surface identity into a stable, comparable 64-bit key.
+///
+/// Ordering is lexicographic by (chunkIndex, localSolidIndex, surfaceKind).
+int packSurfaceId({
+  required int chunkIndex,
+  required int localSolidIndex,
+  int surfaceKind = surfaceKindTop,
+}) {
+  if (localSolidIndex < 0) {
+    throw ArgumentError.value(
+      localSolidIndex,
+      'localSolidIndex',
+      'must be >= 0',
+    );
+  }
+  final chunk = (chunkIndex ^ 0x80000000) & 0xFFFFFFFF;
+  final local = ((localSolidIndex << 2) | (surfaceKind & 0x3)) & 0xFFFFFFFF;
+  return (chunk << 32) | local;
+}
+
+int unpackChunkIndex(int surfaceId) {
+  final chunk = (surfaceId >> 32) & 0xFFFFFFFF;
+  return (chunk ^ 0x80000000);
+}
+
+int unpackLocalSolidIndex(int surfaceId) {
+  final local = surfaceId & 0xFFFFFFFF;
+  return local >> 2;
+}
+
+int unpackSurfaceKind(int surfaceId) {
+  return surfaceId & 0x3;
+}
+
+
+===== FILE: lib/core/navigation/surface_navigator.dart =====
+import '../ecs/stores/surface_nav_state_store.dart';
+import 'nav_tolerances.dart';
+import 'surface_graph.dart';
+import 'surface_id.dart';
+import 'surface_pathfinder.dart';
+import 'surface_spatial_index.dart';
+
+class SurfaceNavIntent {
+  const SurfaceNavIntent({
+    required this.desiredX,
+    required this.jumpNow,
+    required this.hasPlan,
+    this.commitMoveDirX = 0,
+  });
+
+  final double desiredX;
+  final bool jumpNow;
+  final bool hasPlan;
+
+  /// Movement commit direction while approaching/executing an edge.
+  ///
+  /// When non-zero (-1 or +1), the locomotion controller should keep moving in
+  /// this direction even if it would normally stop near `desiredX`, and it
+  /// should not reverse direction due to tiny `desiredX` overshoots.
+  ///
+  /// This is primarily used to ensure drop edges actually leave the takeoff
+  /// surface (walk past the ledge) instead of stopping "close enough".
+  final int commitMoveDirX;
+}
+
+class SurfaceNavigator {
+  SurfaceNavigator({
+    required this.pathfinder,
+    this.repathCooldownTicks = 30,
+    this.surfaceEps = navSpatialEps,
+    this.takeoffEps = 2.0,
+  });
+
+  final SurfacePathfinder pathfinder;
+  final int repathCooldownTicks;
+  final double surfaceEps;
+  final double takeoffEps;
+  final List<int> _candidateBuffer = <int>[];
+
+  SurfaceNavIntent update({
+    required SurfaceNavStateStore navStore,
+    required int navIndex,
+    required SurfaceGraph graph,
+    required SurfaceSpatialIndex spatialIndex,
+    required int graphVersion,
+    required double entityX,
+    required double entityBottomY,
+    required double entityHalfWidth,
+    required bool entityGrounded,
+    required double targetX,
+    required double targetBottomY,
+    required double targetHalfWidth,
+    required bool targetGrounded,
+  }) {
+    final prevCurrentId = navStore.currentSurfaceId[navIndex];
+    final prevTargetId = navStore.targetSurfaceId[navIndex];
+
+    var currentSurfaceId = prevCurrentId;
+    if (entityGrounded) {
+      final currentIndex = _locateSurfaceIndex(
+        graph,
+        spatialIndex,
+        _candidateBuffer,
+        entityX,
+        entityBottomY,
+        entityHalfWidth,
+        surfaceEps,
+      );
+      currentSurfaceId = currentIndex == null
+          ? surfaceIdUnknown
+          : graph.surfaces[currentIndex].id;
+    }
+
+    var targetSurfaceId = prevTargetId;
+    if (targetGrounded) {
+      final targetIndex = _locateSurfaceIndex(
+        graph,
+        spatialIndex,
+        _candidateBuffer,
+        targetX,
+        targetBottomY,
+        targetHalfWidth,
+        surfaceEps,
+      );
+      targetSurfaceId = targetIndex == null
+          ? surfaceIdUnknown
+          : graph.surfaces[targetIndex].id;
+    }
+
+    if (navStore.graphVersion[navIndex] != graphVersion) {
+      navStore.graphVersion[navIndex] = graphVersion;
+      navStore.pathEdges[navIndex].clear();
+      navStore.pathCursor[navIndex] = 0;
+      navStore.activeEdgeIndex[navIndex] = -1;
+      navStore.repathTicksLeft[navIndex] = 0;
+    }
+
+    navStore.currentSurfaceId[navIndex] = currentSurfaceId;
+    navStore.targetSurfaceId[navIndex] = targetSurfaceId;
+
+    if (navStore.repathTicksLeft[navIndex] > 0) {
+      navStore.repathTicksLeft[navIndex] -= 1;
+    }
+
+    final plan = navStore.pathEdges[navIndex];
+    final surfaceChanged =
+        currentSurfaceId != prevCurrentId || targetSurfaceId != prevTargetId;
+
+    if (surfaceChanged) {
+      navStore.repathTicksLeft[navIndex] = 0;
+    }
+
+    if (entityGrounded &&
+        navStore.repathTicksLeft[navIndex] == 0 &&
+        currentSurfaceId != surfaceIdUnknown &&
+        targetSurfaceId != surfaceIdUnknown) {
+      final startIndex = graph.indexOfSurfaceId(currentSurfaceId);
+      final goalIndex = graph.indexOfSurfaceId(targetSurfaceId);
+      if (startIndex != null && goalIndex != null) {
+        final found = pathfinder.findPath(
+          graph,
+          startIndex: startIndex,
+          goalIndex: goalIndex,
+          outEdges: plan,
+          startX: entityX,
+          goalX: targetX,
+        );
+        navStore.pathCursor[navIndex] = 0;
+        navStore.activeEdgeIndex[navIndex] = -1;
+        if (!found) {
+          plan.clear();
+        }
+      }
+      navStore.repathTicksLeft[navIndex] = repathCooldownTicks;
+    }
+
+    if (currentSurfaceId != surfaceIdUnknown &&
+        currentSurfaceId == targetSurfaceId) {
+      plan.clear();
+      navStore.pathCursor[navIndex] = 0;
+      navStore.activeEdgeIndex[navIndex] = -1;
+      return SurfaceNavIntent(
+        desiredX: targetX,
+        jumpNow: false,
+        hasPlan: false,
+      );
+    }
+
+    final cursor = navStore.pathCursor[navIndex];
+    if (plan.isEmpty || cursor >= plan.length) {
+      navStore.activeEdgeIndex[navIndex] = -1;
+      return SurfaceNavIntent(
+        desiredX: targetX,
+        jumpNow: false,
+        hasPlan: false,
+      );
+    }
+
+    final edgeIndex = plan[cursor];
+    final edge = graph.edges[edgeIndex];
+
+    if (navStore.activeEdgeIndex[navIndex] >= 0) {
+      if (entityGrounded &&
+          currentSurfaceId != surfaceIdUnknown &&
+          currentSurfaceId == graph.surfaces[edge.to].id) {
+        navStore.activeEdgeIndex[navIndex] = -1;
+        navStore.pathCursor[navIndex] = cursor + 1;
+        return SurfaceNavIntent(
+          desiredX: targetX,
+          jumpNow: false,
+          hasPlan: true,
+        );
+      }
+
+      if (edge.kind == SurfaceEdgeKind.drop && entityGrounded) {
+        return SurfaceNavIntent(
+          desiredX: edge.takeoffX,
+          jumpNow: false,
+          hasPlan: true,
+          commitMoveDirX: _dropCommitDirX(edge),
+        );
+      }
+      return SurfaceNavIntent(
+        desiredX: edge.landingX,
+        jumpNow: false,
+        hasPlan: true,
+      );
+    }
+
+    final closeEnough = (entityX - edge.takeoffX).abs() <= takeoffEps;
+    if (entityGrounded && closeEnough) {
+      navStore.activeEdgeIndex[navIndex] = edgeIndex;
+
+      final jumpNow = edge.kind == SurfaceEdgeKind.jump;
+      return SurfaceNavIntent(
+        desiredX:
+            edge.kind == SurfaceEdgeKind.drop ? edge.takeoffX : edge.landingX,
+        jumpNow: jumpNow,
+        hasPlan: true,
+        commitMoveDirX:
+            edge.kind == SurfaceEdgeKind.drop ? _dropCommitDirX(edge) : 0,
+      );
+    }
+
+    return SurfaceNavIntent(
+      desiredX: edge.takeoffX,
+      jumpNow: false,
+      hasPlan: true,
+    );
+  }
+}
+
+int _dropCommitDirX(SurfaceEdge edge) {
+  // Drop edges use a takeoff point nudged beyond the ledge. Commit in that
+  // direction so locomotion cannot "stop short" and never leave the surface.
+  if (edge.takeoffX < edge.landingX) return -1;
+  if (edge.takeoffX > edge.landingX) return 1;
+  // Fallback: in the unlikely case of an exact tie, just don't commit.
+  return 0;
+}
+
+int? _locateSurfaceIndex(
+  SurfaceGraph graph,
+  SurfaceSpatialIndex spatialIndex,
+  List<int> candidates,
+  double x,
+  double bottomY,
+  double halfWidth,
+  double eps,
+) {
+  final minX = x - halfWidth;
+  final maxX = x + halfWidth;
+  final minY = bottomY - eps;
+  final maxY = bottomY + eps;
+
+  spatialIndex.queryAabb(
+    minX: minX,
+    minY: minY,
+    maxX: maxX,
+    maxY: maxY,
+    outSurfaceIndices: candidates,
+  );
+
+  int? bestIndex;
+  double? bestY;
+  for (final i in candidates) {
+    final s = graph.surfaces[i];
+    if (s.xMin > maxX || s.xMax < minX) continue;
+    if ((s.yTop - bottomY).abs() > eps) continue;
+
+    if (bestY == null || s.yTop < bestY) {
+      bestY = s.yTop;
+      bestIndex = i;
+    } else if ((s.yTop - bestY).abs() <= eps) {
+      if (s.id < graph.surfaces[bestIndex!].id) {
+        bestIndex = i;
+      }
+    }
+  }
+
+  return bestIndex;
+}
+
+
+===== FILE: lib/core/navigation/surface_pathfinder.dart =====
+import 'surface_graph.dart';
+import 'nav_tolerances.dart';
+
+class SurfacePathfinder {
+  SurfacePathfinder({
+    required this.maxExpandedNodes,
+    required this.runSpeedX,
+    this.edgePenaltySeconds = 0.0,
+  }) : assert(maxExpandedNodes > 0),
+       assert(runSpeedX > 0),
+       assert(edgePenaltySeconds >= 0.0);
+
+  final int maxExpandedNodes;
+  final double runSpeedX;
+  final double edgePenaltySeconds;
+
+  final List<double> _gScore = <double>[];
+  final List<double> _fScore = <double>[];
+  final List<int> _cameFromEdge = <int>[];
+  final List<int> _cameFromNode = <int>[];
+  final List<int> _open = <int>[];
+  final List<int> _openStamp = <int>[];
+  final List<int> _reconstruct = <int>[];
+
+  bool findPath(
+    SurfaceGraph graph, {
+    required int startIndex,
+    required int goalIndex,
+    required List<int> outEdges,
+    double? startX,
+    double? goalX,
+  }) {
+    outEdges.clear();
+    if (startIndex == goalIndex) return true;
+
+    _ensureSize(graph.surfaces.length);
+    final count = graph.surfaces.length;
+    for (var i = 0; i < count; i += 1) {
+      _gScore[i] = double.infinity;
+      _fScore[i] = double.infinity;
+      _cameFromEdge[i] = -1;
+      _cameFromNode[i] = -1;
+      _openStamp[i] = 0;
+    }
+
+    _open.clear();
+    _open.add(startIndex);
+    _openStamp[startIndex] = 1;
+    _gScore[startIndex] = 0.0;
+    _fScore[startIndex] = _heuristic(graph, startIndex, goalIndex);
+
+    var expanded = 0;
+    while (_open.isNotEmpty && expanded < maxExpandedNodes) {
+      final current = _popBest(graph);
+      if (current == goalIndex) {
+        _reconstructPath(goalIndex, outEdges);
+        return true;
+      }
+
+      expanded += 1;
+
+      final start = graph.edgeOffsets[current];
+      final end = graph.edgeOffsets[current + 1];
+      for (var ei = start; ei < end; ei += 1) {
+        final edge = graph.edges[ei];
+        final neighbor = edge.to;
+        final edgeCost = edge.cost +
+            _runCost(
+              graph,
+              current,
+              edge,
+              startIndex: startIndex,
+              startX: startX,
+            ) +
+            _goalLandingCost(
+              edge,
+              neighbor: neighbor,
+              goalIndex: goalIndex,
+              goalX: goalX,
+            ) +
+            edgePenaltySeconds;
+        final tentative = _gScore[current] + edgeCost;
+        if (tentative >= _gScore[neighbor]) continue;
+
+        _cameFromEdge[neighbor] = ei;
+        _cameFromNode[neighbor] = current;
+        _gScore[neighbor] = tentative;
+        _fScore[neighbor] =
+            tentative + _heuristic(graph, neighbor, goalIndex);
+
+        if (_openStamp[neighbor] != 1) {
+          _open.add(neighbor);
+          _openStamp[neighbor] = 1;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  double _heuristic(SurfaceGraph graph, int from, int goal) {
+    final dx = (graph.surfaces[goal].centerX - graph.surfaces[from].centerX).abs();
+    return dx / runSpeedX;
+  }
+
+  double _runCost(
+    SurfaceGraph graph,
+    int fromIndex,
+    SurfaceEdge edge, {
+    required int startIndex,
+    required double? startX,
+  }) {
+    final fromSurface = graph.surfaces[fromIndex];
+    final originX =
+        (fromIndex == startIndex && startX != null) ? startX : fromSurface.centerX;
+    final dx = (edge.takeoffX - originX).abs();
+    return dx / runSpeedX;
+  }
+
+  double _goalLandingCost(
+    SurfaceEdge edge, {
+    required int neighbor,
+    required int goalIndex,
+    required double? goalX,
+  }) {
+    if (goalX == null) return 0.0;
+    if (neighbor != goalIndex) return 0.0;
+    final dx = (edge.landingX - goalX).abs();
+    return dx / runSpeedX;
+  }
+
+  int _popBest(SurfaceGraph graph) {
+    var bestIndex = 0;
+    var bestNode = _open[0];
+    for (var i = 1; i < _open.length; i += 1) {
+      final node = _open[i];
+      if (_isBetter(graph, node, bestNode)) {
+        bestIndex = i;
+        bestNode = node;
+      }
+    }
+
+    final last = _open.removeLast();
+    if (bestIndex < _open.length) {
+      _open[bestIndex] = last;
+    }
+    _openStamp[bestNode] = 0;
+    return bestNode;
+  }
+
+  bool _isBetter(SurfaceGraph graph, int a, int b) {
+    final fa = _fScore[a];
+    final fb = _fScore[b];
+    if (fa < fb - navTieEps) return true;
+    if (fa > fb + navTieEps) return false;
+    final ga = _gScore[a];
+    final gb = _gScore[b];
+    if (ga < gb - navTieEps) return true;
+    if (ga > gb + navTieEps) return false;
+    return graph.surfaces[a].id < graph.surfaces[b].id;
+  }
+
+  void _reconstructPath(int goalIndex, List<int> outEdges) {
+    _reconstruct.clear();
+    var current = goalIndex;
+    while (_cameFromEdge[current] != -1) {
+      _reconstruct.add(_cameFromEdge[current]);
+      current = _cameFromNode[current];
+    }
+    for (var i = _reconstruct.length - 1; i >= 0; i -= 1) {
+      outEdges.add(_reconstruct[i]);
+    }
+  }
+
+  void _ensureSize(int count) {
+    while (_gScore.length < count) {
+      _gScore.add(double.infinity);
+      _fScore.add(double.infinity);
+      _cameFromEdge.add(-1);
+      _cameFromNode.add(-1);
+      _openStamp.add(0);
+    }
+  }
+}
+
+
+===== FILE: lib/core/navigation/surface_spatial_index.dart =====
+import '../ecs/spatial/grid_index_2d.dart';
+import 'nav_tolerances.dart';
+import 'walk_surface.dart';
+
+/// Spatial index for walkable surface segments.
+///
+/// Built only when static geometry changes (graph rebuild).
+class SurfaceSpatialIndex {
+  SurfaceSpatialIndex({
+    required GridIndex2D index,
+    this.surfaceThickness = navSpatialEps,
+  }) : _index = index;
+
+  final GridIndex2D _index;
+  final double surfaceThickness;
+
+  final Map<int, List<int>> _buckets = <int, List<int>>{};
+  final List<int> _activeKeys = <int>[];
+  final List<List<int>> _bucketPool = <List<int>>[];
+
+  final List<int> _seenStampBySurface = <int>[];
+  int _stamp = 0;
+  int _surfaceCount = 0;
+
+  void rebuild(List<WalkSurface> surfaces) {
+    for (var i = 0; i < _activeKeys.length; i += 1) {
+      final key = _activeKeys[i];
+      final bucket = _buckets.remove(key);
+      if (bucket == null) continue;
+      bucket.clear();
+      _bucketPool.add(bucket);
+    }
+    _activeKeys.clear();
+
+    _surfaceCount = surfaces.length;
+    if (surfaces.isEmpty) return;
+
+    for (var si = 0; si < surfaces.length; si += 1) {
+      final surface = surfaces[si];
+      final minX = surface.xMin;
+      final maxX = surface.xMax;
+      final minY = surface.yTop - surfaceThickness;
+      final maxY = surface.yTop + surfaceThickness;
+
+      final minCx = _index.worldToCellX(minX);
+      final maxCx = _index.worldToCellX(maxX);
+      final minCy = _index.worldToCellY(minY);
+      final maxCy = _index.worldToCellY(maxY);
+
+      for (var cellY = minCy; cellY <= maxCy; cellY += 1) {
+        for (var cellX = minCx; cellX <= maxCx; cellX += 1) {
+          final key = _index.cellKey(cellX, cellY);
+          var bucket = _buckets[key];
+          if (bucket == null) {
+            bucket = _bucketPool.isNotEmpty ? _bucketPool.removeLast() : <int>[];
+            _buckets[key] = bucket;
+            _activeKeys.add(key);
+          }
+          bucket.add(si);
+        }
+      }
+    }
+  }
+
+  /// Fills [outSurfaceIndices] with unique surface indices overlapping the AABB.
+  void queryAabb({
+    required double minX,
+    required double minY,
+    required double maxX,
+    required double maxY,
+    required List<int> outSurfaceIndices,
+  }) {
+    outSurfaceIndices.clear();
+    if (_activeKeys.isEmpty) return;
+
+    _stamp += 1;
+    if (_stamp == 0x7FFFFFFF) {
+      for (var i = 0; i < _seenStampBySurface.length; i += 1) {
+        _seenStampBySurface[i] = 0;
+      }
+      _stamp = 1;
+    }
+
+    final minCx = _index.worldToCellX(minX);
+    final maxCx = _index.worldToCellX(maxX);
+    final minCy = _index.worldToCellY(minY);
+    final maxCy = _index.worldToCellY(maxY);
+
+    if (_seenStampBySurface.length < _surfaceCount) {
+      final missing = _surfaceCount - _seenStampBySurface.length;
+      for (var i = 0; i < missing; i += 1) {
+        _seenStampBySurface.add(0);
+      }
+    }
+
+    for (var cellY = minCy; cellY <= maxCy; cellY += 1) {
+      for (var cellX = minCx; cellX <= maxCx; cellX += 1) {
+        final key = _index.cellKey(cellX, cellY);
+        final bucket = _buckets[key];
+        if (bucket == null || bucket.isEmpty) continue;
+
+        for (var bi = 0; bi < bucket.length; bi += 1) {
+          final surfaceIndex = bucket[bi];
+          if (_seenStampBySurface[surfaceIndex] == _stamp) continue;
+          _seenStampBySurface[surfaceIndex] = _stamp;
+          outSurfaceIndices.add(surfaceIndex);
+        }
+      }
+    }
+  }
+}
+
+
+===== FILE: lib/core/navigation/walk_surface.dart =====
+class WalkSurface {
+  const WalkSurface({
+    required this.id,
+    required this.xMin,
+    required this.xMax,
+    required this.yTop,
+  }) : assert(xMax >= xMin);
+
+  /// Packed surface id (see `surface_id.dart`).
+  final int id;
+
+  /// Inclusive horizontal bounds for the walkable top segment.
+  final double xMin;
+  final double xMax;
+
+  /// World-space Y coordinate of the top surface.
+  final double yTop;
+
+  double get centerX => (xMin + xMax) * 0.5;
+}
+
 
 
 ===== FILE: lib/core/projectiles/projectile_catalog.dart =====
@@ -6256,7 +7656,6 @@ class V0GroundEnemyTuning {
     this.groundEnemyAccelX = 600.0,
     this.groundEnemyDecelX = 400.0,
     this.groundEnemyJumpSpeed = 600.0,
-    this.groundEnemyJumpCooldownSeconds = 0.5,
     this.groundEnemyMeleeRangeX = 26.0,
     this.groundEnemyMeleeCooldownSeconds = 1.0,
     this.groundEnemyMeleeActiveSeconds = 0.10,
@@ -6274,9 +7673,6 @@ class V0GroundEnemyTuning {
   /// Instantaneous jump vertical speed (negative is upward).
   final double groundEnemyJumpSpeed;
 
-  /// Cooldown between jump attempts (seconds, ceil to ticks).
-  final double groundEnemyJumpCooldownSeconds;
-
   // Ground enemy melee.
   final double groundEnemyMeleeRangeX;
   final double groundEnemyMeleeCooldownSeconds;
@@ -6290,7 +7686,6 @@ class V0GroundEnemyTuningDerived {
   const V0GroundEnemyTuningDerived._({
     required this.tickHz,
     required this.base,
-    required this.groundEnemyJumpCooldownTicks,
     required this.groundEnemyMeleeCooldownTicks,
     required this.groundEnemyMeleeActiveTicks,
   });
@@ -6306,10 +7701,6 @@ class V0GroundEnemyTuningDerived {
     return V0GroundEnemyTuningDerived._(
       tickHz: tickHz,
       base: base,
-      groundEnemyJumpCooldownTicks: ticksFromSecondsCeil(
-        base.groundEnemyJumpCooldownSeconds,
-        tickHz,
-      ),
       groundEnemyMeleeCooldownTicks: ticksFromSecondsCeil(
         base.groundEnemyMeleeCooldownSeconds,
         tickHz,
@@ -6324,7 +7715,6 @@ class V0GroundEnemyTuningDerived {
   final int tickHz;
   final V0GroundEnemyTuning base;
 
-  final int groundEnemyJumpCooldownTicks;
   final int groundEnemyMeleeCooldownTicks;
   final int groundEnemyMeleeActiveTicks;
 }
@@ -6429,6 +7819,54 @@ class V0MovementTuningDerived {
 }
 
 
+===== FILE: lib/core/tuning/v0_navigation_tuning.dart =====
+/// V0 navigation tuning for surface-graph based AI.
+///
+/// This is intentionally separate from movement/combat tunings:
+/// - movement tuning controls the player's physical feel
+/// - enemy tuning controls per-enemy locomotion abilities
+/// - navigation tuning controls pathfinding + graph build tradeoffs
+library;
+import '../navigation/nav_tolerances.dart';
+
+class V0NavigationTuning {
+  const V0NavigationTuning({
+    this.repathCooldownTicks = 30,
+    this.maxExpandedNodes = 128,
+    this.edgePenaltySeconds = 0.05,
+    this.surfaceEps = navSpatialEps,
+    this.takeoffEpsMin = 2.0,
+    this.takeoffSampleMaxStep = 64.0,
+  }) : assert(repathCooldownTicks >= 0),
+       assert(maxExpandedNodes > 0),
+       assert(edgePenaltySeconds >= 0.0),
+       assert(surfaceEps > 0.0),
+       assert(takeoffEpsMin >= 0.0),
+       assert(takeoffSampleMaxStep > 0.0);
+
+  /// Throttle replans per entity to avoid per-tick A* on mobile.
+  final int repathCooldownTicks;
+
+  /// Hard cap on A* node expansions (fail fast deterministically).
+  final int maxExpandedNodes;
+
+  /// Small per-edge penalty that biases toward fewer hops when costs tie.
+  final double edgePenaltySeconds;
+
+  /// Vertical tolerance when locating the current/target surface (world units).
+  final double surfaceEps;
+
+  /// Minimum horizontal tolerance for "close enough to takeoff" (world units).
+  ///
+  /// The actual takeoff epsilon can be increased by the locomotion controller
+  /// (e.g. tied to an enemy's stop distance) to avoid "stops too early to jump".
+  final double takeoffEpsMin;
+
+  /// Maximum step between takeoff samples on long surfaces (world units).
+  final double takeoffSampleMaxStep;
+}
+
+
 ===== FILE: lib/core/tuning/v0_physics_tuning.dart =====
 /// V0 global physics tuning for the Core simulation.
 ///
@@ -6457,9 +7895,6 @@ class V0ResourceTuning {
     this.playerManaRegenPerSecond = 3,
     this.playerStaminaMax = 100,
     this.playerStaminaRegenPerSecond = 1,
-    this.playerHpStart,
-    this.playerManaStart,
-    this.playerStaminaStart,
     this.jumpStaminaCost = 2,
     this.dashStaminaCost = 2,
   });
@@ -6472,11 +7907,6 @@ class V0ResourceTuning {
 
   final double playerStaminaMax;
   final double playerStaminaRegenPerSecond;
-
-  /// Optional starting values. When null, the corresponding `*Max` is used.
-  final double? playerHpStart;
-  final double? playerManaStart;
-  final double? playerStaminaStart;
 
   /// Action costs (C++ reference: 2 stamina each for jump + dash).
   final double jumpStaminaCost;

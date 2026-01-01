@@ -4,6 +4,7 @@ import 'package:walkscape_runner/core/commands/command.dart';
 import 'package:walkscape_runner/core/contracts/v0_render_contract.dart';
 import 'package:walkscape_runner/core/game_core.dart';
 import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
+import 'package:walkscape_runner/core/players/player_catalog.dart';
 import 'package:walkscape_runner/core/tuning/v0_movement_tuning.dart';
 import 'package:walkscape_runner/core/tuning/v0_resource_tuning.dart';
 
@@ -140,7 +141,6 @@ void main() {
       cameraTuning: noAutoscrollCameraTuning,
       resourceTuning: const V0ResourceTuning(
         playerStaminaMax: 10,
-        playerStaminaStart: 10,
         playerStaminaRegenPerSecond: 0,
         jumpStaminaCost: 2,
       ),
@@ -159,7 +159,6 @@ void main() {
       cameraTuning: noAutoscrollCameraTuning,
       resourceTuning: const V0ResourceTuning(
         playerStaminaMax: 10,
-        playerStaminaStart: 10,
         playerStaminaRegenPerSecond: 0,
         dashStaminaCost: 2,
       ),
@@ -177,8 +176,7 @@ void main() {
       tickHz: v0DefaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
       resourceTuning: const V0ResourceTuning(
-        playerStaminaMax: 10,
-        playerStaminaStart: 1,
+        playerStaminaMax: 1,
         playerStaminaRegenPerSecond: 0,
         jumpStaminaCost: 2,
         dashStaminaCost: 2,
@@ -194,7 +192,10 @@ void main() {
 
     // Without stamina, the buffered jump won't execute and dash won't start.
     expect(core.playerVelY, greaterThanOrEqualTo(0));
-    expect(core.playerVelX.abs(), lessThan(const V0MovementTuning().dashSpeedX));
+    expect(
+      core.playerVelX.abs(),
+      lessThan(const V0MovementTuning().dashSpeedX),
+    );
 
     final hud = core.buildSnapshot().hud;
     expect(hud.stamina, closeTo(1.0, 1e-9));
@@ -205,7 +206,9 @@ void main() {
       seed: 1,
       tickHz: v0DefaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
-      playerBody: const BodyDef(gravityScale: 0),
+      playerCatalog: const PlayerCatalog(
+        bodyTemplate: BodyDef(gravityScale: 0),
+      ),
     );
     final tuning = const V0MovementTuning();
     final floorY = v0GroundTopY.toDouble() - tuning.playerRadius;
@@ -224,7 +227,9 @@ void main() {
       seed: 1,
       tickHz: v0DefaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
-      playerBody: const BodyDef(isKinematic: true),
+      playerCatalog: const PlayerCatalog(
+        bodyTemplate: BodyDef(isKinematic: true),
+      ),
     );
     final tuning = const V0MovementTuning();
     final floorY = v0GroundTopY.toDouble() - tuning.playerRadius;
@@ -244,7 +249,7 @@ void main() {
       seed: 1,
       tickHz: v0DefaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
-      playerBody: const BodyDef(maxVelY: 100),
+      movementTuning: const V0MovementTuning(maxVelY: 100),
     );
 
     _tick(core, jumpPressed: true);

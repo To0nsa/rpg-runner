@@ -9,9 +9,6 @@ class V0ResourceTuning {
     this.playerManaRegenPerSecond = 3,
     this.playerStaminaMax = 100,
     this.playerStaminaRegenPerSecond = 1,
-    this.playerHpStart,
-    this.playerManaStart,
-    this.playerStaminaStart,
     this.jumpStaminaCost = 2,
     this.dashStaminaCost = 2,
   });
@@ -24,11 +21,6 @@ class V0ResourceTuning {
 
   final double playerStaminaMax;
   final double playerStaminaRegenPerSecond;
-
-  /// Optional starting values. When null, the corresponding `*Max` is used.
-  final double? playerHpStart;
-  final double? playerManaStart;
-  final double? playerStaminaStart;
 
   /// Action costs (C++ reference: 2 stamina each for jump + dash).
   final double jumpStaminaCost;

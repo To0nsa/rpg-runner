@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:walkscape_runner/core/commands/command.dart';
 import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/game_core.dart';
+import 'package:walkscape_runner/core/players/player_catalog.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
 import 'package:walkscape_runner/core/tuning/v0_resource_tuning.dart';
 
@@ -13,11 +14,12 @@ void main() {
     final core = GameCore(
       seed: 1,
       tickHz: 60,
-      playerBody: const BodyDef(isKinematic: true, useGravity: false),
+      playerCatalog: const PlayerCatalog(
+        bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+      ),
       cameraTuning: noAutoscrollCameraTuning,
       resourceTuning: const V0ResourceTuning(
         playerStaminaMax: 100,
-        playerStaminaStart: 100,
         playerStaminaRegenPerSecond: 0,
         playerManaRegenPerSecond: 0,
         playerHpRegenPerSecond: 0,
@@ -31,8 +33,9 @@ void main() {
     core.stepOneTick();
 
     var snapshot = core.buildSnapshot();
-    var hitboxes =
-        snapshot.entities.where((e) => e.kind == EntityKind.trigger).toList();
+    var hitboxes = snapshot.entities
+        .where((e) => e.kind == EntityKind.trigger)
+        .toList();
     expect(hitboxes.length, 1);
     expect(hitboxes.single.pos.x, closeTo(playerX + 20.0, 1e-9));
     expect(hitboxes.single.pos.y, closeTo(playerY, 1e-9));
@@ -44,16 +47,18 @@ void main() {
       core.applyCommands(<Command>[]);
       core.stepOneTick();
       snapshot = core.buildSnapshot();
-      hitboxes =
-          snapshot.entities.where((e) => e.kind == EntityKind.trigger).toList();
+      hitboxes = snapshot.entities
+          .where((e) => e.kind == EntityKind.trigger)
+          .toList();
       expect(hitboxes.length, 1, reason: 'tick=$t');
     }
 
     core.applyCommands(<Command>[]);
     core.stepOneTick(); // tick 6
     snapshot = core.buildSnapshot();
-    hitboxes =
-        snapshot.entities.where((e) => e.kind == EntityKind.trigger).toList();
+    hitboxes = snapshot.entities
+        .where((e) => e.kind == EntityKind.trigger)
+        .toList();
     expect(hitboxes, isEmpty);
   });
 }

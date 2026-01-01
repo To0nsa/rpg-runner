@@ -1,45 +1,61 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:walkscape_runner/core/commands/command.dart';
 import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/game_core.dart';
+import 'package:walkscape_runner/core/players/player_catalog.dart';
 import 'package:walkscape_runner/core/tuning/v0_resource_tuning.dart';
 
 import '../test_tunings.dart';
 
 void main() {
-  test('resource regen increases toward max and clamps (via snapshot HUD)', () {
-    final core = GameCore(
-      seed: 1,
-      tickHz: 10,
-      playerBody: const BodyDef(isKinematic: true, useGravity: false),
-      cameraTuning: noAutoscrollCameraTuning,
-      resourceTuning: const V0ResourceTuning(
-        playerHpMax: 100,
-        playerHpRegenPerSecond: 10,
-        playerHpStart: 50,
-        playerManaMax: 10,
-        playerManaRegenPerSecond: 1,
-        playerManaStart: 0,
-        playerStaminaMax: 20,
-        playerStaminaRegenPerSecond: 2,
-        playerStaminaStart: 0,
-      ),
-    );
+  test(
+    'resource regen refills after spending and clamps at max (via snapshot HUD)',
+    () {
+      final core = GameCore(
+        seed: 1,
+        tickHz: 10,
+        playerCatalog: const PlayerCatalog(
+          bodyTemplate: BodyDef(useGravity: false),
+        ),
+        cameraTuning: noAutoscrollCameraTuning,
+        resourceTuning: const V0ResourceTuning(
+          playerHpMax: 100,
+          playerHpRegenPerSecond: 10,
+          playerManaMax: 10,
+          playerManaRegenPerSecond: 1,
+          playerStaminaMax: 20,
+          playerStaminaRegenPerSecond: 2,
+        ),
+      );
 
-    // dt=0.1s per tick at 10Hz.
-    core.stepOneTick();
-    var hud = core.buildSnapshot().hud;
-    expect(hud.hp, closeTo(51.0, 1e-9));
-    expect(hud.mana, closeTo(0.1, 1e-9));
-    expect(hud.stamina, closeTo(0.2, 1e-9));
+      // Player spawns at max resources.
+      var hud = core.buildSnapshot().hud;
+      expect(hud.hp, closeTo(100.0, 1e-9));
+      expect(hud.mana, closeTo(10.0, 1e-9));
+      expect(hud.stamina, closeTo(20.0, 1e-9));
 
-    // Run long enough to exceed maxima; values should clamp exactly to max.
-    for (var i = 0; i < 200; i += 1) {
-      core.stepOneTick();
-    }
-    hud = core.buildSnapshot().hud;
-    expect(hud.hp, closeTo(100.0, 1e-9));
-    expect(hud.mana, closeTo(10.0, 1e-9));
-    expect(hud.stamina, closeTo(20.0, 1e-9));
-  });
+      // Spend mana and stamina, then ensure regen refills and clamps.
+      core.applyCommands(const [
+        CastPressedCommand(tick: 1),
+        DashPressedCommand(tick: 1),
+      ]);
+      core.stepOneTick(); // tick 1: spend mana and apply regen (dt=0.1)
+      hud = core.buildSnapshot().hud;
+      expect(hud.hp, closeTo(100.0, 1e-9));
+      expect(hud.mana, lessThan(10.0));
+      expect(hud.stamina, lessThan(20.0));
+
+      // Run long enough to exceed maxima; values should clamp exactly to max.
+      for (var i = 0; i < 200; i += 1) {
+        // Clear latched inputs (e.g. dashPressed) so spending does not repeat.
+        core.applyCommands(<Command>[]);
+        core.stepOneTick();
+      }
+      hud = core.buildSnapshot().hud;
+      expect(hud.hp, closeTo(100.0, 1e-9));
+      expect(hud.mana, closeTo(10.0, 1e-9));
+      expect(hud.stamina, closeTo(20.0, 1e-9));
+    },
+  );
 }

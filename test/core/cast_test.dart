@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:walkscape_runner/core/commands/command.dart';
 import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/game_core.dart';
+import 'package:walkscape_runner/core/players/player_catalog.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
 import 'package:walkscape_runner/core/tuning/v0_resource_tuning.dart';
 
@@ -13,11 +14,12 @@ void main() {
     final core = GameCore(
       seed: 1,
       tickHz: 20,
-      playerBody: const BodyDef(isKinematic: true, useGravity: false),
+      playerCatalog: const PlayerCatalog(
+        bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+      ),
       cameraTuning: noAutoscrollCameraTuning,
       resourceTuning: const V0ResourceTuning(
-        playerManaMax: 10,
-        playerManaStart: 0,
+        playerManaMax: 0,
         playerManaRegenPerSecond: 0,
       ),
     );
@@ -34,47 +36,53 @@ void main() {
     expect(core.playerCastCooldownTicksLeft, 0);
   });
 
-  test('cast: sufficient mana => projectile spawns + mana spent + cooldown set', () {
-    final core = GameCore(
-      seed: 1,
-      tickHz: 20,
-      playerBody: const BodyDef(isKinematic: true, useGravity: false),
-      cameraTuning: noAutoscrollCameraTuning,
-      resourceTuning: const V0ResourceTuning(
-        playerManaMax: 100,
-        playerManaStart: 20,
-        playerManaRegenPerSecond: 0,
-      ),
-    );
+  test(
+    'cast: sufficient mana => projectile spawns + mana spent + cooldown set',
+    () {
+      final core = GameCore(
+        seed: 1,
+        tickHz: 20,
+        playerCatalog: const PlayerCatalog(
+          bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+        ),
+        cameraTuning: noAutoscrollCameraTuning,
+        resourceTuning: const V0ResourceTuning(
+          playerManaMax: 20,
+          playerManaRegenPerSecond: 0,
+        ),
+      );
 
-    final playerPosX = core.playerPosX;
-    final playerPosY = core.playerPosY;
+      final playerPosX = core.playerPosX;
+      final playerPosY = core.playerPosY;
 
-    core.applyCommands(const [CastPressedCommand(tick: 1)]);
-    core.stepOneTick();
+      core.applyCommands(const [CastPressedCommand(tick: 1)]);
+      core.stepOneTick();
 
-    final snapshot = core.buildSnapshot();
-    final projectiles =
-        snapshot.entities.where((e) => e.kind == EntityKind.projectile).toList();
-    expect(projectiles.length, 1);
+      final snapshot = core.buildSnapshot();
+      final projectiles = snapshot.entities
+          .where((e) => e.kind == EntityKind.projectile)
+          .toList();
+      expect(projectiles.length, 1);
 
-    final p = projectiles.single;
-    expect(p.pos.x, closeTo(playerPosX + 4.0, 1e-9)); // playerRadius * 0.5
-    expect(p.pos.y, closeTo(playerPosY, 1e-9));
+      final p = projectiles.single;
+      expect(p.pos.x, closeTo(playerPosX + 4.0, 1e-9)); // playerRadius * 0.5
+      expect(p.pos.y, closeTo(playerPosY, 1e-9));
 
-    expect(snapshot.hud.mana, closeTo(10.0, 1e-9));
-    expect(core.playerCastCooldownTicksLeft, 5); // ceil(0.25s * 20Hz)
-  });
+      expect(snapshot.hud.mana, closeTo(10.0, 1e-9));
+      expect(core.playerCastCooldownTicksLeft, 5); // ceil(0.25s * 20Hz)
+    },
+  );
 
   test('cast: cooldown blocks recast until it expires', () {
     final core = GameCore(
       seed: 1,
       tickHz: 20,
-      playerBody: const BodyDef(isKinematic: true, useGravity: false),
+      playerCatalog: const PlayerCatalog(
+        bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+      ),
       cameraTuning: noAutoscrollCameraTuning,
       resourceTuning: const V0ResourceTuning(
-        playerManaMax: 100,
-        playerManaStart: 30,
+        playerManaMax: 30,
         playerManaRegenPerSecond: 0,
       ),
     );

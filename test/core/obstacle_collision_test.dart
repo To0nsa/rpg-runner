@@ -5,6 +5,7 @@ import 'package:walkscape_runner/core/commands/command.dart';
 import 'package:walkscape_runner/core/contracts/v0_render_contract.dart';
 import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/game_core.dart';
+import 'package:walkscape_runner/core/players/player_catalog.dart';
 import 'package:walkscape_runner/core/tuning/v0_movement_tuning.dart';
 import 'package:walkscape_runner/core/tuning/v0_track_tuning.dart';
 
@@ -79,7 +80,9 @@ void main() {
       cameraTuning: noAutoscrollCameraTuning,
       trackTuning: const V0TrackTuning(enabled: false),
       movementTuning: const V0MovementTuning(playerRadius: r),
-      playerBody: const BodyDef(sideMask: BodyDef.sideLeft),
+      playerCatalog: const PlayerCatalog(
+        bodyTemplate: BodyDef(sideMask: BodyDef.sideLeft),
+      ),
       staticWorldGeometry: const StaticWorldGeometry(
         groundPlane: StaticGroundPlane(topY: v0GroundTopY * 1.0),
         solids: <StaticSolid>[

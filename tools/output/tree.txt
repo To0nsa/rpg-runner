@@ -22,7 +22,6 @@ lib/core/ecs/stores/enemy_store.dart
 lib/core/ecs/stores/faction_store.dart
 lib/core/ecs/stores/flying_enemy_steering_store.dart
 lib/core/ecs/stores/gravity_control_store.dart
-lib/core/ecs/stores/ground_enemy_locomotion_store.dart
 lib/core/ecs/stores/health_store.dart
 lib/core/ecs/stores/hit_once_store.dart
 lib/core/ecs/stores/hitbox_store.dart
@@ -35,6 +34,7 @@ lib/core/ecs/stores/player_input_store.dart
 lib/core/ecs/stores/projectile_store.dart
 lib/core/ecs/stores/spell_origin_store.dart
 lib/core/ecs/stores/stamina_store.dart
+lib/core/ecs/stores/surface_nav_state_store.dart
 lib/core/ecs/stores/transform_store.dart
 lib/core/ecs/systems/collision_system.dart
 lib/core/ecs/systems/cooldown_system.dart
@@ -61,6 +61,16 @@ lib/core/events/game_event.dart
 lib/core/events/run_events.dart
 lib/core/game_core.dart
 lib/core/math/vec2.dart
+lib/core/navigation/jump_template.dart
+lib/core/navigation/nav_tolerances.dart
+lib/core/navigation/surface_extractor.dart
+lib/core/navigation/surface_graph.dart
+lib/core/navigation/surface_graph_builder.dart
+lib/core/navigation/surface_id.dart
+lib/core/navigation/surface_navigator.dart
+lib/core/navigation/surface_pathfinder.dart
+lib/core/navigation/surface_spatial_index.dart
+lib/core/navigation/walk_surface.dart
 lib/core/projectiles/projectile_catalog.dart
 lib/core/projectiles/projectile_id.dart
 lib/core/README.md
@@ -79,6 +89,7 @@ lib/core/tuning/v0_combat_tuning.dart
 lib/core/tuning/v0_flying_enemy_tuning.dart
 lib/core/tuning/v0_ground_enemy_tuning.dart
 lib/core/tuning/v0_movement_tuning.dart
+lib/core/tuning/v0_navigation_tuning.dart
 lib/core/tuning/v0_physics_tuning.dart
 lib/core/tuning/v0_resource_tuning.dart
 lib/core/tuning/v0_spatial_grid_tuning.dart

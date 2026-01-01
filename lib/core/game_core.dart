@@ -11,7 +11,6 @@ import 'collision/static_world_geometry.dart';
 import 'collision/static_world_geometry_index.dart';
 import 'contracts/v0_render_contract.dart';
 import 'ecs/entity_id.dart';
-import 'ecs/stores/collider_aabb_store.dart';
 import 'ecs/spatial/broadphase_grid.dart';
 import 'ecs/spatial/grid_index_2d.dart';
 import 'ecs/systems/collision_system.dart';
@@ -33,9 +32,6 @@ import 'ecs/systems/projectile_system.dart';
 import 'ecs/systems/projectile_hit_system.dart';
 import 'ecs/systems/resource_regen_system.dart';
 import 'ecs/stores/body_store.dart';
-import 'ecs/stores/health_store.dart';
-import 'ecs/stores/mana_store.dart';
-import 'ecs/stores/stamina_store.dart';
 import 'ecs/world.dart';
 import 'enemies/enemy_catalog.dart';
 import 'enemies/enemy_id.dart';
@@ -45,6 +41,7 @@ import 'navigation/jump_template.dart';
 import 'navigation/surface_graph_builder.dart';
 import 'navigation/surface_navigator.dart';
 import 'navigation/surface_pathfinder.dart';
+import 'players/player_catalog.dart';
 import 'snapshots/enums.dart';
 import 'snapshots/entity_render_snapshot.dart';
 import 'snapshots/game_state_snapshot.dart';
@@ -65,12 +62,6 @@ import 'tuning/v0_camera_tuning.dart';
 import 'tuning/v0_spatial_grid_tuning.dart';
 import 'tuning/v0_track_tuning.dart';
 import 'util/tick_math.dart';
-
-const StaticWorldGeometry v0DefaultStaticWorldGeometry = StaticWorldGeometry(
-  groundPlane: StaticGroundPlane(topY: v0GroundTopY * 1.0),
-  // Chunk streaming (Milestone 12) supplies platforms/obstacles deterministically.
-  solids: <StaticSolid>[],
-);
 
 /// Minimal placeholder `GameCore` used to validate architecture wiring.
 ///
@@ -95,12 +86,11 @@ class GameCore {
     SpellCatalog spellCatalog = const SpellCatalog(),
     ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
     EnemyCatalog enemyCatalog = const EnemyCatalog(),
-    BodyDef? playerBody,
-    StaticWorldGeometry? staticWorldGeometry,
-  }) : _movement = V0MovementTuningDerived.from(
-          movementTuning,
-          tickHz: tickHz,
-       ),
+    PlayerCatalog playerCatalog = const PlayerCatalog(),
+    StaticWorldGeometry staticWorldGeometry = const StaticWorldGeometry(
+      groundPlane: StaticGroundPlane(topY: v0GroundTopY * 1.0),
+    ),
+  }) : _movement = V0MovementTuningDerived.from(movementTuning, tickHz: tickHz),
        _physicsTuning = physicsTuning,
        _resourceTuning = resourceTuning,
        _abilities = V0AbilityTuningDerived.from(abilityTuning, tickHz: tickHz),
@@ -114,16 +104,16 @@ class GameCore {
          tickHz: tickHz,
        ),
        _navigationTuning = navigationTuning,
-        _spatialGridTuning = spatialGridTuning,
-        _spells = spellCatalog,
-        _projectiles = ProjectileCatalogDerived.from(
-          projectileCatalog,
-          tickHz: tickHz,
-        ),
-        _enemyCatalog = enemyCatalog,
-        _baseStaticWorldGeometry =
-            staticWorldGeometry ?? v0DefaultStaticWorldGeometry,
-        _trackTuning = trackTuning {
+       _spatialGridTuning = spatialGridTuning,
+       _spells = spellCatalog,
+       _projectiles = ProjectileCatalogDerived.from(
+         projectileCatalog,
+         tickHz: tickHz,
+       ),
+       _enemyCatalog = enemyCatalog,
+       _playerCatalog = playerCatalog,
+       _baseStaticWorldGeometry = staticWorldGeometry,
+       _trackTuning = trackTuning {
     _world = EcsWorld(seed: seed);
     _movementSystem = PlayerMovementSystem();
     _collisionSystem = CollisionSystem();
@@ -137,13 +127,21 @@ class GameCore {
     _hitboxFollowOwnerSystem = HitboxFollowOwnerSystem();
     _lifetimeSystem = LifetimeSystem();
     _invulnerabilitySystem = InvulnerabilitySystem();
-    _damageSystem = DamageSystem(invulnerabilityTicksOnHit: _combat.invulnerabilityTicks);
+    _damageSystem = DamageSystem(
+      invulnerabilityTicksOnHit: _combat.invulnerabilityTicks,
+    );
     _healthDespawnSystem = HealthDespawnSystem();
-    _meleeSystem = PlayerMeleeSystem(abilities: _abilities, movement: _movement);
+    _meleeSystem = PlayerMeleeSystem(
+      abilities: _abilities,
+      movement: _movement,
+    );
     _hitboxDamageSystem = HitboxDamageSystem();
     _resourceRegenSystem = ResourceRegenSystem();
     _castSystem = PlayerCastSystem(abilities: _abilities, movement: _movement);
-    _spellCastSystem = SpellCastSystem(spells: _spells, projectiles: _projectiles);
+    _spellCastSystem = SpellCastSystem(
+      spells: _spells,
+      projectiles: _projectiles,
+    );
     _meleeAttackSystem = MeleeAttackSystem();
     _surfaceGraphBuilder = SurfaceGraphBuilder(
       surfaceGrid: GridIndex2D(cellSize: _spatialGridTuning.broadphaseCellSize),
@@ -178,7 +176,10 @@ class GameCore {
       groundEnemyTuning: _groundEnemyTuning,
       surfaceNavigator: _surfaceNavigator,
     );
-    _cameraTuning = V0CameraTuningDerived.from(cameraTuning, movement: _movement);
+    _cameraTuning = V0CameraTuningDerived.from(
+      cameraTuning,
+      movement: _movement,
+    );
     _camera = V0AutoscrollCamera(
       viewWidth: v0VirtualWidth.toDouble(),
       tuning: _cameraTuning,
@@ -192,56 +193,35 @@ class GameCore {
     _setStaticWorldGeometry(_baseStaticWorldGeometry);
 
     final spawnX = 400.0;
+    final playerArchetype = PlayerCatalogDerived.from(
+      _playerCatalog,
+      movement: _movement,
+      resources: _resourceTuning,
+    ).archetype;
+    final playerCollider = playerArchetype.collider;
     final spawnY =
         (_staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble()) -
-        _movement.base.playerRadius;
-    final defaultBody = BodyDef(
-      enabled: true,
-      isKinematic: false,
-      useGravity: true,
-      topOnlyGround: true,
-      gravityScale: 1.0,
-      maxVelX: _movement.base.maxVelX,
-      maxVelY: _movement.base.maxVelY,
-      sideMask: BodyDef.sideLeft | BodyDef.sideRight,
-    );
+        (playerCollider.offsetY + playerCollider.halfY);
     _player = _world.createPlayer(
       posX: spawnX,
       posY: spawnY,
       velX: 0.0,
       velY: 0.0,
-      facing: Facing.right,
+      facing: playerArchetype.facing,
       grounded: true,
-      body: playerBody ?? defaultBody,
-      collider: ColliderAabbDef(
-        halfX: _movement.base.playerRadius,
-        halfY: _movement.base.playerRadius,
-      ),
-      health: HealthDef(
-        hp: _resourceTuning.playerHpStart ?? _resourceTuning.playerHpMax,
-        hpMax: _resourceTuning.playerHpMax,
-        regenPerSecond: _resourceTuning.playerHpRegenPerSecond,
-      ),
-      mana: ManaDef(
-        mana: _resourceTuning.playerManaStart ?? _resourceTuning.playerManaMax,
-        manaMax: _resourceTuning.playerManaMax,
-        regenPerSecond: _resourceTuning.playerManaRegenPerSecond,
-      ),
-      stamina: StaminaDef(
-        stamina:
-            _resourceTuning.playerStaminaStart ?? _resourceTuning.playerStaminaMax,
-        staminaMax: _resourceTuning.playerStaminaMax,
-        regenPerSecond: _resourceTuning.playerStaminaRegenPerSecond,
-      ),
+      body: playerArchetype.body,
+      collider: playerCollider,
+      health: playerArchetype.health,
+      mana: playerArchetype.mana,
+      stamina: playerArchetype.stamina,
     );
 
     // Milestone 12: stream deterministic chunks (static solids + enemy spawns).
-    //
-    // If a custom [staticWorldGeometry] was provided (typically tests), keep the
-    // geometry fixed and skip track streaming unless explicitly enabled later.
-    if (staticWorldGeometry == null && _trackTuning.enabled) {
-      final groundTopY = _staticWorldGeometry.groundPlane?.topY ??
-          v0GroundTopY.toDouble();
+    // Track streaming is controlled by `trackTuning.enabled`. When enabled, the
+    // streamed solids are merged on top of the provided base geometry.
+    if (_trackTuning.enabled) {
+      final groundTopY =
+          _staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble();
       _trackStreamer = V0TrackStreamer(
         seed: seed,
         tuning: _trackTuning,
@@ -251,7 +231,10 @@ class GameCore {
     }
   }
 
-  EntityId _spawnFlyingEnemy({required double spawnX, required double groundTopY}) {
+  EntityId _spawnFlyingEnemy({
+    required double spawnX,
+    required double groundTopY,
+  }) {
     // Enemy spawn stats come from a centralized catalog so these hardcoded spawns
     // don't diverge from future deterministic spawning rules.
     final archetype = _enemyCatalog.get(EnemyId.flyingEnemy);
@@ -270,14 +253,18 @@ class GameCore {
     );
 
     // Avoid immediate spawn-tick casting (keeps early-game tests stable).
-    _world.cooldown.castCooldownTicksLeft[
-        _world.cooldown.indexOf(flyingEnemy)] =
+    _world.cooldown.castCooldownTicksLeft[_world.cooldown.indexOf(
+          flyingEnemy,
+        )] =
         _flyingEnemyTuning.flyingEnemyCastCooldownTicks;
 
     return flyingEnemy;
   }
 
-  EntityId _spawnGroundEnemy({required double spawnX, required double groundTopY}) {
+  EntityId _spawnGroundEnemy({
+    required double spawnX,
+    required double groundTopY,
+  }) {
     final archetype = _enemyCatalog.get(EnemyId.groundEnemy);
 
     // GroundEnemy uses the archetype, but clamps should stay aligned with the
@@ -336,6 +323,7 @@ class GameCore {
   final SpellCatalog _spells;
   final ProjectileCatalogDerived _projectiles;
   final EnemyCatalog _enemyCatalog;
+  final PlayerCatalog _playerCatalog;
   late final SurfaceGraphBuilder _surfaceGraphBuilder;
   late final JumpReachabilityTemplate _groundEnemyJumpTemplate;
   int _surfaceGraphVersion = 0;
@@ -475,18 +463,11 @@ class GameCore {
 
     _movementSystem.step(_world, _movement, resources: _resourceTuning);
     _gravitySystem.step(_world, _movement, physics: _physicsTuning);
-    _collisionSystem.step(
-      _world,
-      _movement,
-      staticWorld: _staticWorldIndex,
-    );
+    _collisionSystem.step(_world, _movement, staticWorld: _staticWorldIndex);
 
     distance += max(0.0, playerVelX) * _movement.dtSeconds;
 
-    _camera.updateTick(
-      dtSeconds: _movement.dtSeconds,
-      playerX: playerPosX,
-    );
+    _camera.updateTick(dtSeconds: _movement.dtSeconds, playerX: playerPosX);
     if (_checkFellBehindCamera()) {
       gameOver = true;
       paused = true;
@@ -532,7 +513,6 @@ class GameCore {
 
     // Cleanup last so effect entities get their full last tick to act.
     _lifetimeSystem.step(_world);
-
   }
 
   bool _checkFellBehindCamera() {
@@ -555,8 +535,8 @@ class GameCore {
       cameraLeft: _camera.left(),
       cameraRight: _camera.right(),
       spawnEnemy: (enemyId, x) {
-        final groundTopY = _staticWorldGeometry.groundPlane?.topY ??
-            v0GroundTopY.toDouble();
+        final groundTopY =
+            _staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble();
         switch (enemyId) {
           case EnemyId.flyingEnemy:
             _spawnFlyingEnemy(spawnX: x, groundTopY: groundTopY);
@@ -640,7 +620,8 @@ class GameCore {
     final tuning = _movement.base;
     final mi = _world.movement.indexOf(_player);
     final dashing = _world.movement.dashTicksLeft[mi] > 0;
-    final onGround = _world.collision.grounded[_world.collision.indexOf(_player)];
+    final onGround =
+        _world.collision.grounded[_world.collision.indexOf(_player)];
     final hi = _world.health.indexOf(_player);
     final mai = _world.mana.indexOf(_player);
     final si = _world.stamina.indexOf(_player);

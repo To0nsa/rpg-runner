@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:walkscape_runner/core/commands/command.dart';
 import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/game_core.dart';
+import 'package:walkscape_runner/core/players/player_catalog.dart';
 
 void _expectSolidsEqual(GameCore a, GameCore b) {
   final sa = a.buildSnapshot().staticSolids;
@@ -26,11 +27,22 @@ void main() {
     const seed = 12345;
     // Disable right-side wall collision so the player never gets stuck on a
     // chunk obstacle and can run long enough to exercise spawn/cull.
-    final a = GameCore(seed: seed, playerBody: const BodyDef(sideMask: BodyDef.sideLeft));
-    final b = GameCore(seed: seed, playerBody: const BodyDef(sideMask: BodyDef.sideLeft));
+    final a = GameCore(
+      seed: seed,
+      playerCatalog: const PlayerCatalog(
+        bodyTemplate: BodyDef(sideMask: BodyDef.sideLeft),
+      ),
+    );
+    final b = GameCore(
+      seed: seed,
+      playerCatalog: const PlayerCatalog(
+        bodyTemplate: BodyDef(sideMask: BodyDef.sideLeft),
+      ),
+    );
 
     // Always move right so the player stays in view and the camera keeps advancing.
-    const ticks = 1800; // ~30 seconds at 60Hz (enough to trigger multiple spawn/cull cycles).
+    const ticks =
+        1800; // ~30 seconds at 60Hz (enough to trigger multiple spawn/cull cycles).
     var maxSolids = 0;
 
     for (var t = 1; t <= ticks; t += 1) {

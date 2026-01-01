@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/game_core.dart';
+import 'package:walkscape_runner/core/players/player_catalog.dart';
 import 'package:walkscape_runner/core/projectiles/projectile_catalog.dart';
 import 'package:walkscape_runner/core/projectiles/projectile_id.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
@@ -18,11 +19,12 @@ void main() {
     final core = GameCore(
       seed: 1,
       tickHz: 60,
-      playerBody: const BodyDef(useGravity: false),
+      playerCatalog: const PlayerCatalog(
+        bodyTemplate: BodyDef(useGravity: false),
+      ),
       cameraTuning: noAutoscrollCameraTuning,
       resourceTuning: const V0ResourceTuning(
-        playerManaMax: 100,
-        playerManaStart: 20,
+        playerManaMax: 20,
         playerManaRegenPerSecond: 0,
       ),
     );
@@ -37,11 +39,14 @@ void main() {
     input.pumpHeldInputs();
     controller.advanceFrame(1.0 / controller.tickHz); // tick 1: cast spawns
     input.pumpHeldInputs();
-    controller.advanceFrame(1.0 / controller.tickHz); // tick 2: projectile moves
+    controller.advanceFrame(
+      1.0 / controller.tickHz,
+    ); // tick 2: projectile moves
 
     final snapshot = core.buildSnapshot();
-    final projectiles =
-        snapshot.entities.where((e) => e.kind == EntityKind.projectile).toList();
+    final projectiles = snapshot.entities
+        .where((e) => e.kind == EntityKind.projectile)
+        .toList();
     expect(projectiles.length, 1);
     final p = projectiles.single;
     expect(p.vel, isNotNull);
@@ -53,7 +58,9 @@ void main() {
     final nx = qx / len;
     final ny = qy / len;
 
-    final speed = ProjectileCatalog().get(ProjectileId.iceBolt).speedUnitsPerSecond;
+    final speed = ProjectileCatalog()
+        .get(ProjectileId.iceBolt)
+        .speedUnitsPerSecond;
     expect(p.vel!.x / speed, closeTo(nx, 1e-9));
     expect(p.vel!.y / speed, closeTo(ny, 1e-9));
   });
