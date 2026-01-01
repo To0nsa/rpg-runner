@@ -5,6 +5,7 @@
 // intentionally tiny and non-authoritative: gameplay truth lives in Core.
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import '../core/contracts/v0_render_contract.dart';
@@ -12,14 +13,20 @@ import '../core/snapshots/entity_render_snapshot.dart';
 import '../core/snapshots/enums.dart';
 import '../core/snapshots/static_solid_snapshot.dart';
 import 'input/runner_input_router.dart';
+import 'input/aim_preview.dart';
 import 'components/pixel_parallax_backdrop_component.dart';
 import 'components/tiled_ground_band_component.dart';
 import 'components/hud_bars_component.dart';
+import 'components/aim_ray_component.dart';
 import 'game_controller.dart';
 
 /// Minimal Flame `Game` that renders from snapshots.
 class RunnerFlameGame extends FlameGame {
-  RunnerFlameGame({required this.controller, required this.input})
+  RunnerFlameGame({
+    required this.controller,
+    required this.input,
+    required this.aimPreview,
+  })
     : super(
         camera: CameraComponent.withFixedResolution(
           width: v0VirtualWidth.toDouble(),
@@ -32,6 +39,9 @@ class RunnerFlameGame extends FlameGame {
 
   /// Input scheduler/aggregator (touch + keyboard + mouse).
   final RunnerInputRouter input;
+
+  /// UI-driven aim preview (render-only).
+  final ValueListenable<AimPreviewState> aimPreview;
 
   late final CircleComponent _player;
   //late final TextComponent _debugText;
@@ -122,6 +132,14 @@ class RunnerFlameGame extends FlameGame {
       anchor: Anchor.center,
     );
     world.add(_player);
+
+    world.add(
+      AimRayComponent(
+        controller: controller,
+        preview: aimPreview,
+        length: v0AimRayLength,
+      )..priority = 5,
+    );
 
     _mountStaticSolids(controller.snapshot.staticSolids);
     _lastStaticSolidsSnapshot = controller.snapshot.staticSolids;

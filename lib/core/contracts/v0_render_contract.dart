@@ -32,3 +32,5 @@ const int v0GroundTopY =
 
 const double v0CameraFixedY = v0VirtualHeight / 2; // 135.0
 
+const double v0AimRayLength = v0VirtualWidth * 0.5;
+

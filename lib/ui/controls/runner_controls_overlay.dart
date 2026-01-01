@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../game/input/aim_preview.dart';
+import 'directional_action_button.dart';
 import 'fixed_joystick.dart';
 
 class RunnerControlsOverlay extends StatelessWidget {
@@ -9,12 +11,20 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.onJumpPressed,
     required this.onDashPressed,
     required this.onAttackPressed,
+    required this.onCastCommitted,
+    required this.onAimDir,
+    required this.onAimClear,
+    required this.aimPreview,
   });
 
   final ValueChanged<double> onMoveAxis;
   final VoidCallback onJumpPressed;
   final VoidCallback onDashPressed;
   final VoidCallback onAttackPressed;
+  final VoidCallback onCastCommitted;
+  final void Function(double x, double y) onAimDir;
+  final VoidCallback onAimClear;
+  final AimPreviewModel aimPreview;
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +58,15 @@ class RunnerControlsOverlay extends StatelessWidget {
                   label: 'Atk',
                   icon: Icons.close,
                   onPressed: onAttackPressed,
+                ),
+                const SizedBox(height: 12),
+                DirectionalActionButton(
+                  label: 'Spell',
+                  icon: Icons.auto_awesome,
+                  onAimDir: onAimDir,
+                  onAimClear: onAimClear,
+                  onCommit: onCastCommitted,
+                  aimPreview: aimPreview,
                 ),
               ],
             ),
@@ -96,4 +115,3 @@ class _ActionButton extends StatelessWidget {
     );
   }
 }
-

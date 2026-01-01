@@ -7,7 +7,7 @@ import 'v0_viewport_mapper.dart';
 
 /// Handles touch interactions on the game view (V0).
 ///
-/// - Tap on the game view: sets aim dir (from tap position) and triggers cast.
+/// - Optional tap-to-cast (disabled by default).
 class TouchGameViewAdapter extends StatelessWidget {
   const TouchGameViewAdapter({
     super.key,
@@ -15,17 +15,20 @@ class TouchGameViewAdapter extends StatelessWidget {
     required this.input,
     required this.mapper,
     required this.child,
+    this.enableTapCast = false,
   });
 
   final GameController controller;
   final RunnerInputRouter input;
   final V0ViewportMapper mapper;
   final Widget child;
+  final bool enableTapCast;
 
   @override
   Widget build(BuildContext context) {
     return Listener(
       onPointerDown: (e) {
+        if (!enableTapCast) return;
         if (e.kind == PointerDeviceKind.mouse) return;
         final dir = mapper.aimDirFromLocal(e.localPosition, controller.snapshot);
         if (dir != null) {
@@ -39,4 +42,3 @@ class TouchGameViewAdapter extends StatelessWidget {
     );
   }
 }
-

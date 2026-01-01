@@ -5,6 +5,7 @@ import '../core/contracts/v0_render_contract.dart';
 import '../core/game_core.dart';
 import '../game/game_controller.dart';
 import '../game/input/runner_input_router.dart';
+import '../game/input/aim_preview.dart';
 import '../game/runner_flame_game.dart';
 import 'controls/runner_controls_overlay.dart';
 import 'input/debug_keyboard_adapter.dart';
@@ -48,9 +49,11 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   );
   late final RunnerInputRouter _input =
       RunnerInputRouter(controller: _controller);
+  late final AimPreviewModel _aimPreview = AimPreviewModel();
   late final RunnerFlameGame _game = RunnerFlameGame(
     controller: _controller,
     input: _input,
+    aimPreview: _aimPreview,
   );
 
   @override
@@ -79,6 +82,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _controller.shutdown();
+    _aimPreview.dispose();
     super.dispose();
   }
 
@@ -104,6 +108,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
               controller: _controller,
               input: _input,
               mapper: mapper,
+              enableTapCast: false,
               child: gameView,
             );
 
@@ -125,6 +130,10 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
           onJumpPressed: _input.pressJump,
           onDashPressed: _input.pressDash,
           onAttackPressed: _input.pressAttack,
+          onCastCommitted: () => _input.commitCastWithAim(clearAim: true),
+          onAimDir: _input.setAimDir,
+          onAimClear: _input.clearAimDir,
+          aimPreview: _aimPreview,
         ),
         if (widget.showExitButton)
           Positioned(

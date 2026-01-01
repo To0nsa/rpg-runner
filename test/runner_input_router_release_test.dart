@@ -91,7 +91,45 @@ void main() {
 
       expect(projectile.vel, isNotNull);
       expect(projectile.vel!.x, greaterThan(0));
-      expect(projectile.vel!.y.abs(), lessThan(1e-9));
-    },
+    expect(projectile.vel!.y.abs(), lessThan(1e-9));
+  },
   );
+
+  test('release-to-cast keeps aimed dir for the cast tick', () {
+    final core = GameCore(
+      seed: 1,
+      tickHz: 60,
+      playerCatalog: const PlayerCatalog(
+        bodyTemplate: BodyDef(useGravity: false),
+      ),
+      cameraTuning: noAutoscrollCameraTuning,
+      resourceTuning: const V0ResourceTuning(
+        playerManaMax: 20,
+        playerManaRegenPerSecond: 0,
+      ),
+    );
+    final controller = GameController(core: core);
+    final input = RunnerInputRouter(controller: controller);
+
+    final dt = 1.0 / controller.tickHz;
+
+    input.setAimDir(0, -1);
+    input.commitCastWithAim(clearAim: true);
+
+    input.pumpHeldInputs();
+    controller.advanceFrame(dt); // tick 1: cast spawns
+    input.pumpHeldInputs();
+    controller.advanceFrame(dt); // tick 2: projectile moves
+
+    final snapshot = core.buildSnapshot();
+    final projectiles = snapshot.entities
+        .where((e) => e.kind == EntityKind.projectile)
+        .toList();
+    expect(projectiles.length, 1);
+    final projectile = projectiles.single;
+
+    expect(projectile.vel, isNotNull);
+    expect(projectile.vel!.y, lessThan(0));
+    expect(projectile.vel!.x.abs(), lessThan(1e-6));
+  });
 }

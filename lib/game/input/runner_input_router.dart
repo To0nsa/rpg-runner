@@ -27,6 +27,7 @@ class RunnerInputRouter {
   double _lastScheduledAimX = 0;
   double _lastScheduledAimY = 0;
   int _aimScheduledThroughTick = 0;
+  int _aimClearBlockedThroughTick = 0;
 
   static double _quantizeAim(double value) {
     if (value == 0) return 0;
@@ -75,11 +76,29 @@ class RunnerInputRouter {
 
   /// Presses cast on the next tick and ensures the aim direction is set for the same tick.
   void pressCastWithAim() {
+    commitCastWithAim(clearAim: false);
+  }
+
+  /// Commits cast on the next tick using the current aim dir (if set).
+  ///
+  /// When [clearAim] is true, clear commands are delayed until after the cast
+  /// tick to avoid overwriting the aimed cast.
+  void commitCastWithAim({required bool clearAim}) {
     final tick = controller.tick + controller.inputLead;
-    if (_aimSet) {
+    final hadAim = _aimSet;
+    if (hadAim) {
       controller.enqueue(AimDirCommand(tick: tick, x: _aimX, y: _aimY));
     }
     controller.enqueue(CastPressedCommand(tick: tick));
+    if (clearAim) {
+      _aimSet = false;
+      _aimX = 0;
+      _aimY = 0;
+      if (hadAim) {
+        _aimClearBlockedThroughTick =
+            max(_aimClearBlockedThroughTick, tick);
+      }
+    }
   }
 
   /// Schedules the current held inputs across upcoming ticks.
@@ -142,7 +161,10 @@ class RunnerInputRouter {
     final targetMaxTick =
         controller.tick + controller.inputLead + maxTicksPerFrame;
 
-    final startTick = max(controller.tick + 1, _aimScheduledThroughTick + 1);
+    var startTick = max(controller.tick + 1, _aimScheduledThroughTick + 1);
+    if (!_aimSet) {
+      startTick = max(startTick, _aimClearBlockedThroughTick + 1);
+    }
     for (var t = startTick; t <= targetMaxTick; t += 1) {
       if (_aimSet) {
         controller.enqueue(AimDirCommand(tick: t, x: _aimX, y: _aimY));
