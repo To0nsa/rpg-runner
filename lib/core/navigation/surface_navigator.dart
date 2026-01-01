@@ -1,4 +1,5 @@
 import '../ecs/stores/surface_nav_state_store.dart';
+import 'nav_tolerances.dart';
 import 'surface_graph.dart';
 import 'surface_id.dart';
 import 'surface_pathfinder.dart';
@@ -31,7 +32,7 @@ class SurfaceNavigator {
   SurfaceNavigator({
     required this.pathfinder,
     this.repathCooldownTicks = 30,
-    this.surfaceEps = 1e-3,
+    this.surfaceEps = navSpatialEps,
     this.takeoffEps = 2.0,
   });
 
@@ -55,24 +56,9 @@ class SurfaceNavigator {
     required double targetBottomY,
     required double targetHalfWidth,
     required bool targetGrounded,
-    int jumpCooldownTicks = 0,
   }) {
-    if (jumpCooldownTicks < 0) {
-      throw ArgumentError.value(
-        jumpCooldownTicks,
-        'jumpCooldownTicks',
-        'must be >= 0',
-      );
-    }
-
     final prevCurrentId = navStore.currentSurfaceId[navIndex];
     final prevTargetId = navStore.targetSurfaceId[navIndex];
-
-    var jumpCooldownLeft = navStore.jumpCooldownTicksLeft[navIndex];
-    if (jumpCooldownLeft > 0) {
-      jumpCooldownLeft -= 1;
-      navStore.jumpCooldownTicksLeft[navIndex] = jumpCooldownLeft;
-    }
 
     var currentSurfaceId = prevCurrentId;
     if (entityGrounded) {
@@ -208,21 +194,9 @@ class SurfaceNavigator {
 
     final closeEnough = (entityX - edge.takeoffX).abs() <= takeoffEps;
     if (entityGrounded && closeEnough) {
-      if (edge.kind == SurfaceEdgeKind.jump && jumpCooldownLeft > 0) {
-        return SurfaceNavIntent(
-          desiredX: edge.takeoffX,
-          jumpNow: false,
-          hasPlan: true,
-        );
-      }
-
       navStore.activeEdgeIndex[navIndex] = edgeIndex;
 
       final jumpNow = edge.kind == SurfaceEdgeKind.jump;
-      if (jumpNow && jumpCooldownTicks > 0) {
-        navStore.jumpCooldownTicksLeft[navIndex] = jumpCooldownTicks;
-      }
-
       return SurfaceNavIntent(
         desiredX:
             edge.kind == SurfaceEdgeKind.drop ? edge.takeoffX : edge.landingX,

@@ -7,7 +7,6 @@ class V0GroundEnemyTuning {
     this.groundEnemyAccelX = 600.0,
     this.groundEnemyDecelX = 400.0,
     this.groundEnemyJumpSpeed = 600.0,
-    this.groundEnemyJumpCooldownSeconds = 0.5,
     this.groundEnemyMeleeRangeX = 26.0,
     this.groundEnemyMeleeCooldownSeconds = 1.0,
     this.groundEnemyMeleeActiveSeconds = 0.10,
@@ -25,9 +24,6 @@ class V0GroundEnemyTuning {
   /// Instantaneous jump vertical speed (negative is upward).
   final double groundEnemyJumpSpeed;
 
-  /// Cooldown between jump attempts (seconds, ceil to ticks).
-  final double groundEnemyJumpCooldownSeconds;
-
   // Ground enemy melee.
   final double groundEnemyMeleeRangeX;
   final double groundEnemyMeleeCooldownSeconds;
@@ -41,7 +37,6 @@ class V0GroundEnemyTuningDerived {
   const V0GroundEnemyTuningDerived._({
     required this.tickHz,
     required this.base,
-    required this.groundEnemyJumpCooldownTicks,
     required this.groundEnemyMeleeCooldownTicks,
     required this.groundEnemyMeleeActiveTicks,
   });
@@ -57,10 +52,6 @@ class V0GroundEnemyTuningDerived {
     return V0GroundEnemyTuningDerived._(
       tickHz: tickHz,
       base: base,
-      groundEnemyJumpCooldownTicks: ticksFromSecondsCeil(
-        base.groundEnemyJumpCooldownSeconds,
-        tickHz,
-      ),
       groundEnemyMeleeCooldownTicks: ticksFromSecondsCeil(
         base.groundEnemyMeleeCooldownSeconds,
         tickHz,
@@ -75,7 +66,6 @@ class V0GroundEnemyTuningDerived {
   final int tickHz;
   final V0GroundEnemyTuning base;
 
-  final int groundEnemyJumpCooldownTicks;
   final int groundEnemyMeleeCooldownTicks;
   final int groundEnemyMeleeActiveTicks;
 }

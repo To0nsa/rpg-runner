@@ -130,7 +130,6 @@ void main() {
       groundEnemyTuning: V0GroundEnemyTuningDerived.from(
         const V0GroundEnemyTuning(
           groundEnemyJumpSpeed: 300.0,
-          groundEnemyJumpCooldownSeconds: 1.0,
         ),
         tickHz: 10,
       ),

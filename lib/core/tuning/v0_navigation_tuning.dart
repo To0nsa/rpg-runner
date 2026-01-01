@@ -4,12 +4,15 @@
 /// - movement tuning controls the player's physical feel
 /// - enemy tuning controls per-enemy locomotion abilities
 /// - navigation tuning controls pathfinding + graph build tradeoffs
+library;
+import '../navigation/nav_tolerances.dart';
+
 class V0NavigationTuning {
   const V0NavigationTuning({
     this.repathCooldownTicks = 30,
     this.maxExpandedNodes = 128,
     this.edgePenaltySeconds = 0.05,
-    this.surfaceEps = 1e-3,
+    this.surfaceEps = navSpatialEps,
     this.takeoffEpsMin = 2.0,
     this.takeoffSampleMaxStep = 64.0,
   }) : assert(repathCooldownTicks >= 0),
@@ -40,4 +43,3 @@ class V0NavigationTuning {
   /// Maximum step between takeoff samples on long surfaces (world units).
   final double takeoffSampleMaxStep;
 }
-

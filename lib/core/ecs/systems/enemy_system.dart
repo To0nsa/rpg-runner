@@ -329,7 +329,6 @@ class EnemySystem {
         targetBottomY: playerBottomY,
         targetHalfWidth: playerHalfX,
         targetGrounded: playerGrounded,
-        jumpCooldownTicks: tuning.groundEnemyJumpCooldownTicks,
       );
     }
 

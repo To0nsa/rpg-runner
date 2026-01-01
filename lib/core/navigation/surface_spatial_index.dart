@@ -1,4 +1,5 @@
 import '../ecs/spatial/grid_index_2d.dart';
+import 'nav_tolerances.dart';
 import 'walk_surface.dart';
 
 /// Spatial index for walkable surface segments.
@@ -7,7 +8,7 @@ import 'walk_surface.dart';
 class SurfaceSpatialIndex {
   SurfaceSpatialIndex({
     required GridIndex2D index,
-    this.surfaceThickness = 1e-3,
+    this.surfaceThickness = navSpatialEps,
   }) : _index = index;
 
   final GridIndex2D _index;

@@ -1,3 +1,5 @@
+import 'nav_tolerances.dart';
+
 class JumpProfile {
   const JumpProfile({
     required this.jumpSpeed,
@@ -110,7 +112,7 @@ class JumpReachabilityTemplate {
     required double dy,
     required double dxMin,
     required double dxMax,
-    double eps = 1e-6,
+    double eps = navGeomEps,
   }) {
     if (dxMin > dxMax) return null;
 

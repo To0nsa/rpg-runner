@@ -5,7 +5,6 @@ import '../sparse_set.dart';
 class SurfaceNavStateStore extends SparseSet {
   final List<int> graphVersion = <int>[];
   final List<int> repathTicksLeft = <int>[];
-  final List<int> jumpCooldownTicksLeft = <int>[];
   final List<int> currentSurfaceId = <int>[];
   final List<int> targetSurfaceId = <int>[];
   final List<int> activeEdgeIndex = <int>[];
@@ -20,7 +19,6 @@ class SurfaceNavStateStore extends SparseSet {
   void onDenseAdded(int denseIndex) {
     graphVersion.add(-1);
     repathTicksLeft.add(0);
-    jumpCooldownTicksLeft.add(0);
     currentSurfaceId.add(surfaceIdUnknown);
     targetSurfaceId.add(surfaceIdUnknown);
     activeEdgeIndex.add(-1);
@@ -32,7 +30,6 @@ class SurfaceNavStateStore extends SparseSet {
   void onSwapRemove(int removeIndex, int lastIndex) {
     graphVersion[removeIndex] = graphVersion[lastIndex];
     repathTicksLeft[removeIndex] = repathTicksLeft[lastIndex];
-    jumpCooldownTicksLeft[removeIndex] = jumpCooldownTicksLeft[lastIndex];
     currentSurfaceId[removeIndex] = currentSurfaceId[lastIndex];
     targetSurfaceId[removeIndex] = targetSurfaceId[lastIndex];
     activeEdgeIndex[removeIndex] = activeEdgeIndex[lastIndex];
@@ -41,7 +38,6 @@ class SurfaceNavStateStore extends SparseSet {
 
     graphVersion.removeLast();
     repathTicksLeft.removeLast();
-    jumpCooldownTicksLeft.removeLast();
     currentSurfaceId.removeLast();
     targetSurfaceId.removeLast();
     activeEdgeIndex.removeLast();

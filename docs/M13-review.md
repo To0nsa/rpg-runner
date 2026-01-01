@@ -199,15 +199,8 @@ Low-overhead mitigations (if needed later):
 
 ## 6) Redundancy / maintainability smells
 
-- `V0GroundEnemyTuning.groundEnemyJumpCooldownSeconds` exists but is not enforced by navigation-driven jumping.
-  - Either wire it back in (cooldown gating) or remove it to avoid “tuning that does nothing”.
-
-- `GameCore` stores `_surfaceGraph` / `_surfaceSpatialIndex` but does not read them after assigning.
-  - Either remove, or expose them intentionally for debug/telemetry.
-
-- Epsilon usage is scattered (`1e-6`, `1e-9`, `1e-3`) across modules.
-  - Not wrong, but it becomes hard to tune/debug.
-  - A small “nav tolerances” struct/consts (still in Core) would improve clarity.
+- Navigation epsilons are easy to lose track of when scattered (`1e-6`, `1e-9`, `1e-3`) across modules.
+  - Centralize them (still in Core) so tuning/debugging is straightforward (see `lib/core/navigation/nav_tolerances.dart`, currently unified via `navEps`).
 
 ---
 
@@ -270,4 +263,3 @@ If the goal is “production-grade M13 without overengineering”, the top fixes
   - `lib/core/collision/static_world_geometry.dart`
   - `lib/core/track/v0_track_streamer.dart`
   - `lib/core/ecs/systems/collision_system.dart`
-

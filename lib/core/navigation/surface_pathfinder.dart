@@ -1,4 +1,5 @@
 import 'surface_graph.dart';
+import 'nav_tolerances.dart';
 
 class SurfacePathfinder {
   SurfacePathfinder({
@@ -150,12 +151,12 @@ class SurfacePathfinder {
   bool _isBetter(SurfaceGraph graph, int a, int b) {
     final fa = _fScore[a];
     final fb = _fScore[b];
-    if (fa < fb - 1e-9) return true;
-    if (fa > fb + 1e-9) return false;
+    if (fa < fb - navTieEps) return true;
+    if (fa > fb + navTieEps) return false;
     final ga = _gScore[a];
     final gb = _gScore[b];
-    if (ga < gb - 1e-9) return true;
-    if (ga > gb + 1e-9) return false;
+    if (ga < gb - navTieEps) return true;
+    if (ga > gb + navTieEps) return false;
     return graph.surfaces[a].id < graph.surfaces[b].id;
   }
 

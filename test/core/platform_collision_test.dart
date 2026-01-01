@@ -5,6 +5,7 @@ import 'package:walkscape_runner/core/commands/command.dart';
 import 'package:walkscape_runner/core/contracts/v0_render_contract.dart';
 import 'package:walkscape_runner/core/game_core.dart';
 import 'package:walkscape_runner/core/tuning/v0_movement_tuning.dart';
+import 'package:walkscape_runner/core/tuning/v0_track_tuning.dart';
 
 import '../test_tunings.dart';
 
@@ -28,6 +29,7 @@ void main() {
       seed: 1,
       tickHz: v0DefaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
+      trackTuning: const V0TrackTuning(enabled: false),
       movementTuning: const V0MovementTuning(playerRadius: r),
       staticWorldGeometry: const StaticWorldGeometry(
         groundPlane: StaticGroundPlane(topY: v0GroundTopY * 1.0),
@@ -64,6 +66,7 @@ void main() {
       seed: 1,
       tickHz: v0DefaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
+      trackTuning: const V0TrackTuning(enabled: false),
       movementTuning: const V0MovementTuning(playerRadius: r),
       staticWorldGeometry: const StaticWorldGeometry(
         groundPlane: StaticGroundPlane(topY: v0GroundTopY * 1.0),
@@ -92,6 +95,7 @@ void main() {
       seed: 1,
       tickHz: v0DefaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
+      trackTuning: const V0TrackTuning(enabled: false),
       movementTuning: const V0MovementTuning(playerRadius: r),
       staticWorldGeometry: const StaticWorldGeometry(
         groundPlane: StaticGroundPlane(topY: v0GroundTopY * 1.0),

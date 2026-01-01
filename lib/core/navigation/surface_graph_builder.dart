@@ -1,6 +1,7 @@
 import '../collision/static_world_geometry.dart';
 import '../ecs/spatial/grid_index_2d.dart';
 import 'jump_template.dart';
+import 'nav_tolerances.dart';
 import 'surface_extractor.dart';
 import 'surface_graph.dart';
 import 'surface_spatial_index.dart';
@@ -20,8 +21,8 @@ class SurfaceGraphBuilder {
   SurfaceGraphBuilder({
     required GridIndex2D surfaceGrid,
     SurfaceExtractor? extractor,
-    this.standableEps = 1e-6,
-    this.dropSampleOffset = 1e-3,
+    this.standableEps = navGeomEps,
+    this.dropSampleOffset = navSpatialEps,
     this.takeoffSampleMaxStep = 64.0,
   })  : _surfaceGrid = surfaceGrid,
         _extractor = extractor ?? SurfaceExtractor();
@@ -204,7 +205,7 @@ List<double> _takeoffSamples(
     step = maxStep;
   }
 
-  if (step <= 1e-6 || (max - min) <= step) {
+  if (step <= navGeomEps || (max - min) <= step) {
     final mid = (min + max) * 0.5;
     return _dedupeSamples(<double>[min, mid, max]);
   }
@@ -213,7 +214,7 @@ List<double> _takeoffSamples(
   for (var x = min; x <= max; x += step) {
     samples.add(x);
   }
-  if ((max - samples.last).abs() > 1e-6) {
+  if ((max - samples.last).abs() > navGeomEps) {
     samples.add(max);
   }
   return _dedupeSamples(samples);
@@ -224,7 +225,10 @@ List<double> _dropSamples(double min, double max) {
   return _dedupeSamples(samples);
 }
 
-List<double> _dedupeSamples(List<double> samples, {double eps = 1e-6}) {
+List<double> _dedupeSamples(
+  List<double> samples, {
+  double eps = navGeomEps,
+}) {
   samples.sort();
   final deduped = <double>[];
   for (final s in samples) {
@@ -254,7 +258,7 @@ int? _findFirstSurfaceBelow(
     if (bestY == null || s.yTop < bestY) {
       bestY = s.yTop;
       bestIndex = i;
-    } else if ((s.yTop - bestY).abs() < 1e-9) {
+    } else if ((s.yTop - bestY).abs() < navTieEps) {
       if (s.id < surfaces[bestIndex!].id) {
         bestIndex = i;
       }

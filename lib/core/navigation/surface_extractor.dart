@@ -1,10 +1,11 @@
 import '../collision/static_world_geometry.dart';
+import 'nav_tolerances.dart';
 import 'surface_id.dart';
 import 'walk_surface.dart';
 
 class SurfaceExtractor {
   SurfaceExtractor({
-    this.mergeEps = 1e-6,
+    this.mergeEps = navGeomEps,
     this.groundPadding = 1024.0,
   });
 
