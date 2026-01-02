@@ -49,47 +49,44 @@ class _FixedJoystickState extends State<FixedJoystick> {
         onPanUpdate: (d) => _update(d.localPosition, radius),
         onPanEnd: (_) => _setAxis(0),
         onPanCancel: () => _setAxis(0),
-        child: CustomPaint(
-          painter: _JoystickPainter(axis: _axis),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: Center(
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Center(
+                child: Container(
+                  width: baseSize,
+                  height: baseSize,
+                  decoration: BoxDecoration(
+                    color: widget.baseColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: widget.baseBorderColor,
+                      width: widget.baseBorderWidth,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: Center(
+                child: Transform.translate(
+                  offset: Offset(_axis * radius, 0),
                   child: Container(
-                    width: baseSize,
-                    height: baseSize,
+                    width: knobSize,
+                    height: knobSize,
                     decoration: BoxDecoration(
-                      color: widget.baseColor,
+                      color: widget.knobColor,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: widget.baseBorderColor,
-                        width: widget.baseBorderWidth,
+                        color: widget.knobBorderColor,
+                        width: widget.knobBorderWidth,
                       ),
                     ),
                   ),
                 ),
               ),
-              Positioned.fill(
-                child: Center(
-                  child: Transform.translate(
-                    offset: Offset(_axis * radius, 0),
-                    child: Container(
-                      width: knobSize,
-                      height: knobSize,
-                      decoration: BoxDecoration(
-                        color: widget.knobColor,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: widget.knobBorderColor,
-                          width: widget.knobBorderWidth,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -109,19 +106,4 @@ class _FixedJoystickState extends State<FixedJoystick> {
     setState(() => _axis = a);
     widget.onAxisChanged(a);
   }
-}
-
-class _JoystickPainter extends CustomPainter {
-  const _JoystickPainter({required this.axis});
-
-  final double axis;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // No-op; visuals are via Containers. Keep painter for future extensions.
-  }
-
-  @override
-  bool shouldRepaint(covariant _JoystickPainter oldDelegate) =>
-      oldDelegate.axis != axis;
 }

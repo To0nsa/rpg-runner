@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import 'viewport/viewport_metrics.dart';
+import 'viewport_metrics.dart';
 
 /// Scales a fixed virtual canvas into the available space.
 ///

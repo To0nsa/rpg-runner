@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'runner_game_widget.dart';
-import 'scoped_preferred_orientations.dart';
-import 'scoped_system_ui_mode.dart';
+import 'scoped/scoped_preferred_orientations.dart';
+import 'scoped/scoped_system_ui_mode.dart';
 
 /// Embed-friendly route factory for hosting the mini-game in any Flutter app.
 ///
@@ -20,7 +20,6 @@ Route<void> createRunnerGameRoute({
       Widget child = RunnerGameWidget(
         seed: seed,
         onExit: () => Navigator.of(context).maybePop(),
-        enableDebugInput: true,
       );
 
       if (lockLandscape) {

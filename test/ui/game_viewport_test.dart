@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:walkscape_runner/ui/game_viewport.dart';
+import 'package:walkscape_runner/ui/viewport/game_viewport.dart';
 import 'package:walkscape_runner/ui/viewport/viewport_metrics.dart';
 
 void main() {

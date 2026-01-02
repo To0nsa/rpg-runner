@@ -8,11 +8,7 @@ import '../game/input/aim_preview.dart';
 import '../game/input/runner_input_router.dart';
 import '../game/runner_flame_game.dart';
 import 'controls/runner_controls_overlay.dart';
-import 'game_viewport.dart';
-import 'input/debug_keyboard_adapter.dart';
-import 'input/debug_mouse_adapter.dart';
-import 'input/touch_game_view_adapter.dart';
-import 'input/v0_viewport_mapper.dart';
+import 'viewport/game_viewport.dart';
 import 'viewport/viewport_metrics.dart';
 
 /// Embed-friendly widget that hosts the mini-game.
@@ -28,7 +24,6 @@ class RunnerGameWidget extends StatefulWidget {
     this.seed = 1,
     this.onExit,
     this.showExitButton = true,
-    this.enableDebugInput = false,
     this.viewportMode = ViewportScaleMode.pixelPerfectContain,
     this.viewportAlignment = Alignment.center,
   });
@@ -37,7 +32,6 @@ class RunnerGameWidget extends StatefulWidget {
 
   final VoidCallback? onExit;
   final bool showExitButton;
-  final bool enableDebugInput;
 
   /// How the game view is scaled to the available screen.
   final ViewportScaleMode viewportMode;
@@ -111,30 +105,10 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
               widget.viewportMode,
               alignment: widget.viewportAlignment,
             );
-            final mapper = V0ViewportMapper(metrics: metrics);
-
             Widget gameView = GameViewport(
               metrics: metrics,
               child: GameWidget(game: _game, autofocus: false),
             );
-
-            gameView = TouchGameViewAdapter(
-              controller: _controller,
-              input: _input,
-              mapper: mapper,
-              enableTapCast: false,
-              child: gameView,
-            );
-
-            if (widget.enableDebugInput) {
-              gameView = DebugMouseAdapter(
-                controller: _controller,
-                input: _input,
-                mapper: mapper,
-                child: gameView,
-              );
-              gameView = DebugKeyboardAdapter(input: _input, child: gameView);
-            }
 
             return gameView;
           },
