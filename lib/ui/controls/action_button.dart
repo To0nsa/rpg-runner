@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 class ActionButton extends StatelessWidget {
   const ActionButton({
+    super.key,
     required this.label,
     required this.icon,
     required this.onPressed,

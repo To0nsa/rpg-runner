@@ -4,6 +4,7 @@ import '../../game/input/aim_preview.dart';
 import 'action_button.dart';
 import 'directional_action_button.dart';
 import 'fixed_joystick.dart';
+// import 'floating_joystick.dart';
 
 class RunnerControlsOverlay extends StatelessWidget {
   const RunnerControlsOverlay({
@@ -35,6 +36,7 @@ class RunnerControlsOverlay extends StatelessWidget {
           Positioned(
             left: 16,
             bottom: 16,
+            // child: FloatingJoystick(onAxisChanged: onMoveAxis),
             child: FixedJoystick(onAxisChanged: onMoveAxis),
           ),
           Positioned(
