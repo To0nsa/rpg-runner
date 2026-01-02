@@ -5,62 +5,33 @@ import 'package:flutter/widgets.dart';
 import '../../core/contracts/v0_render_contract.dart';
 import '../../core/math/vec2.dart';
 import '../../core/snapshots/game_state_snapshot.dart';
+import '../viewport/viewport_metrics.dart';
 
 /// Helper for mapping local pointer positions into V0 world-space aim direction.
 ///
-/// This follows the pixel-perfect viewport rules (integer physical-pixel scale
-/// + letterbox) so aim lines up with what the player sees.
+/// Uses the shared viewport metrics so input matches the rendered view.
 class V0ViewportMapper {
-  V0ViewportMapper._({
-    required this.viewW,
-    required this.viewH,
-    required this.offsetX,
-    required this.offsetY,
-  });
+  V0ViewportMapper({required this.metrics});
 
-  factory V0ViewportMapper.fromConstraints(
-    BoxConstraints constraints, {
-    required double devicePixelRatio,
-  }) {
-    final screenPxW = constraints.maxWidth * devicePixelRatio;
-    final screenPxH = constraints.maxHeight * devicePixelRatio;
-    final scaleW = (screenPxW / v0VirtualWidth).floor();
-    final scaleH = (screenPxH / v0VirtualHeight).floor();
-    final scale = math.max(1, math.min(scaleW, scaleH));
-
-    final viewW = (v0VirtualWidth * scale) / devicePixelRatio;
-    final viewH = (v0VirtualHeight * scale) / devicePixelRatio;
-    final offsetX = (constraints.maxWidth - viewW) / 2;
-    final offsetY = (constraints.maxHeight - viewH) / 2;
-
-    return V0ViewportMapper._(
-      viewW: viewW,
-      viewH: viewH,
-      offsetX: offsetX,
-      offsetY: offsetY,
-    );
-  }
-
-  final double viewW;
-  final double viewH;
-  final double offsetX;
-  final double offsetY;
+  final ViewportMetrics metrics;
 
   Vec2? aimDirFromLocal(Offset localPos, GameStateSnapshot snapshot) {
-    final inViewportX = localPos.dx - offsetX;
-    final inViewportY = localPos.dy - offsetY;
+    if (metrics.viewW <= 0 || metrics.viewH <= 0) return null;
+
+    final inViewportX = localPos.dx - metrics.offsetX;
+    final inViewportY = localPos.dy - metrics.offsetY;
     if (inViewportX < 0 ||
         inViewportY < 0 ||
-        inViewportX > viewW ||
-        inViewportY > viewH) {
+        inViewportX > metrics.viewW ||
+        inViewportY > metrics.viewH) {
       return null;
     }
 
     if (snapshot.entities.isEmpty) return null;
     final player = snapshot.entities.first;
 
-    final vx = (inViewportX / viewW) * v0VirtualWidth;
-    final vy = (inViewportY / viewH) * v0VirtualHeight;
+    final vx = (inViewportX / metrics.viewW) * v0VirtualWidth;
+    final vy = (inViewportY / metrics.viewH) * v0VirtualHeight;
 
     final camCenterX = player.pos.x.roundToDouble();
     final camCenterY = v0CameraFixedY.roundToDouble();
@@ -75,4 +46,3 @@ class V0ViewportMapper {
     return Vec2(dx / len, dy / len);
   }
 }
-

@@ -1,11 +1,11 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 import 'package:walkscape_runner/ui/game_viewport.dart';
 import 'package:walkscape_runner/ui/viewport/viewport_metrics.dart';
 
 void main() {
-  testWidgets('GameViewport pixelPerfectContain keeps full frame visible', (
+  testWidgets('GameViewport pixelPerfectContain letterboxes vertically', (
     tester,
   ) async {
     const childKey = Key('child');
@@ -23,10 +23,18 @@ void main() {
       ),
     );
 
-    expect(tester.getSize(find.byKey(childKey)), const Size(600, 270));
+    final size = tester.getSize(find.byKey(childKey));
+    expect(size.width, moreOrLessEquals(600.0));
+    expect(size.height, moreOrLessEquals(270.0));
+
+    final topLeft = tester.getTopLeft(find.byKey(childKey));
+    expect(topLeft.dx, moreOrLessEquals(100.0));
+    expect(topLeft.dy, moreOrLessEquals(165.0));
   });
 
-  testWidgets('GameViewport can be bottom-left anchored', (tester) async {
+  testWidgets('GameViewport pixelPerfectCover fills screen and crops', (
+    tester,
+  ) async {
     const childKey = Key('child');
 
     await tester.pumpWidget(
@@ -39,23 +47,31 @@ void main() {
           textDirection: TextDirection.ltr,
           child: _SizedGameViewport(
             childKey: childKey,
-            alignment: Alignment.bottomLeft,
+            mode: ViewportScaleMode.pixelPerfectCover,
           ),
         ),
       ),
     );
 
-    expect(tester.getTopLeft(find.byKey(childKey)), const Offset(0, 330));
+    final size = tester.getSize(find.byKey(childKey));
+    expect(size.width, greaterThanOrEqualTo(800.0));
+    expect(size.height, greaterThanOrEqualTo(600.0));
+
+    final topLeft = tester.getTopLeft(find.byKey(childKey));
+    expect(topLeft.dx, lessThanOrEqualTo(0.0));
+    expect(topLeft.dy, lessThanOrEqualTo(0.0));
   });
 }
 
 class _SizedGameViewport extends StatelessWidget {
   const _SizedGameViewport({
     required this.childKey,
+    this.mode = ViewportScaleMode.pixelPerfectContain,
     this.alignment = Alignment.center,
   });
 
   final Key childKey;
+  final ViewportScaleMode mode;
   final Alignment alignment;
 
   @override
@@ -65,7 +81,7 @@ class _SizedGameViewport extends StatelessWidget {
       1,
       600,
       270,
-      ViewportScaleMode.pixelPerfectContain,
+      mode,
       alignment: alignment,
     );
 

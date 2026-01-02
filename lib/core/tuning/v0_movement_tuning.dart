@@ -15,7 +15,7 @@ const int v0DefaultTickHz = 60;
 class V0MovementTuning {
   const V0MovementTuning({
     this.playerRadius = 8,
-    this.maxSpeedX = 250,
+    this.maxSpeedX = 200,
     this.accelerationX = 600,
     this.decelerationX = 400,
     this.minMoveSpeed = 5,

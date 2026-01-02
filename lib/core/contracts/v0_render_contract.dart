@@ -5,7 +5,7 @@
 /// without introducing Flutter/Flame dependencies into the simulation.
 ///
 /// V0 rules:
-/// - Virtual resolution is fixed at 480×270 (16:9).
+/// - Virtual resolution is fixed at 600×270 (20:9).
 /// - 1 world unit == 1 virtual pixel.
 /// - Axes/origin follow Flutter/Flame conventions: (0,0) top-left, +X right,
 ///   +Y down.
@@ -17,7 +17,7 @@
 ///   within the image (measured from the asset in this repo).
 /// - When bottom-aligning the 256px image into a 270px viewport, Y offset is
 ///   (270 - 256) = 14, therefore `v0GroundTopY = 14 + 241 = 255`.
-const int v0VirtualWidth = 480;
+const int v0VirtualWidth = 600;
 const int v0VirtualHeight = 270;
 
 const int v0FieldLayerImageWidth = 512;

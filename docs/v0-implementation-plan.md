@@ -52,10 +52,10 @@ Acceptance:
 ## Milestone 1 - Camera, Viewport, Parallax
 
 - [x] Lock V0 render constants (and keep Core/Render consistent):
-  - virtual resolution: **480×270 (16:9)**
+  - virtual resolution: **600×270 (20:9)**
   - world units: `1 world unit == 1 virtual pixel`
   - axes/origin: `(0,0)` top-left, `+X` right, `+Y` down
-  - camera view size: fixed `(480,270)` in world units (letterbox instead of showing extra world)
+  - camera view size: fixed `(600,270)` in world units (letterbox instead of showing extra world)
 - [x] Implement the pixel-perfect viewport policy from `docs/plan.md`:
   - compute scale using **physical pixels** (`logicalPx * devicePixelRatio`)
   - scale must be integer-only; never fractional
@@ -532,9 +532,9 @@ Acceptance:
   - chunk width (world units), spawn-ahead margin, and cull-behind margin (relative to camera left/right).
   - collision-only for V0 (no lava/gaps/hazards yet); ground stays always safe/solid.
   - V0 defaults (recommended):
-    - `chunkWidth = 480` (one view wide; V0 virtual width is 480 world units)
-    - `spawnAheadMargin = 960` (two views ahead)
-    - `cullBehindMargin = 480` (one view behind)
+    - `chunkWidth = 600` (one view wide; V0 virtual width is 600 world units)
+    - `spawnAheadMargin = 1200` (two views ahead)
+    - `cullBehindMargin = 600` (one view behind)
   - invariant: `spawnAheadMargin >= chunkWidth` to avoid “running out of track” at high speeds.
 - [x] Add deterministic track generator (Core):
   - runtime contract: each chunk becomes a small list of `StaticSolid` relative to `chunkStartX`:

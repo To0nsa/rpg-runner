@@ -4,9 +4,9 @@
 class V0TrackTuning {
   const V0TrackTuning({
     this.enabled = true,
-    this.chunkWidth = 480.0,
-    this.spawnAheadMargin = 960.0,
-    this.cullBehindMargin = 480.0,
+    this.chunkWidth = 600.0,
+    this.spawnAheadMargin = 1200.0,
+    this.cullBehindMargin = 600.0,
     this.gridSnap = 16.0,
   }) : assert(chunkWidth > 0),
        assert(spawnAheadMargin >= 0),
@@ -28,4 +28,3 @@ class V0TrackTuning {
   /// Authoring grid snap for chunk patterns (world units).
   final double gridSnap;
 }
-

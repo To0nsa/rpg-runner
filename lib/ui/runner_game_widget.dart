@@ -4,23 +4,24 @@ import 'package:flutter/material.dart';
 import '../core/contracts/v0_render_contract.dart';
 import '../core/game_core.dart';
 import '../game/game_controller.dart';
-import '../game/input/runner_input_router.dart';
 import '../game/input/aim_preview.dart';
+import '../game/input/runner_input_router.dart';
 import '../game/runner_flame_game.dart';
 import 'controls/runner_controls_overlay.dart';
+import 'game_viewport.dart';
 import 'input/debug_keyboard_adapter.dart';
 import 'input/debug_mouse_adapter.dart';
-import 'pixel_perfect_viewport.dart';
 import 'input/touch_game_view_adapter.dart';
 import 'input/v0_viewport_mapper.dart';
+import 'viewport/viewport_metrics.dart';
 
 /// Embed-friendly widget that hosts the mini-game.
 ///
 /// Intended to be mounted by a host app. It owns its [GameController] and
 /// cleans it up on dispose.
 ///
-/// Pixel scaling is applied by [PixelPerfectViewport] to keep the fixed virtual
-/// resolution letterboxed to the available screen.
+/// Viewport scaling is applied by [GameViewport] to keep the fixed virtual
+/// resolution fitted to the available screen.
 class RunnerGameWidget extends StatefulWidget {
   const RunnerGameWidget({
     super.key,
@@ -28,6 +29,8 @@ class RunnerGameWidget extends StatefulWidget {
     this.onExit,
     this.showExitButton = true,
     this.enableDebugInput = false,
+    this.viewportMode = ViewportScaleMode.pixelPerfectContain,
+    this.viewportAlignment = Alignment.center,
   });
 
   final int seed;
@@ -35,6 +38,12 @@ class RunnerGameWidget extends StatefulWidget {
   final VoidCallback? onExit;
   final bool showExitButton;
   final bool enableDebugInput;
+
+  /// How the game view is scaled to the available screen.
+  final ViewportScaleMode viewportMode;
+
+  /// Where the scaled view is placed within the available screen.
+  final Alignment viewportAlignment;
 
   @override
   State<RunnerGameWidget> createState() => _RunnerGameWidgetState();
@@ -93,14 +102,19 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       children: [
         LayoutBuilder(
           builder: (context, constraints) {
-            final mapper = V0ViewportMapper.fromConstraints(
+            final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
+            final metrics = computeViewportMetrics(
               constraints,
-              devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
+              devicePixelRatio,
+              v0VirtualWidth,
+              v0VirtualHeight,
+              widget.viewportMode,
+              alignment: widget.viewportAlignment,
             );
+            final mapper = V0ViewportMapper(metrics: metrics);
 
-            Widget gameView = PixelPerfectViewport(
-              virtualWidth: v0VirtualWidth,
-              virtualHeight: v0VirtualHeight,
+            Widget gameView = GameViewport(
+              metrics: metrics,
               child: GameWidget(game: _game, autofocus: false),
             );
 

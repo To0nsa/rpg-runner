@@ -744,7 +744,7 @@ Guidelines:
 
 ### 12.2 Virtual resolution & world units
 
-* Choose one base virtual resolution (V0: `480×270` for 16:9).
+* Choose one base virtual resolution (V0: `600×270` for 20:9).
 * Core/world coordinates are expressed in *virtual pixels*.
 * Rule: `1 world unit == 1 virtual pixel`.
 * Coordinate convention (recommended): `(0,0)` is top-left, `+X` right, `+Y` down.
@@ -811,7 +811,7 @@ Flutter note:
 
 ### Virtual Resolution
 
-* Choose one virtual resolution (e.g. 320×180 or 480×270)
+* Choose one virtual resolution (e.g. 320×180 or 600×270)
 * World units == pixels at virtual resolution
 * Follow section 12 scaling rules (integer scaling + letterboxing)
 
