@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'runner_game_widget.dart';
 import 'scoped_preferred_orientations.dart';
+import 'scoped_system_ui_mode.dart';
 
 /// Embed-friendly route factory for hosting the mini-game in any Flutter app.
 ///
@@ -32,6 +33,13 @@ Route<void> createRunnerGameRoute({
           child: child,
         );
       }
+
+      // Hide status + nav bars only for this route.
+      child = ScopedSystemUiMode(
+        mode: SystemUiMode.immersiveSticky,
+        restoreMode: SystemUiMode.edgeToEdge,
+        child: child,
+      );
 
       return Scaffold(body: child);
     },
