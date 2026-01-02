@@ -15,6 +15,12 @@ class FloatingJoystick extends StatefulWidget {
     this.baseSize = 120,
     this.knobSize = 56,
     this.followSmoothing = 0.25,
+    this.baseColor = const Color(0x33000000),
+    this.baseBorderColor = const Color(0x55FFFFFF),
+    this.baseBorderWidth = 1,
+    this.knobColor = const Color(0x66FFFFFF),
+    this.knobBorderColor = const Color(0x88FFFFFF),
+    this.knobBorderWidth = 1,
   });
 
   final ValueChanged<double> onAxisChanged;
@@ -34,6 +40,12 @@ class FloatingJoystick extends StatefulWidget {
   /// - `0`: no follow (base stays where pressed).
   /// - `1`: hard follow (base snaps to keep the pointer on the edge).
   final double followSmoothing;
+  final Color baseColor;
+  final Color baseBorderColor;
+  final double baseBorderWidth;
+  final Color knobColor;
+  final Color knobBorderColor;
+  final double knobBorderWidth;
 
   @override
   State<FloatingJoystick> createState() => _FloatingJoystickState();
@@ -63,10 +75,19 @@ class _FloatingJoystickState extends State<FloatingJoystick> {
         child: Stack(
           children: [
             if (_baseCenter case final baseCenter?) ...[
-              _JoystickBase(center: baseCenter, size: baseSize),
+              _JoystickBase(
+                center: baseCenter,
+                size: baseSize,
+                color: widget.baseColor,
+                borderColor: widget.baseBorderColor,
+                borderWidth: widget.baseBorderWidth,
+              ),
               _JoystickKnob(
                 center: baseCenter.translate(_axis * radius, 0),
                 size: knobSize,
+                color: widget.knobColor,
+                borderColor: widget.knobBorderColor,
+                borderWidth: widget.knobBorderWidth,
               ),
             ],
           ],
@@ -161,10 +182,19 @@ class _FloatingJoystickState extends State<FloatingJoystick> {
 }
 
 class _JoystickBase extends StatelessWidget {
-  const _JoystickBase({required this.center, required this.size});
+  const _JoystickBase({
+    required this.center,
+    required this.size,
+    required this.color,
+    required this.borderColor,
+    required this.borderWidth,
+  });
 
   final Offset center;
   final double size;
+  final Color color;
+  final Color borderColor;
+  final double borderWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -175,9 +205,9 @@ class _JoystickBase extends StatelessWidget {
       height: size,
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0x33000000),
+          color: color,
           shape: BoxShape.circle,
-          border: Border.all(color: const Color(0x55FFFFFF)),
+          border: Border.all(color: borderColor, width: borderWidth),
         ),
       ),
     );
@@ -185,10 +215,19 @@ class _JoystickBase extends StatelessWidget {
 }
 
 class _JoystickKnob extends StatelessWidget {
-  const _JoystickKnob({required this.center, required this.size});
+  const _JoystickKnob({
+    required this.center,
+    required this.size,
+    required this.color,
+    required this.borderColor,
+    required this.borderWidth,
+  });
 
   final Offset center;
   final double size;
+  final Color color;
+  final Color borderColor;
+  final double borderWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -199,9 +238,9 @@ class _JoystickKnob extends StatelessWidget {
       height: size,
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0x66FFFFFF),
+          color: color,
           shape: BoxShape.circle,
-          border: Border.all(color: const Color(0x88FFFFFF)),
+          border: Border.all(color: borderColor, width: borderWidth),
         ),
       ),
     );

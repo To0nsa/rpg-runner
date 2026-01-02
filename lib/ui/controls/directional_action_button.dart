@@ -15,6 +15,10 @@ class DirectionalActionButton extends StatefulWidget {
     required this.aimPreview,
     this.size = 72,
     this.deadzoneRadius = 12,
+    this.backgroundColor = const Color(0x33000000),
+    this.foregroundColor = Colors.white,
+    this.labelFontSize = 12,
+    this.labelGap = 2,
   });
 
   final String label;
@@ -25,6 +29,10 @@ class DirectionalActionButton extends StatefulWidget {
   final AimPreviewModel aimPreview;
   final double size;
   final double deadzoneRadius;
+  final Color backgroundColor;
+  final Color foregroundColor;
+  final double labelFontSize;
+  final double labelGap;
 
   @override
   State<DirectionalActionButton> createState() =>
@@ -47,17 +55,20 @@ class _DirectionalActionButtonState extends State<DirectionalActionButton> {
         onPointerUp: _handlePointerUp,
         onPointerCancel: _handlePointerCancel,
         child: Material(
-          color: const Color(0x33000000),
+          color: widget.backgroundColor,
           shape: const CircleBorder(),
           child: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(widget.icon, color: Colors.white),
-                const SizedBox(height: 2),
+                Icon(widget.icon, color: widget.foregroundColor),
+                SizedBox(height: widget.labelGap),
                 Text(
                   widget.label,
-                  style: const TextStyle(fontSize: 12, color: Colors.white),
+                  style: TextStyle(
+                    fontSize: widget.labelFontSize,
+                    color: widget.foregroundColor,
+                  ),
                 ),
               ],
             ),

@@ -10,11 +10,23 @@ class FixedJoystick extends StatefulWidget {
     required this.onAxisChanged,
     this.size = 120,
     this.knobSize = 56,
+    this.baseColor = const Color(0x33000000),
+    this.baseBorderColor = const Color(0x55FFFFFF),
+    this.baseBorderWidth = 1,
+    this.knobColor = const Color(0x66FFFFFF),
+    this.knobBorderColor = const Color(0x88FFFFFF),
+    this.knobBorderWidth = 1,
   });
 
   final ValueChanged<double> onAxisChanged;
   final double size;
   final double knobSize;
+  final Color baseColor;
+  final Color baseBorderColor;
+  final double baseBorderWidth;
+  final Color knobColor;
+  final Color knobBorderColor;
+  final double knobBorderWidth;
 
   @override
   State<FixedJoystick> createState() => _FixedJoystickState();
@@ -47,9 +59,12 @@ class _FixedJoystickState extends State<FixedJoystick> {
                     width: baseSize,
                     height: baseSize,
                     decoration: BoxDecoration(
-                      color: const Color(0x33000000),
+                      color: widget.baseColor,
                       shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0x55FFFFFF)),
+                      border: Border.all(
+                        color: widget.baseBorderColor,
+                        width: widget.baseBorderWidth,
+                      ),
                     ),
                   ),
                 ),
@@ -62,9 +77,12 @@ class _FixedJoystickState extends State<FixedJoystick> {
                       width: knobSize,
                       height: knobSize,
                       decoration: BoxDecoration(
-                        color: const Color(0x66FFFFFF),
+                        color: widget.knobColor,
                         shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0x88FFFFFF)),
+                        border: Border.all(
+                          color: widget.knobBorderColor,
+                          width: widget.knobBorderWidth,
+                        ),
                       ),
                     ),
                   ),

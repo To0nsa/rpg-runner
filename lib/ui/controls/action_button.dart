@@ -6,19 +6,29 @@ class ActionButton extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.onPressed,
+    this.size = 72,
+    this.backgroundColor = const Color(0x33000000),
+    this.foregroundColor = Colors.white,
+    this.labelFontSize = 12,
+    this.labelGap = 2,
   });
 
   final String label;
   final IconData icon;
   final VoidCallback onPressed;
+  final double size;
+  final Color backgroundColor;
+  final Color foregroundColor;
+  final double labelFontSize;
+  final double labelGap;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 72,
-      height: 72,
+      width: size,
+      height: size,
       child: Material(
-        color: const Color(0x33000000),
+        color: backgroundColor,
         shape: const CircleBorder(),
         child: InkWell(
           customBorder: const CircleBorder(),
@@ -26,11 +36,14 @@ class ActionButton extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: Colors.white),
-              const SizedBox(height: 2),
+              Icon(icon, color: foregroundColor),
+              SizedBox(height: labelGap),
               Text(
                 label,
-                style: const TextStyle(fontSize: 12, color: Colors.white),
+                style: TextStyle(
+                  fontSize: labelFontSize,
+                  color: foregroundColor,
+                ),
               ),
             ],
           ),
