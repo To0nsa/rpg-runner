@@ -8,6 +8,8 @@
 // - Buffers transient `GameEvent`s for Render/UI to consume
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
+
 import '../core/commands/command.dart';
 import '../core/events/game_event.dart';
 import '../core/game_core.dart';
@@ -15,7 +17,7 @@ import '../core/snapshots/game_state_snapshot.dart';
 import 'tick_input_frame.dart';
 
 /// Owns the simulation clock and provides a stable interface to UI/renderer.
-class GameController {
+class GameController extends ChangeNotifier {
   GameController({required GameCore core, this.tickHz = 60, this.inputLead = 1})
     : _core = core {
     if (tickHz <= 0) {
@@ -99,6 +101,7 @@ class GameController {
     _accumulatorSeconds = 0;
     _prev = _core.buildSnapshot();
     _curr = _prev;
+    notifyListeners();
   }
 
   /// Permanently stops this controller for the current session.
@@ -125,6 +128,7 @@ class GameController {
     // Make snapshots consistent with the paused state.
     _curr = _core.buildSnapshot();
     _prev = _curr;
+    notifyListeners();
   }
 
   /// Advances the simulation clock based on a variable frame delta.
@@ -142,6 +146,7 @@ class GameController {
     _accumulatorSeconds += clamped;
 
     final dtTick = 1.0 / tickHz;
+    var didStep = false;
 
     while (_accumulatorSeconds >= dtTick) {
       if (_core.paused) {
@@ -157,6 +162,7 @@ class GameController {
       _prev = _curr;
       _curr = _core.buildSnapshot();
       _accumulatorSeconds -= dtTick;
+      didStep = true;
 
       // If the core became paused during the tick (e.g. game over), stop consuming
       // accumulator to avoid an infinite loop.
@@ -164,6 +170,9 @@ class GameController {
         _accumulatorSeconds = 0;
         break;
       }
+    }
+    if (didStep) {
+      notifyListeners();
     }
   }
 

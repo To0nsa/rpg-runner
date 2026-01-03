@@ -16,7 +16,6 @@ import 'input/runner_input_router.dart';
 import 'input/aim_preview.dart';
 import 'components/pixel_parallax_backdrop_component.dart';
 import 'components/tiled_ground_band_component.dart';
-import 'components/hud_bars_component.dart';
 import 'components/aim_ray_component.dart';
 import 'game_controller.dart';
 
@@ -157,13 +156,6 @@ class RunnerFlameGame extends FlameGame {
     );
     camera.viewport.add(_debugText); */
 
-    camera.viewport.add(
-      HudBarsComponent(
-        controller: controller,
-        position: Vector2(8, 8),
-        anchor: Anchor.topLeft,
-      )..priority = 100,
-    );
   }
 
   @override

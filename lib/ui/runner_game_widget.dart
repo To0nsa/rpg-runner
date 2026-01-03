@@ -8,6 +8,7 @@ import '../game/input/aim_preview.dart';
 import '../game/input/runner_input_router.dart';
 import '../game/runner_flame_game.dart';
 import 'controls/runner_controls_overlay.dart';
+import 'hud/player_hud_overlay.dart';
 import 'viewport/game_viewport.dart';
 import 'viewport/viewport_metrics.dart';
 
@@ -85,6 +86,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _controller.shutdown();
+    _controller.dispose();
     _aimPreview.dispose();
     super.dispose();
   }
@@ -113,6 +115,15 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
             return gameView;
           },
         ),
+        SafeArea(
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: PlayerHudOverlay(controller: _controller),
+            ),
+          ),
+        ),
         RunnerControlsOverlay(
           onMoveAxis: _input.setMoveAxis,
           onJumpPressed: _input.pressJump,
@@ -124,13 +135,15 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
           aimPreview: _aimPreview,
         ),
         if (widget.showExitButton)
-          Positioned(
-            top: 8,
-            left: 8,
-            child: SafeArea(
-              child: IconButton(
-                onPressed: widget.onExit,
-                icon: const Icon(Icons.close),
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: IconButton(
+                  onPressed: widget.onExit,
+                  icon: const Icon(Icons.close),
+                ),
               ),
             ),
           ),

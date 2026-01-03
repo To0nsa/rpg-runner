@@ -48,4 +48,37 @@ void main() {
 
     expect(core.tick, 1);
   });
+
+  test('GameController notifies once after stepping ticks', () {
+    final core = GameCore(seed: 1, cameraTuning: noAutoscrollCameraTuning);
+    final controller = GameController(core: core);
+    var notifyCount = 0;
+    controller.addListener(() {
+      notifyCount += 1;
+    });
+
+    final dt = (1 / controller.tickHz) * 3.5;
+    controller.advanceFrame(dt);
+
+    expect(core.tick, greaterThan(0));
+    expect(notifyCount, 1);
+  });
+
+  test('GameController notifies when paused and shutdown', () {
+    final core = GameCore(seed: 1, cameraTuning: noAutoscrollCameraTuning);
+    final controller = GameController(core: core);
+    var notifyCount = 0;
+    controller.addListener(() {
+      notifyCount += 1;
+    });
+
+    controller.setPaused(true);
+    expect(notifyCount, 1);
+
+    controller.setPaused(true);
+    expect(notifyCount, 1);
+
+    controller.shutdown();
+    expect(notifyCount, 2);
+  });
 }
