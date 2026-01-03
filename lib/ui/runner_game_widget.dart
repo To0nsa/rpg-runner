@@ -8,6 +8,7 @@ import '../game/input/aim_preview.dart';
 import '../game/input/runner_input_router.dart';
 import '../game/runner_flame_game.dart';
 import 'controls/runner_controls_overlay.dart';
+import 'hud/game_over_overlay.dart';
 import 'hud/player_hud_overlay.dart';
 import 'hud/pause_overlay.dart';
 import 'hud/ready_overlay.dart';
@@ -54,25 +55,18 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   bool _pausedByLifecycle = false;
   bool _started = false;
 
-  late final GameController _controller = GameController(
-    core: GameCore(seed: widget.seed),
-  );
-  late final RunnerInputRouter _input = RunnerInputRouter(
-    controller: _controller,
-  );
-  late final AimPreviewModel _projectileAimPreview = AimPreviewModel();
-  late final AimPreviewModel _meleeAimPreview = AimPreviewModel();
-  late final RunnerFlameGame _game = RunnerFlameGame(
-    controller: _controller,
-    input: _input,
-    projectileAimPreview: _projectileAimPreview,
-    meleeAimPreview: _meleeAimPreview,
-  );
+  late GameController _controller;
+  late RunnerInputRouter _input;
+  late AimPreviewModel _projectileAimPreview;
+  late AimPreviewModel _meleeAimPreview;
+  late RunnerFlameGame _game;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    _initGame();
 
     // Start in "ready" (paused) until the user taps to begin.
     _controller.setPaused(true);
@@ -122,19 +116,57 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _controller.setPaused(false);
   }
 
+  void _restartGame() {
+    final oldController = _controller;
+    final oldProjectilePreview = _projectileAimPreview;
+    final oldMeleePreview = _meleeAimPreview;
+
+    setState(() {
+      _pausedByLifecycle = false;
+      _started = false;
+      _initGame();
+    });
+    _controller.setPaused(true);
+    _clearInputs();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      oldController.shutdown();
+      oldController.dispose();
+      oldProjectilePreview.dispose();
+      oldMeleePreview.dispose();
+    });
+  }
+
   void _togglePause() {
     final paused = _controller.snapshot.paused;
     if (!paused) _clearInputs();
     _controller.setPaused(!paused);
   }
 
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
+  void _initGame() {
+    _controller = GameController(core: GameCore(seed: widget.seed));
+    _input = RunnerInputRouter(controller: _controller);
+    _projectileAimPreview = AimPreviewModel();
+    _meleeAimPreview = AimPreviewModel();
+    _game = RunnerFlameGame(
+      controller: _controller,
+      input: _input,
+      projectileAimPreview: _projectileAimPreview,
+      meleeAimPreview: _meleeAimPreview,
+    );
+  }
+
+  void _disposeGame() {
     _controller.shutdown();
     _controller.dispose();
     _projectileAimPreview.dispose();
     _meleeAimPreview.dispose();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _disposeGame();
     super.dispose();
   }
 
@@ -156,7 +188,11 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
             );
             Widget gameView = GameViewport(
               metrics: metrics,
-              child: GameWidget(game: _game, autofocus: false),
+              child: GameWidget(
+                key: ValueKey(_game),
+                game: _game,
+                autofocus: false,
+              ),
             );
 
             return gameView;
@@ -167,6 +203,14 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
           builder: (context, _) {
             final uiState = _buildUiState();
             final hud = _controller.snapshot.hud;
+            if (uiState.gameOver) {
+              return GameOverOverlay(
+                visible: true,
+                onRestart: _restartGame,
+                onExit: widget.onExit,
+                showExitButton: widget.showExitButton,
+              );
+            }
             return Stack(
               fit: StackFit.expand,
               children: [

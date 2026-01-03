@@ -44,7 +44,7 @@ class EnemyCatalog {
             maxVelY: 800.0,
           ),
           collider: ColliderAabbDef(halfX: 12.0, halfY: 12.0),
-          health: HealthDef(hp: 50.0, hpMax: 20.0, regenPerSecond: 0.5),
+          health: HealthDef(hp: 20.0, hpMax: 20.0, regenPerSecond: 0.5),
           mana: ManaDef(mana: 80.0, manaMax: 80.0, regenPerSecond: 5.0),
           stamina: StaminaDef(stamina: 0.0, staminaMax: 0.0, regenPerSecond: 0.0),
         );
@@ -58,7 +58,7 @@ class EnemyCatalog {
             sideMask: BodyDef.sideLeft | BodyDef.sideRight,
           ),
           collider: ColliderAabbDef(halfX: 12.0, halfY: 12.0),
-          health: HealthDef(hp: 50.0, hpMax: 20.0, regenPerSecond: 0.5),
+          health: HealthDef(hp: 20.0, hpMax: 20.0, regenPerSecond: 0.5),
           mana: ManaDef(mana: 0.0, manaMax: 0.0, regenPerSecond: 0.0),
           stamina: StaminaDef(stamina: 0.0, staminaMax: 0.0, regenPerSecond: 0.0),
         );
