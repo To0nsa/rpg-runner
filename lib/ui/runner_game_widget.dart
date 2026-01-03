@@ -117,22 +117,18 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
             return gameView;
           },
         ),
-        SafeArea(
-          child: Align(
-            alignment: Alignment.topLeft,
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: PlayerHudOverlay(controller: _controller),
-            ),
+        Align(
+          alignment: Alignment.topLeft,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: PlayerHudOverlay(controller: _controller),
           ),
         ),
-        SafeArea(
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: SurvivalTimerOverlay(controller: _controller),
-            ),
+        Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: SurvivalTimerOverlay(controller: _controller),
           ),
         ),
         RunnerControlsOverlay(
@@ -146,15 +142,13 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
           aimPreview: _aimPreview,
         ),
         if (widget.showExitButton)
-          SafeArea(
-            child: Align(
-              alignment: Alignment.topRight,
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: IconButton(
-                  onPressed: widget.onExit,
-                  icon: const Icon(Icons.close),
-                ),
+          Align(
+            alignment: Alignment.topRight,
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: IconButton(
+                onPressed: widget.onExit,
+                icon: const Icon(Icons.close),
               ),
             ),
           ),
