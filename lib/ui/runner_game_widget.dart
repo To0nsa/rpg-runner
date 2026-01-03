@@ -9,7 +9,11 @@ import '../game/input/runner_input_router.dart';
 import '../game/runner_flame_game.dart';
 import 'controls/runner_controls_overlay.dart';
 import 'hud/player_hud_overlay.dart';
-import 'hud/survival_timer_overlay.dart';
+import 'overlays/exit_button_overlay.dart';
+import 'overlays/pause_overlay.dart';
+import 'overlays/ready_overlay.dart';
+import 'overlays/timer_row_overlay.dart';
+import 'runner_game_ui_state.dart';
 import 'viewport/game_viewport.dart';
 import 'viewport/viewport_metrics.dart';
 
@@ -48,6 +52,7 @@ class RunnerGameWidget extends StatefulWidget {
 class _RunnerGameWidgetState extends State<RunnerGameWidget>
     with WidgetsBindingObserver {
   bool _pausedByLifecycle = false;
+  bool _started = false;
 
   late final GameController _controller = GameController(
     core: GameCore(seed: widget.seed),
@@ -66,6 +71,9 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    // Start in "ready" (paused) until the user taps to begin.
+    _controller.setPaused(true);
   }
 
   @override
@@ -73,15 +81,47 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       _onLifecycle(state);
 
   void _onLifecycle(AppLifecycleState state) {
+    final uiState = _buildUiState();
     if (state == AppLifecycleState.resumed) {
-      if (_pausedByLifecycle) {
+      if (_pausedByLifecycle && uiState.started && !uiState.gameOver) {
         _pausedByLifecycle = false;
         _controller.setPaused(false);
       }
       return;
     }
-    _pausedByLifecycle = true;
+
+    // Only mark lifecycle-paused if we were actually running.
+    _pausedByLifecycle = uiState.isRunning;
     _controller.setPaused(true);
+    _clearInputs();
+  }
+
+  void _clearInputs() {
+    _input.setMoveAxis(0);
+    _input.clearAimDir();
+    _aimPreview.end();
+    _input.pumpHeldInputs();
+  }
+
+  RunnerGameUiState _buildUiState() {
+    final snapshot = _controller.snapshot;
+    return RunnerGameUiState(
+      started: _started,
+      paused: snapshot.paused,
+      gameOver: snapshot.gameOver,
+    );
+  }
+
+  void _startGame() {
+    setState(() => _started = true);
+    _clearInputs();
+    _controller.setPaused(false);
+  }
+
+  void _togglePause() {
+    final paused = _controller.snapshot.paused;
+    if (!paused) _clearInputs();
+    _controller.setPaused(!paused);
   }
 
   @override
@@ -117,41 +157,54 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
             return gameView;
           },
         ),
-        Align(
-          alignment: Alignment.topLeft,
-          child: Padding(
-            padding: const EdgeInsets.all(8),
-            child: PlayerHudOverlay(controller: _controller),
-          ),
+        AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) {
+            final uiState = _buildUiState();
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                IgnorePointer(
+                  ignoring: !uiState.isRunning,
+                  child: RunnerControlsOverlay(
+                    onMoveAxis: _input.setMoveAxis,
+                    onJumpPressed: _input.pressJump,
+                    onDashPressed: _input.pressDash,
+                    onAttackPressed: _input.pressAttack,
+                    onCastCommitted: () =>
+                        _input.commitCastWithAim(clearAim: true),
+                    onAimDir: _input.setAimDir,
+                    onAimClear: _input.clearAimDir,
+                    aimPreview: _aimPreview,
+                  ),
+                ),
+                PauseOverlay(visible: uiState.showPauseOverlay),
+                ReadyOverlay(
+                  visible: uiState.showReadyOverlay,
+                  onTap: _startGame,
+                ),
+                Align(
+                  alignment: Alignment.topLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: PlayerHudOverlay(controller: _controller),
+                  ),
+                ),
+                TimerRowOverlay(
+                  controller: _controller,
+                  uiState: uiState,
+                  onStart: _startGame,
+                  onTogglePause: _togglePause,
+                ),
+                if (widget.showExitButton)
+                  ExitButtonOverlay(
+                    onPressed: widget.onExit,
+                    highlight: uiState.highlightExit,
+                  ),
+              ],
+            );
+          },
         ),
-        Align(
-          alignment: Alignment.topCenter,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: SurvivalTimerOverlay(controller: _controller),
-          ),
-        ),
-        RunnerControlsOverlay(
-          onMoveAxis: _input.setMoveAxis,
-          onJumpPressed: _input.pressJump,
-          onDashPressed: _input.pressDash,
-          onAttackPressed: _input.pressAttack,
-          onCastCommitted: () => _input.commitCastWithAim(clearAim: true),
-          onAimDir: _input.setAimDir,
-          onAimClear: _input.clearAimDir,
-          aimPreview: _aimPreview,
-        ),
-        if (widget.showExitButton)
-          Align(
-            alignment: Alignment.topRight,
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: IconButton(
-                onPressed: widget.onExit,
-                icon: const Icon(Icons.close),
-              ),
-            ),
-          ),
       ],
     );
   }

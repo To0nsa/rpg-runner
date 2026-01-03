@@ -25,13 +25,12 @@ class RunnerFlameGame extends FlameGame {
     required this.controller,
     required this.input,
     required this.aimPreview,
-  })
-    : super(
-        camera: CameraComponent.withFixedResolution(
-          width: v0VirtualWidth.toDouble(),
-          height: v0VirtualHeight.toDouble(),
-        ),
-      );
+  }) : super(
+         camera: CameraComponent.withFixedResolution(
+           width: v0VirtualWidth.toDouble(),
+           height: v0VirtualHeight.toDouble(),
+         ),
+       );
 
   /// Bridge/controller that owns the simulation and produces snapshots.
   final GameController controller;
@@ -143,7 +142,7 @@ class RunnerFlameGame extends FlameGame {
     _mountStaticSolids(controller.snapshot.staticSolids);
     _lastStaticSolidsSnapshot = controller.snapshot.staticSolids;
 
-/*     _debugText = TextComponent(
+    /*     _debugText = TextComponent(
       text: '',
       position: Vector2(8, 8),
       anchor: Anchor.topLeft,
@@ -155,37 +154,39 @@ class RunnerFlameGame extends FlameGame {
       ),
     );
     camera.viewport.add(_debugText); */
-
   }
 
   @override
   void update(double dt) {
-    input.pumpHeldInputs();
+    final snapshot = controller.snapshot;
+    if (!snapshot.paused && !snapshot.gameOver) {
+      input.pumpHeldInputs();
+    }
 
     super.update(dt);
 
     // Step the deterministic core using the frame delta, then render the
     // newest snapshot.
     controller.advanceFrame(dt);
-    final snapshot = controller.snapshot;
-    _syncStaticSolids(snapshot.staticSolids);
+    final updatedSnapshot = controller.snapshot;
+    _syncStaticSolids(updatedSnapshot.staticSolids);
 
-    final player = _findPlayer(snapshot.entities);
+    final player = _findPlayer(updatedSnapshot.entities);
     if (player != null) {
       final snappedX = player.pos.x.roundToDouble();
       final snappedY = player.pos.y.roundToDouble();
       _player.position.setValues(snappedX, snappedY);
     }
     camera.viewfinder.position = Vector2(
-      snapshot.cameraCenterX.roundToDouble(),
-      snapshot.cameraCenterY.roundToDouble(),
+      updatedSnapshot.cameraCenterX.roundToDouble(),
+      updatedSnapshot.cameraCenterY.roundToDouble(),
     );
 
-    _syncEnemies(snapshot.entities);
-    _syncProjectiles(snapshot.entities);
-    _syncHitboxes(snapshot.entities);
+    _syncEnemies(updatedSnapshot.entities);
+    _syncProjectiles(updatedSnapshot.entities);
+    _syncHitboxes(updatedSnapshot.entities);
 
-/*     assert(() {
+    /*     assert(() {
       _debugText.text =
           'tick=${snapshot.tick} seed=${snapshot.seed} x=${player?.pos.x.toStringAsFixed(1) ?? '-'} y=${player?.pos.y.toStringAsFixed(1) ?? '-'} anim=${player?.anim.name ?? '-'}';
       return true;
@@ -248,10 +249,7 @@ class RunnerFlameGame extends FlameGame {
         }
       }
 
-      view.position.setValues(
-        e.pos.x.roundToDouble(),
-        e.pos.y.roundToDouble(),
-      );
+      view.position.setValues(e.pos.x.roundToDouble(), e.pos.y.roundToDouble());
     }
 
     if (_enemies.isEmpty) return;
@@ -289,10 +287,7 @@ class RunnerFlameGame extends FlameGame {
         }
       }
 
-      view.position.setValues(
-        e.pos.x.roundToDouble(),
-        e.pos.y.roundToDouble(),
-      );
+      view.position.setValues(e.pos.x.roundToDouble(), e.pos.y.roundToDouble());
     }
 
     if (_projectiles.isEmpty) return;
@@ -330,10 +325,7 @@ class RunnerFlameGame extends FlameGame {
         }
       }
 
-      view.position.setValues(
-        e.pos.x.roundToDouble(),
-        e.pos.y.roundToDouble(),
-      );
+      view.position.setValues(e.pos.x.roundToDouble(), e.pos.y.roundToDouble());
     }
 
     if (_hitboxes.isEmpty) return;
