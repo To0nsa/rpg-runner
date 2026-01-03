@@ -9,7 +9,9 @@ import 'package:walkscape_runner/core/ecs/systems/enemy_system.dart';
 import 'package:walkscape_runner/core/ecs/world.dart';
 import 'package:walkscape_runner/core/navigation/surface_navigator.dart';
 import 'package:walkscape_runner/core/navigation/surface_pathfinder.dart';
+import 'package:walkscape_runner/core/projectiles/projectile_catalog.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
+import 'package:walkscape_runner/core/spells/spell_catalog.dart';
 import 'package:walkscape_runner/core/tuning/v0_flying_enemy_tuning.dart';
 import 'package:walkscape_runner/core/tuning/v0_ground_enemy_tuning.dart';
 
@@ -65,6 +67,11 @@ void main() {
           maxExpandedNodes: 1,
           runSpeedX: 1.0,
         ),
+      ),
+      spells: const SpellCatalog(),
+      projectiles: ProjectileCatalogDerived.from(
+        const ProjectileCatalog(),
+        tickHz: 60,
       ),
     );
 

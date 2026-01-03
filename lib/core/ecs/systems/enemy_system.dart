@@ -1,5 +1,9 @@
+import 'dart:math';
+
 import '../../enemies/enemy_id.dart';
 import '../../snapshots/enums.dart';
+import '../../projectiles/projectile_catalog.dart';
+import '../../spells/spell_catalog.dart';
 import '../../spells/spell_id.dart';
 import '../../tuning/v0_flying_enemy_tuning.dart';
 import '../../tuning/v0_ground_enemy_tuning.dart';
@@ -19,11 +23,15 @@ class EnemySystem {
     required this.flyingEnemyTuning,
     required this.groundEnemyTuning,
     required this.surfaceNavigator,
+    required this.spells,
+    required this.projectiles,
   });
 
   final V0FlyingEnemyTuningDerived flyingEnemyTuning;
   final V0GroundEnemyTuningDerived groundEnemyTuning;
   final SurfaceNavigator surfaceNavigator;
+  final SpellCatalog spells;
+  final ProjectileCatalogDerived projectiles;
 
   SurfaceGraph? _surfaceGraph;
   SurfaceSpatialIndex? _surfaceIndex;
@@ -111,6 +119,15 @@ class EnemySystem {
     final playerTi = world.transform.indexOf(player);
     final playerX = world.transform.posX[playerTi];
     final playerY = world.transform.posY[playerTi];
+    final playerVelX = world.transform.velX[playerTi];
+    final playerVelY = world.transform.velY[playerTi];
+    var playerCenterX = playerX;
+    var playerCenterY = playerY;
+    if (world.colliderAabb.has(player)) {
+      final ai = world.colliderAabb.indexOf(player);
+      playerCenterX += world.colliderAabb.offsetX[ai];
+      playerCenterY += world.colliderAabb.offsetY[ai];
+    }
 
     final enemies = world.enemy;
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
@@ -124,13 +141,22 @@ class EnemySystem {
 
       switch (enemies.enemyId[ei]) {
         case EnemyId.flyingEnemy:
+          var enemyCenterX = ex;
+          var enemyCenterY = ey;
+          if (world.colliderAabb.has(e)) {
+            final ai = world.colliderAabb.indexOf(e);
+            enemyCenterX += world.colliderAabb.offsetX[ai];
+            enemyCenterY += world.colliderAabb.offsetY[ai];
+          }
           _writeFlyingEnemyCastIntent(
             world,
             enemy: e,
-            ex: ex,
-            ey: ey,
-            playerX: playerX,
-            playerY: playerY,
+            enemyCenterX: enemyCenterX,
+            enemyCenterY: enemyCenterY,
+            playerCenterX: playerCenterX,
+            playerCenterY: playerCenterY,
+            playerVelX: playerVelX,
+            playerVelY: playerVelY,
             currentTick: currentTick,
           );
         case EnemyId.groundEnemy:
@@ -368,10 +394,12 @@ class EnemySystem {
   void _writeFlyingEnemyCastIntent(
     EcsWorld world, {
     required EntityId enemy,
-    required double ex,
-    required double ey,
-    required double playerX,
-    required double playerY,
+    required double enemyCenterX,
+    required double enemyCenterY,
+    required double playerCenterX,
+    required double playerCenterY,
+    required double playerVelX,
+    required double playerVelY,
     required int currentTick,
   }) {
     final tuning = flyingEnemyTuning;
@@ -384,6 +412,24 @@ class EnemySystem {
     }
 
     const spellId = SpellId.lightning;
+    final projectileId = spells.get(spellId).projectileId;
+    final projectileSpeed = projectileId == null
+        ? null
+        : projectiles.base.get(projectileId).speedUnitsPerSecond;
+    var targetX = playerCenterX;
+    var targetY = playerCenterY;
+    if (projectileSpeed != null && projectileSpeed > 0.0) {
+      final dx = playerCenterX - enemyCenterX;
+      final dy = playerCenterY - enemyCenterY;
+      final distance = sqrt(dx * dx + dy * dy);
+      final leadSeconds = clampDouble(
+        distance / projectileSpeed,
+        tuning.base.flyingEnemyAimLeadMinSeconds,
+        tuning.base.flyingEnemyAimLeadMaxSeconds,
+      );
+      targetX = playerCenterX + playerVelX * leadSeconds;
+      targetY = playerCenterY + playerVelY * leadSeconds;
+    }
 
     // IMPORTANT: EnemySystem writes intent only; execution happens in
     // `SpellCastSystem` which owns mana/cooldown rules and projectile spawning.
@@ -391,8 +437,8 @@ class EnemySystem {
       enemy,
       CastIntentDef(
         spellId: spellId,
-        dirX: playerX - ex,
-        dirY: playerY - ey,
+        dirX: targetX - enemyCenterX,
+        dirY: targetY - enemyCenterY,
         fallbackDirX: 1.0,
         fallbackDirY: 0.0,
         originOffset: tuning.base.flyingEnemyCastOriginOffset,

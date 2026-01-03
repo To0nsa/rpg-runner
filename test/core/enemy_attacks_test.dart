@@ -142,6 +142,11 @@ void main() {
           runSpeedX: 1.0,
         ),
       ),
+      spells: const SpellCatalog(),
+      projectiles: ProjectileCatalogDerived.from(
+        const ProjectileCatalog(),
+        tickHz: 60,
+      ),
     );
 
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0);

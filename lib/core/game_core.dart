@@ -179,6 +179,8 @@ class GameCore {
       flyingEnemyTuning: _flyingEnemyTuning,
       groundEnemyTuning: _groundEnemyTuning,
       surfaceNavigator: _surfaceNavigator,
+      spells: _spells,
+      projectiles: _projectiles,
     );
     _cameraTuning = V0CameraTuningDerived.from(
       cameraTuning,

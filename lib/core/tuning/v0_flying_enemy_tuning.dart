@@ -19,6 +19,8 @@ class V0FlyingEnemyTuning {
     this.flyingEnemyMaxSpeedY = 300.0,
     this.flyingEnemyVerticalKp = 4.0,
     this.flyingEnemyVerticalDeadzone = 20.0,
+    this.flyingEnemyAimLeadMinSeconds = 0.08,
+    this.flyingEnemyAimLeadMaxSeconds = 0.40,
     this.flyingEnemyCastCooldownSeconds = 2.0,
     this.flyingEnemyCastOriginOffset = 20.0,
   });
@@ -43,6 +45,8 @@ class V0FlyingEnemyTuning {
   final double flyingEnemyVerticalDeadzone;
 
   // Flying enemy attacks.
+  final double flyingEnemyAimLeadMinSeconds;
+  final double flyingEnemyAimLeadMaxSeconds;
   final double flyingEnemyCastCooldownSeconds;
   final double flyingEnemyCastOriginOffset;
 }

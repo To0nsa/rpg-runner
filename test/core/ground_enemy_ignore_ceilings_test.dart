@@ -17,7 +17,9 @@ import 'package:walkscape_runner/core/navigation/jump_template.dart';
 import 'package:walkscape_runner/core/navigation/surface_graph_builder.dart';
 import 'package:walkscape_runner/core/navigation/surface_navigator.dart';
 import 'package:walkscape_runner/core/navigation/surface_pathfinder.dart';
+import 'package:walkscape_runner/core/projectiles/projectile_catalog.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
+import 'package:walkscape_runner/core/spells/spell_catalog.dart';
 import 'package:walkscape_runner/core/tuning/v0_flying_enemy_tuning.dart';
 import 'package:walkscape_runner/core/tuning/v0_ground_enemy_tuning.dart';
 import 'package:walkscape_runner/core/tuning/v0_movement_tuning.dart';
@@ -153,6 +155,11 @@ void main() {
         repathCooldownTicks: 5,
         takeoffEps: 6.0,
       ),
+      spells: const SpellCatalog(),
+      projectiles: ProjectileCatalogDerived.from(
+        const ProjectileCatalog(),
+        tickHz: 10,
+      ),
     );
     system.setSurfaceGraph(
       graph: graphResult.graph,
@@ -185,4 +192,3 @@ void main() {
     expect(reached, isTrue);
   });
 }
-
