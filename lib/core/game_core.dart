@@ -58,6 +58,7 @@ import 'tuning/v0_movement_tuning.dart';
 import 'tuning/v0_navigation_tuning.dart';
 import 'tuning/v0_physics_tuning.dart';
 import 'tuning/v0_resource_tuning.dart';
+import 'tuning/v0_score_tuning.dart';
 import 'tuning/v0_camera_tuning.dart';
 import 'tuning/v0_spatial_grid_tuning.dart';
 import 'tuning/v0_track_tuning.dart';
@@ -83,6 +84,7 @@ class GameCore {
     V0SpatialGridTuning spatialGridTuning = const V0SpatialGridTuning(),
     V0CameraTuning cameraTuning = const V0CameraTuning(),
     V0TrackTuning trackTuning = const V0TrackTuning(),
+    V0ScoreTuning scoreTuning = const V0ScoreTuning(),
     SpellCatalog spellCatalog = const SpellCatalog(),
     ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
     EnemyCatalog enemyCatalog = const EnemyCatalog(),
@@ -113,6 +115,7 @@ class GameCore {
        _enemyCatalog = enemyCatalog,
        _playerCatalog = playerCatalog,
        _baseStaticWorldGeometry = staticWorldGeometry,
+       _scoreTuning = scoreTuning,
        _trackTuning = trackTuning {
     _world = EcsWorld(seed: seed);
     _movementSystem = PlayerMovementSystem();
@@ -319,6 +322,7 @@ class GameCore {
   final V0NavigationTuning _navigationTuning;
   final V0SpatialGridTuning _spatialGridTuning;
   late final V0CameraTuningDerived _cameraTuning;
+  final V0ScoreTuning _scoreTuning;
   final V0TrackTuning _trackTuning;
   final SpellCatalog _spells;
   final ProjectileCatalogDerived _projectiles;
@@ -356,6 +360,7 @@ class GameCore {
   late final V0AutoscrollCamera _camera;
 
   final List<GameEvent> _events = <GameEvent>[];
+  final List<EnemyId> _killedEnemiesScratch = <EnemyId>[];
 
   /// Current simulation tick.
   int tick = 0;
@@ -368,6 +373,14 @@ class GameCore {
 
   /// Run progression metric (placeholder).
   double distance = 0;
+
+  /// Run score (authoritative).
+  int score = 0;
+
+  /// Collected coins (placeholder for V0).
+  int coins = 0;
+
+  int _timeScoreAcc = 0;
 
   double get playerPosX =>
       _world.transform.posX[_world.transform.indexOf(_player)];
@@ -481,6 +494,8 @@ class GameCore {
       return;
     }
 
+    _applyTimeScore();
+
     // Rebuild broadphase after movement/collision so damageable target positions
     // are final for the tick before any hit queries run.
     _broadphaseGrid.rebuild(_world);
@@ -508,11 +523,43 @@ class GameCore {
     _projectileHitSystem.step(_world, _damageSystem.queue, _broadphaseGrid);
     _hitboxDamageSystem.step(_world, _damageSystem.queue, _broadphaseGrid);
     _damageSystem.step(_world);
-    _healthDespawnSystem.step(_world, player: _player);
+    _killedEnemiesScratch.clear();
+    _healthDespawnSystem.step(
+      _world,
+      player: _player,
+      outEnemiesKilled: _killedEnemiesScratch,
+    );
+    if (_killedEnemiesScratch.isNotEmpty) {
+      _applyEnemyKillScores(_killedEnemiesScratch);
+    }
     _resourceRegenSystem.step(_world, dtSeconds: _movement.dtSeconds);
 
     // Cleanup last so effect entities get their full last tick to act.
     _lifetimeSystem.step(_world);
+  }
+
+  void _applyTimeScore() {
+    final perSecond = _scoreTuning.timeScorePerSecond;
+    if (perSecond <= 0) return;
+
+    _timeScoreAcc += perSecond;
+    if (_timeScoreAcc < tickHz) return;
+
+    final add = _timeScoreAcc ~/ tickHz;
+    if (add <= 0) return;
+    score += add;
+    _timeScoreAcc -= add * tickHz;
+  }
+
+  void _applyEnemyKillScores(List<EnemyId> killedEnemies) {
+    for (final enemyId in killedEnemies) {
+      switch (enemyId) {
+        case EnemyId.groundEnemy:
+          score += _scoreTuning.groundEnemyKillScore;
+        case EnemyId.flyingEnemy:
+          score += _scoreTuning.flyingEnemyKillScore;
+      }
+    }
   }
 
   bool _checkFellBehindCamera() {
@@ -749,8 +796,8 @@ class GameCore {
         manaMax: _world.mana.manaMax[mai],
         stamina: _world.stamina.stamina[si],
         staminaMax: _world.stamina.staminaMax[si],
-        score: 0,
-        coins: 0,
+        score: score,
+        coins: coins,
       ),
       entities: entities,
       staticSolids: _staticSolidsSnapshot,

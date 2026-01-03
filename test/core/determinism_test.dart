@@ -13,6 +13,7 @@ String _digest(GameCore core) {
     'hp=${s.hud.hp.toStringAsFixed(6)}',
     'mana=${s.hud.mana.toStringAsFixed(6)}',
     'stamina=${s.hud.stamina.toStringAsFixed(6)}',
+    'score=${s.hud.score}',
     'solids=${s.staticSolids.length}',
     'ents=${s.entities.length}',
     'paused=${s.paused}',

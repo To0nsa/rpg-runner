@@ -1,3 +1,4 @@
+import '../../enemies/enemy_id.dart';
 import '../entity_id.dart';
 import '../world.dart';
 
@@ -9,7 +10,11 @@ import '../world.dart';
 class HealthDespawnSystem {
   final List<EntityId> _toDespawn = <EntityId>[];
 
-  void step(EcsWorld world, {required EntityId player}) {
+  void step(
+    EcsWorld world, {
+    required EntityId player,
+    List<EnemyId>? outEnemiesKilled,
+  }) {
     final health = world.health;
     if (health.denseEntities.isEmpty) return;
 
@@ -24,6 +29,10 @@ class HealthDespawnSystem {
     }
 
     for (final e in _toDespawn) {
+      if (outEnemiesKilled != null && world.enemy.has(e)) {
+        final enemyIndex = world.enemy.indexOf(e);
+        outEnemiesKilled.add(world.enemy.enemyId[enemyIndex]);
+      }
       world.destroyEntity(e);
     }
   }

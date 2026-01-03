@@ -9,9 +9,9 @@ import '../game/input/runner_input_router.dart';
 import '../game/runner_flame_game.dart';
 import 'controls/runner_controls_overlay.dart';
 import 'hud/player_hud_overlay.dart';
-import 'hud/exit_button_overlay.dart';
 import 'hud/pause_overlay.dart';
 import 'hud/ready_overlay.dart';
+import 'hud/top_right_hud_overlay.dart';
 import 'hud/timer_row_overlay.dart';
 import 'runner_game_ui_state.dart';
 import 'viewport/game_viewport.dart';
@@ -196,11 +196,12 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                   onStart: _startGame,
                   onTogglePause: _togglePause,
                 ),
-                if (widget.showExitButton)
-                  ExitButtonOverlay(
-                    onPressed: widget.onExit,
-                    highlight: uiState.highlightExit,
-                  ),
+                TopRightHudOverlay(
+                  controller: _controller,
+                  showExitButton: widget.showExitButton,
+                  onExit: widget.onExit,
+                  highlightExit: uiState.highlightExit,
+                ),
               ],
             );
           },
