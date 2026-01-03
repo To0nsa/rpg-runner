@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../game/game_controller.dart';
-import '../hud/survival_timer_overlay.dart';
+import 'survival_timer_overlay.dart';
 import '../runner_game_ui_state.dart';
 
 class TimerRowOverlay extends StatelessWidget {
