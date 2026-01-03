@@ -266,6 +266,7 @@ class RunnerFlameGame extends FlameGame {
       }
 
       view.position.setValues(e.pos.x.roundToDouble(), e.pos.y.roundToDouble());
+      view.angle = e.rotationRad;
     }
 
     if (_enemies.isEmpty) return;
@@ -304,6 +305,7 @@ class RunnerFlameGame extends FlameGame {
       }
 
       view.position.setValues(e.pos.x.roundToDouble(), e.pos.y.roundToDouble());
+      view.angle = e.rotationRad;
     }
 
     if (_projectiles.isEmpty) return;

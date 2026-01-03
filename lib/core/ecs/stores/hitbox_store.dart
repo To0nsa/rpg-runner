@@ -11,6 +11,8 @@ class HitboxDef {
     required this.halfY,
     required this.offsetX,
     required this.offsetY,
+    required this.dirX,
+    required this.dirY,
   });
 
   final EntityId owner;
@@ -20,6 +22,8 @@ class HitboxDef {
   final double halfY;
   final double offsetX;
   final double offsetY;
+  final double dirX;
+  final double dirY;
 }
 
 /// Short-lived damage hitbox used by melee attacks and area effects.
@@ -31,6 +35,8 @@ class HitboxStore extends SparseSet {
   final List<double> halfY = <double>[];
   final List<double> offsetX = <double>[];
   final List<double> offsetY = <double>[];
+  final List<double> dirX = <double>[];
+  final List<double> dirY = <double>[];
 
   void add(EntityId entity, HitboxDef def) {
     final i = addEntity(entity);
@@ -41,6 +47,8 @@ class HitboxStore extends SparseSet {
     halfY[i] = def.halfY;
     offsetX[i] = def.offsetX;
     offsetY[i] = def.offsetY;
+    dirX[i] = def.dirX;
+    dirY[i] = def.dirY;
   }
 
   @override
@@ -52,6 +60,8 @@ class HitboxStore extends SparseSet {
     halfY.add(0);
     offsetX.add(0);
     offsetY.add(0);
+    dirX.add(1.0);
+    dirY.add(0.0);
   }
 
   @override
@@ -63,6 +73,8 @@ class HitboxStore extends SparseSet {
     halfY[removeIndex] = halfY[lastIndex];
     offsetX[removeIndex] = offsetX[lastIndex];
     offsetY[removeIndex] = offsetY[lastIndex];
+    dirX[removeIndex] = dirX[lastIndex];
+    dirY[removeIndex] = dirY[lastIndex];
 
     owner.removeLast();
     faction.removeLast();
@@ -71,6 +83,7 @@ class HitboxStore extends SparseSet {
     halfY.removeLast();
     offsetX.removeLast();
     offsetY.removeLast();
+    dirX.removeLast();
+    dirY.removeLast();
   }
 }
-

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../game/input/aim_preview.dart';
+import '../../game/input/aim_quantizer.dart';
 import 'cooldown_ring.dart';
 
 class DirectionalActionButton extends StatefulWidget {
@@ -156,8 +157,10 @@ class _DirectionalActionButtonState extends State<DirectionalActionButton> {
     }
     final nx = dx / len;
     final ny = dy / len;
-    widget.onAimDir(nx, ny);
-    widget.projectileAimPreview.updateAim(nx, ny);
+    final qx = AimQuantizer.quantize(nx);
+    final qy = AimQuantizer.quantize(ny);
+    widget.onAimDir(qx, qy);
+    widget.projectileAimPreview.updateAim(qx, qy);
   }
 
   void _cancelAim() {

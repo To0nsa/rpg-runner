@@ -102,7 +102,11 @@ class EnemySystem {
     }
   }
 
-  void stepAttacks(EcsWorld world, {required EntityId player, required int currentTick}) {
+  void stepAttacks(
+    EcsWorld world, {
+    required EntityId player,
+    required int currentTick,
+  }) {
     if (!world.transform.has(player)) return;
     final playerTi = world.transform.indexOf(player);
     final playerX = world.transform.posX[playerTi];
@@ -300,7 +304,9 @@ class EnemySystem {
     final graph = _surfaceGraph;
     final spatialIndex = _surfaceIndex;
     SurfaceNavIntent intent;
-    if (graph == null || spatialIndex == null || !world.colliderAabb.has(enemy)) {
+    if (graph == null ||
+        spatialIndex == null ||
+        !world.colliderAabb.has(enemy)) {
       intent = SurfaceNavIntent(
         desiredX: playerX,
         jumpNow: false,
@@ -312,7 +318,8 @@ class EnemySystem {
       final enemyHalfY = world.colliderAabb.halfY[ai];
       final offsetY = world.colliderAabb.offsetY[ai];
       final enemyBottomY = world.transform.posY[enemyTi] + offsetY + enemyHalfY;
-      final grounded = world.collision.has(enemy) &&
+      final grounded =
+          world.collision.has(enemy) &&
           world.collision.grounded[world.collision.indexOf(enemy)];
 
       intent = surfaceNavigator.update(
@@ -356,18 +363,17 @@ class EnemySystem {
       accelPerSecond: tuning.base.groundEnemyAccelX,
       decelPerSecond: tuning.base.groundEnemyDecelX,
     );
-
   }
 
   void _writeFlyingEnemyCastIntent(
     EcsWorld world, {
-      required EntityId enemy,
-      required double ex,
-      required double ey,
-      required double playerX,
-      required double playerY,
-      required int currentTick,
-    }) {
+    required EntityId enemy,
+    required double ex,
+    required double ey,
+    required double playerX,
+    required double playerY,
+    required int currentTick,
+  }) {
     final tuning = flyingEnemyTuning;
     if (!world.castIntent.has(enemy)) {
       assert(
@@ -398,13 +404,13 @@ class EnemySystem {
 
   void _writeGroundEnemyMeleeIntent(
     EcsWorld world, {
-      required EntityId enemy,
-      required int enemyIndex,
-      required double ex,
-      required double ey,
-      required double playerX,
-      required int currentTick,
-    }) {
+    required EntityId enemy,
+    required int enemyIndex,
+    required double ex,
+    required double ey,
+    required double playerX,
+    required int currentTick,
+  }) {
     final tuning = groundEnemyTuning;
     if (!world.meleeIntent.has(enemy)) {
       assert(
@@ -429,7 +435,8 @@ class EnemySystem {
     final halfX = tuning.base.groundEnemyMeleeHitboxSizeX * 0.5;
     final halfY = tuning.base.groundEnemyMeleeHitboxSizeY * 0.5;
 
-    final ownerHalfX = world.colliderAabb.halfX[world.colliderAabb.indexOf(enemy)];
+    final ownerHalfX =
+        world.colliderAabb.halfX[world.colliderAabb.indexOf(enemy)];
     final offsetX = dirX * (ownerHalfX * 0.5 + halfX);
     const offsetY = 0.0;
 
@@ -441,6 +448,8 @@ class EnemySystem {
         halfY: halfY,
         offsetX: offsetX,
         offsetY: offsetY,
+        dirX: dirX,
+        dirY: 0.0,
         activeTicks: tuning.groundEnemyMeleeActiveTicks,
         cooldownTicks: tuning.groundEnemyMeleeCooldownTicks,
         staminaCost: 0.0,

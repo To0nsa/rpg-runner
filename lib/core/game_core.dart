@@ -732,8 +732,10 @@ class GameCore {
       final proj = _projectiles.base.get(projectileId);
       final colliderSize = Vec2(proj.colliderSizeX, proj.colliderSizeY);
 
-      final dx = projectileStore.dirX[pi];
-      final facing = dx >= 0 ? Facing.right : Facing.left;
+      final dirX = projectileStore.dirX[pi];
+      final dirY = projectileStore.dirY[pi];
+      final facing = dirX >= 0 ? Facing.right : Facing.left;
+      final rotationRad = atan2(dirY, dirX);
 
       entities.add(
         EntityRenderSnapshot(
@@ -744,6 +746,7 @@ class GameCore {
           size: colliderSize,
           projectileId: projectileId,
           facing: facing,
+          rotationRad: rotationRad,
           anim: AnimKey.idle,
           grounded: false,
         ),
@@ -757,7 +760,10 @@ class GameCore {
       final ti = _world.transform.indexOf(e);
 
       final size = Vec2(hitboxes.halfX[hi] * 2, hitboxes.halfY[hi] * 2);
-      final facing = hitboxes.offsetX[hi] >= 0 ? Facing.right : Facing.left;
+      final dirX = hitboxes.dirX[hi];
+      final dirY = hitboxes.dirY[hi];
+      final facing = dirX >= 0 ? Facing.right : Facing.left;
+      final rotationRad = atan2(dirY, dirX);
 
       entities.add(
         EntityRenderSnapshot(
@@ -766,6 +772,7 @@ class GameCore {
           pos: Vec2(_world.transform.posX[ti], _world.transform.posY[ti]),
           size: size,
           facing: facing,
+          rotationRad: rotationRad,
           anim: AnimKey.hit,
           grounded: false,
         ),

@@ -19,6 +19,7 @@ class EntityRenderSnapshot {
     this.size,
     this.projectileId,
     this.z,
+    this.rotationRad = 0.0,
     this.animFrame,
   });
 
@@ -44,6 +45,9 @@ class EntityRenderSnapshot {
 
   /// Optional sort key for render ordering.
   final double? z;
+
+  /// Optional rotation (radians) for rendering orientation.
+  final double rotationRad;
 
   /// Facing direction for choosing sprites/poses.
   final Facing facing;

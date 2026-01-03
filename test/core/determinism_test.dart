@@ -31,6 +31,7 @@ String _digest(GameCore core) {
       if (e.size != null) 'sx=${e.size!.x.toStringAsFixed(6)}',
       if (e.size != null) 'sy=${e.size!.y.toStringAsFixed(6)}',
       if (e.projectileId != null) 'pid=${e.projectileId!.name}',
+      'rot=${e.rotationRad.toStringAsFixed(6)}',
       'f=${e.facing.name}',
       'a=${e.anim.name}',
       'g=${e.grounded}',

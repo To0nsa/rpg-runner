@@ -8,6 +8,8 @@ class MeleeIntentDef {
     required this.halfY,
     required this.offsetX,
     required this.offsetY,
+    required this.dirX,
+    required this.dirY,
     required this.activeTicks,
     required this.cooldownTicks,
     required this.staminaCost,
@@ -19,6 +21,8 @@ class MeleeIntentDef {
   final double halfY;
   final double offsetX;
   final double offsetY;
+  final double dirX;
+  final double dirY;
   final int activeTicks;
   final int cooldownTicks;
   final double staminaCost;
@@ -38,6 +42,8 @@ class MeleeIntentStore extends SparseSet {
   final List<double> halfY = <double>[];
   final List<double> offsetX = <double>[];
   final List<double> offsetY = <double>[];
+  final List<double> dirX = <double>[];
+  final List<double> dirY = <double>[];
   final List<int> activeTicks = <int>[];
   final List<int> cooldownTicks = <int>[];
   final List<double> staminaCost = <double>[];
@@ -58,6 +64,8 @@ class MeleeIntentStore extends SparseSet {
     halfY[i] = def.halfY;
     offsetX[i] = def.offsetX;
     offsetY[i] = def.offsetY;
+    dirX[i] = def.dirX;
+    dirY[i] = def.dirY;
     activeTicks[i] = def.activeTicks;
     cooldownTicks[i] = def.cooldownTicks;
     staminaCost[i] = def.staminaCost;
@@ -71,6 +79,8 @@ class MeleeIntentStore extends SparseSet {
     halfY.add(0.0);
     offsetX.add(0.0);
     offsetY.add(0.0);
+    dirX.add(1.0);
+    dirY.add(0.0);
     activeTicks.add(0);
     cooldownTicks.add(0);
     staminaCost.add(0.0);
@@ -84,6 +94,8 @@ class MeleeIntentStore extends SparseSet {
     halfY[removeIndex] = halfY[lastIndex];
     offsetX[removeIndex] = offsetX[lastIndex];
     offsetY[removeIndex] = offsetY[lastIndex];
+    dirX[removeIndex] = dirX[lastIndex];
+    dirY[removeIndex] = dirY[lastIndex];
     activeTicks[removeIndex] = activeTicks[lastIndex];
     cooldownTicks[removeIndex] = cooldownTicks[lastIndex];
     staminaCost[removeIndex] = staminaCost[lastIndex];
@@ -94,6 +106,8 @@ class MeleeIntentStore extends SparseSet {
     halfY.removeLast();
     offsetX.removeLast();
     offsetY.removeLast();
+    dirX.removeLast();
+    dirY.removeLast();
     activeTicks.removeLast();
     cooldownTicks.removeLast();
     staminaCost.removeLast();

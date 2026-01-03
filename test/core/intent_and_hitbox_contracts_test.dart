@@ -33,7 +33,11 @@ void main() {
       collider: const ColliderAabbDef(halfX: 8, halfY: 8),
       health: const HealthDef(hp: 100, hpMax: 100, regenPerSecond: 0),
       mana: const ManaDef(mana: 100, manaMax: 100, regenPerSecond: 0),
-      stamina: const StaminaDef(stamina: 100, staminaMax: 100, regenPerSecond: 0),
+      stamina: const StaminaDef(
+        stamina: 100,
+        staminaMax: 100,
+        regenPerSecond: 0,
+      ),
     );
 
     // Spell intent.
@@ -53,7 +57,10 @@ void main() {
 
     final spellCast = SpellCastSystem(
       spells: const SpellCatalog(),
-      projectiles: ProjectileCatalogDerived.from(const ProjectileCatalog(), tickHz: 60),
+      projectiles: ProjectileCatalogDerived.from(
+        const ProjectileCatalog(),
+        tickHz: 60,
+      ),
     );
 
     spellCast.step(world, currentTick: 1);
@@ -70,6 +77,8 @@ void main() {
         halfY: 4,
         offsetX: 10,
         offsetY: 0,
+        dirX: 1,
+        dirY: 0,
         activeTicks: 2,
         cooldownTicks: 10,
         staminaCost: 10,
@@ -82,7 +91,10 @@ void main() {
     meleeAttack.step(world, currentTick: 2);
 
     expect(world.hitbox.denseEntities.length, 1);
-    expect(world.stamina.stamina[world.stamina.indexOf(caster)], closeTo(90.0, 1e-9));
+    expect(
+      world.stamina.stamina[world.stamina.indexOf(caster)],
+      closeTo(90.0, 1e-9),
+    );
   });
 
   test('HitboxFollowOwnerSystem positions hitbox at owner + offset', () {
@@ -103,6 +115,8 @@ void main() {
         halfY: 4,
         offsetX: 10,
         offsetY: -5,
+        dirX: 1,
+        dirY: 0,
       ),
     );
 

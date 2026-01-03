@@ -64,6 +64,8 @@ class MeleeAttackSystem {
           halfY: intents.halfY[ii],
           offsetX: intents.offsetX[ii],
           offsetY: intents.offsetY[ii],
+          dirX: intents.dirX[ii],
+          dirY: intents.dirY[ii],
         ),
       );
       world.hitOnce.add(hitbox);

@@ -2,6 +2,7 @@ import 'dart:math';
 
 import '../../core/commands/command.dart';
 import '../game_controller.dart';
+import 'aim_quantizer.dart';
 
 /// Shared input scheduler for multiple input sources (touch + keyboard + mouse).
 ///
@@ -13,8 +14,6 @@ class RunnerInputRouter {
   RunnerInputRouter({required this.controller});
 
   final GameController controller;
-
-  static const double _aimQuantizeScale = 256.0;
 
   double _moveAxis = 0;
   double _lastScheduledAxis = 0;
@@ -38,19 +37,14 @@ class RunnerInputRouter {
   int _meleeAimScheduledThroughTick = 0;
   int _meleeAimClearBlockedThroughTick = 0;
 
-  static double _quantizeAim(double value) {
-    if (value == 0) return 0;
-    return (value * _aimQuantizeScale).roundToDouble() / _aimQuantizeScale;
-  }
-
   void setMoveAxis(double axis) {
     _moveAxis = axis.clamp(-1.0, 1.0);
   }
 
   /// Sets the projectile aim direction (should be normalized or near-normalized).
   void setProjectileAimDir(double x, double y) {
-    final qx = _quantizeAim(x);
-    final qy = _quantizeAim(y);
+    final qx = AimQuantizer.quantize(x);
+    final qy = AimQuantizer.quantize(y);
 
     if (_projectileAimSet && qx == _projectileAimX && qy == _projectileAimY) {
       return;
@@ -69,8 +63,8 @@ class RunnerInputRouter {
 
   /// Sets the melee aim direction (should be normalized or near-normalized).
   void setMeleeAimDir(double x, double y) {
-    final qx = _quantizeAim(x);
-    final qy = _quantizeAim(y);
+    final qx = AimQuantizer.quantize(x);
+    final qy = AimQuantizer.quantize(y);
 
     if (_meleeAimSet && qx == _meleeAimX && qy == _meleeAimY) {
       return;

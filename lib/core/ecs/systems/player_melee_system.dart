@@ -77,6 +77,8 @@ class PlayerMeleeSystem {
         halfY: halfY,
         offsetX: offsetX,
         offsetY: offsetY,
+        dirX: dirX,
+        dirY: dirY,
         activeTicks: abilities.meleeActiveTicks,
         cooldownTicks: abilities.meleeCooldownTicks,
         staminaCost: abilities.base.meleeStaminaCost,

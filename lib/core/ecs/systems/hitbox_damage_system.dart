@@ -27,16 +27,24 @@ class HitboxDamageSystem {
       final hbCy = world.transform.posY[hbTi];
       final hbHalfX = hitboxes.halfX[hi];
       final hbHalfY = hitboxes.halfY[hi];
+      final hbDirX = hitboxes.dirX[hi];
+      final hbDirY = hitboxes.dirY[hi];
+
+      final ax = hbCx - hbDirX * hbHalfX;
+      final ay = hbCy - hbDirY * hbHalfX;
+      final bx = hbCx + hbDirX * hbHalfX;
+      final by = hbCy + hbDirY * hbHalfX;
 
       final owner = hitboxes.owner[hi];
       final sourceFaction = hitboxes.faction[hi];
 
-      _resolver.collectOrderedOverlapsCenters(
+      _resolver.collectOrderedOverlapsCapsule(
         broadphase: broadphase,
-        centerX: hbCx,
-        centerY: hbCy,
-        halfX: hbHalfX,
-        halfY: hbHalfY,
+        ax: ax,
+        ay: ay,
+        bx: bx,
+        by: by,
+        radius: hbHalfY,
         owner: owner,
         sourceFaction: sourceFaction,
         outTargetIndices: _overlaps,

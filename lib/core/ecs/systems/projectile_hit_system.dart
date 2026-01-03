@@ -31,16 +31,24 @@ class ProjectileHitSystem {
       final pcy = world.transform.posY[pti] + world.colliderAabb.offsetY[pa];
       final phx = world.colliderAabb.halfX[pa];
       final phy = world.colliderAabb.halfY[pa];
+      final dirX = projectiles.dirX[pi];
+      final dirY = projectiles.dirY[pi];
+
+      final ax = pcx - dirX * phx;
+      final ay = pcy - dirY * phx;
+      final bx = pcx + dirX * phx;
+      final by = pcy + dirY * phx;
 
       final owner = projectiles.owner[pi];
       final sourceFaction = projectiles.faction[pi];
 
-      final targetIndex = _resolver.firstOrderedOverlapCenters(
+      final targetIndex = _resolver.firstOrderedOverlapCapsule(
         broadphase: broadphase,
-        centerX: pcx,
-        centerY: pcy,
-        halfX: phx,
-        halfY: phy,
+        ax: ax,
+        ay: ay,
+        bx: bx,
+        by: by,
+        radius: phy,
         owner: owner,
         sourceFaction: sourceFaction,
       );
