@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../game/input/aim_preview.dart';
+import 'cooldown_ring.dart';
 
 class DirectionalActionButton extends StatefulWidget {
   const DirectionalActionButton({
@@ -13,6 +14,9 @@ class DirectionalActionButton extends StatefulWidget {
     required this.onAimClear,
     required this.onCommit,
     required this.projectileAimPreview,
+    this.affordable = true,
+    this.cooldownTicksLeft = 0,
+    this.cooldownTicksTotal = 0,
     this.size = 72,
     this.deadzoneRadius = 12,
     this.backgroundColor = const Color(0x33000000),
@@ -27,6 +31,9 @@ class DirectionalActionButton extends StatefulWidget {
   final VoidCallback onAimClear;
   final VoidCallback onCommit;
   final AimPreviewModel projectileAimPreview;
+  final bool affordable;
+  final int cooldownTicksLeft;
+  final int cooldownTicksTotal;
   final double size;
   final double deadzoneRadius;
   final Color backgroundColor;
@@ -46,34 +53,56 @@ class _DirectionalActionButtonState extends State<DirectionalActionButton> {
 
   @override
   Widget build(BuildContext context) {
+    final interactable = widget.affordable && widget.cooldownTicksLeft <= 0;
+    final effectiveForeground = widget.affordable
+        ? widget.foregroundColor
+        : _disabledForeground(widget.foregroundColor);
+    final effectiveBackground = widget.affordable
+        ? widget.backgroundColor
+        : _disabledBackground(widget.backgroundColor);
+
     return SizedBox(
       width: widget.size,
       height: widget.size,
-      child: Listener(
-        onPointerDown: _handlePointerDown,
-        onPointerMove: _handlePointerMove,
-        onPointerUp: _handlePointerUp,
-        onPointerCancel: _handlePointerCancel,
-        child: Material(
-          color: widget.backgroundColor,
-          shape: const CircleBorder(),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(widget.icon, color: widget.foregroundColor),
-                SizedBox(height: widget.labelGap),
-                Text(
-                  widget.label,
-                  style: TextStyle(
-                    fontSize: widget.labelFontSize,
-                    color: widget.foregroundColor,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          IgnorePointer(
+            ignoring: !interactable,
+            child: Listener(
+              onPointerDown: _handlePointerDown,
+              onPointerMove: _handlePointerMove,
+              onPointerUp: _handlePointerUp,
+              onPointerCancel: _handlePointerCancel,
+              child: Material(
+                color: effectiveBackground,
+                shape: const CircleBorder(),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(widget.icon, color: effectiveForeground),
+                      SizedBox(height: widget.labelGap),
+                      Text(
+                        widget.label,
+                        style: TextStyle(
+                          fontSize: widget.labelFontSize,
+                          color: effectiveForeground,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
           ),
-        ),
+          IgnorePointer(
+            child: CooldownRing(
+              cooldownTicksLeft: widget.cooldownTicksLeft,
+              cooldownTicksTotal: widget.cooldownTicksTotal,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -153,4 +182,9 @@ class _DirectionalActionButtonState extends State<DirectionalActionButton> {
     final radius = widget.size / 2;
     return (dx * dx + dy * dy) <= radius * radius;
   }
+
+  Color _disabledForeground(Color color) => color.withValues(alpha: 0.35);
+
+  Color _disabledBackground(Color color) =>
+      color.withValues(alpha: color.a * 0.6);
 }

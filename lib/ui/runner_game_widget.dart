@@ -166,6 +166,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
           animation: _controller,
           builder: (context, _) {
             final uiState = _buildUiState();
+            final hud = _controller.snapshot.hud;
             return Stack(
               fit: StackFit.expand,
               children: [
@@ -180,10 +181,22 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                     onProjectileAimDir: _input.setProjectileAimDir,
                     onProjectileAimClear: _input.clearProjectileAimDir,
                     projectileAimPreview: _projectileAimPreview,
+                    projectileAffordable: hud.canAffordProjectile,
+                    projectileCooldownTicksLeft:
+                        hud.projectileCooldownTicksLeft,
+                    projectileCooldownTicksTotal:
+                        hud.projectileCooldownTicksTotal,
                     onMeleeAimDir: _input.setMeleeAimDir,
                     onMeleeAimClear: _input.clearMeleeAimDir,
                     onMeleeCommitted: _input.commitMeleeAttack,
                     meleeAimPreview: _meleeAimPreview,
+                    meleeAffordable: hud.canAffordMelee,
+                    meleeCooldownTicksLeft: hud.meleeCooldownTicksLeft,
+                    meleeCooldownTicksTotal: hud.meleeCooldownTicksTotal,
+                    jumpAffordable: hud.canAffordJump,
+                    dashAffordable: hud.canAffordDash,
+                    dashCooldownTicksLeft: hud.dashCooldownTicksLeft,
+                    dashCooldownTicksTotal: hud.dashCooldownTicksTotal,
                   ),
                 ),
                 PauseOverlay(visible: uiState.showPauseOverlay),

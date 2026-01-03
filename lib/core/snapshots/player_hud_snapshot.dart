@@ -10,6 +10,16 @@ class PlayerHudSnapshot {
     required this.manaMax,
     required this.stamina,
     required this.staminaMax,
+    required this.canAffordJump,
+    required this.canAffordDash,
+    required this.canAffordMelee,
+    required this.canAffordProjectile,
+    required this.dashCooldownTicksLeft,
+    required this.dashCooldownTicksTotal,
+    required this.meleeCooldownTicksLeft,
+    required this.meleeCooldownTicksTotal,
+    required this.projectileCooldownTicksLeft,
+    required this.projectileCooldownTicksTotal,
     required this.score,
     required this.coins,
   });
@@ -31,6 +41,36 @@ class PlayerHudSnapshot {
 
   /// Maximum stamina.
   final double staminaMax;
+
+  /// Whether stamina is sufficient for jumping.
+  final bool canAffordJump;
+
+  /// Whether stamina is sufficient for dashing.
+  final bool canAffordDash;
+
+  /// Whether stamina is sufficient for melee.
+  final bool canAffordMelee;
+
+  /// Whether mana is sufficient for projectile casting.
+  final bool canAffordProjectile;
+
+  /// Remaining dash cooldown ticks.
+  final int dashCooldownTicksLeft;
+
+  /// Total dash cooldown ticks.
+  final int dashCooldownTicksTotal;
+
+  /// Remaining melee cooldown ticks.
+  final int meleeCooldownTicksLeft;
+
+  /// Total melee cooldown ticks.
+  final int meleeCooldownTicksTotal;
+
+  /// Remaining projectile cooldown ticks.
+  final int projectileCooldownTicksLeft;
+
+  /// Total projectile cooldown ticks.
+  final int projectileCooldownTicksTotal;
 
   /// Run score (placeholder for V0).
   final int score;

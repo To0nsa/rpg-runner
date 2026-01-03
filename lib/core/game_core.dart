@@ -49,6 +49,7 @@ import 'snapshots/player_hud_snapshot.dart';
 import 'snapshots/static_solid_snapshot.dart';
 import 'projectiles/projectile_catalog.dart';
 import 'spells/spell_catalog.dart';
+import 'spells/spell_id.dart';
 import 'track/v0_track_streamer.dart';
 import 'tuning/v0_ability_tuning.dart';
 import 'tuning/v0_combat_tuning.dart';
@@ -678,6 +679,21 @@ class GameCore {
     final hi = _world.health.indexOf(_player);
     final mai = _world.mana.indexOf(_player);
     final si = _world.stamina.indexOf(_player);
+    final ci = _world.cooldown.indexOf(_player);
+
+    final stamina = _world.stamina.stamina[si];
+    final mana = _world.mana.mana[mai];
+    final projectileManaCost = _spells.get(SpellId.iceBolt).stats.manaCost;
+
+    final canAffordJump = stamina >= _resourceTuning.jumpStaminaCost;
+    final canAffordDash = stamina >= _resourceTuning.dashStaminaCost;
+    final canAffordMelee = stamina >= _abilities.base.meleeStaminaCost;
+    final canAffordProjectile = mana >= projectileManaCost;
+
+    final dashCooldownTicksLeft = _world.movement.dashCooldownTicksLeft[mi];
+    final meleeCooldownTicksLeft = _world.cooldown.meleeCooldownTicksLeft[ci];
+    final projectileCooldownTicksLeft =
+        _world.cooldown.castCooldownTicksLeft[ci];
 
     final AnimKey anim;
     if (dashing) {
@@ -798,10 +814,20 @@ class GameCore {
       hud: PlayerHudSnapshot(
         hp: _world.health.hp[hi],
         hpMax: _world.health.hpMax[hi],
-        mana: _world.mana.mana[mai],
+        mana: mana,
         manaMax: _world.mana.manaMax[mai],
-        stamina: _world.stamina.stamina[si],
+        stamina: stamina,
         staminaMax: _world.stamina.staminaMax[si],
+        canAffordJump: canAffordJump,
+        canAffordDash: canAffordDash,
+        canAffordMelee: canAffordMelee,
+        canAffordProjectile: canAffordProjectile,
+        dashCooldownTicksLeft: dashCooldownTicksLeft,
+        dashCooldownTicksTotal: _movement.dashCooldownTicks,
+        meleeCooldownTicksLeft: meleeCooldownTicksLeft,
+        meleeCooldownTicksTotal: _abilities.meleeCooldownTicks,
+        projectileCooldownTicksLeft: projectileCooldownTicksLeft,
+        projectileCooldownTicksTotal: _abilities.castCooldownTicks,
         score: score,
         coins: coins,
       ),

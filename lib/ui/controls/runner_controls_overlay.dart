@@ -17,10 +17,20 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.onProjectileAimDir,
     required this.onProjectileAimClear,
     required this.projectileAimPreview,
+    required this.projectileAffordable,
+    required this.projectileCooldownTicksLeft,
+    required this.projectileCooldownTicksTotal,
     required this.onMeleeAimDir,
     required this.onMeleeAimClear,
     required this.onMeleeCommitted,
     required this.meleeAimPreview,
+    required this.meleeAffordable,
+    required this.meleeCooldownTicksLeft,
+    required this.meleeCooldownTicksTotal,
+    required this.jumpAffordable,
+    required this.dashAffordable,
+    required this.dashCooldownTicksLeft,
+    required this.dashCooldownTicksTotal,
     this.tuning = ControlsTuning.v0Fixed,
   });
 
@@ -31,10 +41,20 @@ class RunnerControlsOverlay extends StatelessWidget {
   final void Function(double x, double y) onProjectileAimDir;
   final VoidCallback onProjectileAimClear;
   final AimPreviewModel projectileAimPreview;
+  final bool projectileAffordable;
+  final int projectileCooldownTicksLeft;
+  final int projectileCooldownTicksTotal;
   final void Function(double x, double y) onMeleeAimDir;
   final VoidCallback onMeleeAimClear;
   final VoidCallback onMeleeCommitted;
   final AimPreviewModel meleeAimPreview;
+  final bool meleeAffordable;
+  final int meleeCooldownTicksLeft;
+  final int meleeCooldownTicksTotal;
+  final bool jumpAffordable;
+  final bool dashAffordable;
+  final int dashCooldownTicksLeft;
+  final int dashCooldownTicksTotal;
   final ControlsTuning tuning;
 
   @override
@@ -90,6 +110,9 @@ class RunnerControlsOverlay extends StatelessWidget {
                     onAimClear: onProjectileAimClear,
                     onCommit: onCastCommitted,
                     projectileAimPreview: projectileAimPreview,
+                    affordable: projectileAffordable,
+                    cooldownTicksLeft: projectileCooldownTicksLeft,
+                    cooldownTicksTotal: projectileCooldownTicksTotal,
                     size: directional.size,
                     deadzoneRadius: directional.deadzoneRadius,
                     backgroundColor: directional.backgroundColor,
@@ -102,6 +125,7 @@ class RunnerControlsOverlay extends StatelessWidget {
                     label: 'Jump',
                     icon: Icons.arrow_upward,
                     onPressed: onJumpPressed,
+                    affordable: jumpAffordable,
                     size: action.size,
                     backgroundColor: action.backgroundColor,
                     foregroundColor: action.foregroundColor,
@@ -121,6 +145,9 @@ class RunnerControlsOverlay extends StatelessWidget {
                     onAimClear: onMeleeAimClear,
                     onCommit: onMeleeCommitted,
                     projectileAimPreview: meleeAimPreview,
+                    affordable: meleeAffordable,
+                    cooldownTicksLeft: meleeCooldownTicksLeft,
+                    cooldownTicksTotal: meleeCooldownTicksTotal,
                     size: directional.size,
                     deadzoneRadius: directional.deadzoneRadius,
                     backgroundColor: directional.backgroundColor,
@@ -133,6 +160,9 @@ class RunnerControlsOverlay extends StatelessWidget {
                     label: 'Dash',
                     icon: Icons.flash_on,
                     onPressed: onDashPressed,
+                    affordable: dashAffordable,
+                    cooldownTicksLeft: dashCooldownTicksLeft,
+                    cooldownTicksTotal: dashCooldownTicksTotal,
                     size: action.size,
                     backgroundColor: action.backgroundColor,
                     foregroundColor: action.foregroundColor,
