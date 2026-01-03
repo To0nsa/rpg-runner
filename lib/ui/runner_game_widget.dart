@@ -9,6 +9,7 @@ import '../game/input/runner_input_router.dart';
 import '../game/runner_flame_game.dart';
 import 'controls/runner_controls_overlay.dart';
 import 'hud/player_hud_overlay.dart';
+import 'hud/survival_timer_overlay.dart';
 import 'viewport/game_viewport.dart';
 import 'viewport/viewport_metrics.dart';
 
@@ -51,8 +52,9 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   late final GameController _controller = GameController(
     core: GameCore(seed: widget.seed),
   );
-  late final RunnerInputRouter _input =
-      RunnerInputRouter(controller: _controller);
+  late final RunnerInputRouter _input = RunnerInputRouter(
+    controller: _controller,
+  );
   late final AimPreviewModel _aimPreview = AimPreviewModel();
   late final RunnerFlameGame _game = RunnerFlameGame(
     controller: _controller,
@@ -121,6 +123,15 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
             child: Padding(
               padding: const EdgeInsets.all(8),
               child: PlayerHudOverlay(controller: _controller),
+            ),
+          ),
+        ),
+        SafeArea(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: SurvivalTimerOverlay(controller: _controller),
             ),
           ),
         ),
