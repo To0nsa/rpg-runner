@@ -442,12 +442,18 @@ class GameCore {
         case AttackPressedCommand():
           _world.playerInput.attackPressed[inputIndex] = true;
           break;
-        case AimDirCommand(:final x, :final y):
-          _world.playerInput.aimDirX[inputIndex] = x;
-          _world.playerInput.aimDirY[inputIndex] = y;
-        case ClearAimDirCommand():
-          _world.playerInput.aimDirX[inputIndex] = 0;
-          _world.playerInput.aimDirY[inputIndex] = 0;
+        case ProjectileAimDirCommand(:final x, :final y):
+          _world.playerInput.projectileAimDirX[inputIndex] = x;
+          _world.playerInput.projectileAimDirY[inputIndex] = y;
+        case MeleeAimDirCommand(:final x, :final y):
+          _world.playerInput.meleeAimDirX[inputIndex] = x;
+          _world.playerInput.meleeAimDirY[inputIndex] = y;
+        case ClearProjectileAimDirCommand():
+          _world.playerInput.projectileAimDirX[inputIndex] = 0;
+          _world.playerInput.projectileAimDirY[inputIndex] = 0;
+        case ClearMeleeAimDirCommand():
+          _world.playerInput.meleeAimDirX[inputIndex] = 0;
+          _world.playerInput.meleeAimDirY[inputIndex] = 0;
         case CastPressedCommand():
           _world.playerInput.castPressed[inputIndex] = true;
       }

@@ -77,7 +77,10 @@ class GameController extends ChangeNotifier {
 
   /// Enqueues a command to be applied at its declared tick.
   void enqueue(Command command) {
-    final frame = _inputsByTick.putIfAbsent(command.tick, () => TickInputFrame());
+    final frame = _inputsByTick.putIfAbsent(
+      command.tick,
+      () => TickInputFrame(),
+    );
     frame.apply(command);
   }
 
@@ -184,12 +187,17 @@ class GameController extends ChangeNotifier {
       _commandScratch.add(MoveAxisCommand(tick: tick, axis: axis));
     }
 
-    if (input.aimDirSet) {
+    if (input.projectileAimDirSet) {
       _commandScratch.add(
-        AimDirCommand(
+        ProjectileAimDirCommand(tick: tick, x: input.projectileAimDirX, y: input.projectileAimDirY),
+      );
+    }
+    if (input.meleeAimDirSet) {
+      _commandScratch.add(
+        MeleeAimDirCommand(
           tick: tick,
-          x: input.aimDirX,
-          y: input.aimDirY,
+          x: input.meleeAimDirX,
+          y: input.meleeAimDirY,
         ),
       );
     }

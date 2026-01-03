@@ -9,8 +9,10 @@ class PlayerInputStore extends SparseSet {
   final List<bool> jumpPressed = <bool>[];
   final List<bool> dashPressed = <bool>[];
   final List<bool> attackPressed = <bool>[];
-  final List<double> aimDirX = <double>[];
-  final List<double> aimDirY = <double>[];
+  final List<double> projectileAimDirX = <double>[];
+  final List<double> projectileAimDirY = <double>[];
+  final List<double> meleeAimDirX = <double>[];
+  final List<double> meleeAimDirY = <double>[];
   final List<bool> castPressed = <bool>[];
 
   void add(EntityId entity) {
@@ -23,8 +25,10 @@ class PlayerInputStore extends SparseSet {
     jumpPressed[i] = false;
     dashPressed[i] = false;
     attackPressed[i] = false;
-    aimDirX[i] = 0;
-    aimDirY[i] = 0;
+    projectileAimDirX[i] = 0;
+    projectileAimDirY[i] = 0;
+    meleeAimDirX[i] = 0;
+    meleeAimDirY[i] = 0;
     castPressed[i] = false;
   }
 
@@ -34,8 +38,10 @@ class PlayerInputStore extends SparseSet {
     jumpPressed.add(false);
     dashPressed.add(false);
     attackPressed.add(false);
-    aimDirX.add(0);
-    aimDirY.add(0);
+    projectileAimDirX.add(0);
+    projectileAimDirY.add(0);
+    meleeAimDirX.add(0);
+    meleeAimDirY.add(0);
     castPressed.add(false);
   }
 
@@ -45,16 +51,20 @@ class PlayerInputStore extends SparseSet {
     jumpPressed[removeIndex] = jumpPressed[lastIndex];
     dashPressed[removeIndex] = dashPressed[lastIndex];
     attackPressed[removeIndex] = attackPressed[lastIndex];
-    aimDirX[removeIndex] = aimDirX[lastIndex];
-    aimDirY[removeIndex] = aimDirY[lastIndex];
+    projectileAimDirX[removeIndex] = projectileAimDirX[lastIndex];
+    projectileAimDirY[removeIndex] = projectileAimDirY[lastIndex];
+    meleeAimDirX[removeIndex] = meleeAimDirX[lastIndex];
+    meleeAimDirY[removeIndex] = meleeAimDirY[lastIndex];
     castPressed[removeIndex] = castPressed[lastIndex];
 
     moveAxis.removeLast();
     jumpPressed.removeLast();
     dashPressed.removeLast();
     attackPressed.removeLast();
-    aimDirX.removeLast();
-    aimDirY.removeLast();
+    projectileAimDirX.removeLast();
+    projectileAimDirY.removeLast();
+    meleeAimDirX.removeLast();
+    meleeAimDirY.removeLast();
     castPressed.removeLast();
   }
 }

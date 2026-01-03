@@ -15,7 +15,7 @@ import 'package:walkscape_runner/game/input/runner_input_router.dart';
 import 'test_tunings.dart';
 
 void main() {
-  test('aim dir is quantized (stable payload) before casting', () {
+  test('projectile aim dir is quantized (stable payload) before casting', () {
     final core = GameCore(
       seed: 1,
       tickHz: 60,
@@ -33,7 +33,7 @@ void main() {
 
     const rawX = 0.123456;
     const rawY = 0.234567;
-    input.setAimDir(rawX, rawY);
+    input.setProjectileAimDir(rawX, rawY);
     input.pressCastWithAim();
 
     input.pumpHeldInputs();

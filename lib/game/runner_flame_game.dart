@@ -24,7 +24,8 @@ class RunnerFlameGame extends FlameGame {
   RunnerFlameGame({
     required this.controller,
     required this.input,
-    required this.aimPreview,
+    required this.projectileAimPreview,
+    required this.meleeAimPreview,
   }) : super(
          camera: CameraComponent.withFixedResolution(
            width: v0VirtualWidth.toDouble(),
@@ -39,7 +40,8 @@ class RunnerFlameGame extends FlameGame {
   final RunnerInputRouter input;
 
   /// UI-driven aim preview (render-only).
-  final ValueListenable<AimPreviewState> aimPreview;
+  final ValueListenable<AimPreviewState> projectileAimPreview;
+  final ValueListenable<AimPreviewState> meleeAimPreview;
 
   late final CircleComponent _player;
   //late final TextComponent _debugText;
@@ -134,9 +136,22 @@ class RunnerFlameGame extends FlameGame {
     world.add(
       AimRayComponent(
         controller: controller,
-        preview: aimPreview,
-        length: v0AimRayLength,
+        preview: projectileAimPreview,
+        length: v0ProjectileAimRayLength,
       )..priority = 5,
+    );
+
+    world.add(
+      AimRayComponent(
+        controller: controller,
+        preview: meleeAimPreview,
+        length: v0MeleeAimRayLength,
+        drawWhenNoAim: false,
+        paint: Paint()
+          ..color = const Color(0xFFDC4440)
+          ..strokeWidth = 2
+          ..strokeCap = StrokeCap.round,
+      )..priority = 6,
     );
 
     _mountStaticSolids(controller.snapshot.staticSolids);

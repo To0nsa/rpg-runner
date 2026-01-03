@@ -61,4 +61,38 @@ void main() {
         .toList();
     expect(hitboxes, isEmpty);
   });
+
+  test('melee: uses aim direction when provided', () {
+    final core = GameCore(
+      seed: 1,
+      tickHz: 60,
+      playerCatalog: const PlayerCatalog(
+        bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+      ),
+      cameraTuning: noAutoscrollCameraTuning,
+      resourceTuning: const V0ResourceTuning(
+        playerStaminaMax: 100,
+        playerStaminaRegenPerSecond: 0,
+        playerManaRegenPerSecond: 0,
+        playerHpRegenPerSecond: 0,
+      ),
+    );
+
+    final playerX = core.playerPosX;
+    final playerY = core.playerPosY;
+
+    core.applyCommands(const [
+      MeleeAimDirCommand(tick: 1, x: 0, y: -1),
+      AttackPressedCommand(tick: 1),
+    ]);
+    core.stepOneTick();
+
+    final snapshot = core.buildSnapshot();
+    final hitboxes = snapshot.entities
+        .where((e) => e.kind == EntityKind.trigger)
+        .toList();
+    expect(hitboxes.length, 1);
+    expect(hitboxes.single.pos.x, closeTo(playerX, 1e-9));
+    expect(hitboxes.single.pos.y, closeTo(playerY - 20.0, 1e-9));
+  });
 }

@@ -37,8 +37,8 @@ class PlayerCastSystem {
     // final ti = world.transform.indexOf(player);
     final facing = world.movement.facing[world.movement.indexOf(player)];
 
-    final rawAimX = world.playerInput.aimDirX[ii];
-    final rawAimY = world.playerInput.aimDirY[ii];
+    final rawAimX = world.playerInput.projectileAimDirX[ii];
+    final rawAimY = world.playerInput.projectileAimDirY[ii];
 
     final spawnOffset = movement.base.playerRadius * 0.5;
     final fallbackDirX = facing == Facing.right ? 1.0 : -1.0;

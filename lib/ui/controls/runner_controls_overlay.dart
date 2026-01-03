@@ -13,22 +13,28 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.onMoveAxis,
     required this.onJumpPressed,
     required this.onDashPressed,
-    required this.onAttackPressed,
     required this.onCastCommitted,
-    required this.onAimDir,
-    required this.onAimClear,
-    required this.aimPreview,
+    required this.onProjectileAimDir,
+    required this.onProjectileAimClear,
+    required this.projectileAimPreview,
+    required this.onMeleeAimDir,
+    required this.onMeleeAimClear,
+    required this.onMeleeCommitted,
+    required this.meleeAimPreview,
     this.tuning = ControlsTuning.v0Fixed,
   });
 
   final ValueChanged<double> onMoveAxis;
   final VoidCallback onJumpPressed;
   final VoidCallback onDashPressed;
-  final VoidCallback onAttackPressed;
   final VoidCallback onCastCommitted;
-  final void Function(double x, double y) onAimDir;
-  final VoidCallback onAimClear;
-  final AimPreviewModel aimPreview;
+  final void Function(double x, double y) onProjectileAimDir;
+  final VoidCallback onProjectileAimClear;
+  final AimPreviewModel projectileAimPreview;
+  final void Function(double x, double y) onMeleeAimDir;
+  final VoidCallback onMeleeAimClear;
+  final VoidCallback onMeleeCommitted;
+  final AimPreviewModel meleeAimPreview;
   final ControlsTuning tuning;
 
   @override
@@ -80,10 +86,10 @@ class RunnerControlsOverlay extends StatelessWidget {
                   DirectionalActionButton(
                     label: 'Spell',
                     icon: Icons.auto_awesome,
-                    onAimDir: onAimDir,
-                    onAimClear: onAimClear,
+                    onAimDir: onProjectileAimDir,
+                    onAimClear: onProjectileAimClear,
                     onCommit: onCastCommitted,
-                    aimPreview: aimPreview,
+                    projectileAimPreview: projectileAimPreview,
                     size: directional.size,
                     deadzoneRadius: directional.deadzoneRadius,
                     backgroundColor: directional.backgroundColor,
@@ -108,15 +114,19 @@ class RunnerControlsOverlay extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  ActionButton(
+                  DirectionalActionButton(
                     label: 'Atk',
                     icon: Icons.close,
-                    onPressed: onAttackPressed,
-                    size: action.size,
-                    backgroundColor: action.backgroundColor,
-                    foregroundColor: action.foregroundColor,
-                    labelFontSize: action.labelFontSize,
-                    labelGap: action.labelGap,
+                    onAimDir: onMeleeAimDir,
+                    onAimClear: onMeleeAimClear,
+                    onCommit: onMeleeCommitted,
+                    projectileAimPreview: meleeAimPreview,
+                    size: directional.size,
+                    deadzoneRadius: directional.deadzoneRadius,
+                    backgroundColor: directional.backgroundColor,
+                    foregroundColor: directional.foregroundColor,
+                    labelFontSize: directional.labelFontSize,
+                    labelGap: directional.labelGap,
                   ),
                   SizedBox(width: t.buttonGap),
                   ActionButton(

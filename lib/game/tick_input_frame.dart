@@ -9,9 +9,12 @@ class TickInputFrame {
   bool jumpPressed = false;
   bool dashPressed = false;
   bool attackPressed = false;
-  bool aimDirSet = false;
-  double aimDirX = 0;
-  double aimDirY = 0;
+  bool projectileAimDirSet = false;
+  double projectileAimDirX = 0;
+  double projectileAimDirY = 0;
+  bool meleeAimDirSet = false;
+  double meleeAimDirX = 0;
+  double meleeAimDirY = 0;
   bool castPressed = false;
 
   void apply(Command command) {
@@ -24,14 +27,22 @@ class TickInputFrame {
         dashPressed = true;
       case AttackPressedCommand():
         attackPressed = true;
-      case AimDirCommand(:final x, :final y):
-        aimDirSet = true;
-        aimDirX = x;
-        aimDirY = y;
-      case ClearAimDirCommand():
-        aimDirSet = false;
-        aimDirX = 0;
-        aimDirY = 0;
+      case ProjectileAimDirCommand(:final x, :final y):
+        projectileAimDirSet = true;
+        projectileAimDirX = x;
+        projectileAimDirY = y;
+      case MeleeAimDirCommand(:final x, :final y):
+        meleeAimDirSet = true;
+        meleeAimDirX = x;
+        meleeAimDirY = y;
+      case ClearProjectileAimDirCommand():
+        projectileAimDirSet = false;
+        projectileAimDirX = 0;
+        projectileAimDirY = 0;
+      case ClearMeleeAimDirCommand():
+        meleeAimDirSet = false;
+        meleeAimDirX = 0;
+        meleeAimDirY = 0;
       case CastPressedCommand():
         castPressed = true;
     }
@@ -42,9 +53,12 @@ class TickInputFrame {
     jumpPressed = false;
     dashPressed = false;
     attackPressed = false;
-    aimDirSet = false;
-    aimDirX = 0;
-    aimDirY = 0;
+    projectileAimDirSet = false;
+    projectileAimDirX = 0;
+    projectileAimDirY = 0;
+    meleeAimDirSet = false;
+    meleeAimDirX = 0;
+    meleeAimDirY = 0;
     castPressed = false;
   }
 }

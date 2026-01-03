@@ -48,7 +48,7 @@ void main() {
   });
 
   test(
-    'aim clear overwrites buffered future ticks (affects cast direction)',
+    'projectile aim clear overwrites buffered future ticks (affects cast direction)',
     () {
       final core = GameCore(
         seed: 1,
@@ -67,16 +67,16 @@ void main() {
 
       final dt = 1.0 / controller.tickHz;
 
-      // Hold aim straight down for a frame; this will pre-buffer AimDir for
-      // upcoming ticks.
-      input.setAimDir(0, 1);
+      // Hold aim straight down for a frame; this will pre-buffer projectile aim
+      // direction for upcoming ticks.
+      input.setProjectileAimDir(0, 1);
       input.pumpHeldInputs();
       controller.advanceFrame(dt);
       expect(core.tick, 1);
 
       // Release aim and cast without setting a new aim direction. Cast should
       // fall back to facing (right), not the previously buffered aim.
-      input.clearAimDir();
+      input.clearProjectileAimDir();
       input.pressCast();
       input.pumpHeldInputs();
       controller.advanceFrame(dt); // tick 2 (spawns projectile)
@@ -91,8 +91,8 @@ void main() {
 
       expect(projectile.vel, isNotNull);
       expect(projectile.vel!.x, greaterThan(0));
-    expect(projectile.vel!.y.abs(), lessThan(1e-9));
-  },
+      expect(projectile.vel!.y.abs(), lessThan(1e-9));
+    },
   );
 
   test('release-to-cast keeps aimed dir for the cast tick', () {
@@ -113,7 +113,7 @@ void main() {
 
     final dt = 1.0 / controller.tickHz;
 
-    input.setAimDir(0, -1);
+    input.setProjectileAimDir(0, -1);
     input.commitCastWithAim(clearAim: true);
 
     input.pumpHeldInputs();

@@ -12,23 +12,27 @@ class AimRayComponent extends Component {
     required this.controller,
     required this.preview,
     required this.length,
-  }) {
-    _paint = Paint()
-      ..color = const Color.fromARGB(255, 120, 165, 236)
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round;
-  }
+    Paint? paint,
+    this.drawWhenNoAim = true,
+  }) : _paint =
+           paint ??
+           (Paint()
+             ..color = const Color.fromARGB(255, 120, 165, 236)
+             ..strokeWidth = 2
+             ..strokeCap = StrokeCap.round);
 
   final GameController controller;
   final ValueListenable<AimPreviewState> preview;
   final double length;
+  final bool drawWhenNoAim;
 
-  late final Paint _paint;
+  final Paint _paint;
 
   @override
   void render(Canvas canvas) {
     final state = preview.value;
     if (!state.active) return;
+    if (!state.hasAim && !drawWhenNoAim) return;
 
     final player = _findPlayer(controller.snapshot.entities);
     if (player == null) return;
@@ -39,11 +43,7 @@ class AimRayComponent extends Component {
     final endX = startX + dirX * length;
     final endY = startY + dirY * length;
 
-    canvas.drawLine(
-      Offset(startX, startY),
-      Offset(endX, endY),
-      _paint,
-    );
+    canvas.drawLine(Offset(startX, startY), Offset(endX, endY), _paint);
   }
 
   (double, double) _resolveDir(

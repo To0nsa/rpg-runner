@@ -12,7 +12,7 @@ class DirectionalActionButton extends StatefulWidget {
     required this.onAimDir,
     required this.onAimClear,
     required this.onCommit,
-    required this.aimPreview,
+    required this.projectileAimPreview,
     this.size = 72,
     this.deadzoneRadius = 12,
     this.backgroundColor = const Color(0x33000000),
@@ -26,7 +26,7 @@ class DirectionalActionButton extends StatefulWidget {
   final void Function(double x, double y) onAimDir;
   final VoidCallback onAimClear;
   final VoidCallback onCommit;
-  final AimPreviewModel aimPreview;
+  final AimPreviewModel projectileAimPreview;
   final double size;
   final double deadzoneRadius;
   final Color backgroundColor;
@@ -83,7 +83,7 @@ class _DirectionalActionButtonState extends State<DirectionalActionButton> {
     _pointer = event.pointer;
     _leftButtonOnce = false;
     _canceled = false;
-    widget.aimPreview.begin();
+    widget.projectileAimPreview.begin();
     widget.onAimClear();
     _updateAim(event.localPosition);
   }
@@ -122,20 +122,20 @@ class _DirectionalActionButtonState extends State<DirectionalActionButton> {
     final len = math.sqrt(dx * dx + dy * dy);
     if (len <= widget.deadzoneRadius) {
       widget.onAimClear();
-      widget.aimPreview.clearAim();
+      widget.projectileAimPreview.clearAim();
       return;
     }
     final nx = dx / len;
     final ny = dy / len;
     widget.onAimDir(nx, ny);
-    widget.aimPreview.updateAim(nx, ny);
+    widget.projectileAimPreview.updateAim(nx, ny);
   }
 
   void _cancelAim() {
     if (_canceled) return;
     _canceled = true;
     widget.onAimClear();
-    widget.aimPreview.end();
+    widget.projectileAimPreview.end();
   }
 
   void _resetAim() {
@@ -143,7 +143,7 @@ class _DirectionalActionButtonState extends State<DirectionalActionButton> {
     _leftButtonOnce = false;
     _canceled = false;
     widget.onAimClear();
-    widget.aimPreview.end();
+    widget.projectileAimPreview.end();
   }
 
   bool _isInside(Offset local) {

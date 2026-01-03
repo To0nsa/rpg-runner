@@ -60,11 +60,13 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   late final RunnerInputRouter _input = RunnerInputRouter(
     controller: _controller,
   );
-  late final AimPreviewModel _aimPreview = AimPreviewModel();
+  late final AimPreviewModel _projectileAimPreview = AimPreviewModel();
+  late final AimPreviewModel _meleeAimPreview = AimPreviewModel();
   late final RunnerFlameGame _game = RunnerFlameGame(
     controller: _controller,
     input: _input,
-    aimPreview: _aimPreview,
+    projectileAimPreview: _projectileAimPreview,
+    meleeAimPreview: _meleeAimPreview,
   );
 
   @override
@@ -98,8 +100,10 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
 
   void _clearInputs() {
     _input.setMoveAxis(0);
-    _input.clearAimDir();
-    _aimPreview.end();
+    _input.clearProjectileAimDir();
+    _input.clearMeleeAimDir();
+    _projectileAimPreview.end();
+    _meleeAimPreview.end();
     _input.pumpHeldInputs();
   }
 
@@ -129,7 +133,8 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     WidgetsBinding.instance.removeObserver(this);
     _controller.shutdown();
     _controller.dispose();
-    _aimPreview.dispose();
+    _projectileAimPreview.dispose();
+    _meleeAimPreview.dispose();
     super.dispose();
   }
 
@@ -170,12 +175,15 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                     onMoveAxis: _input.setMoveAxis,
                     onJumpPressed: _input.pressJump,
                     onDashPressed: _input.pressDash,
-                    onAttackPressed: _input.pressAttack,
                     onCastCommitted: () =>
                         _input.commitCastWithAim(clearAim: true),
-                    onAimDir: _input.setAimDir,
-                    onAimClear: _input.clearAimDir,
-                    aimPreview: _aimPreview,
+                    onProjectileAimDir: _input.setProjectileAimDir,
+                    onProjectileAimClear: _input.clearProjectileAimDir,
+                    projectileAimPreview: _projectileAimPreview,
+                    onMeleeAimDir: _input.setMeleeAimDir,
+                    onMeleeAimClear: _input.clearMeleeAimDir,
+                    onMeleeCommitted: _input.commitMeleeAttack,
+                    meleeAimPreview: _meleeAimPreview,
                   ),
                 ),
                 PauseOverlay(visible: uiState.showPauseOverlay),

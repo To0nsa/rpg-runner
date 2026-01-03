@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import '../../snapshots/enums.dart';
 import '../../tuning/v0_ability_tuning.dart';
 import '../../tuning/v0_movement_tuning.dart';
@@ -6,15 +8,16 @@ import '../stores/melee_intent_store.dart';
 import '../world.dart';
 
 class PlayerMeleeSystem {
-  const PlayerMeleeSystem({
-    required this.abilities,
-    required this.movement,
-  });
+  const PlayerMeleeSystem({required this.abilities, required this.movement});
 
   final V0AbilityTuningDerived abilities;
   final V0MovementTuningDerived movement;
 
-  void step(EcsWorld world, {required EntityId player, required int currentTick}) {
+  void step(
+    EcsWorld world, {
+    required EntityId player,
+    required int currentTick,
+  }) {
     _trySpawnPlayerMelee(world, player: player, currentTick: currentTick);
   }
 
@@ -39,7 +42,20 @@ class PlayerMeleeSystem {
 
     final mi = world.movement.indexOf(player);
     final facing = world.movement.facing[mi];
-    final dirX = (facing == Facing.right) ? 1.0 : -1.0;
+    final aimX = world.playerInput.meleeAimDirX[ii];
+    final aimY = world.playerInput.meleeAimDirY[ii];
+    final len2 = aimX * aimX + aimY * aimY;
+
+    final double dirX;
+    final double dirY;
+    if (len2 > 1e-12) {
+      final invLen = 1.0 / sqrt(len2);
+      dirX = aimX * invLen;
+      dirY = aimY * invLen;
+    } else {
+      dirX = (facing == Facing.right) ? 1.0 : -1.0;
+      dirY = 0.0;
+    }
 
     final halfX = abilities.base.meleeHitboxSizeX * 0.5;
     final halfY = abilities.base.meleeHitboxSizeY * 0.5;
@@ -47,9 +63,9 @@ class PlayerMeleeSystem {
     // origin = playerPos + aimDir * (playerRadius * 0.5) for casts
     // melee uses facing-only:
     // center = playerPos + dirX * (playerRadius * 0.5 + halfX)
-    final forward = movement.base.playerRadius * 0.5 + halfX;
+    final forward = movement.base.playerRadius * 0.5 + max(halfX, halfY);
     final offsetX = dirX * forward;
-    const offsetY = 0.0;
+    final offsetY = dirY * forward;
 
     // IMPORTANT: PlayerMeleeSystem writes intent only; execution happens in
     // `MeleeAttackSystem` which owns stamina/cooldown rules and hitbox spawning.

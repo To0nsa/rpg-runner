@@ -5,7 +5,7 @@ import '../game_controller.dart';
 
 /// Shared input scheduler for multiple input sources (touch + keyboard + mouse).
 ///
-/// - Holds the current continuous inputs (move axis, aim direction).
+/// - Holds the current continuous inputs (move axis, projectile aim direction).
 /// - Schedules them into the GameController for upcoming ticks so Core receives
 ///   tick-stamped Commands.
 /// - Schedules edge-triggered presses (jump/dash/attack/cast) for the next tick.
@@ -20,14 +20,23 @@ class RunnerInputRouter {
   double _lastScheduledAxis = 0;
   int _axisScheduledThroughTick = 0;
 
-  bool _aimSet = false;
-  bool _lastScheduledAimSet = false;
-  double _aimX = 0;
-  double _aimY = 0;
-  double _lastScheduledAimX = 0;
-  double _lastScheduledAimY = 0;
-  int _aimScheduledThroughTick = 0;
-  int _aimClearBlockedThroughTick = 0;
+  bool _projectileAimSet = false;
+  bool _projectileLastScheduledAimSet = false;
+  double _projectileAimX = 0;
+  double _projectileAimY = 0;
+  double _projectileLastScheduledAimX = 0;
+  double _projectileLastScheduledAimY = 0;
+  int _projectileAimScheduledThroughTick = 0;
+  int _projectileAimClearBlockedThroughTick = 0;
+
+  bool _meleeAimSet = false;
+  bool _lastScheduledMeleeAimSet = false;
+  double _meleeAimX = 0;
+  double _meleeAimY = 0;
+  double _lastScheduledMeleeAimX = 0;
+  double _lastScheduledMeleeAimY = 0;
+  int _meleeAimScheduledThroughTick = 0;
+  int _meleeAimClearBlockedThroughTick = 0;
 
   static double _quantizeAim(double value) {
     if (value == 0) return 0;
@@ -38,66 +47,116 @@ class RunnerInputRouter {
     _moveAxis = axis.clamp(-1.0, 1.0);
   }
 
-  /// Sets the aim direction (should be normalized or near-normalized).
-  void setAimDir(double x, double y) {
+  /// Sets the projectile aim direction (should be normalized or near-normalized).
+  void setProjectileAimDir(double x, double y) {
     final qx = _quantizeAim(x);
     final qy = _quantizeAim(y);
 
-    if (_aimSet && qx == _aimX && qy == _aimY) {
+    if (_projectileAimSet && qx == _projectileAimX && qy == _projectileAimY) {
       return;
     }
 
-    _aimSet = true;
-    _aimX = qx;
-    _aimY = qy;
+    _projectileAimSet = true;
+    _projectileAimX = qx;
+    _projectileAimY = qy;
   }
 
-  void clearAimDir() {
-    _aimSet = false;
-    _aimX = 0;
-    _aimY = 0;
+  void clearProjectileAimDir() {
+    _projectileAimSet = false;
+    _projectileAimX = 0;
+    _projectileAimY = 0;
   }
 
-  void pressJump() => controller.enqueueForNextTick(
-        (tick) => JumpPressedCommand(tick: tick),
-      );
+  /// Sets the melee aim direction (should be normalized or near-normalized).
+  void setMeleeAimDir(double x, double y) {
+    final qx = _quantizeAim(x);
+    final qy = _quantizeAim(y);
 
-  void pressDash() => controller.enqueueForNextTick(
-        (tick) => DashPressedCommand(tick: tick),
-      );
+    if (_meleeAimSet && qx == _meleeAimX && qy == _meleeAimY) {
+      return;
+    }
 
-  void pressAttack() => controller.enqueueForNextTick(
-        (tick) => AttackPressedCommand(tick: tick),
-      );
+    _meleeAimSet = true;
+    _meleeAimX = qx;
+    _meleeAimY = qy;
+  }
 
-  void pressCast() => controller.enqueueForNextTick(
-        (tick) => CastPressedCommand(tick: tick),
-      );
+  void clearMeleeAimDir() {
+    _meleeAimSet = false;
+    _meleeAimX = 0;
+    _meleeAimY = 0;
+  }
 
-  /// Presses cast on the next tick and ensures the aim direction is set for the same tick.
+  void pressJump() =>
+      controller.enqueueForNextTick((tick) => JumpPressedCommand(tick: tick));
+
+  void pressDash() =>
+      controller.enqueueForNextTick((tick) => DashPressedCommand(tick: tick));
+
+  void pressAttack() =>
+      controller.enqueueForNextTick((tick) => AttackPressedCommand(tick: tick));
+
+  void pressCast() =>
+      controller.enqueueForNextTick((tick) => CastPressedCommand(tick: tick));
+
+  /// Presses cast on the next tick and ensures the projectile aim direction is set
+  /// for the same tick.
   void pressCastWithAim() {
     commitCastWithAim(clearAim: false);
   }
 
-  /// Commits cast on the next tick using the current aim dir (if set).
+  /// Commits cast on the next tick using the current projectile aim dir (if set).
   ///
   /// When [clearAim] is true, clear commands are delayed until after the cast
   /// tick to avoid overwriting the aimed cast.
   void commitCastWithAim({required bool clearAim}) {
     final tick = controller.tick + controller.inputLead;
-    final hadAim = _aimSet;
+    final hadAim = _projectileAimSet;
     if (hadAim) {
-      controller.enqueue(AimDirCommand(tick: tick, x: _aimX, y: _aimY));
+      controller.enqueue(
+        ProjectileAimDirCommand(
+          tick: tick,
+          x: _projectileAimX,
+          y: _projectileAimY,
+        ),
+      );
     }
     controller.enqueue(CastPressedCommand(tick: tick));
     if (clearAim) {
-      _aimSet = false;
-      _aimX = 0;
-      _aimY = 0;
+      _projectileAimSet = false;
+      _projectileAimX = 0;
+      _projectileAimY = 0;
       if (hadAim) {
-        _aimClearBlockedThroughTick =
-            max(_aimClearBlockedThroughTick, tick);
+        _projectileAimClearBlockedThroughTick = max(
+          _projectileAimClearBlockedThroughTick,
+          tick,
+        );
       }
+    }
+  }
+
+  /// Commits a melee attack on the next tick using the current melee aim dir.
+  void commitMeleeAttack() {
+    final tick = controller.tick + controller.inputLead;
+    final hadAim = _meleeAimSet;
+    if (hadAim) {
+      controller.enqueue(
+        MeleeAimDirCommand(tick: tick, x: _meleeAimX, y: _meleeAimY),
+      );
+    } else {
+      controller.enqueue(ClearMeleeAimDirCommand(tick: tick));
+    }
+    controller.enqueue(AttackPressedCommand(tick: tick));
+
+    // Clear aim after commit (release behavior).
+    _meleeAimSet = false;
+    _meleeAimX = 0;
+    _meleeAimY = 0;
+    if (hadAim) {
+      _meleeAimClearBlockedThroughTick = max(
+        _meleeAimClearBlockedThroughTick,
+        tick,
+      );
     }
   }
 
@@ -106,7 +165,8 @@ class RunnerInputRouter {
   /// Call once per frame before `controller.advanceFrame(dt)`.
   void pumpHeldInputs() {
     _scheduleHeldMoveAxis();
-    _scheduleHeldAimDir();
+    _scheduleHeldProjectileAimDir();
+    _scheduleHeldMeleeAimDir();
   }
 
   void _scheduleHeldMoveAxis() {
@@ -136,42 +196,96 @@ class RunnerInputRouter {
     _axisScheduledThroughTick = targetMaxTick;
   }
 
-  void _scheduleHeldAimDir() {
-    if (!_aimSet && !_lastScheduledAimSet) {
+  void _scheduleHeldProjectileAimDir() {
+    if (!_projectileAimSet && !_projectileLastScheduledAimSet) {
       // No held aim and nothing to override.
-      _aimScheduledThroughTick = controller.tick;
+      _projectileAimScheduledThroughTick = controller.tick;
       return;
     }
 
-    if (_aimSet != _lastScheduledAimSet) {
-      _aimScheduledThroughTick = controller.tick;
-      _lastScheduledAimSet = _aimSet;
-      _lastScheduledAimX = _aimX;
-      _lastScheduledAimY = _aimY;
+    if (_projectileAimSet != _projectileLastScheduledAimSet) {
+      _projectileAimScheduledThroughTick = controller.tick;
+      _projectileLastScheduledAimSet = _projectileAimSet;
+      _projectileLastScheduledAimX = _projectileAimX;
+      _projectileLastScheduledAimY = _projectileAimY;
     }
 
-    if (_aimSet && (_aimX != _lastScheduledAimX || _aimY != _lastScheduledAimY)) {
-      // Reschedule ahead when the aim vector changes.
-      _aimScheduledThroughTick = controller.tick;
-      _lastScheduledAimX = _aimX;
-      _lastScheduledAimY = _aimY;
+    if (_projectileAimSet &&
+        (_projectileAimX != _projectileLastScheduledAimX ||
+            _projectileAimY != _projectileLastScheduledAimY)) {
+      // Reschedule ahead when the projectile aim vector changes.
+      _projectileAimScheduledThroughTick = controller.tick;
+      _projectileLastScheduledAimX = _projectileAimX;
+      _projectileLastScheduledAimY = _projectileAimY;
     }
 
     final maxTicksPerFrame = (controller.tickHz * 0.1).ceil();
     final targetMaxTick =
         controller.tick + controller.inputLead + maxTicksPerFrame;
 
-    var startTick = max(controller.tick + 1, _aimScheduledThroughTick + 1);
-    if (!_aimSet) {
-      startTick = max(startTick, _aimClearBlockedThroughTick + 1);
+    var startTick = max(
+      controller.tick + 1,
+      _projectileAimScheduledThroughTick + 1,
+    );
+    if (!_projectileAimSet) {
+      startTick = max(startTick, _projectileAimClearBlockedThroughTick + 1);
     }
     for (var t = startTick; t <= targetMaxTick; t += 1) {
-      if (_aimSet) {
-        controller.enqueue(AimDirCommand(tick: t, x: _aimX, y: _aimY));
+      if (_projectileAimSet) {
+        controller.enqueue(
+          ProjectileAimDirCommand(
+            tick: t,
+            x: _projectileAimX,
+            y: _projectileAimY,
+          ),
+        );
       } else {
-        controller.enqueue(ClearAimDirCommand(tick: t));
+        controller.enqueue(ClearProjectileAimDirCommand(tick: t));
       }
     }
-    _aimScheduledThroughTick = targetMaxTick;
+    _projectileAimScheduledThroughTick = targetMaxTick;
+  }
+
+  void _scheduleHeldMeleeAimDir() {
+    if (!_meleeAimSet && !_lastScheduledMeleeAimSet) {
+      // No held aim and nothing to override.
+      _meleeAimScheduledThroughTick = controller.tick;
+      return;
+    }
+
+    if (_meleeAimSet != _lastScheduledMeleeAimSet) {
+      _meleeAimScheduledThroughTick = controller.tick;
+      _lastScheduledMeleeAimSet = _meleeAimSet;
+      _lastScheduledMeleeAimX = _meleeAimX;
+      _lastScheduledMeleeAimY = _meleeAimY;
+    }
+
+    if (_meleeAimSet &&
+        (_meleeAimX != _lastScheduledMeleeAimX ||
+            _meleeAimY != _lastScheduledMeleeAimY)) {
+      // Reschedule ahead when the aim vector changes.
+      _meleeAimScheduledThroughTick = controller.tick;
+      _lastScheduledMeleeAimX = _meleeAimX;
+      _lastScheduledMeleeAimY = _meleeAimY;
+    }
+
+    final maxTicksPerFrame = (controller.tickHz * 0.1).ceil();
+    final targetMaxTick =
+        controller.tick + controller.inputLead + maxTicksPerFrame;
+
+    var startTick = max(controller.tick + 1, _meleeAimScheduledThroughTick + 1);
+    if (!_meleeAimSet) {
+      startTick = max(startTick, _meleeAimClearBlockedThroughTick + 1);
+    }
+    for (var t = startTick; t <= targetMaxTick; t += 1) {
+      if (_meleeAimSet) {
+        controller.enqueue(
+          MeleeAimDirCommand(tick: t, x: _meleeAimX, y: _meleeAimY),
+        );
+      } else {
+        controller.enqueue(ClearMeleeAimDirCommand(tick: t));
+      }
+    }
+    _meleeAimScheduledThroughTick = targetMaxTick;
   }
 }

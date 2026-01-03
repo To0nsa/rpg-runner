@@ -36,23 +36,43 @@ final class AttackPressedCommand extends Command {
   const AttackPressedCommand({required super.tick});
 }
 
-/// Continuous aim direction for the given tick.
+/// Continuous projectile aim direction for the given tick.
 ///
 /// The direction should be normalized (or near-normalized). It is expressed in
 /// world space and used by casting/abilities.
-final class AimDirCommand extends Command {
-  const AimDirCommand({required super.tick, required this.x, required this.y});
+final class ProjectileAimDirCommand extends Command {
+  const ProjectileAimDirCommand({required super.tick, required this.x, required this.y});
 
   final double x;
   final double y;
 }
 
-/// Clears any held aim direction for the given tick.
+/// Continuous melee aim direction for the given tick.
+///
+/// The direction should be normalized (or near-normalized). It is expressed in
+/// world space and used by melee attacks.
+final class MeleeAimDirCommand extends Command {
+  const MeleeAimDirCommand({
+    required super.tick,
+    required this.x,
+    required this.y,
+  });
+
+  final double x;
+  final double y;
+}
+
+/// Clears any held projectile aim direction for the given tick.
 ///
 /// This exists so input schedulers that pre-buffer future ticks can overwrite
 /// previously-scheduled aim commands when the player releases aim input.
-final class ClearAimDirCommand extends Command {
-  const ClearAimDirCommand({required super.tick});
+final class ClearProjectileAimDirCommand extends Command {
+  const ClearProjectileAimDirCommand({required super.tick});
+}
+
+/// Clears any held melee aim direction for the given tick.
+final class ClearMeleeAimDirCommand extends Command {
+  const ClearMeleeAimDirCommand({required super.tick});
 }
 
 /// One-shot cast press event for the given tick.
