@@ -138,6 +138,7 @@ class RunnerFlameGame extends FlameGame {
         controller: controller,
         preview: projectileAimPreview,
         length: v0ProjectileAimRayLength,
+        drawWhenNoAim: false,
       )..priority = 5,
     );
 
