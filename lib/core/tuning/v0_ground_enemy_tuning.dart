@@ -10,7 +10,7 @@ class V0GroundEnemyTuning {
     this.groundEnemyMeleeRangeX = 26.0,
     this.groundEnemyMeleeCooldownSeconds = 1.0,
     this.groundEnemyMeleeActiveSeconds = 0.10,
-    this.groundEnemyMeleeDamage = 15.0,
+    this.groundEnemyMeleeDamage = 5.0,
     this.groundEnemyMeleeHitboxSizeX = 28.0,
     this.groundEnemyMeleeHitboxSizeY = 16.0,
   });

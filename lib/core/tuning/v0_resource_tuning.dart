@@ -4,11 +4,11 @@
 class V0ResourceTuning {
   const V0ResourceTuning({
     this.playerHpMax = 100,
-    this.playerHpRegenPerSecond = 1,
+    this.playerHpRegenPerSecond = 0.5,
     this.playerManaMax = 100,
-    this.playerManaRegenPerSecond = 3,
+    this.playerManaRegenPerSecond = 2.0,
     this.playerStaminaMax = 100,
-    this.playerStaminaRegenPerSecond = 1,
+    this.playerStaminaRegenPerSecond = 1.0,
     this.jumpStaminaCost = 2,
     this.dashStaminaCost = 2,
   });

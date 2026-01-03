@@ -31,12 +31,12 @@ class SpellCatalog {
     switch (id) {
       case SpellId.iceBolt:
         return const SpellDef(
-          stats: ProjectileSpellStats(manaCost: 10.0, damage: 25.0),
+          stats: ProjectileSpellStats(manaCost: 10.0, damage: 15.0),
           projectileId: ProjectileId.iceBolt,
         );
       case SpellId.lightning:
         return const SpellDef(
-          stats: ProjectileSpellStats(manaCost: 10.0, damage: 10.0),
+          stats: ProjectileSpellStats(manaCost: 10.0, damage: 5.0),
           projectileId: ProjectileId.lightningBolt,
         );
     }

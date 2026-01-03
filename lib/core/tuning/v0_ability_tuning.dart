@@ -5,8 +5,8 @@ class V0AbilityTuning {
     this.castCooldownSeconds = 0.25,
     this.meleeCooldownSeconds = 0.30,
     this.meleeActiveSeconds = 0.10,
-    this.meleeStaminaCost = 15.0,
-    this.meleeDamage = 25.0,
+    this.meleeStaminaCost = 5.0,
+    this.meleeDamage = 15.0,
     this.meleeHitboxSizeX = 32.0,
     this.meleeHitboxSizeY = 16.0,
   });
