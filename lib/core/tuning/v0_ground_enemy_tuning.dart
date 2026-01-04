@@ -6,6 +6,11 @@ class V0GroundEnemyTuning {
     this.groundEnemyStopDistanceX = 6.0,
     this.groundEnemyAccelX = 600.0,
     this.groundEnemyDecelX = 400.0,
+    this.groundEnemyChaseOffsetMaxX = 18.0,
+    this.groundEnemyChaseOffsetMinAbsX = 6.0,
+    this.groundEnemyChaseOffsetMeleeX = 3.0,
+    this.groundEnemyChaseSpeedScaleMin = 0.92,
+    this.groundEnemyChaseSpeedScaleMax = 1.08,
     this.groundEnemyJumpSpeed = 600.0,
     this.groundEnemyMeleeRangeX = 26.0,
     this.groundEnemyMeleeCooldownSeconds = 1.0,
@@ -20,6 +25,11 @@ class V0GroundEnemyTuning {
   final double groundEnemyStopDistanceX;
   final double groundEnemyAccelX;
   final double groundEnemyDecelX;
+  final double groundEnemyChaseOffsetMaxX;
+  final double groundEnemyChaseOffsetMinAbsX;
+  final double groundEnemyChaseOffsetMeleeX;
+  final double groundEnemyChaseSpeedScaleMin;
+  final double groundEnemyChaseSpeedScaleMax;
 
   /// Instantaneous jump vertical speed (negative is upward).
   final double groundEnemyJumpSpeed;

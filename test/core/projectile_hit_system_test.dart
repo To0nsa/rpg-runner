@@ -23,6 +23,8 @@ import 'test_spawns.dart';
 void main() {
   test('ProjectileHitSystem damages target and despawns projectile', () {
     final world = EcsWorld();
+    const spellCatalog = SpellCatalog();
+    final iceBoltDamage = spellCatalog.get(SpellId.iceBolt).stats.damage;
 
     final player = world.createPlayer(
       posX: 100,
@@ -55,7 +57,7 @@ void main() {
     // Spawn a projectile overlapping the enemy.
     final projectile = spawnSpellProjectile(
       world,
-      spells: const SpellCatalog(),
+      spells: spellCatalog,
       projectiles: ProjectileCatalogDerived.from(const ProjectileCatalog(), tickHz: 60),
       spellId: SpellId.iceBolt,
       faction: Faction.player,
@@ -75,7 +77,10 @@ void main() {
     hits.step(world, damage.queue, broadphase);
     damage.step(world);
 
-    expect(world.health.hp[world.health.indexOf(enemy)], closeTo(75.0, 1e-9));
+    expect(
+      world.health.hp[world.health.indexOf(enemy)],
+      closeTo(100.0 - iceBoltDamage, 1e-9),
+    );
     expect(world.projectile.has(projectile!), isFalse);
   });
 }

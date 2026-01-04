@@ -327,6 +327,63 @@ class EnemySystem {
       return;
     }
 
+    if (!world.groundEnemyChaseOffset.has(enemy)) {
+      assert(
+        false,
+        'EnemySystem requires GroundEnemyChaseOffsetStore on ground enemies; add it at spawn time.',
+      );
+      return;
+    }
+
+    final chaseOffset = world.groundEnemyChaseOffset;
+    final chaseIndex = chaseOffset.indexOf(enemy);
+    var rngState = chaseOffset.rngState[chaseIndex];
+    if (!chaseOffset.initialized[chaseIndex]) {
+      final maxAbs = tuning.base.groundEnemyChaseOffsetMaxX.abs();
+      var offsetX = 0.0;
+      if (maxAbs > 0.0) {
+        rngState = nextUint32(rngState);
+        offsetX = rangeDouble(rngState, -maxAbs, maxAbs);
+        final minAbs = clampDouble(
+          tuning.base.groundEnemyChaseOffsetMinAbsX,
+          0.0,
+          maxAbs,
+        );
+        final absOffset = offsetX.abs();
+        if (absOffset < minAbs) {
+          offsetX = offsetX >= 0.0 ? minAbs : -minAbs;
+          if (absOffset == 0.0) {
+            offsetX = minAbs;
+          }
+        }
+      }
+
+      rngState = nextUint32(rngState);
+      final speedScale = rangeDouble(
+        rngState,
+        tuning.base.groundEnemyChaseSpeedScaleMin,
+        tuning.base.groundEnemyChaseSpeedScaleMax,
+      );
+      chaseOffset.initialized[chaseIndex] = true;
+      chaseOffset.chaseOffsetX[chaseIndex] = offsetX;
+      chaseOffset.chaseSpeedScale[chaseIndex] = speedScale;
+      chaseOffset.rngState[chaseIndex] = rngState;
+    }
+
+    final chaseOffsetX = chaseOffset.chaseOffsetX[chaseIndex];
+    final chaseSpeedScale = chaseOffset.chaseSpeedScale[chaseIndex];
+    final collapseDistX = tuning.base.groundEnemyMeleeRangeX +
+        tuning.base.groundEnemyStopDistanceX;
+    final distToPlayerX = (playerX - ex).abs();
+    final meleeOffsetMaxX = tuning.base.groundEnemyChaseOffsetMeleeX.abs();
+    final meleeOffsetAbs = min(meleeOffsetMaxX, chaseOffsetX.abs());
+    final meleeOffsetX = meleeOffsetAbs == 0.0
+        ? 0.0
+        : (chaseOffsetX >= 0.0 ? meleeOffsetAbs : -meleeOffsetAbs);
+    final effectiveTargetX = distToPlayerX <= collapseDistX
+        ? playerX + meleeOffsetX
+        : playerX + chaseOffsetX;
+
     final graph = _surfaceGraph;
     final spatialIndex = _surfaceIndex;
     SurfaceNavIntent intent;
@@ -334,7 +391,7 @@ class EnemySystem {
         spatialIndex == null ||
         !world.colliderAabb.has(enemy)) {
       intent = SurfaceNavIntent(
-        desiredX: playerX,
+        desiredX: effectiveTargetX,
         jumpNow: false,
         hasPlan: false,
       );
@@ -358,23 +415,28 @@ class EnemySystem {
         entityBottomY: enemyBottomY,
         entityHalfWidth: enemyHalfX,
         entityGrounded: grounded,
-        targetX: playerX,
+        targetX: effectiveTargetX,
         targetBottomY: playerBottomY,
         targetHalfWidth: playerHalfX,
         targetGrounded: playerGrounded,
       );
     }
 
+    // Speed scale is intended to break symmetric chasing overlaps, but keep
+    // navigation edge execution stable (jump/drop takeoffs) by using base speed
+    // while following a plan.
+    final effectiveSpeedScale = intent.hasPlan ? 1.0 : chaseSpeedScale;
+
     final dx = intent.desiredX - ex;
     double desiredVelX = 0.0;
     if (intent.commitMoveDirX != 0) {
       final dirX = intent.commitMoveDirX.toDouble();
       world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
-      desiredVelX = dirX * tuning.base.groundEnemySpeedX;
+      desiredVelX = dirX * tuning.base.groundEnemySpeedX * effectiveSpeedScale;
     } else if (dx.abs() > tuning.base.groundEnemyStopDistanceX) {
       final dirX = dx >= 0 ? 1.0 : -1.0;
       world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
-      desiredVelX = dirX * tuning.base.groundEnemySpeedX;
+      desiredVelX = dirX * tuning.base.groundEnemySpeedX * effectiveSpeedScale;
     }
 
     if (intent.jumpNow) {

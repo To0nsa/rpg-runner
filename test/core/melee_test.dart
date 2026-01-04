@@ -5,12 +5,24 @@ import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/game_core.dart';
 import 'package:walkscape_runner/core/players/player_catalog.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
+import 'package:walkscape_runner/core/tuning/v0_ability_tuning.dart';
 import 'package:walkscape_runner/core/tuning/v0_resource_tuning.dart';
 
 import '../test_tunings.dart';
 
 void main() {
   test('melee: attack spawns hitbox for active ticks', () {
+    const abilityTuning = V0AbilityTuning();
+    const resourceTuning = V0ResourceTuning(
+      playerStaminaMax: 100,
+      playerStaminaRegenPerSecond: 0,
+      playerManaRegenPerSecond: 0,
+      playerHpRegenPerSecond: 0,
+    );
+    final abilityDerived = V0AbilityTuningDerived.from(
+      abilityTuning,
+      tickHz: 60,
+    );
     final core = GameCore(
       seed: 1,
       tickHz: 60,
@@ -18,12 +30,8 @@ void main() {
         bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
       ),
       cameraTuning: noAutoscrollCameraTuning,
-      resourceTuning: const V0ResourceTuning(
-        playerStaminaMax: 100,
-        playerStaminaRegenPerSecond: 0,
-        playerManaRegenPerSecond: 0,
-        playerHpRegenPerSecond: 0,
-      ),
+      resourceTuning: resourceTuning,
+      abilityTuning: abilityTuning,
     );
 
     final playerX = core.playerPosX;
@@ -39,8 +47,14 @@ void main() {
     expect(hitboxes.length, 1);
     expect(hitboxes.single.pos.x, closeTo(playerX + 20.0, 1e-9));
     expect(hitboxes.single.pos.y, closeTo(playerY, 1e-9));
-    expect(snapshot.hud.stamina, closeTo(85.0, 1e-9));
-    expect(core.playerMeleeCooldownTicksLeft, 18); // ceil(0.30s * 60Hz)
+    expect(
+      snapshot.hud.stamina,
+      closeTo(
+        resourceTuning.playerStaminaMax - abilityTuning.meleeStaminaCost,
+        1e-9,
+      ),
+    );
+    expect(core.playerMeleeCooldownTicksLeft, abilityDerived.meleeCooldownTicks);
 
     // Hitbox should exist for 6 ticks total (including the spawn tick).
     for (var t = 2; t <= 5; t += 1) {
@@ -63,6 +77,13 @@ void main() {
   });
 
   test('melee: uses aim direction when provided', () {
+    const abilityTuning = V0AbilityTuning();
+    const resourceTuning = V0ResourceTuning(
+      playerStaminaMax: 100,
+      playerStaminaRegenPerSecond: 0,
+      playerManaRegenPerSecond: 0,
+      playerHpRegenPerSecond: 0,
+    );
     final core = GameCore(
       seed: 1,
       tickHz: 60,
@@ -70,12 +91,8 @@ void main() {
         bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
       ),
       cameraTuning: noAutoscrollCameraTuning,
-      resourceTuning: const V0ResourceTuning(
-        playerStaminaMax: 100,
-        playerStaminaRegenPerSecond: 0,
-        playerManaRegenPerSecond: 0,
-        playerHpRegenPerSecond: 0,
-      ),
+      resourceTuning: resourceTuning,
+      abilityTuning: abilityTuning,
     );
 
     final playerX = core.playerPosX;

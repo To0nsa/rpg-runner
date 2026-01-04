@@ -10,6 +10,7 @@ import 'stores/gravity_control_store.dart';
 import 'stores/flying_enemy_steering_store.dart';
 import 'stores/faction_store.dart';
 import 'stores/enemy_store.dart';
+import 'stores/ground_enemy_chase_offset_store.dart';
 import 'stores/health_store.dart';
 import 'stores/hit_once_store.dart';
 import 'stores/hitbox_store.dart';
@@ -61,6 +62,8 @@ class EcsWorld {
   final SurfaceNavStateStore surfaceNav = SurfaceNavStateStore();
   final EnemyStore enemy = EnemyStore();
   final FlyingEnemySteeringStore flyingEnemySteering = FlyingEnemySteeringStore();
+  final GroundEnemyChaseOffsetStore groundEnemyChaseOffset =
+      GroundEnemyChaseOffsetStore();
 
   EntityId createEntity() {
     final id = _nextEntityId;
@@ -136,6 +139,10 @@ class EcsWorld {
     }
     if (enemyId == EnemyId.groundEnemy) {
       surfaceNav.add(id);
+      groundEnemyChaseOffset.add(
+        id,
+        GroundEnemyChaseOffsetDef(rngState: seedFrom(seed, id)),
+      );
     }
     return id;
   }
@@ -164,5 +171,6 @@ class EcsWorld {
     surfaceNav.removeEntity(entity);
     enemy.removeEntity(entity);
     flyingEnemySteering.removeEntity(entity);
+    groundEnemyChaseOffset.removeEntity(entity);
   }
 }

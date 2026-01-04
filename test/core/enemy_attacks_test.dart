@@ -31,6 +31,8 @@ import 'test_spawns.dart';
 void main() {
   test('enemy projectile (lightning) damages player', () {
     final world = EcsWorld();
+    const spellCatalog = SpellCatalog();
+    final lightningDamage = spellCatalog.get(SpellId.lightning).stats.damage;
 
     final player = world.createPlayer(
       posX: 100,
@@ -62,7 +64,7 @@ void main() {
 
     final p = spawnSpellProjectile(
       world,
-      spells: const SpellCatalog(),
+      spells: spellCatalog,
       projectiles: ProjectileCatalogDerived.from(const ProjectileCatalog(), tickHz: 60),
       spellId: SpellId.lightning,
       faction: Faction.enemy,
@@ -82,7 +84,10 @@ void main() {
     hit.step(world, damage.queue, broadphase);
     damage.step(world);
 
-    expect(world.health.hp[world.health.indexOf(player)], closeTo(90.0, 1e-9));
+    expect(
+      world.health.hp[world.health.indexOf(player)],
+      closeTo(100.0 - lightningDamage, 1e-9),
+    );
     expect(world.projectile.has(p!), isFalse);
   });
 
@@ -132,6 +137,8 @@ void main() {
       ),
       tickHz: 60,
     );
+    final expectedHp =
+        100.0 - groundEnemyTuning.base.groundEnemyMeleeDamage;
 
     final system = EnemySystem(
       flyingEnemyTuning: flyingEnemyTuning,
@@ -165,12 +172,18 @@ void main() {
     hitboxDamage.step(world, damage.queue, broadphase);
     damage.step(world);
 
-    expect(world.health.hp[world.health.indexOf(player)], closeTo(85.0, 1e-9));
+    expect(
+      world.health.hp[world.health.indexOf(player)],
+      closeTo(expectedHp, 1e-9),
+    );
 
     // Same tick again should be blocked by HitOnce (hitbox still alive).
     hitboxDamage.step(world, damage.queue, broadphase);
     damage.step(world);
-    expect(world.health.hp[world.health.indexOf(player)], closeTo(85.0, 1e-9));
+    expect(
+      world.health.hp[world.health.indexOf(player)],
+      closeTo(expectedHp, 1e-9),
+    );
 
     // And ground enemy should have a melee cooldown set.
     expect(
