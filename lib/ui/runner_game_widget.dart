@@ -7,13 +7,8 @@ import '../game/game_controller.dart';
 import '../game/input/aim_preview.dart';
 import '../game/input/runner_input_router.dart';
 import '../game/runner_flame_game.dart';
-import 'controls/runner_controls_overlay.dart';
-import 'hud/game_over_overlay.dart';
-import 'hud/player_hud_overlay.dart';
-import 'hud/pause_overlay.dart';
-import 'hud/ready_overlay.dart';
-import 'hud/top_right_hud_overlay.dart';
-import 'hud/timer_row_overlay.dart';
+import 'hud/game/game_overlay.dart';
+import 'hud/gameover/game_over_overlay.dart';
 import 'runner_game_ui_state.dart';
 import 'viewport/game_viewport.dart';
 import 'viewport/viewport_metrics.dart';
@@ -202,7 +197,6 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
           animation: _controller,
           builder: (context, _) {
             final uiState = _buildUiState();
-            final hud = _controller.snapshot.hud;
             if (uiState.gameOver) {
               final runEndedEvent = _controller.lastRunEndedEvent;
               final runEndKey = runEndedEvent?.tick ?? _controller.snapshot.tick;
@@ -217,64 +211,18 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                 tickHz: _controller.tickHz,
               );
             }
-            return Stack(
-              fit: StackFit.expand,
-              children: [
-                IgnorePointer(
-                  ignoring: !uiState.isRunning,
-                  child: RunnerControlsOverlay(
-                    onMoveAxis: _input.setMoveAxis,
-                    onJumpPressed: _input.pressJump,
-                    onDashPressed: _input.pressDash,
-                    onCastCommitted: () =>
-                        _input.commitCastWithAim(clearAim: true),
-                    onProjectileAimDir: _input.setProjectileAimDir,
-                    onProjectileAimClear: _input.clearProjectileAimDir,
-                    projectileAimPreview: _projectileAimPreview,
-                    projectileAffordable: hud.canAffordProjectile,
-                    projectileCooldownTicksLeft:
-                        hud.projectileCooldownTicksLeft,
-                    projectileCooldownTicksTotal:
-                        hud.projectileCooldownTicksTotal,
-                    onMeleeAimDir: _input.setMeleeAimDir,
-                    onMeleeAimClear: _input.clearMeleeAimDir,
-                    onMeleeCommitted: _input.commitMeleeAttack,
-                    meleeAimPreview: _meleeAimPreview,
-                    meleeAffordable: hud.canAffordMelee,
-                    meleeCooldownTicksLeft: hud.meleeCooldownTicksLeft,
-                    meleeCooldownTicksTotal: hud.meleeCooldownTicksTotal,
-                    jumpAffordable: hud.canAffordJump,
-                    dashAffordable: hud.canAffordDash,
-                    dashCooldownTicksLeft: hud.dashCooldownTicksLeft,
-                    dashCooldownTicksTotal: hud.dashCooldownTicksTotal,
-                  ),
-                ),
-                PauseOverlay(visible: uiState.showPauseOverlay),
-                ReadyOverlay(
-                  visible: uiState.showReadyOverlay,
-                  onTap: _startGame,
-                ),
-                Align(
-                  alignment: Alignment.topLeft,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: PlayerHudOverlay(controller: _controller),
-                  ),
-                ),
-                TimerRowOverlay(
-                  controller: _controller,
-                  uiState: uiState,
-                  onStart: _startGame,
-                  onTogglePause: _togglePause,
-                ),
-                TopRightHudOverlay(
-                  controller: _controller,
-                  showExitButton: widget.showExitButton,
-                  onExit: uiState.started && !uiState.gameOver
-                      ? _controller.giveUp
-                      : widget.onExit,
-                ),
-              ],
+            return GameOverlay(
+              controller: _controller,
+              input: _input,
+              projectileAimPreview: _projectileAimPreview,
+              meleeAimPreview: _meleeAimPreview,
+              uiState: uiState,
+              onStart: _startGame,
+              onTogglePause: _togglePause,
+              showExitButton: widget.showExitButton,
+              onExit: uiState.started && !uiState.gameOver
+                  ? _controller.giveUp
+                  : widget.onExit,
             );
           },
         ),

@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:walkscape_runner/core/events/game_event.dart';
 import 'package:walkscape_runner/core/tuning/v0_score_tuning.dart';
-import 'package:walkscape_runner/ui/hud/game_over_overlay.dart';
+import 'package:walkscape_runner/ui/hud/gameover/game_over_overlay.dart';
 
 RunEndedEvent _buildEvent() {
   return const RunEndedEvent(

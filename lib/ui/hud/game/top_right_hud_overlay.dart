@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../game/game_controller.dart';
+import '../../../game/game_controller.dart';
 import 'score_overlay.dart';
 
 class TopRightHudOverlay extends StatelessWidget {

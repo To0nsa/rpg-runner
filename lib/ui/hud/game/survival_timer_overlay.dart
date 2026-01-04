@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import '../../game/game_controller.dart';
+import '../../../game/game_controller.dart';
 
 class SurvivalTimerOverlay extends StatelessWidget {
   const SurvivalTimerOverlay({

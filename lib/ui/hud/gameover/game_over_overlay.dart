@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
-import '../../core/enemies/enemy_id.dart';
-import '../../core/events/game_event.dart';
-import '../../core/projectiles/projectile_id.dart';
-import '../../core/scoring/run_score_breakdown.dart';
-import '../../core/tuning/v0_score_tuning.dart';
-// import '../../core/spells/spell_id.dart';
+import '../../../core/enemies/enemy_id.dart';
+import '../../../core/events/game_event.dart';
+import '../../../core/projectiles/projectile_id.dart';
+import '../../../core/scoring/run_score_breakdown.dart';
+import '../../../core/tuning/v0_score_tuning.dart';
+// import '../../../core/spells/spell_id.dart';
 
 class GameOverOverlay extends StatefulWidget {
   const GameOverOverlay({

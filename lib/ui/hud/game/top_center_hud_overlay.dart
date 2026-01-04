@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../../game/game_controller.dart';
+import '../../../game/game_controller.dart';
 import 'survival_timer_overlay.dart';
-import '../runner_game_ui_state.dart';
+import '../../runner_game_ui_state.dart';
+import 'start_pause_button_overlay.dart';
 
-class TimerRowOverlay extends StatelessWidget {
-  const TimerRowOverlay({
+class TopCenterHudOverlay extends StatelessWidget {
+  const TopCenterHudOverlay({
     super.key,
     required this.controller,
     required this.uiState,
@@ -29,19 +30,10 @@ class TimerRowOverlay extends StatelessWidget {
           children: [
             SurvivalTimerOverlay(controller: controller),
             const SizedBox(width: 8),
-            IconButton(
-              onPressed: uiState.gameOver
-                  ? null
-                  : () {
-                      if (!uiState.started) {
-                        onStart();
-                        return;
-                      }
-                      onTogglePause();
-                    },
-              icon: Icon(uiState.paused ? Icons.play_arrow : Icons.pause),
-              color: Colors.white,
-              tooltip: uiState.paused ? 'Play' : 'Pause',
+            StartPauseButtonOverlay(
+              uiState: uiState,
+              onStart: onStart,
+              onTogglePause: onTogglePause,
             ),
           ],
         ),

@@ -1,9 +1,9 @@
 import 'package:flutter/widgets.dart';
 
-import '../../game/game_controller.dart';
+import '../../../game/game_controller.dart';
 
-class PlayerHudOverlay extends StatelessWidget {
-  const PlayerHudOverlay({required this.controller, super.key});
+class TopLeftHudOverlay extends StatelessWidget {
+  const TopLeftHudOverlay({required this.controller, super.key});
 
   final GameController controller;
 
@@ -24,7 +24,7 @@ class PlayerHudOverlay extends StatelessWidget {
             child: SizedBox(
               width: _barWidth,
               height: totalHeight,
-              
+
               child: CustomPaint(
                 painter: _HudBarsPainter(
                   hp: hud.hp,
