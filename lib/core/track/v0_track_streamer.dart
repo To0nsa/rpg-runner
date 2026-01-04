@@ -4,6 +4,26 @@ import '../tuning/v0_track_tuning.dart';
 
 typedef SpawnEnemy = void Function(EnemyId enemyId, double x);
 
+class V0TrackSpawnedChunk {
+  const V0TrackSpawnedChunk({
+    required this.index,
+    required this.startX,
+  });
+
+  final int index;
+  final double startX;
+}
+
+class V0TrackStreamStepResult {
+  const V0TrackStreamStepResult({
+    required this.changed,
+    required this.spawnedChunks,
+  });
+
+  final bool changed;
+  final List<V0TrackSpawnedChunk> spawnedChunks;
+}
+
 class V0ChunkPattern {
   const V0ChunkPattern({
     required this.name,
@@ -41,15 +61,21 @@ class V0TrackStreamer {
 
   /// Advances chunk streaming based on the current camera bounds.
   ///
-  /// Returns true if the streamed geometry changed (spawn/cull occurred).
-  bool step({
+  /// Returns a step result (spawned chunks + whether geometry changed).
+  V0TrackStreamStepResult step({
     required double cameraLeft,
     required double cameraRight,
     required SpawnEnemy spawnEnemy,
   }) {
-    if (!tuning.enabled) return false;
+    if (!tuning.enabled) {
+      return const V0TrackStreamStepResult(
+        changed: false,
+        spawnedChunks: <V0TrackSpawnedChunk>[],
+      );
+    }
 
     var changed = false;
+    final spawnedChunks = <V0TrackSpawnedChunk>[];
 
     // Spawn new chunks ahead of the camera.
     final spawnLimitX = cameraRight + tuning.spawnAheadMargin;
@@ -71,6 +97,9 @@ class V0TrackStreamer {
           endX: endX,
           solids: solids,
         ),
+      );
+      spawnedChunks.add(
+        V0TrackSpawnedChunk(index: chunkIndex, startX: startX),
       );
 
       _spawnEnemiesForChunk(pattern, chunkIndex, chunkStartX: startX, spawnEnemy: spawnEnemy);
@@ -95,7 +124,10 @@ class V0TrackStreamer {
       _dynamicSolids = List<StaticSolid>.unmodifiable(rebuilt);
     }
 
-    return changed;
+    return V0TrackStreamStepResult(
+      changed: changed,
+      spawnedChunks: List<V0TrackSpawnedChunk>.unmodifiable(spawnedChunks),
+    );
   }
 
   void _spawnEnemiesForChunk(

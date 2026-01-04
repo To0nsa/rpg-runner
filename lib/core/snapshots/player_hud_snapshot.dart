@@ -21,7 +21,8 @@ class PlayerHudSnapshot {
     required this.projectileCooldownTicksLeft,
     required this.projectileCooldownTicksTotal,
     required this.score,
-    required this.coins,
+    required this.collectibles,
+    required this.collectibleScore,
   });
 
   /// Current health.
@@ -75,6 +76,9 @@ class PlayerHudSnapshot {
   /// Run score (placeholder for V0).
   final int score;
 
-  /// Collected coins (placeholder for V0).
-  final int coins;
+  /// Collected collectibles (placeholder for V0).
+  final int collectibles;
+
+  /// Score value earned from collectibles (not yet applied to run score).
+  final int collectibleScore;
 }

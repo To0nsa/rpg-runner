@@ -11,9 +11,11 @@ import 'collision/static_world_geometry.dart';
 import 'collision/static_world_geometry_index.dart';
 import 'contracts/v0_render_contract.dart';
 import 'ecs/entity_id.dart';
+import 'ecs/hit/aabb_hit_utils.dart';
 import 'ecs/spatial/broadphase_grid.dart';
 import 'ecs/spatial/grid_index_2d.dart';
 import 'ecs/systems/collision_system.dart';
+import 'ecs/systems/collectible_system.dart';
 import 'ecs/systems/cooldown_system.dart';
 import 'ecs/systems/gravity_system.dart';
 import 'ecs/systems/player_cast_system.dart';
@@ -32,15 +34,20 @@ import 'ecs/systems/projectile_system.dart';
 import 'ecs/systems/projectile_hit_system.dart';
 import 'ecs/systems/resource_regen_system.dart';
 import 'ecs/stores/body_store.dart';
+import 'ecs/stores/collider_aabb_store.dart';
+import 'ecs/stores/collectible_store.dart';
 import 'ecs/world.dart';
 import 'enemies/enemy_catalog.dart';
 import 'enemies/enemy_id.dart';
 import 'events/game_event.dart';
 import 'math/vec2.dart';
 import 'navigation/jump_template.dart';
+import 'navigation/nav_tolerances.dart';
+import 'navigation/surface_graph.dart';
 import 'navigation/surface_graph_builder.dart';
 import 'navigation/surface_navigator.dart';
 import 'navigation/surface_pathfinder.dart';
+import 'navigation/surface_spatial_index.dart';
 import 'players/player_catalog.dart';
 import 'snapshots/enums.dart';
 import 'snapshots/entity_render_snapshot.dart';
@@ -61,8 +68,10 @@ import 'tuning/v0_physics_tuning.dart';
 import 'tuning/v0_resource_tuning.dart';
 import 'tuning/v0_score_tuning.dart';
 import 'tuning/v0_camera_tuning.dart';
+import 'tuning/v0_collectible_tuning.dart';
 import 'tuning/v0_spatial_grid_tuning.dart';
 import 'tuning/v0_track_tuning.dart';
+import 'util/deterministic_rng.dart';
 import 'util/tick_math.dart';
 
 /// Minimal placeholder `GameCore` used to validate architecture wiring.
@@ -85,6 +94,7 @@ class GameCore {
     V0SpatialGridTuning spatialGridTuning = const V0SpatialGridTuning(),
     V0CameraTuning cameraTuning = const V0CameraTuning(),
     V0TrackTuning trackTuning = const V0TrackTuning(),
+    V0CollectibleTuning collectibleTuning = const V0CollectibleTuning(),
     V0ScoreTuning scoreTuning = const V0ScoreTuning(),
     SpellCatalog spellCatalog = const SpellCatalog(),
     ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
@@ -117,7 +127,8 @@ class GameCore {
        _playerCatalog = playerCatalog,
        _baseStaticWorldGeometry = staticWorldGeometry,
        _scoreTuning = scoreTuning,
-       _trackTuning = trackTuning {
+       _trackTuning = trackTuning,
+       _collectibleTuning = collectibleTuning {
     _world = EcsWorld(seed: seed);
     _movementSystem = PlayerMovementSystem();
     _collisionSystem = CollisionSystem();
@@ -140,6 +151,7 @@ class GameCore {
       movement: _movement,
     );
     _hitboxDamageSystem = HitboxDamageSystem();
+    _collectibleSystem = CollectibleSystem();
     _resourceRegenSystem = ResourceRegenSystem();
     _castSystem = PlayerCastSystem(abilities: _abilities, movement: _movement);
     _spellCastSystem = SpellCastSystem(
@@ -300,6 +312,82 @@ class GameCore {
     );
   }
 
+  EntityId _spawnCollectibleAt(double x, double y) {
+    final half = _collectibleTuning.collectibleSize * 0.5;
+    final entity = _world.createEntity();
+    _world.transform.add(entity, posX: x, posY: y, velX: 0.0, velY: 0.0);
+    _world.colliderAabb.add(
+      entity,
+      ColliderAabbDef(halfX: half, halfY: half),
+    );
+    _world.collectible.add(
+      entity,
+      CollectibleDef(value: _collectibleTuning.valuePerCollectible),
+    );
+    return entity;
+  }
+
+  void _spawnCollectiblesForChunk(int chunkIndex, double chunkStartX) {
+    final tuning = _collectibleTuning;
+    if (!tuning.enabled) return;
+    if (chunkIndex < tuning.spawnStartChunkIndex) return;
+    if (tuning.maxPerChunk <= 0) return;
+
+    final graph = _surfaceGraph;
+    final spatialIndex = _surfaceSpatialIndex;
+    if (graph == null || spatialIndex == null || graph.surfaces.isEmpty) {
+      return;
+    }
+
+    final minX = chunkStartX + tuning.chunkEdgeMarginX;
+    final maxX = chunkStartX + _trackTuning.chunkWidth - tuning.chunkEdgeMarginX;
+    if (maxX <= minX) return;
+
+    var rngState = seedFrom(seed, chunkIndex ^ 0xC011EC7);
+    rngState = nextUint32(rngState);
+    final countRange = tuning.maxPerChunk - tuning.minPerChunk + 1;
+    final targetCount = tuning.minPerChunk + (rngState % countRange);
+    if (targetCount <= 0) return;
+
+    _collectibleSpawnXs.clear();
+    final halfSize = tuning.collectibleSize * 0.5;
+    final maxAttempts = tuning.maxAttemptsPerChunk;
+    for (var attempt = 0;
+        attempt < maxAttempts && _collectibleSpawnXs.length < targetCount;
+        attempt += 1) {
+      rngState = nextUint32(rngState);
+      var x = rangeDouble(rngState, minX, maxX);
+      x = _snapToGrid(x, _trackTuning.gridSnap);
+      if (x < minX || x > maxX) continue;
+
+      if (tuning.minSpacingX > 0.0) {
+        var spaced = true;
+        for (final prevX in _collectibleSpawnXs) {
+          if ((prevX - x).abs() < tuning.minSpacingX) {
+            spaced = false;
+            break;
+          }
+        }
+        if (!spaced) continue;
+      }
+
+      final surfaceY = _highestSurfaceYAtX(x);
+      if (surfaceY == null) continue;
+      final centerY = surfaceY - tuning.surfaceClearanceY - halfSize;
+      if (_overlapsAnySolid(
+        centerX: x,
+        centerY: centerY,
+        halfSize: halfSize,
+        margin: tuning.noSpawnMargin,
+      )) {
+        continue;
+      }
+
+      _spawnCollectibleAt(x, centerY);
+      _collectibleSpawnXs.add(x);
+    }
+  }
+
   /// Seed used for deterministic generation/RNG.
   final int seed;
 
@@ -327,6 +415,7 @@ class GameCore {
   late final V0CameraTuningDerived _cameraTuning;
   final V0ScoreTuning _scoreTuning;
   final V0TrackTuning _trackTuning;
+  final V0CollectibleTuning _collectibleTuning;
   final SpellCatalog _spells;
   final ProjectileCatalogDerived _projectiles;
   final EnemyCatalog _enemyCatalog;
@@ -346,6 +435,7 @@ class GameCore {
   late final ProjectileHitSystem _projectileHitSystem;
   late final BroadphaseGrid _broadphaseGrid;
   late final HitboxFollowOwnerSystem _hitboxFollowOwnerSystem;
+  late final CollectibleSystem _collectibleSystem;
   late final LifetimeSystem _lifetimeSystem;
   late final InvulnerabilitySystem _invulnerabilitySystem;
   late final DamageSystem _damageSystem;
@@ -364,6 +454,13 @@ class GameCore {
 
   final List<GameEvent> _events = <GameEvent>[];
   final List<EnemyId> _killedEnemiesScratch = <EnemyId>[];
+  final List<int> _surfaceQueryCandidates = <int>[];
+  final List<double> _collectibleSpawnXs = <double>[];
+
+  SurfaceGraph? _surfaceGraph;
+  SurfaceSpatialIndex? _surfaceSpatialIndex;
+  double _surfaceMinY = 0.0;
+  double _surfaceMaxY = 0.0;
 
   /// Current simulation tick.
   int tick = 0;
@@ -380,8 +477,11 @@ class GameCore {
   /// Run score (authoritative).
   int score = 0;
 
-  /// Collected coins (placeholder for V0).
-  int coins = 0;
+  /// Collected collectibles (placeholder for V0).
+  int collectibles = 0;
+
+  /// Collectible score value (not yet applied to run score).
+  int collectibleScore = 0;
 
   int _timeScoreAcc = 0;
 
@@ -502,6 +602,17 @@ class GameCore {
       );
       return;
     }
+
+    _collectibleSystem.step(
+      _world,
+      player: _player,
+      cameraLeft: _camera.left(),
+      tuning: _collectibleTuning,
+      onCollected: (value) {
+        collectibles += 1;
+        collectibleScore += value;
+      },
+    );
 
     _applyTimeScore();
 
@@ -641,12 +752,12 @@ class GameCore {
     final streamer = _trackStreamer;
     if (streamer == null) return;
 
-    final changed = streamer.step(
+    final result = streamer.step(
       cameraLeft: _camera.left(),
       cameraRight: _camera.right(),
       spawnEnemy: (enemyId, x) {
         final groundTopY =
-            _staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble();
+          _staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble();
         switch (enemyId) {
           case EnemyId.flyingEnemy:
             _spawnFlyingEnemy(spawnX: x, groundTopY: groundTopY);
@@ -656,7 +767,7 @@ class GameCore {
       },
     );
 
-    if (!changed) return;
+    if (!result.changed) return;
 
     // Rebuild collision index only when geometry changes (spawn/cull).
     final combinedSolids = <StaticSolid>[
@@ -669,6 +780,12 @@ class GameCore {
         solids: List<StaticSolid>.unmodifiable(combinedSolids),
       ),
     );
+
+    if (_collectibleTuning.enabled && result.spawnedChunks.isNotEmpty) {
+      for (final chunk in result.spawnedChunks) {
+        _spawnCollectiblesForChunk(chunk.index, chunk.startX);
+      }
+    }
   }
 
   void _setStaticWorldGeometry(StaticWorldGeometry geometry) {
@@ -684,6 +801,21 @@ class GameCore {
       geometry: _staticWorldGeometry,
       jumpTemplate: _groundEnemyJumpTemplate,
     );
+    _surfaceGraph = result.graph;
+    _surfaceSpatialIndex = result.spatialIndex;
+    _surfaceMinY = 0.0;
+    _surfaceMaxY = 0.0;
+    if (result.graph.surfaces.isNotEmpty) {
+      var minY = result.graph.surfaces.first.yTop;
+      var maxY = minY;
+      for (var i = 1; i < result.graph.surfaces.length; i += 1) {
+        final y = result.graph.surfaces[i].yTop;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+      _surfaceMinY = minY;
+      _surfaceMaxY = maxY;
+    }
     _enemySystem.setSurfaceGraph(
       graph: result.graph,
       spatialIndex: result.spatialIndex,
@@ -699,6 +831,75 @@ class GameCore {
     final jumpSpeed = _groundEnemyTuning.base.groundEnemyJumpSpeed.abs();
     final baseAirSeconds = (2.0 * jumpSpeed) / gravity;
     return ticksFromSecondsCeil(baseAirSeconds * 1.5, tickHz);
+  }
+
+  double _snapToGrid(double x, double grid) {
+    if (grid <= 0) return x;
+    return (x / grid).roundToDouble() * grid;
+  }
+
+  double? _highestSurfaceYAtX(double x) {
+    final graph = _surfaceGraph;
+    final spatialIndex = _surfaceSpatialIndex;
+    if (graph == null || spatialIndex == null || graph.surfaces.isEmpty) {
+      return null;
+    }
+
+    final minY = _surfaceMinY - navSpatialEps;
+    final maxY = _surfaceMaxY + navSpatialEps;
+    _surfaceQueryCandidates.clear();
+    spatialIndex.queryAabb(
+      minX: x - navSpatialEps,
+      minY: minY,
+      maxX: x + navSpatialEps,
+      maxY: maxY,
+      outSurfaceIndices: _surfaceQueryCandidates,
+    );
+
+    double? bestY;
+    int? bestId;
+    for (final i in _surfaceQueryCandidates) {
+      final s = graph.surfaces[i];
+      if (x < s.xMin - navGeomEps || x > s.xMax + navGeomEps) continue;
+      if (bestY == null || s.yTop < bestY - navTieEps) {
+        bestY = s.yTop;
+        bestId = s.id;
+      } else if ((s.yTop - bestY).abs() <= navTieEps && s.id < bestId!) {
+        bestY = s.yTop;
+        bestId = s.id;
+      }
+    }
+
+    return bestY;
+  }
+
+  bool _overlapsAnySolid({
+    required double centerX,
+    required double centerY,
+    required double halfSize,
+    required double margin,
+  }) {
+    if (_staticWorldGeometry.solids.isEmpty) return false;
+
+    final minX = centerX - halfSize - margin;
+    final maxX = centerX + halfSize + margin;
+    final minY = centerY - halfSize - margin;
+    final maxY = centerY + halfSize + margin;
+
+    for (final solid in _staticWorldGeometry.solids) {
+      final overlaps = aabbOverlapsMinMax(
+        aMinX: minX,
+        aMaxX: maxX,
+        aMinY: minY,
+        aMaxY: maxY,
+        bMinX: solid.minX,
+        bMaxX: solid.maxX,
+        bMinY: solid.minY,
+        bMaxY: solid.maxY,
+      );
+      if (overlaps) return true;
+    }
+    return false;
   }
 
   static List<StaticSolidSnapshot> _buildStaticSolidsSnapshot(
@@ -835,6 +1036,35 @@ class GameCore {
       );
     }
 
+    final collectiblesStore = _world.collectible;
+    for (var ci = 0; ci < collectiblesStore.denseEntities.length; ci += 1) {
+      final e = collectiblesStore.denseEntities[ci];
+      if (!(_world.transform.has(e))) continue;
+      final ti = _world.transform.indexOf(e);
+
+      Vec2? size;
+      if (_world.colliderAabb.has(e)) {
+        final aabbi = _world.colliderAabb.indexOf(e);
+        size = Vec2(
+          _world.colliderAabb.halfX[aabbi] * 2,
+          _world.colliderAabb.halfY[aabbi] * 2,
+        );
+      }
+
+      entities.add(
+        EntityRenderSnapshot(
+          id: e,
+          kind: EntityKind.pickup,
+          pos: Vec2(_world.transform.posX[ti], _world.transform.posY[ti]),
+          size: size,
+          facing: Facing.right,
+          rotationRad: pi * 0.25,
+          anim: AnimKey.idle,
+          grounded: false,
+        ),
+      );
+    }
+
     final enemies = _world.enemy;
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
       final e = enemies.denseEntities[ei];
@@ -892,7 +1122,8 @@ class GameCore {
         projectileCooldownTicksLeft: projectileCooldownTicksLeft,
         projectileCooldownTicksTotal: _abilities.castCooldownTicks,
         score: score,
-        coins: coins,
+        collectibles: collectibles,
+        collectibleScore: collectibleScore,
       ),
       entities: entities,
       staticSolids: _staticSolidsSnapshot,

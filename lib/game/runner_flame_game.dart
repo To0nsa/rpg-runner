@@ -49,6 +49,9 @@ class RunnerFlameGame extends FlameGame {
   List<StaticSolidSnapshot>? _lastStaticSolidsSnapshot;
   final Map<int, RectangleComponent> _projectiles = <int, RectangleComponent>{};
   final Paint _projectilePaint = Paint()..color = const Color(0xFF60A5FA);
+  final Map<int, RectangleComponent> _collectibles =
+      <int, RectangleComponent>{};
+  final Paint _collectiblePaint = Paint()..color = const Color(0xFFFFEB3B);
   final Map<int, CircleComponent> _enemies = <int, CircleComponent>{};
   final List<Paint> _enemyPaints = <Paint>[
     Paint()..color = const Color(0xFFA855F7), // purple
@@ -200,6 +203,7 @@ class RunnerFlameGame extends FlameGame {
 
     _syncEnemies(updatedSnapshot.entities);
     _syncProjectiles(updatedSnapshot.entities);
+    _syncCollectibles(updatedSnapshot.entities);
     _syncHitboxes(updatedSnapshot.entities);
 
     /*     assert(() {
@@ -315,6 +319,45 @@ class RunnerFlameGame extends FlameGame {
     }
     for (final id in toRemove) {
       _projectiles.remove(id)?.removeFromParent();
+    }
+  }
+
+  void _syncCollectibles(List<EntityRenderSnapshot> entities) {
+    final seen = <int>{};
+
+    for (final e in entities) {
+      if (e.kind != EntityKind.pickup) continue;
+      seen.add(e.id);
+
+      var view = _collectibles[e.id];
+      if (view == null) {
+        final size = e.size;
+        view = RectangleComponent(
+          size: Vector2(size?.x ?? 8.0, size?.y ?? 8.0),
+          anchor: Anchor.center,
+          paint: _collectiblePaint,
+        );
+        view.priority = -1;
+        _collectibles[e.id] = view;
+        world.add(view);
+      } else {
+        final size = e.size;
+        if (size != null) {
+          view.size.setValues(size.x, size.y);
+        }
+      }
+
+      view.position.setValues(e.pos.x.roundToDouble(), e.pos.y.roundToDouble());
+      view.angle = e.rotationRad;
+    }
+
+    if (_collectibles.isEmpty) return;
+    final toRemove = <int>[];
+    for (final id in _collectibles.keys) {
+      if (!seen.contains(id)) toRemove.add(id);
+    }
+    for (final id in toRemove) {
+      _collectibles.remove(id)?.removeFromParent();
     }
   }
 

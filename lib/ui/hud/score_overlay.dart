@@ -20,6 +20,7 @@ class ScoreOverlay extends StatelessWidget {
       animation: controller,
       builder: (context, _) {
         final score = controller.snapshot.hud.score;
+        final collectibles = controller.snapshot.hud.collectibles;
         return IgnorePointer(
           child: RepaintBoundary(
             child: Container(
@@ -28,14 +29,29 @@ class ScoreOverlay extends StatelessWidget {
                 color: const Color(0x66000000),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Text(
-                'Score $score',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 18,
-                  color: Color(0xFFFFFFFF),
-                  fontFeatures: [FontFeature.tabularFigures()],
-                ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Score $score',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      color: Color(0xFFFFFFFF),
+                      fontFeatures: [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Collectibles $collectibles',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFFFFFFFF),
+                      fontFeatures: [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
