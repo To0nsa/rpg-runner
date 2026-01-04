@@ -9,13 +9,11 @@ class TopRightHudOverlay extends StatelessWidget {
     required this.controller,
     required this.showExitButton,
     required this.onExit,
-    required this.highlightExit,
   });
 
   final GameController controller;
   final bool showExitButton;
   final VoidCallback? onExit;
-  final bool highlightExit;
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +30,8 @@ class TopRightHudOverlay extends StatelessWidget {
               IconButton(
                 onPressed: onExit,
                 icon: const Icon(Icons.close),
-                color: highlightExit ? Colors.white : null,
+                color: Colors.white,
+                disabledColor: Colors.white,
               ),
             ],
           ],

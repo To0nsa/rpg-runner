@@ -265,7 +265,6 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                   controller: _controller,
                   showExitButton: widget.showExitButton,
                   onExit: widget.onExit,
-                  highlightExit: uiState.highlightExit,
                 ),
               ],
             );

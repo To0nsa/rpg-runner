@@ -16,6 +16,4 @@ class RunnerGameUiState {
   bool get showReadyOverlay => !started;
 
   bool get showPauseOverlay => started && paused && !gameOver;
-
-  bool get highlightExit => !started || paused;
 }
