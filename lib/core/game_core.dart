@@ -531,7 +531,7 @@ class GameCore {
     // projectiles and hitboxes can hit on their spawn tick.
     _projectileHitSystem.step(_world, _damageSystem.queue, _broadphaseGrid);
     _hitboxDamageSystem.step(_world, _damageSystem.queue, _broadphaseGrid);
-    _damageSystem.step(_world);
+    _damageSystem.step(_world, currentTick: tick);
     _killedEnemiesScratch.clear();
     _healthDespawnSystem.step(
       _world,
@@ -542,6 +542,7 @@ class GameCore {
       _applyEnemyKillScores(_killedEnemiesScratch);
     }
     if (_isPlayerDead()) {
+      final deathInfo = _buildDeathInfo();
       gameOver = true;
       paused = true;
       _events.add(
@@ -549,6 +550,7 @@ class GameCore {
           tick: tick,
           distance: distance,
           reason: RunEndReason.playerDied,
+          deathInfo: deathInfo,
         ),
       );
       return;
@@ -583,10 +585,44 @@ class GameCore {
     }
   }
 
+  void giveUp() {
+    if (gameOver) return;
+    gameOver = true;
+    paused = true;
+    _events.add(
+      RunEndedEvent(
+        tick: tick,
+        distance: distance,
+        reason: RunEndReason.gaveUp,
+      ),
+    );
+  }
+
   bool _isPlayerDead() {
     final hi = _world.health.tryIndexOf(_player);
     if (hi == null) return false;
     return _world.health.hp[hi] <= 0.0;
+  }
+
+  DeathInfo? _buildDeathInfo() {
+    final li = _world.lastDamage.tryIndexOf(_player);
+    if (li == null) return null;
+
+    final kind = _world.lastDamage.kind[li];
+    if (kind == DeathSourceKind.unknown) return null;
+
+    return DeathInfo(
+      kind: kind,
+      enemyId: _world.lastDamage.hasEnemyId[li]
+          ? _world.lastDamage.enemyId[li]
+          : null,
+      projectileId: _world.lastDamage.hasProjectileId[li]
+          ? _world.lastDamage.projectileId[li]
+          : null,
+      spellId: _world.lastDamage.hasSpellId[li]
+          ? _world.lastDamage.spellId[li]
+          : null,
+    );
   }
 
   bool _checkFellBehindCamera() {

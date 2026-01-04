@@ -15,6 +15,7 @@ import 'stores/health_store.dart';
 import 'stores/hit_once_store.dart';
 import 'stores/hitbox_store.dart';
 import 'stores/invulnerability_store.dart';
+import 'stores/last_damage_store.dart';
 import 'stores/lifetime_store.dart';
 import 'stores/mana_store.dart';
 import 'stores/melee_intent_store.dart';
@@ -51,6 +52,7 @@ class EcsWorld {
   final FactionStore faction = FactionStore();
   final HealthStore health = HealthStore();
   final InvulnerabilityStore invulnerability = InvulnerabilityStore();
+  final LastDamageStore lastDamage = LastDamageStore();
   final ManaStore mana = ManaStore();
   final MeleeIntentStore meleeIntent = MeleeIntentStore();
   final StaminaStore stamina = StaminaStore();
@@ -97,6 +99,7 @@ class EcsWorld {
     this.health.add(id, health);
     // Player-only invulnerability window (i-frames) after taking damage.
     invulnerability.add(id);
+    lastDamage.add(id);
     this.mana.add(id, mana);
     meleeIntent.add(id);
     this.stamina.add(id, stamina);
@@ -160,6 +163,7 @@ class EcsWorld {
     faction.removeEntity(entity);
     health.removeEntity(entity);
     invulnerability.removeEntity(entity);
+    lastDamage.removeEntity(entity);
     mana.removeEntity(entity);
     meleeIntent.removeEntity(entity);
     stamina.removeEntity(entity);

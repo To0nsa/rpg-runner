@@ -75,7 +75,7 @@ void main() {
     )..rebuild(world);
     final hits = ProjectileHitSystem();
     hits.step(world, damage.queue, broadphase);
-    damage.step(world);
+    damage.step(world, currentTick: 1);
 
     expect(
       world.health.hp[world.health.indexOf(enemy)],

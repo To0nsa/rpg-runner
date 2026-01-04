@@ -78,7 +78,7 @@ void main() {
     follow.step(world);
     broadphase.rebuild(world);
     hitboxDamage.step(world, damage.queue, broadphase);
-    damage.step(world);
+    damage.step(world, currentTick: 1);
     lifetime.step(world);
 
     expect(world.health.hp[world.health.indexOf(enemy)], closeTo(75.0, 1e-9));
@@ -90,7 +90,7 @@ void main() {
     follow.step(world);
     broadphase.rebuild(world);
     hitboxDamage.step(world, damage.queue, broadphase);
-    damage.step(world);
+    damage.step(world, currentTick: 2);
     lifetime.step(world);
 
     expect(world.health.hp[world.health.indexOf(enemy)], closeTo(75.0, 1e-9));

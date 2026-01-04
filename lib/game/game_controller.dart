@@ -54,6 +54,8 @@ class GameController extends ChangeNotifier {
   /// Buffered transient events produced by the core.
   final List<GameEvent> _events = <GameEvent>[];
 
+  RunEndedEvent? lastRunEndedEvent;
+
   late GameStateSnapshot _prev;
   late GameStateSnapshot _curr;
 
@@ -131,6 +133,27 @@ class GameController extends ChangeNotifier {
     // Make snapshots consistent with the paused state.
     _curr = _core.buildSnapshot();
     _prev = _curr;
+    lastRunEndedEvent = null;
+    notifyListeners();
+  }
+
+  void giveUp() {
+    if (_core.gameOver) return;
+    _core.giveUp();
+    _accumulatorSeconds = 0;
+
+    final newEvents = _core.drainEvents();
+    for (final event in newEvents) {
+      if (event is RunEndedEvent) {
+        lastRunEndedEvent = event;
+      }
+    }
+    if (newEvents.isNotEmpty) {
+      _events.addAll(newEvents);
+    }
+
+    _prev = _core.buildSnapshot();
+    _curr = _prev;
     notifyListeners();
   }
 
@@ -160,7 +183,13 @@ class GameController extends ChangeNotifier {
       final input = _inputsByTick.remove(nextTick) ?? _frameScratch;
       _applyTickInput(nextTick, input);
       _core.stepOneTick();
-      _events.addAll(_core.drainEvents());
+      final newEvents = _core.drainEvents();
+      for (final event in newEvents) {
+        if (event is RunEndedEvent) {
+          lastRunEndedEvent = event;
+        }
+      }
+      _events.addAll(newEvents);
 
       _prev = _curr;
       _curr = _core.buildSnapshot();

@@ -1,4 +1,5 @@
 import '../../combat/damage.dart';
+import '../../events/game_event.dart';
 import '../hit/hit_resolver.dart';
 import '../spatial/broadphase_grid.dart';
 import '../world.dart';
@@ -37,6 +38,9 @@ class HitboxDamageSystem {
 
       final owner = hitboxes.owner[hi];
       final sourceFaction = hitboxes.faction[hi];
+      final enemyId = world.enemy.has(owner)
+          ? world.enemy.enemyId[world.enemy.indexOf(owner)]
+          : null;
 
       _resolver.collectOrderedOverlapsCapsule(
         broadphase: broadphase,
@@ -57,7 +61,15 @@ class HitboxDamageSystem {
         if (world.hitOnce.hasHit(hb, target)) continue;
         world.hitOnce.markHit(hb, target);
 
-        queueDamage(DamageRequest(target: target, amount: hitboxes.damage[hi]));
+        queueDamage(
+          DamageRequest(
+            target: target,
+            amount: hitboxes.damage[hi],
+            source: owner,
+            sourceKind: DeathSourceKind.meleeHitbox,
+            sourceEnemyId: enemyId,
+          ),
+        );
       }
     }
   }

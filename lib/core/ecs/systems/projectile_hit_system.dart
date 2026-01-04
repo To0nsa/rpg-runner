@@ -1,4 +1,5 @@
 import '../../combat/damage.dart';
+import '../../events/game_event.dart';
 import '../entity_id.dart';
 import '../hit/hit_resolver.dart';
 import '../spatial/broadphase_grid.dart';
@@ -41,6 +42,13 @@ class ProjectileHitSystem {
 
       final owner = projectiles.owner[pi];
       final sourceFaction = projectiles.faction[pi];
+      final projectileId = projectiles.projectileId[pi];
+      final enemyId = world.enemy.has(owner)
+          ? world.enemy.enemyId[world.enemy.indexOf(owner)]
+          : null;
+      final spellId = world.spellOrigin.has(p)
+          ? world.spellOrigin.spellId[world.spellOrigin.indexOf(p)]
+          : null;
 
       final targetIndex = _resolver.firstOrderedOverlapCapsule(
         broadphase: broadphase,
@@ -56,7 +64,15 @@ class ProjectileHitSystem {
 
       final target = broadphase.targets.entities[targetIndex];
       queueDamage(
-        DamageRequest(target: target, amount: projectiles.damage[pi]),
+        DamageRequest(
+          target: target,
+          amount: projectiles.damage[pi],
+          source: owner,
+          sourceKind: DeathSourceKind.projectile,
+          sourceEnemyId: enemyId,
+          sourceProjectileId: projectileId,
+          sourceSpellId: spellId,
+        ),
       );
       _toDespawn.add(p);
     }

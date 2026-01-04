@@ -82,7 +82,7 @@ void main() {
     )..rebuild(world);
     final hit = ProjectileHitSystem();
     hit.step(world, damage.queue, broadphase);
-    damage.step(world);
+    damage.step(world, currentTick: 1);
 
     expect(
       world.health.hp[world.health.indexOf(player)],
@@ -170,7 +170,7 @@ void main() {
     follow.step(world);
     broadphase.rebuild(world);
     hitboxDamage.step(world, damage.queue, broadphase);
-    damage.step(world);
+    damage.step(world, currentTick: currentTick);
 
     expect(
       world.health.hp[world.health.indexOf(player)],
@@ -179,7 +179,7 @@ void main() {
 
     // Same tick again should be blocked by HitOnce (hitbox still alive).
     hitboxDamage.step(world, damage.queue, broadphase);
-    damage.step(world);
+    damage.step(world, currentTick: currentTick);
     expect(
       world.health.hp[world.health.indexOf(player)],
       closeTo(expectedHp, 1e-9),

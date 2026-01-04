@@ -20,7 +20,7 @@ void main() {
     damage.queue(DamageRequest(target: e, amount: 3));
     damage.queue(DamageRequest(target: e, amount: 100));
 
-    damage.step(world);
+    damage.step(world, currentTick: 1);
 
     final hi = world.health.indexOf(e);
     expect(world.health.hp[hi], closeTo(0.0, 1e-9));

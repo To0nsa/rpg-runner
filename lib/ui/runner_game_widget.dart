@@ -209,6 +209,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                 onRestart: _restartGame,
                 onExit: widget.onExit,
                 showExitButton: widget.showExitButton,
+                runEndedEvent: _controller.lastRunEndedEvent,
               );
             }
             return Stack(
@@ -264,7 +265,9 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                 TopRightHudOverlay(
                   controller: _controller,
                   showExitButton: widget.showExitButton,
-                  onExit: widget.onExit,
+                  onExit: uiState.started && !uiState.gameOver
+                      ? _controller.giveUp
+                      : widget.onExit,
                 ),
               ],
             );
