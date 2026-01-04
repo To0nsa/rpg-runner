@@ -12,7 +12,7 @@ class V0CollectibleTuning {
     this.chunkEdgeMarginX = 32.0,
     this.maxAttemptsPerChunk = 40,
     this.despawnBehindCameraMargin = 900.0,
-    this.valuePerCollectible = 1,
+    this.valuePerCollectible = 50,
   }) : assert(maxPerChunk >= minPerChunk);
 
   final bool enabled;

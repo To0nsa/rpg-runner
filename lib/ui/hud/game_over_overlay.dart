@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../../core/enemies/enemy_id.dart';
 import '../../core/events/game_event.dart';
 import '../../core/projectiles/projectile_id.dart';
 // import '../../core/spells/spell_id.dart';
 
-class GameOverOverlay extends StatelessWidget {
+class GameOverOverlay extends StatefulWidget {
   const GameOverOverlay({
     super.key,
     required this.visible,
@@ -13,6 +14,9 @@ class GameOverOverlay extends StatelessWidget {
     required this.onExit,
     required this.showExitButton,
     required this.runEndedEvent,
+    required this.baseScore,
+    required this.collectibles,
+    required this.collectibleScore,
   });
 
   final bool visible;
@@ -21,11 +25,127 @@ class GameOverOverlay extends StatelessWidget {
   final bool showExitButton;
   final RunEndedEvent? runEndedEvent;
 
+  final int baseScore;
+  final int collectibles;
+  final int collectibleScore;
+
+  @override
+  State<GameOverOverlay> createState() => _GameOverOverlayState();
+}
+
+class _GameOverOverlayState extends State<GameOverOverlay>
+    with SingleTickerProviderStateMixin {
+  static const double _collectiblesPerSecond = 40.0;
+
+  late int _displayScore;
+  late int _collectibles;
+  late int _remainingCollectibles;
+  late int _remainingBonus;
+  late int _perCollectibleValue;
+  late bool _feeding;
+
+  Ticker? _ticker;
+  Duration _lastElapsed = Duration.zero;
+  double _collectibleCarry = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _displayScore = widget.baseScore;
+    _collectibles = widget.collectibles;
+    _remainingCollectibles = widget.collectibles;
+    _remainingBonus = widget.collectibleScore;
+    _perCollectibleValue = _computePerCollectibleValue(
+      collectibles: widget.collectibles,
+      collectibleScore: widget.collectibleScore,
+    );
+    _feeding = _remainingCollectibles > 0 && _remainingBonus > 0;
+    if (_feeding) _startTicker();
+  }
+
+  static int _computePerCollectibleValue({
+    required int collectibles,
+    required int collectibleScore,
+  }) {
+    if (collectibles <= 0) return 50;
+    if (collectibleScore <= 0) return 50;
+
+    final derived = collectibleScore ~/ collectibles;
+    if (derived > 0) return derived;
+    return 50;
+  }
+
+  void _startTicker() {
+    _ticker?.dispose();
+    _lastElapsed = Duration.zero;
+    _collectibleCarry = 0.0;
+    _ticker = createTicker(_onTick)..start();
+  }
+
+  void _stopTicker() {
+    final ticker = _ticker;
+    if (ticker == null) return;
+    ticker.stop();
+    ticker.dispose();
+    _ticker = null;
+  }
+
+  void _onTick(Duration elapsed) {
+    if (!_feeding) return;
+
+    final dt =
+        (elapsed - _lastElapsed).inMicroseconds.toDouble() / 1000000.0;
+    _lastElapsed = elapsed;
+
+    _collectibleCarry += dt * _collectiblesPerSecond;
+    final rawToConsume = _collectibleCarry.floor();
+    if (rawToConsume <= 0) return;
+    _collectibleCarry -= rawToConsume;
+
+    var toConsume = rawToConsume;
+    if (toConsume > _remainingCollectibles) {
+      toConsume = _remainingCollectibles;
+    }
+    _remainingCollectibles -= toConsume;
+
+    var gained = _perCollectibleValue * toConsume;
+    if (gained > _remainingBonus) gained = _remainingBonus;
+    _remainingBonus -= gained;
+    _displayScore += gained;
+
+    if (_remainingCollectibles == 0 || _remainingBonus == 0) {
+      _displayScore += _remainingBonus;
+      _remainingBonus = 0;
+      _remainingCollectibles = 0;
+      _feeding = false;
+      _stopTicker();
+    }
+
+    if (mounted) setState(() {});
+  }
+
+  void _skipFeed() {
+    if (!_feeding) return;
+
+    _displayScore = widget.baseScore + widget.collectibleScore;
+    _remainingCollectibles = 0;
+    _remainingBonus = 0;
+    _feeding = false;
+    _stopTicker();
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _stopTicker();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (!visible) return const SizedBox.shrink();
+    if (!widget.visible) return const SizedBox.shrink();
 
-    final subtitle = _buildSubtitle(runEndedEvent);
+    final subtitle = _buildSubtitle(widget.runEndedEvent);
 
     return SizedBox.expand(
       child: ColoredBox(
@@ -54,14 +174,41 @@ class GameOverOverlay extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
               ],
+              const SizedBox(height: 14),
+              Text(
+                'Score: $_displayScore',
+                style: const TextStyle(
+                  color: Color(0xFFFFFFFF),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Collectibles: $_collectibles -> $_remainingBonus',
+                style: const TextStyle(
+                  color: Color(0xFFFFFFFF),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: 16),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _OverlayButton(label: 'Restart', onPressed: onRestart),
-                  if (showExitButton) ...[
+                  _OverlayButton(
+                    label: 'Restart',
+                    onPressed: widget.onRestart,
+                  ),
+                  if (_feeding) ...[
                     const SizedBox(width: 12),
-                    _OverlayButton(label: 'Exit', onPressed: onExit),
+                    _OverlayButton(label: 'Skip', onPressed: _skipFeed),
+                  ],
+                  if (widget.showExitButton) ...[
+                    const SizedBox(width: 12),
+                    _OverlayButton(label: 'Exit', onPressed: widget.onExit),
                   ],
                 ],
               ),

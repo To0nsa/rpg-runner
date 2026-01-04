@@ -204,12 +204,18 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
             final uiState = _buildUiState();
             final hud = _controller.snapshot.hud;
             if (uiState.gameOver) {
+              final runEndedEvent = _controller.lastRunEndedEvent;
+              final runEndKey = runEndedEvent?.tick ?? _controller.snapshot.tick;
               return GameOverOverlay(
+                key: ValueKey('gameOver-$runEndKey-${runEndedEvent?.reason}'),
                 visible: true,
                 onRestart: _restartGame,
                 onExit: widget.onExit,
                 showExitButton: widget.showExitButton,
-                runEndedEvent: _controller.lastRunEndedEvent,
+                runEndedEvent: runEndedEvent,
+                baseScore: hud.score,
+                collectibles: hud.collectibles,
+                collectibleScore: hud.collectibleScore,
               );
             }
             return Stack(
