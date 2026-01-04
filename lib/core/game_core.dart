@@ -541,6 +541,18 @@ class GameCore {
     if (_killedEnemiesScratch.isNotEmpty) {
       _applyEnemyKillScores(_killedEnemiesScratch);
     }
+    if (_isPlayerDead()) {
+      gameOver = true;
+      paused = true;
+      _events.add(
+        RunEndedEvent(
+          tick: tick,
+          distance: distance,
+          reason: RunEndReason.playerDied,
+        ),
+      );
+      return;
+    }
     _resourceRegenSystem.step(_world, dtSeconds: _movement.dtSeconds);
 
     // Cleanup last so effect entities get their full last tick to act.
@@ -569,6 +581,12 @@ class GameCore {
           score += _scoreTuning.flyingEnemyKillScore;
       }
     }
+  }
+
+  bool _isPlayerDead() {
+    final hi = _world.health.tryIndexOf(_player);
+    if (hi == null) return false;
+    return _world.health.hp[hi] <= 0.0;
   }
 
   bool _checkFellBehindCamera() {

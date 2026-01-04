@@ -2,6 +2,7 @@ part of 'game_event.dart';
 
 enum RunEndReason {
   fellBehindCamera,
+  playerDied,
 }
 
 class RunEndedEvent extends GameEvent {
