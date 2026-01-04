@@ -19,7 +19,8 @@ class ScoreOverlay extends StatelessWidget {
     return AnimatedBuilder(
       animation: controller,
       builder: (context, _) {
-        final score = controller.snapshot.hud.score;
+        final distanceMeters =
+            (controller.snapshot.distance / 100.0).floor();
         final collectibles = controller.snapshot.hud.collectibles;
         return IgnorePointer(
           child: RepaintBoundary(
@@ -33,10 +34,10 @@ class ScoreOverlay extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Score $score',
+                    'Distance ${distanceMeters}m',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                      fontSize: 18,
+                      fontSize: 14,
                       color: Color(0xFFFFFFFF),
                       fontFeatures: [FontFeature.tabularFigures()],
                     ),

@@ -20,7 +20,6 @@ class PlayerHudSnapshot {
     required this.meleeCooldownTicksTotal,
     required this.projectileCooldownTicksLeft,
     required this.projectileCooldownTicksTotal,
-    required this.score,
     required this.collectibles,
     required this.collectibleScore,
   });
@@ -72,9 +71,6 @@ class PlayerHudSnapshot {
 
   /// Total projectile cooldown ticks.
   final int projectileCooldownTicksTotal;
-
-  /// Run score (placeholder for V0).
-  final int score;
 
   /// Collected collectibles (placeholder for V0).
   final int collectibles;

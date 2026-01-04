@@ -4,6 +4,8 @@ import 'package:flutter/scheduler.dart';
 import '../../core/enemies/enemy_id.dart';
 import '../../core/events/game_event.dart';
 import '../../core/projectiles/projectile_id.dart';
+import '../../core/scoring/run_score_breakdown.dart';
+import '../../core/tuning/v0_score_tuning.dart';
 // import '../../core/spells/spell_id.dart';
 
 class GameOverOverlay extends StatefulWidget {
@@ -14,9 +16,8 @@ class GameOverOverlay extends StatefulWidget {
     required this.onExit,
     required this.showExitButton,
     required this.runEndedEvent,
-    required this.baseScore,
-    required this.collectibles,
-    required this.collectibleScore,
+    required this.scoreTuning,
+    required this.tickHz,
   });
 
   final bool visible;
@@ -24,61 +25,88 @@ class GameOverOverlay extends StatefulWidget {
   final VoidCallback? onExit;
   final bool showExitButton;
   final RunEndedEvent? runEndedEvent;
-
-  final int baseScore;
-  final int collectibles;
-  final int collectibleScore;
+  final V0ScoreTuning scoreTuning;
+  final int tickHz;
 
   @override
   State<GameOverOverlay> createState() => _GameOverOverlayState();
 }
 
+enum _FeedState { idle, feeding, complete }
+
+class _ScoreRowState {
+  _ScoreRowState({
+    required this.row,
+    required this.pointsPerSecond,
+  }) : remainingPoints = row.points;
+
+  final RunScoreRow row;
+  final double pointsPerSecond;
+  int remainingPoints;
+  double carry = 0.0;
+}
+
 class _GameOverOverlayState extends State<GameOverOverlay>
     with SingleTickerProviderStateMixin {
-  static const double _collectiblesPerSecond = 40.0;
+  static const double _feedDurationSeconds = 0.8;
 
+  late final RunScoreBreakdown _breakdown;
+  late final List<_ScoreRowState> _rows;
+  late final int _totalPoints;
   late int _displayScore;
-  late int _collectibles;
-  late int _remainingCollectibles;
-  late int _remainingBonus;
-  late int _perCollectibleValue;
-  late bool _feeding;
+  late _FeedState _feedState;
 
   Ticker? _ticker;
   Duration _lastElapsed = Duration.zero;
-  double _collectibleCarry = 0.0;
 
   @override
   void initState() {
     super.initState();
-    _displayScore = widget.baseScore;
-    _collectibles = widget.collectibles;
-    _remainingCollectibles = widget.collectibles;
-    _remainingBonus = widget.collectibleScore;
-    _perCollectibleValue = _computePerCollectibleValue(
-      collectibles: widget.collectibles,
-      collectibleScore: widget.collectibleScore,
-    );
-    _feeding = _remainingCollectibles > 0 && _remainingBonus > 0;
-    if (_feeding) _startTicker();
+    _breakdown = _buildBreakdown();
+    _rows = _buildRowStates(_breakdown.rows);
+    _totalPoints = _breakdown.totalPoints;
+    _displayScore = 0;
+    _feedState = _totalPoints > 0 ? _FeedState.idle : _FeedState.complete;
   }
 
-  static int _computePerCollectibleValue({
-    required int collectibles,
-    required int collectibleScore,
-  }) {
-    if (collectibles <= 0) return 50;
-    if (collectibleScore <= 0) return 50;
+  RunScoreBreakdown _buildBreakdown() {
+    final event = widget.runEndedEvent;
+    if (event == null) {
+      return const RunScoreBreakdown(rows: <RunScoreRow>[], totalPoints: 0);
+    }
 
-    final derived = collectibleScore ~/ collectibles;
-    if (derived > 0) return derived;
-    return 50;
+    return buildRunScoreBreakdown(
+      tick: event.tick,
+      distanceUnits: event.distance,
+      collectibles: event.stats.collectibles,
+      collectibleScore: event.stats.collectibleScore,
+      enemyKillCounts: event.stats.enemyKillCounts,
+      tuning: widget.scoreTuning,
+      tickHz: widget.tickHz,
+    );
+  }
+
+  List<_ScoreRowState> _buildRowStates(List<RunScoreRow> rows) {
+    return [
+      for (final row in rows)
+        _ScoreRowState(
+          row: row,
+          pointsPerSecond:
+              row.points <= 0 ? 0.0 : row.points / _feedDurationSeconds,
+        ),
+    ];
+  }
+
+  void _startFeed() {
+    if (_feedState != _FeedState.idle || _totalPoints <= 0) return;
+    _feedState = _FeedState.feeding;
+    _startTicker();
+    setState(() {});
   }
 
   void _startTicker() {
     _ticker?.dispose();
     _lastElapsed = Duration.zero;
-    _collectibleCarry = 0.0;
     _ticker = createTicker(_onTick)..start();
   }
 
@@ -91,48 +119,95 @@ class _GameOverOverlayState extends State<GameOverOverlay>
   }
 
   void _onTick(Duration elapsed) {
-    if (!_feeding) return;
+    if (_feedState != _FeedState.feeding) return;
 
     final dt =
         (elapsed - _lastElapsed).inMicroseconds.toDouble() / 1000000.0;
     _lastElapsed = elapsed;
+    if (dt <= 0) return;
 
-    _collectibleCarry += dt * _collectiblesPerSecond;
-    final rawToConsume = _collectibleCarry.floor();
-    if (rawToConsume <= 0) return;
-    _collectibleCarry -= rawToConsume;
+    var gained = 0;
+    var anyRemaining = false;
 
-    var toConsume = rawToConsume;
-    if (toConsume > _remainingCollectibles) {
-      toConsume = _remainingCollectibles;
+    for (final row in _rows) {
+      if (row.remainingPoints <= 0 || row.pointsPerSecond <= 0) continue;
+      row.carry += dt * row.pointsPerSecond;
+      final raw = row.carry.floor();
+      if (raw <= 0) {
+        anyRemaining = true;
+        continue;
+      }
+      row.carry -= raw;
+      final consume =
+          raw > row.remainingPoints ? row.remainingPoints : raw;
+      row.remainingPoints -= consume;
+      gained += consume;
+      if (row.remainingPoints > 0) anyRemaining = true;
     }
-    _remainingCollectibles -= toConsume;
 
-    var gained = _perCollectibleValue * toConsume;
-    if (gained > _remainingBonus) gained = _remainingBonus;
-    _remainingBonus -= gained;
-    _displayScore += gained;
+    if (gained > 0) {
+      _displayScore += gained;
+      if (_displayScore > _totalPoints) _displayScore = _totalPoints;
+    }
 
-    if (_remainingCollectibles == 0 || _remainingBonus == 0) {
-      _displayScore += _remainingBonus;
-      _remainingBonus = 0;
-      _remainingCollectibles = 0;
-      _feeding = false;
-      _stopTicker();
+    if (!anyRemaining) {
+      _completeFeed();
     }
 
     if (mounted) setState(() {});
   }
 
-  void _skipFeed() {
-    if (!_feeding) return;
-
-    _displayScore = widget.baseScore + widget.collectibleScore;
-    _remainingCollectibles = 0;
-    _remainingBonus = 0;
-    _feeding = false;
+  void _completeFeed() {
+    _displayScore = _totalPoints;
+    for (final row in _rows) {
+      row.remainingPoints = 0;
+      row.carry = 0.0;
+    }
+    _feedState = _FeedState.complete;
     _stopTicker();
-    setState(() {});
+  }
+
+  void _onCollectPressed() {
+    if (_feedState == _FeedState.idle) {
+      _startFeed();
+      return;
+    }
+    if (_feedState == _FeedState.feeding) {
+      _completeFeed();
+      setState(() {});
+    }
+  }
+
+  void _completeThen(VoidCallback? action) {
+    if (_feedState != _FeedState.complete) {
+      _completeFeed();
+      setState(() {});
+    }
+    if (action == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) => action());
+  }
+
+  String _formatRow(_ScoreRowState row) {
+    final remaining = row.remainingPoints;
+    switch (row.row.kind) {
+      case RunScoreRowKind.distance:
+        return 'Distance: ${row.row.count}m -> $remaining';
+      case RunScoreRowKind.time:
+        return 'Time: ${_formatTime(row.row.count)} -> $remaining';
+      case RunScoreRowKind.collectibles:
+        return 'Collectibles: ${row.row.count} -> $remaining';
+      case RunScoreRowKind.enemyKill:
+        final name = row.row.enemyId == null
+            ? 'Enemy'
+            : _enemyName(row.row.enemyId!);
+        return '$name x${row.row.count} -> $remaining';
+    }
+  }
+
+  String _formatTime(int totalSeconds) {
+    final minutes = totalSeconds ~/ 60;
+    final seconds = totalSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -146,6 +221,10 @@ class _GameOverOverlayState extends State<GameOverOverlay>
     if (!widget.visible) return const SizedBox.shrink();
 
     final subtitle = _buildSubtitle(widget.runEndedEvent);
+    final showCollectButton =
+        _totalPoints > 0 && _feedState != _FeedState.complete;
+    final collectLabel =
+        _feedState == _FeedState.idle ? 'Collect score' : 'Skip';
 
     return SizedBox.expand(
       child: ColoredBox(
@@ -184,31 +263,37 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 6),
-              Text(
-                'Collectibles: $_collectibles -> $_remainingBonus',
-                style: const TextStyle(
-                  color: Color(0xFFFFFFFF),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
+              const SizedBox(height: 8),
+              for (var i = 0; i < _rows.length; i += 1) ...[
+                Text(
+                  _formatRow(_rows[i]),
+                  style: const TextStyle(
+                    color: Color(0xFFFFFFFF),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
+                if (i < _rows.length - 1) const SizedBox(height: 4),
+              ],
+              if (showCollectButton) ...[
+                const SizedBox(height: 16),
+                _OverlayButton(label: collectLabel, onPressed: _onCollectPressed),
+              ],
               const SizedBox(height: 16),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _OverlayButton(
                     label: 'Restart',
-                    onPressed: widget.onRestart,
+                    onPressed: () => _completeThen(widget.onRestart),
                   ),
-                  if (_feeding) ...[
-                    const SizedBox(width: 12),
-                    _OverlayButton(label: 'Skip', onPressed: _skipFeed),
-                  ],
                   if (widget.showExitButton) ...[
                     const SizedBox(width: 12),
-                    _OverlayButton(label: 'Exit', onPressed: widget.onExit),
+                    _OverlayButton(
+                      label: 'Exit',
+                      onPressed: () => _completeThen(widget.onExit),
+                    ),
                   ],
                 ],
               ),
@@ -250,11 +335,10 @@ String _buildProjectileDeath(DeathInfo info) {
   final projectileName = _projectileName(projectileId);
   /* final spellName =
       info.spellId == null ? null : _spellName(info.spellId!); */
-  final enemyName =
-      info.enemyId == null ? null : _enemyName(info.enemyId!);
+  final enemyName = info.enemyId == null ? null : _enemyName(info.enemyId!);
 
   final buffer = StringBuffer('Killed by $projectileName');
-/*   if (spellName != null) {
+  /*   if (spellName != null) {
     buffer.write(' ($spellName)');
   } */
   if (enemyName != null) {

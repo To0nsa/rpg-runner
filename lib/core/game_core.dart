@@ -454,6 +454,8 @@ class GameCore {
 
   final List<GameEvent> _events = <GameEvent>[];
   final List<EnemyId> _killedEnemiesScratch = <EnemyId>[];
+  final List<int> _enemyKillCounts =
+      List<int>.filled(EnemyId.values.length, 0);
   final List<int> _surfaceQueryCandidates = <int>[];
   final List<double> _collectibleSpawnXs = <double>[];
 
@@ -471,19 +473,16 @@ class GameCore {
   /// Whether the run has ended (simulation is frozen).
   bool gameOver = false;
 
+  V0ScoreTuning get scoreTuning => _scoreTuning;
+
   /// Run progression metric (placeholder).
   double distance = 0;
-
-  /// Run score (authoritative).
-  int score = 0;
 
   /// Collected collectibles (placeholder for V0).
   int collectibles = 0;
 
   /// Collectible score value (not yet applied to run score).
   int collectibleScore = 0;
-
-  int _timeScoreAcc = 0;
 
   double get playerPosX =>
       _world.transform.posX[_world.transform.indexOf(_player)];
@@ -598,6 +597,7 @@ class GameCore {
           tick: tick,
           distance: distance,
           reason: RunEndReason.fellBehindCamera,
+          stats: _buildRunEndStats(),
         ),
       );
       return;
@@ -613,8 +613,6 @@ class GameCore {
         collectibleScore += value;
       },
     );
-
-    _applyTimeScore();
 
     // Rebuild broadphase after movement/collision so damageable target positions
     // are final for the tick before any hit queries run.
@@ -650,7 +648,7 @@ class GameCore {
       outEnemiesKilled: _killedEnemiesScratch,
     );
     if (_killedEnemiesScratch.isNotEmpty) {
-      _applyEnemyKillScores(_killedEnemiesScratch);
+      _recordEnemyKills(_killedEnemiesScratch);
     }
     if (_isPlayerDead()) {
       final deathInfo = _buildDeathInfo();
@@ -661,6 +659,7 @@ class GameCore {
           tick: tick,
           distance: distance,
           reason: RunEndReason.playerDied,
+          stats: _buildRunEndStats(),
           deathInfo: deathInfo,
         ),
       );
@@ -672,29 +671,19 @@ class GameCore {
     _lifetimeSystem.step(_world);
   }
 
-  void _applyTimeScore() {
-    final perSecond = _scoreTuning.timeScorePerSecond;
-    if (perSecond <= 0) return;
-
-    _timeScoreAcc += perSecond;
-    if (_timeScoreAcc < tickHz) return;
-
-    final add = _timeScoreAcc ~/ tickHz;
-    if (add <= 0) return;
-    score += add;
-    _timeScoreAcc -= add * tickHz;
-  }
-
-  void _applyEnemyKillScores(List<EnemyId> killedEnemies) {
+  void _recordEnemyKills(List<EnemyId> killedEnemies) {
     for (final enemyId in killedEnemies) {
-      switch (enemyId) {
-        case EnemyId.groundEnemy:
-          score += _scoreTuning.groundEnemyKillScore;
-        case EnemyId.flyingEnemy:
-          score += _scoreTuning.flyingEnemyKillScore;
-      }
+      final index = enemyId.index;
+      if (index < 0 || index >= _enemyKillCounts.length) continue;
+      _enemyKillCounts[index] += 1;
     }
   }
+
+  RunEndStats _buildRunEndStats() => RunEndStats(
+    collectibles: collectibles,
+    collectibleScore: collectibleScore,
+    enemyKillCounts: List<int>.unmodifiable(_enemyKillCounts),
+  );
 
   void giveUp() {
     if (gameOver) return;
@@ -705,6 +694,7 @@ class GameCore {
         tick: tick,
         distance: distance,
         reason: RunEndReason.gaveUp,
+        stats: _buildRunEndStats(),
       ),
     );
   }
@@ -1121,7 +1111,6 @@ class GameCore {
         meleeCooldownTicksTotal: _abilities.meleeCooldownTicks,
         projectileCooldownTicksLeft: projectileCooldownTicksLeft,
         projectileCooldownTicksTotal: _abilities.castCooldownTicks,
-        score: score,
         collectibles: collectibles,
         collectibleScore: collectibleScore,
       ),

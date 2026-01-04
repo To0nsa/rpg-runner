@@ -24,6 +24,7 @@ class PlayerHudOverlay extends StatelessWidget {
             child: SizedBox(
               width: _barWidth,
               height: totalHeight,
+              
               child: CustomPaint(
                 painter: _HudBarsPainter(
                   hp: hud.hp,

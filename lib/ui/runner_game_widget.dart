@@ -213,9 +213,8 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                 onExit: widget.onExit,
                 showExitButton: widget.showExitButton,
                 runEndedEvent: runEndedEvent,
-                baseScore: hud.score,
-                collectibles: hud.collectibles,
-                collectibleScore: hud.collectibleScore,
+                scoreTuning: _controller.scoreTuning,
+                tickHz: _controller.tickHz,
               );
             }
             return Stack(
@@ -258,7 +257,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                 Align(
                   alignment: Alignment.topLeft,
                   child: Padding(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(12),
                     child: PlayerHudOverlay(controller: _controller),
                   ),
                 ),
