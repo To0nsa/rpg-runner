@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:walkscape_runner/core/events/game_event.dart';
 import 'package:walkscape_runner/core/tuning/v0_score_tuning.dart';
 import 'package:walkscape_runner/ui/hud/gameover/game_over_overlay.dart';
@@ -19,6 +20,10 @@ RunEndedEvent _buildEvent() {
 }
 
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+  });
+
   testWidgets('GameOverOverlay feeds all rows into score', (tester) async {
     await tester.pumpWidget(
       MaterialApp(

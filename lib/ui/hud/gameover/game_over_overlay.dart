@@ -6,6 +6,8 @@ import '../../../core/events/game_event.dart';
 import '../../../core/projectiles/projectile_id.dart';
 import '../../../core/scoring/run_score_breakdown.dart';
 import '../../../core/tuning/v0_score_tuning.dart';
+import '../../leaderboard/leaderboard_store.dart';
+import 'leaderboard_panel.dart';
 // import '../../../core/spells/spell_id.dart';
 
 class GameOverOverlay extends StatefulWidget {
@@ -18,6 +20,7 @@ class GameOverOverlay extends StatefulWidget {
     required this.runEndedEvent,
     required this.scoreTuning,
     required this.tickHz,
+    this.leaderboardStore,
   });
 
   final bool visible;
@@ -27,6 +30,7 @@ class GameOverOverlay extends StatefulWidget {
   final RunEndedEvent? runEndedEvent;
   final V0ScoreTuning scoreTuning;
   final int tickHz;
+  final LeaderboardStore? leaderboardStore;
 
   @override
   State<GameOverOverlay> createState() => _GameOverOverlayState();
@@ -230,72 +234,88 @@ class _GameOverOverlayState extends State<GameOverOverlay>
       child: ColoredBox(
         color: const Color(0x88000000),
         child: Center(
-          child: Column(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Game Over',
-                style: TextStyle(
-                  color: Color(0xFFFFFFFF),
-                  fontSize: 28,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              if (subtitle != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    color: Color(0xFFFFFFFF),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-              const SizedBox(height: 14),
-              Text(
-                'Score: $_displayScore',
-                style: const TextStyle(
-                  color: Color(0xFFFFFFFF),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              for (var i = 0; i < _rows.length; i += 1) ...[
-                Text(
-                  _formatRow(_rows[i]),
-                  style: const TextStyle(
-                    color: Color(0xFFFFFFFF),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                if (i < _rows.length - 1) const SizedBox(height: 4),
-              ],
-              if (showCollectButton) ...[
-                const SizedBox(height: 16),
-                _OverlayButton(label: collectLabel, onPressed: _onCollectPressed),
-              ],
-              const SizedBox(height: 16),
-              Row(
+              Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _OverlayButton(
-                    label: 'Restart',
-                    onPressed: () => _completeThen(widget.onRestart),
+                  const Text(
+                    'Game Over',
+                    style: TextStyle(
+                      color: Color(0xFFFFFFFF),
+                      fontSize: 28,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  if (widget.showExitButton) ...[
-                    const SizedBox(width: 12),
-                    _OverlayButton(
-                      label: 'Exit',
-                      onPressed: () => _completeThen(widget.onExit),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: Color(0xFFFFFFFF),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
                   ],
+                  const SizedBox(height: 14),
+                  Text(
+                    'Score: $_displayScore',
+                    style: const TextStyle(
+                      color: Color(0xFFFFFFFF),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  for (var i = 0; i < _rows.length; i += 1) ...[
+                    Text(
+                      _formatRow(_rows[i]),
+                      style: const TextStyle(
+                        color: Color(0xFFFFFFFF),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    if (i < _rows.length - 1) const SizedBox(height: 4),
+                  ],
+                  if (showCollectButton) ...[
+                    const SizedBox(height: 16),
+                    _OverlayButton(
+                      label: collectLabel,
+                      onPressed: _onCollectPressed,
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _OverlayButton(
+                        label: 'Restart',
+                        onPressed: () => _completeThen(widget.onRestart),
+                      ),
+                      if (widget.showExitButton) ...[
+                        const SizedBox(width: 12),
+                        _OverlayButton(
+                          label: 'Exit',
+                          onPressed: () => _completeThen(widget.onExit),
+                        ),
+                      ],
+                    ],
+                  ),
                 ],
+              ),
+              const SizedBox(width: 24),
+              LeaderboardPanel(
+                runEndedEvent: widget.runEndedEvent,
+                scoreTuning: widget.scoreTuning,
+                tickHz: widget.tickHz,
+                leaderboardStore: widget.leaderboardStore,
               ),
             ],
           ),
