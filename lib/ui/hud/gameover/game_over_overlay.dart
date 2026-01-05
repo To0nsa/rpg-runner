@@ -7,7 +7,12 @@ import '../../../core/projectiles/projectile_id.dart';
 import '../../../core/scoring/run_score_breakdown.dart';
 import '../../../core/tuning/v0_score_tuning.dart';
 import '../../leaderboard/leaderboard_store.dart';
+import 'game_over_header.dart';
 import 'leaderboard_panel.dart';
+import 'restart_exit_buttons.dart';
+import 'score_breakdown_formatter.dart';
+import 'score_distribution.dart';
+import 'score_feed_controller.dart';
 // import '../../../core/spells/spell_id.dart';
 
 class GameOverOverlay extends StatefulWidget {
@@ -36,29 +41,10 @@ class GameOverOverlay extends StatefulWidget {
   State<GameOverOverlay> createState() => _GameOverOverlayState();
 }
 
-enum _FeedState { idle, feeding, complete }
-
-class _ScoreRowState {
-  _ScoreRowState({
-    required this.row,
-    required this.pointsPerSecond,
-  }) : remainingPoints = row.points;
-
-  final RunScoreRow row;
-  final double pointsPerSecond;
-  int remainingPoints;
-  double carry = 0.0;
-}
-
 class _GameOverOverlayState extends State<GameOverOverlay>
     with SingleTickerProviderStateMixin {
-  static const double _feedDurationSeconds = 0.8;
-
   late final RunScoreBreakdown _breakdown;
-  late final List<_ScoreRowState> _rows;
-  late final int _totalPoints;
-  late int _displayScore;
-  late _FeedState _feedState;
+  late final ScoreFeedController _feedController;
 
   Ticker? _ticker;
   Duration _lastElapsed = Duration.zero;
@@ -67,10 +53,10 @@ class _GameOverOverlayState extends State<GameOverOverlay>
   void initState() {
     super.initState();
     _breakdown = _buildBreakdown();
-    _rows = _buildRowStates(_breakdown.rows);
-    _totalPoints = _breakdown.totalPoints;
-    _displayScore = 0;
-    _feedState = _totalPoints > 0 ? _FeedState.idle : _FeedState.complete;
+    _feedController = ScoreFeedController(
+      rows: _breakdown.rows,
+      totalPoints: _breakdown.totalPoints,
+    );
   }
 
   RunScoreBreakdown _buildBreakdown() {
@@ -90,22 +76,11 @@ class _GameOverOverlayState extends State<GameOverOverlay>
     );
   }
 
-  List<_ScoreRowState> _buildRowStates(List<RunScoreRow> rows) {
-    return [
-      for (final row in rows)
-        _ScoreRowState(
-          row: row,
-          pointsPerSecond:
-              row.points <= 0 ? 0.0 : row.points / _feedDurationSeconds,
-        ),
-    ];
-  }
-
   void _startFeed() {
-    if (_feedState != _FeedState.idle || _totalPoints <= 0) return;
-    _feedState = _FeedState.feeding;
-    _startTicker();
-    setState(() {});
+    if (_feedController.startFeed()) {
+      _startTicker();
+      setState(() {});
+    }
   }
 
   void _startTicker() {
@@ -123,95 +98,43 @@ class _GameOverOverlayState extends State<GameOverOverlay>
   }
 
   void _onTick(Duration elapsed) {
-    if (_feedState != _FeedState.feeding) return;
+    if (_feedController.feedState != ScoreFeedState.feeding) return;
 
     final dt =
         (elapsed - _lastElapsed).inMicroseconds.toDouble() / 1000000.0;
     _lastElapsed = elapsed;
     if (dt <= 0) return;
 
-    var gained = 0;
-    var anyRemaining = false;
-
-    for (final row in _rows) {
-      if (row.remainingPoints <= 0 || row.pointsPerSecond <= 0) continue;
-      row.carry += dt * row.pointsPerSecond;
-      final raw = row.carry.floor();
-      if (raw <= 0) {
-        anyRemaining = true;
-        continue;
-      }
-      row.carry -= raw;
-      final consume =
-          raw > row.remainingPoints ? row.remainingPoints : raw;
-      row.remainingPoints -= consume;
-      gained += consume;
-      if (row.remainingPoints > 0) anyRemaining = true;
+    final changed = _feedController.tick(dt);
+    if (_feedController.feedState == ScoreFeedState.complete) {
+      _stopTicker();
     }
-
-    if (gained > 0) {
-      _displayScore += gained;
-      if (_displayScore > _totalPoints) _displayScore = _totalPoints;
-    }
-
-    if (!anyRemaining) {
-      _completeFeed();
-    }
-
-    if (mounted) setState(() {});
+    if (changed && mounted) setState(() {});
   }
 
   void _completeFeed() {
-    _displayScore = _totalPoints;
-    for (final row in _rows) {
-      row.remainingPoints = 0;
-      row.carry = 0.0;
-    }
-    _feedState = _FeedState.complete;
+    _feedController.completeFeed();
     _stopTicker();
   }
 
   void _onCollectPressed() {
-    if (_feedState == _FeedState.idle) {
+    if (_feedController.feedState == ScoreFeedState.idle) {
       _startFeed();
       return;
     }
-    if (_feedState == _FeedState.feeding) {
+    if (_feedController.feedState == ScoreFeedState.feeding) {
       _completeFeed();
       setState(() {});
     }
   }
 
   void _completeThen(VoidCallback? action) {
-    if (_feedState != _FeedState.complete) {
+    if (_feedController.feedState != ScoreFeedState.complete) {
       _completeFeed();
       setState(() {});
     }
     if (action == null) return;
     WidgetsBinding.instance.addPostFrameCallback((_) => action());
-  }
-
-  String _formatRow(_ScoreRowState row) {
-    final remaining = row.remainingPoints;
-    switch (row.row.kind) {
-      case RunScoreRowKind.distance:
-        return 'Distance: ${row.row.count}m -> $remaining';
-      case RunScoreRowKind.time:
-        return 'Time: ${_formatTime(row.row.count)} -> $remaining';
-      case RunScoreRowKind.collectibles:
-        return 'Collectibles: ${row.row.count} -> $remaining';
-      case RunScoreRowKind.enemyKill:
-        final name = row.row.enemyId == null
-            ? 'Enemy'
-            : _enemyName(row.row.enemyId!);
-        return '$name x${row.row.count} -> $remaining';
-    }
-  }
-
-  String _formatTime(int totalSeconds) {
-    final minutes = totalSeconds ~/ 60;
-    final seconds = totalSeconds % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -224,98 +147,83 @@ class _GameOverOverlayState extends State<GameOverOverlay>
   Widget build(BuildContext context) {
     if (!widget.visible) return const SizedBox.shrink();
 
-    final subtitle = _buildSubtitle(widget.runEndedEvent);
+    final subtitleDeathReason = _buildSubtitleDeathReason(widget.runEndedEvent);
     final showCollectButton =
-        _totalPoints > 0 && _feedState != _FeedState.complete;
+        _feedController.totalPoints > 0 &&
+        _feedController.feedState != ScoreFeedState.complete;
+    final showScoreInHeader =
+        _feedController.feedState == ScoreFeedState.complete;
     final collectLabel =
-        _feedState == _FeedState.idle ? 'Collect score' : 'Skip';
+        _feedController.feedState == ScoreFeedState.idle
+            ? 'Collect score'
+            : 'Skip';
+    final rowLabels = [
+      for (var i = 0; i < _feedController.rows.length; i += 1)
+        formatScoreRow(
+          _feedController.rows[i].row,
+          _feedController.rows[i].remainingPoints,
+          enemyName: _enemyName,
+        ),
+    ];
 
     return SizedBox.expand(
       child: ColoredBox(
         color: const Color(0x88000000),
-        child: Center(
+        child: SafeArea(
+          minimum: const EdgeInsets.all(18),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Game Over',
-                    style: TextStyle(
-                      color: Color(0xFFFFFFFF),
-                      fontSize: 28,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  if (subtitle != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        color: Color(0xFFFFFFFF),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                  const SizedBox(height: 14),
-                  Text(
-                    'Score: $_displayScore',
-                    style: const TextStyle(
-                      color: Color(0xFFFFFFFF),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  for (var i = 0; i < _rows.length; i += 1) ...[
-                    Text(
-                      _formatRow(_rows[i]),
-                      style: const TextStyle(
-                        color: Color(0xFFFFFFFF),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    if (i < _rows.length - 1) const SizedBox(height: 4),
-                  ],
-                  if (showCollectButton) ...[
-                    const SizedBox(height: 16),
-                    _OverlayButton(
-                      label: collectLabel,
-                      onPressed: _onCollectPressed,
-                    ),
-                  ],
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
+              Expanded(
+                flex: 2,
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.max,
                     children: [
-                      _OverlayButton(
-                        label: 'Restart',
-                        onPressed: () => _completeThen(widget.onRestart),
+                      GameOverHeader(
+                        subtitleDeathReason: subtitleDeathReason,
+                        displayScore:
+                            showScoreInHeader ? _feedController.displayScore : null,
                       ),
-                      if (widget.showExitButton) ...[
-                        const SizedBox(width: 12),
+                      const SizedBox(height: 14),
+                      if (showCollectButton)
                         _OverlayButton(
-                          label: 'Exit',
-                          onPressed: () => _completeThen(widget.onExit),
+                          label: collectLabel,
+                          onPressed: _onCollectPressed,
+                        )
+                      else
+                        RestartExitButtons(
+                          restartButton: _OverlayButton(
+                            label: 'Restart',
+                            onPressed: () => _completeThen(widget.onRestart),
+                          ),
+                          exitButton: widget.showExitButton
+                              ? _OverlayButton(
+                                  label: 'Exit',
+                                  onPressed: () => _completeThen(widget.onExit),
+                                )
+                              : null,
                         ),
-                      ],
+                      const SizedBox(height: 16),
+                      Flexible(child: ScoreDistribution(rowLabels: rowLabels)),
                     ],
                   ),
-                ],
+                ),
               ),
-              const SizedBox(width: 24),
-              LeaderboardPanel(
-                runEndedEvent: widget.runEndedEvent,
-                scoreTuning: widget.scoreTuning,
-                tickHz: widget.tickHz,
-                leaderboardStore: widget.leaderboardStore,
+              Expanded(
+                flex: 1,
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: LeaderboardPanel(
+                    runEndedEvent: widget.runEndedEvent,
+                    scoreTuning: widget.scoreTuning,
+                    tickHz: widget.tickHz,
+                    revealCurrentRunScore:
+                        _feedController.feedState == ScoreFeedState.complete,
+                    leaderboardStore: widget.leaderboardStore,
+                  ),
+                ),
               ),
             ],
           ),
@@ -325,7 +233,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
   }
 }
 
-String? _buildSubtitle(RunEndedEvent? event) {
+String? _buildSubtitleDeathReason(RunEndedEvent? event) {
   if (event == null) return null;
   switch (event.reason) {
     case RunEndReason.gaveUp:

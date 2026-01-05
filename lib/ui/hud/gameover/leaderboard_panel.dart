@@ -12,12 +12,14 @@ class LeaderboardPanel extends StatefulWidget {
     required this.runEndedEvent,
     required this.scoreTuning,
     required this.tickHz,
+    this.revealCurrentRunScore = true,
     this.leaderboardStore,
   });
 
   final RunEndedEvent? runEndedEvent;
   final V0ScoreTuning scoreTuning;
   final int tickHz;
+  final bool revealCurrentRunScore;
   final LeaderboardStore? leaderboardStore;
 
   @override
@@ -29,6 +31,11 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
   List<RunResult> _entries = const <RunResult>[];
   int? _currentRunId;
   bool _loaded = false;
+
+  static const double _rankColWidth = 28;
+  static const double _scoreColWidth = 64;
+  static const double _distanceColWidth = 56;
+  static const double _timeColWidth = 54;
 
   @override
   void initState() {
@@ -67,6 +74,8 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
   Widget _buildRow(int rank, RunResult entry) {
     final isCurrent = _currentRunId != null && entry.runId == _currentRunId;
     final color = isCurrent ? const Color(0xFFFFF59D) : const Color(0xFFFFFFFF);
+    final scoreText =
+        isCurrent && !widget.revealCurrentRunScore ? '—' : entry.score.toString();
 
     return DecoratedBox(
       decoration: isCurrent
@@ -81,26 +90,35 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
-              width: 24,
+              width: _rankColWidth,
               child: Text(
                 '#$rank',
                 style: TextStyle(color: color),
               ),
             ),
             SizedBox(
-              width: 56,
+              width: _scoreColWidth,
               child: Text(
-                entry.score.toString(),
+                scoreText,
                 textAlign: TextAlign.right,
                 style: TextStyle(color: color),
               ),
             ),
-            const SizedBox(width: 8),
-            Text('${entry.distanceMeters}m', style: TextStyle(color: color)),
-            const SizedBox(width: 8),
-            Text(
-              _formatTime(entry.durationSeconds),
-              style: TextStyle(color: color),
+            SizedBox(
+              width: _distanceColWidth,
+              child: Text(
+                '${entry.distanceMeters}m',
+                textAlign: TextAlign.right,
+                style: TextStyle(color: color),
+              ),
+            ),
+            SizedBox(
+              width: _timeColWidth,
+              child: Text(
+                _formatTime(entry.durationSeconds),
+                textAlign: TextAlign.right,
+                style: TextStyle(color: color),
+              ),
             ),
           ],
         ),
@@ -156,7 +174,7 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Leaderboard', style: titleStyle),
+              Text('Scoreboard', style: titleStyle),
               const SizedBox(height: 8),
               DefaultTextStyle(style: textStyle, child: content),
             ],
