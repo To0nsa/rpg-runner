@@ -23,6 +23,7 @@ import 'stores/melee_intent_store.dart';
 import 'stores/movement_store.dart';
 import 'stores/player_input_store.dart';
 import 'stores/projectile_store.dart';
+import 'stores/restoration_item_store.dart';
 import 'stores/spell_origin_store.dart';
 import 'stores/stamina_store.dart';
 import 'stores/surface_nav_state_store.dart';
@@ -50,6 +51,7 @@ class EcsWorld {
   final CooldownStore cooldown = CooldownStore();
   final CastIntentStore castIntent = CastIntentStore();
   final CollectibleStore collectible = CollectibleStore();
+  final RestorationItemStore restorationItem = RestorationItemStore();
   final GravityControlStore gravityControl = GravityControlStore();
   final FactionStore faction = FactionStore();
   final HealthStore health = HealthStore();
@@ -162,6 +164,7 @@ class EcsWorld {
     cooldown.removeEntity(entity);
     castIntent.removeEntity(entity);
     collectible.removeEntity(entity);
+    restorationItem.removeEntity(entity);
     gravityControl.removeEntity(entity);
     faction.removeEntity(entity);
     health.removeEntity(entity);

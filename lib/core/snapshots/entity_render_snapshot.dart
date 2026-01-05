@@ -18,6 +18,7 @@ class EntityRenderSnapshot {
     this.vel,
     this.size,
     this.projectileId,
+    this.pickupVariant,
     this.z,
     this.rotationRad = 0.0,
     this.animFrame,
@@ -43,6 +44,9 @@ class EntityRenderSnapshot {
   /// Optional projectile archetype id (set when [kind] is [EntityKind.projectile]).
   final ProjectileId? projectileId;
 
+  /// Optional pickup variant for render-only pickup styling.
+  final int? pickupVariant;
+
   /// Optional sort key for render ordering.
   final double? z;
 
@@ -62,4 +66,12 @@ class EntityRenderSnapshot {
 
   /// Optional frame hint for deterministic animation in replays/networking.
   final int? animFrame;
+}
+
+/// Variant codes for pickup rendering (color/style mapping).
+class PickupVariant {
+  static const int collectible = 0;
+  static const int restorationHealth = 1;
+  static const int restorationMana = 2;
+  static const int restorationStamina = 3;
 }

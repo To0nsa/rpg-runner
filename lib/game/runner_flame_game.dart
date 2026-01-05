@@ -51,7 +51,12 @@ class RunnerFlameGame extends FlameGame {
   final Paint _projectilePaint = Paint()..color = const Color(0xFF60A5FA);
   final Map<int, RectangleComponent> _collectibles =
       <int, RectangleComponent>{};
-  final Paint _collectiblePaint = Paint()..color = const Color(0xFFFFEB3B);
+  final Map<int, Paint> _pickupPaints = <int, Paint>{
+    PickupVariant.collectible: Paint()..color = const Color(0xFFFFEB3B),
+    PickupVariant.restorationHealth: Paint()..color = const Color(0xFFEF4444),
+    PickupVariant.restorationMana: Paint()..color = const Color(0xFF3B82F6),
+    PickupVariant.restorationStamina: Paint()..color = const Color(0xFF22C55E),
+  };
   final Map<int, CircleComponent> _enemies = <int, CircleComponent>{};
   final List<Paint> _enemyPaints = <Paint>[
     Paint()..color = const Color(0xFFA855F7), // purple
@@ -330,12 +335,15 @@ class RunnerFlameGame extends FlameGame {
       seen.add(e.id);
 
       var view = _collectibles[e.id];
+      final variant = e.pickupVariant ?? PickupVariant.collectible;
+      final paint =
+          _pickupPaints[variant] ?? _pickupPaints[PickupVariant.collectible]!;
       if (view == null) {
         final size = e.size;
         view = RectangleComponent(
           size: Vector2(size?.x ?? 8.0, size?.y ?? 8.0),
           anchor: Anchor.center,
-          paint: _collectiblePaint,
+          paint: paint,
         );
         view.priority = -1;
         _collectibles[e.id] = view;
@@ -344,6 +352,9 @@ class RunnerFlameGame extends FlameGame {
         final size = e.size;
         if (size != null) {
           view.size.setValues(size.x, size.y);
+        }
+        if (view.paint != paint) {
+          view.paint = paint;
         }
       }
 

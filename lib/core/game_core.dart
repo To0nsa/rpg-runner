@@ -33,9 +33,11 @@ import 'ecs/systems/player_movement_system.dart';
 import 'ecs/systems/projectile_system.dart';
 import 'ecs/systems/projectile_hit_system.dart';
 import 'ecs/systems/resource_regen_system.dart';
+import 'ecs/systems/restoration_item_system.dart';
 import 'ecs/stores/body_store.dart';
 import 'ecs/stores/collider_aabb_store.dart';
 import 'ecs/stores/collectible_store.dart';
+import 'ecs/stores/restoration_item_store.dart';
 import 'ecs/world.dart';
 import 'enemies/enemy_catalog.dart';
 import 'enemies/enemy_id.dart';
@@ -69,6 +71,7 @@ import 'tuning/v0_resource_tuning.dart';
 import 'tuning/v0_score_tuning.dart';
 import 'tuning/v0_camera_tuning.dart';
 import 'tuning/v0_collectible_tuning.dart';
+import 'tuning/v0_restoration_item_tuning.dart';
 import 'tuning/v0_spatial_grid_tuning.dart';
 import 'tuning/v0_track_tuning.dart';
 import 'util/deterministic_rng.dart';
@@ -95,6 +98,8 @@ class GameCore {
     V0CameraTuning cameraTuning = const V0CameraTuning(),
     V0TrackTuning trackTuning = const V0TrackTuning(),
     V0CollectibleTuning collectibleTuning = const V0CollectibleTuning(),
+    V0RestorationItemTuning restorationItemTuning =
+        const V0RestorationItemTuning(),
     V0ScoreTuning scoreTuning = const V0ScoreTuning(),
     SpellCatalog spellCatalog = const SpellCatalog(),
     ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
@@ -128,7 +133,8 @@ class GameCore {
        _baseStaticWorldGeometry = staticWorldGeometry,
        _scoreTuning = scoreTuning,
        _trackTuning = trackTuning,
-       _collectibleTuning = collectibleTuning {
+       _collectibleTuning = collectibleTuning,
+       _restorationItemTuning = restorationItemTuning {
     _world = EcsWorld(seed: seed);
     _movementSystem = PlayerMovementSystem();
     _collisionSystem = CollisionSystem();
@@ -152,6 +158,7 @@ class GameCore {
     );
     _hitboxDamageSystem = HitboxDamageSystem();
     _collectibleSystem = CollectibleSystem();
+    _restorationItemSystem = RestorationItemSystem();
     _resourceRegenSystem = ResourceRegenSystem();
     _castSystem = PlayerCastSystem(abilities: _abilities, movement: _movement);
     _spellCastSystem = SpellCastSystem(
@@ -327,6 +334,25 @@ class GameCore {
     return entity;
   }
 
+  EntityId _spawnRestorationItemAt(
+    double x,
+    double y,
+    RestorationStat stat,
+  ) {
+    final half = _restorationItemTuning.itemSize * 0.5;
+    final entity = _world.createEntity();
+    _world.transform.add(entity, posX: x, posY: y, velX: 0.0, velY: 0.0);
+    _world.colliderAabb.add(
+      entity,
+      ColliderAabbDef(halfX: half, halfY: half),
+    );
+    _world.restorationItem.add(
+      entity,
+      RestorationItemDef(stat: stat),
+    );
+    return entity;
+  }
+
   void _spawnCollectiblesForChunk(int chunkIndex, double chunkStartX) {
     final tuning = _collectibleTuning;
     if (!tuning.enabled) return;
@@ -388,6 +414,59 @@ class GameCore {
     }
   }
 
+  void _spawnRestorationItemForChunk(int chunkIndex, double chunkStartX) {
+    final tuning = _restorationItemTuning;
+    if (!tuning.enabled) return;
+    if (chunkIndex < tuning.spawnStartChunkIndex) return;
+    if (tuning.spawnEveryChunks <= 0) return;
+
+    final phase = seedFrom(seed, 0xA17E5A7) % tuning.spawnEveryChunks;
+    if ((chunkIndex - phase) % tuning.spawnEveryChunks != 0) return;
+
+    final graph = _surfaceGraph;
+    final spatialIndex = _surfaceSpatialIndex;
+    if (graph == null || spatialIndex == null || graph.surfaces.isEmpty) {
+      return;
+    }
+
+    final minX = chunkStartX + tuning.chunkEdgeMarginX;
+    final maxX = chunkStartX + _trackTuning.chunkWidth - tuning.chunkEdgeMarginX;
+    if (maxX <= minX) return;
+
+    final stat = _lowestResourceStat();
+    var rngState = seedFrom(seed, chunkIndex ^ 0xA57A11);
+    final halfSize = tuning.itemSize * 0.5;
+    for (var attempt = 0; attempt < tuning.maxAttemptsPerSpawn; attempt += 1) {
+      rngState = nextUint32(rngState);
+      var x = rangeDouble(rngState, minX, maxX);
+      x = _snapToGrid(x, _trackTuning.gridSnap);
+      if (x < minX || x > maxX) continue;
+
+      final surfaceY = _highestSurfaceYAtX(x);
+      if (surfaceY == null) continue;
+      final centerY = surfaceY - tuning.surfaceClearanceY - halfSize;
+      if (_overlapsAnySolid(
+        centerX: x,
+        centerY: centerY,
+        halfSize: halfSize,
+        margin: tuning.noSpawnMargin,
+      )) {
+        continue;
+      }
+      if (_overlapsAnyCollectible(
+        centerX: x,
+        centerY: centerY,
+        halfSize: halfSize,
+        margin: tuning.noSpawnMargin,
+      )) {
+        continue;
+      }
+
+      _spawnRestorationItemAt(x, centerY, stat);
+      return;
+    }
+  }
+
   /// Seed used for deterministic generation/RNG.
   final int seed;
 
@@ -416,6 +495,7 @@ class GameCore {
   final V0ScoreTuning _scoreTuning;
   final V0TrackTuning _trackTuning;
   final V0CollectibleTuning _collectibleTuning;
+  final V0RestorationItemTuning _restorationItemTuning;
   final SpellCatalog _spells;
   final ProjectileCatalogDerived _projectiles;
   final EnemyCatalog _enemyCatalog;
@@ -436,6 +516,7 @@ class GameCore {
   late final BroadphaseGrid _broadphaseGrid;
   late final HitboxFollowOwnerSystem _hitboxFollowOwnerSystem;
   late final CollectibleSystem _collectibleSystem;
+  late final RestorationItemSystem _restorationItemSystem;
   late final LifetimeSystem _lifetimeSystem;
   late final InvulnerabilitySystem _invulnerabilitySystem;
   late final DamageSystem _damageSystem;
@@ -613,6 +694,12 @@ class GameCore {
         collectibleScore += value;
       },
     );
+    _restorationItemSystem.step(
+      _world,
+      player: _player,
+      cameraLeft: _camera.left(),
+      tuning: _restorationItemTuning,
+    );
 
     // Rebuild broadphase after movement/collision so damageable target positions
     // are final for the tick before any hit queries run.
@@ -771,9 +858,14 @@ class GameCore {
       ),
     );
 
-    if (_collectibleTuning.enabled && result.spawnedChunks.isNotEmpty) {
+    if (result.spawnedChunks.isNotEmpty) {
       for (final chunk in result.spawnedChunks) {
-        _spawnCollectiblesForChunk(chunk.index, chunk.startX);
+        if (_collectibleTuning.enabled) {
+          _spawnCollectiblesForChunk(chunk.index, chunk.startX);
+        }
+        if (_restorationItemTuning.enabled) {
+          _spawnRestorationItemForChunk(chunk.index, chunk.startX);
+        }
       }
     }
   }
@@ -890,6 +982,83 @@ class GameCore {
       if (overlaps) return true;
     }
     return false;
+  }
+
+  bool _overlapsAnyCollectible({
+    required double centerX,
+    required double centerY,
+    required double halfSize,
+    required double margin,
+  }) {
+    final collectibles = _world.collectible;
+    if (collectibles.denseEntities.isEmpty) return false;
+
+    final minX = centerX - halfSize - margin;
+    final maxX = centerX + halfSize + margin;
+    final minY = centerY - halfSize - margin;
+    final maxY = centerY + halfSize + margin;
+
+    for (var ci = 0; ci < collectibles.denseEntities.length; ci += 1) {
+      final e = collectibles.denseEntities[ci];
+      if (!(_world.transform.has(e) && _world.colliderAabb.has(e))) continue;
+      final ti = _world.transform.indexOf(e);
+      final ai = _world.colliderAabb.indexOf(e);
+      final cx = _world.transform.posX[ti] + _world.colliderAabb.offsetX[ai];
+      final cy = _world.transform.posY[ti] + _world.colliderAabb.offsetY[ai];
+      final overlaps = aabbOverlapsMinMax(
+        aMinX: minX,
+        aMaxX: maxX,
+        aMinY: minY,
+        aMaxY: maxY,
+        bMinX: cx - _world.colliderAabb.halfX[ai],
+        bMaxX: cx + _world.colliderAabb.halfX[ai],
+        bMinY: cy - _world.colliderAabb.halfY[ai],
+        bMaxY: cy + _world.colliderAabb.halfY[ai],
+      );
+      if (overlaps) return true;
+    }
+
+    return false;
+  }
+
+  RestorationStat _lowestResourceStat() {
+    final hi = _world.health.tryIndexOf(_player);
+    final mi = _world.mana.tryIndexOf(_player);
+    final si = _world.stamina.tryIndexOf(_player);
+    if (hi == null || mi == null || si == null) {
+      return RestorationStat.health;
+    }
+
+    var best = RestorationStat.health;
+    var bestValue = _world.health.hp[hi];
+    var bestMax = _world.health.hpMax[hi];
+
+    final mana = _world.mana.mana[mi];
+    final manaMax = _world.mana.manaMax[mi];
+    if (_ratioLess(mana, manaMax, bestValue, bestMax)) {
+      best = RestorationStat.mana;
+      bestValue = mana;
+      bestMax = manaMax;
+    }
+
+    final stamina = _world.stamina.stamina[si];
+    final staminaMax = _world.stamina.staminaMax[si];
+    if (_ratioLess(stamina, staminaMax, bestValue, bestMax)) {
+      best = RestorationStat.stamina;
+    }
+
+    return best;
+  }
+
+  bool _ratioLess(
+    double valueA,
+    double maxA,
+    double valueB,
+    double maxB,
+  ) {
+    if (maxA <= 0) return false;
+    if (maxB <= 0) return true;
+    return valueA * maxB < valueB * maxA;
   }
 
   static List<StaticSolidSnapshot> _buildStaticSolidsSnapshot(
@@ -1048,6 +1217,48 @@ class GameCore {
           pos: Vec2(_world.transform.posX[ti], _world.transform.posY[ti]),
           size: size,
           facing: Facing.right,
+          pickupVariant: PickupVariant.collectible,
+          rotationRad: pi * 0.25,
+          anim: AnimKey.idle,
+          grounded: false,
+        ),
+      );
+    }
+
+    final restorationStore = _world.restorationItem;
+    for (var ri = 0; ri < restorationStore.denseEntities.length; ri += 1) {
+      final e = restorationStore.denseEntities[ri];
+      if (!(_world.transform.has(e))) continue;
+      final ti = _world.transform.indexOf(e);
+
+      Vec2? size;
+      if (_world.colliderAabb.has(e)) {
+        final aabbi = _world.colliderAabb.indexOf(e);
+        size = Vec2(
+          _world.colliderAabb.halfX[aabbi] * 2,
+          _world.colliderAabb.halfY[aabbi] * 2,
+        );
+      }
+
+      final stat = restorationStore.stat[ri];
+      int variant;
+      switch (stat) {
+        case RestorationStat.health:
+          variant = PickupVariant.restorationHealth;
+        case RestorationStat.mana:
+          variant = PickupVariant.restorationMana;
+        case RestorationStat.stamina:
+          variant = PickupVariant.restorationStamina;
+      }
+
+      entities.add(
+        EntityRenderSnapshot(
+          id: e,
+          kind: EntityKind.pickup,
+          pos: Vec2(_world.transform.posX[ti], _world.transform.posY[ti]),
+          size: size,
+          facing: Facing.right,
+          pickupVariant: variant,
           rotationRad: pi * 0.25,
           anim: AnimKey.idle,
           grounded: false,
