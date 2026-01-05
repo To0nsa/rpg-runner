@@ -5,7 +5,7 @@ class V0TrackTuning {
   const V0TrackTuning({
     this.enabled = true,
     this.chunkWidth = 600.0,
-    this.spawnAheadMargin = 1200.0,
+    this.spawnAheadMargin = 600.0,
     this.cullBehindMargin = 600.0,
     this.gridSnap = 16.0,
   }) : assert(chunkWidth > 0),

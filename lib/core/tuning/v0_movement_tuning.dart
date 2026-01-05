@@ -21,7 +21,7 @@ class V0MovementTuning {
     this.minMoveSpeed = 5,
     this.maxVelX = 1500,
     this.maxVelY = 1500,
-    this.jumpSpeed = 450,
+    this.jumpSpeed = 500,
     this.coyoteTimeSeconds = 0.10,
     this.jumpBufferSeconds = 0.12,
     this.dashSpeedX = 550,

@@ -11,7 +11,7 @@ class V0GroundEnemyTuning {
     this.groundEnemyChaseOffsetMeleeX = 3.0,
     this.groundEnemyChaseSpeedScaleMin = 0.92,
     this.groundEnemyChaseSpeedScaleMax = 1.08,
-    this.groundEnemyJumpSpeed = 600.0,
+    this.groundEnemyJumpSpeed = 500.0,
     this.groundEnemyMeleeRangeX = 26.0,
     this.groundEnemyMeleeCooldownSeconds = 1.0,
     this.groundEnemyMeleeActiveSeconds = 0.10,

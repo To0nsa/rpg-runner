@@ -137,7 +137,7 @@ class V0TrackStreamer {
     required SpawnEnemy spawnEnemy,
   }) {
     // Safety: keep the early run empty so the player isn't immediately swarmed.
-    if (chunkIndex < 6) return;
+    if (chunkIndex < 3) return;
 
     for (var i = 0; i < pattern.spawnMarkers.length; i += 1) {
       final m = pattern.spawnMarkers[i];
@@ -233,7 +233,9 @@ class V0TrackStreamer {
         _PlatformRel(x: 160, width: 160, aboveGroundTop: 48, thickness: _t),
       ],
       obstacles: <_ObstacleRel>[],
-      spawnMarkers: <_SpawnMarker>[],
+      spawnMarkers: <_SpawnMarker>[
+        _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 240, chancePercent: 10, salt: 0x11),
+      ],
     ),
     V0ChunkPattern(
       name: 'two-low-platforms',
@@ -242,7 +244,9 @@ class V0TrackStreamer {
         _PlatformRel(x: 272, width: 144, aboveGroundTop: 64, thickness: _t),
       ],
       obstacles: <_ObstacleRel>[],
-      spawnMarkers: <_SpawnMarker>[],
+      spawnMarkers: <_SpawnMarker>[
+        _SpawnMarker(enemyId: EnemyId.groundEnemy, x: 448, chancePercent: 10, salt: 0x12),
+      ],
     ),
   ];
 
@@ -258,7 +262,7 @@ class V0TrackStreamer {
         _PlatformRel(x: 256, width: 160, aboveGroundTop: 96, thickness: _t),
       ],
       spawnMarkers: <_SpawnMarker>[
-        _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 352, chancePercent: 35, salt: 0x01),
+        _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 352, chancePercent: 17, salt: 0x01),
       ],
     ),
     V0ChunkPattern(
@@ -269,7 +273,7 @@ class V0TrackStreamer {
         _PlatformRel(x: 352, width: 96, aboveGroundTop: 64, thickness: _t),
       ],
       spawnMarkers: <_SpawnMarker>[
-        _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 288, chancePercent: 30, salt: 0x02),
+        _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 288, chancePercent: 15, salt: 0x02),
       ],
     ),
     V0ChunkPattern(
@@ -281,7 +285,7 @@ class V0TrackStreamer {
         _ObstacleRel(x: 128, width: 48, height: 64),
       ],
       spawnMarkers: <_SpawnMarker>[
-        _SpawnMarker(enemyId: EnemyId.groundEnemy, x: 320, chancePercent: 45, salt: 0x03),
+        _SpawnMarker(enemyId: EnemyId.groundEnemy, x: 320, chancePercent: 22, salt: 0x03),
       ],
     ),
 
@@ -292,7 +296,7 @@ class V0TrackStreamer {
         _ObstacleRel(x: 224, width: 48, height: 64),
       ],
       spawnMarkers: <_SpawnMarker>[
-        _SpawnMarker(enemyId: EnemyId.groundEnemy, x: 320, chancePercent: 35, salt: 0x04),
+        _SpawnMarker(enemyId: EnemyId.groundEnemy, x: 320, chancePercent: 17, salt: 0x04),
       ],
     ),
     V0ChunkPattern(
@@ -302,8 +306,71 @@ class V0TrackStreamer {
         _ObstacleRel(x: 288, width: 48, height: 64),
       ],
       spawnMarkers: <_SpawnMarker>[
-        _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 96, chancePercent: 25, salt: 0x05),
-        _SpawnMarker(enemyId: EnemyId.groundEnemy, x: 352, chancePercent: 30, salt: 0x06),
+        _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 96, chancePercent: 12, salt: 0x05),
+        _SpawnMarker(enemyId: EnemyId.groundEnemy, x: 352, chancePercent: 15, salt: 0x06),
+      ],
+    ),
+    V0ChunkPattern(
+      name: 'low-staircase-platforms',
+      platforms: <_PlatformRel>[
+        _PlatformRel(x: 48, width: 128, aboveGroundTop: 48, thickness: _t),
+        _PlatformRel(x: 208, width: 128, aboveGroundTop: 64, thickness: _t),
+        _PlatformRel(x: 368, width: 128, aboveGroundTop: 80, thickness: _t),
+      ],
+      spawnMarkers: <_SpawnMarker>[
+        _SpawnMarker(enemyId: EnemyId.groundEnemy, x: 112, chancePercent: 15, salt: 0x07),
+        _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 320, chancePercent: 15, salt: 0x08),
+      ],
+    ),
+    V0ChunkPattern(
+      name: 'wide-platform-gap',
+      platforms: <_PlatformRel>[
+        _PlatformRel(x: 32, width: 192, aboveGroundTop: 64, thickness: _t),
+        _PlatformRel(x: 288, width: 192, aboveGroundTop: 64, thickness: _t),
+      ],
+      spawnMarkers: <_SpawnMarker>[
+        _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 192, chancePercent: 17, salt: 0x09),
+        _SpawnMarker(enemyId: EnemyId.groundEnemy, x: 448, chancePercent: 15, salt: 0x0A),
+      ],
+    ),
+    V0ChunkPattern(
+      name: 'double-obstacle-lane',
+      obstacles: <_ObstacleRel>[
+        _ObstacleRel(x: 144, width: 48, height: 64),
+        _ObstacleRel(x: 336, width: 48, height: 64),
+      ],
+      spawnMarkers: <_SpawnMarker>[
+        _SpawnMarker(enemyId: EnemyId.groundEnemy, x: 256, chancePercent: 17, salt: 0x0B),
+        _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 80, chancePercent: 12, salt: 0x0C),
+      ],
+    ),
+    V0ChunkPattern(
+      name: 'mid-platform-overhang',
+      platforms: <_PlatformRel>[
+        _PlatformRel(x: 96, width: 160, aboveGroundTop: 96, thickness: _t),
+        _PlatformRel(x: 384, width: 128, aboveGroundTop: 64, thickness: _t),
+      ],
+      obstacles: <_ObstacleRel>[
+        _ObstacleRel(x: 320, width: 64, height: 80),
+      ],
+      spawnMarkers: <_SpawnMarker>[
+        _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 176, chancePercent: 15, salt: 0x0D),
+        _SpawnMarker(enemyId: EnemyId.groundEnemy, x: 448, chancePercent: 15, salt: 0x0E),
+      ],
+    ),
+    V0ChunkPattern(
+      name: 'tight-platforms',
+      platforms: <_PlatformRel>[
+        _PlatformRel(x: 32, width: 96, aboveGroundTop: 80, thickness: _t),
+        _PlatformRel(x: 160, width: 96, aboveGroundTop: 96, thickness: _t),
+        _PlatformRel(x: 288, width: 96, aboveGroundTop: 80, thickness: _t),
+      ],
+      obstacles: <_ObstacleRel>[
+        _ObstacleRel(x: 448, width: 48, height: 64),
+      ],
+      spawnMarkers: <_SpawnMarker>[
+        _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 240, chancePercent: 15, salt: 0x0F),
+        _SpawnMarker(enemyId: EnemyId.groundEnemy, x: 480, chancePercent: 12, salt: 0x10),
       ],
     ),
   ];
