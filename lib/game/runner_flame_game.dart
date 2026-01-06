@@ -71,8 +71,8 @@ class RunnerFlameGame extends FlameGame {
 
     camera.backdrop.add(
       PixelParallaxBackdropComponent(
-        virtualWidth: v0VirtualWidth,
-        virtualHeight: v0VirtualHeight,
+        virtualWidth: virtualWidth,
+        virtualHeight: virtualHeight,
         snapScrollToPixels: false,
         layers: const [
           PixelParallaxLayerSpec(
@@ -146,7 +146,7 @@ class RunnerFlameGame extends FlameGame {
       AimRayComponent(
         controller: controller,
         preview: projectileAimPreview,
-        length: v0ProjectileAimRayLength,
+        length: projectileAimRayLength,
         drawWhenNoAim: false,
       )..priority = 5,
     );
@@ -155,7 +155,7 @@ class RunnerFlameGame extends FlameGame {
       AimRayComponent(
         controller: controller,
         preview: meleeAimPreview,
-        length: v0MeleeAimRayLength,
+        length: meleeAimRayLength,
         drawWhenNoAim: false,
         paint: Paint()
           ..color = const Color(0xFFDC4440)
