@@ -17,12 +17,13 @@ import 'capsule_hit_utils.dart';
 /// Non-responsibilities:
 /// - world mutation (damage, despawns, HitOnce marking)
 class HitResolver {
+  // Temporary list to hold candidates from the broadphase before processing.
   final List<int> _candidates = <int>[];
 
-  /// Returns an ordered list of target indices (into `broadphase.targets`) that
-  /// overlap the query AABB and pass filtering rules.
+  /// Collects ALL entities intersecting the given AABB into [outTargetIndices].
   ///
-  /// Determinism: targets are always returned in `EntityId` ascending order.
+  /// The results are filtered strictly (overlaps only) and loosely (owner/friendly fire),
+  /// and are guaranteed to be sorted by [EntityId].
   void collectOrderedOverlapsCenters({
     required BroadphaseGrid broadphase,
     required double centerX,
@@ -34,6 +35,8 @@ class HitResolver {
     required List<int> outTargetIndices,
   }) {
     outTargetIndices.clear();
+
+    // 1. Broadphase Query + deterministic sort.
     final hasCandidates = _prepareCandidates(
       broadphase: broadphase,
       minX: centerX - halfX,
@@ -43,12 +46,16 @@ class HitResolver {
     );
     if (!hasCandidates) return;
 
+    // 2. Narrowphase Check on processed candidates.
     for (var i = 0; i < _candidates.length; i += 1) {
       final targetIndex = _candidates[i];
+
+      // 2a. Filter logic (Owner + Faction).
       if (!_isValidTarget(targetIndex, broadphase, owner, sourceFaction)) {
         continue;
       }
 
+      // 2b. Exact AABB overlap test.
       if (!aabbOverlapsCenters(
         aCenterX: centerX,
         aCenterY: centerY,
@@ -62,12 +69,12 @@ class HitResolver {
         continue;
       }
 
+      // 3. Collect valid hit.
       outTargetIndices.add(targetIndex);
     }
   }
 
-  /// Returns the first overlapping target index (into `broadphase.targets`) in
-  /// deterministic order, or null if there is no hit.
+  /// Returns the FIRST entity intersecting the given AABB (lowest EntityId).
   int? firstOrderedOverlapCenters({
     required BroadphaseGrid broadphase,
     required double centerX,
@@ -77,6 +84,7 @@ class HitResolver {
     required EntityId owner,
     required Faction sourceFaction,
   }) {
+    // 1. Broadphase Query.
     final hasCandidates = _prepareCandidates(
       broadphase: broadphase,
       minX: centerX - halfX,
@@ -86,12 +94,16 @@ class HitResolver {
     );
     if (!hasCandidates) return null;
 
+    // 2. Determine the first valid hit.
     for (var i = 0; i < _candidates.length; i += 1) {
       final targetIndex = _candidates[i];
+
+      // 2a. Filter logic.
       if (!_isValidTarget(targetIndex, broadphase, owner, sourceFaction)) {
         continue;
       }
 
+      // 2b. Exact AABB overlap test.
       if (!aabbOverlapsCenters(
         aCenterX: centerX,
         aCenterY: centerY,
@@ -105,16 +117,14 @@ class HitResolver {
         continue;
       }
 
+      // 3. Return immediately on first hit (Sorted by EntityId).
       return targetIndex;
     }
 
     return null;
   }
 
-  /// Returns an ordered list of target indices (into `broadphase.targets`) that
-  /// overlap the query capsule and pass filtering rules.
-  ///
-  /// Determinism: targets are always returned in `EntityId` ascending order.
+  /// Collects ALL entities intersecting the given capsule into [outTargetIndices].
   void collectOrderedOverlapsCapsule({
     required BroadphaseGrid broadphase,
     required double ax,
@@ -127,6 +137,8 @@ class HitResolver {
     required List<int> outTargetIndices,
   }) {
     outTargetIndices.clear();
+
+    // 1. Broadphase Query using capsule AABB bounds.
     final hasCandidates = _prepareCandidates(
       broadphase: broadphase,
       minX: math.min(ax, bx) - radius,
@@ -136,8 +148,11 @@ class HitResolver {
     );
     if (!hasCandidates) return;
 
+    // 2. Narrowphase Check.
     for (var i = 0; i < _candidates.length; i += 1) {
       final targetIndex = _candidates[i];
+
+      // 2a. Filter logic.
       if (!_isValidTarget(targetIndex, broadphase, owner, sourceFaction)) {
         continue;
       }
@@ -147,6 +162,7 @@ class HitResolver {
       final targetHalfX = broadphase.targets.halfX[targetIndex];
       final targetHalfY = broadphase.targets.halfY[targetIndex];
 
+      // 2b. Capsule vs AABB intersection test.
       if (!capsuleIntersectsAabb(
         ax: ax,
         ay: ay,
@@ -161,12 +177,12 @@ class HitResolver {
         continue;
       }
 
+      // 3. Collect valid hit.
       outTargetIndices.add(targetIndex);
     }
   }
 
-  /// Returns the first overlapping target index (into `broadphase.targets`) in
-  /// deterministic order, or null if there is no hit.
+  /// Returns the FIRST entity intersecting the given capsule (lowest EntityId).
   int? firstOrderedOverlapCapsule({
     required BroadphaseGrid broadphase,
     required double ax,
@@ -177,6 +193,7 @@ class HitResolver {
     required EntityId owner,
     required Faction sourceFaction,
   }) {
+    // 1. Broadphase Query.
     final hasCandidates = _prepareCandidates(
       broadphase: broadphase,
       minX: math.min(ax, bx) - radius,
@@ -186,8 +203,11 @@ class HitResolver {
     );
     if (!hasCandidates) return null;
 
+    // 2. Determine the first valid hit.
     for (var i = 0; i < _candidates.length; i += 1) {
       final targetIndex = _candidates[i];
+
+      // 2a. Filter logic.
       if (!_isValidTarget(targetIndex, broadphase, owner, sourceFaction)) {
         continue;
       }
@@ -197,6 +217,7 @@ class HitResolver {
       final targetHalfX = broadphase.targets.halfX[targetIndex];
       final targetHalfY = broadphase.targets.halfY[targetIndex];
 
+      // 2b. Capsule vs AABB intersection test.
       if (!capsuleIntersectsAabb(
         ax: ax,
         ay: ay,
@@ -211,12 +232,16 @@ class HitResolver {
         continue;
       }
 
+      // 3. Return immediately on first hit.
       return targetIndex;
     }
 
     return null;
   }
 
+  /// Helper: Runs broadphase query and sorts results by EntityId.
+  ///
+  /// Returns `false` if no candidates were found.
   bool _prepareCandidates({
     required BroadphaseGrid broadphase,
     required double minX,
@@ -224,6 +249,7 @@ class HitResolver {
     required double maxX,
     required double maxY,
   }) {
+    // 1. Get raw cell-based candidates (contains duplicates if spanning cells).
     broadphase.queryAabbMinMax(
       minX: minX,
       minY: minY,
@@ -233,18 +259,22 @@ class HitResolver {
     );
     if (_candidates.isEmpty) return false;
 
+    // 2. Sort by EntityId to ensure deterministic order (1, 2, 3...)
+    // regardless of cell iteration order.
     _sortCandidatesByEntityId(broadphase);
     return true;
   }
 
+  /// Helper: Checks non-geometric filtering rules.
+  ///
+  /// - Excludes [owner] (can't hit self).
+  /// - Excludes allies of [sourceFaction] (friendly fire).
   bool _isValidTarget(
     int targetIndex,
     BroadphaseGrid broadphase,
     EntityId owner,
     Faction sourceFaction,
   ) {
-    // Only check owner and friendly fire.
-    // Existence and component validity is guaranteed by DamageableTargetCache logic.
     final target = broadphase.targets.entities[targetIndex];
     if (target == owner) return false;
 
