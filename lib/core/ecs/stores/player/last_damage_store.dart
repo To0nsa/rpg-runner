@@ -1,9 +1,9 @@
-import '../../enemies/enemy_id.dart';
-import '../../events/game_event.dart';
-import '../../projectiles/projectile_id.dart';
-import '../../spells/spell_id.dart';
-import '../entity_id.dart';
-import '../sparse_set.dart';
+import '../../../enemies/enemy_id.dart';
+import '../../../events/game_event.dart';
+import '../../../projectiles/projectile_id.dart';
+import '../../../spells/spell_id.dart';
+import '../../entity_id.dart';
+import '../../sparse_set.dart';
 
 /// Per-entity record of the last applied damage metadata.
 ///

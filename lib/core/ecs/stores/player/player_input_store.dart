@@ -1,5 +1,5 @@
-import '../entity_id.dart';
-import '../sparse_set.dart';
+import '../../entity_id.dart';
+import '../../sparse_set.dart';
 
 /// Per-tick player input (authoritative commands decoded by the core).
 ///

@@ -1,5 +1,5 @@
-import '../entity_id.dart';
-import '../sparse_set.dart';
+import '../../entity_id.dart';
+import '../../sparse_set.dart';
 
 /// Tracks entities that are temporarily ignoring global gravity.
 ///
