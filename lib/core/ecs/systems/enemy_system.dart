@@ -655,9 +655,9 @@ class EnemySystem {
     if (!intent.hasPlan && safeSurfaceMinX != null && safeSurfaceMaxX != null) {
       final stopDist = tuning.base.groundEnemyStopDistanceX;
       final nextVelX = world.transform.velX[enemyTi];
-      if (nextVelX > 0.0 && ex >= safeSurfaceMaxX! - stopDist) {
+      if (nextVelX > 0.0 && ex >= safeSurfaceMaxX - stopDist) {
         world.transform.velX[enemyTi] = 0.0;
-      } else if (nextVelX < 0.0 && ex <= safeSurfaceMinX! + stopDist) {
+      } else if (nextVelX < 0.0 && ex <= safeSurfaceMinX + stopDist) {
         world.transform.velX[enemyTi] = 0.0;
       }
     }
