@@ -9,10 +9,17 @@ class V0CameraState {
     required this.speedX,
   });
 
+  /// Current visual center X of the camera view.
   final double centerX;
+
+  /// The "ideal" center position the camera is trying to reach.
+  /// This leads [centerX] and pulls it forward via smoothing.
   final double targetX;
+
+  /// Current scroll speed (pixels/second).
   final double speedX;
 
+  /// Creates a copy with updated fields.
   V0CameraState copyWith({
     double? centerX,
     double? targetX,
@@ -49,14 +56,21 @@ class V0AutoscrollCamera {
   double left() => _state.centerX - viewWidth * 0.5;
   double right() => _state.centerX + viewWidth * 0.5;
 
+  /// The X coordinate where the player starts pushing the camera forward.
+  ///
+  /// Calculated as a ratio of the viewport width from the left edge.
   double followThresholdX() => left() + _tuning.followThresholdRatio * viewWidth;
 
+  /// Advances camera simulation by [dtSeconds].
+  ///
+  /// [playerX] is nullable to handle cases where the player is dead or despawned.
   void updateTick({
     required double dtSeconds,
     required double? playerX,
   }) {
     final t = _tuning;
 
+    // 1. Update base scroll speed (accelerate/decelerate towards target speed).
     var speedX = _state.speedX;
     if (speedX < t.targetSpeedX) {
       speedX = clampDouble(speedX + t.accelX * dtSeconds, 0.0, t.targetSpeedX);
@@ -64,10 +78,13 @@ class V0AutoscrollCamera {
       speedX = clampDouble(speedX - t.accelX * dtSeconds, t.targetSpeedX, speedX);
     }
 
+    // 2. Integrate target position based on speed.
     var targetX = _state.targetX + speedX * dtSeconds;
 
-    // If the player passes the follow threshold, allow the target to drift toward
-    // the player (never decreases).
+    // 3. Player catch-up logic.
+    // If the player pushes past the threshold, the target point is pulled forward.
+    // This allows the player to run faster than the scroll speed without staying
+    // pinned to the edge (camera speeds up to catch them).
     if (playerX != null) {
       final threshold = followThresholdX();
       if (playerX > threshold) {
@@ -77,10 +94,11 @@ class V0AutoscrollCamera {
       }
     }
 
+    // 4. Smooth the actual camera center towards the target.
     final alpha = expSmoothingFactor(t.catchupLerp, dtSeconds);
     var centerX = _state.centerX + (targetX - _state.centerX) * alpha;
 
-    // Determinism/feel: camera never moves backward.
+    // 5. Monotonicity clamp: the camera is an auto-scroller, it never goes left.
     if (centerX < _state.centerX) centerX = _state.centerX;
     if (targetX < _state.targetX) targetX = _state.targetX;
 
