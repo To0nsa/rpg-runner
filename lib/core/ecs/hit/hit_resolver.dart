@@ -33,28 +33,19 @@ class HitResolver {
     required Faction sourceFaction,
     required List<int> outTargetIndices,
   }) {
-    broadphase.queryAabbMinMax(
+    outTargetIndices.clear();
+    final hasCandidates = _prepareCandidates(
+      broadphase: broadphase,
       minX: centerX - halfX,
       minY: centerY - halfY,
       maxX: centerX + halfX,
       maxY: centerY + halfY,
-      outTargetIndices: _candidates,
     );
-
-    outTargetIndices.clear();
-    if (_candidates.isEmpty) return;
-
-    _sortCandidatesByEntityId(broadphase);
+    if (!hasCandidates) return;
 
     for (var i = 0; i < _candidates.length; i += 1) {
       final targetIndex = _candidates[i];
-      final target = broadphase.targets.entities[targetIndex];
-      if (target == owner) continue;
-
-      if (isFriendlyFire(
-        sourceFaction,
-        broadphase.targets.factions[targetIndex],
-      )) {
+      if (!_isValidTarget(targetIndex, broadphase, owner, sourceFaction)) {
         continue;
       }
 
@@ -86,26 +77,18 @@ class HitResolver {
     required EntityId owner,
     required Faction sourceFaction,
   }) {
-    broadphase.queryAabbMinMax(
+    final hasCandidates = _prepareCandidates(
+      broadphase: broadphase,
       minX: centerX - halfX,
       minY: centerY - halfY,
       maxX: centerX + halfX,
       maxY: centerY + halfY,
-      outTargetIndices: _candidates,
     );
-    if (_candidates.isEmpty) return null;
-
-    _sortCandidatesByEntityId(broadphase);
+    if (!hasCandidates) return null;
 
     for (var i = 0; i < _candidates.length; i += 1) {
       final targetIndex = _candidates[i];
-      final target = broadphase.targets.entities[targetIndex];
-      if (target == owner) continue;
-
-      if (isFriendlyFire(
-        sourceFaction,
-        broadphase.targets.factions[targetIndex],
-      )) {
+      if (!_isValidTarget(targetIndex, broadphase, owner, sourceFaction)) {
         continue;
       }
 
@@ -143,33 +126,19 @@ class HitResolver {
     required Faction sourceFaction,
     required List<int> outTargetIndices,
   }) {
-    final minX = math.min(ax, bx) - radius;
-    final maxX = math.max(ax, bx) + radius;
-    final minY = math.min(ay, by) - radius;
-    final maxY = math.max(ay, by) + radius;
-
-    broadphase.queryAabbMinMax(
-      minX: minX,
-      minY: minY,
-      maxX: maxX,
-      maxY: maxY,
-      outTargetIndices: _candidates,
-    );
-
     outTargetIndices.clear();
-    if (_candidates.isEmpty) return;
-
-    _sortCandidatesByEntityId(broadphase);
+    final hasCandidates = _prepareCandidates(
+      broadphase: broadphase,
+      minX: math.min(ax, bx) - radius,
+      minY: math.min(ay, by) - radius,
+      maxX: math.max(ax, bx) + radius,
+      maxY: math.max(ay, by) + radius,
+    );
+    if (!hasCandidates) return;
 
     for (var i = 0; i < _candidates.length; i += 1) {
       final targetIndex = _candidates[i];
-      final target = broadphase.targets.entities[targetIndex];
-      if (target == owner) continue;
-
-      if (isFriendlyFire(
-        sourceFaction,
-        broadphase.targets.factions[targetIndex],
-      )) {
+      if (!_isValidTarget(targetIndex, broadphase, owner, sourceFaction)) {
         continue;
       }
 
@@ -208,31 +177,18 @@ class HitResolver {
     required EntityId owner,
     required Faction sourceFaction,
   }) {
-    final minX = math.min(ax, bx) - radius;
-    final maxX = math.max(ax, bx) + radius;
-    final minY = math.min(ay, by) - radius;
-    final maxY = math.max(ay, by) + radius;
-
-    broadphase.queryAabbMinMax(
-      minX: minX,
-      minY: minY,
-      maxX: maxX,
-      maxY: maxY,
-      outTargetIndices: _candidates,
+    final hasCandidates = _prepareCandidates(
+      broadphase: broadphase,
+      minX: math.min(ax, bx) - radius,
+      minY: math.min(ay, by) - radius,
+      maxX: math.max(ax, bx) + radius,
+      maxY: math.max(ay, by) + radius,
     );
-    if (_candidates.isEmpty) return null;
-
-    _sortCandidatesByEntityId(broadphase);
+    if (!hasCandidates) return null;
 
     for (var i = 0; i < _candidates.length; i += 1) {
       final targetIndex = _candidates[i];
-      final target = broadphase.targets.entities[targetIndex];
-      if (target == owner) continue;
-
-      if (isFriendlyFire(
-        sourceFaction,
-        broadphase.targets.factions[targetIndex],
-      )) {
+      if (!_isValidTarget(targetIndex, broadphase, owner, sourceFaction)) {
         continue;
       }
 
@@ -259,6 +215,43 @@ class HitResolver {
     }
 
     return null;
+  }
+
+  bool _prepareCandidates({
+    required BroadphaseGrid broadphase,
+    required double minX,
+    required double minY,
+    required double maxX,
+    required double maxY,
+  }) {
+    broadphase.queryAabbMinMax(
+      minX: minX,
+      minY: minY,
+      maxX: maxX,
+      maxY: maxY,
+      outTargetIndices: _candidates,
+    );
+    if (_candidates.isEmpty) return false;
+
+    _sortCandidatesByEntityId(broadphase);
+    return true;
+  }
+
+  bool _isValidTarget(
+    int targetIndex,
+    BroadphaseGrid broadphase,
+    EntityId owner,
+    Faction sourceFaction,
+  ) {
+    // Only check owner and friendly fire.
+    // Existence and component validity is guaranteed by DamageableTargetCache logic.
+    final target = broadphase.targets.entities[targetIndex];
+    if (target == owner) return false;
+
+    return !areAllies(
+      sourceFaction,
+      broadphase.targets.factions[targetIndex],
+    );
   }
 
   void _sortCandidatesByEntityId(BroadphaseGrid broadphase) {

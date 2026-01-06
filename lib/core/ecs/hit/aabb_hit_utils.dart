@@ -9,7 +9,7 @@ import '../world.dart';
 // - Systems still own iteration/selection rules (e.g. "first hit wins") until
 //   Milestone 10 (Hit Resolution Module).
 
-bool isFriendlyFire(Faction a, Faction b) => a == b;
+bool areAllies(Faction a, Faction b) => a == b;
 
 /// Per-tick cache of "damageable collider targets" to reduce repeated sparse
 /// lookups in hot loops.
