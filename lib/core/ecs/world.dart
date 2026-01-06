@@ -1,6 +1,7 @@
 import '../snapshots/enums.dart';
 import '../combat/faction.dart';
 import 'entity_id.dart';
+import 'sparse_set.dart';
 import 'stores/body_store.dart';
 import 'stores/collider_aabb_store.dart';
 import 'stores/collision_state_store.dart';
@@ -42,35 +43,41 @@ class EcsWorld {
 
   EntityId _nextEntityId = 1;
   final List<EntityId> _freeIds = <EntityId>[];
+  final List<SparseSet> _stores = <SparseSet>[];
 
-  final TransformStore transform = TransformStore();
-  final PlayerInputStore playerInput = PlayerInputStore();
-  final MovementStore movement = MovementStore();
-  final BodyStore body = BodyStore();
-  final ColliderAabbStore colliderAabb = ColliderAabbStore();
-  final CollisionStateStore collision = CollisionStateStore();
-  final CooldownStore cooldown = CooldownStore();
-  final CastIntentStore castIntent = CastIntentStore();
-  final CollectibleStore collectible = CollectibleStore();
-  final RestorationItemStore restorationItem = RestorationItemStore();
-  final GravityControlStore gravityControl = GravityControlStore();
-  final FactionStore faction = FactionStore();
-  final HealthStore health = HealthStore();
-  final InvulnerabilityStore invulnerability = InvulnerabilityStore();
-  final LastDamageStore lastDamage = LastDamageStore();
-  final ManaStore mana = ManaStore();
-  final MeleeIntentStore meleeIntent = MeleeIntentStore();
-  final StaminaStore stamina = StaminaStore();
-  final ProjectileStore projectile = ProjectileStore();
-  final HitboxStore hitbox = HitboxStore();
-  final HitOnceStore hitOnce = HitOnceStore();
-  final LifetimeStore lifetime = LifetimeStore();
-  final SpellOriginStore spellOrigin = SpellOriginStore();
-  final SurfaceNavStateStore surfaceNav = SurfaceNavStateStore();
-  final EnemyStore enemy = EnemyStore();
-  final FlyingEnemySteeringStore flyingEnemySteering = FlyingEnemySteeringStore();
-  final GroundEnemyChaseOffsetStore groundEnemyChaseOffset =
-      GroundEnemyChaseOffsetStore();
+  T _register<T extends SparseSet>(T store) {
+    _stores.add(store);
+    return store;
+  }
+
+  late final TransformStore transform = _register(TransformStore());
+  late final PlayerInputStore playerInput = _register(PlayerInputStore());
+  late final MovementStore movement = _register(MovementStore());
+  late final BodyStore body = _register(BodyStore());
+  late final ColliderAabbStore colliderAabb = _register(ColliderAabbStore());
+  late final CollisionStateStore collision = _register(CollisionStateStore());
+  late final CooldownStore cooldown = _register(CooldownStore());
+  late final CastIntentStore castIntent = _register(CastIntentStore());
+  late final CollectibleStore collectible = _register(CollectibleStore());
+  late final RestorationItemStore restorationItem = _register(RestorationItemStore());
+  late final GravityControlStore gravityControl = _register(GravityControlStore());
+  late final FactionStore faction = _register(FactionStore());
+  late final HealthStore health = _register(HealthStore());
+  late final InvulnerabilityStore invulnerability = _register(InvulnerabilityStore());
+  late final LastDamageStore lastDamage = _register(LastDamageStore());
+  late final ManaStore mana = _register(ManaStore());
+  late final MeleeIntentStore meleeIntent = _register(MeleeIntentStore());
+  late final StaminaStore stamina = _register(StaminaStore());
+  late final ProjectileStore projectile = _register(ProjectileStore());
+  late final HitboxStore hitbox = _register(HitboxStore());
+  late final HitOnceStore hitOnce = _register(HitOnceStore());
+  late final LifetimeStore lifetime = _register(LifetimeStore());
+  late final SpellOriginStore spellOrigin = _register(SpellOriginStore());
+  late final SurfaceNavStateStore surfaceNav = _register(SurfaceNavStateStore());
+  late final EnemyStore enemy = _register(EnemyStore());
+  late final FlyingEnemySteeringStore flyingEnemySteering = _register(FlyingEnemySteeringStore());
+  late final GroundEnemyChaseOffsetStore groundEnemyChaseOffset =
+      _register(GroundEnemyChaseOffsetStore());
 
   EntityId createEntity() {
     if (_freeIds.isNotEmpty) {
@@ -159,33 +166,9 @@ class EcsWorld {
   }
 
   void destroyEntity(EntityId entity) {
-    transform.removeEntity(entity);
-    playerInput.removeEntity(entity);
-    movement.removeEntity(entity);
-    body.removeEntity(entity);
-    colliderAabb.removeEntity(entity);
-    collision.removeEntity(entity);
-    cooldown.removeEntity(entity);
-    castIntent.removeEntity(entity);
-    collectible.removeEntity(entity);
-    restorationItem.removeEntity(entity);
-    gravityControl.removeEntity(entity);
-    faction.removeEntity(entity);
-    health.removeEntity(entity);
-    invulnerability.removeEntity(entity);
-    lastDamage.removeEntity(entity);
-    mana.removeEntity(entity);
-    meleeIntent.removeEntity(entity);
-    stamina.removeEntity(entity);
-    projectile.removeEntity(entity);
-    hitbox.removeEntity(entity);
-    hitOnce.removeEntity(entity);
-    lifetime.removeEntity(entity);
-    spellOrigin.removeEntity(entity);
-    surfaceNav.removeEntity(entity);
-    enemy.removeEntity(entity);
-    flyingEnemySteering.removeEntity(entity);
-    groundEnemyChaseOffset.removeEntity(entity);
+    for (final store in _stores) {
+      store.removeEntity(entity);
+    }
     _freeIds.add(entity);
   }
 }
