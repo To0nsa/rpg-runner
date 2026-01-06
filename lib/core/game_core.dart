@@ -10,6 +10,7 @@ import 'camera/autoscroll_camera.dart';
 import 'collision/static_world_geometry_index.dart';
 import 'contracts/render_contract.dart';
 import 'ecs/entity_id.dart';
+import 'ecs/entity_factory.dart';
 import 'ecs/hit/aabb_hit_utils.dart';
 import 'ecs/spatial/broadphase_grid.dart';
 import 'ecs/spatial/grid_index_2d.dart';
@@ -136,6 +137,7 @@ class GameCore {
        _collectibleTuning = collectibleTuning,
        _restorationItemTuning = restorationItemTuning {
     _world = EcsWorld(seed: seed);
+    _entityFactory = EntityFactory(_world);
     _movementSystem = PlayerMovementSystem();
     _collisionSystem = CollisionSystem();
     _cooldownSystem = CooldownSystem();
@@ -227,7 +229,7 @@ class GameCore {
     final spawnY =
         (_staticWorldGeometry.groundPlane?.topY ?? groundTopY.toDouble()) -
         (playerCollider.offsetY + playerCollider.halfY);
-    _player = _world.createPlayer(
+    _player = _entityFactory.createPlayer(
       posX: spawnX,
       posY: spawnY,
       velX: 0.0,
@@ -263,7 +265,7 @@ class GameCore {
     // Enemy spawn stats come from a centralized catalog so these hardcoded spawns
     // don't diverge from future deterministic spawning rules.
     final archetype = _enemyCatalog.get(EnemyId.flyingEnemy);
-    final flyingEnemy = _world.createEnemy(
+    final flyingEnemy = _entityFactory.createEnemy(
       enemyId: EnemyId.flyingEnemy,
       posX: spawnX,
       posY: groundTopY - _flyingEnemyTuning.base.flyingEnemyHoverOffsetY,
@@ -294,7 +296,7 @@ class GameCore {
 
     // GroundEnemy uses the archetype, but clamps should stay aligned with the
     // current movement tuning.
-    return _world.createEnemy(
+    return _entityFactory.createEnemy(
       enemyId: EnemyId.groundEnemy,
       posX: spawnX,
       posY: groundTopY - archetype.collider.halfY,
@@ -508,6 +510,7 @@ class GameCore {
   TrackStreamer? _trackStreamer;
 
   late final EcsWorld _world;
+  late final EntityFactory _entityFactory;
   late final PlayerMovementSystem _movementSystem;
   late final CollisionSystem _collisionSystem;
   late final CooldownSystem _cooldownSystem;

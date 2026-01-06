@@ -24,6 +24,7 @@ import 'package:walkscape_runner/core/tuning/flying_enemy_tuning.dart';
 import 'package:walkscape_runner/core/tuning/ground_enemy_tuning.dart';
 import 'package:walkscape_runner/core/tuning/movement_tuning.dart';
 import 'package:walkscape_runner/core/tuning/physics_tuning.dart';
+import 'package:walkscape_runner/core/ecs/entity_factory.dart';
 
 void main() {
   test('ground enemy still navigates a jump across a gap when chase offset points into the gap', () {
@@ -56,7 +57,7 @@ void main() {
     world.collision.add(player);
     world.collision.grounded[world.collision.indexOf(player)] = true;
 
-    final enemy = world.createEnemy(
+    final enemy = EntityFactory(world).createEnemy(
       enemyId: EnemyId.groundEnemy,
       posX: 60.0,
       posY: groundTopY - enemyHalf,

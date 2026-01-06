@@ -25,6 +25,7 @@ import 'package:walkscape_runner/core/spells/spell_id.dart';
 import 'package:walkscape_runner/core/tuning/spatial_grid_tuning.dart';
 
 import 'test_spawns.dart';
+import 'package:walkscape_runner/core/ecs/entity_factory.dart';
 
 void main() {
   test('projectile kill records death metadata', () {
@@ -35,7 +36,7 @@ void main() {
       tickHz: 60,
     );
 
-    final player = world.createPlayer(
+    final player = EntityFactory(world).createPlayer(
       posX: 100,
       posY: 100,
       velX: 0,
@@ -86,7 +87,7 @@ void main() {
   test('melee kill records death metadata', () {
     final world = EcsWorld();
 
-    final player = world.createPlayer(
+    final player = EntityFactory(world).createPlayer(
       posX: 100,
       posY: 100,
       velX: 0,

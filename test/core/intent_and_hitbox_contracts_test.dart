@@ -17,12 +17,13 @@ import 'package:walkscape_runner/core/projectiles/projectile_catalog.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
 import 'package:walkscape_runner/core/spells/spell_catalog.dart';
 import 'package:walkscape_runner/core/spells/spell_id.dart';
+import 'package:walkscape_runner/core/ecs/entity_factory.dart';
 
 void main() {
   test('executors: intent is executed at most once per tick', () {
     final world = EcsWorld();
 
-    final caster = world.createPlayer(
+    final caster = EntityFactory(world).createPlayer(
       posX: 100,
       posY: 100,
       velX: 0,

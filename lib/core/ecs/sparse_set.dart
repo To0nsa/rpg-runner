@@ -25,8 +25,10 @@ abstract class SparseSet {
   }
 
   int? tryIndexOf(EntityId entity) {
-    if (!has(entity)) return null;
-    return indexOf(entity);
+    if (entity < 0 || entity >= _sparse.length) return null;
+    final idxPlus1 = _sparse[entity];
+    if (idxPlus1 == 0) return null;
+    return idxPlus1 - 1;
   }
 
   void ensureCapacity(EntityId entity) {

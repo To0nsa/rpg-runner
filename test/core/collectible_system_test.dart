@@ -10,11 +10,12 @@ import 'package:walkscape_runner/core/ecs/systems/collectible_system.dart';
 import 'package:walkscape_runner/core/ecs/world.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
 import 'package:walkscape_runner/core/tuning/collectible_tuning.dart';
+import 'package:walkscape_runner/core/ecs/entity_factory.dart';
 
 void main() {
   test('CollectibleSystem collects overlapping pickups', () {
     final world = EcsWorld();
-    final player = world.createPlayer(
+    final player = EntityFactory(world).createPlayer(
       posX: 100,
       posY: 100,
       velX: 0,
@@ -52,7 +53,7 @@ void main() {
 
   test('CollectibleSystem despawns behind camera', () {
     final world = EcsWorld();
-    final player = world.createPlayer(
+    final player = EntityFactory(world).createPlayer(
       posX: 100,
       posY: 100,
       velX: 0,

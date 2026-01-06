@@ -12,11 +12,12 @@ import 'package:walkscape_runner/core/snapshots/enums.dart';
 import 'package:walkscape_runner/core/tuning/movement_tuning.dart';
 import 'package:walkscape_runner/core/tuning/physics_tuning.dart';
 import 'package:walkscape_runner/core/tuning/resource_tuning.dart';
+import 'package:walkscape_runner/core/ecs/entity_factory.dart';
 
 void main() {
   test('GravitySystem applies gravity when enabled and not suppressed', () {
     final world = EcsWorld();
-    final player = world.createPlayer(
+    final player = EntityFactory(world).createPlayer(
       posX: 0,
       posY: 0,
       velX: 0,
@@ -48,7 +49,7 @@ void main() {
 
   test('GravitySystem skips gravity while suppressed and resumes after', () {
     final world = EcsWorld();
-    final player = world.createPlayer(
+    final player = EntityFactory(world).createPlayer(
       posX: 0,
       posY: 0,
       velX: 0,
@@ -85,7 +86,7 @@ void main() {
 
   test('Player dash suppresses gravity for dash duration', () {
     final world = EcsWorld();
-    final player = world.createPlayer(
+    final player = EntityFactory(world).createPlayer(
       posX: 0,
       posY: 0,
       velX: 0,

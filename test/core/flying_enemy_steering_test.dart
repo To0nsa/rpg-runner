@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:walkscape_runner/core/ecs/entity_factory.dart';
 import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/collider_aabb_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/health_store.dart';
@@ -23,7 +24,7 @@ void main() {
     final worldA = EcsWorld(seed: seed);
     final worldB = EcsWorld(seed: seed);
 
-    final playerA = worldA.createPlayer(
+    final playerA = EntityFactory(worldA).createPlayer(
       posX: 300,
       posY: 120,
       velX: 0,
@@ -36,7 +37,7 @@ void main() {
       mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond: 0),
       stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
     );
-    final playerB = worldB.createPlayer(
+    final playerB = EntityFactory(worldB).createPlayer(
       posX: 300,
       posY: 120,
       velX: 0,

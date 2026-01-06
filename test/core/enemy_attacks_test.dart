@@ -27,6 +27,7 @@ import 'package:walkscape_runner/core/tuning/ground_enemy_tuning.dart';
 import 'package:walkscape_runner/core/tuning/spatial_grid_tuning.dart';
 
 import 'test_spawns.dart';
+import 'package:walkscape_runner/core/ecs/entity_factory.dart';
 
 void main() {
   test('enemy projectile (lightning) damages player', () {
@@ -34,7 +35,7 @@ void main() {
     const spellCatalog = SpellCatalog();
     final lightningDamage = spellCatalog.get(SpellId.lightning).stats.damage;
 
-    final player = world.createPlayer(
+    final player = EntityFactory(world).createPlayer(
       posX: 100,
       posY: 100,
       velX: 0,
@@ -94,7 +95,7 @@ void main() {
   test('GroundEnemy melee spawns enemy hitbox that damages player once', () {
     final world = EcsWorld();
 
-    final player = world.createPlayer(
+    final player = EntityFactory(world).createPlayer(
       posX: 100,
       posY: 100,
       velX: 0,

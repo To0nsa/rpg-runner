@@ -20,6 +20,7 @@ import 'package:walkscape_runner/core/snapshots/enums.dart';
 import 'package:walkscape_runner/core/tuning/ability_tuning.dart';
 import 'package:walkscape_runner/core/tuning/movement_tuning.dart';
 import 'package:walkscape_runner/core/tuning/spatial_grid_tuning.dart';
+import 'package:walkscape_runner/core/ecs/entity_factory.dart';
 
 void main() {
   test('melee hitbox damages only once per swing', () {
@@ -50,7 +51,7 @@ void main() {
     );
     final lifetime = LifetimeSystem();
 
-    final player = world.createPlayer(
+    final player = EntityFactory(world).createPlayer(
       posX: 100,
       posY: 100,
       velX: 0,

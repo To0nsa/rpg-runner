@@ -25,6 +25,7 @@ import 'package:walkscape_runner/core/util/deterministic_rng.dart';
 import 'package:walkscape_runner/core/util/double_math.dart';
 
 import 'test_spawns.dart';
+import 'package:walkscape_runner/core/ecs/entity_factory.dart';
 
 class SurfaceNavigatorProbe extends SurfaceNavigator {
   SurfaceNavigatorProbe()
@@ -124,7 +125,7 @@ void main() {
     );
 
     final world = EcsWorld(seed: seed);
-    final player = world.createPlayer(
+    final player = EntityFactory(world).createPlayer(
       posX: playerX,
       posY: playerY,
       velX: 0.0,
@@ -239,7 +240,7 @@ void main() {
       );
 
       final world = EcsWorld(seed: seed);
-      final player = world.createPlayer(
+      final player = EntityFactory(world).createPlayer(
         posX: playerX,
         posY: playerY,
         velX: 0.0,
@@ -301,7 +302,7 @@ void main() {
       );
 
       final world = EcsWorld(seed: seed);
-      final player = world.createPlayer(
+      final player = EntityFactory(world).createPlayer(
         posX: playerX,
         posY: playerY,
         velX: 0.0,
@@ -374,7 +375,7 @@ void main() {
     );
 
     final world = EcsWorld(seed: seed);
-    final player = world.createPlayer(
+    final player = EntityFactory(world).createPlayer(
       posX: playerX,
       posY: playerY,
       velX: 0.0,

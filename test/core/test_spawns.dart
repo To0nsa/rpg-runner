@@ -1,5 +1,6 @@
 import 'package:walkscape_runner/core/enemies/enemy_id.dart';
 import 'package:walkscape_runner/core/ecs/entity_id.dart';
+import 'package:walkscape_runner/core/ecs/entity_factory.dart';
 import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/collider_aabb_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/health_store.dart';
@@ -23,7 +24,7 @@ EntityId spawnFlyingEnemy(
   ManaDef mana = const ManaDef(mana: 0, manaMax: 0, regenPerSecond: 0),
   StaminaDef stamina = const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
 }) {
-  return world.createEnemy(
+  return EntityFactory(world).createEnemy(
     enemyId: EnemyId.flyingEnemy,
     posX: posX,
     posY: posY,
@@ -51,7 +52,7 @@ EntityId spawnGroundEnemy(
   ManaDef mana = const ManaDef(mana: 0, manaMax: 0, regenPerSecond: 0),
   StaminaDef stamina = const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
 }) {
-  return world.createEnemy(
+  return EntityFactory(world).createEnemy(
     enemyId: EnemyId.groundEnemy,
     posX: posX,
     posY: posY,

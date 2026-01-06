@@ -1,5 +1,3 @@
-import '../snapshots/enums.dart';
-import '../combat/faction.dart';
 import 'entity_id.dart';
 import 'sparse_set.dart';
 import 'stores/body_store.dart';
@@ -29,8 +27,6 @@ import 'stores/spell_origin_store.dart';
 import 'stores/stamina_store.dart';
 import 'stores/surface_nav_state_store.dart';
 import 'stores/transform_store.dart';
-import '../enemies/enemy_id.dart';
-import '../util/deterministic_rng.dart';
 
 /// Minimal ECS world container (V0).
 ///
@@ -43,6 +39,7 @@ class EcsWorld {
 
   EntityId _nextEntityId = 1;
   final List<EntityId> _freeIds = <EntityId>[];
+  final Set<EntityId> _freeIdsSet = <EntityId>{};
   final List<SparseSet> _stores = <SparseSet>[];
 
   T _register<T extends SparseSet>(T store) {
@@ -81,94 +78,23 @@ class EcsWorld {
 
   EntityId createEntity() {
     if (_freeIds.isNotEmpty) {
-      return _freeIds.removeLast();
+      final id = _freeIds.removeLast();
+      _freeIdsSet.remove(id);
+      return id;
     }
     final id = _nextEntityId;
     _nextEntityId += 1;
     return id;
   }
 
-  EntityId createPlayer({
-    required double posX,
-    required double posY,
-    required double velX,
-    required double velY,
-    required Facing facing,
-    required bool grounded,
-    required BodyDef body,
-    required ColliderAabbDef collider,
-    required HealthDef health,
-    required ManaDef mana,
-    required StaminaDef stamina,
-  }) {
-    final id = createEntity();
-    transform.add(id, posX: posX, posY: posY, velX: velX, velY: velY);
-    playerInput.add(id);
-    movement.add(id, facing: facing);
-    this.body.add(id, body);
-    colliderAabb.add(id, collider);
-    collision.add(id);
-    cooldown.add(id);
-    castIntent.add(id);
-    faction.add(id, const FactionDef(faction: Faction.player));
-    this.health.add(id, health);
-    // Player-only invulnerability window (i-frames) after taking damage.
-    invulnerability.add(id);
-    lastDamage.add(id);
-    this.mana.add(id, mana);
-    meleeIntent.add(id);
-    this.stamina.add(id, stamina);
-    collision.grounded[collision.indexOf(id)] = grounded;
-    return id;
-  }
-
-  EntityId createEnemy({
-    required EnemyId enemyId,
-    required double posX,
-    required double posY,
-    required double velX,
-    required double velY,
-    required Facing facing,
-    required BodyDef body,
-    required ColliderAabbDef collider,
-    required HealthDef health,
-    required ManaDef mana,
-    required StaminaDef stamina,
-  }) {
-    final id = createEntity();
-    transform.add(id, posX: posX, posY: posY, velX: velX, velY: velY);
-    this.body.add(id, body);
-    colliderAabb.add(id, collider);
-    collision.add(id);
-    cooldown.add(id);
-    castIntent.add(id);
-    faction.add(id, const FactionDef(faction: Faction.enemy));
-    this.health.add(id, health);
-    // Intentionally no `InvulnerabilityStore`: invulnerability is player-only in V0.
-    this.mana.add(id, mana);
-    meleeIntent.add(id);
-    this.stamina.add(id, stamina);
-    enemy.add(id, EnemyDef(enemyId: enemyId, facing: facing));
-    if (enemyId == EnemyId.flyingEnemy) {
-      flyingEnemySteering.add(
-        id,
-        FlyingEnemySteeringDef(rngState: seedFrom(seed, id)),
-      );
-    }
-    if (enemyId == EnemyId.groundEnemy) {
-      surfaceNav.add(id);
-      groundEnemyChaseOffset.add(
-        id,
-        GroundEnemyChaseOffsetDef(rngState: seedFrom(seed, id)),
-      );
-    }
-    return id;
-  }
-
   void destroyEntity(EntityId entity) {
+    if (_freeIdsSet.contains(entity)) {
+      return;
+    }
     for (final store in _stores) {
       store.removeEntity(entity);
     }
     _freeIds.add(entity);
+    _freeIdsSet.add(entity);
   }
 }

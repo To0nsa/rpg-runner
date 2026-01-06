@@ -26,6 +26,7 @@ import 'package:walkscape_runner/core/tuning/navigation_tuning.dart';
 import 'package:walkscape_runner/core/tuning/physics_tuning.dart';
 
 import 'test_spawns.dart';
+import 'package:walkscape_runner/core/ecs/entity_factory.dart';
 
 JumpReachabilityTemplate _jumpTemplate({
   required GroundEnemyTuning base,
@@ -71,7 +72,7 @@ void main() {
       groundEnemyJumpSpeed: 500.0,
     );
 
-    final player = world.createPlayer(
+    final player = EntityFactory(world).createPlayer(
       posX: 280.0,
       posY: groundTopY - enemyHalf,
       velX: 0.0,
@@ -245,7 +246,7 @@ void main() {
     const rightSegMinX = gapMaxX;
     const takeoffX = gapMinX - enemyHalf;
 
-    final player = world.createPlayer(
+    final player = EntityFactory(world).createPlayer(
       posX: 480.0,
       posY: groundTopY - enemyHalf,
       velX: 0.0,
@@ -411,7 +412,7 @@ void main() {
       groundEnemyJumpSpeed: 500.0,
     );
 
-    final player = world.createPlayer(
+    final player = EntityFactory(world).createPlayer(
       posX: 280.0,
       posY: 20.0, // airborne
       velX: 0.0,

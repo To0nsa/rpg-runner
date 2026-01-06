@@ -10,11 +10,12 @@ import 'package:walkscape_runner/core/ecs/systems/restoration_item_system.dart';
 import 'package:walkscape_runner/core/ecs/world.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
 import 'package:walkscape_runner/core/tuning/restoration_item_tuning.dart';
+import 'package:walkscape_runner/core/ecs/entity_factory.dart';
 
 void main() {
   test('RestorationItemSystem restores and despawns on overlap', () {
     final world = EcsWorld();
-    final player = world.createPlayer(
+    final player = EntityFactory(world).createPlayer(
       posX: 100,
       posY: 100,
       velX: 0,
@@ -57,7 +58,7 @@ void main() {
 
   test('RestorationItemSystem despawns behind camera', () {
     final world = EcsWorld();
-    final player = world.createPlayer(
+    final player = EntityFactory(world).createPlayer(
       posX: 100,
       posY: 100,
       velX: 0,

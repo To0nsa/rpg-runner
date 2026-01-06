@@ -19,6 +19,7 @@ import 'package:walkscape_runner/core/spells/spell_id.dart';
 import 'package:walkscape_runner/core/tuning/spatial_grid_tuning.dart';
 
 import 'test_spawns.dart';
+import 'package:walkscape_runner/core/ecs/entity_factory.dart';
 
 void main() {
   test('ProjectileHitSystem damages target and despawns projectile', () {
@@ -26,7 +27,7 @@ void main() {
     const spellCatalog = SpellCatalog();
     final iceBoltDamage = spellCatalog.get(SpellId.iceBolt).stats.damage;
 
-    final player = world.createPlayer(
+    final player = EntityFactory(world).createPlayer(
       posX: 100,
       posY: 100,
       velX: 0,
