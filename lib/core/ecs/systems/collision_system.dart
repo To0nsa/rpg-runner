@@ -12,6 +12,9 @@ import '../world.dart';
 /// - CollisionSystem integrates `pos += vel * dt`, resolves collisions, and
 ///   finalizes grounded/contact state for the tick.
 class CollisionSystem {
+  final List<StaticSolid> _queryBuffer = <StaticSolid>[];
+  final List<StaticGroundSegment> _groundSegBuffer = <StaticGroundSegment>[];
+
   void step(
     EcsWorld world,
     V0MovementTuningDerived tuning, {
@@ -57,10 +60,9 @@ class CollisionSystem {
       // Vertical top resolution (one-way platforms): only while moving downward.
       double? bestTopY;
       if (world.transform.velY[ti] > 0) {
-        for (final solid in staticWorld.tops) {
-          final overlapX = maxX > solid.minX + eps && minX < solid.maxX - eps;
-          if (!overlapX) continue;
-
+        _queryBuffer.clear();
+        staticWorld.queryTops(minX + eps, maxX - eps, _queryBuffer);
+        for (final solid in _queryBuffer) {
           final topY = solid.minY;
           final crossesTop =
               prevBottom <= topY + eps && bottom >= topY - eps;
@@ -81,10 +83,9 @@ class CollisionSystem {
       double? bestBottomY;
       if (world.transform.velY[ti] < 0 && !world.body.ignoreCeilings[bi]) {
         final prevTop = prevCenterY - halfY;
-        for (final solid in staticWorld.bottoms) {
-          final overlapX = maxX > solid.minX + eps && minX < solid.maxX - eps;
-          if (!overlapX) continue;
-
+        _queryBuffer.clear();
+        staticWorld.queryBottoms(minX + eps, maxX - eps, _queryBuffer);
+        for (final solid in _queryBuffer) {
           final bottomY = solid.maxY;
           final crossesBottom =
               prevTop >= bottomY - eps && top <= bottomY + eps;
@@ -97,10 +98,10 @@ class CollisionSystem {
       }
 
       // Resolve ground segments (walkable surfaces, possibly split by gaps).
-      if (world.transform.velY[ti] > 0 && staticWorld.groundSegments.isNotEmpty) {
-        for (final seg in staticWorld.groundSegments) {
-          final overlapX = maxX > seg.minX + eps && minX < seg.maxX - eps;
-          if (!overlapX) continue;
+      if (world.transform.velY[ti] > 0) {
+        _groundSegBuffer.clear();
+        staticWorld.queryGroundSegments(minX + eps, maxX - eps, _groundSegBuffer);
+        for (final seg in _groundSegBuffer) {
           final groundTopY = seg.topY;
           final crossesTop =
               prevBottom <= groundTopY + eps && bottom >= groundTopY - eps;
@@ -142,7 +143,10 @@ class CollisionSystem {
         final right = resolvedCenterX + halfX;
         double? bestWallX;
 
-        for (final solid in staticWorld.leftWalls) {
+        _queryBuffer.clear();
+        staticWorld.queryLeftWalls(prevRight - eps, right + eps, _queryBuffer);
+
+        for (final solid in _queryBuffer) {
           final overlapY =
               resolvedMaxY > solid.minY + eps && resolvedMinY < solid.maxY - eps;
           if (!overlapY) continue;
@@ -166,7 +170,10 @@ class CollisionSystem {
         final left = resolvedCenterX - halfX;
         double? bestWallX;
 
-        for (final solid in staticWorld.rightWalls) {
+        _queryBuffer.clear();
+        staticWorld.queryRightWalls(left - eps, prevLeft + eps, _queryBuffer);
+
+        for (final solid in _queryBuffer) {
           final overlapY =
               resolvedMaxY > solid.minY + eps && resolvedMinY < solid.maxY - eps;
           if (!overlapY) continue;

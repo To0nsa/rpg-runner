@@ -1,7 +1,7 @@
 /// Static collision geometry owned by the Core simulation.
 ///
-/// V0 starts with a tiny, hand-authored set (ground band + a couple platforms),
-/// and later milestones replace/extend this with deterministic chunk spawning.
+/// Starts with a set of base geometry (ground band), and extended with
+/// deterministic chunk spawning.
 class StaticGroundPlane {
   const StaticGroundPlane({required this.topY});
 
@@ -9,14 +9,24 @@ class StaticGroundPlane {
   final double topY;
 }
 
+/// A "hole" in the infinite ground plane where the player can fall through.
+///
+/// Use this to create pits or interruptions in the otherwise continuous ground.
 class StaticGroundGap {
   const StaticGroundGap({required this.minX, required this.maxX})
     : assert(maxX >= minX);
 
+  /// Start X coordinate of the gap (inclusive start of hole).
   final double minX;
+
+  /// End X coordinate of the gap (inclusive end of hole).
   final double maxX;
 }
 
+/// A pre-computed walkable 1D segment for faster collision and navigation.
+///
+/// These are typically generated from the [StaticGroundPlane] minus any
+/// [StaticGroundGap]s.
 class StaticGroundSegment {
   const StaticGroundSegment({
     required this.minX,
@@ -26,8 +36,13 @@ class StaticGroundSegment {
     this.localSegmentIndex = -1,
   }) : assert(maxX >= minX);
 
+  /// Start X coordinate of the walkable surface.
   final double minX;
+
+  /// End X coordinate of the walkable surface.
   final double maxX;
+
+  /// Y coordinate of the surface (constant height).
   final double topY;
 
   /// Chunk index this segment was generated from, or [StaticSolid.groundChunk].
@@ -37,6 +52,9 @@ class StaticGroundSegment {
   final int localSegmentIndex;
 }
 
+/// A generic AABB obstacle or platform in the world.
+///
+/// Can represent solid blocks, walls, floating platforms (one-way), or ceilings.
 class StaticSolid {
   const StaticSolid({
     required this.minX,
@@ -50,14 +68,20 @@ class StaticSolid {
   }) : assert(maxX >= minX),
        assert(maxY >= minY);
 
+  /// Left edge world coordinate.
   final double minX;
+
+  /// Bottom edge world coordinate.
   final double minY;
+
+  /// Right edge world coordinate.
   final double maxX;
+
+  /// Top edge world coordinate.
   final double maxY;
 
   /// Which faces of this solid participate in collision resolution.
   ///
-  /// For V0:
   /// - one-way platforms typically use `sideTop` only
   /// - obstacles typically use `sideAll`
   final int sides;
@@ -76,6 +100,7 @@ class StaticSolid {
   /// If negative, callers should derive a stable index from the owning list.
   final int localSolidIndex;
 
+  /// Collision side flags.
   static const int sideNone = 0;
   static const int sideTop = 1 << 0;
   static const int sideBottom = 1 << 1;
@@ -105,6 +130,7 @@ class StaticWorldGeometry {
   /// Walkable ground segments (used for collision + navigation).
   final List<StaticGroundSegment> groundSegments;
 
+  /// Arbitrary static solids (platforms, walls, blocks).
   final List<StaticSolid> solids;
 
   /// Holes in the ground plane (world-space X ranges).
