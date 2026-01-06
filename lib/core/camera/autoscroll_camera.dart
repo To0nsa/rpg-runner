@@ -2,8 +2,8 @@ import '../util/smoothing.dart';
 import '../util/double_math.dart';
 import '../tuning/v0_camera_tuning.dart';
 
-class V0CameraState {
-  const V0CameraState({
+class CameraState {
+  const CameraState({
     required this.centerX,
     required this.targetX,
     required this.speedX,
@@ -20,12 +20,12 @@ class V0CameraState {
   final double speedX;
 
   /// Creates a copy with updated fields.
-  V0CameraState copyWith({
+  CameraState copyWith({
     double? centerX,
     double? targetX,
     double? speedX,
   }) {
-    return V0CameraState(
+    return CameraState(
       centerX: centerX ?? this.centerX,
       targetX: targetX ?? this.targetX,
       speedX: speedX ?? this.speedX,
@@ -39,19 +39,19 @@ class V0CameraState {
 /// - baseline target speed with ease-in acceleration
 /// - camera center eases toward a monotonic target X (never moves backward)
 /// - player can pull the target forward only after passing a follow threshold
-class V0AutoscrollCamera {
-  V0AutoscrollCamera({
+class AutoscrollCamera {
+  AutoscrollCamera({
     required this.viewWidth,
     required V0CameraTuningDerived tuning,
-    required V0CameraState initial,
+    required CameraState initial,
   })  : _tuning = tuning,
         _state = initial;
 
   final double viewWidth;
   final V0CameraTuningDerived _tuning;
 
-  V0CameraState get state => _state;
-  V0CameraState _state;
+  CameraState get state => _state;
+  CameraState _state;
 
   double left() => _state.centerX - viewWidth * 0.5;
   double right() => _state.centerX + viewWidth * 0.5;

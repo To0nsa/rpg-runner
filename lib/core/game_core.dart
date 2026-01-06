@@ -6,8 +6,7 @@
 import 'dart:math';
 
 import 'commands/command.dart';
-import 'camera/v0_autoscroll_camera.dart';
-import 'collision/static_world_geometry.dart';
+import 'camera/autoscroll_camera.dart';
 import 'collision/static_world_geometry_index.dart';
 import 'contracts/v0_render_contract.dart';
 import 'ecs/entity_id.dart';
@@ -206,10 +205,10 @@ class GameCore {
       cameraTuning,
       movement: _movement,
     );
-    _camera = V0AutoscrollCamera(
+    _camera = AutoscrollCamera(
       viewWidth: v0VirtualWidth.toDouble(),
       tuning: _cameraTuning,
-      initial: V0CameraState(
+      initial: CameraState(
         centerX: v0VirtualWidth * 0.5,
         targetX: v0VirtualWidth * 0.5,
         speedX: 0.0,
@@ -533,7 +532,7 @@ class GameCore {
   late final PlayerCastSystem _castSystem;
   late final SpellCastSystem _spellCastSystem;
   late final EntityId _player;
-  late final V0AutoscrollCamera _camera;
+  late final AutoscrollCamera _camera;
 
   final List<GameEvent> _events = <GameEvent>[];
   final List<EnemyId> _killedEnemiesScratch = <EnemyId>[];

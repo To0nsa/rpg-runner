@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:walkscape_runner/core/camera/v0_autoscroll_camera.dart';
+import 'package:walkscape_runner/core/camera/autoscroll_camera.dart';
 import 'package:walkscape_runner/core/contracts/v0_render_contract.dart';
 import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/events/game_event.dart';
@@ -10,7 +10,7 @@ import 'package:walkscape_runner/core/tuning/v0_camera_tuning.dart';
 import 'package:walkscape_runner/core/tuning/v0_movement_tuning.dart';
 
 void main() {
-  test('V0AutoscrollCamera: player past threshold pulls target forward', () {
+  test('AutoscrollCamera: player past threshold pulls target forward', () {
     final movement = V0MovementTuningDerived.from(
       const V0MovementTuning(),
       tickHz: 60,
@@ -20,10 +20,10 @@ void main() {
       movement: movement,
     );
 
-    final cam = V0AutoscrollCamera(
+    final cam = AutoscrollCamera(
       viewWidth: v0VirtualWidth.toDouble(),
       tuning: tuning,
-      initial: V0CameraState(
+      initial: CameraState(
         centerX: v0VirtualWidth * 0.5,
         targetX: v0VirtualWidth * 0.5,
         speedX: 0.0,
