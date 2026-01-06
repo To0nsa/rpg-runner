@@ -33,7 +33,7 @@ import '../util/deterministic_rng.dart';
 
 /// Minimal ECS world container (V0).
 ///
-/// Entity IDs are monotonic and never reused.
+/// Entity IDs are recycled to limit memory growth.
 class EcsWorld {
   EcsWorld({int seed = 0}) : seed = seed;
 
@@ -41,6 +41,7 @@ class EcsWorld {
   final int seed;
 
   EntityId _nextEntityId = 1;
+  final List<EntityId> _freeIds = <EntityId>[];
 
   final TransformStore transform = TransformStore();
   final PlayerInputStore playerInput = PlayerInputStore();
@@ -72,6 +73,9 @@ class EcsWorld {
       GroundEnemyChaseOffsetStore();
 
   EntityId createEntity() {
+    if (_freeIds.isNotEmpty) {
+      return _freeIds.removeLast();
+    }
     final id = _nextEntityId;
     _nextEntityId += 1;
     return id;
@@ -182,5 +186,6 @@ class EcsWorld {
     enemy.removeEntity(entity);
     flyingEnemySteering.removeEntity(entity);
     groundEnemyChaseOffset.removeEntity(entity);
+    _freeIds.add(entity);
   }
 }
