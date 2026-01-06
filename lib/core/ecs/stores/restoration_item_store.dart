@@ -13,7 +13,7 @@ class RestorationItemDef {
   final RestorationStat stat;
 }
 
-/// SoA store for restoration item metadata.
+/// SoA store for restoration item metadata (health/mana/stamina).
 class RestorationItemStore extends SparseSet {
   final List<RestorationStat> stat = <RestorationStat>[];
 

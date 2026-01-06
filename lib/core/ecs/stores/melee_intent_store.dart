@@ -36,6 +36,9 @@ class MeleeIntentDef {
 /// Per-entity "perform a melee attack this tick" intent.
 ///
 /// This is written by player/enemy intent writers and consumed by `MeleeAttackSystem`.
+///
+/// **Usage**: Persistent component. Intents are set via `set()` with a `tick` stamp.
+/// Old intents are ignored if `tick` matches current game tick.
 class MeleeIntentStore extends SparseSet {
   final List<double> damage = <double>[];
   final List<double> halfX = <double>[];

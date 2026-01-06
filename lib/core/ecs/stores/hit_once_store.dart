@@ -1,6 +1,10 @@
 import '../entity_id.dart';
 import '../sparse_set.dart';
 
+/// Tracks unique hit targets for a single attack instance (e.g. one swing).
+///
+/// **Optimization**: Uses inline fields (`hit0`...`hit3`) instead of a `List`
+/// to avoid allocation per entity per frame. Saturation limit is 4 targets.
 class HitOnceStore extends SparseSet {
   final List<int> count = <int>[];
   final List<EntityId> hit0 = <EntityId>[];
@@ -50,7 +54,7 @@ class HitOnceStore extends SparseSet {
       count[i] = 4;
       return;
     }
-    // Saturate: in V0 we don't expect more than a few hits per swing.
+    // We don't expect more than 4 hits per swing.
     //
     // IMPORTANT (determinism + safety): once saturated, treat as "already hit"
     // for any target so a single swing cannot multi-hit due to overflow.

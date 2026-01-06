@@ -11,6 +11,7 @@ class CooldownDef {
   final int meleeCooldownTicksLeft;
 }
 
+/// Tracks ability cooldowns (ticks remaining).
 class CooldownStore extends SparseSet {
   final List<int> castCooldownTicksLeft = <int>[];
   final List<int> meleeCooldownTicksLeft = <int>[];

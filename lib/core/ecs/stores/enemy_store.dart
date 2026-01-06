@@ -13,7 +13,10 @@ class EnemyDef {
   final Facing facing;
 }
 
-/// Minimal enemy marker + per-enemy state (expanded in Milestone 7).
+/// Minimal enemy marker + per-enemy state.
+///
+/// Indicates this entity is an enemy and which type it is.
+/// Also holds facing direction.
 class EnemyStore extends SparseSet {
   final List<EnemyId> enemyId = <EnemyId>[];
   final List<Facing> facing = <Facing>[];

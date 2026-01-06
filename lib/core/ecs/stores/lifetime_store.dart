@@ -7,6 +7,7 @@ class LifetimeDef {
   final int ticksLeft;
 }
 
+/// Tracks entity lifetime in ticks. Entity is despawned when `ticksLeft <= 0`.
 class LifetimeStore extends SparseSet {
   final List<int> ticksLeft = <int>[];
 

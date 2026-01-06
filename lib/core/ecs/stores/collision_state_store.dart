@@ -4,6 +4,7 @@ import '../sparse_set.dart';
 /// Per-tick collision results for an entity.
 ///
 /// This is reset each tick by the CollisionSystem.
+/// These flags track *physical* collision (blocking), not combat hits.
 class CollisionStateStore extends SparseSet {
   final List<bool> grounded = <bool>[];
   final List<bool> hitCeiling = <bool>[];

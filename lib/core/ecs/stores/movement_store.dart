@@ -3,6 +3,11 @@ import '../entity_id.dart';
 import '../sparse_set.dart';
 
 /// Movement state for platformer-style motion (timers + grounded + facing).
+///
+/// Contains transient state counters for precise movement tech:
+/// - Coyote time (jump after leaving ledge)
+/// - Jump buffer (press before landing)
+/// - Dash state
 class MovementStore extends SparseSet {
   final List<int> coyoteTicksLeft = <int>[];
   final List<int> jumpBufferTicksLeft = <int>[];

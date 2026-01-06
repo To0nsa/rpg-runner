@@ -6,6 +6,8 @@ import '../entity_id.dart';
 import '../sparse_set.dart';
 
 /// Per-entity record of the last applied damage metadata.
+///
+/// Used to populate the "Game Over" screen with cause of death.
 class LastDamageStore extends SparseSet {
   final List<DeathSourceKind> kind = <DeathSourceKind>[];
   final List<EnemyId> enemyId = <EnemyId>[];

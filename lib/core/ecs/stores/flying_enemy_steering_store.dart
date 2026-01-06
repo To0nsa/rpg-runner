@@ -10,6 +10,8 @@ class FlyingEnemySteeringDef {
 }
 
 /// Per flying enemy steering state for deterministic hover behavior.
+///
+/// Holds RNG state and smoothed target ranges to make enemies wobble nicely.
 class FlyingEnemySteeringStore extends SparseSet {
   final List<int> rngState = <int>[];
   final List<bool> initialized = <bool>[];

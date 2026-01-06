@@ -18,6 +18,7 @@ class FactionStore extends SparseSet {
 
   @override
   void onDenseAdded(int denseIndex) {
+    // Default to player if not specified.
     faction.add(Faction.player);
   }
 

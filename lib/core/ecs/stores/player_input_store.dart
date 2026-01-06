@@ -4,6 +4,7 @@ import '../sparse_set.dart';
 /// Per-tick player input (authoritative commands decoded by the core).
 ///
 /// This is reset/overwritten each tick by `GameCore.applyCommands`.
+/// All actions are boolean or axis values used by `MovementSystem` and decision systems.
 class PlayerInputStore extends SparseSet {
   final List<double> moveAxis = <double>[];
   final List<bool> jumpPressed = <bool>[];

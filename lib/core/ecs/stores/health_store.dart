@@ -13,6 +13,7 @@ class HealthDef {
   final double regenPerSecond;
 }
 
+/// Tracks current and max hit points for damageable entities.
 class HealthStore extends SparseSet {
   final List<double> hp = <double>[];
   final List<double> hpMax = <double>[];

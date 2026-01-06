@@ -13,6 +13,7 @@ class ManaDef {
   final double regenPerSecond;
 }
 
+/// Tracks current and max mana for spellcasters (Player).
 class ManaStore extends SparseSet {
   final List<double> mana = <double>[];
   final List<double> manaMax = <double>[];

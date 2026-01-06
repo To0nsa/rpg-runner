@@ -31,6 +31,10 @@ class CastIntentDef {
 /// Per-entity "cast a spell this tick" intent.
 ///
 /// This is written by player/enemy intent writers and consumed by `SpellCastSystem`.
+///
+/// **Usage**: Persistent component. Intents are set via `set()` with a `tick` stamp.
+/// Old intents are ignored if `tick` matches current game tick.
+/// This avoids the overhead of adding/removing components every frame.
 class CastIntentStore extends SparseSet {
   final List<SpellId> spellId = <SpellId>[];
   final List<double> dirX = <double>[];

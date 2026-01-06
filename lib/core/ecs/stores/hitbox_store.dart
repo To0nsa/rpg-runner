@@ -27,6 +27,9 @@ class HitboxDef {
 }
 
 /// Short-lived damage hitbox used by melee attacks and area effects.
+///
+/// These entities usually exist for only a few frames (attack windows).
+/// They are queried by `HitboxDamageSystem`.
 class HitboxStore extends SparseSet {
   final List<EntityId> owner = <EntityId>[];
   final List<Faction> faction = <Faction>[];

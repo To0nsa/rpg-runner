@@ -13,6 +13,7 @@ class StaminaDef {
   final double regenPerSecond;
 }
 
+/// Tracks stamina for dashing and melee attacks.
 class StaminaStore extends SparseSet {
   final List<double> stamina = <double>[];
   final List<double> staminaMax = <double>[];

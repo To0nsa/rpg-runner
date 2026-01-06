@@ -8,6 +8,8 @@ class CollectibleDef {
 }
 
 /// SoA store for collectible metadata.
+///
+/// Holds the value/score of the collectible.
 class CollectibleStore extends SparseSet {
   final List<int> value = <int>[];
 

@@ -2,6 +2,10 @@ import '../../navigation/surface_id.dart';
 import '../entity_id.dart';
 import '../sparse_set.dart';
 
+/// Per-entity pathfinding state.
+///
+/// Tracks the current surface segment, the target segment, and the calculated path edges.
+/// Used by `SurfaceNavigationSystem` to move ground enemies.
 class SurfaceNavStateStore extends SparseSet {
   final List<int> graphVersion = <int>[];
   final List<int> repathTicksLeft = <int>[];

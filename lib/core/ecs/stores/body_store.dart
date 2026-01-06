@@ -15,10 +15,14 @@ class BodyDef {
     this.ignoreCeilings = false,
     this.topOnlyGround = true,
     this.gravityScale = 1.0,
-    this.maxVelX = 3000,
-    this.maxVelY = 3000,
+    this.maxVelX = defaultMaxVelX,
+    this.maxVelY = defaultMaxVelY,
     this.sideMask = sideLeft | sideRight,
   });
+
+  /// Default velocity cap (safety limit).
+  static const double defaultMaxVelX = 3000.0;
+  static const double defaultMaxVelY = 3000.0;
 
   /// Master on/off switch for physics on this entity.
   final bool enabled;
@@ -86,9 +90,9 @@ class BodyStore extends SparseSet {
     ignoreCeilings.add(false);
     topOnlyGround.add(true);
     gravityScale.add(1);
-    maxVelX.add(3000);
-    maxVelY.add(3000);
-    sideMask.add(BodyDef.sideNone);
+    maxVelX.add(BodyDef.defaultMaxVelX);
+    maxVelY.add(BodyDef.defaultMaxVelY);
+    sideMask.add(BodyDef.sideLeft | BodyDef.sideRight);
   }
 
   @override

@@ -1,6 +1,10 @@
 import '../entity_id.dart';
 import '../sparse_set.dart';
 
+/// Tracks entities that are temporarily ignoring global gravity.
+///
+/// Used by movement skills (e.g. Dash) to keep the player straight.
+/// Entities are removed from this store when `suppressGravityTicksLeft` hits 0.
 class GravityControlStore extends SparseSet {
   final List<int> suppressGravityTicksLeft = <int>[];
 

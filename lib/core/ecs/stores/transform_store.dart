@@ -2,6 +2,8 @@ import '../entity_id.dart';
 import '../sparse_set.dart';
 
 /// SoA store for `Transform` (position + velocity).
+///
+/// This is the "hot" store accessed by almost every system.
 class TransformStore extends SparseSet {
   final List<double> posX = <double>[];
   final List<double> posY = <double>[];

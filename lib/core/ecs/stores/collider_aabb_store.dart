@@ -22,6 +22,8 @@ class ColliderAabbDef {
 }
 
 /// SoA store for AABB collider config (half extents + offset).
+///
+/// Collision bounds are distinct from render bounds or hitbox bounds (which are temporary).
 class ColliderAabbStore extends SparseSet {
   final List<double> halfX = <double>[];
   final List<double> halfY = <double>[];

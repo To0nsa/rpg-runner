@@ -10,6 +10,8 @@ class GroundEnemyChaseOffsetDef {
 }
 
 /// Per ground enemy chase offset state for deterministic path separation.
+///
+/// Ensures multiple enemies don't stack perfectly on top of one another while chasing.
 class GroundEnemyChaseOffsetStore extends SparseSet {
   final List<int> rngState = <int>[];
   final List<double> chaseOffsetX = <double>[];

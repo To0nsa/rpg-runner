@@ -23,6 +23,9 @@ class ProjectileDef {
   final double damage;
 }
 
+/// Immutable metadata for active projectiles.
+///
+/// Combines with `Transform` (for position) and `ColliderAabb` (for hit detection).
 class ProjectileStore extends SparseSet {
   final List<ProjectileId> projectileId = <ProjectileId>[];
   final List<Faction> faction = <Faction>[];

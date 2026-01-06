@@ -8,6 +8,7 @@ class SpellOriginDef {
   final SpellId spellId;
 }
 
+/// Metadata for spell projectile entities (spawned by CastIntent).
 class SpellOriginStore extends SparseSet {
   final List<SpellId> spellId = <SpellId>[];
 
