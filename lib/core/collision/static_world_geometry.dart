@@ -9,6 +9,34 @@ class StaticGroundPlane {
   final double topY;
 }
 
+class StaticGroundGap {
+  const StaticGroundGap({required this.minX, required this.maxX})
+    : assert(maxX >= minX);
+
+  final double minX;
+  final double maxX;
+}
+
+class StaticGroundSegment {
+  const StaticGroundSegment({
+    required this.minX,
+    required this.maxX,
+    required this.topY,
+    this.chunkIndex = StaticSolid.groundChunk,
+    this.localSegmentIndex = -1,
+  }) : assert(maxX >= minX);
+
+  final double minX;
+  final double maxX;
+  final double topY;
+
+  /// Chunk index this segment was generated from, or [StaticSolid.groundChunk].
+  final int chunkIndex;
+
+  /// Stable local index within the chunk pattern authoring list.
+  final int localSegmentIndex;
+}
+
 class StaticSolid {
   const StaticSolid({
     required this.minX,
@@ -66,11 +94,19 @@ class StaticSolid {
 class StaticWorldGeometry {
   const StaticWorldGeometry({
     this.groundPlane,
+    this.groundSegments = const <StaticGroundSegment>[],
     this.solids = const <StaticSolid>[],
+    this.groundGaps = const <StaticGroundGap>[],
   });
 
   /// Optional infinite ground plane (top surface only).
   final StaticGroundPlane? groundPlane;
 
+  /// Walkable ground segments (used for collision + navigation).
+  final List<StaticGroundSegment> groundSegments;
+
   final List<StaticSolid> solids;
+
+  /// Holes in the ground plane (world-space X ranges).
+  final List<StaticGroundGap> groundGaps;
 }

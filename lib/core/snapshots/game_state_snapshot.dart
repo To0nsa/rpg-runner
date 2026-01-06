@@ -5,6 +5,7 @@
 // the app.
 import 'entity_render_snapshot.dart';
 import 'player_hud_snapshot.dart';
+import 'static_ground_gap_snapshot.dart';
 import 'static_solid_snapshot.dart';
 
 /// Snapshot of the current game state at a specific simulation tick.
@@ -20,6 +21,7 @@ class GameStateSnapshot {
     required this.hud,
     required this.entities,
     required this.staticSolids,
+    required this.groundGaps,
   });
 
   /// Current simulation tick.
@@ -49,4 +51,7 @@ class GameStateSnapshot {
 
   /// Render-only static collision geometry (platforms/obstacles) for this run.
   final List<StaticSolidSnapshot> staticSolids;
+
+  /// Render-only ground gaps (holes in the ground band).
+  final List<StaticGroundGapSnapshot> groundGaps;
 }

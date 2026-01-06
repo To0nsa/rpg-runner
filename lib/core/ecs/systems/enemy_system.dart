@@ -11,6 +11,7 @@ import '../../util/deterministic_rng.dart';
 import '../../util/double_math.dart';
 import '../../util/velocity_math.dart';
 import '../../navigation/surface_graph.dart';
+import '../../navigation/surface_id.dart';
 import '../../navigation/surface_navigator.dart';
 import '../../navigation/surface_spatial_index.dart';
 import '../entity_id.dart';
@@ -383,9 +384,12 @@ class EnemySystem {
     final effectiveTargetX = distToPlayerX <= collapseDistX
         ? playerX + meleeOffsetX
         : playerX + chaseOffsetX;
+    final navTargetX = playerX;
 
     final graph = _surfaceGraph;
     final spatialIndex = _surfaceIndex;
+    double? noPlanSurfaceMinX;
+    double? noPlanSurfaceMaxX;
     SurfaceNavIntent intent;
     if (graph == null ||
         spatialIndex == null ||
@@ -415,11 +419,38 @@ class EnemySystem {
         entityBottomY: enemyBottomY,
         entityHalfWidth: enemyHalfX,
         entityGrounded: grounded,
-        targetX: effectiveTargetX,
+        targetX: navTargetX,
         targetBottomY: playerBottomY,
         targetHalfWidth: playerHalfX,
         targetGrounded: playerGrounded,
       );
+
+      // Preserve chase offset behavior when no plan is active, but keep it safe:
+      // if grounded, clamp desired X to the current surface span so we never
+      // walk off into a gap due to an offset pointing into empty space.
+      if (!intent.hasPlan) {
+        var desiredX = effectiveTargetX;
+        final currentSurfaceId = world.surfaceNav.currentSurfaceId[navIndex];
+        if (currentSurfaceId != surfaceIdUnknown) {
+          final currentIndex = graph.indexOfSurfaceId(currentSurfaceId);
+          if (currentIndex != null) {
+            final surface = graph.surfaces[currentIndex];
+            final minX = surface.xMin + enemyHalfX;
+            final maxX = surface.xMax - enemyHalfX;
+            if (minX <= maxX) {
+              desiredX = clampDouble(desiredX, minX, maxX);
+              noPlanSurfaceMinX = minX;
+              noPlanSurfaceMaxX = maxX;
+            }
+          }
+        }
+
+        intent = SurfaceNavIntent(
+          desiredX: desiredX,
+          jumpNow: false,
+          hasPlan: false,
+        );
+      }
     }
 
     // Speed scale is intended to break symmetric chasing overlaps, but keep
@@ -444,13 +475,56 @@ class EnemySystem {
     }
 
     final currentVelX = world.transform.velX[enemyTi];
-    world.transform.velX[enemyTi] = applyAccelDecel(
+    final nextVelX = applyAccelDecel(
       current: currentVelX,
       desired: desiredVelX,
       dtSeconds: dtSeconds,
       accelPerSecond: tuning.base.groundEnemyAccelX,
       decelPerSecond: tuning.base.groundEnemyDecelX,
     );
+
+    // Surface graph jump feasibility assumes `airSpeedX == groundEnemySpeedX`.
+    // If a jump edge is triggered while the enemy has low horizontal velocity
+    // (e.g. approaching takeoff from rest), accel integration can make gap
+    // jumps fail. On the takeoff tick, ensure horizontal speed is at least the
+    // average speed needed to reach the edge's landing X within `travelTicks`,
+    // but never faster than the tuned run speed.
+    double? jumpSnapVelX;
+    if (intent.hasPlan && intent.jumpNow && graph != null) {
+      final activeEdgeIndex = world.surfaceNav.activeEdgeIndex[navIndex];
+      if (activeEdgeIndex >= 0 && activeEdgeIndex < graph.edges.length) {
+        final edge = graph.edges[activeEdgeIndex];
+        if (edge.kind == SurfaceEdgeKind.jump && edge.travelTicks > 0) {
+          final travelSeconds = edge.travelTicks * dtSeconds;
+          if (travelSeconds > 0.0) {
+            final dxAbs = (edge.landingX - ex).abs();
+            final requiredAbs = dxAbs / travelSeconds;
+            final desiredAbs = desiredVelX.abs();
+            final currentAbs = currentVelX.abs();
+            final snapAbs = min(desiredAbs, max(currentAbs, requiredAbs));
+            if (snapAbs > nextVelX.abs()) {
+              final sign = desiredVelX >= 0.0 ? 1.0 : -1.0;
+              jumpSnapVelX = sign * snapAbs;
+            }
+          }
+        }
+      }
+    }
+
+    world.transform.velX[enemyTi] = jumpSnapVelX ?? nextVelX;
+
+    // If there is no plan (common when the player is airborne), avoid "coasting"
+    // off a ledge due to accel/decel integration: hard-stop near the ends of the
+    // currently known surface span.
+    if (!intent.hasPlan && noPlanSurfaceMinX != null && noPlanSurfaceMaxX != null) {
+      final stopDist = tuning.base.groundEnemyStopDistanceX;
+      final nextVelX = world.transform.velX[enemyTi];
+      if (nextVelX > 0.0 && ex >= noPlanSurfaceMaxX! - stopDist) {
+        world.transform.velX[enemyTi] = 0.0;
+      } else if (nextVelX < 0.0 && ex <= noPlanSurfaceMinX! + stopDist) {
+        world.transform.velX[enemyTi] = 0.0;
+      }
+    }
   }
 
   void _writeFlyingEnemyCastIntent(

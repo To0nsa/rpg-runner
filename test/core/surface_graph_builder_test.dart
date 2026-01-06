@@ -217,4 +217,61 @@ void main() {
 
     expect(hasJump, isTrue);
   });
+
+  test('ground segments allow jump edges across gaps', () {
+    const groundTopY = 200.0;
+    const geometry = StaticWorldGeometry(
+      groundPlane: null,
+      groundSegments: <StaticGroundSegment>[
+        StaticGroundSegment(
+          minX: 0,
+          maxX: 120,
+          topY: groundTopY,
+          chunkIndex: 0,
+          localSegmentIndex: 0,
+        ),
+        StaticGroundSegment(
+          minX: 180,
+          maxX: 300,
+          topY: groundTopY,
+          chunkIndex: 0,
+          localSegmentIndex: 1,
+        ),
+      ],
+    );
+
+    final builder = SurfaceGraphBuilder(
+      surfaceGrid: GridIndex2D(cellSize: 64),
+    );
+    final graph = builder.build(
+      geometry: geometry,
+      jumpTemplate: _template(),
+    ).graph;
+
+    final leftIndex = _indexForSurface(
+      graph,
+      yTop: groundTopY,
+      xMin: 0,
+      xMax: 120,
+    );
+    final rightIndex = _indexForSurface(
+      graph,
+      yTop: groundTopY,
+      xMin: 180,
+      xMax: 300,
+    );
+
+    var hasJump = false;
+    final start = graph.edgeOffsets[leftIndex];
+    final end = graph.edgeOffsets[leftIndex + 1];
+    for (var i = start; i < end; i += 1) {
+      final edge = graph.edges[i];
+      if (edge.kind == SurfaceEdgeKind.jump && edge.to == rightIndex) {
+        hasJump = true;
+        break;
+      }
+    }
+
+    expect(hasJump, isTrue);
+  });
 }

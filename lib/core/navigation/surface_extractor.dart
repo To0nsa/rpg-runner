@@ -14,6 +14,7 @@ class SurfaceExtractor {
 
   List<WalkSurface> extract(StaticWorldGeometry geometry) {
     final segments = <_SurfaceSegment>[];
+    const groundPieceStride = 1000;
 
     var minX = double.infinity;
     var maxX = double.negativeInfinity;
@@ -48,33 +49,79 @@ class SurfaceExtractor {
       );
     }
 
-    final groundPlane = geometry.groundPlane;
-    if (groundPlane != null) {
-      final baseMinX = minX.isFinite ? minX : 0.0;
-      final baseMaxX = maxX.isFinite ? maxX : 0.0;
-      final groundMinX = baseMinX - groundPadding;
-      final groundMaxX = baseMaxX + groundPadding;
-      final blockers =
-          _collectGroundBlockers(geometry.solids, groundPlane.topY, mergeEps);
-      final groundSegments = _subtractRanges(
-        groundMinX,
-        groundMaxX,
-        blockers,
-        mergeEps,
-      );
-      for (var i = 0; i < groundSegments.length; i += 1) {
-        final seg = groundSegments[i];
-        segments.add(
-          _SurfaceSegment(
-            id: packSurfaceId(
-              chunkIndex: StaticSolid.groundChunk,
-              localSolidIndex: i,
-            ),
-            xMin: seg.min,
-            xMax: seg.max,
-            yTop: groundPlane.topY,
-          ),
+    if (geometry.groundSegments.isNotEmpty) {
+      for (var gi = 0; gi < geometry.groundSegments.length; gi += 1) {
+        final ground = geometry.groundSegments[gi];
+        var localSegmentIndex = ground.localSegmentIndex;
+        if (localSegmentIndex < 0) {
+          if (ground.chunkIndex != StaticSolid.noChunk) {
+            throw StateError(
+              'Ground segment is missing a localSegmentIndex; check track streamer.',
+            );
+          }
+          localSegmentIndex = gi;
+        }
+        final blockers = _collectGroundBlockers(
+          geometry.solids,
+          const <StaticGroundGap>[],
+          ground.topY,
+          mergeEps,
         );
+        final groundSegments = _subtractRanges(
+          ground.minX,
+          ground.maxX,
+          blockers,
+          mergeEps,
+        );
+        for (var i = 0; i < groundSegments.length; i += 1) {
+          final seg = groundSegments[i];
+          final id = packSurfaceId(
+            chunkIndex: ground.chunkIndex,
+            localSolidIndex: localSegmentIndex * groundPieceStride + i,
+          );
+          segments.add(
+            _SurfaceSegment(
+              id: id,
+              xMin: seg.min,
+              xMax: seg.max,
+              yTop: ground.topY,
+            ),
+          );
+        }
+      }
+    } else {
+      final groundPlane = geometry.groundPlane;
+      if (groundPlane != null) {
+        final baseMinX = minX.isFinite ? minX : 0.0;
+        final baseMaxX = maxX.isFinite ? maxX : 0.0;
+        final groundMinX = baseMinX - groundPadding;
+        final groundMaxX = baseMaxX + groundPadding;
+        final blockers = _collectGroundBlockers(
+          geometry.solids,
+          geometry.groundGaps,
+          groundPlane.topY,
+          mergeEps,
+        );
+        final groundSegments = _subtractRanges(
+          groundMinX,
+          groundMaxX,
+          blockers,
+          mergeEps,
+        );
+        for (var i = 0; i < groundSegments.length; i += 1) {
+          final seg = groundSegments[i];
+          segments.add(
+            _SurfaceSegment(
+              id: packSurfaceId(
+                chunkIndex: StaticSolid.groundChunk,
+                localSolidIndex: i,
+              ),
+              xMin: seg.min,
+              xMax: seg.max,
+              yTop: groundPlane.topY,
+            ),
+          );
+        }
       }
     }
 
@@ -152,6 +199,7 @@ class _Range {
 
 List<_Range> _collectGroundBlockers(
   List<StaticSolid> solids,
+  List<StaticGroundGap> gaps,
   double groundTopY,
   double eps,
 ) {
@@ -164,6 +212,10 @@ List<_Range> _collectGroundBlockers(
         solid.minY <= groundTopY + eps && solid.maxY >= groundTopY - eps;
     if (!touchesGround) continue;
     blockers.add(_Range(solid.minX, solid.maxX));
+  }
+
+  for (final gap in gaps) {
+    blockers.add(_Range(gap.minX, gap.maxX));
   }
 
   if (blockers.isEmpty) return blockers;

@@ -140,6 +140,28 @@ void main() {
 
     final enemyA = spawnGroundEnemy(world, posX: 0.0, posY: 0.0);
     final enemyB = spawnGroundEnemy(world, posX: 0.0, posY: 0.0);
+    world.collision.grounded[world.collision.indexOf(enemyA)] = true;
+    world.collision.grounded[world.collision.indexOf(enemyB)] = true;
+
+    final expectedOffsetA = _expectedChaseOffset(
+      seed: seed,
+      entityId: enemyA,
+      maxAbsX: baseTuning.groundEnemyChaseOffsetMaxX,
+      minAbsX: baseTuning.groundEnemyChaseOffsetMinAbsX,
+    );
+    final expectedOffsetB = _expectedChaseOffset(
+      seed: seed,
+      entityId: enemyB,
+      maxAbsX: baseTuning.groundEnemyChaseOffsetMaxX,
+      minAbsX: baseTuning.groundEnemyChaseOffsetMinAbsX,
+    );
+
+    // Place the enemies halfway between the player and their chase-offset
+    // target so the intended chase direction differs from "chase the player".
+    world.transform.posX[world.transform.indexOf(enemyA)] =
+        playerX + expectedOffsetA * 0.5;
+    world.transform.posX[world.transform.indexOf(enemyB)] =
+        playerX + expectedOffsetB * 0.5;
 
     final probe = SurfaceNavigatorProbe();
     final system = EnemySystem(
@@ -177,121 +199,159 @@ void main() {
 
     expect(probe.targetXs.length, 2);
 
-    final expectedOffsetA = _expectedChaseOffset(
-      seed: seed,
-      entityId: enemyA,
-      maxAbsX: baseTuning.groundEnemyChaseOffsetMaxX,
-      minAbsX: baseTuning.groundEnemyChaseOffsetMinAbsX,
+    // Nav planning targets the player position (gap-safe); chase offset is
+    // applied when there is no plan.
+    expect(probe.targetXs[0], closeTo(playerX, 1e-9));
+    expect(probe.targetXs[1], closeTo(playerX, 1e-9));
+
+    final chase = world.groundEnemyChaseOffset;
+    expect(
+      chase.chaseOffsetX[chase.indexOf(enemyA)],
+      closeTo(expectedOffsetA, 1e-9),
     );
-    final expectedOffsetB = _expectedChaseOffset(
-      seed: seed,
-      entityId: enemyB,
-      maxAbsX: baseTuning.groundEnemyChaseOffsetMaxX,
-      minAbsX: baseTuning.groundEnemyChaseOffsetMinAbsX,
+    expect(
+      chase.chaseOffsetX[chase.indexOf(enemyB)],
+      closeTo(expectedOffsetB, 1e-9),
     );
 
-    expect(probe.targetXs[0], closeTo(playerX + expectedOffsetA, 1e-9));
-    expect(probe.targetXs[1], closeTo(playerX + expectedOffsetB, 1e-9));
+    final tiA = world.transform.indexOf(enemyA);
+    final tiB = world.transform.indexOf(enemyB);
+    expect(world.transform.velX[tiA] * expectedOffsetA, greaterThan(0.0));
+    expect(world.transform.velX[tiB] * expectedOffsetB, greaterThan(0.0));
   });
 
-  test('ground enemy chase offsets keep a small melee spread', () {
+  test('ground enemy melee spread is controlled by groundEnemyChaseOffsetMeleeX', () {
     const seed = 4321;
     const playerX = 10.0;
     const playerY = 0.0;
     const dtSeconds = 1.0 / 60.0;
 
-    const baseTuning = V0GroundEnemyTuning(
-      groundEnemyStopDistanceX: 0.0,
-      groundEnemyMeleeRangeX: 2.0,
-      groundEnemyChaseOffsetMaxX: 18.0,
-      groundEnemyChaseOffsetMinAbsX: 6.0,
-      groundEnemyChaseOffsetMeleeX: 3.0,
-    );
-
-    final world = EcsWorld(seed: seed);
-    final player = world.createPlayer(
-      posX: playerX,
-      posY: playerY,
-      velX: 0.0,
-      velY: 0.0,
-      facing: Facing.right,
-      grounded: true,
-      body: const BodyDef(isKinematic: true, useGravity: false),
-      collider: const ColliderAabbDef(halfX: 8, halfY: 8),
-      health: const HealthDef(hp: 100, hpMax: 100, regenPerSecond: 0),
-      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond: 0),
-      stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
-    );
-
-    final enemyA = spawnGroundEnemy(world, posX: 11.0, posY: 0.0);
-    final enemyB = spawnGroundEnemy(world, posX: 9.0, posY: 0.0);
-
-    final probe = SurfaceNavigatorProbe();
-    final system = EnemySystem(
-      flyingEnemyTuning: V0FlyingEnemyTuningDerived.from(
-        const V0FlyingEnemyTuning(),
-        tickHz: 60,
-      ),
-      groundEnemyTuning: V0GroundEnemyTuningDerived.from(
-        baseTuning,
-        tickHz: 60,
-      ),
-      surfaceNavigator: probe,
-      spells: const SpellCatalog(),
-      projectiles: ProjectileCatalogDerived.from(
-        const ProjectileCatalog(),
-        tickHz: 60,
-      ),
-    );
-
     final graph = _emptySurfaceGraph();
-    final spatialIndex = _emptySpatialIndex();
-    spatialIndex.rebuild(graph.surfaces);
-    system.setSurfaceGraph(
-      graph: graph,
-      spatialIndex: spatialIndex,
-      graphVersion: 1,
-    );
+    final spatialIndex = _emptySpatialIndex()..rebuild(graph.surfaces);
 
-    system.stepSteering(
-      world,
-      player: player,
-      groundTopY: 0.0,
-      dtSeconds: dtSeconds,
-    );
+    {
+      const baseTuning = V0GroundEnemyTuning(
+        groundEnemyStopDistanceX: 0.0,
+        groundEnemyMeleeRangeX: 2.0,
+        groundEnemyChaseOffsetMaxX: 18.0,
+        groundEnemyChaseOffsetMinAbsX: 6.0,
+        groundEnemyChaseOffsetMeleeX: 0.0,
+      );
 
-    expect(probe.targetXs.length, 2);
+      final world = EcsWorld(seed: seed);
+      final player = world.createPlayer(
+        posX: playerX,
+        posY: playerY,
+        velX: 0.0,
+        velY: 0.0,
+        facing: Facing.right,
+        grounded: true,
+        body: const BodyDef(isKinematic: true, useGravity: false),
+        collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+        health: const HealthDef(hp: 100, hpMax: 100, regenPerSecond: 0),
+        mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond: 0),
+        stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
+      );
 
-    final expectedOffsetA = _expectedChaseOffset(
-      seed: seed,
-      entityId: enemyA,
-      maxAbsX: baseTuning.groundEnemyChaseOffsetMaxX,
-      minAbsX: baseTuning.groundEnemyChaseOffsetMinAbsX,
-    );
-    final expectedOffsetB = _expectedChaseOffset(
-      seed: seed,
-      entityId: enemyB,
-      maxAbsX: baseTuning.groundEnemyChaseOffsetMaxX,
-      minAbsX: baseTuning.groundEnemyChaseOffsetMinAbsX,
-    );
+      final enemy = spawnGroundEnemy(world, posX: playerX, posY: playerY);
+      world.collision.grounded[world.collision.indexOf(enemy)] = true;
 
-    final meleeOffsetA = _expectedMeleeOffset(
-      chaseOffsetX: expectedOffsetA,
-      meleeMaxAbsX: baseTuning.groundEnemyChaseOffsetMeleeX,
-    );
-    final meleeOffsetB = _expectedMeleeOffset(
-      chaseOffsetX: expectedOffsetB,
-      meleeMaxAbsX: baseTuning.groundEnemyChaseOffsetMeleeX,
-    );
+      final probe = SurfaceNavigatorProbe();
+      final system = EnemySystem(
+        flyingEnemyTuning: V0FlyingEnemyTuningDerived.from(
+          const V0FlyingEnemyTuning(),
+          tickHz: 60,
+        ),
+        groundEnemyTuning: V0GroundEnemyTuningDerived.from(
+          baseTuning,
+          tickHz: 60,
+        ),
+        surfaceNavigator: probe,
+        spells: const SpellCatalog(),
+        projectiles: ProjectileCatalogDerived.from(
+          const ProjectileCatalog(),
+          tickHz: 60,
+        ),
+      );
+      system.setSurfaceGraph(
+        graph: graph,
+        spatialIndex: spatialIndex,
+        graphVersion: 1,
+      );
 
-    expect(probe.targetXs[0], closeTo(playerX + meleeOffsetA, 1e-9));
-    expect(probe.targetXs[1], closeTo(playerX + meleeOffsetB, 1e-9));
-    expect((probe.targetXs[0] - playerX).abs(), lessThanOrEqualTo(
-      baseTuning.groundEnemyChaseOffsetMeleeX,
-    ));
-    expect((probe.targetXs[1] - playerX).abs(), lessThanOrEqualTo(
-      baseTuning.groundEnemyChaseOffsetMeleeX,
-    ));
+      system.stepSteering(
+        world,
+        player: player,
+        groundTopY: 0.0,
+        dtSeconds: dtSeconds,
+      );
+
+      expect(probe.targetXs.single, closeTo(playerX, 1e-9));
+      final ti = world.transform.indexOf(enemy);
+      expect(world.transform.velX[ti], closeTo(0.0, 1e-9));
+    }
+
+    {
+      const baseTuning = V0GroundEnemyTuning(
+        groundEnemyStopDistanceX: 0.0,
+        groundEnemyMeleeRangeX: 2.0,
+        groundEnemyChaseOffsetMaxX: 18.0,
+        groundEnemyChaseOffsetMinAbsX: 6.0,
+        groundEnemyChaseOffsetMeleeX: 3.0,
+      );
+
+      final world = EcsWorld(seed: seed);
+      final player = world.createPlayer(
+        posX: playerX,
+        posY: playerY,
+        velX: 0.0,
+        velY: 0.0,
+        facing: Facing.right,
+        grounded: true,
+        body: const BodyDef(isKinematic: true, useGravity: false),
+        collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+        health: const HealthDef(hp: 100, hpMax: 100, regenPerSecond: 0),
+        mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond: 0),
+        stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
+      );
+
+      final enemy = spawnGroundEnemy(world, posX: playerX, posY: playerY);
+      world.collision.grounded[world.collision.indexOf(enemy)] = true;
+
+      final probe = SurfaceNavigatorProbe();
+      final system = EnemySystem(
+        flyingEnemyTuning: V0FlyingEnemyTuningDerived.from(
+          const V0FlyingEnemyTuning(),
+          tickHz: 60,
+        ),
+        groundEnemyTuning: V0GroundEnemyTuningDerived.from(
+          baseTuning,
+          tickHz: 60,
+        ),
+        surfaceNavigator: probe,
+        spells: const SpellCatalog(),
+        projectiles: ProjectileCatalogDerived.from(
+          const ProjectileCatalog(),
+          tickHz: 60,
+        ),
+      );
+      system.setSurfaceGraph(
+        graph: graph,
+        spatialIndex: spatialIndex,
+        graphVersion: 1,
+      );
+
+      system.stepSteering(
+        world,
+        player: player,
+        groundTopY: 0.0,
+        dtSeconds: dtSeconds,
+      );
+
+      expect(probe.targetXs.single, closeTo(playerX, 1e-9));
+      final ti = world.transform.indexOf(enemy);
+      expect(world.transform.velX[ti].abs(), greaterThan(0.0));
+    }
   });
 
   test('ground enemies separate during chase via speed scale', () {

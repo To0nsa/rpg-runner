@@ -72,6 +72,41 @@ void main() {
     expect(groundSurfaces[1].xMin, closeTo(60, 1e-9));
   });
 
+  test('ground segments preserve gaps between walkable ranges', () {
+    const groundTopY = 200.0;
+    const geometry = StaticWorldGeometry(
+      groundPlane: StaticGroundPlane(topY: groundTopY),
+      groundSegments: <StaticGroundSegment>[
+        StaticGroundSegment(
+          minX: 0,
+          maxX: 120,
+          topY: groundTopY,
+          chunkIndex: 1,
+          localSegmentIndex: 0,
+        ),
+        StaticGroundSegment(
+          minX: 200,
+          maxX: 320,
+          topY: groundTopY,
+          chunkIndex: 1,
+          localSegmentIndex: 1,
+        ),
+      ],
+      groundGaps: <StaticGroundGap>[
+        StaticGroundGap(minX: 120, maxX: 200),
+      ],
+    );
+
+    final extractor = SurfaceExtractor(mergeEps: 1e-6);
+    final surfaces = extractor.extract(geometry);
+
+    final groundSurfaces =
+        surfaces.where((s) => (s.yTop - groundTopY).abs() < 1e-9).toList();
+    expect(groundSurfaces, hasLength(2));
+    expect(groundSurfaces[0].xMax, closeTo(120, 1e-9));
+    expect(groundSurfaces[1].xMin, closeTo(200, 1e-9));
+  });
+
   test('spatial index returns surfaces overlapping query AABB', () {
     const geometry = StaticWorldGeometry(
       groundPlane: null,

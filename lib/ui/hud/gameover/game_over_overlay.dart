@@ -240,6 +240,8 @@ String? _buildSubtitleDeathReason(RunEndedEvent? event) {
       return 'You gave up the run.';
     case RunEndReason.fellBehindCamera:
       return 'You fell behind.';
+    case RunEndReason.fellIntoGap:
+      return 'You fell into a gap.';
     case RunEndReason.playerDied:
       return _buildDeathSubtitle(event.deathInfo);
   }

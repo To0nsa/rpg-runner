@@ -55,6 +55,7 @@ import 'snapshots/enums.dart';
 import 'snapshots/entity_render_snapshot.dart';
 import 'snapshots/game_state_snapshot.dart';
 import 'snapshots/player_hud_snapshot.dart';
+import 'snapshots/static_ground_gap_snapshot.dart';
 import 'snapshots/static_solid_snapshot.dart';
 import 'projectiles/projectile_catalog.dart';
 import 'spells/spell_catalog.dart';
@@ -481,6 +482,7 @@ class GameCore {
   late StaticWorldGeometry _staticWorldGeometry;
   late StaticWorldGeometryIndex _staticWorldIndex;
   late List<StaticSolidSnapshot> _staticSolidsSnapshot;
+  late List<StaticGroundGapSnapshot> _staticGroundGapsSnapshot;
 
   final V0MovementTuningDerived _movement;
   final V0PhysicsTuning _physicsTuning;
@@ -669,6 +671,20 @@ class GameCore {
 
     distance += max(0.0, playerVelX) * _movement.dtSeconds;
 
+    if (_checkFellIntoGap(groundTopY)) {
+      gameOver = true;
+      paused = true;
+      _events.add(
+        RunEndedEvent(
+          tick: tick,
+          distance: distance,
+          reason: RunEndReason.fellIntoGap,
+          stats: _buildRunEndStats(),
+        ),
+      );
+      return;
+    }
+
     _camera.updateTick(dtSeconds: _movement.dtSeconds, playerX: playerPosX);
     if (_checkFellBehindCamera()) {
       gameOver = true;
@@ -825,6 +841,21 @@ class GameCore {
     return right < _camera.left();
   }
 
+  bool _checkFellIntoGap(double groundTopY) {
+    if (!(_world.transform.has(_player) && _world.colliderAabb.has(_player))) {
+      return false;
+    }
+
+    const gapKillOffsetY = 400.0;
+    final ti = _world.transform.indexOf(_player);
+    final ai = _world.colliderAabb.indexOf(_player);
+    final bottomY =
+        _world.transform.posY[ti] +
+        _world.colliderAabb.offsetY[ai] +
+        _world.colliderAabb.halfY[ai];
+    return bottomY > groundTopY + gapKillOffsetY;
+  }
+
   void _trackStreamerStep() {
     final streamer = _trackStreamer;
     if (streamer == null) return;
@@ -851,10 +882,22 @@ class GameCore {
       ..._baseStaticWorldGeometry.solids,
       ...streamer.dynamicSolids,
     ];
+    final combinedSegments = <StaticGroundSegment>[
+      ..._baseStaticWorldGeometry.groundSegments,
+      ...streamer.dynamicGroundSegments,
+    ];
+    final combinedGaps = <StaticGroundGap>[
+      ..._baseStaticWorldGeometry.groundGaps,
+      ...streamer.dynamicGroundGaps,
+    ];
     _setStaticWorldGeometry(
       StaticWorldGeometry(
         groundPlane: _baseStaticWorldGeometry.groundPlane,
+        groundSegments: List<StaticGroundSegment>.unmodifiable(
+          combinedSegments,
+        ),
         solids: List<StaticSolid>.unmodifiable(combinedSolids),
+        groundGaps: List<StaticGroundGap>.unmodifiable(combinedGaps),
       ),
     );
 
@@ -874,6 +917,7 @@ class GameCore {
     _staticWorldGeometry = geometry;
     _staticWorldIndex = StaticWorldGeometryIndex.from(geometry);
     _staticSolidsSnapshot = _buildStaticSolidsSnapshot(geometry);
+    _staticGroundGapsSnapshot = _buildGroundGapsSnapshot(geometry);
     _rebuildSurfaceGraph();
   }
 
@@ -1074,6 +1118,19 @@ class GameCore {
           sides: s.sides,
           oneWayTop: s.oneWayTop,
         ),
+      ),
+    );
+  }
+
+  static List<StaticGroundGapSnapshot> _buildGroundGapsSnapshot(
+    StaticWorldGeometry geometry,
+  ) {
+    if (geometry.groundGaps.isEmpty) {
+      return const <StaticGroundGapSnapshot>[];
+    }
+    return List<StaticGroundGapSnapshot>.unmodifiable(
+      geometry.groundGaps.map(
+        (g) => StaticGroundGapSnapshot(minX: g.minX, maxX: g.maxX),
       ),
     );
   }
@@ -1327,6 +1384,7 @@ class GameCore {
       ),
       entities: entities,
       staticSolids: _staticSolidsSnapshot,
+      groundGaps: _staticGroundGapsSnapshot,
     );
   }
 }

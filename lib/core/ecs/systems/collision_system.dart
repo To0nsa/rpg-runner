@@ -96,15 +96,15 @@ class CollisionSystem {
         }
       }
 
-      // Ground is treated as an infinite solid with a top at `v0GroundTopY`.
-      // It competes with platforms: if a platform is higher (smaller Y), it
-      // should win.
-      final groundPlane = staticWorld.groundPlane;
-      if (groundPlane != null) {
-        final groundTopY = groundPlane.topY;
-        if (world.transform.velY[ti] > 0 &&
-            prevBottom <= groundTopY + eps &&
-            bottom >= groundTopY - eps) {
+      // Resolve ground segments (walkable surfaces, possibly split by gaps).
+      if (world.transform.velY[ti] > 0 && staticWorld.groundSegments.isNotEmpty) {
+        for (final seg in staticWorld.groundSegments) {
+          final overlapX = maxX > seg.minX + eps && minX < seg.maxX - eps;
+          if (!overlapX) continue;
+          final groundTopY = seg.topY;
+          final crossesTop =
+              prevBottom <= groundTopY + eps && bottom >= groundTopY - eps;
+          if (!crossesTop) continue;
           if (bestTopY == null || groundTopY < bestTopY) {
             bestTopY = groundTopY;
           }

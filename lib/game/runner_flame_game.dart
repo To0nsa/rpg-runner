@@ -114,6 +114,7 @@ class RunnerFlameGame extends FlameGame {
     camera.backdrop.add(
       TiledGroundBandComponent(
         assetPath: 'parallax/field/Field Layer 09.png',
+        controller: controller,
         virtualWidth: v0VirtualWidth,
         virtualHeight: v0VirtualHeight,
         renderInBackdrop: true,

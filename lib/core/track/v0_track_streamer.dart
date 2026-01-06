@@ -29,12 +29,14 @@ class V0ChunkPattern {
     required this.name,
     this.platforms = const <_PlatformRel>[],
     this.obstacles = const <_ObstacleRel>[],
+    this.groundGaps = const <_GapRel>[],
     this.spawnMarkers = const <_SpawnMarker>[],
   });
 
   final String name;
   final List<_PlatformRel> platforms;
   final List<_ObstacleRel> obstacles;
+  final List<_GapRel> groundGaps;
   final List<_SpawnMarker> spawnMarkers;
 }
 
@@ -55,9 +57,18 @@ class V0TrackStreamer {
 
   final List<_ActiveChunk> _active = <_ActiveChunk>[];
   List<StaticSolid> _dynamicSolids = const <StaticSolid>[];
+  List<StaticGroundSegment> _dynamicGroundSegments =
+      const <StaticGroundSegment>[];
+  List<StaticGroundGap> _dynamicGroundGaps = const <StaticGroundGap>[];
 
   /// Current streamed solids (excluding any caller-provided base solids).
   List<StaticSolid> get dynamicSolids => _dynamicSolids;
+
+  /// Current streamed ground segments (excluding any base segments).
+  List<StaticGroundSegment> get dynamicGroundSegments => _dynamicGroundSegments;
+
+  /// Current streamed ground gaps (excluding any base gaps).
+  List<StaticGroundGap> get dynamicGroundGaps => _dynamicGroundGaps;
 
   /// Advances chunk streaming based on the current camera bounds.
   ///
@@ -90,19 +101,31 @@ class V0TrackStreamer {
         chunkStartX: startX,
         chunkIndex: chunkIndex,
       );
+      final ground = _buildGroundSegments(
+        pattern,
+        chunkStartX: startX,
+        chunkIndex: chunkIndex,
+      );
       _active.add(
         _ActiveChunk(
           index: chunkIndex,
           startX: startX,
           endX: endX,
           solids: solids,
+          groundSegments: ground.segments,
+          groundGaps: ground.gaps,
         ),
       );
       spawnedChunks.add(
         V0TrackSpawnedChunk(index: chunkIndex, startX: startX),
       );
 
-      _spawnEnemiesForChunk(pattern, chunkIndex, chunkStartX: startX, spawnEnemy: spawnEnemy);
+      _spawnEnemiesForChunk(
+        pattern,
+        chunkIndex,
+        chunkStartX: startX,
+        spawnEnemy: spawnEnemy,
+      );
 
       _nextChunkIndex += 1;
       _nextChunkStartX += tuning.chunkWidth;
@@ -118,10 +141,18 @@ class V0TrackStreamer {
 
     if (changed) {
       final rebuilt = <StaticSolid>[];
+      final rebuiltGroundSegments = <StaticGroundSegment>[];
+      final rebuiltGroundGaps = <StaticGroundGap>[];
       for (final c in _active) {
         rebuilt.addAll(c.solids);
+        rebuiltGroundSegments.addAll(c.groundSegments);
+        rebuiltGroundGaps.addAll(c.groundGaps);
       }
       _dynamicSolids = List<StaticSolid>.unmodifiable(rebuilt);
+      _dynamicGroundSegments =
+          List<StaticGroundSegment>.unmodifiable(rebuiltGroundSegments);
+      _dynamicGroundGaps =
+          List<StaticGroundGap>.unmodifiable(rebuiltGroundGaps);
     }
 
     return V0TrackStreamStepResult(
@@ -141,9 +172,14 @@ class V0TrackStreamer {
 
     for (var i = 0; i < pattern.spawnMarkers.length; i += 1) {
       final m = pattern.spawnMarkers[i];
-      assert(_withinChunk(m.x, 0.0), 'Spawn marker out of chunk bounds: ${pattern.name}');
+      assert(
+        _withinChunk(m.x, 0.0),
+        'Spawn marker out of chunk bounds: ${pattern.name}',
+      );
       assert(_snapped(m.x), 'Spawn marker not snapped to grid: ${pattern.name}');
-      final roll = _mix32(seed ^ (chunkIndex * 0x9e3779b9) ^ (i * 0x85ebca6b) ^ m.salt);
+      final roll = _mix32(
+        seed ^ (chunkIndex * 0x9e3779b9) ^ (i * 0x85ebca6b) ^ m.salt,
+      );
       if ((roll % 100) >= m.chancePercent) continue;
 
       final x = chunkStartX + m.x;
@@ -161,7 +197,10 @@ class V0TrackStreamer {
     var localSolidIndex = 0;
 
     for (final p in pattern.platforms) {
-      assert(_withinChunk(p.x, p.width), 'Platform out of chunk bounds: ${pattern.name}');
+      assert(
+        _withinChunk(p.x, p.width),
+        'Platform out of chunk bounds: ${pattern.name}',
+      );
       assert(_snapped(p.x) && _snapped(p.width) && _snapped(p.aboveGroundTop),
           'Platform not snapped to grid: ${pattern.name}');
       final topY = groundTopY - p.aboveGroundTop;
@@ -181,7 +220,10 @@ class V0TrackStreamer {
     }
 
     for (final o in pattern.obstacles) {
-      assert(_withinChunk(o.x, o.width), 'Obstacle out of chunk bounds: ${pattern.name}');
+      assert(
+        _withinChunk(o.x, o.width),
+        'Obstacle out of chunk bounds: ${pattern.name}',
+      );
       assert(_snapped(o.x) && _snapped(o.width) && _snapped(o.height),
           'Obstacle not snapped to grid: ${pattern.name}');
       solids.add(
@@ -200,6 +242,75 @@ class V0TrackStreamer {
     }
 
     return solids;
+  }
+
+  _GroundBuildResult _buildGroundSegments(
+    V0ChunkPattern pattern, {
+    required double chunkStartX,
+    required int chunkIndex,
+  }) {
+    final orderedGaps = List<_GapRel>.from(pattern.groundGaps);
+    if (orderedGaps.isNotEmpty) {
+      orderedGaps.sort((a, b) => a.x.compareTo(b.x));
+    }
+
+    final segments = <StaticGroundSegment>[];
+    final gaps = <StaticGroundGap>[];
+    var cursor = 0.0;
+    var localSegmentIndex = 0;
+    var lastGapEnd = -1.0;
+
+    for (final gap in orderedGaps) {
+      assert(
+        _withinChunk(gap.x, gap.width),
+        'Ground gap out of chunk bounds: ${pattern.name}',
+      );
+      assert(_snapped(gap.x) && _snapped(gap.width),
+          'Ground gap not snapped to grid: ${pattern.name}');
+      assert(
+        gap.x >= lastGapEnd - 1e-6,
+        'Ground gap overlaps previous: ${pattern.name}',
+      );
+
+      final gapStart = gap.x;
+      final gapEnd = gap.x + gap.width;
+      if (gapStart > cursor + 1e-6) {
+        segments.add(
+          StaticGroundSegment(
+            minX: chunkStartX + cursor,
+            maxX: chunkStartX + gapStart,
+            topY: groundTopY,
+            chunkIndex: chunkIndex,
+            localSegmentIndex: localSegmentIndex,
+          ),
+        );
+        localSegmentIndex += 1;
+      }
+
+      gaps.add(
+        StaticGroundGap(
+          minX: chunkStartX + gapStart,
+          maxX: chunkStartX + gapEnd,
+        ),
+      );
+
+      cursor = gapEnd > cursor ? gapEnd : cursor;
+      lastGapEnd = gapEnd;
+    }
+
+    if (cursor < tuning.chunkWidth - 1e-6) {
+      segments.add(
+        StaticGroundSegment(
+          minX: chunkStartX + cursor,
+          maxX: chunkStartX + tuning.chunkWidth,
+          topY: groundTopY,
+          chunkIndex: chunkIndex,
+          localSegmentIndex: localSegmentIndex,
+        ),
+      );
+    }
+
+    return _GroundBuildResult(segments: segments, gaps: gaps);
   }
 
   V0ChunkPattern _patternFor(int seed, int chunkIndex) {
@@ -225,6 +336,7 @@ class V0TrackStreamer {
       name: 'recovery-flat',
       platforms: <_PlatformRel>[],
       obstacles: <_ObstacleRel>[],
+      groundGaps: <_GapRel>[],
       spawnMarkers: <_SpawnMarker>[],
     ),
     V0ChunkPattern(
@@ -233,6 +345,9 @@ class V0TrackStreamer {
         _PlatformRel(x: 160, width: 160, aboveGroundTop: 48, thickness: _t),
       ],
       obstacles: <_ObstacleRel>[],
+      groundGaps: <_GapRel>[
+        _GapRel(x: 64, width: 96),
+      ],
       spawnMarkers: <_SpawnMarker>[
         _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 240, chancePercent: 10, salt: 0x11),
       ],
@@ -244,6 +359,7 @@ class V0TrackStreamer {
         _PlatformRel(x: 272, width: 144, aboveGroundTop: 64, thickness: _t),
       ],
       obstacles: <_ObstacleRel>[],
+      groundGaps: <_GapRel>[],
       spawnMarkers: <_SpawnMarker>[
         _SpawnMarker(enemyId: EnemyId.groundEnemy, x: 448, chancePercent: 10, salt: 0x12),
       ],
@@ -261,6 +377,9 @@ class V0TrackStreamer {
         _PlatformRel(x: 48, width: 160, aboveGroundTop: 64, thickness: _t),
         _PlatformRel(x: 256, width: 160, aboveGroundTop: 96, thickness: _t),
       ],
+      groundGaps: <_GapRel>[
+        _GapRel(x: 248, width: 128),
+      ],
       spawnMarkers: <_SpawnMarker>[
         _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 352, chancePercent: 17, salt: 0x01),
       ],
@@ -272,6 +391,7 @@ class V0TrackStreamer {
         _PlatformRel(x: 192, width: 128, aboveGroundTop: 80, thickness: _t),
         _PlatformRel(x: 352, width: 96, aboveGroundTop: 64, thickness: _t),
       ],
+      groundGaps: <_GapRel>[],
       spawnMarkers: <_SpawnMarker>[
         _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 288, chancePercent: 15, salt: 0x02),
       ],
@@ -284,6 +404,9 @@ class V0TrackStreamer {
       obstacles: <_ObstacleRel>[
         _ObstacleRel(x: 128, width: 48, height: 64),
       ],
+      groundGaps: <_GapRel>[
+        _GapRel(x: 174, width: 96),
+      ],
       spawnMarkers: <_SpawnMarker>[
         _SpawnMarker(enemyId: EnemyId.groundEnemy, x: 320, chancePercent: 22, salt: 0x03),
       ],
@@ -295,6 +418,9 @@ class V0TrackStreamer {
       obstacles: <_ObstacleRel>[
         _ObstacleRel(x: 224, width: 48, height: 64),
       ],
+      groundGaps: <_GapRel>[
+        _GapRel(x: 128, width: 96),
+      ],
       spawnMarkers: <_SpawnMarker>[
         _SpawnMarker(enemyId: EnemyId.groundEnemy, x: 320, chancePercent: 17, salt: 0x04),
       ],
@@ -305,6 +431,7 @@ class V0TrackStreamer {
         _ObstacleRel(x: 160, width: 32, height: 48),
         _ObstacleRel(x: 288, width: 48, height: 64),
       ],
+      groundGaps: <_GapRel>[],
       spawnMarkers: <_SpawnMarker>[
         _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 96, chancePercent: 12, salt: 0x05),
         _SpawnMarker(enemyId: EnemyId.groundEnemy, x: 352, chancePercent: 15, salt: 0x06),
@@ -317,6 +444,9 @@ class V0TrackStreamer {
         _PlatformRel(x: 208, width: 128, aboveGroundTop: 64, thickness: _t),
         _PlatformRel(x: 368, width: 128, aboveGroundTop: 80, thickness: _t),
       ],
+      groundGaps: <_GapRel>[
+        _GapRel(x: 300, width: 96),
+      ],
       spawnMarkers: <_SpawnMarker>[
         _SpawnMarker(enemyId: EnemyId.groundEnemy, x: 112, chancePercent: 15, salt: 0x07),
         _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 320, chancePercent: 15, salt: 0x08),
@@ -328,6 +458,7 @@ class V0TrackStreamer {
         _PlatformRel(x: 32, width: 192, aboveGroundTop: 64, thickness: _t),
         _PlatformRel(x: 288, width: 192, aboveGroundTop: 64, thickness: _t),
       ],
+      groundGaps: <_GapRel>[],
       spawnMarkers: <_SpawnMarker>[
         _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 192, chancePercent: 17, salt: 0x09),
         _SpawnMarker(enemyId: EnemyId.groundEnemy, x: 448, chancePercent: 15, salt: 0x0A),
@@ -339,6 +470,7 @@ class V0TrackStreamer {
         _ObstacleRel(x: 144, width: 48, height: 64),
         _ObstacleRel(x: 336, width: 48, height: 64),
       ],
+      groundGaps: <_GapRel>[],
       spawnMarkers: <_SpawnMarker>[
         _SpawnMarker(enemyId: EnemyId.groundEnemy, x: 256, chancePercent: 17, salt: 0x0B),
         _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 80, chancePercent: 12, salt: 0x0C),
@@ -353,6 +485,7 @@ class V0TrackStreamer {
       obstacles: <_ObstacleRel>[
         _ObstacleRel(x: 320, width: 64, height: 80),
       ],
+      groundGaps: <_GapRel>[],
       spawnMarkers: <_SpawnMarker>[
         _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 176, chancePercent: 15, salt: 0x0D),
         _SpawnMarker(enemyId: EnemyId.groundEnemy, x: 448, chancePercent: 15, salt: 0x0E),
@@ -368,9 +501,32 @@ class V0TrackStreamer {
       obstacles: <_ObstacleRel>[
         _ObstacleRel(x: 448, width: 48, height: 64),
       ],
+      groundGaps: <_GapRel>[
+        _GapRel(x: 112, width: 128)
+      ],
       spawnMarkers: <_SpawnMarker>[
         _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 240, chancePercent: 15, salt: 0x0F),
         _SpawnMarker(enemyId: EnemyId.groundEnemy, x: 480, chancePercent: 12, salt: 0x10),
+      ],
+    ),
+    V0ChunkPattern(
+      name: 'ground-gap-small',
+      groundGaps: <_GapRel>[
+        _GapRel(x: 256, width: 64),
+      ],
+      spawnMarkers: <_SpawnMarker>[
+        _SpawnMarker(enemyId: EnemyId.groundEnemy, x: 160, chancePercent: 12, salt: 0x21),
+        _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 416, chancePercent: 12, salt: 0x22),
+      ],
+    ),
+    V0ChunkPattern(
+      name: 'ground-gap-wide',
+      groundGaps: <_GapRel>[
+        _GapRel(x: 224, width: 128),
+      ],
+      spawnMarkers: <_SpawnMarker>[
+        _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 96, chancePercent: 12, salt: 0x23),
+        _SpawnMarker(enemyId: EnemyId.groundEnemy, x: 480, chancePercent: 12, salt: 0x24),
       ],
     ),
   ];
@@ -392,12 +548,26 @@ class _ActiveChunk {
     required this.startX,
     required this.endX,
     required this.solids,
+    required this.groundSegments,
+    required this.groundGaps,
   });
 
   final int index;
   final double startX;
   final double endX;
   final List<StaticSolid> solids;
+  final List<StaticGroundSegment> groundSegments;
+  final List<StaticGroundGap> groundGaps;
+}
+
+class _GroundBuildResult {
+  const _GroundBuildResult({
+    required this.segments,
+    required this.gaps,
+  });
+
+  final List<StaticGroundSegment> segments;
+  final List<StaticGroundGap> gaps;
 }
 
 class _PlatformRel {
@@ -427,6 +597,16 @@ class _ObstacleRel {
   final double x;
   final double width;
   final double height;
+}
+
+class _GapRel {
+  const _GapRel({
+    required this.x,
+    required this.width,
+  }) : assert(width > 0);
+
+  final double x;
+  final double width;
 }
 
 class _SpawnMarker {
