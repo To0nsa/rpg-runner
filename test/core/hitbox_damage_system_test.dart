@@ -17,18 +17,18 @@ import 'package:walkscape_runner/core/ecs/systems/melee_attack_system.dart';
 import 'package:walkscape_runner/core/ecs/systems/player_melee_system.dart';
 import 'package:walkscape_runner/core/ecs/world.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
-import 'package:walkscape_runner/core/tuning/v0_ability_tuning.dart';
-import 'package:walkscape_runner/core/tuning/v0_movement_tuning.dart';
-import 'package:walkscape_runner/core/tuning/v0_spatial_grid_tuning.dart';
+import 'package:walkscape_runner/core/tuning/ability_tuning.dart';
+import 'package:walkscape_runner/core/tuning/movement_tuning.dart';
+import 'package:walkscape_runner/core/tuning/spatial_grid_tuning.dart';
 
 void main() {
   test('melee hitbox damages only once per swing', () {
-    final movement = V0MovementTuningDerived.from(
-      const V0MovementTuning(playerRadius: 8),
+    final movement = MovementTuningDerived.from(
+      const MovementTuning(playerRadius: 8),
       tickHz: 60,
     );
-    final abilities = V0AbilityTuningDerived.from(
-      const V0AbilityTuning(
+    final abilities = AbilityTuningDerived.from(
+      const AbilityTuning(
         meleeCooldownSeconds: 0.30,
         meleeActiveSeconds: 0.10,
         meleeStaminaCost: 15,
@@ -46,7 +46,7 @@ void main() {
     final hitboxDamage = HitboxDamageSystem();
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0);
     final broadphase = BroadphaseGrid(
-      index: GridIndex2D(cellSize: V0SpatialGridTuning.v0BroadphaseCellSize),
+      index: GridIndex2D(cellSize: SpatialGridTuning.v0BroadphaseCellSize),
     );
     final lifetime = LifetimeSystem();
 

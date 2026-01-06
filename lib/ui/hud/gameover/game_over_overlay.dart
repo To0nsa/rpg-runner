@@ -5,7 +5,7 @@ import '../../../core/enemies/enemy_id.dart';
 import '../../../core/events/game_event.dart';
 import '../../../core/projectiles/projectile_id.dart';
 import '../../../core/scoring/run_score_breakdown.dart';
-import '../../../core/tuning/v0_score_tuning.dart';
+import '../../../core/tuning/score_tuning.dart';
 import '../../leaderboard/leaderboard_store.dart';
 import 'game_over_header.dart';
 import 'leaderboard_panel.dart';
@@ -33,7 +33,7 @@ class GameOverOverlay extends StatefulWidget {
   final VoidCallback? onExit;
   final bool showExitButton;
   final RunEndedEvent? runEndedEvent;
-  final V0ScoreTuning scoreTuning;
+  final ScoreTuning scoreTuning;
   final int tickHz;
   final LeaderboardStore? leaderboardStore;
 

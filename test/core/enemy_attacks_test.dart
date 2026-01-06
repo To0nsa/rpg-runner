@@ -22,9 +22,9 @@ import 'package:walkscape_runner/core/snapshots/enums.dart';
 import 'package:walkscape_runner/core/spells/spawn_spell_projectile.dart';
 import 'package:walkscape_runner/core/spells/spell_catalog.dart';
 import 'package:walkscape_runner/core/spells/spell_id.dart';
-import 'package:walkscape_runner/core/tuning/v0_flying_enemy_tuning.dart';
-import 'package:walkscape_runner/core/tuning/v0_ground_enemy_tuning.dart';
-import 'package:walkscape_runner/core/tuning/v0_spatial_grid_tuning.dart';
+import 'package:walkscape_runner/core/tuning/flying_enemy_tuning.dart';
+import 'package:walkscape_runner/core/tuning/ground_enemy_tuning.dart';
+import 'package:walkscape_runner/core/tuning/spatial_grid_tuning.dart';
 
 import 'test_spawns.dart';
 
@@ -78,7 +78,7 @@ void main() {
 
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0);
     final broadphase = BroadphaseGrid(
-      index: GridIndex2D(cellSize: V0SpatialGridTuning.v0BroadphaseCellSize),
+      index: GridIndex2D(cellSize: SpatialGridTuning.v0BroadphaseCellSize),
     )..rebuild(world);
     final hit = ProjectileHitSystem();
     hit.step(world, damage.queue, broadphase);
@@ -122,12 +122,12 @@ void main() {
       stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
     );
 
-    final flyingEnemyTuning = V0FlyingEnemyTuningDerived.from(
-      const V0FlyingEnemyTuning(),
+    final flyingEnemyTuning = FlyingEnemyTuningDerived.from(
+      const FlyingEnemyTuning(),
       tickHz: 60,
     );
-    final groundEnemyTuning = V0GroundEnemyTuningDerived.from(
-      const V0GroundEnemyTuning(
+    final groundEnemyTuning = GroundEnemyTuningDerived.from(
+      const GroundEnemyTuning(
         groundEnemyMeleeRangeX: 50.0,
         groundEnemyMeleeCooldownSeconds: 1.0,
         groundEnemyMeleeActiveSeconds: 0.10,
@@ -158,7 +158,7 @@ void main() {
 
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0);
     final broadphase = BroadphaseGrid(
-      index: GridIndex2D(cellSize: V0SpatialGridTuning.v0BroadphaseCellSize),
+      index: GridIndex2D(cellSize: SpatialGridTuning.v0BroadphaseCellSize),
     );
     final follow = HitboxFollowOwnerSystem();
     final hitboxDamage = HitboxDamageSystem();

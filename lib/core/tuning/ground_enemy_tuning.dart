@@ -1,7 +1,7 @@
 import '../util/tick_math.dart';
 
-class V0GroundEnemyTuning {
-  const V0GroundEnemyTuning({
+class GroundEnemyTuning {
+  const GroundEnemyTuning({
     this.groundEnemySpeedX = 300.0,
     this.groundEnemyStopDistanceX = 6.0,
     this.groundEnemyAccelX = 600.0,
@@ -43,23 +43,23 @@ class V0GroundEnemyTuning {
   final double groundEnemyMeleeHitboxSizeY;
 }
 
-class V0GroundEnemyTuningDerived {
-  const V0GroundEnemyTuningDerived._({
+class GroundEnemyTuningDerived {
+  const GroundEnemyTuningDerived._({
     required this.tickHz,
     required this.base,
     required this.groundEnemyMeleeCooldownTicks,
     required this.groundEnemyMeleeActiveTicks,
   });
 
-  factory V0GroundEnemyTuningDerived.from(
-    V0GroundEnemyTuning base, {
+  factory GroundEnemyTuningDerived.from(
+    GroundEnemyTuning base, {
     required int tickHz,
   }) {
     if (tickHz <= 0) {
       throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
     }
 
-    return V0GroundEnemyTuningDerived._(
+    return GroundEnemyTuningDerived._(
       tickHz: tickHz,
       base: base,
       groundEnemyMeleeCooldownTicks: ticksFromSecondsCeil(
@@ -74,7 +74,7 @@ class V0GroundEnemyTuningDerived {
   }
 
   final int tickHz;
-  final V0GroundEnemyTuning base;
+  final GroundEnemyTuning base;
 
   final int groundEnemyMeleeCooldownTicks;
   final int groundEnemyMeleeActiveTicks;

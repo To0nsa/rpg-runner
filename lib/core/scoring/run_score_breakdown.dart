@@ -1,5 +1,5 @@
 import '../enemies/enemy_id.dart';
-import '../tuning/v0_score_tuning.dart';
+import '../tuning/score_tuning.dart';
 
 enum RunScoreRowKind { distance, time, collectibles, enemyKill }
 
@@ -40,7 +40,7 @@ RunScoreBreakdown buildRunScoreBreakdown({
   required int collectibles,
   required int collectibleScore,
   required List<int> enemyKillCounts,
-  required V0ScoreTuning tuning,
+  required ScoreTuning tuning,
   required int tickHz,
   int unitsPerMeter = 100,
 }) {
@@ -91,7 +91,7 @@ RunScoreBreakdown buildRunScoreBreakdown({
   );
 }
 
-int _enemyKillScore(V0ScoreTuning tuning, EnemyId enemyId) {
+int _enemyKillScore(ScoreTuning tuning, EnemyId enemyId) {
   switch (enemyId) {
     case EnemyId.groundEnemy:
       return tuning.groundEnemyKillScore;

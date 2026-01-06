@@ -1,8 +1,8 @@
 import 'dart:math';
 
 import '../../snapshots/enums.dart';
-import '../../tuning/v0_ability_tuning.dart';
-import '../../tuning/v0_movement_tuning.dart';
+import '../../tuning/ability_tuning.dart';
+import '../../tuning/movement_tuning.dart';
 import '../entity_id.dart';
 import '../stores/melee_intent_store.dart';
 import '../world.dart';
@@ -10,8 +10,8 @@ import '../world.dart';
 class PlayerMeleeSystem {
   const PlayerMeleeSystem({required this.abilities, required this.movement});
 
-  final V0AbilityTuningDerived abilities;
-  final V0MovementTuningDerived movement;
+  final AbilityTuningDerived abilities;
+  final MovementTuningDerived movement;
 
   void step(
     EcsWorld world, {

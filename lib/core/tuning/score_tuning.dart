@@ -1,5 +1,5 @@
-class V0ScoreTuning {
-  const V0ScoreTuning({
+class ScoreTuning {
+  const ScoreTuning({
     this.timeScorePerSecond = 5,
     this.distanceScorePerMeter = 5,
     this.groundEnemyKillScore = 100,

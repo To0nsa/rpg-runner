@@ -10,7 +10,7 @@ import 'package:walkscape_runner/core/ecs/stores/collider_aabb_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/faction_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/health_store.dart';
 import 'package:walkscape_runner/core/ecs/world.dart';
-import 'package:walkscape_runner/core/tuning/v0_spatial_grid_tuning.dart';
+import 'package:walkscape_runner/core/tuning/spatial_grid_tuning.dart';
 
 void main() {
   test('HitResolver returns overlaps in EntityId order', () {
@@ -40,7 +40,7 @@ void main() {
     world.faction.add(c, const FactionDef(faction: Faction.player));
 
     final broadphase = BroadphaseGrid(
-      index: GridIndex2D(cellSize: V0SpatialGridTuning.v0BroadphaseCellSize),
+      index: GridIndex2D(cellSize: SpatialGridTuning.v0BroadphaseCellSize),
     )..rebuild(world);
 
     final resolver = HitResolver();
@@ -104,7 +104,7 @@ void main() {
     }
 
     final broadphase = BroadphaseGrid(
-      index: GridIndex2D(cellSize: V0SpatialGridTuning.v0BroadphaseCellSize),
+      index: GridIndex2D(cellSize: SpatialGridTuning.v0BroadphaseCellSize),
     )..rebuild(world);
 
     final resolver = HitResolver();

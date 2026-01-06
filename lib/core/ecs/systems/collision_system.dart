@@ -1,5 +1,5 @@
 import '../../collision/static_world_geometry_index.dart';
-import '../../tuning/v0_movement_tuning.dart';
+import '../../tuning/movement_tuning.dart';
 import '../queries.dart';
 import '../stores/body_store.dart';
 import '../world.dart';
@@ -17,7 +17,7 @@ class CollisionSystem {
 
   void step(
     EcsWorld world,
-    V0MovementTuningDerived tuning, {
+    MovementTuningDerived tuning, {
     required StaticWorldGeometryIndex staticWorld,
   }) {
     final dt = tuning.dtSeconds;

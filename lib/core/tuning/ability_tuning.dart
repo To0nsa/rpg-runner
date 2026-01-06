@@ -1,7 +1,7 @@
 import '../util/tick_math.dart';
 
-class V0AbilityTuning {
-  const V0AbilityTuning({
+class AbilityTuning {
+  const AbilityTuning({
     this.castCooldownSeconds = 0.25,
     this.meleeCooldownSeconds = 0.30,
     this.meleeActiveSeconds = 0.10,
@@ -23,8 +23,8 @@ class V0AbilityTuning {
   final double meleeHitboxSizeY;
 }
 
-class V0AbilityTuningDerived {
-  const V0AbilityTuningDerived._({
+class AbilityTuningDerived {
+  const AbilityTuningDerived._({
     required this.tickHz,
     required this.base,
     required this.castCooldownTicks,
@@ -32,15 +32,15 @@ class V0AbilityTuningDerived {
     required this.meleeActiveTicks,
   });
 
-  factory V0AbilityTuningDerived.from(
-    V0AbilityTuning base, {
+  factory AbilityTuningDerived.from(
+    AbilityTuning base, {
     required int tickHz,
   }) {
     if (tickHz <= 0) {
       throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
     }
 
-    return V0AbilityTuningDerived._(
+    return AbilityTuningDerived._(
       tickHz: tickHz,
       base: base,
       castCooldownTicks: ticksFromSecondsCeil(base.castCooldownSeconds, tickHz),
@@ -50,7 +50,7 @@ class V0AbilityTuningDerived {
   }
 
   final int tickHz;
-  final V0AbilityTuning base;
+  final AbilityTuning base;
 
   final int castCooldownTicks;
   final int meleeCooldownTicks;

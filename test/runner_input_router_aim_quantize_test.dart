@@ -8,7 +8,7 @@ import 'package:walkscape_runner/core/players/player_catalog.dart';
 import 'package:walkscape_runner/core/projectiles/projectile_catalog.dart';
 import 'package:walkscape_runner/core/projectiles/projectile_id.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
-import 'package:walkscape_runner/core/tuning/v0_resource_tuning.dart';
+import 'package:walkscape_runner/core/tuning/resource_tuning.dart';
 import 'package:walkscape_runner/game/game_controller.dart';
 import 'package:walkscape_runner/game/input/runner_input_router.dart';
 
@@ -23,7 +23,7 @@ void main() {
         bodyTemplate: BodyDef(useGravity: false),
       ),
       cameraTuning: noAutoscrollCameraTuning,
-      resourceTuning: const V0ResourceTuning(
+      resourceTuning: const ResourceTuning(
         playerManaMax: 20,
         playerManaRegenPerSecond: 0,
       ),

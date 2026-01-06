@@ -1,7 +1,7 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 
-import '../core/contracts/v0_render_contract.dart';
+import '../core/contracts/render_contract.dart';
 import '../core/game_core.dart';
 import '../game/game_controller.dart';
 import '../game/input/aim_preview.dart';
@@ -176,8 +176,8 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
             final metrics = computeViewportMetrics(
               constraints,
               devicePixelRatio,
-              v0VirtualWidth,
-              v0VirtualHeight,
+              virtualWidth,
+              virtualHeight,
               widget.viewportMode,
               alignment: widget.viewportAlignment,
             );

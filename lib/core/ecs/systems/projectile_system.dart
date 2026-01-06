@@ -1,8 +1,8 @@
-import '../../tuning/v0_movement_tuning.dart';
+import '../../tuning/movement_tuning.dart';
 import '../world.dart';
 
 class ProjectileSystem {
-  void step(EcsWorld world, V0MovementTuningDerived movement) {
+  void step(EcsWorld world, MovementTuningDerived movement) {
     final dt = movement.dtSeconds;
     final projectiles = world.projectile;
 

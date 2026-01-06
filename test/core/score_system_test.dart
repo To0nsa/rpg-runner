@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:walkscape_runner/core/enemies/enemy_id.dart';
 import 'package:walkscape_runner/core/scoring/run_score_breakdown.dart';
-import 'package:walkscape_runner/core/tuning/v0_score_tuning.dart';
+import 'package:walkscape_runner/core/tuning/score_tuning.dart';
 
 void main() {
   test('run score breakdown includes distance/time/collectibles/kills', () {
@@ -12,7 +12,7 @@ void main() {
       collectibles: 2,
       collectibleScore: 100,
       enemyKillCounts: const [1, 0],
-      tuning: const V0ScoreTuning(
+      tuning: const ScoreTuning(
         timeScorePerSecond: 10,
         distanceScorePerMeter: 5,
         groundEnemyKillScore: 100,
@@ -53,7 +53,7 @@ void main() {
       collectibles: 0,
       collectibleScore: 0,
       enemyKillCounts: const [0, 0],
-      tuning: const V0ScoreTuning(),
+      tuning: const ScoreTuning(),
       tickHz: 60,
     );
 

@@ -1,8 +1,8 @@
 /// V0 track streaming / deterministic chunk spawning configuration.
 ///
 /// This is simulation config (Core), not combat/ability tuning.
-class V0TrackTuning {
-  const V0TrackTuning({
+class TrackTuning {
+  const TrackTuning({
     this.enabled = true,
     this.chunkWidth = 600.0,
     this.spawnAheadMargin = 600.0,

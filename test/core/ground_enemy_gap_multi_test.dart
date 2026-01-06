@@ -19,18 +19,18 @@ import 'package:walkscape_runner/core/navigation/surface_pathfinder.dart';
 import 'package:walkscape_runner/core/projectiles/projectile_catalog.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
 import 'package:walkscape_runner/core/spells/spell_catalog.dart';
-import 'package:walkscape_runner/core/tuning/v0_flying_enemy_tuning.dart';
-import 'package:walkscape_runner/core/tuning/v0_ground_enemy_tuning.dart';
-import 'package:walkscape_runner/core/tuning/v0_movement_tuning.dart';
-import 'package:walkscape_runner/core/tuning/v0_navigation_tuning.dart';
-import 'package:walkscape_runner/core/tuning/v0_physics_tuning.dart';
+import 'package:walkscape_runner/core/tuning/flying_enemy_tuning.dart';
+import 'package:walkscape_runner/core/tuning/ground_enemy_tuning.dart';
+import 'package:walkscape_runner/core/tuning/movement_tuning.dart';
+import 'package:walkscape_runner/core/tuning/navigation_tuning.dart';
+import 'package:walkscape_runner/core/tuning/physics_tuning.dart';
 
 import 'test_spawns.dart';
 
 JumpReachabilityTemplate _jumpTemplate({
-  required V0GroundEnemyTuning base,
-  required V0MovementTuningDerived movement,
-  required V0PhysicsTuning physics,
+  required GroundEnemyTuning base,
+  required MovementTuningDerived movement,
+  required PhysicsTuning physics,
   required double agentHalfWidth,
 }) {
   // Mirrors the GameCore logic: allow some margin over the analytically computed
@@ -59,13 +59,13 @@ void main() {
     const groundTopY = 100.0;
     const enemyHalf = 8.0;
 
-    final movement = V0MovementTuningDerived.from(
-      const V0MovementTuning(),
+    final movement = MovementTuningDerived.from(
+      const MovementTuning(),
       tickHz: 60,
     );
-    const physics = V0PhysicsTuning(gravityY: 1200.0);
-    const navTuning = V0NavigationTuning();
-    const groundEnemyBase = V0GroundEnemyTuning(
+    const physics = PhysicsTuning(gravityY: 1200.0);
+    const navTuning = NavigationTuning();
+    const groundEnemyBase = GroundEnemyTuning(
       groundEnemySpeedX: 300.0,
       groundEnemyStopDistanceX: 6.0,
       groundEnemyJumpSpeed: 500.0,
@@ -152,11 +152,11 @@ void main() {
     );
 
     final system = EnemySystem(
-      flyingEnemyTuning: V0FlyingEnemyTuningDerived.from(
-        const V0FlyingEnemyTuning(),
+      flyingEnemyTuning: FlyingEnemyTuningDerived.from(
+        const FlyingEnemyTuning(),
         tickHz: 60,
       ),
-      groundEnemyTuning: V0GroundEnemyTuningDerived.from(
+      groundEnemyTuning: GroundEnemyTuningDerived.from(
         groundEnemyBase,
         tickHz: 60,
       ),
@@ -226,13 +226,13 @@ void main() {
     const groundTopY = 100.0;
     const enemyHalf = 8.0;
 
-    final movement = V0MovementTuningDerived.from(
-      const V0MovementTuning(),
+    final movement = MovementTuningDerived.from(
+      const MovementTuning(),
       tickHz: 60,
     );
-    const physics = V0PhysicsTuning(gravityY: 1200.0);
-    const navTuning = V0NavigationTuning();
-    const groundEnemyBase = V0GroundEnemyTuning(
+    const physics = PhysicsTuning(gravityY: 1200.0);
+    const navTuning = NavigationTuning();
+    const groundEnemyBase = GroundEnemyTuning(
       groundEnemySpeedX: 300.0,
       groundEnemyStopDistanceX: 6.0,
       groundEnemyAccelX: 600.0,
@@ -325,11 +325,11 @@ void main() {
     );
 
     final system = EnemySystem(
-      flyingEnemyTuning: V0FlyingEnemyTuningDerived.from(
-        const V0FlyingEnemyTuning(),
+      flyingEnemyTuning: FlyingEnemyTuningDerived.from(
+        const FlyingEnemyTuning(),
         tickHz: 60,
       ),
-      groundEnemyTuning: V0GroundEnemyTuningDerived.from(
+      groundEnemyTuning: GroundEnemyTuningDerived.from(
         groundEnemyBase,
         tickHz: 60,
       ),
@@ -399,13 +399,13 @@ void main() {
     const groundTopY = 100.0;
     const enemyHalf = 8.0;
 
-    final movement = V0MovementTuningDerived.from(
-      const V0MovementTuning(),
+    final movement = MovementTuningDerived.from(
+      const MovementTuning(),
       tickHz: 60,
     );
-    const physics = V0PhysicsTuning(gravityY: 1200.0);
-    const navTuning = V0NavigationTuning();
-    const groundEnemyBase = V0GroundEnemyTuning(
+    const physics = PhysicsTuning(gravityY: 1200.0);
+    const navTuning = NavigationTuning();
+    const groundEnemyBase = GroundEnemyTuning(
       groundEnemySpeedX: 300.0,
       groundEnemyStopDistanceX: 6.0,
       groundEnemyJumpSpeed: 500.0,
@@ -476,11 +476,11 @@ void main() {
     );
 
     final system = EnemySystem(
-      flyingEnemyTuning: V0FlyingEnemyTuningDerived.from(
-        const V0FlyingEnemyTuning(),
+      flyingEnemyTuning: FlyingEnemyTuningDerived.from(
+        const FlyingEnemyTuning(),
         tickHz: 60,
       ),
-      groundEnemyTuning: V0GroundEnemyTuningDerived.from(
+      groundEnemyTuning: GroundEnemyTuningDerived.from(
         groundEnemyBase,
         tickHz: 60,
       ),

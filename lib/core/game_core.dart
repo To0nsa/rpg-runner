@@ -8,7 +8,7 @@ import 'dart:math';
 import 'commands/command.dart';
 import 'camera/autoscroll_camera.dart';
 import 'collision/static_world_geometry_index.dart';
-import 'contracts/v0_render_contract.dart';
+import 'contracts/render_contract.dart';
 import 'ecs/entity_id.dart';
 import 'ecs/hit/aabb_hit_utils.dart';
 import 'ecs/spatial/broadphase_grid.dart';
@@ -59,21 +59,21 @@ import 'snapshots/static_solid_snapshot.dart';
 import 'projectiles/projectile_catalog.dart';
 import 'spells/spell_catalog.dart';
 import 'spells/spell_id.dart';
-import 'track/v0_track_streamer.dart';
-import 'tuning/v0_ability_tuning.dart';
-import 'tuning/v0_combat_tuning.dart';
-import 'tuning/v0_flying_enemy_tuning.dart';
-import 'tuning/v0_ground_enemy_tuning.dart';
-import 'tuning/v0_movement_tuning.dart';
-import 'tuning/v0_navigation_tuning.dart';
-import 'tuning/v0_physics_tuning.dart';
-import 'tuning/v0_resource_tuning.dart';
-import 'tuning/v0_score_tuning.dart';
-import 'tuning/v0_camera_tuning.dart';
-import 'tuning/v0_collectible_tuning.dart';
-import 'tuning/v0_restoration_item_tuning.dart';
-import 'tuning/v0_spatial_grid_tuning.dart';
-import 'tuning/v0_track_tuning.dart';
+import 'track/track_streamer.dart';
+import 'tuning/ability_tuning.dart';
+import 'tuning/combat_tuning.dart';
+import 'tuning/flying_enemy_tuning.dart';
+import 'tuning/ground_enemy_tuning.dart';
+import 'tuning/movement_tuning.dart';
+import 'tuning/navigation_tuning.dart';
+import 'tuning/physics_tuning.dart';
+import 'tuning/resource_tuning.dart';
+import 'tuning/score_tuning.dart';
+import 'tuning/camera_tuning.dart';
+import 'tuning/collectible_tuning.dart';
+import 'tuning/restoration_item_tuning.dart';
+import 'tuning/spatial_grid_tuning.dart';
+import 'tuning/track_tuning.dart';
 import 'util/deterministic_rng.dart';
 import 'util/tick_math.dart';
 
@@ -85,39 +85,39 @@ import 'util/tick_math.dart';
 class GameCore {
   GameCore({
     required this.seed,
-    this.tickHz = v0DefaultTickHz,
-    V0PhysicsTuning physicsTuning = const V0PhysicsTuning(),
-    V0MovementTuning movementTuning = const V0MovementTuning(),
-    V0ResourceTuning resourceTuning = const V0ResourceTuning(),
-    V0AbilityTuning abilityTuning = const V0AbilityTuning(),
-    V0CombatTuning combatTuning = const V0CombatTuning(),
-    V0FlyingEnemyTuning flyingEnemyTuning = const V0FlyingEnemyTuning(),
-    V0GroundEnemyTuning groundEnemyTuning = const V0GroundEnemyTuning(),
-    V0NavigationTuning navigationTuning = const V0NavigationTuning(),
-    V0SpatialGridTuning spatialGridTuning = const V0SpatialGridTuning(),
-    V0CameraTuning cameraTuning = const V0CameraTuning(),
-    V0TrackTuning trackTuning = const V0TrackTuning(),
-    V0CollectibleTuning collectibleTuning = const V0CollectibleTuning(),
-    V0RestorationItemTuning restorationItemTuning =
-        const V0RestorationItemTuning(),
-    V0ScoreTuning scoreTuning = const V0ScoreTuning(),
+    this.tickHz = defaultTickHz,
+    PhysicsTuning physicsTuning = const PhysicsTuning(),
+    MovementTuning movementTuning = const MovementTuning(),
+    ResourceTuning resourceTuning = const ResourceTuning(),
+    AbilityTuning abilityTuning = const AbilityTuning(),
+    CombatTuning combatTuning = const CombatTuning(),
+    FlyingEnemyTuning flyingEnemyTuning = const FlyingEnemyTuning(),
+    GroundEnemyTuning groundEnemyTuning = const GroundEnemyTuning(),
+    NavigationTuning navigationTuning = const NavigationTuning(),
+    SpatialGridTuning spatialGridTuning = const SpatialGridTuning(),
+    CameraTuning cameraTuning = const CameraTuning(),
+    TrackTuning trackTuning = const TrackTuning(),
+    CollectibleTuning collectibleTuning = const CollectibleTuning(),
+    RestorationItemTuning restorationItemTuning =
+        const RestorationItemTuning(),
+    ScoreTuning scoreTuning = const ScoreTuning(),
     SpellCatalog spellCatalog = const SpellCatalog(),
     ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
     EnemyCatalog enemyCatalog = const EnemyCatalog(),
     PlayerCatalog playerCatalog = const PlayerCatalog(),
     StaticWorldGeometry staticWorldGeometry = const StaticWorldGeometry(
-      groundPlane: StaticGroundPlane(topY: v0GroundTopY * 1.0),
+      groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
     ),
-  }) : _movement = V0MovementTuningDerived.from(movementTuning, tickHz: tickHz),
+  }) : _movement = MovementTuningDerived.from(movementTuning, tickHz: tickHz),
        _physicsTuning = physicsTuning,
        _resourceTuning = resourceTuning,
-       _abilities = V0AbilityTuningDerived.from(abilityTuning, tickHz: tickHz),
-       _combat = V0CombatTuningDerived.from(combatTuning, tickHz: tickHz),
-       _flyingEnemyTuning = V0FlyingEnemyTuningDerived.from(
+       _abilities = AbilityTuningDerived.from(abilityTuning, tickHz: tickHz),
+       _combat = CombatTuningDerived.from(combatTuning, tickHz: tickHz),
+       _flyingEnemyTuning = FlyingEnemyTuningDerived.from(
          flyingEnemyTuning,
          tickHz: tickHz,
        ),
-       _groundEnemyTuning = V0GroundEnemyTuningDerived.from(
+       _groundEnemyTuning = GroundEnemyTuningDerived.from(
          groundEnemyTuning,
          tickHz: tickHz,
        ),
@@ -201,16 +201,16 @@ class GameCore {
       spells: _spells,
       projectiles: _projectiles,
     );
-    _cameraTuning = V0CameraTuningDerived.from(
+    _cameraTuning = CameraTuningDerived.from(
       cameraTuning,
       movement: _movement,
     );
     _camera = AutoscrollCamera(
-      viewWidth: v0VirtualWidth.toDouble(),
+      viewWidth: virtualWidth.toDouble(),
       tuning: _cameraTuning,
       initial: CameraState(
-        centerX: v0VirtualWidth * 0.5,
-        targetX: v0VirtualWidth * 0.5,
+        centerX: virtualWidth * 0.5,
+        targetX: virtualWidth * 0.5,
         speedX: 0.0,
       ),
     );
@@ -225,7 +225,7 @@ class GameCore {
     ).archetype;
     final playerCollider = playerArchetype.collider;
     final spawnY =
-        (_staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble()) -
+        (_staticWorldGeometry.groundPlane?.topY ?? groundTopY.toDouble()) -
         (playerCollider.offsetY + playerCollider.halfY);
     _player = _world.createPlayer(
       posX: spawnX,
@@ -245,12 +245,12 @@ class GameCore {
     // Track streaming is controlled by `trackTuning.enabled`. When enabled, the
     // streamed solids are merged on top of the provided base geometry.
     if (_trackTuning.enabled) {
-      final groundTopY =
-          _staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble();
-      _trackStreamer = V0TrackStreamer(
+      final effectiveGroundTopY =
+          _staticWorldGeometry.groundPlane?.topY ?? groundTopY.toDouble();
+      _trackStreamer = TrackStreamer(
         seed: seed,
         tuning: _trackTuning,
-        groundTopY: groundTopY,
+        groundTopY: effectiveGroundTopY,
       );
       _trackStreamerStep();
     }
@@ -483,20 +483,20 @@ class GameCore {
   late List<StaticSolidSnapshot> _staticSolidsSnapshot;
   late List<StaticGroundGapSnapshot> _staticGroundGapsSnapshot;
 
-  final V0MovementTuningDerived _movement;
-  final V0PhysicsTuning _physicsTuning;
-  final V0ResourceTuning _resourceTuning;
-  final V0AbilityTuningDerived _abilities;
-  final V0CombatTuningDerived _combat;
-  final V0FlyingEnemyTuningDerived _flyingEnemyTuning;
-  final V0GroundEnemyTuningDerived _groundEnemyTuning;
-  final V0NavigationTuning _navigationTuning;
-  final V0SpatialGridTuning _spatialGridTuning;
-  late final V0CameraTuningDerived _cameraTuning;
-  final V0ScoreTuning _scoreTuning;
-  final V0TrackTuning _trackTuning;
-  final V0CollectibleTuning _collectibleTuning;
-  final V0RestorationItemTuning _restorationItemTuning;
+  final MovementTuningDerived _movement;
+  final PhysicsTuning _physicsTuning;
+  final ResourceTuning _resourceTuning;
+  final AbilityTuningDerived _abilities;
+  final CombatTuningDerived _combat;
+  final FlyingEnemyTuningDerived _flyingEnemyTuning;
+  final GroundEnemyTuningDerived _groundEnemyTuning;
+  final NavigationTuning _navigationTuning;
+  final SpatialGridTuning _spatialGridTuning;
+  late final CameraTuningDerived _cameraTuning;
+  final ScoreTuning _scoreTuning;
+  final TrackTuning _trackTuning;
+  final CollectibleTuning _collectibleTuning;
+  final RestorationItemTuning _restorationItemTuning;
   final SpellCatalog _spells;
   final ProjectileCatalogDerived _projectiles;
   final EnemyCatalog _enemyCatalog;
@@ -505,7 +505,7 @@ class GameCore {
   late final JumpReachabilityTemplate _groundEnemyJumpTemplate;
   int _surfaceGraphVersion = 0;
 
-  V0TrackStreamer? _trackStreamer;
+  TrackStreamer? _trackStreamer;
 
   late final EcsWorld _world;
   late final PlayerMovementSystem _movementSystem;
@@ -555,7 +555,7 @@ class GameCore {
   /// Whether the run has ended (simulation is frozen).
   bool gameOver = false;
 
-  V0ScoreTuning get scoreTuning => _scoreTuning;
+  ScoreTuning get scoreTuning => _scoreTuning;
 
   /// Run progression metric (placeholder).
   double distance = 0;
@@ -655,12 +655,12 @@ class GameCore {
     _cooldownSystem.step(_world);
     _invulnerabilitySystem.step(_world);
 
-    final groundTopY =
-        staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble();
+    final effectiveGroundTopY =
+        staticWorldGeometry.groundPlane?.topY ?? groundTopY.toDouble();
     _enemySystem.stepSteering(
       _world,
       player: _player,
-      groundTopY: groundTopY,
+      groundTopY: effectiveGroundTopY,
       dtSeconds: _movement.dtSeconds,
     );
 
@@ -670,7 +670,7 @@ class GameCore {
 
     distance += max(0.0, playerVelX) * _movement.dtSeconds;
 
-    if (_checkFellIntoGap(groundTopY)) {
+    if (_checkFellIntoGap(effectiveGroundTopY)) {
       gameOver = true;
       paused = true;
       _events.add(
@@ -863,13 +863,13 @@ class GameCore {
       cameraLeft: _camera.left(),
       cameraRight: _camera.right(),
       spawnEnemy: (enemyId, x) {
-        final groundTopY =
-          _staticWorldGeometry.groundPlane?.topY ?? v0GroundTopY.toDouble();
+        final effectiveGroundTopY =
+          _staticWorldGeometry.groundPlane?.topY ?? groundTopY.toDouble();
         switch (enemyId) {
           case EnemyId.flyingEnemy:
-            _spawnFlyingEnemy(spawnX: x, groundTopY: groundTopY);
+            _spawnFlyingEnemy(spawnX: x, groundTopY: effectiveGroundTopY);
           case EnemyId.groundEnemy:
-            _spawnGroundEnemy(spawnX: x, groundTopY: groundTopY);
+            _spawnGroundEnemy(spawnX: x, groundTopY: effectiveGroundTopY);
         }
       },
     );
@@ -1360,7 +1360,7 @@ class GameCore {
       paused: paused,
       gameOver: gameOver,
       cameraCenterX: _camera.state.centerX,
-      cameraCenterY: v0CameraFixedY,
+      cameraCenterY: cameraFixedY,
       hud: PlayerHudSnapshot(
         hp: _world.health.hp[hi],
         hpMax: _world.health.hpMax[hi],

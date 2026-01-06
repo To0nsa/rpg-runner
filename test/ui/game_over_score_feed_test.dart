@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:walkscape_runner/core/events/game_event.dart';
-import 'package:walkscape_runner/core/tuning/v0_score_tuning.dart';
+import 'package:walkscape_runner/core/tuning/score_tuning.dart';
 import 'package:walkscape_runner/ui/hud/gameover/game_over_overlay.dart';
 import 'package:walkscape_runner/ui/hud/gameover/leaderboard_panel.dart';
 import 'package:walkscape_runner/ui/leaderboard/leaderboard_store.dart';
@@ -39,7 +39,7 @@ void main() {
           onExit: null,
           showExitButton: false,
           runEndedEvent: _buildEvent(),
-          scoreTuning: const V0ScoreTuning(
+          scoreTuning: const ScoreTuning(
             timeScorePerSecond: 10,
             distanceScorePerMeter: 5,
             groundEnemyKillScore: 100,
@@ -88,7 +88,7 @@ void main() {
           onExit: null,
           showExitButton: false,
           runEndedEvent: _buildEvent(),
-          scoreTuning: const V0ScoreTuning(
+          scoreTuning: const ScoreTuning(
             timeScorePerSecond: 10,
             distanceScorePerMeter: 5,
             groundEnemyKillScore: 100,
@@ -130,7 +130,7 @@ void main() {
           onExit: null,
           showExitButton: false,
           runEndedEvent: _buildEvent(),
-          scoreTuning: const V0ScoreTuning(
+          scoreTuning: const ScoreTuning(
             timeScorePerSecond: 10,
             distanceScorePerMeter: 5,
             groundEnemyKillScore: 100,

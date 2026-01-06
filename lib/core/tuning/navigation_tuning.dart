@@ -7,8 +7,8 @@
 library;
 import '../navigation/nav_tolerances.dart';
 
-class V0NavigationTuning {
-  const V0NavigationTuning({
+class NavigationTuning {
+  const NavigationTuning({
     this.repathCooldownTicks = 30,
     this.maxExpandedNodes = 128,
     this.edgePenaltySeconds = 0.05,

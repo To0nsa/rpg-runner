@@ -4,8 +4,8 @@ import '../ecs/stores/health_store.dart';
 import '../ecs/stores/mana_store.dart';
 import '../ecs/stores/stamina_store.dart';
 import '../snapshots/enums.dart';
-import '../tuning/v0_movement_tuning.dart';
-import '../tuning/v0_resource_tuning.dart';
+import '../tuning/movement_tuning.dart';
+import '../tuning/resource_tuning.dart';
 import 'player_archetype.dart';
 
 class PlayerCatalog {
@@ -23,7 +23,7 @@ class PlayerCatalog {
 
   /// Template for how the player participates in physics.
   ///
-  /// `maxVelX/maxVelY` are filled from `V0MovementTuning` during derivation so
+  /// `maxVelX/maxVelY` are filled from `MovementTuning` during derivation so
   /// movement tuning remains the single source of truth for clamps.
   final BodyDef bodyTemplate;
 
@@ -36,8 +36,8 @@ class PlayerCatalogDerived {
 
   factory PlayerCatalogDerived.from(
     PlayerCatalog base, {
-    required V0MovementTuningDerived movement,
-    required V0ResourceTuning resources,
+    required MovementTuningDerived movement,
+    required ResourceTuning resources,
   }) {
     final body = BodyDef(
       enabled: base.bodyTemplate.enabled,

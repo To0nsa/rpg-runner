@@ -8,7 +8,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
-import '../core/contracts/v0_render_contract.dart';
+import '../core/contracts/render_contract.dart';
 import '../core/snapshots/entity_render_snapshot.dart';
 import '../core/snapshots/enums.dart';
 import '../core/snapshots/static_solid_snapshot.dart';
@@ -28,8 +28,8 @@ class RunnerFlameGame extends FlameGame {
     required this.meleeAimPreview,
   }) : super(
          camera: CameraComponent.withFixedResolution(
-           width: v0VirtualWidth.toDouble(),
-           height: v0VirtualHeight.toDouble(),
+           width: virtualWidth.toDouble(),
+           height: virtualHeight.toDouble(),
          ),
        );
 
@@ -115,16 +115,16 @@ class RunnerFlameGame extends FlameGame {
       TiledGroundBandComponent(
         assetPath: 'parallax/field/Field Layer 09.png',
         controller: controller,
-        virtualWidth: v0VirtualWidth,
-        virtualHeight: v0VirtualHeight,
+        virtualWidth: virtualWidth,
+        virtualHeight: virtualHeight,
         renderInBackdrop: true,
       )..priority = -20,
     );
 
     camera.backdrop.add(
       PixelParallaxBackdropComponent(
-        virtualWidth: v0VirtualWidth,
-        virtualHeight: v0VirtualHeight,
+        virtualWidth: virtualWidth,
+        virtualHeight: virtualHeight,
         snapScrollToPixels: false,
         layers: const [
           PixelParallaxLayerSpec(

@@ -3,8 +3,8 @@
 ///
 /// Keep this separate from combat tuning: broadphase is a physics/simulation
 /// concern, not a combat rule.
-class V0SpatialGridTuning {
-  const V0SpatialGridTuning({
+class SpatialGridTuning {
+  const SpatialGridTuning({
     this.broadphaseCellSize = v0BroadphaseCellSize,
   });
 

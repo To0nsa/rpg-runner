@@ -1,7 +1,7 @@
 import '../util/tick_math.dart';
 
-class V0FlyingEnemyTuning {
-  const V0FlyingEnemyTuning({
+class FlyingEnemyTuning {
+  const FlyingEnemyTuning({
     this.flyingEnemyHoverOffsetY = 150.0,
     this.flyingEnemyDesiredRangeMin = 50.0,
     this.flyingEnemyDesiredRangeMax = 90.0,
@@ -51,22 +51,22 @@ class V0FlyingEnemyTuning {
   final double flyingEnemyCastOriginOffset;
 }
 
-class V0FlyingEnemyTuningDerived {
-  const V0FlyingEnemyTuningDerived._({
+class FlyingEnemyTuningDerived {
+  const FlyingEnemyTuningDerived._({
     required this.tickHz,
     required this.base,
     required this.flyingEnemyCastCooldownTicks,
   });
 
-  factory V0FlyingEnemyTuningDerived.from(
-    V0FlyingEnemyTuning base, {
+  factory FlyingEnemyTuningDerived.from(
+    FlyingEnemyTuning base, {
     required int tickHz,
   }) {
     if (tickHz <= 0) {
       throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
     }
 
-    return V0FlyingEnemyTuningDerived._(
+    return FlyingEnemyTuningDerived._(
       tickHz: tickHz,
       base: base,
       flyingEnemyCastCooldownTicks: ticksFromSecondsCeil(
@@ -77,7 +77,7 @@ class V0FlyingEnemyTuningDerived {
   }
 
   final int tickHz;
-  final V0FlyingEnemyTuning base;
+  final FlyingEnemyTuning base;
 
   final int flyingEnemyCastCooldownTicks;
 }

@@ -1,6 +1,6 @@
 import '../util/smoothing.dart';
 import '../util/double_math.dart';
-import '../tuning/v0_camera_tuning.dart';
+import '../tuning/camera_tuning.dart';
 
 class CameraState {
   const CameraState({
@@ -42,13 +42,13 @@ class CameraState {
 class AutoscrollCamera {
   AutoscrollCamera({
     required this.viewWidth,
-    required V0CameraTuningDerived tuning,
+    required CameraTuningDerived tuning,
     required CameraState initial,
   })  : _tuning = tuning,
         _state = initial;
 
   final double viewWidth;
-  final V0CameraTuningDerived _tuning;
+  final CameraTuningDerived _tuning;
 
   CameraState get state => _state;
   CameraState _state;

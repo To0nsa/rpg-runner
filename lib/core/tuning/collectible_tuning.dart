@@ -1,6 +1,6 @@
 /// V0 collectible spawning and value configuration.
-class V0CollectibleTuning {
-  const V0CollectibleTuning({
+class CollectibleTuning {
+  const CollectibleTuning({
     this.enabled = true,
     this.minPerChunk = 1,
     this.maxPerChunk = 2,

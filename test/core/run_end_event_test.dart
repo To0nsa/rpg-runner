@@ -22,7 +22,7 @@ import 'package:walkscape_runner/core/snapshots/enums.dart';
 import 'package:walkscape_runner/core/spells/spawn_spell_projectile.dart';
 import 'package:walkscape_runner/core/spells/spell_catalog.dart';
 import 'package:walkscape_runner/core/spells/spell_id.dart';
-import 'package:walkscape_runner/core/tuning/v0_spatial_grid_tuning.dart';
+import 'package:walkscape_runner/core/tuning/spatial_grid_tuning.dart';
 
 import 'test_spawns.dart';
 
@@ -66,7 +66,7 @@ void main() {
     expect(projectile, isNotNull);
 
     final broadphase = BroadphaseGrid(
-      index: GridIndex2D(cellSize: V0SpatialGridTuning.v0BroadphaseCellSize),
+      index: GridIndex2D(cellSize: SpatialGridTuning.v0BroadphaseCellSize),
     )..rebuild(world);
     final hits = ProjectileHitSystem();
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0);
@@ -121,7 +121,7 @@ void main() {
     world.hitOnce.add(hitbox);
 
     final broadphase = BroadphaseGrid(
-      index: GridIndex2D(cellSize: V0SpatialGridTuning.v0BroadphaseCellSize),
+      index: GridIndex2D(cellSize: SpatialGridTuning.v0BroadphaseCellSize),
     )..rebuild(world);
     final hitboxDamage = HitboxDamageSystem();
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0);

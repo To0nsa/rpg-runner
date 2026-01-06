@@ -19,8 +19,8 @@ import 'package:walkscape_runner/core/navigation/walk_surface.dart';
 import 'package:walkscape_runner/core/projectiles/projectile_catalog.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
 import 'package:walkscape_runner/core/spells/spell_catalog.dart';
-import 'package:walkscape_runner/core/tuning/v0_flying_enemy_tuning.dart';
-import 'package:walkscape_runner/core/tuning/v0_ground_enemy_tuning.dart';
+import 'package:walkscape_runner/core/tuning/flying_enemy_tuning.dart';
+import 'package:walkscape_runner/core/tuning/ground_enemy_tuning.dart';
 import 'package:walkscape_runner/core/util/deterministic_rng.dart';
 import 'package:walkscape_runner/core/util/double_math.dart';
 
@@ -115,7 +115,7 @@ void main() {
     const playerY = 0.0;
     const dtSeconds = 1.0 / 60.0;
 
-    const baseTuning = V0GroundEnemyTuning(
+    const baseTuning = GroundEnemyTuning(
       groundEnemyStopDistanceX: 0.0,
       groundEnemyMeleeRangeX: 2.0,
       groundEnemyChaseOffsetMaxX: 18.0,
@@ -165,11 +165,11 @@ void main() {
 
     final probe = SurfaceNavigatorProbe();
     final system = EnemySystem(
-      flyingEnemyTuning: V0FlyingEnemyTuningDerived.from(
-        const V0FlyingEnemyTuning(),
+      flyingEnemyTuning: FlyingEnemyTuningDerived.from(
+        const FlyingEnemyTuning(),
         tickHz: 60,
       ),
-      groundEnemyTuning: V0GroundEnemyTuningDerived.from(
+      groundEnemyTuning: GroundEnemyTuningDerived.from(
         baseTuning,
         tickHz: 60,
       ),
@@ -230,7 +230,7 @@ void main() {
     final spatialIndex = _emptySpatialIndex()..rebuild(graph.surfaces);
 
     {
-      const baseTuning = V0GroundEnemyTuning(
+      const baseTuning = GroundEnemyTuning(
         groundEnemyStopDistanceX: 0.0,
         groundEnemyMeleeRangeX: 2.0,
         groundEnemyChaseOffsetMaxX: 18.0,
@@ -258,11 +258,11 @@ void main() {
 
       final probe = SurfaceNavigatorProbe();
       final system = EnemySystem(
-        flyingEnemyTuning: V0FlyingEnemyTuningDerived.from(
-          const V0FlyingEnemyTuning(),
+        flyingEnemyTuning: FlyingEnemyTuningDerived.from(
+          const FlyingEnemyTuning(),
           tickHz: 60,
         ),
-        groundEnemyTuning: V0GroundEnemyTuningDerived.from(
+        groundEnemyTuning: GroundEnemyTuningDerived.from(
           baseTuning,
           tickHz: 60,
         ),
@@ -292,7 +292,7 @@ void main() {
     }
 
     {
-      const baseTuning = V0GroundEnemyTuning(
+      const baseTuning = GroundEnemyTuning(
         groundEnemyStopDistanceX: 0.0,
         groundEnemyMeleeRangeX: 2.0,
         groundEnemyChaseOffsetMaxX: 18.0,
@@ -320,11 +320,11 @@ void main() {
 
       final probe = SurfaceNavigatorProbe();
       final system = EnemySystem(
-        flyingEnemyTuning: V0FlyingEnemyTuningDerived.from(
-          const V0FlyingEnemyTuning(),
+        flyingEnemyTuning: FlyingEnemyTuningDerived.from(
+          const FlyingEnemyTuning(),
           tickHz: 60,
         ),
-        groundEnemyTuning: V0GroundEnemyTuningDerived.from(
+        groundEnemyTuning: GroundEnemyTuningDerived.from(
           baseTuning,
           tickHz: 60,
         ),
@@ -360,7 +360,7 @@ void main() {
     const playerY = 0.0;
     const dtSeconds = 1.0;
 
-    const baseTuning = V0GroundEnemyTuning(
+    const baseTuning = GroundEnemyTuning(
       groundEnemySpeedX: 300.0,
       groundEnemyStopDistanceX: 0.0,
       groundEnemyAccelX: 600.0,
@@ -393,11 +393,11 @@ void main() {
 
     final probe = SurfaceNavigatorProbe();
     final system = EnemySystem(
-      flyingEnemyTuning: V0FlyingEnemyTuningDerived.from(
-        const V0FlyingEnemyTuning(),
+      flyingEnemyTuning: FlyingEnemyTuningDerived.from(
+        const FlyingEnemyTuning(),
         tickHz: 60,
       ),
-      groundEnemyTuning: V0GroundEnemyTuningDerived.from(
+      groundEnemyTuning: GroundEnemyTuningDerived.from(
         baseTuning,
         tickHz: 60,
       ),

@@ -1,31 +1,31 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:walkscape_runner/core/camera/autoscroll_camera.dart';
-import 'package:walkscape_runner/core/contracts/v0_render_contract.dart';
+import 'package:walkscape_runner/core/contracts/render_contract.dart';
 import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/events/game_event.dart';
 import 'package:walkscape_runner/core/game_core.dart';
 import 'package:walkscape_runner/core/players/player_catalog.dart';
-import 'package:walkscape_runner/core/tuning/v0_camera_tuning.dart';
-import 'package:walkscape_runner/core/tuning/v0_movement_tuning.dart';
+import 'package:walkscape_runner/core/tuning/camera_tuning.dart';
+import 'package:walkscape_runner/core/tuning/movement_tuning.dart';
 
 void main() {
   test('AutoscrollCamera: player past threshold pulls target forward', () {
-    final movement = V0MovementTuningDerived.from(
-      const V0MovementTuning(),
+    final movement = MovementTuningDerived.from(
+      const MovementTuning(),
       tickHz: 60,
     );
-    final tuning = V0CameraTuningDerived.from(
-      const V0CameraTuning(),
+    final tuning = CameraTuningDerived.from(
+      const CameraTuning(),
       movement: movement,
     );
 
     final cam = AutoscrollCamera(
-      viewWidth: v0VirtualWidth.toDouble(),
+      viewWidth: virtualWidth.toDouble(),
       tuning: tuning,
       initial: CameraState(
-        centerX: v0VirtualWidth * 0.5,
-        targetX: v0VirtualWidth * 0.5,
+        centerX: virtualWidth * 0.5,
+        targetX: virtualWidth * 0.5,
         speedX: 0.0,
       ),
     );
@@ -35,7 +35,7 @@ void main() {
     // Player is far ahead, beyond the follow threshold.
     cam.updateTick(dtSeconds: 1.0 / 60.0, playerX: 2000.0);
     expect(cam.state.targetX, greaterThan(baselineTargetX));
-    expect(cam.state.centerX, greaterThanOrEqualTo(v0VirtualWidth * 0.5));
+    expect(cam.state.centerX, greaterThanOrEqualTo(virtualWidth * 0.5));
   });
 
   test(
@@ -78,8 +78,8 @@ void main() {
       final snap = core.buildSnapshot();
       expect(snap.gameOver, isTrue);
     },
-    skip: const V0CameraTuning().speedLagMulX == 0.0
-        ? 'Requires autoscroll (V0CameraTuning.speedLagMulX > 0)'
+    skip: const CameraTuning().speedLagMulX == 0.0
+        ? 'Requires autoscroll (CameraTuning.speedLagMulX > 0)'
         : false,
   );
 }

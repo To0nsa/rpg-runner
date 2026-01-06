@@ -1,5 +1,5 @@
-import '../../tuning/v0_movement_tuning.dart';
-import '../../tuning/v0_physics_tuning.dart';
+import '../../tuning/movement_tuning.dart';
+import '../../tuning/physics_tuning.dart';
 import '../world.dart';
 
 /// Applies gravity to all enabled, non-kinematic bodies that opt into gravity.
@@ -8,8 +8,8 @@ import '../world.dart';
 class GravitySystem {
   void step(
     EcsWorld world,
-    V0MovementTuningDerived movement, {
-    required V0PhysicsTuning physics,
+    MovementTuningDerived movement, {
+    required PhysicsTuning physics,
   }) {
     final dt = movement.dtSeconds;
     if (dt <= 0.0) return;

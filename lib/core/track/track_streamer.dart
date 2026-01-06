@@ -1,6 +1,6 @@
 import '../collision/static_world_geometry.dart';
 import '../enemies/enemy_id.dart';
-import '../tuning/v0_track_tuning.dart';
+import '../tuning/track_tuning.dart';
 
 typedef SpawnEnemy = void Function(EnemyId enemyId, double x);
 
@@ -40,8 +40,8 @@ class V0ChunkPattern {
   final List<_SpawnMarker> spawnMarkers;
 }
 
-class V0TrackStreamer {
-  V0TrackStreamer({
+class TrackStreamer {
+  TrackStreamer({
     required this.seed,
     required this.tuning,
     required this.groundTopY,
@@ -49,7 +49,7 @@ class V0TrackStreamer {
        _nextChunkStartX = 0.0;
 
   final int seed;
-  final V0TrackTuning tuning;
+  final TrackTuning tuning;
   final double groundTopY;
 
   int _nextChunkIndex;

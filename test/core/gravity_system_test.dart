@@ -9,9 +9,9 @@ import 'package:walkscape_runner/core/ecs/systems/gravity_system.dart';
 import 'package:walkscape_runner/core/ecs/systems/player_movement_system.dart';
 import 'package:walkscape_runner/core/ecs/world.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
-import 'package:walkscape_runner/core/tuning/v0_movement_tuning.dart';
-import 'package:walkscape_runner/core/tuning/v0_physics_tuning.dart';
-import 'package:walkscape_runner/core/tuning/v0_resource_tuning.dart';
+import 'package:walkscape_runner/core/tuning/movement_tuning.dart';
+import 'package:walkscape_runner/core/tuning/physics_tuning.dart';
+import 'package:walkscape_runner/core/tuning/resource_tuning.dart';
 
 void main() {
   test('GravitySystem applies gravity when enabled and not suppressed', () {
@@ -35,11 +35,11 @@ void main() {
       stamina: const StaminaDef(stamina: 100, staminaMax: 100, regenPerSecond: 0),
     );
 
-    final tuning = V0MovementTuningDerived.from(
-      const V0MovementTuning(),
+    final tuning = MovementTuningDerived.from(
+      const MovementTuning(),
       tickHz: 10,
     );
-    const physics = V0PhysicsTuning(gravityY: 100);
+    const physics = PhysicsTuning(gravityY: 100);
 
     GravitySystem().step(world, tuning, physics: physics);
 
@@ -67,11 +67,11 @@ void main() {
       stamina: const StaminaDef(stamina: 100, staminaMax: 100, regenPerSecond: 0),
     );
 
-    final tuning = V0MovementTuningDerived.from(
-      const V0MovementTuning(),
+    final tuning = MovementTuningDerived.from(
+      const MovementTuning(),
       tickHz: 10,
     );
-    const physics = V0PhysicsTuning(gravityY: 100);
+    const physics = PhysicsTuning(gravityY: 100);
 
     world.gravityControl.setSuppressForTicks(player, 1);
 
@@ -104,14 +104,14 @@ void main() {
       stamina: const StaminaDef(stamina: 100, staminaMax: 100, regenPerSecond: 0),
     );
 
-    final tuning = V0MovementTuningDerived.from(
-      const V0MovementTuning(
+    final tuning = MovementTuningDerived.from(
+      const MovementTuning(
         dashDurationSeconds: 0.20,
         dashCooldownSeconds: 99.0,
       ),
       tickHz: 10,
     );
-    const physics = V0PhysicsTuning(gravityY: 100);
+    const physics = PhysicsTuning(gravityY: 100);
 
     final movement = PlayerMovementSystem();
     final gravity = GravitySystem();
@@ -121,19 +121,19 @@ void main() {
     // Tick 1: start dash; gravity should be suppressed.
     world.playerInput.moveAxis[ii] = 1.0;
     world.playerInput.dashPressed[ii] = true;
-    movement.step(world, tuning, resources: const V0ResourceTuning());
+    movement.step(world, tuning, resources: const ResourceTuning());
     gravity.step(world, tuning, physics: physics);
     expect(world.transform.velY[world.transform.indexOf(player)], closeTo(0.0, 1e-9));
 
     // Tick 2: dash active; gravity still suppressed.
     world.playerInput.moveAxis[ii] = 0.0;
     world.playerInput.dashPressed[ii] = false;
-    movement.step(world, tuning, resources: const V0ResourceTuning());
+    movement.step(world, tuning, resources: const ResourceTuning());
     gravity.step(world, tuning, physics: physics);
     expect(world.transform.velY[world.transform.indexOf(player)], closeTo(0.0, 1e-9));
 
     // Tick 3: dash ended; gravity resumes.
-    movement.step(world, tuning, resources: const V0ResourceTuning());
+    movement.step(world, tuning, resources: const ResourceTuning());
     gravity.step(world, tuning, physics: physics);
     expect(world.transform.velY[world.transform.indexOf(player)], closeTo(10.0, 1e-9));
   });

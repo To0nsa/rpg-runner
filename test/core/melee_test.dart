@@ -5,21 +5,21 @@ import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/game_core.dart';
 import 'package:walkscape_runner/core/players/player_catalog.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
-import 'package:walkscape_runner/core/tuning/v0_ability_tuning.dart';
-import 'package:walkscape_runner/core/tuning/v0_resource_tuning.dart';
+import 'package:walkscape_runner/core/tuning/ability_tuning.dart';
+import 'package:walkscape_runner/core/tuning/resource_tuning.dart';
 
 import '../test_tunings.dart';
 
 void main() {
   test('melee: attack spawns hitbox for active ticks', () {
-    const abilityTuning = V0AbilityTuning();
-    const resourceTuning = V0ResourceTuning(
+    const abilityTuning = AbilityTuning();
+    const resourceTuning = ResourceTuning(
       playerStaminaMax: 100,
       playerStaminaRegenPerSecond: 0,
       playerManaRegenPerSecond: 0,
       playerHpRegenPerSecond: 0,
     );
-    final abilityDerived = V0AbilityTuningDerived.from(
+    final abilityDerived = AbilityTuningDerived.from(
       abilityTuning,
       tickHz: 60,
     );
@@ -77,8 +77,8 @@ void main() {
   });
 
   test('melee: uses aim direction when provided', () {
-    const abilityTuning = V0AbilityTuning();
-    const resourceTuning = V0ResourceTuning(
+    const abilityTuning = AbilityTuning();
+    const resourceTuning = ResourceTuning(
       playerStaminaMax: 100,
       playerStaminaRegenPerSecond: 0,
       playerManaRegenPerSecond: 0,

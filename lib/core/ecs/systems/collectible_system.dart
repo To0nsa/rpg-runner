@@ -1,7 +1,7 @@
 import '../hit/aabb_hit_utils.dart';
 import '../entity_id.dart';
 import '../world.dart';
-import '../../tuning/v0_collectible_tuning.dart';
+import '../../tuning/collectible_tuning.dart';
 
 class CollectibleSystem {
   final List<EntityId> _toDespawn = <EntityId>[];
@@ -10,7 +10,7 @@ class CollectibleSystem {
     EcsWorld world, {
     required EntityId player,
     required double cameraLeft,
-    required V0CollectibleTuning tuning,
+    required CollectibleTuning tuning,
     required void Function(int value) onCollected,
   }) {
     final collectibles = world.collectible;

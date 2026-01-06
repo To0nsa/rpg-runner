@@ -5,8 +5,8 @@ import '../../snapshots/enums.dart';
 import '../../projectiles/projectile_catalog.dart';
 import '../../spells/spell_catalog.dart';
 import '../../spells/spell_id.dart';
-import '../../tuning/v0_flying_enemy_tuning.dart';
-import '../../tuning/v0_ground_enemy_tuning.dart';
+import '../../tuning/flying_enemy_tuning.dart';
+import '../../tuning/ground_enemy_tuning.dart';
 import '../../util/deterministic_rng.dart';
 import '../../util/double_math.dart';
 import '../../util/velocity_math.dart';
@@ -28,8 +28,8 @@ class EnemySystem {
     required this.projectiles,
   });
 
-  final V0FlyingEnemyTuningDerived flyingEnemyTuning;
-  final V0GroundEnemyTuningDerived groundEnemyTuning;
+  final FlyingEnemyTuningDerived flyingEnemyTuning;
+  final GroundEnemyTuningDerived groundEnemyTuning;
   final SurfaceNavigator surfaceNavigator;
   final SpellCatalog spells;
   final ProjectileCatalogDerived projectiles;

@@ -1,6 +1,6 @@
 /// V0 restoration item spawning and restore configuration.
-class V0RestorationItemTuning {
-  const V0RestorationItemTuning({
+class RestorationItemTuning {
+  const RestorationItemTuning({
     this.enabled = true,
     this.spawnEveryChunks = 16,
     this.spawnStartChunkIndex = 2,

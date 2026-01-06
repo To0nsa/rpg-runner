@@ -1,6 +1,6 @@
 import '../../snapshots/enums.dart';
-import '../../tuning/v0_movement_tuning.dart';
-import '../../tuning/v0_resource_tuning.dart';
+import '../../tuning/movement_tuning.dart';
+import '../../tuning/resource_tuning.dart';
 import '../../util/velocity_math.dart';
 import '../entity_id.dart';
 import '../queries.dart';
@@ -17,8 +17,8 @@ import '../world.dart';
 class PlayerMovementSystem {
   void step(
     EcsWorld world,
-    V0MovementTuningDerived tuning, {
-    required V0ResourceTuning resources,
+    MovementTuningDerived tuning, {
+    required ResourceTuning resources,
   }) {
     final dt = tuning.dtSeconds;
     final t = tuning.base;
@@ -104,7 +104,7 @@ class PlayerMovementSystem {
     double velocityX,
     double axis,
     double dt,
-    V0MovementTuningDerived tuning,
+    MovementTuningDerived tuning,
   ) {
     final t = tuning.base;
     final desiredX = axis == 0.0 ? 0.0 : axis * t.maxSpeedX;
@@ -125,7 +125,7 @@ class PlayerMovementSystem {
     required int ti,
     required int ii,
     required int si,
-    required V0MovementTuningDerived tuning,
+    required MovementTuningDerived tuning,
     required double staminaCost,
   }) {
     if (world.movement.dashTicksLeft[mi] > 0) return;

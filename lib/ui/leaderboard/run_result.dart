@@ -1,6 +1,6 @@
 import '../../core/events/game_event.dart';
 import '../../core/scoring/run_score_breakdown.dart';
-import '../../core/tuning/v0_score_tuning.dart';
+import '../../core/tuning/score_tuning.dart';
 
 class RunResult {
   const RunResult({
@@ -71,7 +71,7 @@ class RunResult {
 
 RunResult buildRunResult({
   required RunEndedEvent event,
-  required V0ScoreTuning scoreTuning,
+  required ScoreTuning scoreTuning,
   required int tickHz,
   required int endedAtMs,
 }) {

@@ -2,12 +2,12 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:walkscape_runner/core/collision/static_world_geometry.dart';
 import 'package:walkscape_runner/core/commands/command.dart';
-import 'package:walkscape_runner/core/contracts/v0_render_contract.dart';
+import 'package:walkscape_runner/core/contracts/render_contract.dart';
 import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/game_core.dart';
 import 'package:walkscape_runner/core/players/player_catalog.dart';
-import 'package:walkscape_runner/core/tuning/v0_movement_tuning.dart';
-import 'package:walkscape_runner/core/tuning/v0_track_tuning.dart';
+import 'package:walkscape_runner/core/tuning/movement_tuning.dart';
+import 'package:walkscape_runner/core/tuning/track_tuning.dart';
 
 import '../test_tunings.dart';
 
@@ -27,18 +27,18 @@ void main() {
 
     final core = GameCore(
       seed: 1,
-      tickHz: v0DefaultTickHz,
+      tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
-      trackTuning: const V0TrackTuning(enabled: false),
-      movementTuning: const V0MovementTuning(playerRadius: r),
+      trackTuning: const TrackTuning(enabled: false),
+      movementTuning: const MovementTuning(playerRadius: r),
       staticWorldGeometry: const StaticWorldGeometry(
-        groundPlane: StaticGroundPlane(topY: v0GroundTopY * 1.0),
+        groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
         solids: <StaticSolid>[
           StaticSolid(
             minX: obstacleMinX,
             minY: 220,
             maxX: obstacleMaxX,
-            maxY: v0GroundTopY * 1.0,
+            maxY: groundTopY * 1.0,
             sides: StaticSolid.sideAll,
             oneWayTop: false,
           ),
@@ -76,21 +76,21 @@ void main() {
 
     final core = GameCore(
       seed: 1,
-      tickHz: v0DefaultTickHz,
+      tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
-      trackTuning: const V0TrackTuning(enabled: false),
-      movementTuning: const V0MovementTuning(playerRadius: r),
+      trackTuning: const TrackTuning(enabled: false),
+      movementTuning: const MovementTuning(playerRadius: r),
       playerCatalog: const PlayerCatalog(
         bodyTemplate: BodyDef(sideMask: BodyDef.sideLeft),
       ),
       staticWorldGeometry: const StaticWorldGeometry(
-        groundPlane: StaticGroundPlane(topY: v0GroundTopY * 1.0),
+        groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
         solids: <StaticSolid>[
           StaticSolid(
             minX: obstacleMinX,
             minY: 220,
             maxX: obstacleMaxX,
-            maxY: v0GroundTopY * 1.0,
+            maxY: groundTopY * 1.0,
             sides: StaticSolid.sideAll,
             oneWayTop: false,
           ),
@@ -118,18 +118,18 @@ void main() {
 
     final core = GameCore(
       seed: 1,
-      tickHz: v0DefaultTickHz,
+      tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
-      trackTuning: const V0TrackTuning(enabled: false),
-      movementTuning: const V0MovementTuning(playerRadius: r),
+      trackTuning: const TrackTuning(enabled: false),
+      movementTuning: const MovementTuning(playerRadius: r),
       staticWorldGeometry: const StaticWorldGeometry(
-        groundPlane: StaticGroundPlane(topY: v0GroundTopY * 1.0),
+        groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
         solids: <StaticSolid>[
           StaticSolid(
             minX: obstacleMinX,
             minY: 220,
             maxX: obstacleMaxX,
-            maxY: v0GroundTopY * 1.0,
+            maxY: groundTopY * 1.0,
             sides: StaticSolid.sideAll,
             oneWayTop: false,
           ),

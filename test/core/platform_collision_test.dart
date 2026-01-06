@@ -2,10 +2,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:walkscape_runner/core/collision/static_world_geometry.dart';
 import 'package:walkscape_runner/core/commands/command.dart';
-import 'package:walkscape_runner/core/contracts/v0_render_contract.dart';
+import 'package:walkscape_runner/core/contracts/render_contract.dart';
 import 'package:walkscape_runner/core/game_core.dart';
-import 'package:walkscape_runner/core/tuning/v0_movement_tuning.dart';
-import 'package:walkscape_runner/core/tuning/v0_track_tuning.dart';
+import 'package:walkscape_runner/core/tuning/movement_tuning.dart';
+import 'package:walkscape_runner/core/tuning/track_tuning.dart';
 
 import '../test_tunings.dart';
 
@@ -27,12 +27,12 @@ void main() {
 
     final core = GameCore(
       seed: 1,
-      tickHz: v0DefaultTickHz,
+      tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
-      trackTuning: const V0TrackTuning(enabled: false),
-      movementTuning: const V0MovementTuning(playerRadius: r),
+      trackTuning: const TrackTuning(enabled: false),
+      movementTuning: const MovementTuning(playerRadius: r),
       staticWorldGeometry: const StaticWorldGeometry(
-        groundPlane: StaticGroundPlane(topY: v0GroundTopY * 1.0),
+        groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
         solids: <StaticSolid>[
           StaticSolid(minX: 0, minY: topY, maxX: 240, maxY: topY + 16),
         ],
@@ -55,7 +55,7 @@ void main() {
     expect(safety, greaterThan(0));
     expect(core.playerPosY, closeTo(topY - r, 1e-9));
     expect(core.playerVelY, closeTo(0, 1e-9));
-    expect(core.playerPosY, lessThan(v0GroundTopY.toDouble() - r));
+    expect(core.playerPosY, lessThan(groundTopY.toDouble() - r));
   });
 
   test('one-way platform does not block upward motion from below', () {
@@ -64,12 +64,12 @@ void main() {
 
     final core = GameCore(
       seed: 1,
-      tickHz: v0DefaultTickHz,
+      tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
-      trackTuning: const V0TrackTuning(enabled: false),
-      movementTuning: const V0MovementTuning(playerRadius: r),
+      trackTuning: const TrackTuning(enabled: false),
+      movementTuning: const MovementTuning(playerRadius: r),
       staticWorldGeometry: const StaticWorldGeometry(
-        groundPlane: StaticGroundPlane(topY: v0GroundTopY * 1.0),
+        groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
         solids: <StaticSolid>[
           StaticSolid(minX: 0, minY: topY, maxX: 240, maxY: topY + 16),
         ],
@@ -93,12 +93,12 @@ void main() {
 
     final core = GameCore(
       seed: 1,
-      tickHz: v0DefaultTickHz,
+      tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
-      trackTuning: const V0TrackTuning(enabled: false),
-      movementTuning: const V0MovementTuning(playerRadius: r),
+      trackTuning: const TrackTuning(enabled: false),
+      movementTuning: const MovementTuning(playerRadius: r),
       staticWorldGeometry: const StaticWorldGeometry(
-        groundPlane: StaticGroundPlane(topY: v0GroundTopY * 1.0),
+        groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
         solids: <StaticSolid>[
           StaticSolid(minX: 0, minY: topY, maxX: platformMaxX, maxY: topY + 16),
         ],
@@ -134,6 +134,6 @@ void main() {
     expect(leftPlatform, isTrue);
     expect(sawAirborne, isTrue);
     expect(core.playerPosY, greaterThan(topY - r));
-    expect(core.playerPosY, lessThan(v0GroundTopY.toDouble() - r));
+    expect(core.playerPosY, lessThan(groundTopY.toDouble() - r));
   });
 }

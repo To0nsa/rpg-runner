@@ -4,8 +4,8 @@ import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/game_core.dart';
 import 'package:walkscape_runner/core/players/player_catalog.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
-import 'package:walkscape_runner/core/tuning/v0_movement_tuning.dart';
-import 'package:walkscape_runner/core/tuning/v0_resource_tuning.dart';
+import 'package:walkscape_runner/core/tuning/movement_tuning.dart';
+import 'package:walkscape_runner/core/tuning/resource_tuning.dart';
 import 'package:walkscape_runner/game/game_controller.dart';
 import 'package:walkscape_runner/game/input/runner_input_router.dart';
 
@@ -20,7 +20,7 @@ void main() {
         bodyTemplate: BodyDef(useGravity: false),
       ),
       cameraTuning: noAutoscrollCameraTuning,
-      movementTuning: const V0MovementTuning(
+      movementTuning: const MovementTuning(
         maxSpeedX: 100,
         accelerationX: 100000,
         decelerationX: 100000,
@@ -57,7 +57,7 @@ void main() {
           bodyTemplate: BodyDef(useGravity: false),
         ),
         cameraTuning: noAutoscrollCameraTuning,
-        resourceTuning: const V0ResourceTuning(
+        resourceTuning: const ResourceTuning(
           playerManaMax: 20,
           playerManaRegenPerSecond: 0,
         ),
@@ -103,7 +103,7 @@ void main() {
         bodyTemplate: BodyDef(useGravity: false),
       ),
       cameraTuning: noAutoscrollCameraTuning,
-      resourceTuning: const V0ResourceTuning(
+      resourceTuning: const ResourceTuning(
         playerManaMax: 20,
         playerManaRegenPerSecond: 0,
       ),

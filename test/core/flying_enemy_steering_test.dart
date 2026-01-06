@@ -12,8 +12,8 @@ import 'package:walkscape_runner/core/navigation/surface_pathfinder.dart';
 import 'package:walkscape_runner/core/projectiles/projectile_catalog.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
 import 'package:walkscape_runner/core/spells/spell_catalog.dart';
-import 'package:walkscape_runner/core/tuning/v0_flying_enemy_tuning.dart';
-import 'package:walkscape_runner/core/tuning/v0_ground_enemy_tuning.dart';
+import 'package:walkscape_runner/core/tuning/flying_enemy_tuning.dart';
+import 'package:walkscape_runner/core/tuning/ground_enemy_tuning.dart';
 
 import 'test_spawns.dart';
 
@@ -54,12 +54,12 @@ void main() {
     final flyingEnemyB = spawnFlyingEnemy(worldB, posX: 100, posY: 120);
 
     final system = EnemySystem(
-      flyingEnemyTuning: V0FlyingEnemyTuningDerived.from(
-        const V0FlyingEnemyTuning(),
+      flyingEnemyTuning: FlyingEnemyTuningDerived.from(
+        const FlyingEnemyTuning(),
         tickHz: 60,
       ),
-      groundEnemyTuning: V0GroundEnemyTuningDerived.from(
-        const V0GroundEnemyTuning(),
+      groundEnemyTuning: GroundEnemyTuningDerived.from(
+        const GroundEnemyTuning(),
         tickHz: 60,
       ),
       surfaceNavigator: SurfaceNavigator(

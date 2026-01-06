@@ -1,8 +1,8 @@
 /// Resource tuning for V0 (author in seconds, applied per fixed tick).
 ///
 /// Values are based on the C++ reference (`tools/output/c++implementation.txt`).
-class V0ResourceTuning {
-  const V0ResourceTuning({
+class ResourceTuning {
+  const ResourceTuning({
     this.playerHpMax = 100,
     this.playerHpRegenPerSecond = 0.5,
     this.playerManaMax = 100,

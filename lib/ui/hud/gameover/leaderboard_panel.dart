@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/events/game_event.dart';
-import '../../../core/tuning/v0_score_tuning.dart';
+import '../../../core/tuning/score_tuning.dart';
 import '../../leaderboard/leaderboard_store.dart';
 import '../../leaderboard/run_result.dart';
 import '../../leaderboard/shared_prefs_leaderboard_store.dart';
@@ -17,7 +17,7 @@ class LeaderboardPanel extends StatefulWidget {
   });
 
   final RunEndedEvent? runEndedEvent;
-  final V0ScoreTuning scoreTuning;
+  final ScoreTuning scoreTuning;
   final int tickHz;
   final bool revealCurrentRunScore;
   final LeaderboardStore? leaderboardStore;

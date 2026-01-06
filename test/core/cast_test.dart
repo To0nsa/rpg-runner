@@ -5,7 +5,7 @@ import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/game_core.dart';
 import 'package:walkscape_runner/core/players/player_catalog.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
-import 'package:walkscape_runner/core/tuning/v0_resource_tuning.dart';
+import 'package:walkscape_runner/core/tuning/resource_tuning.dart';
 
 import '../test_tunings.dart';
 
@@ -18,7 +18,7 @@ void main() {
         bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
       ),
       cameraTuning: noAutoscrollCameraTuning,
-      resourceTuning: const V0ResourceTuning(
+      resourceTuning: const ResourceTuning(
         playerManaMax: 0,
         playerManaRegenPerSecond: 0,
       ),
@@ -46,7 +46,7 @@ void main() {
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
         ),
         cameraTuning: noAutoscrollCameraTuning,
-        resourceTuning: const V0ResourceTuning(
+        resourceTuning: const ResourceTuning(
           playerManaMax: 20,
           playerManaRegenPerSecond: 0,
         ),
@@ -81,7 +81,7 @@ void main() {
         bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
       ),
       cameraTuning: noAutoscrollCameraTuning,
-      resourceTuning: const V0ResourceTuning(
+      resourceTuning: const ResourceTuning(
         playerManaMax: 30,
         playerManaRegenPerSecond: 0,
       ),

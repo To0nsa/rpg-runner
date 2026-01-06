@@ -21,10 +21,10 @@ import 'package:walkscape_runner/core/navigation/surface_pathfinder.dart';
 import 'package:walkscape_runner/core/projectiles/projectile_catalog.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
 import 'package:walkscape_runner/core/spells/spell_catalog.dart';
-import 'package:walkscape_runner/core/tuning/v0_flying_enemy_tuning.dart';
-import 'package:walkscape_runner/core/tuning/v0_ground_enemy_tuning.dart';
-import 'package:walkscape_runner/core/tuning/v0_movement_tuning.dart';
-import 'package:walkscape_runner/core/tuning/v0_physics_tuning.dart';
+import 'package:walkscape_runner/core/tuning/flying_enemy_tuning.dart';
+import 'package:walkscape_runner/core/tuning/ground_enemy_tuning.dart';
+import 'package:walkscape_runner/core/tuning/movement_tuning.dart';
+import 'package:walkscape_runner/core/tuning/physics_tuning.dart';
 
 void main() {
   test('ground enemy jumps over a wall obstacle on the ground', () {
@@ -97,11 +97,11 @@ void main() {
     );
     final staticWorld = StaticWorldGeometryIndex.from(geometry);
 
-    final movement = V0MovementTuningDerived.from(
-      const V0MovementTuning(),
+    final movement = MovementTuningDerived.from(
+      const MovementTuning(),
       tickHz: 10,
     );
-    const physics = V0PhysicsTuning(gravityY: 200.0);
+    const physics = PhysicsTuning(gravityY: 200.0);
 
     final collision = CollisionSystem();
     final gravity = GravitySystem();
@@ -131,12 +131,12 @@ void main() {
       edgePenaltySeconds: 0.05,
     );
     final system = EnemySystem(
-      flyingEnemyTuning: V0FlyingEnemyTuningDerived.from(
-        const V0FlyingEnemyTuning(),
+      flyingEnemyTuning: FlyingEnemyTuningDerived.from(
+        const FlyingEnemyTuning(),
         tickHz: 10,
       ),
-      groundEnemyTuning: V0GroundEnemyTuningDerived.from(
-        const V0GroundEnemyTuning(
+      groundEnemyTuning: GroundEnemyTuningDerived.from(
+        const GroundEnemyTuning(
           groundEnemySpeedX: 200.0,
           groundEnemyStopDistanceX: 6.0,
           groundEnemyJumpSpeed: 300.0,

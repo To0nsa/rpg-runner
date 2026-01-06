@@ -9,7 +9,7 @@ import 'package:walkscape_runner/core/ecs/stores/collider_aabb_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/faction_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/health_store.dart';
 import 'package:walkscape_runner/core/ecs/world.dart';
-import 'package:walkscape_runner/core/tuning/v0_spatial_grid_tuning.dart';
+import 'package:walkscape_runner/core/tuning/spatial_grid_tuning.dart';
 
 void main() {
   test('BroadphaseGrid query matches brute-force overlap set', () {
@@ -42,7 +42,7 @@ void main() {
     world.faction.add(big, const FactionDef(faction: Faction.enemy));
 
     final broadphase = BroadphaseGrid(
-      index: GridIndex2D(cellSize: V0SpatialGridTuning.v0BroadphaseCellSize),
+      index: GridIndex2D(cellSize: SpatialGridTuning.v0BroadphaseCellSize),
     )..rebuild(world);
 
     final candidates = <int>[];

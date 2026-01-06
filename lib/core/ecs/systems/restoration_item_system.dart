@@ -2,7 +2,7 @@ import '../hit/aabb_hit_utils.dart';
 import '../entity_id.dart';
 import '../world.dart';
 import '../stores/restoration_item_store.dart';
-import '../../tuning/v0_restoration_item_tuning.dart';
+import '../../tuning/restoration_item_tuning.dart';
 
 class RestorationItemSystem {
   final List<EntityId> _toDespawn = <EntityId>[];
@@ -11,7 +11,7 @@ class RestorationItemSystem {
     EcsWorld world, {
     required EntityId player,
     required double cameraLeft,
-    required V0RestorationItemTuning tuning,
+    required RestorationItemTuning tuning,
   }) {
     final items = world.restorationItem;
     if (items.denseEntities.isEmpty) return;

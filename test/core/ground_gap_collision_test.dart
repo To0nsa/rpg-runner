@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:walkscape_runner/core/collision/static_world_geometry.dart';
-import 'package:walkscape_runner/core/contracts/v0_render_contract.dart';
+import 'package:walkscape_runner/core/contracts/render_contract.dart';
 import 'package:walkscape_runner/core/game_core.dart';
-import 'package:walkscape_runner/core/tuning/v0_movement_tuning.dart';
-import 'package:walkscape_runner/core/tuning/v0_track_tuning.dart';
+import 'package:walkscape_runner/core/tuning/movement_tuning.dart';
+import 'package:walkscape_runner/core/tuning/track_tuning.dart';
 
 import '../test_tunings.dart';
 
@@ -14,29 +14,29 @@ void _tick(GameCore core) {
 
 void main() {
   test('ground collision ignores gaps between segments', () {
-    const groundTopY = v0GroundTopY * 1.0;
+    const topY = groundTopY * 1.0;
     const r = 8.0;
 
     final core = GameCore(
       seed: 1,
-      tickHz: v0DefaultTickHz,
+      tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
-      trackTuning: const V0TrackTuning(enabled: false),
-      movementTuning: const V0MovementTuning(playerRadius: r),
+      trackTuning: const TrackTuning(enabled: false),
+      movementTuning: const MovementTuning(playerRadius: r),
       staticWorldGeometry: const StaticWorldGeometry(
-        groundPlane: StaticGroundPlane(topY: groundTopY),
+        groundPlane: StaticGroundPlane(topY: topY),
         groundSegments: <StaticGroundSegment>[
           StaticGroundSegment(
             minX: 0,
             maxX: 120,
-            topY: groundTopY,
+            topY: groundTopY * 1.0,
             chunkIndex: 0,
             localSegmentIndex: 0,
           ),
           StaticGroundSegment(
             minX: 200,
             maxX: 320,
-            topY: groundTopY,
+            topY: groundTopY * 1.0,
             chunkIndex: 0,
             localSegmentIndex: 1,
           ),

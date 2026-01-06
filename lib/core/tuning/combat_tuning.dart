@@ -1,27 +1,27 @@
 import '../util/tick_math.dart';
 
-class V0CombatTuning {
-  const V0CombatTuning({this.invulnerabilitySeconds = 0.25});
+class CombatTuning {
+  const CombatTuning({this.invulnerabilitySeconds = 0.25});
 
   final double invulnerabilitySeconds;
 }
 
-class V0CombatTuningDerived {
-  const V0CombatTuningDerived._({
+class CombatTuningDerived {
+  const CombatTuningDerived._({
     required this.tickHz,
     required this.base,
     required this.invulnerabilityTicks,
   });
 
-  factory V0CombatTuningDerived.from(
-    V0CombatTuning base, {
+  factory CombatTuningDerived.from(
+    CombatTuning base, {
     required int tickHz,
   }) {
     if (tickHz <= 0) {
       throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
     }
 
-    return V0CombatTuningDerived._(
+    return CombatTuningDerived._(
       tickHz: tickHz,
       base: base,
       invulnerabilityTicks: ticksFromSecondsCeil(
@@ -32,7 +32,7 @@ class V0CombatTuningDerived {
   }
 
   final int tickHz;
-  final V0CombatTuning base;
+  final CombatTuning base;
 
   final int invulnerabilityTicks;
 }

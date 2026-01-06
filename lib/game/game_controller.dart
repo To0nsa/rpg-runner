@@ -14,7 +14,7 @@ import '../core/commands/command.dart';
 import '../core/events/game_event.dart';
 import '../core/game_core.dart';
 import '../core/snapshots/game_state_snapshot.dart';
-import '../core/tuning/v0_score_tuning.dart';
+import '../core/tuning/score_tuning.dart';
 import 'tick_input_frame.dart';
 
 /// Owns the simulation clock and provides a stable interface to UI/renderer.
@@ -66,7 +66,7 @@ class GameController extends ChangeNotifier {
   /// Current simulation tick (authoritative).
   int get tick => _core.tick;
 
-  V0ScoreTuning get scoreTuning => _core.scoreTuning;
+  ScoreTuning get scoreTuning => _core.scoreTuning;
 
   /// Latest snapshot produced by the core.
   GameStateSnapshot get snapshot => _curr;

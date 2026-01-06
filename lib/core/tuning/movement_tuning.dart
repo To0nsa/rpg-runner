@@ -9,11 +9,11 @@ import '../util/tick_math.dart';
 ///
 /// The derived values are computed once per [tickHz] and then used in the hot
 /// per-tick loop to keep the core allocation-light.
-const int v0DefaultTickHz = 60;
+const int defaultTickHz = 60;
 
 /// Authoritative movement constants (expressed in seconds-based units).
-class V0MovementTuning {
-  const V0MovementTuning({
+class MovementTuning {
+  const MovementTuning({
     this.playerRadius = 8,
     this.maxSpeedX = 200,
     this.accelerationX = 600,
@@ -56,8 +56,8 @@ class V0MovementTuning {
 }
 
 /// Derived, tick-based tuning computed for a specific [tickHz].
-class V0MovementTuningDerived {
-  const V0MovementTuningDerived._({
+class MovementTuningDerived {
+  const MovementTuningDerived._({
     required this.tickHz,
     required this.dtSeconds,
     required this.base,
@@ -67,14 +67,14 @@ class V0MovementTuningDerived {
     required this.dashCooldownTicks,
   });
 
-  factory V0MovementTuningDerived.from(
-    V0MovementTuning base, {
+  factory MovementTuningDerived.from(
+    MovementTuning base, {
     required int tickHz,
   }) {
     if (tickHz <= 0) {
       throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
     }
-    return V0MovementTuningDerived._(
+    return MovementTuningDerived._(
       tickHz: tickHz,
       dtSeconds: 1.0 / tickHz,
       base: base,
@@ -87,7 +87,7 @@ class V0MovementTuningDerived {
 
   final int tickHz;
   final double dtSeconds;
-  final V0MovementTuning base;
+  final MovementTuning base;
 
   final int coyoteTicks;
   final int jumpBufferTicks;

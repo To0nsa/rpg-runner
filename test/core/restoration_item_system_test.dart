@@ -9,7 +9,7 @@ import 'package:walkscape_runner/core/ecs/stores/restoration_item_store.dart';
 import 'package:walkscape_runner/core/ecs/systems/restoration_item_system.dart';
 import 'package:walkscape_runner/core/ecs/world.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
-import 'package:walkscape_runner/core/tuning/v0_restoration_item_tuning.dart';
+import 'package:walkscape_runner/core/tuning/restoration_item_tuning.dart';
 
 void main() {
   test('RestorationItemSystem restores and despawns on overlap', () {
@@ -44,7 +44,7 @@ void main() {
       world,
       player: player,
       cameraLeft: 0.0,
-      tuning: const V0RestorationItemTuning(
+      tuning: const RestorationItemTuning(
         restorePercent: 0.30,
         despawnBehindCameraMargin: 100,
       ),
@@ -87,7 +87,7 @@ void main() {
       world,
       player: player,
       cameraLeft: 0.0,
-      tuning: const V0RestorationItemTuning(despawnBehindCameraMargin: 100),
+      tuning: const RestorationItemTuning(despawnBehindCameraMargin: 100),
     );
 
     expect(world.restorationItem.has(item), isFalse);

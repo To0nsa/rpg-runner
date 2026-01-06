@@ -1,12 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:walkscape_runner/core/commands/command.dart';
-import 'package:walkscape_runner/core/contracts/v0_render_contract.dart';
+import 'package:walkscape_runner/core/contracts/render_contract.dart';
 import 'package:walkscape_runner/core/game_core.dart';
 import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/players/player_catalog.dart';
-import 'package:walkscape_runner/core/tuning/v0_movement_tuning.dart';
-import 'package:walkscape_runner/core/tuning/v0_resource_tuning.dart';
+import 'package:walkscape_runner/core/tuning/movement_tuning.dart';
+import 'package:walkscape_runner/core/tuning/resource_tuning.dart';
 
 import '../test_tunings.dart';
 
@@ -31,7 +31,7 @@ void main() {
   test('accelerates toward desired horizontal speed', () {
     final core = GameCore(
       seed: 1,
-      tickHz: v0DefaultTickHz,
+      tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
     );
 
@@ -39,7 +39,7 @@ void main() {
     expect(core.playerVelX, greaterThan(0));
     expect(
       core.playerVelX,
-      lessThanOrEqualTo(const V0MovementTuning().maxSpeedX),
+      lessThanOrEqualTo(const MovementTuning().maxSpeedX),
     );
 
     // After a few ticks, velocity should keep increasing up to max speed.
@@ -53,11 +53,11 @@ void main() {
   test('jump from ground sets upward velocity', () {
     final core = GameCore(
       seed: 1,
-      tickHz: v0DefaultTickHz,
+      tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
     );
     final floorY =
-        v0GroundTopY.toDouble() - const V0MovementTuning().playerRadius;
+        groundTopY.toDouble() - const MovementTuning().playerRadius;
 
     expect(core.playerPosY, closeTo(floorY, 1e-9));
     expect(core.playerGrounded, isTrue);
@@ -73,11 +73,11 @@ void main() {
   test('jump buffer triggers on the tick after landing', () {
     final core = GameCore(
       seed: 1,
-      tickHz: v0DefaultTickHz,
+      tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
     );
-    final tuning = const V0MovementTuning();
-    final floorY = v0GroundTopY.toDouble() - tuning.playerRadius;
+    final tuning = const MovementTuning();
+    final floorY = groundTopY.toDouble() - tuning.playerRadius;
 
     // Put the player high above the floor so coyote time expires before landing.
     core.setPlayerPosXY(core.playerPosX, floorY - 200);
@@ -120,11 +120,11 @@ void main() {
   test('dash sets constant horizontal speed and cancels vertical velocity', () {
     final core = GameCore(
       seed: 1,
-      tickHz: v0DefaultTickHz,
+      tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
     );
-    final tuning = const V0MovementTuning();
-    final floorY = v0GroundTopY.toDouble() - tuning.playerRadius;
+    final tuning = const MovementTuning();
+    final floorY = groundTopY.toDouble() - tuning.playerRadius;
 
     // Start dashing from the ground.
     _tick(core, dashPressed: true);
@@ -137,9 +137,9 @@ void main() {
   test('jump spends stamina (2) when executed', () {
     final core = GameCore(
       seed: 1,
-      tickHz: v0DefaultTickHz,
+      tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
-      resourceTuning: const V0ResourceTuning(
+      resourceTuning: const ResourceTuning(
         playerStaminaMax: 10,
         playerStaminaRegenPerSecond: 0,
         jumpStaminaCost: 2,
@@ -155,9 +155,9 @@ void main() {
   test('dash spends stamina (2) when started', () {
     final core = GameCore(
       seed: 1,
-      tickHz: v0DefaultTickHz,
+      tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
-      resourceTuning: const V0ResourceTuning(
+      resourceTuning: const ResourceTuning(
         playerStaminaMax: 10,
         playerStaminaRegenPerSecond: 0,
         dashStaminaCost: 2,
@@ -173,9 +173,9 @@ void main() {
   test('insufficient stamina blocks dash and jump', () {
     final core = GameCore(
       seed: 1,
-      tickHz: v0DefaultTickHz,
+      tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
-      resourceTuning: const V0ResourceTuning(
+      resourceTuning: const ResourceTuning(
         playerStaminaMax: 1,
         playerStaminaRegenPerSecond: 0,
         jumpStaminaCost: 2,
@@ -184,7 +184,7 @@ void main() {
     );
 
     final floorY =
-        v0GroundTopY.toDouble() - const V0MovementTuning().playerRadius;
+        groundTopY.toDouble() - const MovementTuning().playerRadius;
     expect(core.playerPosY, closeTo(floorY, 1e-9));
     expect(core.playerGrounded, isTrue);
 
@@ -194,7 +194,7 @@ void main() {
     expect(core.playerVelY, greaterThanOrEqualTo(0));
     expect(
       core.playerVelX.abs(),
-      lessThan(const V0MovementTuning().dashSpeedX),
+      lessThan(const MovementTuning().dashSpeedX),
     );
 
     final hud = core.buildSnapshot().hud;
@@ -204,14 +204,14 @@ void main() {
   test('Body.gravityScale=0 disables gravity integration', () {
     final core = GameCore(
       seed: 1,
-      tickHz: v0DefaultTickHz,
+      tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
       playerCatalog: const PlayerCatalog(
         bodyTemplate: BodyDef(gravityScale: 0),
       ),
     );
-    final tuning = const V0MovementTuning();
-    final floorY = v0GroundTopY.toDouble() - tuning.playerRadius;
+    final tuning = const MovementTuning();
+    final floorY = groundTopY.toDouble() - tuning.playerRadius;
 
     core.setPlayerPosXY(core.playerPosX, floorY - 120);
     core.setPlayerVelXY(0, 0);
@@ -225,14 +225,14 @@ void main() {
   test('Body.isKinematic skips physics integration', () {
     final core = GameCore(
       seed: 1,
-      tickHz: v0DefaultTickHz,
+      tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
       playerCatalog: const PlayerCatalog(
         bodyTemplate: BodyDef(isKinematic: true),
       ),
     );
-    final tuning = const V0MovementTuning();
-    final floorY = v0GroundTopY.toDouble() - tuning.playerRadius;
+    final tuning = const MovementTuning();
+    final floorY = groundTopY.toDouble() - tuning.playerRadius;
 
     core.setPlayerPosXY(core.playerPosX, floorY - 120);
     core.setPlayerVelXY(0, 0);
@@ -247,9 +247,9 @@ void main() {
   test('Body.maxVelY clamps jump velocity', () {
     final core = GameCore(
       seed: 1,
-      tickHz: v0DefaultTickHz,
+      tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
-      movementTuning: const V0MovementTuning(maxVelY: 100),
+      movementTuning: const MovementTuning(maxVelY: 100),
     );
 
     _tick(core, jumpPressed: true);
