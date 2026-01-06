@@ -21,6 +21,8 @@ class SurfacePathfinder {
   final List<int> _open = <int>[];
   final List<int> _openStamp = <int>[];
   final List<int> _reconstruct = <int>[];
+  final List<int> _nodeGenerations = <int>[];
+  int _searchGeneration = 0;
 
   bool findPath(
     SurfaceGraph graph, {
@@ -34,15 +36,9 @@ class SurfacePathfinder {
     if (startIndex == goalIndex) return true;
 
     _ensureSize(graph.surfaces.length);
-    final count = graph.surfaces.length;
-    for (var i = 0; i < count; i += 1) {
-      _gScore[i] = double.infinity;
-      _fScore[i] = double.infinity;
-      _cameFromEdge[i] = -1;
-      _cameFromNode[i] = -1;
-      _openStamp[i] = 0;
-    }
+    _searchGeneration += 1;
 
+    _touch(startIndex);
     _open.clear();
     _open.add(startIndex);
     _openStamp[startIndex] = 1;
@@ -64,6 +60,7 @@ class SurfacePathfinder {
       for (var ei = start; ei < end; ei += 1) {
         final edge = graph.edges[ei];
         final neighbor = edge.to;
+        _touch(neighbor);
         final edgeCost = edge.cost +
             _runCost(
               graph,
@@ -179,6 +176,18 @@ class SurfacePathfinder {
       _cameFromEdge.add(-1);
       _cameFromNode.add(-1);
       _openStamp.add(0);
+      _nodeGenerations.add(0);
+    }
+  }
+
+  void _touch(int index) {
+    if (_nodeGenerations[index] != _searchGeneration) {
+      _gScore[index] = double.infinity;
+      _fScore[index] = double.infinity;
+      _cameFromEdge[index] = -1;
+      _cameFromNode[index] = -1;
+      _openStamp[index] = 0;
+      _nodeGenerations[index] = _searchGeneration;
     }
   }
 }

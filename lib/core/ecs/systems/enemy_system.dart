@@ -320,57 +320,14 @@ class EnemySystem {
     final tuning = groundEnemyTuning;
 
     final navIndex = world.surfaceNav.tryIndexOf(enemy);
-    if (navIndex == null) {
-      assert(
-        false,
-        'EnemySystem requires SurfaceNavStateStore on nav-enabled enemies; add it at spawn time.',
-      );
-      return;
-    }
+    if (navIndex == null) return;
 
-    if (!world.groundEnemyChaseOffset.has(enemy)) {
-      assert(
-        false,
-        'EnemySystem requires GroundEnemyChaseOffsetStore on ground enemies; add it at spawn time.',
-      );
-      return;
-    }
+    _ensureChaseOffsetInitialized(world, enemy);
+
+    if (!world.groundEnemyChaseOffset.has(enemy)) return;
 
     final chaseOffset = world.groundEnemyChaseOffset;
     final chaseIndex = chaseOffset.indexOf(enemy);
-    var rngState = chaseOffset.rngState[chaseIndex];
-    if (!chaseOffset.initialized[chaseIndex]) {
-      final maxAbs = tuning.base.groundEnemyChaseOffsetMaxX.abs();
-      var offsetX = 0.0;
-      if (maxAbs > 0.0) {
-        rngState = nextUint32(rngState);
-        offsetX = rangeDouble(rngState, -maxAbs, maxAbs);
-        final minAbs = clampDouble(
-          tuning.base.groundEnemyChaseOffsetMinAbsX,
-          0.0,
-          maxAbs,
-        );
-        final absOffset = offsetX.abs();
-        if (absOffset < minAbs) {
-          offsetX = offsetX >= 0.0 ? minAbs : -minAbs;
-          if (absOffset == 0.0) {
-            offsetX = minAbs;
-          }
-        }
-      }
-
-      rngState = nextUint32(rngState);
-      final speedScale = rangeDouble(
-        rngState,
-        tuning.base.groundEnemyChaseSpeedScaleMin,
-        tuning.base.groundEnemyChaseSpeedScaleMax,
-      );
-      chaseOffset.initialized[chaseIndex] = true;
-      chaseOffset.chaseOffsetX[chaseIndex] = offsetX;
-      chaseOffset.chaseSpeedScale[chaseIndex] = speedScale;
-      chaseOffset.rngState[chaseIndex] = rngState;
-    }
-
     final chaseOffsetX = chaseOffset.chaseOffsetX[chaseIndex];
     final chaseSpeedScale = chaseOffset.chaseSpeedScale[chaseIndex];
     final collapseDistX = tuning.base.groundEnemyMeleeRangeX +
@@ -458,73 +415,19 @@ class EnemySystem {
     // while following a plan.
     final effectiveSpeedScale = intent.hasPlan ? 1.0 : chaseSpeedScale;
 
-    final dx = intent.desiredX - ex;
-    double desiredVelX = 0.0;
-    if (intent.commitMoveDirX != 0) {
-      final dirX = intent.commitMoveDirX.toDouble();
-      world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
-      desiredVelX = dirX * tuning.base.groundEnemySpeedX * effectiveSpeedScale;
-    } else if (dx.abs() > tuning.base.groundEnemyStopDistanceX) {
-      final dirX = dx >= 0 ? 1.0 : -1.0;
-      world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
-      desiredVelX = dirX * tuning.base.groundEnemySpeedX * effectiveSpeedScale;
-    }
-
-    if (intent.jumpNow) {
-      world.transform.velY[enemyTi] = -tuning.base.groundEnemyJumpSpeed;
-    }
-
-    final currentVelX = world.transform.velX[enemyTi];
-    final nextVelX = applyAccelDecel(
-      current: currentVelX,
-      desired: desiredVelX,
+    _applyGroundEnemyPhysics(
+      world,
+      enemyIndex: enemyIndex,
+      enemyTi: enemyTi,
+      ex: ex,
+      intent: intent,
+      effectiveSpeedScale: effectiveSpeedScale,
       dtSeconds: dtSeconds,
-      accelPerSecond: tuning.base.groundEnemyAccelX,
-      decelPerSecond: tuning.base.groundEnemyDecelX,
+      safeSurfaceMinX: noPlanSurfaceMinX,
+      safeSurfaceMaxX: noPlanSurfaceMaxX,
+      navIndex: navIndex,
+      graph: graph,
     );
-
-    // Surface graph jump feasibility assumes `airSpeedX == groundEnemySpeedX`.
-    // If a jump edge is triggered while the enemy has low horizontal velocity
-    // (e.g. approaching takeoff from rest), accel integration can make gap
-    // jumps fail. On the takeoff tick, ensure horizontal speed is at least the
-    // average speed needed to reach the edge's landing X within `travelTicks`,
-    // but never faster than the tuned run speed.
-    double? jumpSnapVelX;
-    if (intent.hasPlan && intent.jumpNow && graph != null) {
-      final activeEdgeIndex = world.surfaceNav.activeEdgeIndex[navIndex];
-      if (activeEdgeIndex >= 0 && activeEdgeIndex < graph.edges.length) {
-        final edge = graph.edges[activeEdgeIndex];
-        if (edge.kind == SurfaceEdgeKind.jump && edge.travelTicks > 0) {
-          final travelSeconds = edge.travelTicks * dtSeconds;
-          if (travelSeconds > 0.0) {
-            final dxAbs = (edge.landingX - ex).abs();
-            final requiredAbs = dxAbs / travelSeconds;
-            final desiredAbs = desiredVelX.abs();
-            final currentAbs = currentVelX.abs();
-            final snapAbs = min(desiredAbs, max(currentAbs, requiredAbs));
-            if (snapAbs > nextVelX.abs()) {
-              final sign = desiredVelX >= 0.0 ? 1.0 : -1.0;
-              jumpSnapVelX = sign * snapAbs;
-            }
-          }
-        }
-      }
-    }
-
-    world.transform.velX[enemyTi] = jumpSnapVelX ?? nextVelX;
-
-    // If there is no plan (common when the player is airborne), avoid "coasting"
-    // off a ledge due to accel/decel integration: hard-stop near the ends of the
-    // currently known surface span.
-    if (!intent.hasPlan && noPlanSurfaceMinX != null && noPlanSurfaceMaxX != null) {
-      final stopDist = tuning.base.groundEnemyStopDistanceX;
-      final nextVelX = world.transform.velX[enemyTi];
-      if (nextVelX > 0.0 && ex >= noPlanSurfaceMaxX! - stopDist) {
-        world.transform.velX[enemyTi] = 0.0;
-      } else if (nextVelX < 0.0 && ex <= noPlanSurfaceMinX! + stopDist) {
-        world.transform.velX[enemyTi] = 0.0;
-      }
-    }
   }
 
   void _writeFlyingEnemyCastIntent(
@@ -638,5 +541,125 @@ class EnemySystem {
         tick: currentTick,
       ),
     );
+  }
+
+  void _ensureChaseOffsetInitialized(
+    EcsWorld world,
+    EntityId enemy,
+  ) {
+    if (!world.groundEnemyChaseOffset.has(enemy)) return;
+
+    final chaseOffset = world.groundEnemyChaseOffset;
+    final chaseIndex = chaseOffset.indexOf(enemy);
+    if (chaseOffset.initialized[chaseIndex]) return;
+
+    final tuning = groundEnemyTuning;
+    var rngState = chaseOffset.rngState[chaseIndex];
+    if (rngState == 0) {
+      rngState = enemy;
+    }
+    final maxAbs = tuning.base.groundEnemyChaseOffsetMaxX.abs();
+    var offsetX = 0.0;
+    if (maxAbs > 0.0) {
+      rngState = nextUint32(rngState);
+      offsetX = rangeDouble(rngState, -maxAbs, maxAbs);
+      final minAbs = clampDouble(
+        tuning.base.groundEnemyChaseOffsetMinAbsX,
+        0.0,
+        maxAbs,
+      );
+      final absOffset = offsetX.abs();
+      if (absOffset < minAbs) {
+        offsetX = offsetX >= 0.0 ? minAbs : -minAbs;
+        if (absOffset == 0.0) {
+          offsetX = minAbs;
+        }
+      }
+    }
+
+    rngState = nextUint32(rngState);
+    final speedScale = rangeDouble(
+      rngState,
+      tuning.base.groundEnemyChaseSpeedScaleMin,
+      tuning.base.groundEnemyChaseSpeedScaleMax,
+    );
+    chaseOffset.initialized[chaseIndex] = true;
+    chaseOffset.chaseOffsetX[chaseIndex] = offsetX;
+    chaseOffset.chaseSpeedScale[chaseIndex] = speedScale;
+    chaseOffset.rngState[chaseIndex] = rngState;
+  }
+
+  void _applyGroundEnemyPhysics(
+    EcsWorld world, {
+    required int enemyIndex,
+    required int enemyTi,
+    required double ex,
+    required SurfaceNavIntent intent,
+    required double effectiveSpeedScale,
+    required double dtSeconds,
+    required double? safeSurfaceMinX,
+    required double? safeSurfaceMaxX,
+    required int navIndex,
+    required SurfaceGraph? graph,
+  }) {
+    final tuning = groundEnemyTuning;
+    final dx = intent.desiredX - ex;
+    double desiredVelX = 0.0;
+    if (intent.commitMoveDirX != 0) {
+      final dirX = intent.commitMoveDirX.toDouble();
+      world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
+      desiredVelX = dirX * tuning.base.groundEnemySpeedX * effectiveSpeedScale;
+    } else if (dx.abs() > tuning.base.groundEnemyStopDistanceX) {
+      final dirX = dx >= 0 ? 1.0 : -1.0;
+      world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
+      desiredVelX = dirX * tuning.base.groundEnemySpeedX * effectiveSpeedScale;
+    }
+
+    if (intent.jumpNow) {
+      world.transform.velY[enemyTi] = -tuning.base.groundEnemyJumpSpeed;
+    }
+
+    final currentVelX = world.transform.velX[enemyTi];
+    final nextVelX = applyAccelDecel(
+      current: currentVelX,
+      desired: desiredVelX,
+      dtSeconds: dtSeconds,
+      accelPerSecond: tuning.base.groundEnemyAccelX,
+      decelPerSecond: tuning.base.groundEnemyDecelX,
+    );
+
+    double? jumpSnapVelX;
+    if (intent.hasPlan && intent.jumpNow && graph != null) {
+      final activeEdgeIndex = world.surfaceNav.activeEdgeIndex[navIndex];
+      if (activeEdgeIndex >= 0 && activeEdgeIndex < graph.edges.length) {
+        final edge = graph.edges[activeEdgeIndex];
+        if (edge.kind == SurfaceEdgeKind.jump && edge.travelTicks > 0) {
+          final travelSeconds = edge.travelTicks * dtSeconds;
+          if (travelSeconds > 0.0) {
+            final dxAbs = (edge.landingX - ex).abs();
+            final requiredAbs = dxAbs / travelSeconds;
+            final desiredAbs = desiredVelX.abs();
+            final currentAbs = currentVelX.abs();
+            final snapAbs = min(desiredAbs, max(currentAbs, requiredAbs));
+            if (snapAbs > nextVelX.abs()) {
+              final sign = desiredVelX >= 0.0 ? 1.0 : -1.0;
+              jumpSnapVelX = sign * snapAbs;
+            }
+          }
+        }
+      }
+    }
+
+    world.transform.velX[enemyTi] = jumpSnapVelX ?? nextVelX;
+
+    if (!intent.hasPlan && safeSurfaceMinX != null && safeSurfaceMaxX != null) {
+      final stopDist = tuning.base.groundEnemyStopDistanceX;
+      final nextVelX = world.transform.velX[enemyTi];
+      if (nextVelX > 0.0 && ex >= safeSurfaceMaxX! - stopDist) {
+        world.transform.velX[enemyTi] = 0.0;
+      } else if (nextVelX < 0.0 && ex <= safeSurfaceMinX! + stopDist) {
+        world.transform.velX[enemyTi] = 0.0;
+      }
+    }
   }
 }

@@ -378,7 +378,7 @@ class V0TrackStreamer {
         _PlatformRel(x: 256, width: 160, aboveGroundTop: 96, thickness: _t),
       ],
       groundGaps: <_GapRel>[
-        _GapRel(x: 248, width: 128),
+        _GapRel(x: 240, width: 128),
       ],
       spawnMarkers: <_SpawnMarker>[
         _SpawnMarker(enemyId: EnemyId.flyingEnemy, x: 352, chancePercent: 17, salt: 0x01),
@@ -405,7 +405,7 @@ class V0TrackStreamer {
         _ObstacleRel(x: 128, width: 48, height: 64),
       ],
       groundGaps: <_GapRel>[
-        _GapRel(x: 174, width: 96),
+        _GapRel(x: 176, width: 96),
       ],
       spawnMarkers: <_SpawnMarker>[
         _SpawnMarker(enemyId: EnemyId.groundEnemy, x: 320, chancePercent: 22, salt: 0x03),
@@ -445,7 +445,7 @@ class V0TrackStreamer {
         _PlatformRel(x: 368, width: 128, aboveGroundTop: 80, thickness: _t),
       ],
       groundGaps: <_GapRel>[
-        _GapRel(x: 300, width: 96),
+        _GapRel(x: 304, width: 96),
       ],
       spawnMarkers: <_SpawnMarker>[
         _SpawnMarker(enemyId: EnemyId.groundEnemy, x: 112, chancePercent: 15, salt: 0x07),

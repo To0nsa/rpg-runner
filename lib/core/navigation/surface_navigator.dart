@@ -218,8 +218,8 @@ class SurfaceNavigator {
 int _dropCommitDirX(SurfaceEdge edge) {
   // Drop edges use a takeoff point nudged beyond the ledge. Commit in that
   // direction so locomotion cannot "stop short" and never leave the surface.
-  if (edge.takeoffX < edge.landingX) return -1;
-  if (edge.takeoffX > edge.landingX) return 1;
+  if (edge.takeoffX < edge.landingX) return 1;
+  if (edge.takeoffX > edge.landingX) return -1;
   // Fallback: in the unlikely case of an exact tie, just don't commit.
   return 0;
 }
