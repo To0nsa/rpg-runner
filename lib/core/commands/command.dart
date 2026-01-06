@@ -1,9 +1,8 @@
-/// Core input command model.
+/// Core input command model for the deterministic simulation.
 ///
-/// Commands are the only way UI can affect the simulation:
-/// UI -> `GameController.enqueue(...)` -> Core applies them at a specific `tick`.
-///
-/// These command types are intentionally minimal placeholders for Milestone 0.
+/// Commands represent discrete user inputs scheduled for a specific simulation tick.
+/// To ensure determinism, the UI must schedule commands in advance (via `GameController.enqueue`),
+/// and the Core processes them only when the simulation clock reaches the specified [tick].
 sealed class Command {
   const Command({required this.tick});
 
