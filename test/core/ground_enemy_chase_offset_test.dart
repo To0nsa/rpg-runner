@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
@@ -98,15 +96,6 @@ double _expectedChaseOffset({
     }
   }
   return offsetX;
-}
-
-double _expectedMeleeOffset({
-  required double chaseOffsetX,
-  required double meleeMaxAbsX,
-}) {
-  final meleeAbs = min(meleeMaxAbsX.abs(), chaseOffsetX.abs());
-  if (meleeAbs == 0.0) return 0.0;
-  return chaseOffsetX >= 0.0 ? meleeAbs : -meleeAbs;
 }
 
 void main() {
