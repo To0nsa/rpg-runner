@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:walkscape_runner/core/ecs/entity_id.dart';
+
 import '../../enemies/enemy_id.dart';
 import '../../snapshots/enums.dart';
 import '../../projectiles/projectile_catalog.dart';
@@ -14,11 +16,19 @@ import '../../navigation/surface_graph.dart';
 import '../../navigation/surface_id.dart';
 import '../../navigation/surface_navigator.dart';
 import '../../navigation/surface_spatial_index.dart';
-import '../entity_id.dart';
 import '../stores/cast_intent_store.dart';
 import '../stores/melee_intent_store.dart';
 import '../world.dart';
 
+/// Handles AI logic for enemies (steering and attacks).
+///
+/// Responsibilities:
+/// 1.  **Steering**: Computes velocities to move enemies toward their targets
+///     (Player) or patrol points. Supports both flying (direct/boid-like) and
+///     ground (pathfinding over surface graph) locomotion.
+/// 2.  **Attacks**: Decisions on when to attack. Writes intent to [CastIntentStore]
+///     (ranged) or [MeleeIntentStore] (melee), which are executed by downstream
+///     systems like `SpellCastSystem` or `MeleeSystem`.
 class EnemySystem {
   EnemySystem({
     required this.flyingEnemyTuning,
@@ -34,10 +44,16 @@ class EnemySystem {
   final SpellCatalog spells;
   final ProjectileCatalogDerived projectiles;
 
+  /// The navigation graph for ground enemies. Can be null if the level has no surface data.
   SurfaceGraph? _surfaceGraph;
+  /// Spatial index for quick lookup of surfaces/edges near an entity.
   SurfaceSpatialIndex? _surfaceIndex;
+  /// Version tracker to detect graph updates and invalidate cached paths if necessary.
   int _surfaceGraphVersion = 0;
 
+  /// Updates the navigation graph used by ground enemies.
+  ///
+  /// This should be called whenever the level geometry changes or is loaded.
   void setSurfaceGraph({
     required SurfaceGraph graph,
     required SurfaceSpatialIndex spatialIndex,
@@ -48,20 +64,30 @@ class EnemySystem {
     _surfaceGraphVersion = graphVersion;
   }
 
+  /// Calculates and applies steering velocities for all active enemies.
+  ///
+  /// This traverses the enemy list, determines the player's position, and delegates
+  /// to specific steering implementations ([_steerFlyingEnemy] or [_steerGroundEnemy]).
   void stepSteering(
     EcsWorld world, {
     required EntityId player,
     required double groundTopY,
     required double dtSeconds,
   }) {
+    // If the player doesn't exist (e.g. dead or not spawned), enemies have no target.
     if (!world.transform.has(player)) return;
 
+    // Cache player position/physics data once to avoid repeated lookups inside the loop.
     final playerTi = world.transform.indexOf(player);
     final playerX = world.transform.posX[playerTi];
     final playerY = world.transform.posY[playerTi];
+
+    // Determine if player is grounded (relevant for ground enemies tracking).
     final playerGrounded = world.collision.has(player)
         ? world.collision.grounded[world.collision.indexOf(player)]
         : false;
+    
+    // Calculate player bounds for accurate targeting (e.g., aiming at center/bottom).
     var playerHalfX = 0.0;
     var playerBottomY = playerY;
     if (world.colliderAabb.has(player)) {
@@ -72,14 +98,18 @@ class EnemySystem {
     }
 
     final enemies = world.enemy;
+    // Iterate over all entities tagged as enemies.
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
       final e = enemies.denseEntities[ei];
-      if (!world.transform.has(e)) continue;
+      final ti = world.transform.tryIndexOf(e);
+      if (ti == null) continue; // Should not happen if data integrity is maintained.
 
-      final ti = world.transform.indexOf(e);
       final ex = world.transform.posX[ti];
       final ey = world.transform.posY[ti];
-
+      
+      /// TODO(Optimization): If enemy types grow significantly, consider separating
+      /// entities into specialized systems queries or sorting component arrays by
+      /// EnemyId to minimize branch mispredictions and improve cache locality.
       switch (enemies.enemyId[ei]) {
         case EnemyId.flyingEnemy:
           _steerFlyingEnemy(
@@ -111,12 +141,18 @@ class EnemySystem {
     }
   }
 
+  /// Evaluates attack opportunities for all enemies.
+  ///
+  /// This checks distance/line-of-sight (implicitly or explicitly) and cooldowns.
+  /// If an attack is viable, it writes an intent to the respective intent store.
   void stepAttacks(
     EcsWorld world, {
     required EntityId player,
     required int currentTick,
   }) {
     if (!world.transform.has(player)) return;
+    
+    // Pre-calculate player center for aiming.
     final playerTi = world.transform.indexOf(player);
     final playerX = world.transform.posX[playerTi];
     final playerY = world.transform.posY[playerTi];
@@ -133,10 +169,13 @@ class EnemySystem {
     final enemies = world.enemy;
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
       final e = enemies.denseEntities[ei];
-      if (!world.transform.has(e)) continue;
+      final ti = world.transform.tryIndexOf(e);
+      if (ti == null) continue;
+      
+      // Cooldown check is cheap, but requires the store.
+      // Assuming all enemies have cooldowns, but safer to check.
       if (!world.cooldown.has(e)) continue;
 
-      final ti = world.transform.indexOf(e);
       final ex = world.transform.posX[ti];
       final ey = world.transform.posY[ti];
 
@@ -174,6 +213,12 @@ class EnemySystem {
     }
   }
 
+  /// Implements "Boids-like" or direct steering for flying enemies.
+  ///
+  /// Behavior:
+  /// - Maintains a specific horizontal distance heavily (hovering left/right of player).
+  /// - Maintains a specific height above ground (bobbing).
+  /// - Randomizes target parameters periodically to add organic noise.
   void _steerFlyingEnemy(
     EcsWorld world, {
     required int enemyIndex,
@@ -188,6 +233,8 @@ class EnemySystem {
   }) {
     if (dtSeconds <= 0.0) return;
     final tuning = flyingEnemyTuning;
+    
+    // Ensure steering state exists. Contains RNG state and current target timers.
     if (!world.flyingEnemySteering.has(enemy)) {
       assert(
         false,
@@ -200,11 +247,14 @@ class EnemySystem {
     final si = steering.indexOf(enemy);
 
     var rngState = steering.rngState[si];
+    // Helper to advance RNG and get a range.
     double nextRange(double min, double max) {
       rngState = nextUint32(rngState);
       return rangeDouble(rngState, min, max);
     }
 
+    // -- Initialization --
+    // If first frame, randomize initial targets (range to hold, height to fly at).
     if (!steering.initialized[si]) {
       steering.initialized[si] = true;
       steering.desiredRangeHoldLeftS[si] = nextRange(
@@ -222,13 +272,15 @@ class EnemySystem {
       );
     }
 
+    // -- Horizontal Logic --
+    // Decay timer for holding the current desired range.
     var desiredRangeHoldLeftS = steering.desiredRangeHoldLeftS[si];
     var desiredRange = steering.desiredRange[si];
 
-    // Hold desired range target.
     if (desiredRangeHoldLeftS > 0.0) {
       desiredRangeHoldLeftS -= dtSeconds;
     } else {
+      // Pick new range target when timer expires.
       desiredRangeHoldLeftS = nextRange(
         tuning.base.flyingEnemyDesiredRangeHoldMinSeconds,
         tuning.base.flyingEnemyDesiredRangeHoldMaxSeconds,
@@ -241,26 +293,34 @@ class EnemySystem {
 
     final dx = playerX - ex;
     final distX = dx.abs();
+    // Face the player.
     if (distX > 1e-6) {
       world.enemy.facing[enemyIndex] = dx >= 0 ? Facing.right : Facing.left;
     }
 
+    // Calculate desired horizontal velocity to maintain `desiredRange`.
     final slack = tuning.base.flyingEnemyHoldSlack;
     double desiredVelX = 0.0;
     if (distX > 1e-6) {
       final dirToPlayerX = dx >= 0 ? 1.0 : -1.0;
       final error = distX - desiredRange;
 
+      // Only move if outside the slack (hysteresis) zone to prevent jitter.
       if (error.abs() > slack) {
         final slowRadiusX = tuning.base.flyingEnemySlowRadiusX;
+        // Dampen speed as we approach the target range (arrival behavior).
         final t = slowRadiusX > 0.0
             ? clampDouble((error.abs() - slack) / slowRadiusX, 0.0, 1.0)
             : 1.0;
         final speed = t * tuning.base.flyingEnemyMaxSpeedX;
+        // If error > 0, we are too far -> move towards player.
+        // If error < 0, we are too close -> move away from player.
         desiredVelX = (error > 0.0 ? dirToPlayerX : -dirToPlayerX) * speed;
       }
     }
 
+    // -- Vertical Logic --
+    // Decay timer for vertical target hold.
     var flightTargetHoldLeftS = steering.flightTargetHoldLeftS[si];
     var flightTargetAboveGround = steering.flightTargetAboveGround[si];
     if (flightTargetHoldLeftS > 0.0) {
@@ -276,6 +336,7 @@ class EnemySystem {
       );
     }
 
+    // Simple P-controller for height.
     final targetY = groundTopY - flightTargetAboveGround;
     final deltaY = targetY - ey;
     double desiredVelY = clampDouble(
@@ -287,6 +348,7 @@ class EnemySystem {
       desiredVelY = 0.0;
     }
 
+    // -- Physics Integration --
     final currentVelX = world.transform.velX[enemyTi];
     world.transform.velX[enemyTi] = applyAccelDecel(
       current: currentVelX,
@@ -297,6 +359,7 @@ class EnemySystem {
     );
     world.transform.velY[enemyTi] = desiredVelY;
 
+    // Write back state.
     steering.desiredRangeHoldLeftS[si] = desiredRangeHoldLeftS;
     steering.desiredRange[si] = desiredRange;
     steering.flightTargetHoldLeftS[si] = flightTargetHoldLeftS;
@@ -304,6 +367,11 @@ class EnemySystem {
     steering.rngState[si] = rngState;
   }
 
+  /// Implements pathfinding and steering for ground enemies.
+  ///
+  /// This uses [SurfaceNavigator] to compute the next immediate move (jump/walk)
+  /// towards the player. It also handles "chase offsets" to prevent enemies from
+  /// stacking perfectly on top of each other.
   void _steerGroundEnemy(
     EcsWorld world, {
     required int enemyIndex,
@@ -322,32 +390,44 @@ class EnemySystem {
     final navIndex = world.surfaceNav.tryIndexOf(enemy);
     if (navIndex == null) return;
 
-    _ensureChaseOffsetInitialized(world, enemy);
+    // Optimized: Resolve chase offset store once and pass index to avoid re-lookup.
+    final chaseIndex = world.groundEnemyChaseOffset.tryIndexOf(enemy);
+    if (chaseIndex == null) return;
 
-    if (!world.groundEnemyChaseOffset.has(enemy)) return;
+    // Lazy initialization of random chase parameters.
+    _ensureChaseOffsetInitialized(world, chaseIndex, enemy);
 
     final chaseOffset = world.groundEnemyChaseOffset;
-    final chaseIndex = chaseOffset.indexOf(enemy);
     final chaseOffsetX = chaseOffset.chaseOffsetX[chaseIndex];
     final chaseSpeedScale = chaseOffset.chaseSpeedScale[chaseIndex];
+
+    // -- Target Selection --
+    // "Collapse" behavior: when very close to player, ignore chase offset and
+    // move directly to player (to attack). Otherwise, maintain offset.
     final collapseDistX = tuning.base.groundEnemyMeleeRangeX +
         tuning.base.groundEnemyStopDistanceX;
     final distToPlayerX = (playerX - ex).abs();
+    
+    // Calculate melee offset (which side of the player to stand on).
     final meleeOffsetMaxX = tuning.base.groundEnemyChaseOffsetMeleeX.abs();
     final meleeOffsetAbs = min(meleeOffsetMaxX, chaseOffsetX.abs());
     final meleeOffsetX = meleeOffsetAbs == 0.0
         ? 0.0
         : (chaseOffsetX >= 0.0 ? meleeOffsetAbs : -meleeOffsetAbs);
+    
     final effectiveTargetX = distToPlayerX <= collapseDistX
         ? playerX + meleeOffsetX
         : playerX + chaseOffsetX;
-    final navTargetX = playerX;
+    final navTargetX = playerX; // Navigation (A*) always targets the player directly.
 
+    // -- Pathfinding Query --
     final graph = _surfaceGraph;
     final spatialIndex = _surfaceIndex;
     double? noPlanSurfaceMinX;
     double? noPlanSurfaceMaxX;
     SurfaceNavIntent intent;
+    
+    // If graph is missing or navigation not possible, fallback to no-op/dumb chase.
     if (graph == null ||
         spatialIndex == null ||
         !world.colliderAabb.has(enemy)) {
@@ -366,6 +446,7 @@ class EnemySystem {
           world.collision.has(enemy) &&
           world.collision.grounded[world.collision.indexOf(enemy)];
 
+      // Query the navigator for what to do this frame.
       intent = surfaceNavigator.update(
         navStore: world.surfaceNav,
         navIndex: navIndex,
@@ -382,11 +463,13 @@ class EnemySystem {
         targetGrounded: playerGrounded,
       );
 
-      // Preserve chase offset behavior when no plan is active, but keep it safe:
-      // if grounded, clamp desired X to the current surface span so we never
-      // walk off into a gap due to an offset pointing into empty space.
+      // -- Fallback Logic --
+      // If the navigator defines no plan (e.g. lost track or arrived), we still
+      // want to move towards `desiredX` (chase behavior), BUT we must be careful
+      // not to walk off a ledge blindly.
       if (!intent.hasPlan) {
         var desiredX = effectiveTargetX;
+        // Clamp desiredX to the current surface's bounds to stop at edges.
         final currentSurfaceId = world.surfaceNav.currentSurfaceId[navIndex];
         if (currentSurfaceId != surfaceIdUnknown) {
           final currentIndex = graph.indexOfSurfaceId(currentSurfaceId);
@@ -410,9 +493,9 @@ class EnemySystem {
       }
     }
 
-    // Speed scale is intended to break symmetric chasing overlaps, but keep
-    // navigation edge execution stable (jump/drop takeoffs) by using base speed
-    // while following a plan.
+    // Speed scale is intended to break symmetric chasing overlaps.
+    // However, when executing a precise plan (like a Jump edge), we used standard
+    // speed to ensure the physics align with the pre-calculated jump arc.
     final effectiveSpeedScale = intent.hasPlan ? 1.0 : chaseSpeedScale;
 
     _applyGroundEnemyPhysics(
@@ -430,6 +513,7 @@ class EnemySystem {
     );
   }
 
+  /// Calculates aim and registers a spell cast intent for flying enemies.
   void _writeFlyingEnemyCastIntent(
     EcsWorld world, {
     required EntityId enemy,
@@ -450,17 +534,21 @@ class EnemySystem {
       return;
     }
 
-    const spellId = SpellId.lightning;
+    // Determine projectile properties for aiming.
+    const spellId = SpellId.lightning; // Hardcoded for this enemy type currently.
     final projectileId = spells.get(spellId).projectileId;
     final projectileSpeed = projectileId == null
         ? null
         : projectiles.base.get(projectileId).speedUnitsPerSecond;
+    
+    // -- Aim Leading --
     var targetX = playerCenterX;
     var targetY = playerCenterY;
     if (projectileSpeed != null && projectileSpeed > 0.0) {
       final dx = playerCenterX - enemyCenterX;
       final dy = playerCenterY - enemyCenterY;
       final distance = sqrt(dx * dx + dy * dy);
+      // Rough estimation of time-to-impact to predict player position.
       final leadSeconds = clampDouble(
         distance / projectileSpeed,
         tuning.base.flyingEnemyAimLeadMinSeconds,
@@ -470,8 +558,7 @@ class EnemySystem {
       targetY = playerCenterY + playerVelY * leadSeconds;
     }
 
-    // IMPORTANT: EnemySystem writes intent only; execution happens in
-    // `SpellCastSystem` which owns mana/cooldown rules and projectile spawning.
+    // Write intent. Actual spawning handles cooldown/mana checks.
     world.castIntent.set(
       enemy,
       CastIntentDef(
@@ -487,6 +574,7 @@ class EnemySystem {
     );
   }
 
+  /// Checks range and registers a melee attack intent for ground enemies.
   void _writeGroundEnemyMeleeIntent(
     EcsWorld world, {
     required EntityId enemy,
@@ -511,9 +599,12 @@ class EnemySystem {
       );
       return;
     }
+    
+    // Simple range check.
     final dx = (playerX - ex).abs();
     if (dx > tuning.base.groundEnemyMeleeRangeX) return;
 
+    // Determine hitbox position based on facing direction.
     final facing = world.enemy.facing[enemyIndex];
     final dirX = facing == Facing.right ? 1.0 : -1.0;
 
@@ -525,6 +616,7 @@ class EnemySystem {
     final offsetX = dirX * (ownerHalfX * 0.5 + halfX);
     const offsetY = 0.0;
 
+    // Write intent.
     world.meleeIntent.set(
       enemy,
       MeleeIntentDef(
@@ -543,21 +635,25 @@ class EnemySystem {
     );
   }
 
+  /// Ensures that the ground enemy has valid initialized chase offsets.
+  ///
+  /// Adds randomness to tracking so multiple enemies don't overlap perfectly.
   void _ensureChaseOffsetInitialized(
     EcsWorld world,
+    int chaseIndex,
     EntityId enemy,
   ) {
-    if (!world.groundEnemyChaseOffset.has(enemy)) return;
-
+    // world.groundEnemyChaseOffset.has(enemy) is guaranteed primarily by caller.
     final chaseOffset = world.groundEnemyChaseOffset;
-    final chaseIndex = chaseOffset.indexOf(enemy);
     if (chaseOffset.initialized[chaseIndex]) return;
 
     final tuning = groundEnemyTuning;
     var rngState = chaseOffset.rngState[chaseIndex];
     if (rngState == 0) {
-      rngState = enemy;
+      rngState = enemy; // Seed with entity ID for determinism.
     }
+    
+    // Choose a random horizontal offset relative to the player.
     final maxAbs = tuning.base.groundEnemyChaseOffsetMaxX.abs();
     var offsetX = 0.0;
     if (maxAbs > 0.0) {
@@ -569,6 +665,7 @@ class EnemySystem {
         maxAbs,
       );
       final absOffset = offsetX.abs();
+      // Ensure the offset isn't too small (which would defeat the purpose).
       if (absOffset < minAbs) {
         offsetX = offsetX >= 0.0 ? minAbs : -minAbs;
         if (absOffset == 0.0) {
@@ -577,6 +674,7 @@ class EnemySystem {
       }
     }
 
+    // Choose a slight variation in speed.
     rngState = nextUint32(rngState);
     final speedScale = rangeDouble(
       rngState,
@@ -589,6 +687,7 @@ class EnemySystem {
     chaseOffset.rngState[chaseIndex] = rngState;
   }
 
+  /// Low-level physics application for ground enemies based on [SurfaceNavIntent].
   void _applyGroundEnemyPhysics(
     EcsWorld world, {
     required int enemyIndex,
@@ -605,20 +704,26 @@ class EnemySystem {
     final tuning = groundEnemyTuning;
     final dx = intent.desiredX - ex;
     double desiredVelX = 0.0;
+
+    // -- Horizontal Movement --
     if (intent.commitMoveDirX != 0) {
+      // If navigation explicitly requests a direction (e.g., preparing for jump).
       final dirX = intent.commitMoveDirX.toDouble();
       world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
       desiredVelX = dirX * tuning.base.groundEnemySpeedX * effectiveSpeedScale;
     } else if (dx.abs() > tuning.base.groundEnemyStopDistanceX) {
+      // Standard seek behavior logic.
       final dirX = dx >= 0 ? 1.0 : -1.0;
       world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
       desiredVelX = dirX * tuning.base.groundEnemySpeedX * effectiveSpeedScale;
     }
 
+    // -- Jumping --
     if (intent.jumpNow) {
       world.transform.velY[enemyTi] = -tuning.base.groundEnemyJumpSpeed;
     }
 
+    // -- Physics Update --
     final currentVelX = world.transform.velX[enemyTi];
     final nextVelX = applyAccelDecel(
       current: currentVelX,
@@ -628,6 +733,10 @@ class EnemySystem {
       decelPerSecond: tuning.base.groundEnemyDecelX,
     );
 
+    // -- Jump Velocity Snapping --
+    // If we are executing a jump edge, we might need to "snap" velocity to exactly
+    // what is required to make the gap, overriding acceleration/deceleration.
+    // This fixes issues where enemies undershoot/overshoot jumps due to frame variances.
     double? jumpSnapVelX;
     if (intent.hasPlan && intent.jumpNow && graph != null) {
       final activeEdgeIndex = world.surfaceNav.activeEdgeIndex[navIndex];
@@ -638,9 +747,11 @@ class EnemySystem {
           if (travelSeconds > 0.0) {
             final dxAbs = (edge.landingX - ex).abs();
             final requiredAbs = dxAbs / travelSeconds;
+            // Only snap if it's reasonable (bounded by current/desired speeds).
             final desiredAbs = desiredVelX.abs();
             final currentAbs = currentVelX.abs();
             final snapAbs = min(desiredAbs, max(currentAbs, requiredAbs));
+            // Apply if the snap velocity is actually faster (avoid getting stuck).
             if (snapAbs > nextVelX.abs()) {
               final sign = desiredVelX >= 0.0 ? 1.0 : -1.0;
               jumpSnapVelX = sign * snapAbs;
@@ -652,6 +763,8 @@ class EnemySystem {
 
     world.transform.velX[enemyTi] = jumpSnapVelX ?? nextVelX;
 
+    // -- Ledge Safety --
+    // If we have no plan (wandering/chasing blindly), hard stop at surface edges.
     if (!intent.hasPlan && safeSurfaceMinX != null && safeSurfaceMaxX != null) {
       final stopDist = tuning.base.groundEnemyStopDistanceX;
       final nextVelX = world.transform.velX[enemyTi];
