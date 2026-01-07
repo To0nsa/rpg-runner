@@ -2,6 +2,10 @@ import '../util/tick_math.dart';
 
 import 'projectile_id.dart';
 
+/// Static properties for a projectile type.
+///
+/// Defines speed, lifetime, and collision bounds. Damage is determined by
+/// the spell that spawns the projectile, not the projectile itself.
 class ProjectileArchetype {
   const ProjectileArchetype({
     required this.speedUnitsPerSecond,
@@ -10,17 +14,27 @@ class ProjectileArchetype {
     required this.colliderSizeY,
   });
 
+  /// Travel speed in world units per second.
   final double speedUnitsPerSecond;
+
+  /// How long before auto-despawn (seconds).
   final double lifetimeSeconds;
 
-  /// Full extents, in world units (virtual pixels).
+  /// Full width of the collision box (world units).
   final double colliderSizeX;
+
+  /// Full height of the collision box (world units).
   final double colliderSizeY;
 }
 
+/// Lookup table for projectile archetypes by [ProjectileId].
+///
+/// All values are authoring-time constants. For tick-rate-dependent values,
+/// use [ProjectileCatalogDerived].
 class ProjectileCatalog {
   const ProjectileCatalog();
 
+  /// Returns the archetype for the given projectile type.
   ProjectileArchetype get(ProjectileId id) {
     switch (id) {
       case ProjectileId.iceBolt:
@@ -41,6 +55,9 @@ class ProjectileCatalog {
   }
 }
 
+/// Tick-rate-aware wrapper for [ProjectileCatalog].
+///
+/// Converts time-based values (seconds) to tick counts for use in systems.
 class ProjectileCatalogDerived {
   const ProjectileCatalogDerived._({required this.tickHz, required this.base});
 
@@ -57,6 +74,7 @@ class ProjectileCatalogDerived {
   final int tickHz;
   final ProjectileCatalog base;
 
+  /// Converts [lifetimeSeconds] to ticks (rounded up).
   int lifetimeTicks(ProjectileId id) {
     return ticksFromSecondsCeil(base.get(id).lifetimeSeconds, tickHz);
   }
