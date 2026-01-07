@@ -1,11 +1,15 @@
-// Protocol-stable enums used by snapshots (and later networking).
-//
-// Keep these enums stable over time because they are part of the render
-// contract and may become part of the network protocol.
-//
-// These enums are "logical" (game meaning), not asset/texture names.
+/// Protocol-stable enums used by snapshots and the Core→Renderer contract.
+///
+/// **Stability**: These enums may become part of the network protocol for
+/// replays or multiplayer. Avoid renaming or reordering values.
+///
+/// **Scope**: These are "logical" game concepts, not tied to specific
+/// textures or asset names. The renderer maps them to visuals.
+library;
 
-/// Logical animation state (not tied to any specific texture or asset).
+/// Logical animation state for entity rendering.
+///
+/// The renderer maps these to sprite sheets or animation clips.
 enum AnimKey {
   idle,
   run,
@@ -17,7 +21,9 @@ enum AnimKey {
   spawn,
 }
 
-/// Broad entity classification used by the renderer and (later) networking.
+/// Broad entity classification for rendering and (future) networking.
+///
+/// Used to select visual style, collision layer, and render order.
 enum EntityKind {
   player,
   enemy,
@@ -28,7 +34,7 @@ enum EntityKind {
   trigger,
 }
 
-/// Horizontal facing direction for animation/aiming.
+/// Horizontal facing direction for sprites and directional abilities.
 enum Facing {
   left,
   right,

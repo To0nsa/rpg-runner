@@ -1,12 +1,17 @@
-// Renderer-facing entity data extracted from the Core at the end of a tick.
-//
-// This is a read-only, serializable view of entity state for rendering only.
-// It must not leak internal core storage details.
+/// Renderer-facing entity data extracted from Core at the end of each tick.
+///
+/// This is a read-only, serializable view of entity state. It intentionally
+/// hides internal ECS storage details and provides only what the renderer needs.
+library;
+
 import '../util/vec2.dart';
 import '../projectiles/projectile_id.dart';
 import 'enums.dart';
 
-/// Render-only view of an entity.
+/// Render-only snapshot of a single entity.
+///
+/// Created by [GameCore] after each simulation tick. Contains position,
+/// animation state, and optional metadata for specialized rendering.
 class EntityRenderSnapshot {
   const EntityRenderSnapshot({
     required this.id,
@@ -68,8 +73,10 @@ class EntityRenderSnapshot {
   final int? animFrame;
 }
 
-/// Variant codes for pickup rendering (color/style mapping).
-class PickupVariant {
+/// Variant codes for pickup rendering.
+///
+/// Maps to visual styles (colors, icons) in the renderer.
+abstract class PickupVariant {
   static const int collectible = 0;
   static const int restorationHealth = 1;
   static const int restorationMana = 2;

@@ -1,14 +1,18 @@
-// Immutable snapshot of the full game state needed by Render/UI.
-//
-// Built by the Core after each fixed simulation tick and treated as read-only
-// by Flame/Flutter. This is the primary contract between Core and the rest of
-// the app.
+/// Immutable snapshot of game state for rendering and UI.
+///
+/// Built by [GameCore] after each fixed simulation tick. This is the primary
+/// contract between Core and the Flame/Flutter layer—treat as read-only.
+library;
+
 import 'entity_render_snapshot.dart';
 import 'player_hud_snapshot.dart';
 import 'static_ground_gap_snapshot.dart';
 import 'static_solid_snapshot.dart';
 
-/// Snapshot of the current game state at a specific simulation tick.
+/// Complete game state snapshot at a specific simulation tick.
+///
+/// Contains everything the renderer and UI need: camera position, HUD data,
+/// entity list, and static geometry.
 class GameStateSnapshot {
   const GameStateSnapshot({
     required this.tick,

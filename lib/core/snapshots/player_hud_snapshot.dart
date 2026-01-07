@@ -1,7 +1,7 @@
-/// HUD-only data extracted from the Core.
+/// HUD-only player data extracted from Core.
 ///
-/// Split from entity snapshots so the UI can render player stats without
-/// scanning all entities every frame.
+/// Separated from entity snapshots so the UI can render player stats
+/// (HP bars, cooldowns, etc.) without scanning all entities.
 class PlayerHudSnapshot {
   const PlayerHudSnapshot({
     required this.hp,
