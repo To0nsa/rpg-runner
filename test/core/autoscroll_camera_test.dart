@@ -41,7 +41,7 @@ void main() {
   test(
     'GameCore: falling behind camera ends run and emits RunEndedEvent once',
     () {
-      final core = GameCore(
+      final core = GameCore.withTunings(
         seed: 1,
         tickHz: 20,
         playerCatalog: const PlayerCatalog(

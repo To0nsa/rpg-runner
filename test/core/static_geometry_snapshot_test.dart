@@ -22,7 +22,7 @@ void main() {
       ],
     );
 
-    final core = GameCore(
+    final core = GameCore.withTunings(
       seed: 1,
       staticWorldGeometry: geometry,
       cameraTuning: noAutoscrollCameraTuning,

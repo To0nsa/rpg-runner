@@ -12,7 +12,7 @@ void main() {
   test(
     'resource regen refills after spending and clamps at max (via snapshot HUD)',
     () {
-      final core = GameCore(
+      final core = GameCore.withTunings(
         seed: 1,
         tickHz: 10,
         playerCatalog: const PlayerCatalog(

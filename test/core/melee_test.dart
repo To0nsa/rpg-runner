@@ -23,7 +23,7 @@ void main() {
       abilityTuning,
       tickHz: 60,
     );
-    final core = GameCore(
+    final core = GameCore.withTunings(
       seed: 1,
       tickHz: 60,
       playerCatalog: const PlayerCatalog(
@@ -84,7 +84,7 @@ void main() {
       playerManaRegenPerSecond: 0,
       playerHpRegenPerSecond: 0,
     );
-    final core = GameCore(
+    final core = GameCore.withTunings(
       seed: 1,
       tickHz: 60,
       playerCatalog: const PlayerCatalog(

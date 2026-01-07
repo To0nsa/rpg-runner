@@ -138,7 +138,7 @@ void main() {
   });
 
   test('give up emits RunEndReason.gaveUp', () {
-    final core = GameCore(seed: 1);
+    final core = GameCore.withTunings(seed: 1);
     core.giveUp();
 
     final ended = core

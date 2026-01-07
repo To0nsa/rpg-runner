@@ -11,7 +11,7 @@ import '../test_tunings.dart';
 
 void main() {
   test('cast: insufficient mana => no projectile', () {
-    final core = GameCore(
+    final core = GameCore.withTunings(
       seed: 1,
       tickHz: 20,
       playerCatalog: const PlayerCatalog(
@@ -39,7 +39,7 @@ void main() {
   test(
     'cast: sufficient mana => projectile spawns + mana spent + cooldown set',
     () {
-      final core = GameCore(
+      final core = GameCore.withTunings(
         seed: 1,
         tickHz: 20,
         playerCatalog: const PlayerCatalog(
@@ -74,7 +74,7 @@ void main() {
   );
 
   test('cast: cooldown blocks recast until it expires', () {
-    final core = GameCore(
+    final core = GameCore.withTunings(
       seed: 1,
       tickHz: 20,
       playerCatalog: const PlayerCatalog(

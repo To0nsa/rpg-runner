@@ -25,7 +25,7 @@ void main() {
     const obstacleMinX = 120.0;
     const obstacleMaxX = 140.0;
 
-    final core = GameCore(
+    final core = GameCore.withTunings(
       seed: 1,
       tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
@@ -74,7 +74,7 @@ void main() {
     const obstacleMinX = 120.0;
     const obstacleMaxX = 140.0;
 
-    final core = GameCore(
+    final core = GameCore.withTunings(
       seed: 1,
       tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
@@ -116,7 +116,7 @@ void main() {
     const obstacleMinX = 120.0;
     const obstacleMaxX = 140.0;
 
-    final core = GameCore(
+    final core = GameCore.withTunings(
       seed: 1,
       tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,

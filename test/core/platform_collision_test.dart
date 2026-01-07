@@ -25,7 +25,7 @@ void main() {
     const topY = 180.0;
     const r = 8.0;
 
-    final core = GameCore(
+    final core = GameCore.withTunings(
       seed: 1,
       tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
@@ -62,7 +62,7 @@ void main() {
     const topY = 180.0;
     const r = 8.0;
 
-    final core = GameCore(
+    final core = GameCore.withTunings(
       seed: 1,
       tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
@@ -91,7 +91,7 @@ void main() {
     const r = 8.0;
     const platformMaxX = 240.0;
 
-    final core = GameCore(
+    final core = GameCore.withTunings(
       seed: 1,
       tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,

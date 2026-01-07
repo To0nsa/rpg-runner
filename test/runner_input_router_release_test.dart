@@ -13,7 +13,7 @@ import 'test_tunings.dart';
 
 void main() {
   test('move axis release overwrites buffered future ticks', () {
-    final core = GameCore(
+    final core = GameCore.withTunings(
       seed: 1,
       tickHz: 60,
       playerCatalog: const PlayerCatalog(
@@ -50,7 +50,7 @@ void main() {
   test(
     'projectile aim clear overwrites buffered future ticks (affects cast direction)',
     () {
-      final core = GameCore(
+      final core = GameCore.withTunings(
         seed: 1,
         tickHz: 60,
         playerCatalog: const PlayerCatalog(
@@ -96,7 +96,7 @@ void main() {
   );
 
   test('release-to-cast keeps aimed dir for the cast tick', () {
-    final core = GameCore(
+    final core = GameCore.withTunings(
       seed: 1,
       tickHz: 60,
       playerCatalog: const PlayerCatalog(

@@ -29,7 +29,7 @@ void _tick(
 
 void main() {
   test('accelerates toward desired horizontal speed', () {
-    final core = GameCore(
+    final core = GameCore.withTunings(
       seed: 1,
       tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
@@ -51,7 +51,7 @@ void main() {
   });
 
   test('jump from ground sets upward velocity', () {
-    final core = GameCore(
+    final core = GameCore.withTunings(
       seed: 1,
       tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
@@ -71,7 +71,7 @@ void main() {
   });
 
   test('jump buffer triggers on the tick after landing', () {
-    final core = GameCore(
+    final core = GameCore.withTunings(
       seed: 1,
       tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
@@ -118,7 +118,7 @@ void main() {
   });
 
   test('dash sets constant horizontal speed and cancels vertical velocity', () {
-    final core = GameCore(
+    final core = GameCore.withTunings(
       seed: 1,
       tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
@@ -135,7 +135,7 @@ void main() {
   });
 
   test('jump spends stamina (2) when executed', () {
-    final core = GameCore(
+    final core = GameCore.withTunings(
       seed: 1,
       tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
@@ -153,7 +153,7 @@ void main() {
   });
 
   test('dash spends stamina (2) when started', () {
-    final core = GameCore(
+    final core = GameCore.withTunings(
       seed: 1,
       tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
@@ -171,7 +171,7 @@ void main() {
   });
 
   test('insufficient stamina blocks dash and jump', () {
-    final core = GameCore(
+    final core = GameCore.withTunings(
       seed: 1,
       tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
@@ -202,7 +202,7 @@ void main() {
   });
 
   test('Body.gravityScale=0 disables gravity integration', () {
-    final core = GameCore(
+    final core = GameCore.withTunings(
       seed: 1,
       tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
@@ -223,7 +223,7 @@ void main() {
   });
 
   test('Body.isKinematic skips physics integration', () {
-    final core = GameCore(
+    final core = GameCore.withTunings(
       seed: 1,
       tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
@@ -245,7 +245,7 @@ void main() {
   });
 
   test('Body.maxVelY clamps jump velocity', () {
-    final core = GameCore(
+    final core = GameCore.withTunings(
       seed: 1,
       tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,

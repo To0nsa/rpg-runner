@@ -30,13 +30,13 @@ void main() {
     //
     // Also disable gravity so gaps (introduced by track patterns) don't end the
     // run; this test only cares about deterministic streaming + culling.
-    final a = GameCore(
+    final a = GameCore.withTunings(
       seed: seed,
       playerCatalog: const PlayerCatalog(
         bodyTemplate: BodyDef(sideMask: BodyDef.sideLeft, useGravity: false),
       ),
     );
-    final b = GameCore(
+    final b = GameCore.withTunings(
       seed: seed,
       playerCatalog: const PlayerCatalog(
         bodyTemplate: BodyDef(sideMask: BodyDef.sideLeft, useGravity: false),

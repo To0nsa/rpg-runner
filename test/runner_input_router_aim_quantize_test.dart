@@ -16,7 +16,7 @@ import 'test_tunings.dart';
 
 void main() {
   test('projectile aim dir is quantized (stable payload) before casting', () {
-    final core = GameCore(
+    final core = GameCore.withTunings(
       seed: 1,
       tickHz: 60,
       playerCatalog: const PlayerCatalog(
