@@ -1,7 +1,24 @@
 /// Builds immutable render snapshots from ECS world state.
 ///
-/// Decouples snapshot construction from simulation logic. All methods are
-/// pure readers—no side effects on [EcsWorld].
+/// This module decouples snapshot construction from simulation logic,
+/// providing a clean separation between the game's internal state (ECS)
+/// and the data consumed by the rendering layer.
+///
+/// All methods are pure readers—no side effects on [EcsWorld].
+///
+/// ## Architecture
+///
+/// The render layer never reads ECS directly. Instead, [GameCore] calls
+/// [SnapshotBuilder.build] once per tick to produce a [GameStateSnapshot],
+/// which is an immutable, self-contained description of everything needed
+/// to draw a single frame.
+///
+/// ## Key Types
+///
+/// - [SnapshotBuilder] — Stateful builder holding ECS and tuning references.
+/// - [GameStateSnapshot] — Complete frame data (entities, HUD, geometry).
+/// - [EntityRenderSnapshot] — Per-entity render info (position, animation, etc.).
+/// - [PlayerHudSnapshot] — Player resource bars, cooldowns, affordability flags.
 library;
 
 import 'dart:math';
@@ -24,8 +41,30 @@ import 'tuning/movement_tuning.dart';
 import 'tuning/resource_tuning.dart';
 import 'util/vec2.dart';
 
-/// Snapshot builder context — holds references needed for snapshot construction.
+// ─────────────────────────────────────────────────────────────────────────────
+// SnapshotBuilder
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Constructs [GameStateSnapshot] instances from ECS world state.
+///
+/// Holds references to the ECS world and all tuning data needed to compute
+/// derived values (e.g., cooldown progress, affordability flags).
+///
+/// Usage:
+/// ```dart
+/// final builder = SnapshotBuilder(world: ..., player: ..., ...);
+/// final snapshot = builder.build(tick: 42, ...);
+/// ```
 class SnapshotBuilder {
+  /// Creates a snapshot builder with the given dependencies.
+  ///
+  /// - [world]: The ECS world containing all entity component data.
+  /// - [player]: Entity ID of the player (used to query player-specific stores).
+  /// - [movement]: Derived movement tuning (dash cooldown ticks, etc.).
+  /// - [abilities]: Derived ability tuning (melee/cast cooldown ticks).
+  /// - [resources]: Resource costs (jump/dash stamina, etc.).
+  /// - [spells]: Spell catalog for querying spell stats (mana costs).
+  /// - [projectiles]: Projectile catalog for collider sizes.
   SnapshotBuilder({
     required this.world,
     required this.player,
@@ -36,15 +75,50 @@ class SnapshotBuilder {
     required this.projectiles,
   });
 
+  /// The ECS world containing all game entity data.
   final EcsWorld world;
+
+  /// Entity ID of the player character.
   final EntityId player;
+
+  /// Derived movement tuning (pre-computed tick-based values).
   final MovementTuningDerived movement;
+
+  /// Derived ability tuning (cooldown durations in ticks).
   final AbilityTuningDerived abilities;
+
+  /// Resource tuning (stamina/mana costs for actions).
   final ResourceTuning resources;
+
+  /// Spell catalog for looking up spell stats.
   final SpellCatalog spells;
+
+  /// Projectile catalog for collider dimensions.
   final ProjectileCatalogDerived projectiles;
 
-  /// Builds a complete game state snapshot for rendering.
+  // ───────────────────────────────────────────────────────────────────────────
+  // Public API
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /// Builds a complete [GameStateSnapshot] for the current tick.
+  ///
+  /// This method reads from multiple ECS component stores to assemble:
+  /// - Player state (position, velocity, animation, facing direction)
+  /// - HUD data (HP, mana, stamina, cooldowns, affordability)
+  /// - All entity render snapshots (player, enemies, projectiles, pickups)
+  /// - Static geometry (platforms, ground gaps)
+  ///
+  /// Parameters:
+  /// - [tick]: Current simulation tick number.
+  /// - [seed]: RNG seed for this run (stored for replay/debug).
+  /// - [distance]: Total distance traveled (world units).
+  /// - [paused]: Whether the game is currently paused.
+  /// - [gameOver]: Whether the run has ended.
+  /// - [cameraCenterX], [cameraCenterY]: Camera focus point (world coords).
+  /// - [collectibles]: Number of collectibles picked up this run.
+  /// - [collectibleScore]: Total score from collectibles.
+  /// - [staticSolids]: Pre-built list of platform snapshots.
+  /// - [groundGaps]: Pre-built list of ground gap snapshots.
   GameStateSnapshot build({
     required int tick,
     required int seed,
@@ -58,6 +132,7 @@ class SnapshotBuilder {
     required List<StaticSolidSnapshot> staticSolids,
     required List<StaticGroundGapSnapshot> groundGaps,
   }) {
+    // ─── Query player component indices ───
     final tuning = movement.base;
     final mi = world.movement.indexOf(player);
     final dashing = world.movement.dashTicksLeft[mi] > 0;
@@ -67,19 +142,25 @@ class SnapshotBuilder {
     final si = world.stamina.indexOf(player);
     final ci = world.cooldown.indexOf(player);
 
+    // ─── Read current resource values ───
     final stamina = world.stamina.stamina[si];
     final mana = world.mana.mana[mai];
     final projectileManaCost = spells.get(SpellId.iceBolt).stats.manaCost;
 
+    // ─── Compute affordability flags ───
+    // These tell the UI whether action buttons should appear enabled.
     final canAffordJump = stamina >= resources.jumpStaminaCost;
     final canAffordDash = stamina >= resources.dashStaminaCost;
     final canAffordMelee = stamina >= abilities.base.meleeStaminaCost;
     final canAffordProjectile = mana >= projectileManaCost;
 
+    // ─── Read cooldown timers ───
     final dashCooldownTicksLeft = world.movement.dashCooldownTicksLeft[mi];
     final meleeCooldownTicksLeft = world.cooldown.meleeCooldownTicksLeft[ci];
-    final projectileCooldownTicksLeft = world.cooldown.castCooldownTicksLeft[ci];
+    final projectileCooldownTicksLeft =
+        world.cooldown.castCooldownTicksLeft[ci];
 
+    // ─── Read player transform ───
     final ti = world.transform.indexOf(player);
     final playerPosX = world.transform.posX[ti];
     final playerPosY = world.transform.posY[ti];
@@ -87,6 +168,8 @@ class SnapshotBuilder {
     final playerVelY = world.transform.velY[ti];
     final playerFacing = world.movement.facing[mi];
 
+    // ─── Determine player animation ───
+    // Priority: dashing > airborne > moving > idle
     final AnimKey anim;
     if (dashing) {
       anim = AnimKey.run;
@@ -101,6 +184,7 @@ class SnapshotBuilder {
     final playerPos = Vec2(playerPosX, playerPosY);
     final playerVel = Vec2(playerVelX, playerVelY);
 
+    // ─── Build entity list (player first) ───
     final entities = <EntityRenderSnapshot>[
       EntityRenderSnapshot(
         id: player,
@@ -114,12 +198,14 @@ class SnapshotBuilder {
       ),
     ];
 
+    // Append all other renderable entities.
     _addProjectiles(entities);
     _addHitboxes(entities);
     _addCollectibles(entities);
     _addRestorationItems(entities);
     _addEnemies(entities);
 
+    // ─── Assemble final snapshot ───
     return GameStateSnapshot(
       tick: tick,
       seed: seed,
@@ -154,6 +240,14 @@ class SnapshotBuilder {
     );
   }
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // Private Entity Collectors
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /// Appends projectile entity snapshots to [entities].
+  ///
+  /// Iterates the projectile component store and creates render snapshots
+  /// with position, velocity, facing direction, and rotation angle.
   void _addProjectiles(List<EntityRenderSnapshot> entities) {
     final projectileStore = world.projectile;
     for (var pi = 0; pi < projectileStore.denseEntities.length; pi += 1) {
@@ -161,10 +255,12 @@ class SnapshotBuilder {
       if (!world.transform.has(e)) continue;
       final ti = world.transform.indexOf(e);
 
+      // Look up projectile definition for collider size.
       final projectileId = projectileStore.projectileId[pi];
       final proj = projectiles.base.get(projectileId);
       final colliderSize = Vec2(proj.colliderSizeX, proj.colliderSizeY);
 
+      // Compute facing and rotation from direction vector.
       final dirX = projectileStore.dirX[pi];
       final dirY = projectileStore.dirY[pi];
       final facing = dirX >= 0 ? Facing.right : Facing.left;
@@ -187,6 +283,10 @@ class SnapshotBuilder {
     }
   }
 
+  /// Appends active hitbox (melee attack) snapshots to [entities].
+  ///
+  /// Hitboxes are short-lived trigger volumes spawned by melee attacks.
+  /// They render as debug overlays or attack effects.
   void _addHitboxes(List<EntityRenderSnapshot> entities) {
     final hitboxes = world.hitbox;
     for (var hi = 0; hi < hitboxes.denseEntities.length; hi += 1) {
@@ -194,6 +294,7 @@ class SnapshotBuilder {
       if (!world.transform.has(e)) continue;
       final ti = world.transform.indexOf(e);
 
+      // Hitbox size is stored as half-extents; double for full size.
       final size = Vec2(hitboxes.halfX[hi] * 2, hitboxes.halfY[hi] * 2);
       final dirX = hitboxes.dirX[hi];
       final dirY = hitboxes.dirY[hi];
@@ -215,6 +316,9 @@ class SnapshotBuilder {
     }
   }
 
+  /// Appends collectible (score pickup) snapshots to [entities].
+  ///
+  /// Collectibles are small pickups that grant score when collected.
   void _addCollectibles(List<EntityRenderSnapshot> entities) {
     final collectiblesStore = world.collectible;
     for (var ci = 0; ci < collectiblesStore.denseEntities.length; ci += 1) {
@@ -222,6 +326,7 @@ class SnapshotBuilder {
       if (!world.transform.has(e)) continue;
       final ti = world.transform.indexOf(e);
 
+      // Size comes from AABB collider if present.
       Vec2? size;
       if (world.colliderAabb.has(e)) {
         final aabbi = world.colliderAabb.indexOf(e);
@@ -239,7 +344,7 @@ class SnapshotBuilder {
           size: size,
           facing: Facing.right,
           pickupVariant: PickupVariant.collectible,
-          rotationRad: pi * 0.25,
+          rotationRad: pi * 0.25, // 45° tilt for visual interest
           anim: AnimKey.idle,
           grounded: false,
         ),
@@ -247,6 +352,10 @@ class SnapshotBuilder {
     }
   }
 
+  /// Appends restoration item (health/mana/stamina orb) snapshots to [entities].
+  ///
+  /// Restoration items restore a specific resource when picked up.
+  /// The [pickupVariant] field tells the renderer which sprite to use.
   void _addRestorationItems(List<EntityRenderSnapshot> entities) {
     final restorationStore = world.restorationItem;
     for (var ri = 0; ri < restorationStore.denseEntities.length; ri += 1) {
@@ -263,6 +372,7 @@ class SnapshotBuilder {
         );
       }
 
+      // Map restoration stat enum to pickup variant for rendering.
       final stat = restorationStore.stat[ri];
       int variant;
       switch (stat) {
@@ -290,6 +400,10 @@ class SnapshotBuilder {
     }
   }
 
+  /// Appends enemy entity snapshots to [entities].
+  ///
+  /// Enemies have position, velocity, facing direction, and grounded state.
+  /// The renderer uses this to select appropriate sprites and animations.
   void _addEnemies(List<EntityRenderSnapshot> entities) {
     final enemies = world.enemy;
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
@@ -324,7 +438,17 @@ class SnapshotBuilder {
   }
 }
 
-/// Builds static solid snapshots from geometry.
+// ─────────────────────────────────────────────────────────────────────────────
+// Static Geometry Snapshot Builders
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Builds an immutable list of [StaticSolidSnapshot] from world geometry.
+///
+/// Static solids are platforms and walls that don't change during gameplay.
+/// This function converts the internal geometry representation into render-
+/// friendly snapshots.
+///
+/// Returns an unmodifiable list to prevent accidental mutation.
 List<StaticSolidSnapshot> buildStaticSolidsSnapshot(
   StaticWorldGeometry geometry,
 ) {
@@ -342,7 +466,12 @@ List<StaticSolidSnapshot> buildStaticSolidsSnapshot(
   );
 }
 
-/// Builds ground gap snapshots from geometry.
+/// Builds an immutable list of [StaticGroundGapSnapshot] from world geometry.
+///
+/// Ground gaps are horizontal spans where the ground is missing (pits).
+/// The renderer uses these to draw hazard indicators or gap backgrounds.
+///
+/// Returns an empty const list if no gaps exist (avoids allocation).
 List<StaticGroundGapSnapshot> buildGroundGapsSnapshot(
   StaticWorldGeometry geometry,
 ) {
