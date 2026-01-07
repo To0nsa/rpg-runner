@@ -26,7 +26,6 @@ import 'dart:math';
 import 'ecs/entity_id.dart';
 import 'ecs/world.dart';
 import 'ecs/stores/restoration_item_store.dart';
-import 'collision/static_world_geometry_index.dart';
 import 'projectiles/projectile_catalog.dart';
 import 'snapshots/enums.dart';
 import 'snapshots/entity_render_snapshot.dart';
@@ -436,51 +435,4 @@ class SnapshotBuilder {
       );
     }
   }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Static Geometry Snapshot Builders
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// Builds an immutable list of [StaticSolidSnapshot] from world geometry.
-///
-/// Static solids are platforms and walls that don't change during gameplay.
-/// This function converts the internal geometry representation into render-
-/// friendly snapshots.
-///
-/// Returns an unmodifiable list to prevent accidental mutation.
-List<StaticSolidSnapshot> buildStaticSolidsSnapshot(
-  StaticWorldGeometry geometry,
-) {
-  return List<StaticSolidSnapshot>.unmodifiable(
-    geometry.solids.map(
-      (s) => StaticSolidSnapshot(
-        minX: s.minX,
-        minY: s.minY,
-        maxX: s.maxX,
-        maxY: s.maxY,
-        sides: s.sides,
-        oneWayTop: s.oneWayTop,
-      ),
-    ),
-  );
-}
-
-/// Builds an immutable list of [StaticGroundGapSnapshot] from world geometry.
-///
-/// Ground gaps are horizontal spans where the ground is missing (pits).
-/// The renderer uses these to draw hazard indicators or gap backgrounds.
-///
-/// Returns an empty const list if no gaps exist (avoids allocation).
-List<StaticGroundGapSnapshot> buildGroundGapsSnapshot(
-  StaticWorldGeometry geometry,
-) {
-  if (geometry.groundGaps.isEmpty) {
-    return const <StaticGroundGapSnapshot>[];
-  }
-  return List<StaticGroundGapSnapshot>.unmodifiable(
-    geometry.groundGaps.map(
-      (g) => StaticGroundGapSnapshot(minX: g.minX, maxX: g.maxX),
-    ),
-  );
 }

@@ -713,16 +713,18 @@ class GameCore {
 
     tick += 1;
 
+    // Cache ground Y once per tick (ground plane doesn't change mid-tick).
+    final effectiveGroundTopY =
+        staticWorldGeometry.groundPlane?.topY ?? groundTopY.toDouble();
+
     // ─── Phase 1: World generation ───
-    _stepTrackManager();
+    _stepTrackManager(effectiveGroundTopY);
 
     // ─── Phase 2: Timer decrements ───
     _cooldownSystem.step(_world);
     _invulnerabilitySystem.step(_world);
 
     // ─── Phase 3: AI and movement ───
-    final effectiveGroundTopY =
-        staticWorldGeometry.groundPlane?.topY ?? groundTopY.toDouble();
     _enemySystem.stepSteering(
       _world,
       player: _player,
@@ -826,10 +828,7 @@ class GameCore {
   /// Steps the track manager and handles enemy spawning callbacks.
   ///
   /// This is extracted from [stepOneTick] to keep the main loop readable.
-  void _stepTrackManager() {
-    final effectiveGroundTopY =
-        staticWorldGeometry.groundPlane?.topY ?? groundTopY.toDouble();
-
+  void _stepTrackManager(double effectiveGroundTopY) {
     _trackManager.step(
       cameraLeft: _camera.left(),
       cameraRight: _camera.right(),
@@ -981,6 +980,10 @@ class GameCore {
   /// Used by restoration item spawning to bias item type toward what
   /// the player needs most. Compares ratios (current/max) to handle
   /// resources with different maximum values fairly.
+  ///
+  /// **Tie-breaking priority**: When ratios are equal, the first resource
+  /// checked wins: health > mana > stamina. This is intentional—health
+  /// is prioritized as the most critical survival resource.
   RestorationStat _lowestResourceStat() {
     final hi = _world.health.tryIndexOf(_player);
     final mi = _world.mana.tryIndexOf(_player);
@@ -1064,18 +1067,6 @@ class GameCore {
   ///
   /// Snapshots are immutable and safe to pass to async render code.
   GameStateSnapshot buildSnapshot() {
-    // Recreate snapshot builder to ensure player reference is current.
-    // (In practice this could be optimized to only update when player changes.)
-    _snapshotBuilder = SnapshotBuilder(
-      world: _world,
-      player: _player,
-      movement: _movement,
-      abilities: _abilities,
-      resources: _resourceTuning,
-      spells: _spells,
-      projectiles: _projectiles,
-    );
-
     return _snapshotBuilder.build(
       tick: tick,
       seed: seed,
