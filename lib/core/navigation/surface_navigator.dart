@@ -251,7 +251,7 @@ class SurfaceNavigator {
           desiredX: edge.takeoffX,
           jumpNow: false,
           hasPlan: true,
-          commitMoveDirX: _dropCommitDirX(edge),
+          commitMoveDirX: _edgeCommitDirX(edge),
         );
       }
 
@@ -264,7 +264,13 @@ class SurfaceNavigator {
     }
 
     // --- Approaching takeoff point ---
-    final closeEnough = (entityX - edge.takeoffX).abs() <= takeoffEps;
+    // For jump edges with commitMoveDirX, the entity may overshoot the exact
+    // takeoff point at high speeds. Check if the entity is at OR past the
+    // takeoff point in the direction of travel.
+    final dir = _edgeCommitDirX(edge);
+    final closeEnough = edge.kind == SurfaceEdgeKind.jump && dir != 0
+        ? (dir > 0 ? entityX >= edge.takeoffX - takeoffEps : entityX <= edge.takeoffX + takeoffEps)
+        : (entityX - edge.takeoffX).abs() <= takeoffEps;
     if (entityGrounded && closeEnough) {
       // Initiate edge execution.
       navStore.activeEdgeIndex[navIndex] = edgeIndex;
@@ -275,26 +281,29 @@ class SurfaceNavigator {
             edge.kind == SurfaceEdgeKind.drop ? edge.takeoffX : edge.landingX,
         jumpNow: jumpNow,
         hasPlan: true,
-        commitMoveDirX:
-            edge.kind == SurfaceEdgeKind.drop ? _dropCommitDirX(edge) : 0,
+        commitMoveDirX: _edgeCommitDirX(edge),
       );
     }
 
     // Walk toward takeoff point.
+    // For jump edges, commit direction keeps the entity moving at full speed
+    // through the takeoff instead of decelerating as it approaches.
     return SurfaceNavIntent(
       desiredX: edge.takeoffX,
       jumpNow: false,
       hasPlan: true,
+      commitMoveDirX:
+          edge.kind == SurfaceEdgeKind.jump ? _edgeCommitDirX(edge) : 0,
     );
   }
 }
 
-/// Determines commit direction for drop edges.
+/// Determines commit direction for edge traversal.
 ///
-/// Drop edges place the takeoff point slightly past the ledge. This returns
-/// the direction (+1 or -1) the entity should commit to, preventing the
-/// locomotion controller from stopping "close enough" and never falling.
-int _dropCommitDirX(SurfaceEdge edge) {
+/// Returns the direction (+1 or -1) the entity should commit to when
+/// approaching or executing an edge. This prevents the locomotion controller
+/// from decelerating near the takeoff point, enabling smooth running jumps.
+int _edgeCommitDirX(SurfaceEdge edge) {
   if (edge.takeoffX < edge.landingX) return 1;
   if (edge.takeoffX > edge.landingX) return -1;
   // Fallback: exact tie (rare), don't commit.

@@ -44,6 +44,7 @@ import 'enemies/enemy_id.dart';
 import 'events/game_event.dart';
 import 'util/vec2.dart';
 import 'navigation/utils/jump_template.dart';
+import 'navigation/utils/trajectory_predictor.dart';
 import 'navigation/types/nav_tolerances.dart';
 import 'navigation/types/surface_graph.dart';
 import 'navigation/surface_graph_builder.dart';
@@ -202,6 +203,11 @@ class GameCore {
       surfaceNavigator: _surfaceNavigator,
       spells: _spells,
       projectiles: _projectiles,
+      trajectoryPredictor: TrajectoryPredictor(
+        gravityY: _physicsTuning.gravityY,
+        dtSeconds: _movement.dtSeconds,
+        maxTicks: 120, // ~2 seconds at 60Hz
+      ),
     );
     _cameraTuning = CameraTuningDerived.from(
       cameraTuning,

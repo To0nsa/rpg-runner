@@ -16,6 +16,7 @@ import '../../navigation/types/surface_graph.dart';
 import '../../navigation/types/surface_id.dart';
 import '../../navigation/surface_navigator.dart';
 import '../../navigation/utils/surface_spatial_index.dart';
+import '../../navigation/utils/trajectory_predictor.dart';
 import '../stores/cast_intent_store.dart';
 import '../stores/melee_intent_store.dart';
 import '../world.dart';
@@ -36,6 +37,7 @@ class EnemySystem {
     required this.surfaceNavigator,
     required this.spells,
     required this.projectiles,
+    this.trajectoryPredictor,
   });
 
   final FlyingEnemyTuningDerived flyingEnemyTuning;
@@ -43,6 +45,12 @@ class EnemySystem {
   final SurfaceNavigator surfaceNavigator;
   final SpellCatalog spells;
   final ProjectileCatalogDerived projectiles;
+
+  /// Optional predictor for anticipating where an airborne player will land.
+  ///
+  /// When provided, ground enemies will pathfind toward the predicted landing
+  /// spot instead of the player's current (airborne) position.
+  final TrajectoryPredictor? trajectoryPredictor;
 
   /// The navigation graph for ground enemies. Can be null if the level has no surface data.
   SurfaceGraph? _surfaceGraph;
@@ -97,6 +105,10 @@ class EnemySystem {
       playerBottomY = playerY + offsetY + world.colliderAabb.halfY[ai];
     }
 
+    // Cache player velocity for trajectory prediction (ground enemies).
+    final playerVelX = world.transform.velX[playerTi];
+    final playerVelY = world.transform.velY[playerTi];
+
     final enemies = world.enemy;
     // Iterate over all entities tagged as enemies.
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
@@ -133,6 +145,8 @@ class EnemySystem {
             playerX: playerX,
             playerBottomY: playerBottomY,
             playerHalfX: playerHalfX,
+            playerVelX: playerVelX,
+            playerVelY: playerVelY,
             playerGrounded: playerGrounded,
             ex: ex,
             dtSeconds: dtSeconds,
@@ -380,6 +394,8 @@ class EnemySystem {
     required double playerX,
     required double playerBottomY,
     required double playerHalfX,
+    required double playerVelX,
+    required double playerVelY,
     required bool playerGrounded,
     required double ex,
     required double dtSeconds,
@@ -418,11 +434,38 @@ class EnemySystem {
     final effectiveTargetX = distToPlayerX <= collapseDistX
         ? playerX + meleeOffsetX
         : playerX + chaseOffsetX;
-    final navTargetX = playerX; // Navigation (A*) always targets the player directly.
 
     // -- Pathfinding Query --
     final graph = _surfaceGraph;
     final spatialIndex = _surfaceIndex;
+
+    // -- Landing Prediction --
+    // When player is airborne, predict where they'll land and navigate there.
+    var navTargetX = playerX;
+    var navTargetBottomY = playerBottomY;
+    var navTargetGrounded = playerGrounded;
+
+    if (!playerGrounded &&
+        trajectoryPredictor != null &&
+        graph != null &&
+        spatialIndex != null) {
+      final prediction = trajectoryPredictor!.predictLanding(
+        startX: playerX,
+        startBottomY: playerBottomY,
+        velX: playerVelX,
+        velY: playerVelY,
+        graph: graph,
+        spatialIndex: spatialIndex,
+        entityHalfWidth: playerHalfX,
+      );
+
+      if (prediction != null) {
+        navTargetX = prediction.x;
+        navTargetBottomY = prediction.bottomY;
+        navTargetGrounded = true; // Treat predicted landing as grounded.
+      }
+    }
+
     double? noPlanSurfaceMinX;
     double? noPlanSurfaceMaxX;
     SurfaceNavIntent intent;
@@ -458,9 +501,9 @@ class EnemySystem {
         entityHalfWidth: enemyHalfX,
         entityGrounded: grounded,
         targetX: navTargetX,
-        targetBottomY: playerBottomY,
+        targetBottomY: navTargetBottomY,
         targetHalfWidth: playerHalfX,
-        targetGrounded: playerGrounded,
+        targetGrounded: navTargetGrounded,
       );
 
       // -- Fallback Logic --
