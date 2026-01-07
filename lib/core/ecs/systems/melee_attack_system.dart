@@ -2,18 +2,32 @@ import '../stores/hitbox_store.dart';
 import '../stores/lifetime_store.dart';
 import '../world.dart';
 
-/// Executes `MeleeIntentStore` intents by applying costs/cooldowns and spawning
-/// melee hitboxes.
+/// Processes requests to perform melee attacks.
 ///
-/// IMPORTANT:
-/// - Only intents with `intent.tick == currentTick` are considered valid.
-/// - Hitbox `faction` is derived from the attacker entity's `FactionStore`.
-/// - Intents are invalidated after processing by setting `intent.tick = -1`.
+/// **Responsibilities**:
+/// *   Consumes [MeleeIntentStore] intents created by input or enemy AI.
+/// *   Validates attack requirements (Cooldown, Stamina availability).
+/// *   Deducts resource costs (Stamina, Cooldown Reset).
+/// *   Spawns the actual "Hitbox" entity that performs collision checks.
+///
+/// **Workflow**:
+/// 1.  Filter intents that match the [currentTick] (synchronization).
+/// 2.  Validate Attacker State (Must exist, have cooldown component, etc.).
+/// 3.  Check Costs (Is cooldown ready? Is there enough stamina?).
+/// 4.  **Execute**:
+///     *   Deduct Stamina.
+///     *   Set Cooldown.
+///     *   Create Hitbox entity with [HitboxDef], [HitOnce], and [LifetimeDef].
 class MeleeAttackSystem {
+  /// Runs the system logic.
+  ///
+  /// [currentTick] is required to ensure we only process intents generated for THIS frame,
+  /// preserving determinism.
   void step(EcsWorld world, {required int currentTick}) {
     final intents = world.meleeIntent;
     if (intents.denseEntities.isEmpty) return;
-
+    
+    // Iterate through all intents.
     for (var ii = 0; ii < intents.denseEntities.length; ii += 1) {
       if (intents.tick[ii] != currentTick) continue;
 
@@ -23,32 +37,45 @@ class MeleeAttackSystem {
       // double-attack. (Intent is still ignored next tick due to stamp mismatch.)
       intents.tick[ii] = -1;
 
-      if (!world.transform.has(attacker)) continue;
-      if (!world.cooldown.has(attacker)) continue;
+      // -- Validation & Resource Checks --
 
-      final ci = world.cooldown.indexOf(attacker);
+      // Attacker must exist physically.
+      final attackerTi = world.transform.tryIndexOf(attacker);
+      if (attackerTi == null) continue;
+
+      // Attacker must respond to cooldowns.
+      final ci = world.cooldown.tryIndexOf(attacker);
+      if (ci == null) continue;
       if (world.cooldown.meleeCooldownTicksLeft[ci] > 0) continue;
 
+      // Attacker must have a faction to determine who they hit.
       final fi = world.faction.tryIndexOf(attacker);
       if (fi == null) continue;
       final faction = world.faction.faction[fi];
 
+      // Stamina check.
       final staminaCost = intents.staminaCost[ii];
       int? si;
       double? nextStamina;
+      
       if (staminaCost > 0) {
-        if (!world.stamina.has(attacker)) continue;
-        si = world.stamina.indexOf(attacker);
-        final stamina = world.stamina.stamina[si];
-        if (stamina < staminaCost) continue;
-        nextStamina = stamina - staminaCost;
+        // Optimization: Resolve index directly.
+        si = world.stamina.tryIndexOf(attacker);
+        if (si == null) continue; // No stamina component = cannot attack if cost > 0.
+        
+        final currentStamina = world.stamina.stamina[si];
+        if (currentStamina < staminaCost) continue; // Not enough stamina.
+        nextStamina = currentStamina - staminaCost;
       }
 
-      final attackerTi = world.transform.indexOf(attacker);
+      // -- Execution --
+
+      // Spawn the hitbox.
       final hitbox = world.createEntity();
       world.transform.add(
         hitbox,
         // HitboxFollowOwnerSystem will position from `owner + offset`.
+        // Initialize at owner's position to prevent 1-frame visual glitch.
         posX: world.transform.posX[attackerTi],
         posY: world.transform.posY[attackerTi],
         velX: 0.0,
@@ -68,15 +95,19 @@ class MeleeAttackSystem {
           dirY: intents.dirY[ii],
         ),
       );
+      // Ensure hitbox only hits things once.
       world.hitOnce.add(hitbox);
+      // Hitbox is ephemeral.
       world.lifetime.add(
         hitbox,
         LifetimeDef(ticksLeft: intents.activeTicks[ii]),
       );
 
+      // Apply costs.
       if (si != null) {
         world.stamina.stamina[si] = nextStamina!;
       }
+      // Set cooldown.
       world.cooldown.meleeCooldownTicksLeft[ci] = intents.cooldownTicks[ii];
     }
   }
