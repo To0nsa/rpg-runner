@@ -7,6 +7,13 @@ import '../entity_id.dart';
 import '../stores/melee_intent_store.dart';
 import '../world.dart';
 
+/// Translates player input into a [MeleeIntentDef] for the [MeleeAttackSystem].
+///
+/// **Responsibilities**:
+/// *   Checks input state (Attack button).
+/// *   Calculates attack direction (Analog aim or Facing fallback).
+/// *   Calculates hitbox offsets based on attack reach.
+/// *   Registers intent (Costs/Cooldowns checked downstream).
 class PlayerMeleeSystem {
   const PlayerMeleeSystem({required this.abilities, required this.movement});
 
@@ -18,17 +25,9 @@ class PlayerMeleeSystem {
     required EntityId player,
     required int currentTick,
   }) {
-    _trySpawnPlayerMelee(world, player: player, currentTick: currentTick);
-  }
-
-  void _trySpawnPlayerMelee(
-    EcsWorld world, {
-    required EntityId player,
-    required int currentTick,
-  }) {
-    if (!world.playerInput.has(player)) return;
-    if (!world.transform.has(player)) return;
-    if (!world.movement.has(player)) return;
+    // -- 1. Component Checks --
+    
+    // Check if the store exists (should be added at spawn).
     if (!world.meleeIntent.has(player)) {
       assert(
         false,
@@ -37,15 +36,25 @@ class PlayerMeleeSystem {
       return;
     }
 
-    final ii = world.playerInput.indexOf(player);
-    if (!world.playerInput.attackPressed[ii]) return;
+    // Input is required to know if attacking.
+    final inputIndex = world.playerInput.tryIndexOf(player);
+    if (inputIndex == null) return;
+    
+    // Movement is required for facing direction fallback.
+    final movementIndex = world.movement.tryIndexOf(player);
+    if (movementIndex == null) return;
 
-    final mi = world.movement.indexOf(player);
-    final facing = world.movement.facing[mi];
-    final aimX = world.playerInput.meleeAimDirX[ii];
-    final aimY = world.playerInput.meleeAimDirY[ii];
+    // -- 2. Input Logic --
+
+    // If button not pressed, early exit.
+    if (!world.playerInput.attackPressed[inputIndex]) return;
+
+    final facing = world.movement.facing[movementIndex];
+    final aimX = world.playerInput.meleeAimDirX[inputIndex];
+    final aimY = world.playerInput.meleeAimDirY[inputIndex];
     final len2 = aimX * aimX + aimY * aimY;
 
+    // Normalize aim direction if valid, otherwise fallback to facing direction.
     final double dirX;
     final double dirY;
     if (len2 > 1e-12) {
@@ -57,12 +66,13 @@ class PlayerMeleeSystem {
       dirY = 0.0;
     }
 
+    // -- 3. Intent Calculation --
+
     final halfX = abilities.base.meleeHitboxSizeX * 0.5;
     final halfY = abilities.base.meleeHitboxSizeY * 0.5;
 
-    // origin = playerPos + aimDir * (playerRadius * 0.5) for casts
-    // melee uses facing-only:
-    // center = playerPos + dirX * (playerRadius * 0.5 + halfX)
+    // Calculate how far in front of the player the hitbox should appear.
+    // origin = playerPos + aimDir * (playerRadius * 0.5 + maxDimension)
     final forward = movement.base.playerRadius * 0.5 + max(halfX, halfY);
     final offsetX = dirX * forward;
     final offsetY = dirY * forward;
