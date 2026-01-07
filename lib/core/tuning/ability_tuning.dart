@@ -1,3 +1,6 @@
+/// Player ability tuning (cast, melee).
+library;
+
 import '../util/tick_math.dart';
 
 class AbilityTuning {
@@ -11,15 +14,25 @@ class AbilityTuning {
     this.meleeHitboxSizeY = 16.0,
   });
 
+  /// Cooldown between spell casts (seconds).
   final double castCooldownSeconds;
 
+  /// Cooldown between melee attacks (seconds).
   final double meleeCooldownSeconds;
+
+  /// Duration melee hitbox is active (seconds).
   final double meleeActiveSeconds;
+
+  /// Stamina spent per melee attack.
   final double meleeStaminaCost;
+
+  /// Damage dealt by melee attack.
   final double meleeDamage;
 
-  /// Full extents in world units (virtual pixels).
+  /// Melee hitbox width (world units).
   final double meleeHitboxSizeX;
+
+  /// Melee hitbox height (world units).
   final double meleeHitboxSizeY;
 }
 

@@ -85,7 +85,7 @@ RunResult buildRunResult({
     tickHz: tickHz,
   );
 
-  final distanceMeters = (event.distance / 100.0).floor();
+  final distanceMeters = (event.distance / kWorldUnitsPerMeter).floor();
   final durationSeconds = tickHz <= 0 ? 0 : event.tick ~/ tickHz;
 
   return RunResult(

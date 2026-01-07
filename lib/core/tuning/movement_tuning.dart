@@ -1,6 +1,6 @@
 import '../util/tick_math.dart';
 
-/// V0 movement/physics tuning for the Core simulation.
+/// Movement/physics tuning for the Core simulation.
 ///
 /// All units are expressed in world units ("virtual pixels") and seconds:
 /// - speeds: world units / second

@@ -1,3 +1,9 @@
+/// Scoring tuning (points per time, distance, kills).
+library;
+
+/// World units per meter (used for distance→score conversion).
+const int kWorldUnitsPerMeter = 50;
+
 class ScoreTuning {
   const ScoreTuning({
     this.timeScorePerSecond = 5,

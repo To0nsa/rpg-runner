@@ -13,16 +13,27 @@ class ResourceTuning {
     this.dashStaminaCost = 2,
   });
 
+  /// Maximum health points.
   final double playerHpMax;
+
+  /// HP regenerated per second.
   final double playerHpRegenPerSecond;
 
+  /// Maximum mana points.
   final double playerManaMax;
+
+  /// Mana regenerated per second.
   final double playerManaRegenPerSecond;
 
+  /// Maximum stamina points.
   final double playerStaminaMax;
+
+  /// Stamina regenerated per second.
   final double playerStaminaRegenPerSecond;
 
-  /// Action costs (C++ reference: 2 stamina each for jump + dash).
+  /// Stamina spent per jump.
   final double jumpStaminaCost;
+
+  /// Stamina spent per dash.
   final double dashStaminaCost;
 }

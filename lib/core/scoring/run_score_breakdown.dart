@@ -71,7 +71,7 @@ RunScoreBreakdown buildRunScoreBreakdown({
   required List<int> enemyKillCounts,
   required ScoreTuning tuning,
   required int tickHz,
-  int unitsPerMeter = 100,
+  int unitsPerMeter = kWorldUnitsPerMeter,
 }) {
   // Convert internal units to player-facing values.
   final meters =

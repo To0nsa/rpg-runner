@@ -1,4 +1,4 @@
-/// V0 navigation tuning for surface-graph based AI.
+/// Navigation tuning for surface-graph based AI.
 ///
 /// This is intentionally separate from movement/combat tunings:
 /// - movement tuning controls the player's physical feel

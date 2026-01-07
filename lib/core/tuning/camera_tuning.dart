@@ -1,3 +1,6 @@
+/// Camera auto-scroll and follow tuning.
+library;
+
 import 'dart:math';
 
 import 'movement_tuning.dart';

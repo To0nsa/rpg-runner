@@ -1,3 +1,6 @@
+/// Flying enemy AI tuning (steering, attacks).
+library;
+
 import '../util/tick_math.dart';
 
 class FlyingEnemyTuning {
@@ -25,29 +28,71 @@ class FlyingEnemyTuning {
     this.flyingEnemyCastOriginOffset = 20.0,
   });
 
-  // Flying enemy steering.
+  // ── Steering ──
+
+  /// Vertical offset above player when hovering (world units).
   final double flyingEnemyHoverOffsetY;
+
+  /// Min horizontal range to maintain from player (world units).
   final double flyingEnemyDesiredRangeMin;
+
+  /// Max horizontal range to maintain from player (world units).
   final double flyingEnemyDesiredRangeMax;
+
+  /// Min time to hold a desired range before picking new (seconds).
   final double flyingEnemyDesiredRangeHoldMinSeconds;
+
+  /// Max time to hold a desired range (seconds).
   final double flyingEnemyDesiredRangeHoldMaxSeconds;
+
+  /// Slack distance before recalculating position (world units).
   final double flyingEnemyHoldSlack;
+
+  /// Max horizontal speed (world units/sec).
   final double flyingEnemyMaxSpeedX;
+
+  /// Distance from target where decel starts (world units).
   final double flyingEnemySlowRadiusX;
+
+  /// Horizontal acceleration (world units/sec²).
   final double flyingEnemyAccelX;
+
+  /// Horizontal deceleration (world units/sec²).
   final double flyingEnemyDecelX;
+
+  /// Min height above ground (world units).
   final double flyingEnemyMinHeightAboveGround;
+
+  /// Max height above ground (world units).
   final double flyingEnemyMaxHeightAboveGround;
+
+  /// Min time to hold a flight target (seconds).
   final double flyingEnemyFlightTargetHoldMinSeconds;
+
+  /// Max time to hold a flight target (seconds).
   final double flyingEnemyFlightTargetHoldMaxSeconds;
+
+  /// Max vertical speed (world units/sec).
   final double flyingEnemyMaxSpeedY;
+
+  /// Proportional gain for vertical steering.
   final double flyingEnemyVerticalKp;
+
+  /// Deadzone for vertical error (world units).
   final double flyingEnemyVerticalDeadzone;
 
-  // Flying enemy attacks.
+  // ── Attacks ──
+
+  /// Min lead time when aiming at player (seconds).
   final double flyingEnemyAimLeadMinSeconds;
+
+  /// Max lead time when aiming at player (seconds).
   final double flyingEnemyAimLeadMaxSeconds;
+
+  /// Cooldown between casts (seconds).
   final double flyingEnemyCastCooldownSeconds;
+
+  /// Projectile spawn offset from center (world units).
   final double flyingEnemyCastOriginOffset;
 }
 

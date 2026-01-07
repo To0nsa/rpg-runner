@@ -5,15 +5,13 @@
 /// concern, not a combat rule.
 class SpatialGridTuning {
   const SpatialGridTuning({
-    this.broadphaseCellSize = v0BroadphaseCellSize,
+    this.broadphaseCellSize = 32.0,
   });
 
   /// Default broadphase cell size for dynamic AABB queries.
   ///
-  /// With current V0 collider sizes (player ~16x16, enemies ~24x24), `32.0`
+  /// With current collider sizes (player ~16x16, enemies ~24x24), `32.0`
   /// keeps candidate sets small while keeping grid math cheap.
-  static const double v0BroadphaseCellSize = 32.0;
-
   final double broadphaseCellSize;
 }
 

@@ -1,8 +1,12 @@
+/// Combat tuning (invulnerability, damage modifiers).
+library;
+
 import '../util/tick_math.dart';
 
 class CombatTuning {
   const CombatTuning({this.invulnerabilitySeconds = 0.25});
 
+  /// Duration of i-frames after taking damage (seconds).
   final double invulnerabilitySeconds;
 }
 

@@ -1,3 +1,6 @@
+/// Ground enemy AI tuning (steering, melee).
+library;
+
 import '../util/tick_math.dart';
 
 class GroundEnemyTuning {
@@ -20,26 +23,56 @@ class GroundEnemyTuning {
     this.groundEnemyMeleeHitboxSizeY = 16.0,
   });
 
-  // Ground enemy steering.
+  // ── Steering ──
+
+  /// Target horizontal speed (world units/sec).
   final double groundEnemySpeedX;
+
+  /// Distance at which enemy stops chasing (world units).
   final double groundEnemyStopDistanceX;
+
+  /// Horizontal acceleration (world units/sec²).
   final double groundEnemyAccelX;
+
+  /// Horizontal deceleration (world units/sec²).
   final double groundEnemyDecelX;
+
+  /// Max random chase offset from player (world units).
   final double groundEnemyChaseOffsetMaxX;
+
+  /// Min absolute chase offset (prevents clumping).
   final double groundEnemyChaseOffsetMinAbsX;
+
+  /// Chase offset when in melee range (world units).
   final double groundEnemyChaseOffsetMeleeX;
+
+  /// Min speed scale for chase variance.
   final double groundEnemyChaseSpeedScaleMin;
+
+  /// Max speed scale for chase variance.
   final double groundEnemyChaseSpeedScaleMax;
 
-  /// Instantaneous jump vertical speed (negative is upward).
+  /// Jump velocity (world units/sec, positive = upward).
   final double groundEnemyJumpSpeed;
 
-  // Ground enemy melee.
+  // ── Melee ──
+
+  /// Horizontal range to trigger melee attack (world units).
   final double groundEnemyMeleeRangeX;
+
+  /// Cooldown between melee attacks (seconds).
   final double groundEnemyMeleeCooldownSeconds;
+
+  /// Duration melee hitbox is active (seconds).
   final double groundEnemyMeleeActiveSeconds;
+
+  /// Damage dealt by melee attack.
   final double groundEnemyMeleeDamage;
+
+  /// Melee hitbox width (world units).
   final double groundEnemyMeleeHitboxSizeX;
+
+  /// Melee hitbox height (world units).
   final double groundEnemyMeleeHitboxSizeY;
 }
 
