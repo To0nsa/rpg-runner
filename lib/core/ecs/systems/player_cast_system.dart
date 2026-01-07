@@ -6,6 +6,12 @@ import '../entity_id.dart';
 import '../stores/cast_intent_store.dart';
 import '../world.dart';
 
+/// Translates player input into a [CastIntentDef] for the [SpellCastSystem].
+///
+/// **Responsibilities**:
+/// *   Checks if the cast button is pressed.
+/// *   Determines aiming direction based on input or facing direction.
+/// *   Registers a cast intent to be processed (cooldown/mana checks happen downstream).
 class PlayerCastSystem {
   const PlayerCastSystem({
     required this.abilities,
@@ -16,11 +22,17 @@ class PlayerCastSystem {
   final MovementTuningDerived movement;
 
   void step(EcsWorld world, {required EntityId player, required int currentTick}) {
-    if (!world.playerInput.has(player) ||
-        !world.transform.has(player) ||
-        !world.movement.has(player)) {
-      return;
-    }
+    // -- 1. Component Checks --
+    
+    // We need input to know if casting.
+    final inputIndex = world.playerInput.tryIndexOf(player);
+    if (inputIndex == null) return;
+
+    // We need movement data for facing direction (fallback aim).
+    final movementIndex = world.movement.tryIndexOf(player);
+    if (movementIndex == null) return;
+    
+    // Check if the store exists (should be added at spawn).
     if (!world.castIntent.has(player)) {
       assert(
         false,
@@ -29,19 +41,28 @@ class PlayerCastSystem {
       return;
     }
 
-    final ii = world.playerInput.indexOf(player);
-    if (!world.playerInput.castPressed[ii]) return;
+    // -- 2. Input Logic --
 
+    // If button not pressed, do nothing.
+    if (!world.playerInput.castPressed[inputIndex]) return;
+
+    // TODO: Look up equipped spell instead of hardcoding.
     const spellId = SpellId.iceBolt;
 
-    // final ti = world.transform.indexOf(player);
-    final facing = world.movement.facing[world.movement.indexOf(player)];
+    final facing = world.movement.facing[movementIndex];
 
-    final rawAimX = world.playerInput.projectileAimDirX[ii];
-    final rawAimY = world.playerInput.projectileAimDirY[ii];
+    final rawAimX = world.playerInput.projectileAimDirX[inputIndex];
+    final rawAimY = world.playerInput.projectileAimDirY[inputIndex];
 
-    final spawnOffset = movement.base.playerRadius * 0.5;
+    // Determine aim direction.
+    // If rawAim is essentially zero/unbiased (e.g. controller neutral), use facing.
+    // However, currently we pass fallbackDirX to the intent store separately.
     final fallbackDirX = facing == Facing.right ? 1.0 : -1.0;
+    
+    // Offset from the player's center where the spell appears.
+    final spawnOffset = movement.base.playerRadius * 0.5;
+
+    // -- 3. Write Intent --
 
     // IMPORTANT: PlayerCastSystem writes intent only; execution happens in
     // `SpellCastSystem` which owns mana/cooldown rules and projectile spawning.
