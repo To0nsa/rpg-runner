@@ -1,9 +1,9 @@
 import '../ecs/stores/enemies/surface_nav_state_store.dart';
-import 'nav_tolerances.dart';
-import 'surface_graph.dart';
-import 'surface_id.dart';
+import 'types/nav_tolerances.dart';
+import 'types/surface_graph.dart';
+import 'types/surface_id.dart';
 import 'surface_pathfinder.dart';
-import 'surface_spatial_index.dart';
+import 'utils/surface_spatial_index.dart';
 
 /// Output of [SurfaceNavigator.update] indicating desired movement.
 class SurfaceNavIntent {

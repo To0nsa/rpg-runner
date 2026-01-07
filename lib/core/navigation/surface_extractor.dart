@@ -1,7 +1,7 @@
 import '../collision/static_world_geometry.dart';
-import 'nav_tolerances.dart';
-import 'surface_id.dart';
-import 'walk_surface.dart';
+import 'types/nav_tolerances.dart';
+import 'types/surface_id.dart';
+import 'types/walk_surface.dart';
 
 /// Extracts [WalkSurface]s from tile-based world geometry.
 ///

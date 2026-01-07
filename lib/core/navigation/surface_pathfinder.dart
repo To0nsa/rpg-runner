@@ -1,5 +1,5 @@
-import 'surface_graph.dart';
-import 'nav_tolerances.dart';
+import 'types/surface_graph.dart';
+import 'types/nav_tolerances.dart';
 
 /// A* pathfinder for surface-based navigation graphs.
 ///

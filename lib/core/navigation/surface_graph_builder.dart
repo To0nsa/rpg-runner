@@ -1,11 +1,11 @@
 import '../collision/static_world_geometry.dart';
 import '../ecs/spatial/grid_index_2d.dart';
-import 'jump_template.dart';
-import 'nav_tolerances.dart';
+import 'utils/jump_template.dart';
+import 'types/nav_tolerances.dart';
 import 'surface_extractor.dart';
-import 'surface_graph.dart';
-import 'surface_spatial_index.dart';
-import 'walk_surface.dart';
+import 'types/surface_graph.dart';
+import 'utils/surface_spatial_index.dart';
+import 'types/walk_surface.dart';
 
 /// Result of [SurfaceGraphBuilder.build].
 class SurfaceGraphBuildResult {

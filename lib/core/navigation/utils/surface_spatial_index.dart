@@ -1,6 +1,6 @@
-import '../ecs/spatial/grid_index_2d.dart';
-import 'nav_tolerances.dart';
-import 'walk_surface.dart';
+import '../../ecs/spatial/grid_index_2d.dart';
+import '../types/nav_tolerances.dart';
+import '../types/walk_surface.dart';
 
 /// Spatial hash grid for fast AABB queries against [WalkSurface]s.
 ///

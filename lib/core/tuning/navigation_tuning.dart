@@ -5,7 +5,7 @@
 /// - enemy tuning controls per-enemy locomotion abilities
 /// - navigation tuning controls pathfinding + graph build tradeoffs
 library;
-import '../navigation/nav_tolerances.dart';
+import '../navigation/types/nav_tolerances.dart';
 
 class NavigationTuning {
   const NavigationTuning({

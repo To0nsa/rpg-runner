@@ -13,7 +13,7 @@ import 'package:walkscape_runner/core/ecs/systems/collision_system.dart';
 import 'package:walkscape_runner/core/ecs/systems/enemy_system.dart';
 import 'package:walkscape_runner/core/ecs/systems/gravity_system.dart';
 import 'package:walkscape_runner/core/ecs/world.dart';
-import 'package:walkscape_runner/core/navigation/jump_template.dart';
+import 'package:walkscape_runner/core/navigation/utils/jump_template.dart';
 import 'package:walkscape_runner/core/navigation/surface_extractor.dart';
 import 'package:walkscape_runner/core/navigation/surface_graph_builder.dart';
 import 'package:walkscape_runner/core/navigation/surface_navigator.dart';

@@ -1,4 +1,4 @@
-import 'nav_tolerances.dart';
+import '../types/nav_tolerances.dart';
 
 /// Physics parameters for simulating a jump arc.
 ///

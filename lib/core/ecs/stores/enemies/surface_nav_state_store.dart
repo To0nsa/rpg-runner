@@ -1,4 +1,4 @@
-import '../../../navigation/surface_id.dart';
+import '../../../navigation/types/surface_id.dart';
 import '../../entity_id.dart';
 import '../../sparse_set.dart';
 
