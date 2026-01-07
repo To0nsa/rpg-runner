@@ -2,7 +2,7 @@
 //
 // This is a read-only, serializable view of entity state for rendering only.
 // It must not leak internal core storage details.
-import '../math/vec2.dart';
+import '../util/vec2.dart';
 import '../projectiles/projectile_id.dart';
 import 'enums.dart';
 

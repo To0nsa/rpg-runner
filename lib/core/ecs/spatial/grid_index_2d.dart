@@ -1,4 +1,4 @@
-import '../../math/vec2.dart';
+import '../../util/vec2.dart';
 
 class CellAabb {
   const CellAabb({

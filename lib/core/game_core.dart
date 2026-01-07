@@ -42,7 +42,7 @@ import 'ecs/world.dart';
 import 'enemies/enemy_catalog.dart';
 import 'enemies/enemy_id.dart';
 import 'events/game_event.dart';
-import 'math/vec2.dart';
+import 'util/vec2.dart';
 import 'navigation/jump_template.dart';
 import 'navigation/nav_tolerances.dart';
 import 'navigation/surface_graph.dart';
