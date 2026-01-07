@@ -8,6 +8,20 @@ import '../tuning/movement_tuning.dart';
 import '../tuning/resource_tuning.dart';
 import 'player_archetype.dart';
 
+/// Authoring-time configuration for the player entity.
+///
+/// **Purpose**:
+/// Defines the base template for player physics and spawn behavior. This class
+/// holds values that are independent of tick rate or specific tuning numbers,
+/// focusing on structural configuration (what physics flags to use, etc.).
+///
+/// **Relationship to Tuning**:
+/// - [PlayerCatalog]: Structural config (physics flags, collision sides).
+/// - [MovementTuning]: Numeric movement values (speed, radius, velocity clamps).
+/// - [ResourceTuning]: Numeric resource values (HP, mana, stamina).
+///
+/// The [PlayerCatalogDerived.from] factory merges all three to produce a
+/// complete [PlayerArchetype] ready for entity creation.
 class PlayerCatalog {
   const PlayerCatalog({
     this.bodyTemplate = const BodyDef(
@@ -23,22 +37,66 @@ class PlayerCatalog {
 
   /// Template for how the player participates in physics.
   ///
-  /// `maxVelX/maxVelY` are filled from `MovementTuning` during derivation so
-  /// movement tuning remains the single source of truth for clamps.
+  /// **Fields used from template**:
+  /// - `isKinematic`: False for player (affected by forces).
+  /// - `useGravity`: True (player falls).
+  /// - `ignoreCeilings`: False (player collides with ceilings).
+  /// - `topOnlyGround`: True (only collide with top of ground, not sides).
+  /// - `gravityScale`: 1.0 (normal gravity).
+  /// - `sideMask`: Left + Right (collide with walls on both sides).
+  ///
+  /// **Fields filled from [MovementTuning] during derivation**:
+  /// - `maxVelX`: Horizontal velocity clamp.
+  /// - `maxVelY`: Vertical velocity clamp.
+  ///
+  /// This split ensures movement tuning remains the single source of truth
+  /// for velocity limits.
   final BodyDef bodyTemplate;
 
   /// Default facing direction at spawn time.
+  ///
+  /// Determines initial sprite orientation and directional ability targeting.
   final Facing facing;
 }
 
+/// Derived player configuration with tick-rate-resolved values.
+///
+/// **Purpose**:
+/// Combines [PlayerCatalog] templates with [MovementTuning] and [ResourceTuning]
+/// to produce a complete [PlayerArchetype]. This is the "compiled" form of
+/// player configuration, ready for entity creation.
+///
+/// **Why a Separate Class?**:
+/// - Tuning values may be tick-rate dependent (e.g., regen per second → per tick).
+/// - Collider size comes from movement tuning, not catalog.
+/// - Resource pools (HP, mana, stamina) come from resource tuning.
+/// - Keeping derivation explicit makes dependencies clear and testable.
+///
+/// **Lifecycle**:
+/// Created once at game initialization, stored in [GameCore], used whenever
+/// the player needs to be spawned or respawned.
 class PlayerCatalogDerived {
   const PlayerCatalogDerived._({required this.archetype});
 
+  /// Creates a derived catalog by merging base config with tuning data.
+  ///
+  /// **Parameters**:
+  /// - [base]: The authoring-time catalog with physics flags.
+  /// - [movement]: Movement tuning for collider size and velocity clamps.
+  /// - [resources]: Resource tuning for HP, mana, and stamina pools.
+  ///
+  /// **Derivation Logic**:
+  /// 1. Copy physics flags from [base.bodyTemplate].
+  /// 2. Fill `maxVelX`/`maxVelY` from [movement].
+  /// 3. Create square collider from [movement.playerRadius].
+  /// 4. Create resource pools from [resources].
+  /// 5. Bundle everything into a [PlayerArchetype].
   factory PlayerCatalogDerived.from(
     PlayerCatalog base, {
     required MovementTuningDerived movement,
     required ResourceTuning resources,
   }) {
+    // Merge body template with velocity clamps from movement tuning.
     final body = BodyDef(
       enabled: base.bodyTemplate.enabled,
       isKinematic: base.bodyTemplate.isKinematic,
@@ -51,11 +109,13 @@ class PlayerCatalogDerived {
       sideMask: base.bodyTemplate.sideMask,
     );
 
+    // Square collider based on player radius.
     final collider = ColliderAabbDef(
       halfX: movement.base.playerRadius,
       halfY: movement.base.playerRadius,
     );
 
+    // Resource pools from resource tuning.
     final health = HealthDef(
       hp: resources.playerHpMax,
       hpMax: resources.playerHpMax,
@@ -84,5 +144,8 @@ class PlayerCatalogDerived {
     );
   }
 
+  /// The fully-resolved player archetype ready for entity creation.
+  ///
+  /// Use this with [EntityFactory.createPlayer] to spawn the player entity.
   final PlayerArchetype archetype;
 }
