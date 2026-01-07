@@ -1,7 +1,67 @@
 /// Authoritative, deterministic simulation layer (pure Dart).
 ///
-/// Applies tick-stamped commands, advances the simulation by fixed ticks, and
-/// produces snapshots/events for the renderer/UI. Must not import Flutter/Flame.
+/// This is the heart of the game—a pure Dart simulation that processes
+/// tick-stamped commands, advances physics and AI, and produces immutable
+/// snapshots for the renderer/UI. By keeping this layer Flutter/Flame-free,
+/// we gain:
+/// - **Testability**: Unit tests can run headless at any tick rate.
+/// - **Determinism**: Same seed + commands = identical simulation.
+/// - **Portability**: Core logic could run on a server for validation.
+///
+/// ## Architecture Overview
+///
+/// ```
+/// Commands (from input layer)
+///         ↓
+///    GameCore.applyCommands()
+///         ↓
+///    GameCore.stepOneTick()
+///         ↓
+///    [Track streaming → Physics → AI → Combat → Cleanup]
+///         ↓
+///    GameStateSnapshot (to render layer)
+/// ```
+///
+/// ## Module Dependencies
+///
+/// [GameCore] orchestrates three extracted modules:
+/// - [TrackManager]: Procedural chunk generation, geometry lifecycle.
+/// - [SpawnService]: Deterministic entity spawning (enemies, items).
+/// - [SnapshotBuilder]: ECS → render snapshot conversion.
+///
+/// ## ECS System Execution Order
+///
+/// Systems run in a carefully ordered pipeline each tick:
+/// 1. **Track streaming**: Spawn/cull chunks based on camera.
+/// 2. **Cooldowns & invulnerability**: Decrement timers.
+/// 3. **Enemy AI steering**: Path planning and movement intent.
+/// 4. **Player movement**: Apply input to velocity.
+/// 5. **Gravity**: Apply gravity to non-kinematic bodies.
+/// 6. **Collision**: Resolve static world collisions.
+/// 7. **Pickups**: Collect items overlapping player.
+/// 8. **Broadphase rebuild**: Update spatial grid for hit detection.
+/// 9. **Projectile movement**: Advance existing projectiles.
+/// 10. **Attack intents**: Enemies and player queue attacks.
+/// 11. **Attack execution**: Spawn hitboxes and projectiles.
+/// 12. **Hitbox positioning**: Follow owner entities.
+/// 13. **Hit resolution**: Detect overlaps, queue damage.
+/// 14. **Damage application**: Apply queued damage, set invulnerability.
+/// 15. **Death handling**: Despawn dead entities, record kills.
+/// 16. **Resource regen**: Regenerate mana/stamina.
+/// 17. **Lifetime cleanup**: Remove expired entities.
+///
+/// ## Determinism Contract
+///
+/// Given identical inputs:
+/// - Same [seed] parameter
+/// - Same sequence of [Command]s with same tick stamps
+/// - Same [tickHz]
+///
+/// The simulation will produce identical results across runs and platforms.
+/// This is achieved by:
+/// - Using [DeterministicRng] instead of `dart:math Random`
+/// - Fixed-point-style tick math (no frame-rate-dependent dt accumulation)
+/// - Deterministic iteration order (entity IDs, not hash-based)
 library;
 
 import 'dart:math';
@@ -74,9 +134,42 @@ import 'util/tick_math.dart';
 
 /// Deterministic game simulation core.
 ///
-/// Coordinates ECS systems, processes commands, and produces snapshots.
-/// Does not depend on Flutter/Flame - pure Dart for testability.
+/// This class is the central coordinator for the game simulation. It:
+/// - Owns the [EcsWorld] and all ECS systems.
+/// - Processes player [Command]s each tick.
+/// - Steps physics, AI, and combat systems in order.
+/// - Produces [GameStateSnapshot]s for the render layer.
+/// - Emits [GameEvent]s for UI feedback (run ended, etc.).
+///
+/// Usage:
+/// ```dart
+/// final core = GameCore(seed: 42);
+/// core.applyCommands([JumpPressedCommand()]);
+/// core.stepOneTick();
+/// final snapshot = core.buildSnapshot();
+/// final events = core.drainEvents();
+/// ```
+///
+/// ## Testing
+///
+/// For unit tests, inject custom tuning parameters:
+/// ```dart
+/// final core = GameCore(
+///   seed: 123,
+///   tickHz: 60,
+///   movementTuning: MovementTuning(jumpSpeed: 500),
+///   trackTuning: TrackTuning(enabled: false), // Disable procedural gen
+/// );
+/// ```
 class GameCore {
+  /// Creates a new game simulation with the given configuration.
+  ///
+  /// Parameters:
+  /// - [seed]: Master RNG seed for deterministic generation.
+  /// - [tickHz]: Fixed tick rate (default 60). Higher = smoother but more CPU.
+  /// - Tuning parameters: Override defaults for testing or game modes.
+  /// - Catalogs: Entity archetype definitions (spells, enemies, etc.).
+  /// - [staticWorldGeometry]: Base level geometry (ground, initial platforms).
   GameCore({
     required this.seed,
     this.tickHz = defaultTickHz,
@@ -101,40 +194,40 @@ class GameCore {
     StaticWorldGeometry staticWorldGeometry = const StaticWorldGeometry(
       groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
     ),
-  })  : _movement = MovementTuningDerived.from(movementTuning, tickHz: tickHz),
-        _physicsTuning = physicsTuning,
-        _resourceTuning = resourceTuning,
-        _abilities = AbilityTuningDerived.from(abilityTuning, tickHz: tickHz),
-        _combat = CombatTuningDerived.from(combatTuning, tickHz: tickHz),
-        _flyingEnemyTuning = FlyingEnemyTuningDerived.from(
-          flyingEnemyTuning,
-          tickHz: tickHz,
-        ),
-        _groundEnemyTuning = GroundEnemyTuningDerived.from(
-          groundEnemyTuning,
-          tickHz: tickHz,
-        ),
-        _navigationTuning = navigationTuning,
-        _spatialGridTuning = spatialGridTuning,
-        _spells = spellCatalog,
-        _projectiles = ProjectileCatalogDerived.from(
-          projectileCatalog,
-          tickHz: tickHz,
-        ),
-        _enemyCatalog = enemyCatalog,
-        _playerCatalog = playerCatalog,
-        _scoreTuning = scoreTuning,
-        _trackTuning = trackTuning,
-        _collectibleTuning = collectibleTuning,
-        _restorationItemTuning = restorationItemTuning {
-    // Initialize ECS world and factory.
+  }) : _movement = MovementTuningDerived.from(movementTuning, tickHz: tickHz),
+       _physicsTuning = physicsTuning,
+       _resourceTuning = resourceTuning,
+       _abilities = AbilityTuningDerived.from(abilityTuning, tickHz: tickHz),
+       _combat = CombatTuningDerived.from(combatTuning, tickHz: tickHz),
+       _flyingEnemyTuning = FlyingEnemyTuningDerived.from(
+         flyingEnemyTuning,
+         tickHz: tickHz,
+       ),
+       _groundEnemyTuning = GroundEnemyTuningDerived.from(
+         groundEnemyTuning,
+         tickHz: tickHz,
+       ),
+       _navigationTuning = navigationTuning,
+       _spatialGridTuning = spatialGridTuning,
+       _spells = spellCatalog,
+       _projectiles = ProjectileCatalogDerived.from(
+         projectileCatalog,
+         tickHz: tickHz,
+       ),
+       _enemyCatalog = enemyCatalog,
+       _playerCatalog = playerCatalog,
+       _scoreTuning = scoreTuning,
+       _trackTuning = trackTuning,
+       _collectibleTuning = collectibleTuning,
+       _restorationItemTuning = restorationItemTuning {
+    // ─── Initialize ECS world and entity factory ───
     _world = EcsWorld(seed: seed);
     _entityFactory = EntityFactory(_world);
 
-    // Initialize systems.
+    // ─── Initialize all ECS systems ───
     _initializeSystems();
 
-    // Initialize camera.
+    // ─── Initialize autoscrolling camera ───
     _cameraTuning = CameraTuningDerived.from(cameraTuning, movement: _movement);
     _camera = AutoscrollCamera(
       viewWidth: virtualWidth.toDouble(),
@@ -146,7 +239,7 @@ class GameCore {
       ),
     );
 
-    // Initialize spawn service.
+    // ─── Initialize spawn service (needs ECS + catalogs) ───
     _spawnService = SpawnService(
       world: _world,
       entityFactory: _entityFactory,
@@ -159,13 +252,12 @@ class GameCore {
       seed: seed,
     );
 
-    // Initialize track manager.
+    // ─── Spawn player entity (must happen before TrackManager) ───
     final effectiveGroundTopY =
         staticWorldGeometry.groundPlane?.topY ?? groundTopY.toDouble();
-
-    // Spawn player first (needed by snapshot builder and track manager callbacks).
     _spawnPlayer(effectiveGroundTopY);
 
+    // ─── Initialize track manager (needs player for callbacks) ───
     _trackManager = TrackManager(
       seed: seed,
       trackTuning: _trackTuning,
@@ -179,7 +271,7 @@ class GameCore {
       groundTopY: effectiveGroundTopY,
     );
 
-    // Initialize snapshot builder (after player spawn).
+    // ─── Initialize snapshot builder (needs player entity ID) ───
     _snapshotBuilder = SnapshotBuilder(
       world: _world,
       player: _player,
@@ -191,37 +283,58 @@ class GameCore {
     );
   }
 
+  /// Initializes all ECS systems.
+  ///
+  /// Systems are stateless processors that operate on component stores.
+  /// They're created once at construction and reused every tick.
   void _initializeSystems() {
+    // Core movement and physics.
     _movementSystem = PlayerMovementSystem();
     _collisionSystem = CollisionSystem();
     _cooldownSystem = CooldownSystem();
     _gravitySystem = GravitySystem();
+
+    // Projectile lifecycle.
     _projectileSystem = ProjectileSystem();
     _projectileHitSystem = ProjectileHitSystem();
+
+    // Spatial partitioning for hit detection.
     _broadphaseGrid = BroadphaseGrid(
       index: GridIndex2D(cellSize: _spatialGridTuning.broadphaseCellSize),
     );
+
+    // Hitbox management.
     _hitboxFollowOwnerSystem = HitboxFollowOwnerSystem();
     _lifetimeSystem = LifetimeSystem();
+
+    // Damage pipeline.
     _invulnerabilitySystem = InvulnerabilitySystem();
     _damageSystem = DamageSystem(
       invulnerabilityTicksOnHit: _combat.invulnerabilityTicks,
     );
     _healthDespawnSystem = HealthDespawnSystem();
+
+    // Player combat.
     _meleeSystem = PlayerMeleeSystem(
       abilities: _abilities,
       movement: _movement,
     );
     _hitboxDamageSystem = HitboxDamageSystem();
+
+    // Pickup systems.
     _collectibleSystem = CollectibleSystem();
     _restorationItemSystem = RestorationItemSystem();
     _resourceRegenSystem = ResourceRegenSystem();
+
+    // Spell/cast systems.
     _castSystem = PlayerCastSystem(abilities: _abilities, movement: _movement);
     _spellCastSystem = SpellCastSystem(
       spells: _spells,
       projectiles: _projectiles,
     );
     _meleeAttackSystem = MeleeAttackSystem();
+
+    // Navigation infrastructure.
     _surfaceGraphBuilder = SurfaceGraphBuilder(
       surfaceGrid: GridIndex2D(cellSize: _spatialGridTuning.broadphaseCellSize),
       takeoffSampleMaxStep: _navigationTuning.takeoffSampleMaxStep,
@@ -250,6 +363,8 @@ class GameCore {
         _groundEnemyTuning.base.groundEnemyStopDistanceX,
       ),
     );
+
+    // Enemy AI system (depends on navigation).
     _enemySystem = EnemySystem(
       flyingEnemyTuning: _flyingEnemyTuning,
       groundEnemyTuning: _groundEnemyTuning,
@@ -264,6 +379,11 @@ class GameCore {
     );
   }
 
+  /// Spawns the player entity at the start of a run.
+  ///
+  /// The player is positioned at a fixed X offset, standing on the ground.
+  /// This must be called before [TrackManager] is created because track
+  /// manager callbacks reference the player entity.
   void _spawnPlayer(double groundTopY) {
     const spawnX = 400.0;
     final playerArchetype = PlayerCatalogDerived.from(
@@ -272,6 +392,8 @@ class GameCore {
       resources: _resourceTuning,
     ).archetype;
     final playerCollider = playerArchetype.collider;
+
+    // Position so collider bottom touches ground.
     final spawnY = groundTopY - (playerCollider.offsetY + playerCollider.halfY);
     _player = _entityFactory.createPlayer(
       posX: spawnX,
@@ -292,13 +414,21 @@ class GameCore {
   // Fields
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Seed used for deterministic generation/RNG.
+  /// Master RNG seed for deterministic generation.
+  ///
+  /// The same seed produces identical track layouts, enemy spawns, and
+
+  /// item placements across runs.
   final int seed;
 
-  /// Fixed simulation tick frequency.
+  /// Fixed simulation tick frequency (ticks per second).
+  ///
+  /// Higher values = smoother physics but more CPU. Default is 60.
   final int tickHz;
 
-  // Derived tunings.
+  // ─── Derived Tunings ───
+  // These are pre-computed from base tunings using tickHz.
+
   final MovementTuningDerived _movement;
   final PhysicsTuning _physicsTuning;
   final ResourceTuning _resourceTuning;
@@ -313,17 +443,29 @@ class GameCore {
   final TrackTuning _trackTuning;
   final CollectibleTuning _collectibleTuning;
   final RestorationItemTuning _restorationItemTuning;
+
+  // ─── Catalogs ───
+  // Archetype definitions for entities.
+
   final SpellCatalog _spells;
   final ProjectileCatalogDerived _projectiles;
   final EnemyCatalog _enemyCatalog;
   final PlayerCatalog _playerCatalog;
 
-  // ECS core.
+  // ─── ECS Core ───
+
+  /// The ECS world containing all component stores.
   late final EcsWorld _world;
+
+  /// Factory for creating complex entities (player, enemies).
   late final EntityFactory _entityFactory;
+
+  /// The player entity ID.
   late EntityId _player;
 
-  // Systems.
+  // ─── ECS Systems ───
+  // Stateless processors that operate on component stores.
+
   late final PlayerMovementSystem _movementSystem;
   late final CollisionSystem _collisionSystem;
   late final CooldownSystem _cooldownSystem;
@@ -350,93 +492,143 @@ class GameCore {
   late final PlayerCastSystem _castSystem;
   late final SpellCastSystem _spellCastSystem;
 
-  // Modular services.
+  // ─── Modular Services ───
+  // Extracted modules for specific responsibilities.
+
+  /// Entity spawning with deterministic placement.
   late final SpawnService _spawnService;
+
+  /// Track streaming, geometry lifecycle, navigation updates.
   late final TrackManager _trackManager;
+
+  /// ECS → render snapshot conversion.
   late SnapshotBuilder _snapshotBuilder;
 
-  // Camera.
+  // ─── Camera ───
+
+  /// Autoscrolling camera that follows and pushes the player.
   late final AutoscrollCamera _camera;
 
-  // Event queue.
+  // ─── Event Queue ───
+
+  /// Pending events to be consumed by UI (drained each frame).
   final List<GameEvent> _events = <GameEvent>[];
 
-  // Scratch/tracking state.
+  // ─── Scratch/Tracking State ───
+
+  /// Scratch list for killed enemies (reused to avoid allocation).
   final List<EnemyId> _killedEnemiesScratch = <EnemyId>[];
+
+  /// Kill counts per enemy type (indexed by [EnemyId.index]).
   final List<int> _enemyKillCounts = List<int>.filled(EnemyId.values.length, 0);
 
-  /// Current simulation tick.
+  // ─── Simulation State ───
+
+  /// Current simulation tick (increments each [stepOneTick]).
   int tick = 0;
 
-  /// Whether simulation should advance.
+  /// Whether simulation is paused (commands still apply, time doesn't advance).
   bool paused = false;
 
-  /// Whether the run has ended (simulation is frozen).
+  /// Whether the run has ended (simulation is frozen permanently).
   bool gameOver = false;
 
-  /// Run progression metric.
+  /// Total distance traveled (world units, not meters).
   double distance = 0;
 
-  /// Collected collectibles count.
+  /// Number of collectibles picked up this run.
   int collectibles = 0;
 
-  /// Collectible score value.
+  /// Total score from collectibles.
   int collectibleScore = 0;
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Public accessors
+  // Public Accessors
   // ─────────────────────────────────────────────────────────────────────────
 
+  /// Score tuning for UI display and leaderboard calculation.
   ScoreTuning get scoreTuning => _scoreTuning;
 
+  /// Current static world geometry (base + streamed chunks).
   StaticWorldGeometry get staticWorldGeometry => _trackManager.staticGeometry;
 
+  /// Player X position in world coordinates.
   double get playerPosX =>
       _world.transform.posX[_world.transform.indexOf(_player)];
+
+  /// Player Y position in world coordinates.
   double get playerPosY =>
       _world.transform.posY[_world.transform.indexOf(_player)];
 
+  /// Sets player position (for tests or teleportation).
   void setPlayerPosXY(double x, double y) =>
       _world.transform.setPosXY(_player, x, y);
 
+  /// Player X velocity (positive = moving right).
   double get playerVelX =>
       _world.transform.velX[_world.transform.indexOf(_player)];
+
+  /// Player Y velocity (positive = moving down).
   double get playerVelY =>
       _world.transform.velY[_world.transform.indexOf(_player)];
 
+  /// Sets player velocity (for tests or knockback effects).
   void setPlayerVelXY(double x, double y) =>
       _world.transform.setVelXY(_player, x, y);
 
+  /// Whether the player is currently on the ground.
   bool get playerGrounded =>
       _world.collision.grounded[_world.collision.indexOf(_player)];
 
+  /// Player facing direction (left or right).
   Facing get playerFacing =>
       _world.movement.facing[_world.movement.indexOf(_player)];
+
+  /// Sets player facing direction.
   set playerFacing(Facing value) {
     _world.movement.facing[_world.movement.indexOf(_player)] = value;
   }
 
+  /// Remaining cast (projectile) cooldown ticks.
   int get playerCastCooldownTicksLeft =>
       _world.cooldown.castCooldownTicksLeft[_world.cooldown.indexOf(_player)];
 
+  /// Remaining melee attack cooldown ticks.
   int get playerMeleeCooldownTicksLeft =>
       _world.cooldown.meleeCooldownTicksLeft[_world.cooldown.indexOf(_player)];
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Command processing
+  // Command Processing
   // ─────────────────────────────────────────────────────────────────────────
 
   /// Applies all commands scheduled for the current tick.
+  ///
+  /// Commands are the only way external code can influence the simulation.
+  /// Each command type maps to a specific player input flag or value:
+  ///
+  /// - [MoveAxisCommand]: Sets horizontal movement axis (-1 to 1).
+  /// - [JumpPressedCommand]: Triggers a jump attempt.
+  /// - [DashPressedCommand]: Triggers a dash attempt.
+  /// - [AttackPressedCommand]: Triggers an attack attempt.
+  /// - [ProjectileAimDirCommand]: Sets projectile aim direction.
+  /// - [MeleeAimDirCommand]: Sets melee attack direction.
+  /// - [CastPressedCommand]: Triggers a spell cast attempt.
+  ///
+  /// Commands are processed before [stepOneTick] to ensure inputs are
+  /// available when systems read them.
   void applyCommands(List<Command> commands) {
+    // Reset all input flags to their default state.
     _world.playerInput.resetTickInputs(_player);
     final inputIndex = _world.playerInput.indexOf(_player);
     final movementIndex = _world.movement.indexOf(_player);
 
     for (final command in commands) {
       switch (command) {
+        // Movement axis: -1 (left) to +1 (right).
         case MoveAxisCommand(:final axis):
           final clamped = axis.clamp(-1.0, 1.0);
           _world.playerInput.moveAxis[inputIndex] = clamped;
+          // Update facing direction unless dashing (locked during dash).
           if (_world.movement.dashTicksLeft[movementIndex] == 0) {
             if (clamped < 0) {
               playerFacing = Facing.left;
@@ -444,24 +636,40 @@ class GameCore {
               playerFacing = Facing.right;
             }
           }
+
+        // Jump: Consumed by PlayerMovementSystem.
         case JumpPressedCommand():
           _world.playerInput.jumpPressed[inputIndex] = true;
+
+        // Dash: Consumed by PlayerMovementSystem.
         case DashPressedCommand():
           _world.playerInput.dashPressed[inputIndex] = true;
+
+        // Attack: Consumed by PlayerMeleeSystem.
         case AttackPressedCommand():
           _world.playerInput.attackPressed[inputIndex] = true;
+
+        // Projectile aim: Direction vector for ranged attacks.
         case ProjectileAimDirCommand(:final x, :final y):
           _world.playerInput.projectileAimDirX[inputIndex] = x;
           _world.playerInput.projectileAimDirY[inputIndex] = y;
+
+        // Melee aim: Direction vector for melee attacks.
         case MeleeAimDirCommand(:final x, :final y):
           _world.playerInput.meleeAimDirX[inputIndex] = x;
           _world.playerInput.meleeAimDirY[inputIndex] = y;
+
+        // Clear projectile aim: Resets to no-aim state.
         case ClearProjectileAimDirCommand():
           _world.playerInput.projectileAimDirX[inputIndex] = 0;
           _world.playerInput.projectileAimDirY[inputIndex] = 0;
+
+        // Clear melee aim: Resets to no-aim state.
         case ClearMeleeAimDirCommand():
           _world.playerInput.meleeAimDirX[inputIndex] = 0;
           _world.playerInput.meleeAimDirY[inputIndex] = 0;
+
+        // Cast: Consumed by PlayerCastSystem for spell casting.
         case CastPressedCommand():
           _world.playerInput.castPressed[inputIndex] = true;
       }
@@ -469,22 +677,50 @@ class GameCore {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Simulation tick
+  // Simulation Tick
   // ─────────────────────────────────────────────────────────────────────────
 
   /// Advances the simulation by exactly one fixed tick.
+  ///
+  /// This is the main simulation loop. It executes all ECS systems in a
+  /// carefully ordered pipeline to ensure correct behavior:
+  ///
+  /// 1. **Track streaming**: Generate/cull chunks, spawn enemies.
+  /// 2. **Cooldowns**: Decrement ability and invulnerability timers.
+  /// 3. **Enemy AI**: Compute paths and movement intentions.
+  /// 4. **Player movement**: Apply input to velocity.
+  /// 5. **Gravity**: Apply gravitational acceleration.
+  /// 6. **Collision**: Resolve against static world geometry.
+  /// 7. **Death checks**: Detect fall-into-gap and fell-behind-camera.
+  /// 8. **Camera update**: Advance autoscroll position.
+  /// 9. **Pickups**: Process collectible and restoration item collection.
+  /// 10. **Broadphase**: Rebuild spatial grid for hit detection.
+  /// 11. **Projectiles**: Move existing projectiles.
+  /// 12. **Attack intents**: Queue enemy and player attacks.
+  /// 13. **Attack execution**: Spawn hitboxes and projectiles from intents.
+  /// 14. **Hitbox positioning**: Update hitbox positions from owners.
+  /// 15. **Hit detection**: Check projectile and hitbox overlaps.
+  /// 16. **Damage application**: Apply queued damage events.
+  /// 17. **Death handling**: Despawn dead entities, record kills.
+  /// 18. **Resource regen**: Regenerate mana and stamina.
+  /// 19. **Cleanup**: Remove entities past their lifetime.
+  ///
+  /// If the run ends during this tick (player death, fell into gap, etc.),
+  /// a [RunEndedEvent] is emitted and the simulation freezes.
   void stepOneTick() {
+    // Don't advance if paused or game already over.
     if (paused || gameOver) return;
 
     tick += 1;
 
-    // Track streaming (geometry + enemy spawns).
+    // ─── Phase 1: World generation ───
     _stepTrackManager();
 
-    // Core systems.
+    // ─── Phase 2: Timer decrements ───
     _cooldownSystem.step(_world);
     _invulnerabilitySystem.step(_world);
 
+    // ─── Phase 3: AI and movement ───
     final effectiveGroundTopY =
         staticWorldGeometry.groundPlane?.topY ?? groundTopY.toDouble();
     _enemySystem.stepSteering(
@@ -502,9 +738,11 @@ class GameCore {
       staticWorld: _trackManager.staticIndex,
     );
 
+    // ─── Phase 4: Distance tracking ───
+    // Only count forward movement (positive X velocity).
     distance += max(0.0, playerVelX) * _movement.dtSeconds;
 
-    // Check death conditions.
+    // ─── Phase 5: Death condition checks ───
     if (_checkFellIntoGap(effectiveGroundTopY)) {
       _endRun(RunEndReason.fellIntoGap);
       return;
@@ -516,7 +754,7 @@ class GameCore {
       return;
     }
 
-    // Pickup systems.
+    // ─── Phase 6: Pickup collection ───
     _collectibleSystem.step(
       _world,
       player: _player,
@@ -534,30 +772,36 @@ class GameCore {
       tuning: _restorationItemTuning,
     );
 
-    // Rebuild broadphase for hit detection.
+    // ─── Phase 7: Spatial grid rebuild ───
+    // Must happen before hit detection to ensure accurate overlaps.
     _broadphaseGrid.rebuild(_world);
 
+    // ─── Phase 8: Projectile movement ───
     // Move existing projectiles before spawning new ones.
     _projectileSystem.step(_world, _movement);
 
-    // Intent writers (enemy then player).
+    // ─── Phase 9: Attack intent writing ───
+    // Enemies first, then player (order matters for fairness).
     _enemySystem.stepAttacks(_world, player: _player, currentTick: tick);
     _castSystem.step(_world, player: _player, currentTick: tick);
     _meleeSystem.step(_world, player: _player, currentTick: tick);
 
-    // Execute intents.
+    // ─── Phase 10: Attack execution ───
+    // Convert intents into actual hitboxes and projectiles.
     _spellCastSystem.step(_world, currentTick: tick);
     _meleeAttackSystem.step(_world, currentTick: tick);
 
-    // Position hitboxes from owner + offset.
+    // ─── Phase 11: Hitbox positioning ───
+    // Update hitbox transforms to follow their owner entities.
     _hitboxFollowOwnerSystem.step(_world);
 
-    // Resolve hits.
+    // ─── Phase 12: Hit resolution ───
+    // Detect overlaps and queue damage events.
     _projectileHitSystem.step(_world, _damageSystem.queue, _broadphaseGrid);
     _hitboxDamageSystem.step(_world, _damageSystem.queue, _broadphaseGrid);
     _damageSystem.step(_world, currentTick: tick);
 
-    // Handle deaths.
+    // ─── Phase 13: Death handling ───
     _killedEnemiesScratch.clear();
     _healthDespawnSystem.step(
       _world,
@@ -572,12 +816,16 @@ class GameCore {
       return;
     }
 
+    // ─── Phase 14: Resource regeneration ───
     _resourceRegenSystem.step(_world, dtSeconds: _movement.dtSeconds);
 
-    // Cleanup.
+    // ─── Phase 15: Cleanup ───
     _lifetimeSystem.step(_world);
   }
 
+  /// Steps the track manager and handles enemy spawning callbacks.
+  ///
+  /// This is extracted from [stepOneTick] to keep the main loop readable.
   void _stepTrackManager() {
     final effectiveGroundTopY =
         staticWorldGeometry.groundPlane?.topY ?? groundTopY.toDouble();
@@ -586,6 +834,7 @@ class GameCore {
       cameraLeft: _camera.left(),
       cameraRight: _camera.right(),
       spawnEnemy: (enemyId, x) {
+        // Route spawn requests to the appropriate SpawnService method.
         switch (enemyId) {
           case EnemyId.flyingEnemy:
             _spawnService.spawnFlyingEnemy(
@@ -604,9 +853,12 @@ class GameCore {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Run end handling
+  // Run End Handling
   // ─────────────────────────────────────────────────────────────────────────
 
+  /// Ends the current run and emits a [RunEndedEvent].
+  ///
+  /// After this call, [gameOver] is true and [stepOneTick] will no-op.
   void _endRun(RunEndReason reason, {DeathInfo? deathInfo}) {
     gameOver = true;
     paused = true;
@@ -621,11 +873,15 @@ class GameCore {
     );
   }
 
+  /// Manually ends the run (e.g., from pause menu).
+  ///
+  /// Does nothing if the game is already over.
   void giveUp() {
     if (gameOver) return;
     _endRun(RunEndReason.gaveUp);
   }
 
+  /// Records enemy kills for score calculation.
   void _recordEnemyKills(List<EnemyId> killedEnemies) {
     for (final enemyId in killedEnemies) {
       final index = enemyId.index;
@@ -635,18 +891,24 @@ class GameCore {
     }
   }
 
+  /// Builds run statistics for the end-of-run event.
   RunEndStats _buildRunEndStats() => RunEndStats(
-        collectibles: collectibles,
-        collectibleScore: collectibleScore,
-        enemyKillCounts: List<int>.unmodifiable(_enemyKillCounts),
-      );
+    collectibles: collectibles,
+    collectibleScore: collectibleScore,
+    enemyKillCounts: List<int>.unmodifiable(_enemyKillCounts),
+  );
 
+  /// Checks if the player's HP has reached zero.
   bool _isPlayerDead() {
     final hi = _world.health.tryIndexOf(_player);
     if (hi == null) return false;
     return _world.health.hp[hi] <= 0.0;
   }
 
+  /// Builds death info for the run-ended event.
+  ///
+  /// This provides details about what killed the player (enemy type,
+  /// projectile type, etc.) for death screen messaging.
   DeathInfo? _buildDeathInfo() {
     final li = _world.lastDamage.tryIndexOf(_player);
     if (li == null) return null;
@@ -669,9 +931,13 @@ class GameCore {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Death condition checks
+  // Death Condition Checks
   // ─────────────────────────────────────────────────────────────────────────
 
+  /// Checks if the player has fallen behind the camera's left edge.
+  ///
+  /// This is a "soft" death—the player can still be on solid ground but
+  /// has failed to keep up with the autoscrolling camera.
   bool _checkFellBehindCamera() {
     if (!(_world.transform.has(_player) && _world.colliderAabb.has(_player))) {
       return false;
@@ -681,27 +947,40 @@ class GameCore {
     final ai = _world.colliderAabb.indexOf(_player);
     final centerX = _world.transform.posX[ti] + _world.colliderAabb.offsetX[ai];
     final right = centerX + _world.colliderAabb.halfX[ai];
+
+    // Player's right edge must stay ahead of camera's left edge.
     return right < _camera.left();
   }
 
+  /// Checks if the player has fallen into a ground gap (pit).
+  ///
+  /// The kill threshold is set well below ground level to give visual
+  /// feedback of falling before the death triggers.
   bool _checkFellIntoGap(double groundTopY) {
     if (!(_world.transform.has(_player) && _world.colliderAabb.has(_player))) {
       return false;
     }
 
-    const gapKillOffsetY = 400.0;
+    const gapKillOffsetY = 400.0; // How far below ground before death.
     final ti = _world.transform.indexOf(_player);
     final ai = _world.colliderAabb.indexOf(_player);
-    final bottomY = _world.transform.posY[ti] +
+    final bottomY =
+        _world.transform.posY[ti] +
         _world.colliderAabb.offsetY[ai] +
         _world.colliderAabb.halfY[ai];
+
     return bottomY > groundTopY + gapKillOffsetY;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Resource helpers
+  // Resource Helpers
   // ─────────────────────────────────────────────────────────────────────────
 
+  /// Returns the player's most depleted resource stat.
+  ///
+  /// Used by restoration item spawning to bias item type toward what
+  /// the player needs most. Compares ratios (current/max) to handle
+  /// resources with different maximum values fairly.
   RestorationStat _lowestResourceStat() {
     final hi = _world.health.tryIndexOf(_player);
     final mi = _world.mana.tryIndexOf(_player);
@@ -710,10 +989,12 @@ class GameCore {
       return RestorationStat.health;
     }
 
+    // Start with health as baseline.
     var best = RestorationStat.health;
     var bestValue = _world.health.hp[hi];
     var bestMax = _world.health.hpMax[hi];
 
+    // Compare mana ratio.
     final mana = _world.mana.mana[mi];
     final manaMax = _world.mana.manaMax[mi];
     if (_ratioLess(mana, manaMax, bestValue, bestMax)) {
@@ -722,6 +1003,7 @@ class GameCore {
       bestMax = manaMax;
     }
 
+    // Compare stamina ratio.
     final stamina = _world.stamina.stamina[si];
     final staminaMax = _world.stamina.staminaMax[si];
     if (_ratioLess(stamina, staminaMax, bestValue, bestMax)) {
@@ -731,15 +1013,23 @@ class GameCore {
     return best;
   }
 
+  /// Compares two ratios without division: (valueA / maxA) < (valueB / maxB).
+  ///
+  /// Cross-multiplies to avoid division: valueA * maxB < valueB * maxA.
   bool _ratioLess(double valueA, double maxA, double valueB, double maxB) {
-    if (maxA <= 0) return false;
-    if (maxB <= 0) return true;
+    if (maxA <= 0) return false; // Invalid ratio A, can't be less.
+    if (maxB <= 0) return true; // Invalid ratio B, A wins by default.
     return valueA * maxB < valueB * maxA;
   }
 
+  /// Computes the maximum air time (in ticks) for ground enemy jumps.
+  ///
+  /// Based on projectile motion: time = 2 * jumpSpeed / gravity.
+  /// Multiplied by 1.5 for safety margin (accounts for landing tolerance).
   int _groundEnemyMaxAirTicks() {
     final gravity = _physicsTuning.gravityY;
     if (gravity <= 0) {
+      // No gravity means infinite air time; cap at 1 second.
       return ticksFromSecondsCeil(1.0, tickHz);
     }
     final jumpSpeed = _groundEnemyTuning.base.groundEnemyJumpSpeed.abs();
@@ -751,6 +1041,12 @@ class GameCore {
   // Events & Snapshots
   // ─────────────────────────────────────────────────────────────────────────
 
+  /// Drains and returns all pending game events.
+  ///
+  /// Events are produced during [stepOneTick] (e.g., [RunEndedEvent]).
+  /// The UI layer should call this after each tick to process events.
+  ///
+  /// Returns an empty list if no events are pending (avoids allocation).
   List<GameEvent> drainEvents() {
     if (_events.isEmpty) return const <GameEvent>[];
     final drained = List<GameEvent>.unmodifiable(_events);
@@ -759,8 +1055,17 @@ class GameCore {
   }
 
   /// Builds an immutable snapshot for render/UI consumption.
+  ///
+  /// The snapshot contains everything needed to render a single frame:
+  /// - Entity positions, velocities, and animations
+  /// - Player HUD data (HP, mana, stamina, cooldowns)
+  /// - Static geometry (platforms, ground gaps)
+  /// - Camera position
+  ///
+  /// Snapshots are immutable and safe to pass to async render code.
   GameStateSnapshot buildSnapshot() {
-    // Update snapshot builder player reference (in case it changed).
+    // Recreate snapshot builder to ensure player reference is current.
+    // (In practice this could be optimized to only update when player changes.)
     _snapshotBuilder = SnapshotBuilder(
       world: _world,
       player: _player,
