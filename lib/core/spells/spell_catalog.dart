@@ -1,32 +1,42 @@
 import '../projectiles/projectile_id.dart';
 import 'spell_id.dart';
 
+/// Combat stats for a projectile-based spell.
 class ProjectileSpellStats {
   const ProjectileSpellStats({
     required this.manaCost,
     required this.damage,
   });
 
+  /// Mana consumed when casting.
   final double manaCost;
+
+  /// Damage dealt on hit.
   final double damage;
 }
 
+/// Definition of a spell's properties.
+///
+/// Separates spell stats (cost, damage) from projectile stats (speed, size)
+/// so the same projectile can be used by multiple spells with different values.
 class SpellDef {
   const SpellDef({
     required this.stats,
     required this.projectileId,
   });
 
-  /// Spell-specific gameplay stats (resource cost, damage, etc).
+  /// Combat stats (resource cost, damage).
   final ProjectileSpellStats stats;
 
-  /// Optional projectile mapping. Non-projectile spells have `null`.
+  /// Projectile type to spawn, or `null` for non-projectile spells.
   final ProjectileId? projectileId;
 }
 
+/// Lookup table for spell definitions by [SpellId].
 class SpellCatalog {
   const SpellCatalog();
 
+  /// Returns the definition for the given spell.
   SpellDef get(SpellId id) {
     switch (id) {
       case SpellId.iceBolt:

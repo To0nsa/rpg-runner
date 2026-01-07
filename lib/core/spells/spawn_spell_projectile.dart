@@ -1,3 +1,9 @@
+/// Projectile spawning utilities for spell casting.
+///
+/// Centralizes direction normalization and projectile entity creation so
+/// player and enemy casting behave consistently.
+library;
+
 import 'dart:math';
 
 import '../combat/faction.dart';
@@ -12,10 +18,10 @@ import '../projectiles/projectile_id.dart';
 import 'spell_catalog.dart';
 import 'spell_id.dart';
 
-// Centralize spell->projectile checks and direction normalization here so
-// player/enemy casting cannot drift over time.
+/// Epsilon squared for near-zero direction detection.
 const _dirEps2 = 1e-12;
 
+/// Normalizes a direction vector, falling back if near-zero.
 ({double x, double y}) _normalizeDirOrFallback(
   double x,
   double y, {
@@ -23,8 +29,11 @@ const _dirEps2 = 1e-12;
   required double fallbackY,
 }) {
   final len2 = x * x + y * y;
+
+  // Primary direction too small – try fallback.
   if (len2 <= _dirEps2) {
     final fbLen2 = fallbackX * fallbackX + fallbackY * fallbackY;
+    // Fallback also degenerate – default to rightward.
     if (fbLen2 <= _dirEps2) {
       return (x: 1.0, y: 0.0);
     }
@@ -32,10 +41,12 @@ const _dirEps2 = 1e-12;
     return (x: fallbackX * invLen, y: fallbackY * invLen);
   }
 
+  // Normal case: normalize primary direction.
   final invLen = 1.0 / sqrt(len2);
   return (x: x * invLen, y: y * invLen);
 }
 
+/// Internal: creates the projectile entity with all required components.
 EntityId _spawnResolvedSpellProjectile(
   EcsWorld world, {
   required ProjectileCatalogDerived projectiles,
@@ -50,11 +61,15 @@ EntityId _spawnResolvedSpellProjectile(
   required double speedUnitsPerSecond,
   required double damage,
 }) {
+  // Lookup base projectile def for collider dimensions.
   final proj = projectiles.base.get(projectileId);
   final halfX = proj.colliderSizeX * 0.5;
   final halfY = proj.colliderSizeY * 0.5;
 
+  // Allocate entity ID.
   final entity = world.createEntity();
+
+  // Position at spawn origin; velocity applied by ProjectileSystem.
   world.transform.add(
     entity,
     posX: originX,
@@ -62,6 +77,8 @@ EntityId _spawnResolvedSpellProjectile(
     velX: 0.0,
     velY: 0.0,
   );
+
+  // Combat data: direction, speed, faction for hit resolution.
   world.projectile.add(
     entity,
     ProjectileDef(
@@ -74,13 +91,17 @@ EntityId _spawnResolvedSpellProjectile(
       damage: damage,
     ),
   );
+
+  // Track originating spell for FX/scoring.
   world.spellOrigin.add(entity, SpellOriginDef(spellId: spellId));
+
+  // Auto-destroy after catalog-defined lifetime.
   world.lifetime.add(
     entity,
     LifetimeDef(ticksLeft: projectiles.lifetimeTicks(projectileId)),
   );
 
-  // Projectiles participate in hit resolution using the same AABB model as actors.
+  // AABB for collision detection against actors.
   world.colliderAabb.add(entity, ColliderAabbDef(halfX: halfX, halfY: halfY));
 
   return entity;
@@ -107,10 +128,12 @@ EntityId? spawnSpellProjectileFromCaster(
   required double fallbackDirX,
   required double fallbackDirY,
 }) {
+  // Bail early if spell doesn't spawn a projectile.
   final spell = spells.get(spellId);
   final projectileId = spell.projectileId;
   if (projectileId == null) return null;
 
+  // Normalize aim; use fallback (e.g. facing) if aim is zero.
   final dir = _normalizeDirOrFallback(
     dirX,
     dirY,
@@ -118,6 +141,7 @@ EntityId? spawnSpellProjectileFromCaster(
     fallbackY: fallbackDirY,
   );
 
+  // Offset spawn along direction so projectile starts outside caster.
   final originX = casterX + dir.x * originOffset;
   final originY = casterY + dir.y * originOffset;
 
@@ -137,6 +161,12 @@ EntityId? spawnSpellProjectileFromCaster(
   );
 }
 
+/// Spawns a spell projectile at an explicit origin position.
+///
+/// Use this when the spawn point is already computed. Direction is normalized
+/// internally; falls back to rightward (1, 0) if near-zero.
+///
+/// Returns `null` if the spell has no associated projectile.
 EntityId? spawnSpellProjectile(
   EcsWorld world, {
   required SpellCatalog spells,
@@ -149,10 +179,12 @@ EntityId? spawnSpellProjectile(
   required double dirX,
   required double dirY,
 }) {
+  // Bail early if spell doesn't spawn a projectile.
   final spell = spells.get(spellId);
   final projectileId = spell.projectileId;
   if (projectileId == null) return null;
 
+  // Normalize; default rightward if degenerate.
   final dir = _normalizeDirOrFallback(
     dirX,
     dirY,
