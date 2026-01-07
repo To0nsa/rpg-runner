@@ -27,29 +27,37 @@ class GravitySystem {
       if (bodies.isKinematic[bi]) continue;
       if (!bodies.useGravity[bi]) continue;
 
+      // -- Gravity Suppression Logic --
+      // Check if gravity is temporarily suppressed for this entity (e.g. during a dash).
       final gci = world.gravityControl.tryIndexOf(e);
       if (gci != null) {
-        final left = world.gravityControl.suppressGravityTicksLeft[gci];
-        if (left > 0) {
-          final nextLeft = left - 1;
-          if (nextLeft <= 0) {
+        final ticksLeft = world.gravityControl.suppressGravityTicksLeft[gci];
+        
+        if (ticksLeft > 0) {
+          // Decrement timer.
+          final nextTicks = ticksLeft - 1;
+          world.gravityControl.suppressGravityTicksLeft[gci] = nextTicks;
+          
+          // If timer just expired, remove the component so gravity resumes NEXT tick.
+          if (nextTicks <= 0) {
             world.gravityControl.removeEntity(e);
-          } else {
-            world.gravityControl.suppressGravityTicksLeft[gci] = nextLeft;
           }
+          // Skip gravity application for this frame.
           continue;
         } else {
+          // Component exists but is stale (0 or negative ticks), remove it and apply gravity immediately.
           world.gravityControl.removeEntity(e);
         }
       }
 
+      // -- Apply Gravity --
       final scaledGravityY = gravityY * bodies.gravityScale[bi];
       world.transform.velY[ti] += scaledGravityY * dt;
 
+      // -- Terminal Velocity --
       final maxVelY = bodies.maxVelY[bi];
       world.transform.velY[ti] = world.transform.velY[ti]
-          .clamp(-maxVelY, maxVelY)
-          .toDouble();
+          .clamp(-maxVelY, maxVelY);
     }
   }
 }
