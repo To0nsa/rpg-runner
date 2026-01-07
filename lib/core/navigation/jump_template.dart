@@ -1,5 +1,8 @@
 import 'nav_tolerances.dart';
 
+/// Physics parameters for simulating a jump arc.
+///
+/// Used to precompute reachability templates for AI pathfinding.
 class JumpProfile {
   const JumpProfile({
     required this.jumpSpeed,
@@ -8,28 +11,29 @@ class JumpProfile {
     required this.airSpeedX,
     required this.dtSeconds,
     required this.agentHalfWidth,
-  }) : assert(maxAirTicks > 0),
-       assert(dtSeconds > 0);
+  })  : assert(maxAirTicks > 0),
+        assert(dtSeconds > 0);
 
-  /// Instantaneous jump vertical speed (negative is upward).
+  /// Instantaneous vertical speed at jump start (negative = upward).
   final double jumpSpeed;
 
-  /// Gravity acceleration (positive is downward).
+  /// Gravity acceleration (positive = downward, e.g., 980 for ~10m/s²).
   final double gravityY;
 
-  /// Fixed tick timestep (seconds).
+  /// Fixed timestep in seconds (e.g., 1/60 for 60Hz).
   final double dtSeconds;
 
-  /// Maximum air time horizon to consider (ticks).
+  /// Maximum ticks to simulate (limits arc length for performance).
   final int maxAirTicks;
 
   /// Assumed constant horizontal speed while airborne.
   final double airSpeedX;
 
-  /// Collider half-width (used by callers when clamping landing ranges).
+  /// Agent's collider half-width (for landing overlap calculations).
   final double agentHalfWidth;
 }
 
+/// A single sample point along a precomputed jump arc.
 class JumpSample {
   const JumpSample({
     required this.tick,
@@ -39,20 +43,42 @@ class JumpSample {
     required this.maxDx,
   });
 
+  /// Tick number (1-based, 0 = takeoff).
   final int tick;
+
+  /// Y position at the end of the previous tick.
   final double prevY;
+
+  /// Y position at the end of this tick.
   final double y;
+
+  /// Vertical velocity at the end of this tick.
   final double velY;
+
+  /// Maximum horizontal displacement reachable by this tick.
   final double maxDx;
 }
 
+/// Result of a successful landing query.
 class JumpLanding {
   const JumpLanding({required this.tick, required this.maxDx});
 
+  /// Tick at which landing occurs.
   final int tick;
+
+  /// Maximum horizontal reach at landing time.
   final double maxDx;
 }
 
+/// Precomputed jump arc template for reachability queries.
+///
+/// **Usage**:
+/// - Built once from a [JumpProfile] (at startup or when physics change).
+/// - Queried during graph construction to find valid jump edges.
+///
+/// **Physics**:
+/// - Uses semi-implicit Euler integration: `vel += g*dt`, then `pos += vel*dt`.
+/// - Matches the runtime physics in [GravitySystem].
 class JumpReachabilityTemplate {
   JumpReachabilityTemplate._({
     required this.profile,
@@ -62,17 +88,27 @@ class JumpReachabilityTemplate {
     required this.maxDx,
   });
 
+  /// The physics profile used to build this template.
   final JumpProfile profile;
+
+  /// Sampled arc positions (tick 1 to maxAirTicks).
   final List<JumpSample> samples;
+
+  /// Lowest Y offset reached (negative = above origin).
   final double minDy;
+
+  /// Highest Y offset reached (positive = below origin, after fall).
   final double maxDy;
+
+  /// Maximum horizontal distance reachable.
   final double maxDx;
 
+  /// Builds a reachability template by simulating [profile.maxAirTicks] of flight.
   factory JumpReachabilityTemplate.build(JumpProfile profile) {
     final samples = <JumpSample>[];
 
     var y = 0.0;
-    var velY = -profile.jumpSpeed;
+    var velY = -profile.jumpSpeed; // Negative = upward
     final dt = profile.dtSeconds;
     var minDy = 0.0;
     var maxDy = 0.0;
@@ -80,12 +116,19 @@ class JumpReachabilityTemplate {
 
     for (var tick = 1; tick <= profile.maxAirTicks; tick += 1) {
       final prevY = y;
+      
+      // Semi-implicit Euler: update velocity first, then position.
       velY += profile.gravityY * dt;
       y += velY * dt;
+      
+      // Horizontal reach increases linearly with time.
       final maxDx = profile.airSpeedX * dt * tick;
+      
+      // Track bounding box.
       if (y < minDy) minDy = y;
       if (y > maxDy) maxDy = y;
       if (maxDx > maxDxOverall) maxDxOverall = maxDx;
+      
       samples.add(
         JumpSample(
           tick: tick,
@@ -106,8 +149,18 @@ class JumpReachabilityTemplate {
     );
   }
 
-  /// Returns the earliest landing tick whose vertical crossing is descending
-  /// and whose horizontal reach overlaps [dxMin, dxMax].
+  /// Finds the earliest tick at which a jump can land at vertical offset [dy].
+  ///
+  /// **Parameters**:
+  /// - [dy]: Target vertical offset (positive = below takeoff, negative = above).
+  /// - [dxMin], [dxMax]: Required horizontal range for a valid landing.
+  ///
+  /// **Returns**: [JumpLanding] if reachable, null otherwise.
+  ///
+  /// **Logic**:
+  /// 1. Skip ascending samples (velY < 0).
+  /// 2. Check if [dy] is crossed between prevY and y.
+  /// 3. Check if horizontal range overlaps [dxMin, dxMax].
   JumpLanding? findFirstLanding({
     required double dy,
     required double dxMin,
@@ -117,14 +170,18 @@ class JumpReachabilityTemplate {
     if (dxMin > dxMax) return null;
 
     for (final sample in samples) {
-      if (sample.velY < 0) continue; // Still ascending.
-      final crosses =
-          (sample.prevY <= dy + eps) && (sample.y >= dy - eps);
+      // Only consider descending phase.
+      if (sample.velY < 0) continue;
+      
+      // Check vertical crossing: prevY <= dy <= y (with tolerance).
+      final crosses = (sample.prevY <= dy + eps) && (sample.y >= dy - eps);
       if (!crosses) continue;
 
+      // Check horizontal reachability.
       final maxDx = sample.maxDx;
-      if (dxMin > maxDx + eps) continue;
-      if (dxMax < -maxDx - eps) continue;
+      if (dxMin > maxDx + eps) continue;  // Target too far right.
+      if (dxMax < -maxDx - eps) continue; // Target too far left.
+      
       return JumpLanding(tick: sample.tick, maxDx: maxDx);
     }
 
@@ -132,6 +189,15 @@ class JumpReachabilityTemplate {
   }
 }
 
+/// Estimates the number of ticks to fall a given vertical distance.
+///
+/// Used for "drop" edges (walking off a ledge without jumping).
+///
+/// **Parameters**:
+/// - [dy]: Distance to fall (positive = downward).
+/// - [gravityY]: Gravity acceleration.
+/// - [dtSeconds]: Timestep.
+/// - [maxTicks]: Upper bound to prevent infinite loops.
 int estimateFallTicks({
   required double dy,
   required double gravityY,
@@ -139,12 +205,15 @@ int estimateFallTicks({
   required int maxTicks,
 }) {
   if (dy <= 0) return 0;
+  
   var y = 0.0;
   var velY = 0.0;
+  
   for (var tick = 1; tick <= maxTicks; tick += 1) {
     velY += gravityY * dtSeconds;
     y += velY * dtSeconds;
     if (y >= dy) return tick;
   }
+  
   return maxTicks;
 }
