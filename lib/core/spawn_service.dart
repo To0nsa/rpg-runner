@@ -55,6 +55,19 @@ import 'tuning/track_tuning.dart';
 import 'util/deterministic_rng.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
+// RNG Salt Constants
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// RNG salt for collectible spawn positions ("COLLECT" in hex-speak).
+const int _collectibleSalt = 0xC011EC7;
+
+/// RNG salt for restoration item spawn phase offset ("ALTESAT" - alternate stat).
+const int _restorationPhaseSalt = 0xA17E5A7;
+
+/// RNG salt for restoration item spawn positions ("ASTALL" - a stall/restore).
+const int _restorationSpawnSalt = 0xA57A11;
+
+// ─────────────────────────────────────────────────────────────────────────────
 // SpawnService
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -323,7 +336,7 @@ class SpawnService {
     if (maxX <= minX) return;
 
     // ─── Initialize RNG and determine target count ───
-    var rngState = seedFrom(_seed, chunkIndex ^ 0xC011EC7);
+    var rngState = seedFrom(_seed, chunkIndex ^ _collectibleSalt);
     rngState = nextUint32(rngState);
     final countRange = tuning.maxPerChunk - tuning.minPerChunk + 1;
     final targetCount = tuning.minPerChunk + (rngState % countRange);
@@ -403,7 +416,8 @@ class SpawnService {
     if (tuning.spawnEveryChunks <= 0) return;
 
     // ─── Periodic spawn check (with seeded phase offset) ───
-    final phase = seedFrom(_seed, 0xA17E5A7) % tuning.spawnEveryChunks;
+    final phase =
+        seedFrom(_seed, _restorationPhaseSalt) % tuning.spawnEveryChunks;
     if ((chunkIndex - phase) % tuning.spawnEveryChunks != 0) return;
 
     final graph = _surfaceGraph;
@@ -422,7 +436,7 @@ class SpawnService {
     final stat = lowestResourceStat();
 
     // ─── Spawn with rejection sampling ───
-    var rngState = seedFrom(_seed, chunkIndex ^ 0xA57A11);
+    var rngState = seedFrom(_seed, chunkIndex ^ _restorationSpawnSalt);
     final halfSize = tuning.itemSize * 0.5;
 
     for (var attempt = 0; attempt < tuning.maxAttemptsPerSpawn; attempt += 1) {

@@ -1,0 +1,116 @@
+/// Aggregate tuning configuration for the game simulation core.
+///
+/// This class bundles all tuning parameters into a single object, simplifying
+/// the [GameCore] constructor API. All fields have sensible defaults, so you
+/// only need to override what you want to customize.
+///
+/// ## Usage
+///
+/// ```dart
+/// // Default configuration:
+/// final core = GameCore(seed: 42);
+///
+/// // Custom configuration:
+/// final core = GameCore(
+///   seed: 42,
+///   tuning: CoreTuning(
+///     movement: MovementTuning(jumpSpeed: 600),
+///     track: TrackTuning(enabled: false),
+///   ),
+/// );
+/// ```
+///
+/// ## Testing
+///
+/// For unit tests, create a custom [CoreTuning] with specific overrides:
+/// ```dart
+/// final testTuning = CoreTuning(
+///   track: TrackTuning(enabled: false),  // Disable procedural gen
+///   physics: PhysicsTuning(gravityY: 0), // Zero gravity
+/// );
+/// final core = GameCore(seed: 123, tuning: testTuning);
+/// ```
+library;
+
+import 'ability_tuning.dart';
+import 'camera_tuning.dart';
+import 'collectible_tuning.dart';
+import 'combat_tuning.dart';
+import 'flying_enemy_tuning.dart';
+import 'ground_enemy_tuning.dart';
+import 'movement_tuning.dart';
+import 'navigation_tuning.dart';
+import 'physics_tuning.dart';
+import 'resource_tuning.dart';
+import 'restoration_item_tuning.dart';
+import 'score_tuning.dart';
+import 'spatial_grid_tuning.dart';
+import 'track_tuning.dart';
+
+/// Aggregate container for all game simulation tuning parameters.
+///
+/// Provides a cleaner API than passing 15+ individual tuning objects to
+/// [GameCore]. All fields default to their respective tuning class defaults.
+class CoreTuning {
+  /// Creates a core tuning configuration with optional overrides.
+  ///
+  /// Any parameter not specified uses its default value.
+  const CoreTuning({
+    this.physics = const PhysicsTuning(),
+    this.movement = const MovementTuning(),
+    this.resource = const ResourceTuning(),
+    this.ability = const AbilityTuning(),
+    this.combat = const CombatTuning(),
+    this.flyingEnemy = const FlyingEnemyTuning(),
+    this.groundEnemy = const GroundEnemyTuning(),
+    this.navigation = const NavigationTuning(),
+    this.spatialGrid = const SpatialGridTuning(),
+    this.camera = const CameraTuning(),
+    this.track = const TrackTuning(),
+    this.collectible = const CollectibleTuning(),
+    this.restorationItem = const RestorationItemTuning(),
+    this.score = const ScoreTuning(),
+  });
+
+  /// Physics constants (gravity, etc.).
+  final PhysicsTuning physics;
+
+  /// Player movement parameters (speed, jump, dash).
+  final MovementTuning movement;
+
+  /// Resource costs and regeneration rates.
+  final ResourceTuning resource;
+
+  /// Ability cooldowns and stamina costs.
+  final AbilityTuning ability;
+
+  /// Combat parameters (damage, invulnerability frames).
+  final CombatTuning combat;
+
+  /// Flying enemy AI and spawn parameters.
+  final FlyingEnemyTuning flyingEnemy;
+
+  /// Ground enemy AI and movement parameters.
+  final GroundEnemyTuning groundEnemy;
+
+  /// Pathfinding and navigation parameters.
+  final NavigationTuning navigation;
+
+  /// Spatial partitioning grid settings.
+  final SpatialGridTuning spatialGrid;
+
+  /// Camera behavior (autoscroll, smoothing).
+  final CameraTuning camera;
+
+  /// Track streaming and chunk generation.
+  final TrackTuning track;
+
+  /// Collectible spawn density and placement.
+  final CollectibleTuning collectible;
+
+  /// Restoration item spawn frequency and sizing.
+  final RestorationItemTuning restorationItem;
+
+  /// Score calculation parameters.
+  final ScoreTuning score;
+}

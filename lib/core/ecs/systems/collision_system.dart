@@ -86,11 +86,6 @@ class CollisionSystem {
               prevBottom <= topY + eps && bottom >= topY - eps;
           if (!crossesTop) continue;
 
-          //if (solid.oneWayTop == false) {
-            // Fully solid top surface; same resolution as one-way, just without
-            // any additional gating.
-          //}
-
           if (bestTopY == null || topY < bestTopY) {
             bestTopY = topY;
           }

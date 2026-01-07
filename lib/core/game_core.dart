@@ -116,6 +116,7 @@ import 'tuning/ability_tuning.dart';
 import 'tuning/camera_tuning.dart';
 import 'tuning/collectible_tuning.dart';
 import 'tuning/combat_tuning.dart';
+import 'tuning/core_tuning.dart';
 import 'tuning/flying_enemy_tuning.dart';
 import 'tuning/ground_enemy_tuning.dart';
 import 'tuning/movement_tuning.dart';
@@ -141,7 +142,8 @@ import 'util/tick_math.dart';
 /// - Produces [GameStateSnapshot]s for the render layer.
 /// - Emits [GameEvent]s for UI feedback (run ended, etc.).
 ///
-/// Usage:
+/// ## Usage
+///
 /// ```dart
 /// final core = GameCore(seed: 42);
 /// core.applyCommands([JumpPressedCommand()]);
@@ -150,15 +152,26 @@ import 'util/tick_math.dart';
 /// final events = core.drainEvents();
 /// ```
 ///
-/// ## Testing
+/// ## Custom Configuration
 ///
-/// For unit tests, inject custom tuning parameters:
+/// Use [CoreTuning] to customize game parameters:
 /// ```dart
 /// final core = GameCore(
 ///   seed: 123,
-///   tickHz: 60,
-///   movementTuning: MovementTuning(jumpSpeed: 500),
-///   trackTuning: TrackTuning(enabled: false), // Disable procedural gen
+///   tuning: CoreTuning(
+///     movement: MovementTuning(jumpSpeed: 600),
+///     track: TrackTuning(enabled: false),
+///   ),
+/// );
+/// ```
+///
+/// For backward compatibility, [GameCore.withTunings] accepts individual
+/// tuning parameters:
+/// ```dart
+/// final core = GameCore.withTunings(
+///   seed: 123,
+///   movementTuning: MovementTuning(jumpSpeed: 600),
+///   trackTuning: TrackTuning(enabled: false),
 /// );
 /// ```
 class GameCore {
@@ -167,12 +180,69 @@ class GameCore {
   /// Parameters:
   /// - [seed]: Master RNG seed for deterministic generation.
   /// - [tickHz]: Fixed tick rate (default 60). Higher = smoother but more CPU.
-  /// - Tuning parameters: Override defaults for testing or game modes.
+  /// - [tuning]: Aggregate tuning configuration (see [CoreTuning]).
   /// - Catalogs: Entity archetype definitions (spells, enemies, etc.).
   /// - [staticWorldGeometry]: Base level geometry (ground, initial platforms).
+  ///
+  /// For backward compatibility with existing code that passes individual
+  /// tuning parameters, use [GameCore.withTunings] instead.
   GameCore({
     required this.seed,
     this.tickHz = defaultTickHz,
+    CoreTuning tuning = const CoreTuning(),
+    SpellCatalog spellCatalog = const SpellCatalog(),
+    ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
+    EnemyCatalog enemyCatalog = const EnemyCatalog(),
+    PlayerCatalog playerCatalog = const PlayerCatalog(),
+    StaticWorldGeometry staticWorldGeometry = const StaticWorldGeometry(
+      groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
+    ),
+  }) : _movement = MovementTuningDerived.from(tuning.movement, tickHz: tickHz),
+       _physicsTuning = tuning.physics,
+       _resourceTuning = tuning.resource,
+       _abilities = AbilityTuningDerived.from(tuning.ability, tickHz: tickHz),
+       _combat = CombatTuningDerived.from(tuning.combat, tickHz: tickHz),
+       _flyingEnemyTuning = FlyingEnemyTuningDerived.from(
+         tuning.flyingEnemy,
+         tickHz: tickHz,
+       ),
+       _groundEnemyTuning = GroundEnemyTuningDerived.from(
+         tuning.groundEnemy,
+         tickHz: tickHz,
+       ),
+       _navigationTuning = tuning.navigation,
+       _spatialGridTuning = tuning.spatialGrid,
+       _spells = spellCatalog,
+       _projectiles = ProjectileCatalogDerived.from(
+         projectileCatalog,
+         tickHz: tickHz,
+       ),
+       _enemyCatalog = enemyCatalog,
+       _playerCatalog = playerCatalog,
+       _scoreTuning = tuning.score,
+       _trackTuning = tuning.track,
+       _collectibleTuning = tuning.collectible,
+       _restorationItemTuning = tuning.restorationItem {
+    _initializeWorld(tuning.camera, staticWorldGeometry);
+  }
+
+  /// Creates a game simulation with individual tuning parameters.
+  ///
+  /// This factory provides backward compatibility for code that passes
+  /// individual tuning objects. Prefer the default constructor with
+  /// [CoreTuning] for new code.
+  ///
+  /// Example:
+  /// ```dart
+  /// final core = GameCore.withTunings(
+  ///   seed: 123,
+  ///   movementTuning: MovementTuning(jumpSpeed: 600),
+  ///   trackTuning: TrackTuning(enabled: false),
+  /// );
+  /// ```
+  factory GameCore.withTunings({
+    required int seed,
+    int tickHz = defaultTickHz,
     PhysicsTuning physicsTuning = const PhysicsTuning(),
     MovementTuning movementTuning = const MovementTuning(),
     ResourceTuning resourceTuning = const ResourceTuning(),
@@ -194,32 +264,39 @@ class GameCore {
     StaticWorldGeometry staticWorldGeometry = const StaticWorldGeometry(
       groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
     ),
-  }) : _movement = MovementTuningDerived.from(movementTuning, tickHz: tickHz),
-       _physicsTuning = physicsTuning,
-       _resourceTuning = resourceTuning,
-       _abilities = AbilityTuningDerived.from(abilityTuning, tickHz: tickHz),
-       _combat = CombatTuningDerived.from(combatTuning, tickHz: tickHz),
-       _flyingEnemyTuning = FlyingEnemyTuningDerived.from(
-         flyingEnemyTuning,
-         tickHz: tickHz,
-       ),
-       _groundEnemyTuning = GroundEnemyTuningDerived.from(
-         groundEnemyTuning,
-         tickHz: tickHz,
-       ),
-       _navigationTuning = navigationTuning,
-       _spatialGridTuning = spatialGridTuning,
-       _spells = spellCatalog,
-       _projectiles = ProjectileCatalogDerived.from(
-         projectileCatalog,
-         tickHz: tickHz,
-       ),
-       _enemyCatalog = enemyCatalog,
-       _playerCatalog = playerCatalog,
-       _scoreTuning = scoreTuning,
-       _trackTuning = trackTuning,
-       _collectibleTuning = collectibleTuning,
-       _restorationItemTuning = restorationItemTuning {
+  }) {
+    return GameCore(
+      seed: seed,
+      tickHz: tickHz,
+      tuning: CoreTuning(
+        physics: physicsTuning,
+        movement: movementTuning,
+        resource: resourceTuning,
+        ability: abilityTuning,
+        combat: combatTuning,
+        flyingEnemy: flyingEnemyTuning,
+        groundEnemy: groundEnemyTuning,
+        navigation: navigationTuning,
+        spatialGrid: spatialGridTuning,
+        camera: cameraTuning,
+        track: trackTuning,
+        collectible: collectibleTuning,
+        restorationItem: restorationItemTuning,
+        score: scoreTuning,
+      ),
+      spellCatalog: spellCatalog,
+      projectileCatalog: projectileCatalog,
+      enemyCatalog: enemyCatalog,
+      playerCatalog: playerCatalog,
+      staticWorldGeometry: staticWorldGeometry,
+    );
+  }
+
+  /// Common initialization shared by all constructors.
+  void _initializeWorld(
+    CameraTuning cameraTuning,
+    StaticWorldGeometry staticWorldGeometry,
+  ) {
     // ─── Initialize ECS world and entity factory ───
     _world = EcsWorld(seed: seed);
     _entityFactory = EntityFactory(_world);
@@ -381,11 +458,11 @@ class GameCore {
 
   /// Spawns the player entity at the start of a run.
   ///
-  /// The player is positioned at a fixed X offset, standing on the ground.
-  /// This must be called before [TrackManager] is created because track
-  /// manager callbacks reference the player entity.
+  /// The player is positioned at [TrackTuning.playerStartX], standing on the
+  /// ground. This must be called before [TrackManager] is created because
+  /// track manager callbacks reference the player entity.
   void _spawnPlayer(double groundTopY) {
-    const spawnX = 400.0;
+    final spawnX = _trackTuning.playerStartX;
     final playerArchetype = PlayerCatalogDerived.from(
       _playerCatalog,
       movement: _movement,
@@ -954,13 +1031,13 @@ class GameCore {
   /// Checks if the player has fallen into a ground gap (pit).
   ///
   /// The kill threshold is set well below ground level to give visual
-  /// feedback of falling before the death triggers.
+  /// feedback of falling before the death triggers. Configured via
+  /// [TrackTuning.gapKillOffsetY].
   bool _checkFellIntoGap(double groundTopY) {
     if (!(_world.transform.has(_player) && _world.colliderAabb.has(_player))) {
       return false;
     }
 
-    const gapKillOffsetY = 400.0; // How far below ground before death.
     final ti = _world.transform.indexOf(_player);
     final ai = _world.colliderAabb.indexOf(_player);
     final bottomY =
@@ -968,7 +1045,7 @@ class GameCore {
         _world.colliderAabb.offsetY[ai] +
         _world.colliderAabb.halfY[ai];
 
-    return bottomY > groundTopY + gapKillOffsetY;
+    return bottomY > groundTopY + _trackTuning.gapKillOffsetY;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
