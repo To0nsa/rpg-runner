@@ -1,19 +1,21 @@
 /// Navigation-wide numeric tolerances.
 ///
-/// Keep this intentionally small: for now we use one epsilon everywhere so
-/// tuning stays straightforward. The aliases keep callsites semantically clear
-/// and make it easy to split values later if needed.
+/// **Design**:
+/// - Currently uses a single epsilon ([navEps]) for simplicity.
+/// - Semantic aliases exist to make callsites self-documenting.
+/// - If tuning is needed later, individual values can diverge without code changes.
+///
+/// **Warning**: Changing these values affects pathfinding determinism.
 library;
 
-/// Default epsilon used across navigation.
+/// Default epsilon used across navigation (1 micron in world units).
 const double navEps = 1e-6;
 
-/// Epsilon for "these two world-space doubles should be equal" cases.
+/// Epsilon for geometric equality checks (e.g., "are these two points the same?").
 const double navGeomEps = navEps;
 
-/// Epsilon used for runtime spatial queries / thickness.
+/// Epsilon for spatial queries (surface containment, overlap thickness).
 const double navSpatialEps = navEps;
 
-/// Epsilon used for deterministic tie-breaking in comparisons (e.g., A* f/g
-/// ties).
+/// Epsilon for deterministic tie-breaking in A* (f-cost and g-cost comparisons).
 const double navTieEps = navEps;
