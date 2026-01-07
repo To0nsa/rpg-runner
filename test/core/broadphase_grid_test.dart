@@ -42,7 +42,7 @@ void main() {
     world.faction.add(big, const FactionDef(faction: Faction.enemy));
 
     final broadphase = BroadphaseGrid(
-      index: GridIndex2D(cellSize: SpatialGridTuning.v0BroadphaseCellSize),
+      index: GridIndex2D(cellSize: const SpatialGridTuning().broadphaseCellSize),
     )..rebuild(world);
 
     final candidates = <int>[];

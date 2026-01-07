@@ -79,7 +79,7 @@ void main() {
 
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0);
     final broadphase = BroadphaseGrid(
-      index: GridIndex2D(cellSize: SpatialGridTuning.v0BroadphaseCellSize),
+      index: GridIndex2D(cellSize: const SpatialGridTuning().broadphaseCellSize),
     )..rebuild(world);
     final hit = ProjectileHitSystem();
     hit.step(world, damage.queue, broadphase);
@@ -159,7 +159,7 @@ void main() {
 
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0);
     final broadphase = BroadphaseGrid(
-      index: GridIndex2D(cellSize: SpatialGridTuning.v0BroadphaseCellSize),
+      index: GridIndex2D(cellSize: const SpatialGridTuning().broadphaseCellSize),
     );
     final follow = HitboxFollowOwnerSystem();
     final hitboxDamage = HitboxDamageSystem();

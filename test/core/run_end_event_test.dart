@@ -67,7 +67,7 @@ void main() {
     expect(projectile, isNotNull);
 
     final broadphase = BroadphaseGrid(
-      index: GridIndex2D(cellSize: SpatialGridTuning.v0BroadphaseCellSize),
+      index: GridIndex2D(cellSize: const SpatialGridTuning().broadphaseCellSize),
     )..rebuild(world);
     final hits = ProjectileHitSystem();
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0);
@@ -122,7 +122,7 @@ void main() {
     world.hitOnce.add(hitbox);
 
     final broadphase = BroadphaseGrid(
-      index: GridIndex2D(cellSize: SpatialGridTuning.v0BroadphaseCellSize),
+      index: GridIndex2D(cellSize: const SpatialGridTuning().broadphaseCellSize),
     )..rebuild(world);
     final hitboxDamage = HitboxDamageSystem();
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0);

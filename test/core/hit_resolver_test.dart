@@ -40,7 +40,7 @@ void main() {
     world.faction.add(c, const FactionDef(faction: Faction.player));
 
     final broadphase = BroadphaseGrid(
-      index: GridIndex2D(cellSize: SpatialGridTuning.v0BroadphaseCellSize),
+      index: GridIndex2D(cellSize: const SpatialGridTuning().broadphaseCellSize),
     )..rebuild(world);
 
     final resolver = HitResolver();
@@ -104,7 +104,7 @@ void main() {
     }
 
     final broadphase = BroadphaseGrid(
-      index: GridIndex2D(cellSize: SpatialGridTuning.v0BroadphaseCellSize),
+      index: GridIndex2D(cellSize: const SpatialGridTuning().broadphaseCellSize),
     )..rebuild(world);
 
     final resolver = HitResolver();

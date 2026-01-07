@@ -9,10 +9,33 @@ import 'package:walkscape_runner/ui/hud/gameover/leaderboard_panel.dart';
 import 'package:walkscape_runner/ui/leaderboard/leaderboard_store.dart';
 import 'package:walkscape_runner/ui/leaderboard/run_result.dart';
 
+// Test constants matching _buildEvent().
+const _distanceUnits = 500.0;
+const _tick = 120;
+const _tickHz = 60;
+const _tuning = ScoreTuning(
+  timeScorePerSecond: 10,
+  distanceScorePerMeter: 5,
+  groundEnemyKillScore: 100,
+  flyingEnemyKillScore: 150,
+);
+
+// Derived expected values.
+final _expectedMeters = (_distanceUnits / kWorldUnitsPerMeter).floor();
+final _expectedDistancePoints = _expectedMeters * _tuning.distanceScorePerMeter;
+const _expectedTimeSeconds = _tick ~/ _tickHz;
+const _expectedTimePoints = _expectedTimeSeconds * 10;
+const _expectedCollectiblePoints = 100;
+const _expectedKillPoints = 150;
+final _expectedTotal = _expectedDistancePoints +
+    _expectedTimePoints +
+    _expectedCollectiblePoints +
+    _expectedKillPoints;
+
 RunEndedEvent _buildEvent() {
   return const RunEndedEvent(
-    tick: 120,
-    distance: 500,
+    tick: _tick,
+    distance: _distanceUnits,
     reason: RunEndReason.gaveUp,
     stats: RunEndStats(
       collectibles: 2,
@@ -39,13 +62,8 @@ void main() {
           onExit: null,
           showExitButton: false,
           runEndedEvent: _buildEvent(),
-          scoreTuning: const ScoreTuning(
-            timeScorePerSecond: 10,
-            distanceScorePerMeter: 5,
-            groundEnemyKillScore: 100,
-            flyingEnemyKillScore: 150,
-          ),
-          tickHz: 60,
+          scoreTuning: _tuning,
+          tickHz: _tickHz,
           leaderboardStore: store,
         ),
       ),
@@ -56,7 +74,7 @@ void main() {
     expect(panel, findsOneWidget);
 
     expect(
-      find.descendant(of: panel, matching: find.text('295')),
+      find.descendant(of: panel, matching: find.text('$_expectedTotal')),
       findsNothing,
     );
     expect(
@@ -70,7 +88,7 @@ void main() {
     await tester.pump();
 
     expect(
-      find.descendant(of: panel, matching: find.text('295')),
+      find.descendant(of: panel, matching: find.text('$_expectedTotal')),
       findsOneWidget,
     );
     expect(
@@ -88,22 +106,23 @@ void main() {
           onExit: null,
           showExitButton: false,
           runEndedEvent: _buildEvent(),
-          scoreTuning: const ScoreTuning(
-            timeScorePerSecond: 10,
-            distanceScorePerMeter: 5,
-            groundEnemyKillScore: 100,
-            flyingEnemyKillScore: 150,
-          ),
-          tickHz: 60,
+          scoreTuning: _tuning,
+          tickHz: _tickHz,
         ),
       ),
     );
 
     expect(find.textContaining('Score:'), findsNothing);
-    expect(find.text('Distance: 5m -> 25'), findsOneWidget);
-    expect(find.text('Time: 00:02 -> 20'), findsOneWidget);
-    expect(find.text('Collectibles: 2 -> 100'), findsOneWidget);
-    expect(find.text('Flying enemy x1 -> 150'), findsOneWidget);
+    expect(
+      find.text('Distance: ${_expectedMeters}m -> $_expectedDistancePoints'),
+      findsOneWidget,
+    );
+    expect(find.text('Time: 00:02 -> $_expectedTimePoints'), findsOneWidget);
+    expect(
+      find.text('Collectibles: 2 -> $_expectedCollectiblePoints'),
+      findsOneWidget,
+    );
+    expect(find.text('Flying enemy x1 -> $_expectedKillPoints'), findsOneWidget);
     expect(find.text('Collect score'), findsOneWidget);
 
     await tester.tap(find.text('Collect score'));
@@ -113,8 +132,8 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     await tester.pump();
 
-    expect(find.text('Score: 295'), findsOneWidget);
-    expect(find.text('Distance: 5m -> 0'), findsOneWidget);
+    expect(find.text('Score: $_expectedTotal'), findsOneWidget);
+    expect(find.text('Distance: ${_expectedMeters}m -> 0'), findsOneWidget);
     expect(find.text('Time: 00:02 -> 0'), findsOneWidget);
     expect(find.text('Collectibles: 2 -> 0'), findsOneWidget);
     expect(find.text('Flying enemy x1 -> 0'), findsOneWidget);
@@ -130,13 +149,8 @@ void main() {
           onExit: null,
           showExitButton: false,
           runEndedEvent: _buildEvent(),
-          scoreTuning: const ScoreTuning(
-            timeScorePerSecond: 10,
-            distanceScorePerMeter: 5,
-            groundEnemyKillScore: 100,
-            flyingEnemyKillScore: 150,
-          ),
-          tickHz: 60,
+          scoreTuning: _tuning,
+          tickHz: _tickHz,
         ),
       ),
     );
@@ -148,8 +162,8 @@ void main() {
     await tester.tap(find.text('Skip'));
     await tester.pump();
 
-    expect(find.text('Score: 295'), findsOneWidget);
-    expect(find.text('Distance: 5m -> 0'), findsOneWidget);
+    expect(find.text('Score: $_expectedTotal'), findsOneWidget);
+    expect(find.text('Distance: ${_expectedMeters}m -> 0'), findsOneWidget);
     expect(find.text('Time: 00:02 -> 0'), findsOneWidget);
     expect(find.text('Collectibles: 2 -> 0'), findsOneWidget);
     expect(find.text('Flying enemy x1 -> 0'), findsOneWidget);
@@ -164,10 +178,10 @@ class _FakeLeaderboardStore implements LeaderboardStore {
     runId: 42,
     endedAtMs: 0,
     endedReason: RunEndReason.gaveUp,
-    score: 295,
-    distanceMeters: 5,
-    durationSeconds: 2,
-    tick: 120,
+    score: _expectedTotal,
+    distanceMeters: _expectedMeters,
+    durationSeconds: _expectedTimeSeconds,
+    tick: _tick,
   );
 
   @override

@@ -6,33 +6,50 @@ import 'package:walkscape_runner/core/tuning/score_tuning.dart';
 
 void main() {
   test('run score breakdown includes distance/time/collectibles/kills', () {
+    const distanceUnits = 500.0;
+    const tick = 120;
+    const tickHz = 60;
+    const tuning = ScoreTuning(
+      timeScorePerSecond: 10,
+      distanceScorePerMeter: 5,
+      groundEnemyKillScore: 100,
+      flyingEnemyKillScore: 150,
+    );
+
+    // Compute expected values dynamically.
+    final expectedMeters = (distanceUnits / kWorldUnitsPerMeter).floor();
+    final expectedDistancePoints = expectedMeters * tuning.distanceScorePerMeter;
+    const expectedTimeSeconds = tick ~/ tickHz;
+    const expectedTimePoints = expectedTimeSeconds * 10;
+    const expectedCollectiblePoints = 100;
+    const expectedKillPoints = 150;
+    final expectedTotal = expectedDistancePoints +
+        expectedTimePoints +
+        expectedCollectiblePoints +
+        expectedKillPoints;
+
     final breakdown = buildRunScoreBreakdown(
-      tick: 120,
-      distanceUnits: 500,
+      tick: tick,
+      distanceUnits: distanceUnits,
       collectibles: 2,
       collectibleScore: 100,
       enemyKillCounts: const [1, 0],
-      tuning: const ScoreTuning(
-        timeScorePerSecond: 10,
-        distanceScorePerMeter: 5,
-        groundEnemyKillScore: 100,
-        flyingEnemyKillScore: 150,
-      ),
-      tickHz: 60,
+      tuning: tuning,
+      tickHz: tickHz,
     );
 
-    expect(breakdown.totalPoints, 295);
+    expect(breakdown.totalPoints, expectedTotal);
     expect(breakdown.rows, hasLength(4));
 
     final distance = breakdown.rows[0];
     expect(distance.kind, RunScoreRowKind.distance);
-    expect(distance.count, 5);
-    expect(distance.points, 25);
+    expect(distance.count, expectedMeters);
+    expect(distance.points, expectedDistancePoints);
 
     final time = breakdown.rows[1];
     expect(time.kind, RunScoreRowKind.time);
-    expect(time.count, 2);
-    expect(time.points, 20);
+    expect(time.count, expectedTimeSeconds);
+    expect(time.points, expectedTimePoints);
 
     final collectibles = breakdown.rows[2];
     expect(collectibles.kind, RunScoreRowKind.collectibles);

@@ -72,7 +72,7 @@ void main() {
 
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0);
     final broadphase = BroadphaseGrid(
-      index: GridIndex2D(cellSize: SpatialGridTuning.v0BroadphaseCellSize),
+      index: GridIndex2D(cellSize: const SpatialGridTuning().broadphaseCellSize),
     )..rebuild(world);
     final hits = ProjectileHitSystem();
     hits.step(world, damage.queue, broadphase);

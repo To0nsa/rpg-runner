@@ -47,7 +47,7 @@ void main() {
     final hitboxDamage = HitboxDamageSystem();
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0);
     final broadphase = BroadphaseGrid(
-      index: GridIndex2D(cellSize: SpatialGridTuning.v0BroadphaseCellSize),
+      index: GridIndex2D(cellSize: const SpatialGridTuning().broadphaseCellSize),
     );
     final lifetime = LifetimeSystem();
 
