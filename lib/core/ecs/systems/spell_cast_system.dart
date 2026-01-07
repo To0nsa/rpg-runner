@@ -4,13 +4,17 @@ import '../../util/double_math.dart';
 import '../world.dart';
 import '../../projectiles/projectile_catalog.dart';
 
-/// Executes `CastIntentStore` intents by applying costs/cooldowns and spawning
-/// spell projectiles.
+/// Executes [CastIntentStore] intents by spawning projectiles and managing resources.
 ///
-/// IMPORTANT:
-/// - Only intents with `intent.tick == currentTick` are considered valid.
-/// - Mana spending + cooldown start happen only if a projectile was spawned.
-/// - Intents are invalidated after processing by setting `intent.tick = -1`.
+/// **Responsibilities**:
+/// - Consumes [CastIntent] stamped with the `currentTick`.
+/// - Checks validation (Cooldowns, Mana cost, Entity existence).
+/// - Spawns Spell Projectiles via [spawnSpellProjectileFromCaster].
+/// - Deducts Mana and applies Cooldown IF spawn succeeds.
+///
+/// **Logic**:
+/// - Intents are processed only once per tick.
+/// - Invalidated immediately (`tick = -1`) to prevent double-execution.
 class SpellCastSystem {
   SpellCastSystem({
     required this.spells,
@@ -24,34 +28,48 @@ class SpellCastSystem {
     final intents = world.castIntent;
     if (intents.denseEntities.isEmpty) return;
 
-    for (var ii = 0; ii < intents.denseEntities.length; ii += 1) {
+    // Cache stores for efficient access
+    final transforms = world.transform;
+    final cooldowns = world.cooldown;
+    final manas = world.mana;
+    final factions = world.faction;
+
+    final count = intents.denseEntities.length;
+    for (var ii = 0; ii < count; ii += 1) {
       if (intents.tick[ii] != currentTick) continue;
 
       final caster = intents.denseEntities[ii];
 
-      // Invalidate now so accidental multi-pass execution in the same tick cannot
-      // double-cast. (Intent is still ignored next tick due to stamp mismatch.)
+      // Safe-guard: Invalidate intent immediately to prevent re-entry within the same tick.
       intents.tick[ii] = -1;
 
-      if (!world.transform.has(caster)) continue;
-      if (!world.cooldown.has(caster)) continue;
-      if (!world.mana.has(caster)) continue;
+      // -- Validation Checks --
+      // Must have position, cooldowns, and mana components.
+      final ti = transforms.tryIndexOf(caster);
+      if (ti == null) continue;
 
-      final ci = world.cooldown.indexOf(caster);
-      if (world.cooldown.castCooldownTicksLeft[ci] > 0) continue;
+      final ci = cooldowns.tryIndexOf(caster);
+      if (ci == null) continue;
+      
+      // Check cooldown (must be ready).
+      if (cooldowns.castCooldownTicksLeft[ci] > 0) continue;
 
+      final mi = manas.tryIndexOf(caster);
+      if (mi == null) continue;
+
+      // Check Mana Cost.
       final spellId = intents.spellId[ii];
       final def = spells.get(spellId);
+      final currentMana = manas.mana[mi];
+      
+      if (currentMana < def.stats.manaCost) continue;
 
-      final mi = world.mana.indexOf(caster);
-      final mana = world.mana.mana[mi];
-      if (mana < def.stats.manaCost) continue;
-
-      final fi = world.faction.tryIndexOf(caster);
+      // Faction is optional generally, but required for projectile ownership usually.
+      final fi = factions.tryIndexOf(caster);
       if (fi == null) continue;
-      final faction = world.faction.faction[fi];
+      final faction = factions.faction[fi];
 
-      final ti = world.transform.indexOf(caster);
+      // -- Execution --
       final spawned = spawnSpellProjectileFromCaster(
         world,
         spells: spells,
@@ -59,22 +77,25 @@ class SpellCastSystem {
         spellId: spellId,
         faction: faction,
         owner: caster,
-        casterX: world.transform.posX[ti],
-        casterY: world.transform.posY[ti],
+        casterX: transforms.posX[ti],
+        casterY: transforms.posY[ti],
         originOffset: intents.originOffset[ii],
         dirX: intents.dirX[ii],
         dirY: intents.dirY[ii],
         fallbackDirX: intents.fallbackDirX[ii],
         fallbackDirY: intents.fallbackDirY[ii],
       );
+
+      // Only apply costs if the spell actually did something (spawned).
       if (spawned == null) continue;
 
-      world.mana.mana[mi] = clampDouble(
-        mana - def.stats.manaCost,
+      manas.mana[mi] = clampDouble(
+        currentMana - def.stats.manaCost,
         0.0,
-        world.mana.manaMax[mi],
+        manas.manaMax[mi],
       );
-      world.cooldown.castCooldownTicksLeft[ci] = intents.cooldownTicks[ii];
+      
+      cooldowns.castCooldownTicksLeft[ci] = intents.cooldownTicks[ii];
     }
   }
 }
