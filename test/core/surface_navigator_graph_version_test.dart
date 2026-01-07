@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:walkscape_runner/core/ecs/spatial/grid_index_2d.dart';
-import 'package:walkscape_runner/core/ecs/stores/surface_nav_state_store.dart';
+import 'package:walkscape_runner/core/ecs/stores/enemies/surface_nav_state_store.dart';
 import 'package:walkscape_runner/core/navigation/surface_graph.dart';
 import 'package:walkscape_runner/core/navigation/surface_navigator.dart';
 import 'package:walkscape_runner/core/navigation/surface_pathfinder.dart';

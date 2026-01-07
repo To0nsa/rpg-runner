@@ -1,4 +1,4 @@
-import '../ecs/stores/surface_nav_state_store.dart';
+import '../ecs/stores/enemies/surface_nav_state_store.dart';
 import 'nav_tolerances.dart';
 import 'surface_graph.dart';
 import 'surface_id.dart';

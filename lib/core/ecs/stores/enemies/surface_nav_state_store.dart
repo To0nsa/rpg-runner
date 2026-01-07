@@ -1,6 +1,6 @@
-import '../../navigation/surface_id.dart';
-import '../entity_id.dart';
-import '../sparse_set.dart';
+import '../../../navigation/surface_id.dart';
+import '../../entity_id.dart';
+import '../../sparse_set.dart';
 
 /// Per-entity pathfinding state.
 ///

@@ -7,10 +7,10 @@ import 'stores/cooldown_store.dart';
 import 'stores/cast_intent_store.dart';
 import 'stores/collectible_store.dart';
 import 'stores/player/gravity_control_store.dart';
-import 'stores/flying_enemy_steering_store.dart';
+import 'stores/enemies/flying_enemy_steering_store.dart';
 import 'stores/faction_store.dart';
-import 'stores/enemy_store.dart';
-import 'stores/ground_enemy_chase_offset_store.dart';
+import 'stores/enemies/enemy_store.dart';
+import 'stores/enemies/ground_enemy_chase_offset_store.dart';
 import 'stores/health_store.dart';
 import 'stores/hit_once_store.dart';
 import 'stores/hitbox_store.dart';
@@ -25,7 +25,7 @@ import 'stores/projectile_store.dart';
 import 'stores/restoration_item_store.dart';
 import 'stores/spell_origin_store.dart';
 import 'stores/stamina_store.dart';
-import 'stores/surface_nav_state_store.dart';
+import 'stores/enemies/surface_nav_state_store.dart';
 import 'stores/transform_store.dart';
 
 /// Minimal Entity Component System (ECS) world container.

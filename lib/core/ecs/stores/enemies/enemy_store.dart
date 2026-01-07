@@ -1,7 +1,7 @@
-import '../../enemies/enemy_id.dart';
-import '../../snapshots/enums.dart';
-import '../entity_id.dart';
-import '../sparse_set.dart';
+import '../../../enemies/enemy_id.dart';
+import '../../../snapshots/enums.dart';
+import '../../entity_id.dart';
+import '../../sparse_set.dart';
 
 class EnemyDef {
   const EnemyDef({

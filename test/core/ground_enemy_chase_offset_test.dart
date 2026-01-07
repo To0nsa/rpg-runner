@@ -7,7 +7,7 @@ import 'package:walkscape_runner/core/ecs/stores/collider_aabb_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/health_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/mana_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/stamina_store.dart';
-import 'package:walkscape_runner/core/ecs/stores/surface_nav_state_store.dart';
+import 'package:walkscape_runner/core/ecs/stores/enemies/surface_nav_state_store.dart';
 import 'package:walkscape_runner/core/ecs/spatial/grid_index_2d.dart';
 import 'package:walkscape_runner/core/ecs/systems/enemy_system.dart';
 import 'package:walkscape_runner/core/ecs/world.dart';
