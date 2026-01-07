@@ -4,7 +4,17 @@ import '../queries.dart';
 import '../stores/body_store.dart';
 import '../world.dart';
 
-/// Integrates positions and resolves collisions (V0: ground band only).
+/// Handles physics integration and collision resolution for dynamic entities.
+///
+/// This system operates in three main steps:
+/// 1.  **Integration**: Updates position based on velocity (`pos += vel * dt`).
+/// 2.  **Vertical Resolution**:
+///     -   Checks floors (ground segments and one-way platforms).
+///     -   Checks ceilings (if not ignored).
+///     -   Snaps position to the contact surface and zeroes vertical velocity.
+/// 3.  **Horizontal Resolution**:
+///     -   Checks walls in the direction of movement.
+///     -   Stops horizontal movement upon collision.
 ///
 /// Order within a tick:
 /// - PlayerMovementSystem computes control velocities (jump/dash/horizontal).
@@ -12,27 +22,35 @@ import '../world.dart';
 /// - CollisionSystem integrates `pos += vel * dt`, resolves collisions, and
 ///   finalizes grounded/contact state for the tick.
 class CollisionSystem {
+  // Reusable buffers to avoid allocations during collision queries.
   final List<StaticSolid> _queryBuffer = <StaticSolid>[];
   final List<StaticGroundSegment> _groundSegBuffer = <StaticGroundSegment>[];
 
+  /// Runs the physics update for one tick.
+  ///
+  /// [tuning] provides the delta time [dtSeconds].
+  /// [staticWorld] is the spatial index for static geometry (floors, walls).
   void step(
     EcsWorld world,
     MovementTuningDerived tuning, {
     required StaticWorldGeometryIndex staticWorld,
   }) {
     final dt = tuning.dtSeconds;
+    // Epsilon for floating point comparisons and overlap tolerance.
     const eps = 1e-3;
 
     EcsQueries.forColliders(world, (e, ti, bi, coli, aabbi) {
       if (!world.body.enabled[bi]) return;
 
-      // Reset per-tick collision results.
+      // Reset per-tick collision flags (grounded, hitCeiling, etc.).
       world.collision.resetTick(e);
 
       // Kinematic bodies are excluded from physics integration/resolution.
+      // They are moved manually by other systems.
       if (world.body.isKinematic[bi]) {
         return;
       }
+
 
       final prevPosX = world.transform.posX[ti];
       final prevPosY = world.transform.posY[ti];
@@ -68,10 +86,10 @@ class CollisionSystem {
               prevBottom <= topY + eps && bottom >= topY - eps;
           if (!crossesTop) continue;
 
-          if (solid.oneWayTop == false) {
+          //if (solid.oneWayTop == false) {
             // Fully solid top surface; same resolution as one-way, just without
             // any additional gating.
-          }
+          //}
 
           if (bestTopY == null || topY < bestTopY) {
             bestTopY = topY;
@@ -79,7 +97,8 @@ class CollisionSystem {
         }
       }
 
-      // Vertical bottom resolution (ceilings): only while moving upward.
+      // Check ceilings.
+      // Only resolve if moving upward and the body collides with ceilings.
       double? bestBottomY;
       if (world.transform.velY[ti] < 0 && !world.body.ignoreCeilings[bi]) {
         final prevTop = prevCenterY - halfY;
@@ -87,17 +106,20 @@ class CollisionSystem {
         staticWorld.queryBottoms(minX + eps, maxX - eps, _queryBuffer);
         for (final solid in _queryBuffer) {
           final bottomY = solid.maxY;
+          // Check if we crossed the surface from below to above.
           final crossesBottom =
               prevTop >= bottomY - eps && top <= bottomY + eps;
           if (!crossesBottom) continue;
 
+          // Keep the lowest ceiling (maximum Y) encountered.
           if (bestBottomY == null || bottomY > bestBottomY) {
             bestBottomY = bottomY;
           }
         }
       }
 
-      // Resolve ground segments (walkable surfaces, possibly split by gaps).
+      // Check Ground Segments (optimized horizontal strips for ground).
+      // Treated same as one-way platforms.
       if (world.transform.velY[ti] > 0) {
         _groundSegBuffer.clear();
         staticWorld.queryGroundSegments(minX + eps, maxX - eps, _groundSegBuffer);
@@ -106,19 +128,23 @@ class CollisionSystem {
           final crossesTop =
               prevBottom <= groundTopY + eps && bottom >= groundTopY - eps;
           if (!crossesTop) continue;
+          
           if (bestTopY == null || groundTopY < bestTopY) {
             bestTopY = groundTopY;
           }
         }
       }
 
+      // Apply vertical resolution.
       if (bestTopY != null) {
+        // Landed on floor.
         world.transform.posY[ti] = bestTopY - offsetY - halfY;
         if (world.transform.velY[ti] > 0) {
           world.transform.velY[ti] = 0;
         }
         world.collision.grounded[coli] = true;
       } else if (bestBottomY != null) {
+        // Hit ceiling.
         world.transform.posY[ti] = bestBottomY - offsetY + halfY;
         if (world.transform.velY[ti] < 0) {
           world.transform.velY[ti] = 0;
@@ -126,19 +152,20 @@ class CollisionSystem {
         world.collision.hitCeiling[coli] = true;
       }
 
+      // Horizontal Resolution
       // Recompute AABB after vertical resolution for stable side overlap tests.
+      // This prevents "snagging" on walls due to slight vertical overlap that should have been resolved.
       final resolvedCenterX = world.transform.posX[ti] + offsetX;
       final resolvedCenterY = world.transform.posY[ti] + offsetY;
-      //final resolvedMinX = resolvedCenterX - halfX;
-      //final resolvedMaxX = resolvedCenterX + halfX;
       final resolvedMinY = resolvedCenterY - halfY;
       final resolvedMaxY = resolvedCenterY + halfY;
 
-      // Horizontal resolution against static solids (V0: obstacles/walls only).
+      // Resolve against static walls.
       final sideMask = world.body.sideMask[bi];
       final velX = world.transform.velX[ti];
 
       if (velX > 0 && (sideMask &  BodyDef.sideRight) != 0) {
+        // Moving Right.
         final prevRight = prevCenterX + halfX;
         final right = resolvedCenterX + halfX;
         double? bestWallX;
@@ -147,11 +174,13 @@ class CollisionSystem {
         staticWorld.queryLeftWalls(prevRight - eps, right + eps, _queryBuffer);
 
         for (final solid in _queryBuffer) {
+          // Filter by vertical overlap (y-axis).
           final overlapY =
               resolvedMaxY > solid.minY + eps && resolvedMinY < solid.maxY - eps;
           if (!overlapY) continue;
 
           final wallX = solid.minX;
+          // Check if we crossed the wall line.
           final crossesWall = prevRight <= wallX + eps && right >= wallX - eps;
           if (!crossesWall) continue;
 
@@ -161,11 +190,13 @@ class CollisionSystem {
         }
 
         if (bestWallX != null) {
+          // Hit right wall.
           world.transform.posX[ti] = bestWallX - offsetX - halfX;
           world.transform.velX[ti] = 0;
           world.collision.hitRight[coli] = true;
         }
       } else if (velX < 0 && (sideMask & BodyDef.sideLeft) != 0) {
+        // Moving Left.
         final prevLeft = prevCenterX - halfX;
         final left = resolvedCenterX - halfX;
         double? bestWallX;
@@ -174,20 +205,24 @@ class CollisionSystem {
         staticWorld.queryRightWalls(left - eps, prevLeft + eps, _queryBuffer);
 
         for (final solid in _queryBuffer) {
+          // Filter by vertical overlap (y-axis).
           final overlapY =
               resolvedMaxY > solid.minY + eps && resolvedMinY < solid.maxY - eps;
           if (!overlapY) continue;
 
           final wallX = solid.maxX;
+          // Check if we crossed the wall line from right to left.
           final crossesWall = prevLeft >= wallX - eps && left <= wallX + eps;
           if (!crossesWall) continue;
 
+          // Keep the rightmost wall (maximum X) encountered.
           if (bestWallX == null || wallX > bestWallX) {
             bestWallX = wallX;
           }
         }
 
         if (bestWallX != null) {
+          // Hit left wall.
           world.transform.posX[ti] = bestWallX - offsetX + halfX;
           world.transform.velX[ti] = 0;
           world.collision.hitLeft[coli] = true;
