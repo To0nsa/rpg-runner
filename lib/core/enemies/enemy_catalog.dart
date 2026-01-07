@@ -5,13 +5,10 @@ import '../ecs/stores/mana_store.dart';
 import '../ecs/stores/stamina_store.dart';
 import 'enemy_id.dart';
 
-/// Static archetype data for enemies (V0).
+/// Defines the base stats and physics properties for an enemy type.
 ///
-/// IMPORTANT:
-/// - Keeps per-enemy stats in one place to avoid divergence between spawn code,
-///   tests, and future deterministic spawning.
-/// - AI behavior tuning (cooldowns/speeds/ranges) lives in
-///   `FlyingEnemyTuning` and `GroundEnemyTuning`.
+/// This data is "static" (read-only) configuration used to initialize
+/// the ECS components effectively when an enemy spawns.
 class EnemyArchetype {
   const EnemyArchetype({
     required this.body,
@@ -21,16 +18,29 @@ class EnemyArchetype {
     required this.stamina,
   });
 
+  /// Physics configuration (Gravity, Constraints, Kinematics).
   final BodyDef body;
+  
+  /// Hitbox size (Collision).
   final ColliderAabbDef collider;
+  
+  /// Vitals (HP, Mana, Stamina) configuration.
   final HealthDef health;
   final ManaDef mana;
   final StaminaDef stamina;
 }
 
+/// Central registry for Enemy Definitions.
+///
+/// **Usage**:
+/// - Accessed by `EnemySpawnSystem` (or similar) to hydration entities.
+/// - Decouples "What an enemy is" from "How to spawn it".
 class EnemyCatalog {
   const EnemyCatalog();
 
+  /// Returns the static archetype definition for a given [EnemyId].
+  ///
+  /// Note: The returned objects are `const` and allocation-light.
   EnemyArchetype get(EnemyId id) {
     switch (id) {
       case EnemyId.flyingEnemy:
@@ -48,6 +58,7 @@ class EnemyCatalog {
           mana: ManaDef(mana: 80.0, manaMax: 80.0, regenPerSecond: 5.0),
           stamina: StaminaDef(stamina: 0.0, staminaMax: 0.0, regenPerSecond: 0.0),
         );
+        
       case EnemyId.groundEnemy:
         return const EnemyArchetype(
           body: BodyDef(
