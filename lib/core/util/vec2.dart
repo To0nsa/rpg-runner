@@ -1,13 +1,10 @@
-/// A minimal, immutable 2D float vector.
+/// Minimal 2D vector type for Core ↔ UI data transfer.
 ///
-/// **Design Goal**:
-/// - Zero dependencies (Pure Dart).
-/// - Lightweight (snapshot-friendly).
-/// - Deterministic (used in Core simulation).
-///
-/// Generally used for passing positions and velocities across the Core -> UI boundary.
-/// For heavy vector math within internal systems, raw `double` fields are preferred
-/// (Structure of Arrays) to avoid allocation.
+/// Immutable, allocation-light, pure Dart. Used in snapshots and events.
+/// Internal systems prefer raw `double` fields for hot loops.
+library;
+
+/// Immutable 2D vector with [x] and [y] coordinates.
 class Vec2 {
   /// Creates a new immutable vector at ([x], [y]).
   const Vec2(this.x, this.y);

@@ -1,6 +1,11 @@
+/// Tick/time conversion utilities.
+///
+/// Bridges between author-friendly seconds and simulation tick counts.
+library;
+
 import 'dart:math';
 
-/// Converts a duration in seconds to a positive tick count for a fixed tick rate.
+/// Converts [seconds] to tick count at [tickHz], rounding up.
 ///
 /// Rules:
 /// - `seconds <= 0` => `0` ticks

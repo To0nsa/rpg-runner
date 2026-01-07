@@ -8,8 +8,8 @@ library;
 
 import '../collision/static_world_geometry.dart';
 import '../enemies/enemy_id.dart';
-import '../util/mix32.dart';
 import '../tuning/track_tuning.dart';
+import '../util/deterministic_rng.dart' show mix32;
 import 'chunk_builder.dart';
 import 'chunk_pattern.dart';
 import 'chunk_patterns_library.dart';
