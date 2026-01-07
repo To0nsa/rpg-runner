@@ -1,7 +1,40 @@
 /// Track streaming and geometry lifecycle management.
 ///
-/// Handles procedural chunk generation, static geometry updates, and
-/// surface graph rebuilding for enemy navigation.
+/// This module handles the procedural generation of track chunks as the
+/// player progresses, maintaining both collision geometry and navigation
+/// data for enemy AI.
+///
+/// ## Architecture
+///
+/// [TrackManager] is owned by [GameCore] and orchestrates:
+/// - **Track streaming**: [TrackStreamer] spawns/culls chunks based on camera.
+/// - **Collision geometry**: Merges base geometry with streamed chunks.
+/// - **Surface graph**: Rebuilds navigation data when geometry changes.
+/// - **Item spawning**: Delegates to [SpawnService] for new chunks.
+///
+/// ## Geometry Lifecycle
+///
+/// ```
+/// Camera moves right
+///        ↓
+/// TrackStreamer.step() detects chunk spawn/cull needed
+///        ↓
+/// TrackManager merges base + dynamic geometry
+///        ↓
+/// StaticWorldGeometryIndex rebuilt (collision)
+///        ↓
+/// SurfaceGraphBuilder.build() (navigation)
+///        ↓
+/// SpawnService + EnemySystem receive new graphs
+/// ```
+///
+/// ## Chunk Spawning Flow
+///
+/// When a new chunk enters the horizon:
+/// 1. [TrackStreamer] generates platforms and enemy spawn points.
+/// 2. [TrackManager] merges the new solids into collision geometry.
+/// 3. Collectibles and restoration items are placed via [SpawnService].
+/// 4. Surface graph is rebuilt so enemies can navigate new platforms.
 library;
 
 import 'collision/static_world_geometry_index.dart';
@@ -18,21 +51,68 @@ import 'tuning/collectible_tuning.dart';
 import 'tuning/restoration_item_tuning.dart';
 import 'tuning/track_tuning.dart';
 
-/// Callback to spawn an enemy at a world position.
+// ─────────────────────────────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Callback invoked when a chunk's enemy spawn point enters the horizon.
+///
+/// - [enemyId]: The type of enemy to spawn (ground or flying).
+/// - [x]: The world X coordinate for the spawn.
 typedef SpawnEnemyCallback = void Function(EnemyId enemyId, double x);
 
-/// Result of a track manager step.
+/// Result of a single [TrackManager.step] call.
+///
+/// Used by [GameCore] to decide whether to update render snapshots.
 class TrackStepResult {
-  const TrackStepResult({
-    required this.geometryChanged,
-  });
+  const TrackStepResult({required this.geometryChanged});
 
   /// Whether static geometry was updated this step.
+  ///
+  /// When true, collision indices, surface graphs, and render snapshots
+  /// have all been regenerated.
   final bool geometryChanged;
 }
 
-/// Manages track streaming, geometry updates, and surface graph rebuilding.
+// ─────────────────────────────────────────────────────────────────────────────
+// TrackManager
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Manages track streaming, collision geometry, and navigation graph updates.
+///
+/// Responsibilities:
+/// - Steps [TrackStreamer] each tick to spawn/cull chunks.
+/// - Merges base level geometry with dynamically streamed platforms.
+/// - Rebuilds [StaticWorldGeometryIndex] for collision detection.
+/// - Rebuilds [SurfaceGraph] for enemy pathfinding.
+/// - Triggers collectible/item spawning for new chunks.
+///
+/// Usage:
+/// ```dart
+/// final manager = TrackManager(seed: 42, ...);
+/// final result = manager.step(
+///   cameraLeft: cam.left,
+///   cameraRight: cam.right,
+///   spawnEnemy: (id, x) => spawner.spawn(id, x),
+///   lowestResourceStat: () => player.lowestStat,
+/// );
+/// if (result.geometryChanged) {
+///   // Update render snapshots
+/// }
+/// ```
 class TrackManager {
+  /// Creates a track manager with the given dependencies.
+  ///
+  /// - [seed]: Master RNG seed for deterministic chunk generation.
+  /// - [trackTuning]: Chunk dimensions, spawn horizons, platform density.
+  /// - [collectibleTuning]: Collectible spawn parameters.
+  /// - [restorationItemTuning]: Restoration item spawn parameters.
+  /// - [baseGeometry]: Static level geometry (ground plane, initial platforms).
+  /// - [surfaceGraphBuilder]: Builder for navigation surface graphs.
+  /// - [jumpTemplate]: Precomputed jump reachability for pathfinding.
+  /// - [enemySystem]: Enemy AI system (receives surface graph updates).
+  /// - [spawnService]: Entity spawner (receives surface graph updates).
+  /// - [groundTopY]: Y coordinate of the ground surface (for spawning).
   TrackManager({
     required int seed,
     required TrackTuning trackTuning,
@@ -44,19 +124,21 @@ class TrackManager {
     required EnemySystem enemySystem,
     required SpawnService spawnService,
     required double groundTopY,
-  })  : _trackTuning = trackTuning,
-        _collectibleTuning = collectibleTuning,
-        _restorationItemTuning = restorationItemTuning,
-        _baseGeometry = baseGeometry,
-        _surfaceGraphBuilder = surfaceGraphBuilder,
-        _jumpTemplate = jumpTemplate,
-        _enemySystem = enemySystem,
-        _spawnService = spawnService {
+  }) : _trackTuning = trackTuning,
+       _collectibleTuning = collectibleTuning,
+       _restorationItemTuning = restorationItemTuning,
+       _baseGeometry = baseGeometry,
+       _surfaceGraphBuilder = surfaceGraphBuilder,
+       _jumpTemplate = jumpTemplate,
+       _enemySystem = enemySystem,
+       _spawnService = spawnService {
+    // Initialize geometry state from base level.
     _staticGeometry = baseGeometry;
     _staticIndex = StaticWorldGeometryIndex.from(baseGeometry);
     _staticSolidsSnapshot = _buildStaticSolidsSnapshot(baseGeometry);
     _staticGroundGapsSnapshot = _buildGroundGapsSnapshot(baseGeometry);
 
+    // Create track streamer if procedural generation is enabled.
     if (_trackTuning.enabled) {
       _trackStreamer = TrackStreamer(
         seed: seed,
@@ -65,9 +147,11 @@ class TrackManager {
       );
     }
 
+    // Build initial surface graph for enemy navigation.
     _rebuildSurfaceGraph();
   }
 
+  // ─── Dependencies ───
   final TrackTuning _trackTuning;
   final CollectibleTuning _collectibleTuning;
   final RestorationItemTuning _restorationItemTuning;
@@ -77,31 +161,66 @@ class TrackManager {
   final EnemySystem _enemySystem;
   final SpawnService _spawnService;
 
+  // ─── Runtime State ───
+
+  /// The track streamer (null if procedural generation is disabled).
   TrackStreamer? _trackStreamer;
+
+  /// Version counter for surface graph rebuilds (for cache invalidation).
   int _surfaceGraphVersion = 0;
 
+  /// Current merged geometry (base + streamed chunks).
   late StaticWorldGeometry _staticGeometry;
+
+  /// Spatial index for broadphase collision queries.
   late StaticWorldGeometryIndex _staticIndex;
+
+  /// Immutable snapshot of solids for the render layer.
   late List<StaticSolidSnapshot> _staticSolidsSnapshot;
+
+  /// Immutable snapshot of ground gaps for the render layer.
   late List<StaticGroundGapSnapshot> _staticGroundGapsSnapshot;
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // Public API
+  // ───────────────────────────────────────────────────────────────────────────
+
   /// Current static world geometry (base + streamed chunks).
+  ///
+  /// Used by physics systems for collision resolution.
   StaticWorldGeometry get staticGeometry => _staticGeometry;
 
-  /// Spatial index for collision queries.
+  /// Spatial index for efficient collision queries.
+  ///
+  /// Rebuilt whenever geometry changes.
   StaticWorldGeometryIndex get staticIndex => _staticIndex;
 
-  /// Snapshot of static solids for rendering.
+  /// Immutable snapshot of static solids for rendering.
+  ///
+  /// Contains platform AABBs, side masks, and one-way flags.
   List<StaticSolidSnapshot> get staticSolidsSnapshot => _staticSolidsSnapshot;
 
-  /// Snapshot of ground gaps for rendering.
+  /// Immutable snapshot of ground gaps for rendering.
+  ///
+  /// Used to draw pit hazard indicators.
   List<StaticGroundGapSnapshot> get staticGroundGapsSnapshot =>
       _staticGroundGapsSnapshot;
 
-  /// Steps the track streamer and updates geometry if needed.
+  /// Advances the track streamer and updates geometry if needed.
   ///
-  /// [spawnEnemy] is called for each enemy spawn point in new chunks.
-  /// [lowestResourceStat] returns the player's lowest resource for item spawns.
+  /// This method should be called once per tick with the current camera
+  /// bounds. It handles:
+  /// 1. Chunk spawning/culling based on camera position.
+  /// 2. Geometry merging and index rebuilding.
+  /// 3. Surface graph updates for enemy AI.
+  /// 4. Collectible and restoration item spawning.
+  ///
+  /// Parameters:
+  /// - [cameraLeft], [cameraRight]: Camera X bounds for horizon calculation.
+  /// - [spawnEnemy]: Callback invoked for each enemy spawn point in new chunks.
+  /// - [lowestResourceStat]: Returns player's lowest resource for item type selection.
+  ///
+  /// Returns a [TrackStepResult] indicating whether geometry changed.
   TrackStepResult step({
     required double cameraLeft,
     required double cameraRight,
@@ -110,9 +229,11 @@ class TrackManager {
   }) {
     final streamer = _trackStreamer;
     if (streamer == null) {
+      // Procedural generation disabled—geometry never changes.
       return const TrackStepResult(geometryChanged: false);
     }
 
+    // Step the streamer to spawn/cull chunks based on camera position.
     final result = streamer.step(
       cameraLeft: cameraLeft,
       cameraRight: cameraRight,
@@ -120,10 +241,11 @@ class TrackManager {
     );
 
     if (!result.changed) {
+      // No chunks spawned or culled—nothing to update.
       return const TrackStepResult(geometryChanged: false);
     }
 
-    // Rebuild collision index only when geometry changes (spawn/cull).
+    // ─── Merge base geometry with streamed chunks ───
     final combinedSolids = <StaticSolid>[
       ..._baseGeometry.solids,
       ...streamer.dynamicSolids,
@@ -136,22 +258,28 @@ class TrackManager {
       ..._baseGeometry.groundGaps,
       ...streamer.dynamicGroundGaps,
     ];
+
+    // Apply the new combined geometry (rebuilds index, snapshots, nav graph).
     _setStaticGeometry(
       StaticWorldGeometry(
         groundPlane: _baseGeometry.groundPlane,
-        groundSegments: List<StaticGroundSegment>.unmodifiable(combinedSegments),
+        groundSegments: List<StaticGroundSegment>.unmodifiable(
+          combinedSegments,
+        ),
         solids: List<StaticSolid>.unmodifiable(combinedSolids),
         groundGaps: List<StaticGroundGap>.unmodifiable(combinedGaps),
       ),
     );
 
-    // Spawn collectibles and restoration items for newly spawned chunks.
+    // ─── Spawn items for newly created chunks ───
     if (result.spawnedChunks.isNotEmpty) {
+      // Convert geometry to spawn-friendly format (avoids import cycles).
       final solidsForSpawn = _staticGeometry.solids
           .map((s) => (minX: s.minX, maxX: s.maxX, minY: s.minY, maxY: s.maxY))
           .toList();
 
       for (final chunk in result.spawnedChunks) {
+        // Spawn collectibles if enabled.
         if (_collectibleTuning.enabled) {
           _spawnService.spawnCollectiblesForChunk(
             chunkIndex: chunk.index,
@@ -159,6 +287,8 @@ class TrackManager {
             solids: solidsForSpawn,
           );
         }
+
+        // Spawn restoration items if enabled.
         if (_restorationItemTuning.enabled) {
           _spawnService.spawnRestorationItemForChunk(
             chunkIndex: chunk.index,
@@ -173,6 +303,14 @@ class TrackManager {
     return const TrackStepResult(geometryChanged: true);
   }
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // Private Helpers
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /// Applies new static geometry, rebuilding all derived data structures.
+  ///
+  /// This is the single point of geometry mutation. It ensures that the
+  /// collision index, render snapshots, and navigation graph stay in sync.
   void _setStaticGeometry(StaticWorldGeometry geometry) {
     _staticGeometry = geometry;
     _staticIndex = StaticWorldGeometryIndex.from(geometry);
@@ -181,6 +319,14 @@ class TrackManager {
     _rebuildSurfaceGraph();
   }
 
+  /// Rebuilds the navigation surface graph and distributes it to consumers.
+  ///
+  /// The surface graph is used by:
+  /// - [SpawnService]: To place items "on top of" platforms.
+  /// - [EnemySystem]: To compute jump/walk paths to the player.
+  ///
+  /// A version counter is incremented each rebuild so consumers can
+  /// invalidate cached paths.
   void _rebuildSurfaceGraph() {
     _surfaceGraphVersion += 1;
     final result = _surfaceGraphBuilder.build(
@@ -188,13 +334,13 @@ class TrackManager {
       jumpTemplate: _jumpTemplate,
     );
 
-    // Update spawn service with new surface graph.
+    // Distribute new graph to spawn service.
     _spawnService.setSurfaceGraph(
       graph: result.graph,
       spatialIndex: result.spatialIndex,
     );
 
-    // Update enemy system with new surface graph.
+    // Distribute new graph to enemy AI system.
     _enemySystem.setSurfaceGraph(
       graph: result.graph,
       spatialIndex: result.spatialIndex,
@@ -202,6 +348,9 @@ class TrackManager {
     );
   }
 
+  /// Builds an immutable list of [StaticSolidSnapshot] from geometry.
+  ///
+  /// Converts internal collision representation to render-friendly format.
   static List<StaticSolidSnapshot> _buildStaticSolidsSnapshot(
     StaticWorldGeometry geometry,
   ) {
@@ -219,6 +368,9 @@ class TrackManager {
     );
   }
 
+  /// Builds an immutable list of [StaticGroundGapSnapshot] from geometry.
+  ///
+  /// Returns an empty const list if no gaps exist (avoids allocation).
   static List<StaticGroundGapSnapshot> _buildGroundGapsSnapshot(
     StaticWorldGeometry geometry,
   ) {
