@@ -172,7 +172,7 @@ import 'util/tick_math.dart';
   /// ```dart
   /// final core = GameCore(
   ///   seed: 123,
-  ///   levelDefinition: LevelRegistry.byId(LevelId.v0Default),
+  ///   levelDefinition: LevelRegistry.byId(LevelId.defaultLevel),
   /// );
   /// ```
 ///

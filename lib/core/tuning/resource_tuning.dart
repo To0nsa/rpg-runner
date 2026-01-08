@@ -1,6 +1,5 @@
-/// Resource tuning for V0 (author in seconds, applied per fixed tick).
-///
-/// Values are based on the C++ reference (`tools/output/c++implementation.txt`).
+/// Resource tuning (author in seconds, applied per fixed tick).
+/// This includes health, mana, stamina, and their regeneration rates.
 class ResourceTuning {
   const ResourceTuning({
     this.playerHpMax = 100,

@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-/// Floating horizontal joystick (V0).
+/// Floating horizontal joystick.
 ///
 /// - Touch anywhere inside the widget bounds to place the base.
 /// - Drag left/right to set axis in `[-1, 1]`.

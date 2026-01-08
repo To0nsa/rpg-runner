@@ -8,6 +8,7 @@ enum ControlsJoystickKind { fixed, floating }
 class ControlsTuning {
   const ControlsTuning({
     this.edgePadding = 16,
+    this.bottomEdgePadding = 96,
     this.buttonGap = 12,
     this.rowGap = 12,
     this.joystickKind = ControlsJoystickKind.floating,
@@ -18,6 +19,7 @@ class ControlsTuning {
   });
 
   final double edgePadding;
+  final double bottomEdgePadding;
   final double buttonGap;
   final double rowGap;
 
@@ -28,8 +30,8 @@ class ControlsTuning {
   final ActionButtonTuning actionButton;
   final DirectionalActionButtonTuning directionalActionButton;
 
-  static const v0Floating = ControlsTuning();
-  static const v0Fixed = ControlsTuning(
+  static const floating = ControlsTuning();
+  static const fixed = ControlsTuning(
     joystickKind: ControlsJoystickKind.fixed,
   );
 }

@@ -62,7 +62,7 @@ const List<ChunkPattern> allPatterns = <ChunkPattern>[
   // ── Recovery / breathers ──
   ...easyPatterns,
 
-  // ── Platforming (optional; ground is always safe in V0) ──
+  // ── Platforming ──
   ChunkPattern(
     name: 'staggered-mid-platforms',
     platforms: <PlatformRel>[

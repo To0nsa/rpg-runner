@@ -6,7 +6,7 @@ import '../components/pixel_parallax_backdrop_component.dart';
 
 /// Returns the [ParallaxTheme] for a given Core `themeId`.
 ///
-/// Unknown or null theme IDs fall back to the default V0 theme.
+/// Unknown or null theme IDs fall back to the default theme.
 class ParallaxThemeRegistry {
   const ParallaxThemeRegistry._();
 

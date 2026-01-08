@@ -47,7 +47,7 @@ class GameStateSnapshot {
   /// asset paths and visuals without importing any Core gameplay logic.
   final String? themeId;
 
-  /// Distance progressed in the run (placeholder for V0).
+  /// Distance progressed in the run.
   final double distance;
 
   /// Whether the simulation is currently paused.

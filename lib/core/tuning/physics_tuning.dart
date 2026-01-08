@@ -1,4 +1,4 @@
-/// V0 global physics tuning for the Core simulation.
+/// Global physics tuning for the Core simulation.
 ///
 /// This is intentionally separate from movement/ability/combat tunings so it can
 /// evolve into per-level/biome physics profiles later (e.g. low-gravity zones).

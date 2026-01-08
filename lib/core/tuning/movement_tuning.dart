@@ -29,7 +29,7 @@ class MovementTuning {
     this.dashCooldownSeconds = 2.0,
   });
 
-  /// Player "collision" radius in world units (used for ground contact in V0).
+  /// Player "collision" radius in world units.
   final double playerRadius;
 
   /// Target max horizontal speed when holding move input.

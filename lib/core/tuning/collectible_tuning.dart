@@ -1,4 +1,4 @@
-/// V0 collectible spawning and value configuration.
+/// Collectible spawning and value configuration.
 class CollectibleTuning {
   const CollectibleTuning({
     this.enabled = true,

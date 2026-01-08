@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-/// Fixed-position horizontal joystick (V0).
+/// Fixed-position horizontal joystick.
 ///
 /// - Only outputs an X axis in `[-1, 1]`.
 /// - Centered at the widget's bounds; drag left/right to set axis.

@@ -72,9 +72,9 @@ class PlayerHudSnapshot {
   /// Total projectile cooldown ticks.
   final int projectileCooldownTicksTotal;
 
-  /// Collected collectibles (placeholder for V0).
+  /// Collected collectibles.
   final int collectibles;
 
-  /// Score value earned from collectibles (not yet applied to run score).
+  /// Score value earned from collectibles.
   final int collectibleScore;
 }

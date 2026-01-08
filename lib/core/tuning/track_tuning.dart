@@ -1,4 +1,4 @@
-/// V0 track streaming / deterministic chunk spawning configuration.
+/// Track streaming / deterministic chunk spawning configuration.
 ///
 /// This is simulation config (Core), not combat/ability tuning.
 class TrackTuning {

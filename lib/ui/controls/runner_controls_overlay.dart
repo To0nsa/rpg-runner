@@ -31,7 +31,7 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.dashAffordable,
     required this.dashCooldownTicksLeft,
     required this.dashCooldownTicksTotal,
-    this.tuning = ControlsTuning.v0Fixed,
+    this.tuning = ControlsTuning.fixed,
   });
 
   final ValueChanged<double> onMoveAxis;
@@ -67,7 +67,7 @@ class RunnerControlsOverlay extends StatelessWidget {
       children: [
         Positioned(
           left: t.edgePadding,
-          bottom: t.edgePadding,
+          bottom: t.bottomEdgePadding,
           child: t.joystickKind == ControlsJoystickKind.floating
               ? FloatingJoystick(
                   onAxisChanged: onMoveAxis,
