@@ -12,7 +12,7 @@ import '../tuning/track_tuning.dart';
 import '../util/deterministic_rng.dart' show mix32;
 import 'chunk_builder.dart';
 import 'chunk_pattern.dart';
-import 'chunk_patterns_library.dart';
+import 'chunk_pattern_pool.dart';
 
 /// Callback to spawn an enemy at a world X position.
 typedef SpawnEnemy = void Function(EnemyId enemyId, double x);
@@ -59,6 +59,9 @@ class TrackStreamer {
     required this.seed,
     required this.tuning,
     required this.groundTopY,
+    required this.patterns,
+    required this.earlyPatternChunks,
+    required this.noEnemyChunks,
   }) : _nextChunkIndex = 0,
        _nextChunkStartX = 0.0;
 
@@ -70,6 +73,15 @@ class TrackStreamer {
 
   /// World Y of the ground surface (platforms offset from this).
   final double groundTopY;
+
+  /// Pattern pools for early vs full difficulty.
+  final ChunkPatternPool patterns;
+
+  /// Number of early chunks that use [patterns.easyPatterns].
+  final int earlyPatternChunks;
+
+  /// Number of early chunks that suppress enemy spawns.
+  final int noEnemyChunks;
 
   int _nextChunkIndex;
   double _nextChunkStartX;
@@ -204,7 +216,7 @@ class TrackStreamer {
     required SpawnEnemy spawnEnemy,
   }) {
     // Early-game safety: keep first few chunks enemy-free.
-    if (chunkIndex < 3) return;
+    if (chunkIndex < noEnemyChunks) return;
 
     for (var i = 0; i < pattern.spawnMarkers.length; i += 1) {
       final m = pattern.spawnMarkers[i];
@@ -222,10 +234,10 @@ class TrackStreamer {
 
   /// Selects a chunk pattern deterministically from [seed] and [chunkIndex].
   ///
-  /// Early chunks draw from [easyPatterns]; later chunks use full pool.
+  /// Early chunks draw from [patterns.easyPatterns]; later chunks use full pool.
   ChunkPattern _patternFor(int seed, int chunkIndex) {
-    final isEarly = chunkIndex < 3;
-    final pool = isEarly ? easyPatterns : allPatterns;
+    final isEarly = chunkIndex < earlyPatternChunks;
+    final pool = isEarly ? patterns.easyPatterns : patterns.allPatterns;
     // MurmurHash-style mix for uniform distribution.
     final h = mix32(seed ^ (chunkIndex * 0x9e3779b9) ^ 0x27d4eb2d);
     final idx = h % pool.length;

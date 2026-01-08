@@ -26,6 +26,7 @@ import 'dart:math';
 import 'ecs/entity_id.dart';
 import 'ecs/world.dart';
 import 'ecs/stores/restoration_item_store.dart';
+import 'levels/level_id.dart';
 import 'projectiles/projectile_catalog.dart';
 import 'snapshots/enums.dart';
 import 'snapshots/entity_render_snapshot.dart';
@@ -110,6 +111,7 @@ class SnapshotBuilder {
   /// Parameters:
   /// - [tick]: Current simulation tick number.
   /// - [seed]: RNG seed for this run (stored for replay/debug).
+  /// - [levelId]: Level identifier for this run (stored for replay/debug).
   /// - [distance]: Total distance traveled (world units).
   /// - [paused]: Whether the game is currently paused.
   /// - [gameOver]: Whether the run has ended.
@@ -121,6 +123,7 @@ class SnapshotBuilder {
   GameStateSnapshot build({
     required int tick,
     required int seed,
+    required LevelId levelId,
     required double distance,
     required bool paused,
     required bool gameOver,
@@ -208,6 +211,7 @@ class SnapshotBuilder {
     return GameStateSnapshot(
       tick: tick,
       seed: seed,
+      levelId: levelId,
       distance: distance,
       paused: paused,
       gameOver: gameOver,

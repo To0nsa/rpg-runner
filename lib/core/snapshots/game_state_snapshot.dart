@@ -4,6 +4,7 @@
 /// contract between Core and the Flame/Flutter layer—treat as read-only.
 library;
 
+import '../levels/level_id.dart';
 import 'entity_render_snapshot.dart';
 import 'enums.dart';
 import 'player_hud_snapshot.dart';
@@ -18,6 +19,7 @@ class GameStateSnapshot {
   const GameStateSnapshot({
     required this.tick,
     required this.seed,
+    required this.levelId,
     required this.distance,
     required this.paused,
     required this.gameOver,
@@ -34,6 +36,9 @@ class GameStateSnapshot {
 
   /// Seed used for deterministic generation/RNG.
   final int seed;
+
+  /// Level identifier for this run (stable across sessions).
+  final LevelId levelId;
 
   /// Distance progressed in the run (placeholder for V0).
   final double distance;

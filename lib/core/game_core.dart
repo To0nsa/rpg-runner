@@ -99,6 +99,9 @@ import 'ecs/world.dart';
 import 'enemies/enemy_catalog.dart';
 import 'enemies/enemy_id.dart';
 import 'events/game_event.dart';
+import 'levels/level_definition.dart';
+import 'levels/level_id.dart';
+import 'levels/level_registry.dart';
 import 'navigation/surface_graph_builder.dart';
 import 'navigation/surface_navigator.dart';
 import 'navigation/surface_pathfinder.dart';
@@ -154,16 +157,24 @@ import 'util/tick_math.dart';
 ///
 /// ## Custom Configuration
 ///
-/// Use [CoreTuning] to customize game parameters:
-/// ```dart
-/// final core = GameCore(
-///   seed: 123,
-///   tuning: CoreTuning(
-///     movement: MovementTuning(jumpSpeed: 600),
-///     track: TrackTuning(enabled: false),
-///   ),
-/// );
-/// ```
+  /// Use [CoreTuning] to customize game parameters:
+  /// ```dart
+  /// final core = GameCore(
+  ///   seed: 123,
+  ///   tuning: CoreTuning(
+  ///     movement: MovementTuning(jumpSpeed: 600),
+  ///     track: TrackTuning(enabled: false),
+  ///   ),
+  /// );
+  /// ```
+  ///
+  /// Use [LevelDefinition] to select a level configuration:
+  /// ```dart
+  /// final core = GameCore(
+  ///   seed: 123,
+  ///   levelDefinition: LevelRegistry.byId(LevelId.v0Default),
+  /// );
+  /// ```
 ///
 /// For backward compatibility, [GameCore.withTunings] accepts individual
 /// tuning parameters:
@@ -175,6 +186,24 @@ import 'util/tick_math.dart';
 /// );
 /// ```
 class GameCore {
+  static LevelDefinition _resolveLevelDefinition({
+    required CoreTuning tuning,
+    required StaticWorldGeometry staticWorldGeometry,
+    LevelDefinition? levelDefinition,
+  }) {
+    if (levelDefinition != null) return levelDefinition;
+    final base = LevelRegistry.defaultLevel;
+    return LevelDefinition(
+      id: base.id,
+      patternPool: base.patternPool,
+      earlyPatternChunks: base.earlyPatternChunks,
+      noEnemyChunks: base.noEnemyChunks,
+      themeId: base.themeId,
+      tuning: tuning,
+      staticWorldGeometry: staticWorldGeometry,
+    );
+  }
+
   /// Creates a new game simulation with the given configuration.
   ///
   /// Parameters:
@@ -183,12 +212,15 @@ class GameCore {
   /// - [tuning]: Aggregate tuning configuration (see [CoreTuning]).
   /// - Catalogs: Entity archetype definitions (spells, enemies, etc.).
   /// - [staticWorldGeometry]: Base level geometry (ground, initial platforms).
+  /// - [levelDefinition]: Optional level config. When provided, its tuning,
+  ///   static geometry, and pattern pools are used (and [tuning] /
+  ///   [staticWorldGeometry] are ignored).
   ///
   /// For backward compatibility with existing code that passes individual
   /// tuning parameters, use [GameCore.withTunings] instead.
   GameCore({
-    required this.seed,
-    this.tickHz = defaultTickHz,
+    required int seed,
+    int tickHz = defaultTickHz,
     CoreTuning tuning = const CoreTuning(),
     SpellCatalog spellCatalog = const SpellCatalog(),
     ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
@@ -197,21 +229,54 @@ class GameCore {
     StaticWorldGeometry staticWorldGeometry = const StaticWorldGeometry(
       groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
     ),
-  }) : _movement = MovementTuningDerived.from(tuning.movement, tickHz: tickHz),
-       _physicsTuning = tuning.physics,
-       _resourceTuning = tuning.resource,
-       _abilities = AbilityTuningDerived.from(tuning.ability, tickHz: tickHz),
-       _combat = CombatTuningDerived.from(tuning.combat, tickHz: tickHz),
+    LevelDefinition? levelDefinition,
+  }) : this._fromLevel(
+         seed: seed,
+         tickHz: tickHz,
+         levelDefinition: _resolveLevelDefinition(
+           levelDefinition: levelDefinition,
+           tuning: tuning,
+           staticWorldGeometry: staticWorldGeometry,
+         ),
+         spellCatalog: spellCatalog,
+         projectileCatalog: projectileCatalog,
+         enemyCatalog: enemyCatalog,
+         playerCatalog: playerCatalog,
+       );
+
+  GameCore._fromLevel({
+    required this.seed,
+    required this.tickHz,
+    required LevelDefinition levelDefinition,
+    required SpellCatalog spellCatalog,
+    required ProjectileCatalog projectileCatalog,
+    required EnemyCatalog enemyCatalog,
+    required PlayerCatalog playerCatalog,
+  }) : _levelDefinition = levelDefinition,
+       _movement = MovementTuningDerived.from(
+         levelDefinition.tuning.movement,
+         tickHz: tickHz,
+       ),
+       _physicsTuning = levelDefinition.tuning.physics,
+       _resourceTuning = levelDefinition.tuning.resource,
+       _abilities = AbilityTuningDerived.from(
+         levelDefinition.tuning.ability,
+         tickHz: tickHz,
+       ),
+       _combat = CombatTuningDerived.from(
+         levelDefinition.tuning.combat,
+         tickHz: tickHz,
+       ),
        _flyingEnemyTuning = FlyingEnemyTuningDerived.from(
-         tuning.flyingEnemy,
+         levelDefinition.tuning.flyingEnemy,
          tickHz: tickHz,
        ),
        _groundEnemyTuning = GroundEnemyTuningDerived.from(
-         tuning.groundEnemy,
+         levelDefinition.tuning.groundEnemy,
          tickHz: tickHz,
        ),
-       _navigationTuning = tuning.navigation,
-       _spatialGridTuning = tuning.spatialGrid,
+       _navigationTuning = levelDefinition.tuning.navigation,
+       _spatialGridTuning = levelDefinition.tuning.spatialGrid,
        _spells = spellCatalog,
        _projectiles = ProjectileCatalogDerived.from(
          projectileCatalog,
@@ -219,11 +284,11 @@ class GameCore {
        ),
        _enemyCatalog = enemyCatalog,
        _playerCatalog = playerCatalog,
-       _scoreTuning = tuning.score,
-       _trackTuning = tuning.track,
-       _collectibleTuning = tuning.collectible,
-       _restorationItemTuning = tuning.restorationItem {
-    _initializeWorld(tuning.camera, staticWorldGeometry);
+       _scoreTuning = levelDefinition.tuning.score,
+       _trackTuning = levelDefinition.tuning.track,
+       _collectibleTuning = levelDefinition.tuning.collectible,
+       _restorationItemTuning = levelDefinition.tuning.restorationItem {
+    _initializeWorld(levelDefinition);
   }
 
   /// Creates a game simulation with individual tuning parameters.
@@ -293,10 +358,9 @@ class GameCore {
   }
 
   /// Common initialization shared by all constructors.
-  void _initializeWorld(
-    CameraTuning cameraTuning,
-    StaticWorldGeometry staticWorldGeometry,
-  ) {
+  void _initializeWorld(LevelDefinition levelDefinition) {
+    final staticWorldGeometry = levelDefinition.staticWorldGeometry;
+    final cameraTuning = levelDefinition.tuning.camera;
     // ─── Initialize ECS world and entity factory ───
     _world = EcsWorld(seed: seed);
     _entityFactory = EntityFactory(_world);
@@ -346,6 +410,9 @@ class GameCore {
       enemySystem: _enemySystem,
       spawnService: _spawnService,
       groundTopY: effectiveGroundTopY,
+      patternPool: levelDefinition.patternPool,
+      earlyPatternChunks: levelDefinition.earlyPatternChunks,
+      noEnemyChunks: levelDefinition.noEnemyChunks,
     );
 
     // ─── Initialize snapshot builder (needs player entity ID) ───
@@ -503,6 +570,9 @@ class GameCore {
   /// Higher values = smoother physics but more CPU. Default is 60.
   final int tickHz;
 
+  /// Core level configuration for this run.
+  final LevelDefinition _levelDefinition;
+
   // ─── Derived Tunings ───
   // These are pre-computed from base tunings using tickHz.
 
@@ -622,6 +692,9 @@ class GameCore {
   // ─────────────────────────────────────────────────────────────────────────
   // Public Accessors
   // ─────────────────────────────────────────────────────────────────────────
+
+  /// Level identifier for this run (stable across sessions).
+  LevelId get levelId => _levelDefinition.id;
 
   /// Score tuning for UI display and leaderboard calculation.
   ScoreTuning get scoreTuning => _scoreTuning;
@@ -1147,6 +1220,7 @@ class GameCore {
     return _snapshotBuilder.build(
       tick: tick,
       seed: seed,
+      levelId: levelId,
       distance: distance,
       paused: paused,
       gameOver: gameOver,

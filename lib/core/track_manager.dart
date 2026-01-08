@@ -46,6 +46,7 @@ import 'navigation/utils/jump_template.dart';
 import 'snapshots/static_ground_gap_snapshot.dart';
 import 'snapshots/static_solid_snapshot.dart';
 import 'spawn_service.dart' hide StaticSolid;
+import 'track/chunk_pattern_pool.dart';
 import 'track/track_streamer.dart';
 import 'tuning/collectible_tuning.dart';
 import 'tuning/restoration_item_tuning.dart';
@@ -113,6 +114,9 @@ class TrackManager {
   /// - [enemySystem]: Enemy AI system (receives surface graph updates).
   /// - [spawnService]: Entity spawner (receives surface graph updates).
   /// - [groundTopY]: Y coordinate of the ground surface (for spawning).
+  /// - [patternPool]: Chunk pattern pools for procedural generation.
+  /// - [earlyPatternChunks]: Number of early chunks using easy patterns.
+  /// - [noEnemyChunks]: Number of early chunks that suppress enemy spawns.
   TrackManager({
     required int seed,
     required TrackTuning trackTuning,
@@ -124,14 +128,20 @@ class TrackManager {
     required EnemySystem enemySystem,
     required SpawnService spawnService,
     required double groundTopY,
+    required ChunkPatternPool patternPool,
+    int earlyPatternChunks = defaultEarlyPatternChunks,
+    int noEnemyChunks = defaultNoEnemyChunks,
   }) : _trackTuning = trackTuning,
-       _collectibleTuning = collectibleTuning,
-       _restorationItemTuning = restorationItemTuning,
-       _baseGeometry = baseGeometry,
-       _surfaceGraphBuilder = surfaceGraphBuilder,
-       _jumpTemplate = jumpTemplate,
-       _enemySystem = enemySystem,
-       _spawnService = spawnService {
+        _collectibleTuning = collectibleTuning,
+        _restorationItemTuning = restorationItemTuning,
+        _baseGeometry = baseGeometry,
+        _surfaceGraphBuilder = surfaceGraphBuilder,
+        _jumpTemplate = jumpTemplate,
+        _enemySystem = enemySystem,
+        _spawnService = spawnService,
+        _patternPool = patternPool,
+        _earlyPatternChunks = earlyPatternChunks,
+        _noEnemyChunks = noEnemyChunks {
     // Initialize geometry state from base level.
     _staticGeometry = baseGeometry;
     _staticIndex = StaticWorldGeometryIndex.from(baseGeometry);
@@ -144,6 +154,9 @@ class TrackManager {
         seed: seed,
         tuning: _trackTuning,
         groundTopY: groundTopY,
+        patterns: _patternPool,
+        earlyPatternChunks: _earlyPatternChunks,
+        noEnemyChunks: _noEnemyChunks,
       );
     }
 
@@ -160,6 +173,9 @@ class TrackManager {
   final JumpReachabilityTemplate _jumpTemplate;
   final EnemySystem _enemySystem;
   final SpawnService _spawnService;
+  final ChunkPatternPool _patternPool;
+  final int _earlyPatternChunks;
+  final int _noEnemyChunks;
 
   // ─── Runtime State ───
 

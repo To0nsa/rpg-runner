@@ -15,7 +15,7 @@ const double kPlatformThickness = 16.0;
 /// Shorthand for [kPlatformThickness] in pattern definitions.
 const double _t = kPlatformThickness;
 
-/// Simpler patterns for early-game chunks (indices 0–2).
+/// Simpler patterns for early-game chunks (default early window).
 ///
 /// These give the player breathing room before harder patterns appear.
 const List<ChunkPattern> easyPatterns = <ChunkPattern>[
