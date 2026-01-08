@@ -49,12 +49,18 @@ class GameController extends ChangeNotifier {
   /// Buffered commands keyed by their target tick.
   final Map<int, TickInputFrame> _inputsByTick = <int, TickInputFrame>{};
 
+  /// Scratch buffer for building command lists without allocation.
   final List<Command> _commandScratch = <Command>[];
+
+  /// Fallback input frame for ticks with no buffered commands.
   final TickInputFrame _frameScratch = TickInputFrame();
 
   /// Buffered transient events produced by the core.
   final List<GameEvent> _events = <GameEvent>[];
 
+  /// The most recent [RunEndedEvent], if any.
+  ///
+  /// Stored separately so UI can access it after events are drained.
   RunEndedEvent? lastRunEndedEvent;
 
   late GameStateSnapshot _prev;
@@ -140,20 +146,15 @@ class GameController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Ends the current run early (player quit).
+  ///
+  /// Triggers a [RunEndedEvent] with the current score and resets interpolation.
   void giveUp() {
     if (_core.gameOver) return;
     _core.giveUp();
     _accumulatorSeconds = 0;
 
-    final newEvents = _core.drainEvents();
-    for (final event in newEvents) {
-      if (event is RunEndedEvent) {
-        lastRunEndedEvent = event;
-      }
-    }
-    if (newEvents.isNotEmpty) {
-      _events.addAll(newEvents);
-    }
+    _collectCoreEvents();
 
     _prev = _core.buildSnapshot();
     _curr = _prev;
@@ -163,7 +164,8 @@ class GameController extends ChangeNotifier {
   /// Advances the simulation clock based on a variable frame delta.
   ///
   /// This uses an accumulator to execute a fixed number of simulation ticks.
-  /// `dtSeconds` is clamped to avoid "spiral of death" after app resumes.
+  /// [dtSeconds] is clamped to [dtFrameMaxSeconds] (default 100ms) to avoid
+  /// "spiral of death" when the app resumes from background or after a lag spike.
   void advanceFrame(double dtSeconds, {double dtFrameMaxSeconds = 0.1}) {
     if (dtSeconds.isNaN || dtSeconds.isInfinite) return;
     if (_core.paused) {
@@ -186,13 +188,8 @@ class GameController extends ChangeNotifier {
       final input = _inputsByTick.remove(nextTick) ?? _frameScratch;
       _applyTickInput(nextTick, input);
       _core.stepOneTick();
-      final newEvents = _core.drainEvents();
-      for (final event in newEvents) {
-        if (event is RunEndedEvent) {
-          lastRunEndedEvent = event;
-        }
-      }
-      _events.addAll(newEvents);
+
+      _collectCoreEvents();
 
       _prev = _curr;
       _curr = _core.buildSnapshot();
@@ -211,6 +208,26 @@ class GameController extends ChangeNotifier {
     }
   }
 
+  /// Drains events from the core and buffers them for UI consumption.
+  ///
+  /// Also captures [RunEndedEvent] into [lastRunEndedEvent] for easy access.
+  void _collectCoreEvents() {
+    final newEvents = _core.drainEvents();
+    for (final event in newEvents) {
+      if (event is RunEndedEvent) {
+        lastRunEndedEvent = event;
+      }
+    }
+    if (newEvents.isNotEmpty) {
+      _events.addAll(newEvents);
+    }
+  }
+
+  /// Converts a [TickInputFrame] into [Command]s and applies them to the core.
+  ///
+  /// Uses [_commandScratch] to avoid allocating a new list each tick.
+  /// Only non-default values are sent (e.g., zero axis is skipped since the
+  /// core treats absence of input as no movement).
   void _applyTickInput(int tick, TickInputFrame input) {
     _commandScratch.clear();
 
