@@ -4,7 +4,7 @@ Instructions for AI coding agents (Codex, ChatGPT, etc.) when working in this re
 
 ## Project mission
 
-Port an existing **SFML/C++ 2D runner** (tools\output\c++implementation.txt)into **Flutter (Dart) + Flame** while preserving gameplay feel and making the result **production-grade** (mobile performance, clean architecture, future online-ready).
+Build and evolve this **Flutter (Dart) + Flame** runner into a **production-grade** game (mobile performance, clean architecture, deterministic Core, future online-ready), with a **scalable level system** that supports at least **two distinct playable levels** and makes adding more levels straightforward and low-risk.
 
 ## Working style (how to collaborate)
 
@@ -40,6 +40,17 @@ Rules:
 - Flame must not be authoritative for gameplay/collision.
 - UI must not modify gameplay state directly; it sends **Commands** to the controller.
 - The game must be embeddable: expose a reusable widget/route entrypoint; keep `lib/main.dart` as a dev host/demo only.
+
+## Level system (content scaling)
+
+Goal: support multiple distinct levels without forking gameplay code or entangling assets/UI.
+
+Rules:
+
+- Levels are **data-first**: define a `LevelId` + `LevelDefinition` (and optional level-specific systems) behind stable Core contracts.
+- Level switching resets Core deterministically (seeded RNG, tick counter, entity world) and is driven by a **Command** from UI.
+- Spawning/layout rules live in **Core** (authoritative). Render/UI only visualize and present selection/progress.
+- Assets are organized and loaded **per level/scene**; avoid global “load everything at boot”.
 
 ## Prefer existing solutions (when they fit the goals)
 
@@ -101,17 +112,13 @@ Renderer/UI must:
 
 ## Implementation sequencing
 
-Follow the V0 plan (small, testable increments):
+Prefer small, testable increments that move toward “multiple levels”:
 
-1. Scaffold + wiring (`lib/core`, `lib/game`, `lib/ui`)
-2. Camera/viewport/parallax
-3. Core collision + player run/jump
-4. Mobile controls
-5. Abilities/resources
-6. Enemies (simple AI)
-7. Deterministic spawning
-
-If you deviate, explain why and keep the same boundaries.
+1. Define the Core level contracts (`LevelId`/`LevelDefinition`, load/reset flow).
+2. Add level selection entry points (UI + dev menu) that send Commands only.
+3. Make level-specific spawning/layout data-driven and deterministic.
+4. Ship a second level that differs meaningfully (layout/spawns/tempo) without special-casing.
+5. Add/extend Core tests to lock determinism per level (same seed ⇒ same snapshots/events).
 
 ## Code quality rules (Dart/Flutter)
 
@@ -140,8 +147,10 @@ When asked to implement/fix something:
 3. Propose a minimal plan (1-3 steps) and acceptance criteria.
 4. Implement with deterministic rules intact.
 5. Update docs/comments whenever a change affects behavior, contracts, milestones, or usage:
-   - update `docs/plan.md` if architecture rules/contracts change
-   - update `docs/v0-implementation-plan.md` if milestone checklist changes
+   - update `docs/building/plan.md` if architecture rules/contracts change
+   - if no existing doc fits, add a short doc under `docs/building/` and link it from `docs/building/plan.md`
+   - update `docs/building/TODO.md` if milestone checklist/follow-ups change
+   - treat `docs/building/v0-implementation-plan.md` as historical unless asked to revise it
    - update top-of-file docs and public API docs (`lib/runner.dart`, route/widget docs) when embedding/API expectations change
 6. Add/extend relevant tests when new behavior is introduced or existing behavior changes (especially Core determinism and systems).
 7. Provide:
