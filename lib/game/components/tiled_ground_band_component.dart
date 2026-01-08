@@ -1,3 +1,17 @@
+// Renders a horizontally-tiled ground band (e.g., grass, dirt, platforms).
+//
+// Supports two rendering modes:
+// - **Backdrop mode** (`renderInBackdrop = true`): Renders in screen-space with
+//   a fixed virtual viewport. Used for decorative ground in the parallax stack.
+// - **World-space mode** (`renderInBackdrop = false`): Renders tiles in world
+//   coordinates, following the camera. Used for gameplay-relevant ground.
+//
+// **Ground Gaps**: Both modes support "gaps" (holes in the ground) by using
+// `BlendMode.clear` to punch transparent regions into the tile strip.
+//
+// **Performance Note**: When gaps are present, `canvas.saveLayer` is used to
+// enable the clear blend mode. This incurs GPU overhead due to offscreen
+// rasterization. Scenes with many gaps may see performance impact.
 import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
@@ -8,13 +22,9 @@ import '../../core/snapshots/static_ground_gap_snapshot.dart';
 import '../game_controller.dart';
 import '../util/math_util.dart';
 
-/// World-space ground band placeholder (visual reference for Milestone 1).
+/// Renders a horizontally-tiled ground band with optional gap support.
 ///
-/// This draws `Field Layer 09.png` as a horizontally tiled strip in *world
-/// coordinates* so it naturally moves 1.0× with the camera.
-///
-/// Collision is handled later in Core (Milestone 2). For now, this provides a
-/// stable visual ground reference for camera + pixel-perfect sanity checks.
+/// See file header for rendering mode details and performance considerations.
 class TiledGroundBandComponent extends Component
     with HasGameReference<FlameGame> {
   TiledGroundBandComponent({
@@ -31,14 +41,27 @@ class TiledGroundBandComponent extends Component
     }
   }
 
+  /// Path to the tile image asset (loaded via Flame's image cache).
   final String assetPath;
+
+  /// Game controller providing snapshot data (including ground gaps).
   final GameController controller;
+
+  /// Fixed viewport width for backdrop mode. Required when [renderInBackdrop] is true.
   final int? virtualWidth;
+
+  /// Virtual viewport height; tiles are bottom-aligned to this value.
   final int virtualHeight;
+
+  /// If true, render in screen-space (backdrop); otherwise, render in world-space.
   final bool renderInBackdrop;
 
   late final ui.Image _image;
+
+  /// Paint with nearest-neighbor filtering for pixel-perfect rendering.
   final Paint _paint = Paint()..filterQuality = FilterQuality.none;
+
+  /// Paint used to "punch holes" for ground gaps.
   final Paint _clearPaint = Paint()..blendMode = ui.BlendMode.clear;
 
   @override
@@ -51,31 +74,39 @@ class TiledGroundBandComponent extends Component
   void render(ui.Canvas canvas) {
     super.render(canvas);
 
+    final gaps = controller.snapshot.groundGaps;
+    final tileW = _image.width;
+    final tileH = _image.height;
+    final y = (virtualHeight - tileH).toDouble(); // bottom-aligned
+
     if (renderInBackdrop) {
-      final viewWidth = virtualWidth!;
-      final gaps = controller.snapshot.groundGaps;
+      _renderBackdropMode(canvas, gaps, tileW, tileH, y);
+    } else {
+      _renderWorldMode(canvas, gaps, tileW, tileH, y);
+    }
+  }
 
-      final tileW = _image.width;
-      final tileH = _image.height;
-      final y = (virtualHeight - tileH).toDouble(); // bottom aligned
+  /// Renders tiles in screen-space (fixed virtual viewport).
+  void _renderBackdropMode(
+    ui.Canvas canvas,
+    List<StaticGroundGapSnapshot> gaps,
+    int tileW,
+    int tileH,
+    double y,
+  ) {
+    final viewWidth = virtualWidth!;
+    final cameraLeftX = game.camera.viewfinder.position.x - viewWidth / 2;
+    final offsetPx = -cameraLeftX;
+    final startX = positiveModDouble(offsetPx, tileW.toDouble());
+    final clipRect = ui.Rect.fromLTWH(
+      0,
+      0,
+      viewWidth.toDouble(),
+      virtualHeight.toDouble(),
+    );
 
-      final cameraLeftX =
-          (game.camera.viewfinder.position.x - viewWidth / 2);
-      final offsetPx = -cameraLeftX;
-      final startX = positiveModDouble(offsetPx, tileW.toDouble());
-      final clipRect =
-          ui.Rect.fromLTWH(0, 0, viewWidth.toDouble(), virtualHeight.toDouble());
-
-      if (gaps.isNotEmpty) {
-        canvas.saveLayer(clipRect, Paint());
-      } else {
-        canvas.save();
-      }
-      canvas.clipRect(clipRect);
-
-      for (var x = startX - tileW; x < viewWidth; x += tileW) {
-        canvas.drawImage(_image, ui.Offset(x, y), _paint);
-      }
+    _withGapSupport(canvas, clipRect, gaps.isNotEmpty, () {
+      _drawTileStrip(canvas, startX - tileW, viewWidth.toDouble(), tileW, y);
 
       if (gaps.isNotEmpty) {
         _clearGapRects(
@@ -88,55 +119,90 @@ class TiledGroundBandComponent extends Component
           height: tileH.toDouble(),
         );
       }
+    });
+  }
 
-      canvas.restore();
-      return;
-    }
-
+  /// Renders tiles in world-space (following camera).
+  void _renderWorldMode(
+    ui.Canvas canvas,
+    List<StaticGroundGapSnapshot> gaps,
+    int tileW,
+    int tileH,
+    double y,
+  ) {
     final visible = game.camera.visibleWorldRect;
-    final gaps = controller.snapshot.groundGaps;
-
-    final tileW = _image.width;
-    final tileH = _image.height;
-    final y = (virtualHeight - tileH).toDouble(); // bottom aligned to viewport
-
     final left = visible.left.floor();
     final right = visible.right.ceil();
 
-    final startTile = _floorDiv(left, tileW) - 1;
-    final endTile = _floorDiv(right, tileW) + 1;
+    final startTile = floorDivInt(left, tileW) - 1;
+    final endTile = floorDivInt(right, tileW) + 1;
 
-    if (gaps.isNotEmpty) {
-      final clipRect = ui.Rect.fromLTRB(
-        visible.left,
-        0,
-        visible.right,
-        virtualHeight.toDouble(),
-      );
+    final clipRect = ui.Rect.fromLTRB(
+      visible.left,
+      0,
+      visible.right,
+      virtualHeight.toDouble(),
+    );
+
+    _withGapSupport(canvas, clipRect, gaps.isNotEmpty, () {
+      for (var tile = startTile; tile <= endTile; tile++) {
+        final x = (tile * tileW).toDouble();
+        canvas.drawImage(_image, ui.Offset(x, y), _paint);
+      }
+
+      if (gaps.isNotEmpty) {
+        _clearGapRects(
+          canvas,
+          gaps: gaps,
+          offsetX: 0.0,
+          visibleMinX: visible.left,
+          visibleMaxX: visible.right,
+          y: y,
+          height: tileH.toDouble(),
+        );
+      }
+    });
+  }
+
+  /// Wraps rendering in saveLayer (if gaps exist) or save, then restores.
+  ///
+  /// When [hasGaps] is true, uses `saveLayer` to enable `BlendMode.clear`.
+  /// This has GPU overhead but is necessary for punching transparent holes.
+  void _withGapSupport(
+    ui.Canvas canvas,
+    ui.Rect clipRect,
+    bool hasGaps,
+    void Function() drawCallback,
+  ) {
+    if (hasGaps) {
       canvas.saveLayer(clipRect, Paint());
-      canvas.clipRect(clipRect);
-      for (var tile = startTile; tile <= endTile; tile++) {
-        final x = (tile * tileW).toDouble();
-        canvas.drawImage(_image, ui.Offset(x, y), _paint);
-      }
-      _clearGapRects(
-        canvas,
-        gaps: gaps,
-        offsetX: 0.0,
-        visibleMinX: visible.left,
-        visibleMaxX: visible.right,
-        y: y,
-        height: tileH.toDouble(),
-      );
-      canvas.restore();
     } else {
-      for (var tile = startTile; tile <= endTile; tile++) {
-        final x = (tile * tileW).toDouble();
-        canvas.drawImage(_image, ui.Offset(x, y), _paint);
-      }
+      canvas.save();
+    }
+    canvas.clipRect(clipRect);
+
+    drawCallback();
+
+    canvas.restore();
+  }
+
+  /// Draws horizontally-tiled images from [startX] to [endX].
+  void _drawTileStrip(
+    ui.Canvas canvas,
+    double startX,
+    double endX,
+    int tileW,
+    double y,
+  ) {
+    for (var x = startX; x < endX; x += tileW) {
+      canvas.drawImage(_image, ui.Offset(x, y), _paint);
     }
   }
 
+  /// Punches transparent holes in the tile strip for each gap.
+  ///
+  /// Uses [_clearPaint] with `BlendMode.clear` to erase pixels. Only draws
+  /// gaps that intersect the visible range `[visibleMinX, visibleMaxX]`.
   void _clearGapRects(
     ui.Canvas canvas, {
     required List<StaticGroundGapSnapshot> gaps,
@@ -152,11 +218,5 @@ class TiledGroundBandComponent extends Component
       if (x1 < visibleMinX || x0 > visibleMaxX) continue;
       canvas.drawRect(ui.Rect.fromLTRB(x0, y, x1, y + height), _clearPaint);
     }
-  }
-
-  int _floorDiv(int a, int b) {
-    if (b <= 0) throw ArgumentError.value(b, 'b', 'must be > 0');
-    if (a >= 0) return a ~/ b;
-    return -(((-a) + b - 1) ~/ b);
   }
 }
