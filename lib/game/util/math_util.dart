@@ -1,3 +1,9 @@
+// Math utilities for the game layer.
+//
+// Provides helper functions for common math operations that Dart's standard
+// library doesn't handle correctly for game use cases (e.g., negative modulo,
+// floor division with negative numbers).
+
 /// Returns `value % mod`, always in the range `[0, mod)`.
 ///
 /// Dart's `%` operator can return negative results for negative [value];
