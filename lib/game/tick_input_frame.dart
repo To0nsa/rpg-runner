@@ -1,22 +1,75 @@
+// Aggregated input state for a single simulation tick.
+//
+// The game schedules input commands ahead of time (via RunnerInputRouter).
+// Multiple commands may target the same tick, so this class merges them into
+// a single coherent state that the simulation consumes.
 import '../core/commands/command.dart';
 
 /// Aggregated per-tick input for the simulation.
 ///
 /// This replaces `List<Command>` buffering for a given tick to avoid duplicate
-/// commands (e.g. multiple MoveAxis updates for the same tick).
+/// commands (e.g., multiple [MoveAxisCommand]s for the same tick). Instead of
+/// storing a list, we collapse commands into their final values.
+///
+/// **Usage pattern:**
+/// 1. [GameController] creates one [TickInputFrame] per buffered tick.
+/// 2. As commands arrive, [apply] merges them into the frame.
+/// 3. When the tick executes, the simulation reads the aggregated state.
+/// 4. After use, [reset] clears the frame for potential reuse.
 class TickInputFrame {
+  // ─────────────────────────────────────────────────────────────────────────
+  // Movement
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Horizontal movement axis in [-1, 1]. Last [MoveAxisCommand] wins.
   double moveAxis = 0;
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Edge-triggered actions (one-shot per tick)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// True if jump was pressed this tick.
   bool jumpPressed = false;
+
+  /// True if dash was pressed this tick.
   bool dashPressed = false;
+
+  /// True if melee attack was pressed this tick.
   bool attackPressed = false;
-  bool projectileAimDirSet = false;
-  double projectileAimDirX = 0;
-  double projectileAimDirY = 0;
-  bool meleeAimDirSet = false;
-  double meleeAimDirX = 0;
-  double meleeAimDirY = 0;
+
+  /// True if cast (projectile) was pressed this tick.
   bool castPressed = false;
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Projectile aim direction
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Whether a projectile aim direction is set for this tick.
+  bool projectileAimDirSet = false;
+
+  /// Projectile aim X component (only valid if [projectileAimDirSet] is true).
+  double projectileAimDirX = 0;
+
+  /// Projectile aim Y component (only valid if [projectileAimDirSet] is true).
+  double projectileAimDirY = 0;
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Melee aim direction
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Whether a melee aim direction is set for this tick.
+  bool meleeAimDirSet = false;
+
+  /// Melee aim X component (only valid if [meleeAimDirSet] is true).
+  double meleeAimDirX = 0;
+
+  /// Melee aim Y component (only valid if [meleeAimDirSet] is true).
+  double meleeAimDirY = 0;
+
+  /// Applies a [Command] to this frame, merging it with existing state.
+  ///
+  /// For continuous inputs (move axis, aim), later commands overwrite earlier ones.
+  /// For edge-triggered inputs (jump, dash, attack, cast), any press sets the flag.
   void apply(Command command) {
     switch (command) {
       case MoveAxisCommand(:final axis):
@@ -48,6 +101,9 @@ class TickInputFrame {
     }
   }
 
+  /// Resets all fields to their default (idle) state.
+  ///
+  /// Call this to reuse the frame for a new tick without allocating a new object.
   void reset() {
     moveAxis = 0;
     jumpPressed = false;
