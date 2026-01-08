@@ -18,57 +18,8 @@ import 'components/pixel_parallax_backdrop_component.dart';
 import 'components/tiled_ground_band_component.dart';
 import 'components/aim_ray_component.dart';
 import 'game_controller.dart';
+import 'themes/parallax_theme_registry.dart';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Parallax layer configuration
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// Background parallax layers (rendered behind ground).
-const _backgroundParallaxLayers = [
-  PixelParallaxLayerSpec(
-    assetPath: 'parallax/field/Field Layer 01.png',
-    parallaxFactor: 0.10,
-  ),
-  PixelParallaxLayerSpec(
-    assetPath: 'parallax/field/Field Layer 02.png',
-    parallaxFactor: 0.15,
-  ),
-  PixelParallaxLayerSpec(
-    assetPath: 'parallax/field/Field Layer 03.png',
-    parallaxFactor: 0.20,
-  ),
-  PixelParallaxLayerSpec(
-    assetPath: 'parallax/field/Field Layer 04.png',
-    parallaxFactor: 0.30,
-  ),
-  PixelParallaxLayerSpec(
-    assetPath: 'parallax/field/Field Layer 05.png',
-    parallaxFactor: 0.40,
-  ),
-  PixelParallaxLayerSpec(
-    assetPath: 'parallax/field/Field Layer 06.png',
-    parallaxFactor: 0.50,
-  ),
-  PixelParallaxLayerSpec(
-    assetPath: 'parallax/field/Field Layer 07.png',
-    parallaxFactor: 0.60,
-  ),
-  PixelParallaxLayerSpec(
-    assetPath: 'parallax/field/Field Layer 08.png',
-    parallaxFactor: 0.70,
-  ),
-];
-
-/// Ground tile layer asset path.
-const _groundLayerAsset = 'parallax/field/Field Layer 09.png';
-
-/// Foreground parallax layers (rendered in front of ground).
-const _foregroundParallaxLayers = [
-  PixelParallaxLayerSpec(
-    assetPath: 'parallax/field/Field Layer 10.png',
-    parallaxFactor: 1.0,
-  ),
-];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Render priorities
@@ -135,6 +86,7 @@ class RunnerFlameGame extends FlameGame {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    final theme = ParallaxThemeRegistry.forThemeId(controller.snapshot.themeId);
 
     // Background parallax layers (sky, distant mountains, etc.)
     camera.backdrop.add(
@@ -142,14 +94,14 @@ class RunnerFlameGame extends FlameGame {
         virtualWidth: virtualWidth,
         virtualHeight: virtualHeight,
         snapScrollToPixels: false,
-        layers: _backgroundParallaxLayers,
+        layers: theme.backgroundLayers,
       )..priority = _priorityBackgroundParallax,
     );
 
     // Ground tiles (with gap support)
     camera.backdrop.add(
       TiledGroundBandComponent(
-        assetPath: _groundLayerAsset,
+        assetPath: theme.groundLayerAsset,
         controller: controller,
         virtualWidth: virtualWidth,
         virtualHeight: virtualHeight,
@@ -163,7 +115,7 @@ class RunnerFlameGame extends FlameGame {
         virtualWidth: virtualWidth,
         virtualHeight: virtualHeight,
         snapScrollToPixels: false,
-        layers: _foregroundParallaxLayers,
+        layers: theme.foregroundLayers,
       )..priority = _priorityForegroundParallax,
     );
 

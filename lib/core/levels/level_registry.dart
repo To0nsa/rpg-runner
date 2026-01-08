@@ -16,6 +16,7 @@ const ChunkPatternPool v0PatternPool = ChunkPatternPool(
 const LevelDefinition v0LevelDefinition = LevelDefinition(
   id: LevelId.v0Default,
   patternPool: v0PatternPool,
+  themeId: 'forest',
 );
 
 /// Resolves level definitions by stable [LevelId].

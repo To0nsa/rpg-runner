@@ -696,6 +696,9 @@ class GameCore {
   /// Level identifier for this run (stable across sessions).
   LevelId get levelId => _levelDefinition.id;
 
+  /// Optional render theme identifier for this run.
+  String? get themeId => _levelDefinition.themeId;
+
   /// Score tuning for UI display and leaderboard calculation.
   ScoreTuning get scoreTuning => _scoreTuning;
 
@@ -1221,6 +1224,7 @@ class GameCore {
       tick: tick,
       seed: seed,
       levelId: levelId,
+      themeId: themeId,
       distance: distance,
       paused: paused,
       gameOver: gameOver,

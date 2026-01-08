@@ -112,6 +112,7 @@ class SnapshotBuilder {
   /// - [tick]: Current simulation tick number.
   /// - [seed]: RNG seed for this run (stored for replay/debug).
   /// - [levelId]: Level identifier for this run (stored for replay/debug).
+  /// - [themeId]: Optional render theme identifier (stored for debug/UI).
   /// - [distance]: Total distance traveled (world units).
   /// - [paused]: Whether the game is currently paused.
   /// - [gameOver]: Whether the run has ended.
@@ -124,6 +125,7 @@ class SnapshotBuilder {
     required int tick,
     required int seed,
     required LevelId levelId,
+    required String? themeId,
     required double distance,
     required bool paused,
     required bool gameOver,
@@ -212,6 +214,7 @@ class SnapshotBuilder {
       tick: tick,
       seed: seed,
       levelId: levelId,
+      themeId: themeId,
       distance: distance,
       paused: paused,
       gameOver: gameOver,

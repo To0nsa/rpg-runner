@@ -45,7 +45,7 @@ This enables:
 ### 2.1 V0 Vertical Slice (Playable Runner)
 
 V0 goal: a fully playable offline runner with the final architectural boundaries (core authoritative, Flame as view, Flutter UI for menus/HUD).
-Implementation milestones and checklists live in `docs/v0-implementation-plan.md`.
+Implementation milestones and checklists live in `docs/building/v0-implementation-plan.md`.
 
 World:
 
@@ -74,6 +74,50 @@ V0 definition of done:
 * HUD shows health/mana/stamina and at least one progression stat (distance/score).
 
 ---
+
+### 2.2 Post‑V0: Multiple Levels (Step 1 plan)
+
+Goal: introduce a **Core-only** level definition API and inject procedural generation inputs (pattern pools + early-chunk rules) so that adding new levels later is “add a new `LevelDefinition` entry”, not “fork systems”.
+
+#### Step 1 goals (no new level yet)
+
+* Keep current gameplay behavior identical for the default level.
+* Add a `LevelId`/`LevelDefinition` contract in Core (pure Dart, data-first).
+* Remove global pattern pool usage by injecting a `ChunkPatternPool` into track generation.
+* Make “early chunks” rules configurable (still deterministic).
+
+#### Step 1 non‑goals
+
+* No second level shipped yet.
+* No new UI for level selection yet (optional dev wiring is fine, but not required).
+
+#### Deliverables (modular)
+
+* **Core level contracts** (new folder suggested: `lib/core/levels/`):
+  * `LevelId` (stable identifier, e.g. `v0Default`)
+  * `LevelDefinition` (base geometry, tuning overrides, pattern pools, early-chunk knobs, optional `themeId`)
+  * `LevelRegistry` or `getLevel(LevelId)` for resolving definitions
+* **Chunk pattern pool injection seam**:
+  * New Core type `ChunkPatternPool` (suggested: `lib/core/track/chunk_pattern_pool.dart`) holding `easyPatterns` + `allPatterns`
+  * Default pool uses the existing `chunk_patterns_library.dart` lists (no behavior change)
+* **Track generation refactor (no behavior change)**:
+  * `TrackStreamer` constructor accepts:
+    * `ChunkPatternPool patterns`
+    * `int earlyPatternChunks` (default `3`)
+    * `int noEnemyChunks` (default `3`)
+  * Remove `chunk_patterns_library.dart` dependency from `TrackStreamer`; selection uses the injected pool.
+  * `TrackManager` passes the level’s pool/knobs when creating `TrackStreamer`.
+* **GameCore wiring (default level)**:
+  * `GameCore` can be constructed from a `LevelDefinition` (or accepts `levelId` and resolves internally), but defaults to the existing “v0” behavior when not provided.
+  * Persist `levelId` in snapshots for debugging/replay identity (so runs are keyed by `levelId + seed + command stream`).
+* **Docs/tests**:
+  * Add/update Core unit tests to confirm determinism for the default level across multiple runs.
+
+#### Acceptance criteria
+
+* Default level remains deterministic and plays the same for a given `seed` (same patterns, same early enemy-free behavior).
+* No Flutter/Flame imports are introduced into `lib/core/**`.
+* All “level variability” is expressed via `LevelDefinition` data + injected pools/knobs (no `if(level==...)` scattered across systems).
 
 ## 3. Game Core (Pure Dart)
 
@@ -605,6 +649,8 @@ Fields (minimum viable):
 
 * `int tick`
 * `int seed`
+* `LevelId levelId`
+* `String? themeId`
 * `double distance` (or `int distancePx`)
 * `bool paused`
 * `PlayerHudSnapshot hud`

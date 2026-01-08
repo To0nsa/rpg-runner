@@ -20,6 +20,7 @@ class GameStateSnapshot {
     required this.tick,
     required this.seed,
     required this.levelId,
+    required this.themeId,
     required this.distance,
     required this.paused,
     required this.gameOver,
@@ -39,6 +40,12 @@ class GameStateSnapshot {
 
   /// Level identifier for this run (stable across sessions).
   final LevelId levelId;
+
+  /// Optional render theme identifier for this run.
+  ///
+  /// This is Core-owned metadata (pure data) that the renderer can map to
+  /// asset paths and visuals without importing any Core gameplay logic.
+  final String? themeId;
 
   /// Distance progressed in the run (placeholder for V0).
   final double distance;
