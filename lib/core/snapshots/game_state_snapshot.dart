@@ -5,6 +5,7 @@
 library;
 
 import 'entity_render_snapshot.dart';
+import 'enums.dart';
 import 'player_hud_snapshot.dart';
 import 'static_ground_gap_snapshot.dart';
 import 'static_solid_snapshot.dart';
@@ -58,4 +59,15 @@ class GameStateSnapshot {
 
   /// Render-only ground gaps (holes in the ground band).
   final List<StaticGroundGapSnapshot> groundGaps;
+
+  /// Returns the player entity snapshot, or `null` if not found.
+  ///
+  /// Convenience getter to avoid duplicating player-lookup logic across
+  /// rendering components.
+  EntityRenderSnapshot? get playerEntity {
+    for (final e in entities) {
+      if (e.kind == EntityKind.player) return e;
+    }
+    return null;
+  }
 }

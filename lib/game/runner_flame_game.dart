@@ -19,6 +19,72 @@ import 'components/tiled_ground_band_component.dart';
 import 'components/aim_ray_component.dart';
 import 'game_controller.dart';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Parallax layer configuration
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Background parallax layers (rendered behind ground).
+const _backgroundParallaxLayers = [
+  PixelParallaxLayerSpec(
+    assetPath: 'parallax/field/Field Layer 01.png',
+    parallaxFactor: 0.10,
+  ),
+  PixelParallaxLayerSpec(
+    assetPath: 'parallax/field/Field Layer 02.png',
+    parallaxFactor: 0.15,
+  ),
+  PixelParallaxLayerSpec(
+    assetPath: 'parallax/field/Field Layer 03.png',
+    parallaxFactor: 0.20,
+  ),
+  PixelParallaxLayerSpec(
+    assetPath: 'parallax/field/Field Layer 04.png',
+    parallaxFactor: 0.30,
+  ),
+  PixelParallaxLayerSpec(
+    assetPath: 'parallax/field/Field Layer 05.png',
+    parallaxFactor: 0.40,
+  ),
+  PixelParallaxLayerSpec(
+    assetPath: 'parallax/field/Field Layer 06.png',
+    parallaxFactor: 0.50,
+  ),
+  PixelParallaxLayerSpec(
+    assetPath: 'parallax/field/Field Layer 07.png',
+    parallaxFactor: 0.60,
+  ),
+  PixelParallaxLayerSpec(
+    assetPath: 'parallax/field/Field Layer 08.png',
+    parallaxFactor: 0.70,
+  ),
+];
+
+/// Ground tile layer asset path.
+const _groundLayerAsset = 'parallax/field/Field Layer 09.png';
+
+/// Foreground parallax layers (rendered in front of ground).
+const _foregroundParallaxLayers = [
+  PixelParallaxLayerSpec(
+    assetPath: 'parallax/field/Field Layer 10.png',
+    parallaxFactor: 1.0,
+  ),
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Render priorities
+// ─────────────────────────────────────────────────────────────────────────────
+
+const _priorityBackgroundParallax = -30;
+const _priorityGroundTiles = -20;
+const _priorityForegroundParallax = -10;
+const _priorityStaticSolids = -5;
+const _priorityEnemies = -2;
+const _priorityProjectiles = -1;
+const _priorityCollectibles = -1;
+const _priorityHitboxes = 1;
+const _priorityProjectileAimRay = 5;
+const _priorityMeleeAimRay = 6;
+
 /// Minimal Flame `Game` that renders from snapshots.
 class RunnerFlameGame extends FlameGame {
   RunnerFlameGame({
@@ -44,95 +110,61 @@ class RunnerFlameGame extends FlameGame {
   final ValueListenable<AimPreviewState> meleeAimPreview;
 
   late final CircleComponent _player;
-  //late final TextComponent _debugText;
   final List<RectangleComponent> _staticSolids = <RectangleComponent>[];
   List<StaticSolidSnapshot>? _lastStaticSolidsSnapshot;
+
+  /// Entity view pools, keyed by entity ID.
   final Map<int, RectangleComponent> _projectiles = <int, RectangleComponent>{};
+  final Map<int, RectangleComponent> _collectibles = <int, RectangleComponent>{};
+  final Map<int, CircleComponent> _enemies = <int, CircleComponent>{};
+  final Map<int, RectangleComponent> _hitboxes = <int, RectangleComponent>{};
+
   final Paint _projectilePaint = Paint()..color = const Color(0xFF60A5FA);
-  final Map<int, RectangleComponent> _collectibles =
-      <int, RectangleComponent>{};
   final Map<int, Paint> _pickupPaints = <int, Paint>{
     PickupVariant.collectible: Paint()..color = const Color(0xFFFFEB3B),
     PickupVariant.restorationHealth: Paint()..color = const Color(0xFFEF4444),
     PickupVariant.restorationMana: Paint()..color = const Color(0xFF3B82F6),
     PickupVariant.restorationStamina: Paint()..color = const Color(0xFF22C55E),
   };
-  final Map<int, CircleComponent> _enemies = <int, CircleComponent>{};
   final List<Paint> _enemyPaints = <Paint>[
     Paint()..color = const Color(0xFFA855F7), // purple
     Paint()..color = const Color(0xFFF97316), // orange
   ];
-  final Map<int, RectangleComponent> _hitboxes = <int, RectangleComponent>{};
   final Paint _hitboxPaint = Paint()..color = const Color(0x66EF4444);
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
 
+    // Background parallax layers (sky, distant mountains, etc.)
     camera.backdrop.add(
       PixelParallaxBackdropComponent(
         virtualWidth: virtualWidth,
         virtualHeight: virtualHeight,
         snapScrollToPixels: false,
-        layers: const [
-          PixelParallaxLayerSpec(
-            assetPath: 'parallax/field/Field Layer 01.png',
-            parallaxFactor: 0.10,
-          ),
-          PixelParallaxLayerSpec(
-            assetPath: 'parallax/field/Field Layer 02.png',
-            parallaxFactor: 0.15,
-          ),
-          PixelParallaxLayerSpec(
-            assetPath: 'parallax/field/Field Layer 03.png',
-            parallaxFactor: 0.20,
-          ),
-          PixelParallaxLayerSpec(
-            assetPath: 'parallax/field/Field Layer 04.png',
-            parallaxFactor: 0.30,
-          ),
-          PixelParallaxLayerSpec(
-            assetPath: 'parallax/field/Field Layer 05.png',
-            parallaxFactor: 0.40,
-          ),
-          PixelParallaxLayerSpec(
-            assetPath: 'parallax/field/Field Layer 06.png',
-            parallaxFactor: 0.50,
-          ),
-          PixelParallaxLayerSpec(
-            assetPath: 'parallax/field/Field Layer 07.png',
-            parallaxFactor: 0.60,
-          ),
-          PixelParallaxLayerSpec(
-            assetPath: 'parallax/field/Field Layer 08.png',
-            parallaxFactor: 0.70,
-          ),
-        ],
-      )..priority = -30,
+        layers: _backgroundParallaxLayers,
+      )..priority = _priorityBackgroundParallax,
     );
 
+    // Ground tiles (with gap support)
     camera.backdrop.add(
       TiledGroundBandComponent(
-        assetPath: 'parallax/field/Field Layer 09.png',
+        assetPath: _groundLayerAsset,
         controller: controller,
         virtualWidth: virtualWidth,
         virtualHeight: virtualHeight,
         renderInBackdrop: true,
-      )..priority = -20,
+      )..priority = _priorityGroundTiles,
     );
 
+    // Foreground parallax layers (grass, bushes, etc.)
     camera.backdrop.add(
       PixelParallaxBackdropComponent(
         virtualWidth: virtualWidth,
         virtualHeight: virtualHeight,
         snapScrollToPixels: false,
-        layers: const [
-          PixelParallaxLayerSpec(
-            assetPath: 'parallax/field/Field Layer 10.png',
-            parallaxFactor: 1.0,
-          ),
-        ],
-      )..priority = -10,
+        layers: _foregroundParallaxLayers,
+      )..priority = _priorityForegroundParallax,
     );
 
     _player = CircleComponent(
@@ -148,7 +180,7 @@ class RunnerFlameGame extends FlameGame {
         preview: projectileAimPreview,
         length: projectileAimRayLength,
         drawWhenNoAim: false,
-      )..priority = 5,
+      )..priority = _priorityProjectileAimRay,
     );
 
     world.add(
@@ -161,24 +193,11 @@ class RunnerFlameGame extends FlameGame {
           ..color = const Color(0xFFDC4440)
           ..strokeWidth = 2
           ..strokeCap = StrokeCap.round,
-      )..priority = 6,
+      )..priority = _priorityMeleeAimRay,
     );
 
     _mountStaticSolids(controller.snapshot.staticSolids);
     _lastStaticSolidsSnapshot = controller.snapshot.staticSolids;
-
-    /*     _debugText = TextComponent(
-      text: '',
-      position: Vector2(8, 8),
-      anchor: Anchor.topLeft,
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          fontSize: 14,
-          color: Color.fromARGB(255, 255, 0, 0),
-        ),
-      ),
-    );
-    camera.viewport.add(_debugText); */
   }
 
   @override
@@ -196,7 +215,7 @@ class RunnerFlameGame extends FlameGame {
     final updatedSnapshot = controller.snapshot;
     _syncStaticSolids(updatedSnapshot.staticSolids);
 
-    final player = _findPlayer(updatedSnapshot.entities);
+    final player = updatedSnapshot.playerEntity;
     if (player != null) {
       final snappedX = player.pos.x.roundToDouble();
       final snappedY = player.pos.y.roundToDouble();
@@ -211,14 +230,13 @@ class RunnerFlameGame extends FlameGame {
     _syncProjectiles(updatedSnapshot.entities);
     _syncCollectibles(updatedSnapshot.entities);
     _syncHitboxes(updatedSnapshot.entities);
-
-    /*     assert(() {
-      _debugText.text =
-          'tick=${snapshot.tick} seed=${snapshot.seed} x=${player?.pos.x.toStringAsFixed(1) ?? '-'} y=${player?.pos.y.toStringAsFixed(1) ?? '-'} anim=${player?.anim.name ?? '-'}';
-      return true;
-    }()); */
   }
 
+  /// Mounts static solid rectangles into the world.
+  ///
+  /// Called once on load and whenever the static solids list changes.
+  /// One-way platforms are rendered with a green tint, solid platforms with
+  /// purple.
   void _mountStaticSolids(List<StaticSolidSnapshot> solids) {
     if (solids.isEmpty) return;
 
@@ -232,20 +250,16 @@ class RunnerFlameGame extends FlameGame {
         size: Vector2(solid.maxX - solid.minX, solid.maxY - solid.minY),
         paint: Paint()..color = color,
       );
-      rect.priority = -5;
+      rect.priority = _priorityStaticSolids;
       _staticSolids.add(rect);
       world.add(rect);
     }
   }
 
-  /// Finds the player entity in the snapshot.
-  EntityRenderSnapshot? _findPlayer(List<EntityRenderSnapshot> entities) {
-    for (final e in entities) {
-      if (e.kind == EntityKind.player) return e;
-    }
-    return null;
-  }
-
+  /// Synchronizes enemy view components with the snapshot.
+  ///
+  /// Creates circle components for new enemies, updates position/rotation for
+  /// existing ones, and removes components for despawned enemies.
   void _syncEnemies(List<EntityRenderSnapshot> entities) {
     final seen = <int>{};
 
@@ -264,7 +278,7 @@ class RunnerFlameGame extends FlameGame {
           anchor: Anchor.center,
           paint: paint,
         );
-        view.priority = -2;
+        view.priority = _priorityEnemies;
         _enemies[e.id] = view;
         world.add(view);
       } else {
@@ -289,6 +303,10 @@ class RunnerFlameGame extends FlameGame {
     }
   }
 
+  /// Synchronizes projectile view components with the snapshot.
+  ///
+  /// Creates rectangle components for new projectiles, updates position/size
+  /// for existing ones, and removes components for despawned projectiles.
   void _syncProjectiles(List<EntityRenderSnapshot> entities) {
     final seen = <int>{};
 
@@ -304,7 +322,7 @@ class RunnerFlameGame extends FlameGame {
           anchor: Anchor.center,
           paint: _projectilePaint,
         );
-        view.priority = -1;
+        view.priority = _priorityProjectiles;
         _projectiles[e.id] = view;
         world.add(view);
       } else {
@@ -328,6 +346,10 @@ class RunnerFlameGame extends FlameGame {
     }
   }
 
+  /// Synchronizes collectible/pickup view components with the snapshot.
+  ///
+  /// Creates rectangle components for new pickups, updates position/paint for
+  /// existing ones, and removes components for collected pickups.
   void _syncCollectibles(List<EntityRenderSnapshot> entities) {
     final seen = <int>{};
 
@@ -346,7 +368,7 @@ class RunnerFlameGame extends FlameGame {
           anchor: Anchor.center,
           paint: paint,
         );
-        view.priority = -1;
+        view.priority = _priorityCollectibles;
         _collectibles[e.id] = view;
         world.add(view);
       } else {
@@ -373,6 +395,11 @@ class RunnerFlameGame extends FlameGame {
     }
   }
 
+  /// Synchronizes trigger/hitbox view components with the snapshot.
+  ///
+  /// Creates translucent red rectangle components for new triggers, updates
+  /// position/size for existing ones, and removes components for despawned
+  /// triggers.
   void _syncHitboxes(List<EntityRenderSnapshot> entities) {
     final seen = <int>{};
 
@@ -388,7 +415,7 @@ class RunnerFlameGame extends FlameGame {
           anchor: Anchor.center,
           paint: _hitboxPaint,
         );
-        view.priority = 1;
+        view.priority = _priorityHitboxes;
         _hitboxes[e.id] = view;
         world.add(view);
       } else {
@@ -411,6 +438,10 @@ class RunnerFlameGame extends FlameGame {
     }
   }
 
+  /// Synchronizes static solid views with the snapshot.
+  ///
+  /// Uses identity comparison as a cheap version check since Core rebuilds
+  /// the list only when geometry actually changes (spawn/cull).
   void _syncStaticSolids(List<StaticSolidSnapshot> solids) {
     // Core rebuilds the list only when geometry changes (spawn/cull),
     // so identity check is a cheap "version" check.

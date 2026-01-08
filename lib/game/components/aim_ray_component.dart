@@ -46,7 +46,7 @@ class AimRayComponent extends Component {
     if (!state.active) return;
     if (!state.hasAim && !drawWhenNoAim) return;
 
-    final player = _findPlayer(controller.snapshot.entities);
+    final player = controller.snapshot.playerEntity;
     if (player == null) return;
 
     final (dirX, dirY) = _resolveDir(state, player);
@@ -71,12 +71,5 @@ class AimRayComponent extends Component {
     }
     final facing = player.facing;
     return (facing == Facing.right ? 1.0 : -1.0, 0.0);
-  }
-
-  EntityRenderSnapshot? _findPlayer(List<EntityRenderSnapshot> entities) {
-    for (final e in entities) {
-      if (e.kind == EntityKind.player) return e;
-    }
-    return null;
   }
 }
