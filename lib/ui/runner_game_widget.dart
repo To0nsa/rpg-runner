@@ -61,6 +61,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   late RunnerInputRouter _input;
   late AimPreviewModel _projectileAimPreview;
   late AimPreviewModel _meleeAimPreview;
+  late AimPreviewModel _rangedAimPreview;
   late RunnerFlameGame _game;
 
   @override
@@ -98,8 +99,10 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _input.setMoveAxis(0);
     _input.clearProjectileAimDir();
     _input.clearMeleeAimDir();
+    _input.clearRangedAimDir();
     _projectileAimPreview.end();
     _meleeAimPreview.end();
+    _rangedAimPreview.end();
     _input.pumpHeldInputs();
   }
 
@@ -122,6 +125,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     final oldController = _controller;
     final oldProjectilePreview = _projectileAimPreview;
     final oldMeleePreview = _meleeAimPreview;
+    final oldRangedPreview = _rangedAimPreview;
 
     setState(() {
       _pausedByLifecycle = false;
@@ -136,6 +140,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       oldController.dispose();
       oldProjectilePreview.dispose();
       oldMeleePreview.dispose();
+      oldRangedPreview.dispose();
     });
   }
 
@@ -155,11 +160,13 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _input = RunnerInputRouter(controller: _controller);
     _projectileAimPreview = AimPreviewModel();
     _meleeAimPreview = AimPreviewModel();
+    _rangedAimPreview = AimPreviewModel();
     _game = RunnerFlameGame(
       controller: _controller,
       input: _input,
       projectileAimPreview: _projectileAimPreview,
       meleeAimPreview: _meleeAimPreview,
+      rangedAimPreview: _rangedAimPreview,
     );
   }
 
@@ -168,6 +175,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _controller.dispose();
     _projectileAimPreview.dispose();
     _meleeAimPreview.dispose();
+    _rangedAimPreview.dispose();
   }
 
   @override
@@ -229,6 +237,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
               input: _input,
               projectileAimPreview: _projectileAimPreview,
               meleeAimPreview: _meleeAimPreview,
+              rangedAimPreview: _rangedAimPreview,
               uiState: uiState,
               onStart: _startGame,
               onTogglePause: _togglePause,

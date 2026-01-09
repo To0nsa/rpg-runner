@@ -50,6 +50,8 @@ class RunnerInputRouter {
 
   final _AimInputChannel _meleeAim = _AimInputChannel();
 
+  final _AimInputChannel _rangedAim = _AimInputChannel();
+
   // ─────────────────────────────────────────────────────────────────────────
   // Public setters for continuous inputs
   // ─────────────────────────────────────────────────────────────────────────
@@ -83,6 +85,12 @@ class RunnerInputRouter {
   ///
   /// Called when the player releases the melee aim input.
   void clearMeleeAimDir() => _meleeAim.clear();
+
+  /// Sets the ranged weapon aim direction (should be normalized or near-normalized).
+  void setRangedAimDir(double x, double y) => _rangedAim.set(x, y);
+
+  /// Clears the ranged weapon aim direction.
+  void clearRangedAimDir() => _rangedAim.clear();
 
   // ─────────────────────────────────────────────────────────────────────────
   // Edge-triggered (one-shot) input methods
@@ -165,6 +173,25 @@ class RunnerInputRouter {
     }
   }
 
+  /// Commits a ranged weapon shot on the next tick using the current ranged aim dir.
+  void commitRangedAttack() {
+    final tick = controller.tick + controller.inputLead;
+    final hadAim = _rangedAim.isSet;
+    if (hadAim) {
+      controller.enqueue(
+        RangedAimDirCommand(tick: tick, x: _rangedAim.x, y: _rangedAim.y),
+      );
+    } else {
+      controller.enqueue(ClearRangedAimDirCommand(tick: tick));
+    }
+    controller.enqueue(RangedPressedCommand(tick: tick));
+
+    _rangedAim.clear();
+    if (hadAim) {
+      _rangedAim.blockClearThrough(tick);
+    }
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // Frame pump: schedule continuous inputs for upcoming ticks
   // ─────────────────────────────────────────────────────────────────────────
@@ -195,6 +222,14 @@ class RunnerInputRouter {
       _inputBufferSeconds,
       (t, x, y) => MeleeAimDirCommand(tick: t, x: x, y: y),
       (t) => ClearMeleeAimDirCommand(tick: t),
+    );
+
+    // 4. Ranged weapon aim: for thrown weapons / bows.
+    _rangedAim.schedule(
+      controller,
+      _inputBufferSeconds,
+      (t, x, y) => RangedAimDirCommand(tick: t, x: x, y: y),
+      (t) => ClearRangedAimDirCommand(tick: t),
     );
   }
 

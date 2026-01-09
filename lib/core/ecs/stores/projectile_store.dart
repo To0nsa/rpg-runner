@@ -16,6 +16,7 @@ class ProjectileDef {
     required this.damage,
     required this.damageType,
     required this.statusProfileId,
+    this.usePhysics = false,
   });
 
   final ProjectileId projectileId;
@@ -27,6 +28,10 @@ class ProjectileDef {
   final double damage;
   final DamageType damageType;
   final StatusProfileId statusProfileId;
+
+  /// If true, this projectile is moved by core physics (GravitySystem +
+  /// CollisionSystem) rather than [ProjectileSystem].
+  final bool usePhysics;
 }
 
 /// Immutable metadata for active projectiles.
@@ -42,6 +47,7 @@ class ProjectileStore extends SparseSet {
   final List<double> damage = <double>[];
   final List<DamageType> damageType = <DamageType>[];
   final List<StatusProfileId> statusProfileId = <StatusProfileId>[];
+  final List<bool> usePhysics = <bool>[];
 
   void add(EntityId entity, ProjectileDef def) {
     final i = addEntity(entity);
@@ -54,6 +60,7 @@ class ProjectileStore extends SparseSet {
     damage[i] = def.damage;
     damageType[i] = def.damageType;
     statusProfileId[i] = def.statusProfileId;
+    usePhysics[i] = def.usePhysics;
   }
 
   @override
@@ -67,6 +74,7 @@ class ProjectileStore extends SparseSet {
     damage.add(0.0);
     damageType.add(DamageType.physical);
     statusProfileId.add(StatusProfileId.none);
+    usePhysics.add(false);
   }
 
   @override
@@ -80,6 +88,7 @@ class ProjectileStore extends SparseSet {
     damage[removeIndex] = damage[lastIndex];
     damageType[removeIndex] = damageType[lastIndex];
     statusProfileId[removeIndex] = statusProfileId[lastIndex];
+    usePhysics[removeIndex] = usePhysics[lastIndex];
 
     projectileId.removeLast();
     faction.removeLast();
@@ -90,5 +99,6 @@ class ProjectileStore extends SparseSet {
     damage.removeLast();
     damageType.removeLast();
     statusProfileId.removeLast();
+    usePhysics.removeLast();
   }
 }

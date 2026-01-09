@@ -305,6 +305,10 @@ String _projectileName(ProjectileId id) {
       return 'Ice Bolt';
     case ProjectileId.lightningBolt:
       return 'Lightning Bolt';
+    case ProjectileId.arrow:
+      return 'Arrow';
+    case ProjectileId.throwingAxe:
+      return 'Throwing Axe';
   }
 }
 

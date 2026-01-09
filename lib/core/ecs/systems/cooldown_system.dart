@@ -16,6 +16,9 @@ class CooldownSystem {
       if (store.meleeCooldownTicksLeft[i] > 0) {
         store.meleeCooldownTicksLeft[i] -= 1;
       }
+      if (store.rangedWeaponCooldownTicksLeft[i] > 0) {
+        store.rangedWeaponCooldownTicksLeft[i] -= 1;
+      }
     }
   }
 }

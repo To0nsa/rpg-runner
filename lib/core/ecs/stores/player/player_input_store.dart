@@ -15,6 +15,9 @@ class PlayerInputStore extends SparseSet {
   final List<double> meleeAimDirX = <double>[];
   final List<double> meleeAimDirY = <double>[];
   final List<bool> castPressed = <bool>[];
+  final List<bool> rangedPressed = <bool>[];
+  final List<double> rangedAimDirX = <double>[];
+  final List<double> rangedAimDirY = <double>[];
 
   void add(EntityId entity) {
     addEntity(entity);
@@ -31,6 +34,9 @@ class PlayerInputStore extends SparseSet {
     meleeAimDirX[i] = 0;
     meleeAimDirY[i] = 0;
     castPressed[i] = false;
+    rangedPressed[i] = false;
+    rangedAimDirX[i] = 0;
+    rangedAimDirY[i] = 0;
   }
 
   @override
@@ -44,6 +50,9 @@ class PlayerInputStore extends SparseSet {
     meleeAimDirX.add(0);
     meleeAimDirY.add(0);
     castPressed.add(false);
+    rangedPressed.add(false);
+    rangedAimDirX.add(0);
+    rangedAimDirY.add(0);
   }
 
   @override
@@ -57,6 +66,9 @@ class PlayerInputStore extends SparseSet {
     meleeAimDirX[removeIndex] = meleeAimDirX[lastIndex];
     meleeAimDirY[removeIndex] = meleeAimDirY[lastIndex];
     castPressed[removeIndex] = castPressed[lastIndex];
+    rangedPressed[removeIndex] = rangedPressed[lastIndex];
+    rangedAimDirX[removeIndex] = rangedAimDirX[lastIndex];
+    rangedAimDirY[removeIndex] = rangedAimDirY[lastIndex];
 
     moveAxis.removeLast();
     jumpPressed.removeLast();
@@ -67,5 +79,8 @@ class PlayerInputStore extends SparseSet {
     meleeAimDirX.removeLast();
     meleeAimDirY.removeLast();
     castPressed.removeLast();
+    rangedPressed.removeLast();
+    rangedAimDirX.removeLast();
+    rangedAimDirY.removeLast();
   }
 }

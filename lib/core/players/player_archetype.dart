@@ -1,5 +1,6 @@
 import '../ecs/stores/body_store.dart';
 import '../ecs/stores/collider_aabb_store.dart';
+import '../ecs/stores/combat/ammo_store.dart';
 import '../ecs/stores/combat/creature_tag_store.dart';
 import '../ecs/stores/combat/damage_resistance_store.dart';
 import '../ecs/stores/combat/status_immunity_store.dart';
@@ -8,6 +9,7 @@ import '../ecs/stores/mana_store.dart';
 import '../ecs/stores/stamina_store.dart';
 import '../snapshots/enums.dart';
 import '../weapons/weapon_id.dart';
+import '../weapons/ranged_weapon_id.dart';
 
 /// Fully-resolved player configuration used to spawn the player entity.
 ///
@@ -33,6 +35,8 @@ class PlayerArchetype {
     this.resistance = const DamageResistanceDef(),
     this.statusImmunity = const StatusImmunityDef(),
     this.weaponId = WeaponId.basicSword,
+    this.rangedWeaponId = RangedWeaponId.bow,
+    this.ammo = const AmmoDef(),
     this.facing = Facing.right,
   });
 
@@ -76,6 +80,12 @@ class PlayerArchetype {
 
   /// Equipped weapon used for melee attacks.
   final WeaponId weaponId;
+
+  /// Equipped ranged weapon used for thrown/ballistic projectiles.
+  final RangedWeaponId rangedWeaponId;
+
+  /// Ammo pool for ranged weapons.
+  final AmmoDef ammo;
 
   /// Initial facing direction when the player spawns.
   ///

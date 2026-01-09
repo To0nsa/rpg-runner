@@ -39,17 +39,31 @@ class ProjectileCatalog {
     switch (id) {
       case ProjectileId.iceBolt:
         return const ProjectileArchetype(
-          speedUnitsPerSecond: 1600.0,
+          speedUnitsPerSecond: 1000.0,
           lifetimeSeconds: 1.0,
           colliderSizeX: 18.0,
           colliderSizeY: 8.0,
         );
       case ProjectileId.lightningBolt:
         return const ProjectileArchetype(
-          speedUnitsPerSecond: 900.0,
+          speedUnitsPerSecond: 1000.0,
           lifetimeSeconds: 1.2,
           colliderSizeX: 16.0,
           colliderSizeY: 8.0,
+        );
+      case ProjectileId.arrow:
+        return const ProjectileArchetype(
+          speedUnitsPerSecond: 1000.0,
+          lifetimeSeconds: 1.4,
+          colliderSizeX: 18.0,
+          colliderSizeY: 6.0,
+        );
+      case ProjectileId.throwingAxe:
+        return const ProjectileArchetype(
+          speedUnitsPerSecond: 900.0,
+          lifetimeSeconds: 1.6,
+          colliderSizeX: 16.0,
+          colliderSizeY: 10.0,
         );
     }
   }

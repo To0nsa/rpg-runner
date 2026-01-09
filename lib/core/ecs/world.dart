@@ -5,9 +5,11 @@ import 'stores/collider_aabb_store.dart';
 import 'stores/collision_state_store.dart';
 import 'stores/cooldown_store.dart';
 import 'stores/cast_intent_store.dart';
+import 'stores/combat/ammo_store.dart';
 import 'stores/combat/creature_tag_store.dart';
 import 'stores/combat/damage_resistance_store.dart';
 import 'stores/combat/equipped_weapon_store.dart';
+import 'stores/combat/equipped_ranged_weapon_store.dart';
 import 'stores/combat/stat_modifier_store.dart';
 import 'stores/combat/status_immunity_store.dart';
 import 'stores/collectible_store.dart';
@@ -27,6 +29,7 @@ import 'stores/melee_intent_store.dart';
 import 'stores/player/movement_store.dart';
 import 'stores/player/player_input_store.dart';
 import 'stores/projectile_store.dart';
+import 'stores/ranged_weapon_intent_store.dart';
 import 'stores/restoration_item_store.dart';
 import 'stores/status/bleed_store.dart';
 import 'stores/status/burn_store.dart';
@@ -140,8 +143,19 @@ class EcsWorld {
   /// Tracks the player's intent to perform a melee attack.
   late final MeleeIntentStore meleeIntent = _register(MeleeIntentStore());
 
+  /// Tracks the player's intent to fire a ranged weapon.
+  late final RangedWeaponIntentStore rangedWeaponIntent =
+      _register(RangedWeaponIntentStore());
+
+  /// Per-entity ammo pools for ranged weapons.
+  late final AmmoStore ammo = _register(AmmoStore());
+
   /// Equipped melee weapon (for on-hit profiles like bleed).
   late final EquippedWeaponStore equippedWeapon = _register(EquippedWeaponStore());
+
+  /// Equipped ranged weapon (bow, throwing axe, ...).
+  late final EquippedRangedWeaponStore equippedRangedWeapon =
+      _register(EquippedRangedWeaponStore());
 
   /// Derived runtime stat modifiers (e.g., slows).
   late final StatModifierStore statModifier = _register(StatModifierStore());

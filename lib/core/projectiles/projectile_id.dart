@@ -8,5 +8,10 @@ enum ProjectileId {
 
   /// Enemy ranged attack. Slower but longer range.
   lightningBolt,
-}
 
+  /// Physical arrow projectile (ballistic).
+  arrow,
+
+  /// Physical throwing axe projectile (ballistic).
+  throwingAxe,
+}

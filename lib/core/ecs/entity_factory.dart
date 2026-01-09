@@ -5,9 +5,11 @@ import '../util/deterministic_rng.dart';
 import 'entity_id.dart';
 import 'stores/body_store.dart';
 import 'stores/collider_aabb_store.dart';
+import 'stores/combat/ammo_store.dart';
 import 'stores/combat/creature_tag_store.dart';
 import 'stores/combat/damage_resistance_store.dart';
 import 'stores/combat/equipped_weapon_store.dart';
+import 'stores/combat/equipped_ranged_weapon_store.dart';
 import 'stores/combat/stat_modifier_store.dart';
 import 'stores/combat/status_immunity_store.dart';
 import 'stores/enemies/enemy_store.dart';
@@ -71,6 +73,9 @@ class EntityFactory {
     DamageResistanceDef resistance = const DamageResistanceDef(),
     StatusImmunityDef statusImmunity = const StatusImmunityDef(),
     EquippedWeaponDef equippedWeapon = const EquippedWeaponDef(),
+    EquippedRangedWeaponDef equippedRangedWeapon =
+        const EquippedRangedWeaponDef(),
+    AmmoDef ammo = const AmmoDef(),
   }) {
     final id = world.createEntity();
     world.transform.add(id, posX: posX, posY: posY, velX: velX, velY: velY);
@@ -90,7 +95,10 @@ class EntityFactory {
     world.statusImmunity.add(id, statusImmunity);
     world.mana.add(id, mana);
     world.meleeIntent.add(id);
+    world.rangedWeaponIntent.add(id);
+    world.ammo.add(id, ammo);
     world.equippedWeapon.add(id, equippedWeapon);
+    world.equippedRangedWeapon.add(id, equippedRangedWeapon);
     world.statModifier.add(id);
     world.stamina.add(id, stamina);
     world.collision.grounded[world.collision.indexOf(id)] = grounded;

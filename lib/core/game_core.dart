@@ -92,8 +92,11 @@ import 'ecs/systems/melee_attack_system.dart';
 import 'ecs/systems/player_cast_system.dart';
 import 'ecs/systems/player_melee_system.dart';
 import 'ecs/systems/player_movement_system.dart';
+import 'ecs/systems/player_ranged_weapon_system.dart';
 import 'ecs/systems/projectile_hit_system.dart';
 import 'ecs/systems/projectile_system.dart';
+import 'ecs/systems/projectile_world_collision_system.dart';
+import 'ecs/systems/ranged_weapon_attack_system.dart';
 import 'ecs/systems/resource_regen_system.dart';
 import 'ecs/systems/restoration_item_system.dart';
 import 'ecs/systems/status_system.dart';
@@ -120,6 +123,8 @@ import 'spells/spell_catalog.dart';
 import 'track_manager.dart';
 import 'weapons/weapon_catalog.dart';
 import 'ecs/stores/combat/equipped_weapon_store.dart';
+import 'ecs/stores/combat/equipped_ranged_weapon_store.dart';
+import 'weapons/ranged_weapon_catalog.dart';
 import 'tuning/ability_tuning.dart';
 import 'tuning/camera_tuning.dart';
 import 'tuning/collectible_tuning.dart';
@@ -232,6 +237,7 @@ class GameCore {
     EnemyCatalog enemyCatalog = const EnemyCatalog(),
     PlayerCatalog playerCatalog = const PlayerCatalog(),
     WeaponCatalog weaponCatalog = const WeaponCatalog(),
+    RangedWeaponCatalog rangedWeaponCatalog = const RangedWeaponCatalog(),
     StaticWorldGeometry staticWorldGeometry = const StaticWorldGeometry(
       groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
     ),
@@ -249,6 +255,7 @@ class GameCore {
          enemyCatalog: enemyCatalog,
          playerCatalog: playerCatalog,
          weaponCatalog: weaponCatalog,
+         rangedWeaponCatalog: rangedWeaponCatalog,
        );
 
   GameCore._fromLevel({
@@ -260,6 +267,7 @@ class GameCore {
     required EnemyCatalog enemyCatalog,
     required PlayerCatalog playerCatalog,
     required WeaponCatalog weaponCatalog,
+    required RangedWeaponCatalog rangedWeaponCatalog,
   }) : _levelDefinition = levelDefinition,
        _movement = MovementTuningDerived.from(
          levelDefinition.tuning.movement,
@@ -293,6 +301,10 @@ class GameCore {
        _enemyCatalog = enemyCatalog,
        _playerCatalog = playerCatalog,
        _weapons = weaponCatalog,
+       _rangedWeapons = RangedWeaponCatalogDerived.from(
+         rangedWeaponCatalog,
+         tickHz: tickHz,
+       ),
        _scoreTuning = levelDefinition.tuning.score,
        _trackTuning = levelDefinition.tuning.track,
        _collectibleTuning = levelDefinition.tuning.collectible,
@@ -336,6 +348,7 @@ class GameCore {
     EnemyCatalog enemyCatalog = const EnemyCatalog(),
     PlayerCatalog playerCatalog = const PlayerCatalog(),
     WeaponCatalog weaponCatalog = const WeaponCatalog(),
+    RangedWeaponCatalog rangedWeaponCatalog = const RangedWeaponCatalog(),
     StaticWorldGeometry staticWorldGeometry = const StaticWorldGeometry(
       groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
     ),
@@ -364,6 +377,7 @@ class GameCore {
       enemyCatalog: enemyCatalog,
       playerCatalog: playerCatalog,
       weaponCatalog: weaponCatalog,
+      rangedWeaponCatalog: rangedWeaponCatalog,
       staticWorldGeometry: staticWorldGeometry,
     );
   }
@@ -435,6 +449,7 @@ class GameCore {
       resources: _resourceTuning,
       spells: _spells,
       projectiles: _projectiles,
+      rangedWeapons: _rangedWeapons,
     );
   }
 
@@ -452,6 +467,7 @@ class GameCore {
     // Projectile lifecycle.
     _projectileSystem = ProjectileSystem();
     _projectileHitSystem = ProjectileHitSystem();
+    _projectileWorldCollisionSystem = ProjectileWorldCollisionSystem();
 
     // Spatial partitioning for hit detection.
     _broadphaseGrid = BroadphaseGrid(
@@ -476,6 +492,7 @@ class GameCore {
       movement: _movement,
       weapons: _weapons,
     );
+    _rangedWeaponSystem = PlayerRangedWeaponSystem(weapons: _rangedWeapons.base);
     _hitboxDamageSystem = HitboxDamageSystem();
 
     // Pickup systems.
@@ -490,6 +507,10 @@ class GameCore {
       projectiles: _projectiles,
     );
     _meleeAttackSystem = MeleeAttackSystem();
+    _rangedWeaponAttackSystem = RangedWeaponAttackSystem(
+      weapons: _rangedWeapons,
+      projectiles: _projectiles,
+    );
 
     // Navigation infrastructure.
     _surfaceGraphBuilder = SurfaceGraphBuilder(
@@ -569,6 +590,9 @@ class GameCore {
       resistance: playerArchetype.resistance,
       statusImmunity: playerArchetype.statusImmunity,
       equippedWeapon: EquippedWeaponDef(weaponId: playerArchetype.weaponId),
+      equippedRangedWeapon:
+          EquippedRangedWeaponDef(weaponId: playerArchetype.rangedWeaponId),
+      ammo: playerArchetype.ammo,
     );
   }
 
@@ -617,6 +641,7 @@ class GameCore {
   final EnemyCatalog _enemyCatalog;
   final PlayerCatalog _playerCatalog;
   final WeaponCatalog _weapons;
+  final RangedWeaponCatalogDerived _rangedWeapons;
 
   // ─── ECS Core ───
 
@@ -638,6 +663,7 @@ class GameCore {
   late final GravitySystem _gravitySystem;
   late final ProjectileSystem _projectileSystem;
   late final ProjectileHitSystem _projectileHitSystem;
+  late final ProjectileWorldCollisionSystem _projectileWorldCollisionSystem;
   late final BroadphaseGrid _broadphaseGrid;
   late final HitboxFollowOwnerSystem _hitboxFollowOwnerSystem;
   late final CollectibleSystem _collectibleSystem;
@@ -653,7 +679,9 @@ class GameCore {
   late final SurfacePathfinder _surfacePathfinder;
   late final SurfaceNavigator _surfaceNavigator;
   late final PlayerMeleeSystem _meleeSystem;
+  late final PlayerRangedWeaponSystem _rangedWeaponSystem;
   late final MeleeAttackSystem _meleeAttackSystem;
+  late final RangedWeaponAttackSystem _rangedWeaponAttackSystem;
   late final HitboxDamageSystem _hitboxDamageSystem;
   late final ResourceRegenSystem _resourceRegenSystem;
   late final PlayerCastSystem _castSystem;
@@ -785,7 +813,9 @@ class GameCore {
   /// - [AttackPressedCommand]: Triggers an attack attempt.
   /// - [ProjectileAimDirCommand]: Sets projectile aim direction.
   /// - [MeleeAimDirCommand]: Sets melee attack direction.
+  /// - [RangedAimDirCommand]: Sets ranged weapon aim direction.
   /// - [CastPressedCommand]: Triggers a spell cast attempt.
+  /// - [RangedPressedCommand]: Triggers a ranged weapon attempt.
   ///
   /// Commands are processed before [stepOneTick] to ensure inputs are
   /// available when systems read them.
@@ -842,9 +872,23 @@ class GameCore {
           _world.playerInput.meleeAimDirX[inputIndex] = 0;
           _world.playerInput.meleeAimDirY[inputIndex] = 0;
 
+        // Ranged weapon aim: Direction vector for thrown/bow attacks.
+        case RangedAimDirCommand(:final x, :final y):
+          _world.playerInput.rangedAimDirX[inputIndex] = x;
+          _world.playerInput.rangedAimDirY[inputIndex] = y;
+
+        // Clear ranged aim: Resets to no-aim state.
+        case ClearRangedAimDirCommand():
+          _world.playerInput.rangedAimDirX[inputIndex] = 0;
+          _world.playerInput.rangedAimDirY[inputIndex] = 0;
+
         // Cast: Consumed by PlayerCastSystem for spell casting.
         case CastPressedCommand():
           _world.playerInput.castPressed[inputIndex] = true;
+
+        // Ranged: Consumed by PlayerRangedWeaponSystem.
+        case RangedPressedCommand():
+          _world.playerInput.rangedPressed[inputIndex] = true;
       }
     }
   }
@@ -962,11 +1006,13 @@ class GameCore {
     _enemySystem.stepAttacks(_world, player: _player, currentTick: tick);
     _castSystem.step(_world, player: _player, currentTick: tick);
     _meleeSystem.step(_world, player: _player, currentTick: tick);
+    _rangedWeaponSystem.step(_world, player: _player, currentTick: tick);
 
     // ─── Phase 10: Attack execution ───
     // Convert intents into actual hitboxes and projectiles.
     _spellCastSystem.step(_world, currentTick: tick);
     _meleeAttackSystem.step(_world, currentTick: tick);
+    _rangedWeaponAttackSystem.step(_world, currentTick: tick);
 
     // ─── Phase 11: Hitbox positioning ───
     // Update hitbox transforms to follow their owner entities.
@@ -976,6 +1022,7 @@ class GameCore {
     // Detect overlaps and queue damage events.
     _projectileHitSystem.step(_world, _damageSystem.queue, _broadphaseGrid);
     _hitboxDamageSystem.step(_world, _damageSystem.queue, _broadphaseGrid);
+    _projectileWorldCollisionSystem.step(_world);
     // ─── Phase 13: Status + damage ───
     _statusSystem.tickExisting(_world, _damageSystem.queue);
     _damageSystem.step(

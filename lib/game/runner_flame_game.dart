@@ -35,6 +35,7 @@ const _priorityCollectibles = -1;
 const _priorityHitboxes = 1;
 const _priorityProjectileAimRay = 5;
 const _priorityMeleeAimRay = 6;
+const _priorityRangedAimRay = 7;
 
 /// Minimal Flame `Game` that renders from snapshots.
 class RunnerFlameGame extends FlameGame {
@@ -43,6 +44,7 @@ class RunnerFlameGame extends FlameGame {
     required this.input,
     required this.projectileAimPreview,
     required this.meleeAimPreview,
+    required this.rangedAimPreview,
   }) : super(
          camera: CameraComponent.withFixedResolution(
            width: virtualWidth.toDouble(),
@@ -59,6 +61,7 @@ class RunnerFlameGame extends FlameGame {
   /// UI-driven aim preview (render-only).
   final ValueListenable<AimPreviewState> projectileAimPreview;
   final ValueListenable<AimPreviewState> meleeAimPreview;
+  final ValueListenable<AimPreviewState> rangedAimPreview;
 
   late final CircleComponent _player;
   final List<RectangleComponent> _staticSolids = <RectangleComponent>[];
@@ -146,6 +149,19 @@ class RunnerFlameGame extends FlameGame {
           ..strokeWidth = 2
           ..strokeCap = StrokeCap.round,
       )..priority = _priorityMeleeAimRay,
+    );
+
+    world.add(
+      AimRayComponent(
+        controller: controller,
+        preview: rangedAimPreview,
+        length: projectileAimRayLength,
+        drawWhenNoAim: false,
+        paint: Paint()
+          ..color = const Color(0xFFF59E0B)
+          ..strokeWidth = 2
+          ..strokeCap = StrokeCap.round,
+      )..priority = _priorityRangedAimRay,
     );
 
     _mountStaticSolids(controller.snapshot.staticSolids);

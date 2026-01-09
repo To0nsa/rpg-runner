@@ -1,6 +1,7 @@
 import '../combat/creature_tag.dart';
 import '../ecs/stores/body_store.dart';
 import '../ecs/stores/collider_aabb_store.dart';
+import '../ecs/stores/combat/ammo_store.dart';
 import '../ecs/stores/combat/creature_tag_store.dart';
 import '../ecs/stores/combat/damage_resistance_store.dart';
 import '../ecs/stores/combat/status_immunity_store.dart';
@@ -11,6 +12,7 @@ import '../snapshots/enums.dart';
 import '../tuning/movement_tuning.dart';
 import '../tuning/resource_tuning.dart';
 import '../weapons/weapon_id.dart';
+import '../weapons/ranged_weapon_id.dart';
 import 'player_archetype.dart';
 
 /// Authoring-time configuration for the player entity.
@@ -41,6 +43,8 @@ class PlayerCatalog {
     this.resistance = const DamageResistanceDef(),
     this.statusImmunity = const StatusImmunityDef(),
     this.weaponId = WeaponId.basicSword,
+    this.rangedWeaponId = RangedWeaponId.bow,
+    this.ammo = const AmmoDef(arrows: 20, throwingAxes: 6),
     this.facing = Facing.right,
   });
 
@@ -73,6 +77,12 @@ class PlayerCatalog {
 
   /// Default equipped weapon at spawn time.
   final WeaponId weaponId;
+
+  /// Default equipped ranged weapon at spawn time.
+  final RangedWeaponId rangedWeaponId;
+
+  /// Default ammo pool at spawn time.
+  final AmmoDef ammo;
 
   /// Default facing direction at spawn time.
   ///
@@ -164,6 +174,8 @@ class PlayerCatalogDerived {
         resistance: base.resistance,
         statusImmunity: base.statusImmunity,
         weaponId: base.weaponId,
+        rangedWeaponId: base.rangedWeaponId,
+        ammo: base.ammo,
         facing: base.facing,
       ),
     );

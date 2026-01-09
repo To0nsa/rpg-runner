@@ -74,7 +74,28 @@ final class ClearMeleeAimDirCommand extends Command {
   const ClearMeleeAimDirCommand({required super.tick});
 }
 
+/// Continuous ranged-weapon aim direction for the given tick.
+///
+/// Used by thrown weapons / bows, and consumed by the ranged weapon intent
+/// system (not spells).
+final class RangedAimDirCommand extends Command {
+  const RangedAimDirCommand({required super.tick, required this.x, required this.y});
+
+  final double x;
+  final double y;
+}
+
+/// Clears any held ranged-weapon aim direction for the given tick.
+final class ClearRangedAimDirCommand extends Command {
+  const ClearRangedAimDirCommand({required super.tick});
+}
+
 /// One-shot cast press event for the given tick.
 final class CastPressedCommand extends Command {
   const CastPressedCommand({required super.tick});
+}
+
+/// One-shot ranged weapon press event for the given tick.
+final class RangedPressedCommand extends Command {
+  const RangedPressedCommand({required super.tick});
 }

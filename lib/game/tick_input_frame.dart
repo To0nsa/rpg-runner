@@ -40,6 +40,9 @@ class TickInputFrame {
   /// True if cast (projectile) was pressed this tick.
   bool castPressed = false;
 
+  /// True if ranged weapon was pressed this tick.
+  bool rangedPressed = false;
+
   // ─────────────────────────────────────────────────────────────────────────
   // Projectile aim direction
   // ─────────────────────────────────────────────────────────────────────────
@@ -65,6 +68,19 @@ class TickInputFrame {
 
   /// Melee aim Y component (only valid if [meleeAimDirSet] is true).
   double meleeAimDirY = 0;
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Ranged weapon aim direction
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Whether a ranged weapon aim direction is set for this tick.
+  bool rangedAimDirSet = false;
+
+  /// Ranged weapon aim X component (only valid if [rangedAimDirSet] is true).
+  double rangedAimDirX = 0;
+
+  /// Ranged weapon aim Y component (only valid if [rangedAimDirSet] is true).
+  double rangedAimDirY = 0;
 
   /// Applies a [Command] to this frame, merging it with existing state.
   ///
@@ -98,6 +114,16 @@ class TickInputFrame {
         meleeAimDirY = 0;
       case CastPressedCommand():
         castPressed = true;
+      case RangedAimDirCommand(:final x, :final y):
+        rangedAimDirSet = true;
+        rangedAimDirX = x;
+        rangedAimDirY = y;
+      case ClearRangedAimDirCommand():
+        rangedAimDirSet = false;
+        rangedAimDirX = 0;
+        rangedAimDirY = 0;
+      case RangedPressedCommand():
+        rangedPressed = true;
     }
   }
 
@@ -116,5 +142,9 @@ class TickInputFrame {
     meleeAimDirX = 0;
     meleeAimDirY = 0;
     castPressed = false;
+    rangedPressed = false;
+    rangedAimDirSet = false;
+    rangedAimDirX = 0;
+    rangedAimDirY = 0;
   }
 }

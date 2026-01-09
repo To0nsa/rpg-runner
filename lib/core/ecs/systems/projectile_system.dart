@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import '../../tuning/movement_tuning.dart';
 import '../world.dart';
 
@@ -23,6 +25,21 @@ class ProjectileSystem {
       
       final ti = transforms.tryIndexOf(e);
       if (ti == null) continue;
+
+      // Physics-driven projectiles (ballistic) are moved by the main physics
+      // pipeline (GravitySystem + CollisionSystem). We only keep direction
+      // in sync with velocity for hitbox orientation / rendering.
+      if (projectiles.usePhysics[pi]) {
+        final vx = transforms.velX[ti];
+        final vy = transforms.velY[ti];
+        final len2 = vx * vx + vy * vy;
+        if (len2 > 1e-12) {
+          final invLen = 1.0 / sqrt(len2);
+          projectiles.dirX[pi] = vx * invLen;
+          projectiles.dirY[pi] = vy * invLen;
+        }
+        continue;
+      }
 
       // Calculate velocity from direction and speed.
       final vx = projectiles.dirX[pi] * projectiles.speedUnitsPerSecond[pi];

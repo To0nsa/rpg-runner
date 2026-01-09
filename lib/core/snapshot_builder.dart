@@ -40,6 +40,7 @@ import 'tuning/ability_tuning.dart';
 import 'tuning/movement_tuning.dart';
 import 'tuning/resource_tuning.dart';
 import 'util/vec2.dart';
+import 'weapons/ranged_weapon_catalog.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SnapshotBuilder
@@ -65,6 +66,7 @@ class SnapshotBuilder {
   /// - [resources]: Resource costs (jump/dash stamina, etc.).
   /// - [spells]: Spell catalog for querying spell stats (mana costs).
   /// - [projectiles]: Projectile catalog for collider sizes.
+  /// - [rangedWeapons]: Ranged weapon catalog (cooldowns/ammo costs).
   SnapshotBuilder({
     required this.world,
     required this.player,
@@ -73,6 +75,7 @@ class SnapshotBuilder {
     required this.resources,
     required this.spells,
     required this.projectiles,
+    required this.rangedWeapons,
   });
 
   /// The ECS world containing all game entity data.
@@ -95,6 +98,9 @@ class SnapshotBuilder {
 
   /// Projectile catalog for collider dimensions.
   final ProjectileCatalogDerived projectiles;
+
+  /// Ranged weapon catalog for cooldown totals and ammo costs.
+  final RangedWeaponCatalogDerived rangedWeapons;
 
   // ───────────────────────────────────────────────────────────────────────────
   // Public API
@@ -145,11 +151,17 @@ class SnapshotBuilder {
     final mai = world.mana.indexOf(player);
     final si = world.stamina.indexOf(player);
     final ci = world.cooldown.indexOf(player);
+    final rwi = world.equippedRangedWeapon.indexOf(player);
+    final ami = world.ammo.indexOf(player);
 
     // ─── Read current resource values ───
     final stamina = world.stamina.stamina[si];
     final mana = world.mana.mana[mai];
     final projectileManaCost = spells.get(SpellId.iceBolt).stats.manaCost;
+    final rangedWeaponId = world.equippedRangedWeapon.weaponId[rwi];
+    final rangedWeaponDef = rangedWeapons.base.get(rangedWeaponId);
+    final rangedAmmo =
+        world.ammo.countForIndex(ami, rangedWeaponDef.ammoType);
 
     // ─── Compute affordability flags ───
     // These tell the UI whether action buttons should appear enabled.
@@ -157,12 +169,19 @@ class SnapshotBuilder {
     final canAffordDash = stamina >= resources.dashStaminaCost;
     final canAffordMelee = stamina >= abilities.base.meleeStaminaCost;
     final canAffordProjectile = mana >= projectileManaCost;
+    final canAffordRangedWeapon =
+        stamina >= rangedWeaponDef.staminaCost &&
+        rangedAmmo >= rangedWeaponDef.ammoCost;
 
     // ─── Read cooldown timers ───
     final dashCooldownTicksLeft = world.movement.dashCooldownTicksLeft[mi];
     final meleeCooldownTicksLeft = world.cooldown.meleeCooldownTicksLeft[ci];
     final projectileCooldownTicksLeft =
         world.cooldown.castCooldownTicksLeft[ci];
+    final rangedWeaponCooldownTicksLeft =
+        world.cooldown.rangedWeaponCooldownTicksLeft[ci];
+    final rangedWeaponCooldownTicksTotal =
+        rangedWeapons.cooldownTicks(rangedWeaponId);
 
     // ─── Read player transform ───
     final ti = world.transform.indexOf(player);
@@ -231,12 +250,16 @@ class SnapshotBuilder {
         canAffordDash: canAffordDash,
         canAffordMelee: canAffordMelee,
         canAffordProjectile: canAffordProjectile,
+        canAffordRangedWeapon: canAffordRangedWeapon,
         dashCooldownTicksLeft: dashCooldownTicksLeft,
         dashCooldownTicksTotal: movement.dashCooldownTicks,
         meleeCooldownTicksLeft: meleeCooldownTicksLeft,
         meleeCooldownTicksTotal: abilities.meleeCooldownTicks,
         projectileCooldownTicksLeft: projectileCooldownTicksLeft,
         projectileCooldownTicksTotal: abilities.castCooldownTicks,
+        rangedWeaponCooldownTicksLeft: rangedWeaponCooldownTicksLeft,
+        rangedWeaponCooldownTicksTotal: rangedWeaponCooldownTicksTotal,
+        rangedAmmo: rangedAmmo,
         collectibles: collectibles,
         collectibleScore: collectibleScore,
       ),
