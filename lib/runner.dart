@@ -5,5 +5,6 @@
 //
 // This keeps the public API stable while allowing internal folders/files to
 // evolve without breaking downstream imports.
+export 'core/levels/level_id.dart';
 export 'ui/runner_game_route.dart';
 export 'ui/runner_game_widget.dart';

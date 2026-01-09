@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../core/contracts/render_contract.dart';
 import '../core/game_core.dart';
+import '../core/levels/level_id.dart';
+import '../core/levels/level_registry.dart';
 import '../game/game_controller.dart';
 import '../game/input/aim_preview.dart';
 import '../game/input/runner_input_router.dart';
@@ -24,13 +26,18 @@ class RunnerGameWidget extends StatefulWidget {
   const RunnerGameWidget({
     super.key,
     this.seed = 1,
+    this.levelId = LevelId.defaultLevel,
     this.onExit,
     this.showExitButton = true,
     this.viewportMode = ViewportScaleMode.pixelPerfectContain,
     this.viewportAlignment = Alignment.center,
   });
 
+  /// Master RNG seed for deterministic generation.
   final int seed;
+
+  /// Which core level definition to run.
+  final LevelId levelId;
 
   final VoidCallback? onExit;
   final bool showExitButton;
@@ -139,7 +146,12 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   void _initGame() {
-    _controller = GameController(core: GameCore(seed: widget.seed));
+    _controller = GameController(
+      core: GameCore(
+        seed: widget.seed,
+        levelDefinition: LevelRegistry.byId(widget.levelId),
+      ),
+    );
     _input = RunnerInputRouter(controller: _controller);
     _projectileAimPreview = AimPreviewModel();
     _meleeAimPreview = AimPreviewModel();

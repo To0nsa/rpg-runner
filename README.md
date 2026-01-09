@@ -25,7 +25,26 @@ flutter pub get
 flutter run
 ```
 
-The dev host launches a minimal menu (`DevMenuPage`) and pushes the runner route.
+The dev host launches a minimal menu (`DevMenuPage`) which routes to a
+development menu (`RunnerMenuPage`) where you can select a level and start a
+run.
+
+---
+
+## Embed (host app)
+
+Import the public embedding API (`lib/runner.dart`) and push the route:
+
+```dart
+import 'package:walkscape_runner/runner.dart';
+
+Navigator.of(context).push(
+  createRunnerGameRoute(
+    seed: 123,
+    levelId: LevelId.forest,
+  ),
+);
+```
 
 ---
 
