@@ -1,3 +1,5 @@
+import '../../core/levels/level_id.dart';
+
 import 'run_result.dart';
 
 class LeaderboardSnapshot {
@@ -11,6 +13,10 @@ class LeaderboardSnapshot {
 }
 
 abstract class LeaderboardStore {
-  Future<LeaderboardSnapshot> addResult(RunResult result);
-  Future<List<RunResult>> loadTop10();
+  Future<LeaderboardSnapshot> addResult({
+    required LevelId levelId,
+    required RunResult result,
+  });
+
+  Future<List<RunResult>> loadTop10({required LevelId levelId});
 }

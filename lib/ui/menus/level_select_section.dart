@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/levels/level_id.dart';
+import '../levels/level_id_ui.dart';
 
 class LevelSelectSection extends StatelessWidget {
   const LevelSelectSection({super.key, required this.onStartLevel});
@@ -19,20 +20,19 @@ class LevelSelectSection extends StatelessWidget {
         const SizedBox(height: 12),
         FilledButton(
           onPressed: () => onStartLevel(LevelId.defaultLevel),
-          child: const Text('Default'),
+          child: Text(LevelId.defaultLevel.displayName),
         ),
         const SizedBox(height: 8),
         FilledButton(
           onPressed: () => onStartLevel(LevelId.forest),
-          child: const Text('Forest'),
+          child: Text(LevelId.forest.displayName),
         ),
         const SizedBox(height: 8),
         FilledButton(
           onPressed: () => onStartLevel(LevelId.field),
-          child: const Text('Field'),
+          child: Text(LevelId.field.displayName),
         ),
       ],
     );
   }
 }
-

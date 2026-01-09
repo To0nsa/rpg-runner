@@ -2,26 +2,33 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/levels/level_id.dart';
 import 'leaderboard_store.dart';
 import 'run_result.dart';
 
 class SharedPrefsLeaderboardStore implements LeaderboardStore {
-  static const String _entriesKey = 'leaderboard_v1_entries';
-  static const String _nextIdKey = 'leaderboard_v1_next_id';
+  static const String _entriesKeyPrefix = 'leaderboard_v2_entries_';
+  static const String _nextIdKeyPrefix = 'leaderboard_v2_next_id_';
+
+  String _entriesKey(LevelId levelId) => '$_entriesKeyPrefix${levelId.name}';
+  String _nextIdKey(LevelId levelId) => '$_nextIdKeyPrefix${levelId.name}';
 
   @override
-  Future<LeaderboardSnapshot> addResult(RunResult result) async {
+  Future<LeaderboardSnapshot> addResult({
+    required LevelId levelId,
+    required RunResult result,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
 
-    final nextId = (prefs.getInt(_nextIdKey) ?? 1);
+    final nextId = (prefs.getInt(_nextIdKey(levelId)) ?? 1);
     final stored = result.copyWith(runId: nextId);
-    final entries = _loadEntries(prefs);
+    final entries = _loadEntries(prefs, levelId);
     entries.add(stored);
     entries.sort(_compare);
 
     final top = entries.length > 10 ? entries.sublist(0, 10) : entries;
-    await prefs.setString(_entriesKey, _encode(top));
-    await prefs.setInt(_nextIdKey, nextId + 1);
+    await prefs.setString(_entriesKey(levelId), _encode(top));
+    await prefs.setInt(_nextIdKey(levelId), nextId + 1);
 
     return LeaderboardSnapshot(
       entries: List<RunResult>.unmodifiable(top),
@@ -30,16 +37,16 @@ class SharedPrefsLeaderboardStore implements LeaderboardStore {
   }
 
   @override
-  Future<List<RunResult>> loadTop10() async {
+  Future<List<RunResult>> loadTop10({required LevelId levelId}) async {
     final prefs = await SharedPreferences.getInstance();
-    final entries = _loadEntries(prefs);
+    final entries = _loadEntries(prefs, levelId);
     entries.sort(_compare);
     if (entries.length > 10) return entries.sublist(0, 10);
     return List<RunResult>.unmodifiable(entries);
   }
 
-  List<RunResult> _loadEntries(SharedPreferences prefs) {
-    final raw = prefs.getString(_entriesKey);
+  List<RunResult> _loadEntries(SharedPreferences prefs, LevelId levelId) {
+    final raw = prefs.getString(_entriesKey(levelId));
     if (raw == null || raw.isEmpty) return <RunResult>[];
 
     final decoded = jsonDecode(raw);

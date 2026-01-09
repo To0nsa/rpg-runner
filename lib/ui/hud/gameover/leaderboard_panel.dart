@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/events/game_event.dart';
+import '../../../core/levels/level_id.dart';
 import '../../../core/tuning/score_tuning.dart';
 import '../../leaderboard/leaderboard_store.dart';
 import '../../leaderboard/run_result.dart';
 import '../../leaderboard/shared_prefs_leaderboard_store.dart';
+import '../../levels/level_id_ui.dart';
 
 class LeaderboardPanel extends StatefulWidget {
   const LeaderboardPanel({
     super.key,
+    required this.levelId,
     required this.runEndedEvent,
     required this.scoreTuning,
     required this.tickHz,
@@ -16,6 +19,7 @@ class LeaderboardPanel extends StatefulWidget {
     this.leaderboardStore,
   });
 
+  final LevelId levelId;
   final RunEndedEvent? runEndedEvent;
   final ScoreTuning scoreTuning;
   final int tickHz;
@@ -47,7 +51,7 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
   Future<void> _loadLeaderboard() async {
     final event = widget.runEndedEvent;
     if (event == null) {
-      final entries = await _store.loadTop10();
+      final entries = await _store.loadTop10(levelId: widget.levelId);
       if (!mounted) return;
       setState(() {
         _entries = entries;
@@ -62,7 +66,10 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
       tickHz: widget.tickHz,
       endedAtMs: DateTime.now().millisecondsSinceEpoch,
     );
-    final snapshot = await _store.addResult(draft);
+    final snapshot = await _store.addResult(
+      levelId: widget.levelId,
+      result: draft,
+    );
     if (!mounted) return;
     setState(() {
       _entries = snapshot.entries;
@@ -174,7 +181,7 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Scoreboard', style: titleStyle),
+              Text('${widget.levelId.displayName} Scoreboard', style: titleStyle),
               const SizedBox(height: 8),
               DefaultTextStyle(style: textStyle, child: content),
             ],

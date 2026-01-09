@@ -3,6 +3,7 @@ import 'package:flutter/scheduler.dart';
 
 import '../../../core/enemies/enemy_id.dart';
 import '../../../core/events/game_event.dart';
+import '../../../core/levels/level_id.dart';
 import '../../../core/projectiles/projectile_id.dart';
 import '../../../core/scoring/run_score_breakdown.dart';
 import '../../../core/tuning/score_tuning.dart';
@@ -22,6 +23,7 @@ class GameOverOverlay extends StatefulWidget {
     required this.onRestart,
     required this.onExit,
     required this.showExitButton,
+    required this.levelId,
     required this.runEndedEvent,
     required this.scoreTuning,
     required this.tickHz,
@@ -32,6 +34,7 @@ class GameOverOverlay extends StatefulWidget {
   final VoidCallback onRestart;
   final VoidCallback? onExit;
   final bool showExitButton;
+  final LevelId levelId;
   final RunEndedEvent? runEndedEvent;
   final ScoreTuning scoreTuning;
   final int tickHz;
@@ -216,6 +219,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                 child: Align(
                   alignment: Alignment.topCenter,
                   child: LeaderboardPanel(
+                    levelId: widget.levelId,
                     runEndedEvent: widget.runEndedEvent,
                     scoreTuning: widget.scoreTuning,
                     tickHz: widget.tickHz,

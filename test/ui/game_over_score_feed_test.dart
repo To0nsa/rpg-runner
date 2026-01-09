@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:walkscape_runner/core/events/game_event.dart';
+import 'package:walkscape_runner/core/levels/level_id.dart';
 import 'package:walkscape_runner/core/tuning/score_tuning.dart';
 import 'package:walkscape_runner/ui/hud/gameover/game_over_overlay.dart';
 import 'package:walkscape_runner/ui/hud/gameover/leaderboard_panel.dart';
@@ -61,6 +62,7 @@ void main() {
           onRestart: () {},
           onExit: null,
           showExitButton: false,
+          levelId: LevelId.defaultLevel,
           runEndedEvent: _buildEvent(),
           scoreTuning: _tuning,
           tickHz: _tickHz,
@@ -105,6 +107,7 @@ void main() {
           onRestart: () {},
           onExit: null,
           showExitButton: false,
+          levelId: LevelId.defaultLevel,
           runEndedEvent: _buildEvent(),
           scoreTuning: _tuning,
           tickHz: _tickHz,
@@ -148,6 +151,7 @@ void main() {
           onRestart: () {},
           onExit: null,
           showExitButton: false,
+          levelId: LevelId.defaultLevel,
           runEndedEvent: _buildEvent(),
           scoreTuning: _tuning,
           tickHz: _tickHz,
@@ -185,10 +189,14 @@ class _FakeLeaderboardStore implements LeaderboardStore {
   );
 
   @override
-  Future<LeaderboardSnapshot> addResult(RunResult result) async {
+  Future<LeaderboardSnapshot> addResult({
+    required LevelId levelId,
+    required RunResult result,
+  }) async {
     return LeaderboardSnapshot(entries: [_current], current: _current);
   }
 
   @override
-  Future<List<RunResult>> loadTop10() async => <RunResult>[];
+  Future<List<RunResult>> loadTop10({required LevelId levelId}) async =>
+      <RunResult>[];
 }

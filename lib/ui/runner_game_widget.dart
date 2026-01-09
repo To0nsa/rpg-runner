@@ -218,6 +218,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                 onRestart: _restartGame,
                 onExit: widget.onExit,
                 showExitButton: widget.showExitButton,
+                levelId: _controller.snapshot.levelId,
                 runEndedEvent: runEndedEvent,
                 scoreTuning: _controller.scoreTuning,
                 tickHz: _controller.tickHz,
