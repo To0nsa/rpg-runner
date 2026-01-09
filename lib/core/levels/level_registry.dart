@@ -29,6 +29,18 @@ class LevelRegistry {
   /// Returns the level definition for a given [LevelId].
   static LevelDefinition byId(LevelId id) {
     switch (id) {
+      case LevelId.forest:
+        return LevelDefinition(
+          id: LevelId.forest,
+          patternPool: defaultPatternPool,
+          themeId: 'forest',
+        );
+      case LevelId.field:
+        return LevelDefinition(
+          id: LevelId.field,
+          patternPool: defaultPatternPool,
+          themeId: 'field',
+        );
       case LevelId.defaultLevel:
         return defaultLevelDefinition;
     }

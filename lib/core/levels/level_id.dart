@@ -4,4 +4,6 @@
 enum LevelId {
   /// The default runner level.
   defaultLevel,
+  forest,
+  field,
 }
