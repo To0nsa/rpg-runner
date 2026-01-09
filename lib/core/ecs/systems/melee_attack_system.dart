@@ -87,6 +87,8 @@ class MeleeAttackSystem {
           owner: attacker,
           faction: faction,
           damage: intents.damage[ii],
+          damageType: intents.damageType[ii],
+          statusProfileId: intents.statusProfileId[ii],
           halfX: intents.halfX[ii],
           halfY: intents.halfY[ii],
           offsetX: intents.offsetX[ii],

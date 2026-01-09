@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:walkscape_runner/core/enemies/enemy_catalog.dart';
 import 'package:walkscape_runner/core/ecs/entity_factory.dart';
 import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/collider_aabb_store.dart';
@@ -69,6 +70,7 @@ void main() {
           runSpeedX: 1.0,
         ),
       ),
+      enemyCatalog: const EnemyCatalog(),
       spells: const SpellCatalog(),
       projectiles: ProjectileCatalogDerived.from(
         const ProjectileCatalog(),

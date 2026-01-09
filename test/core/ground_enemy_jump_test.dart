@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:walkscape_runner/core/collision/static_world_geometry.dart';
 import 'package:walkscape_runner/core/collision/static_world_geometry_index.dart';
+import 'package:walkscape_runner/core/enemies/enemy_catalog.dart';
 import 'package:walkscape_runner/core/enemies/enemy_id.dart';
 import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/collider_aabb_store.dart';
@@ -140,6 +141,7 @@ void main() {
         pathfinder: pathfinder,
         repathCooldownTicks: 5,
       ),
+      enemyCatalog: const EnemyCatalog(),
       spells: const SpellCatalog(),
       projectiles: ProjectileCatalogDerived.from(
         const ProjectileCatalog(),

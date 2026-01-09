@@ -1,11 +1,16 @@
+import '../combat/creature_tag.dart';
 import '../ecs/stores/body_store.dart';
 import '../ecs/stores/collider_aabb_store.dart';
+import '../ecs/stores/combat/creature_tag_store.dart';
+import '../ecs/stores/combat/damage_resistance_store.dart';
+import '../ecs/stores/combat/status_immunity_store.dart';
 import '../ecs/stores/health_store.dart';
 import '../ecs/stores/mana_store.dart';
 import '../ecs/stores/stamina_store.dart';
 import '../snapshots/enums.dart';
 import '../tuning/movement_tuning.dart';
 import '../tuning/resource_tuning.dart';
+import '../weapons/weapon_id.dart';
 import 'player_archetype.dart';
 
 /// Authoring-time configuration for the player entity.
@@ -32,6 +37,10 @@ class PlayerCatalog {
       gravityScale: 1.0,
       sideMask: BodyDef.sideLeft | BodyDef.sideRight,
     ),
+    this.tags = const CreatureTagDef(mask: CreatureTagMask.humanoid),
+    this.resistance = const DamageResistanceDef(),
+    this.statusImmunity = const StatusImmunityDef(),
+    this.weaponId = WeaponId.basicSword,
     this.facing = Facing.right,
   });
 
@@ -52,6 +61,18 @@ class PlayerCatalog {
   /// This split ensures movement tuning remains the single source of truth
   /// for velocity limits.
   final BodyDef bodyTemplate;
+
+  /// Broad tags used by combat rules and content filters.
+  final CreatureTagDef tags;
+
+  /// Resistance/vulnerability modifiers by damage type.
+  final DamageResistanceDef resistance;
+
+  /// Status effect immunities for the player.
+  final StatusImmunityDef statusImmunity;
+
+  /// Default equipped weapon at spawn time.
+  final WeaponId weaponId;
 
   /// Default facing direction at spawn time.
   ///
@@ -139,6 +160,10 @@ class PlayerCatalogDerived {
         health: health,
         mana: mana,
         stamina: stamina,
+        tags: base.tags,
+        resistance: base.resistance,
+        statusImmunity: base.statusImmunity,
+        weaponId: base.weaponId,
         facing: base.facing,
       ),
     );

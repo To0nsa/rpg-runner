@@ -1,9 +1,13 @@
+import '../../combat/damage_type.dart';
+import '../../combat/status/status.dart';
 import '../entity_id.dart';
 import '../sparse_set.dart';
 
 class MeleeIntentDef {
   const MeleeIntentDef({
     required this.damage,
+    required this.damageType,
+    required this.statusProfileId,
     required this.halfX,
     required this.halfY,
     required this.offsetX,
@@ -17,6 +21,8 @@ class MeleeIntentDef {
   });
 
   final double damage;
+  final DamageType damageType;
+  final StatusProfileId statusProfileId;
   final double halfX;
   final double halfY;
   final double offsetX;
@@ -41,6 +47,8 @@ class MeleeIntentDef {
 /// Old intents are ignored if `tick` matches current game tick.
 class MeleeIntentStore extends SparseSet {
   final List<double> damage = <double>[];
+  final List<DamageType> damageType = <DamageType>[];
+  final List<StatusProfileId> statusProfileId = <StatusProfileId>[];
   final List<double> halfX = <double>[];
   final List<double> halfY = <double>[];
   final List<double> offsetX = <double>[];
@@ -63,6 +71,8 @@ class MeleeIntentStore extends SparseSet {
     );
     final i = indexOf(entity);
     damage[i] = def.damage;
+    damageType[i] = def.damageType;
+    statusProfileId[i] = def.statusProfileId;
     halfX[i] = def.halfX;
     halfY[i] = def.halfY;
     offsetX[i] = def.offsetX;
@@ -78,6 +88,8 @@ class MeleeIntentStore extends SparseSet {
   @override
   void onDenseAdded(int denseIndex) {
     damage.add(0.0);
+    damageType.add(DamageType.physical);
+    statusProfileId.add(StatusProfileId.none);
     halfX.add(0.0);
     halfY.add(0.0);
     offsetX.add(0.0);
@@ -93,6 +105,8 @@ class MeleeIntentStore extends SparseSet {
   @override
   void onSwapRemove(int removeIndex, int lastIndex) {
     damage[removeIndex] = damage[lastIndex];
+    damageType[removeIndex] = damageType[lastIndex];
+    statusProfileId[removeIndex] = statusProfileId[lastIndex];
     halfX[removeIndex] = halfX[lastIndex];
     halfY[removeIndex] = halfY[lastIndex];
     offsetX[removeIndex] = offsetX[lastIndex];
@@ -105,6 +119,8 @@ class MeleeIntentStore extends SparseSet {
     tick[removeIndex] = tick[lastIndex];
 
     damage.removeLast();
+    damageType.removeLast();
+    statusProfileId.removeLast();
     halfX.removeLast();
     halfY.removeLast();
     offsetX.removeLast();

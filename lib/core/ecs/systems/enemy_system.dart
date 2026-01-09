@@ -2,11 +2,13 @@ import 'dart:math';
 
 import 'package:walkscape_runner/core/ecs/entity_id.dart';
 
+import '../../enemies/enemy_catalog.dart';
 import '../../enemies/enemy_id.dart';
+import '../../combat/damage_type.dart';
+import '../../combat/status/status.dart';
 import '../../snapshots/enums.dart';
 import '../../projectiles/projectile_catalog.dart';
 import '../../spells/spell_catalog.dart';
-import '../../spells/spell_id.dart';
 import '../../tuning/flying_enemy_tuning.dart';
 import '../../tuning/ground_enemy_tuning.dart';
 import '../../util/deterministic_rng.dart';
@@ -35,6 +37,7 @@ class EnemySystem {
     required this.flyingEnemyTuning,
     required this.groundEnemyTuning,
     required this.surfaceNavigator,
+    required this.enemyCatalog,
     required this.spells,
     required this.projectiles,
     this.trajectoryPredictor,
@@ -43,6 +46,7 @@ class EnemySystem {
   final FlyingEnemyTuningDerived flyingEnemyTuning;
   final GroundEnemyTuningDerived groundEnemyTuning;
   final SurfaceNavigator surfaceNavigator;
+  final EnemyCatalog enemyCatalog;
   final SpellCatalog spells;
   final ProjectileCatalogDerived projectiles;
 
@@ -205,6 +209,7 @@ class EnemySystem {
           _writeFlyingEnemyCastIntent(
             world,
             enemy: e,
+            enemyIndex: ei,
             enemyCenterX: enemyCenterX,
             enemyCenterY: enemyCenterY,
             playerCenterX: playerCenterX,
@@ -259,6 +264,9 @@ class EnemySystem {
 
     final steering = world.flyingEnemySteering;
     final si = steering.indexOf(enemy);
+    final modIndex = world.statModifier.tryIndexOf(enemy);
+    final moveSpeedMul =
+        modIndex == null ? 1.0 : world.statModifier.moveSpeedMul[modIndex];
 
     var rngState = steering.rngState[si];
     // Helper to advance RNG and get a range.
@@ -363,6 +371,8 @@ class EnemySystem {
     }
 
     // -- Physics Integration --
+    desiredVelX *= moveSpeedMul;
+    desiredVelY *= moveSpeedMul;
     final currentVelX = world.transform.velX[enemyTi];
     world.transform.velX[enemyTi] = applyAccelDecel(
       current: currentVelX,
@@ -560,6 +570,7 @@ class EnemySystem {
   void _writeFlyingEnemyCastIntent(
     EcsWorld world, {
     required EntityId enemy,
+    required int enemyIndex,
     required double enemyCenterX,
     required double enemyCenterY,
     required double playerCenterX,
@@ -578,7 +589,9 @@ class EnemySystem {
     }
 
     // Determine projectile properties for aiming.
-    const spellId = SpellId.lightning; // Hardcoded for this enemy type currently.
+    final enemyId = world.enemy.enemyId[enemyIndex];
+    final spellId = enemyCatalog.get(enemyId).primarySpellId;
+    if (spellId == null) return;
     final projectileId = spells.get(spellId).projectileId;
     final projectileSpeed = projectileId == null
         ? null
@@ -664,6 +677,8 @@ class EnemySystem {
       enemy,
       MeleeIntentDef(
         damage: tuning.base.groundEnemyMeleeDamage,
+        damageType: DamageType.physical,
+        statusProfileId: StatusProfileId.none,
         halfX: halfX,
         halfY: halfY,
         offsetX: offsetX,
@@ -745,6 +760,10 @@ class EnemySystem {
     required SurfaceGraph? graph,
   }) {
     final tuning = groundEnemyTuning;
+    final enemy = world.enemy.denseEntities[enemyIndex];
+    final modIndex = world.statModifier.tryIndexOf(enemy);
+    final moveSpeedMul =
+        modIndex == null ? 1.0 : world.statModifier.moveSpeedMul[modIndex];
     final dx = intent.desiredX - ex;
     double desiredVelX = 0.0;
 
@@ -760,6 +779,8 @@ class EnemySystem {
       world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
       desiredVelX = dirX * tuning.base.groundEnemySpeedX * effectiveSpeedScale;
     }
+
+    desiredVelX *= moveSpeedMul;
 
     // -- Jumping --
     if (intent.jumpNow) {

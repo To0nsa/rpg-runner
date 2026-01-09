@@ -5,6 +5,11 @@ import 'stores/collider_aabb_store.dart';
 import 'stores/collision_state_store.dart';
 import 'stores/cooldown_store.dart';
 import 'stores/cast_intent_store.dart';
+import 'stores/combat/creature_tag_store.dart';
+import 'stores/combat/damage_resistance_store.dart';
+import 'stores/combat/equipped_weapon_store.dart';
+import 'stores/combat/stat_modifier_store.dart';
+import 'stores/combat/status_immunity_store.dart';
 import 'stores/collectible_store.dart';
 import 'stores/player/gravity_control_store.dart';
 import 'stores/enemies/flying_enemy_steering_store.dart';
@@ -23,6 +28,9 @@ import 'stores/player/movement_store.dart';
 import 'stores/player/player_input_store.dart';
 import 'stores/projectile_store.dart';
 import 'stores/restoration_item_store.dart';
+import 'stores/status/bleed_store.dart';
+import 'stores/status/burn_store.dart';
+import 'stores/status/slow_store.dart';
 import 'stores/spell_origin_store.dart';
 import 'stores/stamina_store.dart';
 import 'stores/enemies/surface_nav_state_store.dart';
@@ -95,6 +103,9 @@ class EcsWorld {
   /// Tracks the player's intent to cast a spell (button presses).
   late final CastIntentStore castIntent = _register(CastIntentStore());
 
+  /// Creature classification tags (humanoid, demon, etc.).
+  late final CreatureTagStore creatureTag = _register(CreatureTagStore());
+
   /// Marks an entity as a collectible item (e.g., coin, power-up).
   late final CollectibleStore collectible = _register(CollectibleStore());
 
@@ -110,17 +121,30 @@ class EcsWorld {
   /// Manages Health Points (HP) and max HP.
   late final HealthStore health = _register(HealthStore());
 
+  /// Damage resistance/vulnerability modifiers.
+  late final DamageResistanceStore damageResistance =
+      _register(DamageResistanceStore());
+
   /// Grants temporary invulnerability (i-frames).
   late final InvulnerabilityStore invulnerability = _register(InvulnerabilityStore());
 
   /// Records the last entity/source that dealt damage to this entity.
   late final LastDamageStore lastDamage = _register(LastDamageStore());
 
+  /// Status immunities (burn, slow, bleed).
+  late final StatusImmunityStore statusImmunity = _register(StatusImmunityStore());
+
   /// Manages Mana Points (MP) and max MP.
   late final ManaStore mana = _register(ManaStore());
 
   /// Tracks the player's intent to perform a melee attack.
   late final MeleeIntentStore meleeIntent = _register(MeleeIntentStore());
+
+  /// Equipped melee weapon (for on-hit profiles like bleed).
+  late final EquippedWeaponStore equippedWeapon = _register(EquippedWeaponStore());
+
+  /// Derived runtime stat modifiers (e.g., slows).
+  late final StatModifierStore statModifier = _register(StatModifierStore());
 
   /// Manages Stamina Points (SP) and max SP.
   late final StaminaStore stamina = _register(StaminaStore());
@@ -136,6 +160,15 @@ class EcsWorld {
 
   /// Despawns entities after a set duration.
   late final LifetimeStore lifetime = _register(LifetimeStore());
+
+  /// Active burn DoT effects.
+  late final BurnStore burn = _register(BurnStore());
+
+  /// Active bleed DoT effects.
+  late final BleedStore bleed = _register(BleedStore());
+
+  /// Active slow effects.
+  late final SlowStore slow = _register(SlowStore());
 
   /// Links a spell effect back to its caster or origin point.
   late final SpellOriginStore spellOrigin = _register(SpellOriginStore());

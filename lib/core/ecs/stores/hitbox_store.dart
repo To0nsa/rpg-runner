@@ -1,4 +1,6 @@
+import '../../combat/damage_type.dart';
 import '../../combat/faction.dart';
+import '../../combat/status/status.dart';
 import '../entity_id.dart';
 import '../sparse_set.dart';
 
@@ -7,6 +9,8 @@ class HitboxDef {
     required this.owner,
     required this.faction,
     required this.damage,
+    required this.damageType,
+    required this.statusProfileId,
     required this.halfX,
     required this.halfY,
     required this.offsetX,
@@ -18,6 +22,8 @@ class HitboxDef {
   final EntityId owner;
   final Faction faction;
   final double damage;
+  final DamageType damageType;
+  final StatusProfileId statusProfileId;
   final double halfX;
   final double halfY;
   final double offsetX;
@@ -34,6 +40,8 @@ class HitboxStore extends SparseSet {
   final List<EntityId> owner = <EntityId>[];
   final List<Faction> faction = <Faction>[];
   final List<double> damage = <double>[];
+  final List<DamageType> damageType = <DamageType>[];
+  final List<StatusProfileId> statusProfileId = <StatusProfileId>[];
   final List<double> halfX = <double>[];
   final List<double> halfY = <double>[];
   final List<double> offsetX = <double>[];
@@ -46,6 +54,8 @@ class HitboxStore extends SparseSet {
     owner[i] = def.owner;
     faction[i] = def.faction;
     damage[i] = def.damage;
+    damageType[i] = def.damageType;
+    statusProfileId[i] = def.statusProfileId;
     halfX[i] = def.halfX;
     halfY[i] = def.halfY;
     offsetX[i] = def.offsetX;
@@ -59,6 +69,8 @@ class HitboxStore extends SparseSet {
     owner.add(0);
     faction.add(Faction.player);
     damage.add(0);
+    damageType.add(DamageType.physical);
+    statusProfileId.add(StatusProfileId.none);
     halfX.add(0);
     halfY.add(0);
     offsetX.add(0);
@@ -72,6 +84,8 @@ class HitboxStore extends SparseSet {
     owner[removeIndex] = owner[lastIndex];
     faction[removeIndex] = faction[lastIndex];
     damage[removeIndex] = damage[lastIndex];
+    damageType[removeIndex] = damageType[lastIndex];
+    statusProfileId[removeIndex] = statusProfileId[lastIndex];
     halfX[removeIndex] = halfX[lastIndex];
     halfY[removeIndex] = halfY[lastIndex];
     offsetX[removeIndex] = offsetX[lastIndex];
@@ -82,6 +96,8 @@ class HitboxStore extends SparseSet {
     owner.removeLast();
     faction.removeLast();
     damage.removeLast();
+    damageType.removeLast();
+    statusProfileId.removeLast();
     halfX.removeLast();
     halfY.removeLast();
     offsetX.removeLast();

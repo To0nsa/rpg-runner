@@ -6,7 +6,9 @@ library;
 
 import 'dart:math';
 
+import '../combat/damage_type.dart';
 import '../combat/faction.dart';
+import '../combat/status/status.dart';
 import '../ecs/entity_id.dart';
 import '../ecs/stores/collider_aabb_store.dart';
 import '../ecs/stores/lifetime_store.dart';
@@ -60,6 +62,8 @@ EntityId _spawnResolvedSpellProjectile(
   required double dirY,
   required double speedUnitsPerSecond,
   required double damage,
+  required DamageType damageType,
+  required StatusProfileId statusProfileId,
 }) {
   // Lookup base projectile def for collider dimensions.
   final proj = projectiles.base.get(projectileId);
@@ -89,6 +93,8 @@ EntityId _spawnResolvedSpellProjectile(
       dirY: dirY,
       speedUnitsPerSecond: speedUnitsPerSecond,
       damage: damage,
+      damageType: damageType,
+      statusProfileId: statusProfileId,
     ),
   );
 
@@ -158,6 +164,8 @@ EntityId? spawnSpellProjectileFromCaster(
     dirY: dir.y,
     speedUnitsPerSecond: projectiles.base.get(projectileId).speedUnitsPerSecond,
     damage: spell.stats.damage,
+    damageType: spell.stats.damageType,
+    statusProfileId: spell.stats.statusProfileId,
   );
 }
 
@@ -205,5 +213,7 @@ EntityId? spawnSpellProjectile(
     dirY: dir.y,
     speedUnitsPerSecond: projectiles.base.get(projectileId).speedUnitsPerSecond,
     damage: spell.stats.damage,
+    damageType: spell.stats.damageType,
+    statusProfileId: spell.stats.statusProfileId,
   );
 }

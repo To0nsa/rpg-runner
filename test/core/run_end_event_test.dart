@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:walkscape_runner/core/combat/damage_type.dart';
 import 'package:walkscape_runner/core/combat/faction.dart';
+import 'package:walkscape_runner/core/combat/status/status.dart';
 import 'package:walkscape_runner/core/ecs/spatial/broadphase_grid.dart';
 import 'package:walkscape_runner/core/ecs/spatial/grid_index_2d.dart';
 import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
@@ -111,6 +113,8 @@ void main() {
         owner: enemy,
         faction: Faction.enemy,
         damage: 10,
+        damageType: DamageType.physical,
+        statusProfileId: StatusProfileId.none,
         halfX: 8,
         halfY: 8,
         offsetX: 0,

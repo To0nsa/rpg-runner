@@ -103,6 +103,8 @@ class ProjectileHitSystem {
           DamageRequest(
             target: broadphase.targets.entities[targetIndex],
             amount: projectiles.damage[pi],
+            damageType: projectiles.damageType[pi],
+            statusProfileId: projectiles.statusProfileId[pi],
             source: owner,
             sourceKind: DeathSourceKind.projectile,
             sourceEnemyId: enemyId,

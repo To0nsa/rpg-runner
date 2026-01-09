@@ -85,13 +85,17 @@ class PlayerMovementSystem {
       }
 
       final dashing = world.movement.dashTicksLeft[mi] > 0;
+      final modifierIndex = world.statModifier.tryIndexOf(e);
+      final moveSpeedMul =
+          modifierIndex == null ? 1.0 : world.statModifier.moveSpeedMul[modifierIndex];
 
       // -- Horizontal Movement --
       if (dashing) {
         // [State: Dashing]
         // Lock velocity to the dash direction and speed.
         // Zero out Y velocity to prevent gravity from affecting the dash arc (linear dash).
-        world.transform.velX[ti] = world.movement.dashDirX[mi] * t.dashSpeedX;
+        world.transform.velX[ti] =
+            world.movement.dashDirX[mi] * t.dashSpeedX * moveSpeedMul;
         world.transform.velY[ti] = 0;
       } else {
         // [State: Normal Control]
@@ -109,6 +113,7 @@ class PlayerMovementSystem {
           axis,
           dt,
           tuning,
+          moveSpeedMul,
         );
 
         // -- Jumping --
@@ -150,15 +155,16 @@ class PlayerMovementSystem {
     double axis,
     double dt,
     MovementTuningDerived tuning,
+    double moveSpeedMul,
   ) {
     final t = tuning.base;
-    final desiredX = axis == 0.0 ? 0.0 : axis * t.maxSpeedX;
+    final desiredX = axis == 0.0 ? 0.0 : axis * t.maxSpeedX * moveSpeedMul;
     return applyAccelDecel(
       current: velocityX,
       desired: desiredX,
       dtSeconds: dt,
-      accelPerSecond: t.accelerationX,
-      decelPerSecond: t.decelerationX,
+      accelPerSecond: t.accelerationX * moveSpeedMul,
+      decelPerSecond: t.decelerationX * moveSpeedMul,
       minStopSpeed: t.minMoveSpeed,
     );
   }

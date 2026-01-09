@@ -1,8 +1,13 @@
 import '../ecs/stores/body_store.dart';
 import '../ecs/stores/collider_aabb_store.dart';
+import '../ecs/stores/combat/creature_tag_store.dart';
+import '../ecs/stores/combat/damage_resistance_store.dart';
+import '../ecs/stores/combat/status_immunity_store.dart';
 import '../ecs/stores/health_store.dart';
 import '../ecs/stores/mana_store.dart';
 import '../ecs/stores/stamina_store.dart';
+import '../combat/creature_tag.dart';
+import '../spells/spell_id.dart';
 import 'enemy_id.dart';
 
 /// Defines the base stats and physics properties for an enemy type.
@@ -16,6 +21,10 @@ class EnemyArchetype {
     required this.health,
     required this.mana,
     required this.stamina,
+    this.primarySpellId,
+    this.tags = const CreatureTagDef(),
+    this.resistance = const DamageResistanceDef(),
+    this.statusImmunity = const StatusImmunityDef(),
   });
 
   /// Physics configuration (Gravity, Constraints, Kinematics).
@@ -28,6 +37,20 @@ class EnemyArchetype {
   final HealthDef health;
   final ManaDef mana;
   final StaminaDef stamina;
+
+  /// Optional primary ranged attack spell for this enemy.
+  ///
+  /// When present, the [EnemySystem] will use this to write cast intents.
+  final SpellId? primarySpellId;
+
+  /// Broad tags used by combat rules and content filters.
+  final CreatureTagDef tags;
+
+  /// Resistance/vulnerability modifiers by damage type.
+  final DamageResistanceDef resistance;
+
+  /// Status effect immunities for this enemy.
+  final StatusImmunityDef statusImmunity;
 }
 
 /// Central registry for Enemy Definitions.
@@ -57,6 +80,8 @@ class EnemyCatalog {
           health: HealthDef(hp: 20.0, hpMax: 20.0, regenPerSecond: 0.5),
           mana: ManaDef(mana: 80.0, manaMax: 80.0, regenPerSecond: 5.0),
           stamina: StaminaDef(stamina: 0.0, staminaMax: 0.0, regenPerSecond: 0.0),
+          primarySpellId: SpellId.iceBolt,
+          tags: CreatureTagDef(mask: CreatureTagMask.flying | CreatureTagMask.demon),
         );
         
       case EnemyId.groundEnemy:
@@ -72,8 +97,8 @@ class EnemyCatalog {
           health: HealthDef(hp: 20.0, hpMax: 20.0, regenPerSecond: 0.5),
           mana: ManaDef(mana: 0.0, manaMax: 0.0, regenPerSecond: 0.0),
           stamina: StaminaDef(stamina: 0.0, staminaMax: 0.0, regenPerSecond: 0.0),
+          tags: CreatureTagDef(mask: CreatureTagMask.humanoid),
         );
     }
   }
 }
-

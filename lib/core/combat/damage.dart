@@ -3,6 +3,8 @@ import '../enemies/enemy_id.dart';
 import '../events/game_event.dart';
 import '../projectiles/projectile_id.dart';
 import '../spells/spell_id.dart';
+import 'damage_type.dart';
+import 'status/status.dart';
 
 /// Represents a request to apply damage to an entity.
 ///
@@ -13,6 +15,8 @@ class DamageRequest {
   const DamageRequest({
     required this.target,
     required this.amount,
+    this.damageType = DamageType.physical,
+    this.statusProfileId = StatusProfileId.none,
     this.source,
     this.sourceKind = DeathSourceKind.unknown,
     this.sourceEnemyId,
@@ -25,6 +29,12 @@ class DamageRequest {
 
   /// The amount of health points to deduct.
   final double amount;
+
+  /// Category used for resistance/vulnerability lookup.
+  final DamageType damageType;
+
+  /// Optional status profile to apply on hit.
+  final StatusProfileId statusProfileId;
 
   /// The optional entity responsible for dealing the damage (e.g. the shooter).
   final EntityId? source;

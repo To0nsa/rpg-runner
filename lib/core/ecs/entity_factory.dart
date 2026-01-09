@@ -5,6 +5,11 @@ import '../util/deterministic_rng.dart';
 import 'entity_id.dart';
 import 'stores/body_store.dart';
 import 'stores/collider_aabb_store.dart';
+import 'stores/combat/creature_tag_store.dart';
+import 'stores/combat/damage_resistance_store.dart';
+import 'stores/combat/equipped_weapon_store.dart';
+import 'stores/combat/stat_modifier_store.dart';
+import 'stores/combat/status_immunity_store.dart';
 import 'stores/enemies/enemy_store.dart';
 import 'stores/faction_store.dart';
 import 'stores/enemies/flying_enemy_steering_store.dart';
@@ -37,12 +42,16 @@ class EntityFactory {
   /// - [CollisionStateStore]: Tracks current collision state.
   /// - [CooldownStore]: Manages ability cooldowns.
   /// - [CastIntentStore]: Tracks intent to cast spells.
+  /// - [CreatureTagStore]: Broad combat classification tags.
   /// - [FactionStore]: Sets the faction to [Faction.player].
   /// - [HealthStore]: Health points and max health.
+  /// - [DamageResistanceStore]: Damage modifiers per type.
   /// - [InvulnerabilityStore]: Grants temporary invulnerability after damage.
   /// - [LastDamageStore]: Tracks the last source of damage for UI/effects.
+  /// - [StatusImmunityStore]: Status effect immunities.
   /// - [ManaStore]: Mana points and max mana.
   /// - [MeleeIntentStore]: Tracks intent to perform melee attacks.
+  /// - [StatModifierStore]: Runtime stat modifiers from statuses.
   /// - [StaminaStore]: Stamina points and max stamina.
   ///
   /// The [grounded] parameter sets the initial ground state in the collision store.
@@ -58,6 +67,10 @@ class EntityFactory {
     required HealthDef health,
     required ManaDef mana,
     required StaminaDef stamina,
+    CreatureTagDef tags = const CreatureTagDef(),
+    DamageResistanceDef resistance = const DamageResistanceDef(),
+    StatusImmunityDef statusImmunity = const StatusImmunityDef(),
+    EquippedWeaponDef equippedWeapon = const EquippedWeaponDef(),
   }) {
     final id = world.createEntity();
     world.transform.add(id, posX: posX, posY: posY, velX: velX, velY: velY);
@@ -68,12 +81,17 @@ class EntityFactory {
     world.collision.add(id);
     world.cooldown.add(id);
     world.castIntent.add(id);
+    world.creatureTag.add(id, tags);
     world.faction.add(id, const FactionDef(faction: Faction.player));
     world.health.add(id, health);
+    world.damageResistance.add(id, resistance);
     world.invulnerability.add(id);
     world.lastDamage.add(id);
+    world.statusImmunity.add(id, statusImmunity);
     world.mana.add(id, mana);
     world.meleeIntent.add(id);
+    world.equippedWeapon.add(id, equippedWeapon);
+    world.statModifier.add(id);
     world.stamina.add(id, stamina);
     world.collision.grounded[world.collision.indexOf(id)] = grounded;
     return id;
@@ -88,9 +106,13 @@ class EntityFactory {
   /// - [CollisionStateStore]: Collision state tracking.
   /// - [CooldownStore]: Ability cooldowns.
   /// - [CastIntentStore]: Spell casting intent.
+  /// - [CreatureTagStore]: Broad combat classification tags.
   /// - [FactionStore]: Sets faction to [Faction.enemy].
   /// - [HealthStore], [ManaStore], [StaminaStore]: Vital stats.
   /// - [MeleeIntentStore]: Melee attack intent.
+  /// - [DamageResistanceStore]: Damage modifiers per type.
+  /// - [StatusImmunityStore]: Status effect immunities.
+  /// - [StatModifierStore]: Runtime stat modifiers from statuses.
   /// - [EnemyStore]: Identifies the entity as an enemy and stores its type.
   ///
   /// Adds specific components based on [enemyId]:
@@ -109,6 +131,9 @@ class EntityFactory {
     required HealthDef health,
     required ManaDef mana,
     required StaminaDef stamina,
+    CreatureTagDef tags = const CreatureTagDef(),
+    DamageResistanceDef resistance = const DamageResistanceDef(),
+    StatusImmunityDef statusImmunity = const StatusImmunityDef(),
   }) {
     final id = world.createEntity();
     world.transform.add(id, posX: posX, posY: posY, velX: velX, velY: velY);
@@ -117,12 +142,16 @@ class EntityFactory {
     world.collision.add(id);
     world.cooldown.add(id);
     world.castIntent.add(id);
+    world.creatureTag.add(id, tags);
     world.faction.add(id, const FactionDef(faction: Faction.enemy));
     world.health.add(id, health);
+    world.damageResistance.add(id, resistance);
     world.mana.add(id, mana);
     world.meleeIntent.add(id);
+    world.statModifier.add(id);
     world.stamina.add(id, stamina);
     world.enemy.add(id, EnemyDef(enemyId: enemyId, facing: facing));
+    world.statusImmunity.add(id, statusImmunity);
     if (enemyId == EnemyId.flyingEnemy) {
       world.flyingEnemySteering.add(
         id,

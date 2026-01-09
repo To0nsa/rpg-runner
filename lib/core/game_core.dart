@@ -45,10 +45,12 @@
 /// 11. **Attack execution**: Spawn hitboxes and projectiles.
 /// 12. **Hitbox positioning**: Follow owner entities.
 /// 13. **Hit resolution**: Detect overlaps, queue damage.
-/// 14. **Damage application**: Apply queued damage, set invulnerability.
-/// 15. **Death handling**: Despawn dead entities, record kills.
-/// 16. **Resource regen**: Regenerate mana/stamina.
-/// 17. **Lifetime cleanup**: Remove expired entities.
+/// 14. **Status ticking**: Apply DoT ticks and queue damage.
+/// 15. **Damage application**: Apply queued damage, set invulnerability.
+/// 16. **Status application**: Apply on-hit status profiles.
+/// 17. **Death handling**: Despawn dead entities, record kills.
+/// 18. **Resource regen**: Regenerate mana/stamina.
+/// 19. **Lifetime cleanup**: Remove expired entities.
 ///
 /// ## Determinism Contract
 ///
@@ -94,6 +96,7 @@ import 'ecs/systems/projectile_hit_system.dart';
 import 'ecs/systems/projectile_system.dart';
 import 'ecs/systems/resource_regen_system.dart';
 import 'ecs/systems/restoration_item_system.dart';
+import 'ecs/systems/status_system.dart';
 import 'ecs/systems/spell_cast_system.dart';
 import 'ecs/world.dart';
 import 'enemies/enemy_catalog.dart';
@@ -115,6 +118,8 @@ import 'snapshot_builder.dart';
 import 'spawn_service.dart';
 import 'spells/spell_catalog.dart';
 import 'track_manager.dart';
+import 'weapons/weapon_catalog.dart';
+import 'ecs/stores/combat/equipped_weapon_store.dart';
 import 'tuning/ability_tuning.dart';
 import 'tuning/camera_tuning.dart';
 import 'tuning/collectible_tuning.dart';
@@ -226,6 +231,7 @@ class GameCore {
     ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
     EnemyCatalog enemyCatalog = const EnemyCatalog(),
     PlayerCatalog playerCatalog = const PlayerCatalog(),
+    WeaponCatalog weaponCatalog = const WeaponCatalog(),
     StaticWorldGeometry staticWorldGeometry = const StaticWorldGeometry(
       groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
     ),
@@ -242,6 +248,7 @@ class GameCore {
          projectileCatalog: projectileCatalog,
          enemyCatalog: enemyCatalog,
          playerCatalog: playerCatalog,
+         weaponCatalog: weaponCatalog,
        );
 
   GameCore._fromLevel({
@@ -252,6 +259,7 @@ class GameCore {
     required ProjectileCatalog projectileCatalog,
     required EnemyCatalog enemyCatalog,
     required PlayerCatalog playerCatalog,
+    required WeaponCatalog weaponCatalog,
   }) : _levelDefinition = levelDefinition,
        _movement = MovementTuningDerived.from(
          levelDefinition.tuning.movement,
@@ -284,6 +292,7 @@ class GameCore {
        ),
        _enemyCatalog = enemyCatalog,
        _playerCatalog = playerCatalog,
+       _weapons = weaponCatalog,
        _scoreTuning = levelDefinition.tuning.score,
        _trackTuning = levelDefinition.tuning.track,
        _collectibleTuning = levelDefinition.tuning.collectible,
@@ -326,6 +335,7 @@ class GameCore {
     ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
     EnemyCatalog enemyCatalog = const EnemyCatalog(),
     PlayerCatalog playerCatalog = const PlayerCatalog(),
+    WeaponCatalog weaponCatalog = const WeaponCatalog(),
     StaticWorldGeometry staticWorldGeometry = const StaticWorldGeometry(
       groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
     ),
@@ -353,6 +363,7 @@ class GameCore {
       projectileCatalog: projectileCatalog,
       enemyCatalog: enemyCatalog,
       playerCatalog: playerCatalog,
+      weaponCatalog: weaponCatalog,
       staticWorldGeometry: staticWorldGeometry,
     );
   }
@@ -456,12 +467,14 @@ class GameCore {
     _damageSystem = DamageSystem(
       invulnerabilityTicksOnHit: _combat.invulnerabilityTicks,
     );
+    _statusSystem = StatusSystem(tickHz: tickHz);
     _healthDespawnSystem = HealthDespawnSystem();
 
     // Player combat.
     _meleeSystem = PlayerMeleeSystem(
       abilities: _abilities,
       movement: _movement,
+      weapons: _weapons,
     );
     _hitboxDamageSystem = HitboxDamageSystem();
 
@@ -513,6 +526,7 @@ class GameCore {
       flyingEnemyTuning: _flyingEnemyTuning,
       groundEnemyTuning: _groundEnemyTuning,
       surfaceNavigator: _surfaceNavigator,
+      enemyCatalog: _enemyCatalog,
       spells: _spells,
       projectiles: _projectiles,
       trajectoryPredictor: TrajectoryPredictor(
@@ -551,6 +565,10 @@ class GameCore {
       health: playerArchetype.health,
       mana: playerArchetype.mana,
       stamina: playerArchetype.stamina,
+      tags: playerArchetype.tags,
+      resistance: playerArchetype.resistance,
+      statusImmunity: playerArchetype.statusImmunity,
+      equippedWeapon: EquippedWeaponDef(weaponId: playerArchetype.weaponId),
     );
   }
 
@@ -598,6 +616,7 @@ class GameCore {
   final ProjectileCatalogDerived _projectiles;
   final EnemyCatalog _enemyCatalog;
   final PlayerCatalog _playerCatalog;
+  final WeaponCatalog _weapons;
 
   // ─── ECS Core ───
 
@@ -626,6 +645,7 @@ class GameCore {
   late final LifetimeSystem _lifetimeSystem;
   late final InvulnerabilitySystem _invulnerabilitySystem;
   late final DamageSystem _damageSystem;
+  late final StatusSystem _statusSystem;
   late final HealthDespawnSystem _healthDespawnSystem;
   late EnemySystem _enemySystem;
   late final SurfaceGraphBuilder _surfaceGraphBuilder;
@@ -853,10 +873,12 @@ class GameCore {
   /// 13. **Attack execution**: Spawn hitboxes and projectiles from intents.
   /// 14. **Hitbox positioning**: Update hitbox positions from owners.
   /// 15. **Hit detection**: Check projectile and hitbox overlaps.
-  /// 16. **Damage application**: Apply queued damage events.
-  /// 17. **Death handling**: Despawn dead entities, record kills.
-  /// 18. **Resource regen**: Regenerate mana and stamina.
-  /// 19. **Cleanup**: Remove entities past their lifetime.
+  /// 16. **Status ticking**: Apply DoT ticks and queue damage.
+  /// 17. **Damage application**: Apply queued damage events.
+  /// 18. **Status application**: Apply on-hit status profiles.
+  /// 19. **Death handling**: Despawn dead entities, record kills.
+  /// 20. **Resource regen**: Regenerate mana and stamina.
+  /// 21. **Cleanup**: Remove entities past their lifetime.
   ///
   /// If the run ends during this tick (player death, fell into gap, etc.),
   /// a [RunEndedEvent] is emitted and the simulation freezes.
@@ -954,9 +976,16 @@ class GameCore {
     // Detect overlaps and queue damage events.
     _projectileHitSystem.step(_world, _damageSystem.queue, _broadphaseGrid);
     _hitboxDamageSystem.step(_world, _damageSystem.queue, _broadphaseGrid);
-    _damageSystem.step(_world, currentTick: tick);
+    // ─── Phase 13: Status + damage ───
+    _statusSystem.tickExisting(_world, _damageSystem.queue);
+    _damageSystem.step(
+      _world,
+      currentTick: tick,
+      queueStatus: _statusSystem.queue,
+    );
+    _statusSystem.applyQueued(_world);
 
-    // ─── Phase 13: Death handling ───
+    // ─── Phase 14: Death handling ───
     _killedEnemiesScratch.clear();
     _healthDespawnSystem.step(
       _world,
@@ -971,10 +1000,10 @@ class GameCore {
       return;
     }
 
-    // ─── Phase 14: Resource regeneration ───
+    // ─── Phase 15: Resource regeneration ───
     _resourceRegenSystem.step(_world, dtSeconds: _movement.dtSeconds);
 
-    // ─── Phase 15: Cleanup ───
+    // ─── Phase 16: Cleanup ───
     _lifetimeSystem.step(_world);
   }
 

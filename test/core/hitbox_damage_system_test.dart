@@ -21,6 +21,7 @@ import 'package:walkscape_runner/core/tuning/ability_tuning.dart';
 import 'package:walkscape_runner/core/tuning/movement_tuning.dart';
 import 'package:walkscape_runner/core/tuning/spatial_grid_tuning.dart';
 import 'package:walkscape_runner/core/ecs/entity_factory.dart';
+import 'package:walkscape_runner/core/weapons/weapon_catalog.dart';
 
 void main() {
   test('melee hitbox damages only once per swing', () {
@@ -41,7 +42,11 @@ void main() {
     );
 
     final world = EcsWorld();
-    final melee = PlayerMeleeSystem(abilities: abilities, movement: movement);
+    final melee = PlayerMeleeSystem(
+      abilities: abilities,
+      movement: movement,
+      weapons: const WeaponCatalog(),
+    );
     final meleeAttack = MeleeAttackSystem();
     final follow = HitboxFollowOwnerSystem();
     final hitboxDamage = HitboxDamageSystem();

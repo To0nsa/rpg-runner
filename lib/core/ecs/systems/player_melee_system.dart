@@ -3,6 +3,7 @@ import 'dart:math';
 import '../../snapshots/enums.dart';
 import '../../tuning/ability_tuning.dart';
 import '../../tuning/movement_tuning.dart';
+import '../../weapons/weapon_catalog.dart';
 import '../entity_id.dart';
 import '../stores/melee_intent_store.dart';
 import '../world.dart';
@@ -15,10 +16,15 @@ import '../world.dart';
 /// *   Calculates hitbox offsets based on attack reach.
 /// *   Registers intent (Costs/Cooldowns checked downstream).
 class PlayerMeleeSystem {
-  const PlayerMeleeSystem({required this.abilities, required this.movement});
+  const PlayerMeleeSystem({
+    required this.abilities,
+    required this.movement,
+    required this.weapons,
+  });
 
   final AbilityTuningDerived abilities;
   final MovementTuningDerived movement;
+  final WeaponCatalog weapons;
 
   void step(
     EcsWorld world, {
@@ -43,6 +49,16 @@ class PlayerMeleeSystem {
     // Movement is required for facing direction fallback.
     final movementIndex = world.movement.tryIndexOf(player);
     if (movementIndex == null) return;
+
+    // Equipped weapon determines status profile, etc.
+    final weaponIndex = world.equippedWeapon.tryIndexOf(player);
+    if (weaponIndex == null) {
+      assert(
+        false,
+        'PlayerMeleeSystem requires EquippedWeaponStore on the player; add it at spawn time.',
+      );
+      return;
+    }
 
     // -- 2. Input Logic --
 
@@ -79,10 +95,14 @@ class PlayerMeleeSystem {
 
     // IMPORTANT: PlayerMeleeSystem writes intent only; execution happens in
     // `MeleeAttackSystem` which owns stamina/cooldown rules and hitbox spawning.
+    final weaponId = world.equippedWeapon.weaponId[weaponIndex];
+    final weapon = weapons.get(weaponId);
     world.meleeIntent.set(
       player,
       MeleeIntentDef(
         damage: abilities.base.meleeDamage,
+        damageType: weapon.damageType,
+        statusProfileId: weapon.statusProfileId,
         halfX: halfX,
         halfY: halfY,
         offsetX: offsetX,

@@ -1,4 +1,5 @@
 import '../../combat/damage.dart';
+import '../../combat/status/status.dart';
 import '../../util/double_math.dart';
 import '../world.dart';
 
@@ -23,17 +24,24 @@ class DamageSystem {
   ///
   /// Requests with `amount <= 0` are ignored immediately.
   void queue(DamageRequest request) {
-    if (request.amount <= 0) return;
+    if (request.amount <= 0 && request.statusProfileId == StatusProfileId.none) {
+      return;
+    }
     _pending.add(request);
   }
 
   /// Processes all pending damage requests.
-  void step(EcsWorld world, {required int currentTick}) {
+  void step(
+    EcsWorld world, {
+    required int currentTick,
+    void Function(StatusRequest request)? queueStatus,
+  }) {
     if (_pending.isEmpty) return;
 
     final health = world.health;
     final invuln = world.invulnerability;
     final lastDamage = world.lastDamage;
+    final resistance = world.damageResistance;
     
     for (final req in _pending) {
       // 1. Resolve Health component.
@@ -51,21 +59,27 @@ class DamageSystem {
         continue; // Damage negated.
       }
 
+      // 3. Apply resistance/vulnerability modifier.
+      final ri = resistance.tryIndexOf(req.target);
+      final mod = ri == null ? 0.0 : resistance.modForIndex(ri, req.damageType);
+      var appliedAmount = req.amount * (1.0 + mod);
+      if (appliedAmount < 0.0) appliedAmount = 0.0;
+
       final prevHp = health.hp[hi];
       final nextHp = clampDouble(
-        prevHp - req.amount,
+        prevHp - appliedAmount,
         0.0,
         health.hpMax[hi],
       );
       health.hp[hi] = nextHp;
 
-      // 3. Record Last Damage details (if store exists).
+      // 4. Record Last Damage details (if store exists).
       // Only useful if damage was actually taken.
       if (nextHp < prevHp) {
         final li = lastDamage.tryIndexOf(req.target);
         if (li != null) {
           lastDamage.kind[li] = req.sourceKind;
-          lastDamage.amount[li] = req.amount;
+          lastDamage.amount[li] = appliedAmount;
           lastDamage.tick[li] = currentTick;
 
           if (req.sourceEnemyId != null) {
@@ -91,7 +105,18 @@ class DamageSystem {
         }
       }
 
-      // 4. Apply new Invulnerability frames.
+      // 5. Queue status effects (independent of HP loss).
+      if (queueStatus != null && req.statusProfileId != StatusProfileId.none) {
+        queueStatus(
+          StatusRequest(
+            target: req.target,
+            profileId: req.statusProfileId,
+            damageType: req.damageType,
+          ),
+        );
+      }
+
+      // 6. Apply new Invulnerability frames.
       if (invulnerabilityTicksOnHit > 0 && ii != null) {
         invuln.ticksLeft[ii] = invulnerabilityTicksOnHit;
       }

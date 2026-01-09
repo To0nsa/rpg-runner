@@ -208,6 +208,9 @@ class SpawnService {
       health: archetype.health,
       mana: archetype.mana,
       stamina: archetype.stamina,
+      tags: archetype.tags,
+      resistance: archetype.resistance,
+      statusImmunity: archetype.statusImmunity,
     );
 
     // Pre-set cooldown to prevent immediate casting on spawn tick.
@@ -258,6 +261,9 @@ class SpawnService {
       health: archetype.health,
       mana: archetype.mana,
       stamina: archetype.stamina,
+      tags: archetype.tags,
+      resistance: archetype.resistance,
+      statusImmunity: archetype.statusImmunity,
     );
   }
 

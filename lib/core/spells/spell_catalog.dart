@@ -1,3 +1,5 @@
+import '../combat/damage_type.dart';
+import '../combat/status/status.dart';
 import '../projectiles/projectile_id.dart';
 import 'spell_id.dart';
 
@@ -6,6 +8,8 @@ class ProjectileSpellStats {
   const ProjectileSpellStats({
     required this.manaCost,
     required this.damage,
+    this.damageType = DamageType.physical,
+    this.statusProfileId = StatusProfileId.none,
   });
 
   /// Mana consumed when casting.
@@ -13,6 +17,12 @@ class ProjectileSpellStats {
 
   /// Damage dealt on hit.
   final double damage;
+
+  /// Damage type used for resistance/vulnerability rules.
+  final DamageType damageType;
+
+  /// Optional status profile applied on hit.
+  final StatusProfileId statusProfileId;
 }
 
 /// Definition of a spell's properties.
@@ -41,12 +51,21 @@ class SpellCatalog {
     switch (id) {
       case SpellId.iceBolt:
         return const SpellDef(
-          stats: ProjectileSpellStats(manaCost: 10.0, damage: 15.0),
+          stats: ProjectileSpellStats(
+            manaCost: 10.0,
+            damage: 15.0,
+            damageType: DamageType.ice,
+            statusProfileId: StatusProfileId.iceBolt,
+          ),
           projectileId: ProjectileId.iceBolt,
         );
       case SpellId.lightning:
         return const SpellDef(
-          stats: ProjectileSpellStats(manaCost: 10.0, damage: 5.0),
+          stats: ProjectileSpellStats(
+            manaCost: 10.0,
+            damage: 5.0,
+            damageType: DamageType.lightning,
+          ),
           projectileId: ProjectileId.lightningBolt,
         );
     }

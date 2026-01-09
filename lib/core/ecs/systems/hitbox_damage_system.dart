@@ -107,6 +107,8 @@ class HitboxDamageSystem {
           DamageRequest(
             target: target,
             amount: hitboxes.damage[hi],
+            damageType: hitboxes.damageType[hi],
+            statusProfileId: hitboxes.statusProfileId[hi],
             source: owner,
             sourceKind: DeathSourceKind.meleeHitbox,
             sourceEnemyId: enemyId,

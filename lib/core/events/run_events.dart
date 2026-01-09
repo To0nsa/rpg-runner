@@ -19,6 +19,7 @@ enum RunEndReason {
 enum DeathSourceKind {
   projectile,
   meleeHitbox,
+  statusEffect,
   unknown,
 }
 

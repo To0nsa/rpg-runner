@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:walkscape_runner/core/combat/damage_type.dart';
 import 'package:walkscape_runner/core/combat/faction.dart';
+import 'package:walkscape_runner/core/combat/status/status.dart';
 import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/cast_intent_store.dart';
 import 'package:walkscape_runner/core/ecs/stores/collider_aabb_store.dart';
@@ -74,6 +76,8 @@ void main() {
       caster,
       const MeleeIntentDef(
         damage: 1,
+        damageType: DamageType.physical,
+        statusProfileId: StatusProfileId.none,
         halfX: 4,
         halfY: 4,
         offsetX: 10,
@@ -112,6 +116,8 @@ void main() {
         owner: owner,
         faction: Faction.player,
         damage: 1,
+        damageType: DamageType.physical,
+        statusProfileId: StatusProfileId.none,
         halfX: 4,
         halfY: 4,
         offsetX: 10,

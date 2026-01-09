@@ -258,6 +258,8 @@ String _buildDeathSubtitle(DeathInfo? info) {
       return _buildProjectileDeath(info);
     case DeathSourceKind.meleeHitbox:
       return _buildMeleeDeath(info);
+    case DeathSourceKind.statusEffect:
+      return 'You succumbed to a status effect.';
     case DeathSourceKind.unknown:
       return 'You died.';
   }

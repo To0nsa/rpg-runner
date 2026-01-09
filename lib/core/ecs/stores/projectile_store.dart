@@ -1,4 +1,6 @@
+import '../../combat/damage_type.dart';
 import '../../combat/faction.dart';
+import '../../combat/status/status.dart';
 import '../../projectiles/projectile_id.dart';
 import '../entity_id.dart';
 import '../sparse_set.dart';
@@ -12,6 +14,8 @@ class ProjectileDef {
     required this.dirY,
     required this.speedUnitsPerSecond,
     required this.damage,
+    required this.damageType,
+    required this.statusProfileId,
   });
 
   final ProjectileId projectileId;
@@ -21,6 +25,8 @@ class ProjectileDef {
   final double dirY;
   final double speedUnitsPerSecond;
   final double damage;
+  final DamageType damageType;
+  final StatusProfileId statusProfileId;
 }
 
 /// Immutable metadata for active projectiles.
@@ -34,6 +40,8 @@ class ProjectileStore extends SparseSet {
   final List<double> dirY = <double>[];
   final List<double> speedUnitsPerSecond = <double>[];
   final List<double> damage = <double>[];
+  final List<DamageType> damageType = <DamageType>[];
+  final List<StatusProfileId> statusProfileId = <StatusProfileId>[];
 
   void add(EntityId entity, ProjectileDef def) {
     final i = addEntity(entity);
@@ -44,6 +52,8 @@ class ProjectileStore extends SparseSet {
     dirY[i] = def.dirY;
     speedUnitsPerSecond[i] = def.speedUnitsPerSecond;
     damage[i] = def.damage;
+    damageType[i] = def.damageType;
+    statusProfileId[i] = def.statusProfileId;
   }
 
   @override
@@ -55,6 +65,8 @@ class ProjectileStore extends SparseSet {
     dirY.add(0.0);
     speedUnitsPerSecond.add(0.0);
     damage.add(0.0);
+    damageType.add(DamageType.physical);
+    statusProfileId.add(StatusProfileId.none);
   }
 
   @override
@@ -66,6 +78,8 @@ class ProjectileStore extends SparseSet {
     dirY[removeIndex] = dirY[lastIndex];
     speedUnitsPerSecond[removeIndex] = speedUnitsPerSecond[lastIndex];
     damage[removeIndex] = damage[lastIndex];
+    damageType[removeIndex] = damageType[lastIndex];
+    statusProfileId[removeIndex] = statusProfileId[lastIndex];
 
     projectileId.removeLast();
     faction.removeLast();
@@ -74,5 +88,7 @@ class ProjectileStore extends SparseSet {
     dirY.removeLast();
     speedUnitsPerSecond.removeLast();
     damage.removeLast();
+    damageType.removeLast();
+    statusProfileId.removeLast();
   }
 }
