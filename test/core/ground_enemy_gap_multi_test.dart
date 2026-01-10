@@ -154,8 +154,8 @@ void main() {
     );
 
     final system = EnemySystem(
-      flyingEnemyTuning: FlyingEnemyTuningDerived.from(
-        const FlyingEnemyTuning(),
+      unocoDemonTuning: UnocoDemonTuningDerived.from(
+        const UnocoDemonTuning(),
         tickHz: 60,
       ),
       groundEnemyTuning: GroundEnemyTuningDerived.from(
@@ -328,8 +328,8 @@ void main() {
     );
 
     final system = EnemySystem(
-      flyingEnemyTuning: FlyingEnemyTuningDerived.from(
-        const FlyingEnemyTuning(),
+      unocoDemonTuning: UnocoDemonTuningDerived.from(
+        const UnocoDemonTuning(),
         tickHz: 60,
       ),
       groundEnemyTuning: GroundEnemyTuningDerived.from(
@@ -480,8 +480,8 @@ void main() {
     );
 
     final system = EnemySystem(
-      flyingEnemyTuning: FlyingEnemyTuningDerived.from(
-        const FlyingEnemyTuning(),
+      unocoDemonTuning: UnocoDemonTuningDerived.from(
+        const UnocoDemonTuning(),
         tickHz: 60,
       ),
       groundEnemyTuning: GroundEnemyTuningDerived.from(

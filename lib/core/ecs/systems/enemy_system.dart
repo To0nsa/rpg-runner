@@ -34,7 +34,7 @@ import '../world.dart';
 ///     systems like `SpellCastSystem` or `MeleeSystem`.
 class EnemySystem {
   EnemySystem({
-    required this.flyingEnemyTuning,
+    required this.unocoDemonTuning,
     required this.groundEnemyTuning,
     required this.surfaceNavigator,
     required this.enemyCatalog,
@@ -43,7 +43,7 @@ class EnemySystem {
     this.trajectoryPredictor,
   });
 
-  final FlyingEnemyTuningDerived flyingEnemyTuning;
+  final UnocoDemonTuningDerived unocoDemonTuning;
   final GroundEnemyTuningDerived groundEnemyTuning;
   final SurfaceNavigator surfaceNavigator;
   final EnemyCatalog enemyCatalog;
@@ -127,7 +127,7 @@ class EnemySystem {
       /// entities into specialized systems queries or sorting component arrays by
       /// EnemyId to minimize branch mispredictions and improve cache locality.
       switch (enemies.enemyId[ei]) {
-        case EnemyId.flyingEnemy:
+        case EnemyId.unocoDemon:
           _steerFlyingEnemy(
             world,
             enemyIndex: ei,
@@ -198,7 +198,7 @@ class EnemySystem {
       final ey = world.transform.posY[ti];
 
       switch (enemies.enemyId[ei]) {
-        case EnemyId.flyingEnemy:
+        case EnemyId.unocoDemon:
           var enemyCenterX = ex;
           var enemyCenterY = ey;
           if (world.colliderAabb.has(e)) {
@@ -206,7 +206,7 @@ class EnemySystem {
             enemyCenterX += world.colliderAabb.offsetX[ai];
             enemyCenterY += world.colliderAabb.offsetY[ai];
           }
-          _writeFlyingEnemyCastIntent(
+          _writeUnocoDemonCastIntent(
             world,
             enemy: e,
             enemyIndex: ei,
@@ -251,7 +251,7 @@ class EnemySystem {
     required double dtSeconds,
   }) {
     if (dtSeconds <= 0.0) return;
-    final tuning = flyingEnemyTuning;
+    final tuning = unocoDemonTuning;
     
     // Ensure steering state exists. Contains RNG state and current target timers.
     if (!world.flyingEnemySteering.has(enemy)) {
@@ -280,17 +280,17 @@ class EnemySystem {
     if (!steering.initialized[si]) {
       steering.initialized[si] = true;
       steering.desiredRangeHoldLeftS[si] = nextRange(
-        tuning.base.flyingEnemyDesiredRangeHoldMinSeconds,
-        tuning.base.flyingEnemyDesiredRangeHoldMaxSeconds,
+        tuning.base.unocoDemonDesiredRangeHoldMinSeconds,
+        tuning.base.unocoDemonDesiredRangeHoldMaxSeconds,
       );
       steering.desiredRange[si] = nextRange(
-        tuning.base.flyingEnemyDesiredRangeMin,
-        tuning.base.flyingEnemyDesiredRangeMax,
+        tuning.base.unocoDemonDesiredRangeMin,
+        tuning.base.unocoDemonDesiredRangeMax,
       );
       steering.flightTargetHoldLeftS[si] = 0.0;
       steering.flightTargetAboveGround[si] = nextRange(
-        tuning.base.flyingEnemyMinHeightAboveGround,
-        tuning.base.flyingEnemyMaxHeightAboveGround,
+        tuning.base.unocoDemonMinHeightAboveGround,
+        tuning.base.unocoDemonMaxHeightAboveGround,
       );
     }
 
@@ -304,12 +304,12 @@ class EnemySystem {
     } else {
       // Pick new range target when timer expires.
       desiredRangeHoldLeftS = nextRange(
-        tuning.base.flyingEnemyDesiredRangeHoldMinSeconds,
-        tuning.base.flyingEnemyDesiredRangeHoldMaxSeconds,
+        tuning.base.unocoDemonDesiredRangeHoldMinSeconds,
+        tuning.base.unocoDemonDesiredRangeHoldMaxSeconds,
       );
       desiredRange = nextRange(
-        tuning.base.flyingEnemyDesiredRangeMin,
-        tuning.base.flyingEnemyDesiredRangeMax,
+        tuning.base.unocoDemonDesiredRangeMin,
+        tuning.base.unocoDemonDesiredRangeMax,
       );
     }
 
@@ -321,7 +321,7 @@ class EnemySystem {
     }
 
     // Calculate desired horizontal velocity to maintain `desiredRange`.
-    final slack = tuning.base.flyingEnemyHoldSlack;
+    final slack = tuning.base.unocoDemonHoldSlack;
     double desiredVelX = 0.0;
     if (distX > 1e-6) {
       final dirToPlayerX = dx >= 0 ? 1.0 : -1.0;
@@ -329,12 +329,12 @@ class EnemySystem {
 
       // Only move if outside the slack (hysteresis) zone to prevent jitter.
       if (error.abs() > slack) {
-        final slowRadiusX = tuning.base.flyingEnemySlowRadiusX;
+        final slowRadiusX = tuning.base.unocoDemonSlowRadiusX;
         // Dampen speed as we approach the target range (arrival behavior).
         final t = slowRadiusX > 0.0
             ? clampDouble((error.abs() - slack) / slowRadiusX, 0.0, 1.0)
             : 1.0;
-        final speed = t * tuning.base.flyingEnemyMaxSpeedX;
+        final speed = t * tuning.base.unocoDemonMaxSpeedX;
         // If error > 0, we are too far -> move towards player.
         // If error < 0, we are too close -> move away from player.
         desiredVelX = (error > 0.0 ? dirToPlayerX : -dirToPlayerX) * speed;
@@ -349,12 +349,12 @@ class EnemySystem {
       flightTargetHoldLeftS -= dtSeconds;
     } else {
       flightTargetHoldLeftS = nextRange(
-        tuning.base.flyingEnemyFlightTargetHoldMinSeconds,
-        tuning.base.flyingEnemyFlightTargetHoldMaxSeconds,
+        tuning.base.unocoDemonFlightTargetHoldMinSeconds,
+        tuning.base.unocoDemonFlightTargetHoldMaxSeconds,
       );
       flightTargetAboveGround = nextRange(
-        tuning.base.flyingEnemyMinHeightAboveGround,
-        tuning.base.flyingEnemyMaxHeightAboveGround,
+        tuning.base.unocoDemonMinHeightAboveGround,
+        tuning.base.unocoDemonMaxHeightAboveGround,
       );
     }
 
@@ -362,11 +362,11 @@ class EnemySystem {
     final targetY = groundTopY - flightTargetAboveGround;
     final deltaY = targetY - ey;
     double desiredVelY = clampDouble(
-      deltaY * tuning.base.flyingEnemyVerticalKp,
-      -tuning.base.flyingEnemyMaxSpeedY,
-      tuning.base.flyingEnemyMaxSpeedY,
+      deltaY * tuning.base.unocoDemonVerticalKp,
+      -tuning.base.unocoDemonMaxSpeedY,
+      tuning.base.unocoDemonMaxSpeedY,
     );
-    if (deltaY.abs() <= tuning.base.flyingEnemyVerticalDeadzone) {
+    if (deltaY.abs() <= tuning.base.unocoDemonVerticalDeadzone) {
       desiredVelY = 0.0;
     }
 
@@ -378,8 +378,8 @@ class EnemySystem {
       current: currentVelX,
       desired: desiredVelX,
       dtSeconds: dtSeconds,
-      accelPerSecond: tuning.base.flyingEnemyAccelX,
-      decelPerSecond: tuning.base.flyingEnemyDecelX,
+      accelPerSecond: tuning.base.unocoDemonAccelX,
+      decelPerSecond: tuning.base.unocoDemonDecelX,
     );
     world.transform.velY[enemyTi] = desiredVelY;
 
@@ -567,7 +567,7 @@ class EnemySystem {
   }
 
   /// Calculates aim and registers a spell cast intent for flying enemies.
-  void _writeFlyingEnemyCastIntent(
+  void _writeUnocoDemonCastIntent(
     EcsWorld world, {
     required EntityId enemy,
     required int enemyIndex,
@@ -579,7 +579,7 @@ class EnemySystem {
     required double playerVelY,
     required int currentTick,
   }) {
-    final tuning = flyingEnemyTuning;
+    final tuning = unocoDemonTuning;
     if (!world.castIntent.has(enemy)) {
       assert(
         false,
@@ -607,8 +607,8 @@ class EnemySystem {
       // Rough estimation of time-to-impact to predict player position.
       final leadSeconds = clampDouble(
         distance / projectileSpeed,
-        tuning.base.flyingEnemyAimLeadMinSeconds,
-        tuning.base.flyingEnemyAimLeadMaxSeconds,
+        tuning.base.unocoDemonAimLeadMinSeconds,
+        tuning.base.unocoDemonAimLeadMaxSeconds,
       );
       targetX = playerCenterX + playerVelX * leadSeconds;
       targetY = playerCenterY + playerVelY * leadSeconds;
@@ -623,8 +623,8 @@ class EnemySystem {
         dirY: targetY - enemyCenterY,
         fallbackDirX: 1.0,
         fallbackDirY: 0.0,
-        originOffset: tuning.base.flyingEnemyCastOriginOffset,
-        cooldownTicks: tuning.flyingEnemyCastCooldownTicks,
+        originOffset: tuning.base.unocoDemonCastOriginOffset,
+        cooldownTicks: tuning.unocoDemonCastCooldownTicks,
         tick: currentTick,
       ),
     );

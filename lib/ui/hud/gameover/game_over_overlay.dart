@@ -292,8 +292,8 @@ String _buildMeleeDeath(DeathInfo info) {
 
 String _enemyName(EnemyId id) {
   switch (id) {
-    case EnemyId.flyingEnemy:
-      return 'Flying enemy';
+    case EnemyId.unocoDemon:
+      return 'Unoco Demon';
     case EnemyId.groundEnemy:
       return 'Ground enemy';
   }

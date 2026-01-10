@@ -50,7 +50,7 @@ void main() {
       stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
     );
 
-    final flyingEnemy = spawnFlyingEnemy(
+    final unocoDemon = spawnUnocoDemon(
       world,
       posX: 120,
       posY: 100,
@@ -70,7 +70,7 @@ void main() {
       projectiles: ProjectileCatalogDerived.from(const ProjectileCatalog(), tickHz: 60),
       spellId: SpellId.lightning,
       faction: Faction.enemy,
-      owner: flyingEnemy,
+      owner: unocoDemon,
       originX: 100,
       originY: 100,
       dirX: -1,
@@ -124,8 +124,8 @@ void main() {
       stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
     );
 
-    final flyingEnemyTuning = FlyingEnemyTuningDerived.from(
-      const FlyingEnemyTuning(),
+    final unocoDemonTuning = UnocoDemonTuningDerived.from(
+      const UnocoDemonTuning(),
       tickHz: 60,
     );
     final groundEnemyTuning = GroundEnemyTuningDerived.from(
@@ -143,7 +143,7 @@ void main() {
         100.0 - groundEnemyTuning.base.groundEnemyMeleeDamage;
 
     final system = EnemySystem(
-      flyingEnemyTuning: flyingEnemyTuning,
+      unocoDemonTuning: unocoDemonTuning,
       groundEnemyTuning: groundEnemyTuning,
       surfaceNavigator: SurfaceNavigator(
         pathfinder: SurfacePathfinder(

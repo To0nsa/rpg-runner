@@ -61,7 +61,7 @@ class CoreTuning {
     this.resource = const ResourceTuning(),
     this.ability = const AbilityTuning(),
     this.combat = const CombatTuning(),
-    this.flyingEnemy = const FlyingEnemyTuning(),
+    this.unocoDemon = const UnocoDemonTuning(),
     this.groundEnemy = const GroundEnemyTuning(),
     this.navigation = const NavigationTuning(),
     this.spatialGrid = const SpatialGridTuning(),
@@ -88,7 +88,7 @@ class CoreTuning {
   final CombatTuning combat;
 
   /// Flying enemy AI and spawn parameters.
-  final FlyingEnemyTuning flyingEnemy;
+  final UnocoDemonTuning unocoDemon;
 
   /// Ground enemy AI and movement parameters.
   final GroundEnemyTuning groundEnemy;

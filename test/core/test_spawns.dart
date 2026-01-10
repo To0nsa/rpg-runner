@@ -11,7 +11,7 @@ import 'package:walkscape_runner/core/snapshots/enums.dart';
 
 // Test-only spawn helpers to keep individual tests focused on behavior.
 
-EntityId spawnFlyingEnemy(
+EntityId spawnUnocoDemon(
   EcsWorld world, {
   required double posX,
   required double posY,
@@ -25,7 +25,7 @@ EntityId spawnFlyingEnemy(
   StaminaDef stamina = const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
 }) {
   return EntityFactory(world).createEnemy(
-    enemyId: EnemyId.flyingEnemy,
+    enemyId: EnemyId.unocoDemon,
     posX: posX,
     posY: posY,
     velX: velX,

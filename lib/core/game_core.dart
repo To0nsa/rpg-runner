@@ -283,8 +283,8 @@ class GameCore {
          levelDefinition.tuning.combat,
          tickHz: tickHz,
        ),
-       _flyingEnemyTuning = FlyingEnemyTuningDerived.from(
-         levelDefinition.tuning.flyingEnemy,
+       _unocoDemonTuning = UnocoDemonTuningDerived.from(
+         levelDefinition.tuning.unocoDemon,
          tickHz: tickHz,
        ),
        _groundEnemyTuning = GroundEnemyTuningDerived.from(
@@ -334,7 +334,7 @@ class GameCore {
     ResourceTuning resourceTuning = const ResourceTuning(),
     AbilityTuning abilityTuning = const AbilityTuning(),
     CombatTuning combatTuning = const CombatTuning(),
-    FlyingEnemyTuning flyingEnemyTuning = const FlyingEnemyTuning(),
+    UnocoDemonTuning unocoDemonTuning = const UnocoDemonTuning(),
     GroundEnemyTuning groundEnemyTuning = const GroundEnemyTuning(),
     NavigationTuning navigationTuning = const NavigationTuning(),
     SpatialGridTuning spatialGridTuning = const SpatialGridTuning(),
@@ -362,7 +362,7 @@ class GameCore {
         resource: resourceTuning,
         ability: abilityTuning,
         combat: combatTuning,
-        flyingEnemy: flyingEnemyTuning,
+        unocoDemon: unocoDemonTuning,
         groundEnemy: groundEnemyTuning,
         navigation: navigationTuning,
         spatialGrid: spatialGridTuning,
@@ -410,7 +410,7 @@ class GameCore {
       world: _world,
       entityFactory: _entityFactory,
       enemyCatalog: _enemyCatalog,
-      flyingEnemyTuning: _flyingEnemyTuning,
+      unocoDemonTuning: _unocoDemonTuning,
       movement: _movement,
       collectibleTuning: _collectibleTuning,
       restorationItemTuning: _restorationItemTuning,
@@ -544,7 +544,7 @@ class GameCore {
 
     // Enemy AI system (depends on navigation).
     _enemySystem = EnemySystem(
-      flyingEnemyTuning: _flyingEnemyTuning,
+      unocoDemonTuning: _unocoDemonTuning,
       groundEnemyTuning: _groundEnemyTuning,
       surfaceNavigator: _surfaceNavigator,
       enemyCatalog: _enemyCatalog,
@@ -623,7 +623,7 @@ class GameCore {
   final ResourceTuning _resourceTuning;
   final AbilityTuningDerived _abilities;
   final CombatTuningDerived _combat;
-  final FlyingEnemyTuningDerived _flyingEnemyTuning;
+  final UnocoDemonTuningDerived _unocoDemonTuning;
   final GroundEnemyTuningDerived _groundEnemyTuning;
   final NavigationTuning _navigationTuning;
   final SpatialGridTuning _spatialGridTuning;
@@ -1064,8 +1064,8 @@ class GameCore {
       spawnEnemy: (enemyId, x) {
         // Route spawn requests to the appropriate SpawnService method.
         switch (enemyId) {
-          case EnemyId.flyingEnemy:
-            _spawnService.spawnFlyingEnemy(
+          case EnemyId.unocoDemon:
+            _spawnService.spawnUnocoDemon(
               spawnX: x,
               groundTopY: effectiveGroundTopY,
             );

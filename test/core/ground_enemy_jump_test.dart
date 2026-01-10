@@ -127,8 +127,8 @@ void main() {
       runSpeedX: 200.0,
     );
     final system = EnemySystem(
-      flyingEnemyTuning: FlyingEnemyTuningDerived.from(
-        const FlyingEnemyTuning(),
+      unocoDemonTuning: UnocoDemonTuningDerived.from(
+        const UnocoDemonTuning(),
         tickHz: 10,
       ),
       groundEnemyTuning: GroundEnemyTuningDerived.from(

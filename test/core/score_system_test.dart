@@ -13,7 +13,7 @@ void main() {
       timeScorePerSecond: 10,
       distanceScorePerMeter: 5,
       groundEnemyKillScore: 100,
-      flyingEnemyKillScore: 150,
+      unocoDemonKillScore: 150,
     );
 
     // Compute expected values dynamically.
@@ -58,7 +58,7 @@ void main() {
 
     final kills = breakdown.rows[3];
     expect(kills.kind, RunScoreRowKind.enemyKill);
-    expect(kills.enemyId, EnemyId.flyingEnemy);
+    expect(kills.enemyId, EnemyId.unocoDemon);
     expect(kills.count, 1);
     expect(kills.points, 150);
   });

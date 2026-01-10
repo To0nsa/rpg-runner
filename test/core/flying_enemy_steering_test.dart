@@ -52,12 +52,12 @@ void main() {
       stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
     );
 
-    final flyingEnemyA = spawnFlyingEnemy(worldA, posX: 100, posY: 120);
-    final flyingEnemyB = spawnFlyingEnemy(worldB, posX: 100, posY: 120);
+    final unocoDemonA = spawnUnocoDemon(worldA, posX: 100, posY: 120);
+    final unocoDemonB = spawnUnocoDemon(worldB, posX: 100, posY: 120);
 
     final system = EnemySystem(
-      flyingEnemyTuning: FlyingEnemyTuningDerived.from(
-        const FlyingEnemyTuning(),
+      unocoDemonTuning: UnocoDemonTuningDerived.from(
+        const UnocoDemonTuning(),
         tickHz: 60,
       ),
       groundEnemyTuning: GroundEnemyTuningDerived.from(
@@ -95,8 +95,8 @@ void main() {
         dtSeconds: dtSeconds,
       );
 
-      final tiA = worldA.transform.indexOf(flyingEnemyA);
-      final tiB = worldB.transform.indexOf(flyingEnemyB);
+      final tiA = worldA.transform.indexOf(unocoDemonA);
+      final tiB = worldB.transform.indexOf(unocoDemonB);
       expect(worldA.transform.velX[tiA], closeTo(worldB.transform.velX[tiB], 1e-9));
       expect(worldA.transform.velY[tiA], closeTo(worldB.transform.velY[tiB], 1e-9));
     }

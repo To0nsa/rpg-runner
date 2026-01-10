@@ -124,7 +124,7 @@ class EntityFactory {
   /// - [EnemyStore]: Identifies the entity as an enemy and stores its type.
   ///
   /// Adds specific components based on [enemyId]:
-  /// - [EnemyId.flyingEnemy]: Adds [FlyingEnemySteeringStore] for air movement.
+  /// - [EnemyId.unocoDemon]: Adds [FlyingEnemySteeringStore] for air movement.
   /// - [EnemyId.groundEnemy]: Adds [SurfaceNavStateStore] and [GroundEnemyChaseOffsetStore]
   ///   for ground-based navigation and chasing behavior.
   EntityId createEnemy({
@@ -160,7 +160,7 @@ class EntityFactory {
     world.stamina.add(id, stamina);
     world.enemy.add(id, EnemyDef(enemyId: enemyId, facing: facing));
     world.statusImmunity.add(id, statusImmunity);
-    if (enemyId == EnemyId.flyingEnemy) {
+    if (enemyId == EnemyId.unocoDemon) {
       world.flyingEnemySteering.add(
         id,
         FlyingEnemySteeringDef(rngState: seedFrom(world.seed, id)),

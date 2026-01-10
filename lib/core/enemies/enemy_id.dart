@@ -5,8 +5,8 @@
 /// - keys for `EnemyCatalog` lookup.
 /// - Stable identifiers for networking/snapshots (protocol-stable).
 enum EnemyId {
-  /// A basic flying enemy that ignores gravity and casts spells.
-  flyingEnemy,
+  /// A flying demon enemy that ignores gravity and casts spells.
+  unocoDemon,
 
   /// A basic ground chasing enemy that is affected by gravity.
   groundEnemy,

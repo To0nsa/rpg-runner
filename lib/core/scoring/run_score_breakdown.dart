@@ -128,7 +128,7 @@ int _enemyKillScore(ScoreTuning tuning, EnemyId enemyId) {
   switch (enemyId) {
     case EnemyId.groundEnemy:
       return tuning.groundEnemyKillScore;
-    case EnemyId.flyingEnemy:
-      return tuning.flyingEnemyKillScore;
+    case EnemyId.unocoDemon:
+      return tuning.unocoDemonKillScore;
   }
 }

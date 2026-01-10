@@ -37,7 +37,7 @@ const List<ChunkPattern> easyPatterns = <ChunkPattern>[
     ],
     spawnMarkers: <SpawnMarker>[
       SpawnMarker(
-          enemyId: EnemyId.flyingEnemy, x: 240, chancePercent: 10, salt: 0x11),
+          enemyId: EnemyId.unocoDemon, x: 240, chancePercent: 10, salt: 0x11),
     ],
   ),
   ChunkPattern(
@@ -74,7 +74,7 @@ const List<ChunkPattern> allPatterns = <ChunkPattern>[
     ],
     spawnMarkers: <SpawnMarker>[
       SpawnMarker(
-          enemyId: EnemyId.flyingEnemy, x: 352, chancePercent: 17, salt: 0x01),
+          enemyId: EnemyId.unocoDemon, x: 352, chancePercent: 17, salt: 0x01),
     ],
   ),
   ChunkPattern(
@@ -87,7 +87,7 @@ const List<ChunkPattern> allPatterns = <ChunkPattern>[
     groundGaps: <GapRel>[],
     spawnMarkers: <SpawnMarker>[
       SpawnMarker(
-          enemyId: EnemyId.flyingEnemy, x: 288, chancePercent: 15, salt: 0x02),
+          enemyId: EnemyId.unocoDemon, x: 288, chancePercent: 15, salt: 0x02),
     ],
   ),
   ChunkPattern(
@@ -130,7 +130,7 @@ const List<ChunkPattern> allPatterns = <ChunkPattern>[
     groundGaps: <GapRel>[],
     spawnMarkers: <SpawnMarker>[
       SpawnMarker(
-          enemyId: EnemyId.flyingEnemy, x: 96, chancePercent: 12, salt: 0x05),
+          enemyId: EnemyId.unocoDemon, x: 96, chancePercent: 12, salt: 0x05),
       SpawnMarker(
           enemyId: EnemyId.groundEnemy, x: 352, chancePercent: 15, salt: 0x06),
     ],
@@ -149,7 +149,7 @@ const List<ChunkPattern> allPatterns = <ChunkPattern>[
       SpawnMarker(
           enemyId: EnemyId.groundEnemy, x: 112, chancePercent: 15, salt: 0x07),
       SpawnMarker(
-          enemyId: EnemyId.flyingEnemy, x: 320, chancePercent: 15, salt: 0x08),
+          enemyId: EnemyId.unocoDemon, x: 320, chancePercent: 15, salt: 0x08),
     ],
   ),
   ChunkPattern(
@@ -161,7 +161,7 @@ const List<ChunkPattern> allPatterns = <ChunkPattern>[
     groundGaps: <GapRel>[],
     spawnMarkers: <SpawnMarker>[
       SpawnMarker(
-          enemyId: EnemyId.flyingEnemy, x: 192, chancePercent: 17, salt: 0x09),
+          enemyId: EnemyId.unocoDemon, x: 192, chancePercent: 17, salt: 0x09),
       SpawnMarker(
           enemyId: EnemyId.groundEnemy, x: 448, chancePercent: 15, salt: 0x0A),
     ],
@@ -177,7 +177,7 @@ const List<ChunkPattern> allPatterns = <ChunkPattern>[
       SpawnMarker(
           enemyId: EnemyId.groundEnemy, x: 256, chancePercent: 17, salt: 0x0B),
       SpawnMarker(
-          enemyId: EnemyId.flyingEnemy, x: 80, chancePercent: 12, salt: 0x0C),
+          enemyId: EnemyId.unocoDemon, x: 80, chancePercent: 12, salt: 0x0C),
     ],
   ),
   ChunkPattern(
@@ -192,7 +192,7 @@ const List<ChunkPattern> allPatterns = <ChunkPattern>[
     groundGaps: <GapRel>[],
     spawnMarkers: <SpawnMarker>[
       SpawnMarker(
-          enemyId: EnemyId.flyingEnemy, x: 176, chancePercent: 15, salt: 0x0D),
+          enemyId: EnemyId.unocoDemon, x: 176, chancePercent: 15, salt: 0x0D),
       SpawnMarker(
           enemyId: EnemyId.groundEnemy, x: 448, chancePercent: 15, salt: 0x0E),
     ],
@@ -212,7 +212,7 @@ const List<ChunkPattern> allPatterns = <ChunkPattern>[
     ],
     spawnMarkers: <SpawnMarker>[
       SpawnMarker(
-          enemyId: EnemyId.flyingEnemy, x: 240, chancePercent: 15, salt: 0x0F),
+          enemyId: EnemyId.unocoDemon, x: 240, chancePercent: 15, salt: 0x0F),
       SpawnMarker(
           enemyId: EnemyId.groundEnemy, x: 480, chancePercent: 12, salt: 0x10),
     ],
@@ -228,7 +228,7 @@ const List<ChunkPattern> allPatterns = <ChunkPattern>[
       SpawnMarker(
           enemyId: EnemyId.groundEnemy, x: 160, chancePercent: 12, salt: 0x21),
       SpawnMarker(
-          enemyId: EnemyId.flyingEnemy, x: 416, chancePercent: 12, salt: 0x22),
+          enemyId: EnemyId.unocoDemon, x: 416, chancePercent: 12, salt: 0x22),
     ],
   ),
   ChunkPattern(
@@ -238,7 +238,7 @@ const List<ChunkPattern> allPatterns = <ChunkPattern>[
     ],
     spawnMarkers: <SpawnMarker>[
       SpawnMarker(
-          enemyId: EnemyId.flyingEnemy, x: 96, chancePercent: 12, salt: 0x23),
+          enemyId: EnemyId.unocoDemon, x: 96, chancePercent: 12, salt: 0x23),
       SpawnMarker(
           enemyId: EnemyId.groundEnemy, x: 480, chancePercent: 12, salt: 0x24),
     ],

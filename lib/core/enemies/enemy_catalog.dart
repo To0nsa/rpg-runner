@@ -66,7 +66,7 @@ class EnemyCatalog {
   /// Note: The returned objects are `const` and allocation-light.
   EnemyArchetype get(EnemyId id) {
     switch (id) {
-      case EnemyId.flyingEnemy:
+      case EnemyId.unocoDemon:
         return const EnemyArchetype(
           body: BodyDef(
             isKinematic: false,
@@ -80,10 +80,11 @@ class EnemyCatalog {
           health: HealthDef(hp: 20.0, hpMax: 20.0, regenPerSecond: 0.5),
           mana: ManaDef(mana: 80.0, manaMax: 80.0, regenPerSecond: 5.0),
           stamina: StaminaDef(stamina: 0.0, staminaMax: 0.0, regenPerSecond: 0.0),
-          primarySpellId: SpellId.iceBolt,
+          primarySpellId: SpellId.lightning,
           tags: CreatureTagDef(mask: CreatureTagMask.flying | CreatureTagMask.demon),
+          resistance: DamageResistanceDef(fire: -0.5, ice: 0.5),
         );
-        
+         
       case EnemyId.groundEnemy:
         return const EnemyArchetype(
           body: BodyDef(

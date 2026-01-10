@@ -18,7 +18,7 @@ const _tuning = ScoreTuning(
   timeScorePerSecond: 10,
   distanceScorePerMeter: 5,
   groundEnemyKillScore: 100,
-  flyingEnemyKillScore: 150,
+  unocoDemonKillScore: 150,
 );
 
 // Derived expected values.
@@ -125,7 +125,7 @@ void main() {
       find.text('Collectibles: 2 -> $_expectedCollectiblePoints'),
       findsOneWidget,
     );
-    expect(find.text('Flying enemy x1 -> $_expectedKillPoints'), findsOneWidget);
+    expect(find.text('Unoco Demon x1 -> $_expectedKillPoints'), findsOneWidget);
     expect(find.text('Collect score'), findsOneWidget);
 
     await tester.tap(find.text('Collect score'));
@@ -139,7 +139,7 @@ void main() {
     expect(find.text('Distance: ${_expectedMeters}m -> 0'), findsOneWidget);
     expect(find.text('Time: 00:02 -> 0'), findsOneWidget);
     expect(find.text('Collectibles: 2 -> 0'), findsOneWidget);
-    expect(find.text('Flying enemy x1 -> 0'), findsOneWidget);
+    expect(find.text('Unoco Demon x1 -> 0'), findsOneWidget);
     expect(find.text('Skip'), findsNothing);
   });
 
@@ -170,7 +170,7 @@ void main() {
     expect(find.text('Distance: ${_expectedMeters}m -> 0'), findsOneWidget);
     expect(find.text('Time: 00:02 -> 0'), findsOneWidget);
     expect(find.text('Collectibles: 2 -> 0'), findsOneWidget);
-    expect(find.text('Flying enemy x1 -> 0'), findsOneWidget);
+    expect(find.text('Unoco Demon x1 -> 0'), findsOneWidget);
     expect(find.text('Skip'), findsNothing);
   });
 }

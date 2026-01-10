@@ -83,7 +83,7 @@ const int _restorationSpawnSalt = 0xA57A11;
 /// ```dart
 /// final spawner = SpawnService(world: ..., seed: 42, ...);
 /// spawner.setSurfaceGraph(graph: navGraph, spatialIndex: index);
-/// spawner.spawnFlyingEnemy(spawnX: 500, groundTopY: 0);
+/// spawner.spawnUnocoDemon(spawnX: 500, groundTopY: 0);
 /// spawner.spawnCollectiblesForChunk(chunkIndex: 3, ...);
 /// ```
 class SpawnService {
@@ -92,7 +92,7 @@ class SpawnService {
   /// - [world]: ECS world for entity creation and component access.
   /// - [entityFactory]: Factory for creating complex entities (enemies).
   /// - [enemyCatalog]: Archetype definitions for enemy types.
-  /// - [flyingEnemyTuning]: Flying enemy hover offset and cooldowns.
+  /// - [unocoDemonTuning]: Flying enemy hover offset and cooldowns.
   /// - [movement]: Movement tuning for ground enemy velocity limits.
   /// - [collectibleTuning]: Spawn density, spacing, and margins.
   /// - [restorationItemTuning]: Spawn frequency and item sizing.
@@ -102,7 +102,7 @@ class SpawnService {
     required EcsWorld world,
     required EntityFactory entityFactory,
     required EnemyCatalog enemyCatalog,
-    required FlyingEnemyTuningDerived flyingEnemyTuning,
+    required UnocoDemonTuningDerived unocoDemonTuning,
     required MovementTuningDerived movement,
     required CollectibleTuning collectibleTuning,
     required RestorationItemTuning restorationItemTuning,
@@ -111,7 +111,7 @@ class SpawnService {
   }) : _world = world,
        _entityFactory = entityFactory,
        _enemyCatalog = enemyCatalog,
-       _flyingEnemyTuning = flyingEnemyTuning,
+       _unocoDemonTuning = unocoDemonTuning,
        _movement = movement,
        _collectibleTuning = collectibleTuning,
        _restorationItemTuning = restorationItemTuning,
@@ -122,7 +122,7 @@ class SpawnService {
   final EcsWorld _world;
   final EntityFactory _entityFactory;
   final EnemyCatalog _enemyCatalog;
-  final FlyingEnemyTuningDerived _flyingEnemyTuning;
+  final UnocoDemonTuningDerived _unocoDemonTuning;
   final MovementTuningDerived _movement;
   final CollectibleTuning _collectibleTuning;
   final RestorationItemTuning _restorationItemTuning;
@@ -181,25 +181,25 @@ class SpawnService {
   // Enemy Spawning
   // ───────────────────────────────────────────────────────────────────────────
 
-  /// Spawns a flying enemy at [spawnX], hovering above [groundTopY].
+  /// Spawns the Unoco Demon at [spawnX], hovering above [groundTopY].
   ///
   /// Flying enemies are placed at a fixed vertical offset above the ground
-  /// (defined by [FlyingEnemyTuning.flyingEnemyHoverOffsetY]). They don't
+  /// (defined by [UnocoDemonTuning.unocoDemonHoverOffsetY]). They don't
   /// use gravity and will begin AI behavior on the next tick.
   ///
   /// The enemy's cast cooldown is pre-set to avoid immediate projectile
   /// spam on the spawn tick—this keeps early-game pacing predictable.
   ///
   /// Returns the [EntityId] of the newly created enemy.
-  EntityId spawnFlyingEnemy({
+  EntityId spawnUnocoDemon({
     required double spawnX,
     required double groundTopY,
   }) {
-    final archetype = _enemyCatalog.get(EnemyId.flyingEnemy);
-    final flyingEnemy = _entityFactory.createEnemy(
-      enemyId: EnemyId.flyingEnemy,
+    final archetype = _enemyCatalog.get(EnemyId.unocoDemon);
+    final unocoDemon = _entityFactory.createEnemy(
+      enemyId: EnemyId.unocoDemon,
       posX: spawnX,
-      posY: groundTopY - _flyingEnemyTuning.base.flyingEnemyHoverOffsetY,
+      posY: groundTopY - _unocoDemonTuning.base.unocoDemonHoverOffsetY,
       velX: 0.0,
       velY: 0.0,
       facing: Facing.left,
@@ -216,11 +216,11 @@ class SpawnService {
     // Pre-set cooldown to prevent immediate casting on spawn tick.
     // This ensures consistent early-game difficulty across runs.
     _world.cooldown.castCooldownTicksLeft[_world.cooldown.indexOf(
-          flyingEnemy,
+          unocoDemon,
         )] =
-        _flyingEnemyTuning.flyingEnemyCastCooldownTicks;
+        _unocoDemonTuning.unocoDemonCastCooldownTicks;
 
-    return flyingEnemy;
+    return unocoDemon;
   }
 
   /// Spawns a ground enemy at [spawnX], standing on [groundTopY].

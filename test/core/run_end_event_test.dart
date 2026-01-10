@@ -52,7 +52,7 @@ void main() {
       stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
     );
 
-    final enemy = spawnFlyingEnemy(world, posX: 120, posY: 100);
+    final enemy = spawnUnocoDemon(world, posX: 120, posY: 100);
 
     final projectile = spawnSpellProjectile(
       world,
@@ -79,7 +79,7 @@ void main() {
     final li = world.lastDamage.indexOf(player);
     expect(world.lastDamage.kind[li], DeathSourceKind.projectile);
     expect(world.lastDamage.hasEnemyId[li], isTrue);
-    expect(world.lastDamage.enemyId[li], EnemyId.flyingEnemy);
+    expect(world.lastDamage.enemyId[li], EnemyId.unocoDemon);
     expect(world.lastDamage.hasProjectileId[li], isTrue);
     expect(world.lastDamage.projectileId[li], ProjectileId.lightningBolt);
     expect(world.lastDamage.hasSpellId[li], isTrue);

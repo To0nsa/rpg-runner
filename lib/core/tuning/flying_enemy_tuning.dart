@@ -3,126 +3,126 @@ library;
 
 import '../util/tick_math.dart';
 
-class FlyingEnemyTuning {
-  const FlyingEnemyTuning({
-    this.flyingEnemyHoverOffsetY = 150.0,
-    this.flyingEnemyDesiredRangeMin = 50.0,
-    this.flyingEnemyDesiredRangeMax = 90.0,
-    this.flyingEnemyDesiredRangeHoldMinSeconds = 0.60,
-    this.flyingEnemyDesiredRangeHoldMaxSeconds = 1.40,
-    this.flyingEnemyHoldSlack = 20.0,
-    this.flyingEnemyMaxSpeedX = 300.0,
-    this.flyingEnemySlowRadiusX = 80.0,
-    this.flyingEnemyAccelX = 600.0,
-    this.flyingEnemyDecelX = 400.0,
-    this.flyingEnemyMinHeightAboveGround = 100.0,
-    this.flyingEnemyMaxHeightAboveGround = 240.0,
-    this.flyingEnemyFlightTargetHoldMinSeconds = 1.5,
-    this.flyingEnemyFlightTargetHoldMaxSeconds = 3.0,
-    this.flyingEnemyMaxSpeedY = 300.0,
-    this.flyingEnemyVerticalKp = 4.0,
-    this.flyingEnemyVerticalDeadzone = 20.0,
-    this.flyingEnemyAimLeadMinSeconds = 0.08,
-    this.flyingEnemyAimLeadMaxSeconds = 0.40,
-    this.flyingEnemyCastCooldownSeconds = 2.0,
-    this.flyingEnemyCastOriginOffset = 20.0,
+class UnocoDemonTuning {
+  const UnocoDemonTuning({
+    this.unocoDemonHoverOffsetY = 150.0,
+    this.unocoDemonDesiredRangeMin = 50.0,
+    this.unocoDemonDesiredRangeMax = 90.0,
+    this.unocoDemonDesiredRangeHoldMinSeconds = 0.60,
+    this.unocoDemonDesiredRangeHoldMaxSeconds = 1.40,
+    this.unocoDemonHoldSlack = 20.0,
+    this.unocoDemonMaxSpeedX = 300.0,
+    this.unocoDemonSlowRadiusX = 80.0,
+    this.unocoDemonAccelX = 600.0,
+    this.unocoDemonDecelX = 400.0,
+    this.unocoDemonMinHeightAboveGround = 100.0,
+    this.unocoDemonMaxHeightAboveGround = 240.0,
+    this.unocoDemonFlightTargetHoldMinSeconds = 1.5,
+    this.unocoDemonFlightTargetHoldMaxSeconds = 3.0,
+    this.unocoDemonMaxSpeedY = 300.0,
+    this.unocoDemonVerticalKp = 4.0,
+    this.unocoDemonVerticalDeadzone = 20.0,
+    this.unocoDemonAimLeadMinSeconds = 0.08,
+    this.unocoDemonAimLeadMaxSeconds = 0.40,
+    this.unocoDemonCastCooldownSeconds = 2.0,
+    this.unocoDemonCastOriginOffset = 20.0,
   });
 
   // ── Steering ──
 
   /// Vertical offset above player when hovering (world units).
-  final double flyingEnemyHoverOffsetY;
+  final double unocoDemonHoverOffsetY;
 
   /// Min horizontal range to maintain from player (world units).
-  final double flyingEnemyDesiredRangeMin;
+  final double unocoDemonDesiredRangeMin;
 
   /// Max horizontal range to maintain from player (world units).
-  final double flyingEnemyDesiredRangeMax;
+  final double unocoDemonDesiredRangeMax;
 
   /// Min time to hold a desired range before picking new (seconds).
-  final double flyingEnemyDesiredRangeHoldMinSeconds;
+  final double unocoDemonDesiredRangeHoldMinSeconds;
 
   /// Max time to hold a desired range (seconds).
-  final double flyingEnemyDesiredRangeHoldMaxSeconds;
+  final double unocoDemonDesiredRangeHoldMaxSeconds;
 
   /// Slack distance before recalculating position (world units).
-  final double flyingEnemyHoldSlack;
+  final double unocoDemonHoldSlack;
 
   /// Max horizontal speed (world units/sec).
-  final double flyingEnemyMaxSpeedX;
+  final double unocoDemonMaxSpeedX;
 
   /// Distance from target where decel starts (world units).
-  final double flyingEnemySlowRadiusX;
+  final double unocoDemonSlowRadiusX;
 
   /// Horizontal acceleration (world units/sec²).
-  final double flyingEnemyAccelX;
+  final double unocoDemonAccelX;
 
   /// Horizontal deceleration (world units/sec²).
-  final double flyingEnemyDecelX;
+  final double unocoDemonDecelX;
 
   /// Min height above ground (world units).
-  final double flyingEnemyMinHeightAboveGround;
+  final double unocoDemonMinHeightAboveGround;
 
   /// Max height above ground (world units).
-  final double flyingEnemyMaxHeightAboveGround;
+  final double unocoDemonMaxHeightAboveGround;
 
   /// Min time to hold a flight target (seconds).
-  final double flyingEnemyFlightTargetHoldMinSeconds;
+  final double unocoDemonFlightTargetHoldMinSeconds;
 
   /// Max time to hold a flight target (seconds).
-  final double flyingEnemyFlightTargetHoldMaxSeconds;
+  final double unocoDemonFlightTargetHoldMaxSeconds;
 
   /// Max vertical speed (world units/sec).
-  final double flyingEnemyMaxSpeedY;
+  final double unocoDemonMaxSpeedY;
 
   /// Proportional gain for vertical steering.
-  final double flyingEnemyVerticalKp;
+  final double unocoDemonVerticalKp;
 
   /// Deadzone for vertical error (world units).
-  final double flyingEnemyVerticalDeadzone;
+  final double unocoDemonVerticalDeadzone;
 
   // ── Attacks ──
 
   /// Min lead time when aiming at player (seconds).
-  final double flyingEnemyAimLeadMinSeconds;
+  final double unocoDemonAimLeadMinSeconds;
 
   /// Max lead time when aiming at player (seconds).
-  final double flyingEnemyAimLeadMaxSeconds;
+  final double unocoDemonAimLeadMaxSeconds;
 
   /// Cooldown between casts (seconds).
-  final double flyingEnemyCastCooldownSeconds;
+  final double unocoDemonCastCooldownSeconds;
 
   /// Projectile spawn offset from center (world units).
-  final double flyingEnemyCastOriginOffset;
+  final double unocoDemonCastOriginOffset;
 }
 
-class FlyingEnemyTuningDerived {
-  const FlyingEnemyTuningDerived._({
+class UnocoDemonTuningDerived {
+  const UnocoDemonTuningDerived._({
     required this.tickHz,
     required this.base,
-    required this.flyingEnemyCastCooldownTicks,
+    required this.unocoDemonCastCooldownTicks,
   });
 
-  factory FlyingEnemyTuningDerived.from(
-    FlyingEnemyTuning base, {
+  factory UnocoDemonTuningDerived.from(
+    UnocoDemonTuning base, {
     required int tickHz,
   }) {
     if (tickHz <= 0) {
       throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
     }
 
-    return FlyingEnemyTuningDerived._(
+    return UnocoDemonTuningDerived._(
       tickHz: tickHz,
       base: base,
-      flyingEnemyCastCooldownTicks: ticksFromSecondsCeil(
-        base.flyingEnemyCastCooldownSeconds,
+      unocoDemonCastCooldownTicks: ticksFromSecondsCeil(
+        base.unocoDemonCastCooldownSeconds,
         tickHz,
       ),
     );
   }
 
   final int tickHz;
-  final FlyingEnemyTuning base;
+  final UnocoDemonTuning base;
 
-  final int flyingEnemyCastCooldownTicks;
+  final int unocoDemonCastCooldownTicks;
 }

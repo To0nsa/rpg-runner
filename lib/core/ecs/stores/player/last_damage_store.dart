@@ -26,7 +26,7 @@ class LastDamageStore extends SparseSet {
   @override
   void onDenseAdded(int denseIndex) {
     kind.add(DeathSourceKind.unknown);
-    enemyId.add(EnemyId.flyingEnemy);
+    enemyId.add(EnemyId.unocoDemon);
     hasEnemyId.add(false);
     projectileId.add(ProjectileId.iceBolt);
     hasProjectileId.add(false);
