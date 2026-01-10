@@ -101,6 +101,7 @@ import 'ecs/systems/resource_regen_system.dart';
 import 'ecs/systems/restoration_item_system.dart';
 import 'ecs/systems/status_system.dart';
 import 'ecs/systems/spell_cast_system.dart';
+import 'ecs/systems/enemy_cull_system.dart';
 import 'ecs/world.dart';
 import 'enemies/enemy_catalog.dart';
 import 'enemies/enemy_id.dart';
@@ -485,6 +486,7 @@ class GameCore {
     );
     _statusSystem = StatusSystem(tickHz: tickHz);
     _healthDespawnSystem = HealthDespawnSystem();
+    _enemyCullSystem = EnemyCullSystem();
 
     // Player combat.
     _meleeSystem = PlayerMeleeSystem(
@@ -686,6 +688,7 @@ class GameCore {
   late final ResourceRegenSystem _resourceRegenSystem;
   late final PlayerCastSystem _castSystem;
   late final SpellCastSystem _spellCastSystem;
+  late final EnemyCullSystem _enemyCullSystem;
 
   // ─── Modular Services ───
   // Extracted modules for specific responsibilities.
@@ -1034,6 +1037,12 @@ class GameCore {
 
     // ─── Phase 14: Death handling ───
     _killedEnemiesScratch.clear();
+    _enemyCullSystem.step(
+      _world,
+      cameraLeft: _camera.left(),
+      groundTopY: effectiveGroundTopY,
+      tuning: _trackTuning,
+    );
     _healthDespawnSystem.step(
       _world,
       player: _player,

@@ -7,12 +7,14 @@ class TrackTuning {
     this.chunkWidth = 600.0,
     this.spawnAheadMargin = 600.0,
     this.cullBehindMargin = 600.0,
+    this.enemyCullBelowGroundOffsetY = 300.0,
     this.gridSnap = 16.0,
     this.playerStartX = 400.0,
     this.gapKillOffsetY = 400.0,
   }) : assert(chunkWidth > 0),
        assert(spawnAheadMargin >= 0),
        assert(cullBehindMargin >= 0),
+       assert(enemyCullBelowGroundOffsetY >= 0),
        assert(gridSnap > 0),
        assert(playerStartX >= 0),
        assert(gapKillOffsetY >= 0);
@@ -28,6 +30,9 @@ class TrackTuning {
 
   /// Cull chunks while `chunkEndX < cameraLeft - cullBehindMargin`.
   final double cullBehindMargin;
+
+  /// Enemies are despawned if their bottom falls this far below groundTopY.
+  final double enemyCullBelowGroundOffsetY;
 
   /// Authoring grid snap for chunk patterns (world units).
   final double gridSnap;
