@@ -37,6 +37,7 @@ import 'snapshots/static_solid_snapshot.dart';
 import 'spells/spell_catalog.dart';
 import 'spells/spell_id.dart';
 import 'tuning/ability_tuning.dart';
+import 'tuning/anim_tuning.dart';
 import 'tuning/movement_tuning.dart';
 import 'tuning/resource_tuning.dart';
 import 'util/vec2.dart';
@@ -63,6 +64,7 @@ class SnapshotBuilder {
   /// - [player]: Entity ID of the player (used to query player-specific stores).
   /// - [movement]: Derived movement tuning (dash cooldown ticks, etc.).
   /// - [abilities]: Derived ability tuning (melee/cast cooldown ticks).
+  /// - [animTuning]: Derived animation tuning (hit/cast/attack/spawn windows).
   /// - [resources]: Resource costs (jump/dash stamina, etc.).
   /// - [spells]: Spell catalog for querying spell stats (mana costs).
   /// - [projectiles]: Projectile catalog for collider sizes.
@@ -72,6 +74,7 @@ class SnapshotBuilder {
     required this.player,
     required this.movement,
     required this.abilities,
+    required this.animTuning,
     required this.resources,
     required this.spells,
     required this.projectiles,
@@ -89,6 +92,9 @@ class SnapshotBuilder {
 
   /// Derived ability tuning (cooldown durations in ticks).
   final AbilityTuningDerived abilities;
+
+  /// Derived animation tuning (one-shot windows in ticks).
+  final AnimTuningDerived animTuning;
 
   /// Resource tuning (stamina/mana costs for actions).
   final ResourceTuning resources;
@@ -190,18 +196,68 @@ class SnapshotBuilder {
     final playerVelX = world.transform.velX[ti];
     final playerVelY = world.transform.velY[ti];
     final playerFacing = world.movement.facing[mi];
+    final playerHp = world.health.hp[hi];
+    final actionAnimIndex = world.actionAnim.tryIndexOf(player);
+    final lastMeleeTick = actionAnimIndex == null
+        ? -1
+        : world.actionAnim.lastMeleeTick[actionAnimIndex];
+    final lastCastTick = actionAnimIndex == null
+        ? -1
+        : world.actionAnim.lastCastTick[actionAnimIndex];
+
+    final lastDamageTick = world.lastDamage.has(player)
+        ? world.lastDamage.tick[world.lastDamage.indexOf(player)]
+        : -1;
 
     // ─── Determine player animation ───
-    // Priority: dashing > airborne > moving > idle
+    // Priority: death > hit > attack/cast > dash > airborne > moving > idle/spawn
     final AnimKey anim;
-    if (dashing) {
-      anim = AnimKey.run;
+    final showHit =
+        animTuning.hitAnimTicks > 0 &&
+        lastDamageTick >= 0 &&
+        (tick - lastDamageTick) < animTuning.hitAnimTicks;
+    final showAttack =
+        animTuning.attackAnimTicks > 0 &&
+        lastMeleeTick >= 0 &&
+        (tick - lastMeleeTick) < animTuning.attackAnimTicks;
+    final showCast =
+        animTuning.castAnimTicks > 0 &&
+        lastCastTick >= 0 &&
+        (tick - lastCastTick) < animTuning.castAnimTicks;
+
+    if (playerHp <= 0) {
+      anim = AnimKey.death;
+    } else if (showHit) {
+      anim = AnimKey.hit;
+    } else if (showAttack) {
+      anim = AnimKey.attack;
+    } else if (showCast) {
+      anim = AnimKey.cast;
+    } else if (dashing) {
+      anim = AnimKey.dash;
     } else if (!onGround) {
       anim = playerVelY < 0 ? AnimKey.jump : AnimKey.fall;
     } else if (playerVelX.abs() > tuning.minMoveSpeed) {
       anim = AnimKey.run;
+    } else if (animTuning.spawnAnimTicks > 0 &&
+        tick < animTuning.spawnAnimTicks) {
+      anim = AnimKey.spawn;
     } else {
       anim = AnimKey.idle;
+    }
+
+    final int playerAnimFrame;
+    switch (anim) {
+      case AnimKey.attack:
+        playerAnimFrame = lastMeleeTick >= 0 ? tick - lastMeleeTick : tick;
+      case AnimKey.cast:
+        playerAnimFrame = lastCastTick >= 0 ? tick - lastCastTick : tick;
+      case AnimKey.hit:
+        playerAnimFrame = lastDamageTick >= 0 ? tick - lastDamageTick : tick;
+      case AnimKey.death:
+        playerAnimFrame = lastDamageTick >= 0 ? tick - lastDamageTick : tick;
+      default:
+        playerAnimFrame = tick;
     }
 
     final playerPos = Vec2(playerPosX, playerPosY);
@@ -218,15 +274,16 @@ class SnapshotBuilder {
         facing: playerFacing,
         anim: anim,
         grounded: onGround,
+        animFrame: playerAnimFrame,
       ),
     ];
 
     // Append all other renderable entities.
-    _addProjectiles(entities);
-    _addHitboxes(entities);
-    _addCollectibles(entities);
-    _addRestorationItems(entities);
-    _addEnemies(entities);
+    _addProjectiles(entities, tick: tick);
+    _addHitboxes(entities, tick: tick);
+    _addCollectibles(entities, tick: tick);
+    _addRestorationItems(entities, tick: tick);
+    _addEnemies(entities, tick: tick);
 
     // ─── Assemble final snapshot ───
     return GameStateSnapshot(
@@ -277,7 +334,7 @@ class SnapshotBuilder {
   ///
   /// Iterates the projectile component store and creates render snapshots
   /// with position, velocity, facing direction, and rotation angle.
-  void _addProjectiles(List<EntityRenderSnapshot> entities) {
+  void _addProjectiles(List<EntityRenderSnapshot> entities, {required int tick}) {
     final projectileStore = world.projectile;
     for (var pi = 0; pi < projectileStore.denseEntities.length; pi += 1) {
       final e = projectileStore.denseEntities[pi];
@@ -307,6 +364,7 @@ class SnapshotBuilder {
           rotationRad: rotationRad,
           anim: AnimKey.idle,
           grounded: false,
+          animFrame: tick,
         ),
       );
     }
@@ -316,7 +374,7 @@ class SnapshotBuilder {
   ///
   /// Hitboxes are short-lived trigger volumes spawned by melee attacks.
   /// They render as debug overlays or attack effects.
-  void _addHitboxes(List<EntityRenderSnapshot> entities) {
+  void _addHitboxes(List<EntityRenderSnapshot> entities, {required int tick}) {
     final hitboxes = world.hitbox;
     for (var hi = 0; hi < hitboxes.denseEntities.length; hi += 1) {
       final e = hitboxes.denseEntities[hi];
@@ -340,6 +398,7 @@ class SnapshotBuilder {
           rotationRad: rotationRad,
           anim: AnimKey.hit,
           grounded: false,
+          animFrame: tick,
         ),
       );
     }
@@ -348,7 +407,7 @@ class SnapshotBuilder {
   /// Appends collectible (score pickup) snapshots to [entities].
   ///
   /// Collectibles are small pickups that grant score when collected.
-  void _addCollectibles(List<EntityRenderSnapshot> entities) {
+  void _addCollectibles(List<EntityRenderSnapshot> entities, {required int tick}) {
     final collectiblesStore = world.collectible;
     for (var ci = 0; ci < collectiblesStore.denseEntities.length; ci += 1) {
       final e = collectiblesStore.denseEntities[ci];
@@ -376,6 +435,7 @@ class SnapshotBuilder {
           rotationRad: pi * 0.25, // 45° tilt for visual interest
           anim: AnimKey.idle,
           grounded: false,
+          animFrame: tick,
         ),
       );
     }
@@ -385,7 +445,7 @@ class SnapshotBuilder {
   ///
   /// Restoration items restore a specific resource when picked up.
   /// The [pickupVariant] field tells the renderer which sprite to use.
-  void _addRestorationItems(List<EntityRenderSnapshot> entities) {
+  void _addRestorationItems(List<EntityRenderSnapshot> entities, {required int tick}) {
     final restorationStore = world.restorationItem;
     for (var ri = 0; ri < restorationStore.denseEntities.length; ri += 1) {
       final e = restorationStore.denseEntities[ri];
@@ -424,6 +484,7 @@ class SnapshotBuilder {
           rotationRad: pi * 0.25,
           anim: AnimKey.idle,
           grounded: false,
+          animFrame: tick,
         ),
       );
     }
@@ -433,7 +494,7 @@ class SnapshotBuilder {
   ///
   /// Enemies have position, velocity, facing direction, and grounded state.
   /// The renderer uses this to select appropriate sprites and animations.
-  void _addEnemies(List<EntityRenderSnapshot> entities) {
+  void _addEnemies(List<EntityRenderSnapshot> entities, {required int tick}) {
     final enemies = world.enemy;
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
       final e = enemies.denseEntities[ei];
@@ -461,6 +522,7 @@ class SnapshotBuilder {
           grounded: world.collision.has(e)
               ? world.collision.grounded[world.collision.indexOf(e)]
               : false,
+          animFrame: tick,
         ),
       );
     }

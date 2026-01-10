@@ -41,6 +41,15 @@ class PlayerCastSystem {
       return;
     }
 
+    final actionAnimIndex = world.actionAnim.tryIndexOf(player);
+    if (actionAnimIndex == null) {
+      assert(
+        false,
+        'PlayerCastSystem requires ActionAnimStore on the player; add it at spawn time.',
+      );
+      return;
+    }
+
     // -- 2. Input Logic --
 
     // If button not pressed, do nothing.
@@ -79,5 +88,6 @@ class PlayerCastSystem {
         tick: currentTick,
       ),
     );
+    world.actionAnim.lastCastTick[actionAnimIndex] = currentTick;
   }
 }

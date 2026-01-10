@@ -19,6 +19,8 @@ enum AnimKey {
   cast,
   death,
   spawn,
+  attack,
+  dash,
 }
 
 /// Broad entity classification for rendering and (future) networking.

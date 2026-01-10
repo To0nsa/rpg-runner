@@ -127,6 +127,7 @@ import 'ecs/stores/combat/equipped_weapon_store.dart';
 import 'ecs/stores/combat/equipped_ranged_weapon_store.dart';
 import 'weapons/ranged_weapon_catalog.dart';
 import 'tuning/ability_tuning.dart';
+import 'tuning/anim_tuning.dart';
 import 'tuning/camera_tuning.dart';
 import 'tuning/collectible_tuning.dart';
 import 'tuning/combat_tuning.dart';
@@ -280,6 +281,10 @@ class GameCore {
          levelDefinition.tuning.ability,
          tickHz: tickHz,
        ),
+       _animTuning = AnimTuningDerived.from(
+         levelDefinition.tuning.anim,
+         tickHz: tickHz,
+       ),
        _combat = CombatTuningDerived.from(
          levelDefinition.tuning.combat,
          tickHz: tickHz,
@@ -334,6 +339,7 @@ class GameCore {
     MovementTuning movementTuning = const MovementTuning(),
     ResourceTuning resourceTuning = const ResourceTuning(),
     AbilityTuning abilityTuning = const AbilityTuning(),
+    AnimTuning animTuning = const AnimTuning(),
     CombatTuning combatTuning = const CombatTuning(),
     UnocoDemonTuning unocoDemonTuning = const UnocoDemonTuning(),
     GroundEnemyTuning groundEnemyTuning = const GroundEnemyTuning(),
@@ -362,6 +368,7 @@ class GameCore {
         movement: movementTuning,
         resource: resourceTuning,
         ability: abilityTuning,
+        anim: animTuning,
         combat: combatTuning,
         unocoDemon: unocoDemonTuning,
         groundEnemy: groundEnemyTuning,
@@ -447,6 +454,7 @@ class GameCore {
       player: _player,
       movement: _movement,
       abilities: _abilities,
+      animTuning: _animTuning,
       resources: _resourceTuning,
       spells: _spells,
       projectiles: _projectiles,
@@ -624,6 +632,7 @@ class GameCore {
   final PhysicsTuning _physicsTuning;
   final ResourceTuning _resourceTuning;
   final AbilityTuningDerived _abilities;
+  final AnimTuningDerived _animTuning;
   final CombatTuningDerived _combat;
   final UnocoDemonTuningDerived _unocoDemonTuning;
   final GroundEnemyTuningDerived _groundEnemyTuning;
@@ -655,6 +664,11 @@ class GameCore {
 
   /// The player entity ID.
   late EntityId _player;
+
+  // Pending game over delay for death animation.
+  int _deathAnimTicksLeft = 0;
+  RunEndReason? _pendingRunEndReason;
+  DeathInfo? _pendingDeathInfo;
 
   // ─── ECS Systems ───
   // Stateless processors that operate on component stores.
@@ -933,6 +947,18 @@ class GameCore {
     // Don't advance if paused or game already over.
     if (paused || gameOver) return;
 
+    if (_deathAnimTicksLeft > 0) {
+      tick += 1;
+      _deathAnimTicksLeft -= 1;
+      if (_deathAnimTicksLeft <= 0) {
+        _endRun(
+          _pendingRunEndReason ?? RunEndReason.playerDied,
+          deathInfo: _pendingDeathInfo,
+        );
+      }
+      return;
+    }
+
     tick += 1;
 
     // Cache ground Y once per tick (ground plane doesn't change mid-tick).
@@ -1052,7 +1078,15 @@ class GameCore {
       _recordEnemyKills(_killedEnemiesScratch);
     }
     if (_isPlayerDead()) {
-      _endRun(RunEndReason.playerDied, deathInfo: _buildDeathInfo());
+      if (_deathAnimTicksLeft <= 0) {
+        _pendingRunEndReason = RunEndReason.playerDied;
+        _pendingDeathInfo = _buildDeathInfo();
+        if (_animTuning.deathAnimTicks <= 0) {
+          _endRun(_pendingRunEndReason!, deathInfo: _pendingDeathInfo);
+        } else {
+          _deathAnimTicksLeft = _animTuning.deathAnimTicks;
+        }
+      }
       return;
     }
 

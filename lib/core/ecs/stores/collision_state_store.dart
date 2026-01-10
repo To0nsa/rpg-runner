@@ -44,4 +44,3 @@ class CollisionStateStore extends SparseSet {
     hitRight.removeLast();
   }
 }
-

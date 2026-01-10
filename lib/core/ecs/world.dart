@@ -13,6 +13,7 @@ import 'stores/combat/equipped_ranged_weapon_store.dart';
 import 'stores/combat/stat_modifier_store.dart';
 import 'stores/combat/status_immunity_store.dart';
 import 'stores/collectible_store.dart';
+import 'stores/player/action_anim_store.dart';
 import 'stores/player/gravity_control_store.dart';
 import 'stores/enemies/flying_enemy_steering_store.dart';
 import 'stores/faction_store.dart';
@@ -87,6 +88,9 @@ class EcsWorld {
 
   /// Helper components for handling user input events.
   late final PlayerInputStore playerInput = _register(PlayerInputStore());
+
+  /// Tracks action intent ticks for animation selection.
+  late final ActionAnimStore actionAnim = _register(ActionAnimStore());
 
   /// Logic and state for movement, including facing direction.
   late final MovementStore movement = _register(MovementStore());

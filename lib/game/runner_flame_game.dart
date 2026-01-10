@@ -12,6 +12,9 @@ import '../core/contracts/render_contract.dart';
 import '../core/snapshots/entity_render_snapshot.dart';
 import '../core/snapshots/enums.dart';
 import '../core/snapshots/static_solid_snapshot.dart';
+import 'components/player/player_animations.dart';
+import 'components/player/player_view_component.dart';
+import 'tuning/player_render_tuning.dart';
 import 'input/runner_input_router.dart';
 import 'input/aim_preview.dart';
 import 'components/pixel_parallax_backdrop_component.dart';
@@ -29,6 +32,7 @@ const _priorityBackgroundParallax = -30;
 const _priorityGroundTiles = -20;
 const _priorityForegroundParallax = -10;
 const _priorityStaticSolids = -5;
+const _priorityPlayer = -3;
 const _priorityEnemies = -2;
 const _priorityProjectiles = -1;
 const _priorityCollectibles = -1;
@@ -36,6 +40,7 @@ const _priorityHitboxes = 1;
 const _priorityProjectileAimRay = 5;
 const _priorityMeleeAimRay = 6;
 const _priorityRangedAimRay = 7;
+const PlayerRenderTuning _playerRenderTuning = PlayerRenderTuning();
 
 /// Minimal Flame `Game` that renders from snapshots.
 class RunnerFlameGame extends FlameGame {
@@ -63,7 +68,7 @@ class RunnerFlameGame extends FlameGame {
   final ValueListenable<AimPreviewState> meleeAimPreview;
   final ValueListenable<AimPreviewState> rangedAimPreview;
 
-  late final CircleComponent _player;
+  late final PlayerViewComponent _player;
   final List<RectangleComponent> _staticSolids = <RectangleComponent>[];
   List<StaticSolidSnapshot>? _lastStaticSolidsSnapshot;
 
@@ -122,11 +127,12 @@ class RunnerFlameGame extends FlameGame {
       )..priority = _priorityForegroundParallax,
     );
 
-    _player = CircleComponent(
-      radius: 8,
-      paint: Paint()..color = const Color(0xFF4ADE80),
-      anchor: Anchor.center,
-    );
+    final playerAnimations = await loadPlayerAnimations(images);
+    _player = PlayerViewComponent(
+      animationSet: playerAnimations,
+      renderScale: Vector2.all(_playerRenderTuning.scale),
+    )
+      ..priority = _priorityPlayer;
     world.add(_player);
 
     world.add(
@@ -185,9 +191,7 @@ class RunnerFlameGame extends FlameGame {
 
     final player = updatedSnapshot.playerEntity;
     if (player != null) {
-      final snappedX = player.pos.x.roundToDouble();
-      final snappedY = player.pos.y.roundToDouble();
-      _player.position.setValues(snappedX, snappedY);
+      _player.applySnapshot(player, tickHz: controller.tickHz);
     }
     camera.viewfinder.position = Vector2(
       updatedSnapshot.cameraCenterX.roundToDouble(),

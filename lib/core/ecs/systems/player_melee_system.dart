@@ -65,6 +65,15 @@ class PlayerMeleeSystem {
     // If button not pressed, early exit.
     if (!world.playerInput.attackPressed[inputIndex]) return;
 
+    final actionAnimIndex = world.actionAnim.tryIndexOf(player);
+    if (actionAnimIndex == null) {
+      assert(
+        false,
+        'PlayerMeleeSystem requires ActionAnimStore on the player; add it at spawn time.',
+      );
+      return;
+    }
+
     final facing = world.movement.facing[movementIndex];
     final aimX = world.playerInput.meleeAimDirX[inputIndex];
     final aimY = world.playerInput.meleeAimDirY[inputIndex];
@@ -115,5 +124,6 @@ class PlayerMeleeSystem {
         tick: currentTick,
       ),
     );
+    world.actionAnim.lastMeleeTick[actionAnimIndex] = currentTick;
   }
 }

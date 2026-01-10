@@ -19,6 +19,7 @@ import 'stores/enemies/ground_enemy_chase_offset_store.dart';
 import 'stores/health_store.dart';
 import 'stores/mana_store.dart';
 import 'stores/stamina_store.dart';
+import 'stores/player/action_anim_store.dart';
 import 'world.dart';
 
 /// Factory for creating complex entities composed of multiple components.
@@ -38,6 +39,7 @@ class EntityFactory {
   /// Adds the following components:
   /// - [TransformStore]: Position and velocity.
   /// - [PlayerInputStore]: Marks this entity as controllable by player input.
+  /// - [ActionAnimStore]: Tracks action intent ticks for rendering.
   /// - [MovementStore]: Handles movement logic and facing direction.
   /// - [BodyStore]: Physics body properties (mass, friction, etc.).
   /// - [ColliderAabbStore]: Axis-aligned bounding box for collision detection.
@@ -80,6 +82,7 @@ class EntityFactory {
     final id = world.createEntity();
     world.transform.add(id, posX: posX, posY: posY, velX: velX, velY: velY);
     world.playerInput.add(id);
+    world.actionAnim.add(id);
     world.movement.add(id, facing: facing);
     world.body.add(id, body);
     world.colliderAabb.add(id, collider);

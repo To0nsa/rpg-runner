@@ -33,6 +33,7 @@
 library;
 
 import 'ability_tuning.dart';
+import 'anim_tuning.dart';
 import 'camera_tuning.dart';
 import 'collectible_tuning.dart';
 import 'combat_tuning.dart';
@@ -60,6 +61,7 @@ class CoreTuning {
     this.movement = const MovementTuning(),
     this.resource = const ResourceTuning(),
     this.ability = const AbilityTuning(),
+    this.anim = const AnimTuning(),
     this.combat = const CombatTuning(),
     this.unocoDemon = const UnocoDemonTuning(),
     this.groundEnemy = const GroundEnemyTuning(),
@@ -83,6 +85,9 @@ class CoreTuning {
 
   /// Ability cooldowns and stamina costs.
   final AbilityTuning ability;
+
+  /// Animation timing windows for snapshot state.
+  final AnimTuning anim;
 
   /// Combat parameters (damage, invulnerability frames).
   final CombatTuning combat;

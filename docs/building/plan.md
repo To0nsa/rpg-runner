@@ -13,3 +13,10 @@ Combat now uses explicit primitives for damage + status effects:
   feed into the same damage/status pipeline.
 
 Details: `docs/building/combat.md`.
+
+## Render animation windows
+
+Core owns deterministic animation windows via `AnimTuning` (attack/cast/hit/death/spawn).
+Renderer consumes `AnimKey` + `animFrame` only; no simulation logic lives in Flame.
+Default `AnimTuning` values derive from `lib/core/tuning/player_anim_defs.dart`
+(frame counts x step times) so Core windows match render strip timing.
