@@ -151,7 +151,8 @@ class SnapshotBuilder {
     // ─── Query player component indices ───
     final tuning = movement.base;
     final mi = world.movement.indexOf(player);
-    final dashing = world.movement.dashTicksLeft[mi] > 0;
+    final dashTicksLeft = world.movement.dashTicksLeft[mi];
+    final dashing = dashTicksLeft > 0;
     final onGround = world.collision.grounded[world.collision.indexOf(player)];
     final hi = world.health.indexOf(player);
     final mai = world.mana.indexOf(player);
@@ -256,6 +257,8 @@ class SnapshotBuilder {
         playerAnimFrame = lastDamageTick >= 0 ? tick - lastDamageTick : tick;
       case AnimKey.death:
         playerAnimFrame = lastDamageTick >= 0 ? tick - lastDamageTick : tick;
+      case AnimKey.dash:
+        playerAnimFrame = max(0, movement.dashDurationTicks - dashTicksLeft);
       default:
         playerAnimFrame = tick;
     }

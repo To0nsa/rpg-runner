@@ -19,13 +19,13 @@ const int playerAnimFallFrames = 3;
 const double playerAnimFallStepSeconds = 0.10;
 
 const int playerAnimAttackFrames = 6;
-const double playerAnimAttackStepSeconds = 0.08;
+const double playerAnimAttackStepSeconds = 0.06;
 
 const int playerAnimCastFrames = 5;
-const double playerAnimCastStepSeconds = 0.10;
+const double playerAnimCastStepSeconds = 0.08;
 
 const int playerAnimDashFrames = 4;
-const double playerAnimDashStepSeconds = 0.08;
+const double playerAnimDashStepSeconds = 0.05;
 
 const int playerAnimHitFrames = 4;
 const double playerAnimHitStepSeconds = 0.10;

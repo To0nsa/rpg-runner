@@ -31,6 +31,7 @@ Future<PlayerAnimationSet> loadPlayerAnimations(Images images) async {
   final oneShotKeys = <AnimKey>{
     AnimKey.attack,
     AnimKey.cast,
+    AnimKey.dash,
     AnimKey.hit,
     AnimKey.death,
   };
