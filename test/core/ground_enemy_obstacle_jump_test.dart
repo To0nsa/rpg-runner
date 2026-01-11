@@ -24,7 +24,7 @@ import 'package:walkscape_runner/core/snapshots/enums.dart';
 import 'package:walkscape_runner/core/spells/spell_catalog.dart';
 import 'package:walkscape_runner/core/tuning/flying_enemy_tuning.dart';
 import 'package:walkscape_runner/core/tuning/ground_enemy_tuning.dart';
-import 'package:walkscape_runner/core/tuning/player/player_movement_tuning.dart';
+import 'package:walkscape_runner/core/players/player_tuning.dart';
 import 'package:walkscape_runner/core/tuning/physics_tuning.dart';
 import 'package:walkscape_runner/core/ecs/entity_factory.dart';
 

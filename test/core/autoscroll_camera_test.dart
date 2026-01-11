@@ -5,9 +5,10 @@ import 'package:walkscape_runner/core/contracts/render_contract.dart';
 import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/events/game_event.dart';
 import 'package:walkscape_runner/core/game_core.dart';
+import 'package:walkscape_runner/core/players/player_character_registry.dart';
 import 'package:walkscape_runner/core/players/player_catalog.dart';
 import 'package:walkscape_runner/core/tuning/camera_tuning.dart';
-import 'package:walkscape_runner/core/tuning/player/player_movement_tuning.dart';
+import 'package:walkscape_runner/core/players/player_tuning.dart';
 
 void main() {
   test('AutoscrollCamera: player past threshold pulls target forward', () {
@@ -41,11 +42,14 @@ void main() {
   test(
     'GameCore: falling behind camera ends run and emits RunEndedEvent once',
     () {
-      final core = GameCore.withTunings(
+      final base = PlayerCharacterRegistry.eloise;
+      final core = GameCore(
         seed: 1,
         tickHz: 20,
-        playerCatalog: const PlayerCatalog(
-          bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+        playerCharacter: base.copyWith(
+          catalog: const PlayerCatalog(
+            bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+          ),
         ),
       );
 

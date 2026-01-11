@@ -36,10 +36,7 @@ import 'snapshots/static_ground_gap_snapshot.dart';
 import 'snapshots/static_solid_snapshot.dart';
 import 'spells/spell_catalog.dart';
 import 'spells/spell_id.dart';
-import 'tuning/player/player_ability_tuning.dart';
-import 'tuning/player/player_anim_tuning.dart';
-import 'tuning/player/player_movement_tuning.dart';
-import 'tuning/player/player_resource_tuning.dart';
+import 'players/player_tuning.dart';
 import 'util/vec2.dart';
 import 'weapons/ranged_weapon_catalog.dart';
 

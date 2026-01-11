@@ -42,6 +42,7 @@ lib/core/ecs/stores/hitbox_store.dart
 lib/core/ecs/stores/lifetime_store.dart
 lib/core/ecs/stores/mana_store.dart
 lib/core/ecs/stores/melee_intent_store.dart
+lib/core/ecs/stores/player/action_anim_store.dart
 lib/core/ecs/stores/player/gravity_control_store.dart
 lib/core/ecs/stores/player/invulnerability_store.dart
 lib/core/ecs/stores/player/last_damage_store.dart
@@ -60,6 +61,7 @@ lib/core/ecs/systems/collectible_system.dart
 lib/core/ecs/systems/collision_system.dart
 lib/core/ecs/systems/cooldown_system.dart
 lib/core/ecs/systems/damage_system.dart
+lib/core/ecs/systems/enemy_cull_system.dart
 lib/core/ecs/systems/enemy_system.dart
 lib/core/ecs/systems/gravity_system.dart
 lib/core/ecs/systems/health_despawn_system.dart
@@ -123,6 +125,7 @@ lib/core/track/chunk_patterns_library.dart
 lib/core/track/track_streamer.dart
 lib/core/track_manager.dart
 lib/core/tuning/ability_tuning.dart
+lib/core/tuning/anim_tuning.dart
 lib/core/tuning/camera_tuning.dart
 lib/core/tuning/collectible_tuning.dart
 lib/core/tuning/combat_tuning.dart
@@ -132,6 +135,7 @@ lib/core/tuning/ground_enemy_tuning.dart
 lib/core/tuning/movement_tuning.dart
 lib/core/tuning/navigation_tuning.dart
 lib/core/tuning/physics_tuning.dart
+lib/core/tuning/player_anim_defs.dart
 lib/core/tuning/resource_tuning.dart
 lib/core/tuning/restoration_item_tuning.dart
 lib/core/tuning/score_tuning.dart
@@ -153,6 +157,8 @@ lib/core/weapons/weapon_def.dart
 lib/core/weapons/weapon_id.dart
 lib/game/components/aim_ray_component.dart
 lib/game/components/pixel_parallax_backdrop_component.dart
+lib/game/components/player/player_animations.dart
+lib/game/components/player/player_view_component.dart
 lib/game/components/tiled_ground_band_component.dart
 lib/game/game_controller.dart
 lib/game/input/aim_preview.dart
@@ -162,6 +168,7 @@ lib/game/runner_flame_game.dart
 lib/game/themes/parallax_theme.dart
 lib/game/themes/parallax_theme_registry.dart
 lib/game/tick_input_frame.dart
+lib/game/tuning/player_render_tuning.dart
 lib/game/util/math_util.dart
 lib/main.dart
 lib/runner.dart

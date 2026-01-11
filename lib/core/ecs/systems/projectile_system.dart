@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import '../../tuning/player/player_movement_tuning.dart';
+import '../../players/player_tuning.dart';
 import '../world.dart';
 
 /// Moves active projectiles based on their linear velocity.

@@ -1,6 +1,6 @@
 import '../../snapshots/enums.dart';
 import '../../spells/spell_id.dart';
-import '../../tuning/player/player_ability_tuning.dart';
+import '../../players/player_tuning.dart';
 import '../entity_id.dart';
 import '../stores/cast_intent_store.dart';
 import '../world.dart';

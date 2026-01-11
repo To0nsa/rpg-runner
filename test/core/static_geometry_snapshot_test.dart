@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:walkscape_runner/core/collision/static_world_geometry.dart';
 import 'package:walkscape_runner/core/game_core.dart';
+import 'package:walkscape_runner/core/tuning/core_tuning.dart';
 import 'package:walkscape_runner/core/tuning/track_tuning.dart';
 
 import '../test_tunings.dart';
@@ -22,11 +23,13 @@ void main() {
       ],
     );
 
-    final core = GameCore.withTunings(
+    final core = GameCore(
       seed: 1,
       staticWorldGeometry: geometry,
-      cameraTuning: noAutoscrollCameraTuning,
-      trackTuning: const TrackTuning(enabled: false),
+      tuning: const CoreTuning(
+        camera: noAutoscrollCameraTuning,
+        track: TrackTuning(enabled: false),
+      ),
     );
     final snapshot = core.buildSnapshot();
 

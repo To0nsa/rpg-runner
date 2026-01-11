@@ -9,7 +9,7 @@ import 'package:flame/cache.dart';
 import 'package:flame/components.dart';
 
 import '../../../core/snapshots/enums.dart';
-import '../../../core/tuning/player/player_anim_defs.dart';
+import '../../../core/players/player_tuning.dart';
 
 class PlayerAnimationSet {
   const PlayerAnimationSet({

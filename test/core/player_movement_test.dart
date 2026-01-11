@@ -4,9 +4,9 @@ import 'package:walkscape_runner/core/commands/command.dart';
 import 'package:walkscape_runner/core/contracts/render_contract.dart';
 import 'package:walkscape_runner/core/game_core.dart';
 import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
+import 'package:walkscape_runner/core/players/player_character_registry.dart';
 import 'package:walkscape_runner/core/players/player_catalog.dart';
-import 'package:walkscape_runner/core/tuning/player/player_movement_tuning.dart';
-import 'package:walkscape_runner/core/tuning/player/player_resource_tuning.dart';
+import 'package:walkscape_runner/core/players/player_tuning.dart';
 
 import '../test_tunings.dart';
 
@@ -29,10 +29,10 @@ void _tick(
 
 void main() {
   test('accelerates toward desired horizontal speed', () {
-    final core = GameCore.withTunings(
+    final core = GameCore(
       seed: 1,
       tickHz: defaultTickHz,
-      cameraTuning: noAutoscrollCameraTuning,
+      tuning: noAutoscrollTuning,
     );
 
     _tick(core, axis: 1);
@@ -51,10 +51,10 @@ void main() {
   });
 
   test('jump from ground sets upward velocity', () {
-    final core = GameCore.withTunings(
+    final core = GameCore(
       seed: 1,
       tickHz: defaultTickHz,
-      cameraTuning: noAutoscrollCameraTuning,
+      tuning: noAutoscrollTuning,
     );
     final floorY =
         groundTopY.toDouble() - const PlayerCatalog().colliderHalfY;
@@ -71,10 +71,10 @@ void main() {
   });
 
   test('jump buffer triggers on the tick after landing', () {
-    final core = GameCore.withTunings(
+    final core = GameCore(
       seed: 1,
       tickHz: defaultTickHz,
-      cameraTuning: noAutoscrollCameraTuning,
+      tuning: noAutoscrollTuning,
     );
     final catalog = const PlayerCatalog();
     final floorY = groundTopY.toDouble() - catalog.colliderHalfY;
@@ -118,10 +118,10 @@ void main() {
   });
 
   test('dash sets constant horizontal speed and cancels vertical velocity', () {
-    final core = GameCore.withTunings(
+    final core = GameCore(
       seed: 1,
       tickHz: defaultTickHz,
-      cameraTuning: noAutoscrollCameraTuning,
+      tuning: noAutoscrollTuning,
     );
     final tuning = const MovementTuning();
     final catalog = const PlayerCatalog();
@@ -136,14 +136,19 @@ void main() {
   });
 
   test('jump spends stamina (2) when executed', () {
-    final core = GameCore.withTunings(
+    final base = PlayerCharacterRegistry.eloise;
+    final core = GameCore(
       seed: 1,
       tickHz: defaultTickHz,
-      cameraTuning: noAutoscrollCameraTuning,
-      resourceTuning: const ResourceTuning(
-        playerStaminaMax: 10,
-        playerStaminaRegenPerSecond: 0,
-        jumpStaminaCost: 2,
+      tuning: noAutoscrollTuning,
+      playerCharacter: base.copyWith(
+        tuning: base.tuning.copyWith(
+          resource: const ResourceTuning(
+            playerStaminaMax: 10,
+            playerStaminaRegenPerSecond: 0,
+            jumpStaminaCost: 2,
+          ),
+        ),
       ),
     );
 
@@ -154,14 +159,19 @@ void main() {
   });
 
   test('dash spends stamina (2) when started', () {
-    final core = GameCore.withTunings(
+    final base = PlayerCharacterRegistry.eloise;
+    final core = GameCore(
       seed: 1,
       tickHz: defaultTickHz,
-      cameraTuning: noAutoscrollCameraTuning,
-      resourceTuning: const ResourceTuning(
-        playerStaminaMax: 10,
-        playerStaminaRegenPerSecond: 0,
-        dashStaminaCost: 2,
+      tuning: noAutoscrollTuning,
+      playerCharacter: base.copyWith(
+        tuning: base.tuning.copyWith(
+          resource: const ResourceTuning(
+            playerStaminaMax: 10,
+            playerStaminaRegenPerSecond: 0,
+            dashStaminaCost: 2,
+          ),
+        ),
       ),
     );
 
@@ -172,15 +182,20 @@ void main() {
   });
 
   test('insufficient stamina blocks dash and jump', () {
-    final core = GameCore.withTunings(
+    final base = PlayerCharacterRegistry.eloise;
+    final core = GameCore(
       seed: 1,
       tickHz: defaultTickHz,
-      cameraTuning: noAutoscrollCameraTuning,
-      resourceTuning: const ResourceTuning(
-        playerStaminaMax: 1,
-        playerStaminaRegenPerSecond: 0,
-        jumpStaminaCost: 2,
-        dashStaminaCost: 2,
+      tuning: noAutoscrollTuning,
+      playerCharacter: base.copyWith(
+        tuning: base.tuning.copyWith(
+          resource: const ResourceTuning(
+            playerStaminaMax: 1,
+            playerStaminaRegenPerSecond: 0,
+            jumpStaminaCost: 2,
+            dashStaminaCost: 2,
+          ),
+        ),
       ),
     );
 
@@ -203,12 +218,15 @@ void main() {
   });
 
   test('Body.gravityScale=0 disables gravity integration', () {
-    final core = GameCore.withTunings(
+    final base = PlayerCharacterRegistry.eloise;
+    final core = GameCore(
       seed: 1,
       tickHz: defaultTickHz,
-      cameraTuning: noAutoscrollCameraTuning,
-      playerCatalog: const PlayerCatalog(
-        bodyTemplate: BodyDef(gravityScale: 0),
+      tuning: noAutoscrollTuning,
+      playerCharacter: base.copyWith(
+        catalog: const PlayerCatalog(
+          bodyTemplate: BodyDef(gravityScale: 0),
+        ),
       ),
     );
     final catalog = const PlayerCatalog();
@@ -224,12 +242,15 @@ void main() {
   });
 
   test('Body.isKinematic skips physics integration', () {
-    final core = GameCore.withTunings(
+    final base = PlayerCharacterRegistry.eloise;
+    final core = GameCore(
       seed: 1,
       tickHz: defaultTickHz,
-      cameraTuning: noAutoscrollCameraTuning,
-      playerCatalog: const PlayerCatalog(
-        bodyTemplate: BodyDef(isKinematic: true),
+      tuning: noAutoscrollTuning,
+      playerCharacter: base.copyWith(
+        catalog: const PlayerCatalog(
+          bodyTemplate: BodyDef(isKinematic: true),
+        ),
       ),
     );
     final catalog = const PlayerCatalog();
@@ -246,11 +267,16 @@ void main() {
   });
 
   test('Body.maxVelY clamps jump velocity', () {
-    final core = GameCore.withTunings(
+    final base = PlayerCharacterRegistry.eloise;
+    final core = GameCore(
       seed: 1,
       tickHz: defaultTickHz,
-      cameraTuning: noAutoscrollCameraTuning,
-      movementTuning: const MovementTuning(maxVelY: 100),
+      tuning: noAutoscrollTuning,
+      playerCharacter: base.copyWith(
+        tuning: base.tuning.copyWith(
+          movement: const MovementTuning(maxVelY: 100),
+        ),
+      ),
     );
 
     _tick(core, jumpPressed: true);

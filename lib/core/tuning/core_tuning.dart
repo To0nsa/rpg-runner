@@ -14,7 +14,6 @@
 /// final core = GameCore(
 ///   seed: 42,
 ///   tuning: CoreTuning(
-///     movement: MovementTuning(jumpSpeed: 600),
 ///     track: TrackTuning(enabled: false),
 ///   ),
 /// );
@@ -32,17 +31,12 @@
 /// ```
 library;
 
-import 'player/player_ability_tuning.dart';
-import 'player/player_anim_tuning.dart';
 import 'camera_tuning.dart';
 import 'collectible_tuning.dart';
-import 'player/player_combat_tuning.dart';
 import 'flying_enemy_tuning.dart';
 import 'ground_enemy_tuning.dart';
-import 'player/player_movement_tuning.dart';
 import 'navigation_tuning.dart';
 import 'physics_tuning.dart';
-import 'player/player_resource_tuning.dart';
 import 'restoration_item_tuning.dart';
 import 'score_tuning.dart';
 import 'spatial_grid_tuning.dart';
@@ -58,11 +52,6 @@ class CoreTuning {
   /// Any parameter not specified uses its default value.
   const CoreTuning({
     this.physics = const PhysicsTuning(),
-    this.movement = const MovementTuning(),
-    this.resource = const ResourceTuning(),
-    this.ability = const AbilityTuning(),
-    this.anim = const AnimTuning(),
-    this.combat = const CombatTuning(),
     this.unocoDemon = const UnocoDemonTuning(),
     this.groundEnemy = const GroundEnemyTuning(),
     this.navigation = const NavigationTuning(),
@@ -76,21 +65,6 @@ class CoreTuning {
 
   /// Physics constants (gravity, etc.).
   final PhysicsTuning physics;
-
-  /// Player movement parameters (speed, jump, dash).
-  final MovementTuning movement;
-
-  /// Resource costs and regeneration rates.
-  final ResourceTuning resource;
-
-  /// Ability cooldowns and stamina costs.
-  final AbilityTuning ability;
-
-  /// Animation timing windows for snapshot state.
-  final AnimTuning anim;
-
-  /// Combat parameters (damage, invulnerability frames).
-  final CombatTuning combat;
 
   /// Flying enemy AI and spawn parameters.
   final UnocoDemonTuning unocoDemon;

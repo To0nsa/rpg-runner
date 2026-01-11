@@ -3,8 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:walkscape_runner/core/commands/command.dart';
 import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/game_core.dart';
+import 'package:walkscape_runner/core/players/player_character_registry.dart';
 import 'package:walkscape_runner/core/players/player_catalog.dart';
-import 'package:walkscape_runner/core/tuning/player/player_resource_tuning.dart';
+import 'package:walkscape_runner/core/players/player_tuning.dart';
 
 import '../test_tunings.dart';
 
@@ -12,20 +13,23 @@ void main() {
   test(
     'resource regen refills after spending and clamps at max (via snapshot HUD)',
     () {
-      final core = GameCore.withTunings(
+      final base = PlayerCharacterRegistry.eloise;
+      final core = GameCore(
         seed: 1,
         tickHz: 10,
-        playerCatalog: const PlayerCatalog(
-          bodyTemplate: BodyDef(useGravity: false),
-        ),
-        cameraTuning: noAutoscrollCameraTuning,
-        resourceTuning: const ResourceTuning(
-          playerHpMax: 100,
-          playerHpRegenPerSecond: 10,
-          playerManaMax: 10,
-          playerManaRegenPerSecond: 1,
-          playerStaminaMax: 20,
-          playerStaminaRegenPerSecond: 2,
+        tuning: noAutoscrollTuning,
+        playerCharacter: base.copyWith(
+          catalog: const PlayerCatalog(bodyTemplate: BodyDef(useGravity: false)),
+          tuning: base.tuning.copyWith(
+            resource: const ResourceTuning(
+              playerHpMax: 100,
+              playerHpRegenPerSecond: 10,
+              playerManaMax: 10,
+              playerManaRegenPerSecond: 1,
+              playerStaminaMax: 20,
+              playerStaminaRegenPerSecond: 2,
+            ),
+          ),
         ),
       );
 

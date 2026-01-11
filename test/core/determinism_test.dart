@@ -47,8 +47,8 @@ String _digest(GameCore core) {
 void main() {
   test('same seed + same commands => identical snapshots', () {
     const seed = 42;
-    final a = GameCore.withTunings(seed: seed);
-    final b = GameCore.withTunings(seed: seed);
+    final a = GameCore(seed: seed);
+    final b = GameCore(seed: seed);
 
     // Deterministic command schedule. Note that MoveAxis must be sent each tick
     // while held because Core resets tick inputs before applying commands.

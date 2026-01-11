@@ -1,0 +1,444 @@
+/// Player tuning (single-file source of truth).
+///
+/// This module intentionally centralizes all player-specific tuning:
+/// movement + resources + abilities + combat + animation (and derived/cache
+/// variants). This keeps per-character definitions DRY: they can reference a
+/// single import and override only what differs.
+///
+/// Other files in `lib/core/tuning/player/*` re-export this file so existing
+/// import paths keep working.
+library;
+
+import '../snapshots/enums.dart';
+import '../util/tick_math.dart';
+import '../tuning/utils/anim_tuning.dart' as anim_utils;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared player animation definitions (Core-owned, renderer consumes)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const int playerAnimFrameWidth = 100;
+const int playerAnimFrameHeight = 64;
+
+const int playerAnimIdleFrames = 4;
+const double playerAnimIdleStepSeconds = 0.14;
+
+const int playerAnimRunFrames = 7;
+const double playerAnimRunStepSeconds = 0.08;
+
+const int playerAnimJumpFrames = 6;
+const double playerAnimJumpStepSeconds = 0.10;
+
+const int playerAnimFallFrames = 3;
+const double playerAnimFallStepSeconds = 0.10;
+
+const int playerAnimAttackFrames = 6;
+const double playerAnimAttackStepSeconds = 0.06;
+
+const int playerAnimCastFrames = 5;
+const double playerAnimCastStepSeconds = 0.08;
+
+const int playerAnimDashFrames = 4;
+const double playerAnimDashStepSeconds = 0.05;
+
+const int playerAnimHitFrames = 4;
+const double playerAnimHitStepSeconds = 0.10;
+
+const int playerAnimDeathFrames = 6;
+const double playerAnimDeathStepSeconds = 0.12;
+
+// Spawn reuses idle timing/frames until a dedicated strip exists.
+const int playerAnimSpawnFrames = playerAnimIdleFrames;
+const double playerAnimSpawnStepSeconds = playerAnimIdleStepSeconds;
+
+const Map<AnimKey, int> playerAnimFrameCountsByKey = <AnimKey, int>{
+  AnimKey.idle: playerAnimIdleFrames,
+  AnimKey.run: playerAnimRunFrames,
+  AnimKey.jump: playerAnimJumpFrames,
+  AnimKey.fall: playerAnimFallFrames,
+  AnimKey.attack: playerAnimAttackFrames,
+  AnimKey.cast: playerAnimCastFrames,
+  AnimKey.dash: playerAnimDashFrames,
+  AnimKey.hit: playerAnimHitFrames,
+  AnimKey.death: playerAnimDeathFrames,
+  AnimKey.spawn: playerAnimSpawnFrames,
+};
+
+const Map<AnimKey, double> playerAnimStepTimeSecondsByKey = <AnimKey, double>{
+  AnimKey.idle: playerAnimIdleStepSeconds,
+  AnimKey.run: playerAnimRunStepSeconds,
+  AnimKey.jump: playerAnimJumpStepSeconds,
+  AnimKey.fall: playerAnimFallStepSeconds,
+  AnimKey.attack: playerAnimAttackStepSeconds,
+  AnimKey.cast: playerAnimCastStepSeconds,
+  AnimKey.dash: playerAnimDashStepSeconds,
+  AnimKey.hit: playerAnimHitStepSeconds,
+  AnimKey.death: playerAnimDeathStepSeconds,
+  AnimKey.spawn: playerAnimSpawnStepSeconds,
+};
+
+const double playerAnimHitSeconds =
+    playerAnimHitFrames * playerAnimHitStepSeconds;
+const double playerAnimCastSeconds =
+    playerAnimCastFrames * playerAnimCastStepSeconds;
+const double playerAnimAttackSeconds =
+    playerAnimAttackFrames * playerAnimAttackStepSeconds;
+const double playerAnimDeathSeconds =
+    playerAnimDeathFrames * playerAnimDeathStepSeconds;
+const double playerAnimSpawnSeconds =
+    playerAnimSpawnFrames * playerAnimSpawnStepSeconds;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Player movement tuning (author in seconds, applied per fixed tick)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const int defaultTickHz = 60;
+
+class MovementTuning {
+  const MovementTuning({
+    this.maxSpeedX = 200,
+    this.accelerationX = 600,
+    this.decelerationX = 400,
+    this.minMoveSpeed = 5,
+    this.maxVelX = 1500,
+    this.maxVelY = 1500,
+    this.jumpSpeed = 500,
+    this.coyoteTimeSeconds = 0.10,
+    this.jumpBufferSeconds = 0.12,
+    this.dashSpeedX = 550,
+    this.dashDurationSeconds = 0.20,
+    this.dashCooldownSeconds = 2.0,
+  });
+
+  final double maxSpeedX;
+  final double accelerationX;
+  final double decelerationX;
+  final double minMoveSpeed;
+
+  final double maxVelX;
+  final double maxVelY;
+
+  final double jumpSpeed;
+
+  final double coyoteTimeSeconds;
+  final double jumpBufferSeconds;
+
+  final double dashSpeedX;
+  final double dashDurationSeconds;
+  final double dashCooldownSeconds;
+}
+
+class MovementTuningDerived {
+  const MovementTuningDerived._({
+    required this.tickHz,
+    required this.dtSeconds,
+    required this.base,
+    required this.coyoteTicks,
+    required this.jumpBufferTicks,
+    required this.dashDurationTicks,
+    required this.dashCooldownTicks,
+  });
+
+  factory MovementTuningDerived.from(MovementTuning base, {required int tickHz}) {
+    if (tickHz <= 0) {
+      throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
+    }
+    return MovementTuningDerived._(
+      tickHz: tickHz,
+      dtSeconds: 1.0 / tickHz,
+      base: base,
+      coyoteTicks: ticksFromSecondsCeil(base.coyoteTimeSeconds, tickHz),
+      jumpBufferTicks: ticksFromSecondsCeil(base.jumpBufferSeconds, tickHz),
+      dashDurationTicks: ticksFromSecondsCeil(base.dashDurationSeconds, tickHz),
+      dashCooldownTicks: ticksFromSecondsCeil(base.dashCooldownSeconds, tickHz),
+    );
+  }
+
+  final int tickHz;
+  final double dtSeconds;
+  final MovementTuning base;
+
+  final int coyoteTicks;
+  final int jumpBufferTicks;
+  final int dashDurationTicks;
+  final int dashCooldownTicks;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Player resources tuning (hp/mana/stamina + regen + costs)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class ResourceTuning {
+  const ResourceTuning({
+    this.playerHpMax = 100,
+    this.playerHpRegenPerSecond = 0.5,
+    this.playerManaMax = 100,
+    this.playerManaRegenPerSecond = 2.0,
+    this.playerStaminaMax = 100,
+    this.playerStaminaRegenPerSecond = 1.0,
+    this.jumpStaminaCost = 2,
+    this.dashStaminaCost = 2,
+  });
+
+  final double playerHpMax;
+  final double playerHpRegenPerSecond;
+
+  final double playerManaMax;
+  final double playerManaRegenPerSecond;
+
+  final double playerStaminaMax;
+  final double playerStaminaRegenPerSecond;
+
+  final double jumpStaminaCost;
+  final double dashStaminaCost;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Player ability tuning (cast, melee)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class AbilityTuning {
+  const AbilityTuning({
+    this.castCooldownSeconds = 0.25,
+    this.meleeCooldownSeconds = 0.30,
+    this.meleeActiveSeconds = 0.10,
+    this.meleeStaminaCost = 5.0,
+    this.meleeDamage = 15.0,
+    this.meleeHitboxSizeX = 32.0,
+    this.meleeHitboxSizeY = 16.0,
+  });
+
+  final double castCooldownSeconds;
+  final double meleeCooldownSeconds;
+  final double meleeActiveSeconds;
+
+  final double meleeStaminaCost;
+  final double meleeDamage;
+
+  final double meleeHitboxSizeX;
+  final double meleeHitboxSizeY;
+}
+
+class AbilityTuningDerived {
+  const AbilityTuningDerived._({
+    required this.tickHz,
+    required this.base,
+    required this.castCooldownTicks,
+    required this.meleeCooldownTicks,
+    required this.meleeActiveTicks,
+  });
+
+  factory AbilityTuningDerived.from(AbilityTuning base, {required int tickHz}) {
+    if (tickHz <= 0) {
+      throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
+    }
+
+    return AbilityTuningDerived._(
+      tickHz: tickHz,
+      base: base,
+      castCooldownTicks: ticksFromSecondsCeil(base.castCooldownSeconds, tickHz),
+      meleeCooldownTicks: ticksFromSecondsCeil(base.meleeCooldownSeconds, tickHz),
+      meleeActiveTicks: ticksFromSecondsCeil(base.meleeActiveSeconds, tickHz),
+    );
+  }
+
+  final int tickHz;
+  final AbilityTuning base;
+
+  final int castCooldownTicks;
+  final int meleeCooldownTicks;
+  final int meleeActiveTicks;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Player combat tuning (invulnerability)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class CombatTuning {
+  const CombatTuning({this.invulnerabilitySeconds = 0.25});
+
+  final double invulnerabilitySeconds;
+}
+
+class CombatTuningDerived {
+  const CombatTuningDerived._({
+    required this.tickHz,
+    required this.base,
+    required this.invulnerabilityTicks,
+  });
+
+  factory CombatTuningDerived.from(CombatTuning base, {required int tickHz}) {
+    if (tickHz <= 0) {
+      throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
+    }
+
+    return CombatTuningDerived._(
+      tickHz: tickHz,
+      base: base,
+      invulnerabilityTicks: ticksFromSecondsCeil(
+        base.invulnerabilitySeconds,
+        tickHz,
+      ),
+    );
+  }
+
+  final int tickHz;
+  final CombatTuning base;
+
+  final int invulnerabilityTicks;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Player animation tuning (timing windows)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class AnimTuning {
+  const AnimTuning({
+    this.hitAnimSeconds = playerAnimHitSeconds,
+    this.castAnimSeconds = playerAnimCastSeconds,
+    this.attackAnimSeconds = playerAnimAttackSeconds,
+    this.deathAnimSeconds = playerAnimDeathSeconds,
+    this.spawnAnimSeconds = playerAnimSpawnSeconds,
+  });
+
+  static AnimTuning fromStripFrames({
+    required Map<AnimKey, int> frameCounts,
+    required Map<AnimKey, double> stepTimeSecondsByKey,
+  }) {
+    return AnimTuning(
+      hitAnimSeconds: anim_utils.secondsForKey(
+        key: AnimKey.hit,
+        frameCounts: frameCounts,
+        stepTimeSecondsByKey: stepTimeSecondsByKey,
+      ),
+      castAnimSeconds: anim_utils.secondsForKey(
+        key: AnimKey.cast,
+        frameCounts: frameCounts,
+        stepTimeSecondsByKey: stepTimeSecondsByKey,
+      ),
+      attackAnimSeconds: anim_utils.secondsForKey(
+        key: AnimKey.attack,
+        frameCounts: frameCounts,
+        stepTimeSecondsByKey: stepTimeSecondsByKey,
+      ),
+      deathAnimSeconds: anim_utils.secondsForKey(
+        key: AnimKey.death,
+        frameCounts: frameCounts,
+        stepTimeSecondsByKey: stepTimeSecondsByKey,
+      ),
+      spawnAnimSeconds: anim_utils.secondsForKey(
+        key: AnimKey.spawn,
+        frameCounts: frameCounts,
+        stepTimeSecondsByKey: stepTimeSecondsByKey,
+      ),
+    );
+  }
+
+  final double hitAnimSeconds;
+  final double castAnimSeconds;
+  final double attackAnimSeconds;
+  final double deathAnimSeconds;
+  final double spawnAnimSeconds;
+}
+
+class AnimTuningDerived {
+  const AnimTuningDerived._({
+    required this.tickHz,
+    required this.base,
+    required this.hitAnimTicks,
+    required this.castAnimTicks,
+    required this.attackAnimTicks,
+    required this.deathAnimTicks,
+    required this.spawnAnimTicks,
+  });
+
+  factory AnimTuningDerived.from(AnimTuning base, {required int tickHz}) {
+    if (tickHz <= 0) {
+      throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
+    }
+
+    return AnimTuningDerived._(
+      tickHz: tickHz,
+      base: base,
+      hitAnimTicks: ticksFromSecondsCeil(base.hitAnimSeconds, tickHz),
+      castAnimTicks: ticksFromSecondsCeil(base.castAnimSeconds, tickHz),
+      attackAnimTicks: ticksFromSecondsCeil(base.attackAnimSeconds, tickHz),
+      deathAnimTicks: ticksFromSecondsCeil(base.deathAnimSeconds, tickHz),
+      spawnAnimTicks: ticksFromSecondsCeil(base.spawnAnimSeconds, tickHz),
+    );
+  }
+
+  final int tickHz;
+  final AnimTuning base;
+
+  final int hitAnimTicks;
+  final int castAnimTicks;
+  final int attackAnimTicks;
+  final int deathAnimTicks;
+  final int spawnAnimTicks;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Player tuning bundle + derived compiler (composition)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class PlayerTuning {
+  const PlayerTuning({
+    this.movement = const MovementTuning(),
+    this.resource = const ResourceTuning(),
+    this.ability = const AbilityTuning(),
+    this.anim = const AnimTuning(),
+    this.combat = const CombatTuning(),
+  });
+
+  final MovementTuning movement;
+  final ResourceTuning resource;
+  final AbilityTuning ability;
+  final AnimTuning anim;
+  final CombatTuning combat;
+
+  PlayerTuning copyWith({
+    MovementTuning? movement,
+    ResourceTuning? resource,
+    AbilityTuning? ability,
+    AnimTuning? anim,
+    CombatTuning? combat,
+  }) {
+    return PlayerTuning(
+      movement: movement ?? this.movement,
+      resource: resource ?? this.resource,
+      ability: ability ?? this.ability,
+      anim: anim ?? this.anim,
+      combat: combat ?? this.combat,
+    );
+  }
+}
+
+class PlayerTuningDerived {
+  const PlayerTuningDerived({
+    required this.movement,
+    required this.ability,
+    required this.anim,
+    required this.combat,
+  });
+
+  final MovementTuningDerived movement;
+  final AbilityTuningDerived ability;
+  final AnimTuningDerived anim;
+  final CombatTuningDerived combat;
+}
+
+class PlayerTuningCompiler {
+  const PlayerTuningCompiler({required this.tickHz});
+
+  final int tickHz;
+
+  PlayerTuningDerived compile(PlayerTuning base) {
+    return PlayerTuningDerived(
+      movement: MovementTuningDerived.from(base.movement, tickHz: tickHz),
+      ability: AbilityTuningDerived.from(base.ability, tickHz: tickHz),
+      anim: AnimTuningDerived.from(base.anim, tickHz: tickHz),
+      combat: CombatTuningDerived.from(base.combat, tickHz: tickHz),
+    );
+  }
+}

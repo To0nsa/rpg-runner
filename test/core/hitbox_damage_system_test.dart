@@ -17,7 +17,7 @@ import 'package:walkscape_runner/core/ecs/systems/melee_attack_system.dart';
 import 'package:walkscape_runner/core/ecs/systems/player_melee_system.dart';
 import 'package:walkscape_runner/core/ecs/world.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
-import 'package:walkscape_runner/core/tuning/player/player_ability_tuning.dart';
+import 'package:walkscape_runner/core/players/player_tuning.dart';
 import 'package:walkscape_runner/core/tuning/spatial_grid_tuning.dart';
 import 'package:walkscape_runner/core/ecs/entity_factory.dart';
 import 'package:walkscape_runner/core/weapons/weapon_catalog.dart';

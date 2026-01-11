@@ -9,7 +9,7 @@ import '../test_tunings.dart';
 
 void main() {
   testWidgets('SurvivalTimerOverlay formats tick-based mm:ss', (tester) async {
-    final core = GameCore.withTunings(seed: 1, cameraTuning: noAutoscrollCameraTuning);
+    final core = GameCore(seed: 1, tuning: noAutoscrollTuning);
     final controller = GameController(core: core);
 
     await tester.pumpWidget(

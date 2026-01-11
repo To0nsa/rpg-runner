@@ -9,8 +9,7 @@ import '../ecs/stores/health_store.dart';
 import '../ecs/stores/mana_store.dart';
 import '../ecs/stores/stamina_store.dart';
 import '../snapshots/enums.dart';
-import '../tuning/player/player_movement_tuning.dart';
-import '../tuning/player/player_resource_tuning.dart';
+import 'player_tuning.dart';
 import '../weapons/weapon_id.dart';
 import '../weapons/ranged_weapon_id.dart';
 import 'player_archetype.dart';
@@ -39,10 +38,10 @@ class PlayerCatalog {
       gravityScale: 1.0,
       sideMask: BodyDef.sideLeft | BodyDef.sideRight,
     ),
-    this.colliderWidth = 16.0,
-    this.colliderHeight = 16.0,
+    this.colliderWidth = 22.0,
+    this.colliderHeight = 46.0,
     this.colliderOffsetX = 0.0,
-    this.colliderOffsetY = 0.0,
+    this.colliderOffsetY = -6.0,
     this.tags = const CreatureTagDef(mask: CreatureTagMask.humanoid),
     this.resistance = const DamageResistanceDef(),
     this.statusImmunity = const StatusImmunityDef(),

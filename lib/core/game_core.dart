@@ -115,6 +115,8 @@ import 'navigation/surface_pathfinder.dart';
 import 'navigation/utils/jump_template.dart';
 import 'navigation/utils/trajectory_predictor.dart';
 import 'players/player_catalog.dart';
+import 'players/player_character_definition.dart';
+import 'players/player_character_registry.dart';
 import 'projectiles/projectile_catalog.dart';
 import 'snapshots/enums.dart';
 import 'snapshots/game_state_snapshot.dart';
@@ -126,18 +128,14 @@ import 'weapons/weapon_catalog.dart';
 import 'ecs/stores/combat/equipped_weapon_store.dart';
 import 'ecs/stores/combat/equipped_ranged_weapon_store.dart';
 import 'weapons/ranged_weapon_catalog.dart';
-import 'tuning/player/player_ability_tuning.dart';
-import 'tuning/player/player_anim_tuning.dart';
 import 'tuning/camera_tuning.dart';
 import 'tuning/collectible_tuning.dart';
-import 'tuning/player/player_combat_tuning.dart';
 import 'tuning/core_tuning.dart';
 import 'tuning/flying_enemy_tuning.dart';
 import 'tuning/ground_enemy_tuning.dart';
-import 'tuning/player/player_movement_tuning.dart';
 import 'tuning/navigation_tuning.dart';
 import 'tuning/physics_tuning.dart';
-import 'tuning/player/player_resource_tuning.dart';
+import 'players/player_tuning.dart';
 import 'tuning/restoration_item_tuning.dart';
 import 'tuning/score_tuning.dart';
 import 'tuning/spatial_grid_tuning.dart';
@@ -169,16 +167,21 @@ import 'util/tick_math.dart';
 ///
 /// ## Custom Configuration
 ///
-  /// Use [CoreTuning] to customize game parameters:
-  /// ```dart
-  /// final core = GameCore(
-  ///   seed: 123,
-  ///   tuning: CoreTuning(
-  ///     movement: MovementTuning(jumpSpeed: 600),
-  ///     track: TrackTuning(enabled: false),
-  ///   ),
-  /// );
-  /// ```
+/// Use [CoreTuning] to customize world/level parameters:
+/// ```dart
+/// final core = GameCore(
+///   seed: 123,
+///   tuning: CoreTuning(track: TrackTuning(enabled: false)),
+/// );
+/// ```
+///
+/// Use [PlayerCharacterDefinition] to select player-specific tuning + collider:
+/// ```dart
+/// final core = GameCore(
+///   seed: 123,
+///   playerCharacter: PlayerCharacterRegistry.eloise,
+/// );
+/// ```
   ///
   /// Use [LevelDefinition] to select a level configuration:
   /// ```dart
@@ -187,16 +190,6 @@ import 'util/tick_math.dart';
   ///   levelDefinition: LevelRegistry.byId(LevelId.defaultLevel),
   /// );
   /// ```
-///
-/// For backward compatibility, [GameCore.withTunings] accepts individual
-/// tuning parameters:
-/// ```dart
-/// final core = GameCore.withTunings(
-///   seed: 123,
-///   movementTuning: MovementTuning(jumpSpeed: 600),
-///   trackTuning: TrackTuning(enabled: false),
-/// );
-/// ```
 class GameCore {
   static LevelDefinition _resolveLevelDefinition({
     required CoreTuning tuning,
@@ -227,17 +220,15 @@ class GameCore {
   /// - [levelDefinition]: Optional level config. When provided, its tuning,
   ///   static geometry, and pattern pools are used (and [tuning] /
   ///   [staticWorldGeometry] are ignored).
-  ///
-  /// For backward compatibility with existing code that passes individual
-  /// tuning parameters, use [GameCore.withTunings] instead.
   GameCore({
     required int seed,
     int tickHz = defaultTickHz,
     CoreTuning tuning = const CoreTuning(),
+    PlayerCharacterDefinition playerCharacter =
+        PlayerCharacterRegistry.defaultCharacter,
     SpellCatalog spellCatalog = const SpellCatalog(),
     ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
     EnemyCatalog enemyCatalog = const EnemyCatalog(),
-    PlayerCatalog playerCatalog = const PlayerCatalog(),
     WeaponCatalog weaponCatalog = const WeaponCatalog(),
     RangedWeaponCatalog rangedWeaponCatalog = const RangedWeaponCatalog(),
     StaticWorldGeometry staticWorldGeometry = const StaticWorldGeometry(
@@ -255,7 +246,7 @@ class GameCore {
          spellCatalog: spellCatalog,
          projectileCatalog: projectileCatalog,
          enemyCatalog: enemyCatalog,
-         playerCatalog: playerCatalog,
+         playerCharacter: playerCharacter,
          weaponCatalog: weaponCatalog,
          rangedWeaponCatalog: rangedWeaponCatalog,
        );
@@ -267,26 +258,26 @@ class GameCore {
     required SpellCatalog spellCatalog,
     required ProjectileCatalog projectileCatalog,
     required EnemyCatalog enemyCatalog,
-    required PlayerCatalog playerCatalog,
+    required PlayerCharacterDefinition playerCharacter,
     required WeaponCatalog weaponCatalog,
     required RangedWeaponCatalog rangedWeaponCatalog,
   }) : _levelDefinition = levelDefinition,
        _movement = MovementTuningDerived.from(
-         levelDefinition.tuning.movement,
+         playerCharacter.tuning.movement,
          tickHz: tickHz,
        ),
        _physicsTuning = levelDefinition.tuning.physics,
-       _resourceTuning = levelDefinition.tuning.resource,
+       _resourceTuning = playerCharacter.tuning.resource,
        _abilities = AbilityTuningDerived.from(
-         levelDefinition.tuning.ability,
+         playerCharacter.tuning.ability,
          tickHz: tickHz,
        ),
        _animTuning = AnimTuningDerived.from(
-         levelDefinition.tuning.anim,
+         playerCharacter.tuning.anim,
          tickHz: tickHz,
        ),
        _combat = CombatTuningDerived.from(
-         levelDefinition.tuning.combat,
+         playerCharacter.tuning.combat,
          tickHz: tickHz,
        ),
        _unocoDemonTuning = UnocoDemonTuningDerived.from(
@@ -305,7 +296,7 @@ class GameCore {
          tickHz: tickHz,
        ),
        _enemyCatalog = enemyCatalog,
-       _playerCatalog = playerCatalog,
+       _playerCharacter = playerCharacter,
        _weapons = weaponCatalog,
        _rangedWeapons = RangedWeaponCatalogDerived.from(
          rangedWeaponCatalog,
@@ -316,78 +307,6 @@ class GameCore {
        _collectibleTuning = levelDefinition.tuning.collectible,
        _restorationItemTuning = levelDefinition.tuning.restorationItem {
     _initializeWorld(levelDefinition);
-  }
-
-  /// Creates a game simulation with individual tuning parameters.
-  ///
-  /// This factory provides backward compatibility for code that passes
-  /// individual tuning objects. Prefer the default constructor with
-  /// [CoreTuning] for new code.
-  ///
-  /// Example:
-  /// ```dart
-  /// final core = GameCore.withTunings(
-  ///   seed: 123,
-  ///   movementTuning: MovementTuning(jumpSpeed: 600),
-  ///   trackTuning: TrackTuning(enabled: false),
-  /// );
-  /// ```
-  factory GameCore.withTunings({
-    required int seed,
-    int tickHz = defaultTickHz,
-    PhysicsTuning physicsTuning = const PhysicsTuning(),
-    MovementTuning movementTuning = const MovementTuning(),
-    ResourceTuning resourceTuning = const ResourceTuning(),
-    AbilityTuning abilityTuning = const AbilityTuning(),
-    AnimTuning animTuning = const AnimTuning(),
-    CombatTuning combatTuning = const CombatTuning(),
-    UnocoDemonTuning unocoDemonTuning = const UnocoDemonTuning(),
-    GroundEnemyTuning groundEnemyTuning = const GroundEnemyTuning(),
-    NavigationTuning navigationTuning = const NavigationTuning(),
-    SpatialGridTuning spatialGridTuning = const SpatialGridTuning(),
-    CameraTuning cameraTuning = const CameraTuning(),
-    TrackTuning trackTuning = const TrackTuning(),
-    CollectibleTuning collectibleTuning = const CollectibleTuning(),
-    RestorationItemTuning restorationItemTuning = const RestorationItemTuning(),
-    ScoreTuning scoreTuning = const ScoreTuning(),
-    SpellCatalog spellCatalog = const SpellCatalog(),
-    ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
-    EnemyCatalog enemyCatalog = const EnemyCatalog(),
-    PlayerCatalog playerCatalog = const PlayerCatalog(),
-    WeaponCatalog weaponCatalog = const WeaponCatalog(),
-    RangedWeaponCatalog rangedWeaponCatalog = const RangedWeaponCatalog(),
-    StaticWorldGeometry staticWorldGeometry = const StaticWorldGeometry(
-      groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
-    ),
-  }) {
-    return GameCore(
-      seed: seed,
-      tickHz: tickHz,
-      tuning: CoreTuning(
-        physics: physicsTuning,
-        movement: movementTuning,
-        resource: resourceTuning,
-        ability: abilityTuning,
-        anim: animTuning,
-        combat: combatTuning,
-        unocoDemon: unocoDemonTuning,
-        groundEnemy: groundEnemyTuning,
-        navigation: navigationTuning,
-        spatialGrid: spatialGridTuning,
-        camera: cameraTuning,
-        track: trackTuning,
-        collectible: collectibleTuning,
-        restorationItem: restorationItemTuning,
-        score: scoreTuning,
-      ),
-      spellCatalog: spellCatalog,
-      projectileCatalog: projectileCatalog,
-      enemyCatalog: enemyCatalog,
-      playerCatalog: playerCatalog,
-      weaponCatalog: weaponCatalog,
-      rangedWeaponCatalog: rangedWeaponCatalog,
-      staticWorldGeometry: staticWorldGeometry,
-    );
   }
 
   /// Common initialization shared by all constructors.
@@ -575,7 +494,7 @@ class GameCore {
   void _spawnPlayer(double groundTopY) {
     final spawnX = _trackTuning.playerStartX;
     final playerArchetype = PlayerCatalogDerived.from(
-      _playerCatalog,
+      _playerCharacter.catalog,
       movement: _movement,
       resources: _resourceTuning,
     ).archetype;
@@ -649,7 +568,7 @@ class GameCore {
   final SpellCatalog _spells;
   final ProjectileCatalogDerived _projectiles;
   final EnemyCatalog _enemyCatalog;
-  final PlayerCatalog _playerCatalog;
+  final PlayerCharacterDefinition _playerCharacter;
   final WeaponCatalog _weapons;
   final RangedWeaponCatalogDerived _rangedWeapons;
 

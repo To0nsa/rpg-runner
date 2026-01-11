@@ -3,10 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:walkscape_runner/core/commands/command.dart';
 import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/game_core.dart';
+import 'package:walkscape_runner/core/players/player_character_registry.dart';
 import 'package:walkscape_runner/core/players/player_catalog.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
-import 'package:walkscape_runner/core/tuning/player/player_ability_tuning.dart';
-import 'package:walkscape_runner/core/tuning/player/player_resource_tuning.dart';
+import 'package:walkscape_runner/core/players/player_tuning.dart';
 
 import '../test_tunings.dart';
 
@@ -23,15 +23,20 @@ void main() {
       abilityTuning,
       tickHz: 60,
     );
-    final core = GameCore.withTunings(
+    final base = PlayerCharacterRegistry.eloise;
+    final core = GameCore(
       seed: 1,
       tickHz: 60,
-      playerCatalog: const PlayerCatalog(
-        bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+      tuning: noAutoscrollTuning,
+      playerCharacter: base.copyWith(
+        catalog: const PlayerCatalog(
+          bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+        ),
+        tuning: base.tuning.copyWith(
+          resource: resourceTuning,
+          ability: abilityTuning,
+        ),
       ),
-      cameraTuning: noAutoscrollCameraTuning,
-      resourceTuning: resourceTuning,
-      abilityTuning: abilityTuning,
     );
 
     final playerX = core.playerPosX;
@@ -84,15 +89,20 @@ void main() {
       playerManaRegenPerSecond: 0,
       playerHpRegenPerSecond: 0,
     );
-    final core = GameCore.withTunings(
+    final base = PlayerCharacterRegistry.eloise;
+    final core = GameCore(
       seed: 1,
       tickHz: 60,
-      playerCatalog: const PlayerCatalog(
-        bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+      tuning: noAutoscrollTuning,
+      playerCharacter: base.copyWith(
+        catalog: const PlayerCatalog(
+          bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+        ),
+        tuning: base.tuning.copyWith(
+          resource: resourceTuning,
+          ability: abilityTuning,
+        ),
       ),
-      cameraTuning: noAutoscrollCameraTuning,
-      resourceTuning: resourceTuning,
-      abilityTuning: abilityTuning,
     );
 
     final playerX = core.playerPosX;

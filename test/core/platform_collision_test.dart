@@ -4,8 +4,10 @@ import 'package:walkscape_runner/core/collision/static_world_geometry.dart';
 import 'package:walkscape_runner/core/commands/command.dart';
 import 'package:walkscape_runner/core/contracts/render_contract.dart';
 import 'package:walkscape_runner/core/game_core.dart';
+import 'package:walkscape_runner/core/players/player_character_registry.dart';
 import 'package:walkscape_runner/core/players/player_catalog.dart';
-import 'package:walkscape_runner/core/tuning/player/player_movement_tuning.dart';
+import 'package:walkscape_runner/core/tuning/core_tuning.dart';
+import 'package:walkscape_runner/core/players/player_tuning.dart';
 import 'package:walkscape_runner/core/tuning/track_tuning.dart';
 
 import '../test_tunings.dart';
@@ -26,17 +28,21 @@ void main() {
     const topY = 180.0;
     const r = 8.0;
 
-    final core = GameCore.withTunings(
+    final core = GameCore(
       seed: 1,
       tickHz: defaultTickHz,
-      cameraTuning: noAutoscrollCameraTuning,
-      trackTuning: const TrackTuning(enabled: false),
-      playerCatalog: const PlayerCatalog(colliderWidth: r * 2, colliderHeight: r * 2),
       staticWorldGeometry: const StaticWorldGeometry(
         groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
         solids: <StaticSolid>[
           StaticSolid(minX: 0, minY: topY, maxX: 240, maxY: topY + 16),
         ],
+      ),
+      tuning: const CoreTuning(
+        camera: noAutoscrollCameraTuning,
+        track: TrackTuning(enabled: false),
+      ),
+      playerCharacter: PlayerCharacterRegistry.eloise.copyWith(
+        catalog: PlayerCatalog(colliderWidth: r * 2, colliderHeight: r * 2),
       ),
     );
 
@@ -63,17 +69,21 @@ void main() {
     const topY = 180.0;
     const r = 8.0;
 
-    final core = GameCore.withTunings(
+    final core = GameCore(
       seed: 1,
       tickHz: defaultTickHz,
-      cameraTuning: noAutoscrollCameraTuning,
-      trackTuning: const TrackTuning(enabled: false),
-      playerCatalog: const PlayerCatalog(colliderWidth: r * 2, colliderHeight: r * 2),
       staticWorldGeometry: const StaticWorldGeometry(
         groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
         solids: <StaticSolid>[
           StaticSolid(minX: 0, minY: topY, maxX: 240, maxY: topY + 16),
         ],
+      ),
+      tuning: const CoreTuning(
+        camera: noAutoscrollCameraTuning,
+        track: TrackTuning(enabled: false),
+      ),
+      playerCharacter: PlayerCharacterRegistry.eloise.copyWith(
+        catalog: PlayerCatalog(colliderWidth: r * 2, colliderHeight: r * 2),
       ),
     );
 
@@ -92,17 +102,21 @@ void main() {
     const r = 8.0;
     const platformMaxX = 240.0;
 
-    final core = GameCore.withTunings(
+    final core = GameCore(
       seed: 1,
       tickHz: defaultTickHz,
-      cameraTuning: noAutoscrollCameraTuning,
-      trackTuning: const TrackTuning(enabled: false),
-      playerCatalog: const PlayerCatalog(colliderWidth: r * 2, colliderHeight: r * 2),
       staticWorldGeometry: const StaticWorldGeometry(
         groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
         solids: <StaticSolid>[
           StaticSolid(minX: 0, minY: topY, maxX: platformMaxX, maxY: topY + 16),
         ],
+      ),
+      tuning: const CoreTuning(
+        camera: noAutoscrollCameraTuning,
+        track: TrackTuning(enabled: false),
+      ),
+      playerCharacter: PlayerCharacterRegistry.eloise.copyWith(
+        catalog: PlayerCatalog(colliderWidth: r * 2, colliderHeight: r * 2),
       ),
     );
 

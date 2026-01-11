@@ -8,11 +8,12 @@ import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/ecs/systems/projectile_world_collision_system.dart';
 import 'package:walkscape_runner/core/ecs/world.dart';
 import 'package:walkscape_runner/core/game_core.dart';
+import 'package:walkscape_runner/core/players/player_character_registry.dart';
 import 'package:walkscape_runner/core/players/player_catalog.dart';
 import 'package:walkscape_runner/core/projectiles/projectile_catalog.dart';
 import 'package:walkscape_runner/core/projectiles/projectile_id.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
-import 'package:walkscape_runner/core/tuning/player/player_resource_tuning.dart';
+import 'package:walkscape_runner/core/players/player_tuning.dart';
 import 'package:walkscape_runner/core/weapons/ranged_weapon_catalog.dart';
 import 'package:walkscape_runner/core/weapons/ranged_weapon_id.dart';
 import 'package:walkscape_runner/core/weapons/spawn_ranged_weapon_projectile.dart';
@@ -25,20 +26,25 @@ void main() {
     'ranged: sufficient stamina + ammo => projectile spawns + costs + cooldown set',
     () {
       const tickHz = 20;
-      final core = GameCore.withTunings(
+      final base = PlayerCharacterRegistry.eloise;
+      final core = GameCore(
         seed: 1,
         tickHz: tickHz,
-        playerCatalog: const PlayerCatalog(
-          bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-          rangedWeaponId: RangedWeaponId.bow,
-          ammo: AmmoDef(arrows: 2, throwingAxes: 0),
-        ),
-        cameraTuning: noAutoscrollCameraTuning,
-        resourceTuning: const ResourceTuning(
-          playerManaMax: 0,
-          playerManaRegenPerSecond: 0,
-          playerStaminaMax: 10,
-          playerStaminaRegenPerSecond: 0,
+        tuning: noAutoscrollTuning,
+        playerCharacter: base.copyWith(
+          catalog: const PlayerCatalog(
+            bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+            rangedWeaponId: RangedWeaponId.bow,
+            ammo: AmmoDef(arrows: 2, throwingAxes: 0),
+          ),
+          tuning: base.tuning.copyWith(
+            resource: const ResourceTuning(
+              playerManaMax: 0,
+              playerManaRegenPerSecond: 0,
+              playerStaminaMax: 10,
+              playerStaminaRegenPerSecond: 0,
+            ),
+          ),
         ),
       );
 
@@ -71,20 +77,25 @@ void main() {
   );
 
   test('ranged: insufficient ammo => no projectile + no costs + no cooldown', () {
-    final core = GameCore.withTunings(
+    final base = PlayerCharacterRegistry.eloise;
+    final core = GameCore(
       seed: 1,
       tickHz: 20,
-      playerCatalog: const PlayerCatalog(
-        bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-        rangedWeaponId: RangedWeaponId.bow,
-        ammo: AmmoDef(arrows: 0, throwingAxes: 0),
-      ),
-      cameraTuning: noAutoscrollCameraTuning,
-      resourceTuning: const ResourceTuning(
-        playerManaMax: 0,
-        playerManaRegenPerSecond: 0,
-        playerStaminaMax: 10,
-        playerStaminaRegenPerSecond: 0,
+      tuning: noAutoscrollTuning,
+      playerCharacter: base.copyWith(
+        catalog: const PlayerCatalog(
+          bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+          rangedWeaponId: RangedWeaponId.bow,
+          ammo: AmmoDef(arrows: 0, throwingAxes: 0),
+        ),
+        tuning: base.tuning.copyWith(
+          resource: const ResourceTuning(
+            playerManaMax: 0,
+            playerManaRegenPerSecond: 0,
+            playerStaminaMax: 10,
+            playerStaminaRegenPerSecond: 0,
+          ),
+        ),
       ),
     );
 
@@ -149,4 +160,3 @@ void main() {
     expect(world.collision.has(p), isFalse);
   });
 }
-

@@ -1,7 +1,7 @@
 import 'dart:math';
 
 import '../../snapshots/enums.dart';
-import '../../tuning/player/player_ability_tuning.dart';
+import '../../players/player_tuning.dart';
 import '../../weapons/weapon_catalog.dart';
 import '../entity_id.dart';
 import '../stores/melee_intent_store.dart';
