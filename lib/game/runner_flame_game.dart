@@ -12,6 +12,8 @@ import '../core/contracts/render_contract.dart';
 import '../core/snapshots/entity_render_snapshot.dart';
 import '../core/snapshots/enums.dart';
 import '../core/snapshots/static_solid_snapshot.dart';
+import 'debug/debug_aabb_overlay.dart';
+import 'debug/render_debug_flags.dart';
 import 'components/player/player_animations.dart';
 import 'components/player/player_view_component.dart';
 import 'tuning/player_render_tuning.dart';
@@ -37,6 +39,7 @@ const _priorityEnemies = -2;
 const _priorityProjectiles = -1;
 const _priorityCollectibles = -1;
 const _priorityHitboxes = 1;
+const _priorityActorHitboxes = 2;
 const _priorityProjectileAimRay = 5;
 const _priorityMeleeAimRay = 6;
 const _priorityRangedAimRay = 7;
@@ -77,6 +80,8 @@ class RunnerFlameGame extends FlameGame {
   final Map<int, RectangleComponent> _collectibles = <int, RectangleComponent>{};
   final Map<int, CircleComponent> _enemies = <int, CircleComponent>{};
   final Map<int, RectangleComponent> _hitboxes = <int, RectangleComponent>{};
+  final Map<int, RectangleComponent> _actorHitboxes =
+      <int, RectangleComponent>{};
 
   final Paint _projectilePaint = Paint()..color = const Color(0xFF60A5FA);
   final Map<int, Paint> _pickupPaints = <int, Paint>{
@@ -90,6 +95,11 @@ class RunnerFlameGame extends FlameGame {
     Paint()..color = const Color(0xFFF97316), // orange
   ];
   final Paint _hitboxPaint = Paint()..color = const Color(0x66EF4444);
+  final Paint _actorHitboxPaint =
+      Paint()
+        ..color = const Color(0xFF22C55E)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0;
 
   @override
   Future<void> onLoad() async {
@@ -202,6 +212,17 @@ class RunnerFlameGame extends FlameGame {
     _syncProjectiles(updatedSnapshot.entities);
     _syncCollectibles(updatedSnapshot.entities);
     _syncHitboxes(updatedSnapshot.entities);
+    syncDebugAabbOverlays(
+      entities: updatedSnapshot.entities,
+      enabled:
+          RenderDebugFlags.canUseRenderDebug &&
+          RenderDebugFlags.drawActorHitboxes,
+      parent: world,
+      pool: _actorHitboxes,
+      priority: _priorityActorHitboxes,
+      paint: _actorHitboxPaint,
+      include: (e) => e.kind == EntityKind.player || e.kind == EntityKind.enemy,
+    );
   }
 
   /// Mounts static solid rectangles into the world.
