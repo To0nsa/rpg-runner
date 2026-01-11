@@ -1,7 +1,7 @@
 /// Combat tuning (invulnerability, damage modifiers).
 library;
 
-import '../util/tick_math.dart';
+import '../../util/tick_math.dart';
 
 class CombatTuning {
   const CombatTuning({this.invulnerabilitySeconds = 0.25});

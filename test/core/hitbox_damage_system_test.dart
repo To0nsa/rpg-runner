@@ -17,18 +17,13 @@ import 'package:walkscape_runner/core/ecs/systems/melee_attack_system.dart';
 import 'package:walkscape_runner/core/ecs/systems/player_melee_system.dart';
 import 'package:walkscape_runner/core/ecs/world.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
-import 'package:walkscape_runner/core/tuning/ability_tuning.dart';
-import 'package:walkscape_runner/core/tuning/movement_tuning.dart';
+import 'package:walkscape_runner/core/tuning/player/player_ability_tuning.dart';
 import 'package:walkscape_runner/core/tuning/spatial_grid_tuning.dart';
 import 'package:walkscape_runner/core/ecs/entity_factory.dart';
 import 'package:walkscape_runner/core/weapons/weapon_catalog.dart';
 
 void main() {
   test('melee hitbox damages only once per swing', () {
-    final movement = MovementTuningDerived.from(
-      const MovementTuning(playerRadius: 8),
-      tickHz: 60,
-    );
     final abilities = AbilityTuningDerived.from(
       const AbilityTuning(
         meleeCooldownSeconds: 0.30,
@@ -44,7 +39,6 @@ void main() {
     final world = EcsWorld();
     final melee = PlayerMeleeSystem(
       abilities: abilities,
-      movement: movement,
       weapons: const WeaponCatalog(),
     );
     final meleeAttack = MeleeAttackSystem();

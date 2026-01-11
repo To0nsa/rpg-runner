@@ -7,7 +7,7 @@ import 'package:walkscape_runner/core/events/game_event.dart';
 import 'package:walkscape_runner/core/game_core.dart';
 import 'package:walkscape_runner/core/players/player_catalog.dart';
 import 'package:walkscape_runner/core/tuning/camera_tuning.dart';
-import 'package:walkscape_runner/core/tuning/movement_tuning.dart';
+import 'package:walkscape_runner/core/tuning/player/player_movement_tuning.dart';
 
 void main() {
   test('AutoscrollCamera: player past threshold pulls target forward', () {

@@ -1,5 +1,5 @@
 import '../../collision/static_world_geometry_index.dart';
-import '../../tuning/movement_tuning.dart';
+import '../../tuning/player/player_movement_tuning.dart';
 import '../queries.dart';
 import '../stores/body_store.dart';
 import '../world.dart';

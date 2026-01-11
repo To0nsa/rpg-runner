@@ -12,7 +12,7 @@ import 'package:walkscape_runner/core/players/player_catalog.dart';
 import 'package:walkscape_runner/core/projectiles/projectile_catalog.dart';
 import 'package:walkscape_runner/core/projectiles/projectile_id.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
-import 'package:walkscape_runner/core/tuning/resource_tuning.dart';
+import 'package:walkscape_runner/core/tuning/player/player_resource_tuning.dart';
 import 'package:walkscape_runner/core/weapons/ranged_weapon_catalog.dart';
 import 'package:walkscape_runner/core/weapons/ranged_weapon_id.dart';
 import 'package:walkscape_runner/core/weapons/spawn_ranged_weapon_projectile.dart';

@@ -126,18 +126,18 @@ import 'weapons/weapon_catalog.dart';
 import 'ecs/stores/combat/equipped_weapon_store.dart';
 import 'ecs/stores/combat/equipped_ranged_weapon_store.dart';
 import 'weapons/ranged_weapon_catalog.dart';
-import 'tuning/ability_tuning.dart';
-import 'tuning/anim_tuning.dart';
+import 'tuning/player/player_ability_tuning.dart';
+import 'tuning/player/player_anim_tuning.dart';
 import 'tuning/camera_tuning.dart';
 import 'tuning/collectible_tuning.dart';
-import 'tuning/combat_tuning.dart';
+import 'tuning/player/player_combat_tuning.dart';
 import 'tuning/core_tuning.dart';
 import 'tuning/flying_enemy_tuning.dart';
 import 'tuning/ground_enemy_tuning.dart';
-import 'tuning/movement_tuning.dart';
+import 'tuning/player/player_movement_tuning.dart';
 import 'tuning/navigation_tuning.dart';
 import 'tuning/physics_tuning.dart';
-import 'tuning/resource_tuning.dart';
+import 'tuning/player/player_resource_tuning.dart';
 import 'tuning/restoration_item_tuning.dart';
 import 'tuning/score_tuning.dart';
 import 'tuning/spatial_grid_tuning.dart';
@@ -499,7 +499,6 @@ class GameCore {
     // Player combat.
     _meleeSystem = PlayerMeleeSystem(
       abilities: _abilities,
-      movement: _movement,
       weapons: _weapons,
     );
     _rangedWeaponSystem = PlayerRangedWeaponSystem(weapons: _rangedWeapons.base);
@@ -511,7 +510,7 @@ class GameCore {
     _resourceRegenSystem = ResourceRegenSystem();
 
     // Spell/cast systems.
-    _castSystem = PlayerCastSystem(abilities: _abilities, movement: _movement);
+    _castSystem = PlayerCastSystem(abilities: _abilities);
     _spellCastSystem = SpellCastSystem(
       spells: _spells,
       projectiles: _projectiles,

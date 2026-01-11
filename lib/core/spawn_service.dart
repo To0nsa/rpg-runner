@@ -49,7 +49,7 @@ import 'navigation/utils/surface_spatial_index.dart';
 import 'snapshots/enums.dart';
 import 'tuning/collectible_tuning.dart';
 import 'tuning/flying_enemy_tuning.dart';
-import 'tuning/movement_tuning.dart';
+import 'tuning/player/player_movement_tuning.dart';
 import 'tuning/restoration_item_tuning.dart';
 import 'tuning/track_tuning.dart';
 import 'util/deterministic_rng.dart';

@@ -1,4 +1,4 @@
-import '../util/tick_math.dart';
+import '../../util/tick_math.dart';
 
 /// Movement/physics tuning for the Core simulation.
 ///
@@ -14,7 +14,6 @@ const int defaultTickHz = 60;
 /// Authoritative movement constants (expressed in seconds-based units).
 class MovementTuning {
   const MovementTuning({
-    this.playerRadius = 8,
     this.maxSpeedX = 200,
     this.accelerationX = 600,
     this.decelerationX = 400,
@@ -28,9 +27,6 @@ class MovementTuning {
     this.dashDurationSeconds = 0.20,
     this.dashCooldownSeconds = 2.0,
   });
-
-  /// Player "collision" radius in world units.
-  final double playerRadius;
 
   /// Target max horizontal speed when holding move input.
   final double maxSpeedX;

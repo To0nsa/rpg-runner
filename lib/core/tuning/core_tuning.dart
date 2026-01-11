@@ -32,17 +32,17 @@
 /// ```
 library;
 
-import 'ability_tuning.dart';
-import 'anim_tuning.dart';
+import 'player/player_ability_tuning.dart';
+import 'player/player_anim_tuning.dart';
 import 'camera_tuning.dart';
 import 'collectible_tuning.dart';
-import 'combat_tuning.dart';
+import 'player/player_combat_tuning.dart';
 import 'flying_enemy_tuning.dart';
 import 'ground_enemy_tuning.dart';
-import 'movement_tuning.dart';
+import 'player/player_movement_tuning.dart';
 import 'navigation_tuning.dart';
 import 'physics_tuning.dart';
-import 'resource_tuning.dart';
+import 'player/player_resource_tuning.dart';
 import 'restoration_item_tuning.dart';
 import 'score_tuning.dart';
 import 'spatial_grid_tuning.dart';

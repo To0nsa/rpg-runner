@@ -1,6 +1,6 @@
 import '../../snapshots/enums.dart';
-import '../../tuning/movement_tuning.dart';
-import '../../tuning/resource_tuning.dart';
+import '../../tuning/player/player_movement_tuning.dart';
+import '../../tuning/player/player_resource_tuning.dart';
 import '../../util/velocity_math.dart';
 import '../entity_id.dart';
 import '../queries.dart';

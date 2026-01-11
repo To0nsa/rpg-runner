@@ -9,8 +9,8 @@ import '../ecs/stores/health_store.dart';
 import '../ecs/stores/mana_store.dart';
 import '../ecs/stores/stamina_store.dart';
 import '../snapshots/enums.dart';
-import '../tuning/movement_tuning.dart';
-import '../tuning/resource_tuning.dart';
+import '../tuning/player/player_movement_tuning.dart';
+import '../tuning/player/player_resource_tuning.dart';
 import '../weapons/weapon_id.dart';
 import '../weapons/ranged_weapon_id.dart';
 import 'player_archetype.dart';
@@ -24,7 +24,7 @@ import 'player_archetype.dart';
 ///
 /// **Relationship to Tuning**:
 /// - [PlayerCatalog]: Structural config (physics flags, collision sides).
-/// - [MovementTuning]: Numeric movement values (speed, radius, velocity clamps).
+/// - [MovementTuning]: Numeric movement values (speed, collider size, velocity clamps).
 /// - [ResourceTuning]: Numeric resource values (HP, mana, stamina).
 ///
 /// The [PlayerCatalogDerived.from] factory merges all three to produce a
@@ -39,6 +39,10 @@ class PlayerCatalog {
       gravityScale: 1.0,
       sideMask: BodyDef.sideLeft | BodyDef.sideRight,
     ),
+    this.colliderWidth = 16.0,
+    this.colliderHeight = 16.0,
+    this.colliderOffsetX = 0.0,
+    this.colliderOffsetY = 0.0,
     this.tags = const CreatureTagDef(mask: CreatureTagMask.humanoid),
     this.resistance = const DamageResistanceDef(),
     this.statusImmunity = const StatusImmunityDef(),
@@ -65,6 +69,22 @@ class PlayerCatalog {
   /// This split ensures movement tuning remains the single source of truth
   /// for velocity limits.
   final BodyDef bodyTemplate;
+
+  /// Player collision AABB size (full extents) in world units.
+  ///
+  /// Core uses center-based AABBs, so `halfX = width * 0.5` and
+  /// `halfY = height * 0.5`.
+  final double colliderWidth;
+  final double colliderHeight;
+
+  /// Optional collider center offset from entity `Transform.pos`.
+  final double colliderOffsetX;
+  final double colliderOffsetY;
+
+  double get colliderHalfX => colliderWidth * 0.5;
+  double get colliderHalfY => colliderHeight * 0.5;
+  double get colliderMaxHalfExtent =>
+      colliderHalfX > colliderHalfY ? colliderHalfX : colliderHalfY;
 
   /// Broad tags used by combat rules and content filters.
   final CreatureTagDef tags;
@@ -116,12 +136,12 @@ class PlayerCatalogDerived {
   /// - [movement]: Movement tuning for collider size and velocity clamps.
   /// - [resources]: Resource tuning for HP, mana, and stamina pools.
   ///
-  /// **Derivation Logic**:
-  /// 1. Copy physics flags from [base.bodyTemplate].
-  /// 2. Fill `maxVelX`/`maxVelY` from [movement].
-  /// 3. Create square collider from [movement.playerRadius].
-  /// 4. Create resource pools from [resources].
-  /// 5. Bundle everything into a [PlayerArchetype].
+/// **Derivation Logic**:
+/// 1. Copy physics flags from [base.bodyTemplate].
+/// 2. Fill `maxVelX`/`maxVelY` from [movement].
+/// 3. Create AABB collider from [base].
+/// 4. Create resource pools from [resources].
+/// 5. Bundle everything into a [PlayerArchetype].
   factory PlayerCatalogDerived.from(
     PlayerCatalog base, {
     required MovementTuningDerived movement,
@@ -140,10 +160,12 @@ class PlayerCatalogDerived {
       sideMask: base.bodyTemplate.sideMask,
     );
 
-    // Square collider based on player radius.
+    // AABB collider from catalog.
     final collider = ColliderAabbDef(
-      halfX: movement.base.playerRadius,
-      halfY: movement.base.playerRadius,
+      halfX: base.colliderHalfX,
+      halfY: base.colliderHalfY,
+      offsetX: base.colliderOffsetX,
+      offsetY: base.colliderOffsetY,
     );
 
     // Resource pools from resource tuning.

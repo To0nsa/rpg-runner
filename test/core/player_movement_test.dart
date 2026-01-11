@@ -5,8 +5,8 @@ import 'package:walkscape_runner/core/contracts/render_contract.dart';
 import 'package:walkscape_runner/core/game_core.dart';
 import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/players/player_catalog.dart';
-import 'package:walkscape_runner/core/tuning/movement_tuning.dart';
-import 'package:walkscape_runner/core/tuning/resource_tuning.dart';
+import 'package:walkscape_runner/core/tuning/player/player_movement_tuning.dart';
+import 'package:walkscape_runner/core/tuning/player/player_resource_tuning.dart';
 
 import '../test_tunings.dart';
 
@@ -57,7 +57,7 @@ void main() {
       cameraTuning: noAutoscrollCameraTuning,
     );
     final floorY =
-        groundTopY.toDouble() - const MovementTuning().playerRadius;
+        groundTopY.toDouble() - const PlayerCatalog().colliderHalfY;
 
     expect(core.playerPosY, closeTo(floorY, 1e-9));
     expect(core.playerGrounded, isTrue);
@@ -76,8 +76,8 @@ void main() {
       tickHz: defaultTickHz,
       cameraTuning: noAutoscrollCameraTuning,
     );
-    final tuning = const MovementTuning();
-    final floorY = groundTopY.toDouble() - tuning.playerRadius;
+    final catalog = const PlayerCatalog();
+    final floorY = groundTopY.toDouble() - catalog.colliderHalfY;
 
     // Put the player high above the floor so coyote time expires before landing.
     core.setPlayerPosXY(core.playerPosX, floorY - 200);
@@ -124,7 +124,8 @@ void main() {
       cameraTuning: noAutoscrollCameraTuning,
     );
     final tuning = const MovementTuning();
-    final floorY = groundTopY.toDouble() - tuning.playerRadius;
+    final catalog = const PlayerCatalog();
+    final floorY = groundTopY.toDouble() - catalog.colliderHalfY;
 
     // Start dashing from the ground.
     _tick(core, dashPressed: true);
@@ -184,7 +185,7 @@ void main() {
     );
 
     final floorY =
-        groundTopY.toDouble() - const MovementTuning().playerRadius;
+        groundTopY.toDouble() - const PlayerCatalog().colliderHalfY;
     expect(core.playerPosY, closeTo(floorY, 1e-9));
     expect(core.playerGrounded, isTrue);
 
@@ -210,8 +211,8 @@ void main() {
         bodyTemplate: BodyDef(gravityScale: 0),
       ),
     );
-    final tuning = const MovementTuning();
-    final floorY = groundTopY.toDouble() - tuning.playerRadius;
+    final catalog = const PlayerCatalog();
+    final floorY = groundTopY.toDouble() - catalog.colliderHalfY;
 
     core.setPlayerPosXY(core.playerPosX, floorY - 120);
     core.setPlayerVelXY(0, 0);
@@ -231,8 +232,8 @@ void main() {
         bodyTemplate: BodyDef(isKinematic: true),
       ),
     );
-    final tuning = const MovementTuning();
-    final floorY = groundTopY.toDouble() - tuning.playerRadius;
+    final catalog = const PlayerCatalog();
+    final floorY = groundTopY.toDouble() - catalog.colliderHalfY;
 
     core.setPlayerPosXY(core.playerPosX, floorY - 120);
     core.setPlayerVelXY(0, 0);

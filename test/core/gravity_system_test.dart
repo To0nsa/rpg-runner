@@ -9,9 +9,9 @@ import 'package:walkscape_runner/core/ecs/systems/gravity_system.dart';
 import 'package:walkscape_runner/core/ecs/systems/player_movement_system.dart';
 import 'package:walkscape_runner/core/ecs/world.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
-import 'package:walkscape_runner/core/tuning/movement_tuning.dart';
+import 'package:walkscape_runner/core/tuning/player/player_movement_tuning.dart';
 import 'package:walkscape_runner/core/tuning/physics_tuning.dart';
-import 'package:walkscape_runner/core/tuning/resource_tuning.dart';
+import 'package:walkscape_runner/core/tuning/player/player_resource_tuning.dart';
 import 'package:walkscape_runner/core/ecs/entity_factory.dart';
 
 void main() {

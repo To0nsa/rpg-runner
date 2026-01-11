@@ -1,8 +1,7 @@
 import 'dart:math';
 
 import '../../snapshots/enums.dart';
-import '../../tuning/ability_tuning.dart';
-import '../../tuning/movement_tuning.dart';
+import '../../tuning/player/player_ability_tuning.dart';
 import '../../weapons/weapon_catalog.dart';
 import '../entity_id.dart';
 import '../stores/melee_intent_store.dart';
@@ -18,12 +17,10 @@ import '../world.dart';
 class PlayerMeleeSystem {
   const PlayerMeleeSystem({
     required this.abilities,
-    required this.movement,
     required this.weapons,
   });
 
   final AbilityTuningDerived abilities;
-  final MovementTuningDerived movement;
   final WeaponCatalog weapons;
 
   void step(
@@ -97,8 +94,15 @@ class PlayerMeleeSystem {
     final halfY = abilities.base.meleeHitboxSizeY * 0.5;
 
     // Calculate how far in front of the player the hitbox should appear.
-    // origin = playerPos + aimDir * (playerRadius * 0.5 + maxDimension)
-    final forward = movement.base.playerRadius * 0.5 + max(halfX, halfY);
+    // origin = playerPos + aimDir * (playerColliderMaxHalfExtent * 0.5 + maxDimension)
+    var maxHalfExtent = 0.0;
+    if (world.colliderAabb.has(player)) {
+      final aabbi = world.colliderAabb.indexOf(player);
+      final colliderHalfX = world.colliderAabb.halfX[aabbi];
+      final colliderHalfY = world.colliderAabb.halfY[aabbi];
+      maxHalfExtent = colliderHalfX > colliderHalfY ? colliderHalfX : colliderHalfY;
+    }
+    final forward = maxHalfExtent * 0.5 + max(halfX, halfY);
     final offsetX = dirX * forward;
     final offsetY = dirY * forward;
 

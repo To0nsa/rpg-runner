@@ -4,8 +4,8 @@ import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/game_core.dart';
 import 'package:walkscape_runner/core/players/player_catalog.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
-import 'package:walkscape_runner/core/tuning/movement_tuning.dart';
-import 'package:walkscape_runner/core/tuning/resource_tuning.dart';
+import 'package:walkscape_runner/core/tuning/player/player_movement_tuning.dart';
+import 'package:walkscape_runner/core/tuning/player/player_resource_tuning.dart';
 import 'package:walkscape_runner/game/game_controller.dart';
 import 'package:walkscape_runner/game/input/runner_input_router.dart';
 

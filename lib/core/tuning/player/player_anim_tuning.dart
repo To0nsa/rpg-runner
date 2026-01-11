@@ -1,8 +1,8 @@
 /// Animation timing tuning (Core-owned, deterministic).
 library;
 
-import '../snapshots/enums.dart';
-import '../util/tick_math.dart';
+import '../../snapshots/enums.dart';
+import '../../util/tick_math.dart';
 import 'player_anim_defs.dart';
 
 class AnimTuning {

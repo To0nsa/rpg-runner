@@ -1,7 +1,7 @@
 /// Shared player animation definitions (Core-owned, renderer consumes).
 library;
 
-import '../snapshots/enums.dart';
+import '../../snapshots/enums.dart';
 
 const int playerAnimFrameWidth = 100;
 const int playerAnimFrameHeight = 64;

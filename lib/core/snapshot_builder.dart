@@ -36,10 +36,10 @@ import 'snapshots/static_ground_gap_snapshot.dart';
 import 'snapshots/static_solid_snapshot.dart';
 import 'spells/spell_catalog.dart';
 import 'spells/spell_id.dart';
-import 'tuning/ability_tuning.dart';
-import 'tuning/anim_tuning.dart';
-import 'tuning/movement_tuning.dart';
-import 'tuning/resource_tuning.dart';
+import 'tuning/player/player_ability_tuning.dart';
+import 'tuning/player/player_anim_tuning.dart';
+import 'tuning/player/player_movement_tuning.dart';
+import 'tuning/player/player_resource_tuning.dart';
 import 'util/vec2.dart';
 import 'weapons/ranged_weapon_catalog.dart';
 
@@ -266,6 +266,15 @@ class SnapshotBuilder {
     final playerPos = Vec2(playerPosX, playerPosY);
     final playerVel = Vec2(playerVelX, playerVelY);
 
+    Vec2? playerSize;
+    if (world.colliderAabb.has(player)) {
+      final aabbi = world.colliderAabb.indexOf(player);
+      playerSize = Vec2(
+        world.colliderAabb.halfX[aabbi] * 2,
+        world.colliderAabb.halfY[aabbi] * 2,
+      );
+    }
+
     // ─── Build entity list (player first) ───
     final entities = <EntityRenderSnapshot>[
       EntityRenderSnapshot(
@@ -273,7 +282,7 @@ class SnapshotBuilder {
         kind: EntityKind.player,
         pos: playerPos,
         vel: playerVel,
-        size: Vec2(tuning.playerRadius * 2, tuning.playerRadius * 2),
+        size: playerSize,
         facing: playerFacing,
         anim: anim,
         grounded: onGround,

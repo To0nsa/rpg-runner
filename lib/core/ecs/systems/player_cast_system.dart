@@ -1,7 +1,6 @@
 import '../../snapshots/enums.dart';
 import '../../spells/spell_id.dart';
-import '../../tuning/ability_tuning.dart';
-import '../../tuning/movement_tuning.dart';
+import '../../tuning/player/player_ability_tuning.dart';
 import '../entity_id.dart';
 import '../stores/cast_intent_store.dart';
 import '../world.dart';
@@ -15,11 +14,9 @@ import '../world.dart';
 class PlayerCastSystem {
   const PlayerCastSystem({
     required this.abilities,
-    required this.movement,
   });
 
   final AbilityTuningDerived abilities;
-  final MovementTuningDerived movement;
 
   void step(EcsWorld world, {required EntityId player, required int currentTick}) {
     // -- 1. Component Checks --
@@ -69,7 +66,17 @@ class PlayerCastSystem {
     final fallbackDirX = facing == Facing.right ? 1.0 : -1.0;
     
     // Offset from the player's center where the spell appears.
-    final spawnOffset = movement.base.playerRadius * 0.5;
+    //
+    // We use a conservative value (max half-extent) to avoid spawning inside
+    // the player's AABB when the collider is not square.
+    var maxHalfExtent = 0.0;
+    if (world.colliderAabb.has(player)) {
+      final aabbi = world.colliderAabb.indexOf(player);
+      final halfX = world.colliderAabb.halfX[aabbi];
+      final halfY = world.colliderAabb.halfY[aabbi];
+      maxHalfExtent = halfX > halfY ? halfX : halfY;
+    }
+    final spawnOffset = maxHalfExtent * 0.5;
 
     // -- 3. Write Intent --
 

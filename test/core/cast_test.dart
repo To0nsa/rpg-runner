@@ -5,7 +5,7 @@ import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
 import 'package:walkscape_runner/core/game_core.dart';
 import 'package:walkscape_runner/core/players/player_catalog.dart';
 import 'package:walkscape_runner/core/snapshots/enums.dart';
-import 'package:walkscape_runner/core/tuning/resource_tuning.dart';
+import 'package:walkscape_runner/core/tuning/player/player_resource_tuning.dart';
 
 import '../test_tunings.dart';
 
@@ -65,7 +65,7 @@ void main() {
       expect(projectiles.length, 1);
 
       final p = projectiles.single;
-      expect(p.pos.x, closeTo(playerPosX + 4.0, 1e-9)); // playerRadius * 0.5
+      expect(p.pos.x, closeTo(playerPosX + 4.0, 1e-9)); // maxHalfExtent * 0.5
       expect(p.pos.y, closeTo(playerPosY, 1e-9));
 
       expect(snapshot.hud.mana, closeTo(10.0, 1e-9));

@@ -43,7 +43,8 @@ class PlayerArchetype {
   /// AABB collider definition (half-extents and offset).
   ///
   /// Determines the player's collision bounds for physics and hit detection.
-  /// Typically derived from [MovementTuning.playerRadius].
+  /// Typically derived from [PlayerCatalog.colliderWidth] and
+  /// [PlayerCatalog.colliderHeight].
   final ColliderAabbDef collider;
 
   /// Physics body configuration (gravity, kinematic flags, velocity clamps).

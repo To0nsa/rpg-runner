@@ -1,7 +1,7 @@
 /// Player ability tuning (cast, melee).
 library;
 
-import '../util/tick_math.dart';
+import '../../util/tick_math.dart';
 
 class AbilityTuning {
   const AbilityTuning({

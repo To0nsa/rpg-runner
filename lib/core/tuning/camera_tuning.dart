@@ -3,7 +3,7 @@ library;
 
 import 'dart:math';
 
-import 'movement_tuning.dart';
+import 'player/player_movement_tuning.dart';
 
 class CameraTuning {
   const CameraTuning({

@@ -1,4 +1,4 @@
-import '../../tuning/movement_tuning.dart';
+import '../../tuning/player/player_movement_tuning.dart';
 import '../../tuning/physics_tuning.dart';
 import '../world.dart';
 
