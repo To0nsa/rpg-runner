@@ -1,9 +1,9 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:walkscape_runner/core/game_core.dart';
-import 'package:walkscape_runner/game/game_controller.dart';
-import 'package:walkscape_runner/ui/hud/game/survival_timer_overlay.dart';
+import 'package:rpg_runner/core/game_core.dart';
+import 'package:rpg_runner/game/game_controller.dart';
+import 'package:rpg_runner/ui/hud/game/survival_timer_overlay.dart';
 
 import '../test_tunings.dart';
 

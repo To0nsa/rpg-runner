@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:walkscape_runner/core/collision/static_world_geometry.dart';
-import 'package:walkscape_runner/core/ecs/spatial/grid_index_2d.dart';
-import 'package:walkscape_runner/core/navigation/utils/jump_template.dart';
-import 'package:walkscape_runner/core/navigation/types/surface_graph.dart';
-import 'package:walkscape_runner/core/navigation/surface_graph_builder.dart';
+import 'package:rpg_runner/core/collision/static_world_geometry.dart';
+import 'package:rpg_runner/core/ecs/spatial/grid_index_2d.dart';
+import 'package:rpg_runner/core/navigation/utils/jump_template.dart';
+import 'package:rpg_runner/core/navigation/types/surface_graph.dart';
+import 'package:rpg_runner/core/navigation/surface_graph_builder.dart';
 
 JumpReachabilityTemplate _template() {
   const profile = JumpProfile(

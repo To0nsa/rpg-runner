@@ -1,4 +1,4 @@
-﻿REPO: C:\dev\walkscape_runner
+﻿REPO: C:\dev\rpg_runner
 COMMIT: 68b9b3938bdf2620a6ae080a3a010e80c31a08ce
 DATE: 2026-01-11 17:44:39
 
@@ -5284,7 +5284,7 @@ class EnemyCullSystem {
 ===== FILE: lib/core/ecs/systems/enemy_system.dart =====
 import 'dart:math';
 
-import 'package:walkscape_runner/core/ecs/entity_id.dart';
+import 'package:rpg_runner/core/ecs/entity_id.dart';
 
 import '../../enemies/enemy_catalog.dart';
 import '../../enemies/enemy_id.dart';
@@ -19853,7 +19853,7 @@ class _DevApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Walkscape Runner (Dev)',
+      title: 'rpg Runner (Dev)',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color.fromARGB(255, 6, 21, 48),
@@ -19870,7 +19870,7 @@ class _DevApp extends StatelessWidget {
 // Public entrypoint ("barrel file") for embedding the runner in a host app.
 //
 // Host apps should import only this file:
-// `import 'package:walkscape_runner/runner.dart';`
+// `import 'package:rpg_runner/runner.dart';`
 //
 // This keeps the public API stable while allowing internal folders/files to
 // evolve without breaking downstream imports.
@@ -21009,7 +21009,7 @@ class DevMenuPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Walkscape Runner (Dev)',
+          'rpg Runner (Dev)',
           style: TextStyle(color: Colors.white),
         ),
         backgroundColor: Color.fromARGB(255, 6, 21, 48),

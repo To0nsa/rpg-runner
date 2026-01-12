@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:walkscape_runner/core/events/game_event.dart';
-import 'package:walkscape_runner/core/levels/level_id.dart';
-import 'package:walkscape_runner/core/tuning/score_tuning.dart';
-import 'package:walkscape_runner/ui/hud/gameover/game_over_overlay.dart';
-import 'package:walkscape_runner/ui/hud/gameover/leaderboard_panel.dart';
-import 'package:walkscape_runner/ui/leaderboard/leaderboard_store.dart';
-import 'package:walkscape_runner/ui/leaderboard/run_result.dart';
+import 'package:rpg_runner/core/events/game_event.dart';
+import 'package:rpg_runner/core/levels/level_id.dart';
+import 'package:rpg_runner/core/tuning/score_tuning.dart';
+import 'package:rpg_runner/ui/hud/gameover/game_over_overlay.dart';
+import 'package:rpg_runner/ui/hud/gameover/leaderboard_panel.dart';
+import 'package:rpg_runner/ui/leaderboard/leaderboard_store.dart';
+import 'package:rpg_runner/ui/leaderboard/run_result.dart';
 
 // Test constants matching _buildEvent().
 const _distanceUnits = 500.0;

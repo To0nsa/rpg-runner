@@ -1,6 +1,6 @@
 {
-    "name": "walkscape_runner",
-    "short_name": "walkscape_runner",
+    "name": "rpg_runner",
+    "short_name": "rpg_runner",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "964001571974",
+    "project_id": "rpg-runner-d7add",
+    "storage_bucket": "rpg-runner-d7add.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:964001571974:android:d48582bc9cde8cf2d81d07",
+        "android_client_info": {
+          "package_name": "com.example.rpg_runner"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB_RE8QyjyVnoBQ-H59DCIbGbc39faaixA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

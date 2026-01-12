@@ -1,12 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:walkscape_runner/core/ecs/spatial/grid_index_2d.dart';
-import 'package:walkscape_runner/core/ecs/stores/enemies/surface_nav_state_store.dart';
-import 'package:walkscape_runner/core/navigation/types/surface_graph.dart';
-import 'package:walkscape_runner/core/navigation/surface_navigator.dart';
-import 'package:walkscape_runner/core/navigation/surface_pathfinder.dart';
-import 'package:walkscape_runner/core/navigation/utils/surface_spatial_index.dart';
-import 'package:walkscape_runner/core/navigation/types/walk_surface.dart';
+import 'package:rpg_runner/core/ecs/spatial/grid_index_2d.dart';
+import 'package:rpg_runner/core/ecs/stores/enemies/surface_nav_state_store.dart';
+import 'package:rpg_runner/core/navigation/types/surface_graph.dart';
+import 'package:rpg_runner/core/navigation/surface_navigator.dart';
+import 'package:rpg_runner/core/navigation/surface_pathfinder.dart';
+import 'package:rpg_runner/core/navigation/utils/surface_spatial_index.dart';
+import 'package:rpg_runner/core/navigation/types/walk_surface.dart';
 
 void main() {
   test('SurfaceNavigator invalidates cached plans when graphVersion changes', () {

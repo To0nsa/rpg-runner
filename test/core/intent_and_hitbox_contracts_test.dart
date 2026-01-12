@@ -1,25 +1,25 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:walkscape_runner/core/combat/damage_type.dart';
-import 'package:walkscape_runner/core/combat/faction.dart';
-import 'package:walkscape_runner/core/combat/status/status.dart';
-import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
-import 'package:walkscape_runner/core/ecs/stores/cast_intent_store.dart';
-import 'package:walkscape_runner/core/ecs/stores/collider_aabb_store.dart';
-import 'package:walkscape_runner/core/ecs/stores/health_store.dart';
-import 'package:walkscape_runner/core/ecs/stores/hitbox_store.dart';
-import 'package:walkscape_runner/core/ecs/stores/mana_store.dart';
-import 'package:walkscape_runner/core/ecs/stores/melee_intent_store.dart';
-import 'package:walkscape_runner/core/ecs/stores/stamina_store.dart';
-import 'package:walkscape_runner/core/ecs/systems/hitbox_follow_owner_system.dart';
-import 'package:walkscape_runner/core/ecs/systems/melee_attack_system.dart';
-import 'package:walkscape_runner/core/ecs/systems/spell_cast_system.dart';
-import 'package:walkscape_runner/core/ecs/world.dart';
-import 'package:walkscape_runner/core/projectiles/projectile_catalog.dart';
-import 'package:walkscape_runner/core/snapshots/enums.dart';
-import 'package:walkscape_runner/core/spells/spell_catalog.dart';
-import 'package:walkscape_runner/core/spells/spell_id.dart';
-import 'package:walkscape_runner/core/ecs/entity_factory.dart';
+import 'package:rpg_runner/core/combat/damage_type.dart';
+import 'package:rpg_runner/core/combat/faction.dart';
+import 'package:rpg_runner/core/combat/status/status.dart';
+import 'package:rpg_runner/core/ecs/stores/body_store.dart';
+import 'package:rpg_runner/core/ecs/stores/cast_intent_store.dart';
+import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
+import 'package:rpg_runner/core/ecs/stores/health_store.dart';
+import 'package:rpg_runner/core/ecs/stores/hitbox_store.dart';
+import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
+import 'package:rpg_runner/core/ecs/stores/melee_intent_store.dart';
+import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
+import 'package:rpg_runner/core/ecs/systems/hitbox_follow_owner_system.dart';
+import 'package:rpg_runner/core/ecs/systems/melee_attack_system.dart';
+import 'package:rpg_runner/core/ecs/systems/spell_cast_system.dart';
+import 'package:rpg_runner/core/ecs/world.dart';
+import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
+import 'package:rpg_runner/core/snapshots/enums.dart';
+import 'package:rpg_runner/core/spells/spell_catalog.dart';
+import 'package:rpg_runner/core/spells/spell_id.dart';
+import 'package:rpg_runner/core/ecs/entity_factory.dart';
 
 void main() {
   test('executors: intent is executed at most once per tick', () {

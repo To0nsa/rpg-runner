@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:walkscape_runner/core/ecs/world.dart';
+import 'package:rpg_runner/core/ecs/world.dart';
 
 void main() {
   test('Entity ID recycling reuses destroyed IDs', () {

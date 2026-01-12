@@ -1,14 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:walkscape_runner/core/collision/static_world_geometry.dart';
-import 'package:walkscape_runner/core/commands/command.dart';
-import 'package:walkscape_runner/core/contracts/render_contract.dart';
-import 'package:walkscape_runner/core/game_core.dart';
-import 'package:walkscape_runner/core/players/player_character_registry.dart';
-import 'package:walkscape_runner/core/players/player_catalog.dart';
-import 'package:walkscape_runner/core/tuning/core_tuning.dart';
-import 'package:walkscape_runner/core/players/player_tuning.dart';
-import 'package:walkscape_runner/core/tuning/track_tuning.dart';
+import 'package:rpg_runner/core/collision/static_world_geometry.dart';
+import 'package:rpg_runner/core/commands/command.dart';
+import 'package:rpg_runner/core/contracts/render_contract.dart';
+import 'package:rpg_runner/core/game_core.dart';
+import 'package:rpg_runner/core/players/player_character_registry.dart';
+import 'package:rpg_runner/core/players/player_catalog.dart';
+import 'package:rpg_runner/core/tuning/core_tuning.dart';
+import 'package:rpg_runner/core/players/player_tuning.dart';
+import 'package:rpg_runner/core/tuning/track_tuning.dart';
 
 import '../test_tunings.dart';
 

@@ -1,14 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:walkscape_runner/core/camera/autoscroll_camera.dart';
-import 'package:walkscape_runner/core/contracts/render_contract.dart';
-import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
-import 'package:walkscape_runner/core/events/game_event.dart';
-import 'package:walkscape_runner/core/game_core.dart';
-import 'package:walkscape_runner/core/players/player_character_registry.dart';
-import 'package:walkscape_runner/core/players/player_catalog.dart';
-import 'package:walkscape_runner/core/tuning/camera_tuning.dart';
-import 'package:walkscape_runner/core/players/player_tuning.dart';
+import 'package:rpg_runner/core/camera/autoscroll_camera.dart';
+import 'package:rpg_runner/core/contracts/render_contract.dart';
+import 'package:rpg_runner/core/ecs/stores/body_store.dart';
+import 'package:rpg_runner/core/events/game_event.dart';
+import 'package:rpg_runner/core/game_core.dart';
+import 'package:rpg_runner/core/players/player_character_registry.dart';
+import 'package:rpg_runner/core/players/player_catalog.dart';
+import 'package:rpg_runner/core/tuning/camera_tuning.dart';
+import 'package:rpg_runner/core/players/player_tuning.dart';
 
 void main() {
   test('AutoscrollCamera: player past threshold pulls target forward', () {

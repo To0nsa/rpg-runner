@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:walkscape_runner/core/combat/damage.dart';
-import 'package:walkscape_runner/core/ecs/systems/damage_system.dart';
-import 'package:walkscape_runner/core/ecs/world.dart';
-import 'package:walkscape_runner/core/ecs/stores/health_store.dart';
+import 'package:rpg_runner/core/combat/damage.dart';
+import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
+import 'package:rpg_runner/core/ecs/world.dart';
+import 'package:rpg_runner/core/ecs/stores/health_store.dart';
 
 void main() {
   test('DamageSystem clamps health and ignores missing targets', () {

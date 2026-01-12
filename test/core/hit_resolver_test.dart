@@ -2,15 +2,15 @@ import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:walkscape_runner/core/combat/faction.dart';
-import 'package:walkscape_runner/core/ecs/hit/hit_resolver.dart';
-import 'package:walkscape_runner/core/ecs/spatial/broadphase_grid.dart';
-import 'package:walkscape_runner/core/ecs/spatial/grid_index_2d.dart';
-import 'package:walkscape_runner/core/ecs/stores/collider_aabb_store.dart';
-import 'package:walkscape_runner/core/ecs/stores/faction_store.dart';
-import 'package:walkscape_runner/core/ecs/stores/health_store.dart';
-import 'package:walkscape_runner/core/ecs/world.dart';
-import 'package:walkscape_runner/core/tuning/spatial_grid_tuning.dart';
+import 'package:rpg_runner/core/combat/faction.dart';
+import 'package:rpg_runner/core/ecs/hit/hit_resolver.dart';
+import 'package:rpg_runner/core/ecs/spatial/broadphase_grid.dart';
+import 'package:rpg_runner/core/ecs/spatial/grid_index_2d.dart';
+import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
+import 'package:rpg_runner/core/ecs/stores/faction_store.dart';
+import 'package:rpg_runner/core/ecs/stores/health_store.dart';
+import 'package:rpg_runner/core/ecs/world.dart';
+import 'package:rpg_runner/core/tuning/spatial_grid_tuning.dart';
 
 void main() {
   test('HitResolver returns overlaps in EntityId order', () {

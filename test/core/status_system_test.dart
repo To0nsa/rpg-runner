@@ -1,13 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:walkscape_runner/core/combat/damage.dart';
-import 'package:walkscape_runner/core/combat/damage_type.dart';
-import 'package:walkscape_runner/core/combat/status/status.dart';
-import 'package:walkscape_runner/core/ecs/stores/health_store.dart';
-import 'package:walkscape_runner/core/ecs/stores/combat/damage_resistance_store.dart';
-import 'package:walkscape_runner/core/ecs/systems/damage_system.dart';
-import 'package:walkscape_runner/core/ecs/systems/status_system.dart';
-import 'package:walkscape_runner/core/ecs/world.dart';
+import 'package:rpg_runner/core/combat/damage.dart';
+import 'package:rpg_runner/core/combat/damage_type.dart';
+import 'package:rpg_runner/core/combat/status/status.dart';
+import 'package:rpg_runner/core/ecs/stores/health_store.dart';
+import 'package:rpg_runner/core/ecs/stores/combat/damage_resistance_store.dart';
+import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
+import 'package:rpg_runner/core/ecs/systems/status_system.dart';
+import 'package:rpg_runner/core/ecs/world.dart';
 
 void main() {
   test('DamageSystem applies resistance and vulnerability modifiers', () {

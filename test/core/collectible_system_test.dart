@@ -1,16 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
-import 'package:walkscape_runner/core/ecs/stores/collider_aabb_store.dart';
-import 'package:walkscape_runner/core/ecs/stores/collectible_store.dart';
-import 'package:walkscape_runner/core/ecs/stores/health_store.dart';
-import 'package:walkscape_runner/core/ecs/stores/mana_store.dart';
-import 'package:walkscape_runner/core/ecs/stores/stamina_store.dart';
-import 'package:walkscape_runner/core/ecs/systems/collectible_system.dart';
-import 'package:walkscape_runner/core/ecs/world.dart';
-import 'package:walkscape_runner/core/snapshots/enums.dart';
-import 'package:walkscape_runner/core/tuning/collectible_tuning.dart';
-import 'package:walkscape_runner/core/ecs/entity_factory.dart';
+import 'package:rpg_runner/core/ecs/stores/body_store.dart';
+import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
+import 'package:rpg_runner/core/ecs/stores/collectible_store.dart';
+import 'package:rpg_runner/core/ecs/stores/health_store.dart';
+import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
+import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
+import 'package:rpg_runner/core/ecs/systems/collectible_system.dart';
+import 'package:rpg_runner/core/ecs/world.dart';
+import 'package:rpg_runner/core/snapshots/enums.dart';
+import 'package:rpg_runner/core/tuning/collectible_tuning.dart';
+import 'package:rpg_runner/core/ecs/entity_factory.dart';
 
 void main() {
   test('CollectibleSystem collects overlapping pickups', () {

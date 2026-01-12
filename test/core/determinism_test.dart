@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:walkscape_runner/core/commands/command.dart';
-import 'package:walkscape_runner/core/game_core.dart';
+import 'package:rpg_runner/core/commands/command.dart';
+import 'package:rpg_runner/core/game_core.dart';
 
 String _digest(GameCore core) {
   final s = core.buildSnapshot();

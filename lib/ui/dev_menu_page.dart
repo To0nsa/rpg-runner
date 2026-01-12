@@ -14,7 +14,7 @@ class DevMenuPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Walkscape Runner (Dev)',
+          'rpg Runner (Dev)',
           style: TextStyle(color: Colors.white),
         ),
         backgroundColor: Color.fromARGB(255, 6, 21, 48),

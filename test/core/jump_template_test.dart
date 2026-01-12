@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:walkscape_runner/core/navigation/utils/jump_template.dart';
+import 'package:rpg_runner/core/navigation/utils/jump_template.dart';
 
 void main() {
   test('jump template is deterministic for the same profile', () {

@@ -17,7 +17,7 @@ class _DevApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Walkscape Runner (Dev)',
+      title: 'rpg Runner (Dev)',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color.fromARGB(255, 6, 21, 48),

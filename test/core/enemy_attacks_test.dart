@@ -1,34 +1,34 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:walkscape_runner/core/combat/faction.dart';
-import 'package:walkscape_runner/core/enemies/enemy_catalog.dart';
-import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
-import 'package:walkscape_runner/core/ecs/stores/collider_aabb_store.dart';
-import 'package:walkscape_runner/core/ecs/stores/health_store.dart';
-import 'package:walkscape_runner/core/ecs/stores/mana_store.dart';
-import 'package:walkscape_runner/core/ecs/stores/stamina_store.dart';
-import 'package:walkscape_runner/core/ecs/spatial/broadphase_grid.dart';
-import 'package:walkscape_runner/core/ecs/spatial/grid_index_2d.dart';
-import 'package:walkscape_runner/core/ecs/systems/damage_system.dart';
-import 'package:walkscape_runner/core/ecs/systems/enemy_system.dart';
-import 'package:walkscape_runner/core/ecs/systems/hitbox_follow_owner_system.dart';
-import 'package:walkscape_runner/core/ecs/systems/hitbox_damage_system.dart';
-import 'package:walkscape_runner/core/ecs/systems/melee_attack_system.dart';
-import 'package:walkscape_runner/core/ecs/systems/projectile_hit_system.dart';
-import 'package:walkscape_runner/core/ecs/world.dart';
-import 'package:walkscape_runner/core/navigation/surface_navigator.dart';
-import 'package:walkscape_runner/core/navigation/surface_pathfinder.dart';
-import 'package:walkscape_runner/core/projectiles/projectile_catalog.dart';
-import 'package:walkscape_runner/core/snapshots/enums.dart';
-import 'package:walkscape_runner/core/spells/spawn_spell_projectile.dart';
-import 'package:walkscape_runner/core/spells/spell_catalog.dart';
-import 'package:walkscape_runner/core/spells/spell_id.dart';
-import 'package:walkscape_runner/core/tuning/flying_enemy_tuning.dart';
-import 'package:walkscape_runner/core/tuning/ground_enemy_tuning.dart';
-import 'package:walkscape_runner/core/tuning/spatial_grid_tuning.dart';
+import 'package:rpg_runner/core/combat/faction.dart';
+import 'package:rpg_runner/core/enemies/enemy_catalog.dart';
+import 'package:rpg_runner/core/ecs/stores/body_store.dart';
+import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
+import 'package:rpg_runner/core/ecs/stores/health_store.dart';
+import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
+import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
+import 'package:rpg_runner/core/ecs/spatial/broadphase_grid.dart';
+import 'package:rpg_runner/core/ecs/spatial/grid_index_2d.dart';
+import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
+import 'package:rpg_runner/core/ecs/systems/enemy_system.dart';
+import 'package:rpg_runner/core/ecs/systems/hitbox_follow_owner_system.dart';
+import 'package:rpg_runner/core/ecs/systems/hitbox_damage_system.dart';
+import 'package:rpg_runner/core/ecs/systems/melee_attack_system.dart';
+import 'package:rpg_runner/core/ecs/systems/projectile_hit_system.dart';
+import 'package:rpg_runner/core/ecs/world.dart';
+import 'package:rpg_runner/core/navigation/surface_navigator.dart';
+import 'package:rpg_runner/core/navigation/surface_pathfinder.dart';
+import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
+import 'package:rpg_runner/core/snapshots/enums.dart';
+import 'package:rpg_runner/core/spells/spawn_spell_projectile.dart';
+import 'package:rpg_runner/core/spells/spell_catalog.dart';
+import 'package:rpg_runner/core/spells/spell_id.dart';
+import 'package:rpg_runner/core/tuning/flying_enemy_tuning.dart';
+import 'package:rpg_runner/core/tuning/ground_enemy_tuning.dart';
+import 'package:rpg_runner/core/tuning/spatial_grid_tuning.dart';
 
 import 'test_spawns.dart';
-import 'package:walkscape_runner/core/ecs/entity_factory.dart';
+import 'package:rpg_runner/core/ecs/entity_factory.dart';
 
 void main() {
   test('enemy projectile (lightning) damages player', () {

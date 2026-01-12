@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:walkscape_runner/core/collision/static_world_geometry.dart';
-import 'package:walkscape_runner/core/ecs/spatial/grid_index_2d.dart';
-import 'package:walkscape_runner/core/navigation/surface_extractor.dart';
-import 'package:walkscape_runner/core/navigation/types/surface_id.dart';
-import 'package:walkscape_runner/core/navigation/utils/surface_spatial_index.dart';
+import 'package:rpg_runner/core/collision/static_world_geometry.dart';
+import 'package:rpg_runner/core/ecs/spatial/grid_index_2d.dart';
+import 'package:rpg_runner/core/navigation/surface_extractor.dart';
+import 'package:rpg_runner/core/navigation/types/surface_id.dart';
+import 'package:rpg_runner/core/navigation/utils/surface_spatial_index.dart';
 
 void main() {
   test('merges adjacent top segments across chunk boundaries', () {

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:walkscape_runner/core/util/velocity_math.dart';
+import 'package:rpg_runner/core/util/velocity_math.dart';
 
 void main() {
   test('applyAccelDecel accelerates toward the desired velocity', () {

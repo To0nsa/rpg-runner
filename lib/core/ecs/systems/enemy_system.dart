@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:walkscape_runner/core/ecs/entity_id.dart';
+import 'package:rpg_runner/core/ecs/entity_id.dart';
 
 import '../../enemies/enemy_catalog.dart';
 import '../../enemies/enemy_id.dart';

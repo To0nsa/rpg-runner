@@ -1,0 +1,197 @@
+00:00 +0: loading C:/dev/rpg_runner/test/core/autoscroll_camera_test.dart
+00:00 +0: C:/dev/rpg_runner/test/core/autoscroll_camera_test.dart: AutoscrollCamera: player past threshold pulls target forward
+00:00 +1: C:/dev/rpg_runner/test/core/autoscroll_camera_test.dart: GameCore: falling behind camera ends run and emits RunEndedEvent once
+  Skip: Requires autoscroll (CameraTuning.speedLagMulX > 0)
+00:00 +1 ~1: C:/dev/rpg_runner/test/core/broadphase_grid_test.dart: BroadphaseGrid query matches brute-force overlap set
+00:00 +2 ~1: C:/dev/rpg_runner/test/core/capsule_hit_utils_test.dart: capsule intersects AABB along a horizontal segment
+00:00 +3 ~1: C:/dev/rpg_runner/test/core/capsule_hit_utils_test.dart: capsule intersects AABB along a vertical segment
+00:00 +4 ~1: C:/dev/rpg_runner/test/core/capsule_hit_utils_test.dart: capsule misses AABB when diagonal is far away
+00:00 +5 ~1: C:/dev/rpg_runner/test/core/capsule_hit_utils_test.dart: capsule intersects AABB when diagonal passes through
+00:01 +6 ~1: C:/dev/rpg_runner/test/core/cast_test.dart: cast: insufficient mana => no projectile
+00:01 +7 ~1: C:/dev/rpg_runner/test/core/cast_test.dart: cast: sufficient mana => projectile spawns + mana spent + cooldown set
+00:01 +8 ~1: C:/dev/rpg_runner/test/core/cast_test.dart: cast: cooldown blocks recast until it expires
+00:01 +9 ~1: C:/dev/rpg_runner/test/core/collectible_system_test.dart: CollectibleSystem collects overlapping pickups
+00:01 +10 ~1: C:/dev/rpg_runner/test/core/collectible_system_test.dart: CollectibleSystem despawns behind camera
+00:01 +11 ~1: C:/dev/rpg_runner/test/core/damage_system_test.dart: DamageSystem clamps health and ignores missing targets
+00:02 +12 ~1: C:/dev/rpg_runner/test/core/determinism_test.dart: same seed + same commands => identical snapshots
+00:02 +13 ~1: C:/dev/rpg_runner/test/core/ecs/entity_recycling_test.dart: Entity ID recycling reuses destroyed IDs
+00:02 +14 ~1: C:/dev/rpg_runner/test/core/ecs/entity_recycling_test.dart: Recycled IDs work correctly with stores
+00:03 +15 ~1: C:/dev/rpg_runner/test/core/enemy_attacks_test.dart: enemy projectile (lightning) damages player
+00:03 +16 ~1: C:/dev/rpg_runner/test/core/enemy_attacks_test.dart: GroundEnemy melee spawns enemy hitbox that damages player once
+00:03 +17 ~1: C:/dev/rpg_runner/test/core/flying_enemy_steering_test.dart: flying enemy steering is deterministic for the same seed
+00:04 +18 ~1: C:/dev/rpg_runner/test/core/gravity_system_test.dart: GravitySystem applies gravity when enabled and not suppressed
+00:04 +19 ~1: C:/dev/rpg_runner/test/core/gravity_system_test.dart: GravitySystem skips gravity while suppressed and resumes after
+00:04 +20 ~1: C:/dev/rpg_runner/test/core/gravity_system_test.dart: Player dash suppresses gravity for dash duration
+00:04 +21 ~1: C:/dev/rpg_runner/test/core/ground_enemy_chase_offset_test.dart: ground enemy chase offsets steer with deterministic target at range
+00:04 +22 ~1: C:/dev/rpg_runner/test/core/ground_enemy_chase_offset_test.dart: ground enemy melee spread is controlled by groundEnemyChaseOffsetMeleeX
+00:04 +23 ~1: C:/dev/rpg_runner/test/core/ground_enemy_chase_offset_test.dart: ground enemies separate during chase via speed scale
+00:05 +24 ~1: C:/dev/rpg_runner/test/core/ground_enemy_drop_test.dart: ground enemy can drop off a platform to reach a player below
+00:05 +25 ~1: C:/dev/rpg_runner/test/core/ground_enemy_gap_jump_test.dart: ground enemy still navigates a jump across a gap when chase offset points into the gap
+00:05 +26 ~1: C:/dev/rpg_runner/test/core/ground_enemy_gap_multi_test.dart: multiple ground enemies jump across the same gap without falling
+00:06 +27 ~1: C:/dev/rpg_runner/test/core/ground_enemy_gap_multi_test.dart: multiple ground enemies still clear a wide gap when starting from rest at takeoff
+00:06 +28 ~1: C:/dev/rpg_runner/test/core/ground_enemy_gap_multi_test.dart: when player is airborne, enemies do not walk into the gap (no-plan fallback clamps to surface)
+00:06 +29 ~1: C:/dev/rpg_runner/test/core/ground_enemy_ignore_ceilings_test.dart: ground enemy ignores ceilings and can still jump to a higher platform
+00:06 +30 ~1: C:/dev/rpg_runner/test/core/ground_enemy_jump_test.dart: ground enemy jumps to reach a player on a higher platform
+00:06 +31 ~1: C:/dev/rpg_runner/test/core/ground_enemy_obstacle_jump_test.dart: ground enemy jumps over a wall obstacle on the ground
+00:07 +32 ~1: C:/dev/rpg_runner/test/core/ground_gap_collision_test.dart: ground collision ignores gaps between segments
+00:07 +33 ~1: C:/dev/rpg_runner/test/core/hitbox_damage_system_test.dart: melee hitbox damages only once per swing
+00:07 +34 ~1: C:/dev/rpg_runner/test/core/hit_resolver_test.dart: HitResolver returns overlaps in EntityId order
+00:08 +35 ~1: C:/dev/rpg_runner/test/core/hit_resolver_test.dart: HitResolver matches brute-force overlap set (seeded)
+00:08 +36 ~1: C:/dev/rpg_runner/test/core/intent_and_hitbox_contracts_test.dart: executors: intent is executed at most once per tick
+00:08 +37 ~1: C:/dev/rpg_runner/test/core/intent_and_hitbox_contracts_test.dart: HitboxFollowOwnerSystem positions hitbox at owner + offset
+00:08 +38 ~1: C:/dev/rpg_runner/test/core/intent_and_hitbox_contracts_test.dart: HitOnceStore saturates safely (no crash, deterministic block)
+00:08 +39 ~1: C:/dev/rpg_runner/test/core/invulnerability_and_death_test.dart: player invulnerability ignores subsequent damage in same tick
+00:08 +40 ~1: C:/dev/rpg_runner/test/core/invulnerability_and_death_test.dart: HealthDespawnSystem despawns enemies at hp=0 (player is exempt)
+00:09 +41 ~1: C:/dev/rpg_runner/test/core/invulnerability_and_death_test.dart: player ice bolt can kill an enemy (despawns at hp=0)
+00:09 +42 ~1: C:/dev/rpg_runner/test/core/jump_template_test.dart: jump template is deterministic for the same profile
+00:09 +43 ~1: C:/dev/rpg_runner/test/core/jump_template_test.dart: finds earliest landing tick that matches discrete integration
+00:09 +44 ~1: C:/dev/rpg_runner/test/core/jump_template_test.dart: rejects landing when horizontal range is out of reach
+00:09 +45 ~1: C:/dev/rpg_runner/test/core/level_selection_test.dart: levelDefinition selection sets snapshot levelId + themeId
+00:10 +46 ~1: C:/dev/rpg_runner/test/core/lifetime_system_test.dart: LifetimeSystem decrements and despawns at 0
+00:10 +47 ~1: C:/dev/rpg_runner/test/core/melee_test.dart: melee: attack spawns hitbox for active ticks
+00:11 +47 ~1 -1: C:/dev/rpg_runner/test/core/melee_test.dart: melee: attack spawns hitbox for active ticks [E]
+  Expected: a numeric value within <1e-9> of <420.0>
+    Actual: <427.5>
+     Which:  differs by <7.5>
+  
+  package:matcher                                     expect
+  package:flutter_test/src/widget_tester.dart 473:18  expect
+  test\core\melee_test.dart 53:5                      main.<fn>
+  
+00:11 +47 ~1 -1: C:/dev/rpg_runner/test/core/obstacle_collision_test.dart: walk into obstacle wall stops horizontal motion
+00:11 +47 ~1 -2: C:/dev/rpg_runner/test/core/obstacle_collision_test.dart: walk into obstacle wall stops horizontal motion
+00:11 +47 ~1 -2: C:/dev/rpg_runner/test/core/melee_test.dart: melee: uses aim direction when provided [E]
+  Expected: a numeric value within <1e-9> of <218.0>
+    Actual: <210.5>
+     Which:  differs by <7.5>
+  
+  package:matcher                                     expect
+  package:flutter_test/src/widget_tester.dart 473:18  expect
+  test\core\melee_test.dart 123:5                     main.<fn>
+  
+00:11 +48 ~1 -2: C:/dev/rpg_runner/test/core/obstacle_collision_test.dart: Body.sideMask can disable right-side collision
+00:11 +49 ~1 -2: C:/dev/rpg_runner/test/core/obstacle_collision_test.dart: walking into obstacle from the right stops on its right wall
+00:11 +50 ~1 -2: C:/dev/rpg_runner/test/core/platform_collision_test.dart: lands on a one-way platform above the ground
+00:11 +50 ~1 -3: C:/dev/rpg_runner/test/core/platform_collision_test.dart: lands on a one-way platform above the ground [E]
+  Expected: a numeric value within <1e-9> of <172.0>
+    Actual: <178.0>
+     Which:  differs by <6.0>
+  
+  package:matcher                                     expect
+  package:flutter_test/src/widget_tester.dart 473:18  expect
+  test\core\platform_collision_test.dart 63:5         main.<fn>
+  
+00:11 +50 ~1 -3: C:/dev/rpg_runner/test/core/platform_collision_test.dart: one-way platform does not block upward motion from below
+00:11 +51 ~1 -3: C:/dev/rpg_runner/test/core/platform_collision_test.dart: walking off a platform clears grounded before hitting the ground
+00:11 +51 ~1 -4: C:/dev/rpg_runner/test/core/platform_collision_test.dart: walking off a platform clears grounded before hitting the ground [E]
+  Expected: true
+    Actual: <false>
+  
+  package:matcher                                     expect
+  package:flutter_test/src/widget_tester.dart 473:18  expect
+  test\core\platform_collision_test.dart 129:5        main.<fn>
+  
+00:12 +51 ~1 -4: C:/dev/rpg_runner/test/core/player_movement_test.dart: accelerates toward desired horizontal speed
+00:12 +52 ~1 -4: C:/dev/rpg_runner/test/core/player_movement_test.dart: jump from ground sets upward velocity
+00:12 +52 ~1 -5: C:/dev/rpg_runner/test/core/player_movement_test.dart: jump from ground sets upward velocity [E]
+  Expected: a numeric value within <1e-9> of <232.0>
+    Actual: <238.0>
+     Which:  differs by <6.0>
+  
+  package:matcher                                     expect
+  package:flutter_test/src/widget_tester.dart 473:18  expect
+  test\core\player_movement_test.dart 62:5            main.<fn>
+  
+00:12 +52 ~1 -5: C:/dev/rpg_runner/test/core/player_movement_test.dart: jump buffer triggers on the tick after landing
+00:12 +52 ~1 -6: C:/dev/rpg_runner/test/core/player_movement_test.dart: jump buffer triggers on the tick after landing [E]
+  Expected: a numeric value within <1e-9> of <0>
+    Actual: <100.0>
+     Which:  differs by <100.0>
+  
+  package:matcher                                     expect
+  package:flutter_test/src/widget_tester.dart 473:18  expect
+  test\core\player_movement_test.dart 111:5           main.<fn>
+  
+00:12 +52 ~1 -6: C:/dev/rpg_runner/test/core/player_movement_test.dart: dash sets constant horizontal speed and cancels vertical velocity
+00:12 +52 ~1 -7: C:/dev/rpg_runner/test/core/player_movement_test.dart: dash sets constant horizontal speed and cancels vertical velocity [E]
+  Expected: a numeric value within <1e-9> of <232.0>
+    Actual: <238.0>
+     Which:  differs by <6.0>
+  
+  package:matcher                                     expect
+  package:flutter_test/src/widget_tester.dart 473:18  expect
+  test\core\player_movement_test.dart 135:5           main.<fn>
+  
+00:12 +52 ~1 -7: C:/dev/rpg_runner/test/core/player_movement_test.dart: jump spends stamina (2) when executed
+00:12 +53 ~1 -7: C:/dev/rpg_runner/test/core/player_movement_test.dart: dash spends stamina (2) when started
+00:12 +54 ~1 -7: C:/dev/rpg_runner/test/core/projectile_hit_system_test.dart: ProjectileHitSystem damages target and despawns projectile
+00:12 +54 ~1 -8: C:/dev/rpg_runner/test/core/projectile_hit_system_test.dart: ProjectileHitSystem damages target and despawns projectile
+00:12 +54 ~1 -8: C:/dev/rpg_runner/test/core/player_movement_test.dart: insufficient stamina blocks dash and jump [E]
+  Expected: a numeric value within <1e-9> of <232.0>
+    Actual: <238.0>
+     Which:  differs by <6.0>
+  
+  package:matcher                                     expect
+  package:flutter_test/src/widget_tester.dart 473:18  expect
+  test\core\player_movement_test.dart 204:5           main.<fn>
+  
+00:12 +55 ~1 -8: C:/dev/rpg_runner/test/core/projectile_hit_system_test.dart: ProjectileHitSystem damages target and despawns projectile
+00:12 +56 ~1 -8: C:/dev/rpg_runner/test/core/projectile_hit_system_test.dart: ProjectileHitSystem damages target and despawns projectile
+00:12 +57 ~1 -8: C:/dev/rpg_runner/test/core/projectile_hit_system_test.dart: ProjectileHitSystem damages target and despawns projectile
+00:12 +58 ~1 -8: C:/dev/rpg_runner/test/core/ranged_weapon_test.dart: ranged: sufficient stamina + ammo => projectile spawns + costs + cooldown set
+00:13 +59 ~1 -8: C:/dev/rpg_runner/test/core/ranged_weapon_test.dart: ranged: insufficient ammo => no projectile + no costs + no cooldown
+00:13 +60 ~1 -8: C:/dev/rpg_runner/test/core/ranged_weapon_test.dart: ProjectileWorldCollisionSystem despawns ballistic projectiles
+00:13 +61 ~1 -8: C:/dev/rpg_runner/test/core/resource_regen_test.dart: resource regen refills after spending and clamps at max (via snapshot HUD)
+00:13 +62 ~1 -8: C:/dev/rpg_runner/test/core/restoration_item_system_test.dart: RestorationItemSystem restores and despawns on overlap
+00:13 +63 ~1 -8: C:/dev/rpg_runner/test/core/restoration_item_system_test.dart: RestorationItemSystem despawns behind camera
+00:14 +64 ~1 -8: C:/dev/rpg_runner/test/core/run_end_event_test.dart: projectile kill records death metadata
+00:14 +65 ~1 -8: C:/dev/rpg_runner/test/core/run_end_event_test.dart: melee kill records death metadata
+00:14 +66 ~1 -8: C:/dev/rpg_runner/test/core/run_end_event_test.dart: give up emits RunEndReason.gaveUp
+00:14 +67 ~1 -8: C:/dev/rpg_runner/test/core/score_system_test.dart: run score breakdown includes distance/time/collectibles/kills
+00:14 +68 ~1 -8: C:/dev/rpg_runner/test/core/score_system_test.dart: run score breakdown skips zero kill rows
+00:14 +69 ~1 -8: C:/dev/rpg_runner/test/core/static_geometry_snapshot_test.dart: snapshot includes static solids for rendering
+00:15 +70 ~1 -8: C:/dev/rpg_runner/test/core/status_system_test.dart: DamageSystem applies resistance and vulnerability modifiers
+00:15 +71 ~1 -8: C:/dev/rpg_runner/test/core/status_system_test.dart: status applies even when damage is fully resisted
+00:15 +72 ~1 -8: C:/dev/rpg_runner/test/core/status_system_test.dart: bleed ticks damage on its period
+00:15 +73 ~1 -8: C:/dev/rpg_runner/test/core/surface_extraction_test.dart: merges adjacent top segments across chunk boundaries
+00:15 +74 ~1 -8: C:/dev/rpg_runner/test/core/surface_extraction_test.dart: ground plane splits around obstacle walls
+00:15 +75 ~1 -8: C:/dev/rpg_runner/test/core/surface_extraction_test.dart: ground segments preserve gaps between walkable ranges
+00:15 +76 ~1 -8: C:/dev/rpg_runner/test/core/surface_extraction_test.dart: spatial index returns surfaces overlapping query AABB
+00:15 +77 ~1 -8: C:/dev/rpg_runner/test/core/surface_graph_builder_test.dart: surface graph build is deterministic
+00:16 +78 ~1 -8: C:/dev/rpg_runner/test/core/surface_graph_builder_test.dart: drop edges land on the first surface below
+00:16 +79 ~1 -8: C:/dev/rpg_runner/test/core/surface_graph_builder_test.dart: long surfaces still emit jump edges for high platforms
+00:16 +80 ~1 -8: C:/dev/rpg_runner/test/core/surface_graph_builder_test.dart: ground segments allow jump edges across gaps
+00:16 +81 ~1 -8: C:/dev/rpg_runner/test/core/surface_navigator_graph_version_test.dart: SurfaceNavigator invalidates cached plans when graphVersion changes
+00:16 +82 ~1 -8: C:/dev/rpg_runner/test/core/surface_pathfinder_test.dart: surface pathfinder returns a deterministic path
+00:16 +83 ~1 -8: C:/dev/rpg_runner/test/core/surface_pathfinder_test.dart: pathfinder prefers takeoff closest to startX on the start surface
+00:16 +84 ~1 -8: C:/dev/rpg_runner/test/core/track_streaming_test.dart: track streaming is deterministic and stays bounded (culling)
+00:17 +85 ~1 -8: C:/dev/rpg_runner/test/core/track_streaming_test.dart: track streaming is deterministic and stays bounded (culling)
+00:17 +86 ~1 -8: C:/dev/rpg_runner/test/core/track_streaming_test.dart: track streaming is deterministic and stays bounded (culling)
+00:17 +87 ~1 -8: C:/dev/rpg_runner/test/core/track_streaming_test.dart: track streaming is deterministic and stays bounded (culling)
+00:17 +88 ~1 -8: C:/dev/rpg_runner/test/core/track_streaming_test.dart: track streaming is deterministic and stays bounded (culling)
+00:17 +89 ~1 -8: C:/dev/rpg_runner/test/core/track_streaming_test.dart: track streaming is deterministic and stays bounded (culling)
+00:17 +90 ~1 -8: C:/dev/rpg_runner/test/core/track_streaming_test.dart: track streaming is deterministic and stays bounded (culling)
+00:17 +91 ~1 -8: C:/dev/rpg_runner/test/core/track_streaming_test.dart: track streaming is deterministic and stays bounded (culling)
+00:17 +92 ~1 -8: C:/dev/rpg_runner/test/core/track_streaming_test.dart: track streaming is deterministic and stays bounded (culling)
+00:17 +93 ~1 -8: C:/dev/rpg_runner/test/core/velocity_math_test.dart: applyAccelDecel accelerates toward the desired velocity
+00:17 +94 ~1 -8: C:/dev/rpg_runner/test/core/velocity_math_test.dart: applyAccelDecel decelerates toward zero
+00:17 +95 ~1 -8: C:/dev/rpg_runner/test/core/velocity_math_test.dart: applyAccelDecel snaps to zero under minStopSpeed
+00:18 +96 ~1 -8: C:/dev/rpg_runner/test/game_controller_input_test.dart: GameController dedupes MoveAxis per tick (last wins)
+00:18 +97 ~1 -8: C:/dev/rpg_runner/test/game_controller_input_test.dart: GameController merges multiple button presses per tick
+00:18 +98 ~1 -8: C:/dev/rpg_runner/test/game_controller_input_test.dart: GameController dedupes ProjectileAimDir per tick (last wins)
+00:18 +99 ~1 -8: C:/dev/rpg_runner/test/game_controller_input_test.dart: GameController notifies once after stepping ticks
+00:18 +100 ~1 -8: C:/dev/rpg_runner/test/game_controller_input_test.dart: GameController notifies when paused and shutdown
+00:18 +101 ~1 -8: C:/dev/rpg_runner/test/runner_input_router_aim_quantize_test.dart: projectile aim dir is quantized (stable payload) before casting
+00:18 +102 ~1 -8: C:/dev/rpg_runner/test/runner_input_router_release_test.dart: move axis release overwrites buffered future ticks
+00:19 +103 ~1 -8: C:/dev/rpg_runner/test/runner_input_router_release_test.dart: projectile aim clear overwrites buffered future ticks (affects cast direction)
+00:19 +104 ~1 -8: C:/dev/rpg_runner/test/runner_input_router_release_test.dart: release-to-cast keeps aimed dir for the cast tick
+00:19 +105 ~1 -8: C:/dev/rpg_runner/test/ui/game_over_score_feed_test.dart: Scoreboard hides current run score until feed complete
+00:20 +106 ~1 -8: C:/dev/rpg_runner/test/ui/game_over_score_feed_test.dart: Scoreboard hides current run score until feed complete
+00:20 +107 ~1 -8: C:/dev/rpg_runner/test/ui/game_over_score_feed_test.dart: Scoreboard hides current run score until feed complete
+00:20 +108 ~1 -8: C:/dev/rpg_runner/test/ui/game_over_score_feed_test.dart: Scoreboard hides current run score until feed complete
+00:21 +109 ~1 -8: C:/dev/rpg_runner/test/ui/survival_timer_overlay_test.dart: SurvivalTimerOverlay formats tick-based mm:ss
+00:21 +110 ~1 -8: C:/dev/rpg_runner/test/ui/survival_timer_overlay_test.dart: SurvivalTimerOverlay formats tick-based mm:ss
+00:21 +111 ~1 -8: C:/dev/rpg_runner/test/widget_test.dart: GameViewport pixelPerfectContain keeps full frame visible
+00:21 +112 ~1 -8: C:/dev/rpg_runner/test/widget_test.dart: GameViewport pixelPerfectContain keeps full frame visible
+00:21 +113 ~1 -8: C:/dev/rpg_runner/test/widget_test.dart: GameViewport can be bottom-left anchored
+00:21 +114 ~1 -8: Some tests failed.

@@ -1,23 +1,23 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:walkscape_runner/core/combat/damage_type.dart';
-import 'package:walkscape_runner/core/combat/faction.dart';
-import 'package:walkscape_runner/core/combat/status/status.dart';
-import 'package:walkscape_runner/core/commands/command.dart';
-import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
-import 'package:walkscape_runner/core/ecs/systems/projectile_world_collision_system.dart';
-import 'package:walkscape_runner/core/ecs/world.dart';
-import 'package:walkscape_runner/core/game_core.dart';
-import 'package:walkscape_runner/core/players/player_character_registry.dart';
-import 'package:walkscape_runner/core/players/player_catalog.dart';
-import 'package:walkscape_runner/core/projectiles/projectile_catalog.dart';
-import 'package:walkscape_runner/core/projectiles/projectile_id.dart';
-import 'package:walkscape_runner/core/snapshots/enums.dart';
-import 'package:walkscape_runner/core/players/player_tuning.dart';
-import 'package:walkscape_runner/core/weapons/ranged_weapon_catalog.dart';
-import 'package:walkscape_runner/core/weapons/ranged_weapon_id.dart';
-import 'package:walkscape_runner/core/weapons/spawn_ranged_weapon_projectile.dart';
-import 'package:walkscape_runner/core/ecs/stores/combat/ammo_store.dart';
+import 'package:rpg_runner/core/combat/damage_type.dart';
+import 'package:rpg_runner/core/combat/faction.dart';
+import 'package:rpg_runner/core/combat/status/status.dart';
+import 'package:rpg_runner/core/commands/command.dart';
+import 'package:rpg_runner/core/ecs/stores/body_store.dart';
+import 'package:rpg_runner/core/ecs/systems/projectile_world_collision_system.dart';
+import 'package:rpg_runner/core/ecs/world.dart';
+import 'package:rpg_runner/core/game_core.dart';
+import 'package:rpg_runner/core/players/player_character_registry.dart';
+import 'package:rpg_runner/core/players/player_catalog.dart';
+import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
+import 'package:rpg_runner/core/projectiles/projectile_id.dart';
+import 'package:rpg_runner/core/snapshots/enums.dart';
+import 'package:rpg_runner/core/players/player_tuning.dart';
+import 'package:rpg_runner/core/weapons/ranged_weapon_catalog.dart';
+import 'package:rpg_runner/core/weapons/ranged_weapon_id.dart';
+import 'package:rpg_runner/core/weapons/spawn_ranged_weapon_projectile.dart';
+import 'package:rpg_runner/core/ecs/stores/combat/ammo_store.dart';
 
 import '../test_tunings.dart';
 

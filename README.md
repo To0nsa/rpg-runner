@@ -1,4 +1,4 @@
-# Walkscape Runner (Flutter + Flame)
+# RPG-Runner (Flutter + Flame)
 
 Deterministic 2D runner prototype, ported from an SFML/C++ version into Flutter (Dart) + Flame.
 
@@ -36,7 +36,7 @@ run.
 Import the public embedding API (`lib/runner.dart`) and push the route:
 
 ```dart
-import 'package:walkscape_runner/runner.dart';
+import 'package:rpg_runner/runner.dart';
 
 Navigator.of(context).push(
   createRunnerGameRoute(

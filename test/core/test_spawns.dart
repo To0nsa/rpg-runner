@@ -1,13 +1,13 @@
-import 'package:walkscape_runner/core/enemies/enemy_id.dart';
-import 'package:walkscape_runner/core/ecs/entity_id.dart';
-import 'package:walkscape_runner/core/ecs/entity_factory.dart';
-import 'package:walkscape_runner/core/ecs/stores/body_store.dart';
-import 'package:walkscape_runner/core/ecs/stores/collider_aabb_store.dart';
-import 'package:walkscape_runner/core/ecs/stores/health_store.dart';
-import 'package:walkscape_runner/core/ecs/stores/mana_store.dart';
-import 'package:walkscape_runner/core/ecs/stores/stamina_store.dart';
-import 'package:walkscape_runner/core/ecs/world.dart';
-import 'package:walkscape_runner/core/snapshots/enums.dart';
+import 'package:rpg_runner/core/enemies/enemy_id.dart';
+import 'package:rpg_runner/core/ecs/entity_id.dart';
+import 'package:rpg_runner/core/ecs/entity_factory.dart';
+import 'package:rpg_runner/core/ecs/stores/body_store.dart';
+import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
+import 'package:rpg_runner/core/ecs/stores/health_store.dart';
+import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
+import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
+import 'package:rpg_runner/core/ecs/world.dart';
+import 'package:rpg_runner/core/snapshots/enums.dart';
 
 // Test-only spawn helpers to keep individual tests focused on behavior.
 

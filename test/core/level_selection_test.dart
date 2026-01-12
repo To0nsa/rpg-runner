@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:walkscape_runner/core/game_core.dart';
-import 'package:walkscape_runner/core/levels/level_id.dart';
-import 'package:walkscape_runner/core/levels/level_registry.dart';
+import 'package:rpg_runner/core/game_core.dart';
+import 'package:rpg_runner/core/levels/level_id.dart';
+import 'package:rpg_runner/core/levels/level_registry.dart';
 
 void main() {
   test('levelDefinition selection sets snapshot levelId + themeId', () {
