@@ -36,6 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   flame: ^1.34.0
   shared_preferences: ^2.3.2
+  firebase_core: ^4.3.0
 
 dev_dependencies:
   flutter_test:
