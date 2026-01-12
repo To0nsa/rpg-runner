@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import '../core/contracts/render_contract.dart';
+import '../core/players/player_character_definition.dart';
 import '../core/snapshots/entity_render_snapshot.dart';
 import '../core/snapshots/enums.dart';
 import '../core/snapshots/static_solid_snapshot.dart';
@@ -53,6 +54,7 @@ class RunnerFlameGame extends FlameGame {
     required this.projectileAimPreview,
     required this.meleeAimPreview,
     required this.rangedAimPreview,
+    required this.playerCharacter,
   }) : super(
          camera: CameraComponent.withFixedResolution(
            width: virtualWidth.toDouble(),
@@ -70,6 +72,9 @@ class RunnerFlameGame extends FlameGame {
   final ValueListenable<AimPreviewState> projectileAimPreview;
   final ValueListenable<AimPreviewState> meleeAimPreview;
   final ValueListenable<AimPreviewState> rangedAimPreview;
+
+  /// The selected player character definition for this run (render-only usage).
+  final PlayerCharacterDefinition playerCharacter;
 
   late final PlayerViewComponent _player;
   final List<RectangleComponent> _staticSolids = <RectangleComponent>[];
@@ -104,6 +109,10 @@ class RunnerFlameGame extends FlameGame {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    assert(() {
+      playerCharacter.assertValid();
+      return true;
+    }());
     final theme = ParallaxThemeRegistry.forThemeId(controller.snapshot.themeId);
 
     // Background parallax layers (sky, distant mountains, etc.)
@@ -137,7 +146,10 @@ class RunnerFlameGame extends FlameGame {
       )..priority = _priorityForegroundParallax,
     );
 
-    final playerAnimations = await loadPlayerAnimations(images);
+    final playerAnimations = await loadPlayerAnimations(
+      images,
+      renderAnim: playerCharacter.renderAnim,
+    );
     _player = PlayerViewComponent(
       animationSet: playerAnimations,
       renderScale: Vector2.all(_playerRenderTuning.scale),

@@ -9,7 +9,7 @@ import 'package:flame/cache.dart';
 import 'package:flame/components.dart';
 
 import '../../../core/snapshots/enums.dart';
-import '../../../core/players/player_tuning.dart';
+import '../../../core/players/player_character_definition.dart';
 
 class PlayerAnimationSet {
   const PlayerAnimationSet({
@@ -27,7 +27,10 @@ class PlayerAnimationSet {
   final Vector2 frameSize;
 }
 
-Future<PlayerAnimationSet> loadPlayerAnimations(Images images) async {
+Future<PlayerAnimationSet> loadPlayerAnimations(
+  Images images, {
+  required PlayerRenderAnimSetDefinition renderAnim,
+}) async {
   final oneShotKeys = <AnimKey>{
     AnimKey.attack,
     AnimKey.cast,
@@ -35,22 +38,11 @@ Future<PlayerAnimationSet> loadPlayerAnimations(Images images) async {
     AnimKey.hit,
     AnimKey.death,
   };
-
   final frameSize = Vector2(
-    playerAnimFrameWidth.toDouble(),
-    playerAnimFrameHeight.toDouble(),
+    renderAnim.frameWidth.toDouble(),
+    renderAnim.frameHeight.toDouble(),
   );
-  final sources = <AnimKey, String>{
-    AnimKey.idle: 'entities/player/idle.png',
-    AnimKey.run: 'entities/player/move.png',
-    AnimKey.jump: 'entities/player/jump.png',
-    AnimKey.fall: 'entities/player/fall.png',
-    AnimKey.attack: 'entities/player/attack.png',
-    AnimKey.cast: 'entities/player/cast.png',
-    AnimKey.dash: 'entities/player/dash.png',
-    AnimKey.hit: 'entities/player/hit.png',
-    AnimKey.death: 'entities/player/death.png',
-  };
+  final sources = renderAnim.sourcesByKey;
 
   final imagesByKey = <AnimKey, Image>{};
   for (final entry in sources.entries) {
@@ -63,9 +55,13 @@ Future<PlayerAnimationSet> loadPlayerAnimations(Images images) async {
     final key = entry.key;
     final img = entry.value;
     final stepTime =
-        playerAnimStepTimeSecondsByKey[key] ?? playerAnimIdleStepSeconds;
+        renderAnim.stepTimeSecondsByKey[key] ??
+        renderAnim.stepTimeSecondsByKey[AnimKey.idle] ??
+        0.1;
     final frameCount =
-        playerAnimFrameCountsByKey[key] ?? playerAnimIdleFrames;
+        renderAnim.frameCountsByKey[key] ??
+        renderAnim.frameCountsByKey[AnimKey.idle] ??
+        1;
     assert(
       img.height == frameSize.y.toInt() &&
           img.width == frameSize.x.toInt() * frameCount,
@@ -85,7 +81,7 @@ Future<PlayerAnimationSet> loadPlayerAnimations(Images images) async {
 
   return PlayerAnimationSet(
     animations: animations,
-    stepTimeSecondsByKey: playerAnimStepTimeSecondsByKey,
+    stepTimeSecondsByKey: renderAnim.stepTimeSecondsByKey,
     oneShotKeys: oneShotKeys,
     frameSize: frameSize,
   );

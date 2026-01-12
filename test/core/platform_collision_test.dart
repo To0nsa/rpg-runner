@@ -27,6 +27,11 @@ void main() {
   test('lands on a one-way platform above the ground', () {
     const topY = 180.0;
     const r = 8.0;
+    const catalog = PlayerCatalog(
+      colliderWidth: r * 2,
+      colliderHeight: r * 2,
+      colliderOffsetY: 0.0,
+    );
 
     final core = GameCore(
       seed: 1,
@@ -42,7 +47,7 @@ void main() {
         track: TrackTuning(enabled: false),
       ),
       playerCharacter: PlayerCharacterRegistry.eloise.copyWith(
-        catalog: PlayerCatalog(colliderWidth: r * 2, colliderHeight: r * 2),
+        catalog: catalog,
       ),
     );
 
@@ -68,6 +73,11 @@ void main() {
   test('one-way platform does not block upward motion from below', () {
     const topY = 180.0;
     const r = 8.0;
+    const catalog = PlayerCatalog(
+      colliderWidth: r * 2,
+      colliderHeight: r * 2,
+      colliderOffsetY: 0.0,
+    );
 
     final core = GameCore(
       seed: 1,
@@ -83,7 +93,7 @@ void main() {
         track: TrackTuning(enabled: false),
       ),
       playerCharacter: PlayerCharacterRegistry.eloise.copyWith(
-        catalog: PlayerCatalog(colliderWidth: r * 2, colliderHeight: r * 2),
+        catalog: catalog,
       ),
     );
 
@@ -101,6 +111,11 @@ void main() {
     const topY = 180.0;
     const r = 8.0;
     const platformMaxX = 240.0;
+    const catalog = PlayerCatalog(
+      colliderWidth: r * 2,
+      colliderHeight: r * 2,
+      colliderOffsetY: 0.0,
+    );
 
     final core = GameCore(
       seed: 1,
@@ -116,7 +131,7 @@ void main() {
         track: TrackTuning(enabled: false),
       ),
       playerCharacter: PlayerCharacterRegistry.eloise.copyWith(
-        catalog: PlayerCatalog(colliderWidth: r * 2, colliderHeight: r * 2),
+        catalog: catalog,
       ),
     );
 

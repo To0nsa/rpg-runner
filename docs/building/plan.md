@@ -18,8 +18,9 @@ Details: `docs/building/combat.md`.
 
 Core owns deterministic animation windows via `AnimTuning` (attack/cast/hit/death/spawn).
 Renderer consumes `AnimKey` + `animFrame` only; no simulation logic lives in Flame.
-Default `AnimTuning` values derive from `lib/core/tuning/player/player_tuning.dart`
-(frame counts x step times) so Core windows match render strip timing.
+For Éloïse, render strip timing (frame counts x step time) is authored in
+`lib/core/players/characters/eloise.dart`, and `eloiseTuning.anim` is kept in
+sync so Core windows match render strip timing.
 
 ## Player characters (multi-character ready)
 

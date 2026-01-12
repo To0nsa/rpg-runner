@@ -45,15 +45,16 @@ void main() {
   test(
     'cast: sufficient mana => projectile spawns + mana spent + cooldown set',
     () {
+      const catalog = PlayerCatalog(
+        bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+      );
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
         seed: 1,
         tickHz: 20,
         tuning: noAutoscrollTuning,
         playerCharacter: base.copyWith(
-          catalog: const PlayerCatalog(
-            bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-          ),
+          catalog: catalog,
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
               playerManaMax: 20,
@@ -76,7 +77,8 @@ void main() {
       expect(projectiles.length, 1);
 
       final p = projectiles.single;
-      expect(p.pos.x, closeTo(playerPosX + 4.0, 1e-9)); // maxHalfExtent * 0.5
+      final expectedOffset = catalog.colliderMaxHalfExtent * 0.5;
+      expect(p.pos.x, closeTo(playerPosX + expectedOffset, 1e-9));
       expect(p.pos.y, closeTo(playerPosY, 1e-9));
 
       expect(snapshot.hud.mana, closeTo(10.0, 1e-9));

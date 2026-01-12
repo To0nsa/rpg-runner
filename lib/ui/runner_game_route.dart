@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../core/levels/level_id.dart';
+import '../core/players/player_character_definition.dart';
 import 'runner_game_widget.dart';
 import 'scoped/scoped_preferred_orientations.dart';
 import 'scoped/scoped_system_ui_mode.dart';
@@ -14,6 +15,7 @@ import 'scoped/scoped_system_ui_mode.dart';
 Route<void> createRunnerGameRoute({
   int seed = 1,
   LevelId levelId = LevelId.defaultLevel,
+  PlayerCharacterId playerCharacterId = PlayerCharacterId.eloise,
   bool lockLandscape = true,
   List<DeviceOrientation>? restoreOrientations,
 }) {
@@ -22,6 +24,7 @@ Route<void> createRunnerGameRoute({
       Widget child = RunnerGameWidget(
         seed: seed,
         levelId: levelId,
+        playerCharacterId: playerCharacterId,
         onExit: () => Navigator.of(context).maybePop(),
       );
 

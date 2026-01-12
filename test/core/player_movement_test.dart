@@ -56,8 +56,8 @@ void main() {
       tickHz: defaultTickHz,
       tuning: noAutoscrollTuning,
     );
-    final floorY =
-        groundTopY.toDouble() - const PlayerCatalog().colliderHalfY;
+    final catalog = PlayerCharacterRegistry.eloise.catalog;
+    final floorY = groundTopY.toDouble() - (catalog.colliderOffsetY + catalog.colliderHalfY);
 
     expect(core.playerPosY, closeTo(floorY, 1e-9));
     expect(core.playerGrounded, isTrue);
@@ -76,8 +76,8 @@ void main() {
       tickHz: defaultTickHz,
       tuning: noAutoscrollTuning,
     );
-    final catalog = const PlayerCatalog();
-    final floorY = groundTopY.toDouble() - catalog.colliderHalfY;
+    final catalog = PlayerCharacterRegistry.eloise.catalog;
+    final floorY = groundTopY.toDouble() - (catalog.colliderOffsetY + catalog.colliderHalfY);
 
     // Put the player high above the floor so coyote time expires before landing.
     core.setPlayerPosXY(core.playerPosX, floorY - 200);
@@ -124,8 +124,8 @@ void main() {
       tuning: noAutoscrollTuning,
     );
     final tuning = const MovementTuning();
-    final catalog = const PlayerCatalog();
-    final floorY = groundTopY.toDouble() - catalog.colliderHalfY;
+    final catalog = PlayerCharacterRegistry.eloise.catalog;
+    final floorY = groundTopY.toDouble() - (catalog.colliderOffsetY + catalog.colliderHalfY);
 
     // Start dashing from the ground.
     _tick(core, dashPressed: true);
@@ -199,8 +199,8 @@ void main() {
       ),
     );
 
-    final floorY =
-        groundTopY.toDouble() - const PlayerCatalog().colliderHalfY;
+    final catalog = PlayerCharacterRegistry.eloise.catalog;
+    final floorY = groundTopY.toDouble() - (catalog.colliderOffsetY + catalog.colliderHalfY);
     expect(core.playerPosY, closeTo(floorY, 1e-9));
     expect(core.playerGrounded, isTrue);
 
@@ -229,8 +229,8 @@ void main() {
         ),
       ),
     );
-    final catalog = const PlayerCatalog();
-    final floorY = groundTopY.toDouble() - catalog.colliderHalfY;
+    const catalog = PlayerCatalog(bodyTemplate: BodyDef(gravityScale: 0));
+    final floorY = groundTopY.toDouble() - (catalog.colliderOffsetY + catalog.colliderHalfY);
 
     core.setPlayerPosXY(core.playerPosX, floorY - 120);
     core.setPlayerVelXY(0, 0);
@@ -253,8 +253,8 @@ void main() {
         ),
       ),
     );
-    final catalog = const PlayerCatalog();
-    final floorY = groundTopY.toDouble() - catalog.colliderHalfY;
+    const catalog = PlayerCatalog(bodyTemplate: BodyDef(isKinematic: true));
+    final floorY = groundTopY.toDouble() - (catalog.colliderOffsetY + catalog.colliderHalfY);
 
     core.setPlayerPosXY(core.playerPosX, floorY - 120);
     core.setPlayerVelXY(0, 0);

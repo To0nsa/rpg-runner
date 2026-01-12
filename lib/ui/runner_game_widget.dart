@@ -5,6 +5,8 @@ import '../core/contracts/render_contract.dart';
 import '../core/game_core.dart';
 import '../core/levels/level_id.dart';
 import '../core/levels/level_registry.dart';
+import '../core/players/player_character_definition.dart';
+import '../core/players/player_character_registry.dart';
 import '../game/game_controller.dart';
 import '../game/input/aim_preview.dart';
 import '../game/input/runner_input_router.dart';
@@ -27,6 +29,7 @@ class RunnerGameWidget extends StatefulWidget {
     super.key,
     this.seed = 1,
     this.levelId = LevelId.defaultLevel,
+    this.playerCharacterId = PlayerCharacterId.eloise,
     this.onExit,
     this.showExitButton = true,
     this.viewportMode = ViewportScaleMode.pixelPerfectContain,
@@ -38,6 +41,9 @@ class RunnerGameWidget extends StatefulWidget {
 
   /// Which core level definition to run.
   final LevelId levelId;
+
+  /// Which player character to use for this run.
+  final PlayerCharacterId playerCharacterId;
 
   final VoidCallback? onExit;
   final bool showExitButton;
@@ -151,10 +157,14 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   void _initGame() {
+    final playerCharacter =
+        PlayerCharacterRegistry.byId[widget.playerCharacterId] ??
+        PlayerCharacterRegistry.defaultCharacter;
     _controller = GameController(
       core: GameCore(
         seed: widget.seed,
         levelDefinition: LevelRegistry.byId(widget.levelId),
+        playerCharacter: playerCharacter,
       ),
     );
     _input = RunnerInputRouter(controller: _controller);
@@ -167,6 +177,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       projectileAimPreview: _projectileAimPreview,
       meleeAimPreview: _meleeAimPreview,
       rangedAimPreview: _rangedAimPreview,
+      playerCharacter: playerCharacter,
     );
   }
 

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:walkscape_runner/core/commands/command.dart';
@@ -12,6 +14,9 @@ import '../test_tunings.dart';
 
 void main() {
   test('melee: attack spawns hitbox for active ticks', () {
+    const catalog = PlayerCatalog(
+      bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+    );
     const abilityTuning = AbilityTuning();
     const resourceTuning = ResourceTuning(
       playerStaminaMax: 100,
@@ -29,9 +34,7 @@ void main() {
       tickHz: 60,
       tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
-        catalog: const PlayerCatalog(
-          bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-        ),
+        catalog: catalog,
         tuning: base.tuning.copyWith(
           resource: resourceTuning,
           ability: abilityTuning,
@@ -50,7 +53,10 @@ void main() {
         .where((e) => e.kind == EntityKind.trigger)
         .toList();
     expect(hitboxes.length, 1);
-    expect(hitboxes.single.pos.x, closeTo(playerX + 20.0, 1e-9));
+    final hitboxHalfX = abilityTuning.meleeHitboxSizeX * 0.5;
+    final hitboxHalfY = abilityTuning.meleeHitboxSizeY * 0.5;
+    final forward = (catalog.colliderMaxHalfExtent * 0.5) + max(hitboxHalfX, hitboxHalfY);
+    expect(hitboxes.single.pos.x, closeTo(playerX + forward, 1e-9));
     expect(hitboxes.single.pos.y, closeTo(playerY, 1e-9));
     expect(
       snapshot.hud.stamina,
@@ -82,6 +88,9 @@ void main() {
   });
 
   test('melee: uses aim direction when provided', () {
+    const catalog = PlayerCatalog(
+      bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+    );
     const abilityTuning = AbilityTuning();
     const resourceTuning = ResourceTuning(
       playerStaminaMax: 100,
@@ -95,9 +104,7 @@ void main() {
       tickHz: 60,
       tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
-        catalog: const PlayerCatalog(
-          bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-        ),
+        catalog: catalog,
         tuning: base.tuning.copyWith(
           resource: resourceTuning,
           ability: abilityTuning,
@@ -120,6 +127,9 @@ void main() {
         .toList();
     expect(hitboxes.length, 1);
     expect(hitboxes.single.pos.x, closeTo(playerX, 1e-9));
-    expect(hitboxes.single.pos.y, closeTo(playerY - 20.0, 1e-9));
+    final hitboxHalfX = abilityTuning.meleeHitboxSizeX * 0.5;
+    final hitboxHalfY = abilityTuning.meleeHitboxSizeY * 0.5;
+    final forward = (catalog.colliderMaxHalfExtent * 0.5) + max(hitboxHalfX, hitboxHalfY);
+    expect(hitboxes.single.pos.y, closeTo(playerY - forward, 1e-9));
   });
 }
