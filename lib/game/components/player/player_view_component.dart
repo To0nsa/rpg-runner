@@ -40,9 +40,16 @@ class PlayerViewComponent extends SpriteAnimationGroupComponent<AnimKey> {
   void applySnapshot(EntityRenderSnapshot e, {required int tickHz}) {
     position.setValues(e.pos.x.roundToDouble(), e.pos.y.roundToDouble());
 
-    final nextAnim = _availableAnimations.containsKey(e.anim)
-        ? e.anim
-        : AnimKey.idle;
+    AnimKey nextAnim = e.anim;
+    if (!_availableAnimations.containsKey(nextAnim)) {
+      // Allow directional variants to fall back to their base animation key.
+      if (nextAnim == AnimKey.attackLeft &&
+          _availableAnimations.containsKey(AnimKey.attack)) {
+        nextAnim = AnimKey.attack;
+      } else {
+        nextAnim = AnimKey.idle;
+      }
+    }
     if (current != nextAnim) {
       current = nextAnim;
     }

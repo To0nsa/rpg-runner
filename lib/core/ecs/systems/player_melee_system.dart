@@ -88,6 +88,13 @@ class PlayerMeleeSystem {
       dirY = 0.0;
     }
 
+    // Update facing based on aim direction so the render layer flips the sprite
+    // when striking left/right even if the movement axis is neutral.
+    if (dirX.abs() > 1e-6) {
+      world.movement.facing[movementIndex] =
+          dirX > 0 ? Facing.right : Facing.left;
+    }
+
     // -- 3. Intent Calculation --
 
     final halfX = abilities.base.meleeHitboxSizeX * 0.5;
@@ -129,5 +136,7 @@ class PlayerMeleeSystem {
       ),
     );
     world.actionAnim.lastMeleeTick[actionAnimIndex] = currentTick;
+    world.actionAnim.lastMeleeFacing[actionAnimIndex] =
+        dirX >= 0 ? Facing.right : Facing.left;
   }
 }

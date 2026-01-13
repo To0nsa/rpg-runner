@@ -199,6 +199,9 @@ class SnapshotBuilder {
     final lastMeleeTick = actionAnimIndex == null
         ? -1
         : world.actionAnim.lastMeleeTick[actionAnimIndex];
+    final lastMeleeFacing = actionAnimIndex == null
+        ? playerFacing
+        : world.actionAnim.lastMeleeFacing[actionAnimIndex];
     final lastCastTick = actionAnimIndex == null
         ? -1
         : world.actionAnim.lastCastTick[actionAnimIndex];
@@ -214,10 +217,13 @@ class SnapshotBuilder {
         animTuning.hitAnimTicks > 0 &&
         lastDamageTick >= 0 &&
         (tick - lastDamageTick) < animTuning.hitAnimTicks;
+    final attackAnimTicks = lastMeleeFacing == Facing.left
+        ? animTuning.attackLeftAnimTicks
+        : animTuning.attackAnimTicks;
     final showAttack =
-        animTuning.attackAnimTicks > 0 &&
+        attackAnimTicks > 0 &&
         lastMeleeTick >= 0 &&
-        (tick - lastMeleeTick) < animTuning.attackAnimTicks;
+        (tick - lastMeleeTick) < attackAnimTicks;
     final showCast =
         animTuning.castAnimTicks > 0 &&
         lastCastTick >= 0 &&
@@ -228,7 +234,7 @@ class SnapshotBuilder {
     } else if (showHit) {
       anim = AnimKey.hit;
     } else if (showAttack) {
-      anim = AnimKey.attack;
+      anim = lastMeleeFacing == Facing.left ? AnimKey.attackLeft : AnimKey.attack;
     } else if (showCast) {
       anim = AnimKey.cast;
     } else if (dashing) {
@@ -252,6 +258,7 @@ class SnapshotBuilder {
     final int playerAnimFrame;
     switch (anim) {
       case AnimKey.attack:
+      case AnimKey.attackLeft:
         playerAnimFrame = lastMeleeTick >= 0 ? tick - lastMeleeTick : tick;
       case AnimKey.cast:
         playerAnimFrame = lastCastTick >= 0 ? tick - lastCastTick : tick;

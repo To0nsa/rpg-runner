@@ -228,6 +228,7 @@ class AnimTuning {
     this.hitAnimSeconds = 0.40,
     this.castAnimSeconds = 0.40,
     this.attackAnimSeconds = 0.36,
+    this.attackLeftAnimSeconds = 0.36,
     this.deathAnimSeconds = 0.72,
     this.spawnAnimSeconds = 0.56,
   });
@@ -268,6 +269,7 @@ class AnimTuning {
   final double hitAnimSeconds;
   final double castAnimSeconds;
   final double attackAnimSeconds;
+  final double attackLeftAnimSeconds;
   final double deathAnimSeconds;
   final double spawnAnimSeconds;
 }
@@ -279,6 +281,7 @@ class AnimTuningDerived {
     required this.hitAnimTicks,
     required this.castAnimTicks,
     required this.attackAnimTicks,
+    required this.attackLeftAnimTicks,
     required this.deathAnimTicks,
     required this.spawnAnimTicks,
   });
@@ -294,6 +297,7 @@ class AnimTuningDerived {
       hitAnimTicks: ticksFromSecondsCeil(base.hitAnimSeconds, tickHz),
       castAnimTicks: ticksFromSecondsCeil(base.castAnimSeconds, tickHz),
       attackAnimTicks: ticksFromSecondsCeil(base.attackAnimSeconds, tickHz),
+      attackLeftAnimTicks: ticksFromSecondsCeil(base.attackLeftAnimSeconds, tickHz),
       deathAnimTicks: ticksFromSecondsCeil(base.deathAnimSeconds, tickHz),
       spawnAnimTicks: ticksFromSecondsCeil(base.spawnAnimSeconds, tickHz),
     );
@@ -305,6 +309,7 @@ class AnimTuningDerived {
   final int hitAnimTicks;
   final int castAnimTicks;
   final int attackAnimTicks;
+  final int attackLeftAnimTicks;
   final int deathAnimTicks;
   final int spawnAnimTicks;
 }
