@@ -9,7 +9,7 @@ class TrackTuning {
     this.cullBehindMargin = 600.0,
     this.enemyCullBelowGroundOffsetY = 300.0,
     this.gridSnap = 16.0,
-    this.playerStartX = 400.0,
+    this.playerStartX = 300.0,
     this.gapKillOffsetY = 400.0,
   }) : assert(chunkWidth > 0),
        assert(spawnAheadMargin >= 0),

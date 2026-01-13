@@ -235,13 +235,18 @@ class SnapshotBuilder {
       anim = AnimKey.dash;
     } else if (!onGround) {
       anim = playerVelY < 0 ? AnimKey.jump : AnimKey.fall;
-    } else if (playerVelX.abs() > tuning.minMoveSpeed) {
-      anim = AnimKey.run;
     } else if (animTuning.spawnAnimTicks > 0 &&
         tick < animTuning.spawnAnimTicks) {
       anim = AnimKey.spawn;
     } else {
-      anim = AnimKey.idle;
+      final speedX = playerVelX.abs();
+      if (speedX <= tuning.minMoveSpeed) {
+        anim = AnimKey.idle;
+      } else if (speedX < tuning.runSpeedThresholdX) {
+        anim = AnimKey.walk;
+      } else {
+        anim = AnimKey.run;
+      }
     }
 
     final int playerAnimFrame;

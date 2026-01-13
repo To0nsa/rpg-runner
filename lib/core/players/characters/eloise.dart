@@ -30,6 +30,9 @@ const double eloiseAnimIdleStepSeconds = 0.14;
 const int eloiseAnimRunFrames = 7;
 const double eloiseAnimRunStepSeconds = 0.08;
 
+const int eloiseAnimWalkFrames = 7;
+const double eloiseAnimWalkStepSeconds = 0.16;
+
 const int eloiseAnimJumpFrames = 6;
 const double eloiseAnimJumpStepSeconds = 0.10;
 
@@ -66,6 +69,7 @@ const Map<AnimKey, int> eloiseAnimFrameCountsByKey = <AnimKey, int>{
   AnimKey.hit: eloiseAnimHitFrames,
   AnimKey.death: eloiseAnimDeathFrames,
   AnimKey.spawn: eloiseAnimSpawnFrames,
+  AnimKey.walk: eloiseAnimWalkFrames,
 };
 
 const Map<AnimKey, double> eloiseAnimStepTimeSecondsByKey = <AnimKey, double>{
@@ -79,6 +83,7 @@ const Map<AnimKey, double> eloiseAnimStepTimeSecondsByKey = <AnimKey, double>{
   AnimKey.hit: eloiseAnimHitStepSeconds,
   AnimKey.death: eloiseAnimDeathStepSeconds,
   AnimKey.spawn: eloiseAnimSpawnStepSeconds,
+  AnimKey.walk: eloiseAnimWalkStepSeconds,
 };
 
 const Map<AnimKey, String> eloiseAnimSourcesByKey = <AnimKey, String>{
@@ -92,6 +97,7 @@ const Map<AnimKey, String> eloiseAnimSourcesByKey = <AnimKey, String>{
   AnimKey.hit: 'entities/player/hit.png',
   AnimKey.death: 'entities/player/death.png',
   AnimKey.spawn: 'entities/player/idle.png',
+  AnimKey.walk: 'entities/player/walk.png',
 };
 
 const PlayerRenderAnimSetDefinition eloiseRenderAnim = PlayerRenderAnimSetDefinition(
@@ -134,6 +140,7 @@ const PlayerTuning eloiseTuning = PlayerTuning(
     accelerationX: 600,
     decelerationX: 400,
     minMoveSpeed: 5,
+    runSpeedThresholdX: 120,
     maxVelX: 1500,
     maxVelY: 1500,
     jumpSpeed: 500,
@@ -160,7 +167,7 @@ const PlayerTuning eloiseTuning = PlayerTuning(
     meleeStaminaCost: 5.0,
     meleeDamage: 15.0,
     meleeHitboxSizeX: 32.0,
-    meleeHitboxSizeY: 16.0,
+    meleeHitboxSizeY: 32.0,
   ),
   // Keep these windows in sync with Éloïse's render strips above.
   anim: AnimTuning(

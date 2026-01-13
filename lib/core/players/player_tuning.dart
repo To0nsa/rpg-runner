@@ -29,6 +29,7 @@ class MovementTuning {
     this.accelerationX = 600,
     this.decelerationX = 400,
     this.minMoveSpeed = 5,
+    this.runSpeedThresholdX = 60,
     this.maxVelX = 1500,
     this.maxVelY = 1500,
     this.jumpSpeed = 500,
@@ -43,6 +44,7 @@ class MovementTuning {
   final double accelerationX;
   final double decelerationX;
   final double minMoveSpeed;
+  final double runSpeedThresholdX;
 
   final double maxVelX;
   final double maxVelY;
