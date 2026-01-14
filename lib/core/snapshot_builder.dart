@@ -29,6 +29,7 @@ import 'ecs/stores/restoration_item_store.dart';
 import 'levels/level_id.dart';
 import 'projectiles/projectile_catalog.dart';
 import 'enemies/enemy_catalog.dart';
+import 'enemies/enemy_id.dart';
 import 'snapshots/enums.dart';
 import 'snapshots/entity_render_snapshot.dart';
 import 'snapshots/game_state_snapshot.dart';
@@ -38,6 +39,7 @@ import 'snapshots/static_solid_snapshot.dart';
 import 'spells/spell_catalog.dart';
 import 'spells/spell_id.dart';
 import 'players/player_tuning.dart';
+import 'util/tick_math.dart';
 import 'util/vec2.dart';
 import 'weapons/ranged_weapon_catalog.dart';
 
@@ -58,6 +60,7 @@ import 'weapons/ranged_weapon_catalog.dart';
 class SnapshotBuilder {
   /// Creates a snapshot builder with the given dependencies.
   ///
+  /// - [tickHz]: Fixed tick rate for converting seconds to ticks.
   /// - [world]: The ECS world containing all entity component data.
   /// - [player]: Entity ID of the player (used to query player-specific stores).
   /// - [movement]: Derived movement tuning (dash cooldown ticks, etc.).
@@ -67,7 +70,9 @@ class SnapshotBuilder {
   /// - [spells]: Spell catalog for querying spell stats (mana costs).
   /// - [projectiles]: Projectile catalog for collider sizes.
   /// - [rangedWeapons]: Ranged weapon catalog (cooldowns/ammo costs).
+  /// - [enemyCatalog]: Enemy catalog for render metadata (hit windows, art facing).
   SnapshotBuilder({
+    required this.tickHz,
     required this.world,
     required this.player,
     required this.movement,
@@ -77,7 +82,11 @@ class SnapshotBuilder {
     required this.spells,
     required this.projectiles,
     required this.rangedWeapons,
+    required this.enemyCatalog,
   });
+
+  /// Tick rate (ticks per second) for converting seconds to ticks.
+  final int tickHz;
 
   /// The ECS world containing all game entity data.
   final EcsWorld world;
@@ -105,6 +114,21 @@ class SnapshotBuilder {
 
   /// Ranged weapon catalog for cooldown totals and ammo costs.
   final RangedWeaponCatalogDerived rangedWeapons;
+
+  /// Enemy catalog for render metadata (hit windows, art facing).
+  final EnemyCatalog enemyCatalog;
+
+  late final Map<EnemyId, int> _enemyHitAnimTicksById =
+      _buildEnemyHitAnimTicksById();
+
+  Map<EnemyId, int> _buildEnemyHitAnimTicksById() {
+    final map = <EnemyId, int>{};
+    for (final id in EnemyId.values) {
+      final seconds = enemyCatalog.get(id).hitAnimSeconds;
+      map[id] = ticksFromSecondsCeil(seconds, tickHz);
+    }
+    return map;
+  }
 
   // ───────────────────────────────────────────────────────────────────────────
   // Public API
@@ -165,8 +189,7 @@ class SnapshotBuilder {
     final projectileManaCost = spells.get(SpellId.iceBolt).stats.manaCost;
     final rangedWeaponId = world.equippedRangedWeapon.weaponId[rwi];
     final rangedWeaponDef = rangedWeapons.base.get(rangedWeaponId);
-    final rangedAmmo =
-        world.ammo.countForIndex(ami, rangedWeaponDef.ammoType);
+    final rangedAmmo = world.ammo.countForIndex(ami, rangedWeaponDef.ammoType);
 
     // ─── Compute affordability flags ───
     // These tell the UI whether action buttons should appear enabled.
@@ -185,8 +208,9 @@ class SnapshotBuilder {
         world.cooldown.castCooldownTicksLeft[ci];
     final rangedWeaponCooldownTicksLeft =
         world.cooldown.rangedWeaponCooldownTicksLeft[ci];
-    final rangedWeaponCooldownTicksTotal =
-        rangedWeapons.cooldownTicks(rangedWeaponId);
+    final rangedWeaponCooldownTicksTotal = rangedWeapons.cooldownTicks(
+      rangedWeaponId,
+    );
 
     // ─── Read player transform ───
     final ti = world.transform.indexOf(player);
@@ -242,7 +266,9 @@ class SnapshotBuilder {
     } else if (showHit) {
       anim = AnimKey.hit;
     } else if (showAttack) {
-      anim = lastMeleeFacing == Facing.left ? AnimKey.attackLeft : AnimKey.attack;
+      anim = lastMeleeFacing == Facing.left
+          ? AnimKey.attackLeft
+          : AnimKey.attack;
     } else if (showCast) {
       anim = AnimKey.cast;
     } else if (showRanged) {
@@ -367,7 +393,10 @@ class SnapshotBuilder {
   ///
   /// Iterates the projectile component store and creates render snapshots
   /// with position, velocity, facing direction, and rotation angle.
-  void _addProjectiles(List<EntityRenderSnapshot> entities, {required int tick}) {
+  void _addProjectiles(
+    List<EntityRenderSnapshot> entities, {
+    required int tick,
+  }) {
     final projectileStore = world.projectile;
     for (var pi = 0; pi < projectileStore.denseEntities.length; pi += 1) {
       final e = projectileStore.denseEntities[pi];
@@ -440,7 +469,10 @@ class SnapshotBuilder {
   /// Appends collectible (score pickup) snapshots to [entities].
   ///
   /// Collectibles are small pickups that grant score when collected.
-  void _addCollectibles(List<EntityRenderSnapshot> entities, {required int tick}) {
+  void _addCollectibles(
+    List<EntityRenderSnapshot> entities, {
+    required int tick,
+  }) {
     final collectiblesStore = world.collectible;
     for (var ci = 0; ci < collectiblesStore.denseEntities.length; ci += 1) {
       final e = collectiblesStore.denseEntities[ci];
@@ -478,7 +510,10 @@ class SnapshotBuilder {
   ///
   /// Restoration items restore a specific resource when picked up.
   /// The [pickupVariant] field tells the renderer which sprite to use.
-  void _addRestorationItems(List<EntityRenderSnapshot> entities, {required int tick}) {
+  void _addRestorationItems(
+    List<EntityRenderSnapshot> entities, {
+    required int tick,
+  }) {
     final restorationStore = world.restorationItem;
     for (var ri = 0; ri < restorationStore.denseEntities.length; ri += 1) {
       final e = restorationStore.denseEntities[ri];
@@ -529,7 +564,6 @@ class SnapshotBuilder {
   /// The renderer uses this to select appropriate sprites and animations.
   void _addEnemies(List<EntityRenderSnapshot> entities, {required int tick}) {
     final enemies = world.enemy;
-    const enemyCatalog = EnemyCatalog();
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
       final e = enemies.denseEntities[ei];
       if (!world.transform.has(e)) continue;
@@ -550,26 +584,50 @@ class SnapshotBuilder {
           ? world.health.hp[world.health.indexOf(e)]
           : 1.0;
 
+      final grounded = world.collision.has(e)
+          ? world.collision.grounded[world.collision.indexOf(e)]
+          : false;
+
       final lastDamageTick = world.lastDamage.has(e)
           ? world.lastDamage.tick[world.lastDamage.indexOf(e)]
           : -1;
+      final hitAnimTicks = _enemyHitAnimTicksById[enemyId] ?? 0;
       final showHit =
-          animTuning.hitAnimTicks > 0 &&
+          hitAnimTicks > 0 &&
           lastDamageTick >= 0 &&
-          (tick - lastDamageTick) < animTuning.hitAnimTicks;
+          (tick - lastDamageTick) < hitAnimTicks;
+
+      final lastMeleeTick = enemies.lastMeleeTick[ei];
+      final meleeAnimTicks = enemies.lastMeleeAnimTicks[ei];
+      final showAttack =
+          meleeAnimTicks > 0 &&
+          lastMeleeTick >= 0 &&
+          (tick - lastMeleeTick) < meleeAnimTicks;
+
+      final speedX = world.transform.velX[ti].abs();
+      const moveThresholdX = 1.0;
 
       final AnimKey anim;
       if (hp <= 0) {
         anim = AnimKey.death;
       } else if (showHit) {
         anim = AnimKey.hit;
+      } else if (showAttack) {
+        anim = AnimKey.attack;
       } else {
-        anim = AnimKey.idle;
+        anim = speedX > moveThresholdX && grounded ? AnimKey.run : AnimKey.idle;
       }
 
-      final int animFrame = anim == AnimKey.hit && lastDamageTick >= 0
-          ? tick - lastDamageTick
-          : tick;
+      final int animFrame;
+      switch (anim) {
+        case AnimKey.hit:
+        case AnimKey.death:
+          animFrame = lastDamageTick >= 0 ? tick - lastDamageTick : tick;
+        case AnimKey.attack:
+          animFrame = lastMeleeTick >= 0 ? tick - lastMeleeTick : tick;
+        default:
+          animFrame = tick;
+      }
 
       entities.add(
         EntityRenderSnapshot(
@@ -582,9 +640,7 @@ class SnapshotBuilder {
           facing: enemies.facing[ei],
           artFacingDir: enemyArchetype.artFacingDir,
           anim: anim,
-          grounded: world.collision.has(e)
-              ? world.collision.grounded[world.collision.indexOf(e)]
-              : false,
+          grounded: grounded,
           animFrame: animFrame,
         ),
       );

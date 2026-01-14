@@ -5,14 +5,14 @@ library;
 
 import 'package:flame/cache.dart';
 
+import '../../../core/contracts/render_anim_set_definition.dart';
 import '../../../core/snapshots/enums.dart';
-import '../../../core/players/player_character_definition.dart';
 import '../sprite_anim/sprite_anim_set.dart';
 import '../sprite_anim/strip_animation_loader.dart';
 
 Future<SpriteAnimSet> loadPlayerAnimations(
   Images images, {
-  required PlayerRenderAnimSetDefinition renderAnim,
+  required RenderAnimSetDefinition renderAnim,
 }) async {
   final oneShotKeys = <AnimKey>{
     AnimKey.attack,
@@ -23,18 +23,9 @@ Future<SpriteAnimSet> loadPlayerAnimations(
     AnimKey.hit,
     AnimKey.death,
   };
-  final animSet = await loadStripAnimations(
+  return loadAnimSetFromDefinition(
     images,
-    frameWidth: renderAnim.frameWidth,
-    frameHeight: renderAnim.frameHeight,
-    sourcesByKey: renderAnim.sourcesByKey,
-    frameCountsByKey: renderAnim.frameCountsByKey,
-    stepTimeSecondsByKey: renderAnim.stepTimeSecondsByKey,
+    renderAnim: renderAnim,
     oneShotKeys: oneShotKeys,
   );
-
-  // No dedicated spawn strip yet; map to idle for now.
-  animSet.animations[AnimKey.spawn] ??= animSet.animations[AnimKey.idle]!;
-
-  return animSet;
 }

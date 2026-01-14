@@ -1,12 +1,14 @@
 /// Shared render-side sprite animation bundle.
 library;
 
+import 'dart:math';
+
 import 'package:flame/components.dart';
 
 import '../../../core/snapshots/enums.dart';
 
 class SpriteAnimSet {
-  const SpriteAnimSet({
+  SpriteAnimSet({
     required this.animations,
     required this.stepTimeSecondsByKey,
     required this.oneShotKeys,
@@ -19,5 +21,22 @@ class SpriteAnimSet {
 
   /// Source frame size inside each horizontal strip image.
   final Vector2 frameSize;
-}
 
+  final Map<int, Map<AnimKey, int>> _ticksPerFrameCache =
+      <int, Map<AnimKey, int>>{};
+
+  int ticksPerFrameFor(AnimKey key, int tickHz) {
+    final cache = _ticksPerFrameCache.putIfAbsent(
+      tickHz,
+      () => <AnimKey, int>{},
+    );
+    final existing = cache[key];
+    if (existing != null) return existing;
+
+    final stepSeconds =
+        stepTimeSecondsByKey[key] ?? stepTimeSecondsByKey[AnimKey.idle] ?? 0.10;
+    final ticks = max(1, (stepSeconds * tickHz).round());
+    cache[key] = ticks;
+    return ticks;
+  }
+}

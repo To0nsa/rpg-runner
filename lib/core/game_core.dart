@@ -183,14 +183,14 @@ import 'util/tick_math.dart';
 ///   playerCharacter: PlayerCharacterRegistry.eloise,
 /// );
 /// ```
-  ///
-  /// Use [LevelDefinition] to select a level configuration:
-  /// ```dart
-  /// final core = GameCore(
-  ///   seed: 123,
-  ///   levelDefinition: LevelRegistry.byId(LevelId.defaultLevel),
-  /// );
-  /// ```
+///
+/// Use [LevelDefinition] to select a level configuration:
+/// ```dart
+/// final core = GameCore(
+///   seed: 123,
+///   levelDefinition: LevelRegistry.byId(LevelId.defaultLevel),
+/// );
+/// ```
 class GameCore {
   static LevelDefinition _resolveLevelDefinition({
     required CoreTuning tuning,
@@ -370,6 +370,7 @@ class GameCore {
 
     // ─── Initialize snapshot builder (needs player entity ID) ───
     _snapshotBuilder = SnapshotBuilder(
+      tickHz: tickHz,
       world: _world,
       player: _player,
       movement: _movement,
@@ -379,6 +380,7 @@ class GameCore {
       spells: _spells,
       projectiles: _projectiles,
       rangedWeapons: _rangedWeapons,
+      enemyCatalog: _enemyCatalog,
     );
   }
 
@@ -417,11 +419,10 @@ class GameCore {
     _enemyCullSystem = EnemyCullSystem();
 
     // Player combat.
-    _meleeSystem = PlayerMeleeSystem(
-      abilities: _abilities,
-      weapons: _weapons,
+    _meleeSystem = PlayerMeleeSystem(abilities: _abilities, weapons: _weapons);
+    _rangedWeaponSystem = PlayerRangedWeaponSystem(
+      weapons: _rangedWeapons.base,
     );
-    _rangedWeaponSystem = PlayerRangedWeaponSystem(weapons: _rangedWeapons.base);
     _hitboxDamageSystem = HitboxDamageSystem();
 
     // Pickup systems.
@@ -519,8 +520,9 @@ class GameCore {
       resistance: playerArchetype.resistance,
       statusImmunity: playerArchetype.statusImmunity,
       equippedWeapon: EquippedWeaponDef(weaponId: playerArchetype.weaponId),
-      equippedRangedWeapon:
-          EquippedRangedWeaponDef(weaponId: playerArchetype.rangedWeaponId),
+      equippedRangedWeapon: EquippedRangedWeaponDef(
+        weaponId: playerArchetype.rangedWeaponId,
+      ),
       ammo: playerArchetype.ammo,
     );
   }
@@ -688,6 +690,9 @@ class GameCore {
 
   /// Score tuning for UI display and leaderboard calculation.
   ScoreTuning get scoreTuning => _scoreTuning;
+
+  /// Enemy catalog for render-side animation loading.
+  EnemyCatalog get enemyCatalog => _enemyCatalog;
 
   /// Current static world geometry (base + streamed chunks).
   StaticWorldGeometry get staticWorldGeometry => _trackManager.staticGeometry;

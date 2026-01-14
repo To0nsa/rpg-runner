@@ -1,31 +1,11 @@
 library;
 
+import '../contracts/render_anim_set_definition.dart';
 import '../snapshots/enums.dart';
 import 'player_tuning.dart';
 import 'player_catalog.dart';
 
 enum PlayerCharacterId { eloise }
-
-class PlayerRenderAnimSetDefinition {
-  const PlayerRenderAnimSetDefinition({
-    required this.frameWidth,
-    required this.frameHeight,
-    required this.sourcesByKey,
-    required this.frameCountsByKey,
-    required this.stepTimeSecondsByKey,
-  });
-
-  final int frameWidth;
-  final int frameHeight;
-
-  /// Asset paths (relative to `assets/images/`) for each animation strip.
-  ///
-  /// Example: `entities/player/idle.png`.
-  final Map<AnimKey, String> sourcesByKey;
-
-  final Map<AnimKey, int> frameCountsByKey;
-  final Map<AnimKey, double> stepTimeSecondsByKey;
-}
 
 class PlayerCharacterDefinition {
   const PlayerCharacterDefinition({
@@ -44,7 +24,7 @@ class PlayerCharacterDefinition {
   /// Core owns the timing numbers so render strips and deterministic animation
   /// windows can stay in sync, but the renderer remains the only layer that
   /// loads assets.
-  final PlayerRenderAnimSetDefinition renderAnim;
+  final RenderAnimSetDefinition renderAnim;
 
   /// Structural player configuration (collider size/offset, physics flags, etc.).
   final PlayerCatalog catalog;
@@ -54,7 +34,7 @@ class PlayerCharacterDefinition {
 
   PlayerCharacterDefinition copyWith({
     String? displayName,
-    PlayerRenderAnimSetDefinition? renderAnim,
+    RenderAnimSetDefinition? renderAnim,
     PlayerCatalog? catalog,
     PlayerTuning? tuning,
   }) {
@@ -76,7 +56,9 @@ class PlayerCharacterDefinition {
   void assertValid() {
     assert(() {
       if (displayName.trim().isEmpty) {
-        throw StateError('PlayerCharacterDefinition($id) has empty displayName');
+        throw StateError(
+          'PlayerCharacterDefinition($id) has empty displayName',
+        );
       }
 
       // Catalog invariants.
@@ -89,7 +71,8 @@ class PlayerCharacterDefinition {
           '(width=${catalog.colliderWidth}, height=${catalog.colliderHeight})',
         );
       }
-      if (!catalog.colliderOffsetX.isFinite || !catalog.colliderOffsetY.isFinite) {
+      if (!catalog.colliderOffsetX.isFinite ||
+          !catalog.colliderOffsetY.isFinite) {
         throw StateError(
           'PlayerCharacterDefinition($id) has non-finite collider offsets '
           '(x=${catalog.colliderOffsetX}, y=${catalog.colliderOffsetY})',
@@ -182,7 +165,9 @@ class PlayerCharacterDefinition {
           !tuning.anim.deathAnimSeconds.isFinite ||
           !tuning.anim.spawnAnimSeconds.isFinite ||
           !tuning.anim.rangedAnimSeconds.isFinite) {
-        throw StateError('PlayerCharacterDefinition($id) has non-finite AnimTuning seconds');
+        throw StateError(
+          'PlayerCharacterDefinition($id) has non-finite AnimTuning seconds',
+        );
       }
 
       return true;

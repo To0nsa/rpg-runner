@@ -58,8 +58,10 @@ class EnemySystem {
 
   /// The navigation graph for ground enemies. Can be null if the level has no surface data.
   SurfaceGraph? _surfaceGraph;
+
   /// Spatial index for quick lookup of surfaces/edges near an entity.
   SurfaceSpatialIndex? _surfaceIndex;
+
   /// Version tracker to detect graph updates and invalidate cached paths if necessary.
   int _surfaceGraphVersion = 0;
 
@@ -98,7 +100,7 @@ class EnemySystem {
     final playerGrounded = world.collision.has(player)
         ? world.collision.grounded[world.collision.indexOf(player)]
         : false;
-    
+
     // Calculate player bounds for accurate targeting (e.g., aiming at center/bottom).
     var playerHalfX = 0.0;
     var playerBottomY = playerY;
@@ -118,11 +120,12 @@ class EnemySystem {
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
       final e = enemies.denseEntities[ei];
       final ti = world.transform.tryIndexOf(e);
-      if (ti == null) continue; // Should not happen if data integrity is maintained.
+      if (ti == null)
+        continue; // Should not happen if data integrity is maintained.
 
       final ex = world.transform.posX[ti];
       final ey = world.transform.posY[ti];
-      
+
       /// TODO(Optimization): If enemy types grow significantly, consider separating
       /// entities into specialized systems queries or sorting component arrays by
       /// EnemyId to minimize branch mispredictions and improve cache locality.
@@ -169,7 +172,7 @@ class EnemySystem {
     required int currentTick,
   }) {
     if (!world.transform.has(player)) return;
-    
+
     // Pre-calculate player center for aiming.
     final playerTi = world.transform.indexOf(player);
     final playerX = world.transform.posX[playerTi];
@@ -189,7 +192,7 @@ class EnemySystem {
       final e = enemies.denseEntities[ei];
       final ti = world.transform.tryIndexOf(e);
       if (ti == null) continue;
-      
+
       // Cooldown check is cheap, but requires the store.
       // Assuming all enemies have cooldowns, but safer to check.
       if (!world.cooldown.has(e)) continue;
@@ -252,7 +255,7 @@ class EnemySystem {
   }) {
     if (dtSeconds <= 0.0) return;
     final tuning = unocoDemonTuning;
-    
+
     // Ensure steering state exists. Contains RNG state and current target timers.
     if (!world.flyingEnemySteering.has(enemy)) {
       assert(
@@ -265,8 +268,9 @@ class EnemySystem {
     final steering = world.flyingEnemySteering;
     final si = steering.indexOf(enemy);
     final modIndex = world.statModifier.tryIndexOf(enemy);
-    final moveSpeedMul =
-        modIndex == null ? 1.0 : world.statModifier.moveSpeedMul[modIndex];
+    final moveSpeedMul = modIndex == null
+        ? 1.0
+        : world.statModifier.moveSpeedMul[modIndex];
 
     var rngState = steering.rngState[si];
     // Helper to advance RNG and get a range.
@@ -430,17 +434,18 @@ class EnemySystem {
     // -- Target Selection --
     // "Collapse" behavior: when very close to player, ignore chase offset and
     // move directly to player (to attack). Otherwise, maintain offset.
-    final collapseDistX = tuning.base.groundEnemyMeleeRangeX +
+    final collapseDistX =
+        tuning.base.groundEnemyMeleeRangeX +
         tuning.base.groundEnemyStopDistanceX;
     final distToPlayerX = (playerX - ex).abs();
-    
+
     // Calculate melee offset (which side of the player to stand on).
     final meleeOffsetMaxX = tuning.base.groundEnemyChaseOffsetMeleeX.abs();
     final meleeOffsetAbs = min(meleeOffsetMaxX, chaseOffsetX.abs());
     final meleeOffsetX = meleeOffsetAbs == 0.0
         ? 0.0
         : (chaseOffsetX >= 0.0 ? meleeOffsetAbs : -meleeOffsetAbs);
-    
+
     final effectiveTargetX = distToPlayerX <= collapseDistX
         ? playerX + meleeOffsetX
         : playerX + chaseOffsetX;
@@ -479,7 +484,7 @@ class EnemySystem {
     double? noPlanSurfaceMinX;
     double? noPlanSurfaceMaxX;
     SurfaceNavIntent intent;
-    
+
     // If graph is missing or navigation not possible, fallback to no-op/dumb chase.
     if (graph == null ||
         spatialIndex == null ||
@@ -596,7 +601,7 @@ class EnemySystem {
     final projectileSpeed = projectileId == null
         ? null
         : projectiles.base.get(projectileId).speedUnitsPerSecond;
-    
+
     // -- Aim Leading --
     var targetX = playerCenterX;
     var targetY = playerCenterY;
@@ -617,8 +622,9 @@ class EnemySystem {
     // Visuals: face along the cast direction so Unoco looks at the player while firing.
     final castDirX = targetX - enemyCenterX;
     if (castDirX.abs() > 1e-6) {
-      world.enemy.facing[enemyIndex] =
-          castDirX >= 0 ? Facing.right : Facing.left;
+      world.enemy.facing[enemyIndex] = castDirX >= 0
+          ? Facing.right
+          : Facing.left;
     }
 
     // Write intent. Actual spawning handles cooldown/mana checks.
@@ -662,7 +668,7 @@ class EnemySystem {
       );
       return;
     }
-    
+
     // Simple range check.
     final dx = (playerX - ex).abs();
     if (dx > tuning.base.groundEnemyMeleeRangeX) return;
@@ -698,6 +704,12 @@ class EnemySystem {
         tick: currentTick,
       ),
     );
+
+    // Record for render animation windows (enemy entity may outlive the intent).
+    world.enemy.lastMeleeTick[enemyIndex] = currentTick;
+    world.enemy.lastMeleeFacing[enemyIndex] = facing;
+    world.enemy.lastMeleeAnimTicks[enemyIndex] =
+        tuning.groundEnemyMeleeAnimTicks;
   }
 
   /// Ensures that the ground enemy has valid initialized chase offsets.
@@ -717,7 +729,7 @@ class EnemySystem {
     if (rngState == 0) {
       rngState = enemy; // Seed with entity ID for determinism.
     }
-    
+
     // Choose a random horizontal offset relative to the player.
     final maxAbs = tuning.base.groundEnemyChaseOffsetMaxX.abs();
     var offsetX = 0.0;
@@ -769,8 +781,9 @@ class EnemySystem {
     final tuning = groundEnemyTuning;
     final enemy = world.enemy.denseEntities[enemyIndex];
     final modIndex = world.statModifier.tryIndexOf(enemy);
-    final moveSpeedMul =
-        modIndex == null ? 1.0 : world.statModifier.moveSpeedMul[modIndex];
+    final moveSpeedMul = modIndex == null
+        ? 1.0
+        : world.statModifier.moveSpeedMul[modIndex];
     final dx = intent.desiredX - ex;
     double desiredVelX = 0.0;
 

@@ -7,9 +7,112 @@ import '../ecs/stores/health_store.dart';
 import '../ecs/stores/mana_store.dart';
 import '../ecs/stores/stamina_store.dart';
 import '../combat/creature_tag.dart';
+import '../contracts/render_anim_set_definition.dart';
 import '../spells/spell_id.dart';
 import '../snapshots/enums.dart';
 import 'enemy_id.dart';
+
+// -----------------------------------------------------------------------------
+// Unoco Demon render animation strip definitions (authoring-time)
+// -----------------------------------------------------------------------------
+
+const int _unocoAnimFrameWidth = 81;
+const int _unocoAnimFrameHeight = 71;
+
+const int _unocoAnimIdleFrames = 4;
+const double _unocoAnimIdleStepSeconds = 0.12;
+
+const int _unocoAnimHitFrames = 4;
+const double _unocoAnimHitStepSeconds = 0.10;
+
+const int _unocoAnimDeathFrames = 7;
+const double _unocoAnimDeathStepSeconds = 0.12;
+
+const double _unocoHitAnimSeconds =
+    _unocoAnimHitFrames * _unocoAnimHitStepSeconds;
+
+const Map<AnimKey, int> _unocoAnimFrameCountsByKey = <AnimKey, int>{
+  AnimKey.idle: _unocoAnimIdleFrames,
+  AnimKey.hit: _unocoAnimHitFrames,
+  AnimKey.death: _unocoAnimDeathFrames,
+};
+
+const Map<AnimKey, double> _unocoAnimStepTimeSecondsByKey = <AnimKey, double>{
+  AnimKey.idle: _unocoAnimIdleStepSeconds,
+  AnimKey.hit: _unocoAnimHitStepSeconds,
+  AnimKey.death: _unocoAnimDeathStepSeconds,
+};
+
+const Map<AnimKey, String> _unocoAnimSourcesByKey = <AnimKey, String>{
+  AnimKey.idle: 'entities/enemies/unoco/flying.png',
+  AnimKey.hit: 'entities/enemies/unoco/hit.png',
+  AnimKey.death: 'entities/enemies/unoco/death.png',
+};
+
+const RenderAnimSetDefinition _unocoRenderAnim = RenderAnimSetDefinition(
+  frameWidth: _unocoAnimFrameWidth,
+  frameHeight: _unocoAnimFrameHeight,
+  sourcesByKey: _unocoAnimSourcesByKey,
+  frameCountsByKey: _unocoAnimFrameCountsByKey,
+  stepTimeSecondsByKey: _unocoAnimStepTimeSecondsByKey,
+);
+
+// -----------------------------------------------------------------------------
+// Sarvi (ground enemy) render animation strip definitions (authoring-time)
+// -----------------------------------------------------------------------------
+
+const int _sarviAnimFrameWidth = 256;
+const int _sarviAnimFrameHeight = 128;
+
+const int _sarviAnimIdleFrames = 3;
+const double _sarviAnimIdleStepSeconds = 0.16;
+
+const int _sarviAnimMoveFrames = 4;
+const double _sarviAnimMoveStepSeconds = 0.12;
+
+const int _sarviAnimHitFrames = 2;
+const double _sarviAnimHitStepSeconds = 0.10;
+
+const int _sarviAnimDeathFrames = 4;
+const double _sarviAnimDeathStepSeconds = 0.14;
+
+const int _sarviAnimAttackFrames = 6;
+const double _sarviAnimAttackStepSeconds = 0.10;
+
+const double _sarviHitAnimSeconds =
+    _sarviAnimHitFrames * _sarviAnimHitStepSeconds;
+
+const Map<AnimKey, int> _sarviAnimFrameCountsByKey = <AnimKey, int>{
+  AnimKey.idle: _sarviAnimIdleFrames,
+  AnimKey.run: _sarviAnimMoveFrames,
+  AnimKey.attack: _sarviAnimAttackFrames,
+  AnimKey.hit: _sarviAnimHitFrames,
+  AnimKey.death: _sarviAnimDeathFrames,
+};
+
+const Map<AnimKey, double> _sarviAnimStepTimeSecondsByKey = <AnimKey, double>{
+  AnimKey.idle: _sarviAnimIdleStepSeconds,
+  AnimKey.run: _sarviAnimMoveStepSeconds,
+  AnimKey.attack: _sarviAnimAttackStepSeconds,
+  AnimKey.hit: _sarviAnimHitStepSeconds,
+  AnimKey.death: _sarviAnimDeathStepSeconds,
+};
+
+const Map<AnimKey, String> _sarviAnimSourcesByKey = <AnimKey, String>{
+  AnimKey.idle: 'entities/enemies/sarvi/idle.png',
+  AnimKey.run: 'entities/enemies/sarvi/move.png',
+  AnimKey.attack: 'entities/enemies/sarvi/attack.png',
+  AnimKey.hit: 'entities/enemies/sarvi/hit.png',
+  AnimKey.death: 'entities/enemies/sarvi/death.png',
+};
+
+const RenderAnimSetDefinition _sarviRenderAnim = RenderAnimSetDefinition(
+  frameWidth: _sarviAnimFrameWidth,
+  frameHeight: _sarviAnimFrameHeight,
+  sourcesByKey: _sarviAnimSourcesByKey,
+  frameCountsByKey: _sarviAnimFrameCountsByKey,
+  stepTimeSecondsByKey: _sarviAnimStepTimeSecondsByKey,
+);
 
 /// Defines the base stats and physics properties for an enemy type.
 ///
@@ -22,6 +125,8 @@ class EnemyArchetype {
     required this.health,
     required this.mana,
     required this.stamina,
+    required this.renderAnim,
+    required this.hitAnimSeconds,
     this.primarySpellId,
     this.artFacingDir = Facing.right,
     this.tags = const CreatureTagDef(),
@@ -31,14 +136,20 @@ class EnemyArchetype {
 
   /// Physics configuration (Gravity, Constraints, Kinematics).
   final BodyDef body;
-  
+
   /// Hitbox size (Collision).
   final ColliderAabbDef collider;
-  
+
   /// Vitals (HP, Mana, Stamina) configuration.
   final HealthDef health;
   final ManaDef mana;
   final StaminaDef stamina;
+
+  /// Render-only animation metadata (strip paths, frame size, timing).
+  final RenderAnimSetDefinition renderAnim;
+
+  /// Duration the hit animation should be visible (seconds).
+  final double hitAnimSeconds;
 
   /// Optional primary ranged attack spell for this enemy.
   ///
@@ -87,13 +198,21 @@ class EnemyCatalog {
           collider: ColliderAabbDef(halfX: 12.0, halfY: 12.0),
           health: HealthDef(hp: 20.0, hpMax: 20.0, regenPerSecond: 0.5),
           mana: ManaDef(mana: 80.0, manaMax: 80.0, regenPerSecond: 5.0),
-          stamina: StaminaDef(stamina: 0.0, staminaMax: 0.0, regenPerSecond: 0.0),
+          stamina: StaminaDef(
+            stamina: 0.0,
+            staminaMax: 0.0,
+            regenPerSecond: 0.0,
+          ),
+          renderAnim: _unocoRenderAnim,
+          hitAnimSeconds: _unocoHitAnimSeconds,
           primarySpellId: SpellId.lightning,
           artFacingDir: Facing.left,
-          tags: CreatureTagDef(mask: CreatureTagMask.flying | CreatureTagMask.demon),
+          tags: CreatureTagDef(
+            mask: CreatureTagMask.flying | CreatureTagMask.demon,
+          ),
           resistance: DamageResistanceDef(fire: -0.5, ice: 0.5),
         );
-         
+
       case EnemyId.groundEnemy:
         return const EnemyArchetype(
           body: BodyDef(
@@ -106,7 +225,13 @@ class EnemyCatalog {
           collider: ColliderAabbDef(halfX: 12.0, halfY: 12.0),
           health: HealthDef(hp: 20.0, hpMax: 20.0, regenPerSecond: 0.5),
           mana: ManaDef(mana: 0.0, manaMax: 0.0, regenPerSecond: 0.0),
-          stamina: StaminaDef(stamina: 0.0, staminaMax: 0.0, regenPerSecond: 0.0),
+          stamina: StaminaDef(
+            stamina: 0.0,
+            staminaMax: 0.0,
+            regenPerSecond: 0.0,
+          ),
+          renderAnim: _sarviRenderAnim,
+          hitAnimSeconds: _sarviHitAnimSeconds,
           tags: CreatureTagDef(mask: CreatureTagMask.humanoid),
         );
     }

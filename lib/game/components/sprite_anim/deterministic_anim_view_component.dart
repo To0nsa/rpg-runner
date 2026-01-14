@@ -1,8 +1,6 @@
 /// Generic deterministic sprite animation component driven by Core snapshots.
 library;
 
-import 'dart:math';
-
 import 'package:flame/components.dart';
 import 'package:flutter/widgets.dart';
 
@@ -12,14 +10,15 @@ import 'sprite_anim_set.dart';
 
 typedef AnimKeyFallbackResolver = AnimKey Function(AnimKey desired);
 
-class DeterministicAnimViewComponent extends SpriteAnimationGroupComponent<AnimKey> {
+class DeterministicAnimViewComponent
+    extends SpriteAnimationGroupComponent<AnimKey> {
   DeterministicAnimViewComponent({
     required SpriteAnimSet animSet,
     AnimKey initial = AnimKey.idle,
     AnimKeyFallbackResolver? fallbackResolver,
     Vector2? renderSize,
     Vector2? renderScale,
-  }) : _stepTimeSecondsByKey = animSet.stepTimeSecondsByKey,
+  }) : _animSet = animSet,
        _availableAnimations = animSet.animations,
        _oneShotKeys = animSet.oneShotKeys,
        _fallbackResolver = fallbackResolver,
@@ -36,7 +35,7 @@ class DeterministicAnimViewComponent extends SpriteAnimationGroupComponent<AnimK
     playing = false;
   }
 
-  final Map<AnimKey, double> _stepTimeSecondsByKey;
+  final SpriteAnimSet _animSet;
   final Map<AnimKey, SpriteAnimation> _availableAnimations;
   final Set<AnimKey> _oneShotKeys;
   final AnimKeyFallbackResolver? _fallbackResolver;
@@ -73,13 +72,12 @@ class DeterministicAnimViewComponent extends SpriteAnimationGroupComponent<AnimK
     final framesLen = anim.frames.length;
     if (framesLen <= 1) return;
 
-    final stepSeconds = _stepTimeSecondsByKey[current] ?? 0.10;
-    final ticksPerFrame = max(1, (stepSeconds * tickHz).round());
+    final currentKey = current ?? AnimKey.idle;
+    final ticksPerFrame = _animSet.ticksPerFrameFor(currentKey, tickHz);
     final rawIndex = frameHint ~/ ticksPerFrame;
-    final index = _oneShotKeys.contains(current)
+    final index = _oneShotKeys.contains(currentKey)
         ? rawIndex.clamp(0, framesLen - 1).toInt()
         : rawIndex % framesLen;
     ticker.currentIndex = index;
   }
 }
-

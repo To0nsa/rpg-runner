@@ -9,7 +9,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import '../core/contracts/render_contract.dart';
-import '../core/enemies/enemy_id.dart';
 import '../core/events/game_event.dart';
 import '../core/players/player_character_definition.dart';
 import '../core/snapshots/entity_render_snapshot.dart';
@@ -19,9 +18,8 @@ import 'debug/debug_aabb_overlay.dart';
 import 'debug/render_debug_flags.dart';
 import 'components/player/player_animations.dart';
 import 'components/player/player_view_component.dart';
-import 'components/enemies/unoco_demon_animations.dart';
-import 'components/enemies/unoco_demon_view_component.dart';
-import 'components/sprite_anim/sprite_anim_set.dart';
+import 'components/enemies/enemy_render_registry.dart';
+import 'components/sprite_anim/deterministic_anim_view_component.dart';
 import 'tuning/player_render_tuning.dart';
 import 'input/runner_input_router.dart';
 import 'input/aim_preview.dart';
@@ -30,7 +28,6 @@ import 'components/tiled_ground_band_component.dart';
 import 'components/aim_ray_component.dart';
 import 'game_controller.dart';
 import 'themes/parallax_theme_registry.dart';
-
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Render priorities
@@ -60,7 +57,10 @@ class RunnerFlameGame extends FlameGame {
     required this.meleeAimPreview,
     required this.rangedAimPreview,
     required this.playerCharacter,
-  }) : super(
+  }) : _enemyRenderRegistry = EnemyRenderRegistry(
+         enemyCatalog: controller.enemyCatalog,
+       ),
+       super(
          camera: CameraComponent.withFixedResolution(
            width: virtualWidth.toDouble(),
            height: virtualHeight.toDouble(),
@@ -82,14 +82,14 @@ class RunnerFlameGame extends FlameGame {
   final PlayerCharacterDefinition playerCharacter;
 
   late final PlayerViewComponent _player;
-  late SpriteAnimSet _unocoDemonAnimationSet;
-  final Vector2 _unocoRenderScale = Vector2.all(0.5);
+  final EnemyRenderRegistry _enemyRenderRegistry;
   final List<RectangleComponent> _staticSolids = <RectangleComponent>[];
   List<StaticSolidSnapshot>? _lastStaticSolidsSnapshot;
 
   /// Entity view pools, keyed by entity ID.
   final Map<int, RectangleComponent> _projectiles = <int, RectangleComponent>{};
-  final Map<int, RectangleComponent> _collectibles = <int, RectangleComponent>{};
+  final Map<int, RectangleComponent> _collectibles =
+      <int, RectangleComponent>{};
   final Map<int, PositionComponent> _enemies = <int, PositionComponent>{};
   final Map<int, RectangleComponent> _hitboxes = <int, RectangleComponent>{};
   final Map<int, RectangleComponent> _actorHitboxes =
@@ -107,11 +107,10 @@ class RunnerFlameGame extends FlameGame {
     Paint()..color = const Color(0xFFF97316), // orange
   ];
   final Paint _hitboxPaint = Paint()..color = const Color(0x66EF4444);
-  final Paint _actorHitboxPaint =
-      Paint()
-        ..color = const Color(0xFF22C55E)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.0;
+  final Paint _actorHitboxPaint = Paint()
+    ..color = const Color(0xFF22C55E)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.0;
 
   @override
   Future<void> onLoad() async {
@@ -158,12 +157,11 @@ class RunnerFlameGame extends FlameGame {
       images,
       renderAnim: playerCharacter.renderAnim,
     );
-    _unocoDemonAnimationSet = await loadUnocoDemonAnimations(images);
+    await _enemyRenderRegistry.load(images);
     _player = PlayerViewComponent(
       animationSet: playerAnimations,
       renderScale: Vector2.all(_playerRenderTuning.scale),
-    )
-      ..priority = _priorityPlayer;
+    )..priority = _priorityPlayer;
     world.add(_player);
 
     world.add(
@@ -282,12 +280,12 @@ class RunnerFlameGame extends FlameGame {
       seen.add(e.id);
 
       var view = _enemies[e.id];
+      final entry = e.enemyId == null
+          ? null
+          : _enemyRenderRegistry.entryFor(e.enemyId!);
       if (view == null) {
-        if (e.enemyId == EnemyId.unocoDemon) {
-          view = UnocoDemonViewComponent(
-            animationSet: _unocoDemonAnimationSet,
-            renderScale: _unocoRenderScale,
-          );
+        if (entry != null) {
+          view = entry.viewFactory(entry.animSet, entry.renderScale);
         } else {
           final size = e.size;
           final radius =
@@ -305,17 +303,23 @@ class RunnerFlameGame extends FlameGame {
         world.add(view);
       }
 
-      if (view is UnocoDemonViewComponent) {
+      if (view is DeterministicAnimViewComponent) {
         view.applySnapshot(e, tickHz: controller.tickHz);
       } else if (view is CircleComponent) {
         final size = e.size;
         if (size != null) {
           view.radius = (size.x < size.y ? size.x : size.y) * 0.5;
         }
-        view.position.setValues(e.pos.x.roundToDouble(), e.pos.y.roundToDouble());
+        view.position.setValues(
+          e.pos.x.roundToDouble(),
+          e.pos.y.roundToDouble(),
+        );
         view.angle = e.rotationRad;
       } else {
-        view.position.setValues(e.pos.x.roundToDouble(), e.pos.y.roundToDouble());
+        view.position.setValues(
+          e.pos.x.roundToDouble(),
+          e.pos.y.roundToDouble(),
+        );
         view.angle = e.rotationRad;
       }
     }
@@ -332,22 +336,27 @@ class RunnerFlameGame extends FlameGame {
 
   void _handleGameEvent(GameEvent event) {
     if (event is! EnemyKilledEvent) return;
-    if (event.enemyId != EnemyId.unocoDemon) return;
+    final entry = _enemyRenderRegistry.entryFor(event.enemyId);
+    if (entry == null) return;
+    if (entry.deathAnimPolicy == EnemyDeathAnimPolicy.none) return;
 
-    final deathAnim = _unocoDemonAnimationSet.animations[AnimKey.death];
+    final deathAnim = entry.animSet.animations[AnimKey.death];
     if (deathAnim == null) return;
 
     final component = SpriteAnimationComponent(
       animation: deathAnim,
-      size: _unocoDemonAnimationSet.frameSize.clone(),
+      size: entry.animSet.frameSize.clone(),
       anchor: Anchor.center,
-      position: Vector2(event.pos.x.roundToDouble(), event.pos.y.roundToDouble()),
+      position: Vector2(
+        event.pos.x.roundToDouble(),
+        event.pos.y.roundToDouble(),
+      ),
       paint: Paint()..filterQuality = FilterQuality.none,
       removeOnFinish: true,
     );
     component.priority = _priorityEnemies;
     final sign = event.facing == event.artFacingDir ? 1.0 : -1.0;
-    component.scale.setValues(_unocoRenderScale.x * sign, _unocoRenderScale.y);
+    component.scale.setValues(entry.renderScale.x * sign, entry.renderScale.y);
     world.add(component);
   }
 

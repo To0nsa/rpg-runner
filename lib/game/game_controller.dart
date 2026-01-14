@@ -11,6 +11,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 
 import '../core/commands/command.dart';
+import '../core/enemies/enemy_catalog.dart';
 import '../core/events/game_event.dart';
 import '../core/game_core.dart';
 import '../core/snapshots/game_state_snapshot.dart';
@@ -81,6 +82,8 @@ class GameController extends ChangeNotifier {
   int get tick => _core.tick;
 
   ScoreTuning get scoreTuning => _core.scoreTuning;
+
+  EnemyCatalog get enemyCatalog => _core.enemyCatalog;
 
   /// Latest snapshot produced by the core.
   GameStateSnapshot get snapshot => _curr;
@@ -264,7 +267,11 @@ class GameController extends ChangeNotifier {
 
     if (input.projectileAimDirSet) {
       _commandScratch.add(
-        ProjectileAimDirCommand(tick: tick, x: input.projectileAimDirX, y: input.projectileAimDirY),
+        ProjectileAimDirCommand(
+          tick: tick,
+          x: input.projectileAimDirX,
+          y: input.projectileAimDirY,
+        ),
       );
     }
     if (input.meleeAimDirSet) {
@@ -278,7 +285,11 @@ class GameController extends ChangeNotifier {
     }
     if (input.rangedAimDirSet) {
       _commandScratch.add(
-        RangedAimDirCommand(tick: tick, x: input.rangedAimDirX, y: input.rangedAimDirY),
+        RangedAimDirCommand(
+          tick: tick,
+          x: input.rangedAimDirX,
+          y: input.rangedAimDirY,
+        ),
       );
     }
     if (input.jumpPressed) {

@@ -18,6 +18,7 @@ class GroundEnemyTuning {
     this.groundEnemyMeleeRangeX = 26.0,
     this.groundEnemyMeleeCooldownSeconds = 1.0,
     this.groundEnemyMeleeActiveSeconds = 0.10,
+    this.groundEnemyMeleeAnimSeconds = 0.60,
     this.groundEnemyMeleeDamage = 5.0,
     this.groundEnemyMeleeHitboxSizeX = 28.0,
     this.groundEnemyMeleeHitboxSizeY = 16.0,
@@ -66,6 +67,12 @@ class GroundEnemyTuning {
   /// Duration melee hitbox is active (seconds).
   final double groundEnemyMeleeActiveSeconds;
 
+  /// Duration the melee attack animation should be visible (seconds).
+  ///
+  /// This can be longer than [groundEnemyMeleeActiveSeconds] since the hitbox
+  /// window is often only a subset of the full animation.
+  final double groundEnemyMeleeAnimSeconds;
+
   /// Damage dealt by melee attack.
   final double groundEnemyMeleeDamage;
 
@@ -82,6 +89,7 @@ class GroundEnemyTuningDerived {
     required this.base,
     required this.groundEnemyMeleeCooldownTicks,
     required this.groundEnemyMeleeActiveTicks,
+    required this.groundEnemyMeleeAnimTicks,
   });
 
   factory GroundEnemyTuningDerived.from(
@@ -103,6 +111,10 @@ class GroundEnemyTuningDerived {
         base.groundEnemyMeleeActiveSeconds,
         tickHz,
       ),
+      groundEnemyMeleeAnimTicks: ticksFromSecondsCeil(
+        base.groundEnemyMeleeAnimSeconds,
+        tickHz,
+      ),
     );
   }
 
@@ -111,4 +123,5 @@ class GroundEnemyTuningDerived {
 
   final int groundEnemyMeleeCooldownTicks;
   final int groundEnemyMeleeActiveTicks;
+  final int groundEnemyMeleeAnimTicks;
 }

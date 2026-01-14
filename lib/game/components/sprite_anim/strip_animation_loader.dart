@@ -6,6 +6,7 @@ import 'dart:ui';
 import 'package:flame/cache.dart';
 import 'package:flame/components.dart';
 
+import '../../../core/contracts/render_anim_set_definition.dart';
 import '../../../core/snapshots/enums.dart';
 import 'sprite_anim_set.dart';
 
@@ -29,9 +30,8 @@ Future<SpriteAnimSet> loadStripAnimations(
   for (final entry in imagesByKey.entries) {
     final key = entry.key;
     final img = entry.value;
-    final stepTime = stepTimeSecondsByKey[key] ??
-        stepTimeSecondsByKey[AnimKey.idle] ??
-        0.1;
+    final stepTime =
+        stepTimeSecondsByKey[key] ?? stepTimeSecondsByKey[AnimKey.idle] ?? 0.1;
     final frameCount =
         frameCountsByKey[key] ?? frameCountsByKey[AnimKey.idle] ?? 1;
 
@@ -58,3 +58,23 @@ Future<SpriteAnimSet> loadStripAnimations(
   );
 }
 
+Future<SpriteAnimSet> loadAnimSetFromDefinition(
+  Images images, {
+  required RenderAnimSetDefinition renderAnim,
+  required Set<AnimKey> oneShotKeys,
+}) async {
+  final animSet = await loadStripAnimations(
+    images,
+    frameWidth: renderAnim.frameWidth,
+    frameHeight: renderAnim.frameHeight,
+    sourcesByKey: renderAnim.sourcesByKey,
+    frameCountsByKey: renderAnim.frameCountsByKey,
+    stepTimeSecondsByKey: renderAnim.stepTimeSecondsByKey,
+    oneShotKeys: oneShotKeys,
+  );
+
+  // Default spawn to idle when no dedicated strip exists.
+  animSet.animations[AnimKey.spawn] ??= animSet.animations[AnimKey.idle]!;
+
+  return animSet;
+}

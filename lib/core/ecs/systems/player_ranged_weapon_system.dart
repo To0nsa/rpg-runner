@@ -63,14 +63,14 @@ class PlayerRangedWeaponSystem {
     final aimY = world.playerInput.rangedAimDirY[inputIndex];
     final len2 = aimX * aimX + aimY * aimY;
     final double dirX;
-    final double dirY;
+    //final double dirY;
     if (len2 > 1e-12) {
       final invLen = 1.0 / sqrt(len2);
       dirX = aimX * invLen;
-      dirY = aimY * invLen;
+      //dirY = aimY * invLen;
     } else {
       dirX = fallbackDirX;
-      dirY = 0.0;
+      //dirY = 0.0;
     }
 
     // Visuals: face along the throw direction when firing.

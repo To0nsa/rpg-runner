@@ -21,6 +21,10 @@ Renderer consumes `AnimKey` + `animFrame` only; no simulation logic lives in Fla
 For Éloïse, render strip timing (frame counts x step time) is authored in
 `lib/core/players/characters/eloise.dart`, and `eloiseTuning.anim` is kept in
 sync so Core windows match render strip timing.
+Enemy hit windows are authored per enemy (`EnemyArchetype.hitAnimSeconds`), and
+enemy render strips are data-driven via `EnemyArchetype.renderAnim`.
+Render strip metadata is shared via `RenderAnimSetDefinition` in
+`lib/core/contracts/render_anim_set_definition.dart` for both players and enemies.
 
 ## Player characters (multi-character ready)
 

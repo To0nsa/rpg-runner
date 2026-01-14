@@ -12,6 +12,7 @@ import '../../weapons/weapon_id.dart';
 import '../player_character_definition.dart';
 import '../player_catalog.dart';
 import '../player_tuning.dart';
+import '../../contracts/render_anim_set_definition.dart';
 
 /// Baseline character definition: Éloïse.
 ///
@@ -113,7 +114,7 @@ const Map<AnimKey, String> eloiseAnimSourcesByKey = <AnimKey, String>{
   AnimKey.walk: 'entities/player/walk.png',
 };
 
-const PlayerRenderAnimSetDefinition eloiseRenderAnim = PlayerRenderAnimSetDefinition(
+const RenderAnimSetDefinition eloiseRenderAnim = RenderAnimSetDefinition(
   frameWidth: eloiseAnimFrameWidth,
   frameHeight: eloiseAnimFrameHeight,
   sourcesByKey: eloiseAnimSourcesByKey,
@@ -187,7 +188,8 @@ const PlayerTuning eloiseTuning = PlayerTuning(
     hitAnimSeconds: eloiseAnimHitFrames * eloiseAnimHitStepSeconds,
     castAnimSeconds: eloiseAnimCastFrames * eloiseAnimCastStepSeconds,
     attackAnimSeconds: eloiseAnimAttackFrames * eloiseAnimAttackStepSeconds,
-    attackLeftAnimSeconds: eloiseAnimAttackLeftFrames * eloiseAnimAttackLeftStepSeconds,
+    attackLeftAnimSeconds:
+        eloiseAnimAttackLeftFrames * eloiseAnimAttackLeftStepSeconds,
     rangedAnimSeconds: eloiseAnimRangedFrames * eloiseAnimRangedStepSeconds,
     deathAnimSeconds: eloiseAnimDeathFrames * eloiseAnimDeathStepSeconds,
     spawnAnimSeconds: eloiseAnimSpawnFrames * eloiseAnimSpawnStepSeconds,
