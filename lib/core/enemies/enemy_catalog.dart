@@ -8,6 +8,7 @@ import '../ecs/stores/mana_store.dart';
 import '../ecs/stores/stamina_store.dart';
 import '../combat/creature_tag.dart';
 import '../spells/spell_id.dart';
+import '../snapshots/enums.dart';
 import 'enemy_id.dart';
 
 /// Defines the base stats and physics properties for an enemy type.
@@ -22,6 +23,7 @@ class EnemyArchetype {
     required this.mana,
     required this.stamina,
     this.primarySpellId,
+    this.artFacingDir = Facing.right,
     this.tags = const CreatureTagDef(),
     this.resistance = const DamageResistanceDef(),
     this.statusImmunity = const StatusImmunityDef(),
@@ -42,6 +44,12 @@ class EnemyArchetype {
   ///
   /// When present, the [EnemySystem] will use this to write cast intents.
   final SpellId? primarySpellId;
+
+  /// Direction the authored art faces when not mirrored.
+  ///
+  /// Most sprites face right by default, but some packs are authored facing
+  /// left. The renderer uses this to mirror correctly based on logical [Facing].
+  final Facing artFacingDir;
 
   /// Broad tags used by combat rules and content filters.
   final CreatureTagDef tags;
@@ -81,6 +89,7 @@ class EnemyCatalog {
           mana: ManaDef(mana: 80.0, manaMax: 80.0, regenPerSecond: 5.0),
           stamina: StaminaDef(stamina: 0.0, staminaMax: 0.0, regenPerSecond: 0.0),
           primarySpellId: SpellId.lightning,
+          artFacingDir: Facing.left,
           tags: CreatureTagDef(mask: CreatureTagMask.flying | CreatureTagMask.demon),
           resistance: DamageResistanceDef(fire: -0.5, ice: 0.5),
         );

@@ -48,6 +48,10 @@ const double eloiseAnimAttackLeftStepSeconds = 0.08;
 const int eloiseAnimCastFrames = 5;
 const double eloiseAnimCastStepSeconds = 0.08;
 
+// Ranged weapon (throw) defaults to the cast strip until a dedicated throw strip exists.
+const int eloiseAnimRangedFrames = eloiseAnimCastFrames;
+const double eloiseAnimRangedStepSeconds = eloiseAnimCastStepSeconds;
+
 const int eloiseAnimDashFrames = 4;
 const double eloiseAnimDashStepSeconds = 0.05;
 
@@ -69,6 +73,7 @@ const Map<AnimKey, int> eloiseAnimFrameCountsByKey = <AnimKey, int>{
   AnimKey.attack: eloiseAnimAttackFrames,
   AnimKey.attackLeft: eloiseAnimAttackLeftFrames,
   AnimKey.cast: eloiseAnimCastFrames,
+  AnimKey.ranged: eloiseAnimRangedFrames,
   AnimKey.dash: eloiseAnimDashFrames,
   AnimKey.hit: eloiseAnimHitFrames,
   AnimKey.death: eloiseAnimDeathFrames,
@@ -84,6 +89,7 @@ const Map<AnimKey, double> eloiseAnimStepTimeSecondsByKey = <AnimKey, double>{
   AnimKey.attack: eloiseAnimAttackStepSeconds,
   AnimKey.attackLeft: eloiseAnimAttackLeftStepSeconds,
   AnimKey.cast: eloiseAnimCastStepSeconds,
+  AnimKey.ranged: eloiseAnimRangedStepSeconds,
   AnimKey.dash: eloiseAnimDashStepSeconds,
   AnimKey.hit: eloiseAnimHitStepSeconds,
   AnimKey.death: eloiseAnimDeathStepSeconds,
@@ -99,6 +105,7 @@ const Map<AnimKey, String> eloiseAnimSourcesByKey = <AnimKey, String>{
   AnimKey.attack: 'entities/player/attack.png',
   AnimKey.attackLeft: 'entities/player/attack_left.png',
   AnimKey.cast: 'entities/player/cast.png',
+  AnimKey.ranged: 'entities/player/cast.png',
   AnimKey.dash: 'entities/player/dash.png',
   AnimKey.hit: 'entities/player/hit.png',
   AnimKey.death: 'entities/player/death.png',
@@ -181,6 +188,7 @@ const PlayerTuning eloiseTuning = PlayerTuning(
     castAnimSeconds: eloiseAnimCastFrames * eloiseAnimCastStepSeconds,
     attackAnimSeconds: eloiseAnimAttackFrames * eloiseAnimAttackStepSeconds,
     attackLeftAnimSeconds: eloiseAnimAttackLeftFrames * eloiseAnimAttackLeftStepSeconds,
+    rangedAnimSeconds: eloiseAnimRangedFrames * eloiseAnimRangedStepSeconds,
     deathAnimSeconds: eloiseAnimDeathFrames * eloiseAnimDeathStepSeconds,
     spawnAnimSeconds: eloiseAnimSpawnFrames * eloiseAnimSpawnStepSeconds,
   ),

@@ -105,6 +105,7 @@ import 'ecs/systems/enemy_cull_system.dart';
 import 'ecs/world.dart';
 import 'enemies/enemy_catalog.dart';
 import 'enemies/enemy_id.dart';
+import 'enemies/enemy_killed_info.dart';
 import 'events/game_event.dart';
 import 'levels/level_definition.dart';
 import 'levels/level_id.dart';
@@ -649,6 +650,9 @@ class GameCore {
   /// Scratch list for killed enemies (reused to avoid allocation).
   final List<EnemyId> _killedEnemiesScratch = <EnemyId>[];
 
+  /// Scratch list for enemy death render events (reused to avoid allocation).
+  final List<EnemyKilledInfo> _killedEnemyInfoScratch = <EnemyKilledInfo>[];
+
   /// Kill counts per enemy type (indexed by [EnemyId.index]).
   final List<int> _enemyKillCounts = List<int>.filled(EnemyId.values.length, 0);
 
@@ -981,6 +985,7 @@ class GameCore {
 
     // ─── Phase 14: Death handling ───
     _killedEnemiesScratch.clear();
+    _killedEnemyInfoScratch.clear();
     _enemyCullSystem.step(
       _world,
       cameraLeft: _camera.left(),
@@ -991,9 +996,23 @@ class GameCore {
       _world,
       player: _player,
       outEnemiesKilled: _killedEnemiesScratch,
+      outEnemyKilledInfo: _killedEnemyInfoScratch,
     );
     if (_killedEnemiesScratch.isNotEmpty) {
       _recordEnemyKills(_killedEnemiesScratch);
+    }
+    if (_killedEnemyInfoScratch.isNotEmpty) {
+      for (final info in _killedEnemyInfoScratch) {
+        _events.add(
+          EnemyKilledEvent(
+            tick: tick,
+            enemyId: info.enemyId,
+            pos: info.pos,
+            facing: info.facing,
+            artFacingDir: info.artFacingDir,
+          ),
+        );
+      }
     }
     if (_isPlayerDead()) {
       if (_deathAnimTicksLeft <= 0) {

@@ -229,6 +229,7 @@ class AnimTuning {
     this.castAnimSeconds = 0.40,
     this.attackAnimSeconds = 0.36,
     this.attackLeftAnimSeconds = 0.36,
+    this.rangedAnimSeconds = 0.40,
     this.deathAnimSeconds = 0.72,
     this.spawnAnimSeconds = 0.56,
   });
@@ -237,22 +238,42 @@ class AnimTuning {
     required Map<AnimKey, int> frameCounts,
     required Map<AnimKey, double> stepTimeSecondsByKey,
   }) {
+    final castSeconds = anim_utils.secondsForKey(
+      key: AnimKey.cast,
+      frameCounts: frameCounts,
+      stepTimeSecondsByKey: stepTimeSecondsByKey,
+    );
+    final attackSeconds = anim_utils.secondsForKey(
+      key: AnimKey.attack,
+      frameCounts: frameCounts,
+      stepTimeSecondsByKey: stepTimeSecondsByKey,
+    );
     return AnimTuning(
       hitAnimSeconds: anim_utils.secondsForKey(
         key: AnimKey.hit,
         frameCounts: frameCounts,
         stepTimeSecondsByKey: stepTimeSecondsByKey,
       ),
-      castAnimSeconds: anim_utils.secondsForKey(
-        key: AnimKey.cast,
-        frameCounts: frameCounts,
-        stepTimeSecondsByKey: stepTimeSecondsByKey,
-      ),
-      attackAnimSeconds: anim_utils.secondsForKey(
-        key: AnimKey.attack,
-        frameCounts: frameCounts,
-        stepTimeSecondsByKey: stepTimeSecondsByKey,
-      ),
+      castAnimSeconds: castSeconds,
+      attackAnimSeconds: attackSeconds,
+      attackLeftAnimSeconds:
+          (frameCounts.containsKey(AnimKey.attackLeft) ||
+                  stepTimeSecondsByKey.containsKey(AnimKey.attackLeft))
+              ? anim_utils.secondsForKey(
+                  key: AnimKey.attackLeft,
+                  frameCounts: frameCounts,
+                  stepTimeSecondsByKey: stepTimeSecondsByKey,
+                )
+              : attackSeconds,
+      rangedAnimSeconds:
+          (frameCounts.containsKey(AnimKey.ranged) ||
+                  stepTimeSecondsByKey.containsKey(AnimKey.ranged))
+              ? anim_utils.secondsForKey(
+                  key: AnimKey.ranged,
+                  frameCounts: frameCounts,
+                  stepTimeSecondsByKey: stepTimeSecondsByKey,
+                )
+              : castSeconds,
       deathAnimSeconds: anim_utils.secondsForKey(
         key: AnimKey.death,
         frameCounts: frameCounts,
@@ -270,6 +291,7 @@ class AnimTuning {
   final double castAnimSeconds;
   final double attackAnimSeconds;
   final double attackLeftAnimSeconds;
+  final double rangedAnimSeconds;
   final double deathAnimSeconds;
   final double spawnAnimSeconds;
 }
@@ -282,6 +304,7 @@ class AnimTuningDerived {
     required this.castAnimTicks,
     required this.attackAnimTicks,
     required this.attackLeftAnimTicks,
+    required this.rangedAnimTicks,
     required this.deathAnimTicks,
     required this.spawnAnimTicks,
   });
@@ -298,6 +321,7 @@ class AnimTuningDerived {
       castAnimTicks: ticksFromSecondsCeil(base.castAnimSeconds, tickHz),
       attackAnimTicks: ticksFromSecondsCeil(base.attackAnimSeconds, tickHz),
       attackLeftAnimTicks: ticksFromSecondsCeil(base.attackLeftAnimSeconds, tickHz),
+      rangedAnimTicks: ticksFromSecondsCeil(base.rangedAnimSeconds, tickHz),
       deathAnimTicks: ticksFromSecondsCeil(base.deathAnimSeconds, tickHz),
       spawnAnimTicks: ticksFromSecondsCeil(base.spawnAnimSeconds, tickHz),
     );
@@ -310,6 +334,7 @@ class AnimTuningDerived {
   final int castAnimTicks;
   final int attackAnimTicks;
   final int attackLeftAnimTicks;
+  final int rangedAnimTicks;
   final int deathAnimTicks;
   final int spawnAnimTicks;
 }

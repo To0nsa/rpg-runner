@@ -4,6 +4,7 @@
 /// hides internal ECS storage details and provides only what the renderer needs.
 library;
 
+import '../enemies/enemy_id.dart';
 import '../util/vec2.dart';
 import '../projectiles/projectile_id.dart';
 import 'enums.dart';
@@ -20,8 +21,10 @@ class EntityRenderSnapshot {
     required this.facing,
     required this.anim,
     required this.grounded,
+    this.artFacingDir,
     this.vel,
     this.size,
+    this.enemyId,
     this.projectileId,
     this.pickupVariant,
     this.z,
@@ -46,6 +49,9 @@ class EntityRenderSnapshot {
   /// Render-only hint for placeholder shapes (e.g. projectile rectangles).
   final Vec2? size;
 
+  /// Optional enemy archetype id (set when [kind] is [EntityKind.enemy]).
+  final EnemyId? enemyId;
+
   /// Optional projectile archetype id (set when [kind] is [EntityKind.projectile]).
   final ProjectileId? projectileId;
 
@@ -60,6 +66,11 @@ class EntityRenderSnapshot {
 
   /// Facing direction for choosing sprites/poses.
   final Facing facing;
+
+  /// Direction the authored art faces when not mirrored.
+  ///
+  /// When null, render should assume `Facing.right`.
+  final Facing? artFacingDir;
 
   /// Whether the entity is grounded at the end of the tick.
   ///

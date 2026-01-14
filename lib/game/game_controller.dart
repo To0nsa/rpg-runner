@@ -17,6 +17,8 @@ import '../core/snapshots/game_state_snapshot.dart';
 import '../core/tuning/score_tuning.dart';
 import 'tick_input_frame.dart';
 
+typedef GameEventListener = void Function(GameEvent event);
+
 /// Owns the simulation clock and provides a stable interface to UI/renderer.
 class GameController extends ChangeNotifier {
   GameController({required GameCore core, this.tickHz = 60, this.inputLead = 1})
@@ -57,6 +59,12 @@ class GameController extends ChangeNotifier {
 
   /// Buffered transient events produced by the core.
   final List<GameEvent> _events = <GameEvent>[];
+
+  /// Optional event listeners (render/UI side-effects).
+  ///
+  /// Listeners are invoked for every event emitted by Core, before events are
+  /// buffered into [_events].
+  final List<GameEventListener> _eventListeners = <GameEventListener>[];
 
   /// The most recent [RunEndedEvent], if any.
   ///
@@ -106,6 +114,19 @@ class GameController extends ChangeNotifier {
     final drained = List<GameEvent>.unmodifiable(_events);
     _events.clear();
     return drained;
+  }
+
+  /// Registers a callback to observe transient [GameEvent]s.
+  ///
+  /// This is useful for render-only effects (e.g. death animations) that should
+  /// not require draining the shared event buffer.
+  void addEventListener(GameEventListener listener) {
+    if (_eventListeners.contains(listener)) return;
+    _eventListeners.add(listener);
+  }
+
+  void removeEventListener(GameEventListener listener) {
+    _eventListeners.remove(listener);
   }
 
   /// Pauses/unpauses the simulation.
@@ -216,6 +237,11 @@ class GameController extends ChangeNotifier {
     for (final event in newEvents) {
       if (event is RunEndedEvent) {
         lastRunEndedEvent = event;
+      }
+      if (_eventListeners.isNotEmpty) {
+        for (final listener in _eventListeners) {
+          listener(event);
+        }
       }
     }
     if (newEvents.isNotEmpty) {

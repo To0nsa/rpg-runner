@@ -1,4 +1,7 @@
 import '../../enemies/enemy_id.dart';
+import '../../enemies/enemy_catalog.dart';
+import '../../enemies/enemy_killed_info.dart';
+import '../../util/vec2.dart';
 import '../entity_id.dart';
 import '../world.dart';
 
@@ -26,6 +29,7 @@ class HealthDespawnSystem {
     EcsWorld world, {
     required EntityId player,
     List<EnemyId>? outEnemiesKilled,
+    List<EnemyKilledInfo>? outEnemyKilledInfo,
   }) {
     final health = world.health;
     // Optimization: If no entities have health components, there's nothing to check.
@@ -52,11 +56,23 @@ class HealthDespawnSystem {
     // Process the list of doomed entities.
     for (final e in _toDespawn) {
       // If the caller wants to know about enemy kills (e.g. for scoring)...
-      if (outEnemiesKilled != null) {
-        // ...check if the dying entity was actually an enemy.
-        final enemyIndex = world.enemy.tryIndexOf(e);
-        if (enemyIndex != null) {
-          outEnemiesKilled.add(world.enemy.enemyId[enemyIndex]);
+      final enemyIndex = world.enemy.tryIndexOf(e);
+      if (enemyIndex != null) {
+        final enemyId = world.enemy.enemyId[enemyIndex];
+        final archetype = const EnemyCatalog().get(enemyId);
+        if (outEnemiesKilled != null) {
+          outEnemiesKilled.add(enemyId);
+        }
+        if (outEnemyKilledInfo != null && world.transform.has(e)) {
+          final ti = world.transform.indexOf(e);
+          outEnemyKilledInfo.add(
+            EnemyKilledInfo(
+              enemyId: enemyId,
+              pos: Vec2(world.transform.posX[ti], world.transform.posY[ti]),
+              facing: world.enemy.facing[enemyIndex],
+              artFacingDir: archetype.artFacingDir,
+            ),
+          );
         }
       }
       

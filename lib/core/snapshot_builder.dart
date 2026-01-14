@@ -28,6 +28,7 @@ import 'ecs/world.dart';
 import 'ecs/stores/restoration_item_store.dart';
 import 'levels/level_id.dart';
 import 'projectiles/projectile_catalog.dart';
+import 'enemies/enemy_catalog.dart';
 import 'snapshots/enums.dart';
 import 'snapshots/entity_render_snapshot.dart';
 import 'snapshots/game_state_snapshot.dart';
@@ -205,6 +206,9 @@ class SnapshotBuilder {
     final lastCastTick = actionAnimIndex == null
         ? -1
         : world.actionAnim.lastCastTick[actionAnimIndex];
+    final lastRangedTick = actionAnimIndex == null
+        ? -1
+        : world.actionAnim.lastRangedTick[actionAnimIndex];
 
     final lastDamageTick = world.lastDamage.has(player)
         ? world.lastDamage.tick[world.lastDamage.indexOf(player)]
@@ -228,6 +232,10 @@ class SnapshotBuilder {
         animTuning.castAnimTicks > 0 &&
         lastCastTick >= 0 &&
         (tick - lastCastTick) < animTuning.castAnimTicks;
+    final showRanged =
+        animTuning.rangedAnimTicks > 0 &&
+        lastRangedTick >= 0 &&
+        (tick - lastRangedTick) < animTuning.rangedAnimTicks;
 
     if (playerHp <= 0) {
       anim = AnimKey.death;
@@ -237,6 +245,8 @@ class SnapshotBuilder {
       anim = lastMeleeFacing == Facing.left ? AnimKey.attackLeft : AnimKey.attack;
     } else if (showCast) {
       anim = AnimKey.cast;
+    } else if (showRanged) {
+      anim = AnimKey.ranged;
     } else if (dashing) {
       anim = AnimKey.dash;
     } else if (!onGround) {
@@ -262,6 +272,8 @@ class SnapshotBuilder {
         playerAnimFrame = lastMeleeTick >= 0 ? tick - lastMeleeTick : tick;
       case AnimKey.cast:
         playerAnimFrame = lastCastTick >= 0 ? tick - lastCastTick : tick;
+      case AnimKey.ranged:
+        playerAnimFrame = lastRangedTick >= 0 ? tick - lastRangedTick : tick;
       case AnimKey.hit:
         playerAnimFrame = lastDamageTick >= 0 ? tick - lastDamageTick : tick;
       case AnimKey.death:
@@ -517,10 +529,13 @@ class SnapshotBuilder {
   /// The renderer uses this to select appropriate sprites and animations.
   void _addEnemies(List<EntityRenderSnapshot> entities, {required int tick}) {
     final enemies = world.enemy;
+    const enemyCatalog = EnemyCatalog();
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
       final e = enemies.denseEntities[ei];
       if (!world.transform.has(e)) continue;
       final ti = world.transform.indexOf(e);
+      final enemyId = enemies.enemyId[ei];
+      final enemyArchetype = enemyCatalog.get(enemyId);
 
       Vec2? size;
       if (world.colliderAabb.has(e)) {
@@ -531,6 +546,31 @@ class SnapshotBuilder {
         );
       }
 
+      final hp = world.health.has(e)
+          ? world.health.hp[world.health.indexOf(e)]
+          : 1.0;
+
+      final lastDamageTick = world.lastDamage.has(e)
+          ? world.lastDamage.tick[world.lastDamage.indexOf(e)]
+          : -1;
+      final showHit =
+          animTuning.hitAnimTicks > 0 &&
+          lastDamageTick >= 0 &&
+          (tick - lastDamageTick) < animTuning.hitAnimTicks;
+
+      final AnimKey anim;
+      if (hp <= 0) {
+        anim = AnimKey.death;
+      } else if (showHit) {
+        anim = AnimKey.hit;
+      } else {
+        anim = AnimKey.idle;
+      }
+
+      final int animFrame = anim == AnimKey.hit && lastDamageTick >= 0
+          ? tick - lastDamageTick
+          : tick;
+
       entities.add(
         EntityRenderSnapshot(
           id: e,
@@ -538,12 +578,14 @@ class SnapshotBuilder {
           pos: Vec2(world.transform.posX[ti], world.transform.posY[ti]),
           vel: Vec2(world.transform.velX[ti], world.transform.velY[ti]),
           size: size,
+          enemyId: enemyId,
           facing: enemies.facing[ei],
-          anim: AnimKey.idle,
+          artFacingDir: enemyArchetype.artFacingDir,
+          anim: anim,
           grounded: world.collision.has(e)
               ? world.collision.grounded[world.collision.indexOf(e)]
               : false,
-          animFrame: tick,
+          animFrame: animFrame,
         ),
       );
     }

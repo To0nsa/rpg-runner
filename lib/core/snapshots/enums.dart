@@ -23,6 +23,7 @@ enum AnimKey {
   dash,
   walk,
   attackLeft,
+  ranged,
 }
 
 /// Broad entity classification for rendering and (future) networking.

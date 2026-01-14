@@ -614,6 +614,13 @@ class EnemySystem {
       targetY = playerCenterY + playerVelY * leadSeconds;
     }
 
+    // Visuals: face along the cast direction so Unoco looks at the player while firing.
+    final castDirX = targetX - enemyCenterX;
+    if (castDirX.abs() > 1e-6) {
+      world.enemy.facing[enemyIndex] =
+          castDirX >= 0 ? Facing.right : Facing.left;
+    }
+
     // Write intent. Actual spawning handles cooldown/mana checks.
     world.castIntent.set(
       enemy,

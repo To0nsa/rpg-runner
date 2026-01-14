@@ -180,7 +180,8 @@ class PlayerCharacterDefinition {
           !tuning.anim.castAnimSeconds.isFinite ||
           !tuning.anim.attackAnimSeconds.isFinite ||
           !tuning.anim.deathAnimSeconds.isFinite ||
-          !tuning.anim.spawnAnimSeconds.isFinite) {
+          !tuning.anim.spawnAnimSeconds.isFinite ||
+          !tuning.anim.rangedAnimSeconds.isFinite) {
         throw StateError('PlayerCharacterDefinition($id) has non-finite AnimTuning seconds');
       }
 

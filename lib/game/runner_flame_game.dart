@@ -9,6 +9,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import '../core/contracts/render_contract.dart';
+import '../core/enemies/enemy_id.dart';
+import '../core/events/game_event.dart';
 import '../core/players/player_character_definition.dart';
 import '../core/snapshots/entity_render_snapshot.dart';
 import '../core/snapshots/enums.dart';
@@ -17,6 +19,9 @@ import 'debug/debug_aabb_overlay.dart';
 import 'debug/render_debug_flags.dart';
 import 'components/player/player_animations.dart';
 import 'components/player/player_view_component.dart';
+import 'components/enemies/unoco_demon_animations.dart';
+import 'components/enemies/unoco_demon_view_component.dart';
+import 'components/sprite_anim/sprite_anim_set.dart';
 import 'tuning/player_render_tuning.dart';
 import 'input/runner_input_router.dart';
 import 'input/aim_preview.dart';
@@ -77,13 +82,15 @@ class RunnerFlameGame extends FlameGame {
   final PlayerCharacterDefinition playerCharacter;
 
   late final PlayerViewComponent _player;
+  late SpriteAnimSet _unocoDemonAnimationSet;
+  final Vector2 _unocoRenderScale = Vector2.all(0.5);
   final List<RectangleComponent> _staticSolids = <RectangleComponent>[];
   List<StaticSolidSnapshot>? _lastStaticSolidsSnapshot;
 
   /// Entity view pools, keyed by entity ID.
   final Map<int, RectangleComponent> _projectiles = <int, RectangleComponent>{};
   final Map<int, RectangleComponent> _collectibles = <int, RectangleComponent>{};
-  final Map<int, CircleComponent> _enemies = <int, CircleComponent>{};
+  final Map<int, PositionComponent> _enemies = <int, PositionComponent>{};
   final Map<int, RectangleComponent> _hitboxes = <int, RectangleComponent>{};
   final Map<int, RectangleComponent> _actorHitboxes =
       <int, RectangleComponent>{};
@@ -113,6 +120,7 @@ class RunnerFlameGame extends FlameGame {
       playerCharacter.assertValid();
       return true;
     }());
+    controller.addEventListener(_handleGameEvent);
     final theme = ParallaxThemeRegistry.forThemeId(controller.snapshot.themeId);
 
     // Background parallax layers (sky, distant mountains, etc.)
@@ -150,6 +158,7 @@ class RunnerFlameGame extends FlameGame {
       images,
       renderAnim: playerCharacter.renderAnim,
     );
+    _unocoDemonAnimationSet = await loadUnocoDemonAnimations(images);
     _player = PlayerViewComponent(
       animationSet: playerAnimations,
       renderScale: Vector2.all(_playerRenderTuning.scale),
@@ -274,28 +283,41 @@ class RunnerFlameGame extends FlameGame {
 
       var view = _enemies[e.id];
       if (view == null) {
-        final size = e.size;
-        final radius =
-            ((size != null) ? (size.x < size.y ? size.x : size.y) : 16.0) * 0.5;
-        final paint = _enemyPaints[e.id % _enemyPaints.length];
-        view = CircleComponent(
-          radius: radius,
-          anchor: Anchor.center,
-          paint: paint,
-        );
+        if (e.enemyId == EnemyId.unocoDemon) {
+          view = UnocoDemonViewComponent(
+            animationSet: _unocoDemonAnimationSet,
+            renderScale: _unocoRenderScale,
+          );
+        } else {
+          final size = e.size;
+          final radius =
+              ((size != null) ? (size.x < size.y ? size.x : size.y) : 16.0) *
+              0.5;
+          final paint = _enemyPaints[e.id % _enemyPaints.length];
+          view = CircleComponent(
+            radius: radius,
+            anchor: Anchor.center,
+            paint: paint,
+          );
+        }
         view.priority = _priorityEnemies;
         _enemies[e.id] = view;
         world.add(view);
-      } else {
-        final size = e.size;
-        if (size != null) {
-          final radius = (size.x < size.y ? size.x : size.y) * 0.5;
-          view.radius = radius;
-        }
       }
 
-      view.position.setValues(e.pos.x.roundToDouble(), e.pos.y.roundToDouble());
-      view.angle = e.rotationRad;
+      if (view is UnocoDemonViewComponent) {
+        view.applySnapshot(e, tickHz: controller.tickHz);
+      } else if (view is CircleComponent) {
+        final size = e.size;
+        if (size != null) {
+          view.radius = (size.x < size.y ? size.x : size.y) * 0.5;
+        }
+        view.position.setValues(e.pos.x.roundToDouble(), e.pos.y.roundToDouble());
+        view.angle = e.rotationRad;
+      } else {
+        view.position.setValues(e.pos.x.roundToDouble(), e.pos.y.roundToDouble());
+        view.angle = e.rotationRad;
+      }
     }
 
     if (_enemies.isEmpty) return;
@@ -306,6 +328,27 @@ class RunnerFlameGame extends FlameGame {
     for (final id in toRemove) {
       _enemies.remove(id)?.removeFromParent();
     }
+  }
+
+  void _handleGameEvent(GameEvent event) {
+    if (event is! EnemyKilledEvent) return;
+    if (event.enemyId != EnemyId.unocoDemon) return;
+
+    final deathAnim = _unocoDemonAnimationSet.animations[AnimKey.death];
+    if (deathAnim == null) return;
+
+    final component = SpriteAnimationComponent(
+      animation: deathAnim,
+      size: _unocoDemonAnimationSet.frameSize.clone(),
+      anchor: Anchor.center,
+      position: Vector2(event.pos.x.roundToDouble(), event.pos.y.roundToDouble()),
+      paint: Paint()..filterQuality = FilterQuality.none,
+      removeOnFinish: true,
+    );
+    component.priority = _priorityEnemies;
+    final sign = event.facing == event.artFacingDir ? 1.0 : -1.0;
+    component.scale.setValues(_unocoRenderScale.x * sign, _unocoRenderScale.y);
+    world.add(component);
   }
 
   /// Synchronizes projectile view components with the snapshot.
@@ -463,6 +506,7 @@ class RunnerFlameGame extends FlameGame {
 
   @override
   void onRemove() {
+    controller.removeEventListener(_handleGameEvent);
     images.clearCache();
     super.onRemove();
   }
