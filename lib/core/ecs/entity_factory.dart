@@ -40,6 +40,7 @@ class EntityFactory {
   /// - [TransformStore]: Position and velocity.
   /// - [PlayerInputStore]: Marks this entity as controllable by player input.
   /// - [ActionAnimStore]: Tracks action intent ticks for rendering.
+  /// - [AnimStateStore]: Stores resolved animation state for rendering.
   /// - [MovementStore]: Handles movement logic and facing direction.
   /// - [BodyStore]: Physics body properties (mass, friction, etc.).
   /// - [ColliderAabbStore]: Axis-aligned bounding box for collision detection.
@@ -83,6 +84,7 @@ class EntityFactory {
     world.transform.add(id, posX: posX, posY: posY, velX: velX, velY: velY);
     world.playerInput.add(id);
     world.actionAnim.add(id);
+    world.animState.add(id);
     world.movement.add(id, facing: facing);
     world.body.add(id, body);
     world.colliderAabb.add(id, collider);
@@ -125,6 +127,7 @@ class EntityFactory {
   /// - [StatusImmunityStore]: Status effect immunities.
   /// - [StatModifierStore]: Runtime stat modifiers from statuses.
   /// - [EnemyStore]: Identifies the entity as an enemy and stores its type.
+  /// - [AnimStateStore]: Animation state computed by [AnimSystem].
   ///
   /// Adds specific components based on [enemyId]:
   /// - [EnemyId.unocoDemon]: Adds [FlyingEnemySteeringStore] for air movement.
@@ -162,6 +165,7 @@ class EntityFactory {
     world.statModifier.add(id);
     world.stamina.add(id, stamina);
     world.enemy.add(id, EnemyDef(enemyId: enemyId, facing: facing));
+    world.animState.add(id);
     world.statusImmunity.add(id, statusImmunity);
     if (enemyId == EnemyId.unocoDemon) {
       world.flyingEnemySteering.add(

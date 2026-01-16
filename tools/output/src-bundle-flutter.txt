@@ -1,6 +1,6 @@
 ﻿REPO: C:\dev\rpg_runner
-COMMIT: 68b9b3938bdf2620a6ae080a3a010e80c31a08ce
-DATE: 2026-01-11 17:44:39
+COMMIT: 33f26b3eb4f084b40c722928b7a5a1b39380719b
+DATE: 2026-01-15 11:47:23
 
 
 ===== FILE: lib/AGENTS.md =====
@@ -1071,6 +1071,33 @@ final class RangedPressedCommand extends Command {
 }
 
 
+===== FILE: lib/core/contracts/render_anim_set_definition.dart =====
+/// Render animation strip metadata shared between Core and Render.
+library;
+
+import '../snapshots/enums.dart';
+
+/// Data-driven animation strip definition (frame size, paths, timing).
+class RenderAnimSetDefinition {
+  const RenderAnimSetDefinition({
+    required this.frameWidth,
+    required this.frameHeight,
+    required this.sourcesByKey,
+    required this.frameCountsByKey,
+    required this.stepTimeSecondsByKey,
+  });
+
+  final int frameWidth;
+  final int frameHeight;
+
+  /// Asset paths (relative to `assets/images/`) for each animation strip.
+  final Map<AnimKey, String> sourcesByKey;
+
+  final Map<AnimKey, int> frameCountsByKey;
+  final Map<AnimKey, double> stepTimeSecondsByKey;
+}
+
+
 ===== FILE: lib/core/contracts/render_contract.dart =====
 /// Defines the virtual resolution and coordinate system constants for the valid
 /// gameplay area.
@@ -1254,6 +1281,7 @@ class EntityFactory {
   /// - [StatusImmunityStore]: Status effect immunities.
   /// - [StatModifierStore]: Runtime stat modifiers from statuses.
   /// - [EnemyStore]: Identifies the entity as an enemy and stores its type.
+  /// - [EnemyAnimStore]: Animation state computed by [EnemyAnimSystem].
   ///
   /// Adds specific components based on [enemyId]:
   /// - [EnemyId.unocoDemon]: Adds [FlyingEnemySteeringStore] for air movement.
@@ -1291,6 +1319,7 @@ class EntityFactory {
     world.statModifier.add(id);
     world.stamina.add(id, stamina);
     world.enemy.add(id, EnemyDef(enemyId: enemyId, facing: facing));
+    world.enemyAnim.add(id);
     world.statusImmunity.add(id, statusImmunity);
     if (enemyId == EnemyId.unocoDemon) {
       world.flyingEnemySteering.add(
@@ -3208,26 +3237,41 @@ class EnemyDef {
 class EnemyStore extends SparseSet {
   final List<EnemyId> enemyId = <EnemyId>[];
   final List<Facing> facing = <Facing>[];
+  final List<int> lastMeleeTick = <int>[];
+  final List<Facing> lastMeleeFacing = <Facing>[];
+  final List<int> lastMeleeAnimTicks = <int>[];
 
   void add(EntityId entity, EnemyDef def) {
     final i = addEntity(entity);
     enemyId[i] = def.enemyId;
     facing[i] = def.facing;
+    lastMeleeTick[i] = -1;
+    lastMeleeFacing[i] = def.facing;
+    lastMeleeAnimTicks[i] = 0;
   }
 
   @override
   void onDenseAdded(int denseIndex) {
     enemyId.add(EnemyId.unocoDemon);
     facing.add(Facing.left);
+    lastMeleeTick.add(-1);
+    lastMeleeFacing.add(Facing.left);
+    lastMeleeAnimTicks.add(0);
   }
 
   @override
   void onSwapRemove(int removeIndex, int lastIndex) {
     enemyId[removeIndex] = enemyId[lastIndex];
     facing[removeIndex] = facing[lastIndex];
+    lastMeleeTick[removeIndex] = lastMeleeTick[lastIndex];
+    lastMeleeFacing[removeIndex] = lastMeleeFacing[lastIndex];
+    lastMeleeAnimTicks[removeIndex] = lastMeleeAnimTicks[lastIndex];
 
     enemyId.removeLast();
     facing.removeLast();
+    lastMeleeTick.removeLast();
+    lastMeleeFacing.removeLast();
+    lastMeleeAnimTicks.removeLast();
   }
 }
 
@@ -3909,12 +3953,16 @@ class MeleeIntentStore extends SparseSet {
 
 ===== FILE: lib/core/ecs/stores/player/action_anim_store.dart =====
 import '../../entity_id.dart';
+import '../../../snapshots/enums.dart';
 import '../../sparse_set.dart';
 
 /// Tracks the last action intent ticks for animation selection.
 class ActionAnimStore extends SparseSet {
   final List<int> lastMeleeTick = <int>[];
+  final List<Facing> lastMeleeFacing = <Facing>[];
   final List<int> lastCastTick = <int>[];
+  final List<int> lastRangedTick = <int>[];
+  final List<Facing> lastRangedFacing = <Facing>[];
 
   void add(EntityId entity) {
     addEntity(entity);
@@ -3923,16 +3971,25 @@ class ActionAnimStore extends SparseSet {
   @override
   void onDenseAdded(int denseIndex) {
     lastMeleeTick.add(-1);
+    lastMeleeFacing.add(Facing.right);
     lastCastTick.add(-1);
+    lastRangedTick.add(-1);
+    lastRangedFacing.add(Facing.right);
   }
 
   @override
   void onSwapRemove(int removeIndex, int lastIndex) {
     lastMeleeTick[removeIndex] = lastMeleeTick[lastIndex];
+    lastMeleeFacing[removeIndex] = lastMeleeFacing[lastIndex];
     lastCastTick[removeIndex] = lastCastTick[lastIndex];
+    lastRangedTick[removeIndex] = lastRangedTick[lastIndex];
+    lastRangedFacing[removeIndex] = lastRangedFacing[lastIndex];
 
     lastMeleeTick.removeLast();
+    lastMeleeFacing.removeLast();
     lastCastTick.removeLast();
+    lastRangedTick.removeLast();
+    lastRangedFacing.removeLast();
   }
 }
 
@@ -4829,7 +4886,7 @@ class CollectibleSystem {
 
 ===== FILE: lib/core/ecs/systems/collision_system.dart =====
 import '../../collision/static_world_geometry_index.dart';
-import '../../tuning/movement_tuning.dart';
+import '../../players/player_tuning.dart';
 import '../queries.dart';
 import '../stores/body_store.dart';
 import '../world.dart';
@@ -5342,8 +5399,10 @@ class EnemySystem {
 
   /// The navigation graph for ground enemies. Can be null if the level has no surface data.
   SurfaceGraph? _surfaceGraph;
+
   /// Spatial index for quick lookup of surfaces/edges near an entity.
   SurfaceSpatialIndex? _surfaceIndex;
+
   /// Version tracker to detect graph updates and invalidate cached paths if necessary.
   int _surfaceGraphVersion = 0;
 
@@ -5382,7 +5441,7 @@ class EnemySystem {
     final playerGrounded = world.collision.has(player)
         ? world.collision.grounded[world.collision.indexOf(player)]
         : false;
-    
+
     // Calculate player bounds for accurate targeting (e.g., aiming at center/bottom).
     var playerHalfX = 0.0;
     var playerBottomY = playerY;
@@ -5402,11 +5461,12 @@ class EnemySystem {
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
       final e = enemies.denseEntities[ei];
       final ti = world.transform.tryIndexOf(e);
-      if (ti == null) continue; // Should not happen if data integrity is maintained.
+      if (ti == null)
+        continue; // Should not happen if data integrity is maintained.
 
       final ex = world.transform.posX[ti];
       final ey = world.transform.posY[ti];
-      
+
       /// TODO(Optimization): If enemy types grow significantly, consider separating
       /// entities into specialized systems queries or sorting component arrays by
       /// EnemyId to minimize branch mispredictions and improve cache locality.
@@ -5453,7 +5513,7 @@ class EnemySystem {
     required int currentTick,
   }) {
     if (!world.transform.has(player)) return;
-    
+
     // Pre-calculate player center for aiming.
     final playerTi = world.transform.indexOf(player);
     final playerX = world.transform.posX[playerTi];
@@ -5473,7 +5533,7 @@ class EnemySystem {
       final e = enemies.denseEntities[ei];
       final ti = world.transform.tryIndexOf(e);
       if (ti == null) continue;
-      
+
       // Cooldown check is cheap, but requires the store.
       // Assuming all enemies have cooldowns, but safer to check.
       if (!world.cooldown.has(e)) continue;
@@ -5536,7 +5596,7 @@ class EnemySystem {
   }) {
     if (dtSeconds <= 0.0) return;
     final tuning = unocoDemonTuning;
-    
+
     // Ensure steering state exists. Contains RNG state and current target timers.
     if (!world.flyingEnemySteering.has(enemy)) {
       assert(
@@ -5549,8 +5609,9 @@ class EnemySystem {
     final steering = world.flyingEnemySteering;
     final si = steering.indexOf(enemy);
     final modIndex = world.statModifier.tryIndexOf(enemy);
-    final moveSpeedMul =
-        modIndex == null ? 1.0 : world.statModifier.moveSpeedMul[modIndex];
+    final moveSpeedMul = modIndex == null
+        ? 1.0
+        : world.statModifier.moveSpeedMul[modIndex];
 
     var rngState = steering.rngState[si];
     // Helper to advance RNG and get a range.
@@ -5714,17 +5775,18 @@ class EnemySystem {
     // -- Target Selection --
     // "Collapse" behavior: when very close to player, ignore chase offset and
     // move directly to player (to attack). Otherwise, maintain offset.
-    final collapseDistX = tuning.base.groundEnemyMeleeRangeX +
+    final collapseDistX =
+        tuning.base.groundEnemyMeleeRangeX +
         tuning.base.groundEnemyStopDistanceX;
     final distToPlayerX = (playerX - ex).abs();
-    
+
     // Calculate melee offset (which side of the player to stand on).
     final meleeOffsetMaxX = tuning.base.groundEnemyChaseOffsetMeleeX.abs();
     final meleeOffsetAbs = min(meleeOffsetMaxX, chaseOffsetX.abs());
     final meleeOffsetX = meleeOffsetAbs == 0.0
         ? 0.0
         : (chaseOffsetX >= 0.0 ? meleeOffsetAbs : -meleeOffsetAbs);
-    
+
     final effectiveTargetX = distToPlayerX <= collapseDistX
         ? playerX + meleeOffsetX
         : playerX + chaseOffsetX;
@@ -5763,7 +5825,7 @@ class EnemySystem {
     double? noPlanSurfaceMinX;
     double? noPlanSurfaceMaxX;
     SurfaceNavIntent intent;
-    
+
     // If graph is missing or navigation not possible, fallback to no-op/dumb chase.
     if (graph == null ||
         spatialIndex == null ||
@@ -5880,7 +5942,7 @@ class EnemySystem {
     final projectileSpeed = projectileId == null
         ? null
         : projectiles.base.get(projectileId).speedUnitsPerSecond;
-    
+
     // -- Aim Leading --
     var targetX = playerCenterX;
     var targetY = playerCenterY;
@@ -5896,6 +5958,14 @@ class EnemySystem {
       );
       targetX = playerCenterX + playerVelX * leadSeconds;
       targetY = playerCenterY + playerVelY * leadSeconds;
+    }
+
+    // Visuals: face along the cast direction so Unoco looks at the player while firing.
+    final castDirX = targetX - enemyCenterX;
+    if (castDirX.abs() > 1e-6) {
+      world.enemy.facing[enemyIndex] = castDirX >= 0
+          ? Facing.right
+          : Facing.left;
     }
 
     // Write intent. Actual spawning handles cooldown/mana checks.
@@ -5939,7 +6009,7 @@ class EnemySystem {
       );
       return;
     }
-    
+
     // Simple range check.
     final dx = (playerX - ex).abs();
     if (dx > tuning.base.groundEnemyMeleeRangeX) return;
@@ -5975,6 +6045,12 @@ class EnemySystem {
         tick: currentTick,
       ),
     );
+
+    // Record for render animation windows (enemy entity may outlive the intent).
+    world.enemy.lastMeleeTick[enemyIndex] = currentTick;
+    world.enemy.lastMeleeFacing[enemyIndex] = facing;
+    world.enemy.lastMeleeAnimTicks[enemyIndex] =
+        tuning.groundEnemyMeleeAnimTicks;
   }
 
   /// Ensures that the ground enemy has valid initialized chase offsets.
@@ -5994,7 +6070,7 @@ class EnemySystem {
     if (rngState == 0) {
       rngState = enemy; // Seed with entity ID for determinism.
     }
-    
+
     // Choose a random horizontal offset relative to the player.
     final maxAbs = tuning.base.groundEnemyChaseOffsetMaxX.abs();
     var offsetX = 0.0;
@@ -6046,8 +6122,9 @@ class EnemySystem {
     final tuning = groundEnemyTuning;
     final enemy = world.enemy.denseEntities[enemyIndex];
     final modIndex = world.statModifier.tryIndexOf(enemy);
-    final moveSpeedMul =
-        modIndex == null ? 1.0 : world.statModifier.moveSpeedMul[modIndex];
+    final moveSpeedMul = modIndex == null
+        ? 1.0
+        : world.statModifier.moveSpeedMul[modIndex];
     final dx = intent.desiredX - ex;
     double desiredVelX = 0.0;
 
@@ -6127,7 +6204,7 @@ class EnemySystem {
 
 
 ===== FILE: lib/core/ecs/systems/gravity_system.dart =====
-import '../../tuning/movement_tuning.dart';
+import '../../players/player_tuning.dart';
 import '../../tuning/physics_tuning.dart';
 import '../world.dart';
 
@@ -6194,6 +6271,9 @@ class GravitySystem {
 
 ===== FILE: lib/core/ecs/systems/health_despawn_system.dart =====
 import '../../enemies/enemy_id.dart';
+import '../../enemies/enemy_catalog.dart';
+import '../../enemies/enemy_killed_info.dart';
+import '../../util/vec2.dart';
 import '../entity_id.dart';
 import '../world.dart';
 
@@ -6221,6 +6301,7 @@ class HealthDespawnSystem {
     EcsWorld world, {
     required EntityId player,
     List<EnemyId>? outEnemiesKilled,
+    List<EnemyKilledInfo>? outEnemyKilledInfo,
   }) {
     final health = world.health;
     // Optimization: If no entities have health components, there's nothing to check.
@@ -6247,11 +6328,23 @@ class HealthDespawnSystem {
     // Process the list of doomed entities.
     for (final e in _toDespawn) {
       // If the caller wants to know about enemy kills (e.g. for scoring)...
-      if (outEnemiesKilled != null) {
-        // ...check if the dying entity was actually an enemy.
-        final enemyIndex = world.enemy.tryIndexOf(e);
-        if (enemyIndex != null) {
-          outEnemiesKilled.add(world.enemy.enemyId[enemyIndex]);
+      final enemyIndex = world.enemy.tryIndexOf(e);
+      if (enemyIndex != null) {
+        final enemyId = world.enemy.enemyId[enemyIndex];
+        final archetype = const EnemyCatalog().get(enemyId);
+        if (outEnemiesKilled != null) {
+          outEnemiesKilled.add(enemyId);
+        }
+        if (outEnemyKilledInfo != null && world.transform.has(e)) {
+          final ti = world.transform.indexOf(e);
+          outEnemyKilledInfo.add(
+            EnemyKilledInfo(
+              enemyId: enemyId,
+              pos: Vec2(world.transform.posX[ti], world.transform.posY[ti]),
+              facing: world.enemy.facing[enemyIndex],
+              artFacingDir: archetype.artFacingDir,
+            ),
+          );
         }
       }
       
@@ -6647,8 +6740,7 @@ class MeleeAttackSystem {
 ===== FILE: lib/core/ecs/systems/player_cast_system.dart =====
 import '../../snapshots/enums.dart';
 import '../../spells/spell_id.dart';
-import '../../tuning/ability_tuning.dart';
-import '../../tuning/movement_tuning.dart';
+import '../../players/player_tuning.dart';
 import '../entity_id.dart';
 import '../stores/cast_intent_store.dart';
 import '../world.dart';
@@ -6662,11 +6754,9 @@ import '../world.dart';
 class PlayerCastSystem {
   const PlayerCastSystem({
     required this.abilities,
-    required this.movement,
   });
 
   final AbilityTuningDerived abilities;
-  final MovementTuningDerived movement;
 
   void step(EcsWorld world, {required EntityId player, required int currentTick}) {
     // -- 1. Component Checks --
@@ -6716,7 +6806,17 @@ class PlayerCastSystem {
     final fallbackDirX = facing == Facing.right ? 1.0 : -1.0;
     
     // Offset from the player's center where the spell appears.
-    final spawnOffset = movement.base.playerRadius * 0.5;
+    //
+    // We use a conservative value (max half-extent) to avoid spawning inside
+    // the player's AABB when the collider is not square.
+    var maxHalfExtent = 0.0;
+    if (world.colliderAabb.has(player)) {
+      final aabbi = world.colliderAabb.indexOf(player);
+      final halfX = world.colliderAabb.halfX[aabbi];
+      final halfY = world.colliderAabb.halfY[aabbi];
+      maxHalfExtent = halfX > halfY ? halfX : halfY;
+    }
+    final spawnOffset = maxHalfExtent * 0.5;
 
     // -- 3. Write Intent --
 
@@ -6744,8 +6844,7 @@ class PlayerCastSystem {
 import 'dart:math';
 
 import '../../snapshots/enums.dart';
-import '../../tuning/ability_tuning.dart';
-import '../../tuning/movement_tuning.dart';
+import '../../players/player_tuning.dart';
 import '../../weapons/weapon_catalog.dart';
 import '../entity_id.dart';
 import '../stores/melee_intent_store.dart';
@@ -6761,12 +6860,10 @@ import '../world.dart';
 class PlayerMeleeSystem {
   const PlayerMeleeSystem({
     required this.abilities,
-    required this.movement,
     required this.weapons,
   });
 
   final AbilityTuningDerived abilities;
-  final MovementTuningDerived movement;
   final WeaponCatalog weapons;
 
   void step(
@@ -6840,8 +6937,15 @@ class PlayerMeleeSystem {
     final halfY = abilities.base.meleeHitboxSizeY * 0.5;
 
     // Calculate how far in front of the player the hitbox should appear.
-    // origin = playerPos + aimDir * (playerRadius * 0.5 + maxDimension)
-    final forward = movement.base.playerRadius * 0.5 + max(halfX, halfY);
+    // origin = playerPos + aimDir * (playerColliderMaxHalfExtent * 0.5 + maxDimension)
+    var maxHalfExtent = 0.0;
+    if (world.colliderAabb.has(player)) {
+      final aabbi = world.colliderAabb.indexOf(player);
+      final colliderHalfX = world.colliderAabb.halfX[aabbi];
+      final colliderHalfY = world.colliderAabb.halfY[aabbi];
+      maxHalfExtent = colliderHalfX > colliderHalfY ? colliderHalfX : colliderHalfY;
+    }
+    final forward = maxHalfExtent * 0.5 + max(halfX, halfY);
     final offsetX = dirX * forward;
     final offsetY = dirY * forward;
 
@@ -6868,14 +6972,15 @@ class PlayerMeleeSystem {
       ),
     );
     world.actionAnim.lastMeleeTick[actionAnimIndex] = currentTick;
+    world.actionAnim.lastMeleeFacing[actionAnimIndex] =
+        dirX >= 0 ? Facing.right : Facing.left;
   }
 }
 
 
 ===== FILE: lib/core/ecs/systems/player_movement_system.dart =====
 import '../../snapshots/enums.dart';
-import '../../tuning/movement_tuning.dart';
-import '../../tuning/resource_tuning.dart';
+import '../../players/player_tuning.dart';
 import '../../util/velocity_math.dart';
 import '../entity_id.dart';
 import '../queries.dart';
@@ -7095,6 +7200,7 @@ import '../../weapons/ranged_weapon_catalog.dart';
 import '../entity_id.dart';
 import '../stores/ranged_weapon_intent_store.dart';
 import '../world.dart';
+import 'dart:math';
 
 /// Translates player input into a [RangedWeaponIntentDef] for the
 /// [RangedWeaponAttackSystem].
@@ -7135,27 +7241,59 @@ class PlayerRangedWeaponSystem {
 
     if (!world.playerInput.rangedPressed[inputIndex]) return;
 
+    final actionAnimIndex = world.actionAnim.tryIndexOf(player);
+    if (actionAnimIndex == null) {
+      assert(
+        false,
+        'PlayerRangedWeaponSystem requires ActionAnimStore on the player; add it at spawn time.',
+      );
+      return;
+    }
+
     final weaponId = world.equippedRangedWeapon.weaponId[equippedIndex];
     final weapon = weapons.get(weaponId);
 
     final facing = world.movement.facing[movementIndex];
     final fallbackDirX = facing == Facing.right ? 1.0 : -1.0;
 
+    final aimX = world.playerInput.rangedAimDirX[inputIndex];
+    final aimY = world.playerInput.rangedAimDirY[inputIndex];
+    final len2 = aimX * aimX + aimY * aimY;
+    final double dirX;
+    //final double dirY;
+    if (len2 > 1e-12) {
+      final invLen = 1.0 / sqrt(len2);
+      dirX = aimX * invLen;
+      //dirY = aimY * invLen;
+    } else {
+      dirX = fallbackDirX;
+      //dirY = 0.0;
+    }
+
+    // Visuals: face along the throw direction when firing.
+    if (dirX.abs() > 1e-6) {
+      world.movement.facing[movementIndex] =
+          dirX >= 0 ? Facing.right : Facing.left;
+    }
+
     world.rangedWeaponIntent.set(
       player,
       RangedWeaponIntentDef(
         weaponId: weaponId,
-        dirX: world.playerInput.rangedAimDirX[inputIndex],
-        dirY: world.playerInput.rangedAimDirY[inputIndex],
+        dirX: aimX,
+        dirY: aimY,
         fallbackDirX: fallbackDirX,
         fallbackDirY: 0.0,
         originOffset: weapon.originOffset,
         tick: currentTick,
       ),
     );
+
+    world.actionAnim.lastRangedTick[actionAnimIndex] = currentTick;
+    world.actionAnim.lastRangedFacing[actionAnimIndex] =
+        dirX >= 0 ? Facing.right : Facing.left;
   }
 }
-
 
 
 ===== FILE: lib/core/ecs/systems/projectile_hit_system.dart =====
@@ -7292,7 +7430,7 @@ class ProjectileHitSystem {
 ===== FILE: lib/core/ecs/systems/projectile_system.dart =====
 import 'dart:math';
 
-import '../../tuning/movement_tuning.dart';
+import '../../players/player_tuning.dart';
 import '../world.dart';
 
 /// Moves active projectiles based on their linear velocity.
@@ -8156,6 +8294,7 @@ import 'stores/player/action_anim_store.dart';
 import 'stores/player/gravity_control_store.dart';
 import 'stores/enemies/flying_enemy_steering_store.dart';
 import 'stores/faction_store.dart';
+import 'stores/enemies/enemy_anim_store.dart';
 import 'stores/enemies/enemy_store.dart';
 import 'stores/enemies/ground_enemy_chase_offset_store.dart';
 import 'stores/health_store.dart';
@@ -8336,6 +8475,9 @@ class EcsWorld {
   /// Identifies an entity as a specific type of enemy.
   late final EnemyStore enemy = _register(EnemyStore());
 
+  /// Per-enemy animation state computed by [EnemyAnimSystem].
+  late final EnemyAnimStore enemyAnim = _register(EnemyAnimStore());
+
   /// Steering behaviors for flying enemies.
   late final FlyingEnemySteeringStore flyingEnemySteering = _register(FlyingEnemySteeringStore());
 
@@ -8384,8 +8526,118 @@ import '../ecs/stores/health_store.dart';
 import '../ecs/stores/mana_store.dart';
 import '../ecs/stores/stamina_store.dart';
 import '../combat/creature_tag.dart';
+import '../contracts/render_anim_set_definition.dart';
 import '../spells/spell_id.dart';
+import '../snapshots/enums.dart';
 import 'enemy_id.dart';
+
+// -----------------------------------------------------------------------------
+// Unoco Demon render animation strip definitions (authoring-time)
+// -----------------------------------------------------------------------------
+
+const int _unocoAnimFrameWidth = 81;
+const int _unocoAnimFrameHeight = 71;
+
+const int _unocoAnimIdleFrames = 4;
+const double _unocoAnimIdleStepSeconds = 0.12;
+
+const int _unocoAnimMoveFrames = 4;
+const double _unocoAnimMoveStepSeconds = 0.12;
+
+const int _unocoAnimHitFrames = 4;
+const double _unocoAnimHitStepSeconds = 0.10;
+
+const int _unocoAnimDeathFrames = 7;
+const double _unocoAnimDeathStepSeconds = 0.12;
+
+const double _unocoHitAnimSeconds =
+    _unocoAnimHitFrames * _unocoAnimHitStepSeconds;
+
+const Map<AnimKey, int> _unocoAnimFrameCountsByKey = <AnimKey, int>{
+  AnimKey.idle: _unocoAnimIdleFrames,
+  AnimKey.run: _unocoAnimMoveFrames,
+  AnimKey.hit: _unocoAnimHitFrames,
+  AnimKey.death: _unocoAnimDeathFrames,
+};
+
+const Map<AnimKey, double> _unocoAnimStepTimeSecondsByKey = <AnimKey, double>{
+  AnimKey.idle: _unocoAnimIdleStepSeconds,
+  AnimKey.run: _unocoAnimMoveStepSeconds,
+  AnimKey.hit: _unocoAnimHitStepSeconds,
+  AnimKey.death: _unocoAnimDeathStepSeconds,
+};
+
+const Map<AnimKey, String> _unocoAnimSourcesByKey = <AnimKey, String>{
+  AnimKey.idle: 'entities/enemies/unoco/flying.png',
+  AnimKey.run: 'entities/enemies/unoco/flying.png',
+  AnimKey.hit: 'entities/enemies/unoco/hit.png',
+  AnimKey.death: 'entities/enemies/unoco/death.png',
+};
+
+const RenderAnimSetDefinition _unocoRenderAnim = RenderAnimSetDefinition(
+  frameWidth: _unocoAnimFrameWidth,
+  frameHeight: _unocoAnimFrameHeight,
+  sourcesByKey: _unocoAnimSourcesByKey,
+  frameCountsByKey: _unocoAnimFrameCountsByKey,
+  stepTimeSecondsByKey: _unocoAnimStepTimeSecondsByKey,
+);
+
+// -----------------------------------------------------------------------------
+// Werewolf (ground enemy) render animation strip definitions (authoring-time)
+// -----------------------------------------------------------------------------
+
+const int _werewolfAnimFrameWidth = 128;
+const int _werewolfAnimFrameHeight = 128;
+
+const int _werewolfAnimIdleFrames = 8;
+const double _werewolfAnimIdleStepSeconds = 0.08;
+
+const int _werewolfAnimMoveFrames = 9;
+const double _werewolfAnimMoveStepSeconds = 0.06;
+
+const int _werewolfAnimHitFrames = 2;
+const double _werewolfAnimHitStepSeconds = 0.10;
+
+const int _werewolfAnimDeathFrames = 2;
+const double _werewolfAnimDeathStepSeconds = 0.07;
+
+const int _werewolfAnimAttackFrames = 5;
+const double _werewolfAnimAttackStepSeconds = 0.10;
+
+const double _werewolfHitAnimSeconds =
+    _werewolfAnimHitFrames * _werewolfAnimHitStepSeconds;
+
+const Map<AnimKey, int> _werewolfAnimFrameCountsByKey = <AnimKey, int>{
+  AnimKey.idle: _werewolfAnimIdleFrames,
+  AnimKey.run: _werewolfAnimMoveFrames,
+  AnimKey.attack: _werewolfAnimAttackFrames,
+  AnimKey.hit: _werewolfAnimHitFrames,
+  AnimKey.death: _werewolfAnimDeathFrames,
+};
+
+const Map<AnimKey, double> _werewolfAnimStepTimeSecondsByKey = <AnimKey, double>{
+  AnimKey.idle: _werewolfAnimIdleStepSeconds,
+  AnimKey.run: _werewolfAnimMoveStepSeconds,
+  AnimKey.attack: _werewolfAnimAttackStepSeconds,
+  AnimKey.hit: _werewolfAnimHitStepSeconds,
+  AnimKey.death: _werewolfAnimDeathStepSeconds,
+};
+
+const Map<AnimKey, String> _werewolfAnimSourcesByKey = <AnimKey, String>{
+  AnimKey.idle: 'entities/enemies/werewolf/idle.png',
+  AnimKey.run: 'entities/enemies/werewolf/run.png',
+  AnimKey.attack: 'entities/enemies/werewolf/attack1.png',
+  AnimKey.hit: 'entities/enemies/werewolf/hit.png',
+  AnimKey.death: 'entities/enemies/werewolf/death.png',
+};
+
+const RenderAnimSetDefinition _werewolfRenderAnim = RenderAnimSetDefinition(
+  frameWidth: _werewolfAnimFrameWidth,
+  frameHeight: _werewolfAnimFrameHeight,
+  sourcesByKey: _werewolfAnimSourcesByKey,
+  frameCountsByKey: _werewolfAnimFrameCountsByKey,
+  stepTimeSecondsByKey: _werewolfAnimStepTimeSecondsByKey,
+);
 
 /// Defines the base stats and physics properties for an enemy type.
 ///
@@ -8398,7 +8650,10 @@ class EnemyArchetype {
     required this.health,
     required this.mana,
     required this.stamina,
+    required this.renderAnim,
+    required this.hitAnimSeconds,
     this.primarySpellId,
+    this.artFacingDir = Facing.right,
     this.tags = const CreatureTagDef(),
     this.resistance = const DamageResistanceDef(),
     this.statusImmunity = const StatusImmunityDef(),
@@ -8406,19 +8661,31 @@ class EnemyArchetype {
 
   /// Physics configuration (Gravity, Constraints, Kinematics).
   final BodyDef body;
-  
+
   /// Hitbox size (Collision).
   final ColliderAabbDef collider;
-  
+
   /// Vitals (HP, Mana, Stamina) configuration.
   final HealthDef health;
   final ManaDef mana;
   final StaminaDef stamina;
 
+  /// Render-only animation metadata (strip paths, frame size, timing).
+  final RenderAnimSetDefinition renderAnim;
+
+  /// Duration the hit animation should be visible (seconds).
+  final double hitAnimSeconds;
+
   /// Optional primary ranged attack spell for this enemy.
   ///
   /// When present, the [EnemySystem] will use this to write cast intents.
   final SpellId? primarySpellId;
+
+  /// Direction the authored art faces when not mirrored.
+  ///
+  /// Most sprites face right by default, but some packs are authored facing
+  /// left. The renderer uses this to mirror correctly based on logical [Facing].
+  final Facing artFacingDir;
 
   /// Broad tags used by combat rules and content filters.
   final CreatureTagDef tags;
@@ -8456,12 +8723,21 @@ class EnemyCatalog {
           collider: ColliderAabbDef(halfX: 12.0, halfY: 12.0),
           health: HealthDef(hp: 20.0, hpMax: 20.0, regenPerSecond: 0.5),
           mana: ManaDef(mana: 80.0, manaMax: 80.0, regenPerSecond: 5.0),
-          stamina: StaminaDef(stamina: 0.0, staminaMax: 0.0, regenPerSecond: 0.0),
+          stamina: StaminaDef(
+            stamina: 0.0,
+            staminaMax: 0.0,
+            regenPerSecond: 0.0,
+          ),
+          renderAnim: _unocoRenderAnim,
+          hitAnimSeconds: _unocoHitAnimSeconds,
           primarySpellId: SpellId.lightning,
-          tags: CreatureTagDef(mask: CreatureTagMask.flying | CreatureTagMask.demon),
+          artFacingDir: Facing.left,
+          tags: CreatureTagDef(
+            mask: CreatureTagMask.flying | CreatureTagMask.demon,
+          ),
           resistance: DamageResistanceDef(fire: -0.5, ice: 0.5),
         );
-         
+
       case EnemyId.groundEnemy:
         return const EnemyArchetype(
           body: BodyDef(
@@ -8474,7 +8750,13 @@ class EnemyCatalog {
           collider: ColliderAabbDef(halfX: 12.0, halfY: 12.0),
           health: HealthDef(hp: 20.0, hpMax: 20.0, regenPerSecond: 0.5),
           mana: ManaDef(mana: 0.0, manaMax: 0.0, regenPerSecond: 0.0),
-          stamina: StaminaDef(stamina: 0.0, staminaMax: 0.0, regenPerSecond: 0.0),
+          stamina: StaminaDef(
+            stamina: 0.0,
+            staminaMax: 0.0,
+            regenPerSecond: 0.0,
+          ),
+          renderAnim: _werewolfRenderAnim,
+          hitAnimSeconds: _werewolfHitAnimSeconds,
           tags: CreatureTagDef(mask: CreatureTagMask.humanoid),
         );
     }
@@ -8499,6 +8781,58 @@ enum EnemyId {
 
 
 
+===== FILE: lib/core/enemies/enemy_killed_info.dart =====
+library;
+
+import '../snapshots/enums.dart';
+import '../util/vec2.dart';
+import 'enemy_id.dart';
+
+/// Minimal data captured at the moment an enemy is killed.
+///
+/// Used to emit render/UI events (e.g. play a death animation) even though the
+/// enemy entity is despawned immediately by Core.
+class EnemyKilledInfo {
+  const EnemyKilledInfo({
+    required this.enemyId,
+    required this.pos,
+    required this.facing,
+    required this.artFacingDir,
+  });
+
+  final EnemyId enemyId;
+  final Vec2 pos;
+  final Facing facing;
+  final Facing artFacingDir;
+}
+
+
+===== FILE: lib/core/events/enemy_events.dart =====
+part of 'game_event.dart';
+
+/// Emitted when an enemy is killed (HP reaches 0 and the entity despawns).
+///
+/// This exists because Core typically despawns dead enemies immediately, so the
+/// renderer would otherwise have no chance to play a death animation.
+class EnemyKilledEvent extends GameEvent {
+  const EnemyKilledEvent({
+    required this.tick,
+    required this.enemyId,
+    required this.pos,
+    required this.facing,
+    required this.artFacingDir,
+  });
+
+  /// Simulation tick when the kill occurred.
+  final int tick;
+
+  final EnemyId enemyId;
+  final Vec2 pos;
+  final Facing facing;
+  final Facing artFacingDir;
+}
+
+
 ===== FILE: lib/core/events/game_event.dart =====
 /// Core -> Render/UI event model.
 ///
@@ -8514,9 +8848,12 @@ enum EnemyId {
 library;
 import '../enemies/enemy_id.dart';
 import '../projectiles/projectile_id.dart';
+import '../snapshots/enums.dart';
 import '../spells/spell_id.dart';
+import '../util/vec2.dart';
 
 part 'run_events.dart';
+part 'enemy_events.dart';
 
 /// Base sealed class for all simulation events.
 sealed class GameEvent {
@@ -8726,10 +9063,12 @@ import 'ecs/systems/resource_regen_system.dart';
 import 'ecs/systems/restoration_item_system.dart';
 import 'ecs/systems/status_system.dart';
 import 'ecs/systems/spell_cast_system.dart';
+import 'ecs/systems/enemy_anim_system.dart';
 import 'ecs/systems/enemy_cull_system.dart';
 import 'ecs/world.dart';
 import 'enemies/enemy_catalog.dart';
 import 'enemies/enemy_id.dart';
+import 'enemies/enemy_killed_info.dart';
 import 'events/game_event.dart';
 import 'levels/level_definition.dart';
 import 'levels/level_id.dart';
@@ -8740,6 +9079,8 @@ import 'navigation/surface_pathfinder.dart';
 import 'navigation/utils/jump_template.dart';
 import 'navigation/utils/trajectory_predictor.dart';
 import 'players/player_catalog.dart';
+import 'players/player_character_definition.dart';
+import 'players/player_character_registry.dart';
 import 'projectiles/projectile_catalog.dart';
 import 'snapshots/enums.dart';
 import 'snapshots/game_state_snapshot.dart';
@@ -8751,18 +9092,14 @@ import 'weapons/weapon_catalog.dart';
 import 'ecs/stores/combat/equipped_weapon_store.dart';
 import 'ecs/stores/combat/equipped_ranged_weapon_store.dart';
 import 'weapons/ranged_weapon_catalog.dart';
-import 'tuning/ability_tuning.dart';
-import 'tuning/anim_tuning.dart';
 import 'tuning/camera_tuning.dart';
 import 'tuning/collectible_tuning.dart';
-import 'tuning/combat_tuning.dart';
 import 'tuning/core_tuning.dart';
 import 'tuning/flying_enemy_tuning.dart';
 import 'tuning/ground_enemy_tuning.dart';
-import 'tuning/movement_tuning.dart';
 import 'tuning/navigation_tuning.dart';
 import 'tuning/physics_tuning.dart';
-import 'tuning/resource_tuning.dart';
+import 'players/player_tuning.dart';
 import 'tuning/restoration_item_tuning.dart';
 import 'tuning/score_tuning.dart';
 import 'tuning/spatial_grid_tuning.dart';
@@ -8794,32 +9131,27 @@ import 'util/tick_math.dart';
 ///
 /// ## Custom Configuration
 ///
-  /// Use [CoreTuning] to customize game parameters:
-  /// ```dart
-  /// final core = GameCore(
-  ///   seed: 123,
-  ///   tuning: CoreTuning(
-  ///     movement: MovementTuning(jumpSpeed: 600),
-  ///     track: TrackTuning(enabled: false),
-  ///   ),
-  /// );
-  /// ```
-  ///
-  /// Use [LevelDefinition] to select a level configuration:
-  /// ```dart
-  /// final core = GameCore(
-  ///   seed: 123,
-  ///   levelDefinition: LevelRegistry.byId(LevelId.defaultLevel),
-  /// );
-  /// ```
-///
-/// For backward compatibility, [GameCore.withTunings] accepts individual
-/// tuning parameters:
+/// Use [CoreTuning] to customize world/level parameters:
 /// ```dart
-/// final core = GameCore.withTunings(
+/// final core = GameCore(
 ///   seed: 123,
-///   movementTuning: MovementTuning(jumpSpeed: 600),
-///   trackTuning: TrackTuning(enabled: false),
+///   tuning: CoreTuning(track: TrackTuning(enabled: false)),
+/// );
+/// ```
+///
+/// Use [PlayerCharacterDefinition] to select player-specific tuning + collider:
+/// ```dart
+/// final core = GameCore(
+///   seed: 123,
+///   playerCharacter: PlayerCharacterRegistry.eloise,
+/// );
+/// ```
+///
+/// Use [LevelDefinition] to select a level configuration:
+/// ```dart
+/// final core = GameCore(
+///   seed: 123,
+///   levelDefinition: LevelRegistry.byId(LevelId.defaultLevel),
 /// );
 /// ```
 class GameCore {
@@ -8852,17 +9184,15 @@ class GameCore {
   /// - [levelDefinition]: Optional level config. When provided, its tuning,
   ///   static geometry, and pattern pools are used (and [tuning] /
   ///   [staticWorldGeometry] are ignored).
-  ///
-  /// For backward compatibility with existing code that passes individual
-  /// tuning parameters, use [GameCore.withTunings] instead.
   GameCore({
     required int seed,
     int tickHz = defaultTickHz,
     CoreTuning tuning = const CoreTuning(),
+    PlayerCharacterDefinition playerCharacter =
+        PlayerCharacterRegistry.defaultCharacter,
     SpellCatalog spellCatalog = const SpellCatalog(),
     ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
     EnemyCatalog enemyCatalog = const EnemyCatalog(),
-    PlayerCatalog playerCatalog = const PlayerCatalog(),
     WeaponCatalog weaponCatalog = const WeaponCatalog(),
     RangedWeaponCatalog rangedWeaponCatalog = const RangedWeaponCatalog(),
     StaticWorldGeometry staticWorldGeometry = const StaticWorldGeometry(
@@ -8880,7 +9210,7 @@ class GameCore {
          spellCatalog: spellCatalog,
          projectileCatalog: projectileCatalog,
          enemyCatalog: enemyCatalog,
-         playerCatalog: playerCatalog,
+         playerCharacter: playerCharacter,
          weaponCatalog: weaponCatalog,
          rangedWeaponCatalog: rangedWeaponCatalog,
        );
@@ -8892,26 +9222,26 @@ class GameCore {
     required SpellCatalog spellCatalog,
     required ProjectileCatalog projectileCatalog,
     required EnemyCatalog enemyCatalog,
-    required PlayerCatalog playerCatalog,
+    required PlayerCharacterDefinition playerCharacter,
     required WeaponCatalog weaponCatalog,
     required RangedWeaponCatalog rangedWeaponCatalog,
   }) : _levelDefinition = levelDefinition,
        _movement = MovementTuningDerived.from(
-         levelDefinition.tuning.movement,
+         playerCharacter.tuning.movement,
          tickHz: tickHz,
        ),
        _physicsTuning = levelDefinition.tuning.physics,
-       _resourceTuning = levelDefinition.tuning.resource,
+       _resourceTuning = playerCharacter.tuning.resource,
        _abilities = AbilityTuningDerived.from(
-         levelDefinition.tuning.ability,
+         playerCharacter.tuning.ability,
          tickHz: tickHz,
        ),
        _animTuning = AnimTuningDerived.from(
-         levelDefinition.tuning.anim,
+         playerCharacter.tuning.anim,
          tickHz: tickHz,
        ),
        _combat = CombatTuningDerived.from(
-         levelDefinition.tuning.combat,
+         playerCharacter.tuning.combat,
          tickHz: tickHz,
        ),
        _unocoDemonTuning = UnocoDemonTuningDerived.from(
@@ -8930,7 +9260,7 @@ class GameCore {
          tickHz: tickHz,
        ),
        _enemyCatalog = enemyCatalog,
-       _playerCatalog = playerCatalog,
+       _playerCharacter = playerCharacter,
        _weapons = weaponCatalog,
        _rangedWeapons = RangedWeaponCatalogDerived.from(
          rangedWeaponCatalog,
@@ -8941,78 +9271,6 @@ class GameCore {
        _collectibleTuning = levelDefinition.tuning.collectible,
        _restorationItemTuning = levelDefinition.tuning.restorationItem {
     _initializeWorld(levelDefinition);
-  }
-
-  /// Creates a game simulation with individual tuning parameters.
-  ///
-  /// This factory provides backward compatibility for code that passes
-  /// individual tuning objects. Prefer the default constructor with
-  /// [CoreTuning] for new code.
-  ///
-  /// Example:
-  /// ```dart
-  /// final core = GameCore.withTunings(
-  ///   seed: 123,
-  ///   movementTuning: MovementTuning(jumpSpeed: 600),
-  ///   trackTuning: TrackTuning(enabled: false),
-  /// );
-  /// ```
-  factory GameCore.withTunings({
-    required int seed,
-    int tickHz = defaultTickHz,
-    PhysicsTuning physicsTuning = const PhysicsTuning(),
-    MovementTuning movementTuning = const MovementTuning(),
-    ResourceTuning resourceTuning = const ResourceTuning(),
-    AbilityTuning abilityTuning = const AbilityTuning(),
-    AnimTuning animTuning = const AnimTuning(),
-    CombatTuning combatTuning = const CombatTuning(),
-    UnocoDemonTuning unocoDemonTuning = const UnocoDemonTuning(),
-    GroundEnemyTuning groundEnemyTuning = const GroundEnemyTuning(),
-    NavigationTuning navigationTuning = const NavigationTuning(),
-    SpatialGridTuning spatialGridTuning = const SpatialGridTuning(),
-    CameraTuning cameraTuning = const CameraTuning(),
-    TrackTuning trackTuning = const TrackTuning(),
-    CollectibleTuning collectibleTuning = const CollectibleTuning(),
-    RestorationItemTuning restorationItemTuning = const RestorationItemTuning(),
-    ScoreTuning scoreTuning = const ScoreTuning(),
-    SpellCatalog spellCatalog = const SpellCatalog(),
-    ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
-    EnemyCatalog enemyCatalog = const EnemyCatalog(),
-    PlayerCatalog playerCatalog = const PlayerCatalog(),
-    WeaponCatalog weaponCatalog = const WeaponCatalog(),
-    RangedWeaponCatalog rangedWeaponCatalog = const RangedWeaponCatalog(),
-    StaticWorldGeometry staticWorldGeometry = const StaticWorldGeometry(
-      groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
-    ),
-  }) {
-    return GameCore(
-      seed: seed,
-      tickHz: tickHz,
-      tuning: CoreTuning(
-        physics: physicsTuning,
-        movement: movementTuning,
-        resource: resourceTuning,
-        ability: abilityTuning,
-        anim: animTuning,
-        combat: combatTuning,
-        unocoDemon: unocoDemonTuning,
-        groundEnemy: groundEnemyTuning,
-        navigation: navigationTuning,
-        spatialGrid: spatialGridTuning,
-        camera: cameraTuning,
-        track: trackTuning,
-        collectible: collectibleTuning,
-        restorationItem: restorationItemTuning,
-        score: scoreTuning,
-      ),
-      spellCatalog: spellCatalog,
-      projectileCatalog: projectileCatalog,
-      enemyCatalog: enemyCatalog,
-      playerCatalog: playerCatalog,
-      weaponCatalog: weaponCatalog,
-      rangedWeaponCatalog: rangedWeaponCatalog,
-      staticWorldGeometry: staticWorldGeometry,
-    );
   }
 
   /// Common initialization shared by all constructors.
@@ -9075,6 +9333,7 @@ class GameCore {
 
     // ─── Initialize snapshot builder (needs player entity ID) ───
     _snapshotBuilder = SnapshotBuilder(
+      tickHz: tickHz,
       world: _world,
       player: _player,
       movement: _movement,
@@ -9084,6 +9343,7 @@ class GameCore {
       spells: _spells,
       projectiles: _projectiles,
       rangedWeapons: _rangedWeapons,
+      enemyCatalog: _enemyCatalog,
     );
   }
 
@@ -9120,14 +9380,16 @@ class GameCore {
     _statusSystem = StatusSystem(tickHz: tickHz);
     _healthDespawnSystem = HealthDespawnSystem();
     _enemyCullSystem = EnemyCullSystem();
+    _enemyAnimSystem = EnemyAnimSystem(
+      tickHz: tickHz,
+      enemyCatalog: _enemyCatalog,
+    );
 
     // Player combat.
-    _meleeSystem = PlayerMeleeSystem(
-      abilities: _abilities,
-      movement: _movement,
-      weapons: _weapons,
+    _meleeSystem = PlayerMeleeSystem(abilities: _abilities, weapons: _weapons);
+    _rangedWeaponSystem = PlayerRangedWeaponSystem(
+      weapons: _rangedWeapons.base,
     );
-    _rangedWeaponSystem = PlayerRangedWeaponSystem(weapons: _rangedWeapons.base);
     _hitboxDamageSystem = HitboxDamageSystem();
 
     // Pickup systems.
@@ -9136,7 +9398,7 @@ class GameCore {
     _resourceRegenSystem = ResourceRegenSystem();
 
     // Spell/cast systems.
-    _castSystem = PlayerCastSystem(abilities: _abilities, movement: _movement);
+    _castSystem = PlayerCastSystem(abilities: _abilities);
     _spellCastSystem = SpellCastSystem(
       spells: _spells,
       projectiles: _projectiles,
@@ -9201,7 +9463,7 @@ class GameCore {
   void _spawnPlayer(double groundTopY) {
     final spawnX = _trackTuning.playerStartX;
     final playerArchetype = PlayerCatalogDerived.from(
-      _playerCatalog,
+      _playerCharacter.catalog,
       movement: _movement,
       resources: _resourceTuning,
     ).archetype;
@@ -9225,8 +9487,9 @@ class GameCore {
       resistance: playerArchetype.resistance,
       statusImmunity: playerArchetype.statusImmunity,
       equippedWeapon: EquippedWeaponDef(weaponId: playerArchetype.weaponId),
-      equippedRangedWeapon:
-          EquippedRangedWeaponDef(weaponId: playerArchetype.rangedWeaponId),
+      equippedRangedWeapon: EquippedRangedWeaponDef(
+        weaponId: playerArchetype.rangedWeaponId,
+      ),
       ammo: playerArchetype.ammo,
     );
   }
@@ -9275,7 +9538,7 @@ class GameCore {
   final SpellCatalog _spells;
   final ProjectileCatalogDerived _projectiles;
   final EnemyCatalog _enemyCatalog;
-  final PlayerCatalog _playerCatalog;
+  final PlayerCharacterDefinition _playerCharacter;
   final WeaponCatalog _weapons;
   final RangedWeaponCatalogDerived _rangedWeapons;
 
@@ -9327,6 +9590,7 @@ class GameCore {
   late final ResourceRegenSystem _resourceRegenSystem;
   late final PlayerCastSystem _castSystem;
   late final SpellCastSystem _spellCastSystem;
+  late final EnemyAnimSystem _enemyAnimSystem;
   late final EnemyCullSystem _enemyCullSystem;
 
   // ─── Modular Services ───
@@ -9355,6 +9619,9 @@ class GameCore {
 
   /// Scratch list for killed enemies (reused to avoid allocation).
   final List<EnemyId> _killedEnemiesScratch = <EnemyId>[];
+
+  /// Scratch list for enemy death render events (reused to avoid allocation).
+  final List<EnemyKilledInfo> _killedEnemyInfoScratch = <EnemyKilledInfo>[];
 
   /// Kill counts per enemy type (indexed by [EnemyId.index]).
   final List<int> _enemyKillCounts = List<int>.filled(EnemyId.values.length, 0);
@@ -9391,6 +9658,9 @@ class GameCore {
 
   /// Score tuning for UI display and leaderboard calculation.
   ScoreTuning get scoreTuning => _scoreTuning;
+
+  /// Enemy catalog for render-side animation loading.
+  EnemyCatalog get enemyCatalog => _enemyCatalog;
 
   /// Current static world geometry (base + streamed chunks).
   StaticWorldGeometry get staticWorldGeometry => _trackManager.staticGeometry;
@@ -9564,7 +9834,8 @@ class GameCore {
   /// 18. **Status application**: Apply on-hit status profiles.
   /// 19. **Death handling**: Despawn dead entities, record kills.
   /// 20. **Resource regen**: Regenerate mana and stamina.
-  /// 21. **Cleanup**: Remove entities past their lifetime.
+  /// 21. **Enemy animation**: Compute per-enemy anim key + frame.
+  /// 22. **Cleanup**: Remove entities past their lifetime.
   ///
   /// If the run ends during this tick (player death, fell into gap, etc.),
   /// a [RunEndedEvent] is emitted and the simulation freezes.
@@ -9574,6 +9845,8 @@ class GameCore {
 
     if (_deathAnimTicksLeft > 0) {
       tick += 1;
+      // Update enemy animations during death anim freeze.
+      _enemyAnimSystem.step(_world, currentTick: tick);
       _deathAnimTicksLeft -= 1;
       if (_deathAnimTicksLeft <= 0) {
         _endRun(
@@ -9688,6 +9961,7 @@ class GameCore {
 
     // ─── Phase 14: Death handling ───
     _killedEnemiesScratch.clear();
+    _killedEnemyInfoScratch.clear();
     _enemyCullSystem.step(
       _world,
       cameraLeft: _camera.left(),
@@ -9698,9 +9972,23 @@ class GameCore {
       _world,
       player: _player,
       outEnemiesKilled: _killedEnemiesScratch,
+      outEnemyKilledInfo: _killedEnemyInfoScratch,
     );
     if (_killedEnemiesScratch.isNotEmpty) {
       _recordEnemyKills(_killedEnemiesScratch);
+    }
+    if (_killedEnemyInfoScratch.isNotEmpty) {
+      for (final info in _killedEnemyInfoScratch) {
+        _events.add(
+          EnemyKilledEvent(
+            tick: tick,
+            enemyId: info.enemyId,
+            pos: info.pos,
+            facing: info.facing,
+            artFacingDir: info.artFacingDir,
+          ),
+        );
+      }
     }
     if (_isPlayerDead()) {
       if (_deathAnimTicksLeft <= 0) {
@@ -9718,7 +10006,10 @@ class GameCore {
     // ─── Phase 15: Resource regeneration ───
     _resourceRegenSystem.step(_world, dtSeconds: _movement.dtSeconds);
 
-    // ─── Phase 16: Cleanup ───
+    // ─── Phase 16: Enemy animation ───
+    _enemyAnimSystem.step(_world, currentTick: tick);
+
+    // ─── Phase 17: Cleanup ───
     _lifetimeSystem.step(_world);
   }
 
@@ -12298,6 +12589,215 @@ class TrajectoryPredictor {
 }
 
 
+===== FILE: lib/core/players/characters/eloise.dart =====
+library;
+
+import '../../ecs/stores/body_store.dart';
+import '../../ecs/stores/combat/ammo_store.dart';
+import '../../ecs/stores/combat/creature_tag_store.dart';
+import '../../ecs/stores/combat/damage_resistance_store.dart';
+import '../../ecs/stores/combat/status_immunity_store.dart';
+import '../../combat/creature_tag.dart';
+import '../../snapshots/enums.dart';
+import '../../weapons/ranged_weapon_id.dart';
+import '../../weapons/weapon_id.dart';
+import '../player_character_definition.dart';
+import '../player_catalog.dart';
+import '../player_tuning.dart';
+import '../../contracts/render_anim_set_definition.dart';
+
+/// Baseline character definition: Éloïse.
+///
+/// All current "default player" values in v0 are treated as belonging to Éloïse.
+
+// -----------------------------------------------------------------------------
+// Éloïse render animation strip definitions (authoring-time)
+// -----------------------------------------------------------------------------
+
+const int eloiseAnimFrameWidth = 100;
+const int eloiseAnimFrameHeight = 64;
+
+const int eloiseAnimIdleFrames = 4;
+const double eloiseAnimIdleStepSeconds = 0.14;
+
+const int eloiseAnimRunFrames = 7;
+const double eloiseAnimRunStepSeconds = 0.08;
+
+const int eloiseAnimWalkFrames = 7;
+const double eloiseAnimWalkStepSeconds = 0.16;
+
+const int eloiseAnimJumpFrames = 6;
+const double eloiseAnimJumpStepSeconds = 0.10;
+
+const int eloiseAnimFallFrames = 3;
+const double eloiseAnimFallStepSeconds = 0.10;
+
+const int eloiseAnimAttackFrames = 6;
+const double eloiseAnimAttackStepSeconds = 0.06;
+
+const int eloiseAnimAttackLeftFrames = 5;
+const double eloiseAnimAttackLeftStepSeconds = 0.08;
+
+const int eloiseAnimCastFrames = 5;
+const double eloiseAnimCastStepSeconds = 0.08;
+
+// Ranged weapon (throw) defaults to the cast strip until a dedicated throw strip exists.
+const int eloiseAnimRangedFrames = eloiseAnimCastFrames;
+const double eloiseAnimRangedStepSeconds = eloiseAnimCastStepSeconds;
+
+const int eloiseAnimDashFrames = 4;
+const double eloiseAnimDashStepSeconds = 0.05;
+
+const int eloiseAnimHitFrames = 4;
+const double eloiseAnimHitStepSeconds = 0.10;
+
+const int eloiseAnimDeathFrames = 6;
+const double eloiseAnimDeathStepSeconds = 0.12;
+
+// Spawn reuses idle timing/frames until a dedicated strip exists.
+const int eloiseAnimSpawnFrames = eloiseAnimIdleFrames;
+const double eloiseAnimSpawnStepSeconds = eloiseAnimIdleStepSeconds;
+
+const Map<AnimKey, int> eloiseAnimFrameCountsByKey = <AnimKey, int>{
+  AnimKey.idle: eloiseAnimIdleFrames,
+  AnimKey.run: eloiseAnimRunFrames,
+  AnimKey.jump: eloiseAnimJumpFrames,
+  AnimKey.fall: eloiseAnimFallFrames,
+  AnimKey.attack: eloiseAnimAttackFrames,
+  AnimKey.attackLeft: eloiseAnimAttackLeftFrames,
+  AnimKey.cast: eloiseAnimCastFrames,
+  AnimKey.ranged: eloiseAnimRangedFrames,
+  AnimKey.dash: eloiseAnimDashFrames,
+  AnimKey.hit: eloiseAnimHitFrames,
+  AnimKey.death: eloiseAnimDeathFrames,
+  AnimKey.spawn: eloiseAnimSpawnFrames,
+  AnimKey.walk: eloiseAnimWalkFrames,
+};
+
+const Map<AnimKey, double> eloiseAnimStepTimeSecondsByKey = <AnimKey, double>{
+  AnimKey.idle: eloiseAnimIdleStepSeconds,
+  AnimKey.run: eloiseAnimRunStepSeconds,
+  AnimKey.jump: eloiseAnimJumpStepSeconds,
+  AnimKey.fall: eloiseAnimFallStepSeconds,
+  AnimKey.attack: eloiseAnimAttackStepSeconds,
+  AnimKey.attackLeft: eloiseAnimAttackLeftStepSeconds,
+  AnimKey.cast: eloiseAnimCastStepSeconds,
+  AnimKey.ranged: eloiseAnimRangedStepSeconds,
+  AnimKey.dash: eloiseAnimDashStepSeconds,
+  AnimKey.hit: eloiseAnimHitStepSeconds,
+  AnimKey.death: eloiseAnimDeathStepSeconds,
+  AnimKey.spawn: eloiseAnimSpawnStepSeconds,
+  AnimKey.walk: eloiseAnimWalkStepSeconds,
+};
+
+const Map<AnimKey, String> eloiseAnimSourcesByKey = <AnimKey, String>{
+  AnimKey.idle: 'entities/player/idle.png',
+  AnimKey.run: 'entities/player/move.png',
+  AnimKey.jump: 'entities/player/jump.png',
+  AnimKey.fall: 'entities/player/fall.png',
+  AnimKey.attack: 'entities/player/attack.png',
+  AnimKey.attackLeft: 'entities/player/attack_left.png',
+  AnimKey.cast: 'entities/player/cast.png',
+  AnimKey.ranged: 'entities/player/cast.png',
+  AnimKey.dash: 'entities/player/dash.png',
+  AnimKey.hit: 'entities/player/hit.png',
+  AnimKey.death: 'entities/player/death.png',
+  AnimKey.spawn: 'entities/player/idle.png',
+  AnimKey.walk: 'entities/player/walk.png',
+};
+
+const RenderAnimSetDefinition eloiseRenderAnim = RenderAnimSetDefinition(
+  frameWidth: eloiseAnimFrameWidth,
+  frameHeight: eloiseAnimFrameHeight,
+  sourcesByKey: eloiseAnimSourcesByKey,
+  frameCountsByKey: eloiseAnimFrameCountsByKey,
+  stepTimeSecondsByKey: eloiseAnimStepTimeSecondsByKey,
+);
+
+// -----------------------------------------------------------------------------
+// Éloïse authored Core values (single-file source of truth)
+// -----------------------------------------------------------------------------
+
+const PlayerCatalog eloiseCatalog = PlayerCatalog(
+  bodyTemplate: BodyDef(
+    isKinematic: false,
+    useGravity: true,
+    ignoreCeilings: false,
+    topOnlyGround: true,
+    gravityScale: 1.0,
+    sideMask: BodyDef.sideLeft | BodyDef.sideRight,
+  ),
+  colliderWidth: 22.0,
+  colliderHeight: 46.0,
+  colliderOffsetX: 0.0,
+  colliderOffsetY: -6.0,
+  tags: CreatureTagDef(mask: CreatureTagMask.humanoid),
+  resistance: DamageResistanceDef(),
+  statusImmunity: StatusImmunityDef(),
+  weaponId: WeaponId.basicSword,
+  rangedWeaponId: RangedWeaponId.throwingAxe,
+  ammo: AmmoDef(throwingAxes: 6),
+  facing: Facing.right,
+);
+
+const PlayerTuning eloiseTuning = PlayerTuning(
+  movement: MovementTuning(
+    maxSpeedX: 200,
+    accelerationX: 600,
+    decelerationX: 400,
+    minMoveSpeed: 5,
+    runSpeedThresholdX: 120,
+    maxVelX: 1500,
+    maxVelY: 1500,
+    jumpSpeed: 500,
+    coyoteTimeSeconds: 0.10,
+    jumpBufferSeconds: 0.12,
+    dashSpeedX: 550,
+    dashDurationSeconds: 0.20,
+    dashCooldownSeconds: 2.0,
+  ),
+  resource: ResourceTuning(
+    playerHpMax: 100,
+    playerHpRegenPerSecond: 0.5,
+    playerManaMax: 100,
+    playerManaRegenPerSecond: 2.0,
+    playerStaminaMax: 100,
+    playerStaminaRegenPerSecond: 1.0,
+    jumpStaminaCost: 2,
+    dashStaminaCost: 2,
+  ),
+  ability: AbilityTuning(
+    castCooldownSeconds: 0.25,
+    meleeCooldownSeconds: 0.30,
+    meleeActiveSeconds: 0.10,
+    meleeStaminaCost: 5.0,
+    meleeDamage: 15.0,
+    meleeHitboxSizeX: 32.0,
+    meleeHitboxSizeY: 32.0,
+  ),
+  // Keep these windows in sync with Éloïse's render strips above.
+  anim: AnimTuning(
+    hitAnimSeconds: eloiseAnimHitFrames * eloiseAnimHitStepSeconds,
+    castAnimSeconds: eloiseAnimCastFrames * eloiseAnimCastStepSeconds,
+    attackAnimSeconds: eloiseAnimAttackFrames * eloiseAnimAttackStepSeconds,
+    attackLeftAnimSeconds:
+        eloiseAnimAttackLeftFrames * eloiseAnimAttackLeftStepSeconds,
+    rangedAnimSeconds: eloiseAnimRangedFrames * eloiseAnimRangedStepSeconds,
+    deathAnimSeconds: eloiseAnimDeathFrames * eloiseAnimDeathStepSeconds,
+    spawnAnimSeconds: eloiseAnimSpawnFrames * eloiseAnimSpawnStepSeconds,
+  ),
+  combat: CombatTuning(invulnerabilitySeconds: 0.25),
+);
+
+const PlayerCharacterDefinition eloiseCharacter = PlayerCharacterDefinition(
+  id: PlayerCharacterId.eloise,
+  displayName: 'Éloïse',
+  renderAnim: eloiseRenderAnim,
+  catalog: eloiseCatalog,
+  tuning: eloiseTuning,
+);
+
+
 ===== FILE: lib/core/players/player_archetype.dart =====
 import '../ecs/stores/body_store.dart';
 import '../ecs/stores/collider_aabb_store.dart';
@@ -12344,7 +12844,8 @@ class PlayerArchetype {
   /// AABB collider definition (half-extents and offset).
   ///
   /// Determines the player's collision bounds for physics and hit detection.
-  /// Typically derived from [MovementTuning.playerRadius].
+  /// Typically derived from [PlayerCatalog.colliderWidth] and
+  /// [PlayerCatalog.colliderHeight].
   final ColliderAabbDef collider;
 
   /// Physics body configuration (gravity, kinematic flags, velocity clamps).
@@ -12407,8 +12908,7 @@ import '../ecs/stores/health_store.dart';
 import '../ecs/stores/mana_store.dart';
 import '../ecs/stores/stamina_store.dart';
 import '../snapshots/enums.dart';
-import '../tuning/movement_tuning.dart';
-import '../tuning/resource_tuning.dart';
+import 'player_tuning.dart';
 import '../weapons/weapon_id.dart';
 import '../weapons/ranged_weapon_id.dart';
 import 'player_archetype.dart';
@@ -12422,7 +12922,7 @@ import 'player_archetype.dart';
 ///
 /// **Relationship to Tuning**:
 /// - [PlayerCatalog]: Structural config (physics flags, collision sides).
-/// - [MovementTuning]: Numeric movement values (speed, radius, velocity clamps).
+/// - [MovementTuning]: Numeric movement values (speed, collider size, velocity clamps).
 /// - [ResourceTuning]: Numeric resource values (HP, mana, stamina).
 ///
 /// The [PlayerCatalogDerived.from] factory merges all three to produce a
@@ -12437,6 +12937,10 @@ class PlayerCatalog {
       gravityScale: 1.0,
       sideMask: BodyDef.sideLeft | BodyDef.sideRight,
     ),
+    this.colliderWidth = 22.0,
+    this.colliderHeight = 46.0,
+    this.colliderOffsetX = 0.0,
+    this.colliderOffsetY = -6.0,
     this.tags = const CreatureTagDef(mask: CreatureTagMask.humanoid),
     this.resistance = const DamageResistanceDef(),
     this.statusImmunity = const StatusImmunityDef(),
@@ -12463,6 +12967,22 @@ class PlayerCatalog {
   /// This split ensures movement tuning remains the single source of truth
   /// for velocity limits.
   final BodyDef bodyTemplate;
+
+  /// Player collision AABB size (full extents) in world units.
+  ///
+  /// Core uses center-based AABBs, so `halfX = width * 0.5` and
+  /// `halfY = height * 0.5`.
+  final double colliderWidth;
+  final double colliderHeight;
+
+  /// Optional collider center offset from entity `Transform.pos`.
+  final double colliderOffsetX;
+  final double colliderOffsetY;
+
+  double get colliderHalfX => colliderWidth * 0.5;
+  double get colliderHalfY => colliderHeight * 0.5;
+  double get colliderMaxHalfExtent =>
+      colliderHalfX > colliderHalfY ? colliderHalfX : colliderHalfY;
 
   /// Broad tags used by combat rules and content filters.
   final CreatureTagDef tags;
@@ -12514,12 +13034,12 @@ class PlayerCatalogDerived {
   /// - [movement]: Movement tuning for collider size and velocity clamps.
   /// - [resources]: Resource tuning for HP, mana, and stamina pools.
   ///
-  /// **Derivation Logic**:
-  /// 1. Copy physics flags from [base.bodyTemplate].
-  /// 2. Fill `maxVelX`/`maxVelY` from [movement].
-  /// 3. Create square collider from [movement.playerRadius].
-  /// 4. Create resource pools from [resources].
-  /// 5. Bundle everything into a [PlayerArchetype].
+/// **Derivation Logic**:
+/// 1. Copy physics flags from [base.bodyTemplate].
+/// 2. Fill `maxVelX`/`maxVelY` from [movement].
+/// 3. Create AABB collider from [base].
+/// 4. Create resource pools from [resources].
+/// 5. Bundle everything into a [PlayerArchetype].
   factory PlayerCatalogDerived.from(
     PlayerCatalog base, {
     required MovementTuningDerived movement,
@@ -12538,10 +13058,12 @@ class PlayerCatalogDerived {
       sideMask: base.bodyTemplate.sideMask,
     );
 
-    // Square collider based on player radius.
+    // AABB collider from catalog.
     final collider = ColliderAabbDef(
-      halfX: movement.base.playerRadius,
-      halfY: movement.base.playerRadius,
+      halfX: base.colliderHalfX,
+      halfY: base.colliderHalfY,
+      offsetX: base.colliderOffsetX,
+      offsetY: base.colliderOffsetY,
     );
 
     // Resource pools from resource tuning.
@@ -12583,6 +13105,634 @@ class PlayerCatalogDerived {
   ///
   /// Use this with [EntityFactory.createPlayer] to spawn the player entity.
   final PlayerArchetype archetype;
+}
+
+
+===== FILE: lib/core/players/player_character_definition.dart =====
+library;
+
+import '../contracts/render_anim_set_definition.dart';
+import '../snapshots/enums.dart';
+import 'player_tuning.dart';
+import 'player_catalog.dart';
+
+enum PlayerCharacterId { eloise }
+
+class PlayerCharacterDefinition {
+  const PlayerCharacterDefinition({
+    required this.id,
+    required this.displayName,
+    required this.renderAnim,
+    this.catalog = const PlayerCatalog(),
+    this.tuning = const PlayerTuning(),
+  });
+
+  final PlayerCharacterId id;
+  final String displayName;
+
+  /// Render-only animation metadata (strip paths, frame size, timing).
+  ///
+  /// Core owns the timing numbers so render strips and deterministic animation
+  /// windows can stay in sync, but the renderer remains the only layer that
+  /// loads assets.
+  final RenderAnimSetDefinition renderAnim;
+
+  /// Structural player configuration (collider size/offset, physics flags, etc.).
+  final PlayerCatalog catalog;
+
+  /// Per-character numeric tuning bundle.
+  final PlayerTuning tuning;
+
+  PlayerCharacterDefinition copyWith({
+    String? displayName,
+    RenderAnimSetDefinition? renderAnim,
+    PlayerCatalog? catalog,
+    PlayerTuning? tuning,
+  }) {
+    return PlayerCharacterDefinition(
+      id: id,
+      displayName: displayName ?? this.displayName,
+      renderAnim: renderAnim ?? this.renderAnim,
+      catalog: catalog ?? this.catalog,
+      tuning: tuning ?? this.tuning,
+    );
+  }
+
+  /// Debug-only validation for authoring-time character definitions.
+  ///
+  /// This is intended to fail fast during development when a new character is
+  /// added with incomplete render strip metadata or invalid collider sizes.
+  ///
+  /// In release builds, asserts are stripped and this becomes a no-op.
+  void assertValid() {
+    assert(() {
+      if (displayName.trim().isEmpty) {
+        throw StateError(
+          'PlayerCharacterDefinition($id) has empty displayName',
+        );
+      }
+
+      // Catalog invariants.
+      if (!catalog.colliderWidth.isFinite ||
+          !catalog.colliderHeight.isFinite ||
+          catalog.colliderWidth <= 0 ||
+          catalog.colliderHeight <= 0) {
+        throw StateError(
+          'PlayerCharacterDefinition($id) has invalid collider size '
+          '(width=${catalog.colliderWidth}, height=${catalog.colliderHeight})',
+        );
+      }
+      if (!catalog.colliderOffsetX.isFinite ||
+          !catalog.colliderOffsetY.isFinite) {
+        throw StateError(
+          'PlayerCharacterDefinition($id) has non-finite collider offsets '
+          '(x=${catalog.colliderOffsetX}, y=${catalog.colliderOffsetY})',
+        );
+      }
+
+      // Render anim invariants.
+      if (renderAnim.frameWidth <= 0 || renderAnim.frameHeight <= 0) {
+        throw StateError(
+          'PlayerCharacterDefinition($id) has invalid render frame size '
+          '(${renderAnim.frameWidth}x${renderAnim.frameHeight})',
+        );
+      }
+      if (!renderAnim.sourcesByKey.containsKey(AnimKey.idle)) {
+        throw StateError(
+          'PlayerCharacterDefinition($id) renderAnim.sourcesByKey must include AnimKey.idle',
+        );
+      }
+      if (!renderAnim.frameCountsByKey.containsKey(AnimKey.idle)) {
+        throw StateError(
+          'PlayerCharacterDefinition($id) renderAnim.frameCountsByKey must include AnimKey.idle',
+        );
+      }
+      if (!renderAnim.stepTimeSecondsByKey.containsKey(AnimKey.idle)) {
+        throw StateError(
+          'PlayerCharacterDefinition($id) renderAnim.stepTimeSecondsByKey must include AnimKey.idle',
+        );
+      }
+
+      for (final entry in renderAnim.sourcesByKey.entries) {
+        final key = entry.key;
+        final path = entry.value;
+        if (path.trim().isEmpty) {
+          throw StateError(
+            'PlayerCharacterDefinition($id) renderAnim.sourcesByKey[$key] is empty',
+          );
+        }
+
+        // Frame counts / step times are allowed to be omitted per-key; render
+        // falls back to the `idle` values in that case. If a value is provided
+        // for the key, validate it.
+        final count = renderAnim.frameCountsByKey[key];
+        if (count != null && count <= 0) {
+          throw StateError(
+            'PlayerCharacterDefinition($id) renderAnim.frameCountsByKey[$key] must be > 0 (got $count)',
+          );
+        }
+        final seconds = renderAnim.stepTimeSecondsByKey[key];
+        if (seconds != null && (!seconds.isFinite || seconds <= 0)) {
+          throw StateError(
+            'PlayerCharacterDefinition($id) renderAnim.stepTimeSecondsByKey[$key] must be > 0 (got $seconds)',
+          );
+        }
+      }
+
+      for (final entry in renderAnim.frameCountsByKey.entries) {
+        final key = entry.key;
+        final count = entry.value;
+        if (count <= 0) {
+          throw StateError(
+            'PlayerCharacterDefinition($id) renderAnim.frameCountsByKey[$key] must be > 0 (got $count)',
+          );
+        }
+        if (key != AnimKey.idle && !renderAnim.sourcesByKey.containsKey(key)) {
+          throw StateError(
+            'PlayerCharacterDefinition($id) renderAnim.frameCountsByKey[$key] has no matching sourcesByKey entry',
+          );
+        }
+      }
+
+      for (final entry in renderAnim.stepTimeSecondsByKey.entries) {
+        final key = entry.key;
+        final seconds = entry.value;
+        if (!seconds.isFinite || seconds <= 0) {
+          throw StateError(
+            'PlayerCharacterDefinition($id) renderAnim.stepTimeSecondsByKey[$key] must be > 0 (got $seconds)',
+          );
+        }
+        if (key != AnimKey.idle && !renderAnim.sourcesByKey.containsKey(key)) {
+          throw StateError(
+            'PlayerCharacterDefinition($id) renderAnim.stepTimeSecondsByKey[$key] has no matching sourcesByKey entry',
+          );
+        }
+      }
+
+      // Tuning invariants (only basic sanity checks here).
+      if (!tuning.anim.hitAnimSeconds.isFinite ||
+          !tuning.anim.castAnimSeconds.isFinite ||
+          !tuning.anim.attackAnimSeconds.isFinite ||
+          !tuning.anim.deathAnimSeconds.isFinite ||
+          !tuning.anim.spawnAnimSeconds.isFinite ||
+          !tuning.anim.rangedAnimSeconds.isFinite) {
+        throw StateError(
+          'PlayerCharacterDefinition($id) has non-finite AnimTuning seconds',
+        );
+      }
+
+      return true;
+    }());
+  }
+}
+
+
+===== FILE: lib/core/players/player_character_registry.dart =====
+library;
+
+import 'characters/eloise.dart';
+import 'player_character_definition.dart';
+
+class PlayerCharacterRegistry {
+  const PlayerCharacterRegistry._();
+
+  static const PlayerCharacterDefinition eloise = eloiseCharacter;
+
+  static const PlayerCharacterDefinition defaultCharacter = eloise;
+
+  static const List<PlayerCharacterDefinition> all = [eloise];
+
+  static final Map<PlayerCharacterId, PlayerCharacterDefinition> byId =
+      _buildById(all);
+
+  static Map<PlayerCharacterId, PlayerCharacterDefinition> _buildById(
+    List<PlayerCharacterDefinition> defs,
+  ) {
+    assert(() {
+      for (final d in defs) {
+        d.assertValid();
+      }
+      return true;
+    }());
+
+    final map = <PlayerCharacterId, PlayerCharacterDefinition>{};
+    for (final d in defs) {
+      final existing = map[d.id];
+      if (existing != null) {
+        throw StateError('Duplicate PlayerCharacterId ${d.id} in registry');
+      }
+      map[d.id] = d;
+    }
+    return map;
+  }
+}
+
+
+===== FILE: lib/core/players/player_tuning.dart =====
+/// Player tuning (single-file source of truth).
+///
+/// This module intentionally centralizes all player-specific tuning:
+/// movement + resources + abilities + combat + animation (and derived/cache
+/// variants). This keeps per-character definitions DRY: they can reference a
+/// single import and override only what differs.
+library;
+
+import '../snapshots/enums.dart';
+import '../util/tick_math.dart';
+import '../tuning/utils/anim_tuning.dart' as anim_utils;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Player animation strip definitions (frame counts / step times) live in
+// character files (e.g. `lib/core/players/characters/eloise.dart`).
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Keep [AnimTuning] windows in sync with the selected character's strips.
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Player movement tuning (author in seconds, applied per fixed tick)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const int defaultTickHz = 60;
+
+class MovementTuning {
+  const MovementTuning({
+    this.maxSpeedX = 200,
+    this.accelerationX = 600,
+    this.decelerationX = 400,
+    this.minMoveSpeed = 5,
+    this.runSpeedThresholdX = 60,
+    this.maxVelX = 1500,
+    this.maxVelY = 1500,
+    this.jumpSpeed = 500,
+    this.coyoteTimeSeconds = 0.10,
+    this.jumpBufferSeconds = 0.12,
+    this.dashSpeedX = 550,
+    this.dashDurationSeconds = 0.20,
+    this.dashCooldownSeconds = 2.0,
+  });
+
+  final double maxSpeedX;
+  final double accelerationX;
+  final double decelerationX;
+  final double minMoveSpeed;
+  final double runSpeedThresholdX;
+
+  final double maxVelX;
+  final double maxVelY;
+
+  final double jumpSpeed;
+
+  final double coyoteTimeSeconds;
+  final double jumpBufferSeconds;
+
+  final double dashSpeedX;
+  final double dashDurationSeconds;
+  final double dashCooldownSeconds;
+}
+
+class MovementTuningDerived {
+  const MovementTuningDerived._({
+    required this.tickHz,
+    required this.dtSeconds,
+    required this.base,
+    required this.coyoteTicks,
+    required this.jumpBufferTicks,
+    required this.dashDurationTicks,
+    required this.dashCooldownTicks,
+  });
+
+  factory MovementTuningDerived.from(MovementTuning base, {required int tickHz}) {
+    if (tickHz <= 0) {
+      throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
+    }
+    return MovementTuningDerived._(
+      tickHz: tickHz,
+      dtSeconds: 1.0 / tickHz,
+      base: base,
+      coyoteTicks: ticksFromSecondsCeil(base.coyoteTimeSeconds, tickHz),
+      jumpBufferTicks: ticksFromSecondsCeil(base.jumpBufferSeconds, tickHz),
+      dashDurationTicks: ticksFromSecondsCeil(base.dashDurationSeconds, tickHz),
+      dashCooldownTicks: ticksFromSecondsCeil(base.dashCooldownSeconds, tickHz),
+    );
+  }
+
+  final int tickHz;
+  final double dtSeconds;
+  final MovementTuning base;
+
+  final int coyoteTicks;
+  final int jumpBufferTicks;
+  final int dashDurationTicks;
+  final int dashCooldownTicks;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Player resources tuning (hp/mana/stamina + regen + costs)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class ResourceTuning {
+  const ResourceTuning({
+    this.playerHpMax = 100,
+    this.playerHpRegenPerSecond = 0.5,
+    this.playerManaMax = 100,
+    this.playerManaRegenPerSecond = 2.0,
+    this.playerStaminaMax = 100,
+    this.playerStaminaRegenPerSecond = 1.0,
+    this.jumpStaminaCost = 2,
+    this.dashStaminaCost = 2,
+  });
+
+  final double playerHpMax;
+  final double playerHpRegenPerSecond;
+
+  final double playerManaMax;
+  final double playerManaRegenPerSecond;
+
+  final double playerStaminaMax;
+  final double playerStaminaRegenPerSecond;
+
+  final double jumpStaminaCost;
+  final double dashStaminaCost;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Player ability tuning (cast, melee)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class AbilityTuning {
+  const AbilityTuning({
+    this.castCooldownSeconds = 0.25,
+    this.meleeCooldownSeconds = 0.30,
+    this.meleeActiveSeconds = 0.10,
+    this.meleeStaminaCost = 5.0,
+    this.meleeDamage = 15.0,
+    this.meleeHitboxSizeX = 32.0,
+    this.meleeHitboxSizeY = 16.0,
+  });
+
+  final double castCooldownSeconds;
+  final double meleeCooldownSeconds;
+  final double meleeActiveSeconds;
+
+  final double meleeStaminaCost;
+  final double meleeDamage;
+
+  final double meleeHitboxSizeX;
+  final double meleeHitboxSizeY;
+}
+
+class AbilityTuningDerived {
+  const AbilityTuningDerived._({
+    required this.tickHz,
+    required this.base,
+    required this.castCooldownTicks,
+    required this.meleeCooldownTicks,
+    required this.meleeActiveTicks,
+  });
+
+  factory AbilityTuningDerived.from(AbilityTuning base, {required int tickHz}) {
+    if (tickHz <= 0) {
+      throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
+    }
+
+    return AbilityTuningDerived._(
+      tickHz: tickHz,
+      base: base,
+      castCooldownTicks: ticksFromSecondsCeil(base.castCooldownSeconds, tickHz),
+      meleeCooldownTicks: ticksFromSecondsCeil(base.meleeCooldownSeconds, tickHz),
+      meleeActiveTicks: ticksFromSecondsCeil(base.meleeActiveSeconds, tickHz),
+    );
+  }
+
+  final int tickHz;
+  final AbilityTuning base;
+
+  final int castCooldownTicks;
+  final int meleeCooldownTicks;
+  final int meleeActiveTicks;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Player combat tuning (invulnerability)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class CombatTuning {
+  const CombatTuning({this.invulnerabilitySeconds = 0.25});
+
+  final double invulnerabilitySeconds;
+}
+
+class CombatTuningDerived {
+  const CombatTuningDerived._({
+    required this.tickHz,
+    required this.base,
+    required this.invulnerabilityTicks,
+  });
+
+  factory CombatTuningDerived.from(CombatTuning base, {required int tickHz}) {
+    if (tickHz <= 0) {
+      throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
+    }
+
+    return CombatTuningDerived._(
+      tickHz: tickHz,
+      base: base,
+      invulnerabilityTicks: ticksFromSecondsCeil(
+        base.invulnerabilitySeconds,
+        tickHz,
+      ),
+    );
+  }
+
+  final int tickHz;
+  final CombatTuning base;
+
+  final int invulnerabilityTicks;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Player animation tuning (timing windows)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class AnimTuning {
+  const AnimTuning({
+    this.hitAnimSeconds = 0.40,
+    this.castAnimSeconds = 0.40,
+    this.attackAnimSeconds = 0.36,
+    this.attackLeftAnimSeconds = 0.36,
+    this.rangedAnimSeconds = 0.40,
+    this.deathAnimSeconds = 0.72,
+    this.spawnAnimSeconds = 0.56,
+  });
+
+  static AnimTuning fromStripFrames({
+    required Map<AnimKey, int> frameCounts,
+    required Map<AnimKey, double> stepTimeSecondsByKey,
+  }) {
+    final castSeconds = anim_utils.secondsForKey(
+      key: AnimKey.cast,
+      frameCounts: frameCounts,
+      stepTimeSecondsByKey: stepTimeSecondsByKey,
+    );
+    final attackSeconds = anim_utils.secondsForKey(
+      key: AnimKey.attack,
+      frameCounts: frameCounts,
+      stepTimeSecondsByKey: stepTimeSecondsByKey,
+    );
+    return AnimTuning(
+      hitAnimSeconds: anim_utils.secondsForKey(
+        key: AnimKey.hit,
+        frameCounts: frameCounts,
+        stepTimeSecondsByKey: stepTimeSecondsByKey,
+      ),
+      castAnimSeconds: castSeconds,
+      attackAnimSeconds: attackSeconds,
+      attackLeftAnimSeconds:
+          (frameCounts.containsKey(AnimKey.attackLeft) ||
+                  stepTimeSecondsByKey.containsKey(AnimKey.attackLeft))
+              ? anim_utils.secondsForKey(
+                  key: AnimKey.attackLeft,
+                  frameCounts: frameCounts,
+                  stepTimeSecondsByKey: stepTimeSecondsByKey,
+                )
+              : attackSeconds,
+      rangedAnimSeconds:
+          (frameCounts.containsKey(AnimKey.ranged) ||
+                  stepTimeSecondsByKey.containsKey(AnimKey.ranged))
+              ? anim_utils.secondsForKey(
+                  key: AnimKey.ranged,
+                  frameCounts: frameCounts,
+                  stepTimeSecondsByKey: stepTimeSecondsByKey,
+                )
+              : castSeconds,
+      deathAnimSeconds: anim_utils.secondsForKey(
+        key: AnimKey.death,
+        frameCounts: frameCounts,
+        stepTimeSecondsByKey: stepTimeSecondsByKey,
+      ),
+      spawnAnimSeconds: anim_utils.secondsForKey(
+        key: AnimKey.spawn,
+        frameCounts: frameCounts,
+        stepTimeSecondsByKey: stepTimeSecondsByKey,
+      ),
+    );
+  }
+
+  final double hitAnimSeconds;
+  final double castAnimSeconds;
+  final double attackAnimSeconds;
+  final double attackLeftAnimSeconds;
+  final double rangedAnimSeconds;
+  final double deathAnimSeconds;
+  final double spawnAnimSeconds;
+}
+
+class AnimTuningDerived {
+  const AnimTuningDerived._({
+    required this.tickHz,
+    required this.base,
+    required this.hitAnimTicks,
+    required this.castAnimTicks,
+    required this.attackAnimTicks,
+    required this.attackLeftAnimTicks,
+    required this.rangedAnimTicks,
+    required this.deathAnimTicks,
+    required this.spawnAnimTicks,
+  });
+
+  factory AnimTuningDerived.from(AnimTuning base, {required int tickHz}) {
+    if (tickHz <= 0) {
+      throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
+    }
+
+    return AnimTuningDerived._(
+      tickHz: tickHz,
+      base: base,
+      hitAnimTicks: ticksFromSecondsCeil(base.hitAnimSeconds, tickHz),
+      castAnimTicks: ticksFromSecondsCeil(base.castAnimSeconds, tickHz),
+      attackAnimTicks: ticksFromSecondsCeil(base.attackAnimSeconds, tickHz),
+      attackLeftAnimTicks: ticksFromSecondsCeil(base.attackLeftAnimSeconds, tickHz),
+      rangedAnimTicks: ticksFromSecondsCeil(base.rangedAnimSeconds, tickHz),
+      deathAnimTicks: ticksFromSecondsCeil(base.deathAnimSeconds, tickHz),
+      spawnAnimTicks: ticksFromSecondsCeil(base.spawnAnimSeconds, tickHz),
+    );
+  }
+
+  final int tickHz;
+  final AnimTuning base;
+
+  final int hitAnimTicks;
+  final int castAnimTicks;
+  final int attackAnimTicks;
+  final int attackLeftAnimTicks;
+  final int rangedAnimTicks;
+  final int deathAnimTicks;
+  final int spawnAnimTicks;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Player tuning bundle + derived compiler (composition)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class PlayerTuning {
+  const PlayerTuning({
+    this.movement = const MovementTuning(),
+    this.resource = const ResourceTuning(),
+    this.ability = const AbilityTuning(),
+    this.anim = const AnimTuning(),
+    this.combat = const CombatTuning(),
+  });
+
+  final MovementTuning movement;
+  final ResourceTuning resource;
+  final AbilityTuning ability;
+  final AnimTuning anim;
+  final CombatTuning combat;
+
+  PlayerTuning copyWith({
+    MovementTuning? movement,
+    ResourceTuning? resource,
+    AbilityTuning? ability,
+    AnimTuning? anim,
+    CombatTuning? combat,
+  }) {
+    return PlayerTuning(
+      movement: movement ?? this.movement,
+      resource: resource ?? this.resource,
+      ability: ability ?? this.ability,
+      anim: anim ?? this.anim,
+      combat: combat ?? this.combat,
+    );
+  }
+}
+
+class PlayerTuningDerived {
+  const PlayerTuningDerived({
+    required this.movement,
+    required this.ability,
+    required this.anim,
+    required this.combat,
+  });
+
+  final MovementTuningDerived movement;
+  final AbilityTuningDerived ability;
+  final AnimTuningDerived anim;
+  final CombatTuningDerived combat;
+}
+
+class PlayerTuningCompiler {
+  const PlayerTuningCompiler({required this.tickHz});
+
+  final int tickHz;
+
+  PlayerTuningDerived compile(PlayerTuning base) {
+    return PlayerTuningDerived(
+      movement: MovementTuningDerived.from(base.movement, tickHz: tickHz),
+      ability: AbilityTuningDerived.from(base.ability, tickHz: tickHz),
+      anim: AnimTuningDerived.from(base.anim, tickHz: tickHz),
+      combat: CombatTuningDerived.from(base.combat, tickHz: tickHz),
+    );
+  }
 }
 
 
@@ -12872,6 +14022,8 @@ import 'ecs/world.dart';
 import 'ecs/stores/restoration_item_store.dart';
 import 'levels/level_id.dart';
 import 'projectiles/projectile_catalog.dart';
+import 'enemies/enemy_catalog.dart';
+import 'enemies/enemy_id.dart';
 import 'snapshots/enums.dart';
 import 'snapshots/entity_render_snapshot.dart';
 import 'snapshots/game_state_snapshot.dart';
@@ -12880,10 +14032,7 @@ import 'snapshots/static_ground_gap_snapshot.dart';
 import 'snapshots/static_solid_snapshot.dart';
 import 'spells/spell_catalog.dart';
 import 'spells/spell_id.dart';
-import 'tuning/ability_tuning.dart';
-import 'tuning/anim_tuning.dart';
-import 'tuning/movement_tuning.dart';
-import 'tuning/resource_tuning.dart';
+import 'players/player_tuning.dart';
 import 'util/vec2.dart';
 import 'weapons/ranged_weapon_catalog.dart';
 
@@ -12904,6 +14053,7 @@ import 'weapons/ranged_weapon_catalog.dart';
 class SnapshotBuilder {
   /// Creates a snapshot builder with the given dependencies.
   ///
+  /// - [tickHz]: Fixed tick rate for converting seconds to ticks.
   /// - [world]: The ECS world containing all entity component data.
   /// - [player]: Entity ID of the player (used to query player-specific stores).
   /// - [movement]: Derived movement tuning (dash cooldown ticks, etc.).
@@ -12913,7 +14063,9 @@ class SnapshotBuilder {
   /// - [spells]: Spell catalog for querying spell stats (mana costs).
   /// - [projectiles]: Projectile catalog for collider sizes.
   /// - [rangedWeapons]: Ranged weapon catalog (cooldowns/ammo costs).
+  /// - [enemyCatalog]: Enemy catalog for render metadata (hit windows, art facing).
   SnapshotBuilder({
+    required this.tickHz,
     required this.world,
     required this.player,
     required this.movement,
@@ -12923,7 +14075,11 @@ class SnapshotBuilder {
     required this.spells,
     required this.projectiles,
     required this.rangedWeapons,
+    required this.enemyCatalog,
   });
+
+  /// Tick rate (ticks per second) for converting seconds to ticks.
+  final int tickHz;
 
   /// The ECS world containing all game entity data.
   final EcsWorld world;
@@ -12951,6 +14107,9 @@ class SnapshotBuilder {
 
   /// Ranged weapon catalog for cooldown totals and ammo costs.
   final RangedWeaponCatalogDerived rangedWeapons;
+
+  /// Enemy catalog for render metadata (art facing direction).
+  final EnemyCatalog enemyCatalog;
 
   // ───────────────────────────────────────────────────────────────────────────
   // Public API
@@ -13011,8 +14170,7 @@ class SnapshotBuilder {
     final projectileManaCost = spells.get(SpellId.iceBolt).stats.manaCost;
     final rangedWeaponId = world.equippedRangedWeapon.weaponId[rwi];
     final rangedWeaponDef = rangedWeapons.base.get(rangedWeaponId);
-    final rangedAmmo =
-        world.ammo.countForIndex(ami, rangedWeaponDef.ammoType);
+    final rangedAmmo = world.ammo.countForIndex(ami, rangedWeaponDef.ammoType);
 
     // ─── Compute affordability flags ───
     // These tell the UI whether action buttons should appear enabled.
@@ -13031,8 +14189,9 @@ class SnapshotBuilder {
         world.cooldown.castCooldownTicksLeft[ci];
     final rangedWeaponCooldownTicksLeft =
         world.cooldown.rangedWeaponCooldownTicksLeft[ci];
-    final rangedWeaponCooldownTicksTotal =
-        rangedWeapons.cooldownTicks(rangedWeaponId);
+    final rangedWeaponCooldownTicksTotal = rangedWeapons.cooldownTicks(
+      rangedWeaponId,
+    );
 
     // ─── Read player transform ───
     final ti = world.transform.indexOf(player);
@@ -13046,9 +14205,15 @@ class SnapshotBuilder {
     final lastMeleeTick = actionAnimIndex == null
         ? -1
         : world.actionAnim.lastMeleeTick[actionAnimIndex];
+    final lastMeleeFacing = actionAnimIndex == null
+        ? playerFacing
+        : world.actionAnim.lastMeleeFacing[actionAnimIndex];
     final lastCastTick = actionAnimIndex == null
         ? -1
         : world.actionAnim.lastCastTick[actionAnimIndex];
+    final lastRangedTick = actionAnimIndex == null
+        ? -1
+        : world.actionAnim.lastRangedTick[actionAnimIndex];
 
     final lastDamageTick = world.lastDamage.has(player)
         ? world.lastDamage.tick[world.lastDamage.indexOf(player)]
@@ -13061,42 +14226,61 @@ class SnapshotBuilder {
         animTuning.hitAnimTicks > 0 &&
         lastDamageTick >= 0 &&
         (tick - lastDamageTick) < animTuning.hitAnimTicks;
+    final attackAnimTicks = lastMeleeFacing == Facing.left
+        ? animTuning.attackLeftAnimTicks
+        : animTuning.attackAnimTicks;
     final showAttack =
-        animTuning.attackAnimTicks > 0 &&
+        attackAnimTicks > 0 &&
         lastMeleeTick >= 0 &&
-        (tick - lastMeleeTick) < animTuning.attackAnimTicks;
+        (tick - lastMeleeTick) < attackAnimTicks;
     final showCast =
         animTuning.castAnimTicks > 0 &&
         lastCastTick >= 0 &&
         (tick - lastCastTick) < animTuning.castAnimTicks;
+    final showRanged =
+        animTuning.rangedAnimTicks > 0 &&
+        lastRangedTick >= 0 &&
+        (tick - lastRangedTick) < animTuning.rangedAnimTicks;
 
     if (playerHp <= 0) {
       anim = AnimKey.death;
     } else if (showHit) {
       anim = AnimKey.hit;
     } else if (showAttack) {
-      anim = AnimKey.attack;
+      anim = lastMeleeFacing == Facing.left
+          ? AnimKey.attackLeft
+          : AnimKey.attack;
     } else if (showCast) {
       anim = AnimKey.cast;
+    } else if (showRanged) {
+      anim = AnimKey.ranged;
     } else if (dashing) {
       anim = AnimKey.dash;
     } else if (!onGround) {
       anim = playerVelY < 0 ? AnimKey.jump : AnimKey.fall;
-    } else if (playerVelX.abs() > tuning.minMoveSpeed) {
-      anim = AnimKey.run;
     } else if (animTuning.spawnAnimTicks > 0 &&
         tick < animTuning.spawnAnimTicks) {
       anim = AnimKey.spawn;
     } else {
-      anim = AnimKey.idle;
+      final speedX = playerVelX.abs();
+      if (speedX <= tuning.minMoveSpeed) {
+        anim = AnimKey.idle;
+      } else if (speedX < tuning.runSpeedThresholdX) {
+        anim = AnimKey.walk;
+      } else {
+        anim = AnimKey.run;
+      }
     }
 
     final int playerAnimFrame;
     switch (anim) {
       case AnimKey.attack:
+      case AnimKey.attackLeft:
         playerAnimFrame = lastMeleeTick >= 0 ? tick - lastMeleeTick : tick;
       case AnimKey.cast:
         playerAnimFrame = lastCastTick >= 0 ? tick - lastCastTick : tick;
+      case AnimKey.ranged:
+        playerAnimFrame = lastRangedTick >= 0 ? tick - lastRangedTick : tick;
       case AnimKey.hit:
         playerAnimFrame = lastDamageTick >= 0 ? tick - lastDamageTick : tick;
       case AnimKey.death:
@@ -13110,6 +14294,15 @@ class SnapshotBuilder {
     final playerPos = Vec2(playerPosX, playerPosY);
     final playerVel = Vec2(playerVelX, playerVelY);
 
+    Vec2? playerSize;
+    if (world.colliderAabb.has(player)) {
+      final aabbi = world.colliderAabb.indexOf(player);
+      playerSize = Vec2(
+        world.colliderAabb.halfX[aabbi] * 2,
+        world.colliderAabb.halfY[aabbi] * 2,
+      );
+    }
+
     // ─── Build entity list (player first) ───
     final entities = <EntityRenderSnapshot>[
       EntityRenderSnapshot(
@@ -13117,7 +14310,7 @@ class SnapshotBuilder {
         kind: EntityKind.player,
         pos: playerPos,
         vel: playerVel,
-        size: Vec2(tuning.playerRadius * 2, tuning.playerRadius * 2),
+        size: playerSize,
         facing: playerFacing,
         anim: anim,
         grounded: onGround,
@@ -13181,7 +14374,10 @@ class SnapshotBuilder {
   ///
   /// Iterates the projectile component store and creates render snapshots
   /// with position, velocity, facing direction, and rotation angle.
-  void _addProjectiles(List<EntityRenderSnapshot> entities, {required int tick}) {
+  void _addProjectiles(
+    List<EntityRenderSnapshot> entities, {
+    required int tick,
+  }) {
     final projectileStore = world.projectile;
     for (var pi = 0; pi < projectileStore.denseEntities.length; pi += 1) {
       final e = projectileStore.denseEntities[pi];
@@ -13254,7 +14450,10 @@ class SnapshotBuilder {
   /// Appends collectible (score pickup) snapshots to [entities].
   ///
   /// Collectibles are small pickups that grant score when collected.
-  void _addCollectibles(List<EntityRenderSnapshot> entities, {required int tick}) {
+  void _addCollectibles(
+    List<EntityRenderSnapshot> entities, {
+    required int tick,
+  }) {
     final collectiblesStore = world.collectible;
     for (var ci = 0; ci < collectiblesStore.denseEntities.length; ci += 1) {
       final e = collectiblesStore.denseEntities[ci];
@@ -13292,7 +14491,10 @@ class SnapshotBuilder {
   ///
   /// Restoration items restore a specific resource when picked up.
   /// The [pickupVariant] field tells the renderer which sprite to use.
-  void _addRestorationItems(List<EntityRenderSnapshot> entities, {required int tick}) {
+  void _addRestorationItems(
+    List<EntityRenderSnapshot> entities, {
+    required int tick,
+  }) {
     final restorationStore = world.restorationItem;
     for (var ri = 0; ri < restorationStore.denseEntities.length; ri += 1) {
       final e = restorationStore.denseEntities[ri];
@@ -13340,13 +14542,17 @@ class SnapshotBuilder {
   /// Appends enemy entity snapshots to [entities].
   ///
   /// Enemies have position, velocity, facing direction, and grounded state.
-  /// The renderer uses this to select appropriate sprites and animations.
+  /// Animation is read from [EnemyAnimStore], pre-computed by [EnemyAnimSystem].
   void _addEnemies(List<EntityRenderSnapshot> entities, {required int tick}) {
     final enemies = world.enemy;
+    final animStore = world.enemyAnim;
+
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
       final e = enemies.denseEntities[ei];
       if (!world.transform.has(e)) continue;
       final ti = world.transform.indexOf(e);
+      final enemyId = enemies.enemyId[ei];
+      final enemyArchetype = enemyCatalog.get(enemyId);
 
       Vec2? size;
       if (world.colliderAabb.has(e)) {
@@ -13357,6 +14563,23 @@ class SnapshotBuilder {
         );
       }
 
+      final grounded = world.collision.has(e)
+          ? world.collision.grounded[world.collision.indexOf(e)]
+          : false;
+
+      // Read pre-computed animation from EnemyAnimStore.
+      final AnimKey anim;
+      final int animFrame;
+      if (animStore.has(e)) {
+        final ai = animStore.indexOf(e);
+        anim = animStore.anim[ai];
+        animFrame = animStore.animFrame[ai];
+      } else {
+        // Fallback if no anim component (shouldn't happen).
+        anim = AnimKey.idle;
+        animFrame = tick;
+      }
+
       entities.add(
         EntityRenderSnapshot(
           id: e,
@@ -13364,12 +14587,12 @@ class SnapshotBuilder {
           pos: Vec2(world.transform.posX[ti], world.transform.posY[ti]),
           vel: Vec2(world.transform.velX[ti], world.transform.velY[ti]),
           size: size,
+          enemyId: enemyId,
           facing: enemies.facing[ei],
-          anim: AnimKey.idle,
-          grounded: world.collision.has(e)
-              ? world.collision.grounded[world.collision.indexOf(e)]
-              : false,
-          animFrame: tick,
+          artFacingDir: enemyArchetype.artFacingDir,
+          anim: anim,
+          grounded: grounded,
+          animFrame: animFrame,
         ),
       );
     }
@@ -13384,6 +14607,7 @@ class SnapshotBuilder {
 /// hides internal ECS storage details and provides only what the renderer needs.
 library;
 
+import '../enemies/enemy_id.dart';
 import '../util/vec2.dart';
 import '../projectiles/projectile_id.dart';
 import 'enums.dart';
@@ -13400,8 +14624,10 @@ class EntityRenderSnapshot {
     required this.facing,
     required this.anim,
     required this.grounded,
+    this.artFacingDir,
     this.vel,
     this.size,
+    this.enemyId,
     this.projectileId,
     this.pickupVariant,
     this.z,
@@ -13426,6 +14652,9 @@ class EntityRenderSnapshot {
   /// Render-only hint for placeholder shapes (e.g. projectile rectangles).
   final Vec2? size;
 
+  /// Optional enemy archetype id (set when [kind] is [EntityKind.enemy]).
+  final EnemyId? enemyId;
+
   /// Optional projectile archetype id (set when [kind] is [EntityKind.projectile]).
   final ProjectileId? projectileId;
 
@@ -13440,6 +14669,11 @@ class EntityRenderSnapshot {
 
   /// Facing direction for choosing sprites/poses.
   final Facing facing;
+
+  /// Direction the authored art faces when not mirrored.
+  ///
+  /// When null, render should assume `Facing.right`.
+  final Facing? artFacingDir;
 
   /// Whether the entity is grounded at the end of the tick.
   ///
@@ -13488,6 +14722,9 @@ enum AnimKey {
   spawn,
   attack,
   dash,
+  walk,
+  attackLeft,
+  ranged,
 }
 
 /// Broad entity classification for rendering and (future) networking.
@@ -13794,7 +15031,7 @@ import 'navigation/utils/surface_spatial_index.dart';
 import 'snapshots/enums.dart';
 import 'tuning/collectible_tuning.dart';
 import 'tuning/flying_enemy_tuning.dart';
-import 'tuning/movement_tuning.dart';
+import 'players/player_tuning.dart';
 import 'tuning/restoration_item_tuning.dart';
 import 'tuning/track_tuning.dart';
 import 'util/deterministic_rng.dart';
@@ -15970,189 +17207,13 @@ class TrackManager {
 }
 
 
-===== FILE: lib/core/tuning/ability_tuning.dart =====
-/// Player ability tuning (cast, melee).
-library;
-
-import '../util/tick_math.dart';
-
-class AbilityTuning {
-  const AbilityTuning({
-    this.castCooldownSeconds = 0.25,
-    this.meleeCooldownSeconds = 0.30,
-    this.meleeActiveSeconds = 0.10,
-    this.meleeStaminaCost = 5.0,
-    this.meleeDamage = 15.0,
-    this.meleeHitboxSizeX = 32.0,
-    this.meleeHitboxSizeY = 16.0,
-  });
-
-  /// Cooldown between spell casts (seconds).
-  final double castCooldownSeconds;
-
-  /// Cooldown between melee attacks (seconds).
-  final double meleeCooldownSeconds;
-
-  /// Duration melee hitbox is active (seconds).
-  final double meleeActiveSeconds;
-
-  /// Stamina spent per melee attack.
-  final double meleeStaminaCost;
-
-  /// Damage dealt by melee attack.
-  final double meleeDamage;
-
-  /// Melee hitbox width (world units).
-  final double meleeHitboxSizeX;
-
-  /// Melee hitbox height (world units).
-  final double meleeHitboxSizeY;
-}
-
-class AbilityTuningDerived {
-  const AbilityTuningDerived._({
-    required this.tickHz,
-    required this.base,
-    required this.castCooldownTicks,
-    required this.meleeCooldownTicks,
-    required this.meleeActiveTicks,
-  });
-
-  factory AbilityTuningDerived.from(
-    AbilityTuning base, {
-    required int tickHz,
-  }) {
-    if (tickHz <= 0) {
-      throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
-    }
-
-    return AbilityTuningDerived._(
-      tickHz: tickHz,
-      base: base,
-      castCooldownTicks: ticksFromSecondsCeil(base.castCooldownSeconds, tickHz),
-      meleeCooldownTicks: ticksFromSecondsCeil(base.meleeCooldownSeconds, tickHz),
-      meleeActiveTicks: ticksFromSecondsCeil(base.meleeActiveSeconds, tickHz),
-    );
-  }
-
-  final int tickHz;
-  final AbilityTuning base;
-
-  final int castCooldownTicks;
-  final int meleeCooldownTicks;
-  final int meleeActiveTicks;
-}
-
-
-===== FILE: lib/core/tuning/anim_tuning.dart =====
-/// Animation timing tuning (Core-owned, deterministic).
-library;
-
-import '../snapshots/enums.dart';
-import '../util/tick_math.dart';
-import 'player_anim_defs.dart';
-
-class AnimTuning {
-  const AnimTuning({
-    this.hitAnimSeconds = playerAnimHitSeconds,
-    this.castAnimSeconds = playerAnimCastSeconds,
-    this.attackAnimSeconds = playerAnimAttackSeconds,
-    this.deathAnimSeconds = playerAnimDeathSeconds,
-    this.spawnAnimSeconds = playerAnimSpawnSeconds,
-  });
-
-  /// Computes a recommended duration for a strip based on frame count and step time.
-  static double secondsForStrip({
-    required int frameCount,
-    required double stepTimeSeconds,
-  }) {
-    if (frameCount <= 0 || stepTimeSeconds <= 0) return 0.0;
-    return frameCount * stepTimeSeconds;
-  }
-
-  /// Builds an [AnimTuning] from strip frame counts and step times.
-  ///
-  /// The step times should match the renderer's timing map.
-  static AnimTuning fromStripFrames({
-    required Map<AnimKey, int> frameCounts,
-    required Map<AnimKey, double> stepTimeSecondsByKey,
-  }) {
-    double secondsFor(AnimKey key) {
-      final frames = frameCounts[key] ?? 1;
-      final step = stepTimeSecondsByKey[key] ?? 0.10;
-      return secondsForStrip(frameCount: frames, stepTimeSeconds: step);
-    }
-
-    return AnimTuning(
-      hitAnimSeconds: secondsFor(AnimKey.hit),
-      castAnimSeconds: secondsFor(AnimKey.cast),
-      attackAnimSeconds: secondsFor(AnimKey.attack),
-      deathAnimSeconds: secondsFor(AnimKey.death),
-      spawnAnimSeconds: secondsFor(AnimKey.spawn),
-    );
-  }
-
-  /// Duration to hold `AnimKey.hit` after a hit (seconds).
-  final double hitAnimSeconds;
-
-  /// Duration to hold `AnimKey.cast` after a cast intent (seconds).
-  final double castAnimSeconds;
-
-  /// Duration to hold `AnimKey.attack` after a melee intent (seconds).
-  final double attackAnimSeconds;
-
-  /// Duration to hold `AnimKey.death` before ending the run (seconds).
-  final double deathAnimSeconds;
-
-  /// Duration to hold `AnimKey.spawn` at run start (seconds).
-  final double spawnAnimSeconds;
-}
-
-class AnimTuningDerived {
-  const AnimTuningDerived._({
-    required this.tickHz,
-    required this.base,
-    required this.hitAnimTicks,
-    required this.castAnimTicks,
-    required this.attackAnimTicks,
-    required this.deathAnimTicks,
-    required this.spawnAnimTicks,
-  });
-
-  factory AnimTuningDerived.from(AnimTuning base, {required int tickHz}) {
-    if (tickHz <= 0) {
-      throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
-    }
-
-    return AnimTuningDerived._(
-      tickHz: tickHz,
-      base: base,
-      hitAnimTicks: ticksFromSecondsCeil(base.hitAnimSeconds, tickHz),
-      castAnimTicks: ticksFromSecondsCeil(base.castAnimSeconds, tickHz),
-      attackAnimTicks: ticksFromSecondsCeil(base.attackAnimSeconds, tickHz),
-      deathAnimTicks: ticksFromSecondsCeil(base.deathAnimSeconds, tickHz),
-      spawnAnimTicks: ticksFromSecondsCeil(base.spawnAnimSeconds, tickHz),
-    );
-  }
-
-  final int tickHz;
-  final AnimTuning base;
-
-  final int hitAnimTicks;
-  final int castAnimTicks;
-  final int attackAnimTicks;
-  final int deathAnimTicks;
-  final int spawnAnimTicks;
-}
-
-
 ===== FILE: lib/core/tuning/camera_tuning.dart =====
 /// Camera auto-scroll and follow tuning.
 library;
 
 import 'dart:math';
 
-import 'movement_tuning.dart';
+import '../players/player_tuning.dart';
 
 class CameraTuning {
   const CameraTuning({
@@ -16266,52 +17327,6 @@ class CollectibleTuning {
 }
 
 
-===== FILE: lib/core/tuning/combat_tuning.dart =====
-/// Combat tuning (invulnerability, damage modifiers).
-library;
-
-import '../util/tick_math.dart';
-
-class CombatTuning {
-  const CombatTuning({this.invulnerabilitySeconds = 0.25});
-
-  /// Duration of i-frames after taking damage (seconds).
-  final double invulnerabilitySeconds;
-}
-
-class CombatTuningDerived {
-  const CombatTuningDerived._({
-    required this.tickHz,
-    required this.base,
-    required this.invulnerabilityTicks,
-  });
-
-  factory CombatTuningDerived.from(
-    CombatTuning base, {
-    required int tickHz,
-  }) {
-    if (tickHz <= 0) {
-      throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
-    }
-
-    return CombatTuningDerived._(
-      tickHz: tickHz,
-      base: base,
-      invulnerabilityTicks: ticksFromSecondsCeil(
-        base.invulnerabilitySeconds,
-        tickHz,
-      ),
-    );
-  }
-
-  final int tickHz;
-  final CombatTuning base;
-
-  final int invulnerabilityTicks;
-}
-
-
-
 ===== FILE: lib/core/tuning/core_tuning.dart =====
 /// Aggregate tuning configuration for the game simulation core.
 ///
@@ -16329,7 +17344,6 @@ class CombatTuningDerived {
 /// final core = GameCore(
 ///   seed: 42,
 ///   tuning: CoreTuning(
-///     movement: MovementTuning(jumpSpeed: 600),
 ///     track: TrackTuning(enabled: false),
 ///   ),
 /// );
@@ -16347,17 +17361,12 @@ class CombatTuningDerived {
 /// ```
 library;
 
-import 'ability_tuning.dart';
-import 'anim_tuning.dart';
 import 'camera_tuning.dart';
 import 'collectible_tuning.dart';
-import 'combat_tuning.dart';
 import 'flying_enemy_tuning.dart';
 import 'ground_enemy_tuning.dart';
-import 'movement_tuning.dart';
 import 'navigation_tuning.dart';
 import 'physics_tuning.dart';
-import 'resource_tuning.dart';
 import 'restoration_item_tuning.dart';
 import 'score_tuning.dart';
 import 'spatial_grid_tuning.dart';
@@ -16373,11 +17382,6 @@ class CoreTuning {
   /// Any parameter not specified uses its default value.
   const CoreTuning({
     this.physics = const PhysicsTuning(),
-    this.movement = const MovementTuning(),
-    this.resource = const ResourceTuning(),
-    this.ability = const AbilityTuning(),
-    this.anim = const AnimTuning(),
-    this.combat = const CombatTuning(),
     this.unocoDemon = const UnocoDemonTuning(),
     this.groundEnemy = const GroundEnemyTuning(),
     this.navigation = const NavigationTuning(),
@@ -16391,21 +17395,6 @@ class CoreTuning {
 
   /// Physics constants (gravity, etc.).
   final PhysicsTuning physics;
-
-  /// Player movement parameters (speed, jump, dash).
-  final MovementTuning movement;
-
-  /// Resource costs and regeneration rates.
-  final ResourceTuning resource;
-
-  /// Ability cooldowns and stamina costs.
-  final AbilityTuning ability;
-
-  /// Animation timing windows for snapshot state.
-  final AnimTuning anim;
-
-  /// Combat parameters (damage, invulnerability frames).
-  final CombatTuning combat;
 
   /// Flying enemy AI and spawn parameters.
   final UnocoDemonTuning unocoDemon;
@@ -16588,6 +17577,7 @@ class GroundEnemyTuning {
     this.groundEnemyMeleeRangeX = 26.0,
     this.groundEnemyMeleeCooldownSeconds = 1.0,
     this.groundEnemyMeleeActiveSeconds = 0.10,
+    this.groundEnemyMeleeAnimSeconds = 0.60,
     this.groundEnemyMeleeDamage = 5.0,
     this.groundEnemyMeleeHitboxSizeX = 28.0,
     this.groundEnemyMeleeHitboxSizeY = 16.0,
@@ -16636,6 +17626,12 @@ class GroundEnemyTuning {
   /// Duration melee hitbox is active (seconds).
   final double groundEnemyMeleeActiveSeconds;
 
+  /// Duration the melee attack animation should be visible (seconds).
+  ///
+  /// This can be longer than [groundEnemyMeleeActiveSeconds] since the hitbox
+  /// window is often only a subset of the full animation.
+  final double groundEnemyMeleeAnimSeconds;
+
   /// Damage dealt by melee attack.
   final double groundEnemyMeleeDamage;
 
@@ -16652,6 +17648,7 @@ class GroundEnemyTuningDerived {
     required this.base,
     required this.groundEnemyMeleeCooldownTicks,
     required this.groundEnemyMeleeActiveTicks,
+    required this.groundEnemyMeleeAnimTicks,
   });
 
   factory GroundEnemyTuningDerived.from(
@@ -16673,6 +17670,10 @@ class GroundEnemyTuningDerived {
         base.groundEnemyMeleeActiveSeconds,
         tickHz,
       ),
+      groundEnemyMeleeAnimTicks: ticksFromSecondsCeil(
+        base.groundEnemyMeleeAnimSeconds,
+        tickHz,
+      ),
     );
   }
 
@@ -16681,105 +17682,7 @@ class GroundEnemyTuningDerived {
 
   final int groundEnemyMeleeCooldownTicks;
   final int groundEnemyMeleeActiveTicks;
-}
-
-
-===== FILE: lib/core/tuning/movement_tuning.dart =====
-import '../util/tick_math.dart';
-
-/// Movement/physics tuning for the Core simulation.
-///
-/// All units are expressed in world units ("virtual pixels") and seconds:
-/// - speeds: world units / second
-/// - acceleration: world units / second^2
-/// - times: seconds (converted to fixed-tick counts at runtime)
-///
-/// The derived values are computed once per [tickHz] and then used in the hot
-/// per-tick loop to keep the core allocation-light.
-const int defaultTickHz = 60;
-
-/// Authoritative movement constants (expressed in seconds-based units).
-class MovementTuning {
-  const MovementTuning({
-    this.playerRadius = 8,
-    this.maxSpeedX = 200,
-    this.accelerationX = 600,
-    this.decelerationX = 400,
-    this.minMoveSpeed = 5,
-    this.maxVelX = 1500,
-    this.maxVelY = 1500,
-    this.jumpSpeed = 500,
-    this.coyoteTimeSeconds = 0.10,
-    this.jumpBufferSeconds = 0.12,
-    this.dashSpeedX = 550,
-    this.dashDurationSeconds = 0.20,
-    this.dashCooldownSeconds = 2.0,
-  });
-
-  /// Player "collision" radius in world units.
-  final double playerRadius;
-
-  /// Target max horizontal speed when holding move input.
-  final double maxSpeedX;
-  final double accelerationX;
-  final double decelerationX;
-  final double minMoveSpeed;
-
-  /// Speed clamps (safety caps).
-  final double maxVelX;
-  final double maxVelY;
-
-  /// Instantaneous jump vertical speed (negative is upward).
-  final double jumpSpeed;
-
-  /// Jump forgiveness windows (platformer-style).
-  final double coyoteTimeSeconds;
-  final double jumpBufferSeconds;
-
-  /// Dash parameters.
-  final double dashSpeedX;
-  final double dashDurationSeconds;
-  final double dashCooldownSeconds;
-}
-
-/// Derived, tick-based tuning computed for a specific [tickHz].
-class MovementTuningDerived {
-  const MovementTuningDerived._({
-    required this.tickHz,
-    required this.dtSeconds,
-    required this.base,
-    required this.coyoteTicks,
-    required this.jumpBufferTicks,
-    required this.dashDurationTicks,
-    required this.dashCooldownTicks,
-  });
-
-  factory MovementTuningDerived.from(
-    MovementTuning base, {
-    required int tickHz,
-  }) {
-    if (tickHz <= 0) {
-      throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
-    }
-    return MovementTuningDerived._(
-      tickHz: tickHz,
-      dtSeconds: 1.0 / tickHz,
-      base: base,
-      coyoteTicks: ticksFromSecondsCeil(base.coyoteTimeSeconds, tickHz),
-      jumpBufferTicks: ticksFromSecondsCeil(base.jumpBufferSeconds, tickHz),
-      dashDurationTicks: ticksFromSecondsCeil(base.dashDurationSeconds, tickHz),
-      dashCooldownTicks: ticksFromSecondsCeil(base.dashCooldownSeconds, tickHz),
-    );
-  }
-
-  final int tickHz;
-  final double dtSeconds;
-  final MovementTuning base;
-
-  final int coyoteTicks;
-  final int jumpBufferTicks;
-  final int dashDurationTicks;
-  final int dashCooldownTicks;
+  final int groundEnemyMeleeAnimTicks;
 }
 
 
@@ -16845,125 +17748,6 @@ class PhysicsTuning {
   final double gravityY;
 }
 
-
-
-===== FILE: lib/core/tuning/player_anim_defs.dart =====
-/// Shared player animation definitions (Core-owned, renderer consumes).
-library;
-
-import '../snapshots/enums.dart';
-
-const int playerAnimFrameWidth = 100;
-const int playerAnimFrameHeight = 64;
-
-const int playerAnimIdleFrames = 4;
-const double playerAnimIdleStepSeconds = 0.14;
-
-const int playerAnimRunFrames = 7;
-const double playerAnimRunStepSeconds = 0.08;
-
-const int playerAnimJumpFrames = 6;
-const double playerAnimJumpStepSeconds = 0.10;
-
-const int playerAnimFallFrames = 3;
-const double playerAnimFallStepSeconds = 0.10;
-
-const int playerAnimAttackFrames = 6;
-const double playerAnimAttackStepSeconds = 0.06;
-
-const int playerAnimCastFrames = 5;
-const double playerAnimCastStepSeconds = 0.08;
-
-const int playerAnimDashFrames = 4;
-const double playerAnimDashStepSeconds = 0.05;
-
-const int playerAnimHitFrames = 4;
-const double playerAnimHitStepSeconds = 0.10;
-
-const int playerAnimDeathFrames = 6;
-const double playerAnimDeathStepSeconds = 0.12;
-
-// Spawn reuses idle timing/frames until a dedicated strip exists.
-const int playerAnimSpawnFrames = playerAnimIdleFrames;
-const double playerAnimSpawnStepSeconds = playerAnimIdleStepSeconds;
-
-const Map<AnimKey, int> playerAnimFrameCountsByKey = <AnimKey, int>{
-  AnimKey.idle: playerAnimIdleFrames,
-  AnimKey.run: playerAnimRunFrames,
-  AnimKey.jump: playerAnimJumpFrames,
-  AnimKey.fall: playerAnimFallFrames,
-  AnimKey.attack: playerAnimAttackFrames,
-  AnimKey.cast: playerAnimCastFrames,
-  AnimKey.dash: playerAnimDashFrames,
-  AnimKey.hit: playerAnimHitFrames,
-  AnimKey.death: playerAnimDeathFrames,
-  AnimKey.spawn: playerAnimSpawnFrames,
-};
-
-const Map<AnimKey, double> playerAnimStepTimeSecondsByKey = <AnimKey, double>{
-  AnimKey.idle: playerAnimIdleStepSeconds,
-  AnimKey.run: playerAnimRunStepSeconds,
-  AnimKey.jump: playerAnimJumpStepSeconds,
-  AnimKey.fall: playerAnimFallStepSeconds,
-  AnimKey.attack: playerAnimAttackStepSeconds,
-  AnimKey.cast: playerAnimCastStepSeconds,
-  AnimKey.dash: playerAnimDashStepSeconds,
-  AnimKey.hit: playerAnimHitStepSeconds,
-  AnimKey.death: playerAnimDeathStepSeconds,
-  AnimKey.spawn: playerAnimSpawnStepSeconds,
-};
-
-const double playerAnimHitSeconds =
-    playerAnimHitFrames * playerAnimHitStepSeconds;
-const double playerAnimCastSeconds =
-    playerAnimCastFrames * playerAnimCastStepSeconds;
-const double playerAnimAttackSeconds =
-    playerAnimAttackFrames * playerAnimAttackStepSeconds;
-const double playerAnimDeathSeconds =
-    playerAnimDeathFrames * playerAnimDeathStepSeconds;
-const double playerAnimSpawnSeconds =
-    playerAnimSpawnFrames * playerAnimSpawnStepSeconds;
-
-
-===== FILE: lib/core/tuning/resource_tuning.dart =====
-/// Resource tuning (author in seconds, applied per fixed tick).
-/// This includes health, mana, stamina, and their regeneration rates.
-class ResourceTuning {
-  const ResourceTuning({
-    this.playerHpMax = 100,
-    this.playerHpRegenPerSecond = 0.5,
-    this.playerManaMax = 100,
-    this.playerManaRegenPerSecond = 2.0,
-    this.playerStaminaMax = 100,
-    this.playerStaminaRegenPerSecond = 1.0,
-    this.jumpStaminaCost = 2,
-    this.dashStaminaCost = 2,
-  });
-
-  /// Maximum health points.
-  final double playerHpMax;
-
-  /// HP regenerated per second.
-  final double playerHpRegenPerSecond;
-
-  /// Maximum mana points.
-  final double playerManaMax;
-
-  /// Mana regenerated per second.
-  final double playerManaRegenPerSecond;
-
-  /// Maximum stamina points.
-  final double playerStaminaMax;
-
-  /// Stamina regenerated per second.
-  final double playerStaminaRegenPerSecond;
-
-  /// Stamina spent per jump.
-  final double jumpStaminaCost;
-
-  /// Stamina spent per dash.
-  final double dashStaminaCost;
-}
 
 
 ===== FILE: lib/core/tuning/restoration_item_tuning.dart =====
@@ -17076,7 +17860,7 @@ class TrackTuning {
     this.cullBehindMargin = 600.0,
     this.enemyCullBelowGroundOffsetY = 300.0,
     this.gridSnap = 16.0,
-    this.playerStartX = 400.0,
+    this.playerStartX = 300.0,
     this.gapKillOffsetY = 400.0,
   }) : assert(chunkWidth > 0),
        assert(spawnAheadMargin >= 0),
@@ -17113,6 +17897,39 @@ class TrackTuning {
   /// before the death screen appears.
   final double gapKillOffsetY;
 }
+
+
+===== FILE: lib/core/tuning/utils/anim_tuning.dart =====
+/// Animation tuning helper utilities (Core-owned, deterministic).
+///
+/// This module is intentionally generic so it can be reused by player/enemy
+/// tuning without taking a dependency on any specific character system.
+library;
+
+/// Computes a recommended duration for a strip based on frame count and step time.
+double secondsForStrip({
+  required int frameCount,
+  required double stepTimeSeconds,
+}) {
+  if (frameCount <= 0 || stepTimeSeconds <= 0) return 0.0;
+  return frameCount * stepTimeSeconds;
+}
+
+/// Computes strip duration for a specific [key] from tuning maps.
+///
+/// Works with any key type (enums, ints, strings) to keep it reusable.
+double secondsForKey<K>({
+  required K key,
+  required Map<K, int> frameCounts,
+  required Map<K, double> stepTimeSecondsByKey,
+  int defaultFrameCount = 1,
+  double defaultStepTimeSeconds = 0.10,
+}) {
+  final frames = frameCounts[key] ?? defaultFrameCount;
+  final step = stepTimeSecondsByKey[key] ?? defaultStepTimeSeconds;
+  return secondsForStrip(frameCount: frames, stepTimeSeconds: step);
+}
+
 
 
 ===== FILE: lib/core/util/deterministic_rng.dart =====
@@ -17668,6 +18485,97 @@ enum WeaponId {
 
 
 
+===== FILE: lib/firebase_options.dart =====
+// File generated by FlutterFire CLI.
+// ignore_for_file: type=lint
+import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, kIsWeb, TargetPlatform;
+
+/// Default [FirebaseOptions] for use with your Firebase apps.
+///
+/// Example:
+/// ```dart
+/// import 'firebase_options.dart';
+/// // ...
+/// await Firebase.initializeApp(
+///   options: DefaultFirebaseOptions.currentPlatform,
+/// );
+/// ```
+class DefaultFirebaseOptions {
+  static FirebaseOptions get currentPlatform {
+    if (kIsWeb) {
+      return web;
+    }
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return android;
+      case TargetPlatform.iOS:
+        return ios;
+      case TargetPlatform.macOS:
+        return macos;
+      case TargetPlatform.windows:
+        return windows;
+      case TargetPlatform.linux:
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for linux - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
+      default:
+        throw UnsupportedError(
+          'DefaultFirebaseOptions are not supported for this platform.',
+        );
+    }
+  }
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyBVf_cQ5Xj15s_ZngbkeDXAokYCSCR8P7Y',
+    appId: '1:964001571974:web:97acd9d8974e215dd81d07',
+    messagingSenderId: '964001571974',
+    projectId: 'rpg-runner-d7add',
+    authDomain: 'rpg-runner-d7add.firebaseapp.com',
+    storageBucket: 'rpg-runner-d7add.firebasestorage.app',
+    measurementId: 'G-86SWFBNW26',
+  );
+
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyB_RE8QyjyVnoBQ-H59DCIbGbc39faaixA',
+    appId: '1:964001571974:android:d48582bc9cde8cf2d81d07',
+    messagingSenderId: '964001571974',
+    projectId: 'rpg-runner-d7add',
+    storageBucket: 'rpg-runner-d7add.firebasestorage.app',
+  );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyCFNb8YfiG8TULypJb6t5c_obcSKxOTpk4',
+    appId: '1:964001571974:ios:84c6faf57baaa0f4d81d07',
+    messagingSenderId: '964001571974',
+    projectId: 'rpg-runner-d7add',
+    storageBucket: 'rpg-runner-d7add.firebasestorage.app',
+    iosBundleId: 'com.example.rpgRunner',
+  );
+
+  static const FirebaseOptions macos = FirebaseOptions(
+    apiKey: 'AIzaSyCFNb8YfiG8TULypJb6t5c_obcSKxOTpk4',
+    appId: '1:964001571974:ios:84c6faf57baaa0f4d81d07',
+    messagingSenderId: '964001571974',
+    projectId: 'rpg-runner-d7add',
+    storageBucket: 'rpg-runner-d7add.firebasestorage.app',
+    iosBundleId: 'com.example.rpgRunner',
+  );
+
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyBVf_cQ5Xj15s_ZngbkeDXAokYCSCR8P7Y',
+    appId: '1:964001571974:web:2f0915a1e04e6c16d81d07',
+    messagingSenderId: '964001571974',
+    projectId: 'rpg-runner-d7add',
+    authDomain: 'rpg-runner-d7add.firebaseapp.com',
+    storageBucket: 'rpg-runner-d7add.firebasestorage.app',
+    measurementId: 'G-XPENVW9P9L',
+  );
+
+}
+
 ===== FILE: lib/game/components/aim_ray_component.dart =====
 import 'package:flame/components.dart';
 import 'package:flutter/foundation.dart';
@@ -17742,6 +18650,138 @@ class AimRayComponent extends Component {
     }
     final facing = player.facing;
     return (facing == Facing.right ? 1.0 : -1.0, 0.0);
+  }
+}
+
+
+===== FILE: lib/game/components/enemies/enemy_render_registry.dart =====
+/// Enemy render registry and loaders (render layer only).
+library;
+
+import 'package:flame/cache.dart';
+import 'package:flame/components.dart';
+
+import '../../../core/contracts/render_anim_set_definition.dart';
+import '../../../core/enemies/enemy_catalog.dart';
+import '../../../core/enemies/enemy_id.dart';
+import '../../../core/snapshots/enums.dart';
+import '../sprite_anim/deterministic_anim_view_component.dart';
+import '../sprite_anim/sprite_anim_set.dart';
+import '../sprite_anim/strip_animation_loader.dart';
+
+typedef EnemyAnimLoader =
+    Future<SpriteAnimSet> Function(
+      Images images, {
+      required RenderAnimSetDefinition renderAnim,
+      required Set<AnimKey> oneShotKeys,
+    });
+
+typedef EnemyViewFactory =
+    DeterministicAnimViewComponent Function(
+      SpriteAnimSet animSet,
+      Vector2 renderScale,
+    );
+
+enum EnemyDeathAnimPolicy { spawn, none }
+
+const Set<AnimKey> _defaultEnemyOneShotKeys = <AnimKey>{
+  AnimKey.attack,
+  AnimKey.hit,
+  AnimKey.death,
+};
+
+DeterministicAnimViewComponent _defaultEnemyViewFactory(
+  SpriteAnimSet animSet,
+  Vector2 renderScale,
+) {
+  return DeterministicAnimViewComponent(
+    animSet: animSet,
+    renderSize: Vector2(animSet.frameSize.x, animSet.frameSize.y),
+    renderScale: renderScale,
+  );
+}
+
+class EnemyRenderEntry {
+  EnemyRenderEntry({
+    required this.id,
+    required this.renderScale,
+    this.deathAnimPolicy = EnemyDeathAnimPolicy.spawn,
+    this.oneShotKeys = _defaultEnemyOneShotKeys,
+    this.loader = loadAnimSetFromDefinition,
+    this.viewFactory = _defaultEnemyViewFactory,
+  });
+
+  final EnemyId id;
+  final Vector2 renderScale;
+  final EnemyDeathAnimPolicy deathAnimPolicy;
+  final Set<AnimKey> oneShotKeys;
+  final EnemyAnimLoader loader;
+  final EnemyViewFactory viewFactory;
+
+  SpriteAnimSet? _animSet;
+  bool _hasAssets = true;
+
+  bool get hasAssets => _hasAssets;
+
+  bool get isLoaded => _animSet != null;
+
+  bool get isRenderable => _hasAssets && _animSet != null;
+
+  SpriteAnimSet get animSet {
+    final value = _animSet;
+    if (value == null) {
+      throw StateError('EnemyRenderEntry($id) has not been loaded yet.');
+    }
+    return value;
+  }
+
+  Future<void> load(
+    Images images, {
+    required RenderAnimSetDefinition renderAnim,
+  }) async {
+    final idlePath = renderAnim.sourcesByKey[AnimKey.idle];
+    if (idlePath == null || idlePath.trim().isEmpty) {
+      _hasAssets = false;
+      _animSet = null;
+      return;
+    }
+    _animSet = await loader(
+      images,
+      renderAnim: renderAnim,
+      oneShotKeys: oneShotKeys,
+    );
+  }
+}
+
+/// Render registry for enemies (EnemyId -> render wiring).
+class EnemyRenderRegistry {
+  EnemyRenderRegistry({EnemyCatalog enemyCatalog = const EnemyCatalog()})
+    : _enemyCatalog = enemyCatalog;
+
+  final EnemyCatalog _enemyCatalog;
+
+  final Map<EnemyId, EnemyRenderEntry> _entries = <EnemyId, EnemyRenderEntry>{
+    EnemyId.unocoDemon: EnemyRenderEntry(
+      id: EnemyId.unocoDemon,
+      renderScale: Vector2.all(0.5),
+    ),
+    EnemyId.groundEnemy: EnemyRenderEntry(
+      id: EnemyId.groundEnemy,
+      renderScale: Vector2.all(0.5),
+    ),
+  };
+
+  EnemyRenderEntry? entryFor(EnemyId id) {
+    final entry = _entries[id];
+    if (entry == null || !entry.isRenderable) return null;
+    return entry;
+  }
+
+  Future<void> load(Images images) async {
+    for (final entry in _entries.values) {
+      final renderAnim = _enemyCatalog.get(entry.id).renderAnim;
+      await entry.load(images, renderAnim: renderAnim);
+    }
   }
 }
 
@@ -17901,91 +18941,30 @@ class PixelParallaxLayerSpec {
 /// Loads horizontal sprite-strip animations from `assets/images/entities/player/`.
 library;
 
-import 'dart:ui';
-
 import 'package:flame/cache.dart';
-import 'package:flame/components.dart';
 
+import '../../../core/contracts/render_anim_set_definition.dart';
 import '../../../core/snapshots/enums.dart';
-import '../../../core/tuning/player_anim_defs.dart';
+import '../sprite_anim/sprite_anim_set.dart';
+import '../sprite_anim/strip_animation_loader.dart';
 
-class PlayerAnimationSet {
-  const PlayerAnimationSet({
-    required this.animations,
-    required this.stepTimeSecondsByKey,
-    required this.oneShotKeys,
-    required this.frameSize,
-  });
-
-  final Map<AnimKey, SpriteAnimation> animations;
-  final Map<AnimKey, double> stepTimeSecondsByKey;
-  final Set<AnimKey> oneShotKeys;
-
-  /// Source frame size inside each horizontal strip image.
-  final Vector2 frameSize;
-}
-
-Future<PlayerAnimationSet> loadPlayerAnimations(Images images) async {
+Future<SpriteAnimSet> loadPlayerAnimations(
+  Images images, {
+  required RenderAnimSetDefinition renderAnim,
+}) async {
   final oneShotKeys = <AnimKey>{
     AnimKey.attack,
+    AnimKey.attackLeft,
     AnimKey.cast,
+    AnimKey.ranged,
     AnimKey.dash,
     AnimKey.hit,
     AnimKey.death,
   };
-
-  final frameSize = Vector2(
-    playerAnimFrameWidth.toDouble(),
-    playerAnimFrameHeight.toDouble(),
-  );
-  final sources = <AnimKey, String>{
-    AnimKey.idle: 'entities/player/idle.png',
-    AnimKey.run: 'entities/player/move.png',
-    AnimKey.jump: 'entities/player/jump.png',
-    AnimKey.fall: 'entities/player/fall.png',
-    AnimKey.attack: 'entities/player/attack.png',
-    AnimKey.cast: 'entities/player/cast.png',
-    AnimKey.dash: 'entities/player/dash.png',
-    AnimKey.hit: 'entities/player/hit.png',
-    AnimKey.death: 'entities/player/death.png',
-  };
-
-  final imagesByKey = <AnimKey, Image>{};
-  for (final entry in sources.entries) {
-    imagesByKey[entry.key] = await images.load(entry.value);
-  }
-
-  final animations = <AnimKey, SpriteAnimation>{};
-
-  for (final entry in imagesByKey.entries) {
-    final key = entry.key;
-    final img = entry.value;
-    final stepTime =
-        playerAnimStepTimeSecondsByKey[key] ?? playerAnimIdleStepSeconds;
-    final frameCount =
-        playerAnimFrameCountsByKey[key] ?? playerAnimIdleFrames;
-    assert(
-      img.height == frameSize.y.toInt() &&
-          img.width == frameSize.x.toInt() * frameCount,
-      'Strip ${key.name} must match ${frameSize.x.toInt()}x${frameSize.y.toInt()} frames x $frameCount.',
-    );
-    final data = SpriteAnimationData.sequenced(
-      amount: frameCount,
-      stepTime: stepTime,
-      textureSize: frameSize,
-      loop: !oneShotKeys.contains(key),
-    );
-    animations[key] = SpriteAnimation.fromFrameData(img, data);
-  }
-
-  // No dedicated spawn strip yet; map to idle for now.
-  animations[AnimKey.spawn] ??= animations[AnimKey.idle]!;
-
-  return PlayerAnimationSet(
-    animations: animations,
-    stepTimeSecondsByKey: playerAnimStepTimeSecondsByKey,
+  return loadAnimSetFromDefinition(
+    images,
+    renderAnim: renderAnim,
     oneShotKeys: oneShotKeys,
-    frameSize: frameSize,
   );
 }
 
@@ -17994,29 +18973,71 @@ Future<PlayerAnimationSet> loadPlayerAnimations(Images images) async {
 /// Player render component driven purely by Core snapshots.
 library;
 
-import 'dart:math';
+import 'package:flame/components.dart';
+
+import '../../../core/snapshots/enums.dart';
+import '../sprite_anim/deterministic_anim_view_component.dart';
+import '../sprite_anim/sprite_anim_set.dart';
+
+class PlayerViewComponent extends DeterministicAnimViewComponent {
+  PlayerViewComponent({
+    required SpriteAnimSet animationSet,
+    Vector2? renderSize,
+    Vector2? renderScale,
+  }) : super(
+         animSet: animationSet,
+         initial: AnimKey.idle,
+         renderSize: renderSize ??
+             Vector2(animationSet.frameSize.x, animationSet.frameSize.y),
+         renderScale: renderScale,
+         fallbackResolver: (desired) {
+           // Allow directional variants to fall back to their base animation key.
+           if (desired == AnimKey.attackLeft &&
+               !animationSet.animations.containsKey(AnimKey.attackLeft) &&
+               animationSet.animations.containsKey(AnimKey.attack)) {
+             return AnimKey.attack;
+           }
+           if (desired == AnimKey.ranged &&
+               !animationSet.animations.containsKey(AnimKey.ranged) &&
+               animationSet.animations.containsKey(AnimKey.cast)) {
+             return AnimKey.cast;
+           }
+           return desired;
+         },
+       );
+}
+
+
+===== FILE: lib/game/components/sprite_anim/deterministic_anim_view_component.dart =====
+/// Generic deterministic sprite animation component driven by Core snapshots.
+library;
 
 import 'package:flame/components.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../../core/snapshots/entity_render_snapshot.dart';
 import '../../../core/snapshots/enums.dart';
-import 'player_animations.dart';
+import 'sprite_anim_set.dart';
 
-class PlayerViewComponent extends SpriteAnimationGroupComponent<AnimKey> {
-  PlayerViewComponent({
-    required PlayerAnimationSet animationSet,
+typedef AnimKeyFallbackResolver = AnimKey Function(AnimKey desired);
+
+class DeterministicAnimViewComponent
+    extends SpriteAnimationGroupComponent<AnimKey> {
+  DeterministicAnimViewComponent({
+    required SpriteAnimSet animSet,
+    AnimKey initial = AnimKey.idle,
+    AnimKeyFallbackResolver? fallbackResolver,
     Vector2? renderSize,
     Vector2? renderScale,
-  }) : _stepTimeSecondsByKey = animationSet.stepTimeSecondsByKey,
-       _availableAnimations = animationSet.animations,
-       _oneShotKeys = animationSet.oneShotKeys,
+  }) : _animSet = animSet,
+       _availableAnimations = animSet.animations,
+       _oneShotKeys = animSet.oneShotKeys,
+       _fallbackResolver = fallbackResolver,
        _baseScale = renderScale?.clone() ?? Vector2.all(1.0),
        super(
-         animations: animationSet.animations,
-         current: AnimKey.idle,
-         size: renderSize ??
-             Vector2(animationSet.frameSize.x, animationSet.frameSize.y),
+         animations: animSet.animations,
+         current: initial,
+         size: renderSize ?? Vector2(animSet.frameSize.x, animSet.frameSize.y),
          scale: renderScale?.clone() ?? Vector2.all(1.0),
          anchor: Anchor.center,
          paint: Paint()..filterQuality = FilterQuality.none,
@@ -18025,22 +19046,29 @@ class PlayerViewComponent extends SpriteAnimationGroupComponent<AnimKey> {
     playing = false;
   }
 
-  final Map<AnimKey, double> _stepTimeSecondsByKey;
+  final SpriteAnimSet _animSet;
   final Map<AnimKey, SpriteAnimation> _availableAnimations;
   final Set<AnimKey> _oneShotKeys;
+  final AnimKeyFallbackResolver? _fallbackResolver;
   final Vector2 _baseScale;
 
   void applySnapshot(EntityRenderSnapshot e, {required int tickHz}) {
     position.setValues(e.pos.x.roundToDouble(), e.pos.y.roundToDouble());
 
-    final nextAnim = _availableAnimations.containsKey(e.anim)
-        ? e.anim
-        : AnimKey.idle;
-    if (current != nextAnim) {
-      current = nextAnim;
+    var next = e.anim;
+    if (_fallbackResolver != null) {
+      next = _fallbackResolver(next);
+    }
+    if (!_availableAnimations.containsKey(next)) {
+      next = AnimKey.idle;
+    }
+    if (current != next) {
+      current = next;
     }
 
-    final desiredScaleX = _baseScale.x * (e.facing == Facing.right ? 1.0 : -1.0);
+    final artFacing = e.artFacingDir ?? Facing.right;
+    final sign = e.facing == artFacing ? 1.0 : -1.0;
+    final desiredScaleX = _baseScale.x * sign;
     if (scale.x != desiredScaleX || scale.y != _baseScale.y) {
       scale.setValues(desiredScaleX, _baseScale.y);
     }
@@ -18055,14 +19083,142 @@ class PlayerViewComponent extends SpriteAnimationGroupComponent<AnimKey> {
     final framesLen = anim.frames.length;
     if (framesLen <= 1) return;
 
-    final stepSeconds = _stepTimeSecondsByKey[current] ?? 0.10;
-    final ticksPerFrame = max(1, (stepSeconds * tickHz).round());
+    final currentKey = current ?? AnimKey.idle;
+    final ticksPerFrame = _animSet.ticksPerFrameFor(currentKey, tickHz);
     final rawIndex = frameHint ~/ ticksPerFrame;
-    final index = _oneShotKeys.contains(current)
+    final index = _oneShotKeys.contains(currentKey)
         ? rawIndex.clamp(0, framesLen - 1).toInt()
         : rawIndex % framesLen;
     ticker.currentIndex = index;
   }
+}
+
+
+===== FILE: lib/game/components/sprite_anim/sprite_anim_set.dart =====
+/// Shared render-side sprite animation bundle.
+library;
+
+import 'dart:math';
+
+import 'package:flame/components.dart';
+
+import '../../../core/snapshots/enums.dart';
+
+class SpriteAnimSet {
+  SpriteAnimSet({
+    required this.animations,
+    required this.stepTimeSecondsByKey,
+    required this.oneShotKeys,
+    required this.frameSize,
+  });
+
+  final Map<AnimKey, SpriteAnimation> animations;
+  final Map<AnimKey, double> stepTimeSecondsByKey;
+  final Set<AnimKey> oneShotKeys;
+
+  /// Source frame size inside each horizontal strip image.
+  final Vector2 frameSize;
+
+  final Map<int, Map<AnimKey, int>> _ticksPerFrameCache =
+      <int, Map<AnimKey, int>>{};
+
+  int ticksPerFrameFor(AnimKey key, int tickHz) {
+    final cache = _ticksPerFrameCache.putIfAbsent(
+      tickHz,
+      () => <AnimKey, int>{},
+    );
+    final existing = cache[key];
+    if (existing != null) return existing;
+
+    final stepSeconds =
+        stepTimeSecondsByKey[key] ?? stepTimeSecondsByKey[AnimKey.idle] ?? 0.10;
+    final ticks = max(1, (stepSeconds * tickHz).round());
+    cache[key] = ticks;
+    return ticks;
+  }
+}
+
+
+===== FILE: lib/game/components/sprite_anim/strip_animation_loader.dart =====
+/// Shared sprite-strip animation loader utilities (render layer only).
+library;
+
+import 'dart:ui';
+
+import 'package:flame/cache.dart';
+import 'package:flame/components.dart';
+
+import '../../../core/contracts/render_anim_set_definition.dart';
+import '../../../core/snapshots/enums.dart';
+import 'sprite_anim_set.dart';
+
+Future<SpriteAnimSet> loadStripAnimations(
+  Images images, {
+  required int frameWidth,
+  required int frameHeight,
+  required Map<AnimKey, String> sourcesByKey,
+  required Map<AnimKey, int> frameCountsByKey,
+  required Map<AnimKey, double> stepTimeSecondsByKey,
+  required Set<AnimKey> oneShotKeys,
+}) async {
+  final frameSize = Vector2(frameWidth.toDouble(), frameHeight.toDouble());
+
+  final imagesByKey = <AnimKey, Image>{};
+  for (final entry in sourcesByKey.entries) {
+    imagesByKey[entry.key] = await images.load(entry.value);
+  }
+
+  final animations = <AnimKey, SpriteAnimation>{};
+  for (final entry in imagesByKey.entries) {
+    final key = entry.key;
+    final img = entry.value;
+    final stepTime =
+        stepTimeSecondsByKey[key] ?? stepTimeSecondsByKey[AnimKey.idle] ?? 0.1;
+    final frameCount =
+        frameCountsByKey[key] ?? frameCountsByKey[AnimKey.idle] ?? 1;
+
+    assert(
+      img.height == frameSize.y.toInt() &&
+          img.width == frameSize.x.toInt() * frameCount,
+      'Strip ${key.name} must match ${frameSize.x.toInt()}x${frameSize.y.toInt()} frames x $frameCount.',
+    );
+
+    final data = SpriteAnimationData.sequenced(
+      amount: frameCount,
+      stepTime: stepTime,
+      textureSize: frameSize,
+      loop: !oneShotKeys.contains(key),
+    );
+    animations[key] = SpriteAnimation.fromFrameData(img, data);
+  }
+
+  return SpriteAnimSet(
+    animations: animations,
+    stepTimeSecondsByKey: stepTimeSecondsByKey,
+    oneShotKeys: oneShotKeys,
+    frameSize: frameSize,
+  );
+}
+
+Future<SpriteAnimSet> loadAnimSetFromDefinition(
+  Images images, {
+  required RenderAnimSetDefinition renderAnim,
+  required Set<AnimKey> oneShotKeys,
+}) async {
+  final animSet = await loadStripAnimations(
+    images,
+    frameWidth: renderAnim.frameWidth,
+    frameHeight: renderAnim.frameHeight,
+    sourcesByKey: renderAnim.sourcesByKey,
+    frameCountsByKey: renderAnim.frameCountsByKey,
+    stepTimeSecondsByKey: renderAnim.stepTimeSecondsByKey,
+    oneShotKeys: oneShotKeys,
+  );
+
+  // Default spawn to idle when no dedicated strip exists.
+  animSet.animations[AnimKey.spawn] ??= animSet.animations[AnimKey.idle]!;
+
+  return animSet;
 }
 
 
@@ -18291,6 +19447,92 @@ class TiledGroundBandComponent extends Component
 }
 
 
+===== FILE: lib/game/debug/debug_aabb_overlay.dart =====
+/// Reusable helper for syncing AABB debug overlays from Core snapshots.
+library;
+
+import 'package:flame/components.dart';
+import 'package:flutter/widgets.dart';
+
+import '../../core/snapshots/entity_render_snapshot.dart';
+
+void syncDebugAabbOverlays({
+  required Iterable<EntityRenderSnapshot> entities,
+  required bool enabled,
+  required Component parent,
+  required Map<int, RectangleComponent> pool,
+  required int priority,
+  required Paint paint,
+  bool Function(EntityRenderSnapshot e)? include,
+}) {
+  if (!enabled) {
+    if (pool.isEmpty) return;
+    for (final view in pool.values) {
+      view.removeFromParent();
+    }
+    pool.clear();
+    return;
+  }
+
+  final seen = <int>{};
+
+  for (final e in entities) {
+    if (include != null && !include(e)) continue;
+    final size = e.size;
+    if (size == null) continue;
+
+    seen.add(e.id);
+
+    var view = pool[e.id];
+    if (view == null) {
+      view = RectangleComponent(
+        size: Vector2(size.x, size.y),
+        anchor: Anchor.center,
+        paint: paint,
+      )..priority = priority;
+      pool[e.id] = view;
+      parent.add(view);
+    } else {
+      view.size.setValues(size.x, size.y);
+    }
+
+    view.position.setValues(e.pos.x.roundToDouble(), e.pos.y.roundToDouble());
+  }
+
+  if (pool.isEmpty) return;
+  final toRemove = <int>[];
+  for (final id in pool.keys) {
+    if (!seen.contains(id)) toRemove.add(id);
+  }
+  for (final id in toRemove) {
+    pool.remove(id)?.removeFromParent();
+  }
+}
+
+
+
+===== FILE: lib/game/debug/render_debug_flags.dart =====
+/// Render-layer debug flags.
+///
+/// Kept in `lib/game/**` so Core remains pure/deterministic and unaware of
+/// any debug drawing concerns.
+library;
+
+import 'package:flutter/foundation.dart';
+
+abstract class RenderDebugFlags {
+  /// Draws collision AABB overlays for "actor" entities (player + enemies).
+  ///
+  /// Default is `false` even in debug builds; toggle locally when needed.
+  static bool drawActorHitboxes = false;
+
+  /// Convenience for enabling all render debug overlays in debug/profile
+  /// builds while keeping release builds clean.
+  static bool get canUseRenderDebug => !kReleaseMode;
+}
+
+
+
 ===== FILE: lib/game/game_controller.dart =====
 // Bridge between Core simulation and the Flutter/Flame runtime.
 //
@@ -18305,11 +19547,14 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 
 import '../core/commands/command.dart';
+import '../core/enemies/enemy_catalog.dart';
 import '../core/events/game_event.dart';
 import '../core/game_core.dart';
 import '../core/snapshots/game_state_snapshot.dart';
 import '../core/tuning/score_tuning.dart';
 import 'tick_input_frame.dart';
+
+typedef GameEventListener = void Function(GameEvent event);
 
 /// Owns the simulation clock and provides a stable interface to UI/renderer.
 class GameController extends ChangeNotifier {
@@ -18352,6 +19597,12 @@ class GameController extends ChangeNotifier {
   /// Buffered transient events produced by the core.
   final List<GameEvent> _events = <GameEvent>[];
 
+  /// Optional event listeners (render/UI side-effects).
+  ///
+  /// Listeners are invoked for every event emitted by Core, before events are
+  /// buffered into [_events].
+  final List<GameEventListener> _eventListeners = <GameEventListener>[];
+
   /// The most recent [RunEndedEvent], if any.
   ///
   /// Stored separately so UI can access it after events are drained.
@@ -18367,6 +19618,8 @@ class GameController extends ChangeNotifier {
   int get tick => _core.tick;
 
   ScoreTuning get scoreTuning => _core.scoreTuning;
+
+  EnemyCatalog get enemyCatalog => _core.enemyCatalog;
 
   /// Latest snapshot produced by the core.
   GameStateSnapshot get snapshot => _curr;
@@ -18400,6 +19653,19 @@ class GameController extends ChangeNotifier {
     final drained = List<GameEvent>.unmodifiable(_events);
     _events.clear();
     return drained;
+  }
+
+  /// Registers a callback to observe transient [GameEvent]s.
+  ///
+  /// This is useful for render-only effects (e.g. death animations) that should
+  /// not require draining the shared event buffer.
+  void addEventListener(GameEventListener listener) {
+    if (_eventListeners.contains(listener)) return;
+    _eventListeners.add(listener);
+  }
+
+  void removeEventListener(GameEventListener listener) {
+    _eventListeners.remove(listener);
   }
 
   /// Pauses/unpauses the simulation.
@@ -18511,6 +19777,11 @@ class GameController extends ChangeNotifier {
       if (event is RunEndedEvent) {
         lastRunEndedEvent = event;
       }
+      if (_eventListeners.isNotEmpty) {
+        for (final listener in _eventListeners) {
+          listener(event);
+        }
+      }
     }
     if (newEvents.isNotEmpty) {
       _events.addAll(newEvents);
@@ -18532,7 +19803,11 @@ class GameController extends ChangeNotifier {
 
     if (input.projectileAimDirSet) {
       _commandScratch.add(
-        ProjectileAimDirCommand(tick: tick, x: input.projectileAimDirX, y: input.projectileAimDirY),
+        ProjectileAimDirCommand(
+          tick: tick,
+          x: input.projectileAimDirX,
+          y: input.projectileAimDirY,
+        ),
       );
     }
     if (input.meleeAimDirSet) {
@@ -18546,7 +19821,11 @@ class GameController extends ChangeNotifier {
     }
     if (input.rangedAimDirSet) {
       _commandScratch.add(
-        RangedAimDirCommand(tick: tick, x: input.rangedAimDirX, y: input.rangedAimDirY),
+        RangedAimDirCommand(
+          tick: tick,
+          x: input.rangedAimDirX,
+          y: input.rangedAimDirY,
+        ),
       );
     }
     if (input.jumpPressed) {
@@ -19092,11 +20371,17 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import '../core/contracts/render_contract.dart';
+import '../core/events/game_event.dart';
+import '../core/players/player_character_definition.dart';
 import '../core/snapshots/entity_render_snapshot.dart';
 import '../core/snapshots/enums.dart';
 import '../core/snapshots/static_solid_snapshot.dart';
+import 'debug/debug_aabb_overlay.dart';
+import 'debug/render_debug_flags.dart';
 import 'components/player/player_animations.dart';
 import 'components/player/player_view_component.dart';
+import 'components/enemies/enemy_render_registry.dart';
+import 'components/sprite_anim/deterministic_anim_view_component.dart';
 import 'tuning/player_render_tuning.dart';
 import 'input/runner_input_router.dart';
 import 'input/aim_preview.dart';
@@ -19105,7 +20390,6 @@ import 'components/tiled_ground_band_component.dart';
 import 'components/aim_ray_component.dart';
 import 'game_controller.dart';
 import 'themes/parallax_theme_registry.dart';
-
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Render priorities
@@ -19120,6 +20404,7 @@ const _priorityEnemies = -2;
 const _priorityProjectiles = -1;
 const _priorityCollectibles = -1;
 const _priorityHitboxes = 1;
+const _priorityActorHitboxes = 2;
 const _priorityProjectileAimRay = 5;
 const _priorityMeleeAimRay = 6;
 const _priorityRangedAimRay = 7;
@@ -19133,7 +20418,11 @@ class RunnerFlameGame extends FlameGame {
     required this.projectileAimPreview,
     required this.meleeAimPreview,
     required this.rangedAimPreview,
-  }) : super(
+    required this.playerCharacter,
+  }) : _enemyRenderRegistry = EnemyRenderRegistry(
+         enemyCatalog: controller.enemyCatalog,
+       ),
+       super(
          camera: CameraComponent.withFixedResolution(
            width: virtualWidth.toDouble(),
            height: virtualHeight.toDouble(),
@@ -19151,15 +20440,22 @@ class RunnerFlameGame extends FlameGame {
   final ValueListenable<AimPreviewState> meleeAimPreview;
   final ValueListenable<AimPreviewState> rangedAimPreview;
 
+  /// The selected player character definition for this run (render-only usage).
+  final PlayerCharacterDefinition playerCharacter;
+
   late final PlayerViewComponent _player;
+  final EnemyRenderRegistry _enemyRenderRegistry;
   final List<RectangleComponent> _staticSolids = <RectangleComponent>[];
   List<StaticSolidSnapshot>? _lastStaticSolidsSnapshot;
 
   /// Entity view pools, keyed by entity ID.
   final Map<int, RectangleComponent> _projectiles = <int, RectangleComponent>{};
-  final Map<int, RectangleComponent> _collectibles = <int, RectangleComponent>{};
-  final Map<int, CircleComponent> _enemies = <int, CircleComponent>{};
+  final Map<int, RectangleComponent> _collectibles =
+      <int, RectangleComponent>{};
+  final Map<int, PositionComponent> _enemies = <int, PositionComponent>{};
   final Map<int, RectangleComponent> _hitboxes = <int, RectangleComponent>{};
+  final Map<int, RectangleComponent> _actorHitboxes =
+      <int, RectangleComponent>{};
 
   final Paint _projectilePaint = Paint()..color = const Color(0xFF60A5FA);
   final Map<int, Paint> _pickupPaints = <int, Paint>{
@@ -19173,10 +20469,19 @@ class RunnerFlameGame extends FlameGame {
     Paint()..color = const Color(0xFFF97316), // orange
   ];
   final Paint _hitboxPaint = Paint()..color = const Color(0x66EF4444);
+  final Paint _actorHitboxPaint = Paint()
+    ..color = const Color(0xFF22C55E)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.0;
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    assert(() {
+      playerCharacter.assertValid();
+      return true;
+    }());
+    controller.addEventListener(_handleGameEvent);
     final theme = ParallaxThemeRegistry.forThemeId(controller.snapshot.themeId);
 
     // Background parallax layers (sky, distant mountains, etc.)
@@ -19210,12 +20515,15 @@ class RunnerFlameGame extends FlameGame {
       )..priority = _priorityForegroundParallax,
     );
 
-    final playerAnimations = await loadPlayerAnimations(images);
+    final playerAnimations = await loadPlayerAnimations(
+      images,
+      renderAnim: playerCharacter.renderAnim,
+    );
+    await _enemyRenderRegistry.load(images);
     _player = PlayerViewComponent(
       animationSet: playerAnimations,
       renderScale: Vector2.all(_playerRenderTuning.scale),
-    )
-      ..priority = _priorityPlayer;
+    )..priority = _priorityPlayer;
     world.add(_player);
 
     world.add(
@@ -19285,6 +20593,17 @@ class RunnerFlameGame extends FlameGame {
     _syncProjectiles(updatedSnapshot.entities);
     _syncCollectibles(updatedSnapshot.entities);
     _syncHitboxes(updatedSnapshot.entities);
+    syncDebugAabbOverlays(
+      entities: updatedSnapshot.entities,
+      enabled:
+          RenderDebugFlags.canUseRenderDebug &&
+          RenderDebugFlags.drawActorHitboxes,
+      parent: world,
+      pool: _actorHitboxes,
+      priority: _priorityActorHitboxes,
+      paint: _actorHitboxPaint,
+      include: (e) => e.kind == EntityKind.player || e.kind == EntityKind.enemy,
+    );
   }
 
   /// Mounts static solid rectangles into the world.
@@ -19323,29 +20642,48 @@ class RunnerFlameGame extends FlameGame {
       seen.add(e.id);
 
       var view = _enemies[e.id];
+      final entry = e.enemyId == null
+          ? null
+          : _enemyRenderRegistry.entryFor(e.enemyId!);
       if (view == null) {
-        final size = e.size;
-        final radius =
-            ((size != null) ? (size.x < size.y ? size.x : size.y) : 16.0) * 0.5;
-        final paint = _enemyPaints[e.id % _enemyPaints.length];
-        view = CircleComponent(
-          radius: radius,
-          anchor: Anchor.center,
-          paint: paint,
-        );
+        if (entry != null) {
+          view = entry.viewFactory(entry.animSet, entry.renderScale);
+        } else {
+          final size = e.size;
+          final radius =
+              ((size != null) ? (size.x < size.y ? size.x : size.y) : 16.0) *
+              0.5;
+          final paint = _enemyPaints[e.id % _enemyPaints.length];
+          view = CircleComponent(
+            radius: radius,
+            anchor: Anchor.center,
+            paint: paint,
+          );
+        }
         view.priority = _priorityEnemies;
         _enemies[e.id] = view;
         world.add(view);
-      } else {
-        final size = e.size;
-        if (size != null) {
-          final radius = (size.x < size.y ? size.x : size.y) * 0.5;
-          view.radius = radius;
-        }
       }
 
-      view.position.setValues(e.pos.x.roundToDouble(), e.pos.y.roundToDouble());
-      view.angle = e.rotationRad;
+      if (view is DeterministicAnimViewComponent) {
+        view.applySnapshot(e, tickHz: controller.tickHz);
+      } else if (view is CircleComponent) {
+        final size = e.size;
+        if (size != null) {
+          view.radius = (size.x < size.y ? size.x : size.y) * 0.5;
+        }
+        view.position.setValues(
+          e.pos.x.roundToDouble(),
+          e.pos.y.roundToDouble(),
+        );
+        view.angle = e.rotationRad;
+      } else {
+        view.position.setValues(
+          e.pos.x.roundToDouble(),
+          e.pos.y.roundToDouble(),
+        );
+        view.angle = e.rotationRad;
+      }
     }
 
     if (_enemies.isEmpty) return;
@@ -19356,6 +20694,32 @@ class RunnerFlameGame extends FlameGame {
     for (final id in toRemove) {
       _enemies.remove(id)?.removeFromParent();
     }
+  }
+
+  void _handleGameEvent(GameEvent event) {
+    if (event is! EnemyKilledEvent) return;
+    final entry = _enemyRenderRegistry.entryFor(event.enemyId);
+    if (entry == null) return;
+    if (entry.deathAnimPolicy == EnemyDeathAnimPolicy.none) return;
+
+    final deathAnim = entry.animSet.animations[AnimKey.death];
+    if (deathAnim == null) return;
+
+    final component = SpriteAnimationComponent(
+      animation: deathAnim,
+      size: entry.animSet.frameSize.clone(),
+      anchor: Anchor.center,
+      position: Vector2(
+        event.pos.x.roundToDouble(),
+        event.pos.y.roundToDouble(),
+      ),
+      paint: Paint()..filterQuality = FilterQuality.none,
+      removeOnFinish: true,
+    );
+    component.priority = _priorityEnemies;
+    final sign = event.facing == event.artFacingDir ? 1.0 : -1.0;
+    component.scale.setValues(entry.renderScale.x * sign, entry.renderScale.y);
+    world.add(component);
   }
 
   /// Synchronizes projectile view components with the snapshot.
@@ -19513,6 +20877,7 @@ class RunnerFlameGame extends FlameGame {
 
   @override
   void onRemove() {
+    controller.removeEventListener(_handleGameEvent);
     images.clearCache();
     super.onRemove();
   }
@@ -19835,15 +21200,23 @@ int floorDivInt(int a, int b) {
 
 ===== FILE: lib/main.dart =====
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 
+import 'firebase_options.dart';
 import 'ui/dev_menu_page.dart';
 
 /// Development-only host app for running the mini-game standalone.
 ///
 /// The runner is intended to be embedded in another Flutter app via
 /// `RunnerGameWidget` / `createRunnerGameRoute` (see `lib/runner.dart`).
-/// Keep `main.dart` free of assumptions that would prevent embedding.
-void main() {
+/// Keep `main.dart` free of assumptions that would prevent embedding; embedding
+/// apps should initialize Firebase (and any other app services) themselves.
+///
+/// This dev host initializes Firebase so Firebase-backed features work when
+/// running the runner in isolation.
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const _DevApp());
 }
 
@@ -19875,6 +21248,8 @@ class _DevApp extends StatelessWidget {
 // This keeps the public API stable while allowing internal folders/files to
 // evolve without breaking downstream imports.
 export 'core/levels/level_id.dart';
+export 'core/players/player_character_definition.dart';
+export 'core/players/player_character_registry.dart';
 export 'ui/runner_game_route.dart';
 export 'ui/runner_game_widget.dart';
 
@@ -22742,6 +24117,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../core/levels/level_id.dart';
+import '../core/players/player_character_definition.dart';
 import 'runner_game_widget.dart';
 import 'scoped/scoped_preferred_orientations.dart';
 import 'scoped/scoped_system_ui_mode.dart';
@@ -22754,6 +24130,7 @@ import 'scoped/scoped_system_ui_mode.dart';
 Route<void> createRunnerGameRoute({
   int seed = 1,
   LevelId levelId = LevelId.defaultLevel,
+  PlayerCharacterId playerCharacterId = PlayerCharacterId.eloise,
   bool lockLandscape = true,
   List<DeviceOrientation>? restoreOrientations,
 }) {
@@ -22762,6 +24139,7 @@ Route<void> createRunnerGameRoute({
       Widget child = RunnerGameWidget(
         seed: seed,
         levelId: levelId,
+        playerCharacterId: playerCharacterId,
         onExit: () => Navigator.of(context).maybePop(),
       );
 
@@ -22819,6 +24197,8 @@ import '../core/contracts/render_contract.dart';
 import '../core/game_core.dart';
 import '../core/levels/level_id.dart';
 import '../core/levels/level_registry.dart';
+import '../core/players/player_character_definition.dart';
+import '../core/players/player_character_registry.dart';
 import '../game/game_controller.dart';
 import '../game/input/aim_preview.dart';
 import '../game/input/runner_input_router.dart';
@@ -22841,6 +24221,7 @@ class RunnerGameWidget extends StatefulWidget {
     super.key,
     this.seed = 1,
     this.levelId = LevelId.defaultLevel,
+    this.playerCharacterId = PlayerCharacterId.eloise,
     this.onExit,
     this.showExitButton = true,
     this.viewportMode = ViewportScaleMode.pixelPerfectContain,
@@ -22852,6 +24233,9 @@ class RunnerGameWidget extends StatefulWidget {
 
   /// Which core level definition to run.
   final LevelId levelId;
+
+  /// Which player character to use for this run.
+  final PlayerCharacterId playerCharacterId;
 
   final VoidCallback? onExit;
   final bool showExitButton;
@@ -22965,10 +24349,14 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   void _initGame() {
+    final playerCharacter =
+        PlayerCharacterRegistry.byId[widget.playerCharacterId] ??
+        PlayerCharacterRegistry.defaultCharacter;
     _controller = GameController(
       core: GameCore(
         seed: widget.seed,
         levelDefinition: LevelRegistry.byId(widget.levelId),
+        playerCharacter: playerCharacter,
       ),
     );
     _input = RunnerInputRouter(controller: _controller);
@@ -22981,6 +24369,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       projectileAimPreview: _projectileAimPreview,
       meleeAimPreview: _meleeAimPreview,
       rangedAimPreview: _rangedAimPreview,
+      playerCharacter: playerCharacter,
     );
   }
 

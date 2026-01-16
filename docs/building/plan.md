@@ -18,11 +18,30 @@ Details: `docs/building/combat.md`.
 
 Core owns deterministic animation windows via `AnimTuning` (attack/cast/hit/death/spawn).
 Renderer consumes `AnimKey` + `animFrame` only; no simulation logic lives in Flame.
+
+### Player animations
+
 For Éloïse, render strip timing (frame counts x step time) is authored in
 `lib/core/players/characters/eloise.dart`, and `eloiseTuning.anim` is kept in
 sync so Core windows match render strip timing.
-Enemy hit windows are authored per enemy (`EnemyArchetype.hitAnimSeconds`), and
-enemy render strips are data-driven via `EnemyArchetype.renderAnim`.
+
+### Enemy animations
+
+Enemy render strips are data-driven via `EnemyArchetype.renderAnim`, with frame
+dimensions, step times, and sprite sheet paths defined in `enemy_catalog.dart`.
+Hit windows are authored per enemy (`EnemyArchetype.hitAnimSeconds`).
+
+**Animation pipeline** (AnimSystem → AnimStateStore → SnapshotBuilder):
+
+1. `AnimSystem` runs each tick in Phase 21 (also during death-anim freeze).
+2. `AnimResolver` applies `AnimProfile` + state signals to select `AnimKey` + `animFrame`.
+3. Results are written to `AnimStateStore` (anim, animFrame).
+4. `SnapshotBuilder` reads from the store for both player and enemies; it does not compute anim.
+
+Per-entity rules live in `AnimProfile` data:
+- **Unoco**: uses `run` even while airborne; walk disabled; attack → `idle`.
+- **Ground enemy**: uses jump/fall when airborne; walk/run thresholds on ground.
+
 Render strip metadata is shared via `RenderAnimSetDefinition` in
 `lib/core/contracts/render_anim_set_definition.dart` for both players and enemies.
 

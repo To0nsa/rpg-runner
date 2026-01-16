@@ -17,6 +17,7 @@ import 'stores/player/action_anim_store.dart';
 import 'stores/player/gravity_control_store.dart';
 import 'stores/enemies/flying_enemy_steering_store.dart';
 import 'stores/faction_store.dart';
+import 'stores/anim_state_store.dart';
 import 'stores/enemies/enemy_store.dart';
 import 'stores/enemies/ground_enemy_chase_offset_store.dart';
 import 'stores/health_store.dart';
@@ -196,6 +197,9 @@ class EcsWorld {
 
   /// Identifies an entity as a specific type of enemy.
   late final EnemyStore enemy = _register(EnemyStore());
+
+  /// Per-entity animation state computed by [AnimSystem].
+  late final AnimStateStore animState = _register(AnimStateStore());
 
   /// Steering behaviors for flying enemies.
   late final FlyingEnemySteeringStore flyingEnemySteering = _register(FlyingEnemySteeringStore());

@@ -93,6 +93,9 @@ Core outputs:
 - Immutable `GameStateSnapshot` for render/UI (serializable, renderer-friendly).
 - Transient `GameEvent`s (spawn/despawn/hit/sfx/screenshake/reward, etc.).
 
+Animation selection is resolved in Core via `AnimSystem` using `AnimResolver` +
+`AnimProfile`, and stored in `AnimStateStore` for snapshot consumption.
+
 Renderer/UI must:
 
 - Treat snapshots as read-only.

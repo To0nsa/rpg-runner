@@ -29,7 +29,6 @@ import 'ecs/stores/restoration_item_store.dart';
 import 'levels/level_id.dart';
 import 'projectiles/projectile_catalog.dart';
 import 'enemies/enemy_catalog.dart';
-import 'enemies/enemy_id.dart';
 import 'snapshots/enums.dart';
 import 'snapshots/entity_render_snapshot.dart';
 import 'snapshots/game_state_snapshot.dart';
@@ -39,7 +38,6 @@ import 'snapshots/static_solid_snapshot.dart';
 import 'spells/spell_catalog.dart';
 import 'spells/spell_id.dart';
 import 'players/player_tuning.dart';
-import 'util/tick_math.dart';
 import 'util/vec2.dart';
 import 'weapons/ranged_weapon_catalog.dart';
 
@@ -65,7 +63,6 @@ class SnapshotBuilder {
   /// - [player]: Entity ID of the player (used to query player-specific stores).
   /// - [movement]: Derived movement tuning (dash cooldown ticks, etc.).
   /// - [abilities]: Derived ability tuning (melee/cast cooldown ticks).
-  /// - [animTuning]: Derived animation tuning (hit/cast/attack/spawn windows).
   /// - [resources]: Resource costs (jump/dash stamina, etc.).
   /// - [spells]: Spell catalog for querying spell stats (mana costs).
   /// - [projectiles]: Projectile catalog for collider sizes.
@@ -77,7 +74,6 @@ class SnapshotBuilder {
     required this.player,
     required this.movement,
     required this.abilities,
-    required this.animTuning,
     required this.resources,
     required this.spells,
     required this.projectiles,
@@ -100,9 +96,6 @@ class SnapshotBuilder {
   /// Derived ability tuning (cooldown durations in ticks).
   final AbilityTuningDerived abilities;
 
-  /// Derived animation tuning (one-shot windows in ticks).
-  final AnimTuningDerived animTuning;
-
   /// Resource tuning (stamina/mana costs for actions).
   final ResourceTuning resources;
 
@@ -115,20 +108,8 @@ class SnapshotBuilder {
   /// Ranged weapon catalog for cooldown totals and ammo costs.
   final RangedWeaponCatalogDerived rangedWeapons;
 
-  /// Enemy catalog for render metadata (hit windows, art facing).
+  /// Enemy catalog for render metadata (art facing direction).
   final EnemyCatalog enemyCatalog;
-
-  late final Map<EnemyId, int> _enemyHitAnimTicksById =
-      _buildEnemyHitAnimTicksById();
-
-  Map<EnemyId, int> _buildEnemyHitAnimTicksById() {
-    final map = <EnemyId, int>{};
-    for (final id in EnemyId.values) {
-      final seconds = enemyCatalog.get(id).hitAnimSeconds;
-      map[id] = ticksFromSecondsCeil(seconds, tickHz);
-    }
-    return map;
-  }
 
   // ───────────────────────────────────────────────────────────────────────────
   // Public API
@@ -171,10 +152,7 @@ class SnapshotBuilder {
     required List<StaticGroundGapSnapshot> groundGaps,
   }) {
     // ─── Query player component indices ───
-    final tuning = movement.base;
     final mi = world.movement.indexOf(player);
-    final dashTicksLeft = world.movement.dashTicksLeft[mi];
-    final dashing = dashTicksLeft > 0;
     final onGround = world.collision.grounded[world.collision.indexOf(player)];
     final hi = world.health.indexOf(player);
     final mai = world.mana.indexOf(player);
@@ -219,95 +197,16 @@ class SnapshotBuilder {
     final playerVelX = world.transform.velX[ti];
     final playerVelY = world.transform.velY[ti];
     final playerFacing = world.movement.facing[mi];
-    final playerHp = world.health.hp[hi];
-    final actionAnimIndex = world.actionAnim.tryIndexOf(player);
-    final lastMeleeTick = actionAnimIndex == null
-        ? -1
-        : world.actionAnim.lastMeleeTick[actionAnimIndex];
-    final lastMeleeFacing = actionAnimIndex == null
-        ? playerFacing
-        : world.actionAnim.lastMeleeFacing[actionAnimIndex];
-    final lastCastTick = actionAnimIndex == null
-        ? -1
-        : world.actionAnim.lastCastTick[actionAnimIndex];
-    final lastRangedTick = actionAnimIndex == null
-        ? -1
-        : world.actionAnim.lastRangedTick[actionAnimIndex];
-
-    final lastDamageTick = world.lastDamage.has(player)
-        ? world.lastDamage.tick[world.lastDamage.indexOf(player)]
-        : -1;
-
-    // ─── Determine player animation ───
-    // Priority: death > hit > attack/cast > dash > airborne > moving > idle/spawn
+    final animState = world.animState;
     final AnimKey anim;
-    final showHit =
-        animTuning.hitAnimTicks > 0 &&
-        lastDamageTick >= 0 &&
-        (tick - lastDamageTick) < animTuning.hitAnimTicks;
-    final attackAnimTicks = lastMeleeFacing == Facing.left
-        ? animTuning.attackLeftAnimTicks
-        : animTuning.attackAnimTicks;
-    final showAttack =
-        attackAnimTicks > 0 &&
-        lastMeleeTick >= 0 &&
-        (tick - lastMeleeTick) < attackAnimTicks;
-    final showCast =
-        animTuning.castAnimTicks > 0 &&
-        lastCastTick >= 0 &&
-        (tick - lastCastTick) < animTuning.castAnimTicks;
-    final showRanged =
-        animTuning.rangedAnimTicks > 0 &&
-        lastRangedTick >= 0 &&
-        (tick - lastRangedTick) < animTuning.rangedAnimTicks;
-
-    if (playerHp <= 0) {
-      anim = AnimKey.death;
-    } else if (showHit) {
-      anim = AnimKey.hit;
-    } else if (showAttack) {
-      anim = lastMeleeFacing == Facing.left
-          ? AnimKey.attackLeft
-          : AnimKey.attack;
-    } else if (showCast) {
-      anim = AnimKey.cast;
-    } else if (showRanged) {
-      anim = AnimKey.ranged;
-    } else if (dashing) {
-      anim = AnimKey.dash;
-    } else if (!onGround) {
-      anim = playerVelY < 0 ? AnimKey.jump : AnimKey.fall;
-    } else if (animTuning.spawnAnimTicks > 0 &&
-        tick < animTuning.spawnAnimTicks) {
-      anim = AnimKey.spawn;
-    } else {
-      final speedX = playerVelX.abs();
-      if (speedX <= tuning.minMoveSpeed) {
-        anim = AnimKey.idle;
-      } else if (speedX < tuning.runSpeedThresholdX) {
-        anim = AnimKey.walk;
-      } else {
-        anim = AnimKey.run;
-      }
-    }
-
     final int playerAnimFrame;
-    switch (anim) {
-      case AnimKey.attack:
-      case AnimKey.attackLeft:
-        playerAnimFrame = lastMeleeTick >= 0 ? tick - lastMeleeTick : tick;
-      case AnimKey.cast:
-        playerAnimFrame = lastCastTick >= 0 ? tick - lastCastTick : tick;
-      case AnimKey.ranged:
-        playerAnimFrame = lastRangedTick >= 0 ? tick - lastRangedTick : tick;
-      case AnimKey.hit:
-        playerAnimFrame = lastDamageTick >= 0 ? tick - lastDamageTick : tick;
-      case AnimKey.death:
-        playerAnimFrame = lastDamageTick >= 0 ? tick - lastDamageTick : tick;
-      case AnimKey.dash:
-        playerAnimFrame = max(0, movement.dashDurationTicks - dashTicksLeft);
-      default:
-        playerAnimFrame = tick;
+    if (animState.has(player)) {
+      final ai = animState.indexOf(player);
+      anim = animState.anim[ai];
+      playerAnimFrame = animState.animFrame[ai];
+    } else {
+      anim = AnimKey.idle;
+      playerAnimFrame = tick;
     }
 
     final playerPos = Vec2(playerPosX, playerPosY);
@@ -561,9 +460,11 @@ class SnapshotBuilder {
   /// Appends enemy entity snapshots to [entities].
   ///
   /// Enemies have position, velocity, facing direction, and grounded state.
-  /// The renderer uses this to select appropriate sprites and animations.
+  /// Animation is read from [AnimStateStore], pre-computed by [AnimSystem].
   void _addEnemies(List<EntityRenderSnapshot> entities, {required int tick}) {
     final enemies = world.enemy;
+    final animStore = world.animState;
+
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
       final e = enemies.denseEntities[ei];
       if (!world.transform.has(e)) continue;
@@ -580,53 +481,21 @@ class SnapshotBuilder {
         );
       }
 
-      final hp = world.health.has(e)
-          ? world.health.hp[world.health.indexOf(e)]
-          : 1.0;
-
       final grounded = world.collision.has(e)
           ? world.collision.grounded[world.collision.indexOf(e)]
           : false;
 
-      final lastDamageTick = world.lastDamage.has(e)
-          ? world.lastDamage.tick[world.lastDamage.indexOf(e)]
-          : -1;
-      final hitAnimTicks = _enemyHitAnimTicksById[enemyId] ?? 0;
-      final showHit =
-          hitAnimTicks > 0 &&
-          lastDamageTick >= 0 &&
-          (tick - lastDamageTick) < hitAnimTicks;
-
-      final lastMeleeTick = enemies.lastMeleeTick[ei];
-      final meleeAnimTicks = enemies.lastMeleeAnimTicks[ei];
-      final showAttack =
-          meleeAnimTicks > 0 &&
-          lastMeleeTick >= 0 &&
-          (tick - lastMeleeTick) < meleeAnimTicks;
-
-      final speedX = world.transform.velX[ti].abs();
-      const moveThresholdX = 1.0;
-
+      // Read pre-computed animation from AnimStateStore.
       final AnimKey anim;
-      if (hp <= 0) {
-        anim = AnimKey.death;
-      } else if (showHit) {
-        anim = AnimKey.hit;
-      } else if (showAttack) {
-        anim = AnimKey.attack;
-      } else {
-        anim = speedX > moveThresholdX && grounded ? AnimKey.run : AnimKey.idle;
-      }
-
       final int animFrame;
-      switch (anim) {
-        case AnimKey.hit:
-        case AnimKey.death:
-          animFrame = lastDamageTick >= 0 ? tick - lastDamageTick : tick;
-        case AnimKey.attack:
-          animFrame = lastMeleeTick >= 0 ? tick - lastMeleeTick : tick;
-        default:
-          animFrame = tick;
+      if (animStore.has(e)) {
+        final ai = animStore.indexOf(e);
+        anim = animStore.anim[ai];
+        animFrame = animStore.animFrame[ai];
+      } else {
+        // Fallback if no anim component (shouldn't happen).
+        anim = AnimKey.idle;
+        animFrame = tick;
       }
 
       entities.add(

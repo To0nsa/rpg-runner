@@ -101,6 +101,7 @@ import 'ecs/systems/resource_regen_system.dart';
 import 'ecs/systems/restoration_item_system.dart';
 import 'ecs/systems/status_system.dart';
 import 'ecs/systems/spell_cast_system.dart';
+import 'ecs/systems/anim_system.dart';
 import 'ecs/systems/enemy_cull_system.dart';
 import 'ecs/world.dart';
 import 'enemies/enemy_catalog.dart';
@@ -375,7 +376,6 @@ class GameCore {
       player: _player,
       movement: _movement,
       abilities: _abilities,
-      animTuning: _animTuning,
       resources: _resourceTuning,
       spells: _spells,
       projectiles: _projectiles,
@@ -417,6 +417,12 @@ class GameCore {
     _statusSystem = StatusSystem(tickHz: tickHz);
     _healthDespawnSystem = HealthDespawnSystem();
     _enemyCullSystem = EnemyCullSystem();
+    _animSystem = AnimSystem(
+      tickHz: tickHz,
+      enemyCatalog: _enemyCatalog,
+      playerMovement: _movement,
+      playerAnimTuning: _animTuning,
+    );
 
     // Player combat.
     _meleeSystem = PlayerMeleeSystem(abilities: _abilities, weapons: _weapons);
@@ -623,6 +629,7 @@ class GameCore {
   late final ResourceRegenSystem _resourceRegenSystem;
   late final PlayerCastSystem _castSystem;
   late final SpellCastSystem _spellCastSystem;
+  late final AnimSystem _animSystem;
   late final EnemyCullSystem _enemyCullSystem;
 
   // ─── Modular Services ───
@@ -866,7 +873,8 @@ class GameCore {
   /// 18. **Status application**: Apply on-hit status profiles.
   /// 19. **Death handling**: Despawn dead entities, record kills.
   /// 20. **Resource regen**: Regenerate mana and stamina.
-  /// 21. **Cleanup**: Remove entities past their lifetime.
+  /// 21. **Animation**: Compute per-entity anim key + frame.
+  /// 22. **Cleanup**: Remove entities past their lifetime.
   ///
   /// If the run ends during this tick (player death, fell into gap, etc.),
   /// a [RunEndedEvent] is emitted and the simulation freezes.
@@ -876,6 +884,8 @@ class GameCore {
 
     if (_deathAnimTicksLeft > 0) {
       tick += 1;
+      // Update animations during death anim freeze.
+      _animSystem.step(_world, player: _player, currentTick: tick);
       _deathAnimTicksLeft -= 1;
       if (_deathAnimTicksLeft <= 0) {
         _endRun(
@@ -1035,7 +1045,10 @@ class GameCore {
     // ─── Phase 15: Resource regeneration ───
     _resourceRegenSystem.step(_world, dtSeconds: _movement.dtSeconds);
 
-    // ─── Phase 16: Cleanup ───
+    // ─── Phase 16: Animation ───
+    _animSystem.step(_world, player: _player, currentTick: tick);
+
+    // ─── Phase 17: Cleanup ───
     _lifetimeSystem.step(_world);
   }
 

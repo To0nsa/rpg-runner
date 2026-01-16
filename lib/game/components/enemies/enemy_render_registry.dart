@@ -110,7 +110,7 @@ class EnemyRenderRegistry {
     ),
     EnemyId.groundEnemy: EnemyRenderEntry(
       id: EnemyId.groundEnemy,
-      renderScale: Vector2.all(1.0),
+      renderScale: Vector2.all(0.75),
     ),
   };
 
