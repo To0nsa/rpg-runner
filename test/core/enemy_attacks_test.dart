@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rpg_runner/core/combat/faction.dart';
-import 'package:rpg_runner/core/enemies/enemy_catalog.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
 import 'package:rpg_runner/core/ecs/stores/health_store.dart';
@@ -10,7 +9,7 @@ import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
 import 'package:rpg_runner/core/ecs/spatial/broadphase_grid.dart';
 import 'package:rpg_runner/core/ecs/spatial/grid_index_2d.dart';
 import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
-import 'package:rpg_runner/core/ecs/systems/enemy_combat_system.dart';
+import 'package:rpg_runner/core/ecs/systems/enemy_melee_system.dart';
 import 'package:rpg_runner/core/ecs/systems/hitbox_follow_owner_system.dart';
 import 'package:rpg_runner/core/ecs/systems/hitbox_damage_system.dart';
 import 'package:rpg_runner/core/ecs/systems/melee_attack_system.dart';
@@ -21,7 +20,6 @@ import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/spells/spawn_spell_projectile.dart';
 import 'package:rpg_runner/core/spells/spell_catalog.dart';
 import 'package:rpg_runner/core/spells/spell_id.dart';
-import 'package:rpg_runner/core/tuning/flying_enemy_tuning.dart';
 import 'package:rpg_runner/core/tuning/ground_enemy_tuning.dart';
 import 'package:rpg_runner/core/tuning/spatial_grid_tuning.dart';
 
@@ -122,10 +120,6 @@ void main() {
       stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
     );
 
-    final unocoDemonTuning = UnocoDemonTuningDerived.from(
-      const UnocoDemonTuning(),
-      tickHz: 60,
-    );
     final groundEnemyTuning = GroundEnemyTuningDerived.from(
       const GroundEnemyTuning(
         combat: GroundEnemyCombatTuning(
@@ -141,15 +135,8 @@ void main() {
     );
     final expectedHp = 100.0 - groundEnemyTuning.combat.meleeDamage;
 
-    final system = EnemyCombatSystem(
-      unocoDemonTuning: unocoDemonTuning,
+    final system = EnemyMeleeSystem(
       groundEnemyTuning: groundEnemyTuning,
-      enemyCatalog: const EnemyCatalog(),
-      spells: const SpellCatalog(),
-      projectiles: ProjectileCatalogDerived.from(
-        const ProjectileCatalog(),
-        tickHz: 60,
-      ),
     );
 
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0);
@@ -161,7 +148,7 @@ void main() {
     final meleeAttack = MeleeAttackSystem();
 
     const currentTick = 1;
-    system.stepAttacks(world, player: player, currentTick: currentTick);
+    system.step(world, player: player, currentTick: currentTick);
     meleeAttack.step(world, currentTick: currentTick);
     follow.step(world);
     broadphase.rebuild(world);

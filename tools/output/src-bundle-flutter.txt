@@ -1,6 +1,6 @@
 ﻿REPO: C:\dev\rpg_runner
-COMMIT: 33f26b3eb4f084b40c722928b7a5a1b39380719b
-DATE: 2026-01-15 11:47:23
+COMMIT: ac7989c6cf3355c9af1df3b7434aad363e74e1dd
+DATE: 2026-01-18 16:33:42
 
 
 ===== FILE: lib/AGENTS.md =====
@@ -99,6 +99,9 @@ Core outputs:
 - Immutable `GameStateSnapshot` for render/UI (serializable, renderer-friendly).
 - Transient `GameEvent`s (spawn/despawn/hit/sfx/screenshake/reward, etc.).
 
+Animation selection is resolved in Core via `AnimSystem` using `AnimResolver` +
+`AnimProfile`, and stored in `AnimStateStore` for snapshot consumption.
+
 Renderer/UI must:
 
 - Treat snapshots as read-only.
@@ -180,6 +183,281 @@ When asked to implement/fix something:
 
 ---
 If anything here conflicts with repo docs, treat repo docs as the source of truth.
+
+
+===== FILE: lib/core/anim/anim_resolver.dart =====
+/// Shared animation resolver for Core entities.
+library;
+
+import '../snapshots/enums.dart';
+
+class AnimProfile {
+  const AnimProfile({
+    required this.minMoveSpeed,
+    required this.runSpeedThresholdX,
+    this.supportsWalk = true,
+    this.supportsJumpFall = true,
+    this.supportsDash = false,
+    this.supportsCast = false,
+    this.supportsRanged = false,
+    this.supportsSpawn = false,
+    this.directionalAttack = false,
+    this.attackAnimKey = AnimKey.attack,
+    this.idleAnimKey = AnimKey.idle,
+    this.walkAnimKey = AnimKey.walk,
+    this.runAnimKey = AnimKey.run,
+    this.jumpAnimKey = AnimKey.jump,
+    this.fallAnimKey = AnimKey.fall,
+    this.castAnimKey = AnimKey.cast,
+    this.rangedAnimKey = AnimKey.ranged,
+    this.dashAnimKey = AnimKey.dash,
+    this.hitAnimKey = AnimKey.hit,
+    this.deathAnimKey = AnimKey.death,
+    this.spawnAnimKey = AnimKey.spawn,
+  });
+
+  final double minMoveSpeed;
+  final double runSpeedThresholdX;
+  final bool supportsWalk;
+  final bool supportsJumpFall;
+  final bool supportsDash;
+  final bool supportsCast;
+  final bool supportsRanged;
+  final bool supportsSpawn;
+  final bool directionalAttack;
+
+  final AnimKey attackAnimKey;
+  final AnimKey idleAnimKey;
+  final AnimKey walkAnimKey;
+  final AnimKey runAnimKey;
+  final AnimKey jumpAnimKey;
+  final AnimKey fallAnimKey;
+  final AnimKey castAnimKey;
+  final AnimKey rangedAnimKey;
+  final AnimKey dashAnimKey;
+  final AnimKey hitAnimKey;
+  final AnimKey deathAnimKey;
+  final AnimKey spawnAnimKey;
+}
+
+class AnimSignals {
+  const AnimSignals._({
+    required this.tick,
+    required this.hp,
+    required this.grounded,
+    required this.velX,
+    required this.velY,
+    required this.lastDamageTick,
+    required this.hitAnimTicks,
+    required this.lastAttackTick,
+    required this.attackAnimTicks,
+    required this.attackLeftAnimTicks,
+    required this.lastAttackFacing,
+    required this.lastCastTick,
+    required this.castAnimTicks,
+    required this.lastRangedTick,
+    required this.rangedAnimTicks,
+    required this.dashTicksLeft,
+    required this.dashDurationTicks,
+    required this.spawnAnimTicks,
+  });
+
+  const AnimSignals.player({
+    required int tick,
+    required double hp,
+    required bool grounded,
+    required double velX,
+    required double velY,
+    required int lastDamageTick,
+    required int hitAnimTicks,
+    required int lastAttackTick,
+    required int attackAnimTicks,
+    required int attackLeftAnimTicks,
+    required Facing lastAttackFacing,
+    required int lastCastTick,
+    required int castAnimTicks,
+    required int lastRangedTick,
+    required int rangedAnimTicks,
+    required int dashTicksLeft,
+    required int dashDurationTicks,
+    required int spawnAnimTicks,
+  }) : this._(
+         tick: tick,
+         hp: hp,
+         grounded: grounded,
+         velX: velX,
+         velY: velY,
+         lastDamageTick: lastDamageTick,
+         hitAnimTicks: hitAnimTicks,
+         lastAttackTick: lastAttackTick,
+         attackAnimTicks: attackAnimTicks,
+         attackLeftAnimTicks: attackLeftAnimTicks,
+         lastAttackFacing: lastAttackFacing,
+         lastCastTick: lastCastTick,
+         castAnimTicks: castAnimTicks,
+         lastRangedTick: lastRangedTick,
+         rangedAnimTicks: rangedAnimTicks,
+         dashTicksLeft: dashTicksLeft,
+         dashDurationTicks: dashDurationTicks,
+         spawnAnimTicks: spawnAnimTicks,
+       );
+
+  const AnimSignals.enemy({
+    required int tick,
+    required double hp,
+    required bool grounded,
+    required double velX,
+    required double velY,
+    required int lastDamageTick,
+    required int hitAnimTicks,
+    required int lastAttackTick,
+    required int attackAnimTicks,
+    required Facing lastAttackFacing,
+  }) : this._(
+         tick: tick,
+         hp: hp,
+         grounded: grounded,
+         velX: velX,
+         velY: velY,
+         lastDamageTick: lastDamageTick,
+         hitAnimTicks: hitAnimTicks,
+         lastAttackTick: lastAttackTick,
+         attackAnimTicks: attackAnimTicks,
+         attackLeftAnimTicks: attackAnimTicks,
+         lastAttackFacing: lastAttackFacing,
+         lastCastTick: -1,
+         castAnimTicks: 0,
+         lastRangedTick: -1,
+         rangedAnimTicks: 0,
+         dashTicksLeft: 0,
+         dashDurationTicks: 0,
+         spawnAnimTicks: 0,
+       );
+
+  final int tick;
+  final double hp;
+  final bool grounded;
+  final double velX;
+  final double velY;
+  final int lastDamageTick;
+  final int hitAnimTicks;
+  final int lastAttackTick;
+  final int attackAnimTicks;
+  final int attackLeftAnimTicks;
+  final Facing lastAttackFacing;
+  final int lastCastTick;
+  final int castAnimTicks;
+  final int lastRangedTick;
+  final int rangedAnimTicks;
+  final int dashTicksLeft;
+  final int dashDurationTicks;
+  final int spawnAnimTicks;
+}
+
+class AnimResult {
+  const AnimResult({required this.anim, required this.animFrame});
+
+  final AnimKey anim;
+  final int animFrame;
+}
+
+class AnimResolver {
+  static AnimResult resolve(AnimProfile profile, AnimSignals signals) {
+    final tick = signals.tick;
+    final lastDamageTick = signals.lastDamageTick;
+    final showHit =
+        signals.hitAnimTicks > 0 &&
+        lastDamageTick >= 0 &&
+        (tick - lastDamageTick) < signals.hitAnimTicks;
+
+    final attackTicks =
+        profile.directionalAttack &&
+            signals.lastAttackFacing == Facing.left
+        ? signals.attackLeftAnimTicks
+        : signals.attackAnimTicks;
+    final showAttack =
+        attackTicks > 0 &&
+        signals.lastAttackTick >= 0 &&
+        (tick - signals.lastAttackTick) < attackTicks;
+    final showCast =
+        profile.supportsCast &&
+        signals.castAnimTicks > 0 &&
+        signals.lastCastTick >= 0 &&
+        (tick - signals.lastCastTick) < signals.castAnimTicks;
+    final showRanged =
+        profile.supportsRanged &&
+        signals.rangedAnimTicks > 0 &&
+        signals.lastRangedTick >= 0 &&
+        (tick - signals.lastRangedTick) < signals.rangedAnimTicks;
+
+    if (signals.hp <= 0) {
+      return AnimResult(
+        anim: profile.deathAnimKey,
+        animFrame: _frameFromTick(tick, lastDamageTick),
+      );
+    }
+    if (showHit) {
+      return AnimResult(
+        anim: profile.hitAnimKey,
+        animFrame: _frameFromTick(tick, lastDamageTick),
+      );
+    }
+    if (showAttack) {
+      final attackKey =
+          profile.directionalAttack &&
+              signals.lastAttackFacing == Facing.left
+          ? AnimKey.attackLeft
+          : profile.attackAnimKey;
+      return AnimResult(
+        anim: attackKey,
+        animFrame: _frameFromTick(tick, signals.lastAttackTick),
+      );
+    }
+    if (showCast) {
+      return AnimResult(
+        anim: profile.castAnimKey,
+        animFrame: _frameFromTick(tick, signals.lastCastTick),
+      );
+    }
+    if (showRanged) {
+      return AnimResult(
+        anim: profile.rangedAnimKey,
+        animFrame: _frameFromTick(tick, signals.lastRangedTick),
+      );
+    }
+    if (profile.supportsDash && signals.dashTicksLeft > 0) {
+      final frame = signals.dashDurationTicks - signals.dashTicksLeft;
+      return AnimResult(
+        anim: profile.dashAnimKey,
+        animFrame: frame < 0 ? 0 : frame,
+      );
+    }
+    if (profile.supportsJumpFall && !signals.grounded) {
+      return AnimResult(
+        anim: signals.velY < 0 ? profile.jumpAnimKey : profile.fallAnimKey,
+        animFrame: tick,
+      );
+    }
+    if (profile.supportsSpawn &&
+        signals.spawnAnimTicks > 0 &&
+        tick < signals.spawnAnimTicks) {
+      return AnimResult(anim: profile.spawnAnimKey, animFrame: tick);
+    }
+
+    final speedX = signals.velX.abs();
+    if (speedX <= profile.minMoveSpeed) {
+      return AnimResult(anim: profile.idleAnimKey, animFrame: tick);
+    }
+    if (profile.supportsWalk && speedX < profile.runSpeedThresholdX) {
+      return AnimResult(anim: profile.walkAnimKey, animFrame: tick);
+    }
+    return AnimResult(anim: profile.runAnimKey, animFrame: tick);
+  }
+
+  static int _frameFromTick(int tick, int startTick) {
+    return startTick >= 0 ? tick - startTick : tick;
+  }
+}
 
 
 ===== FILE: lib/core/camera/autoscroll_camera.dart =====
@@ -1196,6 +1474,7 @@ class EntityFactory {
   /// - [TransformStore]: Position and velocity.
   /// - [PlayerInputStore]: Marks this entity as controllable by player input.
   /// - [ActionAnimStore]: Tracks action intent ticks for rendering.
+  /// - [AnimStateStore]: Stores resolved animation state for rendering.
   /// - [MovementStore]: Handles movement logic and facing direction.
   /// - [BodyStore]: Physics body properties (mass, friction, etc.).
   /// - [ColliderAabbStore]: Axis-aligned bounding box for collision detection.
@@ -1239,6 +1518,7 @@ class EntityFactory {
     world.transform.add(id, posX: posX, posY: posY, velX: velX, velY: velY);
     world.playerInput.add(id);
     world.actionAnim.add(id);
+    world.animState.add(id);
     world.movement.add(id, facing: facing);
     world.body.add(id, body);
     world.colliderAabb.add(id, collider);
@@ -1281,12 +1561,15 @@ class EntityFactory {
   /// - [StatusImmunityStore]: Status effect immunities.
   /// - [StatModifierStore]: Runtime stat modifiers from statuses.
   /// - [EnemyStore]: Identifies the entity as an enemy and stores its type.
-  /// - [EnemyAnimStore]: Animation state computed by [EnemyAnimSystem].
+  /// - [AnimStateStore]: Animation state computed by [AnimSystem].
+  /// - [MeleeEngagementStore]: Engagement state for melee AI.
+  /// - [NavIntentStore]: Navigation output for ground enemies.
+  /// - [EngagementIntentStore]: Engagement output for melee enemies.
   ///
   /// Adds specific components based on [enemyId]:
   /// - [EnemyId.unocoDemon]: Adds [FlyingEnemySteeringStore] for air movement.
-  /// - [EnemyId.groundEnemy]: Adds [SurfaceNavStateStore] and [GroundEnemyChaseOffsetStore]
-  ///   for ground-based navigation and chasing behavior.
+  /// - [EnemyId.groundEnemy]: Adds [SurfaceNavStateStore], [GroundEnemyChaseOffsetStore],
+  ///   [NavIntentStore], and [EngagementIntentStore] for ground navigation/engagement.
   EntityId createEnemy({
     required EnemyId enemyId,
     required double posX,
@@ -1316,10 +1599,11 @@ class EntityFactory {
     world.damageResistance.add(id, resistance);
     world.mana.add(id, mana);
     world.meleeIntent.add(id);
+    world.meleeEngagement.add(id);
     world.statModifier.add(id);
     world.stamina.add(id, stamina);
     world.enemy.add(id, EnemyDef(enemyId: enemyId, facing: facing));
-    world.enemyAnim.add(id);
+    world.animState.add(id);
     world.statusImmunity.add(id, statusImmunity);
     if (enemyId == EnemyId.unocoDemon) {
       world.flyingEnemySteering.add(
@@ -1333,6 +1617,8 @@ class EntityFactory {
         id,
         GroundEnemyChaseOffsetDef(rngState: seedFrom(world.seed, id)),
       );
+      world.navIntent.add(id);
+      world.engagementIntent.add(id);
     }
     return id;
   }
@@ -2413,6 +2699,42 @@ class GridIndex2D {
 
 
 
+===== FILE: lib/core/ecs/stores/anim_state_store.dart =====
+import '../../snapshots/enums.dart';
+import '../entity_id.dart';
+import '../sparse_set.dart';
+
+/// Per-entity animation state computed by [AnimSystem].
+class AnimStateStore extends SparseSet {
+  /// Current animation key (idle, run, hit, death, etc.).
+  final List<AnimKey> anim = <AnimKey>[];
+
+  /// Frame offset for the current animation (ticks since anim start).
+  final List<int> animFrame = <int>[];
+
+  void add(EntityId entity) {
+    final i = addEntity(entity);
+    anim[i] = AnimKey.idle;
+    animFrame[i] = 0;
+  }
+
+  @override
+  void onDenseAdded(int denseIndex) {
+    anim.add(AnimKey.idle);
+    animFrame.add(0);
+  }
+
+  @override
+  void onSwapRemove(int removeIndex, int lastIndex) {
+    anim[removeIndex] = anim[lastIndex];
+    animFrame[removeIndex] = animFrame[lastIndex];
+
+    anim.removeLast();
+    animFrame.removeLast();
+  }
+}
+
+
 ===== FILE: lib/core/ecs/stores/body_store.dart =====
 import '../entity_id.dart';
 import '../sparse_set.dart';
@@ -3277,6 +3599,55 @@ class EnemyStore extends SparseSet {
 
 
 
+===== FILE: lib/core/ecs/stores/enemies/engagement_intent_store.dart =====
+import '../../entity_id.dart';
+import '../../sparse_set.dart';
+
+/// Engagement intent for melee enemies (desired slot + movement modifiers).
+class EngagementIntentStore extends SparseSet {
+  /// Desired target X for locomotion when not following a nav plan.
+  final List<double> desiredTargetX = <double>[];
+
+  /// Arrival slow radius used to dampen speed near the slot.
+  final List<double> arrivalSlowRadiusX = <double>[];
+
+  /// Speed multiplier for the current engagement state.
+  final List<double> stateSpeedMul = <double>[];
+
+  /// Speed scale to apply when chasing without a nav plan.
+  final List<double> speedScale = <double>[];
+
+  void add(EntityId entity) {
+    final i = addEntity(entity);
+    desiredTargetX[i] = 0.0;
+    arrivalSlowRadiusX[i] = 0.0;
+    stateSpeedMul[i] = 1.0;
+    speedScale[i] = 1.0;
+  }
+
+  @override
+  void onDenseAdded(int denseIndex) {
+    desiredTargetX.add(0.0);
+    arrivalSlowRadiusX.add(0.0);
+    stateSpeedMul.add(1.0);
+    speedScale.add(1.0);
+  }
+
+  @override
+  void onSwapRemove(int removeIndex, int lastIndex) {
+    desiredTargetX[removeIndex] = desiredTargetX[lastIndex];
+    arrivalSlowRadiusX[removeIndex] = arrivalSlowRadiusX[lastIndex];
+    stateSpeedMul[removeIndex] = stateSpeedMul[lastIndex];
+    speedScale[removeIndex] = speedScale[lastIndex];
+
+    desiredTargetX.removeLast();
+    arrivalSlowRadiusX.removeLast();
+    stateSpeedMul.removeLast();
+    speedScale.removeLast();
+  }
+}
+
+
 ===== FILE: lib/core/ecs/stores/enemies/flying_enemy_steering_store.dart =====
 import '../../entity_id.dart';
 import '../../sparse_set.dart';
@@ -3387,6 +3758,131 @@ class GroundEnemyChaseOffsetStore extends SparseSet {
     chaseOffsetX.removeLast();
     chaseSpeedScale.removeLast();
     initialized.removeLast();
+  }
+}
+
+
+===== FILE: lib/core/ecs/stores/enemies/melee_engagement_store.dart =====
+import '../../entity_id.dart';
+import '../../sparse_set.dart';
+
+/// Engagement state for melee-focused enemies.
+///
+/// Keeps lightweight state so AI can avoid oscillating around the target and
+/// apply different movement rules during attack/recover windows.
+class MeleeEngagementStore extends SparseSet {
+  /// Current engagement state.
+  final List<MeleeEngagementState> state = <MeleeEngagementState>[];
+
+  /// Remaining ticks in the current state (used for attack/recover windows).
+  final List<int> ticksLeft = <int>[];
+
+  /// Preferred side relative to the target (+1 right, -1 left, 0 unset).
+  final List<int> preferredSide = <int>[];
+
+  void add(EntityId entity) {
+    final i = addEntity(entity);
+    state[i] = MeleeEngagementState.approach;
+    ticksLeft[i] = 0;
+    preferredSide[i] = 0;
+  }
+
+  @override
+  void onDenseAdded(int denseIndex) {
+    state.add(MeleeEngagementState.approach);
+    ticksLeft.add(0);
+    preferredSide.add(0);
+  }
+
+  @override
+  void onSwapRemove(int removeIndex, int lastIndex) {
+    state[removeIndex] = state[lastIndex];
+    ticksLeft[removeIndex] = ticksLeft[lastIndex];
+    preferredSide[removeIndex] = preferredSide[lastIndex];
+
+    state.removeLast();
+    ticksLeft.removeLast();
+    preferredSide.removeLast();
+  }
+}
+
+enum MeleeEngagementState {
+  approach,
+  engage,
+  attack,
+  recover,
+}
+
+
+===== FILE: lib/core/ecs/stores/enemies/nav_intent_store.dart =====
+import '../../entity_id.dart';
+import '../../sparse_set.dart';
+
+/// Navigation intent produced by pathfinding for ground enemies.
+class NavIntentStore extends SparseSet {
+  /// Target X used for path planning (player or predicted landing).
+  final List<double> navTargetX = <double>[];
+
+  /// Desired X from the navigator (immediate movement goal).
+  final List<double> desiredX = <double>[];
+
+  /// Whether the enemy should jump this tick.
+  final List<bool> jumpNow = <bool>[];
+
+  /// Whether a valid navigation plan exists.
+  final List<bool> hasPlan = <bool>[];
+
+  /// Committed move direction for plan execution (-1, 0, 1).
+  final List<int> commitMoveDirX = <int>[];
+
+  /// Safe surface bounds for no-plan movement.
+  final List<double> safeSurfaceMinX = <double>[];
+  final List<double> safeSurfaceMaxX = <double>[];
+  final List<bool> hasSafeSurface = <bool>[];
+
+  void add(EntityId entity) {
+    final i = addEntity(entity);
+    navTargetX[i] = 0.0;
+    desiredX[i] = 0.0;
+    jumpNow[i] = false;
+    hasPlan[i] = false;
+    commitMoveDirX[i] = 0;
+    safeSurfaceMinX[i] = 0.0;
+    safeSurfaceMaxX[i] = 0.0;
+    hasSafeSurface[i] = false;
+  }
+
+  @override
+  void onDenseAdded(int denseIndex) {
+    navTargetX.add(0.0);
+    desiredX.add(0.0);
+    jumpNow.add(false);
+    hasPlan.add(false);
+    commitMoveDirX.add(0);
+    safeSurfaceMinX.add(0.0);
+    safeSurfaceMaxX.add(0.0);
+    hasSafeSurface.add(false);
+  }
+
+  @override
+  void onSwapRemove(int removeIndex, int lastIndex) {
+    navTargetX[removeIndex] = navTargetX[lastIndex];
+    desiredX[removeIndex] = desiredX[lastIndex];
+    jumpNow[removeIndex] = jumpNow[lastIndex];
+    hasPlan[removeIndex] = hasPlan[lastIndex];
+    commitMoveDirX[removeIndex] = commitMoveDirX[lastIndex];
+    safeSurfaceMinX[removeIndex] = safeSurfaceMinX[lastIndex];
+    safeSurfaceMaxX[removeIndex] = safeSurfaceMaxX[lastIndex];
+    hasSafeSurface[removeIndex] = hasSafeSurface[lastIndex];
+
+    navTargetX.removeLast();
+    desiredX.removeLast();
+    jumpNow.removeLast();
+    hasPlan.removeLast();
+    commitMoveDirX.removeLast();
+    safeSurfaceMinX.removeLast();
+    safeSurfaceMaxX.removeLast();
+    hasSafeSurface.removeLast();
   }
 }
 
@@ -4807,6 +5303,185 @@ class TransformStore extends SparseSet {
 }
 
 
+===== FILE: lib/core/ecs/systems/anim_system.dart =====
+import '../../anim/anim_resolver.dart';
+import '../../enemies/enemy_catalog.dart';
+import '../../enemies/enemy_id.dart';
+import '../../players/player_tuning.dart';
+import '../../util/tick_math.dart';
+import '../entity_id.dart';
+import '../world.dart';
+
+/// System that computes per-entity animation state each tick.
+///
+/// Uses [AnimResolver] with per-entity [AnimProfile]s to pick the animation key
+/// and frame offset deterministically.
+class AnimSystem {
+  AnimSystem({
+    required int tickHz,
+    required this.enemyCatalog,
+    required MovementTuningDerived playerMovement,
+    required AnimTuningDerived playerAnimTuning,
+  }) : _playerMovement = playerMovement,
+       _playerAnimTuning = playerAnimTuning,
+       _playerProfile = AnimProfile(
+         minMoveSpeed: playerMovement.base.minMoveSpeed,
+         runSpeedThresholdX: playerMovement.base.runSpeedThresholdX,
+         supportsWalk: true,
+         supportsJumpFall: true,
+         supportsDash: true,
+         supportsCast: true,
+         supportsRanged: true,
+         supportsSpawn: true,
+         directionalAttack: true,
+       ) {
+    _buildHitAnimTicksById(tickHz);
+  }
+
+  /// Catalog for per-enemy configuration (hit windows, anim profiles).
+  final EnemyCatalog enemyCatalog;
+
+  final MovementTuningDerived _playerMovement;
+  final AnimTuningDerived _playerAnimTuning;
+  final AnimProfile _playerProfile;
+
+  /// Pre-computed hit animation durations in ticks per enemy type.
+  late final Map<EnemyId, int> _hitAnimTicksById;
+
+  void _buildHitAnimTicksById(int tickHz) {
+    _hitAnimTicksById = <EnemyId, int>{};
+    for (final id in EnemyId.values) {
+      final seconds = enemyCatalog.get(id).hitAnimSeconds;
+      _hitAnimTicksById[id] = ticksFromSecondsCeil(seconds, tickHz);
+    }
+  }
+
+  /// Updates animation state for player and enemies.
+  ///
+  /// Call this once per tick before [SnapshotBuilder.build].
+  void step(EcsWorld world, {required EntityId player, required int currentTick}) {
+    _stepPlayer(world, player: player, currentTick: currentTick);
+    _stepEnemies(world, currentTick: currentTick);
+  }
+
+  void _stepPlayer(
+    EcsWorld world, {
+    required EntityId player,
+    required int currentTick,
+  }) {
+    if (player < 0) return;
+    if (!world.animState.has(player)) return;
+    if (!world.transform.has(player) || !world.movement.has(player)) return;
+
+    final ai = world.animState.indexOf(player);
+    final ti = world.transform.indexOf(player);
+    final mi = world.movement.indexOf(player);
+
+    final hi = world.health.tryIndexOf(player);
+    final hp = hi == null ? 1.0 : world.health.hp[hi];
+
+    final grounded = world.collision.has(player)
+        ? world.collision.grounded[world.collision.indexOf(player)]
+        : false;
+
+    final actionIndex = world.actionAnim.tryIndexOf(player);
+    final facing = world.movement.facing[mi];
+    final lastMeleeTick = actionIndex == null
+        ? -1
+        : world.actionAnim.lastMeleeTick[actionIndex];
+    final lastMeleeFacing = actionIndex == null
+        ? facing
+        : world.actionAnim.lastMeleeFacing[actionIndex];
+    final lastCastTick = actionIndex == null
+        ? -1
+        : world.actionAnim.lastCastTick[actionIndex];
+    final lastRangedTick = actionIndex == null
+        ? -1
+        : world.actionAnim.lastRangedTick[actionIndex];
+
+    final lastDamageTick = world.lastDamage.has(player)
+        ? world.lastDamage.tick[world.lastDamage.indexOf(player)]
+        : -1;
+
+    final signals = AnimSignals.player(
+      tick: currentTick,
+      hp: hp,
+      grounded: grounded,
+      velX: world.transform.velX[ti],
+      velY: world.transform.velY[ti],
+      lastDamageTick: lastDamageTick,
+      hitAnimTicks: _playerAnimTuning.hitAnimTicks,
+      lastAttackTick: lastMeleeTick,
+      attackAnimTicks: _playerAnimTuning.attackAnimTicks,
+      attackLeftAnimTicks: _playerAnimTuning.attackLeftAnimTicks,
+      lastAttackFacing: lastMeleeFacing,
+      lastCastTick: lastCastTick,
+      castAnimTicks: _playerAnimTuning.castAnimTicks,
+      lastRangedTick: lastRangedTick,
+      rangedAnimTicks: _playerAnimTuning.rangedAnimTicks,
+      dashTicksLeft: world.movement.dashTicksLeft[mi],
+      dashDurationTicks: _playerMovement.dashDurationTicks,
+      spawnAnimTicks: _playerAnimTuning.spawnAnimTicks,
+    );
+
+    final result = AnimResolver.resolve(_playerProfile, signals);
+    world.animState.anim[ai] = result.anim;
+    world.animState.animFrame[ai] = result.animFrame;
+  }
+
+  void _stepEnemies(EcsWorld world, {required int currentTick}) {
+    final enemies = world.enemy;
+    final animStore = world.animState;
+
+    for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
+      final e = enemies.denseEntities[ei];
+      if (!animStore.has(e)) continue;
+      final ai = animStore.indexOf(e);
+      final enemyId = enemies.enemyId[ei];
+      final profile = enemyCatalog.get(enemyId).animProfile;
+
+      final hp = world.health.has(e)
+          ? world.health.hp[world.health.indexOf(e)]
+          : 1.0;
+
+      final grounded = world.collision.has(e)
+          ? world.collision.grounded[world.collision.indexOf(e)]
+          : false;
+
+      final lastDamageTick = world.lastDamage.has(e)
+          ? world.lastDamage.tick[world.lastDamage.indexOf(e)]
+          : -1;
+
+      final hitAnimTicks = _hitAnimTicksById[enemyId] ?? 0;
+      final lastMeleeTick = enemies.lastMeleeTick[ei];
+      final lastMeleeAnimTicks = enemies.lastMeleeAnimTicks[ei];
+      final lastMeleeFacing = enemies.lastMeleeFacing[ei];
+
+      final ti = world.transform.tryIndexOf(e);
+      final velX = ti == null ? 0.0 : world.transform.velX[ti];
+      final velY = ti == null ? 0.0 : world.transform.velY[ti];
+
+      final signals = AnimSignals.enemy(
+        tick: currentTick,
+        hp: hp,
+        grounded: grounded,
+        velX: velX,
+        velY: velY,
+        lastDamageTick: lastDamageTick,
+        hitAnimTicks: hitAnimTicks,
+        lastAttackTick: lastMeleeTick,
+        attackAnimTicks: lastMeleeAnimTicks,
+        lastAttackFacing: lastMeleeFacing,
+      );
+
+      final result = AnimResolver.resolve(profile, signals);
+      animStore.anim[ai] = result.anim;
+      animStore.animFrame[ai] = result.animFrame;
+    }
+  }
+}
+
+
 ===== FILE: lib/core/ecs/systems/collectible_system.dart =====
 import '../hit/aabb_hit_utils.dart';
 import '../entity_id.dart';
@@ -5271,6 +5946,253 @@ class DamageSystem {
 }
 
 
+===== FILE: lib/core/ecs/systems/enemy_combat_system.dart =====
+import 'dart:math';
+
+import 'package:rpg_runner/core/ecs/entity_id.dart';
+
+import '../../combat/damage_type.dart';
+import '../../combat/status/status.dart';
+import '../../enemies/enemy_catalog.dart';
+import '../../enemies/enemy_id.dart';
+import '../../projectiles/projectile_catalog.dart';
+import '../../snapshots/enums.dart';
+import '../../spells/spell_catalog.dart';
+import '../../tuning/flying_enemy_tuning.dart';
+import '../../tuning/ground_enemy_tuning.dart';
+import '../../util/double_math.dart';
+import '../stores/cast_intent_store.dart';
+import '../stores/melee_intent_store.dart';
+import '../stores/enemies/melee_engagement_store.dart';
+import '../world.dart';
+
+/// Handles enemy attack decisions and writes intent components.
+class EnemyCombatSystem {
+  EnemyCombatSystem({
+    required this.unocoDemonTuning,
+    required this.groundEnemyTuning,
+    required this.enemyCatalog,
+    required this.spells,
+    required this.projectiles,
+  });
+
+  final UnocoDemonTuningDerived unocoDemonTuning;
+  final GroundEnemyTuningDerived groundEnemyTuning;
+  final EnemyCatalog enemyCatalog;
+  final SpellCatalog spells;
+  final ProjectileCatalogDerived projectiles;
+
+  /// Evaluates attacks for all enemies and writes cast/melee intents.
+  void stepAttacks(
+    EcsWorld world, {
+    required EntityId player,
+    required int currentTick,
+  }) {
+    if (!world.transform.has(player)) return;
+
+    final playerTi = world.transform.indexOf(player);
+    final playerX = world.transform.posX[playerTi];
+    final playerY = world.transform.posY[playerTi];
+    final playerVelX = world.transform.velX[playerTi];
+    final playerVelY = world.transform.velY[playerTi];
+    var playerCenterX = playerX;
+    var playerCenterY = playerY;
+    if (world.colliderAabb.has(player)) {
+      final ai = world.colliderAabb.indexOf(player);
+      playerCenterX += world.colliderAabb.offsetX[ai];
+      playerCenterY += world.colliderAabb.offsetY[ai];
+    }
+
+    final enemies = world.enemy;
+    for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
+      final enemy = enemies.denseEntities[ei];
+      final ti = world.transform.tryIndexOf(enemy);
+      if (ti == null) continue;
+
+      if (!world.cooldown.has(enemy)) continue;
+
+      final ex = world.transform.posX[ti];
+      final ey = world.transform.posY[ti];
+
+      switch (enemies.enemyId[ei]) {
+        case EnemyId.unocoDemon:
+          var enemyCenterX = ex;
+          var enemyCenterY = ey;
+          if (world.colliderAabb.has(enemy)) {
+            final ai = world.colliderAabb.indexOf(enemy);
+            enemyCenterX += world.colliderAabb.offsetX[ai];
+            enemyCenterY += world.colliderAabb.offsetY[ai];
+          }
+          _writeUnocoDemonCastIntent(
+            world,
+            enemy: enemy,
+            enemyIndex: ei,
+            enemyCenterX: enemyCenterX,
+            enemyCenterY: enemyCenterY,
+            playerCenterX: playerCenterX,
+            playerCenterY: playerCenterY,
+            playerVelX: playerVelX,
+            playerVelY: playerVelY,
+            currentTick: currentTick,
+          );
+        case EnemyId.groundEnemy:
+          _writeGroundEnemyMeleeIntent(
+            world,
+            enemy: enemy,
+            enemyIndex: ei,
+            ex: ex,
+            ey: ey,
+            playerX: playerX,
+            currentTick: currentTick,
+          );
+      }
+    }
+  }
+
+  void _writeUnocoDemonCastIntent(
+    EcsWorld world, {
+    required EntityId enemy,
+    required int enemyIndex,
+    required double enemyCenterX,
+    required double enemyCenterY,
+    required double playerCenterX,
+    required double playerCenterY,
+    required double playerVelX,
+    required double playerVelY,
+    required int currentTick,
+  }) {
+    final tuning = unocoDemonTuning;
+    if (!world.castIntent.has(enemy)) {
+      assert(
+        false,
+        'EnemyCombatSystem requires CastIntentStore on enemies; add it at spawn time.',
+      );
+      return;
+    }
+
+    final enemyId = world.enemy.enemyId[enemyIndex];
+    final spellId = enemyCatalog.get(enemyId).primarySpellId;
+    if (spellId == null) return;
+    final projectileId = spells.get(spellId).projectileId;
+    final projectileSpeed = projectileId == null
+        ? null
+        : projectiles.base.get(projectileId).speedUnitsPerSecond;
+
+    var targetX = playerCenterX;
+    var targetY = playerCenterY;
+    if (projectileSpeed != null && projectileSpeed > 0.0) {
+      final dx = playerCenterX - enemyCenterX;
+      final dy = playerCenterY - enemyCenterY;
+      final distance = sqrt(dx * dx + dy * dy);
+      final leadSeconds = clampDouble(
+        distance / projectileSpeed,
+        tuning.base.unocoDemonAimLeadMinSeconds,
+        tuning.base.unocoDemonAimLeadMaxSeconds,
+      );
+      targetX = playerCenterX + playerVelX * leadSeconds;
+      targetY = playerCenterY + playerVelY * leadSeconds;
+    }
+
+    final castDirX = targetX - enemyCenterX;
+    if (castDirX.abs() > 1e-6) {
+      world.enemy.facing[enemyIndex] = castDirX >= 0
+          ? Facing.right
+          : Facing.left;
+    }
+
+    world.castIntent.set(
+      enemy,
+      CastIntentDef(
+        spellId: spellId,
+        dirX: targetX - enemyCenterX,
+        dirY: targetY - enemyCenterY,
+        fallbackDirX: 1.0,
+        fallbackDirY: 0.0,
+        originOffset: tuning.base.unocoDemonCastOriginOffset,
+        cooldownTicks: tuning.unocoDemonCastCooldownTicks,
+        tick: currentTick,
+      ),
+    );
+  }
+
+  void _writeGroundEnemyMeleeIntent(
+    EcsWorld world, {
+    required EntityId enemy,
+    required int enemyIndex,
+    required double ex,
+    required double ey,
+    required double playerX,
+    required int currentTick,
+  }) {
+    final tuning = groundEnemyTuning;
+    if (!world.meleeIntent.has(enemy)) {
+      assert(
+        false,
+        'EnemyCombatSystem requires MeleeIntentStore on enemies; add it at spawn time.',
+      );
+      return;
+    }
+    if (!world.colliderAabb.has(enemy)) {
+      assert(
+        false,
+        'GroundEnemy melee requires ColliderAabbStore on the enemy to compute hitbox offset.',
+      );
+      return;
+    }
+
+    final dx = (playerX - ex).abs();
+    if (dx > tuning.combat.meleeRangeX) return;
+
+    final facing = world.enemy.facing[enemyIndex];
+    final dirX = facing == Facing.right ? 1.0 : -1.0;
+
+    final halfX = tuning.combat.meleeHitboxSizeX * 0.5;
+    final halfY = tuning.combat.meleeHitboxSizeY * 0.5;
+
+    final ownerHalfX =
+        world.colliderAabb.halfX[world.colliderAabb.indexOf(enemy)];
+    final offsetX = dirX * (ownerHalfX * 0.5 + halfX);
+    const offsetY = 0.0;
+
+    world.meleeIntent.set(
+      enemy,
+      MeleeIntentDef(
+        damage: tuning.combat.meleeDamage,
+        damageType: DamageType.physical,
+        statusProfileId: StatusProfileId.none,
+        halfX: halfX,
+        halfY: halfY,
+        offsetX: offsetX,
+        offsetY: offsetY,
+        dirX: dirX,
+        dirY: 0.0,
+        activeTicks: tuning.combat.meleeActiveTicks,
+        cooldownTicks: tuning.combat.meleeCooldownTicks,
+        staminaCost: 0.0,
+        tick: currentTick,
+      ),
+    );
+
+    if (world.meleeEngagement.has(enemy)) {
+      final mi = world.meleeEngagement.indexOf(enemy);
+      world.meleeEngagement.state[mi] = MeleeEngagementState.attack;
+      world.meleeEngagement.ticksLeft[mi] = tuning.combat.meleeAnimTicks;
+      world.meleeEngagement.preferredSide[mi] = ex >= playerX ? 1 : -1;
+    } else {
+      assert(
+        false,
+        'EnemyCombatSystem requires MeleeEngagementStore on melee enemies; add it at spawn time.',
+      );
+    }
+
+    world.enemy.lastMeleeTick[enemyIndex] = currentTick;
+    world.enemy.lastMeleeFacing[enemyIndex] = facing;
+    world.enemy.lastMeleeAnimTicks[enemyIndex] =
+        tuning.combat.meleeAnimTicks;
+  }
+}
+
+
 ===== FILE: lib/core/ecs/systems/enemy_cull_system.dart =====
 import '../../tuning/track_tuning.dart';
 import '../entity_id.dart';
@@ -5338,144 +6260,285 @@ class EnemyCullSystem {
 }
 
 
-===== FILE: lib/core/ecs/systems/enemy_system.dart =====
+===== FILE: lib/core/ecs/systems/enemy_engagement_system.dart =====
 import 'dart:math';
 
 import 'package:rpg_runner/core/ecs/entity_id.dart';
 
-import '../../enemies/enemy_catalog.dart';
 import '../../enemies/enemy_id.dart';
-import '../../combat/damage_type.dart';
-import '../../combat/status/status.dart';
+import '../../tuning/ground_enemy_tuning.dart';
+import '../../util/deterministic_rng.dart';
+import '../../util/double_math.dart';
+import '../stores/enemies/melee_engagement_store.dart';
+import '../world.dart';
+
+/// Resolves melee engagement state and desired slots for ground enemies.
+class EnemyEngagementSystem {
+  EnemyEngagementSystem({required this.groundEnemyTuning});
+
+  final GroundEnemyTuningDerived groundEnemyTuning;
+
+  /// Updates engagement intents for ground enemies.
+  void step(
+    EcsWorld world, {
+    required EntityId player,
+  }) {
+    if (!world.transform.has(player)) return;
+
+    final playerTi = world.transform.indexOf(player);
+    final playerX = world.transform.posX[playerTi];
+
+    final enemies = world.enemy;
+    for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
+      if (enemies.enemyId[ei] != EnemyId.groundEnemy) continue;
+
+      final enemy = enemies.denseEntities[ei];
+      final ti = world.transform.tryIndexOf(enemy);
+      if (ti == null) continue;
+
+      final meleeIndex = world.meleeEngagement.tryIndexOf(enemy);
+      if (meleeIndex == null) {
+        assert(
+          false,
+          'EnemyEngagementSystem requires MeleeEngagementStore on melee enemies; add it at spawn time.',
+        );
+        continue;
+      }
+
+      final chaseIndex = world.groundEnemyChaseOffset.tryIndexOf(enemy);
+      if (chaseIndex == null) continue;
+
+      final navIntentIndex = world.navIntent.tryIndexOf(enemy);
+      if (navIntentIndex == null) {
+        assert(
+          false,
+          'EnemyEngagementSystem requires NavIntentStore on ground enemies; add it at spawn time.',
+        );
+        continue;
+      }
+
+      final engagementIndex = world.engagementIntent.tryIndexOf(enemy);
+      if (engagementIndex == null) {
+        assert(
+          false,
+          'EnemyEngagementSystem requires EngagementIntentStore on melee enemies; add it at spawn time.',
+        );
+        continue;
+      }
+
+      _ensureChaseOffsetInitialized(world, chaseIndex, enemy);
+
+      final chaseOffset = world.groundEnemyChaseOffset;
+      final chaseOffsetX = chaseOffset.chaseOffsetX[chaseIndex];
+      final chaseSpeedScale = chaseOffset.chaseSpeedScale[chaseIndex];
+
+      final navTargetX = world.navIntent.navTargetX[navIntentIndex];
+
+      var state = world.meleeEngagement.state[meleeIndex];
+      var ticksLeft = world.meleeEngagement.ticksLeft[meleeIndex];
+      var preferredSide = world.meleeEngagement.preferredSide[meleeIndex];
+      if (ticksLeft > 0) {
+        ticksLeft -= 1;
+      }
+
+      final ex = world.transform.posX[ti];
+      final dxToPlayer = playerX - ex;
+      final distToPlayerX = dxToPlayer.abs();
+      final sideNow = dxToPlayer >= 0 ? -1 : 1;
+      final collapseDistX = groundEnemyTuning.combat.meleeRangeX +
+          groundEnemyTuning.locomotion.stopDistanceX;
+
+      final meleeOffsetMaxX =
+          groundEnemyTuning.navigation.chaseOffsetMeleeX.abs();
+      final meleeOffsetAbs = min(meleeOffsetMaxX, chaseOffsetX.abs());
+      final meleeOffsetX = meleeOffsetAbs == 0.0
+          ? 0.0
+          : (chaseOffsetX >= 0.0 ? meleeOffsetAbs : -meleeOffsetAbs);
+
+      if (preferredSide == 0 || sideNow != preferredSide) {
+        preferredSide = sideNow;
+      }
+
+      final engageEnterDist = groundEnemyTuning.combat.meleeRangeX +
+          groundEnemyTuning.locomotion.stopDistanceX +
+          groundEnemyTuning.engagement.meleeEngageBufferX;
+      final engageExitDist =
+          engageEnterDist + groundEnemyTuning.engagement.meleeEngageHysteresisX;
+
+      switch (state) {
+        case MeleeEngagementState.approach:
+          if (distToPlayerX <= engageEnterDist) {
+            state = MeleeEngagementState.engage;
+            ticksLeft = 0;
+          }
+          break;
+        case MeleeEngagementState.engage:
+          if (distToPlayerX > engageExitDist) {
+            state = MeleeEngagementState.approach;
+            ticksLeft = 0;
+          }
+          break;
+        case MeleeEngagementState.attack:
+          if (distToPlayerX > engageExitDist) {
+            state = MeleeEngagementState.approach;
+            ticksLeft = 0;
+          } else if (ticksLeft <= 0) {
+            state = MeleeEngagementState.recover;
+            ticksLeft = groundEnemyTuning.combat.meleeAnimTicks;
+          }
+          break;
+        case MeleeEngagementState.recover:
+          if (distToPlayerX > engageExitDist) {
+            state = MeleeEngagementState.approach;
+            ticksLeft = 0;
+          } else if (ticksLeft <= 0) {
+            state = MeleeEngagementState.engage;
+          }
+          break;
+      }
+
+      final engageTargetX =
+          navTargetX + preferredSide * groundEnemyTuning.engagement.meleeStandOffX;
+
+      double desiredTargetX;
+      var stateSpeedMul = 1.0;
+      var arrivalSlowRadiusX = 0.0;
+      var speedScale = 1.0;
+
+      if (state == MeleeEngagementState.approach) {
+        desiredTargetX = distToPlayerX <= collapseDistX
+            ? navTargetX + meleeOffsetX
+            : navTargetX + chaseOffsetX;
+        speedScale = chaseSpeedScale;
+      } else {
+        desiredTargetX = engageTargetX;
+        arrivalSlowRadiusX =
+            groundEnemyTuning.engagement.meleeArriveSlowRadiusX;
+        if (state == MeleeEngagementState.attack) {
+          stateSpeedMul = groundEnemyTuning.engagement.meleeAttackSpeedMul;
+        } else if (state == MeleeEngagementState.recover) {
+          stateSpeedMul = groundEnemyTuning.engagement.meleeRecoverSpeedMul;
+        }
+      }
+
+      final engagementIntent = world.engagementIntent;
+      engagementIntent.desiredTargetX[engagementIndex] = desiredTargetX;
+      engagementIntent.arrivalSlowRadiusX[engagementIndex] = arrivalSlowRadiusX;
+      engagementIntent.stateSpeedMul[engagementIndex] = stateSpeedMul;
+      engagementIntent.speedScale[engagementIndex] = speedScale;
+
+      world.meleeEngagement.state[meleeIndex] = state;
+      world.meleeEngagement.ticksLeft[meleeIndex] = max(0, ticksLeft);
+      world.meleeEngagement.preferredSide[meleeIndex] = preferredSide;
+    }
+  }
+
+  void _ensureChaseOffsetInitialized(
+    EcsWorld world,
+    int chaseIndex,
+    EntityId enemy,
+  ) {
+    final chaseOffset = world.groundEnemyChaseOffset;
+    if (chaseOffset.initialized[chaseIndex]) return;
+
+    final tuning = groundEnemyTuning;
+    var rngState = chaseOffset.rngState[chaseIndex];
+    if (rngState == 0) {
+      rngState = enemy;
+    }
+
+    final maxAbs = tuning.navigation.chaseOffsetMaxX.abs();
+    var offsetX = 0.0;
+    if (maxAbs > 0.0) {
+      rngState = nextUint32(rngState);
+      offsetX = rangeDouble(rngState, -maxAbs, maxAbs);
+      final minAbs = clampDouble(
+        tuning.navigation.chaseOffsetMinAbsX,
+        0.0,
+        maxAbs,
+      );
+      final absOffset = offsetX.abs();
+      if (absOffset < minAbs) {
+        offsetX = offsetX >= 0.0 ? minAbs : -minAbs;
+        if (absOffset == 0.0) {
+          offsetX = minAbs;
+        }
+      }
+    }
+
+    rngState = nextUint32(rngState);
+    final speedScale = rangeDouble(
+      rngState,
+      tuning.navigation.chaseSpeedScaleMin,
+      tuning.navigation.chaseSpeedScaleMax,
+    );
+    chaseOffset.initialized[chaseIndex] = true;
+    chaseOffset.chaseOffsetX[chaseIndex] = offsetX;
+    chaseOffset.chaseSpeedScale[chaseIndex] = speedScale;
+    chaseOffset.rngState[chaseIndex] = rngState;
+  }
+}
+
+
+===== FILE: lib/core/ecs/systems/enemy_locomotion_system.dart =====
+import 'dart:math';
+
+import 'package:rpg_runner/core/ecs/entity_id.dart';
+
+import '../../enemies/enemy_id.dart';
 import '../../snapshots/enums.dart';
-import '../../projectiles/projectile_catalog.dart';
-import '../../spells/spell_catalog.dart';
 import '../../tuning/flying_enemy_tuning.dart';
 import '../../tuning/ground_enemy_tuning.dart';
 import '../../util/deterministic_rng.dart';
 import '../../util/double_math.dart';
 import '../../util/velocity_math.dart';
 import '../../navigation/types/surface_graph.dart';
-import '../../navigation/types/surface_id.dart';
-import '../../navigation/surface_navigator.dart';
-import '../../navigation/utils/surface_spatial_index.dart';
-import '../../navigation/utils/trajectory_predictor.dart';
-import '../stores/cast_intent_store.dart';
-import '../stores/melee_intent_store.dart';
 import '../world.dart';
 
-/// Handles AI logic for enemies (steering and attacks).
-///
-/// Responsibilities:
-/// 1.  **Steering**: Computes velocities to move enemies toward their targets
-///     (Player) or patrol points. Supports both flying (direct/boid-like) and
-///     ground (pathfinding over surface graph) locomotion.
-/// 2.  **Attacks**: Decisions on when to attack. Writes intent to [CastIntentStore]
-///     (ranged) or [MeleeIntentStore] (melee), which are executed by downstream
-///     systems like `SpellCastSystem` or `MeleeSystem`.
-class EnemySystem {
-  EnemySystem({
+/// Applies movement for enemies based on navigation and engagement intents.
+class EnemyLocomotionSystem {
+  EnemyLocomotionSystem({
     required this.unocoDemonTuning,
     required this.groundEnemyTuning,
-    required this.surfaceNavigator,
-    required this.enemyCatalog,
-    required this.spells,
-    required this.projectiles,
-    this.trajectoryPredictor,
   });
 
   final UnocoDemonTuningDerived unocoDemonTuning;
   final GroundEnemyTuningDerived groundEnemyTuning;
-  final SurfaceNavigator surfaceNavigator;
-  final EnemyCatalog enemyCatalog;
-  final SpellCatalog spells;
-  final ProjectileCatalogDerived projectiles;
 
-  /// Optional predictor for anticipating where an airborne player will land.
-  ///
-  /// When provided, ground enemies will pathfind toward the predicted landing
-  /// spot instead of the player's current (airborne) position.
-  final TrajectoryPredictor? trajectoryPredictor;
-
-  /// The navigation graph for ground enemies. Can be null if the level has no surface data.
   SurfaceGraph? _surfaceGraph;
 
-  /// Spatial index for quick lookup of surfaces/edges near an entity.
-  SurfaceSpatialIndex? _surfaceIndex;
-
-  /// Version tracker to detect graph updates and invalidate cached paths if necessary.
-  int _surfaceGraphVersion = 0;
-
-  /// Updates the navigation graph used by ground enemies.
-  ///
-  /// This should be called whenever the level geometry changes or is loaded.
-  void setSurfaceGraph({
-    required SurfaceGraph graph,
-    required SurfaceSpatialIndex spatialIndex,
-    required int graphVersion,
-  }) {
+  void setSurfaceGraph({required SurfaceGraph graph}) {
     _surfaceGraph = graph;
-    _surfaceIndex = spatialIndex;
-    _surfaceGraphVersion = graphVersion;
   }
 
-  /// Calculates and applies steering velocities for all active enemies.
-  ///
-  /// This traverses the enemy list, determines the player's position, and delegates
-  /// to specific steering implementations ([_steerFlyingEnemy] or [_steerGroundEnemy]).
-  void stepSteering(
+  /// Applies locomotion for all enemies.
+  void step(
     EcsWorld world, {
     required EntityId player,
     required double groundTopY,
     required double dtSeconds,
   }) {
-    // If the player doesn't exist (e.g. dead or not spawned), enemies have no target.
     if (!world.transform.has(player)) return;
 
-    // Cache player position/physics data once to avoid repeated lookups inside the loop.
     final playerTi = world.transform.indexOf(player);
     final playerX = world.transform.posX[playerTi];
     final playerY = world.transform.posY[playerTi];
 
-    // Determine if player is grounded (relevant for ground enemies tracking).
-    final playerGrounded = world.collision.has(player)
-        ? world.collision.grounded[world.collision.indexOf(player)]
-        : false;
-
-    // Calculate player bounds for accurate targeting (e.g., aiming at center/bottom).
-    var playerHalfX = 0.0;
-    var playerBottomY = playerY;
-    if (world.colliderAabb.has(player)) {
-      final ai = world.colliderAabb.indexOf(player);
-      playerHalfX = world.colliderAabb.halfX[ai];
-      final offsetY = world.colliderAabb.offsetY[ai];
-      playerBottomY = playerY + offsetY + world.colliderAabb.halfY[ai];
-    }
-
-    // Cache player velocity for trajectory prediction (ground enemies).
-    final playerVelX = world.transform.velX[playerTi];
-    final playerVelY = world.transform.velY[playerTi];
-
     final enemies = world.enemy;
-    // Iterate over all entities tagged as enemies.
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
-      final e = enemies.denseEntities[ei];
-      final ti = world.transform.tryIndexOf(e);
-      if (ti == null)
-        continue; // Should not happen if data integrity is maintained.
+      final enemy = enemies.denseEntities[ei];
+      final ti = world.transform.tryIndexOf(enemy);
+      if (ti == null) continue;
 
       final ex = world.transform.posX[ti];
       final ey = world.transform.posY[ti];
 
-      /// TODO(Optimization): If enemy types grow significantly, consider separating
-      /// entities into specialized systems queries or sorting component arrays by
-      /// EnemyId to minimize branch mispredictions and improve cache locality.
       switch (enemies.enemyId[ei]) {
         case EnemyId.unocoDemon:
           _steerFlyingEnemy(
             world,
             enemyIndex: ei,
-            enemy: e,
+            enemy: enemy,
             enemyTi: ti,
             playerX: playerX,
             playerY: playerY,
@@ -5485,17 +6548,11 @@ class EnemySystem {
             dtSeconds: dtSeconds,
           );
         case EnemyId.groundEnemy:
-          _steerGroundEnemy(
+          _applyGroundEnemyLocomotion(
             world,
             enemyIndex: ei,
-            enemy: e,
+            enemy: enemy,
             enemyTi: ti,
-            playerX: playerX,
-            playerBottomY: playerBottomY,
-            playerHalfX: playerHalfX,
-            playerVelX: playerVelX,
-            playerVelY: playerVelY,
-            playerGrounded: playerGrounded,
             ex: ex,
             dtSeconds: dtSeconds,
           );
@@ -5503,85 +6560,174 @@ class EnemySystem {
     }
   }
 
-  /// Evaluates attack opportunities for all enemies.
-  ///
-  /// This checks distance/line-of-sight (implicitly or explicitly) and cooldowns.
-  /// If an attack is viable, it writes an intent to the respective intent store.
-  void stepAttacks(
+  void _applyGroundEnemyLocomotion(
     EcsWorld world, {
-    required EntityId player,
-    required int currentTick,
+    required int enemyIndex,
+    required EntityId enemy,
+    required int enemyTi,
+    required double ex,
+    required double dtSeconds,
   }) {
-    if (!world.transform.has(player)) return;
+    if (dtSeconds <= 0.0) return;
 
-    // Pre-calculate player center for aiming.
-    final playerTi = world.transform.indexOf(player);
-    final playerX = world.transform.posX[playerTi];
-    final playerY = world.transform.posY[playerTi];
-    final playerVelX = world.transform.velX[playerTi];
-    final playerVelY = world.transform.velY[playerTi];
-    var playerCenterX = playerX;
-    var playerCenterY = playerY;
-    if (world.colliderAabb.has(player)) {
-      final ai = world.colliderAabb.indexOf(player);
-      playerCenterX += world.colliderAabb.offsetX[ai];
-      playerCenterY += world.colliderAabb.offsetY[ai];
+    final navIndex = world.surfaceNav.tryIndexOf(enemy);
+    if (navIndex == null) return;
+
+    final navIntentIndex = world.navIntent.tryIndexOf(enemy);
+    if (navIntentIndex == null) {
+      assert(
+        false,
+        'EnemyLocomotionSystem requires NavIntentStore on ground enemies; add it at spawn time.',
+      );
+      return;
     }
 
-    final enemies = world.enemy;
-    for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
-      final e = enemies.denseEntities[ei];
-      final ti = world.transform.tryIndexOf(e);
-      if (ti == null) continue;
+    final engagementIndex = world.engagementIntent.tryIndexOf(enemy);
+    if (engagementIndex == null) {
+      assert(
+        false,
+        'EnemyLocomotionSystem requires EngagementIntentStore on ground enemies; add it at spawn time.',
+      );
+      return;
+    }
 
-      // Cooldown check is cheap, but requires the store.
-      // Assuming all enemies have cooldowns, but safer to check.
-      if (!world.cooldown.has(e)) continue;
+    final navIntent = world.navIntent;
+    final engagementIntent = world.engagementIntent;
 
-      final ex = world.transform.posX[ti];
-      final ey = world.transform.posY[ti];
+    var desiredX = navIntent.desiredX[navIntentIndex];
+    if (!navIntent.hasPlan[navIntentIndex]) {
+      desiredX = engagementIntent.desiredTargetX[engagementIndex];
+      if (navIntent.hasSafeSurface[navIntentIndex]) {
+        final minX = navIntent.safeSurfaceMinX[navIntentIndex];
+        final maxX = navIntent.safeSurfaceMaxX[navIntentIndex];
+        if (minX <= maxX) {
+          desiredX = clampDouble(desiredX, minX, maxX);
+        }
+      }
+    }
 
-      switch (enemies.enemyId[ei]) {
-        case EnemyId.unocoDemon:
-          var enemyCenterX = ex;
-          var enemyCenterY = ey;
-          if (world.colliderAabb.has(e)) {
-            final ai = world.colliderAabb.indexOf(e);
-            enemyCenterX += world.colliderAabb.offsetX[ai];
-            enemyCenterY += world.colliderAabb.offsetY[ai];
+    final effectiveSpeedScale = navIntent.hasPlan[navIntentIndex]
+        ? 1.0
+        : engagementIntent.speedScale[engagementIndex];
+    final arrivalSlowRadiusX =
+        engagementIntent.arrivalSlowRadiusX[engagementIndex];
+    final stateSpeedMul = engagementIntent.stateSpeedMul[engagementIndex];
+
+    _applyGroundEnemyPhysics(
+      world,
+      enemyIndex: enemyIndex,
+      enemyTi: enemyTi,
+      ex: ex,
+      desiredX: desiredX,
+      jumpNow: navIntent.jumpNow[navIntentIndex],
+      hasPlan: navIntent.hasPlan[navIntentIndex],
+      commitMoveDirX: navIntent.commitMoveDirX[navIntentIndex],
+      hasSafeSurface: navIntent.hasSafeSurface[navIntentIndex],
+      safeSurfaceMinX: navIntent.safeSurfaceMinX[navIntentIndex],
+      safeSurfaceMaxX: navIntent.safeSurfaceMaxX[navIntentIndex],
+      effectiveSpeedScale: effectiveSpeedScale,
+      arrivalSlowRadiusX: arrivalSlowRadiusX,
+      stateSpeedMul: stateSpeedMul,
+      dtSeconds: dtSeconds,
+      navIndex: navIndex,
+      graph: _surfaceGraph,
+    );
+  }
+
+  void _applyGroundEnemyPhysics(
+    EcsWorld world, {
+    required int enemyIndex,
+    required int enemyTi,
+    required double ex,
+    required double desiredX,
+    required bool jumpNow,
+    required bool hasPlan,
+    required int commitMoveDirX,
+    required bool hasSafeSurface,
+    required double safeSurfaceMinX,
+    required double safeSurfaceMaxX,
+    required double effectiveSpeedScale,
+    required double arrivalSlowRadiusX,
+    required double stateSpeedMul,
+    required double dtSeconds,
+    required int navIndex,
+    required SurfaceGraph? graph,
+  }) {
+    final tuning = groundEnemyTuning;
+    final enemy = world.enemy.denseEntities[enemyIndex];
+    final modIndex = world.statModifier.tryIndexOf(enemy);
+    final moveSpeedMul = modIndex == null
+        ? 1.0
+        : world.statModifier.moveSpeedMul[modIndex];
+    final dx = desiredX - ex;
+    double arrivalScale = 1.0;
+    if (arrivalSlowRadiusX > 0.0) {
+      arrivalScale = clampDouble(dx.abs() / arrivalSlowRadiusX, 0.0, 1.0);
+    }
+    final baseSpeed = tuning.locomotion.speedX *
+        effectiveSpeedScale *
+        stateSpeedMul *
+        moveSpeedMul;
+    double desiredVelX = 0.0;
+
+    if (commitMoveDirX != 0) {
+      final dirX = commitMoveDirX.toDouble();
+      world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
+      desiredVelX = dirX * baseSpeed;
+    } else if (dx.abs() > tuning.locomotion.stopDistanceX) {
+      final dirX = dx >= 0 ? 1.0 : -1.0;
+      world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
+      desiredVelX = dirX * baseSpeed * arrivalScale;
+    }
+
+    if (jumpNow) {
+      world.transform.velY[enemyTi] = -tuning.locomotion.jumpSpeed;
+    }
+
+    final currentVelX = world.transform.velX[enemyTi];
+    final nextVelX = applyAccelDecel(
+      current: currentVelX,
+      desired: desiredVelX,
+      dtSeconds: dtSeconds,
+      accelPerSecond: tuning.locomotion.accelX,
+      decelPerSecond: tuning.locomotion.decelX,
+    );
+
+    double? jumpSnapVelX;
+    if (hasPlan && jumpNow && graph != null) {
+      final activeEdgeIndex = world.surfaceNav.activeEdgeIndex[navIndex];
+      if (activeEdgeIndex >= 0 && activeEdgeIndex < graph.edges.length) {
+        final edge = graph.edges[activeEdgeIndex];
+        if (edge.kind == SurfaceEdgeKind.jump && edge.travelTicks > 0) {
+          final travelSeconds = edge.travelTicks * dtSeconds;
+          if (travelSeconds > 0.0) {
+            final dxAbs = (edge.landingX - ex).abs();
+            final requiredAbs = dxAbs / travelSeconds;
+            final desiredAbs = desiredVelX.abs();
+            final currentAbs = currentVelX.abs();
+            final snapAbs = min(desiredAbs, max(currentAbs, requiredAbs));
+            if (snapAbs > nextVelX.abs()) {
+              final sign = desiredVelX >= 0.0 ? 1.0 : -1.0;
+              jumpSnapVelX = sign * snapAbs;
+            }
           }
-          _writeUnocoDemonCastIntent(
-            world,
-            enemy: e,
-            enemyIndex: ei,
-            enemyCenterX: enemyCenterX,
-            enemyCenterY: enemyCenterY,
-            playerCenterX: playerCenterX,
-            playerCenterY: playerCenterY,
-            playerVelX: playerVelX,
-            playerVelY: playerVelY,
-            currentTick: currentTick,
-          );
-        case EnemyId.groundEnemy:
-          _writeGroundEnemyMeleeIntent(
-            world,
-            enemy: e,
-            enemyIndex: ei,
-            ex: ex,
-            ey: ey,
-            playerX: playerX,
-            currentTick: currentTick,
-          );
+        }
+      }
+    }
+
+    world.transform.velX[enemyTi] = jumpSnapVelX ?? nextVelX;
+
+    if (!hasPlan && hasSafeSurface) {
+      final stopDist = tuning.locomotion.stopDistanceX;
+      final nextVelX = world.transform.velX[enemyTi];
+      if (nextVelX > 0.0 && ex >= safeSurfaceMaxX - stopDist) {
+        world.transform.velX[enemyTi] = 0.0;
+      } else if (nextVelX < 0.0 && ex <= safeSurfaceMinX + stopDist) {
+        world.transform.velX[enemyTi] = 0.0;
       }
     }
   }
 
-  /// Implements "Boids-like" or direct steering for flying enemies.
-  ///
-  /// Behavior:
-  /// - Maintains a specific horizontal distance heavily (hovering left/right of player).
-  /// - Maintains a specific height above ground (bobbing).
-  /// - Randomizes target parameters periodically to add organic noise.
   void _steerFlyingEnemy(
     EcsWorld world, {
     required int enemyIndex,
@@ -5597,11 +6743,10 @@ class EnemySystem {
     if (dtSeconds <= 0.0) return;
     final tuning = unocoDemonTuning;
 
-    // Ensure steering state exists. Contains RNG state and current target timers.
     if (!world.flyingEnemySteering.has(enemy)) {
       assert(
         false,
-        'EnemySystem requires FlyingEnemySteeringStore on flying enemies; add it at spawn time.',
+        'EnemyLocomotionSystem requires FlyingEnemySteeringStore on flying enemies; add it at spawn time.',
       );
       return;
     }
@@ -5614,14 +6759,11 @@ class EnemySystem {
         : world.statModifier.moveSpeedMul[modIndex];
 
     var rngState = steering.rngState[si];
-    // Helper to advance RNG and get a range.
     double nextRange(double min, double max) {
       rngState = nextUint32(rngState);
       return rangeDouble(rngState, min, max);
     }
 
-    // -- Initialization --
-    // If first frame, randomize initial targets (range to hold, height to fly at).
     if (!steering.initialized[si]) {
       steering.initialized[si] = true;
       steering.desiredRangeHoldLeftS[si] = nextRange(
@@ -5639,15 +6781,12 @@ class EnemySystem {
       );
     }
 
-    // -- Horizontal Logic --
-    // Decay timer for holding the current desired range.
     var desiredRangeHoldLeftS = steering.desiredRangeHoldLeftS[si];
     var desiredRange = steering.desiredRange[si];
 
     if (desiredRangeHoldLeftS > 0.0) {
       desiredRangeHoldLeftS -= dtSeconds;
     } else {
-      // Pick new range target when timer expires.
       desiredRangeHoldLeftS = nextRange(
         tuning.base.unocoDemonDesiredRangeHoldMinSeconds,
         tuning.base.unocoDemonDesiredRangeHoldMaxSeconds,
@@ -5660,34 +6799,26 @@ class EnemySystem {
 
     final dx = playerX - ex;
     final distX = dx.abs();
-    // Face the player.
     if (distX > 1e-6) {
       world.enemy.facing[enemyIndex] = dx >= 0 ? Facing.right : Facing.left;
     }
 
-    // Calculate desired horizontal velocity to maintain `desiredRange`.
     final slack = tuning.base.unocoDemonHoldSlack;
     double desiredVelX = 0.0;
     if (distX > 1e-6) {
       final dirToPlayerX = dx >= 0 ? 1.0 : -1.0;
       final error = distX - desiredRange;
 
-      // Only move if outside the slack (hysteresis) zone to prevent jitter.
       if (error.abs() > slack) {
         final slowRadiusX = tuning.base.unocoDemonSlowRadiusX;
-        // Dampen speed as we approach the target range (arrival behavior).
         final t = slowRadiusX > 0.0
             ? clampDouble((error.abs() - slack) / slowRadiusX, 0.0, 1.0)
             : 1.0;
         final speed = t * tuning.base.unocoDemonMaxSpeedX;
-        // If error > 0, we are too far -> move towards player.
-        // If error < 0, we are too close -> move away from player.
         desiredVelX = (error > 0.0 ? dirToPlayerX : -dirToPlayerX) * speed;
       }
     }
 
-    // -- Vertical Logic --
-    // Decay timer for vertical target hold.
     var flightTargetHoldLeftS = steering.flightTargetHoldLeftS[si];
     var flightTargetAboveGround = steering.flightTargetAboveGround[si];
     if (flightTargetHoldLeftS > 0.0) {
@@ -5703,7 +6834,6 @@ class EnemySystem {
       );
     }
 
-    // Simple P-controller for height.
     final targetY = groundTopY - flightTargetAboveGround;
     final deltaY = targetY - ey;
     double desiredVelY = clampDouble(
@@ -5715,7 +6845,6 @@ class EnemySystem {
       desiredVelY = 0.0;
     }
 
-    // -- Physics Integration --
     desiredVelX *= moveSpeedMul;
     desiredVelY *= moveSpeedMul;
     final currentVelX = world.transform.velX[enemyTi];
@@ -5728,476 +6857,193 @@ class EnemySystem {
     );
     world.transform.velY[enemyTi] = desiredVelY;
 
-    // Write back state.
     steering.desiredRangeHoldLeftS[si] = desiredRangeHoldLeftS;
     steering.desiredRange[si] = desiredRange;
     steering.flightTargetHoldLeftS[si] = flightTargetHoldLeftS;
     steering.flightTargetAboveGround[si] = flightTargetAboveGround;
     steering.rngState[si] = rngState;
   }
+}
 
-  /// Implements pathfinding and steering for ground enemies.
-  ///
-  /// This uses [SurfaceNavigator] to compute the next immediate move (jump/walk)
-  /// towards the player. It also handles "chase offsets" to prevent enemies from
-  /// stacking perfectly on top of each other.
-  void _steerGroundEnemy(
-    EcsWorld world, {
-    required int enemyIndex,
-    required EntityId enemy,
-    required int enemyTi,
-    required double playerX,
-    required double playerBottomY,
-    required double playerHalfX,
-    required double playerVelX,
-    required double playerVelY,
-    required bool playerGrounded,
-    required double ex,
-    required double dtSeconds,
+
+===== FILE: lib/core/ecs/systems/enemy_navigation_system.dart =====
+import 'package:rpg_runner/core/ecs/entity_id.dart';
+
+import '../../enemies/enemy_id.dart';
+import '../../navigation/surface_navigator.dart';
+import '../../navigation/types/surface_graph.dart';
+import '../../navigation/types/surface_id.dart';
+import '../../navigation/utils/surface_spatial_index.dart';
+import '../../navigation/utils/trajectory_predictor.dart';
+import '../world.dart';
+
+/// Builds navigation intents for ground enemies using the surface graph.
+class EnemyNavigationSystem {
+  EnemyNavigationSystem({
+    required this.surfaceNavigator,
+    this.trajectoryPredictor,
+  });
+
+  final SurfaceNavigator surfaceNavigator;
+  final TrajectoryPredictor? trajectoryPredictor;
+
+  SurfaceGraph? _surfaceGraph;
+  SurfaceSpatialIndex? _surfaceIndex;
+  int _surfaceGraphVersion = 0;
+
+  /// Updates the navigation graph used by ground enemies.
+  void setSurfaceGraph({
+    required SurfaceGraph graph,
+    required SurfaceSpatialIndex spatialIndex,
+    required int graphVersion,
   }) {
-    if (dtSeconds <= 0.0) return;
-    final tuning = groundEnemyTuning;
+    _surfaceGraph = graph;
+    _surfaceIndex = spatialIndex;
+    _surfaceGraphVersion = graphVersion;
+  }
 
-    final navIndex = world.surfaceNav.tryIndexOf(enemy);
-    if (navIndex == null) return;
+  /// Computes navigation intents for all ground enemies.
+  void step(
+    EcsWorld world, {
+    required EntityId player,
+  }) {
+    if (!world.transform.has(player)) return;
 
-    // Optimized: Resolve chase offset store once and pass index to avoid re-lookup.
-    final chaseIndex = world.groundEnemyChaseOffset.tryIndexOf(enemy);
-    if (chaseIndex == null) return;
+    final playerTi = world.transform.indexOf(player);
+    final playerX = world.transform.posX[playerTi];
+    final playerY = world.transform.posY[playerTi];
+    final playerVelX = world.transform.velX[playerTi];
+    final playerVelY = world.transform.velY[playerTi];
 
-    // Lazy initialization of random chase parameters.
-    _ensureChaseOffsetInitialized(world, chaseIndex, enemy);
+    final playerGrounded = world.collision.has(player)
+        ? world.collision.grounded[world.collision.indexOf(player)]
+        : false;
 
-    final chaseOffset = world.groundEnemyChaseOffset;
-    final chaseOffsetX = chaseOffset.chaseOffsetX[chaseIndex];
-    final chaseSpeedScale = chaseOffset.chaseSpeedScale[chaseIndex];
+    var playerHalfX = 0.0;
+    var playerBottomY = playerY;
+    if (world.colliderAabb.has(player)) {
+      final ai = world.colliderAabb.indexOf(player);
+      playerHalfX = world.colliderAabb.halfX[ai];
+      final offsetY = world.colliderAabb.offsetY[ai];
+      playerBottomY = playerY + offsetY + world.colliderAabb.halfY[ai];
+    }
 
-    // -- Target Selection --
-    // "Collapse" behavior: when very close to player, ignore chase offset and
-    // move directly to player (to attack). Otherwise, maintain offset.
-    final collapseDistX =
-        tuning.base.groundEnemyMeleeRangeX +
-        tuning.base.groundEnemyStopDistanceX;
-    final distToPlayerX = (playerX - ex).abs();
-
-    // Calculate melee offset (which side of the player to stand on).
-    final meleeOffsetMaxX = tuning.base.groundEnemyChaseOffsetMeleeX.abs();
-    final meleeOffsetAbs = min(meleeOffsetMaxX, chaseOffsetX.abs());
-    final meleeOffsetX = meleeOffsetAbs == 0.0
-        ? 0.0
-        : (chaseOffsetX >= 0.0 ? meleeOffsetAbs : -meleeOffsetAbs);
-
-    final effectiveTargetX = distToPlayerX <= collapseDistX
-        ? playerX + meleeOffsetX
-        : playerX + chaseOffsetX;
-
-    // -- Pathfinding Query --
     final graph = _surfaceGraph;
     final spatialIndex = _surfaceIndex;
 
-    // -- Landing Prediction --
-    // When player is airborne, predict where they'll land and navigate there.
-    var navTargetX = playerX;
-    var navTargetBottomY = playerBottomY;
-    var navTargetGrounded = playerGrounded;
+    final enemies = world.enemy;
+    for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
+      if (enemies.enemyId[ei] != EnemyId.groundEnemy) continue;
 
-    if (!playerGrounded &&
-        trajectoryPredictor != null &&
-        graph != null &&
-        spatialIndex != null) {
-      final prediction = trajectoryPredictor!.predictLanding(
-        startX: playerX,
-        startBottomY: playerBottomY,
-        velX: playerVelX,
-        velY: playerVelY,
-        graph: graph,
-        spatialIndex: spatialIndex,
-        entityHalfWidth: playerHalfX,
-      );
+      final enemy = enemies.denseEntities[ei];
+      final ti = world.transform.tryIndexOf(enemy);
+      if (ti == null) continue;
 
-      if (prediction != null) {
-        navTargetX = prediction.x;
-        navTargetBottomY = prediction.bottomY;
-        navTargetGrounded = true; // Treat predicted landing as grounded.
+      final navIndex = world.surfaceNav.tryIndexOf(enemy);
+      if (navIndex == null) continue;
+
+      final intentIndex = world.navIntent.tryIndexOf(enemy);
+      if (intentIndex == null) {
+        assert(
+          false,
+          'EnemyNavigationSystem requires NavIntentStore on ground enemies; add it at spawn time.',
+        );
+        continue;
       }
-    }
 
-    double? noPlanSurfaceMinX;
-    double? noPlanSurfaceMaxX;
-    SurfaceNavIntent intent;
+      var navTargetX = playerX;
+      var navTargetBottomY = playerBottomY;
+      var navTargetGrounded = playerGrounded;
 
-    // If graph is missing or navigation not possible, fallback to no-op/dumb chase.
-    if (graph == null ||
-        spatialIndex == null ||
-        !world.colliderAabb.has(enemy)) {
-      intent = SurfaceNavIntent(
-        desiredX: effectiveTargetX,
-        jumpNow: false,
-        hasPlan: false,
-      );
-    } else {
-      final ai = world.colliderAabb.indexOf(enemy);
-      final enemyHalfX = world.colliderAabb.halfX[ai];
-      final enemyHalfY = world.colliderAabb.halfY[ai];
-      final offsetY = world.colliderAabb.offsetY[ai];
-      final enemyBottomY = world.transform.posY[enemyTi] + offsetY + enemyHalfY;
-      final grounded =
-          world.collision.has(enemy) &&
-          world.collision.grounded[world.collision.indexOf(enemy)];
+      if (!playerGrounded &&
+          trajectoryPredictor != null &&
+          graph != null &&
+          spatialIndex != null) {
+        final prediction = trajectoryPredictor!.predictLanding(
+          startX: playerX,
+          startBottomY: playerBottomY,
+          velX: playerVelX,
+          velY: playerVelY,
+          graph: graph,
+          spatialIndex: spatialIndex,
+          entityHalfWidth: playerHalfX,
+        );
 
-      // Query the navigator for what to do this frame.
-      intent = surfaceNavigator.update(
-        navStore: world.surfaceNav,
-        navIndex: navIndex,
-        graph: graph,
-        spatialIndex: spatialIndex,
-        graphVersion: _surfaceGraphVersion,
-        entityX: ex,
-        entityBottomY: enemyBottomY,
-        entityHalfWidth: enemyHalfX,
-        entityGrounded: grounded,
-        targetX: navTargetX,
-        targetBottomY: navTargetBottomY,
-        targetHalfWidth: playerHalfX,
-        targetGrounded: navTargetGrounded,
-      );
-
-      // -- Fallback Logic --
-      // If the navigator defines no plan (e.g. lost track or arrived), we still
-      // want to move towards `desiredX` (chase behavior), BUT we must be careful
-      // not to walk off a ledge blindly.
-      if (!intent.hasPlan) {
-        var desiredX = effectiveTargetX;
-        // Clamp desiredX to the current surface's bounds to stop at edges.
-        final currentSurfaceId = world.surfaceNav.currentSurfaceId[navIndex];
-        if (currentSurfaceId != surfaceIdUnknown) {
-          final currentIndex = graph.indexOfSurfaceId(currentSurfaceId);
-          if (currentIndex != null) {
-            final surface = graph.surfaces[currentIndex];
-            final minX = surface.xMin + enemyHalfX;
-            final maxX = surface.xMax - enemyHalfX;
-            if (minX <= maxX) {
-              desiredX = clampDouble(desiredX, minX, maxX);
-              noPlanSurfaceMinX = minX;
-              noPlanSurfaceMaxX = maxX;
-            }
-          }
+        if (prediction != null) {
+          navTargetX = prediction.x;
+          navTargetBottomY = prediction.bottomY;
+          navTargetGrounded = true;
         }
+      }
 
+      world.navIntent.navTargetX[intentIndex] = navTargetX;
+
+      SurfaceNavIntent intent;
+      var hasSafeSurface = false;
+      var safeSurfaceMinX = 0.0;
+      var safeSurfaceMaxX = 0.0;
+
+      if (graph == null ||
+          spatialIndex == null ||
+          !world.colliderAabb.has(enemy)) {
         intent = SurfaceNavIntent(
-          desiredX: desiredX,
+          desiredX: navTargetX,
           jumpNow: false,
           hasPlan: false,
         );
-      }
-    }
+      } else {
+        final ai = world.colliderAabb.indexOf(enemy);
+        final enemyHalfX = world.colliderAabb.halfX[ai];
+        final enemyHalfY = world.colliderAabb.halfY[ai];
+        final offsetY = world.colliderAabb.offsetY[ai];
+        final ex = world.transform.posX[ti];
+        final enemyBottomY = world.transform.posY[ti] + offsetY + enemyHalfY;
+        final grounded =
+            world.collision.has(enemy) &&
+            world.collision.grounded[world.collision.indexOf(enemy)];
 
-    // Speed scale is intended to break symmetric chasing overlaps.
-    // However, when executing a precise plan (like a Jump edge), we used standard
-    // speed to ensure the physics align with the pre-calculated jump arc.
-    final effectiveSpeedScale = intent.hasPlan ? 1.0 : chaseSpeedScale;
+        intent = surfaceNavigator.update(
+          navStore: world.surfaceNav,
+          navIndex: navIndex,
+          graph: graph,
+          spatialIndex: spatialIndex,
+          graphVersion: _surfaceGraphVersion,
+          entityX: ex,
+          entityBottomY: enemyBottomY,
+          entityHalfWidth: enemyHalfX,
+          entityGrounded: grounded,
+          targetX: navTargetX,
+          targetBottomY: navTargetBottomY,
+          targetHalfWidth: playerHalfX,
+          targetGrounded: navTargetGrounded,
+        );
 
-    _applyGroundEnemyPhysics(
-      world,
-      enemyIndex: enemyIndex,
-      enemyTi: enemyTi,
-      ex: ex,
-      intent: intent,
-      effectiveSpeedScale: effectiveSpeedScale,
-      dtSeconds: dtSeconds,
-      safeSurfaceMinX: noPlanSurfaceMinX,
-      safeSurfaceMaxX: noPlanSurfaceMaxX,
-      navIndex: navIndex,
-      graph: graph,
-    );
-  }
-
-  /// Calculates aim and registers a spell cast intent for flying enemies.
-  void _writeUnocoDemonCastIntent(
-    EcsWorld world, {
-    required EntityId enemy,
-    required int enemyIndex,
-    required double enemyCenterX,
-    required double enemyCenterY,
-    required double playerCenterX,
-    required double playerCenterY,
-    required double playerVelX,
-    required double playerVelY,
-    required int currentTick,
-  }) {
-    final tuning = unocoDemonTuning;
-    if (!world.castIntent.has(enemy)) {
-      assert(
-        false,
-        'EnemySystem requires CastIntentStore on enemies; add it at spawn time.',
-      );
-      return;
-    }
-
-    // Determine projectile properties for aiming.
-    final enemyId = world.enemy.enemyId[enemyIndex];
-    final spellId = enemyCatalog.get(enemyId).primarySpellId;
-    if (spellId == null) return;
-    final projectileId = spells.get(spellId).projectileId;
-    final projectileSpeed = projectileId == null
-        ? null
-        : projectiles.base.get(projectileId).speedUnitsPerSecond;
-
-    // -- Aim Leading --
-    var targetX = playerCenterX;
-    var targetY = playerCenterY;
-    if (projectileSpeed != null && projectileSpeed > 0.0) {
-      final dx = playerCenterX - enemyCenterX;
-      final dy = playerCenterY - enemyCenterY;
-      final distance = sqrt(dx * dx + dy * dy);
-      // Rough estimation of time-to-impact to predict player position.
-      final leadSeconds = clampDouble(
-        distance / projectileSpeed,
-        tuning.base.unocoDemonAimLeadMinSeconds,
-        tuning.base.unocoDemonAimLeadMaxSeconds,
-      );
-      targetX = playerCenterX + playerVelX * leadSeconds;
-      targetY = playerCenterY + playerVelY * leadSeconds;
-    }
-
-    // Visuals: face along the cast direction so Unoco looks at the player while firing.
-    final castDirX = targetX - enemyCenterX;
-    if (castDirX.abs() > 1e-6) {
-      world.enemy.facing[enemyIndex] = castDirX >= 0
-          ? Facing.right
-          : Facing.left;
-    }
-
-    // Write intent. Actual spawning handles cooldown/mana checks.
-    world.castIntent.set(
-      enemy,
-      CastIntentDef(
-        spellId: spellId,
-        dirX: targetX - enemyCenterX,
-        dirY: targetY - enemyCenterY,
-        fallbackDirX: 1.0,
-        fallbackDirY: 0.0,
-        originOffset: tuning.base.unocoDemonCastOriginOffset,
-        cooldownTicks: tuning.unocoDemonCastCooldownTicks,
-        tick: currentTick,
-      ),
-    );
-  }
-
-  /// Checks range and registers a melee attack intent for ground enemies.
-  void _writeGroundEnemyMeleeIntent(
-    EcsWorld world, {
-    required EntityId enemy,
-    required int enemyIndex,
-    required double ex,
-    required double ey,
-    required double playerX,
-    required int currentTick,
-  }) {
-    final tuning = groundEnemyTuning;
-    if (!world.meleeIntent.has(enemy)) {
-      assert(
-        false,
-        'EnemySystem requires MeleeIntentStore on enemies; add it at spawn time.',
-      );
-      return;
-    }
-    if (!world.colliderAabb.has(enemy)) {
-      assert(
-        false,
-        'GroundEnemy melee requires ColliderAabbStore on the enemy to compute hitbox offset.',
-      );
-      return;
-    }
-
-    // Simple range check.
-    final dx = (playerX - ex).abs();
-    if (dx > tuning.base.groundEnemyMeleeRangeX) return;
-
-    // Determine hitbox position based on facing direction.
-    final facing = world.enemy.facing[enemyIndex];
-    final dirX = facing == Facing.right ? 1.0 : -1.0;
-
-    final halfX = tuning.base.groundEnemyMeleeHitboxSizeX * 0.5;
-    final halfY = tuning.base.groundEnemyMeleeHitboxSizeY * 0.5;
-
-    final ownerHalfX =
-        world.colliderAabb.halfX[world.colliderAabb.indexOf(enemy)];
-    final offsetX = dirX * (ownerHalfX * 0.5 + halfX);
-    const offsetY = 0.0;
-
-    // Write intent.
-    world.meleeIntent.set(
-      enemy,
-      MeleeIntentDef(
-        damage: tuning.base.groundEnemyMeleeDamage,
-        damageType: DamageType.physical,
-        statusProfileId: StatusProfileId.none,
-        halfX: halfX,
-        halfY: halfY,
-        offsetX: offsetX,
-        offsetY: offsetY,
-        dirX: dirX,
-        dirY: 0.0,
-        activeTicks: tuning.groundEnemyMeleeActiveTicks,
-        cooldownTicks: tuning.groundEnemyMeleeCooldownTicks,
-        staminaCost: 0.0,
-        tick: currentTick,
-      ),
-    );
-
-    // Record for render animation windows (enemy entity may outlive the intent).
-    world.enemy.lastMeleeTick[enemyIndex] = currentTick;
-    world.enemy.lastMeleeFacing[enemyIndex] = facing;
-    world.enemy.lastMeleeAnimTicks[enemyIndex] =
-        tuning.groundEnemyMeleeAnimTicks;
-  }
-
-  /// Ensures that the ground enemy has valid initialized chase offsets.
-  ///
-  /// Adds randomness to tracking so multiple enemies don't overlap perfectly.
-  void _ensureChaseOffsetInitialized(
-    EcsWorld world,
-    int chaseIndex,
-    EntityId enemy,
-  ) {
-    // world.groundEnemyChaseOffset.has(enemy) is guaranteed primarily by caller.
-    final chaseOffset = world.groundEnemyChaseOffset;
-    if (chaseOffset.initialized[chaseIndex]) return;
-
-    final tuning = groundEnemyTuning;
-    var rngState = chaseOffset.rngState[chaseIndex];
-    if (rngState == 0) {
-      rngState = enemy; // Seed with entity ID for determinism.
-    }
-
-    // Choose a random horizontal offset relative to the player.
-    final maxAbs = tuning.base.groundEnemyChaseOffsetMaxX.abs();
-    var offsetX = 0.0;
-    if (maxAbs > 0.0) {
-      rngState = nextUint32(rngState);
-      offsetX = rangeDouble(rngState, -maxAbs, maxAbs);
-      final minAbs = clampDouble(
-        tuning.base.groundEnemyChaseOffsetMinAbsX,
-        0.0,
-        maxAbs,
-      );
-      final absOffset = offsetX.abs();
-      // Ensure the offset isn't too small (which would defeat the purpose).
-      if (absOffset < minAbs) {
-        offsetX = offsetX >= 0.0 ? minAbs : -minAbs;
-        if (absOffset == 0.0) {
-          offsetX = minAbs;
-        }
-      }
-    }
-
-    // Choose a slight variation in speed.
-    rngState = nextUint32(rngState);
-    final speedScale = rangeDouble(
-      rngState,
-      tuning.base.groundEnemyChaseSpeedScaleMin,
-      tuning.base.groundEnemyChaseSpeedScaleMax,
-    );
-    chaseOffset.initialized[chaseIndex] = true;
-    chaseOffset.chaseOffsetX[chaseIndex] = offsetX;
-    chaseOffset.chaseSpeedScale[chaseIndex] = speedScale;
-    chaseOffset.rngState[chaseIndex] = rngState;
-  }
-
-  /// Low-level physics application for ground enemies based on [SurfaceNavIntent].
-  void _applyGroundEnemyPhysics(
-    EcsWorld world, {
-    required int enemyIndex,
-    required int enemyTi,
-    required double ex,
-    required SurfaceNavIntent intent,
-    required double effectiveSpeedScale,
-    required double dtSeconds,
-    required double? safeSurfaceMinX,
-    required double? safeSurfaceMaxX,
-    required int navIndex,
-    required SurfaceGraph? graph,
-  }) {
-    final tuning = groundEnemyTuning;
-    final enemy = world.enemy.denseEntities[enemyIndex];
-    final modIndex = world.statModifier.tryIndexOf(enemy);
-    final moveSpeedMul = modIndex == null
-        ? 1.0
-        : world.statModifier.moveSpeedMul[modIndex];
-    final dx = intent.desiredX - ex;
-    double desiredVelX = 0.0;
-
-    // -- Horizontal Movement --
-    if (intent.commitMoveDirX != 0) {
-      // If navigation explicitly requests a direction (e.g., preparing for jump).
-      final dirX = intent.commitMoveDirX.toDouble();
-      world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
-      desiredVelX = dirX * tuning.base.groundEnemySpeedX * effectiveSpeedScale;
-    } else if (dx.abs() > tuning.base.groundEnemyStopDistanceX) {
-      // Standard seek behavior logic.
-      final dirX = dx >= 0 ? 1.0 : -1.0;
-      world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
-      desiredVelX = dirX * tuning.base.groundEnemySpeedX * effectiveSpeedScale;
-    }
-
-    desiredVelX *= moveSpeedMul;
-
-    // -- Jumping --
-    if (intent.jumpNow) {
-      world.transform.velY[enemyTi] = -tuning.base.groundEnemyJumpSpeed;
-    }
-
-    // -- Physics Update --
-    final currentVelX = world.transform.velX[enemyTi];
-    final nextVelX = applyAccelDecel(
-      current: currentVelX,
-      desired: desiredVelX,
-      dtSeconds: dtSeconds,
-      accelPerSecond: tuning.base.groundEnemyAccelX,
-      decelPerSecond: tuning.base.groundEnemyDecelX,
-    );
-
-    // -- Jump Velocity Snapping --
-    // If we are executing a jump edge, we might need to "snap" velocity to exactly
-    // what is required to make the gap, overriding acceleration/deceleration.
-    // This fixes issues where enemies undershoot/overshoot jumps due to frame variances.
-    double? jumpSnapVelX;
-    if (intent.hasPlan && intent.jumpNow && graph != null) {
-      final activeEdgeIndex = world.surfaceNav.activeEdgeIndex[navIndex];
-      if (activeEdgeIndex >= 0 && activeEdgeIndex < graph.edges.length) {
-        final edge = graph.edges[activeEdgeIndex];
-        if (edge.kind == SurfaceEdgeKind.jump && edge.travelTicks > 0) {
-          final travelSeconds = edge.travelTicks * dtSeconds;
-          if (travelSeconds > 0.0) {
-            final dxAbs = (edge.landingX - ex).abs();
-            final requiredAbs = dxAbs / travelSeconds;
-            // Only snap if it's reasonable (bounded by current/desired speeds).
-            final desiredAbs = desiredVelX.abs();
-            final currentAbs = currentVelX.abs();
-            final snapAbs = min(desiredAbs, max(currentAbs, requiredAbs));
-            // Apply if the snap velocity is actually faster (avoid getting stuck).
-            if (snapAbs > nextVelX.abs()) {
-              final sign = desiredVelX >= 0.0 ? 1.0 : -1.0;
-              jumpSnapVelX = sign * snapAbs;
+        if (!intent.hasPlan) {
+          final currentSurfaceId = world.surfaceNav.currentSurfaceId[navIndex];
+          if (currentSurfaceId != surfaceIdUnknown) {
+            final currentIndex = graph.indexOfSurfaceId(currentSurfaceId);
+            if (currentIndex != null) {
+              final surface = graph.surfaces[currentIndex];
+              final minX = surface.xMin + enemyHalfX;
+              final maxX = surface.xMax - enemyHalfX;
+              if (minX <= maxX) {
+                hasSafeSurface = true;
+                safeSurfaceMinX = minX;
+                safeSurfaceMaxX = maxX;
+              }
             }
           }
         }
       }
-    }
 
-    world.transform.velX[enemyTi] = jumpSnapVelX ?? nextVelX;
-
-    // -- Ledge Safety --
-    // If we have no plan (wandering/chasing blindly), hard stop at surface edges.
-    if (!intent.hasPlan && safeSurfaceMinX != null && safeSurfaceMaxX != null) {
-      final stopDist = tuning.base.groundEnemyStopDistanceX;
-      final nextVelX = world.transform.velX[enemyTi];
-      if (nextVelX > 0.0 && ex >= safeSurfaceMaxX - stopDist) {
-        world.transform.velX[enemyTi] = 0.0;
-      } else if (nextVelX < 0.0 && ex <= safeSurfaceMinX + stopDist) {
-        world.transform.velX[enemyTi] = 0.0;
-      }
+      final navIntent = world.navIntent;
+      navIntent.desiredX[intentIndex] = intent.desiredX;
+      navIntent.jumpNow[intentIndex] = intent.jumpNow;
+      navIntent.hasPlan[intentIndex] = intent.hasPlan;
+      navIntent.commitMoveDirX[intentIndex] = intent.commitMoveDirX;
+      navIntent.hasSafeSurface[intentIndex] = hasSafeSurface;
+      navIntent.safeSurfaceMinX[intentIndex] = safeSurfaceMinX;
+      navIntent.safeSurfaceMaxX[intentIndex] = safeSurfaceMaxX;
     }
   }
 }
@@ -8294,9 +9140,12 @@ import 'stores/player/action_anim_store.dart';
 import 'stores/player/gravity_control_store.dart';
 import 'stores/enemies/flying_enemy_steering_store.dart';
 import 'stores/faction_store.dart';
-import 'stores/enemies/enemy_anim_store.dart';
+import 'stores/anim_state_store.dart';
 import 'stores/enemies/enemy_store.dart';
 import 'stores/enemies/ground_enemy_chase_offset_store.dart';
+import 'stores/enemies/engagement_intent_store.dart';
+import 'stores/enemies/melee_engagement_store.dart';
+import 'stores/enemies/nav_intent_store.dart';
 import 'stores/health_store.dart';
 import 'stores/hit_once_store.dart';
 import 'stores/hitbox_store.dart';
@@ -8475,8 +9324,8 @@ class EcsWorld {
   /// Identifies an entity as a specific type of enemy.
   late final EnemyStore enemy = _register(EnemyStore());
 
-  /// Per-enemy animation state computed by [EnemyAnimSystem].
-  late final EnemyAnimStore enemyAnim = _register(EnemyAnimStore());
+  /// Per-entity animation state computed by [AnimSystem].
+  late final AnimStateStore animState = _register(AnimStateStore());
 
   /// Steering behaviors for flying enemies.
   late final FlyingEnemySteeringStore flyingEnemySteering = _register(FlyingEnemySteeringStore());
@@ -8484,6 +9333,16 @@ class EcsWorld {
   /// AI state for ground enemies to create offset chasing behaviors.
   late final GroundEnemyChaseOffsetStore groundEnemyChaseOffset =
       _register(GroundEnemyChaseOffsetStore());
+
+  /// Navigation intent output for ground enemies.
+  late final NavIntentStore navIntent = _register(NavIntentStore());
+
+  /// Engagement intent output for melee enemies.
+  late final EngagementIntentStore engagementIntent =
+      _register(EngagementIntentStore());
+
+  /// Engagement state for melee enemies (approach/engage/attack/recover).
+  late final MeleeEngagementStore meleeEngagement = _register(MeleeEngagementStore());
 
   /// Allocates a new [EntityId].
   ///
@@ -8526,6 +9385,7 @@ import '../ecs/stores/health_store.dart';
 import '../ecs/stores/mana_store.dart';
 import '../ecs/stores/stamina_store.dart';
 import '../combat/creature_tag.dart';
+import '../anim/anim_resolver.dart';
 import '../contracts/render_anim_set_definition.dart';
 import '../spells/spell_id.dart';
 import '../snapshots/enums.dart';
@@ -8582,53 +9442,78 @@ const RenderAnimSetDefinition _unocoRenderAnim = RenderAnimSetDefinition(
   stepTimeSecondsByKey: _unocoAnimStepTimeSecondsByKey,
 );
 
+const AnimProfile _unocoAnimProfile = AnimProfile(
+  minMoveSpeed: 1.0,
+  runSpeedThresholdX: 0.0,
+  supportsWalk: false,
+  supportsJumpFall: false,
+  attackAnimKey: AnimKey.idle,
+);
+
 // -----------------------------------------------------------------------------
 // Werewolf (ground enemy) render animation strip definitions (authoring-time)
 // -----------------------------------------------------------------------------
 
-const int _werewolfAnimFrameWidth = 128;
-const int _werewolfAnimFrameHeight = 128;
+const int _werewolfAnimFrameWidth = 100;
+const int _werewolfAnimFrameHeight = 64;
 
-const int _werewolfAnimIdleFrames = 8;
-const double _werewolfAnimIdleStepSeconds = 0.08;
+const int _werewolfAnimIdleFrames = 4;
+const double _werewolfAnimIdleStepSeconds = 0.14;
 
-const int _werewolfAnimMoveFrames = 9;
-const double _werewolfAnimMoveStepSeconds = 0.06;
+const int _werewolfAnimMoveFrames = 7;
+const double _werewolfAnimMoveStepSeconds = 0.08;
 
-const int _werewolfAnimHitFrames = 2;
+const int _werewolfAnimWalkFrames = _werewolfAnimMoveFrames;
+const double _werewolfAnimWalkStepSeconds = _werewolfAnimMoveStepSeconds;
+
+const int _werewolfAnimHitFrames = 4;
 const double _werewolfAnimHitStepSeconds = 0.10;
 
-const int _werewolfAnimDeathFrames = 2;
-const double _werewolfAnimDeathStepSeconds = 0.07;
+const int _werewolfAnimDeathFrames = 6;
+const double _werewolfAnimDeathStepSeconds = 0.12;
 
-const int _werewolfAnimAttackFrames = 5;
-const double _werewolfAnimAttackStepSeconds = 0.10;
+const int _werewolfAnimAttackFrames = 6;
+const double _werewolfAnimAttackStepSeconds = 0.06;
 
+const int _werewolfAnimJumpFrames = 6;
+const double _werewolfAnimJumpStepSeconds = 0.10;
+
+const int _werewolfAnimFallFrames = 3;
+const double _werewolfAnimFallStepSeconds = 0.10;
 const double _werewolfHitAnimSeconds =
     _werewolfAnimHitFrames * _werewolfAnimHitStepSeconds;
 
 const Map<AnimKey, int> _werewolfAnimFrameCountsByKey = <AnimKey, int>{
   AnimKey.idle: _werewolfAnimIdleFrames,
   AnimKey.run: _werewolfAnimMoveFrames,
+  AnimKey.walk: _werewolfAnimWalkFrames,
   AnimKey.attack: _werewolfAnimAttackFrames,
   AnimKey.hit: _werewolfAnimHitFrames,
   AnimKey.death: _werewolfAnimDeathFrames,
+  AnimKey.jump: _werewolfAnimJumpFrames,
+  AnimKey.fall: _werewolfAnimFallFrames,
 };
 
 const Map<AnimKey, double> _werewolfAnimStepTimeSecondsByKey = <AnimKey, double>{
   AnimKey.idle: _werewolfAnimIdleStepSeconds,
   AnimKey.run: _werewolfAnimMoveStepSeconds,
+  AnimKey.walk: _werewolfAnimWalkStepSeconds,
   AnimKey.attack: _werewolfAnimAttackStepSeconds,
   AnimKey.hit: _werewolfAnimHitStepSeconds,
   AnimKey.death: _werewolfAnimDeathStepSeconds,
+  AnimKey.jump: _werewolfAnimJumpStepSeconds,
+  AnimKey.fall: _werewolfAnimFallStepSeconds,
 };
 
 const Map<AnimKey, String> _werewolfAnimSourcesByKey = <AnimKey, String>{
   AnimKey.idle: 'entities/enemies/werewolf/idle.png',
   AnimKey.run: 'entities/enemies/werewolf/run.png',
-  AnimKey.attack: 'entities/enemies/werewolf/attack1.png',
+  AnimKey.walk: 'entities/enemies/werewolf/walk.png',
+  AnimKey.attack: 'entities/enemies/werewolf/attack.png',
   AnimKey.hit: 'entities/enemies/werewolf/hit.png',
   AnimKey.death: 'entities/enemies/werewolf/death.png',
+  AnimKey.jump: 'entities/enemies/werewolf/jump.png',
+  AnimKey.fall: 'entities/enemies/werewolf/fall.png',
 };
 
 const RenderAnimSetDefinition _werewolfRenderAnim = RenderAnimSetDefinition(
@@ -8637,6 +9522,11 @@ const RenderAnimSetDefinition _werewolfRenderAnim = RenderAnimSetDefinition(
   sourcesByKey: _werewolfAnimSourcesByKey,
   frameCountsByKey: _werewolfAnimFrameCountsByKey,
   stepTimeSecondsByKey: _werewolfAnimStepTimeSecondsByKey,
+);
+
+const AnimProfile _werewolfAnimProfile = AnimProfile(
+  minMoveSpeed: 1.0,
+  runSpeedThresholdX: 120.0,
 );
 
 /// Defines the base stats and physics properties for an enemy type.
@@ -8651,6 +9541,7 @@ class EnemyArchetype {
     required this.mana,
     required this.stamina,
     required this.renderAnim,
+    required this.animProfile,
     required this.hitAnimSeconds,
     this.primarySpellId,
     this.artFacingDir = Facing.right,
@@ -8673,12 +9564,15 @@ class EnemyArchetype {
   /// Render-only animation metadata (strip paths, frame size, timing).
   final RenderAnimSetDefinition renderAnim;
 
+  /// Core animation profile (movement thresholds and supported keys).
+  final AnimProfile animProfile;
+
   /// Duration the hit animation should be visible (seconds).
   final double hitAnimSeconds;
 
   /// Optional primary ranged attack spell for this enemy.
   ///
-  /// When present, the [EnemySystem] will use this to write cast intents.
+  /// When present, the [EnemyCombatSystem] will use this to write cast intents.
   final SpellId? primarySpellId;
 
   /// Direction the authored art faces when not mirrored.
@@ -8729,6 +9623,7 @@ class EnemyCatalog {
             regenPerSecond: 0.0,
           ),
           renderAnim: _unocoRenderAnim,
+          animProfile: _unocoAnimProfile,
           hitAnimSeconds: _unocoHitAnimSeconds,
           primarySpellId: SpellId.lightning,
           artFacingDir: Facing.left,
@@ -8756,6 +9651,7 @@ class EnemyCatalog {
             regenPerSecond: 0.0,
           ),
           renderAnim: _werewolfRenderAnim,
+          animProfile: _werewolfAnimProfile,
           hitAnimSeconds: _werewolfHitAnimSeconds,
           tags: CreatureTagDef(mask: CreatureTagMask.humanoid),
         );
@@ -9043,7 +9939,10 @@ import 'ecs/systems/collectible_system.dart';
 import 'ecs/systems/collision_system.dart';
 import 'ecs/systems/cooldown_system.dart';
 import 'ecs/systems/damage_system.dart';
-import 'ecs/systems/enemy_system.dart';
+import 'ecs/systems/enemy_combat_system.dart';
+import 'ecs/systems/enemy_engagement_system.dart';
+import 'ecs/systems/enemy_locomotion_system.dart';
+import 'ecs/systems/enemy_navigation_system.dart';
 import 'ecs/systems/gravity_system.dart';
 import 'ecs/systems/health_despawn_system.dart';
 import 'ecs/systems/hitbox_damage_system.dart';
@@ -9063,7 +9962,7 @@ import 'ecs/systems/resource_regen_system.dart';
 import 'ecs/systems/restoration_item_system.dart';
 import 'ecs/systems/status_system.dart';
 import 'ecs/systems/spell_cast_system.dart';
-import 'ecs/systems/enemy_anim_system.dart';
+import 'ecs/systems/anim_system.dart';
 import 'ecs/systems/enemy_cull_system.dart';
 import 'ecs/world.dart';
 import 'enemies/enemy_catalog.dart';
@@ -9323,7 +10222,8 @@ class GameCore {
       baseGeometry: staticWorldGeometry,
       surfaceGraphBuilder: _surfaceGraphBuilder,
       jumpTemplate: _groundEnemyJumpTemplate,
-      enemySystem: _enemySystem,
+      enemyNavigationSystem: _enemyNavigationSystem,
+      enemyLocomotionSystem: _enemyLocomotionSystem,
       spawnService: _spawnService,
       groundTopY: effectiveGroundTopY,
       patternPool: levelDefinition.patternPool,
@@ -9338,7 +10238,6 @@ class GameCore {
       player: _player,
       movement: _movement,
       abilities: _abilities,
-      animTuning: _animTuning,
       resources: _resourceTuning,
       spells: _spells,
       projectiles: _projectiles,
@@ -9380,9 +10279,11 @@ class GameCore {
     _statusSystem = StatusSystem(tickHz: tickHz);
     _healthDespawnSystem = HealthDespawnSystem();
     _enemyCullSystem = EnemyCullSystem();
-    _enemyAnimSystem = EnemyAnimSystem(
+    _animSystem = AnimSystem(
       tickHz: tickHz,
       enemyCatalog: _enemyCatalog,
+      playerMovement: _movement,
+      playerAnimTuning: _animTuning,
     );
 
     // Player combat.
@@ -9416,17 +10317,17 @@ class GameCore {
     );
     _groundEnemyJumpTemplate = JumpReachabilityTemplate.build(
       JumpProfile(
-        jumpSpeed: _groundEnemyTuning.base.groundEnemyJumpSpeed,
+        jumpSpeed: _groundEnemyTuning.locomotion.jumpSpeed,
         gravityY: _physicsTuning.gravityY,
         maxAirTicks: _groundEnemyMaxAirTicks(),
-        airSpeedX: _groundEnemyTuning.base.groundEnemySpeedX,
+        airSpeedX: _groundEnemyTuning.locomotion.speedX,
         dtSeconds: _movement.dtSeconds,
         agentHalfWidth: _enemyCatalog.get(EnemyId.groundEnemy).collider.halfX,
       ),
     );
     _surfacePathfinder = SurfacePathfinder(
       maxExpandedNodes: _navigationTuning.maxExpandedNodes,
-      runSpeedX: _groundEnemyTuning.base.groundEnemySpeedX,
+      runSpeedX: _groundEnemyTuning.locomotion.speedX,
       edgePenaltySeconds: _navigationTuning.edgePenaltySeconds,
     );
     _surfaceNavigator = SurfaceNavigator(
@@ -9435,23 +10336,31 @@ class GameCore {
       surfaceEps: _navigationTuning.surfaceEps,
       takeoffEps: max(
         _navigationTuning.takeoffEpsMin,
-        _groundEnemyTuning.base.groundEnemyStopDistanceX,
+        _groundEnemyTuning.locomotion.stopDistanceX,
       ),
     );
 
-    // Enemy AI system (depends on navigation).
-    _enemySystem = EnemySystem(
-      unocoDemonTuning: _unocoDemonTuning,
-      groundEnemyTuning: _groundEnemyTuning,
+    _enemyNavigationSystem = EnemyNavigationSystem(
       surfaceNavigator: _surfaceNavigator,
-      enemyCatalog: _enemyCatalog,
-      spells: _spells,
-      projectiles: _projectiles,
       trajectoryPredictor: TrajectoryPredictor(
         gravityY: _physicsTuning.gravityY,
         dtSeconds: _movement.dtSeconds,
         maxTicks: 120,
       ),
+    );
+    _enemyEngagementSystem = EnemyEngagementSystem(
+      groundEnemyTuning: _groundEnemyTuning,
+    );
+    _enemyLocomotionSystem = EnemyLocomotionSystem(
+      unocoDemonTuning: _unocoDemonTuning,
+      groundEnemyTuning: _groundEnemyTuning,
+    );
+    _enemyCombatSystem = EnemyCombatSystem(
+      unocoDemonTuning: _unocoDemonTuning,
+      groundEnemyTuning: _groundEnemyTuning,
+      enemyCatalog: _enemyCatalog,
+      spells: _spells,
+      projectiles: _projectiles,
     );
   }
 
@@ -9577,7 +10486,10 @@ class GameCore {
   late final DamageSystem _damageSystem;
   late final StatusSystem _statusSystem;
   late final HealthDespawnSystem _healthDespawnSystem;
-  late EnemySystem _enemySystem;
+  late EnemyNavigationSystem _enemyNavigationSystem;
+  late EnemyEngagementSystem _enemyEngagementSystem;
+  late EnemyLocomotionSystem _enemyLocomotionSystem;
+  late EnemyCombatSystem _enemyCombatSystem;
   late final SurfaceGraphBuilder _surfaceGraphBuilder;
   late final JumpReachabilityTemplate _groundEnemyJumpTemplate;
   late final SurfacePathfinder _surfacePathfinder;
@@ -9590,7 +10502,7 @@ class GameCore {
   late final ResourceRegenSystem _resourceRegenSystem;
   late final PlayerCastSystem _castSystem;
   late final SpellCastSystem _spellCastSystem;
-  late final EnemyAnimSystem _enemyAnimSystem;
+  late final AnimSystem _animSystem;
   late final EnemyCullSystem _enemyCullSystem;
 
   // ─── Modular Services ───
@@ -9834,7 +10746,7 @@ class GameCore {
   /// 18. **Status application**: Apply on-hit status profiles.
   /// 19. **Death handling**: Despawn dead entities, record kills.
   /// 20. **Resource regen**: Regenerate mana and stamina.
-  /// 21. **Enemy animation**: Compute per-enemy anim key + frame.
+  /// 21. **Animation**: Compute per-entity anim key + frame.
   /// 22. **Cleanup**: Remove entities past their lifetime.
   ///
   /// If the run ends during this tick (player death, fell into gap, etc.),
@@ -9845,8 +10757,8 @@ class GameCore {
 
     if (_deathAnimTicksLeft > 0) {
       tick += 1;
-      // Update enemy animations during death anim freeze.
-      _enemyAnimSystem.step(_world, currentTick: tick);
+      // Update animations during death anim freeze.
+      _animSystem.step(_world, player: _player, currentTick: tick);
       _deathAnimTicksLeft -= 1;
       if (_deathAnimTicksLeft <= 0) {
         _endRun(
@@ -9871,7 +10783,15 @@ class GameCore {
     _invulnerabilitySystem.step(_world);
 
     // ─── Phase 3: AI and movement ───
-    _enemySystem.stepSteering(
+    _enemyNavigationSystem.step(
+      _world,
+      player: _player,
+    );
+    _enemyEngagementSystem.step(
+      _world,
+      player: _player,
+    );
+    _enemyLocomotionSystem.step(
       _world,
       player: _player,
       groundTopY: effectiveGroundTopY,
@@ -9930,7 +10850,7 @@ class GameCore {
 
     // ─── Phase 9: Attack intent writing ───
     // Enemies first, then player (order matters for fairness).
-    _enemySystem.stepAttacks(_world, player: _player, currentTick: tick);
+    _enemyCombatSystem.stepAttacks(_world, player: _player, currentTick: tick);
     _castSystem.step(_world, player: _player, currentTick: tick);
     _meleeSystem.step(_world, player: _player, currentTick: tick);
     _rangedWeaponSystem.step(_world, player: _player, currentTick: tick);
@@ -10006,8 +10926,8 @@ class GameCore {
     // ─── Phase 15: Resource regeneration ───
     _resourceRegenSystem.step(_world, dtSeconds: _movement.dtSeconds);
 
-    // ─── Phase 16: Enemy animation ───
-    _enemyAnimSystem.step(_world, currentTick: tick);
+    // ─── Phase 16: Animation ───
+    _animSystem.step(_world, player: _player, currentTick: tick);
 
     // ─── Phase 17: Cleanup ───
     _lifetimeSystem.step(_world);
@@ -10223,7 +11143,7 @@ class GameCore {
       // No gravity means infinite air time; cap at 1 second.
       return ticksFromSecondsCeil(1.0, tickHz);
     }
-    final jumpSpeed = _groundEnemyTuning.base.groundEnemyJumpSpeed.abs();
+    final jumpSpeed = _groundEnemyTuning.locomotion.jumpSpeed.abs();
     final baseAirSeconds = (2.0 * jumpSpeed) / gravity;
     return ticksFromSecondsCeil(baseAirSeconds * 1.5, tickHz);
   }
@@ -14023,7 +14943,6 @@ import 'ecs/stores/restoration_item_store.dart';
 import 'levels/level_id.dart';
 import 'projectiles/projectile_catalog.dart';
 import 'enemies/enemy_catalog.dart';
-import 'enemies/enemy_id.dart';
 import 'snapshots/enums.dart';
 import 'snapshots/entity_render_snapshot.dart';
 import 'snapshots/game_state_snapshot.dart';
@@ -14058,7 +14977,6 @@ class SnapshotBuilder {
   /// - [player]: Entity ID of the player (used to query player-specific stores).
   /// - [movement]: Derived movement tuning (dash cooldown ticks, etc.).
   /// - [abilities]: Derived ability tuning (melee/cast cooldown ticks).
-  /// - [animTuning]: Derived animation tuning (hit/cast/attack/spawn windows).
   /// - [resources]: Resource costs (jump/dash stamina, etc.).
   /// - [spells]: Spell catalog for querying spell stats (mana costs).
   /// - [projectiles]: Projectile catalog for collider sizes.
@@ -14070,7 +14988,6 @@ class SnapshotBuilder {
     required this.player,
     required this.movement,
     required this.abilities,
-    required this.animTuning,
     required this.resources,
     required this.spells,
     required this.projectiles,
@@ -14092,9 +15009,6 @@ class SnapshotBuilder {
 
   /// Derived ability tuning (cooldown durations in ticks).
   final AbilityTuningDerived abilities;
-
-  /// Derived animation tuning (one-shot windows in ticks).
-  final AnimTuningDerived animTuning;
 
   /// Resource tuning (stamina/mana costs for actions).
   final ResourceTuning resources;
@@ -14152,10 +15066,7 @@ class SnapshotBuilder {
     required List<StaticGroundGapSnapshot> groundGaps,
   }) {
     // ─── Query player component indices ───
-    final tuning = movement.base;
     final mi = world.movement.indexOf(player);
-    final dashTicksLeft = world.movement.dashTicksLeft[mi];
-    final dashing = dashTicksLeft > 0;
     final onGround = world.collision.grounded[world.collision.indexOf(player)];
     final hi = world.health.indexOf(player);
     final mai = world.mana.indexOf(player);
@@ -14200,95 +15111,16 @@ class SnapshotBuilder {
     final playerVelX = world.transform.velX[ti];
     final playerVelY = world.transform.velY[ti];
     final playerFacing = world.movement.facing[mi];
-    final playerHp = world.health.hp[hi];
-    final actionAnimIndex = world.actionAnim.tryIndexOf(player);
-    final lastMeleeTick = actionAnimIndex == null
-        ? -1
-        : world.actionAnim.lastMeleeTick[actionAnimIndex];
-    final lastMeleeFacing = actionAnimIndex == null
-        ? playerFacing
-        : world.actionAnim.lastMeleeFacing[actionAnimIndex];
-    final lastCastTick = actionAnimIndex == null
-        ? -1
-        : world.actionAnim.lastCastTick[actionAnimIndex];
-    final lastRangedTick = actionAnimIndex == null
-        ? -1
-        : world.actionAnim.lastRangedTick[actionAnimIndex];
-
-    final lastDamageTick = world.lastDamage.has(player)
-        ? world.lastDamage.tick[world.lastDamage.indexOf(player)]
-        : -1;
-
-    // ─── Determine player animation ───
-    // Priority: death > hit > attack/cast > dash > airborne > moving > idle/spawn
+    final animState = world.animState;
     final AnimKey anim;
-    final showHit =
-        animTuning.hitAnimTicks > 0 &&
-        lastDamageTick >= 0 &&
-        (tick - lastDamageTick) < animTuning.hitAnimTicks;
-    final attackAnimTicks = lastMeleeFacing == Facing.left
-        ? animTuning.attackLeftAnimTicks
-        : animTuning.attackAnimTicks;
-    final showAttack =
-        attackAnimTicks > 0 &&
-        lastMeleeTick >= 0 &&
-        (tick - lastMeleeTick) < attackAnimTicks;
-    final showCast =
-        animTuning.castAnimTicks > 0 &&
-        lastCastTick >= 0 &&
-        (tick - lastCastTick) < animTuning.castAnimTicks;
-    final showRanged =
-        animTuning.rangedAnimTicks > 0 &&
-        lastRangedTick >= 0 &&
-        (tick - lastRangedTick) < animTuning.rangedAnimTicks;
-
-    if (playerHp <= 0) {
-      anim = AnimKey.death;
-    } else if (showHit) {
-      anim = AnimKey.hit;
-    } else if (showAttack) {
-      anim = lastMeleeFacing == Facing.left
-          ? AnimKey.attackLeft
-          : AnimKey.attack;
-    } else if (showCast) {
-      anim = AnimKey.cast;
-    } else if (showRanged) {
-      anim = AnimKey.ranged;
-    } else if (dashing) {
-      anim = AnimKey.dash;
-    } else if (!onGround) {
-      anim = playerVelY < 0 ? AnimKey.jump : AnimKey.fall;
-    } else if (animTuning.spawnAnimTicks > 0 &&
-        tick < animTuning.spawnAnimTicks) {
-      anim = AnimKey.spawn;
-    } else {
-      final speedX = playerVelX.abs();
-      if (speedX <= tuning.minMoveSpeed) {
-        anim = AnimKey.idle;
-      } else if (speedX < tuning.runSpeedThresholdX) {
-        anim = AnimKey.walk;
-      } else {
-        anim = AnimKey.run;
-      }
-    }
-
     final int playerAnimFrame;
-    switch (anim) {
-      case AnimKey.attack:
-      case AnimKey.attackLeft:
-        playerAnimFrame = lastMeleeTick >= 0 ? tick - lastMeleeTick : tick;
-      case AnimKey.cast:
-        playerAnimFrame = lastCastTick >= 0 ? tick - lastCastTick : tick;
-      case AnimKey.ranged:
-        playerAnimFrame = lastRangedTick >= 0 ? tick - lastRangedTick : tick;
-      case AnimKey.hit:
-        playerAnimFrame = lastDamageTick >= 0 ? tick - lastDamageTick : tick;
-      case AnimKey.death:
-        playerAnimFrame = lastDamageTick >= 0 ? tick - lastDamageTick : tick;
-      case AnimKey.dash:
-        playerAnimFrame = max(0, movement.dashDurationTicks - dashTicksLeft);
-      default:
-        playerAnimFrame = tick;
+    if (animState.has(player)) {
+      final ai = animState.indexOf(player);
+      anim = animState.anim[ai];
+      playerAnimFrame = animState.animFrame[ai];
+    } else {
+      anim = AnimKey.idle;
+      playerAnimFrame = tick;
     }
 
     final playerPos = Vec2(playerPosX, playerPosY);
@@ -14542,10 +15374,10 @@ class SnapshotBuilder {
   /// Appends enemy entity snapshots to [entities].
   ///
   /// Enemies have position, velocity, facing direction, and grounded state.
-  /// Animation is read from [EnemyAnimStore], pre-computed by [EnemyAnimSystem].
+  /// Animation is read from [AnimStateStore], pre-computed by [AnimSystem].
   void _addEnemies(List<EntityRenderSnapshot> entities, {required int tick}) {
     final enemies = world.enemy;
-    final animStore = world.enemyAnim;
+    final animStore = world.animState;
 
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
       final e = enemies.denseEntities[ei];
@@ -14567,7 +15399,7 @@ class SnapshotBuilder {
           ? world.collision.grounded[world.collision.indexOf(e)]
           : false;
 
-      // Read pre-computed animation from EnemyAnimStore.
+      // Read pre-computed animation from AnimStateStore.
       final AnimKey anim;
       final int animFrame;
       if (animStore.has(e)) {
@@ -16830,7 +17662,7 @@ class _ActiveChunk {
 ///        ↓
 /// SurfaceGraphBuilder.build() (navigation)
 ///        ↓
-/// SpawnService + EnemySystem receive new graphs
+/// SpawnService + enemy navigation systems receive new graphs
 /// ```
 ///
 /// ## Chunk Spawning Flow
@@ -16844,7 +17676,8 @@ library;
 
 import 'collision/static_world_geometry_index.dart';
 import 'ecs/stores/restoration_item_store.dart' show RestorationStat;
-import 'ecs/systems/enemy_system.dart';
+import 'ecs/systems/enemy_locomotion_system.dart';
+import 'ecs/systems/enemy_navigation_system.dart';
 import 'enemies/enemy_id.dart';
 import 'navigation/surface_graph_builder.dart';
 import 'navigation/utils/jump_template.dart';
@@ -16916,7 +17749,8 @@ class TrackManager {
   /// - [baseGeometry]: Static level geometry (ground plane, initial platforms).
   /// - [surfaceGraphBuilder]: Builder for navigation surface graphs.
   /// - [jumpTemplate]: Precomputed jump reachability for pathfinding.
-  /// - [enemySystem]: Enemy AI system (receives surface graph updates).
+  /// - [enemyNavigationSystem]: Ground enemy navigation (receives graph updates).
+  /// - [enemyLocomotionSystem]: Ground locomotion (receives graph updates).
   /// - [spawnService]: Entity spawner (receives surface graph updates).
   /// - [groundTopY]: Y coordinate of the ground surface (for spawning).
   /// - [patternPool]: Chunk pattern pools for procedural generation.
@@ -16930,7 +17764,8 @@ class TrackManager {
     required StaticWorldGeometry baseGeometry,
     required SurfaceGraphBuilder surfaceGraphBuilder,
     required JumpReachabilityTemplate jumpTemplate,
-    required EnemySystem enemySystem,
+    required EnemyNavigationSystem enemyNavigationSystem,
+    required EnemyLocomotionSystem enemyLocomotionSystem,
     required SpawnService spawnService,
     required double groundTopY,
     required ChunkPatternPool patternPool,
@@ -16942,7 +17777,8 @@ class TrackManager {
         _baseGeometry = baseGeometry,
         _surfaceGraphBuilder = surfaceGraphBuilder,
         _jumpTemplate = jumpTemplate,
-        _enemySystem = enemySystem,
+        _enemyNavigationSystem = enemyNavigationSystem,
+        _enemyLocomotionSystem = enemyLocomotionSystem,
         _spawnService = spawnService,
         _patternPool = patternPool,
         _earlyPatternChunks = earlyPatternChunks,
@@ -16976,7 +17812,8 @@ class TrackManager {
   final StaticWorldGeometry _baseGeometry;
   final SurfaceGraphBuilder _surfaceGraphBuilder;
   final JumpReachabilityTemplate _jumpTemplate;
-  final EnemySystem _enemySystem;
+  final EnemyNavigationSystem _enemyNavigationSystem;
+  final EnemyLocomotionSystem _enemyLocomotionSystem;
   final SpawnService _spawnService;
   final ChunkPatternPool _patternPool;
   final int _earlyPatternChunks;
@@ -17144,7 +17981,8 @@ class TrackManager {
   ///
   /// The surface graph is used by:
   /// - [SpawnService]: To place items "on top of" platforms.
-  /// - [EnemySystem]: To compute jump/walk paths to the player.
+  /// - [EnemyNavigationSystem]: To compute jump/walk paths to the player.
+  /// - [EnemyLocomotionSystem]: To snap jump velocity on active edges.
   ///
   /// A version counter is incremented each rebuild so consumers can
   /// invalidate cached paths.
@@ -17162,11 +18000,12 @@ class TrackManager {
     );
 
     // Distribute new graph to enemy AI system.
-    _enemySystem.setSurfaceGraph(
+    _enemyNavigationSystem.setSurfaceGraph(
       graph: result.graph,
       spatialIndex: result.spatialIndex,
       graphVersion: _surfaceGraphVersion,
     );
+    _enemyLocomotionSystem.setSurfaceGraph(graph: result.graph);
   }
 
   /// Builds an immutable list of [StaticSolidSnapshot] from geometry.
@@ -17557,98 +18396,148 @@ class UnocoDemonTuningDerived {
 
 
 ===== FILE: lib/core/tuning/ground_enemy_tuning.dart =====
-/// Ground enemy AI tuning (steering, melee).
+/// Ground enemy AI tuning grouped by navigation/engagement/locomotion/combat.
 library;
 
 import '../util/tick_math.dart';
 
 class GroundEnemyTuning {
   const GroundEnemyTuning({
-    this.groundEnemySpeedX = 300.0,
-    this.groundEnemyStopDistanceX = 6.0,
-    this.groundEnemyAccelX = 600.0,
-    this.groundEnemyDecelX = 400.0,
-    this.groundEnemyChaseOffsetMaxX = 18.0,
-    this.groundEnemyChaseOffsetMinAbsX = 6.0,
-    this.groundEnemyChaseOffsetMeleeX = 3.0,
-    this.groundEnemyChaseSpeedScaleMin = 0.92,
-    this.groundEnemyChaseSpeedScaleMax = 1.08,
-    this.groundEnemyJumpSpeed = 500.0,
-    this.groundEnemyMeleeRangeX = 26.0,
-    this.groundEnemyMeleeCooldownSeconds = 1.0,
-    this.groundEnemyMeleeActiveSeconds = 0.10,
-    this.groundEnemyMeleeAnimSeconds = 0.60,
-    this.groundEnemyMeleeDamage = 5.0,
-    this.groundEnemyMeleeHitboxSizeX = 28.0,
-    this.groundEnemyMeleeHitboxSizeY = 16.0,
+    this.navigation = const GroundEnemyNavigationTuning(),
+    this.engagement = const GroundEnemyEngagementTuning(),
+    this.locomotion = const GroundEnemyLocomotionTuning(),
+    this.combat = const GroundEnemyCombatTuning(),
   });
 
-  // ── Steering ──
+  final GroundEnemyNavigationTuning navigation;
+  final GroundEnemyEngagementTuning engagement;
+  final GroundEnemyLocomotionTuning locomotion;
+  final GroundEnemyCombatTuning combat;
+}
 
-  /// Target horizontal speed (world units/sec).
-  final double groundEnemySpeedX;
-
-  /// Distance at which enemy stops chasing (world units).
-  final double groundEnemyStopDistanceX;
-
-  /// Horizontal acceleration (world units/sec²).
-  final double groundEnemyAccelX;
-
-  /// Horizontal deceleration (world units/sec²).
-  final double groundEnemyDecelX;
+/// Navigation tuning (chase offset + speed variance).
+class GroundEnemyNavigationTuning {
+  const GroundEnemyNavigationTuning({
+    this.chaseOffsetMaxX = 18.0,
+    this.chaseOffsetMinAbsX = 6.0,
+    this.chaseOffsetMeleeX = 3.0,
+    this.chaseSpeedScaleMin = 0.92,
+    this.chaseSpeedScaleMax = 1.08,
+  });
 
   /// Max random chase offset from player (world units).
-  final double groundEnemyChaseOffsetMaxX;
+  final double chaseOffsetMaxX;
 
   /// Min absolute chase offset (prevents clumping).
-  final double groundEnemyChaseOffsetMinAbsX;
+  final double chaseOffsetMinAbsX;
 
   /// Chase offset when in melee range (world units).
-  final double groundEnemyChaseOffsetMeleeX;
+  final double chaseOffsetMeleeX;
 
   /// Min speed scale for chase variance.
-  final double groundEnemyChaseSpeedScaleMin;
+  final double chaseSpeedScaleMin;
 
   /// Max speed scale for chase variance.
-  final double groundEnemyChaseSpeedScaleMax;
+  final double chaseSpeedScaleMax;
+}
+
+/// Engagement tuning (slot selection + melee state movement).
+class GroundEnemyEngagementTuning {
+  const GroundEnemyEngagementTuning({
+    this.meleeEngageBufferX = 4.0,
+    this.meleeEngageHysteresisX = 2.0,
+    this.meleeArriveSlowRadiusX = 12.0,
+    this.meleeAttackSpeedMul = 0.25,
+    this.meleeRecoverSpeedMul = 0.5,
+  });
+
+  /// Extra buffer beyond melee range to enter engage state.
+  final double meleeEngageBufferX;
+
+  /// Hysteresis added to engage buffer for disengage threshold.
+  final double meleeEngageHysteresisX;
+
+  /// Radius within which arrival steering slows to zero.
+  final double meleeArriveSlowRadiusX;
+
+  /// Speed multiplier during attack state.
+  final double meleeAttackSpeedMul;
+
+  /// Speed multiplier during recover state.
+  final double meleeRecoverSpeedMul;
+}
+
+/// Locomotion tuning (movement + jump).
+class GroundEnemyLocomotionTuning {
+  const GroundEnemyLocomotionTuning({
+    this.speedX = 300.0,
+    this.stopDistanceX = 6.0,
+    this.accelX = 600.0,
+    this.decelX = 400.0,
+    this.jumpSpeed = 500.0,
+  });
+
+  /// Target horizontal speed (world units/sec).
+  final double speedX;
+
+  /// Distance at which enemy stops chasing (world units).
+  final double stopDistanceX;
+
+  /// Horizontal acceleration (world units/sec^2).
+  final double accelX;
+
+  /// Horizontal deceleration (world units/sec^2).
+  final double decelX;
 
   /// Jump velocity (world units/sec, positive = upward).
-  final double groundEnemyJumpSpeed;
+  final double jumpSpeed;
+}
 
-  // ── Melee ──
+/// Combat tuning (melee timing + damage).
+class GroundEnemyCombatTuning {
+  const GroundEnemyCombatTuning({
+    this.meleeRangeX = 26.0,
+    this.meleeCooldownSeconds = 1.0,
+    this.meleeActiveSeconds = 0.10,
+    this.meleeAnimSeconds = 0.60,
+    this.meleeDamage = 5.0,
+    this.meleeHitboxSizeX = 28.0,
+    this.meleeHitboxSizeY = 16.0,
+  });
 
   /// Horizontal range to trigger melee attack (world units).
-  final double groundEnemyMeleeRangeX;
+  final double meleeRangeX;
 
   /// Cooldown between melee attacks (seconds).
-  final double groundEnemyMeleeCooldownSeconds;
+  final double meleeCooldownSeconds;
 
   /// Duration melee hitbox is active (seconds).
-  final double groundEnemyMeleeActiveSeconds;
+  final double meleeActiveSeconds;
 
   /// Duration the melee attack animation should be visible (seconds).
   ///
-  /// This can be longer than [groundEnemyMeleeActiveSeconds] since the hitbox
+  /// This can be longer than [meleeActiveSeconds] since the hitbox
   /// window is often only a subset of the full animation.
-  final double groundEnemyMeleeAnimSeconds;
+  final double meleeAnimSeconds;
 
   /// Damage dealt by melee attack.
-  final double groundEnemyMeleeDamage;
+  final double meleeDamage;
 
   /// Melee hitbox width (world units).
-  final double groundEnemyMeleeHitboxSizeX;
+  final double meleeHitboxSizeX;
 
   /// Melee hitbox height (world units).
-  final double groundEnemyMeleeHitboxSizeY;
+  final double meleeHitboxSizeY;
 }
 
 class GroundEnemyTuningDerived {
   const GroundEnemyTuningDerived._({
     required this.tickHz,
     required this.base,
-    required this.groundEnemyMeleeCooldownTicks,
-    required this.groundEnemyMeleeActiveTicks,
-    required this.groundEnemyMeleeAnimTicks,
+    required this.navigation,
+    required this.engagement,
+    required this.locomotion,
+    required this.combat,
   });
 
   factory GroundEnemyTuningDerived.from(
@@ -17659,30 +18548,97 @@ class GroundEnemyTuningDerived {
       throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
     }
 
+    final combat = base.combat;
+    final engagement = base.engagement;
+
+    final meleeStandOffX = () {
+      final desired = combat.meleeHitboxSizeX * (2.0 / 3.0);
+      if (desired.isNaN || desired.isInfinite) return 0.0;
+      final clampedToRange = desired > combat.meleeRangeX
+          ? combat.meleeRangeX
+          : desired;
+      return clampedToRange < 0.0 ? 0.0 : clampedToRange;
+    }();
+
     return GroundEnemyTuningDerived._(
       tickHz: tickHz,
       base: base,
-      groundEnemyMeleeCooldownTicks: ticksFromSecondsCeil(
-        base.groundEnemyMeleeCooldownSeconds,
-        tickHz,
+      navigation: base.navigation,
+      engagement: GroundEnemyEngagementTuningDerived(
+        meleeEngageBufferX: engagement.meleeEngageBufferX,
+        meleeEngageHysteresisX: engagement.meleeEngageHysteresisX,
+        meleeArriveSlowRadiusX: engagement.meleeArriveSlowRadiusX,
+        meleeAttackSpeedMul: engagement.meleeAttackSpeedMul,
+        meleeRecoverSpeedMul: engagement.meleeRecoverSpeedMul,
+        meleeStandOffX: meleeStandOffX,
       ),
-      groundEnemyMeleeActiveTicks: ticksFromSecondsCeil(
-        base.groundEnemyMeleeActiveSeconds,
-        tickHz,
-      ),
-      groundEnemyMeleeAnimTicks: ticksFromSecondsCeil(
-        base.groundEnemyMeleeAnimSeconds,
-        tickHz,
+      locomotion: base.locomotion,
+      combat: GroundEnemyCombatTuningDerived(
+        meleeRangeX: combat.meleeRangeX,
+        meleeCooldownSeconds: combat.meleeCooldownSeconds,
+        meleeActiveSeconds: combat.meleeActiveSeconds,
+        meleeAnimSeconds: combat.meleeAnimSeconds,
+        meleeDamage: combat.meleeDamage,
+        meleeHitboxSizeX: combat.meleeHitboxSizeX,
+        meleeHitboxSizeY: combat.meleeHitboxSizeY,
+        meleeCooldownTicks: ticksFromSecondsCeil(
+          combat.meleeCooldownSeconds,
+          tickHz,
+        ),
+        meleeActiveTicks: ticksFromSecondsCeil(
+          combat.meleeActiveSeconds,
+          tickHz,
+        ),
+        meleeAnimTicks: ticksFromSecondsCeil(
+          combat.meleeAnimSeconds,
+          tickHz,
+        ),
       ),
     );
   }
 
   final int tickHz;
   final GroundEnemyTuning base;
+  final GroundEnemyNavigationTuning navigation;
+  final GroundEnemyEngagementTuningDerived engagement;
+  final GroundEnemyLocomotionTuning locomotion;
+  final GroundEnemyCombatTuningDerived combat;
+}
 
-  final int groundEnemyMeleeCooldownTicks;
-  final int groundEnemyMeleeActiveTicks;
-  final int groundEnemyMeleeAnimTicks;
+class GroundEnemyEngagementTuningDerived extends GroundEnemyEngagementTuning {
+  const GroundEnemyEngagementTuningDerived({
+    required super.meleeEngageBufferX,
+    required super.meleeEngageHysteresisX,
+    required super.meleeArriveSlowRadiusX,
+    required super.meleeAttackSpeedMul,
+    required super.meleeRecoverSpeedMul,
+    required this.meleeStandOffX,
+  });
+
+  /// Stand-off target used in engage/attack/recover phases.
+  ///
+  /// Derived from [GroundEnemyCombatTuning.meleeHitboxSizeX] so the player
+  /// sits well within the hitbox when the enemy is at its preferred slot.
+  final double meleeStandOffX;
+}
+
+class GroundEnemyCombatTuningDerived extends GroundEnemyCombatTuning {
+  const GroundEnemyCombatTuningDerived({
+    required super.meleeRangeX,
+    required super.meleeCooldownSeconds,
+    required super.meleeActiveSeconds,
+    required super.meleeAnimSeconds,
+    required super.meleeDamage,
+    required super.meleeHitboxSizeX,
+    required super.meleeHitboxSizeY,
+    required this.meleeCooldownTicks,
+    required this.meleeActiveTicks,
+    required this.meleeAnimTicks,
+  });
+
+  final int meleeCooldownTicks;
+  final int meleeActiveTicks;
+  final int meleeAnimTicks;
 }
 
 
@@ -18767,7 +19723,7 @@ class EnemyRenderRegistry {
     ),
     EnemyId.groundEnemy: EnemyRenderEntry(
       id: EnemyId.groundEnemy,
-      renderScale: Vector2.all(0.5),
+      renderScale: Vector2.all(0.75),
     ),
   };
 

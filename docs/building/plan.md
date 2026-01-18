@@ -25,10 +25,10 @@ Pipeline per tick:
    surface graph (planner target = player or predicted landing).
 2. **Engagement** (`EnemyEngagementSystem`) updates `MeleeEngagementStore` and
    writes `EngagementIntentStore` (slot target, arrival slow radius, speed muls).
-3. **Locomotion** (`EnemyLocomotionSystem`) applies velocities using nav +
-   engagement intents (ground) and handles flying steering (Unoco).
-4. **Combat** (`EnemyCombatSystem`) writes `CastIntentStore`/`MeleeIntentStore`
-   and updates attack windows for animation.
+3. **Locomotion** (`GroundEnemyLocomotionSystem` + `FlyingEnemyLocomotionSystem`)
+   applies velocities using nav + engagement intents (ground) and steering (Unoco).
+4. **Combat** (`EnemyCastSystem` + `EnemyMeleeSystem`) writes
+   `CastIntentStore`/`MeleeIntentStore` and updates attack windows for animation.
 
 This keeps pathfinding separate from melee slot logic and keeps combat decisions
 independent from locomotion mechanics.

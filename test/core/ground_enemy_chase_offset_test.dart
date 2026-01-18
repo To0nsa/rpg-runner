@@ -9,7 +9,7 @@ import 'package:rpg_runner/core/ecs/stores/enemies/melee_engagement_store.dart';
 import 'package:rpg_runner/core/ecs/stores/enemies/surface_nav_state_store.dart';
 import 'package:rpg_runner/core/ecs/spatial/grid_index_2d.dart';
 import 'package:rpg_runner/core/ecs/systems/enemy_engagement_system.dart';
-import 'package:rpg_runner/core/ecs/systems/enemy_locomotion_system.dart';
+import 'package:rpg_runner/core/ecs/systems/ground_enemy_locomotion_system.dart';
 import 'package:rpg_runner/core/ecs/systems/enemy_navigation_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/navigation/types/surface_graph.dart';
@@ -18,7 +18,6 @@ import 'package:rpg_runner/core/navigation/surface_pathfinder.dart';
 import 'package:rpg_runner/core/navigation/utils/surface_spatial_index.dart';
 import 'package:rpg_runner/core/navigation/types/walk_surface.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
-import 'package:rpg_runner/core/tuning/flying_enemy_tuning.dart';
 import 'package:rpg_runner/core/tuning/ground_enemy_tuning.dart';
 import 'package:rpg_runner/core/util/deterministic_rng.dart';
 import 'package:rpg_runner/core/util/double_math.dart';
@@ -164,11 +163,7 @@ void main() {
         tickHz: 60,
       ),
     );
-    final locomotionSystem = EnemyLocomotionSystem(
-      unocoDemonTuning: UnocoDemonTuningDerived.from(
-        const UnocoDemonTuning(),
-        tickHz: 60,
-      ),
+    final locomotionSystem = GroundEnemyLocomotionSystem(
       groundEnemyTuning: GroundEnemyTuningDerived.from(
         baseTuning,
         tickHz: 60,
@@ -190,7 +185,6 @@ void main() {
     locomotionSystem.step(
       world,
       player: player,
-      groundTopY: 0.0,
       dtSeconds: dtSeconds,
     );
 
@@ -285,11 +279,7 @@ void main() {
           tickHz: 60,
         ),
       );
-      final locomotionSystem = EnemyLocomotionSystem(
-        unocoDemonTuning: UnocoDemonTuningDerived.from(
-          const UnocoDemonTuning(),
-          tickHz: 60,
-        ),
+      final locomotionSystem = GroundEnemyLocomotionSystem(
         groundEnemyTuning: GroundEnemyTuningDerived.from(
           baseTuning,
           tickHz: 60,
@@ -307,7 +297,6 @@ void main() {
       locomotionSystem.step(
         world,
         player: player,
-        groundTopY: 0.0,
         dtSeconds: dtSeconds,
       );
 
@@ -361,11 +350,7 @@ void main() {
           tickHz: 60,
         ),
       );
-      final locomotionSystem = EnemyLocomotionSystem(
-        unocoDemonTuning: UnocoDemonTuningDerived.from(
-          const UnocoDemonTuning(),
-          tickHz: 60,
-        ),
+      final locomotionSystem = GroundEnemyLocomotionSystem(
         groundEnemyTuning: GroundEnemyTuningDerived.from(
           baseTuning,
           tickHz: 60,
@@ -383,7 +368,6 @@ void main() {
       locomotionSystem.step(
         world,
         player: player,
-        groundTopY: 0.0,
         dtSeconds: dtSeconds,
       );
 
@@ -447,11 +431,7 @@ void main() {
         tickHz: 60,
       ),
     );
-    final locomotionSystem = EnemyLocomotionSystem(
-      unocoDemonTuning: UnocoDemonTuningDerived.from(
-        const UnocoDemonTuning(),
-        tickHz: 60,
-      ),
+    final locomotionSystem = GroundEnemyLocomotionSystem(
       groundEnemyTuning: GroundEnemyTuningDerived.from(
         baseTuning,
         tickHz: 60,
@@ -473,7 +453,6 @@ void main() {
     locomotionSystem.step(
       world,
       player: player,
-      groundTopY: 0.0,
       dtSeconds: dtSeconds,
     );
 

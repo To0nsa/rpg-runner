@@ -81,9 +81,10 @@ import 'ecs/systems/collectible_system.dart';
 import 'ecs/systems/collision_system.dart';
 import 'ecs/systems/cooldown_system.dart';
 import 'ecs/systems/damage_system.dart';
-import 'ecs/systems/enemy_combat_system.dart';
+import 'ecs/systems/enemy_cast_system.dart';
 import 'ecs/systems/enemy_engagement_system.dart';
-import 'ecs/systems/enemy_locomotion_system.dart';
+import 'ecs/systems/flying_enemy_locomotion_system.dart';
+import 'ecs/systems/ground_enemy_locomotion_system.dart';
 import 'ecs/systems/enemy_navigation_system.dart';
 import 'ecs/systems/gravity_system.dart';
 import 'ecs/systems/health_despawn_system.dart';
@@ -106,6 +107,7 @@ import 'ecs/systems/status_system.dart';
 import 'ecs/systems/spell_cast_system.dart';
 import 'ecs/systems/anim_system.dart';
 import 'ecs/systems/enemy_cull_system.dart';
+import 'ecs/systems/enemy_melee_system.dart';
 import 'ecs/world.dart';
 import 'enemies/enemy_catalog.dart';
 import 'enemies/enemy_id.dart';
@@ -365,7 +367,7 @@ class GameCore {
       surfaceGraphBuilder: _surfaceGraphBuilder,
       jumpTemplate: _groundEnemyJumpTemplate,
       enemyNavigationSystem: _enemyNavigationSystem,
-      enemyLocomotionSystem: _enemyLocomotionSystem,
+      groundEnemyLocomotionSystem: _groundEnemyLocomotionSystem,
       spawnService: _spawnService,
       groundTopY: effectiveGroundTopY,
       patternPool: levelDefinition.patternPool,
@@ -493,16 +495,20 @@ class GameCore {
     _enemyEngagementSystem = EnemyEngagementSystem(
       groundEnemyTuning: _groundEnemyTuning,
     );
-    _enemyLocomotionSystem = EnemyLocomotionSystem(
-      unocoDemonTuning: _unocoDemonTuning,
+    _groundEnemyLocomotionSystem = GroundEnemyLocomotionSystem(
       groundEnemyTuning: _groundEnemyTuning,
     );
-    _enemyCombatSystem = EnemyCombatSystem(
+    _flyingEnemyLocomotionSystem = FlyingEnemyLocomotionSystem(
       unocoDemonTuning: _unocoDemonTuning,
-      groundEnemyTuning: _groundEnemyTuning,
+    );
+    _enemyCastSystem = EnemyCastSystem(
+      unocoDemonTuning: _unocoDemonTuning,
       enemyCatalog: _enemyCatalog,
       spells: _spells,
       projectiles: _projectiles,
+    );
+    _enemyMeleeSystem = EnemyMeleeSystem(
+      groundEnemyTuning: _groundEnemyTuning,
     );
   }
 
@@ -630,8 +636,10 @@ class GameCore {
   late final HealthDespawnSystem _healthDespawnSystem;
   late EnemyNavigationSystem _enemyNavigationSystem;
   late EnemyEngagementSystem _enemyEngagementSystem;
-  late EnemyLocomotionSystem _enemyLocomotionSystem;
-  late EnemyCombatSystem _enemyCombatSystem;
+  late GroundEnemyLocomotionSystem _groundEnemyLocomotionSystem;
+  late FlyingEnemyLocomotionSystem _flyingEnemyLocomotionSystem;
+  late EnemyCastSystem _enemyCastSystem;
+  late EnemyMeleeSystem _enemyMeleeSystem;
   late final SurfaceGraphBuilder _surfaceGraphBuilder;
   late final JumpReachabilityTemplate _groundEnemyJumpTemplate;
   late final SurfacePathfinder _surfacePathfinder;
@@ -933,7 +941,12 @@ class GameCore {
       _world,
       player: _player,
     );
-    _enemyLocomotionSystem.step(
+    _groundEnemyLocomotionSystem.step(
+      _world,
+      player: _player,
+      dtSeconds: _movement.dtSeconds,
+    );
+    _flyingEnemyLocomotionSystem.step(
       _world,
       player: _player,
       groundTopY: effectiveGroundTopY,
@@ -992,7 +1005,8 @@ class GameCore {
 
     // ─── Phase 9: Attack intent writing ───
     // Enemies first, then player (order matters for fairness).
-    _enemyCombatSystem.stepAttacks(_world, player: _player, currentTick: tick);
+    _enemyCastSystem.step(_world, player: _player, currentTick: tick);
+    _enemyMeleeSystem.step(_world, player: _player, currentTick: tick);
     _castSystem.step(_world, player: _player, currentTick: tick);
     _meleeSystem.step(_world, player: _player, currentTick: tick);
     _rangedWeaponSystem.step(_world, player: _player, currentTick: tick);

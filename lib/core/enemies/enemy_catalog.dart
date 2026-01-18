@@ -194,7 +194,7 @@ class EnemyArchetype {
 
   /// Optional primary ranged attack spell for this enemy.
   ///
-  /// When present, the [EnemyCombatSystem] will use this to write cast intents.
+  /// When present, the [EnemyCastSystem] will use this to write cast intents.
   final SpellId? primarySpellId;
 
   /// Direction the authored art faces when not mirrored.

@@ -6,11 +6,10 @@ import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
 import 'package:rpg_runner/core/ecs/stores/health_store.dart';
 import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
 import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
-import 'package:rpg_runner/core/ecs/systems/enemy_locomotion_system.dart';
+import 'package:rpg_runner/core/ecs/systems/flying_enemy_locomotion_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/tuning/flying_enemy_tuning.dart';
-import 'package:rpg_runner/core/tuning/ground_enemy_tuning.dart';
 
 import 'test_spawns.dart';
 
@@ -50,13 +49,9 @@ void main() {
     final unocoDemonA = spawnUnocoDemon(worldA, posX: 100, posY: 120);
     final unocoDemonB = spawnUnocoDemon(worldB, posX: 100, posY: 120);
 
-    final system = EnemyLocomotionSystem(
+    final system = FlyingEnemyLocomotionSystem(
       unocoDemonTuning: UnocoDemonTuningDerived.from(
         const UnocoDemonTuning(),
-        tickHz: 60,
-      ),
-      groundEnemyTuning: GroundEnemyTuningDerived.from(
-        const GroundEnemyTuning(),
         tickHz: 60,
       ),
     );

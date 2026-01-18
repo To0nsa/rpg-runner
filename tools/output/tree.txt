@@ -1,4 +1,5 @@
 ﻿lib/AGENTS.md
+lib/core/anim/anim_resolver.dart
 lib/core/camera/autoscroll_camera.dart
 lib/core/collision/static_world_geometry.dart
 lib/core/collision/static_world_geometry_index.dart
@@ -19,6 +20,7 @@ lib/core/ecs/queries.dart
 lib/core/ecs/sparse_set.dart
 lib/core/ecs/spatial/broadphase_grid.dart
 lib/core/ecs/spatial/grid_index_2d.dart
+lib/core/ecs/stores/anim_state_store.dart
 lib/core/ecs/stores/body_store.dart
 lib/core/ecs/stores/cast_intent_store.dart
 lib/core/ecs/stores/collectible_store.dart
@@ -33,8 +35,11 @@ lib/core/ecs/stores/combat/stat_modifier_store.dart
 lib/core/ecs/stores/combat/status_immunity_store.dart
 lib/core/ecs/stores/cooldown_store.dart
 lib/core/ecs/stores/enemies/enemy_store.dart
+lib/core/ecs/stores/enemies/engagement_intent_store.dart
 lib/core/ecs/stores/enemies/flying_enemy_steering_store.dart
 lib/core/ecs/stores/enemies/ground_enemy_chase_offset_store.dart
+lib/core/ecs/stores/enemies/melee_engagement_store.dart
+lib/core/ecs/stores/enemies/nav_intent_store.dart
 lib/core/ecs/stores/enemies/surface_nav_state_store.dart
 lib/core/ecs/stores/faction_store.dart
 lib/core/ecs/stores/health_store.dart
@@ -58,12 +63,16 @@ lib/core/ecs/stores/status/bleed_store.dart
 lib/core/ecs/stores/status/burn_store.dart
 lib/core/ecs/stores/status/slow_store.dart
 lib/core/ecs/stores/transform_store.dart
+lib/core/ecs/systems/anim_system.dart
 lib/core/ecs/systems/collectible_system.dart
 lib/core/ecs/systems/collision_system.dart
 lib/core/ecs/systems/cooldown_system.dart
 lib/core/ecs/systems/damage_system.dart
+lib/core/ecs/systems/enemy_combat_system.dart
 lib/core/ecs/systems/enemy_cull_system.dart
-lib/core/ecs/systems/enemy_system.dart
+lib/core/ecs/systems/enemy_engagement_system.dart
+lib/core/ecs/systems/enemy_locomotion_system.dart
+lib/core/ecs/systems/enemy_navigation_system.dart
 lib/core/ecs/systems/gravity_system.dart
 lib/core/ecs/systems/health_despawn_system.dart
 lib/core/ecs/systems/hitbox_damage_system.dart
