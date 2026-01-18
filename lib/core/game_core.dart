@@ -491,6 +491,7 @@ class GameCore {
         dtSeconds: _movement.dtSeconds,
         maxTicks: 120,
       ),
+      chaseTargetDelayTicks: _groundEnemyTuning.navigation.chaseTargetDelayTicks,
     );
     _enemyEngagementSystem = EnemyEngagementSystem(
       groundEnemyTuning: _groundEnemyTuning,

@@ -25,6 +25,7 @@ class GroundEnemyNavigationTuning {
     this.chaseOffsetMeleeX = 3.0,
     this.chaseSpeedScaleMin = 0.92,
     this.chaseSpeedScaleMax = 1.08,
+    this.chaseTargetDelayTicks = 6,
   });
 
   /// Max random chase offset from player (world units).
@@ -41,6 +42,14 @@ class GroundEnemyNavigationTuning {
 
   /// Max speed scale for chase variance.
   final double chaseSpeedScaleMax;
+
+  /// Fixed reaction delay (in simulation ticks) applied to chase targeting.
+  ///
+  /// The navigation system will chase the player's (or predicted) target X from
+  /// `delayTicks` ago, producing a deterministic "reaction time" feel.
+  ///
+  /// Example: At 60 Hz, `6` ticks ≈ 100ms.
+  final int chaseTargetDelayTicks;
 }
 
 /// Engagement tuning (slot selection + melee state movement).

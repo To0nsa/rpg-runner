@@ -13,14 +13,30 @@ class EnemyNavigationSystem {
   EnemyNavigationSystem({
     required this.surfaceNavigator,
     this.trajectoryPredictor,
-  });
+    int chaseTargetDelayTicks = 0,
+  }) : _chaseTargetDelayTicks = chaseTargetDelayTicks < 0
+           ? 0
+           : chaseTargetDelayTicks {
+    final len = _chaseTargetDelayTicks <= 0 ? 1 : _chaseTargetDelayTicks + 1;
+    _targetHistoryX = List<double>.filled(len, 0.0);
+    _targetHistoryBottomY = List<double>.filled(len, 0.0);
+    _targetHistoryGrounded = List<bool>.filled(len, true);
+  }
 
   final SurfaceNavigator surfaceNavigator;
   final TrajectoryPredictor? trajectoryPredictor;
 
+  final int _chaseTargetDelayTicks;
+
   SurfaceGraph? _surfaceGraph;
   SurfaceSpatialIndex? _surfaceIndex;
   int _surfaceGraphVersion = 0;
+
+  late final List<double> _targetHistoryX;
+  late final List<double> _targetHistoryBottomY;
+  late final List<bool> _targetHistoryGrounded;
+  int _targetHistoryCursor = 0;
+  bool _targetHistoryPrimed = false;
 
   /// Updates the navigation graph used by ground enemies.
   void setSurfaceGraph({
@@ -62,6 +78,64 @@ class EnemyNavigationSystem {
     final graph = _surfaceGraph;
     final spatialIndex = _surfaceIndex;
 
+    var rawTargetX = playerX;
+    var rawTargetBottomY = playerBottomY;
+    var rawTargetGrounded = playerGrounded;
+
+    if (!playerGrounded &&
+        trajectoryPredictor != null &&
+        graph != null &&
+        spatialIndex != null) {
+      final prediction = trajectoryPredictor!.predictLanding(
+        startX: playerX,
+        startBottomY: playerBottomY,
+        velX: playerVelX,
+        velY: playerVelY,
+        graph: graph,
+        spatialIndex: spatialIndex,
+        entityHalfWidth: playerHalfX,
+      );
+
+      if (prediction != null) {
+        rawTargetX = prediction.x;
+        rawTargetBottomY = prediction.bottomY;
+        rawTargetGrounded = true;
+      }
+    }
+
+    double navTargetX;
+    double navTargetBottomY;
+    bool navTargetGrounded;
+
+    if (_chaseTargetDelayTicks <= 0) {
+      navTargetX = rawTargetX;
+      navTargetBottomY = rawTargetBottomY;
+      navTargetGrounded = rawTargetGrounded;
+    } else {
+      final len = _targetHistoryX.length;
+      if (!_targetHistoryPrimed) {
+        for (var i = 0; i < len; i += 1) {
+          _targetHistoryX[i] = rawTargetX;
+          _targetHistoryBottomY[i] = rawTargetBottomY;
+          _targetHistoryGrounded[i] = rawTargetGrounded;
+        }
+        _targetHistoryCursor = 0;
+        _targetHistoryPrimed = true;
+      } else {
+        _targetHistoryCursor += 1;
+        if (_targetHistoryCursor >= len) _targetHistoryCursor = 0;
+        _targetHistoryX[_targetHistoryCursor] = rawTargetX;
+        _targetHistoryBottomY[_targetHistoryCursor] = rawTargetBottomY;
+        _targetHistoryGrounded[_targetHistoryCursor] = rawTargetGrounded;
+      }
+
+      var delayedIndex = _targetHistoryCursor - _chaseTargetDelayTicks;
+      if (delayedIndex < 0) delayedIndex += len;
+      navTargetX = _targetHistoryX[delayedIndex];
+      navTargetBottomY = _targetHistoryBottomY[delayedIndex];
+      navTargetGrounded = _targetHistoryGrounded[delayedIndex];
+    }
+
     final enemies = world.enemy;
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
       if (enemies.enemyId[ei] != EnemyId.groundEnemy) continue;
@@ -80,31 +154,6 @@ class EnemyNavigationSystem {
           'EnemyNavigationSystem requires NavIntentStore on ground enemies; add it at spawn time.',
         );
         continue;
-      }
-
-      var navTargetX = playerX;
-      var navTargetBottomY = playerBottomY;
-      var navTargetGrounded = playerGrounded;
-
-      if (!playerGrounded &&
-          trajectoryPredictor != null &&
-          graph != null &&
-          spatialIndex != null) {
-        final prediction = trajectoryPredictor!.predictLanding(
-          startX: playerX,
-          startBottomY: playerBottomY,
-          velX: playerVelX,
-          velY: playerVelY,
-          graph: graph,
-          spatialIndex: spatialIndex,
-          entityHalfWidth: playerHalfX,
-        );
-
-        if (prediction != null) {
-          navTargetX = prediction.x;
-          navTargetBottomY = prediction.bottomY;
-          navTargetGrounded = true;
-        }
       }
 
       world.navIntent.navTargetX[intentIndex] = navTargetX;
