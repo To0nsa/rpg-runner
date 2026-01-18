@@ -68,12 +68,14 @@ lib/core/ecs/systems/collectible_system.dart
 lib/core/ecs/systems/collision_system.dart
 lib/core/ecs/systems/cooldown_system.dart
 lib/core/ecs/systems/damage_system.dart
-lib/core/ecs/systems/enemy_combat_system.dart
+lib/core/ecs/systems/enemy_cast_system.dart
 lib/core/ecs/systems/enemy_cull_system.dart
 lib/core/ecs/systems/enemy_engagement_system.dart
-lib/core/ecs/systems/enemy_locomotion_system.dart
+lib/core/ecs/systems/enemy_melee_system.dart
 lib/core/ecs/systems/enemy_navigation_system.dart
+lib/core/ecs/systems/flying_enemy_locomotion_system.dart
 lib/core/ecs/systems/gravity_system.dart
+lib/core/ecs/systems/ground_enemy_locomotion_system.dart
 lib/core/ecs/systems/health_despawn_system.dart
 lib/core/ecs/systems/hitbox_damage_system.dart
 lib/core/ecs/systems/hitbox_follow_owner_system.dart

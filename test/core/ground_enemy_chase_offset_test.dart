@@ -181,7 +181,7 @@ void main() {
     locomotionSystem.setSurfaceGraph(graph: graph);
 
     navigationSystem.step(world, player: player);
-    engagementSystem.step(world, player: player);
+    engagementSystem.step(world, player: player, currentTick: 0);
     locomotionSystem.step(
       world,
       player: player,
@@ -293,7 +293,7 @@ void main() {
       locomotionSystem.setSurfaceGraph(graph: graph);
 
       navigationSystem.step(world, player: player);
-      engagementSystem.step(world, player: player);
+      engagementSystem.step(world, player: player, currentTick: 0);
       locomotionSystem.step(
         world,
         player: player,
@@ -364,7 +364,7 @@ void main() {
       locomotionSystem.setSurfaceGraph(graph: graph);
 
       navigationSystem.step(world, player: player);
-      engagementSystem.step(world, player: player);
+      engagementSystem.step(world, player: player, currentTick: 0);
       locomotionSystem.step(
         world,
         player: player,
@@ -449,7 +449,7 @@ void main() {
     locomotionSystem.setSurfaceGraph(graph: graph);
 
     navigationSystem.step(world, player: player);
-    engagementSystem.step(world, player: player);
+    engagementSystem.step(world, player: player, currentTick: 0);
     locomotionSystem.step(
       world,
       player: player,

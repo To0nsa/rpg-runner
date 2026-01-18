@@ -9,6 +9,7 @@ import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
 import 'package:rpg_runner/core/ecs/spatial/broadphase_grid.dart';
 import 'package:rpg_runner/core/ecs/spatial/grid_index_2d.dart';
 import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
+import 'package:rpg_runner/core/ecs/systems/enemy_engagement_system.dart';
 import 'package:rpg_runner/core/ecs/systems/enemy_melee_system.dart';
 import 'package:rpg_runner/core/ecs/systems/hitbox_follow_owner_system.dart';
 import 'package:rpg_runner/core/ecs/systems/hitbox_damage_system.dart';
@@ -135,6 +136,9 @@ void main() {
     );
     final expectedHp = 100.0 - groundEnemyTuning.combat.meleeDamage;
 
+    final engagement = EnemyEngagementSystem(
+      groundEnemyTuning: groundEnemyTuning,
+    );
     final system = EnemyMeleeSystem(
       groundEnemyTuning: groundEnemyTuning,
     );
@@ -147,13 +151,62 @@ void main() {
     final hitboxDamage = HitboxDamageSystem();
     final meleeAttack = MeleeAttackSystem();
 
-    const currentTick = 1;
-    system.step(world, player: player, currentTick: currentTick);
-    meleeAttack.step(world, currentTick: currentTick);
+    // Attack starts on engage->attack transition (2nd tick in range).
+    const attackStartTick = 2;
+    final hitTick = attackStartTick + groundEnemyTuning.combat.meleeWindupTicks;
+
+    // Tick 1: approach -> engage; no hit scheduled yet.
+    engagement.step(world, player: player, currentTick: 1);
+    system.step(world, player: player, currentTick: 1);
+    meleeAttack.step(world, currentTick: 1);
     follow.step(world);
     broadphase.rebuild(world);
     hitboxDamage.step(world, damage.queue, broadphase);
-    damage.step(world, currentTick: currentTick);
+    damage.step(world, currentTick: 1);
+    expect(
+      world.health.hp[world.health.indexOf(player)],
+      closeTo(100.0, 1e-9),
+    );
+
+    // Tick 2: engage -> attack; schedule the hit for a future tick.
+    engagement.step(world, player: player, currentTick: attackStartTick);
+    system.step(world, player: player, currentTick: attackStartTick);
+    final intentIndex = world.meleeIntent.indexOf(groundEnemy);
+    expect(world.meleeIntent.tick[intentIndex], equals(hitTick));
+    meleeAttack.step(world, currentTick: attackStartTick);
+    follow.step(world);
+    broadphase.rebuild(world);
+    hitboxDamage.step(world, damage.queue, broadphase);
+    damage.step(world, currentTick: attackStartTick);
+    expect(
+      world.health.hp[world.health.indexOf(player)],
+      closeTo(100.0, 1e-9),
+    );
+
+    // No damage until the planned hit tick.
+    for (var tick = attackStartTick + 1; tick < hitTick; tick += 1) {
+      engagement.step(world, player: player, currentTick: tick);
+      system.step(world, player: player, currentTick: tick);
+      expect(world.meleeIntent.tick[intentIndex], equals(hitTick));
+      meleeAttack.step(world, currentTick: tick);
+      follow.step(world);
+      broadphase.rebuild(world);
+      hitboxDamage.step(world, damage.queue, broadphase);
+      damage.step(world, currentTick: tick);
+      expect(
+        world.health.hp[world.health.indexOf(player)],
+        closeTo(100.0, 1e-9),
+      );
+    }
+
+    // Hit tick: spawn hitbox and apply damage once.
+    engagement.step(world, player: player, currentTick: hitTick);
+    system.step(world, player: player, currentTick: hitTick);
+    meleeAttack.step(world, currentTick: hitTick);
+    follow.step(world);
+    broadphase.rebuild(world);
+    hitboxDamage.step(world, damage.queue, broadphase);
+    damage.step(world, currentTick: hitTick);
 
     expect(
       world.health.hp[world.health.indexOf(player)],
@@ -162,7 +215,7 @@ void main() {
 
     // Same tick again should be blocked by HitOnce (hitbox still alive).
     hitboxDamage.step(world, damage.queue, broadphase);
-    damage.step(world, currentTick: currentTick);
+    damage.step(world, currentTick: hitTick);
     expect(
       world.health.hp[world.health.indexOf(player)],
       closeTo(expectedHp, 1e-9),

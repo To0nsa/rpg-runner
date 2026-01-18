@@ -1,6 +1,6 @@
 ﻿REPO: C:\dev\rpg_runner
-COMMIT: ac7989c6cf3355c9af1df3b7434aad363e74e1dd
-DATE: 2026-01-18 16:33:42
+COMMIT: 3817cad11a55a231cef7d8d50d42a1c35ce79282
+DATE: 2026-01-18 19:18:02
 
 
 ===== FILE: lib/AGENTS.md =====
@@ -5946,44 +5946,37 @@ class DamageSystem {
 }
 
 
-===== FILE: lib/core/ecs/systems/enemy_combat_system.dart =====
+===== FILE: lib/core/ecs/systems/enemy_cast_system.dart =====
 import 'dart:math';
 
 import 'package:rpg_runner/core/ecs/entity_id.dart';
 
-import '../../combat/damage_type.dart';
-import '../../combat/status/status.dart';
 import '../../enemies/enemy_catalog.dart';
-import '../../enemies/enemy_id.dart';
 import '../../projectiles/projectile_catalog.dart';
 import '../../snapshots/enums.dart';
 import '../../spells/spell_catalog.dart';
+import '../../spells/spell_id.dart';
 import '../../tuning/flying_enemy_tuning.dart';
-import '../../tuning/ground_enemy_tuning.dart';
 import '../../util/double_math.dart';
 import '../stores/cast_intent_store.dart';
-import '../stores/melee_intent_store.dart';
-import '../stores/enemies/melee_engagement_store.dart';
 import '../world.dart';
 
-/// Handles enemy attack decisions and writes intent components.
-class EnemyCombatSystem {
-  EnemyCombatSystem({
+/// Handles enemy ranged attack decisions and writes cast intents.
+class EnemyCastSystem {
+  EnemyCastSystem({
     required this.unocoDemonTuning,
-    required this.groundEnemyTuning,
     required this.enemyCatalog,
     required this.spells,
     required this.projectiles,
   });
 
   final UnocoDemonTuningDerived unocoDemonTuning;
-  final GroundEnemyTuningDerived groundEnemyTuning;
   final EnemyCatalog enemyCatalog;
   final SpellCatalog spells;
   final ProjectileCatalogDerived projectiles;
 
-  /// Evaluates attacks for all enemies and writes cast/melee intents.
-  void stepAttacks(
+  /// Evaluates casts for all enemies and writes cast intents.
+  void step(
     EcsWorld world, {
     required EntityId player,
     required int currentTick,
@@ -6011,47 +6004,43 @@ class EnemyCombatSystem {
 
       if (!world.cooldown.has(enemy)) continue;
 
-      final ex = world.transform.posX[ti];
-      final ey = world.transform.posY[ti];
-
-      switch (enemies.enemyId[ei]) {
-        case EnemyId.unocoDemon:
-          var enemyCenterX = ex;
-          var enemyCenterY = ey;
-          if (world.colliderAabb.has(enemy)) {
-            final ai = world.colliderAabb.indexOf(enemy);
-            enemyCenterX += world.colliderAabb.offsetX[ai];
-            enemyCenterY += world.colliderAabb.offsetY[ai];
-          }
-          _writeUnocoDemonCastIntent(
-            world,
-            enemy: enemy,
-            enemyIndex: ei,
-            enemyCenterX: enemyCenterX,
-            enemyCenterY: enemyCenterY,
-            playerCenterX: playerCenterX,
-            playerCenterY: playerCenterY,
-            playerVelX: playerVelX,
-            playerVelY: playerVelY,
-            currentTick: currentTick,
-          );
-        case EnemyId.groundEnemy:
-          _writeGroundEnemyMeleeIntent(
-            world,
-            enemy: enemy,
-            enemyIndex: ei,
-            ex: ex,
-            ey: ey,
-            playerX: playerX,
-            currentTick: currentTick,
-          );
+      if (!world.castIntent.has(enemy)) {
+        assert(
+          false,
+          'EnemyCastSystem requires CastIntentStore on enemies; add it at spawn time.',
+        );
+        continue;
       }
+
+      final enemyId = enemies.enemyId[ei];
+      final spellId = enemyCatalog.get(enemyId).primarySpellId;
+      if (spellId == null) continue;
+
+      var enemyCenterX = world.transform.posX[ti];
+      var enemyCenterY = world.transform.posY[ti];
+      if (world.colliderAabb.has(enemy)) {
+        final ai = world.colliderAabb.indexOf(enemy);
+        enemyCenterX += world.colliderAabb.offsetX[ai];
+        enemyCenterY += world.colliderAabb.offsetY[ai];
+      }
+
+      _writeCastIntent(
+        world,
+        enemyIndex: ei,
+        enemyCenterX: enemyCenterX,
+        enemyCenterY: enemyCenterY,
+        playerCenterX: playerCenterX,
+        playerCenterY: playerCenterY,
+        playerVelX: playerVelX,
+        playerVelY: playerVelY,
+        spellId: spellId,
+        currentTick: currentTick,
+      );
     }
   }
 
-  void _writeUnocoDemonCastIntent(
+  void _writeCastIntent(
     EcsWorld world, {
-    required EntityId enemy,
     required int enemyIndex,
     required double enemyCenterX,
     required double enemyCenterY,
@@ -6059,20 +6048,11 @@ class EnemyCombatSystem {
     required double playerCenterY,
     required double playerVelX,
     required double playerVelY,
+    required SpellId spellId,
     required int currentTick,
   }) {
     final tuning = unocoDemonTuning;
-    if (!world.castIntent.has(enemy)) {
-      assert(
-        false,
-        'EnemyCombatSystem requires CastIntentStore on enemies; add it at spawn time.',
-      );
-      return;
-    }
 
-    final enemyId = world.enemy.enemyId[enemyIndex];
-    final spellId = enemyCatalog.get(enemyId).primarySpellId;
-    if (spellId == null) return;
     final projectileId = spells.get(spellId).projectileId;
     final projectileSpeed = projectileId == null
         ? null
@@ -6100,6 +6080,7 @@ class EnemyCombatSystem {
           : Facing.left;
     }
 
+    final enemy = world.enemy.denseEntities[enemyIndex];
     world.castIntent.set(
       enemy,
       CastIntentDef(
@@ -6113,82 +6094,6 @@ class EnemyCombatSystem {
         tick: currentTick,
       ),
     );
-  }
-
-  void _writeGroundEnemyMeleeIntent(
-    EcsWorld world, {
-    required EntityId enemy,
-    required int enemyIndex,
-    required double ex,
-    required double ey,
-    required double playerX,
-    required int currentTick,
-  }) {
-    final tuning = groundEnemyTuning;
-    if (!world.meleeIntent.has(enemy)) {
-      assert(
-        false,
-        'EnemyCombatSystem requires MeleeIntentStore on enemies; add it at spawn time.',
-      );
-      return;
-    }
-    if (!world.colliderAabb.has(enemy)) {
-      assert(
-        false,
-        'GroundEnemy melee requires ColliderAabbStore on the enemy to compute hitbox offset.',
-      );
-      return;
-    }
-
-    final dx = (playerX - ex).abs();
-    if (dx > tuning.combat.meleeRangeX) return;
-
-    final facing = world.enemy.facing[enemyIndex];
-    final dirX = facing == Facing.right ? 1.0 : -1.0;
-
-    final halfX = tuning.combat.meleeHitboxSizeX * 0.5;
-    final halfY = tuning.combat.meleeHitboxSizeY * 0.5;
-
-    final ownerHalfX =
-        world.colliderAabb.halfX[world.colliderAabb.indexOf(enemy)];
-    final offsetX = dirX * (ownerHalfX * 0.5 + halfX);
-    const offsetY = 0.0;
-
-    world.meleeIntent.set(
-      enemy,
-      MeleeIntentDef(
-        damage: tuning.combat.meleeDamage,
-        damageType: DamageType.physical,
-        statusProfileId: StatusProfileId.none,
-        halfX: halfX,
-        halfY: halfY,
-        offsetX: offsetX,
-        offsetY: offsetY,
-        dirX: dirX,
-        dirY: 0.0,
-        activeTicks: tuning.combat.meleeActiveTicks,
-        cooldownTicks: tuning.combat.meleeCooldownTicks,
-        staminaCost: 0.0,
-        tick: currentTick,
-      ),
-    );
-
-    if (world.meleeEngagement.has(enemy)) {
-      final mi = world.meleeEngagement.indexOf(enemy);
-      world.meleeEngagement.state[mi] = MeleeEngagementState.attack;
-      world.meleeEngagement.ticksLeft[mi] = tuning.combat.meleeAnimTicks;
-      world.meleeEngagement.preferredSide[mi] = ex >= playerX ? 1 : -1;
-    } else {
-      assert(
-        false,
-        'EnemyCombatSystem requires MeleeEngagementStore on melee enemies; add it at spawn time.',
-      );
-    }
-
-    world.enemy.lastMeleeTick[enemyIndex] = currentTick;
-    world.enemy.lastMeleeFacing[enemyIndex] = facing;
-    world.enemy.lastMeleeAnimTicks[enemyIndex] =
-        tuning.combat.meleeAnimTicks;
   }
 }
 
@@ -6480,388 +6385,135 @@ class EnemyEngagementSystem {
 }
 
 
-===== FILE: lib/core/ecs/systems/enemy_locomotion_system.dart =====
-import 'dart:math';
-
+===== FILE: lib/core/ecs/systems/enemy_melee_system.dart =====
 import 'package:rpg_runner/core/ecs/entity_id.dart';
 
-import '../../enemies/enemy_id.dart';
+import '../../combat/damage_type.dart';
+import '../../combat/status/status.dart';
 import '../../snapshots/enums.dart';
-import '../../tuning/flying_enemy_tuning.dart';
 import '../../tuning/ground_enemy_tuning.dart';
-import '../../util/deterministic_rng.dart';
-import '../../util/double_math.dart';
-import '../../util/velocity_math.dart';
-import '../../navigation/types/surface_graph.dart';
+import '../stores/enemies/melee_engagement_store.dart';
+import '../stores/melee_intent_store.dart';
 import '../world.dart';
 
-/// Applies movement for enemies based on navigation and engagement intents.
-class EnemyLocomotionSystem {
-  EnemyLocomotionSystem({
-    required this.unocoDemonTuning,
-    required this.groundEnemyTuning,
-  });
+/// Handles enemy melee attack decisions and writes melee intents.
+class EnemyMeleeSystem {
+  EnemyMeleeSystem({required this.groundEnemyTuning});
 
-  final UnocoDemonTuningDerived unocoDemonTuning;
   final GroundEnemyTuningDerived groundEnemyTuning;
 
-  SurfaceGraph? _surfaceGraph;
-
-  void setSurfaceGraph({required SurfaceGraph graph}) {
-    _surfaceGraph = graph;
-  }
-
-  /// Applies locomotion for all enemies.
+  /// Evaluates melee attacks for all enemies and writes melee intents.
   void step(
     EcsWorld world, {
     required EntityId player,
-    required double groundTopY,
-    required double dtSeconds,
+    required int currentTick,
   }) {
     if (!world.transform.has(player)) return;
 
     final playerTi = world.transform.indexOf(player);
     final playerX = world.transform.posX[playerTi];
-    final playerY = world.transform.posY[playerTi];
 
-    final enemies = world.enemy;
-    for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
-      final enemy = enemies.denseEntities[ei];
+    final meleeEngagement = world.meleeEngagement;
+    for (var i = 0; i < meleeEngagement.denseEntities.length; i += 1) {
+      final enemy = meleeEngagement.denseEntities[i];
+      final enemyIndex = world.enemy.tryIndexOf(enemy);
+      if (enemyIndex == null) {
+        assert(
+          false,
+          'EnemyMeleeSystem requires EnemyStore on melee enemies; add it at spawn time.',
+        );
+        continue;
+      }
+
+      if (!world.cooldown.has(enemy)) continue;
+
       final ti = world.transform.tryIndexOf(enemy);
       if (ti == null) continue;
 
+      if (!world.meleeIntent.has(enemy)) {
+        assert(
+          false,
+          'EnemyMeleeSystem requires MeleeIntentStore on enemies; add it at spawn time.',
+        );
+        continue;
+      }
+      if (!world.colliderAabb.has(enemy)) {
+        assert(
+          false,
+          'Enemy melee requires ColliderAabbStore on the enemy to compute hitbox offset.',
+        );
+        continue;
+      }
+
       final ex = world.transform.posX[ti];
-      final ey = world.transform.posY[ti];
-
-      switch (enemies.enemyId[ei]) {
-        case EnemyId.unocoDemon:
-          _steerFlyingEnemy(
-            world,
-            enemyIndex: ei,
-            enemy: enemy,
-            enemyTi: ti,
-            playerX: playerX,
-            playerY: playerY,
-            ex: ex,
-            ey: ey,
-            groundTopY: groundTopY,
-            dtSeconds: dtSeconds,
-          );
-        case EnemyId.groundEnemy:
-          _applyGroundEnemyLocomotion(
-            world,
-            enemyIndex: ei,
-            enemy: enemy,
-            enemyTi: ti,
-            ex: ex,
-            dtSeconds: dtSeconds,
-          );
-      }
+      _writeMeleeIntent(
+        world,
+        enemy: enemy,
+        enemyIndex: enemyIndex,
+        ex: ex,
+        playerX: playerX,
+        currentTick: currentTick,
+      );
     }
   }
 
-  void _applyGroundEnemyLocomotion(
+  void _writeMeleeIntent(
     EcsWorld world, {
-    required int enemyIndex,
     required EntityId enemy,
-    required int enemyTi,
-    required double ex,
-    required double dtSeconds,
-  }) {
-    if (dtSeconds <= 0.0) return;
-
-    final navIndex = world.surfaceNav.tryIndexOf(enemy);
-    if (navIndex == null) return;
-
-    final navIntentIndex = world.navIntent.tryIndexOf(enemy);
-    if (navIntentIndex == null) {
-      assert(
-        false,
-        'EnemyLocomotionSystem requires NavIntentStore on ground enemies; add it at spawn time.',
-      );
-      return;
-    }
-
-    final engagementIndex = world.engagementIntent.tryIndexOf(enemy);
-    if (engagementIndex == null) {
-      assert(
-        false,
-        'EnemyLocomotionSystem requires EngagementIntentStore on ground enemies; add it at spawn time.',
-      );
-      return;
-    }
-
-    final navIntent = world.navIntent;
-    final engagementIntent = world.engagementIntent;
-
-    var desiredX = navIntent.desiredX[navIntentIndex];
-    if (!navIntent.hasPlan[navIntentIndex]) {
-      desiredX = engagementIntent.desiredTargetX[engagementIndex];
-      if (navIntent.hasSafeSurface[navIntentIndex]) {
-        final minX = navIntent.safeSurfaceMinX[navIntentIndex];
-        final maxX = navIntent.safeSurfaceMaxX[navIntentIndex];
-        if (minX <= maxX) {
-          desiredX = clampDouble(desiredX, minX, maxX);
-        }
-      }
-    }
-
-    final effectiveSpeedScale = navIntent.hasPlan[navIntentIndex]
-        ? 1.0
-        : engagementIntent.speedScale[engagementIndex];
-    final arrivalSlowRadiusX =
-        engagementIntent.arrivalSlowRadiusX[engagementIndex];
-    final stateSpeedMul = engagementIntent.stateSpeedMul[engagementIndex];
-
-    _applyGroundEnemyPhysics(
-      world,
-      enemyIndex: enemyIndex,
-      enemyTi: enemyTi,
-      ex: ex,
-      desiredX: desiredX,
-      jumpNow: navIntent.jumpNow[navIntentIndex],
-      hasPlan: navIntent.hasPlan[navIntentIndex],
-      commitMoveDirX: navIntent.commitMoveDirX[navIntentIndex],
-      hasSafeSurface: navIntent.hasSafeSurface[navIntentIndex],
-      safeSurfaceMinX: navIntent.safeSurfaceMinX[navIntentIndex],
-      safeSurfaceMaxX: navIntent.safeSurfaceMaxX[navIntentIndex],
-      effectiveSpeedScale: effectiveSpeedScale,
-      arrivalSlowRadiusX: arrivalSlowRadiusX,
-      stateSpeedMul: stateSpeedMul,
-      dtSeconds: dtSeconds,
-      navIndex: navIndex,
-      graph: _surfaceGraph,
-    );
-  }
-
-  void _applyGroundEnemyPhysics(
-    EcsWorld world, {
     required int enemyIndex,
-    required int enemyTi,
     required double ex,
-    required double desiredX,
-    required bool jumpNow,
-    required bool hasPlan,
-    required int commitMoveDirX,
-    required bool hasSafeSurface,
-    required double safeSurfaceMinX,
-    required double safeSurfaceMaxX,
-    required double effectiveSpeedScale,
-    required double arrivalSlowRadiusX,
-    required double stateSpeedMul,
-    required double dtSeconds,
-    required int navIndex,
-    required SurfaceGraph? graph,
+    required double playerX,
+    required int currentTick,
   }) {
     final tuning = groundEnemyTuning;
-    final enemy = world.enemy.denseEntities[enemyIndex];
-    final modIndex = world.statModifier.tryIndexOf(enemy);
-    final moveSpeedMul = modIndex == null
-        ? 1.0
-        : world.statModifier.moveSpeedMul[modIndex];
-    final dx = desiredX - ex;
-    double arrivalScale = 1.0;
-    if (arrivalSlowRadiusX > 0.0) {
-      arrivalScale = clampDouble(dx.abs() / arrivalSlowRadiusX, 0.0, 1.0);
-    }
-    final baseSpeed = tuning.locomotion.speedX *
-        effectiveSpeedScale *
-        stateSpeedMul *
-        moveSpeedMul;
-    double desiredVelX = 0.0;
+    final dx = (playerX - ex).abs();
+    if (dx > tuning.combat.meleeRangeX) return;
 
-    if (commitMoveDirX != 0) {
-      final dirX = commitMoveDirX.toDouble();
-      world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
-      desiredVelX = dirX * baseSpeed;
-    } else if (dx.abs() > tuning.locomotion.stopDistanceX) {
-      final dirX = dx >= 0 ? 1.0 : -1.0;
-      world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
-      desiredVelX = dirX * baseSpeed * arrivalScale;
-    }
+    final facing = world.enemy.facing[enemyIndex];
+    final dirX = facing == Facing.right ? 1.0 : -1.0;
 
-    if (jumpNow) {
-      world.transform.velY[enemyTi] = -tuning.locomotion.jumpSpeed;
-    }
+    final halfX = tuning.combat.meleeHitboxSizeX * 0.5;
+    final halfY = tuning.combat.meleeHitboxSizeY * 0.5;
 
-    final currentVelX = world.transform.velX[enemyTi];
-    final nextVelX = applyAccelDecel(
-      current: currentVelX,
-      desired: desiredVelX,
-      dtSeconds: dtSeconds,
-      accelPerSecond: tuning.locomotion.accelX,
-      decelPerSecond: tuning.locomotion.decelX,
+    final ownerHalfX =
+        world.colliderAabb.halfX[world.colliderAabb.indexOf(enemy)];
+    final offsetX = dirX * (ownerHalfX * 0.5 + halfX);
+    const offsetY = 0.0;
+
+    world.meleeIntent.set(
+      enemy,
+      MeleeIntentDef(
+        damage: tuning.combat.meleeDamage,
+        damageType: DamageType.physical,
+        statusProfileId: StatusProfileId.none,
+        halfX: halfX,
+        halfY: halfY,
+        offsetX: offsetX,
+        offsetY: offsetY,
+        dirX: dirX,
+        dirY: 0.0,
+        activeTicks: tuning.combat.meleeActiveTicks,
+        cooldownTicks: tuning.combat.meleeCooldownTicks,
+        staminaCost: 0.0,
+        tick: currentTick,
+      ),
     );
 
-    double? jumpSnapVelX;
-    if (hasPlan && jumpNow && graph != null) {
-      final activeEdgeIndex = world.surfaceNav.activeEdgeIndex[navIndex];
-      if (activeEdgeIndex >= 0 && activeEdgeIndex < graph.edges.length) {
-        final edge = graph.edges[activeEdgeIndex];
-        if (edge.kind == SurfaceEdgeKind.jump && edge.travelTicks > 0) {
-          final travelSeconds = edge.travelTicks * dtSeconds;
-          if (travelSeconds > 0.0) {
-            final dxAbs = (edge.landingX - ex).abs();
-            final requiredAbs = dxAbs / travelSeconds;
-            final desiredAbs = desiredVelX.abs();
-            final currentAbs = currentVelX.abs();
-            final snapAbs = min(desiredAbs, max(currentAbs, requiredAbs));
-            if (snapAbs > nextVelX.abs()) {
-              final sign = desiredVelX >= 0.0 ? 1.0 : -1.0;
-              jumpSnapVelX = sign * snapAbs;
-            }
-          }
-        }
-      }
-    }
-
-    world.transform.velX[enemyTi] = jumpSnapVelX ?? nextVelX;
-
-    if (!hasPlan && hasSafeSurface) {
-      final stopDist = tuning.locomotion.stopDistanceX;
-      final nextVelX = world.transform.velX[enemyTi];
-      if (nextVelX > 0.0 && ex >= safeSurfaceMaxX - stopDist) {
-        world.transform.velX[enemyTi] = 0.0;
-      } else if (nextVelX < 0.0 && ex <= safeSurfaceMinX + stopDist) {
-        world.transform.velX[enemyTi] = 0.0;
-      }
-    }
-  }
-
-  void _steerFlyingEnemy(
-    EcsWorld world, {
-    required int enemyIndex,
-    required EntityId enemy,
-    required int enemyTi,
-    required double playerX,
-    required double playerY,
-    required double ex,
-    required double ey,
-    required double groundTopY,
-    required double dtSeconds,
-  }) {
-    if (dtSeconds <= 0.0) return;
-    final tuning = unocoDemonTuning;
-
-    if (!world.flyingEnemySteering.has(enemy)) {
+    if (world.meleeEngagement.has(enemy)) {
+      final mi = world.meleeEngagement.indexOf(enemy);
+      world.meleeEngagement.state[mi] = MeleeEngagementState.attack;
+      world.meleeEngagement.ticksLeft[mi] = tuning.combat.meleeAnimTicks;
+      world.meleeEngagement.preferredSide[mi] = ex >= playerX ? 1 : -1;
+    } else {
       assert(
         false,
-        'EnemyLocomotionSystem requires FlyingEnemySteeringStore on flying enemies; add it at spawn time.',
-      );
-      return;
-    }
-
-    final steering = world.flyingEnemySteering;
-    final si = steering.indexOf(enemy);
-    final modIndex = world.statModifier.tryIndexOf(enemy);
-    final moveSpeedMul = modIndex == null
-        ? 1.0
-        : world.statModifier.moveSpeedMul[modIndex];
-
-    var rngState = steering.rngState[si];
-    double nextRange(double min, double max) {
-      rngState = nextUint32(rngState);
-      return rangeDouble(rngState, min, max);
-    }
-
-    if (!steering.initialized[si]) {
-      steering.initialized[si] = true;
-      steering.desiredRangeHoldLeftS[si] = nextRange(
-        tuning.base.unocoDemonDesiredRangeHoldMinSeconds,
-        tuning.base.unocoDemonDesiredRangeHoldMaxSeconds,
-      );
-      steering.desiredRange[si] = nextRange(
-        tuning.base.unocoDemonDesiredRangeMin,
-        tuning.base.unocoDemonDesiredRangeMax,
-      );
-      steering.flightTargetHoldLeftS[si] = 0.0;
-      steering.flightTargetAboveGround[si] = nextRange(
-        tuning.base.unocoDemonMinHeightAboveGround,
-        tuning.base.unocoDemonMaxHeightAboveGround,
+        'EnemyMeleeSystem requires MeleeEngagementStore on melee enemies; add it at spawn time.',
       );
     }
 
-    var desiredRangeHoldLeftS = steering.desiredRangeHoldLeftS[si];
-    var desiredRange = steering.desiredRange[si];
-
-    if (desiredRangeHoldLeftS > 0.0) {
-      desiredRangeHoldLeftS -= dtSeconds;
-    } else {
-      desiredRangeHoldLeftS = nextRange(
-        tuning.base.unocoDemonDesiredRangeHoldMinSeconds,
-        tuning.base.unocoDemonDesiredRangeHoldMaxSeconds,
-      );
-      desiredRange = nextRange(
-        tuning.base.unocoDemonDesiredRangeMin,
-        tuning.base.unocoDemonDesiredRangeMax,
-      );
-    }
-
-    final dx = playerX - ex;
-    final distX = dx.abs();
-    if (distX > 1e-6) {
-      world.enemy.facing[enemyIndex] = dx >= 0 ? Facing.right : Facing.left;
-    }
-
-    final slack = tuning.base.unocoDemonHoldSlack;
-    double desiredVelX = 0.0;
-    if (distX > 1e-6) {
-      final dirToPlayerX = dx >= 0 ? 1.0 : -1.0;
-      final error = distX - desiredRange;
-
-      if (error.abs() > slack) {
-        final slowRadiusX = tuning.base.unocoDemonSlowRadiusX;
-        final t = slowRadiusX > 0.0
-            ? clampDouble((error.abs() - slack) / slowRadiusX, 0.0, 1.0)
-            : 1.0;
-        final speed = t * tuning.base.unocoDemonMaxSpeedX;
-        desiredVelX = (error > 0.0 ? dirToPlayerX : -dirToPlayerX) * speed;
-      }
-    }
-
-    var flightTargetHoldLeftS = steering.flightTargetHoldLeftS[si];
-    var flightTargetAboveGround = steering.flightTargetAboveGround[si];
-    if (flightTargetHoldLeftS > 0.0) {
-      flightTargetHoldLeftS -= dtSeconds;
-    } else {
-      flightTargetHoldLeftS = nextRange(
-        tuning.base.unocoDemonFlightTargetHoldMinSeconds,
-        tuning.base.unocoDemonFlightTargetHoldMaxSeconds,
-      );
-      flightTargetAboveGround = nextRange(
-        tuning.base.unocoDemonMinHeightAboveGround,
-        tuning.base.unocoDemonMaxHeightAboveGround,
-      );
-    }
-
-    final targetY = groundTopY - flightTargetAboveGround;
-    final deltaY = targetY - ey;
-    double desiredVelY = clampDouble(
-      deltaY * tuning.base.unocoDemonVerticalKp,
-      -tuning.base.unocoDemonMaxSpeedY,
-      tuning.base.unocoDemonMaxSpeedY,
-    );
-    if (deltaY.abs() <= tuning.base.unocoDemonVerticalDeadzone) {
-      desiredVelY = 0.0;
-    }
-
-    desiredVelX *= moveSpeedMul;
-    desiredVelY *= moveSpeedMul;
-    final currentVelX = world.transform.velX[enemyTi];
-    world.transform.velX[enemyTi] = applyAccelDecel(
-      current: currentVelX,
-      desired: desiredVelX,
-      dtSeconds: dtSeconds,
-      accelPerSecond: tuning.base.unocoDemonAccelX,
-      decelPerSecond: tuning.base.unocoDemonDecelX,
-    );
-    world.transform.velY[enemyTi] = desiredVelY;
-
-    steering.desiredRangeHoldLeftS[si] = desiredRangeHoldLeftS;
-    steering.desiredRange[si] = desiredRange;
-    steering.flightTargetHoldLeftS[si] = flightTargetHoldLeftS;
-    steering.flightTargetAboveGround[si] = flightTargetAboveGround;
-    steering.rngState[si] = rngState;
+    world.enemy.lastMeleeTick[enemyIndex] = currentTick;
+    world.enemy.lastMeleeFacing[enemyIndex] = facing;
+    world.enemy.lastMeleeAnimTicks[enemyIndex] = tuning.combat.meleeAnimTicks;
   }
 }
 
@@ -7049,6 +6701,200 @@ class EnemyNavigationSystem {
 }
 
 
+===== FILE: lib/core/ecs/systems/flying_enemy_locomotion_system.dart =====
+import 'package:rpg_runner/core/ecs/entity_id.dart';
+
+import '../../snapshots/enums.dart';
+import '../../tuning/flying_enemy_tuning.dart';
+import '../../util/deterministic_rng.dart';
+import '../../util/double_math.dart';
+import '../../util/velocity_math.dart';
+import '../world.dart';
+
+/// Applies movement for flying enemies based on steering behaviors.
+class FlyingEnemyLocomotionSystem {
+  FlyingEnemyLocomotionSystem({required this.unocoDemonTuning});
+
+  final UnocoDemonTuningDerived unocoDemonTuning;
+
+  /// Applies locomotion for all flying enemies.
+  void step(
+    EcsWorld world, {
+    required EntityId player,
+    required double groundTopY,
+    required double dtSeconds,
+  }) {
+    if (dtSeconds <= 0.0) return;
+    if (!world.transform.has(player)) return;
+
+    final playerTi = world.transform.indexOf(player);
+    final playerX = world.transform.posX[playerTi];
+    final playerY = world.transform.posY[playerTi];
+
+    final steering = world.flyingEnemySteering;
+    for (var i = 0; i < steering.denseEntities.length; i += 1) {
+      final enemy = steering.denseEntities[i];
+      final enemyTi = world.transform.tryIndexOf(enemy);
+      if (enemyTi == null) continue;
+
+      final enemyIndex = world.enemy.tryIndexOf(enemy);
+      if (enemyIndex == null) {
+        assert(
+          false,
+          'FlyingEnemyLocomotionSystem requires EnemyStore on flying enemies; add it at spawn time.',
+        );
+        continue;
+      }
+
+      final ex = world.transform.posX[enemyTi];
+      final ey = world.transform.posY[enemyTi];
+      _steerFlyingEnemy(
+        world,
+        enemyIndex: enemyIndex,
+        enemy: enemy,
+        enemyTi: enemyTi,
+        steeringIndex: i,
+        playerX: playerX,
+        playerY: playerY,
+        ex: ex,
+        ey: ey,
+        groundTopY: groundTopY,
+        dtSeconds: dtSeconds,
+      );
+    }
+  }
+
+  void _steerFlyingEnemy(
+    EcsWorld world, {
+    required int enemyIndex,
+    required EntityId enemy,
+    required int enemyTi,
+    required int steeringIndex,
+    required double playerX,
+    required double playerY,
+    required double ex,
+    required double ey,
+    required double groundTopY,
+    required double dtSeconds,
+  }) {
+    final tuning = unocoDemonTuning;
+    final steering = world.flyingEnemySteering;
+
+    final modIndex = world.statModifier.tryIndexOf(enemy);
+    final moveSpeedMul = modIndex == null
+        ? 1.0
+        : world.statModifier.moveSpeedMul[modIndex];
+
+    var rngState = steering.rngState[steeringIndex];
+    double nextRange(double min, double max) {
+      rngState = nextUint32(rngState);
+      return rangeDouble(rngState, min, max);
+    }
+
+    if (!steering.initialized[steeringIndex]) {
+      steering.initialized[steeringIndex] = true;
+      steering.desiredRangeHoldLeftS[steeringIndex] = nextRange(
+        tuning.base.unocoDemonDesiredRangeHoldMinSeconds,
+        tuning.base.unocoDemonDesiredRangeHoldMaxSeconds,
+      );
+      steering.desiredRange[steeringIndex] = nextRange(
+        tuning.base.unocoDemonDesiredRangeMin,
+        tuning.base.unocoDemonDesiredRangeMax,
+      );
+      steering.flightTargetHoldLeftS[steeringIndex] = 0.0;
+      steering.flightTargetAboveGround[steeringIndex] = nextRange(
+        tuning.base.unocoDemonMinHeightAboveGround,
+        tuning.base.unocoDemonMaxHeightAboveGround,
+      );
+    }
+
+    var desiredRangeHoldLeftS = steering.desiredRangeHoldLeftS[steeringIndex];
+    var desiredRange = steering.desiredRange[steeringIndex];
+
+    if (desiredRangeHoldLeftS > 0.0) {
+      desiredRangeHoldLeftS -= dtSeconds;
+    } else {
+      desiredRangeHoldLeftS = nextRange(
+        tuning.base.unocoDemonDesiredRangeHoldMinSeconds,
+        tuning.base.unocoDemonDesiredRangeHoldMaxSeconds,
+      );
+      desiredRange = nextRange(
+        tuning.base.unocoDemonDesiredRangeMin,
+        tuning.base.unocoDemonDesiredRangeMax,
+      );
+    }
+
+    final dx = playerX - ex;
+    final distX = dx.abs();
+    if (distX > 1e-6) {
+      world.enemy.facing[enemyIndex] = dx >= 0 ? Facing.right : Facing.left;
+    }
+
+    final slack = tuning.base.unocoDemonHoldSlack;
+    double desiredVelX = 0.0;
+    if (distX > 1e-6) {
+      final dirToPlayerX = dx >= 0 ? 1.0 : -1.0;
+      final error = distX - desiredRange;
+
+      if (error.abs() > slack) {
+        final slowRadiusX = tuning.base.unocoDemonSlowRadiusX;
+        final t = slowRadiusX > 0.0
+            ? clampDouble((error.abs() - slack) / slowRadiusX, 0.0, 1.0)
+            : 1.0;
+        final speed = t * tuning.base.unocoDemonMaxSpeedX;
+        desiredVelX = (error > 0.0 ? dirToPlayerX : -dirToPlayerX) * speed;
+      }
+    }
+
+    var flightTargetHoldLeftS =
+        steering.flightTargetHoldLeftS[steeringIndex];
+    var flightTargetAboveGround =
+        steering.flightTargetAboveGround[steeringIndex];
+    if (flightTargetHoldLeftS > 0.0) {
+      flightTargetHoldLeftS -= dtSeconds;
+    } else {
+      flightTargetHoldLeftS = nextRange(
+        tuning.base.unocoDemonFlightTargetHoldMinSeconds,
+        tuning.base.unocoDemonFlightTargetHoldMaxSeconds,
+      );
+      flightTargetAboveGround = nextRange(
+        tuning.base.unocoDemonMinHeightAboveGround,
+        tuning.base.unocoDemonMaxHeightAboveGround,
+      );
+    }
+
+    final targetY = groundTopY - flightTargetAboveGround;
+    final deltaY = targetY - ey;
+    double desiredVelY = clampDouble(
+      deltaY * tuning.base.unocoDemonVerticalKp,
+      -tuning.base.unocoDemonMaxSpeedY,
+      tuning.base.unocoDemonMaxSpeedY,
+    );
+    if (deltaY.abs() <= tuning.base.unocoDemonVerticalDeadzone) {
+      desiredVelY = 0.0;
+    }
+
+    desiredVelX *= moveSpeedMul;
+    desiredVelY *= moveSpeedMul;
+    final currentVelX = world.transform.velX[enemyTi];
+    world.transform.velX[enemyTi] = applyAccelDecel(
+      current: currentVelX,
+      desired: desiredVelX,
+      dtSeconds: dtSeconds,
+      accelPerSecond: tuning.base.unocoDemonAccelX,
+      decelPerSecond: tuning.base.unocoDemonDecelX,
+    );
+    world.transform.velY[enemyTi] = desiredVelY;
+
+    steering.desiredRangeHoldLeftS[steeringIndex] = desiredRangeHoldLeftS;
+    steering.desiredRange[steeringIndex] = desiredRange;
+    steering.flightTargetHoldLeftS[steeringIndex] = flightTargetHoldLeftS;
+    steering.flightTargetAboveGround[steeringIndex] = flightTargetAboveGround;
+    steering.rngState[steeringIndex] = rngState;
+  }
+}
+
+
 ===== FILE: lib/core/ecs/systems/gravity_system.dart =====
 import '../../players/player_tuning.dart';
 import '../../tuning/physics_tuning.dart';
@@ -7110,6 +6956,235 @@ class GravitySystem {
       final maxVelY = bodies.maxVelY[bi];
       world.transform.velY[ti] = world.transform.velY[ti]
           .clamp(-maxVelY, maxVelY);
+    }
+  }
+}
+
+
+===== FILE: lib/core/ecs/systems/ground_enemy_locomotion_system.dart =====
+import 'dart:math';
+
+import 'package:rpg_runner/core/ecs/entity_id.dart';
+
+import '../../navigation/types/surface_graph.dart';
+import '../../snapshots/enums.dart';
+import '../../tuning/ground_enemy_tuning.dart';
+import '../../util/double_math.dart';
+import '../../util/velocity_math.dart';
+import '../world.dart';
+
+/// Applies movement for ground enemies based on nav + engagement intents.
+class GroundEnemyLocomotionSystem {
+  GroundEnemyLocomotionSystem({required this.groundEnemyTuning});
+
+  final GroundEnemyTuningDerived groundEnemyTuning;
+
+  SurfaceGraph? _surfaceGraph;
+
+  void setSurfaceGraph({required SurfaceGraph graph}) {
+    _surfaceGraph = graph;
+  }
+
+  /// Applies locomotion for all ground enemies.
+  void step(
+    EcsWorld world, {
+    required EntityId player,
+    required double dtSeconds,
+  }) {
+    if (dtSeconds <= 0.0) return;
+    if (!world.transform.has(player)) return;
+
+    final navIntent = world.navIntent;
+    for (var i = 0; i < navIntent.denseEntities.length; i += 1) {
+      final enemy = navIntent.denseEntities[i];
+      final enemyTi = world.transform.tryIndexOf(enemy);
+      if (enemyTi == null) continue;
+
+      final enemyIndex = world.enemy.tryIndexOf(enemy);
+      if (enemyIndex == null) {
+        assert(
+          false,
+          'GroundEnemyLocomotionSystem requires EnemyStore on ground enemies; add it at spawn time.',
+        );
+        continue;
+      }
+
+      final navIndex = world.surfaceNav.tryIndexOf(enemy);
+      if (navIndex == null) {
+        assert(
+          false,
+          'GroundEnemyLocomotionSystem requires SurfaceNavStateStore on ground enemies; add it at spawn time.',
+        );
+        continue;
+      }
+
+      final engagementIndex = world.engagementIntent.tryIndexOf(enemy);
+      if (engagementIndex == null) {
+        assert(
+          false,
+          'GroundEnemyLocomotionSystem requires EngagementIntentStore on ground enemies; add it at spawn time.',
+        );
+        continue;
+      }
+
+      final ex = world.transform.posX[enemyTi];
+      _applyGroundEnemyLocomotion(
+        world,
+        enemyIndex: enemyIndex,
+        enemyTi: enemyTi,
+        navIndex: navIndex,
+        navIntentIndex: i,
+        engagementIndex: engagementIndex,
+        ex: ex,
+        dtSeconds: dtSeconds,
+      );
+    }
+  }
+
+  void _applyGroundEnemyLocomotion(
+    EcsWorld world, {
+    required int enemyIndex,
+    required int enemyTi,
+    required int navIndex,
+    required int navIntentIndex,
+    required int engagementIndex,
+    required double ex,
+    required double dtSeconds,
+  }) {
+    final navIntent = world.navIntent;
+    final engagementIntent = world.engagementIntent;
+
+    var desiredX = navIntent.desiredX[navIntentIndex];
+    if (!navIntent.hasPlan[navIntentIndex]) {
+      desiredX = engagementIntent.desiredTargetX[engagementIndex];
+      if (navIntent.hasSafeSurface[navIntentIndex]) {
+        final minX = navIntent.safeSurfaceMinX[navIntentIndex];
+        final maxX = navIntent.safeSurfaceMaxX[navIntentIndex];
+        if (minX <= maxX) {
+          desiredX = clampDouble(desiredX, minX, maxX);
+        }
+      }
+    }
+
+    final effectiveSpeedScale = navIntent.hasPlan[navIntentIndex]
+        ? 1.0
+        : engagementIntent.speedScale[engagementIndex];
+    final arrivalSlowRadiusX =
+        engagementIntent.arrivalSlowRadiusX[engagementIndex];
+    final stateSpeedMul = engagementIntent.stateSpeedMul[engagementIndex];
+
+    _applyGroundEnemyPhysics(
+      world,
+      enemyIndex: enemyIndex,
+      enemyTi: enemyTi,
+      navIndex: navIndex,
+      ex: ex,
+      desiredX: desiredX,
+      jumpNow: navIntent.jumpNow[navIntentIndex],
+      hasPlan: navIntent.hasPlan[navIntentIndex],
+      commitMoveDirX: navIntent.commitMoveDirX[navIntentIndex],
+      hasSafeSurface: navIntent.hasSafeSurface[navIntentIndex],
+      safeSurfaceMinX: navIntent.safeSurfaceMinX[navIntentIndex],
+      safeSurfaceMaxX: navIntent.safeSurfaceMaxX[navIntentIndex],
+      effectiveSpeedScale: effectiveSpeedScale,
+      arrivalSlowRadiusX: arrivalSlowRadiusX,
+      stateSpeedMul: stateSpeedMul,
+      dtSeconds: dtSeconds,
+      graph: _surfaceGraph,
+    );
+  }
+
+  void _applyGroundEnemyPhysics(
+    EcsWorld world, {
+    required int enemyIndex,
+    required int enemyTi,
+    required int navIndex,
+    required double ex,
+    required double desiredX,
+    required bool jumpNow,
+    required bool hasPlan,
+    required int commitMoveDirX,
+    required bool hasSafeSurface,
+    required double safeSurfaceMinX,
+    required double safeSurfaceMaxX,
+    required double effectiveSpeedScale,
+    required double arrivalSlowRadiusX,
+    required double stateSpeedMul,
+    required double dtSeconds,
+    required SurfaceGraph? graph,
+  }) {
+    final tuning = groundEnemyTuning;
+    final enemy = world.enemy.denseEntities[enemyIndex];
+    final modIndex = world.statModifier.tryIndexOf(enemy);
+    final moveSpeedMul = modIndex == null
+        ? 1.0
+        : world.statModifier.moveSpeedMul[modIndex];
+    final dx = desiredX - ex;
+    double arrivalScale = 1.0;
+    if (arrivalSlowRadiusX > 0.0) {
+      arrivalScale = clampDouble(dx.abs() / arrivalSlowRadiusX, 0.0, 1.0);
+    }
+    final baseSpeed = tuning.locomotion.speedX *
+        effectiveSpeedScale *
+        stateSpeedMul *
+        moveSpeedMul;
+    double desiredVelX = 0.0;
+
+    if (commitMoveDirX != 0) {
+      final dirX = commitMoveDirX.toDouble();
+      world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
+      desiredVelX = dirX * baseSpeed;
+    } else if (dx.abs() > tuning.locomotion.stopDistanceX) {
+      final dirX = dx >= 0 ? 1.0 : -1.0;
+      world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
+      desiredVelX = dirX * baseSpeed * arrivalScale;
+    }
+
+    if (jumpNow) {
+      world.transform.velY[enemyTi] = -tuning.locomotion.jumpSpeed;
+    }
+
+    final currentVelX = world.transform.velX[enemyTi];
+    final nextVelX = applyAccelDecel(
+      current: currentVelX,
+      desired: desiredVelX,
+      dtSeconds: dtSeconds,
+      accelPerSecond: tuning.locomotion.accelX,
+      decelPerSecond: tuning.locomotion.decelX,
+    );
+
+    double? jumpSnapVelX;
+    if (hasPlan && jumpNow && graph != null) {
+      final activeEdgeIndex = world.surfaceNav.activeEdgeIndex[navIndex];
+      if (activeEdgeIndex >= 0 && activeEdgeIndex < graph.edges.length) {
+        final edge = graph.edges[activeEdgeIndex];
+        if (edge.kind == SurfaceEdgeKind.jump && edge.travelTicks > 0) {
+          final travelSeconds = edge.travelTicks * dtSeconds;
+          if (travelSeconds > 0.0) {
+            final dxAbs = (edge.landingX - ex).abs();
+            final requiredAbs = dxAbs / travelSeconds;
+            final desiredAbs = desiredVelX.abs();
+            final currentAbs = currentVelX.abs();
+            final snapAbs = min(desiredAbs, max(currentAbs, requiredAbs));
+            if (snapAbs > nextVelX.abs()) {
+              final sign = desiredVelX >= 0.0 ? 1.0 : -1.0;
+              jumpSnapVelX = sign * snapAbs;
+            }
+          }
+        }
+      }
+    }
+
+    world.transform.velX[enemyTi] = jumpSnapVelX ?? nextVelX;
+
+    if (!hasPlan && hasSafeSurface) {
+      final stopDist = tuning.locomotion.stopDistanceX;
+      final nextVelX = world.transform.velX[enemyTi];
+      if (nextVelX > 0.0 && ex >= safeSurfaceMaxX - stopDist) {
+        world.transform.velX[enemyTi] = 0.0;
+      } else if (nextVelX < 0.0 && ex <= safeSurfaceMinX + stopDist) {
+        world.transform.velX[enemyTi] = 0.0;
+      }
     }
   }
 }
@@ -9572,7 +9647,7 @@ class EnemyArchetype {
 
   /// Optional primary ranged attack spell for this enemy.
   ///
-  /// When present, the [EnemyCombatSystem] will use this to write cast intents.
+  /// When present, the [EnemyCastSystem] will use this to write cast intents.
   final SpellId? primarySpellId;
 
   /// Direction the authored art faces when not mirrored.
@@ -9939,9 +10014,10 @@ import 'ecs/systems/collectible_system.dart';
 import 'ecs/systems/collision_system.dart';
 import 'ecs/systems/cooldown_system.dart';
 import 'ecs/systems/damage_system.dart';
-import 'ecs/systems/enemy_combat_system.dart';
+import 'ecs/systems/enemy_cast_system.dart';
 import 'ecs/systems/enemy_engagement_system.dart';
-import 'ecs/systems/enemy_locomotion_system.dart';
+import 'ecs/systems/flying_enemy_locomotion_system.dart';
+import 'ecs/systems/ground_enemy_locomotion_system.dart';
 import 'ecs/systems/enemy_navigation_system.dart';
 import 'ecs/systems/gravity_system.dart';
 import 'ecs/systems/health_despawn_system.dart';
@@ -9964,6 +10040,7 @@ import 'ecs/systems/status_system.dart';
 import 'ecs/systems/spell_cast_system.dart';
 import 'ecs/systems/anim_system.dart';
 import 'ecs/systems/enemy_cull_system.dart';
+import 'ecs/systems/enemy_melee_system.dart';
 import 'ecs/world.dart';
 import 'enemies/enemy_catalog.dart';
 import 'enemies/enemy_id.dart';
@@ -10223,7 +10300,7 @@ class GameCore {
       surfaceGraphBuilder: _surfaceGraphBuilder,
       jumpTemplate: _groundEnemyJumpTemplate,
       enemyNavigationSystem: _enemyNavigationSystem,
-      enemyLocomotionSystem: _enemyLocomotionSystem,
+      groundEnemyLocomotionSystem: _groundEnemyLocomotionSystem,
       spawnService: _spawnService,
       groundTopY: effectiveGroundTopY,
       patternPool: levelDefinition.patternPool,
@@ -10351,16 +10428,20 @@ class GameCore {
     _enemyEngagementSystem = EnemyEngagementSystem(
       groundEnemyTuning: _groundEnemyTuning,
     );
-    _enemyLocomotionSystem = EnemyLocomotionSystem(
-      unocoDemonTuning: _unocoDemonTuning,
+    _groundEnemyLocomotionSystem = GroundEnemyLocomotionSystem(
       groundEnemyTuning: _groundEnemyTuning,
     );
-    _enemyCombatSystem = EnemyCombatSystem(
+    _flyingEnemyLocomotionSystem = FlyingEnemyLocomotionSystem(
       unocoDemonTuning: _unocoDemonTuning,
-      groundEnemyTuning: _groundEnemyTuning,
+    );
+    _enemyCastSystem = EnemyCastSystem(
+      unocoDemonTuning: _unocoDemonTuning,
       enemyCatalog: _enemyCatalog,
       spells: _spells,
       projectiles: _projectiles,
+    );
+    _enemyMeleeSystem = EnemyMeleeSystem(
+      groundEnemyTuning: _groundEnemyTuning,
     );
   }
 
@@ -10488,8 +10569,10 @@ class GameCore {
   late final HealthDespawnSystem _healthDespawnSystem;
   late EnemyNavigationSystem _enemyNavigationSystem;
   late EnemyEngagementSystem _enemyEngagementSystem;
-  late EnemyLocomotionSystem _enemyLocomotionSystem;
-  late EnemyCombatSystem _enemyCombatSystem;
+  late GroundEnemyLocomotionSystem _groundEnemyLocomotionSystem;
+  late FlyingEnemyLocomotionSystem _flyingEnemyLocomotionSystem;
+  late EnemyCastSystem _enemyCastSystem;
+  late EnemyMeleeSystem _enemyMeleeSystem;
   late final SurfaceGraphBuilder _surfaceGraphBuilder;
   late final JumpReachabilityTemplate _groundEnemyJumpTemplate;
   late final SurfacePathfinder _surfacePathfinder;
@@ -10791,7 +10874,12 @@ class GameCore {
       _world,
       player: _player,
     );
-    _enemyLocomotionSystem.step(
+    _groundEnemyLocomotionSystem.step(
+      _world,
+      player: _player,
+      dtSeconds: _movement.dtSeconds,
+    );
+    _flyingEnemyLocomotionSystem.step(
       _world,
       player: _player,
       groundTopY: effectiveGroundTopY,
@@ -10850,7 +10938,8 @@ class GameCore {
 
     // ─── Phase 9: Attack intent writing ───
     // Enemies first, then player (order matters for fairness).
-    _enemyCombatSystem.stepAttacks(_world, player: _player, currentTick: tick);
+    _enemyCastSystem.step(_world, player: _player, currentTick: tick);
+    _enemyMeleeSystem.step(_world, player: _player, currentTick: tick);
     _castSystem.step(_world, player: _player, currentTick: tick);
     _meleeSystem.step(_world, player: _player, currentTick: tick);
     _rangedWeaponSystem.step(_world, player: _player, currentTick: tick);
@@ -17676,7 +17765,7 @@ library;
 
 import 'collision/static_world_geometry_index.dart';
 import 'ecs/stores/restoration_item_store.dart' show RestorationStat;
-import 'ecs/systems/enemy_locomotion_system.dart';
+import 'ecs/systems/ground_enemy_locomotion_system.dart';
 import 'ecs/systems/enemy_navigation_system.dart';
 import 'enemies/enemy_id.dart';
 import 'navigation/surface_graph_builder.dart';
@@ -17750,7 +17839,7 @@ class TrackManager {
   /// - [surfaceGraphBuilder]: Builder for navigation surface graphs.
   /// - [jumpTemplate]: Precomputed jump reachability for pathfinding.
   /// - [enemyNavigationSystem]: Ground enemy navigation (receives graph updates).
-  /// - [enemyLocomotionSystem]: Ground locomotion (receives graph updates).
+  /// - [groundEnemyLocomotionSystem]: Ground locomotion (receives graph updates).
   /// - [spawnService]: Entity spawner (receives surface graph updates).
   /// - [groundTopY]: Y coordinate of the ground surface (for spawning).
   /// - [patternPool]: Chunk pattern pools for procedural generation.
@@ -17765,7 +17854,7 @@ class TrackManager {
     required SurfaceGraphBuilder surfaceGraphBuilder,
     required JumpReachabilityTemplate jumpTemplate,
     required EnemyNavigationSystem enemyNavigationSystem,
-    required EnemyLocomotionSystem enemyLocomotionSystem,
+    required GroundEnemyLocomotionSystem groundEnemyLocomotionSystem,
     required SpawnService spawnService,
     required double groundTopY,
     required ChunkPatternPool patternPool,
@@ -17778,7 +17867,7 @@ class TrackManager {
         _surfaceGraphBuilder = surfaceGraphBuilder,
         _jumpTemplate = jumpTemplate,
         _enemyNavigationSystem = enemyNavigationSystem,
-        _enemyLocomotionSystem = enemyLocomotionSystem,
+        _groundEnemyLocomotionSystem = groundEnemyLocomotionSystem,
         _spawnService = spawnService,
         _patternPool = patternPool,
         _earlyPatternChunks = earlyPatternChunks,
@@ -17813,7 +17902,7 @@ class TrackManager {
   final SurfaceGraphBuilder _surfaceGraphBuilder;
   final JumpReachabilityTemplate _jumpTemplate;
   final EnemyNavigationSystem _enemyNavigationSystem;
-  final EnemyLocomotionSystem _enemyLocomotionSystem;
+  final GroundEnemyLocomotionSystem _groundEnemyLocomotionSystem;
   final SpawnService _spawnService;
   final ChunkPatternPool _patternPool;
   final int _earlyPatternChunks;
@@ -17982,7 +18071,7 @@ class TrackManager {
   /// The surface graph is used by:
   /// - [SpawnService]: To place items "on top of" platforms.
   /// - [EnemyNavigationSystem]: To compute jump/walk paths to the player.
-  /// - [EnemyLocomotionSystem]: To snap jump velocity on active edges.
+  /// - [GroundEnemyLocomotionSystem]: To snap jump velocity on active edges.
   ///
   /// A version counter is incremented each rebuild so consumers can
   /// invalidate cached paths.
@@ -18005,7 +18094,7 @@ class TrackManager {
       spatialIndex: result.spatialIndex,
       graphVersion: _surfaceGraphVersion,
     );
-    _enemyLocomotionSystem.setSurfaceGraph(graph: result.graph);
+    _groundEnemyLocomotionSystem.setSurfaceGraph(graph: result.graph);
   }
 
   /// Builds an immutable list of [StaticSolidSnapshot] from geometry.

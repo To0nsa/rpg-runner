@@ -15,11 +15,21 @@ class MeleeEngagementStore extends SparseSet {
   /// Preferred side relative to the target (+1 right, -1 left, 0 unset).
   final List<int> preferredSide = <int>[];
 
+  /// Tick when the current attack started (edge-trigger).
+  ///
+  /// Used to start telegraph animations once and schedule future hit ticks.
+  final List<int> attackStartTick = <int>[];
+
+  /// Tick when the melee hitbox should spawn for the current attack.
+  final List<int> plannedHitTick = <int>[];
+
   void add(EntityId entity) {
     final i = addEntity(entity);
     state[i] = MeleeEngagementState.approach;
     ticksLeft[i] = 0;
     preferredSide[i] = 0;
+    attackStartTick[i] = -1;
+    plannedHitTick[i] = -1;
   }
 
   @override
@@ -27,6 +37,8 @@ class MeleeEngagementStore extends SparseSet {
     state.add(MeleeEngagementState.approach);
     ticksLeft.add(0);
     preferredSide.add(0);
+    attackStartTick.add(-1);
+    plannedHitTick.add(-1);
   }
 
   @override
@@ -34,10 +46,14 @@ class MeleeEngagementStore extends SparseSet {
     state[removeIndex] = state[lastIndex];
     ticksLeft[removeIndex] = ticksLeft[lastIndex];
     preferredSide[removeIndex] = preferredSide[lastIndex];
+    attackStartTick[removeIndex] = attackStartTick[lastIndex];
+    plannedHitTick[removeIndex] = plannedHitTick[lastIndex];
 
     state.removeLast();
     ticksLeft.removeLast();
     preferredSide.removeLast();
+    attackStartTick.removeLast();
+    plannedHitTick.removeLast();
   }
 }
 

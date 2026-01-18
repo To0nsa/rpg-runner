@@ -189,7 +189,7 @@ void main() {
 
     for (var tick = 0; tick < 600; tick += 1) {
       navigationSystem.step(world, player: player);
-      engagementSystem.step(world, player: player);
+      engagementSystem.step(world, player: player, currentTick: tick);
       locomotionSystem.step(
         world,
         player: player,
@@ -365,7 +365,7 @@ void main() {
 
     for (var tick = 0; tick < 300; tick += 1) {
       navigationSystem.step(world, player: player);
-      engagementSystem.step(world, player: player);
+      engagementSystem.step(world, player: player, currentTick: tick);
       locomotionSystem.step(
         world,
         player: player,
@@ -519,7 +519,7 @@ void main() {
 
     for (var tick = 0; tick < 300; tick += 1) {
       navigationSystem.step(world, player: player);
-      engagementSystem.step(world, player: player);
+      engagementSystem.step(world, player: player, currentTick: tick);
       locomotionSystem.step(
         world,
         player: player,

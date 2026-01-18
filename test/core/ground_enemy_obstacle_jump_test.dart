@@ -172,7 +172,7 @@ void main() {
     var clearedObstacle = false;
     for (var tick = 0; tick < 250; tick += 1) {
       navigationSystem.step(world, player: player);
-      engagementSystem.step(world, player: player);
+      engagementSystem.step(world, player: player, currentTick: tick);
       locomotionSystem.step(
         world,
         player: player,

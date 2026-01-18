@@ -940,6 +940,7 @@ class GameCore {
     _enemyEngagementSystem.step(
       _world,
       player: _player,
+      currentTick: tick,
     );
     _groundEnemyLocomotionSystem.step(
       _world,

@@ -102,6 +102,7 @@ class GroundEnemyCombatTuning {
     this.meleeCooldownSeconds = 1.0,
     this.meleeActiveSeconds = 0.10,
     this.meleeAnimSeconds = 0.60,
+    this.meleeWindupSeconds = 0.18,
     this.meleeDamage = 5.0,
     this.meleeHitboxSizeX = 28.0,
     this.meleeHitboxSizeY = 16.0,
@@ -121,6 +122,11 @@ class GroundEnemyCombatTuning {
   /// This can be longer than [meleeActiveSeconds] since the hitbox
   /// window is often only a subset of the full animation.
   final double meleeAnimSeconds;
+
+  /// Telegraph window before the melee hitbox becomes active (seconds).
+  ///
+  /// This delays hitbox spawn relative to the start of the attack animation.
+  final double meleeWindupSeconds;
 
   /// Damage dealt by melee attack.
   final double meleeDamage;
@@ -175,27 +181,42 @@ class GroundEnemyTuningDerived {
         meleeStandOffX: meleeStandOffX,
       ),
       locomotion: base.locomotion,
-      combat: GroundEnemyCombatTuningDerived(
+      combat: () {
+        final meleeCooldownTicks = ticksFromSecondsCeil(
+          combat.meleeCooldownSeconds,
+          tickHz,
+        );
+        final meleeActiveTicks = ticksFromSecondsCeil(
+          combat.meleeActiveSeconds,
+          tickHz,
+        );
+        final meleeAnimTicks = ticksFromSecondsCeil(
+          combat.meleeAnimSeconds,
+          tickHz,
+        );
+        final rawWindupTicks = ticksFromSecondsCeil(
+          combat.meleeWindupSeconds,
+          tickHz,
+        );
+        // Ensure the hit tick occurs while the attack animation is still visible.
+        final maxWindupTicks = meleeAnimTicks > 0 ? meleeAnimTicks - 1 : 0;
+        final meleeWindupTicks =
+            rawWindupTicks > maxWindupTicks ? maxWindupTicks : rawWindupTicks;
+        return GroundEnemyCombatTuningDerived(
         meleeRangeX: combat.meleeRangeX,
         meleeCooldownSeconds: combat.meleeCooldownSeconds,
         meleeActiveSeconds: combat.meleeActiveSeconds,
         meleeAnimSeconds: combat.meleeAnimSeconds,
+        meleeWindupSeconds: combat.meleeWindupSeconds,
         meleeDamage: combat.meleeDamage,
         meleeHitboxSizeX: combat.meleeHitboxSizeX,
         meleeHitboxSizeY: combat.meleeHitboxSizeY,
-        meleeCooldownTicks: ticksFromSecondsCeil(
-          combat.meleeCooldownSeconds,
-          tickHz,
-        ),
-        meleeActiveTicks: ticksFromSecondsCeil(
-          combat.meleeActiveSeconds,
-          tickHz,
-        ),
-        meleeAnimTicks: ticksFromSecondsCeil(
-          combat.meleeAnimSeconds,
-          tickHz,
-        ),
-      ),
+        meleeCooldownTicks: meleeCooldownTicks,
+        meleeActiveTicks: meleeActiveTicks,
+        meleeAnimTicks: meleeAnimTicks,
+        meleeWindupTicks: meleeWindupTicks,
+      );
+      }(),
     );
   }
 
@@ -230,15 +251,18 @@ class GroundEnemyCombatTuningDerived extends GroundEnemyCombatTuning {
     required super.meleeCooldownSeconds,
     required super.meleeActiveSeconds,
     required super.meleeAnimSeconds,
+    required super.meleeWindupSeconds,
     required super.meleeDamage,
     required super.meleeHitboxSizeX,
     required super.meleeHitboxSizeY,
     required this.meleeCooldownTicks,
     required this.meleeActiveTicks,
     required this.meleeAnimTicks,
+    required this.meleeWindupTicks,
   });
 
   final int meleeCooldownTicks;
   final int meleeActiveTicks;
   final int meleeAnimTicks;
+  final int meleeWindupTicks;
 }

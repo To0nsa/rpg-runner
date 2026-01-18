@@ -42,6 +42,12 @@ class EnemyMeleeSystem {
       final ti = world.transform.tryIndexOf(enemy);
       if (ti == null) continue;
 
+      // Only write an intent on the first tick we enter the attack state.
+      if (meleeEngagement.state[i] != MeleeEngagementState.attack) continue;
+      if (meleeEngagement.attackStartTick[i] != currentTick) continue;
+      final plannedHitTick = meleeEngagement.plannedHitTick[i];
+      if (plannedHitTick < 0) continue;
+
       if (!world.meleeIntent.has(enemy)) {
         assert(
           false,
@@ -58,73 +64,42 @@ class EnemyMeleeSystem {
       }
 
       final ex = world.transform.posX[ti];
-      _writeMeleeIntent(
-        world,
-        enemy: enemy,
-        enemyIndex: enemyIndex,
-        ex: ex,
-        playerX: playerX,
-        currentTick: currentTick,
+      final tuning = groundEnemyTuning;
+
+      final facing = playerX >= ex ? Facing.right : Facing.left;
+      world.enemy.facing[enemyIndex] = facing;
+      final dirX = facing == Facing.right ? 1.0 : -1.0;
+
+      final halfX = tuning.combat.meleeHitboxSizeX * 0.5;
+      final halfY = tuning.combat.meleeHitboxSizeY * 0.5;
+
+      final ownerHalfX =
+          world.colliderAabb.halfX[world.colliderAabb.indexOf(enemy)];
+      final offsetX = dirX * (ownerHalfX * 0.5 + halfX);
+      const offsetY = 0.0;
+
+      world.meleeIntent.set(
+        enemy,
+        MeleeIntentDef(
+          damage: tuning.combat.meleeDamage,
+          damageType: DamageType.physical,
+          statusProfileId: StatusProfileId.none,
+          halfX: halfX,
+          halfY: halfY,
+          offsetX: offsetX,
+          offsetY: offsetY,
+          dirX: dirX,
+          dirY: 0.0,
+          activeTicks: tuning.combat.meleeActiveTicks,
+          cooldownTicks: tuning.combat.meleeCooldownTicks,
+          staminaCost: 0.0,
+          tick: plannedHitTick,
+        ),
       );
+
+      world.enemy.lastMeleeTick[enemyIndex] = currentTick;
+      world.enemy.lastMeleeFacing[enemyIndex] = facing;
+      world.enemy.lastMeleeAnimTicks[enemyIndex] = tuning.combat.meleeAnimTicks;
     }
-  }
-
-  void _writeMeleeIntent(
-    EcsWorld world, {
-    required EntityId enemy,
-    required int enemyIndex,
-    required double ex,
-    required double playerX,
-    required int currentTick,
-  }) {
-    final tuning = groundEnemyTuning;
-    final dx = (playerX - ex).abs();
-    if (dx > tuning.combat.meleeRangeX) return;
-
-    final facing = world.enemy.facing[enemyIndex];
-    final dirX = facing == Facing.right ? 1.0 : -1.0;
-
-    final halfX = tuning.combat.meleeHitboxSizeX * 0.5;
-    final halfY = tuning.combat.meleeHitboxSizeY * 0.5;
-
-    final ownerHalfX =
-        world.colliderAabb.halfX[world.colliderAabb.indexOf(enemy)];
-    final offsetX = dirX * (ownerHalfX * 0.5 + halfX);
-    const offsetY = 0.0;
-
-    world.meleeIntent.set(
-      enemy,
-      MeleeIntentDef(
-        damage: tuning.combat.meleeDamage,
-        damageType: DamageType.physical,
-        statusProfileId: StatusProfileId.none,
-        halfX: halfX,
-        halfY: halfY,
-        offsetX: offsetX,
-        offsetY: offsetY,
-        dirX: dirX,
-        dirY: 0.0,
-        activeTicks: tuning.combat.meleeActiveTicks,
-        cooldownTicks: tuning.combat.meleeCooldownTicks,
-        staminaCost: 0.0,
-        tick: currentTick,
-      ),
-    );
-
-    if (world.meleeEngagement.has(enemy)) {
-      final mi = world.meleeEngagement.indexOf(enemy);
-      world.meleeEngagement.state[mi] = MeleeEngagementState.attack;
-      world.meleeEngagement.ticksLeft[mi] = tuning.combat.meleeAnimTicks;
-      world.meleeEngagement.preferredSide[mi] = ex >= playerX ? 1 : -1;
-    } else {
-      assert(
-        false,
-        'EnemyMeleeSystem requires MeleeEngagementStore on melee enemies; add it at spawn time.',
-      );
-    }
-
-    world.enemy.lastMeleeTick[enemyIndex] = currentTick;
-    world.enemy.lastMeleeFacing[enemyIndex] = facing;
-    world.enemy.lastMeleeAnimTicks[enemyIndex] = tuning.combat.meleeAnimTicks;
   }
 }
