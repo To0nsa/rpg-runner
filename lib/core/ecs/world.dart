@@ -20,6 +20,9 @@ import 'stores/faction_store.dart';
 import 'stores/anim_state_store.dart';
 import 'stores/enemies/enemy_store.dart';
 import 'stores/enemies/ground_enemy_chase_offset_store.dart';
+import 'stores/enemies/engagement_intent_store.dart';
+import 'stores/enemies/melee_engagement_store.dart';
+import 'stores/enemies/nav_intent_store.dart';
 import 'stores/health_store.dart';
 import 'stores/hit_once_store.dart';
 import 'stores/hitbox_store.dart';
@@ -207,6 +210,16 @@ class EcsWorld {
   /// AI state for ground enemies to create offset chasing behaviors.
   late final GroundEnemyChaseOffsetStore groundEnemyChaseOffset =
       _register(GroundEnemyChaseOffsetStore());
+
+  /// Navigation intent output for ground enemies.
+  late final NavIntentStore navIntent = _register(NavIntentStore());
+
+  /// Engagement intent output for melee enemies.
+  late final EngagementIntentStore engagementIntent =
+      _register(EngagementIntentStore());
+
+  /// Engagement state for melee enemies (approach/engage/attack/recover).
+  late final MeleeEngagementStore meleeEngagement = _register(MeleeEngagementStore());
 
   /// Allocates a new [EntityId].
   ///

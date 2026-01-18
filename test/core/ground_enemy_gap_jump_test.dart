@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rpg_runner/core/collision/static_world_geometry.dart';
 import 'package:rpg_runner/core/collision/static_world_geometry_index.dart';
-import 'package:rpg_runner/core/enemies/enemy_catalog.dart';
 import 'package:rpg_runner/core/enemies/enemy_id.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
@@ -11,16 +10,16 @@ import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
 import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
 import 'package:rpg_runner/core/ecs/spatial/grid_index_2d.dart';
 import 'package:rpg_runner/core/ecs/systems/collision_system.dart';
-import 'package:rpg_runner/core/ecs/systems/enemy_system.dart';
+import 'package:rpg_runner/core/ecs/systems/enemy_engagement_system.dart';
+import 'package:rpg_runner/core/ecs/systems/enemy_locomotion_system.dart';
+import 'package:rpg_runner/core/ecs/systems/enemy_navigation_system.dart';
 import 'package:rpg_runner/core/ecs/systems/gravity_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/navigation/utils/jump_template.dart';
 import 'package:rpg_runner/core/navigation/surface_graph_builder.dart';
 import 'package:rpg_runner/core/navigation/surface_navigator.dart';
 import 'package:rpg_runner/core/navigation/surface_pathfinder.dart';
-import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
-import 'package:rpg_runner/core/spells/spell_catalog.dart';
 import 'package:rpg_runner/core/tuning/flying_enemy_tuning.dart';
 import 'package:rpg_runner/core/tuning/ground_enemy_tuning.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
@@ -140,38 +139,45 @@ void main() {
       maxExpandedNodes: 64,
       runSpeedX: 200.0,
     );
-    final system = EnemySystem(
+    final navigationSystem = EnemyNavigationSystem(
+      surfaceNavigator: SurfaceNavigator(
+        pathfinder: pathfinder,
+        repathCooldownTicks: 5,
+        takeoffEps: 6.0,
+      ),
+    );
+    final engagementSystem = EnemyEngagementSystem(
+      groundEnemyTuning: GroundEnemyTuningDerived.from(
+        const GroundEnemyTuning(
+          locomotion: GroundEnemyLocomotionTuning(jumpSpeed: 300.0),
+        ),
+        tickHz: 10,
+      ),
+    );
+    final locomotionSystem = EnemyLocomotionSystem(
       unocoDemonTuning: UnocoDemonTuningDerived.from(
         const UnocoDemonTuning(),
         tickHz: 10,
       ),
       groundEnemyTuning: GroundEnemyTuningDerived.from(
         const GroundEnemyTuning(
-          groundEnemyJumpSpeed: 300.0,
+          locomotion: GroundEnemyLocomotionTuning(jumpSpeed: 300.0),
         ),
         tickHz: 10,
       ),
-      surfaceNavigator: SurfaceNavigator(
-        pathfinder: pathfinder,
-        repathCooldownTicks: 5,
-        takeoffEps: 6.0,
-      ),
-      enemyCatalog: const EnemyCatalog(),
-      spells: const SpellCatalog(),
-      projectiles: ProjectileCatalogDerived.from(
-        const ProjectileCatalog(),
-        tickHz: 10,
-      ),
     );
-    system.setSurfaceGraph(
+    navigationSystem.setSurfaceGraph(
       graph: graphResult.graph,
       spatialIndex: graphResult.spatialIndex,
       graphVersion: 1,
     );
+    locomotionSystem.setSurfaceGraph(graph: graphResult.graph);
 
     var sawJump = false;
     for (var tick = 0; tick < 120; tick += 1) {
-      system.stepSteering(
+      navigationSystem.step(world, player: player);
+      engagementSystem.step(world, player: player);
+      locomotionSystem.step(
         world,
         player: player,
         groundTopY: groundTopY,

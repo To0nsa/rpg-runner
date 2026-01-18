@@ -1,95 +1,145 @@
-/// Ground enemy AI tuning (steering, melee).
+/// Ground enemy AI tuning grouped by navigation/engagement/locomotion/combat.
 library;
 
 import '../util/tick_math.dart';
 
 class GroundEnemyTuning {
   const GroundEnemyTuning({
-    this.groundEnemySpeedX = 300.0,
-    this.groundEnemyStopDistanceX = 6.0,
-    this.groundEnemyAccelX = 600.0,
-    this.groundEnemyDecelX = 400.0,
-    this.groundEnemyChaseOffsetMaxX = 18.0,
-    this.groundEnemyChaseOffsetMinAbsX = 6.0,
-    this.groundEnemyChaseOffsetMeleeX = 3.0,
-    this.groundEnemyChaseSpeedScaleMin = 0.92,
-    this.groundEnemyChaseSpeedScaleMax = 1.08,
-    this.groundEnemyJumpSpeed = 500.0,
-    this.groundEnemyMeleeRangeX = 26.0,
-    this.groundEnemyMeleeCooldownSeconds = 1.0,
-    this.groundEnemyMeleeActiveSeconds = 0.10,
-    this.groundEnemyMeleeAnimSeconds = 0.60,
-    this.groundEnemyMeleeDamage = 5.0,
-    this.groundEnemyMeleeHitboxSizeX = 28.0,
-    this.groundEnemyMeleeHitboxSizeY = 16.0,
+    this.navigation = const GroundEnemyNavigationTuning(),
+    this.engagement = const GroundEnemyEngagementTuning(),
+    this.locomotion = const GroundEnemyLocomotionTuning(),
+    this.combat = const GroundEnemyCombatTuning(),
   });
 
-  // ── Steering ──
+  final GroundEnemyNavigationTuning navigation;
+  final GroundEnemyEngagementTuning engagement;
+  final GroundEnemyLocomotionTuning locomotion;
+  final GroundEnemyCombatTuning combat;
+}
 
-  /// Target horizontal speed (world units/sec).
-  final double groundEnemySpeedX;
-
-  /// Distance at which enemy stops chasing (world units).
-  final double groundEnemyStopDistanceX;
-
-  /// Horizontal acceleration (world units/sec²).
-  final double groundEnemyAccelX;
-
-  /// Horizontal deceleration (world units/sec²).
-  final double groundEnemyDecelX;
+/// Navigation tuning (chase offset + speed variance).
+class GroundEnemyNavigationTuning {
+  const GroundEnemyNavigationTuning({
+    this.chaseOffsetMaxX = 18.0,
+    this.chaseOffsetMinAbsX = 6.0,
+    this.chaseOffsetMeleeX = 3.0,
+    this.chaseSpeedScaleMin = 0.92,
+    this.chaseSpeedScaleMax = 1.08,
+  });
 
   /// Max random chase offset from player (world units).
-  final double groundEnemyChaseOffsetMaxX;
+  final double chaseOffsetMaxX;
 
   /// Min absolute chase offset (prevents clumping).
-  final double groundEnemyChaseOffsetMinAbsX;
+  final double chaseOffsetMinAbsX;
 
   /// Chase offset when in melee range (world units).
-  final double groundEnemyChaseOffsetMeleeX;
+  final double chaseOffsetMeleeX;
 
   /// Min speed scale for chase variance.
-  final double groundEnemyChaseSpeedScaleMin;
+  final double chaseSpeedScaleMin;
 
   /// Max speed scale for chase variance.
-  final double groundEnemyChaseSpeedScaleMax;
+  final double chaseSpeedScaleMax;
+}
+
+/// Engagement tuning (slot selection + melee state movement).
+class GroundEnemyEngagementTuning {
+  const GroundEnemyEngagementTuning({
+    this.meleeEngageBufferX = 4.0,
+    this.meleeEngageHysteresisX = 2.0,
+    this.meleeArriveSlowRadiusX = 12.0,
+    this.meleeAttackSpeedMul = 0.25,
+    this.meleeRecoverSpeedMul = 0.5,
+  });
+
+  /// Extra buffer beyond melee range to enter engage state.
+  final double meleeEngageBufferX;
+
+  /// Hysteresis added to engage buffer for disengage threshold.
+  final double meleeEngageHysteresisX;
+
+  /// Radius within which arrival steering slows to zero.
+  final double meleeArriveSlowRadiusX;
+
+  /// Speed multiplier during attack state.
+  final double meleeAttackSpeedMul;
+
+  /// Speed multiplier during recover state.
+  final double meleeRecoverSpeedMul;
+}
+
+/// Locomotion tuning (movement + jump).
+class GroundEnemyLocomotionTuning {
+  const GroundEnemyLocomotionTuning({
+    this.speedX = 300.0,
+    this.stopDistanceX = 6.0,
+    this.accelX = 600.0,
+    this.decelX = 400.0,
+    this.jumpSpeed = 500.0,
+  });
+
+  /// Target horizontal speed (world units/sec).
+  final double speedX;
+
+  /// Distance at which enemy stops chasing (world units).
+  final double stopDistanceX;
+
+  /// Horizontal acceleration (world units/sec^2).
+  final double accelX;
+
+  /// Horizontal deceleration (world units/sec^2).
+  final double decelX;
 
   /// Jump velocity (world units/sec, positive = upward).
-  final double groundEnemyJumpSpeed;
+  final double jumpSpeed;
+}
 
-  // ── Melee ──
+/// Combat tuning (melee timing + damage).
+class GroundEnemyCombatTuning {
+  const GroundEnemyCombatTuning({
+    this.meleeRangeX = 26.0,
+    this.meleeCooldownSeconds = 1.0,
+    this.meleeActiveSeconds = 0.10,
+    this.meleeAnimSeconds = 0.60,
+    this.meleeDamage = 5.0,
+    this.meleeHitboxSizeX = 28.0,
+    this.meleeHitboxSizeY = 16.0,
+  });
 
   /// Horizontal range to trigger melee attack (world units).
-  final double groundEnemyMeleeRangeX;
+  final double meleeRangeX;
 
   /// Cooldown between melee attacks (seconds).
-  final double groundEnemyMeleeCooldownSeconds;
+  final double meleeCooldownSeconds;
 
   /// Duration melee hitbox is active (seconds).
-  final double groundEnemyMeleeActiveSeconds;
+  final double meleeActiveSeconds;
 
   /// Duration the melee attack animation should be visible (seconds).
   ///
-  /// This can be longer than [groundEnemyMeleeActiveSeconds] since the hitbox
+  /// This can be longer than [meleeActiveSeconds] since the hitbox
   /// window is often only a subset of the full animation.
-  final double groundEnemyMeleeAnimSeconds;
+  final double meleeAnimSeconds;
 
   /// Damage dealt by melee attack.
-  final double groundEnemyMeleeDamage;
+  final double meleeDamage;
 
   /// Melee hitbox width (world units).
-  final double groundEnemyMeleeHitboxSizeX;
+  final double meleeHitboxSizeX;
 
   /// Melee hitbox height (world units).
-  final double groundEnemyMeleeHitboxSizeY;
+  final double meleeHitboxSizeY;
 }
 
 class GroundEnemyTuningDerived {
   const GroundEnemyTuningDerived._({
     required this.tickHz,
     required this.base,
-    required this.groundEnemyMeleeCooldownTicks,
-    required this.groundEnemyMeleeActiveTicks,
-    required this.groundEnemyMeleeAnimTicks,
+    required this.navigation,
+    required this.engagement,
+    required this.locomotion,
+    required this.combat,
   });
 
   factory GroundEnemyTuningDerived.from(
@@ -100,28 +150,95 @@ class GroundEnemyTuningDerived {
       throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
     }
 
+    final combat = base.combat;
+    final engagement = base.engagement;
+
+    final meleeStandOffX = () {
+      final desired = combat.meleeHitboxSizeX * (2.0 / 3.0);
+      if (desired.isNaN || desired.isInfinite) return 0.0;
+      final clampedToRange = desired > combat.meleeRangeX
+          ? combat.meleeRangeX
+          : desired;
+      return clampedToRange < 0.0 ? 0.0 : clampedToRange;
+    }();
+
     return GroundEnemyTuningDerived._(
       tickHz: tickHz,
       base: base,
-      groundEnemyMeleeCooldownTicks: ticksFromSecondsCeil(
-        base.groundEnemyMeleeCooldownSeconds,
-        tickHz,
+      navigation: base.navigation,
+      engagement: GroundEnemyEngagementTuningDerived(
+        meleeEngageBufferX: engagement.meleeEngageBufferX,
+        meleeEngageHysteresisX: engagement.meleeEngageHysteresisX,
+        meleeArriveSlowRadiusX: engagement.meleeArriveSlowRadiusX,
+        meleeAttackSpeedMul: engagement.meleeAttackSpeedMul,
+        meleeRecoverSpeedMul: engagement.meleeRecoverSpeedMul,
+        meleeStandOffX: meleeStandOffX,
       ),
-      groundEnemyMeleeActiveTicks: ticksFromSecondsCeil(
-        base.groundEnemyMeleeActiveSeconds,
-        tickHz,
-      ),
-      groundEnemyMeleeAnimTicks: ticksFromSecondsCeil(
-        base.groundEnemyMeleeAnimSeconds,
-        tickHz,
+      locomotion: base.locomotion,
+      combat: GroundEnemyCombatTuningDerived(
+        meleeRangeX: combat.meleeRangeX,
+        meleeCooldownSeconds: combat.meleeCooldownSeconds,
+        meleeActiveSeconds: combat.meleeActiveSeconds,
+        meleeAnimSeconds: combat.meleeAnimSeconds,
+        meleeDamage: combat.meleeDamage,
+        meleeHitboxSizeX: combat.meleeHitboxSizeX,
+        meleeHitboxSizeY: combat.meleeHitboxSizeY,
+        meleeCooldownTicks: ticksFromSecondsCeil(
+          combat.meleeCooldownSeconds,
+          tickHz,
+        ),
+        meleeActiveTicks: ticksFromSecondsCeil(
+          combat.meleeActiveSeconds,
+          tickHz,
+        ),
+        meleeAnimTicks: ticksFromSecondsCeil(
+          combat.meleeAnimSeconds,
+          tickHz,
+        ),
       ),
     );
   }
 
   final int tickHz;
   final GroundEnemyTuning base;
+  final GroundEnemyNavigationTuning navigation;
+  final GroundEnemyEngagementTuningDerived engagement;
+  final GroundEnemyLocomotionTuning locomotion;
+  final GroundEnemyCombatTuningDerived combat;
+}
 
-  final int groundEnemyMeleeCooldownTicks;
-  final int groundEnemyMeleeActiveTicks;
-  final int groundEnemyMeleeAnimTicks;
+class GroundEnemyEngagementTuningDerived extends GroundEnemyEngagementTuning {
+  const GroundEnemyEngagementTuningDerived({
+    required super.meleeEngageBufferX,
+    required super.meleeEngageHysteresisX,
+    required super.meleeArriveSlowRadiusX,
+    required super.meleeAttackSpeedMul,
+    required super.meleeRecoverSpeedMul,
+    required this.meleeStandOffX,
+  });
+
+  /// Stand-off target used in engage/attack/recover phases.
+  ///
+  /// Derived from [GroundEnemyCombatTuning.meleeHitboxSizeX] so the player
+  /// sits well within the hitbox when the enemy is at its preferred slot.
+  final double meleeStandOffX;
+}
+
+class GroundEnemyCombatTuningDerived extends GroundEnemyCombatTuning {
+  const GroundEnemyCombatTuningDerived({
+    required super.meleeRangeX,
+    required super.meleeCooldownSeconds,
+    required super.meleeActiveSeconds,
+    required super.meleeAnimSeconds,
+    required super.meleeDamage,
+    required super.meleeHitboxSizeX,
+    required super.meleeHitboxSizeY,
+    required this.meleeCooldownTicks,
+    required this.meleeActiveTicks,
+    required this.meleeAnimTicks,
+  });
+
+  final int meleeCooldownTicks;
+  final int meleeActiveTicks;
+  final int meleeAnimTicks;
 }

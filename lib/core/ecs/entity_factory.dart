@@ -128,11 +128,14 @@ class EntityFactory {
   /// - [StatModifierStore]: Runtime stat modifiers from statuses.
   /// - [EnemyStore]: Identifies the entity as an enemy and stores its type.
   /// - [AnimStateStore]: Animation state computed by [AnimSystem].
+  /// - [MeleeEngagementStore]: Engagement state for melee AI.
+  /// - [NavIntentStore]: Navigation output for ground enemies.
+  /// - [EngagementIntentStore]: Engagement output for melee enemies.
   ///
   /// Adds specific components based on [enemyId]:
   /// - [EnemyId.unocoDemon]: Adds [FlyingEnemySteeringStore] for air movement.
-  /// - [EnemyId.groundEnemy]: Adds [SurfaceNavStateStore] and [GroundEnemyChaseOffsetStore]
-  ///   for ground-based navigation and chasing behavior.
+  /// - [EnemyId.groundEnemy]: Adds [SurfaceNavStateStore], [GroundEnemyChaseOffsetStore],
+  ///   [NavIntentStore], and [EngagementIntentStore] for ground navigation/engagement.
   EntityId createEnemy({
     required EnemyId enemyId,
     required double posX,
@@ -162,6 +165,7 @@ class EntityFactory {
     world.damageResistance.add(id, resistance);
     world.mana.add(id, mana);
     world.meleeIntent.add(id);
+    world.meleeEngagement.add(id);
     world.statModifier.add(id);
     world.stamina.add(id, stamina);
     world.enemy.add(id, EnemyDef(enemyId: enemyId, facing: facing));
@@ -179,6 +183,8 @@ class EntityFactory {
         id,
         GroundEnemyChaseOffsetDef(rngState: seedFrom(world.seed, id)),
       );
+      world.navIntent.add(id);
+      world.engagementIntent.add(id);
     }
     return id;
   }

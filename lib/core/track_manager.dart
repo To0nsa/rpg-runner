@@ -25,7 +25,7 @@
 ///        ↓
 /// SurfaceGraphBuilder.build() (navigation)
 ///        ↓
-/// SpawnService + EnemySystem receive new graphs
+/// SpawnService + enemy navigation systems receive new graphs
 /// ```
 ///
 /// ## Chunk Spawning Flow
@@ -39,7 +39,8 @@ library;
 
 import 'collision/static_world_geometry_index.dart';
 import 'ecs/stores/restoration_item_store.dart' show RestorationStat;
-import 'ecs/systems/enemy_system.dart';
+import 'ecs/systems/enemy_locomotion_system.dart';
+import 'ecs/systems/enemy_navigation_system.dart';
 import 'enemies/enemy_id.dart';
 import 'navigation/surface_graph_builder.dart';
 import 'navigation/utils/jump_template.dart';
@@ -111,7 +112,8 @@ class TrackManager {
   /// - [baseGeometry]: Static level geometry (ground plane, initial platforms).
   /// - [surfaceGraphBuilder]: Builder for navigation surface graphs.
   /// - [jumpTemplate]: Precomputed jump reachability for pathfinding.
-  /// - [enemySystem]: Enemy AI system (receives surface graph updates).
+  /// - [enemyNavigationSystem]: Ground enemy navigation (receives graph updates).
+  /// - [enemyLocomotionSystem]: Ground locomotion (receives graph updates).
   /// - [spawnService]: Entity spawner (receives surface graph updates).
   /// - [groundTopY]: Y coordinate of the ground surface (for spawning).
   /// - [patternPool]: Chunk pattern pools for procedural generation.
@@ -125,7 +127,8 @@ class TrackManager {
     required StaticWorldGeometry baseGeometry,
     required SurfaceGraphBuilder surfaceGraphBuilder,
     required JumpReachabilityTemplate jumpTemplate,
-    required EnemySystem enemySystem,
+    required EnemyNavigationSystem enemyNavigationSystem,
+    required EnemyLocomotionSystem enemyLocomotionSystem,
     required SpawnService spawnService,
     required double groundTopY,
     required ChunkPatternPool patternPool,
@@ -137,7 +140,8 @@ class TrackManager {
         _baseGeometry = baseGeometry,
         _surfaceGraphBuilder = surfaceGraphBuilder,
         _jumpTemplate = jumpTemplate,
-        _enemySystem = enemySystem,
+        _enemyNavigationSystem = enemyNavigationSystem,
+        _enemyLocomotionSystem = enemyLocomotionSystem,
         _spawnService = spawnService,
         _patternPool = patternPool,
         _earlyPatternChunks = earlyPatternChunks,
@@ -171,7 +175,8 @@ class TrackManager {
   final StaticWorldGeometry _baseGeometry;
   final SurfaceGraphBuilder _surfaceGraphBuilder;
   final JumpReachabilityTemplate _jumpTemplate;
-  final EnemySystem _enemySystem;
+  final EnemyNavigationSystem _enemyNavigationSystem;
+  final EnemyLocomotionSystem _enemyLocomotionSystem;
   final SpawnService _spawnService;
   final ChunkPatternPool _patternPool;
   final int _earlyPatternChunks;
@@ -339,7 +344,8 @@ class TrackManager {
   ///
   /// The surface graph is used by:
   /// - [SpawnService]: To place items "on top of" platforms.
-  /// - [EnemySystem]: To compute jump/walk paths to the player.
+  /// - [EnemyNavigationSystem]: To compute jump/walk paths to the player.
+  /// - [EnemyLocomotionSystem]: To snap jump velocity on active edges.
   ///
   /// A version counter is incremented each rebuild so consumers can
   /// invalidate cached paths.
@@ -357,11 +363,12 @@ class TrackManager {
     );
 
     // Distribute new graph to enemy AI system.
-    _enemySystem.setSurfaceGraph(
+    _enemyNavigationSystem.setSurfaceGraph(
       graph: result.graph,
       spatialIndex: result.spatialIndex,
       graphVersion: _surfaceGraphVersion,
     );
+    _enemyLocomotionSystem.setSurfaceGraph(graph: result.graph);
   }
 
   /// Builds an immutable list of [StaticSolidSnapshot] from geometry.

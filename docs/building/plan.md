@@ -14,6 +14,28 @@ Combat now uses explicit primitives for damage + status effects:
 
 Details: `docs/building/combat.md`.
 
+## Enemy AI pipeline (v2)
+
+Enemy AI is split into intent-driven systems so navigation, engagement, locomotion,
+and combat can evolve independently.
+
+Pipeline per tick:
+
+1. **Navigation** (`EnemyNavigationSystem`) computes `NavIntentStore` from the
+   surface graph (planner target = player or predicted landing).
+2. **Engagement** (`EnemyEngagementSystem`) updates `MeleeEngagementStore` and
+   writes `EngagementIntentStore` (slot target, arrival slow radius, speed muls).
+3. **Locomotion** (`EnemyLocomotionSystem`) applies velocities using nav +
+   engagement intents (ground) and handles flying steering (Unoco).
+4. **Combat** (`EnemyCombatSystem`) writes `CastIntentStore`/`MeleeIntentStore`
+   and updates attack windows for animation.
+
+This keeps pathfinding separate from melee slot logic and keeps combat decisions
+independent from locomotion mechanics.
+
+Ground enemy tuning is grouped by responsibility in `GroundEnemyTuning`:
+`navigation`, `engagement`, `locomotion`, and `combat`.
+
 ## Render animation windows
 
 Core owns deterministic animation windows via `AnimTuning` (attack/cast/hit/death/spawn).

@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rpg_runner/core/collision/static_world_geometry.dart';
 import 'package:rpg_runner/core/collision/static_world_geometry_index.dart';
-import 'package:rpg_runner/core/enemies/enemy_catalog.dart';
 import 'package:rpg_runner/core/ecs/spatial/grid_index_2d.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
@@ -10,16 +9,16 @@ import 'package:rpg_runner/core/ecs/stores/health_store.dart';
 import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
 import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
 import 'package:rpg_runner/core/ecs/systems/collision_system.dart';
-import 'package:rpg_runner/core/ecs/systems/enemy_system.dart';
+import 'package:rpg_runner/core/ecs/systems/enemy_engagement_system.dart';
+import 'package:rpg_runner/core/ecs/systems/enemy_locomotion_system.dart';
+import 'package:rpg_runner/core/ecs/systems/enemy_navigation_system.dart';
 import 'package:rpg_runner/core/ecs/systems/gravity_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/navigation/utils/jump_template.dart';
 import 'package:rpg_runner/core/navigation/surface_graph_builder.dart';
 import 'package:rpg_runner/core/navigation/surface_navigator.dart';
 import 'package:rpg_runner/core/navigation/surface_pathfinder.dart';
-import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
-import 'package:rpg_runner/core/spells/spell_catalog.dart';
 import 'package:rpg_runner/core/tuning/flying_enemy_tuning.dart';
 import 'package:rpg_runner/core/tuning/ground_enemy_tuning.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
@@ -38,7 +37,7 @@ JumpReachabilityTemplate _jumpTemplate({
   // Mirrors the GameCore logic: allow some margin over the analytically computed
   // air time so gap jumps remain reachable even with discrete integration.
   final gravity = physics.gravityY;
-  final jumpSpeed = base.groundEnemyJumpSpeed.abs();
+  final jumpSpeed = base.locomotion.jumpSpeed.abs();
   final baseAirSeconds = gravity <= 0 ? 1.0 : (2.0 * jumpSpeed) / gravity;
   final maxAirTicks = (baseAirSeconds * 1.5 / movement.dtSeconds).ceil();
 
@@ -47,7 +46,7 @@ JumpReachabilityTemplate _jumpTemplate({
       jumpSpeed: jumpSpeed,
       gravityY: physics.gravityY,
       maxAirTicks: maxAirTicks,
-      airSpeedX: base.groundEnemySpeedX,
+      airSpeedX: base.locomotion.speedX,
       dtSeconds: movement.dtSeconds,
       agentHalfWidth: agentHalfWidth,
     ),
@@ -68,9 +67,11 @@ void main() {
     const physics = PhysicsTuning(gravityY: 1200.0);
     const navTuning = NavigationTuning();
     const groundEnemyBase = GroundEnemyTuning(
-      groundEnemySpeedX: 300.0,
-      groundEnemyStopDistanceX: 6.0,
-      groundEnemyJumpSpeed: 500.0,
+      locomotion: GroundEnemyLocomotionTuning(
+        speedX: 300.0,
+        stopDistanceX: 6.0,
+        jumpSpeed: 500.0,
+      ),
     );
 
     final player = EntityFactory(world).createPlayer(
@@ -153,7 +154,25 @@ void main() {
       ),
     );
 
-    final system = EnemySystem(
+    final navigationSystem = EnemyNavigationSystem(
+      surfaceNavigator: SurfaceNavigator(
+        pathfinder: SurfacePathfinder(
+          maxExpandedNodes: navTuning.maxExpandedNodes,
+          runSpeedX: groundEnemyBase.locomotion.speedX,
+          edgePenaltySeconds: navTuning.edgePenaltySeconds,
+        ),
+        repathCooldownTicks: navTuning.repathCooldownTicks,
+        surfaceEps: navTuning.surfaceEps,
+        takeoffEps: groundEnemyBase.locomotion.stopDistanceX,
+      ),
+    );
+    final engagementSystem = EnemyEngagementSystem(
+      groundEnemyTuning: GroundEnemyTuningDerived.from(
+        groundEnemyBase,
+        tickHz: 60,
+      ),
+    );
+    final locomotionSystem = EnemyLocomotionSystem(
       unocoDemonTuning: UnocoDemonTuningDerived.from(
         const UnocoDemonTuning(),
         tickHz: 60,
@@ -162,34 +181,21 @@ void main() {
         groundEnemyBase,
         tickHz: 60,
       ),
-      surfaceNavigator: SurfaceNavigator(
-        pathfinder: SurfacePathfinder(
-          maxExpandedNodes: navTuning.maxExpandedNodes,
-          runSpeedX: groundEnemyBase.groundEnemySpeedX,
-          edgePenaltySeconds: navTuning.edgePenaltySeconds,
-        ),
-        repathCooldownTicks: navTuning.repathCooldownTicks,
-        surfaceEps: navTuning.surfaceEps,
-        takeoffEps: groundEnemyBase.groundEnemyStopDistanceX,
-      ),
-      enemyCatalog: const EnemyCatalog(),
-      spells: const SpellCatalog(),
-      projectiles: ProjectileCatalogDerived.from(
-        const ProjectileCatalog(),
-        tickHz: 60,
-      ),
     );
-    system.setSurfaceGraph(
+    navigationSystem.setSurfaceGraph(
       graph: graphResult.graph,
       spatialIndex: graphResult.spatialIndex,
       graphVersion: 1,
     );
+    locomotionSystem.setSurfaceGraph(graph: graphResult.graph);
 
     final gravity = GravitySystem();
     final collision = CollisionSystem();
 
     for (var tick = 0; tick < 600; tick += 1) {
-      system.stepSteering(
+      navigationSystem.step(world, player: player);
+      engagementSystem.step(world, player: player);
+      locomotionSystem.step(
         world,
         player: player,
         groundTopY: groundTopY,
@@ -236,11 +242,13 @@ void main() {
     const physics = PhysicsTuning(gravityY: 1200.0);
     const navTuning = NavigationTuning();
     const groundEnemyBase = GroundEnemyTuning(
-      groundEnemySpeedX: 300.0,
-      groundEnemyStopDistanceX: 6.0,
-      groundEnemyAccelX: 600.0,
-      groundEnemyDecelX: 400.0,
-      groundEnemyJumpSpeed: 400.0,
+      locomotion: GroundEnemyLocomotionTuning(
+        speedX: 300.0,
+        stopDistanceX: 6.0,
+        accelX: 600.0,
+        decelX: 400.0,
+        jumpSpeed: 400.0,
+      ),
     );
 
     const gapMinX = 200.0;
@@ -327,7 +335,25 @@ void main() {
       ),
     );
 
-    final system = EnemySystem(
+    final navigationSystem = EnemyNavigationSystem(
+      surfaceNavigator: SurfaceNavigator(
+        pathfinder: SurfacePathfinder(
+          maxExpandedNodes: navTuning.maxExpandedNodes,
+          runSpeedX: groundEnemyBase.locomotion.speedX,
+          edgePenaltySeconds: navTuning.edgePenaltySeconds,
+        ),
+        repathCooldownTicks: navTuning.repathCooldownTicks,
+        surfaceEps: navTuning.surfaceEps,
+        takeoffEps: groundEnemyBase.locomotion.stopDistanceX,
+      ),
+    );
+    final engagementSystem = EnemyEngagementSystem(
+      groundEnemyTuning: GroundEnemyTuningDerived.from(
+        groundEnemyBase,
+        tickHz: 60,
+      ),
+    );
+    final locomotionSystem = EnemyLocomotionSystem(
       unocoDemonTuning: UnocoDemonTuningDerived.from(
         const UnocoDemonTuning(),
         tickHz: 60,
@@ -336,34 +362,21 @@ void main() {
         groundEnemyBase,
         tickHz: 60,
       ),
-      surfaceNavigator: SurfaceNavigator(
-        pathfinder: SurfacePathfinder(
-          maxExpandedNodes: navTuning.maxExpandedNodes,
-          runSpeedX: groundEnemyBase.groundEnemySpeedX,
-          edgePenaltySeconds: navTuning.edgePenaltySeconds,
-        ),
-        repathCooldownTicks: navTuning.repathCooldownTicks,
-        surfaceEps: navTuning.surfaceEps,
-        takeoffEps: groundEnemyBase.groundEnemyStopDistanceX,
-      ),
-      enemyCatalog: const EnemyCatalog(),
-      spells: const SpellCatalog(),
-      projectiles: ProjectileCatalogDerived.from(
-        const ProjectileCatalog(),
-        tickHz: 60,
-      ),
     );
-    system.setSurfaceGraph(
+    navigationSystem.setSurfaceGraph(
       graph: graphResult.graph,
       spatialIndex: graphResult.spatialIndex,
       graphVersion: 1,
     );
+    locomotionSystem.setSurfaceGraph(graph: graphResult.graph);
 
     final gravity = GravitySystem();
     final collision = CollisionSystem();
 
     for (var tick = 0; tick < 300; tick += 1) {
-      system.stepSteering(
+      navigationSystem.step(world, player: player);
+      engagementSystem.step(world, player: player);
+      locomotionSystem.step(
         world,
         player: player,
         groundTopY: groundTopY,
@@ -410,9 +423,11 @@ void main() {
     const physics = PhysicsTuning(gravityY: 1200.0);
     const navTuning = NavigationTuning();
     const groundEnemyBase = GroundEnemyTuning(
-      groundEnemySpeedX: 300.0,
-      groundEnemyStopDistanceX: 6.0,
-      groundEnemyJumpSpeed: 500.0,
+      locomotion: GroundEnemyLocomotionTuning(
+        speedX: 300.0,
+        stopDistanceX: 6.0,
+        jumpSpeed: 500.0,
+      ),
     );
 
     final player = EntityFactory(world).createPlayer(
@@ -479,7 +494,25 @@ void main() {
       ),
     );
 
-    final system = EnemySystem(
+    final navigationSystem = EnemyNavigationSystem(
+      surfaceNavigator: SurfaceNavigator(
+        pathfinder: SurfacePathfinder(
+          maxExpandedNodes: navTuning.maxExpandedNodes,
+          runSpeedX: groundEnemyBase.locomotion.speedX,
+          edgePenaltySeconds: navTuning.edgePenaltySeconds,
+        ),
+        repathCooldownTicks: navTuning.repathCooldownTicks,
+        surfaceEps: navTuning.surfaceEps,
+        takeoffEps: groundEnemyBase.locomotion.stopDistanceX,
+      ),
+    );
+    final engagementSystem = EnemyEngagementSystem(
+      groundEnemyTuning: GroundEnemyTuningDerived.from(
+        groundEnemyBase,
+        tickHz: 60,
+      ),
+    );
+    final locomotionSystem = EnemyLocomotionSystem(
       unocoDemonTuning: UnocoDemonTuningDerived.from(
         const UnocoDemonTuning(),
         tickHz: 60,
@@ -488,34 +521,21 @@ void main() {
         groundEnemyBase,
         tickHz: 60,
       ),
-      surfaceNavigator: SurfaceNavigator(
-        pathfinder: SurfacePathfinder(
-          maxExpandedNodes: navTuning.maxExpandedNodes,
-          runSpeedX: groundEnemyBase.groundEnemySpeedX,
-          edgePenaltySeconds: navTuning.edgePenaltySeconds,
-        ),
-        repathCooldownTicks: navTuning.repathCooldownTicks,
-        surfaceEps: navTuning.surfaceEps,
-        takeoffEps: groundEnemyBase.groundEnemyStopDistanceX,
-      ),
-      enemyCatalog: const EnemyCatalog(),
-      spells: const SpellCatalog(),
-      projectiles: ProjectileCatalogDerived.from(
-        const ProjectileCatalog(),
-        tickHz: 60,
-      ),
     );
-    system.setSurfaceGraph(
+    navigationSystem.setSurfaceGraph(
       graph: graphResult.graph,
       spatialIndex: graphResult.spatialIndex,
       graphVersion: 1,
     );
+    locomotionSystem.setSurfaceGraph(graph: graphResult.graph);
 
     final gravity = GravitySystem();
     final collision = CollisionSystem();
 
     for (var tick = 0; tick < 300; tick += 1) {
-      system.stepSteering(
+      navigationSystem.step(world, player: player);
+      engagementSystem.step(world, player: player);
+      locomotionSystem.step(
         world,
         player: player,
         groundTopY: groundTopY,

@@ -10,14 +10,12 @@ import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
 import 'package:rpg_runner/core/ecs/spatial/broadphase_grid.dart';
 import 'package:rpg_runner/core/ecs/spatial/grid_index_2d.dart';
 import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
-import 'package:rpg_runner/core/ecs/systems/enemy_system.dart';
+import 'package:rpg_runner/core/ecs/systems/enemy_combat_system.dart';
 import 'package:rpg_runner/core/ecs/systems/hitbox_follow_owner_system.dart';
 import 'package:rpg_runner/core/ecs/systems/hitbox_damage_system.dart';
 import 'package:rpg_runner/core/ecs/systems/melee_attack_system.dart';
 import 'package:rpg_runner/core/ecs/systems/projectile_hit_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
-import 'package:rpg_runner/core/navigation/surface_navigator.dart';
-import 'package:rpg_runner/core/navigation/surface_pathfinder.dart';
 import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/spells/spawn_spell_projectile.dart';
@@ -130,27 +128,22 @@ void main() {
     );
     final groundEnemyTuning = GroundEnemyTuningDerived.from(
       const GroundEnemyTuning(
-        groundEnemyMeleeRangeX: 50.0,
-        groundEnemyMeleeCooldownSeconds: 1.0,
-        groundEnemyMeleeActiveSeconds: 0.10,
-        groundEnemyMeleeDamage: 15.0,
-        groundEnemyMeleeHitboxSizeX: 28.0,
-        groundEnemyMeleeHitboxSizeY: 16.0,
+        combat: GroundEnemyCombatTuning(
+          meleeRangeX: 50.0,
+          meleeCooldownSeconds: 1.0,
+          meleeActiveSeconds: 0.10,
+          meleeDamage: 15.0,
+          meleeHitboxSizeX: 28.0,
+          meleeHitboxSizeY: 16.0,
+        ),
       ),
       tickHz: 60,
     );
-    final expectedHp =
-        100.0 - groundEnemyTuning.base.groundEnemyMeleeDamage;
+    final expectedHp = 100.0 - groundEnemyTuning.combat.meleeDamage;
 
-    final system = EnemySystem(
+    final system = EnemyCombatSystem(
       unocoDemonTuning: unocoDemonTuning,
       groundEnemyTuning: groundEnemyTuning,
-      surfaceNavigator: SurfaceNavigator(
-        pathfinder: SurfacePathfinder(
-          maxExpandedNodes: 1,
-          runSpeedX: 1.0,
-        ),
-      ),
       enemyCatalog: const EnemyCatalog(),
       spells: const SpellCatalog(),
       projectiles: ProjectileCatalogDerived.from(

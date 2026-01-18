@@ -81,7 +81,10 @@ import 'ecs/systems/collectible_system.dart';
 import 'ecs/systems/collision_system.dart';
 import 'ecs/systems/cooldown_system.dart';
 import 'ecs/systems/damage_system.dart';
-import 'ecs/systems/enemy_system.dart';
+import 'ecs/systems/enemy_combat_system.dart';
+import 'ecs/systems/enemy_engagement_system.dart';
+import 'ecs/systems/enemy_locomotion_system.dart';
+import 'ecs/systems/enemy_navigation_system.dart';
 import 'ecs/systems/gravity_system.dart';
 import 'ecs/systems/health_despawn_system.dart';
 import 'ecs/systems/hitbox_damage_system.dart';
@@ -361,7 +364,8 @@ class GameCore {
       baseGeometry: staticWorldGeometry,
       surfaceGraphBuilder: _surfaceGraphBuilder,
       jumpTemplate: _groundEnemyJumpTemplate,
-      enemySystem: _enemySystem,
+      enemyNavigationSystem: _enemyNavigationSystem,
+      enemyLocomotionSystem: _enemyLocomotionSystem,
       spawnService: _spawnService,
       groundTopY: effectiveGroundTopY,
       patternPool: levelDefinition.patternPool,
@@ -455,17 +459,17 @@ class GameCore {
     );
     _groundEnemyJumpTemplate = JumpReachabilityTemplate.build(
       JumpProfile(
-        jumpSpeed: _groundEnemyTuning.base.groundEnemyJumpSpeed,
+        jumpSpeed: _groundEnemyTuning.locomotion.jumpSpeed,
         gravityY: _physicsTuning.gravityY,
         maxAirTicks: _groundEnemyMaxAirTicks(),
-        airSpeedX: _groundEnemyTuning.base.groundEnemySpeedX,
+        airSpeedX: _groundEnemyTuning.locomotion.speedX,
         dtSeconds: _movement.dtSeconds,
         agentHalfWidth: _enemyCatalog.get(EnemyId.groundEnemy).collider.halfX,
       ),
     );
     _surfacePathfinder = SurfacePathfinder(
       maxExpandedNodes: _navigationTuning.maxExpandedNodes,
-      runSpeedX: _groundEnemyTuning.base.groundEnemySpeedX,
+      runSpeedX: _groundEnemyTuning.locomotion.speedX,
       edgePenaltySeconds: _navigationTuning.edgePenaltySeconds,
     );
     _surfaceNavigator = SurfaceNavigator(
@@ -474,23 +478,31 @@ class GameCore {
       surfaceEps: _navigationTuning.surfaceEps,
       takeoffEps: max(
         _navigationTuning.takeoffEpsMin,
-        _groundEnemyTuning.base.groundEnemyStopDistanceX,
+        _groundEnemyTuning.locomotion.stopDistanceX,
       ),
     );
 
-    // Enemy AI system (depends on navigation).
-    _enemySystem = EnemySystem(
-      unocoDemonTuning: _unocoDemonTuning,
-      groundEnemyTuning: _groundEnemyTuning,
+    _enemyNavigationSystem = EnemyNavigationSystem(
       surfaceNavigator: _surfaceNavigator,
-      enemyCatalog: _enemyCatalog,
-      spells: _spells,
-      projectiles: _projectiles,
       trajectoryPredictor: TrajectoryPredictor(
         gravityY: _physicsTuning.gravityY,
         dtSeconds: _movement.dtSeconds,
         maxTicks: 120,
       ),
+    );
+    _enemyEngagementSystem = EnemyEngagementSystem(
+      groundEnemyTuning: _groundEnemyTuning,
+    );
+    _enemyLocomotionSystem = EnemyLocomotionSystem(
+      unocoDemonTuning: _unocoDemonTuning,
+      groundEnemyTuning: _groundEnemyTuning,
+    );
+    _enemyCombatSystem = EnemyCombatSystem(
+      unocoDemonTuning: _unocoDemonTuning,
+      groundEnemyTuning: _groundEnemyTuning,
+      enemyCatalog: _enemyCatalog,
+      spells: _spells,
+      projectiles: _projectiles,
     );
   }
 
@@ -616,7 +628,10 @@ class GameCore {
   late final DamageSystem _damageSystem;
   late final StatusSystem _statusSystem;
   late final HealthDespawnSystem _healthDespawnSystem;
-  late EnemySystem _enemySystem;
+  late EnemyNavigationSystem _enemyNavigationSystem;
+  late EnemyEngagementSystem _enemyEngagementSystem;
+  late EnemyLocomotionSystem _enemyLocomotionSystem;
+  late EnemyCombatSystem _enemyCombatSystem;
   late final SurfaceGraphBuilder _surfaceGraphBuilder;
   late final JumpReachabilityTemplate _groundEnemyJumpTemplate;
   late final SurfacePathfinder _surfacePathfinder;
@@ -910,7 +925,15 @@ class GameCore {
     _invulnerabilitySystem.step(_world);
 
     // ─── Phase 3: AI and movement ───
-    _enemySystem.stepSteering(
+    _enemyNavigationSystem.step(
+      _world,
+      player: _player,
+    );
+    _enemyEngagementSystem.step(
+      _world,
+      player: _player,
+    );
+    _enemyLocomotionSystem.step(
       _world,
       player: _player,
       groundTopY: effectiveGroundTopY,
@@ -969,7 +992,7 @@ class GameCore {
 
     // ─── Phase 9: Attack intent writing ───
     // Enemies first, then player (order matters for fairness).
-    _enemySystem.stepAttacks(_world, player: _player, currentTick: tick);
+    _enemyCombatSystem.stepAttacks(_world, player: _player, currentTick: tick);
     _castSystem.step(_world, player: _player, currentTick: tick);
     _meleeSystem.step(_world, player: _player, currentTick: tick);
     _rangedWeaponSystem.step(_world, player: _player, currentTick: tick);
@@ -1262,7 +1285,7 @@ class GameCore {
       // No gravity means infinite air time; cap at 1 second.
       return ticksFromSecondsCeil(1.0, tickHz);
     }
-    final jumpSpeed = _groundEnemyTuning.base.groundEnemyJumpSpeed.abs();
+    final jumpSpeed = _groundEnemyTuning.locomotion.jumpSpeed.abs();
     final baseAirSeconds = (2.0 * jumpSpeed) / gravity;
     return ticksFromSecondsCeil(baseAirSeconds * 1.5, tickHz);
   }

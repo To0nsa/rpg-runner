@@ -1,23 +1,23 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/enemies/enemy_catalog.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
 import 'package:rpg_runner/core/ecs/stores/health_store.dart';
 import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
 import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
+import 'package:rpg_runner/core/ecs/stores/enemies/melee_engagement_store.dart';
 import 'package:rpg_runner/core/ecs/stores/enemies/surface_nav_state_store.dart';
 import 'package:rpg_runner/core/ecs/spatial/grid_index_2d.dart';
-import 'package:rpg_runner/core/ecs/systems/enemy_system.dart';
+import 'package:rpg_runner/core/ecs/systems/enemy_engagement_system.dart';
+import 'package:rpg_runner/core/ecs/systems/enemy_locomotion_system.dart';
+import 'package:rpg_runner/core/ecs/systems/enemy_navigation_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/navigation/types/surface_graph.dart';
 import 'package:rpg_runner/core/navigation/surface_navigator.dart';
 import 'package:rpg_runner/core/navigation/surface_pathfinder.dart';
 import 'package:rpg_runner/core/navigation/utils/surface_spatial_index.dart';
 import 'package:rpg_runner/core/navigation/types/walk_surface.dart';
-import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
-import 'package:rpg_runner/core/spells/spell_catalog.dart';
 import 'package:rpg_runner/core/tuning/flying_enemy_tuning.dart';
 import 'package:rpg_runner/core/tuning/ground_enemy_tuning.dart';
 import 'package:rpg_runner/core/util/deterministic_rng.dart';
@@ -107,11 +107,13 @@ void main() {
     const dtSeconds = 1.0 / 60.0;
 
     const baseTuning = GroundEnemyTuning(
-      groundEnemyStopDistanceX: 0.0,
-      groundEnemyMeleeRangeX: 2.0,
-      groundEnemyChaseOffsetMaxX: 18.0,
-      groundEnemyChaseOffsetMinAbsX: 6.0,
-      groundEnemyChaseOffsetMeleeX: 3.0,
+      navigation: GroundEnemyNavigationTuning(
+        chaseOffsetMaxX: 18.0,
+        chaseOffsetMinAbsX: 6.0,
+        chaseOffsetMeleeX: 3.0,
+      ),
+      locomotion: GroundEnemyLocomotionTuning(stopDistanceX: 0.0),
+      combat: GroundEnemyCombatTuning(meleeRangeX: 2.0),
     );
 
     final world = EcsWorld(seed: seed);
@@ -137,14 +139,14 @@ void main() {
     final expectedOffsetA = _expectedChaseOffset(
       seed: seed,
       entityId: enemyA,
-      maxAbsX: baseTuning.groundEnemyChaseOffsetMaxX,
-      minAbsX: baseTuning.groundEnemyChaseOffsetMinAbsX,
+      maxAbsX: baseTuning.navigation.chaseOffsetMaxX,
+      minAbsX: baseTuning.navigation.chaseOffsetMinAbsX,
     );
     final expectedOffsetB = _expectedChaseOffset(
       seed: seed,
       entityId: enemyB,
-      maxAbsX: baseTuning.groundEnemyChaseOffsetMaxX,
-      minAbsX: baseTuning.groundEnemyChaseOffsetMinAbsX,
+      maxAbsX: baseTuning.navigation.chaseOffsetMaxX,
+      minAbsX: baseTuning.navigation.chaseOffsetMinAbsX,
     );
 
     // Place the enemies halfway between the player and their chase-offset
@@ -155,7 +157,14 @@ void main() {
         playerX + expectedOffsetB * 0.5;
 
     final probe = SurfaceNavigatorProbe();
-    final system = EnemySystem(
+    final navigationSystem = EnemyNavigationSystem(surfaceNavigator: probe);
+    final engagementSystem = EnemyEngagementSystem(
+      groundEnemyTuning: GroundEnemyTuningDerived.from(
+        baseTuning,
+        tickHz: 60,
+      ),
+    );
+    final locomotionSystem = EnemyLocomotionSystem(
       unocoDemonTuning: UnocoDemonTuningDerived.from(
         const UnocoDemonTuning(),
         tickHz: 60,
@@ -164,25 +173,21 @@ void main() {
         baseTuning,
         tickHz: 60,
       ),
-      surfaceNavigator: probe,
-      enemyCatalog: const EnemyCatalog(),
-      spells: const SpellCatalog(),
-      projectiles: ProjectileCatalogDerived.from(
-        const ProjectileCatalog(),
-        tickHz: 60,
-      ),
     );
 
     final graph = _emptySurfaceGraph();
     final spatialIndex = _emptySpatialIndex();
     spatialIndex.rebuild(graph.surfaces);
-    system.setSurfaceGraph(
+    navigationSystem.setSurfaceGraph(
       graph: graph,
       spatialIndex: spatialIndex,
       graphVersion: 1,
     );
+    locomotionSystem.setSurfaceGraph(graph: graph);
 
-    system.stepSteering(
+    navigationSystem.step(world, player: player);
+    engagementSystem.step(world, player: player);
+    locomotionSystem.step(
       world,
       player: player,
       groundTopY: 0.0,
@@ -208,11 +213,33 @@ void main() {
 
     final tiA = world.transform.indexOf(enemyA);
     final tiB = world.transform.indexOf(enemyB);
-    expect(world.transform.velX[tiA] * expectedOffsetA, greaterThan(0.0));
-    expect(world.transform.velX[tiB] * expectedOffsetB, greaterThan(0.0));
+    final engageIndexA = world.meleeEngagement.indexOf(enemyA);
+    final engageIndexB = world.meleeEngagement.indexOf(enemyB);
+    final derived = GroundEnemyTuningDerived.from(baseTuning, tickHz: 60);
+    final targetAX = world.meleeEngagement.state[engageIndexA] ==
+            MeleeEngagementState.approach
+        ? playerX + chase.chaseOffsetX[chase.indexOf(enemyA)]
+        : playerX +
+            (world.meleeEngagement.preferredSide[engageIndexA] >= 0 ? 1 : -1) *
+                derived.engagement.meleeStandOffX;
+    final targetBX = world.meleeEngagement.state[engageIndexB] ==
+            MeleeEngagementState.approach
+        ? playerX + chase.chaseOffsetX[chase.indexOf(enemyB)]
+        : playerX +
+            (world.meleeEngagement.preferredSide[engageIndexB] >= 0 ? 1 : -1) *
+                derived.engagement.meleeStandOffX;
+
+    expect(
+      world.transform.velX[tiA] * (targetAX - world.transform.posX[tiA]),
+      greaterThan(0.0),
+    );
+    expect(
+      world.transform.velX[tiB] * (targetBX - world.transform.posX[tiB]),
+      greaterThan(0.0),
+    );
   });
 
-  test('ground enemy melee spread is controlled by groundEnemyChaseOffsetMeleeX', () {
+  test('ground enemies occupy a stand-off slot when engaging the player', () {
     const seed = 4321;
     const playerX = 10.0;
     const playerY = 0.0;
@@ -223,11 +250,13 @@ void main() {
 
     {
       const baseTuning = GroundEnemyTuning(
-        groundEnemyStopDistanceX: 0.0,
-        groundEnemyMeleeRangeX: 2.0,
-        groundEnemyChaseOffsetMaxX: 18.0,
-        groundEnemyChaseOffsetMinAbsX: 6.0,
-        groundEnemyChaseOffsetMeleeX: 0.0,
+        navigation: GroundEnemyNavigationTuning(
+          chaseOffsetMaxX: 18.0,
+          chaseOffsetMinAbsX: 6.0,
+          chaseOffsetMeleeX: 0.0,
+        ),
+        locomotion: GroundEnemyLocomotionTuning(stopDistanceX: 0.0),
+        combat: GroundEnemyCombatTuning(meleeRangeX: 2.0),
       );
 
       final world = EcsWorld(seed: seed);
@@ -249,7 +278,14 @@ void main() {
       world.collision.grounded[world.collision.indexOf(enemy)] = true;
 
       final probe = SurfaceNavigatorProbe();
-      final system = EnemySystem(
+      final navigationSystem = EnemyNavigationSystem(surfaceNavigator: probe);
+      final engagementSystem = EnemyEngagementSystem(
+        groundEnemyTuning: GroundEnemyTuningDerived.from(
+          baseTuning,
+          tickHz: 60,
+        ),
+      );
+      final locomotionSystem = EnemyLocomotionSystem(
         unocoDemonTuning: UnocoDemonTuningDerived.from(
           const UnocoDemonTuning(),
           tickHz: 60,
@@ -258,21 +294,93 @@ void main() {
           baseTuning,
           tickHz: 60,
         ),
-        surfaceNavigator: probe,
-        enemyCatalog: const EnemyCatalog(),
-        spells: const SpellCatalog(),
-        projectiles: ProjectileCatalogDerived.from(
-          const ProjectileCatalog(),
-          tickHz: 60,
-        ),
       );
-      system.setSurfaceGraph(
+      navigationSystem.setSurfaceGraph(
         graph: graph,
         spatialIndex: spatialIndex,
         graphVersion: 1,
       );
+      locomotionSystem.setSurfaceGraph(graph: graph);
 
-      system.stepSteering(
+      navigationSystem.step(world, player: player);
+      engagementSystem.step(world, player: player);
+      locomotionSystem.step(
+        world,
+        player: player,
+        groundTopY: 0.0,
+        dtSeconds: dtSeconds,
+      );
+
+      expect(probe.targetXs.single, closeTo(playerX, 1e-9));
+      final ti = world.transform.indexOf(enemy);
+      expect(world.transform.velX[ti], lessThan(0.0));
+      final engageIndex = world.meleeEngagement.indexOf(enemy);
+      expect(
+        world.meleeEngagement.state[engageIndex],
+        MeleeEngagementState.engage,
+      );
+    }
+
+    {
+      const baseTuning = GroundEnemyTuning(
+        navigation: GroundEnemyNavigationTuning(
+          chaseOffsetMaxX: 18.0,
+          chaseOffsetMinAbsX: 6.0,
+          chaseOffsetMeleeX: 3.0,
+        ),
+        locomotion: GroundEnemyLocomotionTuning(stopDistanceX: 0.0),
+        combat: GroundEnemyCombatTuning(meleeRangeX: 2.0),
+      );
+
+      final world = EcsWorld(seed: seed);
+      final player = EntityFactory(world).createPlayer(
+        posX: playerX,
+        posY: playerY,
+        velX: 0.0,
+        velY: 0.0,
+        facing: Facing.right,
+        grounded: true,
+        body: const BodyDef(isKinematic: true, useGravity: false),
+        collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+        health: const HealthDef(hp: 100, hpMax: 100, regenPerSecond: 0),
+        mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond: 0),
+        stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
+      );
+
+      final enemy = spawnGroundEnemy(world, posX: playerX, posY: playerY);
+      world.collision.grounded[world.collision.indexOf(enemy)] = true;
+      final derived = GroundEnemyTuningDerived.from(baseTuning, tickHz: 60);
+      world.transform.posX[world.transform.indexOf(enemy)] =
+          playerX + derived.engagement.meleeStandOffX;
+
+      final probe = SurfaceNavigatorProbe();
+      final navigationSystem = EnemyNavigationSystem(surfaceNavigator: probe);
+      final engagementSystem = EnemyEngagementSystem(
+        groundEnemyTuning: GroundEnemyTuningDerived.from(
+          baseTuning,
+          tickHz: 60,
+        ),
+      );
+      final locomotionSystem = EnemyLocomotionSystem(
+        unocoDemonTuning: UnocoDemonTuningDerived.from(
+          const UnocoDemonTuning(),
+          tickHz: 60,
+        ),
+        groundEnemyTuning: GroundEnemyTuningDerived.from(
+          baseTuning,
+          tickHz: 60,
+        ),
+      );
+      navigationSystem.setSurfaceGraph(
+        graph: graph,
+        spatialIndex: spatialIndex,
+        graphVersion: 1,
+      );
+      locomotionSystem.setSurfaceGraph(graph: graph);
+
+      navigationSystem.step(world, player: player);
+      engagementSystem.step(world, player: player);
+      locomotionSystem.step(
         world,
         player: player,
         groundTopY: 0.0,
@@ -282,69 +390,11 @@ void main() {
       expect(probe.targetXs.single, closeTo(playerX, 1e-9));
       final ti = world.transform.indexOf(enemy);
       expect(world.transform.velX[ti], closeTo(0.0, 1e-9));
-    }
-
-    {
-      const baseTuning = GroundEnemyTuning(
-        groundEnemyStopDistanceX: 0.0,
-        groundEnemyMeleeRangeX: 2.0,
-        groundEnemyChaseOffsetMaxX: 18.0,
-        groundEnemyChaseOffsetMinAbsX: 6.0,
-        groundEnemyChaseOffsetMeleeX: 3.0,
+      final engageIndex = world.meleeEngagement.indexOf(enemy);
+      expect(
+        world.meleeEngagement.state[engageIndex],
+        MeleeEngagementState.engage,
       );
-
-      final world = EcsWorld(seed: seed);
-      final player = EntityFactory(world).createPlayer(
-        posX: playerX,
-        posY: playerY,
-        velX: 0.0,
-        velY: 0.0,
-        facing: Facing.right,
-        grounded: true,
-        body: const BodyDef(isKinematic: true, useGravity: false),
-        collider: const ColliderAabbDef(halfX: 8, halfY: 8),
-        health: const HealthDef(hp: 100, hpMax: 100, regenPerSecond: 0),
-        mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond: 0),
-        stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
-      );
-
-      final enemy = spawnGroundEnemy(world, posX: playerX, posY: playerY);
-      world.collision.grounded[world.collision.indexOf(enemy)] = true;
-
-      final probe = SurfaceNavigatorProbe();
-      final system = EnemySystem(
-        unocoDemonTuning: UnocoDemonTuningDerived.from(
-          const UnocoDemonTuning(),
-          tickHz: 60,
-        ),
-        groundEnemyTuning: GroundEnemyTuningDerived.from(
-          baseTuning,
-          tickHz: 60,
-        ),
-        surfaceNavigator: probe,
-        enemyCatalog: const EnemyCatalog(),
-        spells: const SpellCatalog(),
-        projectiles: ProjectileCatalogDerived.from(
-          const ProjectileCatalog(),
-          tickHz: 60,
-        ),
-      );
-      system.setSurfaceGraph(
-        graph: graph,
-        spatialIndex: spatialIndex,
-        graphVersion: 1,
-      );
-
-      system.stepSteering(
-        world,
-        player: player,
-        groundTopY: 0.0,
-        dtSeconds: dtSeconds,
-      );
-
-      expect(probe.targetXs.single, closeTo(playerX, 1e-9));
-      final ti = world.transform.indexOf(enemy);
-      expect(world.transform.velX[ti].abs(), greaterThan(0.0));
     }
   });
 
@@ -355,16 +405,20 @@ void main() {
     const dtSeconds = 1.0;
 
     const baseTuning = GroundEnemyTuning(
-      groundEnemySpeedX: 300.0,
-      groundEnemyStopDistanceX: 0.0,
-      groundEnemyAccelX: 600.0,
-      groundEnemyDecelX: 400.0,
-      groundEnemyMeleeRangeX: 2.0,
-      groundEnemyChaseOffsetMaxX: 18.0,
-      groundEnemyChaseOffsetMinAbsX: 6.0,
-      groundEnemyChaseOffsetMeleeX: 0.0,
-      groundEnemyChaseSpeedScaleMin: 0.92,
-      groundEnemyChaseSpeedScaleMax: 1.08,
+      navigation: GroundEnemyNavigationTuning(
+        chaseOffsetMaxX: 18.0,
+        chaseOffsetMinAbsX: 6.0,
+        chaseOffsetMeleeX: 0.0,
+        chaseSpeedScaleMin: 0.92,
+        chaseSpeedScaleMax: 1.08,
+      ),
+      locomotion: GroundEnemyLocomotionTuning(
+        speedX: 300.0,
+        stopDistanceX: 0.0,
+        accelX: 600.0,
+        decelX: 400.0,
+      ),
+      combat: GroundEnemyCombatTuning(meleeRangeX: 2.0),
     );
 
     final world = EcsWorld(seed: seed);
@@ -386,7 +440,14 @@ void main() {
     final enemyB = spawnGroundEnemy(world, posX: 0.0, posY: 0.0);
 
     final probe = SurfaceNavigatorProbe();
-    final system = EnemySystem(
+    final navigationSystem = EnemyNavigationSystem(surfaceNavigator: probe);
+    final engagementSystem = EnemyEngagementSystem(
+      groundEnemyTuning: GroundEnemyTuningDerived.from(
+        baseTuning,
+        tickHz: 60,
+      ),
+    );
+    final locomotionSystem = EnemyLocomotionSystem(
       unocoDemonTuning: UnocoDemonTuningDerived.from(
         const UnocoDemonTuning(),
         tickHz: 60,
@@ -395,25 +456,21 @@ void main() {
         baseTuning,
         tickHz: 60,
       ),
-      surfaceNavigator: probe,
-      enemyCatalog: const EnemyCatalog(),
-      spells: const SpellCatalog(),
-      projectiles: ProjectileCatalogDerived.from(
-        const ProjectileCatalog(),
-        tickHz: 60,
-      ),
     );
 
     final graph = _emptySurfaceGraph();
     final spatialIndex = _emptySpatialIndex();
     spatialIndex.rebuild(graph.surfaces);
-    system.setSurfaceGraph(
+    navigationSystem.setSurfaceGraph(
       graph: graph,
       spatialIndex: spatialIndex,
       graphVersion: 1,
     );
+    locomotionSystem.setSurfaceGraph(graph: graph);
 
-    system.stepSteering(
+    navigationSystem.step(world, player: player);
+    engagementSystem.step(world, player: player);
+    locomotionSystem.step(
       world,
       player: player,
       groundTopY: 0.0,
