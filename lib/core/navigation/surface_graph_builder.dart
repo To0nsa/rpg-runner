@@ -131,8 +131,8 @@ class SurfaceGraphBuilder {
         );
 
         // Nudge takeoff past ledge so agent actually walks off.
-        final offset = dropX <= dropMid ? -dropSampleOffset : dropSampleOffset;
-        final takeoffX = dropX + offset;
+        final commitDirX = dropX <= dropMid ? -1 : 1;
+        final takeoffX = dropX + (commitDirX * dropSampleOffset);
 
         final edge = SurfaceEdge(
           to: landingIndex,
@@ -143,6 +143,7 @@ class SurfaceGraphBuilder {
             landingSurface.xMin + jumpTemplate.profile.agentHalfWidth,
             landingSurface.xMax - jumpTemplate.profile.agentHalfWidth,
           ),
+          commitDirX: commitDirX,
           travelTicks: fallTicks,
           cost: fallTicks * jumpTemplate.profile.dtSeconds,
         );
@@ -208,11 +209,17 @@ class SurfaceGraphBuilder {
           final high = reachMax < landing.max ? reachMax : landing.max;
           if (low > high + standableEps) continue; // No overlap.
 
+          final landingX = (low + high) * 0.5; // Center of landing range.
+          final commitDirX = landingX > takeoffX + navGeomEps
+              ? 1
+              : (landingX < takeoffX - navGeomEps ? -1 : 0);
+
           final edge = SurfaceEdge(
             to: targetIndex,
             kind: SurfaceEdgeKind.jump,
             takeoffX: takeoffX,
-            landingX: (low + high) * 0.5, // Center of landing range.
+            landingX: landingX,
+            commitDirX: commitDirX,
             travelTicks: landingTick.tick,
             cost: landingTick.tick * jumpTemplate.profile.dtSeconds,
           );

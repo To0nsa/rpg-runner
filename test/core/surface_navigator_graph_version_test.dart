@@ -31,6 +31,7 @@ void main() {
           kind: SurfaceEdgeKind.jump,
           takeoffX: 90,
           landingX: 210,
+          commitDirX: 1,
           travelTicks: 30,
           cost: 0.5,
         ),

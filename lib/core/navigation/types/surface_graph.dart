@@ -18,9 +18,10 @@ class SurfaceEdge {
     required this.kind,
     required this.takeoffX,
     required this.landingX,
+    required this.commitDirX,
     required this.travelTicks,
     required this.cost,
-  });
+  }) : assert(commitDirX >= -1 && commitDirX <= 1);
 
   /// Index of the destination surface in [SurfaceGraph.surfaces].
   final int to;
@@ -33,6 +34,17 @@ class SurfaceEdge {
   
   /// World X coordinate where the entity lands on the destination surface.
   final double landingX;
+
+  /// Movement commit direction while approaching/executing this edge.
+  ///
+  /// When non-zero (-1 or +1), the locomotion controller should keep moving in
+  /// this direction when approaching the takeoff point and (for drops) while
+  /// walking past the ledge to ensure the entity actually falls.
+  ///
+  /// **Design**:
+  /// - For [SurfaceEdgeKind.drop], this is derived from which ledge is used.
+  /// - For [SurfaceEdgeKind.jump], this is derived from `landingX - takeoffX`.
+  final int commitDirX;
   
   /// Estimated travel time in simulation ticks.
   final int travelTicks;
@@ -86,4 +98,3 @@ class SurfaceGraph {
     }
   }
 }
-
