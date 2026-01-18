@@ -184,6 +184,21 @@ class SurfaceGraphBuilder {
           if (targetIndex == i) continue; // Skip self.
           final target = surfaces[targetIndex];
 
+          // Safety net: avoid generating "micro-hop" jump edges between surfaces
+          // that are effectively coplanar and contiguous. These should have
+          // been merged by the extractor; emitting a jump here can cause AI to
+          // do a weird hop on top of the same obstacle.
+          final dy = target.yTop - from.yTop;
+          final coplanar = dy.abs() <= navSpatialEps;
+          if (coplanar) {
+            final touchesOrOverlaps =
+                target.xMin <= from.xMax + navSpatialEps &&
+                target.xMax >= from.xMin - navSpatialEps;
+            if (touchesOrOverlaps) {
+              continue;
+            }
+          }
+
           final landing = _standableRange(
             target,
             jumpTemplate.profile.agentHalfWidth,
@@ -192,7 +207,6 @@ class SurfaceGraphBuilder {
           if (landing == null) continue; // Target too narrow.
 
           // Check if jump arc can reach target surface.
-          final dy = target.yTop - from.yTop;
           final dxMin = landing.min - takeoffX;
           final dxMax = landing.max - takeoffX;
           final landingTick = jumpTemplate.findFirstLanding(

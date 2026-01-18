@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/collision/static_world_geometry.dart';
 import 'package:rpg_runner/core/ecs/spatial/grid_index_2d.dart';
 import 'package:rpg_runner/core/navigation/utils/jump_template.dart';
+import 'package:rpg_runner/core/navigation/surface_extractor.dart';
 import 'package:rpg_runner/core/navigation/types/surface_graph.dart';
 import 'package:rpg_runner/core/navigation/surface_graph_builder.dart';
 
@@ -273,5 +274,65 @@ void main() {
     }
 
     expect(hasJump, isTrue);
+  });
+
+  test('does not emit jump edges for coplanar, near-contiguous surfaces', () {
+    const topY = 200.0;
+    const geometry = StaticWorldGeometry(
+      groundPlane: null,
+      solids: <StaticSolid>[
+        StaticSolid(
+          minX: 0,
+          minY: topY,
+          maxX: 100,
+          maxY: topY + 16.0,
+          sides: StaticSolid.sideTop,
+          oneWayTop: true,
+          chunkIndex: 0,
+          localSolidIndex: 0,
+        ),
+        // Tiny seam: should not require a "jump hop" in navigation.
+        StaticSolid(
+          minX: 100.5,
+          minY: topY,
+          maxX: 200.5,
+          maxY: topY + 16.0,
+          sides: StaticSolid.sideTop,
+          oneWayTop: true,
+          chunkIndex: 0,
+          localSolidIndex: 1,
+        ),
+      ],
+    );
+
+    // Force the surfaces to remain split, to exercise the graph-builder safety
+    // net (in-game we default to a larger merge tolerance).
+    final builder = SurfaceGraphBuilder(
+      surfaceGrid: GridIndex2D(cellSize: 64),
+      extractor: SurfaceExtractor(mergeEps: 1e-6),
+    );
+    final graph = builder.build(geometry: geometry, jumpTemplate: _template()).graph;
+
+    expect(graph.surfaces, hasLength(2));
+    final leftIndex = _indexForSurface(graph, yTop: topY, xMin: 0, xMax: 100);
+    final rightIndex = _indexForSurface(
+      graph,
+      yTop: topY,
+      xMin: 100.5,
+      xMax: 200.5,
+    );
+
+    var hasMicroJump = false;
+    final start = graph.edgeOffsets[leftIndex];
+    final end = graph.edgeOffsets[leftIndex + 1];
+    for (var i = start; i < end; i += 1) {
+      final edge = graph.edges[i];
+      if (edge.kind == SurfaceEdgeKind.jump && edge.to == rightIndex) {
+        hasMicroJump = true;
+        break;
+      }
+    }
+
+    expect(hasMicroJump, isFalse);
   });
 }

@@ -44,6 +44,46 @@ void main() {
     expect(unpackLocalSolidIndex(s.id), 0);
   });
 
+  test('default extractor merges coplanar top segments across tiny seams', () {
+    const geometry = StaticWorldGeometry(
+      groundPlane: null,
+      solids: <StaticSolid>[
+        StaticSolid(
+          minX: 0,
+          minY: 100,
+          maxX: 100,
+          maxY: 116,
+          sides: StaticSolid.sideTop,
+          oneWayTop: true,
+          chunkIndex: 0,
+          localSolidIndex: 0,
+        ),
+        // Same height, tiny seam in X. This should be treated as contiguous in
+        // a pixel world (avoids "micro hop" nav artifacts on obstacle tops).
+        StaticSolid(
+          minX: 100.5,
+          minY: 100,
+          maxX: 200.5,
+          maxY: 116,
+          sides: StaticSolid.sideTop,
+          oneWayTop: true,
+          chunkIndex: 0,
+          localSolidIndex: 1,
+        ),
+      ],
+    );
+
+    final surfaces = SurfaceExtractor().extract(geometry);
+
+    expect(surfaces, hasLength(1));
+    final s = surfaces.single;
+    expect(s.xMin, closeTo(0, 1e-9));
+    expect(s.xMax, closeTo(200.5, 1e-9));
+    expect(s.yTop, closeTo(100, 1e-9));
+    expect(unpackChunkIndex(s.id), 0);
+    expect(unpackLocalSolidIndex(s.id), 0);
+  });
+
   test('ground plane splits around obstacle walls', () {
     const groundTopY = 200.0;
     const geometry = StaticWorldGeometry(

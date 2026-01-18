@@ -16,7 +16,9 @@ import 'types/walk_surface.dart';
 /// indices. This enables stable references across graph rebuilds.
 class SurfaceExtractor {
   SurfaceExtractor({
-    this.mergeEps = navGeomEps,
+    // Use a pixel-ish tolerance by default to avoid fragmenting surfaces due to
+    // tiny seams (chunk boundaries, floating error, inclusive/exclusive edges).
+    this.mergeEps = navSpatialEps,
     this.groundPadding = 1024.0,
   });
 
