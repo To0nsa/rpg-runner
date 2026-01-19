@@ -298,12 +298,22 @@ class RunnerFlameGame extends FlameGame {
       alpha: alpha,
       cameraCenter: _cameraCenterScratch,
     );
-    _syncHitboxes(
-      currSnapshot.entities,
-      prevById: _prevEntitiesById,
-      alpha: alpha,
-      cameraCenter: _cameraCenterScratch,
-    );
+    final drawHitboxes =
+        RenderDebugFlags.canUseRenderDebug &&
+        RenderDebugFlags.drawActorHitboxes;
+    if (drawHitboxes) {
+      _syncHitboxes(
+        currSnapshot.entities,
+        prevById: _prevEntitiesById,
+        alpha: alpha,
+        cameraCenter: _cameraCenterScratch,
+      );
+    } else if (_hitboxes.isNotEmpty) {
+      for (final view in _hitboxes.values) {
+        view.removeFromParent();
+      }
+      _hitboxes.clear();
+    }
     syncDebugAabbOverlays(
       entities: currSnapshot.entities,
       enabled:
