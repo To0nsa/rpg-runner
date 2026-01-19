@@ -7,6 +7,7 @@ import 'package:flutter/widgets.dart';
 import '../../../core/snapshots/entity_render_snapshot.dart';
 import '../../../core/snapshots/enums.dart';
 import 'sprite_anim_set.dart';
+import '../../util/math_util.dart' as math;
 
 typedef AnimKeyFallbackResolver = AnimKey Function(AnimKey desired);
 
@@ -49,7 +50,10 @@ class DeterministicAnimViewComponent
     if (pos != null) {
       position.setFrom(pos);
     } else {
-      position.setValues(e.pos.x.roundToDouble(), e.pos.y.roundToDouble());
+      position.setValues(
+        math.roundToPixels(e.pos.x),
+        math.roundToPixels(e.pos.y),
+      );
     }
 
     var next = e.anim;

@@ -113,7 +113,7 @@ class PixelParallaxBackdropComponent extends Component
 
       // Optionally snap to whole pixels for crisp pixel-art rendering.
       final scroll = snapScrollToPixels
-          ? _scroll[i].roundToDouble()
+          ? roundToPixels(_scroll[i])
           : _scroll[i];
       final offsetPx = -scroll;
       final startX = positiveModDouble(offsetPx, imageW.toDouble());

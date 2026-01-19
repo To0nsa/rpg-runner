@@ -690,11 +690,7 @@ class _CameraSpaceSnappedSpriteAnimationComponent
 
   @override
   void update(double dt) {
-    final cameraOffset = game.camera.viewfinder.transform.offset;
-    position.setValues(
-      math.snapWorldToPixelsInCameraSpace1d(worldPosX, -cameraOffset.x),
-      math.snapWorldToPixelsInCameraSpace1d(worldPosY, -cameraOffset.y),
-    );
+    snapToCamera(game.camera.viewfinder.position);
     super.update(dt);
   }
 }

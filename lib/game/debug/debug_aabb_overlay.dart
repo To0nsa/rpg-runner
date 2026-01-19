@@ -55,7 +55,10 @@ void syncDebugAabbOverlays({
     final worldX = math.lerpDouble(prevPos.x, e.pos.x, alpha);
     final worldY = math.lerpDouble(prevPos.y, e.pos.y, alpha);
     if (cameraCenter == null) {
-      view.position.setValues(worldX.roundToDouble(), worldY.roundToDouble());
+      view.position.setValues(
+        math.roundToPixels(worldX),
+        math.roundToPixels(worldY),
+      );
     } else {
       view.position.setValues(
         math.snapWorldToPixelsInCameraSpace1d(worldX, cameraCenter.x),

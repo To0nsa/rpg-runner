@@ -101,7 +101,7 @@ class TiledGroundBandComponent extends Component
     final rightWorld = camX + halfWidth;
 
     double worldToScreenX(double worldX) =>
-        (worldX - camX).roundToDouble() + halfWidth;
+        roundToPixels(worldX - camX) + halfWidth;
 
     final startTile = floorDivInt(leftWorld.floor(), tileW) - 1;
     final endTile = floorDivInt(rightWorld.ceil(), tileW) + 1;

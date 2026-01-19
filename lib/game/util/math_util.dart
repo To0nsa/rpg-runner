@@ -35,12 +35,14 @@ double lerpDouble(double a, double b, double t) => a + (b - a) * t;
 Vec2 lerpVec2(Vec2 a, Vec2 b, double t) =>
     Vec2(lerpDouble(a.x, b.x, t), lerpDouble(a.y, b.y, t));
 
+double roundToPixels(double value) => value.roundToDouble();
+
 /// Snaps a world coordinate to integer pixels in camera space.
 ///
 /// Keeps [camera] fractional and rounds only the screen-space delta
 /// (`world - camera`) to the nearest pixel.
 double snapWorldToPixelsInCameraSpace1d(double world, double camera) =>
-    camera + (world - camera).roundToDouble();
+    camera + roundToPixels(world - camera);
 
 /// Convenience 2D version of [snapWorldToPixelsInCameraSpace1d].
 Vector2 snapWorldToPixelsInCameraSpace(Vec2 world, Vector2 camera) => Vector2(
