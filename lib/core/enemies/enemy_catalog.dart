@@ -11,6 +11,7 @@ import '../anim/anim_resolver.dart';
 import '../contracts/render_anim_set_definition.dart';
 import '../spells/spell_id.dart';
 import '../snapshots/enums.dart';
+import '../util/vec2.dart';
 import 'enemy_id.dart';
 
 // -----------------------------------------------------------------------------
@@ -160,6 +161,7 @@ const RenderAnimSetDefinition _grojibRenderAnim = RenderAnimSetDefinition(
   frameHeight: _grojibAnimFrameHeight,
   sourcesByKey: _grojibAnimSourcesByKey,
   rowByKey: _grojibAnimRowByKey,
+  anchorInFramePx: Vec2(77, _grojibAnimFrameHeight * 0.5),
   frameCountsByKey: _grojibAnimFrameCountsByKey,
   stepTimeSecondsByKey: _grojibAnimStepTimeSecondsByKey,
 );

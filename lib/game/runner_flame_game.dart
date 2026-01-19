@@ -439,6 +439,7 @@ class RunnerFlameGame extends FlameGame {
         size: entry.animSet.frameSize.clone(),
         worldPosX: event.pos.x,
         worldPosY: event.pos.y,
+        anchor: entry.animSet.anchor,
         paint: Paint()..filterQuality = FilterQuality.none,
         removeOnFinish: true,
       )..priority = _priorityEnemies;
@@ -674,12 +675,14 @@ class _CameraSpaceSnappedSpriteAnimationComponent
     required Vector2 super.size,
     required this.worldPosX,
     required this.worldPosY,
+    this.anchor = Anchor.center,
     super.paint,
     super.removeOnFinish,
-  }) : super(anchor: Anchor.center);
+  }) : super(anchor: anchor);
 
   final double worldPosX;
   final double worldPosY;
+  final Anchor anchor;
 
   void snapToCamera(Vector2 cameraCenter) {
     position.setValues(

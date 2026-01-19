@@ -29,7 +29,7 @@ class DeterministicAnimViewComponent
          current: initial,
          size: renderSize ?? Vector2(animSet.frameSize.x, animSet.frameSize.y),
          scale: renderScale?.clone() ?? Vector2.all(1.0),
-         anchor: Anchor.center,
+         anchor: animSet.anchor,
          paint: Paint()..filterQuality = FilterQuality.none,
        ) {
     // We drive animation frames deterministically from `EntityRenderSnapshot.animFrame`.

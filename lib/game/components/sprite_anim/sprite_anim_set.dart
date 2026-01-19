@@ -13,6 +13,7 @@ class SpriteAnimSet {
     required this.stepTimeSecondsByKey,
     required this.oneShotKeys,
     required this.frameSize,
+    this.anchor = Anchor.center,
   });
 
   final Map<AnimKey, SpriteAnimation> animations;
@@ -21,6 +22,11 @@ class SpriteAnimSet {
 
   /// Source frame size inside each horizontal strip image.
   final Vector2 frameSize;
+
+  /// Anchor used by view components when rendering this animation set.
+  ///
+  /// Defaults to `Anchor.center`.
+  final Anchor anchor;
 
   final Map<int, Map<AnimKey, int>> _ticksPerFrameCache =
       <int, Map<AnimKey, int>>{};

@@ -54,6 +54,8 @@ frame dimensions, step times, and sprite paths defined in `enemy_catalog.dart`.
 `RenderAnimSetDefinition` supports both single-row strips and multi-row sheets:
 multiple `AnimKey`s can reuse one sheet path and use `rowByKey` (0-based) to
 select the row per key (defaults to row 0 for strip compatibility).
+When authored art needs an offset pivot, `anchorInFramePx` can be set to define
+the anchor point within a frame (defaults to `Anchor.center` when omitted).
 Hit windows are authored per enemy (`EnemyArchetype.hitAnimSeconds`).
 
 **Animation pipeline** (AnimSystem → AnimStateStore → SnapshotBuilder):

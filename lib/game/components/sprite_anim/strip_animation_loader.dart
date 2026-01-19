@@ -8,6 +8,7 @@ import 'package:flame/components.dart';
 
 import '../../../core/contracts/render_anim_set_definition.dart';
 import '../../../core/snapshots/enums.dart';
+import '../../../core/util/vec2.dart';
 import 'sprite_anim_set.dart';
 
 Future<SpriteAnimSet> loadStripAnimations(
@@ -16,11 +17,27 @@ Future<SpriteAnimSet> loadStripAnimations(
   required int frameHeight,
   required Map<AnimKey, String> sourcesByKey,
   Map<AnimKey, int> rowByKey = const <AnimKey, int>{},
+  Vec2? anchorInFramePx,
   required Map<AnimKey, int> frameCountsByKey,
   required Map<AnimKey, double> stepTimeSecondsByKey,
   required Set<AnimKey> oneShotKeys,
 }) async {
   final frameSize = Vector2(frameWidth.toDouble(), frameHeight.toDouble());
+
+  final anchor = switch (anchorInFramePx) {
+    null => Anchor.center,
+    final a => () {
+      assert(
+        a.x >= 0 && a.x <= frameWidth,
+        'anchorInFramePx.x must be in [0, $frameWidth] (got ${a.x}).',
+      );
+      assert(
+        a.y >= 0 && a.y <= frameHeight,
+        'anchorInFramePx.y must be in [0, $frameHeight] (got ${a.y}).',
+      );
+      return Anchor(a.x / frameWidth, a.y / frameHeight);
+    }(),
+  };
 
   final keysByPath = <String, List<AnimKey>>{};
   for (final entry in sourcesByKey.entries) {
@@ -69,6 +86,7 @@ Future<SpriteAnimSet> loadStripAnimations(
     stepTimeSecondsByKey: stepTimeSecondsByKey,
     oneShotKeys: oneShotKeys,
     frameSize: frameSize,
+    anchor: anchor,
   );
 }
 
@@ -83,6 +101,7 @@ Future<SpriteAnimSet> loadAnimSetFromDefinition(
     frameHeight: renderAnim.frameHeight,
     sourcesByKey: renderAnim.sourcesByKey,
     rowByKey: renderAnim.rowByKey,
+    anchorInFramePx: renderAnim.anchorInFramePx,
     frameCountsByKey: renderAnim.frameCountsByKey,
     stepTimeSecondsByKey: renderAnim.stepTimeSecondsByKey,
     oneShotKeys: oneShotKeys,

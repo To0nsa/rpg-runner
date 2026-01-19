@@ -2,6 +2,7 @@
 library;
 
 import '../snapshots/enums.dart';
+import '../util/vec2.dart';
 
 /// Data-driven animation strip definition (frame size, paths, timing).
 class RenderAnimSetDefinition {
@@ -10,6 +11,7 @@ class RenderAnimSetDefinition {
     required this.frameHeight,
     required this.sourcesByKey,
     this.rowByKey = const <AnimKey, int>{},
+    this.anchorInFramePx,
     required this.frameCountsByKey,
     required this.stepTimeSecondsByKey,
   });
@@ -29,6 +31,15 @@ class RenderAnimSetDefinition {
   ///
   /// If a key is missing, render assumes row 0 (strip compatibility).
   final Map<AnimKey, int> rowByKey;
+
+  /// Optional anchor/pivot location inside a single source frame (in pixels).
+  ///
+  /// When null, render uses `Anchor.center`.
+  ///
+  /// This is useful when the authored art is not centered on the logical
+  /// collider (e.g. enemies with long weapons/tails). The renderer treats the
+  /// Core snapshot position as the world-space position of this anchor.
+  final Vec2? anchorInFramePx;
 
   final Map<AnimKey, int> frameCountsByKey;
   final Map<AnimKey, double> stepTimeSecondsByKey;
