@@ -16,6 +16,8 @@ void syncDebugAabbOverlays({
   required Paint paint,
   bool Function(EntityRenderSnapshot e)? include,
   Map<int, EntityRenderSnapshot>? prevById,
+  double Function(EntityRenderSnapshot e)? offsetXFor,
+  double Function(EntityRenderSnapshot e)? offsetYFor,
   double alpha = 1.0,
   Vector2? cameraCenter,
 }) {
@@ -52,8 +54,20 @@ void syncDebugAabbOverlays({
 
     final prev = prevById == null ? null : prevById[e.id];
     final prevPos = prev?.pos ?? e.pos;
-    final worldX = math.lerpDouble(prevPos.x, e.pos.x, alpha);
-    final worldY = math.lerpDouble(prevPos.y, e.pos.y, alpha);
+    final prevOffsetX = offsetXFor?.call(prev ?? e) ?? 0.0;
+    final prevOffsetY = offsetYFor?.call(prev ?? e) ?? 0.0;
+    final offsetX = offsetXFor?.call(e) ?? 0.0;
+    final offsetY = offsetYFor?.call(e) ?? 0.0;
+    final worldX = math.lerpDouble(
+      prevPos.x + prevOffsetX,
+      e.pos.x + offsetX,
+      alpha,
+    );
+    final worldY = math.lerpDouble(
+      prevPos.y + prevOffsetY,
+      e.pos.y + offsetY,
+      alpha,
+    );
     if (cameraCenter == null) {
       view.position.setValues(
         math.roundToPixels(worldX),

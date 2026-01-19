@@ -91,7 +91,8 @@ class RunnerFlameGame extends FlameGame {
   final Map<int, RectangleComponent> _projectiles = <int, RectangleComponent>{};
   final Map<int, RectangleComponent> _collectibles =
       <int, RectangleComponent>{};
-  final Map<int, PositionComponent> _enemies = <int, PositionComponent>{};
+  final Map<int, DeterministicAnimViewComponent> _enemies =
+      <int, DeterministicAnimViewComponent>{};
   final Map<int, RectangleComponent> _hitboxes = <int, RectangleComponent>{};
   final Map<int, RectangleComponent> _actorHitboxes =
       <int, RectangleComponent>{};
@@ -103,10 +104,6 @@ class RunnerFlameGame extends FlameGame {
     PickupVariant.restorationMana: Paint()..color = const Color(0xFF3B82F6),
     PickupVariant.restorationStamina: Paint()..color = const Color(0xFF22C55E),
   };
-  final List<Paint> _enemyPaints = <Paint>[
-    Paint()..color = const Color(0xFFA855F7), // purple
-    Paint()..color = const Color(0xFFF97316), // orange
-  ];
   final Paint _hitboxPaint = Paint()..color = const Color(0x66EF4444);
   final Paint _actorHitboxPaint = Paint()
     ..color = const Color(0xFF22C55E)
@@ -307,6 +304,30 @@ class RunnerFlameGame extends FlameGame {
       paint: _actorHitboxPaint,
       include: (e) => e.kind == EntityKind.player || e.kind == EntityKind.enemy,
       prevById: _prevEntitiesById,
+      offsetXFor: (e) {
+        switch (e.kind) {
+          case EntityKind.player:
+            return playerCharacter.catalog.colliderOffsetX;
+          case EntityKind.enemy:
+            final enemyId = e.enemyId;
+            if (enemyId == null) return 0.0;
+            return controller.enemyCatalog.get(enemyId).collider.offsetX;
+          default:
+            return 0.0;
+        }
+      },
+      offsetYFor: (e) {
+        switch (e.kind) {
+          case EntityKind.player:
+            return playerCharacter.catalog.colliderOffsetY;
+          case EntityKind.enemy:
+            final enemyId = e.enemyId;
+            if (enemyId == null) return 0.0;
+            return controller.enemyCatalog.get(enemyId).collider.offsetY;
+          default:
+            return 0.0;
+        }
+      },
       alpha: alpha,
       cameraCenter: _cameraCenterScratch,
     );
@@ -342,8 +363,8 @@ class RunnerFlameGame extends FlameGame {
 
   /// Synchronizes enemy view components with the snapshot.
   ///
-  /// Creates circle components for new enemies, updates position/rotation for
-  /// existing ones, and removes components for despawned enemies.
+  /// Creates view components for new enemies, updates existing ones, and
+  /// removes components for despawned enemies.
   void _syncEnemies(
     List<EntityRenderSnapshot> entities, {
     required Map<int, EntityRenderSnapshot> prevById,
@@ -354,28 +375,21 @@ class RunnerFlameGame extends FlameGame {
 
     for (final e in entities) {
       if (e.kind != EntityKind.enemy) continue;
-      seen.add(e.id);
 
-      var view = _enemies[e.id];
       final entry = e.enemyId == null
           ? null
           : _enemyRenderRegistry.entryFor(e.enemyId!);
+      if (entry == null) {
+        _enemies.remove(e.id)?.removeFromParent();
+        continue;
+      }
+
+      seen.add(e.id);
+
+      var view = _enemies[e.id];
       if (view == null) {
-        if (entry != null) {
-          view = entry.viewFactory(entry.animSet, entry.renderScale);
-        } else {
-          final size = e.size;
-          final radius =
-              ((size != null) ? (size.x < size.y ? size.x : size.y) : 16.0) *
-              0.5;
-          final paint = _enemyPaints[e.id % _enemyPaints.length];
-          view = CircleComponent(
-            radius: radius,
-            anchor: Anchor.center,
-            paint: paint,
-          );
-        }
-        view.priority = _priorityEnemies;
+        view = entry.viewFactory(entry.animSet, entry.renderScale)
+          ..priority = _priorityEnemies;
         _enemies[e.id] = view;
         world.add(view);
       }
@@ -392,20 +406,8 @@ class RunnerFlameGame extends FlameGame {
         cameraCenter.y,
       );
 
-      if (view is DeterministicAnimViewComponent) {
-        _snapScratch.setValues(snappedX, snappedY);
-        view.applySnapshot(e, tickHz: controller.tickHz, pos: _snapScratch);
-      } else if (view is CircleComponent) {
-        final size = e.size;
-        if (size != null) {
-          view.radius = (size.x < size.y ? size.x : size.y) * 0.5;
-        }
-        view.position.setValues(snappedX, snappedY);
-        view.angle = e.rotationRad;
-      } else {
-        view.position.setValues(snappedX, snappedY);
-        view.angle = e.rotationRad;
-      }
+      _snapScratch.setValues(snappedX, snappedY);
+      view.applySnapshot(e, tickHz: controller.tickHz, pos: _snapScratch);
     }
 
     if (_enemies.isEmpty) return;

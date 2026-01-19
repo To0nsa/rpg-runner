@@ -284,7 +284,7 @@ class EnemyCatalog {
             gravityScale: 1.0,
             sideMask: BodyDef.sideLeft | BodyDef.sideRight,
           ),
-          collider: ColliderAabbDef(halfX: 12.0, halfY: 12.0),
+          collider: ColliderAabbDef(halfX: 25.0, halfY: 25.0, offsetX: 0.0, offsetY: 20.0),
           health: HealthDef(hp: 20.0, hpMax: 20.0, regenPerSecond: 0.5),
           mana: ManaDef(mana: 0.0, manaMax: 0.0, regenPerSecond: 0.0),
           stamina: StaminaDef(

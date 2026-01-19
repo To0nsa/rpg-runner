@@ -107,14 +107,14 @@ class GroundEnemyLocomotionTuning {
 /// Combat tuning (melee timing + damage).
 class GroundEnemyCombatTuning {
   const GroundEnemyCombatTuning({
-    this.meleeRangeX = 26.0,
+    this.meleeRangeX = 52.0,
     this.meleeCooldownSeconds = 1.0,
     this.meleeActiveSeconds = 0.10,
     this.meleeAnimSeconds = 0.60,
     this.meleeWindupSeconds = 0.18,
     this.meleeDamage = 5.0,
-    this.meleeHitboxSizeX = 28.0,
-    this.meleeHitboxSizeY = 16.0,
+    this.meleeHitboxSizeX = 56.0,
+    this.meleeHitboxSizeY = 32.0,
   });
 
   /// Horizontal range to trigger melee attack (world units).

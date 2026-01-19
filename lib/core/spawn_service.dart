@@ -242,7 +242,7 @@ class SpawnService {
     return _entityFactory.createEnemy(
       enemyId: EnemyId.groundEnemy,
       posX: spawnX,
-      posY: groundTopY - archetype.collider.halfY,
+      posY: groundTopY - (archetype.collider.offsetY + archetype.collider.halfY),
       velX: 0.0,
       velY: 0.0,
       facing: Facing.left,
