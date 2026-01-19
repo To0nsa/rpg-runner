@@ -73,80 +73,98 @@ const AnimProfile _unocoAnimProfile = AnimProfile(
 );
 
 // -----------------------------------------------------------------------------
-// Werewolf (ground enemy) render animation strip definitions (authoring-time)
+// grojib (ground enemy) render animation sheet definitions (authoring-time)
 // -----------------------------------------------------------------------------
 
-const int _werewolfAnimFrameWidth = 100;
-const int _werewolfAnimFrameHeight = 64;
+const int _grojibAnimFrameWidth = 108;
+const int _grojibAnimFrameHeight = 59;
 
-const int _werewolfAnimIdleFrames = 4;
-const double _werewolfAnimIdleStepSeconds = 0.14;
+const int _grojibAnimIdleFrames = 8;
+const double _grojibAnimIdleStepSeconds = 0.14;
 
-const int _werewolfAnimMoveFrames = 7;
-const double _werewolfAnimMoveStepSeconds = 0.08;
+const int _grojibAnimMoveFrames = 8;
+const double _grojibAnimMoveStepSeconds = 0.08;
 
-const int _werewolfAnimWalkFrames = _werewolfAnimMoveFrames;
-const double _werewolfAnimWalkStepSeconds = _werewolfAnimMoveStepSeconds;
+const int _grojibAnimWalkFrames = _grojibAnimMoveFrames;
+const double _grojibAnimWalkStepSeconds = _grojibAnimMoveStepSeconds;
 
-const int _werewolfAnimHitFrames = 4;
-const double _werewolfAnimHitStepSeconds = 0.10;
+const int _grojibAnimHitFrames = 3;
+const double _grojibAnimHitStepSeconds = 0.10;
 
-const int _werewolfAnimDeathFrames = 6;
-const double _werewolfAnimDeathStepSeconds = 0.12;
+const int _grojibAnimDeathFrames = 12;
+const double _grojibAnimDeathStepSeconds = 0.12;
 
-const int _werewolfAnimAttackFrames = 6;
-const double _werewolfAnimAttackStepSeconds = 0.06;
+// The authored sheet has 20 columns on the attack row:
+// - frames 1..8  = Attack
+// - frames 9..20 = Attack2
+// Core only exposes AnimKey.attack, so we treat the full row as one animation.
+const int _grojibAnimAttackFrames = 8;
+const double _grojibAnimAttackStepSeconds = 0.06;
 
-const int _werewolfAnimJumpFrames = 6;
-const double _werewolfAnimJumpStepSeconds = 0.10;
+const int _grojibAnimJumpFrames = 3;
+const double _grojibAnimJumpStepSeconds = 0.10;
 
-const int _werewolfAnimFallFrames = 3;
-const double _werewolfAnimFallStepSeconds = 0.10;
-const double _werewolfHitAnimSeconds =
-    _werewolfAnimHitFrames * _werewolfAnimHitStepSeconds;
+const int _grojibAnimFallFrames = 3;
+const double _grojibAnimFallStepSeconds = 0.10;
+const double _grojibHitAnimSeconds =
+    _grojibAnimHitFrames * _grojibAnimHitStepSeconds;
 
-const Map<AnimKey, int> _werewolfAnimFrameCountsByKey = <AnimKey, int>{
-  AnimKey.idle: _werewolfAnimIdleFrames,
-  AnimKey.run: _werewolfAnimMoveFrames,
-  AnimKey.walk: _werewolfAnimWalkFrames,
-  AnimKey.attack: _werewolfAnimAttackFrames,
-  AnimKey.hit: _werewolfAnimHitFrames,
-  AnimKey.death: _werewolfAnimDeathFrames,
-  AnimKey.jump: _werewolfAnimJumpFrames,
-  AnimKey.fall: _werewolfAnimFallFrames,
+const Map<AnimKey, int> _grojibAnimFrameCountsByKey = <AnimKey, int>{
+  AnimKey.idle: _grojibAnimIdleFrames,
+  AnimKey.run: _grojibAnimMoveFrames,
+  AnimKey.walk: _grojibAnimWalkFrames,
+  AnimKey.attack: _grojibAnimAttackFrames,
+  AnimKey.hit: _grojibAnimHitFrames,
+  AnimKey.death: _grojibAnimDeathFrames,
+  AnimKey.jump: _grojibAnimJumpFrames,
+  AnimKey.fall: _grojibAnimFallFrames,
 };
 
-const Map<AnimKey, double> _werewolfAnimStepTimeSecondsByKey = <AnimKey, double>{
-  AnimKey.idle: _werewolfAnimIdleStepSeconds,
-  AnimKey.run: _werewolfAnimMoveStepSeconds,
-  AnimKey.walk: _werewolfAnimWalkStepSeconds,
-  AnimKey.attack: _werewolfAnimAttackStepSeconds,
-  AnimKey.hit: _werewolfAnimHitStepSeconds,
-  AnimKey.death: _werewolfAnimDeathStepSeconds,
-  AnimKey.jump: _werewolfAnimJumpStepSeconds,
-  AnimKey.fall: _werewolfAnimFallStepSeconds,
+const Map<AnimKey, double> _grojibAnimStepTimeSecondsByKey = <AnimKey, double>{
+  AnimKey.idle: _grojibAnimIdleStepSeconds,
+  AnimKey.run: _grojibAnimMoveStepSeconds,
+  AnimKey.walk: _grojibAnimWalkStepSeconds,
+  AnimKey.attack: _grojibAnimAttackStepSeconds,
+  AnimKey.hit: _grojibAnimHitStepSeconds,
+  AnimKey.death: _grojibAnimDeathStepSeconds,
+  AnimKey.jump: _grojibAnimJumpStepSeconds,
+  AnimKey.fall: _grojibAnimFallStepSeconds,
 };
 
-const Map<AnimKey, String> _werewolfAnimSourcesByKey = <AnimKey, String>{
-  AnimKey.idle: 'entities/enemies/werewolf/idle.png',
-  AnimKey.run: 'entities/enemies/werewolf/run.png',
-  AnimKey.walk: 'entities/enemies/werewolf/walk.png',
-  AnimKey.attack: 'entities/enemies/werewolf/attack.png',
-  AnimKey.hit: 'entities/enemies/werewolf/hit.png',
-  AnimKey.death: 'entities/enemies/werewolf/death.png',
-  AnimKey.jump: 'entities/enemies/werewolf/jump.png',
-  AnimKey.fall: 'entities/enemies/werewolf/fall.png',
+const String _grojibAnimSpriteSheetPath = 'entities/enemies/grojib/grojib.png';
+
+const Map<AnimKey, String> _grojibAnimSourcesByKey = <AnimKey, String>{
+  AnimKey.idle: _grojibAnimSpriteSheetPath,
+  AnimKey.run: _grojibAnimSpriteSheetPath,
+  AnimKey.walk: _grojibAnimSpriteSheetPath,
+  AnimKey.attack: _grojibAnimSpriteSheetPath,
+  AnimKey.hit: _grojibAnimSpriteSheetPath,
+  AnimKey.death: _grojibAnimSpriteSheetPath,
+  AnimKey.jump: _grojibAnimSpriteSheetPath,
+  AnimKey.fall: _grojibAnimSpriteSheetPath,
 };
 
-const RenderAnimSetDefinition _werewolfRenderAnim = RenderAnimSetDefinition(
-  frameWidth: _werewolfAnimFrameWidth,
-  frameHeight: _werewolfAnimFrameHeight,
-  sourcesByKey: _werewolfAnimSourcesByKey,
-  frameCountsByKey: _werewolfAnimFrameCountsByKey,
-  stepTimeSecondsByKey: _werewolfAnimStepTimeSecondsByKey,
+const Map<AnimKey, int> _grojibAnimRowByKey = <AnimKey, int>{
+  AnimKey.idle: 0,
+  AnimKey.run: 1,
+  AnimKey.walk: 1,
+  AnimKey.attack: 2,
+  AnimKey.hit: 3,
+  AnimKey.death: 4,
+  AnimKey.jump: 5,
+  AnimKey.fall: 7,
+};
+
+const RenderAnimSetDefinition _grojibRenderAnim = RenderAnimSetDefinition(
+  frameWidth: _grojibAnimFrameWidth,
+  frameHeight: _grojibAnimFrameHeight,
+  sourcesByKey: _grojibAnimSourcesByKey,
+  rowByKey: _grojibAnimRowByKey,
+  frameCountsByKey: _grojibAnimFrameCountsByKey,
+  stepTimeSecondsByKey: _grojibAnimStepTimeSecondsByKey,
 );
 
-const AnimProfile _werewolfAnimProfile = AnimProfile(
+const AnimProfile _grojibAnimProfile = AnimProfile(
   minMoveSpeed: 1.0,
   runSpeedThresholdX: 120.0,
 );
@@ -166,7 +184,7 @@ class EnemyArchetype {
     required this.animProfile,
     required this.hitAnimSeconds,
     this.primarySpellId,
-    this.artFacingDir = Facing.right,
+    this.artFacingDir = Facing.left,
     this.tags = const CreatureTagDef(),
     this.resistance = const DamageResistanceDef(),
     this.statusImmunity = const StatusImmunityDef(),
@@ -272,9 +290,9 @@ class EnemyCatalog {
             staminaMax: 0.0,
             regenPerSecond: 0.0,
           ),
-          renderAnim: _werewolfRenderAnim,
-          animProfile: _werewolfAnimProfile,
-          hitAnimSeconds: _werewolfHitAnimSeconds,
+          renderAnim: _grojibRenderAnim,
+          animProfile: _grojibAnimProfile,
+          hitAnimSeconds: _grojibHitAnimSeconds,
           tags: CreatureTagDef(mask: CreatureTagMask.humanoid),
         );
     }

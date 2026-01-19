@@ -158,6 +158,26 @@ class PlayerCharacterDefinition {
         }
       }
 
+      for (final entry in renderAnim.rowByKey.entries) {
+        final key = entry.key;
+        final row = entry.value;
+        if (row < 0) {
+          throw StateError(
+            'PlayerCharacterDefinition($id) renderAnim.rowByKey[$key] must be >= 0 (got $row)',
+          );
+        }
+        if (!renderAnim.sourcesByKey.containsKey(key)) {
+          throw StateError(
+            'PlayerCharacterDefinition($id) renderAnim.rowByKey[$key] has no matching sourcesByKey entry',
+          );
+        }
+        if (!renderAnim.frameCountsByKey.containsKey(key)) {
+          throw StateError(
+            'PlayerCharacterDefinition($id) renderAnim.rowByKey[$key] has no matching frameCountsByKey entry',
+          );
+        }
+      }
+
       // Tuning invariants (only basic sanity checks here).
       if (!tuning.anim.hitAnimSeconds.isFinite ||
           !tuning.anim.castAnimSeconds.isFinite ||

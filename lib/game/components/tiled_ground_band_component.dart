@@ -199,19 +199,6 @@ class TiledGroundBandComponent extends Component
     canvas.restore();
   }
 
-  /// Draws horizontally-tiled images from [startX] to [endX].
-  void _drawTileStrip(
-    ui.Canvas canvas,
-    double startX,
-    double endX,
-    int tileW,
-    double y,
-  ) {
-    for (var x = startX; x < endX; x += tileW) {
-      canvas.drawImage(_image, ui.Offset(x, y), _paint);
-    }
-  }
-
   /// Punches transparent holes in the tile strip for each gap.
   ///
   /// Uses [_clearPaint] with `BlendMode.clear` to erase pixels. Only draws

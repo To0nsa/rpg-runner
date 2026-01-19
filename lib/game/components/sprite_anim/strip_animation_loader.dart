@@ -15,39 +15,53 @@ Future<SpriteAnimSet> loadStripAnimations(
   required int frameWidth,
   required int frameHeight,
   required Map<AnimKey, String> sourcesByKey,
+  Map<AnimKey, int> rowByKey = const <AnimKey, int>{},
   required Map<AnimKey, int> frameCountsByKey,
   required Map<AnimKey, double> stepTimeSecondsByKey,
   required Set<AnimKey> oneShotKeys,
 }) async {
   final frameSize = Vector2(frameWidth.toDouble(), frameHeight.toDouble());
 
-  final imagesByKey = <AnimKey, Image>{};
+  final keysByPath = <String, List<AnimKey>>{};
   for (final entry in sourcesByKey.entries) {
-    imagesByKey[entry.key] = await images.load(entry.value);
+    keysByPath.putIfAbsent(entry.value, () => <AnimKey>[]).add(entry.key);
+  }
+
+  // Load each unique path once (Images also caches globally, but this keeps the
+  // loader itself allocation-light and predictable).
+  final imagesByPath = <String, Image>{};
+  for (final path in keysByPath.keys) {
+    imagesByPath[path] = await images.load(path);
   }
 
   final animations = <AnimKey, SpriteAnimation>{};
-  for (final entry in imagesByKey.entries) {
+  for (final entry in sourcesByKey.entries) {
     final key = entry.key;
-    final img = entry.value;
+    final path = entry.value;
+    final img = imagesByPath[path]!;
+
     final stepTime =
         stepTimeSecondsByKey[key] ?? stepTimeSecondsByKey[AnimKey.idle] ?? 0.1;
     final frameCount =
         frameCountsByKey[key] ?? frameCountsByKey[AnimKey.idle] ?? 1;
+    final row = rowByKey[key] ?? 0;
 
-    assert(
-      img.height == frameSize.y.toInt() &&
-          img.width == frameSize.x.toInt() * frameCount,
-      'Strip ${key.name} must match ${frameSize.x.toInt()}x${frameSize.y.toInt()} frames x $frameCount.',
-    );
+    final sprites = List<Sprite>.generate(frameCount, (i) {
+      return Sprite(
+        img,
+        srcPosition: Vector2(
+          frameWidth.toDouble() * i,
+          frameHeight.toDouble() * row,
+        ),
+        srcSize: frameSize,
+      );
+    });
 
-    final data = SpriteAnimationData.sequenced(
-      amount: frameCount,
+    animations[key] = SpriteAnimation.spriteList(
+      sprites,
       stepTime: stepTime,
-      textureSize: frameSize,
       loop: !oneShotKeys.contains(key),
     );
-    animations[key] = SpriteAnimation.fromFrameData(img, data);
   }
 
   return SpriteAnimSet(
@@ -68,6 +82,7 @@ Future<SpriteAnimSet> loadAnimSetFromDefinition(
     frameWidth: renderAnim.frameWidth,
     frameHeight: renderAnim.frameHeight,
     sourcesByKey: renderAnim.sourcesByKey,
+    rowByKey: renderAnim.rowByKey,
     frameCountsByKey: renderAnim.frameCountsByKey,
     stepTimeSecondsByKey: renderAnim.stepTimeSecondsByKey,
     oneShotKeys: oneShotKeys,

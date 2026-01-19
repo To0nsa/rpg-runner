@@ -49,8 +49,11 @@ sync so Core windows match render strip timing.
 
 ### Enemy animations
 
-Enemy render strips are data-driven via `EnemyArchetype.renderAnim`, with frame
-dimensions, step times, and sprite sheet paths defined in `enemy_catalog.dart`.
+Enemy render animations are data-driven via `EnemyArchetype.renderAnim`, with
+frame dimensions, step times, and sprite paths defined in `enemy_catalog.dart`.
+`RenderAnimSetDefinition` supports both single-row strips and multi-row sheets:
+multiple `AnimKey`s can reuse one sheet path and use `rowByKey` (0-based) to
+select the row per key (defaults to row 0 for strip compatibility).
 Hit windows are authored per enemy (`EnemyArchetype.hitAnimSeconds`).
 
 **Animation pipeline** (AnimSystem → AnimStateStore → SnapshotBuilder):

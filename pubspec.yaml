@@ -65,7 +65,7 @@ flutter:
     - assets/images/parallax/forest/
     - assets/images/entities/player/
     - assets/images/entities/enemies/unoco/
-    - assets/images/entities/enemies/werewolf/
+    - assets/images/entities/enemies/grojib/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
