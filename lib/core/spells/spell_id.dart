@@ -7,6 +7,6 @@ enum SpellId {
   iceBolt,
 
   /// Enemy ranged attack.
-  lightning,
+  thunderBolt,
 }
 

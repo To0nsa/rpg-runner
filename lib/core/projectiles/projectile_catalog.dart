@@ -44,7 +44,7 @@ class ProjectileCatalog {
           colliderSizeX: 18.0,
           colliderSizeY: 8.0,
         );
-      case ProjectileId.lightningBolt:
+      case ProjectileId.thunderBolt:
         return const ProjectileArchetype(
           speedUnitsPerSecond: 1000.0,
           lifetimeSeconds: 1.2,

@@ -19,11 +19,13 @@ class DeterministicAnimViewComponent
     AnimKeyFallbackResolver? fallbackResolver,
     Vector2? renderSize,
     Vector2? renderScale,
+    bool respectFacing = true,
   }) : _animSet = animSet,
        _availableAnimations = animSet.animations,
        _oneShotKeys = animSet.oneShotKeys,
        _fallbackResolver = fallbackResolver,
        _baseScale = renderScale?.clone() ?? Vector2.all(1.0),
+       _respectFacing = respectFacing,
        super(
          animations: animSet.animations,
          current: initial,
@@ -41,11 +43,14 @@ class DeterministicAnimViewComponent
   final Set<AnimKey> _oneShotKeys;
   final AnimKeyFallbackResolver? _fallbackResolver;
   final Vector2 _baseScale;
+  final bool _respectFacing;
 
   void applySnapshot(
     EntityRenderSnapshot e, {
     required int tickHz,
     Vector2? pos,
+    AnimKey? overrideAnim,
+    int? overrideAnimFrame,
   }) {
     if (pos != null) {
       position.setFrom(pos);
@@ -56,7 +61,7 @@ class DeterministicAnimViewComponent
       );
     }
 
-    var next = e.anim;
+    var next = overrideAnim ?? e.anim;
     if (_fallbackResolver != null) {
       next = _fallbackResolver(next);
     }
@@ -67,14 +72,18 @@ class DeterministicAnimViewComponent
       current = next;
     }
 
-    final artFacing = e.artFacingDir ?? Facing.right;
-    final sign = e.facing == artFacing ? 1.0 : -1.0;
-    final desiredScaleX = _baseScale.x * sign;
-    if (scale.x != desiredScaleX || scale.y != _baseScale.y) {
-      scale.setValues(desiredScaleX, _baseScale.y);
+    if (_respectFacing) {
+      final artFacing = e.artFacingDir ?? Facing.right;
+      final sign = e.facing == artFacing ? 1.0 : -1.0;
+      final desiredScaleX = _baseScale.x * sign;
+      if (scale.x != desiredScaleX || scale.y != _baseScale.y) {
+        scale.setValues(desiredScaleX, _baseScale.y);
+      }
+    } else if (scale.x != _baseScale.x || scale.y != _baseScale.y) {
+      scale.setValues(_baseScale.x, _baseScale.y);
     }
 
-    final frameHint = e.animFrame;
+    final frameHint = overrideAnimFrame ?? e.animFrame;
     if (frameHint == null) return;
 
     final ticker = animationTicker;

@@ -72,6 +72,22 @@ Per-entity rules live in `AnimProfile` data:
 Render strip metadata is shared via `RenderAnimSetDefinition` in
 `lib/core/contracts/render_anim_set_definition.dart` for both players and enemies.
 
+### Projectile animations
+
+Spell projectiles have render definitions in
+`lib/core/projectiles/projectile_render_catalog.dart` (frame sizes, timing,
+asset paths). The renderer loads these via a `ProjectileRenderRegistry` and
+maps animation keys as follows:
+
+- `AnimKey.spawn` -> `start.png` (one-shot, used on initial ticks).
+- `AnimKey.idle` -> `repeatable.png` (looping travel animation).
+- `AnimKey.hit` -> `hit.png` (one-shot impact).
+
+Projectile impacts emit `ProjectileHitEvent` from Core so the renderer can
+spawn a hit animation even though the projectile entity despawns immediately.
+Spawn animation duration is derived from the render definition and tick rate;
+render switches to `idle` after the spawn window.
+
 ## Player characters (multi-character ready)
 
 Player configuration is split into:

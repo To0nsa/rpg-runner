@@ -7,7 +7,7 @@ enum ProjectileId {
   iceBolt,
 
   /// Enemy ranged attack. Slower but longer range.
-  lightningBolt,
+  thunderBolt,
 
   /// Physical arrow projectile (ballistic).
   arrow,

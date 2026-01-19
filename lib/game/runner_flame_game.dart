@@ -19,6 +19,7 @@ import 'debug/render_debug_flags.dart';
 import 'components/player/player_animations.dart';
 import 'components/player/player_view_component.dart';
 import 'components/enemies/enemy_render_registry.dart';
+import 'components/projectiles/projectile_render_registry.dart';
 import 'components/sprite_anim/deterministic_anim_view_component.dart';
 import 'tuning/player_render_tuning.dart';
 import 'input/runner_input_router.dart';
@@ -61,6 +62,7 @@ class RunnerFlameGame extends FlameGame {
   }) : _enemyRenderRegistry = EnemyRenderRegistry(
          enemyCatalog: controller.enemyCatalog,
        ),
+       _projectileRenderRegistry = ProjectileRenderRegistry(),
        super(
          camera: CameraComponent.withFixedResolution(
            width: virtualWidth.toDouble(),
@@ -84,11 +86,15 @@ class RunnerFlameGame extends FlameGame {
 
   late final PlayerViewComponent _player;
   final EnemyRenderRegistry _enemyRenderRegistry;
+  final ProjectileRenderRegistry _projectileRenderRegistry;
   final List<RectangleComponent> _staticSolids = <RectangleComponent>[];
   List<StaticSolidSnapshot>? _lastStaticSolidsSnapshot;
 
   /// Entity view pools, keyed by entity ID.
-  final Map<int, RectangleComponent> _projectiles = <int, RectangleComponent>{};
+  final Map<int, DeterministicAnimViewComponent> _projectileAnimViews =
+      <int, DeterministicAnimViewComponent>{};
+  final Map<int, RectangleComponent> _projectileRects =
+      <int, RectangleComponent>{};
   final Map<int, RectangleComponent> _collectibles =
       <int, RectangleComponent>{};
   final Map<int, DeterministicAnimViewComponent> _enemies =
@@ -112,11 +118,14 @@ class RunnerFlameGame extends FlameGame {
 
   final Map<int, EntityRenderSnapshot> _prevEntitiesById =
       <int, EntityRenderSnapshot>{};
+  final Map<int, int> _projectileSpawnTicks = <int, int>{};
   final Set<int> _seenIdsScratch = <int>{};
   final List<int> _toRemoveScratch = <int>[];
   final Vector2 _cameraCenterScratch = Vector2.zero();
   final Vector2 _snapScratch = Vector2.zero();
   final List<EnemyKilledEvent> _pendingEnemyKilledEvents = <EnemyKilledEvent>[];
+  final List<ProjectileHitEvent> _pendingProjectileHitEvents =
+      <ProjectileHitEvent>[];
 
   @override
   Future<void> onLoad() async {
@@ -164,6 +173,7 @@ class RunnerFlameGame extends FlameGame {
       renderAnim: playerCharacter.renderAnim,
     );
     await _enemyRenderRegistry.load(images);
+    await _projectileRenderRegistry.load(images);
     _player = PlayerViewComponent(
       animationSet: playerAnimations,
       renderScale: Vector2.all(_playerRenderTuning.scale),
@@ -280,6 +290,7 @@ class RunnerFlameGame extends FlameGame {
       prevById: _prevEntitiesById,
       alpha: alpha,
       cameraCenter: _cameraCenterScratch,
+      tick: currSnapshot.tick,
     );
     _syncCollectibles(
       currSnapshot.entities,
@@ -333,6 +344,7 @@ class RunnerFlameGame extends FlameGame {
     );
 
     _flushPendingEnemyKilledEvents(cameraCenter: _cameraCenterScratch);
+    _flushPendingProjectileHitEvents(cameraCenter: _cameraCenterScratch);
 
     super.update(dt);
   }
@@ -421,8 +433,13 @@ class RunnerFlameGame extends FlameGame {
   }
 
   void _handleGameEvent(GameEvent event) {
-    if (event is! EnemyKilledEvent) return;
-    _pendingEnemyKilledEvents.add(event);
+    if (event is EnemyKilledEvent) {
+      _pendingEnemyKilledEvents.add(event);
+      return;
+    }
+    if (event is ProjectileHitEvent) {
+      _pendingProjectileHitEvents.add(event);
+    }
   }
 
   void _flushPendingEnemyKilledEvents({required Vector2 cameraCenter}) {
@@ -458,6 +475,35 @@ class RunnerFlameGame extends FlameGame {
     _pendingEnemyKilledEvents.clear();
   }
 
+  void _flushPendingProjectileHitEvents({required Vector2 cameraCenter}) {
+    if (_pendingProjectileHitEvents.isEmpty) return;
+
+    for (final event in _pendingProjectileHitEvents) {
+      final entry = _projectileRenderRegistry.entryFor(event.projectileId);
+      if (entry == null) continue;
+
+      final hitAnim = entry.animSet.animations[AnimKey.hit];
+      if (hitAnim == null) continue;
+
+      final component = _CameraSpaceSnappedSpriteAnimationComponent(
+        animation: hitAnim,
+        size: entry.animSet.frameSize.clone(),
+        worldPosX: event.pos.x,
+        worldPosY: event.pos.y,
+        anchor: entry.animSet.anchor,
+        paint: Paint()..filterQuality = FilterQuality.none,
+        removeOnFinish: true,
+      )..priority = _priorityProjectiles;
+
+      component.scale.setValues(entry.renderScale.x, entry.renderScale.y);
+      component.angle = event.rotationRad;
+      component.snapToCamera(cameraCenter);
+      world.add(component);
+    }
+
+    _pendingProjectileHitEvents.clear();
+  }
+
   /// Synchronizes projectile view components with the snapshot.
   ///
   /// Creates rectangle components for new projectiles, updates position/size
@@ -467,6 +513,7 @@ class RunnerFlameGame extends FlameGame {
     required Map<int, EntityRenderSnapshot> prevById,
     required double alpha,
     required Vector2 cameraCenter,
+    required int tick,
   }) {
     final seen = _seenIdsScratch..clear();
 
@@ -474,41 +521,100 @@ class RunnerFlameGame extends FlameGame {
       if (e.kind != EntityKind.projectile) continue;
       seen.add(e.id);
 
-      var view = _projectiles[e.id];
-      if (view == null) {
-        final size = e.size;
-        view = RectangleComponent(
-          size: Vector2(size?.x ?? 8.0, size?.y ?? 8.0),
-          anchor: Anchor.center,
-          paint: _projectilePaint,
-        );
-        view.priority = _priorityProjectiles;
-        _projectiles[e.id] = view;
-        world.add(view);
-      } else {
-        final size = e.size;
-        if (size != null) {
-          view.size.setValues(size.x, size.y);
-        }
-      }
+      final projectileId = e.projectileId;
+      final entry = projectileId == null
+          ? null
+          : _projectileRenderRegistry.entryFor(projectileId);
 
-      final prev = prevById[e.id] ?? e;
-      final worldX = math.lerpDouble(prev.pos.x, e.pos.x, alpha);
-      final worldY = math.lerpDouble(prev.pos.y, e.pos.y, alpha);
-      view.position.setValues(
-        math.snapWorldToPixelsInCameraSpace1d(worldX, cameraCenter.x),
-        math.snapWorldToPixelsInCameraSpace1d(worldY, cameraCenter.y),
-      );
-      view.angle = e.rotationRad;
+      if (entry != null) {
+        _projectileRects.remove(e.id)?.removeFromParent();
+
+        var view = _projectileAnimViews[e.id];
+        if (view == null) {
+          view = entry.viewFactory(entry.animSet, entry.renderScale);
+          view.priority = _priorityProjectiles;
+          _projectileAnimViews[e.id] = view;
+          _projectileSpawnTicks[e.id] = tick;
+          world.add(view);
+        }
+
+        final prev = prevById[e.id] ?? e;
+        final worldX = math.lerpDouble(prev.pos.x, e.pos.x, alpha);
+        final worldY = math.lerpDouble(prev.pos.y, e.pos.y, alpha);
+        _snapScratch.setValues(
+          math.snapWorldToPixelsInCameraSpace1d(worldX, cameraCenter.x),
+          math.snapWorldToPixelsInCameraSpace1d(worldY, cameraCenter.y),
+        );
+
+        final spawnTick = _projectileSpawnTicks[e.id] ?? tick;
+        final startTicks = entry.spawnAnimTicks(controller.tickHz);
+        final ageTicks = tick - spawnTick;
+        final animOverride =
+            startTicks > 0 && ageTicks >= 0 && ageTicks < startTicks
+                ? AnimKey.spawn
+                : AnimKey.idle;
+        final overrideAnimFrame =
+            animOverride == AnimKey.spawn ? ageTicks : null;
+
+        view.applySnapshot(
+          e,
+          tickHz: controller.tickHz,
+          pos: _snapScratch,
+          overrideAnim: animOverride,
+          overrideAnimFrame: overrideAnimFrame,
+        );
+        view.angle = e.rotationRad;
+      } else {
+        _projectileAnimViews.remove(e.id)?.removeFromParent();
+        _projectileSpawnTicks.remove(e.id);
+
+        var view = _projectileRects[e.id];
+        if (view == null) {
+          final size = e.size;
+          view = RectangleComponent(
+            size: Vector2(size?.x ?? 8.0, size?.y ?? 8.0),
+            anchor: Anchor.center,
+            paint: _projectilePaint,
+          );
+          view.priority = _priorityProjectiles;
+          _projectileRects[e.id] = view;
+          world.add(view);
+        } else {
+          final size = e.size;
+          if (size != null) {
+            view.size.setValues(size.x, size.y);
+          }
+        }
+
+        final prev = prevById[e.id] ?? e;
+        final worldX = math.lerpDouble(prev.pos.x, e.pos.x, alpha);
+        final worldY = math.lerpDouble(prev.pos.y, e.pos.y, alpha);
+        view.position.setValues(
+          math.snapWorldToPixelsInCameraSpace1d(worldX, cameraCenter.x),
+          math.snapWorldToPixelsInCameraSpace1d(worldY, cameraCenter.y),
+        );
+        view.angle = e.rotationRad;
+      }
     }
 
-    if (_projectiles.isEmpty) return;
+    if (_projectileAnimViews.isNotEmpty) {
+      final toRemove = _toRemoveScratch..clear();
+      for (final id in _projectileAnimViews.keys) {
+        if (!seen.contains(id)) toRemove.add(id);
+      }
+      for (final id in toRemove) {
+        _projectileAnimViews.remove(id)?.removeFromParent();
+        _projectileSpawnTicks.remove(id);
+      }
+    }
+
+    if (_projectileRects.isEmpty) return;
     final toRemove = _toRemoveScratch..clear();
-    for (final id in _projectiles.keys) {
+    for (final id in _projectileRects.keys) {
       if (!seen.contains(id)) toRemove.add(id);
     }
     for (final id in toRemove) {
-      _projectiles.remove(id)?.removeFromParent();
+      _projectileRects.remove(id)?.removeFromParent();
     }
   }
 

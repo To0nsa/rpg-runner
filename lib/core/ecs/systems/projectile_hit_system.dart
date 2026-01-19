@@ -1,5 +1,9 @@
+import 'dart:math';
+
 import '../../combat/damage.dart';
 import '../../events/game_event.dart';
+import '../../snapshots/enums.dart';
+import '../../util/vec2.dart';
 import '../entity_id.dart';
 import '../hit/hit_resolver.dart';
 import '../spatial/broadphase_grid.dart';
@@ -23,8 +27,10 @@ class ProjectileHitSystem {
   void step(
     EcsWorld world,
     void Function(DamageRequest request) queueDamage,
-    BroadphaseGrid broadphase,
-  ) {
+    BroadphaseGrid broadphase, {
+    required int currentTick,
+    void Function(ProjectileHitEvent event)? queueHitEvent,
+  }) {
     // Optimization: If there are no targets to hit, projectiles just fly.
     if (broadphase.targets.isEmpty) return;
     
@@ -63,6 +69,8 @@ class ProjectileHitSystem {
       
       final dirX = projectiles.dirX[pi];
       final dirY = projectiles.dirY[pi];
+      final facing = dirX >= 0 ? Facing.right : Facing.left;
+      final rotationRad = atan2(dirY, dirX);
 
       // Calculate the start (A) and end (B) points of the capsule segment.
       // The segment is centered at (pcx, pcy) and extends halfLength in both directions along (dirX, dirY).
@@ -112,6 +120,19 @@ class ProjectileHitSystem {
             sourceSpellId: spellId,
           ),
         );
+
+        if (queueHitEvent != null) {
+          queueHitEvent(
+            ProjectileHitEvent(
+              tick: currentTick,
+              projectileId: projectiles.projectileId[pi],
+              spellId: spellId,
+              pos: Vec2(pcx, pcy),
+              facing: facing,
+              rotationRad: rotationRad,
+            ),
+          );
+        }
         
         // Mark projectile for removal.
         // We defer removal until after the loop or use a list to avoid modifying the collection while iterating

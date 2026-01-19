@@ -3,7 +3,7 @@ enum DamageType {
   physical,
   fire,
   ice,
-  lightning,
+  thunder,
   bleed,
 }
 

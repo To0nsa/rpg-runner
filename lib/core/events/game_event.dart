@@ -18,6 +18,7 @@ import '../util/vec2.dart';
 
 part 'run_events.dart';
 part 'enemy_events.dart';
+part 'projectile_events.dart';
 
 /// Base sealed class for all simulation events.
 sealed class GameEvent {

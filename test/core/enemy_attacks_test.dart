@@ -28,10 +28,10 @@ import 'test_spawns.dart';
 import 'package:rpg_runner/core/ecs/entity_factory.dart';
 
 void main() {
-  test('enemy projectile (lightning) damages player', () {
+  test('enemy projectile (thunder) damages player', () {
     final world = EcsWorld();
     const spellCatalog = SpellCatalog();
-    final lightningDamage = spellCatalog.get(SpellId.lightning).stats.damage;
+    final thunderDamage = spellCatalog.get(SpellId.thunderBolt).stats.damage;
 
     final player = EntityFactory(world).createPlayer(
       posX: 100,
@@ -65,7 +65,7 @@ void main() {
       world,
       spells: spellCatalog,
       projectiles: ProjectileCatalogDerived.from(const ProjectileCatalog(), tickHz: 60),
-      spellId: SpellId.lightning,
+      spellId: SpellId.thunderBolt,
       faction: Faction.enemy,
       owner: unocoDemon,
       originX: 100,
@@ -80,12 +80,17 @@ void main() {
       index: GridIndex2D(cellSize: const SpatialGridTuning().broadphaseCellSize),
     )..rebuild(world);
     final hit = ProjectileHitSystem();
-    hit.step(world, damage.queue, broadphase);
+    hit.step(
+      world,
+      damage.queue,
+      broadphase,
+      currentTick: 1,
+    );
     damage.step(world, currentTick: 1);
 
     expect(
       world.health.hp[world.health.indexOf(player)],
-      closeTo(100.0 - lightningDamage, 1e-9),
+      closeTo(100.0 - thunderDamage, 1e-9),
     );
     expect(world.projectile.has(p!), isFalse);
   });

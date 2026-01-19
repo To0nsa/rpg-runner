@@ -303,8 +303,8 @@ String _projectileName(ProjectileId id) {
   switch (id) {
     case ProjectileId.iceBolt:
       return 'Ice Bolt';
-    case ProjectileId.lightningBolt:
-      return 'Lightning Bolt';
+    case ProjectileId.thunderBolt:
+      return 'thunder Bolt';
     case ProjectileId.arrow:
       return 'Arrow';
     case ProjectileId.throwingAxe:
@@ -316,8 +316,8 @@ String _projectileName(ProjectileId id) {
   switch (id) {
     case SpellId.iceBolt:
       return 'Ice Bolt';
-    case SpellId.lightning:
-      return 'Lightning';
+    case SpellId.thunderBolt:
+      return 'thunder';
   }
 } */
 

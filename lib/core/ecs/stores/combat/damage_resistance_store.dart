@@ -7,14 +7,14 @@ class DamageResistanceDef {
     this.physical = 0.0,
     this.fire = 0.0,
     this.ice = 0.0,
-    this.lightning = 0.0,
+    this.thunder = 0.0,
     this.bleed = 0.0,
   });
 
   final double physical;
   final double fire;
   final double ice;
-  final double lightning;
+  final double thunder;
   final double bleed;
 
   double modFor(DamageType type) {
@@ -25,8 +25,8 @@ class DamageResistanceDef {
         return fire;
       case DamageType.ice:
         return ice;
-      case DamageType.lightning:
-        return lightning;
+      case DamageType.thunder:
+        return thunder;
       case DamageType.bleed:
         return bleed;
     }
@@ -38,7 +38,7 @@ class DamageResistanceStore extends SparseSet {
   final List<double> physical = <double>[];
   final List<double> fire = <double>[];
   final List<double> ice = <double>[];
-  final List<double> lightning = <double>[];
+  final List<double> thunder = <double>[];
   final List<double> bleed = <double>[];
 
   void add(EntityId entity, [DamageResistanceDef def = const DamageResistanceDef()]) {
@@ -46,7 +46,7 @@ class DamageResistanceStore extends SparseSet {
     physical[i] = def.physical;
     fire[i] = def.fire;
     ice[i] = def.ice;
-    lightning[i] = def.lightning;
+    thunder[i] = def.thunder;
     bleed[i] = def.bleed;
   }
 
@@ -64,8 +64,8 @@ class DamageResistanceStore extends SparseSet {
         return fire[index];
       case DamageType.ice:
         return ice[index];
-      case DamageType.lightning:
-        return lightning[index];
+      case DamageType.thunder:
+        return thunder[index];
       case DamageType.bleed:
         return bleed[index];
     }
@@ -76,7 +76,7 @@ class DamageResistanceStore extends SparseSet {
     physical.add(0.0);
     fire.add(0.0);
     ice.add(0.0);
-    lightning.add(0.0);
+    thunder.add(0.0);
     bleed.add(0.0);
   }
 
@@ -85,13 +85,13 @@ class DamageResistanceStore extends SparseSet {
     physical[removeIndex] = physical[lastIndex];
     fire[removeIndex] = fire[lastIndex];
     ice[removeIndex] = ice[lastIndex];
-    lightning[removeIndex] = lightning[lastIndex];
+    thunder[removeIndex] = thunder[lastIndex];
     bleed[removeIndex] = bleed[lastIndex];
 
     physical.removeLast();
     fire.removeLast();
     ice.removeLast();
-    lightning.removeLast();
+    thunder.removeLast();
     bleed.removeLast();
   }
 }

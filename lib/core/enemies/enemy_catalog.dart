@@ -267,7 +267,7 @@ class EnemyCatalog {
           renderAnim: _unocoRenderAnim,
           animProfile: _unocoAnimProfile,
           hitAnimSeconds: _unocoHitAnimSeconds,
-          primarySpellId: SpellId.lightning,
+          primarySpellId: SpellId.thunderBolt,
           artFacingDir: Facing.left,
           tags: CreatureTagDef(
             mask: CreatureTagMask.flying | CreatureTagMask.demon,

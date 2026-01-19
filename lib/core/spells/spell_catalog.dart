@@ -59,14 +59,14 @@ class SpellCatalog {
           ),
           projectileId: ProjectileId.iceBolt,
         );
-      case SpellId.lightning:
+      case SpellId.thunderBolt:
         return const SpellDef(
           stats: ProjectileSpellStats(
             manaCost: 10.0,
             damage: 5.0,
-            damageType: DamageType.lightning,
+            damageType: DamageType.thunder,
           ),
-          projectileId: ProjectileId.lightningBolt,
+          projectileId: ProjectileId.thunderBolt,
         );
     }
   }

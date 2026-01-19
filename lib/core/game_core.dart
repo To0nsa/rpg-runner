@@ -1025,7 +1025,13 @@ class GameCore {
 
     // ─── Phase 12: Hit resolution ───
     // Detect overlaps and queue damage events.
-    _projectileHitSystem.step(_world, _damageSystem.queue, _broadphaseGrid);
+    _projectileHitSystem.step(
+      _world,
+      _damageSystem.queue,
+      _broadphaseGrid,
+      currentTick: tick,
+      queueHitEvent: (event) => _events.add(event),
+    );
     _hitboxDamageSystem.step(_world, _damageSystem.queue, _broadphaseGrid);
     _projectileWorldCollisionSystem.step(_world);
     // ─── Phase 13: Status + damage ───

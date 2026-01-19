@@ -66,6 +66,8 @@ flutter:
     - assets/images/entities/player/
     - assets/images/entities/enemies/unoco/
     - assets/images/entities/enemies/grojib/
+    - assets/images/entities/spells/iceBolt/
+    - assets/images/entities/spells/thunderBolt/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

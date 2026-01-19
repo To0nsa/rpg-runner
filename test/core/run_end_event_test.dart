@@ -58,7 +58,7 @@ void main() {
       world,
       spells: spellCatalog,
       projectiles: projectiles,
-      spellId: SpellId.lightning,
+      spellId: SpellId.thunderBolt,
       faction: Faction.enemy,
       owner: enemy,
       originX: 100,
@@ -73,7 +73,12 @@ void main() {
     )..rebuild(world);
     final hits = ProjectileHitSystem();
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0);
-    hits.step(world, damage.queue, broadphase);
+    hits.step(
+      world,
+      damage.queue,
+      broadphase,
+      currentTick: 3,
+    );
     damage.step(world, currentTick: 3);
 
     final li = world.lastDamage.indexOf(player);
@@ -81,9 +86,9 @@ void main() {
     expect(world.lastDamage.hasEnemyId[li], isTrue);
     expect(world.lastDamage.enemyId[li], EnemyId.unocoDemon);
     expect(world.lastDamage.hasProjectileId[li], isTrue);
-    expect(world.lastDamage.projectileId[li], ProjectileId.lightningBolt);
+    expect(world.lastDamage.projectileId[li], ProjectileId.thunderBolt);
     expect(world.lastDamage.hasSpellId[li], isTrue);
-    expect(world.lastDamage.spellId[li], SpellId.lightning);
+    expect(world.lastDamage.spellId[li], SpellId.thunderBolt);
   });
 
   test('melee kill records death metadata', () {

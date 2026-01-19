@@ -11,7 +11,9 @@ import 'package:rpg_runner/core/ecs/spatial/grid_index_2d.dart';
 import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
 import 'package:rpg_runner/core/ecs/systems/projectile_hit_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
+import 'package:rpg_runner/core/events/game_event.dart';
 import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
+import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/spells/spawn_spell_projectile.dart';
 import 'package:rpg_runner/core/spells/spell_catalog.dart';
@@ -75,7 +77,14 @@ void main() {
       index: GridIndex2D(cellSize: const SpatialGridTuning().broadphaseCellSize),
     )..rebuild(world);
     final hits = ProjectileHitSystem();
-    hits.step(world, damage.queue, broadphase);
+    final hitEvents = <ProjectileHitEvent>[];
+    hits.step(
+      world,
+      damage.queue,
+      broadphase,
+      currentTick: 1,
+      queueHitEvent: hitEvents.add,
+    );
     damage.step(world, currentTick: 1);
 
     expect(
@@ -83,5 +92,8 @@ void main() {
       closeTo(100.0 - iceBoltDamage, 1e-9),
     );
     expect(world.projectile.has(projectile!), isFalse);
+    expect(hitEvents.length, 1);
+    expect(hitEvents.single.projectileId, ProjectileId.iceBolt);
+    expect(hitEvents.single.spellId, SpellId.iceBolt);
   });
 }
