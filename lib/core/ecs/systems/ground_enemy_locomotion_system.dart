@@ -7,6 +7,7 @@ import '../../snapshots/enums.dart';
 import '../../tuning/ground_enemy_tuning.dart';
 import '../../util/double_math.dart';
 import '../../util/velocity_math.dart';
+import '../stores/enemies/melee_engagement_store.dart';
 import '../world.dart';
 
 /// Applies movement for ground enemies based on nav + engagement intents.
@@ -29,6 +30,9 @@ class GroundEnemyLocomotionSystem {
   }) {
     if (dtSeconds <= 0.0) return;
     if (!world.transform.has(player)) return;
+
+    final playerTi = world.transform.indexOf(player);
+    final playerX = world.transform.posX[playerTi];
 
     final navIntent = world.navIntent;
     for (var i = 0; i < navIntent.denseEntities.length; i += 1) {
@@ -63,6 +67,19 @@ class GroundEnemyLocomotionSystem {
         continue;
       }
 
+      final meleeIndex = world.meleeEngagement.tryIndexOf(enemy);
+      if (meleeIndex == null) {
+        assert(
+          false,
+          'GroundEnemyLocomotionSystem requires MeleeEngagementStore on ground enemies; add it at spawn time.',
+        );
+        continue;
+      }
+      final meleeState = world.meleeEngagement.state[meleeIndex];
+      final lockFacingToPlayer = meleeState == MeleeEngagementState.engage ||
+          meleeState == MeleeEngagementState.attack ||
+          meleeState == MeleeEngagementState.recover;
+
       final ex = world.transform.posX[enemyTi];
       _applyGroundEnemyLocomotion(
         world,
@@ -71,7 +88,9 @@ class GroundEnemyLocomotionSystem {
         navIndex: navIndex,
         navIntentIndex: i,
         engagementIndex: engagementIndex,
+        lockFacingToPlayer: lockFacingToPlayer,
         ex: ex,
+        playerX: playerX,
         dtSeconds: dtSeconds,
       );
     }
@@ -84,7 +103,9 @@ class GroundEnemyLocomotionSystem {
     required int navIndex,
     required int navIntentIndex,
     required int engagementIndex,
+    required bool lockFacingToPlayer,
     required double ex,
+    required double playerX,
     required double dtSeconds,
   }) {
     final navIntent = world.navIntent;
@@ -125,8 +146,10 @@ class GroundEnemyLocomotionSystem {
       effectiveSpeedScale: effectiveSpeedScale,
       arrivalSlowRadiusX: arrivalSlowRadiusX,
       stateSpeedMul: stateSpeedMul,
+      lockFacingToPlayer: lockFacingToPlayer,
       dtSeconds: dtSeconds,
       graph: _surfaceGraph,
+      playerX: playerX,
     );
   }
 
@@ -146,8 +169,10 @@ class GroundEnemyLocomotionSystem {
     required double effectiveSpeedScale,
     required double arrivalSlowRadiusX,
     required double stateSpeedMul,
+    required bool lockFacingToPlayer,
     required double dtSeconds,
     required SurfaceGraph? graph,
+    required double playerX,
   }) {
     final tuning = groundEnemyTuning;
     final enemy = world.enemy.denseEntities[enemyIndex];
@@ -165,15 +190,14 @@ class GroundEnemyLocomotionSystem {
         stateSpeedMul *
         moveSpeedMul;
     double desiredVelX = 0.0;
+    int desiredDirX = 0;
 
     if (commitMoveDirX != 0) {
-      final dirX = commitMoveDirX.toDouble();
-      world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
-      desiredVelX = dirX * baseSpeed;
+      desiredDirX = commitMoveDirX;
+      desiredVelX = desiredDirX.toDouble() * baseSpeed;
     } else if (dx.abs() > tuning.locomotion.stopDistanceX) {
-      final dirX = dx >= 0 ? 1.0 : -1.0;
-      world.enemy.facing[enemyIndex] = dirX > 0 ? Facing.right : Facing.left;
-      desiredVelX = dirX * baseSpeed * arrivalScale;
+      desiredDirX = dx >= 0 ? 1 : -1;
+      desiredVelX = desiredDirX.toDouble() * baseSpeed * arrivalScale;
     }
 
     if (jumpNow) {
@@ -213,6 +237,26 @@ class GroundEnemyLocomotionSystem {
 
     world.transform.velX[enemyTi] = jumpSnapVelX ?? nextVelX;
 
+    if (commitMoveDirX != 0) {
+      world.enemy.facing[enemyIndex] =
+          commitMoveDirX > 0 ? Facing.right : Facing.left;
+    } else {
+      final enemyCi = world.collision.tryIndexOf(enemy);
+      final grounded = enemyCi != null && world.collision.grounded[enemyCi];
+      if (grounded) {
+        if (desiredDirX != 0) {
+          world.enemy.facing[enemyIndex] =
+              desiredDirX > 0 ? Facing.right : Facing.left;
+        }
+      } else {
+        const airFacingVelDeadzone = 1.0;
+        final vx = world.transform.velX[enemyTi];
+        if (vx.abs() > airFacingVelDeadzone) {
+          world.enemy.facing[enemyIndex] = vx > 0 ? Facing.right : Facing.left;
+        }
+      }
+    }
+
     if (!hasPlan && hasSafeSurface) {
       final stopDist = tuning.locomotion.stopDistanceX;
       final nextVelX = world.transform.velX[enemyTi];
@@ -220,6 +264,14 @@ class GroundEnemyLocomotionSystem {
         world.transform.velX[enemyTi] = 0.0;
       } else if (nextVelX < 0.0 && ex <= safeSurfaceMinX + stopDist) {
         world.transform.velX[enemyTi] = 0.0;
+      }
+    }
+
+    if (lockFacingToPlayer) {
+      final dxToPlayer = playerX - ex;
+      if (dxToPlayer.abs() > 1e-6) {
+        world.enemy.facing[enemyIndex] =
+            dxToPlayer >= 0 ? Facing.right : Facing.left;
       }
     }
   }

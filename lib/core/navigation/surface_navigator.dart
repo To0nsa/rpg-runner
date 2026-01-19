@@ -255,6 +255,18 @@ class SurfaceNavigator {
         );
       }
 
+      // Drop edge in-flight: keep commit direction stable. (landingX can be
+      // slightly behind the entity due to clamping, which would otherwise
+      // cause a brief direction reversal.)
+      if (edge.kind == SurfaceEdgeKind.drop) {
+        return SurfaceNavIntent(
+          desiredX: edge.landingX,
+          jumpNow: false,
+          hasPlan: true,
+          commitMoveDirX: edge.commitDirX,
+        );
+      }
+
       // Jump edge in-flight: aim for landing point.
       return SurfaceNavIntent(
         desiredX: edge.landingX,

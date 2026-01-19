@@ -80,6 +80,8 @@ void main() {
       stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
     );
     final navIndex = world.surfaceNav.indexOf(enemy);
+    final enemyIndex = world.enemy.indexOf(enemy);
+    final intentIndex = world.navIntent.indexOf(enemy);
 
     final geometry = StaticWorldGeometry(
       groundPlane: const StaticGroundPlane(topY: groundTopY),
@@ -214,6 +216,16 @@ void main() {
           posXBeforePhysics > platformMaxX - stopDistanceX) {
         expect(velXBeforePhysics, greaterThan(0.0));
         assertedCommitMovement = true;
+      }
+
+      if (executingDrop && !groundedBeforePhysics) {
+        final commitMoveDirX = world.navIntent.commitMoveDirX[intentIndex];
+        expect(commitMoveDirX, isNot(0));
+        expect(
+          world.enemy.facing[enemyIndex],
+          commitMoveDirX > 0 ? Facing.right : Facing.left,
+        );
+        expect(velXBeforePhysics * commitMoveDirX, greaterThan(0.0));
       }
 
       gravity.step(world, movement, physics: physics);
