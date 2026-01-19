@@ -95,9 +95,16 @@ class TiledGroundBandComponent extends Component
     double y,
   ) {
     final viewWidth = virtualWidth!;
-    final cameraLeftX = game.camera.viewfinder.position.x - viewWidth / 2;
-    final offsetPx = -cameraLeftX;
-    final startX = positiveModDouble(offsetPx, tileW.toDouble());
+    final halfWidth = viewWidth * 0.5;
+    final camX = -game.camera.viewfinder.transform.offset.x;
+    final leftWorld = camX - halfWidth;
+    final rightWorld = camX + halfWidth;
+
+    double worldToScreenX(double worldX) =>
+        (worldX - camX).roundToDouble() + halfWidth;
+
+    final startTile = floorDivInt(leftWorld.floor(), tileW) - 1;
+    final endTile = floorDivInt(rightWorld.ceil(), tileW) + 1;
     final clipRect = ui.Rect.fromLTWH(
       0,
       0,
@@ -106,18 +113,21 @@ class TiledGroundBandComponent extends Component
     );
 
     _withGapSupport(canvas, clipRect, gaps.isNotEmpty, () {
-      _drawTileStrip(canvas, startX - tileW, viewWidth.toDouble(), tileW, y);
+      for (var tile = startTile; tile <= endTile; tile++) {
+        final worldX = (tile * tileW).toDouble();
+        final x = worldToScreenX(worldX);
+        canvas.drawImage(_image, ui.Offset(x, y), _paint);
+      }
 
       if (gaps.isNotEmpty) {
-        _clearGapRects(
-          canvas,
-          gaps: gaps,
-          offsetX: -cameraLeftX,
-          visibleMinX: 0.0,
-          visibleMaxX: viewWidth.toDouble(),
-          y: y,
-          height: tileH.toDouble(),
-        );
+        final maxX = viewWidth.toDouble();
+        for (final gap in gaps) {
+          final x0 = worldToScreenX(gap.minX);
+          final x1 = worldToScreenX(gap.maxX);
+          if (x1 < 0.0 || x0 > maxX) continue;
+          if (x1 <= x0) continue;
+          canvas.drawRect(ui.Rect.fromLTRB(x0, y, x1, y + tileH), _clearPaint);
+        }
       }
     });
   }
@@ -131,6 +141,7 @@ class TiledGroundBandComponent extends Component
     double y,
   ) {
     final visible = game.camera.visibleWorldRect;
+    final camX = -game.camera.viewfinder.transform.offset.x;
     final left = visible.left.floor();
     final right = visible.right.ceil();
 
@@ -147,7 +158,8 @@ class TiledGroundBandComponent extends Component
     _withGapSupport(canvas, clipRect, gaps.isNotEmpty, () {
       for (var tile = startTile; tile <= endTile; tile++) {
         final x = (tile * tileW).toDouble();
-        canvas.drawImage(_image, ui.Offset(x, y), _paint);
+        final snappedX = snapWorldToPixelsInCameraSpace1d(x, camX);
+        canvas.drawImage(_image, ui.Offset(snappedX, y), _paint);
       }
 
       if (gaps.isNotEmpty) {
@@ -159,6 +171,7 @@ class TiledGroundBandComponent extends Component
           visibleMaxX: visible.right,
           y: y,
           height: tileH.toDouble(),
+          snapRelativeToCameraX: camX,
         );
       }
     });
@@ -211,10 +224,15 @@ class TiledGroundBandComponent extends Component
     required double visibleMaxX,
     required double y,
     required double height,
+    double? snapRelativeToCameraX,
   }) {
     for (final gap in gaps) {
-      final x0 = gap.minX + offsetX;
-      final x1 = gap.maxX + offsetX;
+      var x0 = gap.minX + offsetX;
+      var x1 = gap.maxX + offsetX;
+      if (snapRelativeToCameraX != null) {
+        x0 = snapWorldToPixelsInCameraSpace1d(x0, snapRelativeToCameraX);
+        x1 = snapWorldToPixelsInCameraSpace1d(x1, snapRelativeToCameraX);
+      }
       if (x1 < visibleMinX || x0 > visibleMaxX) continue;
       canvas.drawRect(ui.Rect.fromLTRB(x0, y, x1, y + height), _clearPaint);
     }

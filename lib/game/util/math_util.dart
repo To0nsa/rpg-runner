@@ -4,6 +4,10 @@
 // library doesn't handle correctly for game use cases (e.g., negative modulo,
 // floor division with negative numbers).
 
+import 'package:flame/components.dart';
+
+import '../../core/util/vec2.dart';
+
 /// Returns `value % mod`, always in the range `[0, mod)`.
 ///
 /// Dart's `%` operator can return negative results for negative [value];
@@ -26,3 +30,20 @@ int floorDivInt(int a, int b) {
   return -(((-a) + b - 1) ~/ b);
 }
 
+double lerpDouble(double a, double b, double t) => a + (b - a) * t;
+
+Vec2 lerpVec2(Vec2 a, Vec2 b, double t) =>
+    Vec2(lerpDouble(a.x, b.x, t), lerpDouble(a.y, b.y, t));
+
+/// Snaps a world coordinate to integer pixels in camera space.
+///
+/// Keeps [camera] fractional and rounds only the screen-space delta
+/// (`world - camera`) to the nearest pixel.
+double snapWorldToPixelsInCameraSpace1d(double world, double camera) =>
+    camera + (world - camera).roundToDouble();
+
+/// Convenience 2D version of [snapWorldToPixelsInCameraSpace1d].
+Vector2 snapWorldToPixelsInCameraSpace(Vec2 world, Vector2 camera) => Vector2(
+  snapWorldToPixelsInCameraSpace1d(world.x, camera.x),
+  snapWorldToPixelsInCameraSpace1d(world.y, camera.y),
+);

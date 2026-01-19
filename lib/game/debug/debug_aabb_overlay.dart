@@ -5,6 +5,7 @@ import 'package:flame/components.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../core/snapshots/entity_render_snapshot.dart';
+import '../util/math_util.dart' as math;
 
 void syncDebugAabbOverlays({
   required Iterable<EntityRenderSnapshot> entities,
@@ -14,6 +15,9 @@ void syncDebugAabbOverlays({
   required int priority,
   required Paint paint,
   bool Function(EntityRenderSnapshot e)? include,
+  Map<int, EntityRenderSnapshot>? prevById,
+  double alpha = 1.0,
+  Vector2? cameraCenter,
 }) {
   if (!enabled) {
     if (pool.isEmpty) return;
@@ -46,7 +50,18 @@ void syncDebugAabbOverlays({
       view.size.setValues(size.x, size.y);
     }
 
-    view.position.setValues(e.pos.x.roundToDouble(), e.pos.y.roundToDouble());
+    final prev = prevById == null ? null : prevById[e.id];
+    final prevPos = prev?.pos ?? e.pos;
+    final worldX = math.lerpDouble(prevPos.x, e.pos.x, alpha);
+    final worldY = math.lerpDouble(prevPos.y, e.pos.y, alpha);
+    if (cameraCenter == null) {
+      view.position.setValues(worldX.roundToDouble(), worldY.roundToDouble());
+    } else {
+      view.position.setValues(
+        math.snapWorldToPixelsInCameraSpace1d(worldX, cameraCenter.x),
+        math.snapWorldToPixelsInCameraSpace1d(worldY, cameraCenter.y),
+      );
+    }
   }
 
   if (pool.isEmpty) return;
@@ -58,4 +73,3 @@ void syncDebugAabbOverlays({
     pool.remove(id)?.removeFromParent();
   }
 }
-

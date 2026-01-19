@@ -16,6 +16,7 @@ class AimRayComponent extends Component {
     required this.controller,
     required this.preview,
     required this.length,
+    this.playerRenderPos,
     Paint? paint,
     this.drawWhenNoAim = true,
   }) : _paint =
@@ -34,6 +35,13 @@ class AimRayComponent extends Component {
   /// Length of the ray in world units (pixels).
   final double length;
 
+  /// Optional rendered player position (already snapped for pixel-perfect render).
+  ///
+  /// When provided, the ray origin uses this position instead of the raw
+  /// snapshot value to avoid 1px drift when render interpolation/snapping is
+  /// enabled.
+  final ValueGetter<Vector2>? playerRenderPos;
+
   /// Whether to draw a "straight ahead" ray even when the player hasn't
   /// explicitly dragged to aim (fallback to player facing).
   final bool drawWhenNoAim;
@@ -50,8 +58,9 @@ class AimRayComponent extends Component {
     if (player == null) return;
 
     final (dirX, dirY) = _resolveDir(state, player);
-    final startX = player.pos.x;
-    final startY = player.pos.y;
+    final rendered = playerRenderPos?.call();
+    final startX = rendered?.x ?? player.pos.x;
+    final startY = rendered?.y ?? player.pos.y;
     final endX = startX + dirX * length;
     final endY = startY + dirY * length;
 

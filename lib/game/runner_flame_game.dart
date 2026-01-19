@@ -28,6 +28,7 @@ import 'components/tiled_ground_band_component.dart';
 import 'components/aim_ray_component.dart';
 import 'game_controller.dart';
 import 'themes/parallax_theme_registry.dart';
+import 'util/math_util.dart' as math;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Render priorities
@@ -112,6 +113,14 @@ class RunnerFlameGame extends FlameGame {
     ..style = PaintingStyle.stroke
     ..strokeWidth = 1.0;
 
+  final Map<int, EntityRenderSnapshot> _prevEntitiesById =
+      <int, EntityRenderSnapshot>{};
+  final Set<int> _seenIdsScratch = <int>{};
+  final List<int> _toRemoveScratch = <int>[];
+  final Vector2 _cameraCenterScratch = Vector2.zero();
+  final Vector2 _snapScratch = Vector2.zero();
+  final List<EnemyKilledEvent> _pendingEnemyKilledEvents = <EnemyKilledEvent>[];
+
   @override
   Future<void> onLoad() async {
     await super.onLoad();
@@ -169,6 +178,7 @@ class RunnerFlameGame extends FlameGame {
         controller: controller,
         preview: projectileAimPreview,
         length: projectileAimRayLength,
+        playerRenderPos: () => _player.position,
         drawWhenNoAim: false,
       )..priority = _priorityProjectileAimRay,
     );
@@ -178,6 +188,7 @@ class RunnerFlameGame extends FlameGame {
         controller: controller,
         preview: meleeAimPreview,
         length: meleeAimRayLength,
+        playerRenderPos: () => _player.position,
         drawWhenNoAim: false,
         paint: Paint()
           ..color = const Color(0xFFDC4440)
@@ -191,6 +202,7 @@ class RunnerFlameGame extends FlameGame {
         controller: controller,
         preview: rangedAimPreview,
         length: projectileAimRayLength,
+        playerRenderPos: () => _player.position,
         drawWhenNoAim: false,
         paint: Paint()
           ..color = const Color(0xFFF59E0B)
@@ -210,29 +222,82 @@ class RunnerFlameGame extends FlameGame {
       input.pumpHeldInputs();
     }
 
-    super.update(dt);
-
-    // Step the deterministic core using the frame delta, then render the
-    // newest snapshot.
+    // Step the deterministic core using the frame delta, then render the newest
+    // snapshot. This order is critical: Flame components (parallax, etc.) read
+    // the camera during their own update(), so Core + camera + view sync must
+    // run BEFORE super.update(dt).
     controller.advanceFrame(dt);
-    final updatedSnapshot = controller.snapshot;
-    _syncStaticSolids(updatedSnapshot.staticSolids);
 
-    final player = updatedSnapshot.playerEntity;
-    if (player != null) {
-      _player.applySnapshot(player, tickHz: controller.tickHz);
+    final prevSnapshot = controller.prevSnapshot;
+    final currSnapshot = controller.snapshot;
+    final alpha = controller.alpha;
+
+    _prevEntitiesById.clear();
+    for (final e in prevSnapshot.entities) {
+      _prevEntitiesById[e.id] = e;
     }
-    camera.viewfinder.position = Vector2(
-      updatedSnapshot.cameraCenterX.roundToDouble(),
-      updatedSnapshot.cameraCenterY.roundToDouble(),
+
+    final camX = math.lerpDouble(
+      prevSnapshot.cameraCenterX,
+      currSnapshot.cameraCenterX,
+      alpha,
+    );
+    final camY = math.lerpDouble(
+      prevSnapshot.cameraCenterY,
+      currSnapshot.cameraCenterY,
+      alpha,
+    );
+    _cameraCenterScratch.setValues(camX, camY);
+    camera.viewfinder.position = _cameraCenterScratch;
+
+    _syncStaticSolids(currSnapshot.staticSolids);
+    _snapStaticSolids(
+      currSnapshot.staticSolids,
+      cameraCenter: _cameraCenterScratch,
     );
 
-    _syncEnemies(updatedSnapshot.entities);
-    _syncProjectiles(updatedSnapshot.entities);
-    _syncCollectibles(updatedSnapshot.entities);
-    _syncHitboxes(updatedSnapshot.entities);
+    final player = currSnapshot.playerEntity;
+    if (player != null) {
+      final prev = _prevEntitiesById[player.id] ?? player;
+      final worldX = math.lerpDouble(prev.pos.x, player.pos.x, alpha);
+      final worldY = math.lerpDouble(prev.pos.y, player.pos.y, alpha);
+      _snapScratch.setValues(
+        math.snapWorldToPixelsInCameraSpace1d(worldX, _cameraCenterScratch.x),
+        math.snapWorldToPixelsInCameraSpace1d(worldY, _cameraCenterScratch.y),
+      );
+      _player.applySnapshot(
+        player,
+        tickHz: controller.tickHz,
+        pos: _snapScratch,
+      );
+    }
+
+    _syncEnemies(
+      currSnapshot.entities,
+      prevById: _prevEntitiesById,
+      alpha: alpha,
+      cameraCenter: _cameraCenterScratch,
+    );
+    _syncProjectiles(
+      currSnapshot.entities,
+      prevById: _prevEntitiesById,
+      alpha: alpha,
+      cameraCenter: _cameraCenterScratch,
+    );
+    _syncCollectibles(
+      currSnapshot.entities,
+      prevById: _prevEntitiesById,
+      alpha: alpha,
+      cameraCenter: _cameraCenterScratch,
+    );
+    _syncHitboxes(
+      currSnapshot.entities,
+      prevById: _prevEntitiesById,
+      alpha: alpha,
+      cameraCenter: _cameraCenterScratch,
+    );
     syncDebugAabbOverlays(
-      entities: updatedSnapshot.entities,
+      entities: currSnapshot.entities,
       enabled:
           RenderDebugFlags.canUseRenderDebug &&
           RenderDebugFlags.drawActorHitboxes,
@@ -241,7 +306,14 @@ class RunnerFlameGame extends FlameGame {
       priority: _priorityActorHitboxes,
       paint: _actorHitboxPaint,
       include: (e) => e.kind == EntityKind.player || e.kind == EntityKind.enemy,
+      prevById: _prevEntitiesById,
+      alpha: alpha,
+      cameraCenter: _cameraCenterScratch,
     );
+
+    _flushPendingEnemyKilledEvents(cameraCenter: _cameraCenterScratch);
+
+    super.update(dt);
   }
 
   /// Mounts static solid rectangles into the world.
@@ -272,8 +344,13 @@ class RunnerFlameGame extends FlameGame {
   ///
   /// Creates circle components for new enemies, updates position/rotation for
   /// existing ones, and removes components for despawned enemies.
-  void _syncEnemies(List<EntityRenderSnapshot> entities) {
-    final seen = <int>{};
+  void _syncEnemies(
+    List<EntityRenderSnapshot> entities, {
+    required Map<int, EntityRenderSnapshot> prevById,
+    required double alpha,
+    required Vector2 cameraCenter,
+  }) {
+    final seen = _seenIdsScratch..clear();
 
     for (final e in entities) {
       if (e.kind != EntityKind.enemy) continue;
@@ -303,29 +380,36 @@ class RunnerFlameGame extends FlameGame {
         world.add(view);
       }
 
+      final prev = prevById[e.id] ?? e;
+      final worldX = math.lerpDouble(prev.pos.x, e.pos.x, alpha);
+      final worldY = math.lerpDouble(prev.pos.y, e.pos.y, alpha);
+      final snappedX = math.snapWorldToPixelsInCameraSpace1d(
+        worldX,
+        cameraCenter.x,
+      );
+      final snappedY = math.snapWorldToPixelsInCameraSpace1d(
+        worldY,
+        cameraCenter.y,
+      );
+
       if (view is DeterministicAnimViewComponent) {
-        view.applySnapshot(e, tickHz: controller.tickHz);
+        _snapScratch.setValues(snappedX, snappedY);
+        view.applySnapshot(e, tickHz: controller.tickHz, pos: _snapScratch);
       } else if (view is CircleComponent) {
         final size = e.size;
         if (size != null) {
           view.radius = (size.x < size.y ? size.x : size.y) * 0.5;
         }
-        view.position.setValues(
-          e.pos.x.roundToDouble(),
-          e.pos.y.roundToDouble(),
-        );
+        view.position.setValues(snappedX, snappedY);
         view.angle = e.rotationRad;
       } else {
-        view.position.setValues(
-          e.pos.x.roundToDouble(),
-          e.pos.y.roundToDouble(),
-        );
+        view.position.setValues(snappedX, snappedY);
         view.angle = e.rotationRad;
       }
     }
 
     if (_enemies.isEmpty) return;
-    final toRemove = <int>[];
+    final toRemove = _toRemoveScratch..clear();
     for (final id in _enemies.keys) {
       if (!seen.contains(id)) toRemove.add(id);
     }
@@ -336,36 +420,52 @@ class RunnerFlameGame extends FlameGame {
 
   void _handleGameEvent(GameEvent event) {
     if (event is! EnemyKilledEvent) return;
-    final entry = _enemyRenderRegistry.entryFor(event.enemyId);
-    if (entry == null) return;
-    if (entry.deathAnimPolicy == EnemyDeathAnimPolicy.none) return;
+    _pendingEnemyKilledEvents.add(event);
+  }
 
-    final deathAnim = entry.animSet.animations[AnimKey.death];
-    if (deathAnim == null) return;
+  void _flushPendingEnemyKilledEvents({required Vector2 cameraCenter}) {
+    if (_pendingEnemyKilledEvents.isEmpty) return;
 
-    final component = SpriteAnimationComponent(
-      animation: deathAnim,
-      size: entry.animSet.frameSize.clone(),
-      anchor: Anchor.center,
-      position: Vector2(
-        event.pos.x.roundToDouble(),
-        event.pos.y.roundToDouble(),
-      ),
-      paint: Paint()..filterQuality = FilterQuality.none,
-      removeOnFinish: true,
-    );
-    component.priority = _priorityEnemies;
-    final sign = event.facing == event.artFacingDir ? 1.0 : -1.0;
-    component.scale.setValues(entry.renderScale.x * sign, entry.renderScale.y);
-    world.add(component);
+    for (final event in _pendingEnemyKilledEvents) {
+      final entry = _enemyRenderRegistry.entryFor(event.enemyId);
+      if (entry == null) continue;
+      if (entry.deathAnimPolicy == EnemyDeathAnimPolicy.none) continue;
+
+      final deathAnim = entry.animSet.animations[AnimKey.death];
+      if (deathAnim == null) continue;
+
+      final component = _CameraSpaceSnappedSpriteAnimationComponent(
+        animation: deathAnim,
+        size: entry.animSet.frameSize.clone(),
+        worldPosX: event.pos.x,
+        worldPosY: event.pos.y,
+        paint: Paint()..filterQuality = FilterQuality.none,
+        removeOnFinish: true,
+      )..priority = _priorityEnemies;
+
+      final sign = event.facing == event.artFacingDir ? 1.0 : -1.0;
+      component.scale.setValues(
+        entry.renderScale.x * sign,
+        entry.renderScale.y,
+      );
+      component.snapToCamera(cameraCenter);
+      world.add(component);
+    }
+
+    _pendingEnemyKilledEvents.clear();
   }
 
   /// Synchronizes projectile view components with the snapshot.
   ///
   /// Creates rectangle components for new projectiles, updates position/size
   /// for existing ones, and removes components for despawned projectiles.
-  void _syncProjectiles(List<EntityRenderSnapshot> entities) {
-    final seen = <int>{};
+  void _syncProjectiles(
+    List<EntityRenderSnapshot> entities, {
+    required Map<int, EntityRenderSnapshot> prevById,
+    required double alpha,
+    required Vector2 cameraCenter,
+  }) {
+    final seen = _seenIdsScratch..clear();
 
     for (final e in entities) {
       if (e.kind != EntityKind.projectile) continue;
@@ -389,12 +489,18 @@ class RunnerFlameGame extends FlameGame {
         }
       }
 
-      view.position.setValues(e.pos.x.roundToDouble(), e.pos.y.roundToDouble());
+      final prev = prevById[e.id] ?? e;
+      final worldX = math.lerpDouble(prev.pos.x, e.pos.x, alpha);
+      final worldY = math.lerpDouble(prev.pos.y, e.pos.y, alpha);
+      view.position.setValues(
+        math.snapWorldToPixelsInCameraSpace1d(worldX, cameraCenter.x),
+        math.snapWorldToPixelsInCameraSpace1d(worldY, cameraCenter.y),
+      );
       view.angle = e.rotationRad;
     }
 
     if (_projectiles.isEmpty) return;
-    final toRemove = <int>[];
+    final toRemove = _toRemoveScratch..clear();
     for (final id in _projectiles.keys) {
       if (!seen.contains(id)) toRemove.add(id);
     }
@@ -407,8 +513,13 @@ class RunnerFlameGame extends FlameGame {
   ///
   /// Creates rectangle components for new pickups, updates position/paint for
   /// existing ones, and removes components for collected pickups.
-  void _syncCollectibles(List<EntityRenderSnapshot> entities) {
-    final seen = <int>{};
+  void _syncCollectibles(
+    List<EntityRenderSnapshot> entities, {
+    required Map<int, EntityRenderSnapshot> prevById,
+    required double alpha,
+    required Vector2 cameraCenter,
+  }) {
+    final seen = _seenIdsScratch..clear();
 
     for (final e in entities) {
       if (e.kind != EntityKind.pickup) continue;
@@ -438,12 +549,18 @@ class RunnerFlameGame extends FlameGame {
         }
       }
 
-      view.position.setValues(e.pos.x.roundToDouble(), e.pos.y.roundToDouble());
+      final prev = prevById[e.id] ?? e;
+      final worldX = math.lerpDouble(prev.pos.x, e.pos.x, alpha);
+      final worldY = math.lerpDouble(prev.pos.y, e.pos.y, alpha);
+      view.position.setValues(
+        math.snapWorldToPixelsInCameraSpace1d(worldX, cameraCenter.x),
+        math.snapWorldToPixelsInCameraSpace1d(worldY, cameraCenter.y),
+      );
       view.angle = e.rotationRad;
     }
 
     if (_collectibles.isEmpty) return;
-    final toRemove = <int>[];
+    final toRemove = _toRemoveScratch..clear();
     for (final id in _collectibles.keys) {
       if (!seen.contains(id)) toRemove.add(id);
     }
@@ -457,8 +574,13 @@ class RunnerFlameGame extends FlameGame {
   /// Creates translucent red rectangle components for new triggers, updates
   /// position/size for existing ones, and removes components for despawned
   /// triggers.
-  void _syncHitboxes(List<EntityRenderSnapshot> entities) {
-    final seen = <int>{};
+  void _syncHitboxes(
+    List<EntityRenderSnapshot> entities, {
+    required Map<int, EntityRenderSnapshot> prevById,
+    required double alpha,
+    required Vector2 cameraCenter,
+  }) {
+    final seen = _seenIdsScratch..clear();
 
     for (final e in entities) {
       if (e.kind != EntityKind.trigger) continue;
@@ -482,11 +604,17 @@ class RunnerFlameGame extends FlameGame {
         }
       }
 
-      view.position.setValues(e.pos.x.roundToDouble(), e.pos.y.roundToDouble());
+      final prev = prevById[e.id] ?? e;
+      final worldX = math.lerpDouble(prev.pos.x, e.pos.x, alpha);
+      final worldY = math.lerpDouble(prev.pos.y, e.pos.y, alpha);
+      view.position.setValues(
+        math.snapWorldToPixelsInCameraSpace1d(worldX, cameraCenter.x),
+        math.snapWorldToPixelsInCameraSpace1d(worldY, cameraCenter.y),
+      );
     }
 
     if (_hitboxes.isEmpty) return;
-    final toRemove = <int>[];
+    final toRemove = _toRemoveScratch..clear();
     for (final id in _hitboxes.keys) {
       if (!seen.contains(id)) toRemove.add(id);
     }
@@ -513,10 +641,60 @@ class RunnerFlameGame extends FlameGame {
     _mountStaticSolids(solids);
   }
 
+  void _snapStaticSolids(
+    List<StaticSolidSnapshot> solids, {
+    required Vector2 cameraCenter,
+  }) {
+    if (solids.isEmpty) return;
+    if (_staticSolids.length != solids.length) return;
+
+    for (var i = 0; i < solids.length; i++) {
+      final solid = solids[i];
+      final view = _staticSolids[i];
+      view.position.setValues(
+        math.snapWorldToPixelsInCameraSpace1d(solid.minX, cameraCenter.x),
+        math.snapWorldToPixelsInCameraSpace1d(solid.minY, cameraCenter.y),
+      );
+    }
+  }
+
   @override
   void onRemove() {
     controller.removeEventListener(_handleGameEvent);
     images.clearCache();
     super.onRemove();
+  }
+}
+
+class _CameraSpaceSnappedSpriteAnimationComponent
+    extends SpriteAnimationComponent
+    with HasGameReference<FlameGame> {
+  _CameraSpaceSnappedSpriteAnimationComponent({
+    required SpriteAnimation super.animation,
+    required Vector2 super.size,
+    required this.worldPosX,
+    required this.worldPosY,
+    super.paint,
+    super.removeOnFinish,
+  }) : super(anchor: Anchor.center);
+
+  final double worldPosX;
+  final double worldPosY;
+
+  void snapToCamera(Vector2 cameraCenter) {
+    position.setValues(
+      math.snapWorldToPixelsInCameraSpace1d(worldPosX, cameraCenter.x),
+      math.snapWorldToPixelsInCameraSpace1d(worldPosY, cameraCenter.y),
+    );
+  }
+
+  @override
+  void update(double dt) {
+    final cameraOffset = game.camera.viewfinder.transform.offset;
+    position.setValues(
+      math.snapWorldToPixelsInCameraSpace1d(worldPosX, -cameraOffset.x),
+      math.snapWorldToPixelsInCameraSpace1d(worldPosY, -cameraOffset.y),
+    );
+    super.update(dt);
   }
 }

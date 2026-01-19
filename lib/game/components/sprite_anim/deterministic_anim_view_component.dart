@@ -41,8 +41,16 @@ class DeterministicAnimViewComponent
   final AnimKeyFallbackResolver? _fallbackResolver;
   final Vector2 _baseScale;
 
-  void applySnapshot(EntityRenderSnapshot e, {required int tickHz}) {
-    position.setValues(e.pos.x.roundToDouble(), e.pos.y.roundToDouble());
+  void applySnapshot(
+    EntityRenderSnapshot e, {
+    required int tickHz,
+    Vector2? pos,
+  }) {
+    if (pos != null) {
+      position.setFrom(pos);
+    } else {
+      position.setValues(e.pos.x.roundToDouble(), e.pos.y.roundToDouble());
+    }
 
     var next = e.anim;
     if (_fallbackResolver != null) {

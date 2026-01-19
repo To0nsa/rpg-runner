@@ -45,7 +45,7 @@ class PixelParallaxBackdropComponent extends Component
   late final List<ui.Image> _images;
 
   /// Previous frame's camera X position (for delta calculation).
-  int? _prevCameraLeftX;
+  double? _prevCameraLeftX;
 
   /// Accumulated scroll offset for each layer (in pixels).
   late final List<double> _scroll;
@@ -70,9 +70,9 @@ class PixelParallaxBackdropComponent extends Component
   void update(double dt) {
     super.update(dt);
 
-    final viewWidth = virtualWidth;
-    final cameraLeftX =
-        (game.camera.viewfinder.position.x - viewWidth / 2).round();
+    final viewWidth = virtualWidth.toDouble();
+    final camX = -game.camera.viewfinder.transform.offset.x;
+    final cameraLeftX = camX - viewWidth * 0.5;
 
     final prev = _prevCameraLeftX;
     _prevCameraLeftX = cameraLeftX;
@@ -112,8 +112,9 @@ class PixelParallaxBackdropComponent extends Component
       final y = (viewHeight - imageH).toDouble(); // Bottom-aligned.
 
       // Optionally snap to whole pixels for crisp pixel-art rendering.
-      final scroll =
-          snapScrollToPixels ? _scroll[i].roundToDouble() : _scroll[i];
+      final scroll = snapScrollToPixels
+          ? _scroll[i].roundToDouble()
+          : _scroll[i];
       final offsetPx = -scroll;
       final startX = positiveModDouble(offsetPx, imageW.toDouble());
 
