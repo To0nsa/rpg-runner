@@ -1,6 +1,6 @@
 ﻿REPO: C:\dev\rpg_runner
-COMMIT: cd927cbda3188f2820eaa0ca34f583d95afbd9a8
-DATE: 2026-01-19 09:18:52
+COMMIT: 29cae87c002834f3a2c8a9f525b48a8ab3321cfd
+DATE: 2026-01-19 21:39:25
 
 
 ===== FILE: lib/AGENTS.md =====
@@ -1126,7 +1126,7 @@ enum DamageType {
   physical,
   fire,
   ice,
-  lightning,
+  thunder,
   bleed,
 }
 
@@ -1354,6 +1354,7 @@ final class RangedPressedCommand extends Command {
 library;
 
 import '../snapshots/enums.dart';
+import '../util/vec2.dart';
 
 /// Data-driven animation strip definition (frame size, paths, timing).
 class RenderAnimSetDefinition {
@@ -1361,6 +1362,8 @@ class RenderAnimSetDefinition {
     required this.frameWidth,
     required this.frameHeight,
     required this.sourcesByKey,
+    this.rowByKey = const <AnimKey, int>{},
+    this.anchorInFramePx,
     required this.frameCountsByKey,
     required this.stepTimeSecondsByKey,
   });
@@ -1368,8 +1371,27 @@ class RenderAnimSetDefinition {
   final int frameWidth;
   final int frameHeight;
 
-  /// Asset paths (relative to `assets/images/`) for each animation strip.
+  /// Asset paths (relative to `assets/images/`) for each animation source.
+  ///
+  /// A single path can be reused for multiple keys:
+  /// - **Strip format**: each key points to a single-row horizontal strip (row 0).
+  /// - **Sheet format**: multiple keys point to one multi-row sheet, using
+  ///   [rowByKey] to select the row for each [AnimKey].
   final Map<AnimKey, String> sourcesByKey;
+
+  /// Optional 0-based row index per [AnimKey] when using a multi-row sheet.
+  ///
+  /// If a key is missing, render assumes row 0 (strip compatibility).
+  final Map<AnimKey, int> rowByKey;
+
+  /// Optional anchor/pivot location inside a single source frame (in pixels).
+  ///
+  /// When null, render uses `Anchor.center`.
+  ///
+  /// This is useful when the authored art is not centered on the logical
+  /// collider (e.g. enemies with long weapons/tails). The renderer treats the
+  /// Core snapshot position as the world-space position of this anchor.
+  final Vec2? anchorInFramePx;
 
   final Map<AnimKey, int> frameCountsByKey;
   final Map<AnimKey, double> stepTimeSecondsByKey;
@@ -3233,14 +3255,14 @@ class DamageResistanceDef {
     this.physical = 0.0,
     this.fire = 0.0,
     this.ice = 0.0,
-    this.lightning = 0.0,
+    this.thunder = 0.0,
     this.bleed = 0.0,
   });
 
   final double physical;
   final double fire;
   final double ice;
-  final double lightning;
+  final double thunder;
   final double bleed;
 
   double modFor(DamageType type) {
@@ -3251,8 +3273,8 @@ class DamageResistanceDef {
         return fire;
       case DamageType.ice:
         return ice;
-      case DamageType.lightning:
-        return lightning;
+      case DamageType.thunder:
+        return thunder;
       case DamageType.bleed:
         return bleed;
     }
@@ -3264,7 +3286,7 @@ class DamageResistanceStore extends SparseSet {
   final List<double> physical = <double>[];
   final List<double> fire = <double>[];
   final List<double> ice = <double>[];
-  final List<double> lightning = <double>[];
+  final List<double> thunder = <double>[];
   final List<double> bleed = <double>[];
 
   void add(EntityId entity, [DamageResistanceDef def = const DamageResistanceDef()]) {
@@ -3272,7 +3294,7 @@ class DamageResistanceStore extends SparseSet {
     physical[i] = def.physical;
     fire[i] = def.fire;
     ice[i] = def.ice;
-    lightning[i] = def.lightning;
+    thunder[i] = def.thunder;
     bleed[i] = def.bleed;
   }
 
@@ -3290,8 +3312,8 @@ class DamageResistanceStore extends SparseSet {
         return fire[index];
       case DamageType.ice:
         return ice[index];
-      case DamageType.lightning:
-        return lightning[index];
+      case DamageType.thunder:
+        return thunder[index];
       case DamageType.bleed:
         return bleed[index];
     }
@@ -3302,7 +3324,7 @@ class DamageResistanceStore extends SparseSet {
     physical.add(0.0);
     fire.add(0.0);
     ice.add(0.0);
-    lightning.add(0.0);
+    thunder.add(0.0);
     bleed.add(0.0);
   }
 
@@ -3311,13 +3333,13 @@ class DamageResistanceStore extends SparseSet {
     physical[removeIndex] = physical[lastIndex];
     fire[removeIndex] = fire[lastIndex];
     ice[removeIndex] = ice[lastIndex];
-    lightning[removeIndex] = lightning[lastIndex];
+    thunder[removeIndex] = thunder[lastIndex];
     bleed[removeIndex] = bleed[lastIndex];
 
     physical.removeLast();
     fire.removeLast();
     ice.removeLast();
-    lightning.removeLast();
+    thunder.removeLast();
     bleed.removeLast();
   }
 }
@@ -9579,6 +9601,7 @@ import '../anim/anim_resolver.dart';
 import '../contracts/render_anim_set_definition.dart';
 import '../spells/spell_id.dart';
 import '../snapshots/enums.dart';
+import '../util/vec2.dart';
 import 'enemy_id.dart';
 
 // -----------------------------------------------------------------------------
@@ -9641,80 +9664,99 @@ const AnimProfile _unocoAnimProfile = AnimProfile(
 );
 
 // -----------------------------------------------------------------------------
-// Werewolf (ground enemy) render animation strip definitions (authoring-time)
+// grojib (ground enemy) render animation sheet definitions (authoring-time)
 // -----------------------------------------------------------------------------
 
-const int _werewolfAnimFrameWidth = 100;
-const int _werewolfAnimFrameHeight = 64;
+const int _grojibAnimFrameWidth = 108;
+const int _grojibAnimFrameHeight = 59;
 
-const int _werewolfAnimIdleFrames = 4;
-const double _werewolfAnimIdleStepSeconds = 0.14;
+const int _grojibAnimIdleFrames = 8;
+const double _grojibAnimIdleStepSeconds = 0.14;
 
-const int _werewolfAnimMoveFrames = 7;
-const double _werewolfAnimMoveStepSeconds = 0.08;
+const int _grojibAnimMoveFrames = 8;
+const double _grojibAnimMoveStepSeconds = 0.08;
 
-const int _werewolfAnimWalkFrames = _werewolfAnimMoveFrames;
-const double _werewolfAnimWalkStepSeconds = _werewolfAnimMoveStepSeconds;
+const int _grojibAnimWalkFrames = _grojibAnimMoveFrames;
+const double _grojibAnimWalkStepSeconds = _grojibAnimMoveStepSeconds;
 
-const int _werewolfAnimHitFrames = 4;
-const double _werewolfAnimHitStepSeconds = 0.10;
+const int _grojibAnimHitFrames = 3;
+const double _grojibAnimHitStepSeconds = 0.10;
 
-const int _werewolfAnimDeathFrames = 6;
-const double _werewolfAnimDeathStepSeconds = 0.12;
+const int _grojibAnimDeathFrames = 12;
+const double _grojibAnimDeathStepSeconds = 0.12;
 
-const int _werewolfAnimAttackFrames = 6;
-const double _werewolfAnimAttackStepSeconds = 0.06;
+// The authored sheet has 20 columns on the attack row:
+// - frames 1..8  = Attack
+// - frames 9..20 = Attack2
+// Core only exposes AnimKey.attack, so we treat the full row as one animation.
+const int _grojibAnimAttackFrames = 8;
+const double _grojibAnimAttackStepSeconds = 0.06;
 
-const int _werewolfAnimJumpFrames = 6;
-const double _werewolfAnimJumpStepSeconds = 0.10;
+const int _grojibAnimJumpFrames = 3;
+const double _grojibAnimJumpStepSeconds = 0.10;
 
-const int _werewolfAnimFallFrames = 3;
-const double _werewolfAnimFallStepSeconds = 0.10;
-const double _werewolfHitAnimSeconds =
-    _werewolfAnimHitFrames * _werewolfAnimHitStepSeconds;
+const int _grojibAnimFallFrames = 3;
+const double _grojibAnimFallStepSeconds = 0.10;
+const double _grojibHitAnimSeconds =
+    _grojibAnimHitFrames * _grojibAnimHitStepSeconds;
 
-const Map<AnimKey, int> _werewolfAnimFrameCountsByKey = <AnimKey, int>{
-  AnimKey.idle: _werewolfAnimIdleFrames,
-  AnimKey.run: _werewolfAnimMoveFrames,
-  AnimKey.walk: _werewolfAnimWalkFrames,
-  AnimKey.attack: _werewolfAnimAttackFrames,
-  AnimKey.hit: _werewolfAnimHitFrames,
-  AnimKey.death: _werewolfAnimDeathFrames,
-  AnimKey.jump: _werewolfAnimJumpFrames,
-  AnimKey.fall: _werewolfAnimFallFrames,
+const Map<AnimKey, int> _grojibAnimFrameCountsByKey = <AnimKey, int>{
+  AnimKey.idle: _grojibAnimIdleFrames,
+  AnimKey.run: _grojibAnimMoveFrames,
+  AnimKey.walk: _grojibAnimWalkFrames,
+  AnimKey.attack: _grojibAnimAttackFrames,
+  AnimKey.hit: _grojibAnimHitFrames,
+  AnimKey.death: _grojibAnimDeathFrames,
+  AnimKey.jump: _grojibAnimJumpFrames,
+  AnimKey.fall: _grojibAnimFallFrames,
 };
 
-const Map<AnimKey, double> _werewolfAnimStepTimeSecondsByKey = <AnimKey, double>{
-  AnimKey.idle: _werewolfAnimIdleStepSeconds,
-  AnimKey.run: _werewolfAnimMoveStepSeconds,
-  AnimKey.walk: _werewolfAnimWalkStepSeconds,
-  AnimKey.attack: _werewolfAnimAttackStepSeconds,
-  AnimKey.hit: _werewolfAnimHitStepSeconds,
-  AnimKey.death: _werewolfAnimDeathStepSeconds,
-  AnimKey.jump: _werewolfAnimJumpStepSeconds,
-  AnimKey.fall: _werewolfAnimFallStepSeconds,
+const Map<AnimKey, double> _grojibAnimStepTimeSecondsByKey = <AnimKey, double>{
+  AnimKey.idle: _grojibAnimIdleStepSeconds,
+  AnimKey.run: _grojibAnimMoveStepSeconds,
+  AnimKey.walk: _grojibAnimWalkStepSeconds,
+  AnimKey.attack: _grojibAnimAttackStepSeconds,
+  AnimKey.hit: _grojibAnimHitStepSeconds,
+  AnimKey.death: _grojibAnimDeathStepSeconds,
+  AnimKey.jump: _grojibAnimJumpStepSeconds,
+  AnimKey.fall: _grojibAnimFallStepSeconds,
 };
 
-const Map<AnimKey, String> _werewolfAnimSourcesByKey = <AnimKey, String>{
-  AnimKey.idle: 'entities/enemies/werewolf/idle.png',
-  AnimKey.run: 'entities/enemies/werewolf/run.png',
-  AnimKey.walk: 'entities/enemies/werewolf/walk.png',
-  AnimKey.attack: 'entities/enemies/werewolf/attack.png',
-  AnimKey.hit: 'entities/enemies/werewolf/hit.png',
-  AnimKey.death: 'entities/enemies/werewolf/death.png',
-  AnimKey.jump: 'entities/enemies/werewolf/jump.png',
-  AnimKey.fall: 'entities/enemies/werewolf/fall.png',
+const String _grojibAnimSpriteSheetPath = 'entities/enemies/grojib/grojib.png';
+
+const Map<AnimKey, String> _grojibAnimSourcesByKey = <AnimKey, String>{
+  AnimKey.idle: _grojibAnimSpriteSheetPath,
+  AnimKey.run: _grojibAnimSpriteSheetPath,
+  AnimKey.walk: _grojibAnimSpriteSheetPath,
+  AnimKey.attack: _grojibAnimSpriteSheetPath,
+  AnimKey.hit: _grojibAnimSpriteSheetPath,
+  AnimKey.death: _grojibAnimSpriteSheetPath,
+  AnimKey.jump: _grojibAnimSpriteSheetPath,
+  AnimKey.fall: _grojibAnimSpriteSheetPath,
 };
 
-const RenderAnimSetDefinition _werewolfRenderAnim = RenderAnimSetDefinition(
-  frameWidth: _werewolfAnimFrameWidth,
-  frameHeight: _werewolfAnimFrameHeight,
-  sourcesByKey: _werewolfAnimSourcesByKey,
-  frameCountsByKey: _werewolfAnimFrameCountsByKey,
-  stepTimeSecondsByKey: _werewolfAnimStepTimeSecondsByKey,
+const Map<AnimKey, int> _grojibAnimRowByKey = <AnimKey, int>{
+  AnimKey.idle: 0,
+  AnimKey.run: 1,
+  AnimKey.walk: 1,
+  AnimKey.attack: 2,
+  AnimKey.hit: 3,
+  AnimKey.death: 4,
+  AnimKey.jump: 5,
+  AnimKey.fall: 7,
+};
+
+const RenderAnimSetDefinition _grojibRenderAnim = RenderAnimSetDefinition(
+  frameWidth: _grojibAnimFrameWidth,
+  frameHeight: _grojibAnimFrameHeight,
+  sourcesByKey: _grojibAnimSourcesByKey,
+  rowByKey: _grojibAnimRowByKey,
+  anchorInFramePx: Vec2(77, _grojibAnimFrameHeight * 0.5),
+  frameCountsByKey: _grojibAnimFrameCountsByKey,
+  stepTimeSecondsByKey: _grojibAnimStepTimeSecondsByKey,
 );
 
-const AnimProfile _werewolfAnimProfile = AnimProfile(
+const AnimProfile _grojibAnimProfile = AnimProfile(
   minMoveSpeed: 1.0,
   runSpeedThresholdX: 120.0,
 );
@@ -9734,7 +9776,7 @@ class EnemyArchetype {
     required this.animProfile,
     required this.hitAnimSeconds,
     this.primarySpellId,
-    this.artFacingDir = Facing.right,
+    this.artFacingDir = Facing.left,
     this.tags = const CreatureTagDef(),
     this.resistance = const DamageResistanceDef(),
     this.statusImmunity = const StatusImmunityDef(),
@@ -9815,7 +9857,7 @@ class EnemyCatalog {
           renderAnim: _unocoRenderAnim,
           animProfile: _unocoAnimProfile,
           hitAnimSeconds: _unocoHitAnimSeconds,
-          primarySpellId: SpellId.lightning,
+          primarySpellId: SpellId.thunderBolt,
           artFacingDir: Facing.left,
           tags: CreatureTagDef(
             mask: CreatureTagMask.flying | CreatureTagMask.demon,
@@ -9832,7 +9874,7 @@ class EnemyCatalog {
             gravityScale: 1.0,
             sideMask: BodyDef.sideLeft | BodyDef.sideRight,
           ),
-          collider: ColliderAabbDef(halfX: 12.0, halfY: 12.0),
+          collider: ColliderAabbDef(halfX: 25.0, halfY: 25.0, offsetX: 0.0, offsetY: 20.0),
           health: HealthDef(hp: 20.0, hpMax: 20.0, regenPerSecond: 0.5),
           mana: ManaDef(mana: 0.0, manaMax: 0.0, regenPerSecond: 0.0),
           stamina: StaminaDef(
@@ -9840,9 +9882,9 @@ class EnemyCatalog {
             staminaMax: 0.0,
             regenPerSecond: 0.0,
           ),
-          renderAnim: _werewolfRenderAnim,
-          animProfile: _werewolfAnimProfile,
-          hitAnimSeconds: _werewolfHitAnimSeconds,
+          renderAnim: _grojibRenderAnim,
+          animProfile: _grojibAnimProfile,
+          hitAnimSeconds: _grojibHitAnimSeconds,
           tags: CreatureTagDef(mask: CreatureTagMask.humanoid),
         );
     }
@@ -13891,7 +13933,7 @@ const PlayerCatalog eloiseCatalog = PlayerCatalog(
   colliderWidth: 22.0,
   colliderHeight: 46.0,
   colliderOffsetX: 0.0,
-  colliderOffsetY: -6.0,
+  colliderOffsetY: 0.0,
   tags: CreatureTagDef(mask: CreatureTagMask.humanoid),
   resistance: DamageResistanceDef(),
   statusImmunity: StatusImmunityDef(),
@@ -14430,6 +14472,44 @@ class PlayerCharacterDefinition {
         }
       }
 
+      for (final entry in renderAnim.rowByKey.entries) {
+        final key = entry.key;
+        final row = entry.value;
+        if (row < 0) {
+          throw StateError(
+            'PlayerCharacterDefinition($id) renderAnim.rowByKey[$key] must be >= 0 (got $row)',
+          );
+        }
+        if (!renderAnim.sourcesByKey.containsKey(key)) {
+          throw StateError(
+            'PlayerCharacterDefinition($id) renderAnim.rowByKey[$key] has no matching sourcesByKey entry',
+          );
+        }
+        if (!renderAnim.frameCountsByKey.containsKey(key)) {
+          throw StateError(
+            'PlayerCharacterDefinition($id) renderAnim.rowByKey[$key] has no matching frameCountsByKey entry',
+          );
+        }
+      }
+
+      final anchor = renderAnim.anchorInFramePx;
+      if (anchor != null) {
+        if (!anchor.x.isFinite || !anchor.y.isFinite) {
+          throw StateError(
+            'PlayerCharacterDefinition($id) renderAnim.anchorInFramePx must be finite (got $anchor)',
+          );
+        }
+        if (anchor.x < 0 ||
+            anchor.x > renderAnim.frameWidth ||
+            anchor.y < 0 ||
+            anchor.y > renderAnim.frameHeight) {
+          throw StateError(
+            'PlayerCharacterDefinition($id) renderAnim.anchorInFramePx must be within the frame '
+            '(0..${renderAnim.frameWidth}, 0..${renderAnim.frameHeight}). Got $anchor',
+          );
+        }
+      }
+
       // Tuning invariants (only basic sanity checks here).
       if (!tuning.anim.hitAnimSeconds.isFinite ||
           !tuning.anim.castAnimSeconds.isFinite ||
@@ -14944,7 +15024,7 @@ class ProjectileCatalog {
           colliderSizeX: 18.0,
           colliderSizeY: 8.0,
         );
-      case ProjectileId.lightningBolt:
+      case ProjectileId.thunderBolt:
         return const ProjectileArchetype(
           speedUnitsPerSecond: 1000.0,
           lifetimeSeconds: 1.2,
@@ -15005,7 +15085,7 @@ enum ProjectileId {
   iceBolt,
 
   /// Enemy ranged attack. Slower but longer range.
-  lightningBolt,
+  thunderBolt,
 
   /// Physical arrow projectile (ballistic).
   arrow,
@@ -16297,7 +16377,7 @@ class SpawnService {
     return _entityFactory.createEnemy(
       enemyId: EnemyId.groundEnemy,
       posX: spawnX,
-      posY: groundTopY - archetype.collider.halfY,
+      posY: groundTopY - (archetype.collider.offsetY + archetype.collider.halfY),
       velX: 0.0,
       velY: 0.0,
       facing: Facing.left,
@@ -16968,14 +17048,14 @@ class SpellCatalog {
           ),
           projectileId: ProjectileId.iceBolt,
         );
-      case SpellId.lightning:
+      case SpellId.thunderBolt:
         return const SpellDef(
           stats: ProjectileSpellStats(
             manaCost: 10.0,
             damage: 5.0,
-            damageType: DamageType.lightning,
+            damageType: DamageType.thunder,
           ),
-          projectileId: ProjectileId.lightningBolt,
+          projectileId: ProjectileId.thunderBolt,
         );
     }
   }
@@ -16992,7 +17072,7 @@ enum SpellId {
   iceBolt,
 
   /// Enemy ranged attack.
-  lightning,
+  thunder,
 }
 
 
@@ -18746,14 +18826,14 @@ class GroundEnemyLocomotionTuning {
 /// Combat tuning (melee timing + damage).
 class GroundEnemyCombatTuning {
   const GroundEnemyCombatTuning({
-    this.meleeRangeX = 26.0,
+    this.meleeRangeX = 52.0,
     this.meleeCooldownSeconds = 1.0,
     this.meleeActiveSeconds = 0.10,
     this.meleeAnimSeconds = 0.60,
     this.meleeWindupSeconds = 0.18,
     this.meleeDamage = 5.0,
-    this.meleeHitboxSizeX = 28.0,
-    this.meleeHitboxSizeY = 16.0,
+    this.meleeHitboxSizeX = 56.0,
+    this.meleeHitboxSizeY = 32.0,
   });
 
   /// Horizontal range to trigger melee attack (world units).
@@ -19825,6 +19905,7 @@ class AimRayComponent extends Component {
     required this.controller,
     required this.preview,
     required this.length,
+    this.playerRenderPos,
     Paint? paint,
     this.drawWhenNoAim = true,
   }) : _paint =
@@ -19843,6 +19924,13 @@ class AimRayComponent extends Component {
   /// Length of the ray in world units (pixels).
   final double length;
 
+  /// Optional rendered player position (already snapped for pixel-perfect render).
+  ///
+  /// When provided, the ray origin uses this position instead of the raw
+  /// snapshot value to avoid 1px drift when render interpolation/snapping is
+  /// enabled.
+  final ValueGetter<Vector2>? playerRenderPos;
+
   /// Whether to draw a "straight ahead" ray even when the player hasn't
   /// explicitly dragged to aim (fallback to player facing).
   final bool drawWhenNoAim;
@@ -19859,8 +19947,9 @@ class AimRayComponent extends Component {
     if (player == null) return;
 
     final (dirX, dirY) = _resolveDir(state, player);
-    final startX = player.pos.x;
-    final startY = player.pos.y;
+    final rendered = playerRenderPos?.call();
+    final startX = rendered?.x ?? player.pos.x;
+    final startY = rendered?.y ?? player.pos.y;
     final endX = startX + dirX * length;
     final endY = startY + dirY * length;
 
@@ -19997,7 +20086,7 @@ class EnemyRenderRegistry {
     ),
     EnemyId.groundEnemy: EnemyRenderEntry(
       id: EnemyId.groundEnemy,
-      renderScale: Vector2.all(0.75),
+      renderScale: Vector2.all(1.5),
     ),
   };
 
@@ -20064,7 +20153,7 @@ class PixelParallaxBackdropComponent extends Component
   late final List<ui.Image> _images;
 
   /// Previous frame's camera X position (for delta calculation).
-  int? _prevCameraLeftX;
+  double? _prevCameraLeftX;
 
   /// Accumulated scroll offset for each layer (in pixels).
   late final List<double> _scroll;
@@ -20089,9 +20178,9 @@ class PixelParallaxBackdropComponent extends Component
   void update(double dt) {
     super.update(dt);
 
-    final viewWidth = virtualWidth;
-    final cameraLeftX =
-        (game.camera.viewfinder.position.x - viewWidth / 2).round();
+    final viewWidth = virtualWidth.toDouble();
+    final camX = -game.camera.viewfinder.transform.offset.x;
+    final cameraLeftX = camX - viewWidth * 0.5;
 
     final prev = _prevCameraLeftX;
     _prevCameraLeftX = cameraLeftX;
@@ -20131,8 +20220,9 @@ class PixelParallaxBackdropComponent extends Component
       final y = (viewHeight - imageH).toDouble(); // Bottom-aligned.
 
       // Optionally snap to whole pixels for crisp pixel-art rendering.
-      final scroll =
-          snapScrollToPixels ? _scroll[i].roundToDouble() : _scroll[i];
+      final scroll = snapScrollToPixels
+          ? roundToPixels(_scroll[i])
+          : _scroll[i];
       final offsetPx = -scroll;
       final startX = positiveModDouble(offsetPx, imageW.toDouble());
 
@@ -20248,6 +20338,7 @@ import 'package:flutter/widgets.dart';
 import '../../../core/snapshots/entity_render_snapshot.dart';
 import '../../../core/snapshots/enums.dart';
 import 'sprite_anim_set.dart';
+import '../../util/math_util.dart' as math;
 
 typedef AnimKeyFallbackResolver = AnimKey Function(AnimKey desired);
 
@@ -20269,7 +20360,7 @@ class DeterministicAnimViewComponent
          current: initial,
          size: renderSize ?? Vector2(animSet.frameSize.x, animSet.frameSize.y),
          scale: renderScale?.clone() ?? Vector2.all(1.0),
-         anchor: Anchor.center,
+         anchor: animSet.anchor,
          paint: Paint()..filterQuality = FilterQuality.none,
        ) {
     // We drive animation frames deterministically from `EntityRenderSnapshot.animFrame`.
@@ -20282,8 +20373,19 @@ class DeterministicAnimViewComponent
   final AnimKeyFallbackResolver? _fallbackResolver;
   final Vector2 _baseScale;
 
-  void applySnapshot(EntityRenderSnapshot e, {required int tickHz}) {
-    position.setValues(e.pos.x.roundToDouble(), e.pos.y.roundToDouble());
+  void applySnapshot(
+    EntityRenderSnapshot e, {
+    required int tickHz,
+    Vector2? pos,
+  }) {
+    if (pos != null) {
+      position.setFrom(pos);
+    } else {
+      position.setValues(
+        math.roundToPixels(e.pos.x),
+        math.roundToPixels(e.pos.y),
+      );
+    }
 
     var next = e.anim;
     if (_fallbackResolver != null) {
@@ -20340,6 +20442,7 @@ class SpriteAnimSet {
     required this.stepTimeSecondsByKey,
     required this.oneShotKeys,
     required this.frameSize,
+    this.anchor = Anchor.center,
   });
 
   final Map<AnimKey, SpriteAnimation> animations;
@@ -20348,6 +20451,11 @@ class SpriteAnimSet {
 
   /// Source frame size inside each horizontal strip image.
   final Vector2 frameSize;
+
+  /// Anchor used by view components when rendering this animation set.
+  ///
+  /// Defaults to `Anchor.center`.
+  final Anchor anchor;
 
   final Map<int, Map<AnimKey, int>> _ticksPerFrameCache =
       <int, Map<AnimKey, int>>{};
@@ -20380,6 +20488,7 @@ import 'package:flame/components.dart';
 
 import '../../../core/contracts/render_anim_set_definition.dart';
 import '../../../core/snapshots/enums.dart';
+import '../../../core/util/vec2.dart';
 import 'sprite_anim_set.dart';
 
 Future<SpriteAnimSet> loadStripAnimations(
@@ -20387,39 +20496,69 @@ Future<SpriteAnimSet> loadStripAnimations(
   required int frameWidth,
   required int frameHeight,
   required Map<AnimKey, String> sourcesByKey,
+  Map<AnimKey, int> rowByKey = const <AnimKey, int>{},
+  Vec2? anchorInFramePx,
   required Map<AnimKey, int> frameCountsByKey,
   required Map<AnimKey, double> stepTimeSecondsByKey,
   required Set<AnimKey> oneShotKeys,
 }) async {
   final frameSize = Vector2(frameWidth.toDouble(), frameHeight.toDouble());
 
-  final imagesByKey = <AnimKey, Image>{};
+  final anchor = switch (anchorInFramePx) {
+    null => Anchor.center,
+    final a => () {
+      assert(
+        a.x >= 0 && a.x <= frameWidth,
+        'anchorInFramePx.x must be in [0, $frameWidth] (got ${a.x}).',
+      );
+      assert(
+        a.y >= 0 && a.y <= frameHeight,
+        'anchorInFramePx.y must be in [0, $frameHeight] (got ${a.y}).',
+      );
+      return Anchor(a.x / frameWidth, a.y / frameHeight);
+    }(),
+  };
+
+  final keysByPath = <String, List<AnimKey>>{};
   for (final entry in sourcesByKey.entries) {
-    imagesByKey[entry.key] = await images.load(entry.value);
+    keysByPath.putIfAbsent(entry.value, () => <AnimKey>[]).add(entry.key);
+  }
+
+  // Load each unique path once (Images also caches globally, but this keeps the
+  // loader itself allocation-light and predictable).
+  final imagesByPath = <String, Image>{};
+  for (final path in keysByPath.keys) {
+    imagesByPath[path] = await images.load(path);
   }
 
   final animations = <AnimKey, SpriteAnimation>{};
-  for (final entry in imagesByKey.entries) {
+  for (final entry in sourcesByKey.entries) {
     final key = entry.key;
-    final img = entry.value;
+    final path = entry.value;
+    final img = imagesByPath[path]!;
+
     final stepTime =
         stepTimeSecondsByKey[key] ?? stepTimeSecondsByKey[AnimKey.idle] ?? 0.1;
     final frameCount =
         frameCountsByKey[key] ?? frameCountsByKey[AnimKey.idle] ?? 1;
+    final row = rowByKey[key] ?? 0;
 
-    assert(
-      img.height == frameSize.y.toInt() &&
-          img.width == frameSize.x.toInt() * frameCount,
-      'Strip ${key.name} must match ${frameSize.x.toInt()}x${frameSize.y.toInt()} frames x $frameCount.',
-    );
+    final sprites = List<Sprite>.generate(frameCount, (i) {
+      return Sprite(
+        img,
+        srcPosition: Vector2(
+          frameWidth.toDouble() * i,
+          frameHeight.toDouble() * row,
+        ),
+        srcSize: frameSize,
+      );
+    });
 
-    final data = SpriteAnimationData.sequenced(
-      amount: frameCount,
+    animations[key] = SpriteAnimation.spriteList(
+      sprites,
       stepTime: stepTime,
-      textureSize: frameSize,
       loop: !oneShotKeys.contains(key),
     );
-    animations[key] = SpriteAnimation.fromFrameData(img, data);
   }
 
   return SpriteAnimSet(
@@ -20427,6 +20566,7 @@ Future<SpriteAnimSet> loadStripAnimations(
     stepTimeSecondsByKey: stepTimeSecondsByKey,
     oneShotKeys: oneShotKeys,
     frameSize: frameSize,
+    anchor: anchor,
   );
 }
 
@@ -20440,6 +20580,8 @@ Future<SpriteAnimSet> loadAnimSetFromDefinition(
     frameWidth: renderAnim.frameWidth,
     frameHeight: renderAnim.frameHeight,
     sourcesByKey: renderAnim.sourcesByKey,
+    rowByKey: renderAnim.rowByKey,
+    anchorInFramePx: renderAnim.anchorInFramePx,
     frameCountsByKey: renderAnim.frameCountsByKey,
     stepTimeSecondsByKey: renderAnim.stepTimeSecondsByKey,
     oneShotKeys: oneShotKeys,
@@ -20550,9 +20692,16 @@ class TiledGroundBandComponent extends Component
     double y,
   ) {
     final viewWidth = virtualWidth!;
-    final cameraLeftX = game.camera.viewfinder.position.x - viewWidth / 2;
-    final offsetPx = -cameraLeftX;
-    final startX = positiveModDouble(offsetPx, tileW.toDouble());
+    final halfWidth = viewWidth * 0.5;
+    final camX = -game.camera.viewfinder.transform.offset.x;
+    final leftWorld = camX - halfWidth;
+    final rightWorld = camX + halfWidth;
+
+    double worldToScreenX(double worldX) =>
+        roundToPixels(worldX - camX) + halfWidth;
+
+    final startTile = floorDivInt(leftWorld.floor(), tileW) - 1;
+    final endTile = floorDivInt(rightWorld.ceil(), tileW) + 1;
     final clipRect = ui.Rect.fromLTWH(
       0,
       0,
@@ -20561,18 +20710,21 @@ class TiledGroundBandComponent extends Component
     );
 
     _withGapSupport(canvas, clipRect, gaps.isNotEmpty, () {
-      _drawTileStrip(canvas, startX - tileW, viewWidth.toDouble(), tileW, y);
+      for (var tile = startTile; tile <= endTile; tile++) {
+        final worldX = (tile * tileW).toDouble();
+        final x = worldToScreenX(worldX);
+        canvas.drawImage(_image, ui.Offset(x, y), _paint);
+      }
 
       if (gaps.isNotEmpty) {
-        _clearGapRects(
-          canvas,
-          gaps: gaps,
-          offsetX: -cameraLeftX,
-          visibleMinX: 0.0,
-          visibleMaxX: viewWidth.toDouble(),
-          y: y,
-          height: tileH.toDouble(),
-        );
+        final maxX = viewWidth.toDouble();
+        for (final gap in gaps) {
+          final x0 = worldToScreenX(gap.minX);
+          final x1 = worldToScreenX(gap.maxX);
+          if (x1 < 0.0 || x0 > maxX) continue;
+          if (x1 <= x0) continue;
+          canvas.drawRect(ui.Rect.fromLTRB(x0, y, x1, y + tileH), _clearPaint);
+        }
       }
     });
   }
@@ -20586,6 +20738,7 @@ class TiledGroundBandComponent extends Component
     double y,
   ) {
     final visible = game.camera.visibleWorldRect;
+    final camX = -game.camera.viewfinder.transform.offset.x;
     final left = visible.left.floor();
     final right = visible.right.ceil();
 
@@ -20602,7 +20755,8 @@ class TiledGroundBandComponent extends Component
     _withGapSupport(canvas, clipRect, gaps.isNotEmpty, () {
       for (var tile = startTile; tile <= endTile; tile++) {
         final x = (tile * tileW).toDouble();
-        canvas.drawImage(_image, ui.Offset(x, y), _paint);
+        final snappedX = snapWorldToPixelsInCameraSpace1d(x, camX);
+        canvas.drawImage(_image, ui.Offset(snappedX, y), _paint);
       }
 
       if (gaps.isNotEmpty) {
@@ -20614,6 +20768,7 @@ class TiledGroundBandComponent extends Component
           visibleMaxX: visible.right,
           y: y,
           height: tileH.toDouble(),
+          snapRelativeToCameraX: camX,
         );
       }
     });
@@ -20641,19 +20796,6 @@ class TiledGroundBandComponent extends Component
     canvas.restore();
   }
 
-  /// Draws horizontally-tiled images from [startX] to [endX].
-  void _drawTileStrip(
-    ui.Canvas canvas,
-    double startX,
-    double endX,
-    int tileW,
-    double y,
-  ) {
-    for (var x = startX; x < endX; x += tileW) {
-      canvas.drawImage(_image, ui.Offset(x, y), _paint);
-    }
-  }
-
   /// Punches transparent holes in the tile strip for each gap.
   ///
   /// Uses [_clearPaint] with `BlendMode.clear` to erase pixels. Only draws
@@ -20666,10 +20808,15 @@ class TiledGroundBandComponent extends Component
     required double visibleMaxX,
     required double y,
     required double height,
+    double? snapRelativeToCameraX,
   }) {
     for (final gap in gaps) {
-      final x0 = gap.minX + offsetX;
-      final x1 = gap.maxX + offsetX;
+      var x0 = gap.minX + offsetX;
+      var x1 = gap.maxX + offsetX;
+      if (snapRelativeToCameraX != null) {
+        x0 = snapWorldToPixelsInCameraSpace1d(x0, snapRelativeToCameraX);
+        x1 = snapWorldToPixelsInCameraSpace1d(x1, snapRelativeToCameraX);
+      }
       if (x1 < visibleMinX || x0 > visibleMaxX) continue;
       canvas.drawRect(ui.Rect.fromLTRB(x0, y, x1, y + height), _clearPaint);
     }
@@ -20685,6 +20832,7 @@ import 'package:flame/components.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../core/snapshots/entity_render_snapshot.dart';
+import '../util/math_util.dart' as math;
 
 void syncDebugAabbOverlays({
   required Iterable<EntityRenderSnapshot> entities,
@@ -20694,6 +20842,11 @@ void syncDebugAabbOverlays({
   required int priority,
   required Paint paint,
   bool Function(EntityRenderSnapshot e)? include,
+  Map<int, EntityRenderSnapshot>? prevById,
+  double Function(EntityRenderSnapshot e)? offsetXFor,
+  double Function(EntityRenderSnapshot e)? offsetYFor,
+  double alpha = 1.0,
+  Vector2? cameraCenter,
 }) {
   if (!enabled) {
     if (pool.isEmpty) return;
@@ -20726,7 +20879,33 @@ void syncDebugAabbOverlays({
       view.size.setValues(size.x, size.y);
     }
 
-    view.position.setValues(e.pos.x.roundToDouble(), e.pos.y.roundToDouble());
+    final prev = prevById == null ? null : prevById[e.id];
+    final prevPos = prev?.pos ?? e.pos;
+    final prevOffsetX = offsetXFor?.call(prev ?? e) ?? 0.0;
+    final prevOffsetY = offsetYFor?.call(prev ?? e) ?? 0.0;
+    final offsetX = offsetXFor?.call(e) ?? 0.0;
+    final offsetY = offsetYFor?.call(e) ?? 0.0;
+    final worldX = math.lerpDouble(
+      prevPos.x + prevOffsetX,
+      e.pos.x + offsetX,
+      alpha,
+    );
+    final worldY = math.lerpDouble(
+      prevPos.y + prevOffsetY,
+      e.pos.y + offsetY,
+      alpha,
+    );
+    if (cameraCenter == null) {
+      view.position.setValues(
+        math.roundToPixels(worldX),
+        math.roundToPixels(worldY),
+      );
+    } else {
+      view.position.setValues(
+        math.snapWorldToPixelsInCameraSpace1d(worldX, cameraCenter.x),
+        math.snapWorldToPixelsInCameraSpace1d(worldY, cameraCenter.y),
+      );
+    }
   }
 
   if (pool.isEmpty) return;
@@ -20738,7 +20917,6 @@ void syncDebugAabbOverlays({
     pool.remove(id)?.removeFromParent();
   }
 }
-
 
 
 ===== FILE: lib/game/debug/render_debug_flags.dart =====
@@ -20754,7 +20932,7 @@ abstract class RenderDebugFlags {
   /// Draws collision AABB overlays for "actor" entities (player + enemies).
   ///
   /// Default is `false` even in debug builds; toggle locally when needed.
-  static bool drawActorHitboxes = false;
+  static bool drawActorHitboxes = true;
 
   /// Convenience for enabling all render debug overlays in debug/profile
   /// builds while keeping release builds clean.
@@ -21620,6 +21798,7 @@ import 'components/tiled_ground_band_component.dart';
 import 'components/aim_ray_component.dart';
 import 'game_controller.dart';
 import 'themes/parallax_theme_registry.dart';
+import 'util/math_util.dart' as math;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Render priorities
@@ -21682,7 +21861,8 @@ class RunnerFlameGame extends FlameGame {
   final Map<int, RectangleComponent> _projectiles = <int, RectangleComponent>{};
   final Map<int, RectangleComponent> _collectibles =
       <int, RectangleComponent>{};
-  final Map<int, PositionComponent> _enemies = <int, PositionComponent>{};
+  final Map<int, DeterministicAnimViewComponent> _enemies =
+      <int, DeterministicAnimViewComponent>{};
   final Map<int, RectangleComponent> _hitboxes = <int, RectangleComponent>{};
   final Map<int, RectangleComponent> _actorHitboxes =
       <int, RectangleComponent>{};
@@ -21694,15 +21874,19 @@ class RunnerFlameGame extends FlameGame {
     PickupVariant.restorationMana: Paint()..color = const Color(0xFF3B82F6),
     PickupVariant.restorationStamina: Paint()..color = const Color(0xFF22C55E),
   };
-  final List<Paint> _enemyPaints = <Paint>[
-    Paint()..color = const Color(0xFFA855F7), // purple
-    Paint()..color = const Color(0xFFF97316), // orange
-  ];
   final Paint _hitboxPaint = Paint()..color = const Color(0x66EF4444);
   final Paint _actorHitboxPaint = Paint()
     ..color = const Color(0xFF22C55E)
     ..style = PaintingStyle.stroke
     ..strokeWidth = 1.0;
+
+  final Map<int, EntityRenderSnapshot> _prevEntitiesById =
+      <int, EntityRenderSnapshot>{};
+  final Set<int> _seenIdsScratch = <int>{};
+  final List<int> _toRemoveScratch = <int>[];
+  final Vector2 _cameraCenterScratch = Vector2.zero();
+  final Vector2 _snapScratch = Vector2.zero();
+  final List<EnemyKilledEvent> _pendingEnemyKilledEvents = <EnemyKilledEvent>[];
 
   @override
   Future<void> onLoad() async {
@@ -21761,6 +21945,7 @@ class RunnerFlameGame extends FlameGame {
         controller: controller,
         preview: projectileAimPreview,
         length: projectileAimRayLength,
+        playerRenderPos: () => _player.position,
         drawWhenNoAim: false,
       )..priority = _priorityProjectileAimRay,
     );
@@ -21770,6 +21955,7 @@ class RunnerFlameGame extends FlameGame {
         controller: controller,
         preview: meleeAimPreview,
         length: meleeAimRayLength,
+        playerRenderPos: () => _player.position,
         drawWhenNoAim: false,
         paint: Paint()
           ..color = const Color(0xFFDC4440)
@@ -21783,6 +21969,7 @@ class RunnerFlameGame extends FlameGame {
         controller: controller,
         preview: rangedAimPreview,
         length: projectileAimRayLength,
+        playerRenderPos: () => _player.position,
         drawWhenNoAim: false,
         paint: Paint()
           ..color = const Color(0xFFF59E0B)
@@ -21802,29 +21989,82 @@ class RunnerFlameGame extends FlameGame {
       input.pumpHeldInputs();
     }
 
-    super.update(dt);
-
-    // Step the deterministic core using the frame delta, then render the
-    // newest snapshot.
+    // Step the deterministic core using the frame delta, then render the newest
+    // snapshot. This order is critical: Flame components (parallax, etc.) read
+    // the camera during their own update(), so Core + camera + view sync must
+    // run BEFORE super.update(dt).
     controller.advanceFrame(dt);
-    final updatedSnapshot = controller.snapshot;
-    _syncStaticSolids(updatedSnapshot.staticSolids);
 
-    final player = updatedSnapshot.playerEntity;
-    if (player != null) {
-      _player.applySnapshot(player, tickHz: controller.tickHz);
+    final prevSnapshot = controller.prevSnapshot;
+    final currSnapshot = controller.snapshot;
+    final alpha = controller.alpha;
+
+    _prevEntitiesById.clear();
+    for (final e in prevSnapshot.entities) {
+      _prevEntitiesById[e.id] = e;
     }
-    camera.viewfinder.position = Vector2(
-      updatedSnapshot.cameraCenterX.roundToDouble(),
-      updatedSnapshot.cameraCenterY.roundToDouble(),
+
+    final camX = math.lerpDouble(
+      prevSnapshot.cameraCenterX,
+      currSnapshot.cameraCenterX,
+      alpha,
+    );
+    final camY = math.lerpDouble(
+      prevSnapshot.cameraCenterY,
+      currSnapshot.cameraCenterY,
+      alpha,
+    );
+    _cameraCenterScratch.setValues(camX, camY);
+    camera.viewfinder.position = _cameraCenterScratch;
+
+    _syncStaticSolids(currSnapshot.staticSolids);
+    _snapStaticSolids(
+      currSnapshot.staticSolids,
+      cameraCenter: _cameraCenterScratch,
     );
 
-    _syncEnemies(updatedSnapshot.entities);
-    _syncProjectiles(updatedSnapshot.entities);
-    _syncCollectibles(updatedSnapshot.entities);
-    _syncHitboxes(updatedSnapshot.entities);
+    final player = currSnapshot.playerEntity;
+    if (player != null) {
+      final prev = _prevEntitiesById[player.id] ?? player;
+      final worldX = math.lerpDouble(prev.pos.x, player.pos.x, alpha);
+      final worldY = math.lerpDouble(prev.pos.y, player.pos.y, alpha);
+      _snapScratch.setValues(
+        math.snapWorldToPixelsInCameraSpace1d(worldX, _cameraCenterScratch.x),
+        math.snapWorldToPixelsInCameraSpace1d(worldY, _cameraCenterScratch.y),
+      );
+      _player.applySnapshot(
+        player,
+        tickHz: controller.tickHz,
+        pos: _snapScratch,
+      );
+    }
+
+    _syncEnemies(
+      currSnapshot.entities,
+      prevById: _prevEntitiesById,
+      alpha: alpha,
+      cameraCenter: _cameraCenterScratch,
+    );
+    _syncProjectiles(
+      currSnapshot.entities,
+      prevById: _prevEntitiesById,
+      alpha: alpha,
+      cameraCenter: _cameraCenterScratch,
+    );
+    _syncCollectibles(
+      currSnapshot.entities,
+      prevById: _prevEntitiesById,
+      alpha: alpha,
+      cameraCenter: _cameraCenterScratch,
+    );
+    _syncHitboxes(
+      currSnapshot.entities,
+      prevById: _prevEntitiesById,
+      alpha: alpha,
+      cameraCenter: _cameraCenterScratch,
+    );
     syncDebugAabbOverlays(
-      entities: updatedSnapshot.entities,
+      entities: currSnapshot.entities,
       enabled:
           RenderDebugFlags.canUseRenderDebug &&
           RenderDebugFlags.drawActorHitboxes,
@@ -21833,7 +22073,38 @@ class RunnerFlameGame extends FlameGame {
       priority: _priorityActorHitboxes,
       paint: _actorHitboxPaint,
       include: (e) => e.kind == EntityKind.player || e.kind == EntityKind.enemy,
+      prevById: _prevEntitiesById,
+      offsetXFor: (e) {
+        switch (e.kind) {
+          case EntityKind.player:
+            return playerCharacter.catalog.colliderOffsetX;
+          case EntityKind.enemy:
+            final enemyId = e.enemyId;
+            if (enemyId == null) return 0.0;
+            return controller.enemyCatalog.get(enemyId).collider.offsetX;
+          default:
+            return 0.0;
+        }
+      },
+      offsetYFor: (e) {
+        switch (e.kind) {
+          case EntityKind.player:
+            return playerCharacter.catalog.colliderOffsetY;
+          case EntityKind.enemy:
+            final enemyId = e.enemyId;
+            if (enemyId == null) return 0.0;
+            return controller.enemyCatalog.get(enemyId).collider.offsetY;
+          default:
+            return 0.0;
+        }
+      },
+      alpha: alpha,
+      cameraCenter: _cameraCenterScratch,
     );
+
+    _flushPendingEnemyKilledEvents(cameraCenter: _cameraCenterScratch);
+
+    super.update(dt);
   }
 
   /// Mounts static solid rectangles into the world.
@@ -21862,62 +22133,55 @@ class RunnerFlameGame extends FlameGame {
 
   /// Synchronizes enemy view components with the snapshot.
   ///
-  /// Creates circle components for new enemies, updates position/rotation for
-  /// existing ones, and removes components for despawned enemies.
-  void _syncEnemies(List<EntityRenderSnapshot> entities) {
-    final seen = <int>{};
+  /// Creates view components for new enemies, updates existing ones, and
+  /// removes components for despawned enemies.
+  void _syncEnemies(
+    List<EntityRenderSnapshot> entities, {
+    required Map<int, EntityRenderSnapshot> prevById,
+    required double alpha,
+    required Vector2 cameraCenter,
+  }) {
+    final seen = _seenIdsScratch..clear();
 
     for (final e in entities) {
       if (e.kind != EntityKind.enemy) continue;
-      seen.add(e.id);
 
-      var view = _enemies[e.id];
       final entry = e.enemyId == null
           ? null
           : _enemyRenderRegistry.entryFor(e.enemyId!);
+      if (entry == null) {
+        _enemies.remove(e.id)?.removeFromParent();
+        continue;
+      }
+
+      seen.add(e.id);
+
+      var view = _enemies[e.id];
       if (view == null) {
-        if (entry != null) {
-          view = entry.viewFactory(entry.animSet, entry.renderScale);
-        } else {
-          final size = e.size;
-          final radius =
-              ((size != null) ? (size.x < size.y ? size.x : size.y) : 16.0) *
-              0.5;
-          final paint = _enemyPaints[e.id % _enemyPaints.length];
-          view = CircleComponent(
-            radius: radius,
-            anchor: Anchor.center,
-            paint: paint,
-          );
-        }
-        view.priority = _priorityEnemies;
+        view = entry.viewFactory(entry.animSet, entry.renderScale)
+          ..priority = _priorityEnemies;
         _enemies[e.id] = view;
         world.add(view);
       }
 
-      if (view is DeterministicAnimViewComponent) {
-        view.applySnapshot(e, tickHz: controller.tickHz);
-      } else if (view is CircleComponent) {
-        final size = e.size;
-        if (size != null) {
-          view.radius = (size.x < size.y ? size.x : size.y) * 0.5;
-        }
-        view.position.setValues(
-          e.pos.x.roundToDouble(),
-          e.pos.y.roundToDouble(),
-        );
-        view.angle = e.rotationRad;
-      } else {
-        view.position.setValues(
-          e.pos.x.roundToDouble(),
-          e.pos.y.roundToDouble(),
-        );
-        view.angle = e.rotationRad;
-      }
+      final prev = prevById[e.id] ?? e;
+      final worldX = math.lerpDouble(prev.pos.x, e.pos.x, alpha);
+      final worldY = math.lerpDouble(prev.pos.y, e.pos.y, alpha);
+      final snappedX = math.snapWorldToPixelsInCameraSpace1d(
+        worldX,
+        cameraCenter.x,
+      );
+      final snappedY = math.snapWorldToPixelsInCameraSpace1d(
+        worldY,
+        cameraCenter.y,
+      );
+
+      _snapScratch.setValues(snappedX, snappedY);
+      view.applySnapshot(e, tickHz: controller.tickHz, pos: _snapScratch);
     }
 
     if (_enemies.isEmpty) return;
-    final toRemove = <int>[];
+    final toRemove = _toRemoveScratch..clear();
     for (final id in _enemies.keys) {
       if (!seen.contains(id)) toRemove.add(id);
     }
@@ -21928,36 +22192,53 @@ class RunnerFlameGame extends FlameGame {
 
   void _handleGameEvent(GameEvent event) {
     if (event is! EnemyKilledEvent) return;
-    final entry = _enemyRenderRegistry.entryFor(event.enemyId);
-    if (entry == null) return;
-    if (entry.deathAnimPolicy == EnemyDeathAnimPolicy.none) return;
+    _pendingEnemyKilledEvents.add(event);
+  }
 
-    final deathAnim = entry.animSet.animations[AnimKey.death];
-    if (deathAnim == null) return;
+  void _flushPendingEnemyKilledEvents({required Vector2 cameraCenter}) {
+    if (_pendingEnemyKilledEvents.isEmpty) return;
 
-    final component = SpriteAnimationComponent(
-      animation: deathAnim,
-      size: entry.animSet.frameSize.clone(),
-      anchor: Anchor.center,
-      position: Vector2(
-        event.pos.x.roundToDouble(),
-        event.pos.y.roundToDouble(),
-      ),
-      paint: Paint()..filterQuality = FilterQuality.none,
-      removeOnFinish: true,
-    );
-    component.priority = _priorityEnemies;
-    final sign = event.facing == event.artFacingDir ? 1.0 : -1.0;
-    component.scale.setValues(entry.renderScale.x * sign, entry.renderScale.y);
-    world.add(component);
+    for (final event in _pendingEnemyKilledEvents) {
+      final entry = _enemyRenderRegistry.entryFor(event.enemyId);
+      if (entry == null) continue;
+      if (entry.deathAnimPolicy == EnemyDeathAnimPolicy.none) continue;
+
+      final deathAnim = entry.animSet.animations[AnimKey.death];
+      if (deathAnim == null) continue;
+
+      final component = _CameraSpaceSnappedSpriteAnimationComponent(
+        animation: deathAnim,
+        size: entry.animSet.frameSize.clone(),
+        worldPosX: event.pos.x,
+        worldPosY: event.pos.y,
+        anchor: entry.animSet.anchor,
+        paint: Paint()..filterQuality = FilterQuality.none,
+        removeOnFinish: true,
+      )..priority = _priorityEnemies;
+
+      final sign = event.facing == event.artFacingDir ? 1.0 : -1.0;
+      component.scale.setValues(
+        entry.renderScale.x * sign,
+        entry.renderScale.y,
+      );
+      component.snapToCamera(cameraCenter);
+      world.add(component);
+    }
+
+    _pendingEnemyKilledEvents.clear();
   }
 
   /// Synchronizes projectile view components with the snapshot.
   ///
   /// Creates rectangle components for new projectiles, updates position/size
   /// for existing ones, and removes components for despawned projectiles.
-  void _syncProjectiles(List<EntityRenderSnapshot> entities) {
-    final seen = <int>{};
+  void _syncProjectiles(
+    List<EntityRenderSnapshot> entities, {
+    required Map<int, EntityRenderSnapshot> prevById,
+    required double alpha,
+    required Vector2 cameraCenter,
+  }) {
+    final seen = _seenIdsScratch..clear();
 
     for (final e in entities) {
       if (e.kind != EntityKind.projectile) continue;
@@ -21981,12 +22262,18 @@ class RunnerFlameGame extends FlameGame {
         }
       }
 
-      view.position.setValues(e.pos.x.roundToDouble(), e.pos.y.roundToDouble());
+      final prev = prevById[e.id] ?? e;
+      final worldX = math.lerpDouble(prev.pos.x, e.pos.x, alpha);
+      final worldY = math.lerpDouble(prev.pos.y, e.pos.y, alpha);
+      view.position.setValues(
+        math.snapWorldToPixelsInCameraSpace1d(worldX, cameraCenter.x),
+        math.snapWorldToPixelsInCameraSpace1d(worldY, cameraCenter.y),
+      );
       view.angle = e.rotationRad;
     }
 
     if (_projectiles.isEmpty) return;
-    final toRemove = <int>[];
+    final toRemove = _toRemoveScratch..clear();
     for (final id in _projectiles.keys) {
       if (!seen.contains(id)) toRemove.add(id);
     }
@@ -21999,8 +22286,13 @@ class RunnerFlameGame extends FlameGame {
   ///
   /// Creates rectangle components for new pickups, updates position/paint for
   /// existing ones, and removes components for collected pickups.
-  void _syncCollectibles(List<EntityRenderSnapshot> entities) {
-    final seen = <int>{};
+  void _syncCollectibles(
+    List<EntityRenderSnapshot> entities, {
+    required Map<int, EntityRenderSnapshot> prevById,
+    required double alpha,
+    required Vector2 cameraCenter,
+  }) {
+    final seen = _seenIdsScratch..clear();
 
     for (final e in entities) {
       if (e.kind != EntityKind.pickup) continue;
@@ -22030,12 +22322,18 @@ class RunnerFlameGame extends FlameGame {
         }
       }
 
-      view.position.setValues(e.pos.x.roundToDouble(), e.pos.y.roundToDouble());
+      final prev = prevById[e.id] ?? e;
+      final worldX = math.lerpDouble(prev.pos.x, e.pos.x, alpha);
+      final worldY = math.lerpDouble(prev.pos.y, e.pos.y, alpha);
+      view.position.setValues(
+        math.snapWorldToPixelsInCameraSpace1d(worldX, cameraCenter.x),
+        math.snapWorldToPixelsInCameraSpace1d(worldY, cameraCenter.y),
+      );
       view.angle = e.rotationRad;
     }
 
     if (_collectibles.isEmpty) return;
-    final toRemove = <int>[];
+    final toRemove = _toRemoveScratch..clear();
     for (final id in _collectibles.keys) {
       if (!seen.contains(id)) toRemove.add(id);
     }
@@ -22049,8 +22347,13 @@ class RunnerFlameGame extends FlameGame {
   /// Creates translucent red rectangle components for new triggers, updates
   /// position/size for existing ones, and removes components for despawned
   /// triggers.
-  void _syncHitboxes(List<EntityRenderSnapshot> entities) {
-    final seen = <int>{};
+  void _syncHitboxes(
+    List<EntityRenderSnapshot> entities, {
+    required Map<int, EntityRenderSnapshot> prevById,
+    required double alpha,
+    required Vector2 cameraCenter,
+  }) {
+    final seen = _seenIdsScratch..clear();
 
     for (final e in entities) {
       if (e.kind != EntityKind.trigger) continue;
@@ -22074,11 +22377,17 @@ class RunnerFlameGame extends FlameGame {
         }
       }
 
-      view.position.setValues(e.pos.x.roundToDouble(), e.pos.y.roundToDouble());
+      final prev = prevById[e.id] ?? e;
+      final worldX = math.lerpDouble(prev.pos.x, e.pos.x, alpha);
+      final worldY = math.lerpDouble(prev.pos.y, e.pos.y, alpha);
+      view.position.setValues(
+        math.snapWorldToPixelsInCameraSpace1d(worldX, cameraCenter.x),
+        math.snapWorldToPixelsInCameraSpace1d(worldY, cameraCenter.y),
+      );
     }
 
     if (_hitboxes.isEmpty) return;
-    final toRemove = <int>[];
+    final toRemove = _toRemoveScratch..clear();
     for (final id in _hitboxes.keys) {
       if (!seen.contains(id)) toRemove.add(id);
     }
@@ -22105,11 +22414,59 @@ class RunnerFlameGame extends FlameGame {
     _mountStaticSolids(solids);
   }
 
+  void _snapStaticSolids(
+    List<StaticSolidSnapshot> solids, {
+    required Vector2 cameraCenter,
+  }) {
+    if (solids.isEmpty) return;
+    if (_staticSolids.length != solids.length) return;
+
+    for (var i = 0; i < solids.length; i++) {
+      final solid = solids[i];
+      final view = _staticSolids[i];
+      view.position.setValues(
+        math.snapWorldToPixelsInCameraSpace1d(solid.minX, cameraCenter.x),
+        math.snapWorldToPixelsInCameraSpace1d(solid.minY, cameraCenter.y),
+      );
+    }
+  }
+
   @override
   void onRemove() {
     controller.removeEventListener(_handleGameEvent);
     images.clearCache();
     super.onRemove();
+  }
+}
+
+class _CameraSpaceSnappedSpriteAnimationComponent
+    extends SpriteAnimationComponent
+    with HasGameReference<FlameGame> {
+  _CameraSpaceSnappedSpriteAnimationComponent({
+    required SpriteAnimation super.animation,
+    required Vector2 super.size,
+    required this.worldPosX,
+    required this.worldPosY,
+    this.anchor = Anchor.center,
+    super.paint,
+    super.removeOnFinish,
+  }) : super(anchor: anchor);
+
+  final double worldPosX;
+  final double worldPosY;
+  final Anchor anchor;
+
+  void snapToCamera(Vector2 cameraCenter) {
+    position.setValues(
+      math.snapWorldToPixelsInCameraSpace1d(worldPosX, cameraCenter.x),
+      math.snapWorldToPixelsInCameraSpace1d(worldPosY, cameraCenter.y),
+    );
+  }
+
+  @override
+  void update(double dt) {
+    snapToCamera(game.camera.viewfinder.position);
+    super.update(dt);
   }
 }
 
@@ -22404,6 +22761,10 @@ class PlayerRenderTuning {
 // library doesn't handle correctly for game use cases (e.g., negative modulo,
 // floor division with negative numbers).
 
+import 'package:flame/components.dart';
+
+import '../../core/util/vec2.dart';
+
 /// Returns `value % mod`, always in the range `[0, mod)`.
 ///
 /// Dart's `%` operator can return negative results for negative [value];
@@ -22426,6 +22787,25 @@ int floorDivInt(int a, int b) {
   return -(((-a) + b - 1) ~/ b);
 }
 
+double lerpDouble(double a, double b, double t) => a + (b - a) * t;
+
+Vec2 lerpVec2(Vec2 a, Vec2 b, double t) =>
+    Vec2(lerpDouble(a.x, b.x, t), lerpDouble(a.y, b.y, t));
+
+double roundToPixels(double value) => value.roundToDouble();
+
+/// Snaps a world coordinate to integer pixels in camera space.
+///
+/// Keeps [camera] fractional and rounds only the screen-space delta
+/// (`world - camera`) to the nearest pixel.
+double snapWorldToPixelsInCameraSpace1d(double world, double camera) =>
+    camera + roundToPixels(world - camera);
+
+/// Convenience 2D version of [snapWorldToPixelsInCameraSpace1d].
+Vector2 snapWorldToPixelsInCameraSpace(Vec2 world, Vector2 camera) => Vector2(
+  snapWorldToPixelsInCameraSpace1d(world.x, camera.x),
+  snapWorldToPixelsInCameraSpace1d(world.y, camera.y),
+);
 
 
 ===== FILE: lib/main.dart =====
@@ -24583,8 +24963,8 @@ String _projectileName(ProjectileId id) {
   switch (id) {
     case ProjectileId.iceBolt:
       return 'Ice Bolt';
-    case ProjectileId.lightningBolt:
-      return 'Lightning Bolt';
+    case ProjectileId.thunderBolt:
+      return 'thunder Bolt';
     case ProjectileId.arrow:
       return 'Arrow';
     case ProjectileId.throwingAxe:
@@ -24596,8 +24976,8 @@ String _projectileName(ProjectileId id) {
   switch (id) {
     case SpellId.iceBolt:
       return 'Ice Bolt';
-    case SpellId.lightning:
-      return 'Lightning';
+    case SpellId.thunderBolt:
+      return 'thunder';
   }
 } */
 
