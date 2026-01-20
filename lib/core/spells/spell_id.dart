@@ -3,10 +3,8 @@
 /// Each ID maps to a [SpellDef] in [SpellCatalog] defining costs,
 /// damage, and the associated projectile (if any).
 enum SpellId {
-  /// Player's primary ranged attack.
   iceBolt,
-
-  /// Enemy ranged attack.
   thunderBolt,
+  fireBolt,
 }
 

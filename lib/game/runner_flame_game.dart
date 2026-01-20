@@ -573,7 +573,14 @@ class RunnerFlameGame extends FlameGame {
           overrideAnim: animOverride,
           overrideAnimFrame: overrideAnimFrame,
         );
-        view.angle = e.rotationRad;
+        final spinSpeed = entry.spinSpeedRadPerSecond;
+        if (spinSpeed == 0.0) {
+          view.angle = e.rotationRad;
+        } else {
+          final spinSeconds =
+              (ageTicks.toDouble() + alpha) / controller.tickHz;
+          view.angle = e.rotationRad + spinSpeed * spinSeconds;
+        }
       } else {
         _projectileAnimViews.remove(e.id)?.removeFromParent();
         _projectileSpawnTicks.remove(e.id);

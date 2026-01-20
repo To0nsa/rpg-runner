@@ -1,6 +1,8 @@
 /// Projectile render registry and loaders (render layer only).
 library;
 
+import 'dart:math';
+
 import 'package:flame/cache.dart';
 import 'package:flame/components.dart';
 
@@ -49,6 +51,7 @@ class ProjectileRenderEntry {
     this.oneShotKeys = _defaultProjectileOneShotKeys,
     this.loader = loadAnimSetFromDefinition,
     this.viewFactory = _defaultProjectileViewFactory,
+    this.spinSpeedRadPerSecond = 0.0,
   });
 
   final ProjectileId id;
@@ -56,6 +59,7 @@ class ProjectileRenderEntry {
   final Set<AnimKey> oneShotKeys;
   final ProjectileAnimLoader loader;
   final ProjectileViewFactory viewFactory;
+  final double spinSpeedRadPerSecond;
 
   SpriteAnimSet? _animSet;
   bool _hasAssets = true;
@@ -118,6 +122,8 @@ class ProjectileRenderRegistry {
 
   final ProjectileRenderCatalog _projectileCatalog;
 
+  static const double _throwingAxeSpinRps = 8.0;
+
   final Map<ProjectileId, ProjectileRenderEntry> _entries =
       <ProjectileId, ProjectileRenderEntry>{
         ProjectileId.iceBolt: ProjectileRenderEntry(
@@ -127,6 +133,15 @@ class ProjectileRenderRegistry {
         ProjectileId.thunderBolt: ProjectileRenderEntry(
           id: ProjectileId.thunderBolt,
           renderScale: Vector2.all(1.0),
+        ),
+        ProjectileId.fireBolt: ProjectileRenderEntry(
+          id: ProjectileId.fireBolt,
+          renderScale: Vector2.all(1.0),
+        ),
+        ProjectileId.throwingAxe: ProjectileRenderEntry(
+          id: ProjectileId.throwingAxe,
+          renderScale: Vector2.all(1.0),
+          spinSpeedRadPerSecond: _throwingAxeSpinRps * 2.0 * pi,
         ),
       };
 

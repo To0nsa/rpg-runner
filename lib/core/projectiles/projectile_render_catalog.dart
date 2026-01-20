@@ -85,6 +85,85 @@ const RenderAnimSetDefinition _thunderBoltRenderAnim = RenderAnimSetDefinition(
   stepTimeSecondsByKey: _thunderBoltStepTimeSecondsByKey,
 );
 
+// -----------------------------------------------------------------------------
+// Fire Bolt render animation strip definitions (authoring-time)
+// -----------------------------------------------------------------------------
+
+const int _fireBoltFrameWidth = 48;
+const int _fireBoltFrameHeight = 48;
+
+const int _fireBoltStartFrames = 4;
+const int _fireBoltHitFrames = 6;
+
+const double _fireBoltStartStepSeconds = 0.05;
+const double _fireBoltIdleStepSeconds = 0.06;
+const double _fireBoltHitStepSeconds = 0.05;
+
+const Map<AnimKey, int> _fireBoltFrameCountsByKey = <AnimKey, int>{
+  AnimKey.spawn: _fireBoltStartFrames,
+  AnimKey.idle: _fireBoltStartFrames,
+  AnimKey.hit: _fireBoltHitFrames,
+};
+
+const Map<AnimKey, int> _fireBoltFrameStartByKey = <AnimKey, int>{
+  AnimKey.spawn: 0,
+  AnimKey.idle: 0,
+  AnimKey.hit: 5,
+};
+
+const Map<AnimKey, double> _fireBoltStepTimeSecondsByKey =
+    <AnimKey, double>{
+  AnimKey.spawn: _fireBoltStartStepSeconds,
+  AnimKey.idle: _fireBoltIdleStepSeconds,
+  AnimKey.hit: _fireBoltHitStepSeconds,
+};
+
+const Map<AnimKey, String> _fireBoltSourcesByKey = <AnimKey, String>{
+  AnimKey.spawn: 'entities/spells/fireBolt/fireBolt_spriteSheet.png',
+  AnimKey.idle: 'entities/spells/fireBolt/fireBolt_spriteSheet.png',
+  AnimKey.hit: 'entities/spells/fireBolt/fireBolt_spriteSheet.png',
+};
+
+const RenderAnimSetDefinition _fireBoltRenderAnim = RenderAnimSetDefinition(
+  frameWidth: _fireBoltFrameWidth,
+  frameHeight: _fireBoltFrameHeight,
+  sourcesByKey: _fireBoltSourcesByKey,
+  frameStartByKey: _fireBoltFrameStartByKey,
+  frameCountsByKey: _fireBoltFrameCountsByKey,
+  stepTimeSecondsByKey: _fireBoltStepTimeSecondsByKey,
+);
+
+// -----------------------------------------------------------------------------
+// Throwing Axe render animation strip definitions (authoring-time)
+// -----------------------------------------------------------------------------
+
+const int _throwingAxeFrameWidth = 32;
+const int _throwingAxeFrameHeight = 32;
+
+const int _throwingAxeFrames = 1;
+const double _throwingAxeStepSeconds = 0.10;
+
+const Map<AnimKey, int> _throwingAxeFrameCountsByKey = <AnimKey, int>{
+  AnimKey.idle: _throwingAxeFrames,
+};
+
+const Map<AnimKey, double> _throwingAxeStepTimeSecondsByKey =
+    <AnimKey, double>{
+  AnimKey.idle: _throwingAxeStepSeconds,
+};
+
+const Map<AnimKey, String> _throwingAxeSourcesByKey = <AnimKey, String>{
+  AnimKey.idle: 'entities/throwingWepons/throwingAxe.png',
+};
+
+const RenderAnimSetDefinition _throwingAxeRenderAnim = RenderAnimSetDefinition(
+  frameWidth: _throwingAxeFrameWidth,
+  frameHeight: _throwingAxeFrameHeight,
+  sourcesByKey: _throwingAxeSourcesByKey,
+  frameCountsByKey: _throwingAxeFrameCountsByKey,
+  stepTimeSecondsByKey: _throwingAxeStepTimeSecondsByKey,
+);
+
 /// Lookup table for projectile render animation definitions.
 ///
 /// Core owns the animation timing and frame metadata. The renderer uses this
@@ -98,8 +177,11 @@ class ProjectileRenderCatalog {
         return _iceBoltRenderAnim;
       case ProjectileId.thunderBolt:
         return _thunderBoltRenderAnim;
-      case ProjectileId.arrow:
+      case ProjectileId.fireBolt:
+        return _fireBoltRenderAnim;
       case ProjectileId.throwingAxe:
+        return _throwingAxeRenderAnim;
+      case ProjectileId.arrow:
         throw StateError('No render animation defined for $id.');
     }
   }

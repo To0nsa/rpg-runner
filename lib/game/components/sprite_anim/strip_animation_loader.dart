@@ -18,6 +18,7 @@ Future<SpriteAnimSet> loadStripAnimations(
   required Map<AnimKey, String> sourcesByKey,
   Map<AnimKey, int> rowByKey = const <AnimKey, int>{},
   Vec2? anchorInFramePx,
+  Map<AnimKey, int> frameStartByKey = const <AnimKey, int>{},
   required Map<AnimKey, int> frameCountsByKey,
   required Map<AnimKey, double> stepTimeSecondsByKey,
   required Set<AnimKey> oneShotKeys,
@@ -62,12 +63,18 @@ Future<SpriteAnimSet> loadStripAnimations(
     final frameCount =
         frameCountsByKey[key] ?? frameCountsByKey[AnimKey.idle] ?? 1;
     final row = rowByKey[key] ?? 0;
+    final startFrame = frameStartByKey[key] ?? 0;
+
+    assert(
+      startFrame >= 0,
+      'frameStartByKey[$key] must be >= 0 (got $startFrame).',
+    );
 
     final sprites = List<Sprite>.generate(frameCount, (i) {
       return Sprite(
         img,
         srcPosition: Vector2(
-          frameWidth.toDouble() * i,
+          frameWidth.toDouble() * (startFrame + i),
           frameHeight.toDouble() * row,
         ),
         srcSize: frameSize,
@@ -102,6 +109,7 @@ Future<SpriteAnimSet> loadAnimSetFromDefinition(
     sourcesByKey: renderAnim.sourcesByKey,
     rowByKey: renderAnim.rowByKey,
     anchorInFramePx: renderAnim.anchorInFramePx,
+    frameStartByKey: renderAnim.frameStartByKey,
     frameCountsByKey: renderAnim.frameCountsByKey,
     stepTimeSecondsByKey: renderAnim.stepTimeSecondsByKey,
     oneShotKeys: oneShotKeys,

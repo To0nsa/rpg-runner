@@ -178,6 +178,26 @@ class PlayerCharacterDefinition {
         }
       }
 
+      for (final entry in renderAnim.frameStartByKey.entries) {
+        final key = entry.key;
+        final start = entry.value;
+        if (start < 0) {
+          throw StateError(
+            'PlayerCharacterDefinition($id) renderAnim.frameStartByKey[$key] must be >= 0 (got $start)',
+          );
+        }
+        if (!renderAnim.sourcesByKey.containsKey(key)) {
+          throw StateError(
+            'PlayerCharacterDefinition($id) renderAnim.frameStartByKey[$key] has no matching sourcesByKey entry',
+          );
+        }
+        if (!renderAnim.frameCountsByKey.containsKey(key)) {
+          throw StateError(
+            'PlayerCharacterDefinition($id) renderAnim.frameStartByKey[$key] has no matching frameCountsByKey entry',
+          );
+        }
+      }
+
       final anchor = renderAnim.anchorInFramePx;
       if (anchor != null) {
         if (!anchor.x.isFinite || !anchor.y.isFinite) {

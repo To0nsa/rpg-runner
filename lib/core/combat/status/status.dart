@@ -12,6 +12,7 @@ enum StatusEffectType {
 enum StatusProfileId {
   none,
   iceBolt,
+  fireBolt,
   meleeBleed,
 }
 
@@ -74,6 +75,19 @@ class StatusProfileCatalog {
               magnitude: 3.0,
               durationSeconds: 4.0,
               periodSeconds: 1.0,
+              scaleByDamageType: true,
+            ),
+          ],
+        );
+      case StatusProfileId.fireBolt:
+        return const StatusProfile(
+          <StatusApplication>[
+            StatusApplication(
+              type: StatusEffectType.burn,
+              magnitude: 5.0,
+              durationSeconds: 5.0,
+              periodSeconds: 1.0,
+              scaleByDamageType: true,
             ),
           ],
         );

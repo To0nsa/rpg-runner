@@ -12,6 +12,7 @@ class RenderAnimSetDefinition {
     required this.sourcesByKey,
     this.rowByKey = const <AnimKey, int>{},
     this.anchorInFramePx,
+    this.frameStartByKey = const <AnimKey, int>{},
     required this.frameCountsByKey,
     required this.stepTimeSecondsByKey,
   });
@@ -40,6 +41,12 @@ class RenderAnimSetDefinition {
   /// collider (e.g. enemies with long weapons/tails). The renderer treats the
   /// Core snapshot position as the world-space position of this anchor.
   final Vec2? anchorInFramePx;
+
+  /// Optional 0-based frame start offset per [AnimKey] for strip reuse.
+  ///
+  /// Defaults to 0 (start of the strip). Use this when multiple animations
+  /// share a single horizontal strip but start at different frame indices.
+  final Map<AnimKey, int> frameStartByKey;
 
   final Map<AnimKey, int> frameCountsByKey;
   final Map<AnimKey, double> stepTimeSecondsByKey;

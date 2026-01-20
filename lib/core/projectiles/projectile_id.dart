@@ -9,6 +9,9 @@ enum ProjectileId {
   /// Enemy ranged attack. Slower but longer range.
   thunderBolt,
 
+  /// Player's fire spell projectile. Medium speed and lifetime.
+  fireBolt,
+
   /// Physical arrow projectile (ballistic).
   arrow,
 

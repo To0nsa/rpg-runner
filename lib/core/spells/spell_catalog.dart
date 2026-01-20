@@ -68,6 +68,16 @@ class SpellCatalog {
           ),
           projectileId: ProjectileId.thunderBolt,
         );
+      case SpellId.fireBolt:
+        return const SpellDef(
+          stats: ProjectileSpellStats(
+            manaCost: 12.0,
+            damage: 18.0,
+            damageType: DamageType.fire,
+            statusProfileId: StatusProfileId.fireBolt,
+          ),
+          projectileId: ProjectileId.fireBolt,
+        );
     }
   }
 }

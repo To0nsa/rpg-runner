@@ -88,6 +88,10 @@ spawn a hit animation even though the projectile entity despawns immediately.
 Spawn animation duration is derived from the render definition and tick rate;
 render switches to `idle` after the spawn window.
 
+When multiple animations share a single horizontal strip, use
+`RenderAnimSetDefinition.frameStartByKey` to offset the start frame per
+`AnimKey` (e.g., a shared sprite sheet with "hit" frames later in the strip).
+
 ## Player characters (multi-character ready)
 
 Player configuration is split into:

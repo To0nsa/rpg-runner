@@ -68,6 +68,8 @@ flutter:
     - assets/images/entities/enemies/grojib/
     - assets/images/entities/spells/iceBolt/
     - assets/images/entities/spells/thunderBolt/
+    - assets/images/entities/spells/fireBolt/
+    - assets/images/entities/throwingWepons/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
