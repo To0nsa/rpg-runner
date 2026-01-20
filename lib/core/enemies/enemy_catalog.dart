@@ -9,6 +9,7 @@ import '../ecs/stores/stamina_store.dart';
 import '../combat/creature_tag.dart';
 import '../anim/anim_resolver.dart';
 import '../contracts/render_anim_set_definition.dart';
+import 'death_behavior.dart';
 import '../spells/spell_id.dart';
 import '../snapshots/enums.dart';
 import '../util/vec2.dart';
@@ -35,6 +36,8 @@ const double _unocoAnimDeathStepSeconds = 0.12;
 
 const double _unocoHitAnimSeconds =
     _unocoAnimHitFrames * _unocoAnimHitStepSeconds;
+const double _unocoDeathAnimSeconds =
+    _unocoAnimDeathFrames * _unocoAnimDeathStepSeconds;
 
 const Map<AnimKey, int> _unocoAnimFrameCountsByKey = <AnimKey, int>{
   AnimKey.idle: _unocoAnimIdleFrames,
@@ -109,6 +112,8 @@ const int _grojibAnimFallFrames = 3;
 const double _grojibAnimFallStepSeconds = 0.10;
 const double _grojibHitAnimSeconds =
     _grojibAnimHitFrames * _grojibAnimHitStepSeconds;
+const double _grojibDeathAnimSeconds =
+    _grojibAnimDeathFrames * _grojibAnimDeathStepSeconds;
 
 const Map<AnimKey, int> _grojibAnimFrameCountsByKey = <AnimKey, int>{
   AnimKey.idle: _grojibAnimIdleFrames,
@@ -185,6 +190,8 @@ class EnemyArchetype {
     required this.renderAnim,
     required this.animProfile,
     required this.hitAnimSeconds,
+    required this.deathAnimSeconds,
+    this.deathBehavior = DeathBehavior.instant,
     this.primarySpellId,
     this.artFacingDir = Facing.left,
     this.tags = const CreatureTagDef(),
@@ -211,6 +218,12 @@ class EnemyArchetype {
 
   /// Duration the hit animation should be visible (seconds).
   final double hitAnimSeconds;
+
+  /// Duration the death animation should be visible (seconds).
+  final double deathAnimSeconds;
+
+  /// Behavior for death transition timing (instant vs ground impact).
+  final DeathBehavior deathBehavior;
 
   /// Optional primary ranged attack spell for this enemy.
   ///
@@ -267,6 +280,8 @@ class EnemyCatalog {
           renderAnim: _unocoRenderAnim,
           animProfile: _unocoAnimProfile,
           hitAnimSeconds: _unocoHitAnimSeconds,
+          deathAnimSeconds: _unocoDeathAnimSeconds,
+          deathBehavior: DeathBehavior.instant,
           primarySpellId: SpellId.thunderBolt,
           artFacingDir: Facing.left,
           tags: CreatureTagDef(
@@ -295,6 +310,8 @@ class EnemyCatalog {
           renderAnim: _grojibRenderAnim,
           animProfile: _grojibAnimProfile,
           hitAnimSeconds: _grojibHitAnimSeconds,
+          deathAnimSeconds: _grojibDeathAnimSeconds,
+          deathBehavior: DeathBehavior.groundImpactThenDeath,
           tags: CreatureTagDef(mask: CreatureTagMask.humanoid),
         );
     }

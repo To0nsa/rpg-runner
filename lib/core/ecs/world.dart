@@ -27,6 +27,7 @@ import 'stores/enemies/nav_intent_store.dart';
 import 'stores/health_store.dart';
 import 'stores/hit_once_store.dart';
 import 'stores/hitbox_store.dart';
+import 'stores/death_state_store.dart';
 import 'stores/player/invulnerability_store.dart';
 import 'stores/player/last_damage_store.dart';
 import 'stores/lifetime_store.dart';
@@ -149,6 +150,9 @@ class EcsWorld {
 
   /// Records the last entity/source that dealt damage to this entity.
   late final LastDamageStore lastDamage = _register(LastDamageStore());
+
+  /// Tracks per-entity death lifecycle state.
+  late final DeathStateStore deathState = _register(DeathStateStore());
 
   /// Status immunities (burn, slow, bleed).
   late final StatusImmunityStore statusImmunity = _register(

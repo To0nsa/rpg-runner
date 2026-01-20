@@ -50,6 +50,7 @@ class EnemyCastSystem {
     final enemies = world.enemy;
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
       final enemy = enemies.denseEntities[ei];
+      if (world.deathState.has(enemy)) continue;
       final ti = world.transform.tryIndexOf(enemy);
       if (ti == null) continue;
 

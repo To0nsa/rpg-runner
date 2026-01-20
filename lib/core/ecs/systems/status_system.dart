@@ -59,6 +59,10 @@ class StatusSystem {
     _removeScratch.clear();
     for (var i = 0; i < burn.denseEntities.length; i += 1) {
       final target = burn.denseEntities[i];
+      if (world.deathState.has(target)) {
+        _removeScratch.add(target);
+        continue;
+      }
       burn.ticksLeft[i] -= 1;
       if (burn.ticksLeft[i] <= 0) {
         _removeScratch.add(target);
@@ -93,6 +97,10 @@ class StatusSystem {
     _removeScratch.clear();
     for (var i = 0; i < bleed.denseEntities.length; i += 1) {
       final target = bleed.denseEntities[i];
+      if (world.deathState.has(target)) {
+        _removeScratch.add(target);
+        continue;
+      }
       bleed.ticksLeft[i] -= 1;
       if (bleed.ticksLeft[i] <= 0) {
         _removeScratch.add(target);
@@ -124,6 +132,10 @@ class StatusSystem {
     _removeScratch.clear();
     for (var i = 0; i < slow.denseEntities.length; i += 1) {
       final target = slow.denseEntities[i];
+      if (world.deathState.has(target)) {
+        _removeScratch.add(target);
+        continue;
+      }
       slow.ticksLeft[i] -= 1;
       if (slow.ticksLeft[i] <= 0) {
         _removeScratch.add(target);
@@ -140,6 +152,7 @@ class StatusSystem {
     final invuln = world.invulnerability;
 
     for (final req in _pending) {
+      if (world.deathState.has(req.target)) continue;
       if (!world.health.has(req.target)) continue;
 
       final ii = invuln.tryIndexOf(req.target);

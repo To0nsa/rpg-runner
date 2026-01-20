@@ -82,6 +82,10 @@ class ProjectileHitSystem {
       // -- Hit Resolution --
       final owner = projectiles.owner[pi];
       final sourceFaction = projectiles.faction[pi];
+      if (world.deathState.has(owner)) {
+        _toDespawn.add(p);
+        continue;
+      }
 
       // Query the broadphase for the first valid intersection.
       // This respects "Friendly Fire" rules via [sourceFaction].

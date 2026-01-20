@@ -81,7 +81,9 @@ import 'ecs/systems/collectible_system.dart';
 import 'ecs/systems/collision_system.dart';
 import 'ecs/systems/cooldown_system.dart';
 import 'ecs/systems/damage_system.dart';
+import 'ecs/systems/death_despawn_system.dart';
 import 'ecs/systems/enemy_cast_system.dart';
+import 'ecs/systems/enemy_death_state_system.dart';
 import 'ecs/systems/enemy_engagement_system.dart';
 import 'ecs/systems/flying_enemy_locomotion_system.dart';
 import 'ecs/systems/ground_enemy_locomotion_system.dart';
@@ -111,7 +113,6 @@ import 'ecs/systems/enemy_melee_system.dart';
 import 'ecs/world.dart';
 import 'enemies/enemy_catalog.dart';
 import 'enemies/enemy_id.dart';
-import 'enemies/enemy_killed_info.dart';
 import 'events/game_event.dart';
 import 'levels/level_definition.dart';
 import 'levels/level_id.dart';
@@ -423,6 +424,11 @@ class GameCore {
     );
     _statusSystem = StatusSystem(tickHz: tickHz);
     _healthDespawnSystem = HealthDespawnSystem();
+    _enemyDeathStateSystem = EnemyDeathStateSystem(
+      tickHz: tickHz,
+      enemyCatalog: _enemyCatalog,
+    );
+    _deathDespawnSystem = DeathDespawnSystem();
     _enemyCullSystem = EnemyCullSystem();
     _animSystem = AnimSystem(
       tickHz: tickHz,
@@ -636,6 +642,8 @@ class GameCore {
   late final DamageSystem _damageSystem;
   late final StatusSystem _statusSystem;
   late final HealthDespawnSystem _healthDespawnSystem;
+  late final EnemyDeathStateSystem _enemyDeathStateSystem;
+  late final DeathDespawnSystem _deathDespawnSystem;
   late EnemyNavigationSystem _enemyNavigationSystem;
   late EnemyEngagementSystem _enemyEngagementSystem;
   late GroundEnemyLocomotionSystem _groundEnemyLocomotionSystem;
@@ -683,9 +691,6 @@ class GameCore {
 
   /// Scratch list for killed enemies (reused to avoid allocation).
   final List<EnemyId> _killedEnemiesScratch = <EnemyId>[];
-
-  /// Scratch list for enemy death render events (reused to avoid allocation).
-  final List<EnemyKilledInfo> _killedEnemyInfoScratch = <EnemyKilledInfo>[];
 
   /// Kill counts per enemy type (indexed by [EnemyId.index]).
   final List<int> _enemyKillCounts = List<int>.filled(EnemyId.values.length, 0);
@@ -1039,34 +1044,21 @@ class GameCore {
 
     // ─── Phase 14: Death handling ───
     _killedEnemiesScratch.clear();
-    _killedEnemyInfoScratch.clear();
     _enemyCullSystem.step(
       _world,
       cameraLeft: _camera.left(),
       groundTopY: effectiveGroundTopY,
       tuning: _trackTuning,
     );
-    _healthDespawnSystem.step(
+    _enemyDeathStateSystem.step(
       _world,
-      player: _player,
+      currentTick: tick,
       outEnemiesKilled: _killedEnemiesScratch,
-      outEnemyKilledInfo: _killedEnemyInfoScratch,
     );
+    _deathDespawnSystem.step(_world, currentTick: tick);
+    _healthDespawnSystem.step(_world, player: _player);
     if (_killedEnemiesScratch.isNotEmpty) {
       _recordEnemyKills(_killedEnemiesScratch);
-    }
-    if (_killedEnemyInfoScratch.isNotEmpty) {
-      for (final info in _killedEnemyInfoScratch) {
-        _events.add(
-          EnemyKilledEvent(
-            tick: tick,
-            enemyId: info.enemyId,
-            pos: info.pos,
-            facing: info.facing,
-            artFacingDir: info.artFacingDir,
-          ),
-        );
-      }
     }
     if (_isPlayerDead()) {
       if (_deathAnimTicksLeft <= 0) {

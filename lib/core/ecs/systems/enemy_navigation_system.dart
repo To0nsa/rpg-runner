@@ -141,6 +141,7 @@ class EnemyNavigationSystem {
       if (enemies.enemyId[ei] != EnemyId.groundEnemy) continue;
 
       final enemy = enemies.denseEntities[ei];
+      if (world.deathState.has(enemy)) continue;
       final ti = world.transform.tryIndexOf(enemy);
       if (ti == null) continue;
 

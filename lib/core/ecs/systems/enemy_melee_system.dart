@@ -28,6 +28,7 @@ class EnemyMeleeSystem {
     final meleeEngagement = world.meleeEngagement;
     for (var i = 0; i < meleeEngagement.denseEntities.length; i += 1) {
       final enemy = meleeEngagement.denseEntities[i];
+      if (world.deathState.has(enemy)) continue;
       final enemyIndex = world.enemy.tryIndexOf(enemy);
       if (enemyIndex == null) {
         assert(

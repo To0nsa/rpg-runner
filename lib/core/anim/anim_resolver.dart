@@ -1,6 +1,7 @@
 /// Shared animation resolver for Core entities.
 library;
 
+import '../enemies/death_behavior.dart';
 import '../snapshots/enums.dart';
 
 class AnimProfile {
@@ -56,6 +57,8 @@ class AnimSignals {
   const AnimSignals._({
     required this.tick,
     required this.hp,
+    required this.deathPhase,
+    required this.deathStartTick,
     required this.grounded,
     required this.velX,
     required this.velY,
@@ -94,12 +97,14 @@ class AnimSignals {
     required int dashDurationTicks,
     required int spawnAnimTicks,
   }) : this._(
-         tick: tick,
-         hp: hp,
-         grounded: grounded,
-         velX: velX,
-         velY: velY,
-         lastDamageTick: lastDamageTick,
+          tick: tick,
+          hp: hp,
+          deathPhase: DeathPhase.none,
+          deathStartTick: -1,
+          grounded: grounded,
+          velX: velX,
+          velY: velY,
+          lastDamageTick: lastDamageTick,
          hitAnimTicks: hitAnimTicks,
          lastAttackTick: lastAttackTick,
          attackAnimTicks: attackAnimTicks,
@@ -117,6 +122,8 @@ class AnimSignals {
   const AnimSignals.enemy({
     required int tick,
     required double hp,
+    required DeathPhase deathPhase,
+    required int deathStartTick,
     required bool grounded,
     required double velX,
     required double velY,
@@ -126,12 +133,14 @@ class AnimSignals {
     required int attackAnimTicks,
     required Facing lastAttackFacing,
   }) : this._(
-         tick: tick,
-         hp: hp,
-         grounded: grounded,
-         velX: velX,
-         velY: velY,
-         lastDamageTick: lastDamageTick,
+          tick: tick,
+          hp: hp,
+          deathPhase: deathPhase,
+          deathStartTick: deathStartTick,
+          grounded: grounded,
+          velX: velX,
+          velY: velY,
+          lastDamageTick: lastDamageTick,
          hitAnimTicks: hitAnimTicks,
          lastAttackTick: lastAttackTick,
          attackAnimTicks: attackAnimTicks,
@@ -148,6 +157,8 @@ class AnimSignals {
 
   final int tick;
   final double hp;
+  final DeathPhase deathPhase;
+  final int deathStartTick;
   final bool grounded;
   final double velX;
   final double velY;
@@ -202,6 +213,21 @@ class AnimResolver {
         signals.lastRangedTick >= 0 &&
         (tick - signals.lastRangedTick) < signals.rangedAnimTicks;
 
+    if (signals.deathPhase == DeathPhase.deathAnim) {
+      return AnimResult(
+        anim: profile.deathAnimKey,
+        animFrame: _frameFromTick(tick, signals.deathStartTick),
+      );
+    }
+    if (signals.deathPhase == DeathPhase.fallingUntilGround) {
+      if (profile.supportsJumpFall && !signals.grounded) {
+        return AnimResult(
+          anim: signals.velY < 0 ? profile.jumpAnimKey : profile.fallAnimKey,
+          animFrame: tick,
+        );
+      }
+      return AnimResult(anim: profile.idleAnimKey, animFrame: tick);
+    }
     if (signals.hp <= 0) {
       return AnimResult(
         anim: profile.deathAnimKey,

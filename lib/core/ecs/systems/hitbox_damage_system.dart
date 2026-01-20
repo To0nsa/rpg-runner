@@ -65,6 +65,8 @@ class HitboxDamageSystem {
 
       final owner = hitboxes.owner[hi];
       final sourceFaction = hitboxes.faction[hi];
+
+      if (world.deathState.has(owner)) continue;
       
       // Resolve enemy ID efficiently if the owner is an enemy.
       // This is used for kill credit/stats.

@@ -37,6 +37,7 @@ class GroundEnemyLocomotionSystem {
     final navIntent = world.navIntent;
     for (var i = 0; i < navIntent.denseEntities.length; i += 1) {
       final enemy = navIntent.denseEntities[i];
+      if (world.deathState.has(enemy)) continue;
       final enemyTi = world.transform.tryIndexOf(enemy);
       if (enemyTi == null) continue;
 

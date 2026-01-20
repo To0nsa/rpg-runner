@@ -1,4 +1,5 @@
 import '../../anim/anim_resolver.dart';
+import '../../enemies/death_behavior.dart';
 import '../../enemies/enemy_catalog.dart';
 import '../../enemies/enemy_id.dart';
 import '../../players/player_tuning.dart';
@@ -142,6 +143,10 @@ class AnimSystem {
           ? world.collision.grounded[world.collision.indexOf(e)]
           : false;
 
+      final di = world.deathState.tryIndexOf(e);
+      final deathPhase = di == null ? DeathPhase.none : world.deathState.phase[di];
+      final deathStartTick = di == null ? -1 : world.deathState.deathStartTick[di];
+
       final lastDamageTick = world.lastDamage.has(e)
           ? world.lastDamage.tick[world.lastDamage.indexOf(e)]
           : -1;
@@ -158,6 +163,8 @@ class AnimSystem {
       final signals = AnimSignals.enemy(
         tick: currentTick,
         hp: hp,
+        deathPhase: deathPhase,
+        deathStartTick: deathStartTick,
         grounded: grounded,
         velX: velX,
         velY: velY,

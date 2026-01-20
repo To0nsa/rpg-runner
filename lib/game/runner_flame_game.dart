@@ -117,7 +117,6 @@ class RunnerFlameGame extends FlameGame {
   final List<int> _toRemoveScratch = <int>[];
   final Vector2 _cameraCenterScratch = Vector2.zero();
   final Vector2 _snapScratch = Vector2.zero();
-  final List<EnemyKilledEvent> _pendingEnemyKilledEvents = <EnemyKilledEvent>[];
   final List<ProjectileHitEvent> _pendingProjectileHitEvents =
       <ProjectileHitEvent>[];
 
@@ -348,7 +347,6 @@ class RunnerFlameGame extends FlameGame {
       cameraCenter: _cameraCenterScratch,
     );
 
-    _flushPendingEnemyKilledEvents(cameraCenter: _cameraCenterScratch);
     _flushPendingProjectileHitEvents(cameraCenter: _cameraCenterScratch);
 
     super.update(dt);
@@ -438,46 +436,9 @@ class RunnerFlameGame extends FlameGame {
   }
 
   void _handleGameEvent(GameEvent event) {
-    if (event is EnemyKilledEvent) {
-      _pendingEnemyKilledEvents.add(event);
-      return;
-    }
     if (event is ProjectileHitEvent) {
       _pendingProjectileHitEvents.add(event);
     }
-  }
-
-  void _flushPendingEnemyKilledEvents({required Vector2 cameraCenter}) {
-    if (_pendingEnemyKilledEvents.isEmpty) return;
-
-    for (final event in _pendingEnemyKilledEvents) {
-      final entry = _enemyRenderRegistry.entryFor(event.enemyId);
-      if (entry == null) continue;
-      if (entry.deathAnimPolicy == EnemyDeathAnimPolicy.none) continue;
-
-      final deathAnim = entry.animSet.animations[AnimKey.death];
-      if (deathAnim == null) continue;
-
-      final component = _CameraSpaceSnappedSpriteAnimationComponent(
-        animation: deathAnim,
-        size: entry.animSet.frameSize.clone(),
-        worldPosX: event.pos.x,
-        worldPosY: event.pos.y,
-        anchor: entry.animSet.anchor,
-        paint: Paint()..filterQuality = FilterQuality.none,
-        removeOnFinish: true,
-      )..priority = _priorityEnemies;
-
-      final sign = event.facing == event.artFacingDir ? 1.0 : -1.0;
-      component.scale.setValues(
-        entry.renderScale.x * sign,
-        entry.renderScale.y,
-      );
-      component.snapToCamera(cameraCenter);
-      world.add(component);
-    }
-
-    _pendingEnemyKilledEvents.clear();
   }
 
   void _flushPendingProjectileHitEvents({required Vector2 cameraCenter}) {

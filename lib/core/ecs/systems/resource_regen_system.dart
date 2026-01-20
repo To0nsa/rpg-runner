@@ -20,9 +20,11 @@ class ResourceRegenSystem {
 
   void _regenHealth(EcsWorld world, double dtSeconds) {
     final store = world.health;
+    final deathState = world.deathState;
     final count = store.denseEntities.length;
     // Iterate contiguous arrays directly (SoA pattern).
     for (var i = 0; i < count; i += 1) {
+      if (deathState.has(store.denseEntities[i])) continue;
       final max = store.hpMax[i];
       if (max <= 0) continue;
       
@@ -38,8 +40,10 @@ class ResourceRegenSystem {
 
   void _regenMana(EcsWorld world, double dtSeconds) {
     final store = world.mana;
+    final deathState = world.deathState;
     final count = store.denseEntities.length;
     for (var i = 0; i < count; i += 1) {
+      if (deathState.has(store.denseEntities[i])) continue;
       final max = store.manaMax[i];
       if (max <= 0) continue;
       
@@ -55,8 +59,10 @@ class ResourceRegenSystem {
 
   void _regenStamina(EcsWorld world, double dtSeconds) {
     final store = world.stamina;
+    final deathState = world.deathState;
     final count = store.denseEntities.length;
     for (var i = 0; i < count; i += 1) {
+      if (deathState.has(store.denseEntities[i])) continue;
       final max = store.staminaMax[i];
       if (max <= 0) continue;
       

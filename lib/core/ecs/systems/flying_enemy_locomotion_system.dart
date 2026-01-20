@@ -30,6 +30,7 @@ class FlyingEnemyLocomotionSystem {
     final steering = world.flyingEnemySteering;
     for (var i = 0; i < steering.denseEntities.length; i += 1) {
       final enemy = steering.denseEntities[i];
+      if (world.deathState.has(enemy)) continue;
       final enemyTi = world.transform.tryIndexOf(enemy);
       if (enemyTi == null) continue;
 
