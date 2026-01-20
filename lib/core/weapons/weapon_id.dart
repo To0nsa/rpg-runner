@@ -5,5 +5,6 @@
 enum WeaponId {
   /// Default starter weapon.
   basicSword,
+  basicShield,
 }
 

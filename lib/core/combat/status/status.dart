@@ -6,6 +6,7 @@ enum StatusEffectType {
   burn,
   slow,
   bleed,
+  stun,
 }
 
 /// Stable identifiers for status application profiles.
@@ -14,6 +15,7 @@ enum StatusProfileId {
   iceBolt,
   fireBolt,
   meleeBleed,
+  stunOnHit,
 }
 
 /// A single status application inside a profile.
@@ -87,6 +89,17 @@ class StatusProfileCatalog {
               magnitude: 5.0,
               durationSeconds: 5.0,
               periodSeconds: 1.0,
+              scaleByDamageType: true,
+            ),
+          ],
+        );
+      case StatusProfileId.stunOnHit:
+        return const StatusProfile(
+          <StatusApplication>[
+            StatusApplication(
+              type: StatusEffectType.stun,
+              magnitude: 1.0,
+              durationSeconds: 2.0,
               scaleByDamageType: true,
             ),
           ],

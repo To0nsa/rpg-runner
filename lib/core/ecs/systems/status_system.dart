@@ -8,6 +8,7 @@ import '../entity_id.dart';
 import '../stores/status/bleed_store.dart';
 import '../stores/status/burn_store.dart';
 import '../stores/status/slow_store.dart';
+import '../stores/status/stun_store.dart';
 import '../world.dart';
 
 /// Applies status effects and ticks active statuses.
@@ -194,7 +195,37 @@ class StatusSystem {
               periodSeconds: app.periodSeconds,
               useBurn: false,
             );
+          case StatusEffectType.stun:
+            _applyStun(world, req.target, magnitude, app.durationSeconds);
         }
+      }
+    }
+  }
+
+  void _applyStun(
+    EcsWorld world,
+    EntityId target,
+    double magnitude,
+    double durationSeconds,
+  ) {
+    if (!world.statModifier.has(target)) return;
+    final ticksLeft = ticksFromSecondsCeil(durationSeconds, _tickHz);
+    if (ticksLeft <= 0) return;
+
+    final stun = world.stun;
+    final clamped = clampDouble(magnitude, 0.0, 0.9);
+    final index = stun.tryIndexOf(target);
+    if (index == null) {
+      stun.add(
+        target,
+        StunDef(ticksLeft: ticksLeft, magnitude: clamped),
+      );
+    } else {
+      stun.ticksLeft[index] = stun.ticksLeft[index] > ticksLeft
+          ? stun.ticksLeft[index]
+          : ticksLeft;
+      if (clamped > stun.magnitude[index]) {
+        stun.magnitude[index] = clamped;
       }
     }
   }
