@@ -1,6 +1,6 @@
 ﻿REPO: C:\dev\rpg_runner
-COMMIT: 29cae87c002834f3a2c8a9f525b48a8ab3321cfd
-DATE: 2026-01-19 21:39:25
+COMMIT: 7d7b1f36e968e22b986d24f8b4ebfae0614d544d
+DATE: 2026-01-20 09:09:39
 
 
 ===== FILE: lib/AGENTS.md =====
@@ -1161,6 +1161,7 @@ enum StatusEffectType {
 enum StatusProfileId {
   none,
   iceBolt,
+  fireBolt,
   meleeBleed,
 }
 
@@ -1223,6 +1224,19 @@ class StatusProfileCatalog {
               magnitude: 3.0,
               durationSeconds: 4.0,
               periodSeconds: 1.0,
+              scaleByDamageType: true,
+            ),
+          ],
+        );
+      case StatusProfileId.fireBolt:
+        return const StatusProfile(
+          <StatusApplication>[
+            StatusApplication(
+              type: StatusEffectType.burn,
+              magnitude: 5.0,
+              durationSeconds: 5.0,
+              periodSeconds: 1.0,
+              scaleByDamageType: true,
             ),
           ],
         );
@@ -1364,6 +1378,7 @@ class RenderAnimSetDefinition {
     required this.sourcesByKey,
     this.rowByKey = const <AnimKey, int>{},
     this.anchorInFramePx,
+    this.frameStartByKey = const <AnimKey, int>{},
     required this.frameCountsByKey,
     required this.stepTimeSecondsByKey,
   });
@@ -1392,6 +1407,12 @@ class RenderAnimSetDefinition {
   /// collider (e.g. enemies with long weapons/tails). The renderer treats the
   /// Core snapshot position as the world-space position of this anchor.
   final Vec2? anchorInFramePx;
+
+  /// Optional 0-based frame start offset per [AnimKey] for strip reuse.
+  ///
+  /// Defaults to 0 (start of the strip). Use this when multiple animations
+  /// share a single horizontal strip but start at different frame indices.
+  final Map<AnimKey, int> frameStartByKey;
 
   final Map<AnimKey, int> frameCountsByKey;
   final Map<AnimKey, double> stepTimeSecondsByKey;
@@ -3136,10 +3157,11 @@ import '../../entity_id.dart';
 import '../../sparse_set.dart';
 
 class AmmoDef {
-  const AmmoDef({this.arrows = 0, this.throwingAxes = 0});
+  const AmmoDef({this.arrows = 0, this.throwingAxes = 0, this.throwingKnives = 0});
 
   final int arrows;
   final int throwingAxes;
+  final int throwingKnives;
 
   int countFor(AmmoType type) {
     switch (type) {
@@ -3147,6 +3169,8 @@ class AmmoDef {
         return arrows;
       case AmmoType.throwingAxe:
         return throwingAxes;
+      case AmmoType.throwingKnife:
+        return throwingKnives;
     }
   }
 }
@@ -3155,11 +3179,12 @@ class AmmoDef {
 class AmmoStore extends SparseSet {
   final List<int> arrows = <int>[];
   final List<int> throwingAxes = <int>[];
-
+  final List<int> throwingKnives = <int>[];
   void add(EntityId entity, [AmmoDef def = const AmmoDef()]) {
     final i = addEntity(entity);
     arrows[i] = def.arrows;
     throwingAxes[i] = def.throwingAxes;
+    throwingKnives[i] = def.throwingKnives;
   }
 
   int countForIndex(int index, AmmoType type) {
@@ -3168,6 +3193,8 @@ class AmmoStore extends SparseSet {
         return arrows[index];
       case AmmoType.throwingAxe:
         return throwingAxes[index];
+      case AmmoType.throwingKnife:
+        return throwingKnives[index];
     }
   }
 
@@ -3178,6 +3205,8 @@ class AmmoStore extends SparseSet {
         arrows[index] = clamped;
       case AmmoType.throwingAxe:
         throwingAxes[index] = clamped;
+      case AmmoType.throwingKnife:
+        throwingKnives[index] = clamped;
     }
   }
 
@@ -3185,6 +3214,7 @@ class AmmoStore extends SparseSet {
   void onDenseAdded(int denseIndex) {
     arrows.add(0);
     throwingAxes.add(0);
+    throwingKnives.add(0);
   }
 
   @override
@@ -3194,6 +3224,7 @@ class AmmoStore extends SparseSet {
 
     arrows.removeLast();
     throwingAxes.removeLast();
+    throwingKnives.removeLast();
   }
 }
 
@@ -8355,8 +8386,12 @@ class PlayerRangedWeaponSystem {
 
 
 ===== FILE: lib/core/ecs/systems/projectile_hit_system.dart =====
+import 'dart:math';
+
 import '../../combat/damage.dart';
 import '../../events/game_event.dart';
+import '../../snapshots/enums.dart';
+import '../../util/vec2.dart';
 import '../entity_id.dart';
 import '../hit/hit_resolver.dart';
 import '../spatial/broadphase_grid.dart';
@@ -8380,8 +8415,10 @@ class ProjectileHitSystem {
   void step(
     EcsWorld world,
     void Function(DamageRequest request) queueDamage,
-    BroadphaseGrid broadphase,
-  ) {
+    BroadphaseGrid broadphase, {
+    required int currentTick,
+    void Function(ProjectileHitEvent event)? queueHitEvent,
+  }) {
     // Optimization: If there are no targets to hit, projectiles just fly.
     if (broadphase.targets.isEmpty) return;
     
@@ -8420,6 +8457,8 @@ class ProjectileHitSystem {
       
       final dirX = projectiles.dirX[pi];
       final dirY = projectiles.dirY[pi];
+      final facing = dirX >= 0 ? Facing.right : Facing.left;
+      final rotationRad = atan2(dirY, dirX);
 
       // Calculate the start (A) and end (B) points of the capsule segment.
       // The segment is centered at (pcx, pcy) and extends halfLength in both directions along (dirX, dirY).
@@ -8469,6 +8508,19 @@ class ProjectileHitSystem {
             sourceSpellId: spellId,
           ),
         );
+
+        if (queueHitEvent != null) {
+          queueHitEvent(
+            ProjectileHitEvent(
+              tick: currentTick,
+              projectileId: projectiles.projectileId[pi],
+              spellId: spellId,
+              pos: Vec2(pcx, pcy),
+              facing: facing,
+              rotationRad: rotationRad,
+            ),
+          );
+        }
         
         // Mark projectile for removal.
         // We defer removal until after the loop or use a list to avoid modifying the collection while iterating
@@ -9982,10 +10034,39 @@ import '../util/vec2.dart';
 
 part 'run_events.dart';
 part 'enemy_events.dart';
+part 'projectile_events.dart';
 
 /// Base sealed class for all simulation events.
 sealed class GameEvent {
   const GameEvent();
+}
+
+
+===== FILE: lib/core/events/projectile_events.dart =====
+part of 'game_event.dart';
+
+/// Emitted when a projectile hits a damageable target.
+///
+/// Used by the renderer to spawn impact VFX even though the projectile entity
+/// is despawned immediately in Core.
+class ProjectileHitEvent extends GameEvent {
+  const ProjectileHitEvent({
+    required this.tick,
+    required this.projectileId,
+    required this.pos,
+    required this.facing,
+    required this.rotationRad,
+    this.spellId,
+  });
+
+  /// Simulation tick when the hit occurred.
+  final int tick;
+
+  final ProjectileId projectileId;
+  final SpellId? spellId;
+  final Vec2 pos;
+  final Facing facing;
+  final double rotationRad;
 }
 
 
@@ -11115,7 +11196,13 @@ class GameCore {
 
     // ─── Phase 12: Hit resolution ───
     // Detect overlaps and queue damage events.
-    _projectileHitSystem.step(_world, _damageSystem.queue, _broadphaseGrid);
+    _projectileHitSystem.step(
+      _world,
+      _damageSystem.queue,
+      _broadphaseGrid,
+      currentTick: tick,
+      queueHitEvent: (event) => _events.add(event),
+    );
     _hitboxDamageSystem.step(_world, _damageSystem.queue, _broadphaseGrid);
     _projectileWorldCollisionSystem.step(_world);
     // ─── Phase 13: Status + damage ───
@@ -13938,8 +14025,8 @@ const PlayerCatalog eloiseCatalog = PlayerCatalog(
   resistance: DamageResistanceDef(),
   statusImmunity: StatusImmunityDef(),
   weaponId: WeaponId.basicSword,
-  rangedWeaponId: RangedWeaponId.throwingAxe,
-  ammo: AmmoDef(throwingAxes: 6),
+  rangedWeaponId: RangedWeaponId.throwingKnife,
+  ammo: AmmoDef(throwingKnives: 10000),
   facing: Facing.right,
 );
 
@@ -14492,6 +14579,26 @@ class PlayerCharacterDefinition {
         }
       }
 
+      for (final entry in renderAnim.frameStartByKey.entries) {
+        final key = entry.key;
+        final start = entry.value;
+        if (start < 0) {
+          throw StateError(
+            'PlayerCharacterDefinition($id) renderAnim.frameStartByKey[$key] must be >= 0 (got $start)',
+          );
+        }
+        if (!renderAnim.sourcesByKey.containsKey(key)) {
+          throw StateError(
+            'PlayerCharacterDefinition($id) renderAnim.frameStartByKey[$key] has no matching sourcesByKey entry',
+          );
+        }
+        if (!renderAnim.frameCountsByKey.containsKey(key)) {
+          throw StateError(
+            'PlayerCharacterDefinition($id) renderAnim.frameStartByKey[$key] has no matching frameCountsByKey entry',
+          );
+        }
+      }
+
       final anchor = renderAnim.anchorInFramePx;
       if (anchor != null) {
         if (!anchor.x.isFinite || !anchor.y.isFinite) {
@@ -15031,6 +15138,13 @@ class ProjectileCatalog {
           colliderSizeX: 16.0,
           colliderSizeY: 8.0,
         );
+      case ProjectileId.fireBolt:
+        return const ProjectileArchetype(
+          speedUnitsPerSecond: 900.0,
+          lifetimeSeconds: 1.3,
+          colliderSizeX: 20.0,
+          colliderSizeY: 10.0,
+        );
       case ProjectileId.arrow:
         return const ProjectileArchetype(
           speedUnitsPerSecond: 1000.0,
@@ -15040,10 +15154,17 @@ class ProjectileCatalog {
         );
       case ProjectileId.throwingAxe:
         return const ProjectileArchetype(
-          speedUnitsPerSecond: 900.0,
+          speedUnitsPerSecond: 800.0,
           lifetimeSeconds: 1.6,
           colliderSizeX: 16.0,
           colliderSizeY: 10.0,
+        );
+      case ProjectileId.throwingKnife:
+        return const ProjectileArchetype(
+          speedUnitsPerSecond: 900.0,
+          lifetimeSeconds: 1.2,
+          colliderSizeX: 14.0,
+          colliderSizeY: 6.0,
         );
     }
   }
@@ -15087,11 +15208,241 @@ enum ProjectileId {
   /// Enemy ranged attack. Slower but longer range.
   thunderBolt,
 
+  /// Player's fire spell projectile. Medium speed and lifetime.
+  fireBolt,
+
   /// Physical arrow projectile (ballistic).
   arrow,
 
   /// Physical throwing axe projectile (ballistic).
   throwingAxe,
+
+  /// Physical throwing knife projectile (ballistic).
+  throwingKnife,
+}
+
+
+===== FILE: lib/core/projectiles/projectile_render_catalog.dart =====
+import '../contracts/render_anim_set_definition.dart';
+import '../snapshots/enums.dart';
+import 'projectile_id.dart';
+
+// -----------------------------------------------------------------------------
+// Ice Bolt render animation strip definitions (authoring-time)
+// -----------------------------------------------------------------------------
+
+const int _iceBoltFrameWidth = 48;
+const int _iceBoltFrameHeight = 32;
+
+const int _iceBoltStartFrames = 3;
+const int _iceBoltRepeatFrames = 10;
+const int _iceBoltHitFrames = 8;
+
+const double _iceBoltStartStepSeconds = 0.05;
+const double _iceBoltRepeatStepSeconds = 0.06;
+const double _iceBoltHitStepSeconds = 0.05;
+
+const Map<AnimKey, int> _iceBoltFrameCountsByKey = <AnimKey, int>{
+  AnimKey.spawn: _iceBoltStartFrames,
+  AnimKey.idle: _iceBoltRepeatFrames,
+  AnimKey.hit: _iceBoltHitFrames,
+};
+
+const Map<AnimKey, double> _iceBoltStepTimeSecondsByKey = <AnimKey, double>{
+  AnimKey.spawn: _iceBoltStartStepSeconds,
+  AnimKey.idle: _iceBoltRepeatStepSeconds,
+  AnimKey.hit: _iceBoltHitStepSeconds,
+};
+
+const Map<AnimKey, String> _iceBoltSourcesByKey = <AnimKey, String>{
+  AnimKey.spawn: 'entities/spells/iceBolt/start.png',
+  AnimKey.idle: 'entities/spells/iceBolt/repeatable.png',
+  AnimKey.hit: 'entities/spells/iceBolt/hit.png',
+};
+
+const RenderAnimSetDefinition _iceBoltRenderAnim = RenderAnimSetDefinition(
+  frameWidth: _iceBoltFrameWidth,
+  frameHeight: _iceBoltFrameHeight,
+  sourcesByKey: _iceBoltSourcesByKey,
+  frameCountsByKey: _iceBoltFrameCountsByKey,
+  stepTimeSecondsByKey: _iceBoltStepTimeSecondsByKey,
+);
+
+// -----------------------------------------------------------------------------
+// Thunder Bolt render animation strip definitions (authoring-time)
+// -----------------------------------------------------------------------------
+
+const int _thunderBoltFrameWidth = 32;
+const int _thunderBoltFrameHeight = 32;
+
+const int _thunderBoltStartFrames = 5;
+const int _thunderBoltRepeatFrames = 5;
+const int _thunderBoltHitFrames = 6;
+
+const double _thunderBoltStartStepSeconds = 0.05;
+const double _thunderBoltRepeatStepSeconds = 0.06;
+const double _thunderBoltHitStepSeconds = 0.05;
+
+const Map<AnimKey, int> _thunderBoltFrameCountsByKey = <AnimKey, int>{
+  AnimKey.spawn: _thunderBoltStartFrames,
+  AnimKey.idle: _thunderBoltRepeatFrames,
+  AnimKey.hit: _thunderBoltHitFrames,
+};
+
+const Map<AnimKey, double> _thunderBoltStepTimeSecondsByKey =
+    <AnimKey, double>{
+  AnimKey.spawn: _thunderBoltStartStepSeconds,
+  AnimKey.idle: _thunderBoltRepeatStepSeconds,
+  AnimKey.hit: _thunderBoltHitStepSeconds,
+};
+
+const Map<AnimKey, String> _thunderBoltSourcesByKey = <AnimKey, String>{
+  AnimKey.spawn: 'entities/spells/thunderBolt/start.png',
+  AnimKey.idle: 'entities/spells/thunderBolt/repeatable.png',
+  AnimKey.hit: 'entities/spells/thunderBolt/hit.png',
+};
+
+const RenderAnimSetDefinition _thunderBoltRenderAnim = RenderAnimSetDefinition(
+  frameWidth: _thunderBoltFrameWidth,
+  frameHeight: _thunderBoltFrameHeight,
+  sourcesByKey: _thunderBoltSourcesByKey,
+  frameCountsByKey: _thunderBoltFrameCountsByKey,
+  stepTimeSecondsByKey: _thunderBoltStepTimeSecondsByKey,
+);
+
+// -----------------------------------------------------------------------------
+// Fire Bolt render animation strip definitions (authoring-time)
+// -----------------------------------------------------------------------------
+
+const int _fireBoltFrameWidth = 48;
+const int _fireBoltFrameHeight = 48;
+
+const int _fireBoltStartFrames = 4;
+const int _fireBoltHitFrames = 6;
+
+const double _fireBoltStartStepSeconds = 0.05;
+const double _fireBoltIdleStepSeconds = 0.06;
+const double _fireBoltHitStepSeconds = 0.05;
+
+const Map<AnimKey, int> _fireBoltFrameCountsByKey = <AnimKey, int>{
+  AnimKey.spawn: _fireBoltStartFrames,
+  AnimKey.idle: _fireBoltStartFrames,
+  AnimKey.hit: _fireBoltHitFrames,
+};
+
+const Map<AnimKey, int> _fireBoltFrameStartByKey = <AnimKey, int>{
+  AnimKey.spawn: 0,
+  AnimKey.idle: 0,
+  AnimKey.hit: 5,
+};
+
+const Map<AnimKey, double> _fireBoltStepTimeSecondsByKey =
+    <AnimKey, double>{
+  AnimKey.spawn: _fireBoltStartStepSeconds,
+  AnimKey.idle: _fireBoltIdleStepSeconds,
+  AnimKey.hit: _fireBoltHitStepSeconds,
+};
+
+const Map<AnimKey, String> _fireBoltSourcesByKey = <AnimKey, String>{
+  AnimKey.spawn: 'entities/spells/fireBolt/fireBolt_spriteSheet.png',
+  AnimKey.idle: 'entities/spells/fireBolt/fireBolt_spriteSheet.png',
+  AnimKey.hit: 'entities/spells/fireBolt/fireBolt_spriteSheet.png',
+};
+
+const RenderAnimSetDefinition _fireBoltRenderAnim = RenderAnimSetDefinition(
+  frameWidth: _fireBoltFrameWidth,
+  frameHeight: _fireBoltFrameHeight,
+  sourcesByKey: _fireBoltSourcesByKey,
+  frameStartByKey: _fireBoltFrameStartByKey,
+  frameCountsByKey: _fireBoltFrameCountsByKey,
+  stepTimeSecondsByKey: _fireBoltStepTimeSecondsByKey,
+);
+
+// -----------------------------------------------------------------------------
+// Throwing Axe render animation strip definitions (authoring-time)
+// -----------------------------------------------------------------------------
+
+const int _throwingAxeFrameWidth = 32;
+const int _throwingAxeFrameHeight = 32;
+
+const int _throwingAxeFrames = 1;
+const double _throwingAxeStepSeconds = 0.10;
+
+const Map<AnimKey, int> _throwingAxeFrameCountsByKey = <AnimKey, int>{
+  AnimKey.idle: _throwingAxeFrames,
+};
+
+const Map<AnimKey, double> _throwingAxeStepTimeSecondsByKey =
+    <AnimKey, double>{
+  AnimKey.idle: _throwingAxeStepSeconds,
+};
+
+const Map<AnimKey, String> _throwingAxeSourcesByKey = <AnimKey, String>{
+  AnimKey.idle: 'entities/throwingWepons/throwingAxe.png',
+};
+
+const RenderAnimSetDefinition _throwingAxeRenderAnim = RenderAnimSetDefinition(
+  frameWidth: _throwingAxeFrameWidth,
+  frameHeight: _throwingAxeFrameHeight,
+  sourcesByKey: _throwingAxeSourcesByKey,
+  frameCountsByKey: _throwingAxeFrameCountsByKey,
+  stepTimeSecondsByKey: _throwingAxeStepTimeSecondsByKey,
+);
+
+// -----------------------------------------------------------------------------
+// Throwing Axe render animation strip definitions (authoring-time)
+// -----------------------------------------------------------------------------
+
+const int _throwingKnifeFrameWidth = 32;
+const int _throwingKnifeFrameHeight = 32;
+
+const int _throwingKnifeFrames = 1;
+const double _throwingKnifeStepSeconds = 0.10;
+
+const Map<AnimKey, int> _throwingKnifeFrameCountsByKey = <AnimKey, int>{
+  AnimKey.idle: _throwingKnifeFrames,
+};
+
+const Map<AnimKey, double> _throwingKnifeStepTimeSecondsByKey =
+    <AnimKey, double>{
+  AnimKey.idle: _throwingKnifeStepSeconds,
+};
+
+const Map<AnimKey, String> _throwingKnifeSourcesByKey = <AnimKey, String>{
+  AnimKey.idle: 'entities/throwingWepons/throwingKnife.png',
+};
+
+const RenderAnimSetDefinition _throwingKnifeRenderAnim = RenderAnimSetDefinition(
+  frameWidth: _throwingKnifeFrameWidth,
+  frameHeight: _throwingKnifeFrameHeight,
+  sourcesByKey: _throwingKnifeSourcesByKey,
+  frameCountsByKey: _throwingKnifeFrameCountsByKey,
+  stepTimeSecondsByKey: _throwingKnifeStepTimeSecondsByKey,
+);
+
+/// Lookup table for projectile render animation definitions.
+///
+/// Core owns the animation timing and frame metadata. The renderer uses this
+/// catalog to load assets and drive deterministic animation frames.
+class ProjectileRenderCatalog {
+  const ProjectileRenderCatalog();
+
+  RenderAnimSetDefinition get(ProjectileId id) {
+    switch (id) {
+      case ProjectileId.iceBolt:
+        return _iceBoltRenderAnim;
+      case ProjectileId.thunderBolt:
+        return _thunderBoltRenderAnim;
+      case ProjectileId.fireBolt:
+        return _fireBoltRenderAnim;
+      case ProjectileId.throwingAxe:
+        return _throwingAxeRenderAnim;
+      case ProjectileId.arrow:
+        throw StateError('No render animation defined for $id.');
+      case ProjectileId.throwingKnife:
+        return _throwingKnifeRenderAnim;
+    }
+  }
 }
 
 
@@ -17057,6 +17408,16 @@ class SpellCatalog {
           ),
           projectileId: ProjectileId.thunderBolt,
         );
+      case SpellId.fireBolt:
+        return const SpellDef(
+          stats: ProjectileSpellStats(
+            manaCost: 12.0,
+            damage: 18.0,
+            damageType: DamageType.fire,
+            statusProfileId: StatusProfileId.fireBolt,
+          ),
+          projectileId: ProjectileId.fireBolt,
+        );
     }
   }
 }
@@ -17068,11 +17429,9 @@ class SpellCatalog {
 /// Each ID maps to a [SpellDef] in [SpellCatalog] defining costs,
 /// damage, and the associated projectile (if any).
 enum SpellId {
-  /// Player's primary ranged attack.
   iceBolt,
-
-  /// Enemy ranged attack.
-  thunder,
+  thunderBolt,
+  fireBolt,
 }
 
 
@@ -19464,6 +19823,7 @@ double applyAccelDecel({
 enum AmmoType {
   arrow,
   throwingAxe,
+  throwingKnife,
 }
 
 
@@ -19506,6 +19866,19 @@ class RangedWeaponCatalog {
           cooldownSeconds: 0.40,
           ballistic: true,
           gravityScale: 1.0,
+        );
+      case RangedWeaponId.throwingKnife:
+        return const RangedWeaponDef(
+          id: RangedWeaponId.throwingKnife,
+          projectileId: ProjectileId.throwingKnife,
+          damage: 10.0,
+          staminaCost: 5.0,
+          ammoType: AmmoType.throwingKnife,
+          ammoCost: 1,
+          originOffset: 6.0,
+          cooldownSeconds: 0.30,
+          ballistic: true,
+          gravityScale: 0.9,
         );
     }
   }
@@ -19595,6 +19968,7 @@ class RangedWeaponDef {
 enum RangedWeaponId {
   bow,
   throwingAxe,
+  throwingKnife,
 }
 
 
@@ -20328,6 +20702,175 @@ class PlayerViewComponent extends DeterministicAnimViewComponent {
 }
 
 
+===== FILE: lib/game/components/projectiles/projectile_render_registry.dart =====
+/// Projectile render registry and loaders (render layer only).
+library;
+
+import 'dart:math';
+
+import 'package:flame/cache.dart';
+import 'package:flame/components.dart';
+
+import '../../../core/contracts/render_anim_set_definition.dart';
+import '../../../core/projectiles/projectile_id.dart';
+import '../../../core/projectiles/projectile_render_catalog.dart';
+import '../../../core/snapshots/enums.dart';
+import '../sprite_anim/deterministic_anim_view_component.dart';
+import '../sprite_anim/sprite_anim_set.dart';
+import '../sprite_anim/strip_animation_loader.dart';
+
+typedef ProjectileAnimLoader =
+    Future<SpriteAnimSet> Function(
+      Images images, {
+      required RenderAnimSetDefinition renderAnim,
+      required Set<AnimKey> oneShotKeys,
+    });
+
+typedef ProjectileViewFactory =
+    DeterministicAnimViewComponent Function(
+      SpriteAnimSet animSet,
+      Vector2 renderScale,
+    );
+
+const Set<AnimKey> _defaultProjectileOneShotKeys = <AnimKey>{
+  AnimKey.spawn,
+  AnimKey.hit,
+};
+
+DeterministicAnimViewComponent _defaultProjectileViewFactory(
+  SpriteAnimSet animSet,
+  Vector2 renderScale,
+) {
+  return DeterministicAnimViewComponent(
+    animSet: animSet,
+    renderSize: Vector2(animSet.frameSize.x, animSet.frameSize.y),
+    renderScale: renderScale,
+    respectFacing: false,
+  );
+}
+
+class ProjectileRenderEntry {
+  ProjectileRenderEntry({
+    required this.id,
+    required this.renderScale,
+    this.oneShotKeys = _defaultProjectileOneShotKeys,
+    this.loader = loadAnimSetFromDefinition,
+    this.viewFactory = _defaultProjectileViewFactory,
+    this.spinSpeedRadPerSecond = 0.0,
+  });
+
+  final ProjectileId id;
+  final Vector2 renderScale;
+  final Set<AnimKey> oneShotKeys;
+  final ProjectileAnimLoader loader;
+  final ProjectileViewFactory viewFactory;
+  final double spinSpeedRadPerSecond;
+
+  SpriteAnimSet? _animSet;
+  bool _hasAssets = true;
+  final Map<int, int> _spawnAnimTicksCache = <int, int>{};
+
+  bool get hasAssets => _hasAssets;
+
+  bool get isLoaded => _animSet != null;
+
+  bool get isRenderable => _hasAssets && _animSet != null;
+
+  SpriteAnimSet get animSet {
+    final value = _animSet;
+    if (value == null) {
+      throw StateError('ProjectileRenderEntry($id) has not been loaded yet.');
+    }
+    return value;
+  }
+
+  int spawnAnimTicks(int tickHz) {
+    final cached = _spawnAnimTicksCache[tickHz];
+    if (cached != null) return cached;
+
+    final set = _animSet;
+    if (set == null) return 0;
+    final anim = set.animations[AnimKey.spawn];
+    if (anim == null) return 0;
+    final frameCount = anim.frames.length;
+    if (frameCount <= 1) return 0;
+
+    final ticksPerFrame = set.ticksPerFrameFor(AnimKey.spawn, tickHz);
+    final totalTicks = ticksPerFrame * frameCount;
+    _spawnAnimTicksCache[tickHz] = totalTicks;
+    return totalTicks;
+  }
+
+  Future<void> load(
+    Images images, {
+    required RenderAnimSetDefinition renderAnim,
+  }) async {
+    final idlePath = renderAnim.sourcesByKey[AnimKey.idle];
+    if (idlePath == null || idlePath.trim().isEmpty) {
+      _hasAssets = false;
+      _animSet = null;
+      return;
+    }
+    _animSet = await loader(
+      images,
+      renderAnim: renderAnim,
+      oneShotKeys: oneShotKeys,
+    );
+  }
+}
+
+/// Render registry for projectiles (ProjectileId -> render wiring).
+class ProjectileRenderRegistry {
+  ProjectileRenderRegistry({
+    ProjectileRenderCatalog projectileCatalog = const ProjectileRenderCatalog(),
+  }) : _projectileCatalog = projectileCatalog;
+
+  final ProjectileRenderCatalog _projectileCatalog;
+
+  static const double _throwingAxeSpinRps = 6.0;
+  static const double _throwingKnifeSpinRps = 7.0;
+
+  final Map<ProjectileId, ProjectileRenderEntry> _entries =
+      <ProjectileId, ProjectileRenderEntry>{
+        ProjectileId.iceBolt: ProjectileRenderEntry(
+          id: ProjectileId.iceBolt,
+          renderScale: Vector2.all(1.0),
+        ),
+        ProjectileId.thunderBolt: ProjectileRenderEntry(
+          id: ProjectileId.thunderBolt,
+          renderScale: Vector2.all(1.0),
+        ),
+        ProjectileId.fireBolt: ProjectileRenderEntry(
+          id: ProjectileId.fireBolt,
+          renderScale: Vector2.all(1.0),
+        ),
+        ProjectileId.throwingAxe: ProjectileRenderEntry(
+          id: ProjectileId.throwingAxe,
+          renderScale: Vector2.all(1.0),
+          spinSpeedRadPerSecond: _throwingAxeSpinRps * 2.0 * pi,
+        ),
+        ProjectileId.throwingKnife: ProjectileRenderEntry(
+          id: ProjectileId.throwingKnife,
+          renderScale: Vector2.all(1.0),
+          spinSpeedRadPerSecond: _throwingKnifeSpinRps * 2.0 * pi,
+        ),
+      };
+
+  ProjectileRenderEntry? entryFor(ProjectileId id) {
+    final entry = _entries[id];
+    if (entry == null || !entry.isRenderable) return null;
+    return entry;
+  }
+
+  Future<void> load(Images images) async {
+    for (final entry in _entries.values) {
+      final renderAnim = _projectileCatalog.get(entry.id);
+      await entry.load(images, renderAnim: renderAnim);
+    }
+  }
+}
+
+
 ===== FILE: lib/game/components/sprite_anim/deterministic_anim_view_component.dart =====
 /// Generic deterministic sprite animation component driven by Core snapshots.
 library;
@@ -20350,11 +20893,13 @@ class DeterministicAnimViewComponent
     AnimKeyFallbackResolver? fallbackResolver,
     Vector2? renderSize,
     Vector2? renderScale,
+    bool respectFacing = true,
   }) : _animSet = animSet,
        _availableAnimations = animSet.animations,
        _oneShotKeys = animSet.oneShotKeys,
        _fallbackResolver = fallbackResolver,
        _baseScale = renderScale?.clone() ?? Vector2.all(1.0),
+       _respectFacing = respectFacing,
        super(
          animations: animSet.animations,
          current: initial,
@@ -20372,11 +20917,14 @@ class DeterministicAnimViewComponent
   final Set<AnimKey> _oneShotKeys;
   final AnimKeyFallbackResolver? _fallbackResolver;
   final Vector2 _baseScale;
+  final bool _respectFacing;
 
   void applySnapshot(
     EntityRenderSnapshot e, {
     required int tickHz,
     Vector2? pos,
+    AnimKey? overrideAnim,
+    int? overrideAnimFrame,
   }) {
     if (pos != null) {
       position.setFrom(pos);
@@ -20387,7 +20935,7 @@ class DeterministicAnimViewComponent
       );
     }
 
-    var next = e.anim;
+    var next = overrideAnim ?? e.anim;
     if (_fallbackResolver != null) {
       next = _fallbackResolver(next);
     }
@@ -20398,14 +20946,18 @@ class DeterministicAnimViewComponent
       current = next;
     }
 
-    final artFacing = e.artFacingDir ?? Facing.right;
-    final sign = e.facing == artFacing ? 1.0 : -1.0;
-    final desiredScaleX = _baseScale.x * sign;
-    if (scale.x != desiredScaleX || scale.y != _baseScale.y) {
-      scale.setValues(desiredScaleX, _baseScale.y);
+    if (_respectFacing) {
+      final artFacing = e.artFacingDir ?? Facing.right;
+      final sign = e.facing == artFacing ? 1.0 : -1.0;
+      final desiredScaleX = _baseScale.x * sign;
+      if (scale.x != desiredScaleX || scale.y != _baseScale.y) {
+        scale.setValues(desiredScaleX, _baseScale.y);
+      }
+    } else if (scale.x != _baseScale.x || scale.y != _baseScale.y) {
+      scale.setValues(_baseScale.x, _baseScale.y);
     }
 
-    final frameHint = e.animFrame;
+    final frameHint = overrideAnimFrame ?? e.animFrame;
     if (frameHint == null) return;
 
     final ticker = animationTicker;
@@ -20498,6 +21050,7 @@ Future<SpriteAnimSet> loadStripAnimations(
   required Map<AnimKey, String> sourcesByKey,
   Map<AnimKey, int> rowByKey = const <AnimKey, int>{},
   Vec2? anchorInFramePx,
+  Map<AnimKey, int> frameStartByKey = const <AnimKey, int>{},
   required Map<AnimKey, int> frameCountsByKey,
   required Map<AnimKey, double> stepTimeSecondsByKey,
   required Set<AnimKey> oneShotKeys,
@@ -20542,12 +21095,18 @@ Future<SpriteAnimSet> loadStripAnimations(
     final frameCount =
         frameCountsByKey[key] ?? frameCountsByKey[AnimKey.idle] ?? 1;
     final row = rowByKey[key] ?? 0;
+    final startFrame = frameStartByKey[key] ?? 0;
+
+    assert(
+      startFrame >= 0,
+      'frameStartByKey[$key] must be >= 0 (got $startFrame).',
+    );
 
     final sprites = List<Sprite>.generate(frameCount, (i) {
       return Sprite(
         img,
         srcPosition: Vector2(
-          frameWidth.toDouble() * i,
+          frameWidth.toDouble() * (startFrame + i),
           frameHeight.toDouble() * row,
         ),
         srcSize: frameSize,
@@ -20582,6 +21141,7 @@ Future<SpriteAnimSet> loadAnimSetFromDefinition(
     sourcesByKey: renderAnim.sourcesByKey,
     rowByKey: renderAnim.rowByKey,
     anchorInFramePx: renderAnim.anchorInFramePx,
+    frameStartByKey: renderAnim.frameStartByKey,
     frameCountsByKey: renderAnim.frameCountsByKey,
     stepTimeSecondsByKey: renderAnim.stepTimeSecondsByKey,
     oneShotKeys: oneShotKeys,
@@ -20932,7 +21492,7 @@ abstract class RenderDebugFlags {
   /// Draws collision AABB overlays for "actor" entities (player + enemies).
   ///
   /// Default is `false` even in debug builds; toggle locally when needed.
-  static bool drawActorHitboxes = true;
+  static bool drawActorHitboxes = false;
 
   /// Convenience for enabling all render debug overlays in debug/profile
   /// builds while keeping release builds clean.
@@ -21789,6 +22349,7 @@ import 'debug/render_debug_flags.dart';
 import 'components/player/player_animations.dart';
 import 'components/player/player_view_component.dart';
 import 'components/enemies/enemy_render_registry.dart';
+import 'components/projectiles/projectile_render_registry.dart';
 import 'components/sprite_anim/deterministic_anim_view_component.dart';
 import 'tuning/player_render_tuning.dart';
 import 'input/runner_input_router.dart';
@@ -21831,6 +22392,7 @@ class RunnerFlameGame extends FlameGame {
   }) : _enemyRenderRegistry = EnemyRenderRegistry(
          enemyCatalog: controller.enemyCatalog,
        ),
+       _projectileRenderRegistry = ProjectileRenderRegistry(),
        super(
          camera: CameraComponent.withFixedResolution(
            width: virtualWidth.toDouble(),
@@ -21854,11 +22416,15 @@ class RunnerFlameGame extends FlameGame {
 
   late final PlayerViewComponent _player;
   final EnemyRenderRegistry _enemyRenderRegistry;
+  final ProjectileRenderRegistry _projectileRenderRegistry;
   final List<RectangleComponent> _staticSolids = <RectangleComponent>[];
   List<StaticSolidSnapshot>? _lastStaticSolidsSnapshot;
 
   /// Entity view pools, keyed by entity ID.
-  final Map<int, RectangleComponent> _projectiles = <int, RectangleComponent>{};
+  final Map<int, DeterministicAnimViewComponent> _projectileAnimViews =
+      <int, DeterministicAnimViewComponent>{};
+  final Map<int, RectangleComponent> _projectileRects =
+      <int, RectangleComponent>{};
   final Map<int, RectangleComponent> _collectibles =
       <int, RectangleComponent>{};
   final Map<int, DeterministicAnimViewComponent> _enemies =
@@ -21882,11 +22448,14 @@ class RunnerFlameGame extends FlameGame {
 
   final Map<int, EntityRenderSnapshot> _prevEntitiesById =
       <int, EntityRenderSnapshot>{};
+  final Map<int, int> _projectileSpawnTicks = <int, int>{};
   final Set<int> _seenIdsScratch = <int>{};
   final List<int> _toRemoveScratch = <int>[];
   final Vector2 _cameraCenterScratch = Vector2.zero();
   final Vector2 _snapScratch = Vector2.zero();
   final List<EnemyKilledEvent> _pendingEnemyKilledEvents = <EnemyKilledEvent>[];
+  final List<ProjectileHitEvent> _pendingProjectileHitEvents =
+      <ProjectileHitEvent>[];
 
   @override
   Future<void> onLoad() async {
@@ -21934,6 +22503,7 @@ class RunnerFlameGame extends FlameGame {
       renderAnim: playerCharacter.renderAnim,
     );
     await _enemyRenderRegistry.load(images);
+    await _projectileRenderRegistry.load(images);
     _player = PlayerViewComponent(
       animationSet: playerAnimations,
       renderScale: Vector2.all(_playerRenderTuning.scale),
@@ -22050,6 +22620,7 @@ class RunnerFlameGame extends FlameGame {
       prevById: _prevEntitiesById,
       alpha: alpha,
       cameraCenter: _cameraCenterScratch,
+      tick: currSnapshot.tick,
     );
     _syncCollectibles(
       currSnapshot.entities,
@@ -22057,12 +22628,22 @@ class RunnerFlameGame extends FlameGame {
       alpha: alpha,
       cameraCenter: _cameraCenterScratch,
     );
-    _syncHitboxes(
-      currSnapshot.entities,
-      prevById: _prevEntitiesById,
-      alpha: alpha,
-      cameraCenter: _cameraCenterScratch,
-    );
+    final drawHitboxes =
+        RenderDebugFlags.canUseRenderDebug &&
+        RenderDebugFlags.drawActorHitboxes;
+    if (drawHitboxes) {
+      _syncHitboxes(
+        currSnapshot.entities,
+        prevById: _prevEntitiesById,
+        alpha: alpha,
+        cameraCenter: _cameraCenterScratch,
+      );
+    } else if (_hitboxes.isNotEmpty) {
+      for (final view in _hitboxes.values) {
+        view.removeFromParent();
+      }
+      _hitboxes.clear();
+    }
     syncDebugAabbOverlays(
       entities: currSnapshot.entities,
       enabled:
@@ -22103,6 +22684,7 @@ class RunnerFlameGame extends FlameGame {
     );
 
     _flushPendingEnemyKilledEvents(cameraCenter: _cameraCenterScratch);
+    _flushPendingProjectileHitEvents(cameraCenter: _cameraCenterScratch);
 
     super.update(dt);
   }
@@ -22191,8 +22773,13 @@ class RunnerFlameGame extends FlameGame {
   }
 
   void _handleGameEvent(GameEvent event) {
-    if (event is! EnemyKilledEvent) return;
-    _pendingEnemyKilledEvents.add(event);
+    if (event is EnemyKilledEvent) {
+      _pendingEnemyKilledEvents.add(event);
+      return;
+    }
+    if (event is ProjectileHitEvent) {
+      _pendingProjectileHitEvents.add(event);
+    }
   }
 
   void _flushPendingEnemyKilledEvents({required Vector2 cameraCenter}) {
@@ -22228,6 +22815,35 @@ class RunnerFlameGame extends FlameGame {
     _pendingEnemyKilledEvents.clear();
   }
 
+  void _flushPendingProjectileHitEvents({required Vector2 cameraCenter}) {
+    if (_pendingProjectileHitEvents.isEmpty) return;
+
+    for (final event in _pendingProjectileHitEvents) {
+      final entry = _projectileRenderRegistry.entryFor(event.projectileId);
+      if (entry == null) continue;
+
+      final hitAnim = entry.animSet.animations[AnimKey.hit];
+      if (hitAnim == null) continue;
+
+      final component = _CameraSpaceSnappedSpriteAnimationComponent(
+        animation: hitAnim,
+        size: entry.animSet.frameSize.clone(),
+        worldPosX: event.pos.x,
+        worldPosY: event.pos.y,
+        anchor: entry.animSet.anchor,
+        paint: Paint()..filterQuality = FilterQuality.none,
+        removeOnFinish: true,
+      )..priority = _priorityProjectiles;
+
+      component.scale.setValues(entry.renderScale.x, entry.renderScale.y);
+      component.angle = event.rotationRad;
+      component.snapToCamera(cameraCenter);
+      world.add(component);
+    }
+
+    _pendingProjectileHitEvents.clear();
+  }
+
   /// Synchronizes projectile view components with the snapshot.
   ///
   /// Creates rectangle components for new projectiles, updates position/size
@@ -22237,6 +22853,7 @@ class RunnerFlameGame extends FlameGame {
     required Map<int, EntityRenderSnapshot> prevById,
     required double alpha,
     required Vector2 cameraCenter,
+    required int tick,
   }) {
     final seen = _seenIdsScratch..clear();
 
@@ -22244,41 +22861,107 @@ class RunnerFlameGame extends FlameGame {
       if (e.kind != EntityKind.projectile) continue;
       seen.add(e.id);
 
-      var view = _projectiles[e.id];
-      if (view == null) {
-        final size = e.size;
-        view = RectangleComponent(
-          size: Vector2(size?.x ?? 8.0, size?.y ?? 8.0),
-          anchor: Anchor.center,
-          paint: _projectilePaint,
-        );
-        view.priority = _priorityProjectiles;
-        _projectiles[e.id] = view;
-        world.add(view);
-      } else {
-        final size = e.size;
-        if (size != null) {
-          view.size.setValues(size.x, size.y);
-        }
-      }
+      final projectileId = e.projectileId;
+      final entry = projectileId == null
+          ? null
+          : _projectileRenderRegistry.entryFor(projectileId);
 
-      final prev = prevById[e.id] ?? e;
-      final worldX = math.lerpDouble(prev.pos.x, e.pos.x, alpha);
-      final worldY = math.lerpDouble(prev.pos.y, e.pos.y, alpha);
-      view.position.setValues(
-        math.snapWorldToPixelsInCameraSpace1d(worldX, cameraCenter.x),
-        math.snapWorldToPixelsInCameraSpace1d(worldY, cameraCenter.y),
-      );
-      view.angle = e.rotationRad;
+      if (entry != null) {
+        _projectileRects.remove(e.id)?.removeFromParent();
+
+        var view = _projectileAnimViews[e.id];
+        if (view == null) {
+          view = entry.viewFactory(entry.animSet, entry.renderScale);
+          view.priority = _priorityProjectiles;
+          _projectileAnimViews[e.id] = view;
+          _projectileSpawnTicks[e.id] = tick;
+          world.add(view);
+        }
+
+        final prev = prevById[e.id] ?? e;
+        final worldX = math.lerpDouble(prev.pos.x, e.pos.x, alpha);
+        final worldY = math.lerpDouble(prev.pos.y, e.pos.y, alpha);
+        _snapScratch.setValues(
+          math.snapWorldToPixelsInCameraSpace1d(worldX, cameraCenter.x),
+          math.snapWorldToPixelsInCameraSpace1d(worldY, cameraCenter.y),
+        );
+
+        final spawnTick = _projectileSpawnTicks[e.id] ?? tick;
+        final startTicks = entry.spawnAnimTicks(controller.tickHz);
+        final ageTicks = tick - spawnTick;
+        final animOverride =
+            startTicks > 0 && ageTicks >= 0 && ageTicks < startTicks
+                ? AnimKey.spawn
+                : AnimKey.idle;
+        final overrideAnimFrame =
+            animOverride == AnimKey.spawn ? ageTicks : null;
+
+        view.applySnapshot(
+          e,
+          tickHz: controller.tickHz,
+          pos: _snapScratch,
+          overrideAnim: animOverride,
+          overrideAnimFrame: overrideAnimFrame,
+        );
+        final spinSpeed = entry.spinSpeedRadPerSecond;
+        if (spinSpeed == 0.0) {
+          view.angle = e.rotationRad;
+        } else {
+          final spinSeconds =
+              (ageTicks.toDouble() + alpha) / controller.tickHz;
+          view.angle = e.rotationRad + spinSpeed * spinSeconds;
+        }
+      } else {
+        _projectileAnimViews.remove(e.id)?.removeFromParent();
+        _projectileSpawnTicks.remove(e.id);
+
+        var view = _projectileRects[e.id];
+        if (view == null) {
+          final size = e.size;
+          view = RectangleComponent(
+            size: Vector2(size?.x ?? 8.0, size?.y ?? 8.0),
+            anchor: Anchor.center,
+            paint: _projectilePaint,
+          );
+          view.priority = _priorityProjectiles;
+          _projectileRects[e.id] = view;
+          world.add(view);
+        } else {
+          final size = e.size;
+          if (size != null) {
+            view.size.setValues(size.x, size.y);
+          }
+        }
+
+        final prev = prevById[e.id] ?? e;
+        final worldX = math.lerpDouble(prev.pos.x, e.pos.x, alpha);
+        final worldY = math.lerpDouble(prev.pos.y, e.pos.y, alpha);
+        view.position.setValues(
+          math.snapWorldToPixelsInCameraSpace1d(worldX, cameraCenter.x),
+          math.snapWorldToPixelsInCameraSpace1d(worldY, cameraCenter.y),
+        );
+        view.angle = e.rotationRad;
+      }
     }
 
-    if (_projectiles.isEmpty) return;
+    if (_projectileAnimViews.isNotEmpty) {
+      final toRemove = _toRemoveScratch..clear();
+      for (final id in _projectileAnimViews.keys) {
+        if (!seen.contains(id)) toRemove.add(id);
+      }
+      for (final id in toRemove) {
+        _projectileAnimViews.remove(id)?.removeFromParent();
+        _projectileSpawnTicks.remove(id);
+      }
+    }
+
+    if (_projectileRects.isEmpty) return;
     final toRemove = _toRemoveScratch..clear();
-    for (final id in _projectiles.keys) {
+    for (final id in _projectileRects.keys) {
       if (!seen.contains(id)) toRemove.add(id);
     }
     for (final id in toRemove) {
-      _projectiles.remove(id)?.removeFromParent();
+      _projectileRects.remove(id)?.removeFromParent();
     }
   }
 
@@ -24965,10 +25648,14 @@ String _projectileName(ProjectileId id) {
       return 'Ice Bolt';
     case ProjectileId.thunderBolt:
       return 'thunder Bolt';
+    case ProjectileId.fireBolt:
+      return 'Fire Bolt';
     case ProjectileId.arrow:
       return 'Arrow';
     case ProjectileId.throwingAxe:
       return 'Throwing Axe';
+    case ProjectileId.throwingKnife:
+      return 'Throwing Knife';
   }
 }
 

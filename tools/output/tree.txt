@@ -100,6 +100,7 @@ lib/core/enemies/enemy_id.dart
 lib/core/enemies/enemy_killed_info.dart
 lib/core/events/enemy_events.dart
 lib/core/events/game_event.dart
+lib/core/events/projectile_events.dart
 lib/core/events/run_events.dart
 lib/core/game_core.dart
 lib/core/levels/level_definition.dart
@@ -124,6 +125,7 @@ lib/core/players/player_character_registry.dart
 lib/core/players/player_tuning.dart
 lib/core/projectiles/projectile_catalog.dart
 lib/core/projectiles/projectile_id.dart
+lib/core/projectiles/projectile_render_catalog.dart
 lib/core/scoring/run_score_breakdown.dart
 lib/core/snapshot_builder.dart
 lib/core/snapshots/entity_render_snapshot.dart
@@ -174,6 +176,7 @@ lib/game/components/enemies/enemy_render_registry.dart
 lib/game/components/pixel_parallax_backdrop_component.dart
 lib/game/components/player/player_animations.dart
 lib/game/components/player/player_view_component.dart
+lib/game/components/projectiles/projectile_render_registry.dart
 lib/game/components/sprite_anim/deterministic_anim_view_component.dart
 lib/game/components/sprite_anim/sprite_anim_set.dart
 lib/game/components/sprite_anim/strip_animation_loader.dart
