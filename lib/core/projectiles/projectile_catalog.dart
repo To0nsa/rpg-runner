@@ -67,10 +67,17 @@ class ProjectileCatalog {
         );
       case ProjectileId.throwingAxe:
         return const ProjectileArchetype(
-          speedUnitsPerSecond: 900.0,
+          speedUnitsPerSecond: 800.0,
           lifetimeSeconds: 1.6,
           colliderSizeX: 16.0,
           colliderSizeY: 10.0,
+        );
+      case ProjectileId.throwingKnife:
+        return const ProjectileArchetype(
+          speedUnitsPerSecond: 900.0,
+          lifetimeSeconds: 1.2,
+          colliderSizeX: 14.0,
+          colliderSizeY: 6.0,
         );
     }
   }

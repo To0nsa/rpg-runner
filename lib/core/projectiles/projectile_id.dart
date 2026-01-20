@@ -17,4 +17,7 @@ enum ProjectileId {
 
   /// Physical throwing axe projectile (ballistic).
   throwingAxe,
+
+  /// Physical throwing knife projectile (ballistic).
+  throwingKnife,
 }

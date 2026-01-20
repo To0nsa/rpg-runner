@@ -311,6 +311,8 @@ String _projectileName(ProjectileId id) {
       return 'Arrow';
     case ProjectileId.throwingAxe:
       return 'Throwing Axe';
+    case ProjectileId.throwingKnife:
+      return 'Throwing Knife';
   }
 }
 

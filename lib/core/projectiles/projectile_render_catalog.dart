@@ -164,6 +164,37 @@ const RenderAnimSetDefinition _throwingAxeRenderAnim = RenderAnimSetDefinition(
   stepTimeSecondsByKey: _throwingAxeStepTimeSecondsByKey,
 );
 
+// -----------------------------------------------------------------------------
+// Throwing Axe render animation strip definitions (authoring-time)
+// -----------------------------------------------------------------------------
+
+const int _throwingKnifeFrameWidth = 32;
+const int _throwingKnifeFrameHeight = 32;
+
+const int _throwingKnifeFrames = 1;
+const double _throwingKnifeStepSeconds = 0.10;
+
+const Map<AnimKey, int> _throwingKnifeFrameCountsByKey = <AnimKey, int>{
+  AnimKey.idle: _throwingKnifeFrames,
+};
+
+const Map<AnimKey, double> _throwingKnifeStepTimeSecondsByKey =
+    <AnimKey, double>{
+  AnimKey.idle: _throwingKnifeStepSeconds,
+};
+
+const Map<AnimKey, String> _throwingKnifeSourcesByKey = <AnimKey, String>{
+  AnimKey.idle: 'entities/throwingWepons/throwingKnife.png',
+};
+
+const RenderAnimSetDefinition _throwingKnifeRenderAnim = RenderAnimSetDefinition(
+  frameWidth: _throwingKnifeFrameWidth,
+  frameHeight: _throwingKnifeFrameHeight,
+  sourcesByKey: _throwingKnifeSourcesByKey,
+  frameCountsByKey: _throwingKnifeFrameCountsByKey,
+  stepTimeSecondsByKey: _throwingKnifeStepTimeSecondsByKey,
+);
+
 /// Lookup table for projectile render animation definitions.
 ///
 /// Core owns the animation timing and frame metadata. The renderer uses this
@@ -183,6 +214,8 @@ class ProjectileRenderCatalog {
         return _throwingAxeRenderAnim;
       case ProjectileId.arrow:
         throw StateError('No render animation defined for $id.');
+      case ProjectileId.throwingKnife:
+        return _throwingKnifeRenderAnim;
     }
   }
 }

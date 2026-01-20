@@ -3,10 +3,11 @@ import '../../entity_id.dart';
 import '../../sparse_set.dart';
 
 class AmmoDef {
-  const AmmoDef({this.arrows = 0, this.throwingAxes = 0});
+  const AmmoDef({this.arrows = 0, this.throwingAxes = 0, this.throwingKnives = 0});
 
   final int arrows;
   final int throwingAxes;
+  final int throwingKnives;
 
   int countFor(AmmoType type) {
     switch (type) {
@@ -14,6 +15,8 @@ class AmmoDef {
         return arrows;
       case AmmoType.throwingAxe:
         return throwingAxes;
+      case AmmoType.throwingKnife:
+        return throwingKnives;
     }
   }
 }
@@ -22,11 +25,12 @@ class AmmoDef {
 class AmmoStore extends SparseSet {
   final List<int> arrows = <int>[];
   final List<int> throwingAxes = <int>[];
-
+  final List<int> throwingKnives = <int>[];
   void add(EntityId entity, [AmmoDef def = const AmmoDef()]) {
     final i = addEntity(entity);
     arrows[i] = def.arrows;
     throwingAxes[i] = def.throwingAxes;
+    throwingKnives[i] = def.throwingKnives;
   }
 
   int countForIndex(int index, AmmoType type) {
@@ -35,6 +39,8 @@ class AmmoStore extends SparseSet {
         return arrows[index];
       case AmmoType.throwingAxe:
         return throwingAxes[index];
+      case AmmoType.throwingKnife:
+        return throwingKnives[index];
     }
   }
 
@@ -45,6 +51,8 @@ class AmmoStore extends SparseSet {
         arrows[index] = clamped;
       case AmmoType.throwingAxe:
         throwingAxes[index] = clamped;
+      case AmmoType.throwingKnife:
+        throwingKnives[index] = clamped;
     }
   }
 
@@ -52,6 +60,7 @@ class AmmoStore extends SparseSet {
   void onDenseAdded(int denseIndex) {
     arrows.add(0);
     throwingAxes.add(0);
+    throwingKnives.add(0);
   }
 
   @override
@@ -61,6 +70,7 @@ class AmmoStore extends SparseSet {
 
     arrows.removeLast();
     throwingAxes.removeLast();
+    throwingKnives.removeLast();
   }
 }
 

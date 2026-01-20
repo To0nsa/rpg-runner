@@ -122,7 +122,8 @@ class ProjectileRenderRegistry {
 
   final ProjectileRenderCatalog _projectileCatalog;
 
-  static const double _throwingAxeSpinRps = 8.0;
+  static const double _throwingAxeSpinRps = 6.0;
+  static const double _throwingKnifeSpinRps = 7.0;
 
   final Map<ProjectileId, ProjectileRenderEntry> _entries =
       <ProjectileId, ProjectileRenderEntry>{
@@ -142,6 +143,11 @@ class ProjectileRenderRegistry {
           id: ProjectileId.throwingAxe,
           renderScale: Vector2.all(1.0),
           spinSpeedRadPerSecond: _throwingAxeSpinRps * 2.0 * pi,
+        ),
+        ProjectileId.throwingKnife: ProjectileRenderEntry(
+          id: ProjectileId.throwingKnife,
+          renderScale: Vector2.all(1.0),
+          spinSpeedRadPerSecond: _throwingKnifeSpinRps * 2.0 * pi,
         ),
       };
 

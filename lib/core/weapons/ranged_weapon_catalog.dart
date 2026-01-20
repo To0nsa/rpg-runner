@@ -36,6 +36,19 @@ class RangedWeaponCatalog {
           ballistic: true,
           gravityScale: 1.0,
         );
+      case RangedWeaponId.throwingKnife:
+        return const RangedWeaponDef(
+          id: RangedWeaponId.throwingKnife,
+          projectileId: ProjectileId.throwingKnife,
+          damage: 10.0,
+          staminaCost: 5.0,
+          ammoType: AmmoType.throwingKnife,
+          ammoCost: 1,
+          originOffset: 6.0,
+          cooldownSeconds: 0.30,
+          ballistic: true,
+          gravityScale: 0.9,
+        );
     }
   }
 }

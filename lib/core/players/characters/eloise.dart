@@ -143,8 +143,8 @@ const PlayerCatalog eloiseCatalog = PlayerCatalog(
   resistance: DamageResistanceDef(),
   statusImmunity: StatusImmunityDef(),
   weaponId: WeaponId.basicSword,
-  rangedWeaponId: RangedWeaponId.throwingAxe,
-  ammo: AmmoDef(throwingAxes: 10000),
+  rangedWeaponId: RangedWeaponId.throwingKnife,
+  ammo: AmmoDef(throwingKnives: 10000),
   facing: Facing.right,
 );
 

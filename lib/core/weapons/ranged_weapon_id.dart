@@ -5,5 +5,6 @@
 enum RangedWeaponId {
   bow,
   throwingAxe,
+  throwingKnife,
 }
 

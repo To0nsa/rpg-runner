@@ -4,5 +4,6 @@
 enum AmmoType {
   arrow,
   throwingAxe,
+  throwingKnife,
 }
 
