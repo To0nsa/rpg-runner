@@ -7,6 +7,7 @@ import '../../ecs/stores/combat/damage_resistance_store.dart';
 import '../../ecs/stores/combat/status_immunity_store.dart';
 import '../../combat/creature_tag.dart';
 import '../../snapshots/enums.dart';
+import '../../spells/spell_id.dart';
 import '../../weapons/ranged_weapon_id.dart';
 import '../../weapons/weapon_id.dart';
 import '../player_character_definition.dart';
@@ -144,6 +145,7 @@ const PlayerCatalog eloiseCatalog = PlayerCatalog(
   statusImmunity: StatusImmunityDef(),
   weaponId: WeaponId.basicSword,
   rangedWeaponId: RangedWeaponId.throwingKnife,
+  spellId: SpellId.fireBolt,
   ammo: AmmoDef(throwingKnives: 10000),
   facing: Facing.right,
 );

@@ -8,6 +8,7 @@ import 'stores/cast_intent_store.dart';
 import 'stores/combat/ammo_store.dart';
 import 'stores/combat/creature_tag_store.dart';
 import 'stores/combat/damage_resistance_store.dart';
+import 'stores/combat/equipped_spell_store.dart';
 import 'stores/combat/equipped_weapon_store.dart';
 import 'stores/combat/equipped_ranged_weapon_store.dart';
 import 'stores/combat/stat_modifier_store.dart';
@@ -121,10 +122,14 @@ class EcsWorld {
   late final CollectibleStore collectible = _register(CollectibleStore());
 
   /// Defines an item that restores stats (health/mana) when collected.
-  late final RestorationItemStore restorationItem = _register(RestorationItemStore());
+  late final RestorationItemStore restorationItem = _register(
+    RestorationItemStore(),
+  );
 
   /// Allows an entity to control or defy gravity.
-  late final GravityControlStore gravityControl = _register(GravityControlStore());
+  late final GravityControlStore gravityControl = _register(
+    GravityControlStore(),
+  );
 
   /// Defines which faction (Player, Enemy, Neutral) an entity belongs to.
   late final FactionStore faction = _register(FactionStore());
@@ -133,17 +138,22 @@ class EcsWorld {
   late final HealthStore health = _register(HealthStore());
 
   /// Damage resistance/vulnerability modifiers.
-  late final DamageResistanceStore damageResistance =
-      _register(DamageResistanceStore());
+  late final DamageResistanceStore damageResistance = _register(
+    DamageResistanceStore(),
+  );
 
   /// Grants temporary invulnerability (i-frames).
-  late final InvulnerabilityStore invulnerability = _register(InvulnerabilityStore());
+  late final InvulnerabilityStore invulnerability = _register(
+    InvulnerabilityStore(),
+  );
 
   /// Records the last entity/source that dealt damage to this entity.
   late final LastDamageStore lastDamage = _register(LastDamageStore());
 
   /// Status immunities (burn, slow, bleed).
-  late final StatusImmunityStore statusImmunity = _register(StatusImmunityStore());
+  late final StatusImmunityStore statusImmunity = _register(
+    StatusImmunityStore(),
+  );
 
   /// Manages Mana Points (MP) and max MP.
   late final ManaStore mana = _register(ManaStore());
@@ -152,18 +162,25 @@ class EcsWorld {
   late final MeleeIntentStore meleeIntent = _register(MeleeIntentStore());
 
   /// Tracks the player's intent to fire a ranged weapon.
-  late final RangedWeaponIntentStore rangedWeaponIntent =
-      _register(RangedWeaponIntentStore());
+  late final RangedWeaponIntentStore rangedWeaponIntent = _register(
+    RangedWeaponIntentStore(),
+  );
 
   /// Per-entity ammo pools for ranged weapons.
   late final AmmoStore ammo = _register(AmmoStore());
 
   /// Equipped melee weapon (for on-hit profiles like bleed).
-  late final EquippedWeaponStore equippedWeapon = _register(EquippedWeaponStore());
+  late final EquippedWeaponStore equippedWeapon = _register(
+    EquippedWeaponStore(),
+  );
 
   /// Equipped ranged weapon (bow, throwing axe, ...).
-  late final EquippedRangedWeaponStore equippedRangedWeapon =
-      _register(EquippedRangedWeaponStore());
+  late final EquippedRangedWeaponStore equippedRangedWeapon = _register(
+    EquippedRangedWeaponStore(),
+  );
+
+  /// Equipped spell hotbar (used by player cast intent writers).
+  late final EquippedSpellStore equippedSpell = _register(EquippedSpellStore());
 
   /// Derived runtime stat modifiers (e.g., slows).
   late final StatModifierStore statModifier = _register(StatModifierStore());
@@ -196,7 +213,9 @@ class EcsWorld {
   late final SpellOriginStore spellOrigin = _register(SpellOriginStore());
 
   /// State for ground enemies navigating terrain (jumping gaps/walls).
-  late final SurfaceNavStateStore surfaceNav = _register(SurfaceNavStateStore());
+  late final SurfaceNavStateStore surfaceNav = _register(
+    SurfaceNavStateStore(),
+  );
 
   /// Identifies an entity as a specific type of enemy.
   late final EnemyStore enemy = _register(EnemyStore());
@@ -205,21 +224,27 @@ class EcsWorld {
   late final AnimStateStore animState = _register(AnimStateStore());
 
   /// Steering behaviors for flying enemies.
-  late final FlyingEnemySteeringStore flyingEnemySteering = _register(FlyingEnemySteeringStore());
+  late final FlyingEnemySteeringStore flyingEnemySteering = _register(
+    FlyingEnemySteeringStore(),
+  );
 
   /// AI state for ground enemies to create offset chasing behaviors.
-  late final GroundEnemyChaseOffsetStore groundEnemyChaseOffset =
-      _register(GroundEnemyChaseOffsetStore());
+  late final GroundEnemyChaseOffsetStore groundEnemyChaseOffset = _register(
+    GroundEnemyChaseOffsetStore(),
+  );
 
   /// Navigation intent output for ground enemies.
   late final NavIntentStore navIntent = _register(NavIntentStore());
 
   /// Engagement intent output for melee enemies.
-  late final EngagementIntentStore engagementIntent =
-      _register(EngagementIntentStore());
+  late final EngagementIntentStore engagementIntent = _register(
+    EngagementIntentStore(),
+  );
 
   /// Engagement state for melee enemies (approach/engage/attack/recover).
-  late final MeleeEngagementStore meleeEngagement = _register(MeleeEngagementStore());
+  late final MeleeEngagementStore meleeEngagement = _register(
+    MeleeEngagementStore(),
+  );
 
   /// Allocates a new [EntityId].
   ///

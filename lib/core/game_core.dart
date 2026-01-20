@@ -134,6 +134,7 @@ import 'track_manager.dart';
 import 'weapons/weapon_catalog.dart';
 import 'ecs/stores/combat/equipped_weapon_store.dart';
 import 'ecs/stores/combat/equipped_ranged_weapon_store.dart';
+import 'ecs/stores/combat/equipped_spell_store.dart';
 import 'weapons/ranged_weapon_catalog.dart';
 import 'tuning/camera_tuning.dart';
 import 'tuning/collectible_tuning.dart';
@@ -491,7 +492,8 @@ class GameCore {
         dtSeconds: _movement.dtSeconds,
         maxTicks: 120,
       ),
-      chaseTargetDelayTicks: _groundEnemyTuning.navigation.chaseTargetDelayTicks,
+      chaseTargetDelayTicks:
+          _groundEnemyTuning.navigation.chaseTargetDelayTicks,
     );
     _enemyEngagementSystem = EnemyEngagementSystem(
       groundEnemyTuning: _groundEnemyTuning,
@@ -508,9 +510,7 @@ class GameCore {
       spells: _spells,
       projectiles: _projectiles,
     );
-    _enemyMeleeSystem = EnemyMeleeSystem(
-      groundEnemyTuning: _groundEnemyTuning,
-    );
+    _enemyMeleeSystem = EnemyMeleeSystem(groundEnemyTuning: _groundEnemyTuning);
   }
 
   /// Spawns the player entity at the start of a run.
@@ -548,6 +548,7 @@ class GameCore {
       equippedRangedWeapon: EquippedRangedWeaponDef(
         weaponId: playerArchetype.rangedWeaponId,
       ),
+      equippedSpell: EquippedSpellDef(spellId: playerArchetype.spellId),
       ammo: playerArchetype.ammo,
     );
   }
@@ -934,15 +935,8 @@ class GameCore {
     _invulnerabilitySystem.step(_world);
 
     // ─── Phase 3: AI and movement ───
-    _enemyNavigationSystem.step(
-      _world,
-      player: _player,
-    );
-    _enemyEngagementSystem.step(
-      _world,
-      player: _player,
-      currentTick: tick,
-    );
+    _enemyNavigationSystem.step(_world, player: _player);
+    _enemyEngagementSystem.step(_world, player: _player, currentTick: tick);
     _groundEnemyLocomotionSystem.step(
       _world,
       player: _player,

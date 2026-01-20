@@ -8,6 +8,7 @@ import '../ecs/stores/health_store.dart';
 import '../ecs/stores/mana_store.dart';
 import '../ecs/stores/stamina_store.dart';
 import '../snapshots/enums.dart';
+import '../spells/spell_id.dart';
 import '../weapons/weapon_id.dart';
 import '../weapons/ranged_weapon_id.dart';
 
@@ -36,6 +37,7 @@ class PlayerArchetype {
     this.statusImmunity = const StatusImmunityDef(),
     this.weaponId = WeaponId.basicSword,
     this.rangedWeaponId = RangedWeaponId.bow,
+    this.spellId = SpellId.iceBolt,
     this.ammo = const AmmoDef(),
     this.facing = Facing.right,
   });
@@ -84,6 +86,9 @@ class PlayerArchetype {
 
   /// Equipped ranged weapon used for thrown/ballistic projectiles.
   final RangedWeaponId rangedWeaponId;
+
+  /// Equipped spell id.
+  final SpellId spellId;
 
   /// Ammo pool for ranged weapons.
   final AmmoDef ammo;

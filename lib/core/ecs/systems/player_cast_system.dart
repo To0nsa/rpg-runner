@@ -1,5 +1,4 @@
 import '../../snapshots/enums.dart';
-import '../../spells/spell_id.dart';
 import '../../players/player_tuning.dart';
 import '../entity_id.dart';
 import '../stores/cast_intent_store.dart';
@@ -12,15 +11,17 @@ import '../world.dart';
 /// *   Determines aiming direction based on input or facing direction.
 /// *   Registers a cast intent to be processed (cooldown/mana checks happen downstream).
 class PlayerCastSystem {
-  const PlayerCastSystem({
-    required this.abilities,
-  });
+  const PlayerCastSystem({required this.abilities});
 
   final AbilityTuningDerived abilities;
 
-  void step(EcsWorld world, {required EntityId player, required int currentTick}) {
+  void step(
+    EcsWorld world, {
+    required EntityId player,
+    required int currentTick,
+  }) {
     // -- 1. Component Checks --
-    
+
     // We need input to know if casting.
     final inputIndex = world.playerInput.tryIndexOf(player);
     if (inputIndex == null) return;
@@ -28,7 +29,7 @@ class PlayerCastSystem {
     // We need movement data for facing direction (fallback aim).
     final movementIndex = world.movement.tryIndexOf(player);
     if (movementIndex == null) return;
-    
+
     // Check if the store exists (should be added at spawn).
     if (!world.castIntent.has(player)) {
       assert(
@@ -47,13 +48,21 @@ class PlayerCastSystem {
       return;
     }
 
+    final equippedIndex = world.equippedSpell.tryIndexOf(player);
+    if (equippedIndex == null) {
+      assert(
+        false,
+        'PlayerCastSystem requires EquippedSpellStore on the player; add it at spawn time.',
+      );
+      return;
+    }
+
     // -- 2. Input Logic --
 
     // If button not pressed, do nothing.
     if (!world.playerInput.castPressed[inputIndex]) return;
 
-    // TODO: Look up equipped spell instead of hardcoding.
-    const spellId = SpellId.iceBolt;
+    final spellId = world.equippedSpell.spellId[equippedIndex];
 
     final facing = world.movement.facing[movementIndex];
 
@@ -64,7 +73,7 @@ class PlayerCastSystem {
     // If rawAim is essentially zero/unbiased (e.g. controller neutral), use facing.
     // However, currently we pass fallbackDirX to the intent store separately.
     final fallbackDirX = facing == Facing.right ? 1.0 : -1.0;
-    
+
     // Offset from the player's center where the spell appears.
     //
     // We use a conservative value (max half-extent) to avoid spawning inside

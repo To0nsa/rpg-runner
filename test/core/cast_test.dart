@@ -5,8 +5,10 @@ import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/game_core.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
 import 'package:rpg_runner/core/players/player_catalog.dart';
+import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
+import 'package:rpg_runner/core/spells/spell_id.dart';
 
 import '../test_tunings.dart';
 
@@ -85,6 +87,42 @@ void main() {
       expect(core.playerCastCooldownTicksLeft, 5); // ceil(0.25s * 20Hz)
     },
   );
+
+  test('cast: equipped spell selects projectile + mana cost', () {
+    const catalog = PlayerCatalog(
+      bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+      spellId: SpellId.fireBolt,
+    );
+    final base = PlayerCharacterRegistry.eloise;
+    final core = GameCore(
+      seed: 1,
+      tickHz: 20,
+      tuning: noAutoscrollTuning,
+      playerCharacter: base.copyWith(
+        catalog: catalog,
+        tuning: base.tuning.copyWith(
+          resource: const ResourceTuning(
+            playerManaMax: 20,
+            playerManaRegenPerSecond: 0,
+          ),
+        ),
+      ),
+    );
+
+    core.applyCommands(const [CastPressedCommand(tick: 1)]);
+    core.stepOneTick();
+
+    final snapshot = core.buildSnapshot();
+    final projectiles = snapshot.entities
+        .where((e) => e.kind == EntityKind.projectile)
+        .toList();
+    expect(projectiles.length, 1);
+    expect(projectiles.single.projectileId, ProjectileId.fireBolt);
+
+    // fireBolt costs 12 mana in SpellCatalog.
+    expect(snapshot.hud.mana, closeTo(8.0, 1e-9));
+    expect(core.playerCastCooldownTicksLeft, 5); // ceil(0.25s * 20Hz)
+  });
 
   test('cast: cooldown blocks recast until it expires', () {
     final base = PlayerCharacterRegistry.eloise;

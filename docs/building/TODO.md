@@ -7,3 +7,4 @@
 - Add per-level combat modifiers if needed (future tuning hooks).
 - Add ranged ammo UI (show remaining ammo + disabled state reason).
 - Add commands/UI to switch equipped ranged weapon slot.
+- Add commands/UI to switch equipped spell.

@@ -36,7 +36,6 @@ import 'snapshots/player_hud_snapshot.dart';
 import 'snapshots/static_ground_gap_snapshot.dart';
 import 'snapshots/static_solid_snapshot.dart';
 import 'spells/spell_catalog.dart';
-import 'spells/spell_id.dart';
 import 'players/player_tuning.dart';
 import 'util/vec2.dart';
 import 'weapons/ranged_weapon_catalog.dart';
@@ -164,7 +163,9 @@ class SnapshotBuilder {
     // ─── Read current resource values ───
     final stamina = world.stamina.stamina[si];
     final mana = world.mana.mana[mai];
-    final projectileManaCost = spells.get(SpellId.iceBolt).stats.manaCost;
+    final equippedSpellId =
+        world.equippedSpell.spellId[world.equippedSpell.indexOf(player)];
+    final projectileManaCost = spells.get(equippedSpellId).stats.manaCost;
     final rangedWeaponId = world.equippedRangedWeapon.weaponId[rwi];
     final rangedWeaponDef = rangedWeapons.base.get(rangedWeaponId);
     final rangedAmmo = world.ammo.countForIndex(ami, rangedWeaponDef.ammoType);

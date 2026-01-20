@@ -10,6 +10,7 @@ import '../ecs/stores/mana_store.dart';
 import '../ecs/stores/stamina_store.dart';
 import '../snapshots/enums.dart';
 import 'player_tuning.dart';
+import '../spells/spell_id.dart';
 import '../weapons/weapon_id.dart';
 import '../weapons/ranged_weapon_id.dart';
 import 'player_archetype.dart';
@@ -47,6 +48,7 @@ class PlayerCatalog {
     this.statusImmunity = const StatusImmunityDef(),
     this.weaponId = WeaponId.basicSword,
     this.rangedWeaponId = RangedWeaponId.bow,
+    this.spellId = SpellId.iceBolt,
     this.ammo = const AmmoDef(arrows: 20, throwingAxes: 6),
     this.facing = Facing.right,
   });
@@ -100,6 +102,9 @@ class PlayerCatalog {
   /// Default equipped ranged weapon at spawn time.
   final RangedWeaponId rangedWeaponId;
 
+  /// Default equipped spell at spawn time.
+  final SpellId spellId;
+
   /// Default ammo pool at spawn time.
   final AmmoDef ammo;
 
@@ -135,12 +140,12 @@ class PlayerCatalogDerived {
   /// - [movement]: Movement tuning for collider size and velocity clamps.
   /// - [resources]: Resource tuning for HP, mana, and stamina pools.
   ///
-/// **Derivation Logic**:
-/// 1. Copy physics flags from [base.bodyTemplate].
-/// 2. Fill `maxVelX`/`maxVelY` from [movement].
-/// 3. Create AABB collider from [base].
-/// 4. Create resource pools from [resources].
-/// 5. Bundle everything into a [PlayerArchetype].
+  /// **Derivation Logic**:
+  /// 1. Copy physics flags from [base.bodyTemplate].
+  /// 2. Fill `maxVelX`/`maxVelY` from [movement].
+  /// 3. Create AABB collider from [base].
+  /// 4. Create resource pools from [resources].
+  /// 5. Bundle everything into a [PlayerArchetype].
   factory PlayerCatalogDerived.from(
     PlayerCatalog base, {
     required MovementTuningDerived movement,
@@ -196,6 +201,7 @@ class PlayerCatalogDerived {
         statusImmunity: base.statusImmunity,
         weaponId: base.weaponId,
         rangedWeaponId: base.rangedWeaponId,
+        spellId: base.spellId,
         ammo: base.ammo,
         facing: base.facing,
       ),
