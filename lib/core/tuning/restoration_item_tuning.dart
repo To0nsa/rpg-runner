@@ -5,7 +5,7 @@ class RestorationItemTuning {
     this.spawnEveryChunks = 16,
     this.spawnStartChunkIndex = 2,
     this.restorePercent = 0.30,
-    this.itemSize = 12.0,
+    this.itemSize = 16.0,
     this.surfaceClearanceY = 10.0,
     this.noSpawnMargin = 2.0,
     this.chunkEdgeMarginX = 32.0,

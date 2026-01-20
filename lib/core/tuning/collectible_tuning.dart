@@ -5,7 +5,7 @@ class CollectibleTuning {
     this.minPerChunk = 1,
     this.maxPerChunk = 2,
     this.spawnStartChunkIndex = 2,
-    this.collectibleSize = 10.0,
+    this.collectibleSize = 16.0,
     this.surfaceClearanceY = 10.0,
     this.noSpawnMargin = 2.0,
     this.minSpacingX = 80.0,

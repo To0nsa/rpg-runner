@@ -19,6 +19,7 @@ import 'debug/render_debug_flags.dart';
 import 'components/player/player_animations.dart';
 import 'components/player/player_view_component.dart';
 import 'components/enemies/enemy_render_registry.dart';
+import 'components/pickups/pickup_render_registry.dart';
 import 'components/projectiles/projectile_render_registry.dart';
 import 'components/sprite_anim/deterministic_anim_view_component.dart';
 import 'tuning/player_render_tuning.dart';
@@ -63,6 +64,7 @@ class RunnerFlameGame extends FlameGame {
          enemyCatalog: controller.enemyCatalog,
        ),
        _projectileRenderRegistry = ProjectileRenderRegistry(),
+       _pickupRenderRegistry = PickupRenderRegistry(),
        super(
          camera: CameraComponent.withFixedResolution(
            width: virtualWidth.toDouble(),
@@ -87,29 +89,21 @@ class RunnerFlameGame extends FlameGame {
   late final PlayerViewComponent _player;
   final EnemyRenderRegistry _enemyRenderRegistry;
   final ProjectileRenderRegistry _projectileRenderRegistry;
+  final PickupRenderRegistry _pickupRenderRegistry;
   final List<RectangleComponent> _staticSolids = <RectangleComponent>[];
   List<StaticSolidSnapshot>? _lastStaticSolidsSnapshot;
 
   /// Entity view pools, keyed by entity ID.
   final Map<int, DeterministicAnimViewComponent> _projectileAnimViews =
       <int, DeterministicAnimViewComponent>{};
-  final Map<int, RectangleComponent> _projectileRects =
-      <int, RectangleComponent>{};
-  final Map<int, RectangleComponent> _collectibles =
-      <int, RectangleComponent>{};
+  final Map<int, DeterministicAnimViewComponent> _pickupAnimViews =
+      <int, DeterministicAnimViewComponent>{};
   final Map<int, DeterministicAnimViewComponent> _enemies =
       <int, DeterministicAnimViewComponent>{};
   final Map<int, RectangleComponent> _hitboxes = <int, RectangleComponent>{};
   final Map<int, RectangleComponent> _actorHitboxes =
       <int, RectangleComponent>{};
 
-  final Paint _projectilePaint = Paint()..color = const Color(0xFF60A5FA);
-  final Map<int, Paint> _pickupPaints = <int, Paint>{
-    PickupVariant.collectible: Paint()..color = const Color(0xFFFFEB3B),
-    PickupVariant.restorationHealth: Paint()..color = const Color(0xFFEF4444),
-    PickupVariant.restorationMana: Paint()..color = const Color(0xFF3B82F6),
-    PickupVariant.restorationStamina: Paint()..color = const Color(0xFF22C55E),
-  };
   final Paint _hitboxPaint = Paint()..color = const Color(0x66EF4444);
   final Paint _actorHitboxPaint = Paint()
     ..color = const Color(0xFF22C55E)
@@ -174,6 +168,7 @@ class RunnerFlameGame extends FlameGame {
     );
     await _enemyRenderRegistry.load(images);
     await _projectileRenderRegistry.load(images);
+    await _pickupRenderRegistry.load(images);
     _player = PlayerViewComponent(
       animationSet: playerAnimations,
       renderScale: Vector2.all(_playerRenderTuning.scale),
@@ -537,8 +532,6 @@ class RunnerFlameGame extends FlameGame {
           : _projectileRenderRegistry.entryFor(projectileId);
 
       if (entry != null) {
-        _projectileRects.remove(e.id)?.removeFromParent();
-
         var view = _projectileAnimViews[e.id];
         if (view == null) {
           view = entry.viewFactory(entry.animSet, entry.renderScale);
@@ -561,10 +554,11 @@ class RunnerFlameGame extends FlameGame {
         final ageTicks = tick - spawnTick;
         final animOverride =
             startTicks > 0 && ageTicks >= 0 && ageTicks < startTicks
-                ? AnimKey.spawn
-                : AnimKey.idle;
-        final overrideAnimFrame =
-            animOverride == AnimKey.spawn ? ageTicks : null;
+            ? AnimKey.spawn
+            : AnimKey.idle;
+        final overrideAnimFrame = animOverride == AnimKey.spawn
+            ? ageTicks
+            : null;
 
         view.applySnapshot(
           e,
@@ -577,40 +571,16 @@ class RunnerFlameGame extends FlameGame {
         if (spinSpeed == 0.0) {
           view.angle = e.rotationRad;
         } else {
-          final spinSeconds =
-              (ageTicks.toDouble() + alpha) / controller.tickHz;
+          final spinSeconds = (ageTicks.toDouble() + alpha) / controller.tickHz;
           view.angle = e.rotationRad + spinSpeed * spinSeconds;
         }
       } else {
+        // No fallback rendering for unknown/unregistered projectiles.
+        //
+        // If the projectile exists in Core but has no render wiring (or assets),
+        // we simply avoid rendering it rather than using placeholder rectangles.
         _projectileAnimViews.remove(e.id)?.removeFromParent();
         _projectileSpawnTicks.remove(e.id);
-
-        var view = _projectileRects[e.id];
-        if (view == null) {
-          final size = e.size;
-          view = RectangleComponent(
-            size: Vector2(size?.x ?? 8.0, size?.y ?? 8.0),
-            anchor: Anchor.center,
-            paint: _projectilePaint,
-          );
-          view.priority = _priorityProjectiles;
-          _projectileRects[e.id] = view;
-          world.add(view);
-        } else {
-          final size = e.size;
-          if (size != null) {
-            view.size.setValues(size.x, size.y);
-          }
-        }
-
-        final prev = prevById[e.id] ?? e;
-        final worldX = math.lerpDouble(prev.pos.x, e.pos.x, alpha);
-        final worldY = math.lerpDouble(prev.pos.y, e.pos.y, alpha);
-        view.position.setValues(
-          math.snapWorldToPixelsInCameraSpace1d(worldX, cameraCenter.x),
-          math.snapWorldToPixelsInCameraSpace1d(worldY, cameraCenter.y),
-        );
-        view.angle = e.rotationRad;
       }
     }
 
@@ -624,21 +594,12 @@ class RunnerFlameGame extends FlameGame {
         _projectileSpawnTicks.remove(id);
       }
     }
-
-    if (_projectileRects.isEmpty) return;
-    final toRemove = _toRemoveScratch..clear();
-    for (final id in _projectileRects.keys) {
-      if (!seen.contains(id)) toRemove.add(id);
-    }
-    for (final id in toRemove) {
-      _projectileRects.remove(id)?.removeFromParent();
-    }
   }
 
   /// Synchronizes collectible/pickup view components with the snapshot.
   ///
-  /// Creates rectangle components for new pickups, updates position/paint for
-  /// existing ones, and removes components for collected pickups.
+  /// Creates deterministic animation components for pickups and removes
+  /// components for collected pickups.
   void _syncCollectibles(
     List<EntityRenderSnapshot> entities, {
     required Map<int, EntityRenderSnapshot> prevById,
@@ -651,47 +612,35 @@ class RunnerFlameGame extends FlameGame {
       if (e.kind != EntityKind.pickup) continue;
       seen.add(e.id);
 
-      var view = _collectibles[e.id];
       final variant = e.pickupVariant ?? PickupVariant.collectible;
-      final paint =
-          _pickupPaints[variant] ?? _pickupPaints[PickupVariant.collectible]!;
+      final entry = _pickupRenderRegistry.entryForVariant(variant);
+
+      var view = _pickupAnimViews[e.id];
       if (view == null) {
-        final size = e.size;
-        view = RectangleComponent(
-          size: Vector2(size?.x ?? 8.0, size?.y ?? 8.0),
-          anchor: Anchor.center,
-          paint: paint,
-        );
+        view = entry.viewFactory(entry.animSet, entry.renderScale);
         view.priority = _priorityCollectibles;
-        _collectibles[e.id] = view;
+        _pickupAnimViews[e.id] = view;
         world.add(view);
-      } else {
-        final size = e.size;
-        if (size != null) {
-          view.size.setValues(size.x, size.y);
-        }
-        if (view.paint != paint) {
-          view.paint = paint;
-        }
       }
 
       final prev = prevById[e.id] ?? e;
       final worldX = math.lerpDouble(prev.pos.x, e.pos.x, alpha);
       final worldY = math.lerpDouble(prev.pos.y, e.pos.y, alpha);
-      view.position.setValues(
+      _snapScratch.setValues(
         math.snapWorldToPixelsInCameraSpace1d(worldX, cameraCenter.x),
         math.snapWorldToPixelsInCameraSpace1d(worldY, cameraCenter.y),
       );
+      view.applySnapshot(e, tickHz: controller.tickHz, pos: _snapScratch);
       view.angle = e.rotationRad;
     }
 
-    if (_collectibles.isEmpty) return;
+    if (_pickupAnimViews.isEmpty) return;
     final toRemove = _toRemoveScratch..clear();
-    for (final id in _collectibles.keys) {
+    for (final id in _pickupAnimViews.keys) {
       if (!seen.contains(id)) toRemove.add(id);
     }
     for (final id in toRemove) {
-      _collectibles.remove(id)?.removeFromParent();
+      _pickupAnimViews.remove(id)?.removeFromParent();
     }
   }
 
