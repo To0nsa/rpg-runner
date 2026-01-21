@@ -41,8 +41,8 @@
 /// 7. **Pickups**: Collect items overlapping player.
 /// 8. **Broadphase rebuild**: Update spatial grid for hit detection.
 /// 9. **Projectile movement**: Advance existing projectiles.
-/// 10. **Attack intents**: Enemies and player queue attacks.
-/// 11. **Attack execution**: Spawn hitboxes and projectiles.
+/// 10. **Strike intents**: Enemies and player queue strikes.
+/// 11. **Strike execution**: Spawn hitboxes and projectiles.
 /// 12. **Hitbox positioning**: Follow owner entities.
 /// 13. **Hit resolution**: Detect overlaps, queue damage.
 /// 14. **Status ticking**: Apply DoT ticks and queue damage.
@@ -94,7 +94,7 @@ import 'ecs/systems/hitbox_damage_system.dart';
 import 'ecs/systems/hitbox_follow_owner_system.dart';
 import 'ecs/systems/invulnerability_system.dart';
 import 'ecs/systems/lifetime_system.dart';
-import 'ecs/systems/melee_attack_system.dart';
+import 'ecs/systems/melee_strike_system.dart';
 import 'ecs/systems/player_cast_system.dart';
 import 'ecs/systems/player_melee_system.dart';
 import 'ecs/systems/player_movement_system.dart';
@@ -102,7 +102,7 @@ import 'ecs/systems/player_ranged_weapon_system.dart';
 import 'ecs/systems/projectile_hit_system.dart';
 import 'ecs/systems/projectile_system.dart';
 import 'ecs/systems/projectile_world_collision_system.dart';
-import 'ecs/systems/ranged_weapon_attack_system.dart';
+import 'ecs/systems/ranged_weapon_system.dart';
 import 'ecs/systems/resource_regen_system.dart';
 import 'ecs/systems/restoration_item_system.dart';
 import 'ecs/systems/status_system.dart';
@@ -455,8 +455,8 @@ class GameCore {
       spells: _spells,
       projectiles: _projectiles,
     );
-    _meleeAttackSystem = MeleeAttackSystem();
-    _rangedWeaponAttackSystem = RangedWeaponAttackSystem(
+    _meleeStrikeSystem = MeleeStrikeSystem();
+    _rangedWeaponStrikeSystem = RangedWeaponSystem(
       weapons: _rangedWeapons,
       projectiles: _projectiles,
     );
@@ -656,8 +656,8 @@ class GameCore {
   late final SurfaceNavigator _surfaceNavigator;
   late final PlayerMeleeSystem _meleeSystem;
   late final PlayerRangedWeaponSystem _rangedWeaponSystem;
-  late final MeleeAttackSystem _meleeAttackSystem;
-  late final RangedWeaponAttackSystem _rangedWeaponAttackSystem;
+  late final MeleeStrikeSystem _meleeStrikeSystem;
+  late final RangedWeaponSystem _rangedWeaponStrikeSystem;
   late final HitboxDamageSystem _hitboxDamageSystem;
   late final ResourceRegenSystem _resourceRegenSystem;
   late final PlayerCastSystem _castSystem;
@@ -775,7 +775,7 @@ class GameCore {
   int get playerCastCooldownTicksLeft =>
       _world.cooldown.castCooldownTicksLeft[_world.cooldown.indexOf(_player)];
 
-  /// Remaining melee attack cooldown ticks.
+  /// Remaining melee strike cooldown ticks.
   int get playerMeleeCooldownTicksLeft =>
       _world.cooldown.meleeCooldownTicksLeft[_world.cooldown.indexOf(_player)];
 
@@ -791,9 +791,9 @@ class GameCore {
   /// - [MoveAxisCommand]: Sets horizontal movement axis (-1 to 1).
   /// - [JumpPressedCommand]: Triggers a jump attempt.
   /// - [DashPressedCommand]: Triggers a dash attempt.
-  /// - [AttackPressedCommand]: Triggers an attack attempt.
+  /// - [StrikePressedCommand]: Triggers an strike attempt.
   /// - [ProjectileAimDirCommand]: Sets projectile aim direction.
-  /// - [MeleeAimDirCommand]: Sets melee attack direction.
+  /// - [MeleeAimDirCommand]: Sets melee strike direction.
   /// - [RangedAimDirCommand]: Sets ranged weapon aim direction.
   /// - [CastPressedCommand]: Triggers a spell cast attempt.
   /// - [RangedPressedCommand]: Triggers a ranged weapon attempt.
@@ -829,16 +829,16 @@ class GameCore {
         case DashPressedCommand():
           _world.playerInput.dashPressed[inputIndex] = true;
 
-        // Attack: Consumed by PlayerMeleeSystem.
-        case AttackPressedCommand():
-          _world.playerInput.attackPressed[inputIndex] = true;
+        // Strike: Consumed by PlayerMeleeSystem.
+        case StrikePressedCommand():
+          _world.playerInput.strikePressed[inputIndex] = true;
 
-        // Projectile aim: Direction vector for ranged attacks.
+        // Projectile aim: Direction vector for ranged strikes.
         case ProjectileAimDirCommand(:final x, :final y):
           _world.playerInput.projectileAimDirX[inputIndex] = x;
           _world.playerInput.projectileAimDirY[inputIndex] = y;
 
-        // Melee aim: Direction vector for melee attacks.
+        // Melee aim: Direction vector for melee strikes.
         case MeleeAimDirCommand(:final x, :final y):
           _world.playerInput.meleeAimDirX[inputIndex] = x;
           _world.playerInput.meleeAimDirY[inputIndex] = y;
@@ -853,7 +853,7 @@ class GameCore {
           _world.playerInput.meleeAimDirX[inputIndex] = 0;
           _world.playerInput.meleeAimDirY[inputIndex] = 0;
 
-        // Ranged weapon aim: Direction vector for thrown/bow attacks.
+        // Ranged weapon aim: Direction vector for thrown/bow strikes.
         case RangedAimDirCommand(:final x, :final y):
           _world.playerInput.rangedAimDirX[inputIndex] = x;
           _world.playerInput.rangedAimDirY[inputIndex] = y;
@@ -894,8 +894,8 @@ class GameCore {
   /// 9. **Pickups**: Process collectible and restoration item collection.
   /// 10. **Broadphase**: Rebuild spatial grid for hit detection.
   /// 11. **Projectiles**: Move existing projectiles.
-  /// 12. **Attack intents**: Queue enemy and player attacks.
-  /// 13. **Attack execution**: Spawn hitboxes and projectiles from intents.
+  /// 12. **Strike intents**: Queue enemy and player strikes.
+  /// 13. **Strike execution**: Spawn hitboxes and projectiles from intents.
   /// 14. **Hitbox positioning**: Update hitbox positions from owners.
   /// 15. **Hit detection**: Check projectile and hitbox overlaps.
   /// 16. **Status ticking**: Apply DoT ticks and queue damage.
@@ -1004,7 +1004,7 @@ class GameCore {
     // Move existing projectiles before spawning new ones.
     _projectileSystem.step(_world, _movement);
 
-    // ─── Phase 9: Attack intent writing ───
+    // ─── Phase 9: Strike intent writing ───
     // Enemies first, then player (order matters for fairness).
     _enemyCastSystem.step(_world, player: _player, currentTick: tick);
     _enemyMeleeSystem.step(_world, player: _player, currentTick: tick);
@@ -1012,11 +1012,11 @@ class GameCore {
     _meleeSystem.step(_world, player: _player, currentTick: tick);
     _rangedWeaponSystem.step(_world, player: _player, currentTick: tick);
 
-    // ─── Phase 10: Attack execution ───
+    // ─── Phase 10: Strike execution ───
     // Convert intents into actual hitboxes and projectiles.
     _spellCastSystem.step(_world, currentTick: tick);
-    _meleeAttackSystem.step(_world, currentTick: tick);
-    _rangedWeaponAttackSystem.step(_world, currentTick: tick);
+    _meleeStrikeSystem.step(_world, currentTick: tick);
+    _rangedWeaponStrikeSystem.step(_world, currentTick: tick);
 
     // ─── Phase 11: Hitbox positioning ───
     // Update hitbox transforms to follow their owner entities.

@@ -8,13 +8,13 @@ import '../stores/enemies/melee_engagement_store.dart';
 import '../stores/melee_intent_store.dart';
 import '../world.dart';
 
-/// Handles enemy melee attack decisions and writes melee intents.
+/// Handles enemy melee strike decisions and writes melee intents.
 class EnemyMeleeSystem {
   EnemyMeleeSystem({required this.groundEnemyTuning});
 
   final GroundEnemyTuningDerived groundEnemyTuning;
 
-  /// Evaluates melee attacks for all enemies and writes melee intents.
+  /// Evaluates melee strikes for all enemies and writes melee intents.
   void step(
     EcsWorld world, {
     required EntityId player,
@@ -43,9 +43,9 @@ class EnemyMeleeSystem {
       final ti = world.transform.tryIndexOf(enemy);
       if (ti == null) continue;
 
-      // Only write an intent on the first tick we enter the attack state.
-      if (meleeEngagement.state[i] != MeleeEngagementState.attack) continue;
-      if (meleeEngagement.attackStartTick[i] != currentTick) continue;
+      // Only write an intent on the first tick we enter the strike state.
+      if (meleeEngagement.state[i] != MeleeEngagementState.strike) continue;
+      if (meleeEngagement.strikeStartTick[i] != currentTick) continue;
       final plannedHitTick = meleeEngagement.plannedHitTick[i];
       if (plannedHitTick < 0) continue;
 

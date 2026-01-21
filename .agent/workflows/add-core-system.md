@@ -264,7 +264,7 @@ Common system execution order:
 1. **Input processing** - Convert commands to component updates
 2. **AI/Decision** - AI decisions, pathfinding
 3. **Movement** - Apply velocity, update positions
-4. **Combat** - Process attacks, apply damage
+4. **Combat** - Process strikes, apply damage
 5. **Status effects** - Apply over-time effects
 6. **Health** - Process health changes, check for death
 7. **Animation** - Select animations based on state

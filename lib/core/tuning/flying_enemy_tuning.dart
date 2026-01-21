@@ -1,4 +1,4 @@
-/// Flying enemy AI tuning (steering, attacks).
+/// Flying enemy AI tuning (steering, strikes).
 library;
 
 import '../util/tick_math.dart';
@@ -81,7 +81,7 @@ class UnocoDemonTuning {
   /// Deadzone for vertical error (world units).
   final double unocoDemonVerticalDeadzone;
 
-  // ── Attacks ──
+  // ── Strikes ──
 
   /// Min lead time when aiming at player (seconds).
   final double unocoDemonAimLeadMinSeconds;

@@ -4,13 +4,13 @@ import '../hit/hit_resolver.dart';
 import '../spatial/broadphase_grid.dart';
 import '../world.dart';
 
-/// Detects collisions between active hitboxes (melee attacks) and vulnerable targets.
+/// Detects collisions between active hitboxes (melee strikes) and vulnerable targets.
 ///
 /// **Responsibilities**:
 /// *   Iterate over all active hitboxes (entities with `HitboxStore`).
 /// *   Perform broadphase/narrowphase collision checks against potential targets.
 /// *   Filter hits based on faction (Friendly fire prevention).
-/// *   Enforce "Hit Once" logic to prevent a single frame of attack from dealing damage every tick.
+/// *   Enforce "Hit Once" logic to prevent a single frame of strike from dealing damage every tick.
 /// *   Queue [DamageRequest]s for resolved hits.
 class HitboxDamageSystem {
   /// Helper for spatial queries and overlap sorting.
@@ -29,7 +29,7 @@ class HitboxDamageSystem {
     BroadphaseGrid broadphase,
   ) {
     final hitboxes = world.hitbox;
-    // Early exit if no active attacks exist.
+    // Early exit if no active strikes exist.
     if (hitboxes.denseEntities.isEmpty) return;
 
     // Early exit if there are no targets to hit.

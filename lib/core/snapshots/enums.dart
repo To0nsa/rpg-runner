@@ -12,6 +12,7 @@ library;
 /// The renderer maps these to sprite sheets or animation clips.
 enum AnimKey {
   idle,
+  stun,
   run,
   jump,
   fall,
@@ -19,10 +20,10 @@ enum AnimKey {
   cast,
   death,
   spawn,
-  attack,
+  strike,
   dash,
   walk,
-  attackBack,
+  strikeBack,
   ranged,
 }
 

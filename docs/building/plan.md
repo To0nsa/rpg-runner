@@ -28,7 +28,7 @@ Pipeline per tick:
 3. **Locomotion** (`GroundEnemyLocomotionSystem` + `FlyingEnemyLocomotionSystem`)
    applies velocities using nav + engagement intents (ground) and steering (Unoco).
 4. **Combat** (`EnemyCastSystem` + `EnemyMeleeSystem`) writes
-   `CastIntentStore`/`MeleeIntentStore` and updates attack windows for animation.
+   `CastIntentStore`/`MeleeIntentStore` and updates strike windows for animation.
 
 This keeps pathfinding separate from melee slot logic and keeps combat decisions
 independent from locomotion mechanics.
@@ -38,7 +38,7 @@ Ground enemy tuning is grouped by responsibility in `GroundEnemyTuning`:
 
 ## Render animation windows
 
-Core owns deterministic animation windows via `AnimTuning` (attack/cast/hit/death/spawn).
+Core owns deterministic animation windows via `AnimTuning` (strike/cast/hit/death/spawn).
 Renderer consumes `AnimKey` + `animFrame` only; no simulation logic lives in Flame.
 
 ### Player animations
@@ -66,7 +66,7 @@ Hit windows are authored per enemy (`EnemyArchetype.hitAnimSeconds`).
 4. `SnapshotBuilder` reads from the store for both player and enemies; it does not compute anim.
 
 Per-entity rules live in `AnimProfile` data:
-- **Unoco**: uses `run` even while airborne; walk disabled; attack → `idle`.
+- **Unoco**: uses `run` even while airborne; walk disabled; strike → `idle`.
 - **Ground enemy**: uses jump/fall when airborne; walk/run thresholds on ground.
 
 Render strip metadata is shared via `RenderAnimSetDefinition` in

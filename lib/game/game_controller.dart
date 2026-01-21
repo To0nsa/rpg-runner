@@ -298,8 +298,8 @@ class GameController extends ChangeNotifier {
     if (input.dashPressed) {
       _commandScratch.add(DashPressedCommand(tick: tick));
     }
-    if (input.attackPressed) {
-      _commandScratch.add(AttackPressedCommand(tick: tick));
+    if (input.strikePressed) {
+      _commandScratch.add(StrikePressedCommand(tick: tick));
     }
     if (input.castPressed) {
       _commandScratch.add(CastPressedCommand(tick: tick));

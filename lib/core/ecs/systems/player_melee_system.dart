@@ -7,12 +7,12 @@ import '../entity_id.dart';
 import '../stores/melee_intent_store.dart';
 import '../world.dart';
 
-/// Translates player input into a [MeleeIntentDef] for the [MeleeAttackSystem].
+/// Translates player input into a [MeleeIntentDef] for the [MeleeStrikeSystem].
 ///
 /// **Responsibilities**:
-/// *   Checks input state (Attack button).
-/// *   Calculates attack direction (Analog aim or Facing fallback).
-/// *   Calculates hitbox offsets based on attack reach.
+/// *   Checks input state (Strike button).
+/// *   Calculates strike direction (Analog aim or Facing fallback).
+/// *   Calculates hitbox offsets based on strike reach.
 /// *   Registers intent (Costs/Cooldowns checked downstream).
 class PlayerMeleeSystem {
   const PlayerMeleeSystem({
@@ -39,7 +39,7 @@ class PlayerMeleeSystem {
       return;
     }
 
-    // Input is required to know if attacking.
+    // Input is required to know if strikeing.
     final inputIndex = world.playerInput.tryIndexOf(player);
     if (inputIndex == null) return;
     
@@ -60,7 +60,7 @@ class PlayerMeleeSystem {
     // -- 2. Input Logic --
 
     // If button not pressed, early exit.
-    if (!world.playerInput.attackPressed[inputIndex]) return;
+    if (!world.playerInput.strikePressed[inputIndex]) return;
 
     final actionAnimIndex = world.actionAnim.tryIndexOf(player);
     if (actionAnimIndex == null) {
@@ -107,7 +107,7 @@ class PlayerMeleeSystem {
     final offsetY = dirY * forward;
 
     // IMPORTANT: PlayerMeleeSystem writes intent only; execution happens in
-    // `MeleeAttackSystem` which owns stamina/cooldown rules and hitbox spawning.
+    // `MeleeStrikeSystem` which owns stamina/cooldown rules and hitbox spawning.
     final weaponId = world.equippedWeapon.weaponId[weaponIndex];
     final weapon = weapons.get(weaponId);
     world.meleeIntent.set(
@@ -129,13 +129,13 @@ class PlayerMeleeSystem {
       ),
     );
     world.actionAnim.lastMeleeTick[actionAnimIndex] = currentTick;
-    // Determine if this is a "back attack" (attacking opposite to facing).
-    // Back attack occurs when:
-    // - Facing right but attacking left (dirX < 0)
-    // - Facing left but attacking right (dirX >= 0)
-    final isBackAttack = (facing == Facing.right && dirX < 0) ||
+    // Determine if this is a "back strike" (strikeing opposite to facing).
+    // Back strike occurs when:
+    // - Facing right but strikeing left (dirX < 0)
+    // - Facing left but strikeing right (dirX >= 0)
+    final isBackStrike = (facing == Facing.right && dirX < 0) ||
         (facing == Facing.left && dirX >= 0);
     world.actionAnim.lastMeleeFacing[actionAnimIndex] =
-        isBackAttack ? Facing.left : Facing.right;
+        isBackStrike ? Facing.left : Facing.right;
   }
 }

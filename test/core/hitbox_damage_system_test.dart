@@ -13,7 +13,7 @@ import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
 import 'package:rpg_runner/core/ecs/systems/hitbox_damage_system.dart';
 import 'package:rpg_runner/core/ecs/systems/hitbox_follow_owner_system.dart';
 import 'package:rpg_runner/core/ecs/systems/lifetime_system.dart';
-import 'package:rpg_runner/core/ecs/systems/melee_attack_system.dart';
+import 'package:rpg_runner/core/ecs/systems/melee_strike_system.dart';
 import 'package:rpg_runner/core/ecs/systems/player_melee_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
@@ -41,7 +41,7 @@ void main() {
       abilities: abilities,
       weapons: const WeaponCatalog(),
     );
-    final meleeAttack = MeleeAttackSystem();
+    final meleeStrike = MeleeStrikeSystem();
     final follow = HitboxFollowOwnerSystem();
     final hitboxDamage = HitboxDamageSystem();
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0);
@@ -71,10 +71,10 @@ void main() {
     world.faction.add(enemy, const FactionDef(faction: Faction.enemy));
 
     final playerInputIndex = world.playerInput.indexOf(player);
-    world.playerInput.attackPressed[playerInputIndex] = true;
+    world.playerInput.strikePressed[playerInputIndex] = true;
 
     melee.step(world, player: player, currentTick: 1);
-    meleeAttack.step(world, currentTick: 1);
+    meleeStrike.step(world, currentTick: 1);
     follow.step(world);
     broadphase.rebuild(world);
     hitboxDamage.step(world, damage.queue, broadphase);
@@ -84,9 +84,9 @@ void main() {
     expect(world.health.hp[world.health.indexOf(enemy)], closeTo(75.0, 1e-9));
 
     // Next tick: still overlapping, but should not re-hit the same target.
-    world.playerInput.attackPressed[playerInputIndex] = false;
+    world.playerInput.strikePressed[playerInputIndex] = false;
     melee.step(world, player: player, currentTick: 2);
-    meleeAttack.step(world, currentTick: 2);
+    meleeStrike.step(world, currentTick: 2);
     follow.step(world);
     broadphase.rebuild(world);
     hitboxDamage.step(world, damage.queue, broadphase);

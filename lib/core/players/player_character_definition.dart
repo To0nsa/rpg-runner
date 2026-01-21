@@ -219,7 +219,7 @@ class PlayerCharacterDefinition {
       // Tuning invariants (only basic sanity checks here).
       if (!tuning.anim.hitAnimSeconds.isFinite ||
           !tuning.anim.castAnimSeconds.isFinite ||
-          !tuning.anim.attackAnimSeconds.isFinite ||
+          !tuning.anim.strikeAnimSeconds.isFinite ||
           !tuning.anim.deathAnimSeconds.isFinite ||
           !tuning.anim.spawnAnimSeconds.isFinite ||
           !tuning.anim.rangedAnimSeconds.isFinite) {

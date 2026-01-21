@@ -14,11 +14,11 @@ import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/tuning/ground_enemy_tuning.dart';
 
 void main() {
-  test('GroundEnemyLocomotionSystem locks facing to player during engage/attack/recover', () {
+  test('GroundEnemyLocomotionSystem locks facing to player during engage/strike/recover', () {
     for (final (state, expectedFacing) in <(MeleeEngagementState, Facing)>[
       (MeleeEngagementState.approach, Facing.left),
       (MeleeEngagementState.engage, Facing.right),
-      (MeleeEngagementState.attack, Facing.right),
+      (MeleeEngagementState.strike, Facing.right),
       (MeleeEngagementState.recover, Facing.right),
     ]) {
       final world = EcsWorld();

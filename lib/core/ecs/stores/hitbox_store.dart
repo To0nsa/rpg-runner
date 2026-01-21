@@ -32,9 +32,9 @@ class HitboxDef {
   final double dirY;
 }
 
-/// Short-lived damage hitbox used by melee attacks and area effects.
+/// Short-lived damage hitbox used by melee strikes and area effects.
 ///
-/// These entities usually exist for only a few frames (attack windows).
+/// These entities usually exist for only a few frames (strike windows).
 /// They are queried by `HitboxDamageSystem`.
 class HitboxStore extends SparseSet {
   final List<EntityId> owner = <EntityId>[];

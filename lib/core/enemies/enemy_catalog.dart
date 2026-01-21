@@ -25,6 +25,9 @@ const int _unocoAnimFrameHeight = 71;
 const int _unocoAnimIdleFrames = 4;
 const double _unocoAnimIdleStepSeconds = 0.12;
 
+const int _unocoAnimStunFrames = 4;
+const double _unocoAnimStunStepSeconds = 0.12;
+
 const int _unocoAnimMoveFrames = 4;
 const double _unocoAnimMoveStepSeconds = 0.12;
 
@@ -41,6 +44,7 @@ const double _unocoDeathAnimSeconds =
 
 const Map<AnimKey, int> _unocoAnimFrameCountsByKey = <AnimKey, int>{
   AnimKey.idle: _unocoAnimIdleFrames,
+  AnimKey.stun: _unocoAnimStunFrames,
   AnimKey.run: _unocoAnimMoveFrames,
   AnimKey.hit: _unocoAnimHitFrames,
   AnimKey.death: _unocoAnimDeathFrames,
@@ -48,6 +52,7 @@ const Map<AnimKey, int> _unocoAnimFrameCountsByKey = <AnimKey, int>{
 
 const Map<AnimKey, double> _unocoAnimStepTimeSecondsByKey = <AnimKey, double>{
   AnimKey.idle: _unocoAnimIdleStepSeconds,
+  AnimKey.stun: _unocoAnimStunStepSeconds,
   AnimKey.run: _unocoAnimMoveStepSeconds,
   AnimKey.hit: _unocoAnimHitStepSeconds,
   AnimKey.death: _unocoAnimDeathStepSeconds,
@@ -55,6 +60,7 @@ const Map<AnimKey, double> _unocoAnimStepTimeSecondsByKey = <AnimKey, double>{
 
 const Map<AnimKey, String> _unocoAnimSourcesByKey = <AnimKey, String>{
   AnimKey.idle: 'entities/enemies/unoco/flying.png',
+  AnimKey.stun: 'entities/enemies/unoco/stun.png',
   AnimKey.run: 'entities/enemies/unoco/flying.png',
   AnimKey.hit: 'entities/enemies/unoco/hit.png',
   AnimKey.death: 'entities/enemies/unoco/death.png',
@@ -73,7 +79,7 @@ const AnimProfile _unocoAnimProfile = AnimProfile(
   runSpeedThresholdX: 0.0,
   supportsWalk: false,
   supportsJumpFall: false,
-  attackAnimKey: AnimKey.idle,
+  strikeAnimKey: AnimKey.idle,
 );
 
 // -----------------------------------------------------------------------------
@@ -85,6 +91,9 @@ const int _grojibAnimFrameHeight = 59;
 
 const int _grojibAnimIdleFrames = 8;
 const double _grojibAnimIdleStepSeconds = 0.14;
+
+const int _grojibAnimStunFrames = 8;
+const double _grojibAnimStunStepSeconds = 0.14;
 
 const int _grojibAnimMoveFrames = 8;
 const double _grojibAnimMoveStepSeconds = 0.08;
@@ -98,12 +107,12 @@ const double _grojibAnimHitStepSeconds = 0.10;
 const int _grojibAnimDeathFrames = 12;
 const double _grojibAnimDeathStepSeconds = 0.12;
 
-// The authored sheet has 20 columns on the attack row:
-// - frames 1..8  = Attack
-// - frames 9..20 = Attack2
-// Core only exposes AnimKey.attack, so we treat the full row as one animation.
-const int _grojibAnimAttackFrames = 8;
-const double _grojibAnimAttackStepSeconds = 0.06;
+// The authored sheet has 20 columns on the strike row:
+// - frames 1..8  = Strike
+// - frames 9..20 = Strike2
+// Core only exposes AnimKey.strike, so we treat the full row as one animation.
+const int _grojibAnimStrikeFrames = 8;
+const double _grojibAnimStrikeStepSeconds = 0.06;
 
 const int _grojibAnimJumpFrames = 3;
 const double _grojibAnimJumpStepSeconds = 0.10;
@@ -117,9 +126,10 @@ const double _grojibDeathAnimSeconds =
 
 const Map<AnimKey, int> _grojibAnimFrameCountsByKey = <AnimKey, int>{
   AnimKey.idle: _grojibAnimIdleFrames,
+  AnimKey.stun: _grojibAnimStunFrames,
   AnimKey.run: _grojibAnimMoveFrames,
   AnimKey.walk: _grojibAnimWalkFrames,
-  AnimKey.attack: _grojibAnimAttackFrames,
+  AnimKey.strike: _grojibAnimStrikeFrames,
   AnimKey.hit: _grojibAnimHitFrames,
   AnimKey.death: _grojibAnimDeathFrames,
   AnimKey.jump: _grojibAnimJumpFrames,
@@ -128,9 +138,10 @@ const Map<AnimKey, int> _grojibAnimFrameCountsByKey = <AnimKey, int>{
 
 const Map<AnimKey, double> _grojibAnimStepTimeSecondsByKey = <AnimKey, double>{
   AnimKey.idle: _grojibAnimIdleStepSeconds,
+  AnimKey.stun: _grojibAnimStunStepSeconds,
   AnimKey.run: _grojibAnimMoveStepSeconds,
   AnimKey.walk: _grojibAnimWalkStepSeconds,
-  AnimKey.attack: _grojibAnimAttackStepSeconds,
+  AnimKey.strike: _grojibAnimStrikeStepSeconds,
   AnimKey.hit: _grojibAnimHitStepSeconds,
   AnimKey.death: _grojibAnimDeathStepSeconds,
   AnimKey.jump: _grojibAnimJumpStepSeconds,
@@ -141,9 +152,10 @@ const String _grojibAnimSpriteSheetPath = 'entities/enemies/grojib/grojib.png';
 
 const Map<AnimKey, String> _grojibAnimSourcesByKey = <AnimKey, String>{
   AnimKey.idle: _grojibAnimSpriteSheetPath,
+  AnimKey.stun: _grojibAnimSpriteSheetPath,
   AnimKey.run: _grojibAnimSpriteSheetPath,
   AnimKey.walk: _grojibAnimSpriteSheetPath,
-  AnimKey.attack: _grojibAnimSpriteSheetPath,
+  AnimKey.strike: _grojibAnimSpriteSheetPath,
   AnimKey.hit: _grojibAnimSpriteSheetPath,
   AnimKey.death: _grojibAnimSpriteSheetPath,
   AnimKey.jump: _grojibAnimSpriteSheetPath,
@@ -152,9 +164,10 @@ const Map<AnimKey, String> _grojibAnimSourcesByKey = <AnimKey, String>{
 
 const Map<AnimKey, int> _grojibAnimRowByKey = <AnimKey, int>{
   AnimKey.idle: 0,
+  AnimKey.stun: 0,
   AnimKey.run: 1,
   AnimKey.walk: 1,
-  AnimKey.attack: 2,
+  AnimKey.strike: 2,
   AnimKey.hit: 3,
   AnimKey.death: 4,
   AnimKey.jump: 5,
@@ -225,7 +238,7 @@ class EnemyArchetype {
   /// Behavior for death transition timing (instant vs ground impact).
   final DeathBehavior deathBehavior;
 
-  /// Optional primary ranged attack spell for this enemy.
+  /// Optional primary ranged strike spell for this enemy.
   ///
   /// When present, the [EnemyCastSystem] will use this to write cast intents.
   final SpellId? primarySpellId;

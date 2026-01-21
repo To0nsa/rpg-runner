@@ -12,7 +12,7 @@ import '../../util/double_math.dart';
 import '../stores/cast_intent_store.dart';
 import '../world.dart';
 
-/// Handles enemy ranged attack decisions and writes cast intents.
+/// Handles enemy ranged strike decisions and writes cast intents.
 class EnemyCastSystem {
   EnemyCastSystem({
     required this.unocoDemonTuning,

@@ -1,7 +1,7 @@
 import '../entity_id.dart';
 import '../sparse_set.dart';
 
-/// Tracks unique hit targets for a single attack instance (e.g. one swing).
+/// Tracks unique hit targets for a single strike instance (e.g. one swing).
 ///
 /// **Optimization**: Uses inline fields (`hit0`...`hit3`) instead of a `List`
 /// to avoid allocation per entity per frame. Saturation limit is 4 targets.

@@ -163,7 +163,7 @@ class EcsWorld {
   /// Manages Mana Points (MP) and max MP.
   late final ManaStore mana = _register(ManaStore());
 
-  /// Tracks the player's intent to perform a melee attack.
+  /// Tracks the player's intent to perform a melee strike.
   late final MeleeIntentStore meleeIntent = _register(MeleeIntentStore());
 
   /// Tracks the player's intent to fire a ranged weapon.
@@ -249,7 +249,7 @@ class EcsWorld {
     EngagementIntentStore(),
   );
 
-  /// Engagement state for melee enemies (approach/engage/attack/recover).
+  /// Engagement state for melee enemies (approach/engage/strike/recover).
   late final MeleeEngagementStore meleeEngagement = _register(
     MeleeEngagementStore(),
   );

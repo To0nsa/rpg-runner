@@ -6,8 +6,8 @@ import '../../projectiles/projectile_catalog.dart';
 
 /// Executes [RangedWeaponIntentStore] intents by spawning weapon projectiles and
 /// managing costs (stamina + ammo + cooldowns).
-class RangedWeaponAttackSystem {
-  RangedWeaponAttackSystem({
+class RangedWeaponSystem {
+  RangedWeaponSystem({
     required this.weapons,
     required this.projectiles,
   });

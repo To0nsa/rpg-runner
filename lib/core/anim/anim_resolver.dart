@@ -14,8 +14,8 @@ class AnimProfile {
     this.supportsCast = false,
     this.supportsRanged = false,
     this.supportsSpawn = false,
-    this.directionalAttack = false,
-    this.attackAnimKey = AnimKey.attack,
+    this.directionalStrike = false,
+    this.strikeAnimKey = AnimKey.strike,
     this.idleAnimKey = AnimKey.idle,
     this.walkAnimKey = AnimKey.walk,
     this.runAnimKey = AnimKey.run,
@@ -37,9 +37,9 @@ class AnimProfile {
   final bool supportsCast;
   final bool supportsRanged;
   final bool supportsSpawn;
-  final bool directionalAttack;
+  final bool directionalStrike;
 
-  final AnimKey attackAnimKey;
+  final AnimKey strikeAnimKey;
   final AnimKey idleAnimKey;
   final AnimKey walkAnimKey;
   final AnimKey runAnimKey;
@@ -64,10 +64,10 @@ class AnimSignals {
     required this.velY,
     required this.lastDamageTick,
     required this.hitAnimTicks,
-    required this.lastAttackTick,
-    required this.attackAnimTicks,
-    required this.attackBackAnimTicks,
-    required this.lastAttackFacing,
+    required this.lastStrikeTick,
+    required this.strikeAnimTicks,
+    required this.strikeBackAnimTicks,
+    required this.lastStrikeFacing,
     required this.lastCastTick,
     required this.castAnimTicks,
     required this.lastRangedTick,
@@ -85,10 +85,10 @@ class AnimSignals {
     required double velY,
     required int lastDamageTick,
     required int hitAnimTicks,
-    required int lastAttackTick,
-    required int attackAnimTicks,
-    required int attackBackAnimTicks,
-    required Facing lastAttackFacing,
+    required int lastStrikeTick,
+    required int strikeAnimTicks,
+    required int strikeBackAnimTicks,
+    required Facing lastStrikeFacing,
     required int lastCastTick,
     required int castAnimTicks,
     required int lastRangedTick,
@@ -106,10 +106,10 @@ class AnimSignals {
           velY: velY,
           lastDamageTick: lastDamageTick,
          hitAnimTicks: hitAnimTicks,
-         lastAttackTick: lastAttackTick,
-         attackAnimTicks: attackAnimTicks,
-         attackBackAnimTicks: attackBackAnimTicks,
-         lastAttackFacing: lastAttackFacing,
+         lastStrikeTick: lastStrikeTick,
+         strikeAnimTicks: strikeAnimTicks,
+         strikeBackAnimTicks: strikeBackAnimTicks,
+         lastStrikeFacing: lastStrikeFacing,
          lastCastTick: lastCastTick,
          castAnimTicks: castAnimTicks,
          lastRangedTick: lastRangedTick,
@@ -129,9 +129,9 @@ class AnimSignals {
     required double velY,
     required int lastDamageTick,
     required int hitAnimTicks,
-    required int lastAttackTick,
-    required int attackAnimTicks,
-    required Facing lastAttackFacing,
+    required int lastStrikeTick,
+    required int strikeAnimTicks,
+    required Facing lastStrikeFacing,
   }) : this._(
           tick: tick,
           hp: hp,
@@ -142,10 +142,10 @@ class AnimSignals {
           velY: velY,
           lastDamageTick: lastDamageTick,
          hitAnimTicks: hitAnimTicks,
-         lastAttackTick: lastAttackTick,
-         attackAnimTicks: attackAnimTicks,
-         attackBackAnimTicks: attackAnimTicks,
-         lastAttackFacing: lastAttackFacing,
+         lastStrikeTick: lastStrikeTick,
+         strikeAnimTicks: strikeAnimTicks,
+         strikeBackAnimTicks: strikeAnimTicks,
+         lastStrikeFacing: lastStrikeFacing,
          lastCastTick: -1,
          castAnimTicks: 0,
          lastRangedTick: -1,
@@ -164,10 +164,10 @@ class AnimSignals {
   final double velY;
   final int lastDamageTick;
   final int hitAnimTicks;
-  final int lastAttackTick;
-  final int attackAnimTicks;
-  final int attackBackAnimTicks;
-  final Facing lastAttackFacing;
+  final int lastStrikeTick;
+  final int strikeAnimTicks;
+  final int strikeBackAnimTicks;
+  final Facing lastStrikeFacing;
   final int lastCastTick;
   final int castAnimTicks;
   final int lastRangedTick;
@@ -193,15 +193,15 @@ class AnimResolver {
         lastDamageTick >= 0 &&
         (tick - lastDamageTick) < signals.hitAnimTicks;
 
-    final attackTicks =
-        profile.directionalAttack &&
-            signals.lastAttackFacing == Facing.left
-        ? signals.attackBackAnimTicks
-        : signals.attackAnimTicks;
-    final showAttack =
-        attackTicks > 0 &&
-        signals.lastAttackTick >= 0 &&
-        (tick - signals.lastAttackTick) < attackTicks;
+    final strikeTicks =
+        profile.directionalStrike &&
+            signals.lastStrikeFacing == Facing.left
+        ? signals.strikeBackAnimTicks
+        : signals.strikeAnimTicks;
+    final showStrike =
+        strikeTicks > 0 &&
+        signals.lastStrikeTick >= 0 &&
+        (tick - signals.lastStrikeTick) < strikeTicks;
     final showCast =
         profile.supportsCast &&
         signals.castAnimTicks > 0 &&
@@ -240,15 +240,15 @@ class AnimResolver {
         animFrame: _frameFromTick(tick, lastDamageTick),
       );
     }
-    if (showAttack) {
-      final attackKey =
-          profile.directionalAttack &&
-              signals.lastAttackFacing == Facing.left
-          ? AnimKey.attackBack
-          : profile.attackAnimKey;
+    if (showStrike) {
+      final strikeKey =
+          profile.directionalStrike &&
+              signals.lastStrikeFacing == Facing.left
+          ? AnimKey.strikeBack
+          : profile.strikeAnimKey;
       return AnimResult(
-        anim: attackKey,
-        animFrame: _frameFromTick(tick, signals.lastAttackTick),
+        anim: strikeKey,
+        animFrame: _frameFromTick(tick, signals.lastStrikeTick),
       );
     }
     if (showCast) {

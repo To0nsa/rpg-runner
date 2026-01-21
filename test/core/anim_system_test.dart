@@ -111,19 +111,19 @@ void main() {
         expect(world.animState.animFrame[ai], equals(dashDuration - dashTicksLeft));
       });
 
-      test('attack left uses directional melee animation', () {
-        expect(playerAnimTuning.attackLeftAnimTicks, greaterThan(0));
+      test('strike left uses directional melee animation', () {
+        expect(playerAnimTuning.strikeLeftAnimTicks, greaterThan(0));
         final player = spawnPlayer(grounded: true);
         final actionIndex = world.actionAnim.indexOf(player);
         final tick = playerAnimTuning.spawnAnimTicks + 5;
-        final offset = playerAnimTuning.attackLeftAnimTicks > 1 ? 1 : 0;
+        final offset = playerAnimTuning.strikeLeftAnimTicks > 1 ? 1 : 0;
         world.actionAnim.lastMeleeTick[actionIndex] = tick - offset;
         world.actionAnim.lastMeleeFacing[actionIndex] = Facing.left;
 
         animSystem.step(world, player: player, currentTick: tick);
 
         final ai = world.animState.indexOf(player);
-        expect(world.animState.anim[ai], equals(AnimKey.attackLeft));
+        expect(world.animState.anim[ai], equals(AnimKey.strikeLeft));
         expect(world.animState.animFrame[ai], equals(offset));
       });
 
@@ -180,10 +180,10 @@ void main() {
         expect(world.animState.anim[ai], equals(AnimKey.run));
       });
 
-      test('attack mapped to idle (no attack strip)', () {
+      test('strike mapped to idle (no strike strip)', () {
         final enemy = spawnUnocoDemon(world, posX: 100, posY: 100);
 
-        // Simulate attack animation window.
+        // Simulate strike animation window.
         final ei = world.enemy.indexOf(enemy);
         world.enemy.lastMeleeTick[ei] = 5;
         world.enemy.lastMeleeAnimTicks[ei] = 10;
@@ -308,10 +308,10 @@ void main() {
         expect(world.animState.anim[ai], equals(AnimKey.fall));
       });
 
-      test('attack animation on attack', () {
+      test('strike animation on strike', () {
         final enemy = spawnGroundEnemy(world, posX: 100, posY: 100);
 
-        // Simulate attack animation window.
+        // Simulate strike animation window.
         final ei = world.enemy.indexOf(enemy);
         world.enemy.lastMeleeTick[ei] = 5;
         world.enemy.lastMeleeAnimTicks[ei] = 10;
@@ -319,7 +319,7 @@ void main() {
         stepEnemies(8);
 
         final ai = world.animState.indexOf(enemy);
-        expect(world.animState.anim[ai], equals(AnimKey.attack));
+        expect(world.animState.anim[ai], equals(AnimKey.strike));
         expect(world.animState.animFrame[ai], equals(3)); // 8 - 5
       });
 
@@ -372,10 +372,10 @@ void main() {
         expect(world.animState.anim[ai], equals(AnimKey.death));
       });
 
-      test('hit overrides attack', () {
+      test('hit overrides strike', () {
         final enemy = spawnGroundEnemy(world, posX: 100, posY: 100);
 
-        // Both attacking and recently damaged.
+        // Both strikeing and recently damaged.
         final ei = world.enemy.indexOf(enemy);
         world.enemy.lastMeleeTick[ei] = 1;
         world.enemy.lastMeleeAnimTicks[ei] = 20;
@@ -389,11 +389,11 @@ void main() {
         expect(world.animState.anim[ai], equals(AnimKey.hit));
       });
 
-      test('attack overrides movement', () {
+      test('strike overrides movement', () {
         final enemy = spawnGroundEnemy(world, posX: 100, posY: 100, velX: 100);
         world.collision.grounded[world.collision.indexOf(enemy)] = true;
 
-        // Attacking while moving.
+        // Strikeing while moving.
         final ei = world.enemy.indexOf(enemy);
         world.enemy.lastMeleeTick[ei] = 1;
         world.enemy.lastMeleeAnimTicks[ei] = 20;
@@ -401,7 +401,7 @@ void main() {
         stepEnemies(5);
 
         final ai = world.animState.indexOf(enemy);
-        expect(world.animState.anim[ai], equals(AnimKey.attack));
+        expect(world.animState.anim[ai], equals(AnimKey.strike));
       });
     });
   });

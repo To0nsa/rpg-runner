@@ -34,8 +34,8 @@ class TickInputFrame {
   /// True if dash was pressed this tick.
   bool dashPressed = false;
 
-  /// True if melee attack was pressed this tick.
-  bool attackPressed = false;
+  /// True if melee strike was pressed this tick.
+  bool strikePressed = false;
 
   /// True if cast (projectile) was pressed this tick.
   bool castPressed = false;
@@ -85,7 +85,7 @@ class TickInputFrame {
   /// Applies a [Command] to this frame, merging it with existing state.
   ///
   /// For continuous inputs (move axis, aim), later commands overwrite earlier ones.
-  /// For edge-triggered inputs (jump, dash, attack, cast), any press sets the flag.
+  /// For edge-triggered inputs (jump, dash, strike, cast), any press sets the flag.
   void apply(Command command) {
     switch (command) {
       case MoveAxisCommand(:final axis):
@@ -94,8 +94,8 @@ class TickInputFrame {
         jumpPressed = true;
       case DashPressedCommand():
         dashPressed = true;
-      case AttackPressedCommand():
-        attackPressed = true;
+      case StrikePressedCommand():
+        strikePressed = true;
       case ProjectileAimDirCommand(:final x, :final y):
         projectileAimDirSet = true;
         projectileAimDirX = x;
@@ -134,7 +134,7 @@ class TickInputFrame {
     moveAxis = 0;
     jumpPressed = false;
     dashPressed = false;
-    attackPressed = false;
+    strikePressed = false;
     projectileAimDirSet = false;
     projectileAimDirX = 0;
     projectileAimDirY = 0;

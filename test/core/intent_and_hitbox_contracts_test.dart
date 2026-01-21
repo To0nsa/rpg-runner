@@ -12,7 +12,7 @@ import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
 import 'package:rpg_runner/core/ecs/stores/melee_intent_store.dart';
 import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
 import 'package:rpg_runner/core/ecs/systems/hitbox_follow_owner_system.dart';
-import 'package:rpg_runner/core/ecs/systems/melee_attack_system.dart';
+import 'package:rpg_runner/core/ecs/systems/melee_strike_system.dart';
 import 'package:rpg_runner/core/ecs/systems/spell_cast_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
@@ -91,9 +91,9 @@ void main() {
       ),
     );
 
-    final meleeAttack = MeleeAttackSystem();
-    meleeAttack.step(world, currentTick: 2);
-    meleeAttack.step(world, currentTick: 2);
+    final meleeStrike = MeleeStrikeSystem();
+    meleeStrike.step(world, currentTick: 2);
+    meleeStrike.step(world, currentTick: 2);
 
     expect(world.hitbox.denseEntities.length, 1);
     expect(

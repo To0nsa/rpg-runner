@@ -2,11 +2,11 @@ import '../stores/hitbox_store.dart';
 import '../stores/lifetime_store.dart';
 import '../world.dart';
 
-/// Processes requests to perform melee attacks.
+/// Processes requests to perform melee strikes.
 ///
 /// **Responsibilities**:
 /// *   Consumes [MeleeIntentStore] intents created by input or enemy AI.
-/// *   Validates attack requirements (Cooldown, Stamina availability).
+/// *   Validates strike requirements (Cooldown, Stamina availability).
 /// *   Deducts resource costs (Stamina, Cooldown Reset).
 /// *   Spawns the actual "Hitbox" entity that performs collision checks.
 ///
@@ -18,7 +18,7 @@ import '../world.dart';
 ///     *   Deduct Stamina.
 ///     *   Set Cooldown.
 ///     *   Create Hitbox entity with [HitboxDef], [HitOnce], and [LifetimeDef].
-class MeleeAttackSystem {
+class MeleeStrikeSystem {
   /// Runs the system logic.
   ///
   /// [currentTick] is required to ensure we only process intents generated for THIS frame,
@@ -31,25 +31,25 @@ class MeleeAttackSystem {
     for (var ii = 0; ii < intents.denseEntities.length; ii += 1) {
       if (intents.tick[ii] != currentTick) continue;
 
-      final attacker = intents.denseEntities[ii];
+      final strikeer = intents.denseEntities[ii];
 
       // Invalidate now so accidental multi-pass execution in the same tick cannot
-      // double-attack. (Intent is still ignored next tick due to stamp mismatch.)
+      // double-strike. (Intent is still ignored next tick due to stamp mismatch.)
       intents.tick[ii] = -1;
 
       // -- Validation & Resource Checks --
 
       // Attacker must exist physically.
-      final attackerTi = world.transform.tryIndexOf(attacker);
-      if (attackerTi == null) continue;
+      final strikeerTi = world.transform.tryIndexOf(strikeer);
+      if (strikeerTi == null) continue;
 
       // Attacker must respond to cooldowns.
-      final ci = world.cooldown.tryIndexOf(attacker);
+      final ci = world.cooldown.tryIndexOf(strikeer);
       if (ci == null) continue;
       if (world.cooldown.meleeCooldownTicksLeft[ci] > 0) continue;
 
       // Attacker must have a faction to determine who they hit.
-      final fi = world.faction.tryIndexOf(attacker);
+      final fi = world.faction.tryIndexOf(strikeer);
       if (fi == null) continue;
       final faction = world.faction.faction[fi];
 
@@ -60,8 +60,8 @@ class MeleeAttackSystem {
       
       if (staminaCost > 0) {
         // Optimization: Resolve index directly.
-        si = world.stamina.tryIndexOf(attacker);
-        if (si == null) continue; // No stamina component = cannot attack if cost > 0.
+        si = world.stamina.tryIndexOf(strikeer);
+        if (si == null) continue; // No stamina component = cannot strike if cost > 0.
         
         final currentStamina = world.stamina.stamina[si];
         if (currentStamina < staminaCost) continue; // Not enough stamina.
@@ -76,15 +76,15 @@ class MeleeAttackSystem {
         hitbox,
         // HitboxFollowOwnerSystem will position from `owner + offset`.
         // Initialize at owner's position to prevent 1-frame visual glitch.
-        posX: world.transform.posX[attackerTi],
-        posY: world.transform.posY[attackerTi],
+        posX: world.transform.posX[strikeerTi],
+        posY: world.transform.posY[strikeerTi],
         velX: 0.0,
         velY: 0.0,
       );
       world.hitbox.add(
         hitbox,
         HitboxDef(
-          owner: attacker,
+          owner: strikeer,
           faction: faction,
           damage: intents.damage[ii],
           damageType: intents.damageType[ii],

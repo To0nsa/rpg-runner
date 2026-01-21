@@ -87,7 +87,7 @@ lib/core/ecs/systems/hitbox_damage_system.dart
 lib/core/ecs/systems/hitbox_follow_owner_system.dart
 lib/core/ecs/systems/invulnerability_system.dart
 lib/core/ecs/systems/lifetime_system.dart
-lib/core/ecs/systems/melee_attack_system.dart
+lib/core/ecs/systems/melee_strike_system.dart
 lib/core/ecs/systems/player_cast_system.dart
 lib/core/ecs/systems/player_melee_system.dart
 lib/core/ecs/systems/player_movement_system.dart
@@ -95,7 +95,7 @@ lib/core/ecs/systems/player_ranged_weapon_system.dart
 lib/core/ecs/systems/projectile_hit_system.dart
 lib/core/ecs/systems/projectile_system.dart
 lib/core/ecs/systems/projectile_world_collision_system.dart
-lib/core/ecs/systems/ranged_weapon_attack_system.dart
+lib/core/ecs/systems/ranged_weapon_system.dart
 lib/core/ecs/systems/resource_regen_system.dart
 lib/core/ecs/systems/restoration_item_system.dart
 lib/core/ecs/systems/spell_cast_system.dart

@@ -80,5 +80,5 @@ Current control surface (mobile-friendly), (no debug keys for keyboard as I test
 * movement joystick / axis
 * Jump
 * Dash
-* Melee attack (directional)
+* Melee strike (directional)
 * Projectile/spell aim + cast (directional)

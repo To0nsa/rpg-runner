@@ -57,7 +57,7 @@ class EntityFactory {
   /// - [StatusImmunityStore]: Status effect immunities.
   /// - [ManaStore]: Mana points and max mana.
   /// - [EquippedSpellStore]: Equipped spell hotbar (used for casting selection).
-  /// - [MeleeIntentStore]: Tracks intent to perform melee attacks.
+  /// - [MeleeIntentStore]: Tracks intent to perform melee strikes.
   /// - [StatModifierStore]: Runtime stat modifiers from statuses.
   /// - [StaminaStore]: Stamina points and max stamina.
   ///
@@ -126,7 +126,7 @@ class EntityFactory {
   /// - [CreatureTagStore]: Broad combat classification tags.
   /// - [FactionStore]: Sets faction to [Faction.enemy].
   /// - [HealthStore], [ManaStore], [StaminaStore]: Vital stats.
-  /// - [MeleeIntentStore]: Melee attack intent.
+  /// - [MeleeIntentStore]: Melee strike intent.
   /// - [DamageResistanceStore]: Damage modifiers per type.
   /// - [StatusImmunityStore]: Status effect immunities.
   /// - [StatModifierStore]: Runtime stat modifiers from statuses.

@@ -30,9 +30,9 @@ final class DashPressedCommand extends Command {
   const DashPressedCommand({required super.tick});
 }
 
-/// One-shot attack press event for the given tick.
-final class AttackPressedCommand extends Command {
-  const AttackPressedCommand({required super.tick});
+/// One-shot strike press event for the given tick.
+final class StrikePressedCommand extends Command {
+  const StrikePressedCommand({required super.tick});
 }
 
 /// Continuous projectile aim direction for the given tick.
@@ -49,7 +49,7 @@ final class ProjectileAimDirCommand extends Command {
 /// Continuous melee aim direction for the given tick.
 ///
 /// The direction should be normalized (or near-normalized). It is expressed in
-/// world space and used by melee attacks.
+/// world space and used by melee strikes.
 final class MeleeAimDirCommand extends Command {
   const MeleeAimDirCommand({
     required super.tick,

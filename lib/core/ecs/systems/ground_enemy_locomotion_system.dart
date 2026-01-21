@@ -78,7 +78,7 @@ class GroundEnemyLocomotionSystem {
       }
       final meleeState = world.meleeEngagement.state[meleeIndex];
       final lockFacingToPlayer = meleeState == MeleeEngagementState.engage ||
-          meleeState == MeleeEngagementState.attack ||
+          meleeState == MeleeEngagementState.strike ||
           meleeState == MeleeEngagementState.recover;
 
       final ex = world.transform.posX[enemyTi];

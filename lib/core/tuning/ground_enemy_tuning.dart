@@ -58,7 +58,7 @@ class GroundEnemyEngagementTuning {
     this.meleeEngageBufferX = 4.0,
     this.meleeEngageHysteresisX = 2.0,
     this.meleeArriveSlowRadiusX = 12.0,
-    this.meleeAttackSpeedMul = 0.25,
+    this.meleeStrikeSpeedMul = 0.25,
     this.meleeRecoverSpeedMul = 0.5,
   });
 
@@ -71,8 +71,8 @@ class GroundEnemyEngagementTuning {
   /// Radius within which arrival steering slows to zero.
   final double meleeArriveSlowRadiusX;
 
-  /// Speed multiplier during attack state.
-  final double meleeAttackSpeedMul;
+  /// Speed multiplier during strike state.
+  final double meleeStrikeSpeedMul;
 
   /// Speed multiplier during recover state.
   final double meleeRecoverSpeedMul;
@@ -117,16 +117,16 @@ class GroundEnemyCombatTuning {
     this.meleeHitboxSizeY = 32.0,
   });
 
-  /// Horizontal range to trigger melee attack (world units).
+  /// Horizontal range to trigger melee strike (world units).
   final double meleeRangeX;
 
-  /// Cooldown between melee attacks (seconds).
+  /// Cooldown between melee strikes (seconds).
   final double meleeCooldownSeconds;
 
   /// Duration melee hitbox is active (seconds).
   final double meleeActiveSeconds;
 
-  /// Duration the melee attack animation should be visible (seconds).
+  /// Duration the melee strike animation should be visible (seconds).
   ///
   /// This can be longer than [meleeActiveSeconds] since the hitbox
   /// window is often only a subset of the full animation.
@@ -134,10 +134,10 @@ class GroundEnemyCombatTuning {
 
   /// Telegraph window before the melee hitbox becomes active (seconds).
   ///
-  /// This delays hitbox spawn relative to the start of the attack animation.
+  /// This delays hitbox spawn relative to the start of the strike animation.
   final double meleeWindupSeconds;
 
-  /// Damage dealt by melee attack.
+  /// Damage dealt by melee strike.
   final double meleeDamage;
 
   /// Melee hitbox width (world units).
@@ -185,7 +185,7 @@ class GroundEnemyTuningDerived {
         meleeEngageBufferX: engagement.meleeEngageBufferX,
         meleeEngageHysteresisX: engagement.meleeEngageHysteresisX,
         meleeArriveSlowRadiusX: engagement.meleeArriveSlowRadiusX,
-        meleeAttackSpeedMul: engagement.meleeAttackSpeedMul,
+        meleeStrikeSpeedMul: engagement.meleeStrikeSpeedMul,
         meleeRecoverSpeedMul: engagement.meleeRecoverSpeedMul,
         meleeStandOffX: meleeStandOffX,
       ),
@@ -207,7 +207,7 @@ class GroundEnemyTuningDerived {
           combat.meleeWindupSeconds,
           tickHz,
         );
-        // Ensure the hit tick occurs while the attack animation is still visible.
+        // Ensure the hit tick occurs while the strike animation is still visible.
         final maxWindupTicks = meleeAnimTicks > 0 ? meleeAnimTicks - 1 : 0;
         final meleeWindupTicks =
             rawWindupTicks > maxWindupTicks ? maxWindupTicks : rawWindupTicks;
@@ -242,12 +242,12 @@ class GroundEnemyEngagementTuningDerived extends GroundEnemyEngagementTuning {
     required super.meleeEngageBufferX,
     required super.meleeEngageHysteresisX,
     required super.meleeArriveSlowRadiusX,
-    required super.meleeAttackSpeedMul,
+    required super.meleeStrikeSpeedMul,
     required super.meleeRecoverSpeedMul,
     required this.meleeStandOffX,
   });
 
-  /// Stand-off target used in engage/attack/recover phases.
+  /// Stand-off target used in engage/strike/recover phases.
   ///
   /// Derived from [GroundEnemyCombatTuning.meleeHitboxSizeX] so the player
   /// sits well within the hitbox when the enemy is at its preferred slot.

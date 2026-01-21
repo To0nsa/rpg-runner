@@ -332,10 +332,10 @@ class SnapshotBuilder {
     }
   }
 
-  /// Appends active hitbox (melee attack) snapshots to [entities].
+  /// Appends active hitbox (melee strike) snapshots to [entities].
   ///
-  /// Hitboxes are short-lived trigger volumes spawned by melee attacks.
-  /// They render as debug overlays or attack effects.
+  /// Hitboxes are short-lived trigger volumes spawned by melee strikes.
+  /// They render as debug overlays or strike effects.
   void _addHitboxes(List<EntityRenderSnapshot> entities, {required int tick}) {
     final hitboxes = world.hitbox;
     for (var hi = 0; hi < hitboxes.denseEntities.length; hi += 1) {

@@ -81,7 +81,7 @@ class PlayerArchetype {
   /// Status effect immunities for the player.
   final StatusImmunityDef statusImmunity;
 
-  /// Equipped weapon used for melee attacks.
+  /// Equipped weapon used for melee strikes.
   final WeaponId weaponId;
 
   /// Equipped ranged weapon used for thrown/ballistic projectiles.

@@ -4,23 +4,23 @@ import '../../sparse_set.dart';
 /// Engagement state for melee-focused enemies.
 ///
 /// Keeps lightweight state so AI can avoid oscillating around the target and
-/// apply different movement rules during attack/recover windows.
+/// apply different movement rules during strike/recover windows.
 class MeleeEngagementStore extends SparseSet {
   /// Current engagement state.
   final List<MeleeEngagementState> state = <MeleeEngagementState>[];
 
-  /// Remaining ticks in the current state (used for attack/recover windows).
+  /// Remaining ticks in the current state (used for strike/recover windows).
   final List<int> ticksLeft = <int>[];
 
   /// Preferred side relative to the target (+1 right, -1 left, 0 unset).
   final List<int> preferredSide = <int>[];
 
-  /// Tick when the current attack started (edge-trigger).
+  /// Tick when the current strike started (edge-trigger).
   ///
   /// Used to start telegraph animations once and schedule future hit ticks.
-  final List<int> attackStartTick = <int>[];
+  final List<int> strikeStartTick = <int>[];
 
-  /// Tick when the melee hitbox should spawn for the current attack.
+  /// Tick when the melee hitbox should spawn for the current strike.
   final List<int> plannedHitTick = <int>[];
 
   void add(EntityId entity) {
@@ -28,7 +28,7 @@ class MeleeEngagementStore extends SparseSet {
     state[i] = MeleeEngagementState.approach;
     ticksLeft[i] = 0;
     preferredSide[i] = 0;
-    attackStartTick[i] = -1;
+    strikeStartTick[i] = -1;
     plannedHitTick[i] = -1;
   }
 
@@ -37,7 +37,7 @@ class MeleeEngagementStore extends SparseSet {
     state.add(MeleeEngagementState.approach);
     ticksLeft.add(0);
     preferredSide.add(0);
-    attackStartTick.add(-1);
+    strikeStartTick.add(-1);
     plannedHitTick.add(-1);
   }
 
@@ -46,13 +46,13 @@ class MeleeEngagementStore extends SparseSet {
     state[removeIndex] = state[lastIndex];
     ticksLeft[removeIndex] = ticksLeft[lastIndex];
     preferredSide[removeIndex] = preferredSide[lastIndex];
-    attackStartTick[removeIndex] = attackStartTick[lastIndex];
+    strikeStartTick[removeIndex] = strikeStartTick[lastIndex];
     plannedHitTick[removeIndex] = plannedHitTick[lastIndex];
 
     state.removeLast();
     ticksLeft.removeLast();
     preferredSide.removeLast();
-    attackStartTick.removeLast();
+    strikeStartTick.removeLast();
     plannedHitTick.removeLast();
   }
 }
@@ -60,6 +60,6 @@ class MeleeEngagementStore extends SparseSet {
 enum MeleeEngagementState {
   approach,
   engage,
-  attack,
+  strike,
   recover,
 }

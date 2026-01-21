@@ -9,7 +9,7 @@ class PlayerInputStore extends SparseSet {
   final List<double> moveAxis = <double>[];
   final List<bool> jumpPressed = <bool>[];
   final List<bool> dashPressed = <bool>[];
-  final List<bool> attackPressed = <bool>[];
+  final List<bool> strikePressed = <bool>[];
   final List<double> projectileAimDirX = <double>[];
   final List<double> projectileAimDirY = <double>[];
   final List<double> meleeAimDirX = <double>[];
@@ -28,7 +28,7 @@ class PlayerInputStore extends SparseSet {
     moveAxis[i] = 0;
     jumpPressed[i] = false;
     dashPressed[i] = false;
-    attackPressed[i] = false;
+    strikePressed[i] = false;
     projectileAimDirX[i] = 0;
     projectileAimDirY[i] = 0;
     meleeAimDirX[i] = 0;
@@ -44,7 +44,7 @@ class PlayerInputStore extends SparseSet {
     moveAxis.add(0);
     jumpPressed.add(false);
     dashPressed.add(false);
-    attackPressed.add(false);
+    strikePressed.add(false);
     projectileAimDirX.add(0);
     projectileAimDirY.add(0);
     meleeAimDirX.add(0);
@@ -60,7 +60,7 @@ class PlayerInputStore extends SparseSet {
     moveAxis[removeIndex] = moveAxis[lastIndex];
     jumpPressed[removeIndex] = jumpPressed[lastIndex];
     dashPressed[removeIndex] = dashPressed[lastIndex];
-    attackPressed[removeIndex] = attackPressed[lastIndex];
+    strikePressed[removeIndex] = strikePressed[lastIndex];
     projectileAimDirX[removeIndex] = projectileAimDirX[lastIndex];
     projectileAimDirY[removeIndex] = projectileAimDirY[lastIndex];
     meleeAimDirX[removeIndex] = meleeAimDirX[lastIndex];
@@ -73,7 +73,7 @@ class PlayerInputStore extends SparseSet {
     moveAxis.removeLast();
     jumpPressed.removeLast();
     dashPressed.removeLast();
-    attackPressed.removeLast();
+    strikePressed.removeLast();
     projectileAimDirX.removeLast();
     projectileAimDirY.removeLast();
     meleeAimDirX.removeLast();

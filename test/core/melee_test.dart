@@ -13,7 +13,7 @@ import 'package:rpg_runner/core/players/player_tuning.dart';
 import '../test_tunings.dart';
 
 void main() {
-  test('melee: attack spawns hitbox for active ticks', () {
+  test('melee: strike spawns hitbox for active ticks', () {
     const catalog = PlayerCatalog(
       bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
     );
@@ -45,7 +45,7 @@ void main() {
     final playerX = core.playerPosX;
     final playerY = core.playerPosY;
 
-    core.applyCommands(const [AttackPressedCommand(tick: 1)]);
+    core.applyCommands(const [StrikePressedCommand(tick: 1)]);
     core.stepOneTick();
 
     var snapshot = core.buildSnapshot();
@@ -117,7 +117,7 @@ void main() {
 
     core.applyCommands(const [
       MeleeAimDirCommand(tick: 1, x: 0, y: -1),
-      AttackPressedCommand(tick: 1),
+      StrikePressedCommand(tick: 1),
     ]);
     core.stepOneTick();
 

@@ -28,7 +28,7 @@ typedef EnemyViewFactory =
 enum EnemyDeathAnimPolicy { spawn, none }
 
 const Set<AnimKey> _defaultEnemyOneShotKeys = <AnimKey>{
-  AnimKey.attack,
+  AnimKey.strike,
   AnimKey.hit,
   AnimKey.death,
 };

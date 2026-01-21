@@ -181,7 +181,7 @@ Ranged weapons are intentionally separate from spells:
 - **Stores**: `EquippedRangedWeaponStore`, `AmmoStore`, `RangedWeaponIntentStore`
 - **Systems**:
   - `PlayerRangedWeaponSystem` writes intents from input
-  - `RangedWeaponAttackSystem` spawns projectiles, spends resources, sets cooldown
+  - `RangedWeaponSystem` spawns projectiles, spends resources, sets cooldown
   - `ProjectileWorldCollisionSystem` removes ballistic projectiles on collision
 
 ## Melee Weapons

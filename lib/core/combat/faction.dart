@@ -5,7 +5,7 @@ enum Faction {
   /// The player and their allies/summons.
   player,
 
-  /// Hostile entities that attack the player.
+  /// Hostile entities that strike the player.
   enemy
 }
 

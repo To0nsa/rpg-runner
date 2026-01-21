@@ -28,7 +28,7 @@ class AnimSystem {
          supportsCast: true,
          supportsRanged: true,
          supportsSpawn: true,
-         directionalAttack: true,
+         directionalStrike: true,
        ) {
     _buildHitAnimTicksById(tickHz);
   }
@@ -106,10 +106,10 @@ class AnimSystem {
       velY: world.transform.velY[ti],
       lastDamageTick: lastDamageTick,
       hitAnimTicks: _playerAnimTuning.hitAnimTicks,
-      lastAttackTick: lastMeleeTick,
-      attackAnimTicks: _playerAnimTuning.attackAnimTicks,
-      attackBackAnimTicks: _playerAnimTuning.attackBackAnimTicks,
-      lastAttackFacing: lastMeleeFacing,
+      lastStrikeTick: lastMeleeTick,
+      strikeAnimTicks: _playerAnimTuning.strikeAnimTicks,
+      strikeBackAnimTicks: _playerAnimTuning.strikeBackAnimTicks,
+      lastStrikeFacing: lastMeleeFacing,
       lastCastTick: lastCastTick,
       castAnimTicks: _playerAnimTuning.castAnimTicks,
       lastRangedTick: lastRangedTick,
@@ -170,9 +170,9 @@ class AnimSystem {
         velY: velY,
         lastDamageTick: lastDamageTick,
         hitAnimTicks: hitAnimTicks,
-        lastAttackTick: lastMeleeTick,
-        attackAnimTicks: lastMeleeAnimTicks,
-        lastAttackFacing: lastMeleeFacing,
+        lastStrikeTick: lastMeleeTick,
+        strikeAnimTicks: lastMeleeAnimTicks,
+        lastStrikeFacing: lastMeleeFacing,
       );
 
       final result = AnimResolver.resolve(profile, signals);

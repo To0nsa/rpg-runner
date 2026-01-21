@@ -94,7 +94,7 @@ Menu screens for navigation and settings:
 Input widgets that send commands:
 
 - **Virtual joystick** (`lib/ui/controls/`) - Directional input
-- **Action buttons** - Jump, attack, ability buttons
+- **Action buttons** - Jump, strike, ability buttons
 - **Touch zones** - Swipe gestures, tap-to-jump areas
 
 ## State Management

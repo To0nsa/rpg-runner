@@ -76,7 +76,7 @@ class EnemyEngagementSystem {
       var state = world.meleeEngagement.state[meleeIndex];
       var ticksLeft = world.meleeEngagement.ticksLeft[meleeIndex];
       var preferredSide = world.meleeEngagement.preferredSide[meleeIndex];
-      var attackStartTick = world.meleeEngagement.attackStartTick[meleeIndex];
+      var strikeStartTick = world.meleeEngagement.strikeStartTick[meleeIndex];
       var plannedHitTick = world.meleeEngagement.plannedHitTick[meleeIndex];
       if (ticksLeft > 0) {
         ticksLeft -= 1;
@@ -111,7 +111,7 @@ class EnemyEngagementSystem {
           if (distToPlayerX <= engageEnterDist) {
             state = MeleeEngagementState.engage;
             ticksLeft = 0;
-            attackStartTick = -1;
+            strikeStartTick = -1;
             plannedHitTick = -1;
           }
           break;
@@ -119,10 +119,10 @@ class EnemyEngagementSystem {
           if (distToPlayerX > engageExitDist) {
             state = MeleeEngagementState.approach;
             ticksLeft = 0;
-            attackStartTick = -1;
+            strikeStartTick = -1;
             plannedHitTick = -1;
           } else {
-            // Cooldown-gated transition into attack.
+            // Cooldown-gated transition into strike.
             final ci = world.cooldown.tryIndexOf(enemy);
             if (ci != null) {
               final cooldownReady =
@@ -130,27 +130,27 @@ class EnemyEngagementSystem {
               final inMeleeRange =
                   distToPlayerX <= groundEnemyTuning.combat.meleeRangeX;
               if (cooldownReady && inMeleeRange) {
-                state = MeleeEngagementState.attack;
+                state = MeleeEngagementState.strike;
                 ticksLeft = groundEnemyTuning.combat.meleeAnimTicks;
-                attackStartTick = currentTick;
+                strikeStartTick = currentTick;
                 plannedHitTick =
                     currentTick + groundEnemyTuning.combat.meleeWindupTicks;
               }
             }
           }
           break;
-        case MeleeEngagementState.attack:
+        case MeleeEngagementState.strike:
           if (ticksLeft <= 0) {
             state = MeleeEngagementState.recover;
             ticksLeft = groundEnemyTuning.combat.meleeAnimTicks;
-            attackStartTick = -1;
+            strikeStartTick = -1;
             plannedHitTick = -1;
           }
           break;
         case MeleeEngagementState.recover:
           if (ticksLeft <= 0) {
             state = MeleeEngagementState.engage;
-            attackStartTick = -1;
+            strikeStartTick = -1;
             plannedHitTick = -1;
           }
           break;
@@ -173,8 +173,8 @@ class EnemyEngagementSystem {
         desiredTargetX = engageTargetX;
         arrivalSlowRadiusX =
             groundEnemyTuning.engagement.meleeArriveSlowRadiusX;
-        if (state == MeleeEngagementState.attack) {
-          stateSpeedMul = groundEnemyTuning.engagement.meleeAttackSpeedMul;
+        if (state == MeleeEngagementState.strike) {
+          stateSpeedMul = groundEnemyTuning.engagement.meleeStrikeSpeedMul;
         } else if (state == MeleeEngagementState.recover) {
           stateSpeedMul = groundEnemyTuning.engagement.meleeRecoverSpeedMul;
         }
@@ -189,7 +189,7 @@ class EnemyEngagementSystem {
       world.meleeEngagement.state[meleeIndex] = state;
       world.meleeEngagement.ticksLeft[meleeIndex] = max(0, ticksLeft);
       world.meleeEngagement.preferredSide[meleeIndex] = preferredSide;
-      world.meleeEngagement.attackStartTick[meleeIndex] = attackStartTick;
+      world.meleeEngagement.strikeStartTick[meleeIndex] = strikeStartTick;
       world.meleeEngagement.plannedHitTick[meleeIndex] = plannedHitTick;
     }
   }

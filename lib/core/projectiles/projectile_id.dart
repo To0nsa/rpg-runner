@@ -3,10 +3,10 @@
 /// Each ID maps to a [ProjectileArchetype] in [ProjectileCatalog] and
 /// determines visual appearance in the renderer.
 enum ProjectileId {
-  /// Player's primary ranged attack. Fast, short-lived.
+  /// Player's primary ranged strike. Fast, short-lived.
   iceBolt,
 
-  /// Enemy ranged attack. Slower but longer range.
+  /// Enemy ranged strike. Slower but longer range.
   thunderBolt,
 
   /// Player's fire spell projectile. Medium speed and lifetime.

@@ -28,7 +28,7 @@ class RangedWeaponIntentDef {
 
 /// Per-entity "fire a ranged weapon this tick" intent.
 ///
-/// Written by player input and consumed by `RangedWeaponAttackSystem`.
+/// Written by player input and consumed by `RangedWeaponSystem`.
 class RangedWeaponIntentStore extends SparseSet {
   final List<RangedWeaponId> weaponId = <RangedWeaponId>[];
   final List<double> dirX = <double>[];

@@ -202,8 +202,8 @@ class AnimProfile {
     this.supportsCast = false,
     this.supportsRanged = false,
     this.supportsSpawn = false,
-    this.directionalAttack = false,
-    this.attackAnimKey = AnimKey.attack,
+    this.directionalStrike = false,
+    this.strikeAnimKey = AnimKey.strike,
     this.idleAnimKey = AnimKey.idle,
     this.walkAnimKey = AnimKey.walk,
     this.runAnimKey = AnimKey.run,
@@ -225,9 +225,9 @@ class AnimProfile {
   final bool supportsCast;
   final bool supportsRanged;
   final bool supportsSpawn;
-  final bool directionalAttack;
+  final bool directionalStrike;
 
-  final AnimKey attackAnimKey;
+  final AnimKey strikeAnimKey;
   final AnimKey idleAnimKey;
   final AnimKey walkAnimKey;
   final AnimKey runAnimKey;
@@ -252,10 +252,10 @@ class AnimSignals {
     required this.velY,
     required this.lastDamageTick,
     required this.hitAnimTicks,
-    required this.lastAttackTick,
-    required this.attackAnimTicks,
-    required this.attackLeftAnimTicks,
-    required this.lastAttackFacing,
+    required this.lastStrikeTick,
+    required this.strikeAnimTicks,
+    required this.strikeLeftAnimTicks,
+    required this.lastStrikeFacing,
     required this.lastCastTick,
     required this.castAnimTicks,
     required this.lastRangedTick,
@@ -273,10 +273,10 @@ class AnimSignals {
     required double velY,
     required int lastDamageTick,
     required int hitAnimTicks,
-    required int lastAttackTick,
-    required int attackAnimTicks,
-    required int attackLeftAnimTicks,
-    required Facing lastAttackFacing,
+    required int lastStrikeTick,
+    required int strikeAnimTicks,
+    required int strikeLeftAnimTicks,
+    required Facing lastStrikeFacing,
     required int lastCastTick,
     required int castAnimTicks,
     required int lastRangedTick,
@@ -294,10 +294,10 @@ class AnimSignals {
           velY: velY,
           lastDamageTick: lastDamageTick,
          hitAnimTicks: hitAnimTicks,
-         lastAttackTick: lastAttackTick,
-         attackAnimTicks: attackAnimTicks,
-         attackLeftAnimTicks: attackLeftAnimTicks,
-         lastAttackFacing: lastAttackFacing,
+         lastStrikeTick: lastStrikeTick,
+         strikeAnimTicks: strikeAnimTicks,
+         strikeLeftAnimTicks: strikeLeftAnimTicks,
+         lastStrikeFacing: lastStrikeFacing,
          lastCastTick: lastCastTick,
          castAnimTicks: castAnimTicks,
          lastRangedTick: lastRangedTick,
@@ -317,9 +317,9 @@ class AnimSignals {
     required double velY,
     required int lastDamageTick,
     required int hitAnimTicks,
-    required int lastAttackTick,
-    required int attackAnimTicks,
-    required Facing lastAttackFacing,
+    required int lastStrikeTick,
+    required int strikeAnimTicks,
+    required Facing lastStrikeFacing,
   }) : this._(
           tick: tick,
           hp: hp,
@@ -330,10 +330,10 @@ class AnimSignals {
           velY: velY,
           lastDamageTick: lastDamageTick,
          hitAnimTicks: hitAnimTicks,
-         lastAttackTick: lastAttackTick,
-         attackAnimTicks: attackAnimTicks,
-         attackLeftAnimTicks: attackAnimTicks,
-         lastAttackFacing: lastAttackFacing,
+         lastStrikeTick: lastStrikeTick,
+         strikeAnimTicks: strikeAnimTicks,
+         strikeLeftAnimTicks: strikeAnimTicks,
+         lastStrikeFacing: lastStrikeFacing,
          lastCastTick: -1,
          castAnimTicks: 0,
          lastRangedTick: -1,
@@ -352,10 +352,10 @@ class AnimSignals {
   final double velY;
   final int lastDamageTick;
   final int hitAnimTicks;
-  final int lastAttackTick;
-  final int attackAnimTicks;
-  final int attackLeftAnimTicks;
-  final Facing lastAttackFacing;
+  final int lastStrikeTick;
+  final int strikeAnimTicks;
+  final int strikeLeftAnimTicks;
+  final Facing lastStrikeFacing;
   final int lastCastTick;
   final int castAnimTicks;
   final int lastRangedTick;
@@ -381,15 +381,15 @@ class AnimResolver {
         lastDamageTick >= 0 &&
         (tick - lastDamageTick) < signals.hitAnimTicks;
 
-    final attackTicks =
-        profile.directionalAttack &&
-            signals.lastAttackFacing == Facing.left
-        ? signals.attackLeftAnimTicks
-        : signals.attackAnimTicks;
-    final showAttack =
-        attackTicks > 0 &&
-        signals.lastAttackTick >= 0 &&
-        (tick - signals.lastAttackTick) < attackTicks;
+    final strikeTicks =
+        profile.directionalStrike &&
+            signals.lastStrikeFacing == Facing.left
+        ? signals.strikeLeftAnimTicks
+        : signals.strikeAnimTicks;
+    final showStrike =
+        strikeTicks > 0 &&
+        signals.lastStrikeTick >= 0 &&
+        (tick - signals.lastStrikeTick) < strikeTicks;
     final showCast =
         profile.supportsCast &&
         signals.castAnimTicks > 0 &&
@@ -428,15 +428,15 @@ class AnimResolver {
         animFrame: _frameFromTick(tick, lastDamageTick),
       );
     }
-    if (showAttack) {
-      final attackKey =
-          profile.directionalAttack &&
-              signals.lastAttackFacing == Facing.left
-          ? AnimKey.attackLeft
-          : profile.attackAnimKey;
+    if (showStrike) {
+      final strikeKey =
+          profile.directionalStrike &&
+              signals.lastStrikeFacing == Facing.left
+          ? AnimKey.strikeLeft
+          : profile.strikeAnimKey;
       return AnimResult(
-        anim: attackKey,
-        animFrame: _frameFromTick(tick, signals.lastAttackTick),
+        anim: strikeKey,
+        animFrame: _frameFromTick(tick, signals.lastStrikeTick),
       );
     }
     if (showCast) {
@@ -1166,7 +1166,7 @@ enum Faction {
   /// The player and their allies/summons.
   player,
 
-  /// Hostile entities that attack the player.
+  /// Hostile entities that strike the player.
   enemy
 }
 
@@ -1331,9 +1331,9 @@ final class DashPressedCommand extends Command {
   const DashPressedCommand({required super.tick});
 }
 
-/// One-shot attack press event for the given tick.
-final class AttackPressedCommand extends Command {
-  const AttackPressedCommand({required super.tick});
+/// One-shot strike press event for the given tick.
+final class StrikePressedCommand extends Command {
+  const StrikePressedCommand({required super.tick});
 }
 
 /// Continuous projectile aim direction for the given tick.
@@ -1350,7 +1350,7 @@ final class ProjectileAimDirCommand extends Command {
 /// Continuous melee aim direction for the given tick.
 ///
 /// The direction should be normalized (or near-normalized). It is expressed in
-/// world space and used by melee attacks.
+/// world space and used by melee strikes.
 final class MeleeAimDirCommand extends Command {
   const MeleeAimDirCommand({
     required super.tick,
@@ -1630,7 +1630,7 @@ class EntityFactory {
   /// - [StatusImmunityStore]: Status effect immunities.
   /// - [ManaStore]: Mana points and max mana.
   /// - [EquippedSpellStore]: Equipped spell hotbar (used for casting selection).
-  /// - [MeleeIntentStore]: Tracks intent to perform melee attacks.
+  /// - [MeleeIntentStore]: Tracks intent to perform melee strikes.
   /// - [StatModifierStore]: Runtime stat modifiers from statuses.
   /// - [StaminaStore]: Stamina points and max stamina.
   ///
@@ -1699,7 +1699,7 @@ class EntityFactory {
   /// - [CreatureTagStore]: Broad combat classification tags.
   /// - [FactionStore]: Sets faction to [Faction.enemy].
   /// - [HealthStore], [ManaStore], [StaminaStore]: Vital stats.
-  /// - [MeleeIntentStore]: Melee attack intent.
+  /// - [MeleeIntentStore]: Melee strike intent.
   /// - [DamageResistanceStore]: Damage modifiers per type.
   /// - [StatusImmunityStore]: Status effect immunities.
   /// - [StatModifierStore]: Runtime stat modifiers from statuses.
@@ -4017,23 +4017,23 @@ import '../../sparse_set.dart';
 /// Engagement state for melee-focused enemies.
 ///
 /// Keeps lightweight state so AI can avoid oscillating around the target and
-/// apply different movement rules during attack/recover windows.
+/// apply different movement rules during strike/recover windows.
 class MeleeEngagementStore extends SparseSet {
   /// Current engagement state.
   final List<MeleeEngagementState> state = <MeleeEngagementState>[];
 
-  /// Remaining ticks in the current state (used for attack/recover windows).
+  /// Remaining ticks in the current state (used for strike/recover windows).
   final List<int> ticksLeft = <int>[];
 
   /// Preferred side relative to the target (+1 right, -1 left, 0 unset).
   final List<int> preferredSide = <int>[];
 
-  /// Tick when the current attack started (edge-trigger).
+  /// Tick when the current strike started (edge-trigger).
   ///
   /// Used to start telegraph animations once and schedule future hit ticks.
-  final List<int> attackStartTick = <int>[];
+  final List<int> strikeStartTick = <int>[];
 
-  /// Tick when the melee hitbox should spawn for the current attack.
+  /// Tick when the melee hitbox should spawn for the current strike.
   final List<int> plannedHitTick = <int>[];
 
   void add(EntityId entity) {
@@ -4041,7 +4041,7 @@ class MeleeEngagementStore extends SparseSet {
     state[i] = MeleeEngagementState.approach;
     ticksLeft[i] = 0;
     preferredSide[i] = 0;
-    attackStartTick[i] = -1;
+    strikeStartTick[i] = -1;
     plannedHitTick[i] = -1;
   }
 
@@ -4050,7 +4050,7 @@ class MeleeEngagementStore extends SparseSet {
     state.add(MeleeEngagementState.approach);
     ticksLeft.add(0);
     preferredSide.add(0);
-    attackStartTick.add(-1);
+    strikeStartTick.add(-1);
     plannedHitTick.add(-1);
   }
 
@@ -4059,13 +4059,13 @@ class MeleeEngagementStore extends SparseSet {
     state[removeIndex] = state[lastIndex];
     ticksLeft[removeIndex] = ticksLeft[lastIndex];
     preferredSide[removeIndex] = preferredSide[lastIndex];
-    attackStartTick[removeIndex] = attackStartTick[lastIndex];
+    strikeStartTick[removeIndex] = strikeStartTick[lastIndex];
     plannedHitTick[removeIndex] = plannedHitTick[lastIndex];
 
     state.removeLast();
     ticksLeft.removeLast();
     preferredSide.removeLast();
-    attackStartTick.removeLast();
+    strikeStartTick.removeLast();
     plannedHitTick.removeLast();
   }
 }
@@ -4073,7 +4073,7 @@ class MeleeEngagementStore extends SparseSet {
 enum MeleeEngagementState {
   approach,
   engage,
-  attack,
+  strike,
   recover,
 }
 
@@ -4293,7 +4293,7 @@ class HealthStore extends SparseSet {
 import '../entity_id.dart';
 import '../sparse_set.dart';
 
-/// Tracks unique hit targets for a single attack instance (e.g. one swing).
+/// Tracks unique hit targets for a single strike instance (e.g. one swing).
 ///
 /// **Optimization**: Uses inline fields (`hit0`...`hit3`) instead of a `List`
 /// to avoid allocation per entity per frame. Saturation limit is 4 targets.
@@ -4414,9 +4414,9 @@ class HitboxDef {
   final double dirY;
 }
 
-/// Short-lived damage hitbox used by melee attacks and area effects.
+/// Short-lived damage hitbox used by melee strikes and area effects.
 ///
-/// These entities usually exist for only a few frames (attack windows).
+/// These entities usually exist for only a few frames (strike windows).
 /// They are queried by `HitboxDamageSystem`.
 class HitboxStore extends SparseSet {
   final List<EntityId> owner = <EntityId>[];
@@ -4615,9 +4615,9 @@ class MeleeIntentDef {
   final int tick;
 }
 
-/// Per-entity "perform a melee attack this tick" intent.
+/// Per-entity "perform a melee strike this tick" intent.
 ///
-/// This is written by player/enemy intent writers and consumed by `MeleeAttackSystem`.
+/// This is written by player/enemy intent writers and consumed by `MeleeStrikeSystem`.
 ///
 /// **Usage**: Persistent component. Intents are set via `set()` with a `tick` stamp.
 /// Old intents are ignored if `tick` matches current game tick.
@@ -4955,7 +4955,7 @@ class PlayerInputStore extends SparseSet {
   final List<double> moveAxis = <double>[];
   final List<bool> jumpPressed = <bool>[];
   final List<bool> dashPressed = <bool>[];
-  final List<bool> attackPressed = <bool>[];
+  final List<bool> strikePressed = <bool>[];
   final List<double> projectileAimDirX = <double>[];
   final List<double> projectileAimDirY = <double>[];
   final List<double> meleeAimDirX = <double>[];
@@ -4974,7 +4974,7 @@ class PlayerInputStore extends SparseSet {
     moveAxis[i] = 0;
     jumpPressed[i] = false;
     dashPressed[i] = false;
-    attackPressed[i] = false;
+    strikePressed[i] = false;
     projectileAimDirX[i] = 0;
     projectileAimDirY[i] = 0;
     meleeAimDirX[i] = 0;
@@ -4990,7 +4990,7 @@ class PlayerInputStore extends SparseSet {
     moveAxis.add(0);
     jumpPressed.add(false);
     dashPressed.add(false);
-    attackPressed.add(false);
+    strikePressed.add(false);
     projectileAimDirX.add(0);
     projectileAimDirY.add(0);
     meleeAimDirX.add(0);
@@ -5006,7 +5006,7 @@ class PlayerInputStore extends SparseSet {
     moveAxis[removeIndex] = moveAxis[lastIndex];
     jumpPressed[removeIndex] = jumpPressed[lastIndex];
     dashPressed[removeIndex] = dashPressed[lastIndex];
-    attackPressed[removeIndex] = attackPressed[lastIndex];
+    strikePressed[removeIndex] = strikePressed[lastIndex];
     projectileAimDirX[removeIndex] = projectileAimDirX[lastIndex];
     projectileAimDirY[removeIndex] = projectileAimDirY[lastIndex];
     meleeAimDirX[removeIndex] = meleeAimDirX[lastIndex];
@@ -5019,7 +5019,7 @@ class PlayerInputStore extends SparseSet {
     moveAxis.removeLast();
     jumpPressed.removeLast();
     dashPressed.removeLast();
-    attackPressed.removeLast();
+    strikePressed.removeLast();
     projectileAimDirX.removeLast();
     projectileAimDirY.removeLast();
     meleeAimDirX.removeLast();
@@ -5170,7 +5170,7 @@ class RangedWeaponIntentDef {
 
 /// Per-entity "fire a ranged weapon this tick" intent.
 ///
-/// Written by player input and consumed by `RangedWeaponAttackSystem`.
+/// Written by player input and consumed by `RangedWeaponSystem`.
 class RangedWeaponIntentStore extends SparseSet {
   final List<RangedWeaponId> weaponId = <RangedWeaponId>[];
   final List<double> dirX = <double>[];
@@ -5320,7 +5320,7 @@ class StaminaDef {
   final double regenPerSecond;
 }
 
-/// Tracks stamina for dashing and melee attacks.
+/// Tracks stamina for dashing and melee strikes.
 class StaminaStore extends SparseSet {
   final List<double> stamina = <double>[];
   final List<double> staminaMax = <double>[];
@@ -5635,7 +5635,7 @@ class AnimSystem {
          supportsCast: true,
          supportsRanged: true,
          supportsSpawn: true,
-         directionalAttack: true,
+         directionalStrike: true,
        ) {
     _buildHitAnimTicksById(tickHz);
   }
@@ -5713,10 +5713,10 @@ class AnimSystem {
       velY: world.transform.velY[ti],
       lastDamageTick: lastDamageTick,
       hitAnimTicks: _playerAnimTuning.hitAnimTicks,
-      lastAttackTick: lastMeleeTick,
-      attackAnimTicks: _playerAnimTuning.attackAnimTicks,
-      attackLeftAnimTicks: _playerAnimTuning.attackLeftAnimTicks,
-      lastAttackFacing: lastMeleeFacing,
+      lastStrikeTick: lastMeleeTick,
+      strikeAnimTicks: _playerAnimTuning.strikeAnimTicks,
+      strikeLeftAnimTicks: _playerAnimTuning.strikeLeftAnimTicks,
+      lastStrikeFacing: lastMeleeFacing,
       lastCastTick: lastCastTick,
       castAnimTicks: _playerAnimTuning.castAnimTicks,
       lastRangedTick: lastRangedTick,
@@ -5777,9 +5777,9 @@ class AnimSystem {
         velY: velY,
         lastDamageTick: lastDamageTick,
         hitAnimTicks: hitAnimTicks,
-        lastAttackTick: lastMeleeTick,
-        attackAnimTicks: lastMeleeAnimTicks,
-        lastAttackFacing: lastMeleeFacing,
+        lastStrikeTick: lastMeleeTick,
+        strikeAnimTicks: lastMeleeAnimTicks,
+        lastStrikeFacing: lastMeleeFacing,
       );
 
       final result = AnimResolver.resolve(profile, signals);
@@ -6301,7 +6301,7 @@ import '../../util/double_math.dart';
 import '../stores/cast_intent_store.dart';
 import '../world.dart';
 
-/// Handles enemy ranged attack decisions and writes cast intents.
+/// Handles enemy ranged strike decisions and writes cast intents.
 class EnemyCastSystem {
   EnemyCastSystem({
     required this.unocoDemonTuning,
@@ -6705,7 +6705,7 @@ class EnemyEngagementSystem {
       var state = world.meleeEngagement.state[meleeIndex];
       var ticksLeft = world.meleeEngagement.ticksLeft[meleeIndex];
       var preferredSide = world.meleeEngagement.preferredSide[meleeIndex];
-      var attackStartTick = world.meleeEngagement.attackStartTick[meleeIndex];
+      var strikeStartTick = world.meleeEngagement.strikeStartTick[meleeIndex];
       var plannedHitTick = world.meleeEngagement.plannedHitTick[meleeIndex];
       if (ticksLeft > 0) {
         ticksLeft -= 1;
@@ -6740,7 +6740,7 @@ class EnemyEngagementSystem {
           if (distToPlayerX <= engageEnterDist) {
             state = MeleeEngagementState.engage;
             ticksLeft = 0;
-            attackStartTick = -1;
+            strikeStartTick = -1;
             plannedHitTick = -1;
           }
           break;
@@ -6748,10 +6748,10 @@ class EnemyEngagementSystem {
           if (distToPlayerX > engageExitDist) {
             state = MeleeEngagementState.approach;
             ticksLeft = 0;
-            attackStartTick = -1;
+            strikeStartTick = -1;
             plannedHitTick = -1;
           } else {
-            // Cooldown-gated transition into attack.
+            // Cooldown-gated transition into strike.
             final ci = world.cooldown.tryIndexOf(enemy);
             if (ci != null) {
               final cooldownReady =
@@ -6759,27 +6759,27 @@ class EnemyEngagementSystem {
               final inMeleeRange =
                   distToPlayerX <= groundEnemyTuning.combat.meleeRangeX;
               if (cooldownReady && inMeleeRange) {
-                state = MeleeEngagementState.attack;
+                state = MeleeEngagementState.strike;
                 ticksLeft = groundEnemyTuning.combat.meleeAnimTicks;
-                attackStartTick = currentTick;
+                strikeStartTick = currentTick;
                 plannedHitTick =
                     currentTick + groundEnemyTuning.combat.meleeWindupTicks;
               }
             }
           }
           break;
-        case MeleeEngagementState.attack:
+        case MeleeEngagementState.strike:
           if (ticksLeft <= 0) {
             state = MeleeEngagementState.recover;
             ticksLeft = groundEnemyTuning.combat.meleeAnimTicks;
-            attackStartTick = -1;
+            strikeStartTick = -1;
             plannedHitTick = -1;
           }
           break;
         case MeleeEngagementState.recover:
           if (ticksLeft <= 0) {
             state = MeleeEngagementState.engage;
-            attackStartTick = -1;
+            strikeStartTick = -1;
             plannedHitTick = -1;
           }
           break;
@@ -6802,8 +6802,8 @@ class EnemyEngagementSystem {
         desiredTargetX = engageTargetX;
         arrivalSlowRadiusX =
             groundEnemyTuning.engagement.meleeArriveSlowRadiusX;
-        if (state == MeleeEngagementState.attack) {
-          stateSpeedMul = groundEnemyTuning.engagement.meleeAttackSpeedMul;
+        if (state == MeleeEngagementState.strike) {
+          stateSpeedMul = groundEnemyTuning.engagement.meleeStrikeSpeedMul;
         } else if (state == MeleeEngagementState.recover) {
           stateSpeedMul = groundEnemyTuning.engagement.meleeRecoverSpeedMul;
         }
@@ -6818,7 +6818,7 @@ class EnemyEngagementSystem {
       world.meleeEngagement.state[meleeIndex] = state;
       world.meleeEngagement.ticksLeft[meleeIndex] = max(0, ticksLeft);
       world.meleeEngagement.preferredSide[meleeIndex] = preferredSide;
-      world.meleeEngagement.attackStartTick[meleeIndex] = attackStartTick;
+      world.meleeEngagement.strikeStartTick[meleeIndex] = strikeStartTick;
       world.meleeEngagement.plannedHitTick[meleeIndex] = plannedHitTick;
     }
   }
@@ -6881,13 +6881,13 @@ import '../stores/enemies/melee_engagement_store.dart';
 import '../stores/melee_intent_store.dart';
 import '../world.dart';
 
-/// Handles enemy melee attack decisions and writes melee intents.
+/// Handles enemy melee strike decisions and writes melee intents.
 class EnemyMeleeSystem {
   EnemyMeleeSystem({required this.groundEnemyTuning});
 
   final GroundEnemyTuningDerived groundEnemyTuning;
 
-  /// Evaluates melee attacks for all enemies and writes melee intents.
+  /// Evaluates melee strikes for all enemies and writes melee intents.
   void step(
     EcsWorld world, {
     required EntityId player,
@@ -6916,9 +6916,9 @@ class EnemyMeleeSystem {
       final ti = world.transform.tryIndexOf(enemy);
       if (ti == null) continue;
 
-      // Only write an intent on the first tick we enter the attack state.
-      if (meleeEngagement.state[i] != MeleeEngagementState.attack) continue;
-      if (meleeEngagement.attackStartTick[i] != currentTick) continue;
+      // Only write an intent on the first tick we enter the strike state.
+      if (meleeEngagement.state[i] != MeleeEngagementState.strike) continue;
+      if (meleeEngagement.strikeStartTick[i] != currentTick) continue;
       final plannedHitTick = meleeEngagement.plannedHitTick[i];
       if (plannedHitTick < 0) continue;
 
@@ -7554,7 +7554,7 @@ class GroundEnemyLocomotionSystem {
       }
       final meleeState = world.meleeEngagement.state[meleeIndex];
       final lockFacingToPlayer = meleeState == MeleeEngagementState.engage ||
-          meleeState == MeleeEngagementState.attack ||
+          meleeState == MeleeEngagementState.strike ||
           meleeState == MeleeEngagementState.recover;
 
       final ex = world.transform.posX[enemyTi];
@@ -7821,13 +7821,13 @@ import '../hit/hit_resolver.dart';
 import '../spatial/broadphase_grid.dart';
 import '../world.dart';
 
-/// Detects collisions between active hitboxes (melee attacks) and vulnerable targets.
+/// Detects collisions between active hitboxes (melee strikes) and vulnerable targets.
 ///
 /// **Responsibilities**:
 /// *   Iterate over all active hitboxes (entities with `HitboxStore`).
 /// *   Perform broadphase/narrowphase collision checks against potential targets.
 /// *   Filter hits based on faction (Friendly fire prevention).
-/// *   Enforce "Hit Once" logic to prevent a single frame of attack from dealing damage every tick.
+/// *   Enforce "Hit Once" logic to prevent a single frame of strike from dealing damage every tick.
 /// *   Queue [DamageRequest]s for resolved hits.
 class HitboxDamageSystem {
   /// Helper for spatial queries and overlap sorting.
@@ -7846,7 +7846,7 @@ class HitboxDamageSystem {
     BroadphaseGrid broadphase,
   ) {
     final hitboxes = world.hitbox;
-    // Early exit if no active attacks exist.
+    // Early exit if no active strikes exist.
     if (hitboxes.denseEntities.isEmpty) return;
 
     // Early exit if there are no targets to hit.
@@ -8079,28 +8079,28 @@ class LifetimeSystem {
 
 
 
-===== FILE: lib/core/ecs/systems/melee_attack_system.dart =====
+===== FILE: lib/core/ecs/systems/melee_strike_system.dart =====
 import '../stores/hitbox_store.dart';
 import '../stores/lifetime_store.dart';
 import '../world.dart';
 
-/// Processes requests to perform melee attacks.
+/// Processes requests to perform melee strikes.
 ///
 /// **Responsibilities**:
 /// *   Consumes [MeleeIntentStore] intents created by input or enemy AI.
-/// *   Validates attack requirements (Cooldown, Stamina availability).
+/// *   Validates strike requirements (Cooldown, Stamina availability).
 /// *   Deducts resource costs (Stamina, Cooldown Reset).
 /// *   Spawns the actual "Hitbox" entity that performs collision checks.
 ///
 /// **Workflow**:
 /// 1.  Filter intents that match the [currentTick] (synchronization).
-/// 2.  Validate Attacker State (Must exist, have cooldown component, etc.).
+/// 2.  Validate Strikeer State (Must exist, have cooldown component, etc.).
 /// 3.  Check Costs (Is cooldown ready? Is there enough stamina?).
 /// 4.  **Execute**:
 ///     *   Deduct Stamina.
 ///     *   Set Cooldown.
 ///     *   Create Hitbox entity with [HitboxDef], [HitOnce], and [LifetimeDef].
-class MeleeAttackSystem {
+class MeleeStrikeSystem {
   /// Runs the system logic.
   ///
   /// [currentTick] is required to ensure we only process intents generated for THIS frame,
@@ -8113,25 +8113,25 @@ class MeleeAttackSystem {
     for (var ii = 0; ii < intents.denseEntities.length; ii += 1) {
       if (intents.tick[ii] != currentTick) continue;
 
-      final attacker = intents.denseEntities[ii];
+      final strikeer = intents.denseEntities[ii];
 
       // Invalidate now so accidental multi-pass execution in the same tick cannot
-      // double-attack. (Intent is still ignored next tick due to stamp mismatch.)
+      // double-strike. (Intent is still ignored next tick due to stamp mismatch.)
       intents.tick[ii] = -1;
 
       // -- Validation & Resource Checks --
 
-      // Attacker must exist physically.
-      final attackerTi = world.transform.tryIndexOf(attacker);
-      if (attackerTi == null) continue;
+      // Strikeer must exist physically.
+      final strikeerTi = world.transform.tryIndexOf(strikeer);
+      if (strikeerTi == null) continue;
 
-      // Attacker must respond to cooldowns.
-      final ci = world.cooldown.tryIndexOf(attacker);
+      // Strikeer must respond to cooldowns.
+      final ci = world.cooldown.tryIndexOf(strikeer);
       if (ci == null) continue;
       if (world.cooldown.meleeCooldownTicksLeft[ci] > 0) continue;
 
-      // Attacker must have a faction to determine who they hit.
-      final fi = world.faction.tryIndexOf(attacker);
+      // Strikeer must have a faction to determine who they hit.
+      final fi = world.faction.tryIndexOf(strikeer);
       if (fi == null) continue;
       final faction = world.faction.faction[fi];
 
@@ -8142,8 +8142,8 @@ class MeleeAttackSystem {
       
       if (staminaCost > 0) {
         // Optimization: Resolve index directly.
-        si = world.stamina.tryIndexOf(attacker);
-        if (si == null) continue; // No stamina component = cannot attack if cost > 0.
+        si = world.stamina.tryIndexOf(strikeer);
+        if (si == null) continue; // No stamina component = cannot strike if cost > 0.
         
         final currentStamina = world.stamina.stamina[si];
         if (currentStamina < staminaCost) continue; // Not enough stamina.
@@ -8158,15 +8158,15 @@ class MeleeAttackSystem {
         hitbox,
         // HitboxFollowOwnerSystem will position from `owner + offset`.
         // Initialize at owner's position to prevent 1-frame visual glitch.
-        posX: world.transform.posX[attackerTi],
-        posY: world.transform.posY[attackerTi],
+        posX: world.transform.posX[strikeerTi],
+        posY: world.transform.posY[strikeerTi],
         velX: 0.0,
         velY: 0.0,
       );
       world.hitbox.add(
         hitbox,
         HitboxDef(
-          owner: attacker,
+          owner: strikeer,
           faction: faction,
           damage: intents.damage[ii],
           damageType: intents.damageType[ii],
@@ -8320,12 +8320,12 @@ import '../entity_id.dart';
 import '../stores/melee_intent_store.dart';
 import '../world.dart';
 
-/// Translates player input into a [MeleeIntentDef] for the [MeleeAttackSystem].
+/// Translates player input into a [MeleeIntentDef] for the [MeleeStrikeSystem].
 ///
 /// **Responsibilities**:
-/// *   Checks input state (Attack button).
-/// *   Calculates attack direction (Analog aim or Facing fallback).
-/// *   Calculates hitbox offsets based on attack reach.
+/// *   Checks input state (Strike button).
+/// *   Calculates strike direction (Analog aim or Facing fallback).
+/// *   Calculates hitbox offsets based on strike reach.
 /// *   Registers intent (Costs/Cooldowns checked downstream).
 class PlayerMeleeSystem {
   const PlayerMeleeSystem({
@@ -8352,7 +8352,7 @@ class PlayerMeleeSystem {
       return;
     }
 
-    // Input is required to know if attacking.
+    // Input is required to know if strikeing.
     final inputIndex = world.playerInput.tryIndexOf(player);
     if (inputIndex == null) return;
     
@@ -8373,7 +8373,7 @@ class PlayerMeleeSystem {
     // -- 2. Input Logic --
 
     // If button not pressed, early exit.
-    if (!world.playerInput.attackPressed[inputIndex]) return;
+    if (!world.playerInput.strikePressed[inputIndex]) return;
 
     final actionAnimIndex = world.actionAnim.tryIndexOf(player);
     if (actionAnimIndex == null) {
@@ -8420,7 +8420,7 @@ class PlayerMeleeSystem {
     final offsetY = dirY * forward;
 
     // IMPORTANT: PlayerMeleeSystem writes intent only; execution happens in
-    // `MeleeAttackSystem` which owns stamina/cooldown rules and hitbox spawning.
+    // `MeleeStrikeSystem` which owns stamina/cooldown rules and hitbox spawning.
     final weaponId = world.equippedWeapon.weaponId[weaponIndex];
     final weapon = weapons.get(weaponId);
     world.meleeIntent.set(
@@ -8673,7 +8673,7 @@ import '../world.dart';
 import 'dart:math';
 
 /// Translates player input into a [RangedWeaponIntentDef] for the
-/// [RangedWeaponAttackSystem].
+/// [RangedWeaponSystem].
 class PlayerRangedWeaponSystem {
   const PlayerRangedWeaponSystem({required this.weapons});
 
@@ -9027,7 +9027,7 @@ class ProjectileWorldCollisionSystem {
 
 
 
-===== FILE: lib/core/ecs/systems/ranged_weapon_attack_system.dart =====
+===== FILE: lib/core/ecs/systems/ranged_weapon_system.dart =====
 import '../../util/double_math.dart';
 import '../../weapons/ranged_weapon_catalog.dart';
 import '../../weapons/spawn_ranged_weapon_projectile.dart';
@@ -9036,8 +9036,8 @@ import '../../projectiles/projectile_catalog.dart';
 
 /// Executes [RangedWeaponIntentStore] intents by spawning weapon projectiles and
 /// managing costs (stamina + ammo + cooldowns).
-class RangedWeaponAttackSystem {
-  RangedWeaponAttackSystem({
+class RangedWeaponSystem {
+  RangedWeaponSystem({
     required this.weapons,
     required this.projectiles,
   });
@@ -9985,7 +9985,7 @@ class EcsWorld {
   /// Manages Mana Points (MP) and max MP.
   late final ManaStore mana = _register(ManaStore());
 
-  /// Tracks the player's intent to perform a melee attack.
+  /// Tracks the player's intent to perform a melee strike.
   late final MeleeIntentStore meleeIntent = _register(MeleeIntentStore());
 
   /// Tracks the player's intent to fire a ranged weapon.
@@ -10071,7 +10071,7 @@ class EcsWorld {
     EngagementIntentStore(),
   );
 
-  /// Engagement state for melee enemies (approach/engage/attack/recover).
+  /// Engagement state for melee enemies (approach/engage/strike/recover).
   late final MeleeEngagementStore meleeEngagement = _register(
     MeleeEngagementStore(),
   );
@@ -10205,7 +10205,7 @@ const AnimProfile _unocoAnimProfile = AnimProfile(
   runSpeedThresholdX: 0.0,
   supportsWalk: false,
   supportsJumpFall: false,
-  attackAnimKey: AnimKey.idle,
+  strikeAnimKey: AnimKey.idle,
 );
 
 // -----------------------------------------------------------------------------
@@ -10230,12 +10230,12 @@ const double _grojibAnimHitStepSeconds = 0.10;
 const int _grojibAnimDeathFrames = 12;
 const double _grojibAnimDeathStepSeconds = 0.12;
 
-// The authored sheet has 20 columns on the attack row:
-// - frames 1..8  = Attack
-// - frames 9..20 = Attack2
-// Core only exposes AnimKey.attack, so we treat the full row as one animation.
-const int _grojibAnimAttackFrames = 8;
-const double _grojibAnimAttackStepSeconds = 0.06;
+// The authored sheet has 20 columns on the strike row:
+// - frames 1..8  = Strike
+// - frames 9..20 = Strike2
+// Core only exposes AnimKey.strike, so we treat the full row as one animation.
+const int _grojibAnimStrikeFrames = 8;
+const double _grojibAnimStrikeStepSeconds = 0.06;
 
 const int _grojibAnimJumpFrames = 3;
 const double _grojibAnimJumpStepSeconds = 0.10;
@@ -10251,7 +10251,7 @@ const Map<AnimKey, int> _grojibAnimFrameCountsByKey = <AnimKey, int>{
   AnimKey.idle: _grojibAnimIdleFrames,
   AnimKey.run: _grojibAnimMoveFrames,
   AnimKey.walk: _grojibAnimWalkFrames,
-  AnimKey.attack: _grojibAnimAttackFrames,
+  AnimKey.strike: _grojibAnimStrikeFrames,
   AnimKey.hit: _grojibAnimHitFrames,
   AnimKey.death: _grojibAnimDeathFrames,
   AnimKey.jump: _grojibAnimJumpFrames,
@@ -10262,7 +10262,7 @@ const Map<AnimKey, double> _grojibAnimStepTimeSecondsByKey = <AnimKey, double>{
   AnimKey.idle: _grojibAnimIdleStepSeconds,
   AnimKey.run: _grojibAnimMoveStepSeconds,
   AnimKey.walk: _grojibAnimWalkStepSeconds,
-  AnimKey.attack: _grojibAnimAttackStepSeconds,
+  AnimKey.strike: _grojibAnimStrikeStepSeconds,
   AnimKey.hit: _grojibAnimHitStepSeconds,
   AnimKey.death: _grojibAnimDeathStepSeconds,
   AnimKey.jump: _grojibAnimJumpStepSeconds,
@@ -10275,7 +10275,7 @@ const Map<AnimKey, String> _grojibAnimSourcesByKey = <AnimKey, String>{
   AnimKey.idle: _grojibAnimSpriteSheetPath,
   AnimKey.run: _grojibAnimSpriteSheetPath,
   AnimKey.walk: _grojibAnimSpriteSheetPath,
-  AnimKey.attack: _grojibAnimSpriteSheetPath,
+  AnimKey.strike: _grojibAnimSpriteSheetPath,
   AnimKey.hit: _grojibAnimSpriteSheetPath,
   AnimKey.death: _grojibAnimSpriteSheetPath,
   AnimKey.jump: _grojibAnimSpriteSheetPath,
@@ -10286,7 +10286,7 @@ const Map<AnimKey, int> _grojibAnimRowByKey = <AnimKey, int>{
   AnimKey.idle: 0,
   AnimKey.run: 1,
   AnimKey.walk: 1,
-  AnimKey.attack: 2,
+  AnimKey.strike: 2,
   AnimKey.hit: 3,
   AnimKey.death: 4,
   AnimKey.jump: 5,
@@ -10357,7 +10357,7 @@ class EnemyArchetype {
   /// Behavior for death transition timing (instant vs ground impact).
   final DeathBehavior deathBehavior;
 
-  /// Optional primary ranged attack spell for this enemy.
+  /// Optional primary ranged strike spell for this enemy.
   ///
   /// When present, the [EnemyCastSystem] will use this to write cast intents.
   final SpellId? primarySpellId;
@@ -10719,8 +10719,8 @@ class RunEndedEvent extends GameEvent {
 /// 7. **Pickups**: Collect items overlapping player.
 /// 8. **Broadphase rebuild**: Update spatial grid for hit detection.
 /// 9. **Projectile movement**: Advance existing projectiles.
-/// 10. **Attack intents**: Enemies and player queue attacks.
-/// 11. **Attack execution**: Spawn hitboxes and projectiles.
+/// 10. **Strike intents**: Enemies and player queue strikes.
+/// 11. **Strike execution**: Spawn hitboxes and projectiles.
 /// 12. **Hitbox positioning**: Follow owner entities.
 /// 13. **Hit resolution**: Detect overlaps, queue damage.
 /// 14. **Status ticking**: Apply DoT ticks and queue damage.
@@ -10772,7 +10772,7 @@ import 'ecs/systems/hitbox_damage_system.dart';
 import 'ecs/systems/hitbox_follow_owner_system.dart';
 import 'ecs/systems/invulnerability_system.dart';
 import 'ecs/systems/lifetime_system.dart';
-import 'ecs/systems/melee_attack_system.dart';
+import 'ecs/systems/melee_strike_system.dart';
 import 'ecs/systems/player_cast_system.dart';
 import 'ecs/systems/player_melee_system.dart';
 import 'ecs/systems/player_movement_system.dart';
@@ -10780,7 +10780,7 @@ import 'ecs/systems/player_ranged_weapon_system.dart';
 import 'ecs/systems/projectile_hit_system.dart';
 import 'ecs/systems/projectile_system.dart';
 import 'ecs/systems/projectile_world_collision_system.dart';
-import 'ecs/systems/ranged_weapon_attack_system.dart';
+import 'ecs/systems/ranged_weapon_system.dart';
 import 'ecs/systems/resource_regen_system.dart';
 import 'ecs/systems/restoration_item_system.dart';
 import 'ecs/systems/status_system.dart';
@@ -11133,8 +11133,8 @@ class GameCore {
       spells: _spells,
       projectiles: _projectiles,
     );
-    _meleeAttackSystem = MeleeAttackSystem();
-    _rangedWeaponAttackSystem = RangedWeaponAttackSystem(
+    _meleeStrikeSystem = MeleeStrikeSystem();
+    _rangedWeaponStrikeSystem = RangedWeaponSystem(
       weapons: _rangedWeapons,
       projectiles: _projectiles,
     );
@@ -11334,8 +11334,8 @@ class GameCore {
   late final SurfaceNavigator _surfaceNavigator;
   late final PlayerMeleeSystem _meleeSystem;
   late final PlayerRangedWeaponSystem _rangedWeaponSystem;
-  late final MeleeAttackSystem _meleeAttackSystem;
-  late final RangedWeaponAttackSystem _rangedWeaponAttackSystem;
+  late final MeleeStrikeSystem _meleeStrikeSystem;
+  late final RangedWeaponSystem _rangedWeaponStrikeSystem;
   late final HitboxDamageSystem _hitboxDamageSystem;
   late final ResourceRegenSystem _resourceRegenSystem;
   late final PlayerCastSystem _castSystem;
@@ -11453,7 +11453,7 @@ class GameCore {
   int get playerCastCooldownTicksLeft =>
       _world.cooldown.castCooldownTicksLeft[_world.cooldown.indexOf(_player)];
 
-  /// Remaining melee attack cooldown ticks.
+  /// Remaining melee strike cooldown ticks.
   int get playerMeleeCooldownTicksLeft =>
       _world.cooldown.meleeCooldownTicksLeft[_world.cooldown.indexOf(_player)];
 
@@ -11469,9 +11469,9 @@ class GameCore {
   /// - [MoveAxisCommand]: Sets horizontal movement axis (-1 to 1).
   /// - [JumpPressedCommand]: Triggers a jump attempt.
   /// - [DashPressedCommand]: Triggers a dash attempt.
-  /// - [AttackPressedCommand]: Triggers an attack attempt.
+  /// - [StrikePressedCommand]: Triggers an strike attempt.
   /// - [ProjectileAimDirCommand]: Sets projectile aim direction.
-  /// - [MeleeAimDirCommand]: Sets melee attack direction.
+  /// - [MeleeAimDirCommand]: Sets melee strike direction.
   /// - [RangedAimDirCommand]: Sets ranged weapon aim direction.
   /// - [CastPressedCommand]: Triggers a spell cast attempt.
   /// - [RangedPressedCommand]: Triggers a ranged weapon attempt.
@@ -11507,16 +11507,16 @@ class GameCore {
         case DashPressedCommand():
           _world.playerInput.dashPressed[inputIndex] = true;
 
-        // Attack: Consumed by PlayerMeleeSystem.
-        case AttackPressedCommand():
-          _world.playerInput.attackPressed[inputIndex] = true;
+        // Strike: Consumed by PlayerMeleeSystem.
+        case StrikePressedCommand():
+          _world.playerInput.strikePressed[inputIndex] = true;
 
-        // Projectile aim: Direction vector for ranged attacks.
+        // Projectile aim: Direction vector for ranged strikes.
         case ProjectileAimDirCommand(:final x, :final y):
           _world.playerInput.projectileAimDirX[inputIndex] = x;
           _world.playerInput.projectileAimDirY[inputIndex] = y;
 
-        // Melee aim: Direction vector for melee attacks.
+        // Melee aim: Direction vector for melee strikes.
         case MeleeAimDirCommand(:final x, :final y):
           _world.playerInput.meleeAimDirX[inputIndex] = x;
           _world.playerInput.meleeAimDirY[inputIndex] = y;
@@ -11531,7 +11531,7 @@ class GameCore {
           _world.playerInput.meleeAimDirX[inputIndex] = 0;
           _world.playerInput.meleeAimDirY[inputIndex] = 0;
 
-        // Ranged weapon aim: Direction vector for thrown/bow attacks.
+        // Ranged weapon aim: Direction vector for thrown/bow strikes.
         case RangedAimDirCommand(:final x, :final y):
           _world.playerInput.rangedAimDirX[inputIndex] = x;
           _world.playerInput.rangedAimDirY[inputIndex] = y;
@@ -11572,8 +11572,8 @@ class GameCore {
   /// 9. **Pickups**: Process collectible and restoration item collection.
   /// 10. **Broadphase**: Rebuild spatial grid for hit detection.
   /// 11. **Projectiles**: Move existing projectiles.
-  /// 12. **Attack intents**: Queue enemy and player attacks.
-  /// 13. **Attack execution**: Spawn hitboxes and projectiles from intents.
+  /// 12. **Strike intents**: Queue enemy and player strikes.
+  /// 13. **Strike execution**: Spawn hitboxes and projectiles from intents.
   /// 14. **Hitbox positioning**: Update hitbox positions from owners.
   /// 15. **Hit detection**: Check projectile and hitbox overlaps.
   /// 16. **Status ticking**: Apply DoT ticks and queue damage.
@@ -11682,7 +11682,7 @@ class GameCore {
     // Move existing projectiles before spawning new ones.
     _projectileSystem.step(_world, _movement);
 
-    // ─── Phase 9: Attack intent writing ───
+    // ─── Phase 9: Strike intent writing ───
     // Enemies first, then player (order matters for fairness).
     _enemyCastSystem.step(_world, player: _player, currentTick: tick);
     _enemyMeleeSystem.step(_world, player: _player, currentTick: tick);
@@ -11690,11 +11690,11 @@ class GameCore {
     _meleeSystem.step(_world, player: _player, currentTick: tick);
     _rangedWeaponSystem.step(_world, player: _player, currentTick: tick);
 
-    // ─── Phase 10: Attack execution ───
+    // ─── Phase 10: Strike execution ───
     // Convert intents into actual hitboxes and projectiles.
     _spellCastSystem.step(_world, currentTick: tick);
-    _meleeAttackSystem.step(_world, currentTick: tick);
-    _rangedWeaponAttackSystem.step(_world, currentTick: tick);
+    _meleeStrikeSystem.step(_world, currentTick: tick);
+    _rangedWeaponStrikeSystem.step(_world, currentTick: tick);
 
     // ─── Phase 11: Hitbox positioning ───
     // Update hitbox transforms to follow their owner entities.
@@ -14482,11 +14482,11 @@ const double eloiseAnimJumpStepSeconds = 0.10;
 const int eloiseAnimFallFrames = 3;
 const double eloiseAnimFallStepSeconds = 0.10;
 
-const int eloiseAnimAttackFrames = 6;
-const double eloiseAnimAttackStepSeconds = 0.06;
+const int eloiseAnimStrikeFrames = 6;
+const double eloiseAnimStrikeStepSeconds = 0.06;
 
-const int eloiseAnimAttackLeftFrames = 5;
-const double eloiseAnimAttackLeftStepSeconds = 0.08;
+const int eloiseAnimStrikeLeftFrames = 5;
+const double eloiseAnimStrikeLeftStepSeconds = 0.08;
 
 const int eloiseAnimCastFrames = 5;
 const double eloiseAnimCastStepSeconds = 0.08;
@@ -14513,8 +14513,8 @@ const Map<AnimKey, int> eloiseAnimFrameCountsByKey = <AnimKey, int>{
   AnimKey.run: eloiseAnimRunFrames,
   AnimKey.jump: eloiseAnimJumpFrames,
   AnimKey.fall: eloiseAnimFallFrames,
-  AnimKey.attack: eloiseAnimAttackFrames,
-  AnimKey.attackLeft: eloiseAnimAttackLeftFrames,
+  AnimKey.strike: eloiseAnimStrikeFrames,
+  AnimKey.strikeLeft: eloiseAnimStrikeLeftFrames,
   AnimKey.cast: eloiseAnimCastFrames,
   AnimKey.ranged: eloiseAnimRangedFrames,
   AnimKey.dash: eloiseAnimDashFrames,
@@ -14529,8 +14529,8 @@ const Map<AnimKey, double> eloiseAnimStepTimeSecondsByKey = <AnimKey, double>{
   AnimKey.run: eloiseAnimRunStepSeconds,
   AnimKey.jump: eloiseAnimJumpStepSeconds,
   AnimKey.fall: eloiseAnimFallStepSeconds,
-  AnimKey.attack: eloiseAnimAttackStepSeconds,
-  AnimKey.attackLeft: eloiseAnimAttackLeftStepSeconds,
+  AnimKey.strike: eloiseAnimStrikeStepSeconds,
+  AnimKey.strikeLeft: eloiseAnimStrikeLeftStepSeconds,
   AnimKey.cast: eloiseAnimCastStepSeconds,
   AnimKey.ranged: eloiseAnimRangedStepSeconds,
   AnimKey.dash: eloiseAnimDashStepSeconds,
@@ -14545,8 +14545,8 @@ const Map<AnimKey, String> eloiseAnimSourcesByKey = <AnimKey, String>{
   AnimKey.run: 'entities/player/move.png',
   AnimKey.jump: 'entities/player/jump.png',
   AnimKey.fall: 'entities/player/fall.png',
-  AnimKey.attack: 'entities/player/attack.png',
-  AnimKey.attackLeft: 'entities/player/attack_left.png',
+  AnimKey.strike: 'entities/player/strike.png',
+  AnimKey.strikeLeft: 'entities/player/strike_left.png',
   AnimKey.cast: 'entities/player/cast.png',
   AnimKey.ranged: 'entities/player/cast.png',
   AnimKey.dash: 'entities/player/dash.png',
@@ -14630,9 +14630,9 @@ const PlayerTuning eloiseTuning = PlayerTuning(
   anim: AnimTuning(
     hitAnimSeconds: eloiseAnimHitFrames * eloiseAnimHitStepSeconds,
     castAnimSeconds: eloiseAnimCastFrames * eloiseAnimCastStepSeconds,
-    attackAnimSeconds: eloiseAnimAttackFrames * eloiseAnimAttackStepSeconds,
-    attackLeftAnimSeconds:
-        eloiseAnimAttackLeftFrames * eloiseAnimAttackLeftStepSeconds,
+    strikeAnimSeconds: eloiseAnimStrikeFrames * eloiseAnimStrikeStepSeconds,
+    strikeLeftAnimSeconds:
+        eloiseAnimStrikeLeftFrames * eloiseAnimStrikeLeftStepSeconds,
     rangedAnimSeconds: eloiseAnimRangedFrames * eloiseAnimRangedStepSeconds,
     deathAnimSeconds: eloiseAnimDeathFrames * eloiseAnimDeathStepSeconds,
     spawnAnimSeconds: eloiseAnimSpawnFrames * eloiseAnimSpawnStepSeconds,
@@ -14733,7 +14733,7 @@ class PlayerArchetype {
   /// Status effect immunities for the player.
   final StatusImmunityDef statusImmunity;
 
-  /// Equipped weapon used for melee attacks.
+  /// Equipped weapon used for melee strikes.
   final WeaponId weaponId;
 
   /// Equipped ranged weapon used for thrown/ballistic projectiles.
@@ -15192,7 +15192,7 @@ class PlayerCharacterDefinition {
       // Tuning invariants (only basic sanity checks here).
       if (!tuning.anim.hitAnimSeconds.isFinite ||
           !tuning.anim.castAnimSeconds.isFinite ||
-          !tuning.anim.attackAnimSeconds.isFinite ||
+          !tuning.anim.strikeAnimSeconds.isFinite ||
           !tuning.anim.deathAnimSeconds.isFinite ||
           !tuning.anim.spawnAnimSeconds.isFinite ||
           !tuning.anim.rangedAnimSeconds.isFinite) {
@@ -15478,8 +15478,8 @@ class AnimTuning {
   const AnimTuning({
     this.hitAnimSeconds = 0.40,
     this.castAnimSeconds = 0.40,
-    this.attackAnimSeconds = 0.36,
-    this.attackLeftAnimSeconds = 0.36,
+    this.strikeAnimSeconds = 0.36,
+    this.strikeLeftAnimSeconds = 0.36,
     this.rangedAnimSeconds = 0.40,
     this.deathAnimSeconds = 0.72,
     this.spawnAnimSeconds = 0.56,
@@ -15494,8 +15494,8 @@ class AnimTuning {
       frameCounts: frameCounts,
       stepTimeSecondsByKey: stepTimeSecondsByKey,
     );
-    final attackSeconds = anim_utils.secondsForKey(
-      key: AnimKey.attack,
+    final strikeSeconds = anim_utils.secondsForKey(
+      key: AnimKey.strike,
       frameCounts: frameCounts,
       stepTimeSecondsByKey: stepTimeSecondsByKey,
     );
@@ -15506,16 +15506,16 @@ class AnimTuning {
         stepTimeSecondsByKey: stepTimeSecondsByKey,
       ),
       castAnimSeconds: castSeconds,
-      attackAnimSeconds: attackSeconds,
-      attackLeftAnimSeconds:
-          (frameCounts.containsKey(AnimKey.attackLeft) ||
-                  stepTimeSecondsByKey.containsKey(AnimKey.attackLeft))
+      strikeAnimSeconds: strikeSeconds,
+      strikeLeftAnimSeconds:
+          (frameCounts.containsKey(AnimKey.strikeLeft) ||
+                  stepTimeSecondsByKey.containsKey(AnimKey.strikeLeft))
               ? anim_utils.secondsForKey(
-                  key: AnimKey.attackLeft,
+                  key: AnimKey.strikeLeft,
                   frameCounts: frameCounts,
                   stepTimeSecondsByKey: stepTimeSecondsByKey,
                 )
-              : attackSeconds,
+              : strikeSeconds,
       rangedAnimSeconds:
           (frameCounts.containsKey(AnimKey.ranged) ||
                   stepTimeSecondsByKey.containsKey(AnimKey.ranged))
@@ -15540,8 +15540,8 @@ class AnimTuning {
 
   final double hitAnimSeconds;
   final double castAnimSeconds;
-  final double attackAnimSeconds;
-  final double attackLeftAnimSeconds;
+  final double strikeAnimSeconds;
+  final double strikeLeftAnimSeconds;
   final double rangedAnimSeconds;
   final double deathAnimSeconds;
   final double spawnAnimSeconds;
@@ -15553,8 +15553,8 @@ class AnimTuningDerived {
     required this.base,
     required this.hitAnimTicks,
     required this.castAnimTicks,
-    required this.attackAnimTicks,
-    required this.attackLeftAnimTicks,
+    required this.strikeAnimTicks,
+    required this.strikeLeftAnimTicks,
     required this.rangedAnimTicks,
     required this.deathAnimTicks,
     required this.spawnAnimTicks,
@@ -15570,8 +15570,8 @@ class AnimTuningDerived {
       base: base,
       hitAnimTicks: ticksFromSecondsCeil(base.hitAnimSeconds, tickHz),
       castAnimTicks: ticksFromSecondsCeil(base.castAnimSeconds, tickHz),
-      attackAnimTicks: ticksFromSecondsCeil(base.attackAnimSeconds, tickHz),
-      attackLeftAnimTicks: ticksFromSecondsCeil(base.attackLeftAnimSeconds, tickHz),
+      strikeAnimTicks: ticksFromSecondsCeil(base.strikeAnimSeconds, tickHz),
+      strikeLeftAnimTicks: ticksFromSecondsCeil(base.strikeLeftAnimSeconds, tickHz),
       rangedAnimTicks: ticksFromSecondsCeil(base.rangedAnimSeconds, tickHz),
       deathAnimTicks: ticksFromSecondsCeil(base.deathAnimSeconds, tickHz),
       spawnAnimTicks: ticksFromSecondsCeil(base.spawnAnimSeconds, tickHz),
@@ -15583,8 +15583,8 @@ class AnimTuningDerived {
 
   final int hitAnimTicks;
   final int castAnimTicks;
-  final int attackAnimTicks;
-  final int attackLeftAnimTicks;
+  final int strikeAnimTicks;
+  final int strikeLeftAnimTicks;
   final int rangedAnimTicks;
   final int deathAnimTicks;
   final int spawnAnimTicks;
@@ -15774,10 +15774,10 @@ class ProjectileCatalogDerived {
 /// Each ID maps to a [ProjectileArchetype] in [ProjectileCatalog] and
 /// determines visual appearance in the renderer.
 enum ProjectileId {
-  /// Player's primary ranged attack. Fast, short-lived.
+  /// Player's primary ranged strike. Fast, short-lived.
   iceBolt,
 
-  /// Enemy ranged attack. Slower but longer range.
+  /// Enemy ranged strike. Slower but longer range.
   thunderBolt,
 
   /// Player's fire spell projectile. Medium speed and lifetime.
@@ -16490,10 +16490,10 @@ class SnapshotBuilder {
     }
   }
 
-  /// Appends active hitbox (melee attack) snapshots to [entities].
+  /// Appends active hitbox (melee strike) snapshots to [entities].
   ///
-  /// Hitboxes are short-lived trigger volumes spawned by melee attacks.
-  /// They render as debug overlays or attack effects.
+  /// Hitboxes are short-lived trigger volumes spawned by melee strikes.
+  /// They render as debug overlays or strike effects.
   void _addHitboxes(List<EntityRenderSnapshot> entities, {required int tick}) {
     final hitboxes = world.hitbox;
     for (var hi = 0; hi < hitboxes.denseEntities.length; hi += 1) {
@@ -16797,10 +16797,10 @@ enum AnimKey {
   cast,
   death,
   spawn,
-  attack,
+  strike,
   dash,
   walk,
-  attackLeft,
+  strikeLeft,
   ranged,
 }
 
@@ -19518,7 +19518,7 @@ class CoreTuning {
 
 
 ===== FILE: lib/core/tuning/flying_enemy_tuning.dart =====
-/// Flying enemy AI tuning (steering, attacks).
+/// Flying enemy AI tuning (steering, strikes).
 library;
 
 import '../util/tick_math.dart';
@@ -19601,7 +19601,7 @@ class UnocoDemonTuning {
   /// Deadzone for vertical error (world units).
   final double unocoDemonVerticalDeadzone;
 
-  // ── Attacks ──
+  // ── Strikes ──
 
   /// Min lead time when aiming at player (seconds).
   final double unocoDemonAimLeadMinSeconds;
@@ -19709,7 +19709,7 @@ class GroundEnemyEngagementTuning {
     this.meleeEngageBufferX = 4.0,
     this.meleeEngageHysteresisX = 2.0,
     this.meleeArriveSlowRadiusX = 12.0,
-    this.meleeAttackSpeedMul = 0.25,
+    this.meleeStrikeSpeedMul = 0.25,
     this.meleeRecoverSpeedMul = 0.5,
   });
 
@@ -19722,8 +19722,8 @@ class GroundEnemyEngagementTuning {
   /// Radius within which arrival steering slows to zero.
   final double meleeArriveSlowRadiusX;
 
-  /// Speed multiplier during attack state.
-  final double meleeAttackSpeedMul;
+  /// Speed multiplier during strike state.
+  final double meleeStrikeSpeedMul;
 
   /// Speed multiplier during recover state.
   final double meleeRecoverSpeedMul;
@@ -19768,16 +19768,16 @@ class GroundEnemyCombatTuning {
     this.meleeHitboxSizeY = 32.0,
   });
 
-  /// Horizontal range to trigger melee attack (world units).
+  /// Horizontal range to trigger melee strike (world units).
   final double meleeRangeX;
 
-  /// Cooldown between melee attacks (seconds).
+  /// Cooldown between melee strikes (seconds).
   final double meleeCooldownSeconds;
 
   /// Duration melee hitbox is active (seconds).
   final double meleeActiveSeconds;
 
-  /// Duration the melee attack animation should be visible (seconds).
+  /// Duration the melee strike animation should be visible (seconds).
   ///
   /// This can be longer than [meleeActiveSeconds] since the hitbox
   /// window is often only a subset of the full animation.
@@ -19785,10 +19785,10 @@ class GroundEnemyCombatTuning {
 
   /// Telegraph window before the melee hitbox becomes active (seconds).
   ///
-  /// This delays hitbox spawn relative to the start of the attack animation.
+  /// This delays hitbox spawn relative to the start of the strike animation.
   final double meleeWindupSeconds;
 
-  /// Damage dealt by melee attack.
+  /// Damage dealt by melee strike.
   final double meleeDamage;
 
   /// Melee hitbox width (world units).
@@ -19836,7 +19836,7 @@ class GroundEnemyTuningDerived {
         meleeEngageBufferX: engagement.meleeEngageBufferX,
         meleeEngageHysteresisX: engagement.meleeEngageHysteresisX,
         meleeArriveSlowRadiusX: engagement.meleeArriveSlowRadiusX,
-        meleeAttackSpeedMul: engagement.meleeAttackSpeedMul,
+        meleeStrikeSpeedMul: engagement.meleeStrikeSpeedMul,
         meleeRecoverSpeedMul: engagement.meleeRecoverSpeedMul,
         meleeStandOffX: meleeStandOffX,
       ),
@@ -19858,7 +19858,7 @@ class GroundEnemyTuningDerived {
           combat.meleeWindupSeconds,
           tickHz,
         );
-        // Ensure the hit tick occurs while the attack animation is still visible.
+        // Ensure the hit tick occurs while the strike animation is still visible.
         final maxWindupTicks = meleeAnimTicks > 0 ? meleeAnimTicks - 1 : 0;
         final meleeWindupTicks =
             rawWindupTicks > maxWindupTicks ? maxWindupTicks : rawWindupTicks;
@@ -19893,12 +19893,12 @@ class GroundEnemyEngagementTuningDerived extends GroundEnemyEngagementTuning {
     required super.meleeEngageBufferX,
     required super.meleeEngageHysteresisX,
     required super.meleeArriveSlowRadiusX,
-    required super.meleeAttackSpeedMul,
+    required super.meleeStrikeSpeedMul,
     required super.meleeRecoverSpeedMul,
     required this.meleeStandOffX,
   });
 
-  /// Stand-off target used in engage/attack/recover phases.
+  /// Stand-off target used in engage/strike/recover phases.
   ///
   /// Derived from [GroundEnemyCombatTuning.meleeHitboxSizeX] so the player
   /// sits well within the hitbox when the enemy is at its preferred slot.
@@ -20957,7 +20957,7 @@ typedef EnemyViewFactory =
 enum EnemyDeathAnimPolicy { spawn, none }
 
 const Set<AnimKey> _defaultEnemyOneShotKeys = <AnimKey>{
-  AnimKey.attack,
+  AnimKey.strike,
   AnimKey.hit,
   AnimKey.death,
 };
@@ -21357,8 +21357,8 @@ Future<SpriteAnimSet> loadPlayerAnimations(
   required RenderAnimSetDefinition renderAnim,
 }) async {
   final oneShotKeys = <AnimKey>{
-    AnimKey.attack,
-    AnimKey.attackLeft,
+    AnimKey.strike,
+    AnimKey.strikeLeft,
     AnimKey.cast,
     AnimKey.ranged,
     AnimKey.dash,
@@ -21396,10 +21396,10 @@ class PlayerViewComponent extends DeterministicAnimViewComponent {
          renderScale: renderScale,
          fallbackResolver: (desired) {
            // Allow directional variants to fall back to their base animation key.
-           if (desired == AnimKey.attackLeft &&
-               !animationSet.animations.containsKey(AnimKey.attackLeft) &&
-               animationSet.animations.containsKey(AnimKey.attack)) {
-             return AnimKey.attack;
+           if (desired == AnimKey.strikeLeft &&
+               !animationSet.animations.containsKey(AnimKey.strikeLeft) &&
+               animationSet.animations.containsKey(AnimKey.strike)) {
+             return AnimKey.strike;
            }
            if (desired == AnimKey.ranged &&
                !animationSet.animations.containsKey(AnimKey.ranged) &&
@@ -22512,8 +22512,8 @@ class GameController extends ChangeNotifier {
     if (input.dashPressed) {
       _commandScratch.add(DashPressedCommand(tick: tick));
     }
-    if (input.attackPressed) {
-      _commandScratch.add(AttackPressedCommand(tick: tick));
+    if (input.strikePressed) {
+      _commandScratch.add(StrikePressedCommand(tick: tick));
     }
     if (input.castPressed) {
       _commandScratch.add(CastPressedCommand(tick: tick));
@@ -22670,12 +22670,12 @@ import 'aim_quantizer.dart';
 /// - Holds the current continuous inputs (move axis, projectile aim direction).
 /// - Schedules them into the GameController for upcoming ticks so Core receives
 ///   tick-stamped Commands.
-/// - Schedules edge-triggered presses (jump/dash/attack/cast) for the next tick.
+/// - Schedules edge-triggered presses (jump/dash/strike/cast) for the next tick.
 ///
 /// The router distinguishes between:
 /// - **Continuous inputs** (movement axis, aim directions): held state is pumped
 ///   each frame via [pumpHeldInputs], scheduling commands for upcoming ticks.
-/// - **Edge-triggered inputs** (jump, dash, attack, cast): one-shot events
+/// - **Edge-triggered inputs** (jump, dash, strike, cast): one-shot events
 ///   scheduled immediately for the next tick via [pressJump], [pressDash], etc.
 class RunnerInputRouter {
   /// Creates a router bound to the given [controller].
@@ -22765,9 +22765,9 @@ class RunnerInputRouter {
   void pressDash() =>
       controller.enqueueForNextTick((tick) => DashPressedCommand(tick: tick));
 
-  /// Schedules a melee attack press for the next tick.
-  void pressAttack() =>
-      controller.enqueueForNextTick((tick) => AttackPressedCommand(tick: tick));
+  /// Schedules a melee strike press for the next tick.
+  void pressStrike() =>
+      controller.enqueueForNextTick((tick) => StrikePressedCommand(tick: tick));
 
   /// Schedules a cast (projectile) press for the next tick.
   void pressCast() =>
@@ -22781,7 +22781,7 @@ class RunnerInputRouter {
   /// for the same tick.
   ///
   /// Unlike [pressCast], this guarantees the aim and cast commands share the same
-  /// tick, which is important for aimed projectile attacks.
+  /// tick, which is important for aimed projectile strikes.
   void pressCastWithAim() {
     commitCastWithAim(clearAim: false);
   }
@@ -22814,8 +22814,8 @@ class RunnerInputRouter {
     }
   }
 
-  /// Commits a melee attack on the next tick using the current melee aim dir.
-  void commitMeleeAttack() {
+  /// Commits a melee strike on the next tick using the current melee aim dir.
+  void commitMeleeStrike() {
     final tick = controller.tick + controller.inputLead;
     final hadAim = _meleeAim.isSet;
     if (hadAim) {
@@ -22825,7 +22825,7 @@ class RunnerInputRouter {
     } else {
       controller.enqueue(ClearMeleeAimDirCommand(tick: tick));
     }
-    controller.enqueue(AttackPressedCommand(tick: tick));
+    controller.enqueue(StrikePressedCommand(tick: tick));
 
     // Clear aim after commit (release behavior).
     _meleeAim.clear();
@@ -22835,7 +22835,7 @@ class RunnerInputRouter {
   }
 
   /// Commits a ranged weapon shot on the next tick using the current ranged aim dir.
-  void commitRangedAttack() {
+  void commitRangedStrike() {
     final tick = controller.tick + controller.inputLead;
     final hadAim = _rangedAim.isSet;
     if (hadAim) {
@@ -22877,7 +22877,7 @@ class RunnerInputRouter {
       (t) => ClearProjectileAimDirCommand(tick: t),
     );
 
-    // 3. Melee aim: same pattern as projectile, but for melee attack direction.
+    // 3. Melee aim: same pattern as projectile, but for melee strike direction.
     _meleeAim.schedule(
       controller,
       _inputBufferSeconds,
@@ -23924,8 +23924,8 @@ class TickInputFrame {
   /// True if dash was pressed this tick.
   bool dashPressed = false;
 
-  /// True if melee attack was pressed this tick.
-  bool attackPressed = false;
+  /// True if melee strike was pressed this tick.
+  bool strikePressed = false;
 
   /// True if cast (projectile) was pressed this tick.
   bool castPressed = false;
@@ -23975,7 +23975,7 @@ class TickInputFrame {
   /// Applies a [Command] to this frame, merging it with existing state.
   ///
   /// For continuous inputs (move axis, aim), later commands overwrite earlier ones.
-  /// For edge-triggered inputs (jump, dash, attack, cast), any press sets the flag.
+  /// For edge-triggered inputs (jump, dash, strike, cast), any press sets the flag.
   void apply(Command command) {
     switch (command) {
       case MoveAxisCommand(:final axis):
@@ -23984,8 +23984,8 @@ class TickInputFrame {
         jumpPressed = true;
       case DashPressedCommand():
         dashPressed = true;
-      case AttackPressedCommand():
-        attackPressed = true;
+      case StrikePressedCommand():
+        strikePressed = true;
       case ProjectileAimDirCommand(:final x, :final y):
         projectileAimDirSet = true;
         projectileAimDirX = x;
@@ -24024,7 +24024,7 @@ class TickInputFrame {
     moveAxis = 0;
     jumpPressed = false;
     dashPressed = false;
-    attackPressed = false;
+    strikePressed = false;
     projectileAimDirSet = false;
     projectileAimDirX = 0;
     projectileAimDirY = 0;
@@ -25411,14 +25411,14 @@ class GameOverlay extends StatelessWidget {
             projectileCooldownTicksTotal: hud.projectileCooldownTicksTotal,
             onMeleeAimDir: input.setMeleeAimDir,
             onMeleeAimClear: input.clearMeleeAimDir,
-            onMeleeCommitted: input.commitMeleeAttack,
+            onMeleeCommitted: input.commitMeleeStrike,
             meleeAimPreview: meleeAimPreview,
             meleeAffordable: hud.canAffordMelee,
             meleeCooldownTicksLeft: hud.meleeCooldownTicksLeft,
             meleeCooldownTicksTotal: hud.meleeCooldownTicksTotal,
             onRangedAimDir: input.setRangedAimDir,
             onRangedAimClear: input.clearRangedAimDir,
-            onRangedCommitted: input.commitRangedAttack,
+            onRangedCommitted: input.commitRangedStrike,
             rangedAimPreview: rangedAimPreview,
             rangedAffordable: hud.canAffordRangedWeapon,
             rangedCooldownTicksLeft: hud.rangedWeaponCooldownTicksLeft,

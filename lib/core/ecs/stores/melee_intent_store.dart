@@ -39,9 +39,9 @@ class MeleeIntentDef {
   final int tick;
 }
 
-/// Per-entity "perform a melee attack this tick" intent.
+/// Per-entity "perform a melee strike this tick" intent.
 ///
-/// This is written by player/enemy intent writers and consumed by `MeleeAttackSystem`.
+/// This is written by player/enemy intent writers and consumed by `MeleeStrikeSystem`.
 ///
 /// **Usage**: Persistent component. Intents are set via `set()` with a `tick` stamp.
 /// Old intents are ignored if `tick` matches current game tick.

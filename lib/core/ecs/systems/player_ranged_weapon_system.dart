@@ -6,7 +6,7 @@ import '../world.dart';
 import 'dart:math';
 
 /// Translates player input into a [RangedWeaponIntentDef] for the
-/// [RangedWeaponAttackSystem].
+/// [RangedWeaponSystem].
 class PlayerRangedWeaponSystem {
   const PlayerRangedWeaponSystem({required this.weapons});
 

@@ -29,6 +29,9 @@ const int eloiseAnimFrameHeight = 64;
 const int eloiseAnimIdleFrames = 4;
 const double eloiseAnimIdleStepSeconds = 0.14;
 
+const int eloiseAnimStunFrames = 4;
+const double eloiseAnimStunStepSeconds = 0.14;
+
 const int eloiseAnimRunFrames = 7;
 const double eloiseAnimRunStepSeconds = 0.08;
 
@@ -41,11 +44,11 @@ const double eloiseAnimJumpStepSeconds = 0.10;
 const int eloiseAnimFallFrames = 3;
 const double eloiseAnimFallStepSeconds = 0.10;
 
-const int eloiseAnimAttackFrames = 6;
-const double eloiseAnimAttackStepSeconds = 0.06;
+const int eloiseAnimStrikeFrames = 6;
+const double eloiseAnimStrikeStepSeconds = 0.06;
 
-const int eloiseAnimAttackBackFrames = 5;
-const double eloiseAnimAttackBackStepSeconds = 0.08;
+const int eloiseAnimStrikeBackFrames = 5;
+const double eloiseAnimStrikeBackStepSeconds = 0.08;
 
 const int eloiseAnimCastFrames = 5;
 const double eloiseAnimCastStepSeconds = 0.08;
@@ -69,11 +72,12 @@ const double eloiseAnimSpawnStepSeconds = eloiseAnimIdleStepSeconds;
 
 const Map<AnimKey, int> eloiseAnimFrameCountsByKey = <AnimKey, int>{
   AnimKey.idle: eloiseAnimIdleFrames,
+  AnimKey.stun: eloiseAnimStunFrames,
   AnimKey.run: eloiseAnimRunFrames,
   AnimKey.jump: eloiseAnimJumpFrames,
   AnimKey.fall: eloiseAnimFallFrames,
-  AnimKey.attack: eloiseAnimAttackFrames,
-  AnimKey.attackBack: eloiseAnimAttackBackFrames,
+  AnimKey.strike: eloiseAnimStrikeFrames,
+  AnimKey.strikeBack: eloiseAnimStrikeBackFrames,
   AnimKey.cast: eloiseAnimCastFrames,
   AnimKey.ranged: eloiseAnimRangedFrames,
   AnimKey.dash: eloiseAnimDashFrames,
@@ -85,11 +89,12 @@ const Map<AnimKey, int> eloiseAnimFrameCountsByKey = <AnimKey, int>{
 
 const Map<AnimKey, double> eloiseAnimStepTimeSecondsByKey = <AnimKey, double>{
   AnimKey.idle: eloiseAnimIdleStepSeconds,
+  AnimKey.stun: eloiseAnimStunStepSeconds,
   AnimKey.run: eloiseAnimRunStepSeconds,
   AnimKey.jump: eloiseAnimJumpStepSeconds,
   AnimKey.fall: eloiseAnimFallStepSeconds,
-  AnimKey.attack: eloiseAnimAttackStepSeconds,
-  AnimKey.attackBack: eloiseAnimAttackBackStepSeconds,
+  AnimKey.strike: eloiseAnimStrikeStepSeconds,
+  AnimKey.strikeBack: eloiseAnimStrikeBackStepSeconds,
   AnimKey.cast: eloiseAnimCastStepSeconds,
   AnimKey.ranged: eloiseAnimRangedStepSeconds,
   AnimKey.dash: eloiseAnimDashStepSeconds,
@@ -101,11 +106,12 @@ const Map<AnimKey, double> eloiseAnimStepTimeSecondsByKey = <AnimKey, double>{
 
 const Map<AnimKey, String> eloiseAnimSourcesByKey = <AnimKey, String>{
   AnimKey.idle: 'entities/player/idle.png',
+  AnimKey.stun: 'entities/player/stun.png',
   AnimKey.run: 'entities/player/move.png',
   AnimKey.jump: 'entities/player/jump.png',
   AnimKey.fall: 'entities/player/fall.png',
-  AnimKey.attack: 'entities/player/attack.png',
-  AnimKey.attackBack: 'entities/player/attack_back.png',
+  AnimKey.strike: 'entities/player/strike.png',
+  AnimKey.strikeBack: 'entities/player/strike_back.png',
   AnimKey.cast: 'entities/player/cast.png',
   AnimKey.ranged: 'entities/player/cast.png',
   AnimKey.dash: 'entities/player/dash.png',
@@ -189,9 +195,9 @@ const PlayerTuning eloiseTuning = PlayerTuning(
   anim: AnimTuning(
     hitAnimSeconds: eloiseAnimHitFrames * eloiseAnimHitStepSeconds,
     castAnimSeconds: eloiseAnimCastFrames * eloiseAnimCastStepSeconds,
-    attackAnimSeconds: eloiseAnimAttackFrames * eloiseAnimAttackStepSeconds,
-    attackBackAnimSeconds:
-        eloiseAnimAttackBackFrames * eloiseAnimAttackBackStepSeconds,
+    strikeAnimSeconds: eloiseAnimStrikeFrames * eloiseAnimStrikeStepSeconds,
+    strikeBackAnimSeconds:
+        eloiseAnimStrikeBackFrames * eloiseAnimStrikeBackStepSeconds,
     rangedAnimSeconds: eloiseAnimRangedFrames * eloiseAnimRangedStepSeconds,
     deathAnimSeconds: eloiseAnimDeathFrames * eloiseAnimDeathStepSeconds,
     spawnAnimSeconds: eloiseAnimSpawnFrames * eloiseAnimSpawnStepSeconds,
