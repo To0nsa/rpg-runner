@@ -28,6 +28,7 @@ class AnimProfile {
     this.hitAnimKey = AnimKey.hit,
     this.deathAnimKey = AnimKey.death,
     this.spawnAnimKey = AnimKey.spawn,
+    this.stunAnimKey = AnimKey.stun,
   });
 
   final double minMoveSpeed;

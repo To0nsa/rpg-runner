@@ -46,8 +46,8 @@ class PlayerMovementSystem {
         if (world.movement.dashTicksLeft[mi] > 0) {
           world.movement.dashTicksLeft[mi] = 0;
           // Restore gravity if it was suppressed by dash
-          if (world.gravityControl.suppressTicksLeft[world.gravityControl.indexOf(e)] > 0) {
-             world.gravityControl.suppressTicksLeft[world.gravityControl.indexOf(e)] = 0;
+          if (world.gravityControl.suppressGravityTicksLeft[world.gravityControl.indexOf(e)] > 0) {
+             world.gravityControl.suppressGravityTicksLeft[world.gravityControl.indexOf(e)] = 0;
           }
         }
         world.transform.velX[ti] = 0;

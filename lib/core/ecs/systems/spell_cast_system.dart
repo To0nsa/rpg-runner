@@ -46,7 +46,7 @@ class SpellCastSystem {
       // -- Validation Checks --
       // Must have position, cooldowns, and mana components.
       final ti = transforms.tryIndexOf(caster);
-      final ti = transforms.tryIndexOf(caster);
+
       if (ti == null) continue;
 
       // Cannot cast while stunned.
