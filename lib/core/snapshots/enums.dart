@@ -22,7 +22,7 @@ enum AnimKey {
   attack,
   dash,
   walk,
-  attackLeft,
+  attackBack,
   ranged,
 }
 

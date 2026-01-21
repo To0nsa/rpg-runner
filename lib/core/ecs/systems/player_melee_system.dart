@@ -129,7 +129,13 @@ class PlayerMeleeSystem {
       ),
     );
     world.actionAnim.lastMeleeTick[actionAnimIndex] = currentTick;
+    // Determine if this is a "back attack" (attacking opposite to facing).
+    // Back attack occurs when:
+    // - Facing right but attacking left (dirX < 0)
+    // - Facing left but attacking right (dirX >= 0)
+    final isBackAttack = (facing == Facing.right && dirX < 0) ||
+        (facing == Facing.left && dirX >= 0);
     world.actionAnim.lastMeleeFacing[actionAnimIndex] =
-        dirX >= 0 ? Facing.right : Facing.left;
+        isBackAttack ? Facing.left : Facing.right;
   }
 }

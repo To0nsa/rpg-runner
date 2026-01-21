@@ -66,7 +66,7 @@ class AnimSignals {
     required this.hitAnimTicks,
     required this.lastAttackTick,
     required this.attackAnimTicks,
-    required this.attackLeftAnimTicks,
+    required this.attackBackAnimTicks,
     required this.lastAttackFacing,
     required this.lastCastTick,
     required this.castAnimTicks,
@@ -87,7 +87,7 @@ class AnimSignals {
     required int hitAnimTicks,
     required int lastAttackTick,
     required int attackAnimTicks,
-    required int attackLeftAnimTicks,
+    required int attackBackAnimTicks,
     required Facing lastAttackFacing,
     required int lastCastTick,
     required int castAnimTicks,
@@ -108,7 +108,7 @@ class AnimSignals {
          hitAnimTicks: hitAnimTicks,
          lastAttackTick: lastAttackTick,
          attackAnimTicks: attackAnimTicks,
-         attackLeftAnimTicks: attackLeftAnimTicks,
+         attackBackAnimTicks: attackBackAnimTicks,
          lastAttackFacing: lastAttackFacing,
          lastCastTick: lastCastTick,
          castAnimTicks: castAnimTicks,
@@ -144,7 +144,7 @@ class AnimSignals {
          hitAnimTicks: hitAnimTicks,
          lastAttackTick: lastAttackTick,
          attackAnimTicks: attackAnimTicks,
-         attackLeftAnimTicks: attackAnimTicks,
+         attackBackAnimTicks: attackAnimTicks,
          lastAttackFacing: lastAttackFacing,
          lastCastTick: -1,
          castAnimTicks: 0,
@@ -166,7 +166,7 @@ class AnimSignals {
   final int hitAnimTicks;
   final int lastAttackTick;
   final int attackAnimTicks;
-  final int attackLeftAnimTicks;
+  final int attackBackAnimTicks;
   final Facing lastAttackFacing;
   final int lastCastTick;
   final int castAnimTicks;
@@ -196,7 +196,7 @@ class AnimResolver {
     final attackTicks =
         profile.directionalAttack &&
             signals.lastAttackFacing == Facing.left
-        ? signals.attackLeftAnimTicks
+        ? signals.attackBackAnimTicks
         : signals.attackAnimTicks;
     final showAttack =
         attackTicks > 0 &&
@@ -244,7 +244,7 @@ class AnimResolver {
       final attackKey =
           profile.directionalAttack &&
               signals.lastAttackFacing == Facing.left
-          ? AnimKey.attackLeft
+          ? AnimKey.attackBack
           : profile.attackAnimKey;
       return AnimResult(
         anim: attackKey,

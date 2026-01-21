@@ -11,6 +11,7 @@ lib/core/combat/status/status.dart
 lib/core/commands/command.dart
 lib/core/contracts/render_anim_set_definition.dart
 lib/core/contracts/render_contract.dart
+lib/core/ecs/components/death_state.dart
 lib/core/ecs/entity_factory.dart
 lib/core/ecs/entity_id.dart
 lib/core/ecs/hit/aabb_hit_utils.dart
@@ -30,10 +31,12 @@ lib/core/ecs/stores/combat/ammo_store.dart
 lib/core/ecs/stores/combat/creature_tag_store.dart
 lib/core/ecs/stores/combat/damage_resistance_store.dart
 lib/core/ecs/stores/combat/equipped_ranged_weapon_store.dart
+lib/core/ecs/stores/combat/equipped_spell_store.dart
 lib/core/ecs/stores/combat/equipped_weapon_store.dart
 lib/core/ecs/stores/combat/stat_modifier_store.dart
 lib/core/ecs/stores/combat/status_immunity_store.dart
 lib/core/ecs/stores/cooldown_store.dart
+lib/core/ecs/stores/death_state_store.dart
 lib/core/ecs/stores/enemies/enemy_store.dart
 lib/core/ecs/stores/enemies/engagement_intent_store.dart
 lib/core/ecs/stores/enemies/flying_enemy_steering_store.dart
@@ -62,14 +65,17 @@ lib/core/ecs/stores/stamina_store.dart
 lib/core/ecs/stores/status/bleed_store.dart
 lib/core/ecs/stores/status/burn_store.dart
 lib/core/ecs/stores/status/slow_store.dart
+lib/core/ecs/stores/status/stun_store.dart
 lib/core/ecs/stores/transform_store.dart
 lib/core/ecs/systems/anim_system.dart
 lib/core/ecs/systems/collectible_system.dart
 lib/core/ecs/systems/collision_system.dart
 lib/core/ecs/systems/cooldown_system.dart
 lib/core/ecs/systems/damage_system.dart
+lib/core/ecs/systems/death_despawn_system.dart
 lib/core/ecs/systems/enemy_cast_system.dart
 lib/core/ecs/systems/enemy_cull_system.dart
+lib/core/ecs/systems/enemy_death_state_system.dart
 lib/core/ecs/systems/enemy_engagement_system.dart
 lib/core/ecs/systems/enemy_melee_system.dart
 lib/core/ecs/systems/enemy_navigation_system.dart
@@ -95,6 +101,7 @@ lib/core/ecs/systems/restoration_item_system.dart
 lib/core/ecs/systems/spell_cast_system.dart
 lib/core/ecs/systems/status_system.dart
 lib/core/ecs/world.dart
+lib/core/enemies/death_behavior.dart
 lib/core/enemies/enemy_catalog.dart
 lib/core/enemies/enemy_id.dart
 lib/core/enemies/enemy_killed_info.dart
@@ -117,6 +124,7 @@ lib/core/navigation/types/walk_surface.dart
 lib/core/navigation/utils/jump_template.dart
 lib/core/navigation/utils/surface_spatial_index.dart
 lib/core/navigation/utils/trajectory_predictor.dart
+lib/core/pickups/pickup_render_catalog.dart
 lib/core/players/characters/eloise.dart
 lib/core/players/player_archetype.dart
 lib/core/players/player_catalog.dart
@@ -173,6 +181,7 @@ lib/core/weapons/weapon_id.dart
 lib/firebase_options.dart
 lib/game/components/aim_ray_component.dart
 lib/game/components/enemies/enemy_render_registry.dart
+lib/game/components/pickups/pickup_render_registry.dart
 lib/game/components/pixel_parallax_backdrop_component.dart
 lib/game/components/player/player_animations.dart
 lib/game/components/player/player_view_component.dart

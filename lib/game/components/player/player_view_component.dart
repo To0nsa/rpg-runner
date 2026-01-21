@@ -20,8 +20,8 @@ class PlayerViewComponent extends DeterministicAnimViewComponent {
          renderScale: renderScale,
          fallbackResolver: (desired) {
            // Allow directional variants to fall back to their base animation key.
-           if (desired == AnimKey.attackLeft &&
-               !animationSet.animations.containsKey(AnimKey.attackLeft) &&
+           if (desired == AnimKey.attackBack &&
+               !animationSet.animations.containsKey(AnimKey.attackBack) &&
                animationSet.animations.containsKey(AnimKey.attack)) {
              return AnimKey.attack;
            }

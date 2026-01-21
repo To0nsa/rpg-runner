@@ -44,8 +44,8 @@ const double eloiseAnimFallStepSeconds = 0.10;
 const int eloiseAnimAttackFrames = 6;
 const double eloiseAnimAttackStepSeconds = 0.06;
 
-const int eloiseAnimAttackLeftFrames = 5;
-const double eloiseAnimAttackLeftStepSeconds = 0.08;
+const int eloiseAnimAttackBackFrames = 5;
+const double eloiseAnimAttackBackStepSeconds = 0.08;
 
 const int eloiseAnimCastFrames = 5;
 const double eloiseAnimCastStepSeconds = 0.08;
@@ -73,7 +73,7 @@ const Map<AnimKey, int> eloiseAnimFrameCountsByKey = <AnimKey, int>{
   AnimKey.jump: eloiseAnimJumpFrames,
   AnimKey.fall: eloiseAnimFallFrames,
   AnimKey.attack: eloiseAnimAttackFrames,
-  AnimKey.attackLeft: eloiseAnimAttackLeftFrames,
+  AnimKey.attackBack: eloiseAnimAttackBackFrames,
   AnimKey.cast: eloiseAnimCastFrames,
   AnimKey.ranged: eloiseAnimRangedFrames,
   AnimKey.dash: eloiseAnimDashFrames,
@@ -89,7 +89,7 @@ const Map<AnimKey, double> eloiseAnimStepTimeSecondsByKey = <AnimKey, double>{
   AnimKey.jump: eloiseAnimJumpStepSeconds,
   AnimKey.fall: eloiseAnimFallStepSeconds,
   AnimKey.attack: eloiseAnimAttackStepSeconds,
-  AnimKey.attackLeft: eloiseAnimAttackLeftStepSeconds,
+  AnimKey.attackBack: eloiseAnimAttackBackStepSeconds,
   AnimKey.cast: eloiseAnimCastStepSeconds,
   AnimKey.ranged: eloiseAnimRangedStepSeconds,
   AnimKey.dash: eloiseAnimDashStepSeconds,
@@ -105,7 +105,7 @@ const Map<AnimKey, String> eloiseAnimSourcesByKey = <AnimKey, String>{
   AnimKey.jump: 'entities/player/jump.png',
   AnimKey.fall: 'entities/player/fall.png',
   AnimKey.attack: 'entities/player/attack.png',
-  AnimKey.attackLeft: 'entities/player/attack_left.png',
+  AnimKey.attackBack: 'entities/player/attack_back.png',
   AnimKey.cast: 'entities/player/cast.png',
   AnimKey.ranged: 'entities/player/cast.png',
   AnimKey.dash: 'entities/player/dash.png',
@@ -190,8 +190,8 @@ const PlayerTuning eloiseTuning = PlayerTuning(
     hitAnimSeconds: eloiseAnimHitFrames * eloiseAnimHitStepSeconds,
     castAnimSeconds: eloiseAnimCastFrames * eloiseAnimCastStepSeconds,
     attackAnimSeconds: eloiseAnimAttackFrames * eloiseAnimAttackStepSeconds,
-    attackLeftAnimSeconds:
-        eloiseAnimAttackLeftFrames * eloiseAnimAttackLeftStepSeconds,
+    attackBackAnimSeconds:
+        eloiseAnimAttackBackFrames * eloiseAnimAttackBackStepSeconds,
     rangedAnimSeconds: eloiseAnimRangedFrames * eloiseAnimRangedStepSeconds,
     deathAnimSeconds: eloiseAnimDeathFrames * eloiseAnimDeathStepSeconds,
     spawnAnimSeconds: eloiseAnimSpawnFrames * eloiseAnimSpawnStepSeconds,

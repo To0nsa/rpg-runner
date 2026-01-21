@@ -16,7 +16,7 @@ Future<SpriteAnimSet> loadPlayerAnimations(
 }) async {
   final oneShotKeys = <AnimKey>{
     AnimKey.attack,
-    AnimKey.attackLeft,
+    AnimKey.attackBack,
     AnimKey.cast,
     AnimKey.ranged,
     AnimKey.dash,

@@ -1,6 +1,6 @@
 ﻿REPO: C:\dev\rpg_runner
-COMMIT: 7d7b1f36e968e22b986d24f8b4ebfae0614d544d
-DATE: 2026-01-20 09:09:39
+COMMIT: e01990fcd70939f1ce1b7104c29e1eec4d4efa28
+DATE: 2026-01-20 23:00:04
 
 
 ===== FILE: lib/AGENTS.md =====
@@ -189,6 +189,7 @@ If anything here conflicts with repo docs, treat repo docs as the source of trut
 /// Shared animation resolver for Core entities.
 library;
 
+import '../enemies/death_behavior.dart';
 import '../snapshots/enums.dart';
 
 class AnimProfile {
@@ -244,6 +245,8 @@ class AnimSignals {
   const AnimSignals._({
     required this.tick,
     required this.hp,
+    required this.deathPhase,
+    required this.deathStartTick,
     required this.grounded,
     required this.velX,
     required this.velY,
@@ -282,12 +285,14 @@ class AnimSignals {
     required int dashDurationTicks,
     required int spawnAnimTicks,
   }) : this._(
-         tick: tick,
-         hp: hp,
-         grounded: grounded,
-         velX: velX,
-         velY: velY,
-         lastDamageTick: lastDamageTick,
+          tick: tick,
+          hp: hp,
+          deathPhase: DeathPhase.none,
+          deathStartTick: -1,
+          grounded: grounded,
+          velX: velX,
+          velY: velY,
+          lastDamageTick: lastDamageTick,
          hitAnimTicks: hitAnimTicks,
          lastAttackTick: lastAttackTick,
          attackAnimTicks: attackAnimTicks,
@@ -305,6 +310,8 @@ class AnimSignals {
   const AnimSignals.enemy({
     required int tick,
     required double hp,
+    required DeathPhase deathPhase,
+    required int deathStartTick,
     required bool grounded,
     required double velX,
     required double velY,
@@ -314,12 +321,14 @@ class AnimSignals {
     required int attackAnimTicks,
     required Facing lastAttackFacing,
   }) : this._(
-         tick: tick,
-         hp: hp,
-         grounded: grounded,
-         velX: velX,
-         velY: velY,
-         lastDamageTick: lastDamageTick,
+          tick: tick,
+          hp: hp,
+          deathPhase: deathPhase,
+          deathStartTick: deathStartTick,
+          grounded: grounded,
+          velX: velX,
+          velY: velY,
+          lastDamageTick: lastDamageTick,
          hitAnimTicks: hitAnimTicks,
          lastAttackTick: lastAttackTick,
          attackAnimTicks: attackAnimTicks,
@@ -336,6 +345,8 @@ class AnimSignals {
 
   final int tick;
   final double hp;
+  final DeathPhase deathPhase;
+  final int deathStartTick;
   final bool grounded;
   final double velX;
   final double velY;
@@ -390,6 +401,21 @@ class AnimResolver {
         signals.lastRangedTick >= 0 &&
         (tick - signals.lastRangedTick) < signals.rangedAnimTicks;
 
+    if (signals.deathPhase == DeathPhase.deathAnim) {
+      return AnimResult(
+        anim: profile.deathAnimKey,
+        animFrame: _frameFromTick(tick, signals.deathStartTick),
+      );
+    }
+    if (signals.deathPhase == DeathPhase.fallingUntilGround) {
+      if (profile.supportsJumpFall && !signals.grounded) {
+        return AnimResult(
+          anim: signals.velY < 0 ? profile.jumpAnimKey : profile.fallAnimKey,
+          animFrame: tick,
+        );
+      }
+      return AnimResult(anim: profile.idleAnimKey, animFrame: tick);
+    }
     if (signals.hp <= 0) {
       return AnimResult(
         anim: profile.deathAnimKey,
@@ -1155,6 +1181,7 @@ enum StatusEffectType {
   burn,
   slow,
   bleed,
+  stun,
 }
 
 /// Stable identifiers for status application profiles.
@@ -1163,6 +1190,7 @@ enum StatusProfileId {
   iceBolt,
   fireBolt,
   meleeBleed,
+  stunOnHit,
 }
 
 /// A single status application inside a profile.
@@ -1236,6 +1264,17 @@ class StatusProfileCatalog {
               magnitude: 5.0,
               durationSeconds: 5.0,
               periodSeconds: 1.0,
+              scaleByDamageType: true,
+            ),
+          ],
+        );
+      case StatusProfileId.stunOnHit:
+        return const StatusProfile(
+          <StatusApplication>[
+            StatusApplication(
+              type: StatusEffectType.stun,
+              magnitude: 1.0,
+              durationSeconds: 2.0,
               scaleByDamageType: true,
             ),
           ],
@@ -1474,6 +1513,63 @@ const double projectileAimRayLength = virtualWidth * 0.5;
 const double meleeAimRayLength = virtualWidth * 0.20;
 
 
+===== FILE: lib/core/ecs/components/death_state.dart =====
+class DeathState {
+  DeathState({
+    required this.phase,
+    required this.deathStartTick,
+    required this.despawnTick,
+    required this.maxFallDespawnTick,
+  });
+
+  DeathPhase phase;
+  int deathStartTick;
+  int despawnTick;
+  int maxFallDespawnTick;
+}
+
+enum DeathPhase {
+  fallingUntilGround,
+  deathAnim,
+}
+
+class DeathStateComponent {
+  final Map<int, DeathState> _data = {};
+
+  bool has(int entity) => _data.containsKey(entity);
+  int indexOf(int entity) => entity;
+  int? tryIndexOf(int entity) => _data.containsKey(entity) ? entity : null;
+
+  void add(int entity, DeathState state) {
+    _data[entity] = state;
+  }
+
+  DeathPhase get phase => throw UnimplementedError('Use entity index');
+  // This component structure seems to be property-based in the system.
+  // Let's look at how other components are used in world.dart or other systems.
+}
+
+// Based on the system usage, it expects:
+// deathState.phase[di]
+// deathState.deathStartTick[di]
+// deathState.despawnTick[di]
+// deathState.maxFallDespawnTick[di]
+// This suggests deathState is a component with multiple arrays or maps.
+
+class DeathStateDef {
+  const DeathStateDef({
+    required this.phase,
+    required this.deathStartTick,
+    required this.despawnTick,
+    required this.maxFallDespawnTick,
+  });
+
+  final DeathPhase phase;
+  final int deathStartTick;
+  final int despawnTick;
+  final int maxFallDespawnTick;
+}
+
 ===== FILE: lib/core/ecs/entity_factory.dart =====
 import '../combat/faction.dart';
 import '../enemies/enemy_id.dart';
@@ -1485,6 +1581,7 @@ import 'stores/collider_aabb_store.dart';
 import 'stores/combat/ammo_store.dart';
 import 'stores/combat/creature_tag_store.dart';
 import 'stores/combat/damage_resistance_store.dart';
+import 'stores/combat/equipped_spell_store.dart';
 import 'stores/combat/equipped_weapon_store.dart';
 import 'stores/combat/equipped_ranged_weapon_store.dart';
 import 'stores/combat/stat_modifier_store.dart';
@@ -1532,6 +1629,7 @@ class EntityFactory {
   /// - [LastDamageStore]: Tracks the last source of damage for UI/effects.
   /// - [StatusImmunityStore]: Status effect immunities.
   /// - [ManaStore]: Mana points and max mana.
+  /// - [EquippedSpellStore]: Equipped spell hotbar (used for casting selection).
   /// - [MeleeIntentStore]: Tracks intent to perform melee attacks.
   /// - [StatModifierStore]: Runtime stat modifiers from statuses.
   /// - [StaminaStore]: Stamina points and max stamina.
@@ -1555,6 +1653,7 @@ class EntityFactory {
     EquippedWeaponDef equippedWeapon = const EquippedWeaponDef(),
     EquippedRangedWeaponDef equippedRangedWeapon =
         const EquippedRangedWeaponDef(),
+    EquippedSpellDef equippedSpell = const EquippedSpellDef(),
     AmmoDef ammo = const AmmoDef(),
   }) {
     final id = world.createEntity();
@@ -1581,6 +1680,7 @@ class EntityFactory {
     world.ammo.add(id, ammo);
     world.equippedWeapon.add(id, equippedWeapon);
     world.equippedRangedWeapon.add(id, equippedRangedWeapon);
+    world.equippedSpell.add(id, equippedSpell);
     world.statModifier.add(id);
     world.stamina.add(id, stamina);
     world.collision.grounded[world.collision.indexOf(id)] = grounded;
@@ -1741,6 +1841,8 @@ class DamageableTargetCache {
     // 2. Iterate source (HealthStore) to find potential targets.
     for (var i = 0; i < health.denseEntities.length; i += 1) {
       final e = health.denseEntities[i];
+
+      if (world.deathState.has(e)) continue;
 
       // 3. Filter: Must have Faction, Transform, and Collider.
       // (Using tryIndexOf avoids exception overhead for missing components)
@@ -3414,6 +3516,39 @@ class EquippedRangedWeaponStore extends SparseSet {
 
 
 
+===== FILE: lib/core/ecs/stores/combat/equipped_spell_store.dart =====
+import '../../../spells/spell_id.dart';
+import '../../entity_id.dart';
+import '../../sparse_set.dart';
+
+class EquippedSpellDef {
+  const EquippedSpellDef({this.spellId = SpellId.iceBolt});
+
+  final SpellId spellId;
+}
+
+/// Per-entity equipped spell (single active spell).
+class EquippedSpellStore extends SparseSet {
+  final List<SpellId> spellId = <SpellId>[];
+
+  void add(EntityId entity, [EquippedSpellDef def = const EquippedSpellDef()]) {
+    final i = addEntity(entity);
+    spellId[i] = def.spellId;
+  }
+
+  @override
+  void onDenseAdded(int denseIndex) {
+    spellId.add(SpellId.iceBolt);
+  }
+
+  @override
+  void onSwapRemove(int removeIndex, int lastIndex) {
+    spellId[removeIndex] = spellId[lastIndex];
+    spellId.removeLast();
+  }
+}
+
+
 ===== FILE: lib/core/ecs/stores/combat/equipped_weapon_store.dart =====
 import '../../../weapons/weapon_id.dart';
 import '../../entity_id.dart';
@@ -3492,7 +3627,7 @@ class StatusImmunityMask {
   static const int burn = 1 << 0;
   static const int slow = 1 << 1;
   static const int bleed = 1 << 2;
-
+  static const int stun = 1 << 3;
   static int forType(StatusEffectType type) {
     switch (type) {
       case StatusEffectType.burn:
@@ -3501,6 +3636,8 @@ class StatusImmunityMask {
         return slow;
       case StatusEffectType.bleed:
         return bleed;
+      case StatusEffectType.stun:
+        return stun;
     }
   }
 }
@@ -3587,6 +3724,64 @@ class CooldownStore extends SparseSet {
     rangedWeaponCooldownTicksLeft.removeLast();
   }
 }
+
+
+===== FILE: lib/core/ecs/stores/death_state_store.dart =====
+import '../../enemies/death_behavior.dart';
+import '../entity_id.dart';
+import '../sparse_set.dart';
+
+class DeathStateDef {
+  const DeathStateDef({
+    required this.phase,
+    this.deathStartTick = -1,
+    this.despawnTick = -1,
+    this.maxFallDespawnTick = -1,
+  });
+
+  final DeathPhase phase;
+  final int deathStartTick;
+  final int despawnTick;
+  final int maxFallDespawnTick;
+}
+
+/// Per-entity death lifecycle state (enemy-only for now).
+class DeathStateStore extends SparseSet {
+  final List<DeathPhase> phase = <DeathPhase>[];
+  final List<int> deathStartTick = <int>[];
+  final List<int> despawnTick = <int>[];
+  final List<int> maxFallDespawnTick = <int>[];
+
+  void add(EntityId entity, DeathStateDef def) {
+    final i = addEntity(entity);
+    phase[i] = def.phase;
+    deathStartTick[i] = def.deathStartTick;
+    despawnTick[i] = def.despawnTick;
+    maxFallDespawnTick[i] = def.maxFallDespawnTick;
+  }
+
+  @override
+  void onDenseAdded(int denseIndex) {
+    phase.add(DeathPhase.none);
+    deathStartTick.add(-1);
+    despawnTick.add(-1);
+    maxFallDespawnTick.add(-1);
+  }
+
+  @override
+  void onSwapRemove(int removeIndex, int lastIndex) {
+    phase[removeIndex] = phase[lastIndex];
+    deathStartTick[removeIndex] = deathStartTick[lastIndex];
+    despawnTick[removeIndex] = despawnTick[lastIndex];
+    maxFallDespawnTick[removeIndex] = maxFallDespawnTick[lastIndex];
+
+    phase.removeLast();
+    deathStartTick.removeLast();
+    despawnTick.removeLast();
+    maxFallDespawnTick.removeLast();
+  }
+}
+
 
 
 ===== FILE: lib/core/ecs/stores/enemies/enemy_store.dart =====
@@ -5310,6 +5505,43 @@ class SlowStore extends SparseSet {
 
 
 
+===== FILE: lib/core/ecs/stores/status/stun_store.dart =====
+import '../../entity_id.dart';
+import '../../sparse_set.dart';
+
+class StunDef {
+  const StunDef({required this.ticksLeft, required this.magnitude});
+
+  final int ticksLeft;
+  final double magnitude;
+}
+
+/// Active stun status (stun for duration).
+class StunStore extends SparseSet {
+  final List<int> ticksLeft = <int>[];
+  final List<double> magnitude = <double>[];
+
+  void add(EntityId entity, StunDef def) {
+    final i = addEntity(entity);
+    ticksLeft[i] = def.ticksLeft;
+    magnitude[i] = def.magnitude;
+  }
+
+  @override
+  void onDenseAdded(int denseIndex) {
+    ticksLeft.add(0);
+    magnitude.add(0.0);
+  }
+
+  @override
+  void onSwapRemove(int removeIndex, int lastIndex) {
+    ticksLeft[removeIndex] = ticksLeft[lastIndex];
+    magnitude[removeIndex] = magnitude[lastIndex];
+    ticksLeft.removeLast();
+    magnitude.removeLast();
+  }
+}
+
 ===== FILE: lib/core/ecs/stores/transform_store.dart =====
 import '../entity_id.dart';
 import '../sparse_set.dart';
@@ -5374,6 +5606,7 @@ class TransformStore extends SparseSet {
 
 ===== FILE: lib/core/ecs/systems/anim_system.dart =====
 import '../../anim/anim_resolver.dart';
+import '../../enemies/death_behavior.dart';
 import '../../enemies/enemy_catalog.dart';
 import '../../enemies/enemy_id.dart';
 import '../../players/player_tuning.dart';
@@ -5517,6 +5750,10 @@ class AnimSystem {
           ? world.collision.grounded[world.collision.indexOf(e)]
           : false;
 
+      final di = world.deathState.tryIndexOf(e);
+      final deathPhase = di == null ? DeathPhase.none : world.deathState.phase[di];
+      final deathStartTick = di == null ? -1 : world.deathState.deathStartTick[di];
+
       final lastDamageTick = world.lastDamage.has(e)
           ? world.lastDamage.tick[world.lastDamage.indexOf(e)]
           : -1;
@@ -5533,6 +5770,8 @@ class AnimSystem {
       final signals = AnimSignals.enemy(
         tick: currentTick,
         hp: hp,
+        deathPhase: deathPhase,
+        deathStartTick: deathStartTick,
         grounded: grounded,
         velX: velX,
         velY: velY,
@@ -6015,6 +6254,38 @@ class DamageSystem {
 }
 
 
+===== FILE: lib/core/ecs/systems/death_despawn_system.dart =====
+import '../../enemies/death_behavior.dart';
+import '../entity_id.dart';
+import '../world.dart';
+
+/// Despawns entities when their death animation has completed.
+class DeathDespawnSystem {
+  final List<EntityId> _toDespawn = <EntityId>[];
+
+  void step(EcsWorld world, {required int currentTick}) {
+    final deathState = world.deathState;
+    if (deathState.denseEntities.isEmpty) return;
+
+    _toDespawn.clear();
+    for (var i = 0; i < deathState.denseEntities.length; i += 1) {
+      final e = deathState.denseEntities[i];
+      if (deathState.phase[i] != DeathPhase.deathAnim) continue;
+
+      final despawnTick = deathState.despawnTick[i];
+      if (despawnTick >= 0 && currentTick >= despawnTick) {
+        _toDespawn.add(e);
+      }
+    }
+
+    for (final e in _toDespawn) {
+      world.destroyEntity(e);
+    }
+  }
+}
+
+
+
 ===== FILE: lib/core/ecs/systems/enemy_cast_system.dart =====
 import 'dart:math';
 
@@ -6068,6 +6339,7 @@ class EnemyCastSystem {
     final enemies = world.enemy;
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
       final enemy = enemies.denseEntities[ei];
+      if (world.deathState.has(enemy)) continue;
       final ti = world.transform.tryIndexOf(enemy);
       if (ti == null) continue;
 
@@ -6234,6 +6506,126 @@ class EnemyCullSystem {
 }
 
 
+===== FILE: lib/core/ecs/systems/enemy_death_state_system.dart =====
+import '../../enemies/death_behavior.dart';
+import '../../enemies/enemy_catalog.dart';
+import '../../enemies/enemy_id.dart';
+import '../../util/tick_math.dart';
+import '../stores/death_state_store.dart';
+import '../world.dart';
+
+/// Tracks enemy death phases and schedules despawn timing.
+class EnemyDeathStateSystem {
+  EnemyDeathStateSystem({
+    required int tickHz,
+    EnemyCatalog enemyCatalog = const EnemyCatalog(),
+    double maxFallSeconds = 3.0,
+  }) : _enemyCatalog = enemyCatalog,
+       _maxFallTicks = ticksFromSecondsCeil(maxFallSeconds, tickHz) {
+    _buildDeathAnimTicksById(tickHz);
+  }
+
+  final EnemyCatalog _enemyCatalog;
+  final int _maxFallTicks;
+
+  late final Map<EnemyId, int> _deathAnimTicksById;
+
+  void _buildDeathAnimTicksById(int tickHz) {
+    _deathAnimTicksById = <EnemyId, int>{};
+    for (final id in EnemyId.values) {
+      final seconds = _enemyCatalog.get(id).deathAnimSeconds;
+      _deathAnimTicksById[id] = ticksFromSecondsCeil(seconds, tickHz);
+    }
+  }
+
+  void step(
+    EcsWorld world, {
+    required int currentTick,
+    List<EnemyId>? outEnemiesKilled,
+  }) {
+    final enemies = world.enemy;
+    if (enemies.denseEntities.isEmpty) return;
+
+    final health = world.health;
+    final collision = world.collision;
+    final deathState = world.deathState;
+    final transform = world.transform;
+
+    for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
+      final e = enemies.denseEntities[ei];
+      final di = deathState.tryIndexOf(e);
+      if (di != null) {
+        final phase = deathState.phase[di];
+        if (phase != DeathPhase.fallingUntilGround) continue;
+
+        final grounded = collision.has(e) &&
+            collision.grounded[collision.indexOf(e)];
+        final maxFallTick = deathState.maxFallDespawnTick[di];
+        final shouldStartDeathAnim =
+            grounded || (maxFallTick >= 0 && currentTick >= maxFallTick);
+
+        if (!shouldStartDeathAnim) continue;
+
+        final deathTicks = _deathAnimTicksById[enemies.enemyId[ei]] ?? 0;
+        deathState.phase[di] = DeathPhase.deathAnim;
+        deathState.deathStartTick[di] = currentTick;
+        deathState.despawnTick[di] = currentTick + deathTicks;
+
+        final ti = transform.tryIndexOf(e);
+        if (ti != null) {
+          transform.velX[ti] = 0.0;
+          transform.velY[ti] = 0.0;
+        }
+        continue;
+      }
+
+      final hi = health.tryIndexOf(e);
+      if (hi == null) continue;
+      if (health.hp[hi] > 0.0) continue;
+
+      final archetype = _enemyCatalog.get(enemies.enemyId[ei]);
+      final deathTicks = _deathAnimTicksById[enemies.enemyId[ei]] ?? 0;
+
+      if (outEnemiesKilled != null) {
+        outEnemiesKilled.add(enemies.enemyId[ei]);
+      }
+
+      final grounded = collision.has(e) &&
+          collision.grounded[collision.indexOf(e)];
+
+      if (archetype.deathBehavior == DeathBehavior.groundImpactThenDeath &&
+          !grounded) {
+        deathState.add(
+          e,
+          DeathStateDef(
+            phase: DeathPhase.fallingUntilGround,
+            deathStartTick: -1,
+            despawnTick: -1,
+            maxFallDespawnTick: currentTick + _maxFallTicks,
+          ),
+        );
+        continue;
+      }
+
+      deathState.add(
+        e,
+        DeathStateDef(
+          phase: DeathPhase.deathAnim,
+          deathStartTick: currentTick,
+          despawnTick: currentTick + deathTicks,
+        ),
+      );
+
+      final ti = transform.tryIndexOf(e);
+      if (ti != null) {
+        transform.velX[ti] = 0.0;
+        transform.velY[ti] = 0.0;
+      }
+    }
+  }
+}
+
+
 ===== FILE: lib/core/ecs/systems/enemy_engagement_system.dart =====
 import 'dart:math';
 
@@ -6268,6 +6660,7 @@ class EnemyEngagementSystem {
       if (enemies.enemyId[ei] != EnemyId.groundEnemy) continue;
 
       final enemy = enemies.denseEntities[ei];
+      if (world.deathState.has(enemy)) continue;
       final ti = world.transform.tryIndexOf(enemy);
       if (ti == null) continue;
 
@@ -6508,6 +6901,7 @@ class EnemyMeleeSystem {
     final meleeEngagement = world.meleeEngagement;
     for (var i = 0; i < meleeEngagement.denseEntities.length; i += 1) {
       final enemy = meleeEngagement.denseEntities[i];
+      if (world.deathState.has(enemy)) continue;
       final enemyIndex = world.enemy.tryIndexOf(enemy);
       if (enemyIndex == null) {
         assert(
@@ -6729,6 +7123,7 @@ class EnemyNavigationSystem {
       if (enemies.enemyId[ei] != EnemyId.groundEnemy) continue;
 
       final enemy = enemies.denseEntities[ei];
+      if (world.deathState.has(enemy)) continue;
       final ti = world.transform.tryIndexOf(enemy);
       if (ti == null) continue;
 
@@ -6850,6 +7245,7 @@ class FlyingEnemyLocomotionSystem {
     final steering = world.flyingEnemySteering;
     for (var i = 0; i < steering.denseEntities.length; i += 1) {
       final enemy = steering.denseEntities[i];
+      if (world.deathState.has(enemy)) continue;
       final enemyTi = world.transform.tryIndexOf(enemy);
       if (enemyTi == null) continue;
 
@@ -7117,6 +7513,7 @@ class GroundEnemyLocomotionSystem {
     final navIntent = world.navIntent;
     for (var i = 0; i < navIntent.denseEntities.length; i += 1) {
       final enemy = navIntent.denseEntities[i];
+      if (world.deathState.has(enemy)) continue;
       final enemyTi = world.transform.tryIndexOf(enemy);
       if (enemyTi == null) continue;
 
@@ -7359,10 +7756,6 @@ class GroundEnemyLocomotionSystem {
 
 
 ===== FILE: lib/core/ecs/systems/health_despawn_system.dart =====
-import '../../enemies/enemy_id.dart';
-import '../../enemies/enemy_catalog.dart';
-import '../../enemies/enemy_killed_info.dart';
-import '../../util/vec2.dart';
 import '../entity_id.dart';
 import '../world.dart';
 
@@ -7371,7 +7764,6 @@ import '../world.dart';
 /// **Responsibilities**:
 /// *   Scans all entities with health.
 /// *   Identifies those with zero or negative health points.
-/// *   reports enemy deaths (for score/quests) via [outEnemiesKilled].
 /// *   Removes the dead entities from the ECS world.
 ///
 /// **IMPORTANT**: The player is intentionally exempt because player "death" is a
@@ -7384,13 +7776,9 @@ class HealthDespawnSystem {
 
   /// Runs the system logic.
   ///
-  /// [outEnemiesKilled] is an optional list that, if provided, will be populated
-  /// with the [EnemyId]s of any enemies destroyed this frame.
   void step(
     EcsWorld world, {
     required EntityId player,
-    List<EnemyId>? outEnemiesKilled,
-    List<EnemyKilledInfo>? outEnemyKilledInfo,
   }) {
     final health = world.health;
     // Optimization: If no entities have health components, there's nothing to check.
@@ -7407,6 +7795,9 @@ class HealthDespawnSystem {
       // Safety check: The player should never be despawned by this system.
       if (e == player) continue;
       
+      // Enemies are handled by the enemy death state pipeline.
+      if (world.enemy.has(e)) continue;
+
       // If health is depleted, mark for destruction.
       if (health.hp[i] <= 0.0) {
         _toDespawn.add(e);
@@ -7416,27 +7807,6 @@ class HealthDespawnSystem {
     // -- Pass 2: Reporting & Destruction --
     // Process the list of doomed entities.
     for (final e in _toDespawn) {
-      // If the caller wants to know about enemy kills (e.g. for scoring)...
-      final enemyIndex = world.enemy.tryIndexOf(e);
-      if (enemyIndex != null) {
-        final enemyId = world.enemy.enemyId[enemyIndex];
-        final archetype = const EnemyCatalog().get(enemyId);
-        if (outEnemiesKilled != null) {
-          outEnemiesKilled.add(enemyId);
-        }
-        if (outEnemyKilledInfo != null && world.transform.has(e)) {
-          final ti = world.transform.indexOf(e);
-          outEnemyKilledInfo.add(
-            EnemyKilledInfo(
-              enemyId: enemyId,
-              pos: Vec2(world.transform.posX[ti], world.transform.posY[ti]),
-              facing: world.enemy.facing[enemyIndex],
-              artFacingDir: archetype.artFacingDir,
-            ),
-          );
-        }
-      }
-      
       // Permanently remove the entity and all its components from the world.
       world.destroyEntity(e);
     }
@@ -7512,6 +7882,8 @@ class HitboxDamageSystem {
 
       final owner = hitboxes.owner[hi];
       final sourceFaction = hitboxes.faction[hi];
+
+      if (world.deathState.has(owner)) continue;
       
       // Resolve enemy ID efficiently if the owner is an enemy.
       // This is used for kill credit/stats.
@@ -7828,7 +8200,6 @@ class MeleeAttackSystem {
 
 ===== FILE: lib/core/ecs/systems/player_cast_system.dart =====
 import '../../snapshots/enums.dart';
-import '../../spells/spell_id.dart';
 import '../../players/player_tuning.dart';
 import '../entity_id.dart';
 import '../stores/cast_intent_store.dart';
@@ -7841,15 +8212,17 @@ import '../world.dart';
 /// *   Determines aiming direction based on input or facing direction.
 /// *   Registers a cast intent to be processed (cooldown/mana checks happen downstream).
 class PlayerCastSystem {
-  const PlayerCastSystem({
-    required this.abilities,
-  });
+  const PlayerCastSystem({required this.abilities});
 
   final AbilityTuningDerived abilities;
 
-  void step(EcsWorld world, {required EntityId player, required int currentTick}) {
+  void step(
+    EcsWorld world, {
+    required EntityId player,
+    required int currentTick,
+  }) {
     // -- 1. Component Checks --
-    
+
     // We need input to know if casting.
     final inputIndex = world.playerInput.tryIndexOf(player);
     if (inputIndex == null) return;
@@ -7857,7 +8230,7 @@ class PlayerCastSystem {
     // We need movement data for facing direction (fallback aim).
     final movementIndex = world.movement.tryIndexOf(player);
     if (movementIndex == null) return;
-    
+
     // Check if the store exists (should be added at spawn).
     if (!world.castIntent.has(player)) {
       assert(
@@ -7876,13 +8249,21 @@ class PlayerCastSystem {
       return;
     }
 
+    final equippedIndex = world.equippedSpell.tryIndexOf(player);
+    if (equippedIndex == null) {
+      assert(
+        false,
+        'PlayerCastSystem requires EquippedSpellStore on the player; add it at spawn time.',
+      );
+      return;
+    }
+
     // -- 2. Input Logic --
 
     // If button not pressed, do nothing.
     if (!world.playerInput.castPressed[inputIndex]) return;
 
-    // TODO: Look up equipped spell instead of hardcoding.
-    const spellId = SpellId.iceBolt;
+    final spellId = world.equippedSpell.spellId[equippedIndex];
 
     final facing = world.movement.facing[movementIndex];
 
@@ -7893,7 +8274,7 @@ class PlayerCastSystem {
     // If rawAim is essentially zero/unbiased (e.g. controller neutral), use facing.
     // However, currently we pass fallbackDirX to the intent store separately.
     final fallbackDirX = facing == Facing.right ? 1.0 : -1.0;
-    
+
     // Offset from the player's center where the spell appears.
     //
     // We use a conservative value (max half-extent) to avoid spawning inside
@@ -8470,6 +8851,10 @@ class ProjectileHitSystem {
       // -- Hit Resolution --
       final owner = projectiles.owner[pi];
       final sourceFaction = projectiles.faction[pi];
+      if (world.deathState.has(owner)) {
+        _toDespawn.add(p);
+        continue;
+      }
 
       // Query the broadphase for the first valid intersection.
       // This respects "Friendly Fire" rules via [sourceFaction].
@@ -8776,9 +9161,11 @@ class ResourceRegenSystem {
 
   void _regenHealth(EcsWorld world, double dtSeconds) {
     final store = world.health;
+    final deathState = world.deathState;
     final count = store.denseEntities.length;
     // Iterate contiguous arrays directly (SoA pattern).
     for (var i = 0; i < count; i += 1) {
+      if (deathState.has(store.denseEntities[i])) continue;
       final max = store.hpMax[i];
       if (max <= 0) continue;
       
@@ -8794,8 +9181,10 @@ class ResourceRegenSystem {
 
   void _regenMana(EcsWorld world, double dtSeconds) {
     final store = world.mana;
+    final deathState = world.deathState;
     final count = store.denseEntities.length;
     for (var i = 0; i < count; i += 1) {
+      if (deathState.has(store.denseEntities[i])) continue;
       final max = store.manaMax[i];
       if (max <= 0) continue;
       
@@ -8811,8 +9200,10 @@ class ResourceRegenSystem {
 
   void _regenStamina(EcsWorld world, double dtSeconds) {
     final store = world.stamina;
+    final deathState = world.deathState;
     final count = store.denseEntities.length;
     for (var i = 0; i < count; i += 1) {
+      if (deathState.has(store.denseEntities[i])) continue;
       final max = store.staminaMax[i];
       if (max <= 0) continue;
       
@@ -9093,6 +9484,7 @@ import '../entity_id.dart';
 import '../stores/status/bleed_store.dart';
 import '../stores/status/burn_store.dart';
 import '../stores/status/slow_store.dart';
+import '../stores/status/stun_store.dart';
 import '../world.dart';
 
 /// Applies status effects and ticks active statuses.
@@ -9144,6 +9536,10 @@ class StatusSystem {
     _removeScratch.clear();
     for (var i = 0; i < burn.denseEntities.length; i += 1) {
       final target = burn.denseEntities[i];
+      if (world.deathState.has(target)) {
+        _removeScratch.add(target);
+        continue;
+      }
       burn.ticksLeft[i] -= 1;
       if (burn.ticksLeft[i] <= 0) {
         _removeScratch.add(target);
@@ -9178,6 +9574,10 @@ class StatusSystem {
     _removeScratch.clear();
     for (var i = 0; i < bleed.denseEntities.length; i += 1) {
       final target = bleed.denseEntities[i];
+      if (world.deathState.has(target)) {
+        _removeScratch.add(target);
+        continue;
+      }
       bleed.ticksLeft[i] -= 1;
       if (bleed.ticksLeft[i] <= 0) {
         _removeScratch.add(target);
@@ -9209,6 +9609,10 @@ class StatusSystem {
     _removeScratch.clear();
     for (var i = 0; i < slow.denseEntities.length; i += 1) {
       final target = slow.denseEntities[i];
+      if (world.deathState.has(target)) {
+        _removeScratch.add(target);
+        continue;
+      }
       slow.ticksLeft[i] -= 1;
       if (slow.ticksLeft[i] <= 0) {
         _removeScratch.add(target);
@@ -9225,6 +9629,7 @@ class StatusSystem {
     final invuln = world.invulnerability;
 
     for (final req in _pending) {
+      if (world.deathState.has(req.target)) continue;
       if (!world.health.has(req.target)) continue;
 
       final ii = invuln.tryIndexOf(req.target);
@@ -9266,7 +9671,37 @@ class StatusSystem {
               periodSeconds: app.periodSeconds,
               useBurn: false,
             );
+          case StatusEffectType.stun:
+            _applyStun(world, req.target, magnitude, app.durationSeconds);
         }
+      }
+    }
+  }
+
+  void _applyStun(
+    EcsWorld world,
+    EntityId target,
+    double magnitude,
+    double durationSeconds,
+  ) {
+    if (!world.statModifier.has(target)) return;
+    final ticksLeft = ticksFromSecondsCeil(durationSeconds, _tickHz);
+    if (ticksLeft <= 0) return;
+
+    final stun = world.stun;
+    final clamped = clampDouble(magnitude, 0.0, 0.9);
+    final index = stun.tryIndexOf(target);
+    if (index == null) {
+      stun.add(
+        target,
+        StunDef(ticksLeft: ticksLeft, magnitude: clamped),
+      );
+    } else {
+      stun.ticksLeft[index] = stun.ticksLeft[index] > ticksLeft
+          ? stun.ticksLeft[index]
+          : ticksLeft;
+      if (clamped > stun.magnitude[index]) {
+        stun.magnitude[index] = clamped;
       }
     }
   }
@@ -9395,6 +9830,7 @@ import 'stores/cast_intent_store.dart';
 import 'stores/combat/ammo_store.dart';
 import 'stores/combat/creature_tag_store.dart';
 import 'stores/combat/damage_resistance_store.dart';
+import 'stores/combat/equipped_spell_store.dart';
 import 'stores/combat/equipped_weapon_store.dart';
 import 'stores/combat/equipped_ranged_weapon_store.dart';
 import 'stores/combat/stat_modifier_store.dart';
@@ -9413,6 +9849,7 @@ import 'stores/enemies/nav_intent_store.dart';
 import 'stores/health_store.dart';
 import 'stores/hit_once_store.dart';
 import 'stores/hitbox_store.dart';
+import 'stores/death_state_store.dart';
 import 'stores/player/invulnerability_store.dart';
 import 'stores/player/last_damage_store.dart';
 import 'stores/lifetime_store.dart';
@@ -9426,6 +9863,7 @@ import 'stores/restoration_item_store.dart';
 import 'stores/status/bleed_store.dart';
 import 'stores/status/burn_store.dart';
 import 'stores/status/slow_store.dart';
+import 'stores/status/stun_store.dart';
 import 'stores/spell_origin_store.dart';
 import 'stores/stamina_store.dart';
 import 'stores/enemies/surface_nav_state_store.dart';
@@ -9508,10 +9946,14 @@ class EcsWorld {
   late final CollectibleStore collectible = _register(CollectibleStore());
 
   /// Defines an item that restores stats (health/mana) when collected.
-  late final RestorationItemStore restorationItem = _register(RestorationItemStore());
+  late final RestorationItemStore restorationItem = _register(
+    RestorationItemStore(),
+  );
 
   /// Allows an entity to control or defy gravity.
-  late final GravityControlStore gravityControl = _register(GravityControlStore());
+  late final GravityControlStore gravityControl = _register(
+    GravityControlStore(),
+  );
 
   /// Defines which faction (Player, Enemy, Neutral) an entity belongs to.
   late final FactionStore faction = _register(FactionStore());
@@ -9520,17 +9962,25 @@ class EcsWorld {
   late final HealthStore health = _register(HealthStore());
 
   /// Damage resistance/vulnerability modifiers.
-  late final DamageResistanceStore damageResistance =
-      _register(DamageResistanceStore());
+  late final DamageResistanceStore damageResistance = _register(
+    DamageResistanceStore(),
+  );
 
   /// Grants temporary invulnerability (i-frames).
-  late final InvulnerabilityStore invulnerability = _register(InvulnerabilityStore());
+  late final InvulnerabilityStore invulnerability = _register(
+    InvulnerabilityStore(),
+  );
 
   /// Records the last entity/source that dealt damage to this entity.
   late final LastDamageStore lastDamage = _register(LastDamageStore());
 
+  /// Tracks per-entity death lifecycle state.
+  late final DeathStateStore deathState = _register(DeathStateStore());
+
   /// Status immunities (burn, slow, bleed).
-  late final StatusImmunityStore statusImmunity = _register(StatusImmunityStore());
+  late final StatusImmunityStore statusImmunity = _register(
+    StatusImmunityStore(),
+  );
 
   /// Manages Mana Points (MP) and max MP.
   late final ManaStore mana = _register(ManaStore());
@@ -9539,18 +9989,25 @@ class EcsWorld {
   late final MeleeIntentStore meleeIntent = _register(MeleeIntentStore());
 
   /// Tracks the player's intent to fire a ranged weapon.
-  late final RangedWeaponIntentStore rangedWeaponIntent =
-      _register(RangedWeaponIntentStore());
+  late final RangedWeaponIntentStore rangedWeaponIntent = _register(
+    RangedWeaponIntentStore(),
+  );
 
   /// Per-entity ammo pools for ranged weapons.
   late final AmmoStore ammo = _register(AmmoStore());
 
   /// Equipped melee weapon (for on-hit profiles like bleed).
-  late final EquippedWeaponStore equippedWeapon = _register(EquippedWeaponStore());
+  late final EquippedWeaponStore equippedWeapon = _register(
+    EquippedWeaponStore(),
+  );
 
   /// Equipped ranged weapon (bow, throwing axe, ...).
-  late final EquippedRangedWeaponStore equippedRangedWeapon =
-      _register(EquippedRangedWeaponStore());
+  late final EquippedRangedWeaponStore equippedRangedWeapon = _register(
+    EquippedRangedWeaponStore(),
+  );
+
+  /// Equipped spell hotbar (used by player cast intent writers).
+  late final EquippedSpellStore equippedSpell = _register(EquippedSpellStore());
 
   /// Derived runtime stat modifiers (e.g., slows).
   late final StatModifierStore statModifier = _register(StatModifierStore());
@@ -9579,11 +10036,16 @@ class EcsWorld {
   /// Active slow effects.
   late final SlowStore slow = _register(SlowStore());
 
+  /// Active stun effects.
+  late final StunStore stun = _register(StunStore());
+
   /// Links a spell effect back to its caster or origin point.
   late final SpellOriginStore spellOrigin = _register(SpellOriginStore());
 
   /// State for ground enemies navigating terrain (jumping gaps/walls).
-  late final SurfaceNavStateStore surfaceNav = _register(SurfaceNavStateStore());
+  late final SurfaceNavStateStore surfaceNav = _register(
+    SurfaceNavStateStore(),
+  );
 
   /// Identifies an entity as a specific type of enemy.
   late final EnemyStore enemy = _register(EnemyStore());
@@ -9592,21 +10054,27 @@ class EcsWorld {
   late final AnimStateStore animState = _register(AnimStateStore());
 
   /// Steering behaviors for flying enemies.
-  late final FlyingEnemySteeringStore flyingEnemySteering = _register(FlyingEnemySteeringStore());
+  late final FlyingEnemySteeringStore flyingEnemySteering = _register(
+    FlyingEnemySteeringStore(),
+  );
 
   /// AI state for ground enemies to create offset chasing behaviors.
-  late final GroundEnemyChaseOffsetStore groundEnemyChaseOffset =
-      _register(GroundEnemyChaseOffsetStore());
+  late final GroundEnemyChaseOffsetStore groundEnemyChaseOffset = _register(
+    GroundEnemyChaseOffsetStore(),
+  );
 
   /// Navigation intent output for ground enemies.
   late final NavIntentStore navIntent = _register(NavIntentStore());
 
   /// Engagement intent output for melee enemies.
-  late final EngagementIntentStore engagementIntent =
-      _register(EngagementIntentStore());
+  late final EngagementIntentStore engagementIntent = _register(
+    EngagementIntentStore(),
+  );
 
   /// Engagement state for melee enemies (approach/engage/attack/recover).
-  late final MeleeEngagementStore meleeEngagement = _register(MeleeEngagementStore());
+  late final MeleeEngagementStore meleeEngagement = _register(
+    MeleeEngagementStore(),
+  );
 
   /// Allocates a new [EntityId].
   ///
@@ -9639,6 +10107,28 @@ class EcsWorld {
 }
 
 
+===== FILE: lib/core/enemies/death_behavior.dart =====
+/// Enemy death behavior configuration (data-driven).
+library;
+
+/// Determines how an enemy transitions from "killed" to final despawn.
+enum DeathBehavior {
+  /// Start the death animation immediately on kill.
+  instant,
+
+  /// If killed mid-air, fall until grounded before starting the death animation.
+  groundImpactThenDeath,
+}
+
+/// Runtime death phase for enemies that are waiting to despawn.
+enum DeathPhase {
+  none,
+  fallingUntilGround,
+  deathAnim,
+}
+
+
+
 ===== FILE: lib/core/enemies/enemy_catalog.dart =====
 import '../ecs/stores/body_store.dart';
 import '../ecs/stores/collider_aabb_store.dart';
@@ -9651,6 +10141,7 @@ import '../ecs/stores/stamina_store.dart';
 import '../combat/creature_tag.dart';
 import '../anim/anim_resolver.dart';
 import '../contracts/render_anim_set_definition.dart';
+import 'death_behavior.dart';
 import '../spells/spell_id.dart';
 import '../snapshots/enums.dart';
 import '../util/vec2.dart';
@@ -9677,6 +10168,8 @@ const double _unocoAnimDeathStepSeconds = 0.12;
 
 const double _unocoHitAnimSeconds =
     _unocoAnimHitFrames * _unocoAnimHitStepSeconds;
+const double _unocoDeathAnimSeconds =
+    _unocoAnimDeathFrames * _unocoAnimDeathStepSeconds;
 
 const Map<AnimKey, int> _unocoAnimFrameCountsByKey = <AnimKey, int>{
   AnimKey.idle: _unocoAnimIdleFrames,
@@ -9751,6 +10244,8 @@ const int _grojibAnimFallFrames = 3;
 const double _grojibAnimFallStepSeconds = 0.10;
 const double _grojibHitAnimSeconds =
     _grojibAnimHitFrames * _grojibAnimHitStepSeconds;
+const double _grojibDeathAnimSeconds =
+    _grojibAnimDeathFrames * _grojibAnimDeathStepSeconds;
 
 const Map<AnimKey, int> _grojibAnimFrameCountsByKey = <AnimKey, int>{
   AnimKey.idle: _grojibAnimIdleFrames,
@@ -9827,6 +10322,8 @@ class EnemyArchetype {
     required this.renderAnim,
     required this.animProfile,
     required this.hitAnimSeconds,
+    required this.deathAnimSeconds,
+    this.deathBehavior = DeathBehavior.instant,
     this.primarySpellId,
     this.artFacingDir = Facing.left,
     this.tags = const CreatureTagDef(),
@@ -9853,6 +10350,12 @@ class EnemyArchetype {
 
   /// Duration the hit animation should be visible (seconds).
   final double hitAnimSeconds;
+
+  /// Duration the death animation should be visible (seconds).
+  final double deathAnimSeconds;
+
+  /// Behavior for death transition timing (instant vs ground impact).
+  final DeathBehavior deathBehavior;
 
   /// Optional primary ranged attack spell for this enemy.
   ///
@@ -9909,6 +10412,8 @@ class EnemyCatalog {
           renderAnim: _unocoRenderAnim,
           animProfile: _unocoAnimProfile,
           hitAnimSeconds: _unocoHitAnimSeconds,
+          deathAnimSeconds: _unocoDeathAnimSeconds,
+          deathBehavior: DeathBehavior.instant,
           primarySpellId: SpellId.thunderBolt,
           artFacingDir: Facing.left,
           tags: CreatureTagDef(
@@ -9937,6 +10442,8 @@ class EnemyCatalog {
           renderAnim: _grojibRenderAnim,
           animProfile: _grojibAnimProfile,
           hitAnimSeconds: _grojibHitAnimSeconds,
+          deathAnimSeconds: _grojibDeathAnimSeconds,
+          deathBehavior: DeathBehavior.groundImpactThenDeath,
           tags: CreatureTagDef(mask: CreatureTagMask.humanoid),
         );
     }
@@ -10252,7 +10759,9 @@ import 'ecs/systems/collectible_system.dart';
 import 'ecs/systems/collision_system.dart';
 import 'ecs/systems/cooldown_system.dart';
 import 'ecs/systems/damage_system.dart';
+import 'ecs/systems/death_despawn_system.dart';
 import 'ecs/systems/enemy_cast_system.dart';
+import 'ecs/systems/enemy_death_state_system.dart';
 import 'ecs/systems/enemy_engagement_system.dart';
 import 'ecs/systems/flying_enemy_locomotion_system.dart';
 import 'ecs/systems/ground_enemy_locomotion_system.dart';
@@ -10282,7 +10791,6 @@ import 'ecs/systems/enemy_melee_system.dart';
 import 'ecs/world.dart';
 import 'enemies/enemy_catalog.dart';
 import 'enemies/enemy_id.dart';
-import 'enemies/enemy_killed_info.dart';
 import 'events/game_event.dart';
 import 'levels/level_definition.dart';
 import 'levels/level_id.dart';
@@ -10305,6 +10813,7 @@ import 'track_manager.dart';
 import 'weapons/weapon_catalog.dart';
 import 'ecs/stores/combat/equipped_weapon_store.dart';
 import 'ecs/stores/combat/equipped_ranged_weapon_store.dart';
+import 'ecs/stores/combat/equipped_spell_store.dart';
 import 'weapons/ranged_weapon_catalog.dart';
 import 'tuning/camera_tuning.dart';
 import 'tuning/collectible_tuning.dart';
@@ -10593,6 +11102,11 @@ class GameCore {
     );
     _statusSystem = StatusSystem(tickHz: tickHz);
     _healthDespawnSystem = HealthDespawnSystem();
+    _enemyDeathStateSystem = EnemyDeathStateSystem(
+      tickHz: tickHz,
+      enemyCatalog: _enemyCatalog,
+    );
+    _deathDespawnSystem = DeathDespawnSystem();
     _enemyCullSystem = EnemyCullSystem();
     _animSystem = AnimSystem(
       tickHz: tickHz,
@@ -10662,7 +11176,8 @@ class GameCore {
         dtSeconds: _movement.dtSeconds,
         maxTicks: 120,
       ),
-      chaseTargetDelayTicks: _groundEnemyTuning.navigation.chaseTargetDelayTicks,
+      chaseTargetDelayTicks:
+          _groundEnemyTuning.navigation.chaseTargetDelayTicks,
     );
     _enemyEngagementSystem = EnemyEngagementSystem(
       groundEnemyTuning: _groundEnemyTuning,
@@ -10679,9 +11194,7 @@ class GameCore {
       spells: _spells,
       projectiles: _projectiles,
     );
-    _enemyMeleeSystem = EnemyMeleeSystem(
-      groundEnemyTuning: _groundEnemyTuning,
-    );
+    _enemyMeleeSystem = EnemyMeleeSystem(groundEnemyTuning: _groundEnemyTuning);
   }
 
   /// Spawns the player entity at the start of a run.
@@ -10719,6 +11232,7 @@ class GameCore {
       equippedRangedWeapon: EquippedRangedWeaponDef(
         weaponId: playerArchetype.rangedWeaponId,
       ),
+      equippedSpell: EquippedSpellDef(spellId: playerArchetype.spellId),
       ammo: playerArchetype.ammo,
     );
   }
@@ -10806,6 +11320,8 @@ class GameCore {
   late final DamageSystem _damageSystem;
   late final StatusSystem _statusSystem;
   late final HealthDespawnSystem _healthDespawnSystem;
+  late final EnemyDeathStateSystem _enemyDeathStateSystem;
+  late final DeathDespawnSystem _deathDespawnSystem;
   late EnemyNavigationSystem _enemyNavigationSystem;
   late EnemyEngagementSystem _enemyEngagementSystem;
   late GroundEnemyLocomotionSystem _groundEnemyLocomotionSystem;
@@ -10853,9 +11369,6 @@ class GameCore {
 
   /// Scratch list for killed enemies (reused to avoid allocation).
   final List<EnemyId> _killedEnemiesScratch = <EnemyId>[];
-
-  /// Scratch list for enemy death render events (reused to avoid allocation).
-  final List<EnemyKilledInfo> _killedEnemyInfoScratch = <EnemyKilledInfo>[];
 
   /// Kill counts per enemy type (indexed by [EnemyId.index]).
   final List<int> _enemyKillCounts = List<int>.filled(EnemyId.values.length, 0);
@@ -11105,15 +11618,8 @@ class GameCore {
     _invulnerabilitySystem.step(_world);
 
     // ─── Phase 3: AI and movement ───
-    _enemyNavigationSystem.step(
-      _world,
-      player: _player,
-    );
-    _enemyEngagementSystem.step(
-      _world,
-      player: _player,
-      currentTick: tick,
-    );
+    _enemyNavigationSystem.step(_world, player: _player);
+    _enemyEngagementSystem.step(_world, player: _player, currentTick: tick);
     _groundEnemyLocomotionSystem.step(
       _world,
       player: _player,
@@ -11216,34 +11722,21 @@ class GameCore {
 
     // ─── Phase 14: Death handling ───
     _killedEnemiesScratch.clear();
-    _killedEnemyInfoScratch.clear();
     _enemyCullSystem.step(
       _world,
       cameraLeft: _camera.left(),
       groundTopY: effectiveGroundTopY,
       tuning: _trackTuning,
     );
-    _healthDespawnSystem.step(
+    _enemyDeathStateSystem.step(
       _world,
-      player: _player,
+      currentTick: tick,
       outEnemiesKilled: _killedEnemiesScratch,
-      outEnemyKilledInfo: _killedEnemyInfoScratch,
     );
+    _deathDespawnSystem.step(_world, currentTick: tick);
+    _healthDespawnSystem.step(_world, player: _player);
     if (_killedEnemiesScratch.isNotEmpty) {
       _recordEnemyKills(_killedEnemiesScratch);
-    }
-    if (_killedEnemyInfoScratch.isNotEmpty) {
-      for (final info in _killedEnemyInfoScratch) {
-        _events.add(
-          EnemyKilledEvent(
-            tick: tick,
-            enemyId: info.enemyId,
-            pos: info.pos,
-            facing: info.facing,
-            artFacingDir: info.artFacingDir,
-          ),
-        );
-      }
     }
     if (_isPlayerDead()) {
       if (_deathAnimTicksLeft <= 0) {
@@ -13879,6 +14372,72 @@ class TrajectoryPredictor {
 }
 
 
+===== FILE: lib/core/pickups/pickup_render_catalog.dart =====
+import '../contracts/render_anim_set_definition.dart';
+import '../snapshots/entity_render_snapshot.dart';
+import '../snapshots/enums.dart';
+
+const int _frameW = 16;
+const int _frameH = 16;
+const int _frames = 12;
+const double _stepSeconds = 0.08;
+
+const Map<AnimKey, int> _frameCountsByKey = <AnimKey, int>{
+  AnimKey.idle: _frames,
+};
+
+const Map<AnimKey, double> _stepTimeSecondsByKey = <AnimKey, double>{
+  AnimKey.idle: _stepSeconds,
+};
+
+RenderAnimSetDefinition _rowFromSheet({
+  required String assetPath,
+  required int row,
+}) {
+  return RenderAnimSetDefinition(
+    frameWidth: _frameW,
+    frameHeight: _frameH,
+    sourcesByKey: <AnimKey, String>{AnimKey.idle: assetPath},
+    frameCountsByKey: _frameCountsByKey,
+    stepTimeSecondsByKey: _stepTimeSecondsByKey,
+    rowByKey: <AnimKey, int>{AnimKey.idle: row},
+  );
+}
+
+class PickupRenderCatalog {
+  const PickupRenderCatalog();
+
+  RenderAnimSetDefinition get(int pickupVariant) {
+    switch (pickupVariant) {
+      case PickupVariant.collectible:
+        return _rowFromSheet(
+          assetPath: 'entities/collectibles/coins.png',
+          row: 0,
+        );
+      case PickupVariant.restorationHealth:
+        return _rowFromSheet(
+          assetPath: 'entities/regenerationItems/gems.png',
+          row: 0,
+        );
+      case PickupVariant.restorationMana:
+        return _rowFromSheet(
+          assetPath: 'entities/regenerationItems/gems.png',
+          row: 1,
+        );
+      case PickupVariant.restorationStamina:
+        return _rowFromSheet(
+          assetPath: 'entities/regenerationItems/gems.png',
+          row: 2,
+        );
+      default:
+        throw StateError(
+          'No render animation defined for pickupVariant=$pickupVariant.',
+        );
+    }
+  }
+}
+
+
 ===== FILE: lib/core/players/characters/eloise.dart =====
 library;
 
@@ -13889,6 +14448,7 @@ import '../../ecs/stores/combat/damage_resistance_store.dart';
 import '../../ecs/stores/combat/status_immunity_store.dart';
 import '../../combat/creature_tag.dart';
 import '../../snapshots/enums.dart';
+import '../../spells/spell_id.dart';
 import '../../weapons/ranged_weapon_id.dart';
 import '../../weapons/weapon_id.dart';
 import '../player_character_definition.dart';
@@ -14026,6 +14586,7 @@ const PlayerCatalog eloiseCatalog = PlayerCatalog(
   statusImmunity: StatusImmunityDef(),
   weaponId: WeaponId.basicSword,
   rangedWeaponId: RangedWeaponId.throwingKnife,
+  spellId: SpellId.fireBolt,
   ammo: AmmoDef(throwingKnives: 10000),
   facing: Facing.right,
 );
@@ -14099,6 +14660,7 @@ import '../ecs/stores/health_store.dart';
 import '../ecs/stores/mana_store.dart';
 import '../ecs/stores/stamina_store.dart';
 import '../snapshots/enums.dart';
+import '../spells/spell_id.dart';
 import '../weapons/weapon_id.dart';
 import '../weapons/ranged_weapon_id.dart';
 
@@ -14127,6 +14689,7 @@ class PlayerArchetype {
     this.statusImmunity = const StatusImmunityDef(),
     this.weaponId = WeaponId.basicSword,
     this.rangedWeaponId = RangedWeaponId.bow,
+    this.spellId = SpellId.iceBolt,
     this.ammo = const AmmoDef(),
     this.facing = Facing.right,
   });
@@ -14176,6 +14739,9 @@ class PlayerArchetype {
   /// Equipped ranged weapon used for thrown/ballistic projectiles.
   final RangedWeaponId rangedWeaponId;
 
+  /// Equipped spell id.
+  final SpellId spellId;
+
   /// Ammo pool for ranged weapons.
   final AmmoDef ammo;
 
@@ -14199,6 +14765,7 @@ import '../ecs/stores/mana_store.dart';
 import '../ecs/stores/stamina_store.dart';
 import '../snapshots/enums.dart';
 import 'player_tuning.dart';
+import '../spells/spell_id.dart';
 import '../weapons/weapon_id.dart';
 import '../weapons/ranged_weapon_id.dart';
 import 'player_archetype.dart';
@@ -14236,6 +14803,7 @@ class PlayerCatalog {
     this.statusImmunity = const StatusImmunityDef(),
     this.weaponId = WeaponId.basicSword,
     this.rangedWeaponId = RangedWeaponId.bow,
+    this.spellId = SpellId.iceBolt,
     this.ammo = const AmmoDef(arrows: 20, throwingAxes: 6),
     this.facing = Facing.right,
   });
@@ -14289,6 +14857,9 @@ class PlayerCatalog {
   /// Default equipped ranged weapon at spawn time.
   final RangedWeaponId rangedWeaponId;
 
+  /// Default equipped spell at spawn time.
+  final SpellId spellId;
+
   /// Default ammo pool at spawn time.
   final AmmoDef ammo;
 
@@ -14324,12 +14895,12 @@ class PlayerCatalogDerived {
   /// - [movement]: Movement tuning for collider size and velocity clamps.
   /// - [resources]: Resource tuning for HP, mana, and stamina pools.
   ///
-/// **Derivation Logic**:
-/// 1. Copy physics flags from [base.bodyTemplate].
-/// 2. Fill `maxVelX`/`maxVelY` from [movement].
-/// 3. Create AABB collider from [base].
-/// 4. Create resource pools from [resources].
-/// 5. Bundle everything into a [PlayerArchetype].
+  /// **Derivation Logic**:
+  /// 1. Copy physics flags from [base.bodyTemplate].
+  /// 2. Fill `maxVelX`/`maxVelY` from [movement].
+  /// 3. Create AABB collider from [base].
+  /// 4. Create resource pools from [resources].
+  /// 5. Bundle everything into a [PlayerArchetype].
   factory PlayerCatalogDerived.from(
     PlayerCatalog base, {
     required MovementTuningDerived movement,
@@ -14385,6 +14956,7 @@ class PlayerCatalogDerived {
         statusImmunity: base.statusImmunity,
         weaponId: base.weaponId,
         rangedWeaponId: base.rangedWeaponId,
+        spellId: base.spellId,
         ammo: base.ammo,
         facing: base.facing,
       ),
@@ -15622,7 +16194,6 @@ import 'snapshots/player_hud_snapshot.dart';
 import 'snapshots/static_ground_gap_snapshot.dart';
 import 'snapshots/static_solid_snapshot.dart';
 import 'spells/spell_catalog.dart';
-import 'spells/spell_id.dart';
 import 'players/player_tuning.dart';
 import 'util/vec2.dart';
 import 'weapons/ranged_weapon_catalog.dart';
@@ -15750,7 +16321,9 @@ class SnapshotBuilder {
     // ─── Read current resource values ───
     final stamina = world.stamina.stamina[si];
     final mana = world.mana.mana[mai];
-    final projectileManaCost = spells.get(SpellId.iceBolt).stats.manaCost;
+    final equippedSpellId =
+        world.equippedSpell.spellId[world.equippedSpell.indexOf(player)];
+    final projectileManaCost = spells.get(equippedSpellId).stats.manaCost;
     final rangedWeaponId = world.equippedRangedWeapon.weaponId[rwi];
     final rangedWeaponDef = rangedWeapons.base.get(rangedWeaponId);
     final rangedAmmo = world.ammo.countForIndex(ami, rangedWeaponDef.ammoType);
@@ -18798,7 +19371,7 @@ class CollectibleTuning {
     this.minPerChunk = 1,
     this.maxPerChunk = 2,
     this.spawnStartChunkIndex = 2,
-    this.collectibleSize = 10.0,
+    this.collectibleSize = 16.0,
     this.surfaceClearanceY = 10.0,
     this.noSpawnMargin = 2.0,
     this.minSpacingX = 80.0,
@@ -19427,7 +20000,7 @@ class RestorationItemTuning {
     this.spawnEveryChunks = 16,
     this.spawnStartChunkIndex = 2,
     this.restorePercent = 0.30,
-    this.itemSize = 12.0,
+    this.itemSize = 16.0,
     this.surfaceClearanceY = 10.0,
     this.noSpawnMargin = 2.0,
     this.chunkEdgeMarginX = 32.0,
@@ -20127,6 +20700,11 @@ class WeaponCatalog {
           id: WeaponId.basicSword,
           statusProfileId: StatusProfileId.meleeBleed,
         );
+      case WeaponId.basicShield:
+        return const WeaponDef(
+          id: WeaponId.basicShield,
+          statusProfileId: StatusProfileId.stunOnHit,
+        );
     }
   }
 }
@@ -20165,6 +20743,7 @@ class WeaponDef {
 enum WeaponId {
   /// Default starter weapon.
   basicSword,
+  basicShield,
 }
 
 
@@ -20473,6 +21052,137 @@ class EnemyRenderRegistry {
   Future<void> load(Images images) async {
     for (final entry in _entries.values) {
       final renderAnim = _enemyCatalog.get(entry.id).renderAnim;
+      await entry.load(images, renderAnim: renderAnim);
+    }
+  }
+}
+
+
+===== FILE: lib/game/components/pickups/pickup_render_registry.dart =====
+/// Pickup render registry and loaders (render layer only).
+library;
+
+import 'package:flame/cache.dart';
+import 'package:flame/components.dart';
+
+import '../../../core/contracts/render_anim_set_definition.dart';
+import '../../../core/pickups/pickup_render_catalog.dart';
+import '../../../core/snapshots/entity_render_snapshot.dart';
+import '../../../core/snapshots/enums.dart';
+import '../sprite_anim/deterministic_anim_view_component.dart';
+import '../sprite_anim/sprite_anim_set.dart';
+import '../sprite_anim/strip_animation_loader.dart';
+
+typedef PickupAnimLoader =
+    Future<SpriteAnimSet> Function(
+      Images images, {
+      required RenderAnimSetDefinition renderAnim,
+      required Set<AnimKey> oneShotKeys,
+    });
+
+typedef PickupViewFactory =
+    DeterministicAnimViewComponent Function(
+      SpriteAnimSet animSet,
+      Vector2 renderScale,
+    );
+
+DeterministicAnimViewComponent _defaultPickupViewFactory(
+  SpriteAnimSet animSet,
+  Vector2 renderScale,
+) {
+  return DeterministicAnimViewComponent(
+    animSet: animSet,
+    renderSize: Vector2(animSet.frameSize.x, animSet.frameSize.y),
+    renderScale: renderScale,
+    respectFacing: false,
+  );
+}
+
+class PickupRenderEntry {
+  PickupRenderEntry({
+    required this.variant,
+    required this.renderScale,
+    this.oneShotKeys = const <AnimKey>{},
+    this.loader = loadAnimSetFromDefinition,
+    this.viewFactory = _defaultPickupViewFactory,
+  });
+
+  final int variant;
+  final Vector2 renderScale;
+  final Set<AnimKey> oneShotKeys;
+  final PickupAnimLoader loader;
+  final PickupViewFactory viewFactory;
+
+  SpriteAnimSet? _animSet;
+
+  bool get isLoaded => _animSet != null;
+
+  SpriteAnimSet get animSet {
+    final value = _animSet;
+    if (value == null) {
+      throw StateError('PickupRenderEntry($variant) has not been loaded yet.');
+    }
+    return value;
+  }
+
+  Future<void> load(
+    Images images, {
+    required RenderAnimSetDefinition renderAnim,
+  }) async {
+    _animSet = await loader(
+      images,
+      renderAnim: renderAnim,
+      oneShotKeys: oneShotKeys,
+    );
+  }
+}
+
+/// Render registry for pickups (PickupVariant -> render wiring).
+class PickupRenderRegistry {
+  PickupRenderRegistry({
+    PickupRenderCatalog catalog = const PickupRenderCatalog(),
+  }) : _catalog = catalog;
+
+  final PickupRenderCatalog _catalog;
+
+  // 16px art scaled to match Core collider sizes.
+  static final Vector2 _collectibleScale = Vector2.all(1.0);
+  static final Vector2 _restorationScale = Vector2.all(1.0);
+
+  final Map<int, PickupRenderEntry> _entries = <int, PickupRenderEntry>{
+    // Collectible coin.
+    PickupVariant.collectible: PickupRenderEntry(
+      variant: PickupVariant.collectible,
+      renderScale: _collectibleScale,
+    ),
+    // Restoration gems.
+    PickupVariant.restorationHealth: PickupRenderEntry(
+      variant: PickupVariant.restorationHealth,
+      renderScale: _restorationScale,
+    ),
+    PickupVariant.restorationMana: PickupRenderEntry(
+      variant: PickupVariant.restorationMana,
+      renderScale: _restorationScale,
+    ),
+    PickupVariant.restorationStamina: PickupRenderEntry(
+      variant: PickupVariant.restorationStamina,
+      renderScale: _restorationScale,
+    ),
+  };
+
+  PickupRenderEntry entryForVariant(int variant) {
+    final entry = _entries[variant];
+    if (entry == null) {
+      throw StateError(
+        'No pickup render entry registered for variant=$variant.',
+      );
+    }
+    return entry;
+  }
+
+  Future<void> load(Images images) async {
+    for (final entry in _entries.values) {
+      final renderAnim = _catalog.get(entry.variant);
       await entry.load(images, renderAnim: renderAnim);
     }
   }
@@ -22349,6 +23059,7 @@ import 'debug/render_debug_flags.dart';
 import 'components/player/player_animations.dart';
 import 'components/player/player_view_component.dart';
 import 'components/enemies/enemy_render_registry.dart';
+import 'components/pickups/pickup_render_registry.dart';
 import 'components/projectiles/projectile_render_registry.dart';
 import 'components/sprite_anim/deterministic_anim_view_component.dart';
 import 'tuning/player_render_tuning.dart';
@@ -22393,6 +23104,7 @@ class RunnerFlameGame extends FlameGame {
          enemyCatalog: controller.enemyCatalog,
        ),
        _projectileRenderRegistry = ProjectileRenderRegistry(),
+       _pickupRenderRegistry = PickupRenderRegistry(),
        super(
          camera: CameraComponent.withFixedResolution(
            width: virtualWidth.toDouble(),
@@ -22417,29 +23129,21 @@ class RunnerFlameGame extends FlameGame {
   late final PlayerViewComponent _player;
   final EnemyRenderRegistry _enemyRenderRegistry;
   final ProjectileRenderRegistry _projectileRenderRegistry;
+  final PickupRenderRegistry _pickupRenderRegistry;
   final List<RectangleComponent> _staticSolids = <RectangleComponent>[];
   List<StaticSolidSnapshot>? _lastStaticSolidsSnapshot;
 
   /// Entity view pools, keyed by entity ID.
   final Map<int, DeterministicAnimViewComponent> _projectileAnimViews =
       <int, DeterministicAnimViewComponent>{};
-  final Map<int, RectangleComponent> _projectileRects =
-      <int, RectangleComponent>{};
-  final Map<int, RectangleComponent> _collectibles =
-      <int, RectangleComponent>{};
+  final Map<int, DeterministicAnimViewComponent> _pickupAnimViews =
+      <int, DeterministicAnimViewComponent>{};
   final Map<int, DeterministicAnimViewComponent> _enemies =
       <int, DeterministicAnimViewComponent>{};
   final Map<int, RectangleComponent> _hitboxes = <int, RectangleComponent>{};
   final Map<int, RectangleComponent> _actorHitboxes =
       <int, RectangleComponent>{};
 
-  final Paint _projectilePaint = Paint()..color = const Color(0xFF60A5FA);
-  final Map<int, Paint> _pickupPaints = <int, Paint>{
-    PickupVariant.collectible: Paint()..color = const Color(0xFFFFEB3B),
-    PickupVariant.restorationHealth: Paint()..color = const Color(0xFFEF4444),
-    PickupVariant.restorationMana: Paint()..color = const Color(0xFF3B82F6),
-    PickupVariant.restorationStamina: Paint()..color = const Color(0xFF22C55E),
-  };
   final Paint _hitboxPaint = Paint()..color = const Color(0x66EF4444);
   final Paint _actorHitboxPaint = Paint()
     ..color = const Color(0xFF22C55E)
@@ -22453,7 +23157,6 @@ class RunnerFlameGame extends FlameGame {
   final List<int> _toRemoveScratch = <int>[];
   final Vector2 _cameraCenterScratch = Vector2.zero();
   final Vector2 _snapScratch = Vector2.zero();
-  final List<EnemyKilledEvent> _pendingEnemyKilledEvents = <EnemyKilledEvent>[];
   final List<ProjectileHitEvent> _pendingProjectileHitEvents =
       <ProjectileHitEvent>[];
 
@@ -22504,6 +23207,7 @@ class RunnerFlameGame extends FlameGame {
     );
     await _enemyRenderRegistry.load(images);
     await _projectileRenderRegistry.load(images);
+    await _pickupRenderRegistry.load(images);
     _player = PlayerViewComponent(
       animationSet: playerAnimations,
       renderScale: Vector2.all(_playerRenderTuning.scale),
@@ -22683,7 +23387,6 @@ class RunnerFlameGame extends FlameGame {
       cameraCenter: _cameraCenterScratch,
     );
 
-    _flushPendingEnemyKilledEvents(cameraCenter: _cameraCenterScratch);
     _flushPendingProjectileHitEvents(cameraCenter: _cameraCenterScratch);
 
     super.update(dt);
@@ -22773,46 +23476,9 @@ class RunnerFlameGame extends FlameGame {
   }
 
   void _handleGameEvent(GameEvent event) {
-    if (event is EnemyKilledEvent) {
-      _pendingEnemyKilledEvents.add(event);
-      return;
-    }
     if (event is ProjectileHitEvent) {
       _pendingProjectileHitEvents.add(event);
     }
-  }
-
-  void _flushPendingEnemyKilledEvents({required Vector2 cameraCenter}) {
-    if (_pendingEnemyKilledEvents.isEmpty) return;
-
-    for (final event in _pendingEnemyKilledEvents) {
-      final entry = _enemyRenderRegistry.entryFor(event.enemyId);
-      if (entry == null) continue;
-      if (entry.deathAnimPolicy == EnemyDeathAnimPolicy.none) continue;
-
-      final deathAnim = entry.animSet.animations[AnimKey.death];
-      if (deathAnim == null) continue;
-
-      final component = _CameraSpaceSnappedSpriteAnimationComponent(
-        animation: deathAnim,
-        size: entry.animSet.frameSize.clone(),
-        worldPosX: event.pos.x,
-        worldPosY: event.pos.y,
-        anchor: entry.animSet.anchor,
-        paint: Paint()..filterQuality = FilterQuality.none,
-        removeOnFinish: true,
-      )..priority = _priorityEnemies;
-
-      final sign = event.facing == event.artFacingDir ? 1.0 : -1.0;
-      component.scale.setValues(
-        entry.renderScale.x * sign,
-        entry.renderScale.y,
-      );
-      component.snapToCamera(cameraCenter);
-      world.add(component);
-    }
-
-    _pendingEnemyKilledEvents.clear();
   }
 
   void _flushPendingProjectileHitEvents({required Vector2 cameraCenter}) {
@@ -22867,8 +23533,6 @@ class RunnerFlameGame extends FlameGame {
           : _projectileRenderRegistry.entryFor(projectileId);
 
       if (entry != null) {
-        _projectileRects.remove(e.id)?.removeFromParent();
-
         var view = _projectileAnimViews[e.id];
         if (view == null) {
           view = entry.viewFactory(entry.animSet, entry.renderScale);
@@ -22891,10 +23555,11 @@ class RunnerFlameGame extends FlameGame {
         final ageTicks = tick - spawnTick;
         final animOverride =
             startTicks > 0 && ageTicks >= 0 && ageTicks < startTicks
-                ? AnimKey.spawn
-                : AnimKey.idle;
-        final overrideAnimFrame =
-            animOverride == AnimKey.spawn ? ageTicks : null;
+            ? AnimKey.spawn
+            : AnimKey.idle;
+        final overrideAnimFrame = animOverride == AnimKey.spawn
+            ? ageTicks
+            : null;
 
         view.applySnapshot(
           e,
@@ -22907,40 +23572,16 @@ class RunnerFlameGame extends FlameGame {
         if (spinSpeed == 0.0) {
           view.angle = e.rotationRad;
         } else {
-          final spinSeconds =
-              (ageTicks.toDouble() + alpha) / controller.tickHz;
+          final spinSeconds = (ageTicks.toDouble() + alpha) / controller.tickHz;
           view.angle = e.rotationRad + spinSpeed * spinSeconds;
         }
       } else {
+        // No fallback rendering for unknown/unregistered projectiles.
+        //
+        // If the projectile exists in Core but has no render wiring (or assets),
+        // we simply avoid rendering it rather than using placeholder rectangles.
         _projectileAnimViews.remove(e.id)?.removeFromParent();
         _projectileSpawnTicks.remove(e.id);
-
-        var view = _projectileRects[e.id];
-        if (view == null) {
-          final size = e.size;
-          view = RectangleComponent(
-            size: Vector2(size?.x ?? 8.0, size?.y ?? 8.0),
-            anchor: Anchor.center,
-            paint: _projectilePaint,
-          );
-          view.priority = _priorityProjectiles;
-          _projectileRects[e.id] = view;
-          world.add(view);
-        } else {
-          final size = e.size;
-          if (size != null) {
-            view.size.setValues(size.x, size.y);
-          }
-        }
-
-        final prev = prevById[e.id] ?? e;
-        final worldX = math.lerpDouble(prev.pos.x, e.pos.x, alpha);
-        final worldY = math.lerpDouble(prev.pos.y, e.pos.y, alpha);
-        view.position.setValues(
-          math.snapWorldToPixelsInCameraSpace1d(worldX, cameraCenter.x),
-          math.snapWorldToPixelsInCameraSpace1d(worldY, cameraCenter.y),
-        );
-        view.angle = e.rotationRad;
       }
     }
 
@@ -22954,21 +23595,12 @@ class RunnerFlameGame extends FlameGame {
         _projectileSpawnTicks.remove(id);
       }
     }
-
-    if (_projectileRects.isEmpty) return;
-    final toRemove = _toRemoveScratch..clear();
-    for (final id in _projectileRects.keys) {
-      if (!seen.contains(id)) toRemove.add(id);
-    }
-    for (final id in toRemove) {
-      _projectileRects.remove(id)?.removeFromParent();
-    }
   }
 
   /// Synchronizes collectible/pickup view components with the snapshot.
   ///
-  /// Creates rectangle components for new pickups, updates position/paint for
-  /// existing ones, and removes components for collected pickups.
+  /// Creates deterministic animation components for pickups and removes
+  /// components for collected pickups.
   void _syncCollectibles(
     List<EntityRenderSnapshot> entities, {
     required Map<int, EntityRenderSnapshot> prevById,
@@ -22981,47 +23613,35 @@ class RunnerFlameGame extends FlameGame {
       if (e.kind != EntityKind.pickup) continue;
       seen.add(e.id);
 
-      var view = _collectibles[e.id];
       final variant = e.pickupVariant ?? PickupVariant.collectible;
-      final paint =
-          _pickupPaints[variant] ?? _pickupPaints[PickupVariant.collectible]!;
+      final entry = _pickupRenderRegistry.entryForVariant(variant);
+
+      var view = _pickupAnimViews[e.id];
       if (view == null) {
-        final size = e.size;
-        view = RectangleComponent(
-          size: Vector2(size?.x ?? 8.0, size?.y ?? 8.0),
-          anchor: Anchor.center,
-          paint: paint,
-        );
+        view = entry.viewFactory(entry.animSet, entry.renderScale);
         view.priority = _priorityCollectibles;
-        _collectibles[e.id] = view;
+        _pickupAnimViews[e.id] = view;
         world.add(view);
-      } else {
-        final size = e.size;
-        if (size != null) {
-          view.size.setValues(size.x, size.y);
-        }
-        if (view.paint != paint) {
-          view.paint = paint;
-        }
       }
 
       final prev = prevById[e.id] ?? e;
       final worldX = math.lerpDouble(prev.pos.x, e.pos.x, alpha);
       final worldY = math.lerpDouble(prev.pos.y, e.pos.y, alpha);
-      view.position.setValues(
+      _snapScratch.setValues(
         math.snapWorldToPixelsInCameraSpace1d(worldX, cameraCenter.x),
         math.snapWorldToPixelsInCameraSpace1d(worldY, cameraCenter.y),
       );
+      view.applySnapshot(e, tickHz: controller.tickHz, pos: _snapScratch);
       view.angle = e.rotationRad;
     }
 
-    if (_collectibles.isEmpty) return;
+    if (_pickupAnimViews.isEmpty) return;
     final toRemove = _toRemoveScratch..clear();
-    for (final id in _collectibles.keys) {
+    for (final id in _pickupAnimViews.keys) {
       if (!seen.contains(id)) toRemove.add(id);
     }
     for (final id in toRemove) {
-      _collectibles.remove(id)?.removeFromParent();
+      _pickupAnimViews.remove(id)?.removeFromParent();
     }
   }
 

@@ -219,7 +219,7 @@ Melee weapons contribute `damageType` and `statusProfileId` to the `DamageReques
 _Section placeholder for upcoming mobility system (dash, dodge, jump, teleport)._
 
 Key considerations:
-- Abilities should be entity-agnostic (reusable by enemies and other characters)
+- Abilities should be entity-agnostic (reusable by enemies and other characters if possible and relevant)
 - Use command pattern for activation (for player-characters, input events)
 - Cooldown tracking via dedicated store
 - Events for VFX/SFX triggers
