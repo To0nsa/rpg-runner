@@ -66,7 +66,7 @@ class AnimSignals {
     required this.hitAnimTicks,
     required this.lastStrikeTick,
     required this.strikeAnimTicks,
-    required this.strikeBackAnimTicks,
+    required this.backStrikeAnimTicks,
     required this.lastStrikeFacing,
     required this.lastCastTick,
     required this.castAnimTicks,
@@ -87,7 +87,7 @@ class AnimSignals {
     required int hitAnimTicks,
     required int lastStrikeTick,
     required int strikeAnimTicks,
-    required int strikeBackAnimTicks,
+    required int backStrikeAnimTicks,
     required Facing lastStrikeFacing,
     required int lastCastTick,
     required int castAnimTicks,
@@ -108,7 +108,7 @@ class AnimSignals {
          hitAnimTicks: hitAnimTicks,
          lastStrikeTick: lastStrikeTick,
          strikeAnimTicks: strikeAnimTicks,
-         strikeBackAnimTicks: strikeBackAnimTicks,
+         backStrikeAnimTicks: backStrikeAnimTicks,
          lastStrikeFacing: lastStrikeFacing,
          lastCastTick: lastCastTick,
          castAnimTicks: castAnimTicks,
@@ -144,7 +144,7 @@ class AnimSignals {
          hitAnimTicks: hitAnimTicks,
          lastStrikeTick: lastStrikeTick,
          strikeAnimTicks: strikeAnimTicks,
-         strikeBackAnimTicks: strikeAnimTicks,
+         backStrikeAnimTicks: strikeAnimTicks,
          lastStrikeFacing: lastStrikeFacing,
          lastCastTick: -1,
          castAnimTicks: 0,
@@ -166,7 +166,7 @@ class AnimSignals {
   final int hitAnimTicks;
   final int lastStrikeTick;
   final int strikeAnimTicks;
-  final int strikeBackAnimTicks;
+  final int backStrikeAnimTicks;
   final Facing lastStrikeFacing;
   final int lastCastTick;
   final int castAnimTicks;
@@ -196,7 +196,7 @@ class AnimResolver {
     final strikeTicks =
         profile.directionalStrike &&
             signals.lastStrikeFacing == Facing.left
-        ? signals.strikeBackAnimTicks
+        ? signals.backStrikeAnimTicks
         : signals.strikeAnimTicks;
     final showStrike =
         strikeTicks > 0 &&
@@ -244,7 +244,7 @@ class AnimResolver {
       final strikeKey =
           profile.directionalStrike &&
               signals.lastStrikeFacing == Facing.left
-          ? AnimKey.strikeBack
+          ? AnimKey.backStrike
           : profile.strikeAnimKey;
       return AnimResult(
         anim: strikeKey,

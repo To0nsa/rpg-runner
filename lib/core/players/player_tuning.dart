@@ -228,7 +228,7 @@ class AnimTuning {
     this.hitAnimSeconds = 0.40,
     this.castAnimSeconds = 0.40,
     this.strikeAnimSeconds = 0.36,
-    this.strikeBackAnimSeconds = 0.36,
+    this.backStrikeAnimSeconds = 0.36,
     this.rangedAnimSeconds = 0.40,
     this.deathAnimSeconds = 0.72,
     this.spawnAnimSeconds = 0.56,
@@ -256,11 +256,11 @@ class AnimTuning {
       ),
       castAnimSeconds: castSeconds,
       strikeAnimSeconds: strikeSeconds,
-      strikeBackAnimSeconds:
-          (frameCounts.containsKey(AnimKey.strikeBack) ||
-                  stepTimeSecondsByKey.containsKey(AnimKey.strikeBack))
+      backStrikeAnimSeconds:
+          (frameCounts.containsKey(AnimKey.backStrike) ||
+                  stepTimeSecondsByKey.containsKey(AnimKey.backStrike))
               ? anim_utils.secondsForKey(
-                  key: AnimKey.strikeBack,
+                  key: AnimKey.backStrike,
                   frameCounts: frameCounts,
                   stepTimeSecondsByKey: stepTimeSecondsByKey,
                 )
@@ -290,7 +290,7 @@ class AnimTuning {
   final double hitAnimSeconds;
   final double castAnimSeconds;
   final double strikeAnimSeconds;
-  final double strikeBackAnimSeconds;
+  final double backStrikeAnimSeconds;
   final double rangedAnimSeconds;
   final double deathAnimSeconds;
   final double spawnAnimSeconds;
@@ -303,7 +303,7 @@ class AnimTuningDerived {
     required this.hitAnimTicks,
     required this.castAnimTicks,
     required this.strikeAnimTicks,
-    required this.strikeBackAnimTicks,
+    required this.backStrikeAnimTicks,
     required this.rangedAnimTicks,
     required this.deathAnimTicks,
     required this.spawnAnimTicks,
@@ -320,7 +320,7 @@ class AnimTuningDerived {
       hitAnimTicks: ticksFromSecondsCeil(base.hitAnimSeconds, tickHz),
       castAnimTicks: ticksFromSecondsCeil(base.castAnimSeconds, tickHz),
       strikeAnimTicks: ticksFromSecondsCeil(base.strikeAnimSeconds, tickHz),
-      strikeBackAnimTicks: ticksFromSecondsCeil(base.strikeBackAnimSeconds, tickHz),
+      backStrikeAnimTicks: ticksFromSecondsCeil(base.backStrikeAnimSeconds, tickHz),
       rangedAnimTicks: ticksFromSecondsCeil(base.rangedAnimSeconds, tickHz),
       deathAnimTicks: ticksFromSecondsCeil(base.deathAnimSeconds, tickHz),
       spawnAnimTicks: ticksFromSecondsCeil(base.spawnAnimSeconds, tickHz),
@@ -333,7 +333,7 @@ class AnimTuningDerived {
   final int hitAnimTicks;
   final int castAnimTicks;
   final int strikeAnimTicks;
-  final int strikeBackAnimTicks;
+  final int backStrikeAnimTicks;
   final int rangedAnimTicks;
   final int deathAnimTicks;
   final int spawnAnimTicks;

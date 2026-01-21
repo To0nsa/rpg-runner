@@ -108,7 +108,7 @@ class AnimSystem {
       hitAnimTicks: _playerAnimTuning.hitAnimTicks,
       lastStrikeTick: lastMeleeTick,
       strikeAnimTicks: _playerAnimTuning.strikeAnimTicks,
-      strikeBackAnimTicks: _playerAnimTuning.strikeBackAnimTicks,
+      backStrikeAnimTicks: _playerAnimTuning.backStrikeAnimTicks,
       lastStrikeFacing: lastMeleeFacing,
       lastCastTick: lastCastTick,
       castAnimTicks: _playerAnimTuning.castAnimTicks,
