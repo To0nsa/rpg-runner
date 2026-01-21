@@ -28,6 +28,7 @@ class AnimSystem {
          supportsCast: true,
          supportsRanged: true,
          supportsSpawn: true,
+         supportsStun: true,
          directionalStrike: true,
        ) {
     _buildHitAnimTicksById(tickHz);
@@ -97,6 +98,8 @@ class AnimSystem {
     final lastDamageTick = world.lastDamage.has(player)
         ? world.lastDamage.tick[world.lastDamage.indexOf(player)]
         : -1;
+    
+    final stunLocked = world.controlLock.isStunned(player, currentTick);
 
     final signals = AnimSignals.player(
       tick: currentTick,
@@ -117,6 +120,7 @@ class AnimSystem {
       dashTicksLeft: world.movement.dashTicksLeft[mi],
       dashDurationTicks: _playerMovement.dashDurationTicks,
       spawnAnimTicks: _playerAnimTuning.spawnAnimTicks,
+      stunLocked: stunLocked,
     );
 
     final result = AnimResolver.resolve(_playerProfile, signals);
@@ -160,6 +164,8 @@ class AnimSystem {
       final velX = ti == null ? 0.0 : world.transform.velX[ti];
       final velY = ti == null ? 0.0 : world.transform.velY[ti];
 
+      final stunLocked = world.controlLock.isStunned(e, currentTick);
+
       final signals = AnimSignals.enemy(
         tick: currentTick,
         hp: hp,
@@ -173,6 +179,7 @@ class AnimSystem {
         lastStrikeTick: lastMeleeTick,
         strikeAnimTicks: lastMeleeAnimTicks,
         lastStrikeFacing: lastMeleeFacing,
+        stunLocked: stunLocked,
       );
 
       final result = AnimResolver.resolve(profile, signals);

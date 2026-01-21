@@ -62,6 +62,9 @@ class PlayerMeleeSystem {
     // If button not pressed, early exit.
     if (!world.playerInput.strikePressed[inputIndex]) return;
 
+    // Block intent creation if stunned.
+    if (world.controlLock.isStunned(player, currentTick)) return;
+
     final actionAnimIndex = world.actionAnim.tryIndexOf(player);
     if (actionAnimIndex == null) {
       assert(

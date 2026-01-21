@@ -56,6 +56,8 @@ class EnemyCastSystem {
 
       if (!world.cooldown.has(enemy)) continue;
 
+      if (world.controlLock.isStunned(enemy, currentTick)) continue;
+
       if (!world.castIntent.has(enemy)) {
         assert(
           false,

@@ -74,7 +74,7 @@ void main() {
       ),
     );
     damage.step(world, currentTick: 1, queueStatus: status.queue);
-    status.applyQueued(world);
+    status.applyQueued(world, currentTick: 1);
 
     expect(world.health.hp[world.health.indexOf(target)], closeTo(50.0, 1e-9));
     expect(world.slow.has(target), isTrue);
@@ -100,7 +100,7 @@ void main() {
         profileId: StatusProfileId.meleeBleed,
       ),
     );
-    status.applyQueued(world);
+    status.applyQueued(world, currentTick: 0);
 
     for (var tick = 1; tick <= 10; tick += 1) {
       status.tickExisting(world, damage.queue);

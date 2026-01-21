@@ -19,6 +19,7 @@ class FlyingEnemyLocomotionSystem {
     required EntityId player,
     required double groundTopY,
     required double dtSeconds,
+    required int currentTick,
   }) {
     if (dtSeconds <= 0.0) return;
     if (!world.transform.has(player)) return;
@@ -33,6 +34,13 @@ class FlyingEnemyLocomotionSystem {
       if (world.deathState.has(enemy)) continue;
       final enemyTi = world.transform.tryIndexOf(enemy);
       if (enemyTi == null) continue;
+
+      if (world.controlLock.isStunned(enemy, currentTick)) {
+        // Option B: Freeze in place
+        world.transform.velX[enemyTi] = 0.0;
+        world.transform.velY[enemyTi] = 0.0;
+        continue;
+      }
 
       final enemyIndex = world.enemy.tryIndexOf(enemy);
       if (enemyIndex == null) {

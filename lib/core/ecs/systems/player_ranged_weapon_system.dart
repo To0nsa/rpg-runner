@@ -44,6 +44,9 @@ class PlayerRangedWeaponSystem {
 
     if (!world.playerInput.rangedPressed[inputIndex]) return;
 
+    // Block intent creation if stunned
+    if (world.controlLock.isStunned(player, currentTick)) return;
+
     final actionAnimIndex = world.actionAnim.tryIndexOf(player);
     if (actionAnimIndex == null) {
       assert(

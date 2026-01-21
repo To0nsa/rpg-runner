@@ -23,6 +23,7 @@ class PlayerMovementSystem {
     EcsWorld world,
     MovementTuningDerived tuning, {
     required ResourceTuning resources,
+    required int currentTick,
   }) {
     final dt = tuning.dtSeconds;
     final t = tuning.base;
@@ -34,6 +35,22 @@ class PlayerMovementSystem {
       
       // Kinematic bodies are moved by scripts/physics directly, not by player input.
       if (world.body.isKinematic[bi]) {
+        return;
+      }
+
+      // -- Stun Check --
+      // If stunned, Zero horizontal velocity and skip input input processing.
+      // Vertical velocity (gravity) continues to apply normally (falling).
+      if (world.controlLock.isStunned(e, currentTick)) {
+        // Cancel dash if active (so we don't float)
+        if (world.movement.dashTicksLeft[mi] > 0) {
+          world.movement.dashTicksLeft[mi] = 0;
+          // Restore gravity if it was suppressed by dash
+          if (world.gravityControl.suppressTicksLeft[world.gravityControl.indexOf(e)] > 0) {
+             world.gravityControl.suppressTicksLeft[world.gravityControl.indexOf(e)] = 0;
+          }
+        }
+        world.transform.velX[ti] = 0;
         return;
       }
 

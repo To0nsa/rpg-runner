@@ -79,6 +79,7 @@ const AnimProfile _unocoAnimProfile = AnimProfile(
   runSpeedThresholdX: 0.0,
   supportsWalk: false,
   supportsJumpFall: false,
+  supportsStun: true,
   strikeAnimKey: AnimKey.idle,
 );
 
@@ -187,6 +188,7 @@ const RenderAnimSetDefinition _grojibRenderAnim = RenderAnimSetDefinition(
 const AnimProfile _grojibAnimProfile = AnimProfile(
   minMoveSpeed: 1.0,
   runSpeedThresholdX: 120.0,
+  supportsStun: true,
 );
 
 /// Defines the base stats and physics properties for an enemy type.

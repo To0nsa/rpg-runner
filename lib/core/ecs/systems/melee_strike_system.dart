@@ -43,6 +43,9 @@ class MeleeStrikeSystem {
       final strikeerTi = world.transform.tryIndexOf(strikeer);
       if (strikeerTi == null) continue;
 
+      // Cannot strike while stunned.
+      if (world.controlLock.isStunned(strikeer, currentTick)) continue;
+
       // Attacker must respond to cooldowns.
       final ci = world.cooldown.tryIndexOf(strikeer);
       if (ci == null) continue;

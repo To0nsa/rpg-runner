@@ -37,6 +37,9 @@ class RangedWeaponSystem {
       final ti = transforms.tryIndexOf(caster);
       if (ti == null) continue;
 
+      // Cannot fire while stunned.
+      if (world.controlLock.isStunned(caster, currentTick)) continue;
+
       final ci = cooldowns.tryIndexOf(caster);
       if (ci == null) continue;
       if (cooldowns.rangedWeaponCooldownTicksLeft[ci] > 0) continue;

@@ -43,6 +43,8 @@ class EnemyMeleeSystem {
       final ti = world.transform.tryIndexOf(enemy);
       if (ti == null) continue;
 
+      if (world.controlLock.isStunned(enemy, currentTick)) continue;
+
       // Only write an intent on the first tick we enter the strike state.
       if (meleeEngagement.state[i] != MeleeEngagementState.strike) continue;
       if (meleeEngagement.strikeStartTick[i] != currentTick) continue;

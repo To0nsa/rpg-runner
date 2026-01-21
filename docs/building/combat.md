@@ -49,9 +49,9 @@ This document describes the Core combat primitives and how to extend them.
 | `BurnStore` | Active burn DoT state (SoA) |
 | `BleedStore` | Active bleed DoT state (SoA) |
 | `SlowStore` | Active slow state (SoA) |
-| `StunStore` | Active stun state (SoA) |
 | `StatusImmunityStore` | Per-entity status immunities |
 | `StatModifierStore` | Derived modifiers (e.g., move speed from slow) |
+| `ControlLockStore` | Action gating (stun, move, cast, etc.) |
 
 ### Equipment
 
@@ -72,8 +72,9 @@ This document describes the Core combat primitives and how to extend them.
 
 ```
 1. StatusSystem.tickExisting   → Ticks DoTs, queues damage requests
-2. DamageSystem.step           → Applies damage, queues status profiles
-3. StatusSystem.applyQueued    → Applies profiles, refreshes stat modifiers
+2. ControlLockSystem.step      → Refreshes active lock masks, clears expired locks
+3. DamageSystem.step           → Applies damage, queues status profiles
+4. StatusSystem.applyQueued    → Applies profiles, refreshes stat modifiers
 ```
 
 ## Damage Pipeline
@@ -122,8 +123,8 @@ Where `resistanceMod` is looked up from `DamageResistanceStore` by `DamageType`:
 - Ticks `BurnStore`: applies fire damage per period
 - Ticks `BleedStore`: applies bleed damage per period
 - Ticks `SlowStore`: reduces duration, removes when expired
-- Ticks `StunStore`: reduces duration, removes when expired
 - Queues `DamageRequest` for DoT damage
+- (*Note*: Stun expiry is handled by `ControlLockSystem`)
 
 ### StatusSystem.applyQueued
 
@@ -132,7 +133,8 @@ Where `resistanceMod` is looked up from `DamageResistanceStore` by `DamageType`:
 - For each `StatusApplication`:
   - Check `StatusImmunityStore` → skip if immune
   - Apply magnitude scaling if `scaleByDamageType` (uses resistance mod)
-  - Add/refresh appropriate store (burn, bleed, slow, stun)
+  - Add/refresh appropriate store (burn, bleed, slow)
+- For Stun: Adds lock to `ControlLockStore` and clears active intents (Cast, Melee, Ranged, Dash)
 - Refreshes `StatModifierStore` (e.g., move speed from slow)
 
 ## Spell System
@@ -197,6 +199,21 @@ WeaponDef {
 ```
 
 Melee weapons contribute `damageType` and `statusProfileId` to the `DamageRequest` when hits are processed.
+
+## Control Locks
+
+We use a bitmask-based locking system to prevent actions (Stun, Move, Cast, etc.).
+
+### ControlLockStore
+
+- Stores `activeMask` and per-flag `untilTick` values.
+- `LockFlag.stun` (Bit 0) is the master lock that blocks everything.
+- `addLock(flag, duration)` refreshes expiry using `max(current, new)`.
+
+### Gate Checks
+
+Systems check `isLocked(flag)` or `isStunned()` before processing:
+- `isStunned()` -> Blocks Intent Creation (Melee, Cast, Ranged) and Movement (Input, Locomotion).
 
 ## Extending with a New Status
 

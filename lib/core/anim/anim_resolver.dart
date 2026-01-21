@@ -14,6 +14,7 @@ class AnimProfile {
     this.supportsCast = false,
     this.supportsRanged = false,
     this.supportsSpawn = false,
+    this.supportsStun = false,
     this.directionalStrike = false,
     this.strikeAnimKey = AnimKey.strike,
     this.idleAnimKey = AnimKey.idle,
@@ -37,6 +38,7 @@ class AnimProfile {
   final bool supportsCast;
   final bool supportsRanged;
   final bool supportsSpawn;
+  final bool supportsStun;
   final bool directionalStrike;
 
   final AnimKey strikeAnimKey;
@@ -51,6 +53,7 @@ class AnimProfile {
   final AnimKey hitAnimKey;
   final AnimKey deathAnimKey;
   final AnimKey spawnAnimKey;
+  final AnimKey stunAnimKey;
 }
 
 class AnimSignals {
@@ -58,103 +61,108 @@ class AnimSignals {
     required this.tick,
     required this.hp,
     required this.deathPhase,
-    required this.deathStartTick,
-    required this.grounded,
-    required this.velX,
-    required this.velY,
-    required this.lastDamageTick,
-    required this.hitAnimTicks,
-    required this.lastStrikeTick,
-    required this.strikeAnimTicks,
-    required this.backStrikeAnimTicks,
-    required this.lastStrikeFacing,
-    required this.lastCastTick,
-    required this.castAnimTicks,
-    required this.lastRangedTick,
-    required this.rangedAnimTicks,
-    required this.dashTicksLeft,
-    required this.dashDurationTicks,
-    required this.spawnAnimTicks,
+    this.deathStartTick = -1,
+    this.grounded = false,
+    this.velX = 0.0,
+    this.velY = 0.0,
+    this.lastDamageTick = -1,
+    this.hitAnimTicks = 0,
+    this.lastStrikeTick = -1,
+    this.strikeAnimTicks = 0,
+    this.backStrikeAnimTicks = 0,
+    this.lastStrikeFacing = Facing.right,
+    this.lastCastTick = -1,
+    this.castAnimTicks = 0,
+    this.lastRangedTick = -1,
+    this.rangedAnimTicks = 0,
+    this.dashTicksLeft = 0,
+    this.dashDurationTicks = 0,
+    this.facing = Facing.right,
+    this.spawnStartTick = -1,
+    this.spawnAnimTicks = 0,
+    this.stunLocked = false,
   });
 
-  const AnimSignals.player({
+  factory AnimSignals.player({
     required int tick,
     required double hp,
-    required bool grounded,
-    required double velX,
-    required double velY,
-    required int lastDamageTick,
-    required int hitAnimTicks,
-    required int lastStrikeTick,
-    required int strikeAnimTicks,
-    required int backStrikeAnimTicks,
-    required Facing lastStrikeFacing,
-    required int lastCastTick,
-    required int castAnimTicks,
-    required int lastRangedTick,
-    required int rangedAnimTicks,
-    required int dashTicksLeft,
-    required int dashDurationTicks,
-    required int spawnAnimTicks,
-  }) : this._(
-          tick: tick,
-          hp: hp,
-          deathPhase: DeathPhase.none,
-          deathStartTick: -1,
-          grounded: grounded,
-          velX: velX,
-          velY: velY,
-          lastDamageTick: lastDamageTick,
-         hitAnimTicks: hitAnimTicks,
-         lastStrikeTick: lastStrikeTick,
-         strikeAnimTicks: strikeAnimTicks,
-         backStrikeAnimTicks: backStrikeAnimTicks,
-         lastStrikeFacing: lastStrikeFacing,
-         lastCastTick: lastCastTick,
-         castAnimTicks: castAnimTicks,
-         lastRangedTick: lastRangedTick,
-         rangedAnimTicks: rangedAnimTicks,
-         dashTicksLeft: dashTicksLeft,
-         dashDurationTicks: dashDurationTicks,
-         spawnAnimTicks: spawnAnimTicks,
-       );
+    bool grounded = false,
+    double velX = 0.0,
+    double velY = 0.0,
+    int lastDamageTick = -1,
+    int hitAnimTicks = 0,
+    int lastStrikeTick = -1,
+    int strikeAnimTicks = 0,
+    int backStrikeAnimTicks = 0,
+    Facing lastStrikeFacing = Facing.right,
+    int lastCastTick = -1,
+    int castAnimTicks = 0,
+    int lastRangedTick = -1,
+    int rangedAnimTicks = 0,
+    int dashTicksLeft = 0,
+    int dashDurationTicks = 0,
+    Facing facing = Facing.right,
+    int spawnStartTick = -1,
+    int spawnAnimTicks = 0,
+    bool stunLocked = false,
+  }) {
+    return AnimSignals._(
+      tick: tick,
+      hp: hp,
+      deathPhase: DeathPhase.none,
+      grounded: grounded,
+      velX: velX,
+      velY: velY,
+      lastDamageTick: lastDamageTick,
+      hitAnimTicks: hitAnimTicks,
+      lastStrikeTick: lastStrikeTick,
+      strikeAnimTicks: strikeAnimTicks,
+      backStrikeAnimTicks: backStrikeAnimTicks,
+      lastStrikeFacing: lastStrikeFacing,
+      lastCastTick: lastCastTick,
+      castAnimTicks: castAnimTicks,
+      lastRangedTick: lastRangedTick,
+      rangedAnimTicks: rangedAnimTicks,
+      dashTicksLeft: dashTicksLeft,
+      dashDurationTicks: dashDurationTicks,
+      facing: facing,
+      spawnStartTick: spawnStartTick,
+      spawnAnimTicks: spawnAnimTicks,
+      stunLocked: stunLocked,
+    );
+  }
 
-  const AnimSignals.enemy({
+  factory AnimSignals.enemy({
     required int tick,
     required double hp,
     required DeathPhase deathPhase,
-    required int deathStartTick,
-    required bool grounded,
-    required double velX,
-    required double velY,
-    required int lastDamageTick,
-    required int hitAnimTicks,
-    required int lastStrikeTick,
-    required int strikeAnimTicks,
-    required Facing lastStrikeFacing,
-  }) : this._(
-          tick: tick,
-          hp: hp,
-          deathPhase: deathPhase,
-          deathStartTick: deathStartTick,
-          grounded: grounded,
-          velX: velX,
-          velY: velY,
-          lastDamageTick: lastDamageTick,
-         hitAnimTicks: hitAnimTicks,
-         lastStrikeTick: lastStrikeTick,
-         strikeAnimTicks: strikeAnimTicks,
-         backStrikeAnimTicks: strikeAnimTicks,
-         lastStrikeFacing: lastStrikeFacing,
-         lastCastTick: -1,
-         castAnimTicks: 0,
-         lastRangedTick: -1,
-         rangedAnimTicks: 0,
-         dashTicksLeft: 0,
-         dashDurationTicks: 0,
-         spawnAnimTicks: 0,
-       );
-
+    int deathStartTick = -1,
+    bool grounded = false,
+    double velX = 0.0,
+    double velY = 0.0,
+    int lastDamageTick = -1,
+    int hitAnimTicks = 0,
+    int lastStrikeTick = -1,
+    int strikeAnimTicks = 0,
+    Facing lastStrikeFacing = Facing.right,
+    bool stunLocked = false,
+  }) {
+    return AnimSignals._(
+      tick: tick,
+      hp: hp,
+      deathPhase: deathPhase,
+      deathStartTick: deathStartTick,
+      grounded: grounded,
+      velX: velX,
+      velY: velY,
+      lastDamageTick: lastDamageTick,
+      hitAnimTicks: hitAnimTicks,
+      lastStrikeTick: lastStrikeTick,
+      strikeAnimTicks: strikeAnimTicks,
+      lastStrikeFacing: lastStrikeFacing,
+      stunLocked: stunLocked,
+    );
+  }
   final int tick;
   final double hp;
   final DeathPhase deathPhase;
@@ -174,7 +182,10 @@ class AnimSignals {
   final int rangedAnimTicks;
   final int dashTicksLeft;
   final int dashDurationTicks;
+  final Facing facing;
+  final int spawnStartTick;
   final int spawnAnimTicks;
+  final bool stunLocked;
 }
 
 class AnimResult {
@@ -193,6 +204,19 @@ class AnimResolver {
         lastDamageTick >= 0 &&
         (tick - lastDamageTick) < signals.hitAnimTicks;
 
+    // 4. Stun
+    // Stun takes priority over actions and movement, but below death/spawn.
+    // However, spawn is usually handled by death behavior or a separate phase.
+    // Death overrides stun.
+    if (profile.supportsStun && signals.stunLocked) {
+      // Stun is usually a loop, so we can use tick % duration if it were multi-frame.
+      // But usually it's a single frame or simple loop.
+      // We'll treat it as a loop for now (or single frame 0 if animation is 1 frame).
+      return AnimResult(anim: profile.stunAnimKey, animFrame: signals.tick);
+    }
+
+    // 5. Actions (Dash, Strike, Cast, Ranged, Hit)
+    // Hit reaction
     final strikeTicks =
         profile.directionalStrike &&
             signals.lastStrikeFacing == Facing.left

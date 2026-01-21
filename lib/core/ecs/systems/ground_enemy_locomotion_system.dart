@@ -27,6 +27,7 @@ class GroundEnemyLocomotionSystem {
     EcsWorld world, {
     required EntityId player,
     required double dtSeconds,
+    required int currentTick,
   }) {
     if (dtSeconds <= 0.0) return;
     if (!world.transform.has(player)) return;
@@ -40,6 +41,12 @@ class GroundEnemyLocomotionSystem {
       if (world.deathState.has(enemy)) continue;
       final enemyTi = world.transform.tryIndexOf(enemy);
       if (enemyTi == null) continue;
+
+      if (world.controlLock.isStunned(enemy, currentTick)) {
+        world.transform.velX[enemyTi] = 0.0;
+        // Keep velY for falling
+        continue;
+      }
 
       final enemyIndex = world.enemy.tryIndexOf(enemy);
       if (enemyIndex == null) {

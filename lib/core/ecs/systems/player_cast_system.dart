@@ -62,6 +62,9 @@ class PlayerCastSystem {
     // If button not pressed, do nothing.
     if (!world.playerInput.castPressed[inputIndex]) return;
 
+    // Block intent creation if stunned
+    if (world.controlLock.isStunned(player, currentTick)) return;
+
     final spellId = world.equippedSpell.spellId[equippedIndex];
 
     final facing = world.movement.facing[movementIndex];

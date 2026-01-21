@@ -8,7 +8,7 @@ import '../entity_id.dart';
 import '../stores/status/bleed_store.dart';
 import '../stores/status/burn_store.dart';
 import '../stores/status/slow_store.dart';
-import '../stores/status/stun_store.dart';
+import '../../combat/control_lock.dart';
 import '../world.dart';
 
 /// Applies status effects and ticks active statuses.
@@ -24,6 +24,9 @@ class StatusSystem {
 
   final List<StatusRequest> _pending = <StatusRequest>[];
   final List<EntityId> _removeScratch = <EntityId>[];
+
+  /// Current tick, set at the start of applyQueued.
+  int _currentTick = 0;
 
   /// Queues a status profile to apply.
   void queue(StatusRequest request) {
@@ -42,7 +45,8 @@ class StatusSystem {
   }
 
   /// Applies queued statuses and refreshes derived modifiers.
-  void applyQueued(EcsWorld world) {
+  void applyQueued(EcsWorld world, {required int currentTick}) {
+    _currentTick = currentTick;
     if (_pending.isNotEmpty) {
       _applyPending(world);
       _pending.clear();
@@ -208,25 +212,28 @@ class StatusSystem {
     double magnitude,
     double durationSeconds,
   ) {
+    // Stun requires statModifier for moveSpeedMul (and arguably any status effect target)
     if (!world.statModifier.has(target)) return;
-    final ticksLeft = ticksFromSecondsCeil(durationSeconds, _tickHz);
-    if (ticksLeft <= 0) return;
+    final durationTicks = ticksFromSecondsCeil(durationSeconds, _tickHz);
+    if (durationTicks <= 0) return;
 
-    final stun = world.stun;
-    final clamped = clampDouble(magnitude, 0.0, 0.9);
-    final index = stun.tryIndexOf(target);
-    if (index == null) {
-      stun.add(
-        target,
-        StunDef(ticksLeft: ticksLeft, magnitude: clamped),
-      );
-    } else {
-      stun.ticksLeft[index] = stun.ticksLeft[index] > ticksLeft
-          ? stun.ticksLeft[index]
-          : ticksLeft;
-      if (clamped > stun.magnitude[index]) {
-        stun.magnitude[index] = clamped;
-      }
+    // Add stun lock via ControlLockStore
+    world.controlLock.addLock(target, LockFlag.stun, durationTicks, _currentTick);
+
+    // Hard cancel active intents to prevent ghost execution
+    if (world.castIntent.has(target)) {
+      world.castIntent.tick[world.castIntent.indexOf(target)] = -1;
+    }
+    if (world.meleeIntent.has(target)) {
+      world.meleeIntent.tick[world.meleeIntent.indexOf(target)] = -1;
+    }
+    if (world.rangedWeaponIntent.has(target)) {
+      world.rangedWeaponIntent.tick[world.rangedWeaponIntent.indexOf(target)] = -1;
+    }
+    // Cancel dash if active
+    final mi = world.movement.tryIndexOf(target);
+    if (mi != null && world.movement.dashTicksLeft[mi] > 0) {
+      world.movement.dashTicksLeft[mi] = 0;
     }
   }
 

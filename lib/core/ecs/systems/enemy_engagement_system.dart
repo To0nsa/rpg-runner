@@ -35,6 +35,8 @@ class EnemyEngagementSystem {
       final ti = world.transform.tryIndexOf(enemy);
       if (ti == null) continue;
 
+      if (world.controlLock.isStunned(enemy, currentTick)) continue;
+
       final meleeIndex = world.meleeEngagement.tryIndexOf(enemy);
       if (meleeIndex == null) {
         assert(

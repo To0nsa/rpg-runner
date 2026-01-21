@@ -106,6 +106,7 @@ import 'ecs/systems/ranged_weapon_system.dart';
 import 'ecs/systems/resource_regen_system.dart';
 import 'ecs/systems/restoration_item_system.dart';
 import 'ecs/systems/status_system.dart';
+import 'ecs/systems/control_lock_system.dart';
 import 'ecs/systems/spell_cast_system.dart';
 import 'ecs/systems/anim_system.dart';
 import 'ecs/systems/enemy_cull_system.dart';
@@ -423,6 +424,7 @@ class GameCore {
       invulnerabilityTicksOnHit: _combat.invulnerabilityTicks,
     );
     _statusSystem = StatusSystem(tickHz: tickHz);
+    _controlLockSystem = ControlLockSystem();
     _healthDespawnSystem = HealthDespawnSystem();
     _enemyDeathStateSystem = EnemyDeathStateSystem(
       tickHz: tickHz,
@@ -641,6 +643,7 @@ class GameCore {
   late final InvulnerabilitySystem _invulnerabilitySystem;
   late final DamageSystem _damageSystem;
   late final StatusSystem _statusSystem;
+  late final ControlLockSystem _controlLockSystem;
   late final HealthDespawnSystem _healthDespawnSystem;
   late final EnemyDeathStateSystem _enemyDeathStateSystem;
   late final DeathDespawnSystem _deathDespawnSystem;
@@ -939,22 +942,33 @@ class GameCore {
     _cooldownSystem.step(_world);
     _invulnerabilitySystem.step(_world);
 
+    // ─── Phase 2.5: Control lock refresh ───
+    // Must run before any gameplay systems that check locks.
+    _controlLockSystem.step(_world, currentTick: tick);
+
     // ─── Phase 3: AI and movement ───
-    _enemyNavigationSystem.step(_world, player: _player);
+    _enemyNavigationSystem.step(_world, player: _player, currentTick: tick);
     _enemyEngagementSystem.step(_world, player: _player, currentTick: tick);
     _groundEnemyLocomotionSystem.step(
       _world,
       player: _player,
       dtSeconds: _movement.dtSeconds,
+      currentTick: tick,
     );
     _flyingEnemyLocomotionSystem.step(
       _world,
       player: _player,
       groundTopY: effectiveGroundTopY,
       dtSeconds: _movement.dtSeconds,
+      currentTick: tick,
     );
 
-    _movementSystem.step(_world, _movement, resources: _resourceTuning);
+    _movementSystem.step(
+      _world,
+      _movement,
+      resources: _resourceTuning,
+      currentTick: tick,
+    );
     _gravitySystem.step(_world, _movement, physics: _physicsTuning);
     _collisionSystem.step(
       _world,
@@ -1040,7 +1054,7 @@ class GameCore {
       currentTick: tick,
       queueStatus: _statusSystem.queue,
     );
-    _statusSystem.applyQueued(_world);
+    _statusSystem.applyQueued(_world, currentTick: tick);
 
     // ─── Phase 14: Death handling ───
     _killedEnemiesScratch.clear();

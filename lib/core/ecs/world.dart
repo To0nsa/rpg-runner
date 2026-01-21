@@ -41,7 +41,7 @@ import 'stores/restoration_item_store.dart';
 import 'stores/status/bleed_store.dart';
 import 'stores/status/burn_store.dart';
 import 'stores/status/slow_store.dart';
-import 'stores/status/stun_store.dart';
+import 'stores/control_lock_store.dart';
 import 'stores/spell_origin_store.dart';
 import 'stores/stamina_store.dart';
 import 'stores/enemies/surface_nav_state_store.dart';
@@ -214,8 +214,8 @@ class EcsWorld {
   /// Active slow effects.
   late final SlowStore slow = _register(SlowStore());
 
-  /// Active stun effects.
-  late final StunStore stun = _register(StunStore());
+  /// Control locks for ability/action gating (stun, movement locks, etc.).
+  late final ControlLockStore controlLock = _register(ControlLockStore());
 
   /// Links a spell effect back to its caster or origin point.
   late final SpellOriginStore spellOrigin = _register(SpellOriginStore());
