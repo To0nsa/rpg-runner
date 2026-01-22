@@ -83,7 +83,7 @@ void main() {
         ),
       );
 
-      locomotionSystem.step(world, player: player, dtSeconds: 1.0 / 60.0);
+      locomotionSystem.step(world, player: player, dtSeconds: 1.0 / 60.0, currentTick: 0);
 
       final enemyTi = world.transform.indexOf(enemy);
       expect(world.transform.velX[enemyTi], lessThan(0.0));

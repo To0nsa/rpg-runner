@@ -65,12 +65,14 @@ void main() {
         player: playerA,
         groundTopY: groundTopY,
         dtSeconds: dtSeconds,
+        currentTick: i,
       );
       system.step(
         worldB,
         player: playerB,
         groundTopY: groundTopY,
         dtSeconds: dtSeconds,
+        currentTick: i,
       );
 
       final tiA = worldA.transform.indexOf(unocoDemonA);

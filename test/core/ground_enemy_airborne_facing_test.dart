@@ -66,7 +66,7 @@ void main() {
       ),
     );
 
-    locomotionSystem.step(world, player: player, dtSeconds: 1.0 / 60.0);
+    locomotionSystem.step(world, player: player, dtSeconds: 1.0 / 60.0, currentTick: 0);
 
     final enemyIndex = world.enemy.indexOf(enemy);
     expect(world.enemy.facing[enemyIndex], Facing.right);

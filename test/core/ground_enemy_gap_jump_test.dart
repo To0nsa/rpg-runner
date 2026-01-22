@@ -170,12 +170,13 @@ void main() {
 
     var sawJump = false;
     for (var tick = 0; tick < 120; tick += 1) {
-      navigationSystem.step(world, player: player);
+      navigationSystem.step(world, player: player, currentTick: tick);
       engagementSystem.step(world, player: player, currentTick: tick);
       locomotionSystem.step(
         world,
         player: player,
         dtSeconds: movement.dtSeconds,
+        currentTick: tick,
       );
 
       final enemyTi = world.transform.indexOf(enemy);

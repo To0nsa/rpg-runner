@@ -121,19 +121,19 @@ void main() {
     // Tick 1: start dash; gravity should be suppressed.
     world.playerInput.moveAxis[ii] = 1.0;
     world.playerInput.dashPressed[ii] = true;
-    movement.step(world, tuning, resources: const ResourceTuning());
+    movement.step(world, tuning, resources: const ResourceTuning(), currentTick: 0);
     gravity.step(world, tuning, physics: physics);
     expect(world.transform.velY[world.transform.indexOf(player)], closeTo(0.0, 1e-9));
 
     // Tick 2: dash active; gravity still suppressed.
     world.playerInput.moveAxis[ii] = 0.0;
     world.playerInput.dashPressed[ii] = false;
-    movement.step(world, tuning, resources: const ResourceTuning());
+    movement.step(world, tuning, resources: const ResourceTuning(), currentTick: 0);
     gravity.step(world, tuning, physics: physics);
     expect(world.transform.velY[world.transform.indexOf(player)], closeTo(0.0, 1e-9));
 
     // Tick 3: dash ended; gravity resumes.
-    movement.step(world, tuning, resources: const ResourceTuning());
+    movement.step(world, tuning, resources: const ResourceTuning(), currentTick: 0);
     gravity.step(world, tuning, physics: physics);
     expect(world.transform.velY[world.transform.indexOf(player)], closeTo(10.0, 1e-9));
   });

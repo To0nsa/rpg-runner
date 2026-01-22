@@ -180,12 +180,13 @@ void main() {
     );
     locomotionSystem.setSurfaceGraph(graph: graph);
 
-    navigationSystem.step(world, player: player);
+    navigationSystem.step(world, player: player, currentTick: 0);
     engagementSystem.step(world, player: player, currentTick: 0);
     locomotionSystem.step(
       world,
       player: player,
       dtSeconds: dtSeconds,
+      currentTick: 0,
     );
 
     expect(probe.targetXs.length, 2);
@@ -292,12 +293,13 @@ void main() {
       );
       locomotionSystem.setSurfaceGraph(graph: graph);
 
-      navigationSystem.step(world, player: player);
+      navigationSystem.step(world, player: player, currentTick: 0);
       engagementSystem.step(world, player: player, currentTick: 0);
       locomotionSystem.step(
         world,
         player: player,
         dtSeconds: dtSeconds,
+        currentTick: 0,
       );
 
       expect(probe.targetXs.single, closeTo(playerX, 1e-9));
@@ -363,12 +365,13 @@ void main() {
       );
       locomotionSystem.setSurfaceGraph(graph: graph);
 
-      navigationSystem.step(world, player: player);
+      navigationSystem.step(world, player: player, currentTick: 0);
       engagementSystem.step(world, player: player, currentTick: 0);
       locomotionSystem.step(
         world,
         player: player,
         dtSeconds: dtSeconds,
+        currentTick: 0,
       );
 
       expect(probe.targetXs.single, closeTo(playerX, 1e-9));
@@ -448,12 +451,13 @@ void main() {
     );
     locomotionSystem.setSurfaceGraph(graph: graph);
 
-    navigationSystem.step(world, player: player);
+    navigationSystem.step(world, player: player, currentTick: 0);
     engagementSystem.step(world, player: player, currentTick: 0);
     locomotionSystem.step(
       world,
       player: player,
       dtSeconds: dtSeconds,
+      currentTick: 0,
     );
 
     final tiA = world.transform.indexOf(enemyA);

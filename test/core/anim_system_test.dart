@@ -111,19 +111,23 @@ void main() {
         expect(world.animState.animFrame[ai], equals(dashDuration - dashTicksLeft));
       });
 
-      test('strike left uses directional melee animation', () {
-        expect(playerAnimTuning.strikeLeftAnimTicks, greaterThan(0));
+      test('back strike uses back strike animation', () {
+        expect(playerAnimTuning.backStrikeAnimTicks, greaterThan(0));
         final player = spawnPlayer(grounded: true);
         final actionIndex = world.actionAnim.indexOf(player);
         final tick = playerAnimTuning.spawnAnimTicks + 5;
-        final offset = playerAnimTuning.strikeLeftAnimTicks > 1 ? 1 : 0;
+        final offset = playerAnimTuning.backStrikeAnimTicks > 1 ? 1 : 0;
         world.actionAnim.lastMeleeTick[actionIndex] = tick - offset;
+        // Back-strike triggers when facing away from the strike direction
         world.actionAnim.lastMeleeFacing[actionIndex] = Facing.left;
+        // Set entity facing RIGHT, but last melee facing LEFT → back strike
+        final mi = world.movement.indexOf(player);
+        world.movement.facing[mi] = Facing.right;
 
         animSystem.step(world, player: player, currentTick: tick);
 
         final ai = world.animState.indexOf(player);
-        expect(world.animState.anim[ai], equals(AnimKey.strikeLeft));
+        expect(world.animState.anim[ai], equals(AnimKey.backStrike));
         expect(world.animState.animFrame[ai], equals(offset));
       });
 
