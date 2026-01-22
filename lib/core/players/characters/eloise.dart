@@ -47,8 +47,11 @@ const double eloiseAnimFallStepSeconds = 0.10;
 const int eloiseAnimStrikeFrames = 6;
 const double eloiseAnimStrikeStepSeconds = 0.06;
 
-const int eloiseAnimStrikeBackFrames = 5;
-const double eloiseAnimStrikeBackStepSeconds = 0.08;
+const int eloiseAnimBackStrikeFrames = 5;
+const double eloiseAnimBackStrikeStepSeconds = 0.08;
+
+const int eloiseAnimParryFrames = 6;
+const double eloiseAnimParryStepSeconds = 0.06;
 
 const int eloiseAnimCastFrames = 5;
 const double eloiseAnimCastStepSeconds = 0.08;
@@ -77,7 +80,8 @@ const Map<AnimKey, int> eloiseAnimFrameCountsByKey = <AnimKey, int>{
   AnimKey.jump: eloiseAnimJumpFrames,
   AnimKey.fall: eloiseAnimFallFrames,
   AnimKey.strike: eloiseAnimStrikeFrames,
-  AnimKey.backStrike: eloiseAnimStrikeBackFrames,
+  AnimKey.backStrike: eloiseAnimBackStrikeFrames,
+  AnimKey.parry: eloiseAnimParryFrames,
   AnimKey.cast: eloiseAnimCastFrames,
   AnimKey.ranged: eloiseAnimRangedFrames,
   AnimKey.dash: eloiseAnimDashFrames,
@@ -94,7 +98,8 @@ const Map<AnimKey, double> eloiseAnimStepTimeSecondsByKey = <AnimKey, double>{
   AnimKey.jump: eloiseAnimJumpStepSeconds,
   AnimKey.fall: eloiseAnimFallStepSeconds,
   AnimKey.strike: eloiseAnimStrikeStepSeconds,
-  AnimKey.backStrike: eloiseAnimStrikeBackStepSeconds,
+  AnimKey.backStrike: eloiseAnimBackStrikeStepSeconds,
+  AnimKey.parry: eloiseAnimParryStepSeconds,
   AnimKey.cast: eloiseAnimCastStepSeconds,
   AnimKey.ranged: eloiseAnimRangedStepSeconds,
   AnimKey.dash: eloiseAnimDashStepSeconds,
@@ -112,6 +117,7 @@ const Map<AnimKey, String> eloiseAnimSourcesByKey = <AnimKey, String>{
   AnimKey.fall: 'entities/player/fall.png',
   AnimKey.strike: 'entities/player/strike.png',
   AnimKey.backStrike: 'entities/player/back_strike.png',
+  AnimKey.parry: 'entities/player/parry.png',
   AnimKey.cast: 'entities/player/cast.png',
   AnimKey.ranged: 'entities/player/cast.png',
   AnimKey.dash: 'entities/player/dash.png',
@@ -198,7 +204,8 @@ const PlayerTuning eloiseTuning = PlayerTuning(
     castAnimSeconds: eloiseAnimCastFrames * eloiseAnimCastStepSeconds,
     strikeAnimSeconds: eloiseAnimStrikeFrames * eloiseAnimStrikeStepSeconds,
     backStrikeAnimSeconds:
-        eloiseAnimStrikeBackFrames * eloiseAnimStrikeBackStepSeconds,
+        eloiseAnimBackStrikeFrames * eloiseAnimBackStrikeStepSeconds,
+    parryAnimSeconds: eloiseAnimParryFrames * eloiseAnimParryStepSeconds,
     rangedAnimSeconds: eloiseAnimRangedFrames * eloiseAnimRangedStepSeconds,
     deathAnimSeconds: eloiseAnimDeathFrames * eloiseAnimDeathStepSeconds,
     spawnAnimSeconds: eloiseAnimSpawnFrames * eloiseAnimSpawnStepSeconds,

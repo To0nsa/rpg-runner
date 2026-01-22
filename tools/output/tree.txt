@@ -32,9 +32,6 @@ lib/core/ecs/stores/collision_state_store.dart
 lib/core/ecs/stores/combat/creature_tag_store.dart
 lib/core/ecs/stores/combat/damage_resistance_store.dart
 lib/core/ecs/stores/combat/equipped_loadout_store.dart
-lib/core/ecs/stores/combat/equipped_ranged_weapon_store.dart
-lib/core/ecs/stores/combat/equipped_spell_store.dart
-lib/core/ecs/stores/combat/equipped_weapon_store.dart
 lib/core/ecs/stores/combat/stat_modifier_store.dart
 lib/core/ecs/stores/combat/status_immunity_store.dart
 lib/core/ecs/stores/control_lock_store.dart

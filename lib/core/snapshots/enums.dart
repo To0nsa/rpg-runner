@@ -24,6 +24,7 @@ enum AnimKey {
   dash,
   walk,
   backStrike,
+  parry,
   ranged,
 }
 

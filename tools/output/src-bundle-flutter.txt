@@ -1,6 +1,6 @@
 ﻿REPO: C:\dev\rpg_runner
-COMMIT: 0e76472f5c89b30642dc1d7bc142551c5c6f16ad
-DATE: 2026-01-22 13:19:49
+COMMIT: 11f1fe02b0f1a511cb99dc71d93512e351e7d4ef
+DATE: 2026-01-22 13:40:39
 
 
 ===== FILE: lib/AGENTS.md =====
@@ -2015,9 +2015,6 @@ import 'stores/body_store.dart';
 import 'stores/collider_aabb_store.dart';
 import 'stores/combat/creature_tag_store.dart';
 import 'stores/combat/damage_resistance_store.dart';
-import 'stores/combat/equipped_spell_store.dart';
-import 'stores/combat/equipped_weapon_store.dart';
-import 'stores/combat/equipped_ranged_weapon_store.dart';
 import 'stores/combat/equipped_loadout_store.dart';
 import 'stores/combat/stat_modifier_store.dart';
 import 'stores/combat/status_immunity_store.dart';
@@ -2085,10 +2082,6 @@ class EntityFactory {
     CreatureTagDef tags = const CreatureTagDef(),
     DamageResistanceDef resistance = const DamageResistanceDef(),
     StatusImmunityDef statusImmunity = const StatusImmunityDef(),
-    EquippedWeaponDef equippedWeapon = const EquippedWeaponDef(),
-    EquippedRangedWeaponDef equippedRangedWeapon =
-        const EquippedRangedWeaponDef(),
-    EquippedSpellDef equippedSpell = const EquippedSpellDef(),
     EquippedLoadoutDef equippedLoadout = const EquippedLoadoutDef(),
   }) {
     final id = world.createEntity();
@@ -2112,9 +2105,6 @@ class EntityFactory {
     world.mana.add(id, mana);
     world.meleeIntent.add(id);
     world.rangedWeaponIntent.add(id);
-    world.equippedWeapon.add(id, equippedWeapon);
-    world.equippedRangedWeapon.add(id, equippedRangedWeapon);
-    world.equippedSpell.add(id, equippedSpell);
     world.equippedLoadout.add(id, equippedLoadout);
     world.statModifier.add(id);
     world.stamina.add(id, stamina);
@@ -3959,110 +3949,6 @@ class EquippedLoadoutStore extends SparseSet {
     spellId.removeLast();
   }
 }
-
-
-===== FILE: lib/core/ecs/stores/combat/equipped_ranged_weapon_store.dart =====
-import '../../../weapons/ranged_weapon_id.dart';
-import '../../entity_id.dart';
-import '../../sparse_set.dart';
-
-class EquippedRangedWeaponDef {
-  const EquippedRangedWeaponDef({this.weaponId = RangedWeaponId.throwingKnife});
-
-  final RangedWeaponId weaponId;
-}
-
-/// Per-entity equipped ranged weapon (bow, throwing axe, ...).
-class EquippedRangedWeaponStore extends SparseSet {
-  final List<RangedWeaponId> weaponId = <RangedWeaponId>[];
-
-  void add(
-    EntityId entity, [
-    EquippedRangedWeaponDef def = const EquippedRangedWeaponDef(),
-  ]) {
-    final i = addEntity(entity);
-    weaponId[i] = def.weaponId;
-  }
-
-  @override
-  void onDenseAdded(int denseIndex) {
-    weaponId.add(RangedWeaponId.throwingKnife);
-  }
-
-  @override
-  void onSwapRemove(int removeIndex, int lastIndex) {
-    weaponId[removeIndex] = weaponId[lastIndex];
-    weaponId.removeLast();
-  }
-}
-
-
-
-===== FILE: lib/core/ecs/stores/combat/equipped_spell_store.dart =====
-import '../../../spells/spell_id.dart';
-import '../../entity_id.dart';
-import '../../sparse_set.dart';
-
-class EquippedSpellDef {
-  const EquippedSpellDef({this.spellId = SpellId.iceBolt});
-
-  final SpellId spellId;
-}
-
-/// Per-entity equipped spell (single active spell).
-class EquippedSpellStore extends SparseSet {
-  final List<SpellId> spellId = <SpellId>[];
-
-  void add(EntityId entity, [EquippedSpellDef def = const EquippedSpellDef()]) {
-    final i = addEntity(entity);
-    spellId[i] = def.spellId;
-  }
-
-  @override
-  void onDenseAdded(int denseIndex) {
-    spellId.add(SpellId.iceBolt);
-  }
-
-  @override
-  void onSwapRemove(int removeIndex, int lastIndex) {
-    spellId[removeIndex] = spellId[lastIndex];
-    spellId.removeLast();
-  }
-}
-
-
-===== FILE: lib/core/ecs/stores/combat/equipped_weapon_store.dart =====
-import '../../../weapons/weapon_id.dart';
-import '../../entity_id.dart';
-import '../../sparse_set.dart';
-
-class EquippedWeaponDef {
-  const EquippedWeaponDef({this.weaponId = WeaponId.basicSword});
-
-  final WeaponId weaponId;
-}
-
-/// Per-entity equipped weapon (for melee intent writers).
-class EquippedWeaponStore extends SparseSet {
-  final List<WeaponId> weaponId = <WeaponId>[];
-
-  void add(EntityId entity, [EquippedWeaponDef def = const EquippedWeaponDef()]) {
-    final i = addEntity(entity);
-    weaponId[i] = def.weaponId;
-  }
-
-  @override
-  void onDenseAdded(int denseIndex) {
-    weaponId.add(WeaponId.basicSword);
-  }
-
-  @override
-  void onSwapRemove(int removeIndex, int lastIndex) {
-    weaponId[removeIndex] = weaponId[lastIndex];
-    weaponId.removeLast();
-  }
-}
-
 
 
 ===== FILE: lib/core/ecs/stores/combat/stat_modifier_store.dart =====
@@ -8915,6 +8801,7 @@ class MeleeStrikeSystem {
 import '../../snapshots/enums.dart';
 import '../../players/player_tuning.dart';
 import '../entity_id.dart';
+import '../stores/combat/equipped_loadout_store.dart';
 import '../stores/cast_intent_store.dart';
 import '../world.dart';
 
@@ -8962,11 +8849,11 @@ class PlayerCastSystem {
       return;
     }
 
-    final equippedIndex = world.equippedSpell.tryIndexOf(player);
-    if (equippedIndex == null) {
+    final li = world.equippedLoadout.tryIndexOf(player);
+    if (li == null) {
       assert(
         false,
-        'PlayerCastSystem requires EquippedSpellStore on the player; add it at spawn time.',
+        'PlayerCastSystem requires EquippedLoadoutStore on the player; add it at spawn time.',
       );
       return;
     }
@@ -8976,10 +8863,13 @@ class PlayerCastSystem {
     // If button not pressed, do nothing.
     if (!world.playerInput.castPressed[inputIndex]) return;
 
+    final mask = world.equippedLoadout.mask[li];
+    if ((mask & LoadoutSlotMask.spell) == 0) return;
+
     // Block intent creation if stunned
     if (world.controlLock.isStunned(player, currentTick)) return;
 
-    final spellId = world.equippedSpell.spellId[equippedIndex];
+    final spellId = world.equippedLoadout.spellId[li];
 
     final facing = world.movement.facing[movementIndex];
 
@@ -9033,6 +8923,7 @@ import '../../snapshots/enums.dart';
 import '../../players/player_tuning.dart';
 import '../../weapons/weapon_catalog.dart';
 import '../entity_id.dart';
+import '../stores/combat/equipped_loadout_store.dart';
 import '../stores/melee_intent_store.dart';
 import '../world.dart';
 
@@ -9077,11 +8968,11 @@ class PlayerMeleeSystem {
     if (movementIndex == null) return;
 
     // Equipped weapon determines status profile, etc.
-    final weaponIndex = world.equippedWeapon.tryIndexOf(player);
-    if (weaponIndex == null) {
+    final li = world.equippedLoadout.tryIndexOf(player);
+    if (li == null) {
       assert(
         false,
-        'PlayerMeleeSystem requires EquippedWeaponStore on the player; add it at spawn time.',
+        'PlayerMeleeSystem requires EquippedLoadoutStore on the player; add it at spawn time.',
       );
       return;
     }
@@ -9090,6 +8981,9 @@ class PlayerMeleeSystem {
 
     // If button not pressed, early exit.
     if (!world.playerInput.strikePressed[inputIndex]) return;
+
+    final mask = world.equippedLoadout.mask[li];
+    if ((mask & LoadoutSlotMask.mainHand) == 0) return;
 
     // Block intent creation if stunned.
     if (world.controlLock.isStunned(player, currentTick)) return;
@@ -9140,7 +9034,7 @@ class PlayerMeleeSystem {
 
     // IMPORTANT: PlayerMeleeSystem writes intent only; execution happens in
     // `MeleeStrikeSystem` which owns stamina/cooldown rules and hitbox spawning.
-    final weaponId = world.equippedWeapon.weaponId[weaponIndex];
+    final weaponId = world.equippedLoadout.mainWeaponId[li];
     final weapon = weapons.get(weaponId);
     world.meleeIntent.set(
       player,
@@ -9410,6 +9304,7 @@ class PlayerMovementSystem {
 import '../../snapshots/enums.dart';
 import '../../weapons/ranged_weapon_catalog.dart';
 import '../entity_id.dart';
+import '../stores/combat/equipped_loadout_store.dart';
 import '../stores/ranged_weapon_intent_store.dart';
 import '../world.dart';
 import 'dart:math';
@@ -9442,16 +9337,19 @@ class PlayerRangedWeaponSystem {
       return;
     }
 
-    final equippedIndex = world.equippedRangedWeapon.tryIndexOf(player);
-    if (equippedIndex == null) {
+    final li = world.equippedLoadout.tryIndexOf(player);
+    if (li == null) {
       assert(
         false,
-        'PlayerRangedWeaponSystem requires EquippedRangedWeaponStore on the player; add it at spawn time.',
+        'PlayerRangedWeaponSystem requires EquippedLoadoutStore on the player; add it at spawn time.',
       );
       return;
     }
 
     if (!world.playerInput.rangedPressed[inputIndex]) return;
+
+    final mask = world.equippedLoadout.mask[li];
+    if ((mask & LoadoutSlotMask.ranged) == 0) return;
 
     // Block intent creation if stunned
     if (world.controlLock.isStunned(player, currentTick)) return;
@@ -9465,7 +9363,7 @@ class PlayerRangedWeaponSystem {
       return;
     }
 
-    final weaponId = world.equippedRangedWeapon.weaponId[equippedIndex];
+    final weaponId = world.equippedLoadout.rangedWeaponId[li];
     final weapon = weapons.get(weaponId);
 
     final facing = world.movement.facing[movementIndex];
@@ -10571,9 +10469,6 @@ import 'stores/cooldown_store.dart';
 import 'stores/cast_intent_store.dart';
 import 'stores/combat/creature_tag_store.dart';
 import 'stores/combat/damage_resistance_store.dart';
-import 'stores/combat/equipped_spell_store.dart';
-import 'stores/combat/equipped_weapon_store.dart';
-import 'stores/combat/equipped_ranged_weapon_store.dart';
 import 'stores/combat/equipped_loadout_store.dart';
 import 'stores/combat/stat_modifier_store.dart';
 import 'stores/combat/status_immunity_store.dart';
@@ -10734,19 +10629,6 @@ class EcsWorld {
   late final RangedWeaponIntentStore rangedWeaponIntent = _register(
     RangedWeaponIntentStore(),
   );
-
-  /// Equipped melee weapon (for on-hit profiles like bleed).
-  late final EquippedWeaponStore equippedWeapon = _register(
-    EquippedWeaponStore(),
-  );
-
-  /// Equipped ranged weapon (bow, throwing axe, ...).
-  late final EquippedRangedWeaponStore equippedRangedWeapon = _register(
-    EquippedRangedWeaponStore(),
-  );
-
-  /// Equipped spell hotbar (used by player cast intent writers).
-  late final EquippedSpellStore equippedSpell = _register(EquippedSpellStore());
 
   /// Unified loadout store (single source of truth for all equipment).
   late final EquippedLoadoutStore equippedLoadout = _register(
@@ -11571,9 +11453,6 @@ import 'spawn_service.dart';
 import 'spells/spell_catalog.dart';
 import 'track_manager.dart';
 import 'weapons/weapon_catalog.dart';
-import 'ecs/stores/combat/equipped_weapon_store.dart';
-import 'ecs/stores/combat/equipped_ranged_weapon_store.dart';
-import 'ecs/stores/combat/equipped_spell_store.dart';
 import 'ecs/stores/combat/equipped_loadout_store.dart';
 import 'weapons/ranged_weapon_catalog.dart';
 import 'tuning/camera_tuning.dart';
@@ -11990,11 +11869,6 @@ class GameCore {
       tags: playerArchetype.tags,
       resistance: playerArchetype.resistance,
       statusImmunity: playerArchetype.statusImmunity,
-      equippedWeapon: EquippedWeaponDef(weaponId: playerArchetype.weaponId),
-      equippedRangedWeapon: EquippedRangedWeaponDef(
-        weaponId: playerArchetype.rangedWeaponId,
-      ),
-      equippedSpell: EquippedSpellDef(spellId: playerArchetype.spellId),
       equippedLoadout: EquippedLoadoutDef(
         mask: playerArchetype.loadoutSlotMask,
         mainWeaponId: playerArchetype.weaponId,
@@ -15268,8 +15142,8 @@ const double eloiseAnimFallStepSeconds = 0.10;
 const int eloiseAnimStrikeFrames = 6;
 const double eloiseAnimStrikeStepSeconds = 0.06;
 
-const int eloiseAnimStrikeBackFrames = 5;
-const double eloiseAnimStrikeBackStepSeconds = 0.08;
+const int eloiseAnimBackStrikeFrames = 5;
+const double eloiseAnimBackStrikeStepSeconds = 0.08;
 
 const int eloiseAnimCastFrames = 5;
 const double eloiseAnimCastStepSeconds = 0.08;
@@ -15298,7 +15172,7 @@ const Map<AnimKey, int> eloiseAnimFrameCountsByKey = <AnimKey, int>{
   AnimKey.jump: eloiseAnimJumpFrames,
   AnimKey.fall: eloiseAnimFallFrames,
   AnimKey.strike: eloiseAnimStrikeFrames,
-  AnimKey.backStrike: eloiseAnimStrikeBackFrames,
+  AnimKey.backStrike: eloiseAnimBackStrikeFrames,
   AnimKey.cast: eloiseAnimCastFrames,
   AnimKey.ranged: eloiseAnimRangedFrames,
   AnimKey.dash: eloiseAnimDashFrames,
@@ -15315,7 +15189,7 @@ const Map<AnimKey, double> eloiseAnimStepTimeSecondsByKey = <AnimKey, double>{
   AnimKey.jump: eloiseAnimJumpStepSeconds,
   AnimKey.fall: eloiseAnimFallStepSeconds,
   AnimKey.strike: eloiseAnimStrikeStepSeconds,
-  AnimKey.backStrike: eloiseAnimStrikeBackStepSeconds,
+  AnimKey.backStrike: eloiseAnimBackStrikeStepSeconds,
   AnimKey.cast: eloiseAnimCastStepSeconds,
   AnimKey.ranged: eloiseAnimRangedStepSeconds,
   AnimKey.dash: eloiseAnimDashStepSeconds,
@@ -15419,7 +15293,7 @@ const PlayerTuning eloiseTuning = PlayerTuning(
     castAnimSeconds: eloiseAnimCastFrames * eloiseAnimCastStepSeconds,
     strikeAnimSeconds: eloiseAnimStrikeFrames * eloiseAnimStrikeStepSeconds,
     backStrikeAnimSeconds:
-        eloiseAnimStrikeBackFrames * eloiseAnimStrikeBackStepSeconds,
+        eloiseAnimBackStrikeFrames * eloiseAnimBackStrikeStepSeconds,
     rangedAnimSeconds: eloiseAnimRangedFrames * eloiseAnimRangedStepSeconds,
     deathAnimSeconds: eloiseAnimDeathFrames * eloiseAnimDeathStepSeconds,
     spawnAnimSeconds: eloiseAnimSpawnFrames * eloiseAnimSpawnStepSeconds,
@@ -16967,6 +16841,7 @@ import 'dart:math';
 
 import 'ecs/entity_id.dart';
 import 'ecs/world.dart';
+import 'ecs/stores/combat/equipped_loadout_store.dart';
 import 'ecs/stores/restoration_item_store.dart';
 import 'levels/level_id.dart';
 import 'projectiles/projectile_catalog.dart';
@@ -17099,15 +16974,14 @@ class SnapshotBuilder {
     final mai = world.mana.indexOf(player);
     final si = world.stamina.indexOf(player);
     final ci = world.cooldown.indexOf(player);
-    final rwi = world.equippedRangedWeapon.indexOf(player);
+    final li = world.equippedLoadout.indexOf(player);
 
     // ─── Read current resource values ───
     final stamina = world.stamina.stamina[si];
     final mana = world.mana.mana[mai];
-    final equippedSpellId =
-        world.equippedSpell.spellId[world.equippedSpell.indexOf(player)];
+    final equippedSpellId = world.equippedLoadout.spellId[li];
     final projectileManaCost = spells.get(equippedSpellId).stats.manaCost;
-    final rangedWeaponId = world.equippedRangedWeapon.weaponId[rwi];
+    final rangedWeaponId = world.equippedLoadout.rangedWeaponId[li];
     final rangedWeaponDef = rangedWeapons.base.get(rangedWeaponId);
 
     // ─── Compute affordability flags ───
