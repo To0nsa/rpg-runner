@@ -16,19 +16,8 @@ extension LevelIdUi on LevelId {
   }
 
   /// Theme identifier used for asset lookup.
-  String get themeId => LevelRegistry.byId(this).themeId ?? 'field';
-
-  /// Asset path for the preview image (middle parallax layer).
   ///
-  /// Uses a middle layer from the parallax set for visual depth.
-  String get previewAssetPath {
-    switch (themeId) {
-      case 'forest':
-        return 'assets/images/parallax/forest/Forest Layer 03.png';
-      case 'field':
-        return 'assets/images/parallax/field/Field Layer 05.png';
-      default:
-        return 'assets/images/parallax/field/Field Layer 05.png';
-    }
-  }
+  /// Resolves through [LevelRegistry] to get the authoritative themeId.
+  /// Returns 'field' as fallback if the level has no theme set.
+  String get themeId => LevelRegistry.byId(this).themeId ?? 'field';
 }

@@ -15,8 +15,8 @@ class LevelSelectSection extends StatelessWidget {
       children: [
         Expanded(
           child: LevelCard(
-            levelId: LevelId.defaultLevel,
-            onTap: () => onStartLevel(LevelId.defaultLevel),
+            levelId: LevelId.field,
+            onTap: () => onStartLevel(LevelId.field),
           ),
         ),
         const SizedBox(width: 16),
@@ -24,13 +24,6 @@ class LevelSelectSection extends StatelessWidget {
           child: LevelCard(
             levelId: LevelId.forest,
             onTap: () => onStartLevel(LevelId.forest),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: LevelCard(
-            levelId: LevelId.field,
-            onTap: () => onStartLevel(LevelId.field),
           ),
         ),
       ],

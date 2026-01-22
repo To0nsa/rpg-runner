@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../core/levels/level_id.dart';
 import '../levels/level_id_ui.dart';
+import 'level_parallax_preview.dart';
 
-/// A card widget displaying a level with its parallax background.
+/// A card widget displaying a level with its full parallax background.
 ///
-/// Shows the level's preview image as background with the title centered.
+/// Shows all parallax layers composited as background with the title centered.
 /// Use in a row for level selection screens.
 class LevelCard extends StatelessWidget {
   const LevelCard({
@@ -55,29 +56,10 @@ class LevelCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // Background image from parallax layer
-              Image.asset(
-                levelId.previewAssetPath,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  // Fallback to solid color if image fails to load
-                  return Container(color: Colors.grey[900]);
-                },
-              ),
-              // Gradient overlay for text readability
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.2),
-                      Colors.black.withValues(alpha: 0.6),
-                    ],
-                  ),
-                ),
-              ),
-              // Centered title
+              // Full theme preview (no gradient overlay).
+              LevelParallaxPreview(themeId: levelId.themeId),
+
+              // Title: readable via shadow, not via a dark scrim.
               Center(
                 child: Text(
                   levelId.displayName.toUpperCase(),
