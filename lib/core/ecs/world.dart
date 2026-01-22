@@ -11,6 +11,7 @@ import 'stores/combat/damage_resistance_store.dart';
 import 'stores/combat/equipped_spell_store.dart';
 import 'stores/combat/equipped_weapon_store.dart';
 import 'stores/combat/equipped_ranged_weapon_store.dart';
+import 'stores/combat/equipped_loadout_store.dart';
 import 'stores/combat/stat_modifier_store.dart';
 import 'stores/combat/status_immunity_store.dart';
 import 'stores/collectible_store.dart';
@@ -186,6 +187,11 @@ class EcsWorld {
 
   /// Equipped spell hotbar (used by player cast intent writers).
   late final EquippedSpellStore equippedSpell = _register(EquippedSpellStore());
+
+  /// Unified loadout store (single source of truth for all equipment).
+  late final EquippedLoadoutStore equippedLoadout = _register(
+    EquippedLoadoutStore(),
+  );
 
   /// Derived runtime stat modifiers (e.g., slows).
   late final StatModifierStore statModifier = _register(StatModifierStore());

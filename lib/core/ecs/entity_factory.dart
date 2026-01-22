@@ -11,6 +11,7 @@ import 'stores/combat/damage_resistance_store.dart';
 import 'stores/combat/equipped_spell_store.dart';
 import 'stores/combat/equipped_weapon_store.dart';
 import 'stores/combat/equipped_ranged_weapon_store.dart';
+import 'stores/combat/equipped_loadout_store.dart';
 import 'stores/combat/stat_modifier_store.dart';
 import 'stores/combat/status_immunity_store.dart';
 import 'stores/enemies/enemy_store.dart';
@@ -81,6 +82,7 @@ class EntityFactory {
     EquippedRangedWeaponDef equippedRangedWeapon =
         const EquippedRangedWeaponDef(),
     EquippedSpellDef equippedSpell = const EquippedSpellDef(),
+    EquippedLoadoutDef equippedLoadout = const EquippedLoadoutDef(),
     AmmoDef ammo = const AmmoDef(),
   }) {
     final id = world.createEntity();
@@ -108,6 +110,7 @@ class EntityFactory {
     world.equippedWeapon.add(id, equippedWeapon);
     world.equippedRangedWeapon.add(id, equippedRangedWeapon);
     world.equippedSpell.add(id, equippedSpell);
+    world.equippedLoadout.add(id, equippedLoadout);
     world.statModifier.add(id);
     world.stamina.add(id, stamina);
     world.collision.grounded[world.collision.indexOf(id)] = grounded;

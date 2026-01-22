@@ -137,6 +137,7 @@ import 'weapons/weapon_catalog.dart';
 import 'ecs/stores/combat/equipped_weapon_store.dart';
 import 'ecs/stores/combat/equipped_ranged_weapon_store.dart';
 import 'ecs/stores/combat/equipped_spell_store.dart';
+import 'ecs/stores/combat/equipped_loadout_store.dart';
 import 'weapons/ranged_weapon_catalog.dart';
 import 'tuning/camera_tuning.dart';
 import 'tuning/collectible_tuning.dart';
@@ -557,6 +558,13 @@ class GameCore {
         weaponId: playerArchetype.rangedWeaponId,
       ),
       equippedSpell: EquippedSpellDef(spellId: playerArchetype.spellId),
+      equippedLoadout: EquippedLoadoutDef(
+        mask: playerArchetype.loadoutSlotMask,
+        mainWeaponId: playerArchetype.weaponId,
+        offhandWeaponId: playerArchetype.offhandWeaponId,
+        rangedWeaponId: playerArchetype.rangedWeaponId,
+        spellId: playerArchetype.spellId,
+      ),
       ammo: playerArchetype.ammo,
     );
   }

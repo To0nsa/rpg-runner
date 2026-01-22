@@ -4,6 +4,7 @@ import '../ecs/stores/collider_aabb_store.dart';
 import '../ecs/stores/combat/ammo_store.dart';
 import '../ecs/stores/combat/creature_tag_store.dart';
 import '../ecs/stores/combat/damage_resistance_store.dart';
+import '../ecs/stores/combat/equipped_loadout_store.dart';
 import '../ecs/stores/combat/status_immunity_store.dart';
 import '../ecs/stores/health_store.dart';
 import '../ecs/stores/mana_store.dart';
@@ -46,7 +47,9 @@ class PlayerCatalog {
     this.tags = const CreatureTagDef(mask: CreatureTagMask.humanoid),
     this.resistance = const DamageResistanceDef(),
     this.statusImmunity = const StatusImmunityDef(),
+    this.loadoutSlotMask = LoadoutSlotMask.defaultMask,
     this.weaponId = WeaponId.basicSword,
+    this.offhandWeaponId = WeaponId.basicShield,
     this.rangedWeaponId = RangedWeaponId.bow,
     this.spellId = SpellId.iceBolt,
     this.ammo = const AmmoDef(arrows: 20, throwingAxes: 6),
@@ -96,8 +99,14 @@ class PlayerCatalog {
   /// Status effect immunities for the player.
   final StatusImmunityDef statusImmunity;
 
+  /// Bitmask of enabled loadout slots (see [LoadoutSlotMask]).
+  final int loadoutSlotMask;
+
   /// Default equipped weapon at spawn time.
   final WeaponId weaponId;
+
+  /// Default equipped off-hand weapon or shield at spawn time.
+  final WeaponId offhandWeaponId;
 
   /// Default equipped ranged weapon at spawn time.
   final RangedWeaponId rangedWeaponId;
@@ -199,7 +208,9 @@ class PlayerCatalogDerived {
         tags: base.tags,
         resistance: base.resistance,
         statusImmunity: base.statusImmunity,
+        loadoutSlotMask: base.loadoutSlotMask,
         weaponId: base.weaponId,
+        offhandWeaponId: base.offhandWeaponId,
         rangedWeaponId: base.rangedWeaponId,
         spellId: base.spellId,
         ammo: base.ammo,

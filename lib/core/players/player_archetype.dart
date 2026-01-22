@@ -3,6 +3,7 @@ import '../ecs/stores/collider_aabb_store.dart';
 import '../ecs/stores/combat/ammo_store.dart';
 import '../ecs/stores/combat/creature_tag_store.dart';
 import '../ecs/stores/combat/damage_resistance_store.dart';
+import '../ecs/stores/combat/equipped_loadout_store.dart';
 import '../ecs/stores/combat/status_immunity_store.dart';
 import '../ecs/stores/health_store.dart';
 import '../ecs/stores/mana_store.dart';
@@ -35,7 +36,9 @@ class PlayerArchetype {
     this.tags = const CreatureTagDef(),
     this.resistance = const DamageResistanceDef(),
     this.statusImmunity = const StatusImmunityDef(),
+    this.loadoutSlotMask = LoadoutSlotMask.defaultMask,
     this.weaponId = WeaponId.basicSword,
+    this.offhandWeaponId = WeaponId.basicShield,
     this.rangedWeaponId = RangedWeaponId.bow,
     this.spellId = SpellId.iceBolt,
     this.ammo = const AmmoDef(),
@@ -81,8 +84,14 @@ class PlayerArchetype {
   /// Status effect immunities for the player.
   final StatusImmunityDef statusImmunity;
 
+  /// Bitmask of enabled loadout slots (see [LoadoutSlotMask]).
+  final int loadoutSlotMask;
+
   /// Equipped weapon used for melee strikes.
   final WeaponId weaponId;
+
+  /// Equipped off-hand weapon or shield.
+  final WeaponId offhandWeaponId;
 
   /// Equipped ranged weapon used for thrown/ballistic projectiles.
   final RangedWeaponId rangedWeaponId;

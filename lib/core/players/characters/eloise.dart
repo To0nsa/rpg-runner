@@ -4,6 +4,7 @@ import '../../ecs/stores/body_store.dart';
 import '../../ecs/stores/combat/ammo_store.dart';
 import '../../ecs/stores/combat/creature_tag_store.dart';
 import '../../ecs/stores/combat/damage_resistance_store.dart';
+import '../../ecs/stores/combat/equipped_loadout_store.dart';
 import '../../ecs/stores/combat/status_immunity_store.dart';
 import '../../combat/creature_tag.dart';
 import '../../snapshots/enums.dart';
@@ -149,7 +150,9 @@ const PlayerCatalog eloiseCatalog = PlayerCatalog(
   tags: CreatureTagDef(mask: CreatureTagMask.humanoid),
   resistance: DamageResistanceDef(),
   statusImmunity: StatusImmunityDef(),
+  loadoutSlotMask: LoadoutSlotMask.defaultMask,
   weaponId: WeaponId.basicSword,
+  offhandWeaponId: WeaponId.basicShield,
   rangedWeaponId: RangedWeaponId.throwingKnife,
   spellId: SpellId.fireBolt,
   ammo: AmmoDef(throwingKnives: 10000),
