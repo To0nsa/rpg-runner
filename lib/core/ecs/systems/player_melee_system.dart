@@ -4,6 +4,7 @@ import '../../snapshots/enums.dart';
 import '../../players/player_tuning.dart';
 import '../../weapons/weapon_catalog.dart';
 import '../entity_id.dart';
+import '../stores/combat/equipped_loadout_store.dart';
 import '../stores/melee_intent_store.dart';
 import '../world.dart';
 
@@ -48,11 +49,11 @@ class PlayerMeleeSystem {
     if (movementIndex == null) return;
 
     // Equipped weapon determines status profile, etc.
-    final weaponIndex = world.equippedWeapon.tryIndexOf(player);
-    if (weaponIndex == null) {
+    final li = world.equippedLoadout.tryIndexOf(player);
+    if (li == null) {
       assert(
         false,
-        'PlayerMeleeSystem requires EquippedWeaponStore on the player; add it at spawn time.',
+        'PlayerMeleeSystem requires EquippedLoadoutStore on the player; add it at spawn time.',
       );
       return;
     }
@@ -61,6 +62,9 @@ class PlayerMeleeSystem {
 
     // If button not pressed, early exit.
     if (!world.playerInput.strikePressed[inputIndex]) return;
+
+    final mask = world.equippedLoadout.mask[li];
+    if ((mask & LoadoutSlotMask.mainHand) == 0) return;
 
     // Block intent creation if stunned.
     if (world.controlLock.isStunned(player, currentTick)) return;
@@ -111,7 +115,7 @@ class PlayerMeleeSystem {
 
     // IMPORTANT: PlayerMeleeSystem writes intent only; execution happens in
     // `MeleeStrikeSystem` which owns stamina/cooldown rules and hitbox spawning.
-    final weaponId = world.equippedWeapon.weaponId[weaponIndex];
+    final weaponId = world.equippedLoadout.mainWeaponId[li];
     final weapon = weapons.get(weaponId);
     world.meleeIntent.set(
       player,

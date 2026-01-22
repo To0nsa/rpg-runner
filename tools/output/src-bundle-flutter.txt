@@ -1,6 +1,6 @@
 ﻿REPO: C:\dev\rpg_runner
-COMMIT: 295b78bac872ace7a2480f5fa4d0a4473a5bd4b9
-DATE: 2026-01-22 09:05:15
+COMMIT: 0e76472f5c89b30642dc1d7bc142551c5c6f16ad
+DATE: 2026-01-22 13:19:49
 
 
 ===== FILE: lib/AGENTS.md =====
@@ -2013,12 +2013,12 @@ import '../util/deterministic_rng.dart';
 import 'entity_id.dart';
 import 'stores/body_store.dart';
 import 'stores/collider_aabb_store.dart';
-import 'stores/combat/ammo_store.dart';
 import 'stores/combat/creature_tag_store.dart';
 import 'stores/combat/damage_resistance_store.dart';
 import 'stores/combat/equipped_spell_store.dart';
 import 'stores/combat/equipped_weapon_store.dart';
 import 'stores/combat/equipped_ranged_weapon_store.dart';
+import 'stores/combat/equipped_loadout_store.dart';
 import 'stores/combat/stat_modifier_store.dart';
 import 'stores/combat/status_immunity_store.dart';
 import 'stores/enemies/enemy_store.dart';
@@ -2089,7 +2089,7 @@ class EntityFactory {
     EquippedRangedWeaponDef equippedRangedWeapon =
         const EquippedRangedWeaponDef(),
     EquippedSpellDef equippedSpell = const EquippedSpellDef(),
-    AmmoDef ammo = const AmmoDef(),
+    EquippedLoadoutDef equippedLoadout = const EquippedLoadoutDef(),
   }) {
     final id = world.createEntity();
     world.transform.add(id, posX: posX, posY: posY, velX: velX, velY: velY);
@@ -2112,10 +2112,10 @@ class EntityFactory {
     world.mana.add(id, mana);
     world.meleeIntent.add(id);
     world.rangedWeaponIntent.add(id);
-    world.ammo.add(id, ammo);
     world.equippedWeapon.add(id, equippedWeapon);
     world.equippedRangedWeapon.add(id, equippedRangedWeapon);
     world.equippedSpell.add(id, equippedSpell);
+    world.equippedLoadout.add(id, equippedLoadout);
     world.statModifier.add(id);
     world.stamina.add(id, stamina);
     world.collision.grounded[world.collision.indexOf(id)] = grounded;
@@ -3688,85 +3688,6 @@ class CollisionStateStore extends SparseSet {
 }
 
 
-===== FILE: lib/core/ecs/stores/combat/ammo_store.dart =====
-import '../../../weapons/ammo_type.dart';
-import '../../entity_id.dart';
-import '../../sparse_set.dart';
-
-class AmmoDef {
-  const AmmoDef({this.arrows = 0, this.throwingAxes = 0, this.throwingKnives = 0});
-
-  final int arrows;
-  final int throwingAxes;
-  final int throwingKnives;
-
-  int countFor(AmmoType type) {
-    switch (type) {
-      case AmmoType.arrow:
-        return arrows;
-      case AmmoType.throwingAxe:
-        return throwingAxes;
-      case AmmoType.throwingKnife:
-        return throwingKnives;
-    }
-  }
-}
-
-/// Per-entity ammo pools for ranged weapons.
-class AmmoStore extends SparseSet {
-  final List<int> arrows = <int>[];
-  final List<int> throwingAxes = <int>[];
-  final List<int> throwingKnives = <int>[];
-  void add(EntityId entity, [AmmoDef def = const AmmoDef()]) {
-    final i = addEntity(entity);
-    arrows[i] = def.arrows;
-    throwingAxes[i] = def.throwingAxes;
-    throwingKnives[i] = def.throwingKnives;
-  }
-
-  int countForIndex(int index, AmmoType type) {
-    switch (type) {
-      case AmmoType.arrow:
-        return arrows[index];
-      case AmmoType.throwingAxe:
-        return throwingAxes[index];
-      case AmmoType.throwingKnife:
-        return throwingKnives[index];
-    }
-  }
-
-  void setCountForIndex(int index, AmmoType type, int value) {
-    final clamped = value < 0 ? 0 : value;
-    switch (type) {
-      case AmmoType.arrow:
-        arrows[index] = clamped;
-      case AmmoType.throwingAxe:
-        throwingAxes[index] = clamped;
-      case AmmoType.throwingKnife:
-        throwingKnives[index] = clamped;
-    }
-  }
-
-  @override
-  void onDenseAdded(int denseIndex) {
-    arrows.add(0);
-    throwingAxes.add(0);
-    throwingKnives.add(0);
-  }
-
-  @override
-  void onSwapRemove(int removeIndex, int lastIndex) {
-    arrows[removeIndex] = arrows[lastIndex];
-    throwingAxes[removeIndex] = throwingAxes[lastIndex];
-
-    arrows.removeLast();
-    throwingAxes.removeLast();
-    throwingKnives.removeLast();
-  }
-}
-
-
-
 ===== FILE: lib/core/ecs/stores/combat/creature_tag_store.dart =====
 import '../../../combat/creature_tag.dart';
 import '../../entity_id.dart';
@@ -3914,13 +3835,139 @@ class DamageResistanceStore extends SparseSet {
 
 
 
+===== FILE: lib/core/ecs/stores/combat/equipped_loadout_store.dart =====
+import '../../../spells/spell_id.dart';
+import '../../../weapons/ranged_weapon_id.dart';
+import '../../../weapons/weapon_id.dart';
+import '../../entity_id.dart';
+import '../../sparse_set.dart';
+
+/// Bitmask constants for loadout slots.
+///
+/// Each bit represents a slot that a character may or may not have access to.
+/// Use these to check/set which equipment slots are enabled for an entity.
+class LoadoutSlotMask {
+  const LoadoutSlotMask._();
+
+  /// Main hand weapon slot (melee).
+  static const int mainHand = 1 << 0;
+
+  /// Off-hand slot (shield or secondary weapon).
+  static const int offHand = 1 << 1;
+
+  /// Ranged weapon slot (bow, throwing axe).
+  static const int ranged = 1 << 2;
+
+  /// Spell slot.
+  static const int spell = 1 << 3;
+
+  /// All slots enabled.
+  static const int all = mainHand | offHand | ranged | spell;
+
+  /// Default slots for most characters (no off-hand).
+  static const int defaultMask = mainHand | ranged | spell;
+}
+
+/// Definition for creating an equipped loadout component.
+class EquippedLoadoutDef {
+  const EquippedLoadoutDef({
+    this.mask = LoadoutSlotMask.defaultMask,
+    this.mainWeaponId = WeaponId.basicSword,
+    this.offhandWeaponId = WeaponId.basicShield,
+    this.rangedWeaponId = RangedWeaponId.throwingKnife,
+    this.spellId = SpellId.iceBolt,
+  });
+
+  /// Bitmask of enabled slots (see [LoadoutSlotMask]).
+  final int mask;
+
+  /// Main hand weapon.
+  final WeaponId mainWeaponId;
+
+  /// Off-hand weapon or shield.
+  final WeaponId offhandWeaponId;
+
+  /// Ranged weapon.
+  final RangedWeaponId rangedWeaponId;
+
+  /// Equipped spell.
+  final SpellId spellId;
+}
+
+/// Per-entity equipment loadout (single source of truth).
+///
+/// This store holds all equipped items for an entity in a unified structure.
+/// Systems should read from this store for equipment info.
+///
+/// **Slot mask**: Determines which slots are available for this entity.
+/// Use [hasSlot] to check if an entity has a specific slot enabled.
+class EquippedLoadoutStore extends SparseSet {
+  // SoA fields for each component.
+  final List<int> mask = <int>[];
+  final List<WeaponId> mainWeaponId = <WeaponId>[];
+  final List<WeaponId> offhandWeaponId = <WeaponId>[];
+  final List<RangedWeaponId> rangedWeaponId = <RangedWeaponId>[];
+  final List<SpellId> spellId = <SpellId>[];
+
+  void add(EntityId entity, [EquippedLoadoutDef def = const EquippedLoadoutDef()]) {
+    final i = addEntity(entity);
+    mask[i] = def.mask;
+    mainWeaponId[i] = def.mainWeaponId;
+    offhandWeaponId[i] = def.offhandWeaponId;
+    rangedWeaponId[i] = def.rangedWeaponId;
+    spellId[i] = def.spellId;
+  }
+
+  /// Updates the loadout for an existing entity.
+  void set(EntityId entity, EquippedLoadoutDef def) {
+    final i = indexOf(entity);
+    mask[i] = def.mask;
+    mainWeaponId[i] = def.mainWeaponId;
+    offhandWeaponId[i] = def.offhandWeaponId;
+    rangedWeaponId[i] = def.rangedWeaponId;
+    spellId[i] = def.spellId;
+  }
+
+  /// Returns true if [entity] has the given [slotBit] enabled.
+  bool hasSlot(EntityId entity, int slotBit) {
+    final i = tryIndexOf(entity);
+    if (i == null) return false;
+    return (mask[i] & slotBit) != 0;
+  }
+
+  @override
+  void onDenseAdded(int denseIndex) {
+    mask.add(LoadoutSlotMask.defaultMask);
+    mainWeaponId.add(WeaponId.basicSword);
+    offhandWeaponId.add(WeaponId.basicShield);
+    rangedWeaponId.add(RangedWeaponId.throwingKnife);
+    spellId.add(SpellId.iceBolt);
+  }
+
+  @override
+  void onSwapRemove(int removeIndex, int lastIndex) {
+    mask[removeIndex] = mask[lastIndex];
+    mainWeaponId[removeIndex] = mainWeaponId[lastIndex];
+    offhandWeaponId[removeIndex] = offhandWeaponId[lastIndex];
+    rangedWeaponId[removeIndex] = rangedWeaponId[lastIndex];
+    spellId[removeIndex] = spellId[lastIndex];
+
+    mask.removeLast();
+    mainWeaponId.removeLast();
+    offhandWeaponId.removeLast();
+    rangedWeaponId.removeLast();
+    spellId.removeLast();
+  }
+}
+
+
 ===== FILE: lib/core/ecs/stores/combat/equipped_ranged_weapon_store.dart =====
 import '../../../weapons/ranged_weapon_id.dart';
 import '../../entity_id.dart';
 import '../../sparse_set.dart';
 
 class EquippedRangedWeaponDef {
-  const EquippedRangedWeaponDef({this.weaponId = RangedWeaponId.bow});
+  const EquippedRangedWeaponDef({this.weaponId = RangedWeaponId.throwingKnife});
 
   final RangedWeaponId weaponId;
 }
@@ -3939,7 +3986,7 @@ class EquippedRangedWeaponStore extends SparseSet {
 
   @override
   void onDenseAdded(int denseIndex) {
-    weaponId.add(RangedWeaponId.bow);
+    weaponId.add(RangedWeaponId.throwingKnife);
   }
 
   @override
@@ -5832,7 +5879,7 @@ class RangedWeaponIntentStore extends SparseSet {
 
   @override
   void onDenseAdded(int denseIndex) {
-    weaponId.add(RangedWeaponId.bow);
+    weaponId.add(RangedWeaponId.throwingKnife);
     dirX.add(0.0);
     dirY.add(0.0);
     fallbackDirX.add(1.0);
@@ -9733,7 +9780,7 @@ import '../world.dart';
 import '../../projectiles/projectile_catalog.dart';
 
 /// Executes [RangedWeaponIntentStore] intents by spawning weapon projectiles and
-/// managing costs (stamina + ammo + cooldowns).
+/// managing costs (stamina + cooldowns).
 class RangedWeaponSystem {
   RangedWeaponSystem({
     required this.weapons,
@@ -9750,7 +9797,6 @@ class RangedWeaponSystem {
     final transforms = world.transform;
     final cooldowns = world.cooldown;
     final staminas = world.stamina;
-    final ammos = world.ammo;
     final factions = world.faction;
 
     final count = intents.denseEntities.length;
@@ -9791,18 +9837,6 @@ class RangedWeaponSystem {
         nextStamina = currentStamina - staminaCost;
       }
 
-      // Ammo check.
-      final ammoCost = weapon.ammoCost;
-      int? ai;
-      int? nextAmmo;
-      if (ammoCost > 0) {
-        ai = ammos.tryIndexOf(caster);
-        if (ai == null) continue;
-        final currentAmmo = ammos.countForIndex(ai, weapon.ammoType);
-        if (currentAmmo < ammoCost) continue;
-        nextAmmo = currentAmmo - ammoCost;
-      }
-
       spawnRangedWeaponProjectileFromCaster(
         world,
         projectiles: projectiles,
@@ -9823,20 +9857,16 @@ class RangedWeaponSystem {
         gravityScale: weapon.gravityScale,
       );
 
-      // Apply costs.
+      // Apply stamina cost.
       if (si != null) {
         staminas.stamina[si] =
             clampDouble(nextStamina!, 0.0, staminas.staminaMax[si]);
-      }
-      if (ai != null) {
-        ammos.setCountForIndex(ai, weapon.ammoType, nextAmmo!);
       }
       cooldowns.rangedWeaponCooldownTicksLeft[ci] =
           weapons.cooldownTicks(weaponId);
     }
   }
 }
-
 
 
 ===== FILE: lib/core/ecs/systems/resource_regen_system.dart =====
@@ -10539,12 +10569,12 @@ import 'stores/collider_aabb_store.dart';
 import 'stores/collision_state_store.dart';
 import 'stores/cooldown_store.dart';
 import 'stores/cast_intent_store.dart';
-import 'stores/combat/ammo_store.dart';
 import 'stores/combat/creature_tag_store.dart';
 import 'stores/combat/damage_resistance_store.dart';
 import 'stores/combat/equipped_spell_store.dart';
 import 'stores/combat/equipped_weapon_store.dart';
 import 'stores/combat/equipped_ranged_weapon_store.dart';
+import 'stores/combat/equipped_loadout_store.dart';
 import 'stores/combat/stat_modifier_store.dart';
 import 'stores/combat/status_immunity_store.dart';
 import 'stores/collectible_store.dart';
@@ -10705,9 +10735,6 @@ class EcsWorld {
     RangedWeaponIntentStore(),
   );
 
-  /// Per-entity ammo pools for ranged weapons.
-  late final AmmoStore ammo = _register(AmmoStore());
-
   /// Equipped melee weapon (for on-hit profiles like bleed).
   late final EquippedWeaponStore equippedWeapon = _register(
     EquippedWeaponStore(),
@@ -10720,6 +10747,11 @@ class EcsWorld {
 
   /// Equipped spell hotbar (used by player cast intent writers).
   late final EquippedSpellStore equippedSpell = _register(EquippedSpellStore());
+
+  /// Unified loadout store (single source of truth for all equipment).
+  late final EquippedLoadoutStore equippedLoadout = _register(
+    EquippedLoadoutStore(),
+  );
 
   /// Derived runtime stat modifiers (e.g., slows).
   late final StatModifierStore statModifier = _register(StatModifierStore());
@@ -11542,6 +11574,7 @@ import 'weapons/weapon_catalog.dart';
 import 'ecs/stores/combat/equipped_weapon_store.dart';
 import 'ecs/stores/combat/equipped_ranged_weapon_store.dart';
 import 'ecs/stores/combat/equipped_spell_store.dart';
+import 'ecs/stores/combat/equipped_loadout_store.dart';
 import 'weapons/ranged_weapon_catalog.dart';
 import 'tuning/camera_tuning.dart';
 import 'tuning/collectible_tuning.dart';
@@ -11962,7 +11995,13 @@ class GameCore {
         weaponId: playerArchetype.rangedWeaponId,
       ),
       equippedSpell: EquippedSpellDef(spellId: playerArchetype.spellId),
-      ammo: playerArchetype.ammo,
+      equippedLoadout: EquippedLoadoutDef(
+        mask: playerArchetype.loadoutSlotMask,
+        mainWeaponId: playerArchetype.weaponId,
+        offhandWeaponId: playerArchetype.offhandWeaponId,
+        rangedWeaponId: playerArchetype.rangedWeaponId,
+        spellId: playerArchetype.spellId,
+      ),
     );
   }
 
@@ -15183,9 +15222,9 @@ class PickupRenderCatalog {
 library;
 
 import '../../ecs/stores/body_store.dart';
-import '../../ecs/stores/combat/ammo_store.dart';
 import '../../ecs/stores/combat/creature_tag_store.dart';
 import '../../ecs/stores/combat/damage_resistance_store.dart';
+import '../../ecs/stores/combat/equipped_loadout_store.dart';
 import '../../ecs/stores/combat/status_immunity_store.dart';
 import '../../combat/creature_tag.dart';
 import '../../snapshots/enums.dart';
@@ -15331,10 +15370,11 @@ const PlayerCatalog eloiseCatalog = PlayerCatalog(
   tags: CreatureTagDef(mask: CreatureTagMask.humanoid),
   resistance: DamageResistanceDef(),
   statusImmunity: StatusImmunityDef(),
+  loadoutSlotMask: LoadoutSlotMask.defaultMask,
   weaponId: WeaponId.basicSword,
+  offhandWeaponId: WeaponId.basicShield,
   rangedWeaponId: RangedWeaponId.throwingKnife,
   spellId: SpellId.fireBolt,
-  ammo: AmmoDef(throwingKnives: 10000),
   facing: Facing.right,
 );
 
@@ -15399,9 +15439,9 @@ const PlayerCharacterDefinition eloiseCharacter = PlayerCharacterDefinition(
 ===== FILE: lib/core/players/player_archetype.dart =====
 import '../ecs/stores/body_store.dart';
 import '../ecs/stores/collider_aabb_store.dart';
-import '../ecs/stores/combat/ammo_store.dart';
 import '../ecs/stores/combat/creature_tag_store.dart';
 import '../ecs/stores/combat/damage_resistance_store.dart';
+import '../ecs/stores/combat/equipped_loadout_store.dart';
 import '../ecs/stores/combat/status_immunity_store.dart';
 import '../ecs/stores/health_store.dart';
 import '../ecs/stores/mana_store.dart';
@@ -15434,10 +15474,11 @@ class PlayerArchetype {
     this.tags = const CreatureTagDef(),
     this.resistance = const DamageResistanceDef(),
     this.statusImmunity = const StatusImmunityDef(),
+    this.loadoutSlotMask = LoadoutSlotMask.defaultMask,
     this.weaponId = WeaponId.basicSword,
-    this.rangedWeaponId = RangedWeaponId.bow,
+    this.offhandWeaponId = WeaponId.basicShield,
+    this.rangedWeaponId = RangedWeaponId.throwingKnife,
     this.spellId = SpellId.iceBolt,
-    this.ammo = const AmmoDef(),
     this.facing = Facing.right,
   });
 
@@ -15480,17 +15521,20 @@ class PlayerArchetype {
   /// Status effect immunities for the player.
   final StatusImmunityDef statusImmunity;
 
+  /// Bitmask of enabled loadout slots (see [LoadoutSlotMask]).
+  final int loadoutSlotMask;
+
   /// Equipped weapon used for melee strikes.
   final WeaponId weaponId;
+
+  /// Equipped off-hand weapon or shield.
+  final WeaponId offhandWeaponId;
 
   /// Equipped ranged weapon used for thrown/ballistic projectiles.
   final RangedWeaponId rangedWeaponId;
 
   /// Equipped spell id.
   final SpellId spellId;
-
-  /// Ammo pool for ranged weapons.
-  final AmmoDef ammo;
 
   /// Initial facing direction when the player spawns.
   ///
@@ -15503,9 +15547,9 @@ class PlayerArchetype {
 import '../combat/creature_tag.dart';
 import '../ecs/stores/body_store.dart';
 import '../ecs/stores/collider_aabb_store.dart';
-import '../ecs/stores/combat/ammo_store.dart';
 import '../ecs/stores/combat/creature_tag_store.dart';
 import '../ecs/stores/combat/damage_resistance_store.dart';
+import '../ecs/stores/combat/equipped_loadout_store.dart';
 import '../ecs/stores/combat/status_immunity_store.dart';
 import '../ecs/stores/health_store.dart';
 import '../ecs/stores/mana_store.dart';
@@ -15548,10 +15592,11 @@ class PlayerCatalog {
     this.tags = const CreatureTagDef(mask: CreatureTagMask.humanoid),
     this.resistance = const DamageResistanceDef(),
     this.statusImmunity = const StatusImmunityDef(),
+    this.loadoutSlotMask = LoadoutSlotMask.defaultMask,
     this.weaponId = WeaponId.basicSword,
-    this.rangedWeaponId = RangedWeaponId.bow,
+    this.offhandWeaponId = WeaponId.basicShield,
+    this.rangedWeaponId = RangedWeaponId.throwingKnife,
     this.spellId = SpellId.iceBolt,
-    this.ammo = const AmmoDef(arrows: 20, throwingAxes: 6),
     this.facing = Facing.right,
   });
 
@@ -15598,17 +15643,20 @@ class PlayerCatalog {
   /// Status effect immunities for the player.
   final StatusImmunityDef statusImmunity;
 
+  /// Bitmask of enabled loadout slots (see [LoadoutSlotMask]).
+  final int loadoutSlotMask;
+
   /// Default equipped weapon at spawn time.
   final WeaponId weaponId;
+
+  /// Default equipped off-hand weapon or shield at spawn time.
+  final WeaponId offhandWeaponId;
 
   /// Default equipped ranged weapon at spawn time.
   final RangedWeaponId rangedWeaponId;
 
   /// Default equipped spell at spawn time.
   final SpellId spellId;
-
-  /// Default ammo pool at spawn time.
-  final AmmoDef ammo;
 
   /// Default facing direction at spawn time.
   ///
@@ -15701,10 +15749,11 @@ class PlayerCatalogDerived {
         tags: base.tags,
         resistance: base.resistance,
         statusImmunity: base.statusImmunity,
+        loadoutSlotMask: base.loadoutSlotMask,
         weaponId: base.weaponId,
+        offhandWeaponId: base.offhandWeaponId,
         rangedWeaponId: base.rangedWeaponId,
         spellId: base.spellId,
-        ammo: base.ammo,
         facing: base.facing,
       ),
     );
@@ -16464,13 +16513,6 @@ class ProjectileCatalog {
           colliderSizeX: 20.0,
           colliderSizeY: 10.0,
         );
-      case ProjectileId.arrow:
-        return const ProjectileArchetype(
-          speedUnitsPerSecond: 1000.0,
-          lifetimeSeconds: 1.4,
-          colliderSizeX: 18.0,
-          colliderSizeY: 6.0,
-        );
       case ProjectileId.throwingAxe:
         return const ProjectileArchetype(
           speedUnitsPerSecond: 800.0,
@@ -16529,9 +16571,6 @@ enum ProjectileId {
 
   /// Player's fire spell projectile. Medium speed and lifetime.
   fireBolt,
-
-  /// Physical arrow projectile (ballistic).
-  arrow,
 
   /// Physical throwing axe projectile (ballistic).
   throwingAxe,
@@ -16697,7 +16736,7 @@ const Map<AnimKey, double> _throwingAxeStepTimeSecondsByKey =
 };
 
 const Map<AnimKey, String> _throwingAxeSourcesByKey = <AnimKey, String>{
-  AnimKey.idle: 'entities/throwingWepons/throwingAxe.png',
+  AnimKey.idle: 'weapons/throwingWeapons/throwingAxe.png',
 };
 
 const RenderAnimSetDefinition _throwingAxeRenderAnim = RenderAnimSetDefinition(
@@ -16728,7 +16767,7 @@ const Map<AnimKey, double> _throwingKnifeStepTimeSecondsByKey =
 };
 
 const Map<AnimKey, String> _throwingKnifeSourcesByKey = <AnimKey, String>{
-  AnimKey.idle: 'entities/throwingWepons/throwingKnife.png',
+  AnimKey.idle: 'weapons/throwingWeapons/throwingKnife.png',
 };
 
 const RenderAnimSetDefinition _throwingKnifeRenderAnim = RenderAnimSetDefinition(
@@ -16756,8 +16795,6 @@ class ProjectileRenderCatalog {
         return _fireBoltRenderAnim;
       case ProjectileId.throwingAxe:
         return _throwingAxeRenderAnim;
-      case ProjectileId.arrow:
-        throw StateError('No render animation defined for $id.');
       case ProjectileId.throwingKnife:
         return _throwingKnifeRenderAnim;
     }
@@ -17009,7 +17046,7 @@ class SnapshotBuilder {
   /// Projectile catalog for collider dimensions.
   final ProjectileCatalogDerived projectiles;
 
-  /// Ranged weapon catalog for cooldown totals and ammo costs.
+  /// Ranged weapon catalog for cooldown totals.
   final RangedWeaponCatalogDerived rangedWeapons;
 
   /// Enemy catalog for render metadata (art facing direction).
@@ -17063,7 +17100,6 @@ class SnapshotBuilder {
     final si = world.stamina.indexOf(player);
     final ci = world.cooldown.indexOf(player);
     final rwi = world.equippedRangedWeapon.indexOf(player);
-    final ami = world.ammo.indexOf(player);
 
     // ─── Read current resource values ───
     final stamina = world.stamina.stamina[si];
@@ -17073,7 +17109,6 @@ class SnapshotBuilder {
     final projectileManaCost = spells.get(equippedSpellId).stats.manaCost;
     final rangedWeaponId = world.equippedRangedWeapon.weaponId[rwi];
     final rangedWeaponDef = rangedWeapons.base.get(rangedWeaponId);
-    final rangedAmmo = world.ammo.countForIndex(ami, rangedWeaponDef.ammoType);
 
     // ─── Compute affordability flags ───
     // These tell the UI whether action buttons should appear enabled.
@@ -17081,9 +17116,7 @@ class SnapshotBuilder {
     final canAffordDash = stamina >= resources.dashStaminaCost;
     final canAffordMelee = stamina >= abilities.base.meleeStaminaCost;
     final canAffordProjectile = mana >= projectileManaCost;
-    final canAffordRangedWeapon =
-        stamina >= rangedWeaponDef.staminaCost &&
-        rangedAmmo >= rangedWeaponDef.ammoCost;
+    final canAffordRangedWeapon = stamina >= rangedWeaponDef.staminaCost;
 
     // ─── Read cooldown timers ───
     final dashCooldownTicksLeft = world.movement.dashCooldownTicksLeft[mi];
@@ -17180,7 +17213,6 @@ class SnapshotBuilder {
         projectileCooldownTicksTotal: abilities.castCooldownTicks,
         rangedWeaponCooldownTicksLeft: rangedWeaponCooldownTicksLeft,
         rangedWeaponCooldownTicksTotal: rangedWeaponCooldownTicksTotal,
-        rangedAmmo: rangedAmmo,
         collectibles: collectibles,
         collectibleScore: collectibleScore,
       ),
@@ -17686,7 +17718,6 @@ class PlayerHudSnapshot {
     required this.projectileCooldownTicksTotal,
     required this.rangedWeaponCooldownTicksLeft,
     required this.rangedWeaponCooldownTicksTotal,
-    required this.rangedAmmo,
     required this.collectibles,
     required this.collectibleScore,
   });
@@ -17721,7 +17752,7 @@ class PlayerHudSnapshot {
   /// Whether mana is sufficient for projectile casting.
   final bool canAffordProjectile;
 
-  /// Whether stamina + ammo are sufficient for the equipped ranged weapon.
+  /// Whether stamina is sufficient for the equipped ranged weapon.
   final bool canAffordRangedWeapon;
 
   /// Remaining dash cooldown ticks.
@@ -17747,9 +17778,6 @@ class PlayerHudSnapshot {
 
   /// Total ranged weapon cooldown ticks.
   final int rangedWeaponCooldownTicksTotal;
-
-  /// Ammo count for the equipped ranged weapon's ammo type.
-  final int rangedAmmo;
 
   /// Collected collectibles.
   final int collectibles;
@@ -21137,22 +21165,9 @@ double applyAccelDecel({
 }
 
 
-===== FILE: lib/core/weapons/ammo_type.dart =====
-/// Ammo categories used by ranged weapons.
-///
-/// Stored in [AmmoStore] on entities that can fire ranged weapons.
-enum AmmoType {
-  arrow,
-  throwingAxe,
-  throwingKnife,
-}
-
-
-
 ===== FILE: lib/core/weapons/ranged_weapon_catalog.dart =====
 import '../util/tick_math.dart';
 import '../projectiles/projectile_id.dart';
-import 'ammo_type.dart';
 import 'ranged_weapon_def.dart';
 import 'ranged_weapon_id.dart';
 
@@ -21162,27 +21177,12 @@ class RangedWeaponCatalog {
 
   RangedWeaponDef get(RangedWeaponId id) {
     switch (id) {
-      case RangedWeaponId.bow:
-        return const RangedWeaponDef(
-          id: RangedWeaponId.bow,
-          projectileId: ProjectileId.arrow,
-          damage: 12.0,
-          staminaCost: 4.0,
-          ammoType: AmmoType.arrow,
-          ammoCost: 1,
-          originOffset: 8.0,
-          cooldownSeconds: 0.25,
-          ballistic: true,
-          gravityScale: 0.8,
-        );
       case RangedWeaponId.throwingAxe:
         return const RangedWeaponDef(
           id: RangedWeaponId.throwingAxe,
           projectileId: ProjectileId.throwingAxe,
           damage: 18.0,
           staminaCost: 8.0,
-          ammoType: AmmoType.throwingAxe,
-          ammoCost: 1,
           originOffset: 8.0,
           cooldownSeconds: 0.40,
           ballistic: true,
@@ -21194,8 +21194,6 @@ class RangedWeaponCatalog {
           projectileId: ProjectileId.throwingKnife,
           damage: 10.0,
           staminaCost: 5.0,
-          ammoType: AmmoType.throwingKnife,
-          ammoCost: 1,
           originOffset: 6.0,
           cooldownSeconds: 0.30,
           ballistic: true,
@@ -21232,7 +21230,6 @@ class RangedWeaponCatalogDerived {
 import '../combat/damage_type.dart';
 import '../combat/status/status.dart';
 import '../projectiles/projectile_id.dart';
-import 'ammo_type.dart';
 import 'ranged_weapon_id.dart';
 
 /// Static, data-first definition for a ranged weapon.
@@ -21244,8 +21241,6 @@ class RangedWeaponDef {
     this.damageType = DamageType.physical,
     this.statusProfileId = StatusProfileId.none,
     this.staminaCost = 0.0,
-    required this.ammoType,
-    this.ammoCost = 1,
     this.originOffset = 0.0,
     this.cooldownSeconds = 0.25,
     this.ballistic = true,
@@ -21262,10 +21257,6 @@ class RangedWeaponDef {
   /// Stamina consumed per shot.
   final double staminaCost;
 
-  /// Ammo category and cost per shot.
-  final AmmoType ammoType;
-  final int ammoCost;
-
   /// How far from the caster center to spawn the projectile, along aim dir.
   final double originOffset;
 
@@ -21280,14 +21271,11 @@ class RangedWeaponDef {
 }
 
 
-
 ===== FILE: lib/core/weapons/ranged_weapon_id.dart =====
 /// Stable identifiers for ranged/thrown weapons.
 ///
-/// These are separate from spells: ranged weapons consume stamina + ammo and
-/// spawn weapon projectiles.
+/// These consume stamina and spawn weapon projectiles.
 enum RangedWeaponId {
-  bow,
   throwingAxe,
   throwingKnife,
 }
@@ -21448,9 +21436,19 @@ class WeaponCatalog {
           id: WeaponId.basicSword,
           statusProfileId: StatusProfileId.meleeBleed,
         );
+      case WeaponId.goldenSword:
+        return const WeaponDef(
+          id: WeaponId.goldenSword,
+          statusProfileId: StatusProfileId.meleeBleed,
+        );
       case WeaponId.basicShield:
         return const WeaponDef(
           id: WeaponId.basicShield,
+          statusProfileId: StatusProfileId.stunOnHit,
+        );
+      case WeaponId.goldenShield:
+        return const WeaponDef(
+          id: WeaponId.goldenShield,
           statusProfileId: StatusProfileId.stunOnHit,
         );
     }
@@ -21492,6 +21490,8 @@ enum WeaponId {
   /// Default starter weapon.
   basicSword,
   basicShield,
+  goldenSword,
+  goldenShield,
 }
 
 
@@ -27943,8 +27943,6 @@ String _projectileName(ProjectileId id) {
       return 'thunder Bolt';
     case ProjectileId.fireBolt:
       return 'Fire Bolt';
-    case ProjectileId.arrow:
-      return 'Arrow';
     case ProjectileId.throwingAxe:
       return 'Throwing Axe';
     case ProjectileId.throwingKnife:

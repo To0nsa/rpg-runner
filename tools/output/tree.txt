@@ -29,9 +29,9 @@ lib/core/ecs/stores/cast_intent_store.dart
 lib/core/ecs/stores/collectible_store.dart
 lib/core/ecs/stores/collider_aabb_store.dart
 lib/core/ecs/stores/collision_state_store.dart
-lib/core/ecs/stores/combat/ammo_store.dart
 lib/core/ecs/stores/combat/creature_tag_store.dart
 lib/core/ecs/stores/combat/damage_resistance_store.dart
+lib/core/ecs/stores/combat/equipped_loadout_store.dart
 lib/core/ecs/stores/combat/equipped_ranged_weapon_store.dart
 lib/core/ecs/stores/combat/equipped_spell_store.dart
 lib/core/ecs/stores/combat/equipped_weapon_store.dart
@@ -173,7 +173,6 @@ lib/core/util/smoothing.dart
 lib/core/util/tick_math.dart
 lib/core/util/vec2.dart
 lib/core/util/velocity_math.dart
-lib/core/weapons/ammo_type.dart
 lib/core/weapons/ranged_weapon_catalog.dart
 lib/core/weapons/ranged_weapon_def.dart
 lib/core/weapons/ranged_weapon_id.dart

@@ -7,9 +7,6 @@ import 'stores/cooldown_store.dart';
 import 'stores/cast_intent_store.dart';
 import 'stores/combat/creature_tag_store.dart';
 import 'stores/combat/damage_resistance_store.dart';
-import 'stores/combat/equipped_spell_store.dart';
-import 'stores/combat/equipped_weapon_store.dart';
-import 'stores/combat/equipped_ranged_weapon_store.dart';
 import 'stores/combat/equipped_loadout_store.dart';
 import 'stores/combat/stat_modifier_store.dart';
 import 'stores/combat/status_immunity_store.dart';
@@ -170,19 +167,6 @@ class EcsWorld {
   late final RangedWeaponIntentStore rangedWeaponIntent = _register(
     RangedWeaponIntentStore(),
   );
-
-  /// Equipped melee weapon (for on-hit profiles like bleed).
-  late final EquippedWeaponStore equippedWeapon = _register(
-    EquippedWeaponStore(),
-  );
-
-  /// Equipped ranged weapon (bow, throwing axe, ...).
-  late final EquippedRangedWeaponStore equippedRangedWeapon = _register(
-    EquippedRangedWeaponStore(),
-  );
-
-  /// Equipped spell hotbar (used by player cast intent writers).
-  late final EquippedSpellStore equippedSpell = _register(EquippedSpellStore());
 
   /// Unified loadout store (single source of truth for all equipment).
   late final EquippedLoadoutStore equippedLoadout = _register(

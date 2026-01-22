@@ -1,6 +1,7 @@
 import '../../snapshots/enums.dart';
 import '../../weapons/ranged_weapon_catalog.dart';
 import '../entity_id.dart';
+import '../stores/combat/equipped_loadout_store.dart';
 import '../stores/ranged_weapon_intent_store.dart';
 import '../world.dart';
 import 'dart:math';
@@ -33,16 +34,19 @@ class PlayerRangedWeaponSystem {
       return;
     }
 
-    final equippedIndex = world.equippedRangedWeapon.tryIndexOf(player);
-    if (equippedIndex == null) {
+    final li = world.equippedLoadout.tryIndexOf(player);
+    if (li == null) {
       assert(
         false,
-        'PlayerRangedWeaponSystem requires EquippedRangedWeaponStore on the player; add it at spawn time.',
+        'PlayerRangedWeaponSystem requires EquippedLoadoutStore on the player; add it at spawn time.',
       );
       return;
     }
 
     if (!world.playerInput.rangedPressed[inputIndex]) return;
+
+    final mask = world.equippedLoadout.mask[li];
+    if ((mask & LoadoutSlotMask.ranged) == 0) return;
 
     // Block intent creation if stunned
     if (world.controlLock.isStunned(player, currentTick)) return;
@@ -56,7 +60,7 @@ class PlayerRangedWeaponSystem {
       return;
     }
 
-    final weaponId = world.equippedRangedWeapon.weaponId[equippedIndex];
+    final weaponId = world.equippedLoadout.rangedWeaponId[li];
     final weapon = weapons.get(weaponId);
 
     final facing = world.movement.facing[movementIndex];

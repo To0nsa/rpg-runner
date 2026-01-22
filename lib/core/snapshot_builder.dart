@@ -25,6 +25,7 @@ import 'dart:math';
 
 import 'ecs/entity_id.dart';
 import 'ecs/world.dart';
+import 'ecs/stores/combat/equipped_loadout_store.dart';
 import 'ecs/stores/restoration_item_store.dart';
 import 'levels/level_id.dart';
 import 'projectiles/projectile_catalog.dart';
@@ -157,15 +158,14 @@ class SnapshotBuilder {
     final mai = world.mana.indexOf(player);
     final si = world.stamina.indexOf(player);
     final ci = world.cooldown.indexOf(player);
-    final rwi = world.equippedRangedWeapon.indexOf(player);
+    final li = world.equippedLoadout.indexOf(player);
 
     // ─── Read current resource values ───
     final stamina = world.stamina.stamina[si];
     final mana = world.mana.mana[mai];
-    final equippedSpellId =
-        world.equippedSpell.spellId[world.equippedSpell.indexOf(player)];
+    final equippedSpellId = world.equippedLoadout.spellId[li];
     final projectileManaCost = spells.get(equippedSpellId).stats.manaCost;
-    final rangedWeaponId = world.equippedRangedWeapon.weaponId[rwi];
+    final rangedWeaponId = world.equippedLoadout.rangedWeaponId[li];
     final rangedWeaponDef = rangedWeapons.base.get(rangedWeaponId);
 
     // ─── Compute affordability flags ───

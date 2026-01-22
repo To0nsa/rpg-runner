@@ -7,9 +7,6 @@ import 'stores/body_store.dart';
 import 'stores/collider_aabb_store.dart';
 import 'stores/combat/creature_tag_store.dart';
 import 'stores/combat/damage_resistance_store.dart';
-import 'stores/combat/equipped_spell_store.dart';
-import 'stores/combat/equipped_weapon_store.dart';
-import 'stores/combat/equipped_ranged_weapon_store.dart';
 import 'stores/combat/equipped_loadout_store.dart';
 import 'stores/combat/stat_modifier_store.dart';
 import 'stores/combat/status_immunity_store.dart';
@@ -77,10 +74,6 @@ class EntityFactory {
     CreatureTagDef tags = const CreatureTagDef(),
     DamageResistanceDef resistance = const DamageResistanceDef(),
     StatusImmunityDef statusImmunity = const StatusImmunityDef(),
-    EquippedWeaponDef equippedWeapon = const EquippedWeaponDef(),
-    EquippedRangedWeaponDef equippedRangedWeapon =
-        const EquippedRangedWeaponDef(),
-    EquippedSpellDef equippedSpell = const EquippedSpellDef(),
     EquippedLoadoutDef equippedLoadout = const EquippedLoadoutDef(),
   }) {
     final id = world.createEntity();
@@ -104,9 +97,6 @@ class EntityFactory {
     world.mana.add(id, mana);
     world.meleeIntent.add(id);
     world.rangedWeaponIntent.add(id);
-    world.equippedWeapon.add(id, equippedWeapon);
-    world.equippedRangedWeapon.add(id, equippedRangedWeapon);
-    world.equippedSpell.add(id, equippedSpell);
     world.equippedLoadout.add(id, equippedLoadout);
     world.statModifier.add(id);
     world.stamina.add(id, stamina);

@@ -1,6 +1,7 @@
 import '../../snapshots/enums.dart';
 import '../../players/player_tuning.dart';
 import '../entity_id.dart';
+import '../stores/combat/equipped_loadout_store.dart';
 import '../stores/cast_intent_store.dart';
 import '../world.dart';
 
@@ -48,11 +49,11 @@ class PlayerCastSystem {
       return;
     }
 
-    final equippedIndex = world.equippedSpell.tryIndexOf(player);
-    if (equippedIndex == null) {
+    final li = world.equippedLoadout.tryIndexOf(player);
+    if (li == null) {
       assert(
         false,
-        'PlayerCastSystem requires EquippedSpellStore on the player; add it at spawn time.',
+        'PlayerCastSystem requires EquippedLoadoutStore on the player; add it at spawn time.',
       );
       return;
     }
@@ -62,10 +63,13 @@ class PlayerCastSystem {
     // If button not pressed, do nothing.
     if (!world.playerInput.castPressed[inputIndex]) return;
 
+    final mask = world.equippedLoadout.mask[li];
+    if ((mask & LoadoutSlotMask.spell) == 0) return;
+
     // Block intent creation if stunned
     if (world.controlLock.isStunned(player, currentTick)) return;
 
-    final spellId = world.equippedSpell.spellId[equippedIndex];
+    final spellId = world.equippedLoadout.spellId[li];
 
     final facing = world.movement.facing[movementIndex];
 
