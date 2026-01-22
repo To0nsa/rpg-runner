@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../core/levels/level_id.dart';
-import '../levels/level_id_ui.dart';
+import '../components/level_card.dart';
 
+/// Level selection section displaying level cards in a row.
 class LevelSelectSection extends StatelessWidget {
   const LevelSelectSection({super.key, required this.onStartLevel});
 
@@ -10,27 +11,27 @@ class LevelSelectSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Row(
       children: [
-        Text(
-          'Level Selection',
-          style: Theme.of(context).textTheme.titleLarge,
+        Expanded(
+          child: LevelCard(
+            levelId: LevelId.defaultLevel,
+            onTap: () => onStartLevel(LevelId.defaultLevel),
+          ),
         ),
-        const SizedBox(height: 12),
-        FilledButton(
-          onPressed: () => onStartLevel(LevelId.defaultLevel),
-          child: Text(LevelId.defaultLevel.displayName),
+        const SizedBox(width: 16),
+        Expanded(
+          child: LevelCard(
+            levelId: LevelId.forest,
+            onTap: () => onStartLevel(LevelId.forest),
+          ),
         ),
-        const SizedBox(height: 8),
-        FilledButton(
-          onPressed: () => onStartLevel(LevelId.forest),
-          child: Text(LevelId.forest.displayName),
-        ),
-        const SizedBox(height: 8),
-        FilledButton(
-          onPressed: () => onStartLevel(LevelId.field),
-          child: Text(LevelId.field.displayName),
+        const SizedBox(width: 16),
+        Expanded(
+          child: LevelCard(
+            levelId: LevelId.field,
+            onTap: () => onStartLevel(LevelId.field),
+          ),
         ),
       ],
     );

@@ -79,6 +79,40 @@ abstract class GameEventListener {
 - Core defines event interfaces, Game/UI implement handlers
 - Use factory patterns for entity creation
 
+### Decision-Making Standards
+
+When approaching any implementation task, follow these standards:
+
+**1. Consider Edge Cases First**
+- What happens on different screen sizes, orientations, lifecycle events?
+- What if the user backgrounds the app? Rotates the device? Loses network?
+- What if this feature scales to 10x the current usage?
+
+**2. Apply DRY Proactively**
+- Before writing code, ask: "Does a similar pattern already exist?"
+- If a pattern appears twice, extract it immediately into a reusable component
+- Create shared utilities/widgets rather than duplicating logic
+
+**3. Prefer Reusable Solutions**
+- Create components that can be configured, not specialized one-offs
+- Use composition over inheritance for flexibility
+- Design for the 80% case but make the 20% possible via parameters
+
+**4. Think About Future Changes**
+- Will this pattern need to scale? What if we add 10 more pages/entities?
+- Is the API stable enough for others to depend on?
+- Are there implicit assumptions that could break later?
+
+**5. Propose Alternatives for Non-Trivial Changes**
+- Present 2-3 approaches with tradeoffs for architectural decisions
+- Explain why one approach is preferred over others
+- Call out risks and mitigation strategies
+
+**6. Validate Before Implementing**
+- Check if the solution handles lifecycle events (pause, resume, navigation)
+- Consider platform-specific behaviors (iOS vs Android vs Web)
+- Think about error states and graceful degradation
+
 ### Domain Separation
 
 **Core domains** (organize by feature, not layer):

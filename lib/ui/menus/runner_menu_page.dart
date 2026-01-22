@@ -4,12 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/levels/level_id.dart';
+import '../components/menu_scaffold.dart';
 import '../runner_game_route.dart';
 import 'level_select_section.dart';
 
-/// Development-only menu that will expand over time.
-///
-/// For now it only supports level selection and starting a run.
+/// Level selection page with level cards in a row.
 class RunnerMenuPage extends StatelessWidget {
   const RunnerMenuPage({super.key});
 
@@ -19,25 +18,29 @@ class RunnerMenuPage extends StatelessWidget {
       createRunnerGameRoute(
         seed: seed,
         levelId: levelId,
-        restoreOrientations: const [DeviceOrientation.portraitUp],
+        restoreOrientations: const [
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ],
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Runner Menu', style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color.fromARGB(255, 6, 21, 48),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: LevelSelectSection(
-          onStartLevel: (levelId) => _startLevel(context, levelId),
+    return MenuScaffold(
+      title: 'Select Level',
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: LevelSelectSection(
+              onStartLevel: (levelId) => _startLevel(context, levelId),
+            ),
+          ),
         ),
       ),
     );
   }
 }
-
