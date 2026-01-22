@@ -15,9 +15,19 @@ class WeaponCatalog {
           id: WeaponId.basicSword,
           statusProfileId: StatusProfileId.meleeBleed,
         );
+      case WeaponId.goldenSword:
+        return const WeaponDef(
+          id: WeaponId.goldenSword,
+          statusProfileId: StatusProfileId.meleeBleed,
+        );
       case WeaponId.basicShield:
         return const WeaponDef(
           id: WeaponId.basicShield,
+          statusProfileId: StatusProfileId.stunOnHit,
+        );
+      case WeaponId.goldenShield:
+        return const WeaponDef(
+          id: WeaponId.goldenShield,
           statusProfileId: StatusProfileId.stunOnHit,
         );
     }

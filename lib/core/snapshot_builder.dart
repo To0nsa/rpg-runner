@@ -104,7 +104,7 @@ class SnapshotBuilder {
   /// Projectile catalog for collider dimensions.
   final ProjectileCatalogDerived projectiles;
 
-  /// Ranged weapon catalog for cooldown totals and ammo costs.
+  /// Ranged weapon catalog for cooldown totals.
   final RangedWeaponCatalogDerived rangedWeapons;
 
   /// Enemy catalog for render metadata (art facing direction).
@@ -158,7 +158,6 @@ class SnapshotBuilder {
     final si = world.stamina.indexOf(player);
     final ci = world.cooldown.indexOf(player);
     final rwi = world.equippedRangedWeapon.indexOf(player);
-    final ami = world.ammo.indexOf(player);
 
     // ─── Read current resource values ───
     final stamina = world.stamina.stamina[si];
@@ -168,7 +167,6 @@ class SnapshotBuilder {
     final projectileManaCost = spells.get(equippedSpellId).stats.manaCost;
     final rangedWeaponId = world.equippedRangedWeapon.weaponId[rwi];
     final rangedWeaponDef = rangedWeapons.base.get(rangedWeaponId);
-    final rangedAmmo = world.ammo.countForIndex(ami, rangedWeaponDef.ammoType);
 
     // ─── Compute affordability flags ───
     // These tell the UI whether action buttons should appear enabled.
@@ -176,9 +174,7 @@ class SnapshotBuilder {
     final canAffordDash = stamina >= resources.dashStaminaCost;
     final canAffordMelee = stamina >= abilities.base.meleeStaminaCost;
     final canAffordProjectile = mana >= projectileManaCost;
-    final canAffordRangedWeapon =
-        stamina >= rangedWeaponDef.staminaCost &&
-        rangedAmmo >= rangedWeaponDef.ammoCost;
+    final canAffordRangedWeapon = stamina >= rangedWeaponDef.staminaCost;
 
     // ─── Read cooldown timers ───
     final dashCooldownTicksLeft = world.movement.dashCooldownTicksLeft[mi];
@@ -275,7 +271,6 @@ class SnapshotBuilder {
         projectileCooldownTicksTotal: abilities.castCooldownTicks,
         rangedWeaponCooldownTicksLeft: rangedWeaponCooldownTicksLeft,
         rangedWeaponCooldownTicksTotal: rangedWeaponCooldownTicksTotal,
-        rangedAmmo: rangedAmmo,
         collectibles: collectibles,
         collectibleScore: collectibleScore,
       ),

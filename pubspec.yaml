@@ -71,7 +71,9 @@ flutter:
     - assets/images/entities/spells/fireBolt/
     - assets/images/entities/collectibles/
     - assets/images/entities/regenerationItems/
-    - assets/images/entities/throwingWepons/
+    - assets/images/weapons/throwingWeapons/
+    - assets/images/weapons/oneHandedSwords/
+    - assets/images/weapons/shields/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

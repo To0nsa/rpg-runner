@@ -1,6 +1,5 @@
 import '../ecs/stores/body_store.dart';
 import '../ecs/stores/collider_aabb_store.dart';
-import '../ecs/stores/combat/ammo_store.dart';
 import '../ecs/stores/combat/creature_tag_store.dart';
 import '../ecs/stores/combat/damage_resistance_store.dart';
 import '../ecs/stores/combat/equipped_loadout_store.dart';
@@ -39,9 +38,8 @@ class PlayerArchetype {
     this.loadoutSlotMask = LoadoutSlotMask.defaultMask,
     this.weaponId = WeaponId.basicSword,
     this.offhandWeaponId = WeaponId.basicShield,
-    this.rangedWeaponId = RangedWeaponId.bow,
+    this.rangedWeaponId = RangedWeaponId.throwingKnife,
     this.spellId = SpellId.iceBolt,
-    this.ammo = const AmmoDef(),
     this.facing = Facing.right,
   });
 
@@ -98,9 +96,6 @@ class PlayerArchetype {
 
   /// Equipped spell id.
   final SpellId spellId;
-
-  /// Ammo pool for ranged weapons.
-  final AmmoDef ammo;
 
   /// Initial facing direction when the player spawns.
   ///

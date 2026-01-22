@@ -5,7 +5,7 @@ import '../world.dart';
 import '../../projectiles/projectile_catalog.dart';
 
 /// Executes [RangedWeaponIntentStore] intents by spawning weapon projectiles and
-/// managing costs (stamina + ammo + cooldowns).
+/// managing costs (stamina + cooldowns).
 class RangedWeaponSystem {
   RangedWeaponSystem({
     required this.weapons,
@@ -22,7 +22,6 @@ class RangedWeaponSystem {
     final transforms = world.transform;
     final cooldowns = world.cooldown;
     final staminas = world.stamina;
-    final ammos = world.ammo;
     final factions = world.faction;
 
     final count = intents.denseEntities.length;
@@ -63,18 +62,6 @@ class RangedWeaponSystem {
         nextStamina = currentStamina - staminaCost;
       }
 
-      // Ammo check.
-      final ammoCost = weapon.ammoCost;
-      int? ai;
-      int? nextAmmo;
-      if (ammoCost > 0) {
-        ai = ammos.tryIndexOf(caster);
-        if (ai == null) continue;
-        final currentAmmo = ammos.countForIndex(ai, weapon.ammoType);
-        if (currentAmmo < ammoCost) continue;
-        nextAmmo = currentAmmo - ammoCost;
-      }
-
       spawnRangedWeaponProjectileFromCaster(
         world,
         projectiles: projectiles,
@@ -95,17 +82,13 @@ class RangedWeaponSystem {
         gravityScale: weapon.gravityScale,
       );
 
-      // Apply costs.
+      // Apply stamina cost.
       if (si != null) {
         staminas.stamina[si] =
             clampDouble(nextStamina!, 0.0, staminas.staminaMax[si]);
-      }
-      if (ai != null) {
-        ammos.setCountForIndex(ai, weapon.ammoType, nextAmmo!);
       }
       cooldowns.rangedWeaponCooldownTicksLeft[ci] =
           weapons.cooldownTicks(weaponId);
     }
   }
 }
-

@@ -23,7 +23,6 @@ class PlayerHudSnapshot {
     required this.projectileCooldownTicksTotal,
     required this.rangedWeaponCooldownTicksLeft,
     required this.rangedWeaponCooldownTicksTotal,
-    required this.rangedAmmo,
     required this.collectibles,
     required this.collectibleScore,
   });
@@ -58,7 +57,7 @@ class PlayerHudSnapshot {
   /// Whether mana is sufficient for projectile casting.
   final bool canAffordProjectile;
 
-  /// Whether stamina + ammo are sufficient for the equipped ranged weapon.
+  /// Whether stamina is sufficient for the equipped ranged weapon.
   final bool canAffordRangedWeapon;
 
   /// Remaining dash cooldown ticks.
@@ -84,9 +83,6 @@ class PlayerHudSnapshot {
 
   /// Total ranged weapon cooldown ticks.
   final int rangedWeaponCooldownTicksTotal;
-
-  /// Ammo count for the equipped ranged weapon's ammo type.
-  final int rangedAmmo;
 
   /// Collected collectibles.
   final int collectibles;

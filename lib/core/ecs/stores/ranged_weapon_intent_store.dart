@@ -59,7 +59,7 @@ class RangedWeaponIntentStore extends SparseSet {
 
   @override
   void onDenseAdded(int denseIndex) {
-    weaponId.add(RangedWeaponId.bow);
+    weaponId.add(RangedWeaponId.throwingKnife);
     dirX.add(0.0);
     dirY.add(0.0);
     fallbackDirX.add(1.0);

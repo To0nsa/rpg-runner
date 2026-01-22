@@ -153,7 +153,7 @@ const Map<AnimKey, double> _throwingAxeStepTimeSecondsByKey =
 };
 
 const Map<AnimKey, String> _throwingAxeSourcesByKey = <AnimKey, String>{
-  AnimKey.idle: 'entities/throwingWepons/throwingAxe.png',
+  AnimKey.idle: 'weapons/throwingWeapons/throwingAxe.png',
 };
 
 const RenderAnimSetDefinition _throwingAxeRenderAnim = RenderAnimSetDefinition(
@@ -184,7 +184,7 @@ const Map<AnimKey, double> _throwingKnifeStepTimeSecondsByKey =
 };
 
 const Map<AnimKey, String> _throwingKnifeSourcesByKey = <AnimKey, String>{
-  AnimKey.idle: 'entities/throwingWepons/throwingKnife.png',
+  AnimKey.idle: 'weapons/throwingWeapons/throwingKnife.png',
 };
 
 const RenderAnimSetDefinition _throwingKnifeRenderAnim = RenderAnimSetDefinition(
@@ -212,8 +212,6 @@ class ProjectileRenderCatalog {
         return _fireBoltRenderAnim;
       case ProjectileId.throwingAxe:
         return _throwingAxeRenderAnim;
-      case ProjectileId.arrow:
-        throw StateError('No render animation defined for $id.');
       case ProjectileId.throwingKnife:
         return _throwingKnifeRenderAnim;
     }

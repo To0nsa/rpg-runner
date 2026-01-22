@@ -36,7 +36,7 @@ class EquippedLoadoutDef {
     this.mask = LoadoutSlotMask.defaultMask,
     this.mainWeaponId = WeaponId.basicSword,
     this.offhandWeaponId = WeaponId.basicShield,
-    this.rangedWeaponId = RangedWeaponId.bow,
+    this.rangedWeaponId = RangedWeaponId.throwingKnife,
     this.spellId = SpellId.iceBolt,
   });
 
@@ -102,7 +102,7 @@ class EquippedLoadoutStore extends SparseSet {
     mask.add(LoadoutSlotMask.defaultMask);
     mainWeaponId.add(WeaponId.basicSword);
     offhandWeaponId.add(WeaponId.basicShield);
-    rangedWeaponId.add(RangedWeaponId.bow);
+    rangedWeaponId.add(RangedWeaponId.throwingKnife);
     spellId.add(SpellId.iceBolt);
   }
 

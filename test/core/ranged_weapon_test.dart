@@ -17,13 +17,12 @@ import 'package:rpg_runner/core/players/player_tuning.dart';
 import 'package:rpg_runner/core/weapons/ranged_weapon_catalog.dart';
 import 'package:rpg_runner/core/weapons/ranged_weapon_id.dart';
 import 'package:rpg_runner/core/weapons/spawn_ranged_weapon_projectile.dart';
-import 'package:rpg_runner/core/ecs/stores/combat/ammo_store.dart';
 
 import '../test_tunings.dart';
 
 void main() {
   test(
-    'ranged: sufficient stamina + ammo => projectile spawns + costs + cooldown set',
+    'ranged: sufficient stamina => projectile spawns + costs + cooldown set',
     () {
       const tickHz = 20;
       final base = PlayerCharacterRegistry.eloise;
@@ -34,8 +33,7 @@ void main() {
         playerCharacter: base.copyWith(
           catalog: const PlayerCatalog(
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-            rangedWeaponId: RangedWeaponId.bow,
-            ammo: AmmoDef(arrows: 2, throwingAxes: 0),
+            rangedWeaponId: RangedWeaponId.throwingKnife,
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
@@ -66,17 +64,16 @@ void main() {
       expect(projectiles.length, 1);
 
       final p = projectiles.single;
-      final weapon = const RangedWeaponCatalog().get(RangedWeaponId.bow);
+      final weapon = const RangedWeaponCatalog().get(RangedWeaponId.throwingKnife);
       expect(p.pos.x, closeTo(playerPosX + weapon.originOffset, 1e-9));
       expect(p.pos.y, closeTo(playerPosY, 1e-9));
 
-      expect(snapshot.hud.stamina, closeTo(6.0, 1e-9));
-      expect(snapshot.hud.rangedAmmo, 1);
-      expect(snapshot.hud.rangedWeaponCooldownTicksLeft, 5); // 0.25s @ 20Hz
+      expect(snapshot.hud.stamina, closeTo(5.0, 1e-9)); // 10 - 5 staminaCost
+      expect(snapshot.hud.rangedWeaponCooldownTicksLeft, 6); // 0.30s @ 20Hz
     },
   );
 
-  test('ranged: insufficient ammo => no projectile + no costs + no cooldown', () {
+  test('ranged: insufficient stamina => no projectile + no costs + no cooldown', () {
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
       seed: 1,
@@ -85,14 +82,13 @@ void main() {
       playerCharacter: base.copyWith(
         catalog: const PlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-          rangedWeaponId: RangedWeaponId.bow,
-          ammo: AmmoDef(arrows: 0, throwingAxes: 0),
+          rangedWeaponId: RangedWeaponId.throwingKnife,
         ),
         tuning: base.tuning.copyWith(
           resource: const ResourceTuning(
             playerManaMax: 0,
             playerManaRegenPerSecond: 0,
-            playerStaminaMax: 10,
+            playerStaminaMax: 0,
             playerStaminaRegenPerSecond: 0,
           ),
         ),
@@ -112,8 +108,7 @@ void main() {
       snapshot.entities.where((e) => e.kind == EntityKind.projectile),
       isEmpty,
     );
-    expect(snapshot.hud.stamina, closeTo(10.0, 1e-9));
-    expect(snapshot.hud.rangedAmmo, 0);
+    expect(snapshot.hud.stamina, closeTo(0.0, 1e-9));
     expect(snapshot.hud.rangedWeaponCooldownTicksLeft, 0);
     expect(snapshot.hud.canAffordRangedWeapon, isFalse);
   });
@@ -129,7 +124,7 @@ void main() {
     final p = spawnRangedWeaponProjectileFromCaster(
       world,
       projectiles: projectiles,
-      projectileId: ProjectileId.arrow,
+      projectileId: ProjectileId.throwingAxe,
       faction: Faction.player,
       owner: owner,
       casterX: 100,

@@ -5,7 +5,6 @@ import '../util/deterministic_rng.dart';
 import 'entity_id.dart';
 import 'stores/body_store.dart';
 import 'stores/collider_aabb_store.dart';
-import 'stores/combat/ammo_store.dart';
 import 'stores/combat/creature_tag_store.dart';
 import 'stores/combat/damage_resistance_store.dart';
 import 'stores/combat/equipped_spell_store.dart';
@@ -83,7 +82,6 @@ class EntityFactory {
         const EquippedRangedWeaponDef(),
     EquippedSpellDef equippedSpell = const EquippedSpellDef(),
     EquippedLoadoutDef equippedLoadout = const EquippedLoadoutDef(),
-    AmmoDef ammo = const AmmoDef(),
   }) {
     final id = world.createEntity();
     world.transform.add(id, posX: posX, posY: posY, velX: velX, velY: velY);
@@ -106,7 +104,6 @@ class EntityFactory {
     world.mana.add(id, mana);
     world.meleeIntent.add(id);
     world.rangedWeaponIntent.add(id);
-    world.ammo.add(id, ammo);
     world.equippedWeapon.add(id, equippedWeapon);
     world.equippedRangedWeapon.add(id, equippedRangedWeapon);
     world.equippedSpell.add(id, equippedSpell);

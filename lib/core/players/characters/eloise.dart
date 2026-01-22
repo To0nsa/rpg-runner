@@ -1,7 +1,6 @@
 library;
 
 import '../../ecs/stores/body_store.dart';
-import '../../ecs/stores/combat/ammo_store.dart';
 import '../../ecs/stores/combat/creature_tag_store.dart';
 import '../../ecs/stores/combat/damage_resistance_store.dart';
 import '../../ecs/stores/combat/equipped_loadout_store.dart';
@@ -155,7 +154,6 @@ const PlayerCatalog eloiseCatalog = PlayerCatalog(
   offhandWeaponId: WeaponId.basicShield,
   rangedWeaponId: RangedWeaponId.throwingKnife,
   spellId: SpellId.fireBolt,
-  ammo: AmmoDef(throwingKnives: 10000),
   facing: Facing.right,
 );
 

@@ -1,6 +1,5 @@
 import '../util/tick_math.dart';
 import '../projectiles/projectile_id.dart';
-import 'ammo_type.dart';
 import 'ranged_weapon_def.dart';
 import 'ranged_weapon_id.dart';
 
@@ -10,27 +9,12 @@ class RangedWeaponCatalog {
 
   RangedWeaponDef get(RangedWeaponId id) {
     switch (id) {
-      case RangedWeaponId.bow:
-        return const RangedWeaponDef(
-          id: RangedWeaponId.bow,
-          projectileId: ProjectileId.arrow,
-          damage: 12.0,
-          staminaCost: 4.0,
-          ammoType: AmmoType.arrow,
-          ammoCost: 1,
-          originOffset: 8.0,
-          cooldownSeconds: 0.25,
-          ballistic: true,
-          gravityScale: 0.8,
-        );
       case RangedWeaponId.throwingAxe:
         return const RangedWeaponDef(
           id: RangedWeaponId.throwingAxe,
           projectileId: ProjectileId.throwingAxe,
           damage: 18.0,
           staminaCost: 8.0,
-          ammoType: AmmoType.throwingAxe,
-          ammoCost: 1,
           originOffset: 8.0,
           cooldownSeconds: 0.40,
           ballistic: true,
@@ -42,8 +26,6 @@ class RangedWeaponCatalog {
           projectileId: ProjectileId.throwingKnife,
           damage: 10.0,
           staminaCost: 5.0,
-          ammoType: AmmoType.throwingKnife,
-          ammoCost: 1,
           originOffset: 6.0,
           cooldownSeconds: 0.30,
           ballistic: true,

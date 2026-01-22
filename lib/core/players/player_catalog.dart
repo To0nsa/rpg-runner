@@ -1,7 +1,6 @@
 import '../combat/creature_tag.dart';
 import '../ecs/stores/body_store.dart';
 import '../ecs/stores/collider_aabb_store.dart';
-import '../ecs/stores/combat/ammo_store.dart';
 import '../ecs/stores/combat/creature_tag_store.dart';
 import '../ecs/stores/combat/damage_resistance_store.dart';
 import '../ecs/stores/combat/equipped_loadout_store.dart';
@@ -50,9 +49,8 @@ class PlayerCatalog {
     this.loadoutSlotMask = LoadoutSlotMask.defaultMask,
     this.weaponId = WeaponId.basicSword,
     this.offhandWeaponId = WeaponId.basicShield,
-    this.rangedWeaponId = RangedWeaponId.bow,
+    this.rangedWeaponId = RangedWeaponId.throwingKnife,
     this.spellId = SpellId.iceBolt,
-    this.ammo = const AmmoDef(arrows: 20, throwingAxes: 6),
     this.facing = Facing.right,
   });
 
@@ -113,9 +111,6 @@ class PlayerCatalog {
 
   /// Default equipped spell at spawn time.
   final SpellId spellId;
-
-  /// Default ammo pool at spawn time.
-  final AmmoDef ammo;
 
   /// Default facing direction at spawn time.
   ///
@@ -213,7 +208,6 @@ class PlayerCatalogDerived {
         offhandWeaponId: base.offhandWeaponId,
         rangedWeaponId: base.rangedWeaponId,
         spellId: base.spellId,
-        ammo: base.ammo,
         facing: base.facing,
       ),
     );

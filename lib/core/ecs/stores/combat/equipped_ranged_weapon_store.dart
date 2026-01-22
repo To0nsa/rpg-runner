@@ -3,7 +3,7 @@ import '../../entity_id.dart';
 import '../../sparse_set.dart';
 
 class EquippedRangedWeaponDef {
-  const EquippedRangedWeaponDef({this.weaponId = RangedWeaponId.bow});
+  const EquippedRangedWeaponDef({this.weaponId = RangedWeaponId.throwingKnife});
 
   final RangedWeaponId weaponId;
 }
@@ -22,7 +22,7 @@ class EquippedRangedWeaponStore extends SparseSet {
 
   @override
   void onDenseAdded(int denseIndex) {
-    weaponId.add(RangedWeaponId.bow);
+    weaponId.add(RangedWeaponId.throwingKnife);
   }
 
   @override

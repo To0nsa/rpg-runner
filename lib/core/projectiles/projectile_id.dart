@@ -12,9 +12,6 @@ enum ProjectileId {
   /// Player's fire spell projectile. Medium speed and lifetime.
   fireBolt,
 
-  /// Physical arrow projectile (ballistic).
-  arrow,
-
   /// Physical throwing axe projectile (ballistic).
   throwingAxe,
 

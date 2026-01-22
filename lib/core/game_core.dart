@@ -565,7 +565,6 @@ class GameCore {
         rangedWeaponId: playerArchetype.rangedWeaponId,
         spellId: playerArchetype.spellId,
       ),
-      ammo: playerArchetype.ammo,
     );
   }
 

@@ -5,7 +5,6 @@ import 'stores/collider_aabb_store.dart';
 import 'stores/collision_state_store.dart';
 import 'stores/cooldown_store.dart';
 import 'stores/cast_intent_store.dart';
-import 'stores/combat/ammo_store.dart';
 import 'stores/combat/creature_tag_store.dart';
 import 'stores/combat/damage_resistance_store.dart';
 import 'stores/combat/equipped_spell_store.dart';
@@ -171,9 +170,6 @@ class EcsWorld {
   late final RangedWeaponIntentStore rangedWeaponIntent = _register(
     RangedWeaponIntentStore(),
   );
-
-  /// Per-entity ammo pools for ranged weapons.
-  late final AmmoStore ammo = _register(AmmoStore());
 
   /// Equipped melee weapon (for on-hit profiles like bleed).
   late final EquippedWeaponStore equippedWeapon = _register(
