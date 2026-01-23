@@ -1,27 +1,40 @@
-# Phase 1: Data Model Detail & Edge Cases (Locked Spec)
+# Phase 1: Data Model Detail & Edge Cases (Locked Spec) — **Namespaced Ability Keys**
 
-This document details the exact data structures for Phase 1 and analyzes potential edge cases, incorporating all critical feedback (Slots, Aim, State, Interrupts, Asserts, Units).
+This version replaces the global `enum AbilityId` with a **stable, namespaced string key** (`AbilityKey`) so abilities can be duplicated per character cleanly without a “god enum”.
 
-## 1. Class Definitions
+---
 
-### `AbilityId` (Enum)
-Stable identifiers. No `none`.
+## 1. Identity
+
+### `AbilityKey` (Stable ID)
+*Type:* `String`  
+*Format contract:* `<characterId>.<abilityName>` (lower_snake_case recommended)
+
+Examples:
+- `eloise.sword_strike`
+- `eloise.sword_parry`
+- `eloise.dash`
+- `eloise.jump`
+- `grom.shield_bash`
+
 ```dart
-enum AbilityId {
-  // Fallbacks
-  unarmedStrike, 
-  bracedBlock,   
-  
-  // Eloise
-  swordStrike, swordParry,
-  shieldBash, shieldBlock,
-  throwingKnife, iceBolt, fireBolt, thunderBolt,
-  dash, roll,
-  
-  // Intrinsic
-  jump
+typedef AbilityKey = String;
+
+bool isValidAbilityKey(AbilityKey key) {
+  // Format: "character.ability_name" (no spaces, lower snake case)
+  // At least one dot, segments must be non-empty [a-z0-9_].
+  final RegExp validKey = RegExp(r'^[a-z0-9_]+\.[a-z0-9_]+$');
+  return validKey.hasMatch(key);
 }
 ```
+
+**Persistence contract:** `AbilityKey` is the only value used for save/load/analytics/debug.
+
+> Optional later optimization (not Phase 1): compile `AbilityKey -> int index` once at catalog-build time and store the resolved index in runtime state (`ActiveAbilityState`) to avoid map lookups in per-tick logic.
+
+---
+
+## 2. Class Definitions
 
 ### `AbilitySlot` (Enum)
 Defines the "buttons/inputs".
@@ -37,24 +50,25 @@ enum AbilitySlot {
 
 ### `InterruptPriority` (Enum & Contract)
 Defines preemption hierarchy.
-**Contract:** 
-*   Priority is totally ordered by ordinal (index `0` lowest).
-*   **Collision Rule:** If `Incoming.priority > Current.priority` -> Interrupt.
-*   **Same Priority:** `Current` wins (cannot be preempted by equal priority, must finish). *Exception:* `forced` logic might override this specific check externally.
+
+**Contract:**
+- Priority is totally ordered by ordinal (index `0` lowest).
+- **Collision Rule:** If `Incoming.priority > Current.priority` -> Interrupt.
+- **Same Priority:** `Current` wins (cannot be preempted by equal priority, must finish).
+- `forced` is reserved for **system events** (stun/death) and is not allowed in `AbilityDef`.
 
 ```dart
 enum InterruptPriority {
   // Lowest
-  low,      // e.g. Passive regen stance?
-  combat,   // Standard attacks (Strike, Cast)
-  mobility, // Dash, Jump, Roll
-  forced,   // Hitstun, Death (Highest)
+  low,      // e.g. passive stance
+  combat,   // standard attacks (strike/cast)
+  mobility, // dash/jump/roll
+  forced,   // stun/death (highest) — system-only
 }
 ```
 
 ### `AbilityDef` (Class)
-Authoritative definition of an ability's "Structure".
-
+Authoritative definition of an ability's **structure**.
 ```dart
 class AbilityDef {
   const AbilityDef({
@@ -74,55 +88,58 @@ class AbilityDef {
     required this.animKey,
     required this.tags,
     required this.requiredTags,
-  }) : assert(allowedSlots.isNotEmpty, 'Ability must be equipable in at least one slot'),
+  }) : assert(isValidAbilityKey(id), 'AbilityKey must be in format "<character>.<name>"'),
+       assert(allowedSlots.isNotEmpty, 'Ability must be equipable in at least one slot'),
        assert(windupTicks >= 0 && activeTicks >= 0 && recoveryTicks >= 0, 'Ticks cannot be negative'),
        assert(cooldownTicks >= 0, 'Cooldown cannot be negative'),
        assert(staminaCost >= 0 && manaCost >= 0, 'Costs cannot be negative'),
        assert(!canBeInterruptedBy.contains(interruptPriority), 'Ability should not list its own priority in canBeInterruptedBy (old wins implicitly).'),
        assert(interruptPriority != InterruptPriority.forced, 'Forced priority is reserved for system events (stun/death).');
 
-  final AbilityId id;
-  // UI Grouping Only
-  final AbilityCategory category; 
-  
-  // -- Slot Legality --
-  // Explicitly defines where this can be equipped.
+  final AbilityKey id;
+
+  // UI grouping only (must not drive legality)
+  final AbilityCategory category;
+
+  // Explicit equip legality
   final Set<AbilitySlot> allowedSlots;
-  
-  // -- Targeting & Execution --
-  final TargetingModel targetingModel; 
-  
-  // -- Hit Delivery Spec --
-  final HitDeliveryDef hitDelivery; 
-  
-  // -- Timing (Ticks @ 60hz) --
+
+  // Targeting & execution model
+  final TargetingModel targetingModel;
+
+  // Hit delivery spec
+  final HitDeliveryDef hitDelivery;
+
+  // Timing (ticks @ 60hz)
   final int windupTicks;
   final int activeTicks;
   final int recoveryTicks;
-  
-  // -- Costs (Fixed Point Int) --
-  // 100 = 1.0 unit. avoids float drift.
-  final int staminaCost; 
+
+  // Costs (fixed point int): 100 = 1.0
+  final int staminaCost;
   final int manaCost;
-  
-  // -- Cooldown --
+
+  // Cooldown
   final int cooldownTicks;
-  
-  // -- Interrupt Rules --
+
+  // Interrupt rules
   final InterruptPriority interruptPriority;
   final Set<InterruptPriority> canBeInterruptedBy;
-  
-  // -- Presentation --
-  final AnimKey animKey; 
-  
-  // -- Tags --
-  final Set<AbilityTag> tags;           
-  final Set<AbilityTag> requiredTags;   
+
+  // Presentation
+  final AnimKey animKey;
+
+  // Tags
+  final Set<AbilityTag> tags;
+  final Set<AbilityTag> requiredTags;
 }
 ```
 
-### `HitDeliveryDef` (Struct)
-Standardized Units: All dimensions/offsets are in **World Units** (pixels/game points), same as Physics body sizes.
+---
+
+## 3. Hit Delivery
+
+Standardized units: all dimensions/offsets are in **World Units** (same units as physics bodies).
 
 ```dart
 abstract class HitDeliveryDef {}
@@ -138,7 +155,7 @@ class MeleeHitDelivery extends HitDeliveryDef {
     required this.hitPolicy,
   });
 
-  final double sizeX; 
+  final double sizeX;
   final double sizeY;
   final double offsetX;
   final double offsetY;
@@ -152,18 +169,26 @@ class ProjectileHitDelivery extends HitDeliveryDef {
     this.chain = false,
     this.chainCount = 0,
     this.hitPolicy = HitPolicy.oncePerTarget,
-  }) : assert(chain || chainCount == 0, 'If chain overrides is false, count must be 0');
+  }) : assert(chainCount >= 0, 'Chain count must be non-negative'),
+       assert(!chain || chainCount > 0, 'If chain is true, count must be > 0');
+       // Chain Precedence Rule:
+       // On Hit:
+       // 1. If Chain enabled and count > 0: Retarget and chain (decrement count).
+       // 2. Else if Pierce enabled: Pass through (continue trajectory).
+       // 3. Else: Destroy projectile.
 
-  final ProjectileId projectileId; 
+  final ProjectileId projectileId;
   final bool pierce;
   final bool chain;
-  final int chainCount; 
+  final int chainCount;
   final HitPolicy hitPolicy;
 }
 ```
 
-### `AimSnapshot` (Struct)
-Encapsulates aiming state.
+---
+
+## 4. Aim
+
 ```dart
 class AimSnapshot {
   const AimSnapshot({
@@ -172,7 +197,6 @@ class AimSnapshot {
     required this.capturedTick,
   });
 
-  // Canonical "Empty/No Aim" constant
   static const AimSnapshot empty = AimSnapshot(
     angleRad: 0.0,
     hasAngle: false,
@@ -185,26 +209,30 @@ class AimSnapshot {
 }
 ```
 
+---
+
+## 5. Runtime State
+
 ### `ActiveAbilityState` (Mutable Component)
-Tracks the runtime execution. **Mutable for ECS performance.**
+Tracks the runtime execution; mutable for ECS performance.
+
 ```dart
 class ActiveAbilityState {
-  AbilityId abilityId = AbilityId.unarmedStrike;
+  AbilityKey? abilityId; // null when idle (no default fallback needed)
   AbilitySlot slot = AbilitySlot.primary;
-  
+
   AbilityPhase phase = AbilityPhase.idle;
   int phaseTicksRemaining = 0;
   int totalDurationTicks = 0;
-  
+
   int commitTick = 0;
-  
-  // Snapshot of aim at the moment of commit.
-  AimSnapshot aim = AimSnapshot.empty; 
+  AimSnapshot aim = AimSnapshot.empty;
 }
 ```
 
+
 ### `BufferedInputState` (Mutable Component)
-Tracks pending inputs. **Mutable/Pooled to avoid GC.**
+Pooled/mutable to avoid GC.
 
 ```dart
 class BufferedInputState {
@@ -213,89 +241,63 @@ class BufferedInputState {
   int pressedTick = 0;
   AimSnapshot aim = AimSnapshot.empty;
 
-  void set(AbilitySlot s, int tick, AimSnapshot a) { 
-    hasValue = true; 
-    slot = s; 
-    pressedTick = tick; 
-    aim = a; 
+  void set(AbilitySlot s, int tick, AimSnapshot a) {
+    hasValue = true;
+    slot = s;
+    pressedTick = tick;
+    aim = a;
   }
-  
-  void clear() { 
-    hasValue = false; 
-    aim = AimSnapshot.empty; 
-    // slot/tick don't matter when hasValue is false
+
+  void clear() {
+    hasValue = false;
+    aim = AimSnapshot.empty;
   }
 }
 ```
 
+---
 
-
-### `ProjectileHitDelivery` (Refined Asserts)
+## 6. Equipped Loadout (Extension)
 
 ```dart
-class ProjectileHitDelivery extends HitDeliveryDef {
-  const ProjectileHitDelivery({
-    ...
-  }) : assert(chainCount >= 0, 'Chain count must be non-negative'),
-       assert(!chain || chainCount > 0, 'If chain is true, count must be > 0'),
-       // Design decision: Pierce + Chain allowed. Pierce priority (hits->pierces->...->hits->chains)
-       ...;
-}
+// Store AbilityKey (stable persistence identity)
+AbilityKey abilityPrimary;
+AbilityKey abilitySecondary;
+AbilityKey abilityProjectile;
+AbilityKey abilityMobility;
+AbilityKey abilityBonus;
 ```
 
-### `EquippedLoadoutStore` (Extension)
-```dart
-AbilityId abilityPrimary;
-AbilityId abilitySecondary;
-AbilityId abilityProjectile;
-AbilityId abilityMobility;
-AbilityId abilityBonus;
-```
+**Per-character duplication rule:** each character owns its own fallbacks too:
+- `eloise.unarmed_strike`, `eloise.braced_block`, `eloise.jump`
+- `grom.unarmed_strike`, `grom.braced_block`, `grom.jump`
+
+So “default kit” is just equipping those keys on spawn.
 
 ---
 
-## 2. Refined Decision Log (Final Polish)
-
-### A. Slot Legality
-*   **Decision:** `AbilityDef.allowedSlots` set explicit legality. Invariant: Must not be empty.
-
-### B. Aim Snapshot
-*   **Decision:** defined `AimSnapshot.empty`.
-*   **Behavior Check:** If `ActiveAbilityState` uses mutable fields, `aim` field might be reassigned to `AimSnapshot.empty` on idle transition to clear state.
-
-### C. Mutable State
-*   **Decision:** `ActiveAbilityState` fields are non-final. Logic systems mutate in place.
-
-### D. Interrupt Model (Deterministic)
-*   **Decision:**
-    *   Enum Order: Low < Combat < Mobility < Forced.
-    *   **Collision Rule:** New > Old only if New.priority > Old.priority.
-    *   **Same Priority:** Old wins (Current action completes). "First commit wins".
-
-### E. Hit Policy & Units
-*   **Decision:** `HitPolicy` enum. `chainCount == 0` assert.
-*   **Units:** All doubles are World Units (standard physics size).
-
-### F. Fixed Point Costs
-*   **Decision:** `int` fixed point (100 = 1.0).
-*   **Conversion Rule:** Tuning values (doubles) are converted to fixed-point `int` **once at Load Time** (constructing the Catalog/Defs). Runtime logic uses ints exclusively. No runtime double operations for resource consumption.
+## 7. Catalog (Phase 1)
+`AbilityCatalog` builds a `Map<AbilityKey, AbilityDef>` and validates:
+- keys unique
+- `isValidAbilityKey`
+- asserts in `AbilityDef` and hit deliveries
+- conversion of tuning doubles -> fixed-point ints happens **once at build time** (x100)
 
 ---
 
-## 3. Revised Phase 1 Action Items
+## 8. Revised Phase 1 Action Items (Updated)
 
-1.  **Define Enums:**
-    *   `AbilityId`, `AbilitySlot`, `AbilityCategory`, `AbilityPhase`
-    *   `TargetingModel`, `HitPolicy`, `InterruptPriority` (ordered), `AbilityTag`
-2.  **Define Structs:**
-    *   `AbilityTiming` (ticks), `AbilityCost` (int)
-    *   `HitDeliveryDef` (Hitbox doubles in World Units)
-    *   `AimSnapshot` (with `.empty`)
-    *   `AbilityDef` (Asserts: valid slots, non-negative ticks/cost)
-    *   `ActiveAbilityState` & `BufferedInputState` (Data definitions)
-3.  **Create Catalog:**
-    *   `AbilityCatalog` with Eloise's abilities.
-    *   **Tick Sync:** Manually set INT values.
-    *   **Cost Sync:** Manually convert double tuning -> INT (x100).
-4.  **Update Loadout:** Add fields to `EquippedLoadoutStore`.
+1. **Define Enums:**
+   - `AbilitySlot`, `AbilityCategory`, `AbilityPhase`
+   - `TargetingModel`, `HitPolicy`, `InterruptPriority` (ordered), `AbilityTag`
+2. **Define Structs:**
+   - `HitDeliveryDef` (world-unit doubles)
+   - `AimSnapshot` (with `.empty`)
+   - `AbilityDef` (with asserts + `AbilityKey` ID)
+   - `ActiveAbilityState` & `BufferedInputState`
+3. **Create Catalog:**
+   - `AbilityCatalog` with **Eloise-only** abilities as `AbilityKey`s (`eloise.*`)
+   - Convert tuning doubles -> fixed-point ints at load/build time
+4. **Update Loadout:**
+   - Swap loadout fields from `AbilityId` to `AbilityKey`
 

@@ -3,6 +3,7 @@ import '../../../weapons/ranged_weapon_id.dart';
 import '../../../weapons/weapon_id.dart';
 import '../../entity_id.dart';
 import '../../sparse_set.dart';
+import '../../../abilities/ability_def.dart';
 
 /// Bitmask constants for loadout slots.
 ///
@@ -38,6 +39,11 @@ class EquippedLoadoutDef {
     this.offhandWeaponId = WeaponId.basicShield,
     this.rangedWeaponId = RangedWeaponId.throwingKnife,
     this.spellId = SpellId.iceBolt,
+    // Default abilities (Eloise defaults for now)
+    this.abilityPrimaryId = 'eloise.sword_strike',
+    this.abilitySecondaryId = 'eloise.shield_block',
+    this.abilityProjectileId = 'eloise.ice_bolt',
+    this.abilityMobilityId = 'eloise.dash',
   });
 
   /// Bitmask of enabled slots (see [LoadoutSlotMask]).
@@ -54,6 +60,12 @@ class EquippedLoadoutDef {
 
   /// Equipped spell.
   final SpellId spellId;
+
+  // New Ability System IDs
+  final AbilityKey abilityPrimaryId;
+  final AbilityKey abilitySecondaryId;
+  final AbilityKey abilityProjectileId;
+  final AbilityKey abilityMobilityId;
 }
 
 /// Per-entity equipment loadout (single source of truth).
@@ -70,6 +82,12 @@ class EquippedLoadoutStore extends SparseSet {
   final List<WeaponId> offhandWeaponId = <WeaponId>[];
   final List<RangedWeaponId> rangedWeaponId = <RangedWeaponId>[];
   final List<SpellId> spellId = <SpellId>[];
+  
+  // New Ability System Lists
+  final List<AbilityKey> abilityPrimaryId = <AbilityKey>[];
+  final List<AbilityKey> abilitySecondaryId = <AbilityKey>[];
+  final List<AbilityKey> abilityProjectileId = <AbilityKey>[];
+  final List<AbilityKey> abilityMobilityId = <AbilityKey>[];
 
   void add(EntityId entity, [EquippedLoadoutDef def = const EquippedLoadoutDef()]) {
     final i = addEntity(entity);
@@ -78,6 +96,10 @@ class EquippedLoadoutStore extends SparseSet {
     offhandWeaponId[i] = def.offhandWeaponId;
     rangedWeaponId[i] = def.rangedWeaponId;
     spellId[i] = def.spellId;
+    abilityPrimaryId[i] = def.abilityPrimaryId;
+    abilitySecondaryId[i] = def.abilitySecondaryId;
+    abilityProjectileId[i] = def.abilityProjectileId;
+    abilityMobilityId[i] = def.abilityMobilityId;
   }
 
   /// Updates the loadout for an existing entity.
@@ -88,6 +110,10 @@ class EquippedLoadoutStore extends SparseSet {
     offhandWeaponId[i] = def.offhandWeaponId;
     rangedWeaponId[i] = def.rangedWeaponId;
     spellId[i] = def.spellId;
+    abilityPrimaryId[i] = def.abilityPrimaryId;
+    abilitySecondaryId[i] = def.abilitySecondaryId;
+    abilityProjectileId[i] = def.abilityProjectileId;
+    abilityMobilityId[i] = def.abilityMobilityId;
   }
 
   /// Returns true if [entity] has the given [slotBit] enabled.
@@ -104,6 +130,10 @@ class EquippedLoadoutStore extends SparseSet {
     offhandWeaponId.add(WeaponId.basicShield);
     rangedWeaponId.add(RangedWeaponId.throwingKnife);
     spellId.add(SpellId.iceBolt);
+    abilityPrimaryId.add('eloise.sword_strike');
+    abilitySecondaryId.add('eloise.shield_block');
+    abilityProjectileId.add('eloise.ice_bolt');
+    abilityMobilityId.add('eloise.dash');
   }
 
   @override
@@ -113,11 +143,19 @@ class EquippedLoadoutStore extends SparseSet {
     offhandWeaponId[removeIndex] = offhandWeaponId[lastIndex];
     rangedWeaponId[removeIndex] = rangedWeaponId[lastIndex];
     spellId[removeIndex] = spellId[lastIndex];
+    abilityPrimaryId[removeIndex] = abilityPrimaryId[lastIndex];
+    abilitySecondaryId[removeIndex] = abilitySecondaryId[lastIndex];
+    abilityProjectileId[removeIndex] = abilityProjectileId[lastIndex];
+    abilityMobilityId[removeIndex] = abilityMobilityId[lastIndex];
 
     mask.removeLast();
     mainWeaponId.removeLast();
     offhandWeaponId.removeLast();
     rangedWeaponId.removeLast();
     spellId.removeLast();
+    abilityPrimaryId.removeLast();
+    abilitySecondaryId.removeLast();
+    abilityProjectileId.removeLast();
+    abilityMobilityId.removeLast();
   }
 }
