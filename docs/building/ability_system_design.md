@@ -54,10 +54,10 @@ A character has a set of named ability slots. Slots map to input buttons.
 | Slot          | Role                              | Typical content                                          |
 | ------------- | --------------------------------- | -------------------------------------------------------- |
 | **Primary**   | Primary hand                      | strike, parry, combo                                     |
-| **Secondary** | Secondary hand                    | shield bash, shield block                                |
-| **Projectile**    | Projectile (spells/ranged weapons) | quick throw, heavy throw, firebolt, icebolt              |
+| **Secondary** | Secondary hand (or empty for two-handed) | shield bash, shield block, off-hand parry        |
+| **Projectile**    | Projectile (spells/throwing weapons) | quick throw, heavy throw, firebolt, icebolt          |
 | **Mobility**  | Mobility                          | dash, roll                                               |
-| **Bonus**     | Flexible slot                     | any of Primary/Secondary/Ranged/Projectile Spells/Spells |
+| **Bonus**     | Flexible slot                     | any of Primary/Secondary/Projectile/Spell                |
 
 ### Slot Rules
 
@@ -65,7 +65,7 @@ Each slot has **restrictions** that define what can be equipped.
 Restrictions are determined by:
 
 * **Character** (what the character is allowed to use)
-* **Role** (Primary/Secondary/Ranged/Spell)
+* **Role** (Primary/Secondary/Projectile/Spell)
 * **Unlocks** (future meta progression)
 
 **Design rule:** legality is determined *when equipping* the loadout (menu time). In-run behavior assumes the equipped loadout is valid.
@@ -77,10 +77,11 @@ Restrictions are determined by:
 Abilities are grouped into broad categories to support clear slot restrictions and consistent player expectations.
 
 * **Primary hand**: ability linked to what is equipped in the primary gear slot
-* **Secondary hand**: ability linked to what is equipped in the secondary gear slot
-* **Projectile**: ability linked to what is equipped in the projectile gear slot
+* **Secondary hand**: ability linked to what is equipped in the secondary gear slot; slot may be empty if Primary is a two-handed weapon
+* **Projectile**: ability linked to what is equipped in the projectile gear slot (spells or throwing weapons)
 * **Mobility**: mobility ability (dash, roll, etc)
 * **Spell**: spell ability, special ability (AoE, buffs etc)
+* **Combo** (Future): multi-tap ability that chains multiple attacks (double/triple tap sequences)
 
 > Categories are about player intent and slot compatibility, not implementation.
 
@@ -133,7 +134,7 @@ Each ability declares a targeting model that defines **how direction/area is cho
 Used by melee strikes, throws, and other directional abilities.
 
 * **Tap:** commits immediately using the character’s **current facing direction**.
-* **Hold:** enters an aiming state; the player can rotate the direction freely.
+* **Hold:** enters an aiming state; the player can rotate the direction freely. No time limit, tension is created by the runner genre forcing frequent jumps.
 * **Release:** commits the ability using the last aimed direction.
 * **Preview:** while holding, a clear directional indicator is shown.
 * **Commit point:**
@@ -198,6 +199,8 @@ The Bonus slot increases expression without adding new buttons.
 
 **Baseline rule:** Bonus can equip any ability category that is also allowed by the character (excluding Mobility).
 
+> Mobility is excluded from Bonus because having two mobility abilities would let the player move forward too quickly, breaking intended pacing.
+
 Optional stricter rule (future): Bonus can only equip abilities from a *subset* of other slots (Primary/Secondary/Projectile), to prevent weird loadouts.
 
 ### Gear-Gated Slots
@@ -206,9 +209,9 @@ All slots must have a default gear equipped at all times.
 
 Examples for Eloise:
 
-* Primary requires a **sword**.
-* Secondary requires a **shield**.
-* Ranged requires a **projectile** either a spell or a throwing weapon.
+* Primary requires a **sword** (or two-handed weapon, which leaves Secondary empty).
+* Secondary requires a **shield** or off-hand weapon (empty if Primary is two-handed).
+* Projectile requires a **projectile**, either a spell or a throwing weapon.
 * Bonus does not require gear.
 
 **Design rule:** gear cannot be missing.
