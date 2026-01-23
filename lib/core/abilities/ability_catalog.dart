@@ -3,6 +3,8 @@ import 'ability_def.dart';
 /// Static registry of all available abilities.
 /// In a real production app, this might be loaded from JSON/YAML.
 class AbilityCatalog {
+  const AbilityCatalog();
+
   static const Map<AbilityKey, AbilityDef> abilities = {
     // ------------------------------------------------------------------------
     // FALLBACKS
@@ -44,6 +46,7 @@ class AbilityCatalog {
       interruptPriority: InterruptPriority.combat,
       animKey: 'strike',
       tags: {AbilityTag.melee, AbilityTag.physical},
+      requiredTags: {AbilityTag.melee, AbilityTag.physical},
     ),
 
     'eloise.sword_parry': AbilityDef(
@@ -59,6 +62,7 @@ class AbilityCatalog {
       interruptPriority: InterruptPriority.combat,
       animKey: 'parry',
       tags: {AbilityTag.melee, AbilityTag.physical, AbilityTag.opener},
+      requiredTags: {AbilityTag.melee, AbilityTag.physical},
     ),
 
     // ------------------------------------------------------------------------
@@ -79,6 +83,7 @@ class AbilityCatalog {
       interruptPriority: InterruptPriority.combat,
       animKey: 'shield_bash',
       tags: {AbilityTag.melee, AbilityTag.physical, AbilityTag.heavy},
+      requiredTags: {AbilityTag.melee, AbilityTag.heavy},
     ),
 
     'eloise.shield_block': AbilityDef(
@@ -93,6 +98,7 @@ class AbilityCatalog {
       interruptPriority: InterruptPriority.combat,
       animKey: 'shield_block',
       tags: {AbilityTag.buff, AbilityTag.physical},
+      requiredTags: {AbilityTag.buff},
     ),
 
     // ------------------------------------------------------------------------
@@ -115,6 +121,7 @@ class AbilityCatalog {
       interruptPriority: InterruptPriority.combat,
       animKey: 'throw',
       tags: {AbilityTag.projectile, AbilityTag.physical},
+      requiredTags: {AbilityTag.projectile},
     ),
 
     'eloise.ice_bolt': AbilityDef(
@@ -206,4 +213,6 @@ class AbilityCatalog {
       tags: {AbilityTag.light, AbilityTag.buff},
     ),
   };
+
+  static AbilityDef? tryGet(AbilityKey key) => abilities[key];
 }

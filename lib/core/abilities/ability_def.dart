@@ -178,8 +178,8 @@ class AbilityDef {
     required this.animKey,
     this.tags = const {},
     this.requiredTags = const {},
-  }) : assert(allowedSlots.length > 0, 'Ability must be equipable in at least one slot'),
-       assert(windupTicks >= 0 && activeTicks >= 0 && recoveryTicks >= 0, 'Ticks cannot be negative'),
+    this.requiresEquippedWeapon = false,
+  }) : assert(windupTicks >= 0 && activeTicks >= 0 && recoveryTicks >= 0, 'Ticks cannot be negative'),
        assert(cooldownTicks >= 0, 'Cooldown cannot be negative'),
        assert(staminaCost >= 0 && manaCost >= 0, 'Costs cannot be negative'),
        assert(interruptPriority != InterruptPriority.forced, 'Forced priority is reserved for system events.');
@@ -220,6 +220,10 @@ class AbilityDef {
   // Metadata
   final Set<AbilityTag> tags;
   final Set<AbilityTag> requiredTags;
+  
+  /// If true, this ability requires *some* weapon to be equipped in its slot,
+  /// even if [requiredTags] is empty.
+  final bool requiresEquippedWeapon;
 
   // Runtime Validation (Helper)
   bool get isValid {

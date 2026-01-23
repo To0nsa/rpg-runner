@@ -42,4 +42,12 @@ class WeaponCatalog {
         );
     }
   }
+
+  WeaponDef? tryGet(WeaponId id) {
+    try {
+      return get(id);
+    } catch (_) {
+      return null;
+    }
+  }
 }

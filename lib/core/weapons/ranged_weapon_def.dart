@@ -1,3 +1,4 @@
+import '../abilities/ability_def.dart' show AbilityTag;
 import '../combat/damage_type.dart';
 import '../combat/status/status.dart';
 import '../projectiles/projectile_id.dart';
@@ -14,6 +15,7 @@ class RangedWeaponDef {
     this.originOffset = 0.0,
     this.ballistic = true,
     this.gravityScale = 1.0,
+    this.grantedAbilityTags = const {},
     // Payload
     this.damageType = DamageType.physical,
     // Legacy (kept until Phase 5)
@@ -34,6 +36,9 @@ class RangedWeaponDef {
   final double originOffset;
   final bool ballistic;
   final double gravityScale;
+
+  /// Capabilities provided by this ranged weapon.
+  final Set<AbilityTag> grantedAbilityTags;
 
   // Payload
   final DamageType damageType;

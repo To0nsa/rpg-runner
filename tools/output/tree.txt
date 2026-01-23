@@ -1,4 +1,6 @@
 ﻿lib/AGENTS.md
+lib/core/abilities/ability_catalog.dart
+lib/core/abilities/ability_def.dart
 lib/core/AGENTS.md
 lib/core/anim/anim_resolver.dart
 lib/core/camera/autoscroll_camera.dart
@@ -13,6 +15,8 @@ lib/core/combat/status/status.dart
 lib/core/commands/command.dart
 lib/core/contracts/render_anim_set_definition.dart
 lib/core/contracts/render_contract.dart
+lib/core/ecs/components/abilities/active_ability_state.dart
+lib/core/ecs/components/abilities/buffered_input_state.dart
 lib/core/ecs/components/death_state.dart
 lib/core/ecs/entity_factory.dart
 lib/core/ecs/entity_id.dart
@@ -175,8 +179,11 @@ lib/core/weapons/ranged_weapon_def.dart
 lib/core/weapons/ranged_weapon_id.dart
 lib/core/weapons/spawn_ranged_weapon_projectile.dart
 lib/core/weapons/weapon_catalog.dart
+lib/core/weapons/weapon_category.dart
 lib/core/weapons/weapon_def.dart
 lib/core/weapons/weapon_id.dart
+lib/core/weapons/weapon_proc.dart
+lib/core/weapons/weapon_stats.dart
 lib/firebase_options.dart
 lib/game/AGENTS.md
 lib/game/components/aim_ray_component.dart

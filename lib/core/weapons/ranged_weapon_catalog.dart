@@ -1,3 +1,4 @@
+import '../abilities/ability_def.dart' show AbilityTag;
 import '../util/tick_math.dart';
 import '../projectiles/projectile_id.dart';
 import 'ranged_weapon_def.dart';
@@ -19,6 +20,7 @@ class RangedWeaponCatalog {
           legacyCooldownSeconds: 0.40,
           ballistic: true,
           gravityScale: 1.0,
+          grantedAbilityTags: {AbilityTag.projectile, AbilityTag.physical},
         );
       case RangedWeaponId.throwingKnife:
         return const RangedWeaponDef(
@@ -30,7 +32,16 @@ class RangedWeaponCatalog {
           legacyCooldownSeconds: 0.30,
           ballistic: true,
           gravityScale: 0.9,
+          grantedAbilityTags: {AbilityTag.projectile, AbilityTag.physical},
         );
+    }
+  }
+
+  RangedWeaponDef? tryGet(RangedWeaponId id) {
+    try {
+      return get(id);
+    } catch (_) {
+      return null;
     }
   }
 }

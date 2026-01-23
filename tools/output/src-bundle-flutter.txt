@@ -1,6 +1,6 @@
 ﻿REPO: C:\dev\rpg_runner
-COMMIT: 3837e8fa7a927c46aac1edfff566b22c9b17cf88
-DATE: 2026-01-23 09:00:47
+COMMIT: 13c4aa666a44aa2a710f2cf65790f7d9a92a3087
+DATE: 2026-01-23 15:46:23
 
 
 ===== FILE: lib/AGENTS.md =====
@@ -335,6 +335,453 @@ When asked to implement/fix something:
 ---
 
 **For detailed layer-specific implementation guidance**, see the `AGENTS.md` file in each subdirectory (`core/`, `game/`, `ui/`).
+
+
+===== FILE: lib/core/abilities/ability_catalog.dart =====
+import 'ability_def.dart';
+
+/// Static registry of all available abilities.
+/// In a real production app, this might be loaded from JSON/YAML.
+class AbilityCatalog {
+  static const Map<AbilityKey, AbilityDef> abilities = {
+    // ------------------------------------------------------------------------
+    // FALLBACKS
+    // ------------------------------------------------------------------------
+    'common.unarmed_strike': AbilityDef(
+      id: 'common.unarmed_strike',
+      category: AbilityCategory.melee,
+      allowedSlots: {AbilitySlot.primary},
+      targetingModel: TargetingModel.directional,
+      hitDelivery: MeleeHitDelivery(
+        sizeX: 1.0, sizeY: 1.0, offsetX: 0.5, offsetY: 0.0, 
+        hitPolicy: HitPolicy.oncePerTarget,
+      ),
+      windupTicks: 4, activeTicks: 2, recoveryTicks: 4,
+      staminaCost: 0, manaCost: 0,
+      cooldownTicks: 0,
+      interruptPriority: InterruptPriority.combat,
+      animKey: 'punch',
+      tags: {AbilityTag.melee, AbilityTag.light},
+    ),
+
+    // ------------------------------------------------------------------------
+    // ELOISE: PRIMARY (Sword)
+    // ------------------------------------------------------------------------
+    'eloise.sword_strike': AbilityDef(
+      id: 'eloise.sword_strike',
+      category: AbilityCategory.melee,
+      allowedSlots: {AbilitySlot.primary},
+      targetingModel: TargetingModel.directional,
+      hitDelivery: MeleeHitDelivery(
+        sizeX: 1.5, sizeY: 1.5, offsetX: 1.0, offsetY: 0.0,
+        hitPolicy: HitPolicy.oncePerTarget,
+      ),
+      // 6 frames @ 0.06s = 0.36s -> ~22 ticks
+      // Tuning: Active 0.10s (6 ticks)
+      windupTicks: 8, activeTicks: 6, recoveryTicks: 8,
+      staminaCost: 500, manaCost: 0, // 5.0 stamina
+      cooldownTicks: 18, // 0.30s
+      interruptPriority: InterruptPriority.combat,
+      animKey: 'strike',
+      tags: {AbilityTag.melee, AbilityTag.physical},
+    ),
+
+    'eloise.sword_parry': AbilityDef(
+      id: 'eloise.sword_parry',
+      category: AbilityCategory.defense,
+      allowedSlots: {AbilitySlot.primary},
+      targetingModel: TargetingModel.none,
+      hitDelivery: SelfHitDelivery(),
+      // 6 frames @ 0.06s = 0.36s -> ~22 ticks
+      windupTicks: 4, activeTicks: 12, recoveryTicks: 6,
+      staminaCost: 500, manaCost: 0,
+      cooldownTicks: 30, // 0.50s (est)
+      interruptPriority: InterruptPriority.combat,
+      animKey: 'parry',
+      tags: {AbilityTag.melee, AbilityTag.physical, AbilityTag.opener},
+    ),
+
+    // ------------------------------------------------------------------------
+    // ELOISE: SECONDARY (Shield)
+    // ------------------------------------------------------------------------
+    'eloise.shield_bash': AbilityDef(
+      id: 'eloise.shield_bash',
+      category: AbilityCategory.defense,
+      allowedSlots: {AbilitySlot.secondary},
+      targetingModel: TargetingModel.directional,
+      hitDelivery: MeleeHitDelivery(
+        sizeX: 1.2, sizeY: 1.2, offsetX: 0.8, offsetY: 0.0,
+        hitPolicy: HitPolicy.oncePerTarget,
+      ),
+      windupTicks: 8, activeTicks: 4, recoveryTicks: 10,
+      staminaCost: 1200, manaCost: 0,
+      cooldownTicks: 24,
+      interruptPriority: InterruptPriority.combat,
+      animKey: 'shield_bash',
+      tags: {AbilityTag.melee, AbilityTag.physical, AbilityTag.heavy},
+    ),
+
+    'eloise.shield_block': AbilityDef(
+      id: 'eloise.shield_block',
+      category: AbilityCategory.defense,
+      allowedSlots: {AbilitySlot.secondary},
+      targetingModel: TargetingModel.none,
+      hitDelivery: SelfHitDelivery(),
+      windupTicks: 3, activeTicks: 0, recoveryTicks: 6,
+      staminaCost: 500, manaCost: 0,
+      cooldownTicks: 12,
+      interruptPriority: InterruptPriority.combat,
+      animKey: 'shield_block',
+      tags: {AbilityTag.buff, AbilityTag.physical},
+    ),
+
+    // ------------------------------------------------------------------------
+    // ELOISE: PROJECTILE
+    // ------------------------------------------------------------------------
+    'eloise.throwing_knife': AbilityDef(
+      id: 'eloise.throwing_knife',
+      category: AbilityCategory.ranged,
+      allowedSlots: {AbilitySlot.projectile},
+      targetingModel: TargetingModel.aimed,
+      hitDelivery: ProjectileHitDelivery(
+        projectileId: 'knife',
+        hitPolicy: HitPolicy.oncePerTarget,
+      ),
+      // Cooldown 0.30s -> 18 ticks
+      // Cost 5.0 -> 500
+      windupTicks: 4, activeTicks: 2, recoveryTicks: 6,
+      staminaCost: 500, manaCost: 0,
+      cooldownTicks: 18,
+      interruptPriority: InterruptPriority.combat,
+      animKey: 'throw',
+      tags: {AbilityTag.projectile, AbilityTag.physical},
+    ),
+
+    'eloise.ice_bolt': AbilityDef(
+      id: 'eloise.ice_bolt',
+      category: AbilityCategory.magic,
+      allowedSlots: {AbilitySlot.projectile},
+      targetingModel: TargetingModel.aimed,
+      hitDelivery: ProjectileHitDelivery(
+        projectileId: 'ice_bolt',
+        hitPolicy: HitPolicy.oncePerTarget,
+      ),
+      // Cost 10.0 -> 1000
+      windupTicks: 6, activeTicks: 2, recoveryTicks: 8,
+      staminaCost: 0, manaCost: 1000,
+      cooldownTicks: 24,
+      interruptPriority: InterruptPriority.combat,
+      animKey: 'cast',
+      tags: {AbilityTag.projectile, AbilityTag.ice},
+    ),
+
+    'eloise.fire_bolt': AbilityDef(
+      id: 'eloise.fire_bolt',
+      category: AbilityCategory.magic,
+      allowedSlots: {AbilitySlot.projectile},
+      targetingModel: TargetingModel.aimed,
+      hitDelivery: ProjectileHitDelivery(
+        projectileId: 'fire_bolt',
+      ),
+      // Cost 12.0 -> 1200
+      windupTicks: 6, activeTicks: 2, recoveryTicks: 8,
+      staminaCost: 0, manaCost: 1200,
+      cooldownTicks: 30,
+      interruptPriority: InterruptPriority.combat,
+      animKey: 'cast',
+      tags: {AbilityTag.projectile, AbilityTag.fire},
+    ),
+
+    'eloise.thunder_bolt': AbilityDef(
+      id: 'eloise.thunder_bolt',
+      category: AbilityCategory.magic,
+      allowedSlots: {AbilitySlot.projectile},
+      targetingModel: TargetingModel.aimed,
+      hitDelivery: ProjectileHitDelivery(
+        projectileId: 'thunder_bolt',
+      ),
+      // Cost 10.0 -> 1000
+      windupTicks: 6, activeTicks: 2, recoveryTicks: 8,
+      staminaCost: 0, manaCost: 1000,
+      cooldownTicks: 36,
+      interruptPriority: InterruptPriority.combat,
+      animKey: 'cast',
+      tags: {AbilityTag.projectile, AbilityTag.lightning},
+    ),
+
+    // ------------------------------------------------------------------------
+    // ELOISE: MOBILITY
+    // ------------------------------------------------------------------------
+    'eloise.dash': AbilityDef(
+      id: 'eloise.dash',
+      category: AbilityCategory.mobility,
+      allowedSlots: {AbilitySlot.mobility},
+      targetingModel: TargetingModel.directional,
+      hitDelivery: SelfHitDelivery(),
+      // 4 frames @ 0.05s = 0.20s -> 12 ticks
+      // Cooldown 2.0s -> 120 ticks
+      // Cost 2.0 -> 200
+      windupTicks: 0, activeTicks: 12, recoveryTicks: 0,
+      staminaCost: 200, manaCost: 0,
+      cooldownTicks: 120,
+      interruptPriority: InterruptPriority.mobility,
+      canBeInterruptedBy: {}, 
+      animKey: 'dash',
+      tags: {AbilityTag.light, AbilityTag.buff},
+    ),
+
+    'eloise.roll': AbilityDef(
+      id: 'eloise.roll',
+      category: AbilityCategory.mobility,
+      allowedSlots: {AbilitySlot.mobility},
+      targetingModel: TargetingModel.directional,
+      hitDelivery: SelfHitDelivery(),
+      // 10 frames @ 0.05s = 0.50s -> 30 ticks
+      // Cost ~200? (Same as dash for now?)
+      windupTicks: 3, activeTicks: 24, recoveryTicks: 3,
+      staminaCost: 200, manaCost: 0,
+      cooldownTicks: 120,
+      interruptPriority: InterruptPriority.mobility,
+      animKey: 'roll',
+      tags: {AbilityTag.light, AbilityTag.buff},
+    ),
+  };
+}
+
+
+===== FILE: lib/core/abilities/ability_def.dart =====
+
+// Validates strict format: "character.ability_name" (lower snake case)
+// Must have at least one dot, segments must be non-empty [a-z0-9_].
+// Example: "eloise.sword_strike_1"
+typedef AbilityKey = String;
+
+// Validates strict format: "character.anim_name" or "shared.anim_name"
+// Example: "eloise.attack_1"
+typedef AnimKey = String;
+
+// Validates strict format: "type.name"
+// Example: "arrow.standard"
+typedef ProjectileId = String;
+
+bool isValidAbilityKey(AbilityKey key) {
+  final RegExp validKey = RegExp(r'^[a-z0-9_]+\.[a-z0-9_]+$');
+  return validKey.hasMatch(key);
+}
+
+enum AbilitySlot {
+  primary,    // Button A (Melee)
+  secondary,  // Button B (Off-hand/Defensive)
+  projectile, // Button C (Cast/Throw)
+  mobility,   // Button D (Dash)
+  bonus,      // Button E (Potion/Ultimate)
+}
+
+enum AbilityCategory {
+  melee,
+  ranged,
+  magic,
+  mobility,
+  defense,
+  utility,
+}
+
+enum AbilityTag {
+  // Mechanics
+  melee,
+  projectile,
+  hitscan,
+  aoe,
+  buff,
+  debuff,
+  
+  // Elements
+  physical,
+  fire,
+  ice,
+  lightning,
+  
+  // Properties
+  heavy,
+  light,
+  finisher,
+  opener,
+}
+
+enum TargetingModel {
+  none,              // Instant self-cast / buff
+  directional,       // Uses input direction (melee)
+  aimed,             // Uses explicit aim cursor (ranged)
+  homing,            // Auto-locks nearest target
+  groundTarget,      // AOE circle on ground
+}
+
+enum AbilityPhase {
+  idle,
+  windup,
+  active,
+  recovery,
+}
+
+enum InterruptPriority {
+  low,      // e.g. passive stance
+  combat,   // standard attacks (strike/cast)
+  mobility, // dash/jump/roll
+  forced,   // system-only (stun/death)
+}
+
+// --------------------------------------------------------------------------
+// HIT DELIVERY
+// --------------------------------------------------------------------------
+
+enum HitPolicy { 
+  once,           // Hit once per activation (e.g. explosion)
+  oncePerTarget,  // Hit each target once (e.g. sword swing)
+  everyTick       // Hit every frame (e.g. beam)
+}
+
+abstract class HitDeliveryDef {
+  const HitDeliveryDef();
+}
+
+class MeleeHitDelivery extends HitDeliveryDef {
+  const MeleeHitDelivery({
+    required this.sizeX,
+    required this.sizeY,
+    required this.offsetX,
+    required this.offsetY,
+    required this.hitPolicy,
+  });
+
+  // Dimensions in World Units
+  final double sizeX;
+  final double sizeY;
+  final double offsetX;
+  final double offsetY;
+  final HitPolicy hitPolicy;
+}
+
+class ProjectileHitDelivery extends HitDeliveryDef {
+  const ProjectileHitDelivery({
+    required this.projectileId,
+    this.pierce = false,
+    this.chain = false,
+    this.chainCount = 0,
+    this.hitPolicy = HitPolicy.oncePerTarget,
+  }) : assert(chainCount >= 0, 'Chain count must be non-negative'),
+       assert(!chain || chainCount > 0, 'If chain is true, count must be > 0');
+
+  final ProjectileId projectileId;
+  final bool pierce;
+  final bool chain;
+  final int chainCount;
+  final HitPolicy hitPolicy;
+}
+
+/// For abilities that affect the user (Buff/Block) or have no hitbox (Dash).
+class SelfHitDelivery extends HitDeliveryDef {
+  const SelfHitDelivery();
+}
+
+// --------------------------------------------------------------------------
+// RUNTIME DATA STRUCTS
+// --------------------------------------------------------------------------
+
+class AimSnapshot {
+  const AimSnapshot({
+    required this.angleRad,
+    this.hasAngle = true,
+    required this.capturedTick,
+  });
+
+  static const AimSnapshot empty = AimSnapshot(
+    angleRad: 0.0,
+    hasAngle: false,
+    capturedTick: 0,
+  );
+
+  final double angleRad;
+  final bool hasAngle;
+  final int capturedTick;
+  
+  @override
+  String toString() => 'AimSnapshot(rad: ${angleRad.toStringAsFixed(2)}, tick: $capturedTick)';
+}
+
+// --------------------------------------------------------------------------
+// ABILITY DEFINITION
+// --------------------------------------------------------------------------
+
+class AbilityDef {
+  const AbilityDef({
+    required this.id,
+    required this.category,
+    required this.allowedSlots,
+    required this.targetingModel,
+    required this.hitDelivery,
+    required this.windupTicks,
+    required this.activeTicks,
+    required this.recoveryTicks,
+    required this.staminaCost,
+    required this.manaCost,
+    required this.cooldownTicks,
+    required this.interruptPriority,
+    this.canBeInterruptedBy = const {},
+    required this.animKey,
+    this.tags = const {},
+    this.requiredTags = const {},
+  }) : assert(allowedSlots.length > 0, 'Ability must be equipable in at least one slot'),
+       assert(windupTicks >= 0 && activeTicks >= 0 && recoveryTicks >= 0, 'Ticks cannot be negative'),
+       assert(cooldownTicks >= 0, 'Cooldown cannot be negative'),
+       assert(staminaCost >= 0 && manaCost >= 0, 'Costs cannot be negative'),
+       assert(interruptPriority != InterruptPriority.forced, 'Forced priority is reserved for system events.');
+
+  final AbilityKey id;
+  
+  // UI grouping only
+  final AbilityCategory category;
+  
+  // Explicit equip legality
+  final Set<AbilitySlot> allowedSlots;
+  
+  // Targeting
+  final TargetingModel targetingModel;
+  
+  // Hit mechanics
+  final HitDeliveryDef hitDelivery;
+  
+  // Timing (ticks @ 60hz)
+  final int windupTicks;
+  final int activeTicks;
+  final int recoveryTicks;
+  
+  // Costs (fixed point: 100 = 1.0)
+  final int staminaCost;
+  final int manaCost;
+  
+  // Cooldown
+  final int cooldownTicks;
+  
+  // Interrupt rules
+  final InterruptPriority interruptPriority;
+  final Set<InterruptPriority> canBeInterruptedBy;
+  
+  // Presentation
+  final AnimKey animKey;
+  
+  // Metadata
+  final Set<AbilityTag> tags;
+  final Set<AbilityTag> requiredTags;
+
+  // Runtime Validation (Helper)
+  bool get isValid {
+    return isValidAbilityKey(id) && 
+           !canBeInterruptedBy.contains(interruptPriority);
+  }
+  
+  @override
+  String toString() => 'AbilityDef($id)';
+}
 
 
 ===== FILE: lib/core/AGENTS.md =====
@@ -1946,6 +2393,58 @@ const double projectileAimRayLength = virtualWidth * 0.5;
 
 /// Length of the ray cast for melee aiming.
 const double meleeAimRayLength = virtualWidth * 0.20;
+
+
+===== FILE: lib/core/ecs/components/abilities/active_ability_state.dart =====
+import 'package:rpg_runner/core/abilities/ability_def.dart';
+
+class ActiveAbilityState {
+  AbilityKey? abilityId; // null when idle
+  AbilitySlot slot = AbilitySlot.primary;
+
+  AbilityPhase phase = AbilityPhase.idle;
+  int phaseTicksRemaining = 0;
+  int totalDurationTicks = 0;
+
+  int commitTick = 0; // Tick when the ability committed (costs paid)
+  AimSnapshot aim = AimSnapshot.empty;
+  
+  bool get isIdle => phase == AbilityPhase.idle;
+  bool get isBusy => phase != AbilityPhase.idle;
+
+  void reset() {
+    abilityId = null;
+    slot = AbilitySlot.primary;
+    phase = AbilityPhase.idle;
+    phaseTicksRemaining = 0;
+    totalDurationTicks = 0;
+    commitTick = 0;
+    aim = AimSnapshot.empty;
+  }
+}
+
+
+===== FILE: lib/core/ecs/components/abilities/buffered_input_state.dart =====
+import 'package:rpg_runner/core/abilities/ability_def.dart';
+
+class BufferedInputState {
+  bool hasValue = false;
+  AbilitySlot slot = AbilitySlot.primary;
+  int pressedTick = 0;
+  AimSnapshot aim = AimSnapshot.empty;
+
+  void set(AbilitySlot s, int tick, AimSnapshot a) {
+    hasValue = true;
+    slot = s;
+    pressedTick = tick;
+    aim = a;
+  }
+
+  void clear() {
+    hasValue = false;
+    aim = AimSnapshot.empty;
+  }
+}
 
 
 ===== FILE: lib/core/ecs/components/death_state.dart =====
@@ -3831,6 +4330,7 @@ import '../../../weapons/ranged_weapon_id.dart';
 import '../../../weapons/weapon_id.dart';
 import '../../entity_id.dart';
 import '../../sparse_set.dart';
+import '../../../abilities/ability_def.dart';
 
 /// Bitmask constants for loadout slots.
 ///
@@ -3866,6 +4366,11 @@ class EquippedLoadoutDef {
     this.offhandWeaponId = WeaponId.basicShield,
     this.rangedWeaponId = RangedWeaponId.throwingKnife,
     this.spellId = SpellId.iceBolt,
+    // Default abilities (Eloise defaults for now)
+    this.abilityPrimaryId = 'eloise.sword_strike',
+    this.abilitySecondaryId = 'eloise.shield_block',
+    this.abilityProjectileId = 'eloise.ice_bolt',
+    this.abilityMobilityId = 'eloise.dash',
   });
 
   /// Bitmask of enabled slots (see [LoadoutSlotMask]).
@@ -3882,6 +4387,12 @@ class EquippedLoadoutDef {
 
   /// Equipped spell.
   final SpellId spellId;
+
+  // New Ability System IDs
+  final AbilityKey abilityPrimaryId;
+  final AbilityKey abilitySecondaryId;
+  final AbilityKey abilityProjectileId;
+  final AbilityKey abilityMobilityId;
 }
 
 /// Per-entity equipment loadout (single source of truth).
@@ -3898,6 +4409,12 @@ class EquippedLoadoutStore extends SparseSet {
   final List<WeaponId> offhandWeaponId = <WeaponId>[];
   final List<RangedWeaponId> rangedWeaponId = <RangedWeaponId>[];
   final List<SpellId> spellId = <SpellId>[];
+  
+  // New Ability System Lists
+  final List<AbilityKey> abilityPrimaryId = <AbilityKey>[];
+  final List<AbilityKey> abilitySecondaryId = <AbilityKey>[];
+  final List<AbilityKey> abilityProjectileId = <AbilityKey>[];
+  final List<AbilityKey> abilityMobilityId = <AbilityKey>[];
 
   void add(EntityId entity, [EquippedLoadoutDef def = const EquippedLoadoutDef()]) {
     final i = addEntity(entity);
@@ -3906,6 +4423,10 @@ class EquippedLoadoutStore extends SparseSet {
     offhandWeaponId[i] = def.offhandWeaponId;
     rangedWeaponId[i] = def.rangedWeaponId;
     spellId[i] = def.spellId;
+    abilityPrimaryId[i] = def.abilityPrimaryId;
+    abilitySecondaryId[i] = def.abilitySecondaryId;
+    abilityProjectileId[i] = def.abilityProjectileId;
+    abilityMobilityId[i] = def.abilityMobilityId;
   }
 
   /// Updates the loadout for an existing entity.
@@ -3916,6 +4437,10 @@ class EquippedLoadoutStore extends SparseSet {
     offhandWeaponId[i] = def.offhandWeaponId;
     rangedWeaponId[i] = def.rangedWeaponId;
     spellId[i] = def.spellId;
+    abilityPrimaryId[i] = def.abilityPrimaryId;
+    abilitySecondaryId[i] = def.abilitySecondaryId;
+    abilityProjectileId[i] = def.abilityProjectileId;
+    abilityMobilityId[i] = def.abilityMobilityId;
   }
 
   /// Returns true if [entity] has the given [slotBit] enabled.
@@ -3932,6 +4457,10 @@ class EquippedLoadoutStore extends SparseSet {
     offhandWeaponId.add(WeaponId.basicShield);
     rangedWeaponId.add(RangedWeaponId.throwingKnife);
     spellId.add(SpellId.iceBolt);
+    abilityPrimaryId.add('eloise.sword_strike');
+    abilitySecondaryId.add('eloise.shield_block');
+    abilityProjectileId.add('eloise.ice_bolt');
+    abilityMobilityId.add('eloise.dash');
   }
 
   @override
@@ -3941,12 +4470,20 @@ class EquippedLoadoutStore extends SparseSet {
     offhandWeaponId[removeIndex] = offhandWeaponId[lastIndex];
     rangedWeaponId[removeIndex] = rangedWeaponId[lastIndex];
     spellId[removeIndex] = spellId[lastIndex];
+    abilityPrimaryId[removeIndex] = abilityPrimaryId[lastIndex];
+    abilitySecondaryId[removeIndex] = abilitySecondaryId[lastIndex];
+    abilityProjectileId[removeIndex] = abilityProjectileId[lastIndex];
+    abilityMobilityId[removeIndex] = abilityMobilityId[lastIndex];
 
     mask.removeLast();
     mainWeaponId.removeLast();
     offhandWeaponId.removeLast();
     rangedWeaponId.removeLast();
     spellId.removeLast();
+    abilityPrimaryId.removeLast();
+    abilitySecondaryId.removeLast();
+    abilityProjectileId.removeLast();
+    abilityMobilityId.removeLast();
   }
 }
 
@@ -9724,7 +10261,8 @@ class RangedWeaponSystem {
       final weapon = weapons.base.get(weaponId);
 
       // Stamina check.
-      final staminaCost = weapon.staminaCost;
+      // ignore: deprecated_member_use_from_same_package
+      final staminaCost = weapon.legacyStaminaCost;
       int? si;
       double? nextStamina;
       if (staminaCost > 0.0) {
@@ -9748,7 +10286,8 @@ class RangedWeaponSystem {
         dirY: intents.dirY[ii],
         fallbackDirX: intents.fallbackDirX[ii],
         fallbackDirY: intents.fallbackDirY[ii],
-        damage: weapon.damage,
+        // ignore: deprecated_member_use_from_same_package
+        damage: weapon.legacyDamage,
         damageType: weapon.damageType,
         statusProfileId: weapon.statusProfileId,
         ballistic: weapon.ballistic,
@@ -15151,12 +15690,14 @@ const double eloiseAnimParryStepSeconds = 0.06;
 const int eloiseAnimCastFrames = 5;
 const double eloiseAnimCastStepSeconds = 0.08;
 
-// Ranged weapon (throw) defaults to the cast strip until a dedicated throw strip exists.
 const int eloiseAnimRangedFrames = eloiseAnimCastFrames;
 const double eloiseAnimRangedStepSeconds = eloiseAnimCastStepSeconds;
 
 const int eloiseAnimDashFrames = 4;
 const double eloiseAnimDashStepSeconds = 0.05;
+
+const int eloiseAnimRollFrames = 10;
+const double eloiseAnimRollStepSeconds = 0.05;
 
 const int eloiseAnimHitFrames = 4;
 const double eloiseAnimHitStepSeconds = 0.10;
@@ -15180,6 +15721,7 @@ const Map<AnimKey, int> eloiseAnimFrameCountsByKey = <AnimKey, int>{
   AnimKey.cast: eloiseAnimCastFrames,
   AnimKey.ranged: eloiseAnimRangedFrames,
   AnimKey.dash: eloiseAnimDashFrames,
+  AnimKey.roll: eloiseAnimRollFrames,
   AnimKey.hit: eloiseAnimHitFrames,
   AnimKey.death: eloiseAnimDeathFrames,
   AnimKey.spawn: eloiseAnimSpawnFrames,
@@ -15198,6 +15740,7 @@ const Map<AnimKey, double> eloiseAnimStepTimeSecondsByKey = <AnimKey, double>{
   AnimKey.cast: eloiseAnimCastStepSeconds,
   AnimKey.ranged: eloiseAnimRangedStepSeconds,
   AnimKey.dash: eloiseAnimDashStepSeconds,
+  AnimKey.roll: eloiseAnimRollStepSeconds,
   AnimKey.hit: eloiseAnimHitStepSeconds,
   AnimKey.death: eloiseAnimDeathStepSeconds,
   AnimKey.spawn: eloiseAnimSpawnStepSeconds,
@@ -15216,6 +15759,7 @@ const Map<AnimKey, String> eloiseAnimSourcesByKey = <AnimKey, String>{
   AnimKey.cast: 'entities/player/cast.png',
   AnimKey.ranged: 'entities/player/cast.png',
   AnimKey.dash: 'entities/player/dash.png',
+  AnimKey.roll: 'entities/player/roll.png',
   AnimKey.hit: 'entities/player/hit.png',
   AnimKey.death: 'entities/player/death.png',
   AnimKey.spawn: 'entities/player/idle.png',
@@ -15302,6 +15846,8 @@ const PlayerTuning eloiseTuning = PlayerTuning(
         eloiseAnimBackStrikeFrames * eloiseAnimBackStrikeStepSeconds,
     parryAnimSeconds: eloiseAnimParryFrames * eloiseAnimParryStepSeconds,
     rangedAnimSeconds: eloiseAnimRangedFrames * eloiseAnimRangedStepSeconds,
+    dashAnimSeconds: eloiseAnimDashFrames * eloiseAnimDashStepSeconds,
+    rollAnimSeconds: eloiseAnimRollFrames * eloiseAnimRollStepSeconds,
     deathAnimSeconds: eloiseAnimDeathFrames * eloiseAnimDeathStepSeconds,
     spawnAnimSeconds: eloiseAnimSpawnFrames * eloiseAnimSpawnStepSeconds,
   ),
@@ -16157,7 +16703,10 @@ class AnimTuning {
     this.castAnimSeconds = 0.40,
     this.strikeAnimSeconds = 0.36,
     this.backStrikeAnimSeconds = 0.36,
+    this.parryAnimSeconds = 0.36,
     this.rangedAnimSeconds = 0.40,
+    this.dashAnimSeconds = 0.20,
+    this.rollAnimSeconds = 0.50,
     this.deathAnimSeconds = 0.72,
     this.spawnAnimSeconds = 0.56,
   });
@@ -16193,6 +16742,15 @@ class AnimTuning {
                   stepTimeSecondsByKey: stepTimeSecondsByKey,
                 )
               : strikeSeconds,
+      parryAnimSeconds:
+          (frameCounts.containsKey(AnimKey.parry) ||
+                  stepTimeSecondsByKey.containsKey(AnimKey.parry))
+              ? anim_utils.secondsForKey(
+                  key: AnimKey.parry,
+                  frameCounts: frameCounts,
+                  stepTimeSecondsByKey: stepTimeSecondsByKey,
+                )
+              : strikeSeconds,
       rangedAnimSeconds:
           (frameCounts.containsKey(AnimKey.ranged) ||
                   stepTimeSecondsByKey.containsKey(AnimKey.ranged))
@@ -16202,6 +16760,24 @@ class AnimTuning {
                   stepTimeSecondsByKey: stepTimeSecondsByKey,
                 )
               : castSeconds,
+      dashAnimSeconds:
+          (frameCounts.containsKey(AnimKey.dash) ||
+                  stepTimeSecondsByKey.containsKey(AnimKey.dash))
+              ? anim_utils.secondsForKey(
+                  key: AnimKey.dash,
+                  frameCounts: frameCounts,
+                  stepTimeSecondsByKey: stepTimeSecondsByKey,
+                )
+              : 0.20,
+      rollAnimSeconds:
+          (frameCounts.containsKey(AnimKey.roll) ||
+                  stepTimeSecondsByKey.containsKey(AnimKey.roll))
+              ? anim_utils.secondsForKey(
+                  key: AnimKey.roll,
+                  frameCounts: frameCounts,
+                  stepTimeSecondsByKey: stepTimeSecondsByKey,
+                )
+              : 0.50,
       deathAnimSeconds: anim_utils.secondsForKey(
         key: AnimKey.death,
         frameCounts: frameCounts,
@@ -16219,7 +16795,10 @@ class AnimTuning {
   final double castAnimSeconds;
   final double strikeAnimSeconds;
   final double backStrikeAnimSeconds;
+  final double parryAnimSeconds;
   final double rangedAnimSeconds;
+  final double dashAnimSeconds;
+  final double rollAnimSeconds;
   final double deathAnimSeconds;
   final double spawnAnimSeconds;
 }
@@ -16232,7 +16811,10 @@ class AnimTuningDerived {
     required this.castAnimTicks,
     required this.strikeAnimTicks,
     required this.backStrikeAnimTicks,
+    required this.parryAnimTicks,
     required this.rangedAnimTicks,
+    required this.dashAnimTicks,
+    required this.rollAnimTicks,
     required this.deathAnimTicks,
     required this.spawnAnimTicks,
   });
@@ -16249,7 +16831,10 @@ class AnimTuningDerived {
       castAnimTicks: ticksFromSecondsCeil(base.castAnimSeconds, tickHz),
       strikeAnimTicks: ticksFromSecondsCeil(base.strikeAnimSeconds, tickHz),
       backStrikeAnimTicks: ticksFromSecondsCeil(base.backStrikeAnimSeconds, tickHz),
+      parryAnimTicks: ticksFromSecondsCeil(base.parryAnimSeconds, tickHz),
       rangedAnimTicks: ticksFromSecondsCeil(base.rangedAnimSeconds, tickHz),
+      dashAnimTicks: ticksFromSecondsCeil(base.dashAnimSeconds, tickHz),
+      rollAnimTicks: ticksFromSecondsCeil(base.rollAnimSeconds, tickHz),
       deathAnimTicks: ticksFromSecondsCeil(base.deathAnimSeconds, tickHz),
       spawnAnimTicks: ticksFromSecondsCeil(base.spawnAnimSeconds, tickHz),
     );
@@ -16262,7 +16847,10 @@ class AnimTuningDerived {
   final int castAnimTicks;
   final int strikeAnimTicks;
   final int backStrikeAnimTicks;
+  final int parryAnimTicks;
   final int rangedAnimTicks;
+  final int dashAnimTicks;
+  final int rollAnimTicks;
   final int deathAnimTicks;
   final int spawnAnimTicks;
 }
@@ -21063,10 +21651,10 @@ class RangedWeaponCatalog {
         return const RangedWeaponDef(
           id: RangedWeaponId.throwingAxe,
           projectileId: ProjectileId.throwingAxe,
-          damage: 18.0,
-          staminaCost: 8.0,
+          legacyDamage: 18.0,
+          legacyStaminaCost: 8.0,
           originOffset: 8.0,
-          cooldownSeconds: 0.40,
+          legacyCooldownSeconds: 0.40,
           ballistic: true,
           gravityScale: 1.0,
         );
@@ -21074,10 +21662,10 @@ class RangedWeaponCatalog {
         return const RangedWeaponDef(
           id: RangedWeaponId.throwingKnife,
           projectileId: ProjectileId.throwingKnife,
-          damage: 10.0,
-          staminaCost: 5.0,
+          legacyDamage: 10.0,
+          legacyStaminaCost: 5.0,
           originOffset: 6.0,
-          cooldownSeconds: 0.30,
+          legacyCooldownSeconds: 0.30,
           ballistic: true,
           gravityScale: 0.9,
         );
@@ -21103,7 +21691,8 @@ class RangedWeaponCatalogDerived {
   final RangedWeaponCatalog base;
 
   int cooldownTicks(RangedWeaponId id) {
-    return ticksFromSecondsCeil(base.get(id).cooldownSeconds, tickHz);
+    // ignore: deprecated_member_use_from_same_package
+    return ticksFromSecondsCeil(base.get(id).legacyCooldownSeconds, tickHz);
   }
 }
 
@@ -21113,43 +21702,58 @@ import '../combat/damage_type.dart';
 import '../combat/status/status.dart';
 import '../projectiles/projectile_id.dart';
 import 'ranged_weapon_id.dart';
+import 'weapon_proc.dart';
+import 'weapon_stats.dart';
 
 /// Static, data-first definition for a ranged weapon.
 class RangedWeaponDef {
   const RangedWeaponDef({
     required this.id,
+    // Weapon-owned projectile identity + physics
     required this.projectileId,
-    required this.damage,
-    this.damageType = DamageType.physical,
-    this.statusProfileId = StatusProfileId.none,
-    this.staminaCost = 0.0,
     this.originOffset = 0.0,
-    this.cooldownSeconds = 0.25,
     this.ballistic = true,
     this.gravityScale = 1.0,
+    // Payload
+    this.damageType = DamageType.physical,
+    // Legacy (kept until Phase 5)
+    this.statusProfileId = StatusProfileId.none,
+    // New Phase 2 fields
+    this.procs = const [],
+    this.stats = const WeaponStats(),
+    // Legacy runtime-owned values (Phase 4 moves these to AbilityDef)
+    this.legacyDamage = 0.0,
+    this.legacyStaminaCost = 0.0,
+    this.legacyCooldownSeconds = 0.25,
   });
 
   final RangedWeaponId id;
-  final ProjectileId projectileId;
 
-  final double damage;
+  // Weapon-owned projectile identity + physics
+  final ProjectileId projectileId;
+  final double originOffset;
+  final bool ballistic;
+  final double gravityScale;
+
+  // Payload
   final DamageType damageType;
+
+  /// LEGACY: Single on-hit status profile (Phase 2 keeps it).
   final StatusProfileId statusProfileId;
 
-  /// Stamina consumed per shot.
-  final double staminaCost;
+  // New Phase 2 fields
+  final List<WeaponProc> procs;
+  final WeaponStats stats;
 
-  /// How far from the caster center to spawn the projectile, along aim dir.
-  final double originOffset;
+  // Legacy runtime-owned values (Phase 4 moves these to AbilityDef)
+  @Deprecated('Phase 4: AbilityDef owns damage')
+  final double legacyDamage;
 
-  /// Cooldown after firing (seconds).
-  final double cooldownSeconds;
+  @Deprecated('Phase 4: AbilityDef owns cost')
+  final double legacyStaminaCost;
 
-  /// If true, projectile uses physics (gravity + world collision).
-  final bool ballistic;
-
-  /// Multiplier applied to global gravity for ballistic projectiles.
-  final double gravityScale;
+  @Deprecated('Phase 4: AbilityDef owns cooldown')
+  final double legacyCooldownSeconds;
 }
 
 
@@ -21301,7 +21905,9 @@ EntityId spawnRangedWeaponProjectileFromCaster(
 
 
 ===== FILE: lib/core/weapons/weapon_catalog.dart =====
+import '../abilities/ability_def.dart' show AbilityTag;
 import '../combat/status/status.dart';
+import 'weapon_category.dart';
 import 'weapon_def.dart';
 import 'weapon_id.dart';
 
@@ -21316,21 +21922,29 @@ class WeaponCatalog {
       case WeaponId.basicSword:
         return const WeaponDef(
           id: WeaponId.basicSword,
+          category: WeaponCategory.primary,
+          grantedAbilityTags: {AbilityTag.melee, AbilityTag.physical},
           statusProfileId: StatusProfileId.meleeBleed,
         );
       case WeaponId.goldenSword:
         return const WeaponDef(
           id: WeaponId.goldenSword,
+          category: WeaponCategory.primary,
+          grantedAbilityTags: {AbilityTag.melee, AbilityTag.physical},
           statusProfileId: StatusProfileId.meleeBleed,
         );
       case WeaponId.basicShield:
         return const WeaponDef(
           id: WeaponId.basicShield,
+          category: WeaponCategory.offHand,
+          grantedAbilityTags: {AbilityTag.buff, AbilityTag.physical},
           statusProfileId: StatusProfileId.stunOnHit,
         );
       case WeaponId.goldenShield:
         return const WeaponDef(
           id: WeaponId.goldenShield,
+          category: WeaponCategory.offHand,
+          grantedAbilityTags: {AbilityTag.buff, AbilityTag.physical},
           statusProfileId: StatusProfileId.stunOnHit,
         );
     }
@@ -21338,13 +21952,33 @@ class WeaponCatalog {
 }
 
 
+===== FILE: lib/core/weapons/weapon_category.dart =====
+/// Equipment slot category for weapons.
+///
+/// This determines which equipment slot(s) a weapon occupies,
+/// not which ability slots it can power.
+enum WeaponCategory {
+  /// Main hand weapons (swords, axes, spears).
+  primary,
+
+  /// Off-hand equipment (shields, daggers, torches).
+  offHand,
+
+  /// Throwing weapons (knives, axes).
+  projectile,
+}
+
 
 ===== FILE: lib/core/weapons/weapon_def.dart =====
+import '../abilities/ability_def.dart' show AbilityTag;
 import '../combat/damage_type.dart';
 import '../combat/status/status.dart';
+import 'weapon_category.dart';
 import 'weapon_id.dart';
+import 'weapon_proc.dart';
+import 'weapon_stats.dart';
 
-/// Static, data-first definition for a weapon.
+/// Static, data-first definition for a melee weapon.
 ///
 /// Weapon definitions are queried by [WeaponId] and used by intent writers
 /// (e.g. [PlayerMeleeSystem]) to fill combat metadata like damage type and
@@ -21352,15 +21986,45 @@ import 'weapon_id.dart';
 class WeaponDef {
   const WeaponDef({
     required this.id,
+    required this.category,
+    this.grantedAbilityTags = const {},
     this.damageType = DamageType.physical,
+    // Legacy (kept until Phase 5)
     this.statusProfileId = StatusProfileId.none,
+    // New Phase 2 fields
+    this.procs = const [],
+    this.stats = const WeaponStats(),
+    this.isTwoHanded = false,
   });
 
   final WeaponId id;
-  final DamageType damageType;
-  final StatusProfileId statusProfileId;
-}
 
+  /// Equipment slot category (primary/offHand/projectile).
+  final WeaponCategory category;
+
+  /// Capabilities provided by this weapon.
+  /// Abilities check: requiredTags ⊆ grantedAbilityTags.
+  /// Safe default: empty grants nothing.
+  final Set<AbilityTag> grantedAbilityTags;
+
+  /// Default damage type applied to hits.
+  final DamageType damageType;
+
+  /// LEGACY: Single on-hit status profile, kept for current runtime.
+  /// Bridge rule: if procs empty and statusProfileId != none,
+  /// treat as [onHit: statusProfileId] for future payload builders.
+  final StatusProfileId statusProfileId;
+
+  /// New, extensible proc list (Phase 2+).
+  final List<WeaponProc> procs;
+
+  /// Passive stats provided by this weapon (future use).
+  final WeaponStats stats;
+
+  /// If true, occupies both Primary + Secondary equipment slots.
+  /// Enforcement is equip-time validation (Phase 3/4).
+  final bool isTwoHanded;
+}
 
 
 ===== FILE: lib/core/weapons/weapon_id.dart =====
@@ -21376,6 +22040,84 @@ enum WeaponId {
   goldenShield,
 }
 
+
+
+===== FILE: lib/core/weapons/weapon_proc.dart =====
+import '../combat/status/status.dart';
+
+/// Hook points where weapon procs can trigger.
+enum ProcHook {
+  onHit,
+  onBlock,
+  onKill,
+  onCrit,
+}
+
+/// A single proc effect that can be attached to a weapon.
+///
+/// When the specified [hook] triggers, there's a [chance] to apply
+/// the status effect defined by [statusProfileId].
+class WeaponProc {
+  const WeaponProc({
+    required this.hook,
+    required this.statusProfileId,
+    this.chance = 1.0,
+  }) : assert(chance >= 0.0 && chance <= 1.0, 'chance must be in [0..1]');
+
+  /// When this proc can trigger.
+  final ProcHook hook;
+
+  /// The status effect profile to apply.
+  final StatusProfileId statusProfileId;
+
+  /// Probability of triggering (1.0 = 100%, 0.5 = 50%).
+  final double chance;
+}
+
+/// Bridge helper: Converts legacy statusProfileId to effective procs list.
+///
+/// Used by future payload builders (Phase 4+). Not consumed in Phase 2.
+List<WeaponProc> effectiveWeaponProcs({
+  required List<WeaponProc> procs,
+  required StatusProfileId legacyStatusProfileId,
+}) {
+  if (procs.isNotEmpty) return procs;
+  if (legacyStatusProfileId == StatusProfileId.none) return const [];
+  return [
+    WeaponProc(
+      hook: ProcHook.onHit,
+      statusProfileId: legacyStatusProfileId,
+      chance: 1.0,
+    ),
+  ];
+}
+
+
+===== FILE: lib/core/weapons/weapon_stats.dart =====
+/// Passive stat modifiers provided by a weapon.
+///
+/// These are not consumed by runtime systems in Phase 2 but provide
+/// the data foundation for future damage/crit scaling.
+class WeaponStats {
+  const WeaponStats({
+    this.powerBonus = 0.0,
+    this.critChanceBonus = 0.0,
+    this.critDamageBonus = 0.0,
+    this.rangeScalar = 1.0,
+  }) : assert(rangeScalar > 0.0, 'rangeScalar must be > 0');
+
+  /// Additive power bonus (+% or scalar, interpretation in Phase 5).
+  final double powerBonus;
+
+  /// Additive crit chance bonus (+0.05 = +5%).
+  final double critChanceBonus;
+
+  /// Additive crit damage bonus (+0.50 = +50% extra crit damage).
+  final double critDamageBonus;
+
+  /// Multiplicative range modifier (1.0 = unchanged).
+  final double rangeScalar;
+}
 
 
 ===== FILE: lib/firebase_options.dart =====
