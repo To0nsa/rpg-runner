@@ -1,3 +1,5 @@
+import '../combat/damage_type.dart';
+import '../projectiles/projectile_id.dart';
 import 'ability_def.dart';
 
 /// Static registry of all available abilities.
@@ -22,7 +24,7 @@ class AbilityCatalog {
       staminaCost: 0, manaCost: 0,
       cooldownTicks: 0,
       interruptPriority: InterruptPriority.combat,
-      animKey: 'punch',
+      animKey: AnimKey.punch,
       tags: {AbilityTag.melee, AbilityTag.light},
       baseDamage: 1500, // Fallback melee damage
     ),
@@ -45,7 +47,7 @@ class AbilityCatalog {
       staminaCost: 500, manaCost: 0, // 5.0 stamina
       cooldownTicks: 18, // 0.30s
       interruptPriority: InterruptPriority.combat,
-      animKey: 'strike',
+      animKey: AnimKey.strike,
       tags: {AbilityTag.melee, AbilityTag.physical},
       requiredTags: {AbilityTag.melee, AbilityTag.physical},
       baseDamage: 1500, // PlayerTuning meleeDamage 15.0
@@ -62,7 +64,7 @@ class AbilityCatalog {
       staminaCost: 500, manaCost: 0,
       cooldownTicks: 30, // 0.50s (est)
       interruptPriority: InterruptPriority.combat,
-      animKey: 'parry',
+      animKey: AnimKey.parry,
       tags: {AbilityTag.melee, AbilityTag.physical, AbilityTag.opener},
       requiredTags: {AbilityTag.melee, AbilityTag.physical},
       baseDamage: 0,
@@ -84,7 +86,7 @@ class AbilityCatalog {
       staminaCost: 1200, manaCost: 0,
       cooldownTicks: 24,
       interruptPriority: InterruptPriority.combat,
-      animKey: 'shield_bash',
+      animKey: AnimKey.shieldBash,
       tags: {AbilityTag.melee, AbilityTag.physical, AbilityTag.heavy},
       requiredTags: {AbilityTag.melee, AbilityTag.heavy},
       baseDamage: 1500, // Assuming standardized melee damage
@@ -100,7 +102,7 @@ class AbilityCatalog {
       staminaCost: 500, manaCost: 0,
       cooldownTicks: 12,
       interruptPriority: InterruptPriority.combat,
-      animKey: 'shield_block',
+      animKey: AnimKey.shieldBlock,
       tags: {AbilityTag.buff, AbilityTag.physical},
       requiredTags: {AbilityTag.buff},
       baseDamage: 0,
@@ -115,7 +117,7 @@ class AbilityCatalog {
       allowedSlots: {AbilitySlot.projectile},
       targetingModel: TargetingModel.aimed,
       hitDelivery: ProjectileHitDelivery(
-        projectileId: 'knife',
+        projectileId: ProjectileId.throwingKnife,
         hitPolicy: HitPolicy.oncePerTarget,
       ),
       // Cooldown 0.30s -> 18 ticks
@@ -124,7 +126,7 @@ class AbilityCatalog {
       staminaCost: 500, manaCost: 0,
       cooldownTicks: 18,
       interruptPriority: InterruptPriority.combat,
-      animKey: 'throw',
+      animKey: AnimKey.throwItem,
       tags: {AbilityTag.projectile, AbilityTag.physical},
       requiredTags: {AbilityTag.projectile},
       baseDamage: 1000, // RangedWeaponCatalog.throwingKnife legacyDamage 10.0
@@ -136,7 +138,7 @@ class AbilityCatalog {
       allowedSlots: {AbilitySlot.projectile},
       targetingModel: TargetingModel.aimed,
       hitDelivery: ProjectileHitDelivery(
-        projectileId: 'ice_bolt',
+        projectileId: ProjectileId.iceBolt,
         hitPolicy: HitPolicy.oncePerTarget,
       ),
       // Cost 10.0 -> 1000
@@ -144,9 +146,10 @@ class AbilityCatalog {
       staminaCost: 0, manaCost: 1000,
       cooldownTicks: 24,
       interruptPriority: InterruptPriority.combat,
-      animKey: 'cast',
+      animKey: AnimKey.cast,
       tags: {AbilityTag.projectile, AbilityTag.ice},
       baseDamage: 1500, // SpellCatalog.iceBolt damage 15.0
+      baseDamageType: DamageType.ice,
     ),
 
     'eloise.fire_bolt': AbilityDef(
@@ -155,16 +158,17 @@ class AbilityCatalog {
       allowedSlots: {AbilitySlot.projectile},
       targetingModel: TargetingModel.aimed,
       hitDelivery: ProjectileHitDelivery(
-        projectileId: 'fire_bolt',
+        projectileId: ProjectileId.fireBolt,
       ),
       // Cost 12.0 -> 1200
       windupTicks: 6, activeTicks: 2, recoveryTicks: 8,
       staminaCost: 0, manaCost: 1200,
       cooldownTicks: 30,
       interruptPriority: InterruptPriority.combat,
-      animKey: 'cast',
+      animKey: AnimKey.cast,
       tags: {AbilityTag.projectile, AbilityTag.fire},
       baseDamage: 1800, // SpellCatalog.fireBolt damage 18.0
+      baseDamageType: DamageType.fire,
     ),
 
     'eloise.thunder_bolt': AbilityDef(
@@ -173,16 +177,17 @@ class AbilityCatalog {
       allowedSlots: {AbilitySlot.projectile},
       targetingModel: TargetingModel.aimed,
       hitDelivery: ProjectileHitDelivery(
-        projectileId: 'thunder_bolt',
+        projectileId: ProjectileId.thunderBolt,
       ),
       // Cost 10.0 -> 1000
       windupTicks: 6, activeTicks: 2, recoveryTicks: 8,
       staminaCost: 0, manaCost: 1000,
       cooldownTicks: 36,
       interruptPriority: InterruptPriority.combat,
-      animKey: 'cast',
+      animKey: AnimKey.cast,
       tags: {AbilityTag.projectile, AbilityTag.lightning},
       baseDamage: 500, // SpellCatalog.thunderBolt damage 5.0
+      baseDamageType: DamageType.thunder,
     ),
 
     // ------------------------------------------------------------------------
@@ -202,7 +207,7 @@ class AbilityCatalog {
       cooldownTicks: 120,
       interruptPriority: InterruptPriority.mobility,
       canBeInterruptedBy: {}, 
-      animKey: 'dash',
+      animKey: AnimKey.dash,
       tags: {AbilityTag.light, AbilityTag.buff},
       baseDamage: 0,
     ),
@@ -219,7 +224,7 @@ class AbilityCatalog {
       staminaCost: 200, manaCost: 0,
       cooldownTicks: 120,
       interruptPriority: InterruptPriority.mobility,
-      animKey: 'roll',
+      animKey: AnimKey.roll,
       tags: {AbilityTag.light, AbilityTag.buff},
       baseDamage: 0,
     ),

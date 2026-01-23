@@ -1,109 +1,132 @@
-# Phase 5: Unified Hit Pipeline & Stat Scaling
+# Phase 5: Unified Hit Pipeline & Stat Scaling (Revised)
 
 ## Goal
 
-Establish a single, authoritative pipeline for constructing **Hit Payloads** from Abilities and Weapons.
-This phase integrates **Stat Scaling** (Power Bonus) and **Weapon Modifiers** (Procs) into the damage calculation, finalizing the "Ability Owns Structure, Weapon Owns Payload" architecture.
+Establish a single, deterministic pipeline for constructing **Hit Payloads** from Abilities and Weapons.
+This phase enforces **Integer-based Fixed-Point Math** for all simulation logic and introduces a **Canonical Payload Builder** to ensure consistency between UI prediction and actual combat execution.
 
 ---
 
 ## Design Pillars
 
-### P1 — The Unified Pipeline
-All damaging actions (Melee, Ranged, Spells) must go through the same construction logic:
-`Ability (Base)` + `Weapon (Stats/Mods)` + `Buffs (Passive)` = `HitPayload`.
+### P1 — Integer Determinism
+**Simulation must never use floats/doubles.**
+- All damage values are `int` (Fixed-point: `100` = `1.0` Visual Damage).
+- All multipliers are `int` (Basis Points: `100` = `1%`).
+- Proc chances are `int` (Basis Points: `100` = `1%`).
+- `double` is permitted **only** at the UI edge (Popups, HUD) or for physics delta-time integration (movement).
 
-### P2 — Stat Scaling (Fixed Point)
-Game balance relies on scaling.
-- **Power Bonus**: A percentage modifier from the equipped weapon (e.g., `10` = +10% damage).
-- **Math**: `FinalDamage = BaseDamage * (100 + PowerBonus) / 100`.
-- All operations must remain in **integer fixed-point** domain to preserve determinism.
+### P2 — Canonical Build Pipeline
+A single static helper (`HitPayloadBuilder`) constructs the payload.
+- **Producers** (Player/Enemy Systems) call this builder to create a **Frozen Snapshot** in the Intent.
+- **Consumers** (Projectile/Melee Systems) execute the Snapshot.
+- **UI** calls the same builder for tooltips/prediction.
 
-### P3 — Modifier Order
-Resolution order is strict:
-1.  **Ability**: Sets base damage, initial element (e.g. Fire), and structural properties.
-2.  **Weapon**: Applies Power Bonus, overrides element (if applicable), adds Procs (Bleed, Stun).
-3.  **Buffs**: (Future/Phase 6) Multipliers from potions/status effects.
+### P3 — Explicit Semantics
+- No "Magic Tag Inference". `AbilityDef` must explicitly define its `baseDamageType`.
+- Modifier order is strict: Ability (Base) -> Weapon (Scaling/Override) -> Buffs.
 
 ---
 
-## Schema & Data Structures
+## Schema Changes
 
-### 1. `HitPayload` (New/Refined)
-The transport struct for all hit data.
+### 1. `HitPayload` (The Frozen Snapshot)
+The transport struct for resolved hit data.
 
 ```dart
 class HitPayload {
-  final double damage;          // Final calculated damage (visuals only, logic uses integers likely?) 
-                                // WAIT: We are using double in runtime currently, but logic should be integer-derived.
-                                // Proposal: Keep double for now to match current systems, but verify determinism via "clicks".
-                                
-  final DamageType damageType;  // Resolved element.
-  final List<WeaponProc> procs; // On-hit effects.
-  final EntityId sourceId;      // Attacker.
+  // 100 = 1.0 visual damage
+  final int damage100;
   
-  // Debug/Logging source info
+  final DamageType damageType;
+  final List<WeaponProc> procs;
+  final EntityId sourceId;
+  
+  // Debug info
   final AbilityKey? abilityId;
   final WeaponId? weaponId;
 }
 ```
 
-### 2. `WeaponStats` Integration
-Weapons already have `WeaponStats(powerBonus: int)`. This must now be *used*.
+### 2. `AbilityDef` (Refinement)
+Add explicit `baseDamageType`. No more guessing from tags.
+
+```dart
+class AbilityDef {
+  // ... existing fields ...
+  
+  // New Field
+  final DamageType baseDamageType; // Default: DamageType.physical
+  
+  // Note: baseDamage is already 'int' from Phase 4.
+}
+```
+
+### 3. `WeaponStats` & `WeaponProc` (Strict Ints)
+Convert existing `double` fields to `int` basis points (bp).
+
+```dart
+class WeaponStats {
+  // 100 = 1% bonus. 1000 = 10% bonus.
+  final int powerBonusBp; 
+  // ...
+}
+
+class WeaponProc {
+  // 100 = 1% chance. 10000 = 100% chance.
+  final int chanceBp;
+  // ...
+}
+```
 
 ---
 
-## Implementation Plan
-
-### Step 1: `HitPayloadBuilder` Helper
-Create a utility class/function to encapsulate the combining logic.
+## The Canonical Builder
 
 ```dart
-// core/combat/hit_payload_builder.dart
-
 class HitPayloadBuilder {
   static HitPayload build({
     required AbilityDef ability,
-    required WeaponDef? weapon, // Null for innate abilities/monster casts
+    required WeaponDef? weapon, // Null for innate/monster abilities
     required EntityId source,
   }) {
     // 1. Start with Ability Base
-    int rawDamage = ability.baseDamage; // e.g., 1500
-    var damageType = DamageType.physical; // Ability usually doesn't specify type for Melee, but "Spells" do.
-    
-    // Resolve Ability Element (Phase 4 Logic moved here)
-    if (ability.tags.contains(AbilityTag.fire)) damageType = DamageType.fire;
-    else if (ability.tags.contains(AbilityTag.ice)) damageType = DamageType.ice;
-    // ... etc
-    
-    // 2. Apply Weapon Modifiers
-    var procs = <WeaponProc>[];
-    
+    int finalDamage100 = ability.baseDamage; // e.g., 1500 (15.0)
+    DamageType finalDamageType = ability.baseDamageType;
+    var finalProcs = <WeaponProc>[];
+
+    // 2. Apply Weapon Modifiers (if equipped/valid)
     if (weapon != null) {
-      // A. Power Bonus Scaling
-      // damage = base * (1.0 + bonus/100)
-      // integer math: (base * (100 + bonus)) ~/ 100
-      final bonus = weapon.stats.powerBonus;
-      rawDamage = (rawDamage * (100 + bonus)) ~/ 100;
+      // A. Power Scaling (Integer Math)
+      // damage = base * (1 + bonusBp/10000)
+      // impl: (base * (10000 + bonusBp)) ~/ 10000
+      if (weapon.stats.powerBonusBp > 0) {
+        finalDamage100 = (finalDamage100 * (10000 + weapon.stats.powerBonusBp)) ~/ 10000;
+        
+        // Edge case: Floor of 1 (0.01) if base > 0? 
+        // For now, standard integer truncation is fine.
+      }
       
-      // B. Damage Type Override ?
-      // Rule: Weapon damage type usually overrides Neutral/Physical ability, 
-      // but SPECIFIC ability element (Fire Bolt) usually overrides Weapon (Steel Sword).
-      // Design Decision:
-      // - If Ability is Physical, use Weapon Type.
-      // - If Ability is Elemental, keep Ability Type (Magic weapons don't turn Fireball into Steel).
-      if (damageType == DamageType.physical) {
-        damageType = weapon.damageType;
+      // B. Damage Type Override
+      // Rule: Weapon overrides Physical ability. Elemental ability keeps its element.
+      if (finalDamageType == DamageType.physical) {
+        finalDamageType = weapon.damageType;
       }
       
       // C. Procs
-      procs.addAll(weapon.procs);
+      // Note: We COPY the procs here. Selection/Roll happens at APPLICATION time (OnHit), 
+      // or we roll here?
+      // DECISION: Roll Randomness at APPLICATION (Hit Resolver), not Intent. 
+      // Intent should carry "Potential Procs".
+      // However, Payload usually implies "Result". 
+      // For determinism, if we roll later, we just pass the list.
+      finalProcs.addAll(weapon.procs);
     }
-    
+
     return HitPayload(
-      damage: rawDamage / 100.0, // Convert back to runtime double
-      damageType: damageType,
-      procs: procs,
+      damage100: finalDamage100,
+      damageType: finalDamageType,
+      procs: finalProcs,
       sourceId: source,
       abilityId: ability.id,
       weaponId: weapon?.id,
@@ -112,42 +135,36 @@ class HitPayloadBuilder {
 }
 ```
 
-### Step 2: System Integration
-Refactor the "Producers" or "Consumers"?
-- **Ranged/Spell**: The `Intent` is the contract. 
-    - **Producer (PlayerSystem)**: Should it build the full payload?
-    - **Decision**: No. The Intent should carry *references* (indexes) or *raw structure*?
-    - **Correction**: In Phase 4 we put `damage` in the intent.
-    - **Optimization**: To avoid duplicating logic in every Player/Enemy system, the **Payload Builder** should be called by the **Producer** (PlayerMeleeSystem, PlayerCastSystem) and the result (final damage, final type) written to the Intent.
-    - *Alternative*: The Intent carries `AbilityId` and `WeaponId`, and the *Consumer* (MeleeStrikeSystem) builds the payload.
-    - *Winner*: **Producer builds Payload**. 
-        - Why? Because UI (damage prediction) needs to see the final numbers too. 
-        - Also keeps the "execution" systems (MeleeStrike) dumb: "Deal X damage."
+---
 
-### Step 3: Cleanup Legacy
-- Remove `legacyDamage` etc from `RangedWeaponDef` and Catalog.
-- Remove deprecated fields.
+## Migration Plan
+
+### Step 1: Schema Hardening
+1.  **AbilityDef**: Add `baseDamageType`. Update `AbilityCatalog` (Manual mapping: IceBolt->Ice, etc).
+2.  **WeaponStats**: Rename/Convert `powerBonus` (double) -> `powerBonusBp` (int).
+3.  **WeaponProc**: Rename/Convert `chance` (double) -> `chanceBp` (int).
+
+### Step 2: Builder & Pipeline
+1.  Implement `HitPayloadBuilder`.
+2.  **Refactor Producers (PlayerCast/Ranged)**:
+    -   Call `HitPayloadBuilder.build(...)`.
+    -   Store result in Intent.
+    -   *Note*: `RangedWeaponIntentDef` and `CastIntentDef` already have fields for `damage`, `damageType`. Update them to use `int damage100`.
+
+### Step 3: Consumer Execution
+1.  **Ranged/Spell Systems**: Read `damage100` from intent and execute.
+2.  **Update UI**: Convert `damage100 / 100.0` for display.
+
+### Step 4: Legacy Cleanup
+- Remove deprecated legacy fields (`legacyDamage` etc) from Phase 4.
 
 ---
 
-## Validation
+## Validation Rules
 
-### Scenarios
-1.  **Scaling Test**:
-    - Equip `Wooden Sword` (Power 0). Ability Base 1000. -> Damage 10.0.
-    - Equip `Golden Sword` (Power 20). Ability Base 1000. -> Damage 12.0.
-2.  **Element Priority**:
-    - `Fire Bolt` (Fire) + `Ice Sword` (Ice). -> Result: **Fire**.
-    - `Slash` (Physical) + `Ice Sword` (Ice). -> Result: **Ice**.
-3.  **Proc Chaining**:
-    - Weapon with Bleed. Attack applies Bleed status.
-
----
-
-## Task Breakdown
-- [ ] Create `HitPayloadBuilder`.
-- [ ] Update `PlayerMeleeSystem` to use Builder.
-- [ ] Update `PlayerRangedWeaponSystem` to use Builder.
-- [ ] Update `PlayerCastSystem` to use Builder.
-- [ ] Verify Stat Scaling in-game.
-- [ ] Remove Legacy Data fields.
+1.  **Identity Test**: Unarmed (Power 0) + Strike (1500) = 1500 damage.
+2.  **Scaling Test**: Gold Sword (Power 2000 = +20%) + Strike (1500) = 1500 * 1.2 = 1800 damage.
+3.  **Type Priority**: 
+    - Physical Ability + Fire Weapon = Fire.
+    - Ice Ability + Fire Weapon = Ice.
+4.  **Determinism**: Run simulation 2x with same seed. `damage100` values must match exactly.

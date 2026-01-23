@@ -16,8 +16,8 @@ class WeaponProc {
   const WeaponProc({
     required this.hook,
     required this.statusProfileId,
-    this.chance = 1.0,
-  }) : assert(chance >= 0.0 && chance <= 1.0, 'chance must be in [0..1]');
+    this.chanceBp = 10000,
+  }) : assert(chanceBp >= 0 && chanceBp <= 10000, 'chanceBp must be in [0..10000]');
 
   /// When this proc can trigger.
   final ProcHook hook;
@@ -25,8 +25,8 @@ class WeaponProc {
   /// The status effect profile to apply.
   final StatusProfileId statusProfileId;
 
-  /// Probability of triggering (1.0 = 100%, 0.5 = 50%).
-  final double chance;
+  /// Probability of triggering in Basis Points (100 = 1%, 10000 = 100%).
+  final int chanceBp;
 }
 
 /// Bridge helper: Converts legacy statusProfileId to effective procs list.
@@ -42,7 +42,7 @@ List<WeaponProc> effectiveWeaponProcs({
     WeaponProc(
       hook: ProcHook.onHit,
       statusProfileId: legacyStatusProfileId,
-      chance: 1.0,
+      chanceBp: 10000,
     ),
   ];
 }

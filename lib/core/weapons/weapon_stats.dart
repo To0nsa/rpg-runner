@@ -4,21 +4,21 @@
 /// the data foundation for future damage/crit scaling.
 class WeaponStats {
   const WeaponStats({
-    this.powerBonus = 0.0,
-    this.critChanceBonus = 0.0,
-    this.critDamageBonus = 0.0,
-    this.rangeScalar = 1.0,
-  }) : assert(rangeScalar > 0.0, 'rangeScalar must be > 0');
+    this.powerBonusBp = 0,
+    this.critChanceBonusBp = 0,
+    this.critDamageBonusBp = 0,
+    this.rangeScalarPercent = 100,
+  }) : assert(rangeScalarPercent > 0, 'rangeScalarPercent must be > 0');
 
-  /// Additive power bonus (+% or scalar, interpretation in Phase 5).
-  final double powerBonus;
+  /// Additive power bonus in Basis Points (100 = 1%).
+  final int powerBonusBp;
 
-  /// Additive crit chance bonus (+0.05 = +5%).
-  final double critChanceBonus;
+  /// Additive crit chance bonus in Basis Points (100 = 1%).
+  final int critChanceBonusBp;
 
-  /// Additive crit damage bonus (+0.50 = +50% extra crit damage).
-  final double critDamageBonus;
+  /// Additive crit damage bonus in Basis Points (100 = 1%).
+  final int critDamageBonusBp;
 
-  /// Multiplicative range modifier (1.0 = unchanged).
-  final double rangeScalar;
+  /// Multiplicative range modifier relative to 100 (100 = unchanged).
+  final int rangeScalarPercent;
 }

@@ -23,10 +23,6 @@ class RangedWeaponDef {
     // New Phase 2 fields
     this.procs = const [],
     this.stats = const WeaponStats(),
-    // Legacy runtime-owned values (Phase 4 moves these to AbilityDef)
-    this.legacyDamage = 0.0,
-    this.legacyStaminaCost = 0.0,
-    this.legacyCooldownSeconds = 0.25,
   });
 
   final RangedWeaponId id;
@@ -50,13 +46,4 @@ class RangedWeaponDef {
   final List<WeaponProc> procs;
   final WeaponStats stats;
 
-  // Legacy runtime-owned values (Phase 4 moves these to AbilityDef)
-  @Deprecated('Phase 4: Use AbilityDef.baseDamage')
-  final double legacyDamage;
-
-  @Deprecated('Phase 4: Use AbilityDef.staminaCost')
-  final double legacyStaminaCost;
-
-  @Deprecated('Phase 4: Use AbilityDef.cooldownTicks')
-  final double legacyCooldownSeconds;
 }

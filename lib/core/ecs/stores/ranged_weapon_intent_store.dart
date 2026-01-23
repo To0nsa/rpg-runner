@@ -8,7 +8,7 @@ import '../sparse_set.dart';
 class RangedWeaponIntentDef {
   const RangedWeaponIntentDef({
     required this.weaponId, // Kept for debugging/legacy
-    required this.damage,
+    required this.damage100,
     required this.staminaCost,
     required this.rechargeTicks,
     required this.projectileId,
@@ -25,7 +25,7 @@ class RangedWeaponIntentDef {
   });
 
   final RangedWeaponId weaponId;
-  final double damage;
+  final int damage100;
   final double staminaCost;
   final int rechargeTicks;
   final ProjectileId projectileId;
@@ -51,7 +51,7 @@ class RangedWeaponIntentDef {
 /// Written by player input and consumed by `RangedWeaponSystem`.
 class RangedWeaponIntentStore extends SparseSet {
   final List<RangedWeaponId> weaponId = <RangedWeaponId>[];
-  final List<double> damage = <double>[];
+  final List<int> damage100 = <int>[];
   final List<double> staminaCost = <double>[];
   final List<int> rechargeTicks = <int>[];
   final List<ProjectileId> projectileId = <ProjectileId>[];
@@ -78,7 +78,7 @@ class RangedWeaponIntentStore extends SparseSet {
     );
     final i = indexOf(entity);
     weaponId[i] = def.weaponId;
-    damage[i] = def.damage;
+    damage100[i] = def.damage100;
     staminaCost[i] = def.staminaCost;
     rechargeTicks[i] = def.rechargeTicks;
     projectileId[i] = def.projectileId;
@@ -98,7 +98,7 @@ class RangedWeaponIntentStore extends SparseSet {
   @override
   void onDenseAdded(int denseIndex) {
     weaponId.add(RangedWeaponId.throwingKnife);
-    damage.add(0.0);
+    damage100.add(0);
     staminaCost.add(0.0);
     rechargeTicks.add(0);
     projectileId.add(ProjectileId.throwingKnife); // Default matching weaponId
@@ -118,7 +118,7 @@ class RangedWeaponIntentStore extends SparseSet {
   @override
   void onSwapRemove(int removeIndex, int lastIndex) {
     weaponId[removeIndex] = weaponId[lastIndex];
-    damage[removeIndex] = damage[lastIndex];
+    damage100[removeIndex] = damage100[lastIndex];
     staminaCost[removeIndex] = staminaCost[lastIndex];
     rechargeTicks[removeIndex] = rechargeTicks[lastIndex];
     projectileId[removeIndex] = projectileId[lastIndex];
@@ -135,7 +135,7 @@ class RangedWeaponIntentStore extends SparseSet {
     tick[removeIndex] = tick[lastIndex];
 
     weaponId.removeLast();
-    damage.removeLast();
+    damage100.removeLast();
     staminaCost.removeLast();
     rechargeTicks.removeLast();
     projectileId.removeLast();

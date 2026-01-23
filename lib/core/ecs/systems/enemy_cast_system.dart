@@ -141,7 +141,7 @@ class EnemyCastSystem {
       enemy,
       CastIntentDef(
         spellId: spellId,
-        damage: spellDef.stats.damage,
+        damage100: (spellDef.stats.damage * 100).round(),
         manaCost: spellDef.stats.manaCost,
         projectileId: spellDef.projectileId!,
         damageType: spellDef.stats.damageType,

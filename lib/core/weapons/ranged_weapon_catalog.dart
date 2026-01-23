@@ -1,5 +1,5 @@
 import '../abilities/ability_def.dart' show AbilityTag;
-import '../util/tick_math.dart';
+
 import '../projectiles/projectile_id.dart';
 import 'ranged_weapon_def.dart';
 import 'ranged_weapon_id.dart';
@@ -14,10 +14,7 @@ class RangedWeaponCatalog {
         return const RangedWeaponDef(
           id: RangedWeaponId.throwingAxe,
           projectileId: ProjectileId.throwingAxe,
-          legacyDamage: 18.0,
-          legacyStaminaCost: 8.0,
           originOffset: 8.0,
-          legacyCooldownSeconds: 0.40,
           ballistic: true,
           gravityScale: 1.0,
           grantedAbilityTags: {AbilityTag.projectile, AbilityTag.physical},
@@ -26,10 +23,7 @@ class RangedWeaponCatalog {
         return const RangedWeaponDef(
           id: RangedWeaponId.throwingKnife,
           projectileId: ProjectileId.throwingKnife,
-          legacyDamage: 10.0,
-          legacyStaminaCost: 5.0,
           originOffset: 6.0,
-          legacyCooldownSeconds: 0.30,
           ballistic: true,
           gravityScale: 0.9,
           grantedAbilityTags: {AbilityTag.projectile, AbilityTag.physical},
@@ -63,8 +57,5 @@ class RangedWeaponCatalogDerived {
   final int tickHz;
   final RangedWeaponCatalog base;
 
-  int cooldownTicks(RangedWeaponId id) {
-    // ignore: deprecated_member_use_from_same_package
-    return ticksFromSecondsCeil(base.get(id).legacyCooldownSeconds, tickHz);
-  }
+
 }

@@ -134,10 +134,11 @@ EntityId? spawnSpellProjectileFromCaster(
   required double fallbackDirX,
   required double fallbackDirY,
   // Overrides (Phase 4)
+  // Overrides (Phase 4)
   ProjectileId? overrideProjectileId,
-  double? overrideDamage,
+  int? overrideDamage100,
   DamageType? overrideDamageType,
-  StatusProfileId? overrideStatusProfileId,
+  StatusProfileId? overrideStatusProfileId, // TODO: List<WeaponProc>?
 }) {
   // Bail early if spell doesn't spawn a projectile.
   final spell = spells.get(spellId);
@@ -168,7 +169,7 @@ EntityId? spawnSpellProjectileFromCaster(
     dirX: dir.x,
     dirY: dir.y,
     speedUnitsPerSecond: projectiles.base.get(projectileId).speedUnitsPerSecond,
-    damage: overrideDamage ?? spell.stats.damage,
+    damage: overrideDamage100 != null ? overrideDamage100 / 100.0 : spell.stats.damage,
     damageType: overrideDamageType ?? spell.stats.damageType,
     statusProfileId: overrideStatusProfileId ?? spell.stats.statusProfileId,
   );

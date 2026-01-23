@@ -40,6 +40,7 @@ import 'spells/spell_catalog.dart';
 import 'players/player_tuning.dart';
 import 'util/vec2.dart';
 import 'weapons/ranged_weapon_catalog.dart';
+import 'abilities/ability_catalog.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SnapshotBuilder
@@ -165,8 +166,13 @@ class SnapshotBuilder {
     final mana = world.mana.mana[mai];
     final equippedSpellId = world.equippedLoadout.spellId[li];
     final projectileManaCost = spells.get(equippedSpellId).stats.manaCost;
-    final rangedWeaponId = world.equippedLoadout.rangedWeaponId[li];
-    final rangedWeaponDef = rangedWeapons.base.get(rangedWeaponId);
+
+
+    
+    // Phase 5: Ranged Affordability uses Ability Cost
+    final projectileAbilityId = world.equippedLoadout.abilityProjectileId[li];
+    final projectileAbility = AbilityCatalog.tryGet(projectileAbilityId);
+    final rangedStaminaCost = projectileAbility != null ? projectileAbility.staminaCost / 100.0 : 0.0;
 
     // ─── Compute affordability flags ───
     // These tell the UI whether action buttons should appear enabled.
@@ -174,7 +180,7 @@ class SnapshotBuilder {
     final canAffordDash = stamina >= resources.dashStaminaCost;
     final canAffordMelee = stamina >= abilities.base.meleeStaminaCost;
     final canAffordProjectile = mana >= projectileManaCost;
-    final canAffordRangedWeapon = stamina >= rangedWeaponDef.staminaCost;
+    final canAffordRangedWeapon = stamina >= rangedStaminaCost;
 
     // ─── Read cooldown timers ───
     final dashCooldownTicksLeft = world.movement.dashCooldownTicksLeft[mi];
@@ -183,9 +189,7 @@ class SnapshotBuilder {
         world.cooldown.castCooldownTicksLeft[ci];
     final rangedWeaponCooldownTicksLeft =
         world.cooldown.rangedWeaponCooldownTicksLeft[ci];
-    final rangedWeaponCooldownTicksTotal = rangedWeapons.cooldownTicks(
-      rangedWeaponId,
-    );
+    final rangedWeaponCooldownTicksTotal = projectileAbility?.cooldownTicks ?? 0;
 
     // ─── Read player transform ───
     final ti = world.transform.indexOf(player);

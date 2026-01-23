@@ -3,6 +3,7 @@ import '../combat/status/status.dart';
 import 'weapon_category.dart';
 import 'weapon_def.dart';
 import 'weapon_id.dart';
+import 'weapon_stats.dart';
 
 /// Lookup table for weapon definitions.
 ///
@@ -25,6 +26,7 @@ class WeaponCatalog {
           category: WeaponCategory.primary,
           grantedAbilityTags: {AbilityTag.melee, AbilityTag.physical},
           statusProfileId: StatusProfileId.meleeBleed,
+          stats: WeaponStats(powerBonusBp: 2000), // +20% Damage
         );
       case WeaponId.basicShield:
         return const WeaponDef(

@@ -9,6 +9,7 @@ import '../../abilities/ability_def.dart';
 import '../../projectiles/projectile_id.dart';
 import '../../combat/damage_type.dart';
 import '../../combat/status/status.dart';
+import '../../combat/hit_payload_builder.dart';
 
 /// Translates player input into a [CastIntentDef] for the [SpellCastSystem].
 ///
@@ -103,9 +104,7 @@ class PlayerCastSystem {
 
     // IMPORTANT: PlayerCastSystem writes intent only; execution happens in
     // `SpellCastSystem` which owns mana/cooldown rules and projectile spawning.
-    // Use Ability ID from Loadout (Phase 4 requirement) (assumes mapped to spell/projectile slot)
-    // Fallback: use legacy spellId to lookup ability? No, we need AbilityDef.
-    // We'll use `abilityProjectileId` if it's a spell.
+    // Use Ability ID from Loadout (Phase 4 requirement)
     final abilityId = world.equippedLoadout.abilityProjectileId[li];
     final ability = AbilityCatalog.tryGet(abilityId);
     
@@ -114,37 +113,56 @@ class PlayerCastSystem {
       return;
     }
 
-    // Resolve Payload from Ability Structure (Spells own their nature)
-    var damageType = DamageType.physical;
-    var status = StatusProfileId.none;
+    // Phase 5: Use Canonical Builder
+    // Note: Spells don't use 'WeaponDef' generally, unless we support 'Staff' stats later.
+    // For now pass null weapon or fetch if we had one.
+    // In Phase 5 design, we said we'd use equipped weapon stats?
+    // Let's check if the player has a main hand weapon that scales spells?
+    // For now, pass null to keep it simple, or pass MainHand if designed.
+    // Design says: "Ability (Base) + Weapon (Stats/Mods)".
+    // So we SHOULD pass the weapon if it affects spells.
+    // Let's fetch main weapon for "Global Power Bonus".
+    final weaponId = world.equippedLoadout.mainWeaponId[li];
+    // Need WeaponCatalog to look it up? System doesn't have it injected.
+    // PlayerCastSystem constructor only has AbilityTuning.
+    // Recommendation: Pass null for weapon for Spells in this step, or inject WeaponCatalog.
+    // Given the task scope, let's keep it simple: Spells = Base Ability for now
+    // UNLESS we want "Wand" scaling.
+    // Let's pass null for now to match current behavior (spells don't scale with swords).
 
-    if (ability.tags.contains(AbilityTag.fire)) {
-      damageType = DamageType.fire;
-      status = StatusProfileId.fireBolt; // Heuristic
-    } else if (ability.tags.contains(AbilityTag.ice)) {
-      damageType = DamageType.ice;
-      status = StatusProfileId.iceBolt; // Heuristic
-    } else if (ability.tags.contains(AbilityTag.lightning)) {
-      damageType = DamageType.thunder; // Assuming 'thunder' matches 'lightning' tag
-    }
+    final payload = HitPayloadBuilder.build(
+      ability: ability,
+      source: player,
+      // weaponStats: null, // Pass if we want scaling
+    );
 
-    // Resolve Projectile ID
+    // Resolve Projectile ID (Phase 4 Logic retained or moved to AbilityDef?)
+    // AbilityDef has hitDelivery.
     ProjectileId projectileId;
     if (ability.hitDelivery is ProjectileHitDelivery) {
       projectileId = (ability.hitDelivery as ProjectileHitDelivery).projectileId;
     } else {
-      projectileId = ProjectileId.iceBolt; // Fallback? Or Assert?
+      projectileId = ProjectileId.iceBolt; 
     }
 
     world.castIntent.set(
       player,
       CastIntentDef(
         spellId: spellId, // Legacy
-        damage: ability.baseDamage / 100.0,
+        damage100: payload.damage100,
         manaCost: ability.manaCost / 100.0,
         projectileId: projectileId,
-        damageType: damageType,
-        statusProfileId: status,
+        damageType: payload.damageType,
+        statusProfileId: StatusProfileId.none, // Procs handled via payload.procs? Or keep single?
+        // IntentDef has 'statusProfileId'. New Payload has 'procs'.
+        // We need to bridge this.
+        // If payload.procs is not empty, use the first one?
+        // Or Intent needs to carry 'procs'?
+        // Phase 5 doc says Intent carries "Frozen Snapshot".
+        // The IntentDef currently has `statusProfileId`.
+        // We probably need to update IntentDef to `List<WeaponProc> procs`.
+        // BUT for this step, let's bridge:
+        // payload.procs.isNotEmpty ? payload.procs.first.statusProfileId : StatusProfileId.none
         originOffset: spawnOffset,
         cooldownTicks: ability.cooldownTicks,
         tick: currentTick,

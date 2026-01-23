@@ -7,6 +7,7 @@ import '../world.dart';
 import '../../abilities/ability_catalog.dart';
 import '../../abilities/ability_def.dart';
 import '../../projectiles/projectile_id.dart';
+import '../../combat/hit_payload_builder.dart';
 import 'dart:math';
 
 /// Translates player input into a [RangedWeaponIntentDef] for the
@@ -99,23 +100,31 @@ class PlayerRangedWeaponSystem {
     // Determine Projectile Identity
     // Phase 4 Rule: Spells own projectile; Thrown uses Weapon's.
     final ProjectileId projectileId;
-    if (ability.tags.contains(AbilityTag.spell) && 
-        ability.hitDelivery is ProjectileHitDelivery) {
+    if (ability.hitDelivery is ProjectileHitDelivery) {
        projectileId = (ability.hitDelivery as ProjectileHitDelivery).projectileId;
     } else {
        projectileId = weapon.projectileId;
     }
 
+    // Build Payload via Canonical Builder
+    final payload = HitPayloadBuilder.build(
+      ability: ability,
+      source: player,
+      weaponStats: weapon.stats,
+      weaponDamageType: weapon.damageType,
+      weaponProcs: weapon.procs,
+    );
+
     world.rangedWeaponIntent.set(
       player,
       RangedWeaponIntentDef(
         weaponId: weaponId,
-        damage: ability.baseDamage / 100.0,
+        damage100: payload.damage100,
         staminaCost: ability.staminaCost / 100.0,
         rechargeTicks: ability.cooldownTicks,
         projectileId: projectileId,
-        damageType: weapon.damageType,
-        statusProfileId: weapon.statusProfileId,
+        damageType: payload.damageType,
+        statusProfileId: weapon.statusProfileId, // Bridge: Future use payload.procs
         ballistic: weapon.ballistic,
         gravityScale: weapon.gravityScale,
         dirX: aimX,

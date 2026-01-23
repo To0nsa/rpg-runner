@@ -75,7 +75,8 @@ class RangedWeaponSystem {
         dirY: intents.dirY[ii],
         fallbackDirX: intents.fallbackDirX[ii],
         fallbackDirY: intents.fallbackDirY[ii],
-        damage: intents.damage[ii], // Phase 4
+
+        damage100: intents.damage100[ii], // Phase 5
         damageType: intents.damageType[ii], // Phase 4
         statusProfileId: intents.statusProfileId[ii], // Phase 4
         ballistic: intents.ballistic[ii], // Phase 4

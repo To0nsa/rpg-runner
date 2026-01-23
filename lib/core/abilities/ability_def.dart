@@ -1,3 +1,5 @@
+import '../projectiles/projectile_id.dart';
+import '../combat/damage_type.dart';
 
 // Validates strict format: "character.ability_name" (lower snake case)
 // Must have at least one dot, segments must be non-empty [a-z0-9_].
@@ -6,9 +8,28 @@ typedef AbilityKey = String;
 
 // Validates strict format: "character.anim_name" or "shared.anim_name"
 // Example: "eloise.attack_1"
-typedef AnimKey = String;
-
-import '../projectiles/projectile_id.dart';
+enum AnimKey {
+  idle,
+  stun,
+  run,
+  jump,
+  fall,
+  strike,
+  backStrike,
+  parry,
+  cast,
+  ranged,
+  dash,
+  roll,
+  hit,
+  death,
+  spawn,
+  walk,
+  punch,
+  shieldBash,
+  shieldBlock,
+  throwItem,
+}
 
 bool isValidAbilityKey(AbilityKey key) {
   final RegExp validKey = RegExp(r'^[a-z0-9_]+\.[a-z0-9_]+$');
@@ -178,6 +199,7 @@ class AbilityDef {
     this.requiredTags = const {},
     this.requiresEquippedWeapon = false,
     required this.baseDamage,
+    this.baseDamageType = DamageType.physical,
   }) : assert(windupTicks >= 0 && activeTicks >= 0 && recoveryTicks >= 0, 'Ticks cannot be negative'),
        assert(cooldownTicks >= 0, 'Cooldown cannot be negative'),
        assert(staminaCost >= 0 && manaCost >= 0, 'Costs cannot be negative'),
@@ -230,6 +252,10 @@ class AbilityDef {
   /// - Thrown: Base damage of the throw.
   /// - Spell: Base damage of the spell projectile.
   final int baseDamage;
+
+  /// Base damage type (element) for this ability.
+  /// Explicitly defined (Phase 5), no inference from tags.
+  final DamageType baseDamageType;
 
   // Runtime Validation (Helper)
   bool get isValid {

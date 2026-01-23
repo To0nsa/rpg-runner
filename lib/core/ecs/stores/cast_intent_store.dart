@@ -12,7 +12,7 @@ class CastIntentDef {
     required this.dirY,
     required this.fallbackDirX,
     required this.fallbackDirY,
-    required this.damage,
+    required this.damage100,
     required this.manaCost,
     required this.projectileId,
     required this.damageType,
@@ -23,7 +23,7 @@ class CastIntentDef {
   });
 
   final SpellId spellId;
-  final double damage;
+  final int damage100;
   final double manaCost;
   final ProjectileId projectileId;
   final DamageType damageType;
@@ -50,7 +50,7 @@ class CastIntentDef {
 /// This avoids the overhead of adding/removing components every frame.
 class CastIntentStore extends SparseSet {
   final List<SpellId> spellId = <SpellId>[];
-  final List<double> damage = <double>[];
+  final List<int> damage100 = <int>[];
   final List<double> manaCost = <double>[];
   final List<ProjectileId> projectileId = <ProjectileId>[];
   final List<DamageType> damageType = <DamageType>[];
@@ -74,7 +74,7 @@ class CastIntentStore extends SparseSet {
     );
     final i = indexOf(entity);
     spellId[i] = def.spellId;
-    damage[i] = def.damage;
+    damage100[i] = def.damage100;
     manaCost[i] = def.manaCost;
     projectileId[i] = def.projectileId;
     damageType[i] = def.damageType;
@@ -91,7 +91,7 @@ class CastIntentStore extends SparseSet {
   @override
   void onDenseAdded(int denseIndex) {
     spellId.add(SpellId.iceBolt);
-    damage.add(0.0);
+    damage100.add(0);
     manaCost.add(0.0);
     projectileId.add(ProjectileId.iceBolt);
     damageType.add(DamageType.ice);
@@ -108,7 +108,7 @@ class CastIntentStore extends SparseSet {
   @override
   void onSwapRemove(int removeIndex, int lastIndex) {
     spellId[removeIndex] = spellId[lastIndex];
-    damage[removeIndex] = damage[lastIndex];
+    damage100[removeIndex] = damage100[lastIndex];
     manaCost[removeIndex] = manaCost[lastIndex];
     projectileId[removeIndex] = projectileId[lastIndex];
     damageType[removeIndex] = damageType[lastIndex];
@@ -122,7 +122,7 @@ class CastIntentStore extends SparseSet {
     tick[removeIndex] = tick[lastIndex];
 
     spellId.removeLast();
-    damage.removeLast();
+    damage100.removeLast();
     manaCost.removeLast();
     projectileId.removeLast();
     damageType.removeLast();

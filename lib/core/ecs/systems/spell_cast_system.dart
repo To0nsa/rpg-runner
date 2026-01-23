@@ -77,7 +77,7 @@ class SpellCastSystem {
         world,
         spells: spells,
         projectiles: projectiles,
-        spellId: spellId,
+        spellId: intents.spellId[ii],
         faction: faction,
         owner: caster,
         casterX: transforms.posX[ti],
@@ -89,7 +89,7 @@ class SpellCastSystem {
         fallbackDirY: intents.fallbackDirY[ii],
         // Phase 4 Overrides
         overrideProjectileId: intents.projectileId[ii],
-        overrideDamage: intents.damage[ii],
+        overrideDamage100: intents.damage100[ii],
         overrideDamageType: intents.damageType[ii],
         overrideStatusProfileId: intents.statusProfileId[ii],
       );
