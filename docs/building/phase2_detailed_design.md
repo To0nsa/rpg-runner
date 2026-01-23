@@ -1,296 +1,299 @@
-# Phase 2: Weapon Payload Refactor — Detailed Design
+# Phase 2: Weapon Payload Refactor — **Locked Spec (No Runtime Behavior Change)**
 
 ## Goal
 
-Extend `WeaponDef` and `RangedWeaponDef` so that **weapons provide the payload** (damage type, procs, stats) while **abilities own the structure** (timing, targeting, base damage, costs).
+Extend `WeaponDef` and `RangedWeaponDef` so that **weapons provide payload** (damage type, procs, passive stats, capability tags)
+while **abilities own structure** (timing, targeting, base damage, costs, cooldown).
 
-This phase **does not change runtime behavior** yet — it prepares the data model so Phase 3+ can consume it.
-
----
-
-## Current State Analysis
-
-### WeaponDef (Melee)
-```dart
-class WeaponDef {
-  final WeaponId id;
-  final DamageType damageType;          // ✓ Keep
-  final StatusProfileId statusProfileId; // → Replace with procs[]
-}
-```
-
-**Issues:**
-- No `category` (primary vs offHand).
-- No `enabledAbilityTags` to gate which abilities can use this weapon.
-- `statusProfileId` is a single enum — not extensible for multiple procs.
-
-### RangedWeaponDef (Projectile Weapons)
-```dart
-class RangedWeaponDef {
-  final RangedWeaponId id;
-  final ProjectileId projectileId;       // ✓ Keep (weapon owns projectile type)
-  final double damage;                   // ❌ Should move to AbilityDef
-  final DamageType damageType;           // ✓ Keep
-  final StatusProfileId statusProfileId; // → Replace with procs[]
-  final double staminaCost;              // ❌ Should move to AbilityDef
-  final double originOffset;             // ✓ Keep (physics)
-  final double cooldownSeconds;          // ❌ Should move to AbilityDef
-  final bool ballistic;                  // ✓ Keep (physics)
-  final double gravityScale;             // ✓ Keep (physics)
-}
-```
-
-**Issues:**
-- `damage`, `staminaCost`, `cooldownSeconds` belong in the ability, not the weapon.
-- These fields are currently read by `PlayerRangedWeaponSystem`. They need to remain for backward compat until Phase 4.
+**Hard constraint:** Phase 2 must not change runtime behavior. Existing systems continue reading legacy fields until Phase 4+.
 
 ---
 
-## Target State
+## Design Rules
 
-### WeaponDef (Phase 2)
+### R1 — Capability gating is **subset-based**
+Weapons grant **capabilities**. Abilities declare **requirements**.
+
+- Weapon: `grantedAbilityTags` (capabilities it provides)
+- Ability: `requiredTags` (capabilities it needs)
+
+**Legality:** `ability.requiredTags ⊆ equippedWeapon.grantedAbilityTags`
+
+**Safe default:** if `grantedAbilityTags` is empty, the weapon grants **nothing** (so only abilities with empty `requiredTags` are usable).
+
+> This avoids “empty means allow all”, which is unsafe and makes gating meaningless.
+
+### R2 — Projectile type stays weapon-owned (for thrown weapons)
+For projectile weapons (throwing knives/axes), the **weapon** owns:
+- `projectileId`
+- ballistic flags / gravity scale
+- origin offsets
+
+Throw abilities will later reference “use equipped projectile weapon”, not hardcode projectileId (unless explicitly designed to override).
+
+### R3 — Backward compatibility for status effects
+Current runtime uses `StatusProfileId` (single) on weapon/projectiles.
+Phase 2 introduces `procs[]` but keeps `statusProfileId` as legacy until Phase 5+.
+
+**Bridge rule (for future consumers):**
+- If `procs.isEmpty` and `statusProfileId != none`, treat it as `procs = [onHit: statusProfileId]` when building a payload.
+- Runtime systems remain unchanged in Phase 2.
+
+### R4 — Numeric domain consistency (Phase 2)
+To match the existing codebase and avoid mixed numeric domains mid-migration:
+- `WeaponStats` uses `double`
+- `WeaponProc.chance` uses `double` in range `[0.0, 1.0]`
+
+(You can move to fixed-point later in a single deliberate refactor if needed.)
+
+---
+
+## Current State (Reference)
+
+### Melee `WeaponDef` today (simplified)
+- Has `damageType`
+- Has a single `statusProfileId`
+- No category / no capability tags / no proc list / no stats
+
+### `RangedWeaponDef` today (simplified)
+- Owns `projectileId` and physics fields (keep)
+- Also owns `damage`, `staminaCost`, `cooldownSeconds` (legacy; will move to AbilityDef in Phase 4)
+
+---
+
+## Target State — Phase 2 Data Model
+
+### WeaponCategory
+```dart
+enum WeaponCategory {
+  primary,    // swords, axes, spears…
+  offHand,    // shields, daggers, torches…
+  projectile, // throwing weapons (knife, axe…)
+}
+```
+
+### WeaponStats
+Passive modifiers provided by weapon (not consumed by runtime yet in Phase 2).
+```dart
+class WeaponStats {
+  const WeaponStats({
+    this.powerBonus = 0.0,       // +% or scalar, decide later in Phase 5
+    this.critChanceBonus = 0.0,  // +0.05 = +5%
+    this.critDamageBonus = 0.0,  // +0.50 = +50%
+    this.rangeScalar = 1.0,      // 1.0 = unchanged
+  }) : assert(rangeScalar > 0.0, 'rangeScalar must be > 0');
+
+  final double powerBonus;
+  final double critChanceBonus;
+  final double critDamageBonus;
+  final double rangeScalar;
+}
+```
+
+### WeaponProc
+Phase 2 proc effect is represented via `StatusProfileId` (matches current runtime).
+```dart
+enum ProcHook { onHit, onBlock, onKill, onCrit }
+
+class WeaponProc {
+  const WeaponProc({
+    required this.hook,
+    required this.statusProfileId,
+    this.chance = 1.0, // 1.0 = 100%
+  }) : assert(chance >= 0.0 && chance <= 1.0, 'chance must be in [0..1]');
+
+  final ProcHook hook;
+  final StatusProfileId statusProfileId;
+  final double chance;
+}
+```
+
+---
+
+## WeaponDef (Melee) — Phase 2
 
 ```dart
 class WeaponDef {
   const WeaponDef({
     required this.id,
     required this.category,
-    this.enabledAbilityTags = const {},
+    this.grantedAbilityTags = const {},
     this.damageType = DamageType.physical,
-    this.statusProfileId = StatusProfileId.none, // DEPRECATED
+
+    // Legacy (kept until Phase 5)
+    this.statusProfileId = StatusProfileId.none,
+
+    // New
     this.procs = const [],
     this.stats = const WeaponStats(),
     this.isTwoHanded = false,
   });
 
   final WeaponId id;
-  
-  /// Equipment slot category.
+
+  /// Equipment slot category (primary/offHand/projectile).
   final WeaponCategory category;
-  
-  /// Ability tags this weapon enables.
-  /// Empty = no restrictions (all abilities allowed).
-  final Set<AbilityTag> enabledAbilityTags;
-  
-  /// Default damage type applied to hits.
+
+  /// Capabilities provided by this weapon.
+  /// Safe default: empty grants nothing.
+  final Set<AbilityTag> grantedAbilityTags;
+
+  /// Default damage type applied to hits (until ability overrides exist).
   final DamageType damageType;
-  
-  /// DEPRECATED: Use `procs` instead. Kept for backward compat.
+
+  /// LEGACY: single on-hit status profile, kept for current runtime.
+  /// Bridge rule: if procs empty and statusProfileId != none -> treat as [onHit: statusProfileId] for future payload builders.
   final StatusProfileId statusProfileId;
-  
-  /// Data-driven proc effects (on-hit, on-block, etc.).
+
+  /// New, extensible proc list.
   final List<WeaponProc> procs;
-  
-  /// Passive stat modifiers.
+
+  /// Passive stats (future).
   final WeaponStats stats;
-  
-  /// If true, occupies both Primary and Secondary slots.
+
+  /// If true, occupies both Primary + Secondary equipment slots.
+  /// Enforcement is equip-time validation (Phase 3/4), not runtime in Phase 2.
   final bool isTwoHanded;
 }
 ```
 
-### RangedWeaponDef (Phase 2)
+**Notes**
+- `category` is about **equipment slots**, not ability slots.
+- `grantedAbilityTags` is the weapon capability set; abilities check `requiredTags ⊆ grantedAbilityTags`.
+
+---
+
+## RangedWeaponDef (Projectile Weapons) — Phase 2
 
 ```dart
 class RangedWeaponDef {
   const RangedWeaponDef({
     required this.id,
+
+    // Weapon-owned projectile identity + physics
     required this.projectileId,
-    this.damageType = DamageType.physical,
-    this.statusProfileId = StatusProfileId.none, // DEPRECATED
-    this.procs = const [],
-    this.stats = const WeaponStats(),
-    // Physics (weapon-owned)
     this.originOffset = 0.0,
     this.ballistic = true,
     this.gravityScale = 1.0,
-    // DEPRECATED: Ability should own these
-    @Deprecated('Use AbilityDef.staminaCost') this.damage = 0.0,
-    @Deprecated('Use AbilityDef.staminaCost') this.staminaCost = 0.0,
-    @Deprecated('Use AbilityDef.cooldownTicks') this.cooldownSeconds = 0.25,
+
+    // Payload
+    this.damageType = DamageType.physical,
+
+    // Legacy (kept until Phase 5)
+    this.statusProfileId = StatusProfileId.none,
+
+    // New
+    this.procs = const [],
+    this.stats = const WeaponStats(),
+
+    // Legacy fields kept for current runtime until Phase 4
+    this.legacyDamage = 0.0,
+    this.legacyStaminaCost = 0.0,
+    this.legacyCooldownSeconds = 0.25,
   });
 
   final RangedWeaponId id;
+
+  // Weapon-owned projectile identity + physics
   final ProjectileId projectileId;
-  
-  final DamageType damageType;
-  final StatusProfileId statusProfileId; // DEPRECATED
-  final List<WeaponProc> procs;
-  final WeaponStats stats;
-  
-  // Physics (weapon-owned)
   final double originOffset;
   final bool ballistic;
   final double gravityScale;
-  
-  // DEPRECATED fields (kept for backward compat until Phase 4)
-  @Deprecated('Ability owns damage')
-  final double damage;
-  @Deprecated('Ability owns cost')
-  final double staminaCost;
-  @Deprecated('Ability owns cooldown')
-  final double cooldownSeconds;
+
+  // Payload
+  final DamageType damageType;
+
+  // Legacy single on-hit status profile (Phase 2 keeps it)
+  final StatusProfileId statusProfileId;
+
+  // New
+  final List<WeaponProc> procs;
+  final WeaponStats stats;
+
+  // Legacy runtime-owned values (Phase 4 moves these to AbilityDef)
+  @Deprecated('Phase 4: AbilityDef owns damage')
+  final double legacyDamage;
+
+  @Deprecated('Phase 4: AbilityDef owns cost')
+  final double legacyStaminaCost;
+
+  @Deprecated('Phase 4: AbilityDef owns cooldown')
+  final double legacyCooldownSeconds;
+}
+```
+
+**Why keep legacy fields?**
+`PlayerRangedWeaponSystem` currently reads weapon damage/cost/cooldown directly. Phase 2 must not change that.
+
+---
+
+## Catalog Updates (Phase 2)
+
+### WeaponCatalog (Melee)
+Populate:
+- `category`
+- `grantedAbilityTags`
+- `damageType`
+- legacy `statusProfileId` (keep)
+- optional `procs` (can be empty initially to avoid behavioral change)
+- optional `stats`
+
+### RangedWeaponCatalog
+Populate:
+- `projectileId` and physics values (existing)
+- `damageType`
+- legacy `statusProfileId`
+- legacy fields (`legacyDamage`, `legacyStaminaCost`, `legacyCooldownSeconds`) copied from current values
+- optional `procs/stats` (can be empty initially)
+
+---
+
+## Compatibility Bridge Helper (for Phase 4/5 consumers)
+
+This helper is **not used by runtime systems in Phase 2**, but gives you a single definition of “effective procs”.
+
+```dart
+List<WeaponProc> effectiveWeaponProcs({
+  required List<WeaponProc> procs,
+  required StatusProfileId legacyStatusProfileId,
+}) {
+  if (procs.isNotEmpty) return procs;
+  if (legacyStatusProfileId == StatusProfileId.none) return const [];
+  return [WeaponProc(hook: ProcHook.onHit, statusProfileId: legacyStatusProfileId, chance: 1.0)];
 }
 ```
 
 ---
 
-## New Types
+## Validation / Invariants (Meaningful Only)
 
-### WeaponCategory
-```dart
-enum WeaponCategory {
-  primary,    // Swords, axes, spears
-  offHand,    // Shields, daggers, torches
-  projectile, // Throwing weapons
-}
-```
+- `WeaponStats.rangeScalar > 0`
+- `WeaponProc.chance in [0..1]`
+- `WeaponDef.grantedAbilityTags` must not contain invalid tags (catalog validation)
+- (Optional) if `isTwoHanded == true`, enforce at equip-time that offhand slot is empty/disabled (Phase 3/4)
 
-### WeaponStats
-```dart
-class WeaponStats {
-  const WeaponStats({
-    this.powerBonus = 0,      // Fixed-point (100 = 1.0)
-    this.critChanceBonus = 0, // Fixed-point (100 = 1%)
-    this.critDamageBonus = 0, // Fixed-point (100 = 1.0x)
-    this.rangeScalar = 100,   // Fixed-point (100 = 1.0x)
-  });
-
-  final int powerBonus;
-  final int critChanceBonus;
-  final int critDamageBonus;
-  final int rangeScalar;
-}
-```
-
-### WeaponProc
-```dart
-class WeaponProc {
-  const WeaponProc({
-    required this.hook,
-    required this.statusId,
-    this.chance = 100, // Fixed-point (100 = 100%)
-  });
-
-  final ProcHook hook;
-  final StatusId statusId;
-  final int chance;
-}
-
-enum ProcHook {
-  onHit,
-  onBlock,
-  onKill,
-  onCrit,
-}
-```
+Avoid meaningless null asserts (`required` fields are non-nullable).
 
 ---
 
 ## Migration Strategy
 
 ### Phase 2 Scope (This Phase)
-1. **Add new fields** to `WeaponDef` and `RangedWeaponDef`.
-2. **Create** `WeaponCategory`, `WeaponStats`, `WeaponProc`, `ProcHook`.
-3. **Mark deprecated fields** with `@Deprecated` annotation.
-4. **Update catalogs** to populate new fields with sensible defaults.
-5. **Do NOT change system logic** — existing systems continue reading deprecated fields.
+1. Add new fields + types (`WeaponCategory`, `WeaponStats`, `WeaponProc`, `ProcHook`)
+2. Keep legacy fields intact (no runtime change)
+3. Update catalogs to provide new fields (defaults OK)
+4. Add catalog-level validation (unique IDs, sanity checks)
 
-### Phase 4 Scope (Future)
-- Refactor `PlayerRangedWeaponSystem` to read damage/cost from `AbilityDef`.
-- Remove deprecated fields from `RangedWeaponDef`.
-
----
-
-## Catalog Updates
-
-### WeaponCatalog (Melee)
-
-| ID | Category | Enabled Tags | Damage Type | Procs |
-|----|----------|--------------|-------------|-------|
-| `basicSword` | primary | `{melee, strike}` | physical | `[onHit: bleed]` |
-| `goldenSword` | primary | `{melee, strike}` | physical | `[onHit: bleed]` |
-| `basicShield` | offHand | `{melee, block}` | physical | `[onBlock: stun]` |
-| `goldenShield` | offHand | `{melee, block}` | physical | `[onBlock: stun]` |
-
-### RangedWeaponCatalog
-
-| ID | Projectile | Damage Type | Procs | Physics |
-|----|------------|-------------|-------|---------|
-| `throwingKnife` | `throwingKnife` | physical | `[]` | ballistic, 0.9g |
-| `throwingAxe` | `throwingAxe` | physical | `[]` | ballistic, 1.0g |
+### Phase 4+ Scope (Future)
+- Move ranged `legacyDamage/legacyStaminaCost/legacyCooldownSeconds` to `AbilityDef`
+- Build `HitPayload` on commit from:
+  - `AbilityDef` structure
+  - weapon `damageType`, effective procs, stats
+- Remove legacy fields after migration
 
 ---
 
-## Ability ↔ Weapon Contract
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         ON ABILITY COMMIT                           │
-├─────────────────────────────────────────────────────────────────────┤
-│ 1. Read AbilityDef from AbilityCatalog                              │
-│    - staminaCost, manaCost, cooldownTicks (ability owns)           │
-│    - hitDelivery (melee box / projectileId)                        │
-│                                                                     │
-│ 2. Read WeaponDef from WeaponCatalog (via loadout)                 │
-│    - damageType (weapon provides)                                   │
-│    - procs[] (weapon provides)                                      │
-│    - stats (weapon provides)                                        │
-│                                                                     │
-│ 3. Build HitPayload                                                 │
-│    - baseDamage = from AbilityDef (future Phase 5)                 │
-│    - damageType = from WeaponDef                                    │
-│    - procs = from WeaponDef                                         │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Validation Rules (Asserts)
-
-```dart
-// WeaponDef
-assert(category != null, 'Weapon must have a category');
-assert(damageType != null, 'Weapon must have a damage type');
-
-// WeaponProc
-assert(chance >= 0 && chance <= 100, 'Proc chance must be 0-100');
-
-// WeaponStats
-assert(rangeScalar > 0, 'Range scalar must be positive');
-```
-
----
-
-## Phase 2 Action Items
-
-1. **Create Enums:**
-   - `WeaponCategory` in `weapon_category.dart`
-   - `ProcHook` in `weapon_proc.dart`
-
-2. **Create Structs:**
-   - `WeaponStats` in `weapon_stats.dart`
-   - `WeaponProc` in `weapon_proc.dart`
-
-3. **Update WeaponDef:**
-   - Add `category`, `enabledAbilityTags`, `procs`, `stats`, `isTwoHanded`
-   - Mark `statusProfileId` as deprecated
-
-4. **Update RangedWeaponDef:**
-   - Add `procs`, `stats`
-   - Mark `damage`, `staminaCost`, `cooldownSeconds` as deprecated
-
-5. **Update Catalogs:**
-   - Populate new fields with correct values
-   - Ensure builds pass
-
-6. **Verify:**
-   - Run `dart analyze` — no errors
-   - Run tests — all pass (no behavior change)
-
----
-
-## Files to Create/Modify
+## Phase 2 Action Items (Implementation)
 
 ### New Files
 - `lib/core/weapons/weapon_category.dart`
@@ -303,13 +306,16 @@ assert(rangeScalar > 0, 'Range scalar must be positive');
 - `lib/core/weapons/weapon_catalog.dart`
 - `lib/core/weapons/ranged_weapon_catalog.dart`
 
+### Verification
+- `dart analyze` passes
+- All existing gameplay unchanged (manual smoke test)
+- Unit tests (if present) unchanged / pass
+
 ---
 
 ## Success Criteria
 
-- [ ] `WeaponDef` has `category`, `enabledAbilityTags`, `procs`, `stats`
-- [ ] `RangedWeaponDef` has `procs`, `stats`, deprecated fields annotated
-- [ ] Catalogs compile with new fields populated
-- [ ] `dart analyze` passes
-- [ ] All tests pass (no runtime behavior change)
-- [ ] Design doc approved before implementation
+- [ ] New types compile and are referenced by defs
+- [ ] Catalogs populated with `category`, `grantedAbilityTags`, `procs`, `stats`
+- [ ] Legacy fields remain and systems still use them
+- [ ] No runtime behavior changes in Phase 2

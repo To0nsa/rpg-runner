@@ -13,10 +13,10 @@ class RangedWeaponCatalog {
         return const RangedWeaponDef(
           id: RangedWeaponId.throwingAxe,
           projectileId: ProjectileId.throwingAxe,
-          damage: 18.0,
-          staminaCost: 8.0,
+          legacyDamage: 18.0,
+          legacyStaminaCost: 8.0,
           originOffset: 8.0,
-          cooldownSeconds: 0.40,
+          legacyCooldownSeconds: 0.40,
           ballistic: true,
           gravityScale: 1.0,
         );
@@ -24,10 +24,10 @@ class RangedWeaponCatalog {
         return const RangedWeaponDef(
           id: RangedWeaponId.throwingKnife,
           projectileId: ProjectileId.throwingKnife,
-          damage: 10.0,
-          staminaCost: 5.0,
+          legacyDamage: 10.0,
+          legacyStaminaCost: 5.0,
           originOffset: 6.0,
-          cooldownSeconds: 0.30,
+          legacyCooldownSeconds: 0.30,
           ballistic: true,
           gravityScale: 0.9,
         );
@@ -53,6 +53,7 @@ class RangedWeaponCatalogDerived {
   final RangedWeaponCatalog base;
 
   int cooldownTicks(RangedWeaponId id) {
-    return ticksFromSecondsCeil(base.get(id).cooldownSeconds, tickHz);
+    // ignore: deprecated_member_use_from_same_package
+    return ticksFromSecondsCeil(base.get(id).legacyCooldownSeconds, tickHz);
   }
 }

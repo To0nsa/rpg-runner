@@ -51,7 +51,8 @@ class RangedWeaponSystem {
       final weapon = weapons.base.get(weaponId);
 
       // Stamina check.
-      final staminaCost = weapon.staminaCost;
+      // ignore: deprecated_member_use_from_same_package
+      final staminaCost = weapon.legacyStaminaCost;
       int? si;
       double? nextStamina;
       if (staminaCost > 0.0) {
@@ -75,7 +76,8 @@ class RangedWeaponSystem {
         dirY: intents.dirY[ii],
         fallbackDirX: intents.fallbackDirX[ii],
         fallbackDirY: intents.fallbackDirY[ii],
-        damage: weapon.damage,
+        // ignore: deprecated_member_use_from_same_package
+        damage: weapon.legacyDamage,
         damageType: weapon.damageType,
         statusProfileId: weapon.statusProfileId,
         ballistic: weapon.ballistic,
