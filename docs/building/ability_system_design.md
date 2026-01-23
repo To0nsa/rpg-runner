@@ -102,6 +102,14 @@ Abilities are grouped into broad categories to support clear slot restrictions a
 
 > Categories are about player intent and slot compatibility, not implementation.
 
+### Mobility Abilities
+
+Mobility abilities have special rules:
+
+* **I-frames:** Dash/Roll grant invincibility frames during the Active phase.
+* **Priority:** Mobility **interrupts** any in-progress combat ability.
+* **Restriction:** Cannot activate mobility while in aiming state (must release aim first).
+
 ---
 
 ## Ability Timing Model (Player-Facing Contract)
@@ -157,6 +165,7 @@ Abilities may consume:
 * If you don’t have enough resource, the ability **does not start**.
 * Cooldown prevents re-activation until it completes.
 * Abilities should not be **free** and always gated by cooldown even if short.
+* **Cooldown feedback** must be readable by the player at all times.
 
 ---
 
@@ -219,7 +228,9 @@ Used by abilities that prioritize targets over direction.
 
 ## Input Buffering
 
-If the player presses a slot button while another ability is in **Recovery**, the input is buffered for **B ticks** and will trigger on the first valid frame.
+If the player presses a slot button while another ability is in **Recovery**, the input is buffered and will trigger on the first valid frame.
+
+**Buffer duration** is configurable. Recommended default: **8-10 ticks (~130-165ms at 60 FPS)** — forgiving for mobile without feeling sluggish.
 
 **Rules:**
 
@@ -252,7 +263,15 @@ The Bonus slot increases expression without adding new buttons.
 
 > Mobility is excluded from Bonus because having two mobility abilities would let the player move forward too quickly, breaking intended pacing.
 
+**Bonus slot has no special priority or cooldown behavior** — it follows the same rules as other slots.
+
 Optional stricter rule (future): Bonus can only equip abilities from a *subset* of other slots (Primary/Secondary/Projectile), to prevent weird loadouts.
+
+### Ability Chaining
+
+For now, **abilities do not chain** into each other. Each ability is independent and must complete (or be interrupted) before another can start.
+
+> Future: Combo abilities may enable multi-tap chaining.
 
 ### Gear-Gated Slots
 
