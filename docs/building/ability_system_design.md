@@ -37,11 +37,24 @@ An ability is a discrete action the player can equip to a slot.
 A weapon is equipment that:
 
 * **enables** a set of abilities
-* grants passive bonuses (stats, tags, resistances, damage types, effects)
-
-**Weapons do not define amount of damage.** Damage are defined by the ability.
+* grants passive bonuses (stats, tags, resistances)
 
 **Example:** equipping a one-hand sword enables *Sword Strike* and *Sword Parry*.
+
+### Weapon vs Ability: Damage Relationship
+
+**Weapons define:**
+
+* Damage type defaults (slashing/piercing/bludgeoning)
+* Effects (slow, burn, bleed, etc.)
+* Tags and passive modifiers
+
+**Abilities define:**
+
+* Base damage + scaling
+* Timing, costs, cooldown
+
+**Final damage** = ability base × weapon modifiers. Weapons shape *how* damage is dealt; abilities determine *how much*.
 
 ---
 
@@ -54,8 +67,8 @@ A character has a set of named ability slots. Slots map to input buttons.
 | Slot          | Role                              | Typical content                                          |
 | ------------- | --------------------------------- | -------------------------------------------------------- |
 | **Primary**   | Primary hand                      | strike, parry, combo                                     |
-| **Secondary** | Secondary hand (or empty for two-handed) | shield bash, shield block, off-hand parry        |
-| **Projectile**    | Projectile (spells/throwing weapons) | quick throw, heavy throw, firebolt, icebolt          |
+| **Secondary** | Secondary hand (used by two-handed) | shield bash, shield block, off-hand parry        |
+| **Projectile**    | Projectile (projectile spells/throwing weapons) | quick throw, heavy throw, firebolt, icebolt          |
 | **Mobility**  | Mobility                          | dash, roll                                               |
 | **Bonus**     | Flexible slot                     | any of Primary/Secondary/Projectile/Spell                |
 
@@ -68,7 +81,11 @@ Restrictions are determined by:
 * **Role** (Primary/Secondary/Projectile/Spell)
 * **Unlocks** (future meta progression)
 
-**Design rule:** legality is determined *when equipping* the loadout (menu time). In-run behavior assumes the equipped loadout is valid.
+**Design rules:**
+
+* Legality is determined *when equipping* the loadout (menu time). In-run behavior assumes the equipped loadout is valid.
+* **Slots are never empty.** Each slot must have a default ability equipped at all times.
+* **Two-handed weapons occupy both Primary and Secondary.** When a two-handed weapon is equipped, it provides abilities for both slots.
 
 ---
 
@@ -77,7 +94,7 @@ Restrictions are determined by:
 Abilities are grouped into broad categories to support clear slot restrictions and consistent player expectations.
 
 * **Primary hand**: ability linked to what is equipped in the primary gear slot
-* **Secondary hand**: ability linked to what is equipped in the secondary gear slot; slot may be empty if Primary is a two-handed weapon
+* **Secondary hand**: ability linked to what is equipped in the secondary gear slot; occupied by two-handed weapon if equipped
 * **Projectile**: ability linked to what is equipped in the projectile gear slot (spells or throwing weapons)
 * **Mobility**: mobility ability (dash, roll, etc)
 * **Spell**: spell ability, special ability (AoE, buffs etc)
@@ -101,9 +118,27 @@ Every ability follows a common timing language so players can learn the system. 
 
 * **Cooldown** starts at the end of recovery; must be consistent per ability.
 * **Costs** are paid at commit (default) unless explicitly designed otherwise.
-* **Cancel behavior** (future): no canceling.
 
 > The exact per-ability numbers are tuning. The model is the design contract.
+
+### Concurrency Rule
+
+**One action at a time:** The player may have at most one **combat ability** executing (Windup/Active/Recovery).
+
+Movement and jumping remain available unless explicitly locked by the ability.
+
+### Interruptions (Forced)
+
+Some events (stun, death) can forcibly end an ability mid-execution.
+
+**Design contract:**
+
+* Player **cannot voluntarily cancel** abilities.
+* Forced interruptions can occur in **any phase**.
+* If interrupted **before Active**, effects do not occur.
+* **Cost refund policy:** No refund (simple, punishing, consistent).
+* **Cooldown policy:** Cooldown starts only if the ability reached Active; otherwise no cooldown.
+* **Queued inputs do not survive** interruption.
 
 ---
 
@@ -144,6 +179,11 @@ Used by melee strikes, throws, and other directional abilities.
 
 Facing direction is the fallback when no aiming occurs.
 
+**Aiming state rules:**
+
+* While holding to aim, the character **continues to move**; aiming does not pause time.
+* If the player releases while in an invalid state (stunned/dead), the ability **does not commit** and no cost is paid.
+
 ---
 
 ### **Self-Centered**
@@ -174,6 +214,17 @@ Used by abilities that prioritize targets over direction.
 * Commit timing must be consistent per targeting model.
 * Costs and cooldowns are applied at commit.
 * Default behavior must work without holding or aiming.
+
+---
+
+## Input Buffering
+
+If the player presses a slot button while another ability is in **Recovery**, the input is buffered for **B ticks** and will trigger on the first valid frame.
+
+**Rules:**
+
+* Only **one buffered input** is stored at a time (latest press wins).
+* Buffered inputs are **cleared on forced interruption** (stun/hit) to prevent accidental actions.
 
 ---
 
