@@ -17,6 +17,21 @@ This document defines **expected behavior and constraints** (game design contrac
 
 ---
 
+## Design Contracts (Non-Negotiable)
+
+These rules drive the implementation shape and must not be violated:
+
+1.  **Slots are never empty:** Every slot (Primary, Secondary, etc.) must have a valid ability equipped.
+2.  **Targeting determines commit:** 
+    *   Tap → Commit on press.
+    *   Hold → Commit on release.
+    *   Committed-Hold → Commit on start (locked until release).
+3.  **Mobility Preemption:** Mobility actions (Dash/Jump) explicitly preempt combat actions. Input buffer handles concurrency.
+4.  **Modifier Order:** Evaluation order is always **Ability → Weapon → Passive**.
+5.  **Data Ownership:** Ability defines *structure* (timing/targeting/base damage). Weapon defines *payload* (damage type/procs).
+
+---
+
 ## Core Concepts
 
 ### Ability
@@ -25,7 +40,7 @@ An ability is a discrete action the player can equip to a slot.
 
 **Abilities define gameplay behavior:**
 
-* damage / effects
+* base damage model + ability-specific effects; weapon/passives may add modifiers/procs
 * costs (stamina/mana)
 * cooldown
 * timing windows (windup/active/recovery)
@@ -34,27 +49,44 @@ An ability is a discrete action the player can equip to a slot.
 
 ### Weapon
 
-A weapon is equipment that:
+A weapon is equipment that provides the **payload** for actions and constrains what the player can equip.
 
-* **enables** a set of abilities
-* grants passive bonuses (stats, tags, resistances)
+A weapon:
 
-**Example:** equipping a one-hand sword enables *Sword Strike* and *Sword Parry*.
+* **enables / gates** a compatible set of abilities (by tags / requirements)
+* provides **damage-type defaults** (slashing / piercing / bludgeoning, etc.)
+* grants **passive stats + tags** (e.g., power, crit, range scalar, resistances)
+* provides **effect modifiers** as **data-driven procs** applied at defined hook points (e.g., *onHit*: bleed/burn/slow)
 
-### Weapon vs Ability: Damage Relationship
+Weapons do **not** define the ability’s structure (targeting, timing windows, hitbox/projectile shape).  
+They **parameterize** the outcome via modifiers, so one ability (e.g., *Strike*) can behave consistently while producing different payloads depending on the weapon.
 
-**Weapons define:**
+**Example:** equipping a one-hand sword enables *Sword Strike* and *Sword Parry*, sets damage type to *slashing*, and may add an on-hit *bleed* proc.
 
-* Damage type defaults (slashing/piercing/bludgeoning)
-* Effects (slow, burn, bleed, etc.)
-* Tags and passive modifiers
 
-**Abilities define:**
+### Weapon vs Ability: Damage & Effects Relationship
 
-* Base damage + scaling
-* Timing, costs, cooldown
+Weapons and abilities both contribute to the final outcome, but they own **different layers** of the model.
 
-**Final damage** = ability base × weapon modifiers. Weapons shape *how* damage is dealt; abilities determine *how much*.
+**Abilities define the action (structure):**
+
+* Targeting model (tap / hold-aim / self-centered)
+* Timing windows (windup / active / recovery)
+* Hit delivery (melee hitbox shape, projectile template)
+* Costs + cooldown rules
+* Base damage model (the "core" of the move)
+
+**Weapons define the payload (modifiers):**
+
+* Damage type defaults (slashing / piercing / bludgeoning)
+* Passive stats and tags
+* **Effect modifiers** (burn, bleed, slow, etc.) expressed as **data-driven procs** applied at defined hook points (e.g., *on hit*, *on block*, *on kill*)
+
+> Design intent: the player should not need "Sword Strike (Bleed)" vs "Sword Strike (Burn)" as separate abilities.
+> The **same ability** can produce different effects depending on the equipped weapon's modifiers.
+
+**Final outcome** = ability structure + weapon payload.
+Abilities decide *how the action is executed*; weapons shape *what the hit carries*.
 
 ---
 
@@ -66,10 +98,11 @@ A character has a set of named ability slots. Slots map to input buttons.
 
 | Slot          | Role                              | Typical content                                          |
 | ------------- | --------------------------------- | -------------------------------------------------------- |
-| **Primary**   | Primary hand                      | strike, parry, combo                                     |
-| **Secondary** | Secondary hand (used by two-handed) | shield bash, shield block, off-hand parry        |
-| **Projectile**    | Projectile (projectile spells/throwing weapons) | quick throw, heavy throw, firebolt, icebolt          |
+| **Primary**   | Primary hand                      | strike, parry                                     |
+| **Secondary** | Secondary hand (used by two-handed) | shield bash, shield block       |
+| **Projectile**    | Projectile (projectile spells/throwing weapons) | quick throw, heavy throw, firebolt, icebolt, thundebolt          |
 | **Mobility**  | Mobility                          | dash, roll                                               |
+| **Jump**      | Fixed Mobility                    | jump (fixed slot, always available)                      |
 | **Bonus**     | Flexible slot                     | any of Primary/Secondary/Projectile/Spell                |
 
 ### Slot Rules
@@ -77,8 +110,8 @@ A character has a set of named ability slots. Slots map to input buttons.
 Each slot has **restrictions** that define what can be equipped.
 Restrictions are determined by:
 
-* **Character** (what the character is allowed to use)
-* **Role** (Primary/Secondary/Projectile/Spell)
+* **Slot role** (Primary/Secondary/Projectile/Mobility/Bonus)
+* **Ability tags** (Melee/Defensive/Throw/Spell/etc.)
 * **Unlocks** (future meta progression)
 
 **Design rules:**
@@ -96,7 +129,7 @@ Abilities are grouped into broad categories to support clear slot restrictions a
 * **Primary hand**: ability linked to what is equipped in the primary gear slot
 * **Secondary hand**: ability linked to what is equipped in the secondary gear slot; occupied by two-handed weapon if equipped
 * **Projectile**: ability linked to what is equipped in the projectile gear slot (spells or throwing weapons)
-* **Mobility**: mobility ability (dash, roll, etc)
+* **Mobility**: special action (dash, roll, etc) — not a combat ability
 * **Spell**: spell ability, special ability (AoE, buffs etc)
 * **Combo** (Future): multi-tap ability that chains multiple attacks (double/triple tap sequences)
 
@@ -104,11 +137,15 @@ Abilities are grouped into broad categories to support clear slot restrictions a
 
 ### Mobility Abilities
 
-Mobility abilities have special rules:
+Mobility is a **special action**, not a combat ability. It follows unique rules:
 
 * **I-frames:** Dash/Roll grant invincibility frames during the Active phase.
-* **Priority:** Mobility **interrupts** any in-progress combat ability.
+* **Preemption:** Mobility can **preempt** any in-progress combat ability. When preempted, the combat ability is canceled under **forced interruption rules**.
 * **Restriction:** Cannot activate mobility while in aiming state (must release aim first).
+* **Restriction:** Cannot activate mobility while in aiming state (must release aim first).
+* **Concurrency:** Mobility does not block combat abilities — after mobility completes, the player may immediately use a combat ability.
+
+> **Jump** is a special case: it has its own dedicated button and slot. It follows the same "special action" rules as Mobility (not a combat ability).
 
 ---
 
@@ -124,7 +161,7 @@ Every ability follows a common timing language so players can learn the system. 
 
 ### Windows & Rules
 
-* **Cooldown** starts at the end of recovery; must be consistent per ability.
+* **Cooldown** starts on **commit** (when costs are paid); must be consistent per ability.
 * **Costs** are paid at commit (default) unless explicitly designed otherwise.
 
 > The exact per-ability numbers are tuning. The model is the design contract.
@@ -145,7 +182,7 @@ Some events (stun, death) can forcibly end an ability mid-execution.
 * Forced interruptions can occur in **any phase**.
 * If interrupted **before Active**, effects do not occur.
 * **Cost refund policy:** No refund (simple, punishing, consistent).
-* **Cooldown policy:** Cooldown starts only if the ability reached Active; otherwise no cooldown.
+* **Cooldown policy:** Cooldown starts on commit (same as normal flow); interruption does not reset or cancel cooldown.
 * **Queued inputs do not survive** interruption.
 
 ---
@@ -195,6 +232,19 @@ Facing direction is the fallback when no aiming occurs.
 
 ---
 
+### **Committed Aim Hold**
+
+A stricter variant where **commit happens when the hold starts**, not on release.
+
+* **On hold start:** costs are paid and cooldown begins immediately.
+* **Locked state:** player cannot cancel, cannot use mobility, and remains locked until release.
+* **Release:** completes the action using the aimed direction.
+* **Max hold duration:** capped at **X ticks** (configurable). If cap is reached, the ability **auto-releases** using the current aimed direction.
+
+> Use for abilities where commitment is immediate and aiming is a brief adjustment window (e.g., charged attacks, precision throws).
+
+---
+
 ### **Self-Centered**
 
 Used by defensive or aura-style abilities.
@@ -223,6 +273,47 @@ Used by abilities that prioritize targets over direction.
 * Commit timing must be consistent per targeting model.
 * Costs and cooldowns are applied at commit.
 * Default behavior must work without holding or aiming.
+
+### Commit Timing (Per Targeting Model)
+
+| Targeting Model | Commit Point |
+|-----------------|--------------|
+| Tap Directional | on press |
+| Hold Directional | on release |
+| Committed Aim Hold | on hold start |
+| Self-Centered | on press |
+| Auto-Target (Future) | on press (after target resolution) |
+
+---
+
+## Hit Rules
+
+Each ability declares how it interacts with targets during the Active phase.
+
+**Hit types:**
+
+* **Single-hit:** affects the first valid target only.
+* **Multi-hit / Cleave:** affects all valid targets in the hitbox.
+
+**Design rule:** A target can be hit **at most once per Active window** unless the ability explicitly declares multi-tick hits.
+
+**Projectile behaviors** (defined per ability):
+
+* Pierce (continues through targets)
+* Chain (jumps to nearby targets)
+* Stop on first hit (default)
+
+---
+
+## Modifier Order (Determinism)
+
+On hit, modifiers are applied in a fixed order to ensure deterministic outcomes:
+
+1. **Ability modifiers** (base damage, ability-specific effects)
+2. **Weapon modifiers** (damage type, procs, stats)
+3. **Passive modifiers** (character passives, buffs)
+
+**Status stacking rules** (refresh vs stack vs max stacks) are defined per status effect.
 
 ---
 
@@ -279,8 +370,8 @@ All slots must have a default gear equipped at all times.
 
 Examples for Eloise:
 
-* Primary requires a **sword** (or two-handed weapon, which leaves Secondary empty).
-* Secondary requires a **shield** or off-hand weapon (empty if Primary is two-handed).
+* Primary requires a **weapon** (or two-handed weapon).
+* Secondary requires an **off-hand weapon** (acts as Primary if two-handed weapon equipped).
 * Projectile requires a **projectile**, either a spell or a throwing weapon.
 * Bonus does not require gear.
 
@@ -336,12 +427,14 @@ Abilities can be gated by meta progression.
 * No multi-layer talent trees.
 * No procedural ability modifiers (unless explicitly introduced later).
 
+> Non-goal refers to **run-randomized modifiers** (roguelike affixes); **equipment/ability-defined modifiers** are allowed.
+
 ---
 
 ## Acceptance Criteria (Design-Level)
 
 * A player can equip a valid loadout that maps abilities to slots.
-* In a run, each button triggers exactly one equipped ability (or does nothing if empty).
+* In a run, each button triggers exactly one equipped ability.
 * Abilities follow a shared timing language (windup/active/recovery) and feel consistent.
-* Weapons enable abilities without defining damage/effects.
+* Weapons enable abilities and provide damage-type defaults + effect modifiers; abilities define the action structure (timing/targeting/hit delivery) and base damage model.
 * Slot restrictions are clear, learnable, and enforced before the run starts.

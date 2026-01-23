@@ -229,7 +229,10 @@ class AnimTuning {
     this.castAnimSeconds = 0.40,
     this.strikeAnimSeconds = 0.36,
     this.backStrikeAnimSeconds = 0.36,
+    this.parryAnimSeconds = 0.36,
     this.rangedAnimSeconds = 0.40,
+    this.dashAnimSeconds = 0.20,
+    this.rollAnimSeconds = 0.50,
     this.deathAnimSeconds = 0.72,
     this.spawnAnimSeconds = 0.56,
   });
@@ -265,6 +268,15 @@ class AnimTuning {
                   stepTimeSecondsByKey: stepTimeSecondsByKey,
                 )
               : strikeSeconds,
+      parryAnimSeconds:
+          (frameCounts.containsKey(AnimKey.parry) ||
+                  stepTimeSecondsByKey.containsKey(AnimKey.parry))
+              ? anim_utils.secondsForKey(
+                  key: AnimKey.parry,
+                  frameCounts: frameCounts,
+                  stepTimeSecondsByKey: stepTimeSecondsByKey,
+                )
+              : strikeSeconds,
       rangedAnimSeconds:
           (frameCounts.containsKey(AnimKey.ranged) ||
                   stepTimeSecondsByKey.containsKey(AnimKey.ranged))
@@ -274,6 +286,24 @@ class AnimTuning {
                   stepTimeSecondsByKey: stepTimeSecondsByKey,
                 )
               : castSeconds,
+      dashAnimSeconds:
+          (frameCounts.containsKey(AnimKey.dash) ||
+                  stepTimeSecondsByKey.containsKey(AnimKey.dash))
+              ? anim_utils.secondsForKey(
+                  key: AnimKey.dash,
+                  frameCounts: frameCounts,
+                  stepTimeSecondsByKey: stepTimeSecondsByKey,
+                )
+              : 0.20,
+      rollAnimSeconds:
+          (frameCounts.containsKey(AnimKey.roll) ||
+                  stepTimeSecondsByKey.containsKey(AnimKey.roll))
+              ? anim_utils.secondsForKey(
+                  key: AnimKey.roll,
+                  frameCounts: frameCounts,
+                  stepTimeSecondsByKey: stepTimeSecondsByKey,
+                )
+              : 0.50,
       deathAnimSeconds: anim_utils.secondsForKey(
         key: AnimKey.death,
         frameCounts: frameCounts,
@@ -291,7 +321,10 @@ class AnimTuning {
   final double castAnimSeconds;
   final double strikeAnimSeconds;
   final double backStrikeAnimSeconds;
+  final double parryAnimSeconds;
   final double rangedAnimSeconds;
+  final double dashAnimSeconds;
+  final double rollAnimSeconds;
   final double deathAnimSeconds;
   final double spawnAnimSeconds;
 }
@@ -304,7 +337,10 @@ class AnimTuningDerived {
     required this.castAnimTicks,
     required this.strikeAnimTicks,
     required this.backStrikeAnimTicks,
+    required this.parryAnimTicks,
     required this.rangedAnimTicks,
+    required this.dashAnimTicks,
+    required this.rollAnimTicks,
     required this.deathAnimTicks,
     required this.spawnAnimTicks,
   });
@@ -321,7 +357,10 @@ class AnimTuningDerived {
       castAnimTicks: ticksFromSecondsCeil(base.castAnimSeconds, tickHz),
       strikeAnimTicks: ticksFromSecondsCeil(base.strikeAnimSeconds, tickHz),
       backStrikeAnimTicks: ticksFromSecondsCeil(base.backStrikeAnimSeconds, tickHz),
+      parryAnimTicks: ticksFromSecondsCeil(base.parryAnimSeconds, tickHz),
       rangedAnimTicks: ticksFromSecondsCeil(base.rangedAnimSeconds, tickHz),
+      dashAnimTicks: ticksFromSecondsCeil(base.dashAnimSeconds, tickHz),
+      rollAnimTicks: ticksFromSecondsCeil(base.rollAnimSeconds, tickHz),
       deathAnimTicks: ticksFromSecondsCeil(base.deathAnimSeconds, tickHz),
       spawnAnimTicks: ticksFromSecondsCeil(base.spawnAnimSeconds, tickHz),
     );
@@ -334,7 +373,10 @@ class AnimTuningDerived {
   final int castAnimTicks;
   final int strikeAnimTicks;
   final int backStrikeAnimTicks;
+  final int parryAnimTicks;
   final int rangedAnimTicks;
+  final int dashAnimTicks;
+  final int rollAnimTicks;
   final int deathAnimTicks;
   final int spawnAnimTicks;
 }

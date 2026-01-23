@@ -56,12 +56,14 @@ const double eloiseAnimParryStepSeconds = 0.06;
 const int eloiseAnimCastFrames = 5;
 const double eloiseAnimCastStepSeconds = 0.08;
 
-// Ranged weapon (throw) defaults to the cast strip until a dedicated throw strip exists.
 const int eloiseAnimRangedFrames = eloiseAnimCastFrames;
 const double eloiseAnimRangedStepSeconds = eloiseAnimCastStepSeconds;
 
 const int eloiseAnimDashFrames = 4;
 const double eloiseAnimDashStepSeconds = 0.05;
+
+const int eloiseAnimRollFrames = 10;
+const double eloiseAnimRollStepSeconds = 0.05;
 
 const int eloiseAnimHitFrames = 4;
 const double eloiseAnimHitStepSeconds = 0.10;
@@ -85,6 +87,7 @@ const Map<AnimKey, int> eloiseAnimFrameCountsByKey = <AnimKey, int>{
   AnimKey.cast: eloiseAnimCastFrames,
   AnimKey.ranged: eloiseAnimRangedFrames,
   AnimKey.dash: eloiseAnimDashFrames,
+  AnimKey.roll: eloiseAnimRollFrames,
   AnimKey.hit: eloiseAnimHitFrames,
   AnimKey.death: eloiseAnimDeathFrames,
   AnimKey.spawn: eloiseAnimSpawnFrames,
@@ -103,6 +106,7 @@ const Map<AnimKey, double> eloiseAnimStepTimeSecondsByKey = <AnimKey, double>{
   AnimKey.cast: eloiseAnimCastStepSeconds,
   AnimKey.ranged: eloiseAnimRangedStepSeconds,
   AnimKey.dash: eloiseAnimDashStepSeconds,
+  AnimKey.roll: eloiseAnimRollStepSeconds,
   AnimKey.hit: eloiseAnimHitStepSeconds,
   AnimKey.death: eloiseAnimDeathStepSeconds,
   AnimKey.spawn: eloiseAnimSpawnStepSeconds,
@@ -121,6 +125,7 @@ const Map<AnimKey, String> eloiseAnimSourcesByKey = <AnimKey, String>{
   AnimKey.cast: 'entities/player/cast.png',
   AnimKey.ranged: 'entities/player/cast.png',
   AnimKey.dash: 'entities/player/dash.png',
+  AnimKey.roll: 'entities/player/roll.png',
   AnimKey.hit: 'entities/player/hit.png',
   AnimKey.death: 'entities/player/death.png',
   AnimKey.spawn: 'entities/player/idle.png',
@@ -207,6 +212,8 @@ const PlayerTuning eloiseTuning = PlayerTuning(
         eloiseAnimBackStrikeFrames * eloiseAnimBackStrikeStepSeconds,
     parryAnimSeconds: eloiseAnimParryFrames * eloiseAnimParryStepSeconds,
     rangedAnimSeconds: eloiseAnimRangedFrames * eloiseAnimRangedStepSeconds,
+    dashAnimSeconds: eloiseAnimDashFrames * eloiseAnimDashStepSeconds,
+    rollAnimSeconds: eloiseAnimRollFrames * eloiseAnimRollStepSeconds,
     deathAnimSeconds: eloiseAnimDeathFrames * eloiseAnimDeathStepSeconds,
     spawnAnimSeconds: eloiseAnimSpawnFrames * eloiseAnimSpawnStepSeconds,
   ),

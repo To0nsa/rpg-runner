@@ -1,6 +1,6 @@
 ﻿REPO: C:\dev\rpg_runner
-COMMIT: 11f1fe02b0f1a511cb99dc71d93512e351e7d4ef
-DATE: 2026-01-22 13:40:39
+COMMIT: 3837e8fa7a927c46aac1edfff566b22c9b17cf88
+DATE: 2026-01-23 09:00:47
 
 
 ===== FILE: lib/AGENTS.md =====
@@ -15145,6 +15145,9 @@ const double eloiseAnimStrikeStepSeconds = 0.06;
 const int eloiseAnimBackStrikeFrames = 5;
 const double eloiseAnimBackStrikeStepSeconds = 0.08;
 
+const int eloiseAnimParryFrames = 6;
+const double eloiseAnimParryStepSeconds = 0.06;
+
 const int eloiseAnimCastFrames = 5;
 const double eloiseAnimCastStepSeconds = 0.08;
 
@@ -15173,6 +15176,7 @@ const Map<AnimKey, int> eloiseAnimFrameCountsByKey = <AnimKey, int>{
   AnimKey.fall: eloiseAnimFallFrames,
   AnimKey.strike: eloiseAnimStrikeFrames,
   AnimKey.backStrike: eloiseAnimBackStrikeFrames,
+  AnimKey.parry: eloiseAnimParryFrames,
   AnimKey.cast: eloiseAnimCastFrames,
   AnimKey.ranged: eloiseAnimRangedFrames,
   AnimKey.dash: eloiseAnimDashFrames,
@@ -15190,6 +15194,7 @@ const Map<AnimKey, double> eloiseAnimStepTimeSecondsByKey = <AnimKey, double>{
   AnimKey.fall: eloiseAnimFallStepSeconds,
   AnimKey.strike: eloiseAnimStrikeStepSeconds,
   AnimKey.backStrike: eloiseAnimBackStrikeStepSeconds,
+  AnimKey.parry: eloiseAnimParryStepSeconds,
   AnimKey.cast: eloiseAnimCastStepSeconds,
   AnimKey.ranged: eloiseAnimRangedStepSeconds,
   AnimKey.dash: eloiseAnimDashStepSeconds,
@@ -15207,6 +15212,7 @@ const Map<AnimKey, String> eloiseAnimSourcesByKey = <AnimKey, String>{
   AnimKey.fall: 'entities/player/fall.png',
   AnimKey.strike: 'entities/player/strike.png',
   AnimKey.backStrike: 'entities/player/back_strike.png',
+  AnimKey.parry: 'entities/player/parry.png',
   AnimKey.cast: 'entities/player/cast.png',
   AnimKey.ranged: 'entities/player/cast.png',
   AnimKey.dash: 'entities/player/dash.png',
@@ -15294,6 +15300,7 @@ const PlayerTuning eloiseTuning = PlayerTuning(
     strikeAnimSeconds: eloiseAnimStrikeFrames * eloiseAnimStrikeStepSeconds,
     backStrikeAnimSeconds:
         eloiseAnimBackStrikeFrames * eloiseAnimBackStrikeStepSeconds,
+    parryAnimSeconds: eloiseAnimParryFrames * eloiseAnimParryStepSeconds,
     rangedAnimSeconds: eloiseAnimRangedFrames * eloiseAnimRangedStepSeconds,
     deathAnimSeconds: eloiseAnimDeathFrames * eloiseAnimDeathStepSeconds,
     spawnAnimSeconds: eloiseAnimSpawnFrames * eloiseAnimSpawnStepSeconds,
@@ -17455,6 +17462,7 @@ enum AnimKey {
   dash,
   walk,
   backStrike,
+  parry,
   ranged,
 }
 
