@@ -8,9 +8,7 @@ typedef AbilityKey = String;
 // Example: "eloise.attack_1"
 typedef AnimKey = String;
 
-// Validates strict format: "type.name"
-// Example: "arrow.standard"
-typedef ProjectileId = String;
+import '../projectiles/projectile_id.dart';
 
 bool isValidAbilityKey(AbilityKey key) {
   final RegExp validKey = RegExp(r'^[a-z0-9_]+\.[a-z0-9_]+$');
@@ -179,6 +177,7 @@ class AbilityDef {
     this.tags = const {},
     this.requiredTags = const {},
     this.requiresEquippedWeapon = false,
+    required this.baseDamage,
   }) : assert(windupTicks >= 0 && activeTicks >= 0 && recoveryTicks >= 0, 'Ticks cannot be negative'),
        assert(cooldownTicks >= 0, 'Cooldown cannot be negative'),
        assert(staminaCost >= 0 && manaCost >= 0, 'Costs cannot be negative'),
@@ -224,6 +223,13 @@ class AbilityDef {
   /// If true, this ability requires *some* weapon to be equipped in its slot,
   /// even if [requiredTags] is empty.
   final bool requiresEquippedWeapon;
+
+  /// Base damage for this ability.
+  /// Fixed-point: 100 = 1.0 damage.
+  /// - Melee: Base damage of the swing.
+  /// - Thrown: Base damage of the throw.
+  /// - Spell: Base damage of the spell projectile.
+  final int baseDamage;
 
   // Runtime Validation (Helper)
   bool get isValid {

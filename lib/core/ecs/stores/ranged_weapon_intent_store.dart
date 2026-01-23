@@ -1,10 +1,21 @@
 import '../../weapons/ranged_weapon_id.dart';
+import '../../combat/damage_type.dart';
+import '../../combat/status/status.dart';
+import '../../projectiles/projectile_id.dart';
 import '../entity_id.dart';
 import '../sparse_set.dart';
 
 class RangedWeaponIntentDef {
   const RangedWeaponIntentDef({
-    required this.weaponId,
+    required this.weaponId, // Kept for debugging/legacy
+    required this.damage,
+    required this.staminaCost,
+    required this.rechargeTicks,
+    required this.projectileId,
+    required this.damageType,
+    required this.statusProfileId,
+    required this.ballistic,
+    required this.gravityScale,
     required this.dirX,
     required this.dirY,
     required this.fallbackDirX,
@@ -14,6 +25,15 @@ class RangedWeaponIntentDef {
   });
 
   final RangedWeaponId weaponId;
+  final double damage;
+  final double staminaCost;
+  final int rechargeTicks;
+  final ProjectileId projectileId;
+  final DamageType damageType;
+  final StatusProfileId statusProfileId;
+  final bool ballistic;
+  final double gravityScale;
+
   final double dirX;
   final double dirY;
   final double fallbackDirX;
@@ -31,6 +51,15 @@ class RangedWeaponIntentDef {
 /// Written by player input and consumed by `RangedWeaponSystem`.
 class RangedWeaponIntentStore extends SparseSet {
   final List<RangedWeaponId> weaponId = <RangedWeaponId>[];
+  final List<double> damage = <double>[];
+  final List<double> staminaCost = <double>[];
+  final List<int> rechargeTicks = <int>[];
+  final List<ProjectileId> projectileId = <ProjectileId>[];
+  final List<DamageType> damageType = <DamageType>[];
+  final List<StatusProfileId> statusProfileId = <StatusProfileId>[];
+  final List<bool> ballistic = <bool>[];
+  final List<double> gravityScale = <double>[];
+  
   final List<double> dirX = <double>[];
   final List<double> dirY = <double>[];
   final List<double> fallbackDirX = <double>[];
@@ -49,6 +78,15 @@ class RangedWeaponIntentStore extends SparseSet {
     );
     final i = indexOf(entity);
     weaponId[i] = def.weaponId;
+    damage[i] = def.damage;
+    staminaCost[i] = def.staminaCost;
+    rechargeTicks[i] = def.rechargeTicks;
+    projectileId[i] = def.projectileId;
+    damageType[i] = def.damageType;
+    statusProfileId[i] = def.statusProfileId;
+    ballistic[i] = def.ballistic;
+    gravityScale[i] = def.gravityScale;
+    
     dirX[i] = def.dirX;
     dirY[i] = def.dirY;
     fallbackDirX[i] = def.fallbackDirX;
@@ -60,6 +98,15 @@ class RangedWeaponIntentStore extends SparseSet {
   @override
   void onDenseAdded(int denseIndex) {
     weaponId.add(RangedWeaponId.throwingKnife);
+    damage.add(0.0);
+    staminaCost.add(0.0);
+    rechargeTicks.add(0);
+    projectileId.add(ProjectileId.throwingKnife); // Default matching weaponId
+    damageType.add(DamageType.physical);
+    statusProfileId.add(StatusProfileId.none);
+    ballistic.add(true);
+    gravityScale.add(1.0);
+    
     dirX.add(0.0);
     dirY.add(0.0);
     fallbackDirX.add(1.0);
@@ -71,6 +118,15 @@ class RangedWeaponIntentStore extends SparseSet {
   @override
   void onSwapRemove(int removeIndex, int lastIndex) {
     weaponId[removeIndex] = weaponId[lastIndex];
+    damage[removeIndex] = damage[lastIndex];
+    staminaCost[removeIndex] = staminaCost[lastIndex];
+    rechargeTicks[removeIndex] = rechargeTicks[lastIndex];
+    projectileId[removeIndex] = projectileId[lastIndex];
+    damageType[removeIndex] = damageType[lastIndex];
+    statusProfileId[removeIndex] = statusProfileId[lastIndex];
+    ballistic[removeIndex] = ballistic[lastIndex];
+    gravityScale[removeIndex] = gravityScale[lastIndex];
+    
     dirX[removeIndex] = dirX[lastIndex];
     dirY[removeIndex] = dirY[lastIndex];
     fallbackDirX[removeIndex] = fallbackDirX[lastIndex];
@@ -79,6 +135,15 @@ class RangedWeaponIntentStore extends SparseSet {
     tick[removeIndex] = tick[lastIndex];
 
     weaponId.removeLast();
+    damage.removeLast();
+    staminaCost.removeLast();
+    rechargeTicks.removeLast();
+    projectileId.removeLast();
+    damageType.removeLast();
+    statusProfileId.removeLast();
+    ballistic.removeLast();
+    gravityScale.removeLast();
+
     dirX.removeLast();
     dirY.removeLast();
     fallbackDirX.removeLast();

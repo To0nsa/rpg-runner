@@ -4,6 +4,9 @@ import '../entity_id.dart';
 import '../stores/combat/equipped_loadout_store.dart';
 import '../stores/ranged_weapon_intent_store.dart';
 import '../world.dart';
+import '../../abilities/ability_catalog.dart';
+import '../../abilities/ability_def.dart';
+import '../../projectiles/projectile_id.dart';
 import 'dart:math';
 
 /// Translates player input into a [RangedWeaponIntentDef] for the
@@ -86,10 +89,35 @@ class PlayerRangedWeaponSystem {
           dirX >= 0 ? Facing.right : Facing.left;
     }
 
+    final abilityId = world.equippedLoadout.abilityProjectileId[li];
+    final ability = AbilityCatalog.tryGet(abilityId);
+    if (ability == null) {
+      assert(false, 'Ability not found in catalog: $abilityId');
+      return;
+    }
+
+    // Determine Projectile Identity
+    // Phase 4 Rule: Spells own projectile; Thrown uses Weapon's.
+    final ProjectileId projectileId;
+    if (ability.tags.contains(AbilityTag.spell) && 
+        ability.hitDelivery is ProjectileHitDelivery) {
+       projectileId = (ability.hitDelivery as ProjectileHitDelivery).projectileId;
+    } else {
+       projectileId = weapon.projectileId;
+    }
+
     world.rangedWeaponIntent.set(
       player,
       RangedWeaponIntentDef(
         weaponId: weaponId,
+        damage: ability.baseDamage / 100.0,
+        staminaCost: ability.staminaCost / 100.0,
+        rechargeTicks: ability.cooldownTicks,
+        projectileId: projectileId,
+        damageType: weapon.damageType,
+        statusProfileId: weapon.statusProfileId,
+        ballistic: weapon.ballistic,
+        gravityScale: weapon.gravityScale,
         dirX: aimX,
         dirY: aimY,
         fallbackDirX: fallbackDirX,

@@ -135,10 +135,17 @@ class EnemyCastSystem {
     }
 
     final enemy = world.enemy.denseEntities[enemyIndex];
+    final spellDef = spells.get(spellId);
+
     world.castIntent.set(
       enemy,
       CastIntentDef(
         spellId: spellId,
+        damage: spellDef.stats.damage,
+        manaCost: spellDef.stats.manaCost,
+        projectileId: spellDef.projectileId!,
+        damageType: spellDef.stats.damageType,
+        statusProfileId: spellDef.stats.statusProfileId,
         dirX: targetX - enemyCenterX,
         dirY: targetY - enemyCenterY,
         fallbackDirX: 1.0,

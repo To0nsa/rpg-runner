@@ -48,11 +48,10 @@ class RangedWeaponSystem {
       final faction = factions.faction[fi];
 
       final weaponId = intents.weaponId[ii];
-      final weapon = weapons.base.get(weaponId);
+      // final weapon = weapons.base.get(weaponId); // PHASE 4: Bypass Catalog
 
       // Stamina check.
-      // ignore: deprecated_member_use_from_same_package
-      final staminaCost = weapon.legacyStaminaCost;
+      final staminaCost = intents.staminaCost[ii];
       int? si;
       double? nextStamina;
       if (staminaCost > 0.0) {
@@ -66,7 +65,7 @@ class RangedWeaponSystem {
       spawnRangedWeaponProjectileFromCaster(
         world,
         projectiles: projectiles,
-        projectileId: weapon.projectileId,
+        projectileId: intents.projectileId[ii], // Phase 4
         faction: faction,
         owner: caster,
         casterX: transforms.posX[ti],
@@ -76,12 +75,11 @@ class RangedWeaponSystem {
         dirY: intents.dirY[ii],
         fallbackDirX: intents.fallbackDirX[ii],
         fallbackDirY: intents.fallbackDirY[ii],
-        // ignore: deprecated_member_use_from_same_package
-        damage: weapon.legacyDamage,
-        damageType: weapon.damageType,
-        statusProfileId: weapon.statusProfileId,
-        ballistic: weapon.ballistic,
-        gravityScale: weapon.gravityScale,
+        damage: intents.damage[ii], // Phase 4
+        damageType: intents.damageType[ii], // Phase 4
+        statusProfileId: intents.statusProfileId[ii], // Phase 4
+        ballistic: intents.ballistic[ii], // Phase 4
+        gravityScale: intents.gravityScale[ii], // Phase 4
       );
 
       // Apply stamina cost.
@@ -89,8 +87,7 @@ class RangedWeaponSystem {
         staminas.stamina[si] =
             clampDouble(nextStamina!, 0.0, staminas.staminaMax[si]);
       }
-      cooldowns.rangedWeaponCooldownTicksLeft[ci] =
-          weapons.cooldownTicks(weaponId);
+      cooldowns.rangedWeaponCooldownTicksLeft[ci] = intents.rechargeTicks[ii];
     }
   }
 }

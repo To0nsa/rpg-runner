@@ -24,6 +24,7 @@ class AbilityCatalog {
       interruptPriority: InterruptPriority.combat,
       animKey: 'punch',
       tags: {AbilityTag.melee, AbilityTag.light},
+      baseDamage: 1500, // Fallback melee damage
     ),
 
     // ------------------------------------------------------------------------
@@ -47,6 +48,7 @@ class AbilityCatalog {
       animKey: 'strike',
       tags: {AbilityTag.melee, AbilityTag.physical},
       requiredTags: {AbilityTag.melee, AbilityTag.physical},
+      baseDamage: 1500, // PlayerTuning meleeDamage 15.0
     ),
 
     'eloise.sword_parry': AbilityDef(
@@ -63,6 +65,7 @@ class AbilityCatalog {
       animKey: 'parry',
       tags: {AbilityTag.melee, AbilityTag.physical, AbilityTag.opener},
       requiredTags: {AbilityTag.melee, AbilityTag.physical},
+      baseDamage: 0,
     ),
 
     // ------------------------------------------------------------------------
@@ -84,6 +87,7 @@ class AbilityCatalog {
       animKey: 'shield_bash',
       tags: {AbilityTag.melee, AbilityTag.physical, AbilityTag.heavy},
       requiredTags: {AbilityTag.melee, AbilityTag.heavy},
+      baseDamage: 1500, // Assuming standardized melee damage
     ),
 
     'eloise.shield_block': AbilityDef(
@@ -99,6 +103,7 @@ class AbilityCatalog {
       animKey: 'shield_block',
       tags: {AbilityTag.buff, AbilityTag.physical},
       requiredTags: {AbilityTag.buff},
+      baseDamage: 0,
     ),
 
     // ------------------------------------------------------------------------
@@ -122,6 +127,7 @@ class AbilityCatalog {
       animKey: 'throw',
       tags: {AbilityTag.projectile, AbilityTag.physical},
       requiredTags: {AbilityTag.projectile},
+      baseDamage: 1000, // RangedWeaponCatalog.throwingKnife legacyDamage 10.0
     ),
 
     'eloise.ice_bolt': AbilityDef(
@@ -140,6 +146,7 @@ class AbilityCatalog {
       interruptPriority: InterruptPriority.combat,
       animKey: 'cast',
       tags: {AbilityTag.projectile, AbilityTag.ice},
+      baseDamage: 1500, // SpellCatalog.iceBolt damage 15.0
     ),
 
     'eloise.fire_bolt': AbilityDef(
@@ -157,6 +164,7 @@ class AbilityCatalog {
       interruptPriority: InterruptPriority.combat,
       animKey: 'cast',
       tags: {AbilityTag.projectile, AbilityTag.fire},
+      baseDamage: 1800, // SpellCatalog.fireBolt damage 18.0
     ),
 
     'eloise.thunder_bolt': AbilityDef(
@@ -174,6 +182,7 @@ class AbilityCatalog {
       interruptPriority: InterruptPriority.combat,
       animKey: 'cast',
       tags: {AbilityTag.projectile, AbilityTag.lightning},
+      baseDamage: 500, // SpellCatalog.thunderBolt damage 5.0
     ),
 
     // ------------------------------------------------------------------------
@@ -195,6 +204,7 @@ class AbilityCatalog {
       canBeInterruptedBy: {}, 
       animKey: 'dash',
       tags: {AbilityTag.light, AbilityTag.buff},
+      baseDamage: 0,
     ),
 
     'eloise.roll': AbilityDef(
@@ -211,6 +221,7 @@ class AbilityCatalog {
       interruptPriority: InterruptPriority.mobility,
       animKey: 'roll',
       tags: {AbilityTag.light, AbilityTag.buff},
+      baseDamage: 0,
     ),
   };
 

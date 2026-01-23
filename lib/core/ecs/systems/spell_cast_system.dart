@@ -61,12 +61,11 @@ class SpellCastSystem {
       final mi = manas.tryIndexOf(caster);
       if (mi == null) continue;
 
-      // Check Mana Cost.
-      final spellId = intents.spellId[ii];
-      final def = spells.get(spellId);
+      // Check Mana Cost (Phase 4: from Intent)
       final currentMana = manas.mana[mi];
+      final manaCost = intents.manaCost[ii];
       
-      if (currentMana < def.stats.manaCost) continue;
+      if (currentMana < manaCost) continue;
 
       // Faction is optional generally, but required for projectile ownership usually.
       final fi = factions.tryIndexOf(caster);
@@ -88,13 +87,18 @@ class SpellCastSystem {
         dirY: intents.dirY[ii],
         fallbackDirX: intents.fallbackDirX[ii],
         fallbackDirY: intents.fallbackDirY[ii],
+        // Phase 4 Overrides
+        overrideProjectileId: intents.projectileId[ii],
+        overrideDamage: intents.damage[ii],
+        overrideDamageType: intents.damageType[ii],
+        overrideStatusProfileId: intents.statusProfileId[ii],
       );
 
       // Only apply costs if the spell actually did something (spawned).
       if (spawned == null) continue;
 
       manas.mana[mi] = clampDouble(
-        currentMana - def.stats.manaCost,
+        currentMana - manaCost,
         0.0,
         manas.manaMax[mi],
       );

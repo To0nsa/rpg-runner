@@ -117,6 +117,9 @@ lib/core/game_core.dart
 lib/core/levels/level_definition.dart
 lib/core/levels/level_id.dart
 lib/core/levels/level_registry.dart
+lib/core/loadout/loadout_issue.dart
+lib/core/loadout/loadout_validation_result.dart
+lib/core/loadout/loadout_validator.dart
 lib/core/navigation/surface_extractor.dart
 lib/core/navigation/surface_graph_builder.dart
 lib/core/navigation/surface_navigator.dart

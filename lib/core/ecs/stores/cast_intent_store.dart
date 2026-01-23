@@ -1,3 +1,6 @@
+import '../../combat/damage_type.dart';
+import '../../combat/status/status.dart';
+import '../../projectiles/projectile_id.dart';
 import '../../spells/spell_id.dart';
 import '../entity_id.dart';
 import '../sparse_set.dart';
@@ -9,12 +12,22 @@ class CastIntentDef {
     required this.dirY,
     required this.fallbackDirX,
     required this.fallbackDirY,
+    required this.damage,
+    required this.manaCost,
+    required this.projectileId,
+    required this.damageType,
+    required this.statusProfileId,
     required this.originOffset,
     required this.cooldownTicks,
     required this.tick,
   });
 
   final SpellId spellId;
+  final double damage;
+  final double manaCost;
+  final ProjectileId projectileId;
+  final DamageType damageType;
+  final StatusProfileId statusProfileId;
   final double dirX;
   final double dirY;
   final double fallbackDirX;
@@ -37,6 +50,11 @@ class CastIntentDef {
 /// This avoids the overhead of adding/removing components every frame.
 class CastIntentStore extends SparseSet {
   final List<SpellId> spellId = <SpellId>[];
+  final List<double> damage = <double>[];
+  final List<double> manaCost = <double>[];
+  final List<ProjectileId> projectileId = <ProjectileId>[];
+  final List<DamageType> damageType = <DamageType>[];
+  final List<StatusProfileId> statusProfileId = <StatusProfileId>[];
   final List<double> dirX = <double>[];
   final List<double> dirY = <double>[];
   final List<double> fallbackDirX = <double>[];
@@ -56,6 +74,11 @@ class CastIntentStore extends SparseSet {
     );
     final i = indexOf(entity);
     spellId[i] = def.spellId;
+    damage[i] = def.damage;
+    manaCost[i] = def.manaCost;
+    projectileId[i] = def.projectileId;
+    damageType[i] = def.damageType;
+    statusProfileId[i] = def.statusProfileId;
     dirX[i] = def.dirX;
     dirY[i] = def.dirY;
     fallbackDirX[i] = def.fallbackDirX;
@@ -68,6 +91,11 @@ class CastIntentStore extends SparseSet {
   @override
   void onDenseAdded(int denseIndex) {
     spellId.add(SpellId.iceBolt);
+    damage.add(0.0);
+    manaCost.add(0.0);
+    projectileId.add(ProjectileId.iceBolt);
+    damageType.add(DamageType.ice);
+    statusProfileId.add(StatusProfileId.none);
     dirX.add(0.0);
     dirY.add(0.0);
     fallbackDirX.add(1.0);
@@ -80,6 +108,11 @@ class CastIntentStore extends SparseSet {
   @override
   void onSwapRemove(int removeIndex, int lastIndex) {
     spellId[removeIndex] = spellId[lastIndex];
+    damage[removeIndex] = damage[lastIndex];
+    manaCost[removeIndex] = manaCost[lastIndex];
+    projectileId[removeIndex] = projectileId[lastIndex];
+    damageType[removeIndex] = damageType[lastIndex];
+    statusProfileId[removeIndex] = statusProfileId[lastIndex];
     dirX[removeIndex] = dirX[lastIndex];
     dirY[removeIndex] = dirY[lastIndex];
     fallbackDirX[removeIndex] = fallbackDirX[lastIndex];
@@ -89,6 +122,11 @@ class CastIntentStore extends SparseSet {
     tick[removeIndex] = tick[lastIndex];
 
     spellId.removeLast();
+    damage.removeLast();
+    manaCost.removeLast();
+    projectileId.removeLast();
+    damageType.removeLast();
+    statusProfileId.removeLast();
     dirX.removeLast();
     dirY.removeLast();
     fallbackDirX.removeLast();

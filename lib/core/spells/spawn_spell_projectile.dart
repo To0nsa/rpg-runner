@@ -133,10 +133,15 @@ EntityId? spawnSpellProjectileFromCaster(
   required double dirY,
   required double fallbackDirX,
   required double fallbackDirY,
+  // Overrides (Phase 4)
+  ProjectileId? overrideProjectileId,
+  double? overrideDamage,
+  DamageType? overrideDamageType,
+  StatusProfileId? overrideStatusProfileId,
 }) {
   // Bail early if spell doesn't spawn a projectile.
   final spell = spells.get(spellId);
-  final projectileId = spell.projectileId;
+  final projectileId = overrideProjectileId ?? spell.projectileId;
   if (projectileId == null) return null;
 
   // Normalize aim; use fallback (e.g. facing) if aim is zero.
@@ -163,10 +168,11 @@ EntityId? spawnSpellProjectileFromCaster(
     dirX: dir.x,
     dirY: dir.y,
     speedUnitsPerSecond: projectiles.base.get(projectileId).speedUnitsPerSecond,
-    damage: spell.stats.damage,
-    damageType: spell.stats.damageType,
-    statusProfileId: spell.stats.statusProfileId,
+    damage: overrideDamage ?? spell.stats.damage,
+    damageType: overrideDamageType ?? spell.stats.damageType,
+    statusProfileId: overrideStatusProfileId ?? spell.stats.statusProfileId,
   );
+
 }
 
 /// Spawns a spell projectile at an explicit origin position.

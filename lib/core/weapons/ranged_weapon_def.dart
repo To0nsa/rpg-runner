@@ -51,12 +51,12 @@ class RangedWeaponDef {
   final WeaponStats stats;
 
   // Legacy runtime-owned values (Phase 4 moves these to AbilityDef)
-  @Deprecated('Phase 4: AbilityDef owns damage')
+  @Deprecated('Phase 4: Use AbilityDef.baseDamage')
   final double legacyDamage;
 
-  @Deprecated('Phase 4: AbilityDef owns cost')
+  @Deprecated('Phase 4: Use AbilityDef.staminaCost')
   final double legacyStaminaCost;
 
-  @Deprecated('Phase 4: AbilityDef owns cooldown')
+  @Deprecated('Phase 4: Use AbilityDef.cooldownTicks')
   final double legacyCooldownSeconds;
 }

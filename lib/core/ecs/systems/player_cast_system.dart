@@ -4,6 +4,11 @@ import '../entity_id.dart';
 import '../stores/combat/equipped_loadout_store.dart';
 import '../stores/cast_intent_store.dart';
 import '../world.dart';
+import '../../abilities/ability_catalog.dart';
+import '../../abilities/ability_def.dart';
+import '../../projectiles/projectile_id.dart';
+import '../../combat/damage_type.dart';
+import '../../combat/status/status.dart';
 
 /// Translates player input into a [CastIntentDef] for the [SpellCastSystem].
 ///
@@ -98,17 +103,55 @@ class PlayerCastSystem {
 
     // IMPORTANT: PlayerCastSystem writes intent only; execution happens in
     // `SpellCastSystem` which owns mana/cooldown rules and projectile spawning.
+    // Use Ability ID from Loadout (Phase 4 requirement) (assumes mapped to spell/projectile slot)
+    // Fallback: use legacy spellId to lookup ability? No, we need AbilityDef.
+    // We'll use `abilityProjectileId` if it's a spell.
+    final abilityId = world.equippedLoadout.abilityProjectileId[li];
+    final ability = AbilityCatalog.tryGet(abilityId);
+    
+    if (ability == null) {
+      assert(false, 'Ability not found: $abilityId');
+      return;
+    }
+
+    // Resolve Payload from Ability Structure (Spells own their nature)
+    var damageType = DamageType.physical;
+    var status = StatusProfileId.none;
+
+    if (ability.tags.contains(AbilityTag.fire)) {
+      damageType = DamageType.fire;
+      status = StatusProfileId.fireBolt; // Heuristic
+    } else if (ability.tags.contains(AbilityTag.ice)) {
+      damageType = DamageType.ice;
+      status = StatusProfileId.iceBolt; // Heuristic
+    } else if (ability.tags.contains(AbilityTag.lightning)) {
+      damageType = DamageType.thunder; // Assuming 'thunder' matches 'lightning' tag
+    }
+
+    // Resolve Projectile ID
+    ProjectileId projectileId;
+    if (ability.hitDelivery is ProjectileHitDelivery) {
+      projectileId = (ability.hitDelivery as ProjectileHitDelivery).projectileId;
+    } else {
+      projectileId = ProjectileId.iceBolt; // Fallback? Or Assert?
+    }
+
     world.castIntent.set(
       player,
       CastIntentDef(
-        spellId: spellId,
+        spellId: spellId, // Legacy
+        damage: ability.baseDamage / 100.0,
+        manaCost: ability.manaCost / 100.0,
+        projectileId: projectileId,
+        damageType: damageType,
+        statusProfileId: status,
+        originOffset: spawnOffset,
+        cooldownTicks: ability.cooldownTicks,
+        tick: currentTick,
         dirX: rawAimX,
         dirY: rawAimY,
         fallbackDirX: fallbackDirX,
         fallbackDirY: 0.0,
-        originOffset: spawnOffset,
-        cooldownTicks: abilities.castCooldownTicks,
-        tick: currentTick,
       ),
     );
     world.actionAnim.lastCastTick[actionAnimIndex] = currentTick;
