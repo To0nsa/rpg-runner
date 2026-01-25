@@ -1,7 +1,7 @@
 /// Stable identifiers for melee weapons.
 ///
 /// These IDs are intended to be deterministic and allocation-light, similar to
-/// [SpellId] for casting.
+/// projectile item IDs used for the projectile slot.
 enum WeaponId {
   /// Default starter weapon.
   basicSword,
@@ -9,4 +9,3 @@ enum WeaponId {
   goldenSword,
   goldenShield,
 }
-

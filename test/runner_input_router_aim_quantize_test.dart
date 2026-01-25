@@ -10,6 +10,8 @@ import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
+import 'package:rpg_runner/core/abilities/ability_catalog.dart';
+import 'package:rpg_runner/core/util/tick_math.dart';
 import 'package:rpg_runner/game/game_controller.dart';
 import 'package:rpg_runner/game/input/runner_input_router.dart';
 
@@ -38,14 +40,19 @@ void main() {
     const rawX = 0.123456;
     const rawY = 0.234567;
     input.setProjectileAimDir(rawX, rawY);
-    input.pressCastWithAim();
+    input.pressProjectileWithAim();
 
-    input.pumpHeldInputs();
-    controller.advanceFrame(1.0 / controller.tickHz); // tick 1: cast spawns
-    input.pumpHeldInputs();
-    controller.advanceFrame(
-      1.0 / controller.tickHz,
-    ); // tick 2: projectile moves
+    final dt = 1.0 / controller.tickHz;
+    final windupTicks = ticksFromSecondsCeil(
+      AbilityCatalog.tryGet('eloise.ice_bolt')!.windupTicks / 60.0,
+      controller.tickHz,
+    );
+
+    // Advance to spawn tick, then one more for movement.
+    for (var i = 0; i < windupTicks + 2; i += 1) {
+      input.pumpHeldInputs();
+      controller.advanceFrame(dt);
+    }
 
     final snapshot = core.buildSnapshot();
     final projectiles = snapshot.entities

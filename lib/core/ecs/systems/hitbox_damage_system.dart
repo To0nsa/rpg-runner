@@ -108,9 +108,10 @@ class HitboxDamageSystem {
         queueDamage(
           DamageRequest(
             target: target,
-            amount: hitboxes.damage[hi],
+            amount100: hitboxes.damage100[hi],
             damageType: hitboxes.damageType[hi],
             statusProfileId: hitboxes.statusProfileId[hi],
+            procs: hitboxes.procs[hi],
             source: owner,
             sourceKind: DeathSourceKind.meleeHitbox,
             sourceEnemyId: enemyId,

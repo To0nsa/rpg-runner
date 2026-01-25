@@ -45,6 +45,7 @@ enum AbilitySlot {
   projectile, // Button C (Cast/Throw)
   mobility,   // Button D (Dash)
   bonus,      // Button E (Any)
+  jump,       // Fixed slot (reserved)
 }
 ```
 
@@ -300,4 +301,3 @@ So “default kit” is just equipping those keys on spawn.
    - Convert tuning doubles -> fixed-point ints at load/build time
 4. **Update Loadout:**
    - Swap loadout fields from `AbilityId` to `AbilityKey`
-

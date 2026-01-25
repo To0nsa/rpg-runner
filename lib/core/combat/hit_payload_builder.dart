@@ -17,7 +17,7 @@ class HitPayloadBuilder {
   static HitPayload build({
     required AbilityDef ability,
     required EntityId source,
-    // Modifiers (extracted from WeaponDef or RangedWeaponDef or Buffs)
+    // Modifiers (extracted from WeaponDef or ProjectileItemDef or Buffs)
     WeaponStats? weaponStats,
     DamageType? weaponDamageType,
     List<WeaponProc> weaponProcs = const [],

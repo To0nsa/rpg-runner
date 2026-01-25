@@ -72,7 +72,7 @@ class EnemyDeathStateSystem {
 
       final hi = health.tryIndexOf(e);
       if (hi == null) continue;
-      if (health.hp[hi] > 0.0) continue;
+      if (health.hp[hi] > 0) continue;
 
       final archetype = _enemyCatalog.get(enemies.enemyId[ei]);
       final deathTicks = _deathAnimTicksById[enemies.enemyId[ei]] ?? 0;

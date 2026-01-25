@@ -10,9 +10,7 @@ This document describes the Core combat primitives and how to extend them.
 
 - `DamageType`: Categories for resistance/vulnerability (physical, fire, ice, thunder, bleed)
 - `WeaponId`: Stable IDs for melee weapons
-- `RangedWeaponId`: Stable IDs for ranged/thrown weapons
-- `AmmoType`: Ammo categories for ranged weapons
-- `SpellId`: Stable IDs for spells (iceBolt, thunderBolt, fireBolt)
+- `ProjectileItemId`: Stable IDs for projectile slot items (spells, throws)
 - `ProjectileId`: Stable IDs for projectile types
 - `Faction`: Entity faction for friendly-fire rules
 
@@ -26,10 +24,8 @@ This document describes the Core combat primitives and how to extend them.
 
 ### Definitions
 
-- `WeaponDef`: Melee weapon stats (damageType, statusProfileId)
-- `RangedWeaponDef`: Ranged weapon stats (damage, ammo cost, cooldown)
-- `SpellDef`: Spell properties (stats, projectileId)
-- `ProjectileSpellStats`: Combat stats (manaCost, damage, damageType, statusProfileId)
+- `WeaponDef`: Melee/off-hand weapon payload (damageType, statusProfileId, procs, stats, weaponType)
+- `ProjectileItemDef`: Projectile slot item payload (spells + throws: projectileId, ballistic, gravityScale, damageType, statusProfileId, procs, stats, weaponType)
 
 ## Stores (ECS Components)
 
@@ -57,10 +53,7 @@ This document describes the Core combat primitives and how to extend them.
 
 | Store | Purpose |
 |-------|---------|
-| `EquippedWeaponStore` | Per-entity melee weapon selection |
-| `EquippedRangedWeaponStore` | Per-entity ranged weapon selection |
-| `EquippedSpellStore` | Per-entity spell selection |
-| `AmmoStore` | Per-entity ammo pools for ranged weapons |
+| `EquippedLoadoutStore` | Per-entity loadout (weapons, projectile item, ability IDs, slot masks) |
 
 ### Other
 
@@ -84,14 +77,15 @@ This document describes the Core combat primitives and how to extend them.
 ```dart
 DamageRequest {
   target: EntityId,
-  amount: double,
+  amount100: int,
   damageType: DamageType,
   statusProfileId: StatusProfileId,
+  procs: List<WeaponProc>,
   source: EntityId?,
   sourceKind: DeathSourceKind,
   sourceEnemyId: EnemyId?,
   sourceProjectileId: ProjectileId?,
-  sourceSpellId: SpellId?,
+  sourceProjectileItemId: ProjectileItemId?,
 }
 ```
 
@@ -134,57 +128,30 @@ Where `resistanceMod` is looked up from `DamageResistanceStore` by `DamageType`:
   - Check `StatusImmunityStore` → skip if immune
   - Apply magnitude scaling if `scaleByDamageType` (uses resistance mod)
   - Add/refresh appropriate store (burn, bleed, slow)
-- For Stun: Adds lock to `ControlLockStore` and clears active intents (Cast, Melee, Ranged, Dash)
+- For Stun: Adds lock to `ControlLockStore` and clears active intents (Melee, Projectile, Dash)
 - Refreshes `StatModifierStore` (e.g., move speed from slow)
 
-## Spell System
+## Projectile Items (Spells + Throws)
 
-### SpellDef Structure
-
-```dart
-SpellDef {
-  stats: ProjectileSpellStats {
-    manaCost: double,
-    damage: double,
-    damageType: DamageType,
-    statusProfileId: StatusProfileId,
-  },
-  projectileId: ProjectileId?,
-}
-```
-
-### Spell Catalog
-
-| SpellId | Damage Type | Status Profile | Mana Cost |
-|---------|-------------|----------------|-----------|
-| `iceBolt` | ice | iceBolt (slow) | 10 |
-| `fireBolt` | fire | fireBolt (burn) | 12 |
-| `thunderBolt` | thunder | none | 10 |
-
-### Spell Flow
-
-1. Player casts spell → `EquippedSpellStore` lookup
-2. Check mana cost vs `ManaStore`
-3. Spawn projectile with `SpellDef` combat stats
-4. Projectile hits target → `DamageRequest` with spell metadata
-5. `DamageSystem` processes → applies damage + queues status
-
-## Ranged / Thrown Weapons (Not Spells)
-
-Ranged weapons are intentionally separate from spells:
-
-- **Costs**: Stamina + ammo (no mana, no `SpellId`)
-- **Output**: Weapon projectiles using the same `DamageRequest` + `StatusProfileId` pipeline
-- **Ballistic**: Participate in `CollisionSystem`, despawn on first world collision
+Projectile slot items unify spells and throwing weapons under a single data
+structure (`ProjectileItemDef`) and a single execution pipeline.
 
 ### Key Pieces
 
-- **Data**: `RangedWeaponDef`/`RangedWeaponCatalog`, `AmmoType`
-- **Stores**: `EquippedRangedWeaponStore`, `AmmoStore`, `RangedWeaponIntentStore`
+- **Data**: `ProjectileItemDef`/`ProjectileItemCatalog` (payload: projectileId, damageType, procs, stats)
+- **Stores**: `EquippedLoadoutStore`, `ProjectileIntentStore`, `ProjectileItemOriginStore`
 - **Systems**:
-  - `PlayerRangedWeaponSystem` writes intents from input
-  - `RangedWeaponSystem` spawns projectiles, spends resources, sets cooldown
+  - `AbilityActivationSystem` writes `ProjectileIntentDef` from player input
+  - `ProjectileLaunchSystem` validates costs/cooldown, spawns projectiles, sets cooldowns
+  - `ProjectileHitSystem` applies `DamageRequest` with `sourceProjectileItemId`
   - `ProjectileWorldCollisionSystem` removes ballistic projectiles on collision
+
+### Projectile Flow
+
+1. Player presses projectile → `AbilityActivationSystem` resolves ability + projectile item.
+2. `ProjectileLaunchSystem` checks costs, sets `projectileCooldownTicksLeft`, spawns projectile.
+3. Projectile hits target → `DamageRequest` with `sourceProjectileItemId`.
+4. `DamageSystem` processes → applies damage + queues status/procs.
 
 ## Melee Weapons
 
@@ -193,8 +160,11 @@ Ranged weapons are intentionally separate from spells:
 ```dart
 WeaponDef {
   id: WeaponId,
+  weaponType: WeaponType,
   damageType: DamageType,
   statusProfileId: StatusProfileId,
+  procs: List<WeaponProc>,
+  stats: WeaponStats,
 }
 ```
 
@@ -213,7 +183,7 @@ We use a bitmask-based locking system to prevent actions (Stun, Move, Cast, etc.
 ### Gate Checks
 
 Systems check `isLocked(flag)` or `isStunned()` before processing:
-- `isStunned()` -> Blocks Intent Creation (Melee, Cast, Ranged) and Movement (Input, Locomotion).
+  - `isStunned()` -> Blocks Intent Creation (Melee, Projectile) and Movement (Input, Locomotion).
 
 ## Extending with a New Status
 

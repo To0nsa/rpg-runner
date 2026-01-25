@@ -41,7 +41,7 @@ class HealthDespawnSystem {
       if (world.enemy.has(e)) continue;
 
       // If health is depleted, mark for destruction.
-      if (health.hp[i] <= 0.0) {
+      if (health.hp[i] <= 0) {
         _toDespawn.add(e);
       }
     }

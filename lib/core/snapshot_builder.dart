@@ -36,11 +36,11 @@ import 'snapshots/game_state_snapshot.dart';
 import 'snapshots/player_hud_snapshot.dart';
 import 'snapshots/static_ground_gap_snapshot.dart';
 import 'snapshots/static_solid_snapshot.dart';
-import 'spells/spell_catalog.dart';
 import 'players/player_tuning.dart';
 import 'util/vec2.dart';
-import 'weapons/ranged_weapon_catalog.dart';
 import 'abilities/ability_catalog.dart';
+import 'util/fixed_math.dart';
+import 'util/tick_math.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SnapshotBuilder
@@ -65,9 +65,7 @@ class SnapshotBuilder {
   /// - [movement]: Derived movement tuning (dash cooldown ticks, etc.).
   /// - [abilities]: Derived ability tuning (melee/cast cooldown ticks).
   /// - [resources]: Resource costs (jump/dash stamina, etc.).
-  /// - [spells]: Spell catalog for querying spell stats (mana costs).
   /// - [projectiles]: Projectile catalog for collider sizes.
-  /// - [rangedWeapons]: Ranged weapon catalog (cooldowns/ammo costs).
   /// - [enemyCatalog]: Enemy catalog for render metadata (hit windows, art facing).
   SnapshotBuilder({
     required this.tickHz,
@@ -76,9 +74,7 @@ class SnapshotBuilder {
     required this.movement,
     required this.abilities,
     required this.resources,
-    required this.spells,
     required this.projectiles,
-    required this.rangedWeapons,
     required this.enemyCatalog,
   });
 
@@ -98,16 +94,10 @@ class SnapshotBuilder {
   final AbilityTuningDerived abilities;
 
   /// Resource tuning (stamina/mana costs for actions).
-  final ResourceTuning resources;
-
-  /// Spell catalog for looking up spell stats.
-  final SpellCatalog spells;
+  final ResourceTuningDerived resources;
 
   /// Projectile catalog for collider dimensions.
   final ProjectileCatalogDerived projectiles;
-
-  /// Ranged weapon catalog for cooldown totals.
-  final RangedWeaponCatalogDerived rangedWeapons;
 
   /// Enemy catalog for render metadata (art facing direction).
   final EnemyCatalog enemyCatalog;
@@ -164,32 +154,54 @@ class SnapshotBuilder {
     // ─── Read current resource values ───
     final stamina = world.stamina.stamina[si];
     final mana = world.mana.mana[mai];
-    final equippedSpellId = world.equippedLoadout.spellId[li];
-    final projectileManaCost = spells.get(equippedSpellId).stats.manaCost;
+    final loadout = world.equippedLoadout;
+    final loadoutMask = loadout.mask[li];
 
-
-    
-    // Phase 5: Ranged Affordability uses Ability Cost
-    final projectileAbilityId = world.equippedLoadout.abilityProjectileId[li];
+    final projectileAbilityId = loadout.abilityProjectileId[li];
     final projectileAbility = AbilityCatalog.tryGet(projectileAbilityId);
-    final rangedStaminaCost = projectileAbility != null ? projectileAbility.staminaCost / 100.0 : 0.0;
+    final projectileManaCost = projectileAbility?.manaCost ?? 0;
+    final projectileStaminaCost = projectileAbility?.staminaCost ?? 0;
+    final hasProjectileSlot = (loadoutMask & LoadoutSlotMask.projectile) != 0;
+
+    final mobilityAbilityId = loadout.abilityMobilityId[li];
+    final mobilityAbility = AbilityCatalog.tryGet(mobilityAbilityId);
+    final dashStaminaCost =
+        mobilityAbility?.staminaCost ?? resources.dashStaminaCost100;
+
+    final jumpAbilityId = loadout.abilityJumpId[li];
+    final jumpAbility = AbilityCatalog.tryGet(jumpAbilityId);
+    final jumpStaminaCost =
+        jumpAbility?.staminaCost ?? resources.jumpStaminaCost100;
+
+    final meleeAbilityId = loadout.abilityPrimaryId[li];
+    final meleeAbility = AbilityCatalog.tryGet(meleeAbilityId);
+    final meleeStaminaCost =
+        meleeAbility?.staminaCost ?? toFixed100(abilities.base.meleeStaminaCost);
 
     // ─── Compute affordability flags ───
     // These tell the UI whether action buttons should appear enabled.
-    final canAffordJump = stamina >= resources.jumpStaminaCost;
-    final canAffordDash = stamina >= resources.dashStaminaCost;
-    final canAffordMelee = stamina >= abilities.base.meleeStaminaCost;
-    final canAffordProjectile = mana >= projectileManaCost;
-    final canAffordRangedWeapon = stamina >= rangedStaminaCost;
+    final canAffordJump = stamina >= jumpStaminaCost;
+    final canAffordDash = stamina >= dashStaminaCost;
+    final canAffordMelee = stamina >= meleeStaminaCost;
+    final canAffordProjectile =
+        hasProjectileSlot &&
+        stamina >= projectileStaminaCost &&
+        mana >= projectileManaCost;
 
     // ─── Read cooldown timers ───
     final dashCooldownTicksLeft = world.movement.dashCooldownTicksLeft[mi];
+    final dashCooldownTicksTotal = mobilityAbility == null
+        ? movement.dashCooldownTicks
+        : _scaleAbilityTicks(mobilityAbility.cooldownTicks);
     final meleeCooldownTicksLeft = world.cooldown.meleeCooldownTicksLeft[ci];
     final projectileCooldownTicksLeft =
-        world.cooldown.castCooldownTicksLeft[ci];
-    final rangedWeaponCooldownTicksLeft =
-        world.cooldown.rangedWeaponCooldownTicksLeft[ci];
-    final rangedWeaponCooldownTicksTotal = projectileAbility?.cooldownTicks ?? 0;
+        world.cooldown.projectileCooldownTicksLeft[ci];
+    final projectileCooldownTicksTotal = projectileAbility == null
+        ? abilities.castCooldownTicks
+        : _scaleAbilityTicks(projectileAbility.cooldownTicks);
+    final meleeCooldownTicksTotal = meleeAbility == null
+        ? abilities.meleeCooldownTicks
+        : _scaleAbilityTicks(meleeAbility.cooldownTicks);
 
     // ─── Read player transform ───
     final ti = world.transform.indexOf(player);
@@ -256,25 +268,22 @@ class SnapshotBuilder {
       cameraCenterX: cameraCenterX,
       cameraCenterY: cameraCenterY,
       hud: PlayerHudSnapshot(
-        hp: world.health.hp[hi],
-        hpMax: world.health.hpMax[hi],
-        mana: mana,
-        manaMax: world.mana.manaMax[mai],
-        stamina: stamina,
-        staminaMax: world.stamina.staminaMax[si],
+        hp: fromFixed100(world.health.hp[hi]),
+        hpMax: fromFixed100(world.health.hpMax[hi]),
+        mana: fromFixed100(mana),
+        manaMax: fromFixed100(world.mana.manaMax[mai]),
+        stamina: fromFixed100(stamina),
+        staminaMax: fromFixed100(world.stamina.staminaMax[si]),
         canAffordJump: canAffordJump,
         canAffordDash: canAffordDash,
         canAffordMelee: canAffordMelee,
         canAffordProjectile: canAffordProjectile,
-        canAffordRangedWeapon: canAffordRangedWeapon,
         dashCooldownTicksLeft: dashCooldownTicksLeft,
-        dashCooldownTicksTotal: movement.dashCooldownTicks,
+        dashCooldownTicksTotal: dashCooldownTicksTotal,
         meleeCooldownTicksLeft: meleeCooldownTicksLeft,
-        meleeCooldownTicksTotal: abilities.meleeCooldownTicks,
+        meleeCooldownTicksTotal: meleeCooldownTicksTotal,
         projectileCooldownTicksLeft: projectileCooldownTicksLeft,
-        projectileCooldownTicksTotal: abilities.castCooldownTicks,
-        rangedWeaponCooldownTicksLeft: rangedWeaponCooldownTicksLeft,
-        rangedWeaponCooldownTicksTotal: rangedWeaponCooldownTicksTotal,
+        projectileCooldownTicksTotal: projectileCooldownTicksTotal,
         collectibles: collectibles,
         collectibleScore: collectibleScore,
       ),
@@ -283,6 +292,15 @@ class SnapshotBuilder {
       groundGaps: groundGaps,
     );
   }
+
+  int _scaleAbilityTicks(int ticks) {
+    if (ticks <= 0) return 0;
+    if (tickHz == _abilityTickHz) return ticks;
+    final seconds = ticks / _abilityTickHz;
+    return ticksFromSecondsCeil(seconds, tickHz);
+  }
+
+  static const int _abilityTickHz = 60;
 
   // ───────────────────────────────────────────────────────────────────────────
   // Private Entity Collectors

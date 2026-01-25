@@ -15,7 +15,7 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.onMoveAxis,
     required this.onJumpPressed,
     required this.onDashPressed,
-    required this.onCastCommitted,
+    required this.onProjectileCommitted,
     required this.onProjectileAimDir,
     required this.onProjectileAimClear,
     required this.projectileAimPreview,
@@ -29,13 +29,6 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.meleeAffordable,
     required this.meleeCooldownTicksLeft,
     required this.meleeCooldownTicksTotal,
-    required this.onRangedAimDir,
-    required this.onRangedAimClear,
-    required this.onRangedCommitted,
-    required this.rangedAimPreview,
-    required this.rangedAffordable,
-    required this.rangedCooldownTicksLeft,
-    required this.rangedCooldownTicksTotal,
     required this.jumpAffordable,
     required this.dashAffordable,
     required this.dashCooldownTicksLeft,
@@ -46,7 +39,7 @@ class RunnerControlsOverlay extends StatelessWidget {
   final ValueChanged<double> onMoveAxis;
   final VoidCallback onJumpPressed;
   final VoidCallback onDashPressed;
-  final VoidCallback onCastCommitted;
+  final VoidCallback onProjectileCommitted;
   final void Function(double x, double y) onProjectileAimDir;
   final VoidCallback onProjectileAimClear;
   final AimPreviewModel projectileAimPreview;
@@ -60,13 +53,6 @@ class RunnerControlsOverlay extends StatelessWidget {
   final bool meleeAffordable;
   final int meleeCooldownTicksLeft;
   final int meleeCooldownTicksTotal;
-  final void Function(double x, double y) onRangedAimDir;
-  final VoidCallback onRangedAimClear;
-  final VoidCallback onRangedCommitted;
-  final AimPreviewModel rangedAimPreview;
-  final bool rangedAffordable;
-  final int rangedCooldownTicksLeft;
-  final int rangedCooldownTicksTotal;
   final bool jumpAffordable;
   final bool dashAffordable;
   final int dashCooldownTicksLeft;
@@ -103,8 +89,7 @@ class RunnerControlsOverlay extends StatelessWidget {
 
     final dashOffset = polar(dashRadius, 160);
     final meleeOffset = polar(arcRadius, 200);
-    final spellOffset = polar(arcRadius, 240);
-    final throwOffset = polar(arcRadius, 280);
+    final projectileOffset = polar(arcRadius, 240);
 
     return Stack(
       children: [
@@ -138,35 +123,14 @@ class RunnerControlsOverlay extends StatelessWidget {
                 ),
         ),
         Positioned(
-          right: rightFor(throwOffset, smallDirectionalSize),
-          bottom: bottomFor(throwOffset, smallDirectionalSize),
+          right: rightFor(projectileOffset, smallDirectionalSize),
+          bottom: bottomFor(projectileOffset, smallDirectionalSize),
           child: DirectionalActionButton(
-            label: 'Throw',
-            icon: Icons.near_me,
-            onAimDir: onRangedAimDir,
-            onAimClear: onRangedAimClear,
-            onCommit: onRangedCommitted,
-            projectileAimPreview: rangedAimPreview,
-            affordable: rangedAffordable,
-            cooldownTicksLeft: rangedCooldownTicksLeft,
-            cooldownTicksTotal: rangedCooldownTicksTotal,
-            size: smallDirectionalSize,
-            deadzoneRadius: smallDeadzoneRadius,
-            backgroundColor: directional.backgroundColor,
-            foregroundColor: directional.foregroundColor,
-            labelFontSize: directional.labelFontSize,
-            labelGap: directional.labelGap,
-          ),
-        ),
-        Positioned(
-          right: rightFor(spellOffset, smallDirectionalSize),
-          bottom: bottomFor(spellOffset, smallDirectionalSize),
-          child: DirectionalActionButton(
-            label: 'Spell',
+            label: 'Projectile',
             icon: Icons.auto_awesome,
             onAimDir: onProjectileAimDir,
             onAimClear: onProjectileAimClear,
-            onCommit: onCastCommitted,
+            onCommit: onProjectileCommitted,
             projectileAimPreview: projectileAimPreview,
             affordable: projectileAffordable,
             cooldownTicksLeft: projectileCooldownTicksLeft,

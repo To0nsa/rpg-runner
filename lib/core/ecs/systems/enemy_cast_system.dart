@@ -1,38 +1,44 @@
 import 'dart:math';
 
-import 'package:rpg_runner/core/ecs/entity_id.dart';
-
+import '../../abilities/ability_catalog.dart';
+import '../../abilities/ability_def.dart';
+import '../../combat/hit_payload_builder.dart';
 import '../../enemies/enemy_catalog.dart';
 import '../../projectiles/projectile_catalog.dart';
+import '../../projectiles/projectile_item_catalog.dart';
+import '../../projectiles/projectile_item_def.dart';
+import '../../projectiles/projectile_item_id.dart';
 import '../../snapshots/enums.dart';
-import '../../spells/spell_catalog.dart';
-import '../../spells/spell_id.dart';
 import '../../tuning/flying_enemy_tuning.dart';
 import '../../util/double_math.dart';
-import '../stores/cast_intent_store.dart';
+import '../entity_id.dart';
+import '../stores/projectile_intent_store.dart';
 import '../world.dart';
 
-/// Handles enemy ranged strike decisions and writes cast intents.
+/// Handles enemy projectile strike decisions and writes projectile intents.
 class EnemyCastSystem {
   EnemyCastSystem({
     required this.unocoDemonTuning,
     required this.enemyCatalog,
-    required this.spells,
+    required this.projectileItems,
     required this.projectiles,
   });
 
   final UnocoDemonTuningDerived unocoDemonTuning;
   final EnemyCatalog enemyCatalog;
-  final SpellCatalog spells;
+  final ProjectileItemCatalog projectileItems;
   final ProjectileCatalogDerived projectiles;
 
-  /// Evaluates casts for all enemies and writes cast intents.
+  /// Evaluates casts for all enemies and writes projectile intents.
   void step(
     EcsWorld world, {
     required EntityId player,
     required int currentTick,
   }) {
     if (!world.transform.has(player)) return;
+
+    final ability = AbilityCatalog.tryGet(_enemyAbilityId);
+    if (ability == null) return;
 
     final playerTi = world.transform.indexOf(player);
     final playerX = world.transform.posX[playerTi];
@@ -55,20 +61,25 @@ class EnemyCastSystem {
       if (ti == null) continue;
 
       if (!world.cooldown.has(enemy)) continue;
-
       if (world.controlLock.isStunned(enemy, currentTick)) continue;
+      if (world.activeAbility.hasActiveAbility(enemy)) continue;
 
-      if (!world.castIntent.has(enemy)) {
+      if (!world.projectileIntent.has(enemy)) {
         assert(
           false,
-          'EnemyCastSystem requires CastIntentStore on enemies; add it at spawn time.',
+          'EnemyCastSystem requires ProjectileIntentStore on enemies; add it at spawn time.',
         );
         continue;
       }
 
       final enemyId = enemies.enemyId[ei];
-      final spellId = enemyCatalog.get(enemyId).primarySpellId;
-      if (spellId == null) continue;
+      final projectileItemId = enemyCatalog.get(enemyId).primaryProjectileItemId;
+      if (projectileItemId == null) continue;
+
+      final projectileItem = projectileItems.get(projectileItemId);
+      final projectileId = projectileItem.projectileId;
+      final projectileSpeed =
+          projectiles.base.get(projectileId).speedUnitsPerSecond;
 
       var enemyCenterX = world.transform.posX[ti];
       var enemyCenterY = world.transform.posY[ti];
@@ -78,8 +89,11 @@ class EnemyCastSystem {
         enemyCenterY += world.colliderAabb.offsetY[ai];
       }
 
-      _writeCastIntent(
+      _writeProjectileIntent(
         world,
+        ability: ability,
+        projectileItemId: projectileItemId,
+        projectileItem: projectileItem,
         enemyIndex: ei,
         enemyCenterX: enemyCenterX,
         enemyCenterY: enemyCenterY,
@@ -87,14 +101,15 @@ class EnemyCastSystem {
         playerCenterY: playerCenterY,
         playerVelX: playerVelX,
         playerVelY: playerVelY,
-        spellId: spellId,
+        projectileSpeed: projectileSpeed,
         currentTick: currentTick,
       );
     }
   }
 
-  void _writeCastIntent(
+  void _writeProjectileIntent(
     EcsWorld world, {
+    required AbilityDef ability,
     required int enemyIndex,
     required double enemyCenterX,
     required double enemyCenterY,
@@ -102,19 +117,16 @@ class EnemyCastSystem {
     required double playerCenterY,
     required double playerVelX,
     required double playerVelY,
-    required SpellId spellId,
+    required double projectileSpeed,
     required int currentTick,
+    required ProjectileItemId projectileItemId,
+    required ProjectileItemDef projectileItem,
   }) {
     final tuning = unocoDemonTuning;
 
-    final projectileId = spells.get(spellId).projectileId;
-    final projectileSpeed = projectileId == null
-        ? null
-        : projectiles.base.get(projectileId).speedUnitsPerSecond;
-
     var targetX = playerCenterX;
     var targetY = playerCenterY;
-    if (projectileSpeed != null && projectileSpeed > 0.0) {
+    if (projectileSpeed > 0.0) {
       final dx = playerCenterX - enemyCenterX;
       final dy = playerCenterY - enemyCenterY;
       final distance = sqrt(dx * dx + dy * dy);
@@ -129,31 +141,62 @@ class EnemyCastSystem {
 
     final castDirX = targetX - enemyCenterX;
     if (castDirX.abs() > 1e-6) {
-      world.enemy.facing[enemyIndex] = castDirX >= 0
-          ? Facing.right
-          : Facing.left;
+      world.enemy.facing[enemyIndex] =
+          castDirX >= 0 ? Facing.right : Facing.left;
     }
 
     final enemy = world.enemy.denseEntities[enemyIndex];
-    final spellDef = spells.get(spellId);
+    final payload = HitPayloadBuilder.build(
+      ability: ability,
+      source: enemy,
+      weaponStats: projectileItem.stats,
+      weaponDamageType: projectileItem.damageType,
+      weaponProcs: projectileItem.procs,
+    );
 
-    world.castIntent.set(
+    final windupTicks = _scaleAbilityTicks(ability.windupTicks);
+    final activeTicks = _scaleAbilityTicks(ability.activeTicks);
+    final recoveryTicks = _scaleAbilityTicks(ability.recoveryTicks);
+    final commitTick = currentTick;
+    final executeTick = commitTick + windupTicks;
+
+    world.projectileIntent.set(
       enemy,
-      CastIntentDef(
-        spellId: spellId,
-        damage100: (spellDef.stats.damage * 100).round(),
-        manaCost: spellDef.stats.manaCost,
-        projectileId: spellDef.projectileId!,
-        damageType: spellDef.stats.damageType,
-        statusProfileId: spellDef.stats.statusProfileId,
+      ProjectileIntentDef(
+        projectileItemId: projectileItemId,
+        abilityId: ability.id,
+        slot: AbilitySlot.projectile,
+        damage100: payload.damage100,
+        staminaCost100: ability.staminaCost,
+        manaCost100: ability.manaCost,
+        cooldownTicks: tuning.unocoDemonCastCooldownTicks,
+        projectileId: projectileItem.projectileId,
+        damageType: payload.damageType,
+        statusProfileId: projectileItem.statusProfileId,
+        procs: payload.procs,
+        ballistic: projectileItem.ballistic,
+        gravityScale: projectileItem.gravityScale,
         dirX: targetX - enemyCenterX,
         dirY: targetY - enemyCenterY,
         fallbackDirX: 1.0,
         fallbackDirY: 0.0,
         originOffset: tuning.base.unocoDemonCastOriginOffset,
-        cooldownTicks: tuning.unocoDemonCastCooldownTicks,
-        tick: currentTick,
+        commitTick: commitTick,
+        windupTicks: windupTicks,
+        activeTicks: activeTicks,
+        recoveryTicks: recoveryTicks,
+        tick: executeTick,
       ),
     );
   }
+
+  int _scaleAbilityTicks(int ticks) {
+    if (ticks <= 0) return 0;
+    if (unocoDemonTuning.tickHz <= 0) return ticks;
+    final seconds = ticks / _abilityTickHz;
+    return (seconds * unocoDemonTuning.tickHz).ceil();
+  }
+
+  static const int _abilityTickHz = 60;
+  static const AbilityKey _enemyAbilityId = 'common.enemy_cast';
 }

@@ -11,6 +11,8 @@ lib/core/combat/creature_tag.dart
 lib/core/combat/damage.dart
 lib/core/combat/damage_type.dart
 lib/core/combat/faction.dart
+lib/core/combat/hit_payload.dart
+lib/core/combat/hit_payload_builder.dart
 lib/core/combat/status/status.dart
 lib/core/commands/command.dart
 lib/core/contracts/render_anim_set_definition.dart

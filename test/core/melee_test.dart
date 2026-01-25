@@ -9,6 +9,9 @@ import 'package:rpg_runner/core/players/player_character_registry.dart';
 import 'package:rpg_runner/core/players/player_catalog.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
+import 'package:rpg_runner/core/abilities/ability_catalog.dart';
+import 'package:rpg_runner/core/abilities/ability_def.dart';
+import 'package:rpg_runner/core/util/tick_math.dart';
 
 import '../test_tunings.dart';
 
@@ -48,14 +51,33 @@ void main() {
     core.applyCommands(const [StrikePressedCommand(tick: 1)]);
     core.stepOneTick();
 
+    final ability = const AbilityCatalog().resolve('eloise.sword_strike');
+    final windupTicks = ticksFromSecondsCeil(
+      ability!.windupTicks / 60.0,
+      core.tickHz,
+    );
+    final activeTicks = ticksFromSecondsCeil(
+      ability.activeTicks / 60.0,
+      core.tickHz,
+    );
+    final visibleTicks = activeTicks > 0 ? activeTicks - 1 : 0;
+
+    for (var i = 0; i < windupTicks; i += 1) {
+      core.applyCommands(<Command>[]);
+      core.stepOneTick();
+    }
+
     var snapshot = core.buildSnapshot();
     var hitboxes = snapshot.entities
         .where((e) => e.kind == EntityKind.trigger)
         .toList();
     expect(hitboxes.length, 1);
-    final hitboxHalfX = abilityTuning.meleeHitboxSizeX * 0.5;
-    final hitboxHalfY = abilityTuning.meleeHitboxSizeY * 0.5;
-    final forward = (catalog.colliderMaxHalfExtent * 0.5) + max(hitboxHalfX, hitboxHalfY);
+    final hitDelivery = ability!.hitDelivery as MeleeHitDelivery;
+    final hitboxHalfX = hitDelivery.sizeX * 0.5;
+    final hitboxHalfY = hitDelivery.sizeY * 0.5;
+    final forward = (catalog.colliderMaxHalfExtent * 0.5) +
+        max(hitboxHalfX, hitboxHalfY) +
+        hitDelivery.offsetX;
     expect(hitboxes.single.pos.x, closeTo(playerX + forward, 1e-9));
     expect(hitboxes.single.pos.y, closeTo(playerY, 1e-9));
     expect(
@@ -65,10 +87,13 @@ void main() {
         1e-9,
       ),
     );
-    expect(core.playerMeleeCooldownTicksLeft, abilityDerived.meleeCooldownTicks);
+    expect(
+      core.playerMeleeCooldownTicksLeft,
+      abilityDerived.meleeCooldownTicks - windupTicks,
+    );
 
-    // Hitbox should exist for 6 ticks total (including the spawn tick).
-    for (var t = 2; t <= 5; t += 1) {
+    // Hitbox should exist for the active window (including the spawn tick).
+    for (var t = 1; t < visibleTicks; t += 1) {
       core.applyCommands(<Command>[]);
       core.stepOneTick();
       snapshot = core.buildSnapshot();
@@ -79,7 +104,7 @@ void main() {
     }
 
     core.applyCommands(<Command>[]);
-    core.stepOneTick(); // tick 6
+    core.stepOneTick(); // tick after active window
     snapshot = core.buildSnapshot();
     hitboxes = snapshot.entities
         .where((e) => e.kind == EntityKind.trigger)
@@ -121,15 +146,28 @@ void main() {
     ]);
     core.stepOneTick();
 
+    final ability = const AbilityCatalog().resolve('eloise.sword_strike')!;
+    final windupTicks = ticksFromSecondsCeil(
+      ability.windupTicks / 60.0,
+      core.tickHz,
+    );
+    for (var i = 0; i < windupTicks; i += 1) {
+      core.applyCommands(<Command>[]);
+      core.stepOneTick();
+    }
+
     final snapshot = core.buildSnapshot();
     final hitboxes = snapshot.entities
         .where((e) => e.kind == EntityKind.trigger)
         .toList();
     expect(hitboxes.length, 1);
     expect(hitboxes.single.pos.x, closeTo(playerX, 1e-9));
-    final hitboxHalfX = abilityTuning.meleeHitboxSizeX * 0.5;
-    final hitboxHalfY = abilityTuning.meleeHitboxSizeY * 0.5;
-    final forward = (catalog.colliderMaxHalfExtent * 0.5) + max(hitboxHalfX, hitboxHalfY);
+    final hitDelivery = ability.hitDelivery as MeleeHitDelivery;
+    final hitboxHalfX = hitDelivery.sizeX * 0.5;
+    final hitboxHalfY = hitDelivery.sizeY * 0.5;
+    final forward = (catalog.colliderMaxHalfExtent * 0.5) +
+        max(hitboxHalfX, hitboxHalfY) +
+        hitDelivery.offsetX;
     expect(hitboxes.single.pos.y, closeTo(playerY - forward, 1e-9));
   });
 }

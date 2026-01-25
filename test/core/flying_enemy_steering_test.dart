@@ -28,9 +28,9 @@ void main() {
       grounded: true,
       body: const BodyDef(isKinematic: true, useGravity: false),
       collider: const ColliderAabbDef(halfX: 8, halfY: 8),
-      health: const HealthDef(hp: 100, hpMax: 100, regenPerSecond: 0),
-      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond: 0),
-      stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
+      health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
     );
     final playerB = EntityFactory(worldB).createPlayer(
       posX: 300,
@@ -41,9 +41,9 @@ void main() {
       grounded: true,
       body: const BodyDef(isKinematic: true, useGravity: false),
       collider: const ColliderAabbDef(halfX: 8, halfY: 8),
-      health: const HealthDef(hp: 100, hpMax: 100, regenPerSecond: 0),
-      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond: 0),
-      stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
+      health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
     );
 
     final unocoDemonA = spawnUnocoDemon(worldA, posX: 100, posY: 120);

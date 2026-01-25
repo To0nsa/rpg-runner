@@ -1,7 +1,7 @@
 import '../../../enemies/enemy_id.dart';
 import '../../../events/game_event.dart';
 import '../../../projectiles/projectile_id.dart';
-import '../../../spells/spell_id.dart';
+import '../../../projectiles/projectile_item_id.dart';
 import '../../entity_id.dart';
 import '../../sparse_set.dart';
 
@@ -14,9 +14,10 @@ class LastDamageStore extends SparseSet {
   final List<bool> hasEnemyId = <bool>[];
   final List<ProjectileId> projectileId = <ProjectileId>[];
   final List<bool> hasProjectileId = <bool>[];
-  final List<SpellId> spellId = <SpellId>[];
-  final List<bool> hasSpellId = <bool>[];
-  final List<double> amount = <double>[];
+  final List<ProjectileItemId> projectileItemId = <ProjectileItemId>[];
+  final List<bool> hasProjectileItemId = <bool>[];
+  /// Fixed-point: 100 = 1.0
+  final List<int> amount100 = <int>[];
   final List<int> tick = <int>[];
 
   void add(EntityId entity) {
@@ -30,9 +31,9 @@ class LastDamageStore extends SparseSet {
     hasEnemyId.add(false);
     projectileId.add(ProjectileId.iceBolt);
     hasProjectileId.add(false);
-    spellId.add(SpellId.iceBolt);
-    hasSpellId.add(false);
-    amount.add(0.0);
+    projectileItemId.add(ProjectileItemId.iceBolt);
+    hasProjectileItemId.add(false);
+    amount100.add(0);
     tick.add(-1);
   }
 
@@ -43,9 +44,9 @@ class LastDamageStore extends SparseSet {
     hasEnemyId[removeIndex] = hasEnemyId[lastIndex];
     projectileId[removeIndex] = projectileId[lastIndex];
     hasProjectileId[removeIndex] = hasProjectileId[lastIndex];
-    spellId[removeIndex] = spellId[lastIndex];
-    hasSpellId[removeIndex] = hasSpellId[lastIndex];
-    amount[removeIndex] = amount[lastIndex];
+    projectileItemId[removeIndex] = projectileItemId[lastIndex];
+    hasProjectileItemId[removeIndex] = hasProjectileItemId[lastIndex];
+    amount100[removeIndex] = amount100[lastIndex];
     tick[removeIndex] = tick[lastIndex];
 
     kind.removeLast();
@@ -53,9 +54,9 @@ class LastDamageStore extends SparseSet {
     hasEnemyId.removeLast();
     projectileId.removeLast();
     hasProjectileId.removeLast();
-    spellId.removeLast();
-    hasSpellId.removeLast();
-    amount.removeLast();
+    projectileItemId.removeLast();
+    hasProjectileItemId.removeLast();
+    amount100.removeLast();
     tick.removeLast();
   }
 }

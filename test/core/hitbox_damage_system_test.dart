@@ -9,42 +9,34 @@ import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
 import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
 import 'package:rpg_runner/core/ecs/spatial/broadphase_grid.dart';
 import 'package:rpg_runner/core/ecs/spatial/grid_index_2d.dart';
+import 'package:rpg_runner/core/ecs/systems/ability_activation_system.dart';
 import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
 import 'package:rpg_runner/core/ecs/systems/hitbox_damage_system.dart';
 import 'package:rpg_runner/core/ecs/systems/hitbox_follow_owner_system.dart';
 import 'package:rpg_runner/core/ecs/systems/lifetime_system.dart';
 import 'package:rpg_runner/core/ecs/systems/melee_strike_system.dart';
-import 'package:rpg_runner/core/ecs/systems/player_melee_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
-import 'package:rpg_runner/core/players/player_tuning.dart';
 import 'package:rpg_runner/core/tuning/spatial_grid_tuning.dart';
 import 'package:rpg_runner/core/ecs/entity_factory.dart';
+import 'package:rpg_runner/core/abilities/ability_catalog.dart';
+import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
 import 'package:rpg_runner/core/weapons/weapon_catalog.dart';
 
 void main() {
   test('melee hitbox damages only once per swing', () {
-    final abilities = AbilityTuningDerived.from(
-      const AbilityTuning(
-        meleeCooldownSeconds: 0.30,
-        meleeActiveSeconds: 0.10,
-        meleeStaminaCost: 15,
-        meleeDamage: 25,
-        meleeHitboxSizeX: 32,
-        meleeHitboxSizeY: 16,
-      ),
-      tickHz: 60,
-    );
-
     final world = EcsWorld();
-    final melee = PlayerMeleeSystem(
-      abilities: abilities,
+    final activation = AbilityActivationSystem(
+      tickHz: 60,
+      inputBufferTicks: 0,
+      abilities: const AbilityCatalog(),
       weapons: const WeaponCatalog(),
+      projectileItems: const ProjectileItemCatalog(),
     );
     final meleeStrike = MeleeStrikeSystem();
     final follow = HitboxFollowOwnerSystem();
     final hitboxDamage = HitboxDamageSystem();
-    final damage = DamageSystem(invulnerabilityTicksOnHit: 0);
+    final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
     final broadphase = BroadphaseGrid(
       index: GridIndex2D(cellSize: const SpatialGridTuning().broadphaseCellSize),
     );
@@ -59,40 +51,46 @@ void main() {
       grounded: true,
       body: const BodyDef(isKinematic: true, useGravity: false),
       collider: const ColliderAabbDef(halfX: 8, halfY: 8),
-      health: const HealthDef(hp: 100, hpMax: 100, regenPerSecond: 0),
-      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond: 0),
-      stamina: const StaminaDef(stamina: 100, staminaMax: 100, regenPerSecond: 0),
+      health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(stamina: 10000, staminaMax: 10000, regenPerSecond100: 0),
     );
 
     final enemy = world.createEntity();
-    world.transform.add(enemy, posX: 120, posY: 100, velX: 0, velY: 0);
+    world.transform.add(enemy, posX: 110, posY: 100, velX: 0, velY: 0);
     world.colliderAabb.add(enemy, const ColliderAabbDef(halfX: 8, halfY: 8));
-    world.health.add(enemy, const HealthDef(hp: 100, hpMax: 100, regenPerSecond: 0));
+    world.health.add(enemy, const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0));
     world.faction.add(enemy, const FactionDef(faction: Faction.enemy));
 
     final playerInputIndex = world.playerInput.indexOf(player);
     world.playerInput.strikePressed[playerInputIndex] = true;
 
-    melee.step(world, player: player, currentTick: 1);
-    meleeStrike.step(world, currentTick: 1);
-    follow.step(world);
-    broadphase.rebuild(world);
-    hitboxDamage.step(world, damage.queue, broadphase);
-    damage.step(world, currentTick: 1);
-    lifetime.step(world);
+    // Windup for eloise.sword_strike is 8 ticks at 60Hz.
+    for (var tick = 1; tick <= 9; tick += 1) {
+      activation.step(world, player: player, currentTick: tick);
+      meleeStrike.step(world, currentTick: tick);
+      follow.step(world);
+      broadphase.rebuild(world);
+      hitboxDamage.step(world, damage.queue, broadphase);
+      damage.step(world, currentTick: tick);
+      lifetime.step(world);
+      // Clear the one-shot press after the first tick.
+      if (tick == 1) {
+        world.playerInput.strikePressed[playerInputIndex] = false;
+      }
+    }
 
-    expect(world.health.hp[world.health.indexOf(enemy)], closeTo(75.0, 1e-9));
+    expect(world.health.hp[world.health.indexOf(enemy)], equals(8500));
 
     // Next tick: still overlapping, but should not re-hit the same target.
-    world.playerInput.strikePressed[playerInputIndex] = false;
-    melee.step(world, player: player, currentTick: 2);
-    meleeStrike.step(world, currentTick: 2);
+    activation.step(world, player: player, currentTick: 10);
+    meleeStrike.step(world, currentTick: 10);
     follow.step(world);
     broadphase.rebuild(world);
     hitboxDamage.step(world, damage.queue, broadphase);
-    damage.step(world, currentTick: 2);
+    damage.step(world, currentTick: 10);
     lifetime.step(world);
 
-    expect(world.health.hp[world.health.indexOf(enemy)], closeTo(75.0, 1e-9));
+    expect(world.health.hp[world.health.indexOf(enemy)], equals(8500));
   });
 }

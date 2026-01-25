@@ -1,3 +1,4 @@
+import '../../snapshots/enums.dart';
 import '../stores/hitbox_store.dart';
 import '../stores/lifetime_store.dart';
 import '../world.dart';
@@ -29,13 +30,85 @@ class MeleeStrikeSystem {
     
     // Iterate through all intents.
     for (var ii = 0; ii < intents.denseEntities.length; ii += 1) {
-      if (intents.tick[ii] != currentTick) continue;
-
       final strikeer = intents.denseEntities[ii];
+
+      final commitTick = intents.commitTick[ii];
+      final executeTick = intents.tick[ii];
+
+      // Commit stage (costs/cooldown start).
+      if (commitTick == currentTick) {
+        // Attacker must exist physically.
+        final strikeerTi = world.transform.tryIndexOf(strikeer);
+        if (strikeerTi == null) {
+          intents.tick[ii] = -1;
+          intents.commitTick[ii] = -1;
+          continue;
+        }
+
+        // Cannot strike while stunned.
+        if (world.controlLock.isStunned(strikeer, currentTick)) {
+          intents.tick[ii] = -1;
+          intents.commitTick[ii] = -1;
+          continue;
+        }
+
+        // Attacker must respond to cooldowns.
+        final ci = world.cooldown.tryIndexOf(strikeer);
+        if (ci == null) {
+          intents.tick[ii] = -1;
+          intents.commitTick[ii] = -1;
+          continue;
+        }
+        if (world.cooldown.meleeCooldownTicksLeft[ci] > 0) {
+          intents.tick[ii] = -1;
+          intents.commitTick[ii] = -1;
+          continue;
+        }
+
+        // Stamina check.
+        final staminaCost = intents.staminaCost100[ii];
+        int? si;
+        int? nextStamina;
+        if (staminaCost > 0) {
+          si = world.stamina.tryIndexOf(strikeer);
+          if (si == null) {
+            intents.tick[ii] = -1;
+            intents.commitTick[ii] = -1;
+            continue;
+          }
+          final currentStamina = world.stamina.stamina[si];
+          if (currentStamina < staminaCost) {
+            intents.tick[ii] = -1;
+            intents.commitTick[ii] = -1;
+            continue;
+          }
+          nextStamina = currentStamina - staminaCost;
+        }
+
+        // Phase 6: Ability state starts on commit.
+        world.activeAbility.set(
+          strikeer,
+          id: intents.abilityId[ii],
+          slot: intents.slot[ii],
+          commitTick: currentTick,
+          windupTicks: intents.windupTicks[ii],
+          activeTicks: intents.activeTicks[ii],
+          recoveryTicks: intents.recoveryTicks[ii],
+          facingDir: intents.dirX[ii] >= 0 ? Facing.right : Facing.left,
+        );
+
+        if (si != null) {
+          world.stamina.stamina[si] = nextStamina!;
+        }
+        world.cooldown.meleeCooldownTicksLeft[ci] = intents.cooldownTicks[ii];
+      }
+
+      if (executeTick != currentTick) continue;
 
       // Invalidate now so accidental multi-pass execution in the same tick cannot
       // double-strike. (Intent is still ignored next tick due to stamp mismatch.)
       intents.tick[ii] = -1;
+      intents.commitTick[ii] = -1;
 
       // -- Validation & Resource Checks --
 
@@ -46,30 +119,10 @@ class MeleeStrikeSystem {
       // Cannot strike while stunned.
       if (world.controlLock.isStunned(strikeer, currentTick)) continue;
 
-      // Attacker must respond to cooldowns.
-      final ci = world.cooldown.tryIndexOf(strikeer);
-      if (ci == null) continue;
-      if (world.cooldown.meleeCooldownTicksLeft[ci] > 0) continue;
-
       // Attacker must have a faction to determine who they hit.
       final fi = world.faction.tryIndexOf(strikeer);
       if (fi == null) continue;
       final faction = world.faction.faction[fi];
-
-      // Stamina check.
-      final staminaCost = intents.staminaCost[ii];
-      int? si;
-      double? nextStamina;
-      
-      if (staminaCost > 0) {
-        // Optimization: Resolve index directly.
-        si = world.stamina.tryIndexOf(strikeer);
-        if (si == null) continue; // No stamina component = cannot strike if cost > 0.
-        
-        final currentStamina = world.stamina.stamina[si];
-        if (currentStamina < staminaCost) continue; // Not enough stamina.
-        nextStamina = currentStamina - staminaCost;
-      }
 
       // -- Execution --
 
@@ -89,9 +142,10 @@ class MeleeStrikeSystem {
         HitboxDef(
           owner: strikeer,
           faction: faction,
-          damage: intents.damage[ii],
+          damage100: intents.damage100[ii],
           damageType: intents.damageType[ii],
           statusProfileId: intents.statusProfileId[ii],
+          procs: intents.procs[ii],
           halfX: intents.halfX[ii],
           halfY: intents.halfY[ii],
           offsetX: intents.offsetX[ii],
@@ -107,13 +161,6 @@ class MeleeStrikeSystem {
         hitbox,
         LifetimeDef(ticksLeft: intents.activeTicks[ii]),
       );
-
-      // Apply costs.
-      if (si != null) {
-        world.stamina.stamina[si] = nextStamina!;
-      }
-      // Set cooldown.
-      world.cooldown.meleeCooldownTicksLeft[ci] = intents.cooldownTicks[ii];
     }
   }
 }

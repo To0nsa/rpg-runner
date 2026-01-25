@@ -24,19 +24,19 @@ void main() {
     final b = world.createEntity(); // id 2
     world.transform.add(b, posX: 10, posY: 0, velX: 0, velY: 0);
     world.colliderAabb.add(b, const ColliderAabbDef(halfX: 10, halfY: 10));
-    world.health.add(b, const HealthDef(hp: 1, hpMax: 1, regenPerSecond: 0));
+    world.health.add(b, const HealthDef(hp: 100, hpMax: 100, regenPerSecond100: 0));
     world.faction.add(b, const FactionDef(faction: Faction.enemy));
 
     final a = world.createEntity(); // id 3
     world.transform.add(a, posX: 10, posY: 0, velX: 0, velY: 0);
     world.colliderAabb.add(a, const ColliderAabbDef(halfX: 10, halfY: 10));
-    world.health.add(a, const HealthDef(hp: 1, hpMax: 1, regenPerSecond: 0));
+    world.health.add(a, const HealthDef(hp: 100, hpMax: 100, regenPerSecond100: 0));
     world.faction.add(a, const FactionDef(faction: Faction.enemy));
 
     final c = world.createEntity(); // id 4 friendly
     world.transform.add(c, posX: 10, posY: 0, velX: 0, velY: 0);
     world.colliderAabb.add(c, const ColliderAabbDef(halfX: 10, halfY: 10));
-    world.health.add(c, const HealthDef(hp: 1, hpMax: 1, regenPerSecond: 0));
+    world.health.add(c, const HealthDef(hp: 100, hpMax: 100, regenPerSecond100: 0));
     world.faction.add(c, const FactionDef(faction: Faction.player));
 
     final broadphase = BroadphaseGrid(
@@ -96,7 +96,7 @@ void main() {
           halfY: 4.0 + rng.nextDouble() * 24.0,
         ),
       );
-      world.health.add(e, const HealthDef(hp: 1, hpMax: 1, regenPerSecond: 0));
+      world.health.add(e, const HealthDef(hp: 100, hpMax: 100, regenPerSecond100: 0));
       world.faction.add(
         e,
         FactionDef(faction: rng.nextBool() ? Faction.enemy : Faction.player),

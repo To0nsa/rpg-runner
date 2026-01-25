@@ -43,7 +43,7 @@ class ProjectileHitSystem {
     final transforms = world.transform;
     final colliders = world.colliderAabb;
     final enemies = world.enemy;
-    final spellOrigins = world.spellOrigin;
+    final projectileOrigins = world.projectileItemOrigin;
 
     final count = projectiles.denseEntities.length;
     for (var pi = 0; pi < count; pi += 1) {
@@ -102,26 +102,28 @@ class ProjectileHitSystem {
 
       // -- Impact Handling --
       if (targetIndex != null) {
-        // Optimization: Resolve heavy metadata (EnemyId, SpellId) ONLY when a hit actually occurs.
+        // Optimization: Resolve heavy metadata (EnemyId, ProjectileItemId) ONLY when a hit actually occurs.
         // Doing this before the hit check would waste cycles for the 99% of frames a projectile is just flying.
         final ei = enemies.tryIndexOf(owner);
         final enemyId = ei != null ? enemies.enemyId[ei] : null;
         
-        final si = spellOrigins.tryIndexOf(p);
-        final spellId = si != null ? spellOrigins.spellId[si] : null;
+        final si = projectileOrigins.tryIndexOf(p);
+        final projectileItemId =
+            si != null ? projectileOrigins.projectileItemId[si] : null;
 
         // Dispatch damage event.
         queueDamage(
           DamageRequest(
             target: broadphase.targets.entities[targetIndex],
-            amount: projectiles.damage[pi],
+            amount100: projectiles.damage100[pi],
             damageType: projectiles.damageType[pi],
             statusProfileId: projectiles.statusProfileId[pi],
+            procs: projectiles.procs[pi],
             source: owner,
             sourceKind: DeathSourceKind.projectile,
             sourceEnemyId: enemyId,
             sourceProjectileId: projectiles.projectileId[pi],
-            sourceSpellId: spellId,
+            sourceProjectileItemId: projectileItemId,
           ),
         );
 
@@ -130,7 +132,7 @@ class ProjectileHitSystem {
             ProjectileHitEvent(
               tick: currentTick,
               projectileId: projectiles.projectileId[pi],
-              spellId: spellId,
+              projectileItemId: projectileItemId,
               pos: Vec2(pcx, pcy),
               facing: facing,
               rotationRad: rotationRad,

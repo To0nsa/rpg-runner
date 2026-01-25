@@ -9,8 +9,8 @@ Combat now uses explicit primitives for damage + status effects:
 - Damage is modeled with `DamageType` and per-entity resistance modifiers.
 - Status effects are applied via `StatusProfileId` (data-first profiles).
 - DoT effects tick in Core and queue `DamageRequest`s (deterministic).
-- Ranged/thrown weapons are separate from spells (stamina + ammo), but still
-  feed into the same damage/status pipeline.
+- Projectile slot items unify spells and throws under one payload structure
+  while still feeding the same damage/status pipeline.
 
 Details: `docs/building/combat.md`.
 
@@ -28,7 +28,7 @@ Pipeline per tick:
 3. **Locomotion** (`GroundEnemyLocomotionSystem` + `FlyingEnemyLocomotionSystem`)
    applies velocities using nav + engagement intents (ground) and steering (Unoco).
 4. **Combat** (`EnemyCastSystem` + `EnemyMeleeSystem`) writes
-   `CastIntentStore`/`MeleeIntentStore` and updates strike windows for animation.
+   `ProjectileIntentStore`/`MeleeIntentStore` and updates strike windows for animation.
 
 This keeps pathfinding separate from melee slot logic and keeps combat decisions
 independent from locomotion mechanics.

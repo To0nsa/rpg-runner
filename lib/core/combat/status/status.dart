@@ -30,8 +30,10 @@ class StatusApplication {
 
   final StatusEffectType type;
 
-  /// Effect strength (percent for slow, damage-per-second for DoT).
-  final double magnitude;
+  /// Effect strength:
+  /// - Slow: basis points (100 = 1%)
+  /// - DoT: damage per second in fixed-point (100 = 1.0)
+  final int magnitude;
 
   /// Total duration (seconds).
   final double durationSeconds;
@@ -63,7 +65,7 @@ class StatusProfileCatalog {
           <StatusApplication>[
             StatusApplication(
               type: StatusEffectType.slow,
-              magnitude: 0.25,
+              magnitude: 2500, // 25%
               durationSeconds: 3.0,
               scaleByDamageType: true,
             ),
@@ -74,7 +76,7 @@ class StatusProfileCatalog {
           <StatusApplication>[
             StatusApplication(
               type: StatusEffectType.bleed,
-              magnitude: 3.0,
+              magnitude: 300, // 3.0 DPS
               durationSeconds: 4.0,
               periodSeconds: 1.0,
               scaleByDamageType: true,
@@ -86,7 +88,7 @@ class StatusProfileCatalog {
           <StatusApplication>[
             StatusApplication(
               type: StatusEffectType.burn,
-              magnitude: 5.0,
+              magnitude: 500, // 5.0 DPS
               durationSeconds: 5.0,
               periodSeconds: 1.0,
               scaleByDamageType: true,
@@ -98,7 +100,7 @@ class StatusProfileCatalog {
           <StatusApplication>[
             StatusApplication(
               type: StatusEffectType.stun,
-              magnitude: 1.0,
+              magnitude: 100, // placeholder
               durationSeconds: 2.0,
               scaleByDamageType: true,
             ),
@@ -120,4 +122,3 @@ class StatusRequest {
   final StatusProfileId profileId;
   final DamageType damageType;
 }
-

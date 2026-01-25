@@ -17,7 +17,6 @@ import 'stores/enemies/ground_enemy_chase_offset_store.dart';
 import 'stores/health_store.dart';
 import 'stores/mana_store.dart';
 import 'stores/stamina_store.dart';
-import 'stores/player/action_anim_store.dart';
 import 'world.dart';
 
 /// Factory for creating complex entities composed of multiple components.
@@ -37,14 +36,13 @@ class EntityFactory {
   /// Adds the following components:
   /// - [TransformStore]: Position and velocity.
   /// - [PlayerInputStore]: Marks this entity as controllable by player input.
-  /// - [ActionAnimStore]: Tracks action intent ticks for rendering.
   /// - [AnimStateStore]: Stores resolved animation state for rendering.
   /// - [MovementStore]: Handles movement logic and facing direction.
   /// - [BodyStore]: Physics body properties (mass, friction, etc.).
   /// - [ColliderAabbStore]: Axis-aligned bounding box for collision detection.
   /// - [CollisionStateStore]: Tracks current collision state.
   /// - [CooldownStore]: Manages ability cooldowns.
-  /// - [CastIntentStore]: Tracks intent to cast spells.
+  /// - [ProjectileIntentStore]: Tracks intent to fire projectile items.
   /// - [CreatureTagStore]: Broad combat classification tags.
   /// - [FactionStore]: Sets the faction to [Faction.player].
   /// - [HealthStore]: Health points and max health.
@@ -53,8 +51,9 @@ class EntityFactory {
   /// - [LastDamageStore]: Tracks the last source of damage for UI/effects.
   /// - [StatusImmunityStore]: Status effect immunities.
   /// - [ManaStore]: Mana points and max mana.
-  /// - [EquippedSpellStore]: Equipped spell hotbar (used for casting selection).
+  /// - [EquippedLoadoutStore]: Equipped abilities and gear.
   /// - [MeleeIntentStore]: Tracks intent to perform melee strikes.
+  /// - [MobilityIntentStore]: Tracks intent to perform mobility actions.
   /// - [StatModifierStore]: Runtime stat modifiers from statuses.
   /// - [StaminaStore]: Stamina points and max stamina.
   ///
@@ -79,14 +78,14 @@ class EntityFactory {
     final id = world.createEntity();
     world.transform.add(id, posX: posX, posY: posY, velX: velX, velY: velY);
     world.playerInput.add(id);
-    world.actionAnim.add(id);
+    world.abilityInputBuffer.add(id);
+    world.activeAbility.add(id);
     world.animState.add(id);
     world.movement.add(id, facing: facing);
     world.body.add(id, body);
     world.colliderAabb.add(id, collider);
     world.collision.add(id);
     world.cooldown.add(id);
-    world.castIntent.add(id);
     world.creatureTag.add(id, tags);
     world.faction.add(id, const FactionDef(faction: Faction.player));
     world.health.add(id, health);
@@ -96,7 +95,8 @@ class EntityFactory {
     world.statusImmunity.add(id, statusImmunity);
     world.mana.add(id, mana);
     world.meleeIntent.add(id);
-    world.rangedWeaponIntent.add(id);
+    world.mobilityIntent.add(id);
+    world.projectileIntent.add(id);
     world.equippedLoadout.add(id, equippedLoadout);
     world.statModifier.add(id);
     world.stamina.add(id, stamina);
@@ -112,7 +112,7 @@ class EntityFactory {
   /// - [ColliderAabbStore]: Collision boounding box.
   /// - [CollisionStateStore]: Collision state tracking.
   /// - [CooldownStore]: Ability cooldowns.
-  /// - [CastIntentStore]: Spell casting intent.
+  /// - [ProjectileIntentStore]: Projectile intent.
   /// - [CreatureTagStore]: Broad combat classification tags.
   /// - [FactionStore]: Sets faction to [Faction.enemy].
   /// - [HealthStore], [ManaStore], [StaminaStore]: Vital stats.
@@ -152,7 +152,7 @@ class EntityFactory {
     world.colliderAabb.add(id, collider);
     world.collision.add(id);
     world.cooldown.add(id);
-    world.castIntent.add(id);
+    world.projectileIntent.add(id);
     world.creatureTag.add(id, tags);
     world.faction.add(id, const FactionDef(faction: Faction.enemy));
     world.health.add(id, health);
@@ -163,6 +163,7 @@ class EntityFactory {
     world.statModifier.add(id);
     world.stamina.add(id, stamina);
     world.enemy.add(id, EnemyDef(enemyId: enemyId, facing: facing));
+    world.activeAbility.add(id);
     world.animState.add(id);
     world.statusImmunity.add(id, statusImmunity);
     if (enemyId == EnemyId.unocoDemon) {

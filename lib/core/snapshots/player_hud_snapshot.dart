@@ -14,15 +14,12 @@ class PlayerHudSnapshot {
     required this.canAffordDash,
     required this.canAffordMelee,
     required this.canAffordProjectile,
-    required this.canAffordRangedWeapon,
     required this.dashCooldownTicksLeft,
     required this.dashCooldownTicksTotal,
     required this.meleeCooldownTicksLeft,
     required this.meleeCooldownTicksTotal,
     required this.projectileCooldownTicksLeft,
     required this.projectileCooldownTicksTotal,
-    required this.rangedWeaponCooldownTicksLeft,
-    required this.rangedWeaponCooldownTicksTotal,
     required this.collectibles,
     required this.collectibleScore,
   });
@@ -54,11 +51,8 @@ class PlayerHudSnapshot {
   /// Whether stamina is sufficient for melee.
   final bool canAffordMelee;
 
-  /// Whether mana is sufficient for projectile casting.
+  /// Whether resources are sufficient for the equipped projectile ability.
   final bool canAffordProjectile;
-
-  /// Whether stamina is sufficient for the equipped ranged weapon.
-  final bool canAffordRangedWeapon;
 
   /// Remaining dash cooldown ticks.
   final int dashCooldownTicksLeft;
@@ -77,12 +71,6 @@ class PlayerHudSnapshot {
 
   /// Total projectile cooldown ticks.
   final int projectileCooldownTicksTotal;
-
-  /// Remaining ranged weapon cooldown ticks.
-  final int rangedWeaponCooldownTicksLeft;
-
-  /// Total ranged weapon cooldown ticks.
-  final int rangedWeaponCooldownTicksTotal;
 
   /// Collected collectibles.
   final int collectibles;

@@ -35,22 +35,24 @@
 /// 1. **Track streaming**: Spawn/cull chunks based on camera.
 /// 2. **Cooldowns & invulnerability**: Decrement timers.
 /// 3. **Enemy AI steering**: Path planning and movement intent.
-/// 4. **Player movement**: Apply input to velocity.
-/// 5. **Gravity**: Apply gravity to non-kinematic bodies.
-/// 6. **Collision**: Resolve static world collisions.
-/// 7. **Pickups**: Collect items overlapping player.
-/// 8. **Broadphase rebuild**: Update spatial grid for hit detection.
-/// 9. **Projectile movement**: Advance existing projectiles.
-/// 10. **Strike intents**: Enemies and player queue strikes.
-/// 11. **Strike execution**: Spawn hitboxes and projectiles.
-/// 12. **Hitbox positioning**: Follow owner entities.
-/// 13. **Hit resolution**: Detect overlaps, queue damage.
-/// 14. **Status ticking**: Apply DoT ticks and queue damage.
-/// 15. **Damage application**: Apply queued damage, set invulnerability.
-/// 16. **Status application**: Apply on-hit status profiles.
-/// 17. **Death handling**: Despawn dead entities, record kills.
-/// 18. **Resource regen**: Regenerate mana/stamina.
-/// 19. **Lifetime cleanup**: Remove expired entities.
+/// 4. **Player input**: Resolve ability intents (including mobility).
+/// 5. **Player movement**: Apply input to velocity.
+/// 6. **Mobility execution**: Apply dash/roll state.
+/// 7. **Gravity**: Apply gravity to non-kinematic bodies.
+/// 8. **Collision**: Resolve static world collisions.
+/// 9. **Pickups**: Collect items overlapping player.
+/// 10. **Broadphase rebuild**: Update spatial grid for hit detection.
+/// 11. **Projectile movement**: Advance existing projectiles.
+/// 12. **Strike intents**: Enemies and player queue strikes.
+/// 13. **Strike execution**: Spawn hitboxes and projectiles.
+/// 14. **Hitbox positioning**: Follow owner entities.
+/// 15. **Hit resolution**: Detect overlaps, queue damage.
+/// 16. **Status ticking**: Apply DoT ticks and queue damage.
+/// 17. **Damage application**: Apply queued damage, set invulnerability.
+/// 18. **Status application**: Apply on-hit status profiles.
+/// 19. **Death handling**: Despawn dead entities, record kills.
+/// 20. **Resource regen**: Regenerate mana/stamina.
+/// 21. **Lifetime cleanup**: Remove expired entities.
 ///
 /// ## Determinism Contract
 ///
@@ -69,6 +71,8 @@ library;
 import 'dart:math';
 
 import 'camera/autoscroll_camera.dart';
+import 'abilities/ability_catalog.dart';
+import 'abilities/ability_def.dart';
 import 'collision/static_world_geometry_index.dart';
 import 'commands/command.dart';
 import 'contracts/render_contract.dart';
@@ -81,6 +85,7 @@ import 'ecs/systems/collectible_system.dart';
 import 'ecs/systems/collision_system.dart';
 import 'ecs/systems/cooldown_system.dart';
 import 'ecs/systems/damage_system.dart';
+import 'ecs/systems/active_ability_phase_system.dart';
 import 'ecs/systems/death_despawn_system.dart';
 import 'ecs/systems/enemy_cast_system.dart';
 import 'ecs/systems/enemy_death_state_system.dart';
@@ -95,19 +100,17 @@ import 'ecs/systems/hitbox_follow_owner_system.dart';
 import 'ecs/systems/invulnerability_system.dart';
 import 'ecs/systems/lifetime_system.dart';
 import 'ecs/systems/melee_strike_system.dart';
-import 'ecs/systems/player_cast_system.dart';
-import 'ecs/systems/player_melee_system.dart';
+import 'ecs/systems/ability_activation_system.dart';
+import 'ecs/systems/mobility_system.dart';
 import 'ecs/systems/player_movement_system.dart';
-import 'ecs/systems/player_ranged_weapon_system.dart';
 import 'ecs/systems/projectile_hit_system.dart';
 import 'ecs/systems/projectile_system.dart';
 import 'ecs/systems/projectile_world_collision_system.dart';
-import 'ecs/systems/ranged_weapon_system.dart';
+import 'ecs/systems/projectile_launch_system.dart';
 import 'ecs/systems/resource_regen_system.dart';
 import 'ecs/systems/restoration_item_system.dart';
 import 'ecs/systems/status_system.dart';
 import 'ecs/systems/control_lock_system.dart';
-import 'ecs/systems/spell_cast_system.dart';
 import 'ecs/systems/anim_system.dart';
 import 'ecs/systems/enemy_cull_system.dart';
 import 'ecs/systems/enemy_melee_system.dart';
@@ -131,11 +134,11 @@ import 'snapshots/enums.dart';
 import 'snapshots/game_state_snapshot.dart';
 import 'snapshot_builder.dart';
 import 'spawn_service.dart';
-import 'spells/spell_catalog.dart';
+import 'projectiles/projectile_item_catalog.dart';
+import 'projectiles/projectile_item_id.dart';
 import 'track_manager.dart';
 import 'weapons/weapon_catalog.dart';
 import 'ecs/stores/combat/equipped_loadout_store.dart';
-import 'weapons/ranged_weapon_catalog.dart';
 import 'tuning/camera_tuning.dart';
 import 'tuning/collectible_tuning.dart';
 import 'tuning/core_tuning.dart';
@@ -234,11 +237,11 @@ class GameCore {
     CoreTuning tuning = const CoreTuning(),
     PlayerCharacterDefinition playerCharacter =
         PlayerCharacterRegistry.defaultCharacter,
-    SpellCatalog spellCatalog = const SpellCatalog(),
+    ProjectileItemCatalog projectileItemCatalog =
+        const ProjectileItemCatalog(),
     ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
     EnemyCatalog enemyCatalog = const EnemyCatalog(),
     WeaponCatalog weaponCatalog = const WeaponCatalog(),
-    RangedWeaponCatalog rangedWeaponCatalog = const RangedWeaponCatalog(),
     StaticWorldGeometry staticWorldGeometry = const StaticWorldGeometry(
       groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
     ),
@@ -251,31 +254,31 @@ class GameCore {
            tuning: tuning,
            staticWorldGeometry: staticWorldGeometry,
          ),
-         spellCatalog: spellCatalog,
+         projectileItemCatalog: projectileItemCatalog,
          projectileCatalog: projectileCatalog,
          enemyCatalog: enemyCatalog,
          playerCharacter: playerCharacter,
          weaponCatalog: weaponCatalog,
-         rangedWeaponCatalog: rangedWeaponCatalog,
        );
 
   GameCore._fromLevel({
     required this.seed,
     required this.tickHz,
     required LevelDefinition levelDefinition,
-    required SpellCatalog spellCatalog,
+    required ProjectileItemCatalog projectileItemCatalog,
     required ProjectileCatalog projectileCatalog,
     required EnemyCatalog enemyCatalog,
     required PlayerCharacterDefinition playerCharacter,
     required WeaponCatalog weaponCatalog,
-    required RangedWeaponCatalog rangedWeaponCatalog,
   }) : _levelDefinition = levelDefinition,
        _movement = MovementTuningDerived.from(
          playerCharacter.tuning.movement,
          tickHz: tickHz,
        ),
        _physicsTuning = levelDefinition.tuning.physics,
-       _resourceTuning = playerCharacter.tuning.resource,
+       _resourceTuning = ResourceTuningDerived.from(
+         playerCharacter.tuning.resource,
+       ),
        _abilities = AbilityTuningDerived.from(
          playerCharacter.tuning.ability,
          tickHz: tickHz,
@@ -298,7 +301,7 @@ class GameCore {
        ),
        _navigationTuning = levelDefinition.tuning.navigation,
        _spatialGridTuning = levelDefinition.tuning.spatialGrid,
-       _spells = spellCatalog,
+       _projectileItems = projectileItemCatalog,
        _projectiles = ProjectileCatalogDerived.from(
          projectileCatalog,
          tickHz: tickHz,
@@ -306,10 +309,6 @@ class GameCore {
        _enemyCatalog = enemyCatalog,
        _playerCharacter = playerCharacter,
        _weapons = weaponCatalog,
-       _rangedWeapons = RangedWeaponCatalogDerived.from(
-         rangedWeaponCatalog,
-         tickHz: tickHz,
-       ),
        _scoreTuning = levelDefinition.tuning.score,
        _trackTuning = levelDefinition.tuning.track,
        _collectibleTuning = levelDefinition.tuning.collectible,
@@ -384,9 +383,7 @@ class GameCore {
       movement: _movement,
       abilities: _abilities,
       resources: _resourceTuning,
-      spells: _spells,
       projectiles: _projectiles,
-      rangedWeapons: _rangedWeapons,
       enemyCatalog: _enemyCatalog,
     );
   }
@@ -398,6 +395,7 @@ class GameCore {
   void _initializeSystems() {
     // Core movement and physics.
     _movementSystem = PlayerMovementSystem();
+    _mobilitySystem = MobilitySystem();
     _collisionSystem = CollisionSystem();
     _cooldownSystem = CooldownSystem();
     _gravitySystem = GravitySystem();
@@ -420,9 +418,11 @@ class GameCore {
     _invulnerabilitySystem = InvulnerabilitySystem();
     _damageSystem = DamageSystem(
       invulnerabilityTicksOnHit: _combat.invulnerabilityTicks,
+      rngSeed: seed,
     );
     _statusSystem = StatusSystem(tickHz: tickHz);
     _controlLockSystem = ControlLockSystem();
+    _activeAbilityPhaseSystem = ActiveAbilityPhaseSystem();
     _healthDespawnSystem = HealthDespawnSystem();
     _enemyDeathStateSystem = EnemyDeathStateSystem(
       tickHz: tickHz,
@@ -437,29 +437,26 @@ class GameCore {
       playerAnimTuning: _animTuning,
     );
 
-    // Player combat.
-    _meleeSystem = PlayerMeleeSystem(abilities: _abilities, weapons: _weapons);
-    _rangedWeaponSystem = PlayerRangedWeaponSystem(
-      weapons: _rangedWeapons.base,
+    // Player combat (input → intents).
+    _abilityActivationSystem = AbilityActivationSystem(
+      tickHz: tickHz,
+      inputBufferTicks: _abilities.inputBufferTicks,
+      abilities: const AbilityCatalog(),
+      weapons: _weapons,
+      projectileItems: _projectileItems,
     );
     _hitboxDamageSystem = HitboxDamageSystem();
 
     // Pickup systems.
     _collectibleSystem = CollectibleSystem();
     _restorationItemSystem = RestorationItemSystem();
-    _resourceRegenSystem = ResourceRegenSystem();
+    _resourceRegenSystem = ResourceRegenSystem(tickHz: tickHz);
 
-    // Spell/cast systems.
-    _castSystem = PlayerCastSystem(abilities: _abilities);
-    _spellCastSystem = SpellCastSystem(
-      spells: _spells,
+    // Projectile execution.
+    _projectileLaunchSystem = ProjectileLaunchSystem(
       projectiles: _projectiles,
     );
     _meleeStrikeSystem = MeleeStrikeSystem();
-    _rangedWeaponStrikeSystem = RangedWeaponSystem(
-      weapons: _rangedWeapons,
-      projectiles: _projectiles,
-    );
 
     // Navigation infrastructure.
     _surfaceGraphBuilder = SurfaceGraphBuilder(
@@ -513,7 +510,7 @@ class GameCore {
     _enemyCastSystem = EnemyCastSystem(
       unocoDemonTuning: _unocoDemonTuning,
       enemyCatalog: _enemyCatalog,
-      spells: _spells,
+      projectileItems: _projectileItems,
       projectiles: _projectiles,
     );
     _enemyMeleeSystem = EnemyMeleeSystem(groundEnemyTuning: _groundEnemyTuning);
@@ -554,10 +551,26 @@ class GameCore {
         mask: playerArchetype.loadoutSlotMask,
         mainWeaponId: playerArchetype.weaponId,
         offhandWeaponId: playerArchetype.offhandWeaponId,
-        rangedWeaponId: playerArchetype.rangedWeaponId,
-        spellId: playerArchetype.spellId,
+        projectileItemId: playerArchetype.projectileItemId,
+        abilityProjectileId:
+            _abilityIdForProjectileItem(playerArchetype.projectileItemId),
       ),
     );
+  }
+
+  AbilityKey _abilityIdForProjectileItem(ProjectileItemId id) {
+    switch (id) {
+      case ProjectileItemId.iceBolt:
+        return 'eloise.ice_bolt';
+      case ProjectileItemId.fireBolt:
+        return 'eloise.fire_bolt';
+      case ProjectileItemId.thunderBolt:
+        return 'eloise.thunder_bolt';
+      case ProjectileItemId.throwingKnife:
+        return 'eloise.throwing_knife';
+      case ProjectileItemId.throwingAxe:
+        return 'eloise.throwing_knife';
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -584,7 +597,7 @@ class GameCore {
 
   final MovementTuningDerived _movement;
   final PhysicsTuning _physicsTuning;
-  final ResourceTuning _resourceTuning;
+  final ResourceTuningDerived _resourceTuning;
   final AbilityTuningDerived _abilities;
   final AnimTuningDerived _animTuning;
   final CombatTuningDerived _combat;
@@ -601,12 +614,11 @@ class GameCore {
   // ─── Catalogs ───
   // Archetype definitions for entities.
 
-  final SpellCatalog _spells;
+  final ProjectileItemCatalog _projectileItems;
   final ProjectileCatalogDerived _projectiles;
   final EnemyCatalog _enemyCatalog;
   final PlayerCharacterDefinition _playerCharacter;
   final WeaponCatalog _weapons;
-  final RangedWeaponCatalogDerived _rangedWeapons;
 
   // ─── ECS Core ───
 
@@ -628,6 +640,7 @@ class GameCore {
   // Stateless processors that operate on component stores.
 
   late final PlayerMovementSystem _movementSystem;
+  late final MobilitySystem _mobilitySystem;
   late final CollisionSystem _collisionSystem;
   late final CooldownSystem _cooldownSystem;
   late final GravitySystem _gravitySystem;
@@ -643,6 +656,7 @@ class GameCore {
   late final DamageSystem _damageSystem;
   late final StatusSystem _statusSystem;
   late final ControlLockSystem _controlLockSystem;
+  late final ActiveAbilityPhaseSystem _activeAbilityPhaseSystem;
   late final HealthDespawnSystem _healthDespawnSystem;
   late final EnemyDeathStateSystem _enemyDeathStateSystem;
   late final DeathDespawnSystem _deathDespawnSystem;
@@ -656,14 +670,11 @@ class GameCore {
   late final JumpReachabilityTemplate _groundEnemyJumpTemplate;
   late final SurfacePathfinder _surfacePathfinder;
   late final SurfaceNavigator _surfaceNavigator;
-  late final PlayerMeleeSystem _meleeSystem;
-  late final PlayerRangedWeaponSystem _rangedWeaponSystem;
+  late final AbilityActivationSystem _abilityActivationSystem;
   late final MeleeStrikeSystem _meleeStrikeSystem;
-  late final RangedWeaponSystem _rangedWeaponStrikeSystem;
+  late final ProjectileLaunchSystem _projectileLaunchSystem;
   late final HitboxDamageSystem _hitboxDamageSystem;
   late final ResourceRegenSystem _resourceRegenSystem;
-  late final PlayerCastSystem _castSystem;
-  late final SpellCastSystem _spellCastSystem;
   late final AnimSystem _animSystem;
   late final EnemyCullSystem _enemyCullSystem;
 
@@ -773,9 +784,11 @@ class GameCore {
     _world.movement.facing[_world.movement.indexOf(_player)] = value;
   }
 
-  /// Remaining cast (projectile) cooldown ticks.
-  int get playerCastCooldownTicksLeft =>
-      _world.cooldown.castCooldownTicksLeft[_world.cooldown.indexOf(_player)];
+  /// Remaining projectile cooldown ticks.
+  int get playerProjectileCooldownTicksLeft =>
+      _world.cooldown.projectileCooldownTicksLeft[
+        _world.cooldown.indexOf(_player)
+      ];
 
   /// Remaining melee strike cooldown ticks.
   int get playerMeleeCooldownTicksLeft =>
@@ -794,11 +807,11 @@ class GameCore {
   /// - [JumpPressedCommand]: Triggers a jump attempt.
   /// - [DashPressedCommand]: Triggers a dash attempt.
   /// - [StrikePressedCommand]: Triggers an strike attempt.
+  /// - [SecondaryPressedCommand]: Triggers an off-hand ability attempt.
   /// - [ProjectileAimDirCommand]: Sets projectile aim direction.
   /// - [MeleeAimDirCommand]: Sets melee strike direction.
-  /// - [RangedAimDirCommand]: Sets ranged weapon aim direction.
-  /// - [CastPressedCommand]: Triggers a spell cast attempt.
-  /// - [RangedPressedCommand]: Triggers a ranged weapon attempt.
+  /// - [ProjectilePressedCommand]: Triggers the projectile slot attempt.
+  /// - [BonusPressedCommand]: Triggers a bonus-slot ability attempt.
   ///
   /// Commands are processed before [stepOneTick] to ensure inputs are
   /// available when systems read them.
@@ -823,19 +836,29 @@ class GameCore {
             }
           }
 
-        // Jump: Consumed by PlayerMovementSystem.
+        // Jump: Consumed by AbilityActivationSystem (mobility), executed by PlayerMovementSystem.
         case JumpPressedCommand():
           _world.playerInput.jumpPressed[inputIndex] = true;
 
-        // Dash: Consumed by PlayerMovementSystem.
+        // Dash: Consumed by AbilityActivationSystem (mobility).
         case DashPressedCommand():
           _world.playerInput.dashPressed[inputIndex] = true;
 
-        // Strike: Consumed by PlayerMeleeSystem.
+        // Strike: Consumed by AbilityActivationSystem.
         case StrikePressedCommand():
           _world.playerInput.strikePressed[inputIndex] = true;
+          _world.playerInput.hasAbilitySlotPressed[inputIndex] = true;
+          _world.playerInput.lastAbilitySlotPressed[inputIndex] =
+              AbilitySlot.primary;
 
-        // Projectile aim: Direction vector for ranged strikes.
+        // Secondary: Consumed by AbilityActivationSystem.
+        case SecondaryPressedCommand():
+          _world.playerInput.secondaryPressed[inputIndex] = true;
+          _world.playerInput.hasAbilitySlotPressed[inputIndex] = true;
+          _world.playerInput.lastAbilitySlotPressed[inputIndex] =
+              AbilitySlot.secondary;
+
+        // Projectile aim: Direction vector for projectile abilities.
         case ProjectileAimDirCommand(:final x, :final y):
           _world.playerInput.projectileAimDirX[inputIndex] = x;
           _world.playerInput.projectileAimDirY[inputIndex] = y;
@@ -855,23 +878,19 @@ class GameCore {
           _world.playerInput.meleeAimDirX[inputIndex] = 0;
           _world.playerInput.meleeAimDirY[inputIndex] = 0;
 
-        // Ranged weapon aim: Direction vector for thrown/bow strikes.
-        case RangedAimDirCommand(:final x, :final y):
-          _world.playerInput.rangedAimDirX[inputIndex] = x;
-          _world.playerInput.rangedAimDirY[inputIndex] = y;
+        // Projectile slot: unified input for spells or throws.
+        case ProjectilePressedCommand():
+          _world.playerInput.projectilePressed[inputIndex] = true;
+          _world.playerInput.hasAbilitySlotPressed[inputIndex] = true;
+          _world.playerInput.lastAbilitySlotPressed[inputIndex] =
+              AbilitySlot.projectile;
 
-        // Clear ranged aim: Resets to no-aim state.
-        case ClearRangedAimDirCommand():
-          _world.playerInput.rangedAimDirX[inputIndex] = 0;
-          _world.playerInput.rangedAimDirY[inputIndex] = 0;
-
-        // Cast: Consumed by PlayerCastSystem for spell casting.
-        case CastPressedCommand():
-          _world.playerInput.castPressed[inputIndex] = true;
-
-        // Ranged: Consumed by PlayerRangedWeaponSystem.
-        case RangedPressedCommand():
-          _world.playerInput.rangedPressed[inputIndex] = true;
+        // Bonus slot input.
+        case BonusPressedCommand():
+          _world.playerInput.bonusPressed[inputIndex] = true;
+          _world.playerInput.hasAbilitySlotPressed[inputIndex] = true;
+          _world.playerInput.lastAbilitySlotPressed[inputIndex] =
+              AbilitySlot.bonus;
       }
     }
   }
@@ -888,25 +907,27 @@ class GameCore {
   /// 1. **Track streaming**: Generate/cull chunks, spawn enemies.
   /// 2. **Cooldowns**: Decrement ability and invulnerability timers.
   /// 3. **Enemy AI**: Compute paths and movement intentions.
-  /// 4. **Player movement**: Apply input to velocity.
-  /// 5. **Gravity**: Apply gravitational acceleration.
-  /// 6. **Collision**: Resolve against static world geometry.
-  /// 7. **Death checks**: Detect fall-into-gap and fell-behind-camera.
-  /// 8. **Camera update**: Advance autoscroll position.
-  /// 9. **Pickups**: Process collectible and restoration item collection.
-  /// 10. **Broadphase**: Rebuild spatial grid for hit detection.
-  /// 11. **Projectiles**: Move existing projectiles.
-  /// 12. **Strike intents**: Queue enemy and player strikes.
-  /// 13. **Strike execution**: Spawn hitboxes and projectiles from intents.
-  /// 14. **Hitbox positioning**: Update hitbox positions from owners.
-  /// 15. **Hit detection**: Check projectile and hitbox overlaps.
-  /// 16. **Status ticking**: Apply DoT ticks and queue damage.
-  /// 17. **Damage application**: Apply queued damage events.
-  /// 18. **Status application**: Apply on-hit status profiles.
-  /// 19. **Death handling**: Despawn dead entities, record kills.
-  /// 20. **Resource regen**: Regenerate mana and stamina.
-  /// 21. **Animation**: Compute per-entity anim key + frame.
-  /// 22. **Cleanup**: Remove entities past their lifetime.
+  /// 4. **Player input**: Resolve ability intents (including mobility).
+  /// 5. **Player movement**: Apply input to velocity.
+  /// 6. **Mobility execution**: Apply dash/roll state.
+  /// 7. **Gravity**: Apply gravitational acceleration.
+  /// 8. **Collision**: Resolve against static world geometry.
+  /// 9. **Death checks**: Detect fall-into-gap and fell-behind-camera.
+  /// 10. **Camera update**: Advance autoscroll position.
+  /// 11. **Pickups**: Process collectible and restoration item collection.
+  /// 12. **Broadphase**: Rebuild spatial grid for hit detection.
+  /// 13. **Projectiles**: Move existing projectiles.
+  /// 14. **Strike intents**: Queue enemy and player strikes.
+  /// 15. **Strike execution**: Spawn hitboxes and projectiles from intents.
+  /// 16. **Hitbox positioning**: Update hitbox positions from owners.
+  /// 17. **Hit detection**: Check projectile and hitbox overlaps.
+  /// 18. **Status ticking**: Apply DoT ticks and queue damage.
+  /// 19. **Damage application**: Apply queued damage events.
+  /// 20. **Status application**: Apply on-hit status profiles.
+  /// 21. **Death handling**: Despawn dead entities, record kills.
+  /// 22. **Resource regen**: Regenerate mana and stamina.
+  /// 23. **Animation**: Compute per-entity anim key + frame.
+  /// 24. **Cleanup**: Remove entities past their lifetime.
   ///
   /// If the run ends during this tick (player death, fell into gap, etc.),
   /// a [RunEndedEvent] is emitted and the simulation freezes.
@@ -945,7 +966,10 @@ class GameCore {
     // Must run before any gameplay systems that check locks.
     _controlLockSystem.step(_world, currentTick: tick);
 
-    // ─── Phase 3: AI and movement ───
+    // ─── Phase 2.75: Active ability phase update ───
+    _activeAbilityPhaseSystem.step(_world, currentTick: tick);
+
+    // ─── Phase 3: AI, input, and movement ───
     _enemyNavigationSystem.step(_world, player: _player, currentTick: tick);
     _enemyEngagementSystem.step(_world, player: _player, currentTick: tick);
     _groundEnemyLocomotionSystem.step(
@@ -962,12 +986,14 @@ class GameCore {
       currentTick: tick,
     );
 
+    _abilityActivationSystem.step(_world, player: _player, currentTick: tick);
     _movementSystem.step(
       _world,
       _movement,
       resources: _resourceTuning,
       currentTick: tick,
     );
+    _mobilitySystem.step(_world, _movement, currentTick: tick);
     _gravitySystem.step(_world, _movement, physics: _physicsTuning);
     _collisionSystem.step(
       _world,
@@ -1021,15 +1047,11 @@ class GameCore {
     // Enemies first, then player (order matters for fairness).
     _enemyCastSystem.step(_world, player: _player, currentTick: tick);
     _enemyMeleeSystem.step(_world, player: _player, currentTick: tick);
-    _castSystem.step(_world, player: _player, currentTick: tick);
-    _meleeSystem.step(_world, player: _player, currentTick: tick);
-    _rangedWeaponSystem.step(_world, player: _player, currentTick: tick);
 
     // ─── Phase 10: Strike execution ───
     // Convert intents into actual hitboxes and projectiles.
-    _spellCastSystem.step(_world, currentTick: tick);
+    _projectileLaunchSystem.step(_world, currentTick: tick);
     _meleeStrikeSystem.step(_world, currentTick: tick);
-    _rangedWeaponStrikeSystem.step(_world, currentTick: tick);
 
     // ─── Phase 11: Hitbox positioning ───
     // Update hitbox transforms to follow their owner entities.
@@ -1087,7 +1109,7 @@ class GameCore {
     }
 
     // ─── Phase 15: Resource regeneration ───
-    _resourceRegenSystem.step(_world, dtSeconds: _movement.dtSeconds);
+    _resourceRegenSystem.step(_world);
 
     // ─── Phase 16: Animation ───
     _animSystem.step(_world, player: _player, currentTick: tick);
@@ -1172,7 +1194,7 @@ class GameCore {
   bool _isPlayerDead() {
     final hi = _world.health.tryIndexOf(_player);
     if (hi == null) return false;
-    return _world.health.hp[hi] <= 0.0;
+    return _world.health.hp[hi] <= 0;
   }
 
   /// Builds death info for the run-ended event.
@@ -1194,8 +1216,8 @@ class GameCore {
       projectileId: _world.lastDamage.hasProjectileId[li]
           ? _world.lastDamage.projectileId[li]
           : null,
-      spellId: _world.lastDamage.hasSpellId[li]
-          ? _world.lastDamage.spellId[li]
+      projectileItemId: _world.lastDamage.hasProjectileItemId[li]
+          ? _world.lastDamage.projectileItemId[li]
           : null,
     );
   }
@@ -1290,7 +1312,7 @@ class GameCore {
   /// Compares two ratios without division: (valueA / maxA) < (valueB / maxB).
   ///
   /// Cross-multiplies to avoid division: valueA * maxB < valueB * maxA.
-  bool _ratioLess(double valueA, double maxA, double valueB, double maxB) {
+  bool _ratioLess(int valueA, int maxA, int valueB, int maxB) {
     if (maxA <= 0) return false; // Invalid ratio A, can't be less.
     if (maxB <= 0) return true; // Invalid ratio B, A wins by default.
     return valueA * maxB < valueB * maxA;

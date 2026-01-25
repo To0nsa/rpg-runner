@@ -1,4 +1,4 @@
-import '../abilities/ability_def.dart' show AbilityTag;
+import '../abilities/ability_def.dart' show AbilityTag, WeaponType;
 import '../combat/damage_type.dart';
 import '../combat/status/status.dart';
 import 'weapon_category.dart';
@@ -9,12 +9,13 @@ import 'weapon_stats.dart';
 /// Static, data-first definition for a melee weapon.
 ///
 /// Weapon definitions are queried by [WeaponId] and used by intent writers
-/// (e.g. [PlayerMeleeSystem]) to fill combat metadata like damage type and
+/// (e.g. [AbilityActivationSystem]) to fill combat metadata like damage type and
 /// on-hit status profiles.
 class WeaponDef {
   const WeaponDef({
     required this.id,
     required this.category,
+    required this.weaponType,
     this.grantedAbilityTags = const {},
     this.damageType = DamageType.physical,
     // Legacy (kept until Phase 5)
@@ -29,6 +30,9 @@ class WeaponDef {
 
   /// Equipment slot category (primary/offHand/projectile).
   final WeaponCategory category;
+
+  /// Visual/functional family (used for ability gating).
+  final WeaponType weaponType;
 
   /// Capabilities provided by this weapon.
   /// Abilities check: requiredTags ⊆ grantedAbilityTags.

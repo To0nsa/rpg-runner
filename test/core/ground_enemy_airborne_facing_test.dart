@@ -39,9 +39,9 @@ void main() {
         maxVelY: 9999,
       ),
       collider: const ColliderAabbDef(halfX: 8.0, halfY: 8.0),
-      health: const HealthDef(hp: 10, hpMax: 10, regenPerSecond: 0),
-      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond: 0),
-      stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
+      health: const HealthDef(hp: 1000, hpMax: 1000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
     );
 
     world.collision.grounded[world.collision.indexOf(enemy)] = false;

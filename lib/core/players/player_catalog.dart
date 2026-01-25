@@ -10,9 +10,8 @@ import '../ecs/stores/mana_store.dart';
 import '../ecs/stores/stamina_store.dart';
 import '../snapshots/enums.dart';
 import 'player_tuning.dart';
-import '../spells/spell_id.dart';
+import '../projectiles/projectile_item_id.dart';
 import '../weapons/weapon_id.dart';
-import '../weapons/ranged_weapon_id.dart';
 import 'player_archetype.dart';
 
 /// Authoring-time configuration for the player entity.
@@ -49,8 +48,7 @@ class PlayerCatalog {
     this.loadoutSlotMask = LoadoutSlotMask.defaultMask,
     this.weaponId = WeaponId.basicSword,
     this.offhandWeaponId = WeaponId.basicShield,
-    this.rangedWeaponId = RangedWeaponId.throwingKnife,
-    this.spellId = SpellId.iceBolt,
+    this.projectileItemId = ProjectileItemId.iceBolt,
     this.facing = Facing.right,
   });
 
@@ -106,11 +104,8 @@ class PlayerCatalog {
   /// Default equipped off-hand weapon or shield at spawn time.
   final WeaponId offhandWeaponId;
 
-  /// Default equipped ranged weapon at spawn time.
-  final RangedWeaponId rangedWeaponId;
-
-  /// Default equipped spell at spawn time.
-  final SpellId spellId;
+  /// Default equipped projectile item at spawn time.
+  final ProjectileItemId projectileItemId;
 
   /// Default facing direction at spawn time.
   ///
@@ -153,7 +148,7 @@ class PlayerCatalogDerived {
   factory PlayerCatalogDerived.from(
     PlayerCatalog base, {
     required MovementTuningDerived movement,
-    required ResourceTuning resources,
+    required ResourceTuningDerived resources,
   }) {
     // Merge body template with velocity clamps from movement tuning.
     final body = BodyDef(
@@ -178,19 +173,19 @@ class PlayerCatalogDerived {
 
     // Resource pools from resource tuning.
     final health = HealthDef(
-      hp: resources.playerHpMax,
-      hpMax: resources.playerHpMax,
-      regenPerSecond: resources.playerHpRegenPerSecond,
+      hp: resources.playerHpMax100,
+      hpMax: resources.playerHpMax100,
+      regenPerSecond100: resources.playerHpRegenPerSecond100,
     );
     final mana = ManaDef(
-      mana: resources.playerManaMax,
-      manaMax: resources.playerManaMax,
-      regenPerSecond: resources.playerManaRegenPerSecond,
+      mana: resources.playerManaMax100,
+      manaMax: resources.playerManaMax100,
+      regenPerSecond100: resources.playerManaRegenPerSecond100,
     );
     final stamina = StaminaDef(
-      stamina: resources.playerStaminaMax,
-      staminaMax: resources.playerStaminaMax,
-      regenPerSecond: resources.playerStaminaRegenPerSecond,
+      stamina: resources.playerStaminaMax100,
+      staminaMax: resources.playerStaminaMax100,
+      regenPerSecond100: resources.playerStaminaRegenPerSecond100,
     );
 
     return PlayerCatalogDerived._(
@@ -206,8 +201,7 @@ class PlayerCatalogDerived {
         loadoutSlotMask: base.loadoutSlotMask,
         weaponId: base.weaponId,
         offhandWeaponId: base.offhandWeaponId,
-        rangedWeaponId: base.rangedWeaponId,
-        spellId: base.spellId,
+        projectileItemId: base.projectileItemId,
         facing: base.facing,
       ),
     );

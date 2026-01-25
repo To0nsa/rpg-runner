@@ -1,0 +1,36 @@
+import '../abilities/ability_def.dart' show WeaponType;
+import '../combat/damage_type.dart';
+import '../combat/status/status.dart';
+import '../projectiles/projectile_id.dart';
+import '../weapons/weapon_proc.dart';
+import '../weapons/weapon_stats.dart';
+import 'projectile_item_id.dart';
+
+/// Unified data definition for projectile slot items (spells + throwing weapons).
+class ProjectileItemDef {
+  const ProjectileItemDef({
+    required this.id,
+    required this.weaponType,
+    required this.projectileId,
+    this.originOffset = 0.0,
+    this.ballistic = false,
+    this.gravityScale = 1.0,
+    this.damageType = DamageType.physical,
+    this.statusProfileId = StatusProfileId.none,
+    this.procs = const <WeaponProc>[],
+    this.stats = const WeaponStats(),
+  });
+
+  final ProjectileItemId id;
+  final WeaponType weaponType;
+
+  final ProjectileId projectileId;
+  final double originOffset;
+  final bool ballistic;
+  final double gravityScale;
+
+  final DamageType damageType;
+  final StatusProfileId statusProfileId;
+  final List<WeaponProc> procs;
+  final WeaponStats stats;
+}

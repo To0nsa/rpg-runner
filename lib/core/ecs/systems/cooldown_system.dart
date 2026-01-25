@@ -10,14 +10,11 @@ class CooldownSystem {
     final store = world.cooldown;
     // Iterate over dense arrays for cache efficiency.
     for (var i = 0; i < store.denseEntities.length; i += 1) {
-      if (store.castCooldownTicksLeft[i] > 0) {
-        store.castCooldownTicksLeft[i] -= 1;
+      if (store.projectileCooldownTicksLeft[i] > 0) {
+        store.projectileCooldownTicksLeft[i] -= 1;
       }
       if (store.meleeCooldownTicksLeft[i] > 0) {
         store.meleeCooldownTicksLeft[i] -= 1;
-      }
-      if (store.rangedWeaponCooldownTicksLeft[i] > 0) {
-        store.rangedWeaponCooldownTicksLeft[i] -= 1;
       }
     }
   }

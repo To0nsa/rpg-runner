@@ -1,18 +1,27 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rpg_runner/core/commands/command.dart';
+import 'package:rpg_runner/core/abilities/ability_catalog.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/game_core.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
 import 'package:rpg_runner/core/players/player_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
+import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
-import 'package:rpg_runner/core/spells/spell_id.dart';
+import 'package:rpg_runner/core/util/tick_math.dart';
 
 import '../test_tunings.dart';
 
 void main() {
+  int _scaledWindupTicks(String abilityId, int tickHz) {
+    final ability = AbilityCatalog.tryGet(abilityId)!;
+    if (tickHz == 60) return ability.windupTicks;
+    final seconds = ability.windupTicks / 60.0;
+    return ticksFromSecondsCeil(seconds, tickHz);
+  }
+
   test('cast: insufficient mana => no projectile', () {
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
@@ -32,8 +41,13 @@ void main() {
       ),
     );
 
-    core.applyCommands(const [CastPressedCommand(tick: 1)]);
+    core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
     core.stepOneTick();
+    final windupTicks = _scaledWindupTicks('eloise.ice_bolt', core.tickHz);
+    for (var i = 0; i < windupTicks; i += 1) {
+      core.applyCommands(const <Command>[]);
+      core.stepOneTick();
+    }
 
     final snapshot = core.buildSnapshot();
     expect(
@@ -41,7 +55,7 @@ void main() {
       isEmpty,
     );
     expect(snapshot.hud.mana, closeTo(0.0, 1e-9));
-    expect(core.playerCastCooldownTicksLeft, 0);
+    expect(core.playerProjectileCooldownTicksLeft, 0);
   });
 
   test(
@@ -69,8 +83,13 @@ void main() {
       final playerPosX = core.playerPosX;
       final playerPosY = core.playerPosY;
 
-      core.applyCommands(const [CastPressedCommand(tick: 1)]);
+      core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
       core.stepOneTick();
+      final windupTicks = _scaledWindupTicks('eloise.ice_bolt', core.tickHz);
+      for (var i = 0; i < windupTicks; i += 1) {
+        core.applyCommands(const <Command>[]);
+        core.stepOneTick();
+      }
 
       final snapshot = core.buildSnapshot();
       final projectiles = snapshot.entities
@@ -84,14 +103,17 @@ void main() {
       expect(p.pos.y, closeTo(playerPosY, 1e-9));
 
       expect(snapshot.hud.mana, closeTo(10.0, 1e-9));
-      expect(core.playerCastCooldownTicksLeft, 5); // ceil(0.25s * 20Hz)
+      expect(
+        core.playerProjectileCooldownTicksLeft,
+        8 - windupTicks,
+      ); // Cooldown already ticked during windup
     },
   );
 
   test('cast: equipped spell selects projectile + mana cost', () {
     const catalog = PlayerCatalog(
       bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-      spellId: SpellId.fireBolt,
+      projectileItemId: ProjectileItemId.fireBolt,
     );
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
@@ -109,8 +131,13 @@ void main() {
       ),
     );
 
-    core.applyCommands(const [CastPressedCommand(tick: 1)]);
+    core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
     core.stepOneTick();
+    final windupTicks = _scaledWindupTicks('eloise.fire_bolt', core.tickHz);
+    for (var i = 0; i < windupTicks; i += 1) {
+      core.applyCommands(const <Command>[]);
+      core.stepOneTick();
+    }
 
     final snapshot = core.buildSnapshot();
     final projectiles = snapshot.entities
@@ -119,9 +146,12 @@ void main() {
     expect(projectiles.length, 1);
     expect(projectiles.single.projectileId, ProjectileId.fireBolt);
 
-    // fireBolt costs 12 mana in SpellCatalog.
+    // fire_bolt costs 12 mana in AbilityCatalog.
     expect(snapshot.hud.mana, closeTo(8.0, 1e-9));
-    expect(core.playerCastCooldownTicksLeft, 5); // ceil(0.25s * 20Hz)
+    expect(
+      core.playerProjectileCooldownTicksLeft,
+      5 - windupTicks,
+    ); // Cooldown already ticked during windup
   });
 
   test('cast: cooldown blocks recast until it expires', () {
@@ -143,11 +173,20 @@ void main() {
       ),
     );
 
-    core.applyCommands(const [CastPressedCommand(tick: 1)]);
+    core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
     core.stepOneTick();
+    final windupTicks = _scaledWindupTicks('eloise.ice_bolt', core.tickHz);
+    for (var i = 0; i < windupTicks; i += 1) {
+      core.applyCommands(const <Command>[]);
+      core.stepOneTick();
+    }
 
-    core.applyCommands(const [CastPressedCommand(tick: 2)]);
+    core.applyCommands(const [ProjectilePressedCommand(tick: 2)]);
     core.stepOneTick();
+    for (var i = 0; i < windupTicks; i += 1) {
+      core.applyCommands(const <Command>[]);
+      core.stepOneTick();
+    }
 
     var snapshot = core.buildSnapshot();
     expect(snapshot.hud.mana, closeTo(20.0, 1e-9));
@@ -157,13 +196,17 @@ void main() {
     );
 
     // Wait until cooldown should be 0, then cast again.
-    for (var t = 3; t <= 6; t += 1) {
+    while (core.playerProjectileCooldownTicksLeft > 0) {
       core.applyCommands(<Command>[]);
       core.stepOneTick();
     }
 
-    core.applyCommands(const [CastPressedCommand(tick: 7)]);
+    core.applyCommands(const [ProjectilePressedCommand(tick: 9)]);
     core.stepOneTick();
+    for (var i = 0; i < windupTicks; i += 1) {
+      core.applyCommands(const <Command>[]);
+      core.stepOneTick();
+    }
 
     snapshot = core.buildSnapshot();
     expect(snapshot.hud.mana, closeTo(10.0, 1e-9));

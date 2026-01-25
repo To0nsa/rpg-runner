@@ -1,9 +1,11 @@
 import 'package:rpg_runner/core/ecs/entity_id.dart';
 
+import '../../abilities/ability_def.dart';
 import '../../combat/damage_type.dart';
 import '../../combat/status/status.dart';
 import '../../snapshots/enums.dart';
 import '../../tuning/ground_enemy_tuning.dart';
+import '../../util/fixed_math.dart';
 import '../stores/enemies/melee_engagement_store.dart';
 import '../stores/melee_intent_store.dart';
 import '../world.dart';
@@ -44,6 +46,7 @@ class EnemyMeleeSystem {
       if (ti == null) continue;
 
       if (world.controlLock.isStunned(enemy, currentTick)) continue;
+      if (world.activeAbility.hasActiveAbility(enemy)) continue;
 
       // Only write an intent on the first tick we enter the strike state.
       if (meleeEngagement.state[i] != MeleeEngagementState.strike) continue;
@@ -81,10 +84,20 @@ class EnemyMeleeSystem {
       final offsetX = dirX * (ownerHalfX * 0.5 + halfX);
       const offsetY = 0.0;
 
+      final commitTick = meleeEngagement.strikeStartTick[i];
+      final windupTicks = plannedHitTick > commitTick
+          ? plannedHitTick - commitTick
+          : tuning.combat.meleeWindupTicks;
+      final recoveryTicks = tuning.combat.meleeAnimTicks - windupTicks -
+          tuning.combat.meleeActiveTicks;
+      final clampedRecovery = recoveryTicks < 0 ? 0 : recoveryTicks;
+
       world.meleeIntent.set(
         enemy,
         MeleeIntentDef(
-          damage: tuning.combat.meleeDamage,
+          abilityId: 'common.enemy_strike',
+          slot: AbilitySlot.primary,
+          damage100: toFixed100(tuning.combat.meleeDamage),
           damageType: DamageType.physical,
           statusProfileId: StatusProfileId.none,
           halfX: halfX,
@@ -93,9 +106,12 @@ class EnemyMeleeSystem {
           offsetY: offsetY,
           dirX: dirX,
           dirY: 0.0,
+          commitTick: commitTick,
+          windupTicks: windupTicks,
           activeTicks: tuning.combat.meleeActiveTicks,
+          recoveryTicks: clampedRecovery,
           cooldownTicks: tuning.combat.meleeCooldownTicks,
-          staminaCost: 0.0,
+          staminaCost100: 0,
           tick: plannedHitTick,
         ),
       );

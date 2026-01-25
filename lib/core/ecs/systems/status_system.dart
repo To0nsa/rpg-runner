@@ -2,8 +2,8 @@ import '../../combat/damage.dart';
 import '../../combat/damage_type.dart';
 import '../../combat/status/status.dart';
 import '../../events/game_event.dart';
-import '../../util/double_math.dart';
 import '../../util/tick_math.dart';
+import '../../util/fixed_math.dart';
 import '../entity_id.dart';
 import '../stores/status/bleed_store.dart';
 import '../stores/status/burn_store.dart';
@@ -80,7 +80,7 @@ class StatusSystem {
         queueDamage(
           DamageRequest(
             target: target,
-            amount: burn.damagePerTick[i],
+            amount100: burn.damagePerTick100[i],
             damageType: DamageType.fire,
             sourceKind: DeathSourceKind.statusEffect,
           ),
@@ -118,7 +118,7 @@ class StatusSystem {
         queueDamage(
           DamageRequest(
             target: target,
-            amount: bleed.damagePerTick[i],
+            amount100: bleed.damagePerTick100[i],
             damageType: DamageType.bleed,
             sourceKind: DeathSourceKind.statusEffect,
           ),
@@ -171,12 +171,12 @@ class StatusSystem {
 
         var magnitude = app.magnitude;
         if (app.scaleByDamageType) {
-          final mod = resistance.modForEntity(req.target, req.damageType);
-          if (mod > 0.0) {
-            magnitude *= 1.0 + mod;
+          final modBp = resistance.modBpForEntity(req.target, req.damageType);
+          if (modBp > 0) {
+            magnitude = applyBp(magnitude, modBp);
           }
         }
-        if (magnitude <= 0.0) continue;
+        if (magnitude <= 0) continue;
 
         switch (app.type) {
           case StatusEffectType.slow:
@@ -209,7 +209,7 @@ class StatusSystem {
   void _applyStun(
     EcsWorld world,
     EntityId target,
-    double magnitude,
+    int magnitude,
     double durationSeconds,
   ) {
     // Stun requires statModifier for moveSpeedMul (and arguably any status effect target)
@@ -221,14 +221,11 @@ class StatusSystem {
     world.controlLock.addLock(target, LockFlag.stun, durationTicks, _currentTick);
 
     // Hard cancel active intents to prevent ghost execution
-    if (world.castIntent.has(target)) {
-      world.castIntent.tick[world.castIntent.indexOf(target)] = -1;
-    }
     if (world.meleeIntent.has(target)) {
       world.meleeIntent.tick[world.meleeIntent.indexOf(target)] = -1;
     }
-    if (world.rangedWeaponIntent.has(target)) {
-      world.rangedWeaponIntent.tick[world.rangedWeaponIntent.indexOf(target)] = -1;
+    if (world.projectileIntent.has(target)) {
+      world.projectileIntent.tick[world.projectileIntent.indexOf(target)] = -1;
     }
     // Cancel dash if active
     final mi = world.movement.tryIndexOf(target);
@@ -240,7 +237,7 @@ class StatusSystem {
   void _applySlow(
     EcsWorld world,
     EntityId target,
-    double magnitude,
+    int magnitude,
     double durationSeconds,
   ) {
     if (!world.statModifier.has(target)) return;
@@ -248,7 +245,7 @@ class StatusSystem {
     if (ticksLeft <= 0) return;
 
     final slow = world.slow;
-    final clamped = clampDouble(magnitude, 0.0, 0.9);
+    final clamped = clampInt(magnitude, 0, 9000);
     final index = slow.tryIndexOf(target);
     if (index == null) {
       slow.add(
@@ -268,7 +265,7 @@ class StatusSystem {
   void _applyDot(
     EcsWorld world, {
     required EntityId target,
-    required double magnitude,
+    required int magnitude,
     required double durationSeconds,
     required double periodSeconds,
     required bool useBurn,
@@ -279,8 +276,7 @@ class StatusSystem {
     final periodTicks = periodSeconds <= 0.0
         ? 1
         : ticksFromSecondsCeil(periodSeconds, _tickHz);
-    final periodSecondsResolved = periodTicks / _tickHz;
-    final damagePerTick = magnitude * periodSecondsResolved;
+    final damagePerTick100 = (magnitude * periodTicks) ~/ _tickHz;
 
     if (useBurn) {
       final burn = world.burn;
@@ -291,14 +287,14 @@ class StatusSystem {
           BurnDef(
             ticksLeft: ticksLeft,
             periodTicks: periodTicks,
-            damagePerTick: damagePerTick,
+            damagePerTick100: damagePerTick100,
           ),
         );
       } else {
         burn.ticksLeft[index] =
             burn.ticksLeft[index] > ticksLeft ? burn.ticksLeft[index] : ticksLeft;
-        if (damagePerTick > burn.damagePerTick[index]) {
-          burn.damagePerTick[index] = damagePerTick;
+        if (damagePerTick100 > burn.damagePerTick100[index]) {
+          burn.damagePerTick100[index] = damagePerTick100;
         }
         burn.periodTicks[index] = periodTicks;
         burn.periodTicksLeft[index] = periodTicks;
@@ -314,14 +310,14 @@ class StatusSystem {
         BleedDef(
           ticksLeft: ticksLeft,
           periodTicks: periodTicks,
-          damagePerTick: damagePerTick,
+          damagePerTick100: damagePerTick100,
         ),
       );
     } else {
       bleed.ticksLeft[index] =
           bleed.ticksLeft[index] > ticksLeft ? bleed.ticksLeft[index] : ticksLeft;
-      if (damagePerTick > bleed.damagePerTick[index]) {
-        bleed.damagePerTick[index] = damagePerTick;
+      if (damagePerTick100 > bleed.damagePerTick100[index]) {
+        bleed.damagePerTick100[index] = damagePerTick100;
       }
       bleed.periodTicks[index] = periodTicks;
       bleed.periodTicksLeft[index] = periodTicks;
@@ -343,8 +339,9 @@ class StatusSystem {
       final target = slow.denseEntities[i];
       final mi = mods.tryIndexOf(target);
       if (mi == null) continue;
-      final multiplier = clampDouble(1.0 - slow.magnitude[i], 0.1, 1.0);
-      mods.moveSpeedMul[mi] = multiplier;
+      final slowBp = slow.magnitude[i];
+      final multiplierBp = clampInt(bpScale - slowBp, 1000, bpScale);
+      mods.moveSpeedMul[mi] = multiplierBp / bpScale;
     }
   }
 }

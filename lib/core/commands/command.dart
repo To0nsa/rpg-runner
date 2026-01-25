@@ -35,6 +35,11 @@ final class StrikePressedCommand extends Command {
   const StrikePressedCommand({required super.tick});
 }
 
+/// One-shot secondary press event for the given tick.
+final class SecondaryPressedCommand extends Command {
+  const SecondaryPressedCommand({required super.tick});
+}
+
 /// Continuous projectile aim direction for the given tick.
 ///
 /// The direction should be normalized (or near-normalized). It is expressed in
@@ -74,28 +79,14 @@ final class ClearMeleeAimDirCommand extends Command {
   const ClearMeleeAimDirCommand({required super.tick});
 }
 
-/// Continuous ranged-weapon aim direction for the given tick.
+/// One-shot projectile slot press event for the given tick.
 ///
-/// Used by thrown weapons / bows, and consumed by the ranged weapon intent
-/// system (not spells).
-final class RangedAimDirCommand extends Command {
-  const RangedAimDirCommand({required super.tick, required this.x, required this.y});
-
-  final double x;
-  final double y;
+/// Preferred over spell/ranged-specific presses when using slot-based input.
+final class ProjectilePressedCommand extends Command {
+  const ProjectilePressedCommand({required super.tick});
 }
 
-/// Clears any held ranged-weapon aim direction for the given tick.
-final class ClearRangedAimDirCommand extends Command {
-  const ClearRangedAimDirCommand({required super.tick});
-}
-
-/// One-shot cast press event for the given tick.
-final class CastPressedCommand extends Command {
-  const CastPressedCommand({required super.tick});
-}
-
-/// One-shot ranged weapon press event for the given tick.
-final class RangedPressedCommand extends Command {
-  const RangedPressedCommand({required super.tick});
+/// One-shot bonus press event for the given tick.
+final class BonusPressedCommand extends Command {
+  const BonusPressedCommand({required super.tick});
 }

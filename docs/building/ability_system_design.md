@@ -28,7 +28,7 @@ These rules drive the implementation shape and must not be violated:
     *   Committed-Hold → Commit on start (locked until release).
 3.  **Mobility Preemption:** Mobility actions (Dash/Jump) explicitly preempt combat actions. Input buffer handles concurrency.
 4.  **Modifier Order:** Evaluation order is always **Ability → Weapon → Passive**.
-5.  **Data Ownership:** Ability defines *structure* (timing/targeting/base damage). Weapon defines *payload* (damage type/procs).
+5.  **Data Ownership:** Ability defines *structure* (timing/targeting/base damage). Weapon/Projectile Item defines *payload* (damage type/procs).
 
 ---
 
@@ -47,19 +47,19 @@ An ability is a discrete action the player can equip to a slot.
 * targeting model (instant/directional/aim)
 * animation key (presentation)
 
-### Weapon
+### Weapon / Projectile Item
 
-A weapon is equipment that provides the **payload** for actions and constrains what the player can equip.
+A weapon (or projectile item) is equipment that provides the **payload** for actions and constrains what the player can equip.
 
-A weapon:
+A weapon/projectile item:
 
-* **enables / gates** a compatible set of abilities (by tags / requirements)
+* **enables / gates** a compatible set of abilities (by weapon type requirements)
 * provides **damage-type defaults** (slashing / piercing / bludgeoning, etc.)
-* grants **passive stats + tags** (e.g., power, crit, range scalar, resistances)
+* grants **passive stats + traits** (e.g., power, crit, range scalar, resistances)
 * provides **effect modifiers** as **data-driven procs** applied at defined hook points (e.g., *onHit*: bleed/burn/slow)
 
-Weapons do **not** define the ability’s structure (targeting, timing windows, hitbox/projectile shape).  
-They **parameterize** the outcome via modifiers, so one ability (e.g., *Strike*) can behave consistently while producing different payloads depending on the weapon.
+Weapons and projectile items do **not** define the ability’s structure (targeting, timing windows, hitbox/projectile shape).  
+They **parameterize** the outcome via modifiers, so one ability (e.g., *Strike* or *Ice Bolt*) can behave consistently while producing different payloads depending on the equipped item.
 
 **Example:** equipping a one-hand sword enables *Sword Strike* and *Sword Parry*, sets damage type to *slashing*, and may add an on-hit *bleed* proc.
 
@@ -79,14 +79,14 @@ Weapons and abilities both contribute to the final outcome, but they own **diffe
 **Weapons define the payload (modifiers):**
 
 * Damage type defaults (slashing / piercing / bludgeoning)
-* Passive stats and tags
+* Passive stats and traits
 * **Effect modifiers** (burn, bleed, slow, etc.) expressed as **data-driven procs** applied at defined hook points (e.g., *on hit*, *on block*, *on kill*)
 
 > Design intent: the player should not need "Sword Strike (Bleed)" vs "Sword Strike (Burn)" as separate abilities.
 > The **same ability** can produce different effects depending on the equipped weapon's modifiers.
 
-**Final outcome** = ability structure + weapon payload.
-Abilities decide *how the action is executed*; weapons shape *what the hit carries*.
+**Final outcome** = ability structure + weapon/projectile payload.
+Abilities decide *how the action is executed*; weapons/projectile items shape *what the hit carries*.
 
 ---
 
@@ -100,10 +100,10 @@ A character has a set of named ability slots. Slots map to input buttons.
 | ------------- | --------------------------------- | -------------------------------------------------------- |
 | **Primary**   | Primary hand                      | strike, parry                                     |
 | **Secondary** | Secondary hand (used by two-handed) | shield bash, shield block       |
-| **Projectile**    | Projectile (projectile spells/throwing weapons) | quick throw, heavy throw, firebolt, icebolt, thundebolt          |
+| **Projectile**    | Projectile (projectile spells/throwing weapons) | quick throw, heavy throw, firebolt, icebolt, thunderbolt          |
 | **Mobility**  | Mobility                          | dash, roll                                               |
 | **Jump**      | Fixed Mobility                    | jump (fixed slot, always available)                      |
-| **Bonus**     | Flexible slot                     | any of Primary/Secondary/Projectile/Spell                |
+| **Bonus**     | Flexible slot                     | any of Primary/Secondary/Projectile                |
 
 ### Slot Rules
 
@@ -111,7 +111,7 @@ Each slot has **restrictions** that define what can be equipped.
 Restrictions are determined by:
 
 * **Slot role** (Primary/Secondary/Projectile/Mobility/Bonus)
-* **Ability tags** (Melee/Defensive/Throw/Spell/etc.)
+* **Ability categories/types** (Melee/Defensive/Projectile/Magic/etc.)
 * **Unlocks** (future meta progression)
 
 **Design rules:**
@@ -130,7 +130,7 @@ Abilities are grouped into broad categories to support clear slot restrictions a
 * **Secondary hand**: ability linked to what is equipped in the secondary gear slot; occupied by two-handed weapon if equipped
 * **Projectile**: ability linked to what is equipped in the projectile gear slot (spells or throwing weapons)
 * **Mobility**: special action (dash, roll, etc) — not a combat ability
-* **Spell**: spell ability, special ability (AoE, buffs etc)
+* **Magic**: spell ability, special ability (AoE, buffs etc)
 * **Combo** (Future): multi-tap ability that chains multiple attacks (double/triple tap sequences)
 
 > Categories are about player intent and slot compatibility, not implementation.
@@ -146,6 +146,7 @@ Mobility is a **special action**, not a combat ability. It follows unique rules:
 * **Concurrency:** Mobility does not block combat abilities — after mobility completes, the player may immediately use a combat ability.
 
 > **Jump** is a special case: it has its own dedicated button and slot. It follows the same "special action" rules as Mobility (not a combat ability).
+> Jump input cancels any in-progress combat ability immediately, but once the jump executes it should not block other abilities.
 
 ---
 
@@ -372,7 +373,7 @@ Examples for Eloise:
 
 * Primary requires a **weapon** (or two-handed weapon).
 * Secondary requires an **off-hand weapon** (acts as Primary if two-handed weapon equipped).
-* Projectile requires a **projectile**, either a spell or a throwing weapon.
+* Projectile requires a **projectile item**, either a spell or a throwing weapon.
 * Bonus does not require gear.
 
 **Design rule:** gear cannot be missing.

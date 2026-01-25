@@ -1,6 +1,6 @@
 ﻿REPO: C:\dev\rpg_runner
-COMMIT: fc588ab2a0330d2562c17a2557b45ad73b2c8a44
-DATE: 2026-01-23 18:02:16
+COMMIT: 53294e15e7981ae48dbffbbf3841dc670c074603
+DATE: 2026-01-23 21:17:32
 
 
 ===== FILE: lib/AGENTS.md =====
@@ -338,6 +338,8 @@ When asked to implement/fix something:
 
 
 ===== FILE: lib/core/abilities/ability_catalog.dart =====
+import '../combat/damage_type.dart';
+import '../projectiles/projectile_id.dart';
 import 'ability_def.dart';
 
 /// Static registry of all available abilities.
@@ -362,8 +364,9 @@ class AbilityCatalog {
       staminaCost: 0, manaCost: 0,
       cooldownTicks: 0,
       interruptPriority: InterruptPriority.combat,
-      animKey: 'punch',
+      animKey: AnimKey.punch,
       tags: {AbilityTag.melee, AbilityTag.light},
+      baseDamage: 1500, // Fallback melee damage
     ),
 
     // ------------------------------------------------------------------------
@@ -384,9 +387,10 @@ class AbilityCatalog {
       staminaCost: 500, manaCost: 0, // 5.0 stamina
       cooldownTicks: 18, // 0.30s
       interruptPriority: InterruptPriority.combat,
-      animKey: 'strike',
+      animKey: AnimKey.strike,
       tags: {AbilityTag.melee, AbilityTag.physical},
       requiredTags: {AbilityTag.melee, AbilityTag.physical},
+      baseDamage: 1500, // PlayerTuning meleeDamage 15.0
     ),
 
     'eloise.sword_parry': AbilityDef(
@@ -400,9 +404,10 @@ class AbilityCatalog {
       staminaCost: 500, manaCost: 0,
       cooldownTicks: 30, // 0.50s (est)
       interruptPriority: InterruptPriority.combat,
-      animKey: 'parry',
+      animKey: AnimKey.parry,
       tags: {AbilityTag.melee, AbilityTag.physical, AbilityTag.opener},
       requiredTags: {AbilityTag.melee, AbilityTag.physical},
+      baseDamage: 0,
     ),
 
     // ------------------------------------------------------------------------
@@ -421,9 +426,10 @@ class AbilityCatalog {
       staminaCost: 1200, manaCost: 0,
       cooldownTicks: 24,
       interruptPriority: InterruptPriority.combat,
-      animKey: 'shield_bash',
+      animKey: AnimKey.shieldBash,
       tags: {AbilityTag.melee, AbilityTag.physical, AbilityTag.heavy},
       requiredTags: {AbilityTag.melee, AbilityTag.heavy},
+      baseDamage: 1500, // Assuming standardized melee damage
     ),
 
     'eloise.shield_block': AbilityDef(
@@ -436,9 +442,10 @@ class AbilityCatalog {
       staminaCost: 500, manaCost: 0,
       cooldownTicks: 12,
       interruptPriority: InterruptPriority.combat,
-      animKey: 'shield_block',
+      animKey: AnimKey.shieldBlock,
       tags: {AbilityTag.buff, AbilityTag.physical},
       requiredTags: {AbilityTag.buff},
+      baseDamage: 0,
     ),
 
     // ------------------------------------------------------------------------
@@ -450,7 +457,7 @@ class AbilityCatalog {
       allowedSlots: {AbilitySlot.projectile},
       targetingModel: TargetingModel.aimed,
       hitDelivery: ProjectileHitDelivery(
-        projectileId: 'knife',
+        projectileId: ProjectileId.throwingKnife,
         hitPolicy: HitPolicy.oncePerTarget,
       ),
       // Cooldown 0.30s -> 18 ticks
@@ -459,9 +466,10 @@ class AbilityCatalog {
       staminaCost: 500, manaCost: 0,
       cooldownTicks: 18,
       interruptPriority: InterruptPriority.combat,
-      animKey: 'throw',
+      animKey: AnimKey.throwItem,
       tags: {AbilityTag.projectile, AbilityTag.physical},
       requiredTags: {AbilityTag.projectile},
+      baseDamage: 1000, // RangedWeaponCatalog.throwingKnife legacyDamage 10.0
     ),
 
     'eloise.ice_bolt': AbilityDef(
@@ -470,7 +478,7 @@ class AbilityCatalog {
       allowedSlots: {AbilitySlot.projectile},
       targetingModel: TargetingModel.aimed,
       hitDelivery: ProjectileHitDelivery(
-        projectileId: 'ice_bolt',
+        projectileId: ProjectileId.iceBolt,
         hitPolicy: HitPolicy.oncePerTarget,
       ),
       // Cost 10.0 -> 1000
@@ -478,8 +486,10 @@ class AbilityCatalog {
       staminaCost: 0, manaCost: 1000,
       cooldownTicks: 24,
       interruptPriority: InterruptPriority.combat,
-      animKey: 'cast',
+      animKey: AnimKey.cast,
       tags: {AbilityTag.projectile, AbilityTag.ice},
+      baseDamage: 1500, // SpellCatalog.iceBolt damage 15.0
+      baseDamageType: DamageType.ice,
     ),
 
     'eloise.fire_bolt': AbilityDef(
@@ -488,15 +498,17 @@ class AbilityCatalog {
       allowedSlots: {AbilitySlot.projectile},
       targetingModel: TargetingModel.aimed,
       hitDelivery: ProjectileHitDelivery(
-        projectileId: 'fire_bolt',
+        projectileId: ProjectileId.fireBolt,
       ),
       // Cost 12.0 -> 1200
       windupTicks: 6, activeTicks: 2, recoveryTicks: 8,
       staminaCost: 0, manaCost: 1200,
       cooldownTicks: 30,
       interruptPriority: InterruptPriority.combat,
-      animKey: 'cast',
+      animKey: AnimKey.cast,
       tags: {AbilityTag.projectile, AbilityTag.fire},
+      baseDamage: 1800, // SpellCatalog.fireBolt damage 18.0
+      baseDamageType: DamageType.fire,
     ),
 
     'eloise.thunder_bolt': AbilityDef(
@@ -505,15 +517,17 @@ class AbilityCatalog {
       allowedSlots: {AbilitySlot.projectile},
       targetingModel: TargetingModel.aimed,
       hitDelivery: ProjectileHitDelivery(
-        projectileId: 'thunder_bolt',
+        projectileId: ProjectileId.thunderBolt,
       ),
       // Cost 10.0 -> 1000
       windupTicks: 6, activeTicks: 2, recoveryTicks: 8,
       staminaCost: 0, manaCost: 1000,
       cooldownTicks: 36,
       interruptPriority: InterruptPriority.combat,
-      animKey: 'cast',
+      animKey: AnimKey.cast,
       tags: {AbilityTag.projectile, AbilityTag.lightning},
+      baseDamage: 500, // SpellCatalog.thunderBolt damage 5.0
+      baseDamageType: DamageType.thunder,
     ),
 
     // ------------------------------------------------------------------------
@@ -533,8 +547,9 @@ class AbilityCatalog {
       cooldownTicks: 120,
       interruptPriority: InterruptPriority.mobility,
       canBeInterruptedBy: {}, 
-      animKey: 'dash',
+      animKey: AnimKey.dash,
       tags: {AbilityTag.light, AbilityTag.buff},
+      baseDamage: 0,
     ),
 
     'eloise.roll': AbilityDef(
@@ -549,8 +564,9 @@ class AbilityCatalog {
       staminaCost: 200, manaCost: 0,
       cooldownTicks: 120,
       interruptPriority: InterruptPriority.mobility,
-      animKey: 'roll',
+      animKey: AnimKey.roll,
       tags: {AbilityTag.light, AbilityTag.buff},
+      baseDamage: 0,
     ),
   };
 
@@ -559,6 +575,8 @@ class AbilityCatalog {
 
 
 ===== FILE: lib/core/abilities/ability_def.dart =====
+import '../projectiles/projectile_id.dart';
+import '../combat/damage_type.dart';
 
 // Validates strict format: "character.ability_name" (lower snake case)
 // Must have at least one dot, segments must be non-empty [a-z0-9_].
@@ -567,11 +585,28 @@ typedef AbilityKey = String;
 
 // Validates strict format: "character.anim_name" or "shared.anim_name"
 // Example: "eloise.attack_1"
-typedef AnimKey = String;
-
-// Validates strict format: "type.name"
-// Example: "arrow.standard"
-typedef ProjectileId = String;
+enum AnimKey {
+  idle,
+  stun,
+  run,
+  jump,
+  fall,
+  strike,
+  backStrike,
+  parry,
+  cast,
+  ranged,
+  dash,
+  roll,
+  hit,
+  death,
+  spawn,
+  walk,
+  punch,
+  shieldBash,
+  shieldBlock,
+  throwItem,
+}
 
 bool isValidAbilityKey(AbilityKey key) {
   final RegExp validKey = RegExp(r'^[a-z0-9_]+\.[a-z0-9_]+$');
@@ -740,6 +775,8 @@ class AbilityDef {
     this.tags = const {},
     this.requiredTags = const {},
     this.requiresEquippedWeapon = false,
+    required this.baseDamage,
+    this.baseDamageType = DamageType.physical,
   }) : assert(windupTicks >= 0 && activeTicks >= 0 && recoveryTicks >= 0, 'Ticks cannot be negative'),
        assert(cooldownTicks >= 0, 'Cooldown cannot be negative'),
        assert(staminaCost >= 0 && manaCost >= 0, 'Costs cannot be negative'),
@@ -785,6 +822,17 @@ class AbilityDef {
   /// If true, this ability requires *some* weapon to be equipped in its slot,
   /// even if [requiredTags] is empty.
   final bool requiresEquippedWeapon;
+
+  /// Base damage for this ability.
+  /// Fixed-point: 100 = 1.0 damage.
+  /// - Melee: Base damage of the swing.
+  /// - Thrown: Base damage of the throw.
+  /// - Spell: Base damage of the spell projectile.
+  final int baseDamage;
+
+  /// Base damage type (element) for this ability.
+  /// Explicitly defined (Phase 5), no inference from tags.
+  final DamageType baseDamageType;
 
   // Runtime Validation (Helper)
   bool get isValid {
@@ -2065,6 +2113,122 @@ enum Faction {
   enemy
 }
 
+
+
+===== FILE: lib/core/combat/hit_payload.dart =====
+import '../abilities/ability_def.dart' show AbilityKey;
+import '../ecs/entity_id.dart';
+import '../weapons/weapon_id.dart';
+import '../weapons/weapon_proc.dart';
+import 'damage_type.dart';
+
+/// Resolved payload for a damaging action.
+///
+/// This is the "Frozen Snapshot" of an attack, constructed by [HitPayloadBuilder].
+/// It carries all necessary data for the consumer (Projectile/Melee System) to
+/// execute the hit.
+///
+/// **Design Pillars:**
+/// *   **Integer Determinism**: [damage100] is in fixed-point (100 = 1.0).
+/// *   **Explicit Type**: [damageType] is fully resolved.
+/// *   **Potential Procs**: [procs] list candidate effects (rng roll happens at hit time).
+class HitPayload {
+  const HitPayload({
+    required this.damage100,
+    required this.damageType,
+    required this.procs,
+    required this.sourceId,
+    this.abilityId,
+    this.weaponId,
+  });
+
+  /// Final calculated damage in fixed-point units (100 = 1.0 visual damage).
+  ///
+  /// Includes base ability damage + weapon scaling + any intent-time modifiers.
+  final int damage100;
+
+  /// The elemental type of the damage (resolved from Ability vs Weapon priority).
+  final DamageType damageType;
+
+  /// List of potential on-hit effects contributed by the weapon/ability.
+  ///
+  /// The consumer is responsible for rolling the chance (bp) to apply these.
+  final List<WeaponProc> procs;
+
+  /// The entity that originated this hit (Player/Enemy).
+  final EntityId sourceId;
+
+  // Debugging / Logging
+  final AbilityKey? abilityId;
+  final WeaponId? weaponId;
+}
+
+
+===== FILE: lib/core/combat/hit_payload_builder.dart =====
+import '../weapons/weapon_proc.dart';
+import '../weapons/weapon_stats.dart';
+import '../abilities/ability_def.dart';
+import '../ecs/entity_id.dart';
+import 'damage_type.dart';
+import 'hit_payload.dart';
+
+/// Canonical builder for [HitPayload].
+///
+/// Encapsulates the logic for combining an [AbilityDef] (Base) with a
+/// set of Modifiers (Stats/Procs) to produce a deterministic damage snapshot.
+///
+/// **Usage:**
+/// *   **Producers** (Intent Systems): Call `build` to freeze the payload into the intent.
+/// *   **UI** (Tooltip/Preview): Call `build` to show predicted damage.
+class HitPayloadBuilder {
+  static HitPayload build({
+    required AbilityDef ability,
+    required EntityId source,
+    // Modifiers (extracted from WeaponDef or RangedWeaponDef or Buffs)
+    WeaponStats? weaponStats,
+    DamageType? weaponDamageType,
+    List<WeaponProc> weaponProcs = const [],
+  }) {
+    // 1. Start with Ability Base
+    int finalDamage100 = ability.baseDamage; // Fixed-point (e.g. 1500 = 15.0)
+    DamageType finalDamageType = ability.baseDamageType;
+    final List<WeaponProc> finalProcs = [];
+
+    // 2. Apply Weapon Modifiers
+    if (weaponStats != null) {
+      // A. Power Scaling (Integer Math)
+      // Math: damage = base * (1 + bonusBp/10000)
+      // Impl: (base * (10000 + bonusBp)) ~/ 10000
+      final bonusBp = weaponStats.powerBonusBp;
+      if (bonusBp > 0) {
+        // e.g. 1500 * 12000 ~/ 10000 = 1800
+        finalDamage100 = (finalDamage100 * (10000 + bonusBp)) ~/ 10000;
+      }
+    }
+
+    if (weaponDamageType != null) {
+      // B. Damage Type Override
+      // Rule: Weapon overrides Physical ability. Elemental ability (Fire/Ice) keeps its element.
+      if (finalDamageType == DamageType.physical) {
+        finalDamageType = weaponDamageType;
+      }
+    }
+
+    // C. Procs
+    finalProcs.addAll(weaponProcs);
+
+    return HitPayload(
+      damage100: finalDamage100,
+      damageType: finalDamageType,
+      procs: finalProcs,
+      sourceId: source,
+      abilityId: ability.id,
+      // Removed weaponId debug field to decouple? Or keep optional?
+      // Let's remove weaponId from builder logic, caller can add if needed via 'copyWith'? 
+      // Or just omit relevant debug info for now.
+    );
+  }
+}
 
 
 ===== FILE: lib/core/combat/status/status.dart =====
@@ -3941,6 +4105,9 @@ class BodyStore extends SparseSet {
 
 
 ===== FILE: lib/core/ecs/stores/cast_intent_store.dart =====
+import '../../combat/damage_type.dart';
+import '../../combat/status/status.dart';
+import '../../projectiles/projectile_id.dart';
 import '../../spells/spell_id.dart';
 import '../entity_id.dart';
 import '../sparse_set.dart';
@@ -3952,12 +4119,22 @@ class CastIntentDef {
     required this.dirY,
     required this.fallbackDirX,
     required this.fallbackDirY,
+    required this.damage100,
+    required this.manaCost,
+    required this.projectileId,
+    required this.damageType,
+    required this.statusProfileId,
     required this.originOffset,
     required this.cooldownTicks,
     required this.tick,
   });
 
   final SpellId spellId;
+  final int damage100;
+  final double manaCost;
+  final ProjectileId projectileId;
+  final DamageType damageType;
+  final StatusProfileId statusProfileId;
   final double dirX;
   final double dirY;
   final double fallbackDirX;
@@ -3980,6 +4157,11 @@ class CastIntentDef {
 /// This avoids the overhead of adding/removing components every frame.
 class CastIntentStore extends SparseSet {
   final List<SpellId> spellId = <SpellId>[];
+  final List<int> damage100 = <int>[];
+  final List<double> manaCost = <double>[];
+  final List<ProjectileId> projectileId = <ProjectileId>[];
+  final List<DamageType> damageType = <DamageType>[];
+  final List<StatusProfileId> statusProfileId = <StatusProfileId>[];
   final List<double> dirX = <double>[];
   final List<double> dirY = <double>[];
   final List<double> fallbackDirX = <double>[];
@@ -3999,6 +4181,11 @@ class CastIntentStore extends SparseSet {
     );
     final i = indexOf(entity);
     spellId[i] = def.spellId;
+    damage100[i] = def.damage100;
+    manaCost[i] = def.manaCost;
+    projectileId[i] = def.projectileId;
+    damageType[i] = def.damageType;
+    statusProfileId[i] = def.statusProfileId;
     dirX[i] = def.dirX;
     dirY[i] = def.dirY;
     fallbackDirX[i] = def.fallbackDirX;
@@ -4011,6 +4198,11 @@ class CastIntentStore extends SparseSet {
   @override
   void onDenseAdded(int denseIndex) {
     spellId.add(SpellId.iceBolt);
+    damage100.add(0);
+    manaCost.add(0.0);
+    projectileId.add(ProjectileId.iceBolt);
+    damageType.add(DamageType.ice);
+    statusProfileId.add(StatusProfileId.none);
     dirX.add(0.0);
     dirY.add(0.0);
     fallbackDirX.add(1.0);
@@ -4023,6 +4215,11 @@ class CastIntentStore extends SparseSet {
   @override
   void onSwapRemove(int removeIndex, int lastIndex) {
     spellId[removeIndex] = spellId[lastIndex];
+    damage100[removeIndex] = damage100[lastIndex];
+    manaCost[removeIndex] = manaCost[lastIndex];
+    projectileId[removeIndex] = projectileId[lastIndex];
+    damageType[removeIndex] = damageType[lastIndex];
+    statusProfileId[removeIndex] = statusProfileId[lastIndex];
     dirX[removeIndex] = dirX[lastIndex];
     dirY[removeIndex] = dirY[lastIndex];
     fallbackDirX[removeIndex] = fallbackDirX[lastIndex];
@@ -4032,6 +4229,11 @@ class CastIntentStore extends SparseSet {
     tick[removeIndex] = tick[lastIndex];
 
     spellId.removeLast();
+    damage100.removeLast();
+    manaCost.removeLast();
+    projectileId.removeLast();
+    damageType.removeLast();
+    statusProfileId.removeLast();
     dirX.removeLast();
     dirY.removeLast();
     fallbackDirX.removeLast();
@@ -6255,12 +6457,23 @@ class ProjectileStore extends SparseSet {
 
 ===== FILE: lib/core/ecs/stores/ranged_weapon_intent_store.dart =====
 import '../../weapons/ranged_weapon_id.dart';
+import '../../combat/damage_type.dart';
+import '../../combat/status/status.dart';
+import '../../projectiles/projectile_id.dart';
 import '../entity_id.dart';
 import '../sparse_set.dart';
 
 class RangedWeaponIntentDef {
   const RangedWeaponIntentDef({
-    required this.weaponId,
+    required this.weaponId, // Kept for debugging/legacy
+    required this.damage100,
+    required this.staminaCost,
+    required this.rechargeTicks,
+    required this.projectileId,
+    required this.damageType,
+    required this.statusProfileId,
+    required this.ballistic,
+    required this.gravityScale,
     required this.dirX,
     required this.dirY,
     required this.fallbackDirX,
@@ -6270,6 +6483,15 @@ class RangedWeaponIntentDef {
   });
 
   final RangedWeaponId weaponId;
+  final int damage100;
+  final double staminaCost;
+  final int rechargeTicks;
+  final ProjectileId projectileId;
+  final DamageType damageType;
+  final StatusProfileId statusProfileId;
+  final bool ballistic;
+  final double gravityScale;
+
   final double dirX;
   final double dirY;
   final double fallbackDirX;
@@ -6287,6 +6509,15 @@ class RangedWeaponIntentDef {
 /// Written by player input and consumed by `RangedWeaponSystem`.
 class RangedWeaponIntentStore extends SparseSet {
   final List<RangedWeaponId> weaponId = <RangedWeaponId>[];
+  final List<int> damage100 = <int>[];
+  final List<double> staminaCost = <double>[];
+  final List<int> rechargeTicks = <int>[];
+  final List<ProjectileId> projectileId = <ProjectileId>[];
+  final List<DamageType> damageType = <DamageType>[];
+  final List<StatusProfileId> statusProfileId = <StatusProfileId>[];
+  final List<bool> ballistic = <bool>[];
+  final List<double> gravityScale = <double>[];
+  
   final List<double> dirX = <double>[];
   final List<double> dirY = <double>[];
   final List<double> fallbackDirX = <double>[];
@@ -6305,6 +6536,15 @@ class RangedWeaponIntentStore extends SparseSet {
     );
     final i = indexOf(entity);
     weaponId[i] = def.weaponId;
+    damage100[i] = def.damage100;
+    staminaCost[i] = def.staminaCost;
+    rechargeTicks[i] = def.rechargeTicks;
+    projectileId[i] = def.projectileId;
+    damageType[i] = def.damageType;
+    statusProfileId[i] = def.statusProfileId;
+    ballistic[i] = def.ballistic;
+    gravityScale[i] = def.gravityScale;
+    
     dirX[i] = def.dirX;
     dirY[i] = def.dirY;
     fallbackDirX[i] = def.fallbackDirX;
@@ -6316,6 +6556,15 @@ class RangedWeaponIntentStore extends SparseSet {
   @override
   void onDenseAdded(int denseIndex) {
     weaponId.add(RangedWeaponId.throwingKnife);
+    damage100.add(0);
+    staminaCost.add(0.0);
+    rechargeTicks.add(0);
+    projectileId.add(ProjectileId.throwingKnife); // Default matching weaponId
+    damageType.add(DamageType.physical);
+    statusProfileId.add(StatusProfileId.none);
+    ballistic.add(true);
+    gravityScale.add(1.0);
+    
     dirX.add(0.0);
     dirY.add(0.0);
     fallbackDirX.add(1.0);
@@ -6327,6 +6576,15 @@ class RangedWeaponIntentStore extends SparseSet {
   @override
   void onSwapRemove(int removeIndex, int lastIndex) {
     weaponId[removeIndex] = weaponId[lastIndex];
+    damage100[removeIndex] = damage100[lastIndex];
+    staminaCost[removeIndex] = staminaCost[lastIndex];
+    rechargeTicks[removeIndex] = rechargeTicks[lastIndex];
+    projectileId[removeIndex] = projectileId[lastIndex];
+    damageType[removeIndex] = damageType[lastIndex];
+    statusProfileId[removeIndex] = statusProfileId[lastIndex];
+    ballistic[removeIndex] = ballistic[lastIndex];
+    gravityScale[removeIndex] = gravityScale[lastIndex];
+    
     dirX[removeIndex] = dirX[lastIndex];
     dirY[removeIndex] = dirY[lastIndex];
     fallbackDirX[removeIndex] = fallbackDirX[lastIndex];
@@ -6335,6 +6593,15 @@ class RangedWeaponIntentStore extends SparseSet {
     tick[removeIndex] = tick[lastIndex];
 
     weaponId.removeLast();
+    damage100.removeLast();
+    staminaCost.removeLast();
+    rechargeTicks.removeLast();
+    projectileId.removeLast();
+    damageType.removeLast();
+    statusProfileId.removeLast();
+    ballistic.removeLast();
+    gravityScale.removeLast();
+
     dirX.removeLast();
     dirY.removeLast();
     fallbackDirX.removeLast();
@@ -7540,10 +7807,17 @@ class EnemyCastSystem {
     }
 
     final enemy = world.enemy.denseEntities[enemyIndex];
+    final spellDef = spells.get(spellId);
+
     world.castIntent.set(
       enemy,
       CastIntentDef(
         spellId: spellId,
+        damage100: (spellDef.stats.damage * 100).round(),
+        manaCost: spellDef.stats.manaCost,
+        projectileId: spellDef.projectileId!,
+        damageType: spellDef.stats.damageType,
+        statusProfileId: spellDef.stats.statusProfileId,
         dirX: targetX - enemyCenterX,
         dirY: targetY - enemyCenterY,
         fallbackDirX: 1.0,
@@ -9354,6 +9628,12 @@ import '../entity_id.dart';
 import '../stores/combat/equipped_loadout_store.dart';
 import '../stores/cast_intent_store.dart';
 import '../world.dart';
+import '../../abilities/ability_catalog.dart';
+import '../../abilities/ability_def.dart';
+import '../../projectiles/projectile_id.dart';
+import '../../combat/damage_type.dart';
+import '../../combat/status/status.dart';
+import '../../combat/hit_payload_builder.dart';
 
 /// Translates player input into a [CastIntentDef] for the [SpellCastSystem].
 ///
@@ -9448,17 +9728,72 @@ class PlayerCastSystem {
 
     // IMPORTANT: PlayerCastSystem writes intent only; execution happens in
     // `SpellCastSystem` which owns mana/cooldown rules and projectile spawning.
+    // Use Ability ID from Loadout (Phase 4 requirement)
+    final abilityId = world.equippedLoadout.abilityProjectileId[li];
+    final ability = AbilityCatalog.tryGet(abilityId);
+    
+    if (ability == null) {
+      assert(false, 'Ability not found: $abilityId');
+      return;
+    }
+
+    // Phase 5: Use Canonical Builder
+    // Note: Spells don't use 'WeaponDef' generally, unless we support 'Staff' stats later.
+    // For now pass null weapon or fetch if we had one.
+    // In Phase 5 design, we said we'd use equipped weapon stats?
+    // Let's check if the player has a main hand weapon that scales spells?
+    // For now, pass null to keep it simple, or pass MainHand if designed.
+    // Design says: "Ability (Base) + Weapon (Stats/Mods)".
+    // So we SHOULD pass the weapon if it affects spells.
+    // Let's fetch main weapon for "Global Power Bonus".
+    final weaponId = world.equippedLoadout.mainWeaponId[li];
+    // Need WeaponCatalog to look it up? System doesn't have it injected.
+    // PlayerCastSystem constructor only has AbilityTuning.
+    // Recommendation: Pass null for weapon for Spells in this step, or inject WeaponCatalog.
+    // Given the task scope, let's keep it simple: Spells = Base Ability for now
+    // UNLESS we want "Wand" scaling.
+    // Let's pass null for now to match current behavior (spells don't scale with swords).
+
+    final payload = HitPayloadBuilder.build(
+      ability: ability,
+      source: player,
+      // weaponStats: null, // Pass if we want scaling
+    );
+
+    // Resolve Projectile ID (Phase 4 Logic retained or moved to AbilityDef?)
+    // AbilityDef has hitDelivery.
+    ProjectileId projectileId;
+    if (ability.hitDelivery is ProjectileHitDelivery) {
+      projectileId = (ability.hitDelivery as ProjectileHitDelivery).projectileId;
+    } else {
+      projectileId = ProjectileId.iceBolt; 
+    }
+
     world.castIntent.set(
       player,
       CastIntentDef(
-        spellId: spellId,
+        spellId: spellId, // Legacy
+        damage100: payload.damage100,
+        manaCost: ability.manaCost / 100.0,
+        projectileId: projectileId,
+        damageType: payload.damageType,
+        statusProfileId: StatusProfileId.none, // Procs handled via payload.procs? Or keep single?
+        // IntentDef has 'statusProfileId'. New Payload has 'procs'.
+        // We need to bridge this.
+        // If payload.procs is not empty, use the first one?
+        // Or Intent needs to carry 'procs'?
+        // Phase 5 doc says Intent carries "Frozen Snapshot".
+        // The IntentDef currently has `statusProfileId`.
+        // We probably need to update IntentDef to `List<WeaponProc> procs`.
+        // BUT for this step, let's bridge:
+        // payload.procs.isNotEmpty ? payload.procs.first.statusProfileId : StatusProfileId.none
+        originOffset: spawnOffset,
+        cooldownTicks: ability.cooldownTicks,
+        tick: currentTick,
         dirX: rawAimX,
         dirY: rawAimY,
         fallbackDirX: fallbackDirX,
         fallbackDirY: 0.0,
-        originOffset: spawnOffset,
-        cooldownTicks: abilities.castCooldownTicks,
-        tick: currentTick,
       ),
     );
     world.actionAnim.lastCastTick[actionAnimIndex] = currentTick;
@@ -9857,6 +10192,10 @@ import '../entity_id.dart';
 import '../stores/combat/equipped_loadout_store.dart';
 import '../stores/ranged_weapon_intent_store.dart';
 import '../world.dart';
+import '../../abilities/ability_catalog.dart';
+import '../../abilities/ability_def.dart';
+import '../../projectiles/projectile_id.dart';
+import '../../combat/hit_payload_builder.dart';
 import 'dart:math';
 
 /// Translates player input into a [RangedWeaponIntentDef] for the
@@ -9939,10 +10278,43 @@ class PlayerRangedWeaponSystem {
           dirX >= 0 ? Facing.right : Facing.left;
     }
 
+    final abilityId = world.equippedLoadout.abilityProjectileId[li];
+    final ability = AbilityCatalog.tryGet(abilityId);
+    if (ability == null) {
+      assert(false, 'Ability not found in catalog: $abilityId');
+      return;
+    }
+
+    // Determine Projectile Identity
+    // Phase 4 Rule: Spells own projectile; Thrown uses Weapon's.
+    final ProjectileId projectileId;
+    if (ability.hitDelivery is ProjectileHitDelivery) {
+       projectileId = (ability.hitDelivery as ProjectileHitDelivery).projectileId;
+    } else {
+       projectileId = weapon.projectileId;
+    }
+
+    // Build Payload via Canonical Builder
+    final payload = HitPayloadBuilder.build(
+      ability: ability,
+      source: player,
+      weaponStats: weapon.stats,
+      weaponDamageType: weapon.damageType,
+      weaponProcs: weapon.procs,
+    );
+
     world.rangedWeaponIntent.set(
       player,
       RangedWeaponIntentDef(
         weaponId: weaponId,
+        damage100: payload.damage100,
+        staminaCost: ability.staminaCost / 100.0,
+        rechargeTicks: ability.cooldownTicks,
+        projectileId: projectileId,
+        damageType: payload.damageType,
+        statusProfileId: weapon.statusProfileId, // Bridge: Future use payload.procs
+        ballistic: weapon.ballistic,
+        gravityScale: weapon.gravityScale,
         dirX: aimX,
         dirY: aimY,
         fallbackDirX: fallbackDirX,
@@ -10271,11 +10643,10 @@ class RangedWeaponSystem {
       final faction = factions.faction[fi];
 
       final weaponId = intents.weaponId[ii];
-      final weapon = weapons.base.get(weaponId);
+      // final weapon = weapons.base.get(weaponId); // PHASE 4: Bypass Catalog
 
       // Stamina check.
-      // ignore: deprecated_member_use_from_same_package
-      final staminaCost = weapon.legacyStaminaCost;
+      final staminaCost = intents.staminaCost[ii];
       int? si;
       double? nextStamina;
       if (staminaCost > 0.0) {
@@ -10289,7 +10660,7 @@ class RangedWeaponSystem {
       spawnRangedWeaponProjectileFromCaster(
         world,
         projectiles: projectiles,
-        projectileId: weapon.projectileId,
+        projectileId: intents.projectileId[ii], // Phase 4
         faction: faction,
         owner: caster,
         casterX: transforms.posX[ti],
@@ -10299,12 +10670,12 @@ class RangedWeaponSystem {
         dirY: intents.dirY[ii],
         fallbackDirX: intents.fallbackDirX[ii],
         fallbackDirY: intents.fallbackDirY[ii],
-        // ignore: deprecated_member_use_from_same_package
-        damage: weapon.legacyDamage,
-        damageType: weapon.damageType,
-        statusProfileId: weapon.statusProfileId,
-        ballistic: weapon.ballistic,
-        gravityScale: weapon.gravityScale,
+
+        damage100: intents.damage100[ii], // Phase 5
+        damageType: intents.damageType[ii], // Phase 4
+        statusProfileId: intents.statusProfileId[ii], // Phase 4
+        ballistic: intents.ballistic[ii], // Phase 4
+        gravityScale: intents.gravityScale[ii], // Phase 4
       );
 
       // Apply stamina cost.
@@ -10312,8 +10683,7 @@ class RangedWeaponSystem {
         staminas.stamina[si] =
             clampDouble(nextStamina!, 0.0, staminas.staminaMax[si]);
       }
-      cooldowns.rangedWeaponCooldownTicksLeft[ci] =
-          weapons.cooldownTicks(weaponId);
+      cooldowns.rangedWeaponCooldownTicksLeft[ci] = intents.rechargeTicks[ii];
     }
   }
 }
@@ -10614,12 +10984,11 @@ class SpellCastSystem {
       final mi = manas.tryIndexOf(caster);
       if (mi == null) continue;
 
-      // Check Mana Cost.
-      final spellId = intents.spellId[ii];
-      final def = spells.get(spellId);
+      // Check Mana Cost (Phase 4: from Intent)
       final currentMana = manas.mana[mi];
+      final manaCost = intents.manaCost[ii];
       
-      if (currentMana < def.stats.manaCost) continue;
+      if (currentMana < manaCost) continue;
 
       // Faction is optional generally, but required for projectile ownership usually.
       final fi = factions.tryIndexOf(caster);
@@ -10631,7 +11000,7 @@ class SpellCastSystem {
         world,
         spells: spells,
         projectiles: projectiles,
-        spellId: spellId,
+        spellId: intents.spellId[ii],
         faction: faction,
         owner: caster,
         casterX: transforms.posX[ti],
@@ -10641,13 +11010,18 @@ class SpellCastSystem {
         dirY: intents.dirY[ii],
         fallbackDirX: intents.fallbackDirX[ii],
         fallbackDirY: intents.fallbackDirY[ii],
+        // Phase 4 Overrides
+        overrideProjectileId: intents.projectileId[ii],
+        overrideDamage100: intents.damage100[ii],
+        overrideDamageType: intents.damageType[ii],
+        overrideStatusProfileId: intents.statusProfileId[ii],
       );
 
       // Only apply costs if the spell actually did something (spawned).
       if (spawned == null) continue;
 
       manas.mana[mi] = clampDouble(
-        currentMana - def.stats.manaCost,
+        currentMana - manaCost,
         0.0,
         manas.manaMax[mi],
       );
@@ -17790,6 +18164,7 @@ import 'spells/spell_catalog.dart';
 import 'players/player_tuning.dart';
 import 'util/vec2.dart';
 import 'weapons/ranged_weapon_catalog.dart';
+import 'abilities/ability_catalog.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SnapshotBuilder
@@ -17915,8 +18290,13 @@ class SnapshotBuilder {
     final mana = world.mana.mana[mai];
     final equippedSpellId = world.equippedLoadout.spellId[li];
     final projectileManaCost = spells.get(equippedSpellId).stats.manaCost;
-    final rangedWeaponId = world.equippedLoadout.rangedWeaponId[li];
-    final rangedWeaponDef = rangedWeapons.base.get(rangedWeaponId);
+
+
+    
+    // Phase 5: Ranged Affordability uses Ability Cost
+    final projectileAbilityId = world.equippedLoadout.abilityProjectileId[li];
+    final projectileAbility = AbilityCatalog.tryGet(projectileAbilityId);
+    final rangedStaminaCost = projectileAbility != null ? projectileAbility.staminaCost / 100.0 : 0.0;
 
     // ─── Compute affordability flags ───
     // These tell the UI whether action buttons should appear enabled.
@@ -17924,7 +18304,7 @@ class SnapshotBuilder {
     final canAffordDash = stamina >= resources.dashStaminaCost;
     final canAffordMelee = stamina >= abilities.base.meleeStaminaCost;
     final canAffordProjectile = mana >= projectileManaCost;
-    final canAffordRangedWeapon = stamina >= rangedWeaponDef.staminaCost;
+    final canAffordRangedWeapon = stamina >= rangedStaminaCost;
 
     // ─── Read cooldown timers ───
     final dashCooldownTicksLeft = world.movement.dashCooldownTicksLeft[mi];
@@ -17933,9 +18313,7 @@ class SnapshotBuilder {
         world.cooldown.castCooldownTicksLeft[ci];
     final rangedWeaponCooldownTicksLeft =
         world.cooldown.rangedWeaponCooldownTicksLeft[ci];
-    final rangedWeaponCooldownTicksTotal = rangedWeapons.cooldownTicks(
-      rangedWeaponId,
-    );
+    final rangedWeaponCooldownTicksTotal = projectileAbility?.cooldownTicks ?? 0;
 
     // ─── Read player transform ───
     final ti = world.transform.indexOf(player);
@@ -19409,10 +19787,16 @@ EntityId? spawnSpellProjectileFromCaster(
   required double dirY,
   required double fallbackDirX,
   required double fallbackDirY,
+  // Overrides (Phase 4)
+  // Overrides (Phase 4)
+  ProjectileId? overrideProjectileId,
+  int? overrideDamage100,
+  DamageType? overrideDamageType,
+  StatusProfileId? overrideStatusProfileId, // TODO: List<WeaponProc>?
 }) {
   // Bail early if spell doesn't spawn a projectile.
   final spell = spells.get(spellId);
-  final projectileId = spell.projectileId;
+  final projectileId = overrideProjectileId ?? spell.projectileId;
   if (projectileId == null) return null;
 
   // Normalize aim; use fallback (e.g. facing) if aim is zero.
@@ -19439,10 +19823,11 @@ EntityId? spawnSpellProjectileFromCaster(
     dirX: dir.x,
     dirY: dir.y,
     speedUnitsPerSecond: projectiles.base.get(projectileId).speedUnitsPerSecond,
-    damage: spell.stats.damage,
-    damageType: spell.stats.damageType,
-    statusProfileId: spell.stats.statusProfileId,
+    damage: overrideDamage100 != null ? overrideDamage100 / 100.0 : spell.stats.damage,
+    damageType: overrideDamageType ?? spell.stats.damageType,
+    statusProfileId: overrideStatusProfileId ?? spell.stats.statusProfileId,
   );
+
 }
 
 /// Spawns a spell projectile at an explicit origin position.
@@ -21976,7 +22361,7 @@ double applyAccelDecel({
 
 ===== FILE: lib/core/weapons/ranged_weapon_catalog.dart =====
 import '../abilities/ability_def.dart' show AbilityTag;
-import '../util/tick_math.dart';
+
 import '../projectiles/projectile_id.dart';
 import 'ranged_weapon_def.dart';
 import 'ranged_weapon_id.dart';
@@ -21991,10 +22376,7 @@ class RangedWeaponCatalog {
         return const RangedWeaponDef(
           id: RangedWeaponId.throwingAxe,
           projectileId: ProjectileId.throwingAxe,
-          legacyDamage: 18.0,
-          legacyStaminaCost: 8.0,
           originOffset: 8.0,
-          legacyCooldownSeconds: 0.40,
           ballistic: true,
           gravityScale: 1.0,
           grantedAbilityTags: {AbilityTag.projectile, AbilityTag.physical},
@@ -22003,10 +22385,7 @@ class RangedWeaponCatalog {
         return const RangedWeaponDef(
           id: RangedWeaponId.throwingKnife,
           projectileId: ProjectileId.throwingKnife,
-          legacyDamage: 10.0,
-          legacyStaminaCost: 5.0,
           originOffset: 6.0,
-          legacyCooldownSeconds: 0.30,
           ballistic: true,
           gravityScale: 0.9,
           grantedAbilityTags: {AbilityTag.projectile, AbilityTag.physical},
@@ -22040,10 +22419,7 @@ class RangedWeaponCatalogDerived {
   final int tickHz;
   final RangedWeaponCatalog base;
 
-  int cooldownTicks(RangedWeaponId id) {
-    // ignore: deprecated_member_use_from_same_package
-    return ticksFromSecondsCeil(base.get(id).legacyCooldownSeconds, tickHz);
-  }
+
 }
 
 
@@ -22073,10 +22449,6 @@ class RangedWeaponDef {
     // New Phase 2 fields
     this.procs = const [],
     this.stats = const WeaponStats(),
-    // Legacy runtime-owned values (Phase 4 moves these to AbilityDef)
-    this.legacyDamage = 0.0,
-    this.legacyStaminaCost = 0.0,
-    this.legacyCooldownSeconds = 0.25,
   });
 
   final RangedWeaponId id;
@@ -22100,15 +22472,6 @@ class RangedWeaponDef {
   final List<WeaponProc> procs;
   final WeaponStats stats;
 
-  // Legacy runtime-owned values (Phase 4 moves these to AbilityDef)
-  @Deprecated('Phase 4: AbilityDef owns damage')
-  final double legacyDamage;
-
-  @Deprecated('Phase 4: AbilityDef owns cost')
-  final double legacyStaminaCost;
-
-  @Deprecated('Phase 4: AbilityDef owns cooldown')
-  final double legacyCooldownSeconds;
 }
 
 
@@ -22180,7 +22543,7 @@ EntityId spawnRangedWeaponProjectileFromCaster(
   required double dirY,
   required double fallbackDirX,
   required double fallbackDirY,
-  required double damage,
+  required int damage100,
   required DamageType damageType,
   required StatusProfileId statusProfileId,
   required bool ballistic,
@@ -22221,7 +22584,7 @@ EntityId spawnRangedWeaponProjectileFromCaster(
       dirX: dir.x,
       dirY: dir.y,
       speedUnitsPerSecond: speedUnitsPerSecond,
-      damage: damage,
+      damage: damage100 / 100.0,
       damageType: damageType,
       statusProfileId: statusProfileId,
       usePhysics: ballistic,
@@ -22265,6 +22628,7 @@ import '../combat/status/status.dart';
 import 'weapon_category.dart';
 import 'weapon_def.dart';
 import 'weapon_id.dart';
+import 'weapon_stats.dart';
 
 /// Lookup table for weapon definitions.
 ///
@@ -22287,6 +22651,7 @@ class WeaponCatalog {
           category: WeaponCategory.primary,
           grantedAbilityTags: {AbilityTag.melee, AbilityTag.physical},
           statusProfileId: StatusProfileId.meleeBleed,
+          stats: WeaponStats(powerBonusBp: 2000), // +20% Damage
         );
       case WeaponId.basicShield:
         return const WeaponDef(
@@ -22424,8 +22789,8 @@ class WeaponProc {
   const WeaponProc({
     required this.hook,
     required this.statusProfileId,
-    this.chance = 1.0,
-  }) : assert(chance >= 0.0 && chance <= 1.0, 'chance must be in [0..1]');
+    this.chanceBp = 10000,
+  }) : assert(chanceBp >= 0 && chanceBp <= 10000, 'chanceBp must be in [0..10000]');
 
   /// When this proc can trigger.
   final ProcHook hook;
@@ -22433,8 +22798,8 @@ class WeaponProc {
   /// The status effect profile to apply.
   final StatusProfileId statusProfileId;
 
-  /// Probability of triggering (1.0 = 100%, 0.5 = 50%).
-  final double chance;
+  /// Probability of triggering in Basis Points (100 = 1%, 10000 = 100%).
+  final int chanceBp;
 }
 
 /// Bridge helper: Converts legacy statusProfileId to effective procs list.
@@ -22450,7 +22815,7 @@ List<WeaponProc> effectiveWeaponProcs({
     WeaponProc(
       hook: ProcHook.onHit,
       statusProfileId: legacyStatusProfileId,
-      chance: 1.0,
+      chanceBp: 10000,
     ),
   ];
 }
@@ -22463,23 +22828,23 @@ List<WeaponProc> effectiveWeaponProcs({
 /// the data foundation for future damage/crit scaling.
 class WeaponStats {
   const WeaponStats({
-    this.powerBonus = 0.0,
-    this.critChanceBonus = 0.0,
-    this.critDamageBonus = 0.0,
-    this.rangeScalar = 1.0,
-  }) : assert(rangeScalar > 0.0, 'rangeScalar must be > 0');
+    this.powerBonusBp = 0,
+    this.critChanceBonusBp = 0,
+    this.critDamageBonusBp = 0,
+    this.rangeScalarPercent = 100,
+  }) : assert(rangeScalarPercent > 0, 'rangeScalarPercent must be > 0');
 
-  /// Additive power bonus (+% or scalar, interpretation in Phase 5).
-  final double powerBonus;
+  /// Additive power bonus in Basis Points (100 = 1%).
+  final int powerBonusBp;
 
-  /// Additive crit chance bonus (+0.05 = +5%).
-  final double critChanceBonus;
+  /// Additive crit chance bonus in Basis Points (100 = 1%).
+  final int critChanceBonusBp;
 
-  /// Additive crit damage bonus (+0.50 = +50% extra crit damage).
-  final double critDamageBonus;
+  /// Additive crit damage bonus in Basis Points (100 = 1%).
+  final int critDamageBonusBp;
 
-  /// Multiplicative range modifier (1.0 = unchanged).
-  final double rangeScalar;
+  /// Multiplicative range modifier relative to 100 (100 = unchanged).
+  final int rangeScalarPercent;
 }
 
 

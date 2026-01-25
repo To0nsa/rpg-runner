@@ -48,7 +48,6 @@ const _priorityHitboxes = 1;
 const _priorityActorHitboxes = 2;
 const _priorityProjectileAimRay = 5;
 const _priorityMeleeAimRay = 6;
-const _priorityRangedAimRay = 7;
 const PlayerRenderTuning _playerRenderTuning = PlayerRenderTuning();
 
 /// Minimal Flame `Game` that renders from snapshots.
@@ -58,7 +57,6 @@ class RunnerFlameGame extends FlameGame {
     required this.input,
     required this.projectileAimPreview,
     required this.meleeAimPreview,
-    required this.rangedAimPreview,
     required this.playerCharacter,
   }) : _enemyRenderRegistry = EnemyRenderRegistry(
          enemyCatalog: controller.enemyCatalog,
@@ -81,7 +79,6 @@ class RunnerFlameGame extends FlameGame {
   /// UI-driven aim preview (render-only).
   final ValueListenable<AimPreviewState> projectileAimPreview;
   final ValueListenable<AimPreviewState> meleeAimPreview;
-  final ValueListenable<AimPreviewState> rangedAimPreview;
 
   /// The selected player character definition for this run (render-only usage).
   final PlayerCharacterDefinition playerCharacter;
@@ -196,20 +193,6 @@ class RunnerFlameGame extends FlameGame {
           ..strokeWidth = 2
           ..strokeCap = StrokeCap.round,
       )..priority = _priorityMeleeAimRay,
-    );
-
-    world.add(
-      AimRayComponent(
-        controller: controller,
-        preview: rangedAimPreview,
-        length: projectileAimRayLength,
-        playerRenderPos: () => _player.position,
-        drawWhenNoAim: false,
-        paint: Paint()
-          ..color = const Color(0xFFF59E0B)
-          ..strokeWidth = 2
-          ..strokeCap = StrokeCap.round,
-      )..priority = _priorityRangedAimRay,
     );
 
     _mountStaticSolids(controller.snapshot.staticSolids);

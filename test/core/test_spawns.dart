@@ -20,9 +20,9 @@ EntityId spawnUnocoDemon(
   Facing facing = Facing.left,
   BodyDef body = const BodyDef(isKinematic: true, useGravity: false),
   ColliderAabbDef collider = const ColliderAabbDef(halfX: 8, halfY: 8),
-  HealthDef health = const HealthDef(hp: 50, hpMax: 50, regenPerSecond: 0),
-  ManaDef mana = const ManaDef(mana: 0, manaMax: 0, regenPerSecond: 0),
-  StaminaDef stamina = const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
+  HealthDef health = const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+  ManaDef mana = const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+  StaminaDef stamina = const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
 }) {
   return EntityFactory(world).createEnemy(
     enemyId: EnemyId.unocoDemon,
@@ -48,9 +48,9 @@ EntityId spawnGroundEnemy(
   Facing facing = Facing.left,
   BodyDef body = const BodyDef(isKinematic: true, useGravity: false),
   ColliderAabbDef collider = const ColliderAabbDef(halfX: 8, halfY: 8),
-  HealthDef health = const HealthDef(hp: 50, hpMax: 50, regenPerSecond: 0),
-  ManaDef mana = const ManaDef(mana: 0, manaMax: 0, regenPerSecond: 0),
-  StaminaDef stamina = const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
+  HealthDef health = const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+  ManaDef mana = const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+  StaminaDef stamina = const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
 }) {
   return EntityFactory(world).createEnemy(
     enemyId: EnemyId.groundEnemy,

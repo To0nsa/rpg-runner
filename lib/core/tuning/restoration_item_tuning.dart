@@ -4,7 +4,7 @@ class RestorationItemTuning {
     this.enabled = true,
     this.spawnEveryChunks = 16,
     this.spawnStartChunkIndex = 2,
-    this.restorePercent = 0.30,
+    this.restorePercentBp = 3000,
     this.itemSize = 16.0,
     this.surfaceClearanceY = 10.0,
     this.noSpawnMargin = 2.0,
@@ -22,8 +22,8 @@ class RestorationItemTuning {
   /// First chunk index where items can spawn.
   final int spawnStartChunkIndex;
 
-  /// Fraction of max HP/mana/stamina restored [0–1].
-  final double restorePercent;
+  /// Fraction of max HP/mana/stamina restored in basis points (100 = 1%).
+  final int restorePercentBp;
 
   /// Collision/render size (world units).
   final double itemSize;

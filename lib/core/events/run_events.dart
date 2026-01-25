@@ -29,7 +29,7 @@ class DeathInfo {
     required this.kind,
     this.enemyId,
     this.projectileId,
-    this.spellId,
+    this.projectileItemId,
   });
 
   /// Category of the damage source.
@@ -41,8 +41,8 @@ class DeathInfo {
   /// The [ProjectileId] responsible (if applicable).
   final ProjectileId? projectileId;
   
-  /// The [SpellId] responsible (if applicable).
-  final SpellId? spellId;
+  /// The [ProjectileItemId] responsible (if applicable).
+  final ProjectileItemId? projectileItemId;
 }
 
 /// Aggregate statistics collected during a run.

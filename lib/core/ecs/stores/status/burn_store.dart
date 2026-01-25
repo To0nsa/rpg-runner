@@ -5,13 +5,14 @@ class BurnDef {
   const BurnDef({
     required this.ticksLeft,
     required this.periodTicks,
-    required this.damagePerTick,
+    required this.damagePerTick100,
   }) : periodTicksLeft = periodTicks;
 
   final int ticksLeft;
   final int periodTicks;
   final int periodTicksLeft;
-  final double damagePerTick;
+  /// Fixed-point: 100 = 1.0
+  final int damagePerTick100;
 }
 
 /// Active burn (damage-over-time) status.
@@ -19,14 +20,15 @@ class BurnStore extends SparseSet {
   final List<int> ticksLeft = <int>[];
   final List<int> periodTicks = <int>[];
   final List<int> periodTicksLeft = <int>[];
-  final List<double> damagePerTick = <double>[];
+  /// Fixed-point: 100 = 1.0
+  final List<int> damagePerTick100 = <int>[];
 
   void add(EntityId entity, BurnDef def) {
     final i = addEntity(entity);
     ticksLeft[i] = def.ticksLeft;
     periodTicks[i] = def.periodTicks;
     periodTicksLeft[i] = def.periodTicksLeft;
-    damagePerTick[i] = def.damagePerTick;
+    damagePerTick100[i] = def.damagePerTick100;
   }
 
   @override
@@ -34,7 +36,7 @@ class BurnStore extends SparseSet {
     ticksLeft.add(0);
     periodTicks.add(1);
     periodTicksLeft.add(1);
-    damagePerTick.add(0.0);
+    damagePerTick100.add(0);
   }
 
   @override
@@ -42,12 +44,11 @@ class BurnStore extends SparseSet {
     ticksLeft[removeIndex] = ticksLeft[lastIndex];
     periodTicks[removeIndex] = periodTicks[lastIndex];
     periodTicksLeft[removeIndex] = periodTicksLeft[lastIndex];
-    damagePerTick[removeIndex] = damagePerTick[lastIndex];
+    damagePerTick100[removeIndex] = damagePerTick100[lastIndex];
 
     ticksLeft.removeLast();
     periodTicks.removeLast();
     periodTicksLeft.removeLast();
-    damagePerTick.removeLast();
+    damagePerTick100.removeLast();
   }
 }
-

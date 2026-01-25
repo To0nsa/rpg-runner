@@ -1,4 +1,3 @@
-import '../../util/double_math.dart';
 import '../world.dart';
 
 /// Periodically regenerates Health, Mana, and Stamina for all entities.
@@ -12,13 +11,17 @@ import '../world.dart';
 /// - Uses direct dense array iteration (Structure of Arrays) for cache efficiency.
 /// - Skips full resources and zero-regen entities early.
 class ResourceRegenSystem {
-  void step(EcsWorld world, {required double dtSeconds}) {
-    _regenHealth(world, dtSeconds);
-    _regenMana(world, dtSeconds);
-    _regenStamina(world, dtSeconds);
+  ResourceRegenSystem({required int tickHz}) : _tickHz = tickHz;
+
+  final int _tickHz;
+
+  void step(EcsWorld world) {
+    _regenHealth(world);
+    _regenMana(world);
+    _regenStamina(world);
   }
 
-  void _regenHealth(EcsWorld world, double dtSeconds) {
+  void _regenHealth(EcsWorld world) {
     final store = world.health;
     final deathState = world.deathState;
     final count = store.denseEntities.length;
@@ -31,14 +34,20 @@ class ResourceRegenSystem {
       final current = store.hp[i];
       if (current >= max) continue;
       
-      final regen = store.regenPerSecond[i];
+      final regen = store.regenPerSecond100[i];
       if (regen <= 0) continue;
-      
-      store.hp[i] = clampDouble(current + regen * dtSeconds, 0.0, max);
+
+      final accum = store.regenAccumulator[i] + regen;
+      final delta = accum ~/ _tickHz;
+      if (delta > 0) {
+        final next = current + delta;
+        store.hp[i] = next > max ? max : next;
+      }
+      store.regenAccumulator[i] = accum - (delta * _tickHz);
     }
   }
 
-  void _regenMana(EcsWorld world, double dtSeconds) {
+  void _regenMana(EcsWorld world) {
     final store = world.mana;
     final deathState = world.deathState;
     final count = store.denseEntities.length;
@@ -50,14 +59,20 @@ class ResourceRegenSystem {
       final current = store.mana[i];
       if (current >= max) continue;
       
-      final regen = store.regenPerSecond[i];
+      final regen = store.regenPerSecond100[i];
       if (regen <= 0) continue;
-      
-      store.mana[i] = clampDouble(current + regen * dtSeconds, 0.0, max);
+
+      final accum = store.regenAccumulator[i] + regen;
+      final delta = accum ~/ _tickHz;
+      if (delta > 0) {
+        final next = current + delta;
+        store.mana[i] = next > max ? max : next;
+      }
+      store.regenAccumulator[i] = accum - (delta * _tickHz);
     }
   }
 
-  void _regenStamina(EcsWorld world, double dtSeconds) {
+  void _regenStamina(EcsWorld world) {
     final store = world.stamina;
     final deathState = world.deathState;
     final count = store.denseEntities.length;
@@ -69,10 +84,16 @@ class ResourceRegenSystem {
       final current = store.stamina[i];
       if (current >= max) continue;
       
-      final regen = store.regenPerSecond[i];
+      final regen = store.regenPerSecond100[i];
       if (regen <= 0) continue;
-      
-      store.stamina[i] = clampDouble(current + regen * dtSeconds, 0.0, max);
+
+      final accum = store.regenAccumulator[i] + regen;
+      final delta = accum ~/ _tickHz;
+      if (delta > 0) {
+        final next = current + delta;
+        store.stamina[i] = next > max ? max : next;
+      }
+      store.regenAccumulator[i] = accum - (delta * _tickHz);
     }
   }
 }

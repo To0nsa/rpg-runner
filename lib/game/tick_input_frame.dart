@@ -37,11 +37,14 @@ class TickInputFrame {
   /// True if melee strike was pressed this tick.
   bool strikePressed = false;
 
-  /// True if cast (projectile) was pressed this tick.
-  bool castPressed = false;
+  /// True if projectile slot was pressed this tick.
+  bool projectilePressed = false;
 
-  /// True if ranged weapon was pressed this tick.
-  bool rangedPressed = false;
+  /// True if secondary slot was pressed this tick.
+  bool secondaryPressed = false;
+
+  /// True if bonus slot was pressed this tick.
+  bool bonusPressed = false;
 
   // ─────────────────────────────────────────────────────────────────────────
   // Projectile aim direction
@@ -70,22 +73,10 @@ class TickInputFrame {
   double meleeAimDirY = 0;
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Ranged weapon aim direction
-  // ─────────────────────────────────────────────────────────────────────────
-
-  /// Whether a ranged weapon aim direction is set for this tick.
-  bool rangedAimDirSet = false;
-
-  /// Ranged weapon aim X component (only valid if [rangedAimDirSet] is true).
-  double rangedAimDirX = 0;
-
-  /// Ranged weapon aim Y component (only valid if [rangedAimDirSet] is true).
-  double rangedAimDirY = 0;
-
   /// Applies a [Command] to this frame, merging it with existing state.
   ///
   /// For continuous inputs (move axis, aim), later commands overwrite earlier ones.
-  /// For edge-triggered inputs (jump, dash, strike, cast), any press sets the flag.
+  /// For edge-triggered inputs (jump, dash, strike, projectile), any press sets the flag.
   void apply(Command command) {
     switch (command) {
       case MoveAxisCommand(:final axis):
@@ -112,18 +103,12 @@ class TickInputFrame {
         meleeAimDirSet = false;
         meleeAimDirX = 0;
         meleeAimDirY = 0;
-      case CastPressedCommand():
-        castPressed = true;
-      case RangedAimDirCommand(:final x, :final y):
-        rangedAimDirSet = true;
-        rangedAimDirX = x;
-        rangedAimDirY = y;
-      case ClearRangedAimDirCommand():
-        rangedAimDirSet = false;
-        rangedAimDirX = 0;
-        rangedAimDirY = 0;
-      case RangedPressedCommand():
-        rangedPressed = true;
+      case ProjectilePressedCommand():
+        projectilePressed = true;
+      case SecondaryPressedCommand():
+        secondaryPressed = true;
+      case BonusPressedCommand():
+        bonusPressed = true;
     }
   }
 
@@ -141,10 +126,8 @@ class TickInputFrame {
     meleeAimDirSet = false;
     meleeAimDirX = 0;
     meleeAimDirY = 0;
-    castPressed = false;
-    rangedPressed = false;
-    rangedAimDirSet = false;
-    rangedAimDirX = 0;
-    rangedAimDirY = 0;
+    projectilePressed = false;
+    secondaryPressed = false;
+    bonusPressed = false;
   }
 }

@@ -2,6 +2,7 @@ import '../../combat/damage_type.dart';
 import '../../combat/faction.dart';
 import '../../combat/status/status.dart';
 import '../../projectiles/projectile_id.dart';
+import '../../weapons/weapon_proc.dart';
 import '../entity_id.dart';
 import '../sparse_set.dart';
 
@@ -13,9 +14,10 @@ class ProjectileDef {
     required this.dirX,
     required this.dirY,
     required this.speedUnitsPerSecond,
-    required this.damage,
+    required this.damage100,
     required this.damageType,
     required this.statusProfileId,
+    this.procs = const <WeaponProc>[],
     this.usePhysics = false,
   });
 
@@ -25,9 +27,11 @@ class ProjectileDef {
   final double dirX;
   final double dirY;
   final double speedUnitsPerSecond;
-  final double damage;
+  /// Fixed-point: 100 = 1.0
+  final int damage100;
   final DamageType damageType;
   final StatusProfileId statusProfileId;
+  final List<WeaponProc> procs;
 
   /// If true, this projectile is moved by core physics (GravitySystem +
   /// CollisionSystem) rather than [ProjectileSystem].
@@ -44,9 +48,11 @@ class ProjectileStore extends SparseSet {
   final List<double> dirX = <double>[];
   final List<double> dirY = <double>[];
   final List<double> speedUnitsPerSecond = <double>[];
-  final List<double> damage = <double>[];
+  /// Fixed-point: 100 = 1.0
+  final List<int> damage100 = <int>[];
   final List<DamageType> damageType = <DamageType>[];
   final List<StatusProfileId> statusProfileId = <StatusProfileId>[];
+  final List<List<WeaponProc>> procs = <List<WeaponProc>>[];
   final List<bool> usePhysics = <bool>[];
 
   void add(EntityId entity, ProjectileDef def) {
@@ -57,9 +63,10 @@ class ProjectileStore extends SparseSet {
     dirX[i] = def.dirX;
     dirY[i] = def.dirY;
     speedUnitsPerSecond[i] = def.speedUnitsPerSecond;
-    damage[i] = def.damage;
+    damage100[i] = def.damage100;
     damageType[i] = def.damageType;
     statusProfileId[i] = def.statusProfileId;
+    procs[i] = def.procs;
     usePhysics[i] = def.usePhysics;
   }
 
@@ -71,9 +78,10 @@ class ProjectileStore extends SparseSet {
     dirX.add(1.0);
     dirY.add(0.0);
     speedUnitsPerSecond.add(0.0);
-    damage.add(0.0);
+    damage100.add(0);
     damageType.add(DamageType.physical);
     statusProfileId.add(StatusProfileId.none);
+    procs.add(const <WeaponProc>[]);
     usePhysics.add(false);
   }
 
@@ -85,9 +93,10 @@ class ProjectileStore extends SparseSet {
     dirX[removeIndex] = dirX[lastIndex];
     dirY[removeIndex] = dirY[lastIndex];
     speedUnitsPerSecond[removeIndex] = speedUnitsPerSecond[lastIndex];
-    damage[removeIndex] = damage[lastIndex];
+    damage100[removeIndex] = damage100[lastIndex];
     damageType[removeIndex] = damageType[lastIndex];
     statusProfileId[removeIndex] = statusProfileId[lastIndex];
+    procs[removeIndex] = procs[lastIndex];
     usePhysics[removeIndex] = usePhysics[lastIndex];
 
     projectileId.removeLast();
@@ -96,9 +105,10 @@ class ProjectileStore extends SparseSet {
     dirX.removeLast();
     dirY.removeLast();
     speedUnitsPerSecond.removeLast();
-    damage.removeLast();
+    damage100.removeLast();
     damageType.removeLast();
     statusProfileId.removeLast();
+    procs.removeLast();
     usePhysics.removeLast();
   }
 }

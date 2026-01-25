@@ -1,6 +1,8 @@
 import '../../combat/damage.dart';
 import '../../combat/status/status.dart';
-import '../../util/double_math.dart';
+import '../../util/deterministic_rng.dart';
+import '../../util/fixed_math.dart';
+import '../../weapons/weapon_proc.dart';
 import '../world.dart';
 
 /// Central system for validating and applying damage to entities.
@@ -12,10 +14,15 @@ import '../world.dart';
 /// 4.  Recording [LastDamageStore] details (source, amount) for UI/logic.
 /// 5.  Applying post-hit invulnerability.
 class DamageSystem {
-  DamageSystem({required this.invulnerabilityTicksOnHit});
+  DamageSystem({
+    required this.invulnerabilityTicksOnHit,
+    required int rngSeed,
+  }) : _rngState = seedFrom(rngSeed, 0x44a3c2f1);
 
   /// Number of ticks an entity is invulnerable after taking damage.
   final int invulnerabilityTicksOnHit;
+
+  int _rngState;
   
   // Buffer for damage requests to be processed in `step`.
   final List<DamageRequest> _pending = <DamageRequest>[];
@@ -24,7 +31,9 @@ class DamageSystem {
   ///
   /// Requests with `amount <= 0` are ignored immediately.
   void queue(DamageRequest request) {
-    if (request.amount <= 0 && request.statusProfileId == StatusProfileId.none) {
+    if (request.amount100 <= 0 &&
+        request.statusProfileId == StatusProfileId.none &&
+        request.procs.isEmpty) {
       return;
     }
     _pending.add(request);
@@ -61,14 +70,14 @@ class DamageSystem {
 
       // 3. Apply resistance/vulnerability modifier.
       final ri = resistance.tryIndexOf(req.target);
-      final mod = ri == null ? 0.0 : resistance.modForIndex(ri, req.damageType);
-      var appliedAmount = req.amount * (1.0 + mod);
-      if (appliedAmount < 0.0) appliedAmount = 0.0;
+      final modBp = ri == null ? 0 : resistance.modBpForIndex(ri, req.damageType);
+      var appliedAmount = applyBp(req.amount100, modBp);
+      if (appliedAmount < 0) appliedAmount = 0;
 
       final prevHp = health.hp[hi];
-      final nextHp = clampDouble(
+      final nextHp = clampInt(
         prevHp - appliedAmount,
-        0.0,
+        0,
         health.hpMax[hi],
       );
       health.hp[hi] = nextHp;
@@ -79,7 +88,7 @@ class DamageSystem {
         final li = lastDamage.tryIndexOf(req.target);
         if (li != null) {
           lastDamage.kind[li] = req.sourceKind;
-          lastDamage.amount[li] = appliedAmount;
+          lastDamage.amount100[li] = appliedAmount;
           lastDamage.tick[li] = currentTick;
 
           if (req.sourceEnemyId != null) {
@@ -96,24 +105,42 @@ class DamageSystem {
             lastDamage.hasProjectileId[li] = false;
           }
 
-          if (req.sourceSpellId != null) {
-            lastDamage.spellId[li] = req.sourceSpellId!;
-            lastDamage.hasSpellId[li] = true;
+          if (req.sourceProjectileItemId != null) {
+            lastDamage.projectileItemId[li] = req.sourceProjectileItemId!;
+            lastDamage.hasProjectileItemId[li] = true;
           } else {
-            lastDamage.hasSpellId[li] = false;
+            lastDamage.hasProjectileItemId[li] = false;
           }
         }
       }
 
       // 5. Queue status effects (independent of HP loss).
-      if (queueStatus != null && req.statusProfileId != StatusProfileId.none) {
-        queueStatus(
-          StatusRequest(
-            target: req.target,
-            profileId: req.statusProfileId,
-            damageType: req.damageType,
-          ),
-        );
+      if (queueStatus != null) {
+        if (req.statusProfileId != StatusProfileId.none) {
+          queueStatus(
+            StatusRequest(
+              target: req.target,
+              profileId: req.statusProfileId,
+              damageType: req.damageType,
+            ),
+          );
+        }
+        if (req.procs.isNotEmpty) {
+          for (final proc in req.procs) {
+            if (proc.hook != ProcHook.onHit) continue;
+            if (proc.statusProfileId == StatusProfileId.none) continue;
+            _rngState = nextUint32(_rngState);
+            if ((_rngState % bpScale) < proc.chanceBp) {
+              queueStatus(
+                StatusRequest(
+                  target: req.target,
+                  profileId: proc.statusProfileId,
+                  damageType: req.damageType,
+                ),
+              );
+            }
+          }
+        }
       }
 
       // 6. Apply new Invulnerability frames.

@@ -215,7 +215,7 @@ class SpawnService {
 
     // Pre-set cooldown to prevent immediate casting on spawn tick.
     // This ensures consistent early-game difficulty across runs.
-    _world.cooldown.castCooldownTicksLeft[_world.cooldown.indexOf(
+    _world.cooldown.projectileCooldownTicksLeft[_world.cooldown.indexOf(
           unocoDemon,
         )] =
         _unocoDemonTuning.unocoDemonCastCooldownTicks;

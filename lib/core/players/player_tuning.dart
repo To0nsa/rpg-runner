@@ -8,6 +8,7 @@ library;
 
 import '../snapshots/enums.dart';
 import '../util/tick_math.dart';
+import '../util/fixed_math.dart';
 import '../tuning/utils/anim_tuning.dart' as anim_utils;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -124,6 +125,42 @@ class ResourceTuning {
   final double dashStaminaCost;
 }
 
+class ResourceTuningDerived {
+  const ResourceTuningDerived({
+    required this.playerHpMax100,
+    required this.playerHpRegenPerSecond100,
+    required this.playerManaMax100,
+    required this.playerManaRegenPerSecond100,
+    required this.playerStaminaMax100,
+    required this.playerStaminaRegenPerSecond100,
+    required this.jumpStaminaCost100,
+    required this.dashStaminaCost100,
+  });
+
+  factory ResourceTuningDerived.from(ResourceTuning base) {
+    return ResourceTuningDerived(
+      playerHpMax100: toFixed100(base.playerHpMax),
+      playerHpRegenPerSecond100: toFixed100(base.playerHpRegenPerSecond),
+      playerManaMax100: toFixed100(base.playerManaMax),
+      playerManaRegenPerSecond100: toFixed100(base.playerManaRegenPerSecond),
+      playerStaminaMax100: toFixed100(base.playerStaminaMax),
+      playerStaminaRegenPerSecond100: toFixed100(base.playerStaminaRegenPerSecond),
+      jumpStaminaCost100: toFixed100(base.jumpStaminaCost),
+      dashStaminaCost100: toFixed100(base.dashStaminaCost),
+    );
+  }
+
+  /// Fixed-point: 100 = 1.0
+  final int playerHpMax100;
+  final int playerHpRegenPerSecond100;
+  final int playerManaMax100;
+  final int playerManaRegenPerSecond100;
+  final int playerStaminaMax100;
+  final int playerStaminaRegenPerSecond100;
+  final int jumpStaminaCost100;
+  final int dashStaminaCost100;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Player ability tuning (cast, melee)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -137,6 +174,7 @@ class AbilityTuning {
     this.meleeDamage = 15.0,
     this.meleeHitboxSizeX = 32.0,
     this.meleeHitboxSizeY = 16.0,
+    this.inputBufferSeconds = 0.15,
   });
 
   final double castCooldownSeconds;
@@ -148,6 +186,7 @@ class AbilityTuning {
 
   final double meleeHitboxSizeX;
   final double meleeHitboxSizeY;
+  final double inputBufferSeconds;
 }
 
 class AbilityTuningDerived {
@@ -157,6 +196,7 @@ class AbilityTuningDerived {
     required this.castCooldownTicks,
     required this.meleeCooldownTicks,
     required this.meleeActiveTicks,
+    required this.inputBufferTicks,
   });
 
   factory AbilityTuningDerived.from(AbilityTuning base, {required int tickHz}) {
@@ -170,6 +210,7 @@ class AbilityTuningDerived {
       castCooldownTicks: ticksFromSecondsCeil(base.castCooldownSeconds, tickHz),
       meleeCooldownTicks: ticksFromSecondsCeil(base.meleeCooldownSeconds, tickHz),
       meleeActiveTicks: ticksFromSecondsCeil(base.meleeActiveSeconds, tickHz),
+      inputBufferTicks: ticksFromSecondsCeil(base.inputBufferSeconds, tickHz),
     );
   }
 
@@ -179,6 +220,7 @@ class AbilityTuningDerived {
   final int castCooldownTicks;
   final int meleeCooldownTicks;
   final int meleeActiveTicks;
+  final int inputBufferTicks;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -423,12 +465,14 @@ class PlayerTuningDerived {
     required this.ability,
     required this.anim,
     required this.combat,
+    required this.resource,
   });
 
   final MovementTuningDerived movement;
   final AbilityTuningDerived ability;
   final AnimTuningDerived anim;
   final CombatTuningDerived combat;
+  final ResourceTuningDerived resource;
 }
 
 class PlayerTuningCompiler {
@@ -442,6 +486,7 @@ class PlayerTuningCompiler {
       ability: AbilityTuningDerived.from(base.ability, tickHz: tickHz),
       anim: AnimTuningDerived.from(base.anim, tickHz: tickHz),
       combat: CombatTuningDerived.from(base.combat, tickHz: tickHz),
+      resource: ResourceTuningDerived.from(base.resource),
     );
   }
 }

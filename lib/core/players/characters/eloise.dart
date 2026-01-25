@@ -7,8 +7,7 @@ import '../../ecs/stores/combat/equipped_loadout_store.dart';
 import '../../ecs/stores/combat/status_immunity_store.dart';
 import '../../combat/creature_tag.dart';
 import '../../snapshots/enums.dart';
-import '../../spells/spell_id.dart';
-import '../../weapons/ranged_weapon_id.dart';
+import '../../projectiles/projectile_item_id.dart';
 import '../../weapons/weapon_id.dart';
 import '../player_character_definition.dart';
 import '../player_catalog.dart';
@@ -163,8 +162,7 @@ const PlayerCatalog eloiseCatalog = PlayerCatalog(
   loadoutSlotMask: LoadoutSlotMask.defaultMask,
   weaponId: WeaponId.basicSword,
   offhandWeaponId: WeaponId.basicShield,
-  rangedWeaponId: RangedWeaponId.throwingKnife,
-  spellId: SpellId.fireBolt,
+  projectileItemId: ProjectileItemId.fireBolt,
   facing: Facing.right,
 );
 

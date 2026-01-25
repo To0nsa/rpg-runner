@@ -1,107 +1,111 @@
-# Phase 6: Ability-Driven Animation
+# Phase 6: Ability-Driven Action Animation
 
 ## Goal
-Decouple **Animation Logic** from **Specific Gameplay Systems**.
-Currently, the renderer (and `AnimSystem`) calculates the current animation frame by checking disjoint fields like `lastCastTick`, `lastMeleeTick`, `lastDashTick`. This is brittle and couples visual state to the specific system that ran (e.g., throwing a knife via `PlayerRangedWeaponSystem` stamps a different field than `SpellCastSystem`).
+Decouple **Action Animation** (Strike, Cast, Throw, Dash) from the specific systems that trigger them.
+Currently, `AnimSystem` reconstructs the "Action" state by polling disparate fields (`lastMeleeTick`, `lastCastTick`, `dashTicksLeft`) and inferring priority. This is brittle and makes adding new actions (like "Charge" or "Channel") difficult.
 
-Phase 6 introduces a unified `ActiveAbilityStateStore` that acts as the single source of truth for "what is the character doing right now?".
-
----
-
-## Design Pillars
-
-### 1. Unified State Source
-A single component store (`ActiveAbilityStateStore`) holds the active capability's state, regardless of whether it's a spell, melee attack, or dash.
-
-### 2. Phase-Based Lifecycle
-Instead of raw ticks, we track the **Phase** of the action explicitly or derive it from a single `startTick` + `AbilityDef`.
-- **Windup**: Pre-damage frame.
-- **Active**: Damage/Effect frame.
-- **Recovery**: Post-action frame (anim lock).
-
-### 3. Ability-Defined Keys
-The specific animation to play is defined by `AbilityDef.animKey` (e.g., `AnimKey.cast` vs `AnimKey.throw`), not by "which code path executed".
+Phase 6 introduces `ActiveAbilityState` as the single authoritative source for **Action Layer** animations, which feeds into the existing `AnimSignals` pipeline.
 
 ---
 
-## Schema Changes
+## Design Contracts
 
-### 1. `ActiveAbilityStateStore` (New)
-Replaces the disparate fields in `ActionAnimStore`.
+### 1. Layered Animation Model
+Animation state is resolved by strictly layering independent state channels. **Higher layers always override lower layers.**
+
+| Priority | Layer | Source of Truth | Example |
+| :--- | :--- | :--- | :--- |
+| **1** (Highest) | **Death** | `DeathStateStore` | `AnimKey.death` |
+| **2** | **Stun** | `ControlLockStore` | `AnimKey.stun` |
+| **3** | **Hit Reaction** | `LastDamageStore` | `AnimKey.hit` |
+| **4** | **Active Action** | `ActiveAbilityStateStore` | `Strike`, `Cast`, `Dash` |
+| **5** | **Locomotion** | `Movement` + `Physics` | `Run`, `Jump`, `Fall`, `Idle` |
+
+*Note: Dash is elevated to an "Active Action" (Ability) in this model, removing the special `dashTicksLeft` check in AnimSystem.*
+
+### 2. Active Ability Schema
+The new store captures the **identity** and **context** of the currently executing ability.
 
 ```dart
 class ActiveAbilityStateStore extends EcsStore {
-  // ... boilerplate ...
-
-  /// The ID of the ability currently controlling the character.
-  /// Null (or empty string) if idle.
+  /// The specific Ability driving the animation.
+  /// Null if no ability is active.
   final List<AbilityKey?> abilityId;
 
-  /// The tick when this ability started execution.
-  /// Used to calculate (currentTick - startTick) for generic anim frame logic.
+  /// The tick the ability entered its current execution flow.
+  /// Used for `tick - startTick` animation timing.
   final List<int> startTick;
+
+  /// The facing direction at the moment of commitment.
+  /// (Some animations lock facing, others might update).
+  final List<Facing> facing;
+
+  /// Optional: Quantized aim direction for multi-directional sprites (Phase 7).
+  final List<int> aimDir;
   
-  // Optional: Explicit Phase tracking if we need complex transitions
-  // final List<AbilityPhase> phase; 
-  
-  // NOTE: We don't need 'lastMeleeTick' etc. anymore.
+  // Note: 'Phase' (Windup/Active/Recovery) is derived from (currentTick - startTick) + AbilityDef.
 }
 ```
 
-### 2. `ActionAnimStore` (Deprecation)
-The following fields will be **removed** after migration:
-- `lastMeleeTick`
-- `lastCastTick`
-- `lastRangedTick`
-- `lastDashTick`
-
-*(Note: We might keep `ActionAnimStore` as a container for other things, or rename it to `ActiveAbilityStateStore` entirely.)*
-
----
-
-## System Architecture Shift
-
-### OLD (Current)
-1. `PlayerCastSystem` runs checks.
-2. `SpellCastSystem` executes → Stamps `ActionAnim.lastCastTick = currentTick`.
-3. `AnimSystem` checks: "Is (tick - lastCastTick) < duration? Play Cast."
-
-### NEW (Phase 6)
-1. `PlayerCastSystem` (or generic `AbilityActivationSystem`) validates start.
-2. **Writer System** (e.g. `AbilityExecutionSystem`) sets `ActiveAbilityState.abilityId = 'eloise.ice_bolt'`, `startTick = currentTick`.
-3. `AnimSystem` reads `ActiveAbilityState`:
-   - Lookup `AbilityDef` for 'eloise.ice_bolt'.
-   - Get `animKey` (e.g., `cast`).
-   - Calculate frame: `(currentTick - startTick) / duration`.
-   - Play animation.
+### 3. Concurrency & Cancellation
+*   **Single Channel**: Only one "Action" ability can be active at a time.
+*   **Cancellation Rules**:
+    *   **Stun/Death**: Forced interrupts **clear** or **invalidate** the `ActiveAbilityState`.
+    *   **Hit**: Plays a visual overlay (or override) but **does not** necessarily clear the Ability State (unless tuning says "Hits Interrupt"). *Decision: Hit Anim overrides visuals but Ability State remains valid unless stunned.*
+    *   **Natural End**: The system executing the ability (e.g., `AbilityExecutionSystem`) is responsible for **clearing** `abilityId` when the `recovery` phase completes.
 
 ---
 
 ## Migration Plan
 
-### Step 1: Scaffold the Store
-Create `ActiveAbilityStateStore` and add it to `EcsWorld`. Ensure it's populated for the player at spawn (empty default).
+### Step 1: Scaffold `ActiveAbilityStateStore`
+Add the store to `EcsWorld`. Populate default values (null ability, current facing).
 
-### Step 2: Dual Write (Transitional)
-Update execution systems (`SpellCastSystem`, `RangedWeaponSystem`, `MeleeStrikeSystem`, `MovementSystem`) to:
-1. Keep stamping the legacy `last*Tick` (for safety).
-2. **Also write** to `ActiveAbilityStateStore` (set abilityId + startTick).
+### Step 2: Write to New Store (Dual Write)
+Update `PlayerCastSystem`, `RangedWeaponSystem`, `MeleeStrikeSystem`, and `MobilitySystem` (Dash) to write to `ActiveAbilityStateStore` in addition to their current logic.
+*   *Note: Dash was previously "implicit" in movement. We must explicitly "start" the dash ability in `ActiveAbilityState`.*
 
-### Step 3: Update `AnimSystem` (Reader)
-Refactor `AnimSystem` (or `SnapshotBuilder` animation logic) to:
-1. Check `ActiveAbilityStateStore.abilityId`.
-2. If present, lookup `AbilityDef` from `AbilityCatalog`.
-3. Use `AbilityDef.animKey` to resolve the render asset.
-4. Fallback to legacy logic only if `abilityId` is null (or during transition).
+### Step 3: Update `AnimSystem` Reader
+Refactor `_stepPlayer` and `_stepEnemies` to build `AnimSignals` using the new store for the **Action Layer**.
 
-### Step 4: Delete Legacy Fields
-Once `AnimSystem` solely relies on the new store:
-1. Remove `lastMeleeTick`, `lastCastTick`, etc.
-2. Remove legacy stamping code from consumers.
+**Old Logic (Simplified):**
+```dart
+lastMeleeTick > 0 ? ... : (dashTicks > 0 ? ... : ...)
+```
+
+**New Logic:**
+```dart
+// 1. Resolve Action Layer from Ability State
+AnimKey? actionAnim;
+int actionFrame = 0;
+
+if (activeAbility.has(entity)) {
+  final def = abilityCatalog.get(activeAbility.id);
+  // Derive phase/frame
+  final elapsed = currentTick - activeAbility.startTick;
+  actionAnim = def.animKey; 
+  actionFrame = elapsed; // or mapped by phase
+}
+
+// 2. Pass to Signals
+final signals = AnimSignals.player(
+   ...,
+   activeActionAnim: actionAnim, // New Field
+   activeActionFrame: actionFrame, // New Field
+   ...
+);
+```
+
+### Step 4: Update `AnimResolver`
+Update `AnimResolver` to prioritize `signals.activeActionAnim` over the legacy `lastStrikeTick` / `dashTicksLeft` logic. Consolidate "Strike", "Cast", "Ranged", "Dash" into a single **Action Priority** block.
+
+### Step 5: Clean Up
+Remove `lastMeleeTick`, `lastCastTick`, `lastRangedTick` from `ActionAnimStore`.
+Remove `dashTicksLeft` usage from Animation (keep in Movement if needed for physics, or migrate strictly to Ability).
 
 ---
 
 ## Validation
-- **Visual Regression**: Verify animations (Melee, Cast, Dash) play exactly as before.
-- **Interrupts**: Ensure starting a new ability overwrites the previous state correctly (e.g., Dash cancelling Windup).
-- **Network/Replay**: The new store is strictly deterministic and serializable.
+1.  **Determinism**: Verify `ActiveAbilityState` serialization.
+2.  **Priority**: Test `Stun > Ability`. Ensure Dash doesn't play if Stunned.
+3.  **Visuals**: Verify "Strike" plays correctly using `AbilityDef.animKey` instead of hardcoded `AnimKey.strike`.

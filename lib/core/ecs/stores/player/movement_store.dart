@@ -17,6 +17,7 @@ class MovementStore extends SparseSet {
   final List<double> dashDirX = <double>[];
 
   final List<Facing> facing = <Facing>[];
+  final List<int> facingLockTicksLeft = <int>[];
 
   void add(EntityId entity, {required Facing facing}) {
     final i = addEntity(entity);
@@ -33,6 +34,7 @@ class MovementStore extends SparseSet {
     dashCooldownTicksLeft.add(0);
     dashDirX.add(1);
     facing.add(Facing.right);
+    facingLockTicksLeft.add(0);
   }
 
   @override
@@ -43,6 +45,7 @@ class MovementStore extends SparseSet {
     dashCooldownTicksLeft[removeIndex] = dashCooldownTicksLeft[lastIndex];
     dashDirX[removeIndex] = dashDirX[lastIndex];
     facing[removeIndex] = facing[lastIndex];
+    facingLockTicksLeft[removeIndex] = facingLockTicksLeft[lastIndex];
 
     coyoteTicksLeft.removeLast();
     jumpBufferTicksLeft.removeLast();
@@ -50,5 +53,6 @@ class MovementStore extends SparseSet {
     dashCooldownTicksLeft.removeLast();
     dashDirX.removeLast();
     facing.removeLast();
+    facingLockTicksLeft.removeLast();
   }
 }

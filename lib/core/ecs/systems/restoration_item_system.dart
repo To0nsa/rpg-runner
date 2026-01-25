@@ -1,8 +1,8 @@
-import 'dart:math' as math;
 import '../entity_id.dart';
 import '../world.dart';
 import '../stores/restoration_item_store.dart';
 import '../../tuning/restoration_item_tuning.dart';
+import '../../util/fixed_math.dart';
 
 /// Handles the lifecycle and collision of restoration pickups (Health/Mana/Stamina potions).
 ///
@@ -92,7 +92,7 @@ class RestorationItemSystem {
             world,
             player: player,
             stat: items.stat[ii],
-            percent: tuning.restorePercent,
+            percentBp: tuning.restorePercentBp,
           );
           _toDespawn.add(e);
         }
@@ -114,7 +114,7 @@ class RestorationItemSystem {
     EcsWorld world, {
     required EntityId player,
     required RestorationStat stat,
-    required double percent,
+    required int percentBp,
   }) {
     // Note: We use min/max checks to ensure we don't overheal or divide by zero.
     switch (stat) {
@@ -123,7 +123,9 @@ class RestorationItemSystem {
         if (index != null) {
           final max = world.health.hpMax[index];
           if (max > 0) {
-            world.health.hp[index] = math.min(max, world.health.hp[index] + max * percent);
+            final restore = (max * percentBp) ~/ bpScale;
+            final next = world.health.hp[index] + restore;
+            world.health.hp[index] = next > max ? max : next;
           }
         }
       case RestorationStat.mana:
@@ -131,7 +133,9 @@ class RestorationItemSystem {
         if (index != null) {
           final max = world.mana.manaMax[index];
           if (max > 0) {
-            world.mana.mana[index] = math.min(max, world.mana.mana[index] + max * percent);
+            final restore = (max * percentBp) ~/ bpScale;
+            final next = world.mana.mana[index] + restore;
+            world.mana.mana[index] = next > max ? max : next;
           }
         }
       case RestorationStat.stamina:
@@ -139,7 +143,10 @@ class RestorationItemSystem {
         if (index != null) {
           final max = world.stamina.staminaMax[index];
           if (max > 0) {
-            world.stamina.stamina[index] = math.min(max, world.stamina.stamina[index] + max * percent);
+            final restore = (max * percentBp) ~/ bpScale;
+            final next = world.stamina.stamina[index] + restore;
+            world.stamina.stamina[index] =
+                next > max ? max : next;
           }
         }
     }

@@ -14,9 +14,9 @@ This document defines what weapons are, what they own, and their data structure.
 
 A weapon:
 
-* **Enables / gates** a compatible set of abilities (by tags / requirements)
+* **Enables / gates** a compatible set of abilities (by weapon type requirements)
 * Provides **damage-type defaults** (slashing / piercing / bludgeoning, etc.)
-* Grants **passive stats + tags** (power, crit, range scalar, resistances)
+* Grants **passive stats + traits** (power, crit, range scalar, resistances)
 * Provides **effect modifiers** as **data-driven procs** applied at defined hook points
 
 Weapons do **not** define:
@@ -34,9 +34,10 @@ Weapons do **not** define:
 |----------|------|----------|
 | **Primary Weapon** | Primary | Sword, Axe, Spear, Two-Handed Sword |
 | **Off-Hand Weapon** | Secondary | Shield, Dagger, Torch |
-| **Projectile Weapon** | Projectile | Throwing Knife, Throwing Axe |
+| **Projectile Item** | Projectile | Throwing Knife, Ice Bolt, Fire Bolt |
 
-> **Two-handed weapons** occupy both Primary and Secondary slots.
+> **Two-handed weapons** occupy both Primary and Secondary slots.  
+> The **Projectile slot** is equipped with a `ProjectileItemDef` (spells + throws).
 
 ---
 
@@ -67,7 +68,7 @@ class WeaponDef {
   const WeaponDef({
     required this.id,
     required this.category,
-    required this.enabledAbilityTags,
+    required this.weaponType,
     this.damageType = DamageType.physical,
     this.statusProfileId = StatusProfileId.none,
     this.isTwoHanded = false,
@@ -81,8 +82,8 @@ class WeaponDef {
   /// Weapon category (primary / offHand / projectile).
   final WeaponCategory category;
 
-  /// Ability tags this weapon enables (e.g., [strike, parry]).
-  final Set<AbilityTag> enabledAbilityTags;
+  /// Weapon family used for ability gating (sword/shield/throwingWeapon).
+  final WeaponType weaponType;
 
   /// Default damage type applied to abilities.
   final DamageType damageType;
@@ -103,39 +104,41 @@ class WeaponDef {
 
 ---
 
-### RangedWeaponDef (Projectile Weapons)
+### ProjectileItemDef (Projectile Slot Items)
 
-Current implementation in `lib/core/weapons/ranged_weapon_def.dart`:
+Current implementation in `lib/core/projectiles/projectile_item_def.dart`:
 
 ```dart
-class RangedWeaponDef {
-  const RangedWeaponDef({
+class ProjectileItemDef {
+  const ProjectileItemDef({
     required this.id,
+    required this.weaponType,
     required this.projectileId,
-    required this.damage,
+    this.originOffset = 0.0,
+    this.ballistic = false,
+    this.gravityScale = 1.0,
     this.damageType = DamageType.physical,
     this.statusProfileId = StatusProfileId.none,
-    this.staminaCost = 0.0,
-    this.originOffset = 0.0,
-    this.cooldownSeconds = 0.25,
-    this.ballistic = true,
-    this.gravityScale = 1.0,
+    this.procs = const <WeaponProc>[],
+    this.stats = const WeaponStats(),
   });
 
-  final RangedWeaponId id;
+  final ProjectileItemId id;
+  final WeaponType weaponType;
   final ProjectileId projectileId;
-  final double damage;
-  final DamageType damageType;
-  final StatusProfileId statusProfileId;
-  final double staminaCost;
   final double originOffset;
-  final double cooldownSeconds;
   final bool ballistic;
   final double gravityScale;
+  final DamageType damageType;
+  final StatusProfileId statusProfileId;
+  final List<WeaponProc> procs;
+  final WeaponStats stats;
 }
 ```
 
-> **Note:** `RangedWeaponDef` currently defines `damage`, which conflicts with the ability system design (abilities should define base damage). This should be refactored so the ability defines damage and the weapon provides modifiers.
+`ProjectileItemDef` unifies **spells and throwing weapons** under one payload
+structure. Abilities define **base damage and timing**; projectile items provide
+**damage type, procs, stats, and projectile identity**.
 
 ---
 
@@ -208,7 +211,7 @@ Weapons are registered in catalogs for lookup by ID:
 | Catalog | Contains |
 |---------|----------|
 | `WeaponCatalog` | Melee weapons (swords, shields) |
-| `RangedWeaponCatalog` | Throwing weapons |
+| `ProjectileItemCatalog` | Projectile slot items (spells + throws) |
 
 **Current weapons:**
 
@@ -220,6 +223,9 @@ Weapons are registered in catalogs for lookup by ID:
 | `goldenShield` | Off-Hand | Physical | Stun |
 | `throwingAxe` | Projectile | Physical | None |
 | `throwingKnife` | Projectile | Physical | None |
+| `iceBolt` | Projectile | Ice | Slow |
+| `fireBolt` | Projectile | Fire | Burn |
+| `thunderBolt` | Projectile | Thunder | None |
 
 ---
 
@@ -244,7 +250,7 @@ Weapons are registered in catalogs for lookup by ID:
 
 ## Design Rules
 
-1. **Weapons gate abilities.** A weapon defines which abilities can be used (by tags/requirements).
+1. **Weapons gate abilities.** A weapon defines which abilities can be used (by weapon type requirements).
 2. **Weapons provide payload.** Damage type, procs, and stats come from the weapon.
 3. **Abilities define structure.** Timing, targeting, and base damage come from the ability.
 4. **Modifier order is fixed.** On hit: ability modifiers → weapon modifiers → passive modifiers.
@@ -258,10 +264,11 @@ Weapons are registered in catalogs for lookup by ID:
 
 | Aspect | Current | Target |
 |--------|---------|--------|
-| Damage definition | `RangedWeaponDef.damage` | Move to ability |
+| Projectile payload | `ProjectileItemDef` | Unified for spells + throws |
+| Damage definition | Ability base damage | Ability remains source of base damage |
 | Proc system | `StatusProfileId` enum | Data-driven `WeaponProc` list |
 | Two-handed flag | Not implemented | Add `isTwoHanded` field |
-| Ability gating | Implicit | Explicit `enabledAbilityTags` |
+| Ability gating | Explicit `weaponType` | Keep weaponType-based gating |
 | Weapon stats | Not implemented | Add `WeaponStats` class |
 
 ---
@@ -270,6 +277,6 @@ Weapons are registered in catalogs for lookup by ID:
 
 * Weapons can be looked up by ID from catalogs.
 * Weapons define damage type defaults and effect modifiers.
-* Weapons enable/gate abilities via tags.
+* Weapons enable/gate abilities via weapon types.
 * Abilities define base damage, timing, and targeting (not weapons).
 * Modifier application order is deterministic (ability → weapon → passive).

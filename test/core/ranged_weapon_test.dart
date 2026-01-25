@@ -12,17 +12,19 @@ import 'package:rpg_runner/core/players/player_character_registry.dart';
 import 'package:rpg_runner/core/players/player_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
+import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
+import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
-import 'package:rpg_runner/core/weapons/ranged_weapon_catalog.dart';
-import 'package:rpg_runner/core/weapons/ranged_weapon_id.dart';
-import 'package:rpg_runner/core/weapons/spawn_ranged_weapon_projectile.dart';
+import 'package:rpg_runner/core/abilities/ability_catalog.dart';
+import 'package:rpg_runner/core/util/tick_math.dart';
+import 'package:rpg_runner/core/projectiles/spawn_projectile_item.dart';
 
 import '../test_tunings.dart';
 
 void main() {
   test(
-    'ranged: sufficient stamina => projectile spawns + costs + cooldown set',
+    'projectile: sufficient stamina => projectile spawns + costs + cooldown set',
     () {
       const tickHz = 20;
       final base = PlayerCharacterRegistry.eloise;
@@ -33,7 +35,7 @@ void main() {
         playerCharacter: base.copyWith(
           catalog: const PlayerCatalog(
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-            rangedWeaponId: RangedWeaponId.throwingKnife,
+            projectileItemId: ProjectileItemId.throwingKnife,
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
@@ -51,11 +53,20 @@ void main() {
 
       core.applyCommands(
         const [
-          RangedAimDirCommand(tick: 1, x: 1, y: 0),
-          RangedPressedCommand(tick: 1),
+          ProjectileAimDirCommand(tick: 1, x: 1, y: 0),
+          ProjectilePressedCommand(tick: 1),
         ],
       );
       core.stepOneTick();
+
+      final windupTicks = ticksFromSecondsCeil(
+        AbilityCatalog.tryGet('eloise.throwing_knife')!.windupTicks / 60.0,
+        tickHz,
+      );
+      for (var i = 0; i < windupTicks; i += 1) {
+        core.applyCommands(const <Command>[]);
+        core.stepOneTick();
+      }
 
       final snapshot = core.buildSnapshot();
       final projectiles = snapshot.entities
@@ -64,16 +75,21 @@ void main() {
       expect(projectiles.length, 1);
 
       final p = projectiles.single;
-      final weapon = const RangedWeaponCatalog().get(RangedWeaponId.throwingKnife);
-      expect(p.pos.x, closeTo(playerPosX + weapon.originOffset, 1e-9));
+      final item = const ProjectileItemCatalog().get(
+        ProjectileItemId.throwingKnife,
+      );
+      expect(p.pos.x, closeTo(playerPosX + item.originOffset, 1e-9));
       expect(p.pos.y, closeTo(playerPosY, 1e-9));
 
       expect(snapshot.hud.stamina, closeTo(5.0, 1e-9)); // 10 - 5 staminaCost
-      expect(snapshot.hud.rangedWeaponCooldownTicksLeft, 6); // 0.30s @ 20Hz
+      expect(
+        snapshot.hud.projectileCooldownTicksLeft,
+        6 - windupTicks,
+      ); // Cooldown already ticked during windup
     },
   );
 
-  test('ranged: insufficient stamina => no projectile + no costs + no cooldown', () {
+  test('projectile: insufficient stamina => no projectile + no costs + no cooldown', () {
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
       seed: 1,
@@ -82,26 +98,35 @@ void main() {
       playerCharacter: base.copyWith(
         catalog: const PlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-          rangedWeaponId: RangedWeaponId.throwingKnife,
+          projectileItemId: ProjectileItemId.throwingKnife,
         ),
         tuning: base.tuning.copyWith(
-          resource: const ResourceTuning(
-            playerManaMax: 0,
-            playerManaRegenPerSecond: 0,
-            playerStaminaMax: 0,
-            playerStaminaRegenPerSecond: 0,
+            resource: const ResourceTuning(
+              playerManaMax: 0,
+              playerManaRegenPerSecond: 0,
+              playerStaminaMax: 0,
+              playerStaminaRegenPerSecond: 0,
+            ),
           ),
         ),
-      ),
     );
 
     core.applyCommands(
       const [
-        RangedAimDirCommand(tick: 1, x: 1, y: 0),
-        RangedPressedCommand(tick: 1),
+        ProjectileAimDirCommand(tick: 1, x: 1, y: 0),
+        ProjectilePressedCommand(tick: 1),
       ],
     );
     core.stepOneTick();
+
+    final windupTicks = ticksFromSecondsCeil(
+      AbilityCatalog.tryGet('eloise.throwing_knife')!.windupTicks / 60.0,
+      core.tickHz,
+    );
+    for (var i = 0; i < windupTicks; i += 1) {
+      core.applyCommands(const <Command>[]);
+      core.stepOneTick();
+    }
 
     final snapshot = core.buildSnapshot();
     expect(
@@ -109,8 +134,8 @@ void main() {
       isEmpty,
     );
     expect(snapshot.hud.stamina, closeTo(0.0, 1e-9));
-    expect(snapshot.hud.rangedWeaponCooldownTicksLeft, 0);
-    expect(snapshot.hud.canAffordRangedWeapon, isFalse);
+    expect(snapshot.hud.projectileCooldownTicksLeft, 0);
+    expect(snapshot.hud.canAffordProjectile, isFalse);
   });
 
   test('ProjectileWorldCollisionSystem despawns ballistic projectiles', () {
@@ -121,9 +146,10 @@ void main() {
         ProjectileCatalogDerived.from(const ProjectileCatalog(), tickHz: 20);
 
     final owner = world.createEntity();
-    final p = spawnRangedWeaponProjectileFromCaster(
+    final p = spawnProjectileItemFromCaster(
       world,
       projectiles: projectiles,
+      projectileItemId: ProjectileItemId.throwingAxe,
       projectileId: ProjectileId.throwingAxe,
       faction: Faction.player,
       owner: owner,
@@ -134,7 +160,7 @@ void main() {
       dirY: 0,
       fallbackDirX: 1,
       fallbackDirY: 0,
-      damage: 1,
+      damage100: 100,
       damageType: DamageType.physical,
       statusProfileId: StatusProfileId.none,
       ballistic: true,

@@ -9,12 +9,12 @@ import 'aim_quantizer.dart';
 /// - Holds the current continuous inputs (move axis, projectile aim direction).
 /// - Schedules them into the GameController for upcoming ticks so Core receives
 ///   tick-stamped Commands.
-/// - Schedules edge-triggered presses (jump/dash/strike/cast) for the next tick.
+/// - Schedules edge-triggered presses (jump/dash/strike/projectile) for the next tick.
 ///
 /// The router distinguishes between:
 /// - **Continuous inputs** (movement axis, aim directions): held state is pumped
 ///   each frame via [pumpHeldInputs], scheduling commands for upcoming ticks.
-/// - **Edge-triggered inputs** (jump, dash, strike, cast): one-shot events
+/// - **Edge-triggered inputs** (jump, dash, strike, projectile): one-shot events
 ///   scheduled immediately for the next tick via [pressJump], [pressDash], etc.
 class RunnerInputRouter {
   /// Creates a router bound to the given [controller].
@@ -50,8 +50,6 @@ class RunnerInputRouter {
 
   final _AimInputChannel _meleeAim = _AimInputChannel();
 
-  final _AimInputChannel _rangedAim = _AimInputChannel();
-
   // ─────────────────────────────────────────────────────────────────────────
   // Public setters for continuous inputs
   // ─────────────────────────────────────────────────────────────────────────
@@ -86,12 +84,6 @@ class RunnerInputRouter {
   /// Called when the player releases the melee aim input.
   void clearMeleeAimDir() => _meleeAim.clear();
 
-  /// Sets the ranged weapon aim direction (should be normalized or near-normalized).
-  void setRangedAimDir(double x, double y) => _rangedAim.set(x, y);
-
-  /// Clears the ranged weapon aim direction.
-  void clearRangedAimDir() => _rangedAim.clear();
-
   // ─────────────────────────────────────────────────────────────────────────
   // Edge-triggered (one-shot) input methods
   // ─────────────────────────────────────────────────────────────────────────
@@ -108,28 +100,34 @@ class RunnerInputRouter {
   void pressStrike() =>
       controller.enqueueForNextTick((tick) => StrikePressedCommand(tick: tick));
 
-  /// Schedules a cast (projectile) press for the next tick.
-  void pressCast() =>
-      controller.enqueueForNextTick((tick) => CastPressedCommand(tick: tick));
+  /// Schedules a projectile slot press for the next tick.
+  void pressProjectile() => controller.enqueueForNextTick(
+        (tick) => ProjectilePressedCommand(tick: tick),
+      );
+
+  /// Schedules a secondary-slot press for the next tick.
+  void pressSecondary() =>
+      controller.enqueueForNextTick((tick) => SecondaryPressedCommand(tick: tick));
+
+  /// Schedules a bonus-slot press for the next tick.
+  void pressBonus() =>
+      controller.enqueueForNextTick((tick) => BonusPressedCommand(tick: tick));
 
   // ─────────────────────────────────────────────────────────────────────────
   // Combined action methods (aim + action in a single tick)
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Presses cast on the next tick and ensures the projectile aim direction is set
-  /// for the same tick.
-  ///
-  /// Unlike [pressCast], this guarantees the aim and cast commands share the same
-  /// tick, which is important for aimed projectile strikes.
-  void pressCastWithAim() {
-    commitCastWithAim(clearAim: false);
+  /// Presses projectile on the next tick and ensures the projectile aim direction
+  /// is set for the same tick.
+  void pressProjectileWithAim() {
+    commitProjectileWithAim(clearAim: false);
   }
 
-  /// Commits cast on the next tick using the current projectile aim dir (if set).
+  /// Commits projectile on the next tick using the current projectile aim dir (if set).
   ///
-  /// When [clearAim] is true, clear commands are delayed until after the cast
-  /// tick to avoid overwriting the aimed cast.
-  void commitCastWithAim({required bool clearAim}) {
+  /// When [clearAim] is true, clear commands are delayed until after the commit
+  /// tick to avoid overwriting the aimed shot.
+  void commitProjectileWithAim({required bool clearAim}) {
     final tick = controller.tick + controller.inputLead;
     final hadAim = _projectileAim.isSet;
     if (hadAim) {
@@ -142,7 +140,7 @@ class RunnerInputRouter {
       );
     }
 
-    controller.enqueue(CastPressedCommand(tick: tick));
+    controller.enqueue(ProjectilePressedCommand(tick: tick));
 
     if (clearAim) {
       _projectileAim.clear();
@@ -170,25 +168,6 @@ class RunnerInputRouter {
     _meleeAim.clear();
     if (hadAim) {
       _meleeAim.blockClearThrough(tick);
-    }
-  }
-
-  /// Commits a ranged weapon shot on the next tick using the current ranged aim dir.
-  void commitRangedStrike() {
-    final tick = controller.tick + controller.inputLead;
-    final hadAim = _rangedAim.isSet;
-    if (hadAim) {
-      controller.enqueue(
-        RangedAimDirCommand(tick: tick, x: _rangedAim.x, y: _rangedAim.y),
-      );
-    } else {
-      controller.enqueue(ClearRangedAimDirCommand(tick: tick));
-    }
-    controller.enqueue(RangedPressedCommand(tick: tick));
-
-    _rangedAim.clear();
-    if (hadAim) {
-      _rangedAim.blockClearThrough(tick);
     }
   }
 
@@ -224,13 +203,6 @@ class RunnerInputRouter {
       (t) => ClearMeleeAimDirCommand(tick: t),
     );
 
-    // 4. Ranged weapon aim: for thrown weapons / bows.
-    _rangedAim.schedule(
-      controller,
-      _inputBufferSeconds,
-      (t, x, y) => RangedAimDirCommand(tick: t, x: x, y: y),
-      (t) => ClearRangedAimDirCommand(tick: t),
-    );
   }
 
   /// Schedules [MoveAxisCommand]s for upcoming ticks based on the current axis value.
@@ -291,7 +263,7 @@ class _AimInputChannel {
 
   /// Tick through which clear commands are blocked.
   ///
-  /// This is used when a "commit" action (like casting) uses the aim, and we want
+  /// This is used when a "commit" action (like firing a projectile) uses the aim, and we want
   /// to ensure the subsequent clear command doesn't overwrite it in the same tick.
   int _clearBlockedThroughTick = 0;
 

@@ -6,6 +6,8 @@ import 'package:rpg_runner/core/players/player_character_registry.dart';
 import 'package:rpg_runner/core/players/player_catalog.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
+import 'package:rpg_runner/core/abilities/ability_catalog.dart';
+import 'package:rpg_runner/core/util/tick_math.dart';
 import 'package:rpg_runner/game/game_controller.dart';
 import 'package:rpg_runner/game/input/runner_input_router.dart';
 
@@ -51,7 +53,7 @@ void main() {
   });
 
   test(
-    'projectile aim clear overwrites buffered future ticks (affects cast direction)',
+    'projectile aim clear overwrites buffered future ticks (affects projectile direction)',
     () {
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
@@ -72,6 +74,10 @@ void main() {
       final input = RunnerInputRouter(controller: controller);
 
       final dt = 1.0 / controller.tickHz;
+      final windupTicks = ticksFromSecondsCeil(
+        AbilityCatalog.tryGet('eloise.ice_bolt')!.windupTicks / 60.0,
+        controller.tickHz,
+      );
 
       // Hold aim straight down for a frame; this will pre-buffer projectile aim
       // direction for upcoming ticks.
@@ -83,10 +89,11 @@ void main() {
       // Release aim and cast without setting a new aim direction. Cast should
       // fall back to facing (right), not the previously buffered aim.
       input.clearProjectileAimDir();
-      input.pressCast();
-      input.pumpHeldInputs();
-      controller.advanceFrame(dt); // tick 2 (spawns projectile)
-      controller.advanceFrame(dt); // tick 3 (projectile gets velocity)
+      input.pressProjectile();
+      for (var i = 0; i < windupTicks + 2; i += 1) {
+        input.pumpHeldInputs();
+        controller.advanceFrame(dt);
+      }
 
       final snapshot = core.buildSnapshot();
       final projectiles = snapshot.entities
@@ -121,14 +128,18 @@ void main() {
     final input = RunnerInputRouter(controller: controller);
 
     final dt = 1.0 / controller.tickHz;
+    final windupTicks = ticksFromSecondsCeil(
+      AbilityCatalog.tryGet('eloise.ice_bolt')!.windupTicks / 60.0,
+      controller.tickHz,
+    );
 
     input.setProjectileAimDir(0, -1);
-    input.commitCastWithAim(clearAim: true);
+    input.commitProjectileWithAim(clearAim: true);
 
-    input.pumpHeldInputs();
-    controller.advanceFrame(dt); // tick 1: cast spawns
-    input.pumpHeldInputs();
-    controller.advanceFrame(dt); // tick 2: projectile moves
+    for (var i = 0; i < windupTicks + 2; i += 1) {
+      input.pumpHeldInputs();
+      controller.advanceFrame(dt);
+    }
 
     final snapshot = core.buildSnapshot();
     final projectiles = snapshot.entities

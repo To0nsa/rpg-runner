@@ -7,10 +7,12 @@ import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
 import 'package:rpg_runner/core/ecs/stores/health_store.dart';
 import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
 import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
+import 'package:rpg_runner/core/ecs/systems/active_ability_phase_system.dart';
 import 'package:rpg_runner/core/ecs/systems/anim_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/enemies/enemy_catalog.dart';
 import 'package:rpg_runner/core/enemies/enemy_id.dart';
+import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
@@ -21,12 +23,19 @@ void main() {
   group('AnimSystem', () {
     late EcsWorld world;
     late AnimSystem animSystem;
+    late ActiveAbilityPhaseSystem abilityPhaseSystem;
     late MovementTuningDerived playerMovement;
     late AnimTuningDerived playerAnimTuning;
     const enemyCatalog = EnemyCatalog();
 
     void stepEnemies(int tick) {
+      abilityPhaseSystem.step(world, currentTick: tick);
       animSystem.step(world, player: -1, currentTick: tick);
+    }
+
+    void stepPlayer(EntityId player, int tick) {
+      abilityPhaseSystem.step(world, currentTick: tick);
+      animSystem.step(world, player: player, currentTick: tick);
     }
 
     setUp(() {
@@ -45,6 +54,7 @@ void main() {
         playerMovement: playerMovement,
         playerAnimTuning: playerAnimTuning,
       );
+      abilityPhaseSystem = ActiveAbilityPhaseSystem();
     });
 
     group('Player', () {
@@ -63,9 +73,9 @@ void main() {
           grounded: grounded,
           body: const BodyDef(isKinematic: true, useGravity: false),
           collider: const ColliderAabbDef(halfX: 8, halfY: 8),
-          health: const HealthDef(hp: 10, hpMax: 10, regenPerSecond: 0),
-          mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond: 0),
-          stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
+          health: const HealthDef(hp: 1000, hpMax: 1000, regenPerSecond100: 0),
+          mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+          stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
         );
       }
 
@@ -96,68 +106,91 @@ void main() {
         expect(world.animState.anim[ai], equals(AnimKey.spawn));
       });
 
-      test('dash uses dash anim and frame', () {
+      test('dash uses active ability anim and frame', () {
         final player = spawnPlayer(grounded: true);
-        final mi = world.movement.indexOf(player);
-        final dashDuration = playerMovement.dashDurationTicks;
-        final dashTicksLeft = dashDuration > 2 ? dashDuration - 2 : 1;
-        world.movement.dashTicksLeft[mi] = dashTicksLeft;
-
         final tick = playerAnimTuning.spawnAnimTicks + 5;
-        animSystem.step(world, player: player, currentTick: tick);
+        const offset = 2;
+        world.activeAbility.set(
+          player,
+          id: 'eloise.dash',
+          slot: AbilitySlot.mobility,
+          commitTick: tick - offset,
+          windupTicks: 0,
+          activeTicks: 10,
+          recoveryTicks: 0,
+          facingDir: Facing.right,
+        );
+
+        stepPlayer(player, tick);
 
         final ai = world.animState.indexOf(player);
         expect(world.animState.anim[ai], equals(AnimKey.dash));
-        expect(world.animState.animFrame[ai], equals(dashDuration - dashTicksLeft));
-      });
-
-      test('back strike uses back strike animation', () {
-        expect(playerAnimTuning.backStrikeAnimTicks, greaterThan(0));
-        final player = spawnPlayer(grounded: true);
-        final actionIndex = world.actionAnim.indexOf(player);
-        final tick = playerAnimTuning.spawnAnimTicks + 5;
-        final offset = playerAnimTuning.backStrikeAnimTicks > 1 ? 1 : 0;
-        world.actionAnim.lastMeleeTick[actionIndex] = tick - offset;
-        // Back-strike triggers when facing away from the strike direction
-        world.actionAnim.lastMeleeFacing[actionIndex] = Facing.left;
-        // Set entity facing RIGHT, but last melee facing LEFT → back strike
-        final mi = world.movement.indexOf(player);
-        world.movement.facing[mi] = Facing.right;
-
-        animSystem.step(world, player: player, currentTick: tick);
-
-        final ai = world.animState.indexOf(player);
-        expect(world.animState.anim[ai], equals(AnimKey.backStrike));
         expect(world.animState.animFrame[ai], equals(offset));
       });
 
-      test('cast uses cast anim and frame', () {
-        expect(playerAnimTuning.castAnimTicks, greaterThan(0));
+      test('strike uses active ability anim and frame', () {
         final player = spawnPlayer(grounded: true);
-        final actionIndex = world.actionAnim.indexOf(player);
         final tick = playerAnimTuning.spawnAnimTicks + 5;
-        final offset = playerAnimTuning.castAnimTicks > 1 ? 1 : 0;
-        world.actionAnim.lastCastTick[actionIndex] = tick - offset;
+        const offset = 1;
+        world.activeAbility.set(
+          player,
+          id: 'eloise.sword_strike',
+          slot: AbilitySlot.primary,
+          commitTick: tick - offset,
+          windupTicks: 0,
+          activeTicks: 10,
+          recoveryTicks: 0,
+          facingDir: Facing.right,
+        );
 
-        animSystem.step(world, player: player, currentTick: tick);
+        stepPlayer(player, tick);
+
+        final ai = world.animState.indexOf(player);
+        expect(world.animState.anim[ai], equals(AnimKey.strike));
+        expect(world.animState.animFrame[ai], equals(offset));
+      });
+
+      test('cast uses active ability anim and frame', () {
+        final player = spawnPlayer(grounded: true);
+        final tick = playerAnimTuning.spawnAnimTicks + 5;
+        const offset = 1;
+        world.activeAbility.set(
+          player,
+          id: 'eloise.ice_bolt',
+          slot: AbilitySlot.projectile,
+          commitTick: tick - offset,
+          windupTicks: 0,
+          activeTicks: 10,
+          recoveryTicks: 0,
+          facingDir: Facing.right,
+        );
+
+        stepPlayer(player, tick);
 
         final ai = world.animState.indexOf(player);
         expect(world.animState.anim[ai], equals(AnimKey.cast));
         expect(world.animState.animFrame[ai], equals(offset));
       });
 
-      test('ranged uses ranged anim and frame', () {
-        expect(playerAnimTuning.rangedAnimTicks, greaterThan(0));
+      test('ranged uses active ability anim and frame', () {
         final player = spawnPlayer(grounded: true);
-        final actionIndex = world.actionAnim.indexOf(player);
         final tick = playerAnimTuning.spawnAnimTicks + 5;
-        final offset = playerAnimTuning.rangedAnimTicks > 1 ? 1 : 0;
-        world.actionAnim.lastRangedTick[actionIndex] = tick - offset;
+        const offset = 1;
+        world.activeAbility.set(
+          player,
+          id: 'eloise.throwing_knife',
+          slot: AbilitySlot.projectile,
+          commitTick: tick - offset,
+          windupTicks: 0,
+          activeTicks: 10,
+          recoveryTicks: 0,
+          facingDir: Facing.right,
+        );
 
-        animSystem.step(world, player: player, currentTick: tick);
+        stepPlayer(player, tick);
 
         final ai = world.animState.indexOf(player);
-        expect(world.animState.anim[ai], equals(AnimKey.ranged));
+        expect(world.animState.anim[ai], equals(AnimKey.throwItem));
         expect(world.animState.animFrame[ai], equals(offset));
       });
     });
@@ -187,10 +220,16 @@ void main() {
       test('strike mapped to idle (no strike strip)', () {
         final enemy = spawnUnocoDemon(world, posX: 100, posY: 100);
 
-        // Simulate strike animation window.
-        final ei = world.enemy.indexOf(enemy);
-        world.enemy.lastMeleeTick[ei] = 5;
-        world.enemy.lastMeleeAnimTicks[ei] = 10;
+        world.activeAbility.set(
+          enemy,
+          id: 'common.enemy_strike',
+          slot: AbilitySlot.primary,
+          commitTick: 5,
+          windupTicks: 0,
+          activeTicks: 10,
+          recoveryTicks: 0,
+          facingDir: Facing.right,
+        );
 
         stepEnemies(8);
 
@@ -315,10 +354,16 @@ void main() {
       test('strike animation on strike', () {
         final enemy = spawnGroundEnemy(world, posX: 100, posY: 100);
 
-        // Simulate strike animation window.
-        final ei = world.enemy.indexOf(enemy);
-        world.enemy.lastMeleeTick[ei] = 5;
-        world.enemy.lastMeleeAnimTicks[ei] = 10;
+        world.activeAbility.set(
+          enemy,
+          id: 'common.enemy_strike',
+          slot: AbilitySlot.primary,
+          commitTick: 5,
+          windupTicks: 0,
+          activeTicks: 10,
+          recoveryTicks: 0,
+          facingDir: Facing.right,
+        );
 
         stepEnemies(8);
 
@@ -380,9 +425,16 @@ void main() {
         final enemy = spawnGroundEnemy(world, posX: 100, posY: 100);
 
         // Both strikeing and recently damaged.
-        final ei = world.enemy.indexOf(enemy);
-        world.enemy.lastMeleeTick[ei] = 1;
-        world.enemy.lastMeleeAnimTicks[ei] = 20;
+        world.activeAbility.set(
+          enemy,
+          id: 'common.enemy_strike',
+          slot: AbilitySlot.primary,
+          commitTick: 1,
+          windupTicks: 0,
+          activeTicks: 10,
+          recoveryTicks: 0,
+          facingDir: Facing.right,
+        );
         world.lastDamage.add(enemy);
         final ldi = world.lastDamage.indexOf(enemy);
         world.lastDamage.tick[ldi] = 2;
@@ -398,9 +450,16 @@ void main() {
         world.collision.grounded[world.collision.indexOf(enemy)] = true;
 
         // Strikeing while moving.
-        final ei = world.enemy.indexOf(enemy);
-        world.enemy.lastMeleeTick[ei] = 1;
-        world.enemy.lastMeleeAnimTicks[ei] = 20;
+        world.activeAbility.set(
+          enemy,
+          id: 'common.enemy_strike',
+          slot: AbilitySlot.primary,
+          commitTick: 1,
+          windupTicks: 0,
+          activeTicks: 10,
+          recoveryTicks: 0,
+          facingDir: Facing.right,
+        );
 
         stepEnemies(5);
 

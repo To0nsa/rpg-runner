@@ -18,7 +18,6 @@ class GameOverlay extends StatelessWidget {
     required this.input,
     required this.projectileAimPreview,
     required this.meleeAimPreview,
-    required this.rangedAimPreview,
     required this.uiState,
     required this.onStart,
     required this.onTogglePause,
@@ -30,7 +29,6 @@ class GameOverlay extends StatelessWidget {
   final RunnerInputRouter input;
   final AimPreviewModel projectileAimPreview;
   final AimPreviewModel meleeAimPreview;
-  final AimPreviewModel rangedAimPreview;
   final RunnerGameUiState uiState;
   final VoidCallback onStart;
   final VoidCallback onTogglePause;
@@ -50,7 +48,8 @@ class GameOverlay extends StatelessWidget {
             onMoveAxis: input.setMoveAxis,
             onJumpPressed: input.pressJump,
             onDashPressed: input.pressDash,
-            onCastCommitted: () => input.commitCastWithAim(clearAim: true),
+            onProjectileCommitted: () =>
+                input.commitProjectileWithAim(clearAim: true),
             onProjectileAimDir: input.setProjectileAimDir,
             onProjectileAimClear: input.clearProjectileAimDir,
             projectileAimPreview: projectileAimPreview,
@@ -64,13 +63,6 @@ class GameOverlay extends StatelessWidget {
             meleeAffordable: hud.canAffordMelee,
             meleeCooldownTicksLeft: hud.meleeCooldownTicksLeft,
             meleeCooldownTicksTotal: hud.meleeCooldownTicksTotal,
-            onRangedAimDir: input.setRangedAimDir,
-            onRangedAimClear: input.clearRangedAimDir,
-            onRangedCommitted: input.commitRangedStrike,
-            rangedAimPreview: rangedAimPreview,
-            rangedAffordable: hud.canAffordRangedWeapon,
-            rangedCooldownTicksLeft: hud.rangedWeaponCooldownTicksLeft,
-            rangedCooldownTicksTotal: hud.rangedWeaponCooldownTicksTotal,
             jumpAffordable: hud.canAffordJump,
             dashAffordable: hud.canAffordDash,
             dashCooldownTicksLeft: hud.dashCooldownTicksLeft,

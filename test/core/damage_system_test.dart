@@ -8,21 +8,21 @@ import 'package:rpg_runner/core/ecs/stores/health_store.dart';
 void main() {
   test('DamageSystem clamps health and ignores missing targets', () {
     final world = EcsWorld();
-    final damage = DamageSystem(invulnerabilityTicksOnHit: 0);
+    final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
 
     final e = world.createEntity();
     world.health.add(
       e,
-      const HealthDef(hp: 10, hpMax: 10, regenPerSecond: 0),
+      const HealthDef(hp: 1000, hpMax: 1000, regenPerSecond100: 0),
     );
 
-    damage.queue(DamageRequest(target: 999, amount: 5));
-    damage.queue(DamageRequest(target: e, amount: 3));
-    damage.queue(DamageRequest(target: e, amount: 100));
+    damage.queue(const DamageRequest(target: 999, amount100: 500));
+    damage.queue(DamageRequest(target: e, amount100: 300));
+    damage.queue(DamageRequest(target: e, amount100: 10000));
 
     damage.step(world, currentTick: 1);
 
     final hi = world.health.indexOf(e);
-    expect(world.health.hp[hi], closeTo(0.0, 1e-9));
+    expect(world.health.hp[hi], equals(0));
   });
 }

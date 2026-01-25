@@ -24,9 +24,9 @@ void main() {
       grounded: true,
       body: const BodyDef(isKinematic: true, useGravity: false),
       collider: const ColliderAabbDef(halfX: 8, halfY: 8),
-      health: const HealthDef(hp: 4, hpMax: 10, regenPerSecond: 0),
-      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond: 0),
-      stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
+      health: const HealthDef(hp: 400, hpMax: 1000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
     );
 
     final item = world.createEntity();
@@ -46,13 +46,13 @@ void main() {
       player: player,
       cameraLeft: 0.0,
       tuning: const RestorationItemTuning(
-        restorePercent: 0.30,
+        restorePercentBp: 3000,
         despawnBehindCameraMargin: 100,
       ),
     );
 
     final hi = world.health.indexOf(player);
-    expect(world.health.hp[hi], 7.0);
+    expect(world.health.hp[hi], 700);
     expect(world.restorationItem.has(item), isFalse);
   });
 
@@ -67,9 +67,9 @@ void main() {
       grounded: true,
       body: const BodyDef(isKinematic: true, useGravity: false),
       collider: const ColliderAabbDef(halfX: 8, halfY: 8),
-      health: const HealthDef(hp: 10, hpMax: 10, regenPerSecond: 0),
-      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond: 0),
-      stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond: 0),
+      health: const HealthDef(hp: 1000, hpMax: 1000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
     );
 
     final item = world.createEntity();

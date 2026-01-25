@@ -1,6 +1,7 @@
 import '../../combat/damage_type.dart';
 import '../../combat/faction.dart';
 import '../../combat/status/status.dart';
+import '../../weapons/weapon_proc.dart';
 import '../entity_id.dart';
 import '../sparse_set.dart';
 
@@ -8,9 +9,10 @@ class HitboxDef {
   const HitboxDef({
     required this.owner,
     required this.faction,
-    required this.damage,
+    required this.damage100,
     required this.damageType,
     required this.statusProfileId,
+    this.procs = const <WeaponProc>[],
     required this.halfX,
     required this.halfY,
     required this.offsetX,
@@ -21,9 +23,11 @@ class HitboxDef {
 
   final EntityId owner;
   final Faction faction;
-  final double damage;
+  /// Fixed-point: 100 = 1.0
+  final int damage100;
   final DamageType damageType;
   final StatusProfileId statusProfileId;
+  final List<WeaponProc> procs;
   final double halfX;
   final double halfY;
   final double offsetX;
@@ -39,9 +43,11 @@ class HitboxDef {
 class HitboxStore extends SparseSet {
   final List<EntityId> owner = <EntityId>[];
   final List<Faction> faction = <Faction>[];
-  final List<double> damage = <double>[];
+  /// Fixed-point: 100 = 1.0
+  final List<int> damage100 = <int>[];
   final List<DamageType> damageType = <DamageType>[];
   final List<StatusProfileId> statusProfileId = <StatusProfileId>[];
+  final List<List<WeaponProc>> procs = <List<WeaponProc>>[];
   final List<double> halfX = <double>[];
   final List<double> halfY = <double>[];
   final List<double> offsetX = <double>[];
@@ -53,9 +59,10 @@ class HitboxStore extends SparseSet {
     final i = addEntity(entity);
     owner[i] = def.owner;
     faction[i] = def.faction;
-    damage[i] = def.damage;
+    damage100[i] = def.damage100;
     damageType[i] = def.damageType;
     statusProfileId[i] = def.statusProfileId;
+    procs[i] = def.procs;
     halfX[i] = def.halfX;
     halfY[i] = def.halfY;
     offsetX[i] = def.offsetX;
@@ -68,9 +75,10 @@ class HitboxStore extends SparseSet {
   void onDenseAdded(int denseIndex) {
     owner.add(0);
     faction.add(Faction.player);
-    damage.add(0);
+    damage100.add(0);
     damageType.add(DamageType.physical);
     statusProfileId.add(StatusProfileId.none);
+    procs.add(const <WeaponProc>[]);
     halfX.add(0);
     halfY.add(0);
     offsetX.add(0);
@@ -83,9 +91,10 @@ class HitboxStore extends SparseSet {
   void onSwapRemove(int removeIndex, int lastIndex) {
     owner[removeIndex] = owner[lastIndex];
     faction[removeIndex] = faction[lastIndex];
-    damage[removeIndex] = damage[lastIndex];
+    damage100[removeIndex] = damage100[lastIndex];
     damageType[removeIndex] = damageType[lastIndex];
     statusProfileId[removeIndex] = statusProfileId[lastIndex];
+    procs[removeIndex] = procs[lastIndex];
     halfX[removeIndex] = halfX[lastIndex];
     halfY[removeIndex] = halfY[lastIndex];
     offsetX[removeIndex] = offsetX[lastIndex];
@@ -95,9 +104,10 @@ class HitboxStore extends SparseSet {
 
     owner.removeLast();
     faction.removeLast();
-    damage.removeLast();
+    damage100.removeLast();
     damageType.removeLast();
     statusProfileId.removeLast();
+    procs.removeLast();
     halfX.removeLast();
     halfY.removeLast();
     offsetX.removeLast();

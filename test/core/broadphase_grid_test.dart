@@ -27,7 +27,7 @@ void main() {
 
       world.transform.add(e, posX: x, posY: y, velX: 0.0, velY: 0.0);
       world.colliderAabb.add(e, ColliderAabbDef(halfX: halfX, halfY: halfY));
-      world.health.add(e, const HealthDef(hp: 1, hpMax: 1, regenPerSecond: 0));
+      world.health.add(e, const HealthDef(hp: 100, hpMax: 100, regenPerSecond100: 0));
       world.faction.add(
         e,
         FactionDef(faction: rng.nextBool() ? Faction.player : Faction.enemy),
@@ -38,7 +38,7 @@ void main() {
     final big = world.createEntity();
     world.transform.add(big, posX: -10.0, posY: 20.0, velX: 0.0, velY: 0.0);
     world.colliderAabb.add(big, const ColliderAabbDef(halfX: 100.0, halfY: 60.0));
-    world.health.add(big, const HealthDef(hp: 1, hpMax: 1, regenPerSecond: 0));
+    world.health.add(big, const HealthDef(hp: 100, hpMax: 100, regenPerSecond100: 0));
     world.faction.add(big, const FactionDef(faction: Faction.enemy));
 
     final broadphase = BroadphaseGrid(

@@ -7,7 +7,7 @@
 **Do not rewrite all systems into one “AbilitySystem” immediately.**
 Instead, add an **Ability front-end** that outputs the *same intent stores you already have* (MeleeIntent/CastIntent/RangedWeaponIntent/Dash), then migrate execution later.
 
-Why: your current pipelines are already deterministic and battle-tested enough (they gate via `EquippedLoadoutStore.mask`, they block while stunned, they stamp anim ticks, etc.). Example: `PlayerMeleeSystem` and `PlayerCastSystem` already read `EquippedLoadoutStore` and block on `controlLock.isStunned`.
+Why: your current pipelines are already deterministic and battle-tested enough (they gate via `EquippedLoadoutStore.mask`, they block while stunned, they stamp anim ticks, etc.). Example: legacy `PlayerMeleeSystem` / `PlayerCastSystem` (now removed) used to read `EquippedLoadoutStore` and block on `controlLock.isStunned`.
 
 ---
 
@@ -36,7 +36,7 @@ Create minimal “authoritative” types matching your design docs:
 
 ### 2) Add slot model
 
-Introduce `AbilitySlot { primary, secondary, projectile, mobility, bonus }` (and keep Jump separate if you want it “fixed”). This mirrors your slot rules. 
+Introduce `AbilitySlot { primary, secondary, projectile, mobility, bonus, jump }` with Jump as a fixed/reserved slot. This mirrors your slot rules. 
 
 ### 3) Extend EquippedLoadoutStore (still backwards compatible)
 
@@ -93,7 +93,7 @@ Instead of rewriting `MeleeStrikeSystem`, `SpellCastSystem`, `RangedWeaponSystem
 
 This preserves your current execution logic (cost/cooldown checks, spawning, hitboxes). Example: right now `PlayerCastSystem` writes `CastIntentDef` and `SpellCastSystem` owns mana/cooldown/spawn. Keep that separation. 
 
-**Result:** you can delete `PlayerMeleeSystem / PlayerCastSystem / PlayerRangedWeaponSystem` later, but not yet.
+**Result:** legacy player systems were removed after the unified ability pipeline landed.
 
 **Acceptance criteria**
 
@@ -194,7 +194,7 @@ Also: add new button events eventually (secondary / mobility / bonus) or map you
 
 Once AbilityActivationSystem fully drives intents:
 
-* remove `PlayerMeleeSystem`, `PlayerCastSystem`, `PlayerRangedWeaponSystem`
+* remove legacy player systems (done: `PlayerMeleeSystem`, `PlayerCastSystem`, `PlayerRangedWeaponSystem`)
 * remove legacy loadout mask paths if replaced by slot/ability validation
 
 ---

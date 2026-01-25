@@ -13,7 +13,7 @@ library;
 import '../enemies/enemy_id.dart';
 import '../projectiles/projectile_id.dart';
 import '../snapshots/enums.dart';
-import '../spells/spell_id.dart';
+import '../projectiles/projectile_item_id.dart';
 import '../util/vec2.dart';
 
 part 'run_events.dart';

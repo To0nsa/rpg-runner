@@ -10,7 +10,7 @@ import '../combat/creature_tag.dart';
 import '../anim/anim_resolver.dart';
 import '../contracts/render_anim_set_definition.dart';
 import 'death_behavior.dart';
-import '../spells/spell_id.dart';
+import '../projectiles/projectile_item_id.dart';
 import '../snapshots/enums.dart';
 import '../util/vec2.dart';
 import 'enemy_id.dart';
@@ -207,7 +207,7 @@ class EnemyArchetype {
     required this.hitAnimSeconds,
     required this.deathAnimSeconds,
     this.deathBehavior = DeathBehavior.instant,
-    this.primarySpellId,
+    this.primaryProjectileItemId,
     this.artFacingDir = Facing.left,
     this.tags = const CreatureTagDef(),
     this.resistance = const DamageResistanceDef(),
@@ -240,10 +240,10 @@ class EnemyArchetype {
   /// Behavior for death transition timing (instant vs ground impact).
   final DeathBehavior deathBehavior;
 
-  /// Optional primary ranged strike spell for this enemy.
+  /// Optional primary projectile item for this enemy.
   ///
-  /// When present, the [EnemyCastSystem] will use this to write cast intents.
-  final SpellId? primarySpellId;
+  /// When present, the [EnemyCastSystem] will use this to write projectile intents.
+  final ProjectileItemId? primaryProjectileItemId;
 
   /// Direction the authored art faces when not mirrored.
   ///
@@ -285,24 +285,24 @@ class EnemyCatalog {
             maxVelY: 800.0,
           ),
           collider: ColliderAabbDef(halfX: 12.0, halfY: 12.0),
-          health: HealthDef(hp: 20.0, hpMax: 20.0, regenPerSecond: 0.5),
-          mana: ManaDef(mana: 80.0, manaMax: 80.0, regenPerSecond: 5.0),
+          health: HealthDef(hp: 2000, hpMax: 2000, regenPerSecond100: 50),
+          mana: ManaDef(mana: 8000, manaMax: 8000, regenPerSecond100: 500),
           stamina: StaminaDef(
-            stamina: 0.0,
-            staminaMax: 0.0,
-            regenPerSecond: 0.0,
+            stamina: 0,
+            staminaMax: 0,
+            regenPerSecond100: 0,
           ),
           renderAnim: _unocoRenderAnim,
           animProfile: _unocoAnimProfile,
           hitAnimSeconds: _unocoHitAnimSeconds,
           deathAnimSeconds: _unocoDeathAnimSeconds,
           deathBehavior: DeathBehavior.instant,
-          primarySpellId: SpellId.thunderBolt,
+          primaryProjectileItemId: ProjectileItemId.thunderBolt,
           artFacingDir: Facing.left,
           tags: CreatureTagDef(
             mask: CreatureTagMask.flying | CreatureTagMask.demon,
           ),
-          resistance: DamageResistanceDef(fire: -0.5, ice: 0.5),
+          resistance: DamageResistanceDef(fireBp: -5000, iceBp: 5000),
         );
 
       case EnemyId.groundEnemy:
@@ -315,12 +315,12 @@ class EnemyCatalog {
             sideMask: BodyDef.sideLeft | BodyDef.sideRight,
           ),
           collider: ColliderAabbDef(halfX: 25.0, halfY: 25.0, offsetX: 0.0, offsetY: 20.0),
-          health: HealthDef(hp: 20.0, hpMax: 20.0, regenPerSecond: 0.5),
-          mana: ManaDef(mana: 0.0, manaMax: 0.0, regenPerSecond: 0.0),
+          health: HealthDef(hp: 2000, hpMax: 2000, regenPerSecond100: 50),
+          mana: ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
           stamina: StaminaDef(
-            stamina: 0.0,
-            staminaMax: 0.0,
-            regenPerSecond: 0.0,
+            stamina: 0,
+            staminaMax: 0,
+            regenPerSecond100: 0,
           ),
           renderAnim: _grojibRenderAnim,
           animProfile: _grojibAnimProfile,

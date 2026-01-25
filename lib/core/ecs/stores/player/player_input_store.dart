@@ -1,3 +1,4 @@
+import '../../../abilities/ability_def.dart';
 import '../../entity_id.dart';
 import '../../sparse_set.dart';
 
@@ -14,10 +15,11 @@ class PlayerInputStore extends SparseSet {
   final List<double> projectileAimDirY = <double>[];
   final List<double> meleeAimDirX = <double>[];
   final List<double> meleeAimDirY = <double>[];
-  final List<bool> castPressed = <bool>[];
-  final List<bool> rangedPressed = <bool>[];
-  final List<double> rangedAimDirX = <double>[];
-  final List<double> rangedAimDirY = <double>[];
+  final List<bool> projectilePressed = <bool>[];
+  final List<bool> secondaryPressed = <bool>[];
+  final List<bool> bonusPressed = <bool>[];
+  final List<bool> hasAbilitySlotPressed = <bool>[];
+  final List<AbilitySlot> lastAbilitySlotPressed = <AbilitySlot>[];
 
   void add(EntityId entity) {
     addEntity(entity);
@@ -33,10 +35,10 @@ class PlayerInputStore extends SparseSet {
     projectileAimDirY[i] = 0;
     meleeAimDirX[i] = 0;
     meleeAimDirY[i] = 0;
-    castPressed[i] = false;
-    rangedPressed[i] = false;
-    rangedAimDirX[i] = 0;
-    rangedAimDirY[i] = 0;
+    projectilePressed[i] = false;
+    secondaryPressed[i] = false;
+    bonusPressed[i] = false;
+    hasAbilitySlotPressed[i] = false;
   }
 
   @override
@@ -49,10 +51,11 @@ class PlayerInputStore extends SparseSet {
     projectileAimDirY.add(0);
     meleeAimDirX.add(0);
     meleeAimDirY.add(0);
-    castPressed.add(false);
-    rangedPressed.add(false);
-    rangedAimDirX.add(0);
-    rangedAimDirY.add(0);
+    projectilePressed.add(false);
+    secondaryPressed.add(false);
+    bonusPressed.add(false);
+    hasAbilitySlotPressed.add(false);
+    lastAbilitySlotPressed.add(AbilitySlot.primary);
   }
 
   @override
@@ -65,10 +68,11 @@ class PlayerInputStore extends SparseSet {
     projectileAimDirY[removeIndex] = projectileAimDirY[lastIndex];
     meleeAimDirX[removeIndex] = meleeAimDirX[lastIndex];
     meleeAimDirY[removeIndex] = meleeAimDirY[lastIndex];
-    castPressed[removeIndex] = castPressed[lastIndex];
-    rangedPressed[removeIndex] = rangedPressed[lastIndex];
-    rangedAimDirX[removeIndex] = rangedAimDirX[lastIndex];
-    rangedAimDirY[removeIndex] = rangedAimDirY[lastIndex];
+    projectilePressed[removeIndex] = projectilePressed[lastIndex];
+    secondaryPressed[removeIndex] = secondaryPressed[lastIndex];
+    bonusPressed[removeIndex] = bonusPressed[lastIndex];
+    hasAbilitySlotPressed[removeIndex] = hasAbilitySlotPressed[lastIndex];
+    lastAbilitySlotPressed[removeIndex] = lastAbilitySlotPressed[lastIndex];
 
     moveAxis.removeLast();
     jumpPressed.removeLast();
@@ -78,9 +82,10 @@ class PlayerInputStore extends SparseSet {
     projectileAimDirY.removeLast();
     meleeAimDirX.removeLast();
     meleeAimDirY.removeLast();
-    castPressed.removeLast();
-    rangedPressed.removeLast();
-    rangedAimDirX.removeLast();
-    rangedAimDirY.removeLast();
+    projectilePressed.removeLast();
+    secondaryPressed.removeLast();
+    bonusPressed.removeLast();
+    hasAbilitySlotPressed.removeLast();
+    lastAbilitySlotPressed.removeLast();
   }
 }

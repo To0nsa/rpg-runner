@@ -1,5 +1,4 @@
-import '../../../spells/spell_id.dart';
-import '../../../weapons/ranged_weapon_id.dart';
+import '../../../projectiles/projectile_item_id.dart';
 import '../../../weapons/weapon_id.dart';
 import '../../entity_id.dart';
 import '../../sparse_set.dart';
@@ -18,17 +17,14 @@ class LoadoutSlotMask {
   /// Off-hand slot (shield or secondary weapon).
   static const int offHand = 1 << 1;
 
-  /// Ranged weapon slot (bow, throwing axe).
-  static const int ranged = 1 << 2;
-
-  /// Spell slot.
-  static const int spell = 1 << 3;
+  /// Projectile slot (spells or throwing weapons).
+  static const int projectile = 1 << 2;
 
   /// All slots enabled.
-  static const int all = mainHand | offHand | ranged | spell;
+  static const int all = mainHand | offHand | projectile;
 
   /// Default slots for most characters (no off-hand).
-  static const int defaultMask = mainHand | ranged | spell;
+  static const int defaultMask = mainHand | projectile;
 }
 
 /// Definition for creating an equipped loadout component.
@@ -37,13 +33,13 @@ class EquippedLoadoutDef {
     this.mask = LoadoutSlotMask.defaultMask,
     this.mainWeaponId = WeaponId.basicSword,
     this.offhandWeaponId = WeaponId.basicShield,
-    this.rangedWeaponId = RangedWeaponId.throwingKnife,
-    this.spellId = SpellId.iceBolt,
+    this.projectileItemId = ProjectileItemId.iceBolt,
     // Default abilities (Eloise defaults for now)
     this.abilityPrimaryId = 'eloise.sword_strike',
     this.abilitySecondaryId = 'eloise.shield_block',
     this.abilityProjectileId = 'eloise.ice_bolt',
     this.abilityMobilityId = 'eloise.dash',
+    this.abilityJumpId = 'eloise.jump',
   });
 
   /// Bitmask of enabled slots (see [LoadoutSlotMask]).
@@ -55,17 +51,15 @@ class EquippedLoadoutDef {
   /// Off-hand weapon or shield.
   final WeaponId offhandWeaponId;
 
-  /// Ranged weapon.
-  final RangedWeaponId rangedWeaponId;
-
-  /// Equipped spell.
-  final SpellId spellId;
+  /// Equipped projectile item (spell or throwing weapon).
+  final ProjectileItemId projectileItemId;
 
   // New Ability System IDs
   final AbilityKey abilityPrimaryId;
   final AbilityKey abilitySecondaryId;
   final AbilityKey abilityProjectileId;
   final AbilityKey abilityMobilityId;
+  final AbilityKey abilityJumpId;
 }
 
 /// Per-entity equipment loadout (single source of truth).
@@ -80,26 +74,26 @@ class EquippedLoadoutStore extends SparseSet {
   final List<int> mask = <int>[];
   final List<WeaponId> mainWeaponId = <WeaponId>[];
   final List<WeaponId> offhandWeaponId = <WeaponId>[];
-  final List<RangedWeaponId> rangedWeaponId = <RangedWeaponId>[];
-  final List<SpellId> spellId = <SpellId>[];
+  final List<ProjectileItemId> projectileItemId = <ProjectileItemId>[];
   
   // New Ability System Lists
   final List<AbilityKey> abilityPrimaryId = <AbilityKey>[];
   final List<AbilityKey> abilitySecondaryId = <AbilityKey>[];
   final List<AbilityKey> abilityProjectileId = <AbilityKey>[];
   final List<AbilityKey> abilityMobilityId = <AbilityKey>[];
+  final List<AbilityKey> abilityJumpId = <AbilityKey>[];
 
   void add(EntityId entity, [EquippedLoadoutDef def = const EquippedLoadoutDef()]) {
     final i = addEntity(entity);
     mask[i] = def.mask;
     mainWeaponId[i] = def.mainWeaponId;
     offhandWeaponId[i] = def.offhandWeaponId;
-    rangedWeaponId[i] = def.rangedWeaponId;
-    spellId[i] = def.spellId;
+    projectileItemId[i] = def.projectileItemId;
     abilityPrimaryId[i] = def.abilityPrimaryId;
     abilitySecondaryId[i] = def.abilitySecondaryId;
     abilityProjectileId[i] = def.abilityProjectileId;
     abilityMobilityId[i] = def.abilityMobilityId;
+    abilityJumpId[i] = def.abilityJumpId;
   }
 
   /// Updates the loadout for an existing entity.
@@ -108,12 +102,12 @@ class EquippedLoadoutStore extends SparseSet {
     mask[i] = def.mask;
     mainWeaponId[i] = def.mainWeaponId;
     offhandWeaponId[i] = def.offhandWeaponId;
-    rangedWeaponId[i] = def.rangedWeaponId;
-    spellId[i] = def.spellId;
+    projectileItemId[i] = def.projectileItemId;
     abilityPrimaryId[i] = def.abilityPrimaryId;
     abilitySecondaryId[i] = def.abilitySecondaryId;
     abilityProjectileId[i] = def.abilityProjectileId;
     abilityMobilityId[i] = def.abilityMobilityId;
+    abilityJumpId[i] = def.abilityJumpId;
   }
 
   /// Returns true if [entity] has the given [slotBit] enabled.
@@ -128,12 +122,12 @@ class EquippedLoadoutStore extends SparseSet {
     mask.add(LoadoutSlotMask.defaultMask);
     mainWeaponId.add(WeaponId.basicSword);
     offhandWeaponId.add(WeaponId.basicShield);
-    rangedWeaponId.add(RangedWeaponId.throwingKnife);
-    spellId.add(SpellId.iceBolt);
+    projectileItemId.add(ProjectileItemId.iceBolt);
     abilityPrimaryId.add('eloise.sword_strike');
     abilitySecondaryId.add('eloise.shield_block');
     abilityProjectileId.add('eloise.ice_bolt');
     abilityMobilityId.add('eloise.dash');
+    abilityJumpId.add('eloise.jump');
   }
 
   @override
@@ -141,21 +135,21 @@ class EquippedLoadoutStore extends SparseSet {
     mask[removeIndex] = mask[lastIndex];
     mainWeaponId[removeIndex] = mainWeaponId[lastIndex];
     offhandWeaponId[removeIndex] = offhandWeaponId[lastIndex];
-    rangedWeaponId[removeIndex] = rangedWeaponId[lastIndex];
-    spellId[removeIndex] = spellId[lastIndex];
+    projectileItemId[removeIndex] = projectileItemId[lastIndex];
     abilityPrimaryId[removeIndex] = abilityPrimaryId[lastIndex];
     abilitySecondaryId[removeIndex] = abilitySecondaryId[lastIndex];
     abilityProjectileId[removeIndex] = abilityProjectileId[lastIndex];
     abilityMobilityId[removeIndex] = abilityMobilityId[lastIndex];
+    abilityJumpId[removeIndex] = abilityJumpId[lastIndex];
 
     mask.removeLast();
     mainWeaponId.removeLast();
     offhandWeaponId.removeLast();
-    rangedWeaponId.removeLast();
-    spellId.removeLast();
+    projectileItemId.removeLast();
     abilityPrimaryId.removeLast();
     abilitySecondaryId.removeLast();
     abilityProjectileId.removeLast();
     abilityMobilityId.removeLast();
+    abilityJumpId.removeLast();
   }
 }

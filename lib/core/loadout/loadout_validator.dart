@@ -1,9 +1,9 @@
 import '../abilities/ability_catalog.dart';
 import '../abilities/ability_def.dart';
 import '../ecs/stores/combat/equipped_loadout_store.dart';
-import '../weapons/ranged_weapon_catalog.dart';
-import '../weapons/ranged_weapon_def.dart';
-import '../weapons/ranged_weapon_id.dart';
+import '../projectiles/projectile_item_catalog.dart';
+import '../projectiles/projectile_item_def.dart';
+import '../projectiles/projectile_item_id.dart';
 import '../weapons/weapon_catalog.dart';
 import '../weapons/weapon_category.dart';
 import '../weapons/weapon_def.dart';
@@ -16,12 +16,12 @@ class LoadoutValidator {
   const LoadoutValidator({
     required this.abilityCatalog,
     required this.weaponCatalog,
-    required this.rangedWeaponCatalog,
+    required this.projectileItemCatalog,
   });
 
   final AbilityCatalog abilityCatalog;
   final WeaponCatalog weaponCatalog;
-  final RangedWeaponCatalog rangedWeaponCatalog;
+  final ProjectileItemCatalog projectileItemCatalog;
 
   /// Validates an entire loadout definition.
   LoadoutValidationResult validate(EquippedLoadoutDef loadout) {
@@ -42,8 +42,8 @@ class LoadoutValidator {
       issues,
     );
 
-    final rangedWeapon = _resolveRangedWeapon(
-      loadout.rangedWeaponId,
+    final projectileItem = _resolveProjectileItem(
+      loadout.projectileItemId,
       AbilitySlot.projectile,
       issues,
     );
@@ -71,8 +71,8 @@ class LoadoutValidator {
       issues: issues,
       abilityId: loadout.abilityPrimaryId,
       slot: AbilitySlot.primary,
-      effectiveWeapon: mainWeapon,
-      weaponTags: mainWeapon?.grantedAbilityTags ?? const {},
+      hasWeapon: mainWeapon != null,
+      weaponType: mainWeapon?.weaponType,
     );
 
     // Secondary
@@ -80,8 +80,8 @@ class LoadoutValidator {
       issues: issues,
       abilityId: loadout.abilitySecondaryId,
       slot: AbilitySlot.secondary,
-      effectiveWeapon: effectiveSecondaryWeapon,
-      weaponTags: effectiveSecondaryWeapon?.grantedAbilityTags ?? const {},
+      hasWeapon: effectiveSecondaryWeapon != null,
+      weaponType: effectiveSecondaryWeapon?.weaponType,
     );
 
     // Projectile
@@ -89,8 +89,8 @@ class LoadoutValidator {
       issues: issues,
       abilityId: loadout.abilityProjectileId,
       slot: AbilitySlot.projectile,
-      effectiveWeapon: rangedWeapon,
-      weaponTags: rangedWeapon?.grantedAbilityTags ?? const {},
+      hasWeapon: projectileItem != null,
+      weaponType: projectileItem?.weaponType,
     );
 
     // Mobility (No weapon)
@@ -98,8 +98,17 @@ class LoadoutValidator {
       issues: issues,
       abilityId: loadout.abilityMobilityId,
       slot: AbilitySlot.mobility,
-      effectiveWeapon: null,
-      weaponTags: const {},
+      hasWeapon: false,
+      weaponType: null,
+    );
+
+    // Jump (Fixed slot, no weapon)
+    _validateSlot(
+      issues: issues,
+      abilityId: loadout.abilityJumpId,
+      slot: AbilitySlot.jump,
+      hasWeapon: false,
+      weaponType: null,
     );
 
     return LoadoutValidationResult(
@@ -114,24 +123,6 @@ class LoadoutValidator {
     AbilitySlot slot,
     List<LoadoutIssue> issues,
   ) {
-    // Explicit NONE check (Phase 3 Rule: none is valid empty)
-    // Note: Assuming WeaponId has 'none' based on typical patterns, 
-    // but WeaponId enum in codebase doesn't have 'none' yet (Phase 1 legacy).
-    // The design doc mentioned "WeaponId.none exist (or you disallow none entirely)".
-    // Looking at WeaponId enum: basicSword, basicShield... no none.
-    // However, EquipmentLoadoutStore uses WeaponId.basicSword as default.
-    // If we assume valid IDs are required for now as per "Slots are never empty" rule,
-    // then 'none' might not be reachable. 
-    // BUT the Phase 3 design explicitly requested "P2 — Explicit None Semantics".
-    // Since I can't change WeaponId enum easily without breaking things or I should have added it,
-    // I will check if I should effectively treat "invalid lookup" as "none" OR 
-    // if I should strictly validate existence.
-    // The previous implementation used tryGet which returns null.
-    // I'll treat "valid lookup" as "equipped".
-    
-    // Actually, let's treat lookup failure differently based on Phase 3 design "missing vs none".
-    // For now, let's rely on tryGet.
-
     final weapon = weaponCatalog.tryGet(id);
     if (weapon == null) {
       // If we assume LoadoutStore always has valid defaults, this is a corruption/catalogMissing.
@@ -154,8 +145,8 @@ class LoadoutValidator {
         weaponId: id.toString(),
         message: 'Expected $expectedCategory, found ${weapon.category}.',
       ));
-      // Return null so we don't cascade category errors into tag errors? 
-      // Or return weapon so we can still check tags? 
+      // Return null so we don't cascade category errors into type errors?
+      // Or return weapon so we can still check types?
       // Returning weapon allows more checks, but might be noisy. 
       // Let's return null to fail-fast on this slot's weapon.
       return null;
@@ -164,32 +155,32 @@ class LoadoutValidator {
     return weapon;
   }
 
-  RangedWeaponDef? _resolveRangedWeapon(
-    RangedWeaponId id,
+  ProjectileItemDef? _resolveProjectileItem(
+    ProjectileItemId id,
     AbilitySlot slot,
     List<LoadoutIssue> issues,
   ) {
-    final weapon = rangedWeaponCatalog.tryGet(id);
-    if (weapon == null) {
+    final item = projectileItemCatalog.tryGet(id);
+    if (item == null) {
       issues.add(LoadoutIssue(
         slot: slot,
         kind: IssueKind.catalogMissing,
         weaponId: id.toString(),
-        message: 'Ranged Weapon ID not found in catalog.',
+        message: 'Projectile item ID not found in catalog.',
       ));
       return null;
     }
-    return weapon;
+    return item;
   }
 
   void _validateSlot({
     required List<LoadoutIssue> issues,
     required AbilityKey abilityId,
     required AbilitySlot slot,
-    required Object? effectiveWeapon, // WeaponDef or RangedWeaponDef or null
-    required Set<AbilityTag> weaponTags,
+    required bool hasWeapon,
+    required WeaponType? weaponType,
   }) {
-    final ability = AbilityCatalog.tryGet(abilityId);
+    final ability = abilityCatalog.resolve(abilityId);
     if (ability == null) {
       issues.add(LoadoutIssue(
         slot: slot,
@@ -211,7 +202,7 @@ class LoadoutValidator {
     }
 
     // 2. Weapon Presence
-    if (ability.requiresEquippedWeapon && effectiveWeapon == null) {
+    if (ability.requiresEquippedWeapon && !hasWeapon) {
       issues.add(LoadoutIssue(
         slot: slot,
         kind: IssueKind.requiresEquippedWeapon,
@@ -220,17 +211,16 @@ class LoadoutValidator {
       ));
     }
 
-    // 3. Tag Gating
-    if (ability.requiredTags.isNotEmpty) {
-      // Check subset: requiredTags ⊆ weaponTags
-      final missing = ability.requiredTags.difference(weaponTags);
-      if (missing.isNotEmpty) {
+    // 3. Weapon Type Gating
+    if (ability.requiredWeaponTypes.isNotEmpty) {
+      if (weaponType == null ||
+          !ability.requiredWeaponTypes.contains(weaponType)) {
         issues.add(LoadoutIssue(
           slot: slot,
-          kind: IssueKind.missingRequiredTags,
+          kind: IssueKind.missingRequiredWeaponTypes,
           abilityId: abilityId,
-          missingTags: missing,
-          message: 'Missing required tags: ${missing.join(", ")}.',
+          missingWeaponTypes: ability.requiredWeaponTypes,
+          message: 'Missing required weapon types: ${ability.requiredWeaponTypes.join(", ")}.',
         ));
       }
     }

@@ -1,6 +1,4 @@
-/// Projectile spawning utilities for ranged weapons.
-///
-/// Similar to spell projectile spawning, but does not use [SpellId] or mana.
+/// Projectile spawning utilities for projectile slot items.
 library;
 
 import 'dart:math';
@@ -12,12 +10,14 @@ import '../ecs/entity_id.dart';
 import '../ecs/stores/body_store.dart';
 import '../ecs/stores/collider_aabb_store.dart';
 import '../ecs/stores/lifetime_store.dart';
+import '../ecs/stores/projectile_item_origin_store.dart';
 import '../ecs/stores/projectile_store.dart';
 import '../ecs/world.dart';
 import '../projectiles/projectile_catalog.dart';
 import '../projectiles/projectile_id.dart';
+import '../projectiles/projectile_item_id.dart';
+import '../weapons/weapon_proc.dart';
 
-/// Epsilon squared for near-zero direction detection.
 const _dirEps2 = 1e-12;
 
 ({double x, double y}) _normalizeDirOrFallback(
@@ -27,7 +27,6 @@ const _dirEps2 = 1e-12;
   required double fallbackY,
 }) {
   final len2 = x * x + y * y;
-
   if (len2 <= _dirEps2) {
     final fbLen2 = fallbackX * fallbackX + fallbackY * fallbackY;
     if (fbLen2 <= _dirEps2) {
@@ -41,9 +40,10 @@ const _dirEps2 = 1e-12;
   return (x: x * invLen, y: y * invLen);
 }
 
-EntityId spawnRangedWeaponProjectileFromCaster(
+EntityId spawnProjectileItemFromCaster(
   EcsWorld world, {
   required ProjectileCatalogDerived projectiles,
+  required ProjectileItemId projectileItemId,
   required ProjectileId projectileId,
   required Faction faction,
   required EntityId owner,
@@ -57,6 +57,7 @@ EntityId spawnRangedWeaponProjectileFromCaster(
   required int damage100,
   required DamageType damageType,
   required StatusProfileId statusProfileId,
+  List<WeaponProc> procs = const <WeaponProc>[],
   required bool ballistic,
   required double gravityScale,
 }) {
@@ -75,9 +76,9 @@ EntityId spawnRangedWeaponProjectileFromCaster(
 
   final entity = world.createEntity();
 
-  // Position and initial velocity.
-  final initialVelX = dir.x * speedUnitsPerSecond;
-  final initialVelY = dir.y * speedUnitsPerSecond;
+  final initialVelX = ballistic ? dir.x * speedUnitsPerSecond : 0.0;
+  final initialVelY = ballistic ? dir.y * speedUnitsPerSecond : 0.0;
+
   world.transform.add(
     entity,
     posX: originX,
@@ -95,11 +96,17 @@ EntityId spawnRangedWeaponProjectileFromCaster(
       dirX: dir.x,
       dirY: dir.y,
       speedUnitsPerSecond: speedUnitsPerSecond,
-      damage: damage100 / 100.0,
+      damage100: damage100,
       damageType: damageType,
       statusProfileId: statusProfileId,
+      procs: procs,
       usePhysics: ballistic,
     ),
+  );
+
+  world.projectileItemOrigin.add(
+    entity,
+    ProjectileItemOriginDef(projectileItemId: projectileItemId),
   );
 
   world.lifetime.add(
@@ -130,4 +137,3 @@ EntityId spawnRangedWeaponProjectileFromCaster(
 
   return entity;
 }
-

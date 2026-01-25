@@ -283,15 +283,6 @@ class GameController extends ChangeNotifier {
         ),
       );
     }
-    if (input.rangedAimDirSet) {
-      _commandScratch.add(
-        RangedAimDirCommand(
-          tick: tick,
-          x: input.rangedAimDirX,
-          y: input.rangedAimDirY,
-        ),
-      );
-    }
     if (input.jumpPressed) {
       _commandScratch.add(JumpPressedCommand(tick: tick));
     }
@@ -301,11 +292,14 @@ class GameController extends ChangeNotifier {
     if (input.strikePressed) {
       _commandScratch.add(StrikePressedCommand(tick: tick));
     }
-    if (input.castPressed) {
-      _commandScratch.add(CastPressedCommand(tick: tick));
+    if (input.projectilePressed) {
+      _commandScratch.add(ProjectilePressedCommand(tick: tick));
     }
-    if (input.rangedPressed) {
-      _commandScratch.add(RangedPressedCommand(tick: tick));
+    if (input.secondaryPressed) {
+      _commandScratch.add(SecondaryPressedCommand(tick: tick));
+    }
+    if (input.bonusPressed) {
+      _commandScratch.add(BonusPressedCommand(tick: tick));
     }
 
     _core.applyCommands(_commandScratch);

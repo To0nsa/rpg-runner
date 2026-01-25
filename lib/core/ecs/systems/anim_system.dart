@@ -1,4 +1,6 @@
 import '../../anim/anim_resolver.dart';
+import '../../abilities/ability_catalog.dart';
+import '../../snapshots/enums.dart';
 import '../../enemies/death_behavior.dart';
 import '../../enemies/enemy_catalog.dart';
 import '../../enemies/enemy_id.dart';
@@ -17,7 +19,8 @@ class AnimSystem {
     required this.enemyCatalog,
     required MovementTuningDerived playerMovement,
     required AnimTuningDerived playerAnimTuning,
-  }) : _playerMovement = playerMovement,
+  }) : _tickHz = tickHz,
+       _playerMovement = playerMovement,
        _playerAnimTuning = playerAnimTuning,
        _playerProfile = AnimProfile(
          minMoveSpeed: playerMovement.base.minMoveSpeed,
@@ -37,6 +40,7 @@ class AnimSystem {
   /// Catalog for per-enemy configuration (hit windows, anim profiles).
   final EnemyCatalog enemyCatalog;
 
+  final int _tickHz;
   final MovementTuningDerived _playerMovement;
   final AnimTuningDerived _playerAnimTuning;
   final AnimProfile _playerProfile;
@@ -74,32 +78,33 @@ class AnimSystem {
     final mi = world.movement.indexOf(player);
 
     final hi = world.health.tryIndexOf(player);
-    final hp = hi == null ? 1.0 : world.health.hp[hi];
+    final hp = hi == null ? 1 : world.health.hp[hi];
 
     final grounded = world.collision.has(player)
         ? world.collision.grounded[world.collision.indexOf(player)]
         : false;
 
-    final actionIndex = world.actionAnim.tryIndexOf(player);
     final facing = world.movement.facing[mi];
-    final lastMeleeTick = actionIndex == null
-        ? -1
-        : world.actionAnim.lastMeleeTick[actionIndex];
-    final lastMeleeFacing = actionIndex == null
-        ? facing
-        : world.actionAnim.lastMeleeFacing[actionIndex];
-    final lastCastTick = actionIndex == null
-        ? -1
-        : world.actionAnim.lastCastTick[actionIndex];
-    final lastRangedTick = actionIndex == null
-        ? -1
-        : world.actionAnim.lastRangedTick[actionIndex];
+    const lastMeleeTick = -1;
+    final lastMeleeFacing = facing;
+    const lastCastTick = -1;
+    const lastRangedTick = -1;
 
     final lastDamageTick = world.lastDamage.has(player)
         ? world.lastDamage.tick[world.lastDamage.indexOf(player)]
         : -1;
     
     final stunLocked = world.controlLock.isStunned(player, currentTick);
+    
+    // Phase 6: Active Action Layer
+    final activeAction = _resolveActiveAction(
+      world,
+      entity: player,
+      currentTick: currentTick,
+      stunned: stunLocked,
+      hp: hp,
+      deathPhase: DeathPhase.none,
+    );
 
     final signals = AnimSignals.player(
       tick: currentTick,
@@ -117,10 +122,12 @@ class AnimSystem {
       castAnimTicks: _playerAnimTuning.castAnimTicks,
       lastRangedTick: lastRangedTick,
       rangedAnimTicks: _playerAnimTuning.rangedAnimTicks,
-      dashTicksLeft: world.movement.dashTicksLeft[mi],
-      dashDurationTicks: _playerMovement.dashDurationTicks,
+      dashTicksLeft: 0,
+      dashDurationTicks: 0,
       spawnAnimTicks: _playerAnimTuning.spawnAnimTicks,
       stunLocked: stunLocked,
+      activeActionAnim: activeAction.anim,
+      activeActionFrame: activeAction.frame,
     );
 
     final result = AnimResolver.resolve(_playerProfile, signals);
@@ -141,7 +148,7 @@ class AnimSystem {
 
       final hp = world.health.has(e)
           ? world.health.hp[world.health.indexOf(e)]
-          : 1.0;
+          : 1;
 
       final grounded = world.collision.has(e)
           ? world.collision.grounded[world.collision.indexOf(e)]
@@ -156,15 +163,25 @@ class AnimSystem {
           : -1;
 
       final hitAnimTicks = _hitAnimTicksById[enemyId] ?? 0;
-      final lastMeleeTick = enemies.lastMeleeTick[ei];
-      final lastMeleeAnimTicks = enemies.lastMeleeAnimTicks[ei];
-      final lastMeleeFacing = enemies.lastMeleeFacing[ei];
+      const lastMeleeTick = -1;
+      const lastMeleeAnimTicks = 0;
+      const lastMeleeFacing = Facing.right;
 
       final ti = world.transform.tryIndexOf(e);
       final velX = ti == null ? 0.0 : world.transform.velX[ti];
       final velY = ti == null ? 0.0 : world.transform.velY[ti];
 
       final stunLocked = world.controlLock.isStunned(e, currentTick);
+
+      // Phase 6: Active Action Layer (Enemies)
+      final activeAction = _resolveActiveAction(
+        world,
+        entity: e,
+        currentTick: currentTick,
+        stunned: stunLocked,
+        hp: hp,
+        deathPhase: deathPhase,
+      );
 
       final signals = AnimSignals.enemy(
         tick: currentTick,
@@ -180,11 +197,55 @@ class AnimSystem {
         strikeAnimTicks: lastMeleeAnimTicks,
         lastStrikeFacing: lastMeleeFacing,
         stunLocked: stunLocked,
+        activeActionAnim: activeAction.anim,
+        activeActionFrame: activeAction.frame,
       );
 
       final result = AnimResolver.resolve(profile, signals);
       animStore.anim[ai] = result.anim;
       animStore.animFrame[ai] = result.animFrame;
     }
+  }
+
+  ({AnimKey? anim, int frame}) _resolveActiveAction(
+    EcsWorld world, {
+    required EntityId entity,
+    required int currentTick,
+    required bool stunned,
+    required int hp,
+    required DeathPhase deathPhase,
+  }) {
+    if (!world.activeAbility.has(entity)) {
+      return (anim: null, frame: 0);
+    }
+
+    if (stunned || hp <= 0 || deathPhase != DeathPhase.none) {
+      world.activeAbility.clear(entity);
+      return (anim: null, frame: 0);
+    }
+
+    final index = world.activeAbility.indexOf(entity);
+    final activeId = world.activeAbility.abilityId[index];
+    if (activeId == null || activeId.isEmpty) {
+      world.activeAbility.clear(entity);
+      return (anim: null, frame: 0);
+    }
+
+    final def = AbilityCatalog.tryGet(activeId);
+    if (def == null) {
+      world.activeAbility.clear(entity);
+      return (anim: null, frame: 0);
+    }
+
+    final elapsed = world.activeAbility.elapsedTicks[index];
+    final totalTicks = world.activeAbility.totalTicks[index];
+    final maxTicks = totalTicks > 0 ? totalTicks : 1;
+
+    if (elapsed >= maxTicks) {
+      world.activeAbility.clear(entity);
+      return (anim: null, frame: 0);
+    }
+
+    return (anim: def.animKey, frame: elapsed < 0 ? 0 : elapsed);
   }
 }

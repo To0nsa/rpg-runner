@@ -1,35 +1,11 @@
 import '../projectiles/projectile_id.dart';
 import '../combat/damage_type.dart';
+import '../snapshots/enums.dart';
 
 // Validates strict format: "character.ability_name" (lower snake case)
 // Must have at least one dot, segments must be non-empty [a-z0-9_].
 // Example: "eloise.sword_strike_1"
 typedef AbilityKey = String;
-
-// Validates strict format: "character.anim_name" or "shared.anim_name"
-// Example: "eloise.attack_1"
-enum AnimKey {
-  idle,
-  stun,
-  run,
-  jump,
-  fall,
-  strike,
-  backStrike,
-  parry,
-  cast,
-  ranged,
-  dash,
-  roll,
-  hit,
-  death,
-  spawn,
-  walk,
-  punch,
-  shieldBash,
-  shieldBlock,
-  throwItem,
-}
 
 bool isValidAbilityKey(AbilityKey key) {
   final RegExp validKey = RegExp(r'^[a-z0-9_]+\.[a-z0-9_]+$');
@@ -42,6 +18,7 @@ enum AbilitySlot {
   projectile, // Button C (Cast/Throw)
   mobility,   // Button D (Dash)
   bonus,      // Button E (Potion/Ultimate)
+  jump,       // Fixed slot (reserved)
 }
 
 enum AbilityCategory {
@@ -73,6 +50,14 @@ enum AbilityTag {
   light,
   finisher,
   opener,
+}
+
+/// Weapon family classification used for ability gating.
+enum WeaponType {
+  oneHandedSword,
+  shield,
+  throwingWeapon,
+  projectileSpell,
 }
 
 enum TargetingModel {
@@ -197,6 +182,7 @@ class AbilityDef {
     required this.animKey,
     this.tags = const {},
     this.requiredTags = const {},
+    this.requiredWeaponTypes = const {},
     this.requiresEquippedWeapon = false,
     required this.baseDamage,
     this.baseDamageType = DamageType.physical,
@@ -241,9 +227,10 @@ class AbilityDef {
   // Metadata
   final Set<AbilityTag> tags;
   final Set<AbilityTag> requiredTags;
+  final Set<WeaponType> requiredWeaponTypes;
   
   /// If true, this ability requires *some* weapon to be equipped in its slot,
-  /// even if [requiredTags] is empty.
+  /// even if [requiredWeaponTypes] is empty.
   final bool requiresEquippedWeapon;
 
   /// Base damage for this ability.

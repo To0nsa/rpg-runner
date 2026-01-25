@@ -1,5 +1,6 @@
 import '../combat/damage_type.dart';
 import '../projectiles/projectile_id.dart';
+import '../snapshots/enums.dart';
 import 'ability_def.dart';
 
 /// Static registry of all available abilities.
@@ -28,6 +29,42 @@ class AbilityCatalog {
       tags: {AbilityTag.melee, AbilityTag.light},
       baseDamage: 1500, // Fallback melee damage
     ),
+    'common.enemy_strike': AbilityDef(
+      id: 'common.enemy_strike',
+      category: AbilityCategory.melee,
+      allowedSlots: {AbilitySlot.primary},
+      targetingModel: TargetingModel.directional,
+      hitDelivery: MeleeHitDelivery(
+        sizeX: 1.0, sizeY: 1.0, offsetX: 0.5, offsetY: 0.0,
+        hitPolicy: HitPolicy.oncePerTarget,
+      ),
+      windupTicks: 8, activeTicks: 4, recoveryTicks: 24,
+      staminaCost: 0, manaCost: 0,
+      cooldownTicks: 0,
+      interruptPriority: InterruptPriority.combat,
+      animKey: AnimKey.strike,
+      tags: {AbilityTag.melee, AbilityTag.physical},
+      baseDamage: 0,
+    ),
+    'common.enemy_cast': AbilityDef(
+      id: 'common.enemy_cast',
+      category: AbilityCategory.magic,
+      allowedSlots: {AbilitySlot.projectile},
+      targetingModel: TargetingModel.aimed,
+      hitDelivery: ProjectileHitDelivery(
+        projectileId: ProjectileId.thunderBolt,
+        hitPolicy: HitPolicy.oncePerTarget,
+      ),
+      windupTicks: 6, activeTicks: 2, recoveryTicks: 12,
+      staminaCost: 0, manaCost: 0,
+      cooldownTicks: 0,
+      interruptPriority: InterruptPriority.combat,
+      animKey: AnimKey.cast,
+      tags: {AbilityTag.projectile},
+      requiredWeaponTypes: {WeaponType.projectileSpell},
+      baseDamage: 500, // Thunder bolt legacy damage 5.0
+      baseDamageType: DamageType.physical,
+    ),
 
     // ------------------------------------------------------------------------
     // ELOISE: PRIMARY (Sword)
@@ -50,6 +87,7 @@ class AbilityCatalog {
       animKey: AnimKey.strike,
       tags: {AbilityTag.melee, AbilityTag.physical},
       requiredTags: {AbilityTag.melee, AbilityTag.physical},
+      requiredWeaponTypes: {WeaponType.oneHandedSword},
       baseDamage: 1500, // PlayerTuning meleeDamage 15.0
     ),
 
@@ -67,6 +105,7 @@ class AbilityCatalog {
       animKey: AnimKey.parry,
       tags: {AbilityTag.melee, AbilityTag.physical, AbilityTag.opener},
       requiredTags: {AbilityTag.melee, AbilityTag.physical},
+      requiredWeaponTypes: {WeaponType.oneHandedSword},
       baseDamage: 0,
     ),
 
@@ -84,11 +123,12 @@ class AbilityCatalog {
       ),
       windupTicks: 8, activeTicks: 4, recoveryTicks: 10,
       staminaCost: 1200, manaCost: 0,
-      cooldownTicks: 24,
+      cooldownTicks: 15, // 0.25s @ 60Hz (matches legacy cast cooldown)
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.shieldBash,
       tags: {AbilityTag.melee, AbilityTag.physical, AbilityTag.heavy},
-      requiredTags: {AbilityTag.melee, AbilityTag.heavy},
+      requiredTags: {AbilityTag.buff, AbilityTag.physical},
+      requiredWeaponTypes: {WeaponType.shield},
       baseDamage: 1500, // Assuming standardized melee damage
     ),
 
@@ -105,6 +145,7 @@ class AbilityCatalog {
       animKey: AnimKey.shieldBlock,
       tags: {AbilityTag.buff, AbilityTag.physical},
       requiredTags: {AbilityTag.buff},
+      requiredWeaponTypes: {WeaponType.shield},
       baseDamage: 0,
     ),
 
@@ -129,6 +170,7 @@ class AbilityCatalog {
       animKey: AnimKey.throwItem,
       tags: {AbilityTag.projectile, AbilityTag.physical},
       requiredTags: {AbilityTag.projectile},
+      requiredWeaponTypes: {WeaponType.throwingWeapon},
       baseDamage: 1000, // RangedWeaponCatalog.throwingKnife legacyDamage 10.0
     ),
 
@@ -148,6 +190,7 @@ class AbilityCatalog {
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.cast,
       tags: {AbilityTag.projectile, AbilityTag.ice},
+      requiredWeaponTypes: {WeaponType.projectileSpell},
       baseDamage: 1500, // SpellCatalog.iceBolt damage 15.0
       baseDamageType: DamageType.ice,
     ),
@@ -163,10 +206,11 @@ class AbilityCatalog {
       // Cost 12.0 -> 1200
       windupTicks: 6, activeTicks: 2, recoveryTicks: 8,
       staminaCost: 0, manaCost: 1200,
-      cooldownTicks: 30,
+      cooldownTicks: 15, // 0.25s @ 60Hz (matches legacy cast cooldown)
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.cast,
       tags: {AbilityTag.projectile, AbilityTag.fire},
+      requiredWeaponTypes: {WeaponType.projectileSpell},
       baseDamage: 1800, // SpellCatalog.fireBolt damage 18.0
       baseDamageType: DamageType.fire,
     ),
@@ -182,10 +226,11 @@ class AbilityCatalog {
       // Cost 10.0 -> 1000
       windupTicks: 6, activeTicks: 2, recoveryTicks: 8,
       staminaCost: 0, manaCost: 1000,
-      cooldownTicks: 36,
+      cooldownTicks: 15, // 0.25s @ 60Hz (matches legacy cast cooldown)
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.cast,
       tags: {AbilityTag.projectile, AbilityTag.lightning},
+      requiredWeaponTypes: {WeaponType.projectileSpell},
       baseDamage: 500, // SpellCatalog.thunderBolt damage 5.0
       baseDamageType: DamageType.thunder,
     ),
@@ -193,6 +238,24 @@ class AbilityCatalog {
     // ------------------------------------------------------------------------
     // ELOISE: MOBILITY
     // ------------------------------------------------------------------------
+    'eloise.jump': AbilityDef(
+      id: 'eloise.jump',
+      category: AbilityCategory.mobility,
+      allowedSlots: {AbilitySlot.jump},
+      targetingModel: TargetingModel.none,
+      hitDelivery: SelfHitDelivery(),
+      windupTicks: 0,
+      activeTicks: 0,
+      recoveryTicks: 0,
+      staminaCost: 200, // 2.0 stamina (matches default jump tuning)
+      manaCost: 0,
+      cooldownTicks: 0,
+      interruptPriority: InterruptPriority.mobility,
+      animKey: AnimKey.jump,
+      tags: {AbilityTag.light},
+      baseDamage: 0,
+    ),
+
     'eloise.dash': AbilityDef(
       id: 'eloise.dash',
       category: AbilityCategory.mobility,
@@ -231,4 +294,7 @@ class AbilityCatalog {
   };
 
   static AbilityDef? tryGet(AbilityKey key) => abilities[key];
+
+  /// Instance helper for dependency-injected call sites.
+  AbilityDef? resolve(AbilityKey key) => abilities[key];
 }

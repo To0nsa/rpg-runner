@@ -3,8 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/combat/damage_type.dart';
 import 'package:rpg_runner/core/combat/faction.dart';
 import 'package:rpg_runner/core/combat/status/status.dart';
+import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
-import 'package:rpg_runner/core/ecs/stores/cast_intent_store.dart';
+import 'package:rpg_runner/core/ecs/stores/projectile_intent_store.dart';
 import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
 import 'package:rpg_runner/core/ecs/stores/health_store.dart';
 import 'package:rpg_runner/core/ecs/stores/hitbox_store.dart';
@@ -13,12 +14,12 @@ import 'package:rpg_runner/core/ecs/stores/melee_intent_store.dart';
 import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
 import 'package:rpg_runner/core/ecs/systems/hitbox_follow_owner_system.dart';
 import 'package:rpg_runner/core/ecs/systems/melee_strike_system.dart';
-import 'package:rpg_runner/core/ecs/systems/spell_cast_system.dart';
+import 'package:rpg_runner/core/ecs/systems/projectile_launch_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
-import 'package:rpg_runner/core/spells/spell_catalog.dart';
-import 'package:rpg_runner/core/spells/spell_id.dart';
+import 'package:rpg_runner/core/projectiles/projectile_id.dart';
+import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
 import 'package:rpg_runner/core/ecs/entity_factory.dart';
 
 void main() {
@@ -34,40 +35,53 @@ void main() {
       grounded: true,
       body: const BodyDef(isKinematic: true, useGravity: false),
       collider: const ColliderAabbDef(halfX: 8, halfY: 8),
-      health: const HealthDef(hp: 100, hpMax: 100, regenPerSecond: 0),
-      mana: const ManaDef(mana: 100, manaMax: 100, regenPerSecond: 0),
+      health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 10000, manaMax: 10000, regenPerSecond100: 0),
       stamina: const StaminaDef(
-        stamina: 100,
-        staminaMax: 100,
-        regenPerSecond: 0,
+        stamina: 10000,
+        staminaMax: 10000,
+        regenPerSecond100: 0,
       ),
     );
 
-    // Spell intent.
-    world.castIntent.set(
+    // Projectile intent.
+    world.projectileIntent.set(
       caster,
-      const CastIntentDef(
-        spellId: SpellId.iceBolt,
+      const ProjectileIntentDef(
+        projectileItemId: ProjectileItemId.iceBolt,
+        abilityId: 'eloise.ice_bolt',
+        slot: AbilitySlot.projectile,
+        damage100: 100,
+        staminaCost100: 0,
+        manaCost100: 0,
+        projectileId: ProjectileId.iceBolt,
+        damageType: DamageType.ice,
+        statusProfileId: StatusProfileId.none,
+        ballistic: false,
+        gravityScale: 1.0,
         dirX: 1,
         dirY: 0,
         fallbackDirX: 1,
         fallbackDirY: 0,
         originOffset: 4,
+        commitTick: 1,
+        windupTicks: 0,
+        activeTicks: 1,
+        recoveryTicks: 0,
         cooldownTicks: 10,
         tick: 1,
       ),
     );
 
-    final spellCast = SpellCastSystem(
-      spells: const SpellCatalog(),
+    final projectileLaunch = ProjectileLaunchSystem(
       projectiles: ProjectileCatalogDerived.from(
         const ProjectileCatalog(),
         tickHz: 60,
       ),
     );
 
-    spellCast.step(world, currentTick: 1);
-    spellCast.step(world, currentTick: 1);
+    projectileLaunch.step(world, currentTick: 1);
+    projectileLaunch.step(world, currentTick: 1);
 
     expect(world.projectile.denseEntities.length, 1);
 
@@ -75,7 +89,9 @@ void main() {
     world.meleeIntent.set(
       caster,
       const MeleeIntentDef(
-        damage: 1,
+        abilityId: 'common.unarmed_strike',
+        slot: AbilitySlot.primary,
+        damage100: 100,
         damageType: DamageType.physical,
         statusProfileId: StatusProfileId.none,
         halfX: 4,
@@ -84,9 +100,12 @@ void main() {
         offsetY: 0,
         dirX: 1,
         dirY: 0,
+        commitTick: 2,
+        windupTicks: 0,
         activeTicks: 2,
+        recoveryTicks: 0,
         cooldownTicks: 10,
-        staminaCost: 10,
+        staminaCost100: 1000,
         tick: 2,
       ),
     );
@@ -98,7 +117,7 @@ void main() {
     expect(world.hitbox.denseEntities.length, 1);
     expect(
       world.stamina.stamina[world.stamina.indexOf(caster)],
-      closeTo(90.0, 1e-9),
+      equals(9000),
     );
   });
 
@@ -115,7 +134,7 @@ void main() {
       HitboxDef(
         owner: owner,
         faction: Faction.player,
-        damage: 1,
+        damage100: 100,
         damageType: DamageType.physical,
         statusProfileId: StatusProfileId.none,
         halfX: 4,

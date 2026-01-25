@@ -4,18 +4,19 @@ import 'stores/body_store.dart';
 import 'stores/collider_aabb_store.dart';
 import 'stores/collision_state_store.dart';
 import 'stores/cooldown_store.dart';
-import 'stores/cast_intent_store.dart';
+import 'stores/projectile_intent_store.dart';
 import 'stores/combat/creature_tag_store.dart';
 import 'stores/combat/damage_resistance_store.dart';
 import 'stores/combat/equipped_loadout_store.dart';
 import 'stores/combat/stat_modifier_store.dart';
 import 'stores/combat/status_immunity_store.dart';
 import 'stores/collectible_store.dart';
-import 'stores/player/action_anim_store.dart';
 import 'stores/player/gravity_control_store.dart';
 import 'stores/enemies/flying_enemy_steering_store.dart';
 import 'stores/faction_store.dart';
 import 'stores/anim_state_store.dart';
+import 'stores/active_ability_state_store.dart';
+import 'stores/ability_input_buffer_store.dart';
 import 'stores/enemies/enemy_store.dart';
 import 'stores/enemies/ground_enemy_chase_offset_store.dart';
 import 'stores/enemies/engagement_intent_store.dart';
@@ -30,16 +31,16 @@ import 'stores/player/last_damage_store.dart';
 import 'stores/lifetime_store.dart';
 import 'stores/mana_store.dart';
 import 'stores/melee_intent_store.dart';
+import 'stores/mobility_intent_store.dart';
 import 'stores/player/movement_store.dart';
 import 'stores/player/player_input_store.dart';
 import 'stores/projectile_store.dart';
-import 'stores/ranged_weapon_intent_store.dart';
 import 'stores/restoration_item_store.dart';
 import 'stores/status/bleed_store.dart';
 import 'stores/status/burn_store.dart';
 import 'stores/status/slow_store.dart';
 import 'stores/control_lock_store.dart';
-import 'stores/spell_origin_store.dart';
+import 'stores/projectile_item_origin_store.dart';
 import 'stores/stamina_store.dart';
 import 'stores/enemies/surface_nav_state_store.dart';
 import 'stores/transform_store.dart';
@@ -93,8 +94,10 @@ class EcsWorld {
   /// Helper components for handling user input events.
   late final PlayerInputStore playerInput = _register(PlayerInputStore());
 
-  /// Tracks action intent ticks for animation selection.
-  late final ActionAnimStore actionAnim = _register(ActionAnimStore());
+  /// Buffered ability input for recovery-window handling.
+  late final AbilityInputBufferStore abilityInputBuffer = _register(
+    AbilityInputBufferStore(),
+  );
 
   /// Logic and state for movement, including facing direction.
   late final MovementStore movement = _register(MovementStore());
@@ -111,8 +114,10 @@ class EcsWorld {
   /// Generic cooldown timer for abilities or actions.
   late final CooldownStore cooldown = _register(CooldownStore());
 
-  /// Tracks the player's intent to cast a spell (button presses).
-  late final CastIntentStore castIntent = _register(CastIntentStore());
+  /// Tracks the player's intent to fire a projectile item (spell or throw).
+  late final ProjectileIntentStore projectileIntent = _register(
+    ProjectileIntentStore(),
+  );
 
   /// Creature classification tags (humanoid, demon, etc.).
   late final CreatureTagStore creatureTag = _register(CreatureTagStore());
@@ -163,10 +168,11 @@ class EcsWorld {
   /// Tracks the player's intent to perform a melee strike.
   late final MeleeIntentStore meleeIntent = _register(MeleeIntentStore());
 
-  /// Tracks the player's intent to fire a ranged weapon.
-  late final RangedWeaponIntentStore rangedWeaponIntent = _register(
-    RangedWeaponIntentStore(),
+  /// Tracks the player's intent to perform a mobility action (dash/roll).
+  late final MobilityIntentStore mobilityIntent = _register(
+    MobilityIntentStore(),
   );
+
 
   /// Unified loadout store (single source of truth for all equipment).
   late final EquippedLoadoutStore equippedLoadout = _register(
@@ -203,8 +209,10 @@ class EcsWorld {
   /// Control locks for ability/action gating (stun, movement locks, etc.).
   late final ControlLockStore controlLock = _register(ControlLockStore());
 
-  /// Links a spell effect back to its caster or origin point.
-  late final SpellOriginStore spellOrigin = _register(SpellOriginStore());
+  /// Links a projectile back to its originating projectile item.
+  late final ProjectileItemOriginStore projectileItemOrigin = _register(
+    ProjectileItemOriginStore(),
+  );
 
   /// State for ground enemies navigating terrain (jumping gaps/walls).
   late final SurfaceNavStateStore surfaceNav = _register(
@@ -216,6 +224,11 @@ class EcsWorld {
 
   /// Per-entity animation state computed by [AnimSystem].
   late final AnimStateStore animState = _register(AnimStateStore());
+
+  /// Tracks the currently active ability for animation purposes.
+  late final ActiveAbilityStateStore activeAbility = _register(
+    ActiveAbilityStateStore(),
+  );
 
   /// Steering behaviors for flying enemies.
   late final FlyingEnemySteeringStore flyingEnemySteering = _register(

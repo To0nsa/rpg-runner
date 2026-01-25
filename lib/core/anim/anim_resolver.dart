@@ -82,11 +82,13 @@ class AnimSignals {
     this.spawnStartTick = -1,
     this.spawnAnimTicks = 0,
     this.stunLocked = false,
+    this.activeActionAnim,
+    this.activeActionFrame = 0,
   });
 
   factory AnimSignals.player({
     required int tick,
-    required double hp,
+    required int hp,
     bool grounded = false,
     double velX = 0.0,
     double velY = 0.0,
@@ -106,6 +108,8 @@ class AnimSignals {
     int spawnStartTick = -1,
     int spawnAnimTicks = 0,
     bool stunLocked = false,
+    AnimKey? activeActionAnim,
+    int activeActionFrame = 0,
   }) {
     return AnimSignals._(
       tick: tick,
@@ -130,12 +134,14 @@ class AnimSignals {
       spawnStartTick: spawnStartTick,
       spawnAnimTicks: spawnAnimTicks,
       stunLocked: stunLocked,
+      activeActionAnim: activeActionAnim,
+      activeActionFrame: activeActionFrame,
     );
   }
 
   factory AnimSignals.enemy({
     required int tick,
-    required double hp,
+    required int hp,
     required DeathPhase deathPhase,
     int deathStartTick = -1,
     bool grounded = false,
@@ -147,6 +153,8 @@ class AnimSignals {
     int strikeAnimTicks = 0,
     Facing lastStrikeFacing = Facing.right,
     bool stunLocked = false,
+    AnimKey? activeActionAnim,
+    int activeActionFrame = 0,
   }) {
     return AnimSignals._(
       tick: tick,
@@ -162,10 +170,12 @@ class AnimSignals {
       strikeAnimTicks: strikeAnimTicks,
       lastStrikeFacing: lastStrikeFacing,
       stunLocked: stunLocked,
+      activeActionAnim: activeActionAnim,
+      activeActionFrame: activeActionFrame,
     );
   }
   final int tick;
-  final double hp;
+  final int hp;
   final DeathPhase deathPhase;
   final int deathStartTick;
   final bool grounded;
@@ -187,6 +197,8 @@ class AnimSignals {
   final int spawnStartTick;
   final int spawnAnimTicks;
   final bool stunLocked;
+  final AnimKey? activeActionAnim;
+  final int activeActionFrame;
 }
 
 class AnimResult {
@@ -265,6 +277,22 @@ class AnimResolver {
         animFrame: _frameFromTick(tick, lastDamageTick),
       );
     }
+
+    // Phase 6: Active Action Layer
+    // Overrides legacy action logic (Strike, Cast, Ranged, Dash).
+    if (signals.activeActionAnim != null) {
+      final actionKey = _mapActiveActionKey(
+        profile,
+        signals.activeActionAnim!,
+      );
+      if (actionKey != null) {
+        return AnimResult(
+          anim: actionKey,
+          animFrame: signals.activeActionFrame,
+        );
+      }
+    }
+
     if (showStrike) {
       final strikeKey =
           profile.directionalStrike &&
@@ -319,5 +347,24 @@ class AnimResolver {
 
   static int _frameFromTick(int tick, int startTick) {
     return startTick >= 0 ? tick - startTick : tick;
+  }
+
+  static AnimKey? _mapActiveActionKey(AnimProfile profile, AnimKey key) {
+    switch (key) {
+      case AnimKey.strike:
+        return profile.strikeAnimKey;
+      case AnimKey.backStrike:
+        return profile.directionalStrike ? AnimKey.backStrike : profile.strikeAnimKey;
+      case AnimKey.cast:
+        return profile.supportsCast ? profile.castAnimKey : null;
+      case AnimKey.ranged:
+        return profile.supportsRanged ? profile.rangedAnimKey : null;
+      case AnimKey.throwItem:
+        return profile.supportsRanged ? key : null;
+      case AnimKey.dash:
+        return profile.supportsDash ? profile.dashAnimKey : null;
+      default:
+        return key;
+    }
   }
 }

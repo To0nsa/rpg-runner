@@ -1,3 +1,4 @@
+import '../../abilities/ability_def.dart';
 import '../../snapshots/enums.dart';
 import '../../players/player_tuning.dart';
 import '../../util/velocity_math.dart';
@@ -11,18 +12,19 @@ import '../world.dart';
 /// - Movement
 /// - Body
 ///
-/// PlayerMovementSystem writes velocities only (input/jump/dash/gravity/clamps).
+/// PlayerMovementSystem writes velocities only (input/jump/dash state/gravity/clamps).
+/// Dash initiation is handled by [MobilitySystem].
 /// Position integration and collision resolution are handled by CollisionSystem.
 ///
 /// **Responsibilities**:
 /// *   Update movement state timers (Dash cooldown, Coyote time, Jump buffer).
-/// *   Process Input (Dash request, Jump request, Horizontal move).
+/// *   Process Input (Jump request, Horizontal move).
 /// *   Apply velocities based on state.
 class PlayerMovementSystem {
   void step(
     EcsWorld world,
     MovementTuningDerived tuning, {
-    required ResourceTuning resources,
+    required ResourceTuningDerived resources,
     required int currentTick,
   }) {
     final dt = tuning.dtSeconds;
@@ -78,32 +80,25 @@ class PlayerMovementSystem {
       }
 
       // -- Input Buffering --
-      // Buffer a jump request if pressed this frame.
-      // This allows a jump input slightly BEFORE landing to still register as a jump upon landing.
-      if (world.playerInput.jumpPressed[ii]) {
+      // Buffer a jump request coming from the ability pipeline.
+      final jumpIntentIndex = world.mobilityIntent.tryIndexOf(e);
+      final hasJumpIntent =
+          jumpIntentIndex != null &&
+          world.mobilityIntent.slot[jumpIntentIndex] == AbilitySlot.jump;
+      if (hasJumpIntent &&
+          world.mobilityIntent.commitTick[jumpIntentIndex] == currentTick) {
+        // Jump pressed this tick: prime the buffer.
         world.movement.jumpBufferTicksLeft[mi] = tuning.jumpBufferTicks;
-      }
-
-      // -- Dash Logic --
-      // Attempt to start a dash if requested.
-      // Dash is an atomic action that overrides normal movement.
-      if (world.playerInput.dashPressed[ii]) {
-        _tryStartDash(
-          world,
-          entity: e,
-          mi: mi,
-          ti: ti,
-          ii: ii,
-          si: si,
-          tuning: tuning,
-          staminaCost: resources.dashStaminaCost,
-        );
       }
 
       final dashing = world.movement.dashTicksLeft[mi] > 0;
       final modifierIndex = world.statModifier.tryIndexOf(e);
       final moveSpeedMul =
           modifierIndex == null ? 1.0 : world.statModifier.moveSpeedMul[modifierIndex];
+
+      if (world.movement.facingLockTicksLeft[mi] > 0) {
+        world.movement.facingLockTicksLeft[mi] -= 1;
+      }
 
       // -- Horizontal Movement --
       if (dashing) {
@@ -119,7 +114,7 @@ class PlayerMovementSystem {
         
         // Visuals: Update facing direction based on input.
         // This is decoupled from velocity to allow "turning" animations before velocity flips.
-        if (axis != 0) {
+        if (world.movement.facingLockTicksLeft[mi] == 0 && axis != 0) {
           world.movement.facing[mi] = axis > 0 ? Facing.right : Facing.left;
         }
 
@@ -139,18 +134,47 @@ class PlayerMovementSystem {
         // 3. Sufficient Stamina.
         if (world.movement.jumpBufferTicksLeft[mi] > 0 &&
             (wasGrounded || world.movement.coyoteTicksLeft[mi] > 0)) {
-          if (world.stamina.stamina[si] >= resources.jumpStaminaCost) {
-            world.stamina.stamina[si] -= resources.jumpStaminaCost;
+          final jumpCost = hasJumpIntent
+              ? world.mobilityIntent.staminaCost100[jumpIntentIndex!]
+              : resources.jumpStaminaCost100;
+          if (world.stamina.stamina[si] >= jumpCost) {
+            world.stamina.stamina[si] -= jumpCost;
 
             // Apply instantaneous upward velocity.
             world.transform.velY[ti] = -t.jumpSpeed;
-            
+
             // Consume the buffer and coyote time immediately to prevent double-jumping
             // in the same window.
             world.movement.jumpBufferTicksLeft[mi] = 0;
             world.movement.coyoteTicksLeft[mi] = 0;
+
+            if (hasJumpIntent) {
+              // Mark the jump intent as consumed and stamp the active ability.
+              final intent = world.mobilityIntent;
+              intent.tick[jumpIntentIndex!] = -1;
+              intent.commitTick[jumpIntentIndex] = -1;
+
+              if (world.activeAbility.has(e)) {
+                world.activeAbility.set(
+                  e,
+                  id: intent.abilityId[jumpIntentIndex],
+                  slot: intent.slot[jumpIntentIndex],
+                  commitTick: currentTick,
+                  windupTicks: intent.windupTicks[jumpIntentIndex],
+                  activeTicks: intent.activeTicks[jumpIntentIndex],
+                  recoveryTicks: intent.recoveryTicks[jumpIntentIndex],
+                  facingDir: world.movement.facing[mi],
+                );
+              }
+            }
           }
         }
+      }
+
+      // If a jump intent is buffered but expired, clear it.
+      if (hasJumpIntent && world.movement.jumpBufferTicksLeft[mi] <= 0) {
+        world.mobilityIntent.tick[jumpIntentIndex!] = -1;
+        world.mobilityIntent.commitTick[jumpIntentIndex] = -1;
       }
 
       // -- Limits --
@@ -185,46 +209,5 @@ class PlayerMovementSystem {
     );
   }
 
-  /// Attempts to initiate a dash action.
-  ///
-  /// **Logic**:
-  /// 1.  **Checks**: Must not be Dashing, Cooldown active, or Insufficient Stamina.
-  /// 2.  **Direction**: Prioritizes raw input [axis]. If neutral, uses current [facing].
-  /// 3.  **Physics**: Cancels vertical velocity and suppresses gravity for duration.
-  /// 4.  **State**: Sets cooldowns and consumes stamina.
-  void _tryStartDash(
-    EcsWorld world, {
-    required EntityId entity,
-    required int mi,
-    required int ti,
-    required int ii,
-    required int si,
-    required MovementTuningDerived tuning,
-    required double staminaCost,
-  }) {
-    if (world.movement.dashTicksLeft[mi] > 0) return;
-    if (world.movement.dashCooldownTicksLeft[mi] > 0) return;
-    if (world.stamina.stamina[si] < staminaCost) return;
-
-    // Determine Dash Direction:
-    // - If holding direction: Dash that way.
-    // - If neutral: Dash forward (current facing).
-    final axis = world.playerInput.moveAxis[ii];
-    final dirX = axis != 0
-        ? (axis > 0 ? 1.0 : -1.0)
-        : (world.movement.facing[mi] == Facing.right ? 1.0 : -1.0);
-
-    world.movement.dashDirX[mi] = dirX;
-    world.movement.facing[mi] = dirX > 0 ? Facing.right : Facing.left;
-
-    world.movement.dashTicksLeft[mi] = tuning.dashDurationTicks;
-    world.movement.dashCooldownTicksLeft[mi] = tuning.dashCooldownTicks;
-
-    // Cancel vertical motion so dash doesn't inherit jump/fall.
-    // Suppress gravity to ensure linear horizontal movement.
-    world.transform.velY[ti] = 0;
-    world.gravityControl.setSuppressForTicks(entity, tuning.dashDurationTicks);
-
-    world.stamina.stamina[si] -= staminaCost;
-  }
+  // Dash initiation moved to MobilitySystem (ability-driven).
 }

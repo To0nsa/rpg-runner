@@ -6,12 +6,14 @@ import 'package:rpg_runner/core/ecs/stores/health_store.dart';
 import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
 import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
 import 'package:rpg_runner/core/ecs/systems/gravity_system.dart';
-import 'package:rpg_runner/core/ecs/systems/player_movement_system.dart';
+import 'package:rpg_runner/core/ecs/systems/mobility_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
+import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
 import 'package:rpg_runner/core/tuning/physics_tuning.dart';
 import 'package:rpg_runner/core/ecs/entity_factory.dart';
+import 'package:rpg_runner/core/ecs/stores/mobility_intent_store.dart';
 
 void main() {
   test('GravitySystem applies gravity when enabled and not suppressed', () {
@@ -30,9 +32,9 @@ void main() {
         maxVelY: 9999,
       ),
       collider: const ColliderAabbDef(halfX: 8, halfY: 8),
-      health: const HealthDef(hp: 100, hpMax: 100, regenPerSecond: 0),
-      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond: 0),
-      stamina: const StaminaDef(stamina: 100, staminaMax: 100, regenPerSecond: 0),
+      health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(stamina: 10000, staminaMax: 10000, regenPerSecond100: 0),
     );
 
     final tuning = MovementTuningDerived.from(
@@ -62,9 +64,9 @@ void main() {
         maxVelY: 9999,
       ),
       collider: const ColliderAabbDef(halfX: 8, halfY: 8),
-      health: const HealthDef(hp: 100, hpMax: 100, regenPerSecond: 0),
-      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond: 0),
-      stamina: const StaminaDef(stamina: 100, staminaMax: 100, regenPerSecond: 0),
+      health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(stamina: 10000, staminaMax: 10000, regenPerSecond100: 0),
     );
 
     final tuning = MovementTuningDerived.from(
@@ -99,9 +101,9 @@ void main() {
         maxVelY: 9999,
       ),
       collider: const ColliderAabbDef(halfX: 8, halfY: 8),
-      health: const HealthDef(hp: 100, hpMax: 100, regenPerSecond: 0),
-      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond: 0),
-      stamina: const StaminaDef(stamina: 100, staminaMax: 100, regenPerSecond: 0),
+      health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(stamina: 10000, staminaMax: 10000, regenPerSecond100: 0),
     );
 
     final tuning = MovementTuningDerived.from(
@@ -113,27 +115,36 @@ void main() {
     );
     const physics = PhysicsTuning(gravityY: 100);
 
-    final movement = PlayerMovementSystem();
+    final mobility = MobilitySystem();
     final gravity = GravitySystem();
 
-    final ii = world.playerInput.indexOf(player);
-
     // Tick 1: start dash; gravity should be suppressed.
-    world.playerInput.moveAxis[ii] = 1.0;
-    world.playerInput.dashPressed[ii] = true;
-    movement.step(world, tuning, resources: const ResourceTuning(), currentTick: 0);
+    world.mobilityIntent.set(
+      player,
+      MobilityIntentDef(
+        abilityId: 'eloise.dash',
+        slot: AbilitySlot.mobility,
+        dirX: 1.0,
+        commitTick: 0,
+        windupTicks: 0,
+        activeTicks: tuning.dashDurationTicks,
+        recoveryTicks: 0,
+        cooldownTicks: tuning.dashCooldownTicks,
+        staminaCost100: 0,
+        tick: 0,
+      ),
+    );
+    mobility.step(world, tuning, currentTick: 0);
     gravity.step(world, tuning, physics: physics);
     expect(world.transform.velY[world.transform.indexOf(player)], closeTo(0.0, 1e-9));
 
     // Tick 2: dash active; gravity still suppressed.
-    world.playerInput.moveAxis[ii] = 0.0;
-    world.playerInput.dashPressed[ii] = false;
-    movement.step(world, tuning, resources: const ResourceTuning(), currentTick: 0);
+    mobility.step(world, tuning, currentTick: 1);
     gravity.step(world, tuning, physics: physics);
     expect(world.transform.velY[world.transform.indexOf(player)], closeTo(0.0, 1e-9));
 
     // Tick 3: dash ended; gravity resumes.
-    movement.step(world, tuning, resources: const ResourceTuning(), currentTick: 0);
+    mobility.step(world, tuning, currentTick: 2);
     gravity.step(world, tuning, physics: physics);
     expect(world.transform.velY[world.transform.indexOf(player)], closeTo(10.0, 1e-9));
   });

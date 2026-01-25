@@ -39,12 +39,11 @@ void main() {
       expect(hud.mana, closeTo(10.0, 1e-9));
       expect(hud.stamina, closeTo(20.0, 1e-9));
 
-      // Spend mana and stamina, then ensure regen refills and clamps.
-      core.applyCommands(const [
-        CastPressedCommand(tick: 1),
-        DashPressedCommand(tick: 1),
-      ]);
+      // Spend mana and stamina on separate ticks (dash preempts combat).
+      core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
       core.stepOneTick(); // tick 1: spend mana and apply regen (dt=0.1)
+      core.applyCommands(const [DashPressedCommand(tick: 2)]);
+      core.stepOneTick(); // tick 2: spend stamina and apply regen
       hud = core.buildSnapshot().hud;
       expect(hud.hp, closeTo(100.0, 1e-9));
       expect(hud.mana, lessThan(10.0));

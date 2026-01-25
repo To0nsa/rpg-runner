@@ -8,9 +8,8 @@ import '../ecs/stores/health_store.dart';
 import '../ecs/stores/mana_store.dart';
 import '../ecs/stores/stamina_store.dart';
 import '../snapshots/enums.dart';
-import '../spells/spell_id.dart';
+import '../projectiles/projectile_item_id.dart';
 import '../weapons/weapon_id.dart';
-import '../weapons/ranged_weapon_id.dart';
 
 /// Fully-resolved player configuration used to spawn the player entity.
 ///
@@ -38,8 +37,7 @@ class PlayerArchetype {
     this.loadoutSlotMask = LoadoutSlotMask.defaultMask,
     this.weaponId = WeaponId.basicSword,
     this.offhandWeaponId = WeaponId.basicShield,
-    this.rangedWeaponId = RangedWeaponId.throwingKnife,
-    this.spellId = SpellId.iceBolt,
+    this.projectileItemId = ProjectileItemId.iceBolt,
     this.facing = Facing.right,
   });
 
@@ -65,7 +63,7 @@ class PlayerArchetype {
 
   /// Mana pool definition (current mana, max mana, regeneration rate).
   ///
-  /// Used for spell casting. Values from [ResourceTuning.playerManaMax].
+  /// Used for projectile abilities. Values from [ResourceTuning.playerManaMax].
   final ManaDef mana;
 
   /// Stamina pool definition (current stamina, max stamina, regeneration rate).
@@ -91,11 +89,8 @@ class PlayerArchetype {
   /// Equipped off-hand weapon or shield.
   final WeaponId offhandWeaponId;
 
-  /// Equipped ranged weapon used for thrown/ballistic projectiles.
-  final RangedWeaponId rangedWeaponId;
-
-  /// Equipped spell id.
-  final SpellId spellId;
+  /// Equipped projectile item used for thrown/ballistic projectiles.
+  final ProjectileItemId projectileItemId;
 
   /// Initial facing direction when the player spawns.
   ///

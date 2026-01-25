@@ -4,95 +4,96 @@ import '../../sparse_set.dart';
 
 class DamageResistanceDef {
   const DamageResistanceDef({
-    this.physical = 0.0,
-    this.fire = 0.0,
-    this.ice = 0.0,
-    this.thunder = 0.0,
-    this.bleed = 0.0,
+    this.physicalBp = 0,
+    this.fireBp = 0,
+    this.iceBp = 0,
+    this.thunderBp = 0,
+    this.bleedBp = 0,
   });
 
-  final double physical;
-  final double fire;
-  final double ice;
-  final double thunder;
-  final double bleed;
+  /// Basis points (100 = 1%).
+  final int physicalBp;
+  final int fireBp;
+  final int iceBp;
+  final int thunderBp;
+  final int bleedBp;
 
-  double modFor(DamageType type) {
+  int modBpFor(DamageType type) {
     switch (type) {
       case DamageType.physical:
-        return physical;
+        return physicalBp;
       case DamageType.fire:
-        return fire;
+        return fireBp;
       case DamageType.ice:
-        return ice;
+        return iceBp;
       case DamageType.thunder:
-        return thunder;
+        return thunderBp;
       case DamageType.bleed:
-        return bleed;
+        return bleedBp;
     }
   }
 }
 
 /// Per-entity resistance/vulnerability modifiers by [DamageType].
 class DamageResistanceStore extends SparseSet {
-  final List<double> physical = <double>[];
-  final List<double> fire = <double>[];
-  final List<double> ice = <double>[];
-  final List<double> thunder = <double>[];
-  final List<double> bleed = <double>[];
+  /// Basis points (100 = 1%).
+  final List<int> physicalBp = <int>[];
+  final List<int> fireBp = <int>[];
+  final List<int> iceBp = <int>[];
+  final List<int> thunderBp = <int>[];
+  final List<int> bleedBp = <int>[];
 
   void add(EntityId entity, [DamageResistanceDef def = const DamageResistanceDef()]) {
     final i = addEntity(entity);
-    physical[i] = def.physical;
-    fire[i] = def.fire;
-    ice[i] = def.ice;
-    thunder[i] = def.thunder;
-    bleed[i] = def.bleed;
+    physicalBp[i] = def.physicalBp;
+    fireBp[i] = def.fireBp;
+    iceBp[i] = def.iceBp;
+    thunderBp[i] = def.thunderBp;
+    bleedBp[i] = def.bleedBp;
   }
 
-  double modForEntity(EntityId entity, DamageType type) {
+  int modBpForEntity(EntityId entity, DamageType type) {
     final i = tryIndexOf(entity);
-    if (i == null) return 0.0;
-    return modForIndex(i, type);
+    if (i == null) return 0;
+    return modBpForIndex(i, type);
   }
 
-  double modForIndex(int index, DamageType type) {
+  int modBpForIndex(int index, DamageType type) {
     switch (type) {
       case DamageType.physical:
-        return physical[index];
+        return physicalBp[index];
       case DamageType.fire:
-        return fire[index];
+        return fireBp[index];
       case DamageType.ice:
-        return ice[index];
+        return iceBp[index];
       case DamageType.thunder:
-        return thunder[index];
+        return thunderBp[index];
       case DamageType.bleed:
-        return bleed[index];
+        return bleedBp[index];
     }
   }
 
   @override
   void onDenseAdded(int denseIndex) {
-    physical.add(0.0);
-    fire.add(0.0);
-    ice.add(0.0);
-    thunder.add(0.0);
-    bleed.add(0.0);
+    physicalBp.add(0);
+    fireBp.add(0);
+    iceBp.add(0);
+    thunderBp.add(0);
+    bleedBp.add(0);
   }
 
   @override
   void onSwapRemove(int removeIndex, int lastIndex) {
-    physical[removeIndex] = physical[lastIndex];
-    fire[removeIndex] = fire[lastIndex];
-    ice[removeIndex] = ice[lastIndex];
-    thunder[removeIndex] = thunder[lastIndex];
-    bleed[removeIndex] = bleed[lastIndex];
+    physicalBp[removeIndex] = physicalBp[lastIndex];
+    fireBp[removeIndex] = fireBp[lastIndex];
+    iceBp[removeIndex] = iceBp[lastIndex];
+    thunderBp[removeIndex] = thunderBp[lastIndex];
+    bleedBp[removeIndex] = bleedBp[lastIndex];
 
-    physical.removeLast();
-    fire.removeLast();
-    ice.removeLast();
-    thunder.removeLast();
-    bleed.removeLast();
+    physicalBp.removeLast();
+    fireBp.removeLast();
+    iceBp.removeLast();
+    thunderBp.removeLast();
+    bleedBp.removeLast();
   }
 }
-

@@ -26,7 +26,7 @@ void main() {
 
     controller.enqueue(const JumpPressedCommand(tick: 1));
     controller.enqueue(const DashPressedCommand(tick: 1));
-    controller.enqueue(const CastPressedCommand(tick: 1));
+    controller.enqueue(const ProjectilePressedCommand(tick: 1));
 
     controller.advanceFrame(1 / controller.tickHz);
 
