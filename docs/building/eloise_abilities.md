@@ -2,7 +2,8 @@
 
 ## Overview
 
-This document defines all abilities available to Eloise, the starter character. Each ability includes its design intent, timing windows, data structure, and tuning parameters.
+This document defines the Eloise ability catalog as implemented in Core. Costs and damage are shown in human units (Core uses fixed-point where 100 = 1.0).
+Jump is now a fixed ability slot (`AbilitySlot.jump`) committed through the ability pipeline and executed by `PlayerMovementSystem` (buffer/coyote-aware).
 
 Based on the slot table from `ability_system_design.md`:
 
@@ -10,9 +11,10 @@ Based on the slot table from `ability_system_design.md`:
 |------|-----------|
 | **Primary** | Sword Strike, Sword Parry |
 | **Secondary** | Shield Bash, Shield Block |
-| **Projectile** | Throwing Knife, Quick Throw, Ice Bolt, Fire Bolt, Thunder Bolt |
+| **Projectile** | Throwing Knife, Ice Bolt, Fire Bolt, Thunder Bolt |
 | **Mobility** | Dash, Roll |
-| **Bonus** | Any of the above (except Mobility) |
+| **Jump** | Jump (fixed slot) |
+| **Bonus** | Any Primary/Secondary/Projectile (not wired yet) |
 
 ---
 
@@ -29,88 +31,68 @@ All timing values are derived from the animation data in `eloise.dart`.
 | Ranged | 5 | 0.08 | 400 | Throwing (uses cast) |
 | Dash | 4 | 0.05 | 200 | Blocks on last frame |
 | Roll | 10 | 0.05 | 500 | Not looping |
+| Jump | 6 | 0.10 | 600 | Airborne up movement |
 
 ---
 
-## Data Structures
+## Data Structures (Core)
 
-### AbilityDef (Proposed)
+### AbilityDef (Implemented)
 
 ```dart
 class AbilityDef {
   const AbilityDef({
     required this.id,
     required this.category,
+    required this.allowedSlots,
     required this.targetingModel,
-    required this.timing,
-    required this.cost,
-    required this.cooldownTicks,
-    required this.hitType,
-    this.baseDamage = 0.0,
-    this.tags = const {},
-  });
-
-  final AbilityId id;
-  final AbilityCategory category;
-  final TargetingModel targetingModel;
-  final AbilityTiming timing;
-  final AbilityCost cost;
-  final int cooldownTicks;
-  final HitType hitType;
-  final double baseDamage;
-  final Set<AbilityTag> tags;
-}
-```
-
-### Supporting Types
-
-```dart
-enum AbilityCategory {
-  primaryHand,
-  secondaryHand,
-  projectile,
-  mobility,
-  spell,
-}
-
-enum TargetingModel {
-  tapDirectional,
-  holdDirectional,
-  committedAimHold,
-  selfCentered,
-  autoTarget,
-}
-
-enum HitType {
-  singleHit,
-  multiHit,
-  cleave,
-}
-
-class AbilityTiming {
-  const AbilityTiming({
+    required this.hitDelivery,
     required this.windupTicks,
     required this.activeTicks,
     required this.recoveryTicks,
+    required this.staminaCost,
+    required this.manaCost,
+    required this.cooldownTicks,
+    required this.interruptPriority,
+    this.canBeInterruptedBy = const {},
+    required this.animKey,
+    this.tags = const {},
+    this.requiredTags = const {},
+    this.requiredWeaponTypes = const {},
+    this.requiresEquippedWeapon = false,
+    required this.baseDamage,
+    this.baseDamageType = DamageType.physical,
   });
 
+  final AbilityKey id;
+  final AbilityCategory category;
+  final Set<AbilitySlot> allowedSlots;
+  final TargetingModel targetingModel;
+  final HitDeliveryDef hitDelivery;
   final int windupTicks;
   final int activeTicks;
   final int recoveryTicks;
-}
-
-class AbilityCost {
-  const AbilityCost({
-    this.stamina = 0.0,
-    this.mana = 0.0,
-    this.health = 0.0,
-  });
-
-  final double stamina;
-  final double mana;
-  final double health;
+  final int staminaCost; // fixed-point (100 = 1.0)
+  final int manaCost;    // fixed-point (100 = 1.0)
+  final int cooldownTicks;
+  final InterruptPriority interruptPriority;
+  final Set<InterruptPriority> canBeInterruptedBy;
+  final AnimKey animKey;
+  final Set<AbilityTag> tags;
+  final Set<AbilityTag> requiredTags;
+  final Set<WeaponType> requiredWeaponTypes;
+  final bool requiresEquippedWeapon;
+  final int baseDamage; // fixed-point (100 = 1.0)
+  final DamageType baseDamageType;
 }
 ```
+
+### Supporting Types (Summary)
+
+- `AbilitySlot`: primary, secondary, projectile, mobility, bonus, **jump** (fixed).
+- `AbilityCategory`: melee, ranged, magic, mobility, defense, utility.
+- `TargetingModel`: none, directional, aimed, homing, groundTarget.
+- `HitDeliveryDef`: `MeleeHitDelivery`, `ProjectileHitDelivery`, `SelfHitDelivery`.
 
 ---
 
@@ -122,42 +104,50 @@ class AbilityCost {
 
 | Property | Value |
 |----------|-------|
-| Category | Primary Hand |
-| Targeting | Tap Directional |
-| Hit Type | Single-hit |
-| Damage Type | From weapon (slashing) |
+| Category | Melee |
+| Targeting | Directional (commit on press) |
+| Hit Delivery | `MeleeHitDelivery` |
+| Damage Type | From weapon (physical default) |
 
-**Timing (synced with animation: 6 frames × 0.06s = 360ms):**
+**Timing (60Hz ticks):**
 
-| Phase | Frames | Duration |
+| Phase | Ticks | Duration |
 |-------|--------|----------|
-| Windup | 2 | 120ms |
-| Active | 2 | 120ms |
-| Recovery | 2 | 120ms |
-| **Total** | **6** | **360ms** |
+| Windup | 8 | ~133ms |
+| Active | 6 | ~100ms |
+| Recovery | 8 | ~133ms |
+| **Total** | **22** | **~366ms** |
 
 **Cost & Cooldown:**
 
 | Property | Value |
 |----------|-------|
-| Stamina Cost | 8 |
+| Stamina Cost | 5.0 |
 | Mana Cost | 0 |
-| Cooldown | 6 ticks (~100ms) |
+| Cooldown | 18 ticks (~300ms) |
 
 **Data Structure:**
 
 ```dart
 const swordStrike = AbilityDef(
-  id: AbilityId.swordStrike,
-  category: AbilityCategory.primaryHand,
-  targetingModel: TargetingModel.tapDirectional,
+  id: 'eloise.sword_strike',
+  category: AbilityCategory.melee,
+  allowedSlots: {AbilitySlot.primary},
+  targetingModel: TargetingModel.directional,
+  hitDelivery: MeleeHitDelivery(
+    sizeX: 1.5, sizeY: 1.5, offsetX: 1.0, offsetY: 0.0,
+    hitPolicy: HitPolicy.oncePerTarget,
+  ),
+  windupTicks: 8,
+  activeTicks: 6,
+  recoveryTicks: 8,
+  staminaCost: 500,
+  manaCost: 0,
+  cooldownTicks: 18,
+  interruptPriority: InterruptPriority.combat,
   animKey: AnimKey.strike,
-  timing: AbilityTiming(windupFrames: 2, activeFrames: 2, recoveryFrames: 2),
-  cost: AbilityCost(stamina: 5),
-  cooldownSeconds: 0.30,
-  hitType: HitType.singleHit,
-  baseDamage: 15.0,
-  tags: {AbilityTag.melee, AbilityTag.strike},
+  requiredWeaponTypes: {WeaponType.oneHandedSword},
+  baseDamage: 1500,
 );
 ```
 
@@ -169,41 +159,46 @@ const swordStrike = AbilityDef(
 
 | Property | Value |
 |----------|-------|
-| Category | Primary Hand |
-| Targeting | Self-Centered |
-| Hit Type | N/A (defensive) |
-| Effect | Block incoming attack; on perfect timing, counter-attack |
+| Category | Defense |
+| Targeting | None (Self) |
+| Hit Delivery | `SelfHitDelivery` |
+| Effect | Defensive window (effect pending in Core) |
 
-**Timing (synced with animation: 6 frames × 0.06s = 360ms):**
+**Timing (60Hz ticks):**
 
-| Phase | Frames | Duration |
+| Phase | Ticks | Duration |
 |-------|--------|----------|
-| Windup | 1 | 60ms |
-| Active | 3 | 180ms (parry window) |
-| Recovery | 2 | 120ms |
-| **Total** | **6** | **360ms** |
+| Windup | 4 | ~66ms |
+| Active | 12 | ~200ms (parry window) |
+| Recovery | 6 | ~100ms |
+| **Total** | **22** | **~366ms** |
 
 **Cost & Cooldown:**
 
 | Property | Value |
 |----------|-------|
-| Stamina Cost | 10 |
-| Cooldown | 18 ticks (~300ms) |
+| Stamina Cost | 5.0 |
+| Cooldown | 30 ticks (~500ms) |
 
 **Data Structure:**
 
 ```dart
 const swordParry = AbilityDef(
-  id: AbilityId.swordParry,
-  category: AbilityCategory.primaryHand,
-  targetingModel: TargetingModel.selfCentered,
+  id: 'eloise.sword_parry',
+  category: AbilityCategory.defense,
+  allowedSlots: {AbilitySlot.primary},
+  targetingModel: TargetingModel.none,
+  hitDelivery: SelfHitDelivery(),
+  windupTicks: 4,
+  activeTicks: 12,
+  recoveryTicks: 6,
+  staminaCost: 500,
+  manaCost: 0,
+  cooldownTicks: 30,
+  interruptPriority: InterruptPriority.combat,
   animKey: AnimKey.parry,
-  timing: AbilityTiming(windupFrames: 1, activeFrames: 3, recoveryFrames: 2),
-  cost: AbilityCost(stamina: 10),
-  cooldownSeconds: 0.50,
-  hitType: HitType.singleHit,
-  baseDamage: 0.0,
-  tags: {AbilityTag.melee, AbilityTag.defensive, AbilityTag.parry},
+  requiredWeaponTypes: {WeaponType.oneHandedSword},
+  baseDamage: 0,
 );
 ```
 
@@ -217,10 +212,10 @@ const swordParry = AbilityDef(
 
 | Property | Value |
 |----------|-------|
-| Category | Secondary Hand |
-| Targeting | Tap Directional |
-| Hit Type | Single-hit |
-| Effect | Stun on hit (from weapon) |
+| Category | Defense |
+| Targeting | Directional (commit on press) |
+| Hit Delivery | `MeleeHitDelivery` |
+| Effect | Damage + weapon procs |
 
 **Timing (at 60 FPS):**
 
@@ -235,22 +230,31 @@ const swordParry = AbilityDef(
 
 | Property | Value |
 |----------|-------|
-| Stamina Cost | 12 |
-| Cooldown | 24 ticks (~400ms) |
+| Stamina Cost | 12.0 |
+| Cooldown | 15 ticks (~250ms) |
 
 **Data Structure:**
 
 ```dart
 const shieldBash = AbilityDef(
-  id: AbilityId.shieldBash,
-  category: AbilityCategory.secondaryHand,
-  targetingModel: TargetingModel.tapDirectional,
-  timing: AbilityTiming(windupTicks: 8, activeTicks: 4, recoveryTicks: 10),
-  cost: AbilityCost(stamina: 12),
-  cooldownTicks: 24,
-  hitType: HitType.singleHit,
-  baseDamage: 8.0,
-  tags: {AbilityTag.melee, AbilityTag.strike, AbilityTag.stun},
+  id: 'eloise.shield_bash',
+  category: AbilityCategory.defense,
+  allowedSlots: {AbilitySlot.secondary},
+  targetingModel: TargetingModel.directional,
+  hitDelivery: MeleeHitDelivery(
+    sizeX: 1.2, sizeY: 1.2, offsetX: 0.8, offsetY: 0.0,
+    hitPolicy: HitPolicy.oncePerTarget,
+  ),
+  windupTicks: 8,
+  activeTicks: 4,
+  recoveryTicks: 10,
+  staminaCost: 1200,
+  manaCost: 0,
+  cooldownTicks: 15,
+  interruptPriority: InterruptPriority.combat,
+  animKey: AnimKey.shieldBash,
+  requiredWeaponTypes: {WeaponType.shield},
+  baseDamage: 1500,
 );
 ```
 
@@ -262,39 +266,45 @@ const shieldBash = AbilityDef(
 
 | Property | Value |
 |----------|-------|
-| Category | Secondary Hand |
-| Targeting | Self-Centered (hold) |
-| Hit Type | N/A (defensive) |
-| Effect | Damage reduction while active |
+| Category | Defense |
+| Targeting | None (Self) |
+| Hit Delivery | `SelfHitDelivery` |
+| Effect | Defensive stance (effect pending in Core) |
 
 **Timing (at 60 FPS):**
 
 | Phase | Ticks | Duration |
 |-------|-------|----------|
 | Windup | 3 | ~50ms |
-| Active | Variable (hold) | Up to max |
+| Active | 0 | 0ms |
 | Recovery | 6 | ~100ms |
 
 **Cost & Cooldown:**
 
 | Property | Value |
 |----------|-------|
-| Stamina Cost | 5 (on start) + 2/tick while held |
+| Stamina Cost | 5.0 |
 | Cooldown | 12 ticks (~200ms) |
 
 **Data Structure:**
 
 ```dart
 const shieldBlock = AbilityDef(
-  id: AbilityId.shieldBlock,
-  category: AbilityCategory.secondaryHand,
-  targetingModel: TargetingModel.selfCentered,
-  timing: AbilityTiming(windupTicks: 3, activeTicks: 0, recoveryTicks: 6),
-  cost: AbilityCost(stamina: 5),
+  id: 'eloise.shield_block',
+  category: AbilityCategory.defense,
+  allowedSlots: {AbilitySlot.secondary},
+  targetingModel: TargetingModel.none,
+  hitDelivery: SelfHitDelivery(),
+  windupTicks: 3,
+  activeTicks: 0,
+  recoveryTicks: 6,
+  staminaCost: 500,
+  manaCost: 0,
   cooldownTicks: 12,
-  hitType: HitType.singleHit,
-  baseDamage: 0.0,
-  tags: {AbilityTag.defensive, AbilityTag.block, AbilityTag.sustained},
+  interruptPriority: InterruptPriority.combat,
+  animKey: AnimKey.shieldBlock,
+  requiredWeaponTypes: {WeaponType.shield},
+  baseDamage: 0,
 );
 ```
 
@@ -308,10 +318,10 @@ const shieldBlock = AbilityDef(
 
 | Property | Value |
 |----------|-------|
-| Category | Projectile |
-| Targeting | Hold Directional |
-| Hit Type | Single-hit |
-| Projectile | Stop on first hit |
+| Category | Ranged |
+| Targeting | Aimed |
+| Hit Delivery | `ProjectileHitDelivery` |
+| Projectile | Stops on first hit |
 
 **Timing (at 60 FPS):**
 
@@ -326,22 +336,31 @@ const shieldBlock = AbilityDef(
 
 | Property | Value |
 |----------|-------|
-| Stamina Cost | 5 |
+| Stamina Cost | 5.0 |
 | Cooldown | 18 ticks (~300ms) |
 
 **Data Structure:**
 
 ```dart
 const throwingKnife = AbilityDef(
-  id: AbilityId.throwingKnife,
-  category: AbilityCategory.projectile,
-  targetingModel: TargetingModel.holdDirectional,
-  timing: AbilityTiming(windupTicks: 4, activeTicks: 2, recoveryTicks: 6),
-  cost: AbilityCost(stamina: 5),
+  id: 'eloise.throwing_knife',
+  category: AbilityCategory.ranged,
+  allowedSlots: {AbilitySlot.projectile},
+  targetingModel: TargetingModel.aimed,
+  hitDelivery: ProjectileHitDelivery(
+    projectileId: ProjectileId.throwingKnife,
+    hitPolicy: HitPolicy.oncePerTarget,
+  ),
+  windupTicks: 4,
+  activeTicks: 2,
+  recoveryTicks: 6,
+  staminaCost: 500,
+  manaCost: 0,
   cooldownTicks: 18,
-  hitType: HitType.singleHit,
-  baseDamage: 10.0,
-  tags: {AbilityTag.ranged, AbilityTag.throw},
+  interruptPriority: InterruptPriority.combat,
+  animKey: AnimKey.throwItem,
+  requiredWeaponTypes: {WeaponType.throwingWeapon},
+  baseDamage: 1000,
 );
 ```
 
@@ -353,9 +372,9 @@ const throwingKnife = AbilityDef(
 
 | Property | Value |
 |----------|-------|
-| Category | Projectile (Spell) |
-| Targeting | Hold Directional |
-| Hit Type | Single-hit |
+| Category | Magic |
+| Targeting | Aimed |
+| Hit Delivery | `ProjectileHitDelivery` |
 | Effect | Applies slow on hit |
 | Damage Type | Ice |
 
@@ -372,23 +391,33 @@ const throwingKnife = AbilityDef(
 
 | Property | Value |
 |----------|-------|
-| Mana Cost | 10 |
+| Mana Cost | 10.0 |
 | Cooldown | 24 ticks (~400ms) |
 
-**Existing Implementation:**
+**Implementation (AbilityDef):**
 
 ```dart
-// From spell_catalog.dart
-case SpellId.iceBolt:
-  return const SpellDef(
-    stats: ProjectileSpellStats(
-      manaCost: 10.0,
-      damage: 15.0,
-      damageType: DamageType.ice,
-      statusProfileId: StatusProfileId.iceBolt,
-    ),
+const iceBolt = AbilityDef(
+  id: 'eloise.ice_bolt',
+  category: AbilityCategory.magic,
+  allowedSlots: {AbilitySlot.projectile},
+  targetingModel: TargetingModel.aimed,
+  hitDelivery: ProjectileHitDelivery(
     projectileId: ProjectileId.iceBolt,
-  );
+    hitPolicy: HitPolicy.oncePerTarget,
+  ),
+  windupTicks: 6,
+  activeTicks: 2,
+  recoveryTicks: 8,
+  staminaCost: 0,
+  manaCost: 1000,
+  cooldownTicks: 24,
+  interruptPriority: InterruptPriority.combat,
+  animKey: AnimKey.cast,
+  requiredWeaponTypes: {WeaponType.projectileSpell},
+  baseDamage: 1500,
+  baseDamageType: DamageType.ice,
+);
 ```
 
 ---
@@ -399,9 +428,9 @@ case SpellId.iceBolt:
 
 | Property | Value |
 |----------|-------|
-| Category | Projectile (Spell) |
-| Targeting | Hold Directional |
-| Hit Type | Single-hit |
+| Category | Magic |
+| Targeting | Aimed |
+| Hit Delivery | `ProjectileHitDelivery` |
 | Effect | Applies burn on hit |
 | Damage Type | Fire |
 
@@ -409,24 +438,33 @@ case SpellId.iceBolt:
 
 | Property | Value |
 |----------|-------|
-| Mana Cost | 12 |
-| Damage | 18 |
-| Cooldown | 30 ticks (~500ms) |
+| Mana Cost | 12.0 |
+| Damage | 18.0 |
+| Cooldown | 15 ticks (~250ms) |
 
-**Existing Implementation:**
+**Implementation (AbilityDef):**
 
 ```dart
-// From spell_catalog.dart
-case SpellId.fireBolt:
-  return const SpellDef(
-    stats: ProjectileSpellStats(
-      manaCost: 12.0,
-      damage: 18.0,
-      damageType: DamageType.fire,
-      statusProfileId: StatusProfileId.fireBolt,
-    ),
+const fireBolt = AbilityDef(
+  id: 'eloise.fire_bolt',
+  category: AbilityCategory.magic,
+  allowedSlots: {AbilitySlot.projectile},
+  targetingModel: TargetingModel.aimed,
+  hitDelivery: ProjectileHitDelivery(
     projectileId: ProjectileId.fireBolt,
-  );
+  ),
+  windupTicks: 6,
+  activeTicks: 2,
+  recoveryTicks: 8,
+  staminaCost: 0,
+  manaCost: 1200,
+  cooldownTicks: 15,
+  interruptPriority: InterruptPriority.combat,
+  animKey: AnimKey.cast,
+  requiredWeaponTypes: {WeaponType.projectileSpell},
+  baseDamage: 1800,
+  baseDamageType: DamageType.fire,
+);
 ```
 
 ---
@@ -437,34 +475,43 @@ case SpellId.fireBolt:
 
 | Property | Value |
 |----------|-------|
-| Category | Projectile (Spell) |
-| Targeting | Hold Directional |
-| Hit Type | Single-hit |
-| Effect | Apply stun on hit |
+| Category | Magic |
+| Targeting | Aimed |
+| Hit Delivery | `ProjectileHitDelivery` |
+| Effect | Apply stun on hit (if status profile configured) |
 | Damage Type | Thunder |
 
 **Cost & Cooldown:**
 
 | Property | Value |
 |----------|-------|
-| Mana Cost | 10 |
-| Damage | 10 (per target) |
-| Cooldown | 36 ticks (~600ms) |
+| Mana Cost | 10.0 |
+| Damage | 5.0 |
+| Cooldown | 15 ticks (~250ms) |
 
-**Existing Implementation:**
+**Implementation (AbilityDef):**
 
 ```dart
-// From spell_catalog.dart
-case SpellId.thunderBolt:
-  return const SpellDef(
-    stats: ProjectileSpellStats(
-      manaCost: 10.0,
-      damage: 10.0,
-      damageType: DamageType.thunder,
-      statusProfileId: StatusProfileId.thunderBolt,
-    ),
+const thunderBolt = AbilityDef(
+  id: 'eloise.thunder_bolt',
+  category: AbilityCategory.magic,
+  allowedSlots: {AbilitySlot.projectile},
+  targetingModel: TargetingModel.aimed,
+  hitDelivery: ProjectileHitDelivery(
     projectileId: ProjectileId.thunderBolt,
-  );
+  ),
+  windupTicks: 6,
+  activeTicks: 2,
+  recoveryTicks: 8,
+  staminaCost: 0,
+  manaCost: 1000,
+  cooldownTicks: 15,
+  interruptPriority: InterruptPriority.combat,
+  animKey: AnimKey.cast,
+  requiredWeaponTypes: {WeaponType.projectileSpell},
+  baseDamage: 500,
+  baseDamageType: DamageType.thunder,
+);
 ```
 
 ---
@@ -478,40 +525,44 @@ case SpellId.thunderBolt:
 | Property | Value |
 |----------|-------|
 | Category | Mobility |
-| Targeting | Tap Directional |
-| Effect | I-frames during Active phase |
-| Movement | Forward dash (fixed distance) |
+| Targeting | Directional (commit on press) |
+| Effect | Horizontal burst (i-frames not yet implemented) |
+| Movement | Forward dash |
 
-**Timing (synced with animation: 4 frames × 0.05s = 200ms, blocks on last frame):**
+**Timing (60Hz ticks):**
 
-| Phase | Frames | Duration |
+| Phase | Ticks | Duration |
 |-------|--------|----------|
 | Windup | 0 | 0ms |
-| Active | 4 | 200ms (i-frames, blocks on last frame) |
+| Active | 12 | ~200ms |
 | Recovery | 0 | 0ms |
-| **Total** | **4** | **200ms** |
+| **Total** | **12** | **~200ms** |
 
 **Cost & Cooldown:**
 
 | Property | Value |
 |----------|-------|
-| Stamina Cost | 15 |
-| Cooldown | 30 ticks (~500ms) |
+| Stamina Cost | 2.0 |
+| Cooldown | 120 ticks (~2.0s) |
 
 **Data Structure:**
 
 ```dart
 const dash = AbilityDef(
-  id: AbilityId.dash,
+  id: 'eloise.dash',
   category: AbilityCategory.mobility,
-  targetingModel: TargetingModel.tapDirectional,
+  allowedSlots: {AbilitySlot.mobility},
+  targetingModel: TargetingModel.directional,
+  hitDelivery: SelfHitDelivery(),
+  windupTicks: 0,
+  activeTicks: 12,
+  recoveryTicks: 0,
+  staminaCost: 200,
+  manaCost: 0,
+  cooldownTicks: 120,
+  interruptPriority: InterruptPriority.mobility,
   animKey: AnimKey.dash,
-  timing: AbilityTiming(windupFrames: 0, activeFrames: 4, recoveryFrames: 0),
-  cost: AbilityCost(stamina: 2),
-  cooldownSeconds: 2.0,
-  hitType: HitType.singleHit,
-  baseDamage: 0.0,
-  tags: {AbilityTag.mobility, AbilityTag.iframes},
+  baseDamage: 0,
 );
 ```
 
@@ -524,40 +575,95 @@ const dash = AbilityDef(
 | Property | Value |
 |----------|-------|
 | Category | Mobility |
-| Targeting | Tap Directional |
-| Effect | I-frames during Active phase |
-| Movement | Roll (shorter distance than dash) |
+| Targeting | Directional (commit on press) |
+| Effect | Horizontal burst (no i-frames yet) |
+| Movement | Roll (longer active window than dash) |
 
-**Timing (synced with animation: 10 frames × 0.05s = 500ms, not looping):**
+**Timing (60Hz ticks):**
 
-| Phase | Frames | Duration |
+| Phase | Ticks | Duration |
 |-------|--------|----------|
-| Windup | 1 | 50ms |
-| Active | 8 | 400ms (i-frames) |
-| Recovery | 1 | 50ms |
-| **Total** | **10** | **500ms** |
+| Windup | 3 | ~50ms |
+| Active | 24 | ~400ms |
+| Recovery | 3 | ~50ms |
+| **Total** | **30** | **~500ms** |
 
 **Cost & Cooldown:**
 
 | Property | Value |
 |----------|-------|
-| Stamina Cost | 12 |
-| Cooldown | 36 ticks (~600ms) |
+| Stamina Cost | 2.0 |
+| Cooldown | 120 ticks (~2.0s) |
 
 **Data Structure:**
 
 ```dart
 const roll = AbilityDef(
-  id: AbilityId.roll,
+  id: 'eloise.roll',
   category: AbilityCategory.mobility,
-  targetingModel: TargetingModel.tapDirectional,
+  allowedSlots: {AbilitySlot.mobility},
+  targetingModel: TargetingModel.directional,
+  hitDelivery: SelfHitDelivery(),
+  windupTicks: 3,
+  activeTicks: 24,
+  recoveryTicks: 3,
+  staminaCost: 200,
+  manaCost: 0,
+  cooldownTicks: 120,
+  interruptPriority: InterruptPriority.mobility,
   animKey: AnimKey.roll,
-  timing: AbilityTiming(windupFrames: 1, activeFrames: 8, recoveryFrames: 1),
-  cost: AbilityCost(stamina: 8),
-  cooldownSeconds: 2.5,
-  hitType: HitType.singleHit,
-  baseDamage: 0.0,
-  tags: {AbilityTag.mobility, AbilityTag.iframes},
+  baseDamage: 0,
+);
+```
+
+---
+
+## Fixed Jump Slot
+
+### Jump
+
+**Design Intent:** Baseline jump action. Committed through the ability pipeline, executed by `PlayerMovementSystem` (buffer + coyote time).
+
+| Property | Value |
+|----------|-------|
+| Category | Mobility |
+| Targeting | None (Self) |
+| Hit Delivery | `SelfHitDelivery` |
+| Effect | Applies vertical jump velocity |
+
+**Timing (60Hz ticks):**
+
+| Phase | Ticks | Duration |
+|-------|-------|----------|
+| Windup | 0 | 0ms |
+| Active | 0 | 0ms |
+| Recovery | 0 | 0ms |
+
+**Cost & Cooldown:**
+
+| Property | Value |
+|----------|-------|
+| Stamina Cost | 2.0 |
+| Cooldown | 0 |
+
+**Data Structure:**
+
+```dart
+const jump = AbilityDef(
+  id: 'eloise.jump',
+  category: AbilityCategory.mobility,
+  allowedSlots: {AbilitySlot.jump},
+  targetingModel: TargetingModel.none,
+  hitDelivery: SelfHitDelivery(),
+  windupTicks: 0,
+  activeTicks: 0,
+  recoveryTicks: 0,
+  staminaCost: 200,
+  manaCost: 0,
+  cooldownTicks: 0,
+  interruptPriority: InterruptPriority.mobility,
+  animKey: AnimKey.jump,
+  baseDamage: 0,
 );
 ```
 
@@ -567,16 +673,17 @@ const roll = AbilityDef(
 
 | Ability | Category | Targeting | Stamina | Mana | Damage | Cooldown |
 |---------|----------|-----------|---------|------|--------|----------|
-| Sword Strike | Primary | Tap Dir | 8 | - | 20 | 100ms |
-| Sword Parry | Primary | Self | 10 | - | - | 300ms |
-| Shield Bash | Secondary | Tap Dir | 12 | - | 8 | 400ms |
-| Shield Block | Secondary | Self | 5+ | - | - | 200ms |
-| Throwing Knife | Projectile | Hold Dir | 5 | - | 10 | 300ms |
-| Ice Bolt | Projectile | Hold Dir | - | 10 | 15 | 400ms |
-| Fire Bolt | Projectile | Hold Dir | - | 12 | 18 | 500ms |
-| Thunder Bolt | Projectile | Hold Dir | - | 10 | 5 | 600ms |
-| Dash | Mobility | Tap Dir | 15 | - | - | 500ms |
-| Roll | Mobility | Tap Dir | 12 | - | - | 600ms |
+| Sword Strike | Melee | Directional | 5.0 | - | 15.0 | 18 ticks (~300ms) |
+| Sword Parry | Defense | None | 5.0 | - | - | 30 ticks (~500ms) |
+| Shield Bash | Defense | Directional | 12.0 | - | 15.0 | 15 ticks (~250ms) |
+| Shield Block | Defense | None | 5.0 | - | - | 12 ticks (~200ms) |
+| Throwing Knife | Ranged | Aimed | 5.0 | - | 10.0 | 18 ticks (~300ms) |
+| Ice Bolt | Magic | Aimed | - | 10.0 | 15.0 | 24 ticks (~400ms) |
+| Fire Bolt | Magic | Aimed | - | 12.0 | 18.0 | 15 ticks (~250ms) |
+| Thunder Bolt | Magic | Aimed | - | 10.0 | 5.0 | 15 ticks (~250ms) |
+| Dash | Mobility | Directional | 2.0 | - | - | 120 ticks (~2.0s) |
+| Roll | Mobility | Directional | 2.0 | - | - | 120 ticks (~2.0s) |
+| Jump | Mobility | None | 2.0 | - | - | 0 |
 
 ---
 
@@ -584,8 +691,8 @@ const roll = AbilityDef(
 
 1. **Stamina vs Mana:** Physical abilities use stamina; spells use mana. This creates resource management decisions.
 
-2. **Cooldown balance:** More powerful abilities have longer cooldowns. Dash is faster but shorter; Roll has longer i-frames but longer cooldown.
+2. **Cooldown balance:** Dash and Roll currently share the same cooldown (2.0s). Separate tuning can be added once i-frames/defense effects exist.
 
-3. **Timing trade-offs:** Sword Strike is fast but has short active window. Sword Parry requires precise timing but rewards with counter-attack.
+3. **Timing trade-offs:** Sword Strike is fast but has short active window. Sword Parry is a defensive window (effect pending in Core).
 
 4. **Weapon synergy:** Damage type and procs come from equipped weapon, not the ability. Sword Strike with a fire sword applies burn.
