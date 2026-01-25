@@ -71,7 +71,7 @@ void main() {
       meleeStrike.step(world, currentTick: tick);
       follow.step(world);
       broadphase.rebuild(world);
-      hitboxDamage.step(world, damage.queue, broadphase);
+      hitboxDamage.step(world, broadphase);
       damage.step(world, currentTick: tick);
       lifetime.step(world);
       // Clear the one-shot press after the first tick.
@@ -87,7 +87,7 @@ void main() {
     meleeStrike.step(world, currentTick: 10);
     follow.step(world);
     broadphase.rebuild(world);
-    hitboxDamage.step(world, damage.queue, broadphase);
+    hitboxDamage.step(world, broadphase);
     damage.step(world, currentTick: 10);
     lifetime.step(world);
 

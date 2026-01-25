@@ -24,7 +24,7 @@ void main() {
       const DamageResistanceDef(fireBp: -5000, iceBp: 5000),
     );
 
-    damage.queue(
+    world.damageQueue.add(
       DamageRequest(
         target: target,
         amount100: 1000,
@@ -35,7 +35,7 @@ void main() {
 
     expect(world.health.hp[world.health.indexOf(target)], equals(9500));
 
-    damage.queue(
+    world.damageQueue.add(
       DamageRequest(
         target: target,
         amount100: 1000,
@@ -65,7 +65,7 @@ void main() {
     world.statusImmunity.add(target);
     world.statModifier.add(target);
 
-    damage.queue(
+    world.damageQueue.add(
       DamageRequest(
         target: target,
         amount100: 1000,
@@ -103,7 +103,7 @@ void main() {
     status.applyQueued(world, currentTick: 0);
 
     for (var tick = 1; tick <= 10; tick += 1) {
-      status.tickExisting(world, damage.queue);
+      status.tickExisting(world);
       damage.step(world, currentTick: tick);
     }
 

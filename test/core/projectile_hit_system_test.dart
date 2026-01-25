@@ -92,7 +92,6 @@ void main() {
     final hitEvents = <ProjectileHitEvent>[];
     hits.step(
       world,
-      damage.queue,
       broadphase,
       currentTick: 1,
       queueHitEvent: hitEvents.add,

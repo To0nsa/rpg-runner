@@ -21,11 +21,9 @@ class HitboxDamageSystem {
 
   /// Executes the system logic.
   ///
-  /// [queueDamage] is a callback to the central event system to register damage.
   /// [broadphase] provides the spatial index of all damageable entities this frame.
   void step(
     EcsWorld world,
-    void Function(DamageRequest request) queueDamage,
     BroadphaseGrid broadphase,
   ) {
     final hitboxes = world.hitbox;
@@ -105,7 +103,7 @@ class HitboxDamageSystem {
         world.hitOnce.markHit(hb, target);
 
         // Send the damage request.
-        queueDamage(
+        world.damageQueue.add(
           DamageRequest(
             target: target,
             amount100: hitboxes.damage100[hi],

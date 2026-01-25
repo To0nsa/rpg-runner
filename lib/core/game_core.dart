@@ -48,11 +48,12 @@
 /// 14. **Hitbox positioning**: Follow owner entities.
 /// 15. **Hit resolution**: Detect overlaps, queue damage.
 /// 16. **Status ticking**: Apply DoT ticks and queue damage.
-/// 17. **Damage application**: Apply queued damage, set invulnerability.
-/// 18. **Status application**: Apply on-hit status profiles.
-/// 19. **Death handling**: Despawn dead entities, record kills.
-/// 20. **Resource regen**: Regenerate mana/stamina.
-/// 21. **Lifetime cleanup**: Remove expired entities.
+/// 17. **Damage middleware**: Apply combat rule edits/cancellations.
+/// 18. **Damage application**: Apply queued damage, set invulnerability.
+/// 19. **Status application**: Apply on-hit status profiles.
+/// 20. **Death handling**: Despawn dead entities, record kills.
+/// 21. **Resource regen**: Regenerate mana/stamina.
+/// 22. **Lifetime cleanup**: Remove expired entities.
 ///
 /// ## Determinism Contract
 ///
@@ -84,6 +85,7 @@ import 'ecs/stores/restoration_item_store.dart';
 import 'ecs/systems/collectible_system.dart';
 import 'ecs/systems/collision_system.dart';
 import 'ecs/systems/cooldown_system.dart';
+import 'ecs/systems/damage_middleware_system.dart';
 import 'ecs/systems/damage_system.dart';
 import 'ecs/systems/active_ability_phase_system.dart';
 import 'ecs/systems/death_despawn_system.dart';
@@ -416,6 +418,7 @@ class GameCore {
 
     // Damage pipeline.
     _invulnerabilitySystem = InvulnerabilitySystem();
+    _damageMiddlewareSystem = DamageMiddlewareSystem();
     _damageSystem = DamageSystem(
       invulnerabilityTicksOnHit: _combat.invulnerabilityTicks,
       rngSeed: seed,
@@ -653,6 +656,7 @@ class GameCore {
   late final RestorationItemSystem _restorationItemSystem;
   late final LifetimeSystem _lifetimeSystem;
   late final InvulnerabilitySystem _invulnerabilitySystem;
+  late final DamageMiddlewareSystem _damageMiddlewareSystem;
   late final DamageSystem _damageSystem;
   late final StatusSystem _statusSystem;
   late final ControlLockSystem _controlLockSystem;
@@ -922,12 +926,13 @@ class GameCore {
   /// 16. **Hitbox positioning**: Update hitbox positions from owners.
   /// 17. **Hit detection**: Check projectile and hitbox overlaps.
   /// 18. **Status ticking**: Apply DoT ticks and queue damage.
-  /// 19. **Damage application**: Apply queued damage events.
-  /// 20. **Status application**: Apply on-hit status profiles.
-  /// 21. **Death handling**: Despawn dead entities, record kills.
-  /// 22. **Resource regen**: Regenerate mana and stamina.
-  /// 23. **Animation**: Compute per-entity anim key + frame.
-  /// 24. **Cleanup**: Remove entities past their lifetime.
+  /// 19. **Damage middleware**: Apply combat rule edits/cancellations.
+  /// 20. **Damage application**: Apply queued damage events.
+  /// 21. **Status application**: Apply on-hit status profiles.
+  /// 22. **Death handling**: Despawn dead entities, record kills.
+  /// 23. **Resource regen**: Regenerate mana and stamina.
+  /// 24. **Animation**: Compute per-entity anim key + frame.
+  /// 25. **Cleanup**: Remove entities past their lifetime.
   ///
   /// If the run ends during this tick (player death, fell into gap, etc.),
   /// a [RunEndedEvent] is emitted and the simulation freezes.
@@ -1061,15 +1066,15 @@ class GameCore {
     // Detect overlaps and queue damage events.
     _projectileHitSystem.step(
       _world,
-      _damageSystem.queue,
       _broadphaseGrid,
       currentTick: tick,
       queueHitEvent: (event) => _events.add(event),
     );
-    _hitboxDamageSystem.step(_world, _damageSystem.queue, _broadphaseGrid);
+    _hitboxDamageSystem.step(_world, _broadphaseGrid);
     _projectileWorldCollisionSystem.step(_world);
     // ─── Phase 13: Status + damage ───
-    _statusSystem.tickExisting(_world, _damageSystem.queue);
+    _statusSystem.tickExisting(_world);
+    _damageMiddlewareSystem.step(_world, currentTick: tick);
     _damageSystem.step(
       _world,
       currentTick: tick,

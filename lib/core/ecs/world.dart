@@ -40,6 +40,7 @@ import 'stores/status/bleed_store.dart';
 import 'stores/status/burn_store.dart';
 import 'stores/status/slow_store.dart';
 import 'stores/control_lock_store.dart';
+import 'stores/damage_queue_store.dart';
 import 'stores/projectile_item_origin_store.dart';
 import 'stores/stamina_store.dart';
 import 'stores/enemies/surface_nav_state_store.dart';
@@ -84,6 +85,9 @@ class EcsWorld {
     _stores.add(store);
     return store;
   }
+
+  /// World-level damage request queue (shared across systems).
+  final DamageQueueStore damageQueue = DamageQueueStore();
 
   // --- Component Stores ---
   // Each store manages a specific type of data for entities.

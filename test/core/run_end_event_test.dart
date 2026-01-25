@@ -88,7 +88,6 @@ void main() {
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
     hits.step(
       world,
-      damage.queue,
       broadphase,
       currentTick: 3,
     );
@@ -148,7 +147,7 @@ void main() {
     )..rebuild(world);
     final hitboxDamage = HitboxDamageSystem();
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
-    hitboxDamage.step(world, damage.queue, broadphase);
+    hitboxDamage.step(world, broadphase);
     damage.step(world, currentTick: 5);
 
     final li = world.lastDamage.indexOf(player);

@@ -37,10 +37,9 @@ class StatusSystem {
   /// Ticks existing statuses and queues DoT damage.
   void tickExisting(
     EcsWorld world,
-    void Function(DamageRequest request) queueDamage,
   ) {
-    _tickBurn(world, queueDamage);
-    _tickBleed(world, queueDamage);
+    _tickBurn(world);
+    _tickBleed(world);
     _tickSlow(world);
   }
 
@@ -56,7 +55,6 @@ class StatusSystem {
 
   void _tickBurn(
     EcsWorld world,
-    void Function(DamageRequest request) queueDamage,
   ) {
     final burn = world.burn;
     if (burn.denseEntities.isEmpty) return;
@@ -77,7 +75,7 @@ class StatusSystem {
       burn.periodTicksLeft[i] -= 1;
       if (burn.periodTicksLeft[i] <= 0) {
         burn.periodTicksLeft[i] = burn.periodTicks[i];
-        queueDamage(
+        world.damageQueue.add(
           DamageRequest(
             target: target,
             amount100: burn.damagePerTick100[i],
@@ -94,7 +92,6 @@ class StatusSystem {
 
   void _tickBleed(
     EcsWorld world,
-    void Function(DamageRequest request) queueDamage,
   ) {
     final bleed = world.bleed;
     if (bleed.denseEntities.isEmpty) return;
@@ -115,7 +112,7 @@ class StatusSystem {
       bleed.periodTicksLeft[i] -= 1;
       if (bleed.periodTicksLeft[i] <= 0) {
         bleed.periodTicksLeft[i] = bleed.periodTicks[i];
-        queueDamage(
+        world.damageQueue.add(
           DamageRequest(
             target: target,
             amount100: bleed.damagePerTick100[i],

@@ -16,9 +16,9 @@ void main() {
       const HealthDef(hp: 1000, hpMax: 1000, regenPerSecond100: 0),
     );
 
-    damage.queue(const DamageRequest(target: 999, amount100: 500));
-    damage.queue(DamageRequest(target: e, amount100: 300));
-    damage.queue(DamageRequest(target: e, amount100: 10000));
+    world.damageQueue.add(const DamageRequest(target: 999, amount100: 500));
+    world.damageQueue.add(DamageRequest(target: e, amount100: 300));
+    world.damageQueue.add(DamageRequest(target: e, amount100: 10000));
 
     damage.step(world, currentTick: 1);
 

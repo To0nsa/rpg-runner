@@ -22,11 +22,9 @@ class ProjectileHitSystem {
 
   /// Runs the system logic for a single tick.
   ///
-  /// [queueDamage] is a callback to the central `DamageSystem` or event queue.
   /// [broadphase] provides spatial acceleration for finding targets efficiently.
   void step(
     EcsWorld world,
-    void Function(DamageRequest request) queueDamage,
     BroadphaseGrid broadphase, {
     required int currentTick,
     void Function(ProjectileHitEvent event)? queueHitEvent,
@@ -112,7 +110,7 @@ class ProjectileHitSystem {
             si != null ? projectileOrigins.projectileItemId[si] : null;
 
         // Dispatch damage event.
-        queueDamage(
+        world.damageQueue.add(
           DamageRequest(
             target: broadphase.targets.entities[targetIndex],
             amount100: projectiles.damage100[pi],

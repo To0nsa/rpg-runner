@@ -64,10 +64,11 @@ This document describes the Core combat primitives and how to extend them.
 ## Systems (Tick Order)
 
 ```
-1. StatusSystem.tickExisting   → Ticks DoTs, queues damage requests
-2. ControlLockSystem.step      → Refreshes active lock masks, clears expired locks
-3. DamageSystem.step           → Applies damage, queues status profiles
-4. StatusSystem.applyQueued    → Applies profiles, refreshes stat modifiers
+1. StatusSystem.tickExisting    → Ticks DoTs, queues damage requests
+2. ControlLockSystem.step       → Refreshes active lock masks, clears expired locks
+3. DamageMiddlewareSystem.step  → Applies combat rule edits/cancellations
+4. DamageSystem.step            → Applies damage, queues status profiles
+5. StatusSystem.applyQueued     → Applies profiles, refreshes stat modifiers
 ```
 
 ## Damage Pipeline
@@ -88,6 +89,12 @@ DamageRequest {
   sourceProjectileItemId: ProjectileItemId?,
 }
 ```
+
+### Damage Queue & Middleware
+
+- Hit resolution systems append `DamageRequest` entries to `EcsWorld.damageQueue`.
+- `DamageMiddlewareSystem` can cancel/modify queued damage (e.g., parry, shields).
+- `DamageSystem` consumes the queue and skips canceled entries.
 
 ### Damage Formula
 

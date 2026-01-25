@@ -9,6 +9,7 @@ Combat now uses explicit primitives for damage + status effects:
 - Damage is modeled with `DamageType` and per-entity resistance modifiers.
 - Status effects are applied via `StatusProfileId` (data-first profiles).
 - DoT effects tick in Core and queue `DamageRequest`s (deterministic).
+- Queued damage flows through `DamageMiddlewareSystem` before `DamageSystem`.
 - Projectile slot items unify spells and throws under one payload structure
   while still feeding the same damage/status pipeline.
 
