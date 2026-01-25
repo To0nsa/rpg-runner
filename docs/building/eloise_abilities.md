@@ -155,30 +155,59 @@ const swordStrike = AbilityDef(
 
 ### Sword Parry
 
-**Design Intent:** Defensive timing-based counter. Rewards precise timing with damage reflection.
+**Design Intent:** Defensive timing-based counter. Strict parry window with a perfect timing bonus.
 
 | Property | Value |
 |----------|-------|
 | Category | Defense |
 | Targeting | None (Self) |
 | Hit Delivery | `SelfHitDelivery` |
-| Effect | Defensive window (effect pending in Core) |
+| Effect | Strict parry (negates hit, optional riposte) |
 
-**Timing (60Hz ticks):**
+#### Timing
+
+Total duration: **22 ticks** — matches Parry animation (**6 frames × 0.06s = 360ms**)
 
 | Phase | Ticks | Duration |
 |-------|--------|----------|
 | Windup | 4 | ~66ms |
-| Active | 12 | ~200ms (parry window) |
-| Recovery | 6 | ~100ms |
+| Active | 14 | ~233ms (parry window) |
+| Recovery | 4 | ~66ms |
 | **Total** | **22** | **~366ms** |
 
-**Cost & Cooldown:**
+**Active sub-windows:**
+
+- **Perfect window:** Active ticks **0–7** (8 ticks)
+- **Late parry:** Active ticks **8–13** (6 ticks)
+
+#### Core behavior
+
+If a hit is received during Active:
+
+- **Negate 100%** of the incoming `DamageRequest`
+- **Block** all status effects and on-hit procs
+- **Consume** the parry (max **1 parried hit** per activation)
+
+#### Perfect parry bonus (Active ticks 0–7)
+
+- Trigger an **automatic riposte** (small instant melee hitbox)
+- Riposte damage is a **deterministic percentage** of the incoming damage
+  - Example: `reflectBp = 6000` → **60%**
+  - **Hard cap** applies to prevent abuse
+
+#### Costs & cooldown
 
 | Property | Value |
 |----------|-------|
-| Stamina Cost | 5.0 |
-| Cooldown | 30 ticks (~500ms) |
+| Stamina Cost | 7.0 |
+| Cooldown | 0.5s (**30 ticks @ 60Hz**) |
+
+#### Edge cases (locked rules)
+
+- **Multi-hit / everyTick attacks:** parry consumes on the **first** parried hit
+- **Projectiles:** parry **destroys** the projectile
+- **Status / procs:** parry **blocks** them
+- **Airborne:** parry is **allowed in the air**
 
 **Data Structure:**
 
@@ -190,9 +219,9 @@ const swordParry = AbilityDef(
   targetingModel: TargetingModel.none,
   hitDelivery: SelfHitDelivery(),
   windupTicks: 4,
-  activeTicks: 12,
-  recoveryTicks: 6,
-  staminaCost: 500,
+  activeTicks: 14,
+  recoveryTicks: 4,
+  staminaCost: 700,
   manaCost: 0,
   cooldownTicks: 30,
   interruptPriority: InterruptPriority.combat,
