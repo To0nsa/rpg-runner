@@ -1,25 +1,21 @@
 import '../../abilities/ability_def.dart';
-import '../../combat/damage.dart';
-import '../../combat/damage_type.dart';
-import '../../combat/status/status.dart';
 import '../../ecs/stores/damage_queue_store.dart';
 import '../../ecs/systems/damage_middleware_system.dart';
 import '../../ecs/world.dart';
 import '../../events/game_event.dart';
-import '../../util/fixed_math.dart';
-import '../../weapons/weapon_proc.dart';
 
-/// Cancels incoming damage while Sword Parry is active and optionally ripostes.
+/// Cancels incoming hits while Sword Parry is active and grants a one-shot riposte buff.
+///
+/// Design intent: "pure defense" (block does not depend on incoming damage) plus a
+/// deterministic reward that is consumed only when the next melee hit actually lands.
 class SwordParryMiddleware implements DamageMiddleware {
   SwordParryMiddleware({
-    this.perfectTicks = 8,
-    this.reflectBp = 6000,
-    this.reflectCap100 = 2000 * 100,
+    this.riposteBonusBp = 10000,
+    this.riposteLifetimeTicks = 60,
   });
 
-  final int perfectTicks;
-  final int reflectBp;
-  final int reflectCap100;
+  final int riposteBonusBp;
+  final int riposteLifetimeTicks;
 
   static const AbilityKey _parryAbilityId = 'eloise.sword_parry';
 
@@ -34,44 +30,32 @@ class SwordParryMiddleware implements DamageMiddleware {
 
     if (world.activeAbility.phase[ai] != AbilityPhase.active) return;
 
+    // "Hit" only: do not block tick-based damage that comes from already-applied statuses.
+    if (queue.sourceKind[index] == DeathSourceKind.statusEffect) return;
+
     final startTick = world.activeAbility.startTick[ai];
-    final consumeIndex = world.parryConsume.indexOfOrAdd(target);
-    if (world.parryConsume.consumedStartTick[consumeIndex] == startTick) {
-      return;
-    }
 
     final elapsed = currentTick - startTick;
     final windup = world.activeAbility.windupTicks[ai];
     final activeElapsed = elapsed - windup;
     if (activeElapsed < 0) return;
 
+    // Always cancel hits during the active parry window.
     queue.flags[index] |= DamageQueueFlags.canceled;
+
+    // Grant riposte only once per activation (first blocked hit),
+    // while still canceling subsequent hits during the same activation.
+    final consumeIndex = world.parryConsume.indexOfOrAdd(target);
+    if (world.parryConsume.consumedStartTick[consumeIndex] == startTick) {
+      return;
+    }
     world.parryConsume.consumedStartTick[consumeIndex] = startTick;
 
-    if (activeElapsed >= perfectTicks) return;
-
-    final source = queue.sourceEntity[index];
-    if (source == null) return;
-    if (world.deathState.has(source)) return;
-    if (!world.health.has(source)) return;
-
-    final reflected = clampInt(
-      (queue.amount100[index] * reflectBp) ~/ bpScale,
-      0,
-      reflectCap100,
-    );
-    if (reflected <= 0) return;
-
-    world.damageQueue.add(
-      DamageRequest(
-        target: source,
-        amount100: reflected,
-        damageType: DamageType.physical,
-        statusProfileId: StatusProfileId.none,
-        procs: const <WeaponProc>[],
-        source: target,
-        sourceKind: DeathSourceKind.meleeHitbox,
-      ),
+    // Grant a one-shot bonus that is consumed on the next landed melee hit.
+    world.riposte.grant(
+      target,
+      expiresAtTick: currentTick + riposteLifetimeTicks,
+      bonusBp: riposteBonusBp,
     );
   }
 }

@@ -56,6 +56,10 @@ void main() {
       stamina: const StaminaDef(stamina: 10000, staminaMax: 10000, regenPerSecond100: 0),
     );
 
+    // This test expects the primary button to execute a melee strike (not parry).
+    final li = world.equippedLoadout.indexOf(player);
+    world.equippedLoadout.abilityPrimaryId[li] = 'eloise.sword_strike';
+
     final enemy = world.createEntity();
     world.transform.add(enemy, posX: 110, posY: 100, velX: 0, velY: 0);
     world.colliderAabb.add(enemy, const ColliderAabbDef(halfX: 8, halfY: 8));
@@ -71,7 +75,7 @@ void main() {
       meleeStrike.step(world, currentTick: tick);
       follow.step(world);
       broadphase.rebuild(world);
-      hitboxDamage.step(world, broadphase);
+      hitboxDamage.step(world, broadphase, currentTick: tick);
       damage.step(world, currentTick: tick);
       lifetime.step(world);
       // Clear the one-shot press after the first tick.
@@ -87,7 +91,7 @@ void main() {
     meleeStrike.step(world, currentTick: 10);
     follow.step(world);
     broadphase.rebuild(world);
-    hitboxDamage.step(world, broadphase);
+    hitboxDamage.step(world, broadphase, currentTick: 10);
     damage.step(world, currentTick: 10);
     lifetime.step(world);
 

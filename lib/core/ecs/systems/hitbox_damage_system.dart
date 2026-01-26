@@ -1,5 +1,6 @@
 import '../../combat/damage.dart';
 import '../../events/game_event.dart';
+import '../../util/fixed_math.dart';
 import '../hit/hit_resolver.dart';
 import '../spatial/broadphase_grid.dart';
 import '../world.dart';
@@ -24,8 +25,9 @@ class HitboxDamageSystem {
   /// [broadphase] provides the spatial index of all damageable entities this frame.
   void step(
     EcsWorld world,
-    BroadphaseGrid broadphase,
-  ) {
+    BroadphaseGrid broadphase, {
+    required int currentTick,
+  }) {
     final hitboxes = world.hitbox;
     // Early exit if no active strikes exist.
     if (hitboxes.denseEntities.isEmpty) return;
@@ -103,10 +105,22 @@ class HitboxDamageSystem {
         world.hitOnce.markHit(hb, target);
 
         // Send the damage request.
+        var amount100 = hitboxes.damage100[hi];
+
+        // Consume parry riposte only when a melee hit actually lands.
+        final ri = world.riposte.tryIndexOf(owner);
+        if (ri != null) {
+          if (currentTick <= world.riposte.expiresTick[ri]) {
+            amount100 =
+                (amount100 * (bpScale + world.riposte.bonusBp[ri])) ~/ bpScale;
+          }
+          world.riposte.consume(owner);
+        }
+
         world.damageQueue.add(
           DamageRequest(
             target: target,
-            amount100: hitboxes.damage100[hi],
+            amount100: amount100,
             damageType: hitboxes.damageType[hi],
             statusProfileId: hitboxes.statusProfileId[hi],
             procs: hitboxes.procs[hi],

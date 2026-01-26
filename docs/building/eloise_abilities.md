@@ -155,30 +155,25 @@ const swordStrike = AbilityDef(
 
 ### Sword Parry
 
-**Design Intent:** Defensive timing-based counter. Strict parry window with a perfect timing bonus.
+**Design Intent:** Pure defense with a deterministic reward. Strict parry window that blocks all hits during active, and grants a one-shot riposte bonus on the first blocked hit.
 
 | Property | Value |
 |----------|-------|
 | Category | Defense |
 | Targeting | None (Self) |
 | Hit Delivery | `SelfHitDelivery` |
-| Effect | Strict parry (negates hit, optional riposte) |
+| Effect | Strict parry (negates hits, grants riposte buff) |
 
 #### Timing
 
-Total duration: **22 ticks** — matches Parry animation (**6 frames × 0.06s = 360ms**)
+Total duration: **22 ticks** -- matches Parry animation (**6 frames x 0.06s = 360ms**)
 
 | Phase | Ticks | Duration |
 |-------|--------|----------|
-| Windup | 4 | ~66ms |
-| Active | 14 | ~233ms (parry window) |
-| Recovery | 4 | ~66ms |
+| Windup | 2 | ~33ms |
+| Active | 18 | ~300ms (parry window) |
+| Recovery | 2 | ~33ms |
 | **Total** | **22** | **~366ms** |
-
-**Active sub-windows:**
-
-- **Perfect window:** Active ticks **0–7** (8 ticks)
-- **Late parry:** Active ticks **8–13** (6 ticks)
 
 #### Core behavior
 
@@ -186,14 +181,14 @@ If a hit is received during Active:
 
 - **Negate 100%** of the incoming `DamageRequest`
 - **Block** all status effects and on-hit procs
-- **Consume** the parry (max **1 parried hit** per activation)
+- **Grant Riposte only once** per activation (first blocked hit), but continue blocking subsequent hits during the same activation
 
-#### Perfect parry bonus (Active ticks 0–7)
+#### Riposte (first blocked hit only)
 
-- Trigger an **automatic riposte** (small instant melee hitbox)
-- Riposte damage is a **deterministic percentage** of the incoming damage
-  - Example: `reflectBp = 6000` → **60%**
-  - **Hard cap** applies to prevent abuse
+- Grants a **one-shot offensive buff** that applies to your **next landed melee hit**
+- The buff is **consumed on hit** (not on swing), so misses do not waste it
+- The bonus is **deterministic** and does **not** depend on incoming enemy damage
+- The buff **expires** after a short window (tuned in middleware)
 
 #### Costs & cooldown
 
@@ -204,7 +199,7 @@ If a hit is received during Active:
 
 #### Edge cases (locked rules)
 
-- **Multi-hit / everyTick attacks:** parry consumes on the **first** parried hit
+- **Multi-hit / everyTick attacks:** riposte is granted on the **first** blocked hit; all hits are still blocked during active
 - **Projectiles:** parry **destroys** the projectile
 - **Status / procs:** parry **blocks** them
 - **Airborne:** parry is **allowed in the air**
@@ -218,9 +213,9 @@ const swordParry = AbilityDef(
   allowedSlots: {AbilitySlot.primary},
   targetingModel: TargetingModel.none,
   hitDelivery: SelfHitDelivery(),
-  windupTicks: 4,
-  activeTicks: 14,
-  recoveryTicks: 4,
+  windupTicks: 2,
+  activeTicks: 18,
+  recoveryTicks: 2,
   staminaCost: 700,
   manaCost: 0,
   cooldownTicks: 30,

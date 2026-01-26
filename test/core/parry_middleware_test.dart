@@ -17,7 +17,7 @@ import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 
 void main() {
-  test('SwordParryMiddleware cancels first hit and consumes per activation', () {
+  test('SwordParryMiddleware cancels hits and grants riposte once per activation', () {
     final world = EcsWorld();
     final player = EntityFactory(world).createPlayer(
       posX: 0,
@@ -44,14 +44,14 @@ void main() {
       id: 'eloise.sword_parry',
       slot: AbilitySlot.primary,
       commitTick: 10,
-      windupTicks: 4,
-      activeTicks: 14,
-      recoveryTicks: 4,
+      windupTicks: 2,
+      activeTicks: 18,
+      recoveryTicks: 2,
       facingDir: Facing.right,
     );
 
     final phaseSystem = ActiveAbilityPhaseSystem();
-    phaseSystem.step(world, currentTick: 14);
+    phaseSystem.step(world, currentTick: 12);
 
     world.damageQueue.add(
       DamageRequest(
@@ -71,15 +71,20 @@ void main() {
     );
 
     final middleware = DamageMiddlewareSystem(
-      middlewares: [SwordParryMiddleware()],
+      middlewares: [
+        SwordParryMiddleware(riposteBonusBp: 1234, riposteLifetimeTicks: 7),
+      ],
     );
-    middleware.step(world, currentTick: 14);
+    middleware.step(world, currentTick: 12);
 
-    expect(world.damageQueue.length, equals(3));
+    expect(world.damageQueue.length, equals(2));
     expect(world.damageQueue.flags[0] & DamageQueueFlags.canceled, equals(1));
-    expect(world.damageQueue.flags[1] & DamageQueueFlags.canceled, equals(0));
+    expect(world.damageQueue.flags[1] & DamageQueueFlags.canceled, equals(1));
     expect(world.parryConsume.consumedStartTick.single, equals(10));
-    expect(world.damageQueue.target.last, equals(enemy));
-    expect(world.damageQueue.amount100.last, equals(600));
+
+    expect(world.riposte.has(player), isTrue);
+    final ri = world.riposte.indexOf(player);
+    expect(world.riposte.bonusBp[ri], equals(1234));
+    expect(world.riposte.expiresTick[ri], equals(12 + 7));
   });
 }

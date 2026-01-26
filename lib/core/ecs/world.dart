@@ -43,6 +43,7 @@ import 'stores/status/slow_store.dart';
 import 'stores/control_lock_store.dart';
 import 'stores/damage_queue_store.dart';
 import 'stores/parry_consume_store.dart';
+import 'stores/riposte_store.dart';
 import 'stores/projectile_item_origin_store.dart';
 import 'stores/stamina_store.dart';
 import 'stores/enemies/surface_nav_state_store.dart';
@@ -196,6 +197,9 @@ class EcsWorld {
 
   /// Manages Stamina Points (SP) and max SP.
   late final StaminaStore stamina = _register(StaminaStore());
+
+  /// One-shot bonus granted by parry, consumed on the next landed melee hit.
+  late final RiposteStore riposte = _register(RiposteStore());
 
   /// Marks an entity as a projectile and defines its properties.
   late final ProjectileStore projectile = _register(ProjectileStore());

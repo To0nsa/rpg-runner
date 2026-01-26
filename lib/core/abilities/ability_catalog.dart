@@ -98,7 +98,7 @@ class AbilityCatalog {
       targetingModel: TargetingModel.none,
       hitDelivery: SelfHitDelivery(),
       // 6 frames @ 0.06s = 0.36s -> ~22 ticks
-      windupTicks: 4, activeTicks: 14, recoveryTicks: 4,
+      windupTicks: 2, activeTicks: 18, recoveryTicks: 2,
       staminaCost: 700, manaCost: 0,
       cooldownTicks: 30, // 0.50s
       interruptPriority: InterruptPriority.combat,
@@ -231,7 +231,7 @@ class AbilityCatalog {
       animKey: AnimKey.cast,
       tags: {AbilityTag.projectile, AbilityTag.lightning},
       requiredWeaponTypes: {WeaponType.projectileSpell},
-      baseDamage: 500, // SpellCatalog.thunderBolt damage 5.0
+      baseDamage: 1200, // SpellCatalog.thunderBolt damage 12.0
       baseDamageType: DamageType.thunder,
     ),
 

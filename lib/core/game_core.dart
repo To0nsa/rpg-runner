@@ -1079,7 +1079,7 @@ class GameCore {
       currentTick: tick,
       queueHitEvent: (event) => _events.add(event),
     );
-    _hitboxDamageSystem.step(_world, _broadphaseGrid);
+    _hitboxDamageSystem.step(_world, _broadphaseGrid, currentTick: tick);
     _projectileWorldCollisionSystem.step(_world);
     // ─── Phase 13: Status + damage ───
     _statusSystem.tickExisting(_world);

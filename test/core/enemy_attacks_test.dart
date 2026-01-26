@@ -178,7 +178,7 @@ void main() {
     meleeStrike.step(world, currentTick: 1);
     follow.step(world);
     broadphase.rebuild(world);
-    hitboxDamage.step(world, broadphase);
+    hitboxDamage.step(world, broadphase, currentTick: 1);
     damage.step(world, currentTick: 1);
     expect(
       world.health.hp[world.health.indexOf(player)],
@@ -193,7 +193,7 @@ void main() {
     meleeStrike.step(world, currentTick: strikeStartTick);
     follow.step(world);
     broadphase.rebuild(world);
-    hitboxDamage.step(world, broadphase);
+    hitboxDamage.step(world, broadphase, currentTick: strikeStartTick);
     damage.step(world, currentTick: strikeStartTick);
     expect(
       world.health.hp[world.health.indexOf(player)],
@@ -208,7 +208,7 @@ void main() {
       meleeStrike.step(world, currentTick: tick);
       follow.step(world);
       broadphase.rebuild(world);
-      hitboxDamage.step(world, broadphase);
+      hitboxDamage.step(world, broadphase, currentTick: tick);
       damage.step(world, currentTick: tick);
       expect(
         world.health.hp[world.health.indexOf(player)],
@@ -222,7 +222,7 @@ void main() {
     meleeStrike.step(world, currentTick: hitTick);
     follow.step(world);
     broadphase.rebuild(world);
-    hitboxDamage.step(world, broadphase);
+    hitboxDamage.step(world, broadphase, currentTick: hitTick);
     damage.step(world, currentTick: hitTick);
 
     expect(
@@ -231,7 +231,7 @@ void main() {
     );
 
     // Same tick again should be blocked by HitOnce (hitbox still alive).
-    hitboxDamage.step(world, broadphase);
+    hitboxDamage.step(world, broadphase, currentTick: hitTick);
     damage.step(world, currentTick: hitTick);
     expect(
       world.health.hp[world.health.indexOf(player)],
