@@ -2,6 +2,8 @@
 ///
 /// Separated from entity snapshots so the UI can render player stats
 /// (HP bars, cooldowns, etc.) without scanning all entities.
+import 'enums.dart';
+
 class PlayerHudSnapshot {
   const PlayerHudSnapshot({
     required this.hp,
@@ -20,6 +22,8 @@ class PlayerHudSnapshot {
     required this.meleeCooldownTicksTotal,
     required this.projectileCooldownTicksLeft,
     required this.projectileCooldownTicksTotal,
+    required this.meleeInputMode,
+    required this.projectileInputMode,
     required this.collectibles,
     required this.collectibleScore,
   });
@@ -71,6 +75,12 @@ class PlayerHudSnapshot {
 
   /// Total projectile cooldown ticks.
   final int projectileCooldownTicksTotal;
+
+  /// Input interaction mode for melee slot.
+  final AbilityInputMode meleeInputMode;
+
+  /// Input interaction mode for projectile slot.
+  final AbilityInputMode projectileInputMode;
 
   /// Collected collectibles.
   final int collectibles;

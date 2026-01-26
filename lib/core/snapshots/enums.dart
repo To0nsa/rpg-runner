@@ -51,3 +51,11 @@ enum Facing {
   left,
   right,
 }
+
+/// Input interaction mode for an ability slot.
+enum AbilityInputMode {
+  /// Instant commit on press.
+  tap,
+  /// Hold to aim, commit on release.
+  holdAimRelease,
+}

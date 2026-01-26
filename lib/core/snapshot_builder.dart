@@ -39,6 +39,7 @@ import 'snapshots/static_solid_snapshot.dart';
 import 'players/player_tuning.dart';
 import 'util/vec2.dart';
 import 'abilities/ability_catalog.dart';
+import 'abilities/ability_def.dart';
 import 'util/fixed_math.dart';
 import 'util/tick_math.dart';
 
@@ -178,6 +179,9 @@ class SnapshotBuilder {
     final meleeStaminaCost =
         meleeAbility?.staminaCost ?? toFixed100(abilities.base.meleeStaminaCost);
 
+    final meleeInputMode = _inputModeFor(meleeAbility);
+    final projectileInputMode = _inputModeFor(projectileAbility);
+
     // ─── Compute affordability flags ───
     // These tell the UI whether action buttons should appear enabled.
     final canAffordJump = stamina >= jumpStaminaCost;
@@ -284,6 +288,8 @@ class SnapshotBuilder {
         meleeCooldownTicksTotal: meleeCooldownTicksTotal,
         projectileCooldownTicksLeft: projectileCooldownTicksLeft,
         projectileCooldownTicksTotal: projectileCooldownTicksTotal,
+        meleeInputMode: meleeInputMode,
+        projectileInputMode: projectileInputMode,
         collectibles: collectibles,
         collectibleScore: collectibleScore,
       ),
@@ -298,6 +304,14 @@ class SnapshotBuilder {
     if (tickHz == _abilityTickHz) return ticks;
     final seconds = ticks / _abilityTickHz;
     return ticksFromSecondsCeil(seconds, tickHz);
+  }
+
+  AbilityInputMode _inputModeFor(AbilityDef? ability) {
+    final targeting = ability?.targetingModel;
+    if (targeting == null) return AbilityInputMode.holdAimRelease;
+    return targeting == TargetingModel.none
+        ? AbilityInputMode.tap
+        : AbilityInputMode.holdAimRelease;
   }
 
   static const int _abilityTickHz = 60;

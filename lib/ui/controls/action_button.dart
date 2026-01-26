@@ -8,6 +8,7 @@ class ActionButton extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.onPressed,
+    this.onPressedDown,
     this.affordable = true,
     this.cooldownTicksLeft = 0,
     this.cooldownTicksTotal = 0,
@@ -21,6 +22,7 @@ class ActionButton extends StatelessWidget {
   final String label;
   final IconData icon;
   final VoidCallback onPressed;
+  final VoidCallback? onPressedDown;
   final bool affordable;
   final int cooldownTicksLeft;
   final int cooldownTicksTotal;
@@ -40,6 +42,8 @@ class ActionButton extends StatelessWidget {
         ? backgroundColor
         : _disabledBackground(backgroundColor);
 
+    final useTapDown = onPressedDown != null;
+
     return SizedBox(
       width: size,
       height: size,
@@ -51,7 +55,10 @@ class ActionButton extends StatelessWidget {
             shape: const CircleBorder(),
             child: InkWell(
               customBorder: const CircleBorder(),
-              onTap: interactable ? onPressed : null,
+              onTap: interactable && !useTapDown ? onPressed : null,
+              onTapDown: interactable && useTapDown
+                  ? (_) => onPressedDown?.call()
+                  : null,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

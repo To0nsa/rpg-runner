@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../game/input/aim_preview.dart';
+import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'action_button.dart';
 import 'controls_tuning.dart';
 import 'directional_action_button.dart';
@@ -16,6 +17,7 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.onJumpPressed,
     required this.onDashPressed,
     required this.onProjectileCommitted,
+    required this.onProjectilePressed,
     required this.onProjectileAimDir,
     required this.onProjectileAimClear,
     required this.projectileAimPreview,
@@ -25,10 +27,13 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.onMeleeAimDir,
     required this.onMeleeAimClear,
     required this.onMeleeCommitted,
+    required this.onMeleePressed,
     required this.meleeAimPreview,
     required this.meleeAffordable,
     required this.meleeCooldownTicksLeft,
     required this.meleeCooldownTicksTotal,
+    required this.meleeInputMode,
+    required this.projectileInputMode,
     required this.jumpAffordable,
     required this.dashAffordable,
     required this.dashCooldownTicksLeft,
@@ -40,6 +45,7 @@ class RunnerControlsOverlay extends StatelessWidget {
   final VoidCallback onJumpPressed;
   final VoidCallback onDashPressed;
   final VoidCallback onProjectileCommitted;
+  final VoidCallback onProjectilePressed;
   final void Function(double x, double y) onProjectileAimDir;
   final VoidCallback onProjectileAimClear;
   final AimPreviewModel projectileAimPreview;
@@ -49,10 +55,13 @@ class RunnerControlsOverlay extends StatelessWidget {
   final void Function(double x, double y) onMeleeAimDir;
   final VoidCallback onMeleeAimClear;
   final VoidCallback onMeleeCommitted;
+  final VoidCallback onMeleePressed;
   final AimPreviewModel meleeAimPreview;
   final bool meleeAffordable;
   final int meleeCooldownTicksLeft;
   final int meleeCooldownTicksTotal;
+  final AbilityInputMode meleeInputMode;
+  final AbilityInputMode projectileInputMode;
   final bool jumpAffordable;
   final bool dashAffordable;
   final int dashCooldownTicksLeft;
@@ -125,44 +134,74 @@ class RunnerControlsOverlay extends StatelessWidget {
         Positioned(
           right: rightFor(projectileOffset, smallDirectionalSize),
           bottom: bottomFor(projectileOffset, smallDirectionalSize),
-          child: DirectionalActionButton(
-            label: 'Projectile',
-            icon: Icons.auto_awesome,
-            onAimDir: onProjectileAimDir,
-            onAimClear: onProjectileAimClear,
-            onCommit: onProjectileCommitted,
-            projectileAimPreview: projectileAimPreview,
-            affordable: projectileAffordable,
-            cooldownTicksLeft: projectileCooldownTicksLeft,
-            cooldownTicksTotal: projectileCooldownTicksTotal,
-            size: smallDirectionalSize,
-            deadzoneRadius: smallDeadzoneRadius,
-            backgroundColor: directional.backgroundColor,
-            foregroundColor: directional.foregroundColor,
-            labelFontSize: directional.labelFontSize,
-            labelGap: directional.labelGap,
-          ),
+          child: projectileInputMode == AbilityInputMode.tap
+              ? ActionButton(
+                  label: 'Projectile',
+                  icon: Icons.auto_awesome,
+                  onPressed: onProjectilePressed,
+                  onPressedDown: onProjectilePressed,
+                  affordable: projectileAffordable,
+                  cooldownTicksLeft: projectileCooldownTicksLeft,
+                  cooldownTicksTotal: projectileCooldownTicksTotal,
+                  size: smallDirectionalSize,
+                  backgroundColor: action.backgroundColor,
+                  foregroundColor: action.foregroundColor,
+                  labelFontSize: action.labelFontSize,
+                  labelGap: action.labelGap,
+                )
+              : DirectionalActionButton(
+                  label: 'Projectile',
+                  icon: Icons.auto_awesome,
+                  onAimDir: onProjectileAimDir,
+                  onAimClear: onProjectileAimClear,
+                  onCommit: onProjectileCommitted,
+                  projectileAimPreview: projectileAimPreview,
+                  affordable: projectileAffordable,
+                  cooldownTicksLeft: projectileCooldownTicksLeft,
+                  cooldownTicksTotal: projectileCooldownTicksTotal,
+                  size: smallDirectionalSize,
+                  deadzoneRadius: smallDeadzoneRadius,
+                  backgroundColor: directional.backgroundColor,
+                  foregroundColor: directional.foregroundColor,
+                  labelFontSize: directional.labelFontSize,
+                  labelGap: directional.labelGap,
+                ),
         ),
         Positioned(
           right: rightFor(meleeOffset, smallDirectionalSize),
           bottom: bottomFor(meleeOffset, smallDirectionalSize),
-          child: DirectionalActionButton(
-            label: 'Atk',
-            icon: Icons.close,
-            onAimDir: onMeleeAimDir,
-            onAimClear: onMeleeAimClear,
-            onCommit: onMeleeCommitted,
-            projectileAimPreview: meleeAimPreview,
-            affordable: meleeAffordable,
-            cooldownTicksLeft: meleeCooldownTicksLeft,
-            cooldownTicksTotal: meleeCooldownTicksTotal,
-            size: smallDirectionalSize,
-            deadzoneRadius: smallDeadzoneRadius,
-            backgroundColor: directional.backgroundColor,
-            foregroundColor: directional.foregroundColor,
-            labelFontSize: directional.labelFontSize,
-            labelGap: directional.labelGap,
-          ),
+          child: meleeInputMode == AbilityInputMode.tap
+              ? ActionButton(
+                  label: 'Atk',
+                  icon: Icons.close,
+                  onPressed: onMeleePressed,
+                  onPressedDown: onMeleePressed,
+                  affordable: meleeAffordable,
+                  cooldownTicksLeft: meleeCooldownTicksLeft,
+                  cooldownTicksTotal: meleeCooldownTicksTotal,
+                  size: smallDirectionalSize,
+                  backgroundColor: action.backgroundColor,
+                  foregroundColor: action.foregroundColor,
+                  labelFontSize: action.labelFontSize,
+                  labelGap: action.labelGap,
+                )
+              : DirectionalActionButton(
+                  label: 'Atk',
+                  icon: Icons.close,
+                  onAimDir: onMeleeAimDir,
+                  onAimClear: onMeleeAimClear,
+                  onCommit: onMeleeCommitted,
+                  projectileAimPreview: meleeAimPreview,
+                  affordable: meleeAffordable,
+                  cooldownTicksLeft: meleeCooldownTicksLeft,
+                  cooldownTicksTotal: meleeCooldownTicksTotal,
+                  size: smallDirectionalSize,
+                  deadzoneRadius: smallDeadzoneRadius,
+                  backgroundColor: directional.backgroundColor,
+                  foregroundColor: directional.foregroundColor,
+                  labelFontSize: directional.labelFontSize,
+                  labelGap: directional.labelGap,
+                ),
         ),
         Positioned(
           right: rightFor(dashOffset, smallActionSize),
