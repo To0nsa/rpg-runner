@@ -35,7 +35,7 @@ class EquippedLoadoutDef {
     this.offhandWeaponId = WeaponId.basicShield,
     this.projectileItemId = ProjectileItemId.iceBolt,
     // Default abilities (Eloise defaults for now)
-    this.abilityPrimaryId = 'eloise.sword_parry',
+    this.abilityPrimaryId = 'eloise.sword_strike',
     this.abilitySecondaryId = 'eloise.shield_block',
     this.abilityProjectileId = 'eloise.ice_bolt',
     this.abilityMobilityId = 'eloise.dash',

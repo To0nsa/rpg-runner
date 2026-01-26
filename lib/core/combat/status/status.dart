@@ -100,9 +100,9 @@ class StatusProfileCatalog {
           <StatusApplication>[
             StatusApplication(
               type: StatusEffectType.stun,
-              magnitude: 100, // placeholder
-              durationSeconds: 2.0,
-              scaleByDamageType: true,
+              magnitude: 100, // placeholder (stun uses duration ticks)
+              durationSeconds: 0.5,
+              scaleByDamageType: false,
             ),
           ],
         );

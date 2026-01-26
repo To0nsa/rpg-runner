@@ -58,6 +58,14 @@ const double eloiseAnimCastStepSeconds = 0.08;
 const int eloiseAnimRangedFrames = eloiseAnimCastFrames;
 const double eloiseAnimRangedStepSeconds = eloiseAnimCastStepSeconds;
 
+// Shield bash should match sword strike tempo (6 frames x 0.06s).
+const int eloiseAnimShieldBashFrames = eloiseAnimStrikeFrames;
+const double eloiseAnimShieldBashStepSeconds = eloiseAnimStrikeStepSeconds;
+
+// Until a dedicated shield block strip exists, reuse parry pacing/strip.
+const int eloiseAnimShieldBlockFrames = eloiseAnimParryFrames;
+const double eloiseAnimShieldBlockStepSeconds = eloiseAnimParryStepSeconds;
+
 const int eloiseAnimDashFrames = 4;
 const double eloiseAnimDashStepSeconds = 0.05;
 
@@ -85,6 +93,8 @@ const Map<AnimKey, int> eloiseAnimFrameCountsByKey = <AnimKey, int>{
   AnimKey.parry: eloiseAnimParryFrames,
   AnimKey.cast: eloiseAnimCastFrames,
   AnimKey.ranged: eloiseAnimRangedFrames,
+  AnimKey.shieldBash: eloiseAnimShieldBashFrames,
+  AnimKey.shieldBlock: eloiseAnimShieldBlockFrames,
   AnimKey.dash: eloiseAnimDashFrames,
   AnimKey.roll: eloiseAnimRollFrames,
   AnimKey.hit: eloiseAnimHitFrames,
@@ -104,6 +114,8 @@ const Map<AnimKey, double> eloiseAnimStepTimeSecondsByKey = <AnimKey, double>{
   AnimKey.parry: eloiseAnimParryStepSeconds,
   AnimKey.cast: eloiseAnimCastStepSeconds,
   AnimKey.ranged: eloiseAnimRangedStepSeconds,
+  AnimKey.shieldBash: eloiseAnimShieldBashStepSeconds,
+  AnimKey.shieldBlock: eloiseAnimShieldBlockStepSeconds,
   AnimKey.dash: eloiseAnimDashStepSeconds,
   AnimKey.roll: eloiseAnimRollStepSeconds,
   AnimKey.hit: eloiseAnimHitStepSeconds,
@@ -123,6 +135,8 @@ const Map<AnimKey, String> eloiseAnimSourcesByKey = <AnimKey, String>{
   AnimKey.parry: 'entities/player/parry.png',
   AnimKey.cast: 'entities/player/cast.png',
   AnimKey.ranged: 'entities/player/cast.png',
+  AnimKey.shieldBash: 'entities/player/shield_bash.png',
+  AnimKey.shieldBlock: 'entities/player/parry.png',
   AnimKey.dash: 'entities/player/dash.png',
   AnimKey.roll: 'entities/player/roll.png',
   AnimKey.hit: 'entities/player/hit.png',

@@ -118,12 +118,12 @@ class AbilityCatalog {
       allowedSlots: {AbilitySlot.secondary},
       targetingModel: TargetingModel.directional,
       hitDelivery: MeleeHitDelivery(
-        sizeX: 1.2, sizeY: 1.2, offsetX: 0.8, offsetY: 0.0,
+        sizeX: 1.5, sizeY: 1.5, offsetX: 1.0, offsetY: 0.0,
         hitPolicy: HitPolicy.oncePerTarget,
       ),
-      windupTicks: 8, activeTicks: 4, recoveryTicks: 10,
-      staminaCost: 1200, manaCost: 0,
-      cooldownTicks: 15, // 0.25s @ 60Hz (matches legacy cast cooldown)
+      windupTicks: 8, activeTicks: 6, recoveryTicks: 8,
+      staminaCost: 500, manaCost: 0,
+      cooldownTicks: 18, // 0.30s
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.shieldBash,
       tags: {AbilityTag.melee, AbilityTag.physical, AbilityTag.heavy},
