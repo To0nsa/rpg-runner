@@ -41,6 +41,7 @@ import 'stores/status/burn_store.dart';
 import 'stores/status/slow_store.dart';
 import 'stores/control_lock_store.dart';
 import 'stores/damage_queue_store.dart';
+import 'stores/parry_consume_store.dart';
 import 'stores/projectile_item_origin_store.dart';
 import 'stores/stamina_store.dart';
 import 'stores/enemies/surface_nav_state_store.dart';
@@ -88,6 +89,9 @@ class EcsWorld {
 
   /// World-level damage request queue (shared across systems).
   final DamageQueueStore damageQueue = DamageQueueStore();
+
+  /// Parry consumption tracker (per activation).
+  final ParryConsumeStore parryConsume = ParryConsumeStore();
 
   // --- Component Stores ---
   // Each store manages a specific type of data for entities.
@@ -282,6 +286,7 @@ class EcsWorld {
     for (final store in _stores) {
       store.removeEntity(entity);
     }
+    parryConsume.removeEntity(entity);
     _freeIds.add(entity);
     _freeIdsSet.add(entity);
   }

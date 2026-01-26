@@ -98,9 +98,9 @@ class AbilityCatalog {
       targetingModel: TargetingModel.none,
       hitDelivery: SelfHitDelivery(),
       // 6 frames @ 0.06s = 0.36s -> ~22 ticks
-      windupTicks: 4, activeTicks: 12, recoveryTicks: 6,
-      staminaCost: 500, manaCost: 0,
-      cooldownTicks: 30, // 0.50s (est)
+      windupTicks: 4, activeTicks: 14, recoveryTicks: 4,
+      staminaCost: 700, manaCost: 0,
+      cooldownTicks: 30, // 0.50s
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.parry,
       tags: {AbilityTag.melee, AbilityTag.physical, AbilityTag.opener},

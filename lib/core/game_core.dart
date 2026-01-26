@@ -74,6 +74,7 @@ import 'dart:math';
 import 'camera/autoscroll_camera.dart';
 import 'abilities/ability_catalog.dart';
 import 'abilities/ability_def.dart';
+import 'combat/middleware/sword_parry_middleware.dart';
 import 'collision/static_world_geometry_index.dart';
 import 'commands/command.dart';
 import 'contracts/render_contract.dart';
@@ -418,7 +419,11 @@ class GameCore {
 
     // Damage pipeline.
     _invulnerabilitySystem = InvulnerabilitySystem();
-    _damageMiddlewareSystem = DamageMiddlewareSystem();
+    _damageMiddlewareSystem = DamageMiddlewareSystem(
+      middlewares: [
+        SwordParryMiddleware(),
+      ],
+    );
     _damageSystem = DamageSystem(
       invulnerabilityTicksOnHit: _combat.invulnerabilityTicks,
       rngSeed: seed,

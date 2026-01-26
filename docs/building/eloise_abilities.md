@@ -703,7 +703,7 @@ const jump = AbilityDef(
 | Ability | Category | Targeting | Stamina | Mana | Damage | Cooldown |
 |---------|----------|-----------|---------|------|--------|----------|
 | Sword Strike | Melee | Directional | 5.0 | - | 15.0 | 18 ticks (~300ms) |
-| Sword Parry | Defense | None | 5.0 | - | - | 30 ticks (~500ms) |
+| Sword Parry | Defense | None | 7.0 | - | - | 30 ticks (~500ms) |
 | Shield Bash | Defense | Directional | 12.0 | - | 15.0 | 15 ticks (~250ms) |
 | Shield Block | Defense | None | 5.0 | - | - | 12 ticks (~200ms) |
 | Throwing Knife | Ranged | Aimed | 5.0 | - | 10.0 | 18 ticks (~300ms) |
