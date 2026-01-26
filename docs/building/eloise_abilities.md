@@ -177,11 +177,14 @@ Total duration: **22 ticks** -- matches Parry animation (**6 frames x 0.06s = 36
 
 #### Core behavior
 
-If a hit is received during Active:
+If a hit is received during Active (melee hitbox or projectile damage request):
 
 - **Negate 100%** of the incoming `DamageRequest`
-- **Block** all status effects and on-hit procs
+- **Block** all on-hit status effects and on-hit procs (because the damage request is canceled before `DamageSystem`)
 - **Grant Riposte only once** per activation (first blocked hit), but continue blocking subsequent hits during the same activation
+
+Notes:
+- Tick damage from already-applied statuses (`DeathSourceKind.statusEffect`) is currently **not** blocked by parry.
 
 #### Riposte (first blocked hit only)
 
@@ -189,6 +192,7 @@ If a hit is received during Active:
 - The buff is **consumed on hit** (not on swing), so misses do not waste it
 - The bonus is **deterministic** and does **not** depend on incoming enemy damage
 - The buff **expires** after a short window (tuned in middleware)
+- Implementation: `SwordParryMiddleware` grants `RiposteStore`, and `HitboxDamageSystem` consumes it on the first landed melee hit.
 
 #### Costs & cooldown
 
@@ -232,32 +236,54 @@ const swordParry = AbilityDef(
 
 ### Shield Bash
 
-**Design Intent:** Offensive shield attack. Stuns enemies briefly.
+**Design Intent:** Same swing profile as **Sword Strike** (tempo + DPS neutrality). The *only* differentiator is the **weapon status proc** coming from the equipped **shield** (e.g. stun). This keeps balancing centralized in weapon/status tuning, not ability tuning.
 
-| Property | Value |
-|----------|-------|
-| Category | Defense |
-| Targeting | Directional (commit on press) |
-| Hit Delivery | `MeleeHitDelivery` |
-| Effect | Damage + weapon procs |
+| Property     | Value                                                                                 |
+| ------------ | ------------------------------------------------------------------------------------- |
+| Category     | Defense                                                                               |
+| Targeting    | Directional (commit on press)                                                         |
+| Hit Delivery | `MeleeHitDelivery`                                                                    |
+| Damage Type  | From weapon (physical default)                                                        |
+| Effect       | Damage + **weapon status proc** (e.g. `stunOnHit` if the equipped shield provides it) |
 
-**Timing (at 60 FPS):**
+#### Timing (60Hz ticks)
 
-| Phase | Ticks | Duration |
-|-------|-------|----------|
-| Windup | 8 | ~133ms |
-| Active | 4 | ~66ms |
-| Recovery | 10 | ~166ms |
+Matches Sword Strike exactly (6 frames × 0.06s = 360ms total, ~22 ticks).
+
+| Phase     | Ticks  | Duration   |
+| --------- | ------ | ---------- |
+| Windup    | 8      | ~133ms     |
+| Active    | 6      | ~100ms     |
+| Recovery  | 8      | ~133ms     |
 | **Total** | **22** | **~366ms** |
 
-**Cost & Cooldown:**
+#### Cost & cooldown
 
-| Property | Value |
-|----------|-------|
-| Stamina Cost | 12.0 |
-| Cooldown | 15 ticks (~250ms) |
+Matches Sword Strike exactly. 
 
-**Data Structure:**
+| Property     | Value             |
+| ------------ | ----------------- |
+| Stamina Cost | 5.0               |
+| Mana Cost    | 0                 |
+| Cooldown     | 18 ticks (~300ms) |
+
+#### Stun status profile (weapon proc)
+
+`StatusProfileId.stunOnHit` is tuned to **0.5s = 30 ticks @ 60Hz** (Core currently stores duration as seconds, so this corresponds to `durationSeconds: 0.5`).
+
+**No chain-stun rule (locked):**
+
+* On re-apply, stun duration becomes: `newRemaining = max(currentRemaining, newDuration)`
+* i.e. **refreshes to max(current, new)** and **never extends beyond the base duration**.
+
+#### Animation rule (frame speed)
+
+Goal: Shield Bash must visually match Sword Strike tempo.
+
+* If you keep a dedicated `AnimKey.shieldBash`, its authored strip must be tuned to the same pacing as Strike (**6 frames × 0.06s**).
+* If no dedicated strip exists yet, render-side should **fallback `shieldBash → strike`** so timing stays correct. (Eloise currently has a dedicated `shield_bash.png` wired to `AnimKey.shieldBash`.)
+
+**Data Structure (AbilityDef):**
 
 ```dart
 const shieldBash = AbilityDef(
@@ -266,15 +292,15 @@ const shieldBash = AbilityDef(
   allowedSlots: {AbilitySlot.secondary},
   targetingModel: TargetingModel.directional,
   hitDelivery: MeleeHitDelivery(
-    sizeX: 1.2, sizeY: 1.2, offsetX: 0.8, offsetY: 0.0,
+    sizeX: 1.5, sizeY: 1.5, offsetX: 1.0, offsetY: 0.0,
     hitPolicy: HitPolicy.oncePerTarget,
   ),
   windupTicks: 8,
-  activeTicks: 4,
-  recoveryTicks: 10,
-  staminaCost: 1200,
+  activeTicks: 6,
+  recoveryTicks: 8,
+  staminaCost: 500,
   manaCost: 0,
-  cooldownTicks: 15,
+  cooldownTicks: 18,
   interruptPriority: InterruptPriority.combat,
   animKey: AnimKey.shieldBash,
   requiredWeaponTypes: {WeaponType.shield},
@@ -286,29 +312,57 @@ const shieldBash = AbilityDef(
 
 ### Shield Block
 
-**Design Intent:** Sustained defensive stance. Reduces incoming damage while held.
+**Design Intent:** **Parry-equivalent** defensive action for the shield slot. Same rules and reward as Sword Parry, only the animation and required weapon differ.
 
 | Property | Value |
 |----------|-------|
 | Category | Defense |
 | Targeting | None (Self) |
 | Hit Delivery | `SelfHitDelivery` |
-| Effect | Defensive stance (effect pending in Core) |
+| Effect | Strict parry (negates hits, grants riposte buff) |
 
-**Timing (at 60 FPS):**
+#### Timing
+
+Total duration: **22 ticks** -- matches Shield Block animation (**7 frames ~ 0.052s = ~364ms**)
 
 | Phase | Ticks | Duration |
-|-------|-------|----------|
-| Windup | 3 | ~50ms |
-| Active | 0 | 0ms |
-| Recovery | 6 | ~100ms |
+|-------|--------|----------|
+| Windup | 2 | ~33ms |
+| Active | 18 | ~300ms (parry window) |
+| Recovery | 2 | ~33ms |
+| **Total** | **22** | **~366ms** |
 
-**Cost & Cooldown:**
+#### Core behavior
+
+If a hit is received during Active:
+
+- **Negate 100%** of the incoming `DamageRequest`
+- **Block** all status effects and on-hit procs
+- **Grant Riposte only once** per activation (first blocked hit), but continue blocking subsequent hits during the same activation
+
+Notes:
+- Tick damage from already-applied statuses (`DeathSourceKind.statusEffect`) is currently **not** blocked by parry/block.
+
+#### Riposte (first blocked hit only)
+
+- Grants a **one-shot offensive buff** that applies to your **next landed melee hit**
+- The buff is **consumed on hit** (not on swing), so misses do not waste it
+- The bonus is **deterministic** and does **not** depend on incoming enemy damage
+- The buff **expires** after a short window (tuned in middleware)
+
+#### Costs & cooldown
 
 | Property | Value |
 |----------|-------|
-| Stamina Cost | 5.0 |
-| Cooldown | 12 ticks (~200ms) |
+| Stamina Cost | 7.0 |
+| Cooldown | 0.5s (**30 ticks @ 60Hz**) |
+
+#### Edge cases (locked rules)
+
+- **Multi-hit / everyTick attacks:** riposte is granted on the **first** blocked hit; all hits are still blocked during active
+- **Projectiles:** block **destroys** the projectile
+- **Status / procs:** block **blocks** them
+- **Airborne:** block is **allowed in the air**
 
 **Data Structure:**
 
@@ -319,12 +373,12 @@ const shieldBlock = AbilityDef(
   allowedSlots: {AbilitySlot.secondary},
   targetingModel: TargetingModel.none,
   hitDelivery: SelfHitDelivery(),
-  windupTicks: 3,
-  activeTicks: 0,
-  recoveryTicks: 6,
-  staminaCost: 500,
+  windupTicks: 2,
+  activeTicks: 18,
+  recoveryTicks: 2,
+  staminaCost: 700,
   manaCost: 0,
-  cooldownTicks: 12,
+  cooldownTicks: 30,
   interruptPriority: InterruptPriority.combat,
   animKey: AnimKey.shieldBlock,
   requiredWeaponTypes: {WeaponType.shield},
@@ -698,9 +752,9 @@ const jump = AbilityDef(
 | Ability | Category | Targeting | Stamina | Mana | Damage | Cooldown |
 |---------|----------|-----------|---------|------|--------|----------|
 | Sword Strike | Melee | Directional | 5.0 | - | 15.0 | 18 ticks (~300ms) |
-| Sword Parry | Defense | None | 7.0 | - | - | 30 ticks (~500ms) |
-| Shield Bash | Defense | Directional | 12.0 | - | 15.0 | 15 ticks (~250ms) |
-| Shield Block | Defense | None | 5.0 | - | - | 12 ticks (~200ms) |
+| Sword Parry | Defense | None | 7.0 | - | Next melee hit +100% (riposte) | 30 ticks (~500ms) |
+| Shield Bash | Defense | Directional | 5.0 | - | 15.0 | 18 ticks (~300ms) |
+| Shield Block | Defense | None | 7.0 | - | Next melee hit +100% (riposte) | 30 ticks (~500ms) |
 | Throwing Knife | Ranged | Aimed | 5.0 | - | 10.0 | 18 ticks (~300ms) |
 | Ice Bolt | Magic | Aimed | - | 10.0 | 15.0 | 24 ticks (~400ms) |
 | Fire Bolt | Magic | Aimed | - | 12.0 | 18.0 | 15 ticks (~250ms) |
@@ -717,6 +771,6 @@ const jump = AbilityDef(
 
 2. **Cooldown balance:** Dash and Roll currently share the same cooldown (2.0s). Separate tuning can be added once i-frames/defense effects exist.
 
-3. **Timing trade-offs:** Sword Strike is fast but has short active window. Sword Parry is a defensive window (effect pending in Core).
+3. **Timing trade-offs:** Sword Strike is fast but has short active window. Sword Parry has a large active window that blocks hits and grants a one-shot riposte bonus.
 
 4. **Weapon synergy:** Damage type and procs come from equipped weapon, not the ability. Sword Strike with a fire sword applies burn.

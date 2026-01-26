@@ -138,9 +138,11 @@ class AbilityCatalog {
       allowedSlots: {AbilitySlot.secondary},
       targetingModel: TargetingModel.none,
       hitDelivery: SelfHitDelivery(),
-      windupTicks: 3, activeTicks: 0, recoveryTicks: 6,
-      staminaCost: 500, manaCost: 0,
-      cooldownTicks: 12,
+      // Match Sword Parry exactly (only required weapon differs).
+      // 7 frames x ~0.052s ~= 0.364s -> ~22 ticks @ 60Hz
+      windupTicks: 2, activeTicks: 18, recoveryTicks: 2,
+      staminaCost: 700, manaCost: 0,
+      cooldownTicks: 30,
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.shieldBlock,
       tags: {AbilityTag.buff, AbilityTag.physical},

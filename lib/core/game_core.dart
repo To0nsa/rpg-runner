@@ -74,7 +74,7 @@ import 'dart:math';
 import 'camera/autoscroll_camera.dart';
 import 'abilities/ability_catalog.dart';
 import 'abilities/ability_def.dart';
-import 'combat/middleware/sword_parry_middleware.dart';
+import 'combat/middleware/parry_middleware.dart';
 import 'collision/static_world_geometry_index.dart';
 import 'commands/command.dart';
 import 'contracts/render_contract.dart';
@@ -422,7 +422,12 @@ class GameCore {
     _invulnerabilitySystem = InvulnerabilitySystem();
     _damageMiddlewareSystem = DamageMiddlewareSystem(
       middlewares: [
-        SwordParryMiddleware(),
+        ParryMiddleware(
+          abilityIds: const <AbilityKey>{
+            'eloise.sword_parry',
+            'eloise.shield_block',
+          },
+        ),
       ],
     );
     _damageSystem = DamageSystem(

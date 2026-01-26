@@ -62,9 +62,10 @@ const double eloiseAnimRangedStepSeconds = eloiseAnimCastStepSeconds;
 const int eloiseAnimShieldBashFrames = eloiseAnimStrikeFrames;
 const double eloiseAnimShieldBashStepSeconds = eloiseAnimStrikeStepSeconds;
 
-// Until a dedicated shield block strip exists, reuse parry pacing/strip.
-const int eloiseAnimShieldBlockFrames = eloiseAnimParryFrames;
-const double eloiseAnimShieldBlockStepSeconds = eloiseAnimParryStepSeconds;
+// Shield block is authored as its own strip: 7 frames x ~0.052s ~= 0.364s.
+// Keep it close to parry/strike total duration (~0.36s) for consistent gameplay timing.
+const int eloiseAnimShieldBlockFrames = 7;
+const double eloiseAnimShieldBlockStepSeconds = 0.052;
 
 const int eloiseAnimDashFrames = 4;
 const double eloiseAnimDashStepSeconds = 0.05;
@@ -136,7 +137,7 @@ const Map<AnimKey, String> eloiseAnimSourcesByKey = <AnimKey, String>{
   AnimKey.cast: 'entities/player/cast.png',
   AnimKey.ranged: 'entities/player/cast.png',
   AnimKey.shieldBash: 'entities/player/shield_bash.png',
-  AnimKey.shieldBlock: 'entities/player/parry.png',
+  AnimKey.shieldBlock: 'entities/player/shield_block.png',
   AnimKey.dash: 'entities/player/dash.png',
   AnimKey.roll: 'entities/player/roll.png',
   AnimKey.hit: 'entities/player/hit.png',

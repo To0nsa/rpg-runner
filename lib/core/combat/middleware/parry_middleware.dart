@@ -4,20 +4,20 @@ import '../../ecs/systems/damage_middleware_system.dart';
 import '../../ecs/world.dart';
 import '../../events/game_event.dart';
 
-/// Cancels incoming hits while Sword Parry is active and grants a one-shot riposte buff.
+/// Cancels incoming hits while a parry-like ability is active and grants a one-shot riposte buff.
 ///
-/// Design intent: "pure defense" (block does not depend on incoming damage) plus a
-/// deterministic reward that is consumed only when the next melee hit actually lands.
-class SwordParryMiddleware implements DamageMiddleware {
-  SwordParryMiddleware({
+/// This is used by multiple abilities (e.g. sword parry, shield block) to keep
+/// defense rules centralized and deterministic.
+class ParryMiddleware implements DamageMiddleware {
+  ParryMiddleware({
+    required Set<AbilityKey> abilityIds,
     this.riposteBonusBp = 10000,
     this.riposteLifetimeTicks = 60,
-  });
+  }) : _abilityIds = abilityIds;
 
+  final Set<AbilityKey> _abilityIds;
   final int riposteBonusBp;
   final int riposteLifetimeTicks;
-
-  static const AbilityKey _parryAbilityId = 'eloise.sword_parry';
 
   @override
   void apply(EcsWorld world, DamageQueueStore queue, int index, int currentTick) {
@@ -26,7 +26,7 @@ class SwordParryMiddleware implements DamageMiddleware {
     if (world.deathState.has(target)) return;
     final ai = world.activeAbility.tryIndexOf(target);
     if (ai == null) return;
-    if (world.activeAbility.abilityId[ai] != _parryAbilityId) return;
+    if (!_abilityIds.contains(world.activeAbility.abilityId[ai])) return;
 
     if (world.activeAbility.phase[ai] != AbilityPhase.active) return;
 
@@ -59,3 +59,4 @@ class SwordParryMiddleware implements DamageMiddleware {
     );
   }
 }
+

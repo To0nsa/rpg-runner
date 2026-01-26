@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/combat/damage.dart';
-import 'package:rpg_runner/core/combat/middleware/sword_parry_middleware.dart';
+import 'package:rpg_runner/core/combat/middleware/parry_middleware.dart';
 import 'package:rpg_runner/core/ecs/entity_factory.dart';
 import 'package:rpg_runner/core/ecs/systems/active_ability_phase_system.dart';
 import 'package:rpg_runner/core/ecs/systems/damage_middleware_system.dart';
@@ -17,7 +17,7 @@ import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 
 void main() {
-  test('SwordParryMiddleware cancels hits and grants riposte once per activation', () {
+  test('ParryMiddleware cancels hits and grants riposte once per activation', () {
     final world = EcsWorld();
     final player = EntityFactory(world).createPlayer(
       posX: 0,
@@ -72,7 +72,11 @@ void main() {
 
     final middleware = DamageMiddlewareSystem(
       middlewares: [
-        SwordParryMiddleware(riposteBonusBp: 1234, riposteLifetimeTicks: 7),
+        ParryMiddleware(
+          abilityIds: const <AbilityKey>{'eloise.sword_parry'},
+          riposteBonusBp: 1234,
+          riposteLifetimeTicks: 7,
+        ),
       ],
     );
     middleware.step(world, currentTick: 12);

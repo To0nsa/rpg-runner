@@ -100,3 +100,7 @@ resources/
 *.tmp
 *.swp
 *.swo
+
+# Agent / tooling outputs
+tools/output/src-bundle-flutter.txt
+tools/output/tree.txt
