@@ -153,5 +153,10 @@ class MobilitySystem {
       world.projectileIntent.tick[i] = -1;
       world.projectileIntent.commitTick[i] = -1;
     }
+    if (world.selfIntent.has(entity)) {
+      final i = world.selfIntent.indexOf(entity);
+      world.selfIntent.tick[i] = -1;
+      world.selfIntent.commitTick[i] = -1;
+    }
   }
 }

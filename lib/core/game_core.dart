@@ -44,7 +44,7 @@
 /// 10. **Broadphase rebuild**: Update spatial grid for hit detection.
 /// 11. **Projectile movement**: Advance existing projectiles.
 /// 12. **Strike intents**: Enemies and player queue strikes.
-/// 13. **Strike execution**: Spawn hitboxes and projectiles.
+/// 13. **Strike execution**: Spawn hitboxes/projectiles/self abilities.
 /// 14. **Hitbox positioning**: Follow owner entities.
 /// 15. **Hit resolution**: Detect overlaps, queue damage.
 /// 16. **Status ticking**: Apply DoT ticks and queue damage.
@@ -112,6 +112,7 @@ import 'ecs/systems/projectile_world_collision_system.dart';
 import 'ecs/systems/projectile_launch_system.dart';
 import 'ecs/systems/resource_regen_system.dart';
 import 'ecs/systems/restoration_item_system.dart';
+import 'ecs/systems/self_ability_system.dart';
 import 'ecs/systems/status_system.dart';
 import 'ecs/systems/control_lock_system.dart';
 import 'ecs/systems/anim_system.dart';
@@ -464,6 +465,7 @@ class GameCore {
     _projectileLaunchSystem = ProjectileLaunchSystem(
       projectiles: _projectiles,
     );
+    _selfAbilitySystem = SelfAbilitySystem();
     _meleeStrikeSystem = MeleeStrikeSystem();
 
     // Navigation infrastructure.
@@ -680,6 +682,7 @@ class GameCore {
   late final SurfacePathfinder _surfacePathfinder;
   late final SurfaceNavigator _surfaceNavigator;
   late final AbilityActivationSystem _abilityActivationSystem;
+  late final SelfAbilitySystem _selfAbilitySystem;
   late final MeleeStrikeSystem _meleeStrikeSystem;
   late final ProjectileLaunchSystem _projectileLaunchSystem;
   late final HitboxDamageSystem _hitboxDamageSystem;
@@ -927,7 +930,7 @@ class GameCore {
   /// 12. **Broadphase**: Rebuild spatial grid for hit detection.
   /// 13. **Projectiles**: Move existing projectiles.
   /// 14. **Strike intents**: Queue enemy and player strikes.
-  /// 15. **Strike execution**: Spawn hitboxes and projectiles from intents.
+  /// 15. **Strike execution**: Spawn hitboxes/projectiles/self abilities from intents.
   /// 16. **Hitbox positioning**: Update hitbox positions from owners.
   /// 17. **Hit detection**: Check projectile and hitbox overlaps.
   /// 18. **Status ticking**: Apply DoT ticks and queue damage.
@@ -1059,9 +1062,10 @@ class GameCore {
     _enemyMeleeSystem.step(_world, player: _player, currentTick: tick);
 
     // ─── Phase 10: Strike execution ───
-    // Convert intents into actual hitboxes and projectiles.
+    // Convert intents into actual hitboxes/projectiles/self abilities.
     _projectileLaunchSystem.step(_world, currentTick: tick);
     _meleeStrikeSystem.step(_world, currentTick: tick);
+    _selfAbilitySystem.step(_world, currentTick: tick);
 
     // ─── Phase 11: Hitbox positioning ───
     // Update hitbox transforms to follow their owner entities.

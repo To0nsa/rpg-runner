@@ -5,6 +5,7 @@ import 'stores/collider_aabb_store.dart';
 import 'stores/collision_state_store.dart';
 import 'stores/cooldown_store.dart';
 import 'stores/projectile_intent_store.dart';
+import 'stores/self_intent_store.dart';
 import 'stores/combat/creature_tag_store.dart';
 import 'stores/combat/damage_resistance_store.dart';
 import 'stores/combat/equipped_loadout_store.dart';
@@ -126,6 +127,9 @@ class EcsWorld {
   late final ProjectileIntentStore projectileIntent = _register(
     ProjectileIntentStore(),
   );
+
+  /// Tracks the intent to use a self ability (parry, block, buff).
+  late final SelfIntentStore selfIntent = _register(SelfIntentStore());
 
   /// Creature classification tags (humanoid, demon, etc.).
   late final CreatureTagStore creatureTag = _register(CreatureTagStore());

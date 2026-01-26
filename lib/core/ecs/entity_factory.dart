@@ -97,6 +97,7 @@ class EntityFactory {
     world.meleeIntent.add(id);
     world.mobilityIntent.add(id);
     world.projectileIntent.add(id);
+    world.selfIntent.add(id);
     world.equippedLoadout.add(id, equippedLoadout);
     world.statModifier.add(id);
     world.stamina.add(id, stamina);

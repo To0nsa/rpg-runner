@@ -224,6 +224,9 @@ class StatusSystem {
     if (world.projectileIntent.has(target)) {
       world.projectileIntent.tick[world.projectileIntent.indexOf(target)] = -1;
     }
+    if (world.selfIntent.has(target)) {
+      world.selfIntent.tick[world.selfIntent.indexOf(target)] = -1;
+    }
     // Cancel dash if active
     final mi = world.movement.tryIndexOf(target);
     if (mi != null && world.movement.dashTicksLeft[mi] > 0) {

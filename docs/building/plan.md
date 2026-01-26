@@ -37,6 +37,15 @@ independent from locomotion mechanics.
 Ground enemy tuning is grouped by responsibility in `GroundEnemyTuning`:
 `navigation`, `engagement`, `locomotion`, and `combat`.
 
+## Ability execution lanes
+
+Abilities now execute through dedicated intent lanes:
+
+- **Melee**: `MeleeIntentStore` → `MeleeStrikeSystem`
+- **Projectile**: `ProjectileIntentStore` → `ProjectileLaunchSystem`
+- **Self** (parry/block/buffs): `SelfIntentStore` → `SelfAbilitySystem`
+- **Mobility**: `MobilityIntentStore` → `MobilitySystem` (jump handled in `PlayerMovementSystem`)
+
 ## Render animation windows
 
 Core owns deterministic animation windows via `AnimTuning` (strike/cast/hit/death/spawn).

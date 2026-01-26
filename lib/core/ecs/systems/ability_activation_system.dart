@@ -12,6 +12,7 @@ import '../stores/combat/equipped_loadout_store.dart';
 import '../stores/melee_intent_store.dart';
 import '../stores/mobility_intent_store.dart';
 import '../stores/projectile_intent_store.dart';
+import '../stores/self_intent_store.dart';
 import '../world.dart';
 
 /// Routes player input into ability intents based on the equipped loadout.
@@ -319,48 +320,110 @@ class AbilityActivationSystem {
       return false;
     }
 
-    switch (ability.category) {
-      case AbilityCategory.melee:
-      case AbilityCategory.defense:
-        return _commitMelee(
-          world,
-          player: player,
-          loadoutIndex: loadoutIndex,
-          inputIndex: inputIndex,
-          facing: facing,
-          ability: ability,
-          slot: slot,
-          commitTick: commitTick,
-          aimOverrideX: aimOverrideX,
-          aimOverrideY: aimOverrideY,
-        );
-      case AbilityCategory.magic:
-      case AbilityCategory.ranged:
-        return _commitProjectile(
-          world,
-          player: player,
-          loadoutIndex: loadoutIndex,
-          inputIndex: inputIndex,
-          movementIndex: movementIndex,
-          facing: facing,
-          ability: ability,
-          commitTick: commitTick,
-          aimOverrideX: aimOverrideX,
-          aimOverrideY: aimOverrideY,
-        );
-      case AbilityCategory.mobility:
-        return _commitMobility(
-          world,
-          player: player,
-          inputIndex: inputIndex,
-          facing: facing,
-          ability: ability,
-          slot: slot,
-          commitTick: commitTick,
-        );
-      case AbilityCategory.utility:
-        return false;
+    if (ability.category == AbilityCategory.mobility) {
+      return _commitMobility(
+        world,
+        player: player,
+        inputIndex: inputIndex,
+        facing: facing,
+        ability: ability,
+        slot: slot,
+        commitTick: commitTick,
+      );
     }
+
+    final hitDelivery = ability.hitDelivery;
+    if (hitDelivery is MeleeHitDelivery) {
+      return _commitMelee(
+        world,
+        player: player,
+        loadoutIndex: loadoutIndex,
+        inputIndex: inputIndex,
+        facing: facing,
+        ability: ability,
+        slot: slot,
+        commitTick: commitTick,
+        aimOverrideX: aimOverrideX,
+        aimOverrideY: aimOverrideY,
+      );
+    }
+    if (hitDelivery is ProjectileHitDelivery) {
+      return _commitProjectile(
+        world,
+        player: player,
+        loadoutIndex: loadoutIndex,
+        inputIndex: inputIndex,
+        movementIndex: movementIndex,
+        facing: facing,
+        ability: ability,
+        commitTick: commitTick,
+        aimOverrideX: aimOverrideX,
+        aimOverrideY: aimOverrideY,
+      );
+    }
+    if (hitDelivery is SelfHitDelivery) {
+      return _commitSelf(
+        world,
+        player: player,
+        loadoutIndex: loadoutIndex,
+        ability: ability,
+        slot: slot,
+        commitTick: commitTick,
+      );
+    }
+
+    return false;
+  }
+
+  bool _commitSelf(
+    EcsWorld world, {
+    required EntityId player,
+    required int loadoutIndex,
+    required AbilityDef ability,
+    required AbilitySlot slot,
+    required int commitTick,
+  }) {
+    if (!world.selfIntent.has(player)) {
+      assert(
+        false,
+        'AbilityActivationSystem requires SelfIntentStore on the player; add it at spawn time.',
+      );
+      return false;
+    }
+
+    final mask = world.equippedLoadout.mask[loadoutIndex];
+    if (slot == AbilitySlot.primary && (mask & LoadoutSlotMask.mainHand) == 0) {
+      return false;
+    }
+    if (slot == AbilitySlot.secondary && (mask & LoadoutSlotMask.offHand) == 0) {
+      return false;
+    }
+    if (slot == AbilitySlot.projectile &&
+        (mask & LoadoutSlotMask.projectile) == 0) {
+      return false;
+    }
+
+    final windupTicks = _scaleAbilityTicks(ability.windupTicks);
+    final activeTicks = _scaleAbilityTicks(ability.activeTicks);
+    final recoveryTicks = _scaleAbilityTicks(ability.recoveryTicks);
+    final executeTick = commitTick + windupTicks;
+
+    world.selfIntent.set(
+      player,
+      SelfIntentDef(
+        abilityId: ability.id,
+        slot: slot,
+        commitTick: commitTick,
+        windupTicks: windupTicks,
+        activeTicks: activeTicks,
+        recoveryTicks: recoveryTicks,
+        cooldownTicks: _scaleAbilityTicks(ability.cooldownTicks),
+        staminaCost100: ability.staminaCost,
+        manaCost100: ability.manaCost,
+        tick: executeTick,
+      ),
+    );
+    return true;
   }
 
   bool _commitMobility(
@@ -656,6 +719,11 @@ class AbilityActivationSystem {
       final i = world.projectileIntent.indexOf(player);
       world.projectileIntent.tick[i] = -1;
       world.projectileIntent.commitTick[i] = -1;
+    }
+    if (world.selfIntent.has(player)) {
+      final i = world.selfIntent.indexOf(player);
+      world.selfIntent.tick[i] = -1;
+      world.selfIntent.commitTick[i] = -1;
     }
   }
 
