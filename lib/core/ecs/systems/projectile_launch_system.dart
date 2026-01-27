@@ -144,7 +144,6 @@ class ProjectileLaunchSystem {
         fallbackDirY: intents.fallbackDirY[ii],
         damage100: intents.damage100[ii],
         damageType: intents.damageType[ii],
-        statusProfileId: intents.statusProfileId[ii],
         procs: intents.procs[ii],
         ballistic: intents.ballistic[ii],
         gravityScale: intents.gravityScale[ii],

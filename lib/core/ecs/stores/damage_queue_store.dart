@@ -1,6 +1,5 @@
 import '../../combat/damage.dart';
 import '../../combat/damage_type.dart';
-import '../../combat/status/status.dart';
 import '../../enemies/enemy_id.dart';
 import '../../events/game_event.dart';
 import '../../projectiles/projectile_id.dart';
@@ -21,7 +20,6 @@ class DamageQueueStore {
   final List<EntityId> target = <EntityId>[];
   final List<int> amount100 = <int>[];
   final List<DamageType> damageType = <DamageType>[];
-  final List<StatusProfileId> statusProfileId = <StatusProfileId>[];
   final List<List<WeaponProc>> procs = <List<WeaponProc>>[];
   final List<DeathSourceKind> sourceKind = <DeathSourceKind>[];
   final List<EntityId?> sourceEntity = <EntityId?>[];
@@ -34,9 +32,7 @@ class DamageQueueStore {
 
   /// Adds a damage request, returning its index or -1 if ignored.
   int add(DamageRequest request) {
-    if (request.amount100 <= 0 &&
-        request.statusProfileId == StatusProfileId.none &&
-        request.procs.isEmpty) {
+    if (request.amount100 <= 0) {
       return -1;
     }
 
@@ -44,7 +40,6 @@ class DamageQueueStore {
     target.add(request.target);
     amount100.add(request.amount100);
     damageType.add(request.damageType);
-    statusProfileId.add(request.statusProfileId);
     procs.add(request.procs);
     sourceKind.add(request.sourceKind);
     sourceEntity.add(request.source);
@@ -63,7 +58,6 @@ class DamageQueueStore {
     target.clear();
     amount100.clear();
     damageType.clear();
-    statusProfileId.clear();
     procs.clear();
     sourceKind.clear();
     sourceEntity.clear();

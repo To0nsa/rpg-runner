@@ -2,7 +2,6 @@ import '../../abilities/ability_def.dart';
 import '../../snapshots/enums.dart';
 import '../../players/player_tuning.dart';
 import '../../util/velocity_math.dart';
-import '../entity_id.dart';
 import '../queries.dart';
 import '../world.dart';
 
@@ -135,7 +134,7 @@ class PlayerMovementSystem {
         if (world.movement.jumpBufferTicksLeft[mi] > 0 &&
             (wasGrounded || world.movement.coyoteTicksLeft[mi] > 0)) {
           final jumpCost = hasJumpIntent
-              ? world.mobilityIntent.staminaCost100[jumpIntentIndex!]
+              ? world.mobilityIntent.staminaCost100[jumpIntentIndex]
               : resources.jumpStaminaCost100;
           if (world.stamina.stamina[si] >= jumpCost) {
             world.stamina.stamina[si] -= jumpCost;
@@ -151,7 +150,7 @@ class PlayerMovementSystem {
             if (hasJumpIntent) {
               // Mark the jump intent as consumed and stamp the active ability.
               final intent = world.mobilityIntent;
-              intent.tick[jumpIntentIndex!] = -1;
+              intent.tick[jumpIntentIndex] = -1;
               intent.commitTick[jumpIntentIndex] = -1;
 
               if (world.activeAbility.has(e)) {
@@ -173,7 +172,7 @@ class PlayerMovementSystem {
 
       // If a jump intent is buffered but expired, clear it.
       if (hasJumpIntent && world.movement.jumpBufferTicksLeft[mi] <= 0) {
-        world.mobilityIntent.tick[jumpIntentIndex!] = -1;
+        world.mobilityIntent.tick[jumpIntentIndex] = -1;
         world.mobilityIntent.commitTick[jumpIntentIndex] = -1;
       }
 

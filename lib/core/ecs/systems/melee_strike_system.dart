@@ -144,7 +144,6 @@ class MeleeStrikeSystem {
           faction: faction,
           damage100: intents.damage100[ii],
           damageType: intents.damageType[ii],
-          statusProfileId: intents.statusProfileId[ii],
           procs: intents.procs[ii],
           halfX: intents.halfX[ii],
           halfY: intents.halfY[ii],

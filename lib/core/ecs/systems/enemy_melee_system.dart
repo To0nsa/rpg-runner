@@ -2,7 +2,6 @@ import 'package:rpg_runner/core/ecs/entity_id.dart';
 
 import '../../abilities/ability_def.dart';
 import '../../combat/damage_type.dart';
-import '../../combat/status/status.dart';
 import '../../snapshots/enums.dart';
 import '../../tuning/ground_enemy_tuning.dart';
 import '../../util/fixed_math.dart';
@@ -99,7 +98,6 @@ class EnemyMeleeSystem {
           slot: AbilitySlot.primary,
           damage100: toFixed100(tuning.combat.meleeDamage),
           damageType: DamageType.physical,
-          statusProfileId: StatusProfileId.none,
           halfX: halfX,
           halfY: halfY,
           offsetX: offsetX,

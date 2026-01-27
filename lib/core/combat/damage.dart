@@ -5,7 +5,6 @@ import '../projectiles/projectile_id.dart';
 import '../projectiles/projectile_item_id.dart';
 import '../weapons/weapon_proc.dart';
 import 'damage_type.dart';
-import 'status/status.dart';
 
 /// Represents a request to apply damage to an entity.
 ///
@@ -17,7 +16,6 @@ class DamageRequest {
     required this.target,
     required this.amount100,
     this.damageType = DamageType.physical,
-    this.statusProfileId = StatusProfileId.none,
     this.procs = const <WeaponProc>[],
     this.source,
     this.sourceKind = DeathSourceKind.unknown,
@@ -36,9 +34,6 @@ class DamageRequest {
 
   /// Category used for resistance/vulnerability lookup.
   final DamageType damageType;
-
-  /// Optional status profile to apply on hit.
-  final StatusProfileId statusProfileId;
 
   /// Potential on-hit procs to roll at application time.
   final List<WeaponProc> procs;

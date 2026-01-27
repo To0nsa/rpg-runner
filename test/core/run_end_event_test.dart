@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rpg_runner/core/combat/damage_type.dart';
 import 'package:rpg_runner/core/combat/faction.dart';
-import 'package:rpg_runner/core/combat/status/status.dart';
 import 'package:rpg_runner/core/ecs/spatial/broadphase_grid.dart';
 import 'package:rpg_runner/core/ecs/spatial/grid_index_2d.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
@@ -74,7 +73,6 @@ void main() {
       fallbackDirY: 0,
       damage100: thunderDamage,
       damageType: projectileItem.damageType,
-      statusProfileId: projectileItem.statusProfileId,
       procs: projectileItem.procs,
       ballistic: projectileItem.ballistic,
       gravityScale: projectileItem.gravityScale,
@@ -131,7 +129,6 @@ void main() {
         faction: Faction.enemy,
         damage100: 1000,
         damageType: DamageType.physical,
-        statusProfileId: StatusProfileId.none,
         halfX: 8,
         halfY: 8,
         offsetX: 0,

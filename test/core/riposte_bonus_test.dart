@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rpg_runner/core/combat/damage_type.dart';
 import 'package:rpg_runner/core/combat/faction.dart';
-import 'package:rpg_runner/core/combat/status/status.dart';
 import 'package:rpg_runner/core/ecs/spatial/broadphase_grid.dart';
 import 'package:rpg_runner/core/ecs/spatial/grid_index_2d.dart';
 import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
@@ -45,7 +44,6 @@ void main() {
         faction: Faction.player,
         damage100: 1000,
         damageType: DamageType.physical,
-        statusProfileId: StatusProfileId.none,
         halfX: 1.0,
         halfY: 1.0,
         offsetX: 0.0,
@@ -99,7 +97,6 @@ void main() {
         faction: Faction.player,
         damage100: 1000,
         damageType: DamageType.physical,
-        statusProfileId: StatusProfileId.none,
         halfX: 1.0,
         halfY: 1.0,
         offsetX: 0.0,
@@ -119,4 +116,3 @@ void main() {
     expect(world.riposte.has(attacker), isTrue);
   });
 }
-

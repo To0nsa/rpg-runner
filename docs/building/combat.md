@@ -24,8 +24,8 @@ This document describes the Core combat primitives and how to extend them.
 
 ### Definitions
 
-- `WeaponDef`: Melee/off-hand weapon payload (damageType, statusProfileId, procs, stats, weaponType)
-- `ProjectileItemDef`: Projectile slot item payload (spells + throws: projectileId, ballistic, gravityScale, damageType, statusProfileId, procs, stats, weaponType)
+- `WeaponDef`: Melee/off-hand weapon payload (damageType, procs, stats, weaponType)
+- `ProjectileItemDef`: Projectile slot item payload (spells + throws: projectileId, ballistic, gravityScale, damageType, procs, stats, weaponType)
 
 ## Stores (ECS Components)
 
@@ -67,7 +67,7 @@ This document describes the Core combat primitives and how to extend them.
 1. StatusSystem.tickExisting    → Ticks DoTs, queues damage requests
 2. ControlLockSystem.step       → Refreshes active lock masks, clears expired locks
 3. DamageMiddlewareSystem.step  → Applies combat rule edits/cancellations
-4. DamageSystem.step            → Applies damage, queues status profiles
+4. DamageSystem.step            → Applies damage, rolls procs, queues status
 5. StatusSystem.applyQueued     → Applies profiles, refreshes stat modifiers
 ```
 
@@ -80,7 +80,6 @@ DamageRequest {
   target: EntityId,
   amount100: int,
   damageType: DamageType,
-  statusProfileId: StatusProfileId,
   procs: List<WeaponProc>,
   source: EntityId?,
   sourceKind: DeathSourceKind,
@@ -114,7 +113,7 @@ Where `resistanceMod` is looked up from `DamageResistanceStore` by `DamageType`:
 3. Apply resistance modifier from `DamageResistanceStore`
 4. Reduce `HealthStore.hp`
 5. Record in `LastDamageStore` (for death messages/analytics)
-6. Queue status effects via `StatusRequest` if `statusProfileId != none`
+6. Roll `procs` (onHit) for non-zero `amount100` and queue `StatusRequest` for triggered effects
 7. Apply i-frames to `InvulnerabilityStore`
 
 ## Status Effect Pipeline
@@ -169,13 +168,12 @@ WeaponDef {
   id: WeaponId,
   weaponType: WeaponType,
   damageType: DamageType,
-  statusProfileId: StatusProfileId,
   procs: List<WeaponProc>,
   stats: WeaponStats,
 }
 ```
 
-Melee weapons contribute `damageType` and `statusProfileId` to the `DamageRequest` when hits are processed.
+Melee weapons contribute `damageType` and `procs` to the hit payload (merged with ability/buff/passive procs).
 
 ## Control Locks
 

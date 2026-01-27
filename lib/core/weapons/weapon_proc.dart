@@ -29,20 +29,3 @@ class WeaponProc {
   final int chanceBp;
 }
 
-/// Bridge helper: Converts legacy statusProfileId to effective procs list.
-///
-/// Used by future payload builders (Phase 4+). Not consumed in Phase 2.
-List<WeaponProc> effectiveWeaponProcs({
-  required List<WeaponProc> procs,
-  required StatusProfileId legacyStatusProfileId,
-}) {
-  if (procs.isNotEmpty) return procs;
-  if (legacyStatusProfileId == StatusProfileId.none) return const [];
-  return [
-    WeaponProc(
-      hook: ProcHook.onHit,
-      statusProfileId: legacyStatusProfileId,
-      chanceBp: 10000,
-    ),
-  ];
-}

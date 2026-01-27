@@ -1,5 +1,8 @@
 # Phase 2: Weapon Payload Refactor — **Locked Spec (No Runtime Behavior Change)**
 
+> **Update (2026-01-27):** Legacy `statusProfileId` fields have been removed from runtime/data structures.  
+> Status effects are now expressed exclusively via `procs` lists (ability → item → buffs → passives).
+
 ## Goal
 
 Extend `WeaponDef` and `RangedWeaponDef` so that **weapons provide payload** (damage type, procs, passive stats, capability tags)
@@ -31,13 +34,9 @@ For projectile weapons (throwing knives/axes), the **weapon** owns:
 
 Throw abilities will later reference “use equipped projectile weapon”, not hardcode projectileId (unless explicitly designed to override).
 
-### R3 — Backward compatibility for status effects
-Current runtime uses `StatusProfileId` (single) on weapon/projectiles.
-Phase 2 introduces `procs[]` but keeps `statusProfileId` as legacy until Phase 5+.
-
-**Bridge rule (for future consumers):**
-- If `procs.isEmpty` and `statusProfileId != none`, treat it as `procs = [onHit: statusProfileId]` when building a payload.
-- Runtime systems remain unchanged in Phase 2.
+### R3 — Status effects are proc-only (completed)
+Legacy `statusProfileId` fields have been removed. All status effects are expressed as
+`WeaponProc` entries and merged deterministically (ability → item → buffs → passives).
 
 ### R4 — Numeric domain consistency (Phase 2)
 To match the existing codebase and avoid mixed numeric domains mid-migration:

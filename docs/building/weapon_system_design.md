@@ -51,54 +51,23 @@ Current implementation in `lib/core/weapons/weapon_def.dart`:
 class WeaponDef {
   const WeaponDef({
     required this.id,
-    this.damageType = DamageType.physical,
-    this.statusProfileId = StatusProfileId.none,
-  });
-
-  final WeaponId id;
-  final DamageType damageType;
-  final StatusProfileId statusProfileId;
-}
-```
-
-**Proposed additions** based on ability_system_design.md:
-
-```dart
-class WeaponDef {
-  const WeaponDef({
-    required this.id,
     required this.category,
     required this.weaponType,
+    this.grantedAbilityTags = const {},
     this.damageType = DamageType.physical,
-    this.statusProfileId = StatusProfileId.none,
-    this.isTwoHanded = false,
-    this.stats = const WeaponStats(),
     this.procs = const [],
+    this.stats = const WeaponStats(),
+    this.isTwoHanded = false,
   });
 
-  /// Unique identifier.
   final WeaponId id;
-
-  /// Weapon category (primary / offHand / projectile).
   final WeaponCategory category;
-
-  /// Weapon family used for ability gating (sword/shield/throwingWeapon).
   final WeaponType weaponType;
-
-  /// Default damage type applied to abilities.
+  final Set<AbilityTag> grantedAbilityTags;
   final DamageType damageType;
-
-  /// Status effect profile (on-hit procs).
-  final StatusProfileId statusProfileId;
-
-  /// If true, occupies both Primary and Secondary slots.
-  final bool isTwoHanded;
-
-  /// Passive stat modifiers.
-  final WeaponStats stats;
-
-  /// Data-driven procs applied at hook points.
   final List<WeaponProc> procs;
+  final WeaponStats stats;
+  final bool isTwoHanded;
 }
 ```
 
@@ -118,7 +87,6 @@ class ProjectileItemDef {
     this.ballistic = false,
     this.gravityScale = 1.0,
     this.damageType = DamageType.physical,
-    this.statusProfileId = StatusProfileId.none,
     this.procs = const <WeaponProc>[],
     this.stats = const WeaponStats(),
   });
@@ -130,7 +98,6 @@ class ProjectileItemDef {
   final bool ballistic;
   final double gravityScale;
   final DamageType damageType;
-  final StatusProfileId statusProfileId;
   final List<WeaponProc> procs;
   final WeaponStats stats;
 }
@@ -168,18 +135,18 @@ class WeaponStats {
 class WeaponProc {
   const WeaponProc({
     required this.hook,
-    required this.statusId,
-    this.chance = 1.0,
+    required this.statusProfileId,
+    this.chanceBp = 10000,
   });
 
   /// Hook point: onHit, onBlock, onKill, etc.
   final ProcHook hook;
 
   /// Status effect to apply.
-  final StatusId statusId;
+  final StatusProfileId statusProfileId;
 
-  /// Probability (0.0 - 1.0).
-  final double chance;
+  /// Probability in basis points (10000 = 100%).
+  final int chanceBp;
 }
 
 enum ProcHook {
@@ -217,10 +184,10 @@ Weapons are registered in catalogs for lookup by ID:
 
 | ID | Category | Damage Type | On-Hit Effect |
 |----|----------|-------------|---------------|
-| `basicSword` | Primary | Physical | Bleed |
-| `goldenSword` | Primary | Physical | Bleed |
-| `basicShield` | Off-Hand | Physical | Stun |
-| `goldenShield` | Off-Hand | Physical | Stun |
+| `basicSword` | Primary | Physical | None (Sword Strike ability applies bleed) |
+| `goldenSword` | Primary | Physical | None (Sword Strike ability applies bleed) |
+| `basicShield` | Off-Hand | Physical | None (Shield Bash ability applies stun) |
+| `goldenShield` | Off-Hand | Physical | None (Shield Bash ability applies stun) |
 | `throwingAxe` | Projectile | Physical | None |
 | `throwingKnife` | Projectile | Physical | None |
 | `iceBolt` | Projectile | Ice | Slow |
@@ -251,10 +218,10 @@ Weapons are registered in catalogs for lookup by ID:
 ## Design Rules
 
 1. **Weapons gate abilities.** A weapon defines which abilities can be used (by weapon type requirements).
-2. **Weapons provide payload.** Damage type, procs, and stats come from the weapon.
+2. **Weapons/items provide payload.** Damage type, item procs, and stats come from the equipped item.
 3. **Abilities define structure.** Timing, targeting, and base damage come from the ability.
-4. **Modifier order is fixed.** On hit: ability modifiers → weapon modifiers → passive modifiers.
-5. **Same ability, different weapons = different effects.** "Sword Strike" with a fire sword applies burn; with a frost sword applies slow.
+4. **Proc merge order is fixed.** ability → item → buffs → passives (dedupe by hook + status profile).
+5. **Same ability, different items = different effects (if item procs exist).** Example: a weapon with burn procs adds burn on hit.
 
 ---
 
@@ -266,7 +233,7 @@ Weapons are registered in catalogs for lookup by ID:
 |--------|---------|--------|
 | Projectile payload | `ProjectileItemDef` | Unified for spells + throws |
 | Damage definition | Ability base damage | Ability remains source of base damage |
-| Proc system | `StatusProfileId` enum | Data-driven `WeaponProc` list |
+| Proc system | `WeaponProc` list (procs-only) | Done |
 | Two-handed flag | Not implemented | Add `isTwoHanded` field |
 | Ability gating | Explicit `weaponType` | Keep weaponType-based gating |
 | Weapon stats | Not implemented | Add `WeaponStats` class |

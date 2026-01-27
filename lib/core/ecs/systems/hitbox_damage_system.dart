@@ -122,7 +122,6 @@ class HitboxDamageSystem {
             target: target,
             amount100: amount100,
             damageType: hitboxes.damageType[hi],
-            statusProfileId: hitboxes.statusProfileId[hi],
             procs: hitboxes.procs[hi],
             source: owner,
             sourceKind: DeathSourceKind.meleeHitbox,

@@ -2,6 +2,9 @@
 
 ---
 
+> **Update (2026-01-27):** Legacy `statusProfileId` fields have been removed.  
+> Status effects are now proc-only (ability → item → buffs → passives).
+
 ## Guiding strategy (don’t skip this)
 
 **Do not rewrite all systems into one “AbilitySystem” immediately.**
@@ -60,7 +63,7 @@ Your weapon doc explicitly says **RangedWeaponDef.damage must move to abilities*
 ### 4) Update weapon defs toward “payload provider”
 
 * Expand `WeaponDef` and `RangedWeaponDef` to carry: `enabledAbilityTags`, `damageType default`, `procs`, `stats`, `isTwoHanded`. 
-* Transitional approach: keep `statusProfileId` during migration, but design toward a list of `WeaponProc`. 
+* Transitional approach completed: `statusProfileId` removed; use `WeaponProc` lists only.
 
 **Acceptance criteria**
 
@@ -138,7 +141,7 @@ Shift to:
 
 ### 9) Implement a single “HitPayload” struct used by hitbox/projectile damage
 
-Right now hitboxes carry `damage`, `damageType`, `statusProfileId`. 
+Right now hitboxes carry `damage`, `damageType`, `procs`. 
 Evolve to:
 
 * payload includes: baseDamage, damageType, procList, crit data (future), source tags

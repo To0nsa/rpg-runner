@@ -1,5 +1,8 @@
 # Phase 4: Runtime Data Model Shift — **Locked Spec**
 
+> **Update (2026-01-27):** Legacy `statusProfileId` and `effectiveWeaponProcs` bridge are removed.  
+> Runtime now uses proc lists exclusively (ability → item → buffs → passives).
+
 ## Goal
 
 Transition the **runtime source of truth** for damage, costs, and cooldowns from **Weapons** to **Abilities**.

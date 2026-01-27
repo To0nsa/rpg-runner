@@ -3,7 +3,6 @@ import '../combat/damage_type.dart';
 import '../combat/status/status.dart';
 import '../projectiles/projectile_id.dart';
 import '../weapons/weapon_proc.dart';
-import '../weapons/weapon_stats.dart';
 import 'projectile_item_def.dart';
 import 'projectile_item_id.dart';
 
@@ -22,7 +21,13 @@ class ProjectileItemCatalog {
           ballistic: false,
           gravityScale: 1.0,
           damageType: DamageType.ice,
-          statusProfileId: StatusProfileId.iceBolt,
+          procs: <WeaponProc>[
+            WeaponProc(
+              hook: ProcHook.onHit,
+              statusProfileId: StatusProfileId.iceBolt,
+              chanceBp: 10000,
+            ),
+          ],
         );
       case ProjectileItemId.fireBolt:
         return const ProjectileItemDef(
@@ -32,7 +37,13 @@ class ProjectileItemCatalog {
           ballistic: false,
           gravityScale: 1.0,
           damageType: DamageType.fire,
-          statusProfileId: StatusProfileId.fireBolt,
+          procs: <WeaponProc>[
+            WeaponProc(
+              hook: ProcHook.onHit,
+              statusProfileId: StatusProfileId.fireBolt,
+              chanceBp: 10000,
+            ),
+          ],
         );
       case ProjectileItemId.thunderBolt:
         return const ProjectileItemDef(

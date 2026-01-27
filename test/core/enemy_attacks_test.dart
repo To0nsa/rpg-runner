@@ -80,7 +80,6 @@ void main() {
       fallbackDirY: 0,
       damage100: thunderDamage,
       damageType: projectileItem.damageType,
-      statusProfileId: projectileItem.statusProfileId,
       procs: projectileItem.procs,
       ballistic: projectileItem.ballistic,
       gravityScale: projectileItem.gravityScale,

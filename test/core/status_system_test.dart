@@ -8,6 +8,7 @@ import 'package:rpg_runner/core/ecs/stores/combat/damage_resistance_store.dart';
 import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
 import 'package:rpg_runner/core/ecs/systems/status_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
+import 'package:rpg_runner/core/weapons/weapon_proc.dart';
 
 void main() {
   test('DamageSystem applies resistance and vulnerability modifiers', () {
@@ -70,7 +71,13 @@ void main() {
         target: target,
         amount100: 1000,
         damageType: DamageType.ice,
-        statusProfileId: StatusProfileId.iceBolt,
+        procs: const <WeaponProc>[
+          WeaponProc(
+            hook: ProcHook.onHit,
+            statusProfileId: StatusProfileId.iceBolt,
+            chanceBp: 10000,
+          ),
+        ],
       ),
     );
     damage.step(world, currentTick: 1, queueStatus: status.queue);

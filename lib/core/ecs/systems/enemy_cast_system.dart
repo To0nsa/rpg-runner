@@ -172,7 +172,6 @@ class EnemyCastSystem {
         cooldownTicks: tuning.unocoDemonCastCooldownTicks,
         projectileId: projectileItem.projectileId,
         damageType: payload.damageType,
-        statusProfileId: projectileItem.statusProfileId,
         procs: payload.procs,
         ballistic: projectileItem.ballistic,
         gravityScale: projectileItem.gravityScale,

@@ -1,6 +1,5 @@
 import '../abilities/ability_def.dart' show AbilityTag, WeaponType;
 import '../combat/damage_type.dart';
-import '../combat/status/status.dart';
 import 'weapon_category.dart';
 import 'weapon_id.dart';
 import 'weapon_proc.dart';
@@ -18,9 +17,6 @@ class WeaponDef {
     required this.weaponType,
     this.grantedAbilityTags = const {},
     this.damageType = DamageType.physical,
-    // Legacy (kept until Phase 5)
-    this.statusProfileId = StatusProfileId.none,
-    // New Phase 2 fields
     this.procs = const [],
     this.stats = const WeaponStats(),
     this.isTwoHanded = false,
@@ -41,11 +37,6 @@ class WeaponDef {
 
   /// Default damage type applied to hits.
   final DamageType damageType;
-
-  /// LEGACY: Single on-hit status profile, kept for current runtime.
-  /// Bridge rule: if procs empty and statusProfileId != none,
-  /// treat as [onHit: statusProfileId] for future payload builders.
-  final StatusProfileId statusProfileId;
 
   /// New, extensible proc list (Phase 2+).
   final List<WeaponProc> procs;

@@ -15,7 +15,6 @@ import 'package:rpg_runner/core/enemies/enemy_catalog.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/combat/damage_type.dart';
-import 'package:rpg_runner/core/combat/status/status.dart';
 
 void main() {
   test('Phase 6 Unit Test: ProjectileLaunchSystem + AnimSystem', () {
@@ -72,7 +71,6 @@ void main() {
         manaCost100: 1000,
         projectileId: ProjectileId.iceBolt,
         damageType: DamageType.ice,
-        statusProfileId: StatusProfileId.none,
         procs: const [],
         ballistic: false,
         gravityScale: 1.0,

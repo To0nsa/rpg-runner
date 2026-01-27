@@ -115,7 +115,6 @@ class ProjectileHitSystem {
             target: broadphase.targets.entities[targetIndex],
             amount100: projectiles.damage100[pi],
             damageType: projectiles.damageType[pi],
-            statusProfileId: projectiles.statusProfileId[pi],
             procs: projectiles.procs[pi],
             source: owner,
             sourceKind: DeathSourceKind.projectile,

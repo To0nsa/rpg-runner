@@ -45,7 +45,9 @@ You’re a combat runner. You don’t “auto-fight”. You **commit** to action
 - **Deterministic, tick-based gameplay feel** (reliable, fair, replayable)
 - **Loadout-driven combat** (your kit changes how you play)
 - **Skill + build** combine (execution matters, not just stats)
+- **Build philosophy**: multiple **viable, equivalent-power** playstyles; the “best” loadout depends on the **level’s hazards and enemy composition**, not a universal meta build.
 - **Ghost runs vs top leaderboard** (clear performance target, competitive loop)
+- Leaderboards are **score-first**, with **time as a tie-breaker**.
 - **In-game Codex (Library)**: quick entries for enemies/levels/characters with light flavor + practical tips.
 
 ## Pillars (non-negotiables)
@@ -86,7 +88,7 @@ A playable slice that proves the loop:
 
 ## Art direction
 - **Side-view 2D HD** (high-res sprites), readable on mobile at multiple DPI scales
-- Style: **mature, almost dark fantasy** — grim mood, restrained color palette, high contrast/value clarity, minimal “cartoony” exaggeration
+- Style: **mature, almost dark fantasy** grim mood, restrained color palette, high contrast/value clarity, minimal “cartoony” exaggeration
 - Strong silhouettes and clear telegraphs at runner speed (readability > detail)
 - Animation priority: clear anticipation → impact → recovery
 - VFX: minimal but sharp (avoid screen noise; favor readable impacts and debuffs)
@@ -116,6 +118,15 @@ A playable slice that proves the loop:
 - No complex meta economy
 - No giant open-world or story campaign
 - No heavy PvP (leaderboard/ghosts only)
+
+## Future features (not committed)
+Potential additions once the core loop is proven:
+- More characters and purchasable **expansion packs** (levels/biomes + enemies + characters)
+- Replay viewer for top runs (without racing)
+- Advanced progression (passives / ultimates / deeper build synergies)
+- Seasonal events with unique rewards
+- Future modes: expand beyond the core runner into **Challenge/Platformer**, **Survivor/Horde**, and **real-time PvP**.
+- Accessibility and control options (left-handed layout, button scaling, joystick tuning)
 
 ## Key risks
 - **Controls ambiguity / misinputs on mobile**

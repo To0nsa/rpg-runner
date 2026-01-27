@@ -1,6 +1,7 @@
 import '../projectiles/projectile_id.dart';
 import '../combat/damage_type.dart';
 import '../snapshots/enums.dart';
+import '../weapons/weapon_proc.dart';
 
 // Validates strict format: "character.ability_name" (lower snake case)
 // Must have at least one dot, segments must be non-empty [a-z0-9_].
@@ -184,6 +185,7 @@ class AbilityDef {
     this.requiredTags = const {},
     this.requiredWeaponTypes = const {},
     this.requiresEquippedWeapon = false,
+    this.procs = const <WeaponProc>[],
     required this.baseDamage,
     this.baseDamageType = DamageType.physical,
   }) : assert(windupTicks >= 0 && activeTicks >= 0 && recoveryTicks >= 0, 'Ticks cannot be negative'),
@@ -232,6 +234,10 @@ class AbilityDef {
   /// If true, this ability requires *some* weapon to be equipped in its slot,
   /// even if [requiredWeaponTypes] is empty.
   final bool requiresEquippedWeapon;
+
+  /// Guaranteed or probabilistic effects applied on hit (ability-owned).
+  /// Merged deterministically with item procs in [HitPayloadBuilder].
+  final List<WeaponProc> procs;
 
   /// Base damage for this ability.
   /// Fixed-point: 100 = 1.0 damage.

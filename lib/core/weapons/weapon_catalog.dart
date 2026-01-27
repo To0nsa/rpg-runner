@@ -1,5 +1,4 @@
 import '../abilities/ability_def.dart' show AbilityTag, WeaponType;
-import '../combat/status/status.dart';
 import 'weapon_category.dart';
 import 'weapon_def.dart';
 import 'weapon_id.dart';
@@ -19,7 +18,6 @@ class WeaponCatalog {
           category: WeaponCategory.primary,
           weaponType: WeaponType.oneHandedSword,
           grantedAbilityTags: {AbilityTag.melee, AbilityTag.physical},
-          statusProfileId: StatusProfileId.meleeBleed,
         );
       case WeaponId.goldenSword:
         return const WeaponDef(
@@ -27,7 +25,6 @@ class WeaponCatalog {
           category: WeaponCategory.primary,
           weaponType: WeaponType.oneHandedSword,
           grantedAbilityTags: {AbilityTag.melee, AbilityTag.physical},
-          statusProfileId: StatusProfileId.meleeBleed,
           stats: WeaponStats(powerBonusBp: 2000), // +20% Damage
         );
       case WeaponId.basicShield:
@@ -36,7 +33,6 @@ class WeaponCatalog {
           category: WeaponCategory.offHand,
           weaponType: WeaponType.shield,
           grantedAbilityTags: {AbilityTag.buff, AbilityTag.physical},
-          statusProfileId: StatusProfileId.stunOnHit,
           stats: WeaponStats(powerBonusBp: 500),
         );
       case WeaponId.goldenShield:
@@ -45,7 +41,6 @@ class WeaponCatalog {
           category: WeaponCategory.offHand,
           weaponType: WeaponType.shield,
           grantedAbilityTags: {AbilityTag.buff, AbilityTag.physical},
-          statusProfileId: StatusProfileId.stunOnHit,
           stats: WeaponStats(powerBonusBp: 1000),
         );
     }

@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rpg_runner/core/combat/damage_type.dart';
 import 'package:rpg_runner/core/combat/faction.dart';
-import 'package:rpg_runner/core/combat/status/status.dart';
 import 'package:rpg_runner/core/commands/command.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/ecs/systems/projectile_world_collision_system.dart';
@@ -162,7 +161,6 @@ void main() {
       fallbackDirY: 0,
       damage100: 100,
       damageType: DamageType.physical,
-      statusProfileId: StatusProfileId.none,
       ballistic: true,
       gravityScale: 1.0,
     );

@@ -1,6 +1,5 @@
 import '../abilities/ability_def.dart' show WeaponType;
 import '../combat/damage_type.dart';
-import '../combat/status/status.dart';
 import '../projectiles/projectile_id.dart';
 import '../weapons/weapon_proc.dart';
 import '../weapons/weapon_stats.dart';
@@ -16,7 +15,6 @@ class ProjectileItemDef {
     this.ballistic = false,
     this.gravityScale = 1.0,
     this.damageType = DamageType.physical,
-    this.statusProfileId = StatusProfileId.none,
     this.procs = const <WeaponProc>[],
     this.stats = const WeaponStats(),
   });
@@ -30,7 +28,6 @@ class ProjectileItemDef {
   final double gravityScale;
 
   final DamageType damageType;
-  final StatusProfileId statusProfileId;
   final List<WeaponProc> procs;
   final WeaponStats stats;
 }

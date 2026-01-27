@@ -21,6 +21,8 @@ class HitPayloadBuilder {
     WeaponStats? weaponStats,
     DamageType? weaponDamageType,
     List<WeaponProc> weaponProcs = const [],
+    List<WeaponProc> buffProcs = const [],
+    List<WeaponProc> passiveProcs = const [],
   }) {
     // 1. Start with Ability Base
     int finalDamage100 = ability.baseDamage; // Fixed-point (e.g. 1500 = 15.0)
@@ -47,8 +49,29 @@ class HitPayloadBuilder {
       }
     }
 
-    // C. Procs
-    finalProcs.addAll(weaponProcs);
+    // C. Procs (deterministic merge + dedupe)
+    // Order is canonical: ability -> item -> buffs -> passives.
+    final Set<int> seen = <int>{};
+    void addProcs(List<WeaponProc> procs) {
+      for (final proc in procs) {
+        final key = (proc.hook.index << 16) | proc.statusProfileId.index;
+        if (!seen.add(key)) continue;
+        finalProcs.add(proc);
+      }
+    }
+
+    if (ability.procs.isNotEmpty) {
+      addProcs(ability.procs);
+    }
+    if (weaponProcs.isNotEmpty) {
+      addProcs(weaponProcs);
+    }
+    if (buffProcs.isNotEmpty) {
+      addProcs(buffProcs);
+    }
+    if (passiveProcs.isNotEmpty) {
+      addProcs(passiveProcs);
+    }
 
     return HitPayload(
       damage100: finalDamage100,

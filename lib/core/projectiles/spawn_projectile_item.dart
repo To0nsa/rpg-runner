@@ -5,7 +5,6 @@ import 'dart:math';
 
 import '../combat/damage_type.dart';
 import '../combat/faction.dart';
-import '../combat/status/status.dart';
 import '../ecs/entity_id.dart';
 import '../ecs/stores/body_store.dart';
 import '../ecs/stores/collider_aabb_store.dart';
@@ -56,7 +55,6 @@ EntityId spawnProjectileItemFromCaster(
   required double fallbackDirY,
   required int damage100,
   required DamageType damageType,
-  required StatusProfileId statusProfileId,
   List<WeaponProc> procs = const <WeaponProc>[],
   required bool ballistic,
   required double gravityScale,
@@ -98,7 +96,6 @@ EntityId spawnProjectileItemFromCaster(
       speedUnitsPerSecond: speedUnitsPerSecond,
       damage100: damage100,
       damageType: damageType,
-      statusProfileId: statusProfileId,
       procs: procs,
       usePhysics: ballistic,
     ),

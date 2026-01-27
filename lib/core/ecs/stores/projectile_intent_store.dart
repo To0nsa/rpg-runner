@@ -1,6 +1,5 @@
 import '../../abilities/ability_def.dart';
 import '../../combat/damage_type.dart';
-import '../../combat/status/status.dart';
 import '../../projectiles/projectile_id.dart';
 import '../../projectiles/projectile_item_id.dart';
 import '../../weapons/weapon_proc.dart';
@@ -18,7 +17,6 @@ class ProjectileIntentDef {
     required this.cooldownTicks,
     required this.projectileId,
     required this.damageType,
-    required this.statusProfileId,
     this.procs = const <WeaponProc>[],
     required this.ballistic,
     required this.gravityScale,
@@ -43,7 +41,6 @@ class ProjectileIntentDef {
   final int cooldownTicks;
   final ProjectileId projectileId;
   final DamageType damageType;
-  final StatusProfileId statusProfileId;
   final List<WeaponProc> procs;
   final bool ballistic;
   final double gravityScale;
@@ -71,7 +68,6 @@ class ProjectileIntentStore extends SparseSet {
   final List<int> cooldownTicks = <int>[];
   final List<ProjectileId> projectileId = <ProjectileId>[];
   final List<DamageType> damageType = <DamageType>[];
-  final List<StatusProfileId> statusProfileId = <StatusProfileId>[];
   final List<List<WeaponProc>> procs = <List<WeaponProc>>[];
   final List<bool> ballistic = <bool>[];
   final List<double> gravityScale = <double>[];
@@ -106,7 +102,6 @@ class ProjectileIntentStore extends SparseSet {
     cooldownTicks[i] = def.cooldownTicks;
     projectileId[i] = def.projectileId;
     damageType[i] = def.damageType;
-    statusProfileId[i] = def.statusProfileId;
     procs[i] = def.procs;
     ballistic[i] = def.ballistic;
     gravityScale[i] = def.gravityScale;
@@ -133,7 +128,6 @@ class ProjectileIntentStore extends SparseSet {
     cooldownTicks.add(0);
     projectileId.add(ProjectileId.iceBolt);
     damageType.add(DamageType.ice);
-    statusProfileId.add(StatusProfileId.none);
     procs.add(const <WeaponProc>[]);
     ballistic.add(false);
     gravityScale.add(1.0);
@@ -160,7 +154,6 @@ class ProjectileIntentStore extends SparseSet {
     cooldownTicks[removeIndex] = cooldownTicks[lastIndex];
     projectileId[removeIndex] = projectileId[lastIndex];
     damageType[removeIndex] = damageType[lastIndex];
-    statusProfileId[removeIndex] = statusProfileId[lastIndex];
     procs[removeIndex] = procs[lastIndex];
     ballistic[removeIndex] = ballistic[lastIndex];
     gravityScale[removeIndex] = gravityScale[lastIndex];
@@ -184,7 +177,6 @@ class ProjectileIntentStore extends SparseSet {
     cooldownTicks.removeLast();
     projectileId.removeLast();
     damageType.removeLast();
-    statusProfileId.removeLast();
     procs.removeLast();
     ballistic.removeLast();
     gravityScale.removeLast();

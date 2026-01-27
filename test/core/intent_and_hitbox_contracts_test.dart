@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rpg_runner/core/combat/damage_type.dart';
 import 'package:rpg_runner/core/combat/faction.dart';
-import 'package:rpg_runner/core/combat/status/status.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/ecs/stores/projectile_intent_store.dart';
@@ -56,7 +55,6 @@ void main() {
         manaCost100: 0,
         projectileId: ProjectileId.iceBolt,
         damageType: DamageType.ice,
-        statusProfileId: StatusProfileId.none,
         ballistic: false,
         gravityScale: 1.0,
         dirX: 1,
@@ -93,7 +91,6 @@ void main() {
         slot: AbilitySlot.primary,
         damage100: 100,
         damageType: DamageType.physical,
-        statusProfileId: StatusProfileId.none,
         halfX: 4,
         halfY: 4,
         offsetX: 10,
@@ -136,7 +133,6 @@ void main() {
         faction: Faction.player,
         damage100: 100,
         damageType: DamageType.physical,
-        statusProfileId: StatusProfileId.none,
         halfX: 4,
         halfY: 4,
         offsetX: 10,

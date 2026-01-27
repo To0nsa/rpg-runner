@@ -1,6 +1,8 @@
 import '../combat/damage_type.dart';
+import '../combat/status/status.dart';
 import '../projectiles/projectile_id.dart';
 import '../snapshots/enums.dart';
+import '../weapons/weapon_proc.dart';
 import 'ability_def.dart';
 
 /// Static registry of all available abilities.
@@ -88,6 +90,13 @@ class AbilityCatalog {
       tags: {AbilityTag.melee, AbilityTag.physical},
       requiredTags: {AbilityTag.melee, AbilityTag.physical},
       requiredWeaponTypes: {WeaponType.oneHandedSword},
+      procs: <WeaponProc>[
+        WeaponProc(
+          hook: ProcHook.onHit,
+          statusProfileId: StatusProfileId.meleeBleed,
+          chanceBp: 10000,
+        ),
+      ],
       baseDamage: 1500, // PlayerTuning meleeDamage 15.0
     ),
 
@@ -129,6 +138,13 @@ class AbilityCatalog {
       tags: {AbilityTag.melee, AbilityTag.physical, AbilityTag.heavy},
       requiredTags: {AbilityTag.buff, AbilityTag.physical},
       requiredWeaponTypes: {WeaponType.shield},
+      procs: <WeaponProc>[
+        WeaponProc(
+          hook: ProcHook.onHit,
+          statusProfileId: StatusProfileId.stunOnHit,
+          chanceBp: 10000,
+        ),
+      ],
       baseDamage: 1500, // Assuming standardized melee damage
     ),
 

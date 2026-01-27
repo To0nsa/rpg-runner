@@ -44,7 +44,6 @@ class DamageSystem {
       final target = queue.target[i];
       final amount100 = queue.amount100[i];
       final damageType = queue.damageType[i];
-      final statusProfileId = queue.statusProfileId[i];
       final procs = queue.procs[i];
       final sourceKind = queue.sourceKind[i];
       final sourceEnemyId = queue.sourceEnemyId[i];
@@ -112,31 +111,32 @@ class DamageSystem {
         }
       }
 
-      // 5. Queue status effects (independent of HP loss).
-      if (queueStatus != null) {
-        if (statusProfileId != StatusProfileId.none) {
-          queueStatus(
-            StatusRequest(
-              target: target,
-              profileId: statusProfileId,
-              damageType: damageType,
-            ),
-          );
-        }
-        if (procs.isNotEmpty) {
-          for (final proc in procs) {
-            if (proc.hook != ProcHook.onHit) continue;
-            if (proc.statusProfileId == StatusProfileId.none) continue;
-            _rngState = nextUint32(_rngState);
-            if ((_rngState % bpScale) < proc.chanceBp) {
-              queueStatus(
-                StatusRequest(
-                  target: target,
-                  profileId: proc.statusProfileId,
-                  damageType: damageType,
-                ),
-              );
-            }
+      // 5. Queue status effects for non-zero damage requests.
+      if (queueStatus != null && amount100 > 0 && procs.isNotEmpty) {
+        for (final proc in procs) {
+          if (proc.hook != ProcHook.onHit) continue;
+          if (proc.statusProfileId == StatusProfileId.none) continue;
+          final chance = proc.chanceBp;
+          if (chance >= bpScale) {
+            queueStatus(
+              StatusRequest(
+                target: target,
+                profileId: proc.statusProfileId,
+                damageType: damageType,
+              ),
+            );
+            continue;
+          }
+          if (chance <= 0) continue;
+          _rngState = nextUint32(_rngState);
+          if ((_rngState % bpScale) < chance) {
+            queueStatus(
+              StatusRequest(
+                target: target,
+                profileId: proc.statusProfileId,
+                damageType: damageType,
+              ),
+            );
           }
         }
       }
