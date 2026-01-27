@@ -75,10 +75,11 @@ class StatusSystem {
       burn.periodTicksLeft[i] -= 1;
       if (burn.periodTicksLeft[i] <= 0) {
         burn.periodTicksLeft[i] = burn.periodTicks[i];
+        final amount100 = (burn.dps100[i] * burn.periodTicks[i]) ~/ _tickHz;
         world.damageQueue.add(
           DamageRequest(
             target: target,
-            amount100: burn.damagePerTick100[i],
+            amount100: amount100,
             damageType: DamageType.fire,
             sourceKind: DeathSourceKind.statusEffect,
           ),
@@ -112,10 +113,11 @@ class StatusSystem {
       bleed.periodTicksLeft[i] -= 1;
       if (bleed.periodTicksLeft[i] <= 0) {
         bleed.periodTicksLeft[i] = bleed.periodTicks[i];
+        final amount100 = (bleed.dps100[i] * bleed.periodTicks[i]) ~/ _tickHz;
         world.damageQueue.add(
           DamageRequest(
             target: target,
-            amount100: bleed.damagePerTick100[i],
+            amount100: amount100,
             damageType: DamageType.bleed,
             sourceKind: DeathSourceKind.statusEffect,
           ),
@@ -253,11 +255,14 @@ class StatusSystem {
         SlowDef(ticksLeft: ticksLeft, magnitude: clamped),
       );
     } else {
-      slow.ticksLeft[index] = slow.ticksLeft[index] > ticksLeft
-          ? slow.ticksLeft[index]
-          : ticksLeft;
-      if (clamped > slow.magnitude[index]) {
+      final currentMagnitude = slow.magnitude[index];
+      if (clamped > currentMagnitude) {
         slow.magnitude[index] = clamped;
+        slow.ticksLeft[index] = ticksLeft;
+      } else if (clamped == currentMagnitude) {
+        if (ticksLeft > slow.ticksLeft[index]) {
+          slow.ticksLeft[index] = ticksLeft;
+        }
       }
     }
   }
@@ -276,7 +281,7 @@ class StatusSystem {
     final periodTicks = periodSeconds <= 0.0
         ? 1
         : ticksFromSecondsCeil(periodSeconds, _tickHz);
-    final damagePerTick100 = (magnitude * periodTicks) ~/ _tickHz;
+    final dps100 = magnitude;
 
     if (useBurn) {
       final burn = world.burn;
@@ -287,17 +292,21 @@ class StatusSystem {
           BurnDef(
             ticksLeft: ticksLeft,
             periodTicks: periodTicks,
-            damagePerTick100: damagePerTick100,
+            dps100: dps100,
           ),
         );
       } else {
-        burn.ticksLeft[index] =
-            burn.ticksLeft[index] > ticksLeft ? burn.ticksLeft[index] : ticksLeft;
-        if (damagePerTick100 > burn.damagePerTick100[index]) {
-          burn.damagePerTick100[index] = damagePerTick100;
+        final currentDps = burn.dps100[index];
+        if (dps100 > currentDps) {
+          burn.dps100[index] = dps100;
+          burn.periodTicks[index] = periodTicks;
+          burn.periodTicksLeft[index] = periodTicks;
+          burn.ticksLeft[index] = ticksLeft;
+        } else if (dps100 == currentDps) {
+          if (ticksLeft > burn.ticksLeft[index]) {
+            burn.ticksLeft[index] = ticksLeft;
+          }
         }
-        burn.periodTicks[index] = periodTicks;
-        burn.periodTicksLeft[index] = periodTicks;
       }
       return;
     }
@@ -310,17 +319,21 @@ class StatusSystem {
         BleedDef(
           ticksLeft: ticksLeft,
           periodTicks: periodTicks,
-          damagePerTick100: damagePerTick100,
+          dps100: dps100,
         ),
       );
     } else {
-      bleed.ticksLeft[index] =
-          bleed.ticksLeft[index] > ticksLeft ? bleed.ticksLeft[index] : ticksLeft;
-      if (damagePerTick100 > bleed.damagePerTick100[index]) {
-        bleed.damagePerTick100[index] = damagePerTick100;
+      final currentDps = bleed.dps100[index];
+      if (dps100 > currentDps) {
+        bleed.dps100[index] = dps100;
+        bleed.periodTicks[index] = periodTicks;
+        bleed.periodTicksLeft[index] = periodTicks;
+        bleed.ticksLeft[index] = ticksLeft;
+      } else if (dps100 == currentDps) {
+        if (ticksLeft > bleed.ticksLeft[index]) {
+          bleed.ticksLeft[index] = ticksLeft;
+        }
       }
-      bleed.periodTicks[index] = periodTicks;
-      bleed.periodTicksLeft[index] = periodTicks;
     }
   }
 
