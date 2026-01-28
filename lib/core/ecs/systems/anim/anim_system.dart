@@ -1,13 +1,13 @@
-import '../../anim/anim_resolver.dart';
-import '../../abilities/ability_catalog.dart';
-import '../../snapshots/enums.dart';
-import '../../enemies/death_behavior.dart';
-import '../../enemies/enemy_catalog.dart';
-import '../../enemies/enemy_id.dart';
-import '../../players/player_tuning.dart';
-import '../../util/tick_math.dart';
-import '../entity_id.dart';
-import '../world.dart';
+import '../../../anim/anim_resolver.dart';
+import '../../../abilities/ability_catalog.dart';
+import '../../../snapshots/enums.dart';
+import '../../../enemies/death_behavior.dart';
+import '../../../enemies/enemy_catalog.dart';
+import '../../../enemies/enemy_id.dart';
+import '../../../players/player_tuning.dart';
+import '../../../util/tick_math.dart';
+import '../../entity_id.dart';
+import '../../world.dart';
 
 /// System that computes per-entity animation state each tick.
 ///

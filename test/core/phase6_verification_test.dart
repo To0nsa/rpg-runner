@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/ecs/entity_factory.dart';
 import 'package:rpg_runner/core/ecs/systems/projectile_launch_system.dart';
-import 'package:rpg_runner/core/ecs/systems/anim_system.dart';
+import 'package:rpg_runner/core/ecs/systems/anim/anim_system.dart';
 import 'package:rpg_runner/core/ecs/stores/projectile_intent_store.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';

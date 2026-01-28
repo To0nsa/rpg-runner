@@ -115,7 +115,7 @@ import 'ecs/systems/restoration_item_system.dart';
 import 'ecs/systems/self_ability_system.dart';
 import 'ecs/systems/status_system.dart';
 import 'ecs/systems/control_lock_system.dart';
-import 'ecs/systems/anim_system.dart';
+import 'ecs/systems/anim/anim_system.dart';
 import 'ecs/systems/enemy_cull_system.dart';
 import 'ecs/systems/enemy_melee_system.dart';
 import 'ecs/world.dart';

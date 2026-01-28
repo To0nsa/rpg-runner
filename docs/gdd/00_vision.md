@@ -104,8 +104,12 @@ A playable slice that proves the loop:
 
 ## Monetization principles (placeholder)
 - Don’t undermine mastery with pay-to-win.
-- Focus on cosmetics, convenience, and expansion content.
 - Keep the “fair competitive loop” intact.
+- Supporter Pack
+- QoL packs (presets/slots/inventory)
+- Rewarded ads
+- Cosmetic packs
+- Additional content (expansion packs)
 
 ## Success metrics (early)
 - A run is fun even when you lose.
@@ -125,7 +129,7 @@ Potential additions once the core loop is proven:
 - Replay viewer for top runs (without racing)
 - Advanced progression (passives / ultimates / deeper build synergies)
 - Seasonal events with unique rewards
-- Future modes: expand beyond the core runner into **Challenge/Platformer**, **Survivor/Horde**, and **real-time PvP**.
+- Future modes: expand beyond the core runner into **Challenge/Platformer**, **Survivor/Horde**
 - Accessibility and control options (left-handed layout, button scaling, joystick tuning)
 
 ## Key risks

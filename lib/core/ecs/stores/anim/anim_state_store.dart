@@ -1,6 +1,6 @@
-import '../../snapshots/enums.dart';
-import '../entity_id.dart';
-import '../sparse_set.dart';
+import '../../../snapshots/enums.dart';
+import '../../entity_id.dart';
+import '../../sparse_set.dart';
 
 /// Per-entity animation state computed by [AnimSystem].
 class AnimStateStore extends SparseSet {

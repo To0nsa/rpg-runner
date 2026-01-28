@@ -15,7 +15,7 @@ import 'stores/collectible_store.dart';
 import 'stores/player/gravity_control_store.dart';
 import 'stores/enemies/flying_enemy_steering_store.dart';
 import 'stores/faction_store.dart';
-import 'stores/anim_state_store.dart';
+import 'stores/anim/anim_state_store.dart';
 import 'stores/active_ability_state_store.dart';
 import 'stores/ability_input_buffer_store.dart';
 import 'stores/enemies/enemy_store.dart';

@@ -8,7 +8,7 @@ import 'package:rpg_runner/core/ecs/stores/health_store.dart';
 import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
 import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
 import 'package:rpg_runner/core/ecs/systems/active_ability_phase_system.dart';
-import 'package:rpg_runner/core/ecs/systems/anim_system.dart';
+import 'package:rpg_runner/core/ecs/systems/anim/anim_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/enemies/enemy_catalog.dart';
 import 'package:rpg_runner/core/enemies/enemy_id.dart';
