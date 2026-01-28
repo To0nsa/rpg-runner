@@ -127,9 +127,8 @@ This defines the "feel" of the game.
 
 ### Rule
 
-* While in **Aim Mode**, player can still move (left thumb) but:
-
-  * **Mobility abilities are blocked** until aim is committed or canceled
+* While in **Aim Mode**, player can still move (left thumb).
+* **Survival Priority**: Player **can** Dash/Jump while aiming. Doing so takes precedence over the aimed shot (Survival First).
 
 ---
 
@@ -153,20 +152,19 @@ These make the runner feel "tight” on mobile.
 
 When multiple actions happen in the same moment, resolve consistently.
 
-### Recommended priority order
+### Priority order
 
 1. **State locks** (stun/knockdown/death) override everything
 2. **Cancel** (if cancel gesture detected)
-3. **Aim commit** (release)
-4. **Dash**
-5. **Jump**
-6. **Tap abilities**
+3. **Dash**
+4. **Jump**
+5. **Aim commit** (release) / **Tap abilities**
 
 Reasoning:
 
 * Cancel must always work.
-* Aim commit is a deliberate release event.
-* Mobility abilities need to feel responsive.
+* **Mobility / Survival first**: If a player panic-dashes while aiming, the dash takes precedence to save them (canceling the shot).
+* Aim commit happens only if safe.
 
 ---
 
@@ -177,13 +175,12 @@ Reasoning:
 If cooldown/resource blocks an action:
 
 * Provide clear feedback:
-
-  * cooldown ring / greying / short "denied” pulse
-* No cast, no aim mode (unless you want "aim preview even when unavailable”, which is usually confusing)
+  * cooldown ring / greying / short "denied" pulse
+* No cast, no aim mode
 
 ### When in Aim Mode
 
-* Button should visually indicate "holding”
+* Button should visually indicate "holding"
 * Preview should clearly show direction and (if relevant) range and hit zone
 
 ---
@@ -192,9 +189,9 @@ If cooldown/resource blocks an action:
 
 This controls spec must support future abilities without inventing new interactions every time.
 
-Define **targeting categories**:
+Defined **targeting categories**:
 
-* **Instant (Tap)**: self / forward / auto-aim
+* **Instant (Tap)**: self / default direction / auto-aim
 * **Directional (Aim+commit)**: choose a direction
 * **Placed (Aim+commit with position)**: choose a point on ground (later)
 * **Hold/Charge**: press-hold to charge, release to fire (later)
@@ -205,17 +202,3 @@ Rule:
 * UI interaction is selected purely from that category (no one-off special cases).
 
 ---
-
-## 11) Open decisions (to lock soon)
-
-* Aim snapping: **8 vs 16 directions**
-* Mobility during Aim Mode:
-
-  * block dash/jump, or auto-cancel on mobility
-* Whether projectile defaults to:
-
-  * tap auto-forward, or aim+commit by default
-
----
-
-If you paste the "Player controls (current intent)” section from your high-level doc (or tell me what you wrote there), I can align this 1:1 with your exact intent and remove any mismatch.
