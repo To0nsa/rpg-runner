@@ -4,6 +4,10 @@ library;
 import '../enemies/death_behavior.dart';
 import '../snapshots/enums.dart';
 
+/// Configuration profile for an entity's animation capabilities and key mappings.
+///
+/// Defines which animations are supported (walk, jump, cast, etc.) and maps them
+/// to specific [AnimKey]s in the animation atlas.
 class AnimProfile {
   const AnimProfile({
     required this.minMoveSpeed,
@@ -57,6 +61,11 @@ class AnimProfile {
   final AnimKey stunAnimKey;
 }
 
+/// Input state signals required to resolve the current animation frame.
+///
+/// Contains all relevant entity state (velocity, flags, timers) that affects
+/// animation selection. This class is immutable and typically constructed
+/// via [AnimSignals.player] or [AnimSignals.enemy] factories.
 class AnimSignals {
   const AnimSignals._({
     required this.tick,
@@ -201,6 +210,9 @@ class AnimSignals {
   final int activeActionFrame;
 }
 
+/// The result of the animation resolution process.
+///
+/// Contains the resolved [AnimKey] and the specific frame index (or tick) to render.
 class AnimResult {
   const AnimResult({required this.anim, required this.animFrame});
 
@@ -208,7 +220,20 @@ class AnimResult {
   final int animFrame;
 }
 
+/// Pure logic resolver for determining the current animation.
+///
+/// Takes a static [AnimProfile] and dynamic [AnimSignals] to determine
+/// the correct [AnimResult] based on a strictly prioritized state machine.
 class AnimResolver {
+  /// Resolves the current animation based on the provided profile and signals.
+  ///
+  /// Priority Order:
+  /// 1. Stun (if stun locked)
+  /// 2. Death (if dying or dead)
+  /// 3. Hit React (if taking damage)
+  /// 4. Active Action (manual overrides from abilities)
+  /// 5. Legacy Actions (Strike, Cast, Ranged - if active)
+  /// 6. Movement (Dash > Jump/Fall > Spawn > Run > Walk > Idle)
   static AnimResult resolve(AnimProfile profile, AnimSignals signals) {
     final tick = signals.tick;
     final lastDamageTick = signals.lastDamageTick;
@@ -217,22 +242,14 @@ class AnimResolver {
         lastDamageTick >= 0 &&
         (tick - lastDamageTick) < signals.hitAnimTicks;
 
-    // 4. Stun
-    // Stun takes priority over actions and movement, but below death/spawn.
-    // However, spawn is usually handled by death behavior or a separate phase.
-    // Death overrides stun.
+    // 1. Stun
     if (profile.supportsStun && signals.stunLocked) {
-      // Stun is usually a loop, so we can use tick % duration if it were multi-frame.
-      // But usually it's a single frame or simple loop.
-      // We'll treat it as a loop for now (or single frame 0 if animation is 1 frame).
       return AnimResult(anim: profile.stunAnimKey, animFrame: signals.tick);
     }
 
-    // 5. Actions (Dash, Strike, Cast, Ranged, Hit)
-    // Hit reaction
+    // 2. Actions Pre-calculation
     final strikeTicks =
-        profile.directionalStrike &&
-            signals.lastStrikeFacing == Facing.left
+        profile.directionalStrike && signals.lastStrikeFacing == Facing.left
         ? signals.backStrikeAnimTicks
         : signals.strikeAnimTicks;
     final showStrike =
@@ -250,6 +267,7 @@ class AnimResolver {
         signals.lastRangedTick >= 0 &&
         (tick - signals.lastRangedTick) < signals.rangedAnimTicks;
 
+    // 3. Death
     if (signals.deathPhase == DeathPhase.deathAnim) {
       return AnimResult(
         anim: profile.deathAnimKey,
@@ -271,6 +289,8 @@ class AnimResolver {
         animFrame: _frameFromTick(tick, lastDamageTick),
       );
     }
+
+    // 4. Hit React
     if (showHit) {
       return AnimResult(
         anim: profile.hitAnimKey,
@@ -278,13 +298,10 @@ class AnimResolver {
       );
     }
 
-    // Phase 6: Active Action Layer
+    // 5. Active Action Layer
     // Overrides legacy action logic (Strike, Cast, Ranged, Dash).
     if (signals.activeActionAnim != null) {
-      final actionKey = _mapActiveActionKey(
-        profile,
-        signals.activeActionAnim!,
-      );
+      final actionKey = _mapActiveActionKey(profile, signals.activeActionAnim!);
       if (actionKey != null) {
         return AnimResult(
           anim: actionKey,
@@ -295,8 +312,7 @@ class AnimResolver {
 
     if (showStrike) {
       final strikeKey =
-          profile.directionalStrike &&
-              signals.lastStrikeFacing == Facing.left
+          profile.directionalStrike && signals.lastStrikeFacing == Facing.left
           ? AnimKey.backStrike
           : profile.strikeAnimKey;
       return AnimResult(
@@ -345,16 +361,20 @@ class AnimResolver {
     return AnimResult(anim: profile.runAnimKey, animFrame: tick);
   }
 
+  /// Maps a tick to a frame index.
   static int _frameFromTick(int tick, int startTick) {
     return startTick >= 0 ? tick - startTick : tick;
   }
 
+  /// Maps an [AnimKey] to the corresponding [AnimKey] for the given [AnimProfile].
   static AnimKey? _mapActiveActionKey(AnimProfile profile, AnimKey key) {
     switch (key) {
       case AnimKey.strike:
         return profile.strikeAnimKey;
       case AnimKey.backStrike:
-        return profile.directionalStrike ? AnimKey.backStrike : profile.strikeAnimKey;
+        return profile.directionalStrike
+            ? AnimKey.backStrike
+            : profile.strikeAnimKey;
       case AnimKey.cast:
         return profile.supportsCast ? profile.castAnimKey : null;
       case AnimKey.ranged:
