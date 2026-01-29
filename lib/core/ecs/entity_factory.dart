@@ -129,7 +129,7 @@ class EntityFactory {
   ///
   /// Adds specific components based on [enemyId]:
   /// - [EnemyId.unocoDemon]: Adds [FlyingEnemySteeringStore] for air movement.
-  /// - [EnemyId.groundEnemy]: Adds [SurfaceNavStateStore], [GroundEnemyChaseOffsetStore],
+  /// - [EnemyId.grojib]: Adds [SurfaceNavStateStore], [GroundEnemyChaseOffsetStore],
   ///   [NavIntentStore], and [EngagementIntentStore] for ground navigation/engagement.
   EntityId createEnemy({
     required EnemyId enemyId,
@@ -173,7 +173,7 @@ class EntityFactory {
         FlyingEnemySteeringDef(rngState: seedFrom(world.seed, id)),
       );
     }
-    if (enemyId == EnemyId.groundEnemy) {
+    if (enemyId == EnemyId.grojib) {
       world.surfaceNav.add(id);
       world.groundEnemyChaseOffset.add(
         id,

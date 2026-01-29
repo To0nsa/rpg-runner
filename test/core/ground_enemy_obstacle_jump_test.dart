@@ -60,7 +60,7 @@ void main() {
     world.collision.grounded[world.collision.indexOf(player)] = true;
 
     final enemy = EntityFactory(world).createEnemy(
-      enemyId: EnemyId.groundEnemy,
+      enemyId: EnemyId.grojib,
       posX: 0.0,
       posY: groundTopY - enemyHalf,
       velX: 0.0,
@@ -75,7 +75,11 @@ void main() {
       collider: const ColliderAabbDef(halfX: enemyHalf, halfY: enemyHalf),
       health: const HealthDef(hp: 1000, hpMax: 1000, regenPerSecond100: 0),
       mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
-      stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
     );
 
     const geometry = StaticWorldGeometry(

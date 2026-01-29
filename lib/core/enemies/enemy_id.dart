@@ -9,6 +9,6 @@ enum EnemyId {
   unocoDemon,
 
   /// A basic ground chasing enemy that is affected by gravity.
-  groundEnemy,
+  grojib,
 }
 

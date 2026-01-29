@@ -108,8 +108,8 @@ class EnemyRenderRegistry {
       id: EnemyId.unocoDemon,
       renderScale: Vector2.all(0.5),
     ),
-    EnemyId.groundEnemy: EnemyRenderEntry(
-      id: EnemyId.groundEnemy,
+    EnemyId.grojib: EnemyRenderEntry(
+      id: EnemyId.grojib,
       renderScale: Vector2.all(1.5),
     ),
   };

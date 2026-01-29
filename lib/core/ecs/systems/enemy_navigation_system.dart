@@ -139,7 +139,7 @@ class EnemyNavigationSystem {
 
     final enemies = world.enemy;
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
-      if (enemies.enemyId[ei] != EnemyId.groundEnemy) continue;
+      if (enemies.enemyId[ei] != EnemyId.grojib) continue;
 
       final enemy = enemies.denseEntities[ei];
       if (world.deathState.has(enemy)) continue;
@@ -148,7 +148,8 @@ class EnemyNavigationSystem {
 
       if (world.controlLock.isStunned(enemy, currentTick)) continue;
 
-      if (world.controlLock.isStunned(enemy, 0)) continue; // Tick is roughly irrelevant for isLocked check here as it's just checking duration, but ideally we pass tick. Wait, isLocked needs tick.
+      if (world.controlLock.isStunned(enemy, 0))
+        continue; // Tick is roughly irrelevant for isLocked check here as it's just checking duration, but ideally we pass tick. Wait, isLocked needs tick.
       // I need to start passing tick to EnemyNavigationSystem to be correct.
       // However, for now, let's assume if I don't pass tick, I can't check expiry correctly unless I use the store's knowledge.
       // Actually isLocked REQUIRES currentTick.

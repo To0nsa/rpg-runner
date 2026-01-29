@@ -46,10 +46,7 @@ class RunScoreRow {
 /// Contains itemized rows and the computed total. Used by the game-over UI
 /// to display how the player earned their score.
 class RunScoreBreakdown {
-  const RunScoreBreakdown({
-    required this.rows,
-    required this.totalPoints,
-  });
+  const RunScoreBreakdown({required this.rows, required this.totalPoints});
 
   /// Itemized score contributions (distance, time, collectibles, enemy kills).
   final List<RunScoreRow> rows;
@@ -74,8 +71,9 @@ RunScoreBreakdown buildRunScoreBreakdown({
   int unitsPerMeter = kWorldUnitsPerMeter,
 }) {
   // Convert internal units to player-facing values.
-  final meters =
-      unitsPerMeter <= 0 ? 0 : (distanceUnits / unitsPerMeter).floor();
+  final meters = unitsPerMeter <= 0
+      ? 0
+      : (distanceUnits / unitsPerMeter).floor();
   final timeSeconds = tickHz <= 0 ? 0 : tick ~/ tickHz;
 
   final rows = <RunScoreRow>[
@@ -126,7 +124,7 @@ RunScoreBreakdown buildRunScoreBreakdown({
 /// Returns the point value for killing one enemy of [enemyId] type.
 int _enemyKillScore(ScoreTuning tuning, EnemyId enemyId) {
   switch (enemyId) {
-    case EnemyId.groundEnemy:
+    case EnemyId.grojib:
       return tuning.groundEnemyKillScore;
     case EnemyId.unocoDemon:
       return tuning.unocoDemonKillScore;

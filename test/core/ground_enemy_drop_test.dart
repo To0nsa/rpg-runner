@@ -62,7 +62,7 @@ void main() {
     world.collision.grounded[world.collision.indexOf(player)] = true;
 
     final enemy = EntityFactory(world).createEnemy(
-      enemyId: EnemyId.groundEnemy,
+      enemyId: EnemyId.grojib,
       posX: 40.0,
       posY: platformTopY - enemyHalf,
       velX: 0.0,
@@ -77,7 +77,11 @@ void main() {
       collider: const ColliderAabbDef(halfX: enemyHalf, halfY: enemyHalf),
       health: const HealthDef(hp: 1000, hpMax: 1000, regenPerSecond100: 0),
       mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
-      stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
     );
     final navIndex = world.surfaceNav.indexOf(enemy);
     final enemyIndex = world.enemy.indexOf(enemy);
@@ -203,7 +207,8 @@ void main() {
       final groundedBeforePhysics = world.collision.grounded[ciBeforePhysics];
 
       final activeEdgeIndex = world.surfaceNav.activeEdgeIndex[navIndex];
-      final executingDrop = activeEdgeIndex >= 0 &&
+      final executingDrop =
+          activeEdgeIndex >= 0 &&
           graphResult.graph.edges[activeEdgeIndex].kind == SurfaceEdgeKind.drop;
       if (executingDrop) {
         sawDropEdgeActive = true;

@@ -75,7 +75,11 @@ void main() {
           collider: const ColliderAabbDef(halfX: 8, halfY: 8),
           health: const HealthDef(hp: 1000, hpMax: 1000, regenPerSecond100: 0),
           mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
-          stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
+          stamina: const StaminaDef(
+            stamina: 0,
+            staminaMax: 0,
+            regenPerSecond100: 0,
+          ),
         );
       }
 
@@ -197,7 +201,13 @@ void main() {
 
     group('Unoco demon', () {
       test('idle when stationary', () {
-        final enemy = spawnUnocoDemon(world, posX: 100, posY: 100, velX: 0, velY: 0);
+        final enemy = spawnUnocoDemon(
+          world,
+          posX: 100,
+          posY: 100,
+          velX: 0,
+          velY: 0,
+        );
 
         stepEnemies(1);
 
@@ -207,7 +217,13 @@ void main() {
 
       test('run when moving (airborne allowed)', () {
         // Unoco uses run even when airborne (flying demon).
-        final enemy = spawnUnocoDemon(world, posX: 100, posY: 100, velX: 50, velY: 10);
+        final enemy = spawnUnocoDemon(
+          world,
+          posX: 100,
+          posY: 100,
+          velX: 50,
+          velY: 10,
+        );
         // Not grounded.
         world.collision.grounded[world.collision.indexOf(enemy)] = false;
 
@@ -273,7 +289,13 @@ void main() {
 
     group('Ground enemy', () {
       test('idle when stationary and grounded', () {
-        final enemy = spawnGroundEnemy(world, posX: 100, posY: 100, velX: 0, velY: 0);
+        final enemy = spawnGroundEnemy(
+          world,
+          posX: 100,
+          posY: 100,
+          velX: 0,
+          velY: 0,
+        );
         world.collision.grounded[world.collision.indexOf(enemy)] = true;
 
         stepEnemies(1);
@@ -283,8 +305,9 @@ void main() {
       });
 
       test('walk when moving slowly and grounded', () {
-        final profile = enemyCatalog.get(EnemyId.groundEnemy).animProfile;
-        final walkSpeed = profile.minMoveSpeed +
+        final profile = enemyCatalog.get(EnemyId.grojib).animProfile;
+        final walkSpeed =
+            profile.minMoveSpeed +
             (profile.runSpeedThresholdX - profile.minMoveSpeed) * 0.5;
         final enemy = spawnGroundEnemy(
           world,
@@ -302,7 +325,7 @@ void main() {
       });
 
       test('run when moving fast and grounded', () {
-        final profile = enemyCatalog.get(EnemyId.groundEnemy).animProfile;
+        final profile = enemyCatalog.get(EnemyId.grojib).animProfile;
         final enemy = spawnGroundEnemy(
           world,
           posX: 100,
@@ -320,7 +343,13 @@ void main() {
 
       test('jump when airborne with negative velY', () {
         // Ground enemy uses jump animation when moving upward while airborne.
-        final enemy = spawnGroundEnemy(world, posX: 100, posY: 100, velX: 50, velY: -100);
+        final enemy = spawnGroundEnemy(
+          world,
+          posX: 100,
+          posY: 100,
+          velX: 50,
+          velY: -100,
+        );
         world.collision.grounded[world.collision.indexOf(enemy)] = false;
 
         stepEnemies(1);
@@ -331,7 +360,13 @@ void main() {
 
       test('fall when airborne with positive velY', () {
         // Ground enemy uses fall animation when moving downward while airborne.
-        final enemy = spawnGroundEnemy(world, posX: 100, posY: 100, velX: 50, velY: 100);
+        final enemy = spawnGroundEnemy(
+          world,
+          posX: 100,
+          posY: 100,
+          velX: 50,
+          velY: 100,
+        );
         world.collision.grounded[world.collision.indexOf(enemy)] = false;
 
         stepEnemies(1);
@@ -342,7 +377,13 @@ void main() {
 
       test('fall when airborne with zero velY', () {
         // At the apex of a jump (velY == 0), use fall animation.
-        final enemy = spawnGroundEnemy(world, posX: 100, posY: 100, velX: 50, velY: 0);
+        final enemy = spawnGroundEnemy(
+          world,
+          posX: 100,
+          posY: 100,
+          velX: 50,
+          velY: 0,
+        );
         world.collision.grounded[world.collision.indexOf(enemy)] = false;
 
         stepEnemies(1);

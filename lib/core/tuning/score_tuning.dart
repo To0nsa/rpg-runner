@@ -18,7 +18,7 @@ class ScoreTuning {
   /// Points per real-time second survived (implemented deterministically via tickHz).
   final int timeScorePerSecond;
 
-  /// Points per whole meter traveled (100 world units = 1 meter).
+  /// Points per whole meter traveled (50 world units = 1 meter).
   final int distanceScorePerMeter;
 
   /// Points for killing an enemy (by type).

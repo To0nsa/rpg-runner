@@ -30,7 +30,7 @@ class EnemyEngagementSystem {
 
     final enemies = world.enemy;
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
-      if (enemies.enemyId[ei] != EnemyId.groundEnemy) continue;
+      if (enemies.enemyId[ei] != EnemyId.grojib) continue;
 
       final enemy = enemies.denseEntities[ei];
       if (world.deathState.has(enemy)) continue;

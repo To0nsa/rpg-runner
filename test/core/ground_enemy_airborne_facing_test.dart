@@ -13,63 +13,68 @@ import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/tuning/ground_enemy_tuning.dart';
 
 void main() {
-  test('GroundEnemyLocomotionSystem does not flip facing mid-air from desiredX', () {
-    final world = EcsWorld();
+  test(
+    'GroundEnemyLocomotionSystem does not flip facing mid-air from desiredX',
+    () {
+      final world = EcsWorld();
 
-    final player = world.createEntity();
-    world.transform.add(
-      player,
-      posX: 0.0,
-      posY: 0.0,
-      velX: 0.0,
-      velY: 0.0,
-    );
+      final player = world.createEntity();
+      world.transform.add(player, posX: 0.0, posY: 0.0, velX: 0.0, velY: 0.0);
 
-    final enemy = EntityFactory(world).createEnemy(
-      enemyId: EnemyId.groundEnemy,
-      posX: 100.0,
-      posY: 0.0,
-      velX: 50.0,
-      velY: 0.0,
-      facing: Facing.right,
-      body: const BodyDef(
-        isKinematic: false,
-        useGravity: true,
-        gravityScale: 1.0,
-        maxVelY: 9999,
-      ),
-      collider: const ColliderAabbDef(halfX: 8.0, halfY: 8.0),
-      health: const HealthDef(hp: 1000, hpMax: 1000, regenPerSecond100: 0),
-      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
-      stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
-    );
-
-    world.collision.grounded[world.collision.indexOf(enemy)] = false;
-
-    final intentIndex = world.navIntent.indexOf(enemy);
-    world.navIntent.hasPlan[intentIndex] = true;
-    world.navIntent.desiredX[intentIndex] = 0.0; // behind the enemy
-    world.navIntent.jumpNow[intentIndex] = false;
-    world.navIntent.commitMoveDirX[intentIndex] = 0;
-
-    final locomotionSystem = GroundEnemyLocomotionSystem(
-      groundEnemyTuning: GroundEnemyTuningDerived.from(
-        const GroundEnemyTuning(
-          locomotion: GroundEnemyLocomotionTuning(
-            speedX: 200.0,
-            accelX: 10.0,
-            decelX: 10.0,
-            stopDistanceX: 1.0,
-          ),
+      final enemy = EntityFactory(world).createEnemy(
+        enemyId: EnemyId.grojib,
+        posX: 100.0,
+        posY: 0.0,
+        velX: 50.0,
+        velY: 0.0,
+        facing: Facing.right,
+        body: const BodyDef(
+          isKinematic: false,
+          useGravity: true,
+          gravityScale: 1.0,
+          maxVelY: 9999,
         ),
-        tickHz: 60,
-      ),
-    );
+        collider: const ColliderAabbDef(halfX: 8.0, halfY: 8.0),
+        health: const HealthDef(hp: 1000, hpMax: 1000, regenPerSecond100: 0),
+        mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+        stamina: const StaminaDef(
+          stamina: 0,
+          staminaMax: 0,
+          regenPerSecond100: 0,
+        ),
+      );
 
-    locomotionSystem.step(world, player: player, dtSeconds: 1.0 / 60.0, currentTick: 0);
+      world.collision.grounded[world.collision.indexOf(enemy)] = false;
 
-    final enemyIndex = world.enemy.indexOf(enemy);
-    expect(world.enemy.facing[enemyIndex], Facing.right);
-  });
+      final intentIndex = world.navIntent.indexOf(enemy);
+      world.navIntent.hasPlan[intentIndex] = true;
+      world.navIntent.desiredX[intentIndex] = 0.0; // behind the enemy
+      world.navIntent.jumpNow[intentIndex] = false;
+      world.navIntent.commitMoveDirX[intentIndex] = 0;
+
+      final locomotionSystem = GroundEnemyLocomotionSystem(
+        groundEnemyTuning: GroundEnemyTuningDerived.from(
+          const GroundEnemyTuning(
+            locomotion: GroundEnemyLocomotionTuning(
+              speedX: 200.0,
+              accelX: 10.0,
+              decelX: 10.0,
+              stopDistanceX: 1.0,
+            ),
+          ),
+          tickHz: 60,
+        ),
+      );
+
+      locomotionSystem.step(
+        world,
+        player: player,
+        dtSeconds: 1.0 / 60.0,
+        currentTick: 0,
+      );
+
+      final enemyIndex = world.enemy.indexOf(enemy);
+      expect(world.enemy.facing[enemyIndex], Facing.right);
+    },
+  );
 }
-

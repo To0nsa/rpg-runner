@@ -32,12 +32,14 @@ const List<ChunkPattern> easyPatterns = <ChunkPattern>[
       PlatformRel(x: 160, width: 160, aboveGroundTop: 48, thickness: _t),
     ],
     obstacles: <ObstacleRel>[],
-    groundGaps: <GapRel>[
-      GapRel(x: 64, width: 96),
-    ],
+    groundGaps: <GapRel>[GapRel(x: 64, width: 96)],
     spawnMarkers: <SpawnMarker>[
       SpawnMarker(
-          enemyId: EnemyId.unocoDemon, x: 240, chancePercent: 10, salt: 0x11),
+        enemyId: EnemyId.unocoDemon,
+        x: 240,
+        chancePercent: 10,
+        salt: 0x11,
+      ),
     ],
   ),
   ChunkPattern(
@@ -50,7 +52,11 @@ const List<ChunkPattern> easyPatterns = <ChunkPattern>[
     groundGaps: <GapRel>[],
     spawnMarkers: <SpawnMarker>[
       SpawnMarker(
-          enemyId: EnemyId.groundEnemy, x: 448, chancePercent: 10, salt: 0x12),
+        enemyId: EnemyId.grojib,
+        x: 448,
+        chancePercent: 10,
+        salt: 0x12,
+      ),
     ],
   ),
 ];
@@ -69,12 +75,14 @@ const List<ChunkPattern> allPatterns = <ChunkPattern>[
       PlatformRel(x: 48, width: 160, aboveGroundTop: 64, thickness: _t),
       PlatformRel(x: 256, width: 160, aboveGroundTop: 96, thickness: _t),
     ],
-    groundGaps: <GapRel>[
-      GapRel(x: 240, width: 128),
-    ],
+    groundGaps: <GapRel>[GapRel(x: 240, width: 128)],
     spawnMarkers: <SpawnMarker>[
       SpawnMarker(
-          enemyId: EnemyId.unocoDemon, x: 352, chancePercent: 17, salt: 0x01),
+        enemyId: EnemyId.unocoDemon,
+        x: 352,
+        chancePercent: 17,
+        salt: 0x01,
+      ),
     ],
   ),
   ChunkPattern(
@@ -87,7 +95,11 @@ const List<ChunkPattern> allPatterns = <ChunkPattern>[
     groundGaps: <GapRel>[],
     spawnMarkers: <SpawnMarker>[
       SpawnMarker(
-          enemyId: EnemyId.unocoDemon, x: 288, chancePercent: 15, salt: 0x02),
+        enemyId: EnemyId.unocoDemon,
+        x: 288,
+        chancePercent: 15,
+        salt: 0x02,
+      ),
     ],
   ),
   ChunkPattern(
@@ -95,30 +107,30 @@ const List<ChunkPattern> allPatterns = <ChunkPattern>[
     platforms: <PlatformRel>[
       PlatformRel(x: 224, width: 192, aboveGroundTop: 112, thickness: _t),
     ],
-    obstacles: <ObstacleRel>[
-      ObstacleRel(x: 128, width: 48, height: 64),
-    ],
-    groundGaps: <GapRel>[
-      GapRel(x: 176, width: 96),
-    ],
+    obstacles: <ObstacleRel>[ObstacleRel(x: 128, width: 48, height: 64)],
+    groundGaps: <GapRel>[GapRel(x: 176, width: 96)],
     spawnMarkers: <SpawnMarker>[
       SpawnMarker(
-          enemyId: EnemyId.groundEnemy, x: 320, chancePercent: 22, salt: 0x03),
+        enemyId: EnemyId.grojib,
+        x: 320,
+        chancePercent: 22,
+        salt: 0x03,
+      ),
     ],
   ),
 
   // ── Obstacles (ground blocks that force a jump/dash) ──
   ChunkPattern(
     name: 'single-block',
-    obstacles: <ObstacleRel>[
-      ObstacleRel(x: 224, width: 48, height: 64),
-    ],
-    groundGaps: <GapRel>[
-      GapRel(x: 128, width: 96),
-    ],
+    obstacles: <ObstacleRel>[ObstacleRel(x: 224, width: 48, height: 64)],
+    groundGaps: <GapRel>[GapRel(x: 128, width: 96)],
     spawnMarkers: <SpawnMarker>[
       SpawnMarker(
-          enemyId: EnemyId.groundEnemy, x: 320, chancePercent: 17, salt: 0x04),
+        enemyId: EnemyId.grojib,
+        x: 320,
+        chancePercent: 17,
+        salt: 0x04,
+      ),
     ],
   ),
   ChunkPattern(
@@ -130,9 +142,17 @@ const List<ChunkPattern> allPatterns = <ChunkPattern>[
     groundGaps: <GapRel>[],
     spawnMarkers: <SpawnMarker>[
       SpawnMarker(
-          enemyId: EnemyId.unocoDemon, x: 96, chancePercent: 12, salt: 0x05),
+        enemyId: EnemyId.unocoDemon,
+        x: 96,
+        chancePercent: 12,
+        salt: 0x05,
+      ),
       SpawnMarker(
-          enemyId: EnemyId.groundEnemy, x: 352, chancePercent: 15, salt: 0x06),
+        enemyId: EnemyId.grojib,
+        x: 352,
+        chancePercent: 15,
+        salt: 0x06,
+      ),
     ],
   ),
   ChunkPattern(
@@ -142,14 +162,20 @@ const List<ChunkPattern> allPatterns = <ChunkPattern>[
       PlatformRel(x: 208, width: 128, aboveGroundTop: 64, thickness: _t),
       PlatformRel(x: 368, width: 128, aboveGroundTop: 80, thickness: _t),
     ],
-    groundGaps: <GapRel>[
-      GapRel(x: 304, width: 96),
-    ],
+    groundGaps: <GapRel>[GapRel(x: 304, width: 96)],
     spawnMarkers: <SpawnMarker>[
       SpawnMarker(
-          enemyId: EnemyId.groundEnemy, x: 112, chancePercent: 15, salt: 0x07),
+        enemyId: EnemyId.grojib,
+        x: 112,
+        chancePercent: 15,
+        salt: 0x07,
+      ),
       SpawnMarker(
-          enemyId: EnemyId.unocoDemon, x: 320, chancePercent: 15, salt: 0x08),
+        enemyId: EnemyId.unocoDemon,
+        x: 320,
+        chancePercent: 15,
+        salt: 0x08,
+      ),
     ],
   ),
   ChunkPattern(
@@ -161,9 +187,17 @@ const List<ChunkPattern> allPatterns = <ChunkPattern>[
     groundGaps: <GapRel>[],
     spawnMarkers: <SpawnMarker>[
       SpawnMarker(
-          enemyId: EnemyId.unocoDemon, x: 192, chancePercent: 17, salt: 0x09),
+        enemyId: EnemyId.unocoDemon,
+        x: 192,
+        chancePercent: 17,
+        salt: 0x09,
+      ),
       SpawnMarker(
-          enemyId: EnemyId.groundEnemy, x: 448, chancePercent: 15, salt: 0x0A),
+        enemyId: EnemyId.grojib,
+        x: 448,
+        chancePercent: 15,
+        salt: 0x0A,
+      ),
     ],
   ),
   ChunkPattern(
@@ -175,9 +209,17 @@ const List<ChunkPattern> allPatterns = <ChunkPattern>[
     groundGaps: <GapRel>[],
     spawnMarkers: <SpawnMarker>[
       SpawnMarker(
-          enemyId: EnemyId.groundEnemy, x: 256, chancePercent: 17, salt: 0x0B),
+        enemyId: EnemyId.grojib,
+        x: 256,
+        chancePercent: 17,
+        salt: 0x0B,
+      ),
       SpawnMarker(
-          enemyId: EnemyId.unocoDemon, x: 80, chancePercent: 12, salt: 0x0C),
+        enemyId: EnemyId.unocoDemon,
+        x: 80,
+        chancePercent: 12,
+        salt: 0x0C,
+      ),
     ],
   ),
   ChunkPattern(
@@ -186,15 +228,21 @@ const List<ChunkPattern> allPatterns = <ChunkPattern>[
       PlatformRel(x: 96, width: 160, aboveGroundTop: 96, thickness: _t),
       PlatformRel(x: 384, width: 128, aboveGroundTop: 64, thickness: _t),
     ],
-    obstacles: <ObstacleRel>[
-      ObstacleRel(x: 320, width: 64, height: 80),
-    ],
+    obstacles: <ObstacleRel>[ObstacleRel(x: 320, width: 64, height: 80)],
     groundGaps: <GapRel>[],
     spawnMarkers: <SpawnMarker>[
       SpawnMarker(
-          enemyId: EnemyId.unocoDemon, x: 176, chancePercent: 15, salt: 0x0D),
+        enemyId: EnemyId.unocoDemon,
+        x: 176,
+        chancePercent: 15,
+        salt: 0x0D,
+      ),
       SpawnMarker(
-          enemyId: EnemyId.groundEnemy, x: 448, chancePercent: 15, salt: 0x0E),
+        enemyId: EnemyId.grojib,
+        x: 448,
+        chancePercent: 15,
+        salt: 0x0E,
+      ),
     ],
   ),
   ChunkPattern(
@@ -204,43 +252,59 @@ const List<ChunkPattern> allPatterns = <ChunkPattern>[
       PlatformRel(x: 160, width: 96, aboveGroundTop: 96, thickness: _t),
       PlatformRel(x: 288, width: 96, aboveGroundTop: 80, thickness: _t),
     ],
-    obstacles: <ObstacleRel>[
-      ObstacleRel(x: 448, width: 48, height: 64),
-    ],
-    groundGaps: <GapRel>[
-      GapRel(x: 112, width: 128),
-    ],
+    obstacles: <ObstacleRel>[ObstacleRel(x: 448, width: 48, height: 64)],
+    groundGaps: <GapRel>[GapRel(x: 112, width: 128)],
     spawnMarkers: <SpawnMarker>[
       SpawnMarker(
-          enemyId: EnemyId.unocoDemon, x: 240, chancePercent: 15, salt: 0x0F),
+        enemyId: EnemyId.unocoDemon,
+        x: 240,
+        chancePercent: 15,
+        salt: 0x0F,
+      ),
       SpawnMarker(
-          enemyId: EnemyId.groundEnemy, x: 480, chancePercent: 12, salt: 0x10),
+        enemyId: EnemyId.grojib,
+        x: 480,
+        chancePercent: 12,
+        salt: 0x10,
+      ),
     ],
   ),
 
   // ── Ground gaps ──
   ChunkPattern(
     name: 'ground-gap-small',
-    groundGaps: <GapRel>[
-      GapRel(x: 256, width: 64),
-    ],
+    groundGaps: <GapRel>[GapRel(x: 256, width: 64)],
     spawnMarkers: <SpawnMarker>[
       SpawnMarker(
-          enemyId: EnemyId.groundEnemy, x: 160, chancePercent: 12, salt: 0x21),
+        enemyId: EnemyId.grojib,
+        x: 160,
+        chancePercent: 12,
+        salt: 0x21,
+      ),
       SpawnMarker(
-          enemyId: EnemyId.unocoDemon, x: 416, chancePercent: 12, salt: 0x22),
+        enemyId: EnemyId.unocoDemon,
+        x: 416,
+        chancePercent: 12,
+        salt: 0x22,
+      ),
     ],
   ),
   ChunkPattern(
     name: 'ground-gap-wide',
-    groundGaps: <GapRel>[
-      GapRel(x: 224, width: 128),
-    ],
+    groundGaps: <GapRel>[GapRel(x: 224, width: 128)],
     spawnMarkers: <SpawnMarker>[
       SpawnMarker(
-          enemyId: EnemyId.unocoDemon, x: 96, chancePercent: 12, salt: 0x23),
+        enemyId: EnemyId.unocoDemon,
+        x: 96,
+        chancePercent: 12,
+        salt: 0x23,
+      ),
       SpawnMarker(
-          enemyId: EnemyId.groundEnemy, x: 480, chancePercent: 12, salt: 0x24),
+        enemyId: EnemyId.grojib,
+        x: 480,
+        chancePercent: 12,
+        salt: 0x24,
+      ),
     ],
   ),
 ];

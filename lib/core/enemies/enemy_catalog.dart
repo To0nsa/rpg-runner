@@ -287,11 +287,7 @@ class EnemyCatalog {
           collider: ColliderAabbDef(halfX: 12.0, halfY: 12.0),
           health: HealthDef(hp: 2000, hpMax: 2000, regenPerSecond100: 50),
           mana: ManaDef(mana: 8000, manaMax: 8000, regenPerSecond100: 500),
-          stamina: StaminaDef(
-            stamina: 0,
-            staminaMax: 0,
-            regenPerSecond100: 0,
-          ),
+          stamina: StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
           renderAnim: _unocoRenderAnim,
           animProfile: _unocoAnimProfile,
           hitAnimSeconds: _unocoHitAnimSeconds,
@@ -305,7 +301,7 @@ class EnemyCatalog {
           resistance: DamageResistanceDef(fireBp: -5000, iceBp: 5000),
         );
 
-      case EnemyId.groundEnemy:
+      case EnemyId.grojib:
         return const EnemyArchetype(
           body: BodyDef(
             isKinematic: false,
@@ -314,14 +310,15 @@ class EnemyCatalog {
             gravityScale: 1.0,
             sideMask: BodyDef.sideLeft | BodyDef.sideRight,
           ),
-          collider: ColliderAabbDef(halfX: 25.0, halfY: 25.0, offsetX: 0.0, offsetY: 20.0),
+          collider: ColliderAabbDef(
+            halfX: 25.0,
+            halfY: 25.0,
+            offsetX: 0.0,
+            offsetY: 20.0,
+          ),
           health: HealthDef(hp: 2000, hpMax: 2000, regenPerSecond100: 50),
           mana: ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
-          stamina: StaminaDef(
-            stamina: 0,
-            staminaMax: 0,
-            regenPerSecond100: 0,
-          ),
+          stamina: StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
           renderAnim: _grojibRenderAnim,
           animProfile: _grojibAnimProfile,
           hitAnimSeconds: _grojibHitAnimSeconds,

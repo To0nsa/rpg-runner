@@ -482,7 +482,7 @@ class GameCore {
         maxAirTicks: _groundEnemyMaxAirTicks(),
         airSpeedX: _groundEnemyTuning.locomotion.speedX,
         dtSeconds: _movement.dtSeconds,
-        agentHalfWidth: _enemyCatalog.get(EnemyId.groundEnemy).collider.halfX,
+        agentHalfWidth: _enemyCatalog.get(EnemyId.grojib).collider.halfX,
       ),
     );
     _surfacePathfinder = SurfacePathfinder(
@@ -1152,7 +1152,7 @@ class GameCore {
               spawnX: x,
               groundTopY: effectiveGroundTopY,
             );
-          case EnemyId.groundEnemy:
+          case EnemyId.grojib:
             _spawnService.spawnGroundEnemy(
               spawnX: x,
               groundTopY: effectiveGroundTopY,

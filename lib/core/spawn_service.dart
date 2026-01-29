@@ -238,11 +238,11 @@ class SpawnService {
     required double spawnX,
     required double groundTopY,
   }) {
-    final archetype = _enemyCatalog.get(EnemyId.groundEnemy);
+    final archetype = _enemyCatalog.get(EnemyId.grojib);
 
     // Position so collider bottom touches ground.
     return _entityFactory.createEnemy(
-      enemyId: EnemyId.groundEnemy,
+      enemyId: EnemyId.grojib,
       posX: spawnX,
       posY:
           groundTopY - (archetype.collider.offsetY + archetype.collider.halfY),

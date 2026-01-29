@@ -36,10 +36,12 @@ void main() {
       const ProjectileCatalog(),
       tickHz: 60,
     );
-    final projectileItem =
-        const ProjectileItemCatalog().get(ProjectileItemId.thunderBolt);
-    final thunderDamage =
-        AbilityCatalog.tryGet('eloise.thunder_bolt')!.baseDamage;
+    final projectileItem = const ProjectileItemCatalog().get(
+      ProjectileItemId.thunderBolt,
+    );
+    final thunderDamage = AbilityCatalog.tryGet(
+      'eloise.thunder_bolt',
+    )!.baseDamage;
 
     final player = EntityFactory(world).createPlayer(
       posX: 100,
@@ -52,7 +54,11 @@ void main() {
       collider: const ColliderAabbDef(halfX: 8, halfY: 8),
       health: const HealthDef(hp: 500, hpMax: 500, regenPerSecond100: 0),
       mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
-      stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
     );
 
     final enemy = spawnUnocoDemon(world, posX: 120, posY: 100);
@@ -80,15 +86,13 @@ void main() {
     expect(projectile, isNotNull);
 
     final broadphase = BroadphaseGrid(
-      index: GridIndex2D(cellSize: const SpatialGridTuning().broadphaseCellSize),
+      index: GridIndex2D(
+        cellSize: const SpatialGridTuning().broadphaseCellSize,
+      ),
     )..rebuild(world);
     final hits = ProjectileHitSystem();
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
-    hits.step(
-      world,
-      broadphase,
-      currentTick: 3,
-    );
+    hits.step(world, broadphase, currentTick: 3);
     damage.step(world, currentTick: 3);
 
     final li = world.lastDamage.indexOf(player);
@@ -115,7 +119,11 @@ void main() {
       collider: const ColliderAabbDef(halfX: 8, halfY: 8),
       health: const HealthDef(hp: 400, hpMax: 400, regenPerSecond100: 0),
       mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
-      stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
     );
 
     final enemy = spawnGroundEnemy(world, posX: 120, posY: 100);
@@ -140,7 +148,9 @@ void main() {
     world.hitOnce.add(hitbox);
 
     final broadphase = BroadphaseGrid(
-      index: GridIndex2D(cellSize: const SpatialGridTuning().broadphaseCellSize),
+      index: GridIndex2D(
+        cellSize: const SpatialGridTuning().broadphaseCellSize,
+      ),
     )..rebuild(world);
     final hitboxDamage = HitboxDamageSystem();
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
@@ -150,7 +160,7 @@ void main() {
     final li = world.lastDamage.indexOf(player);
     expect(world.lastDamage.kind[li], DeathSourceKind.meleeHitbox);
     expect(world.lastDamage.hasEnemyId[li], isTrue);
-    expect(world.lastDamage.enemyId[li], EnemyId.groundEnemy);
+    expect(world.lastDamage.enemyId[li], EnemyId.grojib);
     expect(world.lastDamage.hasProjectileId[li], isFalse);
     expect(world.lastDamage.hasProjectileItemId[li], isFalse);
   });
@@ -159,10 +169,7 @@ void main() {
     final core = GameCore(seed: 1);
     core.giveUp();
 
-    final ended = core
-        .drainEvents()
-        .whereType<RunEndedEvent>()
-        .single;
+    final ended = core.drainEvents().whereType<RunEndedEvent>().single;
     expect(ended.reason, RunEndReason.gaveUp);
   });
 }

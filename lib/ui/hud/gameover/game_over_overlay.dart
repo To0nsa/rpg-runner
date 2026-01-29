@@ -103,8 +103,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
   void _onTick(Duration elapsed) {
     if (_feedController.feedState != ScoreFeedState.feeding) return;
 
-    final dt =
-        (elapsed - _lastElapsed).inMicroseconds.toDouble() / 1000000.0;
+    final dt = (elapsed - _lastElapsed).inMicroseconds.toDouble() / 1000000.0;
     _lastElapsed = elapsed;
     if (dt <= 0) return;
 
@@ -156,10 +155,9 @@ class _GameOverOverlayState extends State<GameOverOverlay>
         _feedController.feedState != ScoreFeedState.complete;
     final showScoreInHeader =
         _feedController.feedState == ScoreFeedState.complete;
-    final collectLabel =
-        _feedController.feedState == ScoreFeedState.idle
-            ? 'Collect score'
-            : 'Skip';
+    final collectLabel = _feedController.feedState == ScoreFeedState.idle
+        ? 'Collect score'
+        : 'Skip';
     final rowLabels = [
       for (var i = 0; i < _feedController.rows.length; i += 1)
         formatScoreRow(
@@ -186,8 +184,9 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                     children: [
                       GameOverHeader(
                         subtitleDeathReason: subtitleDeathReason,
-                        displayScore:
-                            showScoreInHeader ? _feedController.displayScore : null,
+                        displayScore: showScoreInHeader
+                            ? _feedController.displayScore
+                            : null,
                       ),
                       const SizedBox(height: 14),
                       if (showCollectButton)
@@ -294,7 +293,7 @@ String _enemyName(EnemyId id) {
   switch (id) {
     case EnemyId.unocoDemon:
       return 'Unoco Demon';
-    case EnemyId.groundEnemy:
+    case EnemyId.grojib:
       return 'Ground enemy';
   }
 }
