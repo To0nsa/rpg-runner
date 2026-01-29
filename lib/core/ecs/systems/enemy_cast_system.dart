@@ -73,13 +73,16 @@ class EnemyCastSystem {
       }
 
       final enemyId = enemies.enemyId[ei];
-      final projectileItemId = enemyCatalog.get(enemyId).primaryProjectileItemId;
+      final projectileItemId = enemyCatalog
+          .get(enemyId)
+          .primaryProjectileItemId;
       if (projectileItemId == null) continue;
 
       final projectileItem = projectileItems.get(projectileItemId);
       final projectileId = projectileItem.projectileId;
-      final projectileSpeed =
-          projectiles.base.get(projectileId).speedUnitsPerSecond;
+      final projectileSpeed = projectiles.base
+          .get(projectileId)
+          .speedUnitsPerSecond;
 
       var enemyCenterX = world.transform.posX[ti];
       var enemyCenterY = world.transform.posY[ti];
@@ -141,8 +144,9 @@ class EnemyCastSystem {
 
     final castDirX = targetX - enemyCenterX;
     if (castDirX.abs() > 1e-6) {
-      world.enemy.facing[enemyIndex] =
-          castDirX >= 0 ? Facing.right : Facing.left;
+      world.enemy.facing[enemyIndex] = castDirX >= 0
+          ? Facing.right
+          : Facing.left;
     }
 
     final enemy = world.enemy.denseEntities[enemyIndex];
@@ -184,6 +188,7 @@ class EnemyCastSystem {
         windupTicks: windupTicks,
         activeTicks: activeTicks,
         recoveryTicks: recoveryTicks,
+        cooldownGroupId: CooldownGroup.projectile,
         tick: executeTick,
       ),
     );

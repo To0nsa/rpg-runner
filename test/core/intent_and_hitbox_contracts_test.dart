@@ -67,6 +67,7 @@ void main() {
         activeTicks: 1,
         recoveryTicks: 0,
         cooldownTicks: 10,
+        cooldownGroupId: CooldownGroup.projectile,
         tick: 1,
       ),
     );
@@ -103,6 +104,7 @@ void main() {
         recoveryTicks: 0,
         cooldownTicks: 10,
         staminaCost100: 1000,
+        cooldownGroupId: CooldownGroup.primary,
         tick: 2,
       ),
     );
@@ -112,10 +114,7 @@ void main() {
     meleeStrike.step(world, currentTick: 2);
 
     expect(world.hitbox.denseEntities.length, 1);
-    expect(
-      world.stamina.stamina[world.stamina.indexOf(caster)],
-      equals(9000),
-    );
+    expect(world.stamina.stamina[world.stamina.indexOf(caster)], equals(9000));
   });
 
   test('HitboxFollowOwnerSystem positions hitbox at owner + offset', () {

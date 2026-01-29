@@ -15,6 +15,7 @@ class ProjectileIntentDef {
     required this.staminaCost100,
     required this.manaCost100,
     required this.cooldownTicks,
+    required this.cooldownGroupId,
     required this.projectileId,
     required this.damageType,
     this.procs = const <WeaponProc>[],
@@ -39,6 +40,7 @@ class ProjectileIntentDef {
   final int staminaCost100;
   final int manaCost100;
   final int cooldownTicks;
+  final int cooldownGroupId;
   final ProjectileId projectileId;
   final DamageType damageType;
   final List<WeaponProc> procs;
@@ -66,6 +68,7 @@ class ProjectileIntentStore extends SparseSet {
   final List<int> staminaCost100 = <int>[];
   final List<int> manaCost100 = <int>[];
   final List<int> cooldownTicks = <int>[];
+  final List<int> cooldownGroupId = <int>[];
   final List<ProjectileId> projectileId = <ProjectileId>[];
   final List<DamageType> damageType = <DamageType>[];
   final List<List<WeaponProc>> procs = <List<WeaponProc>>[];
@@ -100,6 +103,7 @@ class ProjectileIntentStore extends SparseSet {
     staminaCost100[i] = def.staminaCost100;
     manaCost100[i] = def.manaCost100;
     cooldownTicks[i] = def.cooldownTicks;
+    cooldownGroupId[i] = def.cooldownGroupId;
     projectileId[i] = def.projectileId;
     damageType[i] = def.damageType;
     procs[i] = def.procs;
@@ -126,6 +130,7 @@ class ProjectileIntentStore extends SparseSet {
     staminaCost100.add(0);
     manaCost100.add(0);
     cooldownTicks.add(0);
+    cooldownGroupId.add(0);
     projectileId.add(ProjectileId.iceBolt);
     damageType.add(DamageType.ice);
     procs.add(const <WeaponProc>[]);
@@ -152,6 +157,7 @@ class ProjectileIntentStore extends SparseSet {
     staminaCost100[removeIndex] = staminaCost100[lastIndex];
     manaCost100[removeIndex] = manaCost100[lastIndex];
     cooldownTicks[removeIndex] = cooldownTicks[lastIndex];
+    cooldownGroupId[removeIndex] = cooldownGroupId[lastIndex];
     projectileId[removeIndex] = projectileId[lastIndex];
     damageType[removeIndex] = damageType[lastIndex];
     procs[removeIndex] = procs[lastIndex];
@@ -175,6 +181,7 @@ class ProjectileIntentStore extends SparseSet {
     staminaCost100.removeLast();
     manaCost100.removeLast();
     cooldownTicks.removeLast();
+    cooldownGroupId.removeLast();
     projectileId.removeLast();
     damageType.removeLast();
     procs.removeLast();

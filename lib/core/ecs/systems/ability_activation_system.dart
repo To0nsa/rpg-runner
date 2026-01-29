@@ -306,12 +306,7 @@ class AbilityActivationSystem {
   }) {
     final abilityId =
         abilityOverrideId ??
-        _abilityIdForSlot(
-          world,
-          loadoutIndex,
-          slot,
-          inputIndex: inputIndex,
-        );
+        _abilityIdForSlot(world, loadoutIndex, slot, inputIndex: inputIndex);
     if (abilityId == null) return false;
 
     final ability = abilities.resolve(abilityId);
@@ -395,7 +390,8 @@ class AbilityActivationSystem {
     if (slot == AbilitySlot.primary && (mask & LoadoutSlotMask.mainHand) == 0) {
       return false;
     }
-    if (slot == AbilitySlot.secondary && (mask & LoadoutSlotMask.offHand) == 0) {
+    if (slot == AbilitySlot.secondary &&
+        (mask & LoadoutSlotMask.offHand) == 0) {
       return false;
     }
     if (slot == AbilitySlot.projectile &&
@@ -407,6 +403,7 @@ class AbilityActivationSystem {
     final activeTicks = _scaleAbilityTicks(ability.activeTicks);
     final recoveryTicks = _scaleAbilityTicks(ability.recoveryTicks);
     final executeTick = commitTick + windupTicks;
+    final cooldownGroupId = ability.effectiveCooldownGroup(slot);
 
     world.selfIntent.set(
       player,
@@ -420,6 +417,7 @@ class AbilityActivationSystem {
         cooldownTicks: _scaleAbilityTicks(ability.cooldownTicks),
         staminaCost100: ability.staminaCost,
         manaCost100: ability.manaCost,
+        cooldownGroupId: cooldownGroupId,
         tick: executeTick,
       ),
     );
@@ -454,6 +452,7 @@ class AbilityActivationSystem {
     final activeTicks = _scaleAbilityTicks(ability.activeTicks);
     final recoveryTicks = _scaleAbilityTicks(ability.recoveryTicks);
     final executeTick = commitTick + windupTicks;
+    final cooldownGroupId = ability.effectiveCooldownGroup(slot);
 
     world.mobilityIntent.set(
       player,
@@ -467,6 +466,7 @@ class AbilityActivationSystem {
         recoveryTicks: recoveryTicks,
         cooldownTicks: _scaleAbilityTicks(ability.cooldownTicks),
         staminaCost100: ability.staminaCost,
+        cooldownGroupId: cooldownGroupId,
         tick: executeTick,
       ),
     );
@@ -497,16 +497,19 @@ class AbilityActivationSystem {
     if (slot == AbilitySlot.primary && (mask & LoadoutSlotMask.mainHand) == 0) {
       return false;
     }
-    if (slot == AbilitySlot.secondary && (mask & LoadoutSlotMask.offHand) == 0) {
+    if (slot == AbilitySlot.secondary &&
+        (mask & LoadoutSlotMask.offHand) == 0) {
       return false;
     }
 
     final hitDelivery = ability.hitDelivery;
     if (hitDelivery is! MeleeHitDelivery) return false;
 
-    final aimX = aimOverrideX ??
+    final aimX =
+        aimOverrideX ??
         (inputIndex == null ? 0.0 : world.playerInput.meleeAimDirX[inputIndex]);
-    final aimY = aimOverrideY ??
+    final aimY =
+        aimOverrideY ??
         (inputIndex == null ? 0.0 : world.playerInput.meleeAimDirY[inputIndex]);
     final len2 = aimX * aimX + aimY * aimY;
 
@@ -531,9 +534,12 @@ class AbilityActivationSystem {
       final aabbi = world.colliderAabb.indexOf(player);
       final colliderHalfX = world.colliderAabb.halfX[aabbi];
       final colliderHalfY = world.colliderAabb.halfY[aabbi];
-      maxHalfExtent = colliderHalfX > colliderHalfY ? colliderHalfX : colliderHalfY;
+      maxHalfExtent = colliderHalfX > colliderHalfY
+          ? colliderHalfX
+          : colliderHalfY;
     }
-    final forward = maxHalfExtent * 0.5 + max(halfX, halfY) + hitDelivery.offsetX;
+    final forward =
+        maxHalfExtent * 0.5 + max(halfX, halfY) + hitDelivery.offsetX;
     final offsetX = dirX * forward;
     final offsetY = dirY * forward + hitDelivery.offsetY;
 
@@ -549,6 +555,8 @@ class AbilityActivationSystem {
       weaponDamageType: weapon.damageType,
       weaponProcs: weapon.procs,
     );
+
+    final cooldownGroupId = ability.effectiveCooldownGroup(slot);
 
     world.meleeIntent.set(
       player,
@@ -570,6 +578,7 @@ class AbilityActivationSystem {
         recoveryTicks: _scaleAbilityTicks(ability.recoveryTicks),
         cooldownTicks: _scaleAbilityTicks(ability.cooldownTicks),
         staminaCost100: ability.staminaCost,
+        cooldownGroupId: cooldownGroupId,
         tick: commitTick + _scaleAbilityTicks(ability.windupTicks),
       ),
     );
@@ -604,18 +613,21 @@ class AbilityActivationSystem {
       return false;
     }
 
-    final projectileItemId = world.equippedLoadout.projectileItemId[loadoutIndex];
+    final projectileItemId =
+        world.equippedLoadout.projectileItemId[loadoutIndex];
     final projectileItem = projectileItems.tryGet(projectileItemId);
     if (projectileItem == null) {
       assert(false, 'Projectile item not found: $projectileItemId');
       return false;
     }
 
-    final aimX = aimOverrideX ??
+    final aimX =
+        aimOverrideX ??
         (inputIndex == null
             ? 0.0
             : world.playerInput.projectileAimDirX[inputIndex]);
-    final aimY = aimOverrideY ??
+    final aimY =
+        aimOverrideY ??
         (inputIndex == null
             ? 0.0
             : world.playerInput.projectileAimDirY[inputIndex]);
@@ -632,8 +644,9 @@ class AbilityActivationSystem {
       }
 
       if (dirX.abs() > 1e-6) {
-        world.movement.facing[movementIndex] =
-            dirX >= 0 ? Facing.right : Facing.left;
+        world.movement.facing[movementIndex] = dirX >= 0
+            ? Facing.right
+            : Facing.left;
         world.movement.facingLockTicksLeft[movementIndex] = 1;
       }
     }
@@ -660,6 +673,10 @@ class AbilityActivationSystem {
       weaponProcs: projectileItem.procs,
     );
 
+    final cooldownGroupId = ability.effectiveCooldownGroup(
+      AbilitySlot.projectile,
+    );
+
     world.projectileIntent.set(
       player,
       ProjectileIntentDef(
@@ -670,6 +687,7 @@ class AbilityActivationSystem {
         staminaCost100: ability.staminaCost,
         manaCost100: ability.manaCost,
         cooldownTicks: _scaleAbilityTicks(ability.cooldownTicks),
+        cooldownGroupId: cooldownGroupId,
         projectileId: projectileItem.projectileId,
         damageType: payload.damageType,
         procs: payload.procs,

@@ -43,6 +43,7 @@ void main() {
         activeTicks: 14,
         recoveryTicks: 4,
         cooldownTicks: 30,
+        cooldownGroupId: CooldownGroup.primary,
         staminaCost100: 700,
         manaCost100: 0,
         tick: 9,

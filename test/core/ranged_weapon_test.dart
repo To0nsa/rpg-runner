@@ -18,6 +18,7 @@ import 'package:rpg_runner/core/players/player_tuning.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
 import 'package:rpg_runner/core/util/tick_math.dart';
 import 'package:rpg_runner/core/projectiles/spawn_projectile_item.dart';
+import 'package:rpg_runner/core/abilities/ability_def.dart';
 
 import '../test_tunings.dart';
 
@@ -50,12 +51,10 @@ void main() {
       final playerPosX = core.playerPosX;
       final playerPosY = core.playerPosY;
 
-      core.applyCommands(
-        const [
-          ProjectileAimDirCommand(tick: 1, x: 1, y: 0),
-          ProjectilePressedCommand(tick: 1),
-        ],
-      );
+      core.applyCommands(const [
+        ProjectileAimDirCommand(tick: 1, x: 1, y: 0),
+        ProjectilePressedCommand(tick: 1),
+      ]);
       core.stepOneTick();
 
       final windupTicks = ticksFromSecondsCeil(
@@ -82,24 +81,26 @@ void main() {
 
       expect(snapshot.hud.stamina, closeTo(5.0, 1e-9)); // 10 - 5 staminaCost
       expect(
-        snapshot.hud.projectileCooldownTicksLeft,
+        snapshot.hud.cooldownTicksLeft[CooldownGroup.projectile],
         6 - windupTicks,
       ); // Cooldown already ticked during windup
     },
   );
 
-  test('projectile: insufficient stamina => no projectile + no costs + no cooldown', () {
-    final base = PlayerCharacterRegistry.eloise;
-    final core = GameCore(
-      seed: 1,
-      tickHz: 20,
-      tuning: noAutoscrollTuning,
-      playerCharacter: base.copyWith(
-        catalog: const PlayerCatalog(
-          bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-          projectileItemId: ProjectileItemId.throwingKnife,
-        ),
-        tuning: base.tuning.copyWith(
+  test(
+    'projectile: insufficient stamina => no projectile + no costs + no cooldown',
+    () {
+      final base = PlayerCharacterRegistry.eloise;
+      final core = GameCore(
+        seed: 1,
+        tickHz: 20,
+        tuning: noAutoscrollTuning,
+        playerCharacter: base.copyWith(
+          catalog: const PlayerCatalog(
+            bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+            projectileItemId: ProjectileItemId.throwingKnife,
+          ),
+          tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
               playerManaMax: 0,
               playerManaRegenPerSecond: 0,
@@ -108,41 +109,42 @@ void main() {
             ),
           ),
         ),
-    );
+      );
 
-    core.applyCommands(
-      const [
+      core.applyCommands(const [
         ProjectileAimDirCommand(tick: 1, x: 1, y: 0),
         ProjectilePressedCommand(tick: 1),
-      ],
-    );
-    core.stepOneTick();
-
-    final windupTicks = ticksFromSecondsCeil(
-      AbilityCatalog.tryGet('eloise.throwing_knife')!.windupTicks / 60.0,
-      core.tickHz,
-    );
-    for (var i = 0; i < windupTicks; i += 1) {
-      core.applyCommands(const <Command>[]);
+      ]);
       core.stepOneTick();
-    }
 
-    final snapshot = core.buildSnapshot();
-    expect(
-      snapshot.entities.where((e) => e.kind == EntityKind.projectile),
-      isEmpty,
-    );
-    expect(snapshot.hud.stamina, closeTo(0.0, 1e-9));
-    expect(snapshot.hud.projectileCooldownTicksLeft, 0);
-    expect(snapshot.hud.canAffordProjectile, isFalse);
-  });
+      final windupTicks = ticksFromSecondsCeil(
+        AbilityCatalog.tryGet('eloise.throwing_knife')!.windupTicks / 60.0,
+        core.tickHz,
+      );
+      for (var i = 0; i < windupTicks; i += 1) {
+        core.applyCommands(const <Command>[]);
+        core.stepOneTick();
+      }
+
+      final snapshot = core.buildSnapshot();
+      expect(
+        snapshot.entities.where((e) => e.kind == EntityKind.projectile),
+        isEmpty,
+      );
+      expect(snapshot.hud.stamina, closeTo(0.0, 1e-9));
+      expect(snapshot.hud.cooldownTicksLeft[CooldownGroup.projectile], 0);
+      expect(snapshot.hud.canAffordProjectile, isFalse);
+    },
+  );
 
   test('ProjectileWorldCollisionSystem despawns ballistic projectiles', () {
     final world = EcsWorld();
     final system = ProjectileWorldCollisionSystem();
 
-    final projectiles =
-        ProjectileCatalogDerived.from(const ProjectileCatalog(), tickHz: 20);
+    final projectiles = ProjectileCatalogDerived.from(
+      const ProjectileCatalog(),
+      tickHz: 20,
+    );
 
     final owner = world.createEntity();
     final p = spawnProjectileItemFromCaster(

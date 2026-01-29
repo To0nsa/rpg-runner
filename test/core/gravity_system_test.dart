@@ -34,7 +34,11 @@ void main() {
       collider: const ColliderAabbDef(halfX: 8, halfY: 8),
       health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
       mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
-      stamina: const StaminaDef(stamina: 10000, staminaMax: 10000, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 10000,
+        staminaMax: 10000,
+        regenPerSecond100: 0,
+      ),
     );
 
     final tuning = MovementTuningDerived.from(
@@ -45,7 +49,10 @@ void main() {
 
     GravitySystem().step(world, tuning, physics: physics);
 
-    expect(world.transform.velY[world.transform.indexOf(player)], closeTo(10.0, 1e-9));
+    expect(
+      world.transform.velY[world.transform.indexOf(player)],
+      closeTo(10.0, 1e-9),
+    );
   });
 
   test('GravitySystem skips gravity while suppressed and resumes after', () {
@@ -66,7 +73,11 @@ void main() {
       collider: const ColliderAabbDef(halfX: 8, halfY: 8),
       health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
       mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
-      stamina: const StaminaDef(stamina: 10000, staminaMax: 10000, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 10000,
+        staminaMax: 10000,
+        regenPerSecond100: 0,
+      ),
     );
 
     final tuning = MovementTuningDerived.from(
@@ -79,10 +90,16 @@ void main() {
 
     final gravity = GravitySystem();
     gravity.step(world, tuning, physics: physics);
-    expect(world.transform.velY[world.transform.indexOf(player)], closeTo(0.0, 1e-9));
+    expect(
+      world.transform.velY[world.transform.indexOf(player)],
+      closeTo(0.0, 1e-9),
+    );
 
     gravity.step(world, tuning, physics: physics);
-    expect(world.transform.velY[world.transform.indexOf(player)], closeTo(10.0, 1e-9));
+    expect(
+      world.transform.velY[world.transform.indexOf(player)],
+      closeTo(10.0, 1e-9),
+    );
   });
 
   test('Player dash suppresses gravity for dash duration', () {
@@ -103,7 +120,11 @@ void main() {
       collider: const ColliderAabbDef(halfX: 8, halfY: 8),
       health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
       mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
-      stamina: const StaminaDef(stamina: 10000, staminaMax: 10000, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 10000,
+        staminaMax: 10000,
+        regenPerSecond100: 0,
+      ),
     );
 
     final tuning = MovementTuningDerived.from(
@@ -130,22 +151,32 @@ void main() {
         activeTicks: tuning.dashDurationTicks,
         recoveryTicks: 0,
         cooldownTicks: tuning.dashCooldownTicks,
+        cooldownGroupId: CooldownGroup.mobility,
         staminaCost100: 0,
         tick: 0,
       ),
     );
     mobility.step(world, tuning, currentTick: 0);
     gravity.step(world, tuning, physics: physics);
-    expect(world.transform.velY[world.transform.indexOf(player)], closeTo(0.0, 1e-9));
+    expect(
+      world.transform.velY[world.transform.indexOf(player)],
+      closeTo(0.0, 1e-9),
+    );
 
     // Tick 2: dash active; gravity still suppressed.
     mobility.step(world, tuning, currentTick: 1);
     gravity.step(world, tuning, physics: physics);
-    expect(world.transform.velY[world.transform.indexOf(player)], closeTo(0.0, 1e-9));
+    expect(
+      world.transform.velY[world.transform.indexOf(player)],
+      closeTo(0.0, 1e-9),
+    );
 
     // Tick 3: dash ended; gravity resumes.
     mobility.step(world, tuning, currentTick: 2);
     gravity.step(world, tuning, physics: physics);
-    expect(world.transform.velY[world.transform.indexOf(player)], closeTo(10.0, 1e-9));
+    expect(
+      world.transform.velY[world.transform.indexOf(player)],
+      closeTo(10.0, 1e-9),
+    );
   });
 }

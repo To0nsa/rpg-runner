@@ -93,6 +93,7 @@ void main() {
         activeTicks: 1,
         recoveryTicks: 0,
         cooldownTicks: 60,
+        cooldownGroupId: CooldownGroup.projectile,
         tick: tick,
       ),
     );

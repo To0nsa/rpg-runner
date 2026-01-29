@@ -1,4 +1,3 @@
-import '../../abilities/ability_def.dart';
 import '../../snapshots/enums.dart';
 import '../../util/fixed_math.dart';
 import '../stores/self_intent_store.dart';
@@ -36,8 +35,8 @@ class SelfAbilitySystem {
           continue;
         }
         final slot = intents.slot[ii];
-        // Use the slot's default cooldown group.
-        final cooldownGroup = CooldownGroup.fromSlot(slot);
+        // Use the intent's cooldown group.
+        final cooldownGroup = intents.cooldownGroupId[ii];
         if (world.cooldown.isOnCooldown(entity, cooldownGroup)) {
           _invalidateIntent(intents, ii);
           continue;

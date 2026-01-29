@@ -1,4 +1,3 @@
-import '../../abilities/ability_def.dart';
 import '../../snapshots/enums.dart';
 import '../stores/hitbox_store.dart';
 import '../stores/lifetime_store.dart';
@@ -59,8 +58,8 @@ class MeleeStrikeSystem {
           intents.commitTick[ii] = -1;
           continue;
         }
-        // Check cooldown using the ability's slot default group (primary for melee).
-        final cooldownGroup = CooldownGroup.fromSlot(intents.slot[ii]);
+        // Check cooldown using the intent's specific cooldown group.
+        final cooldownGroup = intents.cooldownGroupId[ii];
         if (world.cooldown.isOnCooldown(strikeer, cooldownGroup)) {
           intents.tick[ii] = -1;
           intents.commitTick[ii] = -1;

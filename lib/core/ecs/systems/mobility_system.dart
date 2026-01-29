@@ -54,8 +54,8 @@ class MobilitySystem {
           _invalidateIntent(intents, ii);
           continue;
         }
-        // Check mobility cooldown from CooldownStore.
-        final cooldownGroup = CooldownGroup.fromSlot(AbilitySlot.mobility);
+        // Check mobility cooldown from CooldownStore using intent group.
+        final cooldownGroup = intents.cooldownGroupId[ii];
         if (world.cooldown.isOnCooldown(entity, cooldownGroup)) {
           _invalidateIntent(intents, ii);
           continue;

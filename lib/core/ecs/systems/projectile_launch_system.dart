@@ -1,4 +1,3 @@
-import '../../abilities/ability_def.dart';
 import '../../snapshots/enums.dart';
 import '../../util/fixed_math.dart';
 import '../../projectiles/projectile_catalog.dart';
@@ -50,8 +49,8 @@ class ProjectileLaunchSystem {
           _invalidateIntent(intents, ii);
           continue;
         }
-        // Projectile abilities use the projectile cooldown group.
-        final cooldownGroup = CooldownGroup.fromSlot(intents.slot[ii]);
+        // Projectile abilities use the cooldown group specified in the intent.
+        final cooldownGroup = intents.cooldownGroupId[ii];
         if (world.cooldown.isOnCooldown(caster, cooldownGroup)) {
           _invalidateIntent(intents, ii);
           continue;

@@ -4,6 +4,7 @@ import '../../../game/game_controller.dart';
 import '../../../game/input/aim_preview.dart';
 import '../../../game/input/runner_input_router.dart';
 import '../../controls/runner_controls_overlay.dart';
+import 'package:rpg_runner/core/abilities/ability_def.dart';
 import '../../runner_game_ui_state.dart';
 import 'pause_overlay.dart';
 import 'ready_overlay.dart';
@@ -55,22 +56,28 @@ class GameOverlay extends StatelessWidget {
             onProjectileAimClear: input.clearProjectileAimDir,
             projectileAimPreview: projectileAimPreview,
             projectileAffordable: hud.canAffordProjectile,
-            projectileCooldownTicksLeft: hud.projectileCooldownTicksLeft,
-            projectileCooldownTicksTotal: hud.projectileCooldownTicksTotal,
+            projectileCooldownTicksLeft:
+                hud.cooldownTicksLeft[CooldownGroup.projectile],
+            projectileCooldownTicksTotal:
+                hud.cooldownTicksTotal[CooldownGroup.projectile],
             onMeleeAimDir: input.setMeleeAimDir,
             onMeleeAimClear: input.clearMeleeAimDir,
             onMeleeCommitted: input.commitMeleeStrike,
             onMeleePressed: input.pressStrike,
             meleeAimPreview: meleeAimPreview,
             meleeAffordable: hud.canAffordMelee,
-            meleeCooldownTicksLeft: hud.meleeCooldownTicksLeft,
-            meleeCooldownTicksTotal: hud.meleeCooldownTicksTotal,
+            meleeCooldownTicksLeft:
+                hud.cooldownTicksLeft[CooldownGroup.primary],
+            meleeCooldownTicksTotal:
+                hud.cooldownTicksTotal[CooldownGroup.primary],
             meleeInputMode: hud.meleeInputMode,
             projectileInputMode: hud.projectileInputMode,
             jumpAffordable: hud.canAffordJump,
             dashAffordable: hud.canAffordDash,
-            dashCooldownTicksLeft: hud.dashCooldownTicksLeft,
-            dashCooldownTicksTotal: hud.dashCooldownTicksTotal,
+            dashCooldownTicksLeft:
+                hud.cooldownTicksLeft[CooldownGroup.mobility],
+            dashCooldownTicksTotal:
+                hud.cooldownTicksTotal[CooldownGroup.mobility],
           ),
         ),
         PauseOverlay(visible: uiState.showPauseOverlay),

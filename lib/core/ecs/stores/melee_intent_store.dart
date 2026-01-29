@@ -23,11 +23,13 @@ class MeleeIntentDef {
     required this.recoveryTicks,
     required this.cooldownTicks,
     required this.staminaCost100,
+    required this.cooldownGroupId,
     required this.tick,
   });
 
   final AbilityKey abilityId;
   final AbilitySlot slot;
+
   /// Fixed-point: 100 = 1.0
   final int damage100;
   final DamageType damageType;
@@ -38,16 +40,21 @@ class MeleeIntentDef {
   final double offsetY;
   final double dirX;
   final double dirY;
+
   /// Tick the ability was committed (costs/cooldown start).
   final int commitTick;
+
   /// Windup duration (ticks) before hitbox spawns.
   final int windupTicks;
   final int activeTicks;
+
   /// Recovery duration (ticks) after active window.
   final int recoveryTicks;
   final int cooldownTicks;
+
   /// Fixed-point: 100 = 1.0
   final int staminaCost100;
+  final int cooldownGroupId;
 
   /// Tick stamp for effect execution.
   ///
@@ -64,6 +71,7 @@ class MeleeIntentDef {
 class MeleeIntentStore extends SparseSet {
   final List<AbilityKey> abilityId = <AbilityKey>[];
   final List<AbilitySlot> slot = <AbilitySlot>[];
+
   /// Fixed-point: 100 = 1.0
   final List<int> damage100 = <int>[];
   final List<DamageType> damageType = <DamageType>[];
@@ -79,8 +87,10 @@ class MeleeIntentStore extends SparseSet {
   final List<int> activeTicks = <int>[];
   final List<int> recoveryTicks = <int>[];
   final List<int> cooldownTicks = <int>[];
+
   /// Fixed-point: 100 = 1.0
   final List<int> staminaCost100 = <int>[];
+  final List<int> cooldownGroupId = <int>[];
   final List<int> tick = <int>[];
 
   void add(EntityId entity) {
@@ -110,6 +120,7 @@ class MeleeIntentStore extends SparseSet {
     recoveryTicks[i] = def.recoveryTicks;
     cooldownTicks[i] = def.cooldownTicks;
     staminaCost100[i] = def.staminaCost100;
+    cooldownGroupId[i] = def.cooldownGroupId;
     tick[i] = def.tick;
   }
 
@@ -132,6 +143,7 @@ class MeleeIntentStore extends SparseSet {
     recoveryTicks.add(0);
     cooldownTicks.add(0);
     staminaCost100.add(0);
+    cooldownGroupId.add(0);
     tick.add(-1);
   }
 
@@ -154,6 +166,7 @@ class MeleeIntentStore extends SparseSet {
     recoveryTicks[removeIndex] = recoveryTicks[lastIndex];
     cooldownTicks[removeIndex] = cooldownTicks[lastIndex];
     staminaCost100[removeIndex] = staminaCost100[lastIndex];
+    cooldownGroupId[removeIndex] = cooldownGroupId[lastIndex];
     tick[removeIndex] = tick[lastIndex];
 
     abilityId.removeLast();
@@ -173,6 +186,7 @@ class MeleeIntentStore extends SparseSet {
     recoveryTicks.removeLast();
     cooldownTicks.removeLast();
     staminaCost100.removeLast();
+    cooldownGroupId.removeLast();
     tick.removeLast();
   }
 }

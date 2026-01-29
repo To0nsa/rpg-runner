@@ -16,12 +16,8 @@ class PlayerHudSnapshot {
     required this.canAffordDash,
     required this.canAffordMelee,
     required this.canAffordProjectile,
-    required this.dashCooldownTicksLeft,
-    required this.dashCooldownTicksTotal,
-    required this.meleeCooldownTicksLeft,
-    required this.meleeCooldownTicksTotal,
-    required this.projectileCooldownTicksLeft,
-    required this.projectileCooldownTicksTotal,
+    required this.cooldownTicksLeft,
+    required this.cooldownTicksTotal,
     required this.meleeInputMode,
     required this.projectileInputMode,
     required this.collectibles,
@@ -58,23 +54,11 @@ class PlayerHudSnapshot {
   /// Whether resources are sufficient for the equipped projectile ability.
   final bool canAffordProjectile;
 
-  /// Remaining dash cooldown ticks.
-  final int dashCooldownTicksLeft;
+  /// Remaining cooldown ticks for each CooldownGroup.
+  final List<int> cooldownTicksLeft;
 
-  /// Total dash cooldown ticks.
-  final int dashCooldownTicksTotal;
-
-  /// Remaining melee cooldown ticks.
-  final int meleeCooldownTicksLeft;
-
-  /// Total melee cooldown ticks.
-  final int meleeCooldownTicksTotal;
-
-  /// Remaining projectile cooldown ticks.
-  final int projectileCooldownTicksLeft;
-
-  /// Total projectile cooldown ticks.
-  final int projectileCooldownTicksTotal;
+  /// Total cooldown ticks for each CooldownGroup.
+  final List<int> cooldownTicksTotal;
 
   /// Input interaction mode for melee slot.
   final AbilityInputMode meleeInputMode;

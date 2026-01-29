@@ -194,27 +194,29 @@ class SnapshotBuilder {
         mana >= projectileManaCost;
 
     // ─── Read cooldown timers ───
-    final dashCooldownTicksLeft = world.cooldown.getTicksLeft(
-      player,
-      CooldownGroup.mobility,
-    );
-    final dashCooldownTicksTotal = mobilityAbility == null
-        ? movement.dashCooldownTicks
-        : _scaleAbilityTicks(mobilityAbility.cooldownTicks);
-    final meleeCooldownTicksLeft = world.cooldown.getTicksLeft(
-      player,
-      CooldownGroup.primary,
-    );
-    final projectileCooldownTicksLeft = world.cooldown.getTicksLeft(
-      player,
-      CooldownGroup.projectile,
-    );
-    final projectileCooldownTicksTotal = projectileAbility == null
-        ? abilities.castCooldownTicks
-        : _scaleAbilityTicks(projectileAbility.cooldownTicks);
-    final meleeCooldownTicksTotal = meleeAbility == null
+    final cooldownTicksLeft = List<int>.filled(8, 0);
+    final cooldownTicksTotal = List<int>.filled(8, 0);
+
+    // Populate current ticks from store.
+    for (var g = 0; g < 8; g++) {
+      cooldownTicksLeft[g] = world.cooldown.getTicksLeft(player, g);
+    }
+
+    // Populate totals for active ability slots.
+    // Primary (Melee)
+    cooldownTicksTotal[CooldownGroup.primary] = meleeAbility == null
         ? abilities.meleeCooldownTicks
         : _scaleAbilityTicks(meleeAbility.cooldownTicks);
+
+    // Projectile
+    cooldownTicksTotal[CooldownGroup.projectile] = projectileAbility == null
+        ? abilities.castCooldownTicks
+        : _scaleAbilityTicks(projectileAbility.cooldownTicks);
+
+    // Mobility (Dash)
+    cooldownTicksTotal[CooldownGroup.mobility] = mobilityAbility == null
+        ? movement.dashCooldownTicks
+        : _scaleAbilityTicks(mobilityAbility.cooldownTicks);
 
     // ─── Read player transform ───
     final ti = world.transform.indexOf(player);
@@ -291,12 +293,8 @@ class SnapshotBuilder {
         canAffordDash: canAffordDash,
         canAffordMelee: canAffordMelee,
         canAffordProjectile: canAffordProjectile,
-        dashCooldownTicksLeft: dashCooldownTicksLeft,
-        dashCooldownTicksTotal: dashCooldownTicksTotal,
-        meleeCooldownTicksLeft: meleeCooldownTicksLeft,
-        meleeCooldownTicksTotal: meleeCooldownTicksTotal,
-        projectileCooldownTicksLeft: projectileCooldownTicksLeft,
-        projectileCooldownTicksTotal: projectileCooldownTicksTotal,
+        cooldownTicksLeft: cooldownTicksLeft,
+        cooldownTicksTotal: cooldownTicksTotal,
         meleeInputMode: meleeInputMode,
         projectileInputMode: projectileInputMode,
         collectibles: collectibles,

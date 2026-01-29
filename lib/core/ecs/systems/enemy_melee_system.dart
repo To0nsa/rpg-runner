@@ -87,7 +87,9 @@ class EnemyMeleeSystem {
       final windupTicks = plannedHitTick > commitTick
           ? plannedHitTick - commitTick
           : tuning.combat.meleeWindupTicks;
-      final recoveryTicks = tuning.combat.meleeAnimTicks - windupTicks -
+      final recoveryTicks =
+          tuning.combat.meleeAnimTicks -
+          windupTicks -
           tuning.combat.meleeActiveTicks;
       final clampedRecovery = recoveryTicks < 0 ? 0 : recoveryTicks;
 
@@ -110,6 +112,7 @@ class EnemyMeleeSystem {
           recoveryTicks: clampedRecovery,
           cooldownTicks: tuning.combat.meleeCooldownTicks,
           staminaCost100: 0,
+          cooldownGroupId: CooldownGroup.primary,
           tick: plannedHitTick,
         ),
       );

@@ -12,6 +12,7 @@ class MobilityIntentDef {
     required this.activeTicks,
     required this.recoveryTicks,
     required this.cooldownTicks,
+    required this.cooldownGroupId,
     required this.staminaCost100,
     required this.tick,
   });
@@ -28,9 +29,11 @@ class MobilityIntentDef {
   /// Windup duration (ticks) before movement starts.
   final int windupTicks;
   final int activeTicks;
+
   /// Recovery duration (ticks) after active window.
   final int recoveryTicks;
   final int cooldownTicks;
+  final int cooldownGroupId;
 
   /// Fixed-point: 100 = 1.0
   final int staminaCost100;
@@ -54,6 +57,8 @@ class MobilityIntentStore extends SparseSet {
   final List<int> activeTicks = <int>[];
   final List<int> recoveryTicks = <int>[];
   final List<int> cooldownTicks = <int>[];
+  final List<int> cooldownGroupId = <int>[];
+
   /// Fixed-point: 100 = 1.0
   final List<int> staminaCost100 = <int>[];
   final List<int> tick = <int>[];
@@ -76,6 +81,7 @@ class MobilityIntentStore extends SparseSet {
     activeTicks[i] = def.activeTicks;
     recoveryTicks[i] = def.recoveryTicks;
     cooldownTicks[i] = def.cooldownTicks;
+    cooldownGroupId[i] = def.cooldownGroupId;
     staminaCost100[i] = def.staminaCost100;
     tick[i] = def.tick;
   }
@@ -90,6 +96,7 @@ class MobilityIntentStore extends SparseSet {
     activeTicks.add(0);
     recoveryTicks.add(0);
     cooldownTicks.add(0);
+    cooldownGroupId.add(0);
     staminaCost100.add(0);
     tick.add(-1);
   }
@@ -104,6 +111,7 @@ class MobilityIntentStore extends SparseSet {
     activeTicks[removeIndex] = activeTicks[lastIndex];
     recoveryTicks[removeIndex] = recoveryTicks[lastIndex];
     cooldownTicks[removeIndex] = cooldownTicks[lastIndex];
+    cooldownGroupId[removeIndex] = cooldownGroupId[lastIndex];
     staminaCost100[removeIndex] = staminaCost100[lastIndex];
     tick[removeIndex] = tick[lastIndex];
 
@@ -115,6 +123,7 @@ class MobilityIntentStore extends SparseSet {
     activeTicks.removeLast();
     recoveryTicks.removeLast();
     cooldownTicks.removeLast();
+    cooldownGroupId.removeLast();
     staminaCost100.removeLast();
     tick.removeLast();
   }
