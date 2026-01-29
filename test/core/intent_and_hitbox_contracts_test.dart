@@ -114,7 +114,9 @@ void main() {
     meleeStrike.step(world, currentTick: 2);
 
     expect(world.hitbox.denseEntities.length, 1);
-    expect(world.stamina.stamina[world.stamina.indexOf(caster)], equals(9000));
+    // MeleeStrikeSystem is now execution-only; it does not deduct stamina.
+    // Cost is handled by AbilityActivationSystem (upstream).
+    expect(world.stamina.stamina[world.stamina.indexOf(caster)], equals(10000));
   });
 
   test('HitboxFollowOwnerSystem positions hitbox at owner + offset', () {

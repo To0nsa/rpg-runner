@@ -1,4 +1,3 @@
-import '../../snapshots/enums.dart';
 import '../stores/hitbox_store.dart';
 import '../stores/lifetime_store.dart';
 import '../world.dart';
@@ -32,81 +31,7 @@ class MeleeStrikeSystem {
     for (var ii = 0; ii < intents.denseEntities.length; ii += 1) {
       final strikeer = intents.denseEntities[ii];
 
-      final commitTick = intents.commitTick[ii];
       final executeTick = intents.tick[ii];
-
-      // Commit stage (costs/cooldown start).
-      if (commitTick == currentTick) {
-        // Attacker must exist physically.
-        final strikeerTi = world.transform.tryIndexOf(strikeer);
-        if (strikeerTi == null) {
-          intents.tick[ii] = -1;
-          intents.commitTick[ii] = -1;
-          continue;
-        }
-
-        // Cannot strike while stunned.
-        if (world.controlLock.isStunned(strikeer, currentTick)) {
-          intents.tick[ii] = -1;
-          intents.commitTick[ii] = -1;
-          continue;
-        }
-
-        // Attacker must respond to cooldowns.
-        if (!world.cooldown.has(strikeer)) {
-          intents.tick[ii] = -1;
-          intents.commitTick[ii] = -1;
-          continue;
-        }
-        // Check cooldown using the intent's specific cooldown group.
-        final cooldownGroup = intents.cooldownGroupId[ii];
-        if (world.cooldown.isOnCooldown(strikeer, cooldownGroup)) {
-          intents.tick[ii] = -1;
-          intents.commitTick[ii] = -1;
-          continue;
-        }
-
-        // Stamina check.
-        final staminaCost = intents.staminaCost100[ii];
-        int? si;
-        int? nextStamina;
-        if (staminaCost > 0) {
-          si = world.stamina.tryIndexOf(strikeer);
-          if (si == null) {
-            intents.tick[ii] = -1;
-            intents.commitTick[ii] = -1;
-            continue;
-          }
-          final currentStamina = world.stamina.stamina[si];
-          if (currentStamina < staminaCost) {
-            intents.tick[ii] = -1;
-            intents.commitTick[ii] = -1;
-            continue;
-          }
-          nextStamina = currentStamina - staminaCost;
-        }
-
-        // Phase 6: Ability state starts on commit.
-        world.activeAbility.set(
-          strikeer,
-          id: intents.abilityId[ii],
-          slot: intents.slot[ii],
-          commitTick: currentTick,
-          windupTicks: intents.windupTicks[ii],
-          activeTicks: intents.activeTicks[ii],
-          recoveryTicks: intents.recoveryTicks[ii],
-          facingDir: intents.dirX[ii] >= 0 ? Facing.right : Facing.left,
-        );
-
-        if (si != null) {
-          world.stamina.stamina[si] = nextStamina!;
-        }
-        world.cooldown.startCooldown(
-          strikeer,
-          cooldownGroup,
-          intents.cooldownTicks[ii],
-        );
-      }
 
       if (executeTick != currentTick) continue;
 

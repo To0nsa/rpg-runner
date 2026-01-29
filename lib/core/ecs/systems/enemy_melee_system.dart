@@ -117,6 +117,25 @@ class EnemyMeleeSystem {
         ),
       );
 
+      // Commit side effects (Cooldown + ActiveAbility) must be applied manually
+      // since enemies don't use AbilityActivationSystem.
+      world.cooldown.startCooldown(
+        enemy,
+        CooldownGroup.primary,
+        tuning.combat.meleeCooldownTicks,
+      );
+
+      world.activeAbility.set(
+        enemy,
+        id: 'common.enemy_strike',
+        slot: AbilitySlot.primary,
+        commitTick: commitTick,
+        windupTicks: windupTicks,
+        activeTicks: tuning.combat.meleeActiveTicks,
+        recoveryTicks: clampedRecovery,
+        facingDir: facing,
+      );
+
       world.enemy.lastMeleeTick[enemyIndex] = currentTick;
       world.enemy.lastMeleeFacing[enemyIndex] = facing;
       world.enemy.lastMeleeAnimTicks[enemyIndex] = tuning.combat.meleeAnimTicks;

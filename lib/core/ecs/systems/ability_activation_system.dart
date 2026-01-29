@@ -1,11 +1,13 @@
 import 'dart:math';
 
+import '../../abilities/ability_gate.dart';
 import '../../abilities/ability_catalog.dart';
 import '../../abilities/ability_def.dart';
 import '../../combat/hit_payload_builder.dart';
 import '../../snapshots/enums.dart';
 import '../../projectiles/projectile_item_catalog.dart';
 import '../../weapons/weapon_catalog.dart';
+import '../../util/fixed_math.dart';
 import '../../util/tick_math.dart';
 import '../entity_id.dart';
 import '../stores/combat/equipped_loadout_store.dart';
@@ -78,6 +80,7 @@ class AbilityActivationSystem {
 
     final input = world.playerInput;
     if (input.dashPressed[inputIndex]) {
+      _cancelCombatOnMobilityPress(world, player);
       _commitSlot(
         world,
         player: player,
@@ -319,6 +322,7 @@ class AbilityActivationSystem {
       return _commitMobility(
         world,
         player: player,
+        movementIndex: movementIndex,
         inputIndex: inputIndex,
         facing: facing,
         ability: ability,
@@ -361,6 +365,7 @@ class AbilityActivationSystem {
         world,
         player: player,
         loadoutIndex: loadoutIndex,
+        facing: facing,
         ability: ability,
         slot: slot,
         commitTick: commitTick,
@@ -374,6 +379,7 @@ class AbilityActivationSystem {
     EcsWorld world, {
     required EntityId player,
     required int loadoutIndex,
+    required Facing facing,
     required AbilityDef ability,
     required AbilitySlot slot,
     required int commitTick,
@@ -404,6 +410,33 @@ class AbilityActivationSystem {
     final recoveryTicks = _scaleAbilityTicks(ability.recoveryTicks);
     final executeTick = commitTick + windupTicks;
     final cooldownGroupId = ability.effectiveCooldownGroup(slot);
+    final cooldownTicks = _scaleAbilityTicks(ability.cooldownTicks);
+
+    final fail = AbilityGate.canCommitCombat(
+      world,
+      entity: player,
+      currentTick: commitTick,
+      cooldownGroupId: cooldownGroupId,
+      manaCost100: ability.manaCost,
+      staminaCost100: ability.staminaCost,
+    );
+    if (fail != null) return false;
+
+    _applyCommitSideEffects(
+      world,
+      player: player,
+      abilityId: ability.id,
+      slot: slot,
+      commitTick: commitTick,
+      windupTicks: windupTicks,
+      activeTicks: activeTicks,
+      recoveryTicks: recoveryTicks,
+      facingDir: facing,
+      cooldownGroupId: cooldownGroupId,
+      cooldownTicks: cooldownTicks,
+      manaCost100: ability.manaCost,
+      staminaCost100: ability.staminaCost,
+    );
 
     world.selfIntent.set(
       player,
@@ -414,7 +447,7 @@ class AbilityActivationSystem {
         windupTicks: windupTicks,
         activeTicks: activeTicks,
         recoveryTicks: recoveryTicks,
-        cooldownTicks: _scaleAbilityTicks(ability.cooldownTicks),
+        cooldownTicks: cooldownTicks,
         staminaCost100: ability.staminaCost,
         manaCost100: ability.manaCost,
         cooldownGroupId: cooldownGroupId,
@@ -427,6 +460,7 @@ class AbilityActivationSystem {
   bool _commitMobility(
     EcsWorld world, {
     required EntityId player,
+    required int movementIndex,
     required Facing facing,
     required AbilityDef ability,
     required AbilitySlot slot,
@@ -453,6 +487,37 @@ class AbilityActivationSystem {
     final recoveryTicks = _scaleAbilityTicks(ability.recoveryTicks);
     final executeTick = commitTick + windupTicks;
     final cooldownGroupId = ability.effectiveCooldownGroup(slot);
+    final cooldownTicks = _scaleAbilityTicks(ability.cooldownTicks);
+
+    // Preserve old behavior: mobility cancels pending combat + buffered input + active combat ability.
+    _cancelCombatOnMobilityPress(world, player);
+
+    final fail = AbilityGate.canCommitMobility(
+      world,
+      entity: player,
+      currentTick: commitTick,
+      cooldownGroupId: cooldownGroupId,
+      staminaCost100: ability.staminaCost,
+    );
+    if (fail != null) return false;
+
+    final facingDir = dirX >= 0 ? Facing.right : Facing.left;
+    _applyCommitSideEffects(
+      world,
+      player: player,
+      abilityId: ability.id,
+      slot: slot,
+      commitTick: commitTick,
+      windupTicks: windupTicks,
+      activeTicks: activeTicks,
+      recoveryTicks: recoveryTicks,
+      facingDir: facingDir,
+      cooldownGroupId: cooldownGroupId,
+      cooldownTicks: cooldownTicks,
+      manaCost100: 0,
+      staminaCost100: ability.staminaCost,
+      movementIndex: movementIndex,
+    );
 
     world.mobilityIntent.set(
       player,
@@ -464,7 +529,7 @@ class AbilityActivationSystem {
         windupTicks: windupTicks,
         activeTicks: activeTicks,
         recoveryTicks: recoveryTicks,
-        cooldownTicks: _scaleAbilityTicks(ability.cooldownTicks),
+        cooldownTicks: cooldownTicks,
         staminaCost100: ability.staminaCost,
         cooldownGroupId: cooldownGroupId,
         tick: executeTick,
@@ -557,6 +622,34 @@ class AbilityActivationSystem {
     );
 
     final cooldownGroupId = ability.effectiveCooldownGroup(slot);
+    final cooldownTicks = _scaleAbilityTicks(ability.cooldownTicks);
+
+    final fail = AbilityGate.canCommitCombat(
+      world,
+      entity: player,
+      currentTick: commitTick,
+      cooldownGroupId: cooldownGroupId,
+      manaCost100: 0,
+      staminaCost100: ability.staminaCost,
+    );
+    if (fail != null) return false;
+
+    final facingDir = dirX >= 0 ? Facing.right : Facing.left;
+    _applyCommitSideEffects(
+      world,
+      player: player,
+      abilityId: ability.id,
+      slot: slot,
+      commitTick: commitTick,
+      windupTicks: _scaleAbilityTicks(ability.windupTicks),
+      activeTicks: _scaleAbilityTicks(ability.activeTicks),
+      recoveryTicks: _scaleAbilityTicks(ability.recoveryTicks),
+      facingDir: facingDir,
+      cooldownGroupId: cooldownGroupId,
+      cooldownTicks: cooldownTicks,
+      manaCost100: 0,
+      staminaCost100: ability.staminaCost,
+    );
 
     world.meleeIntent.set(
       player,
@@ -576,7 +669,7 @@ class AbilityActivationSystem {
         windupTicks: _scaleAbilityTicks(ability.windupTicks),
         activeTicks: _scaleAbilityTicks(ability.activeTicks),
         recoveryTicks: _scaleAbilityTicks(ability.recoveryTicks),
-        cooldownTicks: _scaleAbilityTicks(ability.cooldownTicks),
+        cooldownTicks: cooldownTicks,
         staminaCost100: ability.staminaCost,
         cooldownGroupId: cooldownGroupId,
         tick: commitTick + _scaleAbilityTicks(ability.windupTicks),
@@ -676,6 +769,35 @@ class AbilityActivationSystem {
     final cooldownGroupId = ability.effectiveCooldownGroup(
       AbilitySlot.projectile,
     );
+    final cooldownTicks = _scaleAbilityTicks(ability.cooldownTicks);
+
+    final fail = AbilityGate.canCommitCombat(
+      world,
+      entity: player,
+      currentTick: commitTick,
+      cooldownGroupId: cooldownGroupId,
+      manaCost100: ability.manaCost,
+      staminaCost100: ability.staminaCost,
+    );
+    if (fail != null) return false;
+
+    final primaryX = (aimX.abs() > 1e-6) ? aimX : fallbackDirX;
+    final facingDir = primaryX >= 0 ? Facing.right : Facing.left;
+    _applyCommitSideEffects(
+      world,
+      player: player,
+      abilityId: ability.id,
+      slot: AbilitySlot.projectile,
+      commitTick: commitTick,
+      windupTicks: _scaleAbilityTicks(ability.windupTicks),
+      activeTicks: _scaleAbilityTicks(ability.activeTicks),
+      recoveryTicks: _scaleAbilityTicks(ability.recoveryTicks),
+      facingDir: facingDir,
+      cooldownGroupId: cooldownGroupId,
+      cooldownTicks: cooldownTicks,
+      manaCost100: ability.manaCost,
+      staminaCost100: ability.staminaCost,
+    );
 
     world.projectileIntent.set(
       player,
@@ -686,7 +808,7 @@ class AbilityActivationSystem {
         damage100: payload.damage100,
         staminaCost100: ability.staminaCost,
         manaCost100: ability.manaCost,
-        cooldownTicks: _scaleAbilityTicks(ability.cooldownTicks),
+        cooldownTicks: cooldownTicks,
         cooldownGroupId: cooldownGroupId,
         projectileId: projectileItem.projectileId,
         damageType: payload.damageType,
@@ -706,6 +828,71 @@ class AbilityActivationSystem {
       ),
     );
     return true;
+  }
+
+  void _applyCommitSideEffects(
+    EcsWorld world, {
+    required EntityId player,
+    required AbilityKey abilityId,
+    required AbilitySlot slot,
+    required int commitTick,
+    required int windupTicks,
+    required int activeTicks,
+    required int recoveryTicks,
+    required Facing facingDir,
+    required int cooldownGroupId,
+    required int cooldownTicks,
+    required int manaCost100,
+    required int staminaCost100,
+    int? movementIndex,
+  }) {
+    // Deduct mana (fixed-point) — deterministic clamp.
+    if (manaCost100 > 0) {
+      final mi = world.mana.tryIndexOf(player);
+      assert(
+        mi != null,
+        'Missing ManaStore on $player for manaCost=$manaCost100',
+      );
+      if (mi != null) {
+        final cur = world.mana.mana[mi];
+        final max = world.mana.manaMax[mi];
+        world.mana.mana[mi] = clampInt(cur - manaCost100, 0, max);
+      }
+    }
+
+    // Deduct stamina (fixed-point) — deterministic clamp.
+    if (staminaCost100 > 0) {
+      final si = world.stamina.tryIndexOf(player);
+      assert(
+        si != null,
+        'Missing StaminaStore on $player for staminaCost=$staminaCost100',
+      );
+      if (si != null) {
+        final cur = world.stamina.stamina[si];
+        final max = world.stamina.staminaMax[si];
+        world.stamina.stamina[si] = clampInt(cur - staminaCost100, 0, max);
+      }
+    }
+
+    // Start cooldown at commit (max-refresh semantics already inside CooldownStore.startCooldown()).
+    world.cooldown.startCooldown(player, cooldownGroupId, cooldownTicks);
+
+    // Mark active ability at commit.
+    world.activeAbility.set(
+      player,
+      id: abilityId,
+      slot: slot,
+      commitTick: commitTick,
+      windupTicks: windupTicks,
+      activeTicks: activeTicks,
+      recoveryTicks: recoveryTicks,
+      facingDir: facingDir,
+    );
+
+    // Keep movement facing consistent for mobility-like commits (matches old MobilitySystem behavior).
+    if (movementIndex != null) {
+      world.movement.facing[movementIndex] = facingDir;
+    }
   }
 
   int _scaleAbilityTicks(int ticks) {

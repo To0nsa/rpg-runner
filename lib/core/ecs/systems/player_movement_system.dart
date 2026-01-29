@@ -140,7 +140,8 @@ class PlayerMovementSystem {
               ? world.mobilityIntent.staminaCost100[jumpIntentIndex]
               : resources.jumpStaminaCost100;
           if (world.stamina.stamina[si] >= jumpCost) {
-            world.stamina.stamina[si] -= jumpCost;
+            // Stamina cost is handled by AbilityActivationSystem at commit time.
+            // world.stamina.stamina[si] -= jumpCost;
 
             // Apply instantaneous upward velocity.
             world.transform.velY[ti] = -t.jumpSpeed;

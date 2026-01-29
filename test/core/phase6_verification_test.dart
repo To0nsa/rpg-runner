@@ -109,6 +109,18 @@ void main() {
     // Step ProjectileLaunchSystem
     projectileLaunchSystem.step(world, currentTick: tick);
 
+    // Simulate AbilityActivationSystem's side effect (setting active ability)
+    world.activeAbility.set(
+      player,
+      id: 'eloise.ice_bolt',
+      slot: AbilitySlot.projectile,
+      commitTick: tick,
+      windupTicks: 0,
+      activeTicks: 1,
+      recoveryTicks: 0,
+      facingDir: Facing.right,
+    );
+
     // Verify ActiveAbility
     expect(
       world.activeAbility.hasActiveAbility(player),

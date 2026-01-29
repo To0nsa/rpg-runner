@@ -1,16 +1,21 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:rpg_runner/core/abilities/ability_catalog.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/ecs/entity_factory.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
+import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:rpg_runner/core/ecs/stores/health_store.dart';
 import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
 import 'package:rpg_runner/core/ecs/stores/self_intent_store.dart';
 import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
-import 'package:rpg_runner/core/ecs/systems/self_ability_system.dart';
+import 'package:rpg_runner/core/ecs/systems/ability_activation_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
+import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
+import 'package:rpg_runner/core/weapons/weapon_catalog.dart';
+import 'package:rpg_runner/core/weapons/weapon_id.dart';
 
 void main() {
   test('SelfAbilitySystem commits and consumes resources', () {
@@ -33,32 +38,49 @@ void main() {
       ),
     );
 
-    world.selfIntent.set(
-      player,
-      SelfIntentDef(
-        abilityId: 'eloise.sword_parry',
-        slot: AbilitySlot.primary,
-        commitTick: 5,
-        windupTicks: 4,
-        activeTicks: 14,
-        recoveryTicks: 4,
-        cooldownTicks: 30,
-        cooldownGroupId: CooldownGroup.primary,
-        staminaCost100: 700,
-        manaCost100: 0,
-        tick: 9,
-      ),
+    // Setup Loadout to map Primary -> eloise.sword_parry
+    world.equippedLoadout.add(player);
+    final li = world.equippedLoadout.indexOf(player);
+    world.equippedLoadout.mask[li] |= LoadoutSlotMask.mainHand;
+    world.equippedLoadout.abilityPrimaryId[li] = 'eloise.sword_parry';
+
+    // Simulate input
+    world.playerInput.add(player);
+    world.playerInput.strikePressed[world.playerInput.indexOf(player)] = true;
+    world.abilityInputBuffer.add(player);
+    world.movement.add(player, facing: Facing.right);
+    world.meleeIntent.add(player); // Required by validation
+    world.selfIntent.add(player);
+
+    final system = AbilityActivationSystem(
+      tickHz: 60,
+      inputBufferTicks: 10,
+      abilities: const AbilityCatalog(),
+      weapons: const WeaponCatalog(), // Mock/Defaults?
+      projectileItems: const ProjectileItemCatalog(),
     );
 
-    final system = SelfAbilitySystem();
-    system.step(world, currentTick: 5);
+    // Mock WeaponCatalog/AbilityCatalog imports might be needed if they are complex.
+    // However, 'eloise.sword_parry' is in default AbilityCatalog.
+    // 'basic_sword' might be needed if loadout requires it.
+    world.equippedLoadout.mainWeaponId[li] =
+        WeaponId.basicSword; // Just in case
 
+    // Step
+    system.step(world, player: player, currentTick: 5);
+
+    // Verify
+    expect(world.activeAbility.has(player), isTrue);
     final ai = world.activeAbility.indexOf(player);
     expect(world.activeAbility.abilityId[ai], equals('eloise.sword_parry'));
+
+    // Cost 700 stamina -> 300 left
+    expect(world.stamina.stamina[world.stamina.indexOf(player)], equals(300));
+
+    // Cooldown 30 ticks
     expect(
       world.cooldown.getTicksLeft(player, CooldownGroup.primary),
       equals(30),
     );
-    expect(world.stamina.stamina[world.stamina.indexOf(player)], equals(300));
   });
 }
