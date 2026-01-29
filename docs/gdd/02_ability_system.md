@@ -135,10 +135,6 @@ Abilities are grouped into broad categories to support clear slot restrictions a
 
 > Categories are about player intent and slot compatibility, not implementation.
 
-* **Combo** (Future): multi-tap ability that chains multiple attacks (double/triple tap sequences)
-
-> Categories are about player intent and slot compatibility, not implementation.
-
 ### Mobility Abilities
 
 Mobility is a **special action**, not a combat ability. It follows unique rules:
@@ -181,7 +177,9 @@ Some events (stun, death) can forcibly end an ability mid-execution.
 
 **Design contract:**
 
-* Player **cannot voluntarily cancel** abilities.
+* Pre-commit aiming (Hold Directional before release): cancel allowed (no cost/cd).
+* Post-commit ability execution (Windup/Active/Recovery): no voluntary cancel (only forced interruption).
+* No voluntary cancel after commit.
 * Forced interruptions can occur in **any phase**.
 * If interrupted **before Active**, effects do not occur.
 * **Cost refund policy:** No refund (simple, punishing, consistent).
@@ -235,19 +233,6 @@ Facing direction is the fallback when no aiming occurs.
 
 ---
 
-### **Committed Aim Hold**
-
-A stricter variant where **commit happens when the hold starts**, not on release.
-
-* **On hold start:** costs are paid and cooldown begins immediately.
-* **Locked state:** player cannot cancel, cannot use mobility, and remains locked until release.
-* **Release:** completes the action using the aimed direction.
-* **Max hold duration:** capped at **X ticks** (configurable). If cap is reached, the ability **auto-releases** using the current aimed direction.
-
-> Use for abilities where commitment is immediate and aiming is a brief adjustment window (e.g., charged attacks, precision throws).
-
----
-
 ### **Self-Centered**
 
 Used by defensive or aura-style abilities.
@@ -285,7 +270,7 @@ Used by abilities that prioritize targets over direction.
 | Hold Directional | on release |
 | Committed Aim Hold | on hold start |
 | Self-Centered | on press |
-| Auto-Target (Future) | on press (after target resolution) |
+| Auto-Target | on press (after target resolution) |
 
 ---
 

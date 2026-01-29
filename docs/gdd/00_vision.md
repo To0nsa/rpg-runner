@@ -69,7 +69,7 @@ You’re a combat runner. You don’t “auto-fight”. You **commit** to action
 - Targeting models:
   - **Instant** (quick tap uses facing direction / default)
   - **Aim + confirm** (hold to aim, release to commit)
-- Key rule: **aim is a commitment** (no accidental casts; changing to mobility requires releasing aim first)
+- Key rule: **aim is a commitment**, but **survival is priority** (mobility ability cancels aim)
 
 ## Game feel goals
 - Combat is **snappy**: short windups, visible recovery, meaningful hitstun
