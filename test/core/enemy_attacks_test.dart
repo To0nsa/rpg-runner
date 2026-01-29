@@ -21,6 +21,7 @@ import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
+import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/projectiles/spawn_projectile_item.dart';
 import 'package:rpg_runner/core/tuning/ground_enemy_tuning.dart';
 import 'package:rpg_runner/core/tuning/spatial_grid_tuning.dart';
@@ -31,10 +32,12 @@ import 'package:rpg_runner/core/ecs/entity_factory.dart';
 void main() {
   test('enemy projectile (thunder) damages player', () {
     final world = EcsWorld();
-    final thunderDamage =
-        AbilityCatalog.tryGet('eloise.thunder_bolt')!.baseDamage;
-    final projectileItem =
-        const ProjectileItemCatalog().get(ProjectileItemId.thunderBolt);
+    final thunderDamage = AbilityCatalog.tryGet(
+      'eloise.thunder_bolt',
+    )!.baseDamage;
+    final projectileItem = const ProjectileItemCatalog().get(
+      ProjectileItemId.thunderBolt,
+    );
 
     final player = EntityFactory(world).createPlayer(
       posX: 100,
@@ -47,7 +50,11 @@ void main() {
       collider: const ColliderAabbDef(halfX: 8, halfY: 8),
       health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
       mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
-      stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
     );
 
     final unocoDemon = spawnUnocoDemon(
@@ -61,12 +68,19 @@ void main() {
       collider: const ColliderAabbDef(halfX: 8, halfY: 8),
       health: const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
       mana: const ManaDef(mana: 8000, manaMax: 8000, regenPerSecond100: 0),
-      stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
     );
 
     final p = spawnProjectileItemFromCaster(
       world,
-      projectiles: ProjectileCatalogDerived.from(const ProjectileCatalog(), tickHz: 60),
+      projectiles: ProjectileCatalogDerived.from(
+        const ProjectileCatalog(),
+        tickHz: 60,
+      ),
       projectileItemId: ProjectileItemId.thunderBolt,
       projectileId: projectileItem.projectileId,
       faction: Faction.enemy,
@@ -88,14 +102,12 @@ void main() {
 
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
     final broadphase = BroadphaseGrid(
-      index: GridIndex2D(cellSize: const SpatialGridTuning().broadphaseCellSize),
+      index: GridIndex2D(
+        cellSize: const SpatialGridTuning().broadphaseCellSize,
+      ),
     )..rebuild(world);
     final hit = ProjectileHitSystem();
-    hit.step(
-      world,
-      broadphase,
-      currentTick: 1,
-    );
+    hit.step(world, broadphase, currentTick: 1);
     damage.step(world, currentTick: 1);
 
     expect(
@@ -119,7 +131,11 @@ void main() {
       collider: const ColliderAabbDef(halfX: 8, halfY: 8),
       health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
       mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
-      stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
     );
 
     final groundEnemy = spawnGroundEnemy(
@@ -133,7 +149,11 @@ void main() {
       collider: const ColliderAabbDef(halfX: 12, halfY: 12),
       health: const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
       mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
-      stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
     );
 
     final groundEnemyTuning = GroundEnemyTuningDerived.from(
@@ -155,13 +175,13 @@ void main() {
     final engagement = EnemyEngagementSystem(
       groundEnemyTuning: groundEnemyTuning,
     );
-    final system = EnemyMeleeSystem(
-      groundEnemyTuning: groundEnemyTuning,
-    );
+    final system = EnemyMeleeSystem(groundEnemyTuning: groundEnemyTuning);
 
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
     final broadphase = BroadphaseGrid(
-      index: GridIndex2D(cellSize: const SpatialGridTuning().broadphaseCellSize),
+      index: GridIndex2D(
+        cellSize: const SpatialGridTuning().broadphaseCellSize,
+      ),
     );
     final follow = HitboxFollowOwnerSystem();
     final hitboxDamage = HitboxDamageSystem();
@@ -179,10 +199,7 @@ void main() {
     broadphase.rebuild(world);
     hitboxDamage.step(world, broadphase, currentTick: 1);
     damage.step(world, currentTick: 1);
-    expect(
-      world.health.hp[world.health.indexOf(player)],
-      equals(10000),
-    );
+    expect(world.health.hp[world.health.indexOf(player)], equals(10000));
 
     // Tick 2: engage -> strike; schedule the hit for a future tick.
     engagement.step(world, player: player, currentTick: strikeStartTick);
@@ -194,10 +211,7 @@ void main() {
     broadphase.rebuild(world);
     hitboxDamage.step(world, broadphase, currentTick: strikeStartTick);
     damage.step(world, currentTick: strikeStartTick);
-    expect(
-      world.health.hp[world.health.indexOf(player)],
-      equals(10000),
-    );
+    expect(world.health.hp[world.health.indexOf(player)], equals(10000));
 
     // No damage until the planned hit tick.
     for (var tick = strikeStartTick + 1; tick < hitTick; tick += 1) {
@@ -209,10 +223,7 @@ void main() {
       broadphase.rebuild(world);
       hitboxDamage.step(world, broadphase, currentTick: tick);
       damage.step(world, currentTick: tick);
-      expect(
-        world.health.hp[world.health.indexOf(player)],
-        equals(10000),
-      );
+      expect(world.health.hp[world.health.indexOf(player)], equals(10000));
     }
 
     // Hit tick: spawn hitbox and apply damage once.
@@ -224,22 +235,16 @@ void main() {
     hitboxDamage.step(world, broadphase, currentTick: hitTick);
     damage.step(world, currentTick: hitTick);
 
-    expect(
-      world.health.hp[world.health.indexOf(player)],
-      equals(expectedHp),
-    );
+    expect(world.health.hp[world.health.indexOf(player)], equals(expectedHp));
 
     // Same tick again should be blocked by HitOnce (hitbox still alive).
     hitboxDamage.step(world, broadphase, currentTick: hitTick);
     damage.step(world, currentTick: hitTick);
-    expect(
-      world.health.hp[world.health.indexOf(player)],
-      equals(expectedHp),
-    );
+    expect(world.health.hp[world.health.indexOf(player)], equals(expectedHp));
 
     // And ground enemy should have a melee cooldown set.
     expect(
-      world.cooldown.meleeCooldownTicksLeft[world.cooldown.indexOf(groundEnemy)],
+      world.cooldown.getTicksLeft(groundEnemy, CooldownGroup.primary),
       greaterThan(0),
     );
   });

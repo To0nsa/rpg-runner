@@ -33,6 +33,7 @@
 /// 6. Retry up to `maxAttempts` times.
 library;
 
+import 'abilities/ability_def.dart';
 import 'ecs/entity_id.dart';
 import 'ecs/entity_factory.dart';
 import 'ecs/hit/aabb_hit_utils.dart';
@@ -215,10 +216,11 @@ class SpawnService {
 
     // Pre-set cooldown to prevent immediate casting on spawn tick.
     // This ensures consistent early-game difficulty across runs.
-    _world.cooldown.projectileCooldownTicksLeft[_world.cooldown.indexOf(
-          unocoDemon,
-        )] =
-        _unocoDemonTuning.unocoDemonCastCooldownTicks;
+    _world.cooldown.setTicksLeft(
+      unocoDemon,
+      CooldownGroup.projectile,
+      _unocoDemonTuning.unocoDemonCastCooldownTicks,
+    );
 
     return unocoDemon;
   }
@@ -242,7 +244,8 @@ class SpawnService {
     return _entityFactory.createEnemy(
       enemyId: EnemyId.groundEnemy,
       posX: spawnX,
-      posY: groundTopY - (archetype.collider.offsetY + archetype.collider.halfY),
+      posY:
+          groundTopY - (archetype.collider.offsetY + archetype.collider.halfY),
       velX: 0.0,
       velY: 0.0,
       facing: Facing.left,

@@ -15,7 +15,6 @@ class SelfAbilitySystem {
     final intents = world.selfIntent;
     if (intents.denseEntities.isEmpty) return;
 
-    final cooldowns = world.cooldown;
     final manas = world.mana;
     final staminas = world.stamina;
     final movements = world.movement;
@@ -32,16 +31,14 @@ class SelfAbilitySystem {
           continue;
         }
 
-        final ci = cooldowns.tryIndexOf(entity);
-        if (ci == null) {
+        if (!world.cooldown.has(entity)) {
           _invalidateIntent(intents, ii);
           continue;
         }
         final slot = intents.slot[ii];
-        final cooldownLeft = slot == AbilitySlot.projectile
-            ? cooldowns.projectileCooldownTicksLeft[ci]
-            : cooldowns.meleeCooldownTicksLeft[ci];
-        if (cooldownLeft > 0) {
+        // Use the slot's default cooldown group.
+        final cooldownGroup = CooldownGroup.fromSlot(slot);
+        if (world.cooldown.isOnCooldown(entity, cooldownGroup)) {
           _invalidateIntent(intents, ii);
           continue;
         }
@@ -84,18 +81,15 @@ class SelfAbilitySystem {
         }
         if (si != null) {
           final max = staminas.staminaMax[si];
-          staminas.stamina[si] = clampInt(
-            currentStamina - staminaCost,
-            0,
-            max,
-          );
+          staminas.stamina[si] = clampInt(currentStamina - staminaCost, 0, max);
         }
 
-        if (slot == AbilitySlot.projectile) {
-          cooldowns.projectileCooldownTicksLeft[ci] = intents.cooldownTicks[ii];
-        } else {
-          cooldowns.meleeCooldownTicksLeft[ci] = intents.cooldownTicks[ii];
-        }
+        // Start cooldown using the slot's cooldown group.
+        world.cooldown.startCooldown(
+          entity,
+          cooldownGroup,
+          intents.cooldownTicks[ii],
+        );
 
         final miIndex = movements.tryIndexOf(entity);
         final facing = miIndex == null

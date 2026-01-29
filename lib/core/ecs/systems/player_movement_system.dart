@@ -33,7 +33,7 @@ class PlayerMovementSystem {
     // Uses EcsQueries to efficiently fetch entities with all required components.
     EcsQueries.forMovementBodies(world, (e, mi, ti, ii, bi, ci, si) {
       if (!world.body.enabled[bi]) return;
-      
+
       // Kinematic bodies are moved by scripts/physics directly, not by player input.
       if (world.body.isKinematic[bi]) {
         return;
@@ -47,8 +47,12 @@ class PlayerMovementSystem {
         if (world.movement.dashTicksLeft[mi] > 0) {
           world.movement.dashTicksLeft[mi] = 0;
           // Restore gravity if it was suppressed by dash
-          if (world.gravityControl.suppressGravityTicksLeft[world.gravityControl.indexOf(e)] > 0) {
-             world.gravityControl.suppressGravityTicksLeft[world.gravityControl.indexOf(e)] = 0;
+          if (world.gravityControl.suppressGravityTicksLeft[world.gravityControl
+                  .indexOf(e)] >
+              0) {
+            world.gravityControl.suppressGravityTicksLeft[world.gravityControl
+                    .indexOf(e)] =
+                0;
           }
         }
         world.transform.velX[ti] = 0;
@@ -57,9 +61,7 @@ class PlayerMovementSystem {
 
       // -- Timers --
       // Decrement state timers. These track cooldowns and temporary states (dash, buffers).
-      if (world.movement.dashCooldownTicksLeft[mi] > 0) {
-        world.movement.dashCooldownTicksLeft[mi] -= 1;
-      }
+
       if (world.movement.dashTicksLeft[mi] > 0) {
         world.movement.dashTicksLeft[mi] -= 1;
       }
@@ -92,8 +94,9 @@ class PlayerMovementSystem {
 
       final dashing = world.movement.dashTicksLeft[mi] > 0;
       final modifierIndex = world.statModifier.tryIndexOf(e);
-      final moveSpeedMul =
-          modifierIndex == null ? 1.0 : world.statModifier.moveSpeedMul[modifierIndex];
+      final moveSpeedMul = modifierIndex == null
+          ? 1.0
+          : world.statModifier.moveSpeedMul[modifierIndex];
 
       if (world.movement.facingLockTicksLeft[mi] > 0) {
         world.movement.facingLockTicksLeft[mi] -= 1;
@@ -110,7 +113,7 @@ class PlayerMovementSystem {
       } else {
         // [State: Normal Control]
         final axis = world.playerInput.moveAxis[ii];
-        
+
         // Visuals: Update facing direction based on input.
         // This is decoupled from velocity to allow "turning" animations before velocity flips.
         if (world.movement.facingLockTicksLeft[mi] == 0 && axis != 0) {
@@ -178,8 +181,10 @@ class PlayerMovementSystem {
 
       // -- Limits --
       // Soft cap on horizontal velocity to prevent runaway speeds from external forces.
-      world.transform.velX[ti] = world.transform.velX[ti]
-          .clamp(-world.body.maxVelX[bi], world.body.maxVelX[bi]);
+      world.transform.velX[ti] = world.transform.velX[ti].clamp(
+        -world.body.maxVelX[bi],
+        world.body.maxVelX[bi],
+      );
     });
   }
 

@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import '../../abilities/ability_def.dart';
+
 import 'package:rpg_runner/core/ecs/entity_id.dart';
 
 import '../../enemies/enemy_id.dart';
@@ -88,11 +90,12 @@ class EnemyEngagementSystem {
       final dxToPlayer = playerX - ex;
       final distToPlayerX = dxToPlayer.abs();
       final sideNow = dxToPlayer >= 0 ? -1 : 1;
-      final collapseDistX = groundEnemyTuning.combat.meleeRangeX +
+      final collapseDistX =
+          groundEnemyTuning.combat.meleeRangeX +
           groundEnemyTuning.locomotion.stopDistanceX;
 
-      final meleeOffsetMaxX =
-          groundEnemyTuning.navigation.chaseOffsetMeleeX.abs();
+      final meleeOffsetMaxX = groundEnemyTuning.navigation.chaseOffsetMeleeX
+          .abs();
       final meleeOffsetAbs = min(meleeOffsetMaxX, chaseOffsetX.abs());
       final meleeOffsetX = meleeOffsetAbs == 0.0
           ? 0.0
@@ -102,7 +105,8 @@ class EnemyEngagementSystem {
         preferredSide = sideNow;
       }
 
-      final engageEnterDist = groundEnemyTuning.combat.meleeRangeX +
+      final engageEnterDist =
+          groundEnemyTuning.combat.meleeRangeX +
           groundEnemyTuning.locomotion.stopDistanceX +
           groundEnemyTuning.engagement.meleeEngageBufferX;
       final engageExitDist =
@@ -127,8 +131,10 @@ class EnemyEngagementSystem {
             // Cooldown-gated transition into strike.
             final ci = world.cooldown.tryIndexOf(enemy);
             if (ci != null) {
-              final cooldownReady =
-                  world.cooldown.meleeCooldownTicksLeft[ci] <= 0;
+              final cooldownReady = !world.cooldown.isOnCooldown(
+                enemy,
+                CooldownGroup.primary,
+              );
               final inMeleeRange =
                   distToPlayerX <= groundEnemyTuning.combat.meleeRangeX;
               if (cooldownReady && inMeleeRange) {
@@ -159,7 +165,8 @@ class EnemyEngagementSystem {
       }
 
       final engageTargetX =
-          navTargetX + preferredSide * groundEnemyTuning.engagement.meleeStandOffX;
+          navTargetX +
+          preferredSide * groundEnemyTuning.engagement.meleeStandOffX;
 
       double desiredTargetX;
       var stateSpeedMul = 1.0;

@@ -20,7 +20,7 @@ void main() {
   test('Phase 6 Unit Test: ProjectileLaunchSystem + AnimSystem', () {
     final world = EcsWorld(seed: 123);
     final entityFactory = EntityFactory(world);
-    
+
     // Setup player
     final playerArchetype = PlayerCatalogDerived.from(
       PlayerCharacterRegistry.defaultCharacter.catalog,
@@ -29,8 +29,12 @@ void main() {
     ).archetype;
 
     final player = entityFactory.createPlayer(
-      posX: 0, posY: 0, velX: 0, velY: 0,
-      facing: Facing.right, grounded: true,
+      posX: 0,
+      posY: 0,
+      velX: 0,
+      velY: 0,
+      facing: Facing.right,
+      grounded: true,
       body: playerArchetype.body,
       collider: playerArchetype.collider,
       health: playerArchetype.health,
@@ -40,8 +44,11 @@ void main() {
 
     // Setup Systems
     final tickHz = 60;
-    final projectiles = ProjectileCatalogDerived.from(const ProjectileCatalog(), tickHz: tickHz);
-    
+    final projectiles = ProjectileCatalogDerived.from(
+      const ProjectileCatalog(),
+      tickHz: tickHz,
+    );
+
     final projectileLaunchSystem = ProjectileLaunchSystem(
       projectiles: projectiles,
     );
@@ -49,8 +56,14 @@ void main() {
     final animSystem = AnimSystem(
       tickHz: tickHz,
       enemyCatalog: const EnemyCatalog(),
-      playerMovement: MovementTuningDerived.from(const MovementTuning(), tickHz: tickHz),
-      playerAnimTuning: AnimTuningDerived.from(const AnimTuning(), tickHz: tickHz),
+      playerMovement: MovementTuningDerived.from(
+        const MovementTuning(),
+        tickHz: tickHz,
+      ),
+      playerAnimTuning: AnimTuningDerived.from(
+        const AnimTuning(),
+        tickHz: tickHz,
+      ),
     );
 
     final tick = 100; // Arbitrary current tick
@@ -80,16 +93,16 @@ void main() {
         activeTicks: 1,
         recoveryTicks: 0,
         cooldownTicks: 60,
-        tick: tick, 
+        tick: tick,
       ),
     );
 
     // Force Resources
     if (world.mana.has(player)) {
-        world.mana.mana[world.mana.indexOf(player)] = 10000;
+      world.mana.mana[world.mana.indexOf(player)] = 10000;
     }
     if (world.cooldown.has(player)) {
-        world.cooldown.projectileCooldownTicksLeft[world.cooldown.indexOf(player)] = 0;
+      world.cooldown.setTicksLeft(player, CooldownGroup.projectile, 0);
     }
 
     // Step ProjectileLaunchSystem
@@ -101,7 +114,8 @@ void main() {
       isTrue,
       reason: 'ActiveAbility should be set by ProjectileLaunchSystem',
     );
-    final activeId = world.activeAbility.abilityId[world.activeAbility.indexOf(player)];
+    final activeId =
+        world.activeAbility.abilityId[world.activeAbility.indexOf(player)];
     expect(activeId, equals('eloise.ice_bolt'));
 
     // Step AnimSystem

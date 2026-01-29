@@ -1,3 +1,4 @@
+import '../../abilities/ability_def.dart';
 import '../../snapshots/enums.dart';
 import '../../util/fixed_math.dart';
 import '../../projectiles/projectile_catalog.dart';
@@ -22,7 +23,7 @@ class ProjectileLaunchSystem {
     if (intents.denseEntities.isEmpty) return;
 
     final transforms = world.transform;
-    final cooldowns = world.cooldown;
+
     final manas = world.mana;
     final staminas = world.stamina;
     final factions = world.faction;
@@ -45,12 +46,13 @@ class ProjectileLaunchSystem {
           continue;
         }
 
-        final ci = cooldowns.tryIndexOf(caster);
-        if (ci == null) {
+        if (!world.cooldown.has(caster)) {
           _invalidateIntent(intents, ii);
           continue;
         }
-        if (cooldowns.projectileCooldownTicksLeft[ci] > 0) {
+        // Projectile abilities use the projectile cooldown group.
+        final cooldownGroup = CooldownGroup.fromSlot(intents.slot[ii]);
+        if (world.cooldown.isOnCooldown(caster, cooldownGroup)) {
           _invalidateIntent(intents, ii);
           continue;
         }
@@ -93,21 +95,20 @@ class ProjectileLaunchSystem {
         }
         if (si != null) {
           final max = staminas.staminaMax[si];
-          staminas.stamina[si] = clampInt(
-            currentStamina - staminaCost,
-            0,
-            max,
-          );
+          staminas.stamina[si] = clampInt(currentStamina - staminaCost, 0, max);
         }
 
-        cooldowns.projectileCooldownTicksLeft[ci] = intents.cooldownTicks[ii];
+        world.cooldown.startCooldown(
+          caster,
+          cooldownGroup,
+          intents.cooldownTicks[ii],
+        );
 
         final dirX = intents.dirX[ii];
         final fallbackX = intents.fallbackDirX[ii];
-        final facingDir =
-            (dirX.abs() > 1e-6 ? dirX : fallbackX) >= 0
-                ? Facing.right
-                : Facing.left;
+        final facingDir = (dirX.abs() > 1e-6 ? dirX : fallbackX) >= 0
+            ? Facing.right
+            : Facing.left;
 
         world.activeAbility.set(
           caster,

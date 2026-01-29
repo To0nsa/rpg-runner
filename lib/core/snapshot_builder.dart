@@ -149,7 +149,7 @@ class SnapshotBuilder {
     final hi = world.health.indexOf(player);
     final mai = world.mana.indexOf(player);
     final si = world.stamina.indexOf(player);
-    final ci = world.cooldown.indexOf(player);
+
     final li = world.equippedLoadout.indexOf(player);
 
     // ─── Read current resource values ───
@@ -177,7 +177,8 @@ class SnapshotBuilder {
     final meleeAbilityId = loadout.abilityPrimaryId[li];
     final meleeAbility = AbilityCatalog.tryGet(meleeAbilityId);
     final meleeStaminaCost =
-        meleeAbility?.staminaCost ?? toFixed100(abilities.base.meleeStaminaCost);
+        meleeAbility?.staminaCost ??
+        toFixed100(abilities.base.meleeStaminaCost);
 
     final meleeInputMode = _inputModeFor(meleeAbility);
     final projectileInputMode = _inputModeFor(projectileAbility);
@@ -193,13 +194,21 @@ class SnapshotBuilder {
         mana >= projectileManaCost;
 
     // ─── Read cooldown timers ───
-    final dashCooldownTicksLeft = world.movement.dashCooldownTicksLeft[mi];
+    final dashCooldownTicksLeft = world.cooldown.getTicksLeft(
+      player,
+      CooldownGroup.mobility,
+    );
     final dashCooldownTicksTotal = mobilityAbility == null
         ? movement.dashCooldownTicks
         : _scaleAbilityTicks(mobilityAbility.cooldownTicks);
-    final meleeCooldownTicksLeft = world.cooldown.meleeCooldownTicksLeft[ci];
-    final projectileCooldownTicksLeft =
-        world.cooldown.projectileCooldownTicksLeft[ci];
+    final meleeCooldownTicksLeft = world.cooldown.getTicksLeft(
+      player,
+      CooldownGroup.primary,
+    );
+    final projectileCooldownTicksLeft = world.cooldown.getTicksLeft(
+      player,
+      CooldownGroup.projectile,
+    );
     final projectileCooldownTicksTotal = projectileAbility == null
         ? abilities.castCooldownTicks
         : _scaleAbilityTicks(projectileAbility.cooldownTicks);

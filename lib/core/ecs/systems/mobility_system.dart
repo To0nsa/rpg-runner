@@ -54,7 +54,9 @@ class MobilitySystem {
           _invalidateIntent(intents, ii);
           continue;
         }
-        if (movements.dashCooldownTicksLeft[mi] > 0) {
+        // Check mobility cooldown from CooldownStore.
+        final cooldownGroup = CooldownGroup.fromSlot(AbilitySlot.mobility);
+        if (world.cooldown.isOnCooldown(entity, cooldownGroup)) {
           _invalidateIntent(intents, ii);
           continue;
         }
@@ -87,7 +89,12 @@ class MobilitySystem {
           staminas.stamina[si] -= staminaCost;
         }
 
-        movements.dashCooldownTicksLeft[mi] = intents.cooldownTicks[ii];
+        // Start mobility cooldown in CooldownStore.
+        world.cooldown.startCooldown(
+          entity,
+          cooldownGroup,
+          intents.cooldownTicks[ii],
+        );
 
         final dirX = intents.dirX[ii];
         final facing = dirX >= 0 ? Facing.right : Facing.left;

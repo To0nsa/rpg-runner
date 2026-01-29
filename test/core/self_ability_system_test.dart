@@ -26,7 +26,11 @@ void main() {
       collider: const ColliderAabbDef(halfX: 8, halfY: 8),
       health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
       mana: const ManaDef(mana: 1000, manaMax: 1000, regenPerSecond100: 0),
-      stamina: const StaminaDef(stamina: 1000, staminaMax: 1000, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 1000,
+        staminaMax: 1000,
+        regenPerSecond100: 0,
+      ),
     );
 
     world.selfIntent.set(
@@ -51,12 +55,9 @@ void main() {
     final ai = world.activeAbility.indexOf(player);
     expect(world.activeAbility.abilityId[ai], equals('eloise.sword_parry'));
     expect(
-      world.cooldown.meleeCooldownTicksLeft[world.cooldown.indexOf(player)],
+      world.cooldown.getTicksLeft(player, CooldownGroup.primary),
       equals(30),
     );
-    expect(
-      world.stamina.stamina[world.stamina.indexOf(player)],
-      equals(300),
-    );
+    expect(world.stamina.stamina[world.stamina.indexOf(player)], equals(300));
   });
 }

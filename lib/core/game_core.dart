@@ -241,8 +241,7 @@ class GameCore {
     CoreTuning tuning = const CoreTuning(),
     PlayerCharacterDefinition playerCharacter =
         PlayerCharacterRegistry.defaultCharacter,
-    ProjectileItemCatalog projectileItemCatalog =
-        const ProjectileItemCatalog(),
+    ProjectileItemCatalog projectileItemCatalog = const ProjectileItemCatalog(),
     ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
     EnemyCatalog enemyCatalog = const EnemyCatalog(),
     WeaponCatalog weaponCatalog = const WeaponCatalog(),
@@ -467,9 +466,7 @@ class GameCore {
     _resourceRegenSystem = ResourceRegenSystem(tickHz: tickHz);
 
     // Projectile execution.
-    _projectileLaunchSystem = ProjectileLaunchSystem(
-      projectiles: _projectiles,
-    );
+    _projectileLaunchSystem = ProjectileLaunchSystem(projectiles: _projectiles);
     _selfAbilitySystem = SelfAbilitySystem();
     _meleeStrikeSystem = MeleeStrikeSystem();
 
@@ -567,8 +564,9 @@ class GameCore {
         mainWeaponId: playerArchetype.weaponId,
         offhandWeaponId: playerArchetype.offhandWeaponId,
         projectileItemId: playerArchetype.projectileItemId,
-        abilityProjectileId:
-            _abilityIdForProjectileItem(playerArchetype.projectileItemId),
+        abilityProjectileId: _abilityIdForProjectileItem(
+          playerArchetype.projectileItemId,
+        ),
       ),
     );
   }
@@ -802,14 +800,13 @@ class GameCore {
   }
 
   /// Remaining projectile cooldown ticks.
+  /// Remaining projectile cooldown ticks.
   int get playerProjectileCooldownTicksLeft =>
-      _world.cooldown.projectileCooldownTicksLeft[
-        _world.cooldown.indexOf(_player)
-      ];
+      _world.cooldown.getTicksLeft(_player, CooldownGroup.projectile);
 
   /// Remaining melee strike cooldown ticks.
   int get playerMeleeCooldownTicksLeft =>
-      _world.cooldown.meleeCooldownTicksLeft[_world.cooldown.indexOf(_player)];
+      _world.cooldown.getTicksLeft(_player, CooldownGroup.primary);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Command Processing

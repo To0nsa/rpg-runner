@@ -14,22 +14,15 @@ bool isValidAbilityKey(AbilityKey key) {
 }
 
 enum AbilitySlot {
-  primary,    // Button A (Melee)
-  secondary,  // Button B (Off-hand/Defensive)
+  primary, // Button A (Melee)
+  secondary, // Button B (Off-hand/Defensive)
   projectile, // Button C (Cast/Throw)
-  mobility,   // Button D (Dash)
-  bonus,      // Button E (Potion/Ultimate)
-  jump,       // Fixed slot (reserved)
+  mobility, // Button D (Dash)
+  bonus, // Button E (Potion/Ultimate)
+  jump, // Fixed slot (reserved)
 }
 
-enum AbilityCategory {
-  melee,
-  ranged,
-  magic,
-  mobility,
-  defense,
-  utility,
-}
+enum AbilityCategory { melee, ranged, magic, mobility, defense, utility }
 
 enum AbilityTag {
   // Mechanics
@@ -39,13 +32,13 @@ enum AbilityTag {
   aoe,
   buff,
   debuff,
-  
+
   // Elements
   physical,
   fire,
   ice,
   lightning,
-  
+
   // Properties
   heavy,
   light,
@@ -54,43 +47,33 @@ enum AbilityTag {
 }
 
 /// Weapon family classification used for ability gating.
-enum WeaponType {
-  oneHandedSword,
-  shield,
-  throwingWeapon,
-  projectileSpell,
-}
+enum WeaponType { oneHandedSword, shield, throwingWeapon, projectileSpell }
 
 enum TargetingModel {
-  none,              // Instant self-cast / buff
-  directional,       // Uses input direction (melee)
-  aimed,             // Uses explicit aim cursor (ranged)
-  homing,            // Auto-locks nearest target
-  groundTarget,      // AOE circle on ground
+  none, // Instant self-cast / buff
+  directional, // Uses input direction (melee)
+  aimed, // Uses explicit aim cursor (ranged)
+  homing, // Auto-locks nearest target
+  groundTarget, // AOE circle on ground
 }
 
-enum AbilityPhase {
-  idle,
-  windup,
-  active,
-  recovery,
-}
+enum AbilityPhase { idle, windup, active, recovery }
 
 enum InterruptPriority {
-  low,      // e.g. passive stance
-  combat,   // standard attacks (strike/cast)
+  low, // e.g. passive stance
+  combat, // standard attacks (strike/cast)
   mobility, // dash/jump/roll
-  forced,   // system-only (stun/death)
+  forced, // system-only (stun/death)
 }
 
 // --------------------------------------------------------------------------
 // HIT DELIVERY
 // --------------------------------------------------------------------------
 
-enum HitPolicy { 
-  once,           // Hit once per activation (e.g. explosion)
-  oncePerTarget,  // Hit each target once (e.g. sword swing)
-  everyTick       // Hit every frame (e.g. beam)
+enum HitPolicy {
+  once, // Hit once per activation (e.g. explosion)
+  oncePerTarget, // Hit each target once (e.g. sword swing)
+  everyTick, // Hit every frame (e.g. beam)
 }
 
 abstract class HitDeliveryDef {
@@ -156,9 +139,61 @@ class AimSnapshot {
   final double angleRad;
   final bool hasAngle;
   final int capturedTick;
-  
+
   @override
-  String toString() => 'AimSnapshot(rad: ${angleRad.toStringAsFixed(2)}, tick: $capturedTick)';
+  String toString() =>
+      'AimSnapshot(rad: ${angleRad.toStringAsFixed(2)}, tick: $capturedTick)';
+}
+
+// --------------------------------------------------------------------------
+// COOLDOWN GROUPS
+// --------------------------------------------------------------------------
+
+/// Maximum supported cooldown groups per entity.
+const int kMaxCooldownGroups = 8;
+
+/// Semantic constants for cooldown group IDs.
+///
+/// Abilities sharing a group share a cooldown. Use these constants
+/// for clarity, or use raw integers for custom groupings.
+abstract final class CooldownGroup {
+  /// Primary melee abilities (sword strike, etc.)
+  static const int primary = 0;
+
+  /// Secondary/off-hand abilities (shield bash, shield block, etc.)
+  static const int secondary = 1;
+
+  /// Projectile abilities (spells, throwing weapons)
+  static const int projectile = 2;
+
+  /// Mobility abilities (dash, roll)
+  static const int mobility = 3;
+
+  /// Jump ability
+  static const int jump = 4;
+
+  /// Bonus slot abilities (5-7 reserved for future/bonus)
+  static const int bonus0 = 5;
+  static const int bonus1 = 6;
+  static const int bonus2 = 7;
+
+  /// Returns the default cooldown group for a given slot.
+  static int fromSlot(AbilitySlot slot) {
+    switch (slot) {
+      case AbilitySlot.primary:
+        return primary;
+      case AbilitySlot.secondary:
+        return secondary;
+      case AbilitySlot.projectile:
+        return projectile;
+      case AbilitySlot.mobility:
+        return mobility;
+      case AbilitySlot.jump:
+        return jump;
+      case AbilitySlot.bonus:
+        return bonus0;
+    }
+  }
 }
 
 // --------------------------------------------------------------------------
@@ -178,6 +213,7 @@ class AbilityDef {
     required this.staminaCost,
     required this.manaCost,
     required this.cooldownTicks,
+    this.cooldownGroupId,
     required this.interruptPriority,
     this.canBeInterruptedBy = const {},
     required this.animKey,
@@ -188,49 +224,72 @@ class AbilityDef {
     this.procs = const <WeaponProc>[],
     required this.baseDamage,
     this.baseDamageType = DamageType.physical,
-  }) : assert(windupTicks >= 0 && activeTicks >= 0 && recoveryTicks >= 0, 'Ticks cannot be negative'),
+  }) : assert(
+         windupTicks >= 0 && activeTicks >= 0 && recoveryTicks >= 0,
+         'Ticks cannot be negative',
+       ),
        assert(cooldownTicks >= 0, 'Cooldown cannot be negative'),
        assert(staminaCost >= 0 && manaCost >= 0, 'Costs cannot be negative'),
-       assert(interruptPriority != InterruptPriority.forced, 'Forced priority is reserved for system events.');
+       assert(
+         interruptPriority != InterruptPriority.forced,
+         'Forced priority is reserved for system events.',
+       ),
+       assert(
+         cooldownGroupId == null ||
+             (cooldownGroupId >= 0 && cooldownGroupId < kMaxCooldownGroups),
+         'Cooldown group must be in range [0, $kMaxCooldownGroups)',
+       );
 
   final AbilityKey id;
-  
+
   // UI grouping only
   final AbilityCategory category;
-  
+
   // Explicit equip legality
   final Set<AbilitySlot> allowedSlots;
-  
+
   // Targeting
   final TargetingModel targetingModel;
-  
+
   // Hit mechanics
   final HitDeliveryDef hitDelivery;
-  
+
   // Timing (ticks @ 60hz)
   final int windupTicks;
   final int activeTicks;
   final int recoveryTicks;
-  
+
   // Costs (fixed point: 100 = 1.0)
   final int staminaCost;
   final int manaCost;
-  
+
   // Cooldown
   final int cooldownTicks;
-  
+
+  /// Cooldown group index (0-7). Abilities sharing a group share a cooldown.
+  ///
+  /// If null, defaults to the slot's default group via [CooldownGroup.fromSlot].
+  /// Suggested defaults:
+  ///   0 = primary melee
+  ///   1 = secondary melee
+  ///   2 = projectile
+  ///   3 = mobility
+  ///   4 = jump
+  ///   5-7 = future/bonus
+  final int? cooldownGroupId;
+
   // Interrupt rules
   final InterruptPriority interruptPriority;
   final Set<InterruptPriority> canBeInterruptedBy;
-  
+
   // Presentation
   final AnimKey animKey;
-  
+
   // Metadata
   final Set<AbilityTag> tags;
   final Set<AbilityTag> requiredTags;
   final Set<WeaponType> requiredWeaponTypes;
-  
+
   /// If true, this ability requires *some* weapon to be equipped in its slot,
   /// even if [requiredWeaponTypes] is empty.
   final bool requiresEquippedWeapon;
@@ -250,12 +309,19 @@ class AbilityDef {
   /// Explicitly defined (Phase 5), no inference from tags.
   final DamageType baseDamageType;
 
+  /// Returns the effective cooldown group for this ability.
+  ///
+  /// Uses [cooldownGroupId] if set, otherwise falls back to slot default.
+  int effectiveCooldownGroup(AbilitySlot slot) {
+    return cooldownGroupId ?? CooldownGroup.fromSlot(slot);
+  }
+
   // Runtime Validation (Helper)
   bool get isValid {
-    return isValidAbilityKey(id) && 
-           !canBeInterruptedBy.contains(interruptPriority);
+    return isValidAbilityKey(id) &&
+        !canBeInterruptedBy.contains(interruptPriority);
   }
-  
+
   @override
   String toString() => 'AbilityDef($id)';
 }

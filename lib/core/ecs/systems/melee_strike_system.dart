@@ -1,3 +1,4 @@
+import '../../abilities/ability_def.dart';
 import '../../snapshots/enums.dart';
 import '../stores/hitbox_store.dart';
 import '../stores/lifetime_store.dart';
@@ -27,7 +28,7 @@ class MeleeStrikeSystem {
   void step(EcsWorld world, {required int currentTick}) {
     final intents = world.meleeIntent;
     if (intents.denseEntities.isEmpty) return;
-    
+
     // Iterate through all intents.
     for (var ii = 0; ii < intents.denseEntities.length; ii += 1) {
       final strikeer = intents.denseEntities[ii];
@@ -53,13 +54,14 @@ class MeleeStrikeSystem {
         }
 
         // Attacker must respond to cooldowns.
-        final ci = world.cooldown.tryIndexOf(strikeer);
-        if (ci == null) {
+        if (!world.cooldown.has(strikeer)) {
           intents.tick[ii] = -1;
           intents.commitTick[ii] = -1;
           continue;
         }
-        if (world.cooldown.meleeCooldownTicksLeft[ci] > 0) {
+        // Check cooldown using the ability's slot default group (primary for melee).
+        final cooldownGroup = CooldownGroup.fromSlot(intents.slot[ii]);
+        if (world.cooldown.isOnCooldown(strikeer, cooldownGroup)) {
           intents.tick[ii] = -1;
           intents.commitTick[ii] = -1;
           continue;
@@ -100,7 +102,11 @@ class MeleeStrikeSystem {
         if (si != null) {
           world.stamina.stamina[si] = nextStamina!;
         }
-        world.cooldown.meleeCooldownTicksLeft[ci] = intents.cooldownTicks[ii];
+        world.cooldown.startCooldown(
+          strikeer,
+          cooldownGroup,
+          intents.cooldownTicks[ii],
+        );
       }
 
       if (executeTick != currentTick) continue;
