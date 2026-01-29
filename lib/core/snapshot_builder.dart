@@ -194,11 +194,11 @@ class SnapshotBuilder {
         mana >= projectileManaCost;
 
     // ─── Read cooldown timers ───
-    final cooldownTicksLeft = List<int>.filled(8, 0);
-    final cooldownTicksTotal = List<int>.filled(8, 0);
+    final cooldownTicksLeft = List<int>.filled(kMaxCooldownGroups, 0);
+    final cooldownTicksTotal = List<int>.filled(kMaxCooldownGroups, 0);
 
     // Populate current ticks from store.
-    for (var g = 0; g < 8; g++) {
+    for (var g = 0; g < kMaxCooldownGroups; g++) {
       cooldownTicksLeft[g] = world.cooldown.getTicksLeft(player, g);
     }
 

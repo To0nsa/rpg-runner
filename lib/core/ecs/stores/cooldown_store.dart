@@ -58,8 +58,17 @@ class CooldownStore extends SparseSet {
   }
 
   /// Starts a cooldown for the given group.
+  ///
+  /// Uses "max refresh" semantics: if the group is already on cooldown,
+  /// the new duration is applied only if it is longer than the current remaining ticks.
+  /// This prevents accidental shortening of cooldowns.
   void startCooldown(EntityId entity, int groupId, int durationTicks) {
-    setTicksLeft(entity, groupId, durationTicks);
+    final i = indexOf(entity);
+    final idx = i * kMaxCooldownGroups + groupId;
+    final current = _ticksLeft[idx];
+    if (durationTicks > current) {
+      _ticksLeft[idx] = durationTicks;
+    }
   }
 
   /// Checks if a cooldown group is active (ticks remaining > 0).
