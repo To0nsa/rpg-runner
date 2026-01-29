@@ -5,19 +5,24 @@ import '../world.dart';
 /// Processes requests to perform melee strikes.
 ///
 /// **Responsibilities**:
-/// *   Consumes [MeleeIntentStore] intents created by input or enemy AI.
-/// *   Validates strike requirements (Cooldown, Stamina availability).
-/// *   Deducts resource costs (Stamina, Cooldown Reset).
-/// *   Spawns the actual "Hitbox" entity that performs collision checks.
+/// *   Consumes committed melee intents created by input or enemy AI.
+/// *   **Execution only**: converts `tick == currentTick` intents into ephemeral hitbox entities.
+/// *   Spawns the actual "Hitbox" entity that performs collision checks (+ HitOnce + Lifetime).
+/// *   Invalidates the intent immediately to prevent double execution in the same tick.
+///
+/// **Not responsible for**:
+/// - Resource deduction (mana/stamina), cooldown start, or commit gating.
+///   Those are handled at commit-time (e.g. AbilityActivationSystem / enemy commit logic).
 ///
 /// **Workflow**:
-/// 1.  Filter intents that match the [currentTick] (synchronization).
-/// 2.  Validate Attacker State (Must exist, have cooldown component, etc.).
-/// 3.  Check Costs (Is cooldown ready? Is there enough stamina?).
-/// 4.  **Execute**:
-///     *   Deduct Stamina.
-///     *   Set Cooldown.
-///     *   Create Hitbox entity with [HitboxDef], [HitOnce], and [LifetimeDef].
+/// 1. Filter intents that match the [currentTick] (synchronization via stamped execute tick).
+/// 2. Invalidate the intent (so multi-pass in the same tick can’t double-spawn).
+/// 3. Validate attacker existence + basic state (e.g. stunned checks).
+/// 4. Spawn hitbox entity:
+///    - Transform at attacker position
+///    - HitboxDef from intent fields
+///    - HitOnce marker
+///    - LifetimeDef based on active window ticks
 class MeleeStrikeSystem {
   /// Runs the system logic.
   ///

@@ -24,12 +24,36 @@ You’re a combat runner. You don’t “auto-fight”. You **commit** to action
 - executing clean inputs.
 
 ## Core gameplay loop
+
+### Run types (per level)
+Every level supports two run types:
+
+1) **Practice (Random Seed)**
+- Seed: random
+- Purpose: variety, learning, farming, experimentation
+- **No leaderboard submission**
+- Only scoreboard: local personal bests (device only)
+
+2) **Competitive (Fixed Seed)**
+- Seed: fixed for a **time window** (seasonal window)
+- Purpose: fair comparison + mastery chase
+- **Leaderboard submission enabled**
+- **Ghost replays enabled (Top 10)**
+
+**Weekly Challenge (Featured Competitive)**
+- A highlighted competitive run on a curated level/ruleset for the week.
+- Same competitive constraints: fixed seed + leaderboard + Top 10 ghosts.
+- Surfaced prominently in UI, but does **not** replace the player’s normal selected level by default.
+
 ### Meta loop
 1. Progress through runs to earn rewards (**in-game currency**).
 2. Spend rewards in the meta to unlock weapons, abilities, and Codex entries.
 3. Build loadouts per character (gear + melee / ranged / spell / mobility ability slots).
-4. Pick a level to chase a goal: personal best, daily objectives, leaderboard rank, or farming.
-5. Race against **top ghost runs** from **per-level leaderboards**.
+4. Pick a level + run type:
+   - Practice (random) for variety/farming
+   - Competitive (fixed) to chase rank/ghosts
+   - Weekly Challenge for the featured competition
+5. Race against **top ghost runs** from **competitive leaderboards**.
 
 ### Run loop (in-run)
 1. Run through a scrolling level (obstacles + enemy encounters)
@@ -39,14 +63,17 @@ You’re a combat runner. You don’t “auto-fight”. You **commit** to action
    - commit defensive moves (parry/block),
    - manage cooldowns/resources,
    - maintain momentum/positioning
-3. Outcome: score + currency + rank
+3. Outcome: score + currency + (if competitive) rank
 
 ## Unique selling points
 - **Deterministic, tick-based gameplay feel** (reliable, fair, replayable)
 - **Loadout-driven combat** (your kit changes how you play)
 - **Skill + build** combine (execution matters, not just stats)
 - **Build philosophy**: multiple **viable, equivalent-power** playstyles; the “best” loadout depends on the **level’s hazards and enemy composition**, not a universal meta build.
-- **Ghost runs vs top leaderboard** (clear performance target, competitive loop)
+- **Two run types per level**:
+  - Practice (random seed, no leaderboard)
+  - Competitive (fixed seed, leaderboard + ghosts)
+- **Weekly Challenge spotlight** (featured competitive track)
 - Leaderboards are **score-first**, with **time as a tie-breaker**.
 - **In-game Codex (Library)**: quick entries for enemies/levels/characters with light flavor + practical tips.
 
@@ -54,7 +81,7 @@ You’re a combat runner. You don’t “auto-fight”. You **commit** to action
 1. **Clarity before complexity**
    - Player always understands what will happen when committing an action.
 2. **Determinism + fairness**
-   - Same inputs → same results; no “random feels-bad”.
+   - Same inputs → same results; no “random feels-bad” in competitive contexts.
 3. **Low-branching, responsive controls**
    - Minimal ambiguity. No accidental casts. No hidden state traps.
 4. **Readable combat**
@@ -84,7 +111,10 @@ A playable slice that proves the loop:
   - at least **4 abilities per main action slot** (to validate loadout choices)
 - **6 enemies** with different behaviors (melee, ranged, jumper, tank, etc.)
 - **2 levels/biomes** (different obstacle + encounter patterns)
-- **Online leaderboard** + **ghost replays (top 10)**
+- **Run types**
+  - Practice (random seed, no leaderboard)
+  - Competitive (fixed seed) with **online leaderboards + ghost replays (Top 10)**
+  - Weekly Challenge (featured competitive) with **weekly leaderboard + Top 10 ghosts**
 
 ## Art direction
 - **Side-view 2D HD** (high-res sprites), readable on mobile at multiple DPI scales
@@ -99,8 +129,9 @@ A playable slice that proves the loop:
 - Low-branching gameplay code
 - Data-driven catalogs for:
   - characters, weapons, abilities, enemies, levels
-- Ghost runs require:
-  - **deterministic input-record + replay**
+- Competitive + ghosts require:
+  - deterministic input-record + replay
+  - seed + ruleset versioning for compatibility
 
 ## Monetization principles (placeholder)
 - Don’t undermine mastery with pay-to-win.

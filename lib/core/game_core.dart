@@ -1059,15 +1059,18 @@ class GameCore {
     _projectileSystem.step(_world, _movement);
 
     // ─── Phase 9: Strike intent writing ───
-    // Enemies first, then player (order matters for fairness).
+    // Enemy intent writing only.
+    // Player intents are written at commit-time in Phase 3 (AbilityActivationSystem),
+    // then executed later via stamped executeTick. Keep ordering explicit for tie-breaks.
     _enemyCastSystem.step(_world, player: _player, currentTick: tick);
     _enemyMeleeSystem.step(_world, player: _player, currentTick: tick);
 
     // ─── Phase 10: Strike execution ───
-    // Convert intents into actual hitboxes/projectiles/self abilities.
-    _projectileLaunchSystem.step(_world, currentTick: tick);
-    _meleeStrikeSystem.step(_world, currentTick: tick);
     _selfAbilitySystem.step(_world, currentTick: tick);
+    // Convert intents into actual hitboxes/projectiles.
+    // Self abilities first so buffs/blocks/i-frames can affect spawns & downstream combat deterministically.
+    _meleeStrikeSystem.step(_world, currentTick: tick);
+    _projectileLaunchSystem.step(_world, currentTick: tick);
 
     // ─── Phase 11: Hitbox positioning ───
     // Update hitbox transforms to follow their owner entities.

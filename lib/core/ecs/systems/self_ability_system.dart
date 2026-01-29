@@ -18,6 +18,7 @@ class SelfAbilitySystem {
 
       if (executeTick != currentTick) continue;
 
+      // Invalidate now to ensure no double-execution in same tick
       _invalidateIntent(intents, ii);
     }
   }

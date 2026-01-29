@@ -39,18 +39,15 @@ void main() {
     );
 
     // Setup Loadout to map Primary -> eloise.sword_parry
-    world.equippedLoadout.add(player);
     final li = world.equippedLoadout.indexOf(player);
     world.equippedLoadout.mask[li] |= LoadoutSlotMask.mainHand;
     world.equippedLoadout.abilityPrimaryId[li] = 'eloise.sword_parry';
 
     // Simulate input
-    world.playerInput.add(player);
-    world.playerInput.strikePressed[world.playerInput.indexOf(player)] = true;
-    world.abilityInputBuffer.add(player);
-    world.movement.add(player, facing: Facing.right);
-    world.meleeIntent.add(player); // Required by validation
-    world.selfIntent.add(player);
+    final pi = world.playerInput.indexOf(player);
+    world.playerInput.strikePressed[pi] = true;
+
+    // Ensure movement and intents are present (added by factory)
 
     final system = AbilityActivationSystem(
       tickHz: 60,

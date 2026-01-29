@@ -17,7 +17,16 @@ class AbilityInputBufferStore extends SparseSet {
   final List<int> commitTick = <int>[];
   final List<int> expiresTick = <int>[];
 
+  /// Ensures entity has this component. Idempotent.
+  void ensure(EntityId entity) {
+    if (!has(entity)) {
+      addEntity(entity);
+    }
+  }
+
+  /// Strict add — asserts entity is NOT already present.
   void add(EntityId entity) {
+    assert(!has(entity), 'Entity $entity already has AbilityInputBufferStore');
     addEntity(entity);
   }
 
