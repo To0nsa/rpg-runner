@@ -62,6 +62,8 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     with WidgetsBindingObserver {
   bool _pausedByLifecycle = false;
   bool _started = false;
+  bool _exitConfirmOpen = false;
+  bool _pausedBeforeExitConfirm = false;
 
   late GameController _controller;
   late RunnerInputRouter _input;
@@ -132,6 +134,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     setState(() {
       _pausedByLifecycle = false;
       _started = false;
+      _exitConfirmOpen = false;
       _initGame();
     });
     _controller.setPaused(true);
@@ -143,6 +146,29 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       oldProjectilePreview.dispose();
       oldMeleePreview.dispose();
     });
+  }
+
+  void _openExitConfirm() {
+    final wasPaused = _controller.snapshot.paused;
+    if (!wasPaused) _clearInputs();
+    _controller.setPaused(true);
+
+    setState(() {
+      _pausedBeforeExitConfirm = wasPaused;
+      _exitConfirmOpen = true;
+    });
+  }
+
+  void _closeExitConfirm({required bool resume}) {
+    setState(() => _exitConfirmOpen = false);
+    if (resume) {
+      _controller.setPaused(_pausedBeforeExitConfirm);
+    }
+  }
+
+  void _confirmExitGiveUp() {
+    setState(() => _exitConfirmOpen = false);
+    _controller.giveUp();
   }
 
   void _togglePause() {
@@ -222,7 +248,8 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
             final uiState = _buildUiState();
             if (uiState.gameOver) {
               final runEndedEvent = _controller.lastRunEndedEvent;
-              final runEndKey = runEndedEvent?.tick ?? _controller.snapshot.tick;
+              final runEndKey =
+                  runEndedEvent?.tick ?? _controller.snapshot.tick;
               return GameOverOverlay(
                 key: ValueKey('gameOver-$runEndKey-${runEndedEvent?.reason}'),
                 visible: true,
@@ -245,8 +272,11 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
               onTogglePause: _togglePause,
               showExitButton: widget.showExitButton,
               onExit: uiState.started && !uiState.gameOver
-                  ? _controller.giveUp
+                  ? _openExitConfirm
                   : widget.onExit,
+              exitConfirmOpen: _exitConfirmOpen,
+              onExitConfirmResume: () => _closeExitConfirm(resume: true),
+              onExitConfirmExit: _confirmExitGiveUp,
             );
           },
         ),

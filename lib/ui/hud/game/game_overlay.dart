@@ -24,6 +24,9 @@ class GameOverlay extends StatelessWidget {
     required this.onTogglePause,
     required this.showExitButton,
     required this.onExit,
+    required this.exitConfirmOpen,
+    required this.onExitConfirmResume,
+    required this.onExitConfirmExit,
   });
 
   final GameController controller;
@@ -35,6 +38,9 @@ class GameOverlay extends StatelessWidget {
   final VoidCallback onTogglePause;
   final bool showExitButton;
   final VoidCallback? onExit;
+  final bool exitConfirmOpen;
+  final VoidCallback onExitConfirmResume;
+  final VoidCallback onExitConfirmExit;
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +86,12 @@ class GameOverlay extends StatelessWidget {
                 hud.cooldownTicksTotal[CooldownGroup.mobility],
           ),
         ),
-        PauseOverlay(visible: uiState.showPauseOverlay),
+        PauseOverlay(
+          visible: uiState.showPauseOverlay,
+          exitConfirmOpen: exitConfirmOpen,
+          onResume: onExitConfirmResume,
+          onExit: onExitConfirmExit,
+        ),
         ReadyOverlay(visible: uiState.showReadyOverlay, onTap: onStart),
         Align(
           alignment: Alignment.topLeft,

@@ -14,6 +14,7 @@ import 'restart_exit_buttons.dart';
 import 'score_breakdown_formatter.dart';
 import 'score_distribution.dart';
 import 'score_feed_controller.dart';
+import '../../components/overlay_button.dart';
 // import '../../../core/spells/spell_id.dart';
 
 class GameOverOverlay extends StatefulWidget {
@@ -190,18 +191,18 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                       ),
                       const SizedBox(height: 14),
                       if (showCollectButton)
-                        _OverlayButton(
+                        OverlayButton(
                           label: collectLabel,
                           onPressed: _onCollectPressed,
                         )
                       else
                         RestartExitButtons(
-                          restartButton: _OverlayButton(
+                          restartButton: OverlayButton(
                             label: 'Restart',
                             onPressed: () => _completeThen(widget.onRestart),
                           ),
                           exitButton: widget.showExitButton
-                              ? _OverlayButton(
+                              ? OverlayButton(
                                   label: 'Exit',
                                   onPressed: () => _completeThen(widget.onExit),
                                 )
@@ -321,30 +322,3 @@ String _projectileName(ProjectileId id) {
       return 'thunder';
   }
 } */
-
-class _OverlayButton extends StatelessWidget {
-  const _OverlayButton({required this.label, required this.onPressed});
-
-  final String label;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextButton(
-      onPressed: onPressed,
-      style: TextButton.styleFrom(
-        foregroundColor: const Color(0xFFFFFFFF),
-        backgroundColor: const Color(0xAA000000),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-          side: const BorderSide(color: Color(0xFFFFFFFF)),
-        ),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-      ),
-    );
-  }
-}
