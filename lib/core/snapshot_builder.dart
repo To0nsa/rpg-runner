@@ -180,6 +180,17 @@ class SnapshotBuilder {
         meleeAbility?.staminaCost ??
         toFixed100(abilities.base.meleeStaminaCost);
 
+    final secondaryAbilityId = loadout.abilitySecondaryId[li];
+    final secondaryAbility = AbilityCatalog.tryGet(secondaryAbilityId);
+    final secondaryStaminaCost =
+        secondaryAbility?.staminaCost ??
+        toFixed100(abilities.base.meleeStaminaCost);
+
+    final bonusAbilityId = loadout.abilityBonusId[li];
+    final bonusAbility = AbilityCatalog.tryGet(bonusAbilityId);
+    final bonusManaCost = bonusAbility?.manaCost ?? 0;
+    final bonusStaminaCost = bonusAbility?.staminaCost ?? 0;
+
     final meleeInputMode = _inputModeFor(meleeAbility);
     final projectileInputMode = _inputModeFor(projectileAbility);
 
@@ -188,10 +199,17 @@ class SnapshotBuilder {
     final canAffordJump = stamina >= jumpStaminaCost;
     final canAffordDash = stamina >= dashStaminaCost;
     final canAffordMelee = stamina >= meleeStaminaCost;
+
+    final hasSecondarySlot = (loadoutMask & LoadoutSlotMask.offHand) != 0;
+    final canAffordSecondary = hasSecondarySlot && stamina >= secondaryStaminaCost;
+
     final canAffordProjectile =
         hasProjectileSlot &&
         stamina >= projectileStaminaCost &&
         mana >= projectileManaCost;
+
+    final canAffordBonus =
+        bonusAbility != null && stamina >= bonusStaminaCost && mana >= bonusManaCost;
 
     // ─── Read cooldown timers ───
     final cooldownTicksLeft = List<int>.filled(kMaxCooldownGroups, 0);
@@ -208,6 +226,11 @@ class SnapshotBuilder {
         ? abilities.meleeCooldownTicks
         : _scaleAbilityTicks(meleeAbility.cooldownTicks);
 
+    // Secondary (Off-hand)
+    cooldownTicksTotal[CooldownGroup.secondary] = secondaryAbility == null
+        ? abilities.meleeCooldownTicks
+        : _scaleAbilityTicks(secondaryAbility.cooldownTicks);
+
     // Projectile
     cooldownTicksTotal[CooldownGroup.projectile] = projectileAbility == null
         ? abilities.castCooldownTicks
@@ -217,6 +240,13 @@ class SnapshotBuilder {
     cooldownTicksTotal[CooldownGroup.mobility] = mobilityAbility == null
         ? movement.dashCooldownTicks
         : _scaleAbilityTicks(mobilityAbility.cooldownTicks);
+
+    // Bonus (Utility)
+    cooldownTicksTotal[CooldownGroup.bonus0] =
+        bonusAbility == null ? 0 : _scaleAbilityTicks(bonusAbility.cooldownTicks);
+
+    // Jump currently has no cooldown (buffer/coyote are handled by MovementSystem).
+    cooldownTicksTotal[CooldownGroup.jump] = 0;
 
     // ─── Read player transform ───
     final ti = world.transform.indexOf(player);
@@ -292,7 +322,9 @@ class SnapshotBuilder {
         canAffordJump: canAffordJump,
         canAffordDash: canAffordDash,
         canAffordMelee: canAffordMelee,
+        canAffordSecondary: canAffordSecondary,
         canAffordProjectile: canAffordProjectile,
+        canAffordBonus: canAffordBonus,
         cooldownTicksLeft: cooldownTicksLeft,
         cooldownTicksTotal: cooldownTicksTotal,
         meleeInputMode: meleeInputMode,

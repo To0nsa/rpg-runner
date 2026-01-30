@@ -15,7 +15,9 @@ class PlayerHudSnapshot {
     required this.canAffordJump,
     required this.canAffordDash,
     required this.canAffordMelee,
+    required this.canAffordSecondary,
     required this.canAffordProjectile,
+    required this.canAffordBonus,
     required this.cooldownTicksLeft,
     required this.cooldownTicksTotal,
     required this.meleeInputMode,
@@ -51,8 +53,14 @@ class PlayerHudSnapshot {
   /// Whether stamina is sufficient for melee.
   final bool canAffordMelee;
 
+  /// Whether resources are sufficient for the equipped secondary/off-hand ability.
+  final bool canAffordSecondary;
+
   /// Whether resources are sufficient for the equipped projectile ability.
   final bool canAffordProjectile;
+
+  /// Whether resources are sufficient for the equipped bonus ability.
+  final bool canAffordBonus;
 
   /// Remaining cooldown ticks for each CooldownGroup.
   final List<int> cooldownTicksLeft;

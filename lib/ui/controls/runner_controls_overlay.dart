@@ -16,6 +16,8 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.onMoveAxis,
     required this.onJumpPressed,
     required this.onDashPressed,
+    required this.onSecondaryPressed,
+    required this.onBonusPressed,
     required this.onProjectileCommitted,
     required this.onProjectilePressed,
     required this.onProjectileAimDir,
@@ -38,12 +40,20 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.dashAffordable,
     required this.dashCooldownTicksLeft,
     required this.dashCooldownTicksTotal,
+    required this.secondaryAffordable,
+    required this.secondaryCooldownTicksLeft,
+    required this.secondaryCooldownTicksTotal,
+    required this.bonusAffordable,
+    required this.bonusCooldownTicksLeft,
+    required this.bonusCooldownTicksTotal,
     this.tuning = ControlsTuning.fixed,
   });
 
   final ValueChanged<double> onMoveAxis;
   final VoidCallback onJumpPressed;
   final VoidCallback onDashPressed;
+  final VoidCallback onSecondaryPressed;
+  final VoidCallback onBonusPressed;
   final VoidCallback onProjectileCommitted;
   final VoidCallback onProjectilePressed;
   final void Function(double x, double y) onProjectileAimDir;
@@ -66,6 +76,12 @@ class RunnerControlsOverlay extends StatelessWidget {
   final bool dashAffordable;
   final int dashCooldownTicksLeft;
   final int dashCooldownTicksTotal;
+  final bool secondaryAffordable;
+  final int secondaryCooldownTicksLeft;
+  final int secondaryCooldownTicksTotal;
+  final bool bonusAffordable;
+  final int bonusCooldownTicksLeft;
+  final int bonusCooldownTicksTotal;
   final ControlsTuning tuning;
 
   @override
@@ -77,6 +93,9 @@ class RunnerControlsOverlay extends StatelessWidget {
     final smallActionSize = action.size * 0.85;
     final smallDirectionalSize = directional.size * 0.85;
     final smallDeadzoneRadius = directional.deadzoneRadius * 0.85;
+
+    // Arrange the 5 action slots (Mobility, Secondary, Primary, Projectile, Bonus)
+    // in a clean radial arc around the Jump button.
 
     Offset polar(double radius, double degrees) {
       final radians = degrees * math.pi / 180.0;
@@ -92,13 +111,20 @@ class RunnerControlsOverlay extends StatelessWidget {
     }
 
     final jumpRadius = jumpSize * 0.5;
-    final arcGap = t.buttonGap * 0.8;
-    final arcRadius = jumpRadius + smallDirectionalSize * 0.5 + arcGap;
-    final dashRadius = jumpRadius + smallActionSize * 0.5 + arcGap;
+    final ringGap = t.buttonGap * 0.9;
+    final ringRadius =
+        jumpRadius + math.max(smallDirectionalSize, smallActionSize) * 0.5 + ringGap;
 
-    final dashOffset = polar(dashRadius, 160);
-    final meleeOffset = polar(arcRadius, 200);
-    final projectileOffset = polar(arcRadius, 240);
+    // Evenly spread the 5 action buttons over an arc above/left of the jump.
+    // Degrees follow the standard unit circle, but note Flutter's Y axis points down.
+    const startDeg = 160.0;
+    const stepDeg = 35.0;
+
+    final dashOffset = polar(ringRadius, startDeg + stepDeg * 0);
+    final secondaryOffset = polar(ringRadius, startDeg + stepDeg * 1);
+    final meleeOffset = polar(ringRadius, startDeg + stepDeg * 2);
+    final projectileOffset = polar(ringRadius, startDeg + stepDeg * 3);
+    final bonusOffset = polar(ringRadius, startDeg + stepDeg * 4);
 
     return Stack(
       children: [
@@ -200,6 +226,40 @@ class RunnerControlsOverlay extends StatelessWidget {
                   labelFontSize: directional.labelFontSize,
                   labelGap: directional.labelGap,
                 ),
+        ),
+        Positioned(
+          right: rightFor(bonusOffset, smallActionSize),
+          bottom: bottomFor(bonusOffset, smallActionSize),
+          child: ActionButton(
+            label: 'Bonus',
+            icon: Icons.star,
+            onPressed: onBonusPressed,
+            affordable: bonusAffordable,
+            cooldownTicksLeft: bonusCooldownTicksLeft,
+            cooldownTicksTotal: bonusCooldownTicksTotal,
+            size: smallActionSize,
+            backgroundColor: action.backgroundColor,
+            foregroundColor: action.foregroundColor,
+            labelFontSize: action.labelFontSize,
+            labelGap: action.labelGap,
+          ),
+        ),
+        Positioned(
+          right: rightFor(secondaryOffset, smallActionSize),
+          bottom: bottomFor(secondaryOffset, smallActionSize),
+          child: ActionButton(
+            label: 'Sec',
+            icon: Icons.shield,
+            onPressed: onSecondaryPressed,
+            affordable: secondaryAffordable,
+            cooldownTicksLeft: secondaryCooldownTicksLeft,
+            cooldownTicksTotal: secondaryCooldownTicksTotal,
+            size: smallActionSize,
+            backgroundColor: action.backgroundColor,
+            foregroundColor: action.foregroundColor,
+            labelFontSize: action.labelFontSize,
+            labelGap: action.labelGap,
+          ),
         ),
         Positioned(
           right: rightFor(dashOffset, smallActionSize),

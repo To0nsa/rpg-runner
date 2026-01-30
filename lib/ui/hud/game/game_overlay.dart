@@ -55,6 +55,8 @@ class GameOverlay extends StatelessWidget {
             onMoveAxis: input.setMoveAxis,
             onJumpPressed: input.pressJump,
             onDashPressed: input.pressDash,
+            onSecondaryPressed: input.pressSecondary,
+            onBonusPressed: input.pressBonus,
             onProjectileCommitted: () =>
                 input.commitProjectileWithAim(clearAim: true),
             onProjectilePressed: input.pressProjectile,
@@ -84,6 +86,16 @@ class GameOverlay extends StatelessWidget {
                 hud.cooldownTicksLeft[CooldownGroup.mobility],
             dashCooldownTicksTotal:
                 hud.cooldownTicksTotal[CooldownGroup.mobility],
+            secondaryAffordable: hud.canAffordSecondary,
+            secondaryCooldownTicksLeft:
+                hud.cooldownTicksLeft[CooldownGroup.secondary],
+            secondaryCooldownTicksTotal:
+                hud.cooldownTicksTotal[CooldownGroup.secondary],
+            bonusAffordable: hud.canAffordBonus,
+            bonusCooldownTicksLeft:
+                hud.cooldownTicksLeft[CooldownGroup.bonus0],
+            bonusCooldownTicksTotal:
+                hud.cooldownTicksTotal[CooldownGroup.bonus0],
           ),
         ),
         PauseOverlay(
