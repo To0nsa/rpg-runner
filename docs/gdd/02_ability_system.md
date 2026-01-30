@@ -361,7 +361,7 @@ Examples for Eloise:
 * Primary requires a **weapon** (or two-handed weapon).
 * Secondary requires an **off-hand weapon** (acts as Primary if two-handed weapon equipped).
 * Projectile requires a **projectile item**, either a spell or a throwing weapon.
-* Bonus does not require gear.
+* Bonus has no dedicated gear slot, but the equipped ability may require a payload source (primary / secondary / projectile).
 
 **Design rule:** gear cannot be missing.
 
