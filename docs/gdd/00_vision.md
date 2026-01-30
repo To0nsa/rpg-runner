@@ -4,7 +4,7 @@
 A **mobile 2D mid-core RPG runner** where you build a character loadout, then execute **tight, deterministic runs** with **skill-based combat**, chasing **leaderboards and ghost runs**.
 
 ## North Star
-Make every run feel like: **“My build matters + my execution matters.”**
+Make every run feel like: **"My build matters + my execution matters."**
 Not an idle runner. Not a pure arcade runner. A combat-first runner with real mastery depth.
 
 ## Target platforms
@@ -18,7 +18,7 @@ Not an idle runner. Not a pure arcade runner. A combat-first runner with real ma
 - Built to support a **global audience**
 
 ## Core fantasy
-You’re a combat runner. You don’t “auto-fight”. You **commit** to actions with timing and positioning, and you win by:
+You're a combat runner. You don't "auto-fight". You **commit** to actions with timing and positioning, and you win by:
 - picking the right kit,
 - reading enemies/terrain,
 - executing clean inputs.
@@ -38,12 +38,12 @@ Every level supports two run types:
 - Seed: fixed for a **time window** (seasonal window)
 - Purpose: fair comparison + mastery chase
 - **Leaderboard submission enabled**
-- **Ghost replays enabled (Top 10)**
+- **Ghost replays enabled (only against Top 10)**
 
 **Weekly Challenge (Featured Competitive)**
 - A highlighted competitive run on a curated level/ruleset for the week.
 - Same competitive constraints: fixed seed + leaderboard + Top 10 ghosts.
-- Surfaced prominently in UI, but does **not** replace the player’s normal selected level by default.
+- Surfaced prominently in UI, but does **not** replace the player's normal selected level by default.
 
 ### Meta loop
 1. Progress through runs to earn rewards (**in-game currency**).
@@ -66,10 +66,10 @@ Every level supports two run types:
 3. Outcome: score + currency + (if competitive) rank
 
 ## Unique selling points
-- **Deterministic, tick-based gameplay feel** (reliable, fair, replayable)
+- **Deterministic, tick-based gameplay** (reliable, fair, replayable)
 - **Loadout-driven combat** (your kit changes how you play)
 - **Skill + build** combine (execution matters, not just stats)
-- **Build philosophy**: multiple **viable, equivalent-power** playstyles; the “best” loadout depends on the **level’s hazards and enemy composition**, not a universal meta build.
+- **Build philosophy**: multiple **viable, equivalent-power** playstyles; the "best" loadout depends on the **level's hazards and enemy composition**, not a universal meta build.
 - **Two run types per level**:
   - Practice (random seed, no leaderboard)
   - Competitive (fixed seed, leaderboard + ghosts)
@@ -77,11 +77,11 @@ Every level supports two run types:
 - Leaderboards are **score-first**, with **time as a tie-breaker**.
 - **In-game Codex (Library)**: quick entries for enemies/levels/characters with light flavor + practical tips.
 
-## Pillars (non-negotiables)
+## Pillars
 1. **Clarity before complexity**
    - Player always understands what will happen when committing an action.
 2. **Determinism + fairness**
-   - Same inputs → same results; no “random feels-bad” in competitive contexts.
+   - Same inputs → same results; no "random feels-bad" in competitive contexts.
 3. **Low-branching, responsive controls**
    - Minimal ambiguity. No accidental casts. No hidden state traps.
 4. **Readable combat**
@@ -118,7 +118,7 @@ A playable slice that proves the loop:
 
 ## Art direction
 - **Side-view 2D HD** (high-res sprites), readable on mobile at multiple DPI scales
-- Style: **mature, almost dark fantasy** grim mood, restrained color palette, high contrast/value clarity, minimal “cartoony” exaggeration
+- Style: **mature, almost dark fantasy** grim mood, restrained color palette, high contrast/value clarity, minimal "cartoony" exaggeration
 - Strong silhouettes and clear telegraphs at runner speed (readability > detail)
 - Animation priority: clear anticipation → impact → recovery
 - VFX: minimal but sharp (avoid screen noise; favor readable impacts and debuffs)
@@ -134,8 +134,8 @@ A playable slice that proves the loop:
   - seed + ruleset versioning for compatibility
 
 ## Monetization principles (placeholder)
-- Don’t undermine mastery with pay-to-win.
-- Keep the “fair competitive loop” intact.
+- Don't undermine mastery with pay-to-win.
+- Keep the "fair competitive loop" intact.
 - Supporter Pack
 - QoL packs (presets/slots/inventory)
 - Rewarded ads
@@ -146,7 +146,7 @@ A playable slice that proves the loop:
 - A run is fun even when you lose.
 - Players can explain in 1 sentence why they died.
 - Retention proxy: players voluntarily retry to beat their ghost / leaderboard.
-- Clear “build curiosity”: players want to try different loadouts.
+- Clear "build curiosity": players want to try different loadouts.
 
 ## Non-goals (for now)
 - No in-run loadout changes
@@ -169,14 +169,14 @@ Potential additions once the core loop is proven:
 - **High-speed readability**
   - telegraphs, hit VFX, damage numbers, and parallax noise fighting for attention at runner speed
 - **Loadout system complexity creep**
-  - too many slots/ability variants without strict constraints → balance hell + UI bloat + “optimal build only” meta
+  - too many slots/ability variants without strict constraints → balance hell + UI bloat + "optimal build only" meta
 - **Determinism integrity**
   - any non-deterministic timing, floating-point drift, or frame-rate coupling breaks fairness and makes ghosts unreliable
 - **Ghosts / leaderboards cost + cheating surface**
   - storage/bandwidth, replay validation, and basic anti-tamper needs (at least input-hash + versioning)
 - **Content scaling**
-  - adding enemies/abilities multiplies animation + VFX + balance work; without a tight content pipeline you’ll stall
+  - adding enemies/abilities multiplies animation + VFX + balance work; without a tight content pipeline you'll stall
 
 ## Design stance
 This game wins by being **tight, fair, and replayable**.  
-If a feature makes the game messier, less readable, or less deterministic, it’s not worth it.
+If a feature makes the game messier, less readable, or less deterministic, it's not worth it.

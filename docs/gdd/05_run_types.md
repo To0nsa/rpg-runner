@@ -95,7 +95,7 @@ A run may submit only if:
 - `seed` matches board seed
 - `rulesetVersion` matches board
 - `scoreVersion` matches board
-- replay is compatible (for ghost submission), otherwise leaderboard-only submission may still be allowed (your choice)
+- replay is compatible (for ghost submission)
 
 ---
 
@@ -155,6 +155,7 @@ Only Top 10 per board must be guaranteed. Everything else is optional.
 ## 8. Sorting & Display Rules
 
 - Ranking is **score-first**, with **time as a tie-breaker**.
+- Ghost racing is restricted to Top 10 entries on Competitive/Weekly boards (no racing outside Top 10).
 - Leaderboards UI must show:
   - **Top 10**
   - **Your rank pinned** (even if outside top 10)
@@ -166,21 +167,16 @@ Only Top 10 per board must be guaranteed. Everything else is optional.
 
 ## 9. Versioning & Compatibility (non-negotiable)
 
-Competitive integrity requires explicit versioning:
+* **Hard gate (chosen strategy):**
+  * If `client.gameCompatVersion != board.gameCompatVersion`:
+    * **Competitive/Weekly are locked (cannot start runs).**
+    * Leaderboards/ghosts are viewable only if you want, but **ghost racing is disabled**.
+    * UI message: **“Update required to play Competitive/Weekly.”**
+  * Practice remains available.
 
-- `rulesetVersion`: bumps when gameplay-affecting rules change
-- `scoreVersion`: bumps when score formula changes
-- `gameCompatVersion`: bumps when deterministic replay compatibility breaks
-
-### Minimum policy
+### Minimum policy (chosen strategy: hard reject + prompt update)
+- Players may still **play** Competitive/Weekly on mismatched versions, but **cannot submit**.
 - If versions mismatch:
-  - leaderboard submission is rejected or routed to an “outdated” board (pick one strategy and keep consistent)
-  - ghost race is disabled with a clear reason
-
----
-
-## 10. Open Questions (to lock later)
-
-- Season length for Competitive (default suggested: **4 weeks**).
-- Whether leaderboard submission is allowed when ghost payload is incompatible (leaderboard-only submission).
-- Whether Competitive and Weekly have distinct reward multipliers (recommended: keep identical early to avoid “forced competitive”).
+  - **Leaderboard submission is rejected** and UI shows: **“Update required to submit to Competitive/Weekly.”**
+  - **Ghost upload and ghost racing are disabled** with the same reason (compatibility/version mismatch).
+- No “outdated boards” are created in this strategy (keeps boards clean and backend simple).

@@ -30,6 +30,7 @@ It follows the project stance: gameplay is **deterministic and fair**, and UI sh
 
 - Menu reads/writes persistent selection state:
   - `selectedLevelId`
+  - `selectedRunType` (`Practice` | `Competitive`) for the selected level
   - `selectedCharacterId`
   - `equippedLoadout` (slot → abilityId)
 - **Legality is enforced at equip-time**. In-run assumes loadout is valid.
@@ -60,6 +61,15 @@ It follows the project stance: gameplay is **deterministic and fair**, and UI sh
   - safe areas respected (notches)
   - minimum touch target sizes maintained
 
+### 2.5 Competitive/Weekly Version Gate (Hard Constraint)
+
+- **Competitive** and **Weekly** are **hard-gated** by compatibility:
+  - If `client.gameCompatVersion != activeBoard.gameCompatVersion` then:
+    - the mode is **locked** (cannot start a run)
+    - submissions/ghost racing are implicitly unavailable
+    - UI must show **“Update required”** and offer **Practice** as fallback
+- Practice is never blocked by version.
+
 ---
 
 ## 3. Information Architecture
@@ -77,10 +87,10 @@ It follows the project stance: gameplay is **deterministic and fair**, and UI sh
 
 - Launch → **Play Hub**
 - From Play Hub:
-  - `Start Run` → In-Game
+  - `Start Run` → In-Game (starts the **selected level** using the **selected run type**: Practice/Competitive)
   - `Edit Level` → Setup Level (route)
   - `Edit Loadout` → Setup Character Loadout (route)
-  - `Weekly` quick button → starts Weekly Challenge directly (does not change `selectedLevelId` by default)
+  - `Weekly` quick button → starts Weekly Challenge directly **if compatible**; otherwise shows “Update required” (does not change `selectedLevelId` by default)
   - Icons: `Leaderboards`, `Options`, `Library`, `Gold Store`, `Shop` → open those screens directly
 - From Setup Character Loadout:
   - `Try on Dummy` → Loadout Lab
@@ -114,6 +124,7 @@ Start fast. Show current setup summaries without clutter.
 
 - **Compact summary card: Selected Level**
   - name + small thumbnail
+  - **Run Type badge**: `Practice (Random)` or `Competitive (Season)`
   - `Edit` button
   - **Weekly badge (en-avant)**
     - small badge line under the level summary, always visible but visually subordinate to Start Run
@@ -135,6 +146,13 @@ Start fast. Show current setup summaries without clutter.
   - `Shop`
 
 ### Rules
+
+- `Start Run` always uses the **Selected Level + Selected Run Type**.
+- **Hard gate (Competitive/Weekly):** if `client.gameCompatVersion != activeBoard.gameCompatVersion`:
+  - If Selected Run Type is `Competitive`, `Start Run` is **locked** and shows **“Update required”**.
+  - The `Weekly` quick button is **locked** and shows **“Update required”**.
+  - Provide a one-tap fallback: `Switch to Practice` / `Play Practice`.
+- Practice is low-pressure and uses a **local Personal Best (PB) scoreboard**, not online leaderboards.
 
 - Weekly badge must not compete with Start Run:
   - no large panels
@@ -161,28 +179,42 @@ Choose level cleanly, while surfacing the **Weekly Challenge** as the competitiv
 
 - Header: “Select Level”
 
+- **Run Type selector (applies to normal levels)**
+  - Segmented control: `Practice (Random)` | `Competitive (Season)`
+  - Default: `Practice`
+  - UX note:
+    - Practice shows **PB** (local) for the selected level
+    - Competitive shows **Rank + best score** (online) for the selected level & current season
+    - **Hard gate:** if compat mismatches, the `Competitive (Season)` segment is **disabled/locked** with “Update required”.
+
 - **Featured zone: Weekly Challenge**
   - Larger card pinned at the top (ideally visible without scrolling on typical phones)
   - Contents:
     - Title: “Weekly Challenge”
     - Week label + countdown (e.g. “Week 05 — ends in 2d 14h”)
     - Level thumbnail
-    - Personal best + current rank (if available)
+    - Personal best + current rank (if available); weekly is always competitive
   - Actions:
     - `Play Weekly` (primary inside the card)
     - `Leaderboard` (secondary; opens Leaderboards pre-filtered to Weekly)
     - `Race Top Ghost` (secondary; routes to Weekly Leaderboards, player selects which top-10 ghost to race)
+  - **Hard gate:** if compat mismatches, `Play Weekly` and `Race Top Ghost` are **disabled/locked** with “Update required”.
 
 - **Standard zone: Levels List/Grid**
   - thumbnail, name, tags (biome/difficulty)
   - locked state + unlock condition
-  - selecting a level updates `selectedLevelId`
+  - selecting a level updates `selectedLevelId` (run type remains whatever is selected in the selector)
+  - row subtext (contextual):
+    - Practice: show PB (local)
+    - Competitive: show best score + rank (online) for current season
 
 - Bottom:
   - `Back` and `Confirm`
   - `Character` (cross-link)
 
 ### Weekly Challenge rules (sane defaults)
+
+- **Hard gate:** Weekly is not startable on incompatible builds; show “Update required” and route players to Practice.
 
 - Weekly is a **single highlighted level** with:
   - fixed seed / deterministic ruleset for fairness
@@ -227,7 +259,7 @@ Pick character and build the loadout (slot-based). The equipped section visually
   - Primary gear gates **Primary abilities**
   - Secondary gear gates **Secondary abilities**
   - Projectile gear gates **Projectile abilities**
-  - Utility gear can gate special utilities/passives (if you add them later)
+  - Utility gear can provide passive bonuses
 - Equipped ability slots still remain 5 (Primary/Secondary/Projectile/Bonus/Mobility). Gear filters what can be equipped into those slots.
 
 - **Equipped abilities (5 slots) — HUD-mirrored layout**
@@ -326,7 +358,7 @@ This runs **real gameplay logic** in a **training level** (not a fake animation 
 
 ### Purpose
 
-Provide a dedicated, full-page experience to browse leaderboards and pick **exactly which ghost** to race (top 10) quickly and clearly.
+Provide a dedicated, full-page experience to browse **Competitive/Weekly leaderboards** (with ghosts) and a **Practice PB scoreboard** (local).
 
 ### Entry points
 
@@ -341,13 +373,14 @@ Provide a dedicated, full-page experience to browse leaderboards and pick **exac
 ### Layout (full page)
 
 - Header: **Leaderboards**
-- **Context selector (prominent but compact)**
-  - `Selected Level` (default)
-  - `Weekly Challenge`
-  - Optional later: `All Levels` or `Global` (avoid early)
-- **Board selector (within the chosen context)**
-  - If `Selected Level`: board is that level by default; allow switching levels via a compact dropdown/search.
-  - If `Weekly`: board is the current week (with countdown).
+- **Mode selector (prominent but compact)**
+  - `Practice (PB)` local-only personal best scoreboard (no ghosts)
+  - `Competitive (Season)` online leaderboard + ghosts
+  - `Weekly Challenge` online leaderboard + ghosts
+- **Board selector (within the chosen mode)**
+  - Practice (PB): select a level → show your PB entries for that level (device-only).
+  - Competitive (Season): select a level → show the online board for that level & current season.
+  - Weekly: board is the current week (with countdown).
 - **Leaderboard list**
   - Show **Top 10** always, on one page (no pagination for top 10).
   - Also show **Your rank** pinned at the bottom, even if you are outside top 10.
@@ -363,12 +396,23 @@ Provide a dedicated, full-page experience to browse leaderboards and pick **exac
 ### Default behaviors (sane defaults)
 
 - Default selection on open:
-  - Context: `Selected Level` (unless deep-linked to Weekly)
-  - No implicit ghost target selection required; player explicitly picks one from top 10 before racing.
+  - Mode: `Competitive (Season)` (unless deep-linked to Weekly)
+  - Board: Selected Level by default
+  - No implicit ghost target selection required; player explicitly picks one from Top 10 before racing.
 - Ghost availability:
   - If ghost is unavailable/incompatible: disable `Race Ghost` and show why (version mismatch / missing data).
+- Mode availability:
+  - If `client.gameCompatVersion != activeBoard.gameCompatVersion`, **lock** `Competitive (Season)` and `Weekly Challenge` with “Update required”.
 
 ### Rules
+
+- Practice PB is **local-only** and must never be mixed with online leaderboards.
+- Ghost racing is only available for Competitive/Weekly modes.
+
+- **Hard gate (Competitive/Weekly):** if compat mismatches, those modes are **locked**:
+  - Mode tabs/filters show a lock badge + “Update required”.
+  - `Race Ghost` is disabled.
+  - Any entry points that would start Competitive/Weekly runs are disabled.
 
 - Leaderboards must never block Start Run:
   - all networking is async
