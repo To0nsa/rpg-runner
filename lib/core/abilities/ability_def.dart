@@ -49,6 +49,20 @@ enum AbilityTag {
 /// Weapon family classification used for ability gating.
 enum WeaponType { oneHandedSword, shield, throwingWeapon, projectileSpell }
 
+/// Where this ability should fetch its combat payload from at commit-time.
+///
+/// This is the missing "source of truth" that decouples:
+/// - which button/slot triggers an ability
+/// - from where the ability derives weapon/projectile stats/procs/damage-type.
+///
+/// Critical for Bonus slot (can host anything).
+enum AbilityPayloadSource {
+  none,
+  primaryWeapon,
+  secondaryWeapon, // off-hand unless primary is two-handed (then primary)
+  projectileItem,
+}
+
 enum TargetingModel {
   none, // Instant self-cast / buff
   directional, // Uses input direction (melee)
@@ -207,6 +221,7 @@ class AbilityDef {
     required this.allowedSlots,
     required this.targetingModel,
     required this.hitDelivery,
+    this.payloadSource = AbilityPayloadSource.none,
     required this.windupTicks,
     required this.activeTicks,
     required this.recoveryTicks,
@@ -253,6 +268,9 @@ class AbilityDef {
 
   // Hit mechanics
   final HitDeliveryDef hitDelivery;
+
+  // Payload source
+  final AbilityPayloadSource payloadSource;
 
   // Timing (ticks @ 60hz)
   final int windupTicks;
@@ -313,7 +331,24 @@ class AbilityDef {
   ///
   /// Uses [cooldownGroupId] if set, otherwise falls back to slot default.
   int effectiveCooldownGroup(AbilitySlot slot) {
-    return cooldownGroupId ?? CooldownGroup.fromSlot(slot);
+    if (cooldownGroupId != null) return cooldownGroupId!;
+
+    // Important: Bonus should NOT get a "free extra cooldown lane" by default.
+    // If an ability is equipped in Bonus, it should default to its canonical slot group.
+    if (slot != AbilitySlot.bonus) {
+      return CooldownGroup.fromSlot(slot);
+    }
+
+    // Derive canonical group from allowedSlots (today, your abilities are effectively single-slot).
+    // If you later allow multi-slot abilities, set cooldownGroupId explicitly for those.
+    if (allowedSlots.contains(AbilitySlot.primary)) return CooldownGroup.primary;
+    if (allowedSlots.contains(AbilitySlot.secondary)) return CooldownGroup.secondary;
+    if (allowedSlots.contains(AbilitySlot.projectile)) return CooldownGroup.projectile;
+    if (allowedSlots.contains(AbilitySlot.mobility)) return CooldownGroup.mobility;
+    if (allowedSlots.contains(AbilitySlot.jump)) return CooldownGroup.jump;
+
+    // Fallback (shouldn't happen if allowedSlots is sane)
+    return CooldownGroup.bonus0;
   }
 
   // Runtime Validation (Helper)

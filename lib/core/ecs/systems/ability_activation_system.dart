@@ -271,7 +271,7 @@ class AbilityActivationSystem {
       case AbilitySlot.jump:
         return loadout.abilityJumpId[loadoutIndex];
       case AbilitySlot.bonus:
-        return null;
+        return loadout.abilityBonusId[loadoutIndex];
     }
   }
 
@@ -282,10 +282,13 @@ class AbilityActivationSystem {
     AbilityDef ability,
   ) {
     final input = world.playerInput;
-    if (slot == AbilitySlot.primary || slot == AbilitySlot.secondary) {
+    // Aim source is determined by "mechanics", not by UI slot.
+    // This required so Bonus can host melee/proj abilities cleanly.
+    final hitDelivery = ability.hitDelivery;
+    if (hitDelivery is MeleeHitDelivery) {
       return (input.meleeAimDirX[inputIndex], input.meleeAimDirY[inputIndex]);
     }
-    if (slot == AbilitySlot.projectile) {
+    if (hitDelivery is ProjectileHitDelivery) {
       return (
         input.projectileAimDirX[inputIndex],
         input.projectileAimDirY[inputIndex],
@@ -355,6 +358,7 @@ class AbilityActivationSystem {
         movementIndex: movementIndex,
         facing: facing,
         ability: ability,
+        slot: slot,
         commitTick: commitTick,
         aimOverrideX: aimOverrideX,
         aimOverrideY: aimOverrideY,
@@ -392,17 +396,27 @@ class AbilityActivationSystem {
       return false;
     }
 
+    // Gate by payload source (Bonus can host anything, so slot is irrelevant).
     final mask = world.equippedLoadout.mask[loadoutIndex];
-    if (slot == AbilitySlot.primary && (mask & LoadoutSlotMask.mainHand) == 0) {
-      return false;
-    }
-    if (slot == AbilitySlot.secondary &&
-        (mask & LoadoutSlotMask.offHand) == 0) {
-      return false;
-    }
-    if (slot == AbilitySlot.projectile &&
-        (mask & LoadoutSlotMask.projectile) == 0) {
-      return false;
+    switch (ability.payloadSource) {
+      case AbilityPayloadSource.none:
+        break;
+      case AbilityPayloadSource.primaryWeapon:
+        if ((mask & LoadoutSlotMask.mainHand) == 0) return false;
+        break;
+      case AbilityPayloadSource.secondaryWeapon:
+        // Off-hand unless primary is two-handed.
+        final mainId = world.equippedLoadout.mainWeaponId[loadoutIndex];
+        final main = weapons.tryGet(mainId);
+        if (main != null && main.isTwoHanded) {
+          if ((mask & LoadoutSlotMask.mainHand) == 0) return false;
+        } else {
+          if ((mask & LoadoutSlotMask.offHand) == 0) return false;
+        }
+        break;
+      case AbilityPayloadSource.projectileItem:
+        if ((mask & LoadoutSlotMask.projectile) == 0) return false;
+        break;
     }
 
     final windupTicks = _scaleAbilityTicks(ability.windupTicks);
@@ -559,12 +573,25 @@ class AbilityActivationSystem {
     }
 
     final mask = world.equippedLoadout.mask[loadoutIndex];
-    if (slot == AbilitySlot.primary && (mask & LoadoutSlotMask.mainHand) == 0) {
-      return false;
-    }
-    if (slot == AbilitySlot.secondary &&
-        (mask & LoadoutSlotMask.offHand) == 0) {
-      return false;
+    // Gate by payload source, not by triggered slot.
+    switch (ability.payloadSource) {
+      case AbilityPayloadSource.none:
+        break;
+      case AbilityPayloadSource.primaryWeapon:
+        if ((mask & LoadoutSlotMask.mainHand) == 0) return false;
+        break;
+      case AbilityPayloadSource.secondaryWeapon:
+        final mainId = world.equippedLoadout.mainWeaponId[loadoutIndex];
+        final main = weapons.tryGet(mainId);
+        if (main != null && main.isTwoHanded) {
+          if ((mask & LoadoutSlotMask.mainHand) == 0) return false;
+        } else {
+          if ((mask & LoadoutSlotMask.offHand) == 0) return false;
+        }
+        break;
+      case AbilityPayloadSource.projectileItem:
+        // Melee delivery cannot legally pull payload from projectile item.
+        return false;
     }
 
     final hitDelivery = ability.hitDelivery;
@@ -608,9 +635,24 @@ class AbilityActivationSystem {
     final offsetX = dirX * forward;
     final offsetY = dirY * forward + hitDelivery.offsetY;
 
-    final weaponId = slot == AbilitySlot.secondary
-        ? world.equippedLoadout.offhandWeaponId[loadoutIndex]
-        : world.equippedLoadout.mainWeaponId[loadoutIndex];
+    final weaponId = () {
+      switch (ability.payloadSource) {
+        case AbilityPayloadSource.primaryWeapon:
+          return world.equippedLoadout.mainWeaponId[loadoutIndex];
+        case AbilityPayloadSource.secondaryWeapon:
+          final mainId = world.equippedLoadout.mainWeaponId[loadoutIndex];
+          final main = weapons.tryGet(mainId);
+          if (main != null && main.isTwoHanded) return mainId;
+          return world.equippedLoadout.offhandWeaponId[loadoutIndex];
+        case AbilityPayloadSource.none:
+          // Fallback: preserve old behavior (slot-based) for any legacy melee.
+          return slot == AbilitySlot.secondary
+              ? world.equippedLoadout.offhandWeaponId[loadoutIndex]
+              : world.equippedLoadout.mainWeaponId[loadoutIndex];
+        case AbilityPayloadSource.projectileItem:
+          return world.equippedLoadout.mainWeaponId[loadoutIndex];
+      }
+    }();
     final weapon = weapons.get(weaponId);
 
     final payload = HitPayloadBuilder.build(
@@ -685,6 +727,7 @@ class AbilityActivationSystem {
     required int movementIndex,
     required Facing facing,
     required AbilityDef ability,
+    required AbilitySlot slot,
     required int commitTick,
     int? inputIndex,
     double? aimOverrideX,
@@ -698,6 +741,10 @@ class AbilityActivationSystem {
       return false;
     }
 
+    // Projectile delivery must pull payload from projectile item.
+    if (ability.payloadSource != AbilityPayloadSource.projectileItem) {
+      return false;
+    }
     final mask = world.equippedLoadout.mask[loadoutIndex];
     if ((mask & LoadoutSlotMask.projectile) == 0) return false;
 
@@ -766,9 +813,7 @@ class AbilityActivationSystem {
       weaponProcs: projectileItem.procs,
     );
 
-    final cooldownGroupId = ability.effectiveCooldownGroup(
-      AbilitySlot.projectile,
-    );
+    final cooldownGroupId = ability.effectiveCooldownGroup(slot);
     final cooldownTicks = _scaleAbilityTicks(ability.cooldownTicks);
 
     final fail = AbilityGate.canCommitCombat(
@@ -787,7 +832,7 @@ class AbilityActivationSystem {
       world,
       player: player,
       abilityId: ability.id,
-      slot: AbilitySlot.projectile,
+      slot: slot,
       commitTick: commitTick,
       windupTicks: _scaleAbilityTicks(ability.windupTicks),
       activeTicks: _scaleAbilityTicks(ability.activeTicks),
@@ -804,7 +849,7 @@ class AbilityActivationSystem {
       ProjectileIntentDef(
         projectileItemId: projectileItemId,
         abilityId: ability.id,
-        slot: AbilitySlot.projectile,
+        slot: slot,
         damage100: payload.damage100,
         staminaCost100: ability.staminaCost,
         manaCost100: ability.manaCost,

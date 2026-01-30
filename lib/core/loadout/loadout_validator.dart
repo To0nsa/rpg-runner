@@ -71,8 +71,9 @@ class LoadoutValidator {
       issues: issues,
       abilityId: loadout.abilityPrimaryId,
       slot: AbilitySlot.primary,
-      hasWeapon: mainWeapon != null,
-      weaponType: mainWeapon?.weaponType,
+      mainWeapon: mainWeapon,
+      effectiveSecondaryWeapon: effectiveSecondaryWeapon,
+      projectileItem: projectileItem,
     );
 
     // Secondary
@@ -80,8 +81,9 @@ class LoadoutValidator {
       issues: issues,
       abilityId: loadout.abilitySecondaryId,
       slot: AbilitySlot.secondary,
-      hasWeapon: effectiveSecondaryWeapon != null,
-      weaponType: effectiveSecondaryWeapon?.weaponType,
+      mainWeapon: mainWeapon,
+      effectiveSecondaryWeapon: effectiveSecondaryWeapon,
+      projectileItem: projectileItem,
     );
 
     // Projectile
@@ -89,8 +91,9 @@ class LoadoutValidator {
       issues: issues,
       abilityId: loadout.abilityProjectileId,
       slot: AbilitySlot.projectile,
-      hasWeapon: projectileItem != null,
-      weaponType: projectileItem?.weaponType,
+      mainWeapon: mainWeapon,
+      effectiveSecondaryWeapon: effectiveSecondaryWeapon,
+      projectileItem: projectileItem,
     );
 
     // Mobility (No weapon)
@@ -98,8 +101,19 @@ class LoadoutValidator {
       issues: issues,
       abilityId: loadout.abilityMobilityId,
       slot: AbilitySlot.mobility,
-      hasWeapon: false,
-      weaponType: null,
+      mainWeapon: mainWeapon,
+      effectiveSecondaryWeapon: effectiveSecondaryWeapon,
+      projectileItem: projectileItem,
+    );
+
+    // Bonus: payload gating is now driven by AbilityDef.payloadSource.
+    _validateSlot(
+      issues: issues,
+      abilityId: loadout.abilityBonusId,
+      slot: AbilitySlot.bonus,
+      mainWeapon: mainWeapon,
+      effectiveSecondaryWeapon: effectiveSecondaryWeapon,
+      projectileItem: projectileItem,
     );
 
     // Jump (Fixed slot, no weapon)
@@ -107,8 +121,9 @@ class LoadoutValidator {
       issues: issues,
       abilityId: loadout.abilityJumpId,
       slot: AbilitySlot.jump,
-      hasWeapon: false,
-      weaponType: null,
+      mainWeapon: mainWeapon,
+      effectiveSecondaryWeapon: effectiveSecondaryWeapon,
+      projectileItem: projectileItem,
     );
 
     return LoadoutValidationResult(
@@ -177,8 +192,9 @@ class LoadoutValidator {
     required List<LoadoutIssue> issues,
     required AbilityKey abilityId,
     required AbilitySlot slot,
-    required bool hasWeapon,
-    required WeaponType? weaponType,
+    required WeaponDef? mainWeapon,
+    required WeaponDef? effectiveSecondaryWeapon,
+    required ProjectileItemDef? projectileItem,
   }) {
     final ability = abilityCatalog.resolve(abilityId);
     if (ability == null) {
@@ -190,6 +206,13 @@ class LoadoutValidator {
       ));
       return;
     }
+
+    final (hasWeapon, weaponType) = _payloadContextFor(
+      ability,
+      mainWeapon: mainWeapon,
+      effectiveSecondaryWeapon: effectiveSecondaryWeapon,
+      projectileItem: projectileItem,
+    );
 
     // 1. Slot Compatibility
     if (!ability.allowedSlots.contains(slot)) {
@@ -223,6 +246,25 @@ class LoadoutValidator {
           message: 'Missing required weapon types: ${ability.requiredWeaponTypes.join(", ")}.',
         ));
       }
+    }
+  }
+
+  (bool hasWeapon, WeaponType? weaponType) _payloadContextFor(
+    AbilityDef ability, {
+    required WeaponDef? mainWeapon,
+    required WeaponDef? effectiveSecondaryWeapon,
+    required ProjectileItemDef? projectileItem,
+  }) {
+    switch (ability.payloadSource) {
+      case AbilityPayloadSource.none:
+        return (false, null);
+      case AbilityPayloadSource.primaryWeapon:
+        return (mainWeapon != null, mainWeapon?.weaponType);
+      case AbilityPayloadSource.secondaryWeapon:
+        // effectiveSecondaryWeapon already applies two-handed mapping
+        return (effectiveSecondaryWeapon != null, effectiveSecondaryWeapon?.weaponType);
+      case AbilityPayloadSource.projectileItem:
+        return (projectileItem != null, projectileItem?.weaponType);
     }
   }
 }

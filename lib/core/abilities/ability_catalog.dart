@@ -17,7 +17,7 @@ class AbilityCatalog {
     'common.unarmed_strike': AbilityDef(
       id: 'common.unarmed_strike',
       category: AbilityCategory.melee,
-      allowedSlots: {AbilitySlot.primary},
+      allowedSlots: {AbilitySlot.primary, AbilitySlot.bonus},
       targetingModel: TargetingModel.directional,
       hitDelivery: MeleeHitDelivery(
         sizeX: 1.0, sizeY: 1.0, offsetX: 0.5, offsetY: 0.0, 
@@ -29,6 +29,7 @@ class AbilityCatalog {
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.punch,
       tags: {AbilityTag.melee, AbilityTag.light},
+      payloadSource: AbilityPayloadSource.primaryWeapon,
       baseDamage: 1500, // Fallback melee damage
     ),
     'common.enemy_strike': AbilityDef(
@@ -64,6 +65,7 @@ class AbilityCatalog {
       animKey: AnimKey.cast,
       tags: {AbilityTag.projectile},
       requiredWeaponTypes: {WeaponType.projectileSpell},
+      payloadSource: AbilityPayloadSource.projectileItem,
       baseDamage: 500, // Thunder bolt legacy damage 5.0
       baseDamageType: DamageType.physical,
     ),
@@ -74,7 +76,7 @@ class AbilityCatalog {
     'eloise.sword_strike': AbilityDef(
       id: 'eloise.sword_strike',
       category: AbilityCategory.melee,
-      allowedSlots: {AbilitySlot.primary},
+      allowedSlots: {AbilitySlot.primary, AbilitySlot.bonus},
       targetingModel: TargetingModel.directional,
       hitDelivery: MeleeHitDelivery(
         sizeX: 1.5, sizeY: 1.5, offsetX: 1.0, offsetY: 0.0,
@@ -90,6 +92,7 @@ class AbilityCatalog {
       tags: {AbilityTag.melee, AbilityTag.physical},
       requiredTags: {AbilityTag.melee, AbilityTag.physical},
       requiredWeaponTypes: {WeaponType.oneHandedSword},
+      payloadSource: AbilityPayloadSource.primaryWeapon,
       procs: <WeaponProc>[
         WeaponProc(
           hook: ProcHook.onHit,
@@ -103,7 +106,7 @@ class AbilityCatalog {
     'eloise.sword_parry': AbilityDef(
       id: 'eloise.sword_parry',
       category: AbilityCategory.defense,
-      allowedSlots: {AbilitySlot.primary},
+      allowedSlots: {AbilitySlot.primary, AbilitySlot.bonus},
       targetingModel: TargetingModel.none,
       hitDelivery: SelfHitDelivery(),
       // 6 frames @ 0.06s = 0.36s -> ~22 ticks
@@ -115,6 +118,7 @@ class AbilityCatalog {
       tags: {AbilityTag.melee, AbilityTag.physical, AbilityTag.opener},
       requiredTags: {AbilityTag.melee, AbilityTag.physical},
       requiredWeaponTypes: {WeaponType.oneHandedSword},
+      payloadSource: AbilityPayloadSource.primaryWeapon,
       baseDamage: 0,
     ),
 
@@ -124,7 +128,7 @@ class AbilityCatalog {
     'eloise.shield_bash': AbilityDef(
       id: 'eloise.shield_bash',
       category: AbilityCategory.defense,
-      allowedSlots: {AbilitySlot.secondary},
+      allowedSlots: {AbilitySlot.secondary, AbilitySlot.bonus},
       targetingModel: TargetingModel.directional,
       hitDelivery: MeleeHitDelivery(
         sizeX: 1.5, sizeY: 1.5, offsetX: 1.0, offsetY: 0.0,
@@ -138,6 +142,7 @@ class AbilityCatalog {
       tags: {AbilityTag.melee, AbilityTag.physical, AbilityTag.heavy},
       requiredTags: {AbilityTag.buff, AbilityTag.physical},
       requiredWeaponTypes: {WeaponType.shield},
+      payloadSource: AbilityPayloadSource.secondaryWeapon,
       procs: <WeaponProc>[
         WeaponProc(
           hook: ProcHook.onHit,
@@ -151,7 +156,7 @@ class AbilityCatalog {
     'eloise.shield_block': AbilityDef(
       id: 'eloise.shield_block',
       category: AbilityCategory.defense,
-      allowedSlots: {AbilitySlot.secondary},
+      allowedSlots: {AbilitySlot.secondary, AbilitySlot.bonus},
       targetingModel: TargetingModel.none,
       hitDelivery: SelfHitDelivery(),
       // Match Sword Parry exactly (only required weapon differs).
@@ -164,6 +169,7 @@ class AbilityCatalog {
       tags: {AbilityTag.buff, AbilityTag.physical},
       requiredTags: {AbilityTag.buff},
       requiredWeaponTypes: {WeaponType.shield},
+      payloadSource: AbilityPayloadSource.secondaryWeapon,
       baseDamage: 0,
     ),
 
@@ -173,7 +179,7 @@ class AbilityCatalog {
     'eloise.throwing_knife': AbilityDef(
       id: 'eloise.throwing_knife',
       category: AbilityCategory.ranged,
-      allowedSlots: {AbilitySlot.projectile},
+      allowedSlots: {AbilitySlot.projectile, AbilitySlot.bonus},
       targetingModel: TargetingModel.aimed,
       hitDelivery: ProjectileHitDelivery(
         projectileId: ProjectileId.throwingKnife,
@@ -189,13 +195,14 @@ class AbilityCatalog {
       tags: {AbilityTag.projectile, AbilityTag.physical},
       requiredTags: {AbilityTag.projectile},
       requiredWeaponTypes: {WeaponType.throwingWeapon},
+      payloadSource: AbilityPayloadSource.projectileItem,
       baseDamage: 1000, // RangedWeaponCatalog.throwingKnife legacyDamage 10.0
     ),
 
     'eloise.ice_bolt': AbilityDef(
       id: 'eloise.ice_bolt',
       category: AbilityCategory.magic,
-      allowedSlots: {AbilitySlot.projectile},
+      allowedSlots: {AbilitySlot.projectile, AbilitySlot.bonus},
       targetingModel: TargetingModel.aimed,
       hitDelivery: ProjectileHitDelivery(
         projectileId: ProjectileId.iceBolt,
@@ -209,6 +216,7 @@ class AbilityCatalog {
       animKey: AnimKey.cast,
       tags: {AbilityTag.projectile, AbilityTag.ice},
       requiredWeaponTypes: {WeaponType.projectileSpell},
+      payloadSource: AbilityPayloadSource.projectileItem,
       baseDamage: 1500, // SpellCatalog.iceBolt damage 15.0
       baseDamageType: DamageType.ice,
     ),
@@ -216,7 +224,7 @@ class AbilityCatalog {
     'eloise.fire_bolt': AbilityDef(
       id: 'eloise.fire_bolt',
       category: AbilityCategory.magic,
-      allowedSlots: {AbilitySlot.projectile},
+      allowedSlots: {AbilitySlot.projectile, AbilitySlot.bonus},
       targetingModel: TargetingModel.aimed,
       hitDelivery: ProjectileHitDelivery(
         projectileId: ProjectileId.fireBolt,
@@ -229,6 +237,7 @@ class AbilityCatalog {
       animKey: AnimKey.cast,
       tags: {AbilityTag.projectile, AbilityTag.fire},
       requiredWeaponTypes: {WeaponType.projectileSpell},
+      payloadSource: AbilityPayloadSource.projectileItem,
       baseDamage: 1800, // SpellCatalog.fireBolt damage 18.0
       baseDamageType: DamageType.fire,
     ),
@@ -236,7 +245,7 @@ class AbilityCatalog {
     'eloise.thunder_bolt': AbilityDef(
       id: 'eloise.thunder_bolt',
       category: AbilityCategory.magic,
-      allowedSlots: {AbilitySlot.projectile},
+      allowedSlots: {AbilitySlot.projectile, AbilitySlot.bonus},
       targetingModel: TargetingModel.aimed,
       hitDelivery: ProjectileHitDelivery(
         projectileId: ProjectileId.thunderBolt,
@@ -249,6 +258,7 @@ class AbilityCatalog {
       animKey: AnimKey.cast,
       tags: {AbilityTag.projectile, AbilityTag.lightning},
       requiredWeaponTypes: {WeaponType.projectileSpell},
+      payloadSource: AbilityPayloadSource.projectileItem,
       baseDamage: 1200, // SpellCatalog.thunderBolt damage 12.0
       baseDamageType: DamageType.thunder,
     ),
@@ -262,6 +272,7 @@ class AbilityCatalog {
       allowedSlots: {AbilitySlot.jump},
       targetingModel: TargetingModel.none,
       hitDelivery: SelfHitDelivery(),
+      payloadSource: AbilityPayloadSource.none,
       windupTicks: 0,
       activeTicks: 0,
       recoveryTicks: 0,
@@ -280,6 +291,7 @@ class AbilityCatalog {
       allowedSlots: {AbilitySlot.mobility},
       targetingModel: TargetingModel.directional,
       hitDelivery: SelfHitDelivery(),
+      payloadSource: AbilityPayloadSource.none,
       // 4 frames @ 0.05s = 0.20s -> 12 ticks
       // Cooldown 2.0s -> 120 ticks
       // Cost 2.0 -> 200
@@ -299,6 +311,7 @@ class AbilityCatalog {
       allowedSlots: {AbilitySlot.mobility},
       targetingModel: TargetingModel.directional,
       hitDelivery: SelfHitDelivery(),
+      payloadSource: AbilityPayloadSource.none,
       // 10 frames @ 0.05s = 0.50s -> 30 ticks
       // Cost ~200? (Same as dash for now?)
       windupTicks: 3, activeTicks: 24, recoveryTicks: 3,
