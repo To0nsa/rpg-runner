@@ -57,6 +57,10 @@ class GameOverlay extends StatelessWidget {
             onDashPressed: input.pressDash,
             onSecondaryPressed: input.pressSecondary,
             onBonusPressed: input.pressBonus,
+            onBonusCommitted: () => input.commitBonusWithAim(
+              clearAim: true,
+              usesMeleeAim: hud.bonusUsesMeleeAim,
+            ),
             onProjectileCommitted: () =>
                 input.commitProjectileWithAim(clearAim: true),
             onProjectilePressed: input.pressProjectile,
@@ -80,6 +84,8 @@ class GameOverlay extends StatelessWidget {
                 hud.cooldownTicksTotal[CooldownGroup.primary],
             meleeInputMode: hud.meleeInputMode,
             projectileInputMode: hud.projectileInputMode,
+            bonusInputMode: hud.bonusInputMode,
+            bonusUsesMeleeAim: hud.bonusUsesMeleeAim,
             jumpAffordable: hud.canAffordJump,
             dashAffordable: hud.canAffordDash,
             dashCooldownTicksLeft:

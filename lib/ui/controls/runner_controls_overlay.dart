@@ -18,6 +18,7 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.onDashPressed,
     required this.onSecondaryPressed,
     required this.onBonusPressed,
+    required this.onBonusCommitted,
     required this.onProjectileCommitted,
     required this.onProjectilePressed,
     required this.onProjectileAimDir,
@@ -36,6 +37,8 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.meleeCooldownTicksTotal,
     required this.meleeInputMode,
     required this.projectileInputMode,
+    required this.bonusInputMode,
+    required this.bonusUsesMeleeAim,
     required this.jumpAffordable,
     required this.dashAffordable,
     required this.dashCooldownTicksLeft,
@@ -54,6 +57,7 @@ class RunnerControlsOverlay extends StatelessWidget {
   final VoidCallback onDashPressed;
   final VoidCallback onSecondaryPressed;
   final VoidCallback onBonusPressed;
+  final VoidCallback onBonusCommitted;
   final VoidCallback onProjectileCommitted;
   final VoidCallback onProjectilePressed;
   final void Function(double x, double y) onProjectileAimDir;
@@ -72,6 +76,9 @@ class RunnerControlsOverlay extends StatelessWidget {
   final int meleeCooldownTicksTotal;
   final AbilityInputMode meleeInputMode;
   final AbilityInputMode projectileInputMode;
+
+  final AbilityInputMode bonusInputMode;
+  final bool bonusUsesMeleeAim;
   final bool jumpAffordable;
   final bool dashAffordable;
   final int dashCooldownTicksLeft;
@@ -89,10 +96,10 @@ class RunnerControlsOverlay extends StatelessWidget {
     final t = tuning;
     final action = t.actionButton;
     final directional = t.directionalActionButton;
-    final jumpSize = action.size * 1.50;
-    final smallActionSize = action.size * 0.85;
-    final smallDirectionalSize = directional.size * 0.85;
-    final smallDeadzoneRadius = directional.deadzoneRadius * 0.85;
+    final jumpSize = action.size * 1.4;
+    final smallActionSize = action.size * 0.9;
+    final smallDirectionalSize = directional.size * 0.9;
+    final smallDeadzoneRadius = directional.deadzoneRadius * 0.9;
 
     // Arrange the 5 action slots (Mobility, Secondary, Primary, Projectile, Bonus)
     // in a clean radial arc around the Jump button.
@@ -120,11 +127,11 @@ class RunnerControlsOverlay extends StatelessWidget {
     const startDeg = 160.0;
     const stepDeg = 35.0;
 
-    final dashOffset = polar(ringRadius, startDeg + stepDeg * 0);
-    final secondaryOffset = polar(ringRadius, startDeg + stepDeg * 1);
-    final meleeOffset = polar(ringRadius, startDeg + stepDeg * 2);
+    //final dashOffset = polar(ringRadius, startDeg + stepDeg * 0);
+    final meleeOffset = polar(ringRadius, startDeg + stepDeg * 0.2);
+    final secondaryOffset = polar(ringRadius, startDeg + stepDeg * 1.6);
     final projectileOffset = polar(ringRadius, startDeg + stepDeg * 3);
-    final bonusOffset = polar(ringRadius, startDeg + stepDeg * 4);
+    //final bonusOffset = polar(ringRadius, startDeg + stepDeg * 4);
 
     return Stack(
       children: [
@@ -192,6 +199,59 @@ class RunnerControlsOverlay extends StatelessWidget {
                   labelGap: directional.labelGap,
                 ),
         ),
+/*         Positioned(
+          right: rightFor(bonusOffset, smallActionSize),
+          bottom: bottomFor(bonusOffset, smallActionSize),
+          child: bonusInputMode == AbilityInputMode.tap
+              ? ActionButton(
+                  label: 'Bonus',
+                  icon: Icons.star,
+                  onPressed: onBonusPressed,
+                  affordable: bonusAffordable,
+                  cooldownTicksLeft: bonusCooldownTicksLeft,
+                  cooldownTicksTotal: bonusCooldownTicksTotal,
+                  size: smallActionSize,
+                  backgroundColor: action.backgroundColor,
+                  foregroundColor: action.foregroundColor,
+                  labelFontSize: action.labelFontSize,
+                  labelGap: action.labelGap,
+                )
+              : DirectionalActionButton(
+                  label: 'Bonus',
+                  icon: Icons.star,
+                  onAimDir: bonusUsesMeleeAim ? onMeleeAimDir : onProjectileAimDir,
+                  onAimClear: bonusUsesMeleeAim ? onMeleeAimClear : onProjectileAimClear,
+                  onCommit: onBonusCommitted,
+                  projectileAimPreview:
+                      bonusUsesMeleeAim ? meleeAimPreview : projectileAimPreview,
+                  affordable: bonusAffordable,
+                  cooldownTicksLeft: bonusCooldownTicksLeft,
+                  cooldownTicksTotal: bonusCooldownTicksTotal,
+                  size: smallDirectionalSize,
+                  deadzoneRadius: smallDeadzoneRadius,
+                  backgroundColor: directional.backgroundColor,
+                  foregroundColor: directional.foregroundColor,
+                  labelFontSize: directional.labelFontSize,
+                  labelGap: directional.labelGap,
+                ),
+        ), */
+        Positioned(
+          right: rightFor(secondaryOffset, smallActionSize),
+          bottom: bottomFor(secondaryOffset, smallActionSize),
+          child: ActionButton(
+            label: 'Sec',
+            icon: Icons.shield,
+            onPressed: onSecondaryPressed,
+            affordable: secondaryAffordable,
+            cooldownTicksLeft: secondaryCooldownTicksLeft,
+            cooldownTicksTotal: secondaryCooldownTicksTotal,
+            size: smallActionSize,
+            backgroundColor: action.backgroundColor,
+            foregroundColor: action.foregroundColor,
+            labelFontSize: action.labelFontSize,
+            labelGap: action.labelGap,
+          ),
+        ),
         Positioned(
           right: rightFor(meleeOffset, smallDirectionalSize),
           bottom: bottomFor(meleeOffset, smallDirectionalSize),
@@ -227,41 +287,7 @@ class RunnerControlsOverlay extends StatelessWidget {
                   labelGap: directional.labelGap,
                 ),
         ),
-        Positioned(
-          right: rightFor(bonusOffset, smallActionSize),
-          bottom: bottomFor(bonusOffset, smallActionSize),
-          child: ActionButton(
-            label: 'Bonus',
-            icon: Icons.star,
-            onPressed: onBonusPressed,
-            affordable: bonusAffordable,
-            cooldownTicksLeft: bonusCooldownTicksLeft,
-            cooldownTicksTotal: bonusCooldownTicksTotal,
-            size: smallActionSize,
-            backgroundColor: action.backgroundColor,
-            foregroundColor: action.foregroundColor,
-            labelFontSize: action.labelFontSize,
-            labelGap: action.labelGap,
-          ),
-        ),
-        Positioned(
-          right: rightFor(secondaryOffset, smallActionSize),
-          bottom: bottomFor(secondaryOffset, smallActionSize),
-          child: ActionButton(
-            label: 'Sec',
-            icon: Icons.shield,
-            onPressed: onSecondaryPressed,
-            affordable: secondaryAffordable,
-            cooldownTicksLeft: secondaryCooldownTicksLeft,
-            cooldownTicksTotal: secondaryCooldownTicksTotal,
-            size: smallActionSize,
-            backgroundColor: action.backgroundColor,
-            foregroundColor: action.foregroundColor,
-            labelFontSize: action.labelFontSize,
-            labelGap: action.labelGap,
-          ),
-        ),
-        Positioned(
+/*         Positioned(
           right: rightFor(dashOffset, smallActionSize),
           bottom: bottomFor(dashOffset, smallActionSize),
           child: ActionButton(
@@ -277,7 +303,7 @@ class RunnerControlsOverlay extends StatelessWidget {
             labelFontSize: action.labelFontSize,
             labelGap: action.labelGap,
           ),
-        ),
+        ), */
         Positioned(
           right: t.edgePadding,
           bottom: t.edgePadding,

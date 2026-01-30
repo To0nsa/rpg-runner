@@ -151,6 +151,38 @@ class RunnerInputRouter {
     }
   }
 
+  /// Commits the bonus ability while preserving the current aim direction.
+  ///
+  /// Bonus can host projectile or melee abilities; [usesMeleeAim] selects which
+  /// aim channel is consumed by the equipped bonus ability.
+  void commitBonusWithAim({
+    required bool clearAim,
+    required bool usesMeleeAim,
+  }) {
+    final tick = controller.tick + controller.inputLead;
+    final channel = usesMeleeAim ? _meleeAim : _projectileAim;
+    final hadAim = channel.isSet;
+
+    if (hadAim) {
+      controller.enqueue(
+        usesMeleeAim
+            ? MeleeAimDirCommand(tick: tick, x: channel.x, y: channel.y)
+            : ProjectileAimDirCommand(tick: tick, x: channel.x, y: channel.y),
+      );
+    }
+
+    controller.enqueue(BonusPressedCommand(tick: tick));
+
+    if (clearAim) {
+      channel.clear();
+      if (hadAim) {
+        // Prevent immediate clear command from overwriting the aim we just committed.
+        channel.blockClearThrough(tick);
+      }
+    }
+  }
+
+
   /// Commits a melee strike on the next tick using the current melee aim dir.
   void commitMeleeStrike() {
     final tick = controller.tick + controller.inputLead;

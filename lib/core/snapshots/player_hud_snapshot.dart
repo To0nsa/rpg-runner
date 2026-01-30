@@ -22,6 +22,8 @@ class PlayerHudSnapshot {
     required this.cooldownTicksTotal,
     required this.meleeInputMode,
     required this.projectileInputMode,
+    required this.bonusInputMode,
+    required this.bonusUsesMeleeAim,
     required this.collectibles,
     required this.collectibleScore,
   });
@@ -73,6 +75,16 @@ class PlayerHudSnapshot {
 
   /// Input interaction mode for projectile slot.
   final AbilityInputMode projectileInputMode;
+
+
+  /// Input interaction mode for bonus slot.
+  final AbilityInputMode bonusInputMode;
+
+  /// Which aim channel the bonus ability consumes when in hold-aim mode.
+  ///
+  /// - true  => uses melee aim direction
+  /// - false => uses projectile aim direction
+  final bool bonusUsesMeleeAim;
 
   /// Collected collectibles.
   final int collectibles;

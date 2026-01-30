@@ -174,7 +174,7 @@ const PlayerCatalog eloiseCatalog = PlayerCatalog(
   tags: CreatureTagDef(mask: CreatureTagMask.humanoid),
   resistance: DamageResistanceDef(),
   statusImmunity: StatusImmunityDef(),
-  loadoutSlotMask: LoadoutSlotMask.defaultMask,
+  loadoutSlotMask: LoadoutSlotMask.all,
   weaponId: WeaponId.basicSword,
   offhandWeaponId: WeaponId.basicShield,
   projectileItemId: ProjectileItemId.fireBolt,

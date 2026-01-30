@@ -194,6 +194,9 @@ class SnapshotBuilder {
     final meleeInputMode = _inputModeFor(meleeAbility);
     final projectileInputMode = _inputModeFor(projectileAbility);
 
+
+    final bonusInputMode = _inputModeFor(bonusAbility);
+    final bonusUsesMeleeAim = bonusAbility?.hitDelivery is MeleeHitDelivery;
     // ─── Compute affordability flags ───
     // These tell the UI whether action buttons should appear enabled.
     final canAffordJump = stamina >= jumpStaminaCost;
@@ -329,6 +332,8 @@ class SnapshotBuilder {
         cooldownTicksTotal: cooldownTicksTotal,
         meleeInputMode: meleeInputMode,
         projectileInputMode: projectileInputMode,
+        bonusInputMode: bonusInputMode,
+        bonusUsesMeleeAim: bonusUsesMeleeAim,
         collectibles: collectibles,
         collectibleScore: collectibleScore,
       ),
@@ -346,8 +351,8 @@ class SnapshotBuilder {
   }
 
   AbilityInputMode _inputModeFor(AbilityDef? ability) {
-    final targeting = ability?.targetingModel;
-    if (targeting == null) return AbilityInputMode.holdAimRelease;
+    if (ability == null) return AbilityInputMode.tap;
+    final targeting = ability.targetingModel;
     return targeting == TargetingModel.none
         ? AbilityInputMode.tap
         : AbilityInputMode.holdAimRelease;
