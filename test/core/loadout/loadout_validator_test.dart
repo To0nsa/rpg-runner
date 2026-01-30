@@ -17,7 +17,7 @@ void main() {
     const abilityCatalog = AbilityCatalog();
     const weaponCatalog = WeaponCatalog();
     const projectileItemCatalog = ProjectileItemCatalog();
-    
+
     final validator = LoadoutValidator(
       abilityCatalog: abilityCatalog,
       weaponCatalog: weaponCatalog,
@@ -33,6 +33,7 @@ void main() {
         abilitySecondaryId: 'eloise.shield_block',
         abilityProjectileId: 'eloise.throwing_knife',
         abilityMobilityId: 'eloise.dash',
+        abilityBonusId: 'eloise.throwing_knife', // Matches throwingKnife item
       );
 
       final result = validator.validate(loadout);
@@ -48,7 +49,10 @@ void main() {
 
       final result = validator.validate(loadout);
       expect(result.isValid, isFalse);
-      expect(result.issues.any((i) => i.kind == IssueKind.slotNotAllowed), isTrue);
+      expect(
+        result.issues.any((i) => i.kind == IssueKind.slotNotAllowed),
+        isTrue,
+      );
     });
 
     test('category mismatch (shield in primary) should fail', () {
@@ -59,14 +63,19 @@ void main() {
 
       final result = validator.validate(loadout);
       expect(result.isValid, isFalse);
-      expect(result.issues.any((i) => i.kind == IssueKind.weaponCategoryMismatch), isTrue);
+      expect(
+        result.issues.any((i) => i.kind == IssueKind.weaponCategoryMismatch),
+        isTrue,
+      );
     });
 
     test('missing required weapon types (shield block with sword) should fail', () {
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.basicSword,
-        offhandWeaponId: WeaponId.basicSword, // Invalid for other reasons, but let's test gating
-        abilitySecondaryId: 'eloise.shield_block', // Requires shield weapon type.
+        offhandWeaponId: WeaponId
+            .basicSword, // Invalid for other reasons, but let's test gating
+        abilitySecondaryId:
+            'eloise.shield_block', // Requires shield weapon type.
       );
 
       // Note: This layout also triggers CategoryMismatch because Sword is not OffHand.
@@ -75,36 +84,41 @@ void main() {
       // To strictly test Tag Gating, we rely on the next test case ("valid category, wrong capabilities").
       // So this test case essentially duplicates "category mismatch" but checks for offhand slot.
       // Let's check for ANY failure for now or expect CategoryMismatch.
-      
+
       final result = validator.validate(loadout);
       expect(result.isValid, isFalse);
       expect(result.issues.isNotEmpty, isTrue);
     });
-    
-    test('missing required weapon types (valid category, wrong capabilities) should fail', () {
-       const tagValidator = LoadoutValidator(
-         abilityCatalog: TestAbilityCatalog(),
-         weaponCatalog: weaponCatalog,
-         projectileItemCatalog: projectileItemCatalog,
-       );
 
-       const loadout = EquippedLoadoutDef(
-         offhandWeaponId: WeaponId.basicShield,
-         abilitySecondaryId: TestAbilityCatalog.testAbilityId,
-       );
+    test(
+      'missing required weapon types (valid category, wrong capabilities) should fail',
+      () {
+        const tagValidator = LoadoutValidator(
+          abilityCatalog: TestAbilityCatalog(),
+          weaponCatalog: weaponCatalog,
+          projectileItemCatalog: projectileItemCatalog,
+        );
 
-       final result = tagValidator.validate(loadout);
-       expect(result.isValid, isFalse);
-       expect(
-         result.issues.any((i) => i.kind == IssueKind.missingRequiredWeaponTypes),
-         isTrue,
-       );
+        const loadout = EquippedLoadoutDef(
+          offhandWeaponId: WeaponId.basicShield,
+          abilitySecondaryId: TestAbilityCatalog.testAbilityId,
+        );
 
-       final issue = result.issues.firstWhere(
-         (i) => i.kind == IssueKind.missingRequiredWeaponTypes,
-       );
-       expect(issue.missingWeaponTypes, contains(WeaponType.oneHandedSword));
-    });
+        final result = tagValidator.validate(loadout);
+        expect(result.isValid, isFalse);
+        expect(
+          result.issues.any(
+            (i) => i.kind == IssueKind.missingRequiredWeaponTypes,
+          ),
+          isTrue,
+        );
+
+        final issue = result.issues.firstWhere(
+          (i) => i.kind == IssueKind.missingRequiredWeaponTypes,
+        );
+        expect(issue.missingWeaponTypes, contains(WeaponType.oneHandedSword));
+      },
+    );
 
     test('two-handed primary with off-hand equipped should fail', () {
       // Use mock catalog that defines goldenSword as Two-Handed
@@ -122,14 +136,17 @@ void main() {
 
       final result = mockValidator.validate(loadout);
       expect(result.isValid, isFalse);
-      expect(result.issues.any((i) => i.kind == IssueKind.twoHandedConflict), isTrue);
+      expect(
+        result.issues.any((i) => i.kind == IssueKind.twoHandedConflict),
+        isTrue,
+      );
     });
   });
 }
 
 class MockWeaponCatalog implements WeaponCatalog {
   const MockWeaponCatalog();
-  
+
   @override
   WeaponDef? tryGet(WeaponId id) {
     if (id == WeaponId.goldenSword) {
@@ -142,7 +159,7 @@ class MockWeaponCatalog implements WeaponCatalog {
     }
     return const WeaponCatalog().tryGet(id);
   }
-  
+
   @override
   WeaponDef get(WeaponId id) => tryGet(id)!;
 }

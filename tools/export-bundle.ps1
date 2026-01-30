@@ -2,17 +2,21 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $root    = (Resolve-Path ".").Path
-$bundle  = Join-Path $root "tools/output/src-bundle-flutter.txt"
-$treeOut = Join-Path $root "tools/output/tree.txt"
-$assetsOut = Join-Path $root "tools/output/assets-list.txt"
 $outputDir = Join-Path $root "tools/output"
 New-Item -ItemType Directory -Force -Path $outputDir
 
 # Prefer git: deterministic + ignores build junk by default
 git rev-parse --is-inside-work-tree *> $null
 
-$commit = (git rev-parse HEAD).Trim()
+$commit = (git rev-parse --short=12 HEAD).Trim()
 $when   = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+
+# Bundle filenames
+$bundleCommit = Join-Path $outputDir ("src-bundle-flutter-$commit.txt")
+$bundleLatest = Join-Path $outputDir "src-bundle-flutter.txt"
+
+$treeOut   = Join-Path $outputDir "tree.txt"
+$assetsOut = Join-Path $outputDir "assets-list.txt"
 
 # Tracked files only (best signal/noise)
 $files = git ls-files -- lib | Sort-Object
@@ -30,15 +34,20 @@ $skipExt = @(
 )
 
 # Also skip known generated folders even if tracked accidentally
-$skipPathRegex = '\\(\.dart_tool|build|\.idea)\\|(^|/)(ios/Pods|ios/\.symlinks|android/\.gradle)(/|$)'
+# Use forward-slash paths (git ls-files outputs '/')
+$skipPathRegex = '(/|^)(\.dart_tool|build|\.idea)(/|$)|(^|/)(ios/Pods|ios/\.symlinks|android/\.gradle)(/|$)'
 
-# Header
-@(
+# Header lines
+$header = @(
   "REPO: $root"
   "COMMIT: $commit"
   "DATE: $when"
   ""
-) | Set-Content -Encoding utf8 $bundle
+)
+
+# Start fresh (explicit)
+$header | Set-Content -Encoding utf8 $bundleCommit
+$header | Set-Content -Encoding utf8 $bundleLatest
 
 # Collect asset paths (so we still know what exists)
 $assetPaths = New-Object System.Collections.Generic.List[string]
@@ -52,14 +61,18 @@ foreach ($rel in $files) {
   $ext = [IO.Path]::GetExtension($full).ToLowerInvariant()
 
   if ($skipExt -contains $ext) {
-    # keep a list (very useful for Flame asset wiring)
     if ($rel -like "assets/*" -or $rel -like "resources/*") { $assetPaths.Add($rel) }
     continue
   }
 
-  Add-Content -Encoding utf8 $bundle ""
-  Add-Content -Encoding utf8 $bundle "===== FILE: $rel ====="
-  Add-Content -Encoding utf8 $bundle (Get-Content -Raw -Encoding utf8 $full)
+  foreach ($out in @($bundleCommit, $bundleLatest)) {
+    Add-Content -Encoding utf8 $out ""
+    Add-Content -Encoding utf8 $out "===== FILE: $rel ====="
+    Add-Content -Encoding utf8 $out (Get-Content -Raw -Encoding utf8 $full)
+  }
 }
 
 $assetPaths | Sort-Object | Set-Content -Encoding utf8 $assetsOut
+
+Write-Host "Wrote bundle: $bundleCommit"
+Write-Host "Wrote latest: $bundleLatest"
