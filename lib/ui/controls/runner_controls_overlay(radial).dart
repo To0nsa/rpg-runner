@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -97,26 +99,42 @@ class RunnerControlsOverlay extends StatelessWidget {
     final t = tuning;
     final action = t.actionButton;
     final directional = t.directionalActionButton;
+    final jumpSize = action.size * 1.4;
+    final smallActionSize = action.size * 0.9;
+    final smallDirectionalSize = directional.size * 0.9;
+    final smallDeadzoneRadius = directional.deadzoneRadius * 0.9;
 
-    // Uniform size for all buttons in the grid
-    final btnSize = action.size;
+    // Arrange the 5 action slots (Mobility, Secondary, Primary, Projectile, Bonus)
+    // in a clean radial arc around the Jump button.
 
-    // Grid configuration
-    final gap = t.buttonGap;
-
-    // 2x3 Grid definition (col, row) -> 0-indexed
-    // col 0 is rightmost, row 0 is bottom
-    //
-    // [Secondary (0,1)] [Projectile (1,1)] [Bonus (2,1)]
-    // [Jump (0,0)]      [Melee (1,0)]      [Dash (2,0)]
-
-    double rightForCol(int col) {
-      return t.edgePadding + col * (btnSize + gap);
+    Offset polar(double radius, double degrees) {
+      final radians = degrees * math.pi / 180.0;
+      return Offset(math.cos(radians) * radius, math.sin(radians) * radius);
     }
 
-    double bottomForRow(int row) {
-      return t.edgePadding + row * (btnSize + gap);
+    double rightFor(Offset centerOffset, double targetSize) {
+      return t.edgePadding + jumpSize * 0.5 - centerOffset.dx - targetSize * 0.5;
     }
+
+    double bottomFor(Offset centerOffset, double targetSize) {
+      return t.edgePadding + jumpSize * 0.5 - centerOffset.dy - targetSize * 0.5;
+    }
+
+    final jumpRadius = jumpSize * 0.5;
+    final ringGap = t.buttonGap * 0.9;
+    final ringRadius =
+        jumpRadius + math.max(smallDirectionalSize, smallActionSize) * 0.5 + ringGap;
+
+    // Evenly spread the 5 action buttons over an arc above/left of the jump.
+    // Degrees follow the standard unit circle, but note Flutter's Y axis points down.
+    const startDeg = 160.0;
+    const stepDeg = 35.0;
+
+    final dashOffset = polar(ringRadius, startDeg + stepDeg * 0);
+    final meleeOffset = polar(ringRadius, startDeg + stepDeg * 0.2);
+    final secondaryOffset = polar(ringRadius, startDeg + stepDeg * 1.6);
+    final projectileOffset = polar(ringRadius, startDeg + stepDeg * 3);
+    final bonusOffset = polar(ringRadius, startDeg + stepDeg * 4);
 
     return Stack(
       children: [
@@ -149,86 +167,25 @@ class RunnerControlsOverlay extends StatelessWidget {
                   knobBorderWidth: t.fixedJoystick.knobBorderWidth,
                 ),
         ),
-
-        // --- Row 1 (Top) ---
-
-        // Mob (Dash): Col 0, Row 1 (Top Right)
         Positioned(
-          right: rightForCol(0),
-          bottom: bottomForRow(1),
-          child: ActionButton(
-            label: 'Mob',
-            icon: Icons.flash_on,
-            onPressed: onDashPressed,
-            affordable: dashAffordable,
-            cooldownTicksLeft: dashCooldownTicksLeft,
-            cooldownTicksTotal: dashCooldownTicksTotal,
-            size: btnSize,
-            backgroundColor: action.backgroundColor,
-            foregroundColor: action.foregroundColor,
-            labelFontSize: action.labelFontSize,
-            labelGap: action.labelGap,
-          ),
-        ),
-
-        // Prim (Melee): Col 1, Row 1 (Top Middle)
-        Positioned(
-          right: rightForCol(1),
-          bottom: bottomForRow(1),
-          child: meleeInputMode == AbilityInputMode.tap
-              ? ActionButton(
-                  label: 'Prim',
-                  icon: Icons.close,
-                  onPressed: onMeleePressed,
-                  affordable: meleeAffordable,
-                  cooldownTicksLeft: meleeCooldownTicksLeft,
-                  cooldownTicksTotal: meleeCooldownTicksTotal,
-                  size: btnSize,
-                  backgroundColor: action.backgroundColor,
-                  foregroundColor: action.foregroundColor,
-                  labelFontSize: action.labelFontSize,
-                  labelGap: action.labelGap,
-                )
-              : DirectionalActionButton(
-                  label: 'Prim',
-                  icon: Icons.close,
-                  onAimDir: onMeleeAimDir,
-                  onAimClear: onMeleeAimClear,
-                  onCommit: onMeleeCommitted,
-                  projectileAimPreview: meleeAimPreview,
-                  cancelHitboxRect: aimCancelHitboxRect,
-                  affordable: meleeAffordable,
-                  cooldownTicksLeft: meleeCooldownTicksLeft,
-                  cooldownTicksTotal: meleeCooldownTicksTotal,
-                  size: btnSize,
-                  deadzoneRadius: directional.deadzoneRadius,
-                  backgroundColor: directional.backgroundColor,
-                  foregroundColor: directional.foregroundColor,
-                  labelFontSize: directional.labelFontSize,
-                  labelGap: directional.labelGap,
-                ),
-        ),
-
-        // Proj (Projectile): Col 2, Row 1 (Top Left)
-        Positioned(
-          right: rightForCol(2),
-          bottom: bottomForRow(1),
+          right: rightFor(projectileOffset, smallDirectionalSize),
+          bottom: bottomFor(projectileOffset, smallDirectionalSize),
           child: projectileInputMode == AbilityInputMode.tap
               ? ActionButton(
-                  label: 'Proj',
+                  label: 'Projectile',
                   icon: Icons.auto_awesome,
                   onPressed: onProjectilePressed,
                   affordable: projectileAffordable,
                   cooldownTicksLeft: projectileCooldownTicksLeft,
                   cooldownTicksTotal: projectileCooldownTicksTotal,
-                  size: btnSize,
+                  size: smallDirectionalSize,
                   backgroundColor: action.backgroundColor,
                   foregroundColor: action.foregroundColor,
                   labelFontSize: action.labelFontSize,
                   labelGap: action.labelGap,
                 )
               : DirectionalActionButton(
-                  label: 'Proj',
+                  label: 'Projectile',
                   icon: Icons.auto_awesome,
                   onAimDir: onProjectileAimDir,
                   onAimClear: onProjectileAimClear,
@@ -238,58 +195,17 @@ class RunnerControlsOverlay extends StatelessWidget {
                   affordable: projectileAffordable,
                   cooldownTicksLeft: projectileCooldownTicksLeft,
                   cooldownTicksTotal: projectileCooldownTicksTotal,
-                  size: btnSize,
-                  deadzoneRadius:
-                      directional.deadzoneRadius, // Use standard deadzone
+                  size: smallDirectionalSize,
+                  deadzoneRadius: smallDeadzoneRadius,
                   backgroundColor: directional.backgroundColor,
                   foregroundColor: directional.foregroundColor,
                   labelFontSize: directional.labelFontSize,
                   labelGap: directional.labelGap,
                 ),
         ),
-
-        // --- Row 0 (Bottom) ---
-
-        // Jump: Col 0, Row 0 (Bottom Right)
         Positioned(
-          right: rightForCol(0),
-          bottom: bottomForRow(0),
-          child: ActionButton(
-            label: 'Jump',
-            icon: Icons.arrow_upward,
-            onPressed: onJumpPressed,
-            affordable: jumpAffordable,
-            size: btnSize,
-            backgroundColor: action.backgroundColor,
-            foregroundColor: action.foregroundColor,
-            labelFontSize: action.labelFontSize,
-            labelGap: action.labelGap,
-          ),
-        ),
-
-        // Sec (Secondary): Col 1, Row 0 (Bottom Middle)
-        Positioned(
-          right: rightForCol(1),
-          bottom: bottomForRow(0),
-          child: ActionButton(
-            label: 'Sec',
-            icon: Icons.shield,
-            onPressed: onSecondaryPressed,
-            affordable: secondaryAffordable,
-            cooldownTicksLeft: secondaryCooldownTicksLeft,
-            cooldownTicksTotal: secondaryCooldownTicksTotal,
-            size: btnSize,
-            backgroundColor: action.backgroundColor,
-            foregroundColor: action.foregroundColor,
-            labelFontSize: action.labelFontSize,
-            labelGap: action.labelGap,
-          ),
-        ),
-
-        // Bonus: Col 2, Row 0 (Bottom Left)
-        Positioned(
-          right: rightForCol(2),
-          bottom: bottomForRow(0),
+          right: rightFor(bonusOffset, smallActionSize),
+          bottom: bottomFor(bonusOffset, smallActionSize),
           child: bonusInputMode == AbilityInputMode.tap
               ? ActionButton(
                   label: 'Bonus',
@@ -298,7 +214,7 @@ class RunnerControlsOverlay extends StatelessWidget {
                   affordable: bonusAffordable,
                   cooldownTicksLeft: bonusCooldownTicksLeft,
                   cooldownTicksTotal: bonusCooldownTicksTotal,
-                  size: btnSize,
+                  size: smallActionSize,
                   backgroundColor: action.backgroundColor,
                   foregroundColor: action.foregroundColor,
                   labelFontSize: action.labelFontSize,
@@ -307,27 +223,107 @@ class RunnerControlsOverlay extends StatelessWidget {
               : DirectionalActionButton(
                   label: 'Bonus',
                   icon: Icons.star,
-                  onAimDir: bonusUsesMeleeAim
-                      ? onMeleeAimDir
-                      : onProjectileAimDir,
-                  onAimClear: bonusUsesMeleeAim
-                      ? onMeleeAimClear
-                      : onProjectileAimClear,
+                  onAimDir: bonusUsesMeleeAim ? onMeleeAimDir : onProjectileAimDir,
+                  onAimClear: bonusUsesMeleeAim ? onMeleeAimClear : onProjectileAimClear,
                   onCommit: onBonusCommitted,
-                  projectileAimPreview: bonusUsesMeleeAim
-                      ? meleeAimPreview
-                      : projectileAimPreview,
+                  projectileAimPreview:
+                      bonusUsesMeleeAim ? meleeAimPreview : projectileAimPreview,
                   cancelHitboxRect: aimCancelHitboxRect,
                   affordable: bonusAffordable,
                   cooldownTicksLeft: bonusCooldownTicksLeft,
                   cooldownTicksTotal: bonusCooldownTicksTotal,
-                  size: btnSize,
-                  deadzoneRadius: directional.deadzoneRadius,
+                  size: smallDirectionalSize,
+                  deadzoneRadius: smallDeadzoneRadius,
                   backgroundColor: directional.backgroundColor,
                   foregroundColor: directional.foregroundColor,
                   labelFontSize: directional.labelFontSize,
                   labelGap: directional.labelGap,
                 ),
+        ),
+        Positioned(
+          right: rightFor(secondaryOffset, smallActionSize),
+          bottom: bottomFor(secondaryOffset, smallActionSize),
+          child: ActionButton(
+            label: 'Sec',
+            icon: Icons.shield,
+            onPressed: onSecondaryPressed,
+            affordable: secondaryAffordable,
+            cooldownTicksLeft: secondaryCooldownTicksLeft,
+            cooldownTicksTotal: secondaryCooldownTicksTotal,
+            size: smallActionSize,
+            backgroundColor: action.backgroundColor,
+            foregroundColor: action.foregroundColor,
+            labelFontSize: action.labelFontSize,
+            labelGap: action.labelGap,
+          ),
+        ),
+        Positioned(
+          right: rightFor(meleeOffset, smallDirectionalSize),
+          bottom: bottomFor(meleeOffset, smallDirectionalSize),
+          child: meleeInputMode == AbilityInputMode.tap
+              ? ActionButton(
+                  label: 'Atk',
+                  icon: Icons.close,
+                  onPressed: onMeleePressed,
+                  affordable: meleeAffordable,
+                  cooldownTicksLeft: meleeCooldownTicksLeft,
+                  cooldownTicksTotal: meleeCooldownTicksTotal,
+                  size: smallDirectionalSize,
+                  backgroundColor: action.backgroundColor,
+                  foregroundColor: action.foregroundColor,
+                  labelFontSize: action.labelFontSize,
+                  labelGap: action.labelGap,
+                )
+              : DirectionalActionButton(
+                  label: 'Atk',
+                  icon: Icons.close,
+                  onAimDir: onMeleeAimDir,
+                  onAimClear: onMeleeAimClear,
+                  onCommit: onMeleeCommitted,
+                  projectileAimPreview: meleeAimPreview,
+                  cancelHitboxRect: aimCancelHitboxRect,
+                  affordable: meleeAffordable,
+                  cooldownTicksLeft: meleeCooldownTicksLeft,
+                  cooldownTicksTotal: meleeCooldownTicksTotal,
+                  size: smallDirectionalSize,
+                  deadzoneRadius: smallDeadzoneRadius,
+                  backgroundColor: directional.backgroundColor,
+                  foregroundColor: directional.foregroundColor,
+                  labelFontSize: directional.labelFontSize,
+                  labelGap: directional.labelGap,
+                ),
+        ),
+        Positioned(
+          right: rightFor(dashOffset, smallActionSize),
+          bottom: bottomFor(dashOffset, smallActionSize),
+          child: ActionButton(
+            label: 'Dash',
+            icon: Icons.flash_on,
+            onPressed: onDashPressed,
+            affordable: dashAffordable,
+            cooldownTicksLeft: dashCooldownTicksLeft,
+            cooldownTicksTotal: dashCooldownTicksTotal,
+            size: smallActionSize,
+            backgroundColor: action.backgroundColor,
+            foregroundColor: action.foregroundColor,
+            labelFontSize: action.labelFontSize,
+            labelGap: action.labelGap,
+          ),
+        ),
+        Positioned(
+          right: t.edgePadding,
+          bottom: t.edgePadding,
+          child: ActionButton(
+            label: 'Jump',
+            icon: Icons.arrow_upward,
+            onPressed: onJumpPressed,
+            affordable: jumpAffordable,
+            size: jumpSize,
+            backgroundColor: action.backgroundColor,
+            foregroundColor: action.foregroundColor,
+            labelFontSize: action.labelFontSize,
+            labelGap: action.labelGap,
+          ),
         ),
       ],
     );

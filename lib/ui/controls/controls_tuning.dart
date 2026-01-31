@@ -8,7 +8,7 @@ enum ControlsJoystickKind { fixed, floating }
 class ControlsTuning {
   const ControlsTuning({
     this.edgePadding = 16,
-    this.bottomEdgePadding = 96,
+    this.bottomEdgePadding = 16,
     this.buttonGap = 12,
     this.rowGap = 12,
     this.joystickKind = ControlsJoystickKind.floating,
@@ -39,10 +39,10 @@ class ControlsTuning {
 @immutable
 class ActionButtonTuning {
   const ActionButtonTuning({
-    this.size = 72,
+    this.size = 52,
     this.backgroundColor = const Color(0x33000000),
     this.foregroundColor = const Color(0xFFFFFFFF),
-    this.labelFontSize = 12,
+    this.labelFontSize = 8,
     this.labelGap = 2,
   });
 
@@ -56,11 +56,11 @@ class ActionButtonTuning {
 @immutable
 class DirectionalActionButtonTuning {
   const DirectionalActionButtonTuning({
-    this.size = 72,
+    this.size = 52,
     this.deadzoneRadius = 12,
     this.backgroundColor = const Color(0x33000000),
     this.foregroundColor = const Color(0xFFFFFFFF),
-    this.labelFontSize = 12,
+    this.labelFontSize = 8,
     this.labelGap = 2,
   });
 

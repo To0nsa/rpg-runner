@@ -119,7 +119,7 @@ Key rule:
 
 ---
 
-## 5. Cancel rules (aimed actions)
+## 5. Cancel rules
 
 Aimed actions must be cancelable **without casting**.
 
@@ -131,28 +131,17 @@ On cancel:
 - No resource/cooldown is consumed
 - Releasing after cancel does not commit
 
-### 5.2 Current cancel gesture
-
-`DirectionalActionButton` cancellation is a gesture, not a separate cancel button:
-
-- While holding the action button:
-  1. **Drag outside** the button once
-  2. **Drag back inside** the button area  
-     → the aim is **canceled immediately**
-- Releasing after cancel does **not commit**.
-
-### 5.3 Cancel button
+### 5.2 Cancel button
 
 #### UI behavior
 - A **Cancel** button appears **only while Aim Mode is active**.
-- It is placed in a **fixed screen-space location** (not relative to the player), so the player learns it.
+- It is placed in a **fixed screen-space location** between the clock and distance display, so the player learns it.
 - It must be reachable by the **right thumb** without crossing the action buttons.
 - The Cancel button has a **large hitbox** (mobile-first), larger than the visual icon.
 
 #### Trigger rules
 Cancel triggers when **either** condition happens:
 - The held pointer **releases inside** the Cancel hitbox
-- The held pointer **drags inside** the Cancel hitbox
 
 #### Failure-safe rule
 If the pointer stream is canceled by the system (`onPointerCancel`), treat it as Cancel:
@@ -237,14 +226,17 @@ Those values should live in a movement tuning doc or file-level tuning.
 
 ## 8. Button layout (current overlay)
 
-`RunnerControlsOverlay` layout on the right side:
+`RunnerControlsOverlay` layout on the right side is a **2x3 grid** anchored to the bottom-right corner.
 
-- Bottom-right: **Jump** (large)
-- Above-left of Jump: **Mobility** (small)
-- Above Mobility: **Primary** (small; tap or directional)
-- Above Primary: **Secondary** (small; tap or directional)
-- Above Secondary: **Projectile** (small; tap or directional)
-- Above Projectile: **Bonus** (small; tap or directional)
+**Top Row** (from left to right):
+- **Projectile** (Top Left)
+- **Primary** (Top Middle)
+- **Mobility** (Top Right)
+
+**Bottom Row** (from left to right):
+- **Bonus** (Bottom Left)
+- **Secondary** (Bottom Middle)
+- **Jump** (Bottom Right)
 
 ---
 
