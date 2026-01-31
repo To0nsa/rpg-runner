@@ -17,7 +17,7 @@ class SelectionState {
   });
 
   static const SelectionState defaults = SelectionState(
-    selectedLevelId: LevelId.defaultLevel,
+    selectedLevelId: LevelId.field,
     selectedRunType: RunType.practice,
     selectedCharacterId: PlayerCharacterId.eloise,
     equippedLoadout: EquippedLoadoutDef(),
@@ -57,7 +57,7 @@ class SelectionState {
     final levelId = _enumFromName(
       LevelId.values,
       json['levelId'] as String?,
-      LevelId.defaultLevel,
+      LevelId.field,
     );
     final runType = _enumFromName(
       RunType.values,
@@ -107,7 +107,7 @@ EquippedLoadoutDef _loadoutFromJson(Object? raw) {
   if (raw is! Map) {
     return const EquippedLoadoutDef();
   }
-  final map = Map<String, dynamic>.from(raw as Map);
+  final map = Map<String, dynamic>.from(raw);
   return EquippedLoadoutDef(
     mask: map['mask'] is int ? map['mask'] as int : LoadoutSlotMask.defaultMask,
     mainWeaponId: _enumFromName(

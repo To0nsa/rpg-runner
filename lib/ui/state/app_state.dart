@@ -8,31 +8,41 @@ import '../../core/players/player_character_definition.dart';
 import '../app/ui_routes.dart';
 import 'selection_state.dart';
 import 'selection_store.dart';
+import 'user_profile.dart';
+import 'user_profile_store.dart';
 
 class AppState extends ChangeNotifier {
-  AppState({SelectionStore? selectionStore})
-      : _selectionStore = selectionStore ?? SelectionStore();
+  AppState({SelectionStore? selectionStore, UserProfileStore? userProfileStore})
+      : _selectionStore = selectionStore ?? SelectionStore(),
+        _profileStore = userProfileStore ?? UserProfileStore();
 
   final SelectionStore _selectionStore;
+  final UserProfileStore _profileStore;
 
   SelectionState _selection = SelectionState.defaults;
+  UserProfile _profile = UserProfile.empty();
   bool _bootstrapped = false;
   bool _warmupStarted = false;
 
   SelectionState get selection => _selection;
+  UserProfile get profile => _profile;
   bool get isBootstrapped => _bootstrapped;
 
   Future<void> bootstrap({bool force = false}) async {
     if (_bootstrapped && !force) return;
-    final loaded = await _selectionStore.load();
-    _selection = loaded;
+    final loadedSelection = await _selectionStore.load();
+    final loadedProfile = await _profileStore.load();
+    _selection = loadedSelection;
+    _profile = loadedProfile;
     _bootstrapped = true;
     notifyListeners();
   }
 
   void applyDefaults() {
     _selection = SelectionState.defaults;
+    _profile = _profileStore.createFresh();
     _persistSelection();
+    _persistProfile();
     notifyListeners();
   }
 
@@ -60,6 +70,26 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> updateProfile(
+    UserProfile Function(UserProfile current) fn,
+  ) async {
+    final current = _profile;
+    final updated = fn(current);
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final next = updated.copyWith(
+      schemaVersion: UserProfile.latestSchemaVersion,
+      profileId:
+          updated.profileId.isEmpty ? current.profileId : updated.profileId,
+      createdAtMs:
+          updated.createdAtMs == 0 ? current.createdAtMs : updated.createdAtMs,
+      updatedAtMs: nowMs,
+      revision: current.revision + 1,
+    );
+    _profile = next;
+    await _profileStore.save(next);
+    notifyListeners();
+  }
+
   void startWarmup() {
     if (_warmupStarted) return;
     _warmupStarted = true;
@@ -77,5 +107,9 @@ class AppState extends ChangeNotifier {
 
   void _persistSelection() {
     _selectionStore.save(_selection);
+  }
+
+  void _persistProfile() {
+    _profileStore.save(_profile);
   }
 }
