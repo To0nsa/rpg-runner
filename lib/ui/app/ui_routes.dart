@@ -13,8 +13,8 @@ class UiRoutes {
   static const String leaderboards = '/leaderboards';
   static const String options = '/meta/options';
   static const String library = '/meta/library';
-  static const String goldStore = '/meta/gold-store';
-  static const String shop = '/meta/shop';
+  static const String town = '/meta/town';
+  static const String support = '/meta/support';
   static const String credits = '/credits';
   static const String run = '/run';
 }

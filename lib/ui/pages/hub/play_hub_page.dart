@@ -56,13 +56,13 @@ class _PlayHubPageState extends State<PlayHubPage> {
                   icon: Icons.storefront,
                   label: 'Town',
                   onPressed: () =>
-                      Navigator.of(context).pushNamed(UiRoutes.goldStore),
+                      Navigator.of(context).pushNamed(UiRoutes.town),
                 ),
                 _HubIconButton(
                   icon: Icons.monetization_on,
                   label: 'Support',
                   onPressed: () =>
-                      Navigator.of(context).pushNamed(UiRoutes.shop),
+                      Navigator.of(context).pushNamed(UiRoutes.support),
                 ),
                 _HubIconButton(
                   icon: Icons.settings,

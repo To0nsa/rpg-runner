@@ -6,8 +6,8 @@ import '../pages/hub/play_hub_page.dart';
 import '../pages/leaderboards/leaderboards_page.dart';
 import '../pages/lab/loadout_lab_page.dart';
 import '../pages/meta/credits_page.dart';
-import '../pages/meta/gold_store_page.dart';
-import '../pages/meta/iap_store_page.dart';
+import '../pages/meta/town_page.dart';
+import '../pages/meta/support_page.dart';
 import '../pages/meta/library_page.dart';
 import '../pages/meta/options_page.dart';
 import '../pages/setup/level_setup_page.dart';
@@ -63,15 +63,15 @@ class UiRouter {
           settings: settings,
           builder: (_) => const LibraryPage(),
         );
-      case UiRoutes.goldStore:
+      case UiRoutes.town:
         return MaterialPageRoute<void>(
           settings: settings,
-          builder: (_) => const GoldStorePage(),
+          builder: (_) => const TownPage(),
         );
-      case UiRoutes.shop:
+      case UiRoutes.support:
         return MaterialPageRoute<void>(
           settings: settings,
-          builder: (_) => const IapStorePage(),
+          builder: (_) => const SupportPage(),
         );
       case UiRoutes.credits:
         return MaterialPageRoute<void>(
