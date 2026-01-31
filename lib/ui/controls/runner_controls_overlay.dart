@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../game/input/aim_preview.dart';
@@ -32,6 +33,7 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.onMeleeCommitted,
     required this.onMeleePressed,
     required this.meleeAimPreview,
+    required this.aimCancelHitboxRect,
     required this.meleeAffordable,
     required this.meleeCooldownTicksLeft,
     required this.meleeCooldownTicksTotal,
@@ -71,6 +73,7 @@ class RunnerControlsOverlay extends StatelessWidget {
   final VoidCallback onMeleeCommitted;
   final VoidCallback onMeleePressed;
   final AimPreviewModel meleeAimPreview;
+  final ValueListenable<Rect?> aimCancelHitboxRect;
   final bool meleeAffordable;
   final int meleeCooldownTicksLeft;
   final int meleeCooldownTicksTotal;
@@ -188,6 +191,7 @@ class RunnerControlsOverlay extends StatelessWidget {
                   onAimClear: onProjectileAimClear,
                   onCommit: onProjectileCommitted,
                   projectileAimPreview: projectileAimPreview,
+                  cancelHitboxRect: aimCancelHitboxRect,
                   affordable: projectileAffordable,
                   cooldownTicksLeft: projectileCooldownTicksLeft,
                   cooldownTicksTotal: projectileCooldownTicksTotal,
@@ -224,6 +228,7 @@ class RunnerControlsOverlay extends StatelessWidget {
                   onCommit: onBonusCommitted,
                   projectileAimPreview:
                       bonusUsesMeleeAim ? meleeAimPreview : projectileAimPreview,
+                  cancelHitboxRect: aimCancelHitboxRect,
                   affordable: bonusAffordable,
                   cooldownTicksLeft: bonusCooldownTicksLeft,
                   cooldownTicksTotal: bonusCooldownTicksTotal,
@@ -276,6 +281,7 @@ class RunnerControlsOverlay extends StatelessWidget {
                   onAimClear: onMeleeAimClear,
                   onCommit: onMeleeCommitted,
                   projectileAimPreview: meleeAimPreview,
+                  cancelHitboxRect: aimCancelHitboxRect,
                   affordable: meleeAffordable,
                   cooldownTicksLeft: meleeCooldownTicksLeft,
                   cooldownTicksTotal: meleeCooldownTicksTotal,

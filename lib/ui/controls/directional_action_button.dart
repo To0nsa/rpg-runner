@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../game/input/aim_preview.dart';
@@ -15,6 +16,7 @@ class DirectionalActionButton extends StatefulWidget {
     required this.onAimClear,
     required this.onCommit,
     required this.projectileAimPreview,
+    this.cancelHitboxRect,
     this.affordable = true,
     this.cooldownTicksLeft = 0,
     this.cooldownTicksTotal = 0,
@@ -32,6 +34,7 @@ class DirectionalActionButton extends StatefulWidget {
   final VoidCallback onAimClear;
   final VoidCallback onCommit;
   final AimPreviewModel projectileAimPreview;
+  final ValueListenable<Rect?>? cancelHitboxRect;
   final bool affordable;
   final int cooldownTicksLeft;
   final int cooldownTicksTotal;
@@ -49,7 +52,6 @@ class DirectionalActionButton extends StatefulWidget {
 
 class _DirectionalActionButtonState extends State<DirectionalActionButton> {
   int? _pointer;
-  bool _leftButtonOnce = false;
   bool _canceled = false;
 
   @override
@@ -111,7 +113,6 @@ class _DirectionalActionButtonState extends State<DirectionalActionButton> {
   void _handlePointerDown(PointerDownEvent event) {
     if (_pointer != null) return;
     _pointer = event.pointer;
-    _leftButtonOnce = false;
     _canceled = false;
     widget.projectileAimPreview.begin();
     widget.onAimClear();
@@ -120,19 +121,20 @@ class _DirectionalActionButtonState extends State<DirectionalActionButton> {
 
   void _handlePointerMove(PointerMoveEvent event) {
     if (event.pointer != _pointer) return;
-    final inside = _isInside(event.localPosition);
-    if (!inside && !_leftButtonOnce) {
-      _leftButtonOnce = true;
-    }
-    if (inside && _leftButtonOnce) {
-      _cancelAim();
-      return;
-    }
     _updateAim(event.localPosition);
   }
 
   void _handlePointerUp(PointerUpEvent event) {
     if (event.pointer != _pointer) return;
+
+    // Cancel is decided by where the pointer is released in *screen space*.
+    // (The cancel hitbox cannot receive pointer events because the pointer
+    // started on this button, so we must hit-test using the global position.)
+    final cancelRect = widget.cancelHitboxRect?.value;
+    if (cancelRect != null && cancelRect.contains(event.position)) {
+      _cancelAim();
+    }
+
     if (!_canceled) {
       widget.onCommit();
     }
@@ -141,6 +143,8 @@ class _DirectionalActionButtonState extends State<DirectionalActionButton> {
 
   void _handlePointerCancel(PointerCancelEvent event) {
     if (event.pointer != _pointer) return;
+    // System canceled the pointer stream -> treat as Cancel (never commit).
+    _cancelAim();
     _resetAim();
   }
 
@@ -172,18 +176,9 @@ class _DirectionalActionButtonState extends State<DirectionalActionButton> {
 
   void _resetAim() {
     _pointer = null;
-    _leftButtonOnce = false;
     _canceled = false;
     widget.onAimClear();
     widget.projectileAimPreview.end();
-  }
-
-  bool _isInside(Offset local) {
-    final center = Offset(widget.size / 2, widget.size / 2);
-    final dx = local.dx - center.dx;
-    final dy = local.dy - center.dy;
-    final radius = widget.size / 2;
-    return (dx * dx + dy * dy) <= radius * radius;
   }
 
   Color _disabledForeground(Color color) => color.withValues(alpha: 0.35);

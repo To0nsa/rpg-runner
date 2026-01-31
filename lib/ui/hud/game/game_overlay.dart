@@ -11,6 +11,7 @@ import 'ready_overlay.dart';
 import 'top_center_hud_overlay.dart';
 import 'top_left_hud_overlay.dart';
 import 'top_right_hud_overlay.dart';
+import 'aim_cancel_button_overlay.dart';
 
 class GameOverlay extends StatelessWidget {
   const GameOverlay({
@@ -19,6 +20,7 @@ class GameOverlay extends StatelessWidget {
     required this.input,
     required this.projectileAimPreview,
     required this.meleeAimPreview,
+    required this.aimCancelHitboxRect,
     required this.uiState,
     required this.onStart,
     required this.onTogglePause,
@@ -33,6 +35,7 @@ class GameOverlay extends StatelessWidget {
   final RunnerInputRouter input;
   final AimPreviewModel projectileAimPreview;
   final AimPreviewModel meleeAimPreview;
+  final ValueNotifier<Rect?> aimCancelHitboxRect;
   final RunnerGameUiState uiState;
   final VoidCallback onStart;
   final VoidCallback onTogglePause;
@@ -77,6 +80,7 @@ class GameOverlay extends StatelessWidget {
             onMeleeCommitted: input.commitMeleeStrike,
             onMeleePressed: input.pressStrike,
             meleeAimPreview: meleeAimPreview,
+            aimCancelHitboxRect: aimCancelHitboxRect,
             meleeAffordable: hud.canAffordMelee,
             meleeCooldownTicksLeft:
                 hud.cooldownTicksLeft[CooldownGroup.primary],
@@ -123,6 +127,11 @@ class GameOverlay extends StatelessWidget {
           uiState: uiState,
           onStart: onStart,
           onTogglePause: onTogglePause,
+        ),
+        AimCancelButtonOverlay(
+          projectileAimPreview: projectileAimPreview,
+          meleeAimPreview: meleeAimPreview,
+          hitboxRect: aimCancelHitboxRect,
         ),
         TopRightHudOverlay(
           controller: controller,

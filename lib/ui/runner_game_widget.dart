@@ -69,6 +69,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   late RunnerInputRouter _input;
   late AimPreviewModel _projectileAimPreview;
   late AimPreviewModel _meleeAimPreview;
+  late final ValueNotifier<Rect?> _aimCancelHitboxRect;
   late RunnerFlameGame _game;
 
   @override
@@ -191,6 +192,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _input = RunnerInputRouter(controller: _controller);
     _projectileAimPreview = AimPreviewModel();
     _meleeAimPreview = AimPreviewModel();
+    _aimCancelHitboxRect = ValueNotifier<Rect?>(null);
     _game = RunnerFlameGame(
       controller: _controller,
       input: _input,
@@ -205,6 +207,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _controller.dispose();
     _projectileAimPreview.dispose();
     _meleeAimPreview.dispose();
+    _aimCancelHitboxRect.dispose();
   }
 
   @override
@@ -267,6 +270,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
               input: _input,
               projectileAimPreview: _projectileAimPreview,
               meleeAimPreview: _meleeAimPreview,
+              aimCancelHitboxRect: _aimCancelHitboxRect,
               uiState: uiState,
               onStart: _startGame,
               onTogglePause: _togglePause,
