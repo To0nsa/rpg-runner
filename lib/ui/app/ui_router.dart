@@ -1,0 +1,106 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import '../bootstrap/loader_page.dart';
+import '../pages/hub/play_hub_page.dart';
+import '../pages/leaderboards/leaderboards_page.dart';
+import '../pages/lab/loadout_lab_page.dart';
+import '../pages/meta/credits_page.dart';
+import '../pages/meta/gold_store_page.dart';
+import '../pages/meta/iap_store_page.dart';
+import '../pages/meta/library_page.dart';
+import '../pages/meta/options_page.dart';
+import '../pages/setup/level_setup_page.dart';
+import '../pages/setup/loadout_setup_page.dart';
+import '../runner_game_route.dart';
+import 'ui_routes.dart';
+
+class UiRouter {
+  const UiRouter._();
+
+  static Route<dynamic> onGenerateRoute(RouteSettings settings) {
+    switch (settings.name) {
+      case UiRoutes.loader:
+        final args = settings.arguments is LoaderArgs
+            ? settings.arguments as LoaderArgs
+            : const LoaderArgs();
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => LoaderPage(args: args),
+        );
+      case UiRoutes.hub:
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const PlayHubPage(),
+        );
+      case UiRoutes.setupLevel:
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const LevelSetupPage(),
+        );
+      case UiRoutes.setupLoadout:
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const LoadoutSetupPage(),
+        );
+      case UiRoutes.loadoutLab:
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const LoadoutLabPage(),
+        );
+      case UiRoutes.leaderboards:
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const LeaderboardsPage(),
+        );
+      case UiRoutes.options:
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const OptionsPage(),
+        );
+      case UiRoutes.library:
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const LibraryPage(),
+        );
+      case UiRoutes.goldStore:
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const GoldStorePage(),
+        );
+      case UiRoutes.shop:
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const IapStorePage(),
+        );
+      case UiRoutes.credits:
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const CreditsPage(),
+        );
+      case UiRoutes.run:
+        final args = settings.arguments;
+        if (args is RunStartArgs) {
+          return createRunnerGameRoute(
+            seed: args.seed,
+            levelId: args.levelId,
+            playerCharacterId: args.playerCharacterId,
+            settings: settings,
+            restoreOrientations: const [
+              DeviceOrientation.landscapeLeft,
+              DeviceOrientation.landscapeRight,
+            ],
+          );
+        }
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const PlayHubPage(),
+        );
+      default:
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const PlayHubPage(),
+        );
+    }
+  }
+}

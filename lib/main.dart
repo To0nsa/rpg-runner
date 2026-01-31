@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import 'firebase_options.dart';
-import 'ui/menus/main_menu_page.dart';
+import 'ui/app/ui_app.dart';
 
 /// Production app entry point for the rpg-runner game.
 ///
@@ -24,25 +24,5 @@ Future<void> main() async {
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const RpgRunnerApp());
-}
-
-class RpgRunnerApp extends StatelessWidget {
-  const RpgRunnerApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'rpg-runner',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.white,
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-      ),
-      home: const MainMenuPage(),
-    );
-  }
+  runApp(const UiApp());
 }

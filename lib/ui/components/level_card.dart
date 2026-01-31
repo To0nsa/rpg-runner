@@ -13,6 +13,7 @@ class LevelCard extends StatelessWidget {
     super.key,
     required this.levelId,
     required this.onTap,
+    this.selected = false,
     this.width,
     this.height = 120,
     this.borderRadius = 12,
@@ -23,6 +24,9 @@ class LevelCard extends StatelessWidget {
 
   /// Callback when the card is tapped.
   final VoidCallback onTap;
+
+  /// Whether this card is currently selected.
+  final bool selected;
 
   /// Card width. If null, uses available space (e.g., in Expanded).
   final double? width;
@@ -42,7 +46,10 @@ class LevelCard extends StatelessWidget {
         height: height,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(borderRadius),
-          border: Border.all(color: Colors.white, width: 2),
+          border: Border.all(
+            color: selected ? Colors.amberAccent : Colors.white,
+            width: 2,
+          ),
           boxShadow: const [
             BoxShadow(
               color: Colors.black54,

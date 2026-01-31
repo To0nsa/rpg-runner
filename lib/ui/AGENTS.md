@@ -83,7 +83,7 @@ class HealthBar extends StatelessWidget {
 
 Menu screens for navigation and settings:
 
-- **Main menu** (`lib/ui/menus/`) - Start game, settings, quit
+- **Play hub + setup** (`lib/ui/pages/`) - Start run, setup, meta routes
 - **Pause menu** - Resume, restart, quit to menu
 - **Game over screen** - Score, retry, quit
 - **Level selection** - Choose which level to play
@@ -257,7 +257,10 @@ class LevelSelectScreen extends StatelessWidget {
 
 - **Controls** (`lib/ui/controls/`) - Input widgets (joystick, buttons)
 - **HUD** (`lib/ui/hud/`) - In-game overlays (health, score, progress)
-- **Menus** (`lib/ui/menus/`) - Menu screens (main, pause, game over)
+- **App** (`lib/ui/app/`) - App shell, routes, navigation
+- **Bootstrap** (`lib/ui/bootstrap/`) - Loader + startup tasks
+- **State** (`lib/ui/state/`) - Menu selection state + persistence
+- **Pages** (`lib/ui/pages/`) - Menu/meta screens (hub, setup, meta, lab)
 - **Levels** (`lib/ui/levels/`) - Level selection UI
 - **Leaderboard** (`lib/ui/leaderboard/`) - Score display and rankings
 - **Scoped** (`lib/ui/scoped/`) - Scoped state management

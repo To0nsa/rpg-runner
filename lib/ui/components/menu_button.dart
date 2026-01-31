@@ -21,10 +21,10 @@ class MenuButton extends StatelessWidget {
   /// The text label displayed on the button.
   final String label;
 
-  /// Callback when the button is pressed.
-  final VoidCallback onPressed;
+  /// Callback when the button is pressed. Null disables the button.
+  final VoidCallback? onPressed;
 
-  /// Button width. Defaults to 200.
+  /// Button width. Defaults to 160.
   final double width;
 
   /// Button height. Defaults to 56.

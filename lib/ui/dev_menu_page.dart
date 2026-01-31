@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'menus/runner_menu_page.dart';
+import 'app/ui_routes.dart';
 
 /// Development-only menu used by the standalone host app (`lib/main.dart`).
 ///
@@ -22,11 +22,7 @@ class DevMenuPage extends StatelessWidget {
       body: Center(
         child: FilledButton(
           onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (context) => const RunnerMenuPage(),
-              ),
-            );
+            Navigator.of(context).pushNamed(UiRoutes.hub);
           },
           child: const Text('Menu'),
         ),

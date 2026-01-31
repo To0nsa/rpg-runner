@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'menu_layout.dart';
 import 'menu_scaffold.dart';
 
 /// A reusable placeholder page for features not yet implemented.
@@ -23,7 +24,9 @@ class PlaceholderPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return MenuScaffold(
       title: title,
-      child: Center(
+      child: MenuLayout(
+        alignment: Alignment.center,
+        scrollable: false,
         child: Text(
           message,
           style: const TextStyle(

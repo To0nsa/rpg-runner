@@ -18,8 +18,10 @@ Route<void> createRunnerGameRoute({
   PlayerCharacterId playerCharacterId = PlayerCharacterId.eloise,
   bool lockLandscape = true,
   List<DeviceOrientation>? restoreOrientations,
+  RouteSettings? settings,
 }) {
   return MaterialPageRoute<void>(
+    settings: settings,
     builder: (context) {
       Widget child = RunnerGameWidget(
         seed: seed,

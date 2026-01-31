@@ -85,7 +85,8 @@ It follows the project stance: gameplay is **deterministic and fair**, and UI sh
 
 ### 3.2 Navigation Map
 
-- Launch → **Play Hub**
+- Launch → **Loader** → **Play Hub**
+- Resume → **Loader** → return to the prior screen
 - From Play Hub:
   - `Start Run` → In-Game (starts the **selected level** using the **selected run type**: Practice/Competitive)
   - `Edit Level` → Setup Level (route)
