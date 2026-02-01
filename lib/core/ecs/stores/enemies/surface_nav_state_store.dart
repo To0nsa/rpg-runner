@@ -10,6 +10,7 @@ class SurfaceNavStateStore extends SparseSet {
   final List<int> graphVersion = <int>[];
   final List<int> repathTicksLeft = <int>[];
   final List<int> currentSurfaceId = <int>[];
+  final List<int> lastGroundSurfaceId = <int>[];
   final List<int> targetSurfaceId = <int>[];
   final List<int> activeEdgeIndex = <int>[];
   final List<int> pathCursor = <int>[];
@@ -24,6 +25,7 @@ class SurfaceNavStateStore extends SparseSet {
     graphVersion.add(-1);
     repathTicksLeft.add(0);
     currentSurfaceId.add(surfaceIdUnknown);
+    lastGroundSurfaceId.add(surfaceIdUnknown);
     targetSurfaceId.add(surfaceIdUnknown);
     activeEdgeIndex.add(-1);
     pathCursor.add(0);
@@ -35,6 +37,7 @@ class SurfaceNavStateStore extends SparseSet {
     graphVersion[removeIndex] = graphVersion[lastIndex];
     repathTicksLeft[removeIndex] = repathTicksLeft[lastIndex];
     currentSurfaceId[removeIndex] = currentSurfaceId[lastIndex];
+    lastGroundSurfaceId[removeIndex] = lastGroundSurfaceId[lastIndex];
     targetSurfaceId[removeIndex] = targetSurfaceId[lastIndex];
     activeEdgeIndex[removeIndex] = activeEdgeIndex[lastIndex];
     pathCursor[removeIndex] = pathCursor[lastIndex];
@@ -43,6 +46,7 @@ class SurfaceNavStateStore extends SparseSet {
     graphVersion.removeLast();
     repathTicksLeft.removeLast();
     currentSurfaceId.removeLast();
+    lastGroundSurfaceId.removeLast();
     targetSurfaceId.removeLast();
     activeEdgeIndex.removeLast();
     pathCursor.removeLast();

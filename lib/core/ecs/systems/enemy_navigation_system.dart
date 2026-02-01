@@ -204,8 +204,13 @@ class EnemyNavigationSystem {
 
         if (!intent.hasPlan) {
           final currentSurfaceId = world.surfaceNav.currentSurfaceId[navIndex];
-          if (currentSurfaceId != surfaceIdUnknown) {
-            final currentIndex = graph.indexOfSurfaceId(currentSurfaceId);
+          final lastGroundSurfaceId =
+              world.surfaceNav.lastGroundSurfaceId[navIndex];
+          final safeSurfaceId = currentSurfaceId != surfaceIdUnknown
+              ? currentSurfaceId
+              : lastGroundSurfaceId;
+          if (safeSurfaceId != surfaceIdUnknown) {
+            final currentIndex = graph.indexOfSurfaceId(safeSurfaceId);
             if (currentIndex != null) {
               final surface = graph.surfaces[currentIndex];
               final minX = surface.xMin + enemyHalfX;

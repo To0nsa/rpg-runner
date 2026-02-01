@@ -107,6 +107,7 @@ class SurfaceNavigator {
   }) {
     final prevCurrentId = navStore.currentSurfaceId[navIndex];
     final prevTargetId = navStore.targetSurfaceId[navIndex];
+    final prevLastGroundId = navStore.lastGroundSurfaceId[navIndex];
 
     // -------------------------------------------------------------------------
     // Step 1: Locate surfaces.
@@ -152,10 +153,16 @@ class SurfaceNavigator {
       navStore.pathCursor[navIndex] = 0;
       navStore.activeEdgeIndex[navIndex] = -1;
       navStore.repathTicksLeft[navIndex] = 0;
+      navStore.lastGroundSurfaceId[navIndex] = surfaceIdUnknown;
     }
 
     navStore.currentSurfaceId[navIndex] = currentSurfaceId;
     navStore.targetSurfaceId[navIndex] = targetSurfaceId;
+    if (entityGrounded && currentSurfaceId != surfaceIdUnknown) {
+      navStore.lastGroundSurfaceId[navIndex] = currentSurfaceId;
+    } else if (prevLastGroundId != surfaceIdUnknown) {
+      navStore.lastGroundSurfaceId[navIndex] = prevLastGroundId;
+    }
 
     // Decrement repath cooldown.
     if (navStore.repathTicksLeft[navIndex] > 0) {
