@@ -148,13 +148,6 @@ class EnemyNavigationSystem {
 
       if (world.controlLock.isStunned(enemy, currentTick)) continue;
 
-      if (world.controlLock.isStunned(enemy, 0))
-        continue; // Tick is roughly irrelevant for isLocked check here as it's just checking duration, but ideally we pass tick. Wait, isLocked needs tick.
-      // I need to start passing tick to EnemyNavigationSystem to be correct.
-      // However, for now, let's assume if I don't pass tick, I can't check expiry correctly unless I use the store's knowledge.
-      // Actually isLocked REQUIRES currentTick.
-      // I will update the step signature to include currentTick.
-
       final navIndex = world.surfaceNav.tryIndexOf(enemy);
       if (navIndex == null) continue;
 

@@ -111,7 +111,7 @@ class SurfaceNavigator {
     // -------------------------------------------------------------------------
     // Step 1: Locate surfaces.
     // -------------------------------------------------------------------------
-    var currentSurfaceId = prevCurrentId;
+    var currentSurfaceId = surfaceIdUnknown;
     if (entityGrounded) {
       final currentIndex = _locateSurfaceIndex(
         graph,
@@ -201,8 +201,10 @@ class SurfaceNavigator {
     // -------------------------------------------------------------------------
     // Step 4: Same-surface shortcut.
     // -------------------------------------------------------------------------
-    if (currentSurfaceId != surfaceIdUnknown &&
-        currentSurfaceId == targetSurfaceId) {
+    if (entityGrounded &&
+      navStore.activeEdgeIndex[navIndex] < 0 &&
+      currentSurfaceId != surfaceIdUnknown &&
+      currentSurfaceId == targetSurfaceId) {
       plan.clear();
       navStore.pathCursor[navIndex] = 0;
       navStore.activeEdgeIndex[navIndex] = -1;
