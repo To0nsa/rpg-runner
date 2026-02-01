@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../core/levels/level_id.dart';
-import '../levels/level_id_ui.dart';
+import '../../../../core/levels/level_id.dart';
+import '../../../levels/level_id_ui.dart';
 import 'hub_selection_card_body.dart';
 import 'hub_selection_card_frame.dart';
-import 'level_parallax_preview.dart';
+import '../../../components/level_parallax_preview.dart';
 
 /// Hub card showing the currently selected level.
 class SelectedLevelCard extends StatelessWidget {

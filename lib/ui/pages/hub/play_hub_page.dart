@@ -5,8 +5,8 @@ import '../../app/ui_routes.dart';
 import '../../components/menu_button.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
-import '../../components/selected_character_card.dart';
-import '../../components/selected_level_card.dart';
+import 'components/selected_character_card.dart';
+import 'components/selected_level_card.dart';
 import '../../state/app_state.dart';
 import '../../state/selection_state.dart';
 

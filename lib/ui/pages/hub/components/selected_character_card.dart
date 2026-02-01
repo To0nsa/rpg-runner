@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../core/players/player_character_definition.dart';
-import '../../core/players/player_character_registry.dart';
+import '../../../../core/players/player_character_definition.dart';
+import '../../../../core/players/player_character_registry.dart';
 import 'hub_selection_card_body.dart';
 import 'hub_selection_card_frame.dart';
-import 'player_idle_preview.dart';
+import '../../../components/player_idle_preview.dart';
 
 /// Hub card showing the currently selected character and build name.
 class SelectedCharacterCard extends StatelessWidget {
