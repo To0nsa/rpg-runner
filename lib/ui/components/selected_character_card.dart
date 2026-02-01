@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/players/player_character_definition.dart';
 import '../../core/players/player_character_registry.dart';
+import 'hub_selection_card_body.dart';
 import 'hub_selection_card_frame.dart';
-import 'menu_button.dart';
 import 'player_idle_preview.dart';
 
 /// Hub card showing the currently selected character and build name.
@@ -43,76 +43,11 @@ class SelectedCharacterCard extends StatelessWidget {
           ),
         ),
       ),
-      child: Stack(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'CHARACTER SELECTION',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  letterSpacing: 1.5,
-                  fontWeight: FontWeight.bold,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black,
-                      blurRadius: 2,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    def.displayName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black,
-                          blurRadius: 2,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    buildName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black,
-                          blurRadius: 2,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ],
-          ),
-          Positioned(
-            right: 0,
-            bottom: 0,
-            child: PlayerIdlePreview(characterId: characterId, size: 88),
-          ),
-        ],
+      child: HubSelectionCardBody(
+        headerText: 'CHARACTER SELECTION',
+        title: def.displayName,
+        subtitle: buildName,
+        trailing: PlayerIdlePreview(characterId: characterId, size: 88),
       ),
     );
   }
