@@ -15,6 +15,7 @@ class LevelParallaxPreview extends StatefulWidget {
     super.key,
     required this.themeId,
     this.baseColor = const Color(0xFF0B1020),
+    this.alignment = Alignment.bottomCenter,
     this.filterQuality = FilterQuality.none,
   });
 
@@ -24,6 +25,7 @@ class LevelParallaxPreview extends StatefulWidget {
   /// Important because MenuScaffold background is black.
   final Color baseColor;
 
+  final AlignmentGeometry alignment;
   final FilterQuality filterQuality;
 
   @override
@@ -106,11 +108,11 @@ class _LevelParallaxPreviewState extends State<LevelParallaxPreview> {
           for (final provider in _layers)
             Positioned.fill(
               child: Align(
-                alignment: Alignment.bottomCenter,
+                alignment: widget.alignment,
                 child: Image(
                   image: provider,
                   fit: BoxFit.cover,
-                  alignment: Alignment.bottomCenter,
+                  alignment: widget.alignment,
                   filterQuality: widget.filterQuality,
                   errorBuilder: (context, error, stackTrace) {
                     // If one layer is missing, just skip it visually.

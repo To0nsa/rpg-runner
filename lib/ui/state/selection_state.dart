@@ -14,19 +14,25 @@ class SelectionState {
     required this.selectedRunType,
     required this.selectedCharacterId,
     required this.equippedLoadout,
+    required this.buildName,
   });
+
+  static const String defaultBuildName = 'Build 1';
+  static const int buildNameMaxLength = 24;
 
   static const SelectionState defaults = SelectionState(
     selectedLevelId: LevelId.field,
     selectedRunType: RunType.practice,
     selectedCharacterId: PlayerCharacterId.eloise,
     equippedLoadout: EquippedLoadoutDef(),
+    buildName: defaultBuildName,
   );
 
   final LevelId selectedLevelId;
   final RunType selectedRunType;
   final PlayerCharacterId selectedCharacterId;
   final EquippedLoadoutDef equippedLoadout;
+  final String buildName;
 
   bool get isCompetitive => selectedRunType == RunType.competitive;
 
@@ -35,12 +41,15 @@ class SelectionState {
     RunType? selectedRunType,
     PlayerCharacterId? selectedCharacterId,
     EquippedLoadoutDef? equippedLoadout,
+    String? buildName,
   }) {
     return SelectionState(
       selectedLevelId: selectedLevelId ?? this.selectedLevelId,
       selectedRunType: selectedRunType ?? this.selectedRunType,
       selectedCharacterId: selectedCharacterId ?? this.selectedCharacterId,
       equippedLoadout: equippedLoadout ?? this.equippedLoadout,
+      buildName:
+          buildName == null ? this.buildName : normalizeBuildName(buildName),
     );
   }
 
@@ -50,6 +59,7 @@ class SelectionState {
       'runType': selectedRunType.name,
       'characterId': selectedCharacterId.name,
       'loadout': _loadoutToJson(equippedLoadout),
+      'buildName': buildName,
     };
   }
 
@@ -70,13 +80,24 @@ class SelectionState {
       PlayerCharacterId.eloise,
     );
     final loadout = _loadoutFromJson(json['loadout']);
+    final buildName = normalizeBuildName(
+      json['buildName'] is String ? json['buildName'] as String : null,
+    );
 
     return SelectionState(
       selectedLevelId: levelId,
       selectedRunType: runType,
       selectedCharacterId: characterId,
       equippedLoadout: loadout,
+      buildName: buildName,
     );
+  }
+
+  static String normalizeBuildName(String? raw) {
+    final trimmed = (raw ?? '').trim();
+    if (trimmed.isEmpty) return defaultBuildName;
+    if (trimmed.length <= buildNameMaxLength) return trimmed;
+    return trimmed.substring(0, buildNameMaxLength);
   }
 }
 

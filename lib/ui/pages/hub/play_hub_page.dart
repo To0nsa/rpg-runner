@@ -5,7 +5,8 @@ import '../../app/ui_routes.dart';
 import '../../components/menu_button.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
-import '../../levels/level_id_ui.dart';
+import '../../components/selected_character_card.dart';
+import '../../components/selected_level_card.dart';
 import '../../state/app_state.dart';
 import '../../state/selection_state.dart';
 
@@ -55,7 +56,8 @@ class _PlayHubPageState extends State<PlayHubPage> {
                 _HubIconButton(
                   icon: Icons.storefront,
                   label: 'Town',
-                  onPressed: () => Navigator.of(context).pushNamed(UiRoutes.town),
+                  onPressed: () =>
+                      Navigator.of(context).pushNamed(UiRoutes.town),
                 ),
                 _HubIconButton(
                   icon: Icons.monetization_on,
@@ -82,36 +84,30 @@ class _PlayHubPageState extends State<PlayHubPage> {
                         Navigator.of(context).pushNamed(UiRoutes.leaderboards),
                   ),
                   const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _SummaryCard(
-                          title: 'Selected Level',
-                          lines: [
-                            selection.selectedLevelId.displayName,
-                            _runTypeLabel(selection.selectedRunType),
-                          ],
-                          actionLabel: 'Change',
-                          onAction: () => Navigator.of(
+                  Center(
+                    child: Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 16,
+                      runSpacing: 16,
+                      children: [
+                        SelectedLevelCard(
+                          levelId: selection.selectedLevelId,
+                          runTypeLabel: _runTypeLabel(
+                            selection.selectedRunType,
+                          ),
+                          onChange: () => Navigator.of(
                             context,
                           ).pushNamed(UiRoutes.setupLevel),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _SummaryCard(
-                          title: 'Selected Character',
-                          lines: [
-                            selection.selectedCharacterId.name.toUpperCase(),
-                            'Abilities: ${selection.equippedLoadout.abilityPrimaryId}',
-                          ],
-                          actionLabel: 'Change',
-                          onAction: () => Navigator.of(
+                        SelectedCharacterCard(
+                          characterId: selection.selectedCharacterId,
+                          buildName: selection.buildName,
+                          onChange: () => Navigator.of(
                             context,
                           ).pushNamed(UiRoutes.setupLoadout),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 24),
                   Center(
@@ -144,62 +140,6 @@ String _runTypeLabel(RunType runType) {
       return 'Practice (Random)';
     case RunType.competitive:
       return 'Competitive (Season)';
-  }
-}
-
-class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({
-    required this.title,
-    required this.lines,
-    required this.actionLabel,
-    required this.onAction,
-  });
-
-  final String title;
-  final List<String> lines;
-  final String actionLabel;
-  final VoidCallback onAction;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.black,
-        border: Border.all(color: Colors.white54),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title.toUpperCase(),
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 12,
-              letterSpacing: 1.5,
-            ),
-          ),
-          const SizedBox(height: 8),
-          for (final line in lines)
-            Text(
-              line,
-              style: const TextStyle(color: Colors.white, fontSize: 16),
-            ),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: MenuButton(
-              label: actionLabel.toUpperCase(),
-              width: 120,
-              height: 40,
-              fontSize: 12,
-              onPressed: onAction,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 

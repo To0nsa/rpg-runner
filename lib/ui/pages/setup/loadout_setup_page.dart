@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/ecs/stores/combat/equipped_loadout_store.dart';
@@ -8,6 +9,7 @@ import '../../components/menu_button.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
 import '../../state/app_state.dart';
+import '../../state/selection_state.dart';
 
 class LoadoutSetupPage extends StatelessWidget {
   const LoadoutSetupPage({super.key});
@@ -15,7 +17,8 @@ class LoadoutSetupPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
-    final loadout = appState.selection.equippedLoadout;
+    final selection = appState.selection;
+    final loadout = selection.equippedLoadout;
 
     return MenuScaffold(
       title: 'Setup Loadout',
@@ -23,6 +26,16 @@ class LoadoutSetupPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const Text(
+              'Build Name',
+              style: TextStyle(color: Colors.white70, letterSpacing: 1.2),
+            ),
+            const SizedBox(height: 8),
+            _BuildNameField(
+              buildName: selection.buildName,
+              onCommit: appState.setBuildName,
+            ),
+            const SizedBox(height: 20),
             Text(
               'Current Loadout',
               style: Theme.of(context)
@@ -108,6 +121,99 @@ EquippedLoadoutDef _withProjectile(
     abilityMobilityId: base.abilityMobilityId,
     abilityJumpId: base.abilityJumpId,
   );
+}
+
+class _BuildNameField extends StatefulWidget {
+  const _BuildNameField({
+    required this.buildName,
+    required this.onCommit,
+  });
+
+  final String buildName;
+  final ValueChanged<String> onCommit;
+
+  @override
+  State<_BuildNameField> createState() => _BuildNameFieldState();
+}
+
+class _BuildNameFieldState extends State<_BuildNameField> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.buildName);
+    _focusNode = FocusNode()..addListener(_handleFocusChange);
+  }
+
+  @override
+  void didUpdateWidget(covariant _BuildNameField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_focusNode.hasFocus &&
+        oldWidget.buildName != widget.buildName &&
+        _controller.text != widget.buildName) {
+      _controller.text = widget.buildName;
+    }
+  }
+
+  void _handleFocusChange() {
+    if (!_focusNode.hasFocus) {
+      _commit();
+    }
+  }
+
+  void _commit() {
+    widget.onCommit(_controller.text);
+    FocusScope.of(context).unfocus();
+  }
+
+  @override
+  void dispose() {
+    _focusNode
+      ..removeListener(_handleFocusChange)
+      ..dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final borderRadius = BorderRadius.circular(8);
+    return TextField(
+      controller: _controller,
+      focusNode: _focusNode,
+      maxLength: SelectionState.buildNameMaxLength,
+      maxLengthEnforcement: MaxLengthEnforcement.enforced,
+      textInputAction: TextInputAction.done,
+      onSubmitted: (_) => _commit(),
+      style: const TextStyle(color: Colors.white),
+      cursorColor: Colors.white,
+      decoration: InputDecoration(
+        hintText: SelectionState.defaultBuildName,
+        hintStyle: const TextStyle(color: Colors.white38),
+        filled: true,
+        fillColor: const Color(0xFF0E131D),
+        border: OutlineInputBorder(
+          borderRadius: borderRadius,
+          borderSide: const BorderSide(color: Colors.white24),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: borderRadius,
+          borderSide: const BorderSide(color: Colors.white24),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: borderRadius,
+          borderSide: const BorderSide(color: Colors.white70),
+        ),
+        counterStyle: const TextStyle(color: Colors.white38, fontSize: 11),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 10,
+        ),
+      ),
+    );
+  }
 }
 
 class _LoadoutSummary extends StatelessWidget {

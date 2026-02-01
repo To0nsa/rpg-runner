@@ -70,6 +70,14 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setBuildName(String buildName) async {
+    final normalized = SelectionState.normalizeBuildName(buildName);
+    if (normalized == _selection.buildName) return;
+    _selection = _selection.copyWith(buildName: normalized);
+    _persistSelection();
+    notifyListeners();
+  }
+
   Future<void> updateProfile(
     UserProfile Function(UserProfile current) fn,
   ) async {
