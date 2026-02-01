@@ -88,7 +88,7 @@ class _PlayHubPageState extends State<PlayHubPage> {
                   ),
                   const SizedBox(height: 24),
                   MenuButton(
-                    label: 'START RUN',
+                    label: 'PLAY',
                     width: 220,
                     height: 56,
                     fontSize: 18,
@@ -109,7 +109,7 @@ class _PlayHubPageState extends State<PlayHubPage> {
                             selection.selectedLevelId.displayName,
                             _runTypeLabel(selection.selectedRunType),
                           ],
-                          actionLabel: 'Edit',
+                          actionLabel: 'Change',
                           onAction: () => Navigator.of(
                             context,
                           ).pushNamed(UiRoutes.setupLevel),
@@ -118,12 +118,12 @@ class _PlayHubPageState extends State<PlayHubPage> {
                       const SizedBox(width: 16),
                       Expanded(
                         child: _SummaryCard(
-                          title: 'Selected Loadout',
+                          title: 'Selected Character',
                           lines: [
                             selection.selectedCharacterId.name.toUpperCase(),
                             'Abilities: ${selection.equippedLoadout.abilityPrimaryId}',
                           ],
-                          actionLabel: 'Edit',
+                          actionLabel: 'Change',
                           onAction: () => Navigator.of(
                             context,
                           ).pushNamed(UiRoutes.setupLoadout),
