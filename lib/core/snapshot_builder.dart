@@ -117,6 +117,7 @@ class SnapshotBuilder {
   ///
   /// Parameters:
   /// - [tick]: Current simulation tick number.
+  /// - [runId]: Unique identifier for this run session.
   /// - [seed]: RNG seed for this run (stored for replay/debug).
   /// - [levelId]: Level identifier for this run (stored for replay/debug).
   /// - [themeId]: Optional render theme identifier (stored for debug/UI).
@@ -130,6 +131,7 @@ class SnapshotBuilder {
   /// - [groundGaps]: Pre-built list of ground gap snapshots.
   GameStateSnapshot build({
     required int tick,
+    required int runId,
     required int seed,
     required LevelId levelId,
     required String? themeId,
@@ -307,6 +309,7 @@ class SnapshotBuilder {
     // ─── Assemble final snapshot ───
     return GameStateSnapshot(
       tick: tick,
+      runId: runId,
       seed: seed,
       levelId: levelId,
       themeId: themeId,

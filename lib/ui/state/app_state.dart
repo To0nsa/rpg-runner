@@ -16,6 +16,7 @@ class AppState extends ChangeNotifier {
       : _selectionStore = selectionStore ?? SelectionStore(),
         _profileStore = userProfileStore ?? UserProfileStore();
 
+  final Random _random = Random();
   final SelectionStore _selectionStore;
   final UserProfileStore _profileStore;
 
@@ -106,11 +107,20 @@ class AppState extends ChangeNotifier {
 
   RunStartArgs buildRunStartArgs({int? seed}) {
     return RunStartArgs(
-      seed: seed ?? Random().nextInt(1 << 31),
+      runId: createRunId(),
+      seed: seed ?? _random.nextInt(1 << 31),
       levelId: _selection.selectedLevelId,
       playerCharacterId: _selection.selectedCharacterId,
       runType: _selection.selectedRunType,
     );
+  }
+
+  int createRunId() => _createRunId();
+
+  int _createRunId() {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final salt = _random.nextInt(1 << 20);
+    return (nowMs << 20) | salt;
   }
 
   void _persistSelection() {

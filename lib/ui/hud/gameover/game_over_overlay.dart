@@ -28,6 +28,8 @@ class GameOverOverlay extends StatefulWidget {
     required this.runEndedEvent,
     required this.scoreTuning,
     required this.tickHz,
+    this.goldEarned,
+    this.totalGold,
     this.leaderboardStore,
   });
 
@@ -39,6 +41,8 @@ class GameOverOverlay extends StatefulWidget {
   final RunEndedEvent? runEndedEvent;
   final ScoreTuning scoreTuning;
   final int tickHz;
+  final int? goldEarned;
+  final int? totalGold;
   final LeaderboardStore? leaderboardStore;
 
   @override
@@ -77,6 +81,53 @@ class _GameOverOverlayState extends State<GameOverOverlay>
       enemyKillCounts: event.stats.enemyKillCounts,
       tuning: widget.scoreTuning,
       tickHz: widget.tickHz,
+    );
+  }
+
+  Widget? _buildGoldPanel() {
+    final goldEarned = widget.goldEarned;
+    if (goldEarned == null) return null;
+    final totalGold = widget.totalGold;
+
+    const labelStyle = TextStyle(
+      color: Color(0xFFFFFFFF),
+      fontSize: 14,
+      fontWeight: FontWeight.w600,
+    );
+    const valueStyle = TextStyle(
+      color: Color(0xFFFFD54F),
+      fontSize: 14,
+      fontWeight: FontWeight.w700,
+    );
+
+    Widget buildRow(String label, String value) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('$label: ', style: labelStyle),
+          Text(value, style: valueStyle),
+        ],
+      );
+    }
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0x33000000),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            buildRow('Gold earned', '+$goldEarned'),
+            if (totalGold != null) ...[
+              const SizedBox(height: 4),
+              buildRow('Total gold', '$totalGold'),
+            ],
+          ],
+        ),
+      ),
     );
   }
 
@@ -159,6 +210,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
     final collectLabel = _feedController.feedState == ScoreFeedState.idle
         ? 'Collect score'
         : 'Skip';
+    final goldPanel = _buildGoldPanel();
     final rowLabels = [
       for (var i = 0; i < _feedController.rows.length; i += 1)
         formatScoreRow(
@@ -189,6 +241,10 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                             ? _feedController.displayScore
                             : null,
                       ),
+                      if (goldPanel != null) ...[
+                        const SizedBox(height: 10),
+                        goldPanel,
+                      ],
                       const SizedBox(height: 14),
                       if (showCollectButton)
                         OverlayButton(

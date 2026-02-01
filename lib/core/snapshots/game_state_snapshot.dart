@@ -18,6 +18,7 @@ import 'static_solid_snapshot.dart';
 class GameStateSnapshot {
   const GameStateSnapshot({
     required this.tick,
+    required this.runId,
     required this.seed,
     required this.levelId,
     required this.themeId,
@@ -34,6 +35,9 @@ class GameStateSnapshot {
 
   /// Current simulation tick.
   final int tick;
+
+  /// Unique identifier for this run session.
+  final int runId;
 
   /// Seed used for deterministic generation/RNG.
   final int seed;

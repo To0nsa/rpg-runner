@@ -8,6 +8,7 @@ import '../../components/menu_scaffold.dart';
 import 'components/selected_character_card.dart';
 import 'components/selected_level_card.dart';
 import '../../state/app_state.dart';
+import '../../state/profile_counter_keys.dart';
 import '../../state/selection_state.dart';
 
 class PlayHubPage extends StatefulWidget {
@@ -31,6 +32,8 @@ class _PlayHubPageState extends State<PlayHubPage> {
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
     final selection = appState.selection;
+    final profile = appState.profile;
+    final gold = profile.counters[ProfileCounterKeys.gold] ?? 0;
 
     return MenuScaffold(
       showAppBar: false,
@@ -78,6 +81,8 @@ class _PlayHubPageState extends State<PlayHubPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  _ProfileGoldRow(profileId: profile.profileId, gold: gold),
+                  const SizedBox(height: 12),
                   _WeeklyBadgeRow(
                     onWeeklyPressed: null,
                     onWeeklyLeaderboardPressed: () =>
@@ -182,6 +187,47 @@ class _WeeklyBadgeRow extends StatelessWidget {
             height: 36,
             fontSize: 12,
             onPressed: onWeeklyLeaderboardPressed,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileGoldRow extends StatelessWidget {
+  const _ProfileGoldRow({
+    required this.profileId,
+    required this.gold,
+  });
+
+  final String profileId;
+  final int gold;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.white24),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Profile · $profileId',
+              style: const TextStyle(color: Colors.white70),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const Icon(Icons.monetization_on, color: Color(0xFFFFD54F), size: 18),
+          const SizedBox(width: 6),
+          Text(
+            gold.toString(),
+            style: const TextStyle(
+              color: Color(0xFFFFF59D),
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),

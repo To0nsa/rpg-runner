@@ -1,3 +1,5 @@
+import 'profile_counter_keys.dart';
+
 class UserProfile {
   UserProfile({
     required this.schemaVersion,
@@ -28,7 +30,7 @@ class UserProfile {
       updatedAtMs: 0,
       revision: 0,
       flags: const <String, bool>{},
-      counters: const <String, int>{},
+      counters: const <String, int>{ProfileCounterKeys.gold: 0},
     );
   }
 
@@ -43,7 +45,7 @@ class UserProfile {
       updatedAtMs: nowMs,
       revision: 0,
       flags: const <String, bool>{},
-      counters: const <String, int>{},
+      counters: const <String, int>{ProfileCounterKeys.gold: 0},
     );
   }
 
@@ -92,6 +94,7 @@ class UserProfile {
     final revision = _readInt(json['revision']) ?? 0;
     final flags = _readBoolMap(json['flags']);
     final counters = _readIntMap(json['counters']);
+    counters.putIfAbsent(ProfileCounterKeys.gold, () => 0);
 
     return UserProfile(
       schemaVersion: schemaVersion,

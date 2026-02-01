@@ -12,7 +12,9 @@ import 'scoped/scoped_system_ui_mode.dart';
 /// Host apps can `Navigator.push(createRunnerGameRoute(...))` without depending
 /// on this package's development host app (`lib/main.dart`).
 ///
+/// Use [runId] to tag the run for replay/ghost metadata.
 Route<void> createRunnerGameRoute({
+  int runId = 0,
   int seed = 1,
   LevelId levelId = LevelId.defaultLevel,
   PlayerCharacterId playerCharacterId = PlayerCharacterId.eloise,
@@ -24,6 +26,7 @@ Route<void> createRunnerGameRoute({
     settings: settings,
     builder: (context) {
       Widget child = RunnerGameWidget(
+        runId: runId,
         seed: seed,
         levelId: levelId,
         playerCharacterId: playerCharacterId,

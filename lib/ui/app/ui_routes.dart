@@ -27,12 +27,14 @@ class LoaderArgs {
 
 class RunStartArgs {
   const RunStartArgs({
+    required this.runId,
     required this.seed,
     required this.levelId,
     required this.playerCharacterId,
     required this.runType,
   });
 
+  final int runId;
   final int seed;
   final LevelId levelId;
   final PlayerCharacterId playerCharacterId;

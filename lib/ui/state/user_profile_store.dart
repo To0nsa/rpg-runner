@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'user_profile.dart';
+import 'profile_counter_keys.dart';
 
 class UserProfileStore {
   UserProfileStore({Random? random, DateTime Function()? now})
@@ -145,6 +146,12 @@ class UserProfileStore {
     if (data['counters'] is! Map) {
       data['counters'] = <String, int>{};
       didChange = true;
+    } else {
+      final counters = data['counters'];
+      if (counters is Map && !counters.containsKey(ProfileCounterKeys.gold)) {
+        counters[ProfileCounterKeys.gold] = 0;
+        didChange = true;
+      }
     }
 
     return _MigrationResult(data, didChange);

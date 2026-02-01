@@ -1,7 +1,11 @@
+import 'dart:math';
+
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../core/contracts/render_contract.dart';
+import '../core/events/game_event.dart';
 import '../core/game_core.dart';
 import '../core/levels/level_id.dart';
 import '../core/levels/level_registry.dart';
@@ -14,6 +18,8 @@ import '../game/runner_flame_game.dart';
 import 'hud/game/game_overlay.dart';
 import 'hud/gameover/game_over_overlay.dart';
 import 'runner_game_ui_state.dart';
+import 'state/app_state.dart';
+import 'state/profile_counter_keys.dart';
 import 'viewport/game_viewport.dart';
 import 'viewport/viewport_metrics.dart';
 
@@ -27,6 +33,7 @@ import 'viewport/viewport_metrics.dart';
 class RunnerGameWidget extends StatefulWidget {
   const RunnerGameWidget({
     super.key,
+    this.runId = 0,
     this.seed = 1,
     this.levelId = LevelId.defaultLevel,
     this.playerCharacterId = PlayerCharacterId.eloise,
@@ -38,6 +45,9 @@ class RunnerGameWidget extends StatefulWidget {
 
   /// Master RNG seed for deterministic generation.
   final int seed;
+
+  /// Unique identifier for this run session (replay/ghost).
+  final int runId;
 
   /// Which core level definition to run.
   final LevelId levelId;
@@ -60,10 +70,17 @@ class RunnerGameWidget extends StatefulWidget {
 
 class _RunnerGameWidgetState extends State<RunnerGameWidget>
     with WidgetsBindingObserver {
+  final Random _runIdRandom = Random();
+
   bool _pausedByLifecycle = false;
   bool _started = false;
   bool _exitConfirmOpen = false;
   bool _pausedBeforeExitConfirm = false;
+
+  late int _runId;
+  int? _lastRewardedRunId;
+  int? _lastGoldEarned;
+  int? _lastGoldTotal;
 
   late GameController _controller;
   late RunnerInputRouter _input;
@@ -77,6 +94,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
+    _runId = widget.runId != 0 ? widget.runId : _createFallbackRunId();
     _initGame();
 
     // Start in "ready" (paused) until the user taps to begin.
@@ -112,6 +130,56 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _input.pumpHeldInputs();
   }
 
+  AppState? _maybeAppState() {
+    try {
+      return Provider.of<AppState>(context, listen: false);
+    } on ProviderNotFoundException {
+      return null;
+    }
+  }
+
+  int _createFallbackRunId() {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final salt = _runIdRandom.nextInt(1 << 20);
+    return (nowMs << 20) | salt;
+  }
+
+  int _nextRunId() {
+    final appState = _maybeAppState();
+    if (appState != null) return appState.createRunId();
+    return _createFallbackRunId();
+  }
+
+  void _handleGameEvent(GameEvent event) {
+    if (event is! RunEndedEvent) return;
+    _grantGold(event);
+  }
+
+  void _grantGold(RunEndedEvent event) {
+    final runId = event.runId;
+    if (_lastRewardedRunId == runId) return;
+
+    _lastRewardedRunId = runId;
+    _lastGoldEarned = event.goldEarned;
+
+    final appState = _maybeAppState();
+    if (appState == null) {
+      _lastGoldTotal = null;
+      return;
+    }
+
+    final currentGold =
+        appState.profile.counters[ProfileCounterKeys.gold] ?? 0;
+    final nextGold = currentGold + event.goldEarned;
+    _lastGoldTotal = nextGold;
+
+    appState.updateProfile((current) {
+      final counters = Map<String, int>.from(current.counters);
+      counters[ProfileCounterKeys.gold] = nextGold;
+      return current.copyWith(counters: counters);
+    });
+  }
+
   RunnerGameUiState _buildUiState() {
     final snapshot = _controller.snapshot;
     return RunnerGameUiState(
@@ -132,11 +200,15 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     final oldProjectilePreview = _projectileAimPreview;
     final oldMeleePreview = _meleeAimPreview;
     final oldAimCancelHitboxRect = _aimCancelHitboxRect;
+    oldController.removeEventListener(_handleGameEvent);
 
     setState(() {
       _pausedByLifecycle = false;
       _started = false;
       _exitConfirmOpen = false;
+      _runId = _nextRunId();
+      _lastGoldEarned = null;
+      _lastGoldTotal = null;
       _initGame();
     });
     _controller.setPaused(true);
@@ -187,10 +259,12 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _controller = GameController(
       core: GameCore(
         seed: widget.seed,
+        runId: _runId,
         levelDefinition: LevelRegistry.byId(widget.levelId),
         playerCharacter: playerCharacter,
       ),
     );
+    _controller.addEventListener(_handleGameEvent);
     _input = RunnerInputRouter(controller: _controller);
     _projectileAimPreview = AimPreviewModel();
     _meleeAimPreview = AimPreviewModel();
@@ -205,6 +279,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   void _disposeGame() {
+    _controller.removeEventListener(_handleGameEvent);
     _controller.shutdown();
     _controller.dispose();
     _projectileAimPreview.dispose();
@@ -265,6 +340,8 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                 runEndedEvent: runEndedEvent,
                 scoreTuning: _controller.scoreTuning,
                 tickHz: _controller.tickHz,
+                goldEarned: _lastGoldEarned,
+                totalGold: _lastGoldTotal,
               );
             }
             return GameOverlay(

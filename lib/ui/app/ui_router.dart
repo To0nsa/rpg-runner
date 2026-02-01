@@ -82,6 +82,7 @@ class UiRouter {
         final args = settings.arguments;
         if (args is RunStartArgs) {
           return createRunnerGameRoute(
+            runId: args.runId,
             seed: args.seed,
             levelId: args.levelId,
             playerCharacterId: args.playerCharacterId,

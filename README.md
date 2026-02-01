@@ -40,6 +40,7 @@ import 'package:rpg_runner/runner.dart';
 
 Navigator.of(context).push(
   createRunnerGameRoute(
+    runId: 12345, // optional: tag the run for replay/ghost metadata
     seed: 123,
     levelId: LevelId.forest,
   ),

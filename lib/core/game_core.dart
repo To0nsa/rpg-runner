@@ -140,6 +140,7 @@ import 'snapshot_builder.dart';
 import 'spawn_service.dart';
 import 'projectiles/projectile_item_catalog.dart';
 import 'projectiles/projectile_item_id.dart';
+import 'progression/run_rewards.dart';
 import 'track_manager.dart';
 import 'weapons/weapon_catalog.dart';
 import 'ecs/stores/combat/equipped_loadout_store.dart';
@@ -228,6 +229,7 @@ class GameCore {
   ///
   /// Parameters:
   /// - [seed]: Master RNG seed for deterministic generation.
+  /// - [runId]: Unique identifier for this run session (replay/ghost).
   /// - [tickHz]: Fixed tick rate (default 60). Higher = smoother but more CPU.
   /// - [tuning]: Aggregate tuning configuration (see [CoreTuning]).
   /// - Catalogs: Entity archetype definitions (spells, enemies, etc.).
@@ -237,6 +239,7 @@ class GameCore {
   ///   [staticWorldGeometry] are ignored).
   GameCore({
     required int seed,
+    int runId = 0,
     int tickHz = defaultTickHz,
     CoreTuning tuning = const CoreTuning(),
     PlayerCharacterDefinition playerCharacter =
@@ -251,6 +254,7 @@ class GameCore {
     LevelDefinition? levelDefinition,
   }) : this._fromLevel(
          seed: seed,
+         runId: runId,
          tickHz: tickHz,
          levelDefinition: _resolveLevelDefinition(
            levelDefinition: levelDefinition,
@@ -266,6 +270,7 @@ class GameCore {
 
   GameCore._fromLevel({
     required this.seed,
+    required this.runId,
     required this.tickHz,
     required LevelDefinition levelDefinition,
     required ProjectileItemCatalog projectileItemCatalog,
@@ -596,6 +601,9 @@ class GameCore {
 
   /// item placements across runs.
   final int seed;
+
+  /// Unique identifier for this run session.
+  final int runId;
 
   /// Fixed simulation tick frequency (ticks per second).
   ///
@@ -1173,12 +1181,17 @@ class GameCore {
   void _endRun(RunEndReason reason, {DeathInfo? deathInfo}) {
     gameOver = true;
     paused = true;
+    final goldEarned = computeGoldEarned(
+      collectiblesCollected: collectibles,
+    );
     _events.add(
       RunEndedEvent(
+        runId: runId,
         tick: tick,
         distance: distance,
         reason: reason,
         stats: _buildRunEndStats(),
+        goldEarned: goldEarned,
         deathInfo: deathInfo,
       ),
     );
@@ -1381,6 +1394,7 @@ class GameCore {
   GameStateSnapshot buildSnapshot() {
     return _snapshotBuilder.build(
       tick: tick,
+      runId: runId,
       seed: seed,
       levelId: levelId,
       themeId: themeId,

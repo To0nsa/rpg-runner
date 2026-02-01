@@ -71,12 +71,17 @@ class RunEndStats {
 /// Contains all necessary data to display the "Game Over" screen.
 class RunEndedEvent extends GameEvent {
   const RunEndedEvent({
+    required this.runId,
     required this.tick,
     required this.distance,
     required this.reason,
     required this.stats,
+    required this.goldEarned,
     this.deathInfo,
   });
+
+  /// Unique identifier for this run session.
+  final int runId;
 
   /// The tick on which the run ended.
   final int tick;
@@ -89,6 +94,9 @@ class RunEndedEvent extends GameEvent {
   
   /// Performance stats.
   final RunEndStats stats;
+
+  /// Gold earned for this run (derived from run stats).
+  final int goldEarned;
   
   /// Details on the lethal hit (if applicable).
   final DeathInfo? deathInfo;

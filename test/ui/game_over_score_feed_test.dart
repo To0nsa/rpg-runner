@@ -35,6 +35,7 @@ final _expectedTotal = _expectedDistancePoints +
 
 RunEndedEvent _buildEvent() {
   return const RunEndedEvent(
+    runId: 1,
     tick: _tick,
     distance: _distanceUnits,
     reason: RunEndReason.gaveUp,
@@ -43,6 +44,7 @@ RunEndedEvent _buildEvent() {
       collectibleScore: 100,
       enemyKillCounts: [1, 0],
     ),
+    goldEarned: 2,
   );
 }
 

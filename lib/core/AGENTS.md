@@ -94,6 +94,7 @@ class ExampleSystem {
 - **Immutable** representation of the current game state
 - Serializable and renderer-friendly
 - Contains all data needed for rendering (positions, animations, health, etc.)
+- Includes a `runId` field for session/replay/ghost metadata
 - Produced once per tick
 - Consumer layers (Game/UI) must treat this as **read-only**
 
