@@ -55,8 +55,7 @@ class _PlayHubPageState extends State<PlayHubPage> {
                 _HubIconButton(
                   icon: Icons.storefront,
                   label: 'Town',
-                  onPressed: () =>
-                      Navigator.of(context).pushNamed(UiRoutes.town),
+                  onPressed: () => Navigator.of(context).pushNamed(UiRoutes.town),
                 ),
                 _HubIconButton(
                   icon: Icons.monetization_on,
@@ -77,27 +76,10 @@ class _PlayHubPageState extends State<PlayHubPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'PLAY HUB',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      letterSpacing: 2,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  MenuButton(
-                    label: 'PLAY',
-                    width: 220,
-                    height: 56,
-                    fontSize: 18,
-                    onPressed: () {
-                      final args = appState.buildRunStartArgs();
-                      Navigator.of(
-                        context,
-                      ).pushNamed(UiRoutes.run, arguments: args);
-                    },
+                  _WeeklyBadgeRow(
+                    onWeeklyPressed: null,
+                    onWeeklyLeaderboardPressed: () =>
+                        Navigator.of(context).pushNamed(UiRoutes.leaderboards),
                   ),
                   const SizedBox(height: 20),
                   Row(
@@ -131,11 +113,20 @@ class _PlayHubPageState extends State<PlayHubPage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  _WeeklyBadgeRow(
-                    onWeeklyPressed: null,
-                    onWeeklyLeaderboardPressed: () =>
-                        Navigator.of(context).pushNamed(UiRoutes.leaderboards),
+                  const SizedBox(height: 24),
+                  Center(
+                    child: MenuButton(
+                      label: 'PLAY',
+                      width: 220,
+                      height: 56,
+                      fontSize: 18,
+                      onPressed: () {
+                        final args = appState.buildRunStartArgs();
+                        Navigator.of(
+                          context,
+                        ).pushNamed(UiRoutes.run, arguments: args);
+                      },
+                    ),
                   ),
                 ],
               ),
