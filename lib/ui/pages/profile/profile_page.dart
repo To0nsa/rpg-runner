@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../components/menu_button.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
 import '../../profile/display_name_policy.dart';
@@ -20,15 +19,9 @@ class _ProfilePageState extends State<ProfilePage> {
   final _policy = const DisplayNamePolicy();
   String? _error;
   bool _saving = false;
+  bool _isEditing = false;
 
   static const Duration _cooldown = Duration(hours: 24);
-
-  @override
-  void initState() {
-    super.initState();
-    final profile = context.read<AppState>().profile;
-    _controller.text = profile.displayName;
-  }
 
   @override
   void dispose() {
@@ -96,7 +89,10 @@ class _ProfilePageState extends State<ProfilePage> {
     });
 
     if (!mounted) return;
-    setState(() => _saving = false);
+    setState(() {
+      _saving = false;
+      _isEditing = false;
+    });
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Name updated')));
@@ -107,15 +103,10 @@ class _ProfilePageState extends State<ProfilePage> {
     final appState = context.watch<AppState>();
     final profile = appState.profile;
     final gold = profile.counters[ProfileCounterKeys.gold] ?? 0;
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-
-    final cdActive = _cooldownActive(profile.displayNameLastChangedAtMs, nowMs);
-    final cdText = cdActive
-        ? _cooldownRemaining(profile.displayNameLastChangedAtMs, nowMs)
-        : null;
 
     return MenuScaffold(
-      showAppBar: false,
+      title: 'Profile',
+      showAppBar: true,
       child: MenuLayout(
         child: Center(
           child: ConstrainedBox(
@@ -123,15 +114,6 @@ class _ProfilePageState extends State<ProfilePage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  'Profile',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -140,43 +122,10 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   child: Column(
                     children: [
-                      _row('Display name', _fallbackName(profile.displayName)),
-                      _row('Profile id', profile.profileId),
+                      _buildDisplayNameRow(profile.displayName),
                       _row('Gold', gold.toString()),
-                      if (cdText != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Text(
-                            'Name change cooldown: ${cdText.inHours}h ${cdText.inMinutes.remainder(60)}m remaining',
-                            style: const TextStyle(color: Colors.white70),
-                          ),
-                        ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: _controller,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    labelText: 'Change display name',
-                    labelStyle: const TextStyle(color: Colors.white70),
-                    errorText: _error,
-                    filled: true,
-                    fillColor: Colors.white10,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onChanged: (_) => setState(() => _error = null),
-                ),
-                const SizedBox(height: 12),
-                MenuButton(
-                  label: 'Save',
-                  width: 160,
-                  height: 44,
-                  fontSize: 14,
-                  onPressed: _saving ? null : _save,
                 ),
               ],
             ),
@@ -186,17 +135,144 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  Widget _buildDisplayNameRow(String currentName) {
+    if (_isEditing) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 80,
+              child: Text('Name', style: TextStyle(color: Colors.white70)),
+            ),
+            Expanded(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      autofocus: true,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 0,
+                          vertical: 8,
+                        ),
+                        border: const UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.white),
+                        ),
+                        enabledBorder: const UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.white70),
+                        ),
+                        focusedBorder: const UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.white),
+                        ),
+                        hintText: 'Enter name',
+                        hintStyle: const TextStyle(color: Colors.white24),
+                        errorText: _error,
+                      ),
+                      onSubmitted: (_) => _save(),
+                    ),
+                  ),
+                  IconButton(
+                    icon: _saving
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(
+                            Icons.check,
+                            color: Colors.greenAccent,
+                            size: 20,
+                          ),
+                    onPressed: _saving ? null : _save,
+                    tooltip: 'Save',
+                    padding: const EdgeInsets.all(4),
+                    constraints: const BoxConstraints(),
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.close,
+                      color: Colors.white70,
+                      size: 20,
+                    ),
+                    onPressed: _saving ? null : _cancelEditing,
+                    tooltip: 'Cancel',
+                    padding: const EdgeInsets.all(4),
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 80,
+            child: Text('Name', style: TextStyle(color: Colors.white70)),
+          ),
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _fallbackName(currentName),
+                    style: const TextStyle(color: Colors.white),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit, color: Colors.white54, size: 16),
+                  onPressed: _startEditing,
+                  tooltip: 'Edit name',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _startEditing() {
+    final profile = context.read<AppState>().profile;
+    _controller.text = profile.displayName;
+    setState(() {
+      _isEditing = true;
+      _error = null;
+    });
+  }
+
+  void _cancelEditing() {
+    setState(() {
+      _isEditing = false;
+      _error = null;
+    });
+  }
+
   Widget _row(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          Expanded(
-            flex: 2,
+          SizedBox(
+            width: 80,
             child: Text(label, style: const TextStyle(color: Colors.white70)),
           ),
           Expanded(
-            flex: 3,
             child: Text(
               value,
               style: const TextStyle(color: Colors.white),
