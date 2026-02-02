@@ -257,6 +257,7 @@ class LevelSelectScreen extends StatelessWidget {
 
 - **Controls** (`lib/ui/controls/`) - Input widgets (joystick, buttons)
 - **HUD** (`lib/ui/hud/`) - In-game overlays (health, score, progress)
+- **Assets** (`lib/ui/assets/`) - UI preview asset lifecycle (hub/run cache + warmup)
 - **App** (`lib/ui/app/`) - App shell, routes, navigation
 - **Bootstrap** (`lib/ui/bootstrap/`) - Loader + startup tasks
 - **State** (`lib/ui/state/`) - Menu selection state + persistence

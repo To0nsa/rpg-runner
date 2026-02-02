@@ -1,13 +1,13 @@
-import 'dart:collection';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import '../../game/themes/parallax_theme_registry.dart';
+import '../assets/ui_asset_lifecycle.dart';
 
 /// Static (non-scrolling) parallax preview for menu cards.
 ///
-/// - Uses ParallaxThemeRegistry as the source of truth.
-/// - LRU caches resolved layer AssetImages by themeId.
+/// - Uses UiAssetLifecycle for theme → layers caching.
 /// - Precaches per widget lifetime to avoid first-frame hitch.
 /// - Never crashes the UI if a layer asset is missing.
 class LevelParallaxPreview extends StatefulWidget {
@@ -33,68 +33,53 @@ class LevelParallaxPreview extends StatefulWidget {
 }
 
 class _LevelParallaxPreviewState extends State<LevelParallaxPreview> {
-  // Small LRU (more than enough for current scope: field/forest).
-  static const int _maxCacheEntries = 8;
-  static final LinkedHashMap<String, List<AssetImage>> _lru = LinkedHashMap();
-
   String? _cacheKey;
-  late List<AssetImage> _layers;
+  List<AssetImage> _layers = const <AssetImage>[];
   bool _precached = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _refreshLayers();
+  }
 
+  @override
+  void didUpdateWidget(LevelParallaxPreview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.themeId != widget.themeId) {
+      _refreshLayers();
+    }
+  }
+
+  void _refreshLayers() {
     final key = widget.themeId ?? '__null__';
-    if (_cacheKey == key) return;
+    if (_cacheKey == key && _layers.isNotEmpty) return;
 
     _cacheKey = key;
-    _layers = _getOrBuildLayers(widget.themeId);
     _precached = false;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted || _precached) return;
-      _precached = true;
-
-      // Best-effort precache: never throw.
-      for (final img in _layers) {
-        try {
-          await precacheImage(img, context);
-        } catch (_) {
-          // Ignore missing/bad assets; Image.errorBuilder handles it.
-        }
-      }
+    final lifecycle = context.read<UiAssetLifecycle>();
+    lifecycle.getParallaxLayers(widget.themeId).then((layers) {
+      if (!mounted || _cacheKey != key) return;
+      setState(() => _layers = layers);
+      _schedulePrecache(layers);
+    }).catchError((_) {
+      // Best-effort preview; ignore missing assets.
     });
   }
 
-  static List<AssetImage> _getOrBuildLayers(String? themeId) {
-    final key = themeId ?? '__null__';
-
-    // LRU hit
-    final hit = _lru.remove(key);
-    if (hit != null) {
-      _lru[key] = hit; // re-insert as most-recent
-      return hit;
-    }
-
-    final theme = ParallaxThemeRegistry.forThemeId(themeId);
-
-    AssetImage img(String relToImagesFolder) =>
-        AssetImage('assets/images/$relToImagesFolder');
-
-    final built = <AssetImage>[
-      for (final layer in theme.backgroundLayers) img(layer.assetPath),
-      img(theme.groundLayerAsset),
-      for (final layer in theme.foregroundLayers) img(layer.assetPath),
-    ];
-
-    // LRU insert + evict
-    _lru[key] = built;
-    while (_lru.length > _maxCacheEntries) {
-      _lru.remove(_lru.keys.first);
-    }
-
-    return built;
+  void _schedulePrecache(List<AssetImage> layers) {
+    if (_precached) return;
+    _precached = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(
+        context.read<UiAssetLifecycle>().precacheParallaxLayers(
+          layers,
+          context,
+        ),
+      );
+    });
   }
 
   @override

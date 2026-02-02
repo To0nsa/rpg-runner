@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../assets/ui_asset_lifecycle.dart';
+import '../levels/level_id_ui.dart';
 import '../state/app_state.dart';
 import 'ui_router.dart';
 import 'ui_routes.dart';
@@ -41,9 +45,46 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
     }
   }
 
-  void _handleRouteChanged(String? routeName) {
+  void _handleRouteChanged(
+    _UiRouteChange change,
+    Route<dynamic>? route,
+    Route<dynamic>? previousRoute,
+  ) {
     _hasSeenRoute = true;
-    _currentRouteName = routeName;
+    if (change == _UiRouteChange.pop || change == _UiRouteChange.remove) {
+      _currentRouteName = previousRoute?.settings.name;
+    } else {
+      _currentRouteName = route?.settings.name;
+    }
+
+    if (change == _UiRouteChange.pop &&
+        route?.settings.name == UiRoutes.run) {
+      _purgeRunCaches();
+    }
+
+    if (_currentRouteName == UiRoutes.hub) {
+      unawaited(_warmHubSelection());
+    }
+  }
+
+  Future<void> _warmHubSelection() async {
+    final ctx = _navigatorKey.currentContext;
+    if (ctx == null) return;
+    final appState = Provider.of<AppState>(ctx, listen: false);
+    final lifecycle = Provider.of<UiAssetLifecycle>(ctx, listen: false);
+    final selection = appState.selection;
+    await lifecycle.warmHubSelection(
+      themeId: selection.selectedLevelId.themeId,
+      characterId: selection.selectedCharacterId,
+      context: ctx,
+    );
+  }
+
+  void _purgeRunCaches() {
+    final ctx = _navigatorKey.currentContext;
+    if (ctx == null) return;
+    final lifecycle = Provider.of<UiAssetLifecycle>(ctx, listen: false);
+    lifecycle.purgeRunCaches();
   }
 
   void _showResumeLoader() {
@@ -67,8 +108,14 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => AppState(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AppState()),
+        Provider<UiAssetLifecycle>(
+          create: (_) => UiAssetLifecycle(),
+          dispose: (_, lifecycle) => lifecycle.dispose(),
+        ),
+      ],
       child: MaterialApp(
         title: 'rpg-runner',
         debugShowCheckedModeBanner: false,
@@ -91,33 +138,43 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
 class _UiRouteObserver extends NavigatorObserver {
   _UiRouteObserver({required this.onRouteChanged});
 
-  final ValueChanged<String?> onRouteChanged;
+  final void Function(
+    _UiRouteChange change,
+    Route<dynamic>? route,
+    Route<dynamic>? previousRoute,
+  ) onRouteChanged;
 
-  void _update(Route<dynamic>? route) {
-    onRouteChanged(route?.settings.name);
+  void _update(
+    _UiRouteChange change,
+    Route<dynamic>? route,
+    Route<dynamic>? previousRoute,
+  ) {
+    onRouteChanged(change, route, previousRoute);
   }
 
   @override
   void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
     super.didPush(route, previousRoute);
-    _update(route);
+    _update(_UiRouteChange.push, route, previousRoute);
   }
 
   @override
   void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
     super.didPop(route, previousRoute);
-    _update(previousRoute);
+    _update(_UiRouteChange.pop, route, previousRoute);
   }
 
   @override
   void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
     super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
-    _update(newRoute);
+    _update(_UiRouteChange.replace, newRoute, oldRoute);
   }
 
   @override
   void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
     super.didRemove(route, previousRoute);
-    _update(previousRoute);
+    _update(_UiRouteChange.remove, route, previousRoute);
   }
 }
+
+enum _UiRouteChange { push, pop, replace, remove }

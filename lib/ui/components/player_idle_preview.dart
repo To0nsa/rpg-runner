@@ -1,11 +1,9 @@
-import 'package:flame/cache.dart';
 import 'package:flame/widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/players/player_character_definition.dart';
-import '../../core/players/player_character_registry.dart';
-import '../../core/snapshots/enums.dart';
-import '../../game/components/player/player_animations.dart';
+import '../assets/ui_asset_lifecycle.dart';
 
 /// Lightweight UI preview for a character's idle animation.
 ///
@@ -20,39 +18,17 @@ class PlayerIdlePreview extends StatelessWidget {
   final PlayerCharacterId characterId;
   final double size;
 
-  static final Images _images = Images();
   static final Paint _paint = Paint()..filterQuality = FilterQuality.none;
-  static final Map<PlayerCharacterId, Future<_IdleAnimBundle>> _cache =
-      <PlayerCharacterId, Future<_IdleAnimBundle>>{};
-
-  static Future<_IdleAnimBundle> _loadIdleBundle(
-    PlayerCharacterId characterId,
-  ) async {
-    final def =
-        PlayerCharacterRegistry.byId[characterId] ??
-        PlayerCharacterRegistry.defaultCharacter;
-    final animSet = await loadPlayerAnimations(
-      _images,
-      renderAnim: def.renderAnim,
-    );
-    final idle = animSet.animations[AnimKey.idle];
-    if (idle == null) {
-      throw StateError('Missing idle animation for $characterId');
-    }
-    return _IdleAnimBundle(animation: idle, anchor: animSet.anchor);
-  }
 
   @override
   Widget build(BuildContext context) {
-    final future = _cache.putIfAbsent(
-      characterId,
-      () => _loadIdleBundle(characterId),
-    );
+    final lifecycle = context.read<UiAssetLifecycle>();
+    final future = lifecycle.getIdle(characterId);
 
     return SizedBox(
       width: size,
       height: size,
-      child: FutureBuilder<_IdleAnimBundle>(
+      child: FutureBuilder<IdleAnimBundle>(
         future: future,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
@@ -91,11 +67,4 @@ class PlayerIdlePreview extends StatelessWidget {
       child: const Icon(Icons.person, color: Colors.white24, size: 20),
     );
   }
-}
-
-class _IdleAnimBundle {
-  const _IdleAnimBundle({required this.animation, required this.anchor});
-
-  final SpriteAnimation animation;
-  final Anchor anchor;
 }

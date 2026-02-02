@@ -7,6 +7,7 @@ import '../components/menu_scaffold.dart';
 import '../state/app_state.dart';
 import '../state/profile_flag_keys.dart';
 import 'app_bootstrapper.dart';
+import 'loader_content.dart';
 
 class LoaderPage extends StatefulWidget {
   const LoaderPage({
@@ -90,43 +91,12 @@ class _LoaderPageState extends State<LoaderPage> {
       child: MenuLayout(
         alignment: Alignment.center,
         scrollable: false,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              'rpg-runner',
-              style: TextStyle(
-                fontSize: 36,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                letterSpacing: 2,
-              ),
-            ),
-            const SizedBox(height: 24),
-            if (!hasError) ...[
-              const CircularProgressIndicator(color: Colors.white),
-              const SizedBox(height: 16),
-              const Text('Loading...', style: TextStyle(color: Colors.white70)),
-            ],
-            if (hasError) ...[
-              const Text(
-                'Bootstrap failed',
-                style: TextStyle(color: Colors.redAccent, fontSize: 16),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '${_result!.error}',
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white70),
-              ),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: _continueWithDefaults,
-                child: const Text('Continue with defaults'),
-              ),
-            ],
-          ],
-        ),
+        child: hasError
+            ? LoaderContent(
+                errorMessage: '${_result!.error}',
+                onContinue: _continueWithDefaults,
+              )
+            : const LoaderContent(),
       ),
     );
   }

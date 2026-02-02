@@ -50,6 +50,28 @@ const _priorityProjectileAimRay = 5;
 const _priorityMeleeAimRay = 6;
 const PlayerRenderTuning _playerRenderTuning = PlayerRenderTuning();
 
+enum RunLoadPhase {
+  start,
+  themeResolved,
+  parallaxMounted,
+  playerAnimationsLoaded,
+  registriesLoaded,
+  worldReady,
+}
+
+@immutable
+class RunLoadState {
+  const RunLoadState({required this.phase, required this.progress});
+
+  final RunLoadPhase phase;
+  final double progress;
+
+  static const RunLoadState initial = RunLoadState(
+    phase: RunLoadPhase.start,
+    progress: 0.0,
+  );
+}
+
 /// Minimal Flame `Game` that renders from snapshots.
 class RunnerFlameGame extends FlameGame {
   RunnerFlameGame({
@@ -82,6 +104,11 @@ class RunnerFlameGame extends FlameGame {
 
   /// The selected player character definition for this run (render-only usage).
   final PlayerCharacterDefinition playerCharacter;
+
+  /// UI-facing load progress for the run route.
+  final ValueNotifier<RunLoadState> loadState = ValueNotifier<RunLoadState>(
+    RunLoadState.initial,
+  );
 
   late final PlayerViewComponent _player;
   final EnemyRenderRegistry _enemyRenderRegistry;
@@ -126,6 +153,7 @@ class RunnerFlameGame extends FlameGame {
     }());
     controller.addEventListener(_handleGameEvent);
     final theme = ParallaxThemeRegistry.forThemeId(controller.snapshot.themeId);
+    _setLoadState(RunLoadPhase.themeResolved, 0.15);
 
     // Background parallax layers (sky, distant mountains, etc.)
     camera.backdrop.add(
@@ -157,14 +185,17 @@ class RunnerFlameGame extends FlameGame {
         layers: theme.foregroundLayers,
       )..priority = _priorityForegroundParallax,
     );
+    _setLoadState(RunLoadPhase.parallaxMounted, 0.35);
 
     final playerAnimations = await loadPlayerAnimations(
       images,
       renderAnim: playerCharacter.renderAnim,
     );
+    _setLoadState(RunLoadPhase.playerAnimationsLoaded, 0.55);
     await _enemyRenderRegistry.load(images);
     await _projectileRenderRegistry.load(images);
     await _pickupRenderRegistry.load(images);
+    _setLoadState(RunLoadPhase.registriesLoaded, 0.8);
     _player = PlayerViewComponent(
       animationSet: playerAnimations,
       renderScale: Vector2.all(_playerRenderTuning.scale),
@@ -197,6 +228,7 @@ class RunnerFlameGame extends FlameGame {
 
     _mountStaticSolids(controller.snapshot.staticSolids);
     _lastStaticSolidsSnapshot = controller.snapshot.staticSolids;
+    _setLoadState(RunLoadPhase.worldReady, 1.0);
   }
 
   @override
@@ -682,6 +714,17 @@ class RunnerFlameGame extends FlameGame {
     controller.removeEventListener(_handleGameEvent);
     images.clearCache();
     super.onRemove();
+  }
+
+  @override
+  void onDispose() {
+    loadState.dispose();
+    super.onDispose();
+  }
+
+  void _setLoadState(RunLoadPhase phase, double progress) {
+    final clamped = progress.clamp(0.0, 1.0);
+    loadState.value = RunLoadState(phase: phase, progress: clamped);
   }
 }
 

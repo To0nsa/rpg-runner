@@ -17,6 +17,8 @@ import '../game/input/runner_input_router.dart';
 import '../game/runner_flame_game.dart';
 import 'hud/game/game_overlay.dart';
 import 'hud/gameover/game_over_overlay.dart';
+import 'bootstrap/loader_content.dart';
+import 'components/menu_layout.dart';
 import 'runner_game_ui_state.dart';
 import 'state/app_state.dart';
 import 'state/profile_counter_keys.dart';
@@ -316,6 +318,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                 key: ValueKey(_game),
                 game: _game,
                 autofocus: false,
+                loadingBuilder: (_) => const _RunLoadingView(),
               ),
             );
 
@@ -364,6 +367,22 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
           },
         ),
       ],
+    );
+  }
+}
+
+class _RunLoadingView extends StatelessWidget {
+  const _RunLoadingView();
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: Colors.black,
+      child: MenuLayout(
+        alignment: Alignment.center,
+        scrollable: false,
+        child: const LoaderContent(),
+      ),
     );
   }
 }
