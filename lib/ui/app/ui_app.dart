@@ -18,8 +18,9 @@ class UiApp extends StatefulWidget {
 
 class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
-  late final _UiRouteObserver _routeObserver =
-      _UiRouteObserver(onRouteChanged: _handleRouteChanged);
+  late final _UiRouteObserver _routeObserver = _UiRouteObserver(
+    onRouteChanged: _handleRouteChanged,
+  );
 
   String? _currentRouteName;
   bool _hasSeenRoute = false;
@@ -57,8 +58,7 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
       _currentRouteName = route?.settings.name;
     }
 
-    if (change == _UiRouteChange.pop &&
-        route?.settings.name == UiRoutes.run) {
+    if (change == _UiRouteChange.pop && route?.settings.name == UiRoutes.run) {
       _purgeRunCaches();
     }
 
@@ -97,13 +97,10 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
 
     _resumeInFlight = true;
     navigator
-        .pushNamed(
-          UiRoutes.loader,
-          arguments: const LoaderArgs(isResume: true),
-        )
+        .pushNamed(UiRoutes.loader, arguments: const LoaderArgs(isResume: true))
         .whenComplete(() {
-      _resumeInFlight = false;
-    });
+          _resumeInFlight = false;
+        });
   }
 
   @override
@@ -127,7 +124,7 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
           useMaterial3: true,
         ),
         navigatorKey: _navigatorKey,
-        initialRoute: UiRoutes.loader,
+        initialRoute: UiRoutes.brandSplash,
         onGenerateRoute: UiRouter.onGenerateRoute,
         navigatorObservers: [_routeObserver],
       ),
@@ -142,7 +139,8 @@ class _UiRouteObserver extends NavigatorObserver {
     _UiRouteChange change,
     Route<dynamic>? route,
     Route<dynamic>? previousRoute,
-  ) onRouteChanged;
+  )
+  onRouteChanged;
 
   void _update(
     _UiRouteChange change,

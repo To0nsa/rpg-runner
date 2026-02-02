@@ -66,9 +66,20 @@ foreach ($rel in $files) {
   }
 
   foreach ($out in @($bundleCommit, $bundleLatest)) {
-    Add-Content -Encoding utf8 $out ""
-    Add-Content -Encoding utf8 $out "===== FILE: $rel ====="
-    Add-Content -Encoding utf8 $out (Get-Content -Raw -Encoding utf8 $full)
+    try {
+      Add-Content -Path $out -Value "" -Encoding utf8 -Force
+      Add-Content -Path $out -Value "===== FILE: $rel =====" -Encoding utf8 -Force
+      Add-Content -Path $out -Value (Get-Content -Raw -Encoding utf8 $full) -Encoding utf8 -Force
+    }
+    catch {
+      Write-Warning "Failed to write to $out`: $_"
+      # Ensure the file is not locked by recreating it
+      Remove-Item -Path $out -Force -ErrorAction SilentlyContinue
+      $header | Set-Content -Encoding utf8 $out
+      Add-Content -Path $out -Value "" -Encoding utf8 -Force
+      Add-Content -Path $out -Value "===== FILE: $rel =====" -Encoding utf8 -Force
+      Add-Content -Path $out -Value (Get-Content -Raw -Encoding utf8 $full) -Encoding utf8 -Force
+    }
   }
 }
 

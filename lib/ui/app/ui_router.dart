@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../bootstrap/loader_page.dart';
+import '../bootstrap/brand_splash_screen.dart';
 import '../pages/hub/play_hub_page.dart';
 import '../pages/leaderboards/leaderboards_page.dart';
 import '../pages/lab/loadout_lab_page.dart';
@@ -22,6 +23,11 @@ class UiRouter {
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
+      case UiRoutes.brandSplash:
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const BrandSplashScreen(),
+        );
       case UiRoutes.loader:
         final args = settings.arguments is LoaderArgs
             ? settings.arguments as LoaderArgs

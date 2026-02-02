@@ -5,6 +5,7 @@ import '../state/selection_state.dart';
 class UiRoutes {
   const UiRoutes._();
 
+  static const String brandSplash = '/brand_splash';
   static const String loader = '/loader';
   static const String hub = '/hub';
   static const String setupProfileName = '/setup/profile-name';
