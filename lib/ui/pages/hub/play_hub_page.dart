@@ -5,6 +5,7 @@ import '../../app/ui_routes.dart';
 import '../../components/menu_button.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
+import '../../components/weekly_badge_row.dart';
 import 'components/selected_character_card.dart';
 import 'components/selected_level_card.dart';
 import 'components/top_row.dart';
@@ -129,7 +130,7 @@ class _PlayHubPageState extends State<PlayHubPage> {
                     gold: gold,
                   ),
                   const SizedBox(height: 12),
-                  _WeeklyBadgeRow(
+                  WeeklyBadgeRow(
                     onWeeklyPressed: null,
                     onWeeklyLeaderboardPressed: () =>
                         Navigator.of(context).pushNamed(UiRoutes.leaderboards),
@@ -191,52 +192,6 @@ String _runTypeLabel(RunType runType) {
       return 'Practice (Random)';
     case RunType.competitive:
       return 'Competitive (Season)';
-  }
-}
-
-class _WeeklyBadgeRow extends StatelessWidget {
-  const _WeeklyBadgeRow({
-    required this.onWeeklyPressed,
-    required this.onWeeklyLeaderboardPressed,
-  });
-
-  final VoidCallback? onWeeklyPressed;
-  final VoidCallback onWeeklyLeaderboardPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.white70),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          const Expanded(
-            child: Text(
-              'Weekly Challenge · Coming Soon',
-              style: TextStyle(color: Colors.white70),
-            ),
-          ),
-          MenuButton(
-            label: 'Play',
-            width: 100,
-            height: 36,
-            fontSize: 12,
-            onPressed: onWeeklyPressed,
-          ),
-          const SizedBox(width: 8),
-          MenuButton(
-            label: 'Leaderboard',
-            width: 120,
-            height: 36,
-            fontSize: 12,
-            onPressed: onWeeklyLeaderboardPressed,
-          ),
-        ],
-      ),
-    );
   }
 }
 
