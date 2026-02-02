@@ -7,6 +7,7 @@ import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
 import 'components/selected_character_card.dart';
 import 'components/selected_level_card.dart';
+import 'components/top_row.dart';
 import '../../state/app_state.dart';
 import '../../state/profile_counter_keys.dart';
 import '../../state/selection_state.dart';
@@ -19,6 +20,8 @@ class PlayHubPage extends StatefulWidget {
 }
 
 class _PlayHubPageState extends State<PlayHubPage> {
+  bool _menuOpen = false;
+
   @override
   void initState() {
     super.initState();
@@ -43,53 +46,85 @@ class _PlayHubPageState extends State<PlayHubPage> {
           children: [
             Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _HubIconButton(
-                  icon: Icons.person,
-                  label: 'Profile',
-                  onPressed: () =>
-                      Navigator.of(context).pushNamed(UiRoutes.profile),
+                Transform.translate(
+                  offset: const Offset(0, -12),
+                  child: IconButton(
+                    onPressed: () => setState(() => _menuOpen = !_menuOpen),
+                    icon: const Icon(Icons.menu),
+                    iconSize: 32,
+                    color: Colors.white,
+                    tooltip: _menuOpen ? 'Close menu' : 'Open menu',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
                 ),
-                _HubIconButton(
-                  icon: Icons.leaderboard,
-                  label: 'Leaderboards',
-                  onPressed: () =>
-                      Navigator.of(context).pushNamed(UiRoutes.leaderboards),
-                ),
-                _HubIconButton(
-                  icon: Icons.library_books,
-                  label: 'Codex',
-                  onPressed: () =>
-                      Navigator.of(context).pushNamed(UiRoutes.library),
-                ),
-                _HubIconButton(
-                  icon: Icons.storefront,
-                  label: 'Town',
-                  onPressed: () =>
-                      Navigator.of(context).pushNamed(UiRoutes.town),
-                ),
-                _HubIconButton(
-                  icon: Icons.monetization_on,
-                  label: 'Support',
-                  onPressed: () =>
-                      Navigator.of(context).pushNamed(UiRoutes.support),
-                ),
-                _HubIconButton(
-                  icon: Icons.settings,
-                  label: 'Options',
-                  onPressed: () =>
-                      Navigator.of(context).pushNamed(UiRoutes.options),
-                ),
+                if (_menuOpen) ...[
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _HubIconButton(
+                        icon: Icons.library_books,
+                        label: 'Codex',
+                        onPressed: () =>
+                            Navigator.of(context).pushNamed(UiRoutes.library),
+                      ),
+                      _HubIconButton(
+                        icon: Icons.storefront,
+                        label: 'Town',
+                        onPressed: () =>
+                            Navigator.of(context).pushNamed(UiRoutes.town),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _HubIconButton(
+                        icon: Icons.person,
+                        label: 'Profile',
+                        onPressed: () =>
+                            Navigator.of(context).pushNamed(UiRoutes.profile),
+                      ),
+                      _HubIconButton(
+                        icon: Icons.leaderboard,
+                        label: 'Top',
+                        onPressed: () => Navigator.of(
+                          context,
+                        ).pushNamed(UiRoutes.leaderboards),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _HubIconButton(
+                        icon: Icons.settings,
+                        label: 'Options',
+                        onPressed: () =>
+                            Navigator.of(context).pushNamed(UiRoutes.options),
+                      ),
+                      _HubIconButton(
+                        icon: Icons.monetization_on,
+                        label: 'Support',
+                        onPressed: () =>
+                            Navigator.of(context).pushNamed(UiRoutes.support),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
-            const SizedBox(width: 48),
+            const SizedBox(width: 8),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _ProfileGoldRow(
-                    displayName:
-                        profile.displayName.isEmpty ? 'Guest' : profile.displayName,
+                  TopRow(
+                    displayName: profile.displayName.isEmpty
+                        ? 'Guest'
+                        : profile.displayName,
                     profileId: profile.profileId,
                     gold: gold,
                   ),
@@ -125,13 +160,13 @@ class _PlayHubPageState extends State<PlayHubPage> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                   Center(
                     child: MenuButton(
                       label: 'PLAY',
-                      width: 220,
-                      height: 56,
-                      fontSize: 18,
+                      width: 160,
+                      height: 48,
+                      fontSize: 16,
                       onPressed: () {
                         final args = appState.buildRunStartArgs();
                         Navigator.of(
@@ -171,9 +206,9 @@ class _WeeklyBadgeRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.white24),
+        border: Border.all(color: Colors.white70),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -185,7 +220,7 @@ class _WeeklyBadgeRow extends StatelessWidget {
             ),
           ),
           MenuButton(
-            label: 'Weekly',
+            label: 'Play',
             width: 100,
             height: 36,
             fontSize: 12,
@@ -193,54 +228,11 @@ class _WeeklyBadgeRow extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           MenuButton(
-            label: 'Weekly LB',
+            label: 'Leaderboard',
             width: 120,
             height: 36,
             fontSize: 12,
             onPressed: onWeeklyLeaderboardPressed,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProfileGoldRow extends StatelessWidget {
-  const _ProfileGoldRow({
-    required this.displayName,
-    required this.profileId,
-    required this.gold,
-  });
-
-  final String displayName;
-  final String profileId;
-  final int gold;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.white24),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              displayName,
-              style: const TextStyle(color: Colors.white70),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const Icon(Icons.monetization_on, color: Color(0xFFFFD54F), size: 18),
-          const SizedBox(width: 6),
-          Text(
-            gold.toString(),
-            style: const TextStyle(
-              color: Color(0xFFFFF59D),
-              fontWeight: FontWeight.w600,
-            ),
           ),
         ],
       ),
