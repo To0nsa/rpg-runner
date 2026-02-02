@@ -77,22 +77,23 @@ It follows the project stance: gameplay is **deterministic and fair**, and UI sh
 ### 3.1 Screens
 
 1. **Play Hub (Main Menu)**
-2. **Setup Level**
-3. **Setup Character Loadout**
-4. **Loadout Lab (Ability Testing)**
-5. **Leaderboards (Browse + Ghost Select)**
-6. **Meta Access (Gold Store / Real Money Store / Library / Options)**
+2. **Profile (Name + stats)**
+3. **Setup Level**
+4. **Setup Character Loadout**
+5. **Loadout Lab (Ability Testing)**
+6. **Leaderboards (Browse + Ghost Select)**
+7. **Meta Access (Gold Store / Real Money Store / Library / Options)**
 
 ### 3.2 Navigation Map
 
-- Launch → **Loader** → **Play Hub**
+- Launch → **Loader** → (if name prompt pending) **Profile Name Setup** → **Play Hub**
 - Resume → **Loader** → return to the prior screen
 - From Play Hub:
   - `Start Run` → In-Game (starts the **selected level** using the **selected run type**: Practice/Competitive)
   - `Edit Level` → Setup Level (route)
   - `Edit Loadout` → Setup Character Loadout (route)
   - `Weekly` quick button → starts Weekly Challenge directly **if compatible**; otherwise shows “Update required” (does not change `selectedLevelId` by default)
-  - Icons: `Leaderboards`, `Options`, `Library`, `Gold Store`, `Shop` → open those screens directly
+  - Icons: `Profile`, `Leaderboards`, `Options`, `Library`, `Gold Store`, `Shop` → open those screens directly
 - From Setup Character Loadout:
   - `Try on Dummy` → Loadout Lab
   - `Back` → Play Hub
@@ -140,6 +141,7 @@ Start fast. Show current setup summaries without clutter.
   - `Edit` button
 
 - **Small icons (top/right)**
+  - `Profile`
   - `Leaderboards`
   - `Options`
   - `Library`

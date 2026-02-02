@@ -9,8 +9,8 @@ import 'profile_counter_keys.dart';
 
 class UserProfileStore {
   UserProfileStore({Random? random, DateTime Function()? now})
-      : _random = random ?? Random(),
-        _now = now ?? DateTime.now;
+    : _random = random ?? Random(),
+      _now = now ?? DateTime.now;
 
   static const String _prefsKey = 'ui.user_profile';
 
@@ -138,6 +138,26 @@ class UserProfileStore {
       didChange = true;
     }
 
+    final displayName = data['displayName'];
+    if (displayName is! String) {
+      data['displayName'] = '';
+      didChange = true;
+    }
+
+    // displayNameNormalized removal (schema v2)
+    if (data.containsKey('displayNameNormalized')) {
+      data.remove('displayNameNormalized');
+      didChange = true;
+    }
+
+    final displayNameLastChangedAtMs = _readInt(
+      data['displayNameLastChangedAtMs'],
+    );
+    if (displayNameLastChangedAtMs == null) {
+      data['displayNameLastChangedAtMs'] = 0;
+      didChange = true;
+    }
+
     if (data['flags'] is! Map) {
       data['flags'] = <String, bool>{};
       didChange = true;
@@ -163,11 +183,7 @@ class UserProfileStore {
     return 'guest_${stamp}_$suffix';
   }
 
-  void _logWarning(
-    String message, {
-    Object? error,
-    StackTrace? stackTrace,
-  }) {
+  void _logWarning(String message, {Object? error, StackTrace? stackTrace}) {
     developer.log(
       message,
       name: 'UserProfileStore',

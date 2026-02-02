@@ -5,6 +5,7 @@ import '../app/ui_routes.dart';
 import '../components/menu_layout.dart';
 import '../components/menu_scaffold.dart';
 import '../state/app_state.dart';
+import '../state/profile_flag_keys.dart';
 import 'app_bootstrapper.dart';
 
 class LoaderPage extends StatefulWidget {
@@ -37,10 +38,15 @@ class _LoaderPageState extends State<LoaderPage> {
     if (_starting) return;
     _starting = true;
     final appState = context.read<AppState>();
-    final result = await widget.bootstrapper.run(
+    // Ensure the loading screen is visible for at least 2 seconds.
+    final minWait = Future<void>.delayed(const Duration(seconds: 2));
+    final bootstrap = widget.bootstrapper.run(
       appState,
       force: widget.args.isResume,
     );
+
+    final result = await bootstrap;
+    await minWait;
     if (!mounted) return;
     setState(() {
       _result = result;
@@ -56,6 +62,16 @@ class _LoaderPageState extends State<LoaderPage> {
       navigator.pop();
       return;
     }
+
+    final appState = context.read<AppState>();
+    final completed =
+        appState.profile.flags[ProfileFlagKeys.namePromptCompleted] == true;
+
+    if (!widget.args.isResume && !completed) {
+      navigator.pushReplacementNamed(UiRoutes.setupProfileName);
+      return;
+    }
+
     navigator.pushReplacementNamed(UiRoutes.hub);
   }
 
@@ -90,10 +106,7 @@ class _LoaderPageState extends State<LoaderPage> {
             if (!hasError) ...[
               const CircularProgressIndicator(color: Colors.white),
               const SizedBox(height: 16),
-              const Text(
-                'Loading...',
-                style: TextStyle(color: Colors.white70),
-              ),
+              const Text('Loading...', style: TextStyle(color: Colors.white70)),
             ],
             if (hasError) ...[
               const Text(

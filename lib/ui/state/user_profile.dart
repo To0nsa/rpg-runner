@@ -7,18 +7,22 @@ class UserProfile {
     required this.createdAtMs,
     required this.updatedAtMs,
     required this.revision,
+    required this.displayName,
+    required this.displayNameLastChangedAtMs,
     required Map<String, bool> flags,
     required Map<String, int> counters,
-  })  : flags = Map<String, bool>.unmodifiable(flags),
-        counters = Map<String, int>.unmodifiable(counters);
+  }) : flags = Map<String, bool>.unmodifiable(flags),
+       counters = Map<String, int>.unmodifiable(counters);
 
-  static const int latestSchemaVersion = 1;
+  static const int latestSchemaVersion = 2;
 
   final int schemaVersion;
   final String profileId;
   final int createdAtMs;
   final int updatedAtMs;
   final int revision;
+  final String displayName;
+  final int displayNameLastChangedAtMs;
   final Map<String, bool> flags;
   final Map<String, int> counters;
 
@@ -29,6 +33,8 @@ class UserProfile {
       createdAtMs: 0,
       updatedAtMs: 0,
       revision: 0,
+      displayName: '',
+      displayNameLastChangedAtMs: 0,
       flags: const <String, bool>{},
       counters: const <String, int>{ProfileCounterKeys.gold: 0},
     );
@@ -44,6 +50,8 @@ class UserProfile {
       createdAtMs: nowMs,
       updatedAtMs: nowMs,
       revision: 0,
+      displayName: '',
+      displayNameLastChangedAtMs: 0,
       flags: const <String, bool>{},
       counters: const <String, int>{ProfileCounterKeys.gold: 0},
     );
@@ -55,6 +63,8 @@ class UserProfile {
     int? createdAtMs,
     int? updatedAtMs,
     int? revision,
+    String? displayName,
+    int? displayNameLastChangedAtMs,
     Map<String, bool>? flags,
     Map<String, int>? counters,
   }) {
@@ -64,6 +74,9 @@ class UserProfile {
       createdAtMs: createdAtMs ?? this.createdAtMs,
       updatedAtMs: updatedAtMs ?? this.updatedAtMs,
       revision: revision ?? this.revision,
+      displayName: displayName ?? this.displayName,
+      displayNameLastChangedAtMs:
+          displayNameLastChangedAtMs ?? this.displayNameLastChangedAtMs,
       flags: flags ?? this.flags,
       counters: counters ?? this.counters,
     );
@@ -76,6 +89,8 @@ class UserProfile {
       'createdAtMs': createdAtMs,
       'updatedAtMs': updatedAtMs,
       'revision': revision,
+      'displayName': displayName,
+      'displayNameLastChangedAtMs': displayNameLastChangedAtMs,
       'flags': flags,
       'counters': counters,
     };
@@ -92,6 +107,9 @@ class UserProfile {
     final createdAtMs = _readInt(json['createdAtMs']) ?? nowMs;
     final updatedAtMs = _readInt(json['updatedAtMs']) ?? createdAtMs;
     final revision = _readInt(json['revision']) ?? 0;
+    final displayName = _readStringAllowEmpty(json['displayName']) ?? '';
+    final displayNameLastChangedAtMs =
+        _readInt(json['displayNameLastChangedAtMs']) ?? 0;
     final flags = _readBoolMap(json['flags']);
     final counters = _readIntMap(json['counters']);
     counters.putIfAbsent(ProfileCounterKeys.gold, () => 0);
@@ -102,6 +120,8 @@ class UserProfile {
       createdAtMs: createdAtMs,
       updatedAtMs: updatedAtMs,
       revision: revision,
+      displayName: displayName,
+      displayNameLastChangedAtMs: displayNameLastChangedAtMs,
       flags: flags,
       counters: counters,
     );
@@ -116,6 +136,11 @@ int? _readInt(Object? raw) {
 
 String? _readString(Object? raw) {
   if (raw is String && raw.isNotEmpty) return raw;
+  return null;
+}
+
+String? _readStringAllowEmpty(Object? raw) {
+  if (raw is String) return raw;
   return null;
 }
 

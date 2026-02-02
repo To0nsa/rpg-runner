@@ -10,8 +10,10 @@ import '../pages/meta/town_page.dart';
 import '../pages/meta/support_page.dart';
 import '../pages/meta/library_page.dart';
 import '../pages/meta/options_page.dart';
+import '../pages/profile/profile_page.dart';
 import '../pages/setup/level_setup_page.dart';
 import '../pages/setup/loadout_setup_page.dart';
+import '../pages/setup/profile_name_setup_page.dart';
 import '../runner_game_route.dart';
 import 'ui_routes.dart';
 
@@ -42,6 +44,16 @@ class UiRouter {
         return MaterialPageRoute<void>(
           settings: settings,
           builder: (_) => const LoadoutSetupPage(),
+        );
+      case UiRoutes.setupProfileName:
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const ProfileNameSetupPage(),
+        );
+      case UiRoutes.profile:
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const ProfilePage(),
         );
       case UiRoutes.loadoutLab:
         return MaterialPageRoute<void>(

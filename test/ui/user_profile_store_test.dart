@@ -20,6 +20,8 @@ void main() {
     expect(first.profileId, isNotEmpty);
     expect(second.profileId, first.profileId);
     expect(second.createdAtMs, first.createdAtMs);
+    expect(first.displayName, isEmpty);
+    expect(first.displayNameLastChangedAtMs, 0);
   });
 
   test('load repairs missing profileId', () async {
@@ -46,5 +48,7 @@ void main() {
     expect(stored, isNotNull);
     final decoded = jsonDecode(stored!) as Map<String, dynamic>;
     expect(decoded['profileId'], profile.profileId);
+    expect(decoded['displayName'], '');
+    expect(decoded['displayNameLastChangedAtMs'], 0);
   });
 }

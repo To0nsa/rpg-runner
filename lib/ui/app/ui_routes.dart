@@ -7,8 +7,10 @@ class UiRoutes {
 
   static const String loader = '/loader';
   static const String hub = '/hub';
+  static const String setupProfileName = '/setup/profile-name';
   static const String setupLevel = '/setup/level';
   static const String setupLoadout = '/setup/loadout';
+  static const String profile = '/profile';
   static const String loadoutLab = '/lab';
   static const String leaderboards = '/leaderboards';
   static const String options = '/meta/options';

@@ -45,6 +45,12 @@ class _PlayHubPageState extends State<PlayHubPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 _HubIconButton(
+                  icon: Icons.person,
+                  label: 'Profile',
+                  onPressed: () =>
+                      Navigator.of(context).pushNamed(UiRoutes.profile),
+                ),
+                _HubIconButton(
                   icon: Icons.leaderboard,
                   label: 'Leaderboards',
                   onPressed: () =>
@@ -81,7 +87,12 @@ class _PlayHubPageState extends State<PlayHubPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _ProfileGoldRow(profileId: profile.profileId, gold: gold),
+                  _ProfileGoldRow(
+                    displayName:
+                        profile.displayName.isEmpty ? 'Guest' : profile.displayName,
+                    profileId: profile.profileId,
+                    gold: gold,
+                  ),
                   const SizedBox(height: 12),
                   _WeeklyBadgeRow(
                     onWeeklyPressed: null,
@@ -196,10 +207,12 @@ class _WeeklyBadgeRow extends StatelessWidget {
 
 class _ProfileGoldRow extends StatelessWidget {
   const _ProfileGoldRow({
+    required this.displayName,
     required this.profileId,
     required this.gold,
   });
 
+  final String displayName;
   final String profileId;
   final int gold;
 
@@ -215,7 +228,7 @@ class _ProfileGoldRow extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              'Profile · $profileId',
+              displayName,
               style: const TextStyle(color: Colors.white70),
               overflow: TextOverflow.ellipsis,
             ),
