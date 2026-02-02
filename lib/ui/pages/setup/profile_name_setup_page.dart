@@ -129,7 +129,7 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
                     ),
                     const SizedBox(width: 12),
                     MenuButton(
-                      label: 'Continue',
+                      label: 'Confirm',
                       width: 160,
                       height: 44,
                       fontSize: 14,

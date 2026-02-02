@@ -39,8 +39,8 @@ class _LoaderPageState extends State<LoaderPage> {
     if (_starting) return;
     _starting = true;
     final appState = context.read<AppState>();
-    // Ensure the loading screen is visible for at least 2 seconds.
-    final minWait = Future<void>.delayed(const Duration(seconds: 2));
+    // Ensure the loading screen is visible for at least 1.5 seconds.
+    final minWait = Future<void>.delayed(const Duration(milliseconds: 1500));
     final bootstrap = widget.bootstrapper.run(
       appState,
       force: widget.args.isResume,

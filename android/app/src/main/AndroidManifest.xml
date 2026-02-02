@@ -2,7 +2,9 @@
     <application
         android:label="rpg_runner"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:isGame="true"
+        android:appCategory="game">
         <activity
             android:name=".MainActivity"
             android:exported="true"
