@@ -6,8 +6,6 @@ extension LevelIdUi on LevelId {
   /// Human-readable display name for the level.
   String get displayName {
     switch (this) {
-      case LevelId.defaultLevel:
-        return 'Default';
       case LevelId.forest:
         return 'Forest';
       case LevelId.field:

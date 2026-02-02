@@ -19,13 +19,5 @@ void main() {
     ).buildSnapshot();
     expect(field.levelId, LevelId.field);
     expect(field.themeId, 'field');
-
-    final defaultLevel = GameCore(
-      seed: 1,
-      levelDefinition: LevelRegistry.byId(LevelId.defaultLevel),
-    ).buildSnapshot();
-    expect(defaultLevel.levelId, LevelId.defaultLevel);
-    expect(defaultLevel.themeId, 'forest');
   });
 }
-

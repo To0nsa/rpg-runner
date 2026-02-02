@@ -28,7 +28,8 @@ const _expectedTimeSeconds = _tick ~/ _tickHz;
 const _expectedTimePoints = _expectedTimeSeconds * 10;
 const _expectedCollectiblePoints = 100;
 const _expectedKillPoints = 150;
-final _expectedTotal = _expectedDistancePoints +
+final _expectedTotal =
+    _expectedDistancePoints +
     _expectedTimePoints +
     _expectedCollectiblePoints +
     _expectedKillPoints;
@@ -53,8 +54,9 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
   });
 
-  testWidgets(
-      'Scoreboard hides current run score until feed complete', (tester) async {
+  testWidgets('Scoreboard hides current run score until feed complete', (
+    tester,
+  ) async {
     final store = _FakeLeaderboardStore();
 
     await tester.pumpWidget(
@@ -64,7 +66,7 @@ void main() {
           onRestart: () {},
           onExit: null,
           showExitButton: false,
-          levelId: LevelId.defaultLevel,
+          levelId: LevelId.field,
           runEndedEvent: _buildEvent(),
           scoreTuning: _tuning,
           tickHz: _tickHz,
@@ -81,10 +83,7 @@ void main() {
       find.descendant(of: panel, matching: find.text('$_expectedTotal')),
       findsNothing,
     );
-    expect(
-      find.descendant(of: panel, matching: find.text('—')),
-      findsWidgets,
-    );
+    expect(find.descendant(of: panel, matching: find.text('—')), findsWidgets);
 
     await tester.tap(find.text('Collect score'));
     await tester.pump();
@@ -95,10 +94,7 @@ void main() {
       find.descendant(of: panel, matching: find.text('$_expectedTotal')),
       findsOneWidget,
     );
-    expect(
-      find.descendant(of: panel, matching: find.text('—')),
-      findsNothing,
-    );
+    expect(find.descendant(of: panel, matching: find.text('—')), findsNothing);
   });
 
   testWidgets('GameOverOverlay feeds all rows into score', (tester) async {
@@ -109,7 +105,7 @@ void main() {
           onRestart: () {},
           onExit: null,
           showExitButton: false,
-          levelId: LevelId.defaultLevel,
+          levelId: LevelId.field,
           runEndedEvent: _buildEvent(),
           scoreTuning: _tuning,
           tickHz: _tickHz,
@@ -153,7 +149,7 @@ void main() {
           onRestart: () {},
           onExit: null,
           showExitButton: false,
-          levelId: LevelId.defaultLevel,
+          levelId: LevelId.field,
           runEndedEvent: _buildEvent(),
           scoreTuning: _tuning,
           tickHz: _tickHz,

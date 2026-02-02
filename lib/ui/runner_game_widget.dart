@@ -37,7 +37,7 @@ class RunnerGameWidget extends StatefulWidget {
     super.key,
     this.runId = 0,
     this.seed = 1,
-    this.levelId = LevelId.defaultLevel,
+    this.levelId = LevelId.field,
     this.playerCharacterId = PlayerCharacterId.eloise,
     this.onExit,
     this.showExitButton = true,
@@ -170,8 +170,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       return;
     }
 
-    final currentGold =
-        appState.profile.counters[ProfileCounterKeys.gold] ?? 0;
+    final currentGold = appState.profile.counters[ProfileCounterKeys.gold] ?? 0;
     final nextGold = currentGold + event.goldEarned;
     _lastGoldTotal = nextGold;
 

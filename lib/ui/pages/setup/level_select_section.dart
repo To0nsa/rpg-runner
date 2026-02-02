@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/levels/level_id.dart';
-import '../../components/level_card.dart';
+import 'level_card.dart';
 
 class LevelSelectSection extends StatelessWidget {
   const LevelSelectSection({

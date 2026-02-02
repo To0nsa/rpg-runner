@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../core/levels/level_id.dart';
-import '../levels/level_id_ui.dart';
-import 'level_parallax_preview.dart';
+import '../../../core/levels/level_id.dart';
+import '../../levels/level_id_ui.dart';
+import '../../components/level_parallax_preview.dart';
 
 /// A card widget displaying a level with its full parallax background.
 ///

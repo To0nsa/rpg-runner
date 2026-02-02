@@ -14,9 +14,9 @@ const ChunkPatternPool defaultPatternPool = ChunkPatternPool(
 
 /// Default level definition.
 const LevelDefinition defaultLevelDefinition = LevelDefinition(
-  id: LevelId.defaultLevel,
+  id: LevelId.field,
   patternPool: defaultPatternPool,
-  themeId: 'forest',
+  themeId: 'field',
 );
 
 /// Resolves level definitions by stable [LevelId].
@@ -41,8 +41,6 @@ class LevelRegistry {
           patternPool: defaultPatternPool,
           themeId: 'field',
         );
-      case LevelId.defaultLevel:
-        return defaultLevelDefinition;
     }
   }
 }

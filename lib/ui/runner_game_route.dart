@@ -16,7 +16,7 @@ import 'scoped/scoped_system_ui_mode.dart';
 Route<void> createRunnerGameRoute({
   int runId = 0,
   int seed = 1,
-  LevelId levelId = LevelId.defaultLevel,
+  LevelId levelId = LevelId.field,
   PlayerCharacterId playerCharacterId = PlayerCharacterId.eloise,
   bool lockLandscape = true,
   List<DeviceOrientation>? restoreOrientations,
