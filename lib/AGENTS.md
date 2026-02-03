@@ -299,6 +299,14 @@ Prefer small, testable increments that move toward "multiple levels":
   - UI/viewport/widget behavior: widget tests where appropriate
 - **Keep docs in sync** with code: update relevant docs whenever behavior, contracts, milestones, or public APIs change.
 
+### UI House Style
+
+When working in `lib/ui/**`, default to the UI “house style” described in `lib/ui/AGENTS.md`:
+
+- Theme-driven components (`ThemeExtension`) with semantic APIs (`variant`, `size`), minimal styling knobs.
+- No deprecated Flutter APIs (`WidgetState*`, `Color.withValues`).
+- Avoid side-effects in `build` (e.g. `SystemChrome`).
+
 ## What an Agent Must Do on Each Task
 
 When asked to implement/fix something:

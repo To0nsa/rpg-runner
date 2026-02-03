@@ -8,6 +8,33 @@ The UI layer is responsible for **Flutter widgets**: menus, overlays, navigation
 
 **Critical rule:** UI **never modifies gameplay state directly**. It sends **Commands** to the game controller.
 
+## House Style (Clean UI Code)
+
+Default conventions in this repo aim for **clean, theme-driven, low-surface-area widgets**.
+
+### Component Theming
+
+- Use `ThemeExtension` for global tokens (`UiTokens`) and for component themes (e.g. `UiButtonTheme`, `UiHubTheme`).
+- **Do not add component-specific sizing/colors to `UiTokens`**. If something is specific to a component, it belongs in that component’s theme extension.
+- Prefer a single “resolved spec” object for components (e.g. `resolveSpec(...) → UiButtonSpec`) to keep widget build methods small and avoid scattered lookups / local “resolved*” variables.
+
+### Component APIs
+
+- Expose **semantic inputs only** (`variant`, `size`, `enabled`, callbacks, ids). Avoid ad-hoc styling knobs (`width/height/padding/textStyle/colors`) unless explicitly requested.
+- Prefer enums (`Variant`, `Size`) + theme-defined presets (width/height/typography/padding) over per-call overrides.
+- If the user asks for “theme”, “cleanup”, or “make it consistent”, assume it’s OK to do the full refactor in one pass: add the theme extension, migrate all call sites, and delete the legacy tokens/params.
+
+### Modern Flutter APIs
+
+- Use `WidgetState` / `WidgetStateProperty` (not `MaterialState*`).
+- Use `Color.withValues(alpha: …)` (not `withOpacity`).
+
+### System UI
+
+- Avoid calling `SystemChrome` inside widget `build` methods.
+- Prefer app-level orchestration (route observer / lifecycle) for global fullscreen behavior.
+- Use `ScopedSystemUiMode` only when a behavior truly needs to be scoped to a subtree/route.
+
 ## Command Pattern
 
 ### Sending Commands to Core

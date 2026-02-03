@@ -47,6 +47,16 @@ For any non-trivial task (anything that affects architecture, touches multiple l
 
 For trivial/surgical changes (tiny refactors, obvious bug fixes), proceed directly but keep changes minimal and consistent with existing patterns.
 
+### Default Quality Bar (Always-On)
+
+When implementing (or refactoring) anything in this repo, default to **senior-level “done”**:
+
+- **Prefer one clean pass over iterations** when the request implies cleanup/refactor/theme work. Use the repo’s existing “house style” (layer `AGENTS.md`) as the default and only ask questions when a decision is genuinely ambiguous.
+- **Finish migrations in the same change**: update all call sites, remove the legacy API/tokens, and ensure `dart analyze` is clean for the touched files. Don’t leave “temporary” parallel systems behind.
+- **Minimize surface area**: component widgets should expose semantic inputs (e.g. `variant`, `size`) and avoid ad-hoc styling knobs (`width/height/padding/textStyle/colors`) unless explicitly requested.
+- **No deprecated Flutter APIs** in new/edited code: prefer `WidgetState/WidgetStateProperty` over `MaterialState*`, and prefer `Color.withValues(alpha: …)` over `withOpacity`.
+- **No side effects in `build`**: avoid calling `SystemChrome` (and similar) from `build`; centralize app-wide behavior in the app shell or use scoped widgets.
+
 ## Documentation Upkeep
 
 When you implement changes, keep documentation in sync (add new docs when needed, not just code):
