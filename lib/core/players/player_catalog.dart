@@ -48,7 +48,7 @@ class PlayerCatalog {
     this.loadoutSlotMask = LoadoutSlotMask.defaultMask,
     this.weaponId = WeaponId.basicSword,
     this.offhandWeaponId = WeaponId.basicShield,
-    this.projectileItemId = ProjectileItemId.iceBolt,
+    this.projectileItemId = ProjectileItemId.fireBolt,
     this.facing = Facing.right,
   });
 
