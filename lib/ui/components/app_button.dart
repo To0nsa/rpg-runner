@@ -12,31 +12,19 @@ class AppButton extends StatelessWidget {
     required this.onPressed,
     this.variant = AppButtonVariant.primary,
     this.size = AppButtonSize.md,
-    this.padding,
   });
 
   final String label;
   final VoidCallback? onPressed;
   final AppButtonVariant variant;
   final AppButtonSize size;
-  final EdgeInsetsGeometry? padding;
 
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
     final buttons = context.buttons;
 
-    final resolvedHeight = buttons.sizes.height(size);
-    final resolvedWidth = buttons.sizes.width(size);
-    final resolvedPadding =
-        padding ?? EdgeInsets.symmetric(horizontal: ui.space.md, vertical: 10);
-
-    final resolvedTextStyle = buttons.text.style(size);
-
-    final theme = buttons.variant(variant);
-    final background = theme.background;
-    final foreground = theme.foreground;
-    final border = theme.border;
+    final spec = buttons.resolveSpec(ui: ui, variant: variant, size: size);
 
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(ui.radii.sm),
@@ -45,23 +33,26 @@ class AppButton extends StatelessWidget {
     final style = ButtonStyle(
       backgroundColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.disabled)) {
-          if (background == Colors.transparent) return background;
-          return background.withValues(alpha: buttons.disabledBackgroundAlpha);
+          return spec.background.withValues(
+            alpha: buttons.disabledBackgroundAlpha,
+          );
         }
-        return background;
+        return spec.background;
       }),
       foregroundColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.disabled)) {
-          return foreground.withValues(alpha: buttons.disabledForegroundAlpha);
+          return spec.foreground.withValues(
+            alpha: buttons.disabledForegroundAlpha,
+          );
         }
-        return foreground;
+        return spec.foreground;
       }),
       overlayColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.pressed)) {
-          return foreground.withValues(alpha: buttons.pressedOverlayAlpha);
+          return spec.foreground.withValues(alpha: buttons.pressedOverlayAlpha);
         }
         if (states.contains(WidgetState.hovered)) {
-          return foreground.withValues(alpha: buttons.hoverOverlayAlpha);
+          return spec.foreground.withValues(alpha: buttons.hoverOverlayAlpha);
         }
         return null;
       }),
@@ -69,17 +60,17 @@ class AppButton extends StatelessWidget {
         final w = ui.sizes.borderWidth;
         if (states.contains(WidgetState.disabled)) {
           return BorderSide(
-            color: border.withValues(alpha: buttons.disabledBorderAlpha),
+            color: spec.border.withValues(alpha: buttons.disabledBorderAlpha),
             width: w,
           );
         }
-        return BorderSide(color: border, width: w);
+        return BorderSide(color: spec.border, width: w);
       }),
       shape: WidgetStateProperty.all(shape),
-      padding: WidgetStateProperty.all(resolvedPadding),
-      textStyle: WidgetStateProperty.all(resolvedTextStyle),
+      padding: WidgetStateProperty.all(spec.padding),
+      textStyle: WidgetStateProperty.all(spec.textStyle),
       minimumSize: WidgetStateProperty.all(
-        Size(ui.sizes.tapTarget, resolvedHeight),
+        Size(ui.sizes.tapTarget, spec.height),
       ),
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
@@ -95,10 +86,6 @@ class AppButton extends StatelessWidget {
       ),
     );
 
-    return SizedBox(
-      width: resolvedWidth,
-      height: resolvedHeight,
-      child: button,
-    );
+    return SizedBox(width: spec.width, height: spec.height, child: button);
   }
 }

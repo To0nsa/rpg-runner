@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'ui_tokens.dart';
+
 enum AppButtonVariant { primary, secondary, danger }
 
 enum AppButtonSize { xxs, xs, sm, md, lg }
@@ -68,6 +70,23 @@ class UiButtonTheme extends ThemeExtension<UiButtonTheme> {
     AppButtonVariant.secondary => secondary,
     AppButtonVariant.danger => danger,
   };
+
+  UiButtonSpec resolveSpec({
+    required UiTokens ui,
+    required AppButtonVariant variant,
+    required AppButtonSize size,
+  }) {
+    final variantTheme = this.variant(variant);
+    return UiButtonSpec(
+      width: sizes.width(size),
+      height: sizes.height(size),
+      padding: EdgeInsets.symmetric(horizontal: ui.space.md, vertical: 10),
+      textStyle: text.style(size),
+      background: variantTheme.background,
+      foreground: variantTheme.foreground,
+      border: variantTheme.border,
+    );
+  }
 
   @override
   UiButtonTheme copyWith({
@@ -157,6 +176,27 @@ class UiButtonSizeMetrics {
 
   final double width;
   final double height;
+}
+
+@immutable
+class UiButtonSpec {
+  const UiButtonSpec({
+    required this.width,
+    required this.height,
+    required this.padding,
+    required this.textStyle,
+    required this.background,
+    required this.foreground,
+    required this.border,
+  });
+
+  final double width;
+  final double height;
+  final EdgeInsetsGeometry padding;
+  final TextStyle textStyle;
+  final Color background;
+  final Color foreground;
+  final Color border;
 }
 
 @immutable
