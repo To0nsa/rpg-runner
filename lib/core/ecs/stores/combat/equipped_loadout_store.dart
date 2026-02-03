@@ -33,11 +33,10 @@ class EquippedLoadoutDef {
     this.mask = LoadoutSlotMask.defaultMask,
     this.mainWeaponId = WeaponId.basicSword,
     this.offhandWeaponId = WeaponId.basicShield,
-    this.projectileItemId = ProjectileItemId.iceBolt,
-    // Default abilities (Eloise defaults for now)
+    this.projectileItemId = ProjectileItemId.throwingKnife,
     this.abilityPrimaryId = 'eloise.sword_strike',
     this.abilitySecondaryId = 'eloise.shield_block',
-    this.abilityProjectileId = 'eloise.ice_bolt',
+    this.abilityProjectileId = 'eloise.throwing_knife',
     this.abilityBonusId = 'eloise.ice_bolt',
     this.abilityMobilityId = 'eloise.dash',
     this.abilityJumpId = 'eloise.jump',

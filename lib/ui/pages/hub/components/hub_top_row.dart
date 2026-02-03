@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:battery_plus/battery_plus.dart';
 import 'package:flutter/material.dart';
 
-class TopRow extends StatefulWidget {
-  const TopRow({
+import '../../../theme/ui_tokens.dart';
+
+class HubTopRow extends StatefulWidget {
+  const HubTopRow({
     super.key,
     required this.displayName,
     required this.profileId,
@@ -16,10 +18,10 @@ class TopRow extends StatefulWidget {
   final int gold;
 
   @override
-  State<TopRow> createState() => _TopRowState();
+  State<HubTopRow> createState() => _HubTopRowState();
 }
 
-class _TopRowState extends State<TopRow> {
+class _HubTopRowState extends State<HubTopRow> {
   final Battery _battery = Battery();
   int _batteryLevel = 100;
   BatteryState _batteryState = BatteryState.unknown;
@@ -71,68 +73,66 @@ class _TopRowState extends State<TopRow> {
   }
 
   Color get _batteryColor {
-    if (_batteryState == BatteryState.charging) return Colors.greenAccent;
-    if (_batteryLevel <= 20) return Colors.redAccent;
-    return Colors.white70;
+    final ui = context.ui;
+    if (_batteryState == BatteryState.charging) return ui.colors.success;
+    if (_batteryLevel <= 20) return ui.colors.danger;
+    return ui.colors.textMuted;
   }
 
   @override
   Widget build(BuildContext context) {
+    final ui = context.ui;
     final timeStr =
         '${_now.hour.toString().padLeft(2, '0')}:${_now.minute.toString().padLeft(2, '0')}';
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+      padding: EdgeInsets.zero,
       child: Row(
         children: [
           Expanded(
             child: Text(
               widget.displayName,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
+              style: ui.text.headline,
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: ui.space.sm),
           // Gold
           Text(
             widget.gold.toString(),
-            style: const TextStyle(
-              color: Color(0xFFFFF59D),
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
+            style: ui.text.headline.copyWith(color: ui.colors.accent),
           ),
-          const SizedBox(width: 6),
-          const Icon(Icons.monetization_on, color: Color(0xFFFFD54F), size: 16),
-          const SizedBox(width: 16),
-          Container(width: 1, height: 24, color: Colors.white),
-          const SizedBox(width: 6),
+          SizedBox(width: ui.space.xs),
+          Icon(
+            Icons.monetization_on,
+            color: ui.colors.accentStrong,
+            size: ui.sizes.iconSize.sm,
+          ),
+          SizedBox(width: ui.space.md),
+          Container(
+            width: ui.sizes.dividerThickness,
+            height: ui.space.lg,
+            color: ui.colors.textPrimary,
+          ),
+          SizedBox(width: ui.space.xs),
           // Battery
-          Icon(_batteryIcon, color: _batteryColor, size: 16),
-          const SizedBox(width: 4),
+          Icon(_batteryIcon, color: _batteryColor, size: ui.sizes.iconSize.sm),
+          SizedBox(width: ui.space.xxs),
           Text(
             '$_batteryLevel%',
-            style: TextStyle(
-              color: _batteryColor,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
+            style: ui.text.caption.copyWith(color: _batteryColor),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: ui.space.md),
           // Time
-          const Icon(Icons.access_time, color: Colors.white54, size: 16),
-          const SizedBox(width: 4),
+          Icon(
+            Icons.access_time,
+            color: ui.colors.outlineStrong,
+            size: ui.sizes.iconSize.sm,
+          ),
+          SizedBox(width: ui.space.xxs),
           Text(
             timeStr,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
+            style: ui.text.caption.copyWith(color: ui.colors.textPrimary),
           ),
         ],
       ),

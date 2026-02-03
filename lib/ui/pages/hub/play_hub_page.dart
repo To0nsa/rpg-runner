@@ -6,12 +6,13 @@ import '../../components/menu_button.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
 import '../../components/weekly_badge_row.dart';
-import 'components/selected_character_card.dart';
-import 'components/selected_level_card.dart';
-import 'components/top_row.dart';
+import 'components/hub_select_character_card.dart';
+import 'components/hub_select_level_card.dart';
+import 'components/hub_top_row.dart';
 import '../../state/app_state.dart';
 import '../../state/profile_counter_keys.dart';
 import '../../state/selection_state.dart';
+import '../../theme/ui_tokens.dart';
 
 class PlayHubPage extends StatefulWidget {
   const PlayHubPage({super.key});
@@ -34,6 +35,7 @@ class _PlayHubPageState extends State<PlayHubPage> {
 
   @override
   Widget build(BuildContext context) {
+    final ui = context.ui;
     final appState = context.watch<AppState>();
     final selection = appState.selection;
     final profile = appState.profile;
@@ -42,6 +44,7 @@ class _PlayHubPageState extends State<PlayHubPage> {
     return MenuScaffold(
       showAppBar: false,
       child: MenuLayout(
+        horizontalPadding: ui.space.lg,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -49,16 +52,16 @@ class _PlayHubPageState extends State<PlayHubPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Transform.translate(
-                  offset: const Offset(0, -12),
-                  child: IconButton(
-                    onPressed: () => setState(() => _menuOpen = !_menuOpen),
-                    icon: const Icon(Icons.menu),
-                    iconSize: 32,
-                    color: Colors.white,
-                    tooltip: _menuOpen ? 'Close menu' : 'Open menu',
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
+                IconButton(
+                  onPressed: () => setState(() => _menuOpen = !_menuOpen),
+                  icon: const Icon(Icons.menu),
+                  iconSize: ui.sizes.iconSize.lg,
+                  color: ui.colors.textPrimary,
+                  tooltip: _menuOpen ? 'Close menu' : 'Open menu',
+                  padding: EdgeInsets.zero,
+                  constraints: BoxConstraints(
+                    minWidth: ui.sizes.tapTarget,
+                    minHeight: ui.sizes.tapTarget,
                   ),
                 ),
                 if (_menuOpen) ...[
@@ -117,32 +120,32 @@ class _PlayHubPageState extends State<PlayHubPage> {
                 ],
               ],
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: ui.space.xs),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  TopRow(
+                  HubTopRow(
                     displayName: profile.displayName.isEmpty
                         ? 'Guest'
                         : profile.displayName,
                     profileId: profile.profileId,
                     gold: gold,
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: ui.space.sm),
                   WeeklyBadgeRow(
                     onWeeklyPressed: null,
                     onWeeklyLeaderboardPressed: () =>
                         Navigator.of(context).pushNamed(UiRoutes.leaderboards),
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: ui.space.lg),
                   Center(
                     child: Wrap(
                       alignment: WrapAlignment.center,
-                      spacing: 16,
-                      runSpacing: 16,
+                      spacing: ui.space.md,
+                      runSpacing: ui.space.md,
                       children: [
-                        SelectedLevelCard(
+                        HubSelectedLevelCard(
                           levelId: selection.selectedLevelId,
                           runTypeLabel: _runTypeLabel(
                             selection.selectedRunType,
@@ -151,7 +154,7 @@ class _PlayHubPageState extends State<PlayHubPage> {
                             context,
                           ).pushNamed(UiRoutes.setupLevel),
                         ),
-                        SelectedCharacterCard(
+                        HubSelectCharacterCard(
                           characterId: selection.selectedCharacterId,
                           buildName: selection.buildName,
                           onChange: () => Navigator.of(
@@ -161,13 +164,17 @@ class _PlayHubPageState extends State<PlayHubPage> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: ui.space.lg),
                   Center(
                     child: MenuButton(
                       label: 'PLAY',
-                      width: 160,
-                      height: 48,
-                      fontSize: 16,
+                      width: ui.sizes.playButtonWidth,
+                      height: ui.sizes.buttonHeight,
+                      fontSize: ui.text.headline.fontSize ?? 16,
+                      backgroundColor: ui.colors.buttonBg,
+                      foregroundColor: ui.colors.buttonFg,
+                      borderColor: ui.colors.buttonBorder,
+                      borderWidth: ui.sizes.borderWidth,
                       onPressed: () {
                         final args = appState.buildRunStartArgs();
                         Navigator.of(
@@ -208,19 +215,24 @@ class _HubIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ui = context.ui;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
           onPressed: onPressed,
-          icon: Icon(icon, color: Colors.white),
-          iconSize: 32,
+          icon: Icon(icon, color: ui.colors.textPrimary),
+          iconSize: ui.sizes.iconSize.lg,
           padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(),
+          constraints: BoxConstraints(
+            minWidth: ui.sizes.tapTarget,
+            minHeight: ui.sizes.tapTarget,
+          ),
         ),
+        SizedBox(height: ui.space.xxs),
         Text(
           label,
-          style: const TextStyle(color: Colors.white70, fontSize: 10),
+          style: ui.text.caption.copyWith(color: ui.colors.textMuted),
           textAlign: TextAlign.center,
         ),
       ],

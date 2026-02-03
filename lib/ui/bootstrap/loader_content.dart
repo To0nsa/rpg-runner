@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 class LoaderContent extends StatelessWidget {
   const LoaderContent({
     super.key,
-    this.title = 'rpg-runner',
+    this.title = 'Éloïse: long run',
     this.subtitle = 'Loading...',
     this.errorMessage,
     this.onContinue,
@@ -25,8 +25,9 @@ class LoaderContent extends StatelessWidget {
         Text(
           title,
           style: const TextStyle(
+            fontFamily: 'Cinzel',
             fontSize: 36,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w700,
             color: Colors.white,
             letterSpacing: 2,
           ),

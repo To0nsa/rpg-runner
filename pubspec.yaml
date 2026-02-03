@@ -90,6 +90,22 @@ flutter:
     - assets/images/weapons/oneHandedSwords/
     - assets/images/weapons/shields/
 
+  fonts:
+    - family: Cinzel
+      fonts:
+        - asset: assets/fonts/Cinzel/static/Cinzel-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Cinzel/static/Cinzel-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Cinzel/static/Cinzel-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Cinzel/static/Cinzel-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Cinzel/static/Cinzel-ExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/Cinzel/static/Cinzel-Black.ttf
+          weight: 900
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

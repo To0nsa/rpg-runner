@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import '../assets/ui_asset_lifecycle.dart';
 import '../levels/level_id_ui.dart';
 import '../state/app_state.dart';
+import '../theme/ui_hub_theme.dart';
+import '../theme/ui_tokens.dart';
 import 'ui_router.dart';
 import 'ui_routes.dart';
 
@@ -122,6 +124,7 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
             brightness: Brightness.dark,
           ),
           useMaterial3: true,
+          extensions: const [UiTokens.standard, UiHubTheme.standard],
         ),
         navigatorKey: _navigatorKey,
         initialRoute: UiRoutes.brandSplash,

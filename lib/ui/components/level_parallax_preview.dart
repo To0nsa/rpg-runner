@@ -59,13 +59,16 @@ class _LevelParallaxPreviewState extends State<LevelParallaxPreview> {
     _precached = false;
 
     final lifecycle = context.read<UiAssetLifecycle>();
-    lifecycle.getParallaxLayers(widget.themeId).then((layers) {
-      if (!mounted || _cacheKey != key) return;
-      setState(() => _layers = layers);
-      _schedulePrecache(layers);
-    }).catchError((_) {
-      // Best-effort preview; ignore missing assets.
-    });
+    lifecycle
+        .getParallaxLayers(widget.themeId)
+        .then((layers) {
+          if (!mounted || _cacheKey != key) return;
+          setState(() => _layers = layers);
+          _schedulePrecache(layers);
+        })
+        .catchError((_) {
+          // Best-effort preview; ignore missing assets.
+        });
   }
 
   void _schedulePrecache(List<AssetImage> layers) {
@@ -106,6 +109,9 @@ class _LevelParallaxPreviewState extends State<LevelParallaxPreview> {
                 ),
               ),
             ),
+
+          // Hardcoded tint overlay to improve text readability on top of previews.
+          const Positioned.fill(child: ColoredBox(color: Color(0x66000000))),
         ],
       ),
     );

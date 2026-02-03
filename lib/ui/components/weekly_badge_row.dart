@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'menu_button.dart';
+import '../theme/ui_tokens.dart';
 
 class WeeklyBadgeRow extends StatelessWidget {
   const WeeklyBadgeRow({
@@ -14,33 +15,48 @@ class WeeklyBadgeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ui = context.ui;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      padding: EdgeInsets.symmetric(
+        horizontal: ui.space.xs,
+        vertical: ui.space.xs,
+      ),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.white70),
-        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: ui.colors.outline,
+          width: ui.sizes.borderWidth,
+        ),
+        borderRadius: BorderRadius.circular(ui.radii.md),
       ),
       child: Row(
         children: [
-          const Expanded(
+          Expanded(
             child: Text(
               'Weekly Challenge · Coming Soon',
-              style: TextStyle(color: Colors.white70),
+              style: ui.text.body.copyWith(color: ui.colors.textMuted),
             ),
           ),
           MenuButton(
             label: 'Play',
-            width: 100,
-            height: 36,
-            fontSize: 12,
+            width: ui.sizes.weeklyButtonWidth,
+            height: ui.sizes.buttonHeight,
+            fontSize: ui.text.label.fontSize ?? 12,
+            backgroundColor: ui.colors.buttonBg,
+            foregroundColor: ui.colors.buttonFg,
+            borderColor: ui.colors.buttonBorder,
+            borderWidth: ui.sizes.borderWidth,
             onPressed: onWeeklyPressed,
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: ui.space.xs),
           MenuButton(
             label: 'Leaderboard',
-            width: 120,
-            height: 36,
-            fontSize: 12,
+            width: ui.sizes.leaderboardButtonWidth,
+            height: ui.sizes.buttonHeight,
+            fontSize: ui.text.label.fontSize ?? 12,
+            backgroundColor: ui.colors.buttonBg,
+            foregroundColor: ui.colors.buttonFg,
+            borderColor: ui.colors.buttonBorder,
+            borderWidth: ui.sizes.borderWidth,
             onPressed: onWeeklyLeaderboardPressed,
           ),
         ],
