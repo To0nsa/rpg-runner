@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../app/ui_routes.dart';
-import '../../components/menu_button.dart';
+import '../../components/app_button.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
 import '../../profile/display_name_policy.dart';
 import '../../state/app_state.dart';
 import '../../state/profile_flag_keys.dart';
+import '../../theme/ui_tokens.dart';
 
 class ProfileNameSetupPage extends StatefulWidget {
   const ProfileNameSetupPage({super.key});
@@ -75,6 +76,7 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
 
   @override
   Widget build(BuildContext context) {
+    final ui = context.ui;
     return MenuScaffold(
       showAppBar: false,
       child: MenuLayout(
@@ -118,21 +120,22 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    MenuButton(
+                    AppButton(
                       label: 'Skip',
                       width: 120,
                       height: 44,
-                      fontSize: 14,
+                      textStyle: ui.text.label.copyWith(fontSize: 14),
+                      variant: AppButtonVariant.secondary,
                       onPressed: _saving
                           ? null
                           : () => _complete(skipped: true),
                     ),
                     const SizedBox(width: 12),
-                    MenuButton(
+                    AppButton(
                       label: 'Confirm',
                       width: 160,
                       height: 44,
-                      fontSize: 14,
+                      textStyle: ui.text.label.copyWith(fontSize: 14),
                       onPressed: _saving ? null : _confirm,
                     ),
                   ],

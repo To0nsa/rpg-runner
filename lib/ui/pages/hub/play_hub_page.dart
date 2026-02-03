@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../app/ui_routes.dart';
-import '../../components/menu_button.dart';
+import '../../components/app_button.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
 import '../../components/weekly_badge_row.dart';
@@ -166,15 +166,10 @@ class _PlayHubPageState extends State<PlayHubPage> {
                   ),
                   SizedBox(height: ui.space.lg),
                   Center(
-                    child: MenuButton(
+                    child: AppButton(
                       label: 'PLAY',
                       width: ui.sizes.playButtonWidth,
-                      height: ui.sizes.buttonHeight,
-                      fontSize: ui.text.headline.fontSize ?? 16,
-                      backgroundColor: ui.colors.buttonBg,
-                      foregroundColor: ui.colors.buttonFg,
-                      borderColor: ui.colors.buttonBorder,
-                      borderWidth: ui.sizes.borderWidth,
+                      textStyle: ui.text.headline,
                       onPressed: () {
                         final args = appState.buildRunStartArgs();
                         Navigator.of(

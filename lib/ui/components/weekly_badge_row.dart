@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'menu_button.dart';
+import 'app_button.dart';
 import '../theme/ui_tokens.dart';
 
 class WeeklyBadgeRow extends StatelessWidget {
@@ -31,32 +31,17 @@ class WeeklyBadgeRow extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              'Weekly Challenge · Coming Soon',
-              style: ui.text.body,
-            ),
+            child: Text('Weekly Challenge · Coming Soon', style: ui.text.body),
           ),
-          MenuButton(
+          AppButton(
             label: 'Play',
             width: ui.sizes.weeklyButtonWidth,
-            height: ui.sizes.buttonHeight,
-            fontSize: ui.text.label.fontSize ?? 12,
-            backgroundColor: ui.colors.buttonBg,
-            foregroundColor: ui.colors.buttonFg,
-            borderColor: ui.colors.buttonBorder,
-            borderWidth: ui.sizes.borderWidth,
             onPressed: onWeeklyPressed,
           ),
           SizedBox(width: ui.space.xs),
-          MenuButton(
+          AppButton(
             label: 'Leaderboard',
             width: ui.sizes.leaderboardButtonWidth,
-            height: ui.sizes.buttonHeight,
-            fontSize: ui.text.label.fontSize ?? 12,
-            backgroundColor: ui.colors.buttonBg,
-            foregroundColor: ui.colors.buttonFg,
-            borderColor: ui.colors.buttonBorder,
-            borderWidth: ui.sizes.borderWidth,
             onPressed: onWeeklyLeaderboardPressed,
           ),
         ],

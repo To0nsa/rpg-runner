@@ -14,7 +14,7 @@ import 'restart_exit_buttons.dart';
 import 'score_breakdown_formatter.dart';
 import 'score_distribution.dart';
 import 'score_feed_controller.dart';
-import '../../components/overlay_button.dart';
+import '../../components/app_button.dart';
 // import '../../../core/spells/spell_id.dart';
 
 class GameOverOverlay extends StatefulWidget {
@@ -247,19 +247,25 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                       ],
                       const SizedBox(height: 14),
                       if (showCollectButton)
-                        OverlayButton(
+                        AppButton(
                           label: collectLabel,
+                          variant: AppButtonVariant.secondary,
+                          width: null,
                           onPressed: _onCollectPressed,
                         )
                       else
                         RestartExitButtons(
-                          restartButton: OverlayButton(
+                          restartButton: AppButton(
                             label: 'Restart',
+                            variant: AppButtonVariant.secondary,
+                            width: null,
                             onPressed: () => _completeThen(widget.onRestart),
                           ),
                           exitButton: widget.showExitButton
-                              ? OverlayButton(
+                              ? AppButton(
                                   label: 'Exit',
+                                  variant: AppButtonVariant.secondary,
+                                  width: null,
                                   onPressed: () => _completeThen(widget.onExit),
                                 )
                               : null,

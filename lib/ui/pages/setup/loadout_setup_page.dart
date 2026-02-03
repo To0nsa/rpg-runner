@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../core/ecs/stores/combat/equipped_loadout_store.dart';
 import '../../../core/projectiles/projectile_item_id.dart';
 import '../../app/ui_routes.dart';
-import '../../components/menu_button.dart';
+import '../../components/app_button.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
 import '../../state/app_state.dart';
@@ -38,10 +38,9 @@ class LoadoutSetupPage extends StatelessWidget {
             const SizedBox(height: 20),
             Text(
               'Current Loadout',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(color: Colors.white),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(color: Colors.white),
             ),
             const SizedBox(height: 12),
             _LoadoutSummary(loadout: loadout),
@@ -54,17 +53,22 @@ class LoadoutSetupPage extends StatelessWidget {
             Wrap(
               spacing: 12,
               children: [
-                MenuButton(
+                AppButton(
                   label: 'Default',
-                  onPressed: () => appState.setLoadout(const EquippedLoadoutDef()),
+                  onPressed: () =>
+                      appState.setLoadout(const EquippedLoadoutDef()),
                 ),
-                MenuButton(
+                AppButton(
                   label: 'Fire Bolt',
                   onPressed: () => appState.setLoadout(
-                    _withProjectile(loadout, ProjectileItemId.fireBolt, 'eloise.fire_bolt'),
+                    _withProjectile(
+                      loadout,
+                      ProjectileItemId.fireBolt,
+                      'eloise.fire_bolt',
+                    ),
                   ),
                 ),
-                MenuButton(
+                AppButton(
                   label: 'Thunder Bolt',
                   onPressed: () => appState.setLoadout(
                     _withProjectile(
@@ -79,18 +83,18 @@ class LoadoutSetupPage extends StatelessWidget {
             const SizedBox(height: 24),
             Row(
               children: [
-                MenuButton(
+                AppButton(
                   label: 'Back',
                   onPressed: () => Navigator.of(context).maybePop(),
                 ),
                 const SizedBox(width: 12),
-                MenuButton(
+                AppButton(
                   label: 'Level',
                   onPressed: () =>
                       Navigator.of(context).pushNamed(UiRoutes.setupLevel),
                 ),
                 const SizedBox(width: 12),
-                MenuButton(
+                AppButton(
                   label: 'Try Lab',
                   onPressed: () =>
                       Navigator.of(context).pushNamed(UiRoutes.loadoutLab),
@@ -124,10 +128,7 @@ EquippedLoadoutDef _withProjectile(
 }
 
 class _BuildNameField extends StatefulWidget {
-  const _BuildNameField({
-    required this.buildName,
-    required this.onCommit,
-  });
+  const _BuildNameField({required this.buildName, required this.onCommit});
 
   final String buildName;
   final ValueChanged<String> onCommit;
@@ -232,16 +233,26 @@ class _LoadoutSummary extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Primary: ${loadout.abilityPrimaryId}',
-              style: const TextStyle(color: Colors.white70)),
-          Text('Secondary: ${loadout.abilitySecondaryId}',
-              style: const TextStyle(color: Colors.white70)),
-          Text('Projectile: ${loadout.abilityProjectileId}',
-              style: const TextStyle(color: Colors.white70)),
-          Text('Mobility: ${loadout.abilityMobilityId}',
-              style: const TextStyle(color: Colors.white70)),
-          Text('Bonus: ${loadout.abilityBonusId}',
-              style: const TextStyle(color: Colors.white70)),
+          Text(
+            'Primary: ${loadout.abilityPrimaryId}',
+            style: const TextStyle(color: Colors.white70),
+          ),
+          Text(
+            'Secondary: ${loadout.abilitySecondaryId}',
+            style: const TextStyle(color: Colors.white70),
+          ),
+          Text(
+            'Projectile: ${loadout.abilityProjectileId}',
+            style: const TextStyle(color: Colors.white70),
+          ),
+          Text(
+            'Mobility: ${loadout.abilityMobilityId}',
+            style: const TextStyle(color: Colors.white70),
+          ),
+          Text(
+            'Bonus: ${loadout.abilityBonusId}',
+            style: const TextStyle(color: Colors.white70),
+          ),
         ],
       ),
     );

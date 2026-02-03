@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../components/overlay_button.dart';
+import '../../components/app_button.dart';
 
 class PauseOverlay extends StatelessWidget {
   const PauseOverlay({
@@ -42,9 +42,19 @@ class PauseOverlay extends StatelessWidget {
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          OverlayButton(label: 'Resume', onPressed: onResume),
+                          AppButton(
+                            label: 'Resume',
+                            variant: AppButtonVariant.secondary,
+                            width: null,
+                            onPressed: onResume,
+                          ),
                           const SizedBox(width: 12),
-                          OverlayButton(label: 'Exit', onPressed: onExit),
+                          AppButton(
+                            label: 'Exit',
+                            variant: AppButtonVariant.secondary,
+                            width: null,
+                            onPressed: onExit,
+                          ),
                         ],
                       ),
                     ],
