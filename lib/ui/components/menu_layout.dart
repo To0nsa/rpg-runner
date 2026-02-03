@@ -8,7 +8,7 @@ class MenuLayout extends StatelessWidget {
     required this.child,
     this.maxWidth = 1100,
     this.horizontalPadding = 24,
-    this.verticalPadding = 0,
+    this.verticalPadding = 6,
     this.scrollable = true,
     this.alignment = Alignment.topCenter,
   });

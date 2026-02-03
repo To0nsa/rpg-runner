@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../assets/ui_asset_lifecycle.dart';
@@ -33,6 +34,7 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _applyGlobalSystemUiMode();
   }
 
   @override
@@ -41,10 +43,24 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  void _applyGlobalSystemUiMode() {
+    // Apply immediately, then again after the current frame to win races with
+    // route disposal/restore behavior that can re-enable system UI.
+    unawaited(
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky),
+      );
+    });
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
+      _applyGlobalSystemUiMode();
       _showResumeLoader();
     }
   }
@@ -64,6 +80,8 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
     if (change == _UiRouteChange.pop && route?.settings.name == UiRoutes.run) {
       _purgeRunCaches();
     }
+
+    _applyGlobalSystemUiMode();
 
     if (_currentRouteName == UiRoutes.hub) {
       unawaited(_warmHubSelection());

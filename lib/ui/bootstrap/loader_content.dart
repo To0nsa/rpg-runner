@@ -24,6 +24,7 @@ class LoaderContent extends StatelessWidget {
       children: [
         Text(
           title,
+          // Game title style only used here.
           style: const TextStyle(
             fontFamily: 'Cinzel',
             fontSize: 36,

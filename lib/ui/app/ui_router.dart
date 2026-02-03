@@ -109,6 +109,7 @@ class UiRouter {
               DeviceOrientation.landscapeLeft,
               DeviceOrientation.landscapeRight,
             ],
+            restoreSystemUiMode: SystemUiMode.immersiveSticky,
           );
         }
         return MaterialPageRoute<void>(

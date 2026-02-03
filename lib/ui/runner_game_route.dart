@@ -20,6 +20,7 @@ Route<void> createRunnerGameRoute({
   PlayerCharacterId playerCharacterId = PlayerCharacterId.eloise,
   bool lockLandscape = true,
   List<DeviceOrientation>? restoreOrientations,
+  SystemUiMode restoreSystemUiMode = SystemUiMode.edgeToEdge,
   RouteSettings? settings,
 }) {
   return MaterialPageRoute<void>(
@@ -47,7 +48,7 @@ Route<void> createRunnerGameRoute({
       // Hide status + nav bars only for this route.
       child = ScopedSystemUiMode(
         mode: SystemUiMode.immersiveSticky,
-        restoreMode: SystemUiMode.edgeToEdge,
+        restoreMode: restoreSystemUiMode,
         child: child,
       );
 
