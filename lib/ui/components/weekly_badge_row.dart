@@ -33,7 +33,7 @@ class WeeklyBadgeRow extends StatelessWidget {
           Expanded(
             child: Text(
               'Weekly Challenge · Coming Soon',
-              style: ui.text.body.copyWith(color: ui.colors.textMuted),
+              style: ui.text.body,
             ),
           ),
           MenuButton(
