@@ -250,7 +250,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                         AppButton(
                           label: collectLabel,
                           variant: AppButtonVariant.secondary,
-                          width: null,
+                          size: AppButtonSize.xs,
                           onPressed: _onCollectPressed,
                         )
                       else
@@ -258,14 +258,14 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                           restartButton: AppButton(
                             label: 'Restart',
                             variant: AppButtonVariant.secondary,
-                            width: null,
+                            size: AppButtonSize.xs,
                             onPressed: () => _completeThen(widget.onRestart),
                           ),
                           exitButton: widget.showExitButton
                               ? AppButton(
                                   label: 'Exit',
                                   variant: AppButtonVariant.secondary,
-                                  width: null,
+                                  size: AppButtonSize.xs,
                                   onPressed: () => _completeThen(widget.onExit),
                                 )
                               : null,

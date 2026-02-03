@@ -168,8 +168,7 @@ class _PlayHubPageState extends State<PlayHubPage> {
                   Center(
                     child: AppButton(
                       label: 'PLAY',
-                      width: ui.sizes.playButtonWidth,
-                      textStyle: ui.text.headline,
+                      size: AppButtonSize.lg,
                       onPressed: () {
                         final args = appState.buildRunStartArgs();
                         Navigator.of(

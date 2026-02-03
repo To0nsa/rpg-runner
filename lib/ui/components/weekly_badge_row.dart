@@ -34,14 +34,14 @@ class WeeklyBadgeRow extends StatelessWidget {
             child: Text('Weekly Challenge · Coming Soon', style: ui.text.body),
           ),
           AppButton(
-            label: 'Play',
-            width: ui.sizes.weeklyButtonWidth,
+            label: 'PLAY',
+            size: AppButtonSize.xxs,
             onPressed: onWeeklyPressed,
           ),
           SizedBox(width: ui.space.xs),
           AppButton(
             label: 'Leaderboard',
-            width: ui.sizes.leaderboardButtonWidth,
+            size: AppButtonSize.sm,
             onPressed: onWeeklyLeaderboardPressed,
           ),
         ],

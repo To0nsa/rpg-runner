@@ -35,16 +35,9 @@ class UiTokens extends ThemeExtension<UiTokens> {
       success: Colors.greenAccent,
       scrim: Color(0xAA000000),
       shadow: Color(0x8A000000),
-      buttonBg: Colors.white,
-      buttonFg: Colors.black,
-      buttonBorder: Colors.white,
     ),
     sizes: UiSizes(
       tapTarget: 48,
-      buttonHeight: 48,
-      playButtonWidth: 192,
-      weeklyButtonWidth: 96,
-      leaderboardButtonWidth: 144,
       iconSize: UiIconSizes(xs: 12, sm: 16, md: 24, lg: 32),
       dividerThickness: 2,
       borderWidth: 2,
@@ -220,9 +213,6 @@ class UiColors {
     required this.success,
     required this.scrim,
     required this.shadow,
-    required this.buttonBg,
-    required this.buttonFg,
-    required this.buttonBorder,
   });
 
   final Color background;
@@ -238,28 +228,17 @@ class UiColors {
   final Color success;
   final Color scrim;
   final Color shadow;
-  final Color buttonBg;
-  final Color buttonFg;
-  final Color buttonBorder;
 }
 
 class UiSizes {
   const UiSizes({
     required this.tapTarget,
-    required this.buttonHeight,
-    required this.playButtonWidth,
-    required this.weeklyButtonWidth,
-    required this.leaderboardButtonWidth,
     required this.iconSize,
     required this.dividerThickness,
     required this.borderWidth,
   });
 
   final double tapTarget;
-  final double buttonHeight;
-  final double playButtonWidth;
-  final double weeklyButtonWidth;
-  final double leaderboardButtonWidth;
   final UiIconSizes iconSize;
   final double dividerThickness;
   final double borderWidth;

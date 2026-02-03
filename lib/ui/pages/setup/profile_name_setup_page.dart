@@ -8,7 +8,6 @@ import '../../components/menu_scaffold.dart';
 import '../../profile/display_name_policy.dart';
 import '../../state/app_state.dart';
 import '../../state/profile_flag_keys.dart';
-import '../../theme/ui_tokens.dart';
 
 class ProfileNameSetupPage extends StatefulWidget {
   const ProfileNameSetupPage({super.key});
@@ -76,7 +75,6 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
 
   @override
   Widget build(BuildContext context) {
-    final ui = context.ui;
     return MenuScaffold(
       showAppBar: false,
       child: MenuLayout(
@@ -122,9 +120,7 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
                   children: [
                     AppButton(
                       label: 'Skip',
-                      width: 120,
-                      height: 44,
-                      textStyle: ui.text.label.copyWith(fontSize: 14),
+                      size: AppButtonSize.xs,
                       variant: AppButtonVariant.secondary,
                       onPressed: _saving
                           ? null
@@ -133,9 +129,7 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
                     const SizedBox(width: 12),
                     AppButton(
                       label: 'Confirm',
-                      width: 160,
-                      height: 44,
-                      textStyle: ui.text.label.copyWith(fontSize: 14),
+                      size: AppButtonSize.md,
                       onPressed: _saving ? null : _confirm,
                     ),
                   ],

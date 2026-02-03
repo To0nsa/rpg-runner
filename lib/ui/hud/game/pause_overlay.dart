@@ -45,14 +45,14 @@ class PauseOverlay extends StatelessWidget {
                           AppButton(
                             label: 'Resume',
                             variant: AppButtonVariant.secondary,
-                            width: null,
+                            size: AppButtonSize.xs,
                             onPressed: onResume,
                           ),
                           const SizedBox(width: 12),
                           AppButton(
                             label: 'Exit',
                             variant: AppButtonVariant.secondary,
-                            width: null,
+                            size: AppButtonSize.xs,
                             onPressed: onExit,
                           ),
                         ],
