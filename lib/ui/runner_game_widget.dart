@@ -114,7 +114,8 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       _onLifecycle(state);
 
   void _onLifecycle(AppLifecycleState state) {
-    final uiState = _buildUiState();
+    final runLoaded = _game.loadState.value.phase == RunLoadPhase.worldReady;
+    final uiState = _buildUiState(runLoaded: runLoaded);
     if (state == AppLifecycleState.resumed) {
       if (_pausedByLifecycle && uiState.started && !uiState.gameOver) {
         _pausedByLifecycle = false;
@@ -187,12 +188,13 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     });
   }
 
-  RunnerGameUiState _buildUiState() {
+  RunnerGameUiState _buildUiState({required bool runLoaded}) {
     final snapshot = _controller.snapshot;
     return RunnerGameUiState(
       started: _started,
       paused: snapshot.paused,
       gameOver: snapshot.gameOver,
+      runLoaded: runLoaded,
     );
   }
 
@@ -330,45 +332,51 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
             return gameView;
           },
         ),
-        AnimatedBuilder(
-          animation: _controller,
-          builder: (context, _) {
-            final uiState = _buildUiState();
-            if (uiState.gameOver) {
-              final runEndedEvent = _controller.lastRunEndedEvent;
-              final runEndKey =
-                  runEndedEvent?.tick ?? _controller.snapshot.tick;
-              return GameOverOverlay(
-                key: ValueKey('gameOver-$runEndKey-${runEndedEvent?.reason}'),
-                visible: true,
-                onRestart: _restartGame,
-                onExit: widget.onExit,
-                showExitButton: widget.showExitButton,
-                levelId: _controller.snapshot.levelId,
-                runType: widget.runType,
-                runEndedEvent: runEndedEvent,
-                scoreTuning: _controller.scoreTuning,
-                tickHz: _controller.tickHz,
-                goldEarned: _lastGoldEarned,
-                totalGold: _lastGoldTotal,
-              );
-            }
-            return GameOverlay(
-              controller: _controller,
-              input: _input,
-              projectileAimPreview: _projectileAimPreview,
-              meleeAimPreview: _meleeAimPreview,
-              aimCancelHitboxRect: _aimCancelHitboxRect,
-              uiState: uiState,
-              onStart: _startGame,
-              onTogglePause: _togglePause,
-              showExitButton: widget.showExitButton,
-              onExit: uiState.started && !uiState.gameOver
-                  ? _openExitConfirm
-                  : widget.onExit,
-              exitConfirmOpen: _exitConfirmOpen,
-              onExitConfirmResume: () => _closeExitConfirm(resume: true),
-              onExitConfirmExit: _confirmExitGiveUp,
+        ValueListenableBuilder<RunLoadState>(
+          valueListenable: _game.loadState,
+          builder: (context, loadState, _) {
+            final runLoaded = loadState.phase == RunLoadPhase.worldReady;
+            return AnimatedBuilder(
+              animation: _controller,
+              builder: (context, _) {
+                final uiState = _buildUiState(runLoaded: runLoaded);
+                if (uiState.gameOver) {
+                  final runEndedEvent = _controller.lastRunEndedEvent;
+                  final runEndKey =
+                      runEndedEvent?.tick ?? _controller.snapshot.tick;
+                  return GameOverOverlay(
+                    key: ValueKey('gameOver-$runEndKey-${runEndedEvent?.reason}'),
+                    visible: true,
+                    onRestart: _restartGame,
+                    onExit: widget.onExit,
+                    showExitButton: widget.showExitButton,
+                    levelId: _controller.snapshot.levelId,
+                    runType: widget.runType,
+                    runEndedEvent: runEndedEvent,
+                    scoreTuning: _controller.scoreTuning,
+                    tickHz: _controller.tickHz,
+                    goldEarned: _lastGoldEarned,
+                    totalGold: _lastGoldTotal,
+                  );
+                }
+                return GameOverlay(
+                  controller: _controller,
+                  input: _input,
+                  projectileAimPreview: _projectileAimPreview,
+                  meleeAimPreview: _meleeAimPreview,
+                  aimCancelHitboxRect: _aimCancelHitboxRect,
+                  uiState: uiState,
+                  onStart: _startGame,
+                  onTogglePause: _togglePause,
+                  showExitButton: widget.showExitButton,
+                  onExit: uiState.started && !uiState.gameOver
+                      ? _openExitConfirm
+                      : widget.onExit,
+                  exitConfirmOpen: _exitConfirmOpen,
+                  onExitConfirmResume: () => _closeExitConfirm(resume: true),
+                  onExitConfirmExit: _confirmExitGiveUp,
+                );
+              },
             );
           },
         ),
