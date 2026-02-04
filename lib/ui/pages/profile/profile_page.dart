@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../components/app_inline_icon_button.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
 import '../../profile/display_name_policy.dart';
@@ -175,36 +176,20 @@ class _ProfilePageState extends State<ProfilePage> {
                       onSubmitted: (_) => _save(),
                     ),
                   ),
-                  IconButton(
-                    icon: _saving
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(
-                            Icons.check,
-                            color: Colors.greenAccent,
-                            size: 20,
-                          ),
-                    onPressed: _saving ? null : _save,
+                  AppInlineIconButton(
+                    icon: Icons.check,
                     tooltip: 'Save',
-                    padding: const EdgeInsets.all(4),
-                    constraints: const BoxConstraints(),
+                    variant: AppInlineIconButtonVariant.success,
+                    size: AppInlineIconButtonSize.sm,
+                    loading: _saving,
+                    onPressed: _saving ? null : _save,
                   ),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.close,
-                      color: Colors.white70,
-                      size: 20,
-                    ),
-                    onPressed: _saving ? null : _cancelEditing,
+                  AppInlineIconButton(
+                    icon: Icons.close,
                     tooltip: 'Cancel',
-                    padding: const EdgeInsets.all(4),
-                    constraints: const BoxConstraints(),
+                    variant: AppInlineIconButtonVariant.discrete,
+                    size: AppInlineIconButtonSize.sm,
+                    onPressed: _saving ? null : _cancelEditing,
                   ),
                 ],
               ),
@@ -232,12 +217,12 @@ class _ProfilePageState extends State<ProfilePage> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.white54, size: 16),
-                  onPressed: _startEditing,
+                AppInlineIconButton(
+                  icon: Icons.edit,
                   tooltip: 'Edit name',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+                  variant: AppInlineIconButtonVariant.discrete,
+                  size: AppInlineIconButtonSize.xs,
+                  onPressed: _startEditing,
                 ),
               ],
             ),
