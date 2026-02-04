@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../components/app_inline_icon_button.dart';
+import '../../components/app_inline_edit_text.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
 import '../../profile/display_name_policy.dart';
 import '../../state/app_state.dart';
 import '../../state/profile_counter_keys.dart';
+import '../../state/user_profile.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -16,19 +17,9 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  final _controller = TextEditingController();
   final _policy = const DisplayNamePolicy();
-  String? _error;
-  bool _saving = false;
-  bool _isEditing = false;
 
   static const Duration _cooldown = Duration(hours: 24);
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
 
   String _fallbackName(String displayName) =>
       displayName.isEmpty ? 'Guest' : displayName;
@@ -45,44 +36,31 @@ class _ProfilePageState extends State<ProfilePage> {
     return Duration(milliseconds: clampedMs);
   }
 
-  Future<void> _save() async {
-    if (_saving) return;
-    final appState = context.read<AppState>();
-    final profile = appState.profile;
-
-    final raw = _controller.text.trim();
-    if (raw == profile.displayName) {
-      setState(() => _error = 'Name is unchanged.');
-      return;
-    }
+  String? _validateDisplayName(UserProfile profile, String raw) {
+    final trimmed = raw.trim();
+    if (trimmed == profile.displayName) return 'Name is unchanged.';
 
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final active = _cooldownActive(profile.displayNameLastChangedAtMs, nowMs);
     if (active) {
       final rem = _cooldownRemaining(profile.displayNameLastChangedAtMs, nowMs);
-      setState(() {
-        _error =
-            'You can change your name again in ${rem.inHours}h ${rem.inMinutes.remainder(60)}m.';
-      });
-      return;
+      return 'You can change your name again in ${rem.inHours}h ${rem.inMinutes.remainder(60)}m.';
     }
 
-    final err = _policy.validate(raw);
-    if (err != null) {
-      setState(() => _error = err);
-      return;
-    }
+    return _policy.validate(trimmed);
+  }
 
-    setState(() {
-      _saving = true;
-      _error = null;
-    });
+  Future<void> _commitDisplayName(String raw) async {
+    final appState = context.read<AppState>();
+    final profile = appState.profile;
+    final trimmed = raw.trim();
 
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
     final shouldSetCooldown = profile.displayName.isNotEmpty;
 
     await appState.updateProfile((p) {
       return p.copyWith(
-        displayName: raw,
+        displayName: trimmed,
         displayNameLastChangedAtMs: shouldSetCooldown
             ? nowMs
             : p.displayNameLastChangedAtMs,
@@ -90,10 +68,6 @@ class _ProfilePageState extends State<ProfilePage> {
     });
 
     if (!mounted) return;
-    setState(() {
-      _saving = false;
-      _isEditing = false;
-    });
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Name updated')));
@@ -123,7 +97,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   child: Column(
                     children: [
-                      _buildDisplayNameRow(profile.displayName),
+                      _buildDisplayNameRow(profile),
                       _row('Gold', gold.toString()),
                     ],
                   ),
@@ -136,69 +110,8 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildDisplayNameRow(String currentName) {
-    if (_isEditing) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Row(
-          children: [
-            const SizedBox(
-              width: 80,
-              child: Text('Name', style: TextStyle(color: Colors.white70)),
-            ),
-            Expanded(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _controller,
-                      autofocus: true,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 0,
-                          vertical: 8,
-                        ),
-                        border: const UnderlineInputBorder(
-                          borderSide: BorderSide(color: Colors.white),
-                        ),
-                        enabledBorder: const UnderlineInputBorder(
-                          borderSide: BorderSide(color: Colors.white70),
-                        ),
-                        focusedBorder: const UnderlineInputBorder(
-                          borderSide: BorderSide(color: Colors.white),
-                        ),
-                        hintText: 'Enter name',
-                        hintStyle: const TextStyle(color: Colors.white24),
-                        errorText: _error,
-                      ),
-                      onSubmitted: (_) => _save(),
-                    ),
-                  ),
-                  AppInlineIconButton(
-                    icon: Icons.check,
-                    tooltip: 'Save',
-                    variant: AppInlineIconButtonVariant.success,
-                    size: AppInlineIconButtonSize.sm,
-                    loading: _saving,
-                    onPressed: _saving ? null : _save,
-                  ),
-                  AppInlineIconButton(
-                    icon: Icons.close,
-                    tooltip: 'Cancel',
-                    variant: AppInlineIconButtonVariant.discrete,
-                    size: AppInlineIconButtonSize.sm,
-                    onPressed: _saving ? null : _cancelEditing,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
+  Widget _buildDisplayNameRow(UserProfile profile) {
+    final currentName = profile.displayName;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -208,44 +121,17 @@ class _ProfilePageState extends State<ProfilePage> {
             child: Text('Name', style: TextStyle(color: Colors.white70)),
           ),
           Expanded(
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    _fallbackName(currentName),
-                    style: const TextStyle(color: Colors.white),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                AppInlineIconButton(
-                  icon: Icons.edit,
-                  tooltip: 'Edit name',
-                  variant: AppInlineIconButtonVariant.discrete,
-                  size: AppInlineIconButtonSize.xs,
-                  onPressed: _startEditing,
-                ),
-              ],
+            child: AppInlineEditText(
+              text: currentName,
+              displayText: _fallbackName(currentName),
+              hintText: 'Enter name',
+              validator: (value) => _validateDisplayName(profile, value),
+              onCommit: _commitDisplayName,
             ),
           ),
         ],
       ),
     );
-  }
-
-  void _startEditing() {
-    final profile = context.read<AppState>().profile;
-    _controller.text = profile.displayName;
-    setState(() {
-      _isEditing = true;
-      _error = null;
-    });
-  }
-
-  void _cancelEditing() {
-    setState(() {
-      _isEditing = false;
-      _error = null;
-    });
   }
 
   Widget _row(String label, String value) {

@@ -10,6 +10,7 @@ import '../state/app_state.dart';
 import '../theme/ui_button_theme.dart';
 import '../theme/ui_hub_theme.dart';
 import '../theme/ui_icon_button_theme.dart';
+import '../theme/ui_inline_edit_text_theme.dart';
 import '../theme/ui_inline_icon_button_theme.dart';
 import '../theme/ui_tokens.dart';
 import 'ui_router.dart';
@@ -151,6 +152,7 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
             UiButtonTheme.standard,
             UiIconButtonTheme.standard,
             UiInlineIconButtonTheme.standard,
+            UiInlineEditTextTheme.standard,
           ],
         ),
         navigatorKey: _navigatorKey,
