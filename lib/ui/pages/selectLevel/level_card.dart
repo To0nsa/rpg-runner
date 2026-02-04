@@ -63,10 +63,7 @@ class LevelCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // Full theme preview (no gradient overlay).
               LevelParallaxPreview(themeId: levelId.themeId),
-
-              // Title: readable via shadow, not via a dark scrim.
               Center(
                 child: Text(
                   levelId.displayName.toUpperCase(),
