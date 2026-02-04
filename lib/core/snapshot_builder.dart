@@ -169,6 +169,7 @@ class SnapshotBuilder {
       offhandWeaponId: loadout.offhandWeaponId[li],
       projectileItemId: loadout.projectileItemId[li],
       spellBookId: loadout.spellBookId[li],
+      accessoryId: loadout.accessoryId[li],
       abilityPrimaryId: loadout.abilityPrimaryId[li],
       abilitySecondaryId: loadout.abilitySecondaryId[li],
       abilityProjectileId: loadout.abilityProjectileId[li],
@@ -226,7 +227,6 @@ class SnapshotBuilder {
     final meleeInputMode = _inputModeFor(meleeAbility);
     final projectileInputMode = _inputModeFor(projectileAbility);
 
-
     final bonusInputMode = _inputModeFor(bonusAbility);
     final bonusUsesMeleeAim = bonusAbility?.hitDelivery is MeleeHitDelivery;
     // ─── Compute affordability flags ───
@@ -236,7 +236,8 @@ class SnapshotBuilder {
     final canAffordMelee = stamina >= meleeStaminaCost;
 
     final hasSecondarySlot = (loadoutMask & LoadoutSlotMask.offHand) != 0;
-    final canAffordSecondary = hasSecondarySlot && stamina >= secondaryStaminaCost;
+    final canAffordSecondary =
+        hasSecondarySlot && stamina >= secondaryStaminaCost;
 
     final canAffordProjectile =
         hasProjectileSlot &&
@@ -244,7 +245,9 @@ class SnapshotBuilder {
         mana >= projectileManaCost;
 
     final canAffordBonus =
-        bonusAbility != null && stamina >= bonusStaminaCost && mana >= bonusManaCost;
+        bonusAbility != null &&
+        stamina >= bonusStaminaCost &&
+        mana >= bonusManaCost;
 
     // ─── Read cooldown timers ───
     final cooldownTicksLeft = List<int>.filled(kMaxCooldownGroups, 0);
@@ -277,8 +280,9 @@ class SnapshotBuilder {
         : _scaleAbilityTicks(mobilityAbility.cooldownTicks);
 
     // Bonus (Utility)
-    cooldownTicksTotal[CooldownGroup.bonus0] =
-        bonusAbility == null ? 0 : _scaleAbilityTicks(bonusAbility.cooldownTicks);
+    cooldownTicksTotal[CooldownGroup.bonus0] = bonusAbility == null
+        ? 0
+        : _scaleAbilityTicks(bonusAbility.cooldownTicks);
 
     // Jump currently has no cooldown (buffer/coyote are handled by MovementSystem).
     cooldownTicksTotal[CooldownGroup.jump] = 0;

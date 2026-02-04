@@ -245,6 +245,7 @@ class GameCore {
     CoreTuning tuning = const CoreTuning(),
     PlayerCharacterDefinition playerCharacter =
         PlayerCharacterRegistry.defaultCharacter,
+    EquippedLoadoutDef? equippedLoadoutOverride,
     ProjectileItemCatalog projectileItemCatalog = const ProjectileItemCatalog(),
     SpellBookCatalog spellBookCatalog = const SpellBookCatalog(),
     ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
@@ -269,6 +270,7 @@ class GameCore {
          enemyCatalog: enemyCatalog,
          playerCharacter: playerCharacter,
          weaponCatalog: weaponCatalog,
+         equippedLoadoutOverride: equippedLoadoutOverride,
        );
 
   GameCore._fromLevel({
@@ -282,6 +284,7 @@ class GameCore {
     required EnemyCatalog enemyCatalog,
     required PlayerCharacterDefinition playerCharacter,
     required WeaponCatalog weaponCatalog,
+    required EquippedLoadoutDef? equippedLoadoutOverride,
   }) : _levelDefinition = levelDefinition,
        _movement = MovementTuningDerived.from(
          playerCharacter.tuning.movement,
@@ -322,6 +325,7 @@ class GameCore {
        _enemyCatalog = enemyCatalog,
        _playerCharacter = playerCharacter,
        _weapons = weaponCatalog,
+       _equippedLoadoutOverride = equippedLoadoutOverride,
        _scoreTuning = levelDefinition.tuning.score,
        _trackTuning = levelDefinition.tuning.track,
        _collectibleTuning = levelDefinition.tuning.collectible,
@@ -561,6 +565,7 @@ class GameCore {
 
     // Position so collider bottom touches ground.
     final spawnY = groundTopY - (playerCollider.offsetY + playerCollider.halfY);
+    final equippedLoadoutOverride = _equippedLoadoutOverride;
     _player = _entityFactory.createPlayer(
       posX: spawnX,
       posY: spawnY,
@@ -576,19 +581,21 @@ class GameCore {
       tags: playerArchetype.tags,
       resistance: playerArchetype.resistance,
       statusImmunity: playerArchetype.statusImmunity,
-      equippedLoadout: EquippedLoadoutDef(
-        mask: playerArchetype.loadoutSlotMask,
-        mainWeaponId: playerArchetype.weaponId,
-        offhandWeaponId: playerArchetype.offhandWeaponId,
-        projectileItemId: playerArchetype.projectileItemId,
-        spellBookId: playerArchetype.spellBookId,
-        abilityPrimaryId: playerArchetype.abilityPrimaryId,
-        abilitySecondaryId: playerArchetype.abilitySecondaryId,
-        abilityProjectileId: playerArchetype.abilityProjectileId,
-        abilityBonusId: playerArchetype.abilityBonusId,
-        abilityMobilityId: playerArchetype.abilityMobilityId,
-        abilityJumpId: playerArchetype.abilityJumpId,
-      ),
+      equippedLoadout:
+          equippedLoadoutOverride ??
+          EquippedLoadoutDef(
+            mask: playerArchetype.loadoutSlotMask,
+            mainWeaponId: playerArchetype.weaponId,
+            offhandWeaponId: playerArchetype.offhandWeaponId,
+            projectileItemId: playerArchetype.projectileItemId,
+            spellBookId: playerArchetype.spellBookId,
+            abilityPrimaryId: playerArchetype.abilityPrimaryId,
+            abilitySecondaryId: playerArchetype.abilitySecondaryId,
+            abilityProjectileId: playerArchetype.abilityProjectileId,
+            abilityBonusId: playerArchetype.abilityBonusId,
+            abilityMobilityId: playerArchetype.abilityMobilityId,
+            abilityJumpId: playerArchetype.abilityJumpId,
+          ),
     );
   }
 
@@ -642,6 +649,7 @@ class GameCore {
   final EnemyCatalog _enemyCatalog;
   final PlayerCharacterDefinition _playerCharacter;
   final WeaponCatalog _weapons;
+  final EquippedLoadoutDef? _equippedLoadoutOverride;
 
   // ─── ECS Core ───
 
@@ -1187,9 +1195,7 @@ class GameCore {
   void _endRun(RunEndReason reason, {DeathInfo? deathInfo}) {
     gameOver = true;
     paused = true;
-    final goldEarned = computeGoldEarned(
-      collectiblesCollected: collectibles,
-    );
+    final goldEarned = computeGoldEarned(collectiblesCollected: collectibles);
     _events.add(
       RunEndedEvent(
         runId: runId,

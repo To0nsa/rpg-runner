@@ -1,5 +1,6 @@
 import '../../../projectiles/projectile_item_id.dart';
 import '../../../spells/spell_book_id.dart';
+import '../../../accessories/accessory_id.dart';
 import '../../../weapons/weapon_id.dart';
 import '../../entity_id.dart';
 import '../../sparse_set.dart';
@@ -36,6 +37,7 @@ class EquippedLoadoutDef {
     this.offhandWeaponId = WeaponId.woodenShield,
     this.projectileItemId = ProjectileItemId.throwingKnife,
     this.spellBookId = SpellBookId.basicSpellBook,
+    this.accessoryId = AccessoryId.speedBoots,
     this.abilityPrimaryId = 'eloise.sword_strike',
     this.abilitySecondaryId = 'eloise.shield_block',
     this.abilityProjectileId = 'eloise.throwing_knife',
@@ -58,6 +60,9 @@ class EquippedLoadoutDef {
 
   /// Equipped spell book (spell payload provider).
   final SpellBookId spellBookId;
+
+  /// Equipped accessory (meta gear; not yet wired into Core systems).
+  final AccessoryId accessoryId;
 
   // New Ability System IDs
   final AbilityKey abilityPrimaryId;
@@ -82,6 +87,7 @@ class EquippedLoadoutStore extends SparseSet {
   final List<WeaponId> offhandWeaponId = <WeaponId>[];
   final List<ProjectileItemId> projectileItemId = <ProjectileItemId>[];
   final List<SpellBookId> spellBookId = <SpellBookId>[];
+  final List<AccessoryId> accessoryId = <AccessoryId>[];
 
   // New Ability System Lists
   final List<AbilityKey> abilityPrimaryId = <AbilityKey>[];
@@ -101,6 +107,7 @@ class EquippedLoadoutStore extends SparseSet {
     offhandWeaponId[i] = def.offhandWeaponId;
     projectileItemId[i] = def.projectileItemId;
     spellBookId[i] = def.spellBookId;
+    accessoryId[i] = def.accessoryId;
     abilityPrimaryId[i] = def.abilityPrimaryId;
     abilitySecondaryId[i] = def.abilitySecondaryId;
     abilityProjectileId[i] = def.abilityProjectileId;
@@ -117,6 +124,7 @@ class EquippedLoadoutStore extends SparseSet {
     offhandWeaponId[i] = def.offhandWeaponId;
     projectileItemId[i] = def.projectileItemId;
     spellBookId[i] = def.spellBookId;
+    accessoryId[i] = def.accessoryId;
     abilityPrimaryId[i] = def.abilityPrimaryId;
     abilitySecondaryId[i] = def.abilitySecondaryId;
     abilityProjectileId[i] = def.abilityProjectileId;
@@ -139,6 +147,7 @@ class EquippedLoadoutStore extends SparseSet {
     offhandWeaponId.add(WeaponId.woodenShield);
     projectileItemId.add(ProjectileItemId.throwingKnife);
     spellBookId.add(SpellBookId.basicSpellBook);
+    accessoryId.add(AccessoryId.speedBoots);
     abilityPrimaryId.add('eloise.sword_strike');
     abilitySecondaryId.add('eloise.shield_block');
     abilityProjectileId.add('eloise.throwing_knife');
@@ -154,6 +163,7 @@ class EquippedLoadoutStore extends SparseSet {
     offhandWeaponId[removeIndex] = offhandWeaponId[lastIndex];
     projectileItemId[removeIndex] = projectileItemId[lastIndex];
     spellBookId[removeIndex] = spellBookId[lastIndex];
+    accessoryId[removeIndex] = accessoryId[lastIndex];
     abilityPrimaryId[removeIndex] = abilityPrimaryId[lastIndex];
     abilitySecondaryId[removeIndex] = abilitySecondaryId[lastIndex];
     abilityProjectileId[removeIndex] = abilityProjectileId[lastIndex];
@@ -166,6 +176,7 @@ class EquippedLoadoutStore extends SparseSet {
     offhandWeaponId.removeLast();
     projectileItemId.removeLast();
     spellBookId.removeLast();
+    accessoryId.removeLast();
     abilityPrimaryId.removeLast();
     abilitySecondaryId.removeLast();
     abilityProjectileId.removeLast();

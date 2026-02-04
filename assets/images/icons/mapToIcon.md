@@ -3,14 +3,14 @@
 **Source File**: `assets\images\icons\transparentIcons.png`
 **Grid Configuration**: 0-indexed (Row, Column)
 
-## Swords
+## Primary Weapons
 | Icon Name | Coordinates (Row, Col) |
 | :--- | :---: |
 | `woodenSword` | (5, 0) |
 | `basicSword` | (5, 1) |
 | `solidSword` | (5, 2) |
 
-## Shields
+## Secondary Weapons
 | Icon Name | Coordinates (Row, Col) |
 | :--- | :---: |
 | `woodenShield` | (6, 0) |
@@ -31,7 +31,7 @@
 | `goldenRing` | (8, 4) |
 | `teethNecklace` | (8, 8) |
 
-# Ui Icons
+## UI Icons
 | Icon Name | Coordinates (Row, Col) |
 | :--- | :---: |
 | `swapGear` | (2, 6) |

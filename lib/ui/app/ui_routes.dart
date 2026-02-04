@@ -1,5 +1,6 @@
 import '../../core/levels/level_id.dart';
 import '../../core/players/player_character_definition.dart';
+import '../../core/ecs/stores/combat/equipped_loadout_store.dart';
 import '../state/selection_state.dart';
 
 class UiRoutes {
@@ -35,6 +36,7 @@ class RunStartArgs {
     required this.levelId,
     required this.playerCharacterId,
     required this.runType,
+    required this.equippedLoadout,
   });
 
   final int runId;
@@ -42,4 +44,5 @@ class RunStartArgs {
   final LevelId levelId;
   final PlayerCharacterId playerCharacterId;
   final RunType runType;
+  final EquippedLoadoutDef equippedLoadout;
 }

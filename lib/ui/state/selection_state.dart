@@ -3,6 +3,7 @@ import '../../core/levels/level_id.dart';
 import '../../core/players/player_character_definition.dart';
 import '../../core/projectiles/projectile_item_id.dart';
 import '../../core/spells/spell_book_id.dart';
+import '../../core/accessories/accessory_id.dart';
 import '../../core/weapons/weapon_id.dart';
 
 /// Menu-facing run type for the selected level.
@@ -117,6 +118,8 @@ Map<String, Object?> _loadoutToJson(EquippedLoadoutDef loadout) {
     'mainWeaponId': loadout.mainWeaponId.name,
     'offhandWeaponId': loadout.offhandWeaponId.name,
     'projectileItemId': loadout.projectileItemId.name,
+    'spellBookId': loadout.spellBookId.name,
+    'accessoryId': loadout.accessoryId.name,
     'abilityPrimaryId': loadout.abilityPrimaryId,
     'abilitySecondaryId': loadout.abilitySecondaryId,
     'abilityProjectileId': loadout.abilityProjectileId,
@@ -152,6 +155,11 @@ EquippedLoadoutDef _loadoutFromJson(Object? raw) {
       SpellBookId.values,
       map['spellBookId'] as String?,
       SpellBookId.basicSpellBook,
+    ),
+    accessoryId: _enumFromName(
+      AccessoryId.values,
+      map['accessoryId'] as String?,
+      AccessoryId.speedBoots,
     ),
     abilityPrimaryId:
         (map['abilityPrimaryId'] as String?) ??

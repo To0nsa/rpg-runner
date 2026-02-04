@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../core/ecs/stores/combat/equipped_loadout_store.dart';
 import '../core/levels/level_id.dart';
 import '../core/players/player_character_definition.dart';
 import 'runner_game_widget.dart';
@@ -20,6 +21,7 @@ Route<void> createRunnerGameRoute({
   LevelId levelId = LevelId.field,
   PlayerCharacterId playerCharacterId = PlayerCharacterId.eloise,
   RunType runType = RunType.practice,
+  EquippedLoadoutDef equippedLoadout = const EquippedLoadoutDef(),
   bool lockLandscape = true,
   List<DeviceOrientation>? restoreOrientations,
   SystemUiMode restoreSystemUiMode = SystemUiMode.edgeToEdge,
@@ -34,6 +36,7 @@ Route<void> createRunnerGameRoute({
         levelId: levelId,
         playerCharacterId: playerCharacterId,
         runType: runType,
+        equippedLoadout: equippedLoadout,
         onExit: () => Navigator.of(context).maybePop(),
       );
 

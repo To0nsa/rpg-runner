@@ -1,16 +1,18 @@
 library;
 
 import 'characters/eloise.dart';
+import 'characters/eloise_wip.dart';
 import 'player_character_definition.dart';
 
 class PlayerCharacterRegistry {
   const PlayerCharacterRegistry._();
 
   static const PlayerCharacterDefinition eloise = eloiseCharacter;
+  static const PlayerCharacterDefinition eloiseWip = eloiseWipCharacter;
 
   static const PlayerCharacterDefinition defaultCharacter = eloise;
 
-  static const List<PlayerCharacterDefinition> all = [eloise];
+  static const List<PlayerCharacterDefinition> all = [eloise, eloiseWip];
 
   static final Map<PlayerCharacterId, PlayerCharacterDefinition> byId =
       _buildById(all);

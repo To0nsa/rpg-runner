@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../core/contracts/render_contract.dart';
 import '../core/events/game_event.dart';
+import '../core/ecs/stores/combat/equipped_loadout_store.dart';
 import '../core/game_core.dart';
 import '../core/levels/level_id.dart';
 import '../core/levels/level_registry.dart';
@@ -41,6 +42,7 @@ class RunnerGameWidget extends StatefulWidget {
     this.levelId = LevelId.field,
     this.playerCharacterId = PlayerCharacterId.eloise,
     this.runType = RunType.practice,
+    this.equippedLoadout = const EquippedLoadoutDef(),
     this.onExit,
     this.showExitButton = true,
     this.viewportMode = ViewportScaleMode.pixelPerfectContain,
@@ -62,6 +64,9 @@ class RunnerGameWidget extends StatefulWidget {
   /// Menu-selected run type (practice/competitive). Used by UI (e.g. leaderboard
   /// namespacing) and may later affect rules/tuning.
   final RunType runType;
+
+  /// Per-run loadout override (from menu / meta inventory).
+  final EquippedLoadoutDef equippedLoadout;
 
   final VoidCallback? onExit;
   final bool showExitButton;
@@ -271,6 +276,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
         runId: _runId,
         levelDefinition: LevelRegistry.byId(widget.levelId),
         playerCharacter: playerCharacter,
+        equippedLoadoutOverride: widget.equippedLoadout,
       ),
     );
     _controller.addEventListener(_handleGameEvent);
@@ -345,7 +351,9 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                   final runEndKey =
                       runEndedEvent?.tick ?? _controller.snapshot.tick;
                   return GameOverOverlay(
-                    key: ValueKey('gameOver-$runEndKey-${runEndedEvent?.reason}'),
+                    key: ValueKey(
+                      'gameOver-$runEndKey-${runEndedEvent?.reason}',
+                    ),
                     visible: true,
                     onRestart: _restartGame,
                     onExit: widget.onExit,

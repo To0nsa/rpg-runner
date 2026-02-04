@@ -5,7 +5,7 @@ import '../snapshots/enums.dart';
 import 'player_tuning.dart';
 import 'player_catalog.dart';
 
-enum PlayerCharacterId { eloise }
+enum PlayerCharacterId { eloise, eloiseWip }
 
 class PlayerCharacterDefinition {
   const PlayerCharacterDefinition({
