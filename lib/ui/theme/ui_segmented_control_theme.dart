@@ -45,8 +45,8 @@ class UiSegmentedControlTheme extends ThemeExtension<UiSegmentedControlTheme> {
       md: UiSegmentedControlSizeMetrics(height: 48, paddingHorizontal: 16),
     ),
     text: UiSegmentedControlTextStyles(
-      sm: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-      md: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+      sm: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+      md: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
     ),
   );
 
