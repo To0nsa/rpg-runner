@@ -22,6 +22,7 @@ import 'components/menu_layout.dart';
 import 'runner_game_ui_state.dart';
 import 'state/app_state.dart';
 import 'state/profile_counter_keys.dart';
+import 'state/selection_state.dart';
 import 'viewport/game_viewport.dart';
 import 'viewport/viewport_metrics.dart';
 
@@ -39,6 +40,7 @@ class RunnerGameWidget extends StatefulWidget {
     this.seed = 1,
     this.levelId = LevelId.field,
     this.playerCharacterId = PlayerCharacterId.eloise,
+    this.runType = RunType.practice,
     this.onExit,
     this.showExitButton = true,
     this.viewportMode = ViewportScaleMode.pixelPerfectContain,
@@ -56,6 +58,10 @@ class RunnerGameWidget extends StatefulWidget {
 
   /// Which player character to use for this run.
   final PlayerCharacterId playerCharacterId;
+
+  /// Menu-selected run type (practice/competitive). Used by UI (e.g. leaderboard
+  /// namespacing) and may later affect rules/tuning.
+  final RunType runType;
 
   final VoidCallback? onExit;
   final bool showExitButton;
@@ -339,6 +345,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                 onExit: widget.onExit,
                 showExitButton: widget.showExitButton,
                 levelId: _controller.snapshot.levelId,
+                runType: widget.runType,
                 runEndedEvent: runEndedEvent,
                 scoreTuning: _controller.scoreTuning,
                 tickHz: _controller.tickHz,

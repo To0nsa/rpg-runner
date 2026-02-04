@@ -1,17 +1,24 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../core/events/game_event.dart';
 import '../../../core/levels/level_id.dart';
 import '../../../core/tuning/score_tuning.dart';
+import '../../components/leaderboard_table.dart';
 import '../../leaderboard/leaderboard_store.dart';
 import '../../leaderboard/run_result.dart';
 import '../../leaderboard/shared_prefs_leaderboard_store.dart';
 import '../../levels/level_id_ui.dart';
+import '../../state/selection_state.dart';
+import '../../theme/ui_leaderboard_theme.dart';
+import '../../theme/ui_tokens.dart';
 
 class LeaderboardPanel extends StatefulWidget {
   const LeaderboardPanel({
     super.key,
     required this.levelId,
+    required this.runType,
     required this.runEndedEvent,
     required this.scoreTuning,
     required this.tickHz,
@@ -20,6 +27,7 @@ class LeaderboardPanel extends StatefulWidget {
   });
 
   final LevelId levelId;
+  final RunType runType;
   final RunEndedEvent? runEndedEvent;
   final ScoreTuning scoreTuning;
   final int tickHz;
@@ -36,11 +44,6 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
   int? _currentRunId;
   bool _loaded = false;
 
-  static const double _rankColWidth = 28;
-  static const double _scoreColWidth = 64;
-  static const double _distanceColWidth = 56;
-  static const double _timeColWidth = 54;
-
   @override
   void initState() {
     super.initState();
@@ -51,7 +54,10 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
   Future<void> _loadLeaderboard() async {
     final event = widget.runEndedEvent;
     if (event == null) {
-      final entries = await _store.loadTop10(levelId: widget.levelId);
+      final entries = await _store.loadTop10(
+        levelId: widget.levelId,
+        runType: widget.runType,
+      );
       if (!mounted) return;
       setState(() {
         _entries = entries;
@@ -68,6 +74,7 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
     );
     final snapshot = await _store.addResult(
       levelId: widget.levelId,
+      runType: widget.runType,
       result: draft,
     );
     if (!mounted) return;
@@ -78,116 +85,74 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
     });
   }
 
-  Widget _buildRow(int rank, RunResult entry) {
-    final isCurrent = _currentRunId != null && entry.runId == _currentRunId;
-    final color = isCurrent ? const Color(0xFFFFF59D) : const Color(0xFFFFFFFF);
-    final scoreText =
-        isCurrent && !widget.revealCurrentRunScore ? '—' : entry.score.toString();
-
-    return DecoratedBox(
-      decoration: isCurrent
-          ? BoxDecoration(
-              color: const Color(0x33FFFFFF),
-              borderRadius: BorderRadius.circular(6),
-            )
-          : const BoxDecoration(),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: _rankColWidth,
-              child: Text(
-                '#$rank',
-                style: TextStyle(color: color),
-              ),
-            ),
-            SizedBox(
-              width: _scoreColWidth,
-              child: Text(
-                scoreText,
-                textAlign: TextAlign.right,
-                style: TextStyle(color: color),
-              ),
-            ),
-            SizedBox(
-              width: _distanceColWidth,
-              child: Text(
-                '${entry.distanceMeters}m',
-                textAlign: TextAlign.right,
-                style: TextStyle(color: color),
-              ),
-            ),
-            SizedBox(
-              width: _timeColWidth,
-              child: Text(
-                _formatTime(entry.durationSeconds),
-                textAlign: TextAlign.right,
-                style: TextStyle(color: color),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _formatTime(int totalSeconds) {
-    final minutes = totalSeconds ~/ 60;
-    final seconds = totalSeconds % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-  }
-
   @override
   Widget build(BuildContext context) {
+    final runTypeLabel = switch (widget.runType) {
+      RunType.practice => 'Practice',
+      RunType.competitive => 'Competitive',
+    };
     final titleStyle = const TextStyle(
       color: Color(0xFFFFFFFF),
       fontSize: 14,
       fontWeight: FontWeight.w600,
     );
-    final textStyle = const TextStyle(
-      color: Color(0xFFFFFFFF),
-      fontSize: 12,
-      fontWeight: FontWeight.w500,
-    );
+    final spec = context.leaderboards.resolveSpec(ui: context.ui);
+    final textStyle = spec.rowTextStyle;
 
     Widget content;
     if (!_loaded) {
-      content = Text('Loading leaderboard...', style: textStyle);
+      content = const Center(child: Text('Loading leaderboard...'));
     } else if (_entries.isEmpty) {
-      content = Text('No runs yet.', style: textStyle);
+      content = const Center(child: Text('No runs yet.'));
     } else {
-      content = Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (var i = 0; i < _entries.length; i += 1) ...[
-            _buildRow(i + 1, _entries[i]),
-            if (i < _entries.length - 1) const SizedBox(height: 4),
-          ],
-        ],
+      content = LeaderboardTable(
+        entries: _entries,
+        highlightRunId: _currentRunId,
+        hideScoreForRunId: widget.revealCurrentRunScore ? null : _currentRunId,
+        inset: false,
+        scrollable: true,
       );
     }
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 240),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: const Color(0x66000000),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('${widget.levelId.displayName} Scoreboard', style: titleStyle),
-              const SizedBox(height: 8),
-              DefaultTextStyle(style: textStyle, child: content),
-            ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxHeight = constraints.maxHeight;
+        final height = maxHeight.isFinite ? math.min(maxHeight, 360.0) : null;
+
+        final styledContent = DefaultTextStyle(
+          style: textStyle,
+          child: content,
+        );
+
+        final body = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${widget.levelId.displayName} $runTypeLabel Scoreboard',
+              style: titleStyle,
+            ),
+            const SizedBox(height: 8),
+            if (height == null)
+              styledContent
+            else
+              Expanded(child: styledContent),
+          ],
+        );
+
+        final panel = ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 240),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: const Color(0x66000000),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Padding(padding: const EdgeInsets.all(12), child: body),
           ),
-        ),
-      ),
+        );
+
+        if (height == null) return panel;
+        return SizedBox(height: height, child: panel);
+      },
     );
   }
 }

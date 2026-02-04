@@ -104,6 +104,7 @@ class UiRouter {
             seed: args.seed,
             levelId: args.levelId,
             playerCharacterId: args.playerCharacterId,
+            runType: args.runType,
             settings: settings,
             restoreOrientations: const [
               DeviceOrientation.landscapeLeft,

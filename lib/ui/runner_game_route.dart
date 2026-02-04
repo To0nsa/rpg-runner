@@ -6,6 +6,7 @@ import '../core/players/player_character_definition.dart';
 import 'runner_game_widget.dart';
 import 'scoped/scoped_preferred_orientations.dart';
 import 'scoped/scoped_system_ui_mode.dart';
+import 'state/selection_state.dart';
 
 /// Embed-friendly route factory for hosting the mini-game in any Flutter app.
 ///
@@ -18,6 +19,7 @@ Route<void> createRunnerGameRoute({
   int seed = 1,
   LevelId levelId = LevelId.field,
   PlayerCharacterId playerCharacterId = PlayerCharacterId.eloise,
+  RunType runType = RunType.practice,
   bool lockLandscape = true,
   List<DeviceOrientation>? restoreOrientations,
   SystemUiMode restoreSystemUiMode = SystemUiMode.edgeToEdge,
@@ -31,6 +33,7 @@ Route<void> createRunnerGameRoute({
         seed: seed,
         levelId: levelId,
         playerCharacterId: playerCharacterId,
+        runType: runType,
         onExit: () => Navigator.of(context).maybePop(),
       );
 

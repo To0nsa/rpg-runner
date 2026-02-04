@@ -13,6 +13,8 @@ class MenuScaffold extends StatelessWidget {
     super.key,
     required this.child,
     this.title,
+    this.appBarTitle,
+    this.centerAppBarTitle = false,
     this.showAppBar = true,
   });
 
@@ -22,21 +24,37 @@ class MenuScaffold extends StatelessWidget {
   /// Optional title for the AppBar. If null, no title is shown.
   final String? title;
 
+  /// Optional custom title widget for the AppBar (e.g. a segmented control).
+  ///
+  /// If provided, this takes precedence over [title].
+  final Widget? appBarTitle;
+
+  /// Whether the AppBar title should be centered.
+  ///
+  /// Useful when [appBarTitle] is a compact widget (e.g. segmented control)
+  /// that should be visually centered in the toolbar.
+  final bool centerAppBarTitle;
+
   /// Whether to show the AppBar with back button. Defaults to true.
   final bool showAppBar;
 
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.paddingOf(context).top;
+    final resolvedTitle =
+        appBarTitle ??
+        (title != null
+            ? Text(title!, style: const TextStyle(color: Colors.white))
+            : null);
     final appBarWidget = AppBar(
-      title: title != null
-          ? Text(title!, style: const TextStyle(color: Colors.white))
-          : null,
+      title: resolvedTitle,
       backgroundColor: Colors.black,
       iconTheme: const IconThemeData(color: Colors.white),
       // We'll apply our own SafeArea so we can ignore transient horizontal
       // insets (e.g. Android nav bar) that can cause jitter.
       primary: false,
+      centerTitle: centerAppBarTitle,
+      titleSpacing: appBarTitle != null ? 0 : null,
     );
 
     return Scaffold(

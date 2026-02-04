@@ -8,6 +8,7 @@ import '../../../core/projectiles/projectile_id.dart';
 import '../../../core/scoring/run_score_breakdown.dart';
 import '../../../core/tuning/score_tuning.dart';
 import '../../leaderboard/leaderboard_store.dart';
+import '../../state/selection_state.dart';
 import 'game_over_header.dart';
 import 'leaderboard_panel.dart';
 import 'restart_exit_buttons.dart';
@@ -25,6 +26,7 @@ class GameOverOverlay extends StatefulWidget {
     required this.onExit,
     required this.showExitButton,
     required this.levelId,
+    required this.runType,
     required this.runEndedEvent,
     required this.scoreTuning,
     required this.tickHz,
@@ -38,6 +40,7 @@ class GameOverOverlay extends StatefulWidget {
   final VoidCallback? onExit;
   final bool showExitButton;
   final LevelId levelId;
+  final RunType runType;
   final RunEndedEvent? runEndedEvent;
   final ScoreTuning scoreTuning;
   final int tickHz;
@@ -282,6 +285,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                   alignment: Alignment.topCenter,
                   child: LeaderboardPanel(
                     levelId: widget.levelId,
+                    runType: widget.runType,
                     runEndedEvent: widget.runEndedEvent,
                     scoreTuning: widget.scoreTuning,
                     tickHz: widget.tickHz,

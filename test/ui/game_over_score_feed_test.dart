@@ -9,6 +9,7 @@ import 'package:rpg_runner/ui/hud/gameover/game_over_overlay.dart';
 import 'package:rpg_runner/ui/hud/gameover/leaderboard_panel.dart';
 import 'package:rpg_runner/ui/leaderboard/leaderboard_store.dart';
 import 'package:rpg_runner/ui/leaderboard/run_result.dart';
+import 'package:rpg_runner/ui/state/selection_state.dart';
 
 // Test constants matching _buildEvent().
 const _distanceUnits = 500.0;
@@ -67,6 +68,7 @@ void main() {
           onExit: null,
           showExitButton: false,
           levelId: LevelId.field,
+          runType: RunType.practice,
           runEndedEvent: _buildEvent(),
           scoreTuning: _tuning,
           tickHz: _tickHz,
@@ -106,6 +108,7 @@ void main() {
           onExit: null,
           showExitButton: false,
           levelId: LevelId.field,
+          runType: RunType.practice,
           runEndedEvent: _buildEvent(),
           scoreTuning: _tuning,
           tickHz: _tickHz,
@@ -150,6 +153,7 @@ void main() {
           onExit: null,
           showExitButton: false,
           levelId: LevelId.field,
+          runType: RunType.practice,
           runEndedEvent: _buildEvent(),
           scoreTuning: _tuning,
           tickHz: _tickHz,
@@ -189,12 +193,15 @@ class _FakeLeaderboardStore implements LeaderboardStore {
   @override
   Future<LeaderboardSnapshot> addResult({
     required LevelId levelId,
+    required RunType runType,
     required RunResult result,
   }) async {
     return LeaderboardSnapshot(entries: [_current], current: _current);
   }
 
   @override
-  Future<List<RunResult>> loadTop10({required LevelId levelId}) async =>
-      <RunResult>[];
+  Future<List<RunResult>> loadTop10({
+    required LevelId levelId,
+    required RunType runType,
+  }) async => <RunResult>[];
 }
