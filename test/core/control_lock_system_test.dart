@@ -6,7 +6,6 @@ import 'package:rpg_runner/core/ecs/world.dart';
 void main() {
   test('addLock sets mask and expiry', () {
     final world = EcsWorld();
-    final system = ControlLockSystem();
     final entity = world.createEntity();
 
     world.controlLock.addLock(entity, LockFlag.move, 10, 0);

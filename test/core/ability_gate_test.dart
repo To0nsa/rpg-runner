@@ -1,11 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/abilities/ability_gate.dart';
 import 'package:rpg_runner/core/combat/control_lock.dart';
-import 'package:rpg_runner/core/ecs/entity_factory.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
-import 'package:rpg_runner/core/ecs/stores/control_lock_store.dart';
 import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
-import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 

@@ -72,7 +72,7 @@ void main() {
         .where((e) => e.kind == EntityKind.trigger)
         .toList();
     expect(hitboxes.length, 1);
-    final hitDelivery = ability!.hitDelivery as MeleeHitDelivery;
+    final hitDelivery = ability.hitDelivery as MeleeHitDelivery;
     final hitboxHalfX = hitDelivery.sizeX * 0.5;
     final hitboxHalfY = hitDelivery.sizeY * 0.5;
     final forward = (catalog.colliderMaxHalfExtent * 0.5) +
