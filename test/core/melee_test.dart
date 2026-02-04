@@ -6,18 +6,18 @@ import 'package:rpg_runner/core/commands/command.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/game_core.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
-import 'package:rpg_runner/core/players/player_catalog.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/util/tick_math.dart';
 
+import '../support/test_player.dart';
 import '../test_tunings.dart';
 
 void main() {
   test('melee: strike spawns hitbox for active ticks', () {
-    const catalog = PlayerCatalog(
+    final catalog = testPlayerCatalog(
       bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
     );
     const abilityTuning = AbilityTuning();
@@ -113,7 +113,7 @@ void main() {
   });
 
   test('melee: uses aim direction when provided', () {
-    const catalog = PlayerCatalog(
+    final catalog = testPlayerCatalog(
       bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
     );
     const abilityTuning = AbilityTuning();

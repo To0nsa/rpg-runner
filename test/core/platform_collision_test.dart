@@ -5,11 +5,11 @@ import 'package:rpg_runner/core/commands/command.dart';
 import 'package:rpg_runner/core/contracts/render_contract.dart';
 import 'package:rpg_runner/core/game_core.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
-import 'package:rpg_runner/core/players/player_catalog.dart';
 import 'package:rpg_runner/core/tuning/core_tuning.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
 import 'package:rpg_runner/core/tuning/track_tuning.dart';
 
+import '../support/test_player.dart';
 import '../test_tunings.dart';
 
 void _tick(
@@ -27,7 +27,7 @@ void main() {
   test('lands on a one-way platform above the ground', () {
     const topY = 180.0;
     const r = 8.0;
-    const catalog = PlayerCatalog(
+    final catalog = testPlayerCatalog(
       colliderWidth: r * 2,
       colliderHeight: r * 2,
       colliderOffsetY: 0.0,
@@ -73,7 +73,7 @@ void main() {
   test('one-way platform does not block upward motion from below', () {
     const topY = 180.0;
     const r = 8.0;
-    const catalog = PlayerCatalog(
+    final catalog = testPlayerCatalog(
       colliderWidth: r * 2,
       colliderHeight: r * 2,
       colliderOffsetY: 0.0,
@@ -111,7 +111,7 @@ void main() {
     const topY = 180.0;
     const r = 8.0;
     const platformMaxX = 240.0;
-    const catalog = PlayerCatalog(
+    final catalog = testPlayerCatalog(
       colliderWidth: r * 2,
       colliderHeight: r * 2,
       colliderOffsetY: 0.0,

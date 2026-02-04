@@ -8,7 +8,6 @@ import 'package:rpg_runner/core/ecs/systems/projectile_world_collision_system.da
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/game_core.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
-import 'package:rpg_runner/core/players/player_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
@@ -20,6 +19,7 @@ import 'package:rpg_runner/core/util/tick_math.dart';
 import 'package:rpg_runner/core/projectiles/spawn_projectile_item.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
 
+import '../support/test_player.dart';
 import '../test_tunings.dart';
 
 void main() {
@@ -30,14 +30,14 @@ void main() {
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
         seed: 1,
-        tickHz: tickHz,
-        tuning: noAutoscrollTuning,
-        playerCharacter: base.copyWith(
-          catalog: const PlayerCatalog(
-            bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-            projectileItemId: ProjectileItemId.throwingKnife,
-            abilityProjectileId: 'eloise.throwing_knife',
-          ),
+      tickHz: tickHz,
+      tuning: noAutoscrollTuning,
+      playerCharacter: base.copyWith(
+        catalog: testPlayerCatalog(
+          bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+          projectileItemId: ProjectileItemId.throwingKnife,
+          abilityProjectileId: 'eloise.throwing_knife',
+        ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
               playerManaMax: 0,
@@ -94,14 +94,14 @@ void main() {
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
         seed: 1,
-        tickHz: 20,
-        tuning: noAutoscrollTuning,
-        playerCharacter: base.copyWith(
-          catalog: const PlayerCatalog(
-            bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-            projectileItemId: ProjectileItemId.throwingKnife,
-            abilityProjectileId: 'eloise.throwing_knife',
-          ),
+      tickHz: 20,
+      tuning: noAutoscrollTuning,
+      playerCharacter: base.copyWith(
+        catalog: testPlayerCatalog(
+          bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+          projectileItemId: ProjectileItemId.throwingKnife,
+          abilityProjectileId: 'eloise.throwing_knife',
+        ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
               playerManaMax: 0,

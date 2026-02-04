@@ -5,13 +5,13 @@ import 'package:rpg_runner/core/abilities/ability_catalog.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/game_core.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
-import 'package:rpg_runner/core/players/player_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
 import 'package:rpg_runner/core/util/tick_math.dart';
 
+import '../support/test_player.dart';
 import '../test_tunings.dart';
 
 void main() {
@@ -29,11 +29,11 @@ void main() {
       tickHz: 20,
       tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
-          catalog: const PlayerCatalog(
-            bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-            projectileItemId: ProjectileItemId.iceBolt,
-            abilityProjectileId: 'eloise.ice_bolt',
-          ),
+        catalog: testPlayerCatalog(
+          bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+          projectileItemId: ProjectileItemId.iceBolt,
+          abilityProjectileId: 'eloise.ice_bolt',
+        ),
         tuning: base.tuning.copyWith(
           resource: const ResourceTuning(
             playerManaMax: 0,
@@ -63,7 +63,7 @@ void main() {
   test(
     'cast: sufficient mana => projectile spawns + mana spent + cooldown set',
     () {
-      const catalog = PlayerCatalog(
+      final catalog = testPlayerCatalog(
         bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
         projectileItemId: ProjectileItemId.iceBolt,
         abilityProjectileId: 'eloise.ice_bolt',
@@ -115,7 +115,7 @@ void main() {
   );
 
   test('cast: equipped spell selects projectile + mana cost', () {
-    const catalog = PlayerCatalog(
+    final catalog = testPlayerCatalog(
       bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
       projectileItemId: ProjectileItemId.fireBolt,
       abilityProjectileId: 'eloise.fire_bolt',
@@ -166,7 +166,7 @@ void main() {
       tickHz: 20,
       tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
-        catalog: const PlayerCatalog(
+        catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
           projectileItemId: ProjectileItemId.iceBolt,
           abilityProjectileId: 'eloise.ice_bolt',

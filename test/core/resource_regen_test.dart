@@ -4,10 +4,10 @@ import 'package:rpg_runner/core/commands/command.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/game_core.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
-import 'package:rpg_runner/core/players/player_catalog.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
 import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
 
+import '../support/test_player.dart';
 import '../test_tunings.dart';
 
 void main() {
@@ -20,7 +20,7 @@ void main() {
         tickHz: 10,
         tuning: noAutoscrollTuning,
         playerCharacter: base.copyWith(
-          catalog: const PlayerCatalog(
+          catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(useGravity: false),
             projectileItemId: ProjectileItemId.iceBolt,
             abilityProjectileId: 'eloise.ice_bolt',

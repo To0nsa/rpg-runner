@@ -12,7 +12,7 @@ class PlayerCharacterDefinition {
     required this.id,
     required this.displayName,
     required this.renderAnim,
-    this.catalog = const PlayerCatalog(),
+    required this.catalog,
     this.tuning = const PlayerTuning(),
   });
 

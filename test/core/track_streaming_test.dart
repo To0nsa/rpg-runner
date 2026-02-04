@@ -4,7 +4,8 @@ import 'package:rpg_runner/core/commands/command.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/game_core.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
-import 'package:rpg_runner/core/players/player_catalog.dart';
+
+import '../support/test_player.dart';
 
 void _expectSolidsEqual(GameCore a, GameCore b) {
   final sa = a.buildSnapshot().staticSolids;
@@ -33,7 +34,7 @@ void main() {
     // run; this test only cares about deterministic streaming + culling.
     final base = PlayerCharacterRegistry.eloise;
     final playerCharacter = base.copyWith(
-      catalog: const PlayerCatalog(
+      catalog: testPlayerCatalog(
         bodyTemplate: BodyDef(sideMask: BodyDef.sideLeft, useGravity: false),
       ),
     );

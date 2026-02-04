@@ -5,9 +5,9 @@ import 'package:rpg_runner/core/contracts/render_contract.dart';
 import 'package:rpg_runner/core/game_core.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
-import 'package:rpg_runner/core/players/player_catalog.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
 
+import '../support/test_player.dart';
 import '../test_tunings.dart';
 
 void _tick(
@@ -224,12 +224,12 @@ void main() {
       tickHz: defaultTickHz,
       tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
-        catalog: const PlayerCatalog(
+        catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(gravityScale: 0),
         ),
       ),
     );
-    const catalog = PlayerCatalog(bodyTemplate: BodyDef(gravityScale: 0));
+    final catalog = testPlayerCatalog(bodyTemplate: BodyDef(gravityScale: 0));
     final floorY = groundTopY.toDouble() - (catalog.colliderOffsetY + catalog.colliderHalfY);
 
     core.setPlayerPosXY(core.playerPosX, floorY - 120);
@@ -248,12 +248,12 @@ void main() {
       tickHz: defaultTickHz,
       tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
-        catalog: const PlayerCatalog(
+        catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true),
         ),
       ),
     );
-    const catalog = PlayerCatalog(bodyTemplate: BodyDef(isKinematic: true));
+    final catalog = testPlayerCatalog(bodyTemplate: BodyDef(isKinematic: true));
     final floorY = groundTopY.toDouble() - (catalog.colliderOffsetY + catalog.colliderHalfY);
 
     core.setPlayerPosXY(core.playerPosX, floorY - 120);
