@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/levels/level_id.dart';
 import '../../levels/level_id_ui.dart';
 import '../../components/level_parallax_preview.dart';
+import '../../theme/ui_tokens.dart';
 
 /// A card widget displaying a level with its full parallax background.
 ///
@@ -39,6 +40,7 @@ class LevelCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ui = context.ui;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -63,23 +65,14 @@ class LevelCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              LevelParallaxPreview(themeId: levelId.themeId),
+              LevelParallaxPreview(
+                themeId: levelId.themeId,
+                alignment: Alignment.center,
+              ),
               Center(
                 child: Text(
                   levelId.displayName.toUpperCase(),
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 2,
-                    shadows: [
-                      Shadow(
-                        color: Colors.black,
-                        blurRadius: 4,
-                        offset: Offset(1, 1),
-                      ),
-                    ],
-                  ),
+                  style: ui.text.cardTitle,
                 ),
               ),
             ],
