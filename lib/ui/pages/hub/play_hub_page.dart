@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../app/ui_routes.dart';
 import '../../components/app_button.dart';
+import '../../components/app_icon_button.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
 import '../../components/weekly_badge_row.dart';
@@ -52,29 +53,22 @@ class _PlayHubPageState extends State<PlayHubPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                IconButton(
+                AppIconButton(
                   onPressed: () => setState(() => _menuOpen = !_menuOpen),
-                  icon: const Icon(Icons.menu),
-                  iconSize: ui.sizes.iconSize.lg,
-                  color: ui.colors.textPrimary,
+                  icon: Icons.menu,
                   tooltip: _menuOpen ? 'Close menu' : 'Open menu',
-                  padding: EdgeInsets.zero,
-                  constraints: BoxConstraints(
-                    minWidth: ui.sizes.tapTarget,
-                    minHeight: ui.sizes.tapTarget,
-                  ),
                 ),
                 if (_menuOpen) ...[
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _HubIconButton(
+                      AppIconButton(
                         icon: Icons.library_books,
                         label: 'Codex',
                         onPressed: () =>
                             Navigator.of(context).pushNamed(UiRoutes.library),
                       ),
-                      _HubIconButton(
+                      AppIconButton(
                         icon: Icons.storefront,
                         label: 'Town',
                         onPressed: () =>
@@ -85,13 +79,13 @@ class _PlayHubPageState extends State<PlayHubPage> {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _HubIconButton(
+                      AppIconButton(
                         icon: Icons.person,
                         label: 'Profile',
                         onPressed: () =>
                             Navigator.of(context).pushNamed(UiRoutes.profile),
                       ),
-                      _HubIconButton(
+                      AppIconButton(
                         icon: Icons.leaderboard,
                         label: 'Top',
                         onPressed: () => Navigator.of(
@@ -103,13 +97,13 @@ class _PlayHubPageState extends State<PlayHubPage> {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _HubIconButton(
+                      AppIconButton(
                         icon: Icons.settings,
                         label: 'Options',
                         onPressed: () =>
                             Navigator.of(context).pushNamed(UiRoutes.options),
                       ),
-                      _HubIconButton(
+                      AppIconButton(
                         icon: Icons.monetization_on,
                         label: 'Support',
                         onPressed: () =>
@@ -193,43 +187,5 @@ String _runTypeLabel(RunType runType) {
       return 'Practice (Random)';
     case RunType.competitive:
       return 'Competitive (Season)';
-  }
-}
-
-class _HubIconButton extends StatelessWidget {
-  const _HubIconButton({
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final ui = context.ui;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          onPressed: onPressed,
-          icon: Icon(icon, color: ui.colors.textPrimary),
-          iconSize: ui.sizes.iconSize.lg,
-          padding: EdgeInsets.zero,
-          constraints: BoxConstraints(
-            minWidth: ui.sizes.tapTarget,
-            minHeight: ui.sizes.tapTarget,
-          ),
-        ),
-        SizedBox(height: ui.space.xxs),
-        Text(
-          label,
-          style: ui.text.caption.copyWith(color: ui.colors.textMuted),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
   }
 }
