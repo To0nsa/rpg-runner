@@ -30,3 +30,8 @@
 | `speedBoots` | (8, 2) |
 | `goldenRing` | (8, 4) |
 | `teethNecklace` | (8, 8) |
+
+# Ui Icons
+| Icon Name | Coordinates (Row, Col) |
+| :--- | :---: |
+| `swapGear` | (2, 6) |
