@@ -29,9 +29,10 @@ void main() {
       tickHz: 20,
       tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
-        catalog: const PlayerCatalog(
-          bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-        ),
+          catalog: const PlayerCatalog(
+            bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+            projectileItemId: ProjectileItemId.iceBolt,
+          ),
         tuning: base.tuning.copyWith(
           resource: const ResourceTuning(
             playerManaMax: 0,
@@ -63,6 +64,7 @@ void main() {
     () {
       const catalog = PlayerCatalog(
         bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+        projectileItemId: ProjectileItemId.iceBolt,
       );
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
@@ -163,6 +165,7 @@ void main() {
       playerCharacter: base.copyWith(
         catalog: const PlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+          projectileItemId: ProjectileItemId.iceBolt,
         ),
         tuning: base.tuning.copyWith(
           resource: const ResourceTuning(

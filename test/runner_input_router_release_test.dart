@@ -8,6 +8,7 @@ import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
 import 'package:rpg_runner/core/util/tick_math.dart';
+import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
 import 'package:rpg_runner/game/game_controller.dart';
 import 'package:rpg_runner/game/input/runner_input_router.dart';
 
@@ -21,7 +22,10 @@ void main() {
       tickHz: 60,
       tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
-        catalog: const PlayerCatalog(bodyTemplate: BodyDef(useGravity: false)),
+        catalog: const PlayerCatalog(
+          bodyTemplate: BodyDef(useGravity: false),
+          projectileItemId: ProjectileItemId.iceBolt,
+        ),
         tuning: base.tuning.copyWith(
           movement: const MovementTuning(
             maxSpeedX: 100,
@@ -61,7 +65,10 @@ void main() {
         tickHz: 60,
         tuning: noAutoscrollTuning,
         playerCharacter: base.copyWith(
-          catalog: const PlayerCatalog(bodyTemplate: BodyDef(useGravity: false)),
+          catalog: const PlayerCatalog(
+            bodyTemplate: BodyDef(useGravity: false),
+            projectileItemId: ProjectileItemId.iceBolt,
+          ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
               playerManaMax: 20,
@@ -115,7 +122,10 @@ void main() {
       tickHz: 60,
       tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
-        catalog: const PlayerCatalog(bodyTemplate: BodyDef(useGravity: false)),
+        catalog: const PlayerCatalog(
+          bodyTemplate: BodyDef(useGravity: false),
+          projectileItemId: ProjectileItemId.iceBolt,
+        ),
         tuning: base.tuning.copyWith(
           resource: const ResourceTuning(
             playerManaMax: 20,

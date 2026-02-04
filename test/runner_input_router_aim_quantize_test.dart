@@ -8,6 +8,7 @@ import 'package:rpg_runner/core/players/player_character_registry.dart';
 import 'package:rpg_runner/core/players/player_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
+import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
@@ -25,7 +26,10 @@ void main() {
       tickHz: 60,
       tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
-        catalog: const PlayerCatalog(bodyTemplate: BodyDef(useGravity: false)),
+        catalog: const PlayerCatalog(
+          bodyTemplate: BodyDef(useGravity: false),
+          projectileItemId: ProjectileItemId.iceBolt,
+        ),
         tuning: base.tuning.copyWith(
           resource: const ResourceTuning(
             playerManaMax: 20,
