@@ -1,5 +1,7 @@
 library;
 
+import 'package:rpg_runner/core/spells/spell_book_id.dart';
+
 import '../../ecs/stores/body_store.dart';
 import '../../ecs/stores/combat/creature_tag_store.dart';
 import '../../ecs/stores/combat/damage_resistance_store.dart';
@@ -175,9 +177,16 @@ const PlayerCatalog eloiseCatalog = PlayerCatalog(
   resistance: DamageResistanceDef(),
   statusImmunity: StatusImmunityDef(),
   loadoutSlotMask: LoadoutSlotMask.all,
-  weaponId: WeaponId.basicSword,
-  offhandWeaponId: WeaponId.basicShield,
-  projectileItemId: ProjectileItemId.fireBolt,
+  weaponId: WeaponId.woodenSword,
+  offhandWeaponId: WeaponId.woodenShield,
+  projectileItemId: ProjectileItemId.throwingKnife,
+  spellBookId: SpellBookId.basicSpellBook,
+  abilityPrimaryId: 'eloise.sword_strike',
+  abilitySecondaryId: 'eloise.shield_block',
+  abilityProjectileId: 'eloise.throwing_knife',
+  abilityBonusId: 'eloise.arcane_haste',
+  abilityMobilityId: 'eloise.dash',
+  abilityJumpId: 'eloise.jump',
   facing: Facing.right,
 );
 

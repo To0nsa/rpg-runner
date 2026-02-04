@@ -32,14 +32,14 @@ class LoadoutSlotMask {
 class EquippedLoadoutDef {
   const EquippedLoadoutDef({
     this.mask = LoadoutSlotMask.defaultMask,
-    this.mainWeaponId = WeaponId.basicSword,
-    this.offhandWeaponId = WeaponId.basicShield,
-    this.projectileItemId = ProjectileItemId.fireBolt,
-    this.spellBookId = SpellBookId.basicSpellbook,
+    this.mainWeaponId = WeaponId.woodenSword,
+    this.offhandWeaponId = WeaponId.woodenShield,
+    this.projectileItemId = ProjectileItemId.throwingKnife,
+    this.spellBookId = SpellBookId.basicSpellBook,
     this.abilityPrimaryId = 'eloise.sword_strike',
     this.abilitySecondaryId = 'eloise.shield_block',
-    this.abilityProjectileId = 'eloise.fire_bolt',
-    this.abilityBonusId = 'eloise.shield_bash',
+    this.abilityProjectileId = 'eloise.throwing_knife',
+    this.abilityBonusId = 'eloise.throwing_knife',
     this.abilityMobilityId = 'eloise.dash',
     this.abilityJumpId = 'eloise.jump',
   });
@@ -82,7 +82,7 @@ class EquippedLoadoutStore extends SparseSet {
   final List<WeaponId> offhandWeaponId = <WeaponId>[];
   final List<ProjectileItemId> projectileItemId = <ProjectileItemId>[];
   final List<SpellBookId> spellBookId = <SpellBookId>[];
-  
+
   // New Ability System Lists
   final List<AbilityKey> abilityPrimaryId = <AbilityKey>[];
   final List<AbilityKey> abilitySecondaryId = <AbilityKey>[];
@@ -91,7 +91,10 @@ class EquippedLoadoutStore extends SparseSet {
   final List<AbilityKey> abilityMobilityId = <AbilityKey>[];
   final List<AbilityKey> abilityJumpId = <AbilityKey>[];
 
-  void add(EntityId entity, [EquippedLoadoutDef def = const EquippedLoadoutDef()]) {
+  void add(
+    EntityId entity, [
+    EquippedLoadoutDef def = const EquippedLoadoutDef(),
+  ]) {
     final i = addEntity(entity);
     mask[i] = def.mask;
     mainWeaponId[i] = def.mainWeaponId;
@@ -132,14 +135,14 @@ class EquippedLoadoutStore extends SparseSet {
   @override
   void onDenseAdded(int denseIndex) {
     mask.add(LoadoutSlotMask.defaultMask);
-    mainWeaponId.add(WeaponId.basicSword);
-    offhandWeaponId.add(WeaponId.basicShield);
-    projectileItemId.add(ProjectileItemId.iceBolt);
-    spellBookId.add(SpellBookId.basicSpellbook);
+    mainWeaponId.add(WeaponId.woodenSword);
+    offhandWeaponId.add(WeaponId.woodenShield);
+    projectileItemId.add(ProjectileItemId.throwingKnife);
+    spellBookId.add(SpellBookId.basicSpellBook);
     abilityPrimaryId.add('eloise.sword_strike');
     abilitySecondaryId.add('eloise.shield_block');
-    abilityProjectileId.add('eloise.ice_bolt');
-    abilityBonusId.add('eloise.ice_bolt');
+    abilityProjectileId.add('eloise.throwing_knife');
+    abilityBonusId.add('eloise.throwing_knife');
     abilityMobilityId.add('eloise.dash');
     abilityJumpId.add('eloise.jump');
   }

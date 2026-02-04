@@ -40,7 +40,7 @@ class PlayerArchetype {
     this.weaponId = WeaponId.basicSword,
     this.offhandWeaponId = WeaponId.basicShield,
     this.projectileItemId = ProjectileItemId.fireBolt,
-    this.spellBookId = SpellBookId.basicSpellbook,
+    this.spellBookId = SpellBookId.basicSpellBook,
     this.abilityPrimaryId = 'eloise.sword_strike',
     this.abilitySecondaryId = 'eloise.shield_block',
     this.abilityProjectileId = 'eloise.fire_bolt',

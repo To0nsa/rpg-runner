@@ -2,6 +2,7 @@ import '../../core/ecs/stores/combat/equipped_loadout_store.dart';
 import '../../core/levels/level_id.dart';
 import '../../core/players/player_character_definition.dart';
 import '../../core/projectiles/projectile_item_id.dart';
+import '../../core/spells/spell_book_id.dart';
 import '../../core/weapons/weapon_id.dart';
 
 /// Menu-facing run type for the selected level.
@@ -48,8 +49,9 @@ class SelectionState {
       selectedRunType: selectedRunType ?? this.selectedRunType,
       selectedCharacterId: selectedCharacterId ?? this.selectedCharacterId,
       equippedLoadout: equippedLoadout ?? this.equippedLoadout,
-      buildName:
-          buildName == null ? this.buildName : normalizeBuildName(buildName),
+      buildName: buildName == null
+          ? this.buildName
+          : normalizeBuildName(buildName),
     );
   }
 
@@ -134,29 +136,40 @@ EquippedLoadoutDef _loadoutFromJson(Object? raw) {
     mainWeaponId: _enumFromName(
       WeaponId.values,
       map['mainWeaponId'] as String?,
-      WeaponId.basicSword,
+      WeaponId.woodenSword,
     ),
     offhandWeaponId: _enumFromName(
       WeaponId.values,
       map['offhandWeaponId'] as String?,
-      WeaponId.basicShield,
+      WeaponId.woodenShield,
     ),
     projectileItemId: _enumFromName(
       ProjectileItemId.values,
       map['projectileItemId'] as String?,
-      ProjectileItemId.iceBolt,
+      ProjectileItemId.throwingKnife,
     ),
-    abilityPrimaryId: (map['abilityPrimaryId'] as String?) ??
+    spellBookId: _enumFromName(
+      SpellBookId.values,
+      map['spellBookId'] as String?,
+      SpellBookId.basicSpellBook,
+    ),
+    abilityPrimaryId:
+        (map['abilityPrimaryId'] as String?) ??
         const EquippedLoadoutDef().abilityPrimaryId,
-    abilitySecondaryId: (map['abilitySecondaryId'] as String?) ??
+    abilitySecondaryId:
+        (map['abilitySecondaryId'] as String?) ??
         const EquippedLoadoutDef().abilitySecondaryId,
-    abilityProjectileId: (map['abilityProjectileId'] as String?) ??
+    abilityProjectileId:
+        (map['abilityProjectileId'] as String?) ??
         const EquippedLoadoutDef().abilityProjectileId,
-    abilityBonusId: (map['abilityBonusId'] as String?) ??
+    abilityBonusId:
+        (map['abilityBonusId'] as String?) ??
         const EquippedLoadoutDef().abilityBonusId,
-    abilityMobilityId: (map['abilityMobilityId'] as String?) ??
+    abilityMobilityId:
+        (map['abilityMobilityId'] as String?) ??
         const EquippedLoadoutDef().abilityMobilityId,
-    abilityJumpId: (map['abilityJumpId'] as String?) ??
+    abilityJumpId:
+        (map['abilityJumpId'] as String?) ??
         const EquippedLoadoutDef().abilityJumpId,
   );
 }

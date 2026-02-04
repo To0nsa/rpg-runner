@@ -4,8 +4,10 @@
 /// projectile item IDs used for the projectile slot.
 enum WeaponId {
   /// Default starter weapon.
+  woodenSword,
   basicSword,
+  solidSword,
+  woodenShield,
   basicShield,
-  goldenSword,
-  goldenShield,
+  solidShield,
 }

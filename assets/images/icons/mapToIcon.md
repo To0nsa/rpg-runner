@@ -1,18 +1,32 @@
-(row, column) iconName
-count begin at 0
+# Icon Mapping Resource
 
-(5, 0) woodenSword
-(5, 1) basicSword
-(5, 2) solidSword
+**Source File**: `assets\images\icons\transparentIcons.png`
+**Grid Configuration**: 0-indexed (Row, Column)
 
-(6, 0) woodenShield
-(6, 1) basicShield
-(6, 2) solidShield
+## Swords
+| Icon Name | Coordinates (Row, Col) |
+| :--- | :---: |
+| `woodenSword` | (5, 0) |
+| `basicSword` | (5, 1) |
+| `solidSword` | (5, 2) |
 
-(13, 0) basicSpellBook
-(13, 1) solidSpellBook
-(13, 2) epicSpellBook
+## Shields
+| Icon Name | Coordinates (Row, Col) |
+| :--- | :---: |
+| `woodenShield` | (6, 0) |
+| `basicShield` | (6, 1) |
+| `solidShield` | (6, 2) |
 
-(8, 2) speedBoots
-(8, 4) goldenRing
-(8, 8) teethNecklace
+## Spellbooks
+| Icon Name | Coordinates (Row, Col) |
+| :--- | :---: |
+| `basicSpellBook` | (13, 0) |
+| `solidSpellBook` | (13, 1) |
+| `epicSpellBook` | (13, 2) |
+
+## Accessories
+| Icon Name | Coordinates (Row, Col) |
+| :--- | :---: |
+| `speedBoots` | (8, 2) |
+| `goldenRing` | (8, 4) |
+| `teethNecklace` | (8, 8) |

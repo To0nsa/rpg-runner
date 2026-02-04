@@ -28,8 +28,8 @@ void main() {
 
     test('valid standard loadout should pass', () {
       const loadout = EquippedLoadoutDef(
-        mainWeaponId: WeaponId.basicSword,
-        offhandWeaponId: WeaponId.basicShield,
+        mainWeaponId: WeaponId.woodenSword,
+        offhandWeaponId: WeaponId.woodenShield,
         projectileItemId: ProjectileItemId.throwingKnife,
         abilityPrimaryId: 'eloise.sword_strike',
         abilitySecondaryId: 'eloise.shield_block',
@@ -45,8 +45,8 @@ void main() {
 
     test('spellbook spell is valid with throwing weapon equipped', () {
       const loadout = EquippedLoadoutDef(
-        mainWeaponId: WeaponId.basicSword,
-        offhandWeaponId: WeaponId.basicShield,
+        mainWeaponId: WeaponId.woodenSword,
+        offhandWeaponId: WeaponId.woodenShield,
         projectileItemId: ProjectileItemId.throwingKnife,
         abilityProjectileId: 'eloise.fire_bolt',
         abilityBonusId: 'eloise.fire_bolt',
@@ -104,9 +104,9 @@ void main() {
 
     test('missing required weapon types (shield block with sword) should fail', () {
       const loadout = EquippedLoadoutDef(
-        mainWeaponId: WeaponId.basicSword,
+        mainWeaponId: WeaponId.woodenSword,
         offhandWeaponId: WeaponId
-            .basicSword, // Invalid for other reasons, but let's test gating
+            .woodenSword, // Invalid for other reasons, but let's test gating
         abilitySecondaryId:
             'eloise.shield_block', // Requires shield weapon type.
       );
@@ -155,7 +155,7 @@ void main() {
     );
 
     test('two-handed primary with off-hand equipped should fail', () {
-      // Use mock catalog that defines goldenSword as Two-Handed
+      // Use mock catalog that defines solidSword as Two-Handed
       final mockValidator = LoadoutValidator(
         abilityCatalog: abilityCatalog,
         weaponCatalog: const MockWeaponCatalog(),
@@ -164,7 +164,7 @@ void main() {
       );
 
       const loadout = EquippedLoadoutDef(
-        mainWeaponId: WeaponId.goldenSword, // Mocked as 2H
+        mainWeaponId: WeaponId.solidSword, // Mocked as 2H
         offhandWeaponId: WeaponId.basicShield, // Conflict!
         abilityPrimaryId: 'eloise.sword_strike',
       );
@@ -184,9 +184,9 @@ class MockWeaponCatalog implements WeaponCatalog {
 
   @override
   WeaponDef? tryGet(WeaponId id) {
-    if (id == WeaponId.goldenSword) {
+    if (id == WeaponId.solidSword) {
       return const WeaponDef(
-        id: WeaponId.goldenSword,
+        id: WeaponId.solidSword,
         category: WeaponCategory.primary,
         weaponType: WeaponType.oneHandedSword,
         isTwoHanded: true,
