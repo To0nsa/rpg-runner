@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 /// Handles:
 /// - Black background
 /// - Optional AppBar with back button
-/// - SafeArea for content
+/// - SafeArea (top/bottom) for content
 ///
 /// Use this for all menu pages to maintain consistency and DRY principles.
 class MenuScaffold extends StatelessWidget {
@@ -27,18 +27,44 @@ class MenuScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final topPadding = MediaQuery.paddingOf(context).top;
+    final appBarWidget = AppBar(
+      title: title != null
+          ? Text(title!, style: const TextStyle(color: Colors.white))
+          : null,
+      backgroundColor: Colors.black,
+      iconTheme: const IconThemeData(color: Colors.white),
+      // We'll apply our own SafeArea so we can ignore transient horizontal
+      // insets (e.g. Android nav bar) that can cause jitter.
+      primary: false,
+    );
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: showAppBar
-          ? AppBar(
-              title: title != null
-                  ? Text(title!, style: const TextStyle(color: Colors.white))
-                  : null,
-              backgroundColor: Colors.black,
-              iconTheme: const IconThemeData(color: Colors.white),
+          ? PreferredSize(
+              preferredSize: Size.fromHeight(
+                topPadding + appBarWidget.preferredSize.height,
+              ),
+              child: SafeArea(
+                left: false,
+                right: false,
+                bottom: false,
+                child: appBarWidget,
+              ),
             )
           : null,
-      body: SafeArea(child: child),
+      // Avoid horizontal "layout jitter" when transient system UI (e.g. the
+      // Android navigation bar) briefly appears/disappears during keyboard and
+      // focus transitions. Menu content already applies its own horizontal
+      // padding via MenuLayout, and most menu pages are safe to treat as
+      // horizontally full-bleed.
+      body: SafeArea(
+        left: false,
+        right: false,
+        maintainBottomViewPadding: true,
+        child: child,
+      ),
     );
   }
 }

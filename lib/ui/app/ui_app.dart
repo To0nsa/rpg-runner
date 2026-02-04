@@ -68,6 +68,14 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
     }
   }
 
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    // Keyboard/system-bar transitions can re-enable system UI (especially on
+    // Android). Re-apply immersive mode after window metrics change.
+    _applyGlobalSystemUiMode();
+  }
+
   void _handleRouteChanged(
     _UiRouteChange change,
     Route<dynamic>? route,

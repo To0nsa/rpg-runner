@@ -14,7 +14,7 @@ import '../pages/meta/options_page.dart';
 import '../pages/profile/profile_page.dart';
 import '../pages/setup/level_setup_page.dart';
 import '../pages/setup/loadout_setup_page.dart';
-import '../pages/setup/profile_name_setup_page.dart';
+import '../bootstrap/profile_name_setup_page.dart';
 import '../runner_game_route.dart';
 import 'ui_routes.dart';
 

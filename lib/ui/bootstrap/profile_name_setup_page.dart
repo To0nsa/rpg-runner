@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../app/ui_routes.dart';
-import '../../components/app_button.dart';
-import '../../components/menu_layout.dart';
-import '../../components/menu_scaffold.dart';
-import '../../profile/display_name_policy.dart';
-import '../../state/app_state.dart';
-import '../../state/profile_flag_keys.dart';
+import '../app/ui_routes.dart';
+import '../components/app_button.dart';
+import '../components/menu_layout.dart';
+import '../components/menu_scaffold.dart';
+import '../profile/display_name_policy.dart';
+import '../state/app_state.dart';
+import '../state/profile_flag_keys.dart';
 
 class ProfileNameSetupPage extends StatefulWidget {
   const ProfileNameSetupPage({super.key});
