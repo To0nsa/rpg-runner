@@ -86,9 +86,9 @@ flutter:
     - assets/images/entities/spells/fireBolt/
     - assets/images/entities/collectibles/
     - assets/images/entities/regenerationItems/
+    - assets/images/icons/
     - assets/images/weapons/throwingWeapons/
     - assets/images/weapons/oneHandedSwords/
-    - assets/images/weapons/shields/
 
   fonts:
     - family: Cinzel

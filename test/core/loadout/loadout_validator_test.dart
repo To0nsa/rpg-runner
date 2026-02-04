@@ -7,6 +7,7 @@ import 'package:rpg_runner/core/loadout/loadout_validator.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
+import 'package:rpg_runner/core/spells/spell_book_catalog.dart';
 import 'package:rpg_runner/core/weapons/weapon_catalog.dart';
 import 'package:rpg_runner/core/weapons/weapon_category.dart';
 import 'package:rpg_runner/core/weapons/weapon_def.dart';
@@ -22,6 +23,7 @@ void main() {
       abilityCatalog: abilityCatalog,
       weaponCatalog: weaponCatalog,
       projectileItemCatalog: projectileItemCatalog,
+      spellBookCatalog: const SpellBookCatalog(),
     );
 
     test('valid standard loadout should pass', () {
@@ -39,6 +41,37 @@ void main() {
       final result = validator.validate(loadout);
       expect(result.isValid, isTrue, reason: 'Issues: ${result.issues}');
       expect(result.issues, isEmpty);
+    });
+
+    test('spellbook spell is valid with throwing weapon equipped', () {
+      const loadout = EquippedLoadoutDef(
+        mainWeaponId: WeaponId.basicSword,
+        offhandWeaponId: WeaponId.basicShield,
+        projectileItemId: ProjectileItemId.throwingKnife,
+        abilityProjectileId: 'eloise.fire_bolt',
+        abilityBonusId: 'eloise.fire_bolt',
+      );
+
+      final result = validator.validate(loadout);
+      expect(result.isValid, isTrue, reason: 'Issues: ${result.issues}');
+      expect(result.issues, isEmpty);
+    });
+
+    test('bonus-only spell cannot be equipped in projectile slot', () {
+      const loadout = EquippedLoadoutDef(
+        abilityProjectileId: 'eloise.arcane_haste',
+      );
+
+      final result = validator.validate(loadout);
+      expect(result.isValid, isFalse);
+      expect(
+        result.issues.any(
+          (issue) =>
+              issue.kind == IssueKind.slotNotAllowed &&
+              issue.slot == AbilitySlot.projectile,
+        ),
+        isTrue,
+      );
     });
 
     test('invalid slot (shield bash in primary) should fail', () {
@@ -97,6 +130,7 @@ void main() {
           abilityCatalog: TestAbilityCatalog(),
           weaponCatalog: weaponCatalog,
           projectileItemCatalog: projectileItemCatalog,
+          spellBookCatalog: const SpellBookCatalog(),
         );
 
         const loadout = EquippedLoadoutDef(
@@ -126,6 +160,7 @@ void main() {
         abilityCatalog: abilityCatalog,
         weaponCatalog: const MockWeaponCatalog(),
         projectileItemCatalog: projectileItemCatalog,
+        spellBookCatalog: const SpellBookCatalog(),
       );
 
       const loadout = EquippedLoadoutDef(

@@ -7,6 +7,7 @@ enum StatusEffectType {
   slow,
   bleed,
   stun,
+  haste,
 }
 
 /// Stable identifiers for status application profiles.
@@ -16,6 +17,7 @@ enum StatusProfileId {
   fireBolt,
   meleeBleed,
   stunOnHit,
+  speedBoost,
 }
 
 /// A single status application inside a profile.
@@ -31,7 +33,7 @@ class StatusApplication {
   final StatusEffectType type;
 
   /// Effect strength:
-  /// - Slow: basis points (100 = 1%)
+  /// - Slow/Haste: basis points (100 = 1%)
   /// - DoT: damage per second in fixed-point (100 = 1.0)
   final int magnitude;
 
@@ -102,6 +104,17 @@ class StatusProfileCatalog {
               type: StatusEffectType.stun,
               magnitude: 100, // placeholder (stun uses duration ticks)
               durationSeconds: 0.5,
+              scaleByDamageType: false,
+            ),
+          ],
+        );
+      case StatusProfileId.speedBoost:
+        return const StatusProfile(
+          <StatusApplication>[
+            StatusApplication(
+              type: StatusEffectType.haste,
+              magnitude: 5000, // +50% move speed
+              durationSeconds: 5.0,
               scaleByDamageType: false,
             ),
           ],

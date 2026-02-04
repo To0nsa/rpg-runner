@@ -1,5 +1,6 @@
 import '../projectiles/projectile_id.dart';
 import '../combat/damage_type.dart';
+import '../combat/status/status.dart';
 import '../snapshots/enums.dart';
 import '../weapons/weapon_proc.dart';
 
@@ -61,6 +62,7 @@ enum AbilityPayloadSource {
   primaryWeapon,
   secondaryWeapon, // off-hand unless primary is two-handed (then primary)
   projectileItem,
+  spellBook,
 }
 
 enum TargetingModel {
@@ -237,6 +239,7 @@ class AbilityDef {
     this.requiredWeaponTypes = const {},
     this.requiresEquippedWeapon = false,
     this.procs = const <WeaponProc>[],
+    this.selfStatusProfileId = StatusProfileId.none,
     required this.baseDamage,
     this.baseDamageType = DamageType.physical,
   }) : assert(
@@ -315,6 +318,9 @@ class AbilityDef {
   /// Guaranteed or probabilistic effects applied on hit (ability-owned).
   /// Merged deterministically with item procs in [HitPayloadBuilder].
   final List<WeaponProc> procs;
+
+  /// Status profile applied to self on execute (SelfHitDelivery only).
+  final StatusProfileId selfStatusProfileId;
 
   /// Base damage for this ability.
   /// Fixed-point: 100 = 1.0 damage.

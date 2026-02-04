@@ -9,6 +9,7 @@ class StatusImmunityMask {
   static const int slow = 1 << 1;
   static const int bleed = 1 << 2;
   static const int stun = 1 << 3;
+  static const int haste = 1 << 4;
   static int forType(StatusEffectType type) {
     switch (type) {
       case StatusEffectType.burn:
@@ -19,6 +20,8 @@ class StatusImmunityMask {
         return bleed;
       case StatusEffectType.stun:
         return stun;
+      case StatusEffectType.haste:
+        return haste;
     }
   }
 }

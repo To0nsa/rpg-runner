@@ -48,6 +48,14 @@ class GameOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hud = controller.snapshot.hud;
+    final projectileAffordable =
+        hud.canAffordProjectile && hud.projectileSlotValid;
+    final meleeAffordable = hud.canAffordMelee && hud.meleeSlotValid;
+    final dashAffordable = hud.canAffordDash && hud.mobilitySlotValid;
+    final jumpAffordable = hud.canAffordJump && hud.jumpSlotValid;
+    final secondaryAffordable =
+        hud.canAffordSecondary && hud.secondarySlotValid;
+    final bonusAffordable = hud.canAffordBonus && hud.bonusSlotValid;
 
     return Stack(
       fit: StackFit.expand,
@@ -70,7 +78,7 @@ class GameOverlay extends StatelessWidget {
             onProjectileAimDir: input.setProjectileAimDir,
             onProjectileAimClear: input.clearProjectileAimDir,
             projectileAimPreview: projectileAimPreview,
-            projectileAffordable: hud.canAffordProjectile,
+            projectileAffordable: projectileAffordable,
             projectileCooldownTicksLeft:
                 hud.cooldownTicksLeft[CooldownGroup.projectile],
             projectileCooldownTicksTotal:
@@ -81,7 +89,7 @@ class GameOverlay extends StatelessWidget {
             onMeleePressed: input.pressStrike,
             meleeAimPreview: meleeAimPreview,
             aimCancelHitboxRect: aimCancelHitboxRect,
-            meleeAffordable: hud.canAffordMelee,
+            meleeAffordable: meleeAffordable,
             meleeCooldownTicksLeft:
                 hud.cooldownTicksLeft[CooldownGroup.primary],
             meleeCooldownTicksTotal:
@@ -90,18 +98,18 @@ class GameOverlay extends StatelessWidget {
             projectileInputMode: hud.projectileInputMode,
             bonusInputMode: hud.bonusInputMode,
             bonusUsesMeleeAim: hud.bonusUsesMeleeAim,
-            jumpAffordable: hud.canAffordJump,
-            dashAffordable: hud.canAffordDash,
+            jumpAffordable: jumpAffordable,
+            dashAffordable: dashAffordable,
             dashCooldownTicksLeft:
                 hud.cooldownTicksLeft[CooldownGroup.mobility],
             dashCooldownTicksTotal:
                 hud.cooldownTicksTotal[CooldownGroup.mobility],
-            secondaryAffordable: hud.canAffordSecondary,
+            secondaryAffordable: secondaryAffordable,
             secondaryCooldownTicksLeft:
                 hud.cooldownTicksLeft[CooldownGroup.secondary],
             secondaryCooldownTicksTotal:
                 hud.cooldownTicksTotal[CooldownGroup.secondary],
-            bonusAffordable: hud.canAffordBonus,
+            bonusAffordable: bonusAffordable,
             bonusCooldownTicksLeft:
                 hud.cooldownTicksLeft[CooldownGroup.bonus0],
             bonusCooldownTicksTotal:

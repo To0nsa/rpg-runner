@@ -9,7 +9,9 @@ import '../ecs/stores/mana_store.dart';
 import '../ecs/stores/stamina_store.dart';
 import '../snapshots/enums.dart';
 import '../projectiles/projectile_item_id.dart';
+import '../spells/spell_book_id.dart';
 import '../weapons/weapon_id.dart';
+import '../abilities/ability_def.dart';
 
 /// Fully-resolved player configuration used to spawn the player entity.
 ///
@@ -38,6 +40,13 @@ class PlayerArchetype {
     this.weaponId = WeaponId.basicSword,
     this.offhandWeaponId = WeaponId.basicShield,
     this.projectileItemId = ProjectileItemId.fireBolt,
+    this.spellBookId = SpellBookId.basicSpellbook,
+    this.abilityPrimaryId = 'eloise.sword_strike',
+    this.abilitySecondaryId = 'eloise.shield_block',
+    this.abilityProjectileId = 'eloise.fire_bolt',
+    this.abilityBonusId = 'eloise.shield_bash',
+    this.abilityMobilityId = 'eloise.dash',
+    this.abilityJumpId = 'eloise.jump',
     this.facing = Facing.right,
   });
 
@@ -91,6 +100,17 @@ class PlayerArchetype {
 
   /// Equipped projectile item used for thrown/ballistic projectiles.
   final ProjectileItemId projectileItemId;
+
+  /// Equipped spell book used for spell payloads.
+  final SpellBookId spellBookId;
+
+  /// Equipped ability IDs (loadout defaults).
+  final AbilityKey abilityPrimaryId;
+  final AbilityKey abilitySecondaryId;
+  final AbilityKey abilityProjectileId;
+  final AbilityKey abilityBonusId;
+  final AbilityKey abilityMobilityId;
+  final AbilityKey abilityJumpId;
 
   /// Initial facing direction when the player spawns.
   ///

@@ -39,6 +39,7 @@ import 'stores/projectile_store.dart';
 import 'stores/restoration_item_store.dart';
 import 'stores/status/bleed_store.dart';
 import 'stores/status/burn_store.dart';
+import 'stores/status/haste_store.dart';
 import 'stores/status/slow_store.dart';
 import 'stores/control_lock_store.dart';
 import 'stores/damage_queue_store.dart';
@@ -218,6 +219,9 @@ class EcsWorld {
 
   /// Active bleed DoT effects.
   late final BleedStore bleed = _register(BleedStore());
+
+  /// Active haste effects.
+  late final HasteStore haste = _register(HasteStore());
 
   /// Active slow effects.
   late final SlowStore slow = _register(SlowStore());

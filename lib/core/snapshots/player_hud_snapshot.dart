@@ -12,6 +12,12 @@ class PlayerHudSnapshot {
     required this.manaMax,
     required this.stamina,
     required this.staminaMax,
+    required this.meleeSlotValid,
+    required this.secondarySlotValid,
+    required this.projectileSlotValid,
+    required this.mobilitySlotValid,
+    required this.bonusSlotValid,
+    required this.jumpSlotValid,
     required this.canAffordJump,
     required this.canAffordDash,
     required this.canAffordMelee,
@@ -45,6 +51,24 @@ class PlayerHudSnapshot {
 
   /// Maximum stamina.
   final double staminaMax;
+
+  /// Whether the primary slot ability is valid for the current loadout.
+  final bool meleeSlotValid;
+
+  /// Whether the secondary slot ability is valid for the current loadout.
+  final bool secondarySlotValid;
+
+  /// Whether the projectile slot ability is valid for the current loadout.
+  final bool projectileSlotValid;
+
+  /// Whether the mobility slot ability is valid for the current loadout.
+  final bool mobilitySlotValid;
+
+  /// Whether the bonus slot ability is valid for the current loadout.
+  final bool bonusSlotValid;
+
+  /// Whether the jump slot ability is valid for the current loadout.
+  final bool jumpSlotValid;
 
   /// Whether stamina is sufficient for jumping.
   final bool canAffordJump;

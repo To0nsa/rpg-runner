@@ -11,8 +11,10 @@ import '../ecs/stores/stamina_store.dart';
 import '../snapshots/enums.dart';
 import 'player_tuning.dart';
 import '../projectiles/projectile_item_id.dart';
+import '../spells/spell_book_id.dart';
 import '../weapons/weapon_id.dart';
 import 'player_archetype.dart';
+import '../abilities/ability_def.dart';
 
 /// Authoring-time configuration for the player entity.
 ///
@@ -49,6 +51,13 @@ class PlayerCatalog {
     this.weaponId = WeaponId.basicSword,
     this.offhandWeaponId = WeaponId.basicShield,
     this.projectileItemId = ProjectileItemId.fireBolt,
+    this.spellBookId = SpellBookId.basicSpellbook,
+    this.abilityPrimaryId = 'eloise.sword_strike',
+    this.abilitySecondaryId = 'eloise.shield_block',
+    this.abilityProjectileId = 'eloise.fire_bolt',
+    this.abilityBonusId = 'eloise.shield_bash',
+    this.abilityMobilityId = 'eloise.dash',
+    this.abilityJumpId = 'eloise.jump',
     this.facing = Facing.right,
   });
 
@@ -106,6 +115,17 @@ class PlayerCatalog {
 
   /// Default equipped projectile item at spawn time.
   final ProjectileItemId projectileItemId;
+
+  /// Default equipped spell book at spawn time.
+  final SpellBookId spellBookId;
+
+  /// Default equipped ability IDs at spawn time.
+  final AbilityKey abilityPrimaryId;
+  final AbilityKey abilitySecondaryId;
+  final AbilityKey abilityProjectileId;
+  final AbilityKey abilityBonusId;
+  final AbilityKey abilityMobilityId;
+  final AbilityKey abilityJumpId;
 
   /// Default facing direction at spawn time.
   ///
@@ -202,6 +222,13 @@ class PlayerCatalogDerived {
         weaponId: base.weaponId,
         offhandWeaponId: base.offhandWeaponId,
         projectileItemId: base.projectileItemId,
+        spellBookId: base.spellBookId,
+        abilityPrimaryId: base.abilityPrimaryId,
+        abilitySecondaryId: base.abilitySecondaryId,
+        abilityProjectileId: base.abilityProjectileId,
+        abilityBonusId: base.abilityBonusId,
+        abilityMobilityId: base.abilityMobilityId,
+        abilityJumpId: base.abilityJumpId,
         facing: base.facing,
       ),
     );

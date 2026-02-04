@@ -116,4 +116,81 @@ void main() {
 
     expect(world.health.hp[world.health.indexOf(target)], equals(1700));
   });
+
+  test('haste stacks additively with slow', () {
+    final world = EcsWorld();
+    final status = StatusSystem(tickHz: 60);
+
+    final target = world.createEntity();
+    world.health.add(
+      target,
+      const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+    );
+    world.statModifier.add(target);
+
+    status.queue(
+      StatusRequest(
+        target: target,
+        profileId: StatusProfileId.iceBolt,
+      ),
+    );
+    status.queue(
+      StatusRequest(
+        target: target,
+        profileId: StatusProfileId.speedBoost,
+      ),
+    );
+    status.applyQueued(world, currentTick: 1);
+
+    final index = world.statModifier.indexOf(target);
+    expect(world.statModifier.moveSpeedMul[index], closeTo(1.25, 1e-6));
+  });
+
+  test('move speed clamps with excessive haste', () {
+    final world = EcsWorld();
+    final status = StatusSystem(
+      tickHz: 60,
+      profiles: const TestStatusProfileCatalog(),
+    );
+
+    final target = world.createEntity();
+    world.health.add(
+      target,
+      const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+    );
+    world.statModifier.add(target);
+
+    status.queue(
+      StatusRequest(
+        target: target,
+        profileId: StatusProfileId.speedBoost,
+      ),
+    );
+    status.applyQueued(world, currentTick: 1);
+
+    final index = world.statModifier.indexOf(target);
+    expect(world.statModifier.moveSpeedMul[index], closeTo(2.0, 1e-6));
+  });
+}
+
+class TestStatusProfileCatalog extends StatusProfileCatalog {
+  const TestStatusProfileCatalog();
+
+  @override
+  StatusProfile get(StatusProfileId id) {
+    switch (id) {
+      case StatusProfileId.speedBoost:
+        return const StatusProfile(
+          <StatusApplication>[
+            StatusApplication(
+              type: StatusEffectType.haste,
+              magnitude: 30000,
+              durationSeconds: 5.0,
+            ),
+          ],
+        );
+      default:
+        return super.get(id);
+    }
+  }
 }

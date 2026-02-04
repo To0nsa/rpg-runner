@@ -4,9 +4,11 @@ import '../../combat/status/status.dart';
 import '../../events/game_event.dart';
 import '../../util/tick_math.dart';
 import '../../util/fixed_math.dart';
+import '../../util/double_math.dart';
 import '../entity_id.dart';
 import '../stores/status/bleed_store.dart';
 import '../stores/status/burn_store.dart';
+import '../stores/status/haste_store.dart';
 import '../stores/status/slow_store.dart';
 import '../../combat/control_lock.dart';
 import '../world.dart';
@@ -40,6 +42,7 @@ class StatusSystem {
   ) {
     _tickBurn(world);
     _tickBleed(world);
+    _tickHaste(world);
     _tickSlow(world);
   }
 
@@ -150,6 +153,27 @@ class StatusSystem {
     }
   }
 
+  void _tickHaste(EcsWorld world) {
+    final haste = world.haste;
+    if (haste.denseEntities.isEmpty) return;
+
+    _removeScratch.clear();
+    for (var i = 0; i < haste.denseEntities.length; i += 1) {
+      final target = haste.denseEntities[i];
+      if (world.deathState.has(target)) {
+        _removeScratch.add(target);
+        continue;
+      }
+      haste.ticksLeft[i] -= 1;
+      if (haste.ticksLeft[i] <= 0) {
+        _removeScratch.add(target);
+      }
+    }
+    for (final target in _removeScratch) {
+      haste.removeEntity(target);
+    }
+  }
+
   void _applyPending(EcsWorld world) {
     final resistance = world.damageResistance;
     final immunity = world.statusImmunity;
@@ -180,6 +204,8 @@ class StatusSystem {
         switch (app.type) {
           case StatusEffectType.slow:
             _applySlow(world, req.target, magnitude, app.durationSeconds);
+          case StatusEffectType.haste:
+            _applyHaste(world, req.target, magnitude, app.durationSeconds);
           case StatusEffectType.burn:
             _applyDot(
               world,
@@ -267,6 +293,37 @@ class StatusSystem {
     }
   }
 
+  void _applyHaste(
+    EcsWorld world,
+    EntityId target,
+    int magnitude,
+    double durationSeconds,
+  ) {
+    if (!world.statModifier.has(target)) return;
+    final ticksLeft = ticksFromSecondsCeil(durationSeconds, _tickHz);
+    if (ticksLeft <= 0) return;
+
+    final haste = world.haste;
+    final clamped = clampInt(magnitude, 0, 20000);
+    final index = haste.tryIndexOf(target);
+    if (index == null) {
+      haste.add(
+        target,
+        HasteDef(ticksLeft: ticksLeft, magnitude: clamped),
+      );
+    } else {
+      final currentMagnitude = haste.magnitude[index];
+      if (clamped > currentMagnitude) {
+        haste.magnitude[index] = clamped;
+        haste.ticksLeft[index] = ticksLeft;
+      } else if (clamped == currentMagnitude) {
+        if (ticksLeft > haste.ticksLeft[index]) {
+          haste.ticksLeft[index] = ticksLeft;
+        }
+      }
+    }
+  }
+
   void _applyDot(
     EcsWorld world, {
     required EntityId target,
@@ -346,15 +403,29 @@ class StatusSystem {
     }
 
     final slow = world.slow;
-    if (slow.denseEntities.isEmpty) return;
+    if (slow.denseEntities.isNotEmpty) {
+      for (var i = 0; i < slow.denseEntities.length; i += 1) {
+        final target = slow.denseEntities[i];
+        final mi = mods.tryIndexOf(target);
+        if (mi == null) continue;
+        final slowBp = slow.magnitude[i];
+        mods.moveSpeedMul[mi] -= slowBp / bpScale;
+      }
+    }
 
-    for (var i = 0; i < slow.denseEntities.length; i += 1) {
-      final target = slow.denseEntities[i];
-      final mi = mods.tryIndexOf(target);
-      if (mi == null) continue;
-      final slowBp = slow.magnitude[i];
-      final multiplierBp = clampInt(bpScale - slowBp, 1000, bpScale);
-      mods.moveSpeedMul[mi] = multiplierBp / bpScale;
+    final haste = world.haste;
+    if (haste.denseEntities.isNotEmpty) {
+      for (var i = 0; i < haste.denseEntities.length; i += 1) {
+        final target = haste.denseEntities[i];
+        final mi = mods.tryIndexOf(target);
+        if (mi == null) continue;
+        final hasteBp = haste.magnitude[i];
+        mods.moveSpeedMul[mi] += hasteBp / bpScale;
+      }
+    }
+
+    for (var i = 0; i < mods.denseEntities.length; i += 1) {
+      mods.moveSpeedMul[i] = clampDouble(mods.moveSpeedMul[i], 0.1, 2.0);
     }
   }
 }

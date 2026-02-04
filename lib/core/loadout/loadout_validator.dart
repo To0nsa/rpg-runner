@@ -4,6 +4,9 @@ import '../ecs/stores/combat/equipped_loadout_store.dart';
 import '../projectiles/projectile_item_catalog.dart';
 import '../projectiles/projectile_item_def.dart';
 import '../projectiles/projectile_item_id.dart';
+import '../spells/spell_book_catalog.dart';
+import '../spells/spell_book_def.dart';
+import '../spells/spell_book_id.dart';
 import '../weapons/weapon_catalog.dart';
 import '../weapons/weapon_category.dart';
 import '../weapons/weapon_def.dart';
@@ -17,11 +20,13 @@ class LoadoutValidator {
     required this.abilityCatalog,
     required this.weaponCatalog,
     required this.projectileItemCatalog,
+    required this.spellBookCatalog,
   });
 
   final AbilityCatalog abilityCatalog;
   final WeaponCatalog weaponCatalog;
   final ProjectileItemCatalog projectileItemCatalog;
+  final SpellBookCatalog spellBookCatalog;
 
   /// Validates an entire loadout definition.
   LoadoutValidationResult validate(EquippedLoadoutDef loadout) {
@@ -45,6 +50,11 @@ class LoadoutValidator {
     final projectileItem = _resolveProjectileItem(
       loadout.projectileItemId,
       AbilitySlot.projectile,
+      issues,
+    );
+
+    final spellBook = _resolveSpellBook(
+      loadout.spellBookId,
       issues,
     );
 
@@ -74,6 +84,7 @@ class LoadoutValidator {
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
       projectileItem: projectileItem,
+      spellBook: spellBook,
     );
 
     // Secondary
@@ -84,6 +95,7 @@ class LoadoutValidator {
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
       projectileItem: projectileItem,
+      spellBook: spellBook,
     );
 
     // Projectile
@@ -94,6 +106,7 @@ class LoadoutValidator {
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
       projectileItem: projectileItem,
+      spellBook: spellBook,
     );
 
     // Mobility (No weapon)
@@ -104,6 +117,7 @@ class LoadoutValidator {
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
       projectileItem: projectileItem,
+      spellBook: spellBook,
     );
 
     // Bonus: payload gating is now driven by AbilityDef.payloadSource.
@@ -114,6 +128,7 @@ class LoadoutValidator {
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
       projectileItem: projectileItem,
+      spellBook: spellBook,
     );
 
     // Jump (Fixed slot, no weapon)
@@ -124,6 +139,7 @@ class LoadoutValidator {
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
       projectileItem: projectileItem,
+      spellBook: spellBook,
     );
 
     return LoadoutValidationResult(
@@ -188,6 +204,23 @@ class LoadoutValidator {
     return item;
   }
 
+  SpellBookDef? _resolveSpellBook(
+    SpellBookId id,
+    List<LoadoutIssue> issues,
+  ) {
+    final book = spellBookCatalog.tryGet(id);
+    if (book == null) {
+      issues.add(LoadoutIssue(
+        slot: AbilitySlot.bonus,
+        kind: IssueKind.catalogMissing,
+        weaponId: id.toString(),
+        message: 'Spell book ID not found in catalog.',
+      ));
+      return null;
+    }
+    return book;
+  }
+
   void _validateSlot({
     required List<LoadoutIssue> issues,
     required AbilityKey abilityId,
@@ -195,6 +228,7 @@ class LoadoutValidator {
     required WeaponDef? mainWeapon,
     required WeaponDef? effectiveSecondaryWeapon,
     required ProjectileItemDef? projectileItem,
+    required SpellBookDef? spellBook,
   }) {
     final ability = abilityCatalog.resolve(abilityId);
     if (ability == null) {
@@ -212,6 +246,7 @@ class LoadoutValidator {
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
       projectileItem: projectileItem,
+      spellBook: spellBook,
     );
 
     // 1. Slot Compatibility
@@ -254,6 +289,7 @@ class LoadoutValidator {
     required WeaponDef? mainWeapon,
     required WeaponDef? effectiveSecondaryWeapon,
     required ProjectileItemDef? projectileItem,
+    required SpellBookDef? spellBook,
   }) {
     switch (ability.payloadSource) {
       case AbilityPayloadSource.none:
@@ -265,6 +301,8 @@ class LoadoutValidator {
         return (effectiveSecondaryWeapon != null, effectiveSecondaryWeapon?.weaponType);
       case AbilityPayloadSource.projectileItem:
         return (projectileItem != null, projectileItem?.weaponType);
+      case AbilityPayloadSource.spellBook:
+        return (spellBook != null, spellBook?.weaponType);
     }
   }
 }

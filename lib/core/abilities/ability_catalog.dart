@@ -216,7 +216,14 @@ class AbilityCatalog {
       animKey: AnimKey.cast,
       tags: {AbilityTag.projectile, AbilityTag.ice},
       requiredWeaponTypes: {WeaponType.projectileSpell},
-      payloadSource: AbilityPayloadSource.projectileItem,
+      payloadSource: AbilityPayloadSource.spellBook,
+      procs: <WeaponProc>[
+        WeaponProc(
+          hook: ProcHook.onHit,
+          statusProfileId: StatusProfileId.iceBolt,
+          chanceBp: 10000,
+        ),
+      ],
       baseDamage: 1500, // SpellCatalog.iceBolt damage 15.0
       baseDamageType: DamageType.ice,
     ),
@@ -237,7 +244,14 @@ class AbilityCatalog {
       animKey: AnimKey.cast,
       tags: {AbilityTag.projectile, AbilityTag.fire},
       requiredWeaponTypes: {WeaponType.projectileSpell},
-      payloadSource: AbilityPayloadSource.projectileItem,
+      payloadSource: AbilityPayloadSource.spellBook,
+      procs: <WeaponProc>[
+        WeaponProc(
+          hook: ProcHook.onHit,
+          statusProfileId: StatusProfileId.fireBolt,
+          chanceBp: 10000,
+        ),
+      ],
       baseDamage: 1800, // SpellCatalog.fireBolt damage 18.0
       baseDamageType: DamageType.fire,
     ),
@@ -258,9 +272,31 @@ class AbilityCatalog {
       animKey: AnimKey.cast,
       tags: {AbilityTag.projectile, AbilityTag.lightning},
       requiredWeaponTypes: {WeaponType.projectileSpell},
-      payloadSource: AbilityPayloadSource.projectileItem,
+      payloadSource: AbilityPayloadSource.spellBook,
       baseDamage: 1200, // SpellCatalog.thunderBolt damage 12.0
       baseDamageType: DamageType.thunder,
+    ),
+
+    // ------------------------------------------------------------------------
+    // ELOISE: BONUS / BUFFS
+    // ------------------------------------------------------------------------
+    'eloise.arcane_haste': AbilityDef(
+      id: 'eloise.arcane_haste',
+      category: AbilityCategory.utility,
+      allowedSlots: {AbilitySlot.bonus},
+      targetingModel: TargetingModel.none,
+      hitDelivery: SelfHitDelivery(),
+      // Instant cast, short recovery.
+      windupTicks: 0, activeTicks: 0, recoveryTicks: 10,
+      staminaCost: 0, manaCost: 1000,
+      cooldownTicks: 300, // 5s @ 60Hz
+      interruptPriority: InterruptPriority.combat,
+      animKey: AnimKey.cast,
+      tags: {AbilityTag.buff},
+      requiredWeaponTypes: {WeaponType.projectileSpell},
+      payloadSource: AbilityPayloadSource.spellBook,
+      selfStatusProfileId: StatusProfileId.speedBoost,
+      baseDamage: 0,
     ),
 
     // ------------------------------------------------------------------------

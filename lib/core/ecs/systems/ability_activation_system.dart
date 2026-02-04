@@ -3,10 +3,16 @@ import 'dart:math';
 import '../../abilities/ability_gate.dart';
 import '../../abilities/ability_catalog.dart';
 import '../../abilities/ability_def.dart';
+import '../../combat/damage_type.dart';
 import '../../combat/hit_payload_builder.dart';
 import '../../snapshots/enums.dart';
+import '../../projectiles/projectile_id.dart';
 import '../../projectiles/projectile_item_catalog.dart';
+import '../../projectiles/projectile_item_id.dart';
+import '../../spells/spell_book_catalog.dart';
 import '../../weapons/weapon_catalog.dart';
+import '../../weapons/weapon_proc.dart';
+import '../../weapons/weapon_stats.dart';
 import '../../util/fixed_math.dart';
 import '../../util/tick_math.dart';
 import '../entity_id.dart';
@@ -34,6 +40,7 @@ class AbilityActivationSystem {
     required this.abilities,
     required this.weapons,
     required this.projectileItems,
+    required this.spellBooks,
   });
 
   final int tickHz;
@@ -41,6 +48,7 @@ class AbilityActivationSystem {
   final AbilityCatalog abilities;
   final WeaponCatalog weapons;
   final ProjectileItemCatalog projectileItems;
+  final SpellBookCatalog spellBooks;
 
   void step(
     EcsWorld world, {
@@ -321,6 +329,10 @@ class AbilityActivationSystem {
       return false;
     }
 
+    if (!ability.allowedSlots.contains(slot)) {
+      return false;
+    }
+
     if (ability.category == AbilityCategory.mobility) {
       return _commitMobility(
         world,
@@ -417,6 +429,10 @@ class AbilityActivationSystem {
       case AbilityPayloadSource.projectileItem:
         if ((mask & LoadoutSlotMask.projectile) == 0) return false;
         break;
+      case AbilityPayloadSource.spellBook:
+        final spellBookId = world.equippedLoadout.spellBookId[loadoutIndex];
+        if (spellBooks.tryGet(spellBookId) == null) return false;
+        break;
     }
 
     final windupTicks = _scaleAbilityTicks(ability.windupTicks);
@@ -457,6 +473,7 @@ class AbilityActivationSystem {
       SelfIntentDef(
         abilityId: ability.id,
         slot: slot,
+        selfStatusProfileId: ability.selfStatusProfileId,
         commitTick: commitTick,
         windupTicks: windupTicks,
         activeTicks: activeTicks,
@@ -592,6 +609,9 @@ class AbilityActivationSystem {
       case AbilityPayloadSource.projectileItem:
         // Melee delivery cannot legally pull payload from projectile item.
         return false;
+      case AbilityPayloadSource.spellBook:
+        // Melee delivery cannot legally pull payload from spell book.
+        return false;
     }
 
     final hitDelivery = ability.hitDelivery;
@@ -650,6 +670,8 @@ class AbilityActivationSystem {
               ? world.equippedLoadout.offhandWeaponId[loadoutIndex]
               : world.equippedLoadout.mainWeaponId[loadoutIndex];
         case AbilityPayloadSource.projectileItem:
+          return world.equippedLoadout.mainWeaponId[loadoutIndex];
+        case AbilityPayloadSource.spellBook:
           return world.equippedLoadout.mainWeaponId[loadoutIndex];
       }
     }();
@@ -741,8 +763,9 @@ class AbilityActivationSystem {
       return false;
     }
 
-    // Projectile delivery must pull payload from projectile item.
-    if (ability.payloadSource != AbilityPayloadSource.projectileItem) {
+    // Projectile delivery must pull payload from a projectile item or spell book.
+    if (ability.payloadSource != AbilityPayloadSource.projectileItem &&
+        ability.payloadSource != AbilityPayloadSource.spellBook) {
       return false;
     }
     final mask = world.equippedLoadout.mask[loadoutIndex];
@@ -753,12 +776,59 @@ class AbilityActivationSystem {
       return false;
     }
 
-    final projectileItemId =
-        world.equippedLoadout.projectileItemId[loadoutIndex];
-    final projectileItem = projectileItems.tryGet(projectileItemId);
-    if (projectileItem == null) {
-      assert(false, 'Projectile item not found: $projectileItemId');
-      return false;
+    final hitDelivery = ability.hitDelivery;
+    if (hitDelivery is! ProjectileHitDelivery) return false;
+
+    final ProjectileItemId projectileItemId;
+    final ProjectileId projectileId;
+    final bool ballistic;
+    final double gravityScale;
+    final double originOffset;
+    WeaponStats? weaponStats;
+    DamageType? weaponDamageType;
+    List<WeaponProc> weaponProcs = const <WeaponProc>[];
+
+    switch (ability.payloadSource) {
+      case AbilityPayloadSource.projectileItem:
+        final equippedId =
+            world.equippedLoadout.projectileItemId[loadoutIndex];
+        final projectileItem = projectileItems.tryGet(equippedId);
+        if (projectileItem == null) {
+          assert(false, 'Projectile item not found: $equippedId');
+          return false;
+        }
+        if (projectileItem.weaponType != WeaponType.throwingWeapon) {
+          return false;
+        }
+        projectileItemId = equippedId;
+        projectileId = projectileItem.projectileId;
+        ballistic = projectileItem.ballistic;
+        gravityScale = projectileItem.gravityScale;
+        originOffset = projectileItem.originOffset;
+        weaponStats = projectileItem.stats;
+        weaponDamageType = projectileItem.damageType;
+        weaponProcs = projectileItem.procs;
+        break;
+      case AbilityPayloadSource.spellBook:
+        final spellBookId = world.equippedLoadout.spellBookId[loadoutIndex];
+        final spellBook = spellBooks.tryGet(spellBookId);
+        if (spellBook == null) {
+          assert(false, 'Spell book not found: $spellBookId');
+          return false;
+        }
+        projectileId = hitDelivery.projectileId;
+        projectileItemId = _projectileItemIdForProjectile(projectileId);
+        ballistic = false;
+        gravityScale = 1.0;
+        originOffset = _spellOriginOffset(world, player);
+        weaponStats = spellBook.stats;
+        weaponDamageType = spellBook.damageType;
+        weaponProcs = spellBook.procs;
+        break;
+      case AbilityPayloadSource.none:
+      case AbilityPayloadSource.primaryWeapon:
+      case AbilityPayloadSource.secondaryWeapon:
+        return false;
     }
 
     final aimX =
@@ -791,26 +861,12 @@ class AbilityActivationSystem {
       }
     }
 
-    double originOffset;
-    if (projectileItem.weaponType == WeaponType.projectileSpell) {
-      var maxHalfExtent = 0.0;
-      if (world.colliderAabb.has(player)) {
-        final aabbi = world.colliderAabb.indexOf(player);
-        final halfX = world.colliderAabb.halfX[aabbi];
-        final halfY = world.colliderAabb.halfY[aabbi];
-        maxHalfExtent = halfX > halfY ? halfX : halfY;
-      }
-      originOffset = maxHalfExtent * 0.5;
-    } else {
-      originOffset = projectileItem.originOffset;
-    }
-
     final payload = HitPayloadBuilder.build(
       ability: ability,
       source: player,
-      weaponStats: projectileItem.stats,
-      weaponDamageType: projectileItem.damageType,
-      weaponProcs: projectileItem.procs,
+      weaponStats: weaponStats,
+      weaponDamageType: weaponDamageType,
+      weaponProcs: weaponProcs,
     );
 
     final cooldownGroupId = ability.effectiveCooldownGroup(slot);
@@ -855,11 +911,11 @@ class AbilityActivationSystem {
         manaCost100: ability.manaCost,
         cooldownTicks: cooldownTicks,
         cooldownGroupId: cooldownGroupId,
-        projectileId: projectileItem.projectileId,
+        projectileId: projectileId,
         damageType: payload.damageType,
         procs: payload.procs,
-        ballistic: projectileItem.ballistic,
-        gravityScale: projectileItem.gravityScale,
+        ballistic: ballistic,
+        gravityScale: gravityScale,
         dirX: aimX,
         dirY: aimY,
         fallbackDirX: fallbackDirX,
@@ -873,6 +929,32 @@ class AbilityActivationSystem {
       ),
     );
     return true;
+  }
+
+  double _spellOriginOffset(EcsWorld world, EntityId player) {
+    var maxHalfExtent = 0.0;
+    if (world.colliderAabb.has(player)) {
+      final aabbi = world.colliderAabb.indexOf(player);
+      final halfX = world.colliderAabb.halfX[aabbi];
+      final halfY = world.colliderAabb.halfY[aabbi];
+      maxHalfExtent = halfX > halfY ? halfX : halfY;
+    }
+    return maxHalfExtent * 0.5;
+  }
+
+  ProjectileItemId _projectileItemIdForProjectile(ProjectileId id) {
+    switch (id) {
+      case ProjectileId.iceBolt:
+        return ProjectileItemId.iceBolt;
+      case ProjectileId.fireBolt:
+        return ProjectileItemId.fireBolt;
+      case ProjectileId.thunderBolt:
+        return ProjectileItemId.thunderBolt;
+      case ProjectileId.throwingKnife:
+        return ProjectileItemId.throwingKnife;
+      case ProjectileId.throwingAxe:
+        return ProjectileItemId.throwingAxe;
+    }
   }
 
   void _applyCommitSideEffects(

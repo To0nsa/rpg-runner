@@ -134,12 +134,14 @@ import 'players/player_catalog.dart';
 import 'players/player_character_definition.dart';
 import 'players/player_character_registry.dart';
 import 'projectiles/projectile_catalog.dart';
+import 'projectiles/projectile_item_catalog.dart';
+import 'projectiles/projectile_item_id.dart';
+import 'spells/spell_book_catalog.dart';
 import 'snapshots/enums.dart';
 import 'snapshots/game_state_snapshot.dart';
 import 'snapshot_builder.dart';
+import 'loadout/loadout_validator.dart';
 import 'spawn_service.dart';
-import 'projectiles/projectile_item_catalog.dart';
-import 'projectiles/projectile_item_id.dart';
 import 'progression/run_rewards.dart';
 import 'track_manager.dart';
 import 'weapons/weapon_catalog.dart';
@@ -245,6 +247,7 @@ class GameCore {
     PlayerCharacterDefinition playerCharacter =
         PlayerCharacterRegistry.defaultCharacter,
     ProjectileItemCatalog projectileItemCatalog = const ProjectileItemCatalog(),
+    SpellBookCatalog spellBookCatalog = const SpellBookCatalog(),
     ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
     EnemyCatalog enemyCatalog = const EnemyCatalog(),
     WeaponCatalog weaponCatalog = const WeaponCatalog(),
@@ -262,6 +265,7 @@ class GameCore {
            staticWorldGeometry: staticWorldGeometry,
          ),
          projectileItemCatalog: projectileItemCatalog,
+         spellBookCatalog: spellBookCatalog,
          projectileCatalog: projectileCatalog,
          enemyCatalog: enemyCatalog,
          playerCharacter: playerCharacter,
@@ -274,6 +278,7 @@ class GameCore {
     required this.tickHz,
     required LevelDefinition levelDefinition,
     required ProjectileItemCatalog projectileItemCatalog,
+    required SpellBookCatalog spellBookCatalog,
     required ProjectileCatalog projectileCatalog,
     required EnemyCatalog enemyCatalog,
     required PlayerCharacterDefinition playerCharacter,
@@ -310,6 +315,7 @@ class GameCore {
        _navigationTuning = levelDefinition.tuning.navigation,
        _spatialGridTuning = levelDefinition.tuning.spatialGrid,
        _projectileItems = projectileItemCatalog,
+       _spellBooks = spellBookCatalog,
        _projectiles = ProjectileCatalogDerived.from(
          projectileCatalog,
          tickHz: tickHz,
@@ -393,6 +399,12 @@ class GameCore {
       resources: _resourceTuning,
       projectiles: _projectiles,
       enemyCatalog: _enemyCatalog,
+      loadoutValidator: LoadoutValidator(
+        abilityCatalog: const AbilityCatalog(),
+        weaponCatalog: _weapons,
+        projectileItemCatalog: _projectileItems,
+        spellBookCatalog: _spellBooks,
+      ),
     );
   }
 
@@ -462,6 +474,7 @@ class GameCore {
       abilities: const AbilityCatalog(),
       weapons: _weapons,
       projectileItems: _projectileItems,
+      spellBooks: _spellBooks,
     );
     _hitboxDamageSystem = HitboxDamageSystem();
 
@@ -569,26 +582,15 @@ class GameCore {
         mainWeaponId: playerArchetype.weaponId,
         offhandWeaponId: playerArchetype.offhandWeaponId,
         projectileItemId: playerArchetype.projectileItemId,
-        abilityProjectileId: _abilityIdForProjectileItem(
-          playerArchetype.projectileItemId,
-        ),
+        spellBookId: playerArchetype.spellBookId,
+        abilityPrimaryId: playerArchetype.abilityPrimaryId,
+        abilitySecondaryId: playerArchetype.abilitySecondaryId,
+        abilityProjectileId: playerArchetype.abilityProjectileId,
+        abilityBonusId: playerArchetype.abilityBonusId,
+        abilityMobilityId: playerArchetype.abilityMobilityId,
+        abilityJumpId: playerArchetype.abilityJumpId,
       ),
     );
-  }
-
-  AbilityKey _abilityIdForProjectileItem(ProjectileItemId id) {
-    switch (id) {
-      case ProjectileItemId.iceBolt:
-        return 'eloise.ice_bolt';
-      case ProjectileItemId.fireBolt:
-        return 'eloise.fire_bolt';
-      case ProjectileItemId.thunderBolt:
-        return 'eloise.thunder_bolt';
-      case ProjectileItemId.throwingKnife:
-        return 'eloise.throwing_knife';
-      case ProjectileItemId.throwingAxe:
-        return 'eloise.throwing_knife';
-    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -636,6 +638,7 @@ class GameCore {
   // Archetype definitions for entities.
 
   final ProjectileItemCatalog _projectileItems;
+  final SpellBookCatalog _spellBooks;
   final ProjectileCatalogDerived _projectiles;
   final EnemyCatalog _enemyCatalog;
   final PlayerCharacterDefinition _playerCharacter;
@@ -1074,7 +1077,11 @@ class GameCore {
     _enemyMeleeSystem.step(_world, player: _player, currentTick: tick);
 
     // ─── Phase 10: Strike execution ───
-    _selfAbilitySystem.step(_world, currentTick: tick);
+    _selfAbilitySystem.step(
+      _world,
+      currentTick: tick,
+      queueStatus: _statusSystem.queue,
+    );
     // Convert intents into actual hitboxes/projectiles.
     // Self abilities first so buffs/blocks/i-frames can affect spawns & downstream combat deterministically.
     _meleeStrikeSystem.step(_world, currentTick: tick);

@@ -36,6 +36,7 @@ void main() {
           catalog: const PlayerCatalog(
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
             projectileItemId: ProjectileItemId.throwingKnife,
+            abilityProjectileId: 'eloise.throwing_knife',
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
@@ -99,6 +100,7 @@ void main() {
           catalog: const PlayerCatalog(
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
             projectileItemId: ProjectileItemId.throwingKnife,
+            abilityProjectileId: 'eloise.throwing_knife',
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(

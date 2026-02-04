@@ -42,6 +42,7 @@ import 'abilities/ability_catalog.dart';
 import 'abilities/ability_def.dart';
 import 'util/fixed_math.dart';
 import 'util/tick_math.dart';
+import 'loadout/loadout_validator.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SnapshotBuilder
@@ -77,7 +78,8 @@ class SnapshotBuilder {
     required this.resources,
     required this.projectiles,
     required this.enemyCatalog,
-  });
+    required LoadoutValidator loadoutValidator,
+  }) : _loadoutValidator = loadoutValidator;
 
   /// Tick rate (ticks per second) for converting seconds to ticks.
   final int tickHz;
@@ -102,6 +104,8 @@ class SnapshotBuilder {
 
   /// Enemy catalog for render metadata (art facing direction).
   final EnemyCatalog enemyCatalog;
+
+  final LoadoutValidator _loadoutValidator;
 
   // ───────────────────────────────────────────────────────────────────────────
   // Public API
@@ -159,6 +163,32 @@ class SnapshotBuilder {
     final mana = world.mana.mana[mai];
     final loadout = world.equippedLoadout;
     final loadoutMask = loadout.mask[li];
+    final loadoutDef = EquippedLoadoutDef(
+      mask: loadoutMask,
+      mainWeaponId: loadout.mainWeaponId[li],
+      offhandWeaponId: loadout.offhandWeaponId[li],
+      projectileItemId: loadout.projectileItemId[li],
+      spellBookId: loadout.spellBookId[li],
+      abilityPrimaryId: loadout.abilityPrimaryId[li],
+      abilitySecondaryId: loadout.abilitySecondaryId[li],
+      abilityProjectileId: loadout.abilityProjectileId[li],
+      abilityBonusId: loadout.abilityBonusId[li],
+      abilityMobilityId: loadout.abilityMobilityId[li],
+      abilityJumpId: loadout.abilityJumpId[li],
+    );
+
+    final invalidSlots = <AbilitySlot>{};
+    final validation = _loadoutValidator.validate(loadoutDef);
+    for (final issue in validation.issues) {
+      invalidSlots.add(issue.slot);
+    }
+
+    final meleeSlotValid = !invalidSlots.contains(AbilitySlot.primary);
+    final secondarySlotValid = !invalidSlots.contains(AbilitySlot.secondary);
+    final projectileSlotValid = !invalidSlots.contains(AbilitySlot.projectile);
+    final mobilitySlotValid = !invalidSlots.contains(AbilitySlot.mobility);
+    final bonusSlotValid = !invalidSlots.contains(AbilitySlot.bonus);
+    final jumpSlotValid = !invalidSlots.contains(AbilitySlot.jump);
 
     final projectileAbilityId = loadout.abilityProjectileId[li];
     final projectileAbility = AbilityCatalog.tryGet(projectileAbilityId);
@@ -325,6 +355,12 @@ class SnapshotBuilder {
         manaMax: fromFixed100(world.mana.manaMax[mai]),
         stamina: fromFixed100(stamina),
         staminaMax: fromFixed100(world.stamina.staminaMax[si]),
+        meleeSlotValid: meleeSlotValid,
+        secondarySlotValid: secondarySlotValid,
+        projectileSlotValid: projectileSlotValid,
+        mobilitySlotValid: mobilitySlotValid,
+        bonusSlotValid: bonusSlotValid,
+        jumpSlotValid: jumpSlotValid,
         canAffordJump: canAffordJump,
         canAffordDash: canAffordDash,
         canAffordMelee: canAffordMelee,

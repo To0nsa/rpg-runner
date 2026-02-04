@@ -23,10 +23,12 @@ and alignment with the design contracts.
 1. Game/UI input schedules `Command`s with tick stamps (RunnerInputRouter).
 2. Core decodes commands into `PlayerInputStore` each tick (`GameCore.applyCommands`).
 3. `AbilityActivationSystem` selects the equipped ability per slot, applies input buffering,
-   and writes intent stores (`MeleeIntentStore`, `ProjectileIntentStore`).
+   and writes intent stores (`MeleeIntentStore`, `ProjectileIntentStore`, `SelfIntentStore`), sourcing payload
+   from an explicit provider (weapon, throwing item, or spell book).
 4. Execution systems consume intents:
    - `MeleeStrikeSystem` spawns hitboxes and applies costs/cooldowns.
    - `ProjectileLaunchSystem` spawns projectiles and applies costs/cooldowns.
+   - `SelfAbilitySystem` executes `SelfHitDelivery` abilities and queues status profiles.
    - `MobilitySystem` applies dash/roll state and costs/cooldowns.
    - `PlayerMovementSystem` executes jump intents (buffer/coyote-aware).
 5. Damage and status application goes through `DamageSystem` and `StatusSystem`.
@@ -44,7 +46,7 @@ and alignment with the design contracts.
 - Loadout has non-null IDs for all configured slots (no "none" semantics).
 - `LoadoutValidator` enforces:
   - Ability slot compatibility (`allowedSlots`).
-  - Required weapon types (`requiredWeaponTypes`) vs weapon types.
+  - Required weapon types (`requiredWeaponTypes`) vs payload provider types.
   - Weapon category validity + two-handed conflicts.
   - Missing IDs are treated as catalog errors.
 
@@ -54,7 +56,7 @@ and alignment with the design contracts.
   - Prevents new commits while an ability is active.
   - Buffers one input during Recovery (latest wins).
   - Resolves projectile slot via a single input channel and builds `ProjectileIntentDef`
-    using `ProjectileItemCatalog` for payload.
+    using an explicit payload provider (throwing item or spell book).
 
 ### Intent and Execution
 - Intents now include commit tick + windup/active/recovery windows.
@@ -83,10 +85,10 @@ and alignment with the design contracts.
 | One combat ability at a time | PARTIAL | Enforced via `ActiveAbilityStateStore`; ability activation ignores new inputs while active. |
 | Mobility preemption | OK | Dash and Jump commit through AbilityActivationSystem; jump press clears buffered combat immediately. |
 | Targeting determines commit (tap/hold/release) | PARTIAL | Core only supports "commit on press"; hold/release must be orchestrated by input layer. |
-| Self-centered and defensive abilities | NO | `SelfHitDelivery` is not executed; defense category uses melee path only. |
-| Projectile payload ownership | OK | Ability defines structure; projectile items provide payload via `HitPayloadBuilder`. |
+| Self-centered and defensive abilities | PARTIAL | `SelfHitDelivery` executes and can apply status profiles; defensive mechanics still incomplete. |
+| Projectile payload ownership | OK | Ability defines hit shape; payload provider (throwing item or spell book) provides stats/procs via `HitPayloadBuilder`. |
 | Input buffering in recovery only | OK | Implemented via `AbilityInputBufferStore`. |
-| Bonus slot support | NO | Bonus slot exists in enum/input but not in loadout/activation. |
+| Bonus slot support | OK | Bonus slot is validated and routed in activation; HUD disables invalid slots (reason display still pending). |
 | Auto-target (future) | NO | Not implemented. |
 
 ## Gaps and Deviations
@@ -95,14 +97,11 @@ and alignment with the design contracts.
    - Hold-to-aim vs commit-on-release is currently only possible via input scheduling,
      not a Core state machine.
 
-2. Defensive/self abilities are not executable.
-   - Abilities like shield block/parry use `SelfHitDelivery` but activation only supports
-     `MeleeHitDelivery` and `ProjectileHitDelivery`.
-   - Result: defensive abilities are not actually runnable despite being in the catalog.
+2. Defensive/self effects are still limited.
+   - `SelfHitDelivery` executes and can queue status profiles, but block/parry mechanics
+     still need explicit effects or status definitions.
 
-3. Bonus slot not wired.
-   - Input exists (`BonusPressedCommand`), but loadout has no bonus ability ID,
-     validator does not check it, and activation returns `null`.
+3. Bonus slot wiring now exists; UI may still need clearer invalid/locked feedback.
 
 4. Hit policy is unused.
    - `HitPolicy` exists in ability definitions, but hitbox/projectile systems do not enforce
@@ -133,12 +132,12 @@ These tests currently validate core ability behavior:
    - Add an aim/hold state machine (press vs release, committed hold, aim lock).
    - Persist aim/facing in `ActiveAbilityStateStore` if needed for animations.
 
-2. Implement `SelfHitDelivery` execution.
-   - Enable block/parry/buff abilities with no hitbox/projectile.
-   - Add ability category routing for defense/utility.
+2. Expand `SelfHitDelivery` effects.
+   - Add explicit block/parry behavior or status-driven defenses.
+   - Ensure defensive effects are reflected in snapshots/events.
 
-3. Wire bonus slot end-to-end.
-   - Add bonus ability ID to loadout, validate it, and route it in activation.
+3. Surface bonus slot validity in UI.
+   - Show invalid slot reasons and provider requirements.
 
 4. Apply `HitPolicy` in hit systems.
    - Encode once-per-target vs every-tick and align with `HitOnceStore` usage.

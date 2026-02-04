@@ -32,6 +32,7 @@ void main() {
           catalog: const PlayerCatalog(
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
             projectileItemId: ProjectileItemId.iceBolt,
+            abilityProjectileId: 'eloise.ice_bolt',
           ),
         tuning: base.tuning.copyWith(
           resource: const ResourceTuning(
@@ -65,6 +66,7 @@ void main() {
       const catalog = PlayerCatalog(
         bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
         projectileItemId: ProjectileItemId.iceBolt,
+        abilityProjectileId: 'eloise.ice_bolt',
       );
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
@@ -116,6 +118,7 @@ void main() {
     const catalog = PlayerCatalog(
       bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
       projectileItemId: ProjectileItemId.fireBolt,
+      abilityProjectileId: 'eloise.fire_bolt',
     );
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
@@ -166,6 +169,7 @@ void main() {
         catalog: const PlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
           projectileItemId: ProjectileItemId.iceBolt,
+          abilityProjectileId: 'eloise.ice_bolt',
         ),
         tuning: base.tuning.copyWith(
           resource: const ResourceTuning(

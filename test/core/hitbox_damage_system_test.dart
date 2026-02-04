@@ -21,6 +21,7 @@ import 'package:rpg_runner/core/tuning/spatial_grid_tuning.dart';
 import 'package:rpg_runner/core/ecs/entity_factory.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
+import 'package:rpg_runner/core/spells/spell_book_catalog.dart';
 import 'package:rpg_runner/core/weapons/weapon_catalog.dart';
 
 void main() {
@@ -32,6 +33,7 @@ void main() {
       abilities: const AbilityCatalog(),
       weapons: const WeaponCatalog(),
       projectileItems: const ProjectileItemCatalog(),
+      spellBooks: const SpellBookCatalog(),
     );
     final meleeStrike = MeleeStrikeSystem();
     final follow = HitboxFollowOwnerSystem();
