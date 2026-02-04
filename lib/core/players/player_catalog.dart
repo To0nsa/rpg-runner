@@ -1,4 +1,3 @@
-import '../combat/creature_tag.dart';
 import '../ecs/stores/body_store.dart';
 import '../ecs/stores/collider_aabb_store.dart';
 import '../ecs/stores/combat/creature_tag_store.dart';

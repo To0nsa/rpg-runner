@@ -135,7 +135,6 @@ import 'players/player_character_definition.dart';
 import 'players/player_character_registry.dart';
 import 'projectiles/projectile_catalog.dart';
 import 'projectiles/projectile_item_catalog.dart';
-import 'projectiles/projectile_item_id.dart';
 import 'spells/spell_book_catalog.dart';
 import 'snapshots/enums.dart';
 import 'snapshots/game_state_snapshot.dart';
