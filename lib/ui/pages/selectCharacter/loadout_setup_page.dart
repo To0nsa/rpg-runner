@@ -10,6 +10,7 @@ import '../../../core/projectiles/projectile_item_id.dart';
 import '../../icons/throwing_weapon_asset.dart';
 import '../../icons/ui_icon_coords.dart';
 import '../../icons/ui_icon_tile.dart';
+import '../../components/app_tile_button.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
 import '../../state/app_state.dart';
@@ -21,10 +22,7 @@ class LoadoutSetupPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MenuScaffold(
-      title: 'Select Character',
-      child: MenuLayout(scrollable: false, child: _LoadoutSetupBody()),
-    );
+    return const _LoadoutSetupBody();
   }
 }
 
@@ -61,22 +59,23 @@ class _LoadoutSetupBodyState extends State<_LoadoutSetupBody> {
     return DefaultTabController(
       length: defs.length,
       initialIndex: _initialTabIndex,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TabBar(
-            isScrollable: true,
-            labelColor: ui.colors.textPrimary,
-            unselectedLabelColor: ui.colors.textMuted,
-            labelStyle: ui.text.label,
-            indicatorColor: ui.colors.accent,
-            onTap: (index) {
-              final def = defs[index];
-              appState.setCharacter(def.id);
-            },
-            tabs: [for (final def in defs) Tab(text: def.displayName)],
-          ),
-          Expanded(
+      child: MenuScaffold(
+        appBarTitle: TabBar(
+          isScrollable: true,
+          labelColor: ui.colors.textPrimary,
+          unselectedLabelColor: ui.colors.textMuted,
+          labelStyle: ui.text.label,
+          indicatorColor: ui.colors.accent,
+          onTap: (index) {
+            final def = defs[index];
+            appState.setCharacter(def.id);
+          },
+          tabs: [for (final def in defs) Tab(text: def.displayName)],
+        ),
+        centerAppBarTitle: true,
+        child: MenuLayout(
+          scrollable: false,
+          child: SizedBox.expand(
             child: TabBarView(
               children: [
                 for (final def in defs)
@@ -84,7 +83,7 @@ class _LoadoutSetupBodyState extends State<_LoadoutSetupBody> {
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -104,77 +103,80 @@ class _CharacterGearPanel extends StatelessWidget {
     const service = MetaService();
 
     return Padding(
-      padding: EdgeInsets.all(ui.space.lg),
+      padding: EdgeInsets.symmetric(
+        horizontal: ui.space.md,
+        vertical: ui.space.xxs,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Equipped Gear', style: ui.text.headline),
-          SizedBox(height: ui.space.md),
+          SizedBox(height: ui.space.xxs),
           Wrap(
             spacing: ui.space.md,
             runSpacing: ui.space.md,
             children: [
-              _GearSlotButton(
-                label: 'Sword',
-                child: UiIconTile(
-                  coords: uiIconCoordsForWeapon(gear.mainWeaponId)!,
-                ),
-                onTap: () => showGearPickerDialog(
+              AppTileButton(
+                tooltip: 'Sword',
+                onPressed: () => showGearPickerDialog(
                   context,
                   meta: meta,
                   service: service,
                   characterId: characterId,
                   slot: GearSlot.mainWeapon,
                 ),
-              ),
-              _GearSlotButton(
-                label: 'Shield',
                 child: UiIconTile(
-                  coords: uiIconCoordsForWeapon(gear.offhandWeaponId)!,
+                  coords: uiIconCoordsForWeapon(gear.mainWeaponId)!,
                 ),
-                onTap: () => showGearPickerDialog(
+              ),
+              AppTileButton(
+                tooltip: 'Shield',
+                onPressed: () => showGearPickerDialog(
                   context,
                   meta: meta,
                   service: service,
                   characterId: characterId,
                   slot: GearSlot.offhandWeapon,
                 ),
+                child: UiIconTile(
+                  coords: uiIconCoordsForWeapon(gear.offhandWeaponId)!,
+                ),
               ),
-              _GearSlotButton(
-                label: 'Throw',
-                child: _throwingIconOrEmpty(gear.throwingWeaponId),
-                onTap: () => showGearPickerDialog(
+              AppTileButton(
+                tooltip: 'Throw',
+                onPressed: () => showGearPickerDialog(
                   context,
                   meta: meta,
                   service: service,
                   characterId: characterId,
                   slot: GearSlot.throwingWeapon,
                 ),
+                child: _throwingIconOrEmpty(gear.throwingWeaponId),
               ),
-              _GearSlotButton(
-                label: 'Book',
-                child: UiIconTile(
-                  coords: uiIconCoordsForSpellBook(gear.spellBookId)!,
-                ),
-                onTap: () => showGearPickerDialog(
+              AppTileButton(
+                tooltip: 'Spellbook',
+                onPressed: () => showGearPickerDialog(
                   context,
                   meta: meta,
                   service: service,
                   characterId: characterId,
                   slot: GearSlot.spellBook,
                 ),
-              ),
-              _GearSlotButton(
-                label: 'Trinket',
                 child: UiIconTile(
-                  coords: uiIconCoordsForAccessory(gear.accessoryId)!,
+                  coords: uiIconCoordsForSpellBook(gear.spellBookId)!,
                 ),
-                onTap: () => showGearPickerDialog(
+              ),
+              AppTileButton(
+                tooltip: 'Accessory',
+                onPressed: () => showGearPickerDialog(
                   context,
                   meta: meta,
                   service: service,
                   characterId: characterId,
                   slot: GearSlot.accessory,
+                ),
+                child: UiIconTile(
+                  coords: uiIconCoordsForAccessory(gear.accessoryId)!,
                 ),
               ),
             ],
@@ -189,46 +191,4 @@ Widget _throwingIconOrEmpty(ProjectileItemId id) {
   final path = throwingWeaponAssetPath(id);
   if (path == null) return const SizedBox.shrink();
   return Image.asset(path, width: 32, height: 32);
-}
-
-class _GearSlotButton extends StatelessWidget {
-  const _GearSlotButton({
-    required this.label,
-    required this.child,
-    required this.onTap,
-  });
-
-  final String label;
-  final Widget child;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final ui = context.ui;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(ui.radii.sm),
-            child: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: ui.colors.cardBackground,
-                borderRadius: BorderRadius.circular(ui.radii.sm),
-                border: Border.all(color: ui.colors.outline),
-              ),
-              alignment: Alignment.center,
-              child: child,
-            ),
-          ),
-        ),
-        SizedBox(height: ui.space.xs),
-        Text(label, style: ui.text.caption),
-      ],
-    );
-  }
 }
