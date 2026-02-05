@@ -313,7 +313,9 @@ class _GearCandidateTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
-    final title = gearDisplayNameForSlot(slot, id);
+    const tileSize = 64.0;
+    const iconSize = 48.0;
+    const iconPadding = 8.0;
     final borderColor = selected
         ? ui.colors.accentStrong
         : (isEquipped ? ui.colors.success : ui.colors.outline);
@@ -322,12 +324,9 @@ class _GearCandidateTile extends StatelessWidget {
         ? ui.colors.cardBackground.withValues(alpha: 0.9)
         : ui.colors.cardBackground.withValues(alpha: 0.72);
     final radius = ui.radii.sm;
-    final tilePadding = 2.0;
-    final iconFrameSize = 36.0;
-    final titleMaxLines = 1;
 
-    return Tooltip(
-      message: title,
+    return SizedBox.square(
+      dimension: tileSize,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -345,13 +344,25 @@ class _GearCandidateTile extends StatelessWidget {
               ),
               boxShadow: selected ? ui.shadows.card : null,
             ),
-            padding: EdgeInsets.all(tilePadding),
-            child: Column(
+            child: Stack(
+              fit: StackFit.expand,
               children: [
-                SizedBox(
-                  height: 6,
-                  child: Align(
-                    alignment: Alignment.centerRight,
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(iconPadding),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(ui.radii.sm),
+                      border: Border.all(
+                        color: ui.colors.outline.withValues(alpha: 0.6),
+                      ),
+                    ),
+                    child: _GearIcon(slot: slot, id: id, size: iconSize),
+                  ),
+                ),
+                if (isEquipped || selected)
+                  Positioned(
+                    top: 2,
+                    right: 2,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -361,38 +372,6 @@ class _GearCandidateTile extends StatelessWidget {
                       ],
                     ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Expanded(
-                  child: Center(
-                    child: Container(
-                      width: iconFrameSize,
-                      height: iconFrameSize,
-                      decoration: BoxDecoration(
-                        color: ui.colors.surface.withValues(alpha: 0.28),
-                        borderRadius: BorderRadius.circular(ui.radii.sm),
-                        border: Border.all(
-                          color: ui.colors.outline.withValues(alpha: 0.35),
-                        ),
-                      ),
-                      alignment: Alignment.center,
-                      child: _GearIcon(slot: slot, id: id),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  title,
-                  maxLines: titleMaxLines,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: ui.text.caption.copyWith(
-                    color: ui.colors.textPrimary,
-                    fontSize: 9,
-                    height: 1.0,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
               ],
             ),
           ),
@@ -418,10 +397,11 @@ class _StateDot extends StatelessWidget {
 }
 
 class _GearIcon extends StatelessWidget {
-  const _GearIcon({required this.slot, required this.id});
+  const _GearIcon({required this.slot, required this.id, this.size = 32});
 
   final GearSlot slot;
   final Object id;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
@@ -433,32 +413,32 @@ class _GearIcon extends StatelessWidget {
         final coords = uiIconCoordsForWeapon(weaponId);
         child = coords == null
             ? const SizedBox.shrink()
-            : UiIconTile(coords: coords);
+            : UiIconTile(coords: coords, size: size);
         break;
       case GearSlot.spellBook:
         final bookId = id as SpellBookId;
         final coords = uiIconCoordsForSpellBook(bookId);
         child = coords == null
             ? const SizedBox.shrink()
-            : UiIconTile(coords: coords);
+            : UiIconTile(coords: coords, size: size);
         break;
       case GearSlot.accessory:
         final accessoryId = id as AccessoryId;
         final coords = uiIconCoordsForAccessory(accessoryId);
         child = coords == null
             ? const SizedBox.shrink()
-            : UiIconTile(coords: coords);
+            : UiIconTile(coords: coords, size: size);
         break;
       case GearSlot.throwingWeapon:
         final itemId = id as ProjectileItemId;
         final path = throwingWeaponAssetPath(itemId);
         child = path == null
             ? const SizedBox.shrink()
-            : Image.asset(path, width: 32, height: 32);
+            : Image.asset(path, width: size, height: size);
         break;
     }
 
-    return SizedBox.square(dimension: 32, child: child);
+    return SizedBox.square(dimension: size, child: child);
   }
 }
 
@@ -758,48 +738,29 @@ _CandidateGridSpec _candidateGridSpecForAvailableSpace({
   required double availableHeight,
   required double spacing,
 }) {
+  const tileExtent = 64.0;
   if (itemCount <= 0 || availableWidth <= 0 || availableHeight <= 0) {
     return _CandidateGridSpec(
       crossAxisCount: 1,
-      mainAxisExtent: 64,
+      mainAxisExtent: tileExtent,
       spacing: spacing,
     );
   }
 
-  const minTileWidth = 64.0;
-  const minTileHeight = 58.0;
-  const maxTileHeight = 88.0;
+  const minTileWidth = tileExtent;
   final maxColumnsByWidth =
       ((availableWidth + spacing) / (minTileWidth + spacing)).floor().clamp(
         1,
-        itemCount,
+        999,
       );
 
-  var selectedColumns = 1;
-  var selectedHeight = minTileHeight;
-  for (var columns = maxColumnsByWidth; columns >= 1; columns--) {
-    final rows = (itemCount + columns - 1) ~/ columns;
-    final tileWidth = (availableWidth - spacing * (columns - 1)) / columns;
-    final targetTileHeight = (tileWidth * 0.84)
-        .clamp(minTileHeight, maxTileHeight)
-        .toDouble();
-    final totalHeight = rows * targetTileHeight + spacing * (rows - 1);
-    if (totalHeight <= availableHeight) {
-      selectedColumns = columns;
-      selectedHeight = targetTileHeight;
-      break;
-    }
-  }
-
-  final rows = (itemCount + selectedColumns - 1) ~/ selectedColumns;
-  final fittedHeight = ((availableHeight - spacing * (rows - 1)) / rows)
-      .clamp(40.0, maxTileHeight)
-      .toDouble();
-  final resolvedHeight = selectedHeight.clamp(40.0, fittedHeight).toDouble();
+  // Keep tiles visually fixed-size by maximizing column count from width.
+  // This avoids stretching tiles when item count is small (1-3 items).
+  final selectedColumns = maxColumnsByWidth;
 
   return _CandidateGridSpec(
     crossAxisCount: selectedColumns,
-    mainAxisExtent: resolvedHeight,
+    mainAxisExtent: tileExtent,
     spacing: spacing,
   );
 }
