@@ -11,16 +11,22 @@ class SpellBookCatalog {
       case SpellBookId.basicSpellBook:
         return const SpellBookDef(
           id: SpellBookId.basicSpellBook,
+          displayName: 'Basic Spellbook',
+          description: 'An entry-level grimoire for foundational spellcraft.',
           stats: WeaponStats(powerBonusBp: -100), // -1% Damage
         );
       case SpellBookId.solidSpellBook:
         return const SpellBookDef(
           id: SpellBookId.solidSpellBook,
+          displayName: 'Solid Spellbook',
+          description: 'A refined tome that stabilizes offensive casting.',
           stats: WeaponStats(powerBonusBp: 100), // +1% Damage
         );
       case SpellBookId.epicSpellBook:
         return const SpellBookDef(
           id: SpellBookId.epicSpellBook,
+          displayName: 'Epic Spellbook',
+          description: 'An advanced codex empowering spells.',
           stats: WeaponStats(powerBonusBp: 200), // +2% Damage
         );
     }

@@ -24,6 +24,7 @@ import '../../icons/throwing_weapon_asset.dart';
 import '../../icons/ui_icon_coords.dart';
 import '../../icons/ui_icon_tile.dart';
 import '../../state/app_state.dart';
+import '../../text/gear_text.dart';
 import '../../theme/ui_tokens.dart';
 
 Future<void> showGearPickerDialog(
@@ -312,7 +313,7 @@ class _GearCandidateTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
-    final title = _titleFor(slot, id);
+    final title = gearDisplayNameForSlot(slot, id);
     final borderColor = selected
         ? ui.colors.accentStrong
         : (isEquipped ? ui.colors.success : ui.colors.outline);
@@ -322,8 +323,7 @@ class _GearCandidateTile extends StatelessWidget {
         : ui.colors.cardBackground.withValues(alpha: 0.72);
     final radius = ui.radii.sm;
     final tilePadding = 2.0;
-    final iconSize = 18.0;
-    final iconFrameSize = 28.0;
+    final iconFrameSize = 36.0;
     final titleMaxLines = 1;
 
     return Tooltip(
@@ -376,7 +376,7 @@ class _GearCandidateTile extends StatelessWidget {
                         ),
                       ),
                       alignment: Alignment.center,
-                      child: _GearIcon(slot: slot, id: id, dimension: iconSize),
+                      child: _GearIcon(slot: slot, id: id),
                     ),
                   ),
                 ),
@@ -418,15 +418,13 @@ class _StateDot extends StatelessWidget {
 }
 
 class _GearIcon extends StatelessWidget {
-  const _GearIcon({required this.slot, required this.id, this.dimension = 32});
+  const _GearIcon({required this.slot, required this.id});
 
   final GearSlot slot;
   final Object id;
-  final double dimension;
 
   @override
   Widget build(BuildContext context) {
-    final ui = context.ui;
     Widget child;
     switch (slot) {
       case GearSlot.mainWeapon:
@@ -435,32 +433,32 @@ class _GearIcon extends StatelessWidget {
         final coords = uiIconCoordsForWeapon(weaponId);
         child = coords == null
             ? const SizedBox.shrink()
-            : UiIconTile(coords: coords, backgroundColor: ui.colors.surface);
+            : UiIconTile(coords: coords);
         break;
       case GearSlot.spellBook:
         final bookId = id as SpellBookId;
         final coords = uiIconCoordsForSpellBook(bookId);
         child = coords == null
             ? const SizedBox.shrink()
-            : UiIconTile(coords: coords, backgroundColor: ui.colors.surface);
+            : UiIconTile(coords: coords);
         break;
       case GearSlot.accessory:
         final accessoryId = id as AccessoryId;
         final coords = uiIconCoordsForAccessory(accessoryId);
         child = coords == null
             ? const SizedBox.shrink()
-            : UiIconTile(coords: coords, backgroundColor: ui.colors.surface);
+            : UiIconTile(coords: coords);
         break;
       case GearSlot.throwingWeapon:
         final itemId = id as ProjectileItemId;
         final path = throwingWeaponAssetPath(itemId);
         child = path == null
             ? const SizedBox.shrink()
-            : Image.asset(path, width: dimension, height: dimension);
+            : Image.asset(path, width: 32, height: 32);
         break;
     }
 
-    return SizedBox.square(dimension: dimension, child: child);
+    return SizedBox.square(dimension: 32, child: child);
   }
 }
 
@@ -486,7 +484,6 @@ class _GearStatsCard extends StatelessWidget {
         : _compareStats(slot, equippedForCompare!, id!);
     final cardPadding = ui.space.xs;
     final iconFrameSize = 38.0;
-    final iconSize = 24.0;
     final blockSpacing = ui.space.xs;
 
     return Container(
@@ -500,14 +497,6 @@ class _GearStatsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title.toUpperCase(),
-            style: ui.text.caption.copyWith(
-              color: ui.colors.textMuted,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          SizedBox(height: blockSpacing),
           if (id == null)
             Expanded(
               child: Center(
@@ -538,21 +527,34 @@ class _GearStatsCard extends StatelessWidget {
                           ),
                         ),
                         alignment: Alignment.center,
-                        child: _GearIcon(
-                          slot: slot,
-                          id: id!,
-                          dimension: iconSize,
-                        ),
+                        child: _GearIcon(slot: slot, id: id!),
                       ),
                       SizedBox(width: ui.space.sm),
                       Expanded(
-                        child: Text(
-                          _titleFor(slot, id!),
-                          style: ui.text.caption.copyWith(
-                            color: ui.colors.textPrimary,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              gearDisplayNameForSlot(slot, id!),
+                              style: ui.text.caption.copyWith(
+                                color: ui.colors.textPrimary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 1),
+                            Text(
+                              '"${gearDescriptionForSlot(slot, id!)}"',
+                              style: ui.text.caption.copyWith(
+                                color: ui.colors.textMuted,
+                                fontSize: 9,
+                                height: 1.0,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -736,15 +738,6 @@ class _StatLineText extends StatelessWidget {
       ),
     );
   }
-}
-
-String _titleFor(GearSlot slot, Object id) {
-  return switch (slot) {
-    GearSlot.mainWeapon || GearSlot.offhandWeapon => (id as WeaponId).name,
-    GearSlot.throwingWeapon => (id as ProjectileItemId).name,
-    GearSlot.spellBook => (id as SpellBookId).name,
-    GearSlot.accessory => (id as AccessoryId).name,
-  };
 }
 
 class _CandidateGridSpec {

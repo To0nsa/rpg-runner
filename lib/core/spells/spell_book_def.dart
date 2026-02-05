@@ -8,6 +8,8 @@ import 'spell_book_id.dart';
 class SpellBookDef {
   const SpellBookDef({
     required this.id,
+    required this.displayName,
+    required this.description,
     this.weaponType = WeaponType.projectileSpell,
     this.stats = const WeaponStats(),
     this.damageType,
@@ -15,6 +17,8 @@ class SpellBookDef {
   });
 
   final SpellBookId id;
+  final String displayName;
+  final String description;
   final WeaponType weaponType;
   final WeaponStats stats;
   final DamageType? damageType;

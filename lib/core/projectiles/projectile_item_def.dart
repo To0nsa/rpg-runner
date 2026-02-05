@@ -9,6 +9,8 @@ import 'projectile_item_id.dart';
 class ProjectileItemDef {
   const ProjectileItemDef({
     required this.id,
+    required this.displayName,
+    required this.description,
     required this.weaponType,
     required this.projectileId,
     this.originOffset = 0.0,
@@ -20,6 +22,8 @@ class ProjectileItemDef {
   });
 
   final ProjectileItemId id;
+  final String displayName;
+  final String description;
   final WeaponType weaponType;
 
   final ProjectileId projectileId;

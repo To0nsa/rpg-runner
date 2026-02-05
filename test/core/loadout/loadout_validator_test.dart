@@ -130,7 +130,7 @@ void main() {
           abilityCatalog: TestAbilityCatalog(),
           weaponCatalog: weaponCatalog,
           projectileItemCatalog: projectileItemCatalog,
-          spellBookCatalog: const SpellBookCatalog(),
+          spellBookCatalog: SpellBookCatalog(),
         );
 
         const loadout = EquippedLoadoutDef(
@@ -187,6 +187,8 @@ class MockWeaponCatalog implements WeaponCatalog {
     if (id == WeaponId.solidSword) {
       return const WeaponDef(
         id: WeaponId.solidSword,
+        displayName: 'Solid Sword',
+        description: 'Mock two-handed test weapon.',
         category: WeaponCategory.primary,
         weaponType: WeaponType.oneHandedSword,
         isTwoHanded: true,
