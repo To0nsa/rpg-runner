@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/meta/gear_slot.dart';
+import '../../../components/gear_icon.dart';
 import '../../../text/gear_text.dart';
 import '../../../theme/ui_tokens.dart';
-import 'gear_picker_parts.dart';
 import 'gear_stats_presenter.dart';
 
 /// Left-side stats panel for the currently selected gear.

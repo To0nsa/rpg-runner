@@ -6,10 +6,7 @@ import '../../../core/meta/gear_slot.dart';
 import '../../../core/meta/meta_service.dart';
 import '../../../core/players/player_character_definition.dart';
 import '../../../core/players/player_character_registry.dart';
-import '../../../core/projectiles/projectile_item_id.dart';
-import '../../icons/throwing_weapon_asset.dart';
-import '../../icons/ui_icon_coords.dart';
-import '../../icons/ui_icon_tile.dart';
+import '../../components/gear_icon.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
 import '../../state/app_state.dart';
@@ -109,15 +106,16 @@ class _CharacterGearPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Equipped Gear', style: ui.text.headline),
-          SizedBox(height: ui.space.md),
+          SizedBox(height: ui.space.xxs),
           Wrap(
-            spacing: ui.space.md,
-            runSpacing: ui.space.md,
+            spacing: ui.space.xs,
+            runSpacing: ui.space.xs,
             children: [
               _GearSlotButton(
                 label: 'Sword',
-                child: UiIconTile(
-                  coords: uiIconCoordsForWeapon(gear.mainWeaponId)!,
+                child: GearIcon(
+                  slot: GearSlot.mainWeapon,
+                  id: gear.mainWeaponId,
                 ),
                 onTap: () => showGearPickerDialog(
                   context,
@@ -129,8 +127,9 @@ class _CharacterGearPanel extends StatelessWidget {
               ),
               _GearSlotButton(
                 label: 'Shield',
-                child: UiIconTile(
-                  coords: uiIconCoordsForWeapon(gear.offhandWeaponId)!,
+                child: GearIcon(
+                  slot: GearSlot.offhandWeapon,
+                  id: gear.offhandWeaponId,
                 ),
                 onTap: () => showGearPickerDialog(
                   context,
@@ -142,7 +141,10 @@ class _CharacterGearPanel extends StatelessWidget {
               ),
               _GearSlotButton(
                 label: 'Throw',
-                child: _throwingIconOrEmpty(gear.throwingWeaponId),
+                child: GearIcon(
+                  slot: GearSlot.throwingWeapon,
+                  id: gear.throwingWeaponId,
+                ),
                 onTap: () => showGearPickerDialog(
                   context,
                   meta: meta,
@@ -153,9 +155,7 @@ class _CharacterGearPanel extends StatelessWidget {
               ),
               _GearSlotButton(
                 label: 'Book',
-                child: UiIconTile(
-                  coords: uiIconCoordsForSpellBook(gear.spellBookId)!,
-                ),
+                child: GearIcon(slot: GearSlot.spellBook, id: gear.spellBookId),
                 onTap: () => showGearPickerDialog(
                   context,
                   meta: meta,
@@ -166,9 +166,7 @@ class _CharacterGearPanel extends StatelessWidget {
               ),
               _GearSlotButton(
                 label: 'Trinket',
-                child: UiIconTile(
-                  coords: uiIconCoordsForAccessory(gear.accessoryId)!,
-                ),
+                child: GearIcon(slot: GearSlot.accessory, id: gear.accessoryId),
                 onTap: () => showGearPickerDialog(
                   context,
                   meta: meta,
@@ -183,12 +181,6 @@ class _CharacterGearPanel extends StatelessWidget {
       ),
     );
   }
-}
-
-Widget _throwingIconOrEmpty(ProjectileItemId id) {
-  final path = throwingWeaponAssetPath(id);
-  if (path == null) return const SizedBox.shrink();
-  return Image.asset(path, width: 32, height: 32);
 }
 
 class _GearSlotButton extends StatelessWidget {
@@ -214,8 +206,8 @@ class _GearSlotButton extends StatelessWidget {
             onTap: onTap,
             borderRadius: BorderRadius.circular(ui.radii.sm),
             child: Container(
-              width: 32,
-              height: 32,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
                 color: ui.colors.cardBackground,
                 borderRadius: BorderRadius.circular(ui.radii.sm),
@@ -226,7 +218,7 @@ class _GearSlotButton extends StatelessWidget {
             ),
           ),
         ),
-        SizedBox(height: ui.space.xs),
+        SizedBox(height: ui.space.xxs),
         Text(label, style: ui.text.caption),
       ],
     );

@@ -1,14 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/accessories/accessory_id.dart';
-import '../../../../core/meta/gear_slot.dart';
-import '../../../../core/projectiles/projectile_item_id.dart';
-import '../../../../core/spells/spell_book_id.dart';
-import '../../../../core/weapons/weapon_id.dart';
-import '../../../icons/throwing_weapon_asset.dart';
-import '../../../icons/ui_icon_coords.dart';
-import '../../../icons/ui_icon_tile.dart';
-
 /// Tiny status marker used for selected/equipped indicators.
 class StateDot extends StatelessWidget {
   const StateDot({super.key, required this.color});
@@ -22,61 +13,6 @@ class StateDot extends StatelessWidget {
       height: 6,
       decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
-  }
-}
-
-/// Shared gear icon renderer used by both left and right panels.
-///
-/// The mapping from slot/id to asset source is centralized here so visual
-/// changes apply consistently across the gear picker.
-class GearIcon extends StatelessWidget {
-  const GearIcon({
-    super.key,
-    required this.slot,
-    required this.id,
-    this.size = 32,
-  });
-
-  final GearSlot slot;
-  final Object id;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    Widget child;
-    switch (slot) {
-      case GearSlot.mainWeapon:
-      case GearSlot.offhandWeapon:
-        final weaponId = id as WeaponId;
-        final coords = uiIconCoordsForWeapon(weaponId);
-        child = coords == null
-            ? const SizedBox.shrink()
-            : UiIconTile(coords: coords, size: size);
-        break;
-      case GearSlot.spellBook:
-        final bookId = id as SpellBookId;
-        final coords = uiIconCoordsForSpellBook(bookId);
-        child = coords == null
-            ? const SizedBox.shrink()
-            : UiIconTile(coords: coords, size: size);
-        break;
-      case GearSlot.accessory:
-        final accessoryId = id as AccessoryId;
-        final coords = uiIconCoordsForAccessory(accessoryId);
-        child = coords == null
-            ? const SizedBox.shrink()
-            : UiIconTile(coords: coords, size: size);
-        break;
-      case GearSlot.throwingWeapon:
-        final itemId = id as ProjectileItemId;
-        final path = throwingWeaponAssetPath(itemId);
-        child = path == null
-            ? const SizedBox.shrink()
-            : Image.asset(path, width: size, height: size);
-        break;
-    }
-
-    return SizedBox.square(dimension: size, child: child);
   }
 }
 
