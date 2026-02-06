@@ -16,26 +16,14 @@ import '../../state/app_state.dart';
 import '../../theme/ui_tokens.dart';
 import 'gear/gear_picker_dialog.dart';
 
-class LoadoutSetupPage extends StatelessWidget {
+class LoadoutSetupPage extends StatefulWidget {
   const LoadoutSetupPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const MenuScaffold(
-      title: 'Select Character',
-      child: MenuLayout(scrollable: false, child: _LoadoutSetupBody()),
-    );
-  }
+  State<LoadoutSetupPage> createState() => _LoadoutSetupPageState();
 }
 
-class _LoadoutSetupBody extends StatefulWidget {
-  const _LoadoutSetupBody();
-
-  @override
-  State<_LoadoutSetupBody> createState() => _LoadoutSetupBodyState();
-}
-
-class _LoadoutSetupBodyState extends State<_LoadoutSetupBody> {
+class _LoadoutSetupPageState extends State<LoadoutSetupPage> {
   bool _seeded = false;
   late int _initialTabIndex;
 
@@ -61,31 +49,43 @@ class _LoadoutSetupBodyState extends State<_LoadoutSetupBody> {
     return DefaultTabController(
       length: defs.length,
       initialIndex: _initialTabIndex,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TabBar(
-            isScrollable: true,
-            labelColor: ui.colors.textPrimary,
-            unselectedLabelColor: ui.colors.textMuted,
-            labelStyle: ui.text.label,
-            indicatorColor: ui.colors.accent,
-            onTap: (index) {
-              final def = defs[index];
-              appState.setCharacter(def.id);
-            },
-            tabs: [for (final def in defs) Tab(text: def.displayName)],
-          ),
-          Expanded(
-            child: TabBarView(
-              children: [
-                for (final def in defs)
-                  _CharacterGearPanel(characterId: def.id),
-              ],
-            ),
-          ),
-        ],
+      child: MenuScaffold(
+        appBarTitle: TabBar(
+          isScrollable: true,
+          labelColor: ui.colors.textPrimary,
+          unselectedLabelColor: ui.colors.textMuted,
+          labelStyle: ui.text.label,
+          indicatorColor: ui.colors.accent,
+          onTap: (index) {
+            final def = defs[index];
+            appState.setCharacter(def.id);
+          },
+          tabs: [for (final def in defs) Tab(text: def.displayName)],
+        ),
+        child: const MenuLayout(scrollable: false, child: _LoadoutSetupBody()),
       ),
+    );
+  }
+}
+
+class _LoadoutSetupBody extends StatelessWidget {
+  const _LoadoutSetupBody();
+
+  @override
+  Widget build(BuildContext context) {
+    final defs = PlayerCharacterRegistry.all;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: TabBarView(
+            children: [
+              for (final def in defs) _CharacterGearPanel(characterId: def.id),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -104,7 +104,7 @@ class _CharacterGearPanel extends StatelessWidget {
     const service = MetaService();
 
     return Padding(
-      padding: EdgeInsets.all(ui.space.lg),
+      padding: EdgeInsets.all(ui.space.xxs),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
