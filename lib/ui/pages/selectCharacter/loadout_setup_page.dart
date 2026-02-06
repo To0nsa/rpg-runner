@@ -77,6 +77,8 @@ class _LoadoutSetupBody extends StatelessWidget {
       children: [
         Expanded(
           child: TabBarView(
+            // Keep character selection explicit: tabs change via click/tap only.
+            physics: const NeverScrollableScrollPhysics(),
             children: [
               for (final def in defs) _CharacterGearPanel(characterId: def.id),
             ],
