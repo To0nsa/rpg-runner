@@ -104,7 +104,19 @@ class _GearPickerDialogState extends State<_GearPickerDialog> {
     );
 
     final selectedId = _selectedCandidate;
-    final canSwap = selectedId != null && selectedId != equippedId;
+    GearSlotCandidate? selectedCandidate;
+    if (selectedId != null) {
+      for (final candidate in candidates) {
+        if (candidate.id == selectedId) {
+          selectedCandidate = candidate;
+          break;
+        }
+      }
+    }
+    final canSwap =
+        selectedId != null &&
+        selectedId != equippedId &&
+        (selectedCandidate?.isUnlocked ?? false);
 
     Future<void> equipSelected() async {
       final candidate = _selectedCandidate;
@@ -218,18 +230,12 @@ Object _equippedIdForSlot(GearSlot slot, EquippedGear equipped) {
   };
 }
 
-List<Object> _candidatesForSlot(
+List<GearSlotCandidate> _candidatesForSlot(
   GearSlot slot,
   MetaService service,
   MetaState meta,
 ) {
-  return switch (slot) {
-    GearSlot.mainWeapon => service.unlockedMainWeapons(meta),
-    GearSlot.offhandWeapon => service.unlockedOffhands(meta),
-    GearSlot.throwingWeapon => service.unlockedThrowingWeapons(meta),
-    GearSlot.spellBook => service.unlockedSpellBooks(meta),
-    GearSlot.accessory => service.unlockedAccessories(meta),
-  };
+  return service.candidatesForSlot(meta, slot);
 }
 
 class _GearCandidateGrid extends StatelessWidget {
@@ -242,7 +248,7 @@ class _GearCandidateGrid extends StatelessWidget {
   });
 
   final GearSlot slot;
-  final List<Object> candidates;
+  final List<GearSlotCandidate> candidates;
   final Object equippedId;
   final Object? selectedId;
   final ValueChanged<Object> onSelected;
@@ -253,7 +259,7 @@ class _GearCandidateGrid extends StatelessWidget {
     if (candidates.isEmpty) {
       return Center(
         child: Text(
-          'No unlocked options for this slot.',
+          'No options for this slot.',
           style: ui.text.body.copyWith(color: ui.colors.textMuted),
         ),
       );
@@ -283,10 +289,13 @@ class _GearCandidateGrid extends StatelessWidget {
             final candidate = candidates[index];
             return _GearCandidateTile(
               slot: slot,
-              id: candidate,
-              isEquipped: candidate == equippedId,
-              selected: candidate == selectedId,
-              onTap: () => onSelected(candidate),
+              id: candidate.id,
+              isLocked: !candidate.isUnlocked,
+              isEquipped: candidate.id == equippedId,
+              selected: candidate.id == selectedId,
+              onTap: candidate.isUnlocked
+                  ? () => onSelected(candidate.id)
+                  : null,
             );
           },
         );
@@ -299,6 +308,7 @@ class _GearCandidateTile extends StatelessWidget {
   const _GearCandidateTile({
     required this.slot,
     required this.id,
+    required this.isLocked,
     required this.isEquipped,
     required this.selected,
     required this.onTap,
@@ -306,9 +316,10 @@ class _GearCandidateTile extends StatelessWidget {
 
   final GearSlot slot;
   final Object id;
+  final bool isLocked;
   final bool isEquipped;
   final bool selected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -316,63 +327,86 @@ class _GearCandidateTile extends StatelessWidget {
     const tileSize = 64.0;
     const iconSize = 48.0;
     const iconPadding = 8.0;
-    final borderColor = selected
+    final borderColor = isLocked
+        ? ui.colors.outline.withValues(alpha: 0.35)
+        : selected
         ? ui.colors.accentStrong
         : (isEquipped ? ui.colors.success : ui.colors.outline);
 
-    final fillColor = selected
+    final fillColor = isLocked
+        ? ui.colors.cardBackground.withValues(alpha: 0.45)
+        : selected
         ? ui.colors.cardBackground.withValues(alpha: 0.9)
         : ui.colors.cardBackground.withValues(alpha: 0.72);
     final radius = ui.radii.sm;
 
-    return SizedBox.square(
-      dimension: tileSize,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(radius),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            curve: Curves.easeOutCubic,
-            decoration: BoxDecoration(
-              color: fillColor,
-              borderRadius: BorderRadius.circular(radius),
-              border: Border.all(
-                color: borderColor,
-                width: selected ? ui.sizes.borderWidth : 1,
+    return Align(
+      alignment: Alignment.center,
+      child: SizedBox.square(
+        dimension: tileSize,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(radius),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              curve: Curves.easeOutCubic,
+              decoration: BoxDecoration(
+                color: fillColor,
+                borderRadius: BorderRadius.circular(radius),
+                border: Border.all(
+                  color: borderColor,
+                  width: selected ? ui.sizes.borderWidth : 1,
+                ),
+                boxShadow: selected ? ui.shadows.card : null,
               ),
-              boxShadow: selected ? ui.shadows.card : null,
-            ),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(iconPadding),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(ui.radii.sm),
-                      border: Border.all(
-                        color: ui.colors.outline.withValues(alpha: 0.6),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(iconPadding),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(ui.radii.sm),
+                        border: Border.all(
+                          color: isLocked
+                              ? ui.colors.outline.withValues(alpha: 0.3)
+                              : ui.colors.outline.withValues(alpha: 0.6),
+                        ),
+                      ),
+                      child: Opacity(
+                        opacity: isLocked ? 0.45 : 1,
+                        child: _GearIcon(slot: slot, id: id, size: iconSize),
                       ),
                     ),
-                    child: _GearIcon(slot: slot, id: id, size: iconSize),
                   ),
-                ),
-                if (isEquipped || selected)
-                  Positioned(
-                    top: 2,
-                    right: 2,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (isEquipped) _StateDot(color: ui.colors.success),
-                        if (isEquipped && selected) const SizedBox(width: 2),
-                        if (selected) _StateDot(color: ui.colors.accentStrong),
-                      ],
+                  if (isLocked)
+                    Positioned(
+                      top: 2,
+                      left: 2,
+                      child: Icon(
+                        Icons.lock,
+                        size: 10,
+                        color: ui.colors.textMuted,
+                      ),
                     ),
-                  ),
-              ],
+                  if (isEquipped || selected)
+                    Positioned(
+                      top: 2,
+                      right: 2,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isEquipped) _StateDot(color: ui.colors.success),
+                          if (isEquipped && selected) const SizedBox(width: 2),
+                          if (selected)
+                            _StateDot(color: ui.colors.accentStrong),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
@@ -459,9 +493,14 @@ class _GearStatsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final ui = context.ui;
     final lines = id == null ? const <_StatLine>[] : _statsFor(slot, id!);
+    final isCurrentlyEquipped =
+        id != null && equippedForCompare != null && id == equippedForCompare;
     final compareLines = (id == null || equippedForCompare == null)
         ? const <_StatLine>[]
         : _compareStats(slot, equippedForCompare!, id!);
+    final compareEmptyText = isCurrentlyEquipped
+        ? 'This gear is currently equipped.'
+        : 'No stat differences.';
     final cardPadding = ui.space.xs;
     final iconFrameSize = 38.0;
     final blockSpacing = ui.space.xs;
@@ -495,6 +534,7 @@ class _GearStatsCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
                         width: iconFrameSize,
@@ -531,8 +571,9 @@ class _GearStatsCard extends StatelessWidget {
                                 fontSize: 9,
                                 height: 1.0,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                              maxLines: 2,
+                              softWrap: true,
+                              overflow: TextOverflow.clip,
                             ),
                           ],
                         ),
@@ -555,9 +596,9 @@ class _GearStatsCard extends StatelessWidget {
                           SizedBox(height: blockSpacing),
                           Expanded(
                             child: _StatSection(
-                              title: 'Compared To Equipped',
+                              title: 'Compared to equipped gear:',
                               lines: compareLines,
-                              emptyText: 'No stat differences.',
+                              emptyText: compareEmptyText,
                             ),
                           ),
                         ],
@@ -818,7 +859,6 @@ List<_StatLine> _weaponDefStats(WeaponDef def) {
   _addBpStat(lines, 'Power', stats.powerBonusBp);
   _addBpStat(lines, 'Crit Chance', stats.critChanceBonusBp);
   _addBpStat(lines, 'Crit Damage', stats.critDamageBonusBp);
-  _addIntPercentStat(lines, 'Range', stats.rangeScalarPercent);
   return lines;
 }
 
@@ -871,11 +911,6 @@ void _addPct100Stat(List<_StatLine> lines, String label, int value) {
   lines.add(_StatLine(label, _pct100(value)));
 }
 
-void _addIntPercentStat(List<_StatLine> lines, String label, int value) {
-  if (value == 0) return;
-  lines.add(_StatLine(label, '$value%'));
-}
-
 List<_StatLine> _diffWeaponStats(WeaponDef equipped, WeaponDef candidate) {
   final a = equipped.stats;
   final b = candidate.stats;
@@ -891,11 +926,6 @@ List<_StatLine> _diffWeaponStats(WeaponDef equipped, WeaponDef candidate) {
   if (b.critDamageBonusBp != a.critDamageBonusBp) {
     lines.add(
       _deltaBpLine('Crit Damage', a.critDamageBonusBp, b.critDamageBonusBp),
-    );
-  }
-  if (b.rangeScalarPercent != a.rangeScalarPercent) {
-    lines.add(
-      _deltaIntPercentLine('Range', a.rangeScalarPercent, b.rangeScalarPercent),
     );
   }
   return lines;
@@ -967,25 +997,15 @@ _StatLine _deltaPct100Line(
   );
 }
 
-_StatLine _deltaIntPercentLine(
-  String label,
-  int equippedValue,
-  int candidateValue,
-) {
-  final delta = candidateValue - equippedValue;
-  final sign = delta > 0 ? '+' : '';
-  return _StatLine(label, '$sign$delta%', tone: _toneForDelta(delta));
-}
-
 _StatLineTone _toneForDelta(int delta) {
   if (delta > 0) return _StatLineTone.positive;
   if (delta < 0) return _StatLineTone.negative;
   return _StatLineTone.neutral;
 }
 
-String _bpPct(int bp) => '${_formatNumber(bp / 100)}%';
+String _bpPct(int bp) => _signedPercent(bp / 100);
 
-String _pct100(int fixed100) => '${_formatNumber(fixed100 / 100)}%';
+String _pct100(int fixed100) => _signedPercent(fixed100 / 100);
 
 String _signedPercent(double value) {
   final sign = value > 0 ? '+' : '';
@@ -998,10 +1018,18 @@ String _formatNumber(double value) {
 }
 
 String _enumLabel(String source) {
-  final normalized = source.replaceAll('_', ' ');
-  final words = normalized.split(' ');
+  final normalized = source
+      .replaceAll('_', ' ')
+      .replaceAllMapped(
+        RegExp(r'([a-z0-9])([A-Z])'),
+        (match) => '${match.group(1)} ${match.group(2)}',
+      );
+  final words = normalized.split(RegExp(r'\s+'));
   return words
       .where((word) => word.isNotEmpty)
-      .map((word) => '${word[0].toUpperCase()}${word.substring(1)}')
+      .map((word) {
+        if (word == word.toUpperCase()) return word;
+        return '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}';
+      })
       .join(' ');
 }

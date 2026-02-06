@@ -15,7 +15,16 @@ import 'meta_defaults.dart';
 import 'meta_state.dart';
 import '../players/player_character_definition.dart';
 
+class GearSlotCandidate {
+  const GearSlotCandidate({required this.id, required this.isUnlocked});
+
+  final Object id;
+  final bool isUnlocked;
+}
+
 class MetaService {
+  static const int _startingUnlockedPerCatalog = 2;
+
   const MetaService({
     this.weapons = const WeaponCatalog(),
     this.projectileItems = const ProjectileItemCatalog(),
@@ -29,20 +38,56 @@ class MetaService {
   final AccessoryCatalog accessories;
 
   InventoryState seedAllUnlockedInventory() {
-    final unlockedThrowing = <ProjectileItemId>{};
-    for (final id in ProjectileItemId.values) {
-      final def = projectileItems.tryGet(id);
-      if (def != null && def.weaponType == WeaponType.throwingWeapon) {
-        unlockedThrowing.add(id);
+    return InventoryState(
+      unlockedWeaponIds: _startingUnlockedWeaponIds(),
+      unlockedThrowingWeaponIds: _startingUnlockedThrowingWeaponIds(),
+      unlockedSpellBookIds: _startingUnlockedSpellBookIds(),
+      unlockedAccessoryIds: _startingUnlockedAccessoryIds(),
+    );
+  }
+
+  Set<WeaponId> _startingUnlockedWeaponIds() {
+    final unlockedPrimaryWeapons = <WeaponId>[];
+    final unlockedOffhandWeapons = <WeaponId>[];
+    for (final id in WeaponId.values) {
+      final def = weapons.tryGet(id);
+      if (def == null) continue;
+      switch (def.category) {
+        case WeaponCategory.primary:
+          unlockedPrimaryWeapons.add(id);
+          break;
+        case WeaponCategory.offHand:
+          unlockedOffhandWeapons.add(id);
+          break;
+        case WeaponCategory.projectile:
+          break;
       }
     }
 
-    return InventoryState(
-      unlockedWeaponIds: WeaponId.values.toSet(),
-      unlockedThrowingWeaponIds: unlockedThrowing,
-      unlockedSpellBookIds: SpellBookId.values.toSet(),
-      unlockedAccessoryIds: AccessoryId.values.toSet(),
-    );
+    return <WeaponId>{
+      ...unlockedPrimaryWeapons.take(_startingUnlockedPerCatalog),
+      ...unlockedOffhandWeapons.take(_startingUnlockedPerCatalog),
+    };
+  }
+
+  Set<ProjectileItemId> _startingUnlockedThrowingWeaponIds() {
+    final unlockedThrowingCandidates = <ProjectileItemId>[];
+    for (final id in ProjectileItemId.values) {
+      final def = projectileItems.tryGet(id);
+      if (def != null && def.weaponType == WeaponType.throwingWeapon) {
+        unlockedThrowingCandidates.add(id);
+      }
+    }
+
+    return unlockedThrowingCandidates.take(_startingUnlockedPerCatalog).toSet();
+  }
+
+  Set<SpellBookId> _startingUnlockedSpellBookIds() {
+    return SpellBookId.values.take(_startingUnlockedPerCatalog).toSet();
+  }
+
+  Set<AccessoryId> _startingUnlockedAccessoryIds() {
+    return AccessoryId.values.take(_startingUnlockedPerCatalog).toSet();
   }
 
   MetaState createNew() {
@@ -51,20 +96,90 @@ class MetaService {
     );
   }
 
+  List<GearSlotCandidate> candidatesForSlot(MetaState state, GearSlot slot) {
+    return switch (slot) {
+      GearSlot.mainWeapon => _weaponCandidatesForCategory(
+        state,
+        WeaponCategory.primary,
+      ),
+      GearSlot.offhandWeapon => _weaponCandidatesForCategory(
+        state,
+        WeaponCategory.offHand,
+      ),
+      GearSlot.throwingWeapon => _throwingWeaponCandidates(state),
+      GearSlot.spellBook => _spellBookCandidates(state),
+      GearSlot.accessory => _accessoryCandidates(state),
+    };
+  }
+
+  List<GearSlotCandidate> _weaponCandidatesForCategory(
+    MetaState state,
+    WeaponCategory category,
+  ) {
+    final unlocked = state.inventory.unlockedWeaponIds;
+    final result = <GearSlotCandidate>[];
+    for (final id in WeaponId.values) {
+      final def = weapons.tryGet(id);
+      if (def == null || def.category != category) continue;
+      result.add(GearSlotCandidate(id: id, isUnlocked: unlocked.contains(id)));
+    }
+    return result;
+  }
+
+  List<GearSlotCandidate> _throwingWeaponCandidates(MetaState state) {
+    final unlocked = state.inventory.unlockedThrowingWeaponIds;
+    final result = <GearSlotCandidate>[];
+    for (final id in ProjectileItemId.values) {
+      final def = projectileItems.tryGet(id);
+      if (def == null || def.weaponType != WeaponType.throwingWeapon) {
+        continue;
+      }
+      result.add(GearSlotCandidate(id: id, isUnlocked: unlocked.contains(id)));
+    }
+    return result;
+  }
+
+  List<GearSlotCandidate> _spellBookCandidates(MetaState state) {
+    final unlocked = state.inventory.unlockedSpellBookIds;
+    return [
+      for (final id in SpellBookId.values)
+        GearSlotCandidate(id: id, isUnlocked: unlocked.contains(id)),
+    ];
+  }
+
+  List<GearSlotCandidate> _accessoryCandidates(MetaState state) {
+    final unlocked = state.inventory.unlockedAccessoryIds;
+    return [
+      for (final id in AccessoryId.values)
+        GearSlotCandidate(id: id, isUnlocked: unlocked.contains(id)),
+    ];
+  }
+
   MetaState normalize(MetaState state) {
     var inventory = state.inventory;
+    final allowedWeapons = _startingUnlockedWeaponIds();
+    final allowedThrowingWeapons = _startingUnlockedThrowingWeaponIds();
+    final allowedSpellBooks = _startingUnlockedSpellBookIds();
+    final allowedAccessories = _startingUnlockedAccessoryIds();
+
     final unlockedWeapons = Set<WeaponId>.from(inventory.unlockedWeaponIds)
+      ..removeWhere((id) => !allowedWeapons.contains(id))
       ..add(MetaDefaults.mainWeaponId)
       ..add(MetaDefaults.offhandWeaponId);
-    final unlockedThrowing = Set<ProjectileItemId>.from(
-      inventory.unlockedThrowingWeaponIds,
-    )..add(MetaDefaults.throwingWeaponId);
+    final unlockedThrowing =
+        Set<ProjectileItemId>.from(inventory.unlockedThrowingWeaponIds)
+          ..removeWhere((id) => !allowedThrowingWeapons.contains(id))
+          ..add(MetaDefaults.throwingWeaponId);
     final unlockedSpellBooks = Set<SpellBookId>.from(
       inventory.unlockedSpellBookIds,
-    )..add(MetaDefaults.spellBookId);
-    final unlockedAccessories = Set<AccessoryId>.from(
-      inventory.unlockedAccessoryIds,
-    )..add(MetaDefaults.accessoryId);
+    );
+    unlockedSpellBooks
+      ..removeWhere((id) => !allowedSpellBooks.contains(id))
+      ..add(MetaDefaults.spellBookId);
+    final unlockedAccessories =
+        Set<AccessoryId>.from(inventory.unlockedAccessoryIds)
+          ..removeWhere((id) => !allowedAccessories.contains(id))
+          ..add(MetaDefaults.accessoryId);
 
     inventory = inventory.copyWith(
       unlockedWeaponIds: unlockedWeapons,
