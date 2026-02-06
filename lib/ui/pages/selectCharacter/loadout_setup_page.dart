@@ -14,7 +14,7 @@ import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
 import '../../state/app_state.dart';
 import '../../theme/ui_tokens.dart';
-import 'gear_picker_dialog.dart';
+import 'gear/gear_picker_dialog.dart';
 
 class LoadoutSetupPage extends StatelessWidget {
   const LoadoutSetupPage({super.key});
