@@ -30,14 +30,14 @@ void main() {
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
         seed: 1,
-      tickHz: tickHz,
-      tuning: noAutoscrollTuning,
-      playerCharacter: base.copyWith(
-        catalog: testPlayerCatalog(
-          bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-          projectileItemId: ProjectileItemId.throwingKnife,
-          abilityProjectileId: 'eloise.throwing_knife',
-        ),
+        tickHz: tickHz,
+        tuning: noAutoscrollTuning,
+        playerCharacter: base.copyWith(
+          catalog: testPlayerCatalog(
+            bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+            projectileItemId: ProjectileItemId.throwingKnife,
+            abilityProjectileId: 'eloise.throwing_knife',
+          ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
               playerManaMax: 0,
@@ -94,14 +94,14 @@ void main() {
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
         seed: 1,
-      tickHz: 20,
-      tuning: noAutoscrollTuning,
-      playerCharacter: base.copyWith(
-        catalog: testPlayerCatalog(
-          bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-          projectileItemId: ProjectileItemId.throwingKnife,
-          abilityProjectileId: 'eloise.throwing_knife',
-        ),
+        tickHz: 20,
+        tuning: noAutoscrollTuning,
+        playerCharacter: base.copyWith(
+          catalog: testPlayerCatalog(
+            bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+            projectileItemId: ProjectileItemId.throwingKnife,
+            abilityProjectileId: 'eloise.throwing_knife',
+          ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
               playerManaMax: 0,
@@ -164,6 +164,7 @@ void main() {
       fallbackDirX: 1,
       fallbackDirY: 0,
       damage100: 100,
+      critChanceBp: 0,
       damageType: DamageType.physical,
       ballistic: true,
       gravityScale: 1.0,

@@ -19,6 +19,7 @@ class DamageQueueFlags {
 class DamageQueueStore {
   final List<EntityId> target = <EntityId>[];
   final List<int> amount100 = <int>[];
+  final List<int> critChanceBp = <int>[];
   final List<DamageType> damageType = <DamageType>[];
   final List<List<WeaponProc>> procs = <List<WeaponProc>>[];
   final List<DeathSourceKind> sourceKind = <DeathSourceKind>[];
@@ -39,6 +40,7 @@ class DamageQueueStore {
     final index = target.length;
     target.add(request.target);
     amount100.add(request.amount100);
+    critChanceBp.add(request.critChanceBp);
     damageType.add(request.damageType);
     procs.add(request.procs);
     sourceKind.add(request.sourceKind);
@@ -57,6 +59,7 @@ class DamageQueueStore {
   void clear() {
     target.clear();
     amount100.clear();
+    critChanceBp.clear();
     damageType.clear();
     procs.clear();
     sourceKind.clear();

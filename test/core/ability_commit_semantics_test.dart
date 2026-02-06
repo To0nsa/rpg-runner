@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
+import 'package:rpg_runner/core/accessories/accessory_catalog.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
@@ -57,6 +58,7 @@ void main() {
         weapons: const WeaponCatalog(),
         projectileItems: const ProjectileItemCatalog(),
         spellBooks: const SpellBookCatalog(),
+        accessories: const AccessoryCatalog(),
       );
 
       final player = world.createEntity();

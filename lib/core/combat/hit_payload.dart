@@ -17,6 +17,7 @@ import 'damage_type.dart';
 class HitPayload {
   const HitPayload({
     required this.damage100,
+    required this.critChanceBp,
     required this.damageType,
     required this.procs,
     required this.sourceId,
@@ -28,6 +29,9 @@ class HitPayload {
   ///
   /// Includes base ability damage + weapon scaling + any intent-time modifiers.
   final int damage100;
+
+  /// Critical strike chance in basis points (100 = 1%).
+  final int critChanceBp;
 
   /// The elemental type of the damage (resolved from Ability vs Weapon priority).
   final DamageType damageType;

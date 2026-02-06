@@ -12,6 +12,7 @@ class ProjectileIntentDef {
     required this.abilityId,
     required this.slot,
     required this.damage100,
+    this.critChanceBp = 0,
     required this.staminaCost100,
     required this.manaCost100,
     required this.cooldownTicks,
@@ -37,6 +38,7 @@ class ProjectileIntentDef {
   final AbilityKey abilityId;
   final AbilitySlot slot;
   final int damage100;
+  final int critChanceBp;
   final int staminaCost100;
   final int manaCost100;
   final int cooldownTicks;
@@ -65,6 +67,7 @@ class ProjectileIntentStore extends SparseSet {
   final List<AbilityKey> abilityId = <AbilityKey>[];
   final List<AbilitySlot> slot = <AbilitySlot>[];
   final List<int> damage100 = <int>[];
+  final List<int> critChanceBp = <int>[];
   final List<int> staminaCost100 = <int>[];
   final List<int> manaCost100 = <int>[];
   final List<int> cooldownTicks = <int>[];
@@ -100,6 +103,7 @@ class ProjectileIntentStore extends SparseSet {
     abilityId[i] = def.abilityId;
     slot[i] = def.slot;
     damage100[i] = def.damage100;
+    critChanceBp[i] = def.critChanceBp;
     staminaCost100[i] = def.staminaCost100;
     manaCost100[i] = def.manaCost100;
     cooldownTicks[i] = def.cooldownTicks;
@@ -127,6 +131,7 @@ class ProjectileIntentStore extends SparseSet {
     abilityId.add('eloise.ice_bolt');
     slot.add(AbilitySlot.projectile);
     damage100.add(0);
+    critChanceBp.add(0);
     staminaCost100.add(0);
     manaCost100.add(0);
     cooldownTicks.add(0);
@@ -154,6 +159,7 @@ class ProjectileIntentStore extends SparseSet {
     abilityId[removeIndex] = abilityId[lastIndex];
     slot[removeIndex] = slot[lastIndex];
     damage100[removeIndex] = damage100[lastIndex];
+    critChanceBp[removeIndex] = critChanceBp[lastIndex];
     staminaCost100[removeIndex] = staminaCost100[lastIndex];
     manaCost100[removeIndex] = manaCost100[lastIndex];
     cooldownTicks[removeIndex] = cooldownTicks[lastIndex];
@@ -178,6 +184,7 @@ class ProjectileIntentStore extends SparseSet {
     abilityId.removeLast();
     slot.removeLast();
     damage100.removeLast();
+    critChanceBp.removeLast();
     staminaCost100.removeLast();
     manaCost100.removeLast();
     cooldownTicks.removeLast();

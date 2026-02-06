@@ -78,6 +78,7 @@ void main() {
       fallbackDirX: 1,
       fallbackDirY: 0,
       damage100: thunderDamage,
+      critChanceBp: 0,
       damageType: projectileItem.damageType,
       procs: projectileItem.procs,
       ballistic: projectileItem.ballistic,

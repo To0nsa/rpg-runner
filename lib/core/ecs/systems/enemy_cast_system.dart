@@ -171,6 +171,7 @@ class EnemyCastSystem {
         abilityId: ability.id,
         slot: AbilitySlot.projectile,
         damage100: payload.damage100,
+        critChanceBp: payload.critChanceBp,
         staminaCost100: ability.staminaCost,
         manaCost100: ability.manaCost,
         cooldownTicks: tuning.unocoDemonCastCooldownTicks,

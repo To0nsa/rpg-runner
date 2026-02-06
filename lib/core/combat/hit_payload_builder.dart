@@ -1,5 +1,5 @@
 import '../weapons/weapon_proc.dart';
-import '../weapons/weapon_stats.dart';
+import '../stats/gear_stat_bonuses.dart';
 import '../abilities/ability_def.dart';
 import '../ecs/entity_id.dart';
 import 'damage_type.dart';
@@ -18,7 +18,8 @@ class HitPayloadBuilder {
     required AbilityDef ability,
     required EntityId source,
     // Modifiers (extracted from WeaponDef or ProjectileItemDef or Buffs)
-    WeaponStats? weaponStats,
+    GearStatBonuses? weaponStats,
+    int globalCritChanceBonusBp = 0,
     DamageType? weaponDamageType,
     List<WeaponProc> weaponProcs = const [],
     List<WeaponProc> buffProcs = const [],
@@ -27,6 +28,7 @@ class HitPayloadBuilder {
     // 1. Start with Ability Base
     int finalDamage100 = ability.baseDamage; // Fixed-point (e.g. 1500 = 15.0)
     DamageType finalDamageType = ability.baseDamageType;
+    int finalCritChanceBp = globalCritChanceBonusBp;
     final List<WeaponProc> finalProcs = [];
 
     // 2. Apply Weapon Modifiers
@@ -35,21 +37,23 @@ class HitPayloadBuilder {
       // Math: damage = base * (1 + bonusBp/10000)
       // Impl: (base * (10000 + bonusBp)) ~/ 10000
       final bonusBp = weaponStats.powerBonusBp;
-      if (bonusBp > 0) {
-        // e.g. 1500 * 12000 ~/ 10000 = 1800
-        finalDamage100 = (finalDamage100 * (10000 + bonusBp)) ~/ 10000;
-      }
+      // e.g. 1500 * 12000 ~/ 10000 = 1800
+      finalDamage100 = (finalDamage100 * (10000 + bonusBp)) ~/ 10000;
+      if (finalDamage100 < 0) finalDamage100 = 0;
+
+      // B. Crit chance is additive, with later cap at payload level.
+      finalCritChanceBp += weaponStats.critChanceBonusBp;
     }
 
     if (weaponDamageType != null) {
-      // B. Damage Type Override
+      // C. Damage Type Override
       // Rule: Weapon overrides Physical ability. Elemental ability (Fire/Ice) keeps its element.
       if (finalDamageType == DamageType.physical) {
         finalDamageType = weaponDamageType;
       }
     }
 
-    // C. Procs (deterministic merge + dedupe)
+    // D. Procs (deterministic merge + dedupe)
     // Order is canonical: ability -> item -> buffs -> passives.
     final Set<int> seen = <int>{};
     void addProcs(List<WeaponProc> procs) {
@@ -73,15 +77,16 @@ class HitPayloadBuilder {
       addProcs(passiveProcs);
     }
 
+    if (finalCritChanceBp < 0) finalCritChanceBp = 0;
+    if (finalCritChanceBp > 10000) finalCritChanceBp = 10000;
+
     return HitPayload(
       damage100: finalDamage100,
+      critChanceBp: finalCritChanceBp,
       damageType: finalDamageType,
       procs: finalProcs,
       sourceId: source,
       abilityId: ability.id,
-      // Removed weaponId debug field to decouple? Or keep optional?
-      // Let's remove weaponId from builder logic, caller can add if needed via 'copyWith'? 
-      // Or just omit relevant debug info for now.
     );
   }
 }

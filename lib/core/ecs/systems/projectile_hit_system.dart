@@ -31,7 +31,7 @@ class ProjectileHitSystem {
   }) {
     // Optimization: If there are no targets to hit, projectiles just fly.
     if (broadphase.targets.isEmpty) return;
-    
+
     final projectiles = world.projectile;
     if (projectiles.denseEntities.isEmpty) return;
 
@@ -46,7 +46,7 @@ class ProjectileHitSystem {
     final count = projectiles.denseEntities.length;
     for (var pi = 0; pi < count; pi += 1) {
       final p = projectiles.denseEntities[pi];
-      
+
       // Validation: Projectiles must have physical presence.
       final ti = transforms.tryIndexOf(p);
       if (ti == null) continue;
@@ -61,10 +61,10 @@ class ProjectileHitSystem {
       // - [halfY]: Interpreted as the radius (thickness) of the projectile.
       final pcx = transforms.posX[ti] + colliders.offsetX[ci];
       final pcy = transforms.posY[ti] + colliders.offsetY[ci];
-      
+
       final halfLength = colliders.halfX[ci];
       final radius = colliders.halfY[ci];
-      
+
       final dirX = projectiles.dirX[pi];
       final dirY = projectiles.dirY[pi];
       final facing = dirX >= 0 ? Facing.right : Facing.left;
@@ -104,16 +104,18 @@ class ProjectileHitSystem {
         // Doing this before the hit check would waste cycles for the 99% of frames a projectile is just flying.
         final ei = enemies.tryIndexOf(owner);
         final enemyId = ei != null ? enemies.enemyId[ei] : null;
-        
+
         final si = projectileOrigins.tryIndexOf(p);
-        final projectileItemId =
-            si != null ? projectileOrigins.projectileItemId[si] : null;
+        final projectileItemId = si != null
+            ? projectileOrigins.projectileItemId[si]
+            : null;
 
         // Dispatch damage event.
         world.damageQueue.add(
           DamageRequest(
             target: broadphase.targets.entities[targetIndex],
             amount100: projectiles.damage100[pi],
+            critChanceBp: projectiles.critChanceBp[pi],
             damageType: projectiles.damageType[pi],
             procs: projectiles.procs[pi],
             source: owner,
@@ -136,7 +138,7 @@ class ProjectileHitSystem {
             ),
           );
         }
-        
+
         // Mark projectile for removal.
         // We defer removal until after the loop or use a list to avoid modifying the collection while iterating
         // (though we are iterating by index here, deferred removal is safer/cleaner pattern).

@@ -20,6 +20,7 @@ import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/tuning/spatial_grid_tuning.dart';
 import 'package:rpg_runner/core/ecs/entity_factory.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
+import 'package:rpg_runner/core/accessories/accessory_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
 import 'package:rpg_runner/core/spells/spell_book_catalog.dart';
 import 'package:rpg_runner/core/weapons/weapon_catalog.dart';
@@ -34,13 +35,16 @@ void main() {
       weapons: const WeaponCatalog(),
       projectileItems: const ProjectileItemCatalog(),
       spellBooks: const SpellBookCatalog(),
+      accessories: const AccessoryCatalog(),
     );
     final meleeStrike = MeleeStrikeSystem();
     final follow = HitboxFollowOwnerSystem();
     final hitboxDamage = HitboxDamageSystem();
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
     final broadphase = BroadphaseGrid(
-      index: GridIndex2D(cellSize: const SpatialGridTuning().broadphaseCellSize),
+      index: GridIndex2D(
+        cellSize: const SpatialGridTuning().broadphaseCellSize,
+      ),
     );
     final lifetime = LifetimeSystem();
 
@@ -55,7 +59,11 @@ void main() {
       collider: const ColliderAabbDef(halfX: 8, halfY: 8),
       health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
       mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
-      stamina: const StaminaDef(stamina: 10000, staminaMax: 10000, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 10000,
+        staminaMax: 10000,
+        regenPerSecond100: 0,
+      ),
     );
 
     // This test expects the primary button to execute a melee strike (not parry).
@@ -65,7 +73,10 @@ void main() {
     final enemy = world.createEntity();
     world.transform.add(enemy, posX: 110, posY: 100, velX: 0, velY: 0);
     world.colliderAabb.add(enemy, const ColliderAabbDef(halfX: 8, halfY: 8));
-    world.health.add(enemy, const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0));
+    world.health.add(
+      enemy,
+      const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+    );
     world.faction.add(enemy, const FactionDef(faction: Faction.enemy));
 
     final playerInputIndex = world.playerInput.indexOf(player);
@@ -86,7 +97,8 @@ void main() {
       }
     }
 
-    expect(world.health.hp[world.health.indexOf(enemy)], equals(8500));
+    // Default starter loadout has -1% power; 1500 base becomes 1485.
+    expect(world.health.hp[world.health.indexOf(enemy)], equals(8515));
 
     // Next tick: still overlapping, but should not re-hit the same target.
     activation.step(world, player: player, currentTick: 10);
@@ -97,6 +109,6 @@ void main() {
     damage.step(world, currentTick: 10);
     lifetime.step(world);
 
-    expect(world.health.hp[world.health.indexOf(enemy)], equals(8500));
+    expect(world.health.hp[world.health.indexOf(enemy)], equals(8515));
   });
 }

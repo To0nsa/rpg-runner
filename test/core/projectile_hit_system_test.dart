@@ -27,10 +27,10 @@ import 'package:rpg_runner/core/ecs/entity_factory.dart';
 void main() {
   test('ProjectileHitSystem damages target and despawns projectile', () {
     final world = EcsWorld();
-    final iceBoltDamage =
-        AbilityCatalog.tryGet('eloise.ice_bolt')!.baseDamage;
-    final projectileItem =
-        const ProjectileItemCatalog().get(ProjectileItemId.iceBolt);
+    final iceBoltDamage = AbilityCatalog.tryGet('eloise.ice_bolt')!.baseDamage;
+    final projectileItem = const ProjectileItemCatalog().get(
+      ProjectileItemId.iceBolt,
+    );
 
     final player = EntityFactory(world).createPlayer(
       posX: 100,
@@ -43,7 +43,11 @@ void main() {
       collider: const ColliderAabbDef(halfX: 8, halfY: 8),
       health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
       mana: const ManaDef(mana: 10000, manaMax: 10000, regenPerSecond100: 0),
-      stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
     );
 
     final enemy = spawnUnocoDemon(
@@ -57,13 +61,20 @@ void main() {
       collider: const ColliderAabbDef(halfX: 8, halfY: 8),
       health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
       mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
-      stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
     );
 
     // Spawn a projectile overlapping the enemy.
     final projectile = spawnProjectileItemFromCaster(
       world,
-      projectiles: ProjectileCatalogDerived.from(const ProjectileCatalog(), tickHz: 60),
+      projectiles: ProjectileCatalogDerived.from(
+        const ProjectileCatalog(),
+        tickHz: 60,
+      ),
       projectileItemId: ProjectileItemId.iceBolt,
       projectileId: projectileItem.projectileId,
       faction: Faction.player,
@@ -76,6 +87,7 @@ void main() {
       fallbackDirX: 1,
       fallbackDirY: 0,
       damage100: iceBoltDamage,
+      critChanceBp: 0,
       damageType: projectileItem.damageType,
       procs: projectileItem.procs,
       ballistic: projectileItem.ballistic,
@@ -85,16 +97,13 @@ void main() {
 
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
     final broadphase = BroadphaseGrid(
-      index: GridIndex2D(cellSize: const SpatialGridTuning().broadphaseCellSize),
+      index: GridIndex2D(
+        cellSize: const SpatialGridTuning().broadphaseCellSize,
+      ),
     )..rebuild(world);
     final hits = ProjectileHitSystem();
     final hitEvents = <ProjectileHitEvent>[];
-    hits.step(
-      world,
-      broadphase,
-      currentTick: 1,
-      queueHitEvent: hitEvents.add,
-    );
+    hits.step(world, broadphase, currentTick: 1, queueHitEvent: hitEvents.add);
     damage.step(world, currentTick: 1);
 
     expect(

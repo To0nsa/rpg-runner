@@ -1,4 +1,5 @@
 import '../../abilities/ability_def.dart';
+import '../../stats/character_stats_resolver.dart';
 import '../../snapshots/enums.dart';
 import '../../players/player_tuning.dart';
 import '../../util/velocity_math.dart';
@@ -20,6 +21,12 @@ import '../world.dart';
 /// *   Process Input (Jump request, Horizontal move).
 /// *   Apply velocities based on state.
 class PlayerMovementSystem {
+  PlayerMovementSystem({
+    CharacterStatsResolver statsResolver = const CharacterStatsResolver(),
+  }) : _statsResolver = statsResolver;
+
+  final CharacterStatsResolver _statsResolver;
+
   void step(
     EcsWorld world,
     MovementTuningDerived tuning, {
@@ -93,10 +100,12 @@ class PlayerMovementSystem {
       }
 
       final dashing = world.movement.dashTicksLeft[mi] > 0;
+      final gearMoveSpeedMul = _gearMoveSpeedMultiplier(world, e);
       final modifierIndex = world.statModifier.tryIndexOf(e);
-      final moveSpeedMul = modifierIndex == null
+      final statusMoveSpeedMul = modifierIndex == null
           ? 1.0
           : world.statModifier.moveSpeedMul[modifierIndex];
+      final moveSpeedMul = gearMoveSpeedMul * statusMoveSpeedMul;
 
       if (world.movement.facingLockTicksLeft[mi] > 0) {
         world.movement.facingLockTicksLeft[mi] -= 1;
@@ -187,6 +196,21 @@ class PlayerMovementSystem {
         world.body.maxVelX[bi],
       );
     });
+  }
+
+  double _gearMoveSpeedMultiplier(EcsWorld world, int entity) {
+    final li = world.equippedLoadout.tryIndexOf(entity);
+    if (li == null) return 1.0;
+    final loadout = world.equippedLoadout;
+    final resolved = _statsResolver.resolveEquipped(
+      mask: loadout.mask[li],
+      mainWeaponId: loadout.mainWeaponId[li],
+      offhandWeaponId: loadout.offhandWeaponId[li],
+      projectileItemId: loadout.projectileItemId[li],
+      spellBookId: loadout.spellBookId[li],
+      accessoryId: loadout.accessoryId[li],
+    );
+    return resolved.moveSpeedMultiplier;
   }
 
   /// Calculates the new horizontal velocity using linear acceleration/deceleration.

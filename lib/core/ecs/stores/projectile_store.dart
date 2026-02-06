@@ -14,6 +14,7 @@ class ProjectileDef {
     required this.dirY,
     required this.speedUnitsPerSecond,
     required this.damage100,
+    this.critChanceBp = 0,
     required this.damageType,
     this.procs = const <WeaponProc>[],
     this.usePhysics = false,
@@ -25,8 +26,12 @@ class ProjectileDef {
   final double dirX;
   final double dirY;
   final double speedUnitsPerSecond;
+
   /// Fixed-point: 100 = 1.0
   final int damage100;
+
+  /// Critical strike chance in basis points (100 = 1%).
+  final int critChanceBp;
   final DamageType damageType;
   final List<WeaponProc> procs;
 
@@ -45,8 +50,10 @@ class ProjectileStore extends SparseSet {
   final List<double> dirX = <double>[];
   final List<double> dirY = <double>[];
   final List<double> speedUnitsPerSecond = <double>[];
+
   /// Fixed-point: 100 = 1.0
   final List<int> damage100 = <int>[];
+  final List<int> critChanceBp = <int>[];
   final List<DamageType> damageType = <DamageType>[];
   final List<List<WeaponProc>> procs = <List<WeaponProc>>[];
   final List<bool> usePhysics = <bool>[];
@@ -60,6 +67,7 @@ class ProjectileStore extends SparseSet {
     dirY[i] = def.dirY;
     speedUnitsPerSecond[i] = def.speedUnitsPerSecond;
     damage100[i] = def.damage100;
+    critChanceBp[i] = def.critChanceBp;
     damageType[i] = def.damageType;
     procs[i] = def.procs;
     usePhysics[i] = def.usePhysics;
@@ -74,6 +82,7 @@ class ProjectileStore extends SparseSet {
     dirY.add(0.0);
     speedUnitsPerSecond.add(0.0);
     damage100.add(0);
+    critChanceBp.add(0);
     damageType.add(DamageType.physical);
     procs.add(const <WeaponProc>[]);
     usePhysics.add(false);
@@ -88,6 +97,7 @@ class ProjectileStore extends SparseSet {
     dirY[removeIndex] = dirY[lastIndex];
     speedUnitsPerSecond[removeIndex] = speedUnitsPerSecond[lastIndex];
     damage100[removeIndex] = damage100[lastIndex];
+    critChanceBp[removeIndex] = critChanceBp[lastIndex];
     damageType[removeIndex] = damageType[lastIndex];
     procs[removeIndex] = procs[lastIndex];
     usePhysics[removeIndex] = usePhysics[lastIndex];
@@ -99,6 +109,7 @@ class ProjectileStore extends SparseSet {
     dirY.removeLast();
     speedUnitsPerSecond.removeLast();
     damage100.removeLast();
+    critChanceBp.removeLast();
     damageType.removeLast();
     procs.removeLast();
     usePhysics.removeLast();

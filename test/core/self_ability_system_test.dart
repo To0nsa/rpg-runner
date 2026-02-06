@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
+import 'package:rpg_runner/core/accessories/accessory_catalog.dart';
 import 'package:rpg_runner/core/ecs/entity_factory.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
@@ -56,6 +57,7 @@ void main() {
       weapons: const WeaponCatalog(), // Mock/Defaults?
       projectileItems: const ProjectileItemCatalog(),
       spellBooks: const SpellBookCatalog(),
+      accessories: const AccessoryCatalog(),
     );
 
     // Mock WeaponCatalog/AbilityCatalog imports might be needed if they are complex.

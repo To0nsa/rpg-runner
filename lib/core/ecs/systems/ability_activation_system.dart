@@ -3,6 +3,7 @@ import 'dart:math';
 import '../../abilities/ability_gate.dart';
 import '../../abilities/ability_catalog.dart';
 import '../../abilities/ability_def.dart';
+import '../../accessories/accessory_catalog.dart';
 import '../../combat/damage_type.dart';
 import '../../combat/hit_payload_builder.dart';
 import '../../snapshots/enums.dart';
@@ -12,7 +13,8 @@ import '../../projectiles/projectile_item_id.dart';
 import '../../spells/spell_book_catalog.dart';
 import '../../weapons/weapon_catalog.dart';
 import '../../weapons/weapon_proc.dart';
-import '../../weapons/weapon_stats.dart';
+import '../../stats/gear_stat_bonuses.dart';
+import '../../stats/character_stats_resolver.dart';
 import '../../util/fixed_math.dart';
 import '../../util/tick_math.dart';
 import '../entity_id.dart';
@@ -34,14 +36,20 @@ import '../world.dart';
 /// - No RNG.
 /// - No wall-clock time; uses [currentTick].
 class AbilityActivationSystem {
-  const AbilityActivationSystem({
+  AbilityActivationSystem({
     required this.tickHz,
     required this.inputBufferTicks,
     required this.abilities,
     required this.weapons,
     required this.projectileItems,
     required this.spellBooks,
-  });
+    required this.accessories,
+  }) : _statsResolver = CharacterStatsResolver(
+         weapons: weapons,
+         projectileItems: projectileItems,
+         spellBooks: spellBooks,
+         accessories: accessories,
+       );
 
   final int tickHz;
   final int inputBufferTicks;
@@ -49,6 +57,9 @@ class AbilityActivationSystem {
   final WeaponCatalog weapons;
   final ProjectileItemCatalog projectileItems;
   final SpellBookCatalog spellBooks;
+  final AccessoryCatalog accessories;
+
+  final CharacterStatsResolver _statsResolver;
 
   void step(
     EcsWorld world, {
@@ -337,6 +348,7 @@ class AbilityActivationSystem {
       return _commitMobility(
         world,
         player: player,
+        loadoutIndex: loadoutIndex,
         movementIndex: movementIndex,
         inputIndex: inputIndex,
         facing: facing,
@@ -440,7 +452,10 @@ class AbilityActivationSystem {
     final recoveryTicks = _scaleAbilityTicks(ability.recoveryTicks);
     final executeTick = commitTick + windupTicks;
     final cooldownGroupId = ability.effectiveCooldownGroup(slot);
-    final cooldownTicks = _scaleAbilityTicks(ability.cooldownTicks);
+    final resolvedStats = _resolvedStatsForLoadout(world, loadoutIndex);
+    final cooldownTicks = resolvedStats.applyCooldownReduction(
+      _scaleAbilityTicks(ability.cooldownTicks),
+    );
 
     final fail = AbilityGate.canCommitCombat(
       world,
@@ -491,6 +506,7 @@ class AbilityActivationSystem {
   bool _commitMobility(
     EcsWorld world, {
     required EntityId player,
+    required int loadoutIndex,
     required int movementIndex,
     required Facing facing,
     required AbilityDef ability,
@@ -518,7 +534,10 @@ class AbilityActivationSystem {
     final recoveryTicks = _scaleAbilityTicks(ability.recoveryTicks);
     final executeTick = commitTick + windupTicks;
     final cooldownGroupId = ability.effectiveCooldownGroup(slot);
-    final cooldownTicks = _scaleAbilityTicks(ability.cooldownTicks);
+    final resolvedStats = _resolvedStatsForLoadout(world, loadoutIndex);
+    final cooldownTicks = resolvedStats.applyCooldownReduction(
+      _scaleAbilityTicks(ability.cooldownTicks),
+    );
 
     // Preserve old behavior: mobility cancels pending combat + buffered input + active combat ability.
     _cancelCombatOnMobilityPress(world, player);
@@ -676,6 +695,7 @@ class AbilityActivationSystem {
       }
     }();
     final weapon = weapons.get(weaponId);
+    final resolvedStats = _resolvedStatsForLoadout(world, loadoutIndex);
 
     final payload = HitPayloadBuilder.build(
       ability: ability,
@@ -683,10 +703,13 @@ class AbilityActivationSystem {
       weaponStats: weapon.stats,
       weaponDamageType: weapon.damageType,
       weaponProcs: weapon.procs,
+      globalCritChanceBonusBp: resolvedStats.critChanceBonusBp,
     );
 
     final cooldownGroupId = ability.effectiveCooldownGroup(slot);
-    final cooldownTicks = _scaleAbilityTicks(ability.cooldownTicks);
+    final cooldownTicks = resolvedStats.applyCooldownReduction(
+      _scaleAbilityTicks(ability.cooldownTicks),
+    );
 
     final fail = AbilityGate.canCommitCombat(
       world,
@@ -721,6 +744,7 @@ class AbilityActivationSystem {
         abilityId: ability.id,
         slot: slot,
         damage100: payload.damage100,
+        critChanceBp: payload.critChanceBp,
         damageType: payload.damageType,
         procs: payload.procs,
         halfX: halfX,
@@ -784,14 +808,13 @@ class AbilityActivationSystem {
     final bool ballistic;
     final double gravityScale;
     final double originOffset;
-    WeaponStats? weaponStats;
+    GearStatBonuses? weaponStats;
     DamageType? weaponDamageType;
     List<WeaponProc> weaponProcs = const <WeaponProc>[];
 
     switch (ability.payloadSource) {
       case AbilityPayloadSource.projectileItem:
-        final equippedId =
-            world.equippedLoadout.projectileItemId[loadoutIndex];
+        final equippedId = world.equippedLoadout.projectileItemId[loadoutIndex];
         final projectileItem = projectileItems.tryGet(equippedId);
         if (projectileItem == null) {
           assert(false, 'Projectile item not found: $equippedId');
@@ -861,16 +884,21 @@ class AbilityActivationSystem {
       }
     }
 
+    final resolvedStats = _resolvedStatsForLoadout(world, loadoutIndex);
+
     final payload = HitPayloadBuilder.build(
       ability: ability,
       source: player,
       weaponStats: weaponStats,
       weaponDamageType: weaponDamageType,
       weaponProcs: weaponProcs,
+      globalCritChanceBonusBp: resolvedStats.critChanceBonusBp,
     );
 
     final cooldownGroupId = ability.effectiveCooldownGroup(slot);
-    final cooldownTicks = _scaleAbilityTicks(ability.cooldownTicks);
+    final cooldownTicks = resolvedStats.applyCooldownReduction(
+      _scaleAbilityTicks(ability.cooldownTicks),
+    );
 
     final fail = AbilityGate.canCommitCombat(
       world,
@@ -907,6 +935,7 @@ class AbilityActivationSystem {
         abilityId: ability.id,
         slot: slot,
         damage100: payload.damage100,
+        critChanceBp: payload.critChanceBp,
         staminaCost100: ability.staminaCost,
         manaCost100: ability.manaCost,
         cooldownTicks: cooldownTicks,
@@ -955,6 +984,21 @@ class AbilityActivationSystem {
       case ProjectileId.throwingAxe:
         return ProjectileItemId.throwingAxe;
     }
+  }
+
+  ResolvedCharacterStats _resolvedStatsForLoadout(
+    EcsWorld world,
+    int loadoutIndex,
+  ) {
+    final loadout = world.equippedLoadout;
+    return _statsResolver.resolveEquipped(
+      mask: loadout.mask[loadoutIndex],
+      mainWeaponId: loadout.mainWeaponId[loadoutIndex],
+      offhandWeaponId: loadout.offhandWeaponId[loadoutIndex],
+      projectileItemId: loadout.projectileItemId[loadoutIndex],
+      spellBookId: loadout.spellBookId[loadoutIndex],
+      accessoryId: loadout.accessoryId[loadoutIndex],
+    );
   }
 
   void _applyCommitSideEffects(

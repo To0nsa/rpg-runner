@@ -2,7 +2,7 @@ import '../abilities/ability_def.dart' show AbilityTag, WeaponType;
 import 'weapon_category.dart';
 import 'weapon_def.dart';
 import 'weapon_id.dart';
-import 'weapon_stats.dart';
+import '../stats/gear_stat_bonuses.dart';
 
 /// Lookup table for weapon definitions.
 ///
@@ -20,7 +20,7 @@ class WeaponCatalog {
           category: WeaponCategory.primary,
           weaponType: WeaponType.oneHandedSword,
           grantedAbilityTags: {AbilityTag.melee, AbilityTag.physical},
-          stats: WeaponStats(powerBonusBp: -100), // -1% Damage
+          stats: GearStatBonuses(powerBonusBp: -100), // -1% Damage
         );
       case WeaponId.basicSword:
         return const WeaponDef(
@@ -30,7 +30,7 @@ class WeaponCatalog {
           category: WeaponCategory.primary,
           weaponType: WeaponType.oneHandedSword,
           grantedAbilityTags: {AbilityTag.melee, AbilityTag.physical},
-          stats: WeaponStats(powerBonusBp: 100), // +1% Damage
+          stats: GearStatBonuses(powerBonusBp: 100), // +1% Damage
         );
       case WeaponId.solidSword:
         return const WeaponDef(
@@ -40,7 +40,7 @@ class WeaponCatalog {
           category: WeaponCategory.primary,
           weaponType: WeaponType.oneHandedSword,
           grantedAbilityTags: {AbilityTag.melee, AbilityTag.physical},
-          stats: WeaponStats(powerBonusBp: 200), // +2% Damage
+          stats: GearStatBonuses(powerBonusBp: 200), // +2% Damage
         );
       case WeaponId.woodenShield:
         return const WeaponDef(
@@ -50,7 +50,7 @@ class WeaponCatalog {
           category: WeaponCategory.offHand,
           weaponType: WeaponType.shield,
           grantedAbilityTags: {AbilityTag.buff, AbilityTag.physical},
-          stats: WeaponStats(powerBonusBp: -100), // -1% Damage
+          stats: GearStatBonuses(powerBonusBp: -100), // -1% Damage
         );
       case WeaponId.basicShield:
         return const WeaponDef(
@@ -60,7 +60,7 @@ class WeaponCatalog {
           category: WeaponCategory.offHand,
           weaponType: WeaponType.shield,
           grantedAbilityTags: {AbilityTag.buff, AbilityTag.physical},
-          stats: WeaponStats(powerBonusBp: 100), // +1% Damage (existing)
+          stats: GearStatBonuses(powerBonusBp: 100), // +1% Damage (existing)
         );
       case WeaponId.solidShield:
         return const WeaponDef(
@@ -71,7 +71,7 @@ class WeaponCatalog {
           category: WeaponCategory.offHand,
           weaponType: WeaponType.shield,
           grantedAbilityTags: {AbilityTag.buff, AbilityTag.physical},
-          stats: WeaponStats(powerBonusBp: 200), // +2% Damage
+          stats: GearStatBonuses(powerBonusBp: 200), // +2% Damage
         );
     }
   }

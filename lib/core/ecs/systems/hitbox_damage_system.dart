@@ -16,7 +16,7 @@ import '../world.dart';
 class HitboxDamageSystem {
   /// Helper for spatial queries and overlap sorting.
   final HitResolver _resolver = HitResolver();
-  
+
   /// Reused buffer to store indices of overlapping entities each frame.
   final List<int> _overlaps = <int>[];
 
@@ -38,10 +38,10 @@ class HitboxDamageSystem {
     // Process each active hitbox.
     for (var hi = 0; hi < hitboxes.denseEntities.length; hi += 1) {
       final hb = hitboxes.denseEntities[hi];
-      
+
       // Hitboxes must have a position (Transform) to overlap anything.
       if (!world.transform.has(hb)) continue;
-      
+
       // Hitboxes must have a HitOnce state to track who they've already damaged.
       // This prevents "machine gun" damage from a lingering sword swing.
       if (!world.hitOnce.has(hb)) continue;
@@ -67,7 +67,7 @@ class HitboxDamageSystem {
       final sourceFaction = hitboxes.faction[hi];
 
       if (world.deathState.has(owner)) continue;
-      
+
       // Resolve enemy ID efficiently if the owner is an enemy.
       // This is used for kill credit/stats.
       final enemyIndex = world.enemy.tryIndexOf(owner);
@@ -77,7 +77,7 @@ class HitboxDamageSystem {
 
       // Ensure buffer is clear before collection (safety measure).
       _overlaps.clear();
-      
+
       // Query the spatial grid for potential overlaps.
       // This handles the geometric check (Capsule vs Target Bounds) and Faction check.
       _resolver.collectOrderedOverlapsCapsule(
@@ -97,10 +97,10 @@ class HitboxDamageSystem {
       for (var i = 0; i < _overlaps.length; i += 1) {
         final ti = _overlaps[i];
         final target = broadphase.targets.entities[ti];
-        
+
         // "Hit Once" Check: Has this specific hitbox entity already struck this specific target entity?
         if (world.hitOnce.hasHit(hb, target)) continue;
-        
+
         // Mark as hit so we don't damage them again this swing.
         world.hitOnce.markHit(hb, target);
 
@@ -121,6 +121,7 @@ class HitboxDamageSystem {
           DamageRequest(
             target: target,
             amount100: amount100,
+            critChanceBp: hitboxes.critChanceBp[hi],
             damageType: hitboxes.damageType[hi],
             procs: hitboxes.procs[hi],
             source: owner,

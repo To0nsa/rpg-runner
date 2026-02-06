@@ -9,6 +9,7 @@ class MeleeIntentDef {
     required this.abilityId,
     required this.slot,
     required this.damage100,
+    this.critChanceBp = 0,
     required this.damageType,
     this.procs = const <WeaponProc>[],
     required this.halfX,
@@ -32,6 +33,9 @@ class MeleeIntentDef {
 
   /// Fixed-point: 100 = 1.0
   final int damage100;
+
+  /// Critical strike chance in basis points (100 = 1%).
+  final int critChanceBp;
   final DamageType damageType;
   final List<WeaponProc> procs;
   final double halfX;
@@ -74,6 +78,7 @@ class MeleeIntentStore extends SparseSet {
 
   /// Fixed-point: 100 = 1.0
   final List<int> damage100 = <int>[];
+  final List<int> critChanceBp = <int>[];
   final List<DamageType> damageType = <DamageType>[];
   final List<List<WeaponProc>> procs = <List<WeaponProc>>[];
   final List<double> halfX = <double>[];
@@ -106,6 +111,7 @@ class MeleeIntentStore extends SparseSet {
     abilityId[i] = def.abilityId;
     slot[i] = def.slot;
     damage100[i] = def.damage100;
+    critChanceBp[i] = def.critChanceBp;
     damageType[i] = def.damageType;
     procs[i] = def.procs;
     halfX[i] = def.halfX;
@@ -129,6 +135,7 @@ class MeleeIntentStore extends SparseSet {
     abilityId.add('common.unarmed_strike');
     slot.add(AbilitySlot.primary);
     damage100.add(0);
+    critChanceBp.add(0);
     damageType.add(DamageType.physical);
     procs.add(const <WeaponProc>[]);
     halfX.add(0.0);
@@ -152,6 +159,7 @@ class MeleeIntentStore extends SparseSet {
     abilityId[removeIndex] = abilityId[lastIndex];
     slot[removeIndex] = slot[lastIndex];
     damage100[removeIndex] = damage100[lastIndex];
+    critChanceBp[removeIndex] = critChanceBp[lastIndex];
     damageType[removeIndex] = damageType[lastIndex];
     procs[removeIndex] = procs[lastIndex];
     halfX[removeIndex] = halfX[lastIndex];
@@ -172,6 +180,7 @@ class MeleeIntentStore extends SparseSet {
     abilityId.removeLast();
     slot.removeLast();
     damage100.removeLast();
+    critChanceBp.removeLast();
     damageType.removeLast();
     procs.removeLast();
     halfX.removeLast();

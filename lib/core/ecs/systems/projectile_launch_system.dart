@@ -1,7 +1,6 @@
 import '../../projectiles/projectile_catalog.dart';
 import '../../projectiles/spawn_projectile_item.dart';
 import '../stores/projectile_intent_store.dart';
-import '../stores/transform_store.dart';
 import '../world.dart';
 
 /// Executes [ProjectileIntentStore] intents by spawning projectiles.
@@ -55,6 +54,7 @@ class ProjectileLaunchSystem {
         fallbackDirX: intents.fallbackDirX[ii],
         fallbackDirY: intents.fallbackDirY[ii],
         damage100: intents.damage100[ii],
+        critChanceBp: intents.critChanceBp[ii],
         damageType: intents.damageType[ii],
         procs: intents.procs[ii],
         ballistic: intents.ballistic[ii],

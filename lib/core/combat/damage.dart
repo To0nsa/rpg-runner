@@ -9,12 +9,13 @@ import 'damage_type.dart';
 /// Represents a request to apply damage to an entity.
 ///
 /// This structure captures the target, the amount of damage, and comprehensive
-  /// metadata about the source of the damage (entity, enemy type, projectile, projectile item)
+/// metadata about the source of the damage (entity, enemy type, projectile, projectile item)
 /// to be used for combat logic, death events, and statistics.
 class DamageRequest {
   const DamageRequest({
     required this.target,
     required this.amount100,
+    this.critChanceBp = 0,
     this.damageType = DamageType.physical,
     this.procs = const <WeaponProc>[],
     this.source,
@@ -31,6 +32,9 @@ class DamageRequest {
   ///
   /// Fixed-point: 100 = 1.0
   final int amount100;
+
+  /// Critical strike chance in basis points (100 = 1%).
+  final int critChanceBp;
 
   /// Category used for resistance/vulnerability lookup.
   final DamageType damageType;

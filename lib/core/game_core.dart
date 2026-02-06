@@ -74,6 +74,7 @@ import 'dart:math';
 import 'camera/autoscroll_camera.dart';
 import 'abilities/ability_catalog.dart';
 import 'abilities/ability_def.dart';
+import 'accessories/accessory_catalog.dart';
 import 'combat/middleware/parry_middleware.dart';
 import 'collision/static_world_geometry_index.dart';
 import 'commands/command.dart';
@@ -144,7 +145,11 @@ import 'spawn_service.dart';
 import 'progression/run_rewards.dart';
 import 'track_manager.dart';
 import 'weapons/weapon_catalog.dart';
+import 'stats/character_stats_resolver.dart';
 import 'ecs/stores/combat/equipped_loadout_store.dart';
+import 'ecs/stores/health_store.dart';
+import 'ecs/stores/mana_store.dart';
+import 'ecs/stores/stamina_store.dart';
 import 'tuning/camera_tuning.dart';
 import 'tuning/collectible_tuning.dart';
 import 'tuning/core_tuning.dart';
@@ -251,6 +256,7 @@ class GameCore {
     ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
     EnemyCatalog enemyCatalog = const EnemyCatalog(),
     WeaponCatalog weaponCatalog = const WeaponCatalog(),
+    AccessoryCatalog accessoryCatalog = const AccessoryCatalog(),
     StaticWorldGeometry staticWorldGeometry = const StaticWorldGeometry(
       groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
     ),
@@ -270,6 +276,7 @@ class GameCore {
          enemyCatalog: enemyCatalog,
          playerCharacter: playerCharacter,
          weaponCatalog: weaponCatalog,
+         accessoryCatalog: accessoryCatalog,
          equippedLoadoutOverride: equippedLoadoutOverride,
        );
 
@@ -284,6 +291,7 @@ class GameCore {
     required EnemyCatalog enemyCatalog,
     required PlayerCharacterDefinition playerCharacter,
     required WeaponCatalog weaponCatalog,
+    required AccessoryCatalog accessoryCatalog,
     required EquippedLoadoutDef? equippedLoadoutOverride,
   }) : _levelDefinition = levelDefinition,
        _movement = MovementTuningDerived.from(
@@ -325,6 +333,13 @@ class GameCore {
        _enemyCatalog = enemyCatalog,
        _playerCharacter = playerCharacter,
        _weapons = weaponCatalog,
+       _accessories = accessoryCatalog,
+       _statsResolver = CharacterStatsResolver(
+         weapons: weaponCatalog,
+         projectileItems: projectileItemCatalog,
+         spellBooks: spellBookCatalog,
+         accessories: accessoryCatalog,
+       ),
        _equippedLoadoutOverride = equippedLoadoutOverride,
        _scoreTuning = levelDefinition.tuning.score,
        _trackTuning = levelDefinition.tuning.track,
@@ -417,7 +432,7 @@ class GameCore {
   /// They're created once at construction and reused every tick.
   void _initializeSystems() {
     // Core movement and physics.
-    _movementSystem = PlayerMovementSystem();
+    _movementSystem = PlayerMovementSystem(statsResolver: _statsResolver);
     _mobilitySystem = MobilitySystem();
     _collisionSystem = CollisionSystem();
     _cooldownSystem = CooldownSystem();
@@ -452,6 +467,7 @@ class GameCore {
     _damageSystem = DamageSystem(
       invulnerabilityTicksOnHit: _combat.invulnerabilityTicks,
       rngSeed: seed,
+      statsResolver: _statsResolver,
     );
     _statusSystem = StatusSystem(tickHz: tickHz);
     _controlLockSystem = ControlLockSystem();
@@ -478,6 +494,7 @@ class GameCore {
       weapons: _weapons,
       projectileItems: _projectileItems,
       spellBooks: _spellBooks,
+      accessories: _accessories,
     );
     _hitboxDamageSystem = HitboxDamageSystem();
 
@@ -565,7 +582,30 @@ class GameCore {
 
     // Position so collider bottom touches ground.
     final spawnY = groundTopY - (playerCollider.offsetY + playerCollider.halfY);
-    final equippedLoadoutOverride = _equippedLoadoutOverride;
+    final equippedLoadout =
+        _equippedLoadoutOverride ??
+        EquippedLoadoutDef(
+          mask: playerArchetype.loadoutSlotMask,
+          mainWeaponId: playerArchetype.weaponId,
+          offhandWeaponId: playerArchetype.offhandWeaponId,
+          projectileItemId: playerArchetype.projectileItemId,
+          spellBookId: playerArchetype.spellBookId,
+          abilityPrimaryId: playerArchetype.abilityPrimaryId,
+          abilitySecondaryId: playerArchetype.abilitySecondaryId,
+          abilityProjectileId: playerArchetype.abilityProjectileId,
+          abilityBonusId: playerArchetype.abilityBonusId,
+          abilityMobilityId: playerArchetype.abilityMobilityId,
+          abilityJumpId: playerArchetype.abilityJumpId,
+        );
+
+    final resolvedStats = _statsResolver.resolveLoadout(equippedLoadout);
+    final scaledHealth = _scaleHealthDef(playerArchetype.health, resolvedStats);
+    final scaledMana = _scaleManaDef(playerArchetype.mana, resolvedStats);
+    final scaledStamina = _scaleStaminaDef(
+      playerArchetype.stamina,
+      resolvedStats,
+    );
+
     _player = _entityFactory.createPlayer(
       posX: spawnX,
       posY: spawnY,
@@ -575,27 +615,43 @@ class GameCore {
       grounded: true,
       body: playerArchetype.body,
       collider: playerCollider,
-      health: playerArchetype.health,
-      mana: playerArchetype.mana,
-      stamina: playerArchetype.stamina,
+      health: scaledHealth,
+      mana: scaledMana,
+      stamina: scaledStamina,
       tags: playerArchetype.tags,
       resistance: playerArchetype.resistance,
       statusImmunity: playerArchetype.statusImmunity,
-      equippedLoadout:
-          equippedLoadoutOverride ??
-          EquippedLoadoutDef(
-            mask: playerArchetype.loadoutSlotMask,
-            mainWeaponId: playerArchetype.weaponId,
-            offhandWeaponId: playerArchetype.offhandWeaponId,
-            projectileItemId: playerArchetype.projectileItemId,
-            spellBookId: playerArchetype.spellBookId,
-            abilityPrimaryId: playerArchetype.abilityPrimaryId,
-            abilitySecondaryId: playerArchetype.abilitySecondaryId,
-            abilityProjectileId: playerArchetype.abilityProjectileId,
-            abilityBonusId: playerArchetype.abilityBonusId,
-            abilityMobilityId: playerArchetype.abilityMobilityId,
-            abilityJumpId: playerArchetype.abilityJumpId,
-          ),
+      equippedLoadout: equippedLoadout,
+    );
+  }
+
+  HealthDef _scaleHealthDef(HealthDef base, ResolvedCharacterStats stats) {
+    final scaledMax = stats.applyHealthMaxBonus(base.hpMax);
+    final scaledHp = stats.applyHealthMaxBonus(base.hp);
+    return HealthDef(
+      hp: scaledHp > scaledMax ? scaledMax : scaledHp,
+      hpMax: scaledMax,
+      regenPerSecond100: base.regenPerSecond100,
+    );
+  }
+
+  ManaDef _scaleManaDef(ManaDef base, ResolvedCharacterStats stats) {
+    final scaledMax = stats.applyManaMaxBonus(base.manaMax);
+    final scaledCurrent = stats.applyManaMaxBonus(base.mana);
+    return ManaDef(
+      mana: scaledCurrent > scaledMax ? scaledMax : scaledCurrent,
+      manaMax: scaledMax,
+      regenPerSecond100: base.regenPerSecond100,
+    );
+  }
+
+  StaminaDef _scaleStaminaDef(StaminaDef base, ResolvedCharacterStats stats) {
+    final scaledMax = stats.applyStaminaMaxBonus(base.staminaMax);
+    final scaledCurrent = stats.applyStaminaMaxBonus(base.stamina);
+    return StaminaDef(
+      stamina: scaledCurrent > scaledMax ? scaledMax : scaledCurrent,
+      staminaMax: scaledMax,
+      regenPerSecond100: base.regenPerSecond100,
     );
   }
 
@@ -649,6 +705,8 @@ class GameCore {
   final EnemyCatalog _enemyCatalog;
   final PlayerCharacterDefinition _playerCharacter;
   final WeaponCatalog _weapons;
+  final AccessoryCatalog _accessories;
+  final CharacterStatsResolver _statsResolver;
   final EquippedLoadoutDef? _equippedLoadoutOverride;
 
   // ─── ECS Core ───

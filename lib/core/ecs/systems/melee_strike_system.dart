@@ -78,6 +78,7 @@ class MeleeStrikeSystem {
           owner: strikeer,
           faction: faction,
           damage100: intents.damage100[ii],
+          critChanceBp: intents.critChanceBp[ii],
           damageType: intents.damageType[ii],
           procs: intents.procs[ii],
           halfX: intents.halfX[ii],

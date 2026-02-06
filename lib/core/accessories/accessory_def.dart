@@ -1,4 +1,5 @@
 import '../weapons/weapon_proc.dart';
+import '../stats/gear_stat_bonuses.dart';
 import 'accessory_id.dart';
 
 /// Single equip slot for accessories (v0).
@@ -7,25 +8,10 @@ enum AccessorySlot { trinket }
 /// Optional taxonomy for filtering and UI grouping.
 enum AccessoryTag { offense, defense, utility, magic }
 
-/// Accessory stat modifiers (future-facing; not yet wired into Core systems).
-class AccessoryStats {
-  const AccessoryStats({
-    this.hpBonus100 = 0,
-    this.manaBonus100 = 0,
-    this.staminaBonus100 = 0,
-    this.moveSpeedBonusBp = 0,
-    this.cooldownReductionBp = 0,
-  });
-
-  /// Fixed-point: 100 = 1.0
-  final int hpBonus100;
-  final int manaBonus100;
-  final int staminaBonus100;
-
-  /// Basis points: 100 = 1%
-  final int moveSpeedBonusBp;
-  final int cooldownReductionBp;
-}
+/// Backward-compatible alias used by accessory definitions.
+///
+/// `AccessoryStats` now resolves to the unified [GearStatBonuses] payload.
+typedef AccessoryStats = GearStatBonuses;
 
 /// Data definition for accessories (global inventory items).
 class AccessoryDef {

@@ -1,7 +1,7 @@
 import '../abilities/ability_def.dart' show WeaponType;
 import '../combat/damage_type.dart';
 import '../weapons/weapon_proc.dart';
-import '../weapons/weapon_stats.dart';
+import '../stats/gear_stat_bonuses.dart';
 import 'spell_book_id.dart';
 
 /// Data definition for spell books (spell payload providers).
@@ -11,7 +11,7 @@ class SpellBookDef {
     required this.displayName,
     required this.description,
     this.weaponType = WeaponType.projectileSpell,
-    this.stats = const WeaponStats(),
+    this.stats = const GearStatBonuses(),
     this.damageType,
     this.procs = const <WeaponProc>[],
   });
@@ -20,7 +20,7 @@ class SpellBookDef {
   final String displayName;
   final String description;
   final WeaponType weaponType;
-  final WeaponStats stats;
+  final GearStatBonuses stats;
   final DamageType? damageType;
   final List<WeaponProc> procs;
 }

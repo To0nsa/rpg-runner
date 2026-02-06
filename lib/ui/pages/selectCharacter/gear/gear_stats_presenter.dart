@@ -8,9 +8,10 @@ import '../../../../core/projectiles/projectile_item_id.dart';
 import '../../../../core/spells/spell_book_catalog.dart';
 import '../../../../core/spells/spell_book_def.dart';
 import '../../../../core/spells/spell_book_id.dart';
+import '../../../../core/stats/character_stat_id.dart';
+import '../../../../core/stats/gear_stat_bonuses.dart';
 import '../../../../core/weapons/weapon_def.dart';
 import '../../../../core/weapons/weapon_id.dart';
-import '../../../../core/weapons/weapon_stats.dart';
 import '../../../../core/weapons/weapon_catalog.dart';
 
 /// UI tone hints for stat values.
@@ -100,9 +101,7 @@ List<GearStatLine> _weaponDefStats(WeaponDef def) {
   final lines = <GearStatLine>[
     GearStatLine('Type', _enumLabel(def.weaponType.name)),
   ];
-  _addBpStat(lines, 'Power', stats.powerBonusBp);
-  _addBpStat(lines, 'Crit Chance', stats.critChanceBonusBp);
-  _addBpStat(lines, 'Crit Damage', stats.critDamageBonusBp);
+  _addCoreStatLines(lines, stats);
   return lines;
 }
 
@@ -113,9 +112,7 @@ List<GearStatLine> _projectileItemStats(ProjectileItemDef def) {
     GearStatLine('Damage Type', _enumLabel(def.damageType.name)),
     GearStatLine('Ballistic', def.ballistic ? 'Yes' : 'No'),
   ];
-  _addBpStat(lines, 'Power', stats.powerBonusBp);
-  _addBpStat(lines, 'Crit Chance', stats.critChanceBonusBp);
-  _addBpStat(lines, 'Crit Damage', stats.critDamageBonusBp);
+  _addCoreStatLines(lines, stats);
   return lines;
 }
 
@@ -128,20 +125,14 @@ List<GearStatLine> _spellBookStats(SpellBookDef def) {
       def.damageType == null ? 'Ability' : _enumLabel(def.damageType!.name),
     ),
   ];
-  _addBpStat(lines, 'Power', stats.powerBonusBp);
-  _addBpStat(lines, 'Crit Chance', stats.critChanceBonusBp);
-  _addBpStat(lines, 'Crit Damage', stats.critDamageBonusBp);
+  _addCoreStatLines(lines, stats);
   return lines;
 }
 
 List<GearStatLine> _accessoryStats(AccessoryDef def) {
   final stats = def.stats;
   final lines = <GearStatLine>[];
-  _addPct100Stat(lines, 'HP', stats.hpBonus100);
-  _addPct100Stat(lines, 'Mana', stats.manaBonus100);
-  _addPct100Stat(lines, 'Stamina', stats.staminaBonus100);
-  _addBpStat(lines, 'Move Speed', stats.moveSpeedBonusBp);
-  _addBpStat(lines, 'CDR', stats.cooldownReductionBp);
+  _addCoreStatLines(lines, stats);
   return lines;
 }
 
@@ -150,89 +141,119 @@ void _addBpStat(List<GearStatLine> lines, String label, int value) {
   lines.add(GearStatLine(label, _bpPct(value)));
 }
 
-void _addPct100Stat(List<GearStatLine> lines, String label, int value) {
-  if (value == 0) return;
-  lines.add(GearStatLine(label, _pct100(value)));
-}
-
 List<GearStatLine> _diffWeaponStats(WeaponDef equipped, WeaponDef candidate) {
-  final a = equipped.stats;
-  final b = candidate.stats;
-  final lines = <GearStatLine>[];
-  if (b.powerBonusBp != a.powerBonusBp) {
-    lines.add(_deltaBpLine('Power', a.powerBonusBp, b.powerBonusBp));
-  }
-  if (b.critChanceBonusBp != a.critChanceBonusBp) {
-    lines.add(
-      _deltaBpLine('Crit Chance', a.critChanceBonusBp, b.critChanceBonusBp),
-    );
-  }
-  if (b.critDamageBonusBp != a.critDamageBonusBp) {
-    lines.add(
-      _deltaBpLine('Crit Damage', a.critDamageBonusBp, b.critDamageBonusBp),
-    );
-  }
-  return lines;
+  return _diffStatBonuses(equipped.stats, candidate.stats);
 }
 
-List<GearStatLine> _diffWeaponStatsLike(WeaponStats a, WeaponStats b) {
-  final lines = <GearStatLine>[];
-  if (b.powerBonusBp != a.powerBonusBp) {
-    lines.add(_deltaBpLine('Power', a.powerBonusBp, b.powerBonusBp));
-  }
-  if (b.critChanceBonusBp != a.critChanceBonusBp) {
-    lines.add(
-      _deltaBpLine('Crit Chance', a.critChanceBonusBp, b.critChanceBonusBp),
-    );
-  }
-  if (b.critDamageBonusBp != a.critDamageBonusBp) {
-    lines.add(
-      _deltaBpLine('Crit Damage', a.critDamageBonusBp, b.critDamageBonusBp),
-    );
-  }
-  return lines;
+List<GearStatLine> _diffWeaponStatsLike(GearStatBonuses a, GearStatBonuses b) {
+  return _diffStatBonuses(a, b);
 }
 
 List<GearStatLine> _diffAccessoryStats(AccessoryStats a, AccessoryStats b) {
+  return _diffStatBonuses(a, b);
+}
+
+void _addCoreStatLines(List<GearStatLine> lines, GearStatBonuses stats) {
+  _addBpStat(lines, _labelFor(CharacterStatId.health), stats.healthBonusBp);
+  _addBpStat(lines, _labelFor(CharacterStatId.mana), stats.manaBonusBp);
+  _addBpStat(lines, _labelFor(CharacterStatId.stamina), stats.staminaBonusBp);
+  _addBpStat(lines, _labelFor(CharacterStatId.defense), stats.defenseBonusBp);
+  _addBpStat(lines, _labelFor(CharacterStatId.power), stats.powerBonusBp);
+  _addBpStat(
+    lines,
+    _labelFor(CharacterStatId.moveSpeed),
+    stats.moveSpeedBonusBp,
+  );
+  _addBpStat(
+    lines,
+    _labelFor(CharacterStatId.cooldownReduction),
+    stats.cooldownReductionBp,
+  );
+  _addBpStat(
+    lines,
+    _labelFor(CharacterStatId.critChance),
+    stats.critChanceBonusBp,
+  );
+}
+
+List<GearStatLine> _diffStatBonuses(GearStatBonuses a, GearStatBonuses b) {
   final lines = <GearStatLine>[];
-  if (b.hpBonus100 != a.hpBonus100) {
-    lines.add(_deltaPct100Line('HP', a.hpBonus100, b.hpBonus100));
-  }
-  if (b.manaBonus100 != a.manaBonus100) {
-    lines.add(_deltaPct100Line('Mana', a.manaBonus100, b.manaBonus100));
-  }
-  if (b.staminaBonus100 != a.staminaBonus100) {
+  if (b.healthBonusBp != a.healthBonusBp) {
     lines.add(
-      _deltaPct100Line('Stamina', a.staminaBonus100, b.staminaBonus100),
+      _deltaBpLine(
+        _labelFor(CharacterStatId.health),
+        a.healthBonusBp,
+        b.healthBonusBp,
+      ),
+    );
+  }
+  if (b.manaBonusBp != a.manaBonusBp) {
+    lines.add(
+      _deltaBpLine(
+        _labelFor(CharacterStatId.mana),
+        a.manaBonusBp,
+        b.manaBonusBp,
+      ),
+    );
+  }
+  if (b.staminaBonusBp != a.staminaBonusBp) {
+    lines.add(
+      _deltaBpLine(
+        _labelFor(CharacterStatId.stamina),
+        a.staminaBonusBp,
+        b.staminaBonusBp,
+      ),
+    );
+  }
+  if (b.defenseBonusBp != a.defenseBonusBp) {
+    lines.add(
+      _deltaBpLine(
+        _labelFor(CharacterStatId.defense),
+        a.defenseBonusBp,
+        b.defenseBonusBp,
+      ),
     );
   }
   if (b.moveSpeedBonusBp != a.moveSpeedBonusBp) {
     lines.add(
-      _deltaBpLine('Move Speed', a.moveSpeedBonusBp, b.moveSpeedBonusBp),
+      _deltaBpLine(
+        _labelFor(CharacterStatId.moveSpeed),
+        a.moveSpeedBonusBp,
+        b.moveSpeedBonusBp,
+      ),
+    );
+  }
+  if (b.powerBonusBp != a.powerBonusBp) {
+    lines.add(
+      _deltaBpLine(
+        _labelFor(CharacterStatId.power),
+        a.powerBonusBp,
+        b.powerBonusBp,
+      ),
     );
   }
   if (b.cooldownReductionBp != a.cooldownReductionBp) {
     lines.add(
-      _deltaBpLine('CDR', a.cooldownReductionBp, b.cooldownReductionBp),
+      _deltaBpLine(
+        _labelFor(CharacterStatId.cooldownReduction),
+        a.cooldownReductionBp,
+        b.cooldownReductionBp,
+      ),
+    );
+  }
+  if (b.critChanceBonusBp != a.critChanceBonusBp) {
+    lines.add(
+      _deltaBpLine(
+        _labelFor(CharacterStatId.critChance),
+        a.critChanceBonusBp,
+        b.critChanceBonusBp,
+      ),
     );
   }
   return lines;
 }
 
 GearStatLine _deltaBpLine(String label, int equippedValue, int candidateValue) {
-  final delta = candidateValue - equippedValue;
-  return GearStatLine(
-    label,
-    _signedPercent(delta / 100),
-    tone: _toneForDelta(delta),
-  );
-}
-
-GearStatLine _deltaPct100Line(
-  String label,
-  int equippedValue,
-  int candidateValue,
-) {
   final delta = candidateValue - equippedValue;
   return GearStatLine(
     label,
@@ -248,8 +269,6 @@ GearStatLineTone _toneForDelta(int delta) {
 }
 
 String _bpPct(int bp) => _signedPercent(bp / 100);
-
-String _pct100(int fixed100) => _signedPercent(fixed100 / 100);
 
 String _signedPercent(double value) {
   final sign = value > 0 ? '+' : '';
@@ -277,3 +296,5 @@ String _enumLabel(String source) {
       })
       .join(' ');
 }
+
+String _labelFor(CharacterStatId id) => characterStatDescriptor(id).displayName;

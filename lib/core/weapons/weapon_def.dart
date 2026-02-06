@@ -3,7 +3,7 @@ import '../combat/damage_type.dart';
 import 'weapon_category.dart';
 import 'weapon_id.dart';
 import 'weapon_proc.dart';
-import 'weapon_stats.dart';
+import '../stats/gear_stat_bonuses.dart';
 
 /// Static, data-first definition for a melee weapon.
 ///
@@ -20,7 +20,7 @@ class WeaponDef {
     this.grantedAbilityTags = const {},
     this.damageType = DamageType.physical,
     this.procs = const [],
-    this.stats = const WeaponStats(),
+    this.stats = const GearStatBonuses(),
     this.isTwoHanded = false,
   });
 
@@ -46,7 +46,7 @@ class WeaponDef {
   final List<WeaponProc> procs;
 
   /// Passive stats provided by this weapon (future use).
-  final WeaponStats stats;
+  final GearStatBonuses stats;
 
   /// If true, occupies both Primary + Secondary equipment slots.
   /// Enforcement is equip-time validation (Phase 3/4).

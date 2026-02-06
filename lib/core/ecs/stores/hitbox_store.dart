@@ -9,6 +9,7 @@ class HitboxDef {
     required this.owner,
     required this.faction,
     required this.damage100,
+    this.critChanceBp = 0,
     required this.damageType,
     this.procs = const <WeaponProc>[],
     required this.halfX,
@@ -21,8 +22,12 @@ class HitboxDef {
 
   final EntityId owner;
   final Faction faction;
+
   /// Fixed-point: 100 = 1.0
   final int damage100;
+
+  /// Critical strike chance in basis points (100 = 1%).
+  final int critChanceBp;
   final DamageType damageType;
   final List<WeaponProc> procs;
   final double halfX;
@@ -40,8 +45,10 @@ class HitboxDef {
 class HitboxStore extends SparseSet {
   final List<EntityId> owner = <EntityId>[];
   final List<Faction> faction = <Faction>[];
+
   /// Fixed-point: 100 = 1.0
   final List<int> damage100 = <int>[];
+  final List<int> critChanceBp = <int>[];
   final List<DamageType> damageType = <DamageType>[];
   final List<List<WeaponProc>> procs = <List<WeaponProc>>[];
   final List<double> halfX = <double>[];
@@ -56,6 +63,7 @@ class HitboxStore extends SparseSet {
     owner[i] = def.owner;
     faction[i] = def.faction;
     damage100[i] = def.damage100;
+    critChanceBp[i] = def.critChanceBp;
     damageType[i] = def.damageType;
     procs[i] = def.procs;
     halfX[i] = def.halfX;
@@ -71,6 +79,7 @@ class HitboxStore extends SparseSet {
     owner.add(0);
     faction.add(Faction.player);
     damage100.add(0);
+    critChanceBp.add(0);
     damageType.add(DamageType.physical);
     procs.add(const <WeaponProc>[]);
     halfX.add(0);
@@ -86,6 +95,7 @@ class HitboxStore extends SparseSet {
     owner[removeIndex] = owner[lastIndex];
     faction[removeIndex] = faction[lastIndex];
     damage100[removeIndex] = damage100[lastIndex];
+    critChanceBp[removeIndex] = critChanceBp[lastIndex];
     damageType[removeIndex] = damageType[lastIndex];
     procs[removeIndex] = procs[lastIndex];
     halfX[removeIndex] = halfX[lastIndex];
@@ -98,6 +108,7 @@ class HitboxStore extends SparseSet {
     owner.removeLast();
     faction.removeLast();
     damage100.removeLast();
+    critChanceBp.removeLast();
     damageType.removeLast();
     procs.removeLast();
     halfX.removeLast();
