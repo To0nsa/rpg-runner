@@ -101,7 +101,9 @@ class _GearCandidateTile extends StatelessWidget {
     final ui = context.ui;
     const tileSize = 64.0;
     const iconSize = 48.0;
-    const iconPadding = 8.0;
+    const lockedFillColor = Color(0xFF171717);
+    const selectedFillColor = Color(0xFF101010);
+    const defaultFillColor = Color(0xFF131313);
     final borderColor = isLocked
         ? ui.colors.outline.withValues(alpha: 0.35)
         : selected
@@ -109,10 +111,10 @@ class _GearCandidateTile extends StatelessWidget {
         : (isEquipped ? ui.colors.success : ui.colors.outline);
 
     final fillColor = isLocked
-        ? ui.colors.cardBackground.withValues(alpha: 0.45)
+        ? lockedFillColor
         : selected
-        ? ui.colors.cardBackground.withValues(alpha: 0.9)
-        : ui.colors.cardBackground.withValues(alpha: 0.72);
+        ? selectedFillColor
+        : defaultFillColor;
     final radius = ui.radii.sm;
 
     return Align(
@@ -140,20 +142,9 @@ class _GearCandidateTile extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   Center(
-                    child: Container(
-                      padding: const EdgeInsets.all(iconPadding),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(ui.radii.sm),
-                        border: Border.all(
-                          color: isLocked
-                              ? ui.colors.outline.withValues(alpha: 0.3)
-                              : ui.colors.outline.withValues(alpha: 0.6),
-                        ),
-                      ),
-                      child: Opacity(
-                        opacity: isLocked ? 0.45 : 1,
-                        child: GearIcon(slot: slot, id: id, size: iconSize),
-                      ),
+                    child: Opacity(
+                      opacity: isLocked ? 0.45 : 1,
+                      child: GearIcon(slot: slot, id: id, size: iconSize),
                     ),
                   ),
                   if (isLocked)

@@ -25,6 +25,8 @@ class GearPickerStatsPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
+    const panelFillColor = Color(0xFF101010);
+    const iconFrameFillColor = Color(0xFF151515);
     final lines = id == null ? const <GearStatLine>[] : gearStatsFor(slot, id!);
     final compareLines = (id == null || equippedForCompare == null)
         ? const <GearStatLine>[]
@@ -34,12 +36,12 @@ class GearPickerStatsPanel extends StatelessWidget {
       equippedForCompare: equippedForCompare,
     );
     final cardPadding = ui.space.xs;
-    final iconFrameSize = 38.0;
+    final iconFrameSize = 48.0;
     final blockSpacing = ui.space.xs;
 
     return Container(
       decoration: BoxDecoration(
-        color: ui.colors.cardBackground,
+        color: panelFillColor,
         borderRadius: BorderRadius.circular(ui.radii.md),
         border: Border.all(color: ui.colors.outline.withValues(alpha: 0.4)),
         boxShadow: ui.shadows.card,
@@ -72,7 +74,7 @@ class GearPickerStatsPanel extends StatelessWidget {
                         width: iconFrameSize,
                         height: iconFrameSize,
                         decoration: BoxDecoration(
-                          color: ui.colors.surface.withValues(alpha: 0.28),
+                          color: iconFrameFillColor,
                           borderRadius: BorderRadius.circular(ui.radii.sm),
                           border: Border.all(
                             color: ui.colors.outline.withValues(alpha: 0.35),
@@ -161,6 +163,7 @@ class _StatSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
+    const sectionFillColor = Color(0xFF0D0D0D);
     final sectionPadding = const EdgeInsets.symmetric(
       horizontal: 6,
       vertical: 4,
@@ -196,7 +199,7 @@ class _StatSection extends StatelessWidget {
           width: double.infinity,
           padding: sectionPadding,
           decoration: BoxDecoration(
-            color: ui.colors.surface.withValues(alpha: 0.24),
+            color: sectionFillColor,
             borderRadius: BorderRadius.circular(ui.radii.sm),
             border: Border.all(
               color: ui.colors.outline.withValues(alpha: 0.25),

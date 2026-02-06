@@ -127,8 +127,16 @@ class _GearPickerDialogState extends State<_GearPickerDialog> {
     }
 
     return Dialog(
-      backgroundColor: ui.colors.surface,
+      backgroundColor: const Color(0xFF0D0D0D),
       insetPadding: EdgeInsets.all(inset),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(ui.radii.md),
+        side: BorderSide(
+          color: Colors.white.withValues(alpha: 0.35),
+          width: 1.2,
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: SizedBox(
         width: maxDialogWidth,
         height: maxDialogHeight,
