@@ -3,6 +3,10 @@ import '../projectiles/projectile_item_id.dart';
 import '../spells/spell_book_id.dart';
 import '../weapons/weapon_id.dart';
 
+/// Unlocked gear inventory tracked by meta progression.
+///
+/// Sets are modeled per gear domain so slot/category validation can remain
+/// explicit in [MetaService].
 class InventoryState {
   const InventoryState({
     required this.unlockedWeaponIds,
@@ -11,11 +15,19 @@ class InventoryState {
     required this.unlockedAccessoryIds,
   });
 
+  /// Unlocked melee/off-hand weapon IDs.
   final Set<WeaponId> unlockedWeaponIds;
+
+  /// Unlocked throwing-weapon IDs.
   final Set<ProjectileItemId> unlockedThrowingWeaponIds;
+
+  /// Unlocked spellbook IDs.
   final Set<SpellBookId> unlockedSpellBookIds;
+
+  /// Unlocked accessory IDs.
   final Set<AccessoryId> unlockedAccessoryIds;
 
+  /// Returns a copy with optional unlocked-set replacements.
   InventoryState copyWith({
     Set<WeaponId>? unlockedWeaponIds,
     Set<ProjectileItemId>? unlockedThrowingWeaponIds,
@@ -31,6 +43,7 @@ class InventoryState {
     );
   }
 
+  /// Serializes unlocked sets as enum-name arrays.
   Map<String, Object?> toJson() {
     return <String, Object?>{
       'weapons': unlockedWeaponIds.map((e) => e.name).toList(growable: false),
@@ -46,6 +59,7 @@ class InventoryState {
     };
   }
 
+  /// Deserializes unlocked sets with per-domain fallback guards.
   static InventoryState fromJson(
     Map<String, dynamic> json, {
     required InventoryState fallback,
@@ -75,6 +89,10 @@ class InventoryState {
   }
 }
 
+/// Reads a set of enum names from dynamic JSON payload.
+///
+/// Returns [fallback] when the payload is absent/invalid, or when parsing
+/// yields an empty set (to avoid clearing inventory on malformed data).
 Set<T> _readEnumSet<T extends Enum>(
   Object? raw,
   List<T> values,

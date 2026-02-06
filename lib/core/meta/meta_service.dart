@@ -15,14 +15,22 @@ import 'meta_defaults.dart';
 import 'meta_state.dart';
 import '../players/player_character_definition.dart';
 
+/// Slot candidate DTO consumed by gear picker UI.
+///
+/// [id] type depends on the queried [GearSlot].
 class GearSlotCandidate {
   const GearSlotCandidate({required this.id, required this.isUnlocked});
 
+  /// Typed gear id for the requested slot domain.
   final Object id;
+
+  /// Whether this candidate is currently unlocked for use/equip.
   final bool isUnlocked;
 }
 
+/// Domain service for meta inventory, unlock rules, and equip validation.
 class MetaService {
+  /// Number of starting unlocks granted per catalog domain.
   static const int _startingUnlockedPerCatalog = 2;
 
   const MetaService({
@@ -32,11 +40,19 @@ class MetaService {
     this.accessories = const AccessoryCatalog(),
   });
 
+  /// Weapon catalog dependency.
   final WeaponCatalog weapons;
+
+  /// Projectile item catalog dependency.
   final ProjectileItemCatalog projectileItems;
+
+  /// Spellbook catalog dependency.
   final SpellBookCatalog spellBooks;
+
+  /// Accessory catalog dependency.
   final AccessoryCatalog accessories;
 
+  /// Seeds initial inventory according to startup unlock policy.
   InventoryState seedAllUnlockedInventory() {
     return InventoryState(
       unlockedWeaponIds: _startingUnlockedWeaponIds(),
@@ -46,6 +62,7 @@ class MetaService {
     );
   }
 
+  /// Returns starter unlocked main/off-hand weapon IDs.
   Set<WeaponId> _startingUnlockedWeaponIds() {
     final unlockedPrimaryWeapons = <WeaponId>[];
     final unlockedOffhandWeapons = <WeaponId>[];
@@ -70,6 +87,7 @@ class MetaService {
     };
   }
 
+  /// Returns starter unlocked throwing weapon IDs.
   Set<ProjectileItemId> _startingUnlockedThrowingWeaponIds() {
     final unlockedThrowingCandidates = <ProjectileItemId>[];
     for (final id in ProjectileItemId.values) {
@@ -82,20 +100,24 @@ class MetaService {
     return unlockedThrowingCandidates.take(_startingUnlockedPerCatalog).toSet();
   }
 
+  /// Returns starter unlocked spellbook IDs.
   Set<SpellBookId> _startingUnlockedSpellBookIds() {
     return SpellBookId.values.take(_startingUnlockedPerCatalog).toSet();
   }
 
+  /// Returns starter unlocked accessory IDs.
   Set<AccessoryId> _startingUnlockedAccessoryIds() {
     return AccessoryId.values.take(_startingUnlockedPerCatalog).toSet();
   }
 
+  /// Creates a new normalized meta state for first-time users.
   MetaState createNew() {
     return normalize(
       MetaState.seedAllUnlocked(inventory: seedAllUnlockedInventory()),
     );
   }
 
+  /// Returns all candidates for [slot], including locked entries.
   List<GearSlotCandidate> candidatesForSlot(MetaState state, GearSlot slot) {
     return switch (slot) {
       GearSlot.mainWeapon => _weaponCandidatesForCategory(
@@ -112,6 +134,7 @@ class MetaService {
     };
   }
 
+  /// Builds weapon candidates for [category] with unlock markers.
   List<GearSlotCandidate> _weaponCandidatesForCategory(
     MetaState state,
     WeaponCategory category,
@@ -126,6 +149,7 @@ class MetaService {
     return result;
   }
 
+  /// Builds throwing-weapon candidates only.
   List<GearSlotCandidate> _throwingWeaponCandidates(MetaState state) {
     final unlocked = state.inventory.unlockedThrowingWeaponIds;
     final result = <GearSlotCandidate>[];
@@ -139,6 +163,7 @@ class MetaService {
     return result;
   }
 
+  /// Builds spellbook candidates with unlock markers.
   List<GearSlotCandidate> _spellBookCandidates(MetaState state) {
     final unlocked = state.inventory.unlockedSpellBookIds;
     return [
@@ -147,6 +172,7 @@ class MetaService {
     ];
   }
 
+  /// Builds accessory candidates with unlock markers.
   List<GearSlotCandidate> _accessoryCandidates(MetaState state) {
     final unlocked = state.inventory.unlockedAccessoryIds;
     return [
@@ -155,6 +181,12 @@ class MetaService {
     ];
   }
 
+  /// Normalizes persisted state to current rules and fallback guarantees.
+  ///
+  /// Enforces:
+  /// - startup unlock ceilings per domain
+  /// - default items always unlocked
+  /// - equipped gear always valid and unlocked
   MetaState normalize(MetaState state) {
     var inventory = state.inventory;
     final allowedWeapons = _startingUnlockedWeaponIds();
@@ -201,6 +233,7 @@ class MetaService {
     );
   }
 
+  /// Validates and repairs a single character loadout against [inventory].
   EquippedGear _normalizeEquipped(EquippedGear gear, InventoryState inventory) {
     var mainWeaponId = gear.mainWeaponId;
     final mainDef = weapons.tryGet(mainWeaponId);
@@ -247,6 +280,7 @@ class MetaService {
     );
   }
 
+  /// Legacy helper: unlocked primary weapons only.
   List<WeaponId> unlockedMainWeapons(MetaState state) {
     final result = <WeaponId>[];
     for (final id in state.inventory.unlockedWeaponIds) {
@@ -259,6 +293,7 @@ class MetaService {
     return result;
   }
 
+  /// Legacy helper: unlocked off-hand weapons only.
   List<WeaponId> unlockedOffhands(MetaState state) {
     final result = <WeaponId>[];
     for (final id in state.inventory.unlockedWeaponIds) {
@@ -271,24 +306,31 @@ class MetaService {
     return result;
   }
 
+  /// Legacy helper: unlocked throwing weapons only.
   List<ProjectileItemId> unlockedThrowingWeapons(MetaState state) {
     final result = state.inventory.unlockedThrowingWeaponIds.toList();
     result.sort((a, b) => a.index.compareTo(b.index));
     return result;
   }
 
+  /// Legacy helper: unlocked spellbooks only.
   List<SpellBookId> unlockedSpellBooks(MetaState state) {
     final result = state.inventory.unlockedSpellBookIds.toList();
     result.sort((a, b) => a.index.compareTo(b.index));
     return result;
   }
 
+  /// Legacy helper: unlocked accessories only.
   List<AccessoryId> unlockedAccessories(MetaState state) {
     final result = state.inventory.unlockedAccessoryIds.toList();
     result.sort((a, b) => a.index.compareTo(b.index));
     return result;
   }
 
+  /// Attempts to equip [itemId] into [slot] for [characterId].
+  ///
+  /// Invalid item types/categories or locked items are ignored and return
+  /// unchanged normalized state.
   MetaState equip(
     MetaState state, {
     required PlayerCharacterId characterId,

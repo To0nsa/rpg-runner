@@ -3,6 +3,10 @@ import '../projectiles/projectile_item_id.dart';
 import '../spells/spell_book_id.dart';
 import '../weapons/weapon_id.dart';
 
+/// Canonical equipped gear set for one character profile.
+///
+/// This object is intentionally complete (all slots required) so consumers
+/// never have to handle "missing slot" states during gameplay setup.
 class EquippedGear {
   const EquippedGear({
     required this.mainWeaponId,
@@ -12,12 +16,22 @@ class EquippedGear {
     required this.accessoryId,
   });
 
+  /// Equipped main-hand weapon.
   final WeaponId mainWeaponId;
+
+  /// Equipped off-hand weapon.
   final WeaponId offhandWeaponId;
+
+  /// Equipped throwing weapon.
   final ProjectileItemId throwingWeaponId;
+
+  /// Equipped spellbook.
   final SpellBookId spellBookId;
+
+  /// Equipped accessory.
   final AccessoryId accessoryId;
 
+  /// Returns a copy with selected fields replaced.
   EquippedGear copyWith({
     WeaponId? mainWeaponId,
     WeaponId? offhandWeaponId,
@@ -34,6 +48,7 @@ class EquippedGear {
     );
   }
 
+  /// Serializes equipped IDs using enum names for stable storage.
   Map<String, Object?> toJson() {
     return <String, Object?>{
       'mainWeaponId': mainWeaponId.name,
@@ -44,6 +59,9 @@ class EquippedGear {
     };
   }
 
+  /// Deserializes from persisted JSON with per-field fallback safety.
+  ///
+  /// Unknown/missing enum names keep the corresponding fallback value.
   static EquippedGear fromJson(
     Map<String, dynamic> json, {
     required EquippedGear fallback,
@@ -78,6 +96,7 @@ class EquippedGear {
   }
 }
 
+/// Safe enum lookup helper used by meta deserialization.
 T _enumFromName<T extends Enum>(List<T> values, String? name, T fallback) {
   if (name == null) return fallback;
   for (final value in values) {
