@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rpg_runner/core/commands/command.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
+import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/game_core.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
@@ -15,11 +16,15 @@ import '../support/test_player.dart';
 import '../test_tunings.dart';
 
 void main() {
-  int _scaledWindupTicks(String abilityId, int tickHz) {
-    final ability = AbilityCatalog.tryGet(abilityId)!;
-    if (tickHz == 60) return ability.windupTicks;
-    final seconds = ability.windupTicks / 60.0;
+  int scaledAbilityTicks(int ticksAt60Hz, int tickHz) {
+    if (tickHz == 60) return ticksAt60Hz;
+    final seconds = ticksAt60Hz / 60.0;
     return ticksFromSecondsCeil(seconds, tickHz);
+  }
+
+  int scaledWindupTicks(String abilityId, int tickHz) {
+    final ability = AbilityCatalog.tryGet(abilityId)!;
+    return scaledAbilityTicks(ability.windupTicks, tickHz);
   }
 
   test('cast: insufficient mana => no projectile', () {
@@ -32,7 +37,7 @@ void main() {
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
           projectileItemId: ProjectileItemId.iceBolt,
-          abilityProjectileId: 'eloise.ice_bolt',
+          abilityProjectileId: 'eloise.heavy_throw',
         ),
         tuning: base.tuning.copyWith(
           resource: const ResourceTuning(
@@ -45,7 +50,7 @@ void main() {
 
     core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
     core.stepOneTick();
-    final windupTicks = _scaledWindupTicks('eloise.ice_bolt', core.tickHz);
+    final windupTicks = scaledWindupTicks('eloise.heavy_throw', core.tickHz);
     for (var i = 0; i < windupTicks; i += 1) {
       core.applyCommands(const <Command>[]);
       core.stepOneTick();
@@ -66,7 +71,7 @@ void main() {
       final catalog = testPlayerCatalog(
         bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
         projectileItemId: ProjectileItemId.iceBolt,
-        abilityProjectileId: 'eloise.ice_bolt',
+        abilityProjectileId: 'eloise.heavy_throw',
       );
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
@@ -89,7 +94,7 @@ void main() {
 
       core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
       core.stepOneTick();
-      final windupTicks = _scaledWindupTicks('eloise.ice_bolt', core.tickHz);
+      final windupTicks = scaledWindupTicks('eloise.heavy_throw', core.tickHz);
       for (var i = 0; i < windupTicks; i += 1) {
         core.applyCommands(const <Command>[]);
         core.stepOneTick();
@@ -114,11 +119,12 @@ void main() {
     },
   );
 
-  test('cast: equipped spell selects projectile + mana cost', () {
+  test('cast: selected projectile-slot spell overrides throwing item', () {
     final catalog = testPlayerCatalog(
       bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-      projectileItemId: ProjectileItemId.fireBolt,
-      abilityProjectileId: 'eloise.fire_bolt',
+      projectileItemId: ProjectileItemId.throwingKnife,
+      projectileSlotSpellId: ProjectileItemId.fireBolt,
+      abilityProjectileId: 'eloise.heavy_throw',
     );
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
@@ -138,7 +144,7 @@ void main() {
 
     core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
     core.stepOneTick();
-    final windupTicks = _scaledWindupTicks('eloise.fire_bolt', core.tickHz);
+    final windupTicks = scaledWindupTicks('eloise.heavy_throw', core.tickHz);
     for (var i = 0; i < windupTicks; i += 1) {
       core.applyCommands(const <Command>[]);
       core.stepOneTick();
@@ -151,11 +157,10 @@ void main() {
     expect(projectiles.length, 1);
     expect(projectiles.single.projectileId, ProjectileId.fireBolt);
 
-    // fire_bolt costs 12 mana in AbilityCatalog.
-    expect(snapshot.hud.mana, closeTo(8.0, 1e-9));
+    expect(snapshot.hud.mana, closeTo(10.0, 1e-9));
     expect(
       core.playerProjectileCooldownTicksLeft,
-      5 - windupTicks,
+      8 - windupTicks,
     ); // Cooldown already ticked during windup
   });
 
@@ -169,7 +174,7 @@ void main() {
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
           projectileItemId: ProjectileItemId.iceBolt,
-          abilityProjectileId: 'eloise.ice_bolt',
+          abilityProjectileId: 'eloise.heavy_throw',
         ),
         tuning: base.tuning.copyWith(
           resource: const ResourceTuning(
@@ -182,7 +187,7 @@ void main() {
 
     core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
     core.stepOneTick();
-    final windupTicks = _scaledWindupTicks('eloise.ice_bolt', core.tickHz);
+    final windupTicks = scaledWindupTicks('eloise.heavy_throw', core.tickHz);
     for (var i = 0; i < windupTicks; i += 1) {
       core.applyCommands(const <Command>[]);
       core.stepOneTick();
@@ -222,4 +227,210 @@ void main() {
       2,
     );
   });
+
+  test(
+    'quick throw: projectile slot can launch selected spell from spellbook',
+    () {
+      final base = PlayerCharacterRegistry.eloise;
+      final core = GameCore(
+        seed: 1,
+        tickHz: 20,
+        tuning: noAutoscrollTuning,
+        playerCharacter: base.copyWith(
+          catalog: testPlayerCatalog(
+            bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+            projectileItemId: ProjectileItemId.throwingKnife,
+            projectileSlotSpellId: ProjectileItemId.fireBolt,
+            abilityProjectileId: 'eloise.quick_throw',
+          ),
+          tuning: base.tuning.copyWith(
+            resource: const ResourceTuning(
+              playerManaMax: 0,
+              playerManaRegenPerSecond: 0,
+              playerStaminaMax: 10,
+              playerStaminaRegenPerSecond: 0,
+            ),
+          ),
+        ),
+      );
+
+      core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
+      core.stepOneTick();
+      final windupTicks = scaledWindupTicks('eloise.quick_throw', core.tickHz);
+      for (var i = 0; i < windupTicks; i += 1) {
+        core.applyCommands(const <Command>[]);
+        core.stepOneTick();
+      }
+
+      final snapshot = core.buildSnapshot();
+      final projectiles = snapshot.entities
+          .where((e) => e.kind == EntityKind.projectile)
+          .toList();
+      expect(projectiles.length, 1);
+      expect(projectiles.single.projectileId, ProjectileId.fireBolt);
+      expect(snapshot.hud.stamina, closeTo(5.0, 1e-9));
+    },
+  );
+
+  test(
+    'heavy throw: bonus slot can launch equipped throwing projectile item',
+    () {
+      final base = PlayerCharacterRegistry.eloise;
+      final core = GameCore(
+        seed: 1,
+        tickHz: 20,
+        tuning: noAutoscrollTuning,
+        playerCharacter: base.copyWith(
+          catalog: testPlayerCatalog(
+            bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+            projectileItemId: ProjectileItemId.throwingAxe,
+            bonusSlotSpellId: null,
+            abilityBonusId: 'eloise.heavy_throw',
+          ),
+          tuning: base.tuning.copyWith(
+            resource: const ResourceTuning(
+              playerManaMax: 20,
+              playerManaRegenPerSecond: 0,
+              playerStaminaMax: 0,
+              playerStaminaRegenPerSecond: 0,
+            ),
+          ),
+        ),
+      );
+
+      core.applyCommands(const [
+        ProjectileAimDirCommand(tick: 1, x: 1, y: 0),
+        BonusPressedCommand(tick: 1),
+      ]);
+      core.stepOneTick();
+      final windupTicks = scaledWindupTicks('eloise.heavy_throw', core.tickHz);
+      for (var i = 0; i < windupTicks; i += 1) {
+        core.applyCommands(const <Command>[]);
+        core.stepOneTick();
+      }
+
+      final snapshot = core.buildSnapshot();
+      final projectiles = snapshot.entities
+          .where((e) => e.kind == EntityKind.projectile)
+          .toList();
+      expect(projectiles.length, 1);
+      expect(projectiles.single.projectileId, ProjectileId.throwingAxe);
+      expect(snapshot.hud.mana, closeTo(10.0, 1e-9));
+    },
+  );
+
+  test('heavy throw: bonus slot can launch selected spell from spellbook', () {
+    final base = PlayerCharacterRegistry.eloise;
+    final core = GameCore(
+      seed: 1,
+      tickHz: 20,
+      tuning: noAutoscrollTuning,
+      playerCharacter: base.copyWith(
+        catalog: testPlayerCatalog(
+          bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+          projectileItemId: ProjectileItemId.throwingAxe,
+          bonusSlotSpellId: ProjectileItemId.thunderBolt,
+          abilityBonusId: 'eloise.heavy_throw',
+        ),
+        tuning: base.tuning.copyWith(
+          resource: const ResourceTuning(
+            playerManaMax: 20,
+            playerManaRegenPerSecond: 0,
+            playerStaminaMax: 0,
+            playerStaminaRegenPerSecond: 0,
+          ),
+        ),
+      ),
+    );
+
+    core.applyCommands(const [
+      ProjectileAimDirCommand(tick: 1, x: 1, y: 0),
+      BonusPressedCommand(tick: 1),
+    ]);
+    core.stepOneTick();
+    final windupTicks = scaledWindupTicks('eloise.heavy_throw', core.tickHz);
+    for (var i = 0; i < windupTicks; i += 1) {
+      core.applyCommands(const <Command>[]);
+      core.stepOneTick();
+    }
+
+    final snapshot = core.buildSnapshot();
+    final projectiles = snapshot.entities
+        .where((e) => e.kind == EntityKind.projectile)
+        .toList();
+    expect(projectiles.length, 1);
+    expect(projectiles.single.projectileId, ProjectileId.thunderBolt);
+    expect(snapshot.hud.mana, closeTo(10.0, 1e-9));
+  });
+
+  test(
+    'quick throw on projectile and bonus uses independent cooldown groups',
+    () {
+      final base = PlayerCharacterRegistry.eloise;
+      final core = GameCore(
+        seed: 1,
+        tickHz: 20,
+        tuning: noAutoscrollTuning,
+        playerCharacter: base.copyWith(
+          catalog: testPlayerCatalog(
+            bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+            projectileItemId: ProjectileItemId.throwingKnife,
+            projectileSlotSpellId: null,
+            bonusSlotSpellId: ProjectileItemId.fireBolt,
+            abilityProjectileId: 'eloise.quick_throw',
+            abilityBonusId: 'eloise.quick_throw',
+          ),
+          tuning: base.tuning.copyWith(
+            resource: const ResourceTuning(
+              playerManaMax: 0,
+              playerManaRegenPerSecond: 0,
+              playerStaminaMax: 20,
+              playerStaminaRegenPerSecond: 0,
+            ),
+          ),
+        ),
+      );
+
+      core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
+      core.stepOneTick();
+      final windupTicks = scaledWindupTicks('eloise.quick_throw', core.tickHz);
+      for (var i = 0; i < windupTicks; i += 1) {
+        core.applyCommands(const <Command>[]);
+        core.stepOneTick();
+      }
+
+      final ability = AbilityCatalog.tryGet('eloise.quick_throw')!;
+      final activeTicks = scaledAbilityTicks(ability.activeTicks, core.tickHz);
+      final recoveryTicks = scaledAbilityTicks(
+        ability.recoveryTicks,
+        core.tickHz,
+      );
+      for (var i = 0; i < activeTicks + recoveryTicks; i += 1) {
+        core.applyCommands(const <Command>[]);
+        core.stepOneTick();
+      }
+
+      final beforeBonus = core.buildSnapshot();
+      expect(
+        beforeBonus.hud.cooldownTicksLeft[CooldownGroup.projectile],
+        greaterThan(0),
+      );
+      expect(beforeBonus.hud.cooldownTicksLeft[CooldownGroup.bonus0], 0);
+
+      // Bonus cast should still commit while projectile cooldown is active.
+      core.applyCommands(const [BonusPressedCommand(tick: 2)]);
+      core.stepOneTick();
+      for (var i = 0; i < windupTicks; i += 1) {
+        core.applyCommands(const <Command>[]);
+        core.stepOneTick();
+      }
+
+      final snapshot = core.buildSnapshot();
+      expect(snapshot.hud.stamina, closeTo(10.0, 1e-9));
+      expect(
+        snapshot.hud.cooldownTicksLeft[CooldownGroup.bonus0],
+        greaterThan(0),
+      );
+    },
+  );
 }

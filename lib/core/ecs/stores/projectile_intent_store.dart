@@ -128,7 +128,7 @@ class ProjectileIntentStore extends SparseSet {
   @override
   void onDenseAdded(int denseIndex) {
     projectileItemId.add(ProjectileItemId.iceBolt);
-    abilityId.add('eloise.ice_bolt');
+    abilityId.add('eloise.heavy_throw');
     slot.add(AbilitySlot.projectile);
     damage100.add(0);
     critChanceBp.add(0);

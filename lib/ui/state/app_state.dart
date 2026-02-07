@@ -8,6 +8,7 @@ import '../../core/meta/gear_slot.dart';
 import '../../core/meta/meta_service.dart';
 import '../../core/meta/meta_state.dart';
 import '../../core/players/player_character_definition.dart';
+import '../../core/players/player_character_registry.dart';
 import '../app/ui_routes.dart';
 import 'selection_state.dart';
 import 'selection_store.dart';
@@ -49,6 +50,7 @@ class AppState extends ChangeNotifier {
     final loadedMeta = await _metaStore.load(_metaService);
     final loadedProfile = await _profileStore.load();
     _selection = loadedSelection;
+    await _normalizeSelectionLoadoutMaskIfNeeded();
     _meta = loadedMeta;
     _profile = loadedProfile;
     _bootstrapped = true;
@@ -78,13 +80,24 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> setCharacter(PlayerCharacterId id) async {
-    _selection = _selection.copyWith(selectedCharacterId: id);
+    final normalizedLoadout = _normalizeLoadoutForCharacter(
+      _selection.equippedLoadout,
+      id,
+    );
+    _selection = _selection.copyWith(
+      selectedCharacterId: id,
+      equippedLoadout: normalizedLoadout,
+    );
     _persistSelection();
     notifyListeners();
   }
 
   Future<void> setLoadout(EquippedLoadoutDef loadout) async {
-    _selection = _selection.copyWith(equippedLoadout: loadout);
+    final normalizedLoadout = _normalizeLoadoutForCharacter(
+      loadout,
+      _selection.selectedCharacterId,
+    );
+    _selection = _selection.copyWith(equippedLoadout: normalizedLoadout);
     _persistSelection();
     notifyListeners();
   }
@@ -157,11 +170,13 @@ class AppState extends ChangeNotifier {
     final gear = _meta.equippedFor(_selection.selectedCharacterId);
     final base = _selection.equippedLoadout;
     return EquippedLoadoutDef(
-      mask: base.mask,
+      mask: _loadoutMaskForCharacter(_selection.selectedCharacterId),
       mainWeaponId: gear.mainWeaponId,
       offhandWeaponId: gear.offhandWeaponId,
       projectileItemId: gear.throwingWeaponId,
       spellBookId: gear.spellBookId,
+      projectileSlotSpellId: base.projectileSlotSpellId,
+      bonusSlotSpellId: base.bonusSlotSpellId,
       accessoryId: gear.accessoryId,
       abilityPrimaryId: base.abilityPrimaryId,
       abilitySecondaryId: base.abilitySecondaryId,
@@ -190,5 +205,46 @@ class AppState extends ChangeNotifier {
 
   void _persistProfile() {
     _profileStore.save(_profile);
+  }
+
+  Future<void> _normalizeSelectionLoadoutMaskIfNeeded() async {
+    final normalizedLoadout = _normalizeLoadoutForCharacter(
+      _selection.equippedLoadout,
+      _selection.selectedCharacterId,
+    );
+    if (normalizedLoadout.mask == _selection.equippedLoadout.mask) return;
+    _selection = _selection.copyWith(equippedLoadout: normalizedLoadout);
+    await _selectionStore.save(_selection);
+  }
+
+  EquippedLoadoutDef _normalizeLoadoutForCharacter(
+    EquippedLoadoutDef loadout,
+    PlayerCharacterId characterId,
+  ) {
+    final targetMask = _loadoutMaskForCharacter(characterId);
+    if (loadout.mask == targetMask) return loadout;
+    return EquippedLoadoutDef(
+      mask: targetMask,
+      mainWeaponId: loadout.mainWeaponId,
+      offhandWeaponId: loadout.offhandWeaponId,
+      projectileItemId: loadout.projectileItemId,
+      spellBookId: loadout.spellBookId,
+      projectileSlotSpellId: loadout.projectileSlotSpellId,
+      bonusSlotSpellId: loadout.bonusSlotSpellId,
+      accessoryId: loadout.accessoryId,
+      abilityPrimaryId: loadout.abilityPrimaryId,
+      abilitySecondaryId: loadout.abilitySecondaryId,
+      abilityProjectileId: loadout.abilityProjectileId,
+      abilityBonusId: loadout.abilityBonusId,
+      abilityMobilityId: loadout.abilityMobilityId,
+      abilityJumpId: loadout.abilityJumpId,
+    );
+  }
+
+  int _loadoutMaskForCharacter(PlayerCharacterId characterId) {
+    final def =
+        PlayerCharacterRegistry.byId[characterId] ??
+        PlayerCharacterRegistry.defaultCharacter;
+    return def.catalog.loadoutSlotMask;
   }
 }

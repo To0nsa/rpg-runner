@@ -169,7 +169,7 @@ WeaponDef {
   weaponType: WeaponType,
   damageType: DamageType,
   procs: List<WeaponProc>,
-  stats: WeaponStats,
+  stats: GearStatBonuses,
 }
 ```
 

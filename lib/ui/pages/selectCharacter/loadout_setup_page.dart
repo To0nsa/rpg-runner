@@ -2,15 +2,21 @@ import 'package:flutter/material.dart';
 
 import 'package:provider/provider.dart';
 
+import '../../../core/abilities/ability_def.dart';
+import '../../../core/ecs/stores/combat/equipped_loadout_store.dart';
 import '../../../core/meta/gear_slot.dart';
 import '../../../core/meta/meta_service.dart';
 import '../../../core/players/player_character_definition.dart';
 import '../../../core/players/player_character_registry.dart';
+import '../../components/ability_placeholder_icon.dart';
 import '../../components/gear_icon.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
 import '../../state/app_state.dart';
+import '../../text/ability_text.dart';
 import '../../theme/ui_tokens.dart';
+import 'ability/ability_picker_dialog.dart';
+import 'ability/ability_picker_presenter.dart';
 import 'gear/gear_picker_dialog.dart';
 
 class LoadoutSetupPage extends StatefulWidget {
@@ -99,6 +105,7 @@ class _CharacterGearPanel extends StatelessWidget {
     final ui = context.ui;
     final appState = context.watch<AppState>();
     final meta = appState.meta;
+    final loadout = appState.selection.equippedLoadout;
     final gear = meta.equippedFor(characterId);
     const service = MetaService();
 
@@ -179,6 +186,10 @@ class _CharacterGearPanel extends StatelessWidget {
               ),
             ],
           ),
+          SizedBox(height: ui.space.md),
+          Text('Action Slots', style: ui.text.headline),
+          SizedBox(height: ui.space.xs),
+          _ActionSlotGrid(characterId: characterId, loadout: loadout),
         ],
       ),
     );
@@ -225,4 +236,210 @@ class _GearSlotButton extends StatelessWidget {
       ],
     );
   }
+}
+
+class _ActionSlotGrid extends StatelessWidget {
+  const _ActionSlotGrid({required this.characterId, required this.loadout});
+
+  final PlayerCharacterId characterId;
+  final EquippedLoadoutDef loadout;
+
+  static const List<_ActionSlotSpec> _topRow = [
+    _ActionSlotSpec(
+      slot: AbilitySlot.mobility,
+      hudLabel: 'Mob',
+      isEditable: true,
+    ),
+    _ActionSlotSpec(
+      slot: AbilitySlot.primary,
+      hudLabel: 'Prim',
+      isEditable: true,
+    ),
+    _ActionSlotSpec(
+      slot: AbilitySlot.projectile,
+      hudLabel: 'Proj',
+      isEditable: true,
+    ),
+  ];
+
+  static const List<_ActionSlotSpec> _bottomRow = [
+    _ActionSlotSpec(
+      slot: AbilitySlot.jump,
+      hudLabel: 'Jump',
+      isEditable: false,
+    ),
+    _ActionSlotSpec(
+      slot: AbilitySlot.secondary,
+      hudLabel: 'Sec',
+      isEditable: true,
+    ),
+    _ActionSlotSpec(
+      slot: AbilitySlot.bonus,
+      hudLabel: 'Bonus',
+      isEditable: true,
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final ui = context.ui;
+    return Column(
+      children: [
+        _ActionSlotRow(
+          specs: _topRow,
+          characterId: characterId,
+          loadout: loadout,
+        ),
+        SizedBox(height: ui.space.xs),
+        _ActionSlotRow(
+          specs: _bottomRow,
+          characterId: characterId,
+          loadout: loadout,
+        ),
+      ],
+    );
+  }
+}
+
+class _ActionSlotRow extends StatelessWidget {
+  const _ActionSlotRow({
+    required this.specs,
+    required this.characterId,
+    required this.loadout,
+  });
+
+  final List<_ActionSlotSpec> specs;
+  final PlayerCharacterId characterId;
+  final EquippedLoadoutDef loadout;
+
+  @override
+  Widget build(BuildContext context) {
+    final ui = context.ui;
+    return Row(
+      children: [
+        for (var i = 0; i < specs.length; i++) ...[
+          Expanded(
+            child: _ActionSlotButton(
+              spec: specs[i],
+              characterId: characterId,
+              loadout: loadout,
+            ),
+          ),
+          if (i < specs.length - 1) SizedBox(width: ui.space.xs),
+        ],
+      ],
+    );
+  }
+}
+
+class _ActionSlotButton extends StatelessWidget {
+  const _ActionSlotButton({
+    required this.spec,
+    required this.characterId,
+    required this.loadout,
+  });
+
+  final _ActionSlotSpec spec;
+  final PlayerCharacterId characterId;
+  final EquippedLoadoutDef loadout;
+
+  @override
+  Widget build(BuildContext context) {
+    final ui = context.ui;
+    final abilityId = abilityIdForSlot(loadout, spec.slot);
+    final abilityName = spec.isEditable
+        ? abilityDisplayName(abilityId)
+        : '${abilityDisplayName(abilityId)} (fixed)';
+    final isEditable = spec.isEditable;
+    const size = 56.0;
+    final borderColor = isEditable
+        ? ui.colors.outline
+        : ui.colors.outline.withValues(alpha: 0.4);
+    final iconColor = isEditable
+        ? ui.colors.textPrimary
+        : ui.colors.textMuted.withValues(alpha: 0.8);
+    final iconLabel = _abilityPlaceholderLabel(abilityName);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: isEditable
+                ? () => showAbilityPickerDialog(
+                    context,
+                    characterId: characterId,
+                    slot: spec.slot,
+                  )
+                : null,
+            customBorder: const CircleBorder(),
+            child: Ink(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                color: const Color(0xFF131313),
+                shape: BoxShape.circle,
+                border: Border.all(color: borderColor),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  AbilityPlaceholderIcon(
+                    label: iconLabel,
+                    size: 20,
+                    enabled: isEditable,
+                  ),
+                  SizedBox(height: ui.space.xxs),
+                  Text(
+                    spec.hudLabel,
+                    style: ui.text.caption.copyWith(
+                      color: iconColor,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        SizedBox(height: ui.space.xxs),
+        Text(
+          abilityName,
+          style: ui.text.caption.copyWith(
+            color: isEditable ? ui.colors.textPrimary : ui.colors.textMuted,
+            fontSize: 10,
+          ),
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+}
+
+class _ActionSlotSpec {
+  const _ActionSlotSpec({
+    required this.slot,
+    required this.hudLabel,
+    required this.isEditable,
+  });
+
+  final AbilitySlot slot;
+  final String hudLabel;
+  final bool isEditable;
+}
+
+String _abilityPlaceholderLabel(String abilityName) {
+  final cleaned = abilityName.replaceAll('(', '').replaceAll(')', '').trim();
+  final words = cleaned.split(RegExp(r'\s+')).where((w) => w.isNotEmpty);
+  final buffer = StringBuffer();
+  for (final word in words) {
+    buffer.write(word[0].toUpperCase());
+    if (buffer.length >= 2) break;
+  }
+  final value = buffer.toString();
+  return value.isEmpty ? '?' : value;
 }

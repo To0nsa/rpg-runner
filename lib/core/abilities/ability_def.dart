@@ -338,23 +338,7 @@ class AbilityDef {
   /// Uses [cooldownGroupId] if set, otherwise falls back to slot default.
   int effectiveCooldownGroup(AbilitySlot slot) {
     if (cooldownGroupId != null) return cooldownGroupId!;
-
-    // Important: Bonus should NOT get a "free extra cooldown lane" by default.
-    // If an ability is equipped in Bonus, it should default to its canonical slot group.
-    if (slot != AbilitySlot.bonus) {
-      return CooldownGroup.fromSlot(slot);
-    }
-
-    // Derive canonical group from allowedSlots (today, your abilities are effectively single-slot).
-    // If you later allow multi-slot abilities, set cooldownGroupId explicitly for those.
-    if (allowedSlots.contains(AbilitySlot.primary)) return CooldownGroup.primary;
-    if (allowedSlots.contains(AbilitySlot.secondary)) return CooldownGroup.secondary;
-    if (allowedSlots.contains(AbilitySlot.projectile)) return CooldownGroup.projectile;
-    if (allowedSlots.contains(AbilitySlot.mobility)) return CooldownGroup.mobility;
-    if (allowedSlots.contains(AbilitySlot.jump)) return CooldownGroup.jump;
-
-    // Fallback (shouldn't happen if allowedSlots is sane)
-    return CooldownGroup.bonus0;
+    return CooldownGroup.fromSlot(slot);
   }
 
   // Runtime Validation (Helper)

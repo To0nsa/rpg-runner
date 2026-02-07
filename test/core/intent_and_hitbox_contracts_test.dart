@@ -48,7 +48,7 @@ void main() {
       caster,
       const ProjectileIntentDef(
         projectileItemId: ProjectileItemId.iceBolt,
-        abilityId: 'eloise.ice_bolt',
+        abilityId: 'eloise.heavy_throw',
         slot: AbilitySlot.projectile,
         damage100: 100,
         staminaCost100: 0,

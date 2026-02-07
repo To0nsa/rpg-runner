@@ -36,7 +36,8 @@ void main() {
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
             projectileItemId: ProjectileItemId.throwingKnife,
-            abilityProjectileId: 'eloise.throwing_knife',
+            projectileSlotSpellId: null,
+            abilityProjectileId: 'eloise.quick_throw',
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
@@ -59,7 +60,7 @@ void main() {
       core.stepOneTick();
 
       final windupTicks = ticksFromSecondsCeil(
-        AbilityCatalog.tryGet('eloise.throwing_knife')!.windupTicks / 60.0,
+        AbilityCatalog.tryGet('eloise.quick_throw')!.windupTicks / 60.0,
         tickHz,
       );
       for (var i = 0; i < windupTicks; i += 1) {
@@ -100,7 +101,8 @@ void main() {
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
             projectileItemId: ProjectileItemId.throwingKnife,
-            abilityProjectileId: 'eloise.throwing_knife',
+            projectileSlotSpellId: null,
+            abilityProjectileId: 'eloise.quick_throw',
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
@@ -120,7 +122,7 @@ void main() {
       core.stepOneTick();
 
       final windupTicks = ticksFromSecondsCeil(
-        AbilityCatalog.tryGet('eloise.throwing_knife')!.windupTicks / 60.0,
+        AbilityCatalog.tryGet('eloise.quick_throw')!.windupTicks / 60.0,
         core.tickHz,
       );
       for (var i = 0; i < windupTicks; i += 1) {

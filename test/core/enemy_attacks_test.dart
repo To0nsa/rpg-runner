@@ -33,7 +33,7 @@ void main() {
   test('enemy projectile (thunder) damages player', () {
     final world = EcsWorld();
     final thunderDamage = AbilityCatalog.tryGet(
-      'eloise.thunder_bolt',
+      'common.enemy_cast',
     )!.baseDamage;
     final projectileItem = const ProjectileItemCatalog().get(
       ProjectileItemId.thunderBolt,

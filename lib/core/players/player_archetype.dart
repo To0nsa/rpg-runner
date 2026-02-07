@@ -41,6 +41,8 @@ class PlayerArchetype {
     required this.offhandWeaponId,
     required this.projectileItemId,
     required this.spellBookId,
+    required this.projectileSlotSpellId,
+    required this.bonusSlotSpellId,
     required this.abilityPrimaryId,
     required this.abilitySecondaryId,
     required this.abilityProjectileId,
@@ -103,6 +105,12 @@ class PlayerArchetype {
 
   /// Equipped spell book used for spell payloads.
   final SpellBookId spellBookId;
+
+  /// Optional spell selection used by projectile-slot projectile abilities.
+  final ProjectileItemId? projectileSlotSpellId;
+
+  /// Optional spell selection used by bonus-slot projectile abilities.
+  final ProjectileItemId? bonusSlotSpellId;
 
   /// Equipped ability IDs (loadout defaults).
   final AbilityKey abilityPrimaryId;

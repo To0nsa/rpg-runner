@@ -169,6 +169,8 @@ class SnapshotBuilder {
       offhandWeaponId: loadout.offhandWeaponId[li],
       projectileItemId: loadout.projectileItemId[li],
       spellBookId: loadout.spellBookId[li],
+      projectileSlotSpellId: loadout.projectileSlotSpellId[li],
+      bonusSlotSpellId: loadout.bonusSlotSpellId[li],
       accessoryId: loadout.accessoryId[li],
       abilityPrimaryId: loadout.abilityPrimaryId[li],
       abilitySecondaryId: loadout.abilitySecondaryId[li],

@@ -37,11 +37,13 @@ class EquippedLoadoutDef {
     this.offhandWeaponId = WeaponId.woodenShield,
     this.projectileItemId = ProjectileItemId.throwingKnife,
     this.spellBookId = SpellBookId.basicSpellBook,
+    this.projectileSlotSpellId = ProjectileItemId.iceBolt,
+    this.bonusSlotSpellId = ProjectileItemId.fireBolt,
     this.accessoryId = AccessoryId.speedBoots,
     this.abilityPrimaryId = 'eloise.sword_strike',
     this.abilitySecondaryId = 'eloise.shield_block',
-    this.abilityProjectileId = 'eloise.throwing_knife',
-    this.abilityBonusId = 'eloise.throwing_knife',
+    this.abilityProjectileId = 'eloise.quick_throw',
+    this.abilityBonusId = 'eloise.heavy_throw',
     this.abilityMobilityId = 'eloise.dash',
     this.abilityJumpId = 'eloise.jump',
   });
@@ -55,11 +57,21 @@ class EquippedLoadoutDef {
   /// Off-hand weapon or shield.
   final WeaponId offhandWeaponId;
 
-  /// Equipped projectile item (spell or throwing weapon).
+  /// Equipped projectile item fallback (typically throwing weapon).
   final ProjectileItemId projectileItemId;
 
   /// Equipped spell book (spell payload provider).
   final SpellBookId spellBookId;
+
+  /// Optional projectile spell selection for [AbilitySlot.projectile].
+  ///
+  /// If null, projectile abilities in the projectile slot use [projectileItemId].
+  final ProjectileItemId? projectileSlotSpellId;
+
+  /// Optional projectile spell selection for [AbilitySlot.bonus].
+  ///
+  /// If null, projectile abilities in the bonus slot use [projectileItemId].
+  final ProjectileItemId? bonusSlotSpellId;
 
   /// Equipped accessory (meta gear; not yet wired into Core systems).
   final AccessoryId accessoryId;
@@ -87,6 +99,8 @@ class EquippedLoadoutStore extends SparseSet {
   final List<WeaponId> offhandWeaponId = <WeaponId>[];
   final List<ProjectileItemId> projectileItemId = <ProjectileItemId>[];
   final List<SpellBookId> spellBookId = <SpellBookId>[];
+  final List<ProjectileItemId?> projectileSlotSpellId = <ProjectileItemId?>[];
+  final List<ProjectileItemId?> bonusSlotSpellId = <ProjectileItemId?>[];
   final List<AccessoryId> accessoryId = <AccessoryId>[];
 
   // New Ability System Lists
@@ -107,6 +121,8 @@ class EquippedLoadoutStore extends SparseSet {
     offhandWeaponId[i] = def.offhandWeaponId;
     projectileItemId[i] = def.projectileItemId;
     spellBookId[i] = def.spellBookId;
+    projectileSlotSpellId[i] = def.projectileSlotSpellId;
+    bonusSlotSpellId[i] = def.bonusSlotSpellId;
     accessoryId[i] = def.accessoryId;
     abilityPrimaryId[i] = def.abilityPrimaryId;
     abilitySecondaryId[i] = def.abilitySecondaryId;
@@ -124,6 +140,8 @@ class EquippedLoadoutStore extends SparseSet {
     offhandWeaponId[i] = def.offhandWeaponId;
     projectileItemId[i] = def.projectileItemId;
     spellBookId[i] = def.spellBookId;
+    projectileSlotSpellId[i] = def.projectileSlotSpellId;
+    bonusSlotSpellId[i] = def.bonusSlotSpellId;
     accessoryId[i] = def.accessoryId;
     abilityPrimaryId[i] = def.abilityPrimaryId;
     abilitySecondaryId[i] = def.abilitySecondaryId;
@@ -147,11 +165,13 @@ class EquippedLoadoutStore extends SparseSet {
     offhandWeaponId.add(WeaponId.woodenShield);
     projectileItemId.add(ProjectileItemId.throwingKnife);
     spellBookId.add(SpellBookId.basicSpellBook);
+    projectileSlotSpellId.add(ProjectileItemId.iceBolt);
+    bonusSlotSpellId.add(ProjectileItemId.fireBolt);
     accessoryId.add(AccessoryId.speedBoots);
     abilityPrimaryId.add('eloise.sword_strike');
     abilitySecondaryId.add('eloise.shield_block');
-    abilityProjectileId.add('eloise.throwing_knife');
-    abilityBonusId.add('eloise.throwing_knife');
+    abilityProjectileId.add('eloise.quick_throw');
+    abilityBonusId.add('eloise.heavy_throw');
     abilityMobilityId.add('eloise.dash');
     abilityJumpId.add('eloise.jump');
   }
@@ -163,6 +183,8 @@ class EquippedLoadoutStore extends SparseSet {
     offhandWeaponId[removeIndex] = offhandWeaponId[lastIndex];
     projectileItemId[removeIndex] = projectileItemId[lastIndex];
     spellBookId[removeIndex] = spellBookId[lastIndex];
+    projectileSlotSpellId[removeIndex] = projectileSlotSpellId[lastIndex];
+    bonusSlotSpellId[removeIndex] = bonusSlotSpellId[lastIndex];
     accessoryId[removeIndex] = accessoryId[lastIndex];
     abilityPrimaryId[removeIndex] = abilityPrimaryId[lastIndex];
     abilitySecondaryId[removeIndex] = abilitySecondaryId[lastIndex];
@@ -176,6 +198,8 @@ class EquippedLoadoutStore extends SparseSet {
     offhandWeaponId.removeLast();
     projectileItemId.removeLast();
     spellBookId.removeLast();
+    projectileSlotSpellId.removeLast();
+    bonusSlotSpellId.removeLast();
     accessoryId.removeLast();
     abilityPrimaryId.removeLast();
     abilitySecondaryId.removeLast();

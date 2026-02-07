@@ -40,7 +40,7 @@ void main() {
       ProjectileItemId.thunderBolt,
     );
     final thunderDamage = AbilityCatalog.tryGet(
-      'eloise.thunder_bolt',
+      'common.enemy_cast',
     )!.baseDamage;
 
     final player = EntityFactory(world).createPlayer(

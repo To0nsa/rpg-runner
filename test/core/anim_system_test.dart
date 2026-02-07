@@ -160,7 +160,7 @@ void main() {
         const offset = 1;
         world.activeAbility.set(
           player,
-          id: 'eloise.ice_bolt',
+          id: 'eloise.heavy_throw',
           slot: AbilitySlot.projectile,
           commitTick: tick - offset,
           windupTicks: 0,
@@ -182,7 +182,7 @@ void main() {
         const offset = 1;
         world.activeAbility.set(
           player,
-          id: 'eloise.throwing_knife',
+          id: 'eloise.quick_throw',
           slot: AbilitySlot.projectile,
           commitTick: tick - offset,
           windupTicks: 0,

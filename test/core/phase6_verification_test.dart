@@ -72,7 +72,7 @@ void main() {
       player,
       ProjectileIntentDef(
         projectileItemId: ProjectileItemId.iceBolt,
-        abilityId: 'eloise.ice_bolt',
+        abilityId: 'eloise.heavy_throw',
         slot: AbilitySlot.projectile,
         dirX: 1.0,
         dirY: 0.0,
@@ -111,7 +111,7 @@ void main() {
     // Simulate AbilityActivationSystem's side effect (setting active ability)
     world.activeAbility.set(
       player,
-      id: 'eloise.ice_bolt',
+      id: 'eloise.heavy_throw',
       slot: AbilitySlot.projectile,
       commitTick: tick,
       windupTicks: 0,
@@ -128,7 +128,7 @@ void main() {
     );
     final activeId =
         world.activeAbility.abilityId[world.activeAbility.indexOf(player)];
-    expect(activeId, equals('eloise.ice_bolt'));
+    expect(activeId, equals('eloise.heavy_throw'));
 
     // Step AnimSystem
     animSystem.step(world, player: player, currentTick: tick);

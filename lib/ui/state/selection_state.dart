@@ -119,6 +119,8 @@ Map<String, Object?> _loadoutToJson(EquippedLoadoutDef loadout) {
     'offhandWeaponId': loadout.offhandWeaponId.name,
     'projectileItemId': loadout.projectileItemId.name,
     'spellBookId': loadout.spellBookId.name,
+    'projectileSlotSpellId': loadout.projectileSlotSpellId?.name,
+    'bonusSlotSpellId': loadout.bonusSlotSpellId?.name,
     'accessoryId': loadout.accessoryId.name,
     'abilityPrimaryId': loadout.abilityPrimaryId,
     'abilitySecondaryId': loadout.abilitySecondaryId,
@@ -156,6 +158,18 @@ EquippedLoadoutDef _loadoutFromJson(Object? raw) {
       map['spellBookId'] as String?,
       SpellBookId.basicSpellBook,
     ),
+    projectileSlotSpellId: map.containsKey('projectileSlotSpellId')
+        ? _enumFromNameNullable(
+            ProjectileItemId.values,
+            map['projectileSlotSpellId'] as String?,
+          )
+        : const EquippedLoadoutDef().projectileSlotSpellId,
+    bonusSlotSpellId: map.containsKey('bonusSlotSpellId')
+        ? _enumFromNameNullable(
+            ProjectileItemId.values,
+            map['bonusSlotSpellId'] as String?,
+          )
+        : const EquippedLoadoutDef().bonusSlotSpellId,
     accessoryId: _enumFromName(
       AccessoryId.values,
       map['accessoryId'] as String?,
@@ -180,4 +194,12 @@ EquippedLoadoutDef _loadoutFromJson(Object? raw) {
         (map['abilityJumpId'] as String?) ??
         const EquippedLoadoutDef().abilityJumpId,
   );
+}
+
+T? _enumFromNameNullable<T extends Enum>(List<T> values, String? name) {
+  if (name == null) return null;
+  for (final value in values) {
+    if (value.name == name) return value;
+  }
+  return null;
 }

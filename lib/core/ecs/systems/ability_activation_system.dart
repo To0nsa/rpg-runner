@@ -814,20 +814,30 @@ class AbilityActivationSystem {
 
     switch (ability.payloadSource) {
       case AbilityPayloadSource.projectileItem:
-        final equippedId = world.equippedLoadout.projectileItemId[loadoutIndex];
+        final equippedId = _resolveProjectileItemForSlot(
+          world,
+          loadoutIndex: loadoutIndex,
+          slot: slot,
+          ability: ability,
+        );
         final projectileItem = projectileItems.tryGet(equippedId);
         if (projectileItem == null) {
           assert(false, 'Projectile item not found: $equippedId');
           return false;
         }
-        if (projectileItem.weaponType != WeaponType.throwingWeapon) {
+        if (ability.requiredWeaponTypes.isNotEmpty &&
+            !ability.requiredWeaponTypes.contains(projectileItem.weaponType)) {
           return false;
         }
         projectileItemId = equippedId;
         projectileId = projectileItem.projectileId;
         ballistic = projectileItem.ballistic;
         gravityScale = projectileItem.gravityScale;
-        originOffset = projectileItem.originOffset;
+        originOffset =
+            projectileItem.weaponType == WeaponType.projectileSpell &&
+                projectileItem.originOffset == 0
+            ? _spellOriginOffset(world, player)
+            : projectileItem.originOffset;
         weaponStats = projectileItem.stats;
         weaponDamageType = projectileItem.damageType;
         weaponProcs = projectileItem.procs;
@@ -958,6 +968,54 @@ class AbilityActivationSystem {
       ),
     );
     return true;
+  }
+
+  ProjectileItemId _resolveProjectileItemForSlot(
+    EcsWorld world, {
+    required int loadoutIndex,
+    required AbilitySlot slot,
+    required AbilityDef ability,
+  }) {
+    final loadout = world.equippedLoadout;
+    final selectedSpellId = _selectedSpellIdForSlot(
+      loadout,
+      loadoutIndex: loadoutIndex,
+      slot: slot,
+    );
+    if (selectedSpellId != null) {
+      final selectedSpell = projectileItems.tryGet(selectedSpellId);
+      final spellBookId = loadout.spellBookId[loadoutIndex];
+      final spellBook = spellBooks.tryGet(spellBookId);
+      final supportsSpell =
+          selectedSpell != null &&
+          selectedSpell.weaponType == WeaponType.projectileSpell &&
+          spellBook != null &&
+          spellBook.containsProjectileSpell(selectedSpellId) &&
+          (ability.requiredWeaponTypes.isEmpty ||
+              ability.requiredWeaponTypes.contains(WeaponType.projectileSpell));
+      if (supportsSpell) {
+        return selectedSpellId;
+      }
+    }
+    return loadout.projectileItemId[loadoutIndex];
+  }
+
+  ProjectileItemId? _selectedSpellIdForSlot(
+    EquippedLoadoutStore loadout, {
+    required int loadoutIndex,
+    required AbilitySlot slot,
+  }) {
+    switch (slot) {
+      case AbilitySlot.projectile:
+        return loadout.projectileSlotSpellId[loadoutIndex];
+      case AbilitySlot.bonus:
+        return loadout.bonusSlotSpellId[loadoutIndex];
+      case AbilitySlot.primary:
+      case AbilitySlot.secondary:
+      case AbilitySlot.mobility:
+      case AbilitySlot.jump:
+        return null;
+    }
   }
 
   double _spellOriginOffset(EcsWorld world, EntityId player) {

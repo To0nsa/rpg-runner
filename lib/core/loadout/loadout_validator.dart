@@ -53,22 +53,21 @@ class LoadoutValidator {
       issues,
     );
 
-    final spellBook = _resolveSpellBook(
-      loadout.spellBookId,
-      issues,
-    );
+    final spellBook = _resolveSpellBook(loadout.spellBookId, issues);
 
     // 2. Derive Effective Weapons (Two-Handed Logic)
     final isTwoHanded = mainWeapon?.isTwoHanded ?? false;
 
     // Rule: Two-Handed weapon blocks separate secondary weapon
     if (isTwoHanded && offhandWeapon != null) {
-      issues.add(LoadoutIssue(
-        slot: AbilitySlot.secondary,
-        kind: IssueKind.twoHandedConflict,
-        weaponId: loadout.offhandWeaponId.toString(),
-        message: 'Cannot equip off-hand weapon with two-handed primary.',
-      ));
+      issues.add(
+        LoadoutIssue(
+          slot: AbilitySlot.secondary,
+          kind: IssueKind.twoHandedConflict,
+          weaponId: loadout.offhandWeaponId.toString(),
+          message: 'Cannot equip off-hand weapon with two-handed primary.',
+        ),
+      );
     }
 
     // Effective weapons for gating
@@ -85,6 +84,8 @@ class LoadoutValidator {
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
       projectileItem: projectileItem,
       spellBook: spellBook,
+      projectileSlotSpellId: loadout.projectileSlotSpellId,
+      bonusSlotSpellId: loadout.bonusSlotSpellId,
     );
 
     // Secondary
@@ -96,6 +97,8 @@ class LoadoutValidator {
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
       projectileItem: projectileItem,
       spellBook: spellBook,
+      projectileSlotSpellId: loadout.projectileSlotSpellId,
+      bonusSlotSpellId: loadout.bonusSlotSpellId,
     );
 
     // Projectile
@@ -107,6 +110,8 @@ class LoadoutValidator {
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
       projectileItem: projectileItem,
       spellBook: spellBook,
+      projectileSlotSpellId: loadout.projectileSlotSpellId,
+      bonusSlotSpellId: loadout.bonusSlotSpellId,
     );
 
     // Mobility (No weapon)
@@ -118,6 +123,8 @@ class LoadoutValidator {
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
       projectileItem: projectileItem,
       spellBook: spellBook,
+      projectileSlotSpellId: loadout.projectileSlotSpellId,
+      bonusSlotSpellId: loadout.bonusSlotSpellId,
     );
 
     // Bonus: payload gating is now driven by AbilityDef.payloadSource.
@@ -129,6 +136,8 @@ class LoadoutValidator {
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
       projectileItem: projectileItem,
       spellBook: spellBook,
+      projectileSlotSpellId: loadout.projectileSlotSpellId,
+      bonusSlotSpellId: loadout.bonusSlotSpellId,
     );
 
     // Jump (Fixed slot, no weapon)
@@ -140,12 +149,11 @@ class LoadoutValidator {
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
       projectileItem: projectileItem,
       spellBook: spellBook,
+      projectileSlotSpellId: loadout.projectileSlotSpellId,
+      bonusSlotSpellId: loadout.bonusSlotSpellId,
     );
 
-    return LoadoutValidationResult(
-      isValid: issues.isEmpty,
-      issues: issues,
-    );
+    return LoadoutValidationResult(isValid: issues.isEmpty, issues: issues);
   }
 
   WeaponDef? _resolveWeapon(
@@ -160,25 +168,29 @@ class LoadoutValidator {
       // If we want to support "none", we'd need a specific ID for it or nullable field.
       // LoadoutDefs are non-nullable IDs.
       // So if tryGet fails, it's catalogMissing.
-      issues.add(LoadoutIssue(
-        slot: slot,
-        kind: IssueKind.catalogMissing,
-        weaponId: id.toString(),
-        message: 'Weapon ID not found in catalog.',
-      ));
+      issues.add(
+        LoadoutIssue(
+          slot: slot,
+          kind: IssueKind.catalogMissing,
+          weaponId: id.toString(),
+          message: 'Weapon ID not found in catalog.',
+        ),
+      );
       return null;
     }
 
     if (weapon.category != expectedCategory) {
-      issues.add(LoadoutIssue(
-        slot: slot,
-        kind: IssueKind.weaponCategoryMismatch,
-        weaponId: id.toString(),
-        message: 'Expected $expectedCategory, found ${weapon.category}.',
-      ));
+      issues.add(
+        LoadoutIssue(
+          slot: slot,
+          kind: IssueKind.weaponCategoryMismatch,
+          weaponId: id.toString(),
+          message: 'Expected $expectedCategory, found ${weapon.category}.',
+        ),
+      );
       // Return null so we don't cascade category errors into type errors?
       // Or return weapon so we can still check types?
-      // Returning weapon allows more checks, but might be noisy. 
+      // Returning weapon allows more checks, but might be noisy.
       // Let's return null to fail-fast on this slot's weapon.
       return null;
     }
@@ -193,29 +205,30 @@ class LoadoutValidator {
   ) {
     final item = projectileItemCatalog.tryGet(id);
     if (item == null) {
-      issues.add(LoadoutIssue(
-        slot: slot,
-        kind: IssueKind.catalogMissing,
-        weaponId: id.toString(),
-        message: 'Projectile item ID not found in catalog.',
-      ));
+      issues.add(
+        LoadoutIssue(
+          slot: slot,
+          kind: IssueKind.catalogMissing,
+          weaponId: id.toString(),
+          message: 'Projectile item ID not found in catalog.',
+        ),
+      );
       return null;
     }
     return item;
   }
 
-  SpellBookDef? _resolveSpellBook(
-    SpellBookId id,
-    List<LoadoutIssue> issues,
-  ) {
+  SpellBookDef? _resolveSpellBook(SpellBookId id, List<LoadoutIssue> issues) {
     final book = spellBookCatalog.tryGet(id);
     if (book == null) {
-      issues.add(LoadoutIssue(
-        slot: AbilitySlot.bonus,
-        kind: IssueKind.catalogMissing,
-        weaponId: id.toString(),
-        message: 'Spell book ID not found in catalog.',
-      ));
+      issues.add(
+        LoadoutIssue(
+          slot: AbilitySlot.bonus,
+          kind: IssueKind.catalogMissing,
+          weaponId: id.toString(),
+          message: 'Spell book ID not found in catalog.',
+        ),
+      );
       return null;
     }
     return book;
@@ -229,59 +242,143 @@ class LoadoutValidator {
     required WeaponDef? effectiveSecondaryWeapon,
     required ProjectileItemDef? projectileItem,
     required SpellBookDef? spellBook,
+    required ProjectileItemId? projectileSlotSpellId,
+    required ProjectileItemId? bonusSlotSpellId,
   }) {
     final ability = abilityCatalog.resolve(abilityId);
     if (ability == null) {
-      issues.add(LoadoutIssue(
-        slot: slot,
-        kind: IssueKind.catalogMissing,
-        abilityId: abilityId,
-        message: 'Ability ID not found in catalog.',
-      ));
+      issues.add(
+        LoadoutIssue(
+          slot: slot,
+          kind: IssueKind.catalogMissing,
+          abilityId: abilityId,
+          message: 'Ability ID not found in catalog.',
+        ),
+      );
       return;
     }
+
+    final effectiveProjectileItem = _effectiveProjectilePayloadForSlot(
+      issues: issues,
+      slot: slot,
+      fallbackProjectileItem: projectileItem,
+      spellBook: spellBook,
+      projectileSlotSpellId: projectileSlotSpellId,
+      bonusSlotSpellId: bonusSlotSpellId,
+    );
 
     final (hasWeapon, weaponType) = _payloadContextFor(
       ability,
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
-      projectileItem: projectileItem,
+      projectileItem: effectiveProjectileItem,
       spellBook: spellBook,
     );
 
     // 1. Slot Compatibility
     if (!ability.allowedSlots.contains(slot)) {
-      issues.add(LoadoutIssue(
-        slot: slot,
-        kind: IssueKind.slotNotAllowed,
-        abilityId: abilityId,
-        message: 'Ability not allowed in $slot slot.',
-      ));
+      issues.add(
+        LoadoutIssue(
+          slot: slot,
+          kind: IssueKind.slotNotAllowed,
+          abilityId: abilityId,
+          message: 'Ability not allowed in $slot slot.',
+        ),
+      );
     }
 
     // 2. Weapon Presence
     if (ability.requiresEquippedWeapon && !hasWeapon) {
-      issues.add(LoadoutIssue(
-        slot: slot,
-        kind: IssueKind.requiresEquippedWeapon,
-        abilityId: abilityId,
-        message: 'Ability requires an equipped weapon.',
-      ));
+      issues.add(
+        LoadoutIssue(
+          slot: slot,
+          kind: IssueKind.requiresEquippedWeapon,
+          abilityId: abilityId,
+          message: 'Ability requires an equipped weapon.',
+        ),
+      );
     }
 
     // 3. Weapon Type Gating
     if (ability.requiredWeaponTypes.isNotEmpty) {
       if (weaponType == null ||
           !ability.requiredWeaponTypes.contains(weaponType)) {
-        issues.add(LoadoutIssue(
-          slot: slot,
-          kind: IssueKind.missingRequiredWeaponTypes,
-          abilityId: abilityId,
-          missingWeaponTypes: ability.requiredWeaponTypes,
-          message: 'Missing required weapon types: ${ability.requiredWeaponTypes.join(", ")}.',
-        ));
+        issues.add(
+          LoadoutIssue(
+            slot: slot,
+            kind: IssueKind.missingRequiredWeaponTypes,
+            abilityId: abilityId,
+            missingWeaponTypes: ability.requiredWeaponTypes,
+            message:
+                'Missing required weapon types: ${ability.requiredWeaponTypes.join(", ")}.',
+          ),
+        );
       }
     }
+  }
+
+  ProjectileItemDef? _effectiveProjectilePayloadForSlot({
+    required List<LoadoutIssue> issues,
+    required AbilitySlot slot,
+    required ProjectileItemDef? fallbackProjectileItem,
+    required SpellBookDef? spellBook,
+    required ProjectileItemId? projectileSlotSpellId,
+    required ProjectileItemId? bonusSlotSpellId,
+  }) {
+    final selectedSpellId = switch (slot) {
+      AbilitySlot.projectile => projectileSlotSpellId,
+      AbilitySlot.bonus => bonusSlotSpellId,
+      AbilitySlot.primary ||
+      AbilitySlot.secondary ||
+      AbilitySlot.mobility ||
+      AbilitySlot.jump => null,
+    };
+    if (selectedSpellId == null) {
+      return fallbackProjectileItem;
+    }
+
+    final selectedSpell = projectileItemCatalog.tryGet(selectedSpellId);
+    if (selectedSpell == null) {
+      issues.add(
+        LoadoutIssue(
+          slot: slot,
+          kind: IssueKind.catalogMissing,
+          weaponId: selectedSpellId.toString(),
+          message:
+              'Selected projectile spell was not found in ProjectileItemCatalog.',
+        ),
+      );
+      return fallbackProjectileItem;
+    }
+
+    if (selectedSpell.weaponType != WeaponType.projectileSpell) {
+      issues.add(
+        LoadoutIssue(
+          slot: slot,
+          kind: IssueKind.missingRequiredWeaponTypes,
+          weaponId: selectedSpellId.toString(),
+          missingWeaponTypes: const <WeaponType>{WeaponType.projectileSpell},
+          message: 'Selected slot spell must be a projectile spell item.',
+        ),
+      );
+      return fallbackProjectileItem;
+    }
+
+    if (spellBook == null ||
+        !spellBook.containsProjectileSpell(selectedSpellId)) {
+      issues.add(
+        LoadoutIssue(
+          slot: slot,
+          kind: IssueKind.catalogMissing,
+          weaponId: selectedSpellId.toString(),
+          message:
+              'Selected projectile spell is not granted by the equipped spellbook.',
+        ),
+      );
+      return fallbackProjectileItem;
+    }
+
+    return selectedSpell;
   }
 
   (bool hasWeapon, WeaponType? weaponType) _payloadContextFor(
@@ -298,7 +395,10 @@ class LoadoutValidator {
         return (mainWeapon != null, mainWeapon?.weaponType);
       case AbilityPayloadSource.secondaryWeapon:
         // effectiveSecondaryWeapon already applies two-handed mapping
-        return (effectiveSecondaryWeapon != null, effectiveSecondaryWeapon?.weaponType);
+        return (
+          effectiveSecondaryWeapon != null,
+          effectiveSecondaryWeapon?.weaponType,
+        );
       case AbilityPayloadSource.projectileItem:
         return (projectileItem != null, projectileItem?.weaponType);
       case AbilityPayloadSource.spellBook:

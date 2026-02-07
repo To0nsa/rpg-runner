@@ -11,6 +11,8 @@ import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/spells/spell_book_id.dart';
 import 'package:rpg_runner/core/weapons/weapon_id.dart';
 
+const Object _unset = Object();
+
 const PlayerCatalog testPlayerCatalogDefaults = PlayerCatalog(
   bodyTemplate: BodyDef(
     isKinematic: false,
@@ -32,9 +34,11 @@ const PlayerCatalog testPlayerCatalogDefaults = PlayerCatalog(
   offhandWeaponId: WeaponId.basicShield,
   projectileItemId: ProjectileItemId.fireBolt,
   spellBookId: SpellBookId.basicSpellBook,
+  projectileSlotSpellId: ProjectileItemId.iceBolt,
+  bonusSlotSpellId: ProjectileItemId.fireBolt,
   abilityPrimaryId: 'eloise.sword_strike',
   abilitySecondaryId: 'eloise.shield_block',
-  abilityProjectileId: 'eloise.fire_bolt',
+  abilityProjectileId: 'eloise.heavy_throw',
   abilityBonusId: 'eloise.shield_bash',
   abilityMobilityId: 'eloise.dash',
   abilityJumpId: 'eloise.jump',
@@ -55,6 +59,8 @@ PlayerCatalog testPlayerCatalog({
   WeaponId? offhandWeaponId,
   ProjectileItemId? projectileItemId,
   SpellBookId? spellBookId,
+  Object? projectileSlotSpellId = _unset,
+  Object? bonusSlotSpellId = _unset,
   AbilityKey? abilityPrimaryId,
   AbilityKey? abilitySecondaryId,
   AbilityKey? abilityProjectileId,
@@ -82,18 +88,22 @@ PlayerCatalog testPlayerCatalog({
     projectileItemId:
         projectileItemId ?? testPlayerCatalogDefaults.projectileItemId,
     spellBookId: spellBookId ?? testPlayerCatalogDefaults.spellBookId,
+    projectileSlotSpellId: identical(projectileSlotSpellId, _unset)
+        ? testPlayerCatalogDefaults.projectileSlotSpellId
+        : projectileSlotSpellId as ProjectileItemId?,
+    bonusSlotSpellId: identical(bonusSlotSpellId, _unset)
+        ? testPlayerCatalogDefaults.bonusSlotSpellId
+        : bonusSlotSpellId as ProjectileItemId?,
     abilityPrimaryId:
         abilityPrimaryId ?? testPlayerCatalogDefaults.abilityPrimaryId,
     abilitySecondaryId:
         abilitySecondaryId ?? testPlayerCatalogDefaults.abilitySecondaryId,
     abilityProjectileId:
         abilityProjectileId ?? testPlayerCatalogDefaults.abilityProjectileId,
-    abilityBonusId:
-        abilityBonusId ?? testPlayerCatalogDefaults.abilityBonusId,
+    abilityBonusId: abilityBonusId ?? testPlayerCatalogDefaults.abilityBonusId,
     abilityMobilityId:
         abilityMobilityId ?? testPlayerCatalogDefaults.abilityMobilityId,
-    abilityJumpId:
-        abilityJumpId ?? testPlayerCatalogDefaults.abilityJumpId,
+    abilityJumpId: abilityJumpId ?? testPlayerCatalogDefaults.abilityJumpId,
     facing: facing ?? testPlayerCatalogDefaults.facing,
   );
 }

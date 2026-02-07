@@ -20,11 +20,17 @@ class AbilityCatalog {
       allowedSlots: {AbilitySlot.primary, AbilitySlot.bonus},
       targetingModel: TargetingModel.directional,
       hitDelivery: MeleeHitDelivery(
-        sizeX: 1.0, sizeY: 1.0, offsetX: 0.5, offsetY: 0.0, 
+        sizeX: 1.0,
+        sizeY: 1.0,
+        offsetX: 0.5,
+        offsetY: 0.0,
         hitPolicy: HitPolicy.oncePerTarget,
       ),
-      windupTicks: 4, activeTicks: 2, recoveryTicks: 4,
-      staminaCost: 0, manaCost: 0,
+      windupTicks: 4,
+      activeTicks: 2,
+      recoveryTicks: 4,
+      staminaCost: 0,
+      manaCost: 0,
       cooldownTicks: 0,
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.punch,
@@ -38,11 +44,17 @@ class AbilityCatalog {
       allowedSlots: {AbilitySlot.primary},
       targetingModel: TargetingModel.directional,
       hitDelivery: MeleeHitDelivery(
-        sizeX: 1.0, sizeY: 1.0, offsetX: 0.5, offsetY: 0.0,
+        sizeX: 1.0,
+        sizeY: 1.0,
+        offsetX: 0.5,
+        offsetY: 0.0,
         hitPolicy: HitPolicy.oncePerTarget,
       ),
-      windupTicks: 8, activeTicks: 4, recoveryTicks: 24,
-      staminaCost: 0, manaCost: 0,
+      windupTicks: 8,
+      activeTicks: 4,
+      recoveryTicks: 24,
+      staminaCost: 0,
+      manaCost: 0,
       cooldownTicks: 0,
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.strike,
@@ -58,8 +70,11 @@ class AbilityCatalog {
         projectileId: ProjectileId.thunderBolt,
         hitPolicy: HitPolicy.oncePerTarget,
       ),
-      windupTicks: 6, activeTicks: 2, recoveryTicks: 12,
-      staminaCost: 0, manaCost: 0,
+      windupTicks: 6,
+      activeTicks: 2,
+      recoveryTicks: 12,
+      staminaCost: 0,
+      manaCost: 0,
       cooldownTicks: 0,
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.cast,
@@ -79,13 +94,19 @@ class AbilityCatalog {
       allowedSlots: {AbilitySlot.primary, AbilitySlot.bonus},
       targetingModel: TargetingModel.directional,
       hitDelivery: MeleeHitDelivery(
-        sizeX: 1.5, sizeY: 1.5, offsetX: 1.0, offsetY: 0.0,
+        sizeX: 1.5,
+        sizeY: 1.5,
+        offsetX: 1.0,
+        offsetY: 0.0,
         hitPolicy: HitPolicy.oncePerTarget,
       ),
       // 6 frames @ 0.06s = 0.36s -> ~22 ticks
       // Tuning: Active 0.10s (6 ticks)
-      windupTicks: 8, activeTicks: 6, recoveryTicks: 8,
-      staminaCost: 500, manaCost: 0, // 5.0 stamina
+      windupTicks: 8,
+      activeTicks: 6,
+      recoveryTicks: 8,
+      staminaCost: 500,
+      manaCost: 0, // 5.0 stamina
       cooldownTicks: 18, // 0.30s
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.strike,
@@ -110,8 +131,11 @@ class AbilityCatalog {
       targetingModel: TargetingModel.none,
       hitDelivery: SelfHitDelivery(),
       // 6 frames @ 0.06s = 0.36s -> ~22 ticks
-      windupTicks: 2, activeTicks: 18, recoveryTicks: 2,
-      staminaCost: 700, manaCost: 0,
+      windupTicks: 2,
+      activeTicks: 18,
+      recoveryTicks: 2,
+      staminaCost: 700,
+      manaCost: 0,
       cooldownTicks: 30, // 0.50s
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.parry,
@@ -131,11 +155,17 @@ class AbilityCatalog {
       allowedSlots: {AbilitySlot.secondary, AbilitySlot.bonus},
       targetingModel: TargetingModel.directional,
       hitDelivery: MeleeHitDelivery(
-        sizeX: 1.5, sizeY: 1.5, offsetX: 1.0, offsetY: 0.0,
+        sizeX: 1.5,
+        sizeY: 1.5,
+        offsetX: 1.0,
+        offsetY: 0.0,
         hitPolicy: HitPolicy.oncePerTarget,
       ),
-      windupTicks: 8, activeTicks: 6, recoveryTicks: 8,
-      staminaCost: 500, manaCost: 0,
+      windupTicks: 8,
+      activeTicks: 6,
+      recoveryTicks: 8,
+      staminaCost: 500,
+      manaCost: 0,
       cooldownTicks: 18, // 0.30s
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.shieldBash,
@@ -161,8 +191,11 @@ class AbilityCatalog {
       hitDelivery: SelfHitDelivery(),
       // Match Sword Parry exactly (only required weapon differs).
       // 7 frames x ~0.052s ~= 0.364s -> ~22 ticks @ 60Hz
-      windupTicks: 2, activeTicks: 18, recoveryTicks: 2,
-      staminaCost: 700, manaCost: 0,
+      windupTicks: 2,
+      activeTicks: 18,
+      recoveryTicks: 2,
+      staminaCost: 700,
+      manaCost: 0,
       cooldownTicks: 30,
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.shieldBlock,
@@ -176,105 +209,60 @@ class AbilityCatalog {
     // ------------------------------------------------------------------------
     // ELOISE: PROJECTILE
     // ------------------------------------------------------------------------
-    'eloise.throwing_knife': AbilityDef(
-      id: 'eloise.throwing_knife',
+    'eloise.quick_throw': AbilityDef(
+      id: 'eloise.quick_throw',
       category: AbilityCategory.ranged,
       allowedSlots: {AbilitySlot.projectile, AbilitySlot.bonus},
       targetingModel: TargetingModel.aimed,
+      // Projectile id comes from the equipped projectile item at runtime.
       hitDelivery: ProjectileHitDelivery(
         projectileId: ProjectileId.throwingKnife,
         hitPolicy: HitPolicy.oncePerTarget,
       ),
-      // Cooldown 0.30s -> 18 ticks
-      // Cost 5.0 -> 500
-      windupTicks: 4, activeTicks: 2, recoveryTicks: 6,
-      staminaCost: 500, manaCost: 0,
+      // Fast throw profile.
+      windupTicks: 4,
+      activeTicks: 2,
+      recoveryTicks: 6,
+      staminaCost: 500,
+      manaCost: 0,
       cooldownTicks: 18,
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.throwItem,
-      tags: {AbilityTag.projectile, AbilityTag.physical},
-      requiredTags: {AbilityTag.projectile},
-      requiredWeaponTypes: {WeaponType.throwingWeapon},
+      tags: {AbilityTag.projectile},
+      requiredWeaponTypes: {
+        WeaponType.throwingWeapon,
+        WeaponType.projectileSpell,
+      },
       payloadSource: AbilityPayloadSource.projectileItem,
-      baseDamage: 1000, // RangedWeaponCatalog.throwingKnife legacyDamage 10.0
+      baseDamage: 1000,
     ),
 
-    'eloise.ice_bolt': AbilityDef(
-      id: 'eloise.ice_bolt',
+    'eloise.heavy_throw': AbilityDef(
+      id: 'eloise.heavy_throw',
       category: AbilityCategory.magic,
       allowedSlots: {AbilitySlot.projectile, AbilitySlot.bonus},
       targetingModel: TargetingModel.aimed,
+      // Projectile id comes from the equipped projectile item at runtime.
       hitDelivery: ProjectileHitDelivery(
         projectileId: ProjectileId.iceBolt,
         hitPolicy: HitPolicy.oncePerTarget,
       ),
-      // Cost 10.0 -> 1000
-      windupTicks: 6, activeTicks: 2, recoveryTicks: 8,
-      staminaCost: 0, manaCost: 1000,
+      // Slower, stronger throw profile.
+      windupTicks: 6,
+      activeTicks: 2,
+      recoveryTicks: 8,
+      staminaCost: 0,
+      manaCost: 1000,
       cooldownTicks: 24,
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.cast,
-      tags: {AbilityTag.projectile, AbilityTag.ice},
-      requiredWeaponTypes: {WeaponType.projectileSpell},
-      payloadSource: AbilityPayloadSource.spellBook,
-      procs: <WeaponProc>[
-        WeaponProc(
-          hook: ProcHook.onHit,
-          statusProfileId: StatusProfileId.iceBolt,
-          chanceBp: 10000,
-        ),
-      ],
-      baseDamage: 1500, // SpellCatalog.iceBolt damage 15.0
-      baseDamageType: DamageType.ice,
-    ),
-
-    'eloise.fire_bolt': AbilityDef(
-      id: 'eloise.fire_bolt',
-      category: AbilityCategory.magic,
-      allowedSlots: {AbilitySlot.projectile, AbilitySlot.bonus},
-      targetingModel: TargetingModel.aimed,
-      hitDelivery: ProjectileHitDelivery(
-        projectileId: ProjectileId.fireBolt,
-      ),
-      // Cost 12.0 -> 1200
-      windupTicks: 6, activeTicks: 2, recoveryTicks: 8,
-      staminaCost: 0, manaCost: 1200,
-      cooldownTicks: 15, // 0.25s @ 60Hz (matches legacy cast cooldown)
-      interruptPriority: InterruptPriority.combat,
-      animKey: AnimKey.cast,
-      tags: {AbilityTag.projectile, AbilityTag.fire},
-      requiredWeaponTypes: {WeaponType.projectileSpell},
-      payloadSource: AbilityPayloadSource.spellBook,
-      procs: <WeaponProc>[
-        WeaponProc(
-          hook: ProcHook.onHit,
-          statusProfileId: StatusProfileId.fireBolt,
-          chanceBp: 10000,
-        ),
-      ],
-      baseDamage: 1800, // SpellCatalog.fireBolt damage 18.0
-      baseDamageType: DamageType.fire,
-    ),
-
-    'eloise.thunder_bolt': AbilityDef(
-      id: 'eloise.thunder_bolt',
-      category: AbilityCategory.magic,
-      allowedSlots: {AbilitySlot.projectile, AbilitySlot.bonus},
-      targetingModel: TargetingModel.aimed,
-      hitDelivery: ProjectileHitDelivery(
-        projectileId: ProjectileId.thunderBolt,
-      ),
-      // Cost 10.0 -> 1000
-      windupTicks: 6, activeTicks: 2, recoveryTicks: 8,
-      staminaCost: 0, manaCost: 1000,
-      cooldownTicks: 15, // 0.25s @ 60Hz (matches legacy cast cooldown)
-      interruptPriority: InterruptPriority.combat,
-      animKey: AnimKey.cast,
-      tags: {AbilityTag.projectile, AbilityTag.lightning},
-      requiredWeaponTypes: {WeaponType.projectileSpell},
-      payloadSource: AbilityPayloadSource.spellBook,
-      baseDamage: 1200, // SpellCatalog.thunderBolt damage 12.0
-      baseDamageType: DamageType.thunder,
+      tags: {AbilityTag.projectile},
+      requiredWeaponTypes: {
+        WeaponType.throwingWeapon,
+        WeaponType.projectileSpell,
+      },
+      payloadSource: AbilityPayloadSource.projectileItem,
+      baseDamage: 1500,
     ),
 
     // ------------------------------------------------------------------------
@@ -287,8 +275,11 @@ class AbilityCatalog {
       targetingModel: TargetingModel.none,
       hitDelivery: SelfHitDelivery(),
       // Instant cast, short recovery.
-      windupTicks: 0, activeTicks: 0, recoveryTicks: 10,
-      staminaCost: 0, manaCost: 1000,
+      windupTicks: 0,
+      activeTicks: 0,
+      recoveryTicks: 10,
+      staminaCost: 0,
+      manaCost: 1000,
       cooldownTicks: 300, // 5s @ 60Hz
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.cast,
@@ -331,11 +322,14 @@ class AbilityCatalog {
       // 4 frames @ 0.05s = 0.20s -> 12 ticks
       // Cooldown 2.0s -> 120 ticks
       // Cost 2.0 -> 200
-      windupTicks: 0, activeTicks: 12, recoveryTicks: 0,
-      staminaCost: 200, manaCost: 0,
+      windupTicks: 0,
+      activeTicks: 12,
+      recoveryTicks: 0,
+      staminaCost: 200,
+      manaCost: 0,
       cooldownTicks: 120,
       interruptPriority: InterruptPriority.mobility,
-      canBeInterruptedBy: {}, 
+      canBeInterruptedBy: {},
       animKey: AnimKey.dash,
       tags: {AbilityTag.light, AbilityTag.buff},
       baseDamage: 0,
@@ -350,8 +344,11 @@ class AbilityCatalog {
       payloadSource: AbilityPayloadSource.none,
       // 10 frames @ 0.05s = 0.50s -> 30 ticks
       // Cost ~200? (Same as dash for now?)
-      windupTicks: 3, activeTicks: 24, recoveryTicks: 3,
-      staminaCost: 200, manaCost: 0,
+      windupTicks: 3,
+      activeTicks: 24,
+      recoveryTicks: 3,
+      staminaCost: 200,
+      manaCost: 0,
       cooldownTicks: 120,
       interruptPriority: InterruptPriority.mobility,
       animKey: AnimKey.roll,

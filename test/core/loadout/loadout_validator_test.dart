@@ -33,9 +33,9 @@ void main() {
         projectileItemId: ProjectileItemId.throwingKnife,
         abilityPrimaryId: 'eloise.sword_strike',
         abilitySecondaryId: 'eloise.shield_block',
-        abilityProjectileId: 'eloise.throwing_knife',
+        abilityProjectileId: 'eloise.quick_throw',
         abilityMobilityId: 'eloise.dash',
-        abilityBonusId: 'eloise.throwing_knife', // Matches throwingKnife item
+        abilityBonusId: 'eloise.heavy_throw',
       );
 
       final result = validator.validate(loadout);
@@ -43,18 +43,52 @@ void main() {
       expect(result.issues, isEmpty);
     });
 
-    test('spellbook spell is valid with throwing weapon equipped', () {
+    test('quick throw is valid when projectile slot spell is selected', () {
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.woodenSword,
         offhandWeaponId: WeaponId.woodenShield,
         projectileItemId: ProjectileItemId.throwingKnife,
-        abilityProjectileId: 'eloise.fire_bolt',
-        abilityBonusId: 'eloise.fire_bolt',
+        projectileSlotSpellId: ProjectileItemId.fireBolt,
+        abilityProjectileId: 'eloise.quick_throw',
+        abilityBonusId: 'eloise.heavy_throw',
       );
 
       final result = validator.validate(loadout);
       expect(result.isValid, isTrue, reason: 'Issues: ${result.issues}');
       expect(result.issues, isEmpty);
+    });
+
+    test('heavy throw is valid with throwing-weapon items', () {
+      const loadout = EquippedLoadoutDef(
+        mainWeaponId: WeaponId.woodenSword,
+        offhandWeaponId: WeaponId.woodenShield,
+        projectileItemId: ProjectileItemId.throwingKnife,
+        bonusSlotSpellId: null,
+        abilityProjectileId: 'eloise.heavy_throw',
+        abilityBonusId: 'eloise.quick_throw',
+      );
+
+      final result = validator.validate(loadout);
+      expect(result.isValid, isTrue, reason: 'Issues: ${result.issues}');
+      expect(result.issues, isEmpty);
+    });
+
+    test('selected slot spell must be a projectile spell item', () {
+      const loadout = EquippedLoadoutDef(
+        projectileSlotSpellId: ProjectileItemId.throwingAxe,
+        abilityProjectileId: 'eloise.quick_throw',
+      );
+
+      final result = validator.validate(loadout);
+      expect(result.isValid, isFalse);
+      expect(
+        result.issues.any(
+          (issue) =>
+              issue.slot == AbilitySlot.projectile &&
+              issue.kind == IssueKind.missingRequiredWeaponTypes,
+        ),
+        isTrue,
+      );
     });
 
     test('bonus-only spell cannot be equipped in projectile slot', () {

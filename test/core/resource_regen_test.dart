@@ -23,7 +23,7 @@ void main() {
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(useGravity: false),
             projectileItemId: ProjectileItemId.iceBolt,
-            abilityProjectileId: 'eloise.ice_bolt',
+            abilityProjectileId: 'eloise.heavy_throw',
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(

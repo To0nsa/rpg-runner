@@ -27,7 +27,9 @@ import 'package:rpg_runner/core/ecs/entity_factory.dart';
 void main() {
   test('ProjectileHitSystem damages target and despawns projectile', () {
     final world = EcsWorld();
-    final iceBoltDamage = AbilityCatalog.tryGet('eloise.ice_bolt')!.baseDamage;
+    final iceBoltDamage = AbilityCatalog.tryGet(
+      'eloise.heavy_throw',
+    )!.baseDamage;
     final projectileItem = const ProjectileItemCatalog().get(
       ProjectileItemId.iceBolt,
     );

@@ -11,10 +11,18 @@ Based on the slot table from `ability_system_design.md`:
 |------|-----------|
 | **Primary** | Sword Strike, Sword Parry |
 | **Secondary** | Shield Bash, Shield Block |
-| **Projectile** | Throwing Knife, Ice Bolt, Fire Bolt, Thunder Bolt |
+| **Projectile** | Quick Throw, Heavy Throw |
 | **Mobility** | Dash, Roll |
 | **Jump** | Jump (fixed slot) |
-| **Bonus** | Any Primary/Secondary/Projectile (not wired yet) |
+| **Bonus** | Any Primary/Secondary/Projectile + Arcane Haste |
+
+Projectile payload resolution is now slot-driven:
+- `quick_throw` / `heavy_throw` can be equipped in `projectile` or `bonus`.
+- Each slot has an optional selected spell (`projectileSlotSpellId`, `bonusSlotSpellId`).
+- If a selected spell is valid for the equipped spellbook, that spell is launched.
+- Otherwise, the equipped projectile item fallback (typically throwing weapon) is used.
+- Cooldowns are also slot-driven by default (`projectile` lane for projectile slot, `bonus` lane for bonus slot).
+- `arcane_haste` remains bonus-only.
 
 ---
 
@@ -390,16 +398,27 @@ const shieldBlock = AbilityDef(
 
 ## Projectile Slot Abilities
 
-### Throwing Knife
+Runtime note (current Core behavior): projectile abilities in this slot
+resolve payload from the equipped `projectileItemId` path. Spell projectile
+abilities and throwing weapons both use the same projectile-item payload path.
 
-**Design Intent:** Fast, low-damage ranged option. Good for poking.
+Current default Eloise loadout uses:
+- `eloise.quick_throw` on the projectile slot button
+- `eloise.heavy_throw` on the bonus slot button
+
+Both are payload-driven by the equipped projectile item and can launch either
+`WeaponType.throwingWeapon` or `WeaponType.projectileSpell`.
+
+### Quick Throw
+
+**Design Intent:** Fast projectile commit for poke/pressure. Uses stamina.
 
 | Property | Value |
 |----------|-------|
 | Category | Ranged |
 | Targeting | Aimed |
-| Hit Delivery | `ProjectileHitDelivery` |
-| Projectile | Stops on first hit |
+| Allowed Slots | Projectile, Bonus |
+| Payload Source | Equipped `projectileItemId` |
 
 **Timing (at 60 FPS):**
 
@@ -415,20 +434,16 @@ const shieldBlock = AbilityDef(
 | Property | Value |
 |----------|-------|
 | Stamina Cost | 5.0 |
+| Mana Cost | 0 |
 | Cooldown | 18 ticks (~300ms) |
 
-**Data Structure:**
-
 ```dart
-const throwingKnife = AbilityDef(
-  id: 'eloise.throwing_knife',
+const quickThrow = AbilityDef(
+  id: 'eloise.quick_throw',
   category: AbilityCategory.ranged,
-  allowedSlots: {AbilitySlot.projectile},
+  allowedSlots: {AbilitySlot.projectile, AbilitySlot.bonus},
   targetingModel: TargetingModel.aimed,
-  hitDelivery: ProjectileHitDelivery(
-    projectileId: ProjectileId.throwingKnife,
-    hitPolicy: HitPolicy.oncePerTarget,
-  ),
+  hitDelivery: ProjectileHitDelivery(projectileId: ProjectileId.throwingKnife),
   windupTicks: 4,
   activeTicks: 2,
   recoveryTicks: 6,
@@ -436,25 +451,28 @@ const throwingKnife = AbilityDef(
   manaCost: 0,
   cooldownTicks: 18,
   interruptPriority: InterruptPriority.combat,
-  animKey: AnimKey.throwItem,
-  requiredWeaponTypes: {WeaponType.throwingWeapon},
+  animKey: AnimKey.ranged,
+  requiredWeaponTypes: {
+    WeaponType.throwingWeapon,
+    WeaponType.projectileSpell,
+  },
+  payloadSource: AbilityPayloadSource.projectileItem,
   baseDamage: 1000,
 );
 ```
 
 ---
 
-### Ice Bolt
+### Heavy Throw
 
-**Design Intent:** Slowing projectile spell. Controls enemy movement.
+**Design Intent:** Slower projectile commit with higher baseline impact. Uses mana.
 
 | Property | Value |
 |----------|-------|
 | Category | Magic |
 | Targeting | Aimed |
-| Hit Delivery | `ProjectileHitDelivery` |
-| Effect | Applies slow on hit |
-| Damage Type | Ice |
+| Allowed Slots | Projectile, Bonus |
+| Payload Source | Equipped `projectileItemId` |
 
 **Timing (at 60 FPS):**
 
@@ -469,21 +487,17 @@ const throwingKnife = AbilityDef(
 
 | Property | Value |
 |----------|-------|
+| Stamina Cost | 0 |
 | Mana Cost | 10.0 |
 | Cooldown | 24 ticks (~400ms) |
 
-**Implementation (AbilityDef):**
-
 ```dart
-const iceBolt = AbilityDef(
-  id: 'eloise.ice_bolt',
+const heavyThrow = AbilityDef(
+  id: 'eloise.heavy_throw',
   category: AbilityCategory.magic,
-  allowedSlots: {AbilitySlot.projectile},
+  allowedSlots: {AbilitySlot.projectile, AbilitySlot.bonus},
   targetingModel: TargetingModel.aimed,
-  hitDelivery: ProjectileHitDelivery(
-    projectileId: ProjectileId.iceBolt,
-    hitPolicy: HitPolicy.oncePerTarget,
-  ),
+  hitDelivery: ProjectileHitDelivery(projectileId: ProjectileId.iceBolt),
   windupTicks: 6,
   activeTicks: 2,
   recoveryTicks: 8,
@@ -492,103 +506,12 @@ const iceBolt = AbilityDef(
   cooldownTicks: 24,
   interruptPriority: InterruptPriority.combat,
   animKey: AnimKey.cast,
-  requiredWeaponTypes: {WeaponType.projectileSpell},
+  requiredWeaponTypes: {
+    WeaponType.throwingWeapon,
+    WeaponType.projectileSpell,
+  },
+  payloadSource: AbilityPayloadSource.projectileItem,
   baseDamage: 1500,
-  baseDamageType: DamageType.ice,
-);
-```
-
----
-
-### Fire Bolt
-
-**Design Intent:** Burning projectile spell. Applies burn DoT.
-
-| Property | Value |
-|----------|-------|
-| Category | Magic |
-| Targeting | Aimed |
-| Hit Delivery | `ProjectileHitDelivery` |
-| Effect | Applies burn on hit |
-| Damage Type | Fire |
-
-**Cost & Cooldown:**
-
-| Property | Value |
-|----------|-------|
-| Mana Cost | 12.0 |
-| Damage | 18.0 |
-| Cooldown | 15 ticks (~250ms) |
-
-**Implementation (AbilityDef):**
-
-```dart
-const fireBolt = AbilityDef(
-  id: 'eloise.fire_bolt',
-  category: AbilityCategory.magic,
-  allowedSlots: {AbilitySlot.projectile},
-  targetingModel: TargetingModel.aimed,
-  hitDelivery: ProjectileHitDelivery(
-    projectileId: ProjectileId.fireBolt,
-  ),
-  windupTicks: 6,
-  activeTicks: 2,
-  recoveryTicks: 8,
-  staminaCost: 0,
-  manaCost: 1200,
-  cooldownTicks: 15,
-  interruptPriority: InterruptPriority.combat,
-  animKey: AnimKey.cast,
-  requiredWeaponTypes: {WeaponType.projectileSpell},
-  baseDamage: 1800,
-  baseDamageType: DamageType.fire,
-);
-```
-
----
-
-### Thunder Bolt
-
-**Design Intent:** Stunning projectile spell. Applies stun on hit.
-
-| Property | Value |
-|----------|-------|
-| Category | Magic |
-| Targeting | Aimed |
-| Hit Delivery | `ProjectileHitDelivery` |
-| Effect | Apply stun on hit (if status profile configured) |
-| Damage Type | Thunder |
-
-**Cost & Cooldown:**
-
-| Property | Value |
-|----------|-------|
-| Mana Cost | 10.0 |
-| Damage | 5.0 |
-| Cooldown | 15 ticks (~250ms) |
-
-**Implementation (AbilityDef):**
-
-```dart
-const thunderBolt = AbilityDef(
-  id: 'eloise.thunder_bolt',
-  category: AbilityCategory.magic,
-  allowedSlots: {AbilitySlot.projectile},
-  targetingModel: TargetingModel.aimed,
-  hitDelivery: ProjectileHitDelivery(
-    projectileId: ProjectileId.thunderBolt,
-  ),
-  windupTicks: 6,
-  activeTicks: 2,
-  recoveryTicks: 8,
-  staminaCost: 0,
-  manaCost: 1000,
-  cooldownTicks: 15,
-  interruptPriority: InterruptPriority.combat,
-  animKey: AnimKey.cast,
-  requiredWeaponTypes: {WeaponType.projectileSpell},
-  baseDamage: 500,
-  baseDamageType: DamageType.thunder,
 );
 ```
 
