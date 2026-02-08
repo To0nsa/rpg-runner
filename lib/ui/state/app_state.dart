@@ -50,9 +50,9 @@ class AppState extends ChangeNotifier {
     final loadedMeta = await _metaStore.load(_metaService);
     final loadedProfile = await _profileStore.load();
     _selection = loadedSelection;
-    await _normalizeSelectionLoadoutMaskIfNeeded();
     _meta = loadedMeta;
     _profile = loadedProfile;
+    await _normalizeSelectionLoadoutIfNeeded();
     _bootstrapped = true;
     notifyListeners();
   }
@@ -115,6 +115,16 @@ class AppState extends ChangeNotifier {
     );
     _meta = next;
     _persistMeta();
+    if (characterId == _selection.selectedCharacterId) {
+      final synced = _normalizeLoadoutForCharacter(
+        _selection.equippedLoadout,
+        characterId,
+      );
+      if (!_sameLoadout(_selection.equippedLoadout, synced)) {
+        _selection = _selection.copyWith(equippedLoadout: synced);
+        _persistSelection();
+      }
+    }
     notifyListeners();
   }
 
@@ -167,23 +177,9 @@ class AppState extends ChangeNotifier {
   }
 
   EquippedLoadoutDef _buildRunEquippedLoadout() {
-    final gear = _meta.equippedFor(_selection.selectedCharacterId);
-    final base = _selection.equippedLoadout;
-    return EquippedLoadoutDef(
-      mask: _loadoutMaskForCharacter(_selection.selectedCharacterId),
-      mainWeaponId: gear.mainWeaponId,
-      offhandWeaponId: gear.offhandWeaponId,
-      projectileItemId: gear.throwingWeaponId,
-      spellBookId: gear.spellBookId,
-      projectileSlotSpellId: base.projectileSlotSpellId,
-      bonusSlotSpellId: base.bonusSlotSpellId,
-      accessoryId: gear.accessoryId,
-      abilityPrimaryId: base.abilityPrimaryId,
-      abilitySecondaryId: base.abilitySecondaryId,
-      abilityProjectileId: base.abilityProjectileId,
-      abilityBonusId: base.abilityBonusId,
-      abilityMobilityId: base.abilityMobilityId,
-      abilityJumpId: base.abilityJumpId,
+    return _normalizeLoadoutForCharacter(
+      _selection.equippedLoadout,
+      _selection.selectedCharacterId,
     );
   }
 
@@ -207,12 +203,12 @@ class AppState extends ChangeNotifier {
     _profileStore.save(_profile);
   }
 
-  Future<void> _normalizeSelectionLoadoutMaskIfNeeded() async {
+  Future<void> _normalizeSelectionLoadoutIfNeeded() async {
     final normalizedLoadout = _normalizeLoadoutForCharacter(
       _selection.equippedLoadout,
       _selection.selectedCharacterId,
     );
-    if (normalizedLoadout.mask == _selection.equippedLoadout.mask) return;
+    if (_sameLoadout(normalizedLoadout, _selection.equippedLoadout)) return;
     _selection = _selection.copyWith(equippedLoadout: normalizedLoadout);
     await _selectionStore.save(_selection);
   }
@@ -221,17 +217,17 @@ class AppState extends ChangeNotifier {
     EquippedLoadoutDef loadout,
     PlayerCharacterId characterId,
   ) {
+    final gear = _meta.equippedFor(characterId);
     final targetMask = _loadoutMaskForCharacter(characterId);
-    if (loadout.mask == targetMask) return loadout;
-    return EquippedLoadoutDef(
+    final normalized = EquippedLoadoutDef(
       mask: targetMask,
-      mainWeaponId: loadout.mainWeaponId,
-      offhandWeaponId: loadout.offhandWeaponId,
-      projectileItemId: loadout.projectileItemId,
-      spellBookId: loadout.spellBookId,
+      mainWeaponId: gear.mainWeaponId,
+      offhandWeaponId: gear.offhandWeaponId,
+      projectileItemId: gear.throwingWeaponId,
+      spellBookId: gear.spellBookId,
       projectileSlotSpellId: loadout.projectileSlotSpellId,
       bonusSlotSpellId: loadout.bonusSlotSpellId,
-      accessoryId: loadout.accessoryId,
+      accessoryId: gear.accessoryId,
       abilityPrimaryId: loadout.abilityPrimaryId,
       abilitySecondaryId: loadout.abilitySecondaryId,
       abilityProjectileId: loadout.abilityProjectileId,
@@ -239,6 +235,7 @@ class AppState extends ChangeNotifier {
       abilityMobilityId: loadout.abilityMobilityId,
       abilityJumpId: loadout.abilityJumpId,
     );
+    return _sameLoadout(normalized, loadout) ? loadout : normalized;
   }
 
   int _loadoutMaskForCharacter(PlayerCharacterId characterId) {
@@ -246,5 +243,22 @@ class AppState extends ChangeNotifier {
         PlayerCharacterRegistry.byId[characterId] ??
         PlayerCharacterRegistry.defaultCharacter;
     return def.catalog.loadoutSlotMask;
+  }
+
+  bool _sameLoadout(EquippedLoadoutDef a, EquippedLoadoutDef b) {
+    return a.mask == b.mask &&
+        a.mainWeaponId == b.mainWeaponId &&
+        a.offhandWeaponId == b.offhandWeaponId &&
+        a.projectileItemId == b.projectileItemId &&
+        a.spellBookId == b.spellBookId &&
+        a.projectileSlotSpellId == b.projectileSlotSpellId &&
+        a.bonusSlotSpellId == b.bonusSlotSpellId &&
+        a.accessoryId == b.accessoryId &&
+        a.abilityPrimaryId == b.abilityPrimaryId &&
+        a.abilitySecondaryId == b.abilitySecondaryId &&
+        a.abilityProjectileId == b.abilityProjectileId &&
+        a.abilityBonusId == b.abilityBonusId &&
+        a.abilityMobilityId == b.abilityMobilityId &&
+        a.abilityJumpId == b.abilityJumpId;
   }
 }

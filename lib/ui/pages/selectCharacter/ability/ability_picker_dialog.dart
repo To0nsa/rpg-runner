@@ -3,10 +3,12 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/abilities/ability_def.dart';
 import '../../../../core/ecs/stores/combat/equipped_loadout_store.dart';
+import '../../../../core/meta/gear_slot.dart';
 import '../../../../core/players/player_character_definition.dart';
 import '../../../../core/projectiles/projectile_item_id.dart';
 import '../../../components/ability_placeholder_icon.dart';
 import '../../../components/app_button.dart';
+import '../../../components/gear_icon.dart';
 import '../../../state/app_state.dart';
 import '../../../text/ability_text.dart';
 import '../../../theme/ui_tokens.dart';
@@ -39,6 +41,7 @@ class _AbilityPickerDialog extends StatefulWidget {
 class _AbilityPickerDialogState extends State<_AbilityPickerDialog> {
   late AbilityKey _selectedAbilityId;
   ProjectileItemId? _selectedSourceSpellId;
+  bool _spellBookExpanded = false;
   bool _seeded = false;
 
   bool get _showsProjectileSourcePanel =>
@@ -51,6 +54,7 @@ class _AbilityPickerDialogState extends State<_AbilityPickerDialog> {
     final loadout = context.read<AppState>().selection.equippedLoadout;
     _selectedAbilityId = abilityIdForSlot(loadout, widget.slot);
     _selectedSourceSpellId = _initialSourceSpellId(loadout, widget.slot);
+    _spellBookExpanded = _selectedSourceSpellId != null;
     _seeded = true;
   }
 
@@ -64,9 +68,9 @@ class _AbilityPickerDialogState extends State<_AbilityPickerDialog> {
       characterId: widget.characterId,
       loadout: rawLoadout,
     );
-    final sourceOptions = _showsProjectileSourcePanel
-        ? projectileSourceOptions(loadout)
-        : const <ProjectileSourceOption>[];
+    final sourceModel = _showsProjectileSourcePanel
+        ? projectileSourcePanelModel(loadout)
+        : null;
     final normalizedSource = _showsProjectileSourcePanel
         ? normalizeProjectileSourceSelection(loadout, _selectedSourceSpellId)
         : null;
@@ -74,6 +78,7 @@ class _AbilityPickerDialogState extends State<_AbilityPickerDialog> {
     if (_showsProjectileSourcePanel &&
         _selectedSourceSpellId != normalizedSource) {
       _selectedSourceSpellId = normalizedSource;
+      _spellBookExpanded = normalizedSource != null;
     }
 
     final candidates = abilityCandidatesForSlot(
@@ -152,32 +157,18 @@ class _AbilityPickerDialogState extends State<_AbilityPickerDialog> {
                       SizedBox(
                         width: 230,
                         child: _SourcePanel(
-                          options: sourceOptions,
+                          sourceModel: sourceModel!,
                           selectedSpellId: _selectedSourceSpellId,
-                          onSelected: (spellId) {
+                          spellBookExpanded: _spellBookExpanded,
+                          onSelectThrowingWeapon: () =>
+                              _selectSource(loadout: loadout, spellId: null),
+                          onToggleSpellBook: () {
                             setState(() {
-                              _selectedSourceSpellId = spellId;
-                              final refreshed = abilityCandidatesForSlot(
-                                characterId: widget.characterId,
-                                slot: widget.slot,
-                                loadout: loadout,
-                                selectedSourceSpellId: spellId,
-                                overrideSelectedSource: true,
-                              );
-                              final currentEnabled = refreshed.any(
-                                (candidate) =>
-                                    candidate.id == _selectedAbilityId &&
-                                    candidate.isEnabled,
-                              );
-                              if (!currentEnabled) {
-                                final fallback = refreshed.firstWhere(
-                                  (candidate) => candidate.isEnabled,
-                                  orElse: () => refreshed.first,
-                                );
-                                _selectedAbilityId = fallback.id;
-                              }
+                              _spellBookExpanded = !_spellBookExpanded;
                             });
                           },
+                          onSelectSpell: (spellId) =>
+                              _selectSource(loadout: loadout, spellId: spellId),
                         ),
                       ),
                       SizedBox(width: ui.space.sm),
@@ -220,6 +211,34 @@ class _AbilityPickerDialogState extends State<_AbilityPickerDialog> {
       ),
     );
   }
+
+  void _selectSource({
+    required EquippedLoadoutDef loadout,
+    required ProjectileItemId? spellId,
+  }) {
+    setState(() {
+      _selectedSourceSpellId = spellId;
+      _spellBookExpanded = spellId != null;
+      final refreshed = abilityCandidatesForSlot(
+        characterId: widget.characterId,
+        slot: widget.slot,
+        loadout: loadout,
+        selectedSourceSpellId: spellId,
+        overrideSelectedSource: true,
+      );
+      final currentEnabled = refreshed.any(
+        (candidate) =>
+            candidate.id == _selectedAbilityId && candidate.isEnabled,
+      );
+      if (!currentEnabled) {
+        final fallback = refreshed.firstWhere(
+          (candidate) => candidate.isEnabled,
+          orElse: () => refreshed.first,
+        );
+        _selectedAbilityId = fallback.id;
+      }
+    });
+  }
 }
 
 class _DialogHeader extends StatelessWidget {
@@ -241,34 +260,211 @@ class _DialogHeader extends StatelessWidget {
 
 class _SourcePanel extends StatelessWidget {
   const _SourcePanel({
-    required this.options,
+    required this.sourceModel,
     required this.selectedSpellId,
-    required this.onSelected,
+    required this.spellBookExpanded,
+    required this.onSelectThrowingWeapon,
+    required this.onToggleSpellBook,
+    required this.onSelectSpell,
   });
 
-  final List<ProjectileSourceOption> options;
+  final ProjectileSourcePanelModel sourceModel;
   final ProjectileItemId? selectedSpellId;
-  final ValueChanged<ProjectileItemId?> onSelected;
+  final bool spellBookExpanded;
+  final VoidCallback onSelectThrowingWeapon;
+  final VoidCallback onToggleSpellBook;
+  final ValueChanged<ProjectileItemId> onSelectSpell;
 
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
     return _PanelFrame(
       title: 'Projectile Source',
-      child: ListView.separated(
-        itemCount: options.length,
-        itemBuilder: (context, index) {
-          final option = options[index];
-          final selected = option.spellId == selectedSpellId;
-          return _SelectableTile(
-            selected: selected,
-            enabled: true,
-            title: option.displayName,
-            subtitle: option.isSpell ? 'Spell' : 'Throwing weapon',
-            onTap: () => onSelected(option.spellId),
-          );
-        },
-        separatorBuilder: (_, _) => SizedBox(height: ui.space.xs),
+      child: ListView(
+        children: [
+          _SourceSelectableTile(
+            selected: selectedSpellId == null,
+            highlighted: selectedSpellId == null,
+            title: sourceModel.throwingWeaponDisplayName,
+            subtitle: 'Throwing weapon',
+            leading: GearIcon(
+              slot: GearSlot.throwingWeapon,
+              id: sourceModel.throwingWeaponId,
+              size: 24,
+            ),
+            onTap: onSelectThrowingWeapon,
+          ),
+          SizedBox(height: ui.space.xs),
+          _SourceSelectableTile(
+            selected: selectedSpellId != null,
+            highlighted: spellBookExpanded || selectedSpellId != null,
+            title: sourceModel.spellBookDisplayName,
+            subtitle: 'Spellbook',
+            leading: GearIcon(
+              slot: GearSlot.spellBook,
+              id: sourceModel.spellBookId,
+              size: 24,
+            ),
+            trailing: Icon(
+              spellBookExpanded ? Icons.expand_less : Icons.expand_more,
+              size: 16,
+              color: ui.colors.textMuted,
+            ),
+            onTap: onToggleSpellBook,
+          ),
+          if (spellBookExpanded) ...[
+            SizedBox(height: ui.space.xs),
+            Padding(
+              padding: EdgeInsets.only(left: ui.space.sm),
+              child: Column(
+                children: sourceModel.spellOptions.isEmpty
+                    ? [
+                        Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: ui.space.sm,
+                            vertical: ui.space.xs,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF121212),
+                            borderRadius: BorderRadius.circular(ui.radii.sm),
+                            border: Border.all(
+                              color: ui.colors.outline.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Text(
+                            'No spell projectiles available',
+                            style: ui.text.caption.copyWith(
+                              color: ui.colors.textMuted,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ]
+                    : [
+                        for (
+                          var i = 0;
+                          i < sourceModel.spellOptions.length;
+                          i++
+                        ) ...[
+                          _SourceSelectableTile(
+                            selected:
+                                selectedSpellId ==
+                                sourceModel.spellOptions[i].spellId,
+                            highlighted:
+                                selectedSpellId ==
+                                sourceModel.spellOptions[i].spellId,
+                            title: sourceModel.spellOptions[i].displayName,
+                            subtitle: 'Spell projectile',
+                            leading: AbilityPlaceholderIcon(
+                              label: _placeholderLabel(
+                                sourceModel.spellOptions[i].displayName,
+                              ),
+                              size: 20,
+                              emphasis:
+                                  selectedSpellId ==
+                                  sourceModel.spellOptions[i].spellId,
+                            ),
+                            onTap: () => onSelectSpell(
+                              sourceModel.spellOptions[i].spellId,
+                            ),
+                          ),
+                          if (i < sourceModel.spellOptions.length - 1)
+                            SizedBox(height: ui.space.xs),
+                        ],
+                      ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SourceSelectableTile extends StatelessWidget {
+  const _SourceSelectableTile({
+    required this.selected,
+    required this.highlighted,
+    required this.title,
+    required this.subtitle,
+    required this.leading,
+    this.trailing,
+    required this.onTap,
+  });
+
+  final bool selected;
+  final bool highlighted;
+  final String title;
+  final String subtitle;
+  final Widget leading;
+  final Widget? trailing;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ui = context.ui;
+    final borderColor = highlighted
+        ? ui.colors.accentStrong
+        : ui.colors.outline.withValues(alpha: 0.45);
+    final fillColor = highlighted
+        ? const Color(0xFF1A1A1A)
+        : const Color(0xFF131313);
+    final subtitleColor = selected
+        ? ui.colors.textPrimary
+        : ui.colors.textMuted;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(ui.radii.sm),
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: ui.space.sm,
+            vertical: ui.space.xs,
+          ),
+          decoration: BoxDecoration(
+            color: fillColor,
+            borderRadius: BorderRadius.circular(ui.radii.sm),
+            border: Border.all(color: borderColor),
+          ),
+          child: Row(
+            children: [
+              leading,
+              SizedBox(width: ui.space.xs),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: ui.text.body.copyWith(
+                        color: ui.colors.textPrimary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: ui.space.xxs),
+                    Text(
+                      subtitle,
+                      style: ui.text.caption.copyWith(
+                        color: subtitleColor,
+                        fontSize: 10,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              if (trailing != null) ...[
+                SizedBox(width: ui.space.xs),
+                trailing!,
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

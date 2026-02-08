@@ -3,6 +3,7 @@ import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:rpg_runner/core/players/player_character_definition.dart';
 import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
+import 'package:rpg_runner/core/spells/spell_book_id.dart';
 import 'package:rpg_runner/ui/pages/selectCharacter/ability/ability_picker_presenter.dart';
 
 void main() {
@@ -29,6 +30,40 @@ void main() {
         );
         expect(
           options.any((o) => o.spellId == ProjectileItemId.thunderBolt),
+          isTrue,
+        );
+      },
+    );
+
+    test(
+      'projectile source panel model separates throw and spellbook groups',
+      () {
+        const loadout = EquippedLoadoutDef(
+          projectileItemId: ProjectileItemId.throwingKnife,
+          spellBookId: SpellBookId.basicSpellBook,
+        );
+
+        final model = projectileSourcePanelModel(loadout);
+
+        expect(model.throwingWeaponId, ProjectileItemId.throwingKnife);
+        expect(model.spellBookId, SpellBookId.basicSpellBook);
+        expect(model.spellOptions, isNotEmpty);
+        expect(
+          model.spellOptions.any(
+            (spell) => spell.spellId == ProjectileItemId.iceBolt,
+          ),
+          isTrue,
+        );
+        expect(
+          model.spellOptions.any(
+            (spell) => spell.spellId == ProjectileItemId.fireBolt,
+          ),
+          isTrue,
+        );
+        expect(
+          model.spellOptions.any(
+            (spell) => spell.spellId == ProjectileItemId.thunderBolt,
+          ),
           isTrue,
         );
       },

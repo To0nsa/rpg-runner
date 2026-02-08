@@ -52,6 +52,38 @@ class ProjectileSourceOption {
   final bool isSpell;
 }
 
+/// Display model for the left projectile source panel.
+///
+/// It explicitly separates source families:
+/// - equipped throwing weapon (single tap-select entry)
+/// - equipped spellbook (expandable list of spell projectile entries)
+class ProjectileSourcePanelModel {
+  const ProjectileSourcePanelModel({
+    required this.throwingWeaponId,
+    required this.throwingWeaponDisplayName,
+    required this.spellBookId,
+    required this.spellBookDisplayName,
+    required this.spellOptions,
+  });
+
+  final ProjectileItemId throwingWeaponId;
+  final String throwingWeaponDisplayName;
+  final SpellBookId spellBookId;
+  final String spellBookDisplayName;
+  final List<ProjectileSpellOption> spellOptions;
+}
+
+/// Display model for one spell projectile available in the equipped spellbook.
+class ProjectileSpellOption {
+  const ProjectileSpellOption({
+    required this.spellId,
+    required this.displayName,
+  });
+
+  final ProjectileItemId spellId;
+  final String displayName;
+}
+
 /// Returns all legal ability candidates for [slot] under the current loadout.
 ///
 /// Legality is validated through [LoadoutValidator] so UI remains Core-driven.
@@ -115,24 +147,49 @@ EquippedLoadoutDef normalizeLoadoutMaskForCharacter({
 }
 
 /// Returns projectile source options exposed by the equipped throwing weapon and spellbook.
-List<ProjectileSourceOption> projectileSourceOptions(
+ProjectileSourcePanelModel projectileSourcePanelModel(
   EquippedLoadoutDef loadout,
 ) {
   final _ = _projectileCatalog.get(loadout.projectileItemId);
   final spellBook = _spellBookCatalog.get(loadout.spellBookId);
+  final spellOptions = <ProjectileSpellOption>[];
+  for (final spellId in spellBook.projectileSpellIds) {
+    if (_projectileCatalog.tryGet(spellId) == null) continue;
+    spellOptions.add(
+      ProjectileSpellOption(
+        spellId: spellId,
+        displayName: projectileItemDisplayName(spellId),
+      ),
+    );
+  }
+  return ProjectileSourcePanelModel(
+    throwingWeaponId: loadout.projectileItemId,
+    throwingWeaponDisplayName: projectileItemDisplayName(
+      loadout.projectileItemId,
+    ),
+    spellBookId: loadout.spellBookId,
+    spellBookDisplayName: spellBookDisplayName(loadout.spellBookId),
+    spellOptions: spellOptions,
+  );
+}
+
+/// Returns flat projectile source options for compatibility with existing call sites.
+List<ProjectileSourceOption> projectileSourceOptions(
+  EquippedLoadoutDef loadout,
+) {
+  final sourceModel = projectileSourcePanelModel(loadout);
   final options = <ProjectileSourceOption>[
     ProjectileSourceOption(
       spellId: null,
-      displayName: projectileItemDisplayName(loadout.projectileItemId),
+      displayName: sourceModel.throwingWeaponDisplayName,
       isSpell: false,
     ),
   ];
-  for (final spellId in spellBook.projectileSpellIds) {
-    if (_projectileCatalog.tryGet(spellId) == null) continue;
+  for (final spell in sourceModel.spellOptions) {
     options.add(
       ProjectileSourceOption(
-        spellId: spellId,
-        displayName: projectileItemDisplayName(spellId),
+        spellId: spell.spellId,
+        displayName: spell.displayName,
         isSpell: true,
       ),
     );
