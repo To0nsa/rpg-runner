@@ -19,9 +19,7 @@ class AnimSystem {
     required this.enemyCatalog,
     required MovementTuningDerived playerMovement,
     required AnimTuningDerived playerAnimTuning,
-  }) : _tickHz = tickHz,
-       _playerMovement = playerMovement,
-       _playerAnimTuning = playerAnimTuning,
+  }) : _playerAnimTuning = playerAnimTuning,
        _playerProfile = AnimProfile(
          minMoveSpeed: playerMovement.base.minMoveSpeed,
          runSpeedThresholdX: playerMovement.base.runSpeedThresholdX,
@@ -40,8 +38,6 @@ class AnimSystem {
   /// Catalog for per-enemy configuration (hit windows, anim profiles).
   final EnemyCatalog enemyCatalog;
 
-  final int _tickHz;
-  final MovementTuningDerived _playerMovement;
   final AnimTuningDerived _playerAnimTuning;
   final AnimProfile _playerProfile;
 

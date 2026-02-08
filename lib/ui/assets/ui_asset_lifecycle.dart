@@ -117,6 +117,7 @@ class UiAssetLifecycle {
         themeId,
         scope: AssetScope.hub,
       );
+      if (!context.mounted) return;
       await Future.wait([
         getIdle(characterId, scope: AssetScope.hub),
         precacheParallaxLayers(layers, context),

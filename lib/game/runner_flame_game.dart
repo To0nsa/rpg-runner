@@ -736,14 +736,13 @@ class _CameraSpaceSnappedSpriteAnimationComponent
     required Vector2 super.size,
     required this.worldPosX,
     required this.worldPosY,
-    this.anchor = Anchor.center,
+    super.anchor = Anchor.center,
     super.paint,
     super.removeOnFinish,
-  }) : super(anchor: anchor);
+  });
 
   final double worldPosX;
   final double worldPosY;
-  final Anchor anchor;
 
   void snapToCamera(Vector2 cameraCenter) {
     position.setValues(

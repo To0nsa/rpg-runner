@@ -19,7 +19,7 @@ class ActiveAbilityStateStore extends SparseSet {
   /// Using String (AbilityKey) here. Nullable?
   /// SparseSet usage usually implies non-nullable defaults in lists?
   /// Let's use nullable for logic, or empty string.
-  /// Pattern in other stores: List<AbilityKey> with default.
+  /// Pattern in other stores: `List<AbilityKey>` with default.
   final List<AbilityKey?> abilityId = [];
 
   /// The tick when this ability was committed.

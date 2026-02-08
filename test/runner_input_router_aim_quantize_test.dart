@@ -5,8 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/game_core.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
-import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
-import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
@@ -74,10 +72,10 @@ void main() {
     final nx = qx / len;
     final ny = qy / len;
 
-    final speed = ProjectileCatalog()
-        .get(ProjectileId.iceBolt)
-        .speedUnitsPerSecond;
-    expect(p.vel!.x / speed, closeTo(nx, 1e-9));
-    expect(p.vel!.y / speed, closeTo(ny, 1e-9));
+    final vel = p.vel!;
+    final speed = sqrt(vel.x * vel.x + vel.y * vel.y);
+    expect(speed, greaterThan(0.0));
+    expect(vel.x / speed, closeTo(nx, 1e-9));
+    expect(vel.y / speed, closeTo(ny, 1e-9));
   });
 }

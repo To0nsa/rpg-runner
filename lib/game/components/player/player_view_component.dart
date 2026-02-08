@@ -11,13 +11,12 @@ class PlayerViewComponent extends DeterministicAnimViewComponent {
   PlayerViewComponent({
     required SpriteAnimSet animationSet,
     Vector2? renderSize,
-    Vector2? renderScale,
+    super.renderScale,
   }) : super(
          animSet: animationSet,
          initial: AnimKey.idle,
          renderSize: renderSize ??
              Vector2(animationSet.frameSize.x, animationSet.frameSize.y),
-         renderScale: renderScale,
          fallbackResolver: (desired) {
            // Allow directional variants to fall back to their base animation key.
            if (desired == AnimKey.backStrike &&

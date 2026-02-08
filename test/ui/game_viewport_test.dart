@@ -67,12 +67,10 @@ class _SizedGameViewport extends StatelessWidget {
   const _SizedGameViewport({
     required this.childKey,
     this.mode = ViewportScaleMode.pixelPerfectContain,
-    this.alignment = Alignment.center,
   });
 
   final Key childKey;
   final ViewportScaleMode mode;
-  final Alignment alignment;
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +80,7 @@ class _SizedGameViewport extends StatelessWidget {
       600,
       270,
       mode,
-      alignment: alignment,
+      alignment: Alignment.center,
     );
 
     return SizedBox(

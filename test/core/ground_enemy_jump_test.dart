@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/collision/static_world_geometry.dart';
 import 'package:rpg_runner/core/collision/static_world_geometry_index.dart';
 import 'package:rpg_runner/core/enemies/enemy_id.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';

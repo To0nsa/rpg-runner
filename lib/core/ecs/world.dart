@@ -67,7 +67,7 @@ import 'stores/transform_store.dart';
 /// with specific components and operate on them.
 class EcsWorld {
   /// Creates a new ECS World with an optional [seed] for deterministic behavior.
-  EcsWorld({int seed = 0}) : seed = seed;
+  EcsWorld({this.seed = 0});
 
   /// Seed used for deterministic RNG in the core, passed to components that need it.
   final int seed;
