@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
+import '../../core/abilities/ability_catalog.dart';
+import '../../core/abilities/ability_def.dart';
 import '../../core/ecs/stores/combat/equipped_loadout_store.dart';
 import '../../core/levels/level_id.dart';
 import '../../core/meta/gear_slot.dart';
@@ -32,6 +34,7 @@ class AppState extends ChangeNotifier {
   final MetaStore _metaStore;
   final UserProfileStore _profileStore;
   final MetaService _metaService;
+  static const AbilityCatalog _abilityCatalog = AbilityCatalog();
 
   SelectionState _selection = SelectionState.defaults;
   MetaState _meta = const MetaService().createNew();
@@ -218,9 +221,12 @@ class AppState extends ChangeNotifier {
     PlayerCharacterId characterId,
   ) {
     final gear = _meta.equippedFor(characterId);
-    final targetMask = _loadoutMaskForCharacter(characterId);
+    final character =
+        PlayerCharacterRegistry.byId[characterId] ??
+        PlayerCharacterRegistry.defaultCharacter;
+    final catalog = character.catalog;
     final normalized = EquippedLoadoutDef(
-      mask: targetMask,
+      mask: catalog.loadoutSlotMask,
       mainWeaponId: gear.mainWeaponId,
       offhandWeaponId: gear.offhandWeaponId,
       projectileItemId: gear.throwingWeaponId,
@@ -228,21 +234,55 @@ class AppState extends ChangeNotifier {
       projectileSlotSpellId: loadout.projectileSlotSpellId,
       bonusSlotSpellId: loadout.bonusSlotSpellId,
       accessoryId: gear.accessoryId,
-      abilityPrimaryId: loadout.abilityPrimaryId,
-      abilitySecondaryId: loadout.abilitySecondaryId,
-      abilityProjectileId: loadout.abilityProjectileId,
-      abilityBonusId: loadout.abilityBonusId,
-      abilityMobilityId: loadout.abilityMobilityId,
-      abilityJumpId: loadout.abilityJumpId,
+      abilityPrimaryId: _normalizeAbilityForSlot(
+        abilityId: loadout.abilityPrimaryId,
+        slot: AbilitySlot.primary,
+        fallback: catalog.abilityPrimaryId,
+      ),
+      abilitySecondaryId: _normalizeAbilityForSlot(
+        abilityId: loadout.abilitySecondaryId,
+        slot: AbilitySlot.secondary,
+        fallback: catalog.abilitySecondaryId,
+      ),
+      abilityProjectileId: _normalizeAbilityForSlot(
+        abilityId: loadout.abilityProjectileId,
+        slot: AbilitySlot.projectile,
+        fallback: catalog.abilityProjectileId,
+      ),
+      abilityBonusId: _normalizeAbilityForSlot(
+        abilityId: loadout.abilityBonusId,
+        slot: AbilitySlot.bonus,
+        fallback: catalog.abilityBonusId,
+      ),
+      abilityMobilityId: _normalizeAbilityForSlot(
+        abilityId: loadout.abilityMobilityId,
+        slot: AbilitySlot.mobility,
+        fallback: catalog.abilityMobilityId,
+      ),
+      abilityJumpId: _normalizeAbilityForSlot(
+        abilityId: loadout.abilityJumpId,
+        slot: AbilitySlot.jump,
+        fallback: catalog.abilityJumpId,
+      ),
     );
     return _sameLoadout(normalized, loadout) ? loadout : normalized;
   }
 
-  int _loadoutMaskForCharacter(PlayerCharacterId characterId) {
-    final def =
-        PlayerCharacterRegistry.byId[characterId] ??
-        PlayerCharacterRegistry.defaultCharacter;
-    return def.catalog.loadoutSlotMask;
+  AbilityKey _normalizeAbilityForSlot({
+    required AbilityKey abilityId,
+    required AbilitySlot slot,
+    required AbilityKey fallback,
+  }) {
+    final ability = _abilityCatalog.resolve(abilityId);
+    if (ability != null && ability.allowedSlots.contains(slot)) {
+      return ability.id;
+    }
+    final fallbackAbility = _abilityCatalog.resolve(fallback);
+    if (fallbackAbility != null &&
+        fallbackAbility.allowedSlots.contains(slot)) {
+      return fallbackAbility.id;
+    }
+    return fallback;
   }
 
   bool _sameLoadout(EquippedLoadoutDef a, EquippedLoadoutDef b) {

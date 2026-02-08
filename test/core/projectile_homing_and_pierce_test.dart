@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'dart:math' as math;
 
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
+import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/accessories/accessory_catalog.dart';
 import 'package:rpg_runner/core/combat/damage_type.dart';
 import 'package:rpg_runner/core/combat/faction.dart';
@@ -166,26 +168,33 @@ void main() {
       }
 
       final tap = resolveIntent(0);
-      final half = resolveIntent(12);
-      final full = resolveIntent(24);
+      final ability = AbilityCatalog.tryGet('eloise.charged_shot')!;
+      final hitDelivery = ability.hitDelivery as ProjectileHitDelivery;
+      final baseMaxPierce = !hitDelivery.pierce
+          ? 1
+          : (hitDelivery.chainCount > 0 ? hitDelivery.chainCount : 2);
+      final halfTierTicks = math.max(1, ability.windupTicks ~/ 2);
+      final fullTierTicks = math.max(halfTierTicks + 1, ability.windupTicks);
+      final half = resolveIntent(halfTierTicks);
+      final full = resolveIntent(fullTierTicks);
 
-      expect(tap.damage100, 1886); // 23.0 * 0.82
+      expect(tap.damage100, (ability.baseDamage * 8200) ~/ 10000);
       expect(tap.critBp, 0);
       expect(tap.speedScaleBp, 9000);
-      expect(tap.pierce, isFalse);
-      expect(tap.maxPierce, 1);
+      expect(tap.pierce, hitDelivery.pierce);
+      expect(tap.maxPierce, baseMaxPierce);
 
-      expect(half.damage100, 2300); // 23.0 * 1.00
+      expect(half.damage100, (ability.baseDamage * 10000) ~/ 10000);
       expect(half.critBp, 500);
       expect(half.speedScaleBp, 10500);
-      expect(half.pierce, isFalse);
-      expect(half.maxPierce, 1);
+      expect(half.pierce, hitDelivery.pierce);
+      expect(half.maxPierce, baseMaxPierce);
 
-      expect(full.damage100, 2817); // 23.0 * 1.225
+      expect(full.damage100, (ability.baseDamage * 12250) ~/ 10000);
       expect(full.critBp, 1000);
       expect(full.speedScaleBp, 12000);
       expect(full.pierce, isTrue);
-      expect(full.maxPierce, 2);
+      expect(full.maxPierce, math.max(baseMaxPierce, 2));
     },
   );
 

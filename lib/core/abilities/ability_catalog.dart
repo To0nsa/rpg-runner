@@ -5,39 +5,33 @@ import '../snapshots/enums.dart';
 import '../weapons/weapon_proc.dart';
 import 'ability_def.dart';
 
+/// Read-only ability definition lookup contract.
+///
+/// Systems should depend on this interface so tests and alternate catalogs can
+/// be injected without coupling to static globals.
+abstract interface class AbilityResolver {
+  /// Returns the authored ability for [key], or null when unknown.
+  AbilityDef? resolve(AbilityKey key);
+}
+
 /// Static registry of all available abilities.
-/// In a real production app, this might be loaded from JSON/YAML.
-class AbilityCatalog {
+///
+/// This is currently code-authored data to keep ability tuning deterministic
+/// and reviewable in source control.
+class AbilityCatalog implements AbilityResolver {
   const AbilityCatalog();
 
+  /// Shared default resolver for convenience call sites.
+  static const AbilityCatalog shared = AbilityCatalog();
+
+  /// Complete ability definition table keyed by [AbilityKey].
+  ///
+  /// Keys should remain stable because they are referenced by loadouts, tests,
+  /// and persisted run/telemetry data.
   static const Map<AbilityKey, AbilityDef> abilities = {
     // ------------------------------------------------------------------------
-    // FALLBACKS
+    // COMMON SYSTEM ABILITIES
     // ------------------------------------------------------------------------
-    'common.unarmed_strike': AbilityDef(
-      id: 'common.unarmed_strike',
-      category: AbilityCategory.melee,
-      allowedSlots: {AbilitySlot.primary, AbilitySlot.bonus},
-      targetingModel: TargetingModel.directional,
-      hitDelivery: MeleeHitDelivery(
-        sizeX: 1.0,
-        sizeY: 1.0,
-        offsetX: 0.5,
-        offsetY: 0.0,
-        hitPolicy: HitPolicy.oncePerTarget,
-      ),
-      windupTicks: 4,
-      activeTicks: 2,
-      recoveryTicks: 4,
-      staminaCost: 0,
-      manaCost: 0,
-      cooldownTicks: 0,
-      interruptPriority: InterruptPriority.combat,
-      animKey: AnimKey.punch,
-      tags: {AbilityTag.melee, AbilityTag.light},
-      payloadSource: AbilityPayloadSource.primaryWeapon,
-      baseDamage: 1500, // Fallback melee damage
-    ),
     'common.enemy_strike': AbilityDef(
       id: 'common.enemy_strike',
       category: AbilityCategory.melee,
@@ -58,7 +52,6 @@ class AbilityCatalog {
       cooldownTicks: 0,
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.strike,
-      tags: {AbilityTag.melee, AbilityTag.physical},
       baseDamage: 0,
     ),
     'common.enemy_cast': AbilityDef(
@@ -78,7 +71,6 @@ class AbilityCatalog {
       cooldownTicks: 0,
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.cast,
-      tags: {AbilityTag.projectile},
       requiredWeaponTypes: {WeaponType.projectileSpell},
       payloadSource: AbilityPayloadSource.projectileItem,
       baseDamage: 500, // Thunder bolt legacy damage 5.0
@@ -110,8 +102,6 @@ class AbilityCatalog {
       cooldownTicks: 18, // 0.30s
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.strike,
-      tags: {AbilityTag.melee, AbilityTag.physical},
-      requiredTags: {AbilityTag.melee, AbilityTag.physical},
       requiredWeaponTypes: {WeaponType.oneHandedSword},
       payloadSource: AbilityPayloadSource.primaryWeapon,
       procs: <WeaponProc>[
@@ -139,8 +129,6 @@ class AbilityCatalog {
       cooldownTicks: 30, // 0.50s
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.parry,
-      tags: {AbilityTag.melee, AbilityTag.physical, AbilityTag.opener},
-      requiredTags: {AbilityTag.melee, AbilityTag.physical},
       requiredWeaponTypes: {WeaponType.oneHandedSword},
       payloadSource: AbilityPayloadSource.primaryWeapon,
       baseDamage: 0,
@@ -169,8 +157,6 @@ class AbilityCatalog {
       cooldownTicks: 18, // 0.30s
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.shieldBash,
-      tags: {AbilityTag.melee, AbilityTag.physical, AbilityTag.heavy},
-      requiredTags: {AbilityTag.buff, AbilityTag.physical},
       requiredWeaponTypes: {WeaponType.shield},
       payloadSource: AbilityPayloadSource.secondaryWeapon,
       procs: <WeaponProc>[
@@ -199,8 +185,6 @@ class AbilityCatalog {
       cooldownTicks: 30,
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.shieldBlock,
-      tags: {AbilityTag.buff, AbilityTag.physical},
-      requiredTags: {AbilityTag.buff},
       requiredWeaponTypes: {WeaponType.shield},
       payloadSource: AbilityPayloadSource.secondaryWeapon,
       baseDamage: 0,
@@ -219,15 +203,14 @@ class AbilityCatalog {
         projectileId: ProjectileId.iceBolt,
         hitPolicy: HitPolicy.oncePerTarget,
       ),
-      windupTicks: 6,
+      windupTicks: 10,
       activeTicks: 2,
-      recoveryTicks: 10,
+      recoveryTicks: 12,
       staminaCost: 0,
       manaCost: 800,
-      cooldownTicks: 24,
+      cooldownTicks: 40,
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.cast,
-      tags: {AbilityTag.projectile, AbilityTag.light},
       requiredWeaponTypes: {
         WeaponType.throwingWeapon,
         WeaponType.projectileSpell,
@@ -246,15 +229,14 @@ class AbilityCatalog {
         projectileId: ProjectileId.throwingKnife,
         hitPolicy: HitPolicy.oncePerTarget,
       ),
-      windupTicks: 3,
-      activeTicks: 1,
-      recoveryTicks: 5,
+      windupTicks: 10,
+      activeTicks: 2,
+      recoveryTicks: 12,
       staminaCost: 0,
       manaCost: 600,
-      cooldownTicks: 15,
+      cooldownTicks: 14,
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.throwItem,
-      tags: {AbilityTag.projectile, AbilityTag.light},
       requiredWeaponTypes: {
         WeaponType.throwingWeapon,
         WeaponType.projectileSpell,
@@ -275,15 +257,14 @@ class AbilityCatalog {
         chainCount: 3,
         hitPolicy: HitPolicy.oncePerTarget,
       ),
-      windupTicks: 8,
+      windupTicks: 10,
       activeTicks: 2,
-      recoveryTicks: 8,
+      recoveryTicks: 12,
       staminaCost: 0,
       manaCost: 1000,
-      cooldownTicks: 30,
+      cooldownTicks: 32,
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.throwItem,
-      tags: {AbilityTag.projectile, AbilityTag.heavy},
       requiredWeaponTypes: {
         WeaponType.throwingWeapon,
         WeaponType.projectileSpell,
@@ -302,12 +283,12 @@ class AbilityCatalog {
         projectileId: ProjectileId.fireBolt,
         hitPolicy: HitPolicy.oncePerTarget,
       ),
-      windupTicks: 24,
+      windupTicks: 10,
       activeTicks: 2,
-      recoveryTicks: 10,
+      recoveryTicks: 12,
       staminaCost: 0,
       manaCost: 1300,
-      cooldownTicks: 36,
+      cooldownTicks: 40,
       interruptPriority: InterruptPriority.combat,
       forcedInterruptCauses: <ForcedInterruptCause>{
         ForcedInterruptCause.stun,
@@ -315,7 +296,6 @@ class AbilityCatalog {
         ForcedInterruptCause.damageTaken,
       },
       animKey: AnimKey.cast,
-      tags: {AbilityTag.projectile, AbilityTag.heavy},
       requiredWeaponTypes: {
         WeaponType.throwingWeapon,
         WeaponType.projectileSpell,
@@ -342,7 +322,6 @@ class AbilityCatalog {
       cooldownTicks: 300, // 5s @ 60Hz
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.cast,
-      tags: {AbilityTag.buff},
       requiredWeaponTypes: {WeaponType.projectileSpell},
       payloadSource: AbilityPayloadSource.spellBook,
       selfStatusProfileId: StatusProfileId.speedBoost,
@@ -367,7 +346,6 @@ class AbilityCatalog {
       cooldownTicks: 0,
       interruptPriority: InterruptPriority.mobility,
       animKey: AnimKey.jump,
-      tags: {AbilityTag.light},
       baseDamage: 0,
     ),
 
@@ -390,7 +368,6 @@ class AbilityCatalog {
       interruptPriority: InterruptPriority.mobility,
       canBeInterruptedBy: {},
       animKey: AnimKey.dash,
-      tags: {AbilityTag.light, AbilityTag.buff},
       baseDamage: 0,
     ),
 
@@ -411,13 +388,43 @@ class AbilityCatalog {
       cooldownTicks: 120,
       interruptPriority: InterruptPriority.mobility,
       animKey: AnimKey.roll,
-      tags: {AbilityTag.light, AbilityTag.buff},
       baseDamage: 0,
     ),
   };
 
-  static AbilityDef? tryGet(AbilityKey key) => abilities[key];
+  static final bool _integrityChecked = _validateIntegrity();
 
-  /// Instance helper for dependency-injected call sites.
-  AbilityDef? resolve(AbilityKey key) => abilities[key];
+  static bool _validateIntegrity() {
+    assert(() {
+      final seenIds = <AbilityKey>{};
+      for (final entry in abilities.entries) {
+        final key = entry.key;
+        final def = entry.value;
+        if (key != def.id) {
+          throw StateError(
+            'AbilityCatalog key "$key" does not match AbilityDef.id "${def.id}".',
+          );
+        }
+        if (!seenIds.add(def.id)) {
+          throw StateError('Duplicate AbilityDef.id "${def.id}" in catalog.');
+        }
+      }
+      return true;
+    }());
+    return true;
+  }
+
+  /// Legacy convenience lookup for static call sites.
+  ///
+  /// Prefer injecting [AbilityResolver] and calling [resolve].
+  static AbilityDef? tryGet(AbilityKey key) {
+    assert(_integrityChecked);
+    return shared.resolve(key);
+  }
+
+  @override
+  AbilityDef? resolve(AbilityKey key) {
+    assert(_integrityChecked);
+    return abilities[key];
+  }
 }

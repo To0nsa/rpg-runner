@@ -23,7 +23,7 @@ class LoadoutValidator {
     required this.spellBookCatalog,
   });
 
-  final AbilityCatalog abilityCatalog;
+  final AbilityResolver abilityCatalog;
   final WeaponCatalog weaponCatalog;
   final ProjectileItemCatalog projectileItemCatalog;
   final SpellBookCatalog spellBookCatalog;

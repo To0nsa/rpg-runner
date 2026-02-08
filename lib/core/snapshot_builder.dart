@@ -78,6 +78,7 @@ class SnapshotBuilder {
     required this.resources,
     required this.projectiles,
     required this.enemyCatalog,
+    this.abilityCatalog = AbilityCatalog.shared,
     required LoadoutValidator loadoutValidator,
   }) : _loadoutValidator = loadoutValidator;
 
@@ -104,6 +105,7 @@ class SnapshotBuilder {
 
   /// Enemy catalog for render metadata (art facing direction).
   final EnemyCatalog enemyCatalog;
+  final AbilityResolver abilityCatalog;
 
   final LoadoutValidator _loadoutValidator;
 
@@ -194,35 +196,35 @@ class SnapshotBuilder {
     final jumpSlotValid = !invalidSlots.contains(AbilitySlot.jump);
 
     final projectileAbilityId = loadout.abilityProjectileId[li];
-    final projectileAbility = AbilityCatalog.tryGet(projectileAbilityId);
+    final projectileAbility = abilityCatalog.resolve(projectileAbilityId);
     final projectileManaCost = projectileAbility?.manaCost ?? 0;
     final projectileStaminaCost = projectileAbility?.staminaCost ?? 0;
     final hasProjectileSlot = (loadoutMask & LoadoutSlotMask.projectile) != 0;
 
     final mobilityAbilityId = loadout.abilityMobilityId[li];
-    final mobilityAbility = AbilityCatalog.tryGet(mobilityAbilityId);
+    final mobilityAbility = abilityCatalog.resolve(mobilityAbilityId);
     final dashStaminaCost =
         mobilityAbility?.staminaCost ?? resources.dashStaminaCost100;
 
     final jumpAbilityId = loadout.abilityJumpId[li];
-    final jumpAbility = AbilityCatalog.tryGet(jumpAbilityId);
+    final jumpAbility = abilityCatalog.resolve(jumpAbilityId);
     final jumpStaminaCost =
         jumpAbility?.staminaCost ?? resources.jumpStaminaCost100;
 
     final meleeAbilityId = loadout.abilityPrimaryId[li];
-    final meleeAbility = AbilityCatalog.tryGet(meleeAbilityId);
+    final meleeAbility = abilityCatalog.resolve(meleeAbilityId);
     final meleeStaminaCost =
         meleeAbility?.staminaCost ??
         toFixed100(abilities.base.meleeStaminaCost);
 
     final secondaryAbilityId = loadout.abilitySecondaryId[li];
-    final secondaryAbility = AbilityCatalog.tryGet(secondaryAbilityId);
+    final secondaryAbility = abilityCatalog.resolve(secondaryAbilityId);
     final secondaryStaminaCost =
         secondaryAbility?.staminaCost ??
         toFixed100(abilities.base.meleeStaminaCost);
 
     final bonusAbilityId = loadout.abilityBonusId[li];
-    final bonusAbility = AbilityCatalog.tryGet(bonusAbilityId);
+    final bonusAbility = abilityCatalog.resolve(bonusAbilityId);
     final bonusManaCost = bonusAbility?.manaCost ?? 0;
     final bonusStaminaCost = bonusAbility?.staminaCost ?? 0;
 

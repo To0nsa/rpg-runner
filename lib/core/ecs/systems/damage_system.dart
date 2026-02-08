@@ -21,12 +21,14 @@ class DamageSystem {
     required this.invulnerabilityTicksOnHit,
     required int rngSeed,
     CharacterStatsResolver statsResolver = const CharacterStatsResolver(),
+    this.forcedInterruptPolicy = ForcedInterruptPolicy.defaultPolicy,
   }) : _rngState = seedFrom(rngSeed, 0x44a3c2f1),
        _statsResolver = statsResolver;
 
   /// Number of ticks an entity is invulnerable after taking damage.
   final int invulnerabilityTicksOnHit;
   final CharacterStatsResolver _statsResolver;
+  final ForcedInterruptPolicy forcedInterruptPolicy;
 
   int _rngState;
   static const int _critDamageBonusBp = 5000; // +50% on crit.
@@ -187,7 +189,7 @@ class DamageSystem {
     if (!world.activeAbility.has(entity)) return;
     final activeIndex = world.activeAbility.indexOf(entity);
     final activeAbilityId = world.activeAbility.abilityId[activeIndex];
-    if (!abilityAllowsForcedInterrupt(
+    if (!forcedInterruptPolicy.abilityAllowsForcedInterrupt(
       activeAbilityId,
       ForcedInterruptCause.damageTaken,
     )) {

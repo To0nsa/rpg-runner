@@ -4,48 +4,16 @@ import '../combat/status/status.dart';
 import '../snapshots/enums.dart';
 import '../weapons/weapon_proc.dart';
 
-// Validates strict format: "character.ability_name" (lower snake case)
-// Must have at least one dot, segments must be non-empty [a-z0-9_].
-// Example: "eloise.sword_strike_1"
+/// Stable ability identifier used by loadouts, systems, and authored data.
+///
+/// Example: `eloise.sword_strike`.
 typedef AbilityKey = String;
 
-bool isValidAbilityKey(AbilityKey key) {
-  final RegExp validKey = RegExp(r'^[a-z0-9_]+\.[a-z0-9_]+$');
-  return validKey.hasMatch(key);
-}
+/// Logical action slot where an ability may be equipped/triggered.
+enum AbilitySlot { primary, secondary, projectile, mobility, bonus, jump }
 
-enum AbilitySlot {
-  primary, // Button A (Melee)
-  secondary, // Button B (Off-hand/Defensive)
-  projectile, // Button C (Cast/Throw)
-  mobility, // Button D (Dash)
-  bonus, // Button E (Potion/Ultimate)
-  jump, // Fixed slot (reserved)
-}
-
+/// High-level semantic grouping used by UI and systems.
 enum AbilityCategory { melee, ranged, magic, mobility, defense, utility }
-
-enum AbilityTag {
-  // Mechanics
-  melee,
-  projectile,
-  hitscan,
-  aoe,
-  buff,
-  debuff,
-
-  // Elements
-  physical,
-  fire,
-  ice,
-  lightning,
-
-  // Properties
-  heavy,
-  light,
-  finisher,
-  opener,
-}
 
 /// Weapon family classification used for ability gating.
 enum WeaponType { oneHandedSword, shield, throwingWeapon, projectileSpell }
@@ -65,6 +33,7 @@ enum AbilityPayloadSource {
   spellBook,
 }
 
+/// How target direction/position is acquired when committing an ability.
 enum TargetingModel {
   none, // Instant self-cast / buff
   directional, // Uses input direction (melee)
@@ -75,8 +44,10 @@ enum TargetingModel {
   groundTarget, // AOE circle on ground
 }
 
+/// Runtime lifecycle stage of a committed ability.
 enum AbilityPhase { idle, windup, active, recovery }
 
+/// Relative interrupt authority for competing actions.
 enum InterruptPriority {
   low, // e.g. passive stance
   combat, // standard attacks (strike/cast)
@@ -84,6 +55,7 @@ enum InterruptPriority {
   forced, // system-only (stun/death)
 }
 
+/// External/system causes that can forcibly cancel an ability.
 enum ForcedInterruptCause {
   stun, // control lock stun
   death, // hp <= 0 or death state
@@ -94,16 +66,19 @@ enum ForcedInterruptCause {
 // HIT DELIVERY
 // --------------------------------------------------------------------------
 
+/// How often a delivery can apply damage during one activation.
 enum HitPolicy {
   once, // Hit once per activation (e.g. explosion)
   oncePerTarget, // Hit each target once (e.g. sword swing)
   everyTick, // Hit every frame (e.g. beam)
 }
 
+/// Marker interface for authored hit-delivery definitions.
 abstract class HitDeliveryDef {
   const HitDeliveryDef();
 }
 
+/// Melee hit volume authored in local-space rectangle terms.
 class MeleeHitDelivery extends HitDeliveryDef {
   const MeleeHitDelivery({
     required this.sizeX,
@@ -113,7 +88,7 @@ class MeleeHitDelivery extends HitDeliveryDef {
     required this.hitPolicy,
   });
 
-  // Dimensions in World Units
+  /// Dimensions and offset in world units.
   final double sizeX;
   final double sizeY;
   final double offsetX;
@@ -121,6 +96,7 @@ class MeleeHitDelivery extends HitDeliveryDef {
   final HitPolicy hitPolicy;
 }
 
+/// Projectile delivery config used by projectile intent/spawn systems.
 class ProjectileHitDelivery extends HitDeliveryDef {
   const ProjectileHitDelivery({
     required this.projectileId,
@@ -147,6 +123,7 @@ class SelfHitDelivery extends HitDeliveryDef {
 // RUNTIME DATA STRUCTS
 // --------------------------------------------------------------------------
 
+/// Captured aim state snapshot used by ability/runtime systems.
 class AimSnapshot {
   const AimSnapshot({
     required this.angleRad,
@@ -174,6 +151,8 @@ class AimSnapshot {
 // --------------------------------------------------------------------------
 
 /// Maximum supported cooldown groups per entity.
+///
+/// Value: `8`.
 const int kMaxCooldownGroups = 8;
 
 /// Semantic constants for cooldown group IDs.
@@ -224,7 +203,9 @@ abstract final class CooldownGroup {
 // ABILITY DEFINITION
 // --------------------------------------------------------------------------
 
+/// Immutable authored definition for a playable/system ability.
 class AbilityDef {
+  /// Default forced interrupts for authored abilities: stun + death.
   static const Set<ForcedInterruptCause> defaultForcedInterruptCauses =
       <ForcedInterruptCause>{
         ForcedInterruptCause.stun,
@@ -249,15 +230,14 @@ class AbilityDef {
     this.canBeInterruptedBy = const {},
     this.forcedInterruptCauses = defaultForcedInterruptCauses,
     required this.animKey,
-    this.tags = const {},
-    this.requiredTags = const {},
     this.requiredWeaponTypes = const {},
     this.requiresEquippedWeapon = false,
     this.procs = const <WeaponProc>[],
     this.selfStatusProfileId = StatusProfileId.none,
     required this.baseDamage,
     this.baseDamageType = DamageType.physical,
-  }) : assert(
+  }) : assert(id != '', 'Ability id cannot be empty.'),
+       assert(
          windupTicks >= 0 && activeTicks >= 0 && recoveryTicks >= 0,
          'Ticks cannot be negative',
        ),
@@ -275,31 +255,31 @@ class AbilityDef {
 
   final AbilityKey id;
 
-  // UI grouping only
+  /// UI/system grouping category.
   final AbilityCategory category;
 
-  // Explicit equip legality
+  /// Slots where this ability is legal to equip.
   final Set<AbilitySlot> allowedSlots;
 
-  // Targeting
+  /// Targeting mode used at commit-time.
   final TargetingModel targetingModel;
 
-  // Hit mechanics
+  /// Delivery definition consumed by strike systems.
   final HitDeliveryDef hitDelivery;
 
-  // Payload source
+  /// Where payload stats/procs are sourced from when committed.
   final AbilityPayloadSource payloadSource;
 
-  // Timing (ticks @ 60hz)
+  /// Timing values authored at `60 Hz` tick semantics.
   final int windupTicks;
   final int activeTicks;
   final int recoveryTicks;
 
-  // Costs (fixed point: 100 = 1.0)
+  /// Resource costs in fixed-point units (`100 == 1.0`).
   final int staminaCost;
   final int manaCost;
 
-  // Cooldown
+  /// Cooldown duration in ticks.
   final int cooldownTicks;
 
   /// Cooldown group index (0-7). Abilities sharing a group share a cooldown.
@@ -314,19 +294,17 @@ class AbilityDef {
   ///   5-7 = future/bonus
   final int? cooldownGroupId;
 
-  // Interrupt rules
+  /// Interrupt behavior priority and allowed interrupters.
   final InterruptPriority interruptPriority;
   final Set<InterruptPriority> canBeInterruptedBy;
-  // Forced interruption causes this ability opts into.
-  // Defaults to stun/death; add damageTaken for opt-in hit interruption.
+
+  /// Forced interruption causes this ability opts into.
   final Set<ForcedInterruptCause> forcedInterruptCauses;
 
-  // Presentation
+  /// Animation key to play while this ability is active.
   final AnimKey animKey;
 
-  // Metadata
-  final Set<AbilityTag> tags;
-  final Set<AbilityTag> requiredTags;
+  /// Weapon families required for this ability to be legal/equippable.
   final Set<WeaponType> requiredWeaponTypes;
 
   /// If true, this ability requires *some* weapon to be equipped in its slot,
@@ -348,7 +326,7 @@ class AbilityDef {
   final int baseDamage;
 
   /// Base damage type (element) for this ability.
-  /// Explicitly defined (Phase 5), no inference from tags.
+  /// Explicitly defined in authored data.
   final DamageType baseDamageType;
 
   /// Returns the effective cooldown group for this ability.
@@ -359,10 +337,9 @@ class AbilityDef {
     return CooldownGroup.fromSlot(slot);
   }
 
-  // Runtime Validation (Helper)
+  /// Whether this definition passes lightweight static validation checks.
   bool get isValid {
-    return isValidAbilityKey(id) &&
-        !canBeInterruptedBy.contains(interruptPriority);
+    return !canBeInterruptedBy.contains(interruptPriority);
   }
 
   @override

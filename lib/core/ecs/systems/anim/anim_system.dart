@@ -19,6 +19,7 @@ class AnimSystem {
     required this.enemyCatalog,
     required MovementTuningDerived playerMovement,
     required AnimTuningDerived playerAnimTuning,
+    this.abilities = AbilityCatalog.shared,
   }) : _playerAnimTuning = playerAnimTuning,
        _playerProfile = AnimProfile(
          minMoveSpeed: playerMovement.base.minMoveSpeed,
@@ -37,6 +38,7 @@ class AnimSystem {
 
   /// Catalog for per-enemy configuration (hit windows, anim profiles).
   final EnemyCatalog enemyCatalog;
+  final AbilityResolver abilities;
 
   final AnimTuningDerived _playerAnimTuning;
   final AnimProfile _playerProfile;
@@ -55,7 +57,11 @@ class AnimSystem {
   /// Updates animation state for player and enemies.
   ///
   /// Call this once per tick before [SnapshotBuilder.build].
-  void step(EcsWorld world, {required EntityId player, required int currentTick}) {
+  void step(
+    EcsWorld world, {
+    required EntityId player,
+    required int currentTick,
+  }) {
     _stepPlayer(world, player: player, currentTick: currentTick);
     _stepEnemies(world, currentTick: currentTick);
   }
@@ -89,9 +95,9 @@ class AnimSystem {
     final lastDamageTick = world.lastDamage.has(player)
         ? world.lastDamage.tick[world.lastDamage.indexOf(player)]
         : -1;
-    
+
     final stunLocked = world.controlLock.isStunned(player, currentTick);
-    
+
     // Phase 6: Active Action Layer
     final activeAction = _resolveActiveAction(
       world,
@@ -151,8 +157,12 @@ class AnimSystem {
           : false;
 
       final di = world.deathState.tryIndexOf(e);
-      final deathPhase = di == null ? DeathPhase.none : world.deathState.phase[di];
-      final deathStartTick = di == null ? -1 : world.deathState.deathStartTick[di];
+      final deathPhase = di == null
+          ? DeathPhase.none
+          : world.deathState.phase[di];
+      final deathStartTick = di == null
+          ? -1
+          : world.deathState.deathStartTick[di];
 
       final lastDamageTick = world.lastDamage.has(e)
           ? world.lastDamage.tick[world.lastDamage.indexOf(e)]
@@ -227,7 +237,7 @@ class AnimSystem {
       return (anim: null, frame: 0);
     }
 
-    final def = AbilityCatalog.tryGet(activeId);
+    final def = abilities.resolve(activeId);
     if (def == null) {
       world.activeAbility.clear(entity);
       return (anim: null, frame: 0);

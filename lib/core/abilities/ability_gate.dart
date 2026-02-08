@@ -1,23 +1,40 @@
 import '../ecs/entity_id.dart';
 import '../ecs/world.dart';
 
+/// Reason why an ability commit was rejected by [AbilityGate].
 enum AbilityGateFail {
+  /// Entity is currently stun-locked.
   stunned,
+  /// Cooldown group still has remaining ticks.
   onCooldown,
+  /// Required mana resource store is missing.
   missingMana,
+  /// Available mana is below requested cost.
   insufficientMana,
+  /// Required stamina resource store is missing.
   missingStamina,
+  /// Available stamina is below requested cost.
   insufficientStamina,
 
   // Mobility-only
+  /// Mobility requires [MovementStore], but entity has none.
   missingMovement,
+  /// Mobility requires [BodyStore], but entity has none.
   missingBody,
+  /// Mobility cannot commit with disabled or kinematic bodies.
   bodyDisabledOrKinematic,
+  /// Dash already active; disallow overlapping mobility commits.
   dashAlreadyActive,
+  /// Mobility is blocked while player is actively holding an aim vector.
   aimingHeld,
 }
 
+/// Static guard helpers used before creating ability intents.
+///
+/// These checks are deterministic and side-effect free. Callers can use the
+/// returned failure reason for telemetry or UI messaging.
 abstract class AbilityGate {
+  /// Returns `null` when combat ability commit is allowed, otherwise a reason.
   static AbilityGateFail? canCommitCombat(
     EcsWorld world, {
     required EntityId entity,
@@ -29,6 +46,8 @@ abstract class AbilityGate {
     if (world.controlLock.isStunned(entity, currentTick)) {
       return AbilityGateFail.stunned;
     }
+    // Cooldown is checked before resource costs so failures report "on cooldown"
+    // consistently when both constraints are true.
     if (world.cooldown.isOnCooldown(entity, cooldownGroupId)) {
       return AbilityGateFail.onCooldown;
     }
@@ -52,6 +71,7 @@ abstract class AbilityGate {
     return null;
   }
 
+  /// Returns `null` when mobility ability commit is allowed, otherwise a reason.
   static AbilityGateFail? canCommitMobility(
     EcsWorld world, {
     required EntityId entity,
@@ -81,7 +101,8 @@ abstract class AbilityGate {
       return AbilityGateFail.onCooldown;
     }
 
-    // Mobility cannot start while aiming (existing behavior from MobilitySystem commit block).
+    // Mobility cannot start while either aim channel is held. This preserves
+    // existing input semantics where dash/roll commits require a neutral aim.
     final ii = world.playerInput.tryIndexOf(entity);
     if (ii != null) {
       final aimHeld =

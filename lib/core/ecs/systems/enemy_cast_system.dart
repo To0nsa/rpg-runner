@@ -22,12 +22,14 @@ class EnemyCastSystem {
     required this.enemyCatalog,
     required this.projectileItems,
     required this.projectiles,
+    this.abilities = AbilityCatalog.shared,
   });
 
   final UnocoDemonTuningDerived unocoDemonTuning;
   final EnemyCatalog enemyCatalog;
   final ProjectileItemCatalog projectileItems;
   final ProjectileCatalogDerived projectiles;
+  final AbilityResolver abilities;
 
   /// Evaluates casts for all enemies and writes projectile intents.
   void step(
@@ -37,8 +39,11 @@ class EnemyCastSystem {
   }) {
     if (!world.transform.has(player)) return;
 
-    final ability = AbilityCatalog.tryGet(_enemyAbilityId);
+    final ability = abilities.resolve(_enemyAbilityId);
     if (ability == null) return;
+    final cooldownGroupId = ability.effectiveCooldownGroup(
+      AbilitySlot.projectile,
+    );
 
     final playerTi = world.transform.indexOf(player);
     final playerX = world.transform.posX[playerTi];
@@ -61,6 +66,7 @@ class EnemyCastSystem {
       if (ti == null) continue;
 
       if (!world.cooldown.has(enemy)) continue;
+      if (world.cooldown.isOnCooldown(enemy, cooldownGroupId)) continue;
       if (world.controlLock.isStunned(enemy, currentTick)) continue;
       if (world.activeAbility.hasActiveAbility(enemy)) continue;
 
@@ -106,6 +112,7 @@ class EnemyCastSystem {
         playerVelY: playerVelY,
         projectileSpeed: projectileSpeed,
         currentTick: currentTick,
+        cooldownGroupId: cooldownGroupId,
       );
     }
   }
@@ -122,6 +129,7 @@ class EnemyCastSystem {
     required double playerVelY,
     required double projectileSpeed,
     required int currentTick,
+    required int cooldownGroupId,
     required ProjectileItemId projectileItemId,
     required ProjectileItemDef projectileItem,
   }) {
@@ -191,9 +199,27 @@ class EnemyCastSystem {
         windupTicks: windupTicks,
         activeTicks: activeTicks,
         recoveryTicks: recoveryTicks,
-        cooldownGroupId: CooldownGroup.projectile,
+        cooldownGroupId: cooldownGroupId,
         tick: executeTick,
       ),
+    );
+
+    // Commit side effects (Cooldown + ActiveAbility) must be applied manually
+    // since enemies don't use AbilityActivationSystem.
+    world.cooldown.startCooldown(
+      enemy,
+      cooldownGroupId,
+      tuning.unocoDemonCastCooldownTicks,
+    );
+    world.activeAbility.set(
+      enemy,
+      id: ability.id,
+      slot: AbilitySlot.projectile,
+      commitTick: commitTick,
+      windupTicks: windupTicks,
+      activeTicks: activeTicks,
+      recoveryTicks: recoveryTicks,
+      facingDir: world.enemy.facing[enemyIndex],
     );
   }
 

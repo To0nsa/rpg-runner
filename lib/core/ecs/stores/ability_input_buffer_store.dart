@@ -10,7 +10,7 @@ import '../sparse_set.dart';
 class AbilityInputBufferStore extends SparseSet {
   final List<bool> hasBuffered = <bool>[];
   final List<AbilitySlot> slot = <AbilitySlot>[];
-  final List<AbilityKey> abilityId = <AbilityKey>[];
+  final List<AbilityKey?> abilityId = <AbilityKey?>[];
   final List<double> aimDirX = <double>[];
   final List<double> aimDirY = <double>[];
   final List<Facing> facing = <Facing>[];
@@ -59,6 +59,7 @@ class AbilityInputBufferStore extends SparseSet {
     if (!has(entity)) return;
     final i = indexOf(entity);
     hasBuffered[i] = false;
+    abilityId[i] = null;
     commitTick[i] = -1;
     expiresTick[i] = -1;
   }
@@ -67,7 +68,7 @@ class AbilityInputBufferStore extends SparseSet {
   void onDenseAdded(int denseIndex) {
     hasBuffered.add(false);
     slot.add(AbilitySlot.primary);
-    abilityId.add('common.unarmed_strike');
+    abilityId.add(null);
     aimDirX.add(0.0);
     aimDirY.add(0.0);
     facing.add(Facing.right);

@@ -73,7 +73,7 @@ class MeleeIntentDef {
 /// **Usage**: Persistent component. Intents are set via `set()` with a `tick` stamp.
 /// Old intents are ignored if `tick` matches current game tick.
 class MeleeIntentStore extends SparseSet {
-  final List<AbilityKey> abilityId = <AbilityKey>[];
+  final List<AbilityKey?> abilityId = <AbilityKey?>[];
   final List<AbilitySlot> slot = <AbilitySlot>[];
 
   /// Fixed-point: 100 = 1.0
@@ -132,7 +132,7 @@ class MeleeIntentStore extends SparseSet {
 
   @override
   void onDenseAdded(int denseIndex) {
-    abilityId.add('common.unarmed_strike');
+    abilityId.add(null);
     slot.add(AbilitySlot.primary);
     damage100.add(0);
     critChanceBp.add(0);

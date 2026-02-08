@@ -54,7 +54,7 @@ class AbilityActivationSystem {
 
   final int tickHz;
   final int inputBufferTicks;
-  final AbilityCatalog abilities;
+  final AbilityResolver abilities;
   final WeaponCatalog weapons;
   final ProjectileItemCatalog projectileItems;
   final SpellBookCatalog spellBooks;

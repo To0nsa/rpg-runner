@@ -1,4 +1,4 @@
-import '../abilities/ability_def.dart' show AbilityTag, WeaponType;
+import '../abilities/ability_def.dart' show WeaponType;
 import '../combat/damage_type.dart';
 import 'weapon_category.dart';
 import 'weapon_id.dart';
@@ -15,7 +15,6 @@ class WeaponDef {
     required this.id,
     required this.category,
     required this.weaponType,
-    this.grantedAbilityTags = const {},
     this.damageType = DamageType.physical,
     this.procs = const [],
     this.stats = const GearStatBonuses(),
@@ -29,11 +28,6 @@ class WeaponDef {
 
   /// Visual/functional family (used for ability gating).
   final WeaponType weaponType;
-
-  /// Capabilities provided by this weapon.
-  /// Abilities check: requiredTags ⊆ grantedAbilityTags.
-  /// Safe default: empty grants nothing.
-  final Set<AbilityTag> grantedAbilityTags;
 
   /// Default damage type applied to hits.
   final DamageType damageType;

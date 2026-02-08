@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'dart:math' as math;
 
 import 'package:rpg_runner/core/commands/command.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
@@ -21,6 +22,8 @@ void main() {
     final seconds = ticksAt60Hz / 60.0;
     return ticksFromSecondsCeil(seconds, tickHz);
   }
+
+  double fixed100ToDouble(int value) => value / 100.0;
 
   int scaledWindupTicks(String abilityId, int tickHz) {
     final ability = AbilityCatalog.tryGet(abilityId)!;
@@ -111,8 +114,11 @@ void main() {
       expect(p.pos.x, closeTo(playerPosX + expectedOffset, 1e-9));
       expect(p.pos.y, closeTo(playerPosY, 1e-9));
 
-      expect(snapshot.hud.mana, closeTo(7.0, 1e-9));
       final ability = AbilityCatalog.tryGet('eloise.charged_shot')!;
+      expect(
+        snapshot.hud.mana,
+        closeTo(20.0 - fixed100ToDouble(ability.manaCost), 1e-9),
+      );
       final cooldownTicks = scaledAbilityTicks(
         ability.cooldownTicks,
         core.tickHz,
@@ -162,8 +168,11 @@ void main() {
     expect(projectiles.length, 1);
     expect(projectiles.single.projectileId, ProjectileId.fireBolt);
 
-    expect(snapshot.hud.mana, closeTo(7.0, 1e-9));
     final ability = AbilityCatalog.tryGet('eloise.charged_shot')!;
+    expect(
+      snapshot.hud.mana,
+      closeTo(20.0 - fixed100ToDouble(ability.manaCost), 1e-9),
+    );
     final cooldownTicks = scaledAbilityTicks(
       ability.cooldownTicks,
       core.tickHz,
@@ -210,8 +219,12 @@ void main() {
       core.stepOneTick();
     }
 
+    final ability = AbilityCatalog.tryGet('eloise.charged_shot')!;
     var snapshot = core.buildSnapshot();
-    expect(snapshot.hud.mana, closeTo(17.0, 1e-9));
+    expect(
+      snapshot.hud.mana,
+      closeTo(30.0 - fixed100ToDouble(ability.manaCost), 1e-9),
+    );
     expect(
       snapshot.entities.where((e) => e.kind == EntityKind.projectile).length,
       1,
@@ -231,7 +244,10 @@ void main() {
     }
 
     snapshot = core.buildSnapshot();
-    expect(snapshot.hud.mana, closeTo(4.0, 1e-9));
+    expect(
+      snapshot.hud.mana,
+      closeTo(30.0 - fixed100ToDouble(ability.manaCost * 2), 1e-9),
+    );
     expect(
       snapshot.entities.where((e) => e.kind == EntityKind.projectile).length,
       2,
@@ -278,7 +294,11 @@ void main() {
           .toList();
       expect(projectiles.length, 1);
       expect(projectiles.single.projectileId, ProjectileId.fireBolt);
-      expect(snapshot.hud.mana, closeTo(4.0, 1e-9));
+      final ability = AbilityCatalog.tryGet('eloise.quick_shot')!;
+      expect(
+        snapshot.hud.mana,
+        closeTo(10.0 - fixed100ToDouble(ability.manaCost), 1e-9),
+      );
     },
   );
 
@@ -325,7 +345,11 @@ void main() {
           .toList();
       expect(projectiles.length, 1);
       expect(projectiles.single.projectileId, ProjectileId.throwingAxe);
-      expect(snapshot.hud.mana, closeTo(7.0, 1e-9));
+      final ability = AbilityCatalog.tryGet('eloise.charged_shot')!;
+      expect(
+        snapshot.hud.mana,
+        closeTo(20.0 - fixed100ToDouble(ability.manaCost), 1e-9),
+      );
     },
   );
 
@@ -370,7 +394,11 @@ void main() {
         .toList();
     expect(projectiles.length, 1);
     expect(projectiles.single.projectileId, ProjectileId.thunderBolt);
-    expect(snapshot.hud.mana, closeTo(7.0, 1e-9));
+    final ability = AbilityCatalog.tryGet('eloise.charged_shot')!;
+    expect(
+      snapshot.hud.mana,
+      closeTo(20.0 - fixed100ToDouble(ability.manaCost), 1e-9),
+    );
   });
 
   test(
@@ -415,31 +443,45 @@ void main() {
         ability.recoveryTicks,
         core.tickHz,
       );
+      final cooldownTicks = scaledAbilityTicks(
+        ability.cooldownTicks,
+        core.tickHz,
+      );
       for (var i = 0; i < activeTicks + recoveryTicks; i += 1) {
         core.applyCommands(const <Command>[]);
         core.stepOneTick();
       }
 
       final beforeBonus = core.buildSnapshot();
-      expect(
-        beforeBonus.hud.cooldownTicksLeft[CooldownGroup.projectile],
-        greaterThan(0),
-      );
       expect(beforeBonus.hud.cooldownTicksLeft[CooldownGroup.bonus0], 0);
+      final projectileCooldownBeforeBonus =
+          beforeBonus.hud.cooldownTicksLeft[CooldownGroup.projectile];
 
       // Bonus cast should still commit while projectile cooldown is active.
       core.applyCommands(const [BonusPressedCommand(tick: 2)]);
       core.stepOneTick();
+      final afterBonusPressed = core.buildSnapshot();
+      final expectedProjectileAfterOneTick = math.max(
+        projectileCooldownBeforeBonus - 1,
+        0,
+      );
+      expect(
+        afterBonusPressed.hud.cooldownTicksLeft[CooldownGroup.projectile],
+        expectedProjectileAfterOneTick,
+      );
+      expect(
+        afterBonusPressed.hud.cooldownTicksLeft[CooldownGroup.bonus0],
+        cooldownTicks,
+      );
       for (var i = 0; i < windupTicks; i += 1) {
         core.applyCommands(const <Command>[]);
         core.stepOneTick();
       }
 
       final snapshot = core.buildSnapshot();
-      expect(snapshot.hud.mana, closeTo(8.0, 1e-9));
       expect(
-        snapshot.hud.cooldownTicksLeft[CooldownGroup.bonus0],
-        greaterThan(0),
+        snapshot.hud.mana,
+        closeTo(20.0 - fixed100ToDouble(ability.manaCost * 2), 1e-9),
       );
     },
   );

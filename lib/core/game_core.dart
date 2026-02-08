@@ -74,6 +74,7 @@ import 'dart:math';
 import 'camera/autoscroll_camera.dart';
 import 'abilities/ability_catalog.dart';
 import 'abilities/ability_def.dart';
+import 'abilities/forced_interrupt_policy.dart';
 import 'accessories/accessory_catalog.dart';
 import 'combat/middleware/parry_middleware.dart';
 import 'collision/static_world_geometry_index.dart';
@@ -417,8 +418,9 @@ class GameCore {
       resources: _resourceTuning,
       projectiles: _projectiles,
       enemyCatalog: _enemyCatalog,
+      abilityCatalog: AbilityCatalog.shared,
       loadoutValidator: LoadoutValidator(
-        abilityCatalog: const AbilityCatalog(),
+        abilityCatalog: AbilityCatalog.shared,
         weaponCatalog: _weapons,
         projectileItemCatalog: _projectileItems,
         spellBookCatalog: _spellBooks,
@@ -431,6 +433,11 @@ class GameCore {
   /// Systems are stateless processors that operate on component stores.
   /// They're created once at construction and reused every tick.
   void _initializeSystems() {
+    const abilityCatalog = AbilityCatalog();
+    const forcedInterruptPolicy = ForcedInterruptPolicy(
+      abilities: abilityCatalog,
+    );
+
     // Core movement and physics.
     _movementSystem = PlayerMovementSystem(statsResolver: _statsResolver);
     _mobilitySystem = MobilitySystem();
@@ -468,10 +475,13 @@ class GameCore {
       invulnerabilityTicksOnHit: _combat.invulnerabilityTicks,
       rngSeed: seed,
       statsResolver: _statsResolver,
+      forcedInterruptPolicy: forcedInterruptPolicy,
     );
     _statusSystem = StatusSystem(tickHz: tickHz);
     _controlLockSystem = ControlLockSystem();
-    _activeAbilityPhaseSystem = ActiveAbilityPhaseSystem();
+    _activeAbilityPhaseSystem = ActiveAbilityPhaseSystem(
+      forcedInterruptPolicy: forcedInterruptPolicy,
+    );
     _healthDespawnSystem = HealthDespawnSystem();
     _enemyDeathStateSystem = EnemyDeathStateSystem(
       tickHz: tickHz,
@@ -484,13 +494,14 @@ class GameCore {
       enemyCatalog: _enemyCatalog,
       playerMovement: _movement,
       playerAnimTuning: _animTuning,
+      abilities: abilityCatalog,
     );
 
     // Player combat (input → intents).
     _abilityActivationSystem = AbilityActivationSystem(
       tickHz: tickHz,
       inputBufferTicks: _abilities.inputBufferTicks,
-      abilities: const AbilityCatalog(),
+      abilities: abilityCatalog,
       weapons: _weapons,
       projectileItems: _projectileItems,
       spellBooks: _spellBooks,
@@ -562,6 +573,7 @@ class GameCore {
       enemyCatalog: _enemyCatalog,
       projectileItems: _projectileItems,
       projectiles: _projectiles,
+      abilities: abilityCatalog,
     );
     _enemyMeleeSystem = EnemyMeleeSystem(groundEnemyTuning: _groundEnemyTuning);
   }

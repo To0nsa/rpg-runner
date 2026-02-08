@@ -38,6 +38,24 @@ void main() {
       },
     );
 
+    test('setLoadout repairs unknown ability ids', () async {
+      final selectionStore = _MemorySelectionStore();
+      final appState = AppState(selectionStore: selectionStore);
+
+      await appState.setLoadout(
+        const EquippedLoadoutDef(abilityPrimaryId: 'common.unarmed_strike'),
+      );
+
+      expect(
+        appState.selection.equippedLoadout.abilityPrimaryId,
+        'eloise.sword_strike',
+      );
+      expect(
+        selectionStore.saved.equippedLoadout.abilityPrimaryId,
+        'eloise.sword_strike',
+      );
+    });
+
     test(
       'equipGear syncs selected loadout projectile and spellbook sources',
       () async {
@@ -139,6 +157,40 @@ void main() {
         );
       },
     );
+
+    test('bootstrap repairs unknown saved ability ids', () async {
+      final selectionStore = _MemorySelectionStore(
+        saved: SelectionState(
+          selectedLevelId: SelectionState.defaults.selectedLevelId,
+          selectedRunType: SelectionState.defaults.selectedRunType,
+          selectedCharacterId: PlayerCharacterId.eloise,
+          equippedLoadout: const EquippedLoadoutDef(
+            abilityPrimaryId: 'common.unarmed_strike',
+          ),
+          buildName: SelectionState.defaultBuildName,
+        ),
+      );
+      final metaStore = _MemoryMetaStore(
+        saved: const MetaService().createNew(),
+      );
+      final profileStore = _MemoryUserProfileStore();
+      final appState = AppState(
+        selectionStore: selectionStore,
+        metaStore: metaStore,
+        userProfileStore: profileStore,
+      );
+
+      await appState.bootstrap(force: true);
+
+      expect(
+        appState.selection.equippedLoadout.abilityPrimaryId,
+        'eloise.sword_strike',
+      );
+      expect(
+        selectionStore.saved.equippedLoadout.abilityPrimaryId,
+        'eloise.sword_strike',
+      );
+    });
   });
 }
 

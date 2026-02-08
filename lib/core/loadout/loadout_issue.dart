@@ -8,9 +8,6 @@ enum IssueKind {
   /// Equipped weapon definition does not match the slot's expected category.
   weaponCategoryMismatch,
 
-  /// Equipped weapon (or effective weapon) lacks tags required by the ability.
-  missingRequiredTags,
-
   /// Equipped weapon (or effective weapon) lacks required weapon types.
   missingRequiredWeaponTypes,
 
@@ -31,7 +28,6 @@ class LoadoutIssue {
     required this.kind,
     this.abilityId,
     this.weaponId,
-    this.missingTags = const {},
     this.missingWeaponTypes = const {},
     this.message = '',
   });
@@ -48,9 +44,6 @@ class LoadoutIssue {
   /// The ID of the weapon involved, if known.
   final String? weaponId;
 
-  /// If [kind] is [missingRequiredTags], this set contains the missing tags.
-  final Set<AbilityTag> missingTags;
-
   /// If [kind] is [missingRequiredWeaponTypes], this set contains the missing types.
   final Set<WeaponType> missingWeaponTypes;
 
@@ -59,6 +52,6 @@ class LoadoutIssue {
 
   @override
   String toString() {
-    return 'LoadoutIssue($slot, $kind, ability:$abilityId, weapon:$weaponId, missingTags:$missingTags, missingWeaponTypes:$missingWeaponTypes)';
+    return 'LoadoutIssue($slot, $kind, ability:$abilityId, weapon:$weaponId, missingWeaponTypes:$missingWeaponTypes)';
   }
 }

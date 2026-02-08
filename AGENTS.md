@@ -64,6 +64,7 @@ When you implement changes, keep documentation in sync (add new docs when needed
 - **Architecture/contract docs** when boundaries or APIs change: layer-specific `AGENTS.md`, `docs/building/plan.md`
 - **Milestone/checklists** when scope shifts: `docs/building/TODO.md`
 - **User-facing docs** when behavior changes: `README.md`, public API docs (e.g. `lib/runner.dart`)
+- **Code commenting/documentation quality** for code changes: follow `docs/rules/documentation_and_commenting_guide.md` as the source of truth for `///` and `//` usage.
 
 ## Antigravity Integration
 

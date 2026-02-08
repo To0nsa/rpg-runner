@@ -11,10 +11,14 @@ import 'package:rpg_runner/core/ecs/spatial/grid_index_2d.dart';
 import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
 import 'package:rpg_runner/core/ecs/systems/enemy_engagement_system.dart';
 import 'package:rpg_runner/core/ecs/systems/enemy_melee_system.dart';
+import 'package:rpg_runner/core/ecs/systems/enemy_cast_system.dart';
+import 'package:rpg_runner/core/ecs/systems/cooldown_system.dart';
+import 'package:rpg_runner/core/ecs/systems/active_ability_phase_system.dart';
 import 'package:rpg_runner/core/ecs/systems/hitbox_follow_owner_system.dart';
 import 'package:rpg_runner/core/ecs/systems/hitbox_damage_system.dart';
 import 'package:rpg_runner/core/ecs/systems/melee_strike_system.dart';
 import 'package:rpg_runner/core/ecs/systems/projectile_hit_system.dart';
+import 'package:rpg_runner/core/ecs/systems/projectile_launch_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
@@ -23,13 +27,99 @@ import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/projectiles/spawn_projectile_item.dart';
+import 'package:rpg_runner/core/enemies/enemy_catalog.dart';
 import 'package:rpg_runner/core/tuning/ground_enemy_tuning.dart';
+import 'package:rpg_runner/core/tuning/flying_enemy_tuning.dart';
 import 'package:rpg_runner/core/tuning/spatial_grid_tuning.dart';
 
 import 'test_spawns.dart';
 import 'package:rpg_runner/core/ecs/entity_factory.dart';
 
 void main() {
+  test('enemy cast respects cooldown before recast', () {
+    final world = EcsWorld();
+    final projectiles = ProjectileCatalogDerived.from(
+      const ProjectileCatalog(),
+      tickHz: 60,
+    );
+
+    final player = EntityFactory(world).createPlayer(
+      posX: 100,
+      posY: 100,
+      velX: 0,
+      velY: 0,
+      facing: Facing.right,
+      grounded: true,
+      body: const BodyDef(isKinematic: true, useGravity: false),
+      collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+      health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
+    );
+
+    final unocoDemon = spawnUnocoDemon(
+      world,
+      posX: 130,
+      posY: 100,
+      velX: 0,
+      velY: 0,
+      facing: Facing.left,
+      body: const BodyDef(isKinematic: true, useGravity: false),
+      collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+      health: const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 8000, manaMax: 8000, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
+    );
+
+    world.cooldown.setTicksLeft(unocoDemon, CooldownGroup.projectile, 0);
+
+    final castSystem = EnemyCastSystem(
+      unocoDemonTuning: UnocoDemonTuningDerived.from(
+        const UnocoDemonTuning(),
+        tickHz: 60,
+      ),
+      enemyCatalog: const EnemyCatalog(),
+      projectileItems: const ProjectileItemCatalog(),
+      projectiles: projectiles,
+    );
+    final launchSystem = ProjectileLaunchSystem(projectiles: projectiles);
+    final cooldownSystem = CooldownSystem();
+    final phaseSystem = ActiveAbilityPhaseSystem();
+
+    for (var tick = 1; tick <= 80; tick += 1) {
+      cooldownSystem.step(world);
+      phaseSystem.step(world, currentTick: tick);
+      castSystem.step(world, player: player, currentTick: tick);
+      launchSystem.step(world, currentTick: tick);
+    }
+
+    // First cast should have launched exactly one projectile by now,
+    // and cooldown should still block any recast.
+    expect(world.projectile.denseEntities.length, equals(1));
+    expect(
+      world.cooldown.getTicksLeft(unocoDemon, CooldownGroup.projectile),
+      greaterThan(0),
+    );
+
+    for (var tick = 81; tick <= 170; tick += 1) {
+      cooldownSystem.step(world);
+      phaseSystem.step(world, currentTick: tick);
+      castSystem.step(world, player: player, currentTick: tick);
+      launchSystem.step(world, currentTick: tick);
+    }
+
+    // After cooldown expiry, the demon should be able to cast again.
+    expect(world.projectile.denseEntities.length, greaterThan(1));
+  });
+
   test('enemy projectile (thunder) damages player', () {
     final world = EcsWorld();
     final thunderDamage = AbilityCatalog.tryGet(

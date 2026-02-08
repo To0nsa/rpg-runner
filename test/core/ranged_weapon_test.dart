@@ -81,8 +81,11 @@ void main() {
       expect(p.pos.x, closeTo(playerPosX + item.originOffset, 1e-9));
       expect(p.pos.y, closeTo(playerPosY, 1e-9));
 
-      expect(snapshot.hud.mana, closeTo(4.0, 1e-9)); // 10 - 6 manaCost
       final ability = AbilityCatalog.tryGet('eloise.quick_shot')!;
+      expect(
+        snapshot.hud.mana,
+        closeTo(10.0 - (ability.manaCost / 100.0), 1e-9),
+      );
       final cooldownTicks = ticksFromSecondsCeil(
         ability.cooldownTicks / 60.0,
         tickHz,

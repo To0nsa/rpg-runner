@@ -4,6 +4,12 @@ import '../world.dart';
 
 /// Updates ActiveAbilityState phase timing and handles forced interruptions.
 class ActiveAbilityPhaseSystem {
+  const ActiveAbilityPhaseSystem({
+    this.forcedInterruptPolicy = ForcedInterruptPolicy.defaultPolicy,
+  });
+
+  final ForcedInterruptPolicy forcedInterruptPolicy;
+
   void step(EcsWorld world, {required int currentTick}) {
     final active = world.activeAbility;
     if (active.denseEntities.isEmpty) return;
@@ -54,7 +60,9 @@ class ActiveAbilityPhaseSystem {
     AbilityKey abilityId,
     int currentTick,
   ) {
-    final forcedCauses = forcedInterruptCausesForAbility(abilityId);
+    final forcedCauses = forcedInterruptPolicy.forcedInterruptCausesForAbility(
+      abilityId,
+    );
     if (forcedCauses.contains(ForcedInterruptCause.stun) &&
         world.controlLock.isStunned(entity, currentTick)) {
       return true;
