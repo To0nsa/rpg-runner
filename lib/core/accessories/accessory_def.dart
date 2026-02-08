@@ -17,8 +17,6 @@ typedef AccessoryStats = GearStatBonuses;
 class AccessoryDef {
   const AccessoryDef({
     required this.id,
-    required this.displayName,
-    required this.description,
     this.slot = AccessorySlot.trinket,
     this.tags = const <AccessoryTag>{},
     this.stats = const AccessoryStats(),
@@ -26,8 +24,6 @@ class AccessoryDef {
   });
 
   final AccessoryId id;
-  final String displayName;
-  final String description;
   final AccessorySlot slot;
   final Set<AccessoryTag> tags;
   final AccessoryStats stats;

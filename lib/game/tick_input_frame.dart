@@ -59,6 +59,12 @@ class TickInputFrame {
   /// Projectile aim Y component (only valid if [projectileAimDirSet] is true).
   double projectileAimDirY = 0;
 
+  /// Whether a projectile charge hold duration override exists for this tick.
+  bool projectileChargeTicksSet = false;
+
+  /// Projectile charge hold duration in runtime ticks.
+  int projectileChargeTicks = 0;
+
   // ─────────────────────────────────────────────────────────────────────────
   // Melee aim direction
   // ─────────────────────────────────────────────────────────────────────────
@@ -91,6 +97,9 @@ class TickInputFrame {
         projectileAimDirSet = true;
         projectileAimDirX = x;
         projectileAimDirY = y;
+      case ProjectileChargeTicksCommand(:final chargeTicks):
+        projectileChargeTicksSet = true;
+        projectileChargeTicks = chargeTicks < 0 ? 0 : chargeTicks;
       case MeleeAimDirCommand(:final x, :final y):
         meleeAimDirSet = true;
         meleeAimDirX = x;
@@ -123,6 +132,8 @@ class TickInputFrame {
     projectileAimDirSet = false;
     projectileAimDirX = 0;
     projectileAimDirY = 0;
+    projectileChargeTicksSet = false;
+    projectileChargeTicks = 0;
     meleeAimDirSet = false;
     meleeAimDirX = 0;
     meleeAimDirY = 0;

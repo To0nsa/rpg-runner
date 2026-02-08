@@ -45,10 +45,28 @@ final class SecondaryPressedCommand extends Command {
 /// The direction should be normalized (or near-normalized). It is expressed in
 /// world space and used by casting/abilities.
 final class ProjectileAimDirCommand extends Command {
-  const ProjectileAimDirCommand({required super.tick, required this.x, required this.y});
+  const ProjectileAimDirCommand({
+    required super.tick,
+    required this.x,
+    required this.y,
+  });
 
   final double x;
   final double y;
+}
+
+/// Charge hold duration for projectile-style commit abilities.
+///
+/// The value is expressed in simulation ticks of the current runtime tick rate
+/// (not fixed 60 Hz authoring ticks). It is resolved by Core at commit time
+/// and used for deterministic tier selection.
+final class ProjectileChargeTicksCommand extends Command {
+  const ProjectileChargeTicksCommand({
+    required super.tick,
+    required this.chargeTicks,
+  });
+
+  final int chargeTicks;
 }
 
 /// Continuous melee aim direction for the given tick.

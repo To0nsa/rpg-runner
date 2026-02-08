@@ -37,7 +37,7 @@ void main() {
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
           projectileItemId: ProjectileItemId.iceBolt,
-          abilityProjectileId: 'eloise.heavy_throw',
+          abilityProjectileId: 'eloise.charged_shot',
         ),
         tuning: base.tuning.copyWith(
           resource: const ResourceTuning(
@@ -50,7 +50,7 @@ void main() {
 
     core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
     core.stepOneTick();
-    final windupTicks = scaledWindupTicks('eloise.heavy_throw', core.tickHz);
+    final windupTicks = scaledWindupTicks('eloise.charged_shot', core.tickHz);
     for (var i = 0; i < windupTicks; i += 1) {
       core.applyCommands(const <Command>[]);
       core.stepOneTick();
@@ -71,7 +71,7 @@ void main() {
       final catalog = testPlayerCatalog(
         bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
         projectileItemId: ProjectileItemId.iceBolt,
-        abilityProjectileId: 'eloise.heavy_throw',
+        abilityProjectileId: 'eloise.charged_shot',
       );
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
@@ -94,7 +94,7 @@ void main() {
 
       core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
       core.stepOneTick();
-      final windupTicks = scaledWindupTicks('eloise.heavy_throw', core.tickHz);
+      final windupTicks = scaledWindupTicks('eloise.charged_shot', core.tickHz);
       for (var i = 0; i < windupTicks; i += 1) {
         core.applyCommands(const <Command>[]);
         core.stepOneTick();
@@ -111,10 +111,15 @@ void main() {
       expect(p.pos.x, closeTo(playerPosX + expectedOffset, 1e-9));
       expect(p.pos.y, closeTo(playerPosY, 1e-9));
 
-      expect(snapshot.hud.mana, closeTo(10.0, 1e-9));
+      expect(snapshot.hud.mana, closeTo(7.0, 1e-9));
+      final ability = AbilityCatalog.tryGet('eloise.charged_shot')!;
+      final cooldownTicks = scaledAbilityTicks(
+        ability.cooldownTicks,
+        core.tickHz,
+      );
       expect(
         core.playerProjectileCooldownTicksLeft,
-        8 - windupTicks,
+        cooldownTicks - windupTicks,
       ); // Cooldown already ticked during windup
     },
   );
@@ -124,7 +129,7 @@ void main() {
       bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
       projectileItemId: ProjectileItemId.throwingKnife,
       projectileSlotSpellId: ProjectileItemId.fireBolt,
-      abilityProjectileId: 'eloise.heavy_throw',
+      abilityProjectileId: 'eloise.charged_shot',
     );
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
@@ -144,7 +149,7 @@ void main() {
 
     core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
     core.stepOneTick();
-    final windupTicks = scaledWindupTicks('eloise.heavy_throw', core.tickHz);
+    final windupTicks = scaledWindupTicks('eloise.charged_shot', core.tickHz);
     for (var i = 0; i < windupTicks; i += 1) {
       core.applyCommands(const <Command>[]);
       core.stepOneTick();
@@ -157,10 +162,15 @@ void main() {
     expect(projectiles.length, 1);
     expect(projectiles.single.projectileId, ProjectileId.fireBolt);
 
-    expect(snapshot.hud.mana, closeTo(10.0, 1e-9));
+    expect(snapshot.hud.mana, closeTo(7.0, 1e-9));
+    final ability = AbilityCatalog.tryGet('eloise.charged_shot')!;
+    final cooldownTicks = scaledAbilityTicks(
+      ability.cooldownTicks,
+      core.tickHz,
+    );
     expect(
       core.playerProjectileCooldownTicksLeft,
-      8 - windupTicks,
+      cooldownTicks - windupTicks,
     ); // Cooldown already ticked during windup
   });
 
@@ -174,7 +184,7 @@ void main() {
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
           projectileItemId: ProjectileItemId.iceBolt,
-          abilityProjectileId: 'eloise.heavy_throw',
+          abilityProjectileId: 'eloise.charged_shot',
         ),
         tuning: base.tuning.copyWith(
           resource: const ResourceTuning(
@@ -187,7 +197,7 @@ void main() {
 
     core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
     core.stepOneTick();
-    final windupTicks = scaledWindupTicks('eloise.heavy_throw', core.tickHz);
+    final windupTicks = scaledWindupTicks('eloise.charged_shot', core.tickHz);
     for (var i = 0; i < windupTicks; i += 1) {
       core.applyCommands(const <Command>[]);
       core.stepOneTick();
@@ -201,7 +211,7 @@ void main() {
     }
 
     var snapshot = core.buildSnapshot();
-    expect(snapshot.hud.mana, closeTo(20.0, 1e-9));
+    expect(snapshot.hud.mana, closeTo(17.0, 1e-9));
     expect(
       snapshot.entities.where((e) => e.kind == EntityKind.projectile).length,
       1,
@@ -221,7 +231,7 @@ void main() {
     }
 
     snapshot = core.buildSnapshot();
-    expect(snapshot.hud.mana, closeTo(10.0, 1e-9));
+    expect(snapshot.hud.mana, closeTo(4.0, 1e-9));
     expect(
       snapshot.entities.where((e) => e.kind == EntityKind.projectile).length,
       2,
@@ -241,13 +251,13 @@ void main() {
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
             projectileItemId: ProjectileItemId.throwingKnife,
             projectileSlotSpellId: ProjectileItemId.fireBolt,
-            abilityProjectileId: 'eloise.quick_throw',
+            abilityProjectileId: 'eloise.quick_shot',
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
-              playerManaMax: 0,
+              playerManaMax: 10,
               playerManaRegenPerSecond: 0,
-              playerStaminaMax: 10,
+              playerStaminaMax: 0,
               playerStaminaRegenPerSecond: 0,
             ),
           ),
@@ -256,7 +266,7 @@ void main() {
 
       core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
       core.stepOneTick();
-      final windupTicks = scaledWindupTicks('eloise.quick_throw', core.tickHz);
+      final windupTicks = scaledWindupTicks('eloise.quick_shot', core.tickHz);
       for (var i = 0; i < windupTicks; i += 1) {
         core.applyCommands(const <Command>[]);
         core.stepOneTick();
@@ -268,7 +278,7 @@ void main() {
           .toList();
       expect(projectiles.length, 1);
       expect(projectiles.single.projectileId, ProjectileId.fireBolt);
-      expect(snapshot.hud.stamina, closeTo(5.0, 1e-9));
+      expect(snapshot.hud.mana, closeTo(4.0, 1e-9));
     },
   );
 
@@ -285,7 +295,7 @@ void main() {
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
             projectileItemId: ProjectileItemId.throwingAxe,
             bonusSlotSpellId: null,
-            abilityBonusId: 'eloise.heavy_throw',
+            abilityBonusId: 'eloise.charged_shot',
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
@@ -303,7 +313,7 @@ void main() {
         BonusPressedCommand(tick: 1),
       ]);
       core.stepOneTick();
-      final windupTicks = scaledWindupTicks('eloise.heavy_throw', core.tickHz);
+      final windupTicks = scaledWindupTicks('eloise.charged_shot', core.tickHz);
       for (var i = 0; i < windupTicks; i += 1) {
         core.applyCommands(const <Command>[]);
         core.stepOneTick();
@@ -315,7 +325,7 @@ void main() {
           .toList();
       expect(projectiles.length, 1);
       expect(projectiles.single.projectileId, ProjectileId.throwingAxe);
-      expect(snapshot.hud.mana, closeTo(10.0, 1e-9));
+      expect(snapshot.hud.mana, closeTo(7.0, 1e-9));
     },
   );
 
@@ -330,7 +340,7 @@ void main() {
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
           projectileItemId: ProjectileItemId.throwingAxe,
           bonusSlotSpellId: ProjectileItemId.thunderBolt,
-          abilityBonusId: 'eloise.heavy_throw',
+          abilityBonusId: 'eloise.charged_shot',
         ),
         tuning: base.tuning.copyWith(
           resource: const ResourceTuning(
@@ -348,7 +358,7 @@ void main() {
       BonusPressedCommand(tick: 1),
     ]);
     core.stepOneTick();
-    final windupTicks = scaledWindupTicks('eloise.heavy_throw', core.tickHz);
+    final windupTicks = scaledWindupTicks('eloise.charged_shot', core.tickHz);
     for (var i = 0; i < windupTicks; i += 1) {
       core.applyCommands(const <Command>[]);
       core.stepOneTick();
@@ -360,7 +370,7 @@ void main() {
         .toList();
     expect(projectiles.length, 1);
     expect(projectiles.single.projectileId, ProjectileId.thunderBolt);
-    expect(snapshot.hud.mana, closeTo(10.0, 1e-9));
+    expect(snapshot.hud.mana, closeTo(7.0, 1e-9));
   });
 
   test(
@@ -377,14 +387,14 @@ void main() {
             projectileItemId: ProjectileItemId.throwingKnife,
             projectileSlotSpellId: null,
             bonusSlotSpellId: ProjectileItemId.fireBolt,
-            abilityProjectileId: 'eloise.quick_throw',
-            abilityBonusId: 'eloise.quick_throw',
+            abilityProjectileId: 'eloise.quick_shot',
+            abilityBonusId: 'eloise.quick_shot',
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
-              playerManaMax: 0,
+              playerManaMax: 20,
               playerManaRegenPerSecond: 0,
-              playerStaminaMax: 20,
+              playerStaminaMax: 0,
               playerStaminaRegenPerSecond: 0,
             ),
           ),
@@ -393,13 +403,13 @@ void main() {
 
       core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
       core.stepOneTick();
-      final windupTicks = scaledWindupTicks('eloise.quick_throw', core.tickHz);
+      final windupTicks = scaledWindupTicks('eloise.quick_shot', core.tickHz);
       for (var i = 0; i < windupTicks; i += 1) {
         core.applyCommands(const <Command>[]);
         core.stepOneTick();
       }
 
-      final ability = AbilityCatalog.tryGet('eloise.quick_throw')!;
+      final ability = AbilityCatalog.tryGet('eloise.quick_shot')!;
       final activeTicks = scaledAbilityTicks(ability.activeTicks, core.tickHz);
       final recoveryTicks = scaledAbilityTicks(
         ability.recoveryTicks,
@@ -426,11 +436,49 @@ void main() {
       }
 
       final snapshot = core.buildSnapshot();
-      expect(snapshot.hud.stamina, closeTo(10.0, 1e-9));
+      expect(snapshot.hud.mana, closeTo(8.0, 1e-9));
       expect(
         snapshot.hud.cooldownTicksLeft[CooldownGroup.bonus0],
         greaterThan(0),
       );
     },
   );
+
+  test('auto-aim shot uses tap input mode', () {
+    final base = PlayerCharacterRegistry.eloise;
+    final core = GameCore(
+      seed: 1,
+      tickHz: 20,
+      tuning: noAutoscrollTuning,
+      playerCharacter: base.copyWith(
+        catalog: testPlayerCatalog(
+          bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+          abilityProjectileId: 'eloise.auto_aim_shot',
+          abilityBonusId: 'eloise.auto_aim_shot',
+        ),
+      ),
+    );
+
+    final hud = core.buildSnapshot().hud;
+    expect(hud.projectileInputMode, AbilityInputMode.tap);
+    expect(hud.bonusInputMode, AbilityInputMode.tap);
+  });
+
+  test('quick shot keeps hold-aim-release input mode', () {
+    final base = PlayerCharacterRegistry.eloise;
+    final core = GameCore(
+      seed: 1,
+      tickHz: 20,
+      tuning: noAutoscrollTuning,
+      playerCharacter: base.copyWith(
+        catalog: testPlayerCatalog(
+          bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+          abilityProjectileId: 'eloise.quick_shot',
+        ),
+      ),
+    );
+
+    final hud = core.buildSnapshot().hud;
+    expect(hud.projectileInputMode, AbilityInputMode.holdAimRelease);
+  });
 }

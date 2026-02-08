@@ -1,10 +1,13 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../game/input/aim_preview.dart';
 import '../../game/input/aim_quantizer.dart';
+import '../../game/input/charge_preview.dart';
 import 'cooldown_ring.dart';
 
 class DirectionalActionButton extends StatefulWidget {
@@ -26,6 +29,14 @@ class DirectionalActionButton extends StatefulWidget {
     this.foregroundColor = Colors.white,
     this.labelFontSize = 12,
     this.labelGap = 2,
+    this.onChargeCommit,
+    this.chargePreview,
+    this.chargeOwnerId,
+    this.chargeHalfTicks = 0,
+    this.chargeFullTicks = 0,
+    this.chargeTickHz = 60,
+    this.enableChargeHaptics = true,
+    this.forceCancelSignal,
   });
 
   final String label;
@@ -44,6 +55,14 @@ class DirectionalActionButton extends StatefulWidget {
   final Color foregroundColor;
   final double labelFontSize;
   final double labelGap;
+  final ValueChanged<int>? onChargeCommit;
+  final ChargePreviewModel? chargePreview;
+  final String? chargeOwnerId;
+  final int chargeHalfTicks;
+  final int chargeFullTicks;
+  final int chargeTickHz;
+  final bool enableChargeHaptics;
+  final ValueListenable<int>? forceCancelSignal;
 
   @override
   State<DirectionalActionButton> createState() =>
@@ -53,6 +72,26 @@ class DirectionalActionButton extends StatefulWidget {
 class _DirectionalActionButtonState extends State<DirectionalActionButton> {
   int? _pointer;
   bool _canceled = false;
+  final Stopwatch _chargeWatch = Stopwatch();
+  Timer? _chargeTimer;
+  int _lastChargeTier = 0;
+  int _lastChargeTicks = 0;
+  int _lastForceCancelValue = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _attachForceCancelListener();
+  }
+
+  @override
+  void didUpdateWidget(covariant DirectionalActionButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.forceCancelSignal != widget.forceCancelSignal) {
+      _detachForceCancelListener(oldWidget.forceCancelSignal);
+      _attachForceCancelListener();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -114,6 +153,7 @@ class _DirectionalActionButtonState extends State<DirectionalActionButton> {
     if (_pointer != null) return;
     _pointer = event.pointer;
     _canceled = false;
+    _startChargeTracking();
     widget.projectileAimPreview.begin();
     widget.onAimClear();
     _updateAim(event.localPosition);
@@ -136,7 +176,16 @@ class _DirectionalActionButtonState extends State<DirectionalActionButton> {
     }
 
     if (!_canceled) {
-      widget.onCommit();
+      if (_isChargeEnabled) {
+        _updateChargeProgress();
+        if (widget.onChargeCommit != null) {
+          widget.onChargeCommit!.call(_lastChargeTicks);
+        } else {
+          widget.onCommit();
+        }
+      } else {
+        widget.onCommit();
+      }
     }
     _resetAim();
   }
@@ -172,6 +221,7 @@ class _DirectionalActionButtonState extends State<DirectionalActionButton> {
     _canceled = true;
     widget.onAimClear();
     widget.projectileAimPreview.end();
+    _endChargeTracking();
   }
 
   void _resetAim() {
@@ -179,6 +229,93 @@ class _DirectionalActionButtonState extends State<DirectionalActionButton> {
     _canceled = false;
     widget.onAimClear();
     widget.projectileAimPreview.end();
+    _endChargeTracking();
+  }
+
+  @override
+  void dispose() {
+    _detachForceCancelListener(widget.forceCancelSignal);
+    _chargeTimer?.cancel();
+    super.dispose();
+  }
+
+  void _attachForceCancelListener() {
+    final signal = widget.forceCancelSignal;
+    if (signal == null) return;
+    _lastForceCancelValue = signal.value;
+    signal.addListener(_handleForceCancelSignal);
+  }
+
+  void _detachForceCancelListener(ValueListenable<int>? signal) {
+    signal?.removeListener(_handleForceCancelSignal);
+  }
+
+  void _handleForceCancelSignal() {
+    final signal = widget.forceCancelSignal;
+    if (signal == null) return;
+    final next = signal.value;
+    if (next == _lastForceCancelValue) return;
+    _lastForceCancelValue = next;
+
+    if (_pointer != null) {
+      _cancelAim();
+      _resetAim();
+    }
+  }
+
+  bool get _isChargeEnabled =>
+      widget.onChargeCommit != null &&
+      widget.chargeFullTicks > 0 &&
+      widget.chargeTickHz > 0;
+
+  void _startChargeTracking() {
+    if (!_isChargeEnabled) return;
+    _lastChargeTier = 0;
+    _lastChargeTicks = 0;
+    _chargeWatch
+      ..reset()
+      ..start();
+    widget.chargePreview?.begin(
+      ownerId: widget.chargeOwnerId ?? widget.label,
+      halfTierTicks: widget.chargeHalfTicks,
+      fullTierTicks: widget.chargeFullTicks,
+    );
+    _chargeTimer?.cancel();
+    _chargeTimer = Timer.periodic(
+      const Duration(milliseconds: 16),
+      (_) => _updateChargeProgress(),
+    );
+  }
+
+  void _updateChargeProgress() {
+    if (!_isChargeEnabled || !_chargeWatch.isRunning) return;
+    final elapsedMicros = _chargeWatch.elapsedMicroseconds;
+    final ticks = (elapsedMicros * widget.chargeTickHz) ~/ 1000000;
+    _lastChargeTicks = ticks < 0 ? 0 : ticks;
+    widget.chargePreview?.updateChargeTicks(_lastChargeTicks);
+
+    final tier = _lastChargeTicks >= widget.chargeFullTicks
+        ? 2
+        : (_lastChargeTicks >= widget.chargeHalfTicks ? 1 : 0);
+    if (widget.enableChargeHaptics && tier > _lastChargeTier) {
+      if (_lastChargeTier < 1 && tier >= 1) {
+        HapticFeedback.selectionClick();
+      }
+      if (_lastChargeTier < 2 && tier >= 2) {
+        HapticFeedback.lightImpact();
+      }
+    }
+    _lastChargeTier = tier;
+  }
+
+  void _endChargeTracking() {
+    _chargeTimer?.cancel();
+    _chargeTimer = null;
+    _chargeWatch.stop();
+    _chargeWatch.reset();
+    _lastChargeTicks = 0;
+    _lastChargeTier = 0;
+    widget.chargePreview?.end();
   }
 
   Color _disabledForeground(Color color) => color.withValues(alpha: 0.35);

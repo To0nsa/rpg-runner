@@ -28,7 +28,7 @@ void main() {
   test('ProjectileHitSystem damages target and despawns projectile', () {
     final world = EcsWorld();
     final iceBoltDamage = AbilityCatalog.tryGet(
-      'eloise.heavy_throw',
+      'eloise.charged_shot',
     )!.baseDamage;
     final projectileItem = const ProjectileItemCatalog().get(
       ProjectileItemId.iceBolt,

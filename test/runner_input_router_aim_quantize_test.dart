@@ -29,7 +29,7 @@ void main() {
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(useGravity: false),
           projectileItemId: ProjectileItemId.iceBolt,
-          abilityProjectileId: 'eloise.heavy_throw',
+          abilityProjectileId: 'eloise.charged_shot',
         ),
         tuning: base.tuning.copyWith(
           resource: const ResourceTuning(
@@ -49,7 +49,7 @@ void main() {
 
     final dt = 1.0 / controller.tickHz;
     final windupTicks = ticksFromSecondsCeil(
-      AbilityCatalog.tryGet('eloise.heavy_throw')!.windupTicks / 60.0,
+      AbilityCatalog.tryGet('eloise.charged_shot')!.windupTicks / 60.0,
       controller.tickHz,
     );
 

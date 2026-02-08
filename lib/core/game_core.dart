@@ -901,6 +901,7 @@ class GameCore {
   /// - [StrikePressedCommand]: Triggers an strike attempt.
   /// - [SecondaryPressedCommand]: Triggers an off-hand ability attempt.
   /// - [ProjectileAimDirCommand]: Sets projectile aim direction.
+  /// - [ProjectileChargeTicksCommand]: Sets projectile charge hold duration.
   /// - [MeleeAimDirCommand]: Sets melee strike direction.
   /// - [ProjectilePressedCommand]: Triggers the projectile slot attempt.
   /// - [BonusPressedCommand]: Triggers a bonus-slot ability attempt.
@@ -954,6 +955,12 @@ class GameCore {
         case ProjectileAimDirCommand(:final x, :final y):
           _world.playerInput.projectileAimDirX[inputIndex] = x;
           _world.playerInput.projectileAimDirY[inputIndex] = y;
+
+        case ProjectileChargeTicksCommand(:final chargeTicks):
+          _world.playerInput.projectileChargeTicksSet[inputIndex] = true;
+          _world.playerInput.projectileChargeTicks[inputIndex] = chargeTicks < 0
+              ? 0
+              : chargeTicks;
 
         // Melee aim: Direction vector for melee strikes.
         case MeleeAimDirCommand(:final x, :final y):

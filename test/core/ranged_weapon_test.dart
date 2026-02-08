@@ -24,7 +24,7 @@ import '../test_tunings.dart';
 
 void main() {
   test(
-    'projectile: sufficient stamina => projectile spawns + costs + cooldown set',
+    'projectile: sufficient mana => projectile spawns + costs + cooldown set',
     () {
       const tickHz = 20;
       final base = PlayerCharacterRegistry.eloise;
@@ -37,13 +37,13 @@ void main() {
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
             projectileItemId: ProjectileItemId.throwingKnife,
             projectileSlotSpellId: null,
-            abilityProjectileId: 'eloise.quick_throw',
+            abilityProjectileId: 'eloise.quick_shot',
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
-              playerManaMax: 0,
+              playerManaMax: 10,
               playerManaRegenPerSecond: 0,
-              playerStaminaMax: 10,
+              playerStaminaMax: 0,
               playerStaminaRegenPerSecond: 0,
             ),
           ),
@@ -60,7 +60,7 @@ void main() {
       core.stepOneTick();
 
       final windupTicks = ticksFromSecondsCeil(
-        AbilityCatalog.tryGet('eloise.quick_throw')!.windupTicks / 60.0,
+        AbilityCatalog.tryGet('eloise.quick_shot')!.windupTicks / 60.0,
         tickHz,
       );
       for (var i = 0; i < windupTicks; i += 1) {
@@ -81,16 +81,21 @@ void main() {
       expect(p.pos.x, closeTo(playerPosX + item.originOffset, 1e-9));
       expect(p.pos.y, closeTo(playerPosY, 1e-9));
 
-      expect(snapshot.hud.stamina, closeTo(5.0, 1e-9)); // 10 - 5 staminaCost
+      expect(snapshot.hud.mana, closeTo(4.0, 1e-9)); // 10 - 6 manaCost
+      final ability = AbilityCatalog.tryGet('eloise.quick_shot')!;
+      final cooldownTicks = ticksFromSecondsCeil(
+        ability.cooldownTicks / 60.0,
+        tickHz,
+      );
       expect(
         snapshot.hud.cooldownTicksLeft[CooldownGroup.projectile],
-        6 - windupTicks,
+        cooldownTicks - windupTicks,
       ); // Cooldown already ticked during windup
     },
   );
 
   test(
-    'projectile: insufficient stamina => no projectile + no costs + no cooldown',
+    'projectile: insufficient mana => no projectile + no costs + no cooldown',
     () {
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
@@ -102,13 +107,13 @@ void main() {
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
             projectileItemId: ProjectileItemId.throwingKnife,
             projectileSlotSpellId: null,
-            abilityProjectileId: 'eloise.quick_throw',
+            abilityProjectileId: 'eloise.quick_shot',
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
               playerManaMax: 0,
               playerManaRegenPerSecond: 0,
-              playerStaminaMax: 0,
+              playerStaminaMax: 10,
               playerStaminaRegenPerSecond: 0,
             ),
           ),
@@ -122,7 +127,7 @@ void main() {
       core.stepOneTick();
 
       final windupTicks = ticksFromSecondsCeil(
-        AbilityCatalog.tryGet('eloise.quick_throw')!.windupTicks / 60.0,
+        AbilityCatalog.tryGet('eloise.quick_shot')!.windupTicks / 60.0,
         core.tickHz,
       );
       for (var i = 0; i < windupTicks; i += 1) {
@@ -135,7 +140,7 @@ void main() {
         snapshot.entities.where((e) => e.kind == EntityKind.projectile),
         isEmpty,
       );
-      expect(snapshot.hud.stamina, closeTo(0.0, 1e-9));
+      expect(snapshot.hud.mana, closeTo(0.0, 1e-9));
       expect(snapshot.hud.cooldownTicksLeft[CooldownGroup.projectile], 0);
       expect(snapshot.hud.canAffordProjectile, isFalse);
     },

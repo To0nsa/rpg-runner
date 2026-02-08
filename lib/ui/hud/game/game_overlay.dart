@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../../game/game_controller.dart';
 import '../../../game/input/aim_preview.dart';
+import '../../../game/input/charge_preview.dart';
 import '../../../game/input/runner_input_router.dart';
 import '../../controls/runner_controls_overlay.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
@@ -19,8 +21,10 @@ class GameOverlay extends StatelessWidget {
     required this.controller,
     required this.input,
     required this.projectileAimPreview,
+    required this.projectileChargePreview,
     required this.meleeAimPreview,
     required this.aimCancelHitboxRect,
+    required this.forceAimCancelSignal,
     required this.uiState,
     required this.onStart,
     required this.onTogglePause,
@@ -34,8 +38,10 @@ class GameOverlay extends StatelessWidget {
   final GameController controller;
   final RunnerInputRouter input;
   final AimPreviewModel projectileAimPreview;
+  final ChargePreviewModel projectileChargePreview;
   final AimPreviewModel meleeAimPreview;
   final ValueNotifier<Rect?> aimCancelHitboxRect;
+  final ValueListenable<int> forceAimCancelSignal;
   final RunnerGameUiState uiState;
   final VoidCallback onStart;
   final VoidCallback onTogglePause;
@@ -68,16 +74,21 @@ class GameOverlay extends StatelessWidget {
             onDashPressed: input.pressDash,
             onSecondaryPressed: input.pressSecondary,
             onBonusPressed: input.pressBonus,
-            onBonusCommitted: () => input.commitBonusWithAim(
+            onBonusCommitted: (chargeTicks) => input.commitBonusWithAim(
               clearAim: true,
               usesMeleeAim: hud.bonusUsesMeleeAim,
+              chargeTicks: chargeTicks,
             ),
-            onProjectileCommitted: () =>
-                input.commitProjectileWithAim(clearAim: true),
+            onProjectileCommitted: (chargeTicks) =>
+                input.commitProjectileWithAim(
+                  clearAim: true,
+                  chargeTicks: chargeTicks,
+                ),
             onProjectilePressed: input.pressProjectile,
             onProjectileAimDir: input.setProjectileAimDir,
             onProjectileAimClear: input.clearProjectileAimDir,
             projectileAimPreview: projectileAimPreview,
+            projectileChargePreview: projectileChargePreview,
             projectileAffordable: projectileAffordable,
             projectileCooldownTicksLeft:
                 hud.cooldownTicksLeft[CooldownGroup.projectile],
@@ -98,6 +109,13 @@ class GameOverlay extends StatelessWidget {
             projectileInputMode: hud.projectileInputMode,
             bonusInputMode: hud.bonusInputMode,
             bonusUsesMeleeAim: hud.bonusUsesMeleeAim,
+            projectileChargeEnabled: hud.projectileChargeEnabled,
+            projectileChargeHalfTicks: hud.projectileChargeHalfTicks,
+            projectileChargeFullTicks: hud.projectileChargeFullTicks,
+            bonusChargeEnabled: hud.bonusChargeEnabled,
+            bonusChargeHalfTicks: hud.bonusChargeHalfTicks,
+            bonusChargeFullTicks: hud.bonusChargeFullTicks,
+            simulationTickHz: controller.tickHz,
             jumpAffordable: jumpAffordable,
             dashAffordable: dashAffordable,
             dashCooldownTicksLeft:
@@ -110,10 +128,10 @@ class GameOverlay extends StatelessWidget {
             secondaryCooldownTicksTotal:
                 hud.cooldownTicksTotal[CooldownGroup.secondary],
             bonusAffordable: bonusAffordable,
-            bonusCooldownTicksLeft:
-                hud.cooldownTicksLeft[CooldownGroup.bonus0],
+            bonusCooldownTicksLeft: hud.cooldownTicksLeft[CooldownGroup.bonus0],
             bonusCooldownTicksTotal:
                 hud.cooldownTicksTotal[CooldownGroup.bonus0],
+            forceAimCancelSignal: forceAimCancelSignal,
           ),
         ),
         PauseOverlay(

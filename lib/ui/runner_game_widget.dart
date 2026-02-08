@@ -14,6 +14,7 @@ import '../core/players/player_character_definition.dart';
 import '../core/players/player_character_registry.dart';
 import '../game/game_controller.dart';
 import '../game/input/aim_preview.dart';
+import '../game/input/charge_preview.dart';
 import '../game/input/runner_input_router.dart';
 import '../game/runner_flame_game.dart';
 import 'hud/game/game_overlay.dart';
@@ -98,8 +99,11 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   late GameController _controller;
   late RunnerInputRouter _input;
   late AimPreviewModel _projectileAimPreview;
+  late ChargePreviewModel _projectileChargePreview;
   late AimPreviewModel _meleeAimPreview;
   late ValueNotifier<Rect?> _aimCancelHitboxRect;
+  late ValueNotifier<int> _forceAimCancelSignal;
+  int _lastPlayerDamageTick = -1;
   late RunnerFlameGame _game;
 
   @override
@@ -140,8 +144,26 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _input.clearProjectileAimDir();
     _input.clearMeleeAimDir();
     _projectileAimPreview.end();
+    _projectileChargePreview.end();
     _meleeAimPreview.end();
     _input.pumpHeldInputs();
+  }
+
+  void _cancelHeldAimingFromHit() {
+    _input.clearProjectileAimDir();
+    _input.clearMeleeAimDir();
+    _projectileAimPreview.end();
+    _projectileChargePreview.end();
+    _meleeAimPreview.end();
+    _forceAimCancelSignal.value = _forceAimCancelSignal.value + 1;
+    _input.pumpHeldInputs();
+  }
+
+  void _onControllerTick() {
+    final damageTick = _controller.snapshot.hud.lastDamageTick;
+    if (damageTick <= _lastPlayerDamageTick) return;
+    _lastPlayerDamageTick = damageTick;
+    _cancelHeldAimingFromHit();
   }
 
   AppState? _maybeAppState() {
@@ -212,9 +234,12 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   void _restartGame() {
     final oldController = _controller;
     final oldProjectilePreview = _projectileAimPreview;
+    final oldProjectileChargePreview = _projectileChargePreview;
     final oldMeleePreview = _meleeAimPreview;
     final oldAimCancelHitboxRect = _aimCancelHitboxRect;
+    final oldForceAimCancelSignal = _forceAimCancelSignal;
     oldController.removeEventListener(_handleGameEvent);
+    oldController.removeListener(_onControllerTick);
 
     setState(() {
       _pausedByLifecycle = false;
@@ -232,8 +257,10 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       oldController.shutdown();
       oldController.dispose();
       oldProjectilePreview.dispose();
+      oldProjectileChargePreview.dispose();
       oldMeleePreview.dispose();
       oldAimCancelHitboxRect.dispose();
+      oldForceAimCancelSignal.dispose();
     });
   }
 
@@ -280,10 +307,14 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       ),
     );
     _controller.addEventListener(_handleGameEvent);
+    _controller.addListener(_onControllerTick);
     _input = RunnerInputRouter(controller: _controller);
     _projectileAimPreview = AimPreviewModel();
+    _projectileChargePreview = ChargePreviewModel();
     _meleeAimPreview = AimPreviewModel();
     _aimCancelHitboxRect = ValueNotifier<Rect?>(null);
+    _forceAimCancelSignal = ValueNotifier<int>(0);
+    _lastPlayerDamageTick = _controller.snapshot.hud.lastDamageTick;
     _game = RunnerFlameGame(
       controller: _controller,
       input: _input,
@@ -295,11 +326,14 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
 
   void _disposeGame() {
     _controller.removeEventListener(_handleGameEvent);
+    _controller.removeListener(_onControllerTick);
     _controller.shutdown();
     _controller.dispose();
     _projectileAimPreview.dispose();
+    _projectileChargePreview.dispose();
     _meleeAimPreview.dispose();
     _aimCancelHitboxRect.dispose();
+    _forceAimCancelSignal.dispose();
   }
 
   @override
@@ -371,8 +405,10 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                   controller: _controller,
                   input: _input,
                   projectileAimPreview: _projectileAimPreview,
+                  projectileChargePreview: _projectileChargePreview,
                   meleeAimPreview: _meleeAimPreview,
                   aimCancelHitboxRect: _aimCancelHitboxRect,
+                  forceAimCancelSignal: _forceAimCancelSignal,
                   uiState: uiState,
                   onStart: _startGame,
                   onTogglePause: _togglePause,

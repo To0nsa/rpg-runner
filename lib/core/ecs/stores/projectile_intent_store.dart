@@ -18,10 +18,13 @@ class ProjectileIntentDef {
     required this.cooldownTicks,
     required this.cooldownGroupId,
     required this.projectileId,
+    required this.pierce,
+    required this.maxPierceHits,
     required this.damageType,
     this.procs = const <WeaponProc>[],
     required this.ballistic,
     required this.gravityScale,
+    this.speedScaleBp = 10000,
     required this.dirX,
     required this.dirY,
     required this.fallbackDirX,
@@ -44,10 +47,13 @@ class ProjectileIntentDef {
   final int cooldownTicks;
   final int cooldownGroupId;
   final ProjectileId projectileId;
+  final bool pierce;
+  final int maxPierceHits;
   final DamageType damageType;
   final List<WeaponProc> procs;
   final bool ballistic;
   final double gravityScale;
+  final int speedScaleBp;
 
   final double dirX;
   final double dirY;
@@ -73,10 +79,13 @@ class ProjectileIntentStore extends SparseSet {
   final List<int> cooldownTicks = <int>[];
   final List<int> cooldownGroupId = <int>[];
   final List<ProjectileId> projectileId = <ProjectileId>[];
+  final List<bool> pierce = <bool>[];
+  final List<int> maxPierceHits = <int>[];
   final List<DamageType> damageType = <DamageType>[];
   final List<List<WeaponProc>> procs = <List<WeaponProc>>[];
   final List<bool> ballistic = <bool>[];
   final List<double> gravityScale = <double>[];
+  final List<int> speedScaleBp = <int>[];
 
   final List<double> dirX = <double>[];
   final List<double> dirY = <double>[];
@@ -109,10 +118,13 @@ class ProjectileIntentStore extends SparseSet {
     cooldownTicks[i] = def.cooldownTicks;
     cooldownGroupId[i] = def.cooldownGroupId;
     projectileId[i] = def.projectileId;
+    pierce[i] = def.pierce;
+    maxPierceHits[i] = def.maxPierceHits;
     damageType[i] = def.damageType;
     procs[i] = def.procs;
     ballistic[i] = def.ballistic;
     gravityScale[i] = def.gravityScale;
+    speedScaleBp[i] = def.speedScaleBp;
     dirX[i] = def.dirX;
     dirY[i] = def.dirY;
     fallbackDirX[i] = def.fallbackDirX;
@@ -128,7 +140,7 @@ class ProjectileIntentStore extends SparseSet {
   @override
   void onDenseAdded(int denseIndex) {
     projectileItemId.add(ProjectileItemId.iceBolt);
-    abilityId.add('eloise.heavy_throw');
+    abilityId.add('eloise.charged_shot');
     slot.add(AbilitySlot.projectile);
     damage100.add(0);
     critChanceBp.add(0);
@@ -137,10 +149,13 @@ class ProjectileIntentStore extends SparseSet {
     cooldownTicks.add(0);
     cooldownGroupId.add(0);
     projectileId.add(ProjectileId.iceBolt);
+    pierce.add(false);
+    maxPierceHits.add(1);
     damageType.add(DamageType.ice);
     procs.add(const <WeaponProc>[]);
     ballistic.add(false);
     gravityScale.add(1.0);
+    speedScaleBp.add(10000);
     dirX.add(0.0);
     dirY.add(0.0);
     fallbackDirX.add(1.0);
@@ -165,10 +180,13 @@ class ProjectileIntentStore extends SparseSet {
     cooldownTicks[removeIndex] = cooldownTicks[lastIndex];
     cooldownGroupId[removeIndex] = cooldownGroupId[lastIndex];
     projectileId[removeIndex] = projectileId[lastIndex];
+    pierce[removeIndex] = pierce[lastIndex];
+    maxPierceHits[removeIndex] = maxPierceHits[lastIndex];
     damageType[removeIndex] = damageType[lastIndex];
     procs[removeIndex] = procs[lastIndex];
     ballistic[removeIndex] = ballistic[lastIndex];
     gravityScale[removeIndex] = gravityScale[lastIndex];
+    speedScaleBp[removeIndex] = speedScaleBp[lastIndex];
     dirX[removeIndex] = dirX[lastIndex];
     dirY[removeIndex] = dirY[lastIndex];
     fallbackDirX[removeIndex] = fallbackDirX[lastIndex];
@@ -190,10 +208,13 @@ class ProjectileIntentStore extends SparseSet {
     cooldownTicks.removeLast();
     cooldownGroupId.removeLast();
     projectileId.removeLast();
+    pierce.removeLast();
+    maxPierceHits.removeLast();
     damageType.removeLast();
     procs.removeLast();
     ballistic.removeLast();
     gravityScale.removeLast();
+    speedScaleBp.removeLast();
     dirX.removeLast();
     dirY.removeLast();
     fallbackDirX.removeLast();

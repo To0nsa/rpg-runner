@@ -13,8 +13,6 @@ import '../stats/gear_stat_bonuses.dart';
 class WeaponDef {
   const WeaponDef({
     required this.id,
-    required this.displayName,
-    required this.description,
     required this.category,
     required this.weaponType,
     this.grantedAbilityTags = const {},
@@ -25,8 +23,6 @@ class WeaponDef {
   });
 
   final WeaponId id;
-  final String displayName;
-  final String description;
 
   /// Equipment slot category (primary/offHand/projectile).
   final WeaponCategory category;

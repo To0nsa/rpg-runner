@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../game/input/aim_preview.dart';
+import '../../game/input/charge_preview.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'action_button.dart';
 import 'controls_tuning.dart';
@@ -39,6 +40,14 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.projectileInputMode,
     required this.bonusInputMode,
     required this.bonusUsesMeleeAim,
+    required this.projectileChargePreview,
+    required this.projectileChargeEnabled,
+    required this.projectileChargeHalfTicks,
+    required this.projectileChargeFullTicks,
+    required this.bonusChargeEnabled,
+    required this.bonusChargeHalfTicks,
+    required this.bonusChargeFullTicks,
+    required this.simulationTickHz,
     required this.jumpAffordable,
     required this.dashAffordable,
     required this.dashCooldownTicksLeft,
@@ -49,6 +58,7 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.bonusAffordable,
     required this.bonusCooldownTicksLeft,
     required this.bonusCooldownTicksTotal,
+    required this.forceAimCancelSignal,
     this.tuning = ControlsTuning.fixed,
   });
 
@@ -57,12 +67,13 @@ class RunnerControlsOverlay extends StatelessWidget {
   final VoidCallback onDashPressed;
   final VoidCallback onSecondaryPressed;
   final VoidCallback onBonusPressed;
-  final VoidCallback onBonusCommitted;
-  final VoidCallback onProjectileCommitted;
+  final ValueChanged<int> onBonusCommitted;
+  final ValueChanged<int> onProjectileCommitted;
   final VoidCallback onProjectilePressed;
   final void Function(double x, double y) onProjectileAimDir;
   final VoidCallback onProjectileAimClear;
   final AimPreviewModel projectileAimPreview;
+  final ChargePreviewModel projectileChargePreview;
   final bool projectileAffordable;
   final int projectileCooldownTicksLeft;
   final int projectileCooldownTicksTotal;
@@ -80,6 +91,13 @@ class RunnerControlsOverlay extends StatelessWidget {
 
   final AbilityInputMode bonusInputMode;
   final bool bonusUsesMeleeAim;
+  final bool projectileChargeEnabled;
+  final int projectileChargeHalfTicks;
+  final int projectileChargeFullTicks;
+  final bool bonusChargeEnabled;
+  final int bonusChargeHalfTicks;
+  final int bonusChargeFullTicks;
+  final int simulationTickHz;
   final bool jumpAffordable;
   final bool dashAffordable;
   final int dashCooldownTicksLeft;
@@ -90,6 +108,7 @@ class RunnerControlsOverlay extends StatelessWidget {
   final bool bonusAffordable;
   final int bonusCooldownTicksLeft;
   final int bonusCooldownTicksTotal;
+  final ValueListenable<int> forceAimCancelSignal;
   final ControlsTuning tuning;
 
   @override
@@ -206,6 +225,7 @@ class RunnerControlsOverlay extends StatelessWidget {
                   foregroundColor: directional.foregroundColor,
                   labelFontSize: directional.labelFontSize,
                   labelGap: directional.labelGap,
+                  forceCancelSignal: forceAimCancelSignal,
                 ),
         ),
 
@@ -232,7 +252,17 @@ class RunnerControlsOverlay extends StatelessWidget {
                   icon: Icons.auto_awesome,
                   onAimDir: onProjectileAimDir,
                   onAimClear: onProjectileAimClear,
-                  onCommit: onProjectileCommitted,
+                  onCommit: () => onProjectileCommitted(0),
+                  onChargeCommit: onProjectileCommitted,
+                  chargePreview: projectileChargePreview,
+                  chargeOwnerId: 'projectile',
+                  chargeHalfTicks: projectileChargeEnabled
+                      ? projectileChargeHalfTicks
+                      : 0,
+                  chargeFullTicks: projectileChargeEnabled
+                      ? projectileChargeFullTicks
+                      : 0,
+                  chargeTickHz: simulationTickHz,
                   projectileAimPreview: projectileAimPreview,
                   cancelHitboxRect: aimCancelHitboxRect,
                   affordable: projectileAffordable,
@@ -245,6 +275,7 @@ class RunnerControlsOverlay extends StatelessWidget {
                   foregroundColor: directional.foregroundColor,
                   labelFontSize: directional.labelFontSize,
                   labelGap: directional.labelGap,
+                  forceCancelSignal: forceAimCancelSignal,
                 ),
         ),
 
@@ -313,7 +344,19 @@ class RunnerControlsOverlay extends StatelessWidget {
                   onAimClear: bonusUsesMeleeAim
                       ? onMeleeAimClear
                       : onProjectileAimClear,
-                  onCommit: onBonusCommitted,
+                  onCommit: () => onBonusCommitted(0),
+                  onChargeCommit: onBonusCommitted,
+                  chargePreview: bonusUsesMeleeAim
+                      ? null
+                      : projectileChargePreview,
+                  chargeOwnerId: 'bonus',
+                  chargeHalfTicks: (!bonusUsesMeleeAim && bonusChargeEnabled)
+                      ? bonusChargeHalfTicks
+                      : 0,
+                  chargeFullTicks: (!bonusUsesMeleeAim && bonusChargeEnabled)
+                      ? bonusChargeFullTicks
+                      : 0,
+                  chargeTickHz: simulationTickHz,
                   projectileAimPreview: bonusUsesMeleeAim
                       ? meleeAimPreview
                       : projectileAimPreview,
@@ -327,9 +370,64 @@ class RunnerControlsOverlay extends StatelessWidget {
                   foregroundColor: directional.foregroundColor,
                   labelFontSize: directional.labelFontSize,
                   labelGap: directional.labelGap,
+                  forceCancelSignal: forceAimCancelSignal,
                 ),
         ),
+        ValueListenableBuilder<ChargePreviewState>(
+          valueListenable: projectileChargePreview,
+          builder: (context, state, _) {
+            if (!state.active) return const SizedBox.shrink();
+            if (state.ownerId != 'projectile' && state.ownerId != 'bonus') {
+              return const SizedBox.shrink();
+            }
+            final targetRow = state.ownerId == 'projectile' ? 1 : 0;
+            return Positioned(
+              right: rightForCol(2),
+              bottom: bottomForRow(targetRow) + btnSize + 8,
+              child: _ChargeBar(progress01: state.progress01, tier: state.tier),
+            );
+          },
+        ),
       ],
+    );
+  }
+}
+
+class _ChargeBar extends StatelessWidget {
+  const _ChargeBar({required this.progress01, required this.tier});
+
+  final double progress01;
+  final int tier;
+
+  @override
+  Widget build(BuildContext context) {
+    final clamped = progress01.clamp(0.0, 1.0);
+    final fillColor = switch (tier) {
+      2 => const Color(0xFF6EDC8C),
+      1 => const Color(0xFFF0C15A),
+      _ => const Color(0xFF9FA8B2),
+    };
+    return Container(
+      width: 84,
+      height: 14,
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: const Color(0xAA11161D),
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(color: const Color(0xFF2C3A47), width: 1),
+      ),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: FractionallySizedBox(
+          widthFactor: clamped,
+          child: Container(
+            decoration: BoxDecoration(
+              color: fillColor,
+              borderRadius: BorderRadius.circular(5),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

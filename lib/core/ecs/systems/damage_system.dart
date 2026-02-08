@@ -1,3 +1,5 @@
+import '../../abilities/ability_def.dart';
+import '../../abilities/forced_interrupt_policy.dart';
 import '../../combat/status/status.dart';
 import '../../stats/character_stats_resolver.dart';
 import '../../util/deterministic_rng.dart';
@@ -112,6 +114,8 @@ class DamageSystem {
       // 6. Record Last Damage details (if store exists).
       // Only useful if damage was actually taken.
       if (nextHp < prevHp) {
+        _interruptOnDamageTaken(world, target);
+
         final li = lastDamage.tryIndexOf(target);
         if (li != null) {
           lastDamage.kind[li] = sourceKind;
@@ -177,5 +181,47 @@ class DamageSystem {
       }
     }
     queue.clear();
+  }
+
+  void _interruptOnDamageTaken(EcsWorld world, int entity) {
+    if (!world.activeAbility.has(entity)) return;
+    final activeIndex = world.activeAbility.indexOf(entity);
+    final activeAbilityId = world.activeAbility.abilityId[activeIndex];
+    if (!abilityAllowsForcedInterrupt(
+      activeAbilityId,
+      ForcedInterruptCause.damageTaken,
+    )) {
+      return;
+    }
+
+    world.activeAbility.clear(entity);
+
+    if (world.abilityInputBuffer.has(entity)) {
+      world.abilityInputBuffer.clear(entity);
+    }
+
+    if (world.meleeIntent.has(entity)) {
+      final intentIndex = world.meleeIntent.indexOf(entity);
+      world.meleeIntent.tick[intentIndex] = -1;
+      world.meleeIntent.commitTick[intentIndex] = -1;
+    }
+
+    if (world.projectileIntent.has(entity)) {
+      final intentIndex = world.projectileIntent.indexOf(entity);
+      world.projectileIntent.tick[intentIndex] = -1;
+      world.projectileIntent.commitTick[intentIndex] = -1;
+    }
+
+    if (world.mobilityIntent.has(entity)) {
+      final intentIndex = world.mobilityIntent.indexOf(entity);
+      world.mobilityIntent.tick[intentIndex] = -1;
+      world.mobilityIntent.commitTick[intentIndex] = -1;
+    }
+
+    if (world.selfIntent.has(entity)) {
+      final intentIndex = world.selfIntent.indexOf(entity);
+      world.selfIntent.tick[intentIndex] = -1;
+      world.selfIntent.commitTick[intentIndex] = -1;
+    }
   }
 }

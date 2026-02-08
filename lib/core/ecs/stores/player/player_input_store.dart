@@ -13,6 +13,8 @@ class PlayerInputStore extends SparseSet {
   final List<bool> strikePressed = <bool>[];
   final List<double> projectileAimDirX = <double>[];
   final List<double> projectileAimDirY = <double>[];
+  final List<bool> projectileChargeTicksSet = <bool>[];
+  final List<int> projectileChargeTicks = <int>[];
   final List<double> meleeAimDirX = <double>[];
   final List<double> meleeAimDirY = <double>[];
   final List<bool> projectilePressed = <bool>[];
@@ -33,6 +35,8 @@ class PlayerInputStore extends SparseSet {
     strikePressed[i] = false;
     projectileAimDirX[i] = 0;
     projectileAimDirY[i] = 0;
+    projectileChargeTicksSet[i] = false;
+    projectileChargeTicks[i] = 0;
     meleeAimDirX[i] = 0;
     meleeAimDirY[i] = 0;
     projectilePressed[i] = false;
@@ -49,6 +53,8 @@ class PlayerInputStore extends SparseSet {
     strikePressed.add(false);
     projectileAimDirX.add(0);
     projectileAimDirY.add(0);
+    projectileChargeTicksSet.add(false);
+    projectileChargeTicks.add(0);
     meleeAimDirX.add(0);
     meleeAimDirY.add(0);
     projectilePressed.add(false);
@@ -66,6 +72,8 @@ class PlayerInputStore extends SparseSet {
     strikePressed[removeIndex] = strikePressed[lastIndex];
     projectileAimDirX[removeIndex] = projectileAimDirX[lastIndex];
     projectileAimDirY[removeIndex] = projectileAimDirY[lastIndex];
+    projectileChargeTicksSet[removeIndex] = projectileChargeTicksSet[lastIndex];
+    projectileChargeTicks[removeIndex] = projectileChargeTicks[lastIndex];
     meleeAimDirX[removeIndex] = meleeAimDirX[lastIndex];
     meleeAimDirY[removeIndex] = meleeAimDirY[lastIndex];
     projectilePressed[removeIndex] = projectilePressed[lastIndex];
@@ -80,6 +88,8 @@ class PlayerInputStore extends SparseSet {
     strikePressed.removeLast();
     projectileAimDirX.removeLast();
     projectileAimDirY.removeLast();
+    projectileChargeTicksSet.removeLast();
+    projectileChargeTicks.removeLast();
     meleeAimDirX.removeLast();
     meleeAimDirY.removeLast();
     projectilePressed.removeLast();

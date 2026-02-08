@@ -94,8 +94,6 @@ class _FlatWeaponCatalog extends WeaponCatalog {
   WeaponDef get(WeaponId id) {
     return const WeaponDef(
       id: WeaponId.basicSword,
-      displayName: 'Flat Weapon',
-      description: 'No stats.',
       category: WeaponCategory.primary,
       weaponType: WeaponType.oneHandedSword,
       stats: GearStatBonuses(),
@@ -112,8 +110,6 @@ class _TwoHandedWeaponCatalog extends WeaponCatalog {
       case WeaponId.woodenSword:
         return const WeaponDef(
           id: WeaponId.woodenSword,
-          displayName: 'Two-Handed Test',
-          description: 'Main weapon',
           category: WeaponCategory.primary,
           weaponType: WeaponType.oneHandedSword,
           stats: GearStatBonuses(powerBonusBp: 100),
@@ -122,8 +118,6 @@ class _TwoHandedWeaponCatalog extends WeaponCatalog {
       case WeaponId.basicShield:
         return const WeaponDef(
           id: WeaponId.basicShield,
-          displayName: 'Offhand Test',
-          description: 'Offhand weapon',
           category: WeaponCategory.offHand,
           weaponType: WeaponType.shield,
           stats: GearStatBonuses(powerBonusBp: 900),
@@ -131,8 +125,6 @@ class _TwoHandedWeaponCatalog extends WeaponCatalog {
       default:
         return const WeaponDef(
           id: WeaponId.basicSword,
-          displayName: 'Flat Weapon',
-          description: 'Flat',
           category: WeaponCategory.primary,
           weaponType: WeaponType.oneHandedSword,
           stats: GearStatBonuses(),
@@ -148,8 +140,6 @@ class _FlatProjectileCatalog extends ProjectileItemCatalog {
   ProjectileItemDef get(ProjectileItemId id) {
     return const ProjectileItemDef(
       id: ProjectileItemId.throwingKnife,
-      displayName: 'Flat Projectile',
-      description: 'No stats.',
       weaponType: WeaponType.throwingWeapon,
       projectileId: ProjectileId.throwingKnife,
       stats: GearStatBonuses(),
@@ -164,8 +154,6 @@ class _FlatSpellBookCatalog extends SpellBookCatalog {
   SpellBookDef get(SpellBookId id) {
     return const SpellBookDef(
       id: SpellBookId.basicSpellBook,
-      displayName: 'Flat Spellbook',
-      description: 'No stats.',
       weaponType: WeaponType.projectileSpell,
       stats: GearStatBonuses(),
     );
@@ -179,8 +167,6 @@ class _FlatAccessoryCatalog extends AccessoryCatalog {
   AccessoryDef get(AccessoryId id) {
     return const AccessoryDef(
       id: AccessoryId.speedBoots,
-      displayName: 'Flat Accessory',
-      description: 'No stats.',
       stats: AccessoryStats(),
     );
   }
@@ -193,8 +179,6 @@ class _HighCdrAccessoryCatalog extends AccessoryCatalog {
   AccessoryDef get(AccessoryId id) {
     return const AccessoryDef(
       id: AccessoryId.speedBoots,
-      displayName: 'High CDR',
-      description: 'CDR test item.',
       stats: AccessoryStats(cooldownReductionBp: 8000),
     );
   }
@@ -207,8 +191,6 @@ class _ResourceAccessoryCatalog extends AccessoryCatalog {
   AccessoryDef get(AccessoryId id) {
     return const AccessoryDef(
       id: AccessoryId.goldenRing,
-      displayName: 'Resource Ring',
-      description: 'Resource test item.',
       stats: AccessoryStats(
         healthBonusBp: 200,
         manaBonusBp: 300,

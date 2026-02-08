@@ -72,7 +72,7 @@ void main() {
       player,
       ProjectileIntentDef(
         projectileItemId: ProjectileItemId.iceBolt,
-        abilityId: 'eloise.heavy_throw',
+        abilityId: 'eloise.charged_shot',
         slot: AbilitySlot.projectile,
         dirX: 1.0,
         dirY: 0.0,
@@ -82,6 +82,8 @@ void main() {
         staminaCost100: 0,
         manaCost100: 1000,
         projectileId: ProjectileId.iceBolt,
+        pierce: false,
+        maxPierceHits: 1,
         damageType: DamageType.ice,
         procs: const [],
         ballistic: false,
@@ -111,7 +113,7 @@ void main() {
     // Simulate AbilityActivationSystem's side effect (setting active ability)
     world.activeAbility.set(
       player,
-      id: 'eloise.heavy_throw',
+      id: 'eloise.charged_shot',
       slot: AbilitySlot.projectile,
       commitTick: tick,
       windupTicks: 0,
@@ -128,7 +130,7 @@ void main() {
     );
     final activeId =
         world.activeAbility.abilityId[world.activeAbility.indexOf(player)];
-    expect(activeId, equals('eloise.heavy_throw'));
+    expect(activeId, equals('eloise.charged_shot'));
 
     // Step AnimSystem
     animSystem.step(world, player: player, currentTick: tick);

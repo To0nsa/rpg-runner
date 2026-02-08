@@ -15,8 +15,6 @@ class WeaponCatalog {
       case WeaponId.woodenSword:
         return const WeaponDef(
           id: WeaponId.woodenSword,
-          displayName: 'Wooden Sword',
-          description: 'A worn training blade with modest reach.',
           category: WeaponCategory.primary,
           weaponType: WeaponType.oneHandedSword,
           grantedAbilityTags: {AbilityTag.melee, AbilityTag.physical},
@@ -25,8 +23,6 @@ class WeaponCatalog {
       case WeaponId.basicSword:
         return const WeaponDef(
           id: WeaponId.basicSword,
-          displayName: 'Basic Sword',
-          description: 'A balanced steel sword for reliable melee strikes.',
           category: WeaponCategory.primary,
           weaponType: WeaponType.oneHandedSword,
           grantedAbilityTags: {AbilityTag.melee, AbilityTag.physical},
@@ -35,8 +31,6 @@ class WeaponCatalog {
       case WeaponId.solidSword:
         return const WeaponDef(
           id: WeaponId.solidSword,
-          displayName: 'Solid Sword',
-          description: 'A heavier blade tuned for stronger direct hits.',
           category: WeaponCategory.primary,
           weaponType: WeaponType.oneHandedSword,
           grantedAbilityTags: {AbilityTag.melee, AbilityTag.physical},
@@ -45,8 +39,6 @@ class WeaponCatalog {
       case WeaponId.woodenShield:
         return const WeaponDef(
           id: WeaponId.woodenShield,
-          displayName: 'Wooden Shield',
-          description: 'A light starter shield for basic protection.',
           category: WeaponCategory.offHand,
           weaponType: WeaponType.shield,
           grantedAbilityTags: {AbilityTag.buff, AbilityTag.physical},
@@ -55,8 +47,6 @@ class WeaponCatalog {
       case WeaponId.basicShield:
         return const WeaponDef(
           id: WeaponId.basicShield,
-          displayName: 'Basic Shield',
-          description: 'A reinforced shield that improves combat stance.',
           category: WeaponCategory.offHand,
           weaponType: WeaponType.shield,
           grantedAbilityTags: {AbilityTag.buff, AbilityTag.physical},
@@ -65,9 +55,6 @@ class WeaponCatalog {
       case WeaponId.solidShield:
         return const WeaponDef(
           id: WeaponId.solidShield,
-          displayName: 'Solid Shield',
-          description:
-              'A sturdy shield built for sustained front-line defense.',
           category: WeaponCategory.offHand,
           weaponType: WeaponType.shield,
           grantedAbilityTags: {AbilityTag.buff, AbilityTag.physical},

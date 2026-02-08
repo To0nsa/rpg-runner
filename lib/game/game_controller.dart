@@ -274,6 +274,14 @@ class GameController extends ChangeNotifier {
         ),
       );
     }
+    if (input.projectileChargeTicksSet) {
+      _commandScratch.add(
+        ProjectileChargeTicksCommand(
+          tick: tick,
+          chargeTicks: input.projectileChargeTicks,
+        ),
+      );
+    }
     if (input.meleeAimDirSet) {
       _commandScratch.add(
         MeleeAimDirCommand(

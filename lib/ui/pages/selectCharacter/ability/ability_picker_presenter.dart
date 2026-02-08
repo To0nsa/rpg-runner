@@ -11,6 +11,7 @@ import '../../../../core/spells/spell_book_catalog.dart';
 import '../../../../core/spells/spell_book_id.dart';
 import '../../../../core/weapons/weapon_catalog.dart';
 import '../../../../core/weapons/weapon_id.dart';
+import '../../../text/gear_text.dart';
 
 const AbilityCatalog _abilityCatalog = AbilityCatalog();
 const ProjectileItemCatalog _projectileCatalog = ProjectileItemCatalog();
@@ -117,22 +118,21 @@ EquippedLoadoutDef normalizeLoadoutMaskForCharacter({
 List<ProjectileSourceOption> projectileSourceOptions(
   EquippedLoadoutDef loadout,
 ) {
-  final throwingWeapon = _projectileCatalog.get(loadout.projectileItemId);
+  final _ = _projectileCatalog.get(loadout.projectileItemId);
   final spellBook = _spellBookCatalog.get(loadout.spellBookId);
   final options = <ProjectileSourceOption>[
     ProjectileSourceOption(
       spellId: null,
-      displayName: throwingWeapon.displayName,
+      displayName: projectileItemDisplayName(loadout.projectileItemId),
       isSpell: false,
     ),
   ];
   for (final spellId in spellBook.projectileSpellIds) {
-    final spell = _projectileCatalog.tryGet(spellId);
-    if (spell == null) continue;
+    if (_projectileCatalog.tryGet(spellId) == null) continue;
     options.add(
       ProjectileSourceOption(
         spellId: spellId,
-        displayName: spell.displayName,
+        displayName: projectileItemDisplayName(spellId),
         isSpell: true,
       ),
     );

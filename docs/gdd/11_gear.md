@@ -157,7 +157,7 @@ An ability may require:
 Examples:
 - “Parry” requires `hasShield` or `hasSwordParryGuard`
 - “Firebolt” requires `spellFocus` + `fireAffinity`
-- “Quick Throw” requires `throwable`
+- “Quick Shot” requires `throwable`
 
 ### Conflict resolution
 If multiple equipped gear items grant overlapping tags or procs:
@@ -222,3 +222,10 @@ The testing lab must:
 - simulate the same input/commit model as runs
 - allow quick swapping to test gear/ability synergy
 - keep iteration friction minimal (fast restart, minimal navigation)
+
+### UI text ownership (for localization readiness)
+Gear display copy is owned by the UI text layer and keyed by stable IDs.
+
+- Core gear definitions/catalogs must not store user-facing `displayName` or `description` text.
+- UI resolves names/descriptions from ID mappings (and later localization keys) so gameplay data stays language-agnostic.
+

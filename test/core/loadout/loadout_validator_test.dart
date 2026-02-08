@@ -33,9 +33,9 @@ void main() {
         projectileItemId: ProjectileItemId.throwingKnife,
         abilityPrimaryId: 'eloise.sword_strike',
         abilitySecondaryId: 'eloise.shield_block',
-        abilityProjectileId: 'eloise.quick_throw',
+        abilityProjectileId: 'eloise.quick_shot',
         abilityMobilityId: 'eloise.dash',
-        abilityBonusId: 'eloise.heavy_throw',
+        abilityBonusId: 'eloise.charged_shot',
       );
 
       final result = validator.validate(loadout);
@@ -49,8 +49,8 @@ void main() {
         offhandWeaponId: WeaponId.woodenShield,
         projectileItemId: ProjectileItemId.throwingKnife,
         projectileSlotSpellId: ProjectileItemId.fireBolt,
-        abilityProjectileId: 'eloise.quick_throw',
-        abilityBonusId: 'eloise.heavy_throw',
+        abilityProjectileId: 'eloise.quick_shot',
+        abilityBonusId: 'eloise.charged_shot',
       );
 
       final result = validator.validate(loadout);
@@ -64,8 +64,8 @@ void main() {
         offhandWeaponId: WeaponId.woodenShield,
         projectileItemId: ProjectileItemId.throwingKnife,
         bonusSlotSpellId: null,
-        abilityProjectileId: 'eloise.heavy_throw',
-        abilityBonusId: 'eloise.quick_throw',
+        abilityProjectileId: 'eloise.charged_shot',
+        abilityBonusId: 'eloise.quick_shot',
       );
 
       final result = validator.validate(loadout);
@@ -76,7 +76,7 @@ void main() {
     test('selected slot spell must be a projectile spell item', () {
       const loadout = EquippedLoadoutDef(
         projectileSlotSpellId: ProjectileItemId.throwingAxe,
-        abilityProjectileId: 'eloise.quick_throw',
+        abilityProjectileId: 'eloise.quick_shot',
       );
 
       final result = validator.validate(loadout);
@@ -221,8 +221,6 @@ class MockWeaponCatalog implements WeaponCatalog {
     if (id == WeaponId.solidSword) {
       return const WeaponDef(
         id: WeaponId.solidSword,
-        displayName: 'Solid Sword',
-        description: 'Mock two-handed test weapon.',
         category: WeaponCategory.primary,
         weaponType: WeaponType.oneHandedSword,
         isTwoHanded: true,

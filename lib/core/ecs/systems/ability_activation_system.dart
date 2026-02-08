@@ -18,6 +18,7 @@ import '../../stats/character_stats_resolver.dart';
 import '../../util/fixed_math.dart';
 import '../../util/tick_math.dart';
 import '../entity_id.dart';
+import '../hit/aabb_hit_utils.dart';
 import '../stores/combat/equipped_loadout_store.dart';
 import '../stores/melee_intent_store.dart';
 import '../stores/mobility_intent_store.dart';
@@ -802,6 +803,9 @@ class AbilityActivationSystem {
 
     final hitDelivery = ability.hitDelivery;
     if (hitDelivery is! ProjectileHitDelivery) return false;
+    final windupTicks = _scaleAbilityTicks(ability.windupTicks);
+    final activeTicks = _scaleAbilityTicks(ability.activeTicks);
+    final recoveryTicks = _scaleAbilityTicks(ability.recoveryTicks);
 
     final ProjectileItemId projectileItemId;
     final ProjectileId projectileId;
@@ -864,18 +868,30 @@ class AbilityActivationSystem {
         return false;
     }
 
-    final aimX =
+    final rawAimX =
         aimOverrideX ??
         (inputIndex == null
             ? 0.0
             : world.playerInput.projectileAimDirX[inputIndex]);
-    final aimY =
+    final rawAimY =
         aimOverrideY ??
         (inputIndex == null
             ? 0.0
             : world.playerInput.projectileAimDirY[inputIndex]);
-    final len2 = aimX * aimX + aimY * aimY;
     final fallbackDirX = facing == Facing.right ? 1.0 : -1.0;
+    final fallbackDirY = 0.0;
+    final resolvedAim = _resolveProjectileAimDirection(
+      world,
+      source: player,
+      ability: ability,
+      rawAimX: rawAimX,
+      rawAimY: rawAimY,
+      fallbackDirX: fallbackDirX,
+      fallbackDirY: fallbackDirY,
+    );
+    final aimX = resolvedAim.$1;
+    final aimY = resolvedAim.$2;
+    final len2 = aimX * aimX + aimY * aimY;
 
     if (ability.category == AbilityCategory.ranged) {
       final double dirX;
@@ -904,6 +920,24 @@ class AbilityActivationSystem {
       weaponProcs: weaponProcs,
       globalCritChanceBonusBp: resolvedStats.critChanceBonusBp,
     );
+    final chargeTicks =
+        inputIndex != null &&
+            world.playerInput.projectileChargeTicksSet[inputIndex]
+        ? world.playerInput.projectileChargeTicks[inputIndex]
+        : 0;
+    final chargeTuning = _resolveProjectileChargeTuning(
+      ability: ability,
+      hitDelivery: hitDelivery,
+      chargeTicks: chargeTicks,
+      scaledWindupTicks: windupTicks,
+    );
+    final tunedDamage100 =
+        (payload.damage100 * chargeTuning.damageScaleBp) ~/ 10000;
+    final tunedCritChanceBp = clampInt(
+      payload.critChanceBp + chargeTuning.critBonusBp,
+      0,
+      10000,
+    );
 
     final cooldownGroupId = ability.effectiveCooldownGroup(slot);
     final cooldownTicks = resolvedStats.applyCooldownReduction(
@@ -928,9 +962,9 @@ class AbilityActivationSystem {
       abilityId: ability.id,
       slot: slot,
       commitTick: commitTick,
-      windupTicks: _scaleAbilityTicks(ability.windupTicks),
-      activeTicks: _scaleAbilityTicks(ability.activeTicks),
-      recoveryTicks: _scaleAbilityTicks(ability.recoveryTicks),
+      windupTicks: windupTicks,
+      activeTicks: activeTicks,
+      recoveryTicks: recoveryTicks,
       facingDir: facingDir,
       cooldownGroupId: cooldownGroupId,
       cooldownTicks: cooldownTicks,
@@ -944,8 +978,8 @@ class AbilityActivationSystem {
         projectileItemId: projectileItemId,
         abilityId: ability.id,
         slot: slot,
-        damage100: payload.damage100,
-        critChanceBp: payload.critChanceBp,
+        damage100: tunedDamage100,
+        critChanceBp: tunedCritChanceBp,
         staminaCost100: ability.staminaCost,
         manaCost100: ability.manaCost,
         cooldownTicks: cooldownTicks,
@@ -955,19 +989,160 @@ class AbilityActivationSystem {
         procs: payload.procs,
         ballistic: ballistic,
         gravityScale: gravityScale,
+        speedScaleBp: chargeTuning.speedScaleBp,
         dirX: aimX,
         dirY: aimY,
         fallbackDirX: fallbackDirX,
-        fallbackDirY: 0.0,
+        fallbackDirY: fallbackDirY,
         originOffset: originOffset,
+        pierce: chargeTuning.pierce,
+        maxPierceHits: chargeTuning.maxPierceHits,
         commitTick: commitTick,
-        windupTicks: _scaleAbilityTicks(ability.windupTicks),
-        activeTicks: _scaleAbilityTicks(ability.activeTicks),
-        recoveryTicks: _scaleAbilityTicks(ability.recoveryTicks),
-        tick: commitTick + _scaleAbilityTicks(ability.windupTicks),
+        windupTicks: windupTicks,
+        activeTicks: activeTicks,
+        recoveryTicks: recoveryTicks,
+        tick: commitTick + windupTicks,
       ),
     );
     return true;
+  }
+
+  _ProjectileChargeTuning _resolveProjectileChargeTuning({
+    required AbilityDef ability,
+    required ProjectileHitDelivery hitDelivery,
+    required int chargeTicks,
+    required int scaledWindupTicks,
+  }) {
+    final basePierce = hitDelivery.pierce;
+    final baseMaxPierceHits = _maxPierceHitsFor(hitDelivery);
+    if (ability.id != _chargedShotAbilityId) {
+      return _ProjectileChargeTuning(
+        damageScaleBp: 10000,
+        speedScaleBp: 10000,
+        critBonusBp: 0,
+        pierce: basePierce,
+        maxPierceHits: baseMaxPierceHits,
+      );
+    }
+
+    final holdTicks = chargeTicks < 0 ? 0 : chargeTicks;
+    final halfTierTicks = max(1, scaledWindupTicks ~/ 2);
+    final fullTierTicks = max(halfTierTicks + 1, scaledWindupTicks);
+
+    if (holdTicks >= fullTierTicks) {
+      return _ProjectileChargeTuning(
+        damageScaleBp: 12250,
+        speedScaleBp: 12000,
+        critBonusBp: 1000,
+        pierce: true,
+        maxPierceHits: max(baseMaxPierceHits, 2),
+      );
+    }
+    if (holdTicks >= halfTierTicks) {
+      return _ProjectileChargeTuning(
+        damageScaleBp: 10000,
+        speedScaleBp: 10500,
+        critBonusBp: 500,
+        pierce: basePierce,
+        maxPierceHits: baseMaxPierceHits,
+      );
+    }
+
+    return _ProjectileChargeTuning(
+      damageScaleBp: 8200,
+      speedScaleBp: 9000,
+      critBonusBp: 0,
+      pierce: basePierce,
+      maxPierceHits: baseMaxPierceHits,
+    );
+  }
+
+  int _maxPierceHitsFor(ProjectileHitDelivery hitDelivery) {
+    if (!hitDelivery.pierce) return 1;
+    if (hitDelivery.chainCount > 0) return hitDelivery.chainCount;
+    // Keep explicit piercing behavior even when no count is authored.
+    return 2;
+  }
+
+  (double, double) _resolveProjectileAimDirection(
+    EcsWorld world, {
+    required EntityId source,
+    required AbilityDef ability,
+    required double rawAimX,
+    required double rawAimY,
+    required double fallbackDirX,
+    required double fallbackDirY,
+  }) {
+    if (ability.targetingModel != TargetingModel.homing) {
+      return (rawAimX, rawAimY);
+    }
+
+    final nearest = _nearestHostileAim(
+      world,
+      source: source,
+      fallbackDirX: fallbackDirX,
+      fallbackDirY: fallbackDirY,
+    );
+    if (nearest != null) return nearest;
+    return (rawAimX, rawAimY);
+  }
+
+  (double, double)? _nearestHostileAim(
+    EcsWorld world, {
+    required EntityId source,
+    required double fallbackDirX,
+    required double fallbackDirY,
+  }) {
+    final sourceTi = world.transform.tryIndexOf(source);
+    if (sourceTi == null) return null;
+    final sourceFi = world.faction.tryIndexOf(source);
+    if (sourceFi == null) return null;
+    final sourceFaction = world.faction.faction[sourceFi];
+
+    final sourceX = world.transform.posX[sourceTi];
+    final sourceY = world.transform.posY[sourceTi];
+
+    var bestDist2 = double.infinity;
+    var bestDx = 0.0;
+    var bestDy = 0.0;
+    var bestEntity = -1;
+
+    final targets = world.health.denseEntities;
+    for (var i = 0; i < targets.length; i += 1) {
+      final target = targets[i];
+      if (target == source || world.deathState.has(target)) continue;
+
+      final targetFi = world.faction.tryIndexOf(target);
+      if (targetFi == null) continue;
+      if (areAllies(sourceFaction, world.faction.faction[targetFi])) continue;
+
+      final targetTi = world.transform.tryIndexOf(target);
+      if (targetTi == null) continue;
+      final dx = world.transform.posX[targetTi] - sourceX;
+      final dy = world.transform.posY[targetTi] - sourceY;
+      final dist2 = dx * dx + dy * dy;
+      if (dist2 <= 1e-12) continue;
+
+      final closer = dist2 < bestDist2 - 1e-9;
+      final sameDist = (dist2 - bestDist2).abs() <= 1e-9;
+      final betterTie = sameDist && (bestEntity == -1 || target < bestEntity);
+      if (closer || betterTie) {
+        bestDist2 = dist2;
+        bestDx = dx;
+        bestDy = dy;
+        bestEntity = target;
+      }
+    }
+
+    if (bestEntity == -1) {
+      final fbLen2 = fallbackDirX * fallbackDirX + fallbackDirY * fallbackDirY;
+      if (fbLen2 <= 1e-12) return null;
+      final invLen = 1.0 / sqrt(fbLen2);
+      return (fallbackDirX * invLen, fallbackDirY * invLen);
+    }
+
+    final invLen = 1.0 / sqrt(bestDist2);
+    return (bestDx * invLen, bestDy * invLen);
   }
 
   ProjectileItemId _resolveProjectileItemForSlot(
@@ -1132,6 +1307,7 @@ class AbilityActivationSystem {
   }
 
   static const int _abilityTickHz = 60;
+  static const AbilityKey _chargedShotAbilityId = 'eloise.charged_shot';
 
   void _cancelCombatOnMobilityPress(EcsWorld world, EntityId player) {
     _clearCombatIntents(world, player);
@@ -1172,4 +1348,20 @@ class AbilityActivationSystem {
       world.activeAbility.clear(player);
     }
   }
+}
+
+class _ProjectileChargeTuning {
+  const _ProjectileChargeTuning({
+    required this.damageScaleBp,
+    required this.speedScaleBp,
+    required this.critBonusBp,
+    required this.pierce,
+    required this.maxPierceHits,
+  });
+
+  final int damageScaleBp;
+  final int speedScaleBp;
+  final int critBonusBp;
+  final bool pierce;
+  final int maxPierceHits;
 }

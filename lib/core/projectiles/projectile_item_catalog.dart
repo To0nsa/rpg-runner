@@ -16,8 +16,6 @@ class ProjectileItemCatalog {
       case ProjectileItemId.iceBolt:
         return const ProjectileItemDef(
           id: ProjectileItemId.iceBolt,
-          displayName: 'Ice Bolt',
-          description: 'A frost shard that can chill targets on hit.',
           weaponType: WeaponType.projectileSpell,
           projectileId: ProjectileId.iceBolt,
           ballistic: false,
@@ -34,8 +32,6 @@ class ProjectileItemCatalog {
       case ProjectileItemId.fireBolt:
         return const ProjectileItemDef(
           id: ProjectileItemId.fireBolt,
-          displayName: 'Fire Bolt',
-          description: 'A blazing bolt that ignites enemies on impact.',
           weaponType: WeaponType.projectileSpell,
           projectileId: ProjectileId.fireBolt,
           ballistic: false,
@@ -52,8 +48,6 @@ class ProjectileItemCatalog {
       case ProjectileItemId.thunderBolt:
         return const ProjectileItemDef(
           id: ProjectileItemId.thunderBolt,
-          displayName: 'Thunder Bolt',
-          description: 'A crackling projectile with sharp burst damage.',
           weaponType: WeaponType.projectileSpell,
           projectileId: ProjectileId.thunderBolt,
           ballistic: false,
@@ -65,8 +59,6 @@ class ProjectileItemCatalog {
       case ProjectileItemId.throwingKnife:
         return const ProjectileItemDef(
           id: ProjectileItemId.throwingKnife,
-          displayName: 'Throwing Knife',
-          description: 'A quick and precise blade for agile ranged attacks.',
           weaponType: WeaponType.throwingWeapon,
           projectileId: ProjectileId.throwingKnife,
           originOffset: 6.0,
@@ -77,8 +69,6 @@ class ProjectileItemCatalog {
       case ProjectileItemId.throwingAxe:
         return const ProjectileItemDef(
           id: ProjectileItemId.throwingAxe,
-          displayName: 'Throwing Axe',
-          description: 'A heavy throw that trades speed for impact.',
           weaponType: WeaponType.throwingWeapon,
           projectileId: ProjectileId.throwingAxe,
           originOffset: 8.0,

@@ -34,9 +34,9 @@ void main() {
       },
     );
 
-    test('projectile slot exposes enabled quick/heavy throw abilities', () {
+    test('projectile slot exposes all enabled projectile abilities', () {
       const loadout = EquippedLoadoutDef(
-        abilityProjectileId: 'eloise.quick_throw',
+        abilityProjectileId: 'eloise.quick_shot',
         projectileSlotSpellId: ProjectileItemId.iceBolt,
       );
 
@@ -48,14 +48,22 @@ void main() {
         overrideSelectedSource: true,
       );
 
-      final quickThrow = candidates.firstWhere(
-        (candidate) => candidate.id == 'eloise.quick_throw',
+      final autoAim = candidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.auto_aim_shot',
       );
-      final heavyThrow = candidates.firstWhere(
-        (candidate) => candidate.id == 'eloise.heavy_throw',
+      final quickShot = candidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.quick_shot',
       );
-      expect(quickThrow.isEnabled, isTrue);
-      expect(heavyThrow.isEnabled, isTrue);
+      final piercingShot = candidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.piercing_shot',
+      );
+      final chargedShot = candidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.charged_shot',
+      );
+      expect(autoAim.isEnabled, isTrue);
+      expect(quickShot.isEnabled, isTrue);
+      expect(piercingShot.isEnabled, isTrue);
+      expect(chargedShot.isEnabled, isTrue);
     });
 
     test(
@@ -81,7 +89,7 @@ void main() {
 
     test('invalid source disables projectile abilities through validator', () {
       const loadout = EquippedLoadoutDef(
-        abilityProjectileId: 'eloise.quick_throw',
+        abilityProjectileId: 'eloise.quick_shot',
       );
 
       final candidates = abilityCandidatesForSlot(
@@ -92,14 +100,22 @@ void main() {
         overrideSelectedSource: true,
       );
 
-      final quickThrow = candidates.firstWhere(
-        (candidate) => candidate.id == 'eloise.quick_throw',
+      final autoAim = candidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.auto_aim_shot',
       );
-      final heavyThrow = candidates.firstWhere(
-        (candidate) => candidate.id == 'eloise.heavy_throw',
+      final quickShot = candidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.quick_shot',
       );
-      expect(quickThrow.isEnabled, isFalse);
-      expect(heavyThrow.isEnabled, isFalse);
+      final piercingShot = candidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.piercing_shot',
+      );
+      final chargedShot = candidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.charged_shot',
+      );
+      expect(autoAim.isEnabled, isFalse);
+      expect(quickShot.isEnabled, isFalse);
+      expect(piercingShot.isEnabled, isFalse);
+      expect(chargedShot.isEnabled, isFalse);
     });
 
     test(

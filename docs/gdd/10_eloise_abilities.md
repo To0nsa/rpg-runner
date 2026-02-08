@@ -11,18 +11,37 @@ Based on the slot table from `ability_system_design.md`:
 |------|-----------|
 | **Primary** | Sword Strike, Sword Parry |
 | **Secondary** | Shield Bash, Shield Block |
-| **Projectile** | Quick Throw, Heavy Throw |
+| **Projectile** | Auto-Aim Shot, Quick Shot, Piercing Shot, Charged Shot |
 | **Mobility** | Dash, Roll |
 | **Jump** | Jump (fixed slot) |
 | **Bonus** | Any Primary/Secondary/Projectile + Arcane Haste |
 
 Projectile payload resolution is now slot-driven:
-- `quick_throw` / `heavy_throw` can be equipped in `projectile` or `bonus`.
+- `auto_aim_shot` / `quick_shot` / `piercing_shot` / `charged_shot` can be equipped in `projectile` or `bonus`.
 - Each slot has an optional selected spell (`projectileSlotSpellId`, `bonusSlotSpellId`).
 - If a selected spell is valid for the equipped spellbook, that spell is launched.
 - Otherwise, the equipped projectile item fallback (typically throwing weapon) is used.
 - Cooldowns are also slot-driven by default (`projectile` lane for projectile slot, `bonus` lane for bonus slot).
 - `arcane_haste` remains bonus-only.
+
+## Equivalence Contract Alignment
+
+This catalog follows the global power-equivalence contract in `docs/gdd/02_ability_system.md`.
+
+### Same-category equivalence
+
+* Projectile abilities (`auto_aim_shot`, `quick_shot`, `piercing_shot`, `charged_shot`) are balanced as EV-equivalent variants with different risk profiles. Detailed invariant and scenario validation live in `docs/gdd/14_eloise_projectile_rework.md`.
+
+### Relevant cross-category equivalence
+
+Some Eloise abilities are intentionally equivalent even across different categories, because they fill the same tactical role:
+
+| Pair | Equivalence Target | Allowed Differentiator |
+|---|---|---|
+| `eloise.sword_strike` and `eloise.shield_bash` | Offensive tempo and sustained throughput parity | Weapon/shield payload (status proc, damage type) |
+| `eloise.sword_parry` and `eloise.shield_block` | Defensive window and reward parity | Weapon/shield payload and presentation |
+
+Rule: if one side of a mirrored pair gains power, it must pay via a matching tax axis or the pair is retuned together.
 
 ---
 
@@ -63,6 +82,10 @@ class AbilityDef {
     required this.cooldownTicks,
     required this.interruptPriority,
     this.canBeInterruptedBy = const {},
+    this.forcedInterruptCauses = const {
+      ForcedInterruptCause.stun,
+      ForcedInterruptCause.death,
+    },
     required this.animKey,
     this.tags = const {},
     this.requiredTags = const {},
@@ -85,6 +108,7 @@ class AbilityDef {
   final int cooldownTicks;
   final InterruptPriority interruptPriority;
   final Set<InterruptPriority> canBeInterruptedBy;
+  final Set<ForcedInterruptCause> forcedInterruptCauses;
   final AnimKey animKey;
   final Set<AbilityTag> tags;
   final Set<AbilityTag> requiredTags;
@@ -99,7 +123,7 @@ class AbilityDef {
 
 - `AbilitySlot`: primary, secondary, projectile, mobility, bonus, **jump** (fixed).
 - `AbilityCategory`: melee, ranged, magic, mobility, defense, utility.
-- `TargetingModel`: none, directional, aimed, homing, groundTarget.
+- `TargetingModel`: none, directional, aimed, aimedLine, aimedCharge, homing, groundTarget.
 - `HitDeliveryDef`: `MeleeHitDelivery`, `ProjectileHitDelivery`, `SelfHitDelivery`.
 
 ---
@@ -403,120 +427,70 @@ resolve payload from the equipped `projectileItemId` path. Spell projectile
 abilities and throwing weapons both use the same projectile-item payload path.
 
 Current default Eloise loadout uses:
-- `eloise.quick_throw` on the projectile slot button
-- `eloise.heavy_throw` on the bonus slot button
+- `eloise.quick_shot` on the projectile slot button
+- `eloise.charged_shot` on the bonus slot button
 
 Both are payload-driven by the equipped projectile item and can launch either
 `WeaponType.throwingWeapon` or `WeaponType.projectileSpell`.
 
-### Quick Throw
+### Auto-Aim Shot
 
-**Design Intent:** Fast projectile commit for poke/pressure. Uses stamina.
+- **Targeting**: Homing (deterministic nearest hostile at commit time)
+- **Timing**: `6 / 2 / 10` ticks
+- **Cooldown**: `24` ticks
+- **Mana Cost**: `8.0`
+- **Base Damage**: `13.0`
+- **Role**: Reliability at an efficiency tax
 
-| Property | Value |
-|----------|-------|
-| Category | Ranged |
-| Targeting | Aimed |
-| Allowed Slots | Projectile, Bonus |
-| Payload Source | Equipped `projectileItemId` |
+### Quick Shot
 
-**Timing (at 60 FPS):**
+- **Targeting**: Aimed
+- **Timing**: `3 / 1 / 5` ticks
+- **Cooldown**: `15` ticks
+- **Mana Cost**: `6.0`
+- **Base Damage**: `9.0`
+- **Role**: Fast weave/response, low damage per action
 
-| Phase | Ticks | Duration |
-|-------|-------|----------|
-| Windup | 4 | ~66ms |
-| Active | 2 | ~33ms |
-| Recovery | 6 | ~100ms |
-| **Total** | **12** | **~200ms** |
+### Piercing Shot
 
-**Cost & Cooldown:**
+- **Targeting**: Aimed line
+- **Timing**: `8 / 2 / 8` ticks
+- **Cooldown**: `30` ticks
+- **Mana Cost**: `10.0`
+- **Base Damage**: `18.0`
+- **Role**: Multi-target ceiling with alignment dependency
+- **Hit Delivery**: `pierce: true`, `maxPierceHits: 3`
 
-| Property | Value |
-|----------|-------|
-| Stamina Cost | 5.0 |
-| Mana Cost | 0 |
-| Cooldown | 18 ticks (~300ms) |
+### Charged Shot
 
-```dart
-const quickThrow = AbilityDef(
-  id: 'eloise.quick_throw',
-  category: AbilityCategory.ranged,
-  allowedSlots: {AbilitySlot.projectile, AbilitySlot.bonus},
-  targetingModel: TargetingModel.aimed,
-  hitDelivery: ProjectileHitDelivery(projectileId: ProjectileId.throwingKnife),
-  windupTicks: 4,
-  activeTicks: 2,
-  recoveryTicks: 6,
-  staminaCost: 500,
-  manaCost: 0,
-  cooldownTicks: 18,
-  interruptPriority: InterruptPriority.combat,
-  animKey: AnimKey.ranged,
-  requiredWeaponTypes: {
-    WeaponType.throwingWeapon,
-    WeaponType.projectileSpell,
-  },
-  payloadSource: AbilityPayloadSource.projectileItem,
-  baseDamage: 1000,
-);
-```
+- **Targeting**: Aimed charge
+- **Timing**: `24 / 2 / 10` ticks (windup/active/recovery)
+- **Cooldown**: `36` ticks
+- **Mana Cost**: `13.0`
+- **Base Damage**: `23.0` (before tier scaling)
+- **Role**: Burst payoff with long vulnerable commit and deterministic tier scaling
+- **Forced interrupt**: If Eloise takes non-zero damage while Charged Shot is active, the cast is canceled and the pending projectile launch is dropped (cost/cooldown stay committed).
 
----
+Tiered charge (runtime hold duration):
 
-### Heavy Throw
+| Tier | Hold Threshold (runtime ticks) | Damage Scale | Speed Scale | Effect |
+|---|---:|---:|---:|---|
+| Tap | `< half` | `0.82x` | `0.90x` | none |
+| Half | `>= half` | `1.00x` | `1.05x` | `+5%` crit chance |
+| Full | `>= full` | `1.225x` | `1.20x` | `+10%` crit chance, projectile pierces up to 2 targets |
 
-**Design Intent:** Slower projectile commit with higher baseline impact. Uses mana.
+Threshold definition:
+- `full = scaledWindupTicks`
+- `half = floor(full / 2)` clamped to at least 1 tick
 
-| Property | Value |
-|----------|-------|
-| Category | Magic |
-| Targeting | Aimed |
-| Allowed Slots | Projectile, Bonus |
-| Payload Source | Equipped `projectileItemId` |
+UI affordance:
+- Hold-aim shows a charge bar.
+- Haptic pulse on half-tier and full-tier threshold crossing.
 
-**Timing (at 60 FPS):**
-
-| Phase | Ticks | Duration |
-|-------|-------|----------|
-| Windup | 6 | ~100ms |
-| Active | 2 | ~33ms |
-| Recovery | 8 | ~133ms |
-| **Total** | **16** | **~266ms** |
-
-**Cost & Cooldown:**
-
-| Property | Value |
-|----------|-------|
-| Stamina Cost | 0 |
-| Mana Cost | 10.0 |
-| Cooldown | 24 ticks (~400ms) |
-
-```dart
-const heavyThrow = AbilityDef(
-  id: 'eloise.heavy_throw',
-  category: AbilityCategory.magic,
-  allowedSlots: {AbilitySlot.projectile, AbilitySlot.bonus},
-  targetingModel: TargetingModel.aimed,
-  hitDelivery: ProjectileHitDelivery(projectileId: ProjectileId.iceBolt),
-  windupTicks: 6,
-  activeTicks: 2,
-  recoveryTicks: 8,
-  staminaCost: 0,
-  manaCost: 1000,
-  cooldownTicks: 24,
-  interruptPriority: InterruptPriority.combat,
-  animKey: AnimKey.cast,
-  requiredWeaponTypes: {
-    WeaponType.throwingWeapon,
-    WeaponType.projectileSpell,
-  },
-  payloadSource: AbilityPayloadSource.projectileItem,
-  baseDamage: 1500,
-);
-```
+Implementation details and acceptance criteria are tracked in:
+`docs/gdd/14_eloise_projectile_rework.md`
 
 ---
-
 ## Mobility Slot Abilities
 
 ### Dash
@@ -678,10 +652,10 @@ const jump = AbilityDef(
 | Sword Parry | Defense | None | 7.0 | - | Next melee hit +100% (riposte) | 30 ticks (~500ms) |
 | Shield Bash | Defense | Directional | 5.0 | - | 15.0 | 18 ticks (~300ms) |
 | Shield Block | Defense | None | 7.0 | - | Next melee hit +100% (riposte) | 30 ticks (~500ms) |
-| Throwing Knife | Ranged | Aimed | 5.0 | - | 10.0 | 18 ticks (~300ms) |
-| Ice Bolt | Magic | Aimed | - | 10.0 | 15.0 | 24 ticks (~400ms) |
-| Fire Bolt | Magic | Aimed | - | 12.0 | 18.0 | 15 ticks (~250ms) |
-| Thunder Bolt | Magic | Aimed | - | 10.0 | 5.0 | 15 ticks (~250ms) |
+| Auto-Aim Shot | Magic | Homing | - | 8.0 | 13.0 | 24 ticks (~400ms) |
+| Quick Shot | Ranged | Aimed | - | 6.0 | 9.0 | 15 ticks (~250ms) |
+| Piercing Shot | Ranged | AimedLine | - | 10.0 | 18.0 | 30 ticks (~500ms) |
+| Charged Shot | Magic | AimedCharge | - | 13.0 | 23.0 | 36 ticks (~600ms) |
 | Dash | Mobility | Directional | 2.0 | - | - | 120 ticks (~2.0s) |
 | Roll | Mobility | Directional | 2.0 | - | - | 120 ticks (~2.0s) |
 | Jump | Mobility | None | 2.0 | - | - | 0 |

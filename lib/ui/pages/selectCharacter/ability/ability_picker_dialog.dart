@@ -467,6 +467,8 @@ String _slotTitle(AbilitySlot slot) {
 }
 
 String _abilitySubtitle(AbilityDef def) {
+  final roleText = abilityRoleText(def.id);
+  if (roleText.isNotEmpty) return roleText;
   final category = def.category.name;
   final payload = def.payloadSource.name;
   return '${_humanize(category)} | ${_humanize(payload)}';

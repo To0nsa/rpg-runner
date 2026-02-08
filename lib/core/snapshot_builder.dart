@@ -231,6 +231,22 @@ class SnapshotBuilder {
 
     final bonusInputMode = _inputModeFor(bonusAbility);
     final bonusUsesMeleeAim = bonusAbility?.hitDelivery is MeleeHitDelivery;
+    final projectileChargeEnabled = _supportsTieredProjectileCharge(
+      projectileAbility,
+    );
+    final projectileChargeFullTicks = projectileChargeEnabled
+        ? _scaledWindupTicks(projectileAbility!)
+        : 0;
+    final projectileChargeHalfTicks = projectileChargeEnabled
+        ? _halfChargeThresholdTicks(projectileChargeFullTicks)
+        : 0;
+    final bonusChargeEnabled = _supportsTieredProjectileCharge(bonusAbility);
+    final bonusChargeFullTicks = bonusChargeEnabled
+        ? _scaledWindupTicks(bonusAbility!)
+        : 0;
+    final bonusChargeHalfTicks = bonusChargeEnabled
+        ? _halfChargeThresholdTicks(bonusChargeFullTicks)
+        : 0;
     // ─── Compute affordability flags ───
     // These tell the UI whether action buttons should appear enabled.
     final canAffordJump = stamina >= jumpStaminaCost;
@@ -310,6 +326,9 @@ class SnapshotBuilder {
 
     final playerPos = Vec2(playerPosX, playerPosY);
     final playerVel = Vec2(playerVelX, playerVelY);
+    final playerLastDamageTick = world.lastDamage.has(player)
+        ? world.lastDamage.tick[world.lastDamage.indexOf(player)]
+        : -1;
 
     Vec2? playerSize;
     if (world.colliderAabb.has(player)) {
@@ -379,6 +398,13 @@ class SnapshotBuilder {
         projectileInputMode: projectileInputMode,
         bonusInputMode: bonusInputMode,
         bonusUsesMeleeAim: bonusUsesMeleeAim,
+        projectileChargeEnabled: projectileChargeEnabled,
+        projectileChargeHalfTicks: projectileChargeHalfTicks,
+        projectileChargeFullTicks: projectileChargeFullTicks,
+        bonusChargeEnabled: bonusChargeEnabled,
+        bonusChargeHalfTicks: bonusChargeHalfTicks,
+        bonusChargeFullTicks: bonusChargeFullTicks,
+        lastDamageTick: playerLastDamageTick,
         collectibles: collectibles,
         collectibleScore: collectibleScore,
       ),
@@ -395,15 +421,31 @@ class SnapshotBuilder {
     return ticksFromSecondsCeil(seconds, tickHz);
   }
 
+  int _scaledWindupTicks(AbilityDef ability) {
+    return _scaleAbilityTicks(ability.windupTicks);
+  }
+
+  int _halfChargeThresholdTicks(int fullThresholdTicks) {
+    return max(1, fullThresholdTicks ~/ 2);
+  }
+
   AbilityInputMode _inputModeFor(AbilityDef? ability) {
     if (ability == null) return AbilityInputMode.tap;
     final targeting = ability.targetingModel;
-    return targeting == TargetingModel.none
-        ? AbilityInputMode.tap
-        : AbilityInputMode.holdAimRelease;
+    return switch (targeting) {
+      TargetingModel.none || TargetingModel.homing => AbilityInputMode.tap,
+      _ => AbilityInputMode.holdAimRelease,
+    };
+  }
+
+  bool _supportsTieredProjectileCharge(AbilityDef? ability) {
+    if (ability == null) return false;
+    if (ability.id != _chargedShotAbilityId) return false;
+    return ability.targetingModel == TargetingModel.aimedCharge;
   }
 
   static const int _abilityTickHz = 60;
+  static const AbilityKey _chargedShotAbilityId = 'eloise.charged_shot';
 
   // ───────────────────────────────────────────────────────────────────────────
   // Private Entity Collectors

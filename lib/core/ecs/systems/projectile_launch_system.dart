@@ -57,8 +57,11 @@ class ProjectileLaunchSystem {
         critChanceBp: intents.critChanceBp[ii],
         damageType: intents.damageType[ii],
         procs: intents.procs[ii],
+        pierce: intents.pierce[ii],
+        maxPierceHits: intents.maxPierceHits[ii],
         ballistic: intents.ballistic[ii],
         gravityScale: intents.gravityScale[ii],
+        speedScale: intents.speedScaleBp[ii] / 10000.0,
       );
     }
   }

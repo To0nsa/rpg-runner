@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Abilities are the player’s *equippable actions* (strike, parry, dash, roll, spells (firebolt, icebolt, etc), quick throw, heavy throw, etc.). A run is defined by a **loadout**: which abilities are mapped to which **button slots**.
+Abilities are the player’s *equippable actions* (strike, parry, dash, roll, spells (firebolt, icebolt, etc), Quick Shot, Charged Shot, etc.). A run is defined by a **loadout**: which abilities are mapped to which **button slots**.
 
 This document defines **expected behavior and constraints** (game design contract). It intentionally avoids implementation details.
 
@@ -29,6 +29,37 @@ These rules drive the implementation shape and must not be violated:
 3.  **Mobility Preemption:** Mobility actions (Dash/Jump) explicitly preempt combat actions. Input buffer handles concurrency.
 4.  **Modifier Order:** Evaluation order is always **Ability → Weapon → Passive**.
 5.  **Data Ownership:** Ability defines *structure* (timing/targeting/base damage). Weapon/Projectile Item defines *payload* (damage type/procs).
+
+---
+
+## Power Equivalence Contract (Non-Negotiable)
+
+Balance abilities by **expected value (EV) under optimal use in realistic encounters**, not by making every numeric axis identical.
+
+### Rules
+
+* Abilities in the same functional set must be **power-equivalent**, even when their mechanics differ.
+* Relevant cross-category substitutes must also be **power-equivalent** (for example, a primary-slot offense option and a secondary-slot offense option that serve the same tactical role).
+* Each ability must have at least one explicit **tax axis** for its strongest advantage (reliability, speed, burst, coverage, etc.).
+* No ability may be the best choice across all standard scenarios; if it is, retune immediately.
+
+### Invariants and Guardrails
+
+Each functional set must define one primary invariant and evaluate it over realistic combat windows:
+
+* **Projectile set:** use DPRS (Damage per Resource per Second) as the primary invariant.
+* **Other sets:** define an explicit invariant before tuning (for example sustained throughput parity for offense mirrors, or defense-window plus reward parity for defensive mirrors).
+
+Track guardrails alongside the primary invariant:
+
+* time-to-kill fairness
+* burst-window fairness
+* opportunity-cost parity
+
+### Canonical Cross-Category Equivalence Examples (Eloise)
+
+* `eloise.sword_strike` ↔ `eloise.shield_bash`: offensive tempo/throughput equivalent; differentiation comes from equipped weapon/shield payload.
+* `eloise.sword_parry` ↔ `eloise.shield_block`: defensive window/reward equivalent; differentiation comes from equipped weapon/shield payload and presentation.
 
 ---
 
@@ -100,7 +131,7 @@ A character has a set of named ability slots. Slots map to input buttons.
 | ------------- | --------------------------------- | -------------------------------------------------------- |
 | **Primary**   | Primary hand                      | strike, parry                                     |
 | **Secondary** | Secondary hand (used by two-handed) | shield bash, shield block       |
-| **Projectile**    | Projectile (projectile spells/throwing weapons) | quick throw, heavy throw, firebolt, icebolt, thunderbolt          |
+| **Projectile**    | Projectile (projectile spells/throwing weapons) | Quick Shot, Charged Shot, firebolt, icebolt, thunderbolt          |
 | **Mobility**  | Mobility                          | dash, roll                                               |
 | **Jump**      | Fixed Mobility                    | jump (fixed slot, always available)                      |
 | **Bonus**     | Flexible slot                     | any of Primary/Secondary/Projectile                |
@@ -173,7 +204,7 @@ Movement and jumping remain available unless explicitly locked by the ability.
 
 ### Interruptions (Forced)
 
-Some events (stun, death) can forcibly end an ability mid-execution.
+Some events (stun, death, and ability-authored hit interruption) can forcibly end an ability mid-execution.
 
 **Design contract:**
 
@@ -181,6 +212,7 @@ Some events (stun, death) can forcibly end an ability mid-execution.
 * Post-commit ability execution (Windup/Active/Recovery): no voluntary cancel (only forced interruption).
 * No voluntary cancel after commit.
 * Forced interruptions can occur in **any phase**.
+* Hit interruption is **opt-in per ability** (not global for all abilities).
 * If interrupted **before Active**, effects do not occur.
 * **Cost refund policy:** No refund (simple, punishing, consistent).
 * **Cooldown policy:** Cooldown starts on commit (same as normal flow); interruption does not reset or cancel cooldown.
@@ -314,7 +346,7 @@ If the player presses a slot button while another ability is in **Recovery**, th
 **Rules:**
 
 * Only **one buffered input** is stored at a time (latest press wins).
-* Buffered inputs are **cleared on forced interruption** (stun/hit) to prevent accidental actions.
+* Buffered inputs are **cleared on forced interruption** (stun/death/ability-authored hit interrupt) to prevent accidental actions.
 
 ---
 
@@ -426,3 +458,4 @@ Abilities can be gated by meta progression.
 * Abilities follow a shared timing language (windup/active/recovery) and feel consistent.
 * Weapons enable abilities and provide damage-type defaults + effect modifiers; abilities define the action structure (timing/targeting/hit delivery) and base damage model.
 * Slot restrictions are clear, learnable, and enforced before the run starts.
+

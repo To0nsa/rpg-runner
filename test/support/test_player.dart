@@ -38,7 +38,7 @@ const PlayerCatalog testPlayerCatalogDefaults = PlayerCatalog(
   bonusSlotSpellId: ProjectileItemId.fireBolt,
   abilityPrimaryId: 'eloise.sword_strike',
   abilitySecondaryId: 'eloise.shield_block',
-  abilityProjectileId: 'eloise.heavy_throw',
+  abilityProjectileId: 'eloise.charged_shot',
   abilityBonusId: 'eloise.shield_bash',
   abilityMobilityId: 'eloise.dash',
   abilityJumpId: 'eloise.jump',

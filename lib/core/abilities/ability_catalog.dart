@@ -209,8 +209,35 @@ class AbilityCatalog {
     // ------------------------------------------------------------------------
     // ELOISE: PROJECTILE
     // ------------------------------------------------------------------------
-    'eloise.quick_throw': AbilityDef(
-      id: 'eloise.quick_throw',
+    'eloise.auto_aim_shot': AbilityDef(
+      id: 'eloise.auto_aim_shot',
+      category: AbilityCategory.magic,
+      allowedSlots: {AbilitySlot.projectile, AbilitySlot.bonus},
+      targetingModel: TargetingModel.homing,
+      // Projectile id comes from the equipped projectile item at runtime.
+      hitDelivery: ProjectileHitDelivery(
+        projectileId: ProjectileId.iceBolt,
+        hitPolicy: HitPolicy.oncePerTarget,
+      ),
+      windupTicks: 6,
+      activeTicks: 2,
+      recoveryTicks: 10,
+      staminaCost: 0,
+      manaCost: 800,
+      cooldownTicks: 24,
+      interruptPriority: InterruptPriority.combat,
+      animKey: AnimKey.cast,
+      tags: {AbilityTag.projectile, AbilityTag.light},
+      requiredWeaponTypes: {
+        WeaponType.throwingWeapon,
+        WeaponType.projectileSpell,
+      },
+      payloadSource: AbilityPayloadSource.projectileItem,
+      baseDamage: 1300,
+    ),
+
+    'eloise.quick_shot': AbilityDef(
+      id: 'eloise.quick_shot',
       category: AbilityCategory.ranged,
       allowedSlots: {AbilitySlot.projectile, AbilitySlot.bonus},
       targetingModel: TargetingModel.aimed,
@@ -219,50 +246,82 @@ class AbilityCatalog {
         projectileId: ProjectileId.throwingKnife,
         hitPolicy: HitPolicy.oncePerTarget,
       ),
-      // Fast throw profile.
-      windupTicks: 4,
-      activeTicks: 2,
-      recoveryTicks: 6,
-      staminaCost: 500,
-      manaCost: 0,
-      cooldownTicks: 18,
+      windupTicks: 3,
+      activeTicks: 1,
+      recoveryTicks: 5,
+      staminaCost: 0,
+      manaCost: 600,
+      cooldownTicks: 15,
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.throwItem,
-      tags: {AbilityTag.projectile},
+      tags: {AbilityTag.projectile, AbilityTag.light},
       requiredWeaponTypes: {
         WeaponType.throwingWeapon,
         WeaponType.projectileSpell,
       },
       payloadSource: AbilityPayloadSource.projectileItem,
-      baseDamage: 1000,
+      baseDamage: 900,
     ),
 
-    'eloise.heavy_throw': AbilityDef(
-      id: 'eloise.heavy_throw',
-      category: AbilityCategory.magic,
+    'eloise.piercing_shot': AbilityDef(
+      id: 'eloise.piercing_shot',
+      category: AbilityCategory.ranged,
       allowedSlots: {AbilitySlot.projectile, AbilitySlot.bonus},
-      targetingModel: TargetingModel.aimed,
+      targetingModel: TargetingModel.aimedLine,
       // Projectile id comes from the equipped projectile item at runtime.
       hitDelivery: ProjectileHitDelivery(
-        projectileId: ProjectileId.iceBolt,
+        projectileId: ProjectileId.throwingAxe,
+        pierce: true,
+        chainCount: 3,
         hitPolicy: HitPolicy.oncePerTarget,
       ),
-      // Slower, stronger throw profile.
-      windupTicks: 6,
+      windupTicks: 8,
       activeTicks: 2,
       recoveryTicks: 8,
       staminaCost: 0,
       manaCost: 1000,
-      cooldownTicks: 24,
+      cooldownTicks: 30,
       interruptPriority: InterruptPriority.combat,
-      animKey: AnimKey.cast,
-      tags: {AbilityTag.projectile},
+      animKey: AnimKey.throwItem,
+      tags: {AbilityTag.projectile, AbilityTag.heavy},
       requiredWeaponTypes: {
         WeaponType.throwingWeapon,
         WeaponType.projectileSpell,
       },
       payloadSource: AbilityPayloadSource.projectileItem,
-      baseDamage: 1500,
+      baseDamage: 1800,
+    ),
+
+    'eloise.charged_shot': AbilityDef(
+      id: 'eloise.charged_shot',
+      category: AbilityCategory.magic,
+      allowedSlots: {AbilitySlot.projectile, AbilitySlot.bonus},
+      targetingModel: TargetingModel.aimedCharge,
+      // Projectile id comes from the equipped projectile item at runtime.
+      hitDelivery: ProjectileHitDelivery(
+        projectileId: ProjectileId.fireBolt,
+        hitPolicy: HitPolicy.oncePerTarget,
+      ),
+      windupTicks: 24,
+      activeTicks: 2,
+      recoveryTicks: 10,
+      staminaCost: 0,
+      manaCost: 1300,
+      cooldownTicks: 36,
+      interruptPriority: InterruptPriority.combat,
+      forcedInterruptCauses: <ForcedInterruptCause>{
+        ForcedInterruptCause.stun,
+        ForcedInterruptCause.death,
+        ForcedInterruptCause.damageTaken,
+      },
+      animKey: AnimKey.cast,
+      tags: {AbilityTag.projectile, AbilityTag.heavy},
+      requiredWeaponTypes: {
+        WeaponType.throwingWeapon,
+        WeaponType.projectileSpell,
+      },
+      payloadSource: AbilityPayloadSource.projectileItem,
+      baseDamage: 2300,
     ),
 
     // ------------------------------------------------------------------------

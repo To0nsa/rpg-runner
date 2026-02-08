@@ -51,6 +51,7 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.bonusAffordable,
     required this.bonusCooldownTicksLeft,
     required this.bonusCooldownTicksTotal,
+    required this.forceAimCancelSignal,
     this.tuning = ControlsTuning.fixed,
   });
 
@@ -92,6 +93,7 @@ class RunnerControlsOverlay extends StatelessWidget {
   final bool bonusAffordable;
   final int bonusCooldownTicksLeft;
   final int bonusCooldownTicksTotal;
+  final ValueListenable<int> forceAimCancelSignal;
   final ControlsTuning tuning;
 
   @override
@@ -113,17 +115,25 @@ class RunnerControlsOverlay extends StatelessWidget {
     }
 
     double rightFor(Offset centerOffset, double targetSize) {
-      return t.edgePadding + jumpSize * 0.5 - centerOffset.dx - targetSize * 0.5;
+      return t.edgePadding +
+          jumpSize * 0.5 -
+          centerOffset.dx -
+          targetSize * 0.5;
     }
 
     double bottomFor(Offset centerOffset, double targetSize) {
-      return t.edgePadding + jumpSize * 0.5 - centerOffset.dy - targetSize * 0.5;
+      return t.edgePadding +
+          jumpSize * 0.5 -
+          centerOffset.dy -
+          targetSize * 0.5;
     }
 
     final jumpRadius = jumpSize * 0.5;
     final ringGap = t.buttonGap * 0.9;
     final ringRadius =
-        jumpRadius + math.max(smallDirectionalSize, smallActionSize) * 0.5 + ringGap;
+        jumpRadius +
+        math.max(smallDirectionalSize, smallActionSize) * 0.5 +
+        ringGap;
 
     // Evenly spread the 5 action buttons over an arc above/left of the jump.
     // Degrees follow the standard unit circle, but note Flutter's Y axis points down.
@@ -201,6 +211,7 @@ class RunnerControlsOverlay extends StatelessWidget {
                   foregroundColor: directional.foregroundColor,
                   labelFontSize: directional.labelFontSize,
                   labelGap: directional.labelGap,
+                  forceCancelSignal: forceAimCancelSignal,
                 ),
         ),
         Positioned(
@@ -223,11 +234,16 @@ class RunnerControlsOverlay extends StatelessWidget {
               : DirectionalActionButton(
                   label: 'Bonus',
                   icon: Icons.star,
-                  onAimDir: bonusUsesMeleeAim ? onMeleeAimDir : onProjectileAimDir,
-                  onAimClear: bonusUsesMeleeAim ? onMeleeAimClear : onProjectileAimClear,
+                  onAimDir: bonusUsesMeleeAim
+                      ? onMeleeAimDir
+                      : onProjectileAimDir,
+                  onAimClear: bonusUsesMeleeAim
+                      ? onMeleeAimClear
+                      : onProjectileAimClear,
                   onCommit: onBonusCommitted,
-                  projectileAimPreview:
-                      bonusUsesMeleeAim ? meleeAimPreview : projectileAimPreview,
+                  projectileAimPreview: bonusUsesMeleeAim
+                      ? meleeAimPreview
+                      : projectileAimPreview,
                   cancelHitboxRect: aimCancelHitboxRect,
                   affordable: bonusAffordable,
                   cooldownTicksLeft: bonusCooldownTicksLeft,
@@ -238,6 +254,7 @@ class RunnerControlsOverlay extends StatelessWidget {
                   foregroundColor: directional.foregroundColor,
                   labelFontSize: directional.labelFontSize,
                   labelGap: directional.labelGap,
+                  forceCancelSignal: forceAimCancelSignal,
                 ),
         ),
         Positioned(
@@ -291,6 +308,7 @@ class RunnerControlsOverlay extends StatelessWidget {
                   foregroundColor: directional.foregroundColor,
                   labelFontSize: directional.labelFontSize,
                   labelGap: directional.labelGap,
+                  forceCancelSignal: forceAimCancelSignal,
                 ),
         ),
         Positioned(

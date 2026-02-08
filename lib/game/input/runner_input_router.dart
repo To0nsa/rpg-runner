@@ -102,12 +102,13 @@ class RunnerInputRouter {
 
   /// Schedules a projectile slot press for the next tick.
   void pressProjectile() => controller.enqueueForNextTick(
-        (tick) => ProjectilePressedCommand(tick: tick),
-      );
+    (tick) => ProjectilePressedCommand(tick: tick),
+  );
 
   /// Schedules a secondary-slot press for the next tick.
-  void pressSecondary() =>
-      controller.enqueueForNextTick((tick) => SecondaryPressedCommand(tick: tick));
+  void pressSecondary() => controller.enqueueForNextTick(
+    (tick) => SecondaryPressedCommand(tick: tick),
+  );
 
   /// Schedules a bonus-slot press for the next tick.
   void pressBonus() =>
@@ -127,7 +128,10 @@ class RunnerInputRouter {
   ///
   /// When [clearAim] is true, clear commands are delayed until after the commit
   /// tick to avoid overwriting the aimed shot.
-  void commitProjectileWithAim({required bool clearAim}) {
+  ///
+  /// [chargeTicks] is optional charge hold duration metadata used by tiered
+  /// charge abilities (for example, `eloise.charged_shot`).
+  void commitProjectileWithAim({required bool clearAim, int chargeTicks = 0}) {
     final tick = controller.tick + controller.inputLead;
     final hadAim = _projectileAim.isSet;
     if (hadAim) {
@@ -137,6 +141,12 @@ class RunnerInputRouter {
           x: _projectileAim.x,
           y: _projectileAim.y,
         ),
+      );
+    }
+
+    if (chargeTicks > 0) {
+      controller.enqueue(
+        ProjectileChargeTicksCommand(tick: tick, chargeTicks: chargeTicks),
       );
     }
 
@@ -155,9 +165,11 @@ class RunnerInputRouter {
   ///
   /// Bonus can host projectile or melee abilities; [usesMeleeAim] selects which
   /// aim channel is consumed by the equipped bonus ability.
+  /// [chargeTicks] is forwarded only when the bonus consumes projectile aim.
   void commitBonusWithAim({
     required bool clearAim,
     required bool usesMeleeAim,
+    int chargeTicks = 0,
   }) {
     final tick = controller.tick + controller.inputLead;
     final channel = usesMeleeAim ? _meleeAim : _projectileAim;
@@ -171,6 +183,12 @@ class RunnerInputRouter {
       );
     }
 
+    if (!usesMeleeAim && chargeTicks > 0) {
+      controller.enqueue(
+        ProjectileChargeTicksCommand(tick: tick, chargeTicks: chargeTicks),
+      );
+    }
+
     controller.enqueue(BonusPressedCommand(tick: tick));
 
     if (clearAim) {
@@ -181,7 +199,6 @@ class RunnerInputRouter {
       }
     }
   }
-
 
   /// Commits a melee strike on the next tick using the current melee aim dir.
   void commitMeleeStrike() {
@@ -234,7 +251,6 @@ class RunnerInputRouter {
       (t, x, y) => MeleeAimDirCommand(tick: t, x: x, y: y),
       (t) => ClearMeleeAimDirCommand(tick: t),
     );
-
   }
 
   /// Schedules [MoveAxisCommand]s for upcoming ticks based on the current axis value.

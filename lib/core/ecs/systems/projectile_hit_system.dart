@@ -6,6 +6,9 @@ import '../../snapshots/enums.dart';
 import '../../util/vec2.dart';
 import '../entity_id.dart';
 import '../hit/hit_resolver.dart';
+import '../stores/enemies/enemy_store.dart';
+import '../stores/projectile_item_origin_store.dart';
+import '../stores/projectile_store.dart';
 import '../spatial/broadphase_grid.dart';
 import '../world.dart';
 
@@ -18,6 +21,7 @@ import '../world.dart';
 /// - Queues [DamageRequest] and despawns the projectile on impact.
 class ProjectileHitSystem {
   final List<EntityId> _toDespawn = <EntityId>[];
+  final List<int> _overlaps = <int>[];
   final HitResolver _resolver = HitResolver();
 
   /// Runs the system logic for a single tick.
@@ -42,6 +46,7 @@ class ProjectileHitSystem {
     final colliders = world.colliderAabb;
     final enemies = world.enemy;
     final projectileOrigins = world.projectileItemOrigin;
+    final hitOnce = world.hitOnce;
 
     final count = projectiles.denseEntities.length;
     for (var pi = 0; pi < count; pi += 1) {
@@ -85,6 +90,72 @@ class ProjectileHitSystem {
         continue;
       }
 
+      final isPiercing = projectiles.pierce[pi];
+      final maxPierceHits = projectiles.maxPierceHits[pi];
+
+      if (isPiercing) {
+        _overlaps.clear();
+        _resolver.collectOrderedOverlapsCapsule(
+          broadphase: broadphase,
+          ax: ax,
+          ay: ay,
+          bx: bx,
+          by: by,
+          radius: radius,
+          owner: owner,
+          sourceFaction: sourceFaction,
+          outTargetIndices: _overlaps,
+        );
+        if (_overlaps.isEmpty) continue;
+
+        var shouldDespawn = false;
+        for (var oi = 0; oi < _overlaps.length; oi += 1) {
+          final targetIndex = _overlaps[oi];
+          final target = broadphase.targets.entities[targetIndex];
+          if (hitOnce.has(p) && hitOnce.hasHit(p, target)) {
+            continue;
+          }
+          if (hitOnce.has(p)) {
+            hitOnce.markHit(p, target);
+          }
+
+          _queueProjectileDamage(
+            world,
+            target: target,
+            owner: owner,
+            projectileEntity: p,
+            projectileStoreIndex: pi,
+            enemies: enemies,
+            projectileOrigins: projectileOrigins,
+          );
+          _queueProjectileHitEvent(
+            queueHitEvent: queueHitEvent,
+            currentTick: currentTick,
+            projectileEntity: p,
+            projectileStoreIndex: pi,
+            projectileStoreCenterX: pcx,
+            projectileStoreCenterY: pcy,
+            facing: facing,
+            rotationRad: rotationRad,
+            projectiles: projectiles,
+            projectileOrigins: projectileOrigins,
+          );
+
+          final hitCount = hitOnce.has(p)
+              ? hitOnce.count[hitOnce.indexOf(p)]
+              : 1;
+          if (hitCount >= maxPierceHits) {
+            shouldDespawn = true;
+            break;
+          }
+        }
+
+        if (shouldDespawn) {
+          _toDespawn.add(p);
+        }
+        continue;
+      }
+
       // Query the broadphase for the first valid intersection.
       // This respects "Friendly Fire" rules via [sourceFaction].
       final targetIndex = _resolver.firstOrderedOverlapCapsule(
@@ -100,44 +171,27 @@ class ProjectileHitSystem {
 
       // -- Impact Handling --
       if (targetIndex != null) {
-        // Optimization: Resolve heavy metadata (EnemyId, ProjectileItemId) ONLY when a hit actually occurs.
-        // Doing this before the hit check would waste cycles for the 99% of frames a projectile is just flying.
-        final ei = enemies.tryIndexOf(owner);
-        final enemyId = ei != null ? enemies.enemyId[ei] : null;
-
-        final si = projectileOrigins.tryIndexOf(p);
-        final projectileItemId = si != null
-            ? projectileOrigins.projectileItemId[si]
-            : null;
-
-        // Dispatch damage event.
-        world.damageQueue.add(
-          DamageRequest(
-            target: broadphase.targets.entities[targetIndex],
-            amount100: projectiles.damage100[pi],
-            critChanceBp: projectiles.critChanceBp[pi],
-            damageType: projectiles.damageType[pi],
-            procs: projectiles.procs[pi],
-            source: owner,
-            sourceKind: DeathSourceKind.projectile,
-            sourceEnemyId: enemyId,
-            sourceProjectileId: projectiles.projectileId[pi],
-            sourceProjectileItemId: projectileItemId,
-          ),
+        _queueProjectileDamage(
+          world,
+          target: broadphase.targets.entities[targetIndex],
+          owner: owner,
+          projectileEntity: p,
+          projectileStoreIndex: pi,
+          enemies: enemies,
+          projectileOrigins: projectileOrigins,
         );
-
-        if (queueHitEvent != null) {
-          queueHitEvent(
-            ProjectileHitEvent(
-              tick: currentTick,
-              projectileId: projectiles.projectileId[pi],
-              projectileItemId: projectileItemId,
-              pos: Vec2(pcx, pcy),
-              facing: facing,
-              rotationRad: rotationRad,
-            ),
-          );
-        }
+        _queueProjectileHitEvent(
+          queueHitEvent: queueHitEvent,
+          currentTick: currentTick,
+          projectileEntity: p,
+          projectileStoreIndex: pi,
+          projectileStoreCenterX: pcx,
+          projectileStoreCenterY: pcy,
+          facing: facing,
+          rotationRad: rotationRad,
+          projectiles: projectiles,
+          projectileOrigins: projectileOrigins,
+        );
 
         // Mark projectile for removal.
         // We defer removal until after the loop or use a list to avoid modifying the collection while iterating
@@ -150,5 +204,69 @@ class ProjectileHitSystem {
     for (final e in _toDespawn) {
       world.destroyEntity(e);
     }
+  }
+
+  void _queueProjectileDamage(
+    EcsWorld world, {
+    required EntityId target,
+    required EntityId owner,
+    required EntityId projectileEntity,
+    required int projectileStoreIndex,
+    required EnemyStore enemies,
+    required ProjectileItemOriginStore projectileOrigins,
+  }) {
+    final projectiles = world.projectile;
+
+    final ei = enemies.tryIndexOf(owner);
+    final enemyId = ei != null ? enemies.enemyId[ei] : null;
+
+    final si = projectileOrigins.tryIndexOf(projectileEntity);
+    final projectileItemId = si != null
+        ? projectileOrigins.projectileItemId[si]
+        : null;
+
+    world.damageQueue.add(
+      DamageRequest(
+        target: target,
+        amount100: projectiles.damage100[projectileStoreIndex],
+        critChanceBp: projectiles.critChanceBp[projectileStoreIndex],
+        damageType: projectiles.damageType[projectileStoreIndex],
+        procs: projectiles.procs[projectileStoreIndex],
+        source: owner,
+        sourceKind: DeathSourceKind.projectile,
+        sourceEnemyId: enemyId,
+        sourceProjectileId: projectiles.projectileId[projectileStoreIndex],
+        sourceProjectileItemId: projectileItemId,
+      ),
+    );
+  }
+
+  void _queueProjectileHitEvent({
+    required void Function(ProjectileHitEvent event)? queueHitEvent,
+    required int currentTick,
+    required EntityId projectileEntity,
+    required int projectileStoreIndex,
+    required double projectileStoreCenterX,
+    required double projectileStoreCenterY,
+    required Facing facing,
+    required double rotationRad,
+    required ProjectileStore projectiles,
+    required ProjectileItemOriginStore projectileOrigins,
+  }) {
+    if (queueHitEvent == null) return;
+    final si = projectileOrigins.tryIndexOf(projectileEntity);
+    final projectileItemId = si != null
+        ? projectileOrigins.projectileItemId[si]
+        : null;
+    queueHitEvent(
+      ProjectileHitEvent(
+        tick: currentTick,
+        projectileId: projectiles.projectileId[projectileStoreIndex],
+        projectileItemId: projectileItemId,
+        pos: Vec2(projectileStoreCenterX, projectileStoreCenterY),
+        facing: facing,
+        rotationRad: rotationRad,
+      ),
+    );
   }
 }

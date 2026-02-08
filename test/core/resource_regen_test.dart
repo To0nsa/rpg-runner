@@ -23,13 +23,13 @@ void main() {
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(useGravity: false),
             projectileItemId: ProjectileItemId.iceBolt,
-            abilityProjectileId: 'eloise.heavy_throw',
+            abilityProjectileId: 'eloise.charged_shot',
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
               playerHpMax: 100,
               playerHpRegenPerSecond: 10,
-              playerManaMax: 10,
+              playerManaMax: 20,
               playerManaRegenPerSecond: 1,
               playerStaminaMax: 20,
               playerStaminaRegenPerSecond: 2,
@@ -41,7 +41,7 @@ void main() {
       // Player spawns at max resources.
       var hud = core.buildSnapshot().hud;
       expect(hud.hp, closeTo(100.0, 1e-9));
-      expect(hud.mana, closeTo(10.0, 1e-9));
+      expect(hud.mana, closeTo(20.0, 1e-9));
       expect(hud.stamina, closeTo(20.0, 1e-9));
 
       // Spend mana and stamina on separate ticks (dash preempts combat).
@@ -51,7 +51,7 @@ void main() {
       core.stepOneTick(); // tick 2: spend stamina and apply regen
       hud = core.buildSnapshot().hud;
       expect(hud.hp, closeTo(100.0, 1e-9));
-      expect(hud.mana, lessThan(10.0));
+      expect(hud.mana, lessThan(20.0));
       expect(hud.stamina, lessThan(20.0));
 
       // Run long enough to exceed maxima; values should clamp exactly to max.
@@ -62,7 +62,7 @@ void main() {
       }
       hud = core.buildSnapshot().hud;
       expect(hud.hp, closeTo(100.0, 1e-9));
-      expect(hud.mana, closeTo(10.0, 1e-9));
+      expect(hud.mana, closeTo(20.0, 1e-9));
       expect(hud.stamina, closeTo(20.0, 1e-9));
     },
   );

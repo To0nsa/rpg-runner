@@ -1,4 +1,5 @@
 import '../../abilities/ability_def.dart';
+import '../../abilities/forced_interrupt_policy.dart';
 import '../world.dart';
 
 /// Updates ActiveAbilityState phase timing and handles forced interruptions.
@@ -16,7 +17,7 @@ class ActiveAbilityPhaseSystem {
         continue;
       }
 
-      if (_isForcedInterrupted(world, entity, currentTick)) {
+      if (_isForcedInterrupted(world, entity, abilityId, currentTick)) {
         _clearAbility(world, entity, i);
         _clearBufferedInput(world, entity);
         _clearPendingIntents(world, entity);
@@ -47,11 +48,23 @@ class ActiveAbilityPhaseSystem {
     }
   }
 
-  bool _isForcedInterrupted(EcsWorld world, int entity, int currentTick) {
-    if (world.controlLock.isStunned(entity, currentTick)) return true;
+  bool _isForcedInterrupted(
+    EcsWorld world,
+    int entity,
+    AbilityKey abilityId,
+    int currentTick,
+  ) {
+    final forcedCauses = forcedInterruptCausesForAbility(abilityId);
+    if (forcedCauses.contains(ForcedInterruptCause.stun) &&
+        world.controlLock.isStunned(entity, currentTick)) {
+      return true;
+    }
     final hi = world.health.tryIndexOf(entity);
-    if (hi != null && world.health.hp[hi] <= 0) return true;
-    if (world.deathState.has(entity)) return true;
+    final hasDeathInterrupt = forcedCauses.contains(ForcedInterruptCause.death);
+    if (hasDeathInterrupt && hi != null && world.health.hp[hi] <= 0) {
+      return true;
+    }
+    if (hasDeathInterrupt && world.deathState.has(entity)) return true;
     return false;
   }
 

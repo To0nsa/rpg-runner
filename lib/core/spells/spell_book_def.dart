@@ -9,8 +9,6 @@ import 'spell_book_id.dart';
 class SpellBookDef {
   const SpellBookDef({
     required this.id,
-    required this.displayName,
-    required this.description,
     this.weaponType = WeaponType.projectileSpell,
     this.projectileSpellIds = const <ProjectileItemId>[],
     this.stats = const GearStatBonuses(),
@@ -19,8 +17,6 @@ class SpellBookDef {
   });
 
   final SpellBookId id;
-  final String displayName;
-  final String description;
   final WeaponType weaponType;
   final List<ProjectileItemId> projectileSpellIds;
   final GearStatBonuses stats;

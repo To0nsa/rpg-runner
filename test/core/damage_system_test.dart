@@ -3,7 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/accessories/accessory_catalog.dart';
 import 'package:rpg_runner/core/accessories/accessory_def.dart';
 import 'package:rpg_runner/core/accessories/accessory_id.dart';
-import 'package:rpg_runner/core/abilities/ability_def.dart' show WeaponType;
+import 'package:rpg_runner/core/abilities/ability_def.dart'
+    show AbilitySlot, WeaponType;
 import 'package:rpg_runner/core/combat/damage.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
@@ -17,6 +18,7 @@ import 'package:rpg_runner/core/spells/spell_book_catalog.dart';
 import 'package:rpg_runner/core/spells/spell_book_def.dart';
 import 'package:rpg_runner/core/spells/spell_book_id.dart';
 import 'package:rpg_runner/core/stats/character_stats_resolver.dart';
+import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/weapons/weapon_catalog.dart';
 import 'package:rpg_runner/core/weapons/weapon_category.dart';
 import 'package:rpg_runner/core/weapons/weapon_def.dart';
@@ -97,6 +99,115 @@ void main() {
     // 1000 with fixed +50% crit bonus => 1500 applied.
     expect(world.health.hp[world.health.indexOf(target)], equals(3500));
   });
+
+  test('DamageSystem interrupts charged shot on hit', () {
+    final world = EcsWorld();
+    final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
+
+    final target = world.createEntity();
+    world.health.add(
+      target,
+      const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+    );
+    world.activeAbility.add(target);
+    world.projectileIntent.add(target);
+    world.abilityInputBuffer.add(target);
+
+    world.activeAbility.set(
+      target,
+      id: 'eloise.charged_shot',
+      slot: AbilitySlot.projectile,
+      commitTick: 10,
+      windupTicks: 24,
+      activeTicks: 2,
+      recoveryTicks: 10,
+      facingDir: Facing.right,
+    );
+    final intentIndex = world.projectileIntent.indexOf(target);
+    world.projectileIntent.tick[intentIndex] = 34;
+    world.projectileIntent.commitTick[intentIndex] = 10;
+    world.abilityInputBuffer.setBuffer(
+      target,
+      slot: AbilitySlot.projectile,
+      abilityId: 'eloise.charged_shot',
+      aimDirX: 1.0,
+      aimDirY: 0.0,
+      facing: Facing.right,
+      commitTick: 10,
+      expiresTick: 16,
+    );
+
+    world.damageQueue.add(DamageRequest(target: target, amount100: 500));
+    damage.step(world, currentTick: 11);
+
+    expect(world.health.hp[world.health.indexOf(target)], equals(9500));
+    expect(world.activeAbility.hasActiveAbility(target), isFalse);
+    expect(world.projectileIntent.tick[intentIndex], equals(-1));
+    expect(world.projectileIntent.commitTick[intentIndex], equals(-1));
+    expect(
+      world.abilityInputBuffer.hasBuffered[world.abilityInputBuffer.indexOf(
+        target,
+      )],
+      isFalse,
+    );
+  });
+
+  test('DamageSystem keeps non-charged projectile abilities active on hit', () {
+    final world = EcsWorld();
+    final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
+
+    final target = world.createEntity();
+    world.health.add(
+      target,
+      const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+    );
+    world.activeAbility.add(target);
+    world.projectileIntent.add(target);
+    world.abilityInputBuffer.add(target);
+
+    world.activeAbility.set(
+      target,
+      id: 'eloise.quick_shot',
+      slot: AbilitySlot.projectile,
+      commitTick: 10,
+      windupTicks: 3,
+      activeTicks: 1,
+      recoveryTicks: 5,
+      facingDir: Facing.right,
+    );
+    final intentIndex = world.projectileIntent.indexOf(target);
+    world.projectileIntent.tick[intentIndex] = 13;
+    world.projectileIntent.commitTick[intentIndex] = 10;
+    world.abilityInputBuffer.setBuffer(
+      target,
+      slot: AbilitySlot.projectile,
+      abilityId: 'eloise.quick_shot',
+      aimDirX: 1.0,
+      aimDirY: 0.0,
+      facing: Facing.right,
+      commitTick: 10,
+      expiresTick: 16,
+    );
+
+    world.damageQueue.add(DamageRequest(target: target, amount100: 500));
+    damage.step(world, currentTick: 11);
+
+    expect(world.health.hp[world.health.indexOf(target)], equals(9500));
+    expect(world.activeAbility.hasActiveAbility(target), isTrue);
+    final activeIndex = world.activeAbility.indexOf(target);
+    expect(
+      world.activeAbility.abilityId[activeIndex],
+      equals('eloise.quick_shot'),
+    );
+    expect(world.projectileIntent.tick[intentIndex], equals(13));
+    expect(world.projectileIntent.commitTick[intentIndex], equals(10));
+    expect(
+      world.abilityInputBuffer.hasBuffered[world.abilityInputBuffer.indexOf(
+        target,
+      )],
+      isTrue,
+    );
+  });
 }
 
 class _DefenseWeaponCatalog extends WeaponCatalog {
@@ -107,8 +218,6 @@ class _DefenseWeaponCatalog extends WeaponCatalog {
     if (id == WeaponId.woodenSword) {
       return const WeaponDef(
         id: WeaponId.woodenSword,
-        displayName: 'Defense Sword',
-        description: 'Test weapon with defense bonus.',
         category: WeaponCategory.primary,
         weaponType: WeaponType.oneHandedSword,
         stats: GearStatBonuses(defenseBonusBp: 2000),
@@ -116,8 +225,6 @@ class _DefenseWeaponCatalog extends WeaponCatalog {
     }
     return const WeaponDef(
       id: WeaponId.basicShield,
-      displayName: 'Flat',
-      description: 'Flat weapon.',
       category: WeaponCategory.offHand,
       weaponType: WeaponType.shield,
     );
@@ -131,8 +238,6 @@ class _FlatProjectileCatalog extends ProjectileItemCatalog {
   ProjectileItemDef get(ProjectileItemId id) {
     return const ProjectileItemDef(
       id: ProjectileItemId.throwingKnife,
-      displayName: 'Flat Projectile',
-      description: 'Flat projectile.',
       weaponType: WeaponType.throwingWeapon,
       projectileId: ProjectileId.throwingKnife,
     );
@@ -146,8 +251,6 @@ class _FlatSpellBookCatalog extends SpellBookCatalog {
   SpellBookDef get(SpellBookId id) {
     return const SpellBookDef(
       id: SpellBookId.basicSpellBook,
-      displayName: 'Flat Spellbook',
-      description: 'Flat spellbook.',
       weaponType: WeaponType.projectileSpell,
     );
   }
@@ -160,8 +263,6 @@ class _FlatAccessoryCatalog extends AccessoryCatalog {
   AccessoryDef get(AccessoryId id) {
     return const AccessoryDef(
       id: AccessoryId.speedBoots,
-      displayName: 'Flat Accessory',
-      description: 'Flat accessory.',
       stats: AccessoryStats(),
     );
   }

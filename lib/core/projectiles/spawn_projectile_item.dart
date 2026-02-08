@@ -57,11 +57,16 @@ EntityId spawnProjectileItemFromCaster(
   required int critChanceBp,
   required DamageType damageType,
   List<WeaponProc> procs = const <WeaponProc>[],
+  bool pierce = false,
+  int maxPierceHits = 1,
   required bool ballistic,
   required double gravityScale,
+  double speedScale = 1.0,
 }) {
   final proj = projectiles.base.get(projectileId);
-  final speedUnitsPerSecond = proj.speedUnitsPerSecond;
+  final safeSpeedScale = speedScale <= 0 ? 0.01 : speedScale;
+  final speedUnitsPerSecond = proj.speedUnitsPerSecond * safeSpeedScale;
+  final resolvedMaxPierceHits = max(1, maxPierceHits);
 
   final dir = _normalizeDirOrFallback(
     dirX,
@@ -99,9 +104,13 @@ EntityId spawnProjectileItemFromCaster(
       critChanceBp: critChanceBp,
       damageType: damageType,
       procs: procs,
+      pierce: pierce,
+      maxPierceHits: resolvedMaxPierceHits,
       usePhysics: ballistic,
     ),
   );
+
+  world.hitOnce.add(entity);
 
   world.projectileItemOrigin.add(
     entity,

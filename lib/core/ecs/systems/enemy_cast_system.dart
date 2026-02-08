@@ -176,6 +176,8 @@ class EnemyCastSystem {
         manaCost100: ability.manaCost,
         cooldownTicks: tuning.unocoDemonCastCooldownTicks,
         projectileId: projectileItem.projectileId,
+        pierce: false,
+        maxPierceHits: 1,
         damageType: payload.damageType,
         procs: payload.procs,
         ballistic: projectileItem.ballistic,

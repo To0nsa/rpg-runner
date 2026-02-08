@@ -25,7 +25,7 @@ void main() {
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(useGravity: false),
           projectileItemId: ProjectileItemId.iceBolt,
-          abilityProjectileId: 'eloise.heavy_throw',
+          abilityProjectileId: 'eloise.charged_shot',
         ),
         tuning: base.tuning.copyWith(
           movement: const MovementTuning(
@@ -69,7 +69,7 @@ void main() {
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(useGravity: false),
             projectileItemId: ProjectileItemId.iceBolt,
-            abilityProjectileId: 'eloise.heavy_throw',
+            abilityProjectileId: 'eloise.charged_shot',
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
@@ -84,7 +84,7 @@ void main() {
 
       final dt = 1.0 / controller.tickHz;
       final windupTicks = ticksFromSecondsCeil(
-        AbilityCatalog.tryGet('eloise.heavy_throw')!.windupTicks / 60.0,
+        AbilityCatalog.tryGet('eloise.charged_shot')!.windupTicks / 60.0,
         controller.tickHz,
       );
 
@@ -127,7 +127,7 @@ void main() {
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(useGravity: false),
           projectileItemId: ProjectileItemId.iceBolt,
-          abilityProjectileId: 'eloise.heavy_throw',
+          abilityProjectileId: 'eloise.charged_shot',
         ),
         tuning: base.tuning.copyWith(
           resource: const ResourceTuning(
@@ -142,7 +142,7 @@ void main() {
 
     final dt = 1.0 / controller.tickHz;
     final windupTicks = ticksFromSecondsCeil(
-      AbilityCatalog.tryGet('eloise.heavy_throw')!.windupTicks / 60.0,
+      AbilityCatalog.tryGet('eloise.charged_shot')!.windupTicks / 60.0,
       controller.tickHz,
     );
 
@@ -165,4 +165,59 @@ void main() {
     expect(projectile.vel!.y, lessThan(0));
     expect(projectile.vel!.x.abs(), lessThan(1e-6));
   });
+
+  test(
+    'release-to-cast forwards charge ticks and changes charged-shot speed tier',
+    () {
+      double launchSpeedForCharge(int chargeTicks) {
+        final base = PlayerCharacterRegistry.eloise;
+        final core = GameCore(
+          seed: 1,
+          tickHz: 60,
+          tuning: noAutoscrollTuning,
+          playerCharacter: base.copyWith(
+            catalog: testPlayerCatalog(
+              bodyTemplate: BodyDef(useGravity: false),
+              projectileItemId: ProjectileItemId.throwingKnife,
+              projectileSlotSpellId: null,
+              abilityProjectileId: 'eloise.charged_shot',
+            ),
+            tuning: base.tuning.copyWith(
+              resource: const ResourceTuning(
+                playerManaMax: 20,
+                playerManaRegenPerSecond: 0,
+              ),
+            ),
+          ),
+        );
+        final controller = GameController(core: core);
+        final input = RunnerInputRouter(controller: controller);
+
+        final dt = 1.0 / controller.tickHz;
+        final windupTicks = ticksFromSecondsCeil(
+          AbilityCatalog.tryGet('eloise.charged_shot')!.windupTicks / 60.0,
+          controller.tickHz,
+        );
+
+        input.setProjectileAimDir(1, 0);
+        input.commitProjectileWithAim(clearAim: true, chargeTicks: chargeTicks);
+
+        for (var i = 0; i < windupTicks + 2; i += 1) {
+          input.pumpHeldInputs();
+          controller.advanceFrame(dt);
+        }
+
+        final snapshot = core.buildSnapshot();
+        final projectile = snapshot.entities.firstWhere(
+          (e) => e.kind == EntityKind.projectile,
+        );
+        return projectile.vel!.x.abs();
+      }
+
+      final tapSpeed = launchSpeedForCharge(0);
+      final fullSpeed = launchSpeedForCharge(24);
+
+      expect(fullSpeed, greaterThan(tapSpeed));
+    },
+  );
 }

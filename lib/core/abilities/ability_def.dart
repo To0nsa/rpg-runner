@@ -69,6 +69,8 @@ enum TargetingModel {
   none, // Instant self-cast / buff
   directional, // Uses input direction (melee)
   aimed, // Uses explicit aim cursor (ranged)
+  aimedLine, // Directional line shot; strong when targets align
+  aimedCharge, // Charged shot with long commit window
   homing, // Auto-locks nearest target
   groundTarget, // AOE circle on ground
 }
@@ -80,6 +82,12 @@ enum InterruptPriority {
   combat, // standard attacks (strike/cast)
   mobility, // dash/jump/roll
   forced, // system-only (stun/death)
+}
+
+enum ForcedInterruptCause {
+  stun, // control lock stun
+  death, // hp <= 0 or death state
+  damageTaken, // non-zero damage applied this tick
 }
 
 // --------------------------------------------------------------------------
@@ -217,6 +225,12 @@ abstract final class CooldownGroup {
 // --------------------------------------------------------------------------
 
 class AbilityDef {
+  static const Set<ForcedInterruptCause> defaultForcedInterruptCauses =
+      <ForcedInterruptCause>{
+        ForcedInterruptCause.stun,
+        ForcedInterruptCause.death,
+      };
+
   const AbilityDef({
     required this.id,
     required this.category,
@@ -233,6 +247,7 @@ class AbilityDef {
     this.cooldownGroupId,
     required this.interruptPriority,
     this.canBeInterruptedBy = const {},
+    this.forcedInterruptCauses = defaultForcedInterruptCauses,
     required this.animKey,
     this.tags = const {},
     this.requiredTags = const {},
@@ -302,6 +317,9 @@ class AbilityDef {
   // Interrupt rules
   final InterruptPriority interruptPriority;
   final Set<InterruptPriority> canBeInterruptedBy;
+  // Forced interruption causes this ability opts into.
+  // Defaults to stun/death; add damageTaken for opt-in hit interruption.
+  final Set<ForcedInterruptCause> forcedInterruptCauses;
 
   // Presentation
   final AnimKey animKey;

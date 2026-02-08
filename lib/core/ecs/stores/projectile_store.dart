@@ -17,8 +17,10 @@ class ProjectileDef {
     this.critChanceBp = 0,
     required this.damageType,
     this.procs = const <WeaponProc>[],
+    this.pierce = false,
+    this.maxPierceHits = 1,
     this.usePhysics = false,
-  });
+  }) : assert(maxPierceHits > 0, 'maxPierceHits must be > 0');
 
   final ProjectileId projectileId;
   final Faction faction;
@@ -34,6 +36,8 @@ class ProjectileDef {
   final int critChanceBp;
   final DamageType damageType;
   final List<WeaponProc> procs;
+  final bool pierce;
+  final int maxPierceHits;
 
   /// If true, this projectile is moved by core physics (GravitySystem +
   /// CollisionSystem) rather than [ProjectileSystem].
@@ -56,6 +60,8 @@ class ProjectileStore extends SparseSet {
   final List<int> critChanceBp = <int>[];
   final List<DamageType> damageType = <DamageType>[];
   final List<List<WeaponProc>> procs = <List<WeaponProc>>[];
+  final List<bool> pierce = <bool>[];
+  final List<int> maxPierceHits = <int>[];
   final List<bool> usePhysics = <bool>[];
 
   void add(EntityId entity, ProjectileDef def) {
@@ -70,6 +76,8 @@ class ProjectileStore extends SparseSet {
     critChanceBp[i] = def.critChanceBp;
     damageType[i] = def.damageType;
     procs[i] = def.procs;
+    pierce[i] = def.pierce;
+    maxPierceHits[i] = def.maxPierceHits;
     usePhysics[i] = def.usePhysics;
   }
 
@@ -85,6 +93,8 @@ class ProjectileStore extends SparseSet {
     critChanceBp.add(0);
     damageType.add(DamageType.physical);
     procs.add(const <WeaponProc>[]);
+    pierce.add(false);
+    maxPierceHits.add(1);
     usePhysics.add(false);
   }
 
@@ -100,6 +110,8 @@ class ProjectileStore extends SparseSet {
     critChanceBp[removeIndex] = critChanceBp[lastIndex];
     damageType[removeIndex] = damageType[lastIndex];
     procs[removeIndex] = procs[lastIndex];
+    pierce[removeIndex] = pierce[lastIndex];
+    maxPierceHits[removeIndex] = maxPierceHits[lastIndex];
     usePhysics[removeIndex] = usePhysics[lastIndex];
 
     projectileId.removeLast();
@@ -112,6 +124,8 @@ class ProjectileStore extends SparseSet {
     critChanceBp.removeLast();
     damageType.removeLast();
     procs.removeLast();
+    pierce.removeLast();
+    maxPierceHits.removeLast();
     usePhysics.removeLast();
   }
 }
