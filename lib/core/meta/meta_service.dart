@@ -266,8 +266,7 @@ class MetaService {
     }
 
     var accessoryId = gear.accessoryId;
-    if (accessories.tryGet(accessoryId) == null ||
-        !inventory.unlockedAccessoryIds.contains(accessoryId)) {
+    if (!inventory.unlockedAccessoryIds.contains(accessoryId)) {
       accessoryId = MetaDefaults.accessoryId;
     }
 
@@ -392,7 +391,6 @@ class MetaService {
         );
       case GearSlot.accessory:
         if (itemId is! AccessoryId) return normalized;
-        if (accessories.tryGet(itemId) == null) return normalized;
         if (!normalized.inventory.unlockedAccessoryIds.contains(itemId)) {
           return normalized;
         }

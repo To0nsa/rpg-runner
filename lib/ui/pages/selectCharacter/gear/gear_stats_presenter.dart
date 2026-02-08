@@ -149,7 +149,7 @@ List<GearStatLine> _diffWeaponStatsLike(GearStatBonuses a, GearStatBonuses b) {
   return _diffStatBonuses(a, b);
 }
 
-List<GearStatLine> _diffAccessoryStats(AccessoryStats a, AccessoryStats b) {
+List<GearStatLine> _diffAccessoryStats(GearStatBonuses a, GearStatBonuses b) {
   return _diffStatBonuses(a, b);
 }
 

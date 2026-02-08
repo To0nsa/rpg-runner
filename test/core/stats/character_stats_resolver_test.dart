@@ -167,7 +167,7 @@ class _FlatAccessoryCatalog extends AccessoryCatalog {
   AccessoryDef get(AccessoryId id) {
     return const AccessoryDef(
       id: AccessoryId.speedBoots,
-      stats: AccessoryStats(),
+      stats: GearStatBonuses(),
     );
   }
 }
@@ -179,7 +179,7 @@ class _HighCdrAccessoryCatalog extends AccessoryCatalog {
   AccessoryDef get(AccessoryId id) {
     return const AccessoryDef(
       id: AccessoryId.speedBoots,
-      stats: AccessoryStats(cooldownReductionBp: 8000),
+      stats: GearStatBonuses(cooldownReductionBp: 8000),
     );
   }
 }
@@ -191,7 +191,7 @@ class _ResourceAccessoryCatalog extends AccessoryCatalog {
   AccessoryDef get(AccessoryId id) {
     return const AccessoryDef(
       id: AccessoryId.goldenRing,
-      stats: AccessoryStats(
+      stats: GearStatBonuses(
         healthBonusBp: 200,
         manaBonusBp: 300,
         staminaBonusBp: 400,

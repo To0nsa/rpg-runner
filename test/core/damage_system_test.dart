@@ -263,7 +263,7 @@ class _FlatAccessoryCatalog extends AccessoryCatalog {
   AccessoryDef get(AccessoryId id) {
     return const AccessoryDef(
       id: AccessoryId.speedBoots,
-      stats: AccessoryStats(),
+      stats: GearStatBonuses(),
     );
   }
 }

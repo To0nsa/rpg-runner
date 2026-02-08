@@ -1,33 +1,31 @@
-import '../weapons/weapon_proc.dart';
 import '../stats/gear_stat_bonuses.dart';
 import 'accessory_id.dart';
 
-/// Single equip slot for accessories (v0).
+/// Accessory equip location.
+///
+/// There is currently one accessory slot. Keeping this enum allows future
+/// expansion (for example, ring/amulet split) without changing the model type.
 enum AccessorySlot { trinket }
 
-/// Optional taxonomy for filtering and UI grouping.
-enum AccessoryTag { offense, defense, utility, magic }
-
-/// Backward-compatible alias used by accessory definitions.
+/// Immutable authored definition for an accessory item.
 ///
-/// `AccessoryStats` now resolves to the unified [GearStatBonuses] payload.
-typedef AccessoryStats = GearStatBonuses;
-
-/// Data definition for accessories (global inventory items).
+/// Accessories currently contribute only aggregated stat bonuses. Combat proc
+/// behavior is intentionally modeled elsewhere and is not part of this payload.
 class AccessoryDef {
   const AccessoryDef({
     required this.id,
     this.slot = AccessorySlot.trinket,
-    this.tags = const <AccessoryTag>{},
-    this.stats = const AccessoryStats(),
-    this.procs = const <WeaponProc>[],
+    this.stats = const GearStatBonuses(),
   });
 
+  /// Stable accessory key referenced by meta/inventory state.
   final AccessoryId id;
-  final AccessorySlot slot;
-  final Set<AccessoryTag> tags;
-  final AccessoryStats stats;
 
-  /// Optional procs applied on hit (future integration with payload builder).
-  final List<WeaponProc> procs;
+  /// Equip location this accessory occupies.
+  final AccessorySlot slot;
+
+  /// Additive stat contribution merged into resolved character stats.
+  ///
+  /// Values use [GearStatBonuses] units (`100 = 1%` for basis-point fields).
+  final GearStatBonuses stats;
 }
