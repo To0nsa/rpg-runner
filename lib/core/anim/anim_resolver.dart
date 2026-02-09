@@ -311,8 +311,6 @@ class AnimResolver {
         return profile.supportsCast ? profile.castAnimKey : null;
       case AnimKey.ranged:
         return profile.supportsRanged ? profile.rangedAnimKey : null;
-      case AnimKey.throwItem:
-        return profile.supportsRanged ? key : null;
       case AnimKey.dash:
         return profile.supportsDash ? profile.dashAnimKey : null;
       case AnimKey.jump:
@@ -324,7 +322,6 @@ class AnimResolver {
       case AnimKey.parry:
       case AnimKey.shieldBash:
       case AnimKey.shieldBlock:
-      case AnimKey.punch:
         // Explicitly allow authored one-off action strips.
         return key;
       default:

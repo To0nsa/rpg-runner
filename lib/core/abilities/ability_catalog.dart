@@ -86,9 +86,9 @@ class AbilityCatalog implements AbilityResolver {
       allowedSlots: {AbilitySlot.primary, AbilitySlot.bonus},
       targetingModel: TargetingModel.directional,
       hitDelivery: MeleeHitDelivery(
-        sizeX: 1.5,
-        sizeY: 1.5,
-        offsetX: 1.0,
+        sizeX: 32,
+        sizeY: 32,
+        offsetX: 12,
         offsetY: 0.0,
         hitPolicy: HitPolicy.oncePerTarget,
       ),
@@ -143,9 +143,9 @@ class AbilityCatalog implements AbilityResolver {
       allowedSlots: {AbilitySlot.secondary, AbilitySlot.bonus},
       targetingModel: TargetingModel.directional,
       hitDelivery: MeleeHitDelivery(
-        sizeX: 1.5,
-        sizeY: 1.5,
-        offsetX: 1.0,
+        sizeX: 32,
+        sizeY: 32,
+        offsetX: 12.0,
         offsetY: 0.0,
         hitPolicy: HitPolicy.oncePerTarget,
       ),
@@ -210,7 +210,7 @@ class AbilityCatalog implements AbilityResolver {
       manaCost: 800,
       cooldownTicks: 40,
       interruptPriority: InterruptPriority.combat,
-      animKey: AnimKey.cast,
+      animKey: AnimKey.ranged,
       requiredWeaponTypes: {
         WeaponType.throwingWeapon,
         WeaponType.projectileSpell,
@@ -236,7 +236,7 @@ class AbilityCatalog implements AbilityResolver {
       manaCost: 600,
       cooldownTicks: 14,
       interruptPriority: InterruptPriority.combat,
-      animKey: AnimKey.throwItem,
+      animKey: AnimKey.ranged,
       requiredWeaponTypes: {
         WeaponType.throwingWeapon,
         WeaponType.projectileSpell,
@@ -264,7 +264,7 @@ class AbilityCatalog implements AbilityResolver {
       manaCost: 1000,
       cooldownTicks: 32,
       interruptPriority: InterruptPriority.combat,
-      animKey: AnimKey.throwItem,
+      animKey: AnimKey.ranged,
       requiredWeaponTypes: {
         WeaponType.throwingWeapon,
         WeaponType.projectileSpell,
@@ -295,7 +295,7 @@ class AbilityCatalog implements AbilityResolver {
         ForcedInterruptCause.death,
         ForcedInterruptCause.damageTaken,
       },
-      animKey: AnimKey.cast,
+      animKey: AnimKey.ranged,
       requiredWeaponTypes: {
         WeaponType.throwingWeapon,
         WeaponType.projectileSpell,

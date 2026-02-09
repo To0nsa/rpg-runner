@@ -1,5 +1,6 @@
 import '../../../anim/anim_resolver.dart';
 import '../../../abilities/ability_catalog.dart';
+import '../../../abilities/ability_def.dart';
 import '../../../snapshots/enums.dart';
 import '../../../enemies/death_behavior.dart';
 import '../../../enemies/enemy_catalog.dart';
@@ -270,6 +271,43 @@ class AnimSystem {
       return (anim: null, frame: 0);
     }
 
-    return (anim: def.animKey, frame: elapsed < 0 ? 0 : elapsed);
+    final actionAnim = _resolveActionAnimKey(
+      world,
+      entity: entity,
+      activeIndex: index,
+      activeId: activeId,
+      ability: def,
+    );
+
+    return (anim: actionAnim, frame: elapsed < 0 ? 0 : elapsed);
+  }
+
+  AnimKey _resolveActionAnimKey(
+    EcsWorld world, {
+    required EntityId entity,
+    required int activeIndex,
+    required AbilityKey activeId,
+    required AbilityDef ability,
+  }) {
+    // Back-strike is a directional variant of melee strike.
+    if (ability.animKey != AnimKey.strike) return ability.animKey;
+    if (ability.hitDelivery is! MeleeHitDelivery) return ability.animKey;
+    if (!world.movement.has(entity)) return ability.animKey;
+
+    final commitFacing = world.activeAbility.facing[activeIndex];
+    final currentFacing = world.movement.facing[world.movement.indexOf(entity)];
+    if (commitFacing == currentFacing) return ability.animKey;
+
+    // Pure vertical aim keeps dirX ~ 0 and should stay on regular strike.
+    final meleeIndex = world.meleeIntent.tryIndexOf(entity);
+    if (meleeIndex != null) {
+      final intentAbilityId = world.meleeIntent.abilityId[meleeIndex];
+      if (intentAbilityId == activeId &&
+          world.meleeIntent.dirX[meleeIndex].abs() <= 1e-6) {
+        return ability.animKey;
+      }
+    }
+
+    return AnimKey.backStrike;
   }
 }

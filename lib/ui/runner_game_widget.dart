@@ -149,12 +149,10 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _input.pumpHeldInputs();
   }
 
-  void _cancelHeldAimingFromHit() {
+  void _cancelHeldChargedAimFromHit() {
     _input.clearProjectileAimDir();
-    _input.clearMeleeAimDir();
     _projectileAimPreview.end();
     _projectileChargePreview.end();
-    _meleeAimPreview.end();
     _forceAimCancelSignal.value = _forceAimCancelSignal.value + 1;
     _input.pumpHeldInputs();
   }
@@ -163,7 +161,9 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     final damageTick = _controller.snapshot.hud.lastDamageTick;
     if (damageTick <= _lastPlayerDamageTick) return;
     _lastPlayerDamageTick = damageTick;
-    _cancelHeldAimingFromHit();
+    if (_projectileChargePreview.value.active) {
+      _cancelHeldChargedAimFromHit();
+    }
   }
 
   AppState? _maybeAppState() {

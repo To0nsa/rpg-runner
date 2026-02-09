@@ -27,10 +27,8 @@ enum AnimKey {
   parry,
   ranged,
   roll,
-  punch,
   shieldBash,
   shieldBlock,
-  throwItem,
 }
 
 /// Broad entity classification for rendering and (future) networking.

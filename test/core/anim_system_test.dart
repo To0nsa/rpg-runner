@@ -13,6 +13,7 @@ import 'package:rpg_runner/core/ecs/systems/anim/anim_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/enemies/enemy_catalog.dart';
 import 'package:rpg_runner/core/enemies/enemy_id.dart';
+import 'package:rpg_runner/core/abilities/ability_catalog.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/combat/control_lock.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
@@ -218,7 +219,39 @@ void main() {
         expect(world.animState.animFrame[ai], equals(offset));
       });
 
-      test('cast uses active ability anim and frame', () {
+      test(
+        'backStrike is selected when strike facing opposes current facing',
+        () {
+          final player = spawnPlayer(grounded: true);
+          final movementIndex = world.movement.indexOf(player);
+          world.movement.facing[movementIndex] = Facing.right;
+
+          final tick = playerAnimTuning.spawnAnimTicks + 5;
+          const offset = 1;
+          world.activeAbility.set(
+            player,
+            id: 'eloise.sword_strike',
+            slot: AbilitySlot.primary,
+            commitTick: tick - offset,
+            windupTicks: 0,
+            activeTicks: 10,
+            recoveryTicks: 0,
+            facingDir: Facing.left,
+          );
+
+          final meleeIndex = world.meleeIntent.indexOf(player);
+          world.meleeIntent.abilityId[meleeIndex] = 'eloise.sword_strike';
+          world.meleeIntent.dirX[meleeIndex] = -1.0;
+
+          stepPlayer(player, tick);
+
+          final ai = world.animState.indexOf(player);
+          expect(world.animState.anim[ai], equals(AnimKey.backStrike));
+          expect(world.animState.animFrame[ai], equals(offset));
+        },
+      );
+
+      test('charged shot uses active ability anim and frame', () {
         final player = spawnPlayer(grounded: true);
         final tick = playerAnimTuning.spawnAnimTicks + 5;
         const offset = 1;
@@ -236,11 +269,14 @@ void main() {
         stepPlayer(player, tick);
 
         final ai = world.animState.indexOf(player);
-        expect(world.animState.anim[ai], equals(AnimKey.cast));
+        final expectedAnim = AbilityCatalog.tryGet(
+          'eloise.charged_shot',
+        )!.animKey;
+        expect(world.animState.anim[ai], equals(expectedAnim));
         expect(world.animState.animFrame[ai], equals(offset));
       });
 
-      test('ranged uses active ability anim and frame', () {
+      test('quick shot uses active ability anim and frame', () {
         final player = spawnPlayer(grounded: true);
         final tick = playerAnimTuning.spawnAnimTicks + 5;
         const offset = 1;
@@ -258,7 +294,10 @@ void main() {
         stepPlayer(player, tick);
 
         final ai = world.animState.indexOf(player);
-        expect(world.animState.anim[ai], equals(AnimKey.throwItem));
+        final expectedAnim = AbilityCatalog.tryGet(
+          'eloise.quick_shot',
+        )!.animKey;
+        expect(world.animState.anim[ai], equals(expectedAnim));
         expect(world.animState.animFrame[ai], equals(offset));
       });
 
