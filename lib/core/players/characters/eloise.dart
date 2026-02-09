@@ -230,14 +230,6 @@ const PlayerTuning eloiseTuning = PlayerTuning(
   // Keep these windows in sync with Éloïse's render strips above.
   anim: AnimTuning(
     hitAnimSeconds: eloiseAnimHitFrames * eloiseAnimHitStepSeconds,
-    castAnimSeconds: eloiseAnimCastFrames * eloiseAnimCastStepSeconds,
-    strikeAnimSeconds: eloiseAnimStrikeFrames * eloiseAnimStrikeStepSeconds,
-    backStrikeAnimSeconds:
-        eloiseAnimBackStrikeFrames * eloiseAnimBackStrikeStepSeconds,
-    parryAnimSeconds: eloiseAnimParryFrames * eloiseAnimParryStepSeconds,
-    rangedAnimSeconds: eloiseAnimRangedFrames * eloiseAnimRangedStepSeconds,
-    dashAnimSeconds: eloiseAnimDashFrames * eloiseAnimDashStepSeconds,
-    rollAnimSeconds: eloiseAnimRollFrames * eloiseAnimRollStepSeconds,
     deathAnimSeconds: eloiseAnimDeathFrames * eloiseAnimDeathStepSeconds,
     spawnAnimSeconds: eloiseAnimSpawnFrames * eloiseAnimSpawnStepSeconds,
   ),

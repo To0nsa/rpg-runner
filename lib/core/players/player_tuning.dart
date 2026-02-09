@@ -71,7 +71,10 @@ class MovementTuningDerived {
     required this.dashCooldownTicks,
   });
 
-  factory MovementTuningDerived.from(MovementTuning base, {required int tickHz}) {
+  factory MovementTuningDerived.from(
+    MovementTuning base, {
+    required int tickHz,
+  }) {
     if (tickHz <= 0) {
       throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
     }
@@ -144,7 +147,9 @@ class ResourceTuningDerived {
       playerManaMax100: toFixed100(base.playerManaMax),
       playerManaRegenPerSecond100: toFixed100(base.playerManaRegenPerSecond),
       playerStaminaMax100: toFixed100(base.playerStaminaMax),
-      playerStaminaRegenPerSecond100: toFixed100(base.playerStaminaRegenPerSecond),
+      playerStaminaRegenPerSecond100: toFixed100(
+        base.playerStaminaRegenPerSecond,
+      ),
       jumpStaminaCost100: toFixed100(base.jumpStaminaCost),
       dashStaminaCost100: toFixed100(base.dashStaminaCost),
     );
@@ -208,7 +213,10 @@ class AbilityTuningDerived {
       tickHz: tickHz,
       base: base,
       castCooldownTicks: ticksFromSecondsCeil(base.castCooldownSeconds, tickHz),
-      meleeCooldownTicks: ticksFromSecondsCeil(base.meleeCooldownSeconds, tickHz),
+      meleeCooldownTicks: ticksFromSecondsCeil(
+        base.meleeCooldownSeconds,
+        tickHz,
+      ),
       meleeActiveTicks: ticksFromSecondsCeil(base.meleeActiveSeconds, tickHz),
       inputBufferTicks: ticksFromSecondsCeil(base.inputBufferSeconds, tickHz),
     );
@@ -268,13 +276,6 @@ class CombatTuningDerived {
 class AnimTuning {
   const AnimTuning({
     this.hitAnimSeconds = 0.40,
-    this.castAnimSeconds = 0.40,
-    this.strikeAnimSeconds = 0.36,
-    this.backStrikeAnimSeconds = 0.36,
-    this.parryAnimSeconds = 0.36,
-    this.rangedAnimSeconds = 0.40,
-    this.dashAnimSeconds = 0.20,
-    this.rollAnimSeconds = 0.50,
     this.deathAnimSeconds = 0.72,
     this.spawnAnimSeconds = 0.56,
   });
@@ -283,69 +284,12 @@ class AnimTuning {
     required Map<AnimKey, int> frameCounts,
     required Map<AnimKey, double> stepTimeSecondsByKey,
   }) {
-    final castSeconds = anim_utils.secondsForKey(
-      key: AnimKey.cast,
-      frameCounts: frameCounts,
-      stepTimeSecondsByKey: stepTimeSecondsByKey,
-    );
-    final strikeSeconds = anim_utils.secondsForKey(
-      key: AnimKey.strike,
-      frameCounts: frameCounts,
-      stepTimeSecondsByKey: stepTimeSecondsByKey,
-    );
     return AnimTuning(
       hitAnimSeconds: anim_utils.secondsForKey(
         key: AnimKey.hit,
         frameCounts: frameCounts,
         stepTimeSecondsByKey: stepTimeSecondsByKey,
       ),
-      castAnimSeconds: castSeconds,
-      strikeAnimSeconds: strikeSeconds,
-      backStrikeAnimSeconds:
-          (frameCounts.containsKey(AnimKey.backStrike) ||
-                  stepTimeSecondsByKey.containsKey(AnimKey.backStrike))
-              ? anim_utils.secondsForKey(
-                  key: AnimKey.backStrike,
-                  frameCounts: frameCounts,
-                  stepTimeSecondsByKey: stepTimeSecondsByKey,
-                )
-              : strikeSeconds,
-      parryAnimSeconds:
-          (frameCounts.containsKey(AnimKey.parry) ||
-                  stepTimeSecondsByKey.containsKey(AnimKey.parry))
-              ? anim_utils.secondsForKey(
-                  key: AnimKey.parry,
-                  frameCounts: frameCounts,
-                  stepTimeSecondsByKey: stepTimeSecondsByKey,
-                )
-              : strikeSeconds,
-      rangedAnimSeconds:
-          (frameCounts.containsKey(AnimKey.ranged) ||
-                  stepTimeSecondsByKey.containsKey(AnimKey.ranged))
-              ? anim_utils.secondsForKey(
-                  key: AnimKey.ranged,
-                  frameCounts: frameCounts,
-                  stepTimeSecondsByKey: stepTimeSecondsByKey,
-                )
-              : castSeconds,
-      dashAnimSeconds:
-          (frameCounts.containsKey(AnimKey.dash) ||
-                  stepTimeSecondsByKey.containsKey(AnimKey.dash))
-              ? anim_utils.secondsForKey(
-                  key: AnimKey.dash,
-                  frameCounts: frameCounts,
-                  stepTimeSecondsByKey: stepTimeSecondsByKey,
-                )
-              : 0.20,
-      rollAnimSeconds:
-          (frameCounts.containsKey(AnimKey.roll) ||
-                  stepTimeSecondsByKey.containsKey(AnimKey.roll))
-              ? anim_utils.secondsForKey(
-                  key: AnimKey.roll,
-                  frameCounts: frameCounts,
-                  stepTimeSecondsByKey: stepTimeSecondsByKey,
-                )
-              : 0.50,
       deathAnimSeconds: anim_utils.secondsForKey(
         key: AnimKey.death,
         frameCounts: frameCounts,
@@ -360,13 +304,6 @@ class AnimTuning {
   }
 
   final double hitAnimSeconds;
-  final double castAnimSeconds;
-  final double strikeAnimSeconds;
-  final double backStrikeAnimSeconds;
-  final double parryAnimSeconds;
-  final double rangedAnimSeconds;
-  final double dashAnimSeconds;
-  final double rollAnimSeconds;
   final double deathAnimSeconds;
   final double spawnAnimSeconds;
 }
@@ -376,13 +313,6 @@ class AnimTuningDerived {
     required this.tickHz,
     required this.base,
     required this.hitAnimTicks,
-    required this.castAnimTicks,
-    required this.strikeAnimTicks,
-    required this.backStrikeAnimTicks,
-    required this.parryAnimTicks,
-    required this.rangedAnimTicks,
-    required this.dashAnimTicks,
-    required this.rollAnimTicks,
     required this.deathAnimTicks,
     required this.spawnAnimTicks,
   });
@@ -396,13 +326,6 @@ class AnimTuningDerived {
       tickHz: tickHz,
       base: base,
       hitAnimTicks: ticksFromSecondsCeil(base.hitAnimSeconds, tickHz),
-      castAnimTicks: ticksFromSecondsCeil(base.castAnimSeconds, tickHz),
-      strikeAnimTicks: ticksFromSecondsCeil(base.strikeAnimSeconds, tickHz),
-      backStrikeAnimTicks: ticksFromSecondsCeil(base.backStrikeAnimSeconds, tickHz),
-      parryAnimTicks: ticksFromSecondsCeil(base.parryAnimSeconds, tickHz),
-      rangedAnimTicks: ticksFromSecondsCeil(base.rangedAnimSeconds, tickHz),
-      dashAnimTicks: ticksFromSecondsCeil(base.dashAnimSeconds, tickHz),
-      rollAnimTicks: ticksFromSecondsCeil(base.rollAnimSeconds, tickHz),
       deathAnimTicks: ticksFromSecondsCeil(base.deathAnimSeconds, tickHz),
       spawnAnimTicks: ticksFromSecondsCeil(base.spawnAnimSeconds, tickHz),
     );
@@ -412,13 +335,6 @@ class AnimTuningDerived {
   final AnimTuning base;
 
   final int hitAnimTicks;
-  final int castAnimTicks;
-  final int strikeAnimTicks;
-  final int backStrikeAnimTicks;
-  final int parryAnimTicks;
-  final int rangedAnimTicks;
-  final int dashAnimTicks;
-  final int rollAnimTicks;
   final int deathAnimTicks;
   final int spawnAnimTicks;
 }
