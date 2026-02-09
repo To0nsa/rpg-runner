@@ -1,186 +1,142 @@
 # TODO — `lib/core/anim/anim_resolver.dart`
 
-> Goal: make animation selection **correct + deterministic**, eliminate “global tick” frame drift, and harden the resolver against missing/invalid start ticks.
+Goal: make resolver output deterministic, branch-safe animation keys/frames.
+
+Scope: resolver-only logic in this file.  
+Signal sourcing/plumbing tasks belong to `lib/core/ecs/systems/anim/TODO.md`.
 
 ---
 
-## P0 — Must fix (will cause visible glitches)
+## Current state audit (as of now)
 
-### [ ] Fix Spawn timing (currently assumes spawn starts at tick 0)
-
-**Problem**: spawn condition uses `tick < spawnAnimTicks`, so any entity spawning after tick 0 will either:
-
-* never show spawn anim, or
-* show spawn anim at the wrong time window.
-
-**Patch (core idea)**:
-
-* Use `spawnStartTick` as the reference.
-* Only show spawn if `spawnStartTick >= 0`.
-
-**Acceptance**:
-
-* Spawn anim plays for exactly `spawnAnimTicks` after `spawnStartTick`.
-* Entities that spawn mid-run still show the spawn anim.
-
-**Implementation sketch**:
-
-* `final showSpawn = profile.supportsSpawn && signals.spawnAnimTicks > 0 && signals.spawnStartTick >= 0 && (tick - signals.spawnStartTick) < signals.spawnAnimTicks;`
-* Resolve spawn using `animFrame: _frameFromTick(tick, signals.spawnStartTick)`.
+- `deathPhase == deathAnim` already uses `deathStartTick` (good).
+- Active ability frame comes from `activeActionFrame` (good).
+- Dash now resolves through active-action mapping only (no legacy dash-timer branch).
+- Spawn window is relative to `spawnStartTick` (good).
+- `hp <= 0` now prefers `deathStartTick` and falls back to frame 0 when missing.
+- Active-action mapping is strict (unknown keys fall through).
+- Jump/fall/idle/walk/run use global tick for `animFrame` by design.
+- `AnimSystem` no longer wires player legacy strike/cast/ranged timestamps.
+- `AnimResolver` no longer exposes or evaluates legacy strike/cast/ranged signal fields.
 
 ---
 
-### [ ] Stabilize Death timing (avoid falling back to `lastDamageTick`)
+## P0 — Resolver correctness (high impact, local to this file)
 
-**Problem**:
+### [x] Spawn window must be relative to `spawnStartTick`
 
-* When `hp <= 0` but `deathPhase` is not set, resolver falls back to `_frameFromTick(tick, lastDamageTick)`.
-* That’s fragile: `lastDamageTick` can be stale / missing / from a previous hit (esp. pooled entities or multi-hit sequences).
+Current behavior can miss or mis-time spawn animation for entities spawned after tick 0.
 
-**Fix policy**:
+Tasks:
+- Gate spawn on `spawnStartTick >= 0`.
+- Use `(tick - spawnStartTick) < spawnAnimTicks`.
+- Emit spawn frame via `_frameFromTick(tick, spawnStartTick)`.
 
-1. Prefer `deathStartTick` whenever the entity is dead/dying.
-2. Only fallback to `lastDamageTick` if you *must* support legacy cases, but make that path safe.
+Acceptance:
+- Spawn plays exactly for the authored window after actual spawn tick.
+- Mid-run spawns behave the same as tick-0 spawns.
 
-**Acceptance**:
+### [x] Remove fragile death fallback to `lastDamageTick`
 
-* Death anim starts on the correct tick (first tick of death).
-* No “death anim jumps forward” on spawn/despawn or after delayed kills.
+Current `hp <= 0` path can jump frames from stale hit data.
 
-**Tasks**:
+Tasks:
+- Prefer `deathStartTick` whenever dead/death path is active.
+- Keep legacy fallback only if unavoidable, and make it explicit in comments.
 
-* Update the `hp <= 0` branch to reference `deathStartTick` when available.
-* Add a **strict invariant**: systems should always set `deathStartTick` when entering any death state.
+Acceptance:
+- Death starts at frame 0 on first death tick.
+- No frame jumps from stale `lastDamageTick`.
 
----
+### [x] Make active-action mapping strict
 
-### [ ] Make Active Action mapping strict (don’t return unknown keys)
+Current default `return key` can request unsupported/unmapped animations.
 
-**Problem**: `_mapActiveActionKey()` returns `key` by default.
+Tasks:
+- Change default mapping to `null`.
+- Only pass keys explicitly supported by profile/case mapping.
+- Optional debug assert/log when an unknown key is requested.
 
-* If a profile doesn’t actually support that key (or there’s no atlas entry), the renderer will try to play a non-existent animation.
-* This can cause flicker, silent fallback, or asset lookup failures.
+Acceptance:
+- Unknown action keys fall through to normal resolver branches.
+- No silent render lookups for missing animation strips.
 
-**Fix**:
+### [x] Clamp `_frameFromTick` to non-negative
 
-* Default should be `null`, not `key`.
-* Only pass through keys you *explicitly* whitelist.
+Defensive hardening against invalid future start ticks.
 
-**Acceptance**:
-
-* If the action key isn’t supported/mapped → resolver falls through to normal locomotion/idle.
-
-**Tasks**:
-
-* Update `_mapActiveActionKey()`:
-
-  * Keep explicit cases.
-  * `default: return null;`
-* (Optional) add an assert/log in debug builds when an unknown active action key is requested.
-
----
-
-## P1 — Determinism upgrades (removes subtle drift)
-
-### [ ] Make Stun animation deterministic relative to stun start
-
-**Problem**: stun returns `animFrame: signals.tick`.
-
-* That makes stun frames depend on global time.
-* Two identical stuns starting on different ticks will appear in different phases, which looks noisy and breaks determinism assumptions if you ever re-sim/seek.
-
-**Fix**:
-
-* Add `stunStartTick` to `AnimSignals` and use `_frameFromTick(tick, stunStartTick)`.
-
-**Acceptance**:
-
-* On the first tick of stun lock, stun anim starts at frame 0.
-* Multiple stuns always start from frame 0.
-
-**Related changes (outside this file)**:
-
-* Where `stunLocked` is computed, also compute `stunStartTick` (or store it in a lock/store).
+Acceptance:
+- No negative `animFrame` leaves resolver.
 
 ---
 
-### [ ] Stop using raw `tick` as `animFrame` for jump/fall (optional but cleaner)
+## P1 — Determinism semantics (resolver + signal contract)
 
-**Problem**: jump/fall uses `animFrame: tick`.
+### [x] Define frame-origin policy for every branch
 
-* This is “global time driven” again. If jump/fall is looping it’s fine-ish, but if it’s authored as one-shot it’s wrong.
+Document whether each branch is:
+- relative-to-start (`_frameFromTick`), or
+- global-tick-driven intentionally (looped cosmetic behavior).
 
-**Options**:
+Current mixed policy is now documented in resolver docs and covered by unit
+tests to prevent regressions.
 
-* **Option A (minimal)**: keep as-is for looped jump/fall strips.
-* **Option B (better)**: add `airStartTick` or `jumpStartTick` and resolve frames relative.
+### [x] Stun should be relative to stun start (if design requires restart semantics)
 
-**Acceptance**:
+Requires `stunStartTick` signal from AnimSystem/control-lock path.
 
-* If jump/fall is authored as one-shot, it progresses from frame 0 at start.
+Acceptance:
+- Stun starts at frame 0 when stun is applied.
+- Reapplied stun follows defined rule deterministically (continuous-window origin).
 
----
+### [x] Decide jump/fall/locomotion frame policy
 
-## P2 — Correctness hardening + maintainability
+Decision:
+- Keep global tick intentionally for jump/fall/idle/walk/run locomotion loops.
 
-### [ ] Centralize “frame origin semantics”
-
-Right now different branches use different semantics:
-
-* Some use `_frameFromTick(tick, startTick)` (strike/cast/hit/death)
-* Some use `tick` directly (stun/jump/fall/spawn currently)
-* Some use a computed delta (dash)
-
-**Task**:
-
-* Create a clear convention in comments:
-
-  * `animFrame` is always **relative tick since animation started** (preferred).
-  * If an animation is looped and doesn’t need start tick, explain why you’re using `tick`.
+Rationale:
+- Keeps loop phase continuity through brief state toggles.
+- Avoids extra start-tick plumbing for locomotion-only strips.
 
 ---
 
-### [ ] Clamp negative deltas defensively
+## P2 — Tests and regression safety
 
-**Problem**: in dash, you already clamp negative to 0. For other `_frameFromTick` uses, if a bad `startTick` sneaks in you can get negative frames.
+### [x] Add resolver unit tests (not only AnimSystem integration tests)
 
-**Task**:
+Minimum cases:
+- Spawn with `spawnStartTick` in mid-run.
+- Dead entity with `deathStartTick` and stale `lastDamageTick`.
+- Unknown active-action key falls through (no unsupported key emitted).
+- `_frameFromTick` never returns negative.
 
-* Consider making `_frameFromTick()` clamp at 0:
+### [x] Update/extend AnimSystem integration tests to match new resolver contract
 
-  * `final dt = startTick >= 0 ? tick - startTick : tick; return dt < 0 ? 0 : dt;`
-
-**Acceptance**:
-
-* No negative `animFrame` reaches renderer.
-
----
-
-### [ ] Add resolver unit tests (cheap + high ROI)
-
-Add tests covering the exact bugs you’re fixing:
-
-**Tests**:
-
-* Spawn: `tick=100`, `spawnStartTick=95`, `spawnAnimTicks=10` → spawn plays for ticks 95..104 and stops at 105.
-* Death: `hp=0`, `deathStartTick=200`, `lastDamageTick=10` → death anim frame is `tick-200` not `tick-10`.
-* ActiveAction mapping: unknown key returns `null` and resolver falls through.
-* Stun: if you add `stunStartTick`, stun anim frame is `tick-stunStartTick`.
+Integration coverage now validates:
+- spawn window from `spawnStartTick`,
+- death frame origin from `deathStartTick`,
+- strict active-action behavior,
+- explicit AnimSystem read-only behavior.
 
 ---
 
-## Notes / Quick audit checklist
+## P3 — Cleanup after behavior decisions
 
-* [ ] Ensure `deathStartTick` is reliably populated for enemies AND player paths (don’t let “hp<=0 without deathPhase” happen long-term).
-* [ ] Ensure spawn start tick is set at entity creation and survives snapshotting (if pooled entities exist).
-* [ ] Ensure Active Action `frame` passed into resolver is already a relative frame/tick (document it).
+### [x] Remove dead/legacy fields from `AnimSignals` when no longer needed
+
+Examples addressed:
+- removed legacy strike/cast/ranged timestamp fields from `AnimSignals`,
+- removed resolver legacy-action branches in favor of active-action authority.
+
+### [x] Keep this TODO aligned with `lib/core/ecs/systems/anim/TODO.md`
+
+Avoid duplicated tasks with conflicting acceptance criteria.
 
 ---
 
-## Suggested implementation order
+## Suggested order
 
-1. Spawn fix (P0)
-2. Death fix (P0)
-3. Active action strict mapping (P0)
-4. Stun start tick plumbing (P1)
-5. Optional: unify tick-relative semantics + clamps + tests (P2)
+1. P0 resolver correctness fixes.
+2. P2 resolver unit tests for new behavior.
+3. P1 semantic decisions and required signal plumbing.
+4. P3 contract cleanup after migration stabilizes.

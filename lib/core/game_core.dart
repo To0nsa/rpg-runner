@@ -122,6 +122,7 @@ import 'ecs/systems/enemy_cull_system.dart';
 import 'ecs/systems/enemy_melee_system.dart';
 import 'ecs/world.dart';
 import 'enemies/enemy_catalog.dart';
+import 'enemies/death_behavior.dart';
 import 'enemies/enemy_id.dart';
 import 'events/game_event.dart';
 import 'levels/level_definition.dart';
@@ -584,6 +585,10 @@ class GameCore {
   /// ground. This must be called before [TrackManager] is created because
   /// track manager callbacks reference the player entity.
   void _spawnPlayer(double groundTopY) {
+    _playerSpawnStartTick = tick;
+    _playerDeathPhase = DeathPhase.none;
+    _playerDeathStartTick = -1;
+
     final spawnX = _trackTuning.playerStartX;
     final playerArchetype = PlayerCatalogDerived.from(
       _playerCharacter.catalog,
@@ -738,6 +743,9 @@ class GameCore {
   int _deathAnimTicksLeft = 0;
   RunEndReason? _pendingRunEndReason;
   DeathInfo? _pendingDeathInfo;
+  DeathPhase _playerDeathPhase = DeathPhase.none;
+  int _playerDeathStartTick = -1;
+  int _playerSpawnStartTick = -1;
 
   // ─── ECS Systems ───
   // Stateless processors that operate on component stores.
@@ -1050,7 +1058,14 @@ class GameCore {
     if (_deathAnimTicksLeft > 0) {
       tick += 1;
       // Update animations during death anim freeze.
-      _animSystem.step(_world, player: _player, currentTick: tick);
+      _animSystem.step(
+        _world,
+        player: _player,
+        currentTick: tick,
+        playerDeathPhase: _playerDeathPhase,
+        playerDeathStartTick: _playerDeathStartTick,
+        playerSpawnStartTick: _playerSpawnStartTick,
+      );
       _deathAnimTicksLeft -= 1;
       if (_deathAnimTicksLeft <= 0) {
         _endRun(
@@ -1217,6 +1232,12 @@ class GameCore {
     }
     if (_isPlayerDead()) {
       if (_deathAnimTicksLeft <= 0) {
+        if (_playerDeathPhase == DeathPhase.none) {
+          _playerDeathPhase = DeathPhase.deathAnim;
+          // First death frame is rendered during the freeze tick immediately
+          // after this gameplay tick.
+          _playerDeathStartTick = tick + 1;
+        }
         _pendingRunEndReason = RunEndReason.playerDied;
         _pendingDeathInfo = _buildDeathInfo();
         if (_animTuning.deathAnimTicks <= 0) {
@@ -1232,7 +1253,14 @@ class GameCore {
     _resourceRegenSystem.step(_world);
 
     // ─── Phase 16: Animation ───
-    _animSystem.step(_world, player: _player, currentTick: tick);
+    _animSystem.step(
+      _world,
+      player: _player,
+      currentTick: tick,
+      playerDeathPhase: _playerDeathPhase,
+      playerDeathStartTick: _playerDeathStartTick,
+      playerSpawnStartTick: _playerSpawnStartTick,
+    );
 
     // ─── Phase 17: Cleanup ───
     _lifetimeSystem.step(_world);

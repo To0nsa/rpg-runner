@@ -34,17 +34,7 @@ void main() {
 
     // Stun flag is active
     expect(world.controlLock.isStunned(entity, 0), isTrue);
-    
-    // Stun implies "all actions blocked"?
-    // The `isLocked` helper might check for stun first if we implemented it that way.
-    // Let's check isLocked(LockFlag.strike) when only Stun is present.
-    // Assuming `isLocked` logic: `if (flag & activeMask != 0) return true;`
-    // Wait, if I only added Stun, activeMask is 1 (Stun).
-    // If I check isLocked(Strike), and Strike is 1 << 4 (16), 1 & 16 == 0.
-    // However, the `isLocked` helper I implemented:
-    // `bool isLocked(EntityId entity, int flagMask, int currentTick) { ... if (activeMask & LockFlag.stun != 0) return true; ... }`
-    // So yes, it should return true for ANY flag if stun is active.
-    
+
     expect(world.controlLock.isLocked(entity, LockFlag.strike, 5), isTrue);
     expect(world.controlLock.isLocked(entity, LockFlag.move, 5), isTrue);
     expect(world.controlLock.isLocked(entity, LockFlag.cast, 5), isTrue);
@@ -56,20 +46,20 @@ void main() {
     final entity = world.createEntity();
 
     world.controlLock.addLock(entity, LockFlag.cast, 5, 0);
-    
+
     // Tick 0: Locked
     expect(world.controlLock.isLocked(entity, LockFlag.cast, 0), isTrue);
-    
+
     // Tick 4: Locked
     expect(world.controlLock.isLocked(entity, LockFlag.cast, 4), isTrue);
-    
+
     // Tick 5: Expired (since < untilTick)
     expect(world.controlLock.isLocked(entity, LockFlag.cast, 5), isFalse);
-    
+
     // System step should clean up if all locks expired.
     // At tick 5, cast is expired.
     system.step(world, currentTick: 5);
-    
+
     // Component should be removed if empty
     expect(world.controlLock.has(entity), isFalse);
   });
@@ -80,15 +70,39 @@ void main() {
 
     // Add lock until tick 10
     world.controlLock.addLock(entity, LockFlag.move, 10, 0);
-    expect(world.controlLock.untilTickMove[world.controlLock.indexOf(entity)], 10);
+    expect(
+      world.controlLock.untilTickMove[world.controlLock.indexOf(entity)],
+      10,
+    );
 
     // Add overlapping lock until tick 15 (at tick 5, duration 10 => 5+10=15)
     world.controlLock.addLock(entity, LockFlag.move, 10, 5);
-    expect(world.controlLock.untilTickMove[world.controlLock.indexOf(entity)], 15);
-    
+    expect(
+      world.controlLock.untilTickMove[world.controlLock.indexOf(entity)],
+      15,
+    );
+
     // Add shorter lock (should not reduce duration)
     // At tick 6, add 2 ticks => until 8. Should stay 15.
     world.controlLock.addLock(entity, LockFlag.move, 2, 6);
-    expect(world.controlLock.untilTickMove[world.controlLock.indexOf(entity)], 15);
+    expect(
+      world.controlLock.untilTickMove[world.controlLock.indexOf(entity)],
+      15,
+    );
+  });
+
+  test('stun start tick tracks continuous stun window', () {
+    final world = EcsWorld();
+    final entity = world.createEntity();
+
+    world.controlLock.addLock(entity, LockFlag.stun, 8, 10);
+    expect(world.controlLock.stunStartTickFor(entity, 10), 10);
+
+    // Refreshing an active stun extends duration without resetting origin.
+    world.controlLock.addLock(entity, LockFlag.stun, 6, 14);
+    expect(world.controlLock.stunStartTickFor(entity, 14), 10);
+
+    // Once expired, no active stun origin should be reported.
+    expect(world.controlLock.stunStartTickFor(entity, 20), -1);
   });
 }

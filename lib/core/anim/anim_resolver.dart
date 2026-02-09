@@ -77,20 +77,10 @@ class AnimSignals {
     this.velY = 0.0,
     this.lastDamageTick = -1,
     this.hitAnimTicks = 0,
-    this.lastStrikeTick = -1,
-    this.strikeAnimTicks = 0,
-    this.backStrikeAnimTicks = 0,
-    this.lastStrikeFacing = Facing.right,
-    this.lastCastTick = -1,
-    this.castAnimTicks = 0,
-    this.lastRangedTick = -1,
-    this.rangedAnimTicks = 0,
-    this.dashTicksLeft = 0,
-    this.dashDurationTicks = 0,
-    this.facing = Facing.right,
     this.spawnStartTick = -1,
     this.spawnAnimTicks = 0,
     this.stunLocked = false,
+    this.stunStartTick = -1,
     this.activeActionAnim,
     this.activeActionFrame = 0,
   });
@@ -98,51 +88,34 @@ class AnimSignals {
   factory AnimSignals.player({
     required int tick,
     required int hp,
+    DeathPhase deathPhase = DeathPhase.none,
+    int deathStartTick = -1,
     bool grounded = false,
     double velX = 0.0,
     double velY = 0.0,
     int lastDamageTick = -1,
     int hitAnimTicks = 0,
-    int lastStrikeTick = -1,
-    int strikeAnimTicks = 0,
-    int backStrikeAnimTicks = 0,
-    Facing lastStrikeFacing = Facing.right,
-    int lastCastTick = -1,
-    int castAnimTicks = 0,
-    int lastRangedTick = -1,
-    int rangedAnimTicks = 0,
-    int dashTicksLeft = 0,
-    int dashDurationTicks = 0,
-    Facing facing = Facing.right,
-    int spawnStartTick = -1,
+    int spawnStartTick = 0,
     int spawnAnimTicks = 0,
     bool stunLocked = false,
+    int stunStartTick = -1,
     AnimKey? activeActionAnim,
     int activeActionFrame = 0,
   }) {
     return AnimSignals._(
       tick: tick,
       hp: hp,
-      deathPhase: DeathPhase.none,
+      deathPhase: deathPhase,
+      deathStartTick: deathStartTick,
       grounded: grounded,
       velX: velX,
       velY: velY,
       lastDamageTick: lastDamageTick,
       hitAnimTicks: hitAnimTicks,
-      lastStrikeTick: lastStrikeTick,
-      strikeAnimTicks: strikeAnimTicks,
-      backStrikeAnimTicks: backStrikeAnimTicks,
-      lastStrikeFacing: lastStrikeFacing,
-      lastCastTick: lastCastTick,
-      castAnimTicks: castAnimTicks,
-      lastRangedTick: lastRangedTick,
-      rangedAnimTicks: rangedAnimTicks,
-      dashTicksLeft: dashTicksLeft,
-      dashDurationTicks: dashDurationTicks,
-      facing: facing,
       spawnStartTick: spawnStartTick,
       spawnAnimTicks: spawnAnimTicks,
       stunLocked: stunLocked,
+      stunStartTick: stunStartTick,
       activeActionAnim: activeActionAnim,
       activeActionFrame: activeActionFrame,
     );
@@ -158,10 +131,8 @@ class AnimSignals {
     double velY = 0.0,
     int lastDamageTick = -1,
     int hitAnimTicks = 0,
-    int lastStrikeTick = -1,
-    int strikeAnimTicks = 0,
-    Facing lastStrikeFacing = Facing.right,
     bool stunLocked = false,
+    int stunStartTick = -1,
     AnimKey? activeActionAnim,
     int activeActionFrame = 0,
   }) {
@@ -175,10 +146,8 @@ class AnimSignals {
       velY: velY,
       lastDamageTick: lastDamageTick,
       hitAnimTicks: hitAnimTicks,
-      lastStrikeTick: lastStrikeTick,
-      strikeAnimTicks: strikeAnimTicks,
-      lastStrikeFacing: lastStrikeFacing,
       stunLocked: stunLocked,
+      stunStartTick: stunStartTick,
       activeActionAnim: activeActionAnim,
       activeActionFrame: activeActionFrame,
     );
@@ -192,20 +161,10 @@ class AnimSignals {
   final double velY;
   final int lastDamageTick;
   final int hitAnimTicks;
-  final int lastStrikeTick;
-  final int strikeAnimTicks;
-  final int backStrikeAnimTicks;
-  final Facing lastStrikeFacing;
-  final int lastCastTick;
-  final int castAnimTicks;
-  final int lastRangedTick;
-  final int rangedAnimTicks;
-  final int dashTicksLeft;
-  final int dashDurationTicks;
-  final Facing facing;
   final int spawnStartTick;
   final int spawnAnimTicks;
   final bool stunLocked;
+  final int stunStartTick;
   final AnimKey? activeActionAnim;
   final int activeActionFrame;
 }
@@ -232,8 +191,14 @@ class AnimResolver {
   /// 2. Death (if dying or dead)
   /// 3. Hit React (if taking damage)
   /// 4. Active Action (manual overrides from abilities)
-  /// 5. Legacy Actions (Strike, Cast, Ranged - if active)
-  /// 6. Movement (Dash > Jump/Fall > Spawn > Run > Walk > Idle)
+  /// 5. Movement (Jump/Fall > Spawn > Run > Walk > Idle)
+  ///
+  /// Frame-origin policy:
+  /// - Relative-to-start: stun, death, hit, active action, spawn.
+  /// - Global tick: jump, fall, idle, walk, run.
+  ///
+  /// Locomotion branches use global tick intentionally to keep loops phase-
+  /// continuous through brief state toggles (for example grounded jitter).
   static AnimResult resolve(AnimProfile profile, AnimSignals signals) {
     final tick = signals.tick;
     final lastDamageTick = signals.lastDamageTick;
@@ -244,30 +209,13 @@ class AnimResolver {
 
     // 1. Stun
     if (profile.supportsStun && signals.stunLocked) {
-      return AnimResult(anim: profile.stunAnimKey, animFrame: signals.tick);
+      return AnimResult(
+        anim: profile.stunAnimKey,
+        animFrame: _frameFromTick(tick, signals.stunStartTick),
+      );
     }
 
-    // 2. Actions Pre-calculation
-    final strikeTicks =
-        profile.directionalStrike && signals.lastStrikeFacing == Facing.left
-        ? signals.backStrikeAnimTicks
-        : signals.strikeAnimTicks;
-    final showStrike =
-        strikeTicks > 0 &&
-        signals.lastStrikeTick >= 0 &&
-        (tick - signals.lastStrikeTick) < strikeTicks;
-    final showCast =
-        profile.supportsCast &&
-        signals.castAnimTicks > 0 &&
-        signals.lastCastTick >= 0 &&
-        (tick - signals.lastCastTick) < signals.castAnimTicks;
-    final showRanged =
-        profile.supportsRanged &&
-        signals.rangedAnimTicks > 0 &&
-        signals.lastRangedTick >= 0 &&
-        (tick - signals.lastRangedTick) < signals.rangedAnimTicks;
-
-    // 3. Death
+    // 2. Death
     if (signals.deathPhase == DeathPhase.deathAnim) {
       return AnimResult(
         anim: profile.deathAnimKey,
@@ -284,13 +232,18 @@ class AnimResolver {
       return AnimResult(anim: profile.idleAnimKey, animFrame: tick);
     }
     if (signals.hp <= 0) {
+      // Legacy compatibility fallback: if lifecycle plumbing failed to provide
+      // deathStartTick, hold at frame 0 instead of deriving from stale hit data.
+      if (signals.deathStartTick < 0) {
+        return AnimResult(anim: profile.deathAnimKey, animFrame: 0);
+      }
       return AnimResult(
         anim: profile.deathAnimKey,
-        animFrame: _frameFromTick(tick, lastDamageTick),
+        animFrame: _frameFromTick(tick, signals.deathStartTick),
       );
     }
 
-    // 4. Hit React
+    // 3. Hit React
     if (showHit) {
       return AnimResult(
         anim: profile.hitAnimKey,
@@ -298,8 +251,7 @@ class AnimResolver {
       );
     }
 
-    // 5. Active Action Layer
-    // Overrides legacy action logic (Strike, Cast, Ranged, Dash).
+    // 4. Active Action Layer.
     if (signals.activeActionAnim != null) {
       final actionKey = _mapActiveActionKey(profile, signals.activeActionAnim!);
       if (actionKey != null) {
@@ -310,35 +262,7 @@ class AnimResolver {
       }
     }
 
-    if (showStrike) {
-      final strikeKey =
-          profile.directionalStrike && signals.lastStrikeFacing == Facing.left
-          ? AnimKey.backStrike
-          : profile.strikeAnimKey;
-      return AnimResult(
-        anim: strikeKey,
-        animFrame: _frameFromTick(tick, signals.lastStrikeTick),
-      );
-    }
-    if (showCast) {
-      return AnimResult(
-        anim: profile.castAnimKey,
-        animFrame: _frameFromTick(tick, signals.lastCastTick),
-      );
-    }
-    if (showRanged) {
-      return AnimResult(
-        anim: profile.rangedAnimKey,
-        animFrame: _frameFromTick(tick, signals.lastRangedTick),
-      );
-    }
-    if (profile.supportsDash && signals.dashTicksLeft > 0) {
-      final frame = signals.dashDurationTicks - signals.dashTicksLeft;
-      return AnimResult(
-        anim: profile.dashAnimKey,
-        animFrame: frame < 0 ? 0 : frame,
-      );
-    }
+    // Locomotion loops intentionally use global tick as frame origin.
     if (profile.supportsJumpFall && !signals.grounded) {
       return AnimResult(
         anim: signals.velY < 0 ? profile.jumpAnimKey : profile.fallAnimKey,
@@ -347,8 +271,14 @@ class AnimResolver {
     }
     if (profile.supportsSpawn &&
         signals.spawnAnimTicks > 0 &&
-        tick < signals.spawnAnimTicks) {
-      return AnimResult(anim: profile.spawnAnimKey, animFrame: tick);
+        signals.spawnStartTick >= 0) {
+      final spawnElapsed = tick - signals.spawnStartTick;
+      if (spawnElapsed >= 0 && spawnElapsed < signals.spawnAnimTicks) {
+        return AnimResult(
+          anim: profile.spawnAnimKey,
+          animFrame: _frameFromTick(tick, signals.spawnStartTick),
+        );
+      }
     }
 
     final speedX = signals.velX.abs();
@@ -363,7 +293,9 @@ class AnimResolver {
 
   /// Maps a tick to a frame index.
   static int _frameFromTick(int tick, int startTick) {
-    return startTick >= 0 ? tick - startTick : tick;
+    if (startTick < 0) return tick;
+    final frame = tick - startTick;
+    return frame < 0 ? 0 : frame;
   }
 
   /// Maps an [AnimKey] to the corresponding [AnimKey] for the given [AnimProfile].
@@ -383,8 +315,20 @@ class AnimResolver {
         return profile.supportsRanged ? key : null;
       case AnimKey.dash:
         return profile.supportsDash ? profile.dashAnimKey : null;
-      default:
+      case AnimKey.jump:
+        return profile.supportsJumpFall ? profile.jumpAnimKey : null;
+      case AnimKey.fall:
+        return profile.supportsJumpFall ? profile.fallAnimKey : null;
+      case AnimKey.roll:
+        return profile.supportsDash ? key : null;
+      case AnimKey.parry:
+      case AnimKey.shieldBash:
+      case AnimKey.shieldBlock:
+      case AnimKey.punch:
+        // Explicitly allow authored one-off action strips.
         return key;
+      default:
+        return null;
     }
   }
 }

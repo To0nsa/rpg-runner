@@ -1,183 +1,151 @@
-# TODO — `lib/core/ecs/systems/anim_system.dart`
+# TODO — `lib/core/ecs/systems/anim/anim_system.dart`
 
-> Goal: ensure AnimSystem emits **correct, deterministic** `AnimSignals` for all entities (player + enemies) and updates `AnimStateStore` without hiding gameplay bugs.
+Goal: ensure AnimSystem emits complete, deterministic `AnimSignals` and remains
+read-only with respect to gameplay state.
 
----
-
-## P0 — Must fix (current behavior is incorrect / missing)
-
-### [ ] Wire **player spawnStartTick** (spawn cannot be correct without it)
-
-**Symptom**: player signals don’t provide a real spawn start tick, so spawn anim either never plays (if resolver requires `spawnStartTick`) or only plays at global tick 0 (legacy behavior).
-
-**Task**
-
-* Add authoritative source for player spawn timing (choose one):
-
-  * `SpawnStateStore` (recommended) storing `spawnStartTick` per entity
-  * Or a one-shot “run start tick” for the player entity if player only spawns once per run
-* Pass `spawnStartTick` into `AnimSignals.player(...)`.
-
-**Acceptance**
-
-* Spawn anim plays for exactly `spawnAnimTicks` after spawn, even if the player respawns mid-run.
+Scope: signal assembly and `AnimStateStore` writes in this system.  
+Resolver branch behavior belongs to `lib/core/anim/TODO.md`.
 
 ---
 
-### [ ] Provide **player death lifecycle** (`deathPhase` + `deathStartTick`)
+## Current state audit (as of now)
 
-**Symptom**: player signals hardcode `deathPhase: none`, so resolver can’t start death animation deterministically.
-
-**Task**
-
-* Pick a unified death representation for player + enemies:
-
-  * Option A (recommended): use the existing `DeathStateStore` for player entity too
-  * Option B: add minimal player-specific death tick fields
-* Feed `deathPhase` and `deathStartTick` into `AnimSignals.player(...)`.
-
-**Acceptance**
-
-* On player death, death anim starts at frame 0 on the first death tick.
-* No fallback to `lastDamageTick` is needed once systems always provide `deathStartTick`.
+- Enemy `deathPhase` and `deathStartTick` are wired into `AnimSignals.enemy` (good).
+- Player `deathPhase/deathStartTick` are provided by `GameCore` lifecycle state.
+- Player emits `spawnStartTick` from authoritative spawn-time tracking.
+- Dash animation now resolves only through active-action (`ability.animKey`).
+- Stun emits both `stunLocked` and `stunStartTick` (continuous-window origin).
+- Active action frame uses `activeAbility.elapsedTicks` (good).
+- `_resolveActiveAction` is render-only (does not mutate gameplay stores).
+- Player no longer wires legacy strike/cast/ranged timestamps in active signal assembly.
+- Shared signal reads are centralized via `_readCommonSignals(...)`.
 
 ---
 
-### [ ] Wire **dash ticks** (`dashTicksLeft`, `dashDurationTicks`)
+## P0 — Correctness and architecture safety
 
-**Symptom**: dash animation can’t trigger if the system never emits dash timing signals.
+### [x] Make AnimSystem read-only (no gameplay mutation)
 
-**Task**
+Problem:
+- `_resolveActiveAction` currently clears `ActiveAbilityStateStore` on several branches.
+- This couples rendering order to gameplay outcomes.
 
-* Identify dash state source (mobility store / intent / status).
-* Emit:
+Tasks:
+- Remove `world.activeAbility.clear(...)` calls from AnimSystem.
+- Treat invalid/expired active ability as "no active action" for rendering only.
+- Keep lifecycle authority in gameplay systems (for example `ActiveAbilityPhaseSystem`).
 
-  * `dashTicksLeft`
-  * `dashDurationTicks`
+Acceptance:
+- Calling AnimSystem multiple times in one tick does not change gameplay state.
+- Reordering AnimSystem in the tick pipeline does not alter gameplay outcomes.
 
-**Acceptance**
+### [x] Wire player death lifecycle into signals
 
-* Dash anim plays exactly during dash window, and frame progresses deterministically.
+Problem:
+- Player signals always use `deathPhase: none`, so resolver cannot use player death timing deterministically.
 
----
+Tasks:
+- Add/choose authoritative player death lifecycle source.
+- Emit `deathPhase` and `deathStartTick` in `AnimSignals.player(...)`.
+- Ensure player path matches resolver expectations from `lib/core/anim/TODO.md`.
 
-### [ ] Stop emitting permanently disabled legacy timestamps for player (`lastMeleeTick/lastCastTick/lastRangedTick = -1`)
+Acceptance:
+- Player death animation starts at frame 0 on death start tick.
+- Player death frame origin is not derived from stale damage ticks.
 
-**Symptom**: legacy strike/cast/ranged anim paths are dead for player.
+### [x] Wire player `spawnStartTick`
 
-**Decision** (pick one and commit)
+Problem:
+- AnimSystem emits only `spawnAnimTicks`, not the start tick.
 
-* **A — Remove legacy**: delete/ignore these fields for player entirely and rely on `ActiveAbilityStateStore` exclusively.
-* **B — Support legacy**: wire real timestamps from intent stores / combat events.
+Tasks:
+- Add authoritative spawn start tick source for player entity.
+- Emit `spawnStartTick` in `AnimSignals.player(...)`.
 
-**Acceptance**
-
-* No “ghost” fields that are always `-1` unless they are explicitly deprecated.
-
----
-
-## P1 — Determinism + visual consistency
-
-### [ ] Add/emit **stunStartTick** (stun anim should be relative to stun start)
-
-**Symptom**: with only `stunLocked: bool`, resolver tends to drive stun frames from global `tick`, producing phase noise.
-
-**Task**
-
-* Extend `AnimSignals` to include `stunStartTick`.
-* Update the lock/control store to track the tick when stun became active.
-* Emit `stunStartTick` from AnimSystem.
-
-**Acceptance**
-
-* Stun anim starts at frame 0 on stun application.
-* Re-applying stun restarts (or follows your defined rule) deterministically.
+Acceptance:
+- Spawn animation timing is correct for entities spawned mid-run, not only at run start.
 
 ---
 
-### [ ] Clarify/guarantee `ActiveAbilityStateStore` semantics
+## P1 — Determinism and contract clarity
 
-**Risk**: if `activeAbility.frame` is not strictly relative to the ability start tick, animations will drift.
+### [x] Decide dash signal contract (legacy dash path vs active-action-only)
 
-**Task**
+Current behavior:
+- Dash rendering is already covered by active-action mapping for ability-driven dashes.
+- Resolver no longer consumes legacy dash timer signals (`dashTicksLeft/dashDurationTicks`).
 
-* Document invariants:
+Decision:
+- Option B: treat dash as active-action-only and remove legacy `dashTicksLeft`/`dashDurationTicks` signal usage.
 
-  * `frame` is 0 on the first tick of the ability phase.
-  * `frame` increments by 1 per sim tick while active.
-* Ensure AnimSystem never “guesses” frame using global tick.
+Acceptance:
+- Exactly one authoritative dash animation path is documented and tested.
 
-**Acceptance**
+### [x] Add stun start tick plumbing (if stun should restart from frame 0)
 
-* Ability animations always start at frame 0.
+Problem:
+- `stunLocked` alone is insufficient for relative frame timing.
 
----
+Tasks:
+- Extend signal contract with `stunStartTick` (requires control-lock source update).
+- Emit stun start tick from AnimSystem once available.
+- Use continuous-window semantics: refresh extends stun without restarting frame origin.
 
-## P2 — Maintainability + bug-proofing
+Acceptance:
+- Stun frame origin is deterministic relative to stun application.
 
-### [ ] Make AnimSystem **read-only** with respect to gameplay state
+### [x] Remove or formally deprecate dead legacy timestamp wiring
 
-**Rule**: AnimSystem should not cancel abilities, clear intents, or mutate combat state.
+Problem:
+- Player previously set `lastStrikeTick/lastCastTick/lastRangedTick` to `-1` every tick.
 
-**Task**
+Tasks:
+- Either remove these fields from player signal path, or mark and document them as deprecated compatibility fields.
 
-* Audit for writes to gameplay stores.
-* If any exist, move them to the owning gameplay system.
-
-**Acceptance**
-
-* Reordering AnimSystem in the pipeline never changes gameplay outcomes.
-
----
-
-### [ ] Reduce duplication between `_stepPlayer` and `_stepEnemies`
-
-**Task**
-
-* Extract a small helper that builds `AnimSignals` from common store reads (hp, movement, stun, active ability, hit/death phases).
-* Keep player-specific bits (dash/spawn) as overrides.
-
-**Acceptance**
-
-* Adding a new signal field requires changing code in one place.
+Acceptance:
+- No ambiguous "always disabled" fields in active player signal construction.
 
 ---
 
-### [ ] Add minimal unit tests (high ROI)
+## P2 — Tests and regression guards
 
-**Tests**
+### [x] Expand AnimSystem integration tests for signal correctness
 
-* Player spawn window uses `spawnStartTick`.
-* Player death starts at `deathStartTick`.
-* Dash emits correct frames.
-* Active ability anim uses ability-relative frame.
-* Stun uses `stunStartTick`.
+Add/adjust tests for:
+- Player spawn window with non-zero `spawnStartTick`.
+- Player death frame origin from `deathStartTick`.
+- Dash behavior for chosen contract (P1 decision).
+- Stun behavior when `stunStartTick` is available.
 
----
+### [x] Add read-only behavior test
 
-## P3 — Performance (only after profiling)
-
-### [ ] Avoid per-entity allocations if DevTools shows GC pressure
-
-**Note**: keep resolver returning `AnimResult` until profiling proves it’s hot.
-
-**If needed**
-
-* Switch to `resolveInto(...)` that writes directly into `AnimStateStore` arrays.
-* Or store `AnimKey + frameHint` directly without creating objects.
-
-**Acceptance**
-
-* Verified reduction in allocations + improved frame time/jank in profiler.
+Test:
+- Running AnimSystem should not mutate `ActiveAbilityStateStore` (or other gameplay stores).
 
 ---
 
-## Suggested implementation order
+## P3 — Maintainability cleanup
 
-1. Player spawnStartTick (P0)
-2. Player death state (P0)
-3. Dash ticks (P0)
-4. Decide legacy timestamps vs ActiveAbility-only (P0)
-5. Stun start tick plumbing (P1)
-6. Read-only audit + refactor helpers + tests (P2)
-7. Perf only if profiled (P3)
+### [x] Reduce signal-building duplication between player and enemy paths
+
+Task:
+- Extract focused helpers for shared store reads and signal defaults.
+
+Acceptance:
+- New signal fields are added in one place, not scattered logic.
+
+### [x] Keep TODO alignment with resolver TODO
+
+Task:
+- Keep this file aligned with `lib/core/anim/TODO.md` so responsibilities do not drift.
+
+---
+
+## Suggested order
+
+1. P0 read-only fix (high safety value).
+2. P0 player death + spawn tick signal wiring.
+3. P1 dash contract decision.
+4. P1 stun start tick plumbing.
+5. P2 test expansion.
+6. P3 refactor/cleanup.

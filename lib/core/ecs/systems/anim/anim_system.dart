@@ -61,8 +61,18 @@ class AnimSystem {
     EcsWorld world, {
     required EntityId player,
     required int currentTick,
+    DeathPhase playerDeathPhase = DeathPhase.none,
+    int playerDeathStartTick = -1,
+    int playerSpawnStartTick = 0,
   }) {
-    _stepPlayer(world, player: player, currentTick: currentTick);
+    _stepPlayer(
+      world,
+      player: player,
+      currentTick: currentTick,
+      deathPhase: playerDeathPhase,
+      deathStartTick: playerDeathStartTick,
+      spawnStartTick: playerSpawnStartTick,
+    );
     _stepEnemies(world, currentTick: currentTick);
   }
 
@@ -70,64 +80,45 @@ class AnimSystem {
     EcsWorld world, {
     required EntityId player,
     required int currentTick,
+    required DeathPhase deathPhase,
+    required int deathStartTick,
+    required int spawnStartTick,
   }) {
     if (player < 0) return;
     if (!world.animState.has(player)) return;
     if (!world.transform.has(player) || !world.movement.has(player)) return;
 
     final ai = world.animState.indexOf(player);
-    final ti = world.transform.indexOf(player);
-    final mi = world.movement.indexOf(player);
-
-    final hi = world.health.tryIndexOf(player);
-    final hp = hi == null ? 1 : world.health.hp[hi];
-
-    final grounded = world.collision.has(player)
-        ? world.collision.grounded[world.collision.indexOf(player)]
-        : false;
-
-    final facing = world.movement.facing[mi];
-    const lastMeleeTick = -1;
-    final lastMeleeFacing = facing;
-    const lastCastTick = -1;
-    const lastRangedTick = -1;
-
-    final lastDamageTick = world.lastDamage.has(player)
-        ? world.lastDamage.tick[world.lastDamage.indexOf(player)]
-        : -1;
-
-    final stunLocked = world.controlLock.isStunned(player, currentTick);
+    final common = _readCommonSignals(
+      world,
+      entity: player,
+      currentTick: currentTick,
+    );
 
     // Phase 6: Active Action Layer
     final activeAction = _resolveActiveAction(
       world,
       entity: player,
       currentTick: currentTick,
-      stunned: stunLocked,
-      hp: hp,
-      deathPhase: DeathPhase.none,
+      stunned: common.stunLocked,
+      hp: common.hp,
+      deathPhase: deathPhase,
     );
 
     final signals = AnimSignals.player(
       tick: currentTick,
-      hp: hp,
-      grounded: grounded,
-      velX: world.transform.velX[ti],
-      velY: world.transform.velY[ti],
-      lastDamageTick: lastDamageTick,
+      hp: common.hp,
+      deathPhase: deathPhase,
+      deathStartTick: deathStartTick,
+      grounded: common.grounded,
+      velX: common.velX,
+      velY: common.velY,
+      lastDamageTick: common.lastDamageTick,
       hitAnimTicks: _playerAnimTuning.hitAnimTicks,
-      lastStrikeTick: lastMeleeTick,
-      strikeAnimTicks: _playerAnimTuning.strikeAnimTicks,
-      backStrikeAnimTicks: _playerAnimTuning.backStrikeAnimTicks,
-      lastStrikeFacing: lastMeleeFacing,
-      lastCastTick: lastCastTick,
-      castAnimTicks: _playerAnimTuning.castAnimTicks,
-      lastRangedTick: lastRangedTick,
-      rangedAnimTicks: _playerAnimTuning.rangedAnimTicks,
-      dashTicksLeft: 0,
-      dashDurationTicks: 0,
+      spawnStartTick: spawnStartTick,
       spawnAnimTicks: _playerAnimTuning.spawnAnimTicks,
-      stunLocked: stunLocked,
+      stunLocked: common.stunLocked,
+      stunStartTick: common.stunStartTick,
       activeActionAnim: activeAction.anim,
       activeActionFrame: activeAction.frame,
     );
@@ -147,14 +138,11 @@ class AnimSystem {
       final ai = animStore.indexOf(e);
       final enemyId = enemies.enemyId[ei];
       final profile = enemyCatalog.get(enemyId).animProfile;
-
-      final hp = world.health.has(e)
-          ? world.health.hp[world.health.indexOf(e)]
-          : 1;
-
-      final grounded = world.collision.has(e)
-          ? world.collision.grounded[world.collision.indexOf(e)]
-          : false;
+      final common = _readCommonSignals(
+        world,
+        entity: e,
+        currentTick: currentTick,
+      );
 
       final di = world.deathState.tryIndexOf(e);
       final deathPhase = di == null
@@ -164,45 +152,30 @@ class AnimSystem {
           ? -1
           : world.deathState.deathStartTick[di];
 
-      final lastDamageTick = world.lastDamage.has(e)
-          ? world.lastDamage.tick[world.lastDamage.indexOf(e)]
-          : -1;
-
       final hitAnimTicks = _hitAnimTicksById[enemyId] ?? 0;
-      const lastMeleeTick = -1;
-      const lastMeleeAnimTicks = 0;
-      const lastMeleeFacing = Facing.right;
-
-      final ti = world.transform.tryIndexOf(e);
-      final velX = ti == null ? 0.0 : world.transform.velX[ti];
-      final velY = ti == null ? 0.0 : world.transform.velY[ti];
-
-      final stunLocked = world.controlLock.isStunned(e, currentTick);
 
       // Phase 6: Active Action Layer (Enemies)
       final activeAction = _resolveActiveAction(
         world,
         entity: e,
         currentTick: currentTick,
-        stunned: stunLocked,
-        hp: hp,
+        stunned: common.stunLocked,
+        hp: common.hp,
         deathPhase: deathPhase,
       );
 
       final signals = AnimSignals.enemy(
         tick: currentTick,
-        hp: hp,
+        hp: common.hp,
         deathPhase: deathPhase,
         deathStartTick: deathStartTick,
-        grounded: grounded,
-        velX: velX,
-        velY: velY,
-        lastDamageTick: lastDamageTick,
+        grounded: common.grounded,
+        velX: common.velX,
+        velY: common.velY,
+        lastDamageTick: common.lastDamageTick,
         hitAnimTicks: hitAnimTicks,
-        lastStrikeTick: lastMeleeTick,
-        strikeAnimTicks: lastMeleeAnimTicks,
-        lastStrikeFacing: lastMeleeFacing,
-        stunLocked: stunLocked,
+        stunLocked: common.stunLocked,
+        stunStartTick: common.stunStartTick,
         activeActionAnim: activeAction.anim,
         activeActionFrame: activeAction.frame,
       );
@@ -211,6 +184,53 @@ class AnimSystem {
       animStore.anim[ai] = result.anim;
       animStore.animFrame[ai] = result.animFrame;
     }
+  }
+
+  /// Reads shared state used by both player and enemy animation signals.
+  ({
+    int hp,
+    bool grounded,
+    double velX,
+    double velY,
+    int lastDamageTick,
+    bool stunLocked,
+    int stunStartTick,
+  })
+  _readCommonSignals(
+    EcsWorld world, {
+    required EntityId entity,
+    required int currentTick,
+  }) {
+    final hi = world.health.tryIndexOf(entity);
+    final hp = hi == null ? 1 : world.health.hp[hi];
+
+    final grounded = world.collision.has(entity)
+        ? world.collision.grounded[world.collision.indexOf(entity)]
+        : false;
+
+    final ti = world.transform.tryIndexOf(entity);
+    final velX = ti == null ? 0.0 : world.transform.velX[ti];
+    final velY = ti == null ? 0.0 : world.transform.velY[ti];
+
+    final lastDamageTick = world.lastDamage.has(entity)
+        ? world.lastDamage.tick[world.lastDamage.indexOf(entity)]
+        : -1;
+
+    final stunLocked = world.controlLock.isStunned(entity, currentTick);
+    final stunStartTick = world.controlLock.stunStartTickFor(
+      entity,
+      currentTick,
+    );
+
+    return (
+      hp: hp,
+      grounded: grounded,
+      velX: velX,
+      velY: velY,
+      lastDamageTick: lastDamageTick,
+      stunLocked: stunLocked,
+      stunStartTick: stunStartTick,
+    );
   }
 
   ({AnimKey? anim, int frame}) _resolveActiveAction(
@@ -225,21 +245,20 @@ class AnimSystem {
       return (anim: null, frame: 0);
     }
 
+    // AnimSystem is render-only: gameplay lifecycle is owned by
+    // ActiveAbilityPhaseSystem and related gameplay systems.
     if (stunned || hp <= 0 || deathPhase != DeathPhase.none) {
-      world.activeAbility.clear(entity);
       return (anim: null, frame: 0);
     }
 
     final index = world.activeAbility.indexOf(entity);
     final activeId = world.activeAbility.abilityId[index];
     if (activeId == null || activeId.isEmpty) {
-      world.activeAbility.clear(entity);
       return (anim: null, frame: 0);
     }
 
     final def = abilities.resolve(activeId);
     if (def == null) {
-      world.activeAbility.clear(entity);
       return (anim: null, frame: 0);
     }
 
@@ -248,7 +267,6 @@ class AnimSystem {
     final maxTicks = totalTicks > 0 ? totalTicks : 1;
 
     if (elapsed >= maxTicks) {
-      world.activeAbility.clear(entity);
       return (anim: null, frame: 0);
     }
 

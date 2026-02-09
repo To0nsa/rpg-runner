@@ -15,6 +15,8 @@ class ControlLockStore extends SparseSet {
   final List<int> activeMask = <int>[];
 
   /// Per-flag expiry ticks.
+  ///
+  /// A lock is active while `currentTick < untilTickX`.
   final List<int> untilTickStun = <int>[];
   final List<int> untilTickMove = <int>[];
   final List<int> untilTickJump = <int>[];
@@ -23,6 +25,13 @@ class ControlLockStore extends SparseSet {
   final List<int> untilTickCast = <int>[];
   final List<int> untilTickRanged = <int>[];
   final List<int> untilTickNav = <int>[];
+
+  /// Tick where the current continuous stun window started.
+  ///
+  /// This is set when an entity transitions from "not stunned" to "stunned".
+  /// Refreshing an already-active stun extends duration without restarting this
+  /// origin tick.
+  final List<int> stunStartTick = <int>[];
 
   // ─────────────────────────────────────────────────────────────────────────
   // Public API
@@ -41,7 +50,11 @@ class ControlLockStore extends SparseSet {
 
     // Apply lock(s) using max() for refresh behavior
     if ((flag & LockFlag.stun) != 0) {
+      final wasStunned = currentTick < untilTickStun[idx];
       untilTickStun[idx] = _max(untilTickStun[idx], newUntilTick);
+      if (!wasStunned) {
+        stunStartTick[idx] = currentTick;
+      }
     }
     if ((flag & LockFlag.move) != 0) {
       untilTickMove[idx] = _max(untilTickMove[idx], newUntilTick);
@@ -90,6 +103,14 @@ class ControlLockStore extends SparseSet {
     return currentTick < untilTickStun[idx];
   }
 
+  /// Returns stun animation origin tick for [entity], or `-1` if not stunned.
+  int stunStartTickFor(EntityId entity, int currentTick) {
+    final idx = tryIndexOf(entity);
+    if (idx == null) return -1;
+    if (currentTick >= untilTickStun[idx]) return -1;
+    return stunStartTick[idx];
+  }
+
   /// Returns the cached active mask for [entity].
   ///
   /// Note: This mask is refreshed by ControlLockSystem each tick.
@@ -122,6 +143,7 @@ class ControlLockStore extends SparseSet {
     untilTickCast.add(0);
     untilTickRanged.add(0);
     untilTickNav.add(0);
+    stunStartTick.add(-1);
   }
 
   @override
@@ -135,6 +157,7 @@ class ControlLockStore extends SparseSet {
     untilTickCast[removeIndex] = untilTickCast[lastIndex];
     untilTickRanged[removeIndex] = untilTickRanged[lastIndex];
     untilTickNav[removeIndex] = untilTickNav[lastIndex];
+    stunStartTick[removeIndex] = stunStartTick[lastIndex];
 
     activeMask.removeLast();
     untilTickStun.removeLast();
@@ -145,6 +168,7 @@ class ControlLockStore extends SparseSet {
     untilTickCast.removeLast();
     untilTickRanged.removeLast();
     untilTickNav.removeLast();
+    stunStartTick.removeLast();
   }
 
   // ─────────────────────────────────────────────────────────────────────────

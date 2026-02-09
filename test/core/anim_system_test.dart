@@ -7,14 +7,17 @@ import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
 import 'package:rpg_runner/core/ecs/stores/health_store.dart';
 import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
 import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
+import 'package:rpg_runner/core/ecs/stores/death_state_store.dart';
 import 'package:rpg_runner/core/ecs/systems/active_ability_phase_system.dart';
 import 'package:rpg_runner/core/ecs/systems/anim/anim_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/enemies/enemy_catalog.dart';
 import 'package:rpg_runner/core/enemies/enemy_id.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
+import 'package:rpg_runner/core/combat/control_lock.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
+import 'package:rpg_runner/core/enemies/death_behavior.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 
 import 'test_spawns.dart';
@@ -33,9 +36,22 @@ void main() {
       animSystem.step(world, player: -1, currentTick: tick);
     }
 
-    void stepPlayer(EntityId player, int tick) {
+    void stepPlayer(
+      EntityId player,
+      int tick, {
+      DeathPhase deathPhase = DeathPhase.none,
+      int deathStartTick = -1,
+      int spawnStartTick = 0,
+    }) {
       abilityPhaseSystem.step(world, currentTick: tick);
-      animSystem.step(world, player: player, currentTick: tick);
+      animSystem.step(
+        world,
+        player: player,
+        currentTick: tick,
+        playerDeathPhase: deathPhase,
+        playerDeathStartTick: deathStartTick,
+        playerSpawnStartTick: spawnStartTick,
+      );
     }
 
     setUp(() {
@@ -110,6 +126,18 @@ void main() {
         expect(world.animState.anim[ai], equals(AnimKey.spawn));
       });
 
+      test('spawn uses spawnStartTick as frame origin', () {
+        expect(playerAnimTuning.spawnAnimTicks, greaterThan(2));
+        final player = spawnPlayer(grounded: true);
+        const spawnStartTick = 100;
+
+        stepPlayer(player, spawnStartTick + 2, spawnStartTick: spawnStartTick);
+
+        final ai = world.animState.indexOf(player);
+        expect(world.animState.anim[ai], equals(AnimKey.spawn));
+        expect(world.animState.animFrame[ai], equals(2));
+      });
+
       test('dash uses active ability anim and frame', () {
         final player = spawnPlayer(grounded: true);
         final tick = playerAnimTuning.spawnAnimTicks + 5;
@@ -130,6 +158,42 @@ void main() {
         final ai = world.animState.indexOf(player);
         expect(world.animState.anim[ai], equals(AnimKey.dash));
         expect(world.animState.animFrame[ai], equals(offset));
+      });
+
+      test('dash movement ticks alone do not drive dash animation', () {
+        final player = spawnPlayer(grounded: true);
+        final tick = playerAnimTuning.spawnAnimTicks + 5;
+        final movementIndex = world.movement.indexOf(player);
+        world.movement.dashTicksLeft[movementIndex] = 5;
+
+        stepPlayer(player, tick);
+
+        final ai = world.animState.indexOf(player);
+        expect(world.animState.anim[ai], equals(AnimKey.idle));
+      });
+
+      test('stun animation frame uses stun start tick', () {
+        final player = spawnPlayer(grounded: true);
+        const stunStartTick = 30;
+        world.controlLock.addLock(player, LockFlag.stun, 10, stunStartTick);
+
+        stepPlayer(player, stunStartTick + 3);
+
+        final ai = world.animState.indexOf(player);
+        expect(world.animState.anim[ai], equals(AnimKey.stun));
+        expect(world.animState.animFrame[ai], equals(3));
+      });
+
+      test('stun refresh keeps continuous frame origin', () {
+        final player = spawnPlayer(grounded: true);
+        world.controlLock.addLock(player, LockFlag.stun, 8, 40);
+        world.controlLock.addLock(player, LockFlag.stun, 6, 44);
+
+        stepPlayer(player, 45);
+
+        final ai = world.animState.indexOf(player);
+        expect(world.animState.anim[ai], equals(AnimKey.stun));
+        expect(world.animState.animFrame[ai], equals(5));
       });
 
       test('strike uses active ability anim and frame', () {
@@ -196,6 +260,141 @@ void main() {
         final ai = world.animState.indexOf(player);
         expect(world.animState.anim[ai], equals(AnimKey.throwItem));
         expect(world.animState.animFrame[ai], equals(offset));
+      });
+
+      test('does not clear active ability when ability id is unknown', () {
+        final player = spawnPlayer(grounded: true);
+        final tick = playerAnimTuning.spawnAnimTicks + 5;
+        const unknownAbilityId = 'test.unknown_ability';
+        world.activeAbility.set(
+          player,
+          id: unknownAbilityId,
+          slot: AbilitySlot.primary,
+          commitTick: tick - 1,
+          windupTicks: 0,
+          activeTicks: 10,
+          recoveryTicks: 0,
+          facingDir: Facing.right,
+        );
+
+        // Step only AnimSystem to assert render-only behavior in isolation.
+        animSystem.step(world, player: player, currentTick: tick);
+
+        expect(world.activeAbility.hasActiveAbility(player), isTrue);
+        final activeIndex = world.activeAbility.indexOf(player);
+        expect(world.activeAbility.abilityId[activeIndex], unknownAbilityId);
+      });
+
+      test(
+        'does not clear active ability when elapsed already exceeds total',
+        () {
+          final player = spawnPlayer(grounded: true);
+          final tick = playerAnimTuning.spawnAnimTicks + 5;
+          world.activeAbility.set(
+            player,
+            id: 'eloise.quick_shot',
+            slot: AbilitySlot.projectile,
+            commitTick: tick - 1,
+            windupTicks: 0,
+            activeTicks: 1,
+            recoveryTicks: 0,
+            facingDir: Facing.right,
+          );
+          final activeIndex = world.activeAbility.indexOf(player);
+          world.activeAbility.elapsedTicks[activeIndex] = 10;
+
+          // Step only AnimSystem to assert render-only behavior in isolation.
+          animSystem.step(world, player: player, currentTick: tick);
+
+          expect(world.activeAbility.hasActiveAbility(player), isTrue);
+          expect(
+            world.activeAbility.abilityId[activeIndex],
+            'eloise.quick_shot',
+          );
+        },
+      );
+
+      test('player death animation frame uses provided deathStartTick', () {
+        final player = spawnPlayer(grounded: true);
+        const deathStartTick = 70;
+        const tick = 73;
+
+        stepPlayer(
+          player,
+          tick,
+          deathPhase: DeathPhase.deathAnim,
+          deathStartTick: deathStartTick,
+        );
+
+        final ai = world.animState.indexOf(player);
+        expect(world.animState.anim[ai], equals(AnimKey.death));
+        expect(world.animState.animFrame[ai], equals(tick - deathStartTick));
+      });
+
+      test('is read-only for gameplay stores', () {
+        final player = spawnPlayer(grounded: true);
+        const tick = 80;
+
+        world.activeAbility.set(
+          player,
+          id: 'eloise.quick_shot',
+          slot: AbilitySlot.projectile,
+          commitTick: tick - 2,
+          windupTicks: 0,
+          activeTicks: 10,
+          recoveryTicks: 0,
+          facingDir: Facing.right,
+        );
+
+        world.controlLock.addLock(player, LockFlag.stun, 10, tick);
+        final aiBefore = world.activeAbility.indexOf(player);
+        final miBefore = world.movement.indexOf(player);
+        final tiBefore = world.transform.indexOf(player);
+        final hiBefore = world.health.indexOf(player);
+        final cliBefore = world.controlLock.indexOf(player);
+
+        final activeIdBefore = world.activeAbility.abilityId[aiBefore];
+        final activeStartBefore = world.activeAbility.startTick[aiBefore];
+        final activePhaseBefore = world.activeAbility.phase[aiBefore];
+        final activeElapsedBefore = world.activeAbility.elapsedTicks[aiBefore];
+        final dashTicksBefore = world.movement.dashTicksLeft[miBefore];
+        final velXBefore = world.transform.velX[tiBefore];
+        final velYBefore = world.transform.velY[tiBefore];
+        final hpBefore = world.health.hp[hiBefore];
+        final stunUntilBefore = world.controlLock.untilTickStun[cliBefore];
+        final stunStartBefore = world.controlLock.stunStartTick[cliBefore];
+
+        // Step only AnimSystem to isolate render-path behavior.
+        animSystem.step(world, player: player, currentTick: tick);
+
+        final aiAfter = world.activeAbility.indexOf(player);
+        final miAfter = world.movement.indexOf(player);
+        final tiAfter = world.transform.indexOf(player);
+        final hiAfter = world.health.indexOf(player);
+        final cliAfter = world.controlLock.indexOf(player);
+
+        expect(world.activeAbility.abilityId[aiAfter], equals(activeIdBefore));
+        expect(
+          world.activeAbility.startTick[aiAfter],
+          equals(activeStartBefore),
+        );
+        expect(world.activeAbility.phase[aiAfter], equals(activePhaseBefore));
+        expect(
+          world.activeAbility.elapsedTicks[aiAfter],
+          equals(activeElapsedBefore),
+        );
+        expect(world.movement.dashTicksLeft[miAfter], equals(dashTicksBefore));
+        expect(world.transform.velX[tiAfter], equals(velXBefore));
+        expect(world.transform.velY[tiAfter], equals(velYBefore));
+        expect(world.health.hp[hiAfter], equals(hpBefore));
+        expect(
+          world.controlLock.untilTickStun[cliAfter],
+          equals(stunUntilBefore),
+        );
+        expect(
+          world.controlLock.stunStartTick[cliAfter],
+          equals(stunStartBefore),
+        );
       });
     });
 
@@ -270,20 +469,25 @@ void main() {
       test('death animation when hp <= 0', () {
         final enemy = spawnUnocoDemon(world, posX: 100, posY: 100);
 
-        // Set HP to zero.
-        final hi = world.health.indexOf(enemy);
-        world.health.hp[hi] = 0;
-
-        // Set last damage tick for death frame calculation.
+        // Deliberately stale hit tick: resolver should use deathStartTick.
         world.lastDamage.add(enemy);
         final ldi = world.lastDamage.indexOf(enemy);
-        world.lastDamage.tick[ldi] = 10;
+        world.lastDamage.tick[ldi] = 3;
+        world.deathState.add(
+          enemy,
+          const DeathStateDef(
+            phase: DeathPhase.deathAnim,
+            deathStartTick: 10,
+            despawnTick: -1,
+            maxFallDespawnTick: -1,
+          ),
+        );
 
         stepEnemies(15);
 
         final ai = world.animState.indexOf(enemy);
         expect(world.animState.anim[ai], equals(AnimKey.death));
-        expect(world.animState.animFrame[ai], equals(5)); // 15 - 10
+        expect(world.animState.animFrame[ai], equals(5)); // 15 - deathStartTick
       });
     });
 
@@ -430,18 +634,25 @@ void main() {
       test('death animation when hp <= 0', () {
         final enemy = spawnGroundEnemy(world, posX: 100, posY: 100);
 
-        final hi = world.health.indexOf(enemy);
-        world.health.hp[hi] = 0;
-
+        // Deliberately stale hit tick: resolver should use deathStartTick.
         world.lastDamage.add(enemy);
         final ldi = world.lastDamage.indexOf(enemy);
-        world.lastDamage.tick[ldi] = 10;
+        world.lastDamage.tick[ldi] = 4;
+        world.deathState.add(
+          enemy,
+          const DeathStateDef(
+            phase: DeathPhase.deathAnim,
+            deathStartTick: 14,
+            despawnTick: -1,
+            maxFallDespawnTick: -1,
+          ),
+        );
 
         stepEnemies(20);
 
         final ai = world.animState.indexOf(enemy);
         expect(world.animState.anim[ai], equals(AnimKey.death));
-        expect(world.animState.animFrame[ai], equals(10)); // 20 - 10
+        expect(world.animState.animFrame[ai], equals(6)); // 20 - deathStartTick
       });
     });
 
