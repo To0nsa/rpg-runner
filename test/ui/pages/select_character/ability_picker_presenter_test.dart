@@ -132,6 +132,33 @@ void main() {
       );
     });
 
+    test('primary and secondary slots expose melee auto-aim variants', () {
+      const loadout = EquippedLoadoutDef(
+        abilityPrimaryId: 'eloise.sword_strike',
+        abilitySecondaryId: 'eloise.shield_bash',
+      );
+
+      final primaryCandidates = abilityCandidatesForSlot(
+        characterId: PlayerCharacterId.eloise,
+        slot: AbilitySlot.primary,
+        loadout: loadout,
+      );
+      final secondaryCandidates = abilityCandidatesForSlot(
+        characterId: PlayerCharacterId.eloise,
+        slot: AbilitySlot.secondary,
+        loadout: loadout,
+      );
+
+      final swordAutoAim = primaryCandidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.sword_strike_auto_aim',
+      );
+      final shieldAutoAim = secondaryCandidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.shield_bash_auto_aim',
+      );
+      expect(swordAutoAim.isEnabled, isTrue);
+      expect(shieldAutoAim.isEnabled, isTrue);
+    });
+
     test(
       'secondary slot uses character-authored mask (legacy mask normalized)',
       () {

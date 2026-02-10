@@ -8,6 +8,11 @@
 - Bonus ability picker no longer shows projectile-source selection panel.
 - Bonus input path is tap-only end-to-end; legacy bonus hold/aim/charge HUD and control contracts were removed.
 - Legacy bonus projectile-source schema/persistence (`bonusSlotSpellId`) was removed; slot spell selection is projectile-slot only.
+- Homing auto-target is now resolved at commit-time for abilities authored with `TargetingModel.homing` (projectile and melee).
+- Added melee homing variants `eloise.sword_strike_auto_aim` / `eloise.shield_bash_auto_aim` with explicit reliability tax:
+  - base damage `15.0 -> 14.0`
+  - stamina cost `5.0 -> 5.5`
+  - cooldown `18 -> 24` ticks
 
 ## Scope
 Review of the current ability system implementation across Core + Game layers, checked against
@@ -98,13 +103,13 @@ and alignment with the design contracts.
 | Projectile payload ownership | OK | Ability defines hit shape; payload provider (throwing item or spell book) provides stats/procs via `HitPayloadBuilder`. |
 | Input buffering in recovery only | OK | Implemented via `AbilityInputBufferStore`. |
 | Bonus slot support | OK | Bonus slot is validated and routed in activation; HUD disables invalid slots (reason display still pending). |
-| Auto-target (future) | NO | Not implemented. |
+| Auto-target (future) | PARTIAL | Implemented for `TargetingModel.homing` at commit-time (deterministic nearest hostile, facing fallback); in-flight retargeting is still not implemented. |
 
 ## Gaps and Deviations
-1. Targeting models are declared but not enforced in Core.
-   - `TargetingModel` exists but AbilityActivationSystem does not branch on it.
-   - Hold-to-aim vs commit-on-release is currently only possible via input scheduling,
-     not a Core state machine.
+1. Targeting model coverage is still partial.
+   - `TargetingModel.homing` is enforced in `AbilityActivationSystem` for commit-time lock-on.
+   - Hold-to-aim vs commit-on-release is currently still orchestrated by input scheduling,
+     not a dedicated Core targeting state machine.
 
 2. Defensive/self effects are still limited.
    - `SelfHitDelivery` executes and can queue status profiles, but block/parry mechanics

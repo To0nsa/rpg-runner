@@ -43,6 +43,19 @@ void main() {
       expect(result.issues, isEmpty);
     });
 
+    test('auto-aim melee variants are valid in their authored slots', () {
+      const loadout = EquippedLoadoutDef(
+        mainWeaponId: WeaponId.woodenSword,
+        offhandWeaponId: WeaponId.woodenShield,
+        abilityPrimaryId: 'eloise.sword_strike_auto_aim',
+        abilitySecondaryId: 'eloise.shield_bash_auto_aim',
+      );
+
+      final result = validator.validate(loadout);
+      expect(result.isValid, isTrue, reason: 'Issues: ${result.issues}');
+      expect(result.issues, isEmpty);
+    });
+
     test('quick throw is valid when projectile slot spell is selected', () {
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.woodenSword,

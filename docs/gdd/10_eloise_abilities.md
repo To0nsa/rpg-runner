@@ -9,8 +9,8 @@ Based on the slot table from `ability_system_design.md`:
 
 | Slot | Abilities |
 |------|-----------|
-| **Primary** | Sword Strike, Sword Parry |
-| **Secondary** | Shield Bash, Shield Block |
+| **Primary** | Sword Strike, Sword Strike Auto-Aim, Sword Parry |
+| **Secondary** | Shield Bash, Shield Bash Auto-Aim, Shield Block |
 | **Projectile** | Auto-Aim Shot, Quick Shot, Piercing Shot, Charged Shot |
 | **Mobility** | Dash, Roll |
 | **Jump** | Jump (fixed slot) |
@@ -39,6 +39,7 @@ Some Eloise abilities are intentionally equivalent even across different categor
 | Pair | Equivalence Target | Allowed Differentiator |
 |---|---|---|
 | `eloise.sword_strike` and `eloise.shield_bash` | Offensive tempo and sustained throughput parity | Weapon/shield payload (status proc, damage type) |
+| `eloise.sword_strike_auto_aim` and `eloise.shield_bash_auto_aim` | Same offensive role as base counterparts with deterministic lock-on | Explicit reliability tax (`-1.0` damage, `+0.5` stamina, `+6` cooldown ticks) |
 | `eloise.sword_parry` and `eloise.shield_block` | Defensive window and reward parity | Weapon/shield payload and presentation |
 
 Rule: if one side of a mirrored pair gains power, it must pay via a matching tax axis or the pair is retuned together.
@@ -182,6 +183,13 @@ const swordStrike = AbilityDef(
   baseDamage: 1500,
 );
 ```
+
+### Sword Strike Auto-Aim
+
+- **Targeting**: Homing (deterministic nearest hostile at commit time)
+- **Role**: Sword Strike reliability variant with explicit efficiency tax
+- **Tax vs Sword Strike**: `-1.0` base damage, `+0.5` stamina cost, `+6` cooldown ticks
+- **Weapon/proc source**: Same as Sword Strike (`AbilityPayloadSource.primaryWeapon`)
 
 ---
 
@@ -339,6 +347,13 @@ const shieldBash = AbilityDef(
   baseDamage: 1500,
 );
 ```
+
+### Shield Bash Auto-Aim
+
+- **Targeting**: Homing (deterministic nearest hostile at commit time)
+- **Role**: Shield Bash reliability variant with explicit efficiency tax
+- **Tax vs Shield Bash**: `-1.0` base damage, `+0.5` stamina cost, `+6` cooldown ticks
+- **Weapon/proc source**: Same as Shield Bash (`AbilityPayloadSource.secondaryWeapon`)
 
 ---
 
@@ -649,8 +664,10 @@ const jump = AbilityDef(
 | Ability | Category | Targeting | Stamina | Mana | Damage | Cooldown |
 |---------|----------|-----------|---------|------|--------|----------|
 | Sword Strike | Melee | Directional | 5.0 | - | 15.0 | 18 ticks (~300ms) |
+| Sword Strike Auto-Aim | Melee | Homing | 5.5 | - | 14.0 | 24 ticks (~400ms) |
 | Sword Parry | Defense | None | 7.0 | - | Next melee hit +100% (riposte) | 30 ticks (~500ms) |
 | Shield Bash | Defense | Directional | 5.0 | - | 15.0 | 18 ticks (~300ms) |
+| Shield Bash Auto-Aim | Defense | Homing | 5.5 | - | 14.0 | 24 ticks (~400ms) |
 | Shield Block | Defense | None | 7.0 | - | Next melee hit +100% (riposte) | 30 ticks (~500ms) |
 | Auto-Aim Shot | Magic | Homing | - | 8.0 | 13.0 | 24 ticks (~400ms) |
 | Quick Shot | Ranged | Aimed | - | 6.0 | 9.0 | 15 ticks (~250ms) |

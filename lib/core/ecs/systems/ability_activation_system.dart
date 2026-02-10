@@ -646,12 +646,25 @@ class AbilityActivationSystem {
     final hitDelivery = ability.hitDelivery;
     if (hitDelivery is! MeleeHitDelivery) return false;
 
-    final aimX =
+    final rawAimX =
         aimOverrideX ??
         (inputIndex == null ? 0.0 : world.playerInput.meleeAimDirX[inputIndex]);
-    final aimY =
+    final rawAimY =
         aimOverrideY ??
         (inputIndex == null ? 0.0 : world.playerInput.meleeAimDirY[inputIndex]);
+    final fallbackDirX = facing == Facing.right ? 1.0 : -1.0;
+    const fallbackDirY = 0.0;
+    final resolvedAim = _resolveHomingAimDirection(
+      world,
+      source: player,
+      ability: ability,
+      rawAimX: rawAimX,
+      rawAimY: rawAimY,
+      fallbackDirX: fallbackDirX,
+      fallbackDirY: fallbackDirY,
+    );
+    final aimX = resolvedAim.$1;
+    final aimY = resolvedAim.$2;
     final len2 = aimX * aimX + aimY * aimY;
 
     final double dirX;
@@ -661,8 +674,8 @@ class AbilityActivationSystem {
       dirX = aimX * invLen;
       dirY = aimY * invLen;
     } else {
-      dirX = facing == Facing.right ? 1.0 : -1.0;
-      dirY = 0.0;
+      dirX = fallbackDirX;
+      dirY = fallbackDirY;
     }
 
     // Resolve hitbox dimensions from the ability.
@@ -1073,7 +1086,7 @@ class AbilityActivationSystem {
     return 2;
   }
 
-  (double, double) _resolveProjectileAimDirection(
+  (double, double) _resolveHomingAimDirection(
     EcsWorld world, {
     required EntityId source,
     required AbilityDef ability,
@@ -1094,6 +1107,26 @@ class AbilityActivationSystem {
     );
     if (nearest != null) return nearest;
     return (rawAimX, rawAimY);
+  }
+
+  (double, double) _resolveProjectileAimDirection(
+    EcsWorld world, {
+    required EntityId source,
+    required AbilityDef ability,
+    required double rawAimX,
+    required double rawAimY,
+    required double fallbackDirX,
+    required double fallbackDirY,
+  }) {
+    return _resolveHomingAimDirection(
+      world,
+      source: source,
+      ability: ability,
+      rawAimX: rawAimX,
+      rawAimY: rawAimY,
+      fallbackDirX: fallbackDirX,
+      fallbackDirY: fallbackDirY,
+    );
   }
 
   (double, double)? _nearestHostileAim(

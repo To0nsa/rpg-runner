@@ -113,6 +113,39 @@ class AbilityCatalog implements AbilityResolver {
       ],
       baseDamage: 1500, // PlayerTuning meleeDamage 15.0
     ),
+    'eloise.sword_strike_auto_aim': AbilityDef(
+      id: 'eloise.sword_strike_auto_aim',
+      category: AbilityCategory.melee,
+      allowedSlots: {AbilitySlot.primary},
+      targetingModel: TargetingModel.homing,
+      hitDelivery: MeleeHitDelivery(
+        sizeX: 32,
+        sizeY: 32,
+        offsetX: 12,
+        offsetY: 0.0,
+        hitPolicy: HitPolicy.oncePerTarget,
+      ),
+      // Match Sword Strike exactly; only targeting differs.
+      windupTicks: 8,
+      activeTicks: 6,
+      recoveryTicks: 8,
+      // Reliability tax for deterministic lock-on.
+      staminaCost: 550,
+      manaCost: 0,
+      cooldownTicks: 24,
+      interruptPriority: InterruptPriority.combat,
+      animKey: AnimKey.strike,
+      requiredWeaponTypes: {WeaponType.oneHandedSword},
+      payloadSource: AbilityPayloadSource.primaryWeapon,
+      procs: <WeaponProc>[
+        WeaponProc(
+          hook: ProcHook.onHit,
+          statusProfileId: StatusProfileId.meleeBleed,
+          chanceBp: 10000,
+        ),
+      ],
+      baseDamage: 1400,
+    ),
 
     'eloise.sword_parry': AbilityDef(
       id: 'eloise.sword_parry',
@@ -170,6 +203,39 @@ class AbilityCatalog implements AbilityResolver {
         ),
       ],
       baseDamage: 1500, // Assuming standardized melee damage
+    ),
+    'eloise.shield_bash_auto_aim': AbilityDef(
+      id: 'eloise.shield_bash_auto_aim',
+      category: AbilityCategory.defense,
+      allowedSlots: {AbilitySlot.secondary},
+      targetingModel: TargetingModel.homing,
+      hitDelivery: MeleeHitDelivery(
+        sizeX: 32,
+        sizeY: 32,
+        offsetX: 12.0,
+        offsetY: 0.0,
+        hitPolicy: HitPolicy.oncePerTarget,
+      ),
+      // Match Shield Bash exactly; only targeting differs.
+      windupTicks: 8,
+      activeTicks: 6,
+      recoveryTicks: 8,
+      // Reliability tax for deterministic lock-on.
+      staminaCost: 550,
+      manaCost: 0,
+      cooldownTicks: 24,
+      interruptPriority: InterruptPriority.combat,
+      animKey: AnimKey.shieldBash,
+      requiredWeaponTypes: {WeaponType.shield},
+      payloadSource: AbilityPayloadSource.secondaryWeapon,
+      procs: <WeaponProc>[
+        WeaponProc(
+          hook: ProcHook.onHit,
+          statusProfileId: StatusProfileId.stunOnHit,
+          chanceBp: 10000,
+        ),
+      ],
+      baseDamage: 1400,
     ),
 
     'eloise.shield_block': AbilityDef(
