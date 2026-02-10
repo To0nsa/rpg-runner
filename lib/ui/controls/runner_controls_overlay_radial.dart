@@ -4,12 +4,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../game/input/aim_preview.dart';
+import '../../game/input/charge_preview.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'action_button.dart';
 import 'controls_tuning.dart';
 import 'directional_action_button.dart';
-import 'fixed_joystick.dart';
-import 'floating_joystick.dart';
+import 'move_buttons.dart';
 
 class RunnerControlsOverlay extends StatelessWidget {
   const RunnerControlsOverlay({
@@ -41,6 +41,14 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.projectileInputMode,
     required this.bonusInputMode,
     required this.bonusUsesMeleeAim,
+    required this.projectileChargePreview,
+    required this.projectileChargeEnabled,
+    required this.projectileChargeHalfTicks,
+    required this.projectileChargeFullTicks,
+    required this.bonusChargeEnabled,
+    required this.bonusChargeHalfTicks,
+    required this.bonusChargeFullTicks,
+    required this.simulationTickHz,
     required this.jumpAffordable,
     required this.dashAffordable,
     required this.dashCooldownTicksLeft,
@@ -60,12 +68,13 @@ class RunnerControlsOverlay extends StatelessWidget {
   final VoidCallback onDashPressed;
   final VoidCallback onSecondaryPressed;
   final VoidCallback onBonusPressed;
-  final VoidCallback onBonusCommitted;
-  final VoidCallback onProjectileCommitted;
+  final ValueChanged<int> onBonusCommitted;
+  final ValueChanged<int> onProjectileCommitted;
   final VoidCallback onProjectilePressed;
   final void Function(double x, double y) onProjectileAimDir;
   final VoidCallback onProjectileAimClear;
   final AimPreviewModel projectileAimPreview;
+  final ChargePreviewModel projectileChargePreview;
   final bool projectileAffordable;
   final int projectileCooldownTicksLeft;
   final int projectileCooldownTicksTotal;
@@ -83,6 +92,13 @@ class RunnerControlsOverlay extends StatelessWidget {
 
   final AbilityInputMode bonusInputMode;
   final bool bonusUsesMeleeAim;
+  final bool projectileChargeEnabled;
+  final int projectileChargeHalfTicks;
+  final int projectileChargeFullTicks;
+  final bool bonusChargeEnabled;
+  final int bonusChargeHalfTicks;
+  final int bonusChargeFullTicks;
+  final int simulationTickHz;
   final bool jumpAffordable;
   final bool dashAffordable;
   final int dashCooldownTicksLeft;
@@ -101,13 +117,10 @@ class RunnerControlsOverlay extends StatelessWidget {
     final t = tuning;
     final action = t.actionButton;
     final directional = t.directionalActionButton;
-    final jumpSize = action.size * 1.4;
-    final smallActionSize = action.size * 0.9;
-    final smallDirectionalSize = directional.size * 0.9;
-    final smallDeadzoneRadius = directional.deadzoneRadius * 0.9;
-
-    // Arrange the 5 action slots (Mobility, Secondary, Primary, Projectile, Bonus)
-    // in a clean radial arc around the Jump button.
+    final jumpSize = action.size * 1.6;
+    final smallActionSize = action.size * 1.0;
+    final smallDirectionalSize = directional.size * 1.0;
+    final smallDeadzoneRadius = directional.deadzoneRadius * 1.0;
 
     Offset polar(double radius, double degrees) {
       final radians = degrees * math.pi / 180.0;
@@ -135,47 +148,37 @@ class RunnerControlsOverlay extends StatelessWidget {
         math.max(smallDirectionalSize, smallActionSize) * 0.5 +
         ringGap;
 
-    // Evenly spread the 5 action buttons over an arc above/left of the jump.
-    // Degrees follow the standard unit circle, but note Flutter's Y axis points down.
     const startDeg = 160.0;
     const stepDeg = 35.0;
 
-    final dashOffset = polar(ringRadius, startDeg + stepDeg * 0);
-    final meleeOffset = polar(ringRadius, startDeg + stepDeg * 0.2);
-    final secondaryOffset = polar(ringRadius, startDeg + stepDeg * 1.6);
-    final projectileOffset = polar(ringRadius, startDeg + stepDeg * 3);
-    final bonusOffset = polar(ringRadius, startDeg + stepDeg * 4);
+    final dashOffset = polar(ringRadius, startDeg + stepDeg * -0.4);
+    final meleeOffset = polar(ringRadius, startDeg + stepDeg * 3.8);
+    final secondaryOffset = polar(ringRadius, startDeg + stepDeg * 1.0);
+    final projectileOffset = polar(ringRadius, startDeg + stepDeg * 2.4);
+    const bonusVerticalOffset = 72.0;
+    final bonusButtonSize = bonusInputMode == AbilityInputMode.tap
+        ? smallActionSize
+        : smallDirectionalSize;
+    final bonusRight = rightFor(meleeOffset, bonusButtonSize);
+    final bonusBottom =
+        bottomFor(meleeOffset, bonusButtonSize) + bonusVerticalOffset;
 
     return Stack(
       children: [
         Positioned(
           left: t.edgePadding,
           bottom: t.bottomEdgePadding,
-          child: t.joystickKind == ControlsJoystickKind.floating
-              ? FloatingJoystick(
-                  onAxisChanged: onMoveAxis,
-                  areaSize: t.floatingJoystick.areaSize,
-                  baseSize: t.floatingJoystick.baseSize,
-                  knobSize: t.floatingJoystick.knobSize,
-                  followSmoothing: t.floatingJoystick.followSmoothing,
-                  baseColor: t.floatingJoystick.baseColor,
-                  baseBorderColor: t.floatingJoystick.baseBorderColor,
-                  baseBorderWidth: t.floatingJoystick.baseBorderWidth,
-                  knobColor: t.floatingJoystick.knobColor,
-                  knobBorderColor: t.floatingJoystick.knobBorderColor,
-                  knobBorderWidth: t.floatingJoystick.knobBorderWidth,
-                )
-              : FixedJoystick(
-                  onAxisChanged: onMoveAxis,
-                  size: t.fixedJoystick.size,
-                  knobSize: t.fixedJoystick.knobSize,
-                  baseColor: t.fixedJoystick.baseColor,
-                  baseBorderColor: t.fixedJoystick.baseBorderColor,
-                  baseBorderWidth: t.fixedJoystick.baseBorderWidth,
-                  knobColor: t.fixedJoystick.knobColor,
-                  knobBorderColor: t.fixedJoystick.knobBorderColor,
-                  knobBorderWidth: t.fixedJoystick.knobBorderWidth,
-                ),
+          child: MoveButtons(
+            onAxisChanged: onMoveAxis,
+            buttonWidth: t.moveButtonWidth,
+            buttonHeight: t.moveButtonHeight,
+            gap: t.moveButtonGap,
+            backgroundColor: t.moveButtonBackgroundColor,
+            foregroundColor: t.moveButtonForegroundColor,
+            borderColor: t.moveButtonBorderColor,
+            borderWidth: t.moveButtonBorderWidth,
+            borderRadius: t.moveButtonBorderRadius,
+          ),
         ),
         Positioned(
           right: rightFor(projectileOffset, smallDirectionalSize),
@@ -199,7 +202,17 @@ class RunnerControlsOverlay extends StatelessWidget {
                   icon: Icons.auto_awesome,
                   onAimDir: onProjectileAimDir,
                   onAimClear: onProjectileAimClear,
-                  onCommit: onProjectileCommitted,
+                  onCommit: () => onProjectileCommitted(0),
+                  onChargeCommit: onProjectileCommitted,
+                  chargePreview: projectileChargePreview,
+                  chargeOwnerId: 'projectile',
+                  chargeHalfTicks: projectileChargeEnabled
+                      ? projectileChargeHalfTicks
+                      : 0,
+                  chargeFullTicks: projectileChargeEnabled
+                      ? projectileChargeFullTicks
+                      : 0,
+                  chargeTickHz: simulationTickHz,
                   projectileAimPreview: projectileAimPreview,
                   cancelHitboxRect: aimCancelHitboxRect,
                   affordable: projectileAffordable,
@@ -215,8 +228,8 @@ class RunnerControlsOverlay extends StatelessWidget {
                 ),
         ),
         Positioned(
-          right: rightFor(bonusOffset, smallActionSize),
-          bottom: bottomFor(bonusOffset, smallActionSize),
+          right: bonusRight,
+          bottom: bonusBottom,
           child: bonusInputMode == AbilityInputMode.tap
               ? ActionButton(
                   label: 'Bonus',
@@ -240,7 +253,19 @@ class RunnerControlsOverlay extends StatelessWidget {
                   onAimClear: bonusUsesMeleeAim
                       ? onMeleeAimClear
                       : onProjectileAimClear,
-                  onCommit: onBonusCommitted,
+                  onCommit: () => onBonusCommitted(0),
+                  onChargeCommit: onBonusCommitted,
+                  chargePreview: bonusUsesMeleeAim
+                      ? null
+                      : projectileChargePreview,
+                  chargeOwnerId: 'bonus',
+                  chargeHalfTicks: (!bonusUsesMeleeAim && bonusChargeEnabled)
+                      ? bonusChargeHalfTicks
+                      : 0,
+                  chargeFullTicks: (!bonusUsesMeleeAim && bonusChargeEnabled)
+                      ? bonusChargeFullTicks
+                      : 0,
+                  chargeTickHz: simulationTickHz,
                   projectileAimPreview: bonusUsesMeleeAim
                       ? meleeAimPreview
                       : projectileAimPreview,
@@ -343,7 +368,68 @@ class RunnerControlsOverlay extends StatelessWidget {
             labelGap: action.labelGap,
           ),
         ),
+        ValueListenableBuilder<ChargePreviewState>(
+          valueListenable: projectileChargePreview,
+          builder: (context, state, _) {
+            if (!state.active) return const SizedBox.shrink();
+            if (state.ownerId != 'projectile' && state.ownerId != 'bonus') {
+              return const SizedBox.shrink();
+            }
+            final chargeRight = state.ownerId == 'projectile'
+                ? rightFor(projectileOffset, smallDirectionalSize)
+                : bonusRight;
+            final chargeBottom = state.ownerId == 'projectile'
+                ? bottomFor(projectileOffset, smallDirectionalSize) +
+                      smallDirectionalSize +
+                      8
+                : bonusBottom + bonusButtonSize + 8;
+            return Positioned(
+              right: chargeRight,
+              bottom: chargeBottom,
+              child: _ChargeBar(progress01: state.progress01, tier: state.tier),
+            );
+          },
+        ),
       ],
+    );
+  }
+}
+
+class _ChargeBar extends StatelessWidget {
+  const _ChargeBar({required this.progress01, required this.tier});
+
+  final double progress01;
+  final int tier;
+
+  @override
+  Widget build(BuildContext context) {
+    final clamped = progress01.clamp(0.0, 1.0);
+    final fillColor = switch (tier) {
+      2 => const Color(0xFF6EDC8C),
+      1 => const Color(0xFFF0C15A),
+      _ => const Color(0xFF9FA8B2),
+    };
+    return Container(
+      width: 84,
+      height: 14,
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: const Color(0xAA11161D),
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(color: const Color(0xFF2C3A47), width: 1),
+      ),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: FractionallySizedBox(
+          widthFactor: clamped,
+          child: Container(
+            decoration: BoxDecoration(
+              color: fillColor,
+              borderRadius: BorderRadius.circular(5),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

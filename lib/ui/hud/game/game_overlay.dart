@@ -5,7 +5,7 @@ import '../../../game/game_controller.dart';
 import '../../../game/input/aim_preview.dart';
 import '../../../game/input/charge_preview.dart';
 import '../../../game/input/runner_input_router.dart';
-import '../../controls/runner_controls_overlay.dart';
+import '../../controls/runner_controls_overlay_radial.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
 import '../../runner_game_ui_state.dart';
 import 'pause_overlay.dart';

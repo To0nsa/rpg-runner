@@ -2,18 +2,21 @@ import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 
-enum ControlsJoystickKind { fixed, floating }
-
 @immutable
 class ControlsTuning {
   const ControlsTuning({
-    this.edgePadding = 16,
+    this.edgePadding = 32,
     this.bottomEdgePadding = 16,
     this.buttonGap = 12,
     this.rowGap = 12,
-    this.joystickKind = ControlsJoystickKind.floating,
-    this.fixedJoystick = const FixedJoystickTuning(),
-    this.floatingJoystick = const FloatingJoystickTuning(),
+    this.moveButtonWidth = 64,
+    this.moveButtonHeight = 48,
+    this.moveButtonGap = 8,
+    this.moveButtonBackgroundColor = const Color(0x33000000),
+    this.moveButtonForegroundColor = const Color(0xFFFFFFFF),
+    this.moveButtonBorderColor = const Color(0x55FFFFFF),
+    this.moveButtonBorderWidth = 1,
+    this.moveButtonBorderRadius = 12,
     this.actionButton = const ActionButtonTuning(),
     this.directionalActionButton = const DirectionalActionButtonTuning(),
   });
@@ -23,17 +26,20 @@ class ControlsTuning {
   final double buttonGap;
   final double rowGap;
 
-  final ControlsJoystickKind joystickKind;
-  final FixedJoystickTuning fixedJoystick;
-  final FloatingJoystickTuning floatingJoystick;
+  final double moveButtonWidth;
+  final double moveButtonHeight;
+  final double moveButtonGap;
+  final Color moveButtonBackgroundColor;
+  final Color moveButtonForegroundColor;
+  final Color moveButtonBorderColor;
+  final double moveButtonBorderWidth;
+  final double moveButtonBorderRadius;
 
   final ActionButtonTuning actionButton;
   final DirectionalActionButtonTuning directionalActionButton;
 
-  static const floating = ControlsTuning();
-  static const fixed = ControlsTuning(
-    joystickKind: ControlsJoystickKind.fixed,
-  );
+  static const defaults = ControlsTuning();
+  static const fixed = defaults;
 }
 
 @immutable
@@ -70,54 +76,4 @@ class DirectionalActionButtonTuning {
   final Color foregroundColor;
   final double labelFontSize;
   final double labelGap;
-}
-
-@immutable
-class FixedJoystickTuning {
-  const FixedJoystickTuning({
-    this.size = 120,
-    this.knobSize = 56,
-    this.baseColor = const Color(0x33000000),
-    this.baseBorderColor = const Color(0x55FFFFFF),
-    this.baseBorderWidth = 1,
-    this.knobColor = const Color(0x66FFFFFF),
-    this.knobBorderColor = const Color(0x88FFFFFF),
-    this.knobBorderWidth = 1,
-  });
-
-  final double size;
-  final double knobSize;
-  final Color baseColor;
-  final Color baseBorderColor;
-  final double baseBorderWidth;
-  final Color knobColor;
-  final Color knobBorderColor;
-  final double knobBorderWidth;
-}
-
-@immutable
-class FloatingJoystickTuning {
-  const FloatingJoystickTuning({
-    this.areaSize = 220,
-    this.baseSize = 120,
-    this.knobSize = 56,
-    this.followSmoothing = 0.25,
-    this.baseColor = const Color(0x33000000),
-    this.baseBorderColor = const Color(0x55FFFFFF),
-    this.baseBorderWidth = 1,
-    this.knobColor = const Color(0x66FFFFFF),
-    this.knobBorderColor = const Color(0x88FFFFFF),
-    this.knobBorderWidth = 1,
-  });
-
-  final double areaSize;
-  final double baseSize;
-  final double knobSize;
-  final double followSmoothing;
-  final Color baseColor;
-  final Color baseBorderColor;
-  final double baseBorderWidth;
-  final Color knobColor;
-  final Color knobBorderColor;
-  final double knobBorderWidth;
 }
