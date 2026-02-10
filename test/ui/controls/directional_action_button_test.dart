@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rpg_runner/game/input/aim_preview.dart';
+import 'package:rpg_runner/ui/controls/controls_tuning.dart';
 import 'package:rpg_runner/ui/controls/directional_action_button.dart';
 
 void main() {
   testWidgets('commits on release when not force-canceled', (tester) async {
     final aimPreview = AimPreviewModel();
     final forceCancelSignal = ValueNotifier<int>(0);
+    const controls = ControlsTuning.fixed;
     var commitCount = 0;
 
     await tester.pumpWidget(
@@ -21,6 +23,11 @@ void main() {
               onAimClear: () {},
               onCommit: () => commitCount += 1,
               projectileAimPreview: aimPreview,
+              tuning: controls.style.directionalActionButton,
+              size: controls.style.directionalActionButton.size,
+              deadzoneRadius:
+                  controls.style.directionalActionButton.deadzoneRadius,
+              cooldownRing: controls.style.cooldownRing,
               forceCancelSignal: forceCancelSignal,
             ),
           ),
@@ -43,6 +50,7 @@ void main() {
   testWidgets('force-cancel signal prevents commit on release', (tester) async {
     final aimPreview = AimPreviewModel();
     final forceCancelSignal = ValueNotifier<int>(0);
+    const controls = ControlsTuning.fixed;
     var commitCount = 0;
 
     await tester.pumpWidget(
@@ -56,6 +64,11 @@ void main() {
               onAimClear: () {},
               onCommit: () => commitCount += 1,
               projectileAimPreview: aimPreview,
+              tuning: controls.style.directionalActionButton,
+              size: controls.style.directionalActionButton.size,
+              deadzoneRadius:
+                  controls.style.directionalActionButton.deadzoneRadius,
+              cooldownRing: controls.style.cooldownRing,
               forceCancelSignal: forceCancelSignal,
             ),
           ),

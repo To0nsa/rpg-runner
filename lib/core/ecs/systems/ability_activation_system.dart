@@ -467,6 +467,12 @@ class AbilityActivationSystem {
       staminaCost100: ability.staminaCost,
     );
     if (fail != null) return false;
+    if (ability.holdMode == AbilityHoldMode.holdToMaintain &&
+        ability.holdStaminaDrainPerSecond100 > 0) {
+      final staminaIndex = world.stamina.tryIndexOf(player);
+      if (staminaIndex == null) return false;
+      if (world.stamina.stamina[staminaIndex] <= 0) return false;
+    }
 
     _applyCommitSideEffects(
       world,
@@ -1250,6 +1256,10 @@ class AbilityActivationSystem {
     required int staminaCost100,
     int? movementIndex,
   }) {
+    final abilityDef = abilities.resolve(abilityId);
+    final deferCooldown =
+        abilityDef?.holdMode == AbilityHoldMode.holdToMaintain;
+
     // Deduct mana (fixed-point) — deterministic clamp.
     if (manaCost100 > 0) {
       final mi = world.mana.tryIndexOf(player);
@@ -1278,8 +1288,10 @@ class AbilityActivationSystem {
       }
     }
 
-    // Start cooldown at commit (max-refresh semantics already inside CooldownStore.startCooldown()).
-    world.cooldown.startCooldown(player, cooldownGroupId, cooldownTicks);
+    // For hold abilities cooldown starts when hold ends; all others start at commit.
+    if (!deferCooldown) {
+      world.cooldown.startCooldown(player, cooldownGroupId, cooldownTicks);
+    }
 
     // Mark active ability at commit.
     world.activeAbility.set(
@@ -1291,6 +1303,9 @@ class AbilityActivationSystem {
       activeTicks: activeTicks,
       recoveryTicks: recoveryTicks,
       facingDir: facingDir,
+      cooldownGroupId: cooldownGroupId,
+      cooldownTicks: cooldownTicks,
+      cooldownStarted: !deferCooldown,
     );
 
     // Keep movement facing consistent for mobility-like commits (matches old MobilitySystem behavior).

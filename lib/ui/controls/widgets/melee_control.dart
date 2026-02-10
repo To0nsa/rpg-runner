@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 
 import '../../../core/snapshots/enums.dart';
 import '../../../game/input/aim_preview.dart';
+import '../../haptics/haptics_service.dart';
 import '../action_button.dart';
 import '../controls_tuning.dart';
 import '../directional_action_button.dart';
+import '../hold_action_button.dart';
 
+/// Resolves melee input mode (tap, hold-maintain, directional aim-release).
 class MeleeControl extends StatelessWidget {
   const MeleeControl({
     super.key,
@@ -15,6 +18,8 @@ class MeleeControl extends StatelessWidget {
     required this.size,
     required this.deadzoneRadius,
     required this.onPressed,
+    required this.onHoldStart,
+    required this.onHoldEnd,
     required this.onAimDir,
     required this.onAimClear,
     required this.onCommitted,
@@ -23,6 +28,7 @@ class MeleeControl extends StatelessWidget {
     required this.cooldownTicksLeft,
     required this.cooldownTicksTotal,
     required this.cancelHitboxRect,
+    required this.haptics,
     required this.forceCancelSignal,
   });
 
@@ -32,6 +38,8 @@ class MeleeControl extends StatelessWidget {
   final double deadzoneRadius;
 
   final VoidCallback onPressed;
+  final VoidCallback onHoldStart;
+  final VoidCallback onHoldEnd;
   final void Function(double x, double y) onAimDir;
   final VoidCallback onAimClear;
   final VoidCallback onCommitted;
@@ -41,25 +49,39 @@ class MeleeControl extends StatelessWidget {
   final int cooldownTicksLeft;
   final int cooldownTicksTotal;
   final ValueListenable<Rect?> cancelHitboxRect;
+  final UiHaptics haptics;
   final ValueListenable<int> forceCancelSignal;
 
   @override
   Widget build(BuildContext context) {
     final action = tuning.style.actionButton;
     final directional = tuning.style.directionalActionButton;
+    final cooldownRing = tuning.style.cooldownRing;
     if (inputMode == AbilityInputMode.tap) {
       return ActionButton(
         label: 'Atk',
         icon: Icons.close,
         onPressed: onPressed,
+        tuning: action,
+        cooldownRing: cooldownRing,
         affordable: affordable,
         cooldownTicksLeft: cooldownTicksLeft,
         cooldownTicksTotal: cooldownTicksTotal,
         size: size,
-        backgroundColor: action.backgroundColor,
-        foregroundColor: action.foregroundColor,
-        labelFontSize: action.labelFontSize,
-        labelGap: action.labelGap,
+      );
+    }
+    if (inputMode == AbilityInputMode.holdMaintain) {
+      return HoldActionButton(
+        label: 'Atk',
+        icon: Icons.close,
+        onHoldStart: onHoldStart,
+        onHoldEnd: onHoldEnd,
+        tuning: action,
+        cooldownRing: cooldownRing,
+        affordable: affordable,
+        cooldownTicksLeft: cooldownTicksLeft,
+        cooldownTicksTotal: cooldownTicksTotal,
+        size: size,
       );
     }
     return DirectionalActionButton(
@@ -69,16 +91,15 @@ class MeleeControl extends StatelessWidget {
       onAimClear: onAimClear,
       onCommit: onCommitted,
       projectileAimPreview: aimPreview,
+      tuning: directional,
+      cooldownRing: cooldownRing,
+      haptics: haptics,
       cancelHitboxRect: cancelHitboxRect,
       affordable: affordable,
       cooldownTicksLeft: cooldownTicksLeft,
       cooldownTicksTotal: cooldownTicksTotal,
       size: size,
       deadzoneRadius: deadzoneRadius,
-      backgroundColor: directional.backgroundColor,
-      foregroundColor: directional.foregroundColor,
-      labelFontSize: directional.labelFontSize,
-      labelGap: directional.labelGap,
       forceCancelSignal: forceCancelSignal,
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:rpg_runner/ui/controls/controls_tuning.dart';
 import 'package:rpg_runner/ui/controls/move_buttons.dart';
 
 void main() {
@@ -7,6 +8,11 @@ void main() {
     tester,
   ) async {
     final emittedAxis = <double>[];
+    const moveButtons = MoveButtonsTuning(
+      buttonWidth: 64,
+      buttonHeight: 48,
+      gap: 8,
+    );
 
     await tester.pumpWidget(
       MaterialApp(
@@ -14,9 +20,7 @@ void main() {
           body: Center(
             child: MoveButtons(
               onAxisChanged: emittedAxis.add,
-              buttonWidth: 64,
-              buttonHeight: 48,
-              gap: 8,
+              tuning: moveButtons,
             ),
           ),
         ),

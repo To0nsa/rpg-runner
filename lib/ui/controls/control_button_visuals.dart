@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'cooldown_ring.dart';
+import 'controls_tuning.dart';
 
 /// Resolved visual state for a control button.
 ///
@@ -39,18 +40,21 @@ class ControlButtonVisualState {
 ///
 /// This keeps cooldown ring rendering consistent for tap and directional
 /// controls.
+/// `cooldownTicksLeft`/`cooldownTicksTotal` are simulation ticks.
 class ControlButtonShell extends StatelessWidget {
   const ControlButtonShell({
     super.key,
     required this.size,
     required this.cooldownTicksLeft,
     required this.cooldownTicksTotal,
+    required this.cooldownRing,
     required this.child,
   });
 
   final double size;
   final int cooldownTicksLeft;
   final int cooldownTicksTotal;
+  final CooldownRingTuning cooldownRing;
   final Widget child;
 
   @override
@@ -66,6 +70,7 @@ class ControlButtonShell extends StatelessWidget {
             child: CooldownRing(
               cooldownTicksLeft: cooldownTicksLeft,
               cooldownTicksTotal: cooldownTicksTotal,
+              tuning: cooldownRing,
             ),
           ),
         ],

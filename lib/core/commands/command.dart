@@ -1,3 +1,5 @@
+import '../abilities/ability_def.dart';
+
 /// Core input command model for the deterministic simulation.
 ///
 /// Commands represent discrete user inputs scheduled for a specific simulation tick.
@@ -107,4 +109,20 @@ final class ProjectilePressedCommand extends Command {
 /// One-shot bonus press event for the given tick.
 final class BonusPressedCommand extends Command {
   const BonusPressedCommand({required super.tick});
+}
+
+/// Continuous hold state for an ability slot at the given tick.
+///
+/// This is used for "hold-to-maintain" abilities (for example, shield block).
+/// Input routers should schedule this continuously while held and send
+/// `held: false` commands when releasing to overwrite already-buffered ticks.
+final class AbilitySlotHeldCommand extends Command {
+  const AbilitySlotHeldCommand({
+    required super.tick,
+    required this.slot,
+    required this.held,
+  });
+
+  final AbilitySlot slot;
+  final bool held;
 }

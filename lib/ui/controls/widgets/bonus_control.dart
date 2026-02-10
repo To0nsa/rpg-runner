@@ -4,10 +4,13 @@ import 'package:flutter/material.dart';
 import '../../../core/snapshots/enums.dart';
 import '../../../game/input/aim_preview.dart';
 import '../../../game/input/charge_preview.dart';
+import '../../haptics/haptics_service.dart';
 import '../action_button.dart';
 import '../controls_tuning.dart';
 import '../directional_action_button.dart';
+import '../hold_action_button.dart';
 
+/// Resolves bonus input mode and routes aim to projectile or melee channels.
 class BonusControl extends StatelessWidget {
   const BonusControl({
     super.key,
@@ -17,6 +20,8 @@ class BonusControl extends StatelessWidget {
     required this.size,
     required this.deadzoneRadius,
     required this.onPressed,
+    required this.onHoldStart,
+    required this.onHoldEnd,
     required this.onProjectileAimDir,
     required this.onProjectileAimClear,
     required this.onMeleeAimDir,
@@ -33,6 +38,7 @@ class BonusControl extends StatelessWidget {
     required this.chargeHalfTicks,
     required this.chargeFullTicks,
     required this.simulationTickHz,
+    required this.haptics,
     required this.forceCancelSignal,
   });
 
@@ -43,6 +49,8 @@ class BonusControl extends StatelessWidget {
   final double deadzoneRadius;
 
   final VoidCallback onPressed;
+  final VoidCallback onHoldStart;
+  final VoidCallback onHoldEnd;
   final void Function(double x, double y) onProjectileAimDir;
   final VoidCallback onProjectileAimClear;
   final void Function(double x, double y) onMeleeAimDir;
@@ -61,25 +69,39 @@ class BonusControl extends StatelessWidget {
   final int chargeHalfTicks;
   final int chargeFullTicks;
   final int simulationTickHz;
+  final UiHaptics haptics;
   final ValueListenable<int> forceCancelSignal;
 
   @override
   Widget build(BuildContext context) {
     final action = tuning.style.actionButton;
     final directional = tuning.style.directionalActionButton;
+    final cooldownRing = tuning.style.cooldownRing;
     if (inputMode == AbilityInputMode.tap) {
       return ActionButton(
         label: 'Bonus',
         icon: Icons.star,
         onPressed: onPressed,
+        tuning: action,
+        cooldownRing: cooldownRing,
         affordable: affordable,
         cooldownTicksLeft: cooldownTicksLeft,
         cooldownTicksTotal: cooldownTicksTotal,
         size: size,
-        backgroundColor: action.backgroundColor,
-        foregroundColor: action.foregroundColor,
-        labelFontSize: action.labelFontSize,
-        labelGap: action.labelGap,
+      );
+    }
+    if (inputMode == AbilityInputMode.holdMaintain) {
+      return HoldActionButton(
+        label: 'Bonus',
+        icon: Icons.star,
+        onHoldStart: onHoldStart,
+        onHoldEnd: onHoldEnd,
+        tuning: action,
+        cooldownRing: cooldownRing,
+        affordable: affordable,
+        cooldownTicksLeft: cooldownTicksLeft,
+        cooldownTicksTotal: cooldownTicksTotal,
+        size: size,
       );
     }
     return DirectionalActionButton(
@@ -88,12 +110,15 @@ class BonusControl extends StatelessWidget {
       onAimDir: usesMeleeAim ? onMeleeAimDir : onProjectileAimDir,
       onAimClear: usesMeleeAim ? onMeleeAimClear : onProjectileAimClear,
       onCommit: () => onCommitted(0),
+      tuning: directional,
+      cooldownRing: cooldownRing,
       onChargeCommit: onCommitted,
       chargePreview: usesMeleeAim ? null : chargePreview,
       chargeOwnerId: 'bonus',
       chargeHalfTicks: (!usesMeleeAim && chargeEnabled) ? chargeHalfTicks : 0,
       chargeFullTicks: (!usesMeleeAim && chargeEnabled) ? chargeFullTicks : 0,
       chargeTickHz: simulationTickHz,
+      haptics: haptics,
       projectileAimPreview: usesMeleeAim
           ? meleeAimPreview
           : projectileAimPreview,
@@ -103,10 +128,6 @@ class BonusControl extends StatelessWidget {
       cooldownTicksTotal: cooldownTicksTotal,
       size: size,
       deadzoneRadius: deadzoneRadius,
-      backgroundColor: directional.backgroundColor,
-      foregroundColor: directional.foregroundColor,
-      labelFontSize: directional.labelFontSize,
-      labelGap: directional.labelGap,
       forceCancelSignal: forceCancelSignal,
     );
   }

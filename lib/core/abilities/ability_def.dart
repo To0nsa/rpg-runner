@@ -44,6 +44,19 @@ enum TargetingModel {
   groundTarget, // AOE circle on ground
 }
 
+/// How a committed ability is maintained after initial activation.
+enum AbilityHoldMode {
+  /// Standard one-shot ability lifecycle (windup -> active -> recovery).
+  none,
+
+  /// Ability remains active while the owning slot is held.
+  ///
+  /// The authored [AbilityDef.activeTicks] is treated as the maximum hold
+  /// duration, and runtime systems may end it early on release or resource
+  /// depletion.
+  holdToMaintain,
+}
+
 /// Runtime lifecycle stage of a committed ability.
 enum AbilityPhase { idle, windup, active, recovery }
 
@@ -224,6 +237,8 @@ class AbilityDef {
     required this.recoveryTicks,
     required this.staminaCost,
     required this.manaCost,
+    this.holdMode = AbilityHoldMode.none,
+    this.holdStaminaDrainPerSecond100 = 0,
     required this.cooldownTicks,
     this.cooldownGroupId,
     required this.interruptPriority,
@@ -243,6 +258,18 @@ class AbilityDef {
        ),
        assert(cooldownTicks >= 0, 'Cooldown cannot be negative'),
        assert(staminaCost >= 0 && manaCost >= 0, 'Costs cannot be negative'),
+       assert(
+         holdStaminaDrainPerSecond100 >= 0,
+         'Hold stamina drain cannot be negative',
+       ),
+       assert(
+         holdMode != AbilityHoldMode.none || holdStaminaDrainPerSecond100 == 0,
+         'Non-hold abilities must not define hold stamina drain.',
+       ),
+       assert(
+         holdMode == AbilityHoldMode.none || activeTicks > 0,
+         'Hold abilities require activeTicks > 0 for max hold duration.',
+       ),
        assert(
          interruptPriority != InterruptPriority.forced,
          'Forced priority is reserved for system events.',
@@ -271,6 +298,9 @@ class AbilityDef {
   final AbilityPayloadSource payloadSource;
 
   /// Timing values authored at `60 Hz` tick semantics.
+  ///
+  /// For [AbilityHoldMode.holdToMaintain], [activeTicks] is the max hold
+  /// window before automatic termination.
   final int windupTicks;
   final int activeTicks;
   final int recoveryTicks;
@@ -278,6 +308,14 @@ class AbilityDef {
   /// Resource costs in fixed-point units (`100 == 1.0`).
   final int staminaCost;
   final int manaCost;
+
+  /// Runtime hold behavior model.
+  final AbilityHoldMode holdMode;
+
+  /// Fixed-point stamina drain per second while a hold ability is maintained.
+  ///
+  /// `100 == 1.0 stamina/second`.
+  final int holdStaminaDrainPerSecond100;
 
   /// Cooldown duration in ticks.
   final int cooldownTicks;

@@ -4,14 +4,21 @@ import 'package:flutter/material.dart';
 import '../../game/input/aim_preview.dart';
 import '../../game/input/charge_preview.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
+import '../haptics/haptics_service.dart';
 import 'action_button.dart';
 import 'controls_tuning.dart';
+import 'hold_action_button.dart';
 import 'layout/controls_radial_layout.dart';
 import 'widgets/bonus_control.dart';
 import 'widgets/melee_control.dart';
 import 'widgets/movement_control.dart';
 import 'widgets/projectile_control.dart';
 
+/// Radial in-run control overlay that maps ability modes to concrete widgets.
+///
+/// This widget is composition-only: it receives authoritative affordability,
+/// cooldown ticks, and input modes from outside, then renders the corresponding
+/// controls and forwards UI intent callbacks.
 class RunnerControlsOverlay extends StatelessWidget {
   const RunnerControlsOverlay({
     super.key,
@@ -19,7 +26,11 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.onJumpPressed,
     required this.onDashPressed,
     required this.onSecondaryPressed,
+    required this.onSecondaryHoldStart,
+    required this.onSecondaryHoldEnd,
     required this.onBonusPressed,
+    required this.onBonusHoldStart,
+    required this.onBonusHoldEnd,
     required this.onBonusCommitted,
     required this.onProjectileCommitted,
     required this.onProjectilePressed,
@@ -33,16 +44,20 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.onMeleeAimClear,
     required this.onMeleeCommitted,
     required this.onMeleePressed,
+    required this.onMeleeHoldStart,
+    required this.onMeleeHoldEnd,
     required this.meleeAimPreview,
     required this.aimCancelHitboxRect,
     required this.meleeAffordable,
     required this.meleeCooldownTicksLeft,
     required this.meleeCooldownTicksTotal,
     required this.meleeInputMode,
+    required this.secondaryInputMode,
     required this.projectileInputMode,
     required this.bonusInputMode,
     required this.bonusUsesMeleeAim,
     required this.projectileChargePreview,
+    required this.haptics,
     required this.projectileChargeEnabled,
     required this.projectileChargeHalfTicks,
     required this.projectileChargeFullTicks,
@@ -68,7 +83,11 @@ class RunnerControlsOverlay extends StatelessWidget {
   final VoidCallback onJumpPressed;
   final VoidCallback onDashPressed;
   final VoidCallback onSecondaryPressed;
+  final VoidCallback onSecondaryHoldStart;
+  final VoidCallback onSecondaryHoldEnd;
   final VoidCallback onBonusPressed;
+  final VoidCallback onBonusHoldStart;
+  final VoidCallback onBonusHoldEnd;
   final ValueChanged<int> onBonusCommitted;
   final ValueChanged<int> onProjectileCommitted;
   final VoidCallback onProjectilePressed;
@@ -76,6 +95,7 @@ class RunnerControlsOverlay extends StatelessWidget {
   final VoidCallback onProjectileAimClear;
   final AimPreviewModel projectileAimPreview;
   final ChargePreviewModel projectileChargePreview;
+  final UiHaptics haptics;
   final bool projectileAffordable;
   final int projectileCooldownTicksLeft;
   final int projectileCooldownTicksTotal;
@@ -83,12 +103,15 @@ class RunnerControlsOverlay extends StatelessWidget {
   final VoidCallback onMeleeAimClear;
   final VoidCallback onMeleeCommitted;
   final VoidCallback onMeleePressed;
+  final VoidCallback onMeleeHoldStart;
+  final VoidCallback onMeleeHoldEnd;
   final AimPreviewModel meleeAimPreview;
   final ValueListenable<Rect?> aimCancelHitboxRect;
   final bool meleeAffordable;
   final int meleeCooldownTicksLeft;
   final int meleeCooldownTicksTotal;
   final AbilityInputMode meleeInputMode;
+  final AbilityInputMode secondaryInputMode;
   final AbilityInputMode projectileInputMode;
   final AbilityInputMode bonusInputMode;
   final bool bonusUsesMeleeAim;
@@ -116,11 +139,14 @@ class RunnerControlsOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = tuning.style;
     final action = style.actionButton;
+    final cooldownRing = style.cooldownRing;
     final layout = ControlsRadialLayoutSolver.solve(
       layout: tuning.layout,
       action: action,
       directional: style.directionalActionButton,
-      bonusMode: bonusInputMode == AbilityInputMode.tap
+      bonusMode:
+          bonusInputMode == AbilityInputMode.tap ||
+              bonusInputMode == AbilityInputMode.holdMaintain
           ? BonusAnchorMode.tap
           : BonusAnchorMode.directional,
     );
@@ -154,6 +180,7 @@ class RunnerControlsOverlay extends StatelessWidget {
             chargeHalfTicks: projectileChargeHalfTicks,
             chargeFullTicks: projectileChargeFullTicks,
             simulationTickHz: simulationTickHz,
+            haptics: haptics,
             forceCancelSignal: forceAimCancelSignal,
           ),
         ),
@@ -164,11 +191,15 @@ class RunnerControlsOverlay extends StatelessWidget {
             tuning: tuning,
             inputMode: bonusInputMode,
             usesMeleeAim: bonusUsesMeleeAim,
-            size: bonusInputMode == AbilityInputMode.tap
+            size:
+                bonusInputMode == AbilityInputMode.tap ||
+                    bonusInputMode == AbilityInputMode.holdMaintain
                 ? layout.actionSize
                 : layout.directionalSize,
             deadzoneRadius: layout.directionalDeadzoneRadius,
             onPressed: onBonusPressed,
+            onHoldStart: onBonusHoldStart,
+            onHoldEnd: onBonusHoldEnd,
             onProjectileAimDir: onProjectileAimDir,
             onProjectileAimClear: onProjectileAimClear,
             onMeleeAimDir: onMeleeAimDir,
@@ -185,25 +216,37 @@ class RunnerControlsOverlay extends StatelessWidget {
             chargeHalfTicks: bonusChargeHalfTicks,
             chargeFullTicks: bonusChargeFullTicks,
             simulationTickHz: simulationTickHz,
+            haptics: haptics,
             forceCancelSignal: forceAimCancelSignal,
           ),
         ),
         Positioned(
           right: layout.secondary.right,
           bottom: layout.secondary.bottom,
-          child: ActionButton(
-            label: 'Sec',
-            icon: Icons.shield,
-            onPressed: onSecondaryPressed,
-            affordable: secondaryAffordable,
-            cooldownTicksLeft: secondaryCooldownTicksLeft,
-            cooldownTicksTotal: secondaryCooldownTicksTotal,
-            size: layout.actionSize,
-            backgroundColor: action.backgroundColor,
-            foregroundColor: action.foregroundColor,
-            labelFontSize: action.labelFontSize,
-            labelGap: action.labelGap,
-          ),
+          child: secondaryInputMode == AbilityInputMode.holdMaintain
+              ? HoldActionButton(
+                  label: 'Sec',
+                  icon: Icons.shield,
+                  onHoldStart: onSecondaryHoldStart,
+                  onHoldEnd: onSecondaryHoldEnd,
+                  tuning: action,
+                  cooldownRing: cooldownRing,
+                  affordable: secondaryAffordable,
+                  cooldownTicksLeft: secondaryCooldownTicksLeft,
+                  cooldownTicksTotal: secondaryCooldownTicksTotal,
+                  size: layout.actionSize,
+                )
+              : ActionButton(
+                  label: 'Sec',
+                  icon: Icons.shield,
+                  onPressed: onSecondaryPressed,
+                  tuning: action,
+                  cooldownRing: cooldownRing,
+                  affordable: secondaryAffordable,
+                  cooldownTicksLeft: secondaryCooldownTicksLeft,
+                  cooldownTicksTotal: secondaryCooldownTicksTotal,
+                  size: layout.actionSize,
+                ),
         ),
         Positioned(
           right: layout.melee.right,
@@ -214,6 +257,8 @@ class RunnerControlsOverlay extends StatelessWidget {
             size: layout.directionalSize,
             deadzoneRadius: layout.directionalDeadzoneRadius,
             onPressed: onMeleePressed,
+            onHoldStart: onMeleeHoldStart,
+            onHoldEnd: onMeleeHoldEnd,
             onAimDir: onMeleeAimDir,
             onAimClear: onMeleeAimClear,
             onCommitted: onMeleeCommitted,
@@ -222,6 +267,7 @@ class RunnerControlsOverlay extends StatelessWidget {
             cooldownTicksLeft: meleeCooldownTicksLeft,
             cooldownTicksTotal: meleeCooldownTicksTotal,
             cancelHitboxRect: aimCancelHitboxRect,
+            haptics: haptics,
             forceCancelSignal: forceAimCancelSignal,
           ),
         ),
@@ -232,14 +278,12 @@ class RunnerControlsOverlay extends StatelessWidget {
             label: 'Dash',
             icon: Icons.flash_on,
             onPressed: onDashPressed,
+            tuning: action,
+            cooldownRing: cooldownRing,
             affordable: dashAffordable,
             cooldownTicksLeft: dashCooldownTicksLeft,
             cooldownTicksTotal: dashCooldownTicksTotal,
             size: layout.actionSize,
-            backgroundColor: action.backgroundColor,
-            foregroundColor: action.foregroundColor,
-            labelFontSize: action.labelFontSize,
-            labelGap: action.labelGap,
           ),
         ),
         Positioned(
@@ -249,12 +293,10 @@ class RunnerControlsOverlay extends StatelessWidget {
             label: 'Jump',
             icon: Icons.arrow_upward,
             onPressed: onJumpPressed,
+            tuning: action,
+            cooldownRing: cooldownRing,
             affordable: jumpAffordable,
             size: layout.jumpSize,
-            backgroundColor: action.backgroundColor,
-            foregroundColor: action.foregroundColor,
-            labelFontSize: action.labelFontSize,
-            labelGap: action.labelGap,
           ),
         ),
         ValueListenableBuilder<ChargePreviewState>(
@@ -270,7 +312,11 @@ class RunnerControlsOverlay extends StatelessWidget {
             return Positioned(
               right: charge.right,
               bottom: charge.bottom,
-              child: _ChargeBar(progress01: state.progress01, tier: state.tier),
+              child: _ChargeBar(
+                tuning: style.chargeBar,
+                progress01: state.progress01,
+                tier: state.tier,
+              ),
             );
           },
         ),
@@ -280,27 +326,39 @@ class RunnerControlsOverlay extends StatelessWidget {
 }
 
 class _ChargeBar extends StatelessWidget {
-  const _ChargeBar({required this.progress01, required this.tier});
+  const _ChargeBar({
+    required this.tuning,
+    required this.progress01,
+    required this.tier,
+  });
 
+  final ChargeBarTuning tuning;
+
+  /// Normalized progress in [0, 1].
   final double progress01;
+
+  /// Charge tier bucket: 0 = idle, 1 = half, 2 = full.
   final int tier;
 
   @override
   Widget build(BuildContext context) {
     final clamped = progress01.clamp(0.0, 1.0);
     final fillColor = switch (tier) {
-      2 => const Color(0xFF6EDC8C),
-      1 => const Color(0xFFF0C15A),
-      _ => const Color(0xFF9FA8B2),
+      2 => tuning.fullTierColor,
+      1 => tuning.halfTierColor,
+      _ => tuning.idleColor,
     };
     return Container(
-      width: 84,
-      height: 14,
-      padding: const EdgeInsets.all(2),
+      width: tuning.width,
+      height: tuning.height,
+      padding: EdgeInsets.all(tuning.padding),
       decoration: BoxDecoration(
-        color: const Color(0xAA11161D),
-        borderRadius: BorderRadius.circular(7),
-        border: Border.all(color: const Color(0xFF2C3A47), width: 1),
+        color: tuning.backgroundColor,
+        borderRadius: BorderRadius.circular(tuning.outerRadius),
+        border: Border.all(
+          color: tuning.borderColor,
+          width: tuning.borderWidth,
+        ),
       ),
       child: Align(
         alignment: Alignment.centerLeft,
@@ -309,7 +367,7 @@ class _ChargeBar extends StatelessWidget {
           child: Container(
             decoration: BoxDecoration(
               color: fillColor,
-              borderRadius: BorderRadius.circular(5),
+              borderRadius: BorderRadius.circular(tuning.innerRadius),
             ),
           ),
         ),

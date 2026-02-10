@@ -41,6 +41,11 @@ class ActiveAbilityStateStore extends SparseSet {
   final List<int> recoveryTicks = [];
   final List<int> totalTicks = [];
 
+  /// Cooldown metadata captured at commit-time.
+  final List<int> cooldownGroupId = [];
+  final List<int> cooldownTicks = [];
+  final List<bool> cooldownStarted = [];
+
   /// Cached elapsed ticks since commit (updated by phase system).
   final List<int> elapsedTicks = [];
 
@@ -61,6 +66,9 @@ class ActiveAbilityStateStore extends SparseSet {
     required int activeTicks,
     required int recoveryTicks,
     required Facing facingDir,
+    int cooldownGroupId = 0,
+    int cooldownTicks = 0,
+    bool cooldownStarted = true,
   }) {
     if (!has(entity)) {
       // Auto-add if missing? Or should it be added at spawn?
@@ -80,6 +88,9 @@ class ActiveAbilityStateStore extends SparseSet {
     this.activeTicks[i] = activeTicks;
     this.recoveryTicks[i] = recoveryTicks;
     totalTicks[i] = windupTicks + activeTicks + recoveryTicks;
+    this.cooldownGroupId[i] = cooldownGroupId;
+    this.cooldownTicks[i] = cooldownTicks;
+    this.cooldownStarted[i] = cooldownStarted;
     if (windupTicks > 0) {
       phase[i] = AbilityPhase.windup;
     } else if (activeTicks > 0) {
@@ -121,6 +132,9 @@ class ActiveAbilityStateStore extends SparseSet {
     activeTicks.add(0);
     recoveryTicks.add(0);
     totalTicks.add(0);
+    cooldownGroupId.add(0);
+    cooldownTicks.add(0);
+    cooldownStarted.add(true);
     elapsedTicks.add(0);
   }
 
@@ -135,6 +149,9 @@ class ActiveAbilityStateStore extends SparseSet {
     activeTicks[removeIndex] = activeTicks[lastIndex];
     recoveryTicks[removeIndex] = recoveryTicks[lastIndex];
     totalTicks[removeIndex] = totalTicks[lastIndex];
+    cooldownGroupId[removeIndex] = cooldownGroupId[lastIndex];
+    cooldownTicks[removeIndex] = cooldownTicks[lastIndex];
+    cooldownStarted[removeIndex] = cooldownStarted[lastIndex];
     elapsedTicks[removeIndex] = elapsedTicks[lastIndex];
 
     abilityId.removeLast();
@@ -146,6 +163,9 @@ class ActiveAbilityStateStore extends SparseSet {
     activeTicks.removeLast();
     recoveryTicks.removeLast();
     totalTicks.removeLast();
+    cooldownGroupId.removeLast();
+    cooldownTicks.removeLast();
+    cooldownStarted.removeLast();
     elapsedTicks.removeLast();
   }
 }

@@ -77,9 +77,18 @@ class ActiveAbilityPhaseSystem {
   }
 
   void _clearAbility(EcsWorld world, int entity, int index) {
+    final active = world.activeAbility;
+    if (!active.cooldownStarted[index]) {
+      active.cooldownStarted[index] = true;
+      world.cooldown.startCooldown(
+        entity,
+        active.cooldownGroupId[index],
+        active.cooldownTicks[index],
+      );
+    }
     world.activeAbility.clear(entity);
-    world.activeAbility.phase[index] = AbilityPhase.idle;
-    world.activeAbility.elapsedTicks[index] = 0;
+    active.phase[index] = AbilityPhase.idle;
+    active.elapsedTicks[index] = 0;
   }
 
   void _clearBufferedInput(EcsWorld world, int entity) {

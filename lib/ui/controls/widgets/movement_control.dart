@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../controls_tuning.dart';
 import '../move_buttons.dart';
 
+/// Adapter that binds movement callbacks to tuned `MoveButtons` visuals.
 class MovementControl extends StatelessWidget {
   const MovementControl({
     super.key,
@@ -15,18 +16,6 @@ class MovementControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final layout = tuning.layout;
-    final style = tuning.style;
-    return MoveButtons(
-      onAxisChanged: onMoveAxis,
-      buttonWidth: layout.moveButtonWidth,
-      buttonHeight: layout.moveButtonHeight,
-      gap: layout.moveButtonGap,
-      backgroundColor: style.moveButtonBackgroundColor,
-      foregroundColor: style.moveButtonForegroundColor,
-      borderColor: style.moveButtonBorderColor,
-      borderWidth: style.moveButtonBorderWidth,
-      borderRadius: style.moveButtonBorderRadius,
-    );
+    return MoveButtons(onAxisChanged: onMoveAxis, tuning: tuning.moveButtons);
   }
 }

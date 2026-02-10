@@ -1,19 +1,21 @@
 import 'dart:math';
 
+import '../../core/abilities/ability_def.dart';
 import '../../core/commands/command.dart';
 import '../game_controller.dart';
 import 'aim_quantizer.dart';
 
 /// Shared input scheduler for multiple input sources (touch + keyboard + mouse).
 ///
-/// - Holds the current continuous inputs (move axis, projectile aim direction).
+/// - Holds the current continuous inputs (move axis, aim, slot holds).
 /// - Schedules them into the GameController for upcoming ticks so Core receives
 ///   tick-stamped Commands.
 /// - Schedules edge-triggered presses (jump/dash/strike/projectile) for the next tick.
 ///
 /// The router distinguishes between:
-/// - **Continuous inputs** (movement axis, aim directions): held state is pumped
-///   each frame via [pumpHeldInputs], scheduling commands for upcoming ticks.
+/// - **Continuous inputs** (movement axis, aim directions, slot hold states):
+///   held state is pumped each frame via [pumpHeldInputs], scheduling commands
+///   for upcoming ticks.
 /// - **Edge-triggered inputs** (jump, dash, strike, projectile): one-shot events
 ///   scheduled immediately for the next tick via [pressJump], [pressDash], etc.
 class RunnerInputRouter {
@@ -49,6 +51,15 @@ class RunnerInputRouter {
   final _AimInputChannel _projectileAim = _AimInputChannel();
 
   final _AimInputChannel _meleeAim = _AimInputChannel();
+  final _HeldAbilitySlotChannel _primaryHold = _HeldAbilitySlotChannel(
+    slot: AbilitySlot.primary,
+  );
+  final _HeldAbilitySlotChannel _secondaryHold = _HeldAbilitySlotChannel(
+    slot: AbilitySlot.secondary,
+  );
+  final _HeldAbilitySlotChannel _bonusHold = _HeldAbilitySlotChannel(
+    slot: AbilitySlot.bonus,
+  );
 
   // ─────────────────────────────────────────────────────────────────────────
   // Public setters for continuous inputs
@@ -113,6 +124,75 @@ class RunnerInputRouter {
   /// Schedules a bonus-slot press for the next tick.
   void pressBonus() =>
       controller.enqueueForNextTick((tick) => BonusPressedCommand(tick: tick));
+
+  /// Starts holding the primary slot and commits it on the next tick.
+  void startPrimaryHold() {
+    final tick = controller.tick + controller.inputLead;
+    _primaryHold.setHeld(true);
+    controller.enqueue(
+      AbilitySlotHeldCommand(tick: tick, slot: AbilitySlot.primary, held: true),
+    );
+    controller.enqueue(StrikePressedCommand(tick: tick));
+  }
+
+  /// Releases the primary slot hold.
+  void endPrimaryHold() {
+    final tick = controller.tick + controller.inputLead;
+    _primaryHold.setHeld(false);
+    controller.enqueue(
+      AbilitySlotHeldCommand(
+        tick: tick,
+        slot: AbilitySlot.primary,
+        held: false,
+      ),
+    );
+  }
+
+  /// Starts holding the secondary slot and commits it on the next tick.
+  void startSecondaryHold() {
+    final tick = controller.tick + controller.inputLead;
+    _secondaryHold.setHeld(true);
+    controller.enqueue(
+      AbilitySlotHeldCommand(
+        tick: tick,
+        slot: AbilitySlot.secondary,
+        held: true,
+      ),
+    );
+    controller.enqueue(SecondaryPressedCommand(tick: tick));
+  }
+
+  /// Releases the secondary slot hold.
+  void endSecondaryHold() {
+    final tick = controller.tick + controller.inputLead;
+    _secondaryHold.setHeld(false);
+    controller.enqueue(
+      AbilitySlotHeldCommand(
+        tick: tick,
+        slot: AbilitySlot.secondary,
+        held: false,
+      ),
+    );
+  }
+
+  /// Starts holding the bonus slot and commits it on the next tick.
+  void startBonusHold() {
+    final tick = controller.tick + controller.inputLead;
+    _bonusHold.setHeld(true);
+    controller.enqueue(
+      AbilitySlotHeldCommand(tick: tick, slot: AbilitySlot.bonus, held: true),
+    );
+    controller.enqueue(BonusPressedCommand(tick: tick));
+  }
+
+  /// Releases the bonus slot hold.
+  void endBonusHold() {
+    final tick = controller.tick + controller.inputLead;
+    _bonusHold.setHeld(false);
+    controller.enqueue(
+      AbilitySlotHeldCommand(tick: tick, slot: AbilitySlot.bonus, held: false),
+    );
+  }
 
   // ─────────────────────────────────────────────────────────────────────────
   // Combined action methods (aim + action in a single tick)
@@ -227,8 +307,8 @@ class RunnerInputRouter {
   /// Schedules the current held inputs across upcoming ticks.
   ///
   /// This method should be called once per frame, before `controller.advanceFrame(dt)`,
-  /// to ensure that continuous inputs (movement, aim) are scheduled far enough
-  /// ahead that the simulation always has input data available.
+  /// to ensure that continuous inputs (movement, aim, slot holds) are scheduled
+  /// far enough ahead that the simulation always has input data available.
   ///
   /// The scheduling window extends `inputLead + maxTicksPerFrame` ticks into the
   /// future to handle variable frame rates without input starvation.
@@ -251,6 +331,10 @@ class RunnerInputRouter {
       (t, x, y) => MeleeAimDirCommand(tick: t, x: x, y: y),
       (t) => ClearMeleeAimDirCommand(tick: t),
     );
+
+    _primaryHold.schedule(controller, _inputBufferSeconds);
+    _secondaryHold.schedule(controller, _inputBufferSeconds);
+    _bonusHold.schedule(controller, _inputBufferSeconds);
   }
 
   /// Schedules [MoveAxisCommand]s for upcoming ticks based on the current axis value.
@@ -390,6 +474,45 @@ class _AimInputChannel {
       } else {
         controller.enqueue(createClearCmd(t));
       }
+    }
+    _scheduledThroughTick = targetMaxTick;
+  }
+}
+
+/// Tracks and schedules continuous hold state for one ability slot.
+class _HeldAbilitySlotChannel {
+  _HeldAbilitySlotChannel({required this.slot});
+
+  final AbilitySlot slot;
+
+  bool _held = false;
+  bool _lastScheduledHeld = false;
+  int _scheduledThroughTick = 0;
+
+  void setHeld(bool held) {
+    _held = held;
+  }
+
+  void schedule(GameController controller, double bufferSeconds) {
+    if (!_held && !_lastScheduledHeld) {
+      _scheduledThroughTick = controller.tick;
+      return;
+    }
+
+    if (_held != _lastScheduledHeld) {
+      _scheduledThroughTick = controller.tick;
+      _lastScheduledHeld = _held;
+    }
+
+    final maxTicksPerFrame = (controller.tickHz * bufferSeconds).ceil();
+    final targetMaxTick =
+        controller.tick + controller.inputLead + maxTicksPerFrame;
+    final startTick = max(controller.tick + 1, _scheduledThroughTick + 1);
+
+    for (var t = startTick; t <= targetMaxTick; t += 1) {
+      controller.enqueue(
+        AbilitySlotHeldCommand(tick: t, slot: slot, held: _held),
+      );
     }
     _scheduledThroughTick = targetMaxTick;
   }

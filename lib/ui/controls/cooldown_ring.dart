@@ -2,21 +2,23 @@ import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 
+import 'controls_tuning.dart';
+
+/// Paint-only cooldown indicator rendered around circular controls.
+///
+/// `cooldownTicksLeft` and `cooldownTicksTotal` are simulation ticks. Nothing
+/// is painted when either value is non-positive.
 class CooldownRing extends StatelessWidget {
   const CooldownRing({
     super.key,
     required this.cooldownTicksLeft,
     required this.cooldownTicksTotal,
-    this.thickness = 3,
-    this.trackColor = const Color(0x66FFFFFF),
-    this.progressColor = const Color(0xFFFFFFFF),
+    required this.tuning,
   });
 
   final int cooldownTicksLeft;
   final int cooldownTicksTotal;
-  final double thickness;
-  final Color trackColor;
-  final Color progressColor;
+  final CooldownRingTuning tuning;
 
   @override
   Widget build(BuildContext context) {
@@ -30,9 +32,9 @@ class CooldownRing extends StatelessWidget {
     return CustomPaint(
       painter: _CooldownRingPainter(
         elapsedFraction: elapsed.clamp(0.0, 1.0),
-        thickness: thickness,
-        trackColor: trackColor,
-        progressColor: progressColor,
+        thickness: tuning.thickness,
+        trackColor: tuning.trackColor,
+        progressColor: tuning.progressColor,
       ),
     );
   }

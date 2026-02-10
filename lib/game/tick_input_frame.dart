@@ -46,6 +46,11 @@ class TickInputFrame {
   /// True if bonus slot was pressed this tick.
   bool bonusPressed = false;
 
+  /// Bitmask of currently held ability slots for this tick.
+  ///
+  /// Bit `1 << slot.index` indicates that [AbilitySlot] is held.
+  int abilitySlotHeldMask = 0;
+
   // ─────────────────────────────────────────────────────────────────────────
   // Projectile aim direction
   // ─────────────────────────────────────────────────────────────────────────
@@ -82,6 +87,8 @@ class TickInputFrame {
   /// Applies a [Command] to this frame, merging it with existing state.
   ///
   /// For continuous inputs (move axis, aim), later commands overwrite earlier ones.
+  /// Slot hold states are merged as a bitmask where later commands for the same
+  /// slot overwrite earlier ones.
   /// For edge-triggered inputs (jump, dash, strike, projectile), any press sets the flag.
   void apply(Command command) {
     switch (command) {
@@ -118,6 +125,13 @@ class TickInputFrame {
         secondaryPressed = true;
       case BonusPressedCommand():
         bonusPressed = true;
+      case AbilitySlotHeldCommand(:final slot, :final held):
+        final bit = 1 << slot.index;
+        if (held) {
+          abilitySlotHeldMask |= bit;
+        } else {
+          abilitySlotHeldMask &= ~bit;
+        }
     }
   }
 
@@ -140,5 +154,6 @@ class TickInputFrame {
     projectilePressed = false;
     secondaryPressed = false;
     bonusPressed = false;
+    abilitySlotHeldMask = 0;
   }
 }

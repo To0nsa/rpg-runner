@@ -106,6 +106,7 @@ import 'ecs/systems/invulnerability_system.dart';
 import 'ecs/systems/lifetime_system.dart';
 import 'ecs/systems/melee_strike_system.dart';
 import 'ecs/systems/ability_activation_system.dart';
+import 'ecs/systems/hold_ability_system.dart';
 import 'ecs/systems/mobility_system.dart';
 import 'ecs/systems/player_movement_system.dart';
 import 'ecs/systems/projectile_hit_system.dart';
@@ -483,6 +484,10 @@ class GameCore {
     _activeAbilityPhaseSystem = ActiveAbilityPhaseSystem(
       forcedInterruptPolicy: forcedInterruptPolicy,
     );
+    _holdAbilitySystem = HoldAbilitySystem(
+      tickHz: tickHz,
+      abilities: abilityCatalog,
+    );
     _healthDespawnSystem = HealthDespawnSystem();
     _enemyDeathStateSystem = EnemyDeathStateSystem(
       tickHz: tickHz,
@@ -769,6 +774,7 @@ class GameCore {
   late final StatusSystem _statusSystem;
   late final ControlLockSystem _controlLockSystem;
   late final ActiveAbilityPhaseSystem _activeAbilityPhaseSystem;
+  late final HoldAbilitySystem _holdAbilitySystem;
   late final HealthDespawnSystem _healthDespawnSystem;
   late final EnemyDeathStateSystem _enemyDeathStateSystem;
   late final DeathDespawnSystem _deathDespawnSystem;
@@ -925,6 +931,7 @@ class GameCore {
   /// - [MeleeAimDirCommand]: Sets melee strike direction.
   /// - [ProjectilePressedCommand]: Triggers the projectile slot attempt.
   /// - [BonusPressedCommand]: Triggers a bonus-slot ability attempt.
+  /// - [AbilitySlotHeldCommand]: Sets per-slot hold state for maintain abilities.
   ///
   /// Commands are processed before [stepOneTick] to ensure inputs are
   /// available when systems read them.
@@ -1010,6 +1017,10 @@ class GameCore {
           _world.playerInput.hasAbilitySlotPressed[inputIndex] = true;
           _world.playerInput.lastAbilitySlotPressed[inputIndex] =
               AbilitySlot.bonus;
+
+        // Per-slot hold state (used by hold-to-maintain abilities).
+        case AbilitySlotHeldCommand(:final slot, :final held):
+          _world.playerInput.setAbilitySlotHeld(_player, slot, held);
       }
     }
   }
@@ -1026,7 +1037,8 @@ class GameCore {
   /// 1. **Track streaming**: Generate/cull chunks, spawn enemies.
   /// 2. **Cooldowns**: Decrement ability and invulnerability timers.
   /// 3. **Enemy AI**: Compute paths and movement intentions.
-  /// 4. **Player input**: Resolve ability intents (including mobility).
+  /// 4. **Ability upkeep + input**: Maintain hold abilities, then resolve new
+  ///    ability intents (including mobility).
   /// 5. **Player movement**: Apply input to velocity.
   /// 6. **Mobility execution**: Apply dash/roll state.
   /// 7. **Gravity**: Apply gravitational acceleration.
@@ -1095,6 +1107,13 @@ class GameCore {
 
     // ─── Phase 2.75: Active ability phase update ───
     _activeAbilityPhaseSystem.step(_world, currentTick: tick);
+
+    // ─── Phase 2.9: Hold ability maintenance ───
+    _holdAbilitySystem.step(
+      _world,
+      currentTick: tick,
+      queueEvent: (event) => _events.add(event),
+    );
 
     // ─── Phase 3: AI, input, and movement ───
     _enemyNavigationSystem.step(_world, player: _player, currentTick: tick);

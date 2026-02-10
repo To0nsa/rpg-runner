@@ -34,26 +34,19 @@ enum AnimKey {
 /// Broad entity classification for rendering and (future) networking.
 ///
 /// Used to select visual style, collision layer, and render order.
-enum EntityKind {
-  player,
-  enemy,
-  projectile,
-  obstacle,
-  pickup,
-  hazard,
-  trigger,
-}
+enum EntityKind { player, enemy, projectile, obstacle, pickup, hazard, trigger }
 
 /// Horizontal facing direction for sprites and directional abilities.
-enum Facing {
-  left,
-  right,
-}
+enum Facing { left, right }
 
 /// Input interaction mode for an ability slot.
 enum AbilityInputMode {
   /// Instant commit on press.
   tap,
+
   /// Hold to aim, commit on release.
   holdAimRelease,
+
+  /// Hold button down to maintain; release to end.
+  holdMaintain,
 }

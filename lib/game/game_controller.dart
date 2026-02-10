@@ -10,6 +10,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
+import '../core/abilities/ability_def.dart';
 import '../core/commands/command.dart';
 import '../core/enemies/enemy_catalog.dart';
 import '../core/events/game_event.dart';
@@ -308,6 +309,16 @@ class GameController extends ChangeNotifier {
     }
     if (input.bonusPressed) {
       _commandScratch.add(BonusPressedCommand(tick: tick));
+    }
+    final heldMask = input.abilitySlotHeldMask;
+    if (heldMask != 0) {
+      for (final slot in AbilitySlot.values) {
+        final bit = 1 << slot.index;
+        if ((heldMask & bit) == 0) continue;
+        _commandScratch.add(
+          AbilitySlotHeldCommand(tick: tick, slot: slot, held: true),
+        );
+      }
     }
 
     _core.applyCommands(_commandScratch);

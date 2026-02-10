@@ -120,12 +120,15 @@ class AbilityCatalog implements AbilityResolver {
       allowedSlots: {AbilitySlot.primary, AbilitySlot.bonus},
       targetingModel: TargetingModel.none,
       hitDelivery: SelfHitDelivery(),
-      // 6 frames @ 0.06s = 0.36s -> ~22 ticks
+      // Hold defense up to 3s at 60Hz.
       windupTicks: 2,
-      activeTicks: 18,
+      activeTicks: 180,
       recoveryTicks: 2,
-      staminaCost: 700,
+      staminaCost: 0,
       manaCost: 0,
+      holdMode: AbilityHoldMode.holdToMaintain,
+      // Full 3s hold spends ~21.0 stamina (matches old one-shot cost envelope).
+      holdStaminaDrainPerSecond100: 233,
       cooldownTicks: 30, // 0.50s
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.parry,
@@ -176,12 +179,13 @@ class AbilityCatalog implements AbilityResolver {
       targetingModel: TargetingModel.none,
       hitDelivery: SelfHitDelivery(),
       // Match Sword Parry exactly (only required weapon differs).
-      // 7 frames x ~0.052s ~= 0.364s -> ~22 ticks @ 60Hz
       windupTicks: 2,
-      activeTicks: 18,
+      activeTicks: 180,
       recoveryTicks: 2,
-      staminaCost: 700,
+      staminaCost: 0,
       manaCost: 0,
+      holdMode: AbilityHoldMode.holdToMaintain,
+      holdStaminaDrainPerSecond100: 700,
       cooldownTicks: 30,
       interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.shieldBlock,

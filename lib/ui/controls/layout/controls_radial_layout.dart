@@ -44,10 +44,14 @@ class ControlsRadialLayout {
 class ControlsAnchor {
   const ControlsAnchor({required this.right, required this.bottom});
 
+  /// Distance in logical pixels from the right edge of the overlay.
   final double right;
+
+  /// Distance in logical pixels from the bottom edge of the overlay.
   final double bottom;
 }
 
+/// Selects whether bonus anchors use action-button size or directional size.
 enum BonusAnchorMode { tap, directional }
 
 /// Computes radial control anchors from authored layout numbers.

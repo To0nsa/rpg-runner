@@ -22,6 +22,7 @@ class PlayerInputStore extends SparseSet {
   final List<bool> bonusPressed = <bool>[];
   final List<bool> hasAbilitySlotPressed = <bool>[];
   final List<AbilitySlot> lastAbilitySlotPressed = <AbilitySlot>[];
+  final List<int> heldAbilitySlotMask = <int>[];
 
   void add(EntityId entity) {
     addEntity(entity);
@@ -43,6 +44,24 @@ class PlayerInputStore extends SparseSet {
     secondaryPressed[i] = false;
     bonusPressed[i] = false;
     hasAbilitySlotPressed[i] = false;
+    heldAbilitySlotMask[i] = 0;
+  }
+
+  bool isAbilitySlotHeld(EntityId entity, AbilitySlot slot) {
+    if (!has(entity)) return false;
+    final i = indexOf(entity);
+    final bit = 1 << slot.index;
+    return (heldAbilitySlotMask[i] & bit) != 0;
+  }
+
+  void setAbilitySlotHeld(EntityId entity, AbilitySlot slot, bool held) {
+    final i = indexOf(entity);
+    final bit = 1 << slot.index;
+    if (held) {
+      heldAbilitySlotMask[i] |= bit;
+    } else {
+      heldAbilitySlotMask[i] &= ~bit;
+    }
   }
 
   @override
@@ -62,6 +81,7 @@ class PlayerInputStore extends SparseSet {
     bonusPressed.add(false);
     hasAbilitySlotPressed.add(false);
     lastAbilitySlotPressed.add(AbilitySlot.primary);
+    heldAbilitySlotMask.add(0);
   }
 
   @override
@@ -81,6 +101,7 @@ class PlayerInputStore extends SparseSet {
     bonusPressed[removeIndex] = bonusPressed[lastIndex];
     hasAbilitySlotPressed[removeIndex] = hasAbilitySlotPressed[lastIndex];
     lastAbilitySlotPressed[removeIndex] = lastAbilitySlotPressed[lastIndex];
+    heldAbilitySlotMask[removeIndex] = heldAbilitySlotMask[lastIndex];
 
     moveAxis.removeLast();
     jumpPressed.removeLast();
@@ -97,5 +118,6 @@ class PlayerInputStore extends SparseSet {
     bonusPressed.removeLast();
     hasAbilitySlotPressed.removeLast();
     lastAbilitySlotPressed.removeLast();
+    heldAbilitySlotMask.removeLast();
   }
 }

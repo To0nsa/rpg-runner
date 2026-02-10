@@ -21,6 +21,8 @@ import 'hud/game/game_overlay.dart';
 import 'hud/gameover/game_over_overlay.dart';
 import 'bootstrap/loader_content.dart';
 import 'components/menu_layout.dart';
+import 'haptics/haptics_cue.dart';
+import 'haptics/haptics_service.dart';
 import 'runner_game_ui_state.dart';
 import 'state/app_state.dart';
 import 'state/profile_counter_keys.dart';
@@ -85,6 +87,7 @@ class RunnerGameWidget extends StatefulWidget {
 class _RunnerGameWidgetState extends State<RunnerGameWidget>
     with WidgetsBindingObserver {
   final Random _runIdRandom = Random();
+  final UiHaptics _haptics = const UiHapticsService();
 
   bool _pausedByLifecycle = false;
   bool _started = false;
@@ -143,6 +146,9 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _input.setMoveAxis(0);
     _input.clearProjectileAimDir();
     _input.clearMeleeAimDir();
+    _input.endPrimaryHold();
+    _input.endSecondaryHold();
+    _input.endBonusHold();
     _projectileAimPreview.end();
     _projectileChargePreview.end();
     _meleeAimPreview.end();
@@ -187,6 +193,15 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   void _handleGameEvent(GameEvent event) {
+    if (event is AbilityHoldEndedEvent) {
+      switch (event.reason) {
+        case AbilityHoldEndReason.timeout:
+          _haptics.trigger(UiHapticsCue.holdAbilityTimedOut);
+        case AbilityHoldEndReason.staminaDepleted:
+          _haptics.trigger(UiHapticsCue.holdAbilityStaminaDepleted);
+      }
+      return;
+    }
     if (event is! RunEndedEvent) return;
     _grantGold(event);
   }
@@ -407,6 +422,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                   projectileAimPreview: _projectileAimPreview,
                   projectileChargePreview: _projectileChargePreview,
                   meleeAimPreview: _meleeAimPreview,
+                  haptics: _haptics,
                   aimCancelHitboxRect: _aimCancelHitboxRect,
                   forceAimCancelSignal: _forceAimCancelSignal,
                   uiState: uiState,

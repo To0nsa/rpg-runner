@@ -229,6 +229,7 @@ class SnapshotBuilder {
     final bonusStaminaCost = bonusAbility?.staminaCost ?? 0;
 
     final meleeInputMode = _inputModeFor(meleeAbility);
+    final secondaryInputMode = _secondaryInputModeFor(secondaryAbility);
     final projectileInputMode = _inputModeFor(projectileAbility);
 
     final bonusInputMode = _inputModeFor(bonusAbility);
@@ -397,6 +398,7 @@ class SnapshotBuilder {
         cooldownTicksLeft: cooldownTicksLeft,
         cooldownTicksTotal: cooldownTicksTotal,
         meleeInputMode: meleeInputMode,
+        secondaryInputMode: secondaryInputMode,
         projectileInputMode: projectileInputMode,
         bonusInputMode: bonusInputMode,
         bonusUsesMeleeAim: bonusUsesMeleeAim,
@@ -433,11 +435,21 @@ class SnapshotBuilder {
 
   AbilityInputMode _inputModeFor(AbilityDef? ability) {
     if (ability == null) return AbilityInputMode.tap;
+    if (ability.holdMode == AbilityHoldMode.holdToMaintain) {
+      return AbilityInputMode.holdMaintain;
+    }
     final targeting = ability.targetingModel;
     return switch (targeting) {
       TargetingModel.none || TargetingModel.homing => AbilityInputMode.tap,
       _ => AbilityInputMode.holdAimRelease,
     };
+  }
+
+  AbilityInputMode _secondaryInputModeFor(AbilityDef? ability) {
+    if (ability?.holdMode == AbilityHoldMode.holdToMaintain) {
+      return AbilityInputMode.holdMaintain;
+    }
+    return AbilityInputMode.tap;
   }
 
   bool _supportsTieredProjectileCharge(AbilityDef? ability) {

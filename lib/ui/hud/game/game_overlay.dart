@@ -7,6 +7,7 @@ import '../../../game/input/charge_preview.dart';
 import '../../../game/input/runner_input_router.dart';
 import '../../controls/runner_controls_overlay_radial.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
+import '../../haptics/haptics_service.dart';
 import '../../runner_game_ui_state.dart';
 import 'pause_overlay.dart';
 import 'ready_overlay.dart';
@@ -23,6 +24,7 @@ class GameOverlay extends StatelessWidget {
     required this.projectileAimPreview,
     required this.projectileChargePreview,
     required this.meleeAimPreview,
+    required this.haptics,
     required this.aimCancelHitboxRect,
     required this.forceAimCancelSignal,
     required this.uiState,
@@ -40,6 +42,7 @@ class GameOverlay extends StatelessWidget {
   final AimPreviewModel projectileAimPreview;
   final ChargePreviewModel projectileChargePreview;
   final AimPreviewModel meleeAimPreview;
+  final UiHaptics haptics;
   final ValueNotifier<Rect?> aimCancelHitboxRect;
   final ValueListenable<int> forceAimCancelSignal;
   final RunnerGameUiState uiState;
@@ -73,7 +76,11 @@ class GameOverlay extends StatelessWidget {
             onJumpPressed: input.pressJump,
             onDashPressed: input.pressDash,
             onSecondaryPressed: input.pressSecondary,
+            onSecondaryHoldStart: input.startSecondaryHold,
+            onSecondaryHoldEnd: input.endSecondaryHold,
             onBonusPressed: input.pressBonus,
+            onBonusHoldStart: input.startBonusHold,
+            onBonusHoldEnd: input.endBonusHold,
             onBonusCommitted: (chargeTicks) => input.commitBonusWithAim(
               clearAim: true,
               usesMeleeAim: hud.bonusUsesMeleeAim,
@@ -89,6 +96,7 @@ class GameOverlay extends StatelessWidget {
             onProjectileAimClear: input.clearProjectileAimDir,
             projectileAimPreview: projectileAimPreview,
             projectileChargePreview: projectileChargePreview,
+            haptics: haptics,
             projectileAffordable: projectileAffordable,
             projectileCooldownTicksLeft:
                 hud.cooldownTicksLeft[CooldownGroup.projectile],
@@ -98,6 +106,8 @@ class GameOverlay extends StatelessWidget {
             onMeleeAimClear: input.clearMeleeAimDir,
             onMeleeCommitted: input.commitMeleeStrike,
             onMeleePressed: input.pressStrike,
+            onMeleeHoldStart: input.startPrimaryHold,
+            onMeleeHoldEnd: input.endPrimaryHold,
             meleeAimPreview: meleeAimPreview,
             aimCancelHitboxRect: aimCancelHitboxRect,
             meleeAffordable: meleeAffordable,
@@ -106,6 +116,7 @@ class GameOverlay extends StatelessWidget {
             meleeCooldownTicksTotal:
                 hud.cooldownTicksTotal[CooldownGroup.primary],
             meleeInputMode: hud.meleeInputMode,
+            secondaryInputMode: hud.secondaryInputMode,
             projectileInputMode: hud.projectileInputMode,
             bonusInputMode: hud.bonusInputMode,
             bonusUsesMeleeAim: hud.bonusUsesMeleeAim,

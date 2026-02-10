@@ -29,6 +29,7 @@ class PlayerHudSnapshot {
     required this.cooldownTicksLeft,
     required this.cooldownTicksTotal,
     required this.meleeInputMode,
+    required this.secondaryInputMode,
     required this.projectileInputMode,
     required this.bonusInputMode,
     required this.bonusUsesMeleeAim,
@@ -105,6 +106,9 @@ class PlayerHudSnapshot {
 
   /// Input interaction mode for melee slot.
   final AbilityInputMode meleeInputMode;
+
+  /// Input interaction mode for secondary slot.
+  final AbilityInputMode secondaryInputMode;
 
   /// Input interaction mode for projectile slot.
   final AbilityInputMode projectileInputMode;

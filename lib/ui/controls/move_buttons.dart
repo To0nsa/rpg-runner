@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'controls_tuning.dart';
+
 /// Two holdable movement buttons that emit a horizontal axis in [-1, 1].
 ///
 /// - Hold left => -1
@@ -9,25 +11,11 @@ class MoveButtons extends StatefulWidget {
   const MoveButtons({
     super.key,
     required this.onAxisChanged,
-    this.buttonWidth = 64,
-    this.buttonHeight = 48,
-    this.gap = 8,
-    this.backgroundColor = const Color(0x33000000),
-    this.foregroundColor = const Color(0xFFFFFFFF),
-    this.borderColor = const Color(0x55FFFFFF),
-    this.borderWidth = 1,
-    this.borderRadius = 12,
+    required this.tuning,
   });
 
   final ValueChanged<double> onAxisChanged;
-  final double buttonWidth;
-  final double buttonHeight;
-  final double gap;
-  final Color backgroundColor;
-  final Color foregroundColor;
-  final Color borderColor;
-  final double borderWidth;
-  final double borderRadius;
+  final MoveButtonsTuning tuning;
 
   @override
   State<MoveButtons> createState() => _MoveButtonsState();
@@ -52,11 +40,13 @@ class _MoveButtonsState extends State<MoveButtons> {
   }
 
   _MoveSide _sideForX(double x) {
-    final leftMaxX = widget.buttonWidth;
-    final rightMinX = widget.buttonWidth + widget.gap;
+    final leftMaxX = widget.tuning.buttonWidth;
+    final rightMinX = widget.tuning.buttonWidth + widget.tuning.gap;
     if (x <= leftMaxX) return _MoveSide.left;
     if (x >= rightMinX) return _MoveSide.right;
-    final middleX = widget.buttonWidth + widget.gap * 0.5;
+    // Pointer is in the visual gap: snap to the nearest side so sliding across
+    // the center transitions smoothly without requiring a lift/re-tap.
+    final middleX = widget.tuning.buttonWidth + widget.tuning.gap * 0.5;
     return x <= middleX ? _MoveSide.left : _MoveSide.right;
   }
 
@@ -79,10 +69,10 @@ class _MoveButtonsState extends State<MoveButtons> {
   Widget build(BuildContext context) {
     final leftPressed = _pointerSides.values.contains(_MoveSide.left);
     final rightPressed = _pointerSides.values.contains(_MoveSide.right);
-    final totalWidth = widget.buttonWidth * 2 + widget.gap;
+    final totalWidth = widget.tuning.buttonWidth * 2 + widget.tuning.gap;
     return SizedBox(
       width: totalWidth,
-      height: widget.buttonHeight,
+      height: widget.tuning.buttonHeight,
       child: Listener(
         behavior: HitTestBehavior.opaque,
         onPointerDown: (event) =>
@@ -98,26 +88,14 @@ class _MoveButtonsState extends State<MoveButtons> {
               label: 'Move left',
               icon: Icons.chevron_left,
               pressed: leftPressed,
-              width: widget.buttonWidth,
-              height: widget.buttonHeight,
-              backgroundColor: widget.backgroundColor,
-              foregroundColor: widget.foregroundColor,
-              borderColor: widget.borderColor,
-              borderWidth: widget.borderWidth,
-              borderRadius: widget.borderRadius,
+              tuning: widget.tuning,
             ),
-            SizedBox(width: widget.gap),
+            SizedBox(width: widget.tuning.gap),
             _HoldMoveButton(
               label: 'Move right',
               icon: Icons.chevron_right,
               pressed: rightPressed,
-              width: widget.buttonWidth,
-              height: widget.buttonHeight,
-              backgroundColor: widget.backgroundColor,
-              foregroundColor: widget.foregroundColor,
-              borderColor: widget.borderColor,
-              borderWidth: widget.borderWidth,
-              borderRadius: widget.borderRadius,
+              tuning: widget.tuning,
             ),
           ],
         ),
@@ -131,28 +109,17 @@ class _HoldMoveButton extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.pressed,
-    required this.width,
-    required this.height,
-    required this.backgroundColor,
-    required this.foregroundColor,
-    required this.borderColor,
-    required this.borderWidth,
-    required this.borderRadius,
+    required this.tuning,
   });
 
   final String label;
   final IconData icon;
   final bool pressed;
-  final double width;
-  final double height;
-  final Color backgroundColor;
-  final Color foregroundColor;
-  final Color borderColor;
-  final double borderWidth;
-  final double borderRadius;
+  final MoveButtonsTuning tuning;
 
   @override
   Widget build(BuildContext context) {
+    final backgroundColor = tuning.backgroundColor;
     final base = pressed
         ? backgroundColor.withValues(
             alpha: (backgroundColor.a * 1.5).clamp(0, 1),
@@ -162,15 +129,18 @@ class _HoldMoveButton extends StatelessWidget {
       label: label,
       button: true,
       child: Container(
-        width: width,
-        height: height,
+        width: tuning.buttonWidth,
+        height: tuning.buttonHeight,
         decoration: BoxDecoration(
           color: base,
-          borderRadius: BorderRadius.circular(borderRadius),
-          border: Border.all(color: borderColor, width: borderWidth),
+          borderRadius: BorderRadius.circular(tuning.borderRadius),
+          border: Border.all(
+            color: tuning.borderColor,
+            width: tuning.borderWidth,
+          ),
         ),
         alignment: Alignment.center,
-        child: Icon(icon, color: foregroundColor),
+        child: Icon(icon, color: tuning.foregroundColor),
       ),
     );
   }

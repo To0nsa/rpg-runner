@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import '../../../core/snapshots/enums.dart';
 import '../../../game/input/aim_preview.dart';
 import '../../../game/input/charge_preview.dart';
+import '../../haptics/haptics_service.dart';
 import '../action_button.dart';
 import '../controls_tuning.dart';
 import '../directional_action_button.dart';
 
+/// Resolves projectile input mode (tap vs directional/charged) to a control.
 class ProjectileControl extends StatelessWidget {
   const ProjectileControl({
     super.key,
@@ -29,6 +31,7 @@ class ProjectileControl extends StatelessWidget {
     required this.chargeHalfTicks,
     required this.chargeFullTicks,
     required this.simulationTickHz,
+    required this.haptics,
     required this.forceCancelSignal,
   });
 
@@ -53,25 +56,25 @@ class ProjectileControl extends StatelessWidget {
   final int chargeHalfTicks;
   final int chargeFullTicks;
   final int simulationTickHz;
+  final UiHaptics haptics;
   final ValueListenable<int> forceCancelSignal;
 
   @override
   Widget build(BuildContext context) {
     final action = tuning.style.actionButton;
     final directional = tuning.style.directionalActionButton;
+    final cooldownRing = tuning.style.cooldownRing;
     if (inputMode == AbilityInputMode.tap) {
       return ActionButton(
         label: 'Projectile',
         icon: Icons.auto_awesome,
         onPressed: onPressed,
+        tuning: action,
+        cooldownRing: cooldownRing,
         affordable: affordable,
         cooldownTicksLeft: cooldownTicksLeft,
         cooldownTicksTotal: cooldownTicksTotal,
         size: size,
-        backgroundColor: action.backgroundColor,
-        foregroundColor: action.foregroundColor,
-        labelFontSize: action.labelFontSize,
-        labelGap: action.labelGap,
       );
     }
     return DirectionalActionButton(
@@ -80,6 +83,8 @@ class ProjectileControl extends StatelessWidget {
       onAimDir: onAimDir,
       onAimClear: onAimClear,
       onCommit: () => onCommitted(0),
+      tuning: directional,
+      cooldownRing: cooldownRing,
       onChargeCommit: onCommitted,
       chargePreview: chargePreview,
       chargeOwnerId: 'projectile',
@@ -87,16 +92,13 @@ class ProjectileControl extends StatelessWidget {
       chargeFullTicks: chargeEnabled ? chargeFullTicks : 0,
       chargeTickHz: simulationTickHz,
       projectileAimPreview: aimPreview,
+      haptics: haptics,
       cancelHitboxRect: cancelHitboxRect,
       affordable: affordable,
       cooldownTicksLeft: cooldownTicksLeft,
       cooldownTicksTotal: cooldownTicksTotal,
       size: size,
       deadzoneRadius: deadzoneRadius,
-      backgroundColor: directional.backgroundColor,
-      foregroundColor: directional.foregroundColor,
-      labelFontSize: directional.labelFontSize,
-      labelGap: directional.labelGap,
       forceCancelSignal: forceCancelSignal,
     );
   }

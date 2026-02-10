@@ -3,13 +3,21 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../game/input/aim_preview.dart';
 import '../../game/input/aim_quantizer.dart';
 import '../../game/input/charge_preview.dart';
+import '../haptics/haptics_cue.dart';
+import '../haptics/haptics_service.dart';
 import 'control_button_visuals.dart';
+import 'controls_tuning.dart';
 
+/// Circular directional action control with optional charge commit.
+///
+/// Drag direction is normalized then quantized before forwarding to
+/// `onAimDir`, so callers receive stable input suitable for deterministic
+/// command routing. When charge is enabled, commit payload uses simulation
+/// ticks (`chargeTickHz`).
 class DirectionalActionButton extends StatefulWidget {
   const DirectionalActionButton({
     super.key,
@@ -19,16 +27,14 @@ class DirectionalActionButton extends StatefulWidget {
     required this.onAimClear,
     required this.onCommit,
     required this.projectileAimPreview,
+    required this.tuning,
+    required this.size,
+    required this.deadzoneRadius,
+    required this.cooldownRing,
     this.cancelHitboxRect,
     this.affordable = true,
     this.cooldownTicksLeft = 0,
     this.cooldownTicksTotal = 0,
-    this.size = 72,
-    this.deadzoneRadius = 12,
-    this.backgroundColor = const Color(0x33000000),
-    this.foregroundColor = Colors.white,
-    this.labelFontSize = 12,
-    this.labelGap = 2,
     this.onChargeCommit,
     this.chargePreview,
     this.chargeOwnerId,
@@ -36,6 +42,7 @@ class DirectionalActionButton extends StatefulWidget {
     this.chargeFullTicks = 0,
     this.chargeTickHz = 60,
     this.enableChargeHaptics = true,
+    this.haptics,
     this.forceCancelSignal,
   });
 
@@ -45,16 +52,14 @@ class DirectionalActionButton extends StatefulWidget {
   final VoidCallback onAimClear;
   final VoidCallback onCommit;
   final AimPreviewModel projectileAimPreview;
+  final DirectionalActionButtonTuning tuning;
+  final CooldownRingTuning cooldownRing;
   final ValueListenable<Rect?>? cancelHitboxRect;
   final bool affordable;
   final int cooldownTicksLeft;
   final int cooldownTicksTotal;
   final double size;
   final double deadzoneRadius;
-  final Color backgroundColor;
-  final Color foregroundColor;
-  final double labelFontSize;
-  final double labelGap;
   final ValueChanged<int>? onChargeCommit;
   final ChargePreviewModel? chargePreview;
   final String? chargeOwnerId;
@@ -62,6 +67,7 @@ class DirectionalActionButton extends StatefulWidget {
   final int chargeFullTicks;
   final int chargeTickHz;
   final bool enableChargeHaptics;
+  final UiHaptics? haptics;
   final ValueListenable<int>? forceCancelSignal;
 
   @override
@@ -98,14 +104,15 @@ class _DirectionalActionButtonState extends State<DirectionalActionButton> {
     final visual = ControlButtonVisualState.resolve(
       affordable: widget.affordable,
       cooldownTicksLeft: widget.cooldownTicksLeft,
-      backgroundColor: widget.backgroundColor,
-      foregroundColor: widget.foregroundColor,
+      backgroundColor: widget.tuning.backgroundColor,
+      foregroundColor: widget.tuning.foregroundColor,
     );
 
     return ControlButtonShell(
       size: widget.size,
       cooldownTicksLeft: widget.cooldownTicksLeft,
       cooldownTicksTotal: widget.cooldownTicksTotal,
+      cooldownRing: widget.cooldownRing,
       child: IgnorePointer(
         ignoring: !visual.interactable,
         child: Listener(
@@ -120,8 +127,8 @@ class _DirectionalActionButtonState extends State<DirectionalActionButton> {
               label: widget.label,
               icon: widget.icon,
               foregroundColor: visual.foregroundColor,
-              labelFontSize: widget.labelFontSize,
-              labelGap: widget.labelGap,
+              labelFontSize: widget.tuning.labelFontSize,
+              labelGap: widget.tuning.labelGap,
             ),
           ),
         ),
@@ -270,6 +277,8 @@ class _DirectionalActionButtonState extends State<DirectionalActionButton> {
   void _updateChargeProgress() {
     if (!_isChargeEnabled || !_chargeWatch.isRunning) return;
     final elapsedMicros = _chargeWatch.elapsedMicroseconds;
+    // Convert wall-clock hold time to simulation ticks so commit values use
+    // the same unit as Core cooldown/charge rules.
     final ticks = (elapsedMicros * widget.chargeTickHz) ~/ 1000000;
     _lastChargeTicks = ticks < 0 ? 0 : ticks;
     widget.chargePreview?.updateChargeTicks(_lastChargeTicks);
@@ -279,10 +288,10 @@ class _DirectionalActionButtonState extends State<DirectionalActionButton> {
         : (_lastChargeTicks >= widget.chargeHalfTicks ? 1 : 0);
     if (widget.enableChargeHaptics && tier > _lastChargeTier) {
       if (_lastChargeTier < 1 && tier >= 1) {
-        HapticFeedback.selectionClick();
+        widget.haptics?.trigger(UiHapticsCue.chargeHalfTierReached);
       }
       if (_lastChargeTier < 2 && tier >= 2) {
-        HapticFeedback.lightImpact();
+        widget.haptics?.trigger(UiHapticsCue.chargeFullTierReached);
       }
     }
     _lastChargeTier = tier;
