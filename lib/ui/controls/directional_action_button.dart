@@ -8,7 +8,7 @@ import 'package:flutter/services.dart';
 import '../../game/input/aim_preview.dart';
 import '../../game/input/aim_quantizer.dart';
 import '../../game/input/charge_preview.dart';
-import 'cooldown_ring.dart';
+import 'control_button_visuals.dart';
 
 class DirectionalActionButton extends StatefulWidget {
   const DirectionalActionButton({
@@ -95,56 +95,36 @@ class _DirectionalActionButtonState extends State<DirectionalActionButton> {
 
   @override
   Widget build(BuildContext context) {
-    final interactable = widget.affordable && widget.cooldownTicksLeft <= 0;
-    final effectiveForeground = widget.affordable
-        ? widget.foregroundColor
-        : _disabledForeground(widget.foregroundColor);
-    final effectiveBackground = widget.affordable
-        ? widget.backgroundColor
-        : _disabledBackground(widget.backgroundColor);
+    final visual = ControlButtonVisualState.resolve(
+      affordable: widget.affordable,
+      cooldownTicksLeft: widget.cooldownTicksLeft,
+      backgroundColor: widget.backgroundColor,
+      foregroundColor: widget.foregroundColor,
+    );
 
-    return SizedBox(
-      width: widget.size,
-      height: widget.size,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          IgnorePointer(
-            ignoring: !interactable,
-            child: Listener(
-              onPointerDown: _handlePointerDown,
-              onPointerMove: _handlePointerMove,
-              onPointerUp: _handlePointerUp,
-              onPointerCancel: _handlePointerCancel,
-              child: Material(
-                color: effectiveBackground,
-                shape: const CircleBorder(),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(widget.icon, color: effectiveForeground),
-                      SizedBox(height: widget.labelGap),
-                      Text(
-                        widget.label,
-                        style: TextStyle(
-                          fontSize: widget.labelFontSize,
-                          color: effectiveForeground,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+    return ControlButtonShell(
+      size: widget.size,
+      cooldownTicksLeft: widget.cooldownTicksLeft,
+      cooldownTicksTotal: widget.cooldownTicksTotal,
+      child: IgnorePointer(
+        ignoring: !visual.interactable,
+        child: Listener(
+          onPointerDown: _handlePointerDown,
+          onPointerMove: _handlePointerMove,
+          onPointerUp: _handlePointerUp,
+          onPointerCancel: _handlePointerCancel,
+          child: Material(
+            color: visual.backgroundColor,
+            shape: const CircleBorder(),
+            child: ControlButtonContent(
+              label: widget.label,
+              icon: widget.icon,
+              foregroundColor: visual.foregroundColor,
+              labelFontSize: widget.labelFontSize,
+              labelGap: widget.labelGap,
             ),
           ),
-          IgnorePointer(
-            child: CooldownRing(
-              cooldownTicksLeft: widget.cooldownTicksLeft,
-              cooldownTicksTotal: widget.cooldownTicksTotal,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -317,9 +297,4 @@ class _DirectionalActionButtonState extends State<DirectionalActionButton> {
     _lastChargeTier = 0;
     widget.chargePreview?.end();
   }
-
-  Color _disabledForeground(Color color) => color.withValues(alpha: 0.35);
-
-  Color _disabledBackground(Color color) =>
-      color.withValues(alpha: color.a * 0.6);
 }

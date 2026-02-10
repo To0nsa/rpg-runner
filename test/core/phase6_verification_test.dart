@@ -137,6 +137,6 @@ void main() {
 
     // Verify AnimState
     final anim = world.animState.anim[world.animState.indexOf(player)];
-    expect(anim, equals(AnimKey.cast), reason: 'Animation should be Cast');
+    expect(anim, equals(AnimKey.ranged), reason: 'Animation should be Ranged');
   });
 }

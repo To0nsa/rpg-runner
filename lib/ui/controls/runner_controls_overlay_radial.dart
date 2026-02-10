@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -8,8 +6,11 @@ import '../../game/input/charge_preview.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'action_button.dart';
 import 'controls_tuning.dart';
-import 'directional_action_button.dart';
-import 'move_buttons.dart';
+import 'layout/controls_radial_layout.dart';
+import 'widgets/bonus_control.dart';
+import 'widgets/melee_control.dart';
+import 'widgets/movement_control.dart';
+import 'widgets/projectile_control.dart';
 
 class RunnerControlsOverlay extends StatelessWidget {
   const RunnerControlsOverlay({
@@ -89,7 +90,6 @@ class RunnerControlsOverlay extends StatelessWidget {
   final int meleeCooldownTicksTotal;
   final AbilityInputMode meleeInputMode;
   final AbilityInputMode projectileInputMode;
-
   final AbilityInputMode bonusInputMode;
   final bool bonusUsesMeleeAim;
   final bool projectileChargeEnabled;
@@ -114,177 +114,83 @@ class RunnerControlsOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = tuning;
-    final action = t.actionButton;
-    final directional = t.directionalActionButton;
-    final jumpSize = action.size * 1.6;
-    final smallActionSize = action.size * 1.0;
-    final smallDirectionalSize = directional.size * 1.0;
-    final smallDeadzoneRadius = directional.deadzoneRadius * 1.0;
-
-    Offset polar(double radius, double degrees) {
-      final radians = degrees * math.pi / 180.0;
-      return Offset(math.cos(radians) * radius, math.sin(radians) * radius);
-    }
-
-    double rightFor(Offset centerOffset, double targetSize) {
-      return t.edgePadding +
-          jumpSize * 0.5 -
-          centerOffset.dx -
-          targetSize * 0.5;
-    }
-
-    double bottomFor(Offset centerOffset, double targetSize) {
-      return t.edgePadding +
-          jumpSize * 0.5 -
-          centerOffset.dy -
-          targetSize * 0.5;
-    }
-
-    final jumpRadius = jumpSize * 0.5;
-    final ringGap = t.buttonGap * 0.9;
-    final ringRadius =
-        jumpRadius +
-        math.max(smallDirectionalSize, smallActionSize) * 0.5 +
-        ringGap;
-
-    const startDeg = 160.0;
-    const stepDeg = 35.0;
-
-    final dashOffset = polar(ringRadius, startDeg + stepDeg * -0.4);
-    final meleeOffset = polar(ringRadius, startDeg + stepDeg * 3.8);
-    final secondaryOffset = polar(ringRadius, startDeg + stepDeg * 1.0);
-    final projectileOffset = polar(ringRadius, startDeg + stepDeg * 2.4);
-    const bonusVerticalOffset = 72.0;
-    final bonusButtonSize = bonusInputMode == AbilityInputMode.tap
-        ? smallActionSize
-        : smallDirectionalSize;
-    final bonusRight = rightFor(meleeOffset, bonusButtonSize);
-    final bonusBottom =
-        bottomFor(meleeOffset, bonusButtonSize) + bonusVerticalOffset;
+    final style = tuning.style;
+    final action = style.actionButton;
+    final layout = ControlsRadialLayoutSolver.solve(
+      layout: tuning.layout,
+      action: action,
+      directional: style.directionalActionButton,
+      bonusMode: bonusInputMode == AbilityInputMode.tap
+          ? BonusAnchorMode.tap
+          : BonusAnchorMode.directional,
+    );
 
     return Stack(
       children: [
         Positioned(
-          left: t.edgePadding,
-          bottom: t.bottomEdgePadding,
-          child: MoveButtons(
-            onAxisChanged: onMoveAxis,
-            buttonWidth: t.moveButtonWidth,
-            buttonHeight: t.moveButtonHeight,
-            gap: t.moveButtonGap,
-            backgroundColor: t.moveButtonBackgroundColor,
-            foregroundColor: t.moveButtonForegroundColor,
-            borderColor: t.moveButtonBorderColor,
-            borderWidth: t.moveButtonBorderWidth,
-            borderRadius: t.moveButtonBorderRadius,
+          left: tuning.layout.edgePadding,
+          bottom: tuning.layout.bottomEdgePadding,
+          child: MovementControl(tuning: tuning, onMoveAxis: onMoveAxis),
+        ),
+        Positioned(
+          right: layout.projectile.right,
+          bottom: layout.projectile.bottom,
+          child: ProjectileControl(
+            tuning: tuning,
+            inputMode: projectileInputMode,
+            size: layout.directionalSize,
+            deadzoneRadius: layout.directionalDeadzoneRadius,
+            onPressed: onProjectilePressed,
+            onAimDir: onProjectileAimDir,
+            onAimClear: onProjectileAimClear,
+            onCommitted: onProjectileCommitted,
+            aimPreview: projectileAimPreview,
+            chargePreview: projectileChargePreview,
+            affordable: projectileAffordable,
+            cooldownTicksLeft: projectileCooldownTicksLeft,
+            cooldownTicksTotal: projectileCooldownTicksTotal,
+            cancelHitboxRect: aimCancelHitboxRect,
+            chargeEnabled: projectileChargeEnabled,
+            chargeHalfTicks: projectileChargeHalfTicks,
+            chargeFullTicks: projectileChargeFullTicks,
+            simulationTickHz: simulationTickHz,
+            forceCancelSignal: forceAimCancelSignal,
           ),
         ),
         Positioned(
-          right: rightFor(projectileOffset, smallDirectionalSize),
-          bottom: bottomFor(projectileOffset, smallDirectionalSize),
-          child: projectileInputMode == AbilityInputMode.tap
-              ? ActionButton(
-                  label: 'Projectile',
-                  icon: Icons.auto_awesome,
-                  onPressed: onProjectilePressed,
-                  affordable: projectileAffordable,
-                  cooldownTicksLeft: projectileCooldownTicksLeft,
-                  cooldownTicksTotal: projectileCooldownTicksTotal,
-                  size: smallDirectionalSize,
-                  backgroundColor: action.backgroundColor,
-                  foregroundColor: action.foregroundColor,
-                  labelFontSize: action.labelFontSize,
-                  labelGap: action.labelGap,
-                )
-              : DirectionalActionButton(
-                  label: 'Projectile',
-                  icon: Icons.auto_awesome,
-                  onAimDir: onProjectileAimDir,
-                  onAimClear: onProjectileAimClear,
-                  onCommit: () => onProjectileCommitted(0),
-                  onChargeCommit: onProjectileCommitted,
-                  chargePreview: projectileChargePreview,
-                  chargeOwnerId: 'projectile',
-                  chargeHalfTicks: projectileChargeEnabled
-                      ? projectileChargeHalfTicks
-                      : 0,
-                  chargeFullTicks: projectileChargeEnabled
-                      ? projectileChargeFullTicks
-                      : 0,
-                  chargeTickHz: simulationTickHz,
-                  projectileAimPreview: projectileAimPreview,
-                  cancelHitboxRect: aimCancelHitboxRect,
-                  affordable: projectileAffordable,
-                  cooldownTicksLeft: projectileCooldownTicksLeft,
-                  cooldownTicksTotal: projectileCooldownTicksTotal,
-                  size: smallDirectionalSize,
-                  deadzoneRadius: smallDeadzoneRadius,
-                  backgroundColor: directional.backgroundColor,
-                  foregroundColor: directional.foregroundColor,
-                  labelFontSize: directional.labelFontSize,
-                  labelGap: directional.labelGap,
-                  forceCancelSignal: forceAimCancelSignal,
-                ),
+          right: layout.bonus.right,
+          bottom: layout.bonus.bottom,
+          child: BonusControl(
+            tuning: tuning,
+            inputMode: bonusInputMode,
+            usesMeleeAim: bonusUsesMeleeAim,
+            size: bonusInputMode == AbilityInputMode.tap
+                ? layout.actionSize
+                : layout.directionalSize,
+            deadzoneRadius: layout.directionalDeadzoneRadius,
+            onPressed: onBonusPressed,
+            onProjectileAimDir: onProjectileAimDir,
+            onProjectileAimClear: onProjectileAimClear,
+            onMeleeAimDir: onMeleeAimDir,
+            onMeleeAimClear: onMeleeAimClear,
+            onCommitted: onBonusCommitted,
+            projectileAimPreview: projectileAimPreview,
+            meleeAimPreview: meleeAimPreview,
+            chargePreview: projectileChargePreview,
+            affordable: bonusAffordable,
+            cooldownTicksLeft: bonusCooldownTicksLeft,
+            cooldownTicksTotal: bonusCooldownTicksTotal,
+            cancelHitboxRect: aimCancelHitboxRect,
+            chargeEnabled: bonusChargeEnabled,
+            chargeHalfTicks: bonusChargeHalfTicks,
+            chargeFullTicks: bonusChargeFullTicks,
+            simulationTickHz: simulationTickHz,
+            forceCancelSignal: forceAimCancelSignal,
+          ),
         ),
         Positioned(
-          right: bonusRight,
-          bottom: bonusBottom,
-          child: bonusInputMode == AbilityInputMode.tap
-              ? ActionButton(
-                  label: 'Bonus',
-                  icon: Icons.star,
-                  onPressed: onBonusPressed,
-                  affordable: bonusAffordable,
-                  cooldownTicksLeft: bonusCooldownTicksLeft,
-                  cooldownTicksTotal: bonusCooldownTicksTotal,
-                  size: smallActionSize,
-                  backgroundColor: action.backgroundColor,
-                  foregroundColor: action.foregroundColor,
-                  labelFontSize: action.labelFontSize,
-                  labelGap: action.labelGap,
-                )
-              : DirectionalActionButton(
-                  label: 'Bonus',
-                  icon: Icons.star,
-                  onAimDir: bonusUsesMeleeAim
-                      ? onMeleeAimDir
-                      : onProjectileAimDir,
-                  onAimClear: bonusUsesMeleeAim
-                      ? onMeleeAimClear
-                      : onProjectileAimClear,
-                  onCommit: () => onBonusCommitted(0),
-                  onChargeCommit: onBonusCommitted,
-                  chargePreview: bonusUsesMeleeAim
-                      ? null
-                      : projectileChargePreview,
-                  chargeOwnerId: 'bonus',
-                  chargeHalfTicks: (!bonusUsesMeleeAim && bonusChargeEnabled)
-                      ? bonusChargeHalfTicks
-                      : 0,
-                  chargeFullTicks: (!bonusUsesMeleeAim && bonusChargeEnabled)
-                      ? bonusChargeFullTicks
-                      : 0,
-                  chargeTickHz: simulationTickHz,
-                  projectileAimPreview: bonusUsesMeleeAim
-                      ? meleeAimPreview
-                      : projectileAimPreview,
-                  cancelHitboxRect: aimCancelHitboxRect,
-                  affordable: bonusAffordable,
-                  cooldownTicksLeft: bonusCooldownTicksLeft,
-                  cooldownTicksTotal: bonusCooldownTicksTotal,
-                  size: smallDirectionalSize,
-                  deadzoneRadius: smallDeadzoneRadius,
-                  backgroundColor: directional.backgroundColor,
-                  foregroundColor: directional.foregroundColor,
-                  labelFontSize: directional.labelFontSize,
-                  labelGap: directional.labelGap,
-                  forceCancelSignal: forceAimCancelSignal,
-                ),
-        ),
-        Positioned(
-          right: rightFor(secondaryOffset, smallActionSize),
-          bottom: bottomFor(secondaryOffset, smallActionSize),
+          right: layout.secondary.right,
+          bottom: layout.secondary.bottom,
           child: ActionButton(
             label: 'Sec',
             icon: Icons.shield,
@@ -292,7 +198,7 @@ class RunnerControlsOverlay extends StatelessWidget {
             affordable: secondaryAffordable,
             cooldownTicksLeft: secondaryCooldownTicksLeft,
             cooldownTicksTotal: secondaryCooldownTicksTotal,
-            size: smallActionSize,
+            size: layout.actionSize,
             backgroundColor: action.backgroundColor,
             foregroundColor: action.foregroundColor,
             labelFontSize: action.labelFontSize,
@@ -300,45 +206,28 @@ class RunnerControlsOverlay extends StatelessWidget {
           ),
         ),
         Positioned(
-          right: rightFor(meleeOffset, smallDirectionalSize),
-          bottom: bottomFor(meleeOffset, smallDirectionalSize),
-          child: meleeInputMode == AbilityInputMode.tap
-              ? ActionButton(
-                  label: 'Atk',
-                  icon: Icons.close,
-                  onPressed: onMeleePressed,
-                  affordable: meleeAffordable,
-                  cooldownTicksLeft: meleeCooldownTicksLeft,
-                  cooldownTicksTotal: meleeCooldownTicksTotal,
-                  size: smallDirectionalSize,
-                  backgroundColor: action.backgroundColor,
-                  foregroundColor: action.foregroundColor,
-                  labelFontSize: action.labelFontSize,
-                  labelGap: action.labelGap,
-                )
-              : DirectionalActionButton(
-                  label: 'Atk',
-                  icon: Icons.close,
-                  onAimDir: onMeleeAimDir,
-                  onAimClear: onMeleeAimClear,
-                  onCommit: onMeleeCommitted,
-                  projectileAimPreview: meleeAimPreview,
-                  cancelHitboxRect: aimCancelHitboxRect,
-                  affordable: meleeAffordable,
-                  cooldownTicksLeft: meleeCooldownTicksLeft,
-                  cooldownTicksTotal: meleeCooldownTicksTotal,
-                  size: smallDirectionalSize,
-                  deadzoneRadius: smallDeadzoneRadius,
-                  backgroundColor: directional.backgroundColor,
-                  foregroundColor: directional.foregroundColor,
-                  labelFontSize: directional.labelFontSize,
-                  labelGap: directional.labelGap,
-                  forceCancelSignal: forceAimCancelSignal,
-                ),
+          right: layout.melee.right,
+          bottom: layout.melee.bottom,
+          child: MeleeControl(
+            tuning: tuning,
+            inputMode: meleeInputMode,
+            size: layout.directionalSize,
+            deadzoneRadius: layout.directionalDeadzoneRadius,
+            onPressed: onMeleePressed,
+            onAimDir: onMeleeAimDir,
+            onAimClear: onMeleeAimClear,
+            onCommitted: onMeleeCommitted,
+            aimPreview: meleeAimPreview,
+            affordable: meleeAffordable,
+            cooldownTicksLeft: meleeCooldownTicksLeft,
+            cooldownTicksTotal: meleeCooldownTicksTotal,
+            cancelHitboxRect: aimCancelHitboxRect,
+            forceCancelSignal: forceAimCancelSignal,
+          ),
         ),
         Positioned(
-          right: rightFor(dashOffset, smallActionSize),
-          bottom: bottomFor(dashOffset, smallActionSize),
+          right: layout.dash.right,
+          bottom: layout.dash.bottom,
           child: ActionButton(
             label: 'Dash',
             icon: Icons.flash_on,
@@ -346,7 +235,7 @@ class RunnerControlsOverlay extends StatelessWidget {
             affordable: dashAffordable,
             cooldownTicksLeft: dashCooldownTicksLeft,
             cooldownTicksTotal: dashCooldownTicksTotal,
-            size: smallActionSize,
+            size: layout.actionSize,
             backgroundColor: action.backgroundColor,
             foregroundColor: action.foregroundColor,
             labelFontSize: action.labelFontSize,
@@ -354,14 +243,14 @@ class RunnerControlsOverlay extends StatelessWidget {
           ),
         ),
         Positioned(
-          right: t.edgePadding,
-          bottom: t.edgePadding,
+          right: layout.jump.right,
+          bottom: layout.jump.bottom,
           child: ActionButton(
             label: 'Jump',
             icon: Icons.arrow_upward,
             onPressed: onJumpPressed,
             affordable: jumpAffordable,
-            size: jumpSize,
+            size: layout.jumpSize,
             backgroundColor: action.backgroundColor,
             foregroundColor: action.foregroundColor,
             labelFontSize: action.labelFontSize,
@@ -375,17 +264,12 @@ class RunnerControlsOverlay extends StatelessWidget {
             if (state.ownerId != 'projectile' && state.ownerId != 'bonus') {
               return const SizedBox.shrink();
             }
-            final chargeRight = state.ownerId == 'projectile'
-                ? rightFor(projectileOffset, smallDirectionalSize)
-                : bonusRight;
-            final chargeBottom = state.ownerId == 'projectile'
-                ? bottomFor(projectileOffset, smallDirectionalSize) +
-                      smallDirectionalSize +
-                      8
-                : bonusBottom + bonusButtonSize + 8;
+            final charge = state.ownerId == 'projectile'
+                ? layout.projectileCharge
+                : layout.bonusCharge;
             return Positioned(
-              right: chargeRight,
-              bottom: chargeBottom,
+              right: charge.right,
+              bottom: charge.bottom,
               child: _ChargeBar(progress01: state.progress01, tier: state.tier),
             );
           },
