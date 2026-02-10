@@ -83,7 +83,7 @@ class AbilityCatalog implements AbilityResolver {
     'eloise.sword_strike': AbilityDef(
       id: 'eloise.sword_strike',
       category: AbilityCategory.melee,
-      allowedSlots: {AbilitySlot.primary, AbilitySlot.bonus},
+      allowedSlots: {AbilitySlot.primary},
       targetingModel: TargetingModel.directional,
       hitDelivery: MeleeHitDelivery(
         sizeX: 32,
@@ -117,7 +117,7 @@ class AbilityCatalog implements AbilityResolver {
     'eloise.sword_parry': AbilityDef(
       id: 'eloise.sword_parry',
       category: AbilityCategory.defense,
-      allowedSlots: {AbilitySlot.primary, AbilitySlot.bonus},
+      allowedSlots: {AbilitySlot.primary},
       targetingModel: TargetingModel.none,
       hitDelivery: SelfHitDelivery(),
       // Hold defense up to 3s at 60Hz.
@@ -143,7 +143,7 @@ class AbilityCatalog implements AbilityResolver {
     'eloise.shield_bash': AbilityDef(
       id: 'eloise.shield_bash',
       category: AbilityCategory.defense,
-      allowedSlots: {AbilitySlot.secondary, AbilitySlot.bonus},
+      allowedSlots: {AbilitySlot.secondary},
       targetingModel: TargetingModel.directional,
       hitDelivery: MeleeHitDelivery(
         sizeX: 32,
@@ -175,7 +175,7 @@ class AbilityCatalog implements AbilityResolver {
     'eloise.shield_block': AbilityDef(
       id: 'eloise.shield_block',
       category: AbilityCategory.defense,
-      allowedSlots: {AbilitySlot.secondary, AbilitySlot.bonus},
+      allowedSlots: {AbilitySlot.secondary},
       targetingModel: TargetingModel.none,
       hitDelivery: SelfHitDelivery(),
       // Match Sword Parry exactly (only required weapon differs).
@@ -200,7 +200,7 @@ class AbilityCatalog implements AbilityResolver {
     'eloise.auto_aim_shot': AbilityDef(
       id: 'eloise.auto_aim_shot',
       category: AbilityCategory.magic,
-      allowedSlots: {AbilitySlot.projectile, AbilitySlot.bonus},
+      allowedSlots: {AbilitySlot.projectile},
       targetingModel: TargetingModel.homing,
       // Projectile id comes from the equipped projectile item at runtime.
       hitDelivery: ProjectileHitDelivery(
@@ -226,7 +226,7 @@ class AbilityCatalog implements AbilityResolver {
     'eloise.quick_shot': AbilityDef(
       id: 'eloise.quick_shot',
       category: AbilityCategory.ranged,
-      allowedSlots: {AbilitySlot.projectile, AbilitySlot.bonus},
+      allowedSlots: {AbilitySlot.projectile},
       targetingModel: TargetingModel.aimed,
       // Projectile id comes from the equipped projectile item at runtime.
       hitDelivery: ProjectileHitDelivery(
@@ -252,7 +252,7 @@ class AbilityCatalog implements AbilityResolver {
     'eloise.piercing_shot': AbilityDef(
       id: 'eloise.piercing_shot',
       category: AbilityCategory.ranged,
-      allowedSlots: {AbilitySlot.projectile, AbilitySlot.bonus},
+      allowedSlots: {AbilitySlot.projectile},
       targetingModel: TargetingModel.aimedLine,
       // Projectile id comes from the equipped projectile item at runtime.
       hitDelivery: ProjectileHitDelivery(
@@ -280,7 +280,7 @@ class AbilityCatalog implements AbilityResolver {
     'eloise.charged_shot': AbilityDef(
       id: 'eloise.charged_shot',
       category: AbilityCategory.magic,
-      allowedSlots: {AbilitySlot.projectile, AbilitySlot.bonus},
+      allowedSlots: {AbilitySlot.projectile},
       targetingModel: TargetingModel.aimedCharge,
       // Projectile id comes from the equipped projectile item at runtime.
       hitDelivery: ProjectileHitDelivery(
@@ -329,6 +329,63 @@ class AbilityCatalog implements AbilityResolver {
       requiredWeaponTypes: {WeaponType.projectileSpell},
       payloadSource: AbilityPayloadSource.spellBook,
       selfStatusProfileId: StatusProfileId.speedBoost,
+      baseDamage: 0,
+    ),
+    'eloise.restore_health': AbilityDef(
+      id: 'eloise.restore_health',
+      category: AbilityCategory.utility,
+      allowedSlots: {AbilitySlot.bonus},
+      targetingModel: TargetingModel.none,
+      hitDelivery: SelfHitDelivery(),
+      windupTicks: 0,
+      activeTicks: 0,
+      recoveryTicks: 10,
+      staminaCost: 0,
+      manaCost: 1500,
+      cooldownTicks: 420, // 7s @ 60Hz
+      interruptPriority: InterruptPriority.combat,
+      animKey: AnimKey.cast,
+      requiredWeaponTypes: {WeaponType.projectileSpell},
+      payloadSource: AbilityPayloadSource.spellBook,
+      selfRestoreHealthBp: 3500, // Restore 35% max HP
+      baseDamage: 0,
+    ),
+    'eloise.restore_mana': AbilityDef(
+      id: 'eloise.restore_mana',
+      category: AbilityCategory.utility,
+      allowedSlots: {AbilitySlot.bonus},
+      targetingModel: TargetingModel.none,
+      hitDelivery: SelfHitDelivery(),
+      windupTicks: 0,
+      activeTicks: 0,
+      recoveryTicks: 10,
+      staminaCost: 1500,
+      manaCost: 0,
+      cooldownTicks: 420, // 7s @ 60Hz
+      interruptPriority: InterruptPriority.combat,
+      animKey: AnimKey.cast,
+      requiredWeaponTypes: {WeaponType.projectileSpell},
+      payloadSource: AbilityPayloadSource.spellBook,
+      selfRestoreManaBp: 3500, // Restore 35% max mana
+      baseDamage: 0,
+    ),
+    'eloise.restore_stamina': AbilityDef(
+      id: 'eloise.restore_stamina',
+      category: AbilityCategory.utility,
+      allowedSlots: {AbilitySlot.bonus},
+      targetingModel: TargetingModel.none,
+      hitDelivery: SelfHitDelivery(),
+      windupTicks: 0,
+      activeTicks: 0,
+      recoveryTicks: 10,
+      staminaCost: 0,
+      manaCost: 1500,
+      cooldownTicks: 420, // 7s @ 60Hz
+      interruptPriority: InterruptPriority.combat,
+      animKey: AnimKey.cast,
+      requiredWeaponTypes: {WeaponType.projectileSpell},
+      payloadSource: AbilityPayloadSource.spellBook,
+      selfRestoreStaminaBp: 3500, // Restore 35% max stamina
       baseDamage: 0,
     ),
 

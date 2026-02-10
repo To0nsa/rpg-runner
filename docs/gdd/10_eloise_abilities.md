@@ -14,15 +14,15 @@ Based on the slot table from `ability_system_design.md`:
 | **Projectile** | Auto-Aim Shot, Quick Shot, Piercing Shot, Charged Shot |
 | **Mobility** | Dash, Roll |
 | **Jump** | Jump (fixed slot) |
-| **Bonus** | Any Primary/Secondary/Projectile + Arcane Haste |
+| **Bonus** | Arcane Haste, Restore Health, Restore Mana, Restore Stamina |
 
 Projectile payload resolution is now slot-driven:
-- `auto_aim_shot` / `quick_shot` / `piercing_shot` / `charged_shot` can be equipped in `projectile` or `bonus`.
-- Each slot has an optional selected spell (`projectileSlotSpellId`, `bonusSlotSpellId`).
-- If a selected spell is valid for the equipped spellbook, that spell is launched.
-- Otherwise, the equipped projectile item fallback (typically throwing weapon) is used.
+- `auto_aim_shot` / `quick_shot` / `piercing_shot` / `charged_shot` are equipped in `projectile`.
+- Projectile slot has an optional selected spell (`projectileSlotSpellId`).
+- If selected spell is valid for the equipped spellbook, that spell is launched.
+- Otherwise, equipped projectile item fallback (typically throwing weapon) is used.
 - Cooldowns are also slot-driven by default (`projectile` lane for projectile slot, `bonus` lane for bonus slot).
-- `arcane_haste` remains bonus-only.
+- Bonus slot is self-spell only (tap activation).
 
 ## Equivalence Contract Alignment
 
@@ -428,10 +428,10 @@ abilities and throwing weapons both use the same projectile-item payload path.
 
 Current default Eloise loadout uses:
 - `eloise.quick_shot` on the projectile slot button
-- `eloise.charged_shot` on the bonus slot button
+- `eloise.arcane_haste` on the bonus slot button
 
-Both are payload-driven by the equipped projectile item and can launch either
-`WeaponType.throwingWeapon` or `WeaponType.projectileSpell`.
+Only the projectile slot is payload-driven by the equipped projectile item and
+can launch either `WeaponType.throwingWeapon` or `WeaponType.projectileSpell`.
 
 ### Auto-Aim Shot
 

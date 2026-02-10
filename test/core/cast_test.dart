@@ -1,6 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'dart:math' as math;
-
 import 'package:rpg_runner/core/commands/command.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
@@ -302,58 +300,7 @@ void main() {
     },
   );
 
-  test(
-    'heavy throw: bonus slot can launch equipped throwing projectile item',
-    () {
-      final base = PlayerCharacterRegistry.eloise;
-      final core = GameCore(
-        seed: 1,
-        tickHz: 20,
-        tuning: noAutoscrollTuning,
-        playerCharacter: base.copyWith(
-          catalog: testPlayerCatalog(
-            bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-            projectileItemId: ProjectileItemId.throwingAxe,
-            bonusSlotSpellId: null,
-            abilityBonusId: 'eloise.charged_shot',
-          ),
-          tuning: base.tuning.copyWith(
-            resource: const ResourceTuning(
-              playerManaMax: 20,
-              playerManaRegenPerSecond: 0,
-              playerStaminaMax: 0,
-              playerStaminaRegenPerSecond: 0,
-            ),
-          ),
-        ),
-      );
-
-      core.applyCommands(const [
-        ProjectileAimDirCommand(tick: 1, x: 1, y: 0),
-        BonusPressedCommand(tick: 1),
-      ]);
-      core.stepOneTick();
-      final windupTicks = scaledWindupTicks('eloise.charged_shot', core.tickHz);
-      for (var i = 0; i < windupTicks; i += 1) {
-        core.applyCommands(const <Command>[]);
-        core.stepOneTick();
-      }
-
-      final snapshot = core.buildSnapshot();
-      final projectiles = snapshot.entities
-          .where((e) => e.kind == EntityKind.projectile)
-          .toList();
-      expect(projectiles.length, 1);
-      expect(projectiles.single.projectileId, ProjectileId.throwingAxe);
-      final ability = AbilityCatalog.tryGet('eloise.charged_shot')!;
-      expect(
-        snapshot.hud.mana,
-        closeTo(20.0 - fixed100ToDouble(ability.manaCost), 1e-9),
-      );
-    },
-  );
-
-  test('heavy throw: bonus slot can launch selected spell from spellbook', () {
+  test('bonus self spell restores mana without spawning projectiles', () {
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
       seed: 1,
@@ -362,47 +309,69 @@ void main() {
       playerCharacter: base.copyWith(
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-          projectileItemId: ProjectileItemId.throwingAxe,
-          bonusSlotSpellId: ProjectileItemId.thunderBolt,
-          abilityBonusId: 'eloise.charged_shot',
+          abilityProjectileId: 'eloise.charged_shot',
+          abilityBonusId: 'eloise.restore_mana',
         ),
         tuning: base.tuning.copyWith(
           resource: const ResourceTuning(
             playerManaMax: 20,
             playerManaRegenPerSecond: 0,
-            playerStaminaMax: 0,
+            playerStaminaMax: 20,
             playerStaminaRegenPerSecond: 0,
           ),
         ),
       ),
     );
 
-    core.applyCommands(const [
-      ProjectileAimDirCommand(tick: 1, x: 1, y: 0),
-      BonusPressedCommand(tick: 1),
-    ]);
+    core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
     core.stepOneTick();
     final windupTicks = scaledWindupTicks('eloise.charged_shot', core.tickHz);
     for (var i = 0; i < windupTicks; i += 1) {
       core.applyCommands(const <Command>[]);
       core.stepOneTick();
     }
+    final shotAbility = AbilityCatalog.tryGet('eloise.charged_shot')!;
+    final shotActiveTicks = scaledAbilityTicks(
+      shotAbility.activeTicks,
+      core.tickHz,
+    );
+    final shotRecoveryTicks = scaledAbilityTicks(
+      shotAbility.recoveryTicks,
+      core.tickHz,
+    );
+    for (var i = 0; i < shotActiveTicks + shotRecoveryTicks; i += 1) {
+      core.applyCommands(const <Command>[]);
+      core.stepOneTick();
+    }
 
-    final snapshot = core.buildSnapshot();
-    final projectiles = snapshot.entities
+    final beforeBonus = core.buildSnapshot();
+    final projectilesBeforeBonus = beforeBonus.entities
         .where((e) => e.kind == EntityKind.projectile)
         .toList();
-    expect(projectiles.length, 1);
-    expect(projectiles.single.projectileId, ProjectileId.thunderBolt);
-    final ability = AbilityCatalog.tryGet('eloise.charged_shot')!;
+    expect(projectilesBeforeBonus.length, 1);
     expect(
-      snapshot.hud.mana,
-      closeTo(20.0 - fixed100ToDouble(ability.manaCost), 1e-9),
+      beforeBonus.hud.mana,
+      closeTo(20.0 - fixed100ToDouble(shotAbility.manaCost), 1e-9),
     );
+
+    core.applyCommands(const [BonusPressedCommand(tick: 2)]);
+    core.stepOneTick();
+
+    final afterBonus = core.buildSnapshot();
+    final projectilesAfterBonus = afterBonus.entities
+        .where((e) => e.kind == EntityKind.projectile)
+        .toList();
+    expect(projectilesAfterBonus.length, 1);
+
+    final restore = AbilityCatalog.tryGet('eloise.restore_mana')!;
+    final expectedMana =
+        (beforeBonus.hud.mana + (20.0 * restore.selfRestoreManaBp / 10000.0))
+            .clamp(0.0, 20.0);
+    expect(afterBonus.hud.mana, closeTo(expectedMana, 1e-9));
   });
 
   test(
-    'quick throw on projectile and bonus uses independent cooldown groups',
+    'projectile and bonus cooldown groups stay independent (projectile + self spell)',
     () {
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
@@ -413,16 +382,14 @@ void main() {
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
             projectileItemId: ProjectileItemId.throwingKnife,
-            projectileSlotSpellId: null,
-            bonusSlotSpellId: ProjectileItemId.fireBolt,
             abilityProjectileId: 'eloise.quick_shot',
-            abilityBonusId: 'eloise.quick_shot',
+            abilityBonusId: 'eloise.arcane_haste',
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
               playerManaMax: 20,
               playerManaRegenPerSecond: 0,
-              playerStaminaMax: 0,
+              playerStaminaMax: 20,
               playerStaminaRegenPerSecond: 0,
             ),
           ),
@@ -437,14 +404,18 @@ void main() {
         core.stepOneTick();
       }
 
-      final ability = AbilityCatalog.tryGet('eloise.quick_shot')!;
-      final activeTicks = scaledAbilityTicks(ability.activeTicks, core.tickHz);
-      final recoveryTicks = scaledAbilityTicks(
-        ability.recoveryTicks,
+      final projectileAbility = AbilityCatalog.tryGet('eloise.quick_shot')!;
+      final activeTicks = scaledAbilityTicks(
+        projectileAbility.activeTicks,
         core.tickHz,
       );
-      final cooldownTicks = scaledAbilityTicks(
-        ability.cooldownTicks,
+      final recoveryTicks = scaledAbilityTicks(
+        projectileAbility.recoveryTicks,
+        core.tickHz,
+      );
+      final bonusAbility = AbilityCatalog.tryGet('eloise.arcane_haste')!;
+      final bonusCooldownTicks = scaledAbilityTicks(
+        bonusAbility.cooldownTicks,
         core.tickHz,
       );
       for (var i = 0; i < activeTicks + recoveryTicks; i += 1) {
@@ -457,36 +428,24 @@ void main() {
       final projectileCooldownBeforeBonus =
           beforeBonus.hud.cooldownTicksLeft[CooldownGroup.projectile];
 
-      // Bonus cast should still commit while projectile cooldown is active.
       core.applyCommands(const [BonusPressedCommand(tick: 2)]);
       core.stepOneTick();
       final afterBonusPressed = core.buildSnapshot();
-      final expectedProjectileAfterOneTick = math.max(
-        projectileCooldownBeforeBonus - 1,
-        0,
-      );
+      final expectedProjectileAfterOneTick = projectileCooldownBeforeBonus > 0
+          ? projectileCooldownBeforeBonus - 1
+          : 0;
       expect(
         afterBonusPressed.hud.cooldownTicksLeft[CooldownGroup.projectile],
         expectedProjectileAfterOneTick,
       );
       expect(
         afterBonusPressed.hud.cooldownTicksLeft[CooldownGroup.bonus0],
-        cooldownTicks,
-      );
-      for (var i = 0; i < windupTicks; i += 1) {
-        core.applyCommands(const <Command>[]);
-        core.stepOneTick();
-      }
-
-      final snapshot = core.buildSnapshot();
-      expect(
-        snapshot.hud.mana,
-        closeTo(20.0 - fixed100ToDouble(ability.manaCost * 2), 1e-9),
+        bonusCooldownTicks,
       );
     },
   );
 
-  test('auto-aim shot uses tap input mode', () {
+  test('auto-aim shot uses tap input mode for projectile slot', () {
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
       seed: 1,
@@ -496,14 +455,12 @@ void main() {
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
           abilityProjectileId: 'eloise.auto_aim_shot',
-          abilityBonusId: 'eloise.auto_aim_shot',
         ),
       ),
     );
 
     final hud = core.buildSnapshot().hud;
     expect(hud.projectileInputMode, AbilityInputMode.tap);
-    expect(hud.bonusInputMode, AbilityInputMode.tap);
   });
 
   test('quick shot keeps hold-aim-release input mode', () {

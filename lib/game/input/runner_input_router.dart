@@ -57,9 +57,6 @@ class RunnerInputRouter {
   final _HeldAbilitySlotChannel _secondaryHold = _HeldAbilitySlotChannel(
     slot: AbilitySlot.secondary,
   );
-  final _HeldAbilitySlotChannel _bonusHold = _HeldAbilitySlotChannel(
-    slot: AbilitySlot.bonus,
-  );
 
   // ─────────────────────────────────────────────────────────────────────────
   // Public setters for continuous inputs
@@ -175,25 +172,6 @@ class RunnerInputRouter {
     );
   }
 
-  /// Starts holding the bonus slot and commits it on the next tick.
-  void startBonusHold() {
-    final tick = controller.tick + controller.inputLead;
-    _bonusHold.setHeld(true);
-    controller.enqueue(
-      AbilitySlotHeldCommand(tick: tick, slot: AbilitySlot.bonus, held: true),
-    );
-    controller.enqueue(BonusPressedCommand(tick: tick));
-  }
-
-  /// Releases the bonus slot hold.
-  void endBonusHold() {
-    final tick = controller.tick + controller.inputLead;
-    _bonusHold.setHeld(false);
-    controller.enqueue(
-      AbilitySlotHeldCommand(tick: tick, slot: AbilitySlot.bonus, held: false),
-    );
-  }
-
   // ─────────────────────────────────────────────────────────────────────────
   // Combined action methods (aim + action in a single tick)
   // ─────────────────────────────────────────────────────────────────────────
@@ -237,45 +215,6 @@ class RunnerInputRouter {
       if (hadAim) {
         // Prevent immediate clear command from overwriting the aim we just committed
         _projectileAim.blockClearThrough(tick);
-      }
-    }
-  }
-
-  /// Commits the bonus ability while preserving the current aim direction.
-  ///
-  /// Bonus can host projectile or melee abilities; [usesMeleeAim] selects which
-  /// aim channel is consumed by the equipped bonus ability.
-  /// [chargeTicks] is forwarded only when the bonus consumes projectile aim.
-  void commitBonusWithAim({
-    required bool clearAim,
-    required bool usesMeleeAim,
-    int chargeTicks = 0,
-  }) {
-    final tick = controller.tick + controller.inputLead;
-    final channel = usesMeleeAim ? _meleeAim : _projectileAim;
-    final hadAim = channel.isSet;
-
-    if (hadAim) {
-      controller.enqueue(
-        usesMeleeAim
-            ? MeleeAimDirCommand(tick: tick, x: channel.x, y: channel.y)
-            : ProjectileAimDirCommand(tick: tick, x: channel.x, y: channel.y),
-      );
-    }
-
-    if (!usesMeleeAim && chargeTicks > 0) {
-      controller.enqueue(
-        ProjectileChargeTicksCommand(tick: tick, chargeTicks: chargeTicks),
-      );
-    }
-
-    controller.enqueue(BonusPressedCommand(tick: tick));
-
-    if (clearAim) {
-      channel.clear();
-      if (hadAim) {
-        // Prevent immediate clear command from overwriting the aim we just committed.
-        channel.blockClearThrough(tick);
       }
     }
   }
@@ -334,7 +273,6 @@ class RunnerInputRouter {
 
     _primaryHold.schedule(controller, _inputBufferSeconds);
     _secondaryHold.schedule(controller, _inputBufferSeconds);
-    _bonusHold.schedule(controller, _inputBufferSeconds);
   }
 
   /// Schedules [MoveAxisCommand]s for upcoming ticks based on the current axis value.

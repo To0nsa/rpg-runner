@@ -1,5 +1,14 @@
 # Ability System Implementation Review (2026-01-24)
 
+## Update (2026-02-10)
+- Bonus slot is now intentionally **self-spell only** for the current vertical slice.
+- Projectile/melee abilities are no longer authored for `AbilitySlot.bonus`.
+- Added bonus self spells: `eloise.restore_health`, `eloise.restore_mana`, `eloise.restore_stamina`.
+- `SelfAbilitySystem` now applies deterministic self-resource restoration authored on `AbilityDef` (`selfRestore*Bp`).
+- Bonus ability picker no longer shows projectile-source selection panel.
+- Bonus input path is tap-only end-to-end; legacy bonus hold/aim/charge HUD and control contracts were removed.
+- Legacy bonus projectile-source schema/persistence (`bonusSlotSpellId`) was removed; slot spell selection is projectile-slot only.
+
 ## Scope
 Review of the current ability system implementation across Core + Game layers, checked against
 `docs/building/ability_system_design.md`. This document focuses on correctness, determinism,

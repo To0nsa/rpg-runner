@@ -22,7 +22,6 @@ class ControlsRadialLayout {
     required this.projectile,
     required this.bonus,
     required this.projectileCharge,
-    required this.bonusCharge,
   });
 
   final double jumpSize;
@@ -37,7 +36,6 @@ class ControlsRadialLayout {
   final ControlsAnchor projectile;
   final ControlsAnchor bonus;
   final ControlsAnchor projectileCharge;
-  final ControlsAnchor bonusCharge;
 }
 
 @immutable
@@ -51,9 +49,6 @@ class ControlsAnchor {
   final double bottom;
 }
 
-/// Selects whether bonus anchors use action-button size or directional size.
-enum BonusAnchorMode { tap, directional }
-
 /// Computes radial control anchors from authored layout numbers.
 class ControlsRadialLayoutSolver {
   const ControlsRadialLayoutSolver._();
@@ -62,7 +57,6 @@ class ControlsRadialLayoutSolver {
     required ControlsLayoutTuning layout,
     required ActionButtonTuning action,
     required DirectionalActionButtonTuning directional,
-    required BonusAnchorMode bonusMode,
   }) {
     final jumpSize = action.size * layout.jumpButtonScale;
     final actionSize = action.size * layout.actionButtonScale;
@@ -113,9 +107,7 @@ class ControlsRadialLayoutSolver {
           layout.radialStepDeg * layout.projectileStepMultiplier,
     );
 
-    final bonusSize = bonusMode == BonusAnchorMode.tap
-        ? actionSize
-        : directionalSize;
+    final bonusSize = actionSize;
     final bonusRight = rightFor(meleeOffset, bonusSize);
     final bonusBottom =
         bottomFor(meleeOffset, bonusSize) + layout.bonusVerticalOffset;
@@ -152,10 +144,6 @@ class ControlsRadialLayoutSolver {
             bottomFor(projectileOffset, directionalSize) +
             directionalSize +
             layout.chargeAnchorGap,
-      ),
-      bonusCharge: ControlsAnchor(
-        right: bonusRight,
-        bottom: bonusBottom + bonusSize + layout.chargeAnchorGap,
       ),
     );
   }

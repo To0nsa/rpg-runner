@@ -254,10 +254,9 @@ EquippedLoadoutDef setProjectileSourceForSlot(
   switch (slot) {
     case AbilitySlot.projectile:
       return _copyLoadout(loadout, projectileSlotSpellId: selectedSpellId);
-    case AbilitySlot.bonus:
-      return _copyLoadout(loadout, bonusSlotSpellId: selectedSpellId);
     case AbilitySlot.primary:
     case AbilitySlot.secondary:
+    case AbilitySlot.bonus:
     case AbilitySlot.mobility:
     case AbilitySlot.jump:
       return loadout;
@@ -281,8 +280,7 @@ bool _isAbilityLegalForSlot({
   required bool overrideSelectedSource,
 }) {
   var trial = setAbilityForSlot(loadout, slot: slot, abilityId: abilityId);
-  if (overrideSelectedSource &&
-      (slot == AbilitySlot.projectile || slot == AbilitySlot.bonus)) {
+  if (overrideSelectedSource && slot == AbilitySlot.projectile) {
     trial = setProjectileSourceForSlot(
       trial,
       slot: slot,
@@ -304,7 +302,6 @@ EquippedLoadoutDef _copyLoadout(
   ProjectileItemId? projectileItemId,
   SpellBookId? spellBookId,
   Object? projectileSlotSpellId = _keepValue,
-  Object? bonusSlotSpellId = _keepValue,
   AccessoryId? accessoryId,
   AbilityKey? abilityPrimaryId,
   AbilityKey? abilitySecondaryId,
@@ -322,9 +319,6 @@ EquippedLoadoutDef _copyLoadout(
     projectileSlotSpellId: identical(projectileSlotSpellId, _keepValue)
         ? loadout.projectileSlotSpellId
         : projectileSlotSpellId as ProjectileItemId?,
-    bonusSlotSpellId: identical(bonusSlotSpellId, _keepValue)
-        ? loadout.bonusSlotSpellId
-        : bonusSlotSpellId as ProjectileItemId?,
     accessoryId: accessoryId ?? loadout.accessoryId,
     abilityPrimaryId: abilityPrimaryId ?? loadout.abilityPrimaryId,
     abilitySecondaryId: abilitySecondaryId ?? loadout.abilitySecondaryId,

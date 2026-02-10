@@ -2,13 +2,7 @@ import '../../ecs/entity_id.dart';
 import '../damage_type.dart';
 
 /// Runtime status effect categories.
-enum StatusEffectType {
-  burn,
-  slow,
-  bleed,
-  stun,
-  haste,
-}
+enum StatusEffectType { burn, slow, bleed, stun, haste }
 
 /// Stable identifiers for status application profiles.
 enum StatusProfileId {
@@ -63,62 +57,52 @@ class StatusProfileCatalog {
       case StatusProfileId.none:
         return const StatusProfile(<StatusApplication>[]);
       case StatusProfileId.iceBolt:
-        return const StatusProfile(
-          <StatusApplication>[
-            StatusApplication(
-              type: StatusEffectType.slow,
-              magnitude: 2500, // 25%
-              durationSeconds: 3.0,
-              scaleByDamageType: true,
-            ),
-          ],
-        );
+        return const StatusProfile(<StatusApplication>[
+          StatusApplication(
+            type: StatusEffectType.slow,
+            magnitude: 2500, // 25%
+            durationSeconds: 3.0,
+            scaleByDamageType: true,
+          ),
+        ]);
       case StatusProfileId.meleeBleed:
-        return const StatusProfile(
-          <StatusApplication>[
-            StatusApplication(
-              type: StatusEffectType.bleed,
-              magnitude: 300, // 3.0 DPS
-              durationSeconds: 4.0,
-              periodSeconds: 1.0,
-              scaleByDamageType: true,
-            ),
-          ],
-        );
+        return const StatusProfile(<StatusApplication>[
+          StatusApplication(
+            type: StatusEffectType.bleed,
+            magnitude: 300, // 3.0 DPS
+            durationSeconds: 4.0,
+            periodSeconds: 1.0,
+            scaleByDamageType: true,
+          ),
+        ]);
       case StatusProfileId.fireBolt:
-        return const StatusProfile(
-          <StatusApplication>[
-            StatusApplication(
-              type: StatusEffectType.burn,
-              magnitude: 500, // 5.0 DPS
-              durationSeconds: 5.0,
-              periodSeconds: 1.0,
-              scaleByDamageType: true,
-            ),
-          ],
-        );
+        return const StatusProfile(<StatusApplication>[
+          StatusApplication(
+            type: StatusEffectType.burn,
+            magnitude: 500, // 5.0 DPS
+            durationSeconds: 5.0,
+            periodSeconds: 1.0,
+            scaleByDamageType: true,
+          ),
+        ]);
       case StatusProfileId.stunOnHit:
-        return const StatusProfile(
-          <StatusApplication>[
-            StatusApplication(
-              type: StatusEffectType.stun,
-              magnitude: 100, // placeholder (stun uses duration ticks)
-              durationSeconds: 0.5,
-              scaleByDamageType: false,
-            ),
-          ],
-        );
+        return const StatusProfile(<StatusApplication>[
+          StatusApplication(
+            type: StatusEffectType.stun,
+            magnitude: 100, // placeholder (stun uses duration ticks)
+            durationSeconds: 0.5,
+            scaleByDamageType: false,
+          ),
+        ]);
       case StatusProfileId.speedBoost:
-        return const StatusProfile(
-          <StatusApplication>[
-            StatusApplication(
-              type: StatusEffectType.haste,
-              magnitude: 5000, // +50% move speed
-              durationSeconds: 5.0,
-              scaleByDamageType: false,
-            ),
-          ],
-        );
+        return const StatusProfile(<StatusApplication>[
+          StatusApplication(
+            type: StatusEffectType.haste,
+            magnitude: 5000, // +50% move speed
+            durationSeconds: 5.0,
+            scaleByDamageType: false,
+          ),
+        ]);
     }
   }
 }

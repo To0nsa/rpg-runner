@@ -85,7 +85,6 @@ class LoadoutValidator {
       projectileItem: projectileItem,
       spellBook: spellBook,
       projectileSlotSpellId: loadout.projectileSlotSpellId,
-      bonusSlotSpellId: loadout.bonusSlotSpellId,
     );
 
     // Secondary
@@ -98,7 +97,6 @@ class LoadoutValidator {
       projectileItem: projectileItem,
       spellBook: spellBook,
       projectileSlotSpellId: loadout.projectileSlotSpellId,
-      bonusSlotSpellId: loadout.bonusSlotSpellId,
     );
 
     // Projectile
@@ -111,7 +109,6 @@ class LoadoutValidator {
       projectileItem: projectileItem,
       spellBook: spellBook,
       projectileSlotSpellId: loadout.projectileSlotSpellId,
-      bonusSlotSpellId: loadout.bonusSlotSpellId,
     );
 
     // Mobility (No weapon)
@@ -124,7 +121,6 @@ class LoadoutValidator {
       projectileItem: projectileItem,
       spellBook: spellBook,
       projectileSlotSpellId: loadout.projectileSlotSpellId,
-      bonusSlotSpellId: loadout.bonusSlotSpellId,
     );
 
     // Bonus: payload gating is now driven by AbilityDef.payloadSource.
@@ -137,7 +133,6 @@ class LoadoutValidator {
       projectileItem: projectileItem,
       spellBook: spellBook,
       projectileSlotSpellId: loadout.projectileSlotSpellId,
-      bonusSlotSpellId: loadout.bonusSlotSpellId,
     );
 
     // Jump (Fixed slot, no weapon)
@@ -150,7 +145,6 @@ class LoadoutValidator {
       projectileItem: projectileItem,
       spellBook: spellBook,
       projectileSlotSpellId: loadout.projectileSlotSpellId,
-      bonusSlotSpellId: loadout.bonusSlotSpellId,
     );
 
     return LoadoutValidationResult(isValid: issues.isEmpty, issues: issues);
@@ -243,7 +237,6 @@ class LoadoutValidator {
     required ProjectileItemDef? projectileItem,
     required SpellBookDef? spellBook,
     required ProjectileItemId? projectileSlotSpellId,
-    required ProjectileItemId? bonusSlotSpellId,
   }) {
     final ability = abilityCatalog.resolve(abilityId);
     if (ability == null) {
@@ -264,7 +257,6 @@ class LoadoutValidator {
       fallbackProjectileItem: projectileItem,
       spellBook: spellBook,
       projectileSlotSpellId: projectileSlotSpellId,
-      bonusSlotSpellId: bonusSlotSpellId,
     );
 
     final (hasWeapon, weaponType) = _payloadContextFor(
@@ -323,14 +315,13 @@ class LoadoutValidator {
     required ProjectileItemDef? fallbackProjectileItem,
     required SpellBookDef? spellBook,
     required ProjectileItemId? projectileSlotSpellId,
-    required ProjectileItemId? bonusSlotSpellId,
   }) {
     final selectedSpellId = switch (slot) {
       AbilitySlot.projectile => projectileSlotSpellId,
-      AbilitySlot.bonus => bonusSlotSpellId,
       AbilitySlot.primary ||
       AbilitySlot.secondary ||
       AbilitySlot.mobility ||
+      AbilitySlot.bonus ||
       AbilitySlot.jump => null,
     };
     if (selectedSpellId == null) {

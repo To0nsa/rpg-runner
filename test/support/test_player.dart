@@ -35,11 +35,10 @@ const PlayerCatalog testPlayerCatalogDefaults = PlayerCatalog(
   projectileItemId: ProjectileItemId.fireBolt,
   spellBookId: SpellBookId.basicSpellBook,
   projectileSlotSpellId: ProjectileItemId.iceBolt,
-  bonusSlotSpellId: ProjectileItemId.fireBolt,
   abilityPrimaryId: 'eloise.sword_strike',
   abilitySecondaryId: 'eloise.shield_block',
   abilityProjectileId: 'eloise.charged_shot',
-  abilityBonusId: 'eloise.shield_bash',
+  abilityBonusId: 'eloise.arcane_haste',
   abilityMobilityId: 'eloise.dash',
   abilityJumpId: 'eloise.jump',
   facing: Facing.right,
@@ -60,7 +59,6 @@ PlayerCatalog testPlayerCatalog({
   ProjectileItemId? projectileItemId,
   SpellBookId? spellBookId,
   Object? projectileSlotSpellId = _unset,
-  Object? bonusSlotSpellId = _unset,
   AbilityKey? abilityPrimaryId,
   AbilityKey? abilitySecondaryId,
   AbilityKey? abilityProjectileId,
@@ -91,9 +89,6 @@ PlayerCatalog testPlayerCatalog({
     projectileSlotSpellId: identical(projectileSlotSpellId, _unset)
         ? testPlayerCatalogDefaults.projectileSlotSpellId
         : projectileSlotSpellId as ProjectileItemId?,
-    bonusSlotSpellId: identical(bonusSlotSpellId, _unset)
-        ? testPlayerCatalogDefaults.bonusSlotSpellId
-        : bonusSlotSpellId as ProjectileItemId?,
     abilityPrimaryId:
         abilityPrimaryId ?? testPlayerCatalogDefaults.abilityPrimaryId,
     abilitySecondaryId:

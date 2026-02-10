@@ -5,11 +5,11 @@ import 'package:rpg_runner/game/input/aim_preview.dart';
 import 'package:rpg_runner/game/input/charge_preview.dart';
 import 'package:rpg_runner/ui/controls/cooldown_ring.dart';
 import 'package:rpg_runner/ui/controls/controls_tuning.dart';
-import 'package:rpg_runner/ui/haptics/haptics_service.dart';
 import 'package:rpg_runner/ui/controls/layout/controls_radial_layout.dart';
 import 'package:rpg_runner/ui/controls/runner_controls_overlay_radial.dart';
 import 'package:rpg_runner/ui/controls/widgets/bonus_control.dart';
 import 'package:rpg_runner/ui/controls/widgets/melee_control.dart';
+import 'package:rpg_runner/ui/haptics/haptics_service.dart';
 
 void main() {
   testWidgets('bonus control is anchored above Atk control by tuning offset', (
@@ -20,12 +20,7 @@ void main() {
 
     const tuning = ControlsTuning.fixed;
     await tester.pumpWidget(
-      _testHost(
-        child: harness.buildOverlay(
-          tuning: tuning,
-          bonusInputMode: AbilityInputMode.holdAimRelease,
-        ),
-      ),
+      _testHost(child: harness.buildOverlay(tuning: tuning)),
     );
 
     final bonus = _positionedFor(tester, find.byType(BonusControl));
@@ -38,28 +33,19 @@ void main() {
     );
   });
 
-  testWidgets('charge bar anchor maps to projectile and bonus owners', (
-    tester,
-  ) async {
+  testWidgets('charge bar anchor maps to projectile owner', (tester) async {
     final harness = _OverlayHarness();
     addTearDown(harness.dispose);
 
     const tuning = ControlsTuning.fixed;
-    const bonusInputMode = AbilityInputMode.holdAimRelease;
     final expected = ControlsRadialLayoutSolver.solve(
       layout: tuning.layout,
       action: tuning.style.actionButton,
       directional: tuning.style.directionalActionButton,
-      bonusMode: BonusAnchorMode.directional,
     );
 
     await tester.pumpWidget(
-      _testHost(
-        child: harness.buildOverlay(
-          tuning: tuning,
-          bonusInputMode: bonusInputMode,
-        ),
-      ),
+      _testHost(child: harness.buildOverlay(tuning: tuning)),
     );
 
     harness.chargePreview.begin(
@@ -79,6 +65,15 @@ void main() {
       projectilePos.bottom,
       closeTo(expected.projectileCharge.bottom, 0.001),
     );
+  });
+
+  testWidgets('charge bar is hidden for bonus owner', (tester) async {
+    final harness = _OverlayHarness();
+    addTearDown(harness.dispose);
+
+    await tester.pumpWidget(
+      _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
+    );
 
     harness.chargePreview.begin(
       ownerId: 'bonus',
@@ -88,9 +83,7 @@ void main() {
     harness.chargePreview.updateChargeTicks(8);
     await tester.pump();
 
-    final bonusPos = _chargeBarPositioned(tester);
-    expect(bonusPos.right, closeTo(expected.bonusCharge.right, 0.001));
-    expect(bonusPos.bottom, closeTo(expected.bonusCharge.bottom, 0.001));
+    expect(_chargeBarFinder(), findsNothing);
   });
 
   testWidgets(
@@ -109,12 +102,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        _testHost(
-          child: harness.buildOverlay(
-            tuning: tuning,
-            bonusInputMode: AbilityInputMode.holdAimRelease,
-          ),
-        ),
+        _testHost(child: harness.buildOverlay(tuning: tuning)),
       );
 
       final rings = tester.widgetList<CooldownRing>(find.byType(CooldownRing));
@@ -149,12 +137,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      _testHost(
-        child: harness.buildOverlay(
-          tuning: tuning,
-          bonusInputMode: AbilityInputMode.holdAimRelease,
-        ),
-      ),
+      _testHost(child: harness.buildOverlay(tuning: tuning)),
     );
 
     harness.chargePreview.begin(
@@ -165,9 +148,7 @@ void main() {
     harness.chargePreview.updateChargeTicks(20);
     await tester.pump();
 
-    final chargeBarFinder = find.byWidgetPredicate(
-      (widget) => widget.runtimeType.toString() == '_ChargeBar',
-    );
+    final chargeBarFinder = _chargeBarFinder();
     expect(chargeBarFinder, findsOneWidget);
 
     final outerFinder = find.descendant(
@@ -232,10 +213,14 @@ Positioned _positionedFor(WidgetTester tester, Finder childFinder) {
   return tester.widget<Positioned>(positionedFinder);
 }
 
-Positioned _chargeBarPositioned(WidgetTester tester) {
-  final chargeBar = find.byWidgetPredicate(
+Finder _chargeBarFinder() {
+  return find.byWidgetPredicate(
     (widget) => widget.runtimeType.toString() == '_ChargeBar',
   );
+}
+
+Positioned _chargeBarPositioned(WidgetTester tester) {
+  final chargeBar = _chargeBarFinder();
   expect(chargeBar, findsOneWidget);
   return _positionedFor(tester, chargeBar);
 }
@@ -249,10 +234,7 @@ class _OverlayHarness {
   final ValueNotifier<Rect?> cancelHitboxRect = ValueNotifier<Rect?>(null);
   final ValueNotifier<int> forceCancelSignal = ValueNotifier<int>(0);
 
-  RunnerControlsOverlay buildOverlay({
-    required ControlsTuning tuning,
-    required AbilityInputMode bonusInputMode,
-  }) {
+  RunnerControlsOverlay buildOverlay({required ControlsTuning tuning}) {
     return RunnerControlsOverlay(
       tuning: tuning,
       onMoveAxis: (_) {},
@@ -262,9 +244,6 @@ class _OverlayHarness {
       onSecondaryHoldStart: () {},
       onSecondaryHoldEnd: () {},
       onBonusPressed: () {},
-      onBonusHoldStart: () {},
-      onBonusHoldEnd: () {},
-      onBonusCommitted: (_) {},
       onProjectileCommitted: (_) {},
       onProjectilePressed: () {},
       onProjectileAimDir: (_, _) {},
@@ -287,16 +266,11 @@ class _OverlayHarness {
       meleeInputMode: AbilityInputMode.holdAimRelease,
       secondaryInputMode: AbilityInputMode.tap,
       projectileInputMode: AbilityInputMode.holdAimRelease,
-      bonusInputMode: bonusInputMode,
-      bonusUsesMeleeAim: false,
       projectileChargePreview: chargePreview,
       haptics: _haptics,
       projectileChargeEnabled: true,
       projectileChargeHalfTicks: 10,
       projectileChargeFullTicks: 20,
-      bonusChargeEnabled: true,
-      bonusChargeHalfTicks: 10,
-      bonusChargeFullTicks: 20,
       simulationTickHz: 60,
       jumpAffordable: true,
       dashAffordable: true,

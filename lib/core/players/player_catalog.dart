@@ -45,7 +45,6 @@ class PlayerCatalog {
     required this.projectileItemId,
     required this.spellBookId,
     required this.projectileSlotSpellId,
-    required this.bonusSlotSpellId,
     required this.abilityPrimaryId,
     required this.abilitySecondaryId,
     required this.abilityProjectileId,
@@ -115,9 +114,6 @@ class PlayerCatalog {
 
   /// Optional spell selection used by projectile-slot projectile abilities.
   final ProjectileItemId? projectileSlotSpellId;
-
-  /// Optional spell selection used by bonus-slot projectile abilities.
-  final ProjectileItemId? bonusSlotSpellId;
 
   /// Default equipped ability IDs at spawn time.
   final AbilityKey abilityPrimaryId;
@@ -224,7 +220,6 @@ class PlayerCatalogDerived {
         projectileItemId: base.projectileItemId,
         spellBookId: base.spellBookId,
         projectileSlotSpellId: base.projectileSlotSpellId,
-        bonusSlotSpellId: base.bonusSlotSpellId,
         abilityPrimaryId: base.abilityPrimaryId,
         abilitySecondaryId: base.abilitySecondaryId,
         abilityProjectileId: base.abilityProjectileId,

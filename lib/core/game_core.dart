@@ -613,7 +613,6 @@ class GameCore {
           projectileItemId: playerArchetype.projectileItemId,
           spellBookId: playerArchetype.spellBookId,
           projectileSlotSpellId: playerArchetype.projectileSlotSpellId,
-          bonusSlotSpellId: playerArchetype.bonusSlotSpellId,
           abilityPrimaryId: playerArchetype.abilityPrimaryId,
           abilitySecondaryId: playerArchetype.abilitySecondaryId,
           abilityProjectileId: playerArchetype.abilityProjectileId,

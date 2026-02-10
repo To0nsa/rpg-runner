@@ -8,6 +8,9 @@ class SelfIntentDef {
     required this.abilityId,
     required this.slot,
     this.selfStatusProfileId = StatusProfileId.none,
+    this.selfRestoreHealthBp = 0,
+    this.selfRestoreManaBp = 0,
+    this.selfRestoreStaminaBp = 0,
     required this.commitTick,
     required this.windupTicks,
     required this.activeTicks,
@@ -22,6 +25,9 @@ class SelfIntentDef {
   final AbilityKey abilityId;
   final AbilitySlot slot;
   final StatusProfileId selfStatusProfileId;
+  final int selfRestoreHealthBp;
+  final int selfRestoreManaBp;
+  final int selfRestoreStaminaBp;
 
   /// Tick the ability was committed (costs/cooldown start).
   final int commitTick;
@@ -55,6 +61,9 @@ class SelfIntentStore extends SparseSet {
   final List<AbilityKey> abilityId = <AbilityKey>[];
   final List<AbilitySlot> slot = <AbilitySlot>[];
   final List<StatusProfileId> selfStatusProfileId = <StatusProfileId>[];
+  final List<int> selfRestoreHealthBp = <int>[];
+  final List<int> selfRestoreManaBp = <int>[];
+  final List<int> selfRestoreStaminaBp = <int>[];
   final List<int> commitTick = <int>[];
   final List<int> windupTicks = <int>[];
   final List<int> activeTicks = <int>[];
@@ -82,6 +91,9 @@ class SelfIntentStore extends SparseSet {
     abilityId[i] = def.abilityId;
     slot[i] = def.slot;
     selfStatusProfileId[i] = def.selfStatusProfileId;
+    selfRestoreHealthBp[i] = def.selfRestoreHealthBp;
+    selfRestoreManaBp[i] = def.selfRestoreManaBp;
+    selfRestoreStaminaBp[i] = def.selfRestoreStaminaBp;
     commitTick[i] = def.commitTick;
     windupTicks[i] = def.windupTicks;
     activeTicks[i] = def.activeTicks;
@@ -98,6 +110,9 @@ class SelfIntentStore extends SparseSet {
     abilityId.add('eloise.sword_parry');
     slot.add(AbilitySlot.primary);
     selfStatusProfileId.add(StatusProfileId.none);
+    selfRestoreHealthBp.add(0);
+    selfRestoreManaBp.add(0);
+    selfRestoreStaminaBp.add(0);
     commitTick.add(-1);
     windupTicks.add(0);
     activeTicks.add(0);
@@ -114,6 +129,9 @@ class SelfIntentStore extends SparseSet {
     abilityId[removeIndex] = abilityId[lastIndex];
     slot[removeIndex] = slot[lastIndex];
     selfStatusProfileId[removeIndex] = selfStatusProfileId[lastIndex];
+    selfRestoreHealthBp[removeIndex] = selfRestoreHealthBp[lastIndex];
+    selfRestoreManaBp[removeIndex] = selfRestoreManaBp[lastIndex];
+    selfRestoreStaminaBp[removeIndex] = selfRestoreStaminaBp[lastIndex];
     commitTick[removeIndex] = commitTick[lastIndex];
     windupTicks[removeIndex] = windupTicks[lastIndex];
     activeTicks[removeIndex] = activeTicks[lastIndex];
@@ -127,6 +145,9 @@ class SelfIntentStore extends SparseSet {
     abilityId.removeLast();
     slot.removeLast();
     selfStatusProfileId.removeLast();
+    selfRestoreHealthBp.removeLast();
+    selfRestoreManaBp.removeLast();
+    selfRestoreStaminaBp.removeLast();
     commitTick.removeLast();
     windupTicks.removeLast();
     activeTicks.removeLast();

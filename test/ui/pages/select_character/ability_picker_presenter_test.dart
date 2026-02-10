@@ -101,6 +101,37 @@ void main() {
       expect(chargedShot.isEnabled, isTrue);
     });
 
+    test('bonus slot exposes only self spell abilities', () {
+      const loadout = EquippedLoadoutDef(abilityBonusId: 'eloise.arcane_haste');
+
+      final candidates = abilityCandidatesForSlot(
+        characterId: PlayerCharacterId.eloise,
+        slot: AbilitySlot.bonus,
+        loadout: loadout,
+      );
+
+      expect(
+        candidates.any((candidate) => candidate.id == 'eloise.arcane_haste'),
+        isTrue,
+      );
+      expect(
+        candidates.any((candidate) => candidate.id == 'eloise.restore_mana'),
+        isTrue,
+      );
+      expect(
+        candidates.any((candidate) => candidate.id == 'eloise.restore_health'),
+        isTrue,
+      );
+      expect(
+        candidates.any((candidate) => candidate.id == 'eloise.quick_shot'),
+        isFalse,
+      );
+      expect(
+        candidates.any((candidate) => candidate.id == 'eloise.charged_shot'),
+        isFalse,
+      );
+    });
+
     test(
       'secondary slot uses character-authored mask (legacy mask normalized)',
       () {
@@ -158,7 +189,7 @@ void main() {
       () {
         const loadout = EquippedLoadoutDef(
           projectileSlotSpellId: ProjectileItemId.iceBolt,
-          bonusSlotSpellId: ProjectileItemId.fireBolt,
+          abilityBonusId: 'eloise.arcane_haste',
         );
 
         final next = setProjectileSourceForSlot(
@@ -168,7 +199,7 @@ void main() {
         );
 
         expect(next.projectileSlotSpellId, ProjectileItemId.thunderBolt);
-        expect(next.bonusSlotSpellId, ProjectileItemId.fireBolt);
+        expect(next.abilityBonusId, 'eloise.arcane_haste');
       },
     );
   });

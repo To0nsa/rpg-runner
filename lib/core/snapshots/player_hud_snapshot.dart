@@ -31,14 +31,9 @@ class PlayerHudSnapshot {
     required this.meleeInputMode,
     required this.secondaryInputMode,
     required this.projectileInputMode,
-    required this.bonusInputMode,
-    required this.bonusUsesMeleeAim,
     required this.projectileChargeEnabled,
     required this.projectileChargeHalfTicks,
     required this.projectileChargeFullTicks,
-    required this.bonusChargeEnabled,
-    required this.bonusChargeHalfTicks,
-    required this.bonusChargeFullTicks,
     required this.lastDamageTick,
     required this.collectibles,
     required this.collectibleScore,
@@ -113,15 +108,6 @@ class PlayerHudSnapshot {
   /// Input interaction mode for projectile slot.
   final AbilityInputMode projectileInputMode;
 
-  /// Input interaction mode for bonus slot.
-  final AbilityInputMode bonusInputMode;
-
-  /// Which aim channel the bonus ability consumes when in hold-aim mode.
-  ///
-  /// - true  => uses melee aim direction
-  /// - false => uses projectile aim direction
-  final bool bonusUsesMeleeAim;
-
   /// Whether the projectile slot supports tiered charge while holding.
   final bool projectileChargeEnabled;
 
@@ -130,15 +116,6 @@ class PlayerHudSnapshot {
 
   /// Charge hold threshold for full tier (runtime ticks).
   final int projectileChargeFullTicks;
-
-  /// Whether the bonus slot supports tiered charge while holding.
-  final bool bonusChargeEnabled;
-
-  /// Charge hold threshold for half tier on bonus slot (runtime ticks).
-  final int bonusChargeHalfTicks;
-
-  /// Charge hold threshold for full tier on bonus slot (runtime ticks).
-  final int bonusChargeFullTicks;
 
   /// Tick when this player most recently took non-zero damage (-1 if never).
   final int lastDamageTick;

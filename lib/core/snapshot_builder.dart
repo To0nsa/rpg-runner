@@ -172,7 +172,6 @@ class SnapshotBuilder {
       projectileItemId: loadout.projectileItemId[li],
       spellBookId: loadout.spellBookId[li],
       projectileSlotSpellId: loadout.projectileSlotSpellId[li],
-      bonusSlotSpellId: loadout.bonusSlotSpellId[li],
       accessoryId: loadout.accessoryId[li],
       abilityPrimaryId: loadout.abilityPrimaryId[li],
       abilitySecondaryId: loadout.abilitySecondaryId[li],
@@ -232,8 +231,6 @@ class SnapshotBuilder {
     final secondaryInputMode = _secondaryInputModeFor(secondaryAbility);
     final projectileInputMode = _inputModeFor(projectileAbility);
 
-    final bonusInputMode = _inputModeFor(bonusAbility);
-    final bonusUsesMeleeAim = bonusAbility?.hitDelivery is MeleeHitDelivery;
     final projectileChargeEnabled = _supportsTieredProjectileCharge(
       projectileAbility,
     );
@@ -242,13 +239,6 @@ class SnapshotBuilder {
         : 0;
     final projectileChargeHalfTicks = projectileChargeEnabled
         ? _halfChargeThresholdTicks(projectileChargeFullTicks)
-        : 0;
-    final bonusChargeEnabled = _supportsTieredProjectileCharge(bonusAbility);
-    final bonusChargeFullTicks = bonusChargeEnabled
-        ? _scaledWindupTicks(bonusAbility!)
-        : 0;
-    final bonusChargeHalfTicks = bonusChargeEnabled
-        ? _halfChargeThresholdTicks(bonusChargeFullTicks)
         : 0;
     // ─── Compute affordability flags ───
     // These tell the UI whether action buttons should appear enabled.
@@ -400,14 +390,9 @@ class SnapshotBuilder {
         meleeInputMode: meleeInputMode,
         secondaryInputMode: secondaryInputMode,
         projectileInputMode: projectileInputMode,
-        bonusInputMode: bonusInputMode,
-        bonusUsesMeleeAim: bonusUsesMeleeAim,
         projectileChargeEnabled: projectileChargeEnabled,
         projectileChargeHalfTicks: projectileChargeHalfTicks,
         projectileChargeFullTicks: projectileChargeFullTicks,
-        bonusChargeEnabled: bonusChargeEnabled,
-        bonusChargeHalfTicks: bonusChargeHalfTicks,
-        bonusChargeFullTicks: bonusChargeFullTicks,
         lastDamageTick: playerLastDamageTick,
         collectibles: collectibles,
         collectibleScore: collectibleScore,

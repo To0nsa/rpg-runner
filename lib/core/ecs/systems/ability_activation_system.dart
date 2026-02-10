@@ -496,6 +496,9 @@ class AbilityActivationSystem {
         abilityId: ability.id,
         slot: slot,
         selfStatusProfileId: ability.selfStatusProfileId,
+        selfRestoreHealthBp: ability.selfRestoreHealthBp,
+        selfRestoreManaBp: ability.selfRestoreManaBp,
+        selfRestoreStaminaBp: ability.selfRestoreStaminaBp,
         commitTick: commitTick,
         windupTicks: windupTicks,
         activeTicks: activeTicks,
@@ -1189,11 +1192,10 @@ class AbilityActivationSystem {
     switch (slot) {
       case AbilitySlot.projectile:
         return loadout.projectileSlotSpellId[loadoutIndex];
-      case AbilitySlot.bonus:
-        return loadout.bonusSlotSpellId[loadoutIndex];
       case AbilitySlot.primary:
       case AbilitySlot.secondary:
       case AbilitySlot.mobility:
+      case AbilitySlot.bonus:
       case AbilitySlot.jump:
         return null;
     }

@@ -120,7 +120,6 @@ Map<String, Object?> _loadoutToJson(EquippedLoadoutDef loadout) {
     'projectileItemId': loadout.projectileItemId.name,
     'spellBookId': loadout.spellBookId.name,
     'projectileSlotSpellId': loadout.projectileSlotSpellId?.name,
-    'bonusSlotSpellId': loadout.bonusSlotSpellId?.name,
     'accessoryId': loadout.accessoryId.name,
     'abilityPrimaryId': loadout.abilityPrimaryId,
     'abilitySecondaryId': loadout.abilitySecondaryId,
@@ -164,12 +163,6 @@ EquippedLoadoutDef _loadoutFromJson(Object? raw) {
             map['projectileSlotSpellId'] as String?,
           )
         : const EquippedLoadoutDef().projectileSlotSpellId,
-    bonusSlotSpellId: map.containsKey('bonusSlotSpellId')
-        ? _enumFromNameNullable(
-            ProjectileItemId.values,
-            map['bonusSlotSpellId'] as String?,
-          )
-        : const EquippedLoadoutDef().bonusSlotSpellId,
     accessoryId: _enumFromName(
       AccessoryId.values,
       map['accessoryId'] as String?,

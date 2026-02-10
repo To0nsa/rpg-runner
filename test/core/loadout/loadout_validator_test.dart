@@ -35,7 +35,7 @@ void main() {
         abilitySecondaryId: 'eloise.shield_block',
         abilityProjectileId: 'eloise.quick_shot',
         abilityMobilityId: 'eloise.dash',
-        abilityBonusId: 'eloise.charged_shot',
+        abilityBonusId: 'eloise.arcane_haste',
       );
 
       final result = validator.validate(loadout);
@@ -50,7 +50,7 @@ void main() {
         projectileItemId: ProjectileItemId.throwingKnife,
         projectileSlotSpellId: ProjectileItemId.fireBolt,
         abilityProjectileId: 'eloise.quick_shot',
-        abilityBonusId: 'eloise.charged_shot',
+        abilityBonusId: 'eloise.arcane_haste',
       );
 
       final result = validator.validate(loadout);
@@ -58,14 +58,33 @@ void main() {
       expect(result.issues, isEmpty);
     });
 
-    test('heavy throw is valid with throwing-weapon items', () {
+    test('non-spell ability cannot be equipped in bonus slot', () {
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.woodenSword,
         offhandWeaponId: WeaponId.woodenShield,
         projectileItemId: ProjectileItemId.throwingKnife,
-        bonusSlotSpellId: null,
         abilityProjectileId: 'eloise.charged_shot',
         abilityBonusId: 'eloise.quick_shot',
+      );
+
+      final result = validator.validate(loadout);
+      expect(result.isValid, isFalse);
+      expect(
+        result.issues.any(
+          (issue) =>
+              issue.slot == AbilitySlot.bonus &&
+              issue.kind == IssueKind.slotNotAllowed,
+        ),
+        isTrue,
+      );
+    });
+
+    test('bonus self spell is valid', () {
+      const loadout = EquippedLoadoutDef(
+        mainWeaponId: WeaponId.woodenSword,
+        offhandWeaponId: WeaponId.woodenShield,
+        projectileItemId: ProjectileItemId.throwingKnife,
+        abilityBonusId: 'eloise.restore_health',
       );
 
       final result = validator.validate(loadout);

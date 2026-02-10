@@ -148,7 +148,6 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _input.clearMeleeAimDir();
     _input.endPrimaryHold();
     _input.endSecondaryHold();
-    _input.endBonusHold();
     _projectileAimPreview.end();
     _projectileChargePreview.end();
     _meleeAimPreview.end();

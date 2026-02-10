@@ -29,9 +29,6 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.onSecondaryHoldStart,
     required this.onSecondaryHoldEnd,
     required this.onBonusPressed,
-    required this.onBonusHoldStart,
-    required this.onBonusHoldEnd,
-    required this.onBonusCommitted,
     required this.onProjectileCommitted,
     required this.onProjectilePressed,
     required this.onProjectileAimDir,
@@ -54,16 +51,11 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.meleeInputMode,
     required this.secondaryInputMode,
     required this.projectileInputMode,
-    required this.bonusInputMode,
-    required this.bonusUsesMeleeAim,
     required this.projectileChargePreview,
     required this.haptics,
     required this.projectileChargeEnabled,
     required this.projectileChargeHalfTicks,
     required this.projectileChargeFullTicks,
-    required this.bonusChargeEnabled,
-    required this.bonusChargeHalfTicks,
-    required this.bonusChargeFullTicks,
     required this.simulationTickHz,
     required this.jumpAffordable,
     required this.dashAffordable,
@@ -86,9 +78,6 @@ class RunnerControlsOverlay extends StatelessWidget {
   final VoidCallback onSecondaryHoldStart;
   final VoidCallback onSecondaryHoldEnd;
   final VoidCallback onBonusPressed;
-  final VoidCallback onBonusHoldStart;
-  final VoidCallback onBonusHoldEnd;
-  final ValueChanged<int> onBonusCommitted;
   final ValueChanged<int> onProjectileCommitted;
   final VoidCallback onProjectilePressed;
   final void Function(double x, double y) onProjectileAimDir;
@@ -113,14 +102,9 @@ class RunnerControlsOverlay extends StatelessWidget {
   final AbilityInputMode meleeInputMode;
   final AbilityInputMode secondaryInputMode;
   final AbilityInputMode projectileInputMode;
-  final AbilityInputMode bonusInputMode;
-  final bool bonusUsesMeleeAim;
   final bool projectileChargeEnabled;
   final int projectileChargeHalfTicks;
   final int projectileChargeFullTicks;
-  final bool bonusChargeEnabled;
-  final int bonusChargeHalfTicks;
-  final int bonusChargeFullTicks;
   final int simulationTickHz;
   final bool jumpAffordable;
   final bool dashAffordable;
@@ -144,11 +128,6 @@ class RunnerControlsOverlay extends StatelessWidget {
       layout: tuning.layout,
       action: action,
       directional: style.directionalActionButton,
-      bonusMode:
-          bonusInputMode == AbilityInputMode.tap ||
-              bonusInputMode == AbilityInputMode.holdMaintain
-          ? BonusAnchorMode.tap
-          : BonusAnchorMode.directional,
     );
 
     return Stack(
@@ -189,35 +168,11 @@ class RunnerControlsOverlay extends StatelessWidget {
           bottom: layout.bonus.bottom,
           child: BonusControl(
             tuning: tuning,
-            inputMode: bonusInputMode,
-            usesMeleeAim: bonusUsesMeleeAim,
-            size:
-                bonusInputMode == AbilityInputMode.tap ||
-                    bonusInputMode == AbilityInputMode.holdMaintain
-                ? layout.actionSize
-                : layout.directionalSize,
-            deadzoneRadius: layout.directionalDeadzoneRadius,
+            size: layout.actionSize,
             onPressed: onBonusPressed,
-            onHoldStart: onBonusHoldStart,
-            onHoldEnd: onBonusHoldEnd,
-            onProjectileAimDir: onProjectileAimDir,
-            onProjectileAimClear: onProjectileAimClear,
-            onMeleeAimDir: onMeleeAimDir,
-            onMeleeAimClear: onMeleeAimClear,
-            onCommitted: onBonusCommitted,
-            projectileAimPreview: projectileAimPreview,
-            meleeAimPreview: meleeAimPreview,
-            chargePreview: projectileChargePreview,
             affordable: bonusAffordable,
             cooldownTicksLeft: bonusCooldownTicksLeft,
             cooldownTicksTotal: bonusCooldownTicksTotal,
-            cancelHitboxRect: aimCancelHitboxRect,
-            chargeEnabled: bonusChargeEnabled,
-            chargeHalfTicks: bonusChargeHalfTicks,
-            chargeFullTicks: bonusChargeFullTicks,
-            simulationTickHz: simulationTickHz,
-            haptics: haptics,
-            forceCancelSignal: forceAimCancelSignal,
           ),
         ),
         Positioned(
@@ -303,15 +258,12 @@ class RunnerControlsOverlay extends StatelessWidget {
           valueListenable: projectileChargePreview,
           builder: (context, state, _) {
             if (!state.active) return const SizedBox.shrink();
-            if (state.ownerId != 'projectile' && state.ownerId != 'bonus') {
+            if (state.ownerId != 'projectile') {
               return const SizedBox.shrink();
             }
-            final charge = state.ownerId == 'projectile'
-                ? layout.projectileCharge
-                : layout.bonusCharge;
             return Positioned(
-              right: charge.right,
-              bottom: charge.bottom,
+              right: layout.projectileCharge.right,
+              bottom: layout.projectileCharge.bottom,
               child: _ChargeBar(
                 tuning: style.chargeBar,
                 progress01: state.progress01,

@@ -249,6 +249,9 @@ class AbilityDef {
     this.requiresEquippedWeapon = false,
     this.procs = const <WeaponProc>[],
     this.selfStatusProfileId = StatusProfileId.none,
+    this.selfRestoreHealthBp = 0,
+    this.selfRestoreManaBp = 0,
+    this.selfRestoreStaminaBp = 0,
     required this.baseDamage,
     this.baseDamageType = DamageType.physical,
   }) : assert(id != '', 'Ability id cannot be empty.'),
@@ -265,6 +268,15 @@ class AbilityDef {
        assert(
          holdMode != AbilityHoldMode.none || holdStaminaDrainPerSecond100 == 0,
          'Non-hold abilities must not define hold stamina drain.',
+       ),
+       assert(
+         selfRestoreHealthBp >= 0,
+         'Self restore health cannot be negative',
+       ),
+       assert(selfRestoreManaBp >= 0, 'Self restore mana cannot be negative'),
+       assert(
+         selfRestoreStaminaBp >= 0,
+         'Self restore stamina cannot be negative',
        ),
        assert(
          holdMode == AbilityHoldMode.none || activeTicks > 0,
@@ -355,6 +367,21 @@ class AbilityDef {
 
   /// Status profile applied to self on execute (SelfHitDelivery only).
   final StatusProfileId selfStatusProfileId;
+
+  /// Percentage of max HP restored on execute (`100 = 1%`, `10000 = 100%`).
+  ///
+  /// Applied only by [SelfHitDelivery] abilities.
+  final int selfRestoreHealthBp;
+
+  /// Percentage of max mana restored on execute (`100 = 1%`, `10000 = 100%`).
+  ///
+  /// Applied only by [SelfHitDelivery] abilities.
+  final int selfRestoreManaBp;
+
+  /// Percentage of max stamina restored on execute (`100 = 1%`, `10000 = 100%`).
+  ///
+  /// Applied only by [SelfHitDelivery] abilities.
+  final int selfRestoreStaminaBp;
 
   /// Base damage for this ability.
   /// Fixed-point: 100 = 1.0 damage.

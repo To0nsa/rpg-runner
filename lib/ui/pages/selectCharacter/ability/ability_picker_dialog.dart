@@ -44,8 +44,7 @@ class _AbilityPickerDialogState extends State<_AbilityPickerDialog> {
   bool _spellBookExpanded = false;
   bool _seeded = false;
 
-  bool get _showsProjectileSourcePanel =>
-      widget.slot == AbilitySlot.projectile || widget.slot == AbilitySlot.bonus;
+  bool get _showsProjectileSourcePanel => widget.slot == AbilitySlot.projectile;
 
   @override
   void didChangeDependencies() {
@@ -635,10 +634,9 @@ ProjectileItemId? _initialSourceSpellId(
   switch (slot) {
     case AbilitySlot.projectile:
       return loadout.projectileSlotSpellId;
-    case AbilitySlot.bonus:
-      return loadout.bonusSlotSpellId;
     case AbilitySlot.primary:
     case AbilitySlot.secondary:
+    case AbilitySlot.bonus:
     case AbilitySlot.mobility:
     case AbilitySlot.jump:
       return null;

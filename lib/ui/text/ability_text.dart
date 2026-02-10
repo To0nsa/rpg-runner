@@ -26,6 +26,10 @@ String _titleCaseSnake(String source) {
 }
 
 const Map<AbilityKey, String> _displayNameOverrides = <AbilityKey, String>{
+  'eloise.arcane_haste': 'Arcane Haste',
+  'eloise.restore_health': 'Restore Health',
+  'eloise.restore_mana': 'Restore Mana',
+  'eloise.restore_stamina': 'Restore Stamina',
   'eloise.auto_aim_shot': 'Auto-Aim Shot',
   'eloise.quick_shot': 'Quick Shot',
   'eloise.piercing_shot': 'Piercing Shot',
@@ -33,6 +37,10 @@ const Map<AbilityKey, String> _displayNameOverrides = <AbilityKey, String>{
 };
 
 const Map<AbilityKey, String> _roleTextOverrides = <AbilityKey, String>{
+  'eloise.arcane_haste': 'Self-cast haste buff for short burst movement',
+  'eloise.restore_health': 'Restore a chunk of max health',
+  'eloise.restore_mana': 'Restore a chunk of max mana',
+  'eloise.restore_stamina': 'Restore a chunk of max stamina',
   'eloise.auto_aim_shot': 'Reliable lock-on, lower efficiency',
   'eloise.quick_shot': 'Fast weave shot, low damage per action',
   'eloise.piercing_shot': 'Line-up reward, inconsistent in duels',

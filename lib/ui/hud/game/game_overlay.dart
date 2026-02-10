@@ -79,13 +79,6 @@ class GameOverlay extends StatelessWidget {
             onSecondaryHoldStart: input.startSecondaryHold,
             onSecondaryHoldEnd: input.endSecondaryHold,
             onBonusPressed: input.pressBonus,
-            onBonusHoldStart: input.startBonusHold,
-            onBonusHoldEnd: input.endBonusHold,
-            onBonusCommitted: (chargeTicks) => input.commitBonusWithAim(
-              clearAim: true,
-              usesMeleeAim: hud.bonusUsesMeleeAim,
-              chargeTicks: chargeTicks,
-            ),
             onProjectileCommitted: (chargeTicks) =>
                 input.commitProjectileWithAim(
                   clearAim: true,
@@ -118,14 +111,9 @@ class GameOverlay extends StatelessWidget {
             meleeInputMode: hud.meleeInputMode,
             secondaryInputMode: hud.secondaryInputMode,
             projectileInputMode: hud.projectileInputMode,
-            bonusInputMode: hud.bonusInputMode,
-            bonusUsesMeleeAim: hud.bonusUsesMeleeAim,
             projectileChargeEnabled: hud.projectileChargeEnabled,
             projectileChargeHalfTicks: hud.projectileChargeHalfTicks,
             projectileChargeFullTicks: hud.projectileChargeFullTicks,
-            bonusChargeEnabled: hud.bonusChargeEnabled,
-            bonusChargeHalfTicks: hud.bonusChargeHalfTicks,
-            bonusChargeFullTicks: hud.bonusChargeFullTicks,
             simulationTickHz: controller.tickHz,
             jumpAffordable: jumpAffordable,
             dashAffordable: dashAffordable,

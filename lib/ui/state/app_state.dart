@@ -232,7 +232,6 @@ class AppState extends ChangeNotifier {
       projectileItemId: gear.throwingWeaponId,
       spellBookId: gear.spellBookId,
       projectileSlotSpellId: loadout.projectileSlotSpellId,
-      bonusSlotSpellId: loadout.bonusSlotSpellId,
       accessoryId: gear.accessoryId,
       abilityPrimaryId: _normalizeAbilityForSlot(
         abilityId: loadout.abilityPrimaryId,
@@ -292,7 +291,6 @@ class AppState extends ChangeNotifier {
         a.projectileItemId == b.projectileItemId &&
         a.spellBookId == b.spellBookId &&
         a.projectileSlotSpellId == b.projectileSlotSpellId &&
-        a.bonusSlotSpellId == b.bonusSlotSpellId &&
         a.accessoryId == b.accessoryId &&
         a.abilityPrimaryId == b.abilityPrimaryId &&
         a.abilitySecondaryId == b.abilitySecondaryId &&
