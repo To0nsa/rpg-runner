@@ -31,7 +31,6 @@ class MockAbilities extends AbilityCatalog {
         staminaCost: 200,
         manaCost: 0,
         cooldownTicks: 10,
-        interruptPriority: InterruptPriority.combat,
         animKey: AnimKey.strike,
         baseDamage: 100,
         hitDelivery: MeleeHitDelivery(

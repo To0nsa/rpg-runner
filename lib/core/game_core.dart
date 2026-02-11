@@ -931,8 +931,7 @@ class GameCore {
   /// - [DashPressedCommand]: Triggers a dash attempt.
   /// - [StrikePressedCommand]: Triggers an strike attempt.
   /// - [SecondaryPressedCommand]: Triggers an off-hand ability attempt.
-  /// - [ProjectileAimDirCommand]: Sets projectile aim direction.
-  /// - [MeleeAimDirCommand]: Sets melee strike direction.
+  /// - [AimDirCommand]: Sets global aim direction.
   /// - [ProjectilePressedCommand]: Triggers the projectile slot attempt.
   /// - [BonusPressedCommand]: Triggers a bonus-slot ability attempt.
   /// - [AbilitySlotHeldCommand]: Applies per-slot hold transitions for maintain
@@ -983,25 +982,15 @@ class GameCore {
           _world.playerInput.lastAbilitySlotPressed[inputIndex] =
               AbilitySlot.secondary;
 
-        // Projectile aim: Direction vector for projectile abilities.
-        case ProjectileAimDirCommand(:final x, :final y):
-          _world.playerInput.projectileAimDirX[inputIndex] = x;
-          _world.playerInput.projectileAimDirY[inputIndex] = y;
+        // Global aim: shared direction vector for ability commits.
+        case AimDirCommand(:final x, :final y):
+          _world.playerInput.aimDirX[inputIndex] = x;
+          _world.playerInput.aimDirY[inputIndex] = y;
 
-        // Melee aim: Direction vector for melee strikes.
-        case MeleeAimDirCommand(:final x, :final y):
-          _world.playerInput.meleeAimDirX[inputIndex] = x;
-          _world.playerInput.meleeAimDirY[inputIndex] = y;
-
-        // Clear projectile aim: Resets to no-aim state.
-        case ClearProjectileAimDirCommand():
-          _world.playerInput.projectileAimDirX[inputIndex] = 0;
-          _world.playerInput.projectileAimDirY[inputIndex] = 0;
-
-        // Clear melee aim: Resets to no-aim state.
-        case ClearMeleeAimDirCommand():
-          _world.playerInput.meleeAimDirX[inputIndex] = 0;
-          _world.playerInput.meleeAimDirY[inputIndex] = 0;
+        // Clear aim: resets to no-aim state.
+        case ClearAimDirCommand():
+          _world.playerInput.aimDirX[inputIndex] = 0;
+          _world.playerInput.aimDirY[inputIndex] = 0;
 
         // Projectile slot: unified input for spells or throws.
         case ProjectilePressedCommand():

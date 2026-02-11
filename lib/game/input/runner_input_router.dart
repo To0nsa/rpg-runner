@@ -46,12 +46,10 @@ class RunnerInputRouter {
   int _axisScheduledThroughTick = 0;
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Aim state channels
+  // Global aim state
   // ─────────────────────────────────────────────────────────────────────────
 
-  final _AimInputChannel _projectileAim = _AimInputChannel();
-
-  final _AimInputChannel _meleeAim = _AimInputChannel();
+  final _AimInputChannel _aim = _AimInputChannel();
   int _heldAbilitySlotMask = 0;
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -66,27 +64,17 @@ class RunnerInputRouter {
     _moveAxis = axis.clamp(-1.0, 1.0);
   }
 
-  /// Sets the projectile aim direction (should be normalized or near-normalized).
+  /// Sets the global aim direction (should be normalized or near-normalized).
   ///
   /// The direction is quantized to reduce floating-point noise. If the quantized
   /// value matches the current aim, the call is a no-op to avoid redundant updates.
-  void setProjectileAimDir(double x, double y) => _projectileAim.set(x, y);
+  void setAimDir(double x, double y) => _aim.set(x, y);
 
-  /// Clears the projectile aim direction.
+  /// Clears the global aim direction.
   ///
   /// Called when the player releases the aim input. Subsequent [pumpHeldInputs]
-  /// calls will schedule [ClearProjectileAimDirCommand] for upcoming ticks.
-  void clearProjectileAimDir() => _projectileAim.clear();
-
-  /// Sets the melee aim direction (should be normalized or near-normalized).
-  ///
-  /// Quantized similarly to [setProjectileAimDir] to reduce jitter.
-  void setMeleeAimDir(double x, double y) => _meleeAim.set(x, y);
-
-  /// Clears the melee aim direction.
-  ///
-  /// Called when the player releases the melee aim input.
-  void clearMeleeAimDir() => _meleeAim.clear();
+  /// calls will schedule [ClearAimDirCommand] for upcoming ticks.
+  void clearAimDir() => _aim.clear();
 
   // ─────────────────────────────────────────────────────────────────────────
   // Edge-triggered (one-shot) input methods
@@ -120,11 +108,8 @@ class RunnerInputRouter {
 
   /// Starts holding the primary slot and commits it on the next tick.
   void startPrimaryHold() {
-    if (!_setAbilitySlotHold(AbilitySlot.primary, true)) return;
+    if (!_startExclusiveAbilitySlotHold(AbilitySlot.primary)) return;
     final tick = controller.tick + controller.inputLead;
-    controller.enqueue(
-      AbilitySlotHeldCommand(tick: tick, slot: AbilitySlot.primary, held: true),
-    );
     controller.enqueue(StrikePressedCommand(tick: tick));
   }
 
@@ -143,15 +128,8 @@ class RunnerInputRouter {
 
   /// Starts holding the secondary slot and commits it on the next tick.
   void startSecondaryHold() {
-    if (!_setAbilitySlotHold(AbilitySlot.secondary, true)) return;
+    if (!_startExclusiveAbilitySlotHold(AbilitySlot.secondary)) return;
     final tick = controller.tick + controller.inputLead;
-    controller.enqueue(
-      AbilitySlotHeldCommand(
-        tick: tick,
-        slot: AbilitySlot.secondary,
-        held: true,
-      ),
-    );
     controller.enqueue(SecondaryPressedCommand(tick: tick));
   }
 
@@ -170,11 +148,7 @@ class RunnerInputRouter {
 
   /// Starts holding [slot] without committing the slot action.
   void startAbilitySlotHold(AbilitySlot slot) {
-    if (!_setAbilitySlotHold(slot, true)) return;
-    final tick = controller.tick + controller.inputLead;
-    controller.enqueue(
-      AbilitySlotHeldCommand(tick: tick, slot: slot, held: true),
-    );
+    _startExclusiveAbilitySlotHold(slot);
   }
 
   /// Releases [slot] hold state without committing the slot action.
@@ -190,77 +164,67 @@ class RunnerInputRouter {
   // Combined action methods (aim + action in a single tick)
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Presses projectile on the next tick and ensures the projectile aim direction
+  /// Presses projectile on the next tick and ensures the global aim direction
   /// is set for the same tick.
   void pressProjectileWithAim() {
     commitProjectileWithAim(clearAim: false);
   }
 
-  /// Commits projectile on the next tick using the current projectile aim dir (if set).
+  /// Commits projectile on the next tick using the current aim dir (if set).
   ///
   /// When [clearAim] is true, clear commands are delayed until after the commit
   /// tick to avoid overwriting the aimed shot.
   void commitProjectileWithAim({required bool clearAim}) {
     final tick = controller.tick + controller.inputLead;
-    final hadAim = _projectileAim.isSet;
+    final hadAim = _aim.isSet;
     if (hadAim) {
-      controller.enqueue(
-        ProjectileAimDirCommand(
-          tick: tick,
-          x: _projectileAim.x,
-          y: _projectileAim.y,
-        ),
-      );
+      controller.enqueue(AimDirCommand(tick: tick, x: _aim.x, y: _aim.y));
     }
 
     controller.enqueue(ProjectilePressedCommand(tick: tick));
 
     if (clearAim) {
-      _projectileAim.clear();
+      _aim.clear();
       if (hadAim) {
         // Prevent immediate clear command from overwriting the aim we just committed
-        _projectileAim.blockClearThrough(tick);
+        _aim.blockClearThrough(tick);
       }
     }
   }
 
-  /// Commits a melee strike on the next tick using the current melee aim dir.
+  /// Commits a melee strike on the next tick using the current aim dir.
   void commitMeleeStrike() {
     final tick = controller.tick + controller.inputLead;
-    final hadAim = _meleeAim.isSet;
+    final hadAim = _aim.isSet;
     if (hadAim) {
-      controller.enqueue(
-        MeleeAimDirCommand(tick: tick, x: _meleeAim.x, y: _meleeAim.y),
-      );
+      controller.enqueue(AimDirCommand(tick: tick, x: _aim.x, y: _aim.y));
     } else {
-      controller.enqueue(ClearMeleeAimDirCommand(tick: tick));
+      controller.enqueue(ClearAimDirCommand(tick: tick));
     }
     controller.enqueue(StrikePressedCommand(tick: tick));
 
     // Clear aim after commit (release behavior).
-    _meleeAim.clear();
+    _aim.clear();
     if (hadAim) {
-      _meleeAim.blockClearThrough(tick);
+      _aim.blockClearThrough(tick);
     }
   }
 
-  /// Commits the secondary slot on the next tick using the current melee aim dir.
+  /// Commits the secondary slot on the next tick using the current aim dir.
   void commitSecondaryStrike() {
     final tick = controller.tick + controller.inputLead;
-    final hadAim = _meleeAim.isSet;
+    final hadAim = _aim.isSet;
     if (hadAim) {
-      controller.enqueue(
-        MeleeAimDirCommand(tick: tick, x: _meleeAim.x, y: _meleeAim.y),
-      );
+      controller.enqueue(AimDirCommand(tick: tick, x: _aim.x, y: _aim.y));
     } else {
-      controller.enqueue(ClearMeleeAimDirCommand(tick: tick));
+      controller.enqueue(ClearAimDirCommand(tick: tick));
     }
     controller.enqueue(SecondaryPressedCommand(tick: tick));
 
     // Clear aim after commit (release behavior).
-    _meleeAim.clear();
+    _aim.clear();
     if (hadAim) {
-      _meleeAim.blockClearThrough(tick);
+      _aim.blockClearThrough(tick);
     }
   }
 
@@ -280,20 +244,12 @@ class RunnerInputRouter {
     // 1. Movement: enqueue MoveAxisCommand for upcoming ticks (or overwrite if axis changed).
     _scheduleHeldMoveAxis();
 
-    // 2. Projectile aim: enqueue aim direction or clear commands for upcoming ticks.
-    _projectileAim.schedule(
+    // 2. Global aim: enqueue aim direction or clear commands for upcoming ticks.
+    _aim.schedule(
       controller,
       _inputBufferSeconds,
-      (t, x, y) => ProjectileAimDirCommand(tick: t, x: x, y: y),
-      (t) => ClearProjectileAimDirCommand(tick: t),
-    );
-
-    // 3. Melee aim: same pattern as projectile, but for melee strike direction.
-    _meleeAim.schedule(
-      controller,
-      _inputBufferSeconds,
-      (t, x, y) => MeleeAimDirCommand(tick: t, x: x, y: y),
-      (t) => ClearMeleeAimDirCommand(tick: t),
+      (t, x, y) => AimDirCommand(tick: t, x: x, y: y),
+      (t) => ClearAimDirCommand(tick: t),
     );
   }
 
@@ -332,15 +288,39 @@ class RunnerInputRouter {
     final currentlyHeld = (_heldAbilitySlotMask & bit) != 0;
     if (currentlyHeld == held) return false;
     if (held) {
-      _heldAbilitySlotMask |= bit;
+      // Only one held slot at a time; latest hold wins.
+      _heldAbilitySlotMask = bit;
     } else {
       _heldAbilitySlotMask &= ~bit;
     }
     return true;
   }
+
+  bool _startExclusiveAbilitySlotHold(AbilitySlot slot) {
+    final previousMask = _heldAbilitySlotMask;
+    if (!_setAbilitySlotHold(slot, true)) return false;
+
+    final tick = controller.tick + controller.inputLead;
+
+    // Emit release edges for previously held slots so same-tick transitions
+    // preserve latest-hold-wins even after frame aggregation.
+    for (final other in AbilitySlot.values) {
+      if (other == slot) continue;
+      final bit = 1 << other.index;
+      if ((previousMask & bit) == 0) continue;
+      controller.enqueue(
+        AbilitySlotHeldCommand(tick: tick, slot: other, held: false),
+      );
+    }
+
+    controller.enqueue(
+      AbilitySlotHeldCommand(tick: tick, slot: slot, held: true),
+    );
+    return true;
+  }
 }
 
-/// Helper class to encapsulate the state and scheduling logic for a single aim input (e.g., Projectile or Melee).
+/// Helper class that owns one global aim channel and its scheduling state.
 class _AimInputChannel {
   /// Whether an aim direction is currently set.
   bool isSet = false;
@@ -367,7 +347,7 @@ class _AimInputChannel {
 
   /// Tick through which clear commands are blocked.
   ///
-  /// This is used when a "commit" action (like firing a projectile) uses the aim, and we want
+  /// This is used when a commit action uses the aim, and we want
   /// to ensure the subsequent clear command doesn't overwrite it in the same tick.
   int _clearBlockedThroughTick = 0;
 
@@ -400,7 +380,7 @@ class _AimInputChannel {
   /// Schedules aim or clear commands for upcoming ticks.
   ///
   /// [bufferSeconds] determines how far ahead to schedule.
-  /// [createAimCmd] factory for the specific aim command (Projectile vs Melee).
+  /// [createAimCmd] factory for aim command construction.
   /// [createClearCmd] factory for the specific clear command.
   void schedule(
     GameController controller,

@@ -89,7 +89,7 @@ void main() {
       world.playerInput.add(player);
 
       final i = world.playerInput.indexOf(player);
-      world.playerInput.projectileAimDirX[i] = 1.0;
+      world.playerInput.aimDirX[i] = 1.0;
 
       final result = AbilityGate.canCommitMobility(
         world,

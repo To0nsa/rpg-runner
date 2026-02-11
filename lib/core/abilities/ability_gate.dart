@@ -5,26 +5,35 @@ import '../ecs/world.dart';
 enum AbilityGateFail {
   /// Entity is currently stun-locked.
   stunned,
+
   /// Cooldown group still has remaining ticks.
   onCooldown,
+
   /// Required mana resource store is missing.
   missingMana,
+
   /// Available mana is below requested cost.
   insufficientMana,
+
   /// Required stamina resource store is missing.
   missingStamina,
+
   /// Available stamina is below requested cost.
   insufficientStamina,
 
   // Mobility-only
   /// Mobility requires [MovementStore], but entity has none.
   missingMovement,
+
   /// Mobility requires [BodyStore], but entity has none.
   missingBody,
+
   /// Mobility cannot commit with disabled or kinematic bodies.
   bodyDisabledOrKinematic,
+
   /// Dash already active; disallow overlapping mobility commits.
   dashAlreadyActive,
+
   /// Mobility is blocked while player is actively holding an aim vector.
   aimingHeld,
 }
@@ -101,15 +110,13 @@ abstract class AbilityGate {
       return AbilityGateFail.onCooldown;
     }
 
-    // Mobility cannot start while either aim channel is held. This preserves
+    // Mobility cannot start while aim is held. This preserves
     // existing input semantics where dash/roll commits require a neutral aim.
     final ii = world.playerInput.tryIndexOf(entity);
     if (ii != null) {
       final aimHeld =
-          (world.playerInput.projectileAimDirX[ii].abs() > 1e-6) ||
-          (world.playerInput.projectileAimDirY[ii].abs() > 1e-6) ||
-          (world.playerInput.meleeAimDirX[ii].abs() > 1e-6) ||
-          (world.playerInput.meleeAimDirY[ii].abs() > 1e-6);
+          (world.playerInput.aimDirX[ii].abs() > 1e-6) ||
+          (world.playerInput.aimDirY[ii].abs() > 1e-6);
       if (aimHeld) return AbilityGateFail.aimingHeld;
     }
 

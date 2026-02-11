@@ -14,6 +14,17 @@
   - stamina cost `5.0 -> 5.5`
   - cooldown `18 -> 24` ticks
 
+## Update (2026-02-11)
+- Runtime interruption contracts were simplified:
+  - Removed `interruptPriority` / `canBeInterruptedBy` from `AbilityDef`.
+  - Forced interrupts (`forcedInterruptCauses`) are now the single authored interruption model.
+  - Forced interruption cleanup (active ability, buffered input, pending intents) is shared by systems.
+- Aim input contracts were simplified:
+  - Replaced split projectile/melee aim channels with one global aim channel.
+  - Ability commits consume the same authoritative aim vector.
+  - Slot holds are now exclusive (starting a hold on one slot clears other held slots).
+  - Same-tick hold replacements now emit explicit release + hold edges so latest hold wins deterministically after frame aggregation.
+
 ## Scope
 Review of the current ability system implementation across Core + Game layers, checked against
 `docs/building/ability_system_design.md`. This document focuses on correctness, determinism,
@@ -52,7 +63,7 @@ and alignment with the design contracts.
 ## Current State (Implemented)
 ### Core Ability Model
 - `AbilityDef` defines category, allowed slots, targeting model (declared), hit delivery,
-  windup/active/recovery ticks (60 Hz), costs, cooldown, interrupt priority, tags, and base damage.
+  windup/active/recovery ticks (60 Hz), costs, cooldown, forced interrupt causes, tags, and base damage.
 - `AbilityCatalog` registers Eloise abilities and shared enemy abilities.
 - `AbilitySlot` supports primary, secondary, projectile, mobility, bonus, jump (fixed).
 

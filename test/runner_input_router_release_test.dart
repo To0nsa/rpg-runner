@@ -144,14 +144,14 @@ void main() {
 
       // Hold aim straight down for a frame; this will pre-buffer projectile aim
       // direction for upcoming ticks.
-      input.setProjectileAimDir(0, 1);
+      input.setAimDir(0, 1);
       input.pumpHeldInputs();
       controller.advanceFrame(dt);
       expect(core.tick, 1);
 
       // Release aim and cast without setting a new aim direction. Cast should
       // fall back to facing (right), not the previously buffered aim.
-      input.clearProjectileAimDir();
+      input.clearAimDir();
       input.pressProjectile();
       for (var i = 0; i < windupTicks + 2; i += 1) {
         input.pumpHeldInputs();
@@ -200,7 +200,7 @@ void main() {
       controller.tickHz,
     );
 
-    input.setProjectileAimDir(0, -1);
+    input.setAimDir(0, -1);
     input.commitProjectileWithAim(clearAim: true);
 
     for (var i = 0; i < windupTicks + 2; i += 1) {
@@ -253,7 +253,7 @@ void main() {
           controller.tickHz,
         );
 
-        input.setProjectileAimDir(1, 0);
+        input.setAimDir(1, 0);
         for (var i = 0; i < aimHoldTicks; i += 1) {
           input.pumpHeldInputs();
           controller.advanceFrame(dt);
@@ -313,7 +313,7 @@ void main() {
           controller.tickHz,
         );
 
-        input.setProjectileAimDir(1, 0);
+        input.setAimDir(1, 0);
         input.startAbilitySlotHold(AbilitySlot.projectile);
         input.pumpHeldInputs();
         controller.advanceFrame(dt);
@@ -372,7 +372,7 @@ void main() {
         controller.tickHz,
       );
 
-      input.setMeleeAimDir(0, -1);
+      input.setAimDir(0, -1);
       input.startAbilitySlotHold(AbilitySlot.secondary);
       input.pumpHeldInputs();
       controller.advanceFrame(dt);
@@ -430,7 +430,7 @@ void main() {
           controller.tickHz,
         );
 
-        input.setMeleeAimDir(1, 0);
+        input.setAimDir(1, 0);
         input.startAbilitySlotHold(AbilitySlot.secondary);
         input.pumpHeldInputs();
         controller.advanceFrame(dt);
@@ -515,23 +515,141 @@ void main() {
       expectSharedPreview(
         slot: AbilitySlot.projectile,
         abilityProjectileId: 'eloise.charged_shot',
-        seedAim: (input) => input.setProjectileAimDir(1, 0),
+        seedAim: (input) => input.setAimDir(1, 0),
       );
 
       expectSharedPreview(
         slot: AbilitySlot.primary,
         abilityPrimaryId: 'eloise.charged_sword_strike',
-        seedAim: (input) => input.setMeleeAimDir(1, 0),
+        seedAim: (input) => input.setAimDir(1, 0),
       );
 
       expectSharedPreview(
         slot: AbilitySlot.secondary,
         abilitySecondaryId: 'eloise.charged_shield_bash',
         loadoutSlotMask: LoadoutSlotMask.all,
-        seedAim: (input) => input.setMeleeAimDir(1, 0),
+        seedAim: (input) => input.setAimDir(1, 0),
       );
     },
   );
+
+  test(
+    'multiple aim updates write into one shared aim channel (last write wins)',
+    () {
+      final base = PlayerCharacterRegistry.eloise;
+      final core = GameCore(
+        seed: 1,
+        tickHz: 60,
+        tuning: noAutoscrollTuning,
+        playerCharacter: base.copyWith(
+          catalog: testPlayerCatalog(
+            bodyTemplate: BodyDef(useGravity: false),
+            projectileItemId: ProjectileItemId.throwingKnife,
+            abilityProjectileId: 'eloise.quick_shot',
+          ),
+          tuning: base.tuning.copyWith(
+            resource: const ResourceTuning(
+              playerManaMax: 20,
+              playerManaRegenPerSecond: 0,
+            ),
+          ),
+        ),
+      );
+      final controller = GameController(core: core);
+      final input = RunnerInputRouter(controller: controller);
+      final dt = 1.0 / controller.tickHz;
+      final windupTicks = ticksFromSecondsCeil(
+        AbilityCatalog.tryGet('eloise.quick_shot')!.windupTicks / 60.0,
+        controller.tickHz,
+      );
+
+      input.setAimDir(1, 0);
+      input.setAimDir(0, -1);
+      input.commitProjectileWithAim(clearAim: true);
+
+      for (var i = 0; i < windupTicks + 2; i += 1) {
+        input.pumpHeldInputs();
+        controller.advanceFrame(dt);
+      }
+
+      final snapshot = core.buildSnapshot();
+      final projectile = snapshot.entities.firstWhere(
+        (e) => e.kind == EntityKind.projectile,
+      );
+      expect(projectile.vel, isNotNull);
+      expect(projectile.vel!.x.abs(), lessThan(1e-6));
+      expect(projectile.vel!.y, lessThan(0));
+    },
+  );
+
+  test('starting a new slot hold replaces the previous held slot', () {
+    final base = PlayerCharacterRegistry.eloise;
+    final core = GameCore(
+      seed: 1,
+      tickHz: 60,
+      tuning: noAutoscrollTuning,
+      playerCharacter: base.copyWith(
+        catalog: testPlayerCatalog(
+          bodyTemplate: BodyDef(useGravity: false),
+          loadoutSlotMask: LoadoutSlotMask.all,
+          abilitySecondaryId: 'eloise.charged_shield_bash',
+          abilityProjectileId: 'eloise.charged_shot',
+          projectileItemId: ProjectileItemId.throwingKnife,
+          projectileSlotSpellId: null,
+        ),
+      ),
+    );
+    final controller = GameController(core: core);
+    final input = RunnerInputRouter(controller: controller);
+    final dt = 1.0 / controller.tickHz;
+
+    input.setAimDir(1, 0);
+    input.startAbilitySlotHold(AbilitySlot.projectile);
+    input.pumpHeldInputs();
+    controller.advanceFrame(dt);
+
+    expect(core.buildSnapshot().hud.chargeFullTicks, equals(10));
+
+    input.setAimDir(1, 0);
+    input.startAbilitySlotHold(AbilitySlot.secondary);
+    input.pumpHeldInputs();
+    controller.advanceFrame(dt);
+
+    // Charged shield bash full threshold is 16 ticks at 60 Hz.
+    expect(core.buildSnapshot().hud.chargeFullTicks, equals(16));
+  });
+
+  test('same-tick slot hold replacement keeps latest hold winner', () {
+    final base = PlayerCharacterRegistry.eloise;
+    final core = GameCore(
+      seed: 1,
+      tickHz: 60,
+      tuning: noAutoscrollTuning,
+      playerCharacter: base.copyWith(
+        catalog: testPlayerCatalog(
+          bodyTemplate: BodyDef(useGravity: false),
+          loadoutSlotMask: LoadoutSlotMask.all,
+          abilitySecondaryId: 'eloise.charged_shield_bash',
+          abilityProjectileId: 'eloise.charged_shot',
+          projectileItemId: ProjectileItemId.throwingKnife,
+          projectileSlotSpellId: null,
+        ),
+      ),
+    );
+    final controller = GameController(core: core);
+    final input = RunnerInputRouter(controller: controller);
+    final dt = 1.0 / controller.tickHz;
+
+    input.setAimDir(1, 0);
+    input.startAbilitySlotHold(AbilitySlot.projectile);
+    // Replacement on the same tick should keep secondary as the winner.
+    input.startAbilitySlotHold(AbilitySlot.secondary);
+    input.pumpHeldInputs();
+    controller.advanceFrame(dt);
+
+    // Charged shield bash full threshold is 16 ticks at 60 Hz.
+    expect(core.buildSnapshot().hud.chargeFullTicks, equals(16));
+  });
 
   test(
     'charge timeout cancels hold and blocks commit until a new hold starts',
@@ -564,7 +682,7 @@ void main() {
         controller.tickHz,
       );
 
-      input.setProjectileAimDir(1, 0);
+      input.setAimDir(1, 0);
       input.startAbilitySlotHold(AbilitySlot.projectile);
       input.pumpHeldInputs();
       controller.advanceFrame(dt);
@@ -590,7 +708,7 @@ void main() {
       );
 
       // Starting a new hold clears cancellation and allows commit again.
-      input.setProjectileAimDir(1, 0);
+      input.setAimDir(1, 0);
       input.startAbilitySlotHold(AbilitySlot.projectile);
       input.pumpHeldInputs();
       controller.advanceFrame(dt);

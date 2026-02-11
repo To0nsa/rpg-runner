@@ -27,10 +27,7 @@ void main() {
       playerManaRegenPerSecond: 0,
       playerHpRegenPerSecond: 0,
     );
-    final abilityDerived = AbilityTuningDerived.from(
-      abilityTuning,
-      tickHz: 60,
-    );
+    final abilityDerived = AbilityTuningDerived.from(abilityTuning, tickHz: 60);
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
       seed: 1,
@@ -75,7 +72,8 @@ void main() {
     final hitDelivery = ability.hitDelivery as MeleeHitDelivery;
     final hitboxHalfX = hitDelivery.sizeX * 0.5;
     final hitboxHalfY = hitDelivery.sizeY * 0.5;
-    final forward = (catalog.colliderMaxHalfExtent * 0.5) +
+    final forward =
+        (catalog.colliderMaxHalfExtent * 0.5) +
         max(hitboxHalfX, hitboxHalfY) +
         hitDelivery.offsetX;
     expect(hitboxes.single.pos.x, closeTo(playerX + forward, 1e-9));
@@ -141,7 +139,7 @@ void main() {
     final playerY = core.playerPosY;
 
     core.applyCommands(const [
-      MeleeAimDirCommand(tick: 1, x: 0, y: -1),
+      AimDirCommand(tick: 1, x: 0, y: -1),
       StrikePressedCommand(tick: 1),
     ]);
     core.stepOneTick();
@@ -165,7 +163,8 @@ void main() {
     final hitDelivery = ability.hitDelivery as MeleeHitDelivery;
     final hitboxHalfX = hitDelivery.sizeX * 0.5;
     final hitboxHalfY = hitDelivery.sizeY * 0.5;
-    final forward = (catalog.colliderMaxHalfExtent * 0.5) +
+    final forward =
+        (catalog.colliderMaxHalfExtent * 0.5) +
         max(hitboxHalfX, hitboxHalfY) +
         hitDelivery.offsetX;
     expect(hitboxes.single.pos.y, closeTo(playerY - forward, 1e-9));

@@ -59,30 +59,17 @@ class TickInputFrame {
   int abilitySlotHeldValueMask = 0;
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Projectile aim direction
+  // Global aim direction
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Whether a projectile aim direction is set for this tick.
-  bool projectileAimDirSet = false;
+  /// Whether an aim direction is set for this tick.
+  bool aimDirSet = false;
 
-  /// Projectile aim X component (only valid if [projectileAimDirSet] is true).
-  double projectileAimDirX = 0;
+  /// Aim X component (only valid if [aimDirSet] is true).
+  double aimDirX = 0;
 
-  /// Projectile aim Y component (only valid if [projectileAimDirSet] is true).
-  double projectileAimDirY = 0;
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Melee aim direction
-  // ─────────────────────────────────────────────────────────────────────────
-
-  /// Whether a melee aim direction is set for this tick.
-  bool meleeAimDirSet = false;
-
-  /// Melee aim X component (only valid if [meleeAimDirSet] is true).
-  double meleeAimDirX = 0;
-
-  /// Melee aim Y component (only valid if [meleeAimDirSet] is true).
-  double meleeAimDirY = 0;
+  /// Aim Y component (only valid if [aimDirSet] is true).
+  double aimDirY = 0;
 
   // ─────────────────────────────────────────────────────────────────────────
   /// Applies a [Command] to this frame, merging it with existing state.
@@ -101,22 +88,14 @@ class TickInputFrame {
         dashPressed = true;
       case StrikePressedCommand():
         strikePressed = true;
-      case ProjectileAimDirCommand(:final x, :final y):
-        projectileAimDirSet = true;
-        projectileAimDirX = x;
-        projectileAimDirY = y;
-      case MeleeAimDirCommand(:final x, :final y):
-        meleeAimDirSet = true;
-        meleeAimDirX = x;
-        meleeAimDirY = y;
-      case ClearProjectileAimDirCommand():
-        projectileAimDirSet = false;
-        projectileAimDirX = 0;
-        projectileAimDirY = 0;
-      case ClearMeleeAimDirCommand():
-        meleeAimDirSet = false;
-        meleeAimDirX = 0;
-        meleeAimDirY = 0;
+      case AimDirCommand(:final x, :final y):
+        aimDirSet = true;
+        aimDirX = x;
+        aimDirY = y;
+      case ClearAimDirCommand():
+        aimDirSet = false;
+        aimDirX = 0;
+        aimDirY = 0;
       case ProjectilePressedCommand():
         projectilePressed = true;
       case SecondaryPressedCommand():
@@ -142,12 +121,9 @@ class TickInputFrame {
     jumpPressed = false;
     dashPressed = false;
     strikePressed = false;
-    projectileAimDirSet = false;
-    projectileAimDirX = 0;
-    projectileAimDirY = 0;
-    meleeAimDirSet = false;
-    meleeAimDirX = 0;
-    meleeAimDirY = 0;
+    aimDirSet = false;
+    aimDirX = 0;
+    aimDirY = 0;
     projectilePressed = false;
     secondaryPressed = false;
     bonusPressed = false;

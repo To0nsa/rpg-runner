@@ -50,7 +50,6 @@ class AbilityCatalog implements AbilityResolver {
       staminaCost: 0,
       manaCost: 0,
       cooldownTicks: 0,
-      interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.strike,
       baseDamage: 0,
     ),
@@ -69,7 +68,6 @@ class AbilityCatalog implements AbilityResolver {
       staminaCost: 0,
       manaCost: 0,
       cooldownTicks: 0,
-      interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.cast,
       requiredWeaponTypes: {WeaponType.projectileSpell},
       payloadSource: AbilityPayloadSource.projectileItem,
@@ -100,7 +98,6 @@ class AbilityCatalog implements AbilityResolver {
       staminaCost: 500,
       manaCost: 0, // 5.0 stamina
       cooldownTicks: 18, // 0.30s
-      interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.strike,
       requiredWeaponTypes: {WeaponType.oneHandedSword},
       payloadSource: AbilityPayloadSource.primaryWeapon,
@@ -131,7 +128,6 @@ class AbilityCatalog implements AbilityResolver {
       staminaCost: 550,
       manaCost: 0,
       cooldownTicks: 24,
-      interruptPriority: InterruptPriority.combat,
       forcedInterruptCauses: <ForcedInterruptCause>{
         ForcedInterruptCause.stun,
         ForcedInterruptCause.death,
@@ -191,7 +187,6 @@ class AbilityCatalog implements AbilityResolver {
       staminaCost: 550,
       manaCost: 0,
       cooldownTicks: 24,
-      interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.strike,
       requiredWeaponTypes: {WeaponType.oneHandedSword},
       payloadSource: AbilityPayloadSource.primaryWeapon,
@@ -221,7 +216,6 @@ class AbilityCatalog implements AbilityResolver {
       // Full 3s hold spends ~21.0 stamina (matches old one-shot cost envelope).
       holdStaminaDrainPerSecond100: 233,
       cooldownTicks: 30, // 0.50s
-      interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.parry,
       requiredWeaponTypes: {WeaponType.oneHandedSword},
       payloadSource: AbilityPayloadSource.primaryWeapon,
@@ -249,7 +243,6 @@ class AbilityCatalog implements AbilityResolver {
       staminaCost: 500,
       manaCost: 0,
       cooldownTicks: 18, // 0.30s
-      interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.shieldBash,
       requiredWeaponTypes: {WeaponType.shield},
       payloadSource: AbilityPayloadSource.secondaryWeapon,
@@ -280,7 +273,6 @@ class AbilityCatalog implements AbilityResolver {
       staminaCost: 550,
       manaCost: 0,
       cooldownTicks: 24,
-      interruptPriority: InterruptPriority.combat,
       forcedInterruptCauses: <ForcedInterruptCause>{
         ForcedInterruptCause.stun,
         ForcedInterruptCause.death,
@@ -340,7 +332,6 @@ class AbilityCatalog implements AbilityResolver {
       staminaCost: 550,
       manaCost: 0,
       cooldownTicks: 24,
-      interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.shieldBash,
       requiredWeaponTypes: {WeaponType.shield},
       payloadSource: AbilityPayloadSource.secondaryWeapon,
@@ -369,7 +360,6 @@ class AbilityCatalog implements AbilityResolver {
       holdMode: AbilityHoldMode.holdToMaintain,
       holdStaminaDrainPerSecond100: 700,
       cooldownTicks: 30,
-      interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.shieldBlock,
       requiredWeaponTypes: {WeaponType.shield},
       payloadSource: AbilityPayloadSource.secondaryWeapon,
@@ -395,7 +385,6 @@ class AbilityCatalog implements AbilityResolver {
       staminaCost: 0,
       manaCost: 800,
       cooldownTicks: 40,
-      interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.ranged,
       requiredWeaponTypes: {
         WeaponType.throwingWeapon,
@@ -421,7 +410,6 @@ class AbilityCatalog implements AbilityResolver {
       staminaCost: 0,
       manaCost: 600,
       cooldownTicks: 14,
-      interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.ranged,
       requiredWeaponTypes: {
         WeaponType.throwingWeapon,
@@ -449,7 +437,6 @@ class AbilityCatalog implements AbilityResolver {
       staminaCost: 0,
       manaCost: 1000,
       cooldownTicks: 32,
-      interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.ranged,
       requiredWeaponTypes: {
         WeaponType.throwingWeapon,
@@ -475,7 +462,6 @@ class AbilityCatalog implements AbilityResolver {
       staminaCost: 0,
       manaCost: 1300,
       cooldownTicks: 40,
-      interruptPriority: InterruptPriority.combat,
       forcedInterruptCauses: <ForcedInterruptCause>{
         ForcedInterruptCause.stun,
         ForcedInterruptCause.death,
@@ -530,7 +516,6 @@ class AbilityCatalog implements AbilityResolver {
       staminaCost: 0,
       manaCost: 1000,
       cooldownTicks: 300, // 5s @ 60Hz
-      interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.cast,
       requiredWeaponTypes: {WeaponType.projectileSpell},
       payloadSource: AbilityPayloadSource.spellBook,
@@ -549,7 +534,6 @@ class AbilityCatalog implements AbilityResolver {
       staminaCost: 0,
       manaCost: 1500,
       cooldownTicks: 420, // 7s @ 60Hz
-      interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.cast,
       requiredWeaponTypes: {WeaponType.projectileSpell},
       payloadSource: AbilityPayloadSource.spellBook,
@@ -568,7 +552,6 @@ class AbilityCatalog implements AbilityResolver {
       staminaCost: 1500,
       manaCost: 0,
       cooldownTicks: 420, // 7s @ 60Hz
-      interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.cast,
       requiredWeaponTypes: {WeaponType.projectileSpell},
       payloadSource: AbilityPayloadSource.spellBook,
@@ -587,7 +570,6 @@ class AbilityCatalog implements AbilityResolver {
       staminaCost: 0,
       manaCost: 1500,
       cooldownTicks: 420, // 7s @ 60Hz
-      interruptPriority: InterruptPriority.combat,
       animKey: AnimKey.cast,
       requiredWeaponTypes: {WeaponType.projectileSpell},
       payloadSource: AbilityPayloadSource.spellBook,
@@ -611,7 +593,6 @@ class AbilityCatalog implements AbilityResolver {
       staminaCost: 200, // 2.0 stamina (matches default jump tuning)
       manaCost: 0,
       cooldownTicks: 0,
-      interruptPriority: InterruptPriority.mobility,
       animKey: AnimKey.jump,
       baseDamage: 0,
     ),
@@ -632,8 +613,6 @@ class AbilityCatalog implements AbilityResolver {
       staminaCost: 200,
       manaCost: 0,
       cooldownTicks: 120,
-      interruptPriority: InterruptPriority.mobility,
-      canBeInterruptedBy: {},
       animKey: AnimKey.dash,
       baseDamage: 0,
     ),
@@ -653,7 +632,6 @@ class AbilityCatalog implements AbilityResolver {
       staminaCost: 200,
       manaCost: 0,
       cooldownTicks: 120,
-      interruptPriority: InterruptPriority.mobility,
       animKey: AnimKey.roll,
       baseDamage: 0,
     ),

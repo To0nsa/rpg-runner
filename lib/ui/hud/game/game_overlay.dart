@@ -92,8 +92,8 @@ class GameOverlay extends StatelessWidget {
                 input.startAbilitySlotHold(AbilitySlot.projectile),
             onProjectileHoldEnd: () =>
                 input.endAbilitySlotHold(AbilitySlot.projectile),
-            onProjectileAimDir: input.setProjectileAimDir,
-            onProjectileAimClear: input.clearProjectileAimDir,
+            onAimDir: input.setAimDir,
+            onAimClear: input.clearAimDir,
             projectileAimPreview: projectileAimPreview,
             chargeBarVisible: chargeBarVisible,
             chargeBarProgress01: chargeBarProgress01,
@@ -103,8 +103,6 @@ class GameOverlay extends StatelessWidget {
                 hud.cooldownTicksLeft[CooldownGroup.projectile],
             projectileCooldownTicksTotal:
                 hud.cooldownTicksTotal[CooldownGroup.projectile],
-            onMeleeAimDir: input.setMeleeAimDir,
-            onMeleeAimClear: input.clearMeleeAimDir,
             onMeleeCommitted: input.commitMeleeStrike,
             onMeleePressed: input.pressStrike,
             onMeleeHoldStart: input.startPrimaryHold,

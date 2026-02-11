@@ -4,7 +4,7 @@ import 'package:rpg_runner/core/accessories/accessory_catalog.dart';
 import 'package:rpg_runner/core/accessories/accessory_def.dart';
 import 'package:rpg_runner/core/accessories/accessory_id.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart'
-    show AbilitySlot, WeaponType;
+    show AbilitySlot, CooldownGroup, WeaponType;
 import 'package:rpg_runner/core/combat/damage.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
@@ -151,6 +151,45 @@ void main() {
       isFalse,
     );
   });
+
+  test(
+    'DamageSystem starts deferred cooldown when damage interrupts ability',
+    () {
+      final world = EcsWorld();
+      final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
+
+      final target = world.createEntity();
+      world.health.add(
+        target,
+        const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+      );
+      world.cooldown.add(target);
+      world.activeAbility.add(target);
+
+      world.activeAbility.set(
+        target,
+        id: 'eloise.charged_shot',
+        slot: AbilitySlot.projectile,
+        commitTick: 10,
+        windupTicks: 24,
+        activeTicks: 2,
+        recoveryTicks: 10,
+        facingDir: Facing.right,
+        cooldownGroupId: CooldownGroup.projectile,
+        cooldownTicks: 17,
+        cooldownStarted: false,
+      );
+
+      world.damageQueue.add(DamageRequest(target: target, amount100: 500));
+      damage.step(world, currentTick: 11);
+
+      expect(world.activeAbility.hasActiveAbility(target), isFalse);
+      expect(
+        world.cooldown.getTicksLeft(target, CooldownGroup.projectile),
+        equals(17),
+      );
+    },
+  );
 
   test('DamageSystem keeps non-charged projectile abilities active on hit', () {
     final world = EcsWorld();

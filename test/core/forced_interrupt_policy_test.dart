@@ -81,7 +81,6 @@ class _InjectedAbilityCatalog extends AbilityCatalog {
       staminaCost: 0,
       manaCost: 0,
       cooldownTicks: 0,
-      interruptPriority: InterruptPriority.low,
       forcedInterruptCauses: <ForcedInterruptCause>{
         ForcedInterruptCause.stun,
         ForcedInterruptCause.death,

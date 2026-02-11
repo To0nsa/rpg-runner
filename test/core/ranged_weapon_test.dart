@@ -54,7 +54,7 @@ void main() {
       final playerPosY = core.playerPosY;
 
       core.applyCommands(const [
-        ProjectileAimDirCommand(tick: 1, x: 1, y: 0),
+        AimDirCommand(tick: 1, x: 1, y: 0),
         ProjectilePressedCommand(tick: 1),
       ]);
       core.stepOneTick();
@@ -124,7 +124,7 @@ void main() {
       );
 
       core.applyCommands(const [
-        ProjectileAimDirCommand(tick: 1, x: 1, y: 0),
+        AimDirCommand(tick: 1, x: 1, y: 0),
         ProjectilePressedCommand(tick: 1),
       ]);
       core.stepOneTick();

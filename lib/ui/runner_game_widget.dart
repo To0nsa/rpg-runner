@@ -144,8 +144,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
 
   void _clearInputs() {
     _input.setMoveAxis(0);
-    _input.clearProjectileAimDir();
-    _input.clearMeleeAimDir();
+    _input.clearAimDir();
     _input.endPrimaryHold();
     _input.endSecondaryHold();
     _input.endAbilitySlotHold(AbilitySlot.projectile);
@@ -155,8 +154,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   void _cancelHeldChargedAim() {
-    _input.clearProjectileAimDir();
-    _input.clearMeleeAimDir();
+    _input.clearAimDir();
     _projectileAimPreview.end();
     _meleeAimPreview.end();
     _forceAimCancelSignal.value = _forceAimCancelSignal.value + 1;

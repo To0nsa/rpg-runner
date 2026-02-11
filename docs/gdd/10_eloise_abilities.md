@@ -81,8 +81,6 @@ class AbilityDef {
     required this.staminaCost,
     required this.manaCost,
     required this.cooldownTicks,
-    required this.interruptPriority,
-    this.canBeInterruptedBy = const {},
     this.forcedInterruptCauses = const {
       ForcedInterruptCause.stun,
       ForcedInterruptCause.death,
@@ -107,8 +105,6 @@ class AbilityDef {
   final int staminaCost; // fixed-point (100 = 1.0)
   final int manaCost;    // fixed-point (100 = 1.0)
   final int cooldownTicks;
-  final InterruptPriority interruptPriority;
-  final Set<InterruptPriority> canBeInterruptedBy;
   final Set<ForcedInterruptCause> forcedInterruptCauses;
   final AnimKey animKey;
   final Set<AbilityTag> tags;
@@ -177,7 +173,6 @@ const swordStrike = AbilityDef(
   staminaCost: 500,
   manaCost: 0,
   cooldownTicks: 18,
-  interruptPriority: InterruptPriority.combat,
   animKey: AnimKey.strike,
   requiredWeaponTypes: {WeaponType.oneHandedSword},
   baseDamage: 1500,
@@ -263,7 +258,6 @@ const swordParry = AbilityDef(
   staminaCost: 700,
   manaCost: 0,
   cooldownTicks: 30,
-  interruptPriority: InterruptPriority.combat,
   animKey: AnimKey.parry,
   requiredWeaponTypes: {WeaponType.oneHandedSword},
   baseDamage: 0,
@@ -341,7 +335,6 @@ const shieldBash = AbilityDef(
   staminaCost: 500,
   manaCost: 0,
   cooldownTicks: 18,
-  interruptPriority: InterruptPriority.combat,
   animKey: AnimKey.shieldBash,
   requiredWeaponTypes: {WeaponType.shield},
   baseDamage: 1500,
@@ -426,7 +419,6 @@ const shieldBlock = AbilityDef(
   staminaCost: 700,
   manaCost: 0,
   cooldownTicks: 30,
-  interruptPriority: InterruptPriority.combat,
   animKey: AnimKey.shieldBlock,
   requiredWeaponTypes: {WeaponType.shield},
   baseDamage: 0,
@@ -550,7 +542,6 @@ const dash = AbilityDef(
   staminaCost: 200,
   manaCost: 0,
   cooldownTicks: 120,
-  interruptPriority: InterruptPriority.mobility,
   animKey: AnimKey.dash,
   baseDamage: 0,
 );
@@ -600,7 +591,6 @@ const roll = AbilityDef(
   staminaCost: 200,
   manaCost: 0,
   cooldownTicks: 120,
-  interruptPriority: InterruptPriority.mobility,
   animKey: AnimKey.roll,
   baseDamage: 0,
 );
@@ -651,7 +641,6 @@ const jump = AbilityDef(
   staminaCost: 200,
   manaCost: 0,
   cooldownTicks: 0,
-  interruptPriority: InterruptPriority.mobility,
   animKey: AnimKey.jump,
   baseDamage: 0,
 );

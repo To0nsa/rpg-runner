@@ -8,7 +8,7 @@
 ///
 /// By rounding to 1/256 increments, tiny floating-point variations (e.g., from
 /// touch jitter) are collapsed into stable values. This ensures:
-/// - Fewer redundant [ProjectileAimDirCommand] / [MeleeAimDirCommand] commands.
+/// - Fewer redundant [AimDirCommand] commands.
 /// - Consistent behavior across frames when the aim direction is nearly unchanged.
 class AimQuantizer {
   /// Private constructor to prevent instantiation; all methods are static.

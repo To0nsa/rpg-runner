@@ -60,14 +60,6 @@ enum AbilityHoldMode {
 /// Runtime lifecycle stage of a committed ability.
 enum AbilityPhase { idle, windup, active, recovery }
 
-/// Relative interrupt authority for competing actions.
-enum InterruptPriority {
-  low, // e.g. passive stance
-  combat, // standard attacks (strike/cast)
-  mobility, // dash/jump/roll
-  forced, // system-only (stun/death)
-}
-
 /// External/system causes that can forcibly cancel an ability.
 enum ForcedInterruptCause {
   stun, // control lock stun
@@ -296,8 +288,6 @@ class AbilityDef {
     this.holdStaminaDrainPerSecond100 = 0,
     required this.cooldownTicks,
     this.cooldownGroupId,
-    required this.interruptPriority,
-    this.canBeInterruptedBy = const {},
     this.forcedInterruptCauses = defaultForcedInterruptCauses,
     required this.animKey,
     this.requiredWeaponTypes = const {},
@@ -346,10 +336,6 @@ class AbilityDef {
        assert(
          holdMode == AbilityHoldMode.none || activeTicks > 0,
          'Hold abilities require activeTicks > 0 for max hold duration.',
-       ),
-       assert(
-         interruptPriority != InterruptPriority.forced,
-         'Forced priority is reserved for system events.',
        ),
        assert(
          cooldownGroupId == null ||
@@ -408,10 +394,6 @@ class AbilityDef {
   ///   4 = jump
   ///   5-7 = future/bonus
   final int? cooldownGroupId;
-
-  /// Interrupt behavior priority and allowed interrupters.
-  final InterruptPriority interruptPriority;
-  final Set<InterruptPriority> canBeInterruptedBy;
 
   /// Forced interruption causes this ability opts into.
   final Set<ForcedInterruptCause> forcedInterruptCauses;
@@ -473,11 +455,6 @@ class AbilityDef {
   int effectiveCooldownGroup(AbilitySlot slot) {
     if (cooldownGroupId != null) return cooldownGroupId!;
     return CooldownGroup.fromSlot(slot);
-  }
-
-  /// Whether this definition passes lightweight static validation checks.
-  bool get isValid {
-    return !canBeInterruptedBy.contains(interruptPriority);
   }
 
   @override

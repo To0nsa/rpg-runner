@@ -37,12 +37,12 @@ void main() {
     expect(core.playerVelX, greaterThan(0));
   });
 
-  test('GameController dedupes ProjectileAimDir per tick (last wins)', () {
+  test('GameController dedupes AimDir per tick (last wins)', () {
     final core = GameCore(seed: 1, tuning: noAutoscrollTuning);
     final controller = GameController(core: core);
 
-    controller.enqueue(const ProjectileAimDirCommand(tick: 1, x: 1, y: 0));
-    controller.enqueue(const ProjectileAimDirCommand(tick: 1, x: 0, y: 1));
+    controller.enqueue(const AimDirCommand(tick: 1, x: 1, y: 0));
+    controller.enqueue(const AimDirCommand(tick: 1, x: 0, y: 1));
 
     controller.advanceFrame(1 / controller.tickHz);
 

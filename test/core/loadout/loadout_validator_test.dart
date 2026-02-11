@@ -282,7 +282,6 @@ class TestAbilityCatalog extends AbilityCatalog {
     staminaCost: 0,
     manaCost: 0,
     cooldownTicks: 0,
-    interruptPriority: InterruptPriority.combat,
     animKey: AnimKey.idle,
     requiredWeaponTypes: {WeaponType.oneHandedSword},
     baseDamage: 0,

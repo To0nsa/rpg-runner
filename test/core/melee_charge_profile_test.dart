@@ -38,7 +38,6 @@ class _ChargeMeleeAbilities extends AbilityCatalog {
         staminaCost: 0,
         manaCost: 0,
         cooldownTicks: 10,
-        interruptPriority: InterruptPriority.combat,
         animKey: AnimKey.strike,
         payloadSource: AbilityPayloadSource.primaryWeapon,
         chargeProfile: AbilityChargeProfile(

@@ -266,22 +266,9 @@ class GameController extends ChangeNotifier {
       _commandScratch.add(MoveAxisCommand(tick: tick, axis: axis));
     }
 
-    if (input.projectileAimDirSet) {
+    if (input.aimDirSet) {
       _commandScratch.add(
-        ProjectileAimDirCommand(
-          tick: tick,
-          x: input.projectileAimDirX,
-          y: input.projectileAimDirY,
-        ),
-      );
-    }
-    if (input.meleeAimDirSet) {
-      _commandScratch.add(
-        MeleeAimDirCommand(
-          tick: tick,
-          x: input.meleeAimDirX,
-          y: input.meleeAimDirY,
-        ),
+        AimDirCommand(tick: tick, x: input.aimDirX, y: input.aimDirY),
       );
     }
     if (input.jumpPressed) {

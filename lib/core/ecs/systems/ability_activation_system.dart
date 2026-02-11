@@ -225,7 +225,7 @@ class AbilityActivationSystem {
     final ability = abilities.resolve(abilityId);
     if (ability == null) return;
 
-    final aim = _aimForAbility(world, inputIndex, slot, ability);
+    final aim = _aimForAbility(world, inputIndex, ability);
 
     world.abilityInputBuffer.setBuffer(
       player,
@@ -298,21 +298,14 @@ class AbilityActivationSystem {
   (double, double) _aimForAbility(
     EcsWorld world,
     int inputIndex,
-    AbilitySlot slot,
     AbilityDef ability,
   ) {
     final input = world.playerInput;
-    // Aim source is determined by "mechanics", not by UI slot.
-    // This required so Bonus can host melee/proj abilities cleanly.
+    // Aim is a single global channel and is consumed by directional abilities.
     final hitDelivery = ability.hitDelivery;
-    if (hitDelivery is MeleeHitDelivery) {
-      return (input.meleeAimDirX[inputIndex], input.meleeAimDirY[inputIndex]);
-    }
-    if (hitDelivery is ProjectileHitDelivery) {
-      return (
-        input.projectileAimDirX[inputIndex],
-        input.projectileAimDirY[inputIndex],
-      );
+    if (hitDelivery is MeleeHitDelivery ||
+        hitDelivery is ProjectileHitDelivery) {
+      return (input.aimDirX[inputIndex], input.aimDirY[inputIndex]);
     }
     return (0.0, 0.0);
   }
@@ -667,10 +660,10 @@ class AbilityActivationSystem {
 
     final rawAimX =
         aimOverrideX ??
-        (inputIndex == null ? 0.0 : world.playerInput.meleeAimDirX[inputIndex]);
+        (inputIndex == null ? 0.0 : world.playerInput.aimDirX[inputIndex]);
     final rawAimY =
         aimOverrideY ??
-        (inputIndex == null ? 0.0 : world.playerInput.meleeAimDirY[inputIndex]);
+        (inputIndex == null ? 0.0 : world.playerInput.aimDirY[inputIndex]);
     final fallbackDirX = facing == Facing.right ? 1.0 : -1.0;
     const fallbackDirY = 0.0;
     final resolvedAim = _resolveHomingAimDirection(
@@ -937,14 +930,10 @@ class AbilityActivationSystem {
 
     final rawAimX =
         aimOverrideX ??
-        (inputIndex == null
-            ? 0.0
-            : world.playerInput.projectileAimDirX[inputIndex]);
+        (inputIndex == null ? 0.0 : world.playerInput.aimDirX[inputIndex]);
     final rawAimY =
         aimOverrideY ??
-        (inputIndex == null
-            ? 0.0
-            : world.playerInput.projectileAimDirY[inputIndex]);
+        (inputIndex == null ? 0.0 : world.playerInput.aimDirY[inputIndex]);
     final fallbackDirX = facing == Facing.right ? 1.0 : -1.0;
     final fallbackDirY = 0.0;
     final resolvedAim = _resolveProjectileAimDirection(

@@ -5,6 +5,7 @@ import '../../stats/character_stats_resolver.dart';
 import '../../util/deterministic_rng.dart';
 import '../../util/fixed_math.dart';
 import '../../weapons/weapon_proc.dart';
+import 'ability_interrupt.dart';
 import '../stores/damage_queue_store.dart';
 import '../world.dart';
 
@@ -195,35 +196,10 @@ class DamageSystem {
     )) {
       return;
     }
-
-    world.activeAbility.clear(entity);
-
-    if (world.abilityInputBuffer.has(entity)) {
-      world.abilityInputBuffer.clear(entity);
-    }
-
-    if (world.meleeIntent.has(entity)) {
-      final intentIndex = world.meleeIntent.indexOf(entity);
-      world.meleeIntent.tick[intentIndex] = -1;
-      world.meleeIntent.commitTick[intentIndex] = -1;
-    }
-
-    if (world.projectileIntent.has(entity)) {
-      final intentIndex = world.projectileIntent.indexOf(entity);
-      world.projectileIntent.tick[intentIndex] = -1;
-      world.projectileIntent.commitTick[intentIndex] = -1;
-    }
-
-    if (world.mobilityIntent.has(entity)) {
-      final intentIndex = world.mobilityIntent.indexOf(entity);
-      world.mobilityIntent.tick[intentIndex] = -1;
-      world.mobilityIntent.commitTick[intentIndex] = -1;
-    }
-
-    if (world.selfIntent.has(entity)) {
-      final intentIndex = world.selfIntent.indexOf(entity);
-      world.selfIntent.tick[intentIndex] = -1;
-      world.selfIntent.commitTick[intentIndex] = -1;
-    }
+    AbilityInterrupt.clearActiveAndTransient(
+      world,
+      entity: entity,
+      startDeferredCooldown: true,
+    );
   }
 }

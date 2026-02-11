@@ -33,14 +33,12 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.onProjectilePressed,
     required this.onProjectileHoldStart,
     required this.onProjectileHoldEnd,
-    required this.onProjectileAimDir,
-    required this.onProjectileAimClear,
+    required this.onAimDir,
+    required this.onAimClear,
     required this.projectileAimPreview,
     required this.projectileAffordable,
     required this.projectileCooldownTicksLeft,
     required this.projectileCooldownTicksTotal,
-    required this.onMeleeAimDir,
-    required this.onMeleeAimClear,
     required this.onMeleeCommitted,
     required this.onMeleePressed,
     required this.onMeleeHoldStart,
@@ -84,8 +82,9 @@ class RunnerControlsOverlay extends StatelessWidget {
   final VoidCallback onProjectilePressed;
   final VoidCallback onProjectileHoldStart;
   final VoidCallback onProjectileHoldEnd;
-  final void Function(double x, double y) onProjectileAimDir;
-  final VoidCallback onProjectileAimClear;
+  // Shared/global aim callbacks consumed by both projectile and melee controls.
+  final void Function(double x, double y) onAimDir;
+  final VoidCallback onAimClear;
   final AimPreviewModel projectileAimPreview;
   final bool chargeBarVisible;
   final double chargeBarProgress01;
@@ -93,8 +92,6 @@ class RunnerControlsOverlay extends StatelessWidget {
   final bool projectileAffordable;
   final int projectileCooldownTicksLeft;
   final int projectileCooldownTicksTotal;
-  final void Function(double x, double y) onMeleeAimDir;
-  final VoidCallback onMeleeAimClear;
   final VoidCallback onMeleeCommitted;
   final VoidCallback onMeleePressed;
   final VoidCallback onMeleeHoldStart;
@@ -151,8 +148,8 @@ class RunnerControlsOverlay extends StatelessWidget {
             onPressed: onProjectilePressed,
             onHoldStart: onProjectileHoldStart,
             onHoldEnd: onProjectileHoldEnd,
-            onAimDir: onProjectileAimDir,
-            onAimClear: onProjectileAimClear,
+            onAimDir: onAimDir,
+            onAimClear: onAimClear,
             onCommitted: onProjectileCommitted,
             aimPreview: projectileAimPreview,
             affordable: projectileAffordable,
@@ -196,8 +193,8 @@ class RunnerControlsOverlay extends StatelessWidget {
                   icon: Icons.shield,
                   onHoldStart: onSecondaryHoldStart,
                   onHoldEnd: onSecondaryHoldEnd,
-                  onAimDir: onMeleeAimDir,
-                  onAimClear: onMeleeAimClear,
+                  onAimDir: onAimDir,
+                  onAimClear: onAimClear,
                   onCommit: onSecondaryCommitted,
                   projectileAimPreview: meleeAimPreview,
                   tuning: style.directionalActionButton,
@@ -235,8 +232,8 @@ class RunnerControlsOverlay extends StatelessWidget {
             onHoldEnd: onMeleeHoldEnd,
             onChargeHoldStart: onMeleeChargeHoldStart,
             onChargeHoldEnd: onMeleeChargeHoldEnd,
-            onAimDir: onMeleeAimDir,
-            onAimClear: onMeleeAimClear,
+            onAimDir: onAimDir,
+            onAimClear: onAimClear,
             onCommitted: onMeleeCommitted,
             aimPreview: meleeAimPreview,
             affordable: meleeAffordable,

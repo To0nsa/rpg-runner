@@ -1,5 +1,6 @@
 import '../../abilities/ability_def.dart';
 import '../../abilities/forced_interrupt_policy.dart';
+import 'ability_interrupt.dart';
 import '../world.dart';
 
 /// Updates ActiveAbilityState phase timing and handles forced interruptions.
@@ -24,9 +25,11 @@ class ActiveAbilityPhaseSystem {
       }
 
       if (_isForcedInterrupted(world, entity, abilityId, currentTick)) {
-        _clearAbility(world, entity, i);
-        _clearBufferedInput(world, entity);
-        _clearPendingIntents(world, entity);
+        AbilityInterrupt.clearActiveAndTransient(
+          world,
+          entity: entity,
+          startDeferredCooldown: true,
+        );
         continue;
       }
 
@@ -89,34 +92,5 @@ class ActiveAbilityPhaseSystem {
     world.activeAbility.clear(entity);
     active.phase[index] = AbilityPhase.idle;
     active.elapsedTicks[index] = 0;
-  }
-
-  void _clearBufferedInput(EcsWorld world, int entity) {
-    if (world.abilityInputBuffer.has(entity)) {
-      world.abilityInputBuffer.clear(entity);
-    }
-  }
-
-  void _clearPendingIntents(EcsWorld world, int entity) {
-    if (world.meleeIntent.has(entity)) {
-      final i = world.meleeIntent.indexOf(entity);
-      world.meleeIntent.tick[i] = -1;
-      world.meleeIntent.commitTick[i] = -1;
-    }
-    if (world.projectileIntent.has(entity)) {
-      final i = world.projectileIntent.indexOf(entity);
-      world.projectileIntent.tick[i] = -1;
-      world.projectileIntent.commitTick[i] = -1;
-    }
-    if (world.mobilityIntent.has(entity)) {
-      final i = world.mobilityIntent.indexOf(entity);
-      world.mobilityIntent.tick[i] = -1;
-      world.mobilityIntent.commitTick[i] = -1;
-    }
-    if (world.selfIntent.has(entity)) {
-      final i = world.selfIntent.indexOf(entity);
-      world.selfIntent.tick[i] = -1;
-      world.selfIntent.commitTick[i] = -1;
-    }
   }
 }

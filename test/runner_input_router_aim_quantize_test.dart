@@ -42,7 +42,7 @@ void main() {
 
     const rawX = 0.123456;
     const rawY = 0.234567;
-    input.setProjectileAimDir(rawX, rawY);
+    input.setAimDir(rawX, rawY);
     input.pressProjectileWithAim();
 
     final dt = 1.0 / controller.tickHz;
