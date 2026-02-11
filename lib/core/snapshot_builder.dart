@@ -417,8 +417,22 @@ class SnapshotBuilder {
     if (ability == null) return AbilityInputMode.tap;
     return switch (ability.inputLifecycle) {
       AbilityInputLifecycle.tap => AbilityInputMode.tap,
-      AbilityInputLifecycle.holdRelease => AbilityInputMode.holdAimRelease,
+      AbilityInputLifecycle.holdRelease =>
+        _requiresAimGesture(ability.targetingModel)
+            ? AbilityInputMode.holdAimRelease
+            : AbilityInputMode.holdRelease,
       AbilityInputLifecycle.holdMaintain => AbilityInputMode.holdMaintain,
+    };
+  }
+
+  bool _requiresAimGesture(TargetingModel targetingModel) {
+    return switch (targetingModel) {
+      TargetingModel.none || TargetingModel.homing => false,
+      TargetingModel.directional ||
+      TargetingModel.aimed ||
+      TargetingModel.aimedLine ||
+      TargetingModel.aimedCharge ||
+      TargetingModel.groundTarget => true,
     };
   }
 

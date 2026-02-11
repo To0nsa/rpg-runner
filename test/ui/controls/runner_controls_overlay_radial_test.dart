@@ -216,6 +216,26 @@ void main() {
     },
   );
 
+  testWidgets(
+    'secondary hold-release renders non-directional secondary control',
+    (tester) async {
+      final harness = _OverlayHarness();
+      addTearDown(harness.dispose);
+
+      await tester.pumpWidget(
+        _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
+      );
+
+      harness.secondaryInputMode = AbilityInputMode.holdRelease;
+      await tester.pumpWidget(
+        _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
+      );
+
+      // Projectile + melee directional controls remain; secondary is hold-release.
+      expect(find.byType(DirectionalActionButton), findsNWidgets(2));
+    },
+  );
+
   testWidgets('mobility hold-aim-release renders directional mobility control', (
     tester,
   ) async {
@@ -234,6 +254,25 @@ void main() {
     // Projectile + melee directional controls are always present in this harness;
     // hold-aim-release mobility adds a third one.
     expect(find.byType(DirectionalActionButton), findsNWidgets(3));
+  });
+
+  testWidgets('mobility hold-release renders non-directional mobility control', (
+    tester,
+  ) async {
+    final harness = _OverlayHarness();
+    addTearDown(harness.dispose);
+
+    await tester.pumpWidget(
+      _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
+    );
+
+    harness.mobilityInputMode = AbilityInputMode.holdRelease;
+    await tester.pumpWidget(
+      _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
+    );
+
+    // Projectile + melee directional controls remain; mobility is hold-release.
+    expect(find.byType(DirectionalActionButton), findsNWidgets(2));
   });
 }
 

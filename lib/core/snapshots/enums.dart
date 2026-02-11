@@ -49,4 +49,7 @@ enum AbilityInputMode {
 
   /// Hold button down to maintain; release to end.
   holdMaintain,
+
+  /// Hold button down, commit on release (no directional aim gesture).
+  holdRelease,
 }

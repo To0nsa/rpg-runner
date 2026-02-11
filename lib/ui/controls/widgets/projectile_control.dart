@@ -6,8 +6,9 @@ import '../../../game/input/aim_preview.dart';
 import '../action_button.dart';
 import '../controls_tuning.dart';
 import '../directional_action_button.dart';
+import '../hold_action_button.dart';
 
-/// Resolves projectile input mode (tap vs directional/charged) to a control.
+/// Resolves projectile input mode (tap, hold-release, directional aim-release).
 class ProjectileControl extends StatelessWidget {
   const ProjectileControl({
     super.key,
@@ -59,6 +60,21 @@ class ProjectileControl extends StatelessWidget {
         label: 'Projectile',
         icon: Icons.auto_awesome,
         onPressed: onPressed,
+        tuning: action,
+        cooldownRing: cooldownRing,
+        affordable: affordable,
+        cooldownTicksLeft: cooldownTicksLeft,
+        cooldownTicksTotal: cooldownTicksTotal,
+        size: size,
+      );
+    }
+    if (inputMode == AbilityInputMode.holdRelease) {
+      return HoldActionButton(
+        label: 'Projectile',
+        icon: Icons.auto_awesome,
+        onHoldStart: onHoldStart,
+        onHoldEnd: onHoldEnd,
+        onRelease: onCommitted,
         tuning: action,
         cooldownRing: cooldownRing,
         affordable: affordable,

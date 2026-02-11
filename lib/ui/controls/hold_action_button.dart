@@ -15,6 +15,7 @@ class HoldActionButton extends StatefulWidget {
     required this.icon,
     required this.onHoldStart,
     required this.onHoldEnd,
+    this.onRelease,
     required this.tuning,
     required this.size,
     required this.cooldownRing,
@@ -27,6 +28,7 @@ class HoldActionButton extends StatefulWidget {
   final IconData icon;
   final VoidCallback onHoldStart;
   final VoidCallback onHoldEnd;
+  final VoidCallback? onRelease;
   final ActionButtonTuning tuning;
   final CooldownRingTuning cooldownRing;
   final bool affordable;
@@ -87,6 +89,7 @@ class _HoldActionButtonState extends State<HoldActionButton> {
     if (event.pointer != _pointer) return;
     _pointer = null;
     widget.onHoldEnd();
+    widget.onRelease?.call();
   }
 
   void _handlePointerCancel(PointerCancelEvent event) {

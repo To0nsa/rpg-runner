@@ -26,7 +26,9 @@
   - Same-tick hold replacements now emit explicit release + hold edges so latest hold wins deterministically after frame aggregation.
 - Ability composition contracts were expanded for primary/secondary/mobility:
   - Added authored `AbilityInputLifecycle` to `AbilityDef` (`tap`, `holdRelease`, `holdMaintain`) and made it required for authored abilities.
-  - HUD input mode resolution now reads authored lifecycle (including mobility mode).
+  - HUD input mode resolution now reads authored lifecycle (including mobility mode), and distinguishes:
+    - `holdAimRelease` for aimed/directional hold-release abilities
+    - `holdRelease` for non-aim hold-release abilities (for example `homing`)
   - Mobility commit no longer fails while aim is held.
   - Mobility direction resolution is now shared with melee/projectile targeting fallback policy.
   - Mobility runtime now supports 2D dash vectors and charge-based speed scaling.

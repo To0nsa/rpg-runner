@@ -8,7 +8,7 @@ import '../controls_tuning.dart';
 import '../directional_action_button.dart';
 import '../hold_action_button.dart';
 
-/// Resolves melee input mode (tap, hold-maintain, directional aim-release).
+/// Resolves melee input mode (tap, hold-release, hold-maintain, directional aim-release).
 class MeleeControl extends StatelessWidget {
   const MeleeControl({
     super.key,
@@ -77,6 +77,21 @@ class MeleeControl extends StatelessWidget {
         icon: Icons.close,
         onHoldStart: onHoldStart,
         onHoldEnd: onHoldEnd,
+        tuning: action,
+        cooldownRing: cooldownRing,
+        affordable: affordable,
+        cooldownTicksLeft: cooldownTicksLeft,
+        cooldownTicksTotal: cooldownTicksTotal,
+        size: size,
+      );
+    }
+    if (inputMode == AbilityInputMode.holdRelease) {
+      return HoldActionButton(
+        label: 'Atk',
+        icon: Icons.close,
+        onHoldStart: onChargeHoldStart,
+        onHoldEnd: onChargeHoldEnd,
+        onRelease: onCommitted,
         tuning: action,
         cooldownRing: cooldownRing,
         affordable: affordable,

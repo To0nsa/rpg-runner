@@ -195,6 +195,20 @@ class RunnerControlsOverlay extends StatelessWidget {
                   cooldownTicksTotal: secondaryCooldownTicksTotal,
                   size: layout.actionSize,
                 )
+              : secondaryInputMode == AbilityInputMode.holdRelease
+              ? HoldActionButton(
+                  label: 'Sec',
+                  icon: Icons.shield,
+                  onHoldStart: onSecondaryHoldStart,
+                  onHoldEnd: onSecondaryHoldEnd,
+                  onRelease: onSecondaryCommitted,
+                  tuning: action,
+                  cooldownRing: cooldownRing,
+                  affordable: secondaryAffordable,
+                  cooldownTicksLeft: secondaryCooldownTicksLeft,
+                  cooldownTicksTotal: secondaryCooldownTicksTotal,
+                  size: layout.actionSize,
+                )
               : secondaryInputMode == AbilityInputMode.holdAimRelease
               ? DirectionalActionButton(
                   label: 'Sec',
@@ -272,6 +286,20 @@ class RunnerControlsOverlay extends StatelessWidget {
                   icon: Icons.flash_on,
                   onHoldStart: onMobilityHoldStart,
                   onHoldEnd: onMobilityHoldEnd,
+                  tuning: action,
+                  cooldownRing: cooldownRing,
+                  affordable: mobilityAffordable,
+                  cooldownTicksLeft: mobilityCooldownTicksLeft,
+                  cooldownTicksTotal: mobilityCooldownTicksTotal,
+                  size: layout.actionSize,
+                )
+              : mobilityInputMode == AbilityInputMode.holdRelease
+              ? HoldActionButton(
+                  label: 'Mob',
+                  icon: Icons.flash_on,
+                  onHoldStart: onMobilityHoldStart,
+                  onHoldEnd: onMobilityHoldEnd,
+                  onRelease: onMobilityCommitted,
                   tuning: action,
                   cooldownRing: cooldownRing,
                   affordable: mobilityAffordable,

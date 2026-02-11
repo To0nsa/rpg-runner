@@ -60,6 +60,12 @@ class GameOverlay extends StatelessWidget {
     final secondaryAffordable =
         hud.canAffordSecondary && hud.secondarySlotValid;
     final bonusAffordable = hud.canAffordBonus && hud.bonusSlotValid;
+    final secondaryUsesSlotHold =
+        hud.secondaryInputMode == AbilityInputMode.holdAimRelease ||
+        hud.secondaryInputMode == AbilityInputMode.holdRelease;
+    final mobilityUsesSlotHold =
+        hud.mobilityInputMode == AbilityInputMode.holdAimRelease ||
+        hud.mobilityInputMode == AbilityInputMode.holdRelease;
     final chargeBarVisible = hud.chargeEnabled && hud.chargeActive;
     final chargeBarProgress01 = hud.chargeFullTicks > 0
         ? (hud.chargeTicks / hud.chargeFullTicks).clamp(0.0, 1.0)
@@ -76,22 +82,18 @@ class GameOverlay extends StatelessWidget {
             onMobilityPressed: input.pressDash,
             onMobilityCommitted: () =>
                 input.commitMobilityWithAim(clearAim: true),
-            onMobilityHoldStart:
-                hud.mobilityInputMode == AbilityInputMode.holdAimRelease
+            onMobilityHoldStart: mobilityUsesSlotHold
                 ? () => input.startAbilitySlotHold(AbilitySlot.mobility)
                 : input.startMobilityHold,
-            onMobilityHoldEnd:
-                hud.mobilityInputMode == AbilityInputMode.holdAimRelease
+            onMobilityHoldEnd: mobilityUsesSlotHold
                 ? () => input.endAbilitySlotHold(AbilitySlot.mobility)
                 : input.endMobilityHold,
             onSecondaryPressed: input.pressSecondary,
             onSecondaryCommitted: input.commitSecondaryStrike,
-            onSecondaryHoldStart:
-                hud.secondaryInputMode == AbilityInputMode.holdAimRelease
+            onSecondaryHoldStart: secondaryUsesSlotHold
                 ? () => input.startAbilitySlotHold(AbilitySlot.secondary)
                 : input.startSecondaryHold,
-            onSecondaryHoldEnd:
-                hud.secondaryInputMode == AbilityInputMode.holdAimRelease
+            onSecondaryHoldEnd: secondaryUsesSlotHold
                 ? () => input.endAbilitySlotHold(AbilitySlot.secondary)
                 : input.endSecondaryHold,
             onBonusPressed: input.pressBonus,
