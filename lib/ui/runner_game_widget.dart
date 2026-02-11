@@ -154,7 +154,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _input.pumpHeldInputs();
   }
 
-  void _cancelHeldChargedAimFromHit() {
+  void _cancelHeldChargedAim() {
     _input.clearProjectileAimDir();
     _input.clearMeleeAimDir();
     _projectileAimPreview.end();
@@ -171,7 +171,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _lastPlayerDamageTick = damageTick;
     final hud = _controller.snapshot.hud;
     if (hud.chargeEnabled && hud.chargeActive) {
-      _cancelHeldChargedAimFromHit();
+      _cancelHeldChargedAim();
     }
   }
 
@@ -227,7 +227,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
         case AbilityChargeEndReason.timeout:
           _haptics.trigger(UiHapticsCue.holdAbilityTimedOut);
       }
-      _cancelHeldChargedAimFromHit();
+      _cancelHeldChargedAim();
       return;
     }
     if (event is! RunEndedEvent) return;
