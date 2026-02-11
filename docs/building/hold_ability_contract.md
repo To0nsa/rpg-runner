@@ -42,6 +42,10 @@ Authoritative charged-ability timing is derived in Core from latched hold state.
 - `AbilityChargeTrackingSystem` records hold start tick, live hold ticks, and
   release-duration ticks per slot.
 - Commit-time charge reads Core timing, not UI stopwatch time.
+- For `AbilityInputLifecycle.holdMaintain`, tier selection still samples at
+  commit tick. With the default "hold-start commits immediately" input flow,
+  this resolves to the first tier unless a slot is intentionally pre-held
+  before commit.
 
 ## Runtime Contract
 

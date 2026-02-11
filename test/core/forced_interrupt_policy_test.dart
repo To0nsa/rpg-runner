@@ -74,6 +74,7 @@ class _InjectedAbilityCatalog extends AbilityCatalog {
       category: AbilityCategory.utility,
       allowedSlots: <AbilitySlot>{AbilitySlot.bonus},
       targetingModel: TargetingModel.none,
+      inputLifecycle: AbilityInputLifecycle.tap,
       hitDelivery: SelfHitDelivery(),
       windupTicks: 0,
       activeTicks: 0,

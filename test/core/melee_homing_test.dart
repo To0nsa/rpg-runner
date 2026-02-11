@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
+import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/accessories/accessory_catalog.dart';
 import 'package:rpg_runner/core/combat/faction.dart';
 import 'package:rpg_runner/core/ecs/entity_id.dart';
@@ -110,6 +111,44 @@ void main() {
     expect(shieldAuto.staminaCost, greaterThan(shieldBase.staminaCost));
     expect(shieldAuto.cooldownTicks, greaterThan(shieldBase.cooldownTicks));
   });
+
+  test(
+    'charged auto-aim melee uses homing direction and tiered damage on release hold',
+    () {
+      int commitDamageForReleasedTicks(int releasedTicks) {
+        final world = EcsWorld();
+        final system = _buildSystem();
+        final player = _spawnPlayer(
+          world,
+          abilityPrimaryId: 'eloise.charged_sword_strike_auto_aim',
+        );
+
+        _spawnEnemy(world, x: 130, y: 140); // dx=30, dy=40, len=50
+
+        final chargeIndex = world.abilityCharge.indexOf(player);
+        final slotOffset = world.abilityCharge.slotOffsetForDenseIndex(
+          chargeIndex,
+          AbilitySlot.primary,
+        );
+        world.abilityCharge.releasedHoldTicksBySlot[slotOffset] = releasedTicks;
+        world.abilityCharge.releasedTickBySlot[slotOffset] = 1;
+
+        final inputIndex = world.playerInput.indexOf(player);
+        world.playerInput.strikePressed[inputIndex] = true;
+
+        system.step(world, player: player, currentTick: 1);
+
+        final meleeIndex = world.meleeIntent.indexOf(player);
+        expect(world.meleeIntent.dirX[meleeIndex], closeTo(0.6, 1e-9));
+        expect(world.meleeIntent.dirY[meleeIndex], closeTo(0.8, 1e-9));
+        return world.meleeIntent.damage100[meleeIndex];
+      }
+
+      final shortHoldDamage = commitDamageForReleasedTicks(0);
+      final longHoldDamage = commitDamageForReleasedTicks(20);
+      expect(longHoldDamage, greaterThan(shortHoldDamage));
+    },
+  );
 }
 
 AbilityActivationSystem _buildSystem() {
@@ -140,6 +179,7 @@ EntityId _spawnPlayer(
   world.playerInput.add(player);
   world.movement.add(player, facing: facing);
   world.abilityInputBuffer.add(player);
+  world.abilityCharge.add(player);
   world.activeAbility.add(player);
   world.cooldown.add(player);
   world.mana.add(

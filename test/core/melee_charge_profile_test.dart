@@ -25,6 +25,7 @@ class _ChargeMeleeAbilities extends AbilityCatalog {
         category: AbilityCategory.melee,
         allowedSlots: {AbilitySlot.primary},
         targetingModel: TargetingModel.directional,
+        inputLifecycle: AbilityInputLifecycle.holdRelease,
         hitDelivery: MeleeHitDelivery(
           sizeX: 20,
           sizeY: 20,

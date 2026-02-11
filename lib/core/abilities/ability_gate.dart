@@ -33,9 +33,6 @@ enum AbilityGateFail {
 
   /// Dash already active; disallow overlapping mobility commits.
   dashAlreadyActive,
-
-  /// Mobility is blocked while player is actively holding an aim vector.
-  aimingHeld,
 }
 
 /// Static guard helpers used before creating ability intents.
@@ -108,16 +105,6 @@ abstract class AbilityGate {
 
     if (world.cooldown.isOnCooldown(entity, cooldownGroupId)) {
       return AbilityGateFail.onCooldown;
-    }
-
-    // Mobility cannot start while aim is held. This preserves
-    // existing input semantics where dash/roll commits require a neutral aim.
-    final ii = world.playerInput.tryIndexOf(entity);
-    if (ii != null) {
-      final aimHeld =
-          (world.playerInput.aimDirX[ii].abs() > 1e-6) ||
-          (world.playerInput.aimDirY[ii].abs() > 1e-6);
-      if (aimHeld) return AbilityGateFail.aimingHeld;
     }
 
     if (staminaCost100 > 0) {

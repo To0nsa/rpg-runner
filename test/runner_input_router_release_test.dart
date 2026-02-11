@@ -470,6 +470,7 @@ void main() {
         AbilityKey? abilityPrimaryId,
         AbilityKey? abilitySecondaryId,
         AbilityKey? abilityProjectileId,
+        AbilityKey? abilityMobilityId,
         int? loadoutSlotMask,
         required void Function(RunnerInputRouter input) seedAim,
       }) {
@@ -485,6 +486,7 @@ void main() {
               abilityPrimaryId: abilityPrimaryId,
               abilitySecondaryId: abilitySecondaryId,
               abilityProjectileId: abilityProjectileId,
+              abilityMobilityId: abilityMobilityId,
               projectileItemId: ProjectileItemId.throwingKnife,
               projectileSlotSpellId: null,
             ),
@@ -530,6 +532,57 @@ void main() {
         loadoutSlotMask: LoadoutSlotMask.all,
         seedAim: (input) => input.setAimDir(1, 0),
       );
+
+      expectSharedPreview(
+        slot: AbilitySlot.mobility,
+        abilityMobilityId: 'eloise.charged_aim_dash',
+        seedAim: (input) => input.setAimDir(0, -1),
+      );
+    },
+  );
+
+  test(
+    'mobility charged tier derives from authoritative held ticks on release commit',
+    () {
+      double dashSpeedForHeldTicks(int heldTicks) {
+        final base = PlayerCharacterRegistry.eloise;
+        final core = GameCore(
+          seed: 1,
+          tickHz: 60,
+          tuning: noAutoscrollTuning,
+          playerCharacter: base.copyWith(
+            catalog: testPlayerCatalog(
+              bodyTemplate: BodyDef(useGravity: false),
+              abilityMobilityId: 'eloise.charged_aim_dash',
+            ),
+          ),
+        );
+        final controller = GameController(core: core);
+        final input = RunnerInputRouter(controller: controller);
+        final dt = 1.0 / controller.tickHz;
+
+        input.setAimDir(0, -1);
+        input.startAbilitySlotHold(AbilitySlot.mobility);
+        input.pumpHeldInputs();
+        controller.advanceFrame(dt);
+
+        for (var i = 0; i < heldTicks; i += 1) {
+          input.pumpHeldInputs();
+          controller.advanceFrame(dt);
+        }
+
+        input.endAbilitySlotHold(AbilitySlot.mobility);
+        input.commitMobilityWithAim(clearAim: true);
+        input.pumpHeldInputs();
+        controller.advanceFrame(dt);
+
+        return core.playerVelY.abs();
+      }
+
+      final shortHoldSpeed = dashSpeedForHeldTicks(0);
+      final longHoldSpeed = dashSpeedForHeldTicks(20);
+
+      expect(longHoldSpeed, greaterThan(shortHoldSpeed));
     },
   );
 

@@ -57,7 +57,9 @@ void main() {
       tuning: noAutoscrollTuning,
     );
     final catalog = PlayerCharacterRegistry.eloise.catalog;
-    final floorY = groundTopY.toDouble() - (catalog.colliderOffsetY + catalog.colliderHalfY);
+    final floorY =
+        groundTopY.toDouble() -
+        (catalog.colliderOffsetY + catalog.colliderHalfY);
 
     expect(core.playerPosY, closeTo(floorY, 1e-9));
     expect(core.playerGrounded, isTrue);
@@ -77,7 +79,9 @@ void main() {
       tuning: noAutoscrollTuning,
     );
     final catalog = PlayerCharacterRegistry.eloise.catalog;
-    final floorY = groundTopY.toDouble() - (catalog.colliderOffsetY + catalog.colliderHalfY);
+    final floorY =
+        groundTopY.toDouble() -
+        (catalog.colliderOffsetY + catalog.colliderHalfY);
 
     // Put the player high above the floor so coyote time expires before landing.
     core.setPlayerPosXY(core.playerPosX, floorY - 200);
@@ -125,7 +129,9 @@ void main() {
     );
     final tuning = const MovementTuning();
     final catalog = PlayerCharacterRegistry.eloise.catalog;
-    final floorY = groundTopY.toDouble() - (catalog.colliderOffsetY + catalog.colliderHalfY);
+    final floorY =
+        groundTopY.toDouble() -
+        (catalog.colliderOffsetY + catalog.colliderHalfY);
 
     // Start dashing from the ground.
     _tick(core, dashPressed: true);
@@ -133,6 +139,29 @@ void main() {
     expect(core.playerVelX, closeTo(tuning.dashSpeedX, 1e-9));
     expect(core.playerVelY, closeTo(0, 1e-9));
     expect(core.playerPosY, closeTo(floorY, 1e-9));
+  });
+
+  test('aimed mobility dash can launch on the Y axis', () {
+    final base = PlayerCharacterRegistry.eloise;
+    final core = GameCore(
+      seed: 1,
+      tickHz: defaultTickHz,
+      tuning: noAutoscrollTuning,
+      playerCharacter: base.copyWith(
+        catalog: testPlayerCatalog(
+          abilityMobilityId: 'eloise.charged_aim_dash',
+        ),
+      ),
+    );
+
+    core.applyCommands(const [
+      AimDirCommand(tick: 1, x: 0, y: -1),
+      DashPressedCommand(tick: 1),
+    ]);
+    core.stepOneTick();
+
+    expect(core.playerVelY, lessThan(0));
+    expect(core.playerVelX.abs(), lessThan(1e-6));
   });
 
   test('jump spends stamina (2) when executed', () {
@@ -200,7 +229,9 @@ void main() {
     );
 
     final catalog = PlayerCharacterRegistry.eloise.catalog;
-    final floorY = groundTopY.toDouble() - (catalog.colliderOffsetY + catalog.colliderHalfY);
+    final floorY =
+        groundTopY.toDouble() -
+        (catalog.colliderOffsetY + catalog.colliderHalfY);
     expect(core.playerPosY, closeTo(floorY, 1e-9));
     expect(core.playerGrounded, isTrue);
 
@@ -208,10 +239,7 @@ void main() {
 
     // Without stamina, the buffered jump won't execute and dash won't start.
     expect(core.playerVelY, greaterThanOrEqualTo(0));
-    expect(
-      core.playerVelX.abs(),
-      lessThan(const MovementTuning().dashSpeedX),
-    );
+    expect(core.playerVelX.abs(), lessThan(const MovementTuning().dashSpeedX));
 
     final hud = core.buildSnapshot().hud;
     expect(hud.stamina, closeTo(1.0, 1e-9));
@@ -224,13 +252,13 @@ void main() {
       tickHz: defaultTickHz,
       tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
-        catalog: testPlayerCatalog(
-          bodyTemplate: BodyDef(gravityScale: 0),
-        ),
+        catalog: testPlayerCatalog(bodyTemplate: BodyDef(gravityScale: 0)),
       ),
     );
     final catalog = testPlayerCatalog(bodyTemplate: BodyDef(gravityScale: 0));
-    final floorY = groundTopY.toDouble() - (catalog.colliderOffsetY + catalog.colliderHalfY);
+    final floorY =
+        groundTopY.toDouble() -
+        (catalog.colliderOffsetY + catalog.colliderHalfY);
 
     core.setPlayerPosXY(core.playerPosX, floorY - 120);
     core.setPlayerVelXY(0, 0);
@@ -248,13 +276,13 @@ void main() {
       tickHz: defaultTickHz,
       tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
-        catalog: testPlayerCatalog(
-          bodyTemplate: BodyDef(isKinematic: true),
-        ),
+        catalog: testPlayerCatalog(bodyTemplate: BodyDef(isKinematic: true)),
       ),
     );
     final catalog = testPlayerCatalog(bodyTemplate: BodyDef(isKinematic: true));
-    final floorY = groundTopY.toDouble() - (catalog.colliderOffsetY + catalog.colliderHalfY);
+    final floorY =
+        groundTopY.toDouble() -
+        (catalog.colliderOffsetY + catalog.colliderHalfY);
 
     core.setPlayerPosXY(core.playerPosX, floorY - 120);
     core.setPlayerVelXY(0, 0);

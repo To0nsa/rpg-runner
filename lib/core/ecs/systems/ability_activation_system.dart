@@ -301,13 +301,8 @@ class AbilityActivationSystem {
     AbilityDef ability,
   ) {
     final input = world.playerInput;
-    // Aim is a single global channel and is consumed by directional abilities.
-    final hitDelivery = ability.hitDelivery;
-    if (hitDelivery is MeleeHitDelivery ||
-        hitDelivery is ProjectileHitDelivery) {
-      return (input.aimDirX[inputIndex], input.aimDirY[inputIndex]);
-    }
-    return (0.0, 0.0);
+    if (ability.targetingModel == TargetingModel.none) return (0.0, 0.0);
+    return (input.aimDirX[inputIndex], input.aimDirY[inputIndex]);
   }
 
   bool _commitSlot(
@@ -354,10 +349,11 @@ class AbilityActivationSystem {
         loadoutIndex: loadoutIndex,
         movementIndex: movementIndex,
         inputIndex: inputIndex,
-        facing: facing,
         ability: ability,
         slot: slot,
         commitTick: commitTick,
+        aimOverrideX: aimOverrideX,
+        aimOverrideY: aimOverrideY,
       );
     }
 
@@ -368,7 +364,6 @@ class AbilityActivationSystem {
         player: player,
         loadoutIndex: loadoutIndex,
         inputIndex: inputIndex,
-        facing: facing,
         ability: ability,
         slot: slot,
         commitTick: commitTick,
@@ -383,7 +378,6 @@ class AbilityActivationSystem {
         loadoutIndex: loadoutIndex,
         inputIndex: inputIndex,
         movementIndex: movementIndex,
-        facing: facing,
         ability: ability,
         slot: slot,
         commitTick: commitTick,
@@ -530,11 +524,12 @@ class AbilityActivationSystem {
     required EntityId player,
     required int loadoutIndex,
     required int movementIndex,
-    required Facing facing,
     required AbilityDef ability,
     required AbilitySlot slot,
     required int commitTick,
     int? inputIndex,
+    double? aimOverrideX,
+    double? aimOverrideY,
   }) {
     if (!world.mobilityIntent.has(player)) {
       assert(
@@ -544,12 +539,28 @@ class AbilityActivationSystem {
       return false;
     }
 
-    final axis = inputIndex == null
-        ? 0.0
-        : world.playerInput.moveAxis[inputIndex];
-    final dirX = axis != 0
-        ? (axis > 0 ? 1.0 : -1.0)
-        : (facing == Facing.right ? 1.0 : -1.0);
+    final rawAimX =
+        aimOverrideX ??
+        (inputIndex == null ? 0.0 : world.playerInput.aimDirX[inputIndex]);
+    final rawAimY =
+        aimOverrideY ??
+        (inputIndex == null ? 0.0 : world.playerInput.aimDirY[inputIndex]);
+    final directionalFallback = _directionalFallbackDirection(
+      world,
+      movementIndex: movementIndex,
+      inputIndex: inputIndex,
+    );
+    final dir = _resolveCommitDirection(
+      world,
+      source: player,
+      ability: ability,
+      rawAimX: rawAimX,
+      rawAimY: rawAimY,
+      directionalFallbackX: directionalFallback.$1,
+      directionalFallbackY: directionalFallback.$2,
+    );
+    final dirX = dir.$1;
+    final dirY = dir.$2;
 
     final windupTicks = _scaleAbilityTicks(ability.windupTicks);
     final activeTicks = _scaleAbilityTicks(ability.activeTicks);
@@ -559,6 +570,22 @@ class AbilityActivationSystem {
     final resolvedStats = _resolvedStatsForLoadout(world, loadoutIndex);
     final cooldownTicks = resolvedStats.applyCooldownReduction(
       _scaleAbilityTicks(ability.cooldownTicks),
+    );
+    final chargeTicks = _resolveCommitChargeTicks(
+      world,
+      player: player,
+      slot: slot,
+      commitTick: commitTick,
+    );
+    final chargeTuning = _resolveChargeTuning(
+      ability: ability,
+      chargeTicks: chargeTicks,
+      defaults: const _ChargeTuning(
+        damageScaleBp: 10000,
+        critBonusBp: 0,
+        speedScaleBp: 10000,
+        hitboxScaleBp: 10000,
+      ),
     );
 
     // Preserve old behavior: mobility cancels pending combat + buffered input + active combat ability.
@@ -573,7 +600,10 @@ class AbilityActivationSystem {
     );
     if (fail != null) return false;
 
-    final facingDir = dirX >= 0 ? Facing.right : Facing.left;
+    final facingDir = _facingFromDirectionX(
+      dirX,
+      fallbackDirX: directionalFallback.$1,
+    );
     _applyCommitSideEffects(
       world,
       player: player,
@@ -597,6 +627,8 @@ class AbilityActivationSystem {
         abilityId: ability.id,
         slot: slot,
         dirX: dirX,
+        dirY: dirY,
+        speedScaleBp: chargeTuning.speedScaleBp,
         commitTick: commitTick,
         windupTicks: windupTicks,
         activeTicks: activeTicks,
@@ -614,7 +646,6 @@ class AbilityActivationSystem {
     EcsWorld world, {
     required EntityId player,
     required int loadoutIndex,
-    required Facing facing,
     required AbilityDef ability,
     required AbilitySlot slot,
     required int commitTick,
@@ -664,31 +695,22 @@ class AbilityActivationSystem {
     final rawAimY =
         aimOverrideY ??
         (inputIndex == null ? 0.0 : world.playerInput.aimDirY[inputIndex]);
-    final fallbackDirX = facing == Facing.right ? 1.0 : -1.0;
-    const fallbackDirY = 0.0;
-    final resolvedAim = _resolveHomingAimDirection(
+    final directionalFallback = _directionalFallbackDirection(
+      world,
+      movementIndex: world.movement.indexOf(player),
+      inputIndex: inputIndex,
+    );
+    final dir = _resolveCommitDirection(
       world,
       source: player,
       ability: ability,
       rawAimX: rawAimX,
       rawAimY: rawAimY,
-      fallbackDirX: fallbackDirX,
-      fallbackDirY: fallbackDirY,
+      directionalFallbackX: directionalFallback.$1,
+      directionalFallbackY: directionalFallback.$2,
     );
-    final aimX = resolvedAim.$1;
-    final aimY = resolvedAim.$2;
-    final len2 = aimX * aimX + aimY * aimY;
-
-    final double dirX;
-    final double dirY;
-    if (len2 > 1e-12) {
-      final invLen = 1.0 / sqrt(len2);
-      dirX = aimX * invLen;
-      dirY = aimY * invLen;
-    } else {
-      dirX = fallbackDirX;
-      dirY = fallbackDirY;
-    }
+    final dirX = dir.$1;
+    final dirY = dir.$2;
 
     final chargeTicks = _resolveCommitChargeTicks(
       world,
@@ -782,7 +804,10 @@ class AbilityActivationSystem {
     );
     if (fail != null) return false;
 
-    final facingDir = dirX >= 0 ? Facing.right : Facing.left;
+    final facingDir = _facingFromDirectionX(
+      dirX,
+      fallbackDirX: directionalFallback.$1,
+    );
     _applyCommitSideEffects(
       world,
       player: player,
@@ -832,7 +857,6 @@ class AbilityActivationSystem {
     required EntityId player,
     required int loadoutIndex,
     required int movementIndex,
-    required Facing facing,
     required AbilityDef ability,
     required AbilitySlot slot,
     required int commitTick,
@@ -934,30 +958,27 @@ class AbilityActivationSystem {
     final rawAimY =
         aimOverrideY ??
         (inputIndex == null ? 0.0 : world.playerInput.aimDirY[inputIndex]);
-    final fallbackDirX = facing == Facing.right ? 1.0 : -1.0;
-    final fallbackDirY = 0.0;
-    final resolvedAim = _resolveProjectileAimDirection(
+    final directionalFallback = _directionalFallbackDirection(
+      world,
+      movementIndex: movementIndex,
+      inputIndex: inputIndex,
+    );
+    final fallbackDirX = directionalFallback.$1;
+    final fallbackDirY = directionalFallback.$2;
+    final resolvedDir = _resolveCommitDirection(
       world,
       source: player,
       ability: ability,
       rawAimX: rawAimX,
       rawAimY: rawAimY,
-      fallbackDirX: fallbackDirX,
-      fallbackDirY: fallbackDirY,
+      directionalFallbackX: fallbackDirX,
+      directionalFallbackY: fallbackDirY,
     );
-    final aimX = resolvedAim.$1;
-    final aimY = resolvedAim.$2;
-    final len2 = aimX * aimX + aimY * aimY;
+    final aimX = resolvedDir.$1;
+    final aimY = resolvedDir.$2;
 
     if (ability.category == AbilityCategory.ranged) {
-      final double dirX;
-      if (len2 > 1e-12) {
-        final invLen = 1.0 / sqrt(len2);
-        dirX = aimX * invLen;
-      } else {
-        dirX = fallbackDirX;
-      }
-
+      final dirX = aimX;
       if (dirX.abs() > 1e-6) {
         world.movement.facing[movementIndex] = dirX >= 0
             ? Facing.right
@@ -1019,8 +1040,7 @@ class AbilityActivationSystem {
     );
     if (fail != null) return false;
 
-    final primaryX = (aimX.abs() > 1e-6) ? aimX : fallbackDirX;
-    final facingDir = primaryX >= 0 ? Facing.right : Facing.left;
+    final facingDir = _facingFromDirectionX(aimX, fallbackDirX: fallbackDirX);
     _applyCommitSideEffects(
       world,
       player: player,
@@ -1118,54 +1138,101 @@ class AbilityActivationSystem {
     return 2;
   }
 
-  (double, double) _resolveHomingAimDirection(
+  (double, double) _resolveCommitDirection(
     EcsWorld world, {
     required EntityId source,
     required AbilityDef ability,
     required double rawAimX,
     required double rawAimY,
-    required double fallbackDirX,
-    required double fallbackDirY,
+    required double directionalFallbackX,
+    required double directionalFallbackY,
   }) {
-    if (ability.targetingModel != TargetingModel.homing) {
-      return (rawAimX, rawAimY);
-    }
-
-    final nearest = _nearestHostileAim(
-      world,
-      source: source,
-      fallbackDirX: fallbackDirX,
-      fallbackDirY: fallbackDirY,
-    );
-    if (nearest != null) return nearest;
-    return (rawAimX, rawAimY);
-  }
-
-  (double, double) _resolveProjectileAimDirection(
-    EcsWorld world, {
-    required EntityId source,
-    required AbilityDef ability,
-    required double rawAimX,
-    required double rawAimY,
-    required double fallbackDirX,
-    required double fallbackDirY,
-  }) {
-    return _resolveHomingAimDirection(
+    final targetSpecific = _resolveTargetSpecificDirection(
       world,
       source: source,
       ability: ability,
       rawAimX: rawAimX,
       rawAimY: rawAimY,
-      fallbackDirX: fallbackDirX,
-      fallbackDirY: fallbackDirY,
+      directionalFallbackX: directionalFallbackX,
+      directionalFallbackY: directionalFallbackY,
     );
+    if (targetSpecific != null) return targetSpecific;
+
+    final inputIndex = world.playerInput.tryIndexOf(source);
+    if (inputIndex != null) {
+      final globalAim = _normalizeDirectionOrNull(
+        world.playerInput.aimDirX[inputIndex],
+        world.playerInput.aimDirY[inputIndex],
+      );
+      if (globalAim != null) return globalAim;
+    }
+
+    final directionalFallback = _normalizeDirectionOrNull(
+      directionalFallbackX,
+      directionalFallbackY,
+    );
+    if (directionalFallback != null) return directionalFallback;
+    return (1.0, 0.0);
+  }
+
+  (double, double)? _resolveTargetSpecificDirection(
+    EcsWorld world, {
+    required EntityId source,
+    required AbilityDef ability,
+    required double rawAimX,
+    required double rawAimY,
+    required double directionalFallbackX,
+    required double directionalFallbackY,
+  }) {
+    switch (ability.targetingModel) {
+      case TargetingModel.none:
+        return null;
+      case TargetingModel.homing:
+        return _nearestHostileAim(world, source: source);
+      case TargetingModel.directional:
+        return _normalizeDirectionOrNull(rawAimX, rawAimY) ??
+            _normalizeDirectionOrNull(
+              directionalFallbackX,
+              directionalFallbackY,
+            );
+      case TargetingModel.aimed:
+      case TargetingModel.aimedLine:
+      case TargetingModel.aimedCharge:
+      case TargetingModel.groundTarget:
+        return _normalizeDirectionOrNull(rawAimX, rawAimY);
+    }
+  }
+
+  (double, double)? _normalizeDirectionOrNull(double x, double y) {
+    final len2 = x * x + y * y;
+    if (len2 <= 1e-12) return null;
+    final invLen = 1.0 / sqrt(len2);
+    return (x * invLen, y * invLen);
+  }
+
+  (double, double) _directionalFallbackDirection(
+    EcsWorld world, {
+    required int movementIndex,
+    required int? inputIndex,
+  }) {
+    final axis = inputIndex == null
+        ? 0.0
+        : world.playerInput.moveAxis[inputIndex];
+    if (axis.abs() > 1e-6) {
+      return (axis > 0 ? 1.0 : -1.0, 0.0);
+    }
+    final facing = world.movement.facing[movementIndex];
+    return (facing == Facing.right ? 1.0 : -1.0, 0.0);
+  }
+
+  Facing _facingFromDirectionX(double dirX, {required double fallbackDirX}) {
+    final primaryX = dirX.abs() > 1e-6 ? dirX : fallbackDirX;
+    return primaryX >= 0 ? Facing.right : Facing.left;
   }
 
   (double, double)? _nearestHostileAim(
     EcsWorld world, {
     required EntityId source,
-    required double fallbackDirX,
-    required double fallbackDirY,
   }) {
     final sourceTi = world.transform.tryIndexOf(source);
     if (sourceTi == null) return null;
@@ -1208,12 +1275,7 @@ class AbilityActivationSystem {
       }
     }
 
-    if (bestEntity == -1) {
-      final fbLen2 = fallbackDirX * fallbackDirX + fallbackDirY * fallbackDirY;
-      if (fbLen2 <= 1e-12) return null;
-      final invLen = 1.0 / sqrt(fbLen2);
-      return (fallbackDirX * invLen, fallbackDirY * invLen);
-    }
+    if (bestEntity == -1) return null;
 
     final invLen = 1.0 / sqrt(bestDist2);
     return (bestDx * invLen, bestDy * invLen);

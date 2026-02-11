@@ -25,6 +25,7 @@ class MockAbilities extends AbilityCatalog {
         category: AbilityCategory.melee,
         allowedSlots: {AbilitySlot.primary},
         targetingModel: TargetingModel.directional,
+        inputLifecycle: AbilityInputLifecycle.tap,
         windupTicks: 5,
         activeTicks: 5,
         recoveryTicks: 5,

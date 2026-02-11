@@ -37,6 +37,7 @@ class AbilityCatalog implements AbilityResolver {
       category: AbilityCategory.melee,
       allowedSlots: {AbilitySlot.primary},
       targetingModel: TargetingModel.directional,
+      inputLifecycle: AbilityInputLifecycle.tap,
       hitDelivery: MeleeHitDelivery(
         sizeX: 1.0,
         sizeY: 1.0,
@@ -58,6 +59,7 @@ class AbilityCatalog implements AbilityResolver {
       category: AbilityCategory.magic,
       allowedSlots: {AbilitySlot.projectile},
       targetingModel: TargetingModel.aimed,
+      inputLifecycle: AbilityInputLifecycle.holdRelease,
       hitDelivery: ProjectileHitDelivery(
         projectileId: ProjectileId.thunderBolt,
         hitPolicy: HitPolicy.oncePerTarget,
@@ -83,6 +85,7 @@ class AbilityCatalog implements AbilityResolver {
       category: AbilityCategory.melee,
       allowedSlots: {AbilitySlot.primary},
       targetingModel: TargetingModel.directional,
+      inputLifecycle: AbilityInputLifecycle.holdRelease,
       hitDelivery: MeleeHitDelivery(
         sizeX: 32,
         sizeY: 32,
@@ -115,6 +118,7 @@ class AbilityCatalog implements AbilityResolver {
       category: AbilityCategory.melee,
       allowedSlots: {AbilitySlot.primary},
       targetingModel: TargetingModel.aimedCharge,
+      inputLifecycle: AbilityInputLifecycle.holdRelease,
       hitDelivery: MeleeHitDelivery(
         sizeX: 32,
         sizeY: 32,
@@ -167,11 +171,70 @@ class AbilityCatalog implements AbilityResolver {
       ],
       baseDamage: 1600,
     ),
+    'eloise.charged_sword_strike_auto_aim': AbilityDef(
+      id: 'eloise.charged_sword_strike_auto_aim',
+      category: AbilityCategory.melee,
+      allowedSlots: {AbilitySlot.primary},
+      targetingModel: TargetingModel.homing,
+      inputLifecycle: AbilityInputLifecycle.holdRelease,
+      hitDelivery: MeleeHitDelivery(
+        sizeX: 32,
+        sizeY: 32,
+        offsetX: 12,
+        offsetY: 0.0,
+        hitPolicy: HitPolicy.oncePerTarget,
+      ),
+      windupTicks: 10,
+      activeTicks: 6,
+      recoveryTicks: 10,
+      staminaCost: 600,
+      manaCost: 0,
+      cooldownTicks: 24,
+      forcedInterruptCauses: <ForcedInterruptCause>{
+        ForcedInterruptCause.stun,
+        ForcedInterruptCause.death,
+        ForcedInterruptCause.damageTaken,
+      },
+      animKey: AnimKey.strike,
+      requiredWeaponTypes: {WeaponType.oneHandedSword},
+      payloadSource: AbilityPayloadSource.primaryWeapon,
+      chargeProfile: AbilityChargeProfile(
+        tiers: <AbilityChargeTierDef>[
+          AbilityChargeTierDef(
+            minHoldTicks60: 0,
+            damageScaleBp: 9000,
+            hitboxScaleBp: 9200,
+          ),
+          AbilityChargeTierDef(
+            minHoldTicks60: 8,
+            damageScaleBp: 10800,
+            critBonusBp: 500,
+            hitboxScaleBp: 10800,
+          ),
+          AbilityChargeTierDef(
+            minHoldTicks60: 16,
+            damageScaleBp: 13250,
+            critBonusBp: 1000,
+            hitboxScaleBp: 12600,
+          ),
+        ],
+      ),
+      chargeMaxHoldTicks60: 150,
+      procs: <WeaponProc>[
+        WeaponProc(
+          hook: ProcHook.onHit,
+          statusProfileId: StatusProfileId.meleeBleed,
+          chanceBp: 10000,
+        ),
+      ],
+      baseDamage: 1550,
+    ),
     'eloise.sword_strike_auto_aim': AbilityDef(
       id: 'eloise.sword_strike_auto_aim',
       category: AbilityCategory.melee,
       allowedSlots: {AbilitySlot.primary},
       targetingModel: TargetingModel.homing,
+      inputLifecycle: AbilityInputLifecycle.tap,
       hitDelivery: MeleeHitDelivery(
         sizeX: 32,
         sizeY: 32,
@@ -205,6 +268,7 @@ class AbilityCatalog implements AbilityResolver {
       category: AbilityCategory.defense,
       allowedSlots: {AbilitySlot.primary},
       targetingModel: TargetingModel.none,
+      inputLifecycle: AbilityInputLifecycle.holdMaintain,
       hitDelivery: SelfHitDelivery(),
       // Hold defense up to 3s at 60Hz.
       windupTicks: 2,
@@ -230,6 +294,7 @@ class AbilityCatalog implements AbilityResolver {
       category: AbilityCategory.defense,
       allowedSlots: {AbilitySlot.secondary},
       targetingModel: TargetingModel.directional,
+      inputLifecycle: AbilityInputLifecycle.tap,
       hitDelivery: MeleeHitDelivery(
         sizeX: 32,
         sizeY: 32,
@@ -260,6 +325,7 @@ class AbilityCatalog implements AbilityResolver {
       category: AbilityCategory.defense,
       allowedSlots: {AbilitySlot.secondary},
       targetingModel: TargetingModel.aimedCharge,
+      inputLifecycle: AbilityInputLifecycle.holdRelease,
       hitDelivery: MeleeHitDelivery(
         sizeX: 32,
         sizeY: 32,
@@ -317,6 +383,7 @@ class AbilityCatalog implements AbilityResolver {
       category: AbilityCategory.defense,
       allowedSlots: {AbilitySlot.secondary},
       targetingModel: TargetingModel.homing,
+      inputLifecycle: AbilityInputLifecycle.tap,
       hitDelivery: MeleeHitDelivery(
         sizeX: 32,
         sizeY: 32,
@@ -350,6 +417,7 @@ class AbilityCatalog implements AbilityResolver {
       category: AbilityCategory.defense,
       allowedSlots: {AbilitySlot.secondary},
       targetingModel: TargetingModel.none,
+      inputLifecycle: AbilityInputLifecycle.holdMaintain,
       hitDelivery: SelfHitDelivery(),
       // Match Sword Parry exactly (only required weapon differs).
       windupTicks: 2,
@@ -374,6 +442,7 @@ class AbilityCatalog implements AbilityResolver {
       category: AbilityCategory.magic,
       allowedSlots: {AbilitySlot.projectile},
       targetingModel: TargetingModel.homing,
+      inputLifecycle: AbilityInputLifecycle.tap,
       // Projectile id comes from the equipped projectile item at runtime.
       hitDelivery: ProjectileHitDelivery(
         projectileId: ProjectileId.iceBolt,
@@ -399,6 +468,7 @@ class AbilityCatalog implements AbilityResolver {
       category: AbilityCategory.ranged,
       allowedSlots: {AbilitySlot.projectile},
       targetingModel: TargetingModel.aimed,
+      inputLifecycle: AbilityInputLifecycle.holdRelease,
       // Projectile id comes from the equipped projectile item at runtime.
       hitDelivery: ProjectileHitDelivery(
         projectileId: ProjectileId.throwingKnife,
@@ -424,6 +494,7 @@ class AbilityCatalog implements AbilityResolver {
       category: AbilityCategory.ranged,
       allowedSlots: {AbilitySlot.projectile},
       targetingModel: TargetingModel.aimedLine,
+      inputLifecycle: AbilityInputLifecycle.holdRelease,
       // Projectile id comes from the equipped projectile item at runtime.
       hitDelivery: ProjectileHitDelivery(
         projectileId: ProjectileId.throwingAxe,
@@ -451,6 +522,7 @@ class AbilityCatalog implements AbilityResolver {
       category: AbilityCategory.magic,
       allowedSlots: {AbilitySlot.projectile},
       targetingModel: TargetingModel.aimedCharge,
+      inputLifecycle: AbilityInputLifecycle.holdRelease,
       // Projectile id comes from the equipped projectile item at runtime.
       hitDelivery: ProjectileHitDelivery(
         projectileId: ProjectileId.fireBolt,
@@ -508,6 +580,7 @@ class AbilityCatalog implements AbilityResolver {
       category: AbilityCategory.utility,
       allowedSlots: {AbilitySlot.bonus},
       targetingModel: TargetingModel.none,
+      inputLifecycle: AbilityInputLifecycle.tap,
       hitDelivery: SelfHitDelivery(),
       // Instant cast, short recovery.
       windupTicks: 0,
@@ -527,6 +600,7 @@ class AbilityCatalog implements AbilityResolver {
       category: AbilityCategory.utility,
       allowedSlots: {AbilitySlot.bonus},
       targetingModel: TargetingModel.none,
+      inputLifecycle: AbilityInputLifecycle.tap,
       hitDelivery: SelfHitDelivery(),
       windupTicks: 0,
       activeTicks: 0,
@@ -545,6 +619,7 @@ class AbilityCatalog implements AbilityResolver {
       category: AbilityCategory.utility,
       allowedSlots: {AbilitySlot.bonus},
       targetingModel: TargetingModel.none,
+      inputLifecycle: AbilityInputLifecycle.tap,
       hitDelivery: SelfHitDelivery(),
       windupTicks: 0,
       activeTicks: 0,
@@ -563,6 +638,7 @@ class AbilityCatalog implements AbilityResolver {
       category: AbilityCategory.utility,
       allowedSlots: {AbilitySlot.bonus},
       targetingModel: TargetingModel.none,
+      inputLifecycle: AbilityInputLifecycle.tap,
       hitDelivery: SelfHitDelivery(),
       windupTicks: 0,
       activeTicks: 0,
@@ -585,6 +661,7 @@ class AbilityCatalog implements AbilityResolver {
       category: AbilityCategory.mobility,
       allowedSlots: {AbilitySlot.jump},
       targetingModel: TargetingModel.none,
+      inputLifecycle: AbilityInputLifecycle.tap,
       hitDelivery: SelfHitDelivery(),
       payloadSource: AbilityPayloadSource.none,
       windupTicks: 0,
@@ -602,6 +679,7 @@ class AbilityCatalog implements AbilityResolver {
       category: AbilityCategory.mobility,
       allowedSlots: {AbilitySlot.mobility},
       targetingModel: TargetingModel.directional,
+      inputLifecycle: AbilityInputLifecycle.tap,
       hitDelivery: SelfHitDelivery(),
       payloadSource: AbilityPayloadSource.none,
       // 4 frames @ 0.05s = 0.20s -> 12 ticks
@@ -616,12 +694,126 @@ class AbilityCatalog implements AbilityResolver {
       animKey: AnimKey.dash,
       baseDamage: 0,
     ),
+    'eloise.charged_aim_dash': AbilityDef(
+      id: 'eloise.charged_aim_dash',
+      category: AbilityCategory.mobility,
+      allowedSlots: {AbilitySlot.mobility},
+      targetingModel: TargetingModel.aimedCharge,
+      inputLifecycle: AbilityInputLifecycle.holdRelease,
+      hitDelivery: SelfHitDelivery(),
+      payloadSource: AbilityPayloadSource.none,
+      windupTicks: 0,
+      activeTicks: 12,
+      recoveryTicks: 0,
+      staminaCost: 225,
+      manaCost: 0,
+      cooldownTicks: 120,
+      animKey: AnimKey.dash,
+      chargeProfile: AbilityChargeProfile(
+        tiers: <AbilityChargeTierDef>[
+          AbilityChargeTierDef(
+            minHoldTicks60: 0,
+            damageScaleBp: 10000,
+            speedScaleBp: 9000,
+          ),
+          AbilityChargeTierDef(
+            minHoldTicks60: 8,
+            damageScaleBp: 10000,
+            speedScaleBp: 11000,
+          ),
+          AbilityChargeTierDef(
+            minHoldTicks60: 16,
+            damageScaleBp: 10000,
+            speedScaleBp: 12800,
+          ),
+        ],
+      ),
+      chargeMaxHoldTicks60: 150,
+      baseDamage: 0,
+    ),
+    'eloise.charged_auto_dash': AbilityDef(
+      id: 'eloise.charged_auto_dash',
+      category: AbilityCategory.mobility,
+      allowedSlots: {AbilitySlot.mobility},
+      targetingModel: TargetingModel.homing,
+      inputLifecycle: AbilityInputLifecycle.holdRelease,
+      hitDelivery: SelfHitDelivery(),
+      payloadSource: AbilityPayloadSource.none,
+      windupTicks: 0,
+      activeTicks: 12,
+      recoveryTicks: 0,
+      staminaCost: 240,
+      manaCost: 0,
+      cooldownTicks: 120,
+      animKey: AnimKey.dash,
+      chargeProfile: AbilityChargeProfile(
+        tiers: <AbilityChargeTierDef>[
+          AbilityChargeTierDef(
+            minHoldTicks60: 0,
+            damageScaleBp: 10000,
+            speedScaleBp: 8800,
+          ),
+          AbilityChargeTierDef(
+            minHoldTicks60: 8,
+            damageScaleBp: 10000,
+            speedScaleBp: 10600,
+          ),
+          AbilityChargeTierDef(
+            minHoldTicks60: 16,
+            damageScaleBp: 10000,
+            speedScaleBp: 12300,
+          ),
+        ],
+      ),
+      chargeMaxHoldTicks60: 150,
+      baseDamage: 0,
+    ),
+    'eloise.hold_auto_dash': AbilityDef(
+      id: 'eloise.hold_auto_dash',
+      category: AbilityCategory.mobility,
+      allowedSlots: {AbilitySlot.mobility},
+      targetingModel: TargetingModel.homing,
+      inputLifecycle: AbilityInputLifecycle.holdMaintain,
+      hitDelivery: SelfHitDelivery(),
+      payloadSource: AbilityPayloadSource.none,
+      windupTicks: 0,
+      activeTicks: 60,
+      recoveryTicks: 0,
+      staminaCost: 240,
+      manaCost: 0,
+      holdMode: AbilityHoldMode.holdToMaintain,
+      holdStaminaDrainPerSecond100: 120,
+      cooldownTicks: 120,
+      animKey: AnimKey.dash,
+      chargeProfile: AbilityChargeProfile(
+        tiers: <AbilityChargeTierDef>[
+          AbilityChargeTierDef(
+            minHoldTicks60: 0,
+            damageScaleBp: 10000,
+            speedScaleBp: 9000,
+          ),
+          AbilityChargeTierDef(
+            minHoldTicks60: 8,
+            damageScaleBp: 10000,
+            speedScaleBp: 10800,
+          ),
+          AbilityChargeTierDef(
+            minHoldTicks60: 16,
+            damageScaleBp: 10000,
+            speedScaleBp: 12400,
+          ),
+        ],
+      ),
+      chargeMaxHoldTicks60: 150,
+      baseDamage: 0,
+    ),
 
     'eloise.roll': AbilityDef(
       id: 'eloise.roll',
       category: AbilityCategory.mobility,
       allowedSlots: {AbilitySlot.mobility},
       targetingModel: TargetingModel.directional,
+      inputLifecycle: AbilityInputLifecycle.tap,
       hitDelivery: SelfHitDelivery(),
       payloadSource: AbilityPayloadSource.none,
       // 10 frames @ 0.05s = 0.50s -> 30 ticks

@@ -23,7 +23,10 @@ class RunnerControlsOverlay extends StatelessWidget {
     super.key,
     required this.onMoveAxis,
     required this.onJumpPressed,
-    required this.onDashPressed,
+    required this.onMobilityPressed,
+    required this.onMobilityCommitted,
+    required this.onMobilityHoldStart,
+    required this.onMobilityHoldEnd,
     required this.onSecondaryPressed,
     required this.onSecondaryCommitted,
     required this.onSecondaryHoldStart,
@@ -53,13 +56,14 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.meleeInputMode,
     required this.secondaryInputMode,
     required this.projectileInputMode,
+    required this.mobilityInputMode,
     required this.chargeBarVisible,
     required this.chargeBarProgress01,
     required this.chargeBarTier,
     required this.jumpAffordable,
-    required this.dashAffordable,
-    required this.dashCooldownTicksLeft,
-    required this.dashCooldownTicksTotal,
+    required this.mobilityAffordable,
+    required this.mobilityCooldownTicksLeft,
+    required this.mobilityCooldownTicksTotal,
     required this.secondaryAffordable,
     required this.secondaryCooldownTicksLeft,
     required this.secondaryCooldownTicksTotal,
@@ -72,7 +76,10 @@ class RunnerControlsOverlay extends StatelessWidget {
 
   final ValueChanged<double> onMoveAxis;
   final VoidCallback onJumpPressed;
-  final VoidCallback onDashPressed;
+  final VoidCallback onMobilityPressed;
+  final VoidCallback onMobilityCommitted;
+  final VoidCallback onMobilityHoldStart;
+  final VoidCallback onMobilityHoldEnd;
   final VoidCallback onSecondaryPressed;
   final VoidCallback onSecondaryCommitted;
   final VoidCallback onSecondaryHoldStart;
@@ -106,10 +113,11 @@ class RunnerControlsOverlay extends StatelessWidget {
   final AbilityInputMode meleeInputMode;
   final AbilityInputMode secondaryInputMode;
   final AbilityInputMode projectileInputMode;
+  final AbilityInputMode mobilityInputMode;
   final bool jumpAffordable;
-  final bool dashAffordable;
-  final int dashCooldownTicksLeft;
-  final int dashCooldownTicksTotal;
+  final bool mobilityAffordable;
+  final int mobilityCooldownTicksLeft;
+  final int mobilityCooldownTicksTotal;
   final bool secondaryAffordable;
   final int secondaryCooldownTicksLeft;
   final int secondaryCooldownTicksTotal;
@@ -246,17 +254,50 @@ class RunnerControlsOverlay extends StatelessWidget {
         Positioned(
           right: layout.dash.right,
           bottom: layout.dash.bottom,
-          child: ActionButton(
-            label: 'Dash',
-            icon: Icons.flash_on,
-            onPressed: onDashPressed,
-            tuning: action,
-            cooldownRing: cooldownRing,
-            affordable: dashAffordable,
-            cooldownTicksLeft: dashCooldownTicksLeft,
-            cooldownTicksTotal: dashCooldownTicksTotal,
-            size: layout.actionSize,
-          ),
+          child: mobilityInputMode == AbilityInputMode.tap
+              ? ActionButton(
+                  label: 'Mob',
+                  icon: Icons.flash_on,
+                  onPressed: onMobilityPressed,
+                  tuning: action,
+                  cooldownRing: cooldownRing,
+                  affordable: mobilityAffordable,
+                  cooldownTicksLeft: mobilityCooldownTicksLeft,
+                  cooldownTicksTotal: mobilityCooldownTicksTotal,
+                  size: layout.actionSize,
+                )
+              : mobilityInputMode == AbilityInputMode.holdMaintain
+              ? HoldActionButton(
+                  label: 'Mob',
+                  icon: Icons.flash_on,
+                  onHoldStart: onMobilityHoldStart,
+                  onHoldEnd: onMobilityHoldEnd,
+                  tuning: action,
+                  cooldownRing: cooldownRing,
+                  affordable: mobilityAffordable,
+                  cooldownTicksLeft: mobilityCooldownTicksLeft,
+                  cooldownTicksTotal: mobilityCooldownTicksTotal,
+                  size: layout.actionSize,
+                )
+              : DirectionalActionButton(
+                  label: 'Mob',
+                  icon: Icons.flash_on,
+                  onHoldStart: onMobilityHoldStart,
+                  onHoldEnd: onMobilityHoldEnd,
+                  onAimDir: onAimDir,
+                  onAimClear: onAimClear,
+                  onCommit: onMobilityCommitted,
+                  projectileAimPreview: meleeAimPreview,
+                  tuning: style.directionalActionButton,
+                  cooldownRing: cooldownRing,
+                  cancelHitboxRect: aimCancelHitboxRect,
+                  affordable: mobilityAffordable,
+                  cooldownTicksLeft: mobilityCooldownTicksLeft,
+                  cooldownTicksTotal: mobilityCooldownTicksTotal,
+                  size: layout.directionalSize,
+                  deadzoneRadius: layout.directionalDeadzoneRadius,
+                  forceCancelSignal: forceAimCancelSignal,
+                ),
         ),
         Positioned(
           right: layout.jump.right,

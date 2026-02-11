@@ -146,6 +146,8 @@ void main() {
         abilityId: 'eloise.dash',
         slot: AbilitySlot.mobility,
         dirX: 1.0,
+        dirY: 0.0,
+        speedScaleBp: 10000,
         commitTick: 0,
         windupTicks: 0,
         activeTicks: tuning.dashDurationTicks,

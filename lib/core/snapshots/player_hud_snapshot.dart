@@ -21,7 +21,7 @@ class PlayerHudSnapshot {
     required this.bonusSlotValid,
     required this.jumpSlotValid,
     required this.canAffordJump,
-    required this.canAffordDash,
+    required this.canAffordMobility,
     required this.canAffordMelee,
     required this.canAffordSecondary,
     required this.canAffordProjectile,
@@ -31,6 +31,7 @@ class PlayerHudSnapshot {
     required this.meleeInputMode,
     required this.secondaryInputMode,
     required this.projectileInputMode,
+    required this.mobilityInputMode,
     required this.chargeEnabled,
     required this.chargeHalfTicks,
     required this.chargeFullTicks,
@@ -81,8 +82,8 @@ class PlayerHudSnapshot {
   /// Whether stamina is sufficient for jumping.
   final bool canAffordJump;
 
-  /// Whether stamina is sufficient for dashing.
-  final bool canAffordDash;
+  /// Whether stamina is sufficient for the equipped mobility ability.
+  final bool canAffordMobility;
 
   /// Whether stamina is sufficient for melee.
   final bool canAffordMelee;
@@ -110,6 +111,9 @@ class PlayerHudSnapshot {
 
   /// Input interaction mode for projectile slot.
   final AbilityInputMode projectileInputMode;
+
+  /// Input interaction mode for mobility slot.
+  final AbilityInputMode mobilityInputMode;
 
   /// Whether at least one equipped slot supports tiered charge.
   final bool chargeEnabled;

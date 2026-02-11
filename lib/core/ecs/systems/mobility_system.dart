@@ -50,13 +50,20 @@ class MobilitySystem {
           : world.statModifier.moveSpeedMul[modifierIndex];
 
       final dirX = intents.dirX[ii];
-      movements.dashDirX[mi] = dirX;
-      movements.dashTicksLeft[mi] = activeTicks;
-      movements.facing[mi] = dirX >= 0 ? Facing.right : Facing.left;
+      final dirY = intents.dirY[ii];
+      final speedScale = intents.speedScaleBp[ii] / 10000.0;
+      final dashSpeed = tuning.base.dashSpeedX * moveSpeedMul * speedScale;
 
-      // Cancel vertical motion and suppress gravity to keep dash horizontal.
-      transforms.velY[ti] = 0;
-      transforms.velX[ti] = dirX * tuning.base.dashSpeedX * moveSpeedMul;
+      movements.dashDirX[mi] = dirX;
+      movements.dashDirY[mi] = dirY;
+      movements.dashSpeedScale[mi] = speedScale;
+      movements.dashTicksLeft[mi] = activeTicks;
+      if (dirX.abs() > 1e-6) {
+        movements.facing[mi] = dirX >= 0 ? Facing.right : Facing.left;
+      }
+
+      transforms.velX[ti] = dirX * dashSpeed;
+      transforms.velY[ti] = dirY * dashSpeed;
       world.gravityControl.setSuppressForTicks(entity, activeTicks);
     }
   }

@@ -82,7 +82,7 @@ void main() {
       expect(result, equals(AbilityGateFail.dashAlreadyActive));
     });
 
-    test('Mobility: Aiming held fails gate', () {
+    test('Mobility: aiming held no longer blocks commit', () {
       final player = world.createEntity();
       world.movement.add(player, facing: Facing.right);
       world.body.add(player, const BodyDef(enabled: true, isKinematic: false));
@@ -98,7 +98,7 @@ void main() {
         cooldownGroupId: 0,
         staminaCost100: 0,
       );
-      expect(result, equals(AbilityGateFail.aimingHeld));
+      expect(result, isNull);
     });
   });
 }

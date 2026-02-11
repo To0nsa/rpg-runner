@@ -45,4 +45,34 @@ void main() {
     final hud = core.buildSnapshot().hud;
     expect(hud.secondaryInputMode, AbilityInputMode.tap);
   });
+
+  test('snapshot exposes tap input mode for default mobility ability', () {
+    final core = GameCore(seed: 1);
+    final hud = core.buildSnapshot().hud;
+    expect(hud.mobilityInputMode, AbilityInputMode.tap);
+  });
+
+  test('snapshot exposes hold-aim-release for charged aimed mobility', () {
+    final core = GameCore(
+      seed: 1,
+      equippedLoadoutOverride: const EquippedLoadoutDef(
+        abilityMobilityId: 'eloise.charged_aim_dash',
+      ),
+    );
+
+    final hud = core.buildSnapshot().hud;
+    expect(hud.mobilityInputMode, AbilityInputMode.holdAimRelease);
+  });
+
+  test('snapshot exposes hold-maintain mode for hold auto-aim mobility', () {
+    final core = GameCore(
+      seed: 1,
+      equippedLoadoutOverride: const EquippedLoadoutDef(
+        abilityMobilityId: 'eloise.hold_auto_dash',
+      ),
+    );
+
+    final hud = core.buildSnapshot().hud;
+    expect(hud.mobilityInputMode, AbilityInputMode.holdMaintain);
+  });
 }

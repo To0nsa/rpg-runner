@@ -146,6 +146,26 @@ class RunnerInputRouter {
     );
   }
 
+  /// Starts holding the mobility slot and commits it on the next tick.
+  void startMobilityHold() {
+    if (!_startExclusiveAbilitySlotHold(AbilitySlot.mobility)) return;
+    final tick = controller.tick + controller.inputLead;
+    controller.enqueue(DashPressedCommand(tick: tick));
+  }
+
+  /// Releases the mobility slot hold.
+  void endMobilityHold() {
+    if (!_setAbilitySlotHold(AbilitySlot.mobility, false)) return;
+    final tick = controller.tick + controller.inputLead;
+    controller.enqueue(
+      AbilitySlotHeldCommand(
+        tick: tick,
+        slot: AbilitySlot.mobility,
+        held: false,
+      ),
+    );
+  }
+
   /// Starts holding [slot] without committing the slot action.
   void startAbilitySlotHold(AbilitySlot slot) {
     _startExclusiveAbilitySlotHold(slot);
@@ -225,6 +245,24 @@ class RunnerInputRouter {
     _aim.clear();
     if (hadAim) {
       _aim.blockClearThrough(tick);
+    }
+  }
+
+  /// Commits mobility on the next tick using the current aim dir (if set).
+  void commitMobilityWithAim({required bool clearAim}) {
+    final tick = controller.tick + controller.inputLead;
+    final hadAim = _aim.isSet;
+    if (hadAim) {
+      controller.enqueue(AimDirCommand(tick: tick, x: _aim.x, y: _aim.y));
+    }
+
+    controller.enqueue(DashPressedCommand(tick: tick));
+
+    if (clearAim) {
+      _aim.clear();
+      if (hadAim) {
+        _aim.blockClearThrough(tick);
+      }
     }
   }
 

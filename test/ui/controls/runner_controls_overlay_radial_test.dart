@@ -215,6 +215,26 @@ void main() {
       expect(find.byType(DirectionalActionButton), findsNWidgets(3));
     },
   );
+
+  testWidgets('mobility hold-aim-release renders directional mobility control', (
+    tester,
+  ) async {
+    final harness = _OverlayHarness();
+    addTearDown(harness.dispose);
+
+    await tester.pumpWidget(
+      _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
+    );
+
+    harness.mobilityInputMode = AbilityInputMode.holdAimRelease;
+    await tester.pumpWidget(
+      _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
+    );
+
+    // Projectile + melee directional controls are always present in this harness;
+    // hold-aim-release mobility adds a third one.
+    expect(find.byType(DirectionalActionButton), findsNWidgets(3));
+  });
 }
 
 Widget _testHost({required Widget child}) {
@@ -253,13 +273,17 @@ class _OverlayHarness {
   double chargeBarProgress01 = 0.0;
   int chargeBarTier = 0;
   AbilityInputMode secondaryInputMode = AbilityInputMode.tap;
+  AbilityInputMode mobilityInputMode = AbilityInputMode.tap;
 
   RunnerControlsOverlay buildOverlay({required ControlsTuning tuning}) {
     return RunnerControlsOverlay(
       tuning: tuning,
       onMoveAxis: (_) {},
       onJumpPressed: () {},
-      onDashPressed: () {},
+      onMobilityPressed: () {},
+      onMobilityCommitted: () {},
+      onMobilityHoldStart: () {},
+      onMobilityHoldEnd: () {},
       onSecondaryPressed: () {},
       onSecondaryCommitted: () {},
       onSecondaryHoldStart: () {},
@@ -289,13 +313,14 @@ class _OverlayHarness {
       meleeInputMode: AbilityInputMode.holdAimRelease,
       secondaryInputMode: secondaryInputMode,
       projectileInputMode: AbilityInputMode.holdAimRelease,
+      mobilityInputMode: mobilityInputMode,
       chargeBarVisible: chargeBarVisible,
       chargeBarProgress01: chargeBarProgress01,
       chargeBarTier: chargeBarTier,
       jumpAffordable: true,
-      dashAffordable: true,
-      dashCooldownTicksLeft: 0,
-      dashCooldownTicksTotal: 0,
+      mobilityAffordable: true,
+      mobilityCooldownTicksLeft: 0,
+      mobilityCooldownTicksTotal: 0,
       secondaryAffordable: true,
       secondaryCooldownTicksLeft: 0,
       secondaryCooldownTicksTotal: 0,

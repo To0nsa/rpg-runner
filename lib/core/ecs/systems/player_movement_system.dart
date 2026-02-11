@@ -114,11 +114,11 @@ class PlayerMovementSystem {
       // -- Horizontal Movement --
       if (dashing) {
         // [State: Dashing]
-        // Lock velocity to the dash direction and speed.
-        // Zero out Y velocity to prevent gravity from affecting the dash arc (linear dash).
-        world.transform.velX[ti] =
-            world.movement.dashDirX[mi] * t.dashSpeedX * moveSpeedMul;
-        world.transform.velY[ti] = 0;
+        // Lock velocity to the authored dash direction and sampled speed.
+        final dashSpeed =
+            t.dashSpeedX * moveSpeedMul * world.movement.dashSpeedScale[mi];
+        world.transform.velX[ti] = world.movement.dashDirX[mi] * dashSpeed;
+        world.transform.velY[ti] = world.movement.dashDirY[mi] * dashSpeed;
       } else {
         // [State: Normal Control]
         final axis = world.playerInput.moveAxis[ii];

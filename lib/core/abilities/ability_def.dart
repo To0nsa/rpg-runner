@@ -57,6 +57,20 @@ enum AbilityHoldMode {
   holdToMaintain,
 }
 
+/// Input lifecycle model authored per ability.
+///
+/// This is independent from targeting and charge behavior.
+enum AbilityInputLifecycle {
+  /// Commit on press edge.
+  tap,
+
+  /// Hold to prepare/aim/charge, commit on release edge.
+  holdRelease,
+
+  /// Commit on hold start and maintain while held.
+  holdMaintain,
+}
+
 /// Runtime lifecycle stage of a committed ability.
 enum AbilityPhase { idle, windup, active, recovery }
 
@@ -279,6 +293,7 @@ class AbilityDef {
     required this.targetingModel,
     required this.hitDelivery,
     this.payloadSource = AbilityPayloadSource.none,
+    required this.inputLifecycle,
     required this.windupTicks,
     required this.activeTicks,
     required this.recoveryTicks,
@@ -338,6 +353,25 @@ class AbilityDef {
          'Hold abilities require activeTicks > 0 for max hold duration.',
        ),
        assert(
+         inputLifecycle != AbilityInputLifecycle.holdMaintain ||
+             holdMode == AbilityHoldMode.holdToMaintain,
+         'holdMaintain lifecycle requires holdToMaintain hold mode.',
+       ),
+       assert(
+         holdMode != AbilityHoldMode.holdToMaintain ||
+             inputLifecycle == AbilityInputLifecycle.holdMaintain,
+         'holdToMaintain abilities must use holdMaintain lifecycle.',
+       ),
+       assert(
+         chargeProfile == null || inputLifecycle != AbilityInputLifecycle.tap,
+         'tap lifecycle cannot be combined with tiered charge.',
+       ),
+       assert(
+         targetingModel != TargetingModel.none ||
+             inputLifecycle != AbilityInputLifecycle.holdRelease,
+         'holdRelease + self is intentionally unsupported.',
+       ),
+       assert(
          cooldownGroupId == null ||
              (cooldownGroupId >= 0 && cooldownGroupId < kMaxCooldownGroups),
          'Cooldown group must be in range [0, $kMaxCooldownGroups)',
@@ -359,6 +393,9 @@ class AbilityDef {
 
   /// Where payload stats/procs are sourced from when committed.
   final AbilityPayloadSource payloadSource;
+
+  /// Authored input lifecycle contract for this ability.
+  final AbilityInputLifecycle inputLifecycle;
 
   /// Timing values authored at `60 Hz` tick semantics.
   ///

@@ -8,4 +8,6 @@ This index links to active architecture and contract docs.
 - `docs/building/ability_system_review.md` - Ability system review notes
 - `docs/building/ability_implementatin_plan.md` - Ability system implementation plan
 - `docs/building/hold_ability_contract.md` - Hold-to-maintain ability contract (Core + UI)
+- `docs/building/ability_composition_contract.md` - Input/targeting/charge composition contract for slotted abilities
+- `docs/building/ability_composition_implementation_plan.md` - Phased migration plan for ability composition contract
 - `docs/building/accessory_catalog.md` - Accessory catalog (data-only, v0)

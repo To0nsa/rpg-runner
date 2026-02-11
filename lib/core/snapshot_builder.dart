@@ -202,7 +202,7 @@ class SnapshotBuilder {
 
     final mobilityAbilityId = loadout.abilityMobilityId[li];
     final mobilityAbility = abilityCatalog.resolve(mobilityAbilityId);
-    final dashStaminaCost =
+    final mobilityStaminaCost =
         mobilityAbility?.staminaCost ?? resources.dashStaminaCost100;
 
     final jumpAbilityId = loadout.abilityJumpId[li];
@@ -228,19 +228,21 @@ class SnapshotBuilder {
     final bonusStaminaCost = bonusAbility?.staminaCost ?? 0;
 
     final meleeInputMode = _inputModeFor(meleeAbility);
-    final secondaryInputMode = _secondaryInputModeFor(secondaryAbility);
+    final secondaryInputMode = _inputModeFor(secondaryAbility);
     final projectileInputMode = _inputModeFor(projectileAbility);
+    final mobilityInputMode = _inputModeFor(mobilityAbility);
 
     final chargePreview = _resolveHudChargePreview(
       player: player,
       meleeAbility: meleeAbility,
       secondaryAbility: secondaryAbility,
       projectileAbility: projectileAbility,
+      mobilityAbility: mobilityAbility,
     );
     // ─── Compute affordability flags ───
     // These tell the UI whether action buttons should appear enabled.
     final canAffordJump = stamina >= jumpStaminaCost;
-    final canAffordDash = stamina >= dashStaminaCost;
+    final canAffordMobility = stamina >= mobilityStaminaCost;
     final canAffordMelee = stamina >= meleeStaminaCost;
 
     final hasSecondarySlot = (loadoutMask & LoadoutSlotMask.offHand) != 0;
@@ -282,7 +284,7 @@ class SnapshotBuilder {
         ? abilities.castCooldownTicks
         : _scaleAbilityTicks(projectileAbility.cooldownTicks);
 
-    // Mobility (Dash)
+    // Mobility
     cooldownTicksTotal[CooldownGroup.mobility] = mobilityAbility == null
         ? movement.dashCooldownTicks
         : _scaleAbilityTicks(mobilityAbility.cooldownTicks);
@@ -377,7 +379,7 @@ class SnapshotBuilder {
         bonusSlotValid: bonusSlotValid,
         jumpSlotValid: jumpSlotValid,
         canAffordJump: canAffordJump,
-        canAffordDash: canAffordDash,
+        canAffordMobility: canAffordMobility,
         canAffordMelee: canAffordMelee,
         canAffordSecondary: canAffordSecondary,
         canAffordProjectile: canAffordProjectile,
@@ -387,6 +389,7 @@ class SnapshotBuilder {
         meleeInputMode: meleeInputMode,
         secondaryInputMode: secondaryInputMode,
         projectileInputMode: projectileInputMode,
+        mobilityInputMode: mobilityInputMode,
         chargeEnabled: chargePreview.enabled,
         chargeHalfTicks: chargePreview.halfTicks,
         chargeFullTicks: chargePreview.fullTicks,
@@ -412,25 +415,11 @@ class SnapshotBuilder {
 
   AbilityInputMode _inputModeFor(AbilityDef? ability) {
     if (ability == null) return AbilityInputMode.tap;
-    if (ability.holdMode == AbilityHoldMode.holdToMaintain) {
-      return AbilityInputMode.holdMaintain;
-    }
-    final targeting = ability.targetingModel;
-    return switch (targeting) {
-      TargetingModel.none || TargetingModel.homing => AbilityInputMode.tap,
-      _ => AbilityInputMode.holdAimRelease,
+    return switch (ability.inputLifecycle) {
+      AbilityInputLifecycle.tap => AbilityInputMode.tap,
+      AbilityInputLifecycle.holdRelease => AbilityInputMode.holdAimRelease,
+      AbilityInputLifecycle.holdMaintain => AbilityInputMode.holdMaintain,
     };
-  }
-
-  AbilityInputMode _secondaryInputModeFor(AbilityDef? ability) {
-    if (ability == null) return AbilityInputMode.tap;
-    if (ability.holdMode == AbilityHoldMode.holdToMaintain) {
-      return AbilityInputMode.holdMaintain;
-    }
-    if (ability.targetingModel == TargetingModel.aimedCharge) {
-      return AbilityInputMode.holdAimRelease;
-    }
-    return AbilityInputMode.tap;
   }
 
   _HudChargePreview _resolveHudChargePreview({
@@ -438,11 +427,13 @@ class SnapshotBuilder {
     required AbilityDef? meleeAbility,
     required AbilityDef? secondaryAbility,
     required AbilityDef? projectileAbility,
+    required AbilityDef? mobilityAbility,
   }) {
     final bySlot = <AbilitySlot, AbilityDef?>{
       AbilitySlot.primary: meleeAbility,
       AbilitySlot.secondary: secondaryAbility,
       AbilitySlot.projectile: projectileAbility,
+      AbilitySlot.mobility: mobilityAbility,
     };
     final thresholdsBySlot = <AbilitySlot, _ChargeThresholds>{};
     for (final entry in bySlot.entries) {
@@ -508,9 +499,7 @@ class SnapshotBuilder {
   }
 
   bool _supportsTieredCharge(AbilityDef? ability) {
-    return ability != null &&
-        ability.targetingModel == TargetingModel.aimedCharge &&
-        ability.chargeProfile != null;
+    return ability != null && ability.chargeProfile != null;
   }
 
   int _chargeFullThresholdTicks(AbilityDef ability) {
@@ -535,6 +524,7 @@ class SnapshotBuilder {
     AbilitySlot.projectile,
     AbilitySlot.primary,
     AbilitySlot.secondary,
+    AbilitySlot.mobility,
   ];
 
   // ───────────────────────────────────────────────────────────────────────────
