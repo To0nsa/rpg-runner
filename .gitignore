@@ -17,6 +17,7 @@ Desktop.ini
 .pub/
 .pub-cache/
 build/
+.flutter-plugins-dependencies
 
 # Flutter tool state (usually keep, but safe to ignore if you want)
 # .metadata
