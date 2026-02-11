@@ -17,6 +17,7 @@ import 'stores/enemies/flying_enemy_steering_store.dart';
 import 'stores/faction_store.dart';
 import 'stores/anim/anim_state_store.dart';
 import 'stores/active_ability_state_store.dart';
+import 'stores/ability_charge_state_store.dart';
 import 'stores/ability_input_buffer_store.dart';
 import 'stores/enemies/enemy_store.dart';
 import 'stores/enemies/ground_enemy_chase_offset_store.dart';
@@ -110,6 +111,11 @@ class EcsWorld {
     AbilityInputBufferStore(),
   );
 
+  /// Authoritative slot hold duration tracking for charged commits.
+  late final AbilityChargeStateStore abilityCharge = _register(
+    AbilityChargeStateStore(),
+  );
+
   /// Logic and state for movement, including facing direction.
   late final MovementStore movement = _register(MovementStore());
 
@@ -186,7 +192,6 @@ class EcsWorld {
   late final MobilityIntentStore mobilityIntent = _register(
     MobilityIntentStore(),
   );
-
 
   /// Unified loadout store (single source of truth for all equipment).
   late final EquippedLoadoutStore equippedLoadout = _register(

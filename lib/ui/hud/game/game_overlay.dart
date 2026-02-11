@@ -3,11 +3,10 @@ import 'package:flutter/widgets.dart';
 
 import '../../../game/game_controller.dart';
 import '../../../game/input/aim_preview.dart';
-import '../../../game/input/charge_preview.dart';
 import '../../../game/input/runner_input_router.dart';
+import 'package:rpg_runner/core/snapshots/enums.dart';
 import '../../controls/runner_controls_overlay_radial.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
-import '../../haptics/haptics_service.dart';
 import '../../runner_game_ui_state.dart';
 import 'pause_overlay.dart';
 import 'ready_overlay.dart';
@@ -22,9 +21,7 @@ class GameOverlay extends StatelessWidget {
     required this.controller,
     required this.input,
     required this.projectileAimPreview,
-    required this.projectileChargePreview,
     required this.meleeAimPreview,
-    required this.haptics,
     required this.aimCancelHitboxRect,
     required this.forceAimCancelSignal,
     required this.uiState,
@@ -40,9 +37,7 @@ class GameOverlay extends StatelessWidget {
   final GameController controller;
   final RunnerInputRouter input;
   final AimPreviewModel projectileAimPreview;
-  final ChargePreviewModel projectileChargePreview;
   final AimPreviewModel meleeAimPreview;
-  final UiHaptics haptics;
   final ValueNotifier<Rect?> aimCancelHitboxRect;
   final ValueListenable<int> forceAimCancelSignal;
   final RunnerGameUiState uiState;
@@ -65,6 +60,10 @@ class GameOverlay extends StatelessWidget {
     final secondaryAffordable =
         hud.canAffordSecondary && hud.secondarySlotValid;
     final bonusAffordable = hud.canAffordBonus && hud.bonusSlotValid;
+    final chargeBarVisible = hud.chargeEnabled && hud.chargeActive;
+    final chargeBarProgress01 = hud.chargeFullTicks > 0
+        ? (hud.chargeTicks / hud.chargeFullTicks).clamp(0.0, 1.0)
+        : 0.0;
 
     return Stack(
       fit: StackFit.expand,
@@ -76,20 +75,29 @@ class GameOverlay extends StatelessWidget {
             onJumpPressed: input.pressJump,
             onDashPressed: input.pressDash,
             onSecondaryPressed: input.pressSecondary,
-            onSecondaryHoldStart: input.startSecondaryHold,
-            onSecondaryHoldEnd: input.endSecondaryHold,
+            onSecondaryCommitted: input.commitSecondaryStrike,
+            onSecondaryHoldStart:
+                hud.secondaryInputMode == AbilityInputMode.holdAimRelease
+                ? () => input.startAbilitySlotHold(AbilitySlot.secondary)
+                : input.startSecondaryHold,
+            onSecondaryHoldEnd:
+                hud.secondaryInputMode == AbilityInputMode.holdAimRelease
+                ? () => input.endAbilitySlotHold(AbilitySlot.secondary)
+                : input.endSecondaryHold,
             onBonusPressed: input.pressBonus,
-            onProjectileCommitted: (chargeTicks) =>
-                input.commitProjectileWithAim(
-                  clearAim: true,
-                  chargeTicks: chargeTicks,
-                ),
+            onProjectileCommitted: () =>
+                input.commitProjectileWithAim(clearAim: true),
             onProjectilePressed: input.pressProjectile,
+            onProjectileHoldStart: () =>
+                input.startAbilitySlotHold(AbilitySlot.projectile),
+            onProjectileHoldEnd: () =>
+                input.endAbilitySlotHold(AbilitySlot.projectile),
             onProjectileAimDir: input.setProjectileAimDir,
             onProjectileAimClear: input.clearProjectileAimDir,
             projectileAimPreview: projectileAimPreview,
-            projectileChargePreview: projectileChargePreview,
-            haptics: haptics,
+            chargeBarVisible: chargeBarVisible,
+            chargeBarProgress01: chargeBarProgress01,
+            chargeBarTier: hud.chargeTier,
             projectileAffordable: projectileAffordable,
             projectileCooldownTicksLeft:
                 hud.cooldownTicksLeft[CooldownGroup.projectile],
@@ -101,6 +109,10 @@ class GameOverlay extends StatelessWidget {
             onMeleePressed: input.pressStrike,
             onMeleeHoldStart: input.startPrimaryHold,
             onMeleeHoldEnd: input.endPrimaryHold,
+            onMeleeChargeHoldStart: () =>
+                input.startAbilitySlotHold(AbilitySlot.primary),
+            onMeleeChargeHoldEnd: () =>
+                input.endAbilitySlotHold(AbilitySlot.primary),
             meleeAimPreview: meleeAimPreview,
             aimCancelHitboxRect: aimCancelHitboxRect,
             meleeAffordable: meleeAffordable,
@@ -111,10 +123,6 @@ class GameOverlay extends StatelessWidget {
             meleeInputMode: hud.meleeInputMode,
             secondaryInputMode: hud.secondaryInputMode,
             projectileInputMode: hud.projectileInputMode,
-            projectileChargeEnabled: hud.projectileChargeEnabled,
-            projectileChargeHalfTicks: hud.projectileChargeHalfTicks,
-            projectileChargeFullTicks: hud.projectileChargeFullTicks,
-            simulationTickHz: controller.tickHz,
             jumpAffordable: jumpAffordable,
             dashAffordable: dashAffordable,
             dashCooldownTicksLeft:

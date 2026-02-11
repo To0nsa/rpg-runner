@@ -21,4 +21,28 @@ void main() {
       expect(hud.secondaryInputMode, AbilityInputMode.holdMaintain);
     },
   );
+
+  test('snapshot exposes hold-aim-release for charged secondary melee', () {
+    final core = GameCore(
+      seed: 1,
+      equippedLoadoutOverride: const EquippedLoadoutDef(
+        abilitySecondaryId: 'eloise.charged_shield_bash',
+      ),
+    );
+
+    final hud = core.buildSnapshot().hud;
+    expect(hud.secondaryInputMode, AbilityInputMode.holdAimRelease);
+  });
+
+  test('snapshot keeps non-charged secondary melee on tap mode', () {
+    final core = GameCore(
+      seed: 1,
+      equippedLoadoutOverride: const EquippedLoadoutDef(
+        abilitySecondaryId: 'eloise.shield_bash',
+      ),
+    );
+
+    final hud = core.buildSnapshot().hud;
+    expect(hud.secondaryInputMode, AbilityInputMode.tap);
+  });
 }

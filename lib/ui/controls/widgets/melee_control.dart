@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 
 import '../../../core/snapshots/enums.dart';
 import '../../../game/input/aim_preview.dart';
-import '../../haptics/haptics_service.dart';
 import '../action_button.dart';
 import '../controls_tuning.dart';
 import '../directional_action_button.dart';
@@ -20,6 +19,8 @@ class MeleeControl extends StatelessWidget {
     required this.onPressed,
     required this.onHoldStart,
     required this.onHoldEnd,
+    required this.onChargeHoldStart,
+    required this.onChargeHoldEnd,
     required this.onAimDir,
     required this.onAimClear,
     required this.onCommitted,
@@ -28,7 +29,6 @@ class MeleeControl extends StatelessWidget {
     required this.cooldownTicksLeft,
     required this.cooldownTicksTotal,
     required this.cancelHitboxRect,
-    required this.haptics,
     required this.forceCancelSignal,
   });
 
@@ -40,6 +40,8 @@ class MeleeControl extends StatelessWidget {
   final VoidCallback onPressed;
   final VoidCallback onHoldStart;
   final VoidCallback onHoldEnd;
+  final VoidCallback onChargeHoldStart;
+  final VoidCallback onChargeHoldEnd;
   final void Function(double x, double y) onAimDir;
   final VoidCallback onAimClear;
   final VoidCallback onCommitted;
@@ -49,7 +51,6 @@ class MeleeControl extends StatelessWidget {
   final int cooldownTicksLeft;
   final int cooldownTicksTotal;
   final ValueListenable<Rect?> cancelHitboxRect;
-  final UiHaptics haptics;
   final ValueListenable<int> forceCancelSignal;
 
   @override
@@ -87,13 +88,14 @@ class MeleeControl extends StatelessWidget {
     return DirectionalActionButton(
       label: 'Atk',
       icon: Icons.close,
+      onHoldStart: onChargeHoldStart,
+      onHoldEnd: onChargeHoldEnd,
       onAimDir: onAimDir,
       onAimClear: onAimClear,
       onCommit: onCommitted,
       projectileAimPreview: aimPreview,
       tuning: directional,
       cooldownRing: cooldownRing,
-      haptics: haptics,
       cancelHitboxRect: cancelHitboxRect,
       affordable: affordable,
       cooldownTicksLeft: cooldownTicksLeft,

@@ -2,11 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../game/input/aim_preview.dart';
-import '../../game/input/charge_preview.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
-import '../haptics/haptics_service.dart';
 import 'action_button.dart';
 import 'controls_tuning.dart';
+import 'directional_action_button.dart';
 import 'hold_action_button.dart';
 import 'layout/controls_radial_layout.dart';
 import 'widgets/bonus_control.dart';
@@ -26,11 +25,14 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.onJumpPressed,
     required this.onDashPressed,
     required this.onSecondaryPressed,
+    required this.onSecondaryCommitted,
     required this.onSecondaryHoldStart,
     required this.onSecondaryHoldEnd,
     required this.onBonusPressed,
     required this.onProjectileCommitted,
     required this.onProjectilePressed,
+    required this.onProjectileHoldStart,
+    required this.onProjectileHoldEnd,
     required this.onProjectileAimDir,
     required this.onProjectileAimClear,
     required this.projectileAimPreview,
@@ -43,6 +45,8 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.onMeleePressed,
     required this.onMeleeHoldStart,
     required this.onMeleeHoldEnd,
+    required this.onMeleeChargeHoldStart,
+    required this.onMeleeChargeHoldEnd,
     required this.meleeAimPreview,
     required this.aimCancelHitboxRect,
     required this.meleeAffordable,
@@ -51,12 +55,9 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.meleeInputMode,
     required this.secondaryInputMode,
     required this.projectileInputMode,
-    required this.projectileChargePreview,
-    required this.haptics,
-    required this.projectileChargeEnabled,
-    required this.projectileChargeHalfTicks,
-    required this.projectileChargeFullTicks,
-    required this.simulationTickHz,
+    required this.chargeBarVisible,
+    required this.chargeBarProgress01,
+    required this.chargeBarTier,
     required this.jumpAffordable,
     required this.dashAffordable,
     required this.dashCooldownTicksLeft,
@@ -75,16 +76,20 @@ class RunnerControlsOverlay extends StatelessWidget {
   final VoidCallback onJumpPressed;
   final VoidCallback onDashPressed;
   final VoidCallback onSecondaryPressed;
+  final VoidCallback onSecondaryCommitted;
   final VoidCallback onSecondaryHoldStart;
   final VoidCallback onSecondaryHoldEnd;
   final VoidCallback onBonusPressed;
-  final ValueChanged<int> onProjectileCommitted;
+  final VoidCallback onProjectileCommitted;
   final VoidCallback onProjectilePressed;
+  final VoidCallback onProjectileHoldStart;
+  final VoidCallback onProjectileHoldEnd;
   final void Function(double x, double y) onProjectileAimDir;
   final VoidCallback onProjectileAimClear;
   final AimPreviewModel projectileAimPreview;
-  final ChargePreviewModel projectileChargePreview;
-  final UiHaptics haptics;
+  final bool chargeBarVisible;
+  final double chargeBarProgress01;
+  final int chargeBarTier;
   final bool projectileAffordable;
   final int projectileCooldownTicksLeft;
   final int projectileCooldownTicksTotal;
@@ -94,6 +99,8 @@ class RunnerControlsOverlay extends StatelessWidget {
   final VoidCallback onMeleePressed;
   final VoidCallback onMeleeHoldStart;
   final VoidCallback onMeleeHoldEnd;
+  final VoidCallback onMeleeChargeHoldStart;
+  final VoidCallback onMeleeChargeHoldEnd;
   final AimPreviewModel meleeAimPreview;
   final ValueListenable<Rect?> aimCancelHitboxRect;
   final bool meleeAffordable;
@@ -102,10 +109,6 @@ class RunnerControlsOverlay extends StatelessWidget {
   final AbilityInputMode meleeInputMode;
   final AbilityInputMode secondaryInputMode;
   final AbilityInputMode projectileInputMode;
-  final bool projectileChargeEnabled;
-  final int projectileChargeHalfTicks;
-  final int projectileChargeFullTicks;
-  final int simulationTickHz;
   final bool jumpAffordable;
   final bool dashAffordable;
   final int dashCooldownTicksLeft;
@@ -146,20 +149,16 @@ class RunnerControlsOverlay extends StatelessWidget {
             size: layout.directionalSize,
             deadzoneRadius: layout.directionalDeadzoneRadius,
             onPressed: onProjectilePressed,
+            onHoldStart: onProjectileHoldStart,
+            onHoldEnd: onProjectileHoldEnd,
             onAimDir: onProjectileAimDir,
             onAimClear: onProjectileAimClear,
             onCommitted: onProjectileCommitted,
             aimPreview: projectileAimPreview,
-            chargePreview: projectileChargePreview,
             affordable: projectileAffordable,
             cooldownTicksLeft: projectileCooldownTicksLeft,
             cooldownTicksTotal: projectileCooldownTicksTotal,
             cancelHitboxRect: aimCancelHitboxRect,
-            chargeEnabled: projectileChargeEnabled,
-            chargeHalfTicks: projectileChargeHalfTicks,
-            chargeFullTicks: projectileChargeFullTicks,
-            simulationTickHz: simulationTickHz,
-            haptics: haptics,
             forceCancelSignal: forceAimCancelSignal,
           ),
         ),
@@ -191,6 +190,26 @@ class RunnerControlsOverlay extends StatelessWidget {
                   cooldownTicksTotal: secondaryCooldownTicksTotal,
                   size: layout.actionSize,
                 )
+              : secondaryInputMode == AbilityInputMode.holdAimRelease
+              ? DirectionalActionButton(
+                  label: 'Sec',
+                  icon: Icons.shield,
+                  onHoldStart: onSecondaryHoldStart,
+                  onHoldEnd: onSecondaryHoldEnd,
+                  onAimDir: onMeleeAimDir,
+                  onAimClear: onMeleeAimClear,
+                  onCommit: onSecondaryCommitted,
+                  projectileAimPreview: meleeAimPreview,
+                  tuning: style.directionalActionButton,
+                  cooldownRing: cooldownRing,
+                  cancelHitboxRect: aimCancelHitboxRect,
+                  affordable: secondaryAffordable,
+                  cooldownTicksLeft: secondaryCooldownTicksLeft,
+                  cooldownTicksTotal: secondaryCooldownTicksTotal,
+                  size: layout.directionalSize,
+                  deadzoneRadius: layout.directionalDeadzoneRadius,
+                  forceCancelSignal: forceAimCancelSignal,
+                )
               : ActionButton(
                   label: 'Sec',
                   icon: Icons.shield,
@@ -214,6 +233,8 @@ class RunnerControlsOverlay extends StatelessWidget {
             onPressed: onMeleePressed,
             onHoldStart: onMeleeHoldStart,
             onHoldEnd: onMeleeHoldEnd,
+            onChargeHoldStart: onMeleeChargeHoldStart,
+            onChargeHoldEnd: onMeleeChargeHoldEnd,
             onAimDir: onMeleeAimDir,
             onAimClear: onMeleeAimClear,
             onCommitted: onMeleeCommitted,
@@ -222,7 +243,6 @@ class RunnerControlsOverlay extends StatelessWidget {
             cooldownTicksLeft: meleeCooldownTicksLeft,
             cooldownTicksTotal: meleeCooldownTicksTotal,
             cancelHitboxRect: aimCancelHitboxRect,
-            haptics: haptics,
             forceCancelSignal: forceAimCancelSignal,
           ),
         ),
@@ -254,24 +274,16 @@ class RunnerControlsOverlay extends StatelessWidget {
             size: layout.jumpSize,
           ),
         ),
-        ValueListenableBuilder<ChargePreviewState>(
-          valueListenable: projectileChargePreview,
-          builder: (context, state, _) {
-            if (!state.active) return const SizedBox.shrink();
-            if (state.ownerId != 'projectile') {
-              return const SizedBox.shrink();
-            }
-            return Positioned(
-              right: layout.projectileCharge.right,
-              bottom: layout.projectileCharge.bottom,
-              child: _ChargeBar(
-                tuning: style.chargeBar,
-                progress01: state.progress01,
-                tier: state.tier,
-              ),
-            );
-          },
-        ),
+        if (chargeBarVisible)
+          Positioned(
+            right: layout.projectileCharge.right,
+            bottom: layout.projectileCharge.bottom,
+            child: _ChargeBar(
+              tuning: style.chargeBar,
+              progress01: chargeBarProgress01,
+              tier: chargeBarTier,
+            ),
+          ),
       ],
     );
   }

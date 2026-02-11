@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -6,18 +5,14 @@ import 'package:flutter/material.dart';
 
 import '../../game/input/aim_preview.dart';
 import '../../game/input/aim_quantizer.dart';
-import '../../game/input/charge_preview.dart';
-import '../haptics/haptics_cue.dart';
-import '../haptics/haptics_service.dart';
 import 'control_button_visuals.dart';
 import 'controls_tuning.dart';
 
-/// Circular directional action control with optional charge commit.
+/// Circular directional action control for aim + release commit input.
 ///
 /// Drag direction is normalized then quantized before forwarding to
 /// `onAimDir`, so callers receive stable input suitable for deterministic
-/// command routing. When charge is enabled, commit payload uses simulation
-/// ticks (`chargeTickHz`).
+/// command routing.
 class DirectionalActionButton extends StatefulWidget {
   const DirectionalActionButton({
     super.key,
@@ -26,6 +21,8 @@ class DirectionalActionButton extends StatefulWidget {
     required this.onAimDir,
     required this.onAimClear,
     required this.onCommit,
+    this.onHoldStart,
+    this.onHoldEnd,
     required this.projectileAimPreview,
     required this.tuning,
     required this.size,
@@ -35,14 +32,6 @@ class DirectionalActionButton extends StatefulWidget {
     this.affordable = true,
     this.cooldownTicksLeft = 0,
     this.cooldownTicksTotal = 0,
-    this.onChargeCommit,
-    this.chargePreview,
-    this.chargeOwnerId,
-    this.chargeHalfTicks = 0,
-    this.chargeFullTicks = 0,
-    this.chargeTickHz = 60,
-    this.enableChargeHaptics = true,
-    this.haptics,
     this.forceCancelSignal,
   });
 
@@ -51,6 +40,8 @@ class DirectionalActionButton extends StatefulWidget {
   final void Function(double x, double y) onAimDir;
   final VoidCallback onAimClear;
   final VoidCallback onCommit;
+  final VoidCallback? onHoldStart;
+  final VoidCallback? onHoldEnd;
   final AimPreviewModel projectileAimPreview;
   final DirectionalActionButtonTuning tuning;
   final CooldownRingTuning cooldownRing;
@@ -60,14 +51,6 @@ class DirectionalActionButton extends StatefulWidget {
   final int cooldownTicksTotal;
   final double size;
   final double deadzoneRadius;
-  final ValueChanged<int>? onChargeCommit;
-  final ChargePreviewModel? chargePreview;
-  final String? chargeOwnerId;
-  final int chargeHalfTicks;
-  final int chargeFullTicks;
-  final int chargeTickHz;
-  final bool enableChargeHaptics;
-  final UiHaptics? haptics;
   final ValueListenable<int>? forceCancelSignal;
 
   @override
@@ -78,10 +61,7 @@ class DirectionalActionButton extends StatefulWidget {
 class _DirectionalActionButtonState extends State<DirectionalActionButton> {
   int? _pointer;
   bool _canceled = false;
-  final Stopwatch _chargeWatch = Stopwatch();
-  Timer? _chargeTimer;
-  int _lastChargeTier = 0;
-  int _lastChargeTicks = 0;
+  bool _holdActive = false;
   int _lastForceCancelValue = 0;
 
   @override
@@ -140,7 +120,8 @@ class _DirectionalActionButtonState extends State<DirectionalActionButton> {
     if (_pointer != null) return;
     _pointer = event.pointer;
     _canceled = false;
-    _startChargeTracking();
+    _holdActive = true;
+    widget.onHoldStart?.call();
     widget.projectileAimPreview.begin();
     widget.onAimClear();
     _updateAim(event.localPosition);
@@ -162,18 +143,7 @@ class _DirectionalActionButtonState extends State<DirectionalActionButton> {
       _cancelAim();
     }
 
-    if (!_canceled) {
-      if (_isChargeEnabled) {
-        _updateChargeProgress();
-        if (widget.onChargeCommit != null) {
-          widget.onChargeCommit!.call(_lastChargeTicks);
-        } else {
-          widget.onCommit();
-        }
-      } else {
-        widget.onCommit();
-      }
-    }
+    if (!_canceled) widget.onCommit();
     _resetAim();
   }
 
@@ -208,21 +178,26 @@ class _DirectionalActionButtonState extends State<DirectionalActionButton> {
     _canceled = true;
     widget.onAimClear();
     widget.projectileAimPreview.end();
-    _endChargeTracking();
   }
 
   void _resetAim() {
+    _endHoldIfActive();
     _pointer = null;
     _canceled = false;
     widget.onAimClear();
     widget.projectileAimPreview.end();
-    _endChargeTracking();
+  }
+
+  void _endHoldIfActive() {
+    if (!_holdActive) return;
+    _holdActive = false;
+    widget.onHoldEnd?.call();
   }
 
   @override
   void dispose() {
     _detachForceCancelListener(widget.forceCancelSignal);
-    _chargeTimer?.cancel();
+    _endHoldIfActive();
     super.dispose();
   }
 
@@ -248,62 +223,5 @@ class _DirectionalActionButtonState extends State<DirectionalActionButton> {
       _cancelAim();
       _resetAim();
     }
-  }
-
-  bool get _isChargeEnabled =>
-      widget.onChargeCommit != null &&
-      widget.chargeFullTicks > 0 &&
-      widget.chargeTickHz > 0;
-
-  void _startChargeTracking() {
-    if (!_isChargeEnabled) return;
-    _lastChargeTier = 0;
-    _lastChargeTicks = 0;
-    _chargeWatch
-      ..reset()
-      ..start();
-    widget.chargePreview?.begin(
-      ownerId: widget.chargeOwnerId ?? widget.label,
-      halfTierTicks: widget.chargeHalfTicks,
-      fullTierTicks: widget.chargeFullTicks,
-    );
-    _chargeTimer?.cancel();
-    _chargeTimer = Timer.periodic(
-      const Duration(milliseconds: 16),
-      (_) => _updateChargeProgress(),
-    );
-  }
-
-  void _updateChargeProgress() {
-    if (!_isChargeEnabled || !_chargeWatch.isRunning) return;
-    final elapsedMicros = _chargeWatch.elapsedMicroseconds;
-    // Convert wall-clock hold time to simulation ticks so commit values use
-    // the same unit as Core cooldown/charge rules.
-    final ticks = (elapsedMicros * widget.chargeTickHz) ~/ 1000000;
-    _lastChargeTicks = ticks < 0 ? 0 : ticks;
-    widget.chargePreview?.updateChargeTicks(_lastChargeTicks);
-
-    final tier = _lastChargeTicks >= widget.chargeFullTicks
-        ? 2
-        : (_lastChargeTicks >= widget.chargeHalfTicks ? 1 : 0);
-    if (widget.enableChargeHaptics && tier > _lastChargeTier) {
-      if (_lastChargeTier < 1 && tier >= 1) {
-        widget.haptics?.trigger(UiHapticsCue.chargeHalfTierReached);
-      }
-      if (_lastChargeTier < 2 && tier >= 2) {
-        widget.haptics?.trigger(UiHapticsCue.chargeFullTierReached);
-      }
-    }
-    _lastChargeTier = tier;
-  }
-
-  void _endChargeTracking() {
-    _chargeTimer?.cancel();
-    _chargeTimer = null;
-    _chargeWatch.stop();
-    _chargeWatch.reset();
-    _lastChargeTicks = 0;
-    _lastChargeTier = 0;
-    widget.chargePreview?.end();
   }
 }

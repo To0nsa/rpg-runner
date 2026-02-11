@@ -113,6 +113,64 @@ class AbilityCatalog implements AbilityResolver {
       ],
       baseDamage: 1500, // PlayerTuning meleeDamage 15.0
     ),
+    'eloise.charged_sword_strike': AbilityDef(
+      id: 'eloise.charged_sword_strike',
+      category: AbilityCategory.melee,
+      allowedSlots: {AbilitySlot.primary},
+      targetingModel: TargetingModel.aimedCharge,
+      hitDelivery: MeleeHitDelivery(
+        sizeX: 32,
+        sizeY: 32,
+        offsetX: 12,
+        offsetY: 0.0,
+        hitPolicy: HitPolicy.oncePerTarget,
+      ),
+      windupTicks: 10,
+      activeTicks: 6,
+      recoveryTicks: 10,
+      staminaCost: 550,
+      manaCost: 0,
+      cooldownTicks: 24,
+      interruptPriority: InterruptPriority.combat,
+      forcedInterruptCauses: <ForcedInterruptCause>{
+        ForcedInterruptCause.stun,
+        ForcedInterruptCause.death,
+        ForcedInterruptCause.damageTaken,
+      },
+      animKey: AnimKey.strike,
+      requiredWeaponTypes: {WeaponType.oneHandedSword},
+      payloadSource: AbilityPayloadSource.primaryWeapon,
+      chargeProfile: AbilityChargeProfile(
+        tiers: <AbilityChargeTierDef>[
+          AbilityChargeTierDef(
+            minHoldTicks60: 0,
+            damageScaleBp: 9000,
+            hitboxScaleBp: 9200,
+          ),
+          AbilityChargeTierDef(
+            minHoldTicks60: 8,
+            damageScaleBp: 10800,
+            critBonusBp: 500,
+            hitboxScaleBp: 10800,
+          ),
+          AbilityChargeTierDef(
+            minHoldTicks60: 16,
+            damageScaleBp: 13000,
+            critBonusBp: 1000,
+            hitboxScaleBp: 12500,
+          ),
+        ],
+      ),
+      chargeMaxHoldTicks60: 150,
+      procs: <WeaponProc>[
+        WeaponProc(
+          hook: ProcHook.onHit,
+          statusProfileId: StatusProfileId.meleeBleed,
+          chanceBp: 10000,
+        ),
+      ],
+      baseDamage: 1600,
+    ),
     'eloise.sword_strike_auto_aim': AbilityDef(
       id: 'eloise.sword_strike_auto_aim',
       category: AbilityCategory.melee,
@@ -203,6 +261,64 @@ class AbilityCatalog implements AbilityResolver {
         ),
       ],
       baseDamage: 1500, // Assuming standardized melee damage
+    ),
+    'eloise.charged_shield_bash': AbilityDef(
+      id: 'eloise.charged_shield_bash',
+      category: AbilityCategory.defense,
+      allowedSlots: {AbilitySlot.secondary},
+      targetingModel: TargetingModel.aimedCharge,
+      hitDelivery: MeleeHitDelivery(
+        sizeX: 32,
+        sizeY: 32,
+        offsetX: 12.0,
+        offsetY: 0.0,
+        hitPolicy: HitPolicy.oncePerTarget,
+      ),
+      windupTicks: 10,
+      activeTicks: 6,
+      recoveryTicks: 10,
+      staminaCost: 550,
+      manaCost: 0,
+      cooldownTicks: 24,
+      interruptPriority: InterruptPriority.combat,
+      forcedInterruptCauses: <ForcedInterruptCause>{
+        ForcedInterruptCause.stun,
+        ForcedInterruptCause.death,
+        ForcedInterruptCause.damageTaken,
+      },
+      animKey: AnimKey.shieldBash,
+      requiredWeaponTypes: {WeaponType.shield},
+      payloadSource: AbilityPayloadSource.secondaryWeapon,
+      chargeProfile: AbilityChargeProfile(
+        tiers: <AbilityChargeTierDef>[
+          AbilityChargeTierDef(
+            minHoldTicks60: 0,
+            damageScaleBp: 9000,
+            hitboxScaleBp: 9200,
+          ),
+          AbilityChargeTierDef(
+            minHoldTicks60: 8,
+            damageScaleBp: 10800,
+            critBonusBp: 500,
+            hitboxScaleBp: 10800,
+          ),
+          AbilityChargeTierDef(
+            minHoldTicks60: 16,
+            damageScaleBp: 13000,
+            critBonusBp: 1000,
+            hitboxScaleBp: 12500,
+          ),
+        ],
+      ),
+      chargeMaxHoldTicks60: 150,
+      procs: <WeaponProc>[
+        WeaponProc(
+          hook: ProcHook.onHit,
+          statusProfileId: StatusProfileId.stunOnHit,
+          chanceBp: 10000,
+        ),
+      ],
+      baseDamage: 1600,
     ),
     'eloise.shield_bash_auto_aim': AbilityDef(
       id: 'eloise.shield_bash_auto_aim',
@@ -371,6 +487,30 @@ class AbilityCatalog implements AbilityResolver {
         WeaponType.projectileSpell,
       },
       payloadSource: AbilityPayloadSource.projectileItem,
+      chargeProfile: AbilityChargeProfile(
+        tiers: <AbilityChargeTierDef>[
+          AbilityChargeTierDef(
+            minHoldTicks60: 0,
+            damageScaleBp: 8200,
+            speedScaleBp: 9000,
+          ),
+          AbilityChargeTierDef(
+            minHoldTicks60: 5,
+            damageScaleBp: 10000,
+            critBonusBp: 500,
+            speedScaleBp: 10500,
+          ),
+          AbilityChargeTierDef(
+            minHoldTicks60: 10,
+            damageScaleBp: 12250,
+            critBonusBp: 1000,
+            speedScaleBp: 12000,
+            pierce: true,
+            maxPierceHits: 2,
+          ),
+        ],
+      ),
+      chargeMaxHoldTicks60: 150,
       baseDamage: 2300,
     ),
 

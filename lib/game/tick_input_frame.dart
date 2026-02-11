@@ -46,10 +46,17 @@ class TickInputFrame {
   /// True if bonus slot was pressed this tick.
   bool bonusPressed = false;
 
-  /// Bitmask of currently held ability slots for this tick.
+  /// Bitmask of slot hold changes authored for this tick.
   ///
-  /// Bit `1 << slot.index` indicates that [AbilitySlot] is held.
-  int abilitySlotHeldMask = 0;
+  /// Bit `1 << slot.index` indicates that [AbilitySlotHeldCommand] was
+  /// provided for that slot in this frame.
+  int abilitySlotHeldChangedMask = 0;
+
+  /// Bitmask of slot held values for changed slots.
+  ///
+  /// For any bit set in [abilitySlotHeldChangedMask], this mask stores whether
+  /// the slot should be held (`1`) or released (`0`).
+  int abilitySlotHeldValueMask = 0;
 
   // ─────────────────────────────────────────────────────────────────────────
   // Projectile aim direction
@@ -63,12 +70,6 @@ class TickInputFrame {
 
   /// Projectile aim Y component (only valid if [projectileAimDirSet] is true).
   double projectileAimDirY = 0;
-
-  /// Whether a projectile charge hold duration override exists for this tick.
-  bool projectileChargeTicksSet = false;
-
-  /// Projectile charge hold duration in runtime ticks.
-  int projectileChargeTicks = 0;
 
   // ─────────────────────────────────────────────────────────────────────────
   // Melee aim direction
@@ -87,7 +88,7 @@ class TickInputFrame {
   /// Applies a [Command] to this frame, merging it with existing state.
   ///
   /// For continuous inputs (move axis, aim), later commands overwrite earlier ones.
-  /// Slot hold states are merged as a bitmask where later commands for the same
+  /// Slot hold edges are merged as bitmasks where later commands for the same
   /// slot overwrite earlier ones.
   /// For edge-triggered inputs (jump, dash, strike, projectile), any press sets the flag.
   void apply(Command command) {
@@ -104,9 +105,6 @@ class TickInputFrame {
         projectileAimDirSet = true;
         projectileAimDirX = x;
         projectileAimDirY = y;
-      case ProjectileChargeTicksCommand(:final chargeTicks):
-        projectileChargeTicksSet = true;
-        projectileChargeTicks = chargeTicks < 0 ? 0 : chargeTicks;
       case MeleeAimDirCommand(:final x, :final y):
         meleeAimDirSet = true;
         meleeAimDirX = x;
@@ -127,10 +125,11 @@ class TickInputFrame {
         bonusPressed = true;
       case AbilitySlotHeldCommand(:final slot, :final held):
         final bit = 1 << slot.index;
+        abilitySlotHeldChangedMask |= bit;
         if (held) {
-          abilitySlotHeldMask |= bit;
+          abilitySlotHeldValueMask |= bit;
         } else {
-          abilitySlotHeldMask &= ~bit;
+          abilitySlotHeldValueMask &= ~bit;
         }
     }
   }
@@ -146,14 +145,13 @@ class TickInputFrame {
     projectileAimDirSet = false;
     projectileAimDirX = 0;
     projectileAimDirY = 0;
-    projectileChargeTicksSet = false;
-    projectileChargeTicks = 0;
     meleeAimDirSet = false;
     meleeAimDirX = 0;
     meleeAimDirY = 0;
     projectilePressed = false;
     secondaryPressed = false;
     bonusPressed = false;
-    abilitySlotHeldMask = 0;
+    abilitySlotHeldChangedMask = 0;
+    abilitySlotHeldValueMask = 0;
   }
 }

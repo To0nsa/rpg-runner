@@ -133,6 +133,61 @@ class SelfHitDelivery extends HitDeliveryDef {
 }
 
 // --------------------------------------------------------------------------
+// CHARGE AUTHORING
+// --------------------------------------------------------------------------
+
+/// Authoring tier for charged commits.
+///
+/// Tiers are authored in 60 Hz tick semantics and selected by highest
+/// [minHoldTicks60] <= runtime hold ticks (scaled to current tick rate).
+class AbilityChargeTierDef {
+  const AbilityChargeTierDef({
+    required this.minHoldTicks60,
+    required this.damageScaleBp,
+    this.critBonusBp = 0,
+    this.speedScaleBp = 10000,
+    this.hitboxScaleBp = 10000,
+    this.pierce,
+    this.maxPierceHits,
+  }) : assert(minHoldTicks60 >= 0, 'minHoldTicks60 cannot be negative'),
+       assert(damageScaleBp >= 0, 'damageScaleBp cannot be negative'),
+       assert(speedScaleBp > 0, 'speedScaleBp must be > 0'),
+       assert(hitboxScaleBp > 0, 'hitboxScaleBp must be > 0'),
+       assert(
+         maxPierceHits == null || maxPierceHits > 0,
+         'maxPierceHits must be > 0 when provided',
+       );
+
+  /// Minimum hold duration in authored 60 Hz ticks required for this tier.
+  final int minHoldTicks60;
+
+  /// Damage scale in basis points (`10000 == 1.0x`).
+  final int damageScaleBp;
+
+  /// Crit chance bonus in basis points (`100 == 1%`).
+  final int critBonusBp;
+
+  /// Projectile speed scale in basis points (`10000 == 1.0x`).
+  final int speedScaleBp;
+
+  /// Melee hitbox scale in basis points (`10000 == 1.0x`).
+  final int hitboxScaleBp;
+
+  /// Optional projectile piercing override.
+  final bool? pierce;
+
+  /// Optional projectile max pierce hit override.
+  final int? maxPierceHits;
+}
+
+/// Data-authored charge profile shared by melee/projectile commit paths.
+class AbilityChargeProfile {
+  const AbilityChargeProfile({required this.tiers});
+
+  final List<AbilityChargeTierDef> tiers;
+}
+
+// --------------------------------------------------------------------------
 // RUNTIME DATA STRUCTS
 // --------------------------------------------------------------------------
 
@@ -252,6 +307,8 @@ class AbilityDef {
     this.selfRestoreHealthBp = 0,
     this.selfRestoreManaBp = 0,
     this.selfRestoreStaminaBp = 0,
+    this.chargeProfile,
+    this.chargeMaxHoldTicks60 = 0,
     required this.baseDamage,
     this.baseDamageType = DamageType.physical,
   }) : assert(id != '', 'Ability id cannot be empty.'),
@@ -277,6 +334,14 @@ class AbilityDef {
        assert(
          selfRestoreStaminaBp >= 0,
          'Self restore stamina cannot be negative',
+       ),
+       assert(
+         chargeMaxHoldTicks60 >= 0,
+         'Charge max hold ticks cannot be negative',
+       ),
+       assert(
+         chargeProfile != null || chargeMaxHoldTicks60 == 0,
+         'Charge max hold ticks requires a charge profile.',
        ),
        assert(
          holdMode == AbilityHoldMode.none || activeTicks > 0,
@@ -382,6 +447,14 @@ class AbilityDef {
   ///
   /// Applied only by [SelfHitDelivery] abilities.
   final int selfRestoreStaminaBp;
+
+  /// Optional charge tuning profile for hold/release commits.
+  final AbilityChargeProfile? chargeProfile;
+
+  /// Optional hard timeout for charge holds in authored 60 Hz ticks.
+  ///
+  /// `0` means no timeout.
+  final int chargeMaxHoldTicks60;
 
   /// Base damage for this ability.
   /// Fixed-point: 100 = 1.0 damage.

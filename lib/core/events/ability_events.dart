@@ -36,3 +36,35 @@ class AbilityHoldEndedEvent extends GameEvent {
   /// Auto-end cause.
   final AbilityHoldEndReason reason;
 }
+
+/// Why a charged hold was canceled before commit.
+enum AbilityChargeEndReason {
+  /// The authored charge hold timeout elapsed.
+  timeout,
+}
+
+/// Emitted when a charged hold is auto-canceled.
+class AbilityChargeEndedEvent extends GameEvent {
+  const AbilityChargeEndedEvent({
+    required this.tick,
+    required this.entity,
+    required this.slot,
+    required this.abilityId,
+    required this.reason,
+  });
+
+  /// Simulation tick when the hold was canceled.
+  final int tick;
+
+  /// Entity that owned the charge hold.
+  final int entity;
+
+  /// Slot that sourced the ability.
+  final AbilitySlot slot;
+
+  /// Ability identifier whose hold was canceled.
+  final AbilityKey abilityId;
+
+  /// Auto-end cause.
+  final AbilityChargeEndReason reason;
+}

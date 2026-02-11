@@ -19,7 +19,7 @@ Desktop.ini
 build/
 .flutter-plugins-dependencies
 
-# Flutter tool state (usually keep, but safe to ignore if you want)
+# Flutter tool state
 # .metadata
 
 # =========================

@@ -4,6 +4,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../core/abilities/ability_def.dart';
 import '../core/contracts/render_contract.dart';
 import '../core/events/game_event.dart';
 import '../core/ecs/stores/combat/equipped_loadout_store.dart';
@@ -14,7 +15,6 @@ import '../core/players/player_character_definition.dart';
 import '../core/players/player_character_registry.dart';
 import '../game/game_controller.dart';
 import '../game/input/aim_preview.dart';
-import '../game/input/charge_preview.dart';
 import '../game/input/runner_input_router.dart';
 import '../game/runner_flame_game.dart';
 import 'hud/game/game_overlay.dart';
@@ -102,11 +102,11 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   late GameController _controller;
   late RunnerInputRouter _input;
   late AimPreviewModel _projectileAimPreview;
-  late ChargePreviewModel _projectileChargePreview;
   late AimPreviewModel _meleeAimPreview;
   late ValueNotifier<Rect?> _aimCancelHitboxRect;
   late ValueNotifier<int> _forceAimCancelSignal;
   int _lastPlayerDamageTick = -1;
+  int _lastChargeTier = 0;
   late RunnerFlameGame _game;
 
   @override
@@ -148,27 +148,48 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _input.clearMeleeAimDir();
     _input.endPrimaryHold();
     _input.endSecondaryHold();
+    _input.endAbilitySlotHold(AbilitySlot.projectile);
     _projectileAimPreview.end();
-    _projectileChargePreview.end();
     _meleeAimPreview.end();
     _input.pumpHeldInputs();
   }
 
   void _cancelHeldChargedAimFromHit() {
     _input.clearProjectileAimDir();
+    _input.clearMeleeAimDir();
     _projectileAimPreview.end();
-    _projectileChargePreview.end();
+    _meleeAimPreview.end();
     _forceAimCancelSignal.value = _forceAimCancelSignal.value + 1;
     _input.pumpHeldInputs();
   }
 
   void _onControllerTick() {
+    _emitChargeHaptics();
+
     final damageTick = _controller.snapshot.hud.lastDamageTick;
     if (damageTick <= _lastPlayerDamageTick) return;
     _lastPlayerDamageTick = damageTick;
-    if (_projectileChargePreview.value.active) {
+    final hud = _controller.snapshot.hud;
+    if (hud.chargeEnabled && hud.chargeActive) {
       _cancelHeldChargedAimFromHit();
     }
+  }
+
+  void _emitChargeHaptics() {
+    final hud = _controller.snapshot.hud;
+    final active = hud.chargeEnabled && hud.chargeActive;
+    final nextTier = active ? hud.chargeTier : 0;
+
+    if (active && nextTier > _lastChargeTier) {
+      if (_lastChargeTier < 1 && nextTier >= 1) {
+        _haptics.trigger(UiHapticsCue.chargeHalfTierReached);
+      }
+      if (_lastChargeTier < 2 && nextTier >= 2) {
+        _haptics.trigger(UiHapticsCue.chargeFullTierReached);
+      }
+    }
+
+    _lastChargeTier = nextTier;
   }
 
   AppState? _maybeAppState() {
@@ -199,6 +220,14 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
         case AbilityHoldEndReason.staminaDepleted:
           _haptics.trigger(UiHapticsCue.holdAbilityStaminaDepleted);
       }
+      return;
+    }
+    if (event is AbilityChargeEndedEvent) {
+      switch (event.reason) {
+        case AbilityChargeEndReason.timeout:
+          _haptics.trigger(UiHapticsCue.holdAbilityTimedOut);
+      }
+      _cancelHeldChargedAimFromHit();
       return;
     }
     if (event is! RunEndedEvent) return;
@@ -248,7 +277,6 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   void _restartGame() {
     final oldController = _controller;
     final oldProjectilePreview = _projectileAimPreview;
-    final oldProjectileChargePreview = _projectileChargePreview;
     final oldMeleePreview = _meleeAimPreview;
     final oldAimCancelHitboxRect = _aimCancelHitboxRect;
     final oldForceAimCancelSignal = _forceAimCancelSignal;
@@ -271,7 +299,6 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       oldController.shutdown();
       oldController.dispose();
       oldProjectilePreview.dispose();
-      oldProjectileChargePreview.dispose();
       oldMeleePreview.dispose();
       oldAimCancelHitboxRect.dispose();
       oldForceAimCancelSignal.dispose();
@@ -324,11 +351,11 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _controller.addListener(_onControllerTick);
     _input = RunnerInputRouter(controller: _controller);
     _projectileAimPreview = AimPreviewModel();
-    _projectileChargePreview = ChargePreviewModel();
     _meleeAimPreview = AimPreviewModel();
     _aimCancelHitboxRect = ValueNotifier<Rect?>(null);
     _forceAimCancelSignal = ValueNotifier<int>(0);
     _lastPlayerDamageTick = _controller.snapshot.hud.lastDamageTick;
+    _lastChargeTier = 0;
     _game = RunnerFlameGame(
       controller: _controller,
       input: _input,
@@ -344,7 +371,6 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _controller.shutdown();
     _controller.dispose();
     _projectileAimPreview.dispose();
-    _projectileChargePreview.dispose();
     _meleeAimPreview.dispose();
     _aimCancelHitboxRect.dispose();
     _forceAimCancelSignal.dispose();
@@ -419,9 +445,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                   controller: _controller,
                   input: _input,
                   projectileAimPreview: _projectileAimPreview,
-                  projectileChargePreview: _projectileChargePreview,
                   meleeAimPreview: _meleeAimPreview,
-                  haptics: _haptics,
                   aimCancelHitboxRect: _aimCancelHitboxRect,
                   forceAimCancelSignal: _forceAimCancelSignal,
                   uiState: uiState,

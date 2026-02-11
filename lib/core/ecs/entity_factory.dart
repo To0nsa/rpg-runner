@@ -79,6 +79,7 @@ class EntityFactory {
     world.transform.add(id, posX: posX, posY: posY, velX: velX, velY: velY);
     world.playerInput.add(id);
     world.abilityInputBuffer.add(id);
+    world.abilityCharge.add(id);
     world.activeAbility.add(id);
     world.animState.add(id);
     world.movement.add(id, facing: facing);
@@ -165,6 +166,7 @@ class EntityFactory {
     world.stamina.add(id, stamina);
     world.enemy.add(id, EnemyDef(enemyId: enemyId, facing: facing));
     world.activeAbility.add(id);
+    world.abilityCharge.add(id);
     world.animState.add(id);
     world.statusImmunity.add(id, statusImmunity);
     if (enemyId == EnemyId.unocoDemon) {

@@ -2,14 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/game/input/aim_preview.dart';
-import 'package:rpg_runner/game/input/charge_preview.dart';
 import 'package:rpg_runner/ui/controls/cooldown_ring.dart';
 import 'package:rpg_runner/ui/controls/controls_tuning.dart';
+import 'package:rpg_runner/ui/controls/directional_action_button.dart';
 import 'package:rpg_runner/ui/controls/layout/controls_radial_layout.dart';
 import 'package:rpg_runner/ui/controls/runner_controls_overlay_radial.dart';
 import 'package:rpg_runner/ui/controls/widgets/bonus_control.dart';
 import 'package:rpg_runner/ui/controls/widgets/melee_control.dart';
-import 'package:rpg_runner/ui/haptics/haptics_service.dart';
 
 void main() {
   testWidgets('bonus control is anchored above Atk control by tuning offset', (
@@ -33,7 +32,9 @@ void main() {
     );
   });
 
-  testWidgets('charge bar anchor maps to projectile owner', (tester) async {
+  testWidgets('charge bar anchor maps to projectile charge layout', (
+    tester,
+  ) async {
     final harness = _OverlayHarness();
     addTearDown(harness.dispose);
 
@@ -48,13 +49,12 @@ void main() {
       _testHost(child: harness.buildOverlay(tuning: tuning)),
     );
 
-    harness.chargePreview.begin(
-      ownerId: 'projectile',
-      halfTierTicks: 10,
-      fullTierTicks: 20,
+    harness.chargeBarVisible = true;
+    harness.chargeBarProgress01 = 0.4;
+    harness.chargeBarTier = 1;
+    await tester.pumpWidget(
+      _testHost(child: harness.buildOverlay(tuning: tuning)),
     );
-    harness.chargePreview.updateChargeTicks(8);
-    await tester.pump();
 
     final projectilePos = _chargeBarPositioned(tester);
     expect(
@@ -67,7 +67,9 @@ void main() {
     );
   });
 
-  testWidgets('charge bar is hidden for bonus owner', (tester) async {
+  testWidgets('charge bar is hidden when projectile charge is inactive', (
+    tester,
+  ) async {
     final harness = _OverlayHarness();
     addTearDown(harness.dispose);
 
@@ -75,13 +77,10 @@ void main() {
       _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
     );
 
-    harness.chargePreview.begin(
-      ownerId: 'bonus',
-      halfTierTicks: 10,
-      fullTierTicks: 20,
+    harness.chargeBarVisible = false;
+    await tester.pumpWidget(
+      _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
     );
-    harness.chargePreview.updateChargeTicks(8);
-    await tester.pump();
 
     expect(_chargeBarFinder(), findsNothing);
   });
@@ -140,13 +139,12 @@ void main() {
       _testHost(child: harness.buildOverlay(tuning: tuning)),
     );
 
-    harness.chargePreview.begin(
-      ownerId: 'projectile',
-      halfTierTicks: 10,
-      fullTierTicks: 20,
+    harness.chargeBarVisible = true;
+    harness.chargeBarProgress01 = 1.0;
+    harness.chargeBarTier = 2;
+    await tester.pumpWidget(
+      _testHost(child: harness.buildOverlay(tuning: tuning)),
     );
-    harness.chargePreview.updateChargeTicks(20);
-    await tester.pump();
 
     final chargeBarFinder = _chargeBarFinder();
     expect(chargeBarFinder, findsOneWidget);
@@ -196,6 +194,27 @@ void main() {
     final fillBox = fillDecoration! as BoxDecoration;
     expect(fillBox.borderRadius, BorderRadius.circular(chargeBar.innerRadius));
   });
+
+  testWidgets(
+    'secondary hold-aim-release renders directional secondary control',
+    (tester) async {
+      final harness = _OverlayHarness();
+      addTearDown(harness.dispose);
+
+      await tester.pumpWidget(
+        _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
+      );
+
+      harness.secondaryInputMode = AbilityInputMode.holdAimRelease;
+      await tester.pumpWidget(
+        _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
+      );
+
+      // Projectile + melee directional controls are always present in this harness;
+      // hold-aim-release secondary adds a third one.
+      expect(find.byType(DirectionalActionButton), findsNWidgets(3));
+    },
+  );
 }
 
 Widget _testHost({required Widget child}) {
@@ -226,13 +245,14 @@ Positioned _chargeBarPositioned(WidgetTester tester) {
 }
 
 class _OverlayHarness {
-  static const UiHaptics _haptics = UiHapticsService(enabled: false);
-
   final AimPreviewModel projectileAimPreview = AimPreviewModel();
   final AimPreviewModel meleeAimPreview = AimPreviewModel();
-  final ChargePreviewModel chargePreview = ChargePreviewModel();
   final ValueNotifier<Rect?> cancelHitboxRect = ValueNotifier<Rect?>(null);
   final ValueNotifier<int> forceCancelSignal = ValueNotifier<int>(0);
+  bool chargeBarVisible = false;
+  double chargeBarProgress01 = 0.0;
+  int chargeBarTier = 0;
+  AbilityInputMode secondaryInputMode = AbilityInputMode.tap;
 
   RunnerControlsOverlay buildOverlay({required ControlsTuning tuning}) {
     return RunnerControlsOverlay(
@@ -241,11 +261,14 @@ class _OverlayHarness {
       onJumpPressed: () {},
       onDashPressed: () {},
       onSecondaryPressed: () {},
+      onSecondaryCommitted: () {},
       onSecondaryHoldStart: () {},
       onSecondaryHoldEnd: () {},
       onBonusPressed: () {},
-      onProjectileCommitted: (_) {},
+      onProjectileCommitted: () {},
       onProjectilePressed: () {},
+      onProjectileHoldStart: () {},
+      onProjectileHoldEnd: () {},
       onProjectileAimDir: (_, _) {},
       onProjectileAimClear: () {},
       projectileAimPreview: projectileAimPreview,
@@ -258,20 +281,19 @@ class _OverlayHarness {
       onMeleePressed: () {},
       onMeleeHoldStart: () {},
       onMeleeHoldEnd: () {},
+      onMeleeChargeHoldStart: () {},
+      onMeleeChargeHoldEnd: () {},
       meleeAimPreview: meleeAimPreview,
       aimCancelHitboxRect: cancelHitboxRect,
       meleeAffordable: true,
       meleeCooldownTicksLeft: 0,
       meleeCooldownTicksTotal: 0,
       meleeInputMode: AbilityInputMode.holdAimRelease,
-      secondaryInputMode: AbilityInputMode.tap,
+      secondaryInputMode: secondaryInputMode,
       projectileInputMode: AbilityInputMode.holdAimRelease,
-      projectileChargePreview: chargePreview,
-      haptics: _haptics,
-      projectileChargeEnabled: true,
-      projectileChargeHalfTicks: 10,
-      projectileChargeFullTicks: 20,
-      simulationTickHz: 60,
+      chargeBarVisible: chargeBarVisible,
+      chargeBarProgress01: chargeBarProgress01,
+      chargeBarTier: chargeBarTier,
       jumpAffordable: true,
       dashAffordable: true,
       dashCooldownTicksLeft: 0,
@@ -289,7 +311,6 @@ class _OverlayHarness {
   void dispose() {
     projectileAimPreview.dispose();
     meleeAimPreview.dispose();
-    chargePreview.dispose();
     cancelHitboxRect.dispose();
     forceCancelSignal.dispose();
   }

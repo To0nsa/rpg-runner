@@ -275,14 +275,6 @@ class GameController extends ChangeNotifier {
         ),
       );
     }
-    if (input.projectileChargeTicksSet) {
-      _commandScratch.add(
-        ProjectileChargeTicksCommand(
-          tick: tick,
-          chargeTicks: input.projectileChargeTicks,
-        ),
-      );
-    }
     if (input.meleeAimDirSet) {
       _commandScratch.add(
         MeleeAimDirCommand(
@@ -310,13 +302,14 @@ class GameController extends ChangeNotifier {
     if (input.bonusPressed) {
       _commandScratch.add(BonusPressedCommand(tick: tick));
     }
-    final heldMask = input.abilitySlotHeldMask;
-    if (heldMask != 0) {
+    final heldChangedMask = input.abilitySlotHeldChangedMask;
+    if (heldChangedMask != 0) {
       for (final slot in AbilitySlot.values) {
         final bit = 1 << slot.index;
-        if ((heldMask & bit) == 0) continue;
+        if ((heldChangedMask & bit) == 0) continue;
+        final held = (input.abilitySlotHeldValueMask & bit) != 0;
         _commandScratch.add(
-          AbilitySlotHeldCommand(tick: tick, slot: slot, held: true),
+          AbilitySlotHeldCommand(tick: tick, slot: slot, held: held),
         );
       }
     }

@@ -31,9 +31,12 @@ class PlayerHudSnapshot {
     required this.meleeInputMode,
     required this.secondaryInputMode,
     required this.projectileInputMode,
-    required this.projectileChargeEnabled,
-    required this.projectileChargeHalfTicks,
-    required this.projectileChargeFullTicks,
+    required this.chargeEnabled,
+    required this.chargeHalfTicks,
+    required this.chargeFullTicks,
+    required this.chargeActive,
+    required this.chargeTicks,
+    required this.chargeTier,
     required this.lastDamageTick,
     required this.collectibles,
     required this.collectibleScore,
@@ -108,14 +111,23 @@ class PlayerHudSnapshot {
   /// Input interaction mode for projectile slot.
   final AbilityInputMode projectileInputMode;
 
-  /// Whether the projectile slot supports tiered charge while holding.
-  final bool projectileChargeEnabled;
+  /// Whether at least one equipped slot supports tiered charge.
+  final bool chargeEnabled;
 
   /// Charge hold threshold for half tier (runtime ticks).
-  final int projectileChargeHalfTicks;
+  final int chargeHalfTicks;
 
   /// Charge hold threshold for full tier (runtime ticks).
-  final int projectileChargeFullTicks;
+  final int chargeFullTicks;
+
+  /// Whether a charge hold is currently active in Core state.
+  final bool chargeActive;
+
+  /// Current hold duration in runtime ticks for the active charge slot.
+  final int chargeTicks;
+
+  /// Current charge tier bucket from Core (0/1/2).
+  final int chargeTier;
 
   /// Tick when this player most recently took non-zero damage (-1 if never).
   final int lastDamageTick;

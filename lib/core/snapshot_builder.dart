@@ -231,15 +231,12 @@ class SnapshotBuilder {
     final secondaryInputMode = _secondaryInputModeFor(secondaryAbility);
     final projectileInputMode = _inputModeFor(projectileAbility);
 
-    final projectileChargeEnabled = _supportsTieredProjectileCharge(
-      projectileAbility,
+    final chargePreview = _resolveHudChargePreview(
+      player: player,
+      meleeAbility: meleeAbility,
+      secondaryAbility: secondaryAbility,
+      projectileAbility: projectileAbility,
     );
-    final projectileChargeFullTicks = projectileChargeEnabled
-        ? _scaledWindupTicks(projectileAbility!)
-        : 0;
-    final projectileChargeHalfTicks = projectileChargeEnabled
-        ? _halfChargeThresholdTicks(projectileChargeFullTicks)
-        : 0;
     // ─── Compute affordability flags ───
     // These tell the UI whether action buttons should appear enabled.
     final canAffordJump = stamina >= jumpStaminaCost;
@@ -390,9 +387,12 @@ class SnapshotBuilder {
         meleeInputMode: meleeInputMode,
         secondaryInputMode: secondaryInputMode,
         projectileInputMode: projectileInputMode,
-        projectileChargeEnabled: projectileChargeEnabled,
-        projectileChargeHalfTicks: projectileChargeHalfTicks,
-        projectileChargeFullTicks: projectileChargeFullTicks,
+        chargeEnabled: chargePreview.enabled,
+        chargeHalfTicks: chargePreview.halfTicks,
+        chargeFullTicks: chargePreview.fullTicks,
+        chargeActive: chargePreview.active,
+        chargeTicks: chargePreview.ticks,
+        chargeTier: chargePreview.tier,
         lastDamageTick: playerLastDamageTick,
         collectibles: collectibles,
         collectibleScore: collectibleScore,
@@ -410,14 +410,6 @@ class SnapshotBuilder {
     return ticksFromSecondsCeil(seconds, tickHz);
   }
 
-  int _scaledWindupTicks(AbilityDef ability) {
-    return _scaleAbilityTicks(ability.windupTicks);
-  }
-
-  int _halfChargeThresholdTicks(int fullThresholdTicks) {
-    return max(1, fullThresholdTicks ~/ 2);
-  }
-
   AbilityInputMode _inputModeFor(AbilityDef? ability) {
     if (ability == null) return AbilityInputMode.tap;
     if (ability.holdMode == AbilityHoldMode.holdToMaintain) {
@@ -431,20 +423,119 @@ class SnapshotBuilder {
   }
 
   AbilityInputMode _secondaryInputModeFor(AbilityDef? ability) {
-    if (ability?.holdMode == AbilityHoldMode.holdToMaintain) {
+    if (ability == null) return AbilityInputMode.tap;
+    if (ability.holdMode == AbilityHoldMode.holdToMaintain) {
       return AbilityInputMode.holdMaintain;
+    }
+    if (ability.targetingModel == TargetingModel.aimedCharge) {
+      return AbilityInputMode.holdAimRelease;
     }
     return AbilityInputMode.tap;
   }
 
-  bool _supportsTieredProjectileCharge(AbilityDef? ability) {
-    if (ability == null) return false;
-    if (ability.id != _chargedShotAbilityId) return false;
-    return ability.targetingModel == TargetingModel.aimedCharge;
+  _HudChargePreview _resolveHudChargePreview({
+    required EntityId player,
+    required AbilityDef? meleeAbility,
+    required AbilityDef? secondaryAbility,
+    required AbilityDef? projectileAbility,
+  }) {
+    final bySlot = <AbilitySlot, AbilityDef?>{
+      AbilitySlot.primary: meleeAbility,
+      AbilitySlot.secondary: secondaryAbility,
+      AbilitySlot.projectile: projectileAbility,
+    };
+    final thresholdsBySlot = <AbilitySlot, _ChargeThresholds>{};
+    for (final entry in bySlot.entries) {
+      final ability = entry.value;
+      if (!_supportsTieredCharge(ability)) continue;
+      final fullTicks = _chargeFullThresholdTicks(ability!);
+      final halfTicks = _chargeHalfThresholdTicks(ability, fullTicks);
+      thresholdsBySlot[entry.key] = _ChargeThresholds(
+        halfTicks: halfTicks,
+        fullTicks: fullTicks,
+      );
+    }
+    if (thresholdsBySlot.isEmpty) return const _HudChargePreview.disabled();
+
+    AbilitySlot? activeSlot;
+    var chargeTicks = 0;
+    if (world.abilityCharge.has(player)) {
+      final charge = world.abilityCharge;
+      final chargeIndex = charge.indexOf(player);
+      for (final slot in _chargePreviewSlotPriority) {
+        final thresholds = thresholdsBySlot[slot];
+        if (thresholds == null) continue;
+        if (!charge.slotHeld(player, slot)) continue;
+        activeSlot = slot;
+        final slotOffset = charge.slotOffsetForDenseIndex(chargeIndex, slot);
+        chargeTicks = charge.currentHoldTicksBySlot[slotOffset];
+        if (chargeTicks < 0) chargeTicks = 0;
+        break;
+      }
+    }
+
+    final selectedSlot =
+        activeSlot ?? _firstSlotByPriority(thresholdsBySlot.keys);
+    final selectedThresholds = thresholdsBySlot[selectedSlot]!;
+    var chargeTier = 0;
+    if (activeSlot != null) {
+      if (selectedThresholds.fullTicks > 0 &&
+          chargeTicks >= selectedThresholds.fullTicks) {
+        chargeTier = 2;
+      } else if (selectedThresholds.halfTicks > 0 &&
+          chargeTicks >= selectedThresholds.halfTicks) {
+        chargeTier = 1;
+      }
+    }
+
+    return _HudChargePreview(
+      enabled: true,
+      halfTicks: selectedThresholds.halfTicks,
+      fullTicks: selectedThresholds.fullTicks,
+      active: activeSlot != null,
+      ticks: chargeTicks,
+      tier: chargeTier,
+    );
+  }
+
+  AbilitySlot _firstSlotByPriority(Iterable<AbilitySlot> slots) {
+    final set = slots is Set<AbilitySlot> ? slots : slots.toSet();
+    for (final slot in _chargePreviewSlotPriority) {
+      if (set.contains(slot)) return slot;
+    }
+    // Fallback; should be unreachable with non-empty input.
+    return AbilitySlot.projectile;
+  }
+
+  bool _supportsTieredCharge(AbilityDef? ability) {
+    return ability != null &&
+        ability.targetingModel == TargetingModel.aimedCharge &&
+        ability.chargeProfile != null;
+  }
+
+  int _chargeFullThresholdTicks(AbilityDef ability) {
+    final profile = ability.chargeProfile;
+    if (profile == null || profile.tiers.isEmpty) return 0;
+    return _scaleAbilityTicks(profile.tiers.last.minHoldTicks60);
+  }
+
+  int _chargeHalfThresholdTicks(AbilityDef ability, int fullThresholdTicks) {
+    final profile = ability.chargeProfile;
+    if (profile == null) return max(1, fullThresholdTicks ~/ 2);
+    for (final tier in profile.tiers) {
+      if (tier.minHoldTicks60 <= 0) continue;
+      final threshold = _scaleAbilityTicks(tier.minHoldTicks60);
+      if (threshold > 0) return threshold;
+    }
+    return max(1, fullThresholdTicks ~/ 2);
   }
 
   static const int _abilityTickHz = 60;
-  static const AbilityKey _chargedShotAbilityId = 'eloise.charged_shot';
+  static const List<AbilitySlot> _chargePreviewSlotPriority = <AbilitySlot>[
+    AbilitySlot.projectile,
+    AbilitySlot.primary,
+    AbilitySlot.secondary,
+  ];
 
   // ───────────────────────────────────────────────────────────────────────────
   // Private Entity Collectors
@@ -677,4 +768,37 @@ class SnapshotBuilder {
       );
     }
   }
+}
+
+class _ChargeThresholds {
+  const _ChargeThresholds({required this.halfTicks, required this.fullTicks});
+
+  final int halfTicks;
+  final int fullTicks;
+}
+
+class _HudChargePreview {
+  const _HudChargePreview({
+    required this.enabled,
+    required this.halfTicks,
+    required this.fullTicks,
+    required this.active,
+    required this.ticks,
+    required this.tier,
+  });
+
+  const _HudChargePreview.disabled()
+    : enabled = false,
+      halfTicks = 0,
+      fullTicks = 0,
+      active = false,
+      ticks = 0,
+      tier = 0;
+
+  final bool enabled;
+  final int halfTicks;
+  final int fullTicks;
+  final bool active;
+  final int ticks;
+  final int tier;
 }

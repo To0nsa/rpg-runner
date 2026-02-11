@@ -91,6 +91,7 @@ import 'ecs/systems/cooldown_system.dart';
 import 'ecs/systems/damage_middleware_system.dart';
 import 'ecs/systems/damage_system.dart';
 import 'ecs/systems/active_ability_phase_system.dart';
+import 'ecs/systems/ability_charge_tracking_system.dart';
 import 'ecs/systems/death_despawn_system.dart';
 import 'ecs/systems/enemy_cast_system.dart';
 import 'ecs/systems/enemy_death_state_system.dart';
@@ -484,6 +485,10 @@ class GameCore {
     _activeAbilityPhaseSystem = ActiveAbilityPhaseSystem(
       forcedInterruptPolicy: forcedInterruptPolicy,
     );
+    _abilityChargeTrackingSystem = AbilityChargeTrackingSystem(
+      tickHz: tickHz,
+      abilities: abilityCatalog,
+    );
     _holdAbilitySystem = HoldAbilitySystem(
       tickHz: tickHz,
       abilities: abilityCatalog,
@@ -773,6 +778,7 @@ class GameCore {
   late final StatusSystem _statusSystem;
   late final ControlLockSystem _controlLockSystem;
   late final ActiveAbilityPhaseSystem _activeAbilityPhaseSystem;
+  late final AbilityChargeTrackingSystem _abilityChargeTrackingSystem;
   late final HoldAbilitySystem _holdAbilitySystem;
   late final HealthDespawnSystem _healthDespawnSystem;
   late final EnemyDeathStateSystem _enemyDeathStateSystem;
@@ -926,11 +932,11 @@ class GameCore {
   /// - [StrikePressedCommand]: Triggers an strike attempt.
   /// - [SecondaryPressedCommand]: Triggers an off-hand ability attempt.
   /// - [ProjectileAimDirCommand]: Sets projectile aim direction.
-  /// - [ProjectileChargeTicksCommand]: Sets projectile charge hold duration.
   /// - [MeleeAimDirCommand]: Sets melee strike direction.
   /// - [ProjectilePressedCommand]: Triggers the projectile slot attempt.
   /// - [BonusPressedCommand]: Triggers a bonus-slot ability attempt.
-  /// - [AbilitySlotHeldCommand]: Sets per-slot hold state for maintain abilities.
+  /// - [AbilitySlotHeldCommand]: Applies per-slot hold transitions for maintain
+  ///   abilities (latched until the next transition command).
   ///
   /// Commands are processed before [stepOneTick] to ensure inputs are
   /// available when systems read them.
@@ -982,12 +988,6 @@ class GameCore {
           _world.playerInput.projectileAimDirX[inputIndex] = x;
           _world.playerInput.projectileAimDirY[inputIndex] = y;
 
-        case ProjectileChargeTicksCommand(:final chargeTicks):
-          _world.playerInput.projectileChargeTicksSet[inputIndex] = true;
-          _world.playerInput.projectileChargeTicks[inputIndex] = chargeTicks < 0
-              ? 0
-              : chargeTicks;
-
         // Melee aim: Direction vector for melee strikes.
         case MeleeAimDirCommand(:final x, :final y):
           _world.playerInput.meleeAimDirX[inputIndex] = x;
@@ -1017,7 +1017,7 @@ class GameCore {
           _world.playerInput.lastAbilitySlotPressed[inputIndex] =
               AbilitySlot.bonus;
 
-        // Per-slot hold state (used by hold-to-maintain abilities).
+        // Per-slot hold transitions (latched until updated).
         case AbilitySlotHeldCommand(:final slot, :final held):
           _world.playerInput.setAbilitySlotHeld(_player, slot, held);
       }
@@ -1106,6 +1106,13 @@ class GameCore {
 
     // ─── Phase 2.75: Active ability phase update ───
     _activeAbilityPhaseSystem.step(_world, currentTick: tick);
+
+    // ─── Phase 2.8: Authoritative charge tracking ───
+    _abilityChargeTrackingSystem.step(
+      _world,
+      currentTick: tick,
+      queueEvent: (event) => _events.add(event),
+    );
 
     // ─── Phase 2.9: Hold ability maintenance ───
     _holdAbilitySystem.step(

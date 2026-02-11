@@ -130,6 +130,7 @@ void main() {
         world.playerInput.add(player);
         world.movement.add(player, facing: Facing.right);
         world.abilityInputBuffer.add(player);
+        world.abilityCharge.add(player);
         world.activeAbility.add(player);
         world.cooldown.add(player);
         world.mana.add(
@@ -152,8 +153,13 @@ void main() {
 
         final inputIndex = world.playerInput.indexOf(player);
         world.playerInput.projectilePressed[inputIndex] = true;
-        world.playerInput.projectileChargeTicksSet[inputIndex] = true;
-        world.playerInput.projectileChargeTicks[inputIndex] = chargeTicks;
+        final chargeIndex = world.abilityCharge.indexOf(player);
+        final slotOffset = world.abilityCharge.slotOffsetForDenseIndex(
+          chargeIndex,
+          AbilitySlot.projectile,
+        );
+        world.abilityCharge.releasedHoldTicksBySlot[slotOffset] = chargeTicks;
+        world.abilityCharge.releasedTickBySlot[slotOffset] = 1;
 
         system.step(world, player: player, currentTick: 1);
 

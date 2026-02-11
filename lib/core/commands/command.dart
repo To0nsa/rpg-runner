@@ -57,20 +57,6 @@ final class ProjectileAimDirCommand extends Command {
   final double y;
 }
 
-/// Charge hold duration for projectile-style commit abilities.
-///
-/// The value is expressed in simulation ticks of the current runtime tick rate
-/// (not fixed 60 Hz authoring ticks). It is resolved by Core at commit time
-/// and used for deterministic tier selection.
-final class ProjectileChargeTicksCommand extends Command {
-  const ProjectileChargeTicksCommand({
-    required super.tick,
-    required this.chargeTicks,
-  });
-
-  final int chargeTicks;
-}
-
 /// Continuous melee aim direction for the given tick.
 ///
 /// The direction should be normalized (or near-normalized). It is expressed in
@@ -111,11 +97,12 @@ final class BonusPressedCommand extends Command {
   const BonusPressedCommand({required super.tick});
 }
 
-/// Continuous hold state for an ability slot at the given tick.
+/// Hold-state edge for an ability slot at the given tick.
 ///
-/// This is used for "hold-to-maintain" abilities (for example, shield block).
-/// Input routers should schedule this continuously while held and send
-/// `held: false` commands when releasing to overwrite already-buffered ticks.
+/// Core latches slot hold state until another [AbilitySlotHeldCommand] updates
+/// it, so input routers should send this on transitions only:
+/// - `held: true` when hold starts
+/// - `held: false` when hold ends
 final class AbilitySlotHeldCommand extends Command {
   const AbilitySlotHeldCommand({
     required super.tick,

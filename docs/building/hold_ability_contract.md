@@ -16,6 +16,9 @@ In `AbilityDef`:
 - `holdMode` controls whether an ability is maintainable after commit.
 - `holdStaminaDrainPerSecond100` defines stamina drain while held (`100 == 1.0/s`).
 - `activeTicks` remains authored at 60 Hz and is treated as the max hold window.
+- `chargeProfile` (optional) authors charged-commit tiers shared by melee and
+  projectile paths using 60 Hz hold thresholds (`minHoldTicks60`) and per-tier
+  tuning (damage/crit/speed/hitbox/pierce).
 
 For the current defense holds:
 
@@ -24,12 +27,21 @@ For the current defense holds:
 
 ## Input Contract
 
-Input routers must schedule `AbilitySlotHeldCommand` continuously for held slots.
+Input routers send `AbilitySlotHeldCommand` on hold transitions only.
 
-- `held: true` while pointer/button is down.
-- `held: false` after release to overwrite any buffered future hold ticks.
+- `held: true` once when pointer/button goes down.
+- `held: false` once when pointer/button is released.
 
-Core resets per-tick input state, so absence of a hold command means "not held".
+Core latches slot hold state across ticks, so absence of a hold command means
+"no change" (not "released").
+
+## Charge Tracking Contract
+
+Authoritative charged-ability timing is derived in Core from latched hold state.
+
+- `AbilityChargeTrackingSystem` records hold start tick, live hold ticks, and
+  release-duration ticks per slot.
+- Commit-time charge reads Core timing, not UI stopwatch time.
 
 ## Runtime Contract
 
@@ -46,5 +58,7 @@ Core resets per-tick input state, so absence of a hold command means "not held".
 HUD exposes `AbilityInputMode.holdMaintain` for hold abilities.
 
 - `MeleeControl`, `BonusControl`, and Secondary slot now support hold buttons.
+- Charged projectile preview/haptics are driven from Core snapshot charge state
+  (`projectileChargeActive/ticks/tier`), not local UI stopwatch timing.
 - UI shell listens for `AbilityHoldEndedEvent` and triggers haptics on auto-end
   through the centralized `UiHaptics` service.

@@ -345,6 +345,15 @@ class AbilityActivationSystem {
       return false;
     }
 
+    if (_isChargeCommitBlocked(
+      world,
+      player: player,
+      slot: slot,
+      ability: ability,
+    )) {
+      return false;
+    }
+
     if (ability.category == AbilityCategory.mobility) {
       return _commitMobility(
         world,
@@ -402,6 +411,16 @@ class AbilityActivationSystem {
     }
 
     return false;
+  }
+
+  bool _isChargeCommitBlocked(
+    EcsWorld world, {
+    required EntityId player,
+    required AbilitySlot slot,
+    required AbilityDef ability,
+  }) {
+    if (ability.chargeProfile == null) return false;
+    return world.abilityCharge.slotChargeCanceled(player, slot);
   }
 
   bool _commitSelf(
@@ -678,9 +697,28 @@ class AbilityActivationSystem {
       dirY = fallbackDirY;
     }
 
+    final chargeTicks = _resolveCommitChargeTicks(
+      world,
+      player: player,
+      slot: slot,
+      commitTick: commitTick,
+    );
+    final chargeTuning = _resolveChargeTuning(
+      ability: ability,
+      chargeTicks: chargeTicks,
+      defaults: const _ChargeTuning(
+        damageScaleBp: 10000,
+        critBonusBp: 0,
+        speedScaleBp: 10000,
+        hitboxScaleBp: 10000,
+      ),
+    );
+
     // Resolve hitbox dimensions from the ability.
-    final halfX = hitDelivery.sizeX * 0.5;
-    final halfY = hitDelivery.sizeY * 0.5;
+    final baseHalfX = hitDelivery.sizeX * 0.5;
+    final baseHalfY = hitDelivery.sizeY * 0.5;
+    final halfX = (baseHalfX * chargeTuning.hitboxScaleBp) / 10000.0;
+    final halfY = (baseHalfY * chargeTuning.hitboxScaleBp) / 10000.0;
 
     // Offset: push the hitbox forward from the player collider.
     var maxHalfExtent = 0.0;
@@ -728,6 +766,13 @@ class AbilityActivationSystem {
       weaponProcs: weapon.procs,
       globalCritChanceBonusBp: resolvedStats.critChanceBonusBp,
     );
+    final tunedDamage100 =
+        (payload.damage100 * chargeTuning.damageScaleBp) ~/ 10000;
+    final tunedCritChanceBp = clampInt(
+      payload.critChanceBp + chargeTuning.critBonusBp,
+      0,
+      10000,
+    );
 
     final cooldownGroupId = ability.effectiveCooldownGroup(slot);
     final cooldownTicks = resolvedStats.applyCooldownReduction(
@@ -766,8 +811,8 @@ class AbilityActivationSystem {
       MeleeIntentDef(
         abilityId: ability.id,
         slot: slot,
-        damage100: payload.damage100,
-        critChanceBp: payload.critChanceBp,
+        damage100: tunedDamage100,
+        critChanceBp: tunedCritChanceBp,
         damageType: payload.damageType,
         procs: payload.procs,
         halfX: halfX,
@@ -942,16 +987,25 @@ class AbilityActivationSystem {
       weaponProcs: weaponProcs,
       globalCritChanceBonusBp: resolvedStats.critChanceBonusBp,
     );
-    final chargeTicks =
-        inputIndex != null &&
-            world.playerInput.projectileChargeTicksSet[inputIndex]
-        ? world.playerInput.projectileChargeTicks[inputIndex]
-        : 0;
-    final chargeTuning = _resolveProjectileChargeTuning(
+    final chargeTicks = _resolveCommitChargeTicks(
+      world,
+      player: player,
+      slot: slot,
+      commitTick: commitTick,
+    );
+    final basePierce = hitDelivery.pierce;
+    final baseMaxPierceHits = _maxPierceHitsFor(hitDelivery);
+    final chargeTuning = _resolveChargeTuning(
       ability: ability,
-      hitDelivery: hitDelivery,
       chargeTicks: chargeTicks,
-      scaledWindupTicks: windupTicks,
+      defaults: _ChargeTuning(
+        damageScaleBp: 10000,
+        critBonusBp: 0,
+        speedScaleBp: 10000,
+        hitboxScaleBp: 10000,
+        pierce: basePierce,
+        maxPierceHits: baseMaxPierceHits,
+      ),
     );
     final tunedDamage100 =
         (payload.damage100 * chargeTuning.damageScaleBp) ~/ 10000;
@@ -1017,8 +1071,8 @@ class AbilityActivationSystem {
         fallbackDirX: fallbackDirX,
         fallbackDirY: fallbackDirY,
         originOffset: originOffset,
-        pierce: chargeTuning.pierce,
-        maxPierceHits: chargeTuning.maxPierceHits,
+        pierce: chargeTuning.pierce ?? basePierce,
+        maxPierceHits: chargeTuning.maxPierceHits ?? baseMaxPierceHits,
         commitTick: commitTick,
         windupTicks: windupTicks,
         activeTicks: activeTicks,
@@ -1029,54 +1083,43 @@ class AbilityActivationSystem {
     return true;
   }
 
-  _ProjectileChargeTuning _resolveProjectileChargeTuning({
+  _ChargeTuning _resolveChargeTuning({
     required AbilityDef ability,
-    required ProjectileHitDelivery hitDelivery,
     required int chargeTicks,
-    required int scaledWindupTicks,
+    required _ChargeTuning defaults,
   }) {
-    final basePierce = hitDelivery.pierce;
-    final baseMaxPierceHits = _maxPierceHitsFor(hitDelivery);
-    if (ability.id != _chargedShotAbilityId) {
-      return _ProjectileChargeTuning(
-        damageScaleBp: 10000,
-        speedScaleBp: 10000,
-        critBonusBp: 0,
-        pierce: basePierce,
-        maxPierceHits: baseMaxPierceHits,
-      );
-    }
+    final profile = ability.chargeProfile;
+    if (profile == null) return defaults;
 
     final holdTicks = chargeTicks < 0 ? 0 : chargeTicks;
-    final halfTierTicks = max(1, scaledWindupTicks ~/ 2);
-    final fullTierTicks = max(halfTierTicks + 1, scaledWindupTicks);
-
-    if (holdTicks >= fullTierTicks) {
-      return _ProjectileChargeTuning(
-        damageScaleBp: 12250,
-        speedScaleBp: 12000,
-        critBonusBp: 1000,
-        pierce: true,
-        maxPierceHits: max(baseMaxPierceHits, 2),
+    var resolved = defaults;
+    for (final tier in profile.tiers) {
+      final minHoldTicks = _scaleAbilityTicks(tier.minHoldTicks60);
+      if (holdTicks < minHoldTicks) continue;
+      resolved = _ChargeTuning(
+        damageScaleBp: tier.damageScaleBp,
+        critBonusBp: tier.critBonusBp,
+        speedScaleBp: tier.speedScaleBp,
+        hitboxScaleBp: tier.hitboxScaleBp,
+        pierce: tier.pierce ?? defaults.pierce,
+        maxPierceHits: tier.maxPierceHits ?? defaults.maxPierceHits,
       );
     }
-    if (holdTicks >= halfTierTicks) {
-      return _ProjectileChargeTuning(
-        damageScaleBp: 10000,
-        speedScaleBp: 10500,
-        critBonusBp: 500,
-        pierce: basePierce,
-        maxPierceHits: baseMaxPierceHits,
-      );
-    }
+    return resolved;
+  }
 
-    return _ProjectileChargeTuning(
-      damageScaleBp: 8200,
-      speedScaleBp: 9000,
-      critBonusBp: 0,
-      pierce: basePierce,
-      maxPierceHits: baseMaxPierceHits,
+  int _resolveCommitChargeTicks(
+    EcsWorld world, {
+    required EntityId player,
+    required AbilitySlot slot,
+    required int commitTick,
+  }) {
+    final authoritative = world.abilityCharge.commitChargeTicksOrUntracked(
+      player,
+      slot: slot,
+      currentTick: commitTick,
     );
+    return authoritative >= 0 ? authoritative : 0;
   }
 
   int _maxPierceHitsFor(ProjectileHitDelivery hitDelivery) {
@@ -1357,7 +1400,6 @@ class AbilityActivationSystem {
   }
 
   static const int _abilityTickHz = 60;
-  static const AbilityKey _chargedShotAbilityId = 'eloise.charged_shot';
 
   void _cancelCombatOnMobilityPress(EcsWorld world, EntityId player) {
     _clearCombatIntents(world, player);
@@ -1400,18 +1442,20 @@ class AbilityActivationSystem {
   }
 }
 
-class _ProjectileChargeTuning {
-  const _ProjectileChargeTuning({
+class _ChargeTuning {
+  const _ChargeTuning({
     required this.damageScaleBp,
     required this.speedScaleBp,
     required this.critBonusBp,
-    required this.pierce,
-    required this.maxPierceHits,
+    required this.hitboxScaleBp,
+    this.pierce,
+    this.maxPierceHits,
   });
 
   final int damageScaleBp;
   final int speedScaleBp;
   final int critBonusBp;
-  final bool pierce;
-  final int maxPierceHits;
+  final int hitboxScaleBp;
+  final bool? pierce;
+  final int? maxPierceHits;
 }
