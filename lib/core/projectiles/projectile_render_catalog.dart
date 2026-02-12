@@ -30,9 +30,9 @@ const Map<AnimKey, double> _iceBoltStepTimeSecondsByKey = <AnimKey, double>{
 };
 
 const Map<AnimKey, String> _iceBoltSourcesByKey = <AnimKey, String>{
-  AnimKey.spawn: 'entities/spells/iceBolt/start.png',
-  AnimKey.idle: 'entities/spells/iceBolt/repeatable.png',
-  AnimKey.hit: 'entities/spells/iceBolt/hit.png',
+  AnimKey.spawn: 'entities/spells/ice/bolt/start.png',
+  AnimKey.idle: 'entities/spells/ice/bolt/repeatable.png',
+  AnimKey.hit: 'entities/spells/ice/bolt/hit.png',
 };
 
 const RenderAnimSetDefinition _iceBoltRenderAnim = RenderAnimSetDefinition(
@@ -72,9 +72,9 @@ const Map<AnimKey, double> _thunderBoltStepTimeSecondsByKey =
 };
 
 const Map<AnimKey, String> _thunderBoltSourcesByKey = <AnimKey, String>{
-  AnimKey.spawn: 'entities/spells/thunderBolt/start.png',
-  AnimKey.idle: 'entities/spells/thunderBolt/repeatable.png',
-  AnimKey.hit: 'entities/spells/thunderBolt/hit.png',
+  AnimKey.spawn: 'entities/spells/thunder/bolt/start.png',
+  AnimKey.idle: 'entities/spells/thunder/bolt/repeatable.png',
+  AnimKey.hit: 'entities/spells/thunder/bolt/hit.png',
 };
 
 const RenderAnimSetDefinition _thunderBoltRenderAnim = RenderAnimSetDefinition(
@@ -119,9 +119,9 @@ const Map<AnimKey, double> _fireBoltStepTimeSecondsByKey =
 };
 
 const Map<AnimKey, String> _fireBoltSourcesByKey = <AnimKey, String>{
-  AnimKey.spawn: 'entities/spells/fireBolt/fireBolt_spriteSheet.png',
-  AnimKey.idle: 'entities/spells/fireBolt/fireBolt_spriteSheet.png',
-  AnimKey.hit: 'entities/spells/fireBolt/fireBolt_spriteSheet.png',
+  AnimKey.spawn: 'entities/spells/fire/bolt/spriteSheet.png',
+  AnimKey.idle: 'entities/spells/fire/bolt/spriteSheet.png',
+  AnimKey.hit: 'entities/spells/fire/bolt/spriteSheet.png',
 };
 
 const RenderAnimSetDefinition _fireBoltRenderAnim = RenderAnimSetDefinition(

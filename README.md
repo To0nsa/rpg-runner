@@ -31,6 +31,22 @@ run.
 
 ---
 
+## Asset Sync
+
+`flutter.assets` in `pubspec.yaml` is generated from real directories under
+`assets/images/**`.
+
+```bash
+dart run tool/sync_assets.dart
+dart run tool/sync_assets.dart --check
+```
+
+The script updates only the block between:
+- `# BEGIN AUTO-ASSETS`
+- `# END AUTO-ASSETS`
+
+---
+
 ## Embed (host app)
 
 Import the public embedding API (`lib/runner.dart`) and push the route:
