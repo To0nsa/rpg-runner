@@ -6,7 +6,6 @@ import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/game_core.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
 import 'package:rpg_runner/core/spells/spell_book_id.dart';
@@ -38,7 +37,7 @@ void main() {
       playerCharacter: base.copyWith(
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-          projectileItemId: ProjectileItemId.iceBolt,
+          projectileId: ProjectileId.iceBolt,
           abilityProjectileId: 'eloise.charged_shot',
         ),
         tuning: base.tuning.copyWith(
@@ -72,7 +71,7 @@ void main() {
     () {
       final catalog = testPlayerCatalog(
         bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-        projectileItemId: ProjectileItemId.iceBolt,
+        projectileId: ProjectileId.iceBolt,
         abilityProjectileId: 'eloise.charged_shot',
       );
       final base = PlayerCharacterRegistry.eloise;
@@ -132,8 +131,8 @@ void main() {
   test('cast: selected projectile-slot spell overrides throwing item', () {
     final catalog = testPlayerCatalog(
       bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-      projectileItemId: ProjectileItemId.throwingKnife,
-      projectileSlotSpellId: ProjectileItemId.fireBolt,
+      projectileId: ProjectileId.throwingKnife,
+      projectileSlotSpellId: ProjectileId.fireBolt,
       abilityProjectileId: 'eloise.charged_shot',
     );
     final base = PlayerCharacterRegistry.eloise;
@@ -191,7 +190,7 @@ void main() {
       playerCharacter: base.copyWith(
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-          projectileItemId: ProjectileItemId.iceBolt,
+          projectileId: ProjectileId.iceBolt,
           abilityProjectileId: 'eloise.charged_shot',
         ),
         tuning: base.tuning.copyWith(
@@ -264,8 +263,8 @@ void main() {
         playerCharacter: base.copyWith(
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-            projectileItemId: ProjectileItemId.throwingKnife,
-            projectileSlotSpellId: ProjectileItemId.fireBolt,
+            projectileId: ProjectileId.throwingKnife,
+            projectileSlotSpellId: ProjectileId.fireBolt,
             abilityProjectileId: 'eloise.quick_shot',
           ),
           tuning: base.tuning.copyWith(
@@ -383,7 +382,7 @@ void main() {
         playerCharacter: base.copyWith(
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-            projectileItemId: ProjectileItemId.throwingKnife,
+            projectileId: ProjectileId.throwingKnife,
             abilityProjectileId: 'eloise.quick_shot',
             abilitySpellId: 'eloise.arcane_haste',
           ),

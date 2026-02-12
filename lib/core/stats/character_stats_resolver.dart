@@ -3,7 +3,7 @@ import '../accessories/accessory_id.dart';
 import '../combat/damage_type.dart';
 import '../ecs/stores/combat/equipped_loadout_store.dart';
 import '../projectiles/projectile_item_catalog.dart';
-import '../projectiles/projectile_item_id.dart';
+import '../projectiles/projectile_id.dart';
 import '../spells/spell_book_catalog.dart';
 import '../spells/spell_book_id.dart';
 import '../util/fixed_math.dart';
@@ -142,7 +142,7 @@ class CharacterStatsResolver {
       mask: loadout.mask,
       mainWeaponId: loadout.mainWeaponId,
       offhandWeaponId: loadout.offhandWeaponId,
-      projectileItemId: loadout.projectileItemId,
+      projectileId: loadout.projectileId,
       spellBookId: loadout.spellBookId,
       accessoryId: loadout.accessoryId,
     );
@@ -152,7 +152,7 @@ class CharacterStatsResolver {
     required int mask,
     required WeaponId mainWeaponId,
     required WeaponId offhandWeaponId,
-    required ProjectileItemId projectileItemId,
+    required ProjectileId projectileId,
     required SpellBookId spellBookId,
     required AccessoryId accessoryId,
   }) {
@@ -166,7 +166,7 @@ class CharacterStatsResolver {
 
     final hasProjectile = (mask & LoadoutSlotMask.projectile) != 0;
     if (hasProjectile) {
-      total += projectileItems.get(projectileItemId).stats;
+      total += projectileItems.get(projectileId).stats;
       total += spellBooks.get(spellBookId).stats;
     }
 

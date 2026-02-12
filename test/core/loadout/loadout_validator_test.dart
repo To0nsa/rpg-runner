@@ -6,7 +6,7 @@ import 'package:rpg_runner/core/loadout/loadout_issue.dart';
 import 'package:rpg_runner/core/loadout/loadout_validator.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
+import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/spells/spell_book_catalog.dart';
 import 'package:rpg_runner/core/spells/spell_book_id.dart';
 import 'package:rpg_runner/core/weapons/weapon_catalog.dart';
@@ -31,7 +31,7 @@ void main() {
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.woodenSword,
         offhandWeaponId: WeaponId.woodenShield,
-        projectileItemId: ProjectileItemId.throwingKnife,
+        projectileId: ProjectileId.throwingKnife,
         abilityPrimaryId: 'eloise.sword_strike',
         abilitySecondaryId: 'eloise.shield_block',
         abilityProjectileId: 'eloise.quick_shot',
@@ -92,8 +92,8 @@ void main() {
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.woodenSword,
         offhandWeaponId: WeaponId.woodenShield,
-        projectileItemId: ProjectileItemId.throwingKnife,
-        projectileSlotSpellId: ProjectileItemId.fireBolt,
+        projectileId: ProjectileId.throwingKnife,
+        projectileSlotSpellId: ProjectileId.fireBolt,
         abilityProjectileId: 'eloise.quick_shot',
         abilitySpellId: 'eloise.arcane_haste',
       );
@@ -107,7 +107,7 @@ void main() {
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.woodenSword,
         offhandWeaponId: WeaponId.woodenShield,
-        projectileItemId: ProjectileItemId.throwingKnife,
+        projectileId: ProjectileId.throwingKnife,
         abilityProjectileId: 'eloise.charged_shot',
         abilitySpellId: 'eloise.quick_shot',
       );
@@ -128,7 +128,7 @@ void main() {
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.woodenSword,
         offhandWeaponId: WeaponId.woodenShield,
-        projectileItemId: ProjectileItemId.throwingKnife,
+        projectileId: ProjectileId.throwingKnife,
         spellBookId: SpellBookId.epicSpellBook,
         abilitySpellId: 'eloise.restore_health',
       );
@@ -158,7 +158,7 @@ void main() {
 
     test('selected slot spell must be a projectile spell item', () {
       const loadout = EquippedLoadoutDef(
-        projectileSlotSpellId: ProjectileItemId.throwingAxe,
+        projectileSlotSpellId: ProjectileId.throwingAxe,
         abilityProjectileId: 'eloise.quick_shot',
       );
 

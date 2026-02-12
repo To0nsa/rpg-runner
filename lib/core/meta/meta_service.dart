@@ -2,7 +2,7 @@ import '../accessories/accessory_catalog.dart';
 import '../accessories/accessory_id.dart';
 import '../abilities/ability_def.dart' show WeaponType;
 import '../projectiles/projectile_item_catalog.dart';
-import '../projectiles/projectile_item_id.dart';
+import '../projectiles/projectile_id.dart';
 import '../spells/spell_book_catalog.dart';
 import '../spells/spell_book_id.dart';
 import '../weapons/weapon_catalog.dart';
@@ -88,9 +88,9 @@ class MetaService {
   }
 
   /// Returns starter unlocked throwing weapon IDs.
-  Set<ProjectileItemId> _startingUnlockedThrowingWeaponIds() {
-    final unlockedThrowingCandidates = <ProjectileItemId>[];
-    for (final id in ProjectileItemId.values) {
+  Set<ProjectileId> _startingUnlockedThrowingWeaponIds() {
+    final unlockedThrowingCandidates = <ProjectileId>[];
+    for (final id in ProjectileId.values) {
       final def = projectileItems.tryGet(id);
       if (def != null && def.weaponType == WeaponType.throwingWeapon) {
         unlockedThrowingCandidates.add(id);
@@ -153,7 +153,7 @@ class MetaService {
   List<GearSlotCandidate> _throwingWeaponCandidates(MetaState state) {
     final unlocked = state.inventory.unlockedThrowingWeaponIds;
     final result = <GearSlotCandidate>[];
-    for (final id in ProjectileItemId.values) {
+    for (final id in ProjectileId.values) {
       final def = projectileItems.tryGet(id);
       if (def == null || def.weaponType != WeaponType.throwingWeapon) {
         continue;
@@ -199,7 +199,7 @@ class MetaService {
       ..add(MetaDefaults.mainWeaponId)
       ..add(MetaDefaults.offhandWeaponId);
     final unlockedThrowing =
-        Set<ProjectileItemId>.from(inventory.unlockedThrowingWeaponIds)
+        Set<ProjectileId>.from(inventory.unlockedThrowingWeaponIds)
           ..removeWhere((id) => !allowedThrowingWeapons.contains(id))
           ..add(MetaDefaults.throwingWeaponId);
     final unlockedSpellBooks = Set<SpellBookId>.from(
@@ -306,7 +306,7 @@ class MetaService {
   }
 
   /// Legacy helper: unlocked throwing weapons only.
-  List<ProjectileItemId> unlockedThrowingWeapons(MetaState state) {
+  List<ProjectileId> unlockedThrowingWeapons(MetaState state) {
     final result = state.inventory.unlockedThrowingWeaponIds.toList();
     result.sort((a, b) => a.index.compareTo(b.index));
     return result;
@@ -367,7 +367,7 @@ class MetaService {
           current.copyWith(offhandWeaponId: itemId),
         );
       case GearSlot.throwingWeapon:
-        if (itemId is! ProjectileItemId) return normalized;
+        if (itemId is! ProjectileId) return normalized;
         final def = projectileItems.tryGet(itemId);
         if (def == null || def.weaponType != WeaponType.throwingWeapon) {
           return normalized;

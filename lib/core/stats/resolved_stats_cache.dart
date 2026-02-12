@@ -29,7 +29,7 @@ class ResolvedStatsCache {
     final currentMask = loadout.mask[li];
     final currentMainWeaponId = loadout.mainWeaponId[li];
     final currentOffhandWeaponId = loadout.offhandWeaponId[li];
-    final currentProjectileItemId = loadout.projectileItemId[li];
+    final currentProjectileId = loadout.projectileId[li];
     final currentSpellBookId = loadout.spellBookId[li];
     final currentAccessoryId = loadout.accessoryId[li];
 
@@ -41,7 +41,7 @@ class ResolvedStatsCache {
           mask: currentMask,
           mainWeaponId: currentMainWeaponId,
           offhandWeaponId: currentOffhandWeaponId,
-          projectileItemId: currentProjectileItemId,
+          projectileId: currentProjectileId,
           spellBookId: currentSpellBookId,
           accessoryId: currentAccessoryId,
         )) {
@@ -52,7 +52,7 @@ class ResolvedStatsCache {
       mask: currentMask,
       mainWeaponId: currentMainWeaponId,
       offhandWeaponId: currentOffhandWeaponId,
-      projectileItemId: currentProjectileItemId,
+      projectileId: currentProjectileId,
       spellBookId: currentSpellBookId,
       accessoryId: currentAccessoryId,
     );
@@ -61,7 +61,7 @@ class ResolvedStatsCache {
       mask: currentMask,
       mainWeaponId: currentMainWeaponId,
       offhandWeaponId: currentOffhandWeaponId,
-      projectileItemId: currentProjectileItemId,
+      projectileId: currentProjectileId,
       spellBookId: currentSpellBookId,
       accessoryId: currentAccessoryId,
       stats: resolved,

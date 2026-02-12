@@ -28,7 +28,6 @@ import 'ecs/world.dart';
 import 'ecs/stores/combat/equipped_loadout_store.dart';
 import 'ecs/stores/restoration_item_store.dart';
 import 'levels/level_id.dart';
-import 'projectiles/projectile_catalog.dart';
 import 'enemies/enemy_catalog.dart';
 import 'snapshots/enums.dart';
 import 'snapshots/entity_render_snapshot.dart';
@@ -67,7 +66,6 @@ class SnapshotBuilder {
   /// - [movement]: Derived movement tuning (dash cooldown ticks, etc.).
   /// - [abilities]: Derived ability tuning (melee/cast cooldown ticks).
   /// - [resources]: Resource costs (jump/dash stamina, etc.).
-  /// - [projectiles]: Projectile catalog for collider sizes.
   /// - [enemyCatalog]: Enemy catalog for render metadata (hit windows, art facing).
   SnapshotBuilder({
     required this.tickHz,
@@ -76,7 +74,6 @@ class SnapshotBuilder {
     required this.movement,
     required this.abilities,
     required this.resources,
-    required this.projectiles,
     required this.enemyCatalog,
     this.abilityCatalog = AbilityCatalog.shared,
     required LoadoutValidator loadoutValidator,
@@ -99,9 +96,6 @@ class SnapshotBuilder {
 
   /// Resource tuning (stamina/mana costs for actions).
   final ResourceTuningDerived resources;
-
-  /// Projectile catalog for collider dimensions.
-  final ProjectileCatalogDerived projectiles;
 
   /// Enemy catalog for render metadata (art facing direction).
   final EnemyCatalog enemyCatalog;
@@ -169,7 +163,7 @@ class SnapshotBuilder {
       mask: loadoutMask,
       mainWeaponId: loadout.mainWeaponId[li],
       offhandWeaponId: loadout.offhandWeaponId[li],
-      projectileItemId: loadout.projectileItemId[li],
+      projectileId: loadout.projectileId[li],
       spellBookId: loadout.spellBookId[li],
       projectileSlotSpellId: loadout.projectileSlotSpellId[li],
       accessoryId: loadout.accessoryId[li],
@@ -559,10 +553,15 @@ class SnapshotBuilder {
       if (!world.transform.has(e)) continue;
       final ti = world.transform.indexOf(e);
 
-      // Look up projectile definition for collider size.
       final projectileId = projectileStore.projectileId[pi];
-      final proj = projectiles.base.get(projectileId);
-      final colliderSize = Vec2(proj.colliderSizeX, proj.colliderSizeY);
+      Vec2? colliderSize;
+      if (world.colliderAabb.has(e)) {
+        final aabbi = world.colliderAabb.indexOf(e);
+        colliderSize = Vec2(
+          world.colliderAabb.halfX[aabbi] * 2,
+          world.colliderAabb.halfY[aabbi] * 2,
+        );
+      }
 
       // Compute facing and rotation from direction vector.
       final dirX = projectileStore.dirX[pi];

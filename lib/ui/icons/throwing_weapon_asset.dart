@@ -1,21 +1,21 @@
 import '../../core/projectiles/projectile_item_catalog.dart';
-import '../../core/projectiles/projectile_item_id.dart';
+import '../../core/projectiles/projectile_id.dart';
 import '../../core/abilities/ability_def.dart' show WeaponType;
 
 String? throwingWeaponAssetPath(
-  ProjectileItemId id, {
+  ProjectileId id, {
   ProjectileItemCatalog catalog = const ProjectileItemCatalog(),
 }) {
   final def = catalog.tryGet(id);
   if (def == null || def.weaponType != WeaponType.throwingWeapon) return null;
   return switch (id) {
-    ProjectileItemId.throwingKnife =>
+    ProjectileId.throwingKnife =>
       'assets/images/weapons/throwingWeapons/throwingKnife.png',
-    ProjectileItemId.throwingAxe =>
+    ProjectileId.throwingAxe =>
       'assets/images/weapons/throwingWeapons/throwingAxe.png',
-    ProjectileItemId.iceBolt => null,
-    ProjectileItemId.fireBolt => null,
-    ProjectileItemId.acidBolt => null,
-    ProjectileItemId.thunderBolt => null,
+    ProjectileId.iceBolt => null,
+    ProjectileId.fireBolt => null,
+    ProjectileId.acidBolt => null,
+    ProjectileId.thunderBolt => null,
   };
 }

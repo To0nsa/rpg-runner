@@ -12,10 +12,8 @@ import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
 import 'package:rpg_runner/core/ecs/systems/projectile_hit_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/events/game_event.dart';
-import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
 import 'package:rpg_runner/core/projectiles/spawn_projectile_item.dart';
@@ -31,7 +29,7 @@ void main() {
       'eloise.charged_shot',
     )!.baseDamage;
     final projectileItem = const ProjectileItemCatalog().get(
-      ProjectileItemId.iceBolt,
+      ProjectileId.iceBolt,
     );
 
     final player = EntityFactory(world).createPlayer(
@@ -73,12 +71,9 @@ void main() {
     // Spawn a projectile overlapping the enemy.
     final projectile = spawnProjectileItemFromCaster(
       world,
-      projectiles: ProjectileCatalogDerived.from(
-        const ProjectileCatalog(),
-        tickHz: 60,
-      ),
-      projectileItemId: ProjectileItemId.iceBolt,
-      projectileId: projectileItem.projectileId,
+      tickHz: 60,
+      projectileId: ProjectileId.iceBolt,
+      projectileItem: projectileItem,
       faction: Faction.player,
       owner: player,
       casterX: 140,
@@ -115,6 +110,6 @@ void main() {
     expect(world.projectile.has(projectile), isFalse);
     expect(hitEvents.length, 1);
     expect(hitEvents.single.projectileId, ProjectileId.iceBolt);
-    expect(hitEvents.single.projectileItemId, ProjectileItemId.iceBolt);
+    expect(hitEvents.single.projectileId, ProjectileId.iceBolt);
   });
 }

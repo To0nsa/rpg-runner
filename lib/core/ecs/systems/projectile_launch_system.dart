@@ -1,4 +1,4 @@
-import '../../projectiles/projectile_catalog.dart';
+import '../../projectiles/projectile_item_catalog.dart';
 import '../../projectiles/spawn_projectile_item.dart';
 import '../stores/projectile_intent_store.dart';
 import '../world.dart';
@@ -10,9 +10,10 @@ import '../world.dart';
 /// - Spawns projectile entities.
 /// - Does **not** deduct resources or start cooldowns (handled by Activation).
 class ProjectileLaunchSystem {
-  ProjectileLaunchSystem({required this.projectiles});
+  ProjectileLaunchSystem({required this.projectileItems, required this.tickHz});
 
-  final ProjectileCatalogDerived projectiles;
+  final ProjectileItemCatalog projectileItems;
+  final int tickHz;
 
   void step(EcsWorld world, {required int currentTick}) {
     final intents = world.projectileIntent;
@@ -38,12 +39,14 @@ class ProjectileLaunchSystem {
 
       final fi = factions.tryIndexOf(caster);
       if (fi == null) continue;
+      final projectileId = intents.projectileId[ii];
+      final projectileItem = projectileItems.get(projectileId);
 
       spawnProjectileItemFromCaster(
         world,
-        projectiles: projectiles,
-        projectileItemId: intents.projectileItemId[ii],
-        projectileId: intents.projectileId[ii],
+        tickHz: tickHz,
+        projectileId: projectileId,
+        projectileItem: projectileItem,
         faction: factions.faction[fi],
         owner: caster,
         casterX: transforms.posX[ti],

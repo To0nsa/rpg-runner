@@ -17,7 +17,6 @@ enum StatusProfileId {
 
 /// A single status application inside a profile.
 class StatusApplication {
-
   const StatusApplication({
     required this.type,
     required this.magnitude,
@@ -167,6 +166,7 @@ class StatusProfileCatalog {
       case StatusProfileId.meleeBleed:
         return StatusProfile(<StatusApplication>[
           StatusApplicationPresets.onHitDot.build(
+            magnitude: 300, // 3.0 DPS
             dotDamageType: DamageType.physical,
           ),
         ]);

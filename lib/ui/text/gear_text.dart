@@ -1,6 +1,6 @@
 import '../../core/accessories/accessory_id.dart';
 import '../../core/meta/gear_slot.dart';
-import '../../core/projectiles/projectile_item_id.dart';
+import '../../core/projectiles/projectile_id.dart';
 import '../../core/spells/spell_book_id.dart';
 import '../../core/weapons/weapon_id.dart';
 
@@ -14,15 +14,15 @@ String weaponDescription(WeaponId id) {
   return _weaponDescriptionOverrides[id] ?? _defaultDescription;
 }
 
-/// User-facing display name for a [ProjectileItemId].
+/// User-facing display name for a [ProjectileId].
 ///
 /// Shared by gear picker and projectile source picker.
-String projectileItemDisplayName(ProjectileItemId id) {
+String projectileItemDisplayName(ProjectileId id) {
   return _projectileDisplayNameOverrides[id] ?? _titleCaseEnum(id.name);
 }
 
-/// User-facing short description for a [ProjectileItemId].
-String projectileItemDescription(ProjectileItemId id) {
+/// User-facing short description for a [ProjectileId].
+String projectileItemDescription(ProjectileId id) {
   return _projectileDescriptionOverrides[id] ?? _defaultDescription;
 }
 
@@ -54,9 +54,7 @@ String gearDisplayNameForSlot(GearSlot slot, Object id) {
   return switch (slot) {
     GearSlot.mainWeapon ||
     GearSlot.offhandWeapon => weaponDisplayName(id as WeaponId),
-    GearSlot.throwingWeapon => projectileItemDisplayName(
-      id as ProjectileItemId,
-    ),
+    GearSlot.throwingWeapon => projectileItemDisplayName(id as ProjectileId),
     GearSlot.spellBook => spellBookDisplayName(id as SpellBookId),
     GearSlot.accessory => accessoryDisplayName(id as AccessoryId),
   };
@@ -67,9 +65,7 @@ String gearDescriptionForSlot(GearSlot slot, Object id) {
   return switch (slot) {
     GearSlot.mainWeapon ||
     GearSlot.offhandWeapon => weaponDescription(id as WeaponId),
-    GearSlot.throwingWeapon => projectileItemDescription(
-      id as ProjectileItemId,
-    ),
+    GearSlot.throwingWeapon => projectileItemDescription(id as ProjectileId),
     GearSlot.spellBook => spellBookDescription(id as SpellBookId),
     GearSlot.accessory => accessoryDescription(id as AccessoryId),
   };
@@ -109,25 +105,25 @@ const Map<WeaponId, String> _weaponDescriptionOverrides = <WeaponId, String>{
   WeaponId.solidShield: 'Reinforced shield with higher output.',
 };
 
-const Map<ProjectileItemId, String> _projectileDisplayNameOverrides =
-    <ProjectileItemId, String>{
-      ProjectileItemId.iceBolt: 'Ice Bolt',
-      ProjectileItemId.fireBolt: 'Fire Bolt',
-      ProjectileItemId.acidBolt: 'Acid Bolt',
-      ProjectileItemId.thunderBolt: 'Thunder Bolt',
-      ProjectileItemId.throwingKnife: 'Throwing Knife',
-      ProjectileItemId.throwingAxe: 'Throwing Axe',
+const Map<ProjectileId, String> _projectileDisplayNameOverrides =
+    <ProjectileId, String>{
+      ProjectileId.iceBolt: 'Ice Bolt',
+      ProjectileId.fireBolt: 'Fire Bolt',
+      ProjectileId.acidBolt: 'Acid Bolt',
+      ProjectileId.thunderBolt: 'Thunder Bolt',
+      ProjectileId.throwingKnife: 'Throwing Knife',
+      ProjectileId.throwingAxe: 'Throwing Axe',
     };
 
-const Map<ProjectileItemId, String> _projectileDescriptionOverrides =
-    <ProjectileItemId, String>{
-      ProjectileItemId.iceBolt: 'Spell projectile that chills on hit.',
-      ProjectileItemId.fireBolt: 'Spell projectile that burns on hit.',
-      ProjectileItemId.acidBolt:
+const Map<ProjectileId, String> _projectileDescriptionOverrides =
+    <ProjectileId, String>{
+      ProjectileId.iceBolt: 'Spell projectile that chills on hit.',
+      ProjectileId.fireBolt: 'Spell projectile that burns on hit.',
+      ProjectileId.acidBolt:
           'Spell projectile that corrodes and increases damage taken.',
-      ProjectileItemId.thunderBolt: 'Spell projectile with thunder damage.',
-      ProjectileItemId.throwingKnife: 'Fast ballistic throw with a light arc.',
-      ProjectileItemId.throwingAxe: 'Heavy ballistic throw with a steeper arc.',
+      ProjectileId.thunderBolt: 'Spell projectile with thunder damage.',
+      ProjectileId.throwingKnife: 'Fast ballistic throw with a light arc.',
+      ProjectileId.throwingAxe: 'Heavy ballistic throw with a steeper arc.',
     };
 
 const Map<SpellBookId, String> _spellBookDisplayNameOverrides =

@@ -1,5 +1,5 @@
 import '../../../accessories/accessory_id.dart';
-import '../../../projectiles/projectile_item_id.dart';
+import '../../../projectiles/projectile_id.dart';
 import '../../../spells/spell_book_id.dart';
 import '../../../stats/character_stats_resolver.dart';
 import '../../../stats/gear_stat_bonuses.dart';
@@ -16,7 +16,7 @@ class ResolvedStatsCacheStore extends SparseSet {
   final List<int> mask = <int>[];
   final List<WeaponId> mainWeaponId = <WeaponId>[];
   final List<WeaponId> offhandWeaponId = <WeaponId>[];
-  final List<ProjectileItemId> projectileItemId = <ProjectileItemId>[];
+  final List<ProjectileId> projectileId = <ProjectileId>[];
   final List<SpellBookId> spellBookId = <SpellBookId>[];
   final List<AccessoryId> accessoryId = <AccessoryId>[];
   final List<ResolvedCharacterStats> stats = <ResolvedCharacterStats>[];
@@ -26,7 +26,7 @@ class ResolvedStatsCacheStore extends SparseSet {
     required int mask,
     required WeaponId mainWeaponId,
     required WeaponId offhandWeaponId,
-    required ProjectileItemId projectileItemId,
+    required ProjectileId projectileId,
     required SpellBookId spellBookId,
     required AccessoryId accessoryId,
     required ResolvedCharacterStats stats,
@@ -35,7 +35,7 @@ class ResolvedStatsCacheStore extends SparseSet {
     this.mask[i] = mask;
     this.mainWeaponId[i] = mainWeaponId;
     this.offhandWeaponId[i] = offhandWeaponId;
-    this.projectileItemId[i] = projectileItemId;
+    this.projectileId[i] = projectileId;
     this.spellBookId[i] = spellBookId;
     this.accessoryId[i] = accessoryId;
     this.stats[i] = stats;
@@ -46,14 +46,14 @@ class ResolvedStatsCacheStore extends SparseSet {
     required int mask,
     required WeaponId mainWeaponId,
     required WeaponId offhandWeaponId,
-    required ProjectileItemId projectileItemId,
+    required ProjectileId projectileId,
     required SpellBookId spellBookId,
     required AccessoryId accessoryId,
   }) {
     return this.mask[cacheIndex] == mask &&
         this.mainWeaponId[cacheIndex] == mainWeaponId &&
         this.offhandWeaponId[cacheIndex] == offhandWeaponId &&
-        this.projectileItemId[cacheIndex] == projectileItemId &&
+        this.projectileId[cacheIndex] == projectileId &&
         this.spellBookId[cacheIndex] == spellBookId &&
         this.accessoryId[cacheIndex] == accessoryId;
   }
@@ -63,7 +63,7 @@ class ResolvedStatsCacheStore extends SparseSet {
     mask.add(0);
     mainWeaponId.add(WeaponId.woodenSword);
     offhandWeaponId.add(WeaponId.woodenShield);
-    projectileItemId.add(ProjectileItemId.throwingKnife);
+    projectileId.add(ProjectileId.throwingKnife);
     spellBookId.add(SpellBookId.basicSpellBook);
     accessoryId.add(AccessoryId.speedBoots);
     stats.add(const ResolvedCharacterStats(bonuses: GearStatBonuses.zero));
@@ -74,7 +74,7 @@ class ResolvedStatsCacheStore extends SparseSet {
     mask[removeIndex] = mask[lastIndex];
     mainWeaponId[removeIndex] = mainWeaponId[lastIndex];
     offhandWeaponId[removeIndex] = offhandWeaponId[lastIndex];
-    projectileItemId[removeIndex] = projectileItemId[lastIndex];
+    projectileId[removeIndex] = projectileId[lastIndex];
     spellBookId[removeIndex] = spellBookId[lastIndex];
     accessoryId[removeIndex] = accessoryId[lastIndex];
     stats[removeIndex] = stats[lastIndex];
@@ -82,7 +82,7 @@ class ResolvedStatsCacheStore extends SparseSet {
     mask.removeLast();
     mainWeaponId.removeLast();
     offhandWeaponId.removeLast();
-    projectileItemId.removeLast();
+    projectileId.removeLast();
     spellBookId.removeLast();
     accessoryId.removeLast();
     stats.removeLast();

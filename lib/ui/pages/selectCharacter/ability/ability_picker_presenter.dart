@@ -6,7 +6,7 @@ import '../../../../core/loadout/loadout_validator.dart';
 import '../../../../core/players/player_character_definition.dart';
 import '../../../../core/players/player_character_registry.dart';
 import '../../../../core/projectiles/projectile_item_catalog.dart';
-import '../../../../core/projectiles/projectile_item_id.dart';
+import '../../../../core/projectiles/projectile_id.dart';
 import '../../../../core/spells/spell_book_catalog.dart';
 import '../../../../core/spells/spell_book_id.dart';
 import '../../../../core/weapons/weapon_catalog.dart';
@@ -47,7 +47,7 @@ class ProjectileSourceOption {
     required this.isSpell,
   });
 
-  final ProjectileItemId? spellId;
+  final ProjectileId? spellId;
   final String displayName;
   final bool isSpell;
 }
@@ -66,7 +66,7 @@ class ProjectileSourcePanelModel {
     required this.spellOptions,
   });
 
-  final ProjectileItemId throwingWeaponId;
+  final ProjectileId throwingWeaponId;
   final String throwingWeaponDisplayName;
   final SpellBookId spellBookId;
   final String spellBookDisplayName;
@@ -80,7 +80,7 @@ class ProjectileSpellOption {
     required this.displayName,
   });
 
-  final ProjectileItemId spellId;
+  final ProjectileId spellId;
   final String displayName;
 }
 
@@ -91,7 +91,7 @@ List<AbilityPickerCandidate> abilityCandidatesForSlot({
   required PlayerCharacterId characterId,
   required AbilitySlot slot,
   required EquippedLoadoutDef loadout,
-  ProjectileItemId? selectedSourceSpellId,
+  ProjectileId? selectedSourceSpellId,
   bool overrideSelectedSource = false,
 }) {
   final normalizedLoadout = normalizeLoadoutMaskForCharacter(
@@ -150,7 +150,7 @@ EquippedLoadoutDef normalizeLoadoutMaskForCharacter({
 ProjectileSourcePanelModel projectileSourcePanelModel(
   EquippedLoadoutDef loadout,
 ) {
-  final _ = _projectileCatalog.get(loadout.projectileItemId);
+  final _ = _projectileCatalog.get(loadout.projectileId);
   final spellBook = _spellBookCatalog.get(loadout.spellBookId);
   final spellOptions = <ProjectileSpellOption>[];
   for (final spellId in spellBook.projectileSpellIds) {
@@ -163,10 +163,8 @@ ProjectileSourcePanelModel projectileSourcePanelModel(
     );
   }
   return ProjectileSourcePanelModel(
-    throwingWeaponId: loadout.projectileItemId,
-    throwingWeaponDisplayName: projectileItemDisplayName(
-      loadout.projectileItemId,
-    ),
+    throwingWeaponId: loadout.projectileId,
+    throwingWeaponDisplayName: projectileItemDisplayName(loadout.projectileId),
     spellBookId: loadout.spellBookId,
     spellBookDisplayName: spellBookDisplayName(loadout.spellBookId),
     spellOptions: spellOptions,
@@ -198,9 +196,9 @@ List<ProjectileSourceOption> projectileSourceOptions(
 }
 
 /// Returns [selected] when still valid for the equipped spellbook, otherwise null.
-ProjectileItemId? normalizeProjectileSourceSelection(
+ProjectileId? normalizeProjectileSourceSelection(
   EquippedLoadoutDef loadout,
-  ProjectileItemId? selected,
+  ProjectileId? selected,
 ) {
   if (selected == null) return null;
   final options = projectileSourceOptions(loadout);
@@ -249,7 +247,7 @@ EquippedLoadoutDef setAbilityForSlot(
 EquippedLoadoutDef setProjectileSourceForSlot(
   EquippedLoadoutDef loadout, {
   required AbilitySlot slot,
-  required ProjectileItemId? selectedSpellId,
+  required ProjectileId? selectedSpellId,
 }) {
   switch (slot) {
     case AbilitySlot.projectile:
@@ -276,7 +274,7 @@ bool _isAbilityLegalForSlot({
   required EquippedLoadoutDef loadout,
   required AbilitySlot slot,
   required AbilityKey abilityId,
-  required ProjectileItemId? selectedSourceSpellId,
+  required ProjectileId? selectedSourceSpellId,
   required bool overrideSelectedSource,
 }) {
   var trial = setAbilityForSlot(loadout, slot: slot, abilityId: abilityId);
@@ -299,7 +297,7 @@ EquippedLoadoutDef _copyLoadout(
   int? mask,
   WeaponId? mainWeaponId,
   WeaponId? offhandWeaponId,
-  ProjectileItemId? projectileItemId,
+  ProjectileId? projectileId,
   SpellBookId? spellBookId,
   Object? projectileSlotSpellId = _keepValue,
   AccessoryId? accessoryId,
@@ -314,11 +312,11 @@ EquippedLoadoutDef _copyLoadout(
     mask: mask ?? loadout.mask,
     mainWeaponId: mainWeaponId ?? loadout.mainWeaponId,
     offhandWeaponId: offhandWeaponId ?? loadout.offhandWeaponId,
-    projectileItemId: projectileItemId ?? loadout.projectileItemId,
+    projectileId: projectileId ?? loadout.projectileId,
     spellBookId: spellBookId ?? loadout.spellBookId,
     projectileSlotSpellId: identical(projectileSlotSpellId, _keepValue)
         ? loadout.projectileSlotSpellId
-        : projectileSlotSpellId as ProjectileItemId?,
+        : projectileSlotSpellId as ProjectileId?,
     accessoryId: accessoryId ?? loadout.accessoryId,
     abilityPrimaryId: abilityPrimaryId ?? loadout.abilityPrimaryId,
     abilitySecondaryId: abilitySecondaryId ?? loadout.abilitySecondaryId,

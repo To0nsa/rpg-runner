@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/meta/gear_slot.dart';
 import 'package:rpg_runner/core/meta/meta_service.dart';
 import 'package:rpg_runner/core/meta/meta_state.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
+import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/spells/spell_book_id.dart';
 import 'package:rpg_runner/core/players/player_character_definition.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
@@ -84,18 +84,16 @@ void main() {
         final appState = AppState(selectionStore: selectionStore);
 
         await appState.setLoadout(
-          const EquippedLoadoutDef(
-            projectileSlotSpellId: ProjectileItemId.iceBolt,
-          ),
+          const EquippedLoadoutDef(projectileSlotSpellId: ProjectileId.iceBolt),
         );
 
         expect(
           appState.selection.equippedLoadout.projectileSlotSpellId,
-          ProjectileItemId.fireBolt,
+          ProjectileId.fireBolt,
         );
         expect(
           selectionStore.saved.equippedLoadout.projectileSlotSpellId,
-          ProjectileItemId.fireBolt,
+          ProjectileId.fireBolt,
         );
       },
     );
@@ -121,17 +119,17 @@ void main() {
         await appState.bootstrap(force: true);
         await appState.setLoadout(
           const EquippedLoadoutDef(
-            projectileSlotSpellId: ProjectileItemId.throwingAxe,
+            projectileSlotSpellId: ProjectileId.throwingAxe,
           ),
         );
 
         expect(
           appState.selection.equippedLoadout.projectileSlotSpellId,
-          ProjectileItemId.iceBolt,
+          ProjectileId.iceBolt,
         );
         expect(
           selectionStore.saved.equippedLoadout.projectileSlotSpellId,
-          ProjectileItemId.iceBolt,
+          ProjectileId.iceBolt,
         );
       },
     );
@@ -151,7 +149,7 @@ void main() {
         await appState.equipGear(
           characterId: PlayerCharacterId.eloise,
           slot: GearSlot.throwingWeapon,
-          itemId: ProjectileItemId.throwingAxe,
+          itemId: ProjectileId.throwingAxe,
         );
 
         await appState.equipGear(
@@ -161,16 +159,16 @@ void main() {
         );
 
         expect(
-          appState.selection.equippedLoadout.projectileItemId,
-          ProjectileItemId.throwingAxe,
+          appState.selection.equippedLoadout.projectileId,
+          ProjectileId.throwingAxe,
         );
         expect(
           appState.selection.equippedLoadout.spellBookId,
           SpellBookId.solidSpellBook,
         );
         expect(
-          selectionStore.saved.equippedLoadout.projectileItemId,
-          ProjectileItemId.throwingAxe,
+          selectionStore.saved.equippedLoadout.projectileId,
+          ProjectileId.throwingAxe,
         );
         expect(
           selectionStore.saved.equippedLoadout.spellBookId,
@@ -239,13 +237,11 @@ void main() {
           itemId: SpellBookId.solidSpellBook,
         );
         await appState.setLoadout(
-          const EquippedLoadoutDef(
-            projectileSlotSpellId: ProjectileItemId.iceBolt,
-          ),
+          const EquippedLoadoutDef(projectileSlotSpellId: ProjectileId.iceBolt),
         );
         expect(
           appState.selection.equippedLoadout.projectileSlotSpellId,
-          ProjectileItemId.iceBolt,
+          ProjectileId.iceBolt,
         );
 
         await appState.equipGear(
@@ -256,11 +252,11 @@ void main() {
 
         expect(
           appState.selection.equippedLoadout.projectileSlotSpellId,
-          ProjectileItemId.fireBolt,
+          ProjectileId.fireBolt,
         );
         expect(
           selectionStore.saved.equippedLoadout.projectileSlotSpellId,
-          ProjectileItemId.fireBolt,
+          ProjectileId.fireBolt,
         );
       },
     );
@@ -274,7 +270,7 @@ void main() {
           meta,
           characterId: PlayerCharacterId.eloise,
           slot: GearSlot.throwingWeapon,
-          itemId: ProjectileItemId.throwingAxe,
+          itemId: ProjectileId.throwingAxe,
         );
         meta = service.equip(
           meta,
@@ -289,7 +285,7 @@ void main() {
             selectedRunType: SelectionState.defaults.selectedRunType,
             selectedCharacterId: PlayerCharacterId.eloise,
             equippedLoadout: EquippedLoadoutDef(
-              projectileItemId: ProjectileItemId.throwingKnife,
+              projectileId: ProjectileId.throwingKnife,
               spellBookId: SpellBookId.basicSpellBook,
             ),
             buildName: SelectionState.defaultBuildName,
@@ -306,16 +302,16 @@ void main() {
         await appState.bootstrap(force: true);
 
         expect(
-          appState.selection.equippedLoadout.projectileItemId,
-          ProjectileItemId.throwingAxe,
+          appState.selection.equippedLoadout.projectileId,
+          ProjectileId.throwingAxe,
         );
         expect(
           appState.selection.equippedLoadout.spellBookId,
           SpellBookId.solidSpellBook,
         );
         expect(
-          selectionStore.saved.equippedLoadout.projectileItemId,
-          ProjectileItemId.throwingAxe,
+          selectionStore.saved.equippedLoadout.projectileId,
+          ProjectileId.throwingAxe,
         );
         expect(
           selectionStore.saved.equippedLoadout.spellBookId,

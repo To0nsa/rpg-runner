@@ -12,9 +12,9 @@ import '../ecs/stores/lifetime_store.dart';
 import '../ecs/stores/projectile_item_origin_store.dart';
 import '../ecs/stores/projectile_store.dart';
 import '../ecs/world.dart';
-import '../projectiles/projectile_catalog.dart';
+import '../projectiles/projectile_item_def.dart';
 import '../projectiles/projectile_id.dart';
-import '../projectiles/projectile_item_id.dart';
+import '../util/tick_math.dart';
 import '../weapons/weapon_proc.dart';
 
 const _dirEps2 = 1e-12;
@@ -41,9 +41,9 @@ const _dirEps2 = 1e-12;
 
 EntityId spawnProjectileItemFromCaster(
   EcsWorld world, {
-  required ProjectileCatalogDerived projectiles,
-  required ProjectileItemId projectileItemId,
+  required int tickHz,
   required ProjectileId projectileId,
+  required ProjectileItemDef projectileItem,
   required Faction faction,
   required EntityId owner,
   required double casterX,
@@ -63,9 +63,9 @@ EntityId spawnProjectileItemFromCaster(
   required double gravityScale,
   double speedScale = 1.0,
 }) {
-  final proj = projectiles.base.get(projectileId);
   final safeSpeedScale = speedScale <= 0 ? 0.01 : speedScale;
-  final speedUnitsPerSecond = proj.speedUnitsPerSecond * safeSpeedScale;
+  final speedUnitsPerSecond =
+      projectileItem.speedUnitsPerSecond * safeSpeedScale;
   final resolvedMaxPierceHits = max(1, maxPierceHits);
 
   final dir = _normalizeDirOrFallback(
@@ -114,19 +114,21 @@ EntityId spawnProjectileItemFromCaster(
 
   world.projectileItemOrigin.add(
     entity,
-    ProjectileItemOriginDef(projectileItemId: projectileItemId),
+    ProjectileItemOriginDef(projectileId: projectileId),
   );
 
   world.lifetime.add(
     entity,
-    LifetimeDef(ticksLeft: projectiles.lifetimeTicks(projectileId)),
+    LifetimeDef(
+      ticksLeft: ticksFromSecondsCeil(projectileItem.lifetimeSeconds, tickHz),
+    ),
   );
 
   world.colliderAabb.add(
     entity,
     ColliderAabbDef(
-      halfX: proj.colliderSizeX * 0.5,
-      halfY: proj.colliderSizeY * 0.5,
+      halfX: projectileItem.colliderSizeX * 0.5,
+      halfY: projectileItem.colliderSizeY * 0.5,
     ),
   );
 

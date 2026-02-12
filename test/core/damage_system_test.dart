@@ -14,7 +14,6 @@ import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/ecs/stores/health_store.dart';
 import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_item_def.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/spells/spell_book_catalog.dart';
 import 'package:rpg_runner/core/spells/spell_book_def.dart';
@@ -52,7 +51,7 @@ void main() {
     final world = EcsWorld();
     final resolver = CharacterStatsResolver(
       weapons: const _DefenseWeaponCatalog(),
-      projectileItems: const _FlatProjectileCatalog(),
+      projectileItems: const _FlatProjectileItemCatalog(),
       spellBooks: const _FlatSpellBookCatalog(),
       accessories: const _FlatAccessoryCatalog(),
     );
@@ -86,7 +85,7 @@ void main() {
     final world = EcsWorld();
     final resolver = CharacterStatsResolver(
       weapons: const _FlatWeaponCatalog(),
-      projectileItems: const _FlatProjectileCatalog(),
+      projectileItems: const _FlatProjectileItemCatalog(),
       spellBooks: const _FlatSpellBookCatalog(),
       accessories: const _TypedResistanceAccessoryCatalog(),
     );
@@ -328,15 +327,18 @@ class _FlatWeaponCatalog extends WeaponCatalog {
   }
 }
 
-class _FlatProjectileCatalog extends ProjectileItemCatalog {
-  const _FlatProjectileCatalog();
+class _FlatProjectileItemCatalog extends ProjectileItemCatalog {
+  const _FlatProjectileItemCatalog();
 
   @override
-  ProjectileItemDef get(ProjectileItemId id) {
+  ProjectileItemDef get(ProjectileId id) {
     return const ProjectileItemDef(
-      id: ProjectileItemId.throwingKnife,
+      id: ProjectileId.throwingKnife,
       weaponType: WeaponType.throwingWeapon,
-      projectileId: ProjectileId.throwingKnife,
+      speedUnitsPerSecond: 900.0,
+      lifetimeSeconds: 1.2,
+      colliderSizeX: 14.0,
+      colliderSizeY: 6.0,
     );
   }
 }

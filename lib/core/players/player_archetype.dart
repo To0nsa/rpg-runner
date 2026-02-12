@@ -8,7 +8,7 @@ import '../ecs/stores/health_store.dart';
 import '../ecs/stores/mana_store.dart';
 import '../ecs/stores/stamina_store.dart';
 import '../snapshots/enums.dart';
-import '../projectiles/projectile_item_id.dart';
+import '../projectiles/projectile_id.dart';
 import '../spells/spell_book_id.dart';
 import '../weapons/weapon_id.dart';
 import '../abilities/ability_def.dart';
@@ -39,7 +39,7 @@ class PlayerArchetype {
     required this.loadoutSlotMask,
     required this.weaponId,
     required this.offhandWeaponId,
-    required this.projectileItemId,
+    required this.projectileId,
     required this.spellBookId,
     required this.projectileSlotSpellId,
     required this.abilityPrimaryId,
@@ -100,13 +100,13 @@ class PlayerArchetype {
   final WeaponId offhandWeaponId;
 
   /// Equipped projectile item used for thrown/ballistic projectiles.
-  final ProjectileItemId projectileItemId;
+  final ProjectileId projectileId;
 
   /// Equipped spell book used for spell payloads.
   final SpellBookId spellBookId;
 
   /// Optional spell selection used by projectile-slot projectile abilities.
-  final ProjectileItemId? projectileSlotSpellId;
+  final ProjectileId? projectileSlotSpellId;
 
   /// Equipped ability IDs (loadout defaults).
   final AbilityKey abilityPrimaryId;

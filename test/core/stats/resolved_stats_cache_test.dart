@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rpg_runner/core/accessories/accessory_id.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
+import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/spells/spell_book_id.dart';
 import 'package:rpg_runner/core/stats/character_stats_resolver.dart';
 import 'package:rpg_runner/core/stats/gear_stat_bonuses.dart';
@@ -66,7 +66,7 @@ class _CountingResolver extends CharacterStatsResolver {
     required int mask,
     required WeaponId mainWeaponId,
     required WeaponId offhandWeaponId,
-    required ProjectileItemId projectileItemId,
+    required ProjectileId projectileId,
     required SpellBookId spellBookId,
     required AccessoryId accessoryId,
   }) {

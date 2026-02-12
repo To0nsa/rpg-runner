@@ -8,10 +8,8 @@ import 'package:rpg_runner/core/ecs/systems/projectile_world_collision_system.da
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/game_core.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
-import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
-import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
+import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
@@ -35,7 +33,7 @@ void main() {
         playerCharacter: base.copyWith(
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-            projectileItemId: ProjectileItemId.throwingKnife,
+            projectileId: ProjectileId.throwingKnife,
             projectileSlotSpellId: null,
             abilityProjectileId: 'eloise.quick_shot',
           ),
@@ -76,7 +74,7 @@ void main() {
 
       final p = projectiles.single;
       final item = const ProjectileItemCatalog().get(
-        ProjectileItemId.throwingKnife,
+        ProjectileId.throwingKnife,
       );
       expect(p.pos.x, closeTo(playerPosX + item.originOffset, 1e-9));
       expect(p.pos.y, closeTo(playerPosY, 1e-9));
@@ -108,7 +106,7 @@ void main() {
         playerCharacter: base.copyWith(
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-            projectileItemId: ProjectileItemId.throwingKnife,
+            projectileId: ProjectileId.throwingKnife,
             projectileSlotSpellId: null,
             abilityProjectileId: 'eloise.quick_shot',
           ),
@@ -152,18 +150,16 @@ void main() {
   test('ProjectileWorldCollisionSystem despawns ballistic projectiles', () {
     final world = EcsWorld();
     final system = ProjectileWorldCollisionSystem();
-
-    final projectiles = ProjectileCatalogDerived.from(
-      const ProjectileCatalog(),
-      tickHz: 20,
+    final projectileItem = const ProjectileItemCatalog().get(
+      ProjectileId.throwingAxe,
     );
 
     final owner = world.createEntity();
     final p = spawnProjectileItemFromCaster(
       world,
-      projectiles: projectiles,
-      projectileItemId: ProjectileItemId.throwingAxe,
+      tickHz: 20,
       projectileId: ProjectileId.throwingAxe,
+      projectileItem: projectileItem,
       faction: Faction.player,
       owner: owner,
       casterX: 100,

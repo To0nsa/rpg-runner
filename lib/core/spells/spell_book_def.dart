@@ -1,6 +1,6 @@
 import '../abilities/ability_def.dart' show AbilityKey, WeaponType;
 import '../combat/damage_type.dart';
-import '../projectiles/projectile_item_id.dart';
+import '../projectiles/projectile_id.dart';
 import '../weapons/weapon_proc.dart';
 import '../stats/gear_stat_bonuses.dart';
 import 'spell_book_id.dart';
@@ -10,7 +10,7 @@ class SpellBookDef {
   const SpellBookDef({
     required this.id,
     this.weaponType = WeaponType.projectileSpell,
-    this.projectileSpellIds = const <ProjectileItemId>[],
+    this.projectileSpellIds = const <ProjectileId>[],
     this.spellAbilityIds = const <AbilityKey>[],
     this.stats = const GearStatBonuses(),
     this.damageType,
@@ -19,14 +19,14 @@ class SpellBookDef {
 
   final SpellBookId id;
   final WeaponType weaponType;
-  final List<ProjectileItemId> projectileSpellIds;
+  final List<ProjectileId> projectileSpellIds;
   final List<AbilityKey> spellAbilityIds;
   final GearStatBonuses stats;
   final DamageType? damageType;
   final List<WeaponProc> procs;
 
   /// True when this spellbook grants access to the requested projectile spell.
-  bool containsProjectileSpell(ProjectileItemId id) {
+  bool containsProjectileSpell(ProjectileId id) {
     return projectileSpellIds.contains(id);
   }
 

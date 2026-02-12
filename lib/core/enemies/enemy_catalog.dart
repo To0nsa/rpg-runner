@@ -10,7 +10,7 @@ import '../combat/creature_tag.dart';
 import '../anim/anim_resolver.dart';
 import '../contracts/render_anim_set_definition.dart';
 import 'death_behavior.dart';
-import '../projectiles/projectile_item_id.dart';
+import '../projectiles/projectile_id.dart';
 import '../snapshots/enums.dart';
 import '../util/vec2.dart';
 import 'enemy_id.dart';
@@ -243,7 +243,7 @@ class EnemyArchetype {
   /// Optional primary projectile item for this enemy.
   ///
   /// When present, the [EnemyCastSystem] will use this to write projectile intents.
-  final ProjectileItemId? primaryProjectileItemId;
+  final ProjectileId? primaryProjectileItemId;
 
   /// Direction the authored art faces when not mirrored.
   ///
@@ -293,7 +293,7 @@ class EnemyCatalog {
           hitAnimSeconds: _unocoHitAnimSeconds,
           deathAnimSeconds: _unocoDeathAnimSeconds,
           deathBehavior: DeathBehavior.instant,
-          primaryProjectileItemId: ProjectileItemId.thunderBolt,
+          primaryProjectileItemId: ProjectileId.thunderBolt,
           artFacingDir: Facing.left,
           tags: CreatureTagDef(
             mask: CreatureTagMask.flying | CreatureTagMask.demon,

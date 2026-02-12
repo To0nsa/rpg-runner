@@ -62,7 +62,6 @@ class DamageSystem {
       final sourceKind = queue.sourceKind[i];
       final sourceEnemyId = queue.sourceEnemyId[i];
       final sourceProjectileId = queue.sourceProjectileId[i];
-      final sourceProjectileItemId = queue.sourceProjectileItemId[i];
 
       // 1. Resolve Health component.
       // Use tryIndexOf (returns int?) to combine "has check" and "get index"
@@ -138,15 +137,11 @@ class DamageSystem {
           if (sourceProjectileId != null) {
             lastDamage.projectileId[li] = sourceProjectileId;
             lastDamage.hasProjectileId[li] = true;
+            lastDamage.sourceProjectileId[li] = sourceProjectileId;
+            lastDamage.hasSourceProjectileId[li] = true;
           } else {
             lastDamage.hasProjectileId[li] = false;
-          }
-
-          if (sourceProjectileItemId != null) {
-            lastDamage.projectileItemId[li] = sourceProjectileItemId;
-            lastDamage.hasProjectileItemId[li] = true;
-          } else {
-            lastDamage.hasProjectileItemId[li] = false;
+            lastDamage.hasSourceProjectileId[li] = false;
           }
         }
       }

@@ -1,6 +1,6 @@
 import '../abilities/ability_def.dart' show AbilityKey;
 import '../stats/gear_stat_bonuses.dart';
-import '../projectiles/projectile_item_id.dart';
+import '../projectiles/projectile_id.dart';
 import 'spell_book_def.dart';
 import 'spell_book_id.dart';
 
@@ -8,17 +8,20 @@ import 'spell_book_id.dart';
 class SpellBookCatalog {
   const SpellBookCatalog();
 
-  static const List<ProjectileItemId> _basicProjectileSpells =
-      <ProjectileItemId>[ProjectileItemId.fireBolt];
+  static const List<ProjectileId> _basicProjectileSpells = <ProjectileId>[
+    ProjectileId.fireBolt,
+  ];
 
-  static const List<ProjectileItemId> _solidProjectileSpells =
-      <ProjectileItemId>[ProjectileItemId.fireBolt, ProjectileItemId.iceBolt];
+  static const List<ProjectileId> _solidProjectileSpells = <ProjectileId>[
+    ProjectileId.fireBolt,
+    ProjectileId.iceBolt,
+  ];
 
-  static const List<ProjectileItemId> _allProjectileSpells = <ProjectileItemId>[
-    ProjectileItemId.iceBolt,
-    ProjectileItemId.fireBolt,
-    ProjectileItemId.acidBolt,
-    ProjectileItemId.thunderBolt,
+  static const List<ProjectileId> _allProjectileSpells = <ProjectileId>[
+    ProjectileId.iceBolt,
+    ProjectileId.fireBolt,
+    ProjectileId.acidBolt,
+    ProjectileId.thunderBolt,
   ];
 
   static const List<AbilityKey> _basicSpellSlotAbilities = <AbilityKey>[

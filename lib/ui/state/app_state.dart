@@ -13,7 +13,7 @@ import '../../core/meta/meta_state.dart';
 import '../../core/players/player_character_definition.dart';
 import '../../core/players/player_character_registry.dart';
 import '../../core/projectiles/projectile_item_catalog.dart';
-import '../../core/projectiles/projectile_item_id.dart';
+import '../../core/projectiles/projectile_id.dart';
 import '../../core/spells/spell_book_catalog.dart';
 import '../../core/spells/spell_book_id.dart';
 import '../../core/weapons/weapon_catalog.dart';
@@ -244,7 +244,7 @@ class AppState extends ChangeNotifier {
       mask: catalog.loadoutSlotMask,
       mainWeaponId: gear.mainWeaponId,
       offhandWeaponId: gear.offhandWeaponId,
-      projectileItemId: gear.throwingWeaponId,
+      projectileId: gear.throwingWeaponId,
       spellBookId: gear.spellBookId,
       projectileSlotSpellId: loadout.projectileSlotSpellId,
       accessoryId: gear.accessoryId,
@@ -339,7 +339,7 @@ class AppState extends ChangeNotifier {
     return replacement ?? current;
   }
 
-  ProjectileItemId? _normalizeProjectileSpellSelectionForLoadout(
+  ProjectileId? _normalizeProjectileSpellSelectionForLoadout(
     EquippedLoadoutDef loadout,
   ) {
     final current = loadout.projectileSlotSpellId;
@@ -361,7 +361,7 @@ class AppState extends ChangeNotifier {
 
   bool _isProjectileSpellAllowedBySpellBook(
     SpellBookId spellBookId,
-    ProjectileItemId spellId,
+    ProjectileId spellId,
   ) {
     final spellBook = _spellBookCatalog.tryGet(spellBookId);
     if (spellBook == null) return false;
@@ -423,7 +423,7 @@ class AppState extends ChangeNotifier {
       mask: loadout.mask,
       mainWeaponId: loadout.mainWeaponId,
       offhandWeaponId: loadout.offhandWeaponId,
-      projectileItemId: loadout.projectileItemId,
+      projectileId: loadout.projectileId,
       spellBookId: loadout.spellBookId,
       projectileSlotSpellId: loadout.projectileSlotSpellId,
       accessoryId: loadout.accessoryId,
@@ -450,13 +450,13 @@ class AppState extends ChangeNotifier {
 
   EquippedLoadoutDef _withProjectileSpellSelection(
     EquippedLoadoutDef loadout, {
-    required ProjectileItemId? projectileSlotSpellId,
+    required ProjectileId? projectileSlotSpellId,
   }) {
     return EquippedLoadoutDef(
       mask: loadout.mask,
       mainWeaponId: loadout.mainWeaponId,
       offhandWeaponId: loadout.offhandWeaponId,
-      projectileItemId: loadout.projectileItemId,
+      projectileId: loadout.projectileId,
       spellBookId: loadout.spellBookId,
       projectileSlotSpellId: projectileSlotSpellId,
       accessoryId: loadout.accessoryId,
@@ -486,7 +486,7 @@ class AppState extends ChangeNotifier {
     return a.mask == b.mask &&
         a.mainWeaponId == b.mainWeaponId &&
         a.offhandWeaponId == b.offhandWeaponId &&
-        a.projectileItemId == b.projectileItemId &&
+        a.projectileId == b.projectileId &&
         a.spellBookId == b.spellBookId &&
         a.projectileSlotSpellId == b.projectileSlotSpellId &&
         a.accessoryId == b.accessoryId &&

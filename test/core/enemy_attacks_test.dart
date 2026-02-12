@@ -20,9 +20,8 @@ import 'package:rpg_runner/core/ecs/systems/melee_strike_system.dart';
 import 'package:rpg_runner/core/ecs/systems/projectile_hit_system.dart';
 import 'package:rpg_runner/core/ecs/systems/projectile_launch_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
-import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
+import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
@@ -38,10 +37,6 @@ import 'package:rpg_runner/core/ecs/entity_factory.dart';
 void main() {
   test('enemy cast respects cooldown before recast', () {
     final world = EcsWorld();
-    final projectiles = ProjectileCatalogDerived.from(
-      const ProjectileCatalog(),
-      tickHz: 60,
-    );
 
     final player = EntityFactory(world).createPlayer(
       posX: 100,
@@ -88,9 +83,11 @@ void main() {
       ),
       enemyCatalog: const EnemyCatalog(),
       projectileItems: const ProjectileItemCatalog(),
-      projectiles: projectiles,
     );
-    final launchSystem = ProjectileLaunchSystem(projectiles: projectiles);
+    final launchSystem = ProjectileLaunchSystem(
+      projectileItems: const ProjectileItemCatalog(),
+      tickHz: 60,
+    );
     final cooldownSystem = CooldownSystem();
     final phaseSystem = ActiveAbilityPhaseSystem();
 
@@ -126,7 +123,7 @@ void main() {
       'common.enemy_cast',
     )!.baseDamage;
     final projectileItem = const ProjectileItemCatalog().get(
-      ProjectileItemId.thunderBolt,
+      ProjectileId.thunderBolt,
     );
 
     final player = EntityFactory(world).createPlayer(
@@ -167,12 +164,9 @@ void main() {
 
     final p = spawnProjectileItemFromCaster(
       world,
-      projectiles: ProjectileCatalogDerived.from(
-        const ProjectileCatalog(),
-        tickHz: 60,
-      ),
-      projectileItemId: ProjectileItemId.thunderBolt,
-      projectileId: projectileItem.projectileId,
+      tickHz: 60,
+      projectileId: ProjectileId.thunderBolt,
+      projectileItem: projectileItem,
       faction: Faction.enemy,
       owner: unocoDemon,
       casterX: 100,

@@ -1,7 +1,7 @@
 /// Identifies a projectile type for catalog lookup and rendering.
 ///
-/// Each ID maps to a [ProjectileArchetype] in [ProjectileCatalog] and
-/// determines visual appearance in the renderer.
+/// Each ID maps to a projectile item entry and determines visual appearance
+/// in the renderer.
 enum ProjectileId {
   /// Player's primary ranged strike. Fast, short-lived.
   iceBolt,

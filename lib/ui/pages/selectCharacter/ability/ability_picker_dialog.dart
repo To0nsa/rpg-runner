@@ -5,7 +5,7 @@ import '../../../../core/abilities/ability_def.dart';
 import '../../../../core/ecs/stores/combat/equipped_loadout_store.dart';
 import '../../../../core/meta/gear_slot.dart';
 import '../../../../core/players/player_character_definition.dart';
-import '../../../../core/projectiles/projectile_item_id.dart';
+import '../../../../core/projectiles/projectile_id.dart';
 import '../../../components/ability_placeholder_icon.dart';
 import '../../../components/app_button.dart';
 import '../../../components/gear_icon.dart';
@@ -40,7 +40,7 @@ class _AbilityPickerDialog extends StatefulWidget {
 
 class _AbilityPickerDialogState extends State<_AbilityPickerDialog> {
   late AbilityKey _selectedAbilityId;
-  ProjectileItemId? _selectedSourceSpellId;
+  ProjectileId? _selectedSourceSpellId;
   bool _spellBookExpanded = false;
   bool _seeded = false;
 
@@ -213,7 +213,7 @@ class _AbilityPickerDialogState extends State<_AbilityPickerDialog> {
 
   void _selectSource({
     required EquippedLoadoutDef loadout,
-    required ProjectileItemId? spellId,
+    required ProjectileId? spellId,
   }) {
     setState(() {
       _selectedSourceSpellId = spellId;
@@ -268,11 +268,11 @@ class _SourcePanel extends StatelessWidget {
   });
 
   final ProjectileSourcePanelModel sourceModel;
-  final ProjectileItemId? selectedSpellId;
+  final ProjectileId? selectedSpellId;
   final bool spellBookExpanded;
   final VoidCallback onSelectThrowingWeapon;
   final VoidCallback onToggleSpellBook;
-  final ValueChanged<ProjectileItemId> onSelectSpell;
+  final ValueChanged<ProjectileId> onSelectSpell;
 
   @override
   Widget build(BuildContext context) {
@@ -627,7 +627,7 @@ class _SelectableTile extends StatelessWidget {
   }
 }
 
-ProjectileItemId? _initialSourceSpellId(
+ProjectileId? _initialSourceSpellId(
   EquippedLoadoutDef loadout,
   AbilitySlot slot,
 ) {

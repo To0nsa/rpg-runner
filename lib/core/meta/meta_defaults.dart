@@ -1,5 +1,5 @@
 import '../accessories/accessory_id.dart';
-import '../projectiles/projectile_item_id.dart';
+import '../projectiles/projectile_id.dart';
 import '../spells/spell_book_id.dart';
 import '../weapons/weapon_id.dart';
 import 'equipped_gear.dart';
@@ -17,8 +17,7 @@ class MetaDefaults {
   static const WeaponId offhandWeaponId = WeaponId.woodenShield;
 
   /// Default throwing weapon.
-  static const ProjectileItemId throwingWeaponId =
-      ProjectileItemId.throwingKnife;
+  static const ProjectileId throwingWeaponId = ProjectileId.throwingKnife;
 
   /// Default spellbook.
   static const SpellBookId spellBookId = SpellBookId.basicSpellBook;

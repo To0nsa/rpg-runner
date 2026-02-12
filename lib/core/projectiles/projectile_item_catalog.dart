@@ -4,20 +4,22 @@ import '../combat/status/status.dart';
 import '../projectiles/projectile_id.dart';
 import '../weapons/weapon_proc.dart';
 import 'projectile_item_def.dart';
-import 'projectile_item_id.dart';
 
 /// Lookup table for projectile slot items (spells + throwing weapons).
 class ProjectileItemCatalog {
   const ProjectileItemCatalog();
 
-  ProjectileItemDef get(ProjectileItemId id) {
+  ProjectileItemDef get(ProjectileId id) {
     switch (id) {
       // Spells
-      case ProjectileItemId.iceBolt:
+      case ProjectileId.iceBolt:
         return const ProjectileItemDef(
-          id: ProjectileItemId.iceBolt,
+          id: ProjectileId.iceBolt,
           weaponType: WeaponType.projectileSpell,
-          projectileId: ProjectileId.iceBolt,
+          speedUnitsPerSecond: 1000.0,
+          lifetimeSeconds: 1.0,
+          colliderSizeX: 18.0,
+          colliderSizeY: 8.0,
           ballistic: false,
           gravityScale: 1.0,
           damageType: DamageType.ice,
@@ -29,11 +31,14 @@ class ProjectileItemCatalog {
             ),
           ],
         );
-      case ProjectileItemId.fireBolt:
+      case ProjectileId.fireBolt:
         return const ProjectileItemDef(
-          id: ProjectileItemId.fireBolt,
+          id: ProjectileId.fireBolt,
           weaponType: WeaponType.projectileSpell,
-          projectileId: ProjectileId.fireBolt,
+          speedUnitsPerSecond: 900.0,
+          lifetimeSeconds: 1.3,
+          colliderSizeX: 20.0,
+          colliderSizeY: 10.0,
           ballistic: false,
           gravityScale: 1.0,
           damageType: DamageType.fire,
@@ -45,11 +50,14 @@ class ProjectileItemCatalog {
             ),
           ],
         );
-      case ProjectileItemId.acidBolt:
+      case ProjectileId.acidBolt:
         return const ProjectileItemDef(
-          id: ProjectileItemId.acidBolt,
+          id: ProjectileId.acidBolt,
           weaponType: WeaponType.projectileSpell,
-          projectileId: ProjectileId.acidBolt,
+          speedUnitsPerSecond: 900.0,
+          lifetimeSeconds: 1.3,
+          colliderSizeX: 20.0,
+          colliderSizeY: 10.0,
           ballistic: false,
           gravityScale: 1.0,
           damageType: DamageType.acid,
@@ -61,32 +69,41 @@ class ProjectileItemCatalog {
             ),
           ],
         );
-      case ProjectileItemId.thunderBolt:
+      case ProjectileId.thunderBolt:
         return const ProjectileItemDef(
-          id: ProjectileItemId.thunderBolt,
+          id: ProjectileId.thunderBolt,
           weaponType: WeaponType.projectileSpell,
-          projectileId: ProjectileId.thunderBolt,
+          speedUnitsPerSecond: 1000.0,
+          lifetimeSeconds: 1.2,
+          colliderSizeX: 16.0,
+          colliderSizeY: 8.0,
           ballistic: false,
           gravityScale: 1.0,
           damageType: DamageType.thunder,
         );
 
       // Throwing weapons
-      case ProjectileItemId.throwingKnife:
+      case ProjectileId.throwingKnife:
         return const ProjectileItemDef(
-          id: ProjectileItemId.throwingKnife,
+          id: ProjectileId.throwingKnife,
           weaponType: WeaponType.throwingWeapon,
-          projectileId: ProjectileId.throwingKnife,
+          speedUnitsPerSecond: 900.0,
+          lifetimeSeconds: 1.2,
+          colliderSizeX: 14.0,
+          colliderSizeY: 6.0,
           originOffset: 6.0,
           ballistic: true,
           gravityScale: 0.9,
           damageType: DamageType.physical,
         );
-      case ProjectileItemId.throwingAxe:
+      case ProjectileId.throwingAxe:
         return const ProjectileItemDef(
-          id: ProjectileItemId.throwingAxe,
+          id: ProjectileId.throwingAxe,
           weaponType: WeaponType.throwingWeapon,
-          projectileId: ProjectileId.throwingAxe,
+          speedUnitsPerSecond: 800.0,
+          lifetimeSeconds: 1.6,
+          colliderSizeX: 16.0,
+          colliderSizeY: 10.0,
           originOffset: 8.0,
           ballistic: true,
           gravityScale: 1.0,
@@ -95,7 +112,7 @@ class ProjectileItemCatalog {
     }
   }
 
-  ProjectileItemDef? tryGet(ProjectileItemId id) {
+  ProjectileItemDef? tryGet(ProjectileId id) {
     try {
       return get(id);
     } catch (_) {

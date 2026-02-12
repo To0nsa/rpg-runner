@@ -9,7 +9,6 @@ import '../../combat/hit_payload_builder.dart';
 import '../../snapshots/enums.dart';
 import '../../projectiles/projectile_id.dart';
 import '../../projectiles/projectile_item_catalog.dart';
-import '../../projectiles/projectile_item_id.dart';
 import '../../spells/spell_book_catalog.dart';
 import '../../weapons/weapon_catalog.dart';
 import '../../weapons/weapon_proc.dart';
@@ -901,7 +900,6 @@ class AbilityActivationSystem {
     final activeTicks = _scaleAbilityTicks(ability.activeTicks);
     final recoveryTicks = _scaleAbilityTicks(ability.recoveryTicks);
 
-    final ProjectileItemId projectileItemId;
     final ProjectileId projectileId;
     final bool ballistic;
     final double gravityScale;
@@ -927,8 +925,7 @@ class AbilityActivationSystem {
             !ability.requiredWeaponTypes.contains(projectileItem.weaponType)) {
           return false;
         }
-        projectileItemId = equippedId;
-        projectileId = projectileItem.projectileId;
+        projectileId = equippedId;
         ballistic = projectileItem.ballistic;
         gravityScale = projectileItem.gravityScale;
         originOffset =
@@ -948,7 +945,6 @@ class AbilityActivationSystem {
           return false;
         }
         projectileId = hitDelivery.projectileId;
-        projectileItemId = _projectileItemIdForProjectile(projectileId);
         ballistic = false;
         gravityScale = 1.0;
         originOffset = _spellOriginOffset(world, player);
@@ -1070,7 +1066,7 @@ class AbilityActivationSystem {
     world.projectileIntent.set(
       player,
       ProjectileIntentDef(
-        projectileItemId: projectileItemId,
+        projectileId: projectileId,
         abilityId: ability.id,
         slot: slot,
         damage100: tunedDamage100,
@@ -1079,7 +1075,6 @@ class AbilityActivationSystem {
         manaCost100: ability.manaCost,
         cooldownTicks: cooldownTicks,
         cooldownGroupId: cooldownGroupId,
-        projectileId: projectileId,
         damageType: payload.damageType,
         procs: payload.procs,
         ballistic: ballistic,
@@ -1290,7 +1285,7 @@ class AbilityActivationSystem {
     return (bestDx * invLen, bestDy * invLen);
   }
 
-  ProjectileItemId _resolveProjectileItemForSlot(
+  ProjectileId _resolveProjectileItemForSlot(
     EcsWorld world, {
     required int loadoutIndex,
     required AbilitySlot slot,
@@ -1317,10 +1312,10 @@ class AbilityActivationSystem {
         return selectedSpellId;
       }
     }
-    return loadout.projectileItemId[loadoutIndex];
+    return loadout.projectileId[loadoutIndex];
   }
 
-  ProjectileItemId? _selectedSpellIdForSlot(
+  ProjectileId? _selectedSpellIdForSlot(
     EquippedLoadoutStore loadout, {
     required int loadoutIndex,
     required AbilitySlot slot,
@@ -1346,23 +1341,6 @@ class AbilityActivationSystem {
       maxHalfExtent = halfX > halfY ? halfX : halfY;
     }
     return maxHalfExtent * 0.5;
-  }
-
-  ProjectileItemId _projectileItemIdForProjectile(ProjectileId id) {
-    switch (id) {
-      case ProjectileId.iceBolt:
-        return ProjectileItemId.iceBolt;
-      case ProjectileId.fireBolt:
-        return ProjectileItemId.fireBolt;
-      case ProjectileId.acidBolt:
-        return ProjectileItemId.acidBolt;
-      case ProjectileId.thunderBolt:
-        return ProjectileItemId.thunderBolt;
-      case ProjectileId.throwingKnife:
-        return ProjectileItemId.throwingKnife;
-      case ProjectileId.throwingAxe:
-        return ProjectileItemId.throwingAxe;
-    }
   }
 
   ResolvedCharacterStats _resolvedStatsForLoadout(

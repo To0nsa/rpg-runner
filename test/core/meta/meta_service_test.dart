@@ -6,7 +6,7 @@ import 'package:rpg_runner/core/meta/meta_defaults.dart';
 import 'package:rpg_runner/core/meta/meta_service.dart';
 import 'package:rpg_runner/core/meta/meta_state.dart';
 import 'package:rpg_runner/core/players/player_character_definition.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
+import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/spells/spell_book_id.dart';
 import 'package:rpg_runner/core/weapons/weapon_id.dart';
 
@@ -44,11 +44,11 @@ void main() {
       meta,
       characterId: PlayerCharacterId.eloise,
       slot: GearSlot.throwingWeapon,
-      itemId: ProjectileItemId.throwingAxe,
+      itemId: ProjectileId.throwingAxe,
     );
     expect(
       good.equippedFor(PlayerCharacterId.eloise).throwingWeaponId,
-      ProjectileItemId.throwingAxe,
+      ProjectileId.throwingAxe,
     );
   });
 
@@ -76,7 +76,7 @@ void main() {
       final loaded = MetaState.seedAllUnlocked(
         inventory: InventoryState(
           unlockedWeaponIds: WeaponId.values.toSet(),
-          unlockedThrowingWeaponIds: ProjectileItemId.values.toSet(),
+          unlockedThrowingWeaponIds: ProjectileId.values.toSet(),
           unlockedSpellBookIds: SpellBookId.values.toSet(),
           unlockedAccessoryIds: AccessoryId.values.toSet(),
         ),
@@ -94,9 +94,7 @@ void main() {
         isFalse,
       );
       expect(
-        inventory.unlockedThrowingWeaponIds.contains(
-          ProjectileItemId.thunderBolt,
-        ),
+        inventory.unlockedThrowingWeaponIds.contains(ProjectileId.thunderBolt),
         isFalse,
       );
       expect(
@@ -136,8 +134,8 @@ void main() {
     );
     final ids = throwingCandidates.map((candidate) => candidate.id).toList();
 
-    expect(ids, contains(ProjectileItemId.throwingKnife));
-    expect(ids, contains(ProjectileItemId.throwingAxe));
-    expect(ids, isNot(contains(ProjectileItemId.thunderBolt)));
+    expect(ids, contains(ProjectileId.throwingKnife));
+    expect(ids, contains(ProjectileId.throwingAxe));
+    expect(ids, isNot(contains(ProjectileId.thunderBolt)));
   });
 }

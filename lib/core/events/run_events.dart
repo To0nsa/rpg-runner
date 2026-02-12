@@ -4,24 +4,19 @@ part of 'game_event.dart';
 enum RunEndReason {
   /// Player was too slow and scrolled off the screen.
   fellBehindCamera,
-  
+
   /// Player fell into a death pit.
   fellIntoGap,
-  
+
   /// HP reached 0 (combat death).
   playerDied,
-  
+
   /// User manually exited the run.
   gaveUp,
 }
 
 /// Identifies the category of damage source that caused death.
-enum DeathSourceKind {
-  projectile,
-  meleeHitbox,
-  statusEffect,
-  unknown,
-}
+enum DeathSourceKind { projectile, meleeHitbox, statusEffect, unknown }
 
 /// Detailed context about what killed the player.
 class DeathInfo {
@@ -29,20 +24,20 @@ class DeathInfo {
     required this.kind,
     this.enemyId,
     this.projectileId,
-    this.projectileItemId,
+    this.sourceProjectileId,
   });
 
   /// Category of the damage source.
   final DeathSourceKind kind;
-  
+
   /// The [EnemyId] responsible (if applicable).
   final EnemyId? enemyId;
-  
+
   /// The [ProjectileId] responsible (if applicable).
   final ProjectileId? projectileId;
-  
-  /// The [ProjectileItemId] responsible (if applicable).
-  final ProjectileItemId? projectileItemId;
+
+  /// The [ProjectileId] responsible (if applicable).
+  final ProjectileId? sourceProjectileId;
 }
 
 /// Aggregate statistics collected during a run.
@@ -55,7 +50,7 @@ class RunEndStats {
 
   /// Total count of collectibles picked up.
   final int collectibles;
-  
+
   /// Total score value of collectibles.
   final int collectibleScore;
 
@@ -85,19 +80,19 @@ class RunEndedEvent extends GameEvent {
 
   /// The tick on which the run ended.
   final int tick;
-  
+
   /// Total distance traveled (meters/pixels).
   final double distance;
-  
+
   /// Why the run ended (Death vs GiveUp).
   final RunEndReason reason;
-  
+
   /// Performance stats.
   final RunEndStats stats;
 
   /// Gold earned for this run (derived from run stats).
   final int goldEarned;
-  
+
   /// Details on the lethal hit (if applicable).
   final DeathInfo? deathInfo;
 }

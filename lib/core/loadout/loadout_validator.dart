@@ -3,7 +3,7 @@ import '../abilities/ability_def.dart';
 import '../ecs/stores/combat/equipped_loadout_store.dart';
 import '../projectiles/projectile_item_catalog.dart';
 import '../projectiles/projectile_item_def.dart';
-import '../projectiles/projectile_item_id.dart';
+import '../projectiles/projectile_id.dart';
 import '../spells/spell_book_catalog.dart';
 import '../spells/spell_book_def.dart';
 import '../spells/spell_book_id.dart';
@@ -48,7 +48,7 @@ class LoadoutValidator {
     );
 
     final projectileItem = _resolveProjectileItem(
-      loadout.projectileItemId,
+      loadout.projectileId,
       AbilitySlot.projectile,
       issues,
     );
@@ -193,7 +193,7 @@ class LoadoutValidator {
   }
 
   ProjectileItemDef? _resolveProjectileItem(
-    ProjectileItemId id,
+    ProjectileId id,
     AbilitySlot slot,
     List<LoadoutIssue> issues,
   ) {
@@ -236,7 +236,7 @@ class LoadoutValidator {
     required WeaponDef? effectiveSecondaryWeapon,
     required ProjectileItemDef? projectileItem,
     required SpellBookDef? spellBook,
-    required ProjectileItemId? projectileSlotSpellId,
+    required ProjectileId? projectileSlotSpellId,
   }) {
     final ability = abilityCatalog.resolve(abilityId);
     if (ability == null) {
@@ -330,7 +330,7 @@ class LoadoutValidator {
     required AbilitySlot slot,
     required ProjectileItemDef? fallbackProjectileItem,
     required SpellBookDef? spellBook,
-    required ProjectileItemId? projectileSlotSpellId,
+    required ProjectileId? projectileSlotSpellId,
   }) {
     final selectedSpellId = switch (slot) {
       AbilitySlot.projectile => projectileSlotSpellId,

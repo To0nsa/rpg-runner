@@ -1,5 +1,5 @@
 import '../accessories/accessory_id.dart';
-import '../projectiles/projectile_item_id.dart';
+import '../projectiles/projectile_id.dart';
 import '../spells/spell_book_id.dart';
 import '../weapons/weapon_id.dart';
 
@@ -23,7 +23,7 @@ class EquippedGear {
   final WeaponId offhandWeaponId;
 
   /// Equipped throwing weapon.
-  final ProjectileItemId throwingWeaponId;
+  final ProjectileId throwingWeaponId;
 
   /// Equipped spellbook.
   final SpellBookId spellBookId;
@@ -35,7 +35,7 @@ class EquippedGear {
   EquippedGear copyWith({
     WeaponId? mainWeaponId,
     WeaponId? offhandWeaponId,
-    ProjectileItemId? throwingWeaponId,
+    ProjectileId? throwingWeaponId,
     SpellBookId? spellBookId,
     AccessoryId? accessoryId,
   }) {
@@ -78,7 +78,7 @@ class EquippedGear {
         fallback.offhandWeaponId,
       ),
       throwingWeaponId: _enumFromName(
-        ProjectileItemId.values,
+        ProjectileId.values,
         json['throwingWeaponId'] as String?,
         fallback.throwingWeaponId,
       ),

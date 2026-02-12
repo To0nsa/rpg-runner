@@ -8,7 +8,6 @@ import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_item_def.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
 import 'package:rpg_runner/core/spells/spell_book_catalog.dart';
 import 'package:rpg_runner/core/spells/spell_book_def.dart';
 import 'package:rpg_runner/core/spells/spell_book_id.dart';
@@ -24,7 +23,7 @@ void main() {
   test('cooldown reduction is capped and scales cooldown ticks', () {
     final resolver = CharacterStatsResolver(
       weapons: const _FlatWeaponCatalog(),
-      projectileItems: const _FlatProjectileCatalog(),
+      projectileItems: const _FlatProjectileItemCatalog(),
       spellBooks: const _FlatSpellBookCatalog(),
       accessories: const _HighCdrAccessoryCatalog(),
     );
@@ -33,7 +32,7 @@ void main() {
       mask: LoadoutSlotMask.mainHand,
       mainWeaponId: WeaponId.basicSword,
       offhandWeaponId: WeaponId.basicShield,
-      projectileItemId: ProjectileItemId.throwingKnife,
+      projectileId: ProjectileId.throwingKnife,
       spellBookId: SpellBookId.basicSpellBook,
       accessoryId: AccessoryId.speedBoots,
     );
@@ -48,7 +47,7 @@ void main() {
   test('two-handed main weapon excludes offhand stat contribution', () {
     final resolver = CharacterStatsResolver(
       weapons: const _TwoHandedWeaponCatalog(),
-      projectileItems: const _FlatProjectileCatalog(),
+      projectileItems: const _FlatProjectileItemCatalog(),
       spellBooks: const _FlatSpellBookCatalog(),
       accessories: const _FlatAccessoryCatalog(),
     );
@@ -57,7 +56,7 @@ void main() {
       mask: LoadoutSlotMask.mainHand | LoadoutSlotMask.offHand,
       mainWeaponId: WeaponId.woodenSword,
       offhandWeaponId: WeaponId.basicShield,
-      projectileItemId: ProjectileItemId.throwingKnife,
+      projectileId: ProjectileId.throwingKnife,
       spellBookId: SpellBookId.basicSpellBook,
       accessoryId: AccessoryId.speedBoots,
     );
@@ -68,7 +67,7 @@ void main() {
   test('resource bonuses scale max pools deterministically', () {
     final resolver = CharacterStatsResolver(
       weapons: const _FlatWeaponCatalog(),
-      projectileItems: const _FlatProjectileCatalog(),
+      projectileItems: const _FlatProjectileItemCatalog(),
       spellBooks: const _FlatSpellBookCatalog(),
       accessories: const _ResourceAccessoryCatalog(),
     );
@@ -77,7 +76,7 @@ void main() {
       mask: LoadoutSlotMask.mainHand,
       mainWeaponId: WeaponId.basicSword,
       offhandWeaponId: WeaponId.basicShield,
-      projectileItemId: ProjectileItemId.throwingKnife,
+      projectileId: ProjectileId.throwingKnife,
       spellBookId: SpellBookId.basicSpellBook,
       accessoryId: AccessoryId.goldenRing,
     );
@@ -90,7 +89,7 @@ void main() {
   test('global offensive bonuses are capped and applied deterministically', () {
     final resolver = CharacterStatsResolver(
       weapons: const _FlatWeaponCatalog(),
-      projectileItems: const _FlatProjectileCatalog(),
+      projectileItems: const _FlatProjectileItemCatalog(),
       spellBooks: const _FlatSpellBookCatalog(),
       accessories: const _GlobalOffenseAccessoryCatalog(),
     );
@@ -99,7 +98,7 @@ void main() {
       mask: LoadoutSlotMask.mainHand,
       mainWeaponId: WeaponId.basicSword,
       offhandWeaponId: WeaponId.basicShield,
-      projectileItemId: ProjectileItemId.throwingKnife,
+      projectileId: ProjectileId.throwingKnife,
       spellBookId: SpellBookId.basicSpellBook,
       accessoryId: AccessoryId.speedBoots,
     );
@@ -118,7 +117,7 @@ void main() {
   test('typed gear resistance clamps and converts to incoming modifier', () {
     final resolver = CharacterStatsResolver(
       weapons: const _FlatWeaponCatalog(),
-      projectileItems: const _FlatProjectileCatalog(),
+      projectileItems: const _FlatProjectileItemCatalog(),
       spellBooks: const _FlatSpellBookCatalog(),
       accessories: const _TypedResistanceAccessoryCatalog(),
     );
@@ -127,7 +126,7 @@ void main() {
       mask: LoadoutSlotMask.mainHand,
       mainWeaponId: WeaponId.basicSword,
       offhandWeaponId: WeaponId.basicShield,
-      projectileItemId: ProjectileItemId.throwingKnife,
+      projectileId: ProjectileId.throwingKnife,
       spellBookId: SpellBookId.basicSpellBook,
       accessoryId: AccessoryId.speedBoots,
     );
@@ -205,15 +204,18 @@ class _TwoHandedWeaponCatalog extends WeaponCatalog {
   }
 }
 
-class _FlatProjectileCatalog extends ProjectileItemCatalog {
-  const _FlatProjectileCatalog();
+class _FlatProjectileItemCatalog extends ProjectileItemCatalog {
+  const _FlatProjectileItemCatalog();
 
   @override
-  ProjectileItemDef get(ProjectileItemId id) {
+  ProjectileItemDef get(ProjectileId id) {
     return const ProjectileItemDef(
-      id: ProjectileItemId.throwingKnife,
+      id: ProjectileId.throwingKnife,
       weaponType: WeaponType.throwingWeapon,
-      projectileId: ProjectileId.throwingKnife,
+      speedUnitsPerSecond: 900.0,
+      lifetimeSeconds: 1.2,
+      colliderSizeX: 14.0,
+      colliderSizeY: 6.0,
       stats: GearStatBonuses(),
     );
   }

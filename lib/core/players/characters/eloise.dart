@@ -9,7 +9,7 @@ import '../../ecs/stores/combat/equipped_loadout_store.dart';
 import '../../ecs/stores/combat/status_immunity_store.dart';
 import '../../combat/creature_tag.dart';
 import '../../snapshots/enums.dart';
-import '../../projectiles/projectile_item_id.dart';
+import '../../projectiles/projectile_id.dart';
 import '../../weapons/weapon_id.dart';
 import '../player_character_definition.dart';
 import '../player_catalog.dart';
@@ -179,9 +179,9 @@ const PlayerCatalog eloiseCatalog = PlayerCatalog(
   loadoutSlotMask: LoadoutSlotMask.all,
   weaponId: WeaponId.woodenSword,
   offhandWeaponId: WeaponId.woodenShield,
-  projectileItemId: ProjectileItemId.throwingKnife,
+  projectileId: ProjectileId.throwingKnife,
   spellBookId: SpellBookId.basicSpellBook,
-  projectileSlotSpellId: ProjectileItemId.fireBolt,
+  projectileSlotSpellId: ProjectileId.fireBolt,
   abilityPrimaryId: 'eloise.sword_strike',
   abilitySecondaryId: 'eloise.shield_block',
   abilityProjectileId: 'eloise.quick_shot',

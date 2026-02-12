@@ -106,7 +106,7 @@ Damage application order in Core:
   - `mask`
   - `mainWeaponId`
   - `offhandWeaponId`
-  - `projectileItemId`
+  - `projectileId`
   - `spellBookId`
   - `accessoryId`
 - If an entity has no loadout, runtime uses neutral resolved stats (all zero bonuses).
@@ -158,7 +158,7 @@ Damage application order in Core:
 ### 6.4 Projectile items
 
 - No direct stat bonus values currently assigned in `ProjectileItemCatalog`.
-- Projectile items currently contribute primarily through damage type/procs/ballistics.
+- Projectile items currently contribute through damage type/procs plus projectile motion/collider tuning.
 
 ### 6.5 Global offensive + typed resistance authoring
 

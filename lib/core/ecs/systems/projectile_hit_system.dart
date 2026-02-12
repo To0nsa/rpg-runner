@@ -221,8 +221,8 @@ class ProjectileHitSystem {
     final enemyId = ei != null ? enemies.enemyId[ei] : null;
 
     final si = projectileOrigins.tryIndexOf(projectileEntity);
-    final projectileItemId = si != null
-        ? projectileOrigins.projectileItemId[si]
+    final sourceProjectileId = si != null
+        ? projectileOrigins.projectileId[si]
         : null;
 
     world.damageQueue.add(
@@ -235,8 +235,9 @@ class ProjectileHitSystem {
         source: owner,
         sourceKind: DeathSourceKind.projectile,
         sourceEnemyId: enemyId,
-        sourceProjectileId: projectiles.projectileId[projectileStoreIndex],
-        sourceProjectileItemId: projectileItemId,
+        sourceProjectileId:
+            sourceProjectileId ??
+            projectiles.projectileId[projectileStoreIndex],
       ),
     );
   }
@@ -255,14 +256,14 @@ class ProjectileHitSystem {
   }) {
     if (queueHitEvent == null) return;
     final si = projectileOrigins.tryIndexOf(projectileEntity);
-    final projectileItemId = si != null
-        ? projectileOrigins.projectileItemId[si]
+    final sourceProjectileId = si != null
+        ? projectileOrigins.projectileId[si]
         : null;
     queueHitEvent(
       ProjectileHitEvent(
         tick: currentTick,
         projectileId: projectiles.projectileId[projectileStoreIndex],
-        projectileItemId: projectileItemId,
+        sourceProjectileId: sourceProjectileId,
         pos: Vec2(projectileStoreCenterX, projectileStoreCenterY),
         facing: facing,
         rotationRad: rotationRad,

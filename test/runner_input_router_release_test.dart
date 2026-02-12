@@ -11,7 +11,7 @@ import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:rpg_runner/core/util/tick_math.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
+import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/game/game_controller.dart';
 import 'package:rpg_runner/game/input/runner_input_router.dart';
 
@@ -28,7 +28,7 @@ void main() {
       playerCharacter: base.copyWith(
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(useGravity: false),
-          projectileItemId: ProjectileItemId.iceBolt,
+          projectileId: ProjectileId.iceBolt,
           abilityProjectileId: 'eloise.charged_shot',
         ),
         tuning: base.tuning.copyWith(
@@ -73,7 +73,7 @@ void main() {
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(useGravity: false),
             abilityPrimaryId: 'eloise.sword_parry',
-            projectileItemId: ProjectileItemId.iceBolt,
+            projectileId: ProjectileId.iceBolt,
             abilityProjectileId: 'eloise.charged_shot',
           ),
           tuning: base.tuning.copyWith(
@@ -122,7 +122,7 @@ void main() {
         playerCharacter: base.copyWith(
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(useGravity: false),
-            projectileItemId: ProjectileItemId.iceBolt,
+            projectileId: ProjectileId.iceBolt,
             abilityProjectileId: 'eloise.charged_shot',
           ),
           tuning: base.tuning.copyWith(
@@ -180,7 +180,7 @@ void main() {
       playerCharacter: base.copyWith(
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(useGravity: false),
-          projectileItemId: ProjectileItemId.iceBolt,
+          projectileId: ProjectileId.iceBolt,
           abilityProjectileId: 'eloise.charged_shot',
         ),
         tuning: base.tuning.copyWith(
@@ -232,7 +232,7 @@ void main() {
           playerCharacter: base.copyWith(
             catalog: testPlayerCatalog(
               bodyTemplate: BodyDef(useGravity: false),
-              projectileItemId: ProjectileItemId.throwingKnife,
+              projectileId: ProjectileId.throwingKnife,
               projectileSlotSpellId: null,
               abilityProjectileId: 'eloise.charged_shot',
             ),
@@ -292,7 +292,7 @@ void main() {
           playerCharacter: base.copyWith(
             catalog: testPlayerCatalog(
               bodyTemplate: BodyDef(useGravity: false),
-              projectileItemId: ProjectileItemId.throwingKnife,
+              projectileId: ProjectileId.throwingKnife,
               projectileSlotSpellId: null,
               abilityProjectileId: 'eloise.charged_shot',
             ),
@@ -358,7 +358,7 @@ void main() {
             bodyTemplate: BodyDef(useGravity: false),
             loadoutSlotMask: LoadoutSlotMask.all,
             abilitySecondaryId: 'eloise.charged_shield_bash',
-            projectileItemId: ProjectileItemId.iceBolt,
+            projectileId: ProjectileId.iceBolt,
             abilityProjectileId: 'eloise.charged_shot',
           ),
         ),
@@ -415,7 +415,7 @@ void main() {
               bodyTemplate: BodyDef(useGravity: false),
               loadoutSlotMask: LoadoutSlotMask.all,
               abilitySecondaryId: 'eloise.charged_shield_bash',
-              projectileItemId: ProjectileItemId.iceBolt,
+              projectileId: ProjectileId.iceBolt,
               abilityProjectileId: 'eloise.charged_shot',
             ),
           ),
@@ -487,7 +487,7 @@ void main() {
               abilitySecondaryId: abilitySecondaryId,
               abilityProjectileId: abilityProjectileId,
               abilityMobilityId: abilityMobilityId,
-              projectileItemId: ProjectileItemId.throwingKnife,
+              projectileId: ProjectileId.throwingKnife,
               projectileSlotSpellId: null,
             ),
           ),
@@ -597,7 +597,7 @@ void main() {
         playerCharacter: base.copyWith(
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(useGravity: false),
-            projectileItemId: ProjectileItemId.throwingKnife,
+            projectileId: ProjectileId.throwingKnife,
             abilityProjectileId: 'eloise.quick_shot',
           ),
           tuning: base.tuning.copyWith(
@@ -647,7 +647,7 @@ void main() {
           loadoutSlotMask: LoadoutSlotMask.all,
           abilitySecondaryId: 'eloise.charged_shield_bash',
           abilityProjectileId: 'eloise.charged_shot',
-          projectileItemId: ProjectileItemId.throwingKnife,
+          projectileId: ProjectileId.throwingKnife,
           projectileSlotSpellId: null,
         ),
       ),
@@ -684,7 +684,7 @@ void main() {
           loadoutSlotMask: LoadoutSlotMask.all,
           abilitySecondaryId: 'eloise.charged_shield_bash',
           abilityProjectileId: 'eloise.charged_shot',
-          projectileItemId: ProjectileItemId.throwingKnife,
+          projectileId: ProjectileId.throwingKnife,
           projectileSlotSpellId: null,
         ),
       ),
@@ -715,7 +715,7 @@ void main() {
         playerCharacter: base.copyWith(
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(useGravity: false),
-            projectileItemId: ProjectileItemId.throwingKnife,
+            projectileId: ProjectileId.throwingKnife,
             projectileSlotSpellId: null,
             abilityProjectileId: 'eloise.charged_shot',
           ),

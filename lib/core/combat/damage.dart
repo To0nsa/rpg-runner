@@ -2,14 +2,13 @@ import '../ecs/entity_id.dart';
 import '../enemies/enemy_id.dart';
 import '../events/game_event.dart';
 import '../projectiles/projectile_id.dart';
-import '../projectiles/projectile_item_id.dart';
 import '../weapons/weapon_proc.dart';
 import 'damage_type.dart';
 
 /// Represents a request to apply damage to an entity.
 ///
 /// This structure captures the target, the amount of damage, and comprehensive
-/// metadata about the source of the damage (entity, enemy type, projectile, projectile item)
+/// metadata about the source of the damage (entity, enemy type, projectile)
 /// to be used for combat logic, death events, and statistics.
 class DamageRequest {
   const DamageRequest({
@@ -22,7 +21,6 @@ class DamageRequest {
     this.sourceKind = DeathSourceKind.unknown,
     this.sourceEnemyId,
     this.sourceProjectileId,
-    this.sourceProjectileItemId,
   });
 
   /// The entity receiving the damage.
@@ -53,7 +51,4 @@ class DamageRequest {
 
   /// If the damage came from a projectile, its static ID.
   final ProjectileId? sourceProjectileId;
-
-  /// If the damage came from a projectile item, its static ID.
-  final ProjectileItemId? sourceProjectileItemId;
 }

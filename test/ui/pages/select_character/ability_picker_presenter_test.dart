@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:rpg_runner/core/players/player_character_definition.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
+import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/spells/spell_book_id.dart';
 import 'package:rpg_runner/ui/pages/selectCharacter/ability/ability_picker_presenter.dart';
 
@@ -12,7 +12,7 @@ void main() {
       'projectile source options include equipped throw + spellbook spells',
       () {
         const loadout = EquippedLoadoutDef(
-          projectileItemId: ProjectileItemId.throwingKnife,
+          projectileId: ProjectileId.throwingKnife,
         );
 
         final options = projectileSourceOptions(loadout);
@@ -20,16 +20,10 @@ void main() {
         expect(options, isNotEmpty);
         expect(options.first.spellId, isNull);
         expect(options.first.isSpell, isFalse);
+        expect(options.any((o) => o.spellId == ProjectileId.fireBolt), isTrue);
+        expect(options.any((o) => o.spellId == ProjectileId.iceBolt), isFalse);
         expect(
-          options.any((o) => o.spellId == ProjectileItemId.fireBolt),
-          isTrue,
-        );
-        expect(
-          options.any((o) => o.spellId == ProjectileItemId.iceBolt),
-          isFalse,
-        );
-        expect(
-          options.any((o) => o.spellId == ProjectileItemId.thunderBolt),
+          options.any((o) => o.spellId == ProjectileId.thunderBolt),
           isFalse,
         );
       },
@@ -39,30 +33,30 @@ void main() {
       'projectile source panel model separates throw and spellbook groups',
       () {
         const loadout = EquippedLoadoutDef(
-          projectileItemId: ProjectileItemId.throwingKnife,
+          projectileId: ProjectileId.throwingKnife,
           spellBookId: SpellBookId.basicSpellBook,
         );
 
         final model = projectileSourcePanelModel(loadout);
 
-        expect(model.throwingWeaponId, ProjectileItemId.throwingKnife);
+        expect(model.throwingWeaponId, ProjectileId.throwingKnife);
         expect(model.spellBookId, SpellBookId.basicSpellBook);
         expect(model.spellOptions, isNotEmpty);
         expect(
           model.spellOptions.any(
-            (spell) => spell.spellId == ProjectileItemId.fireBolt,
+            (spell) => spell.spellId == ProjectileId.fireBolt,
           ),
           isTrue,
         );
         expect(
           model.spellOptions.any(
-            (spell) => spell.spellId == ProjectileItemId.iceBolt,
+            (spell) => spell.spellId == ProjectileId.iceBolt,
           ),
           isFalse,
         );
         expect(
           model.spellOptions.any(
-            (spell) => spell.spellId == ProjectileItemId.thunderBolt,
+            (spell) => spell.spellId == ProjectileId.thunderBolt,
           ),
           isFalse,
         );
@@ -73,14 +67,14 @@ void main() {
       const loadout = EquippedLoadoutDef(
         spellBookId: SpellBookId.solidSpellBook,
         abilityProjectileId: 'eloise.quick_shot',
-        projectileSlotSpellId: ProjectileItemId.iceBolt,
+        projectileSlotSpellId: ProjectileId.iceBolt,
       );
 
       final candidates = abilityCandidatesForSlot(
         characterId: PlayerCharacterId.eloise,
         slot: AbilitySlot.projectile,
         loadout: loadout,
-        selectedSourceSpellId: ProjectileItemId.iceBolt,
+        selectedSourceSpellId: ProjectileId.iceBolt,
         overrideSelectedSource: true,
       );
 
@@ -203,7 +197,7 @@ void main() {
         characterId: PlayerCharacterId.eloise,
         slot: AbilitySlot.projectile,
         loadout: loadout,
-        selectedSourceSpellId: ProjectileItemId.throwingAxe,
+        selectedSourceSpellId: ProjectileId.throwingAxe,
         overrideSelectedSource: true,
       );
 
@@ -229,17 +223,17 @@ void main() {
       'setProjectileSourceForSlot updates only the requested slot source',
       () {
         const loadout = EquippedLoadoutDef(
-          projectileSlotSpellId: ProjectileItemId.iceBolt,
+          projectileSlotSpellId: ProjectileId.iceBolt,
           abilitySpellId: 'eloise.arcane_haste',
         );
 
         final next = setProjectileSourceForSlot(
           loadout,
           slot: AbilitySlot.projectile,
-          selectedSpellId: ProjectileItemId.thunderBolt,
+          selectedSpellId: ProjectileId.thunderBolt,
         );
 
-        expect(next.projectileSlotSpellId, ProjectileItemId.thunderBolt);
+        expect(next.projectileSlotSpellId, ProjectileId.thunderBolt);
         expect(next.abilitySpellId, 'eloise.arcane_haste');
       },
     );

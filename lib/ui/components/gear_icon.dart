@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/accessories/accessory_id.dart';
 import '../../core/meta/gear_slot.dart';
-import '../../core/projectiles/projectile_item_id.dart';
+import '../../core/projectiles/projectile_id.dart';
 import '../../core/spells/spell_book_id.dart';
 import '../../core/weapons/weapon_id.dart';
 import '../icons/throwing_weapon_asset.dart';
@@ -13,7 +13,7 @@ import '../icons/ui_icon_tile.dart';
 ///
 /// The [id] type depends on [slot]:
 /// - main/offhand -> [WeaponId]
-/// - throwing -> [ProjectileItemId]
+/// - throwing -> [ProjectileId]
 /// - spellbook -> [SpellBookId]
 /// - accessory -> [AccessoryId]
 class GearIcon extends StatelessWidget {
@@ -55,7 +55,7 @@ class GearIcon extends StatelessWidget {
             : UiIconTile(coords: coords, size: size);
         break;
       case GearSlot.throwingWeapon:
-        final itemId = id as ProjectileItemId;
+        final itemId = id as ProjectileId;
         final path = throwingWeaponAssetPath(itemId);
         child = path == null
             ? const SizedBox.shrink()

@@ -1,5 +1,5 @@
 import '../accessories/accessory_id.dart';
-import '../projectiles/projectile_item_id.dart';
+import '../projectiles/projectile_id.dart';
 import '../spells/spell_book_id.dart';
 import '../weapons/weapon_id.dart';
 
@@ -19,7 +19,7 @@ class InventoryState {
   final Set<WeaponId> unlockedWeaponIds;
 
   /// Unlocked throwing-weapon IDs.
-  final Set<ProjectileItemId> unlockedThrowingWeaponIds;
+  final Set<ProjectileId> unlockedThrowingWeaponIds;
 
   /// Unlocked spellbook IDs.
   final Set<SpellBookId> unlockedSpellBookIds;
@@ -30,7 +30,7 @@ class InventoryState {
   /// Returns a copy with optional unlocked-set replacements.
   InventoryState copyWith({
     Set<WeaponId>? unlockedWeaponIds,
-    Set<ProjectileItemId>? unlockedThrowingWeaponIds,
+    Set<ProjectileId>? unlockedThrowingWeaponIds,
     Set<SpellBookId>? unlockedSpellBookIds,
     Set<AccessoryId>? unlockedAccessoryIds,
   }) {
@@ -72,7 +72,7 @@ class InventoryState {
       ),
       unlockedThrowingWeaponIds: _readEnumSet(
         json['throwingWeapons'],
-        ProjectileItemId.values,
+        ProjectileId.values,
         fallback.unlockedThrowingWeaponIds,
       ),
       unlockedSpellBookIds: _readEnumSet(

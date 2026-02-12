@@ -5,14 +5,13 @@ import 'package:rpg_runner/core/ecs/systems/projectile_launch_system.dart';
 import 'package:rpg_runner/core/ecs/systems/anim/anim_system.dart';
 import 'package:rpg_runner/core/ecs/stores/projectile_intent_store.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
-import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
+import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
+import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
 import 'package:rpg_runner/core/players/player_catalog.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
 import 'package:rpg_runner/core/enemies/enemy_catalog.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
-import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/combat/damage_type.dart';
 
 void main() {
@@ -43,13 +42,10 @@ void main() {
 
     // Setup Systems
     final tickHz = 60;
-    final projectiles = ProjectileCatalogDerived.from(
-      const ProjectileCatalog(),
-      tickHz: tickHz,
-    );
 
     final projectileLaunchSystem = ProjectileLaunchSystem(
-      projectiles: projectiles,
+      projectileItems: const ProjectileItemCatalog(),
+      tickHz: tickHz,
     );
 
     final animSystem = AnimSystem(
@@ -71,7 +67,7 @@ void main() {
     world.projectileIntent.set(
       player,
       ProjectileIntentDef(
-        projectileItemId: ProjectileItemId.iceBolt,
+        projectileId: ProjectileId.iceBolt,
         abilityId: 'eloise.charged_shot',
         slot: AbilitySlot.projectile,
         dirX: 1.0,
@@ -81,7 +77,6 @@ void main() {
         damage100: 1500,
         staminaCost100: 0,
         manaCost100: 1000,
-        projectileId: ProjectileId.iceBolt,
         pierce: false,
         maxPierceHits: 1,
         damageType: DamageType.ice,

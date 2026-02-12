@@ -6,7 +6,7 @@ import 'package:rpg_runner/core/ecs/stores/combat/damage_resistance_store.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/status_immunity_store.dart';
 import 'package:rpg_runner/core/players/player_catalog.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
+import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/spells/spell_book_id.dart';
 import 'package:rpg_runner/core/weapons/weapon_id.dart';
@@ -32,9 +32,9 @@ const PlayerCatalog testPlayerCatalogDefaults = PlayerCatalog(
   loadoutSlotMask: LoadoutSlotMask.defaultMask,
   weaponId: WeaponId.basicSword,
   offhandWeaponId: WeaponId.basicShield,
-  projectileItemId: ProjectileItemId.fireBolt,
+  projectileId: ProjectileId.fireBolt,
   spellBookId: SpellBookId.basicSpellBook,
-  projectileSlotSpellId: ProjectileItemId.fireBolt,
+  projectileSlotSpellId: ProjectileId.fireBolt,
   abilityPrimaryId: 'eloise.sword_strike',
   abilitySecondaryId: 'eloise.shield_block',
   abilityProjectileId: 'eloise.charged_shot',
@@ -56,7 +56,7 @@ PlayerCatalog testPlayerCatalog({
   int? loadoutSlotMask,
   WeaponId? weaponId,
   WeaponId? offhandWeaponId,
-  ProjectileItemId? projectileItemId,
+  ProjectileId? projectileId,
   SpellBookId? spellBookId,
   Object? projectileSlotSpellId = _unset,
   AbilityKey? abilityPrimaryId,
@@ -83,12 +83,11 @@ PlayerCatalog testPlayerCatalog({
     weaponId: weaponId ?? testPlayerCatalogDefaults.weaponId,
     offhandWeaponId:
         offhandWeaponId ?? testPlayerCatalogDefaults.offhandWeaponId,
-    projectileItemId:
-        projectileItemId ?? testPlayerCatalogDefaults.projectileItemId,
+    projectileId: projectileId ?? testPlayerCatalogDefaults.projectileId,
     spellBookId: spellBookId ?? testPlayerCatalogDefaults.spellBookId,
     projectileSlotSpellId: identical(projectileSlotSpellId, _unset)
         ? testPlayerCatalogDefaults.projectileSlotSpellId
-        : projectileSlotSpellId as ProjectileItemId?,
+        : projectileSlotSpellId as ProjectileId?,
     abilityPrimaryId:
         abilityPrimaryId ?? testPlayerCatalogDefaults.abilityPrimaryId,
     abilitySecondaryId:

@@ -20,9 +20,8 @@ import 'package:rpg_runner/core/ecs/systems/ability_activation_system.dart';
 import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
 import 'package:rpg_runner/core/ecs/systems/projectile_hit_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
-import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
+import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/projectiles/spawn_projectile_item.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/spells/spell_book_catalog.dart';
@@ -67,7 +66,7 @@ void main() {
       player,
       const EquippedLoadoutDef(
         abilityProjectileId: 'eloise.auto_aim_shot',
-        projectileSlotSpellId: ProjectileItemId.iceBolt,
+        projectileSlotSpellId: ProjectileId.iceBolt,
       ),
     );
 
@@ -147,7 +146,7 @@ void main() {
           const EquippedLoadoutDef(
             abilityProjectileId: 'eloise.charged_shot',
             projectileSlotSpellId: null,
-            projectileItemId: ProjectileItemId.throwingKnife,
+            projectileId: ProjectileId.throwingKnife,
           ),
         );
 
@@ -241,14 +240,9 @@ void main() {
 
     final projectile = spawnProjectileItemFromCaster(
       world,
-      projectiles: ProjectileCatalogDerived.from(
-        const ProjectileCatalog(),
-        tickHz: 60,
-      ),
-      projectileItemId: ProjectileItemId.iceBolt,
-      projectileId: const ProjectileItemCatalog()
-          .get(ProjectileItemId.iceBolt)
-          .projectileId,
+      tickHz: 60,
+      projectileId: ProjectileId.iceBolt,
+      projectileItem: const ProjectileItemCatalog().get(ProjectileId.iceBolt),
       faction: Faction.player,
       owner: player,
       casterX: 146,
@@ -316,14 +310,9 @@ void main() {
 
       final projectile = spawnProjectileItemFromCaster(
         world,
-        projectiles: ProjectileCatalogDerived.from(
-          const ProjectileCatalog(),
-          tickHz: 60,
-        ),
-        projectileItemId: ProjectileItemId.iceBolt,
-        projectileId: const ProjectileItemCatalog()
-            .get(ProjectileItemId.iceBolt)
-            .projectileId,
+        tickHz: 60,
+        projectileId: ProjectileId.iceBolt,
+        projectileItem: const ProjectileItemCatalog().get(ProjectileId.iceBolt),
         faction: Faction.player,
         owner: player,
         casterX: 140,

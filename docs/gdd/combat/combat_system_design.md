@@ -18,8 +18,7 @@ Balance framework:
 - `DamageType`: Categories for resistance/vulnerability (physical, fire, ice, thunder, bleed)
 - Detailed resistance design + runtime contract: `docs/gdd/combat/resistance/resistance_system_design.md`
 - `WeaponId`: Stable IDs for melee weapons
-- `ProjectileItemId`: Stable IDs for projectile slot items (spells, throws)
-- `ProjectileId`: Stable IDs for projectile types
+- `ProjectileId`: Stable ID used for projectile slot items and spawned projectile identity
 - `Faction`: Entity faction for friendly-fire rules
 
 ### Status System
@@ -34,7 +33,7 @@ Balance framework:
 ### Definitions
 
 - `WeaponDef`: Melee/off-hand weapon payload (damageType, procs, stats, weaponType)
-- `ProjectileItemDef`: Projectile slot item payload (spells + throws: projectileId, ballistic, gravityScale, damageType, procs, stats, weaponType)
+- `ProjectileItemDef`: Projectile slot item payload (spells + throws: projectileId, speed/lifetime/collider tuning, ballistic/gravity, damageType, procs, stats, weaponType)
 
 ## Stores (ECS Components)
 
@@ -94,7 +93,6 @@ DamageRequest {
   sourceKind: DeathSourceKind,
   sourceEnemyId: EnemyId?,
   sourceProjectileId: ProjectileId?,
-  sourceProjectileItemId: ProjectileItemId?,
 }
 ```
 
@@ -160,19 +158,19 @@ structure (`ProjectileItemDef`) and a single execution pipeline.
 
 ### Key Pieces
 
-- **Data**: `ProjectileItemDef`/`ProjectileItemCatalog` (payload: projectileId, damageType, procs, stats)
+- **Data**: `ProjectileItemDef`/`ProjectileItemCatalog` (payload + motion/collider: id, speed/lifetime/collider, damageType, procs, stats)
 - **Stores**: `EquippedLoadoutStore`, `ProjectileIntentStore`, `ProjectileItemOriginStore`
 - **Systems**:
   - `AbilityActivationSystem` writes `ProjectileIntentDef` from player input
   - `ProjectileLaunchSystem` validates costs/cooldown, spawns projectiles, sets cooldowns
-  - `ProjectileHitSystem` applies `DamageRequest` with `sourceProjectileItemId`
+  - `ProjectileHitSystem` applies `DamageRequest` with `sourceProjectileId`
   - `ProjectileWorldCollisionSystem` removes ballistic projectiles on collision
 
 ### Projectile Flow
 
 1. Player presses projectile → `AbilityActivationSystem` resolves ability + projectile item.
 2. `ProjectileLaunchSystem` checks costs, sets `projectileCooldownTicksLeft`, spawns projectile.
-3. Projectile hits target → `DamageRequest` with `sourceProjectileItemId`.
+3. Projectile hits target → `DamageRequest` with `sourceProjectileId`.
 4. `DamageSystem` processes → applies damage + queues status/procs.
 
 ## Melee Weapons

@@ -4,7 +4,7 @@ import '../../../../core/accessories/accessory_id.dart';
 import '../../../../core/meta/gear_slot.dart';
 import '../../../../core/projectiles/projectile_item_catalog.dart';
 import '../../../../core/projectiles/projectile_item_def.dart';
-import '../../../../core/projectiles/projectile_item_id.dart';
+import '../../../../core/projectiles/projectile_id.dart';
 import '../../../../core/spells/spell_book_catalog.dart';
 import '../../../../core/spells/spell_book_def.dart';
 import '../../../../core/spells/spell_book_id.dart';
@@ -40,7 +40,7 @@ List<GearStatLine> gearStatsFor(GearSlot slot, Object id) {
       final def = const WeaponCatalog().get(id as WeaponId);
       return _weaponDefStats(def);
     case GearSlot.throwingWeapon:
-      final def = const ProjectileItemCatalog().get(id as ProjectileItemId);
+      final def = const ProjectileItemCatalog().get(id as ProjectileId);
       return _projectileItemStats(def);
     case GearSlot.spellBook:
       final def = const SpellBookCatalog().get(id as SpellBookId);
@@ -67,10 +67,8 @@ List<GearStatLine> gearCompareStats(
       final b = const WeaponCatalog().get(candidate as WeaponId);
       return _diffWeaponStats(a, b);
     case GearSlot.throwingWeapon:
-      final a = const ProjectileItemCatalog().get(equipped as ProjectileItemId);
-      final b = const ProjectileItemCatalog().get(
-        candidate as ProjectileItemId,
-      );
+      final a = const ProjectileItemCatalog().get(equipped as ProjectileId);
+      final b = const ProjectileItemCatalog().get(candidate as ProjectileId);
       return _diffWeaponStatsLike(a.stats, b.stats);
     case GearSlot.spellBook:
       final a = const SpellBookCatalog().get(equipped as SpellBookId);

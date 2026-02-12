@@ -17,10 +17,8 @@ import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/enemies/enemy_id.dart';
 import 'package:rpg_runner/core/events/game_event.dart';
 import 'package:rpg_runner/core/game_core.dart';
-import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
 import 'package:rpg_runner/core/projectiles/spawn_projectile_item.dart';
@@ -32,12 +30,8 @@ import 'package:rpg_runner/core/ecs/entity_factory.dart';
 void main() {
   test('projectile kill records death metadata', () {
     final world = EcsWorld();
-    final projectiles = ProjectileCatalogDerived.from(
-      const ProjectileCatalog(),
-      tickHz: 60,
-    );
     final projectileItem = const ProjectileItemCatalog().get(
-      ProjectileItemId.thunderBolt,
+      ProjectileId.thunderBolt,
     );
     final thunderDamage = AbilityCatalog.tryGet(
       'common.enemy_cast',
@@ -65,9 +59,9 @@ void main() {
 
     final projectile = spawnProjectileItemFromCaster(
       world,
-      projectiles: projectiles,
-      projectileItemId: ProjectileItemId.thunderBolt,
-      projectileId: projectileItem.projectileId,
+      tickHz: 60,
+      projectileId: ProjectileId.thunderBolt,
+      projectileItem: projectileItem,
       faction: Faction.enemy,
       owner: enemy,
       casterX: 100,
@@ -102,8 +96,8 @@ void main() {
     expect(world.lastDamage.enemyId[li], EnemyId.unocoDemon);
     expect(world.lastDamage.hasProjectileId[li], isTrue);
     expect(world.lastDamage.projectileId[li], ProjectileId.thunderBolt);
-    expect(world.lastDamage.hasProjectileItemId[li], isTrue);
-    expect(world.lastDamage.projectileItemId[li], ProjectileItemId.thunderBolt);
+    expect(world.lastDamage.hasSourceProjectileId[li], isTrue);
+    expect(world.lastDamage.projectileId[li], ProjectileId.thunderBolt);
   });
 
   test('melee kill records death metadata', () {
@@ -163,7 +157,7 @@ void main() {
     expect(world.lastDamage.hasEnemyId[li], isTrue);
     expect(world.lastDamage.enemyId[li], EnemyId.grojib);
     expect(world.lastDamage.hasProjectileId[li], isFalse);
-    expect(world.lastDamage.hasProjectileItemId[li], isFalse);
+    expect(world.lastDamage.hasSourceProjectileId[li], isFalse);
   });
 
   test('give up emits RunEndReason.gaveUp', () {

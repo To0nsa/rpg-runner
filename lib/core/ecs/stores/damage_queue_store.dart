@@ -3,7 +3,6 @@ import '../../combat/damage_type.dart';
 import '../../enemies/enemy_id.dart';
 import '../../events/game_event.dart';
 import '../../projectiles/projectile_id.dart';
-import '../../projectiles/projectile_item_id.dart';
 import '../../weapons/weapon_proc.dart';
 import '../entity_id.dart';
 
@@ -26,7 +25,6 @@ class DamageQueueStore {
   final List<EntityId?> sourceEntity = <EntityId?>[];
   final List<EnemyId?> sourceEnemyId = <EnemyId?>[];
   final List<ProjectileId?> sourceProjectileId = <ProjectileId?>[];
-  final List<ProjectileItemId?> sourceProjectileItemId = <ProjectileItemId?>[];
   final List<int> flags = <int>[];
 
   int get length => target.length;
@@ -47,7 +45,6 @@ class DamageQueueStore {
     sourceEntity.add(request.source);
     sourceEnemyId.add(request.sourceEnemyId);
     sourceProjectileId.add(request.sourceProjectileId);
-    sourceProjectileItemId.add(request.sourceProjectileItemId);
     flags.add(0);
     return index;
   }
@@ -66,7 +63,6 @@ class DamageQueueStore {
     sourceEntity.clear();
     sourceEnemyId.clear();
     sourceProjectileId.clear();
-    sourceProjectileItemId.clear();
     flags.clear();
   }
 }

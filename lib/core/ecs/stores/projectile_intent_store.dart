@@ -1,14 +1,13 @@
 import '../../abilities/ability_def.dart';
 import '../../combat/damage_type.dart';
 import '../../projectiles/projectile_id.dart';
-import '../../projectiles/projectile_item_id.dart';
 import '../../weapons/weapon_proc.dart';
 import '../entity_id.dart';
 import '../sparse_set.dart';
 
 class ProjectileIntentDef {
   const ProjectileIntentDef({
-    required this.projectileItemId,
+    required this.projectileId,
     required this.abilityId,
     required this.slot,
     required this.damage100,
@@ -17,7 +16,6 @@ class ProjectileIntentDef {
     required this.manaCost100,
     required this.cooldownTicks,
     required this.cooldownGroupId,
-    required this.projectileId,
     required this.pierce,
     required this.maxPierceHits,
     required this.damageType,
@@ -37,7 +35,7 @@ class ProjectileIntentDef {
     required this.tick,
   });
 
-  final ProjectileItemId projectileItemId;
+  final ProjectileId projectileId;
   final AbilityKey abilityId;
   final AbilitySlot slot;
   final int damage100;
@@ -46,7 +44,6 @@ class ProjectileIntentDef {
   final int manaCost100;
   final int cooldownTicks;
   final int cooldownGroupId;
-  final ProjectileId projectileId;
   final bool pierce;
   final int maxPierceHits;
   final DamageType damageType;
@@ -69,7 +66,7 @@ class ProjectileIntentDef {
 
 /// Per-entity "fire a projectile item this tick" intent.
 class ProjectileIntentStore extends SparseSet {
-  final List<ProjectileItemId> projectileItemId = <ProjectileItemId>[];
+  final List<ProjectileId> projectileId = <ProjectileId>[];
   final List<AbilityKey> abilityId = <AbilityKey>[];
   final List<AbilitySlot> slot = <AbilitySlot>[];
   final List<int> damage100 = <int>[];
@@ -78,7 +75,6 @@ class ProjectileIntentStore extends SparseSet {
   final List<int> manaCost100 = <int>[];
   final List<int> cooldownTicks = <int>[];
   final List<int> cooldownGroupId = <int>[];
-  final List<ProjectileId> projectileId = <ProjectileId>[];
   final List<bool> pierce = <bool>[];
   final List<int> maxPierceHits = <int>[];
   final List<DamageType> damageType = <DamageType>[];
@@ -108,7 +104,7 @@ class ProjectileIntentStore extends SparseSet {
       'ProjectileIntentStore.set called for entity without ProjectileIntentStore; add the component at spawn time.',
     );
     final i = indexOf(entity);
-    projectileItemId[i] = def.projectileItemId;
+    projectileId[i] = def.projectileId;
     abilityId[i] = def.abilityId;
     slot[i] = def.slot;
     damage100[i] = def.damage100;
@@ -117,7 +113,6 @@ class ProjectileIntentStore extends SparseSet {
     manaCost100[i] = def.manaCost100;
     cooldownTicks[i] = def.cooldownTicks;
     cooldownGroupId[i] = def.cooldownGroupId;
-    projectileId[i] = def.projectileId;
     pierce[i] = def.pierce;
     maxPierceHits[i] = def.maxPierceHits;
     damageType[i] = def.damageType;
@@ -139,7 +134,7 @@ class ProjectileIntentStore extends SparseSet {
 
   @override
   void onDenseAdded(int denseIndex) {
-    projectileItemId.add(ProjectileItemId.iceBolt);
+    projectileId.add(ProjectileId.iceBolt);
     abilityId.add('eloise.charged_shot');
     slot.add(AbilitySlot.projectile);
     damage100.add(0);
@@ -148,7 +143,6 @@ class ProjectileIntentStore extends SparseSet {
     manaCost100.add(0);
     cooldownTicks.add(0);
     cooldownGroupId.add(0);
-    projectileId.add(ProjectileId.iceBolt);
     pierce.add(false);
     maxPierceHits.add(1);
     damageType.add(DamageType.ice);
@@ -170,7 +164,7 @@ class ProjectileIntentStore extends SparseSet {
 
   @override
   void onSwapRemove(int removeIndex, int lastIndex) {
-    projectileItemId[removeIndex] = projectileItemId[lastIndex];
+    projectileId[removeIndex] = projectileId[lastIndex];
     abilityId[removeIndex] = abilityId[lastIndex];
     slot[removeIndex] = slot[lastIndex];
     damage100[removeIndex] = damage100[lastIndex];
@@ -179,7 +173,6 @@ class ProjectileIntentStore extends SparseSet {
     manaCost100[removeIndex] = manaCost100[lastIndex];
     cooldownTicks[removeIndex] = cooldownTicks[lastIndex];
     cooldownGroupId[removeIndex] = cooldownGroupId[lastIndex];
-    projectileId[removeIndex] = projectileId[lastIndex];
     pierce[removeIndex] = pierce[lastIndex];
     maxPierceHits[removeIndex] = maxPierceHits[lastIndex];
     damageType[removeIndex] = damageType[lastIndex];
@@ -198,7 +191,7 @@ class ProjectileIntentStore extends SparseSet {
     recoveryTicks[removeIndex] = recoveryTicks[lastIndex];
     tick[removeIndex] = tick[lastIndex];
 
-    projectileItemId.removeLast();
+    projectileId.removeLast();
     abilityId.removeLast();
     slot.removeLast();
     damage100.removeLast();
@@ -207,7 +200,6 @@ class ProjectileIntentStore extends SparseSet {
     manaCost100.removeLast();
     cooldownTicks.removeLast();
     cooldownGroupId.removeLast();
-    projectileId.removeLast();
     pierce.removeLast();
     maxPierceHits.removeLast();
     damageType.removeLast();

@@ -5,7 +5,7 @@ import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/game_core.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
+import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 
 import '../support/test_player.dart';
 import '../test_tunings.dart';
@@ -22,7 +22,7 @@ void main() {
         playerCharacter: base.copyWith(
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(useGravity: false),
-            projectileItemId: ProjectileItemId.iceBolt,
+            projectileId: ProjectileId.iceBolt,
             abilityProjectileId: 'eloise.charged_shot',
           ),
           tuning: base.tuning.copyWith(

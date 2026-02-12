@@ -15,7 +15,6 @@ import '../abilities/ability_def.dart';
 import '../enemies/enemy_id.dart';
 import '../projectiles/projectile_id.dart';
 import '../snapshots/enums.dart';
-import '../projectiles/projectile_item_id.dart';
 import '../util/vec2.dart';
 
 part 'run_events.dart';

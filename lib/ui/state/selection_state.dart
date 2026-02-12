@@ -1,7 +1,7 @@
 import '../../core/ecs/stores/combat/equipped_loadout_store.dart';
 import '../../core/levels/level_id.dart';
 import '../../core/players/player_character_definition.dart';
-import '../../core/projectiles/projectile_item_id.dart';
+import '../../core/projectiles/projectile_id.dart';
 import '../../core/spells/spell_book_id.dart';
 import '../../core/accessories/accessory_id.dart';
 import '../../core/weapons/weapon_id.dart';
@@ -117,7 +117,7 @@ Map<String, Object?> _loadoutToJson(EquippedLoadoutDef loadout) {
     'mask': loadout.mask,
     'mainWeaponId': loadout.mainWeaponId.name,
     'offhandWeaponId': loadout.offhandWeaponId.name,
-    'projectileItemId': loadout.projectileItemId.name,
+    'ProjectileId': loadout.projectileId.name,
     'spellBookId': loadout.spellBookId.name,
     'projectileSlotSpellId': loadout.projectileSlotSpellId?.name,
     'accessoryId': loadout.accessoryId.name,
@@ -147,10 +147,10 @@ EquippedLoadoutDef _loadoutFromJson(Object? raw) {
       map['offhandWeaponId'] as String?,
       WeaponId.woodenShield,
     ),
-    projectileItemId: _enumFromName(
-      ProjectileItemId.values,
-      map['projectileItemId'] as String?,
-      ProjectileItemId.throwingKnife,
+    projectileId: _enumFromName(
+      ProjectileId.values,
+      map['ProjectileId'] as String?,
+      ProjectileId.throwingKnife,
     ),
     spellBookId: _enumFromName(
       SpellBookId.values,
@@ -159,7 +159,7 @@ EquippedLoadoutDef _loadoutFromJson(Object? raw) {
     ),
     projectileSlotSpellId: map.containsKey('projectileSlotSpellId')
         ? _enumFromNameNullable(
-            ProjectileItemId.values,
+            ProjectileId.values,
             map['projectileSlotSpellId'] as String?,
           )
         : const EquippedLoadoutDef().projectileSlotSpellId,

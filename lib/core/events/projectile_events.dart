@@ -11,14 +11,14 @@ class ProjectileHitEvent extends GameEvent {
     required this.pos,
     required this.facing,
     required this.rotationRad,
-    this.projectileItemId,
+    this.sourceProjectileId,
   });
 
   /// Simulation tick when the hit occurred.
   final int tick;
 
   final ProjectileId projectileId;
-  final ProjectileItemId? projectileItemId;
+  final ProjectileId? sourceProjectileId;
   final Vec2 pos;
   final Facing facing;
   final double rotationRad;

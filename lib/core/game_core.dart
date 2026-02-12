@@ -138,7 +138,6 @@ import 'navigation/utils/trajectory_predictor.dart';
 import 'players/player_catalog.dart';
 import 'players/player_character_definition.dart';
 import 'players/player_character_registry.dart';
-import 'projectiles/projectile_catalog.dart';
 import 'projectiles/projectile_item_catalog.dart';
 import 'spells/spell_book_catalog.dart';
 import 'snapshots/enums.dart';
@@ -258,7 +257,6 @@ class GameCore {
     EquippedLoadoutDef? equippedLoadoutOverride,
     ProjectileItemCatalog projectileItemCatalog = const ProjectileItemCatalog(),
     SpellBookCatalog spellBookCatalog = const SpellBookCatalog(),
-    ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
     EnemyCatalog enemyCatalog = const EnemyCatalog(),
     WeaponCatalog weaponCatalog = const WeaponCatalog(),
     AccessoryCatalog accessoryCatalog = const AccessoryCatalog(),
@@ -277,7 +275,6 @@ class GameCore {
          ),
          projectileItemCatalog: projectileItemCatalog,
          spellBookCatalog: spellBookCatalog,
-         projectileCatalog: projectileCatalog,
          enemyCatalog: enemyCatalog,
          playerCharacter: playerCharacter,
          weaponCatalog: weaponCatalog,
@@ -292,7 +289,6 @@ class GameCore {
     required LevelDefinition levelDefinition,
     required ProjectileItemCatalog projectileItemCatalog,
     required SpellBookCatalog spellBookCatalog,
-    required ProjectileCatalog projectileCatalog,
     required EnemyCatalog enemyCatalog,
     required PlayerCharacterDefinition playerCharacter,
     required WeaponCatalog weaponCatalog,
@@ -331,10 +327,6 @@ class GameCore {
        _spatialGridTuning = levelDefinition.tuning.spatialGrid,
        _projectileItems = projectileItemCatalog,
        _spellBooks = spellBookCatalog,
-       _projectiles = ProjectileCatalogDerived.from(
-         projectileCatalog,
-         tickHz: tickHz,
-       ),
        _enemyCatalog = enemyCatalog,
        _playerCharacter = playerCharacter,
        _weapons = weaponCatalog,
@@ -420,7 +412,6 @@ class GameCore {
       movement: _movement,
       abilities: _abilities,
       resources: _resourceTuning,
-      projectiles: _projectiles,
       enemyCatalog: _enemyCatalog,
       abilityCatalog: AbilityCatalog.shared,
       loadoutValidator: LoadoutValidator(
@@ -537,7 +528,10 @@ class GameCore {
     _resourceRegenSystem = ResourceRegenSystem(tickHz: tickHz);
 
     // Projectile execution.
-    _projectileLaunchSystem = ProjectileLaunchSystem(projectiles: _projectiles);
+    _projectileLaunchSystem = ProjectileLaunchSystem(
+      projectileItems: _projectileItems,
+      tickHz: tickHz,
+    );
     _selfAbilitySystem = SelfAbilitySystem();
     _meleeStrikeSystem = MeleeStrikeSystem();
 
@@ -594,7 +588,6 @@ class GameCore {
       unocoDemonTuning: _unocoDemonTuning,
       enemyCatalog: _enemyCatalog,
       projectileItems: _projectileItems,
-      projectiles: _projectiles,
       abilities: abilityCatalog,
     );
     _enemyMeleeSystem = EnemyMeleeSystem(groundEnemyTuning: _groundEnemyTuning);
@@ -626,7 +619,7 @@ class GameCore {
           mask: playerArchetype.loadoutSlotMask,
           mainWeaponId: playerArchetype.weaponId,
           offhandWeaponId: playerArchetype.offhandWeaponId,
-          projectileItemId: playerArchetype.projectileItemId,
+          projectileId: playerArchetype.projectileId,
           spellBookId: playerArchetype.spellBookId,
           projectileSlotSpellId: playerArchetype.projectileSlotSpellId,
           abilityPrimaryId: playerArchetype.abilityPrimaryId,
@@ -740,7 +733,6 @@ class GameCore {
 
   final ProjectileItemCatalog _projectileItems;
   final SpellBookCatalog _spellBooks;
-  final ProjectileCatalogDerived _projectiles;
   final EnemyCatalog _enemyCatalog;
   final PlayerCharacterDefinition _playerCharacter;
   final WeaponCatalog _weapons;
@@ -1393,8 +1385,8 @@ class GameCore {
       projectileId: _world.lastDamage.hasProjectileId[li]
           ? _world.lastDamage.projectileId[li]
           : null,
-      projectileItemId: _world.lastDamage.hasProjectileItemId[li]
-          ? _world.lastDamage.projectileItemId[li]
+      sourceProjectileId: _world.lastDamage.hasSourceProjectileId[li]
+          ? _world.lastDamage.sourceProjectileId[li]
           : null,
     );
   }

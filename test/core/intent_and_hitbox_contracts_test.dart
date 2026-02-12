@@ -15,10 +15,9 @@ import 'package:rpg_runner/core/ecs/systems/hitbox_follow_owner_system.dart';
 import 'package:rpg_runner/core/ecs/systems/melee_strike_system.dart';
 import 'package:rpg_runner/core/ecs/systems/projectile_launch_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
-import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
+import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
 import 'package:rpg_runner/core/ecs/entity_factory.dart';
 
 void main() {
@@ -47,13 +46,12 @@ void main() {
     world.projectileIntent.set(
       caster,
       const ProjectileIntentDef(
-        projectileItemId: ProjectileItemId.iceBolt,
+        projectileId: ProjectileId.iceBolt,
         abilityId: 'eloise.charged_shot',
         slot: AbilitySlot.projectile,
         damage100: 100,
         staminaCost100: 0,
         manaCost100: 0,
-        projectileId: ProjectileId.iceBolt,
         pierce: false,
         maxPierceHits: 1,
         damageType: DamageType.ice,
@@ -75,10 +73,8 @@ void main() {
     );
 
     final projectileLaunch = ProjectileLaunchSystem(
-      projectiles: ProjectileCatalogDerived.from(
-        const ProjectileCatalog(),
-        tickHz: 60,
-      ),
+      projectileItems: const ProjectileItemCatalog(),
+      tickHz: 60,
     );
 
     projectileLaunch.step(world, currentTick: 1);

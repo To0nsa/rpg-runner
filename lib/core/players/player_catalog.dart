@@ -9,7 +9,7 @@ import '../ecs/stores/mana_store.dart';
 import '../ecs/stores/stamina_store.dart';
 import '../snapshots/enums.dart';
 import 'player_tuning.dart';
-import '../projectiles/projectile_item_id.dart';
+import '../projectiles/projectile_id.dart';
 import '../spells/spell_book_id.dart';
 import '../weapons/weapon_id.dart';
 import 'player_archetype.dart';
@@ -42,7 +42,7 @@ class PlayerCatalog {
     required this.loadoutSlotMask,
     required this.weaponId,
     required this.offhandWeaponId,
-    required this.projectileItemId,
+    required this.projectileId,
     required this.spellBookId,
     required this.projectileSlotSpellId,
     required this.abilityPrimaryId,
@@ -107,13 +107,13 @@ class PlayerCatalog {
   final WeaponId offhandWeaponId;
 
   /// Default equipped projectile item at spawn time.
-  final ProjectileItemId projectileItemId;
+  final ProjectileId projectileId;
 
   /// Default equipped spell book at spawn time.
   final SpellBookId spellBookId;
 
   /// Optional spell selection used by projectile-slot projectile abilities.
-  final ProjectileItemId? projectileSlotSpellId;
+  final ProjectileId? projectileSlotSpellId;
 
   /// Default equipped ability IDs at spawn time.
   final AbilityKey abilityPrimaryId;
@@ -217,7 +217,7 @@ class PlayerCatalogDerived {
         loadoutSlotMask: base.loadoutSlotMask,
         weaponId: base.weaponId,
         offhandWeaponId: base.offhandWeaponId,
-        projectileItemId: base.projectileItemId,
+        projectileId: base.projectileId,
         spellBookId: base.spellBookId,
         projectileSlotSpellId: base.projectileSlotSpellId,
         abilityPrimaryId: base.abilityPrimaryId,
