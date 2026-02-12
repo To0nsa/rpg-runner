@@ -50,6 +50,8 @@ Restore values are percentages of max resource and clamp to each resource max.
 2. These abilities are deterministic utility actions (no hit payload damage).
 3. Cooldown lane uses bonus group by default (unless explicitly overridden).
 4. Bonus self-spell equip eligibility is spellbook-gated.
+5. On loadout normalization (including spellbook swap), stale invalid bonus selection is auto-repaired to the first valid granted bonus spell.
+6. On loadout normalization (including spellbook swap), stale invalid `projectileSlotSpellId` selection is auto-repaired to the first valid spell granted by the equipped spellbook.
 
 ## Spellbook Grants (Current Core)
 

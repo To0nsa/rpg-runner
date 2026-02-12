@@ -57,6 +57,86 @@ void main() {
     });
 
     test(
+      'setLoadout repairs stale bonus spell for equipped spellbook',
+      () async {
+        final selectionStore = _MemorySelectionStore();
+        final appState = AppState(selectionStore: selectionStore);
+
+        await appState.setLoadout(
+          const EquippedLoadoutDef(abilityBonusId: 'eloise.restore_mana'),
+        );
+
+        expect(
+          appState.selection.equippedLoadout.abilityBonusId,
+          'eloise.arcane_haste',
+        );
+        expect(
+          selectionStore.saved.equippedLoadout.abilityBonusId,
+          'eloise.arcane_haste',
+        );
+      },
+    );
+
+    test(
+      'setLoadout repairs stale projectile spell for equipped spellbook',
+      () async {
+        final selectionStore = _MemorySelectionStore();
+        final appState = AppState(selectionStore: selectionStore);
+
+        await appState.setLoadout(
+          const EquippedLoadoutDef(
+            projectileSlotSpellId: ProjectileItemId.iceBolt,
+          ),
+        );
+
+        expect(
+          appState.selection.equippedLoadout.projectileSlotSpellId,
+          ProjectileItemId.fireBolt,
+        );
+        expect(
+          selectionStore.saved.equippedLoadout.projectileSlotSpellId,
+          ProjectileItemId.fireBolt,
+        );
+      },
+    );
+
+    test(
+      'setLoadout stale projectile spell repairs to first granted spell only',
+      () async {
+        final selectionStore = _MemorySelectionStore();
+        final baseMeta = const MetaService().createNew();
+        final metaWithEpicEquipped = baseMeta.setEquippedFor(
+          PlayerCharacterId.eloise,
+          baseMeta
+              .equippedFor(PlayerCharacterId.eloise)
+              .copyWith(spellBookId: SpellBookId.epicSpellBook),
+        );
+        final metaStore = _MemoryMetaStore(saved: metaWithEpicEquipped);
+        final appState = AppState(
+          selectionStore: selectionStore,
+          metaStore: metaStore,
+          userProfileStore: _MemoryUserProfileStore(),
+        );
+
+        await appState.bootstrap(force: true);
+        await appState.setLoadout(
+          const EquippedLoadoutDef(
+            projectileSlotSpellId: ProjectileItemId.throwingAxe,
+          ),
+        );
+
+        expect(
+          appState.selection.equippedLoadout.projectileSlotSpellId,
+          ProjectileItemId.iceBolt,
+        );
+        expect(
+          selectionStore.saved.equippedLoadout.projectileSlotSpellId,
+          ProjectileItemId.iceBolt,
+        );
+      },
+    );
+
+    test(
       'equipGear syncs selected loadout projectile and spellbook sources',
       () async {
         final selectionStore = _MemorySelectionStore();
@@ -95,6 +175,92 @@ void main() {
         expect(
           selectionStore.saved.equippedLoadout.spellBookId,
           SpellBookId.solidSpellBook,
+        );
+      },
+    );
+
+    test(
+      'equipGear spellbook swap repairs stale bonus spell immediately',
+      () async {
+        final selectionStore = _MemorySelectionStore();
+        final metaStore = _MemoryMetaStore(
+          saved: const MetaService().createNew(),
+        );
+        final appState = AppState(
+          selectionStore: selectionStore,
+          metaStore: metaStore,
+        );
+
+        await appState.equipGear(
+          characterId: PlayerCharacterId.eloise,
+          slot: GearSlot.spellBook,
+          itemId: SpellBookId.solidSpellBook,
+        );
+        await appState.setLoadout(
+          const EquippedLoadoutDef(abilityBonusId: 'eloise.restore_health'),
+        );
+        expect(
+          appState.selection.equippedLoadout.abilityBonusId,
+          'eloise.restore_health',
+        );
+
+        await appState.equipGear(
+          characterId: PlayerCharacterId.eloise,
+          slot: GearSlot.spellBook,
+          itemId: SpellBookId.basicSpellBook,
+        );
+
+        expect(
+          appState.selection.equippedLoadout.abilityBonusId,
+          'eloise.arcane_haste',
+        );
+        expect(
+          selectionStore.saved.equippedLoadout.abilityBonusId,
+          'eloise.arcane_haste',
+        );
+      },
+    );
+
+    test(
+      'equipGear spellbook swap repairs stale projectile spell immediately',
+      () async {
+        final selectionStore = _MemorySelectionStore();
+        final metaStore = _MemoryMetaStore(
+          saved: const MetaService().createNew(),
+        );
+        final appState = AppState(
+          selectionStore: selectionStore,
+          metaStore: metaStore,
+        );
+
+        await appState.equipGear(
+          characterId: PlayerCharacterId.eloise,
+          slot: GearSlot.spellBook,
+          itemId: SpellBookId.solidSpellBook,
+        );
+        await appState.setLoadout(
+          const EquippedLoadoutDef(
+            projectileSlotSpellId: ProjectileItemId.iceBolt,
+          ),
+        );
+        expect(
+          appState.selection.equippedLoadout.projectileSlotSpellId,
+          ProjectileItemId.iceBolt,
+        );
+
+        await appState.equipGear(
+          characterId: PlayerCharacterId.eloise,
+          slot: GearSlot.spellBook,
+          itemId: SpellBookId.basicSpellBook,
+        );
+
+        expect(
+          appState.selection.equippedLoadout.projectileSlotSpellId,
+          ProjectileItemId.fireBolt,
+        );
+        expect(
+          selectionStore.saved.equippedLoadout.projectileSlotSpellId,
+          ProjectileItemId.fireBolt,
         );
       },
     );

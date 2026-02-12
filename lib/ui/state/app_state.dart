@@ -6,11 +6,17 @@ import '../../core/abilities/ability_catalog.dart';
 import '../../core/abilities/ability_def.dart';
 import '../../core/ecs/stores/combat/equipped_loadout_store.dart';
 import '../../core/levels/level_id.dart';
+import '../../core/loadout/loadout_validator.dart';
 import '../../core/meta/gear_slot.dart';
 import '../../core/meta/meta_service.dart';
 import '../../core/meta/meta_state.dart';
 import '../../core/players/player_character_definition.dart';
 import '../../core/players/player_character_registry.dart';
+import '../../core/projectiles/projectile_item_catalog.dart';
+import '../../core/projectiles/projectile_item_id.dart';
+import '../../core/spells/spell_book_catalog.dart';
+import '../../core/spells/spell_book_id.dart';
+import '../../core/weapons/weapon_catalog.dart';
 import '../app/ui_routes.dart';
 import 'selection_state.dart';
 import 'selection_store.dart';
@@ -35,6 +41,15 @@ class AppState extends ChangeNotifier {
   final UserProfileStore _profileStore;
   final MetaService _metaService;
   static const AbilityCatalog _abilityCatalog = AbilityCatalog();
+  static const ProjectileItemCatalog _projectileCatalog =
+      ProjectileItemCatalog();
+  static const SpellBookCatalog _spellBookCatalog = SpellBookCatalog();
+  static const LoadoutValidator _loadoutValidator = LoadoutValidator(
+    abilityCatalog: _abilityCatalog,
+    weaponCatalog: WeaponCatalog(),
+    projectileItemCatalog: _projectileCatalog,
+    spellBookCatalog: _spellBookCatalog,
+  );
 
   SelectionState _selection = SelectionState.defaults;
   MetaState _meta = const MetaService().createNew();
@@ -225,7 +240,7 @@ class AppState extends ChangeNotifier {
         PlayerCharacterRegistry.byId[characterId] ??
         PlayerCharacterRegistry.defaultCharacter;
     final catalog = character.catalog;
-    final normalized = EquippedLoadoutDef(
+    var normalized = EquippedLoadoutDef(
       mask: catalog.loadoutSlotMask,
       mainWeaponId: gear.mainWeaponId,
       offhandWeaponId: gear.offhandWeaponId,
@@ -264,6 +279,25 @@ class AppState extends ChangeNotifier {
         fallback: catalog.abilityJumpId,
       ),
     );
+    final normalizedProjectileSpellId =
+        _normalizeProjectileSpellSelectionForLoadout(normalized);
+    if (normalizedProjectileSpellId != normalized.projectileSlotSpellId) {
+      normalized = _withProjectileSpellSelection(
+        normalized,
+        projectileSlotSpellId: normalizedProjectileSpellId,
+      );
+    }
+    final normalizedBonusAbilityId = _normalizeBonusAbilityForLoadout(
+      normalized,
+      characterId: characterId,
+    );
+    if (normalizedBonusAbilityId != normalized.abilityBonusId) {
+      normalized = _withAbilityForSlot(
+        normalized,
+        slot: AbilitySlot.bonus,
+        abilityId: normalizedBonusAbilityId,
+      );
+    }
     return _sameLoadout(normalized, loadout) ? loadout : normalized;
   }
 
@@ -282,6 +316,170 @@ class AppState extends ChangeNotifier {
       return fallbackAbility.id;
     }
     return fallback;
+  }
+
+  AbilityKey _normalizeBonusAbilityForLoadout(
+    EquippedLoadoutDef loadout, {
+    required PlayerCharacterId characterId,
+  }) {
+    final current = loadout.abilityBonusId;
+    if (_isAbilityValidForSlot(
+      loadout,
+      slot: AbilitySlot.bonus,
+      abilityId: current,
+    )) {
+      return current;
+    }
+
+    final replacement = _firstValidAbilityForSlot(
+      loadout,
+      slot: AbilitySlot.bonus,
+      characterId: characterId,
+    );
+    return replacement ?? current;
+  }
+
+  ProjectileItemId? _normalizeProjectileSpellSelectionForLoadout(
+    EquippedLoadoutDef loadout,
+  ) {
+    final current = loadout.projectileSlotSpellId;
+    if (current == null) return null;
+    if (_isProjectileSpellAllowedBySpellBook(loadout.spellBookId, current)) {
+      return current;
+    }
+
+    final spellBook = _spellBookCatalog.tryGet(loadout.spellBookId);
+    if (spellBook == null) return null;
+
+    for (final spellId in spellBook.projectileSpellIds) {
+      if (_isProjectileSpellAllowedBySpellBook(loadout.spellBookId, spellId)) {
+        return spellId;
+      }
+    }
+    return null;
+  }
+
+  bool _isProjectileSpellAllowedBySpellBook(
+    SpellBookId spellBookId,
+    ProjectileItemId spellId,
+  ) {
+    final spellBook = _spellBookCatalog.tryGet(spellBookId);
+    if (spellBook == null) return false;
+    if (!spellBook.containsProjectileSpell(spellId)) return false;
+    final spellItem = _projectileCatalog.tryGet(spellId);
+    if (spellItem == null) return false;
+    return spellItem.weaponType == WeaponType.projectileSpell;
+  }
+
+  AbilityKey? _firstValidAbilityForSlot(
+    EquippedLoadoutDef loadout, {
+    required AbilitySlot slot,
+    required PlayerCharacterId characterId,
+  }) {
+    final candidates = <AbilityDef>[
+      for (final def in AbilityCatalog.abilities.values)
+        if (_isAbilityVisibleForCharacter(characterId, def.id) &&
+            def.allowedSlots.contains(slot))
+          def,
+    ]..sort((a, b) => a.id.compareTo(b.id));
+
+    for (final candidate in candidates) {
+      if (_isAbilityValidForSlot(
+        loadout,
+        slot: slot,
+        abilityId: candidate.id,
+      )) {
+        return candidate.id;
+      }
+    }
+    return null;
+  }
+
+  bool _isAbilityValidForSlot(
+    EquippedLoadoutDef loadout, {
+    required AbilitySlot slot,
+    required AbilityKey abilityId,
+  }) {
+    final trial = _withAbilityForSlot(
+      loadout,
+      slot: slot,
+      abilityId: abilityId,
+    );
+    final result = _loadoutValidator.validate(trial);
+    for (final issue in result.issues) {
+      if (issue.slot == slot) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  EquippedLoadoutDef _withAbilityForSlot(
+    EquippedLoadoutDef loadout, {
+    required AbilitySlot slot,
+    required AbilityKey abilityId,
+  }) {
+    return EquippedLoadoutDef(
+      mask: loadout.mask,
+      mainWeaponId: loadout.mainWeaponId,
+      offhandWeaponId: loadout.offhandWeaponId,
+      projectileItemId: loadout.projectileItemId,
+      spellBookId: loadout.spellBookId,
+      projectileSlotSpellId: loadout.projectileSlotSpellId,
+      accessoryId: loadout.accessoryId,
+      abilityPrimaryId: slot == AbilitySlot.primary
+          ? abilityId
+          : loadout.abilityPrimaryId,
+      abilitySecondaryId: slot == AbilitySlot.secondary
+          ? abilityId
+          : loadout.abilitySecondaryId,
+      abilityProjectileId: slot == AbilitySlot.projectile
+          ? abilityId
+          : loadout.abilityProjectileId,
+      abilityBonusId: slot == AbilitySlot.bonus
+          ? abilityId
+          : loadout.abilityBonusId,
+      abilityMobilityId: slot == AbilitySlot.mobility
+          ? abilityId
+          : loadout.abilityMobilityId,
+      abilityJumpId: slot == AbilitySlot.jump
+          ? abilityId
+          : loadout.abilityJumpId,
+    );
+  }
+
+  EquippedLoadoutDef _withProjectileSpellSelection(
+    EquippedLoadoutDef loadout, {
+    required ProjectileItemId? projectileSlotSpellId,
+  }) {
+    return EquippedLoadoutDef(
+      mask: loadout.mask,
+      mainWeaponId: loadout.mainWeaponId,
+      offhandWeaponId: loadout.offhandWeaponId,
+      projectileItemId: loadout.projectileItemId,
+      spellBookId: loadout.spellBookId,
+      projectileSlotSpellId: projectileSlotSpellId,
+      accessoryId: loadout.accessoryId,
+      abilityPrimaryId: loadout.abilityPrimaryId,
+      abilitySecondaryId: loadout.abilitySecondaryId,
+      abilityProjectileId: loadout.abilityProjectileId,
+      abilityBonusId: loadout.abilityBonusId,
+      abilityMobilityId: loadout.abilityMobilityId,
+      abilityJumpId: loadout.abilityJumpId,
+    );
+  }
+
+  bool _isAbilityVisibleForCharacter(
+    PlayerCharacterId characterId,
+    AbilityKey id,
+  ) {
+    if (id.startsWith('${characterId.name}.')) {
+      return true;
+    }
+    if (id.startsWith('common.') && !id.startsWith('common.enemy_')) {
+      return true;
+    }
+    return false;
   }
 
   bool _sameLoadout(EquippedLoadoutDef a, EquippedLoadoutDef b) {
