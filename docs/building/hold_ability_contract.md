@@ -18,7 +18,7 @@ In `AbilityDef`:
 - `activeTicks` remains authored at 60 Hz and is treated as the max hold window.
 - `chargeProfile` (optional) authors charged-commit tiers shared by melee and
   projectile paths using 60 Hz hold thresholds (`minHoldTicks60`) and per-tier
-  tuning (damage/crit/speed/hitbox/pierce).
+  tuning (damage/crit/speed/pierce).
 
 For the current defense holds:
 

@@ -584,7 +584,6 @@ class AbilityActivationSystem {
         damageScaleBp: 10000,
         critBonusBp: 0,
         speedScaleBp: 10000,
-        hitboxScaleBp: 10000,
       ),
     );
 
@@ -725,15 +724,14 @@ class AbilityActivationSystem {
         damageScaleBp: 10000,
         critBonusBp: 0,
         speedScaleBp: 10000,
-        hitboxScaleBp: 10000,
       ),
     );
 
     // Resolve hitbox dimensions from the ability.
     final baseHalfX = hitDelivery.sizeX * 0.5;
     final baseHalfY = hitDelivery.sizeY * 0.5;
-    final halfX = (baseHalfX * chargeTuning.hitboxScaleBp) / 10000.0;
-    final halfY = (baseHalfY * chargeTuning.hitboxScaleBp) / 10000.0;
+    final halfX = baseHalfX;
+    final halfY = baseHalfY;
 
     // Offset: push the hitbox forward from the player collider.
     var maxHalfExtent = 0.0;
@@ -1012,7 +1010,6 @@ class AbilityActivationSystem {
         damageScaleBp: 10000,
         critBonusBp: 0,
         speedScaleBp: 10000,
-        hitboxScaleBp: 10000,
         pierce: basePierce,
         maxPierceHits: baseMaxPierceHits,
       ),
@@ -1109,7 +1106,6 @@ class AbilityActivationSystem {
         damageScaleBp: tier.damageScaleBp,
         critBonusBp: tier.critBonusBp,
         speedScaleBp: tier.speedScaleBp,
-        hitboxScaleBp: tier.hitboxScaleBp,
         pierce: tier.pierce ?? defaults.pierce,
         maxPierceHits: tier.maxPierceHits ?? defaults.maxPierceHits,
       );
@@ -1498,7 +1494,6 @@ class _ChargeTuning {
     required this.damageScaleBp,
     required this.speedScaleBp,
     required this.critBonusBp,
-    required this.hitboxScaleBp,
     this.pierce,
     this.maxPierceHits,
   });
@@ -1506,7 +1501,6 @@ class _ChargeTuning {
   final int damageScaleBp;
   final int speedScaleBp;
   final int critBonusBp;
-  final int hitboxScaleBp;
   final bool? pierce;
   final int? maxPierceHits;
 }

@@ -4,11 +4,19 @@ This document describes the Core combat primitives and how to extend them.
 
 > **Reusability**: All combat systems work for any entity with the required components (player, enemies, NPCs). Design additions to be entity-agnostic.
 
+Balance framework:
+
+- `docs/gdd/combat/balance/README.md`
+- `docs/gdd/combat/balance/balance_invariants.md`
+- `docs/gdd/combat/balance/scenario_matrix.md`
+- `docs/gdd/combat/balance/ability_tuning_template.md`
+
 ## Data Primitives
 
 ### Damage & Combat IDs
 
 - `DamageType`: Categories for resistance/vulnerability (physical, fire, ice, thunder, bleed)
+- Detailed resistance design + runtime contract: `docs/gdd/combat/resistance/resistance_system_design.md`
 - `WeaponId`: Stable IDs for melee weapons
 - `ProjectileItemId`: Stable IDs for projectile slot items (spells, throws)
 - `ProjectileId`: Stable IDs for projectile types
@@ -16,11 +24,12 @@ This document describes the Core combat primitives and how to extend them.
 
 ### Status System
 
-- `StatusEffectType`: Runtime status categories (burn, slow, bleed, stun)
-- `StatusProfileId`: Stable IDs for on-hit status bundles (none, iceBolt, fireBolt, meleeBleed, stunOnHit)
+- `StatusEffectType`: Runtime status categories (burn, slow, bleed, stun, haste)
+- `StatusProfileId`: Stable IDs for status bundles (none, iceBolt, fireBolt, meleeBleed, stunOnHit, speedBoost)
 - `StatusApplication`: Single effect config (type, magnitude, duration, period)
 - `StatusProfile`: Bundle of applications applied on hit
 - `StatusProfileCatalog`: Maps IDs to application lists
+- Detailed design + runtime contract: `docs/gdd/combat/status/status_system_design.md`
 
 ### Definitions
 

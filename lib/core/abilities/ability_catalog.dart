@@ -142,22 +142,16 @@ class AbilityCatalog implements AbilityResolver {
       payloadSource: AbilityPayloadSource.primaryWeapon,
       chargeProfile: AbilityChargeProfile(
         tiers: <AbilityChargeTierDef>[
-          AbilityChargeTierDef(
-            minHoldTicks60: 0,
-            damageScaleBp: 9000,
-            hitboxScaleBp: 9200,
-          ),
+          AbilityChargeTierDef(minHoldTicks60: 0, damageScaleBp: 9000),
           AbilityChargeTierDef(
             minHoldTicks60: 8,
             damageScaleBp: 10800,
             critBonusBp: 500,
-            hitboxScaleBp: 10800,
           ),
           AbilityChargeTierDef(
             minHoldTicks60: 16,
             damageScaleBp: 13000,
             critBonusBp: 1000,
-            hitboxScaleBp: 12500,
           ),
         ],
       ),
@@ -200,22 +194,16 @@ class AbilityCatalog implements AbilityResolver {
       payloadSource: AbilityPayloadSource.primaryWeapon,
       chargeProfile: AbilityChargeProfile(
         tiers: <AbilityChargeTierDef>[
-          AbilityChargeTierDef(
-            minHoldTicks60: 0,
-            damageScaleBp: 9000,
-            hitboxScaleBp: 9200,
-          ),
+          AbilityChargeTierDef(minHoldTicks60: 0, damageScaleBp: 9000),
           AbilityChargeTierDef(
             minHoldTicks60: 8,
             damageScaleBp: 10800,
             critBonusBp: 500,
-            hitboxScaleBp: 10800,
           ),
           AbilityChargeTierDef(
             minHoldTicks60: 16,
             damageScaleBp: 13250,
             critBonusBp: 1000,
-            hitboxScaleBp: 12600,
           ),
         ],
       ),
@@ -349,22 +337,16 @@ class AbilityCatalog implements AbilityResolver {
       payloadSource: AbilityPayloadSource.secondaryWeapon,
       chargeProfile: AbilityChargeProfile(
         tiers: <AbilityChargeTierDef>[
-          AbilityChargeTierDef(
-            minHoldTicks60: 0,
-            damageScaleBp: 9000,
-            hitboxScaleBp: 9200,
-          ),
+          AbilityChargeTierDef(minHoldTicks60: 0, damageScaleBp: 9000),
           AbilityChargeTierDef(
             minHoldTicks60: 8,
             damageScaleBp: 10800,
             critBonusBp: 500,
-            hitboxScaleBp: 10800,
           ),
           AbilityChargeTierDef(
             minHoldTicks60: 16,
             damageScaleBp: 13000,
             critBonusBp: 1000,
-            hitboxScaleBp: 12500,
           ),
         ],
       ),

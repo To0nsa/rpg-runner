@@ -6,6 +6,13 @@ Abilities are the player’s *equippable actions* (strike, parry, dash, roll, sp
 
 This document defines **expected behavior and constraints** (game design contract). It intentionally avoids implementation details.
 
+Balancing workflow and templates live in:
+
+- `docs/gdd/combat/balance/README.md`
+- `docs/gdd/combat/balance/balance_invariants.md`
+- `docs/gdd/combat/balance/scenario_matrix.md`
+- `docs/gdd/combat/balance/tuning_log.md`
+
 ---
 
 ## Design Pillars

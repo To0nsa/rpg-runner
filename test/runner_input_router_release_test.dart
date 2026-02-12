@@ -402,7 +402,7 @@ void main() {
   );
 
   test(
-    'secondary charged melee tier derives from authoritative held ticks',
+    'secondary charged melee keeps stable hitbox size across hold tiers',
     () {
       double hitboxWidthForHeldTicks(int heldTicks) {
         final base = PlayerCharacterRegistry.eloise;
@@ -458,7 +458,7 @@ void main() {
       final shortHoldWidth = hitboxWidthForHeldTicks(0);
       final longHoldWidth = hitboxWidthForHeldTicks(20);
 
-      expect(longHoldWidth, greaterThan(shortHoldWidth));
+      expect(longHoldWidth, closeTo(shortHoldWidth, 1e-9));
     },
   );
 

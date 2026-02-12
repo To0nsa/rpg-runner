@@ -5,6 +5,12 @@
 Gear is **equipment** that modifies and constrains the player's loadout.  
 It exists to make the build matter without rewriting abilities.
 
+For tuning workflow and parity checks, see:
+
+- `docs/gdd/combat/balance/README.md`
+- `docs/gdd/combat/balance/balance_invariants.md`
+- `docs/gdd/combat/balance/scenario_matrix.md`
+
 **Rule of thumb**
 
 - **Abilities** define *how the action happens* (timing, targeting, hitbox, base damage model, costs, cooldown).

@@ -43,16 +43,8 @@ class _ChargeMeleeAbilities extends AbilityCatalog {
         payloadSource: AbilityPayloadSource.primaryWeapon,
         chargeProfile: AbilityChargeProfile(
           tiers: <AbilityChargeTierDef>[
-            AbilityChargeTierDef(
-              minHoldTicks60: 0,
-              damageScaleBp: 10000,
-              hitboxScaleBp: 10000,
-            ),
-            AbilityChargeTierDef(
-              minHoldTicks60: 8,
-              damageScaleBp: 15000,
-              hitboxScaleBp: 12500,
-            ),
+            AbilityChargeTierDef(minHoldTicks60: 0, damageScaleBp: 10000),
+            AbilityChargeTierDef(minHoldTicks60: 8, damageScaleBp: 15000),
           ],
         ),
         baseDamage: 100,
@@ -63,71 +55,64 @@ class _ChargeMeleeAbilities extends AbilityCatalog {
 }
 
 void main() {
-  test(
-    'melee charge profile scales damage and hitbox from authoritative hold ticks',
-    () {
-      (int damage100, double halfX) resolveMeleeIntent({
-        required int chargeTicks,
-      }) {
-        final world = EcsWorld();
-        final system = AbilityActivationSystem(
-          tickHz: 60,
-          inputBufferTicks: 8,
-          abilities: const _ChargeMeleeAbilities(),
-          weapons: const WeaponCatalog(),
-          projectileItems: const ProjectileItemCatalog(),
-          spellBooks: const SpellBookCatalog(),
-          accessories: const AccessoryCatalog(),
-        );
+  test('melee charge profile scales damage from authoritative hold ticks', () {
+    (int damage100, double halfX) resolveMeleeIntent({
+      required int chargeTicks,
+    }) {
+      final world = EcsWorld();
+      final system = AbilityActivationSystem(
+        tickHz: 60,
+        inputBufferTicks: 8,
+        abilities: const _ChargeMeleeAbilities(),
+        weapons: const WeaponCatalog(),
+        projectileItems: const ProjectileItemCatalog(),
+        spellBooks: const SpellBookCatalog(),
+        accessories: const AccessoryCatalog(),
+      );
 
-        final player = world.createEntity();
-        world.equippedLoadout.add(player);
-        world.playerInput.add(player);
-        world.movement.add(player, facing: Facing.right);
-        world.abilityInputBuffer.add(player);
-        world.abilityCharge.add(player);
-        world.stamina.add(
-          player,
-          const StaminaDef(
-            stamina: 1000,
-            staminaMax: 1000,
-            regenPerSecond100: 0,
-          ),
-        );
-        world.cooldown.add(player);
-        world.activeAbility.add(player);
-        world.meleeIntent.add(player);
-        world.colliderAabb.add(
-          player,
-          const ColliderAabbDef(halfX: 10, halfY: 10),
-        );
+      final player = world.createEntity();
+      world.equippedLoadout.add(player);
+      world.playerInput.add(player);
+      world.movement.add(player, facing: Facing.right);
+      world.abilityInputBuffer.add(player);
+      world.abilityCharge.add(player);
+      world.stamina.add(
+        player,
+        const StaminaDef(stamina: 1000, staminaMax: 1000, regenPerSecond100: 0),
+      );
+      world.cooldown.add(player);
+      world.activeAbility.add(player);
+      world.meleeIntent.add(player);
+      world.colliderAabb.add(
+        player,
+        const ColliderAabbDef(halfX: 10, halfY: 10),
+      );
 
-        final li = world.equippedLoadout.indexOf(player);
-        world.equippedLoadout.mask[li] |= LoadoutSlotMask.mainHand;
-        world.equippedLoadout.mainWeaponId[li] = WeaponId.basicSword;
-        world.equippedLoadout.abilityPrimaryId[li] = 'test.melee_charge';
+      final li = world.equippedLoadout.indexOf(player);
+      world.equippedLoadout.mask[li] |= LoadoutSlotMask.mainHand;
+      world.equippedLoadout.mainWeaponId[li] = WeaponId.basicSword;
+      world.equippedLoadout.abilityPrimaryId[li] = 'test.melee_charge';
 
-        final chargeIndex = world.abilityCharge.indexOf(player);
-        final slotOffset = world.abilityCharge.slotOffsetForDenseIndex(
-          chargeIndex,
-          AbilitySlot.primary,
-        );
-        world.abilityCharge.releasedHoldTicksBySlot[slotOffset] = chargeTicks;
-        world.abilityCharge.releasedTickBySlot[slotOffset] = 100;
+      final chargeIndex = world.abilityCharge.indexOf(player);
+      final slotOffset = world.abilityCharge.slotOffsetForDenseIndex(
+        chargeIndex,
+        AbilitySlot.primary,
+      );
+      world.abilityCharge.releasedHoldTicksBySlot[slotOffset] = chargeTicks;
+      world.abilityCharge.releasedTickBySlot[slotOffset] = 100;
 
-        final ii = world.playerInput.indexOf(player);
-        world.playerInput.strikePressed[ii] = true;
+      final ii = world.playerInput.indexOf(player);
+      world.playerInput.strikePressed[ii] = true;
 
-        system.step(world, player: player, currentTick: 100);
-        final mi = world.meleeIntent.indexOf(player);
-        return (world.meleeIntent.damage100[mi], world.meleeIntent.halfX[mi]);
-      }
+      system.step(world, player: player, currentTick: 100);
+      final mi = world.meleeIntent.indexOf(player);
+      return (world.meleeIntent.damage100[mi], world.meleeIntent.halfX[mi]);
+    }
 
-      final tap = resolveMeleeIntent(chargeTicks: 0);
-      final charged = resolveMeleeIntent(chargeTicks: 10);
+    final tap = resolveMeleeIntent(chargeTicks: 0);
+    final charged = resolveMeleeIntent(chargeTicks: 10);
 
-      expect(charged.$1, greaterThan(tap.$1));
-      expect(charged.$2, greaterThan(tap.$2));
-    },
-  );
+    expect(charged.$1, greaterThan(tap.$1));
+    expect(charged.$2, closeTo(tap.$2, 1e-9));
+  });
 }

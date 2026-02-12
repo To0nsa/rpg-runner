@@ -152,13 +152,11 @@ class AbilityChargeTierDef {
     required this.damageScaleBp,
     this.critBonusBp = 0,
     this.speedScaleBp = 10000,
-    this.hitboxScaleBp = 10000,
     this.pierce,
     this.maxPierceHits,
   }) : assert(minHoldTicks60 >= 0, 'minHoldTicks60 cannot be negative'),
        assert(damageScaleBp >= 0, 'damageScaleBp cannot be negative'),
        assert(speedScaleBp > 0, 'speedScaleBp must be > 0'),
-       assert(hitboxScaleBp > 0, 'hitboxScaleBp must be > 0'),
        assert(
          maxPierceHits == null || maxPierceHits > 0,
          'maxPierceHits must be > 0 when provided',
@@ -175,9 +173,6 @@ class AbilityChargeTierDef {
 
   /// Projectile speed scale in basis points (`10000 == 1.0x`).
   final int speedScaleBp;
-
-  /// Melee hitbox scale in basis points (`10000 == 1.0x`).
-  final int hitboxScaleBp;
 
   /// Optional projectile piercing override.
   final bool? pierce;
