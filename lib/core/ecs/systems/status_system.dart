@@ -8,8 +8,7 @@ import '../../util/tick_math.dart';
 import '../../util/fixed_math.dart';
 import '../../util/double_math.dart';
 import '../entity_id.dart';
-import '../stores/status/bleed_store.dart';
-import '../stores/status/burn_store.dart';
+import '../stores/status/dot_store.dart';
 import '../stores/status/haste_store.dart';
 import '../stores/status/slow_store.dart';
 import '../stores/status/vulnerable_store.dart';
@@ -45,8 +44,7 @@ class StatusSystem {
 
   /// Ticks existing statuses and queues DoT damage.
   void tickExisting(EcsWorld world) {
-    _tickBurn(world);
-    _tickBleed(world);
+    _tickDot(world);
     _tickHaste(world);
     _tickSlow(world);
     _tickVulnerable(world);
@@ -62,75 +60,50 @@ class StatusSystem {
     _refreshMoveSpeed(world);
   }
 
-  void _tickBurn(EcsWorld world) {
-    final burn = world.burn;
-    if (burn.denseEntities.isEmpty) return;
+  void _tickDot(EcsWorld world) {
+    final dot = world.dot;
+    if (dot.denseEntities.isEmpty) return;
 
     _removeScratch.clear();
-    for (var i = 0; i < burn.denseEntities.length; i += 1) {
-      final target = burn.denseEntities[i];
+    for (var i = 0; i < dot.denseEntities.length; i += 1) {
+      final target = dot.denseEntities[i];
       if (world.deathState.has(target)) {
         _removeScratch.add(target);
         continue;
       }
-      burn.ticksLeft[i] -= 1;
-      if (burn.ticksLeft[i] <= 0) {
-        _removeScratch.add(target);
-        continue;
+
+      var channel = dot.damageTypes[i].length - 1;
+      while (channel >= 0) {
+        dot.ticksLeft[i][channel] -= 1;
+        if (dot.ticksLeft[i][channel] <= 0) {
+          dot.removeChannelAtEntityIndex(i, channel);
+          channel -= 1;
+          continue;
+        }
+
+        dot.periodTicksLeft[i][channel] -= 1;
+        if (dot.periodTicksLeft[i][channel] <= 0) {
+          dot.periodTicksLeft[i][channel] = dot.periodTicks[i][channel];
+          final amount100 =
+              (dot.dps100[i][channel] * dot.periodTicks[i][channel]) ~/ _tickHz;
+          world.damageQueue.add(
+            DamageRequest(
+              target: target,
+              amount100: amount100,
+              damageType: dot.damageTypes[i][channel],
+              sourceKind: DeathSourceKind.statusEffect,
+            ),
+          );
+        }
+        channel -= 1;
       }
 
-      burn.periodTicksLeft[i] -= 1;
-      if (burn.periodTicksLeft[i] <= 0) {
-        burn.periodTicksLeft[i] = burn.periodTicks[i];
-        final amount100 = (burn.dps100[i] * burn.periodTicks[i]) ~/ _tickHz;
-        world.damageQueue.add(
-          DamageRequest(
-            target: target,
-            amount100: amount100,
-            damageType: DamageType.fire,
-            sourceKind: DeathSourceKind.statusEffect,
-          ),
-        );
+      if (dot.hasNoChannelsEntityIndex(i)) {
+        _removeScratch.add(target);
       }
     }
     for (final target in _removeScratch) {
-      burn.removeEntity(target);
-    }
-  }
-
-  void _tickBleed(EcsWorld world) {
-    final bleed = world.bleed;
-    if (bleed.denseEntities.isEmpty) return;
-
-    _removeScratch.clear();
-    for (var i = 0; i < bleed.denseEntities.length; i += 1) {
-      final target = bleed.denseEntities[i];
-      if (world.deathState.has(target)) {
-        _removeScratch.add(target);
-        continue;
-      }
-      bleed.ticksLeft[i] -= 1;
-      if (bleed.ticksLeft[i] <= 0) {
-        _removeScratch.add(target);
-        continue;
-      }
-
-      bleed.periodTicksLeft[i] -= 1;
-      if (bleed.periodTicksLeft[i] <= 0) {
-        bleed.periodTicksLeft[i] = bleed.periodTicks[i];
-        final amount100 = (bleed.dps100[i] * bleed.periodTicks[i]) ~/ _tickHz;
-        world.damageQueue.add(
-          DamageRequest(
-            target: target,
-            amount100: amount100,
-            damageType: DamageType.bleed,
-            sourceKind: DeathSourceKind.statusEffect,
-          ),
-        );
-      }
-    }
-    for (final target in _removeScratch) {
-      bleed.removeEntity(target);
+      dot.removeEntity(target);
     }
   }
 
@@ -216,28 +189,27 @@ class StatusSystem {
         if (magnitude <= 0) continue;
 
         switch (app.type) {
+          case StatusEffectType.dot:
+            final dotDamageType = app.dotDamageType;
+            if (dotDamageType == null) {
+              assert(
+                false,
+                'StatusEffectType.dot requires dotDamageType in StatusApplication.',
+              );
+              continue;
+            }
+            _applyDot(
+              world,
+              target: req.target,
+              magnitude: magnitude,
+              durationSeconds: app.durationSeconds,
+              periodSeconds: app.periodSeconds,
+              damageType: dotDamageType,
+            );
           case StatusEffectType.slow:
             _applySlow(world, req.target, magnitude, app.durationSeconds);
           case StatusEffectType.haste:
             _applyHaste(world, req.target, magnitude, app.durationSeconds);
-          case StatusEffectType.burn:
-            _applyDot(
-              world,
-              target: req.target,
-              magnitude: magnitude,
-              durationSeconds: app.durationSeconds,
-              periodSeconds: app.periodSeconds,
-              useBurn: true,
-            );
-          case StatusEffectType.bleed:
-            _applyDot(
-              world,
-              target: req.target,
-              magnitude: magnitude,
-              durationSeconds: app.durationSeconds,
-              periodSeconds: app.periodSeconds,
-              useBurn: false,
-            );
           case StatusEffectType.stun:
             _applyStun(world, req.target, magnitude, app.durationSeconds);
           case StatusEffectType.vulnerable:
@@ -375,7 +347,7 @@ class StatusSystem {
     required int magnitude,
     required double durationSeconds,
     required double periodSeconds,
-    required bool useBurn,
+    required DamageType damageType,
   }) {
     final ticksLeft = ticksFromSecondsCeil(durationSeconds, _tickHz);
     if (ticksLeft <= 0) return;
@@ -385,57 +357,53 @@ class StatusSystem {
         : ticksFromSecondsCeil(periodSeconds, _tickHz);
     final dps100 = magnitude;
 
-    if (useBurn) {
-      final burn = world.burn;
-      final index = burn.tryIndexOf(target);
-      if (index == null) {
-        burn.add(
-          target,
-          BurnDef(
-            ticksLeft: ticksLeft,
-            periodTicks: periodTicks,
-            dps100: dps100,
-          ),
-        );
-      } else {
-        final currentDps = burn.dps100[index];
-        if (dps100 > currentDps) {
-          burn.dps100[index] = dps100;
-          burn.periodTicks[index] = periodTicks;
-          burn.periodTicksLeft[index] = periodTicks;
-          burn.ticksLeft[index] = ticksLeft;
-        } else if (dps100 == currentDps) {
-          if (ticksLeft > burn.ticksLeft[index]) {
-            burn.ticksLeft[index] = ticksLeft;
-          }
-        }
-      }
-      return;
-    }
-
-    final bleed = world.bleed;
-    final index = bleed.tryIndexOf(target);
+    final dot = world.dot;
+    final index = dot.tryIndexOf(target);
     if (index == null) {
-      bleed.add(
+      dot.add(
         target,
-        BleedDef(
+        DotDef(
+          damageType: damageType,
           ticksLeft: ticksLeft,
           periodTicks: periodTicks,
           dps100: dps100,
         ),
       );
-    } else {
-      final currentDps = bleed.dps100[index];
-      if (dps100 > currentDps) {
-        bleed.dps100[index] = dps100;
-        bleed.periodTicks[index] = periodTicks;
-        bleed.periodTicksLeft[index] = periodTicks;
-        bleed.ticksLeft[index] = ticksLeft;
-      } else if (dps100 == currentDps) {
-        if (ticksLeft > bleed.ticksLeft[index]) {
-          bleed.ticksLeft[index] = ticksLeft;
-        }
-      }
+      return;
+    }
+
+    final channelIndex = dot.channelIndexForEntityIndex(index, damageType);
+    if (channelIndex == null) {
+      dot.addChannel(
+        target,
+        DotDef(
+          damageType: damageType,
+          ticksLeft: ticksLeft,
+          periodTicks: periodTicks,
+          dps100: dps100,
+        ),
+      );
+      return;
+    }
+
+    final currentDps = dot.dps100[index][channelIndex];
+    if (dps100 > currentDps) {
+      dot.setChannel(
+        target,
+        channelIndex,
+        DotDef(
+          damageType: damageType,
+          ticksLeft: ticksLeft,
+          periodTicks: periodTicks,
+          dps100: dps100,
+        ),
+      );
+      return;
+    }
+
+    if (dps100 == currentDps &&
+        ticksLeft > dot.ticksLeft[index][channelIndex]) {
+      dot.ticksLeft[index][channelIndex] = ticksLeft;
     }
   }
 

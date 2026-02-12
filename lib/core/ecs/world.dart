@@ -39,8 +39,7 @@ import 'stores/player/movement_store.dart';
 import 'stores/player/player_input_store.dart';
 import 'stores/projectile_store.dart';
 import 'stores/restoration_item_store.dart';
-import 'stores/status/bleed_store.dart';
-import 'stores/status/burn_store.dart';
+import 'stores/status/dot_store.dart';
 import 'stores/status/haste_store.dart';
 import 'stores/status/slow_store.dart';
 import 'stores/status/vulnerable_store.dart';
@@ -179,7 +178,7 @@ class EcsWorld {
   /// Tracks per-entity death lifecycle state.
   late final DeathStateStore deathState = _register(DeathStateStore());
 
-  /// Status immunities (burn, slow, bleed, stun, haste, vulnerable).
+  /// Status immunities (dot, slow, stun, haste, vulnerable).
   late final StatusImmunityStore statusImmunity = _register(
     StatusImmunityStore(),
   );
@@ -226,11 +225,8 @@ class EcsWorld {
   /// Despawns entities after a set duration.
   late final LifetimeStore lifetime = _register(LifetimeStore());
 
-  /// Active burn DoT effects.
-  late final BurnStore burn = _register(BurnStore());
-
-  /// Active bleed DoT effects.
-  late final BleedStore bleed = _register(BleedStore());
+  /// Active damage-over-time effects.
+  late final DotStore dot = _register(DotStore());
 
   /// Active haste effects.
   late final HasteStore haste = _register(HasteStore());

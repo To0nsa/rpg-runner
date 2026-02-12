@@ -216,9 +216,11 @@ void main() {
     );
     status.applyQueued(world, currentTick: 1);
 
-    final burnIndex = world.burn.indexOf(target);
+    final dotIndex = world.dot.indexOf(target);
+    final fireChannel = world.dot.channelIndexFor(target, DamageType.fire);
+    expect(fireChannel, isNotNull);
     // FireBolt base dps100=500. Combined typed mod: +5000 store - 4000 gear = +1000.
-    expect(world.burn.dps100[burnIndex], equals(550));
+    expect(world.dot.dps100[dotIndex][fireChannel!], equals(550));
   });
 
   test('acid on-hit applies +20% global vulnerability for 5 seconds', () {
@@ -260,7 +262,7 @@ void main() {
     );
     status.applyQueued(world, currentTick: 1);
 
-    expect(world.burn.has(target), isFalse);
+    expect(world.dot.has(target), isFalse);
     expect(world.vulnerable.has(target), isTrue);
 
     final vulnerableIndex = world.vulnerable.indexOf(target);

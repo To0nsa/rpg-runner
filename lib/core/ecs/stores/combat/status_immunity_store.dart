@@ -5,20 +5,17 @@ import '../../sparse_set.dart';
 class StatusImmunityMask {
   const StatusImmunityMask._();
 
-  static const int burn = 1 << 0;
+  static const int dot = 1 << 0;
   static const int slow = 1 << 1;
-  static const int bleed = 1 << 2;
-  static const int stun = 1 << 3;
-  static const int haste = 1 << 4;
-  static const int vulnerable = 1 << 5;
+  static const int stun = 1 << 2;
+  static const int haste = 1 << 3;
+  static const int vulnerable = 1 << 4;
   static int forType(StatusEffectType type) {
     switch (type) {
-      case StatusEffectType.burn:
-        return burn;
+      case StatusEffectType.dot:
+        return dot;
       case StatusEffectType.slow:
         return slow;
-      case StatusEffectType.bleed:
-        return bleed;
       case StatusEffectType.stun:
         return stun;
       case StatusEffectType.haste:
