@@ -18,14 +18,14 @@ class PlayerHudSnapshot {
     required this.secondarySlotValid,
     required this.projectileSlotValid,
     required this.mobilitySlotValid,
-    required this.bonusSlotValid,
+    required this.spellSlotValid,
     required this.jumpSlotValid,
     required this.canAffordJump,
     required this.canAffordMobility,
     required this.canAffordMelee,
     required this.canAffordSecondary,
     required this.canAffordProjectile,
-    required this.canAffordBonus,
+    required this.canAffordSpell,
     required this.cooldownTicksLeft,
     required this.cooldownTicksTotal,
     required this.meleeInputMode,
@@ -73,8 +73,8 @@ class PlayerHudSnapshot {
   /// Whether the mobility slot ability is valid for the current loadout.
   final bool mobilitySlotValid;
 
-  /// Whether the bonus slot ability is valid for the current loadout.
-  final bool bonusSlotValid;
+  /// Whether the spell slot ability is valid for the current loadout.
+  final bool spellSlotValid;
 
   /// Whether the jump slot ability is valid for the current loadout.
   final bool jumpSlotValid;
@@ -94,8 +94,8 @@ class PlayerHudSnapshot {
   /// Whether resources are sufficient for the equipped projectile ability.
   final bool canAffordProjectile;
 
-  /// Whether resources are sufficient for the equipped bonus ability.
-  final bool canAffordBonus;
+  /// Whether resources are sufficient for the equipped spell slot ability.
+  final bool canAffordSpell;
 
   /// Remaining cooldown ticks for each CooldownGroup.
   final List<int> cooldownTicksLeft;

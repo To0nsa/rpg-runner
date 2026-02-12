@@ -115,7 +115,7 @@ void main() {
 
       for (final ability in authored) {
         for (final slot in ability.allowedSlots) {
-          if (slot == AbilitySlot.jump || slot == AbilitySlot.bonus) continue;
+          if (slot == AbilitySlot.jump || slot == AbilitySlot.spell) continue;
 
           final loadout = switch (slot) {
             AbilitySlot.primary => EquippedLoadoutDef(
@@ -130,7 +130,7 @@ void main() {
             AbilitySlot.mobility => EquippedLoadoutDef(
               abilityMobilityId: ability.id,
             ),
-            AbilitySlot.bonus || AbilitySlot.jump => const EquippedLoadoutDef(),
+            AbilitySlot.spell || AbilitySlot.jump => const EquippedLoadoutDef(),
           };
 
           final core = GameCore(seed: 1, equippedLoadoutOverride: loadout);
@@ -140,7 +140,7 @@ void main() {
             AbilitySlot.secondary => hud.secondaryInputMode,
             AbilitySlot.projectile => hud.projectileInputMode,
             AbilitySlot.mobility => hud.mobilityInputMode,
-            AbilitySlot.bonus || AbilitySlot.jump => AbilityInputMode.tap,
+            AbilitySlot.spell || AbilitySlot.jump => AbilityInputMode.tap,
           };
           expect(
             mode,

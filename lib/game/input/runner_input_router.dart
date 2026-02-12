@@ -102,9 +102,9 @@ class RunnerInputRouter {
     (tick) => SecondaryPressedCommand(tick: tick),
   );
 
-  /// Schedules a bonus-slot press for the next tick.
-  void pressBonus() =>
-      controller.enqueueForNextTick((tick) => BonusPressedCommand(tick: tick));
+  /// Schedules a spell-slot press for the next tick.
+  void pressSpell() =>
+      controller.enqueueForNextTick((tick) => SpellPressedCommand(tick: tick));
 
   /// Starts holding the primary slot and commits it on the next tick.
   void startPrimaryHold() {

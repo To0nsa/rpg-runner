@@ -560,7 +560,7 @@ class AbilityCatalog implements AbilityResolver {
     'eloise.arcane_haste': AbilityDef(
       id: 'eloise.arcane_haste',
       category: AbilityCategory.utility,
-      allowedSlots: {AbilitySlot.bonus},
+      allowedSlots: {AbilitySlot.spell},
       targetingModel: TargetingModel.none,
       inputLifecycle: AbilityInputLifecycle.tap,
       hitDelivery: SelfHitDelivery(),
@@ -580,7 +580,7 @@ class AbilityCatalog implements AbilityResolver {
     'eloise.restore_health': AbilityDef(
       id: 'eloise.restore_health',
       category: AbilityCategory.utility,
-      allowedSlots: {AbilitySlot.bonus},
+      allowedSlots: {AbilitySlot.spell},
       targetingModel: TargetingModel.none,
       inputLifecycle: AbilityInputLifecycle.tap,
       hitDelivery: SelfHitDelivery(),
@@ -599,7 +599,7 @@ class AbilityCatalog implements AbilityResolver {
     'eloise.restore_mana': AbilityDef(
       id: 'eloise.restore_mana',
       category: AbilityCategory.utility,
-      allowedSlots: {AbilitySlot.bonus},
+      allowedSlots: {AbilitySlot.spell},
       targetingModel: TargetingModel.none,
       inputLifecycle: AbilityInputLifecycle.tap,
       hitDelivery: SelfHitDelivery(),
@@ -618,7 +618,7 @@ class AbilityCatalog implements AbilityResolver {
     'eloise.restore_stamina': AbilityDef(
       id: 'eloise.restore_stamina',
       category: AbilityCategory.utility,
-      allowedSlots: {AbilitySlot.bonus},
+      allowedSlots: {AbilitySlot.spell},
       targetingModel: TargetingModel.none,
       inputLifecycle: AbilityInputLifecycle.tap,
       hitDelivery: SelfHitDelivery(),

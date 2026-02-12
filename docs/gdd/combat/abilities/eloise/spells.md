@@ -1,8 +1,8 @@
-# Eloise Bonus Slot: Self Spells
+# Eloise Spell Slot: Self Spells
 
 ## Scope
 
-This document defines Eloise bonus slot self spells (`AbilitySlot.bonus`) as
+This document defines Eloise spell slot self spells (`AbilitySlot.spell`) as
 currently implemented.
 
 All abilities in this file are:
@@ -46,16 +46,16 @@ Restore values are percentages of max resource and clamp to each resource max.
 
 ## Contract Notes
 
-1. Bonus slot is intentionally self-spell only in current vertical slice.
+1. Spell slot is intentionally self-spell only in current vertical slice.
 2. These abilities are deterministic utility actions (no hit payload damage).
-3. Cooldown lane uses bonus group by default (unless explicitly overridden).
-4. Bonus self-spell equip eligibility is spellbook-gated.
-5. On loadout normalization (including spellbook swap), stale invalid bonus selection is auto-repaired to the first valid granted bonus spell.
+3. Cooldown lane uses spell group by default (unless explicitly overridden).
+4. Spell-slot self-spell equip eligibility is spellbook-gated.
+5. On loadout normalization (including spellbook swap), stale invalid spell-slot selection is auto-repaired to the first valid granted spell-slot spell.
 6. On loadout normalization (including spellbook swap), stale invalid `projectileSlotSpellId` selection is auto-repaired to the first valid spell granted by the equipped spellbook.
 
 ## Spellbook Grants (Current Core)
 
-| Spellbook | Granted bonus self-spells |
+| Spellbook | Granted spell-slot self-spells |
 |---|---|
 | `basicSpellBook` | `eloise.arcane_haste` |
 | `solidSpellBook` | `eloise.arcane_haste`, `eloise.restore_health` |

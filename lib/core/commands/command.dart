@@ -68,9 +68,9 @@ final class ProjectilePressedCommand extends Command {
   const ProjectilePressedCommand({required super.tick});
 }
 
-/// One-shot bonus press event for the given tick.
-final class BonusPressedCommand extends Command {
-  const BonusPressedCommand({required super.tick});
+/// One-shot spell slot press event for the given tick.
+final class SpellPressedCommand extends Command {
+  const SpellPressedCommand({required super.tick});
 }
 
 /// Hold-state edge for an ability slot at the given tick.

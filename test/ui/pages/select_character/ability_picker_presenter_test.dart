@@ -102,12 +102,12 @@ void main() {
       expect(chargedShot.isEnabled, isTrue);
     });
 
-    test('bonus slot exposes only self spell abilities', () {
-      const loadout = EquippedLoadoutDef(abilityBonusId: 'eloise.arcane_haste');
+    test('spell slot exposes only self spell abilities', () {
+      const loadout = EquippedLoadoutDef(abilitySpellId: 'eloise.arcane_haste');
 
       final candidates = abilityCandidatesForSlot(
         characterId: PlayerCharacterId.eloise,
-        slot: AbilitySlot.bonus,
+        slot: AbilitySlot.spell,
         loadout: loadout,
       );
 
@@ -230,7 +230,7 @@ void main() {
       () {
         const loadout = EquippedLoadoutDef(
           projectileSlotSpellId: ProjectileItemId.iceBolt,
-          abilityBonusId: 'eloise.arcane_haste',
+          abilitySpellId: 'eloise.arcane_haste',
         );
 
         final next = setProjectileSourceForSlot(
@@ -240,7 +240,7 @@ void main() {
         );
 
         expect(next.projectileSlotSpellId, ProjectileItemId.thunderBolt);
-        expect(next.abilityBonusId, 'eloise.arcane_haste');
+        expect(next.abilitySpellId, 'eloise.arcane_haste');
       },
     );
   });

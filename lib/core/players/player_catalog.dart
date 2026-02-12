@@ -48,7 +48,7 @@ class PlayerCatalog {
     required this.abilityPrimaryId,
     required this.abilitySecondaryId,
     required this.abilityProjectileId,
-    required this.abilityBonusId,
+    required this.abilitySpellId,
     required this.abilityMobilityId,
     required this.abilityJumpId,
     required this.facing,
@@ -119,7 +119,7 @@ class PlayerCatalog {
   final AbilityKey abilityPrimaryId;
   final AbilityKey abilitySecondaryId;
   final AbilityKey abilityProjectileId;
-  final AbilityKey abilityBonusId;
+  final AbilityKey abilitySpellId;
   final AbilityKey abilityMobilityId;
   final AbilityKey abilityJumpId;
 
@@ -223,7 +223,7 @@ class PlayerCatalogDerived {
         abilityPrimaryId: base.abilityPrimaryId,
         abilitySecondaryId: base.abilitySecondaryId,
         abilityProjectileId: base.abilityProjectileId,
-        abilityBonusId: base.abilityBonusId,
+        abilitySpellId: base.abilitySpellId,
         abilityMobilityId: base.abilityMobilityId,
         abilityJumpId: base.abilityJumpId,
         facing: base.facing,

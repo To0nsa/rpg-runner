@@ -43,8 +43,8 @@ class TickInputFrame {
   /// True if secondary slot was pressed this tick.
   bool secondaryPressed = false;
 
-  /// True if bonus slot was pressed this tick.
-  bool bonusPressed = false;
+  /// True if spell slot was pressed this tick.
+  bool spellPressed = false;
 
   /// Bitmask of slot hold changes authored for this tick.
   ///
@@ -100,8 +100,8 @@ class TickInputFrame {
         projectilePressed = true;
       case SecondaryPressedCommand():
         secondaryPressed = true;
-      case BonusPressedCommand():
-        bonusPressed = true;
+      case SpellPressedCommand():
+        spellPressed = true;
       case AbilitySlotHeldCommand(:final slot, :final held):
         final bit = 1 << slot.index;
         abilitySlotHeldChangedMask |= bit;
@@ -126,7 +126,7 @@ class TickInputFrame {
     aimDirY = 0;
     projectilePressed = false;
     secondaryPressed = false;
-    bonusPressed = false;
+    spellPressed = false;
     abilitySlotHeldChangedMask = 0;
     abilitySlotHeldValueMask = 0;
   }

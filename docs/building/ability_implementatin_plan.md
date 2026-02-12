@@ -39,14 +39,14 @@ Create minimal “authoritative” types matching your design docs:
 
 ### 2) Add slot model
 
-Introduce `AbilitySlot { primary, secondary, projectile, mobility, bonus, jump }` with Jump as a fixed/reserved slot. This mirrors your slot rules. 
+Introduce `AbilitySlot { primary, secondary, projectile, mobility, spell, jump }` with Jump as a fixed/reserved slot. This mirrors your slot rules. 
 
 ### 3) Extend EquippedLoadoutStore (still backwards compatible)
 
 Today, `PlayerArchetype` equips `weaponId/offhand/rangedWeaponId/spellId` and a `LoadoutSlotMask`. 
 Add new fields in `EquippedLoadoutStore` for:
 
-* `abilityPrimaryId`, `abilitySecondaryId`, `abilityProjectileId`, `abilityMobilityId`, `abilityBonusId`
+* `abilityPrimaryId`, `abilitySecondaryId`, `abilityProjectileId`, `abilityMobilityId`, `abilitySpellId`
   Keep the old ones temporarily to avoid breaking everything.
 
 **Acceptance criteria**
@@ -182,7 +182,7 @@ To support your targeting models cleanly:
 * For **hold-release** abilities: keep current pattern (commit on release).
 * For **committed aim hold**: enqueue “pressed” on hold start, keep updating aim while held, and ignore cancel unless forced interruption (your design doc supports this model).
 
-Also: add new button events eventually (secondary / mobility / bonus) or map your existing buttons to slots.
+Also: add new button events eventually (secondary / mobility / spell) or map your existing buttons to slots.
 
 ---
 

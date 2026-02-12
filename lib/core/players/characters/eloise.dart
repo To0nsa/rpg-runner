@@ -185,7 +185,7 @@ const PlayerCatalog eloiseCatalog = PlayerCatalog(
   abilityPrimaryId: 'eloise.sword_strike',
   abilitySecondaryId: 'eloise.shield_block',
   abilityProjectileId: 'eloise.quick_shot',
-  abilityBonusId: 'eloise.arcane_haste',
+  abilitySpellId: 'eloise.arcane_haste',
   abilityMobilityId: 'eloise.dash',
   abilityJumpId: 'eloise.jump',
   facing: Facing.right,

@@ -176,7 +176,7 @@ class SnapshotBuilder {
       abilityPrimaryId: loadout.abilityPrimaryId[li],
       abilitySecondaryId: loadout.abilitySecondaryId[li],
       abilityProjectileId: loadout.abilityProjectileId[li],
-      abilityBonusId: loadout.abilityBonusId[li],
+      abilitySpellId: loadout.abilitySpellId[li],
       abilityMobilityId: loadout.abilityMobilityId[li],
       abilityJumpId: loadout.abilityJumpId[li],
     );
@@ -191,7 +191,7 @@ class SnapshotBuilder {
     final secondarySlotValid = !invalidSlots.contains(AbilitySlot.secondary);
     final projectileSlotValid = !invalidSlots.contains(AbilitySlot.projectile);
     final mobilitySlotValid = !invalidSlots.contains(AbilitySlot.mobility);
-    final bonusSlotValid = !invalidSlots.contains(AbilitySlot.bonus);
+    final spellSlotValid = !invalidSlots.contains(AbilitySlot.spell);
     final jumpSlotValid = !invalidSlots.contains(AbilitySlot.jump);
 
     final projectileAbilityId = loadout.abilityProjectileId[li];
@@ -222,10 +222,10 @@ class SnapshotBuilder {
         secondaryAbility?.staminaCost ??
         toFixed100(abilities.base.meleeStaminaCost);
 
-    final bonusAbilityId = loadout.abilityBonusId[li];
-    final bonusAbility = abilityCatalog.resolve(bonusAbilityId);
-    final bonusManaCost = bonusAbility?.manaCost ?? 0;
-    final bonusStaminaCost = bonusAbility?.staminaCost ?? 0;
+    final spellAbilityId = loadout.abilitySpellId[li];
+    final spellAbility = abilityCatalog.resolve(spellAbilityId);
+    final spellManaCost = spellAbility?.manaCost ?? 0;
+    final spellStaminaCost = spellAbility?.staminaCost ?? 0;
 
     final meleeInputMode = _inputModeFor(meleeAbility);
     final secondaryInputMode = _inputModeFor(secondaryAbility);
@@ -254,10 +254,10 @@ class SnapshotBuilder {
         stamina >= projectileStaminaCost &&
         mana >= projectileManaCost;
 
-    final canAffordBonus =
-        bonusAbility != null &&
-        stamina >= bonusStaminaCost &&
-        mana >= bonusManaCost;
+    final canAffordSpell =
+        spellAbility != null &&
+        stamina >= spellStaminaCost &&
+        mana >= spellManaCost;
 
     // ─── Read cooldown timers ───
     final cooldownTicksLeft = List<int>.filled(kMaxCooldownGroups, 0);
@@ -289,10 +289,10 @@ class SnapshotBuilder {
         ? movement.dashCooldownTicks
         : _scaleAbilityTicks(mobilityAbility.cooldownTicks);
 
-    // Bonus (Utility)
-    cooldownTicksTotal[CooldownGroup.bonus0] = bonusAbility == null
+    // Spell slot (Utility)
+    cooldownTicksTotal[CooldownGroup.spell0] = spellAbility == null
         ? 0
-        : _scaleAbilityTicks(bonusAbility.cooldownTicks);
+        : _scaleAbilityTicks(spellAbility.cooldownTicks);
 
     // Jump currently has no cooldown (buffer/coyote are handled by MovementSystem).
     cooldownTicksTotal[CooldownGroup.jump] = 0;
@@ -376,14 +376,14 @@ class SnapshotBuilder {
         secondarySlotValid: secondarySlotValid,
         projectileSlotValid: projectileSlotValid,
         mobilitySlotValid: mobilitySlotValid,
-        bonusSlotValid: bonusSlotValid,
+        spellSlotValid: spellSlotValid,
         jumpSlotValid: jumpSlotValid,
         canAffordJump: canAffordJump,
         canAffordMobility: canAffordMobility,
         canAffordMelee: canAffordMelee,
         canAffordSecondary: canAffordSecondary,
         canAffordProjectile: canAffordProjectile,
-        canAffordBonus: canAffordBonus,
+        canAffordSpell: canAffordSpell,
         cooldownTicksLeft: cooldownTicksLeft,
         cooldownTicksTotal: cooldownTicksTotal,
         meleeInputMode: meleeInputMode,

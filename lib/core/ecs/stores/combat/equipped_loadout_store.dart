@@ -42,7 +42,7 @@ class EquippedLoadoutDef {
     this.abilityPrimaryId = 'eloise.sword_strike',
     this.abilitySecondaryId = 'eloise.shield_block',
     this.abilityProjectileId = 'eloise.quick_shot',
-    this.abilityBonusId = 'eloise.arcane_haste',
+    this.abilitySpellId = 'eloise.arcane_haste',
     this.abilityMobilityId = 'eloise.dash',
     this.abilityJumpId = 'eloise.jump',
   });
@@ -74,7 +74,7 @@ class EquippedLoadoutDef {
   final AbilityKey abilityPrimaryId;
   final AbilityKey abilitySecondaryId;
   final AbilityKey abilityProjectileId;
-  final AbilityKey abilityBonusId;
+  final AbilityKey abilitySpellId;
   final AbilityKey abilityMobilityId;
   final AbilityKey abilityJumpId;
 }
@@ -100,7 +100,7 @@ class EquippedLoadoutStore extends SparseSet {
   final List<AbilityKey> abilityPrimaryId = <AbilityKey>[];
   final List<AbilityKey> abilitySecondaryId = <AbilityKey>[];
   final List<AbilityKey> abilityProjectileId = <AbilityKey>[];
-  final List<AbilityKey> abilityBonusId = <AbilityKey>[];
+  final List<AbilityKey> abilitySpellId = <AbilityKey>[];
   final List<AbilityKey> abilityMobilityId = <AbilityKey>[];
   final List<AbilityKey> abilityJumpId = <AbilityKey>[];
 
@@ -119,7 +119,7 @@ class EquippedLoadoutStore extends SparseSet {
     abilityPrimaryId[i] = def.abilityPrimaryId;
     abilitySecondaryId[i] = def.abilitySecondaryId;
     abilityProjectileId[i] = def.abilityProjectileId;
-    abilityBonusId[i] = def.abilityBonusId;
+    abilitySpellId[i] = def.abilitySpellId;
     abilityMobilityId[i] = def.abilityMobilityId;
     abilityJumpId[i] = def.abilityJumpId;
   }
@@ -137,7 +137,7 @@ class EquippedLoadoutStore extends SparseSet {
     abilityPrimaryId[i] = def.abilityPrimaryId;
     abilitySecondaryId[i] = def.abilitySecondaryId;
     abilityProjectileId[i] = def.abilityProjectileId;
-    abilityBonusId[i] = def.abilityBonusId;
+    abilitySpellId[i] = def.abilitySpellId;
     abilityMobilityId[i] = def.abilityMobilityId;
     abilityJumpId[i] = def.abilityJumpId;
   }
@@ -161,7 +161,7 @@ class EquippedLoadoutStore extends SparseSet {
     abilityPrimaryId.add('eloise.sword_strike');
     abilitySecondaryId.add('eloise.shield_block');
     abilityProjectileId.add('eloise.quick_shot');
-    abilityBonusId.add('eloise.arcane_haste');
+    abilitySpellId.add('eloise.arcane_haste');
     abilityMobilityId.add('eloise.dash');
     abilityJumpId.add('eloise.jump');
   }
@@ -178,7 +178,7 @@ class EquippedLoadoutStore extends SparseSet {
     abilityPrimaryId[removeIndex] = abilityPrimaryId[lastIndex];
     abilitySecondaryId[removeIndex] = abilitySecondaryId[lastIndex];
     abilityProjectileId[removeIndex] = abilityProjectileId[lastIndex];
-    abilityBonusId[removeIndex] = abilityBonusId[lastIndex];
+    abilitySpellId[removeIndex] = abilitySpellId[lastIndex];
     abilityMobilityId[removeIndex] = abilityMobilityId[lastIndex];
     abilityJumpId[removeIndex] = abilityJumpId[lastIndex];
 
@@ -192,7 +192,7 @@ class EquippedLoadoutStore extends SparseSet {
     abilityPrimaryId.removeLast();
     abilitySecondaryId.removeLast();
     abilityProjectileId.removeLast();
-    abilityBonusId.removeLast();
+    abilitySpellId.removeLast();
     abilityMobilityId.removeLast();
     abilityJumpId.removeLast();
   }

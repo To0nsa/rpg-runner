@@ -8,7 +8,7 @@ import 'controls_tuning.dart';
 import 'directional_action_button.dart';
 import 'hold_action_button.dart';
 import 'layout/controls_radial_layout.dart';
-import 'widgets/bonus_control.dart';
+import 'widgets/spell_control.dart';
 import 'widgets/melee_control.dart';
 import 'widgets/movement_control.dart';
 import 'widgets/projectile_control.dart';
@@ -31,7 +31,7 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.onSecondaryCommitted,
     required this.onSecondaryHoldStart,
     required this.onSecondaryHoldEnd,
-    required this.onBonusPressed,
+    required this.onSpellPressed,
     required this.onProjectileCommitted,
     required this.onProjectilePressed,
     required this.onProjectileHoldStart,
@@ -67,9 +67,9 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.secondaryAffordable,
     required this.secondaryCooldownTicksLeft,
     required this.secondaryCooldownTicksTotal,
-    required this.bonusAffordable,
-    required this.bonusCooldownTicksLeft,
-    required this.bonusCooldownTicksTotal,
+    required this.spellAffordable,
+    required this.spellCooldownTicksLeft,
+    required this.spellCooldownTicksTotal,
     required this.forceAimCancelSignal,
     this.tuning = ControlsTuning.fixed,
   });
@@ -84,7 +84,7 @@ class RunnerControlsOverlay extends StatelessWidget {
   final VoidCallback onSecondaryCommitted;
   final VoidCallback onSecondaryHoldStart;
   final VoidCallback onSecondaryHoldEnd;
-  final VoidCallback onBonusPressed;
+  final VoidCallback onSpellPressed;
   final VoidCallback onProjectileCommitted;
   final VoidCallback onProjectilePressed;
   final VoidCallback onProjectileHoldStart;
@@ -121,9 +121,9 @@ class RunnerControlsOverlay extends StatelessWidget {
   final bool secondaryAffordable;
   final int secondaryCooldownTicksLeft;
   final int secondaryCooldownTicksTotal;
-  final bool bonusAffordable;
-  final int bonusCooldownTicksLeft;
-  final int bonusCooldownTicksTotal;
+  final bool spellAffordable;
+  final int spellCooldownTicksLeft;
+  final int spellCooldownTicksTotal;
   final ValueListenable<int> forceAimCancelSignal;
   final ControlsTuning tuning;
 
@@ -168,15 +168,15 @@ class RunnerControlsOverlay extends StatelessWidget {
           ),
         ),
         Positioned(
-          right: layout.bonus.right,
-          bottom: layout.bonus.bottom,
-          child: BonusControl(
+          right: layout.spell.right,
+          bottom: layout.spell.bottom,
+          child: SpellControl(
             tuning: tuning,
             size: layout.actionSize,
-            onPressed: onBonusPressed,
-            affordable: bonusAffordable,
-            cooldownTicksLeft: bonusCooldownTicksLeft,
-            cooldownTicksTotal: bonusCooldownTicksTotal,
+            onPressed: onSpellPressed,
+            affordable: spellAffordable,
+            cooldownTicksLeft: spellCooldownTicksLeft,
+            cooldownTicksTotal: spellCooldownTicksTotal,
           ),
         ),
         Positioned(

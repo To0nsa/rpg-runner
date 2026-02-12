@@ -20,7 +20,7 @@ class ControlsRadialLayout {
     required this.melee,
     required this.secondary,
     required this.projectile,
-    required this.bonus,
+    required this.spell,
     required this.projectileCharge,
   });
 
@@ -34,7 +34,7 @@ class ControlsRadialLayout {
   final ControlsAnchor melee;
   final ControlsAnchor secondary;
   final ControlsAnchor projectile;
-  final ControlsAnchor bonus;
+  final ControlsAnchor spell;
   final ControlsAnchor projectileCharge;
 }
 
@@ -107,10 +107,10 @@ class ControlsRadialLayoutSolver {
           layout.radialStepDeg * layout.projectileStepMultiplier,
     );
 
-    final bonusSize = actionSize;
-    final bonusRight = rightFor(meleeOffset, bonusSize);
-    final bonusBottom =
-        bottomFor(meleeOffset, bonusSize) + layout.bonusVerticalOffset;
+    final spellSize = actionSize;
+    final spellRight = rightFor(meleeOffset, spellSize);
+    final spellBottom =
+        bottomFor(meleeOffset, spellSize) + layout.spellVerticalOffset;
 
     return ControlsRadialLayout(
       jumpSize: jumpSize,
@@ -137,7 +137,7 @@ class ControlsRadialLayoutSolver {
         right: rightFor(projectileOffset, directionalSize),
         bottom: bottomFor(projectileOffset, directionalSize),
       ),
-      bonus: ControlsAnchor(right: bonusRight, bottom: bonusBottom),
+      spell: ControlsAnchor(right: spellRight, bottom: spellBottom),
       projectileCharge: ControlsAnchor(
         right: rightFor(projectileOffset, directionalSize),
         bottom:

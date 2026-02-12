@@ -11,7 +11,7 @@ class SpellBookDef {
     required this.id,
     this.weaponType = WeaponType.projectileSpell,
     this.projectileSpellIds = const <ProjectileItemId>[],
-    this.bonusAbilityIds = const <AbilityKey>[],
+    this.spellAbilityIds = const <AbilityKey>[],
     this.stats = const GearStatBonuses(),
     this.damageType,
     this.procs = const <WeaponProc>[],
@@ -20,7 +20,7 @@ class SpellBookDef {
   final SpellBookId id;
   final WeaponType weaponType;
   final List<ProjectileItemId> projectileSpellIds;
-  final List<AbilityKey> bonusAbilityIds;
+  final List<AbilityKey> spellAbilityIds;
   final GearStatBonuses stats;
   final DamageType? damageType;
   final List<WeaponProc> procs;
@@ -30,8 +30,8 @@ class SpellBookDef {
     return projectileSpellIds.contains(id);
   }
 
-  /// True when this spellbook grants access to the requested bonus spell.
-  bool containsBonusAbility(AbilityKey id) {
-    return bonusAbilityIds.contains(id);
+  /// True when this spellbook grants access to the requested spell-slot spell.
+  bool containsSpellAbility(AbilityKey id) {
+    return spellAbilityIds.contains(id);
   }
 }

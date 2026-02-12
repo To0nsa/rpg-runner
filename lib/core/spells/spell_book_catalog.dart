@@ -20,16 +20,16 @@ class SpellBookCatalog {
     ProjectileItemId.thunderBolt,
   ];
 
-  static const List<AbilityKey> _basicBonusSpells = <AbilityKey>[
+  static const List<AbilityKey> _basicSpellSlotAbilities = <AbilityKey>[
     'eloise.arcane_haste',
   ];
 
-  static const List<AbilityKey> _solidBonusSpells = <AbilityKey>[
+  static const List<AbilityKey> _solidSpellSlotAbilities = <AbilityKey>[
     'eloise.arcane_haste',
     'eloise.restore_health',
   ];
 
-  static const List<AbilityKey> _allBonusSpells = <AbilityKey>[
+  static const List<AbilityKey> _allSpellSlotAbilities = <AbilityKey>[
     'eloise.arcane_haste',
     'eloise.restore_health',
     'eloise.restore_mana',
@@ -42,21 +42,21 @@ class SpellBookCatalog {
         return const SpellBookDef(
           id: SpellBookId.basicSpellBook,
           projectileSpellIds: _basicProjectileSpells,
-          bonusAbilityIds: _basicBonusSpells,
+          spellAbilityIds: _basicSpellSlotAbilities,
           stats: GearStatBonuses(powerBonusBp: -100), // -1% Damage
         );
       case SpellBookId.solidSpellBook:
         return const SpellBookDef(
           id: SpellBookId.solidSpellBook,
           projectileSpellIds: _solidProjectileSpells,
-          bonusAbilityIds: _solidBonusSpells,
+          spellAbilityIds: _solidSpellSlotAbilities,
           stats: GearStatBonuses(powerBonusBp: 100), // +1% Damage
         );
       case SpellBookId.epicSpellBook:
         return const SpellBookDef(
           id: SpellBookId.epicSpellBook,
           projectileSpellIds: _allProjectileSpells,
-          bonusAbilityIds: _allBonusSpells,
+          spellAbilityIds: _allSpellSlotAbilities,
           stats: GearStatBonuses(powerBonusBp: 200), // +2% Damage
         );
     }

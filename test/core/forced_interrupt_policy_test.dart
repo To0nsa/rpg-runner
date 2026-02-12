@@ -72,7 +72,7 @@ class _InjectedAbilityCatalog extends AbilityCatalog {
     return const AbilityDef(
       id: 'test.injected_interrupt',
       category: AbilityCategory.utility,
-      allowedSlots: <AbilitySlot>{AbilitySlot.bonus},
+      allowedSlots: <AbilitySlot>{AbilitySlot.spell},
       targetingModel: TargetingModel.none,
       inputLifecycle: AbilityInputLifecycle.tap,
       hitDelivery: SelfHitDelivery(),

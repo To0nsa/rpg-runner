@@ -15,7 +15,7 @@ class PlayerInputStore extends SparseSet {
   final List<double> aimDirY = <double>[];
   final List<bool> projectilePressed = <bool>[];
   final List<bool> secondaryPressed = <bool>[];
-  final List<bool> bonusPressed = <bool>[];
+  final List<bool> spellPressed = <bool>[];
   final List<bool> hasAbilitySlotPressed = <bool>[];
   final List<AbilitySlot> lastAbilitySlotPressed = <AbilitySlot>[];
   final List<int> heldAbilitySlotMask = <int>[];
@@ -34,7 +34,7 @@ class PlayerInputStore extends SparseSet {
     aimDirY[i] = 0;
     projectilePressed[i] = false;
     secondaryPressed[i] = false;
-    bonusPressed[i] = false;
+    spellPressed[i] = false;
     hasAbilitySlotPressed[i] = false;
   }
 
@@ -66,7 +66,7 @@ class PlayerInputStore extends SparseSet {
     aimDirY.add(0);
     projectilePressed.add(false);
     secondaryPressed.add(false);
-    bonusPressed.add(false);
+    spellPressed.add(false);
     hasAbilitySlotPressed.add(false);
     lastAbilitySlotPressed.add(AbilitySlot.primary);
     heldAbilitySlotMask.add(0);
@@ -82,7 +82,7 @@ class PlayerInputStore extends SparseSet {
     aimDirY[removeIndex] = aimDirY[lastIndex];
     projectilePressed[removeIndex] = projectilePressed[lastIndex];
     secondaryPressed[removeIndex] = secondaryPressed[lastIndex];
-    bonusPressed[removeIndex] = bonusPressed[lastIndex];
+    spellPressed[removeIndex] = spellPressed[lastIndex];
     hasAbilitySlotPressed[removeIndex] = hasAbilitySlotPressed[lastIndex];
     lastAbilitySlotPressed[removeIndex] = lastAbilitySlotPressed[lastIndex];
     heldAbilitySlotMask[removeIndex] = heldAbilitySlotMask[lastIndex];
@@ -95,7 +95,7 @@ class PlayerInputStore extends SparseSet {
     aimDirY.removeLast();
     projectilePressed.removeLast();
     secondaryPressed.removeLast();
-    bonusPressed.removeLast();
+    spellPressed.removeLast();
     hasAbilitySlotPressed.removeLast();
     lastAbilitySlotPressed.removeLast();
     heldAbilitySlotMask.removeLast();

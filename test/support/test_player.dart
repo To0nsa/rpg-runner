@@ -38,7 +38,7 @@ const PlayerCatalog testPlayerCatalogDefaults = PlayerCatalog(
   abilityPrimaryId: 'eloise.sword_strike',
   abilitySecondaryId: 'eloise.shield_block',
   abilityProjectileId: 'eloise.charged_shot',
-  abilityBonusId: 'eloise.arcane_haste',
+  abilitySpellId: 'eloise.arcane_haste',
   abilityMobilityId: 'eloise.dash',
   abilityJumpId: 'eloise.jump',
   facing: Facing.right,
@@ -62,7 +62,7 @@ PlayerCatalog testPlayerCatalog({
   AbilityKey? abilityPrimaryId,
   AbilityKey? abilitySecondaryId,
   AbilityKey? abilityProjectileId,
-  AbilityKey? abilityBonusId,
+  AbilityKey? abilitySpellId,
   AbilityKey? abilityMobilityId,
   AbilityKey? abilityJumpId,
   Facing? facing,
@@ -95,7 +95,7 @@ PlayerCatalog testPlayerCatalog({
         abilitySecondaryId ?? testPlayerCatalogDefaults.abilitySecondaryId,
     abilityProjectileId:
         abilityProjectileId ?? testPlayerCatalogDefaults.abilityProjectileId,
-    abilityBonusId: abilityBonusId ?? testPlayerCatalogDefaults.abilityBonusId,
+    abilitySpellId: abilitySpellId ?? testPlayerCatalogDefaults.abilitySpellId,
     abilityMobilityId:
         abilityMobilityId ?? testPlayerCatalogDefaults.abilityMobilityId,
     abilityJumpId: abilityJumpId ?? testPlayerCatalogDefaults.abilityJumpId,

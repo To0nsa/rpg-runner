@@ -124,7 +124,7 @@ Map<String, Object?> _loadoutToJson(EquippedLoadoutDef loadout) {
     'abilityPrimaryId': loadout.abilityPrimaryId,
     'abilitySecondaryId': loadout.abilitySecondaryId,
     'abilityProjectileId': loadout.abilityProjectileId,
-    'abilityBonusId': loadout.abilityBonusId,
+    'abilitySpellId': loadout.abilitySpellId,
     'abilityMobilityId': loadout.abilityMobilityId,
     'abilityJumpId': loadout.abilityJumpId,
   };
@@ -177,9 +177,10 @@ EquippedLoadoutDef _loadoutFromJson(Object? raw) {
     abilityProjectileId:
         (map['abilityProjectileId'] as String?) ??
         const EquippedLoadoutDef().abilityProjectileId,
-    abilityBonusId:
+    abilitySpellId:
+        (map['abilitySpellId'] as String?) ??
         (map['abilityBonusId'] as String?) ??
-        const EquippedLoadoutDef().abilityBonusId,
+        const EquippedLoadoutDef().abilitySpellId,
     abilityMobilityId:
         (map['abilityMobilityId'] as String?) ??
         const EquippedLoadoutDef().abilityMobilityId,

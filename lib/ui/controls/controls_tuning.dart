@@ -49,7 +49,7 @@ class ControlsLayoutTuning {
     this.meleeStepMultiplier = 3.8,
     this.secondaryStepMultiplier = 1.0,
     this.projectileStepMultiplier = 2.4,
-    this.bonusVerticalOffset = 72.0,
+    this.spellVerticalOffset = 72.0,
     this.chargeAnchorGap = 8.0,
   });
 
@@ -73,7 +73,7 @@ class ControlsLayoutTuning {
   final double secondaryStepMultiplier;
   final double projectileStepMultiplier;
 
-  final double bonusVerticalOffset;
+  final double spellVerticalOffset;
   final double chargeAnchorGap;
 }
 

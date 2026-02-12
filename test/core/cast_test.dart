@@ -301,7 +301,7 @@ void main() {
     },
   );
 
-  test('bonus self spell restores mana without spawning projectiles', () {
+  test('spell-slot self spell restores mana without spawning projectiles', () {
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
       seed: 1,
@@ -311,7 +311,7 @@ void main() {
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
           abilityProjectileId: 'eloise.charged_shot',
-          abilityBonusId: 'eloise.restore_mana',
+          abilitySpellId: 'eloise.restore_mana',
           spellBookId: SpellBookId.epicSpellBook,
         ),
         tuning: base.tuning.copyWith(
@@ -356,7 +356,7 @@ void main() {
       closeTo(20.0 - fixed100ToDouble(shotAbility.manaCost), 1e-9),
     );
 
-    core.applyCommands(const [BonusPressedCommand(tick: 2)]);
+    core.applyCommands(const [SpellPressedCommand(tick: 2)]);
     core.stepOneTick();
 
     final afterBonus = core.buildSnapshot();
@@ -373,7 +373,7 @@ void main() {
   });
 
   test(
-    'projectile and bonus cooldown groups stay independent (projectile + self spell)',
+    'projectile and spell cooldown groups stay independent (projectile + self spell)',
     () {
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
@@ -385,7 +385,7 @@ void main() {
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
             projectileItemId: ProjectileItemId.throwingKnife,
             abilityProjectileId: 'eloise.quick_shot',
-            abilityBonusId: 'eloise.arcane_haste',
+            abilitySpellId: 'eloise.arcane_haste',
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
@@ -426,11 +426,11 @@ void main() {
       }
 
       final beforeBonus = core.buildSnapshot();
-      expect(beforeBonus.hud.cooldownTicksLeft[CooldownGroup.bonus0], 0);
+      expect(beforeBonus.hud.cooldownTicksLeft[CooldownGroup.spell0], 0);
       final projectileCooldownBeforeBonus =
           beforeBonus.hud.cooldownTicksLeft[CooldownGroup.projectile];
 
-      core.applyCommands(const [BonusPressedCommand(tick: 2)]);
+      core.applyCommands(const [SpellPressedCommand(tick: 2)]);
       core.stepOneTick();
       final afterBonusPressed = core.buildSnapshot();
       final expectedProjectileAfterOneTick = projectileCooldownBeforeBonus > 0
@@ -441,7 +441,7 @@ void main() {
         expectedProjectileAfterOneTick,
       );
       expect(
-        afterBonusPressed.hud.cooldownTicksLeft[CooldownGroup.bonus0],
+        afterBonusPressed.hud.cooldownTicksLeft[CooldownGroup.spell0],
         bonusCooldownTicks,
       );
     },

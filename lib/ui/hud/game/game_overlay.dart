@@ -59,7 +59,7 @@ class GameOverlay extends StatelessWidget {
     final jumpAffordable = hud.canAffordJump && hud.jumpSlotValid;
     final secondaryAffordable =
         hud.canAffordSecondary && hud.secondarySlotValid;
-    final bonusAffordable = hud.canAffordBonus && hud.bonusSlotValid;
+    final spellAffordable = hud.canAffordSpell && hud.spellSlotValid;
     final secondaryUsesSlotHold =
         hud.secondaryInputMode == AbilityInputMode.holdAimRelease ||
         hud.secondaryInputMode == AbilityInputMode.holdRelease;
@@ -96,7 +96,7 @@ class GameOverlay extends StatelessWidget {
             onSecondaryHoldEnd: secondaryUsesSlotHold
                 ? () => input.endAbilitySlotHold(AbilitySlot.secondary)
                 : input.endSecondaryHold,
-            onBonusPressed: input.pressBonus,
+            onSpellPressed: input.pressSpell,
             onProjectileCommitted: () =>
                 input.commitProjectileWithAim(clearAim: true),
             onProjectilePressed: input.pressProjectile,
@@ -145,10 +145,10 @@ class GameOverlay extends StatelessWidget {
                 hud.cooldownTicksLeft[CooldownGroup.secondary],
             secondaryCooldownTicksTotal:
                 hud.cooldownTicksTotal[CooldownGroup.secondary],
-            bonusAffordable: bonusAffordable,
-            bonusCooldownTicksLeft: hud.cooldownTicksLeft[CooldownGroup.bonus0],
-            bonusCooldownTicksTotal:
-                hud.cooldownTicksTotal[CooldownGroup.bonus0],
+            spellAffordable: spellAffordable,
+            spellCooldownTicksLeft: hud.cooldownTicksLeft[CooldownGroup.spell0],
+            spellCooldownTicksTotal:
+                hud.cooldownTicksTotal[CooldownGroup.spell0],
             forceAimCancelSignal: forceAimCancelSignal,
           ),
         ),

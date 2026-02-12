@@ -263,10 +263,10 @@ class AppState extends ChangeNotifier {
         slot: AbilitySlot.projectile,
         fallback: catalog.abilityProjectileId,
       ),
-      abilityBonusId: _normalizeAbilityForSlot(
-        abilityId: loadout.abilityBonusId,
-        slot: AbilitySlot.bonus,
-        fallback: catalog.abilityBonusId,
+      abilitySpellId: _normalizeAbilityForSlot(
+        abilityId: loadout.abilitySpellId,
+        slot: AbilitySlot.spell,
+        fallback: catalog.abilitySpellId,
       ),
       abilityMobilityId: _normalizeAbilityForSlot(
         abilityId: loadout.abilityMobilityId,
@@ -287,15 +287,15 @@ class AppState extends ChangeNotifier {
         projectileSlotSpellId: normalizedProjectileSpellId,
       );
     }
-    final normalizedBonusAbilityId = _normalizeBonusAbilityForLoadout(
+    final normalizedSpellAbilityId = _normalizeSpellAbilityForLoadout(
       normalized,
       characterId: characterId,
     );
-    if (normalizedBonusAbilityId != normalized.abilityBonusId) {
+    if (normalizedSpellAbilityId != normalized.abilitySpellId) {
       normalized = _withAbilityForSlot(
         normalized,
-        slot: AbilitySlot.bonus,
-        abilityId: normalizedBonusAbilityId,
+        slot: AbilitySlot.spell,
+        abilityId: normalizedSpellAbilityId,
       );
     }
     return _sameLoadout(normalized, loadout) ? loadout : normalized;
@@ -318,14 +318,14 @@ class AppState extends ChangeNotifier {
     return fallback;
   }
 
-  AbilityKey _normalizeBonusAbilityForLoadout(
+  AbilityKey _normalizeSpellAbilityForLoadout(
     EquippedLoadoutDef loadout, {
     required PlayerCharacterId characterId,
   }) {
-    final current = loadout.abilityBonusId;
+    final current = loadout.abilitySpellId;
     if (_isAbilityValidForSlot(
       loadout,
-      slot: AbilitySlot.bonus,
+      slot: AbilitySlot.spell,
       abilityId: current,
     )) {
       return current;
@@ -333,7 +333,7 @@ class AppState extends ChangeNotifier {
 
     final replacement = _firstValidAbilityForSlot(
       loadout,
-      slot: AbilitySlot.bonus,
+      slot: AbilitySlot.spell,
       characterId: characterId,
     );
     return replacement ?? current;
@@ -436,9 +436,9 @@ class AppState extends ChangeNotifier {
       abilityProjectileId: slot == AbilitySlot.projectile
           ? abilityId
           : loadout.abilityProjectileId,
-      abilityBonusId: slot == AbilitySlot.bonus
+      abilitySpellId: slot == AbilitySlot.spell
           ? abilityId
-          : loadout.abilityBonusId,
+          : loadout.abilitySpellId,
       abilityMobilityId: slot == AbilitySlot.mobility
           ? abilityId
           : loadout.abilityMobilityId,
@@ -463,7 +463,7 @@ class AppState extends ChangeNotifier {
       abilityPrimaryId: loadout.abilityPrimaryId,
       abilitySecondaryId: loadout.abilitySecondaryId,
       abilityProjectileId: loadout.abilityProjectileId,
-      abilityBonusId: loadout.abilityBonusId,
+      abilitySpellId: loadout.abilitySpellId,
       abilityMobilityId: loadout.abilityMobilityId,
       abilityJumpId: loadout.abilityJumpId,
     );
@@ -493,7 +493,7 @@ class AppState extends ChangeNotifier {
         a.abilityPrimaryId == b.abilityPrimaryId &&
         a.abilitySecondaryId == b.abilitySecondaryId &&
         a.abilityProjectileId == b.abilityProjectileId &&
-        a.abilityBonusId == b.abilityBonusId &&
+        a.abilitySpellId == b.abilitySpellId &&
         a.abilityMobilityId == b.abilityMobilityId &&
         a.abilityJumpId == b.abilityJumpId;
   }

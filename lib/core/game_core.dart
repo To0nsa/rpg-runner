@@ -632,7 +632,7 @@ class GameCore {
           abilityPrimaryId: playerArchetype.abilityPrimaryId,
           abilitySecondaryId: playerArchetype.abilitySecondaryId,
           abilityProjectileId: playerArchetype.abilityProjectileId,
-          abilityBonusId: playerArchetype.abilityBonusId,
+          abilitySpellId: playerArchetype.abilitySpellId,
           abilityMobilityId: playerArchetype.abilityMobilityId,
           abilityJumpId: playerArchetype.abilityJumpId,
         );
@@ -945,7 +945,7 @@ class GameCore {
   /// - [SecondaryPressedCommand]: Triggers an off-hand ability attempt.
   /// - [AimDirCommand]: Sets global aim direction.
   /// - [ProjectilePressedCommand]: Triggers the projectile slot attempt.
-  /// - [BonusPressedCommand]: Triggers a bonus-slot ability attempt.
+  /// - [SpellPressedCommand]: Triggers a spell-slot ability attempt.
   /// - [AbilitySlotHeldCommand]: Applies per-slot hold transitions for maintain
   ///   abilities (latched until the next transition command).
   ///
@@ -1011,12 +1011,12 @@ class GameCore {
           _world.playerInput.lastAbilitySlotPressed[inputIndex] =
               AbilitySlot.projectile;
 
-        // Bonus slot input.
-        case BonusPressedCommand():
-          _world.playerInput.bonusPressed[inputIndex] = true;
+        // Spell slot input.
+        case SpellPressedCommand():
+          _world.playerInput.spellPressed[inputIndex] = true;
           _world.playerInput.hasAbilitySlotPressed[inputIndex] = true;
           _world.playerInput.lastAbilitySlotPressed[inputIndex] =
-              AbilitySlot.bonus;
+              AbilitySlot.spell;
 
         // Per-slot hold transitions (latched until updated).
         case AbilitySlotHeldCommand(:final slot, :final held):

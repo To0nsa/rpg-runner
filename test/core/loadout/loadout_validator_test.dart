@@ -36,7 +36,7 @@ void main() {
         abilitySecondaryId: 'eloise.shield_block',
         abilityProjectileId: 'eloise.quick_shot',
         abilityMobilityId: 'eloise.dash',
-        abilityBonusId: 'eloise.arcane_haste',
+        abilitySpellId: 'eloise.arcane_haste',
       );
 
       final result = validator.validate(loadout);
@@ -95,7 +95,7 @@ void main() {
         projectileItemId: ProjectileItemId.throwingKnife,
         projectileSlotSpellId: ProjectileItemId.fireBolt,
         abilityProjectileId: 'eloise.quick_shot',
-        abilityBonusId: 'eloise.arcane_haste',
+        abilitySpellId: 'eloise.arcane_haste',
       );
 
       final result = validator.validate(loadout);
@@ -103,13 +103,13 @@ void main() {
       expect(result.issues, isEmpty);
     });
 
-    test('non-spell ability cannot be equipped in bonus slot', () {
+    test('non-spell ability cannot be equipped in spell slot', () {
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.woodenSword,
         offhandWeaponId: WeaponId.woodenShield,
         projectileItemId: ProjectileItemId.throwingKnife,
         abilityProjectileId: 'eloise.charged_shot',
-        abilityBonusId: 'eloise.quick_shot',
+        abilitySpellId: 'eloise.quick_shot',
       );
 
       final result = validator.validate(loadout);
@@ -117,20 +117,20 @@ void main() {
       expect(
         result.issues.any(
           (issue) =>
-              issue.slot == AbilitySlot.bonus &&
+              issue.slot == AbilitySlot.spell &&
               issue.kind == IssueKind.slotNotAllowed,
         ),
         isTrue,
       );
     });
 
-    test('bonus self spell is valid', () {
+    test('spell-slot self spell is valid', () {
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.woodenSword,
         offhandWeaponId: WeaponId.woodenShield,
         projectileItemId: ProjectileItemId.throwingKnife,
         spellBookId: SpellBookId.epicSpellBook,
-        abilityBonusId: 'eloise.restore_health',
+        abilitySpellId: 'eloise.restore_health',
       );
 
       final result = validator.validate(loadout);
@@ -138,10 +138,10 @@ void main() {
       expect(result.issues, isEmpty);
     });
 
-    test('bonus self spell must be granted by equipped spellbook', () {
+    test('spell-slot self spell must be granted by equipped spellbook', () {
       const loadout = EquippedLoadoutDef(
         spellBookId: SpellBookId.basicSpellBook,
-        abilityBonusId: 'eloise.restore_health',
+        abilitySpellId: 'eloise.restore_health',
       );
 
       final result = validator.validate(loadout);
@@ -149,7 +149,7 @@ void main() {
       expect(
         result.issues.any(
           (issue) =>
-              issue.slot == AbilitySlot.bonus &&
+              issue.slot == AbilitySlot.spell &&
               issue.kind == IssueKind.catalogMissing,
         ),
         isTrue,
@@ -174,7 +174,7 @@ void main() {
       );
     });
 
-    test('bonus-only spell cannot be equipped in projectile slot', () {
+    test('spell-slot-only spell cannot be equipped in projectile slot', () {
       const loadout = EquippedLoadoutDef(
         abilityProjectileId: 'eloise.arcane_haste',
       );

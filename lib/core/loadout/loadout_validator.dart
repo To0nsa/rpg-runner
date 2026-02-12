@@ -123,11 +123,11 @@ class LoadoutValidator {
       projectileSlotSpellId: loadout.projectileSlotSpellId,
     );
 
-    // Bonus: payload gating is now driven by AbilityDef.payloadSource.
+    // Spell slot: payload gating is now driven by AbilityDef.payloadSource.
     _validateSlot(
       issues: issues,
-      abilityId: loadout.abilityBonusId,
-      slot: AbilitySlot.bonus,
+      abilityId: loadout.abilitySpellId,
+      slot: AbilitySlot.spell,
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
       projectileItem: projectileItem,
@@ -217,7 +217,7 @@ class LoadoutValidator {
     if (book == null) {
       issues.add(
         LoadoutIssue(
-          slot: AbilitySlot.bonus,
+          slot: AbilitySlot.spell,
           kind: IssueKind.catalogMissing,
           weaponId: id.toString(),
           message: 'Spell book ID not found in catalog.',
@@ -308,18 +308,18 @@ class LoadoutValidator {
       }
     }
 
-    // 4. Spellbook grant gating for bonus self-spells.
-    if (slot == AbilitySlot.bonus &&
+    // 4. Spellbook grant gating for spell-slot self-spells.
+    if (slot == AbilitySlot.spell &&
         ability.payloadSource == AbilityPayloadSource.spellBook &&
         spellBook != null &&
-        !spellBook.containsBonusAbility(ability.id)) {
+        !spellBook.containsSpellAbility(ability.id)) {
       issues.add(
         LoadoutIssue(
           slot: slot,
           kind: IssueKind.catalogMissing,
           abilityId: ability.id,
           weaponId: spellBook.id.toString(),
-          message: 'Selected bonus spell is not granted by the spellbook.',
+          message: 'Selected spell is not granted by the spellbook.',
         ),
       );
     }
@@ -337,7 +337,7 @@ class LoadoutValidator {
       AbilitySlot.primary ||
       AbilitySlot.secondary ||
       AbilitySlot.mobility ||
-      AbilitySlot.bonus ||
+      AbilitySlot.spell ||
       AbilitySlot.jump => null,
     };
     if (selectedSpellId == null) {

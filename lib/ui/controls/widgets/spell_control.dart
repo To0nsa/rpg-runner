@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import '../action_button.dart';
 import '../controls_tuning.dart';
 
-/// Tap-only bonus control (self-targeted spells).
-class BonusControl extends StatelessWidget {
-  const BonusControl({
+/// Tap-only spell slot control (self-targeted spells).
+class SpellControl extends StatelessWidget {
+  const SpellControl({
     super.key,
     required this.tuning,
     required this.size,
@@ -27,7 +27,7 @@ class BonusControl extends StatelessWidget {
     final action = tuning.style.actionButton;
     final cooldownRing = tuning.style.cooldownRing;
     return ActionButton(
-      label: 'Bonus',
+      label: 'Spell',
       icon: Icons.star,
       onPressed: onPressed,
       tuning: action,

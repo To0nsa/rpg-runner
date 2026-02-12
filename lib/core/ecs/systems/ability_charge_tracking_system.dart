@@ -109,7 +109,7 @@ class AbilityChargeTrackingSystem {
       AbilitySlot.secondary => loadout.abilitySecondaryId[loadoutIndex],
       AbilitySlot.projectile => loadout.abilityProjectileId[loadoutIndex],
       AbilitySlot.mobility => loadout.abilityMobilityId[loadoutIndex],
-      AbilitySlot.bonus => loadout.abilityBonusId[loadoutIndex],
+      AbilitySlot.spell => loadout.abilitySpellId[loadoutIndex],
       AbilitySlot.jump => loadout.abilityJumpId[loadoutIndex],
     };
     return abilities.resolve(key);

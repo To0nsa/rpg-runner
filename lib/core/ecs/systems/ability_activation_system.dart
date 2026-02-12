@@ -194,7 +194,7 @@ class AbilityActivationSystem {
     if (input.strikePressed[inputIndex]) return AbilitySlot.primary;
     if (input.secondaryPressed[inputIndex]) return AbilitySlot.secondary;
     if (input.projectilePressed[inputIndex]) return AbilitySlot.projectile;
-    if (input.bonusPressed[inputIndex]) return AbilitySlot.bonus;
+    if (input.spellPressed[inputIndex]) return AbilitySlot.spell;
     return null;
   }
 
@@ -296,8 +296,8 @@ class AbilityActivationSystem {
         return loadout.abilityMobilityId[loadoutIndex];
       case AbilitySlot.jump:
         return loadout.abilityJumpId[loadoutIndex];
-      case AbilitySlot.bonus:
-        return loadout.abilityBonusId[loadoutIndex];
+      case AbilitySlot.spell:
+        return loadout.abilitySpellId[loadoutIndex];
     }
   }
 
@@ -458,8 +458,8 @@ class AbilityActivationSystem {
         final spellBookId = world.equippedLoadout.spellBookId[loadoutIndex];
         final spellBook = spellBooks.tryGet(spellBookId);
         if (spellBook == null) return false;
-        if (slot == AbilitySlot.bonus &&
-            !spellBook.containsBonusAbility(ability.id)) {
+        if (slot == AbilitySlot.spell &&
+            !spellBook.containsSpellAbility(ability.id)) {
           return false;
         }
         break;
@@ -1331,7 +1331,7 @@ class AbilityActivationSystem {
       case AbilitySlot.primary:
       case AbilitySlot.secondary:
       case AbilitySlot.mobility:
-      case AbilitySlot.bonus:
+      case AbilitySlot.spell:
       case AbilitySlot.jump:
         return null;
     }

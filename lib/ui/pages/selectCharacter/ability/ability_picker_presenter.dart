@@ -221,8 +221,8 @@ AbilityKey abilityIdForSlot(EquippedLoadoutDef loadout, AbilitySlot slot) {
       return loadout.abilityMobilityId;
     case AbilitySlot.jump:
       return loadout.abilityJumpId;
-    case AbilitySlot.bonus:
-      return loadout.abilityBonusId;
+    case AbilitySlot.spell:
+      return loadout.abilitySpellId;
   }
 }
 
@@ -237,7 +237,7 @@ EquippedLoadoutDef setAbilityForSlot(
     abilityPrimaryId: slot == AbilitySlot.primary ? abilityId : null,
     abilitySecondaryId: slot == AbilitySlot.secondary ? abilityId : null,
     abilityProjectileId: slot == AbilitySlot.projectile ? abilityId : null,
-    abilityBonusId: slot == AbilitySlot.bonus ? abilityId : null,
+    abilitySpellId: slot == AbilitySlot.spell ? abilityId : null,
     abilityMobilityId: slot == AbilitySlot.mobility ? abilityId : null,
     abilityJumpId: slot == AbilitySlot.jump ? abilityId : null,
   );
@@ -256,7 +256,7 @@ EquippedLoadoutDef setProjectileSourceForSlot(
       return _copyLoadout(loadout, projectileSlotSpellId: selectedSpellId);
     case AbilitySlot.primary:
     case AbilitySlot.secondary:
-    case AbilitySlot.bonus:
+    case AbilitySlot.spell:
     case AbilitySlot.mobility:
     case AbilitySlot.jump:
       return loadout;
@@ -306,7 +306,7 @@ EquippedLoadoutDef _copyLoadout(
   AbilityKey? abilityPrimaryId,
   AbilityKey? abilitySecondaryId,
   AbilityKey? abilityProjectileId,
-  AbilityKey? abilityBonusId,
+  AbilityKey? abilitySpellId,
   AbilityKey? abilityMobilityId,
   AbilityKey? abilityJumpId,
 }) {
@@ -323,7 +323,7 @@ EquippedLoadoutDef _copyLoadout(
     abilityPrimaryId: abilityPrimaryId ?? loadout.abilityPrimaryId,
     abilitySecondaryId: abilitySecondaryId ?? loadout.abilitySecondaryId,
     abilityProjectileId: abilityProjectileId ?? loadout.abilityProjectileId,
-    abilityBonusId: abilityBonusId ?? loadout.abilityBonusId,
+    abilitySpellId: abilitySpellId ?? loadout.abilitySpellId,
     abilityMobilityId: abilityMobilityId ?? loadout.abilityMobilityId,
     abilityJumpId: abilityJumpId ?? loadout.abilityJumpId,
   );

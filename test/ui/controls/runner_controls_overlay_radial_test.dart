@@ -7,11 +7,11 @@ import 'package:rpg_runner/ui/controls/controls_tuning.dart';
 import 'package:rpg_runner/ui/controls/directional_action_button.dart';
 import 'package:rpg_runner/ui/controls/layout/controls_radial_layout.dart';
 import 'package:rpg_runner/ui/controls/runner_controls_overlay_radial.dart';
-import 'package:rpg_runner/ui/controls/widgets/bonus_control.dart';
+import 'package:rpg_runner/ui/controls/widgets/spell_control.dart';
 import 'package:rpg_runner/ui/controls/widgets/melee_control.dart';
 
 void main() {
-  testWidgets('bonus control is anchored above Atk control by tuning offset', (
+  testWidgets('spell control is anchored above Atk control by tuning offset', (
     tester,
   ) async {
     final harness = _OverlayHarness();
@@ -22,13 +22,13 @@ void main() {
       _testHost(child: harness.buildOverlay(tuning: tuning)),
     );
 
-    final bonus = _positionedFor(tester, find.byType(BonusControl));
+    final bonus = _positionedFor(tester, find.byType(SpellControl));
     final melee = _positionedFor(tester, find.byType(MeleeControl));
 
     expect(bonus.right, closeTo(melee.right!, 0.001));
     expect(
       bonus.bottom,
-      closeTo(melee.bottom! + tuning.layout.bonusVerticalOffset, 0.001),
+      closeTo(melee.bottom! + tuning.layout.spellVerticalOffset, 0.001),
     );
   });
 
@@ -327,7 +327,7 @@ class _OverlayHarness {
       onSecondaryCommitted: () {},
       onSecondaryHoldStart: () {},
       onSecondaryHoldEnd: () {},
-      onBonusPressed: () {},
+      onSpellPressed: () {},
       onProjectileCommitted: () {},
       onProjectilePressed: () {},
       onProjectileHoldStart: () {},
@@ -363,9 +363,9 @@ class _OverlayHarness {
       secondaryAffordable: true,
       secondaryCooldownTicksLeft: 0,
       secondaryCooldownTicksTotal: 0,
-      bonusAffordable: true,
-      bonusCooldownTicksLeft: 0,
-      bonusCooldownTicksTotal: 0,
+      spellAffordable: true,
+      spellCooldownTicksLeft: 0,
+      spellCooldownTicksTotal: 0,
       forceAimCancelSignal: forceCancelSignal,
     );
   }

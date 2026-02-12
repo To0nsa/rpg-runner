@@ -10,7 +10,7 @@ import '../weapons/weapon_proc.dart';
 typedef AbilityKey = String;
 
 /// Logical action slot where an ability may be equipped/triggered.
-enum AbilitySlot { primary, secondary, projectile, mobility, bonus, jump }
+enum AbilitySlot { primary, secondary, projectile, mobility, spell, jump }
 
 /// High-level semantic grouping used by UI and systems.
 enum AbilityCategory { melee, ranged, magic, mobility, defense, utility }
@@ -24,7 +24,7 @@ enum WeaponType { oneHandedSword, shield, throwingWeapon, projectileSpell }
 /// - which button/slot triggers an ability
 /// - from where the ability derives weapon/projectile stats/procs/damage-type.
 ///
-/// Critical for Bonus slot (can host anything).
+/// Critical for spell slot (can host anything).
 enum AbilityPayloadSource {
   none,
   primaryWeapon,
@@ -244,10 +244,10 @@ abstract final class CooldownGroup {
   /// Jump ability
   static const int jump = 4;
 
-  /// Bonus slot abilities (5-7 reserved for future/bonus)
-  static const int bonus0 = 5;
-  static const int bonus1 = 6;
-  static const int bonus2 = 7;
+  /// Spell slot abilities (5-7 reserved for future/spell)
+  static const int spell0 = 5;
+  static const int spell1 = 6;
+  static const int spell2 = 7;
 
   /// Returns the default cooldown group for a given slot.
   static int fromSlot(AbilitySlot slot) {
@@ -262,8 +262,8 @@ abstract final class CooldownGroup {
         return mobility;
       case AbilitySlot.jump:
         return jump;
-      case AbilitySlot.bonus:
-        return bonus0;
+      case AbilitySlot.spell:
+        return spell0;
     }
   }
 }
@@ -424,7 +424,7 @@ class AbilityDef {
   ///   2 = projectile
   ///   3 = mobility
   ///   4 = jump
-  ///   5-7 = future/bonus
+  ///   5-7 = future/spell
   final int? cooldownGroupId;
 
   /// Forced interruption causes this ability opts into.

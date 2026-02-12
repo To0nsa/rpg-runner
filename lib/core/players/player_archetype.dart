@@ -45,7 +45,7 @@ class PlayerArchetype {
     required this.abilityPrimaryId,
     required this.abilitySecondaryId,
     required this.abilityProjectileId,
-    required this.abilityBonusId,
+    required this.abilitySpellId,
     required this.abilityMobilityId,
     required this.abilityJumpId,
     required this.facing,
@@ -112,7 +112,7 @@ class PlayerArchetype {
   final AbilityKey abilityPrimaryId;
   final AbilityKey abilitySecondaryId;
   final AbilityKey abilityProjectileId;
-  final AbilityKey abilityBonusId;
+  final AbilityKey abilitySpellId;
   final AbilityKey abilityMobilityId;
   final AbilityKey abilityJumpId;
 

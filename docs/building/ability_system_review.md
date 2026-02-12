@@ -1,13 +1,13 @@
 # Ability System Implementation Review (2026-01-24)
 
 ## Update (2026-02-10)
-- Bonus slot is now intentionally **self-spell only** for the current vertical slice.
-- Projectile/melee abilities are no longer authored for `AbilitySlot.bonus`.
-- Added bonus self spells: `eloise.restore_health`, `eloise.restore_mana`, `eloise.restore_stamina`.
+- Spell slot is now intentionally **self-spell only** for the current vertical slice.
+- Projectile/melee abilities are no longer authored for `AbilitySlot.spell`.
+- Added spell-slot self spells: `eloise.restore_health`, `eloise.restore_mana`, `eloise.restore_stamina`.
 - `SelfAbilitySystem` now applies deterministic self-resource restoration authored on `AbilityDef` (`selfRestore*Bp`).
-- Bonus ability picker no longer shows projectile-source selection panel.
-- Bonus input path is tap-only end-to-end; legacy bonus hold/aim/charge HUD and control contracts were removed.
-- Legacy bonus projectile-source schema/persistence (`bonusSlotSpellId`) was removed; slot spell selection is projectile-slot only.
+- Spell ability picker no longer shows projectile-source selection panel.
+- Spell input path is tap-only end-to-end; legacy spell hold/aim/charge HUD and control contracts were removed.
+- Legacy spell projectile-source schema/persistence (`spellSlotSpellId`) was removed; slot spell selection is projectile-slot only.
 - Homing auto-target is now resolved at commit-time for abilities authored with `TargetingModel.homing` (projectile and melee).
 - Added melee homing variants `eloise.sword_strike_auto_aim` / `eloise.shield_bash_auto_aim` with explicit reliability tax:
   - base damage `15.0 -> 14.0`
@@ -79,7 +79,7 @@ and alignment with the design contracts.
 - `AbilityDef` defines category, allowed slots, targeting model (declared), hit delivery,
   windup/active/recovery ticks (60 Hz), costs, cooldown, forced interrupt causes, tags, and base damage.
 - `AbilityCatalog` registers Eloise abilities and shared enemy abilities.
-- `AbilitySlot` supports primary, secondary, projectile, mobility, bonus, jump (fixed).
+- `AbilitySlot` supports primary, secondary, projectile, mobility, spell, jump (fixed).
 
 ### Loadout + Validation
 - Loadout has non-null IDs for all configured slots (no "none" semantics).
@@ -127,7 +127,7 @@ and alignment with the design contracts.
 | Self-centered and defensive abilities | PARTIAL | `SelfHitDelivery` executes and can apply status profiles; defensive mechanics still incomplete. |
 | Projectile payload ownership | OK | Ability defines hit shape; payload provider (throwing item or spell book) provides stats/procs via `HitPayloadBuilder`. |
 | Input buffering in recovery only | OK | Implemented via `AbilityInputBufferStore`. |
-| Bonus slot support | OK | Bonus slot is validated and routed in activation; HUD disables invalid slots (reason display still pending). |
+| Spell slot support | OK | Spell slot is validated and routed in activation; HUD disables invalid slots (reason display still pending). |
 | Auto-target (future) | PARTIAL | Implemented for `TargetingModel.homing` at commit-time (deterministic nearest hostile, facing fallback); in-flight retargeting is still not implemented. |
 
 ## Gaps and Deviations
@@ -140,7 +140,7 @@ and alignment with the design contracts.
    - `SelfHitDelivery` executes and can queue status profiles, but block/parry mechanics
      still need explicit effects or status definitions.
 
-3. Bonus slot wiring now exists; UI may still need clearer invalid/locked feedback.
+3. Spell slot wiring now exists; UI may still need clearer invalid/locked feedback.
 
 4. Hit policy is unused.
    - `HitPolicy` exists in ability definitions, but hitbox/projectile systems do not enforce
@@ -175,7 +175,7 @@ These tests currently validate core ability behavior:
    - Add explicit block/parry behavior or status-driven defenses.
    - Ensure defensive effects are reflected in snapshots/events.
 
-3. Surface bonus slot validity in UI.
+3. Surface spell slot validity in UI.
    - Show invalid slot reasons and provider requirements.
 
 4. Apply `HitPolicy` in hit systems.

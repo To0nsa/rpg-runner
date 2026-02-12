@@ -286,8 +286,8 @@ class GameController extends ChangeNotifier {
     if (input.secondaryPressed) {
       _commandScratch.add(SecondaryPressedCommand(tick: tick));
     }
-    if (input.bonusPressed) {
-      _commandScratch.add(BonusPressedCommand(tick: tick));
+    if (input.spellPressed) {
+      _commandScratch.add(SpellPressedCommand(tick: tick));
     }
     final heldChangedMask = input.abilitySlotHeldChangedMask;
     if (heldChangedMask != 0) {

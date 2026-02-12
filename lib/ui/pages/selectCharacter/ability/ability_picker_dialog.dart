@@ -636,7 +636,7 @@ ProjectileItemId? _initialSourceSpellId(
       return loadout.projectileSlotSpellId;
     case AbilitySlot.primary:
     case AbilitySlot.secondary:
-    case AbilitySlot.bonus:
+    case AbilitySlot.spell:
     case AbilitySlot.mobility:
     case AbilitySlot.jump:
       return null;
@@ -653,8 +653,8 @@ String _slotTitle(AbilitySlot slot) {
       return 'Range Slot';
     case AbilitySlot.mobility:
       return 'Mobility Slot';
-    case AbilitySlot.bonus:
-      return 'Bonus Slot';
+    case AbilitySlot.spell:
+      return 'Spell Slot';
     case AbilitySlot.jump:
       return 'Jump Slot';
   }

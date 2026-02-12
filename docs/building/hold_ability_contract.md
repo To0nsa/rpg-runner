@@ -61,7 +61,7 @@ Authoritative charged-ability timing is derived in Core from latched hold state.
 
 HUD exposes `AbilityInputMode.holdMaintain` for hold abilities.
 
-- `MeleeControl`, `BonusControl`, and Secondary slot now support hold buttons.
+- `MeleeControl`, `SpellControl`, and Secondary slot now support hold buttons.
 - Charged projectile preview/haptics are driven from Core snapshot charge state
   (`projectileChargeActive/ticks/tier`), not local UI stopwatch timing.
 - UI shell listens for `AbilityHoldEndedEvent` and triggers haptics on auto-end

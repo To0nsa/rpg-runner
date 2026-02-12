@@ -57,21 +57,21 @@ void main() {
     });
 
     test(
-      'setLoadout repairs stale bonus spell for equipped spellbook',
+      'setLoadout repairs stale spell-slot spell for equipped spellbook',
       () async {
         final selectionStore = _MemorySelectionStore();
         final appState = AppState(selectionStore: selectionStore);
 
         await appState.setLoadout(
-          const EquippedLoadoutDef(abilityBonusId: 'eloise.restore_mana'),
+          const EquippedLoadoutDef(abilitySpellId: 'eloise.restore_mana'),
         );
 
         expect(
-          appState.selection.equippedLoadout.abilityBonusId,
+          appState.selection.equippedLoadout.abilitySpellId,
           'eloise.arcane_haste',
         );
         expect(
-          selectionStore.saved.equippedLoadout.abilityBonusId,
+          selectionStore.saved.equippedLoadout.abilitySpellId,
           'eloise.arcane_haste',
         );
       },
@@ -180,7 +180,7 @@ void main() {
     );
 
     test(
-      'equipGear spellbook swap repairs stale bonus spell immediately',
+      'equipGear spellbook swap repairs stale spell-slot spell immediately',
       () async {
         final selectionStore = _MemorySelectionStore();
         final metaStore = _MemoryMetaStore(
@@ -197,10 +197,10 @@ void main() {
           itemId: SpellBookId.solidSpellBook,
         );
         await appState.setLoadout(
-          const EquippedLoadoutDef(abilityBonusId: 'eloise.restore_health'),
+          const EquippedLoadoutDef(abilitySpellId: 'eloise.restore_health'),
         );
         expect(
-          appState.selection.equippedLoadout.abilityBonusId,
+          appState.selection.equippedLoadout.abilitySpellId,
           'eloise.restore_health',
         );
 
@@ -211,11 +211,11 @@ void main() {
         );
 
         expect(
-          appState.selection.equippedLoadout.abilityBonusId,
+          appState.selection.equippedLoadout.abilitySpellId,
           'eloise.arcane_haste',
         );
         expect(
-          selectionStore.saved.equippedLoadout.abilityBonusId,
+          selectionStore.saved.equippedLoadout.abilitySpellId,
           'eloise.arcane_haste',
         );
       },

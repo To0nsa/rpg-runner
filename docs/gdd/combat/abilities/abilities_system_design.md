@@ -141,14 +141,14 @@ A character has a set of named ability slots. Slots map to input buttons.
 | **Projectile**    | Projectile (projectile spells/throwing weapons) | Quick Shot, Charged Shot, firebolt, icebolt, thunderbolt          |
 | **Mobility**  | Mobility                          | dash, roll                                               |
 | **Jump**      | Fixed Mobility                    | jump (fixed slot, always available)                      |
-| **Bonus**     | Flexible slot                     | any of Primary/Secondary/Projectile                |
+| **Spell**     | Flexible slot                     | any of Primary/Secondary/Projectile                |
 
 ### Slot Rules
 
 Each slot has **restrictions** that define what can be equipped.
 Restrictions are determined by:
 
-* **Slot role** (Primary/Secondary/Projectile/Mobility/Bonus)
+* **Slot role** (Primary/Secondary/Projectile/Mobility/Spell)
 * **Ability categories/types** (Melee/Defensive/Projectile/Magic/etc.)
 * **Unlocks** (future meta progression)
 
@@ -373,17 +373,17 @@ Abilities reference a presentation key (animation/VFX/SFX).
 
 ## Slot/Ability Interaction Rules
 
-### Bonus Slot
+### Spell Slot
 
-The Bonus slot increases expression without adding new buttons.
+The Spell slot increases expression without adding new buttons.
 
-**Baseline rule:** Bonus can equip any ability category that is also allowed by the character (excluding Mobility).
+**Baseline rule:** Spell can equip any ability category that is also allowed by the character (excluding Mobility).
 
-> Mobility is excluded from Bonus because having two mobility abilities would let the player move forward too quickly, breaking intended pacing.
+> Mobility is excluded from Spell because having two mobility abilities would let the player move forward too quickly, breaking intended pacing.
 
-**Bonus slot has no special priority or cooldown behavior** — it follows the same rules as other slots.
+**Spell slot has no special priority or cooldown behavior** — it follows the same rules as other slots.
 
-Optional stricter rule (future): Bonus can only equip abilities from a *subset* of other slots (Primary/Secondary/Projectile), to prevent weird loadouts.
+Optional stricter rule (future): Spell can only equip abilities from a *subset* of other slots (Primary/Secondary/Projectile), to prevent weird loadouts.
 
 ### Ability Chaining
 
@@ -400,7 +400,7 @@ Examples for Eloise:
 * Primary requires a **weapon** (or two-handed weapon).
 * Secondary requires an **off-hand weapon** (acts as Primary if two-handed weapon equipped).
 * Projectile requires a **projectile item**, either a spell or a throwing weapon.
-* Bonus has no dedicated gear slot, but the equipped ability may require a payload source (primary / secondary / projectile).
+* Spell has no dedicated gear slot, but the equipped ability may require a payload source (primary / secondary / projectile).
 
 **Design rule:** gear cannot be missing.
 
@@ -414,7 +414,7 @@ Examples for Eloise:
 * Secondary: Shield Block **or** Shield Bash
 * Mobility: Dash or Roll
 * Projectile: Ice Bolt or Throwing Knife
-* Bonus: flexible
+* Spell: flexible
 
 ### Example Loadouts
 
@@ -424,7 +424,7 @@ Examples for Eloise:
 * Secondary: Shield Bash
 * Mobility: Dash
 * Projectile: Fire Bolt
-* Bonus: Throwing Knife
+* Spell: Throwing Knife
 
 **Loadout B (Defensive):**
 
@@ -432,7 +432,7 @@ Examples for Eloise:
 * Secondary: Shield Block
 * Mobility: Roll
 * Projectile: Ice Bolt
-* Bonus: Sword Strike
+* Spell: Sword Strike
 
 ---
 

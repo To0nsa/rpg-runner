@@ -274,8 +274,8 @@ class _ActionSlotGrid extends StatelessWidget {
       isEditable: true,
     ),
     _ActionSlotSpec(
-      slot: AbilitySlot.bonus,
-      hudLabel: 'Bonus',
+      slot: AbilitySlot.spell,
+      hudLabel: 'Spell',
       isEditable: true,
     ),
   ];
