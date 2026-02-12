@@ -83,6 +83,7 @@ flutter:
     - assets/images/entities/enemies/unoco/
     - assets/images/entities/player/
     - assets/images/entities/regenerationItems/
+    - assets/images/entities/spells/
     - assets/images/entities/spells/acid/beam/
     - assets/images/entities/spells/acid/bolt/
     - assets/images/entities/spells/dark/bolt/
@@ -95,12 +96,10 @@ flutter:
     - assets/images/entities/spells/fire/bolt/
     - assets/images/entities/spells/fire/breath/
     - assets/images/entities/spells/fire/explosion/
-    - assets/images/entities/spells/fireBolt/
     - assets/images/entities/spells/holy/bolt/
     - assets/images/entities/spells/holy/pillar/
     - assets/images/entities/spells/ice/bolt/
     - assets/images/entities/spells/ice/shard/
-    - assets/images/entities/spells/iceBolt/
     - assets/images/entities/spells/poison/bolt/
     - assets/images/entities/spells/poison/breath/
     - assets/images/entities/spells/poison/burst/
@@ -109,7 +108,6 @@ flutter:
     - assets/images/entities/spells/thunder/bolt/
     - assets/images/entities/spells/thunder/splash/
     - assets/images/entities/spells/thunder/strike/
-    - assets/images/entities/spells/thunderBolt/
     - assets/images/entities/spells/water/blast/
     - assets/images/entities/spells/water/bolt/
     - assets/images/entities/spells/water/spike/

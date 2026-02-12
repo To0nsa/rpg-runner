@@ -24,7 +24,7 @@ class ProjectileItemCatalog {
           procs: <WeaponProc>[
             WeaponProc(
               hook: ProcHook.onHit,
-              statusProfileId: StatusProfileId.iceBolt,
+              statusProfileId: StatusProfileId.slowOnHit,
               chanceBp: 10000,
             ),
           ],
@@ -40,7 +40,7 @@ class ProjectileItemCatalog {
           procs: <WeaponProc>[
             WeaponProc(
               hook: ProcHook.onHit,
-              statusProfileId: StatusProfileId.fireBolt,
+              statusProfileId: StatusProfileId.burnOnHit,
               chanceBp: 10000,
             ),
           ],

@@ -92,7 +92,7 @@ void main() {
         procs: const <WeaponProc>[
           WeaponProc(
             hook: ProcHook.onHit,
-            statusProfileId: StatusProfileId.iceBolt,
+            statusProfileId: StatusProfileId.slowOnHit,
             chanceBp: 10000,
           ),
         ],
@@ -144,7 +144,7 @@ void main() {
     world.statModifier.add(target);
 
     status.queue(
-      StatusRequest(target: target, profileId: StatusProfileId.iceBolt),
+      StatusRequest(target: target, profileId: StatusProfileId.slowOnHit),
     );
     status.queue(
       StatusRequest(target: target, profileId: StatusProfileId.speedBoost),
@@ -210,7 +210,7 @@ void main() {
     status.queue(
       StatusRequest(
         target: target,
-        profileId: StatusProfileId.fireBolt,
+        profileId: StatusProfileId.burnOnHit,
         damageType: DamageType.fire,
       ),
     );
