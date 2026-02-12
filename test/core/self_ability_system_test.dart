@@ -15,6 +15,7 @@ import 'package:rpg_runner/core/ecs/systems/self_ability_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
 import 'package:rpg_runner/core/spells/spell_book_catalog.dart';
+import 'package:rpg_runner/core/spells/spell_book_id.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/weapons/weapon_catalog.dart';
 
@@ -97,6 +98,7 @@ void main() {
 
     final li = world.equippedLoadout.indexOf(player);
     world.equippedLoadout.mask[li] |= LoadoutSlotMask.projectile;
+    world.equippedLoadout.spellBookId[li] = SpellBookId.epicSpellBook;
     world.equippedLoadout.abilityBonusId[li] = 'eloise.restore_mana';
 
     final pi = world.playerInput.indexOf(player);
@@ -144,4 +146,55 @@ void main() {
 
     expect(world.mana.mana[world.mana.indexOf(player)], equals(1000));
   });
+
+  test(
+    'bonus self spell commit is blocked when spellbook does not grant it',
+    () {
+      final world = EcsWorld();
+      final player = EntityFactory(world).createPlayer(
+        posX: 0,
+        posY: 0,
+        velX: 0,
+        velY: 0,
+        facing: Facing.right,
+        grounded: true,
+        body: const BodyDef(isKinematic: true, useGravity: false),
+        collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+        health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+        mana: const ManaDef(mana: 2000, manaMax: 2000, regenPerSecond100: 0),
+        stamina: const StaminaDef(
+          stamina: 5000,
+          staminaMax: 5000,
+          regenPerSecond100: 0,
+        ),
+      );
+
+      final li = world.equippedLoadout.indexOf(player);
+      world.equippedLoadout.mask[li] |= LoadoutSlotMask.projectile;
+      world.equippedLoadout.spellBookId[li] = SpellBookId.basicSpellBook;
+      world.equippedLoadout.abilityBonusId[li] = 'eloise.restore_mana';
+
+      final pi = world.playerInput.indexOf(player);
+      world.playerInput.bonusPressed[pi] = true;
+
+      final activation = AbilityActivationSystem(
+        tickHz: 60,
+        inputBufferTicks: 10,
+        abilities: const AbilityCatalog(),
+        weapons: const WeaponCatalog(),
+        projectileItems: const ProjectileItemCatalog(),
+        spellBooks: const SpellBookCatalog(),
+        accessories: const AccessoryCatalog(),
+      );
+
+      activation.step(world, player: player, currentTick: 5);
+
+      expect(world.activeAbility.hasActiveAbility(player), isFalse);
+      expect(
+        world.selfIntent.tick[world.selfIntent.indexOf(player)],
+        equals(-1),
+      );
+      expect(world.mana.mana[world.mana.indexOf(player)], equals(2000));
+    },
+  );
 }

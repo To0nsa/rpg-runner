@@ -456,7 +456,12 @@ class AbilityActivationSystem {
         break;
       case AbilityPayloadSource.spellBook:
         final spellBookId = world.equippedLoadout.spellBookId[loadoutIndex];
-        if (spellBooks.tryGet(spellBookId) == null) return false;
+        final spellBook = spellBooks.tryGet(spellBookId);
+        if (spellBook == null) return false;
+        if (slot == AbilitySlot.bonus &&
+            !spellBook.containsBonusAbility(ability.id)) {
+          return false;
+        }
         break;
     }
 

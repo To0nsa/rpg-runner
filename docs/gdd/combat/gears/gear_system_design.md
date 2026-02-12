@@ -76,7 +76,7 @@ Gear gates **which abilities can be equipped** by defining the available pool fo
 | **Projectile ability** | Projectile gear | Projectile item determines eligible Projectile abilities. |
 | **Mobility ability** | Player kit | Mobility is a character kit slot, not gear-gated by default (unless a future Utility explicitly gates it). |
 | **Jump** | Player kit | Jump is part of core kit; not gear-gated by default. |
-| **Bonus ability** | Global / meta unlocks (optionally Utility-gated) | Bonus is a flexible slot; do not make “bonus exists only because Utility exists” a hard dependency unless explicitly designed. |
+| **Bonus ability** | Spellbook grants + global/meta unlocks | Current Core bonus self-spells are spellbook-gated; keep utility ownership optional unless explicitly designed. |
 
 **Important:** gating is eligibility only. Gear should not rewrite ability mechanics; it only constrains *which* mechanics you can choose.
 

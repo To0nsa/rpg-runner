@@ -49,3 +49,12 @@ Restore values are percentages of max resource and clamp to each resource max.
 1. Bonus slot is intentionally self-spell only in current vertical slice.
 2. These abilities are deterministic utility actions (no hit payload damage).
 3. Cooldown lane uses bonus group by default (unless explicitly overridden).
+4. Bonus self-spell equip eligibility is spellbook-gated.
+
+## Spellbook Grants (Current Core)
+
+| Spellbook | Granted bonus self-spells |
+|---|---|
+| `basicSpellBook` | `eloise.arcane_haste` |
+| `solidSpellBook` | `eloise.arcane_haste`, `eloise.restore_health` |
+| `epicSpellBook` | `eloise.arcane_haste`, `eloise.restore_health`, `eloise.restore_mana`, `eloise.restore_stamina` |

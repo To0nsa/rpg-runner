@@ -34,7 +34,7 @@ const PlayerCatalog testPlayerCatalogDefaults = PlayerCatalog(
   offhandWeaponId: WeaponId.basicShield,
   projectileItemId: ProjectileItemId.fireBolt,
   spellBookId: SpellBookId.basicSpellBook,
-  projectileSlotSpellId: ProjectileItemId.iceBolt,
+  projectileSlotSpellId: ProjectileItemId.fireBolt,
   abilityPrimaryId: 'eloise.sword_strike',
   abilitySecondaryId: 'eloise.shield_block',
   abilityProjectileId: 'eloise.charged_shot',

@@ -21,16 +21,16 @@ void main() {
         expect(options.first.spellId, isNull);
         expect(options.first.isSpell, isFalse);
         expect(
-          options.any((o) => o.spellId == ProjectileItemId.iceBolt),
-          isTrue,
-        );
-        expect(
           options.any((o) => o.spellId == ProjectileItemId.fireBolt),
           isTrue,
         );
         expect(
+          options.any((o) => o.spellId == ProjectileItemId.iceBolt),
+          isFalse,
+        );
+        expect(
           options.any((o) => o.spellId == ProjectileItemId.thunderBolt),
-          isTrue,
+          isFalse,
         );
       },
     );
@@ -50,27 +50,28 @@ void main() {
         expect(model.spellOptions, isNotEmpty);
         expect(
           model.spellOptions.any(
-            (spell) => spell.spellId == ProjectileItemId.iceBolt,
-          ),
-          isTrue,
-        );
-        expect(
-          model.spellOptions.any(
             (spell) => spell.spellId == ProjectileItemId.fireBolt,
           ),
           isTrue,
         );
         expect(
           model.spellOptions.any(
+            (spell) => spell.spellId == ProjectileItemId.iceBolt,
+          ),
+          isFalse,
+        );
+        expect(
+          model.spellOptions.any(
             (spell) => spell.spellId == ProjectileItemId.thunderBolt,
           ),
-          isTrue,
+          isFalse,
         );
       },
     );
 
     test('projectile slot exposes all enabled projectile abilities', () {
       const loadout = EquippedLoadoutDef(
+        spellBookId: SpellBookId.solidSpellBook,
         abilityProjectileId: 'eloise.quick_shot',
         projectileSlotSpellId: ProjectileItemId.iceBolt,
       );
@@ -130,6 +131,19 @@ void main() {
         candidates.any((candidate) => candidate.id == 'eloise.charged_shot'),
         isFalse,
       );
+
+      final arcaneHaste = candidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.arcane_haste',
+      );
+      final restoreMana = candidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.restore_mana',
+      );
+      final restoreHealth = candidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.restore_health',
+      );
+      expect(arcaneHaste.isEnabled, isTrue);
+      expect(restoreMana.isEnabled, isFalse);
+      expect(restoreHealth.isEnabled, isFalse);
     });
 
     test('primary and secondary slots expose melee auto-aim variants', () {

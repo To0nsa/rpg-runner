@@ -307,6 +307,22 @@ class LoadoutValidator {
         );
       }
     }
+
+    // 4. Spellbook grant gating for bonus self-spells.
+    if (slot == AbilitySlot.bonus &&
+        ability.payloadSource == AbilityPayloadSource.spellBook &&
+        spellBook != null &&
+        !spellBook.containsBonusAbility(ability.id)) {
+      issues.add(
+        LoadoutIssue(
+          slot: slot,
+          kind: IssueKind.catalogMissing,
+          abilityId: ability.id,
+          weaponId: spellBook.id.toString(),
+          message: 'Selected bonus spell is not granted by the spellbook.',
+        ),
+      );
+    }
   }
 
   ProjectileItemDef? _effectiveProjectilePayloadForSlot({

@@ -37,7 +37,7 @@ class EquippedLoadoutDef {
     this.offhandWeaponId = WeaponId.woodenShield,
     this.projectileItemId = ProjectileItemId.throwingKnife,
     this.spellBookId = SpellBookId.basicSpellBook,
-    this.projectileSlotSpellId = ProjectileItemId.iceBolt,
+    this.projectileSlotSpellId = ProjectileItemId.fireBolt,
     this.accessoryId = AccessoryId.speedBoots,
     this.abilityPrimaryId = 'eloise.sword_strike',
     this.abilitySecondaryId = 'eloise.shield_block',
@@ -156,7 +156,7 @@ class EquippedLoadoutStore extends SparseSet {
     offhandWeaponId.add(WeaponId.woodenShield);
     projectileItemId.add(ProjectileItemId.throwingKnife);
     spellBookId.add(SpellBookId.basicSpellBook);
-    projectileSlotSpellId.add(ProjectileItemId.iceBolt);
+    projectileSlotSpellId.add(ProjectileItemId.fireBolt);
     accessoryId.add(AccessoryId.speedBoots);
     abilityPrimaryId.add('eloise.sword_strike');
     abilitySecondaryId.add('eloise.shield_block');
