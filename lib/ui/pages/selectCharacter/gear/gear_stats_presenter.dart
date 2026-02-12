@@ -158,7 +158,7 @@ void _addCoreStatLines(List<GearStatLine> lines, GearStatBonuses stats) {
   _addBpStat(lines, _labelFor(CharacterStatId.mana), stats.manaBonusBp);
   _addBpStat(lines, _labelFor(CharacterStatId.stamina), stats.staminaBonusBp);
   _addBpStat(lines, _labelFor(CharacterStatId.defense), stats.defenseBonusBp);
-  _addBpStat(lines, _labelFor(CharacterStatId.power), stats.powerBonusBp);
+  _addBpStat(lines, _labelFor(CharacterStatId.power), _effectivePowerBp(stats));
   _addBpStat(
     lines,
     _labelFor(CharacterStatId.moveSpeed),
@@ -172,7 +172,32 @@ void _addCoreStatLines(List<GearStatLine> lines, GearStatBonuses stats) {
   _addBpStat(
     lines,
     _labelFor(CharacterStatId.critChance),
-    stats.critChanceBonusBp,
+    _effectiveCritChanceBp(stats),
+  );
+  _addBpStat(
+    lines,
+    _labelFor(CharacterStatId.physicalResistance),
+    stats.physicalResistanceBp,
+  );
+  _addBpStat(
+    lines,
+    _labelFor(CharacterStatId.fireResistance),
+    stats.fireResistanceBp,
+  );
+  _addBpStat(
+    lines,
+    _labelFor(CharacterStatId.iceResistance),
+    stats.iceResistanceBp,
+  );
+  _addBpStat(
+    lines,
+    _labelFor(CharacterStatId.thunderResistance),
+    stats.thunderResistanceBp,
+  );
+  _addBpStat(
+    lines,
+    _labelFor(CharacterStatId.bleedResistance),
+    stats.bleedResistanceBp,
   );
 }
 
@@ -223,13 +248,11 @@ List<GearStatLine> _diffStatBonuses(GearStatBonuses a, GearStatBonuses b) {
       ),
     );
   }
-  if (b.powerBonusBp != a.powerBonusBp) {
+  final aPowerBp = _effectivePowerBp(a);
+  final bPowerBp = _effectivePowerBp(b);
+  if (bPowerBp != aPowerBp) {
     lines.add(
-      _deltaBpLine(
-        _labelFor(CharacterStatId.power),
-        a.powerBonusBp,
-        b.powerBonusBp,
-      ),
+      _deltaBpLine(_labelFor(CharacterStatId.power), aPowerBp, bPowerBp),
     );
   }
   if (b.cooldownReductionBp != a.cooldownReductionBp) {
@@ -241,12 +264,59 @@ List<GearStatLine> _diffStatBonuses(GearStatBonuses a, GearStatBonuses b) {
       ),
     );
   }
-  if (b.critChanceBonusBp != a.critChanceBonusBp) {
+  final aCritChanceBp = _effectiveCritChanceBp(a);
+  final bCritChanceBp = _effectiveCritChanceBp(b);
+  if (bCritChanceBp != aCritChanceBp) {
     lines.add(
       _deltaBpLine(
         _labelFor(CharacterStatId.critChance),
-        a.critChanceBonusBp,
-        b.critChanceBonusBp,
+        aCritChanceBp,
+        bCritChanceBp,
+      ),
+    );
+  }
+  if (b.physicalResistanceBp != a.physicalResistanceBp) {
+    lines.add(
+      _deltaBpLine(
+        _labelFor(CharacterStatId.physicalResistance),
+        a.physicalResistanceBp,
+        b.physicalResistanceBp,
+      ),
+    );
+  }
+  if (b.fireResistanceBp != a.fireResistanceBp) {
+    lines.add(
+      _deltaBpLine(
+        _labelFor(CharacterStatId.fireResistance),
+        a.fireResistanceBp,
+        b.fireResistanceBp,
+      ),
+    );
+  }
+  if (b.iceResistanceBp != a.iceResistanceBp) {
+    lines.add(
+      _deltaBpLine(
+        _labelFor(CharacterStatId.iceResistance),
+        a.iceResistanceBp,
+        b.iceResistanceBp,
+      ),
+    );
+  }
+  if (b.thunderResistanceBp != a.thunderResistanceBp) {
+    lines.add(
+      _deltaBpLine(
+        _labelFor(CharacterStatId.thunderResistance),
+        a.thunderResistanceBp,
+        b.thunderResistanceBp,
+      ),
+    );
+  }
+  if (b.bleedResistanceBp != a.bleedResistanceBp) {
+    lines.add(
+      _deltaBpLine(
+        _labelFor(CharacterStatId.bleedResistance),
+        a.bleedResistanceBp,
+        b.bleedResistanceBp,
       ),
     );
   }
@@ -266,6 +336,14 @@ GearStatLineTone _toneForDelta(int delta) {
   if (delta > 0) return GearStatLineTone.positive;
   if (delta < 0) return GearStatLineTone.negative;
   return GearStatLineTone.neutral;
+}
+
+int _effectivePowerBp(GearStatBonuses stats) {
+  return stats.powerBonusBp + stats.globalPowerBonusBp;
+}
+
+int _effectiveCritChanceBp(GearStatBonuses stats) {
+  return stats.critChanceBonusBp + stats.globalCritChanceBonusBp;
 }
 
 String _bpPct(int bp) => _signedPercent(bp / 100);

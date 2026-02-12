@@ -1,13 +1,31 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:rpg_runner/core/accessories/accessory_catalog.dart';
+import 'package:rpg_runner/core/accessories/accessory_def.dart';
+import 'package:rpg_runner/core/accessories/accessory_id.dart';
+import 'package:rpg_runner/core/abilities/ability_def.dart' show WeaponType;
 import 'package:rpg_runner/core/combat/damage.dart';
 import 'package:rpg_runner/core/combat/damage_type.dart';
 import 'package:rpg_runner/core/combat/status/status.dart';
 import 'package:rpg_runner/core/ecs/stores/health_store.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/damage_resistance_store.dart';
+import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
 import 'package:rpg_runner/core/ecs/systems/status_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
+import 'package:rpg_runner/core/projectiles/projectile_id.dart';
+import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
+import 'package:rpg_runner/core/projectiles/projectile_item_def.dart';
+import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
+import 'package:rpg_runner/core/spells/spell_book_catalog.dart';
+import 'package:rpg_runner/core/spells/spell_book_def.dart';
+import 'package:rpg_runner/core/spells/spell_book_id.dart';
+import 'package:rpg_runner/core/stats/character_stats_resolver.dart';
+import 'package:rpg_runner/core/stats/gear_stat_bonuses.dart';
+import 'package:rpg_runner/core/weapons/weapon_catalog.dart';
+import 'package:rpg_runner/core/weapons/weapon_category.dart';
+import 'package:rpg_runner/core/weapons/weapon_def.dart';
+import 'package:rpg_runner/core/weapons/weapon_id.dart';
 import 'package:rpg_runner/core/weapons/weapon_proc.dart';
 
 void main() {
@@ -102,10 +120,7 @@ void main() {
     world.statusImmunity.add(target);
 
     status.queue(
-      StatusRequest(
-        target: target,
-        profileId: StatusProfileId.meleeBleed,
-      ),
+      StatusRequest(target: target, profileId: StatusProfileId.meleeBleed),
     );
     status.applyQueued(world, currentTick: 0);
 
@@ -129,16 +144,10 @@ void main() {
     world.statModifier.add(target);
 
     status.queue(
-      StatusRequest(
-        target: target,
-        profileId: StatusProfileId.iceBolt,
-      ),
+      StatusRequest(target: target, profileId: StatusProfileId.iceBolt),
     );
     status.queue(
-      StatusRequest(
-        target: target,
-        profileId: StatusProfileId.speedBoost,
-      ),
+      StatusRequest(target: target, profileId: StatusProfileId.speedBoost),
     );
     status.applyQueued(world, currentTick: 1);
 
@@ -161,15 +170,55 @@ void main() {
     world.statModifier.add(target);
 
     status.queue(
-      StatusRequest(
-        target: target,
-        profileId: StatusProfileId.speedBoost,
-      ),
+      StatusRequest(target: target, profileId: StatusProfileId.speedBoost),
     );
     status.applyQueued(world, currentTick: 1);
 
     final index = world.statModifier.indexOf(target);
     expect(world.statModifier.moveSpeedMul[index], closeTo(2.0, 1e-6));
+  });
+
+  test('status scaling uses combined typed modifier from store and gear', () {
+    final world = EcsWorld();
+    final status = StatusSystem(
+      tickHz: 60,
+      statsResolver: CharacterStatsResolver(
+        weapons: const _FlatWeaponCatalog(),
+        projectileItems: const _FlatProjectileCatalog(),
+        spellBooks: const _FlatSpellBookCatalog(),
+        accessories: const _FireResistAccessoryCatalog(),
+      ),
+    );
+
+    final target = world.createEntity();
+    world.health.add(
+      target,
+      const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+    );
+    world.damageResistance.add(target, const DamageResistanceDef(fireBp: 5000));
+    world.equippedLoadout.add(
+      target,
+      const EquippedLoadoutDef(
+        mask: LoadoutSlotMask.mainHand,
+        accessoryId: AccessoryId.speedBoots,
+      ),
+    );
+    world.invulnerability.add(target);
+    world.statusImmunity.add(target);
+    world.statModifier.add(target);
+
+    status.queue(
+      StatusRequest(
+        target: target,
+        profileId: StatusProfileId.fireBolt,
+        damageType: DamageType.fire,
+      ),
+    );
+    status.applyQueued(world, currentTick: 1);
+
+    final burnIndex = world.burn.indexOf(target);
+    // FireBolt base dps100=500. Combined typed mod: +5000 store - 4000 gear = +1000.
+    expect(world.burn.dps100[burnIndex], equals(550));
   });
 }
 
@@ -180,17 +229,68 @@ class TestStatusProfileCatalog extends StatusProfileCatalog {
   StatusProfile get(StatusProfileId id) {
     switch (id) {
       case StatusProfileId.speedBoost:
-        return const StatusProfile(
-          <StatusApplication>[
-            StatusApplication(
-              type: StatusEffectType.haste,
-              magnitude: 30000,
-              durationSeconds: 5.0,
-            ),
-          ],
-        );
+        return const StatusProfile(<StatusApplication>[
+          StatusApplication(
+            type: StatusEffectType.haste,
+            magnitude: 30000,
+            durationSeconds: 5.0,
+          ),
+        ]);
       default:
         return super.get(id);
     }
+  }
+}
+
+class _FlatWeaponCatalog extends WeaponCatalog {
+  const _FlatWeaponCatalog();
+
+  @override
+  WeaponDef get(WeaponId id) {
+    return const WeaponDef(
+      id: WeaponId.basicSword,
+      category: WeaponCategory.primary,
+      weaponType: WeaponType.oneHandedSword,
+      stats: GearStatBonuses(),
+    );
+  }
+}
+
+class _FlatProjectileCatalog extends ProjectileItemCatalog {
+  const _FlatProjectileCatalog();
+
+  @override
+  ProjectileItemDef get(ProjectileItemId id) {
+    return const ProjectileItemDef(
+      id: ProjectileItemId.throwingKnife,
+      weaponType: WeaponType.throwingWeapon,
+      projectileId: ProjectileId.throwingKnife,
+      stats: GearStatBonuses(),
+    );
+  }
+}
+
+class _FlatSpellBookCatalog extends SpellBookCatalog {
+  const _FlatSpellBookCatalog();
+
+  @override
+  SpellBookDef get(SpellBookId id) {
+    return const SpellBookDef(
+      id: SpellBookId.basicSpellBook,
+      weaponType: WeaponType.projectileSpell,
+      stats: GearStatBonuses(),
+    );
+  }
+}
+
+class _FireResistAccessoryCatalog extends AccessoryCatalog {
+  const _FireResistAccessoryCatalog();
+
+  @override
+  AccessoryDef get(AccessoryId id) {
+    return const AccessoryDef(
+      id: AccessoryId.speedBoots,
+      stats: GearStatBonuses(fireResistanceBp: 4000),
+    );
   }
 }

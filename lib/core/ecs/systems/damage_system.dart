@@ -2,6 +2,7 @@ import '../../abilities/ability_def.dart';
 import '../../abilities/forced_interrupt_policy.dart';
 import '../../combat/status/status.dart';
 import '../../stats/character_stats_resolver.dart';
+import '../../stats/resolved_stats_cache.dart';
 import '../../util/deterministic_rng.dart';
 import '../../util/fixed_math.dart';
 import '../../weapons/weapon_proc.dart';
@@ -22,13 +23,14 @@ class DamageSystem {
     required this.invulnerabilityTicksOnHit,
     required int rngSeed,
     CharacterStatsResolver statsResolver = const CharacterStatsResolver(),
+    ResolvedStatsCache? statsCache,
     this.forcedInterruptPolicy = ForcedInterruptPolicy.defaultPolicy,
   }) : _rngState = seedFrom(rngSeed, 0x44a3c2f1),
-       _statsResolver = statsResolver;
+       _statsCache = statsCache ?? ResolvedStatsCache(resolver: statsResolver);
 
   /// Number of ticks an entity is invulnerable after taking damage.
   final int invulnerabilityTicksOnHit;
-  final CharacterStatsResolver _statsResolver;
+  final ResolvedStatsCache _statsCache;
   final ForcedInterruptPolicy forcedInterruptPolicy;
 
   int _rngState;
@@ -47,7 +49,6 @@ class DamageSystem {
     final invuln = world.invulnerability;
     final lastDamage = world.lastDamage;
     final resistance = world.damageResistance;
-    final loadout = world.equippedLoadout;
 
     for (var i = 0; i < queue.length; i += 1) {
       if ((queue.flags[i] & DamageQueueFlags.canceled) != 0) continue;
@@ -91,22 +92,18 @@ class DamageSystem {
 
       // 4. Apply global defense (if the target has equipped gear stats).
       var amountAfterDefense = amountAfterCrit;
-      final li = loadout.tryIndexOf(target);
-      if (li != null) {
-        final resolved = _statsResolver.resolveEquipped(
-          mask: loadout.mask[li],
-          mainWeaponId: loadout.mainWeaponId[li],
-          offhandWeaponId: loadout.offhandWeaponId[li],
-          projectileItemId: loadout.projectileItemId[li],
-          spellBookId: loadout.spellBookId[li],
-          accessoryId: loadout.accessoryId[li],
-        );
-        amountAfterDefense = resolved.applyDefense(amountAfterDefense);
-      }
+      final resolvedStats = _statsCache.resolveForEntity(world, target);
+      amountAfterDefense = resolvedStats.applyDefense(amountAfterDefense);
 
       // 5. Apply resistance/vulnerability modifier.
       final ri = resistance.tryIndexOf(target);
-      final modBp = ri == null ? 0 : resistance.modBpForIndex(ri, damageType);
+      final baseTypedModBp = ri == null
+          ? 0
+          : resistance.modBpForIndex(ri, damageType);
+      final gearTypedModBp = resolvedStats.incomingDamageModBpForDamageType(
+        damageType,
+      );
+      final modBp = baseTypedModBp + gearTypedModBp;
       var appliedAmount = applyBp(amountAfterDefense, modBp);
       if (appliedAmount < 0) appliedAmount = 0;
 

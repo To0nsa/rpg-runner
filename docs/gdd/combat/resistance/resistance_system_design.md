@@ -62,12 +62,16 @@ In `DamageSystem.step`, incoming damage is resolved in this order:
 
 1. Crit resolution (`critChanceBp` with deterministic RNG, +50% crit bonus)
 2. Global defense (`ResolvedCharacterStats.applyDefense`)
-3. Typed resistance/vulnerability from `DamageResistanceStore`
+3. Typed resistance/vulnerability from:
+   - base/archetype runtime store (`DamageResistanceStore`)
+   - gear typed resistance (`ResolvedCharacterStats`)
 4. Final clamp `>= 0`
 
 Typed resistance application:
 
-`appliedAmount = applyBp(amountAfterDefense, resistanceBpForDamageType)`
+`combinedTypedModBp = storeTypedModBp + (-gearTypedResistanceBp)`
+
+`appliedAmount = applyBp(amountAfterDefense, combinedTypedModBp)`
 
 Where:
 
@@ -81,7 +85,9 @@ Where:
 Defense and typed resistance are separate layers:
 
 - Defense is global and comes from resolved gear stats (`defenseBonusBp`).
-- Typed resistance is per damage category and comes from entity archetype/store.
+- Typed resistance is per damage category and comes from both:
+  - entity archetype/store (`DamageResistanceStore`)
+  - resolved gear typed resistance.
 
 Current order is intentional:
 
@@ -93,14 +99,16 @@ This means typed vulnerabilities amplify damage after defense has already reduce
 
 ## Relationship with Status Scaling
 
-Status applications using `scaleByDamageType` read the same typed modifier via `DamageResistanceStore` using the request `damageType`.
+Status applications using `scaleByDamageType` read the same combined typed modifier
+(`store + gear`) using the request `damageType`.
 
 Current behavior in `StatusSystem`:
 
 - Positive modifier (`> 0`) scales status magnitude up.
 - Negative modifier (`<= 0`) does not scale status magnitude down.
 
-So typed resistance can fully reduce damage but still allow a status proc toapply at base magnitude.
+So typed resistance can fully reduce damage but still allow a status proc to
+apply at base magnitude.
 
 ---
 
@@ -145,24 +153,17 @@ Recommended authoring guardrail until clamps are introduced:
 4. Ensure damage producers can emit the new `DamageType`.
 5. Add tests for neutral, resistance, and vulnerability cases.
 
-### Add per-type resistance on gear
+### Typed resistance on gear (implemented)
 
-1. Extend `GearStatBonuses` with typed resistance fields (for example:
-   `physicalResistBp`, `fireResistBp`, `iceResistBp`, `thunderResistBp`,
-   `bleedResistBp`).
-2. Add clamp limits for typed resistance in `CharacterStatCaps`.
-3. Aggregate typed resistance in `CharacterStatsResolver` and expose it on
-   `ResolvedCharacterStats`.
-4. Define and enforce one authority path for runtime application:
-   - either write resolved typed resistance into `DamageResistanceStore`, or
-   - resolve gear typed resistance in `DamageSystem` and combine with store data.
-5. Freeze stacking order explicitly (recommended):
-   `archetype/base resistance + gear resistance + temporary runtime modifiers`.
-6. Add tests for:
-   - neutral vs resistant vs vulnerable outcomes from gear,
-   - interaction with global defense (`defenseBonusBp`) and formula order,
-   - deterministic outcomes for repeated runs.
-7. Update related docs (`docs\gdd\combat\gears\gear_system_design.md`, `docs\gdd\combat\stats\character_stats_system_design.md`, and this file) after implementation.
+Implemented path:
+
+1. `GearStatBonuses` exposes typed resistance fields
+   (`physical/fire/ice/thunder/bleedResistanceBp`).
+2. `CharacterStatCaps` clamps typed resistance.
+3. `CharacterStatsResolver` aggregates typed resistance and exposes per-type access.
+4. Runtime application combines store and gear in `DamageSystem`:
+   `storeTypedModBp + (-gearTypedResistanceBp)`.
+5. `StatusSystem` uses the same combined typed modifier for `scaleByDamageType`.
 
 ### Add penetration / shred later
 

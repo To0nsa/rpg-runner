@@ -19,6 +19,7 @@ class HitPayloadBuilder {
     required EntityId source,
     // Modifiers (extracted from WeaponDef or ProjectileItemDef or Buffs)
     GearStatBonuses? weaponStats,
+    int globalPowerBonusBp = 0,
     int globalCritChanceBonusBp = 0,
     DamageType? weaponDamageType,
     List<WeaponProc> weaponProcs = const [],
@@ -31,7 +32,13 @@ class HitPayloadBuilder {
     int finalCritChanceBp = globalCritChanceBonusBp;
     final List<WeaponProc> finalProcs = [];
 
-    // 2. Apply Weapon Modifiers
+    // 2. Apply global offensive modifiers.
+    if (globalPowerBonusBp != 0) {
+      finalDamage100 = (finalDamage100 * (10000 + globalPowerBonusBp)) ~/ 10000;
+      if (finalDamage100 < 0) finalDamage100 = 0;
+    }
+
+    // 3. Apply payload-source weapon modifiers.
     if (weaponStats != null) {
       // A. Power Scaling (Integer Math)
       // Math: damage = base * (1 + bonusBp/10000)

@@ -1,6 +1,6 @@
 # Character Stats (V1 Design + Current Implementation)
 
-This document defines the V1 character stat model and records the **actual implemented behavior** in Core as of **February 6, 2026**.
+This document defines the V1 character stat model and records the **actual implemented behavior** in Core as of **February 12, 2026**.
 
 It is a design companion to `docs/gdd/11_gear.md`.
 
@@ -36,10 +36,11 @@ The game uses a small universal stat set:
 | Mana | Implemented as max-pool scaling from equipped loadout at player spawn. |
 | Stamina | Implemented as max-pool scaling from equipped loadout at player spawn. |
 | Defense | Implemented globally on incoming damage before per-type resistance. |
-| Power | Implemented on outgoing payload stats (weapon/projectile/spellbook stats). A global resolver API exists but is not yet applied globally in the damage pipeline. |
+| Power | Implemented as a hybrid model: global outgoing power (`globalPowerBonusBp`) plus payload-source power (`powerBonusBp`). |
 | Move Speed | Implemented as a multiplier from resolved loadout stats, then combined with status speed modifiers. |
 | Cooldown Reduction | Implemented on all ability commit cooldown start paths. |
-| Crit Chance | Implemented end-to-end (payload assembly -> deterministic roll -> crit damage application). |
+| Crit Chance | Implemented as a hybrid model: global crit chance (`globalCritChanceBonusBp`) plus payload-source crit chance (`critChanceBonusBp`) with final clamping. |
+| Typed Resistance | Implemented from both archetype/store resistance and gear resistance (`physical/fire/ice/thunder/bleed`). |
 
 ---
 
@@ -79,10 +80,12 @@ The game uses a small universal stat set:
 
 ### 4.4 Outgoing damage and crit
 
-- Payload damage scaling uses outgoing item stats:
-  - `scaledDamage = baseDamage * (10000 + powerBonusBp) / 10000`
+- Outgoing scaling uses a hybrid stage:
+  - `damageAfterGlobal = applyBp(baseDamage, globalPowerBonusBp)`
+  - `finalDamage = applyBp(damageAfterGlobal, payloadSourcePowerBonusBp)`
   - Clamped at minimum `0`.
-- Final crit chance is aggregated then clamped to `[0, 10000]`.
+- Final crit chance:
+  - `finalCritChanceBp = clamp(globalCritChanceBonusBp + payloadSourceCritChanceBp, 0, 10000)`.
 - Crit damage bonus is currently fixed to `+5000 bp` (`+50%`).
 
 ### 4.5 Incoming damage order
@@ -91,8 +94,23 @@ Damage application order in Core:
 
 1. Resolve crit outcome and crit-adjusted amount.
 2. Apply global defense.
-3. Apply per-damage-type resistance/vulnerability modifier.
+3. Apply combined per-damage-type resistance/vulnerability modifier:
+   - `storeTypedModBp + (-gearTypedResistanceBp)`
 4. Clamp final damage to `>= 0`.
+
+### 4.6 Resolved stat lifecycle (runtime)
+
+- Gear-derived stats are resolved through `ResolvedStatsCache` (ECS-backed).
+- Hot-path systems (`PlayerMovementSystem`, `AbilityActivationSystem`, `DamageSystem`, `StatusSystem`) read cached resolved stats.
+- Recompute occurs lazily only when the equipped loadout snapshot changes:
+  - `mask`
+  - `mainWeaponId`
+  - `offhandWeaponId`
+  - `projectileItemId`
+  - `spellBookId`
+  - `accessoryId`
+- If an entity has no loadout, runtime uses neutral resolved stats (all zero bonuses).
+- Status effects currently do **not** mutate the gear-resolved stat bundle; they are applied through runtime modifier stores (`StatModifierStore`, status stores) and compose at use sites.
 
 ---
 
@@ -104,10 +122,13 @@ Damage application order in Core:
 | Mana bonus | `-9000 bp` (-90%) | `+20000 bp` (+200%) |
 | Stamina bonus | `-9000 bp` (-90%) | `+20000 bp` (+200%) |
 | Defense | `-9000 bp` (-90%) | `+7500 bp` (+75%) |
-| Power | `-9000 bp` (-90%) | `+10000 bp` (+100%) |
+| Global Power | `-9000 bp` (-90%) | `+10000 bp` (+100%) |
+| Payload-source Power | `-9000 bp` (-90%) | `+10000 bp` (+100%) |
 | Move Speed | `-9000 bp` (-90%) | `+5000 bp` (+50%) |
 | Cooldown Reduction | `-5000 bp` (-50% effectiveness, longer cooldowns) | `+5000 bp` (+50% reduction) |
-| Crit Chance | `0 bp` (0%) | `+6000 bp` (+60%) |
+| Global Crit Chance | `0 bp` (0%) | `+6000 bp` (+60%) |
+| Payload-source Crit Chance | `0 bp` (0%) | `+6000 bp` (+60%) |
+| Typed Resistance (per type) | `-9000 bp` (vulnerability) | `+7500 bp` (resistance) |
 
 ---
 
@@ -139,6 +160,12 @@ Damage application order in Core:
 - No direct stat bonus values currently assigned in `ProjectileItemCatalog`.
 - Projectile items currently contribute primarily through damage type/procs/ballistics.
 
+### 6.5 Global offensive + typed resistance authoring
+
+- Default catalog content currently uses payload-source Power on weapons/spellbooks.
+- No default catalog content currently grants global offensive stats.
+- No default catalog content currently grants typed gear resistance.
+
 ---
 
 ## 7. Base Character Reference (Eloise defaults)
@@ -158,9 +185,9 @@ These values are converted to fixed-100 in runtime stores.
 
 ## 8. Known V1 Notes
 
-- Resolver includes `applyPower(...)`, but global resolved power is not yet applied as a separate global pass in runtime damage.
-- Crit chance pipeline is implemented, but no default catalog gear currently grants crit chance.
-- Defense pipeline is implemented, but default catalog gear currently does not grant defense.
+- Crit damage bonus remains fixed at `+50%`.
+- Default catalog content currently does not grant global offensive stats.
+- Default catalog content currently does not grant typed gear resistance.
 
 ---
 

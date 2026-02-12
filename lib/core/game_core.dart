@@ -150,6 +150,7 @@ import 'progression/run_rewards.dart';
 import 'track_manager.dart';
 import 'weapons/weapon_catalog.dart';
 import 'stats/character_stats_resolver.dart';
+import 'stats/resolved_stats_cache.dart';
 import 'ecs/stores/combat/equipped_loadout_store.dart';
 import 'ecs/stores/health_store.dart';
 import 'ecs/stores/mana_store.dart';
@@ -440,9 +441,13 @@ class GameCore {
     const forcedInterruptPolicy = ForcedInterruptPolicy(
       abilities: abilityCatalog,
     );
+    _resolvedStatsCache = ResolvedStatsCache(resolver: _statsResolver);
 
     // Core movement and physics.
-    _movementSystem = PlayerMovementSystem(statsResolver: _statsResolver);
+    _movementSystem = PlayerMovementSystem(
+      statsResolver: _statsResolver,
+      statsCache: _resolvedStatsCache,
+    );
     _mobilitySystem = MobilitySystem();
     _collisionSystem = CollisionSystem();
     _cooldownSystem = CooldownSystem();
@@ -478,9 +483,14 @@ class GameCore {
       invulnerabilityTicksOnHit: _combat.invulnerabilityTicks,
       rngSeed: seed,
       statsResolver: _statsResolver,
+      statsCache: _resolvedStatsCache,
       forcedInterruptPolicy: forcedInterruptPolicy,
     );
-    _statusSystem = StatusSystem(tickHz: tickHz);
+    _statusSystem = StatusSystem(
+      tickHz: tickHz,
+      statsResolver: _statsResolver,
+      statsCache: _resolvedStatsCache,
+    );
     _controlLockSystem = ControlLockSystem();
     _activeAbilityPhaseSystem = ActiveAbilityPhaseSystem(
       forcedInterruptPolicy: forcedInterruptPolicy,
@@ -517,6 +527,7 @@ class GameCore {
       projectileItems: _projectileItems,
       spellBooks: _spellBooks,
       accessories: _accessories,
+      statsCache: _resolvedStatsCache,
     );
     _hitboxDamageSystem = HitboxDamageSystem();
 
@@ -735,6 +746,7 @@ class GameCore {
   final WeaponCatalog _weapons;
   final AccessoryCatalog _accessories;
   final CharacterStatsResolver _statsResolver;
+  late final ResolvedStatsCache _resolvedStatsCache;
   final EquippedLoadoutDef? _equippedLoadoutOverride;
 
   // ─── ECS Core ───

@@ -107,23 +107,30 @@ DamageRequest {
 ### Damage Formula
 
 ```
-finalDamage = baseDamage × (1 + resistanceMod)
+amountAfterCrit = applyCrit(baseDamage, critChanceBp)
+amountAfterDefense = applyDefense(amountAfterCrit, defenseBonusBp)
+combinedTypedMod = storeTypedModBp + (-gearTypedResistanceBp)
+finalDamage = amountAfterDefense × (1 + combinedTypedMod)
 ```
 
-Where `resistanceMod` is looked up from `DamageResistanceStore` by `DamageType`:
-- Positive mod = vulnerability (e.g., +0.5 = 50% more damage)
-- Negative mod = resistance (e.g., -0.25 = 25% less damage)
-- Zero mod = neutral
+Where:
+- `storeTypedModBp` comes from `DamageResistanceStore` by `DamageType`.
+- `gearTypedResistanceBp` comes from resolved gear stats.
+- Positive combined mod = vulnerability (more damage).
+- Negative combined mod = resistance (less damage).
+- Zero combined mod = neutral.
 
 ### DamageSystem Processing
 
 1. Resolve target's `HealthStore` component
 2. Check `InvulnerabilityStore` for i-frames → skip if active
-3. Apply resistance modifier from `DamageResistanceStore`
-4. Reduce `HealthStore.hp`
-5. Record in `LastDamageStore` (for death messages/analytics)
-6. Roll `procs` (onHit) for non-zero `amount100` and queue `StatusRequest` for triggered effects
-7. Apply i-frames to `InvulnerabilityStore`
+3. Resolve crit outcome and crit-adjusted amount
+4. Apply global defense from resolved loadout stats
+5. Apply combined typed modifier (`store + gear`)
+6. Reduce `HealthStore.hp`
+7. Record in `LastDamageStore` (for death messages/analytics)
+8. Roll `procs` (onHit) for non-zero `amount100` and queue `StatusRequest` for triggered effects
+9. Apply i-frames to `InvulnerabilityStore`
 
 ## Status Effect Pipeline
 

@@ -8,6 +8,11 @@ enum CharacterStatId {
   moveSpeed,
   cooldownReduction,
   critChance,
+  physicalResistance,
+  fireResistance,
+  iceResistance,
+  thunderResistance,
+  bleedResistance,
 }
 
 /// Stable metadata for stat display and future localization mapping.
@@ -64,6 +69,31 @@ const List<CharacterStatDescriptor> kCharacterStatDescriptors =
         id: CharacterStatId.critChance,
         displayName: 'Crit Chance',
         localizationKey: 'gear.stat.crit_chance',
+      ),
+      CharacterStatDescriptor(
+        id: CharacterStatId.physicalResistance,
+        displayName: 'Physical Resist',
+        localizationKey: 'gear.stat.physical_resistance',
+      ),
+      CharacterStatDescriptor(
+        id: CharacterStatId.fireResistance,
+        displayName: 'Fire Resist',
+        localizationKey: 'gear.stat.fire_resistance',
+      ),
+      CharacterStatDescriptor(
+        id: CharacterStatId.iceResistance,
+        displayName: 'Ice Resist',
+        localizationKey: 'gear.stat.ice_resistance',
+      ),
+      CharacterStatDescriptor(
+        id: CharacterStatId.thunderResistance,
+        displayName: 'Thunder Resist',
+        localizationKey: 'gear.stat.thunder_resistance',
+      ),
+      CharacterStatDescriptor(
+        id: CharacterStatId.bleedResistance,
+        displayName: 'Bleed Resist',
+        localizationKey: 'gear.stat.bleed_resistance',
       ),
     ];
 

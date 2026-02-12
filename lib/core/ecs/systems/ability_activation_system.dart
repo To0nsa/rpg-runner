@@ -15,6 +15,7 @@ import '../../weapons/weapon_catalog.dart';
 import '../../weapons/weapon_proc.dart';
 import '../../stats/gear_stat_bonuses.dart';
 import '../../stats/character_stats_resolver.dart';
+import '../../stats/resolved_stats_cache.dart';
 import '../../util/fixed_math.dart';
 import '../../util/tick_math.dart';
 import '../entity_id.dart';
@@ -45,12 +46,17 @@ class AbilityActivationSystem {
     required this.projectileItems,
     required this.spellBooks,
     required this.accessories,
-  }) : _statsResolver = CharacterStatsResolver(
-         weapons: weapons,
-         projectileItems: projectileItems,
-         spellBooks: spellBooks,
-         accessories: accessories,
-       );
+    ResolvedStatsCache? statsCache,
+  }) : _statsCache =
+           statsCache ??
+           ResolvedStatsCache(
+             resolver: CharacterStatsResolver(
+               weapons: weapons,
+               projectileItems: projectileItems,
+               spellBooks: spellBooks,
+               accessories: accessories,
+             ),
+           );
 
   final int tickHz;
   final int inputBufferTicks;
@@ -60,7 +66,7 @@ class AbilityActivationSystem {
   final SpellBookCatalog spellBooks;
   final AccessoryCatalog accessories;
 
-  final CharacterStatsResolver _statsResolver;
+  final ResolvedStatsCache _statsCache;
 
   void step(
     EcsWorld world, {
@@ -459,7 +465,7 @@ class AbilityActivationSystem {
     final recoveryTicks = _scaleAbilityTicks(ability.recoveryTicks);
     final executeTick = commitTick + windupTicks;
     final cooldownGroupId = ability.effectiveCooldownGroup(slot);
-    final resolvedStats = _resolvedStatsForLoadout(world, loadoutIndex);
+    final resolvedStats = _resolvedStatsForLoadout(world, player);
     final cooldownTicks = resolvedStats.applyCooldownReduction(
       _scaleAbilityTicks(ability.cooldownTicks),
     );
@@ -567,7 +573,7 @@ class AbilityActivationSystem {
     final recoveryTicks = _scaleAbilityTicks(ability.recoveryTicks);
     final executeTick = commitTick + windupTicks;
     final cooldownGroupId = ability.effectiveCooldownGroup(slot);
-    final resolvedStats = _resolvedStatsForLoadout(world, loadoutIndex);
+    final resolvedStats = _resolvedStatsForLoadout(world, player);
     final cooldownTicks = resolvedStats.applyCooldownReduction(
       _scaleAbilityTicks(ability.cooldownTicks),
     );
@@ -769,15 +775,16 @@ class AbilityActivationSystem {
       }
     }();
     final weapon = weapons.get(weaponId);
-    final resolvedStats = _resolvedStatsForLoadout(world, loadoutIndex);
+    final resolvedStats = _resolvedStatsForLoadout(world, player);
 
     final payload = HitPayloadBuilder.build(
       ability: ability,
       source: player,
       weaponStats: weapon.stats,
+      globalPowerBonusBp: resolvedStats.globalPowerBonusBp,
       weaponDamageType: weapon.damageType,
       weaponProcs: weapon.procs,
-      globalCritChanceBonusBp: resolvedStats.critChanceBonusBp,
+      globalCritChanceBonusBp: resolvedStats.globalCritChanceBonusBp,
     );
     final tunedDamage100 =
         (payload.damage100 * chargeTuning.damageScaleBp) ~/ 10000;
@@ -985,15 +992,16 @@ class AbilityActivationSystem {
       }
     }
 
-    final resolvedStats = _resolvedStatsForLoadout(world, loadoutIndex);
+    final resolvedStats = _resolvedStatsForLoadout(world, player);
 
     final payload = HitPayloadBuilder.build(
       ability: ability,
       source: player,
       weaponStats: weaponStats,
+      globalPowerBonusBp: resolvedStats.globalPowerBonusBp,
       weaponDamageType: weaponDamageType,
       weaponProcs: weaponProcs,
-      globalCritChanceBonusBp: resolvedStats.critChanceBonusBp,
+      globalCritChanceBonusBp: resolvedStats.globalCritChanceBonusBp,
     );
     final chargeTicks = _resolveCommitChargeTicks(
       world,
@@ -1352,17 +1360,9 @@ class AbilityActivationSystem {
 
   ResolvedCharacterStats _resolvedStatsForLoadout(
     EcsWorld world,
-    int loadoutIndex,
+    EntityId entity,
   ) {
-    final loadout = world.equippedLoadout;
-    return _statsResolver.resolveEquipped(
-      mask: loadout.mask[loadoutIndex],
-      mainWeaponId: loadout.mainWeaponId[loadoutIndex],
-      offhandWeaponId: loadout.offhandWeaponId[loadoutIndex],
-      projectileItemId: loadout.projectileItemId[loadoutIndex],
-      spellBookId: loadout.spellBookId[loadoutIndex],
-      accessoryId: loadout.accessoryId[loadoutIndex],
-    );
+    return _statsCache.resolveForEntity(world, entity);
   }
 
   void _applyCommitSideEffects(

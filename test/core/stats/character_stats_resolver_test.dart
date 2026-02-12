@@ -12,6 +12,7 @@ import 'package:rpg_runner/core/projectiles/projectile_item_id.dart';
 import 'package:rpg_runner/core/spells/spell_book_catalog.dart';
 import 'package:rpg_runner/core/spells/spell_book_def.dart';
 import 'package:rpg_runner/core/spells/spell_book_id.dart';
+import 'package:rpg_runner/core/combat/damage_type.dart';
 import 'package:rpg_runner/core/stats/character_stats_resolver.dart';
 import 'package:rpg_runner/core/weapons/weapon_catalog.dart';
 import 'package:rpg_runner/core/weapons/weapon_category.dart';
@@ -84,6 +85,69 @@ void main() {
     expect(stats.applyHealthMaxBonus(10000), equals(10200));
     expect(stats.applyManaMaxBonus(10000), equals(10300));
     expect(stats.applyStaminaMaxBonus(10000), equals(10400));
+  });
+
+  test('global offensive bonuses are capped and applied deterministically', () {
+    final resolver = CharacterStatsResolver(
+      weapons: const _FlatWeaponCatalog(),
+      projectileItems: const _FlatProjectileCatalog(),
+      spellBooks: const _FlatSpellBookCatalog(),
+      accessories: const _GlobalOffenseAccessoryCatalog(),
+    );
+
+    final stats = resolver.resolveEquipped(
+      mask: LoadoutSlotMask.mainHand,
+      mainWeaponId: WeaponId.basicSword,
+      offhandWeaponId: WeaponId.basicShield,
+      projectileItemId: ProjectileItemId.throwingKnife,
+      spellBookId: SpellBookId.basicSpellBook,
+      accessoryId: AccessoryId.speedBoots,
+    );
+
+    expect(
+      stats.globalPowerBonusBp,
+      equals(CharacterStatCaps.maxGlobalPowerBp),
+    );
+    expect(
+      stats.globalCritChanceBonusBp,
+      equals(CharacterStatCaps.maxGlobalCritChanceBp),
+    );
+    expect(stats.applyGlobalPower(1000), equals(2000));
+  });
+
+  test('typed gear resistance clamps and converts to incoming modifier', () {
+    final resolver = CharacterStatsResolver(
+      weapons: const _FlatWeaponCatalog(),
+      projectileItems: const _FlatProjectileCatalog(),
+      spellBooks: const _FlatSpellBookCatalog(),
+      accessories: const _TypedResistanceAccessoryCatalog(),
+    );
+
+    final stats = resolver.resolveEquipped(
+      mask: LoadoutSlotMask.mainHand,
+      mainWeaponId: WeaponId.basicSword,
+      offhandWeaponId: WeaponId.basicShield,
+      projectileItemId: ProjectileItemId.throwingKnife,
+      spellBookId: SpellBookId.basicSpellBook,
+      accessoryId: AccessoryId.speedBoots,
+    );
+
+    expect(
+      stats.fireResistanceBp,
+      equals(CharacterStatCaps.maxTypedResistanceBp),
+    );
+    expect(
+      stats.iceResistanceBp,
+      equals(CharacterStatCaps.minTypedResistanceBp),
+    );
+    expect(
+      stats.incomingDamageModBpForDamageType(DamageType.fire),
+      equals(-CharacterStatCaps.maxTypedResistanceBp),
+    );
+    expect(
+      stats.incomingDamageModBpForDamageType(DamageType.ice),
+      equals(-CharacterStatCaps.minTypedResistanceBp),
+    );
   });
 }
 
@@ -196,6 +260,33 @@ class _ResourceAccessoryCatalog extends AccessoryCatalog {
         manaBonusBp: 300,
         staminaBonusBp: 400,
       ),
+    );
+  }
+}
+
+class _GlobalOffenseAccessoryCatalog extends AccessoryCatalog {
+  const _GlobalOffenseAccessoryCatalog();
+
+  @override
+  AccessoryDef get(AccessoryId id) {
+    return const AccessoryDef(
+      id: AccessoryId.speedBoots,
+      stats: GearStatBonuses(
+        globalPowerBonusBp: 12000,
+        globalCritChanceBonusBp: 7000,
+      ),
+    );
+  }
+}
+
+class _TypedResistanceAccessoryCatalog extends AccessoryCatalog {
+  const _TypedResistanceAccessoryCatalog();
+
+  @override
+  AccessoryDef get(AccessoryId id) {
+    return const AccessoryDef(
+      id: AccessoryId.speedBoots,
+      stats: GearStatBonuses(fireResistanceBp: 9000, iceResistanceBp: -9500),
     );
   }
 }

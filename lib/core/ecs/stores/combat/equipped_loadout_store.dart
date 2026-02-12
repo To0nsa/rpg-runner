@@ -67,7 +67,7 @@ class EquippedLoadoutDef {
   /// If null, projectile abilities in the projectile slot use [projectileItemId].
   final ProjectileItemId? projectileSlotSpellId;
 
-  /// Equipped accessory (meta gear; not yet wired into Core systems).
+  /// Equipped accessory (meta gear; contributes via CharacterStatsResolver).
   final AccessoryId accessoryId;
 
   // New Ability System IDs

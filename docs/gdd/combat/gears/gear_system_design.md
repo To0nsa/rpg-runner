@@ -95,6 +95,14 @@ Gear can provide additive/multiplicative stats such as:
 
 **Intent:** stats must be predictable and communicateable; never “surprise” the player mid-run.
 
+Current Core wiring model:
+
+- **Global offensive stats** (`globalPowerBonusBp`, `globalCritChanceBonusBp`) apply to all outgoing payloads.
+- **Payload-source offensive stats** (`powerBonusBp`, `critChanceBonusBp`) apply only from the selected payload source item (weapon/projectile/spellbook).
+- **Global incoming defense** (`defenseBonusBp`) applies before typed resistance.
+- **Typed gear resistance** (`physical/fire/ice/thunder/bleedResistanceBp`) combines with base typed resistance at incoming-damage resolution.
+- **Resource/cooldown/move speed stats** are resolved from full loadout and applied in their dedicated runtime stages.
+
 ### B. Damage flavor (stacks, no overwrite)
 Gear contributes a **damage flavor payload** when an ability requests “use equipped payload”.
 

@@ -6,7 +6,9 @@ import 'package:rpg_runner/core/accessories/accessory_id.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart'
     show AbilitySlot, CooldownGroup, WeaponType;
 import 'package:rpg_runner/core/combat/damage.dart';
+import 'package:rpg_runner/core/combat/damage_type.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
+import 'package:rpg_runner/core/ecs/stores/combat/damage_resistance_store.dart';
 import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/ecs/stores/health_store.dart';
@@ -78,6 +80,48 @@ void main() {
     damage.step(world, currentTick: 1);
 
     expect(world.health.hp[world.health.indexOf(target)], equals(9200));
+  });
+
+  test('DamageSystem combines store typed mod with gear typed resistance', () {
+    final world = EcsWorld();
+    final resolver = CharacterStatsResolver(
+      weapons: const _FlatWeaponCatalog(),
+      projectileItems: const _FlatProjectileCatalog(),
+      spellBooks: const _FlatSpellBookCatalog(),
+      accessories: const _TypedResistanceAccessoryCatalog(),
+    );
+    final damage = DamageSystem(
+      invulnerabilityTicksOnHit: 0,
+      rngSeed: 1,
+      statsResolver: resolver,
+    );
+
+    final target = world.createEntity();
+    world.health.add(
+      target,
+      const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+    );
+    world.equippedLoadout.add(
+      target,
+      const EquippedLoadoutDef(
+        mask: LoadoutSlotMask.mainHand,
+        accessoryId: AccessoryId.speedBoots,
+      ),
+    );
+    world.damageResistance.add(target, const DamageResistanceDef(fireBp: 2000));
+
+    world.damageQueue.add(
+      DamageRequest(
+        target: target,
+        amount100: 1000,
+        damageType: DamageType.fire,
+      ),
+    );
+
+    damage.step(world, currentTick: 1);
+
+    // Base fire vulnerability (+20%) plus gear fire resistance (+30%) = net -10%.
+    expect(world.health.hp[world.health.indexOf(target)], equals(9100));
   });
 
   test('DamageSystem applies deterministic critical damage', () {
@@ -270,6 +314,20 @@ class _DefenseWeaponCatalog extends WeaponCatalog {
   }
 }
 
+class _FlatWeaponCatalog extends WeaponCatalog {
+  const _FlatWeaponCatalog();
+
+  @override
+  WeaponDef get(WeaponId id) {
+    return const WeaponDef(
+      id: WeaponId.woodenSword,
+      category: WeaponCategory.primary,
+      weaponType: WeaponType.oneHandedSword,
+      stats: GearStatBonuses(),
+    );
+  }
+}
+
 class _FlatProjectileCatalog extends ProjectileItemCatalog {
   const _FlatProjectileCatalog();
 
@@ -303,6 +361,18 @@ class _FlatAccessoryCatalog extends AccessoryCatalog {
     return const AccessoryDef(
       id: AccessoryId.speedBoots,
       stats: GearStatBonuses(),
+    );
+  }
+}
+
+class _TypedResistanceAccessoryCatalog extends AccessoryCatalog {
+  const _TypedResistanceAccessoryCatalog();
+
+  @override
+  AccessoryDef get(AccessoryId id) {
+    return const AccessoryDef(
+      id: AccessoryId.speedBoots,
+      stats: GearStatBonuses(fireResistanceBp: 3000),
     );
   }
 }

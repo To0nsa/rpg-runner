@@ -1,5 +1,6 @@
 import '../../abilities/ability_def.dart';
 import '../../stats/character_stats_resolver.dart';
+import '../../stats/resolved_stats_cache.dart';
 import '../../snapshots/enums.dart';
 import '../../players/player_tuning.dart';
 import '../../util/velocity_math.dart';
@@ -23,9 +24,10 @@ import '../world.dart';
 class PlayerMovementSystem {
   PlayerMovementSystem({
     CharacterStatsResolver statsResolver = const CharacterStatsResolver(),
-  }) : _statsResolver = statsResolver;
+    ResolvedStatsCache? statsCache,
+  }) : _statsCache = statsCache ?? ResolvedStatsCache(resolver: statsResolver);
 
-  final CharacterStatsResolver _statsResolver;
+  final ResolvedStatsCache _statsCache;
 
   void step(
     EcsWorld world,
@@ -199,17 +201,7 @@ class PlayerMovementSystem {
   }
 
   double _gearMoveSpeedMultiplier(EcsWorld world, int entity) {
-    final li = world.equippedLoadout.tryIndexOf(entity);
-    if (li == null) return 1.0;
-    final loadout = world.equippedLoadout;
-    final resolved = _statsResolver.resolveEquipped(
-      mask: loadout.mask[li],
-      mainWeaponId: loadout.mainWeaponId[li],
-      offhandWeaponId: loadout.offhandWeaponId[li],
-      projectileItemId: loadout.projectileItemId[li],
-      spellBookId: loadout.spellBookId[li],
-      accessoryId: loadout.accessoryId[li],
-    );
+    final resolved = _statsCache.resolveForEntity(world, entity);
     return resolved.moveSpeedMultiplier;
   }
 

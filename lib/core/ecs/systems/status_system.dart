@@ -2,6 +2,8 @@ import '../../combat/damage.dart';
 import '../../combat/damage_type.dart';
 import '../../combat/status/status.dart';
 import '../../events/game_event.dart';
+import '../../stats/character_stats_resolver.dart';
+import '../../stats/resolved_stats_cache.dart';
 import '../../util/tick_math.dart';
 import '../../util/fixed_math.dart';
 import '../../util/double_math.dart';
@@ -18,11 +20,15 @@ class StatusSystem {
   StatusSystem({
     required int tickHz,
     StatusProfileCatalog profiles = const StatusProfileCatalog(),
+    CharacterStatsResolver statsResolver = const CharacterStatsResolver(),
+    ResolvedStatsCache? statsCache,
   }) : _tickHz = tickHz,
-       _profiles = profiles;
+       _profiles = profiles,
+       _statsCache = statsCache ?? ResolvedStatsCache(resolver: statsResolver);
 
   final int _tickHz;
   final StatusProfileCatalog _profiles;
+  final ResolvedStatsCache _statsCache;
 
   final List<StatusRequest> _pending = <StatusRequest>[];
   final List<EntityId> _removeScratch = <EntityId>[];
@@ -37,9 +43,7 @@ class StatusSystem {
   }
 
   /// Ticks existing statuses and queues DoT damage.
-  void tickExisting(
-    EcsWorld world,
-  ) {
+  void tickExisting(EcsWorld world) {
     _tickBurn(world);
     _tickBleed(world);
     _tickHaste(world);
@@ -56,9 +60,7 @@ class StatusSystem {
     _refreshMoveSpeed(world);
   }
 
-  void _tickBurn(
-    EcsWorld world,
-  ) {
+  void _tickBurn(EcsWorld world) {
     final burn = world.burn;
     if (burn.denseEntities.isEmpty) return;
 
@@ -94,9 +96,7 @@ class StatusSystem {
     }
   }
 
-  void _tickBleed(
-    EcsWorld world,
-  ) {
+  void _tickBleed(EcsWorld world) {
     final bleed = world.bleed;
     if (bleed.denseEntities.isEmpty) return;
 
@@ -178,6 +178,7 @@ class StatusSystem {
     final resistance = world.damageResistance;
     final immunity = world.statusImmunity;
     final invuln = world.invulnerability;
+    final resolvedStatsByTarget = <EntityId, ResolvedCharacterStats>{};
 
     for (final req in _pending) {
       if (world.deathState.has(req.target)) continue;
@@ -194,7 +195,18 @@ class StatusSystem {
 
         var magnitude = app.magnitude;
         if (app.scaleByDamageType) {
-          final modBp = resistance.modBpForEntity(req.target, req.damageType);
+          final baseTypedModBp = resistance.modBpForEntity(
+            req.target,
+            req.damageType,
+          );
+          final resolved = resolvedStatsByTarget.putIfAbsent(
+            req.target,
+            () => _statsCache.resolveForEntity(world, req.target),
+          );
+          final gearTypedModBp = resolved.incomingDamageModBpForDamageType(
+            req.damageType,
+          );
+          final modBp = baseTypedModBp + gearTypedModBp;
           if (modBp > 0) {
             magnitude = applyBp(magnitude, modBp);
           }
@@ -243,7 +255,12 @@ class StatusSystem {
     if (durationTicks <= 0) return;
 
     // Add stun lock via ControlLockStore
-    world.controlLock.addLock(target, LockFlag.stun, durationTicks, _currentTick);
+    world.controlLock.addLock(
+      target,
+      LockFlag.stun,
+      durationTicks,
+      _currentTick,
+    );
 
     // Hard cancel active intents to prevent ghost execution
     if (world.meleeIntent.has(target)) {
@@ -276,10 +293,7 @@ class StatusSystem {
     final clamped = clampInt(magnitude, 0, 9000);
     final index = slow.tryIndexOf(target);
     if (index == null) {
-      slow.add(
-        target,
-        SlowDef(ticksLeft: ticksLeft, magnitude: clamped),
-      );
+      slow.add(target, SlowDef(ticksLeft: ticksLeft, magnitude: clamped));
     } else {
       final currentMagnitude = slow.magnitude[index];
       if (clamped > currentMagnitude) {
@@ -307,10 +321,7 @@ class StatusSystem {
     final clamped = clampInt(magnitude, 0, 20000);
     final index = haste.tryIndexOf(target);
     if (index == null) {
-      haste.add(
-        target,
-        HasteDef(ticksLeft: ticksLeft, magnitude: clamped),
-      );
+      haste.add(target, HasteDef(ticksLeft: ticksLeft, magnitude: clamped));
     } else {
       final currentMagnitude = haste.magnitude[index];
       if (clamped > currentMagnitude) {

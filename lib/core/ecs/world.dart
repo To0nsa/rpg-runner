@@ -9,6 +9,7 @@ import 'stores/self_intent_store.dart';
 import 'stores/combat/creature_tag_store.dart';
 import 'stores/combat/damage_resistance_store.dart';
 import 'stores/combat/equipped_loadout_store.dart';
+import 'stores/combat/resolved_stats_cache_store.dart';
 import 'stores/combat/stat_modifier_store.dart';
 import 'stores/combat/status_immunity_store.dart';
 import 'stores/collectible_store.dart';
@@ -196,6 +197,11 @@ class EcsWorld {
   /// Unified loadout store (single source of truth for all equipment).
   late final EquippedLoadoutStore equippedLoadout = _register(
     EquippedLoadoutStore(),
+  );
+
+  /// Cached loadout-derived resolved stats for hot-path systems.
+  late final ResolvedStatsCacheStore resolvedStatsCache = _register(
+    ResolvedStatsCacheStore(),
   );
 
   /// Derived runtime stat modifiers (e.g., slows).
