@@ -113,6 +113,7 @@ const Map<ProjectileItemId, String> _projectileDisplayNameOverrides =
     <ProjectileItemId, String>{
       ProjectileItemId.iceBolt: 'Ice Bolt',
       ProjectileItemId.fireBolt: 'Fire Bolt',
+      ProjectileItemId.acidBolt: 'Acid Bolt',
       ProjectileItemId.thunderBolt: 'Thunder Bolt',
       ProjectileItemId.throwingKnife: 'Throwing Knife',
       ProjectileItemId.throwingAxe: 'Throwing Axe',
@@ -122,6 +123,8 @@ const Map<ProjectileItemId, String> _projectileDescriptionOverrides =
     <ProjectileItemId, String>{
       ProjectileItemId.iceBolt: 'Spell projectile that chills on hit.',
       ProjectileItemId.fireBolt: 'Spell projectile that burns on hit.',
+      ProjectileItemId.acidBolt:
+          'Spell projectile that corrodes and increases damage taken.',
       ProjectileItemId.thunderBolt: 'Spell projectile with thunder damage.',
       ProjectileItemId.throwingKnife: 'Fast ballistic throw with a light arc.',
       ProjectileItemId.throwingAxe: 'Heavy ballistic throw with a steeper arc.',

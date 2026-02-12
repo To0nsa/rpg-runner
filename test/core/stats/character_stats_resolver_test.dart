@@ -141,12 +141,20 @@ void main() {
       equals(CharacterStatCaps.minTypedResistanceBp),
     );
     expect(
+      stats.acidResistanceBp,
+      equals(CharacterStatCaps.maxTypedResistanceBp),
+    );
+    expect(
       stats.incomingDamageModBpForDamageType(DamageType.fire),
       equals(-CharacterStatCaps.maxTypedResistanceBp),
     );
     expect(
       stats.incomingDamageModBpForDamageType(DamageType.ice),
       equals(-CharacterStatCaps.minTypedResistanceBp),
+    );
+    expect(
+      stats.incomingDamageModBpForDamageType(DamageType.acid),
+      equals(-CharacterStatCaps.maxTypedResistanceBp),
     );
   });
 }
@@ -286,7 +294,11 @@ class _TypedResistanceAccessoryCatalog extends AccessoryCatalog {
   AccessoryDef get(AccessoryId id) {
     return const AccessoryDef(
       id: AccessoryId.speedBoots,
-      stats: GearStatBonuses(fireResistanceBp: 9000, iceResistanceBp: -9500),
+      stats: GearStatBonuses(
+        fireResistanceBp: 9000,
+        iceResistanceBp: -9500,
+        acidResistanceBp: 9000,
+      ),
     );
   }
 }

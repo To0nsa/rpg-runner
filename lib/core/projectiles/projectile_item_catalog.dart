@@ -45,6 +45,22 @@ class ProjectileItemCatalog {
             ),
           ],
         );
+      case ProjectileItemId.acidBolt:
+        return const ProjectileItemDef(
+          id: ProjectileItemId.acidBolt,
+          weaponType: WeaponType.projectileSpell,
+          projectileId: ProjectileId.acidBolt,
+          ballistic: false,
+          gravityScale: 1.0,
+          damageType: DamageType.acid,
+          procs: <WeaponProc>[
+            WeaponProc(
+              hook: ProcHook.onHit,
+              statusProfileId: StatusProfileId.acidOnHit,
+              chanceBp: 10000,
+            ),
+          ],
+        );
       case ProjectileItemId.thunderBolt:
         return const ProjectileItemDef(
           id: ProjectileItemId.thunderBolt,

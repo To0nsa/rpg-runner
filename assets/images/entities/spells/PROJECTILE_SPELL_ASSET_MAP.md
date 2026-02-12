@@ -20,7 +20,7 @@ Conventions:
 
 | ProjectileItemId | ProjectileId | Asset folder |
 | --- | --- | --- |
-| `acidBolt (TBD)` | `acidBolt (TBD)` | `assets/images/entities/spells/acid/bolt/` |
+| `acidBolt` | `acidBolt` | `assets/images/entities/spells/acid/bolt/` |
 | `iceBolt` | `iceBolt` | `assets/images/entities/spells/ice/bolt/` |
 | `fireBolt` | `fireBolt` | `assets/images/entities/spells/fire/bolt/` |
 | `thunderBolt` | `thunderBolt` | `assets/images/entities/spells/thunder/bolt/` |
@@ -29,14 +29,14 @@ Conventions:
 
 | ProjectileItemId | DamageType | Speed (units/s) | Lifetime (s) | Collider (w x h) | Ballistic | Gravity scale | On-hit status proc |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `acidBolt (TBD)` | `acid` | `900.0` | `1.3` | `20.0 x 10.0` | `false` | `1.0` | `StatusProfileId.burnOnHit` |
+| `acidBolt` | `acid` | `900.0` | `1.3` | `20.0 x 10.0` | `false` | `1.0` | `StatusProfileId.acidOnHit` |
 | `iceBolt` | `ice` | `1000.0` | `1.0` | `18.0 x 8.0` | `false` | `1.0` | `StatusProfileId.slowOnHit` |
 | `fireBolt` | `fire` | `900.0` | `1.3` | `20.0 x 10.0` | `false` | `1.0` | `StatusProfileId.burnOnHit` |
 | `thunderBolt` | `thunder` | `1000.0` | `1.2` | `16.0 x 8.0` | `false` | `1.0` | `none` |
 
 ## Animation Metadata
 
-### `acidBolt (TBD)`
+### `acidBolt`
 
 Frame size: `48 x 48`
 

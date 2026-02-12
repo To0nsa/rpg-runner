@@ -134,6 +134,54 @@ const RenderAnimSetDefinition _fireBoltRenderAnim = RenderAnimSetDefinition(
 );
 
 // -----------------------------------------------------------------------------
+// Acid Bolt render animation strip definitions (authoring-time)
+// -----------------------------------------------------------------------------
+
+const int _acidBoltFrameWidth = 48;
+const int _acidBoltFrameHeight = 48;
+
+const int _acidBoltStartFrames = 10;
+const int _acidBoltHitFrames = 6;
+
+const double _acidBoltStartStepSeconds = 0.5;
+const double _acidBoltIdleStepSeconds = 0.06;
+const double _acidBoltHitStepSeconds = 0.05;
+
+const Map<AnimKey, int> _acidBoltFrameCountsByKey = <AnimKey, int>{
+  AnimKey.spawn: _acidBoltStartFrames,
+  AnimKey.idle: _acidBoltStartFrames,
+  AnimKey.hit: _acidBoltHitFrames,
+};
+
+const Map<AnimKey, int> _acidBoltFrameStartByKey = <AnimKey, int>{
+  AnimKey.spawn: 0,
+  AnimKey.idle: 0,
+  AnimKey.hit: 10,
+};
+
+const Map<AnimKey, double> _acidBoltStepTimeSecondsByKey =
+    <AnimKey, double>{
+  AnimKey.spawn: _acidBoltStartStepSeconds,
+  AnimKey.idle: _acidBoltIdleStepSeconds,
+  AnimKey.hit: _acidBoltHitStepSeconds,
+};
+
+const Map<AnimKey, String> _acidBoltSourcesByKey = <AnimKey, String>{
+  AnimKey.spawn: 'entities/spells/acid/bolt/spriteSheet.png',
+  AnimKey.idle: 'entities/spells/acid/bolt/spriteSheet.png',
+  AnimKey.hit: 'entities/spells/acid/bolt/spriteSheet.png',
+};
+
+const RenderAnimSetDefinition _acidBoltRenderAnim = RenderAnimSetDefinition(
+  frameWidth: _acidBoltFrameWidth,
+  frameHeight: _acidBoltFrameHeight,
+  sourcesByKey: _acidBoltSourcesByKey,
+  frameStartByKey: _acidBoltFrameStartByKey,
+  frameCountsByKey: _acidBoltFrameCountsByKey,
+  stepTimeSecondsByKey: _acidBoltStepTimeSecondsByKey,
+);
+
+// -----------------------------------------------------------------------------
 // Throwing Axe render animation strip definitions (authoring-time)
 // -----------------------------------------------------------------------------
 
@@ -210,6 +258,8 @@ class ProjectileRenderCatalog {
         return _thunderBoltRenderAnim;
       case ProjectileId.fireBolt:
         return _fireBoltRenderAnim;
+      case ProjectileId.acidBolt:
+        return _acidBoltRenderAnim;
       case ProjectileId.throwingAxe:
         return _throwingAxeRenderAnim;
       case ProjectileId.throwingKnife:

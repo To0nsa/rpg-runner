@@ -1354,6 +1354,8 @@ class AbilityActivationSystem {
         return ProjectileItemId.iceBolt;
       case ProjectileId.fireBolt:
         return ProjectileItemId.fireBolt;
+      case ProjectileId.acidBolt:
+        return ProjectileItemId.acidBolt;
       case ProjectileId.thunderBolt:
         return ProjectileItemId.thunderBolt;
       case ProjectileId.throwingKnife:

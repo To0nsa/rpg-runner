@@ -58,6 +58,13 @@ class ProjectileCatalog {
           colliderSizeX: 20.0,
           colliderSizeY: 10.0,
         );
+      case ProjectileId.acidBolt:
+        return const ProjectileArchetype(
+          speedUnitsPerSecond: 900.0,
+          lifetimeSeconds: 1.3,
+          colliderSizeX: 20.0,
+          colliderSizeY: 10.0,
+        );
       case ProjectileId.throwingAxe:
         return const ProjectileArchetype(
           speedUnitsPerSecond: 800.0,

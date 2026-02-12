@@ -49,6 +49,7 @@ class DamageSystem {
     final invuln = world.invulnerability;
     final lastDamage = world.lastDamage;
     final resistance = world.damageResistance;
+    final vulnerable = world.vulnerable;
 
     for (var i = 0; i < queue.length; i += 1) {
       if ((queue.flags[i] & DamageQueueFlags.canceled) != 0) continue;
@@ -106,6 +107,11 @@ class DamageSystem {
       final modBp = baseTypedModBp + gearTypedModBp;
       var appliedAmount = applyBp(amountAfterDefense, modBp);
       if (appliedAmount < 0) appliedAmount = 0;
+      final vi = vulnerable.tryIndexOf(target);
+      if (vi != null && vulnerable.ticksLeft[vi] > 0) {
+        appliedAmount = applyBp(appliedAmount, vulnerable.magnitude[vi]);
+        if (appliedAmount < 0) appliedAmount = 0;
+      }
 
       final prevHp = health.hp[hi];
       final nextHp = clampInt(prevHp - appliedAmount, 0, health.hpMax[hi]);

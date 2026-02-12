@@ -2,13 +2,14 @@ import '../../ecs/entity_id.dart';
 import '../damage_type.dart';
 
 /// Runtime status effect categories.
-enum StatusEffectType { burn, slow, bleed, stun, haste }
+enum StatusEffectType { burn, slow, bleed, stun, haste, vulnerable }
 
 /// Stable identifiers for status application profiles.
 enum StatusProfileId {
   none,
   slowOnHit,
   burnOnHit,
+  acidOnHit,
   meleeBleed,
   stunOnHit,
   speedBoost,
@@ -83,6 +84,15 @@ class StatusProfileCatalog {
             durationSeconds: 5.0,
             periodSeconds: 1.0,
             scaleByDamageType: true,
+          ),
+        ]);
+      case StatusProfileId.acidOnHit:
+        return const StatusProfile(<StatusApplication>[
+          StatusApplication(
+            type: StatusEffectType.vulnerable,
+            magnitude: 2000, // +20% incoming damage.
+            durationSeconds: 5.0,
+            scaleByDamageType: false,
           ),
         ]);
       case StatusProfileId.stunOnHit:

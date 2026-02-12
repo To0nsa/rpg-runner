@@ -6,11 +6,14 @@ enum ProjectileId {
   /// Player's primary ranged strike. Fast, short-lived.
   iceBolt,
 
-  /// Enemy ranged strike. Slower but longer range.
-  thunderBolt,
-
   /// Player's fire spell projectile. Medium speed and lifetime.
   fireBolt,
+
+  /// Player's acid spell projectile. Medium speed and lifetime.
+  acidBolt,
+
+  /// Enemy ranged strike. Slower but longer range.
+  thunderBolt,
 
   /// Physical throwing axe projectile (ballistic).
   throwingAxe,

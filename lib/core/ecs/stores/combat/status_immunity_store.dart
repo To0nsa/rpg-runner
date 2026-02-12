@@ -10,6 +10,7 @@ class StatusImmunityMask {
   static const int bleed = 1 << 2;
   static const int stun = 1 << 3;
   static const int haste = 1 << 4;
+  static const int vulnerable = 1 << 5;
   static int forType(StatusEffectType type) {
     switch (type) {
       case StatusEffectType.burn:
@@ -22,6 +23,8 @@ class StatusImmunityMask {
         return stun;
       case StatusEffectType.haste:
         return haste;
+      case StatusEffectType.vulnerable:
+        return vulnerable;
     }
   }
 }
@@ -36,7 +39,10 @@ class StatusImmunityDef {
 class StatusImmunityStore extends SparseSet {
   final List<int> mask = <int>[];
 
-  void add(EntityId entity, [StatusImmunityDef def = const StatusImmunityDef()]) {
+  void add(
+    EntityId entity, [
+    StatusImmunityDef def = const StatusImmunityDef(),
+  ]) {
     final i = addEntity(entity);
     mask[i] = def.mask;
   }
@@ -58,4 +64,3 @@ class StatusImmunityStore extends SparseSet {
     mask.removeLast();
   }
 }
-

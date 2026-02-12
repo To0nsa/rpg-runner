@@ -15,6 +15,7 @@ String? throwingWeaponAssetPath(
       'assets/images/weapons/throwingWeapons/throwingAxe.png',
     ProjectileItemId.iceBolt => null,
     ProjectileItemId.fireBolt => null,
+    ProjectileItemId.acidBolt => null,
     ProjectileItemId.thunderBolt => null,
   };
 }

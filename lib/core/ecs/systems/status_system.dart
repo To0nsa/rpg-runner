@@ -12,6 +12,7 @@ import '../stores/status/bleed_store.dart';
 import '../stores/status/burn_store.dart';
 import '../stores/status/haste_store.dart';
 import '../stores/status/slow_store.dart';
+import '../stores/status/vulnerable_store.dart';
 import '../../combat/control_lock.dart';
 import '../world.dart';
 
@@ -48,6 +49,7 @@ class StatusSystem {
     _tickBleed(world);
     _tickHaste(world);
     _tickSlow(world);
+    _tickVulnerable(world);
   }
 
   /// Applies queued statuses and refreshes derived modifiers.
@@ -238,6 +240,8 @@ class StatusSystem {
             );
           case StatusEffectType.stun:
             _applyStun(world, req.target, magnitude, app.durationSeconds);
+          case StatusEffectType.vulnerable:
+            _applyVulnerable(world, req.target, magnitude, app.durationSeconds);
         }
       }
     }
@@ -330,6 +334,36 @@ class StatusSystem {
       } else if (clamped == currentMagnitude) {
         if (ticksLeft > haste.ticksLeft[index]) {
           haste.ticksLeft[index] = ticksLeft;
+        }
+      }
+    }
+  }
+
+  void _applyVulnerable(
+    EcsWorld world,
+    EntityId target,
+    int magnitude,
+    double durationSeconds,
+  ) {
+    final ticksLeft = ticksFromSecondsCeil(durationSeconds, _tickHz);
+    if (ticksLeft <= 0) return;
+
+    final vulnerable = world.vulnerable;
+    final clamped = clampInt(magnitude, 0, 9000);
+    final index = vulnerable.tryIndexOf(target);
+    if (index == null) {
+      vulnerable.add(
+        target,
+        VulnerableDef(ticksLeft: ticksLeft, magnitude: clamped),
+      );
+    } else {
+      final currentMagnitude = vulnerable.magnitude[index];
+      if (clamped > currentMagnitude) {
+        vulnerable.magnitude[index] = clamped;
+        vulnerable.ticksLeft[index] = ticksLeft;
+      } else if (clamped == currentMagnitude) {
+        if (ticksLeft > vulnerable.ticksLeft[index]) {
+          vulnerable.ticksLeft[index] = ticksLeft;
         }
       }
     }
@@ -437,6 +471,27 @@ class StatusSystem {
 
     for (var i = 0; i < mods.denseEntities.length; i += 1) {
       mods.moveSpeedMul[i] = clampDouble(mods.moveSpeedMul[i], 0.1, 2.0);
+    }
+  }
+
+  void _tickVulnerable(EcsWorld world) {
+    final vulnerable = world.vulnerable;
+    if (vulnerable.denseEntities.isEmpty) return;
+
+    _removeScratch.clear();
+    for (var i = 0; i < vulnerable.denseEntities.length; i += 1) {
+      final target = vulnerable.denseEntities[i];
+      if (world.deathState.has(target)) {
+        _removeScratch.add(target);
+        continue;
+      }
+      vulnerable.ticksLeft[i] -= 1;
+      if (vulnerable.ticksLeft[i] <= 0) {
+        _removeScratch.add(target);
+      }
+    }
+    for (final target in _removeScratch) {
+      vulnerable.removeEntity(target);
     }
   }
 }

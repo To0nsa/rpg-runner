@@ -17,6 +17,7 @@ class SpellBookCatalog {
   static const List<ProjectileItemId> _allProjectileSpells = <ProjectileItemId>[
     ProjectileItemId.iceBolt,
     ProjectileItemId.fireBolt,
+    ProjectileItemId.acidBolt,
     ProjectileItemId.thunderBolt,
   ];
 

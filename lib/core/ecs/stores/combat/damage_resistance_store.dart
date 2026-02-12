@@ -8,6 +8,7 @@ class DamageResistanceDef {
     this.fireBp = 0,
     this.iceBp = 0,
     this.thunderBp = 0,
+    this.acidBp = 0,
     this.bleedBp = 0,
   });
 
@@ -16,6 +17,7 @@ class DamageResistanceDef {
   final int fireBp;
   final int iceBp;
   final int thunderBp;
+  final int acidBp;
   final int bleedBp;
 
   int modBpFor(DamageType type) {
@@ -28,6 +30,8 @@ class DamageResistanceDef {
         return iceBp;
       case DamageType.thunder:
         return thunderBp;
+      case DamageType.acid:
+        return acidBp;
       case DamageType.bleed:
         return bleedBp;
     }
@@ -41,14 +45,19 @@ class DamageResistanceStore extends SparseSet {
   final List<int> fireBp = <int>[];
   final List<int> iceBp = <int>[];
   final List<int> thunderBp = <int>[];
+  final List<int> acidBp = <int>[];
   final List<int> bleedBp = <int>[];
 
-  void add(EntityId entity, [DamageResistanceDef def = const DamageResistanceDef()]) {
+  void add(
+    EntityId entity, [
+    DamageResistanceDef def = const DamageResistanceDef(),
+  ]) {
     final i = addEntity(entity);
     physicalBp[i] = def.physicalBp;
     fireBp[i] = def.fireBp;
     iceBp[i] = def.iceBp;
     thunderBp[i] = def.thunderBp;
+    acidBp[i] = def.acidBp;
     bleedBp[i] = def.bleedBp;
   }
 
@@ -68,6 +77,8 @@ class DamageResistanceStore extends SparseSet {
         return iceBp[index];
       case DamageType.thunder:
         return thunderBp[index];
+      case DamageType.acid:
+        return acidBp[index];
       case DamageType.bleed:
         return bleedBp[index];
     }
@@ -79,6 +90,7 @@ class DamageResistanceStore extends SparseSet {
     fireBp.add(0);
     iceBp.add(0);
     thunderBp.add(0);
+    acidBp.add(0);
     bleedBp.add(0);
   }
 
@@ -88,12 +100,14 @@ class DamageResistanceStore extends SparseSet {
     fireBp[removeIndex] = fireBp[lastIndex];
     iceBp[removeIndex] = iceBp[lastIndex];
     thunderBp[removeIndex] = thunderBp[lastIndex];
+    acidBp[removeIndex] = acidBp[lastIndex];
     bleedBp[removeIndex] = bleedBp[lastIndex];
 
     physicalBp.removeLast();
     fireBp.removeLast();
     iceBp.removeLast();
     thunderBp.removeLast();
+    acidBp.removeLast();
     bleedBp.removeLast();
   }
 }

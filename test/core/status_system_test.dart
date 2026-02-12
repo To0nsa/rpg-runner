@@ -220,6 +220,71 @@ void main() {
     // FireBolt base dps100=500. Combined typed mod: +5000 store - 4000 gear = +1000.
     expect(world.burn.dps100[burnIndex], equals(550));
   });
+
+  test('acid on-hit applies +20% global vulnerability for 5 seconds', () {
+    final world = EcsWorld();
+    final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
+    final status = StatusSystem(
+      tickHz: 60,
+      statsResolver: CharacterStatsResolver(
+        weapons: const _FlatWeaponCatalog(),
+        projectileItems: const _FlatProjectileCatalog(),
+        spellBooks: const _FlatSpellBookCatalog(),
+        accessories: const _AcidResistAccessoryCatalog(),
+      ),
+    );
+
+    final target = world.createEntity();
+    world.health.add(
+      target,
+      const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+    );
+    world.damageResistance.add(target, const DamageResistanceDef(acidBp: 5000));
+    world.equippedLoadout.add(
+      target,
+      const EquippedLoadoutDef(
+        mask: LoadoutSlotMask.mainHand,
+        accessoryId: AccessoryId.speedBoots,
+      ),
+    );
+    world.invulnerability.add(target);
+    world.statusImmunity.add(target);
+    world.statModifier.add(target);
+
+    status.queue(
+      StatusRequest(
+        target: target,
+        profileId: StatusProfileId.acidOnHit,
+        damageType: DamageType.acid,
+      ),
+    );
+    status.applyQueued(world, currentTick: 1);
+
+    expect(world.burn.has(target), isFalse);
+    expect(world.vulnerable.has(target), isTrue);
+
+    final vulnerableIndex = world.vulnerable.indexOf(target);
+    expect(world.vulnerable.magnitude[vulnerableIndex], equals(2000));
+    expect(world.vulnerable.ticksLeft[vulnerableIndex], equals(300));
+
+    world.damageQueue.add(
+      DamageRequest(
+        target: target,
+        amount100: 1000,
+        damageType: DamageType.physical,
+      ),
+    );
+    damage.step(world, currentTick: 2);
+    expect(world.health.hp[world.health.indexOf(target)], equals(3800));
+
+    for (var tick = 0; tick < 299; tick += 1) {
+      status.tickExisting(world);
+    }
+    expect(world.vulnerable.has(target), isTrue);
+
+    status.tickExisting(world);
+    expect(world.vulnerable.has(target), isFalse);
+  });
 }
 
 class TestStatusProfileCatalog extends StatusProfileCatalog {
@@ -291,6 +356,18 @@ class _FireResistAccessoryCatalog extends AccessoryCatalog {
     return const AccessoryDef(
       id: AccessoryId.speedBoots,
       stats: GearStatBonuses(fireResistanceBp: 4000),
+    );
+  }
+}
+
+class _AcidResistAccessoryCatalog extends AccessoryCatalog {
+  const _AcidResistAccessoryCatalog();
+
+  @override
+  AccessoryDef get(AccessoryId id) {
+    return const AccessoryDef(
+      id: AccessoryId.speedBoots,
+      stats: GearStatBonuses(acidResistanceBp: 4000),
     );
   }
 }

@@ -60,6 +60,7 @@ class ResolvedCharacterStats {
   int get fireResistanceBp => bonuses.fireResistanceBp;
   int get iceResistanceBp => bonuses.iceResistanceBp;
   int get thunderResistanceBp => bonuses.thunderResistanceBp;
+  int get acidResistanceBp => bonuses.acidResistanceBp;
   int get bleedResistanceBp => bonuses.bleedResistanceBp;
 
   double get moveSpeedMultiplier => (bpScale + moveSpeedBonusBp) / bpScale;
@@ -105,6 +106,8 @@ class ResolvedCharacterStats {
         return iceResistanceBp;
       case DamageType.thunder:
         return thunderResistanceBp;
+      case DamageType.acid:
+        return acidResistanceBp;
       case DamageType.bleed:
         return bleedResistanceBp;
     }
@@ -241,6 +244,11 @@ class CharacterStatsResolver {
       ),
       thunderResistanceBp: _clampInt(
         input.thunderResistanceBp,
+        CharacterStatCaps.minTypedResistanceBp,
+        CharacterStatCaps.maxTypedResistanceBp,
+      ),
+      acidResistanceBp: _clampInt(
+        input.acidResistanceBp,
         CharacterStatCaps.minTypedResistanceBp,
         CharacterStatCaps.maxTypedResistanceBp,
       ),

@@ -22,6 +22,7 @@ class GearStatBonuses {
     this.fireResistanceBp = 0,
     this.iceResistanceBp = 0,
     this.thunderResistanceBp = 0,
+    this.acidResistanceBp = 0,
     this.bleedResistanceBp = 0,
     // Legacy/non-V1 fields kept for compatibility during migration.
     this.critDamageBonusBp = 0,
@@ -95,6 +96,11 @@ class GearStatBonuses {
 
   /// Basis points (100 = 1%).
   ///
+  /// Positive values reduce acid damage taken.
+  final int acidResistanceBp;
+
+  /// Basis points (100 = 1%).
+  ///
   /// Positive values reduce bleed damage taken.
   final int bleedResistanceBp;
 
@@ -128,6 +134,7 @@ class GearStatBonuses {
       fireResistanceBp == 0 &&
       iceResistanceBp == 0 &&
       thunderResistanceBp == 0 &&
+      acidResistanceBp == 0 &&
       bleedResistanceBp == 0 &&
       critDamageBonusBp == 0 &&
       rangeScalarPercent == 100;
@@ -149,6 +156,7 @@ class GearStatBonuses {
       fireResistanceBp: fireResistanceBp + other.fireResistanceBp,
       iceResistanceBp: iceResistanceBp + other.iceResistanceBp,
       thunderResistanceBp: thunderResistanceBp + other.thunderResistanceBp,
+      acidResistanceBp: acidResistanceBp + other.acidResistanceBp,
       bleedResistanceBp: bleedResistanceBp + other.bleedResistanceBp,
       critDamageBonusBp: critDamageBonusBp + other.critDamageBonusBp,
       rangeScalarPercent:
