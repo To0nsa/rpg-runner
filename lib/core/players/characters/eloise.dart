@@ -1,6 +1,6 @@
 library;
 
-import 'package:rpg_runner/core/spells/spell_book_id.dart';
+import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
 
 import '../../ecs/stores/body_store.dart';
 import '../../ecs/stores/combat/creature_tag_store.dart';

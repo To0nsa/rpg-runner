@@ -18,7 +18,7 @@ Conventions:
 
 ## Projectile Spell -> Asset Folder
 
-| ProjectileItemId | ProjectileId | Asset folder |
+| ProjectileId | ProjectileId | Asset folder |
 | --- | --- | --- |
 | `acidBolt` | `acidBolt` | `assets/images/entities/spells/acid/bolt/` |
 | `iceBolt` | `iceBolt` | `assets/images/entities/spells/ice/bolt/` |
@@ -27,7 +27,7 @@ Conventions:
 
 ## Gameplay Metadata (Core)
 
-| ProjectileItemId | DamageType | Speed (units/s) | Lifetime (s) | Collider (w x h) | Ballistic | Gravity scale | On-hit status proc |
+| ProjectileId | DamageType | Speed (units/s) | Lifetime (s) | Collider (w x h) | Ballistic | Gravity scale | On-hit status proc |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `acidBolt` | `acid` | `900.0` | `1.3` | `20.0 x 10.0` | `false` | `1.0` | `StatusProfileId.acidOnHit` |
 | `iceBolt` | `ice` | `1000.0` | `1.0` | `18.0 x 8.0` | `false` | `1.0` | `StatusProfileId.slowOnHit` |
@@ -80,7 +80,7 @@ Frame size: `32 x 32`
 
 Use this when adding a new projectile spell before all metadata is finalized.
 
-| ProjectileItemId | ProjectileId | Asset folder | Frame size | DamageType | Speed (units/s) | Lifetime (s) |
+| ProjectileId | ProjectileId | Asset folder | Frame size | DamageType | Speed (units/s) | Lifetime (s) |
 | --- | --- | --- | --- | --- | --- | --- |
 | `TBD` | `TBD` | `assets/images/entities/spells/TBD/` | `TBD x TBD` | `TBD` | `TBD` | `TBD` |
 

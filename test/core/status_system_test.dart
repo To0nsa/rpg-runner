@@ -14,11 +14,11 @@ import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
 import 'package:rpg_runner/core/ecs/systems/status_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
+import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_item_def.dart';
-import 'package:rpg_runner/core/spells/spell_book_catalog.dart';
-import 'package:rpg_runner/core/spells/spell_book_def.dart';
-import 'package:rpg_runner/core/spells/spell_book_id.dart';
+import 'package:rpg_runner/core/spellBook/spell_book_catalog.dart';
+import 'package:rpg_runner/core/spellBook/spell_book_def.dart';
+import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
 import 'package:rpg_runner/core/stats/character_stats_resolver.dart';
 import 'package:rpg_runner/core/stats/gear_stat_bonuses.dart';
 import 'package:rpg_runner/core/weapons/weapon_catalog.dart';
@@ -183,7 +183,7 @@ void main() {
       tickHz: 60,
       statsResolver: CharacterStatsResolver(
         weapons: const _FlatWeaponCatalog(),
-        projectileItems: const _FlatProjectileItemCatalog(),
+        projectiles: const _FlatProjectileCatalog(),
         spellBooks: const _FlatSpellBookCatalog(),
         accessories: const _FireResistAccessoryCatalog(),
       ),
@@ -229,7 +229,7 @@ void main() {
       tickHz: 60,
       statsResolver: CharacterStatsResolver(
         weapons: const _FlatWeaponCatalog(),
-        projectileItems: const _FlatProjectileItemCatalog(),
+        projectiles: const _FlatProjectileCatalog(),
         spellBooks: const _FlatSpellBookCatalog(),
         accessories: const _AcidResistAccessoryCatalog(),
       ),
@@ -322,8 +322,8 @@ class _FlatWeaponCatalog extends WeaponCatalog {
   }
 }
 
-class _FlatProjectileItemCatalog extends ProjectileItemCatalog {
-  const _FlatProjectileItemCatalog();
+class _FlatProjectileCatalog extends ProjectileCatalog {
+  const _FlatProjectileCatalog();
 
   @override
   ProjectileItemDef get(ProjectileId id) {

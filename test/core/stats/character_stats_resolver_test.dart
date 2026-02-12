@@ -6,11 +6,11 @@ import 'package:rpg_runner/core/accessories/accessory_id.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart' show WeaponType;
 import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
+import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_item_def.dart';
-import 'package:rpg_runner/core/spells/spell_book_catalog.dart';
-import 'package:rpg_runner/core/spells/spell_book_def.dart';
-import 'package:rpg_runner/core/spells/spell_book_id.dart';
+import 'package:rpg_runner/core/spellBook/spell_book_catalog.dart';
+import 'package:rpg_runner/core/spellBook/spell_book_def.dart';
+import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
 import 'package:rpg_runner/core/combat/damage_type.dart';
 import 'package:rpg_runner/core/stats/character_stats_resolver.dart';
 import 'package:rpg_runner/core/weapons/weapon_catalog.dart';
@@ -23,7 +23,7 @@ void main() {
   test('cooldown reduction is capped and scales cooldown ticks', () {
     final resolver = CharacterStatsResolver(
       weapons: const _FlatWeaponCatalog(),
-      projectileItems: const _FlatProjectileItemCatalog(),
+      projectiles: const _FlatProjectileCatalog(),
       spellBooks: const _FlatSpellBookCatalog(),
       accessories: const _HighCdrAccessoryCatalog(),
     );
@@ -47,7 +47,7 @@ void main() {
   test('two-handed main weapon excludes offhand stat contribution', () {
     final resolver = CharacterStatsResolver(
       weapons: const _TwoHandedWeaponCatalog(),
-      projectileItems: const _FlatProjectileItemCatalog(),
+      projectiles: const _FlatProjectileCatalog(),
       spellBooks: const _FlatSpellBookCatalog(),
       accessories: const _FlatAccessoryCatalog(),
     );
@@ -67,7 +67,7 @@ void main() {
   test('resource bonuses scale max pools deterministically', () {
     final resolver = CharacterStatsResolver(
       weapons: const _FlatWeaponCatalog(),
-      projectileItems: const _FlatProjectileItemCatalog(),
+      projectiles: const _FlatProjectileCatalog(),
       spellBooks: const _FlatSpellBookCatalog(),
       accessories: const _ResourceAccessoryCatalog(),
     );
@@ -89,7 +89,7 @@ void main() {
   test('global offensive bonuses are capped and applied deterministically', () {
     final resolver = CharacterStatsResolver(
       weapons: const _FlatWeaponCatalog(),
-      projectileItems: const _FlatProjectileItemCatalog(),
+      projectiles: const _FlatProjectileCatalog(),
       spellBooks: const _FlatSpellBookCatalog(),
       accessories: const _GlobalOffenseAccessoryCatalog(),
     );
@@ -117,7 +117,7 @@ void main() {
   test('typed gear resistance clamps and converts to incoming modifier', () {
     final resolver = CharacterStatsResolver(
       weapons: const _FlatWeaponCatalog(),
-      projectileItems: const _FlatProjectileItemCatalog(),
+      projectiles: const _FlatProjectileCatalog(),
       spellBooks: const _FlatSpellBookCatalog(),
       accessories: const _TypedResistanceAccessoryCatalog(),
     );
@@ -204,8 +204,8 @@ class _TwoHandedWeaponCatalog extends WeaponCatalog {
   }
 }
 
-class _FlatProjectileItemCatalog extends ProjectileItemCatalog {
-  const _FlatProjectileItemCatalog();
+class _FlatProjectileCatalog extends ProjectileCatalog {
+  const _FlatProjectileCatalog();
 
   @override
   ProjectileItemDef get(ProjectileId id) {

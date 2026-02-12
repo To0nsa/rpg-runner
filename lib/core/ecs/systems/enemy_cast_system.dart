@@ -4,7 +4,7 @@ import '../../abilities/ability_catalog.dart';
 import '../../abilities/ability_def.dart';
 import '../../combat/hit_payload_builder.dart';
 import '../../enemies/enemy_catalog.dart';
-import '../../projectiles/projectile_item_catalog.dart';
+import '../../projectiles/projectile_catalog.dart';
 import '../../projectiles/projectile_item_def.dart';
 import '../../projectiles/projectile_id.dart';
 import '../../snapshots/enums.dart';
@@ -19,13 +19,13 @@ class EnemyCastSystem {
   EnemyCastSystem({
     required this.unocoDemonTuning,
     required this.enemyCatalog,
-    required this.projectileItems,
+    required this.projectiles,
     this.abilities = AbilityCatalog.shared,
   });
 
   final UnocoDemonTuningDerived unocoDemonTuning;
   final EnemyCatalog enemyCatalog;
-  final ProjectileItemCatalog projectileItems;
+  final ProjectileCatalog projectiles;
   final AbilityResolver abilities;
 
   /// Evaluates casts for all enemies and writes projectile intents.
@@ -76,11 +76,11 @@ class EnemyCastSystem {
       }
 
       final enemyId = enemies.enemyId[ei];
-      final projectileId = enemyCatalog.get(enemyId).primaryProjectileItemId;
+      final projectileId = enemyCatalog.get(enemyId).primaryProjectileId;
       if (projectileId == null) continue;
 
-      final projectileItem = projectileItems.get(projectileId);
-      final projectileSpeed = projectileItem.speedUnitsPerSecond;
+      final projectile = projectiles.get(projectileId);
+      final projectileSpeed = projectile.speedUnitsPerSecond;
 
       var enemyCenterX = world.transform.posX[ti];
       var enemyCenterY = world.transform.posY[ti];
@@ -94,7 +94,7 @@ class EnemyCastSystem {
         world,
         ability: ability,
         projectileId: projectileId,
-        projectileItem: projectileItem,
+        projectile: projectile,
         enemyIndex: ei,
         enemyCenterX: enemyCenterX,
         enemyCenterY: enemyCenterY,
@@ -123,7 +123,7 @@ class EnemyCastSystem {
     required int currentTick,
     required int cooldownGroupId,
     required ProjectileId projectileId,
-    required ProjectileItemDef projectileItem,
+    required ProjectileItemDef projectile,
   }) {
     final tuning = unocoDemonTuning;
 
@@ -153,9 +153,9 @@ class EnemyCastSystem {
     final payload = HitPayloadBuilder.build(
       ability: ability,
       source: enemy,
-      weaponStats: projectileItem.stats,
-      weaponDamageType: projectileItem.damageType,
-      weaponProcs: projectileItem.procs,
+      weaponStats: projectile.stats,
+      weaponDamageType: projectile.damageType,
+      weaponProcs: projectile.procs,
     );
 
     final windupTicks = _scaleAbilityTicks(ability.windupTicks);
@@ -179,8 +179,8 @@ class EnemyCastSystem {
         maxPierceHits: 1,
         damageType: payload.damageType,
         procs: payload.procs,
-        ballistic: projectileItem.ballistic,
-        gravityScale: projectileItem.gravityScale,
+        ballistic: projectile.ballistic,
+        gravityScale: projectile.gravityScale,
         dirX: targetX - enemyCenterX,
         dirY: targetY - enemyCenterY,
         fallbackDirX: 1.0,

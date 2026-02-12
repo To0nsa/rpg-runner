@@ -64,8 +64,7 @@ const Map<AnimKey, int> _thunderBoltFrameCountsByKey = <AnimKey, int>{
   AnimKey.hit: _thunderBoltHitFrames,
 };
 
-const Map<AnimKey, double> _thunderBoltStepTimeSecondsByKey =
-    <AnimKey, double>{
+const Map<AnimKey, double> _thunderBoltStepTimeSecondsByKey = <AnimKey, double>{
   AnimKey.spawn: _thunderBoltStartStepSeconds,
   AnimKey.idle: _thunderBoltRepeatStepSeconds,
   AnimKey.hit: _thunderBoltHitStepSeconds,
@@ -111,8 +110,7 @@ const Map<AnimKey, int> _fireBoltFrameStartByKey = <AnimKey, int>{
   AnimKey.hit: 5,
 };
 
-const Map<AnimKey, double> _fireBoltStepTimeSecondsByKey =
-    <AnimKey, double>{
+const Map<AnimKey, double> _fireBoltStepTimeSecondsByKey = <AnimKey, double>{
   AnimKey.spawn: _fireBoltStartStepSeconds,
   AnimKey.idle: _fireBoltIdleStepSeconds,
   AnimKey.hit: _fireBoltHitStepSeconds,
@@ -159,8 +157,7 @@ const Map<AnimKey, int> _acidBoltFrameStartByKey = <AnimKey, int>{
   AnimKey.hit: 10,
 };
 
-const Map<AnimKey, double> _acidBoltStepTimeSecondsByKey =
-    <AnimKey, double>{
+const Map<AnimKey, double> _acidBoltStepTimeSecondsByKey = <AnimKey, double>{
   AnimKey.spawn: _acidBoltStartStepSeconds,
   AnimKey.idle: _acidBoltIdleStepSeconds,
   AnimKey.hit: _acidBoltHitStepSeconds,
@@ -195,8 +192,7 @@ const Map<AnimKey, int> _throwingAxeFrameCountsByKey = <AnimKey, int>{
   AnimKey.idle: _throwingAxeFrames,
 };
 
-const Map<AnimKey, double> _throwingAxeStepTimeSecondsByKey =
-    <AnimKey, double>{
+const Map<AnimKey, double> _throwingAxeStepTimeSecondsByKey = <AnimKey, double>{
   AnimKey.idle: _throwingAxeStepSeconds,
 };
 
@@ -227,21 +223,20 @@ const Map<AnimKey, int> _throwingKnifeFrameCountsByKey = <AnimKey, int>{
 };
 
 const Map<AnimKey, double> _throwingKnifeStepTimeSecondsByKey =
-    <AnimKey, double>{
-  AnimKey.idle: _throwingKnifeStepSeconds,
-};
+    <AnimKey, double>{AnimKey.idle: _throwingKnifeStepSeconds};
 
 const Map<AnimKey, String> _throwingKnifeSourcesByKey = <AnimKey, String>{
   AnimKey.idle: 'weapons/throwingWeapons/throwingKnife.png',
 };
 
-const RenderAnimSetDefinition _throwingKnifeRenderAnim = RenderAnimSetDefinition(
-  frameWidth: _throwingKnifeFrameWidth,
-  frameHeight: _throwingKnifeFrameHeight,
-  sourcesByKey: _throwingKnifeSourcesByKey,
-  frameCountsByKey: _throwingKnifeFrameCountsByKey,
-  stepTimeSecondsByKey: _throwingKnifeStepTimeSecondsByKey,
-);
+const RenderAnimSetDefinition _throwingKnifeRenderAnim =
+    RenderAnimSetDefinition(
+      frameWidth: _throwingKnifeFrameWidth,
+      frameHeight: _throwingKnifeFrameHeight,
+      sourcesByKey: _throwingKnifeSourcesByKey,
+      frameCountsByKey: _throwingKnifeFrameCountsByKey,
+      stepTimeSecondsByKey: _throwingKnifeStepTimeSecondsByKey,
+    );
 
 /// Lookup table for projectile render animation definitions.
 ///
@@ -252,6 +247,12 @@ class ProjectileRenderCatalog {
 
   RenderAnimSetDefinition get(ProjectileId id) {
     switch (id) {
+      case ProjectileId.unknown:
+        throw ArgumentError.value(
+          id,
+          'id',
+          'ProjectileId.unknown has no render catalog entry.',
+        );
       case ProjectileId.iceBolt:
         return _iceBoltRenderAnim;
       case ProjectileId.thunderBolt:

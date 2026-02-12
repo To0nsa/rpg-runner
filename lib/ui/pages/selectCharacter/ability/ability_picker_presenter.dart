@@ -5,21 +5,21 @@ import '../../../../core/ecs/stores/combat/equipped_loadout_store.dart';
 import '../../../../core/loadout/loadout_validator.dart';
 import '../../../../core/players/player_character_definition.dart';
 import '../../../../core/players/player_character_registry.dart';
-import '../../../../core/projectiles/projectile_item_catalog.dart';
+import '../../../../core/projectiles/projectile_catalog.dart';
 import '../../../../core/projectiles/projectile_id.dart';
-import '../../../../core/spells/spell_book_catalog.dart';
-import '../../../../core/spells/spell_book_id.dart';
+import '../../../../core/spellBook/spell_book_catalog.dart';
+import '../../../../core/spellBook/spell_book_id.dart';
 import '../../../../core/weapons/weapon_catalog.dart';
 import '../../../../core/weapons/weapon_id.dart';
 import '../../../text/gear_text.dart';
 
 const AbilityCatalog _abilityCatalog = AbilityCatalog();
-const ProjectileItemCatalog _projectileCatalog = ProjectileItemCatalog();
+const ProjectileCatalog _projectileCatalog = ProjectileCatalog();
 const SpellBookCatalog _spellBookCatalog = SpellBookCatalog();
 const LoadoutValidator _loadoutValidator = LoadoutValidator(
   abilityCatalog: _abilityCatalog,
   weaponCatalog: WeaponCatalog(),
-  projectileItemCatalog: _projectileCatalog,
+  projectileCatalog: _projectileCatalog,
   spellBookCatalog: _spellBookCatalog,
 );
 
@@ -158,13 +158,13 @@ ProjectileSourcePanelModel projectileSourcePanelModel(
     spellOptions.add(
       ProjectileSpellOption(
         spellId: spellId,
-        displayName: projectileItemDisplayName(spellId),
+        displayName: projectileDisplayName(spellId),
       ),
     );
   }
   return ProjectileSourcePanelModel(
     throwingWeaponId: loadout.projectileId,
-    throwingWeaponDisplayName: projectileItemDisplayName(loadout.projectileId),
+    throwingWeaponDisplayName: projectileDisplayName(loadout.projectileId),
     spellBookId: loadout.spellBookId,
     spellBookDisplayName: spellBookDisplayName(loadout.spellBookId),
     spellOptions: spellOptions,

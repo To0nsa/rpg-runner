@@ -241,8 +241,8 @@ class EcsWorld {
   late final ControlLockStore controlLock = _register(ControlLockStore());
 
   /// Links a projectile back to its originating projectile item.
-  late final ProjectileItemOriginStore projectileItemOrigin = _register(
-    ProjectileItemOriginStore(),
+  late final ProjectileOriginStore projectileOrigin = _register(
+    ProjectileOriginStore(),
   );
 
   /// State for ground enemies navigating terrain (jumping gaps/walls).

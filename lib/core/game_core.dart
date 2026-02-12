@@ -138,8 +138,8 @@ import 'navigation/utils/trajectory_predictor.dart';
 import 'players/player_catalog.dart';
 import 'players/player_character_definition.dart';
 import 'players/player_character_registry.dart';
-import 'projectiles/projectile_item_catalog.dart';
-import 'spells/spell_book_catalog.dart';
+import 'projectiles/projectile_catalog.dart';
+import 'spellBook/spell_book_catalog.dart';
 import 'snapshots/enums.dart';
 import 'snapshots/game_state_snapshot.dart';
 import 'snapshot_builder.dart';
@@ -255,7 +255,7 @@ class GameCore {
     PlayerCharacterDefinition playerCharacter =
         PlayerCharacterRegistry.defaultCharacter,
     EquippedLoadoutDef? equippedLoadoutOverride,
-    ProjectileItemCatalog projectileItemCatalog = const ProjectileItemCatalog(),
+    ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
     SpellBookCatalog spellBookCatalog = const SpellBookCatalog(),
     EnemyCatalog enemyCatalog = const EnemyCatalog(),
     WeaponCatalog weaponCatalog = const WeaponCatalog(),
@@ -273,7 +273,7 @@ class GameCore {
            tuning: tuning,
            staticWorldGeometry: staticWorldGeometry,
          ),
-         projectileItemCatalog: projectileItemCatalog,
+         projectileCatalog: projectileCatalog,
          spellBookCatalog: spellBookCatalog,
          enemyCatalog: enemyCatalog,
          playerCharacter: playerCharacter,
@@ -287,7 +287,7 @@ class GameCore {
     required this.runId,
     required this.tickHz,
     required LevelDefinition levelDefinition,
-    required ProjectileItemCatalog projectileItemCatalog,
+    required ProjectileCatalog projectileCatalog,
     required SpellBookCatalog spellBookCatalog,
     required EnemyCatalog enemyCatalog,
     required PlayerCharacterDefinition playerCharacter,
@@ -325,7 +325,7 @@ class GameCore {
        ),
        _navigationTuning = levelDefinition.tuning.navigation,
        _spatialGridTuning = levelDefinition.tuning.spatialGrid,
-       _projectileItems = projectileItemCatalog,
+       _projectiles = projectileCatalog,
        _spellBooks = spellBookCatalog,
        _enemyCatalog = enemyCatalog,
        _playerCharacter = playerCharacter,
@@ -333,7 +333,7 @@ class GameCore {
        _accessories = accessoryCatalog,
        _statsResolver = CharacterStatsResolver(
          weapons: weaponCatalog,
-         projectileItems: projectileItemCatalog,
+         projectiles: projectileCatalog,
          spellBooks: spellBookCatalog,
          accessories: accessoryCatalog,
        ),
@@ -417,7 +417,7 @@ class GameCore {
       loadoutValidator: LoadoutValidator(
         abilityCatalog: AbilityCatalog.shared,
         weaponCatalog: _weapons,
-        projectileItemCatalog: _projectileItems,
+        projectileCatalog: _projectiles,
         spellBookCatalog: _spellBooks,
       ),
     );
@@ -515,7 +515,7 @@ class GameCore {
       inputBufferTicks: _abilities.inputBufferTicks,
       abilities: abilityCatalog,
       weapons: _weapons,
-      projectileItems: _projectileItems,
+      projectiles: _projectiles,
       spellBooks: _spellBooks,
       accessories: _accessories,
       statsCache: _resolvedStatsCache,
@@ -529,7 +529,7 @@ class GameCore {
 
     // Projectile execution.
     _projectileLaunchSystem = ProjectileLaunchSystem(
-      projectileItems: _projectileItems,
+      projectiles: _projectiles,
       tickHz: tickHz,
     );
     _selfAbilitySystem = SelfAbilitySystem();
@@ -587,7 +587,7 @@ class GameCore {
     _enemyCastSystem = EnemyCastSystem(
       unocoDemonTuning: _unocoDemonTuning,
       enemyCatalog: _enemyCatalog,
-      projectileItems: _projectileItems,
+      projectiles: _projectiles,
       abilities: abilityCatalog,
     );
     _enemyMeleeSystem = EnemyMeleeSystem(groundEnemyTuning: _groundEnemyTuning);
@@ -731,7 +731,7 @@ class GameCore {
   // ─── Catalogs ───
   // Archetype definitions for entities.
 
-  final ProjectileItemCatalog _projectileItems;
+  final ProjectileCatalog _projectiles;
   final SpellBookCatalog _spellBooks;
   final EnemyCatalog _enemyCatalog;
   final PlayerCharacterDefinition _playerCharacter;

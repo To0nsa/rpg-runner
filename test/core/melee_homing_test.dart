@@ -12,9 +12,9 @@ import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
 import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
 import 'package:rpg_runner/core/ecs/systems/ability_activation_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
+import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
-import 'package:rpg_runner/core/spells/spell_book_catalog.dart';
+import 'package:rpg_runner/core/spellBook/spell_book_catalog.dart';
 import 'package:rpg_runner/core/weapons/weapon_catalog.dart';
 
 void main() {
@@ -157,7 +157,7 @@ AbilityActivationSystem _buildSystem() {
     inputBufferTicks: 10,
     abilities: const AbilityCatalog(),
     weapons: const WeaponCatalog(),
-    projectileItems: const ProjectileItemCatalog(),
+    projectiles: const ProjectileCatalog(),
     spellBooks: const SpellBookCatalog(),
     accessories: const AccessoryCatalog(),
   );

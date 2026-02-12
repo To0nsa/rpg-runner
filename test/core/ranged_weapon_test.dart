@@ -8,7 +8,7 @@ import 'package:rpg_runner/core/ecs/systems/projectile_world_collision_system.da
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/game_core.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
+import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
@@ -73,7 +73,7 @@ void main() {
       expect(projectiles.length, 1);
 
       final p = projectiles.single;
-      final item = const ProjectileItemCatalog().get(
+      final item = const ProjectileCatalog().get(
         ProjectileId.throwingKnife,
       );
       expect(p.pos.x, closeTo(playerPosX + item.originOffset, 1e-9));
@@ -150,16 +150,16 @@ void main() {
   test('ProjectileWorldCollisionSystem despawns ballistic projectiles', () {
     final world = EcsWorld();
     final system = ProjectileWorldCollisionSystem();
-    final projectileItem = const ProjectileItemCatalog().get(
+    final projectile = const ProjectileCatalog().get(
       ProjectileId.throwingAxe,
     );
 
     final owner = world.createEntity();
-    final p = spawnProjectileItemFromCaster(
+    final p = spawnProjectileFromCaster(
       world,
       tickHz: 20,
       projectileId: ProjectileId.throwingAxe,
-      projectileItem: projectileItem,
+      projectile: projectile,
       faction: Faction.player,
       owner: owner,
       casterX: 100,

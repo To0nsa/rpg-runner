@@ -29,7 +29,7 @@ enum AbilityPayloadSource {
   none,
   primaryWeapon,
   secondaryWeapon, // off-hand unless primary is two-handed (then primary)
-  projectileItem,
+  projectile,
   spellBook,
 }
 

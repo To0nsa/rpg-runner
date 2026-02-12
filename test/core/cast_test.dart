@@ -8,7 +8,7 @@ import 'package:rpg_runner/core/players/player_character_registry.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
-import 'package:rpg_runner/core/spells/spell_book_id.dart';
+import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
 import 'package:rpg_runner/core/util/tick_math.dart';
 
 import '../support/test_player.dart';

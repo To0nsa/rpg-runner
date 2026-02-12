@@ -6,7 +6,7 @@ import '../stats/gear_stat_bonuses.dart';
 
 /// Lookup table for weapon definitions.
 ///
-/// Similar to [ProjectileItemCatalog], but for melee weapons.
+/// Similar to [ProjectileCatalog], but for melee weapons.
 class WeaponCatalog {
   const WeaponCatalog();
 

@@ -5,7 +5,7 @@ import 'package:rpg_runner/core/ecs/systems/projectile_launch_system.dart';
 import 'package:rpg_runner/core/ecs/systems/anim/anim_system.dart';
 import 'package:rpg_runner/core/ecs/stores/projectile_intent_store.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
+import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
 import 'package:rpg_runner/core/players/player_catalog.dart';
@@ -44,7 +44,7 @@ void main() {
     final tickHz = 60;
 
     final projectileLaunchSystem = ProjectileLaunchSystem(
-      projectileItems: const ProjectileItemCatalog(),
+      projectiles: const ProjectileCatalog(),
       tickHz: tickHz,
     );
 

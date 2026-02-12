@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/accessories/accessory_id.dart';
 import 'package:rpg_runner/core/meta/gear_slot.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
-import 'package:rpg_runner/core/spells/spell_book_id.dart';
+import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
 import 'package:rpg_runner/core/weapons/weapon_id.dart';
 import 'package:rpg_runner/ui/text/gear_text.dart';
 
@@ -50,9 +50,9 @@ void main() {
     });
 
     test('projectile source names use the shared projectile mapping', () {
-      expect(projectileItemDisplayName(ProjectileId.iceBolt), 'Ice Bolt');
+      expect(projectileDisplayName(ProjectileId.iceBolt), 'Ice Bolt');
       expect(
-        projectileItemDisplayName(ProjectileId.throwingAxe),
+        projectileDisplayName(ProjectileId.throwingAxe),
         'Throwing Axe',
       );
     });

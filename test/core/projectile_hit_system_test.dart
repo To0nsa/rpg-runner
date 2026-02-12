@@ -13,7 +13,7 @@ import 'package:rpg_runner/core/ecs/systems/projectile_hit_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/events/game_event.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
+import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
 import 'package:rpg_runner/core/projectiles/spawn_projectile_item.dart';
@@ -28,7 +28,7 @@ void main() {
     final iceBoltDamage = AbilityCatalog.tryGet(
       'eloise.charged_shot',
     )!.baseDamage;
-    final projectileItem = const ProjectileItemCatalog().get(
+    final projectile = const ProjectileCatalog().get(
       ProjectileId.iceBolt,
     );
 
@@ -69,11 +69,11 @@ void main() {
     );
 
     // Spawn a projectile overlapping the enemy.
-    final projectile = spawnProjectileItemFromCaster(
+    final projectileItem = spawnProjectileFromCaster(
       world,
       tickHz: 60,
       projectileId: ProjectileId.iceBolt,
-      projectileItem: projectileItem,
+      projectile: projectile,
       faction: Faction.player,
       owner: player,
       casterX: 140,
@@ -85,10 +85,10 @@ void main() {
       fallbackDirY: 0,
       damage100: iceBoltDamage,
       critChanceBp: 0,
-      damageType: projectileItem.damageType,
-      procs: projectileItem.procs,
-      ballistic: projectileItem.ballistic,
-      gravityScale: projectileItem.gravityScale,
+      damageType: projectile.damageType,
+      procs: projectile.procs,
+      ballistic: projectile.ballistic,
+      gravityScale: projectile.gravityScale,
     );
     expect(projectile, isNotNull);
 
@@ -107,7 +107,7 @@ void main() {
       world.health.hp[world.health.indexOf(enemy)],
       equals(10000 - iceBoltDamage),
     );
-    expect(world.projectile.has(projectile), isFalse);
+    expect(world.projectile.has(projectileItem), isFalse);
     expect(hitEvents.length, 1);
     expect(hitEvents.single.projectileId, ProjectileId.iceBolt);
     expect(hitEvents.single.projectileId, ProjectileId.iceBolt);

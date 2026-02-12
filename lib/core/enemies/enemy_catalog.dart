@@ -207,7 +207,7 @@ class EnemyArchetype {
     required this.hitAnimSeconds,
     required this.deathAnimSeconds,
     this.deathBehavior = DeathBehavior.instant,
-    this.primaryProjectileItemId,
+    this.primaryProjectileId,
     this.artFacingDir = Facing.left,
     this.tags = const CreatureTagDef(),
     this.resistance = const DamageResistanceDef(),
@@ -243,7 +243,7 @@ class EnemyArchetype {
   /// Optional primary projectile item for this enemy.
   ///
   /// When present, the [EnemyCastSystem] will use this to write projectile intents.
-  final ProjectileId? primaryProjectileItemId;
+  final ProjectileId? primaryProjectileId;
 
   /// Direction the authored art faces when not mirrored.
   ///
@@ -293,7 +293,7 @@ class EnemyCatalog {
           hitAnimSeconds: _unocoHitAnimSeconds,
           deathAnimSeconds: _unocoDeathAnimSeconds,
           deathBehavior: DeathBehavior.instant,
-          primaryProjectileItemId: ProjectileId.thunderBolt,
+          primaryProjectileId: ProjectileId.thunderBolt,
           artFacingDir: Facing.left,
           tags: CreatureTagDef(
             mask: CreatureTagMask.flying | CreatureTagMask.demon,

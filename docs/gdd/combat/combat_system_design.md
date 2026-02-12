@@ -33,7 +33,7 @@ Balance framework:
 ### Definitions
 
 - `WeaponDef`: Melee/off-hand weapon payload (damageType, procs, stats, weaponType)
-- `ProjectileItemDef`: Projectile slot item payload (spells + throws: projectileId, speed/lifetime/collider tuning, ballistic/gravity, damageType, procs, stats, weaponType)
+- `ProjectileDef`: Projectile slot item payload (spells + throws: projectileId, speed/lifetime/collider tuning, ballistic/gravity, damageType, procs, stats, weaponType)
 
 ## Stores (ECS Components)
 
@@ -154,12 +154,12 @@ Where:
 ## Projectile Items (Spells + Throws)
 
 Projectile slot items unify spells and throwing weapons under a single data
-structure (`ProjectileItemDef`) and a single execution pipeline.
+structure (`ProjectileDef`) and a single execution pipeline.
 
 ### Key Pieces
 
-- **Data**: `ProjectileItemDef`/`ProjectileItemCatalog` (payload + motion/collider: id, speed/lifetime/collider, damageType, procs, stats)
-- **Stores**: `EquippedLoadoutStore`, `ProjectileIntentStore`, `ProjectileItemOriginStore`
+- **Data**: `ProjectileDef`/`ProjectileCatalog` (payload + motion/collider: id, speed/lifetime/collider, damageType, procs, stats)
+- **Stores**: `EquippedLoadoutStore`, `ProjectileIntentStore`, `ProjectileOriginStore`
 - **Systems**:
   - `AbilityActivationSystem` writes `ProjectileIntentDef` from player input
   - `ProjectileLaunchSystem` validates costs/cooldown, spawns projectiles, sets cooldowns

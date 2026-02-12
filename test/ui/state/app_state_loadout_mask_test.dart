@@ -3,7 +3,7 @@ import 'package:rpg_runner/core/meta/gear_slot.dart';
 import 'package:rpg_runner/core/meta/meta_service.dart';
 import 'package:rpg_runner/core/meta/meta_state.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
-import 'package:rpg_runner/core/spells/spell_book_id.dart';
+import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
 import 'package:rpg_runner/core/players/player_character_definition.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:rpg_runner/ui/state/app_state.dart';

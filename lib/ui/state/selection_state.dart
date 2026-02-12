@@ -2,7 +2,7 @@ import '../../core/ecs/stores/combat/equipped_loadout_store.dart';
 import '../../core/levels/level_id.dart';
 import '../../core/players/player_character_definition.dart';
 import '../../core/projectiles/projectile_id.dart';
-import '../../core/spells/spell_book_id.dart';
+import '../../core/spellBook/spell_book_id.dart';
 import '../../core/accessories/accessory_id.dart';
 import '../../core/weapons/weapon_id.dart';
 

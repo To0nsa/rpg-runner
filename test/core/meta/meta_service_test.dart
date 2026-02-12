@@ -7,7 +7,7 @@ import 'package:rpg_runner/core/meta/meta_service.dart';
 import 'package:rpg_runner/core/meta/meta_state.dart';
 import 'package:rpg_runner/core/players/player_character_definition.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
-import 'package:rpg_runner/core/spells/spell_book_id.dart';
+import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
 import 'package:rpg_runner/core/weapons/weapon_id.dart';
 
 void main() {

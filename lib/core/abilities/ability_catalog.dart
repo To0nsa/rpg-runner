@@ -72,7 +72,7 @@ class AbilityCatalog implements AbilityResolver {
       cooldownTicks: 0,
       animKey: AnimKey.cast,
       requiredWeaponTypes: {WeaponType.projectileSpell},
-      payloadSource: AbilityPayloadSource.projectileItem,
+      payloadSource: AbilityPayloadSource.projectile,
       baseDamage: 500, // Thunder bolt legacy damage 5.0
       baseDamageType: DamageType.physical,
     ),
@@ -441,7 +441,7 @@ class AbilityCatalog implements AbilityResolver {
         WeaponType.throwingWeapon,
         WeaponType.projectileSpell,
       },
-      payloadSource: AbilityPayloadSource.projectileItem,
+      payloadSource: AbilityPayloadSource.projectile,
       baseDamage: 1300,
     ),
 
@@ -467,7 +467,7 @@ class AbilityCatalog implements AbilityResolver {
         WeaponType.throwingWeapon,
         WeaponType.projectileSpell,
       },
-      payloadSource: AbilityPayloadSource.projectileItem,
+      payloadSource: AbilityPayloadSource.projectile,
       baseDamage: 900,
     ),
 
@@ -495,7 +495,7 @@ class AbilityCatalog implements AbilityResolver {
         WeaponType.throwingWeapon,
         WeaponType.projectileSpell,
       },
-      payloadSource: AbilityPayloadSource.projectileItem,
+      payloadSource: AbilityPayloadSource.projectile,
       baseDamage: 1800,
     ),
 
@@ -526,7 +526,7 @@ class AbilityCatalog implements AbilityResolver {
         WeaponType.throwingWeapon,
         WeaponType.projectileSpell,
       },
-      payloadSource: AbilityPayloadSource.projectileItem,
+      payloadSource: AbilityPayloadSource.projectile,
       chargeProfile: AbilityChargeProfile(
         tiers: <AbilityChargeTierDef>[
           AbilityChargeTierDef(

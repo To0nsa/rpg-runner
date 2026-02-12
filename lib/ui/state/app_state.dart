@@ -12,10 +12,10 @@ import '../../core/meta/meta_service.dart';
 import '../../core/meta/meta_state.dart';
 import '../../core/players/player_character_definition.dart';
 import '../../core/players/player_character_registry.dart';
-import '../../core/projectiles/projectile_item_catalog.dart';
+import '../../core/projectiles/projectile_catalog.dart';
 import '../../core/projectiles/projectile_id.dart';
-import '../../core/spells/spell_book_catalog.dart';
-import '../../core/spells/spell_book_id.dart';
+import '../../core/spellBook/spell_book_catalog.dart';
+import '../../core/spellBook/spell_book_id.dart';
 import '../../core/weapons/weapon_catalog.dart';
 import '../app/ui_routes.dart';
 import 'selection_state.dart';
@@ -41,13 +41,13 @@ class AppState extends ChangeNotifier {
   final UserProfileStore _profileStore;
   final MetaService _metaService;
   static const AbilityCatalog _abilityCatalog = AbilityCatalog();
-  static const ProjectileItemCatalog _projectileCatalog =
-      ProjectileItemCatalog();
+  static const ProjectileCatalog _projectileCatalog =
+      ProjectileCatalog();
   static const SpellBookCatalog _spellBookCatalog = SpellBookCatalog();
   static const LoadoutValidator _loadoutValidator = LoadoutValidator(
     abilityCatalog: _abilityCatalog,
     weaponCatalog: WeaponCatalog(),
-    projectileItemCatalog: _projectileCatalog,
+    projectileCatalog: _projectileCatalog,
     spellBookCatalog: _spellBookCatalog,
   );
 

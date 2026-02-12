@@ -1,5 +1,5 @@
 import '../../core/accessories/accessory_id.dart';
-import '../../core/spells/spell_book_id.dart';
+import '../../core/spellBook/spell_book_id.dart';
 import '../../core/weapons/weapon_id.dart';
 
 class UiIconCoords {

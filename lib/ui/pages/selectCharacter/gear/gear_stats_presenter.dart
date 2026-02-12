@@ -2,12 +2,12 @@ import '../../../../core/accessories/accessory_catalog.dart';
 import '../../../../core/accessories/accessory_def.dart';
 import '../../../../core/accessories/accessory_id.dart';
 import '../../../../core/meta/gear_slot.dart';
-import '../../../../core/projectiles/projectile_item_catalog.dart';
+import '../../../../core/projectiles/projectile_catalog.dart';
 import '../../../../core/projectiles/projectile_item_def.dart';
 import '../../../../core/projectiles/projectile_id.dart';
-import '../../../../core/spells/spell_book_catalog.dart';
-import '../../../../core/spells/spell_book_def.dart';
-import '../../../../core/spells/spell_book_id.dart';
+import '../../../../core/spellBook/spell_book_catalog.dart';
+import '../../../../core/spellBook/spell_book_def.dart';
+import '../../../../core/spellBook/spell_book_id.dart';
 import '../../../../core/stats/character_stat_id.dart';
 import '../../../../core/stats/gear_stat_bonuses.dart';
 import '../../../../core/weapons/weapon_def.dart';
@@ -40,8 +40,8 @@ List<GearStatLine> gearStatsFor(GearSlot slot, Object id) {
       final def = const WeaponCatalog().get(id as WeaponId);
       return _weaponDefStats(def);
     case GearSlot.throwingWeapon:
-      final def = const ProjectileItemCatalog().get(id as ProjectileId);
-      return _projectileItemStats(def);
+      final def = const ProjectileCatalog().get(id as ProjectileId);
+      return _projectileStats(def);
     case GearSlot.spellBook:
       final def = const SpellBookCatalog().get(id as SpellBookId);
       return _spellBookStats(def);
@@ -67,8 +67,8 @@ List<GearStatLine> gearCompareStats(
       final b = const WeaponCatalog().get(candidate as WeaponId);
       return _diffWeaponStats(a, b);
     case GearSlot.throwingWeapon:
-      final a = const ProjectileItemCatalog().get(equipped as ProjectileId);
-      final b = const ProjectileItemCatalog().get(candidate as ProjectileId);
+      final a = const ProjectileCatalog().get(equipped as ProjectileId);
+      final b = const ProjectileCatalog().get(candidate as ProjectileId);
       return _diffWeaponStatsLike(a.stats, b.stats);
     case GearSlot.spellBook:
       final a = const SpellBookCatalog().get(equipped as SpellBookId);
@@ -103,7 +103,7 @@ List<GearStatLine> _weaponDefStats(WeaponDef def) {
   return lines;
 }
 
-List<GearStatLine> _projectileItemStats(ProjectileItemDef def) {
+List<GearStatLine> _projectileStats(ProjectileItemDef def) {
   final stats = def.stats;
   final lines = <GearStatLine>[
     GearStatLine('Type', _enumLabel(def.weaponType.name)),

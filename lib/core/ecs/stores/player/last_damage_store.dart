@@ -29,9 +29,9 @@ class LastDamageStore extends SparseSet {
     kind.add(DeathSourceKind.unknown);
     enemyId.add(EnemyId.unocoDemon);
     hasEnemyId.add(false);
-    projectileId.add(ProjectileId.iceBolt);
+    projectileId.add(ProjectileId.unknown);
     hasProjectileId.add(false);
-    sourceProjectileId.add(ProjectileId.iceBolt);
+    sourceProjectileId.add(ProjectileId.unknown);
     hasSourceProjectileId.add(false);
     amount100.add(0);
     tick.add(-1);

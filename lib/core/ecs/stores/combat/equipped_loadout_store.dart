@@ -1,5 +1,5 @@
 import '../../../projectiles/projectile_id.dart';
-import '../../../spells/spell_book_id.dart';
+import '../../../spellBook/spell_book_id.dart';
 import '../../../accessories/accessory_id.dart';
 import '../../../weapons/weapon_id.dart';
 import '../../entity_id.dart';

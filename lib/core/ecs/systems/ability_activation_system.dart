@@ -8,8 +8,8 @@ import '../../combat/damage_type.dart';
 import '../../combat/hit_payload_builder.dart';
 import '../../snapshots/enums.dart';
 import '../../projectiles/projectile_id.dart';
-import '../../projectiles/projectile_item_catalog.dart';
-import '../../spells/spell_book_catalog.dart';
+import '../../projectiles/projectile_catalog.dart';
+import '../../spellBook/spell_book_catalog.dart';
 import '../../weapons/weapon_catalog.dart';
 import '../../weapons/weapon_proc.dart';
 import '../../stats/gear_stat_bonuses.dart';
@@ -42,7 +42,7 @@ class AbilityActivationSystem {
     required this.inputBufferTicks,
     required this.abilities,
     required this.weapons,
-    required this.projectileItems,
+    required this.projectiles,
     required this.spellBooks,
     required this.accessories,
     ResolvedStatsCache? statsCache,
@@ -51,7 +51,7 @@ class AbilityActivationSystem {
            ResolvedStatsCache(
              resolver: CharacterStatsResolver(
                weapons: weapons,
-               projectileItems: projectileItems,
+               projectiles: projectiles,
                spellBooks: spellBooks,
                accessories: accessories,
              ),
@@ -61,7 +61,7 @@ class AbilityActivationSystem {
   final int inputBufferTicks;
   final AbilityResolver abilities;
   final WeaponCatalog weapons;
-  final ProjectileItemCatalog projectileItems;
+  final ProjectileCatalog projectiles;
   final SpellBookCatalog spellBooks;
   final AccessoryCatalog accessories;
 
@@ -450,7 +450,7 @@ class AbilityActivationSystem {
           if ((mask & LoadoutSlotMask.offHand) == 0) return false;
         }
         break;
-      case AbilityPayloadSource.projectileItem:
+      case AbilityPayloadSource.projectile:
         if ((mask & LoadoutSlotMask.projectile) == 0) return false;
         break;
       case AbilityPayloadSource.spellBook:
@@ -687,7 +687,7 @@ class AbilityActivationSystem {
           if ((mask & LoadoutSlotMask.offHand) == 0) return false;
         }
         break;
-      case AbilityPayloadSource.projectileItem:
+      case AbilityPayloadSource.projectile:
         // Melee delivery cannot legally pull payload from projectile item.
         return false;
       case AbilityPayloadSource.spellBook:
@@ -772,7 +772,7 @@ class AbilityActivationSystem {
           return slot == AbilitySlot.secondary
               ? world.equippedLoadout.offhandWeaponId[loadoutIndex]
               : world.equippedLoadout.mainWeaponId[loadoutIndex];
-        case AbilityPayloadSource.projectileItem:
+        case AbilityPayloadSource.projectile:
           return world.equippedLoadout.mainWeaponId[loadoutIndex];
         case AbilityPayloadSource.spellBook:
           return world.equippedLoadout.mainWeaponId[loadoutIndex];
@@ -882,7 +882,7 @@ class AbilityActivationSystem {
     }
 
     // Projectile delivery must pull payload from a projectile item or spell book.
-    if (ability.payloadSource != AbilityPayloadSource.projectileItem &&
+    if (ability.payloadSource != AbilityPayloadSource.projectile &&
         ability.payloadSource != AbilityPayloadSource.spellBook) {
       return false;
     }
@@ -909,33 +909,33 @@ class AbilityActivationSystem {
     List<WeaponProc> weaponProcs = const <WeaponProc>[];
 
     switch (ability.payloadSource) {
-      case AbilityPayloadSource.projectileItem:
-        final equippedId = _resolveProjectileItemForSlot(
+      case AbilityPayloadSource.projectile:
+        final equippedId = _resolveProjectileForSlot(
           world,
           loadoutIndex: loadoutIndex,
           slot: slot,
           ability: ability,
         );
-        final projectileItem = projectileItems.tryGet(equippedId);
-        if (projectileItem == null) {
+        final projectile = projectiles.tryGet(equippedId);
+        if (projectile == null) {
           assert(false, 'Projectile item not found: $equippedId');
           return false;
         }
         if (ability.requiredWeaponTypes.isNotEmpty &&
-            !ability.requiredWeaponTypes.contains(projectileItem.weaponType)) {
+            !ability.requiredWeaponTypes.contains(projectile.weaponType)) {
           return false;
         }
         projectileId = equippedId;
-        ballistic = projectileItem.ballistic;
-        gravityScale = projectileItem.gravityScale;
+        ballistic = projectile.ballistic;
+        gravityScale = projectile.gravityScale;
         originOffset =
-            projectileItem.weaponType == WeaponType.projectileSpell &&
-                projectileItem.originOffset == 0
+            projectile.weaponType == WeaponType.projectileSpell &&
+                projectile.originOffset == 0
             ? _spellOriginOffset(world, player)
-            : projectileItem.originOffset;
-        weaponStats = projectileItem.stats;
-        weaponDamageType = projectileItem.damageType;
-        weaponProcs = projectileItem.procs;
+            : projectile.originOffset;
+        weaponStats = projectile.stats;
+        weaponDamageType = projectile.damageType;
+        weaponProcs = projectile.procs;
         break;
       case AbilityPayloadSource.spellBook:
         final spellBookId = world.equippedLoadout.spellBookId[loadoutIndex];
@@ -1285,7 +1285,7 @@ class AbilityActivationSystem {
     return (bestDx * invLen, bestDy * invLen);
   }
 
-  ProjectileId _resolveProjectileItemForSlot(
+  ProjectileId _resolveProjectileForSlot(
     EcsWorld world, {
     required int loadoutIndex,
     required AbilitySlot slot,
@@ -1298,7 +1298,7 @@ class AbilityActivationSystem {
       slot: slot,
     );
     if (selectedSpellId != null) {
-      final selectedSpell = projectileItems.tryGet(selectedSpellId);
+      final selectedSpell = projectiles.tryGet(selectedSpellId);
       final spellBookId = loadout.spellBookId[loadoutIndex];
       final spellBook = spellBooks.tryGet(spellBookId);
       final supportsSpell =

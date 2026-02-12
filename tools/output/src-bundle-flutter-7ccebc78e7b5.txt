@@ -8,30 +8,30 @@ import '../../projectiles/projectile_item_id.dart';
 import '../entity_id.dart';
 import '../sparse_set.dart';
 
-class ProjectileItemOriginDef {
-  const ProjectileItemOriginDef({required this.projectileItemId});
+class ProjectileOriginDef {
+  const ProjectileOriginDef({required this.projectileId});
 
-  final ProjectileItemId projectileItemId;
+  final ProjectileId projectileId;
 }
 
 /// Metadata for projectile entities (spawned from projectile slot items).
-class ProjectileItemOriginStore extends SparseSet {
-  final List<ProjectileItemId> projectileItemId = <ProjectileItemId>[];
+class ProjectileOriginStore extends SparseSet {
+  final List<ProjectileId> projectileId = <ProjectileId>[];
 
-  void add(EntityId entity, ProjectileItemOriginDef def) {
+  void add(EntityId entity, ProjectileOriginDef def) {
     final i = addEntity(entity);
-    projectileItemId[i] = def.projectileItemId;
+    projectileId[i] = def.projectileId;
   }
 
   @override
   void onDenseAdded(int denseIndex) {
-    projectileItemId.add(ProjectileItemId.iceBolt);
+    projectileId.add(ProjectileId.iceBolt);
   }
 
   @override
   void onSwapRemove(int removeIndex, int lastIndex) {
-    projectileItemId[removeIndex] = projectileItemId[lastIndex];
-    projectileItemId.removeLast();
+    projectileId[removeIndex] = projectileId[lastIndex];
+    projectileId.removeLast();
   }
 }
 
@@ -673,14 +673,14 @@ class AbilityActivationSystem {
     required this.inputBufferTicks,
     required this.abilities,
     required this.weapons,
-    required this.projectileItems,
+    required this.projectiles,
   });
 
   final int tickHz;
   final int inputBufferTicks;
   final AbilityCatalog abilities;
   final WeaponCatalog weapons;
-  final ProjectileItemCatalog projectileItems;
+  final ProjectileCatalog projectiles;
 
   void step(
     EcsWorld world, {
@@ -1054,7 +1054,7 @@ class AbilityActivationSystem {
           if ((mask & LoadoutSlotMask.offHand) == 0) return false;
         }
         break;
-      case AbilityPayloadSource.projectileItem:
+      case AbilityPayloadSource.projectile:
         if ((mask & LoadoutSlotMask.projectile) == 0) return false;
         break;
     }
@@ -1229,7 +1229,7 @@ class AbilityActivationSystem {
           if ((mask & LoadoutSlotMask.offHand) == 0) return false;
         }
         break;
-      case AbilityPayloadSource.projectileItem:
+      case AbilityPayloadSource.projectile:
         // Melee delivery cannot legally pull payload from projectile item.
         return false;
     }
@@ -1289,7 +1289,7 @@ class AbilityActivationSystem {
           return slot == AbilitySlot.secondary
               ? world.equippedLoadout.offhandWeaponId[loadoutIndex]
               : world.equippedLoadout.mainWeaponId[loadoutIndex];
-        case AbilityPayloadSource.projectileItem:
+        case AbilityPayloadSource.projectile:
           return world.equippedLoadout.mainWeaponId[loadoutIndex];
       }
     }();
@@ -1382,7 +1382,7 @@ class AbilityActivationSystem {
     }
 
     // Projectile delivery must pull payload from projectile item.
-    if (ability.payloadSource != AbilityPayloadSource.projectileItem) {
+    if (ability.payloadSource != AbilityPayloadSource.projectile) {
       return false;
     }
     final mask = world.equippedLoadout.mask[loadoutIndex];
@@ -1393,11 +1393,11 @@ class AbilityActivationSystem {
       return false;
     }
 
-    final projectileItemId =
-        world.equippedLoadout.projectileItemId[loadoutIndex];
-    final projectileItem = projectileItems.tryGet(projectileItemId);
-    if (projectileItem == null) {
-      assert(false, 'Projectile item not found: $projectileItemId');
+    final projectileId =
+        world.equippedLoadout.projectileId[loadoutIndex];
+    final projectile = projectiles.tryGet(projectileId);
+    if (projectile == null) {
+      assert(false, 'Projectile item not found: $projectileId');
       return false;
     }
 
@@ -1432,7 +1432,7 @@ class AbilityActivationSystem {
     }
 
     double originOffset;
-    if (projectileItem.weaponType == WeaponType.projectileSpell) {
+    if (projectile.weaponType == WeaponType.projectileSpell) {
       var maxHalfExtent = 0.0;
       if (world.colliderAabb.has(player)) {
         final aabbi = world.colliderAabb.indexOf(player);
@@ -1442,15 +1442,15 @@ class AbilityActivationSystem {
       }
       originOffset = maxHalfExtent * 0.5;
     } else {
-      originOffset = projectileItem.originOffset;
+      originOffset = projectile.originOffset;
     }
 
     final payload = HitPayloadBuilder.build(
       ability: ability,
       source: player,
-      weaponStats: projectileItem.stats,
-      weaponDamageType: projectileItem.damageType,
-      weaponProcs: projectileItem.procs,
+      weaponStats: projectile.stats,
+      weaponDamageType: projectile.damageType,
+      weaponProcs: projectile.procs,
     );
 
     final cooldownGroupId = ability.effectiveCooldownGroup(slot);
@@ -1487,7 +1487,7 @@ class AbilityActivationSystem {
     world.projectileIntent.set(
       player,
       ProjectileIntentDef(
-        projectileItemId: projectileItemId,
+        projectileId: projectileId,
         abilityId: ability.id,
         slot: slot,
         damage100: payload.damage100,
@@ -1495,11 +1495,11 @@ class AbilityActivationSystem {
         manaCost100: ability.manaCost,
         cooldownTicks: cooldownTicks,
         cooldownGroupId: cooldownGroupId,
-        projectileId: projectileItem.projectileId,
+        projectileId: projectile.projectileId,
         damageType: payload.damageType,
         procs: payload.procs,
-        ballistic: projectileItem.ballistic,
-        gravityScale: projectileItem.gravityScale,
+        ballistic: projectile.ballistic,
+        gravityScale: projectile.gravityScale,
         dirX: aimX,
         dirY: aimY,
         fallbackDirX: fallbackDirX,
@@ -2612,7 +2612,7 @@ class DamageSystem {
       final sourceKind = queue.sourceKind[i];
       final sourceEnemyId = queue.sourceEnemyId[i];
       final sourceProjectileId = queue.sourceProjectileId[i];
-      final sourceProjectileItemId = queue.sourceProjectileItemId[i];
+      final sourceProjectileId = queue.sourceProjectileId[i];
 
       // 1. Resolve Health component.
       // Use tryIndexOf (returns int?) to combine "has check" and "get index"
@@ -2666,11 +2666,11 @@ class DamageSystem {
             lastDamage.hasProjectileId[li] = false;
           }
 
-          if (sourceProjectileItemId != null) {
-            lastDamage.projectileItemId[li] = sourceProjectileItemId;
-            lastDamage.hasProjectileItemId[li] = true;
+          if (sourceProjectileId != null) {
+            lastDamage.projectileId[li] = sourceProjectileId;
+            lastDamage.hasProjectileId[li] = true;
           } else {
-            lastDamage.hasProjectileItemId[li] = false;
+            lastDamage.hasProjectileId[li] = false;
           }
         }
       }
@@ -2770,13 +2770,13 @@ class EnemyCastSystem {
   EnemyCastSystem({
     required this.unocoDemonTuning,
     required this.enemyCatalog,
-    required this.projectileItems,
+    required this.projectiles,
     required this.projectiles,
   });
 
   final UnocoDemonTuningDerived unocoDemonTuning;
   final EnemyCatalog enemyCatalog;
-  final ProjectileItemCatalog projectileItems;
+  final ProjectileCatalog projectiles;
   final ProjectileCatalogDerived projectiles;
 
   /// Evaluates casts for all enemies and writes projectile intents.
@@ -2823,13 +2823,13 @@ class EnemyCastSystem {
       }
 
       final enemyId = enemies.enemyId[ei];
-      final projectileItemId = enemyCatalog
+      final projectileId = enemyCatalog
           .get(enemyId)
-          .primaryProjectileItemId;
-      if (projectileItemId == null) continue;
+          .primaryProjectileId;
+      if (projectileId == null) continue;
 
-      final projectileItem = projectileItems.get(projectileItemId);
-      final projectileId = projectileItem.projectileId;
+      final projectile = projectiles.get(projectileId);
+      final projectileId = projectile.projectileId;
       final projectileSpeed = projectiles.base
           .get(projectileId)
           .speedUnitsPerSecond;
@@ -2845,8 +2845,8 @@ class EnemyCastSystem {
       _writeProjectileIntent(
         world,
         ability: ability,
-        projectileItemId: projectileItemId,
-        projectileItem: projectileItem,
+        projectileId: projectileId,
+        projectile: projectile,
         enemyIndex: ei,
         enemyCenterX: enemyCenterX,
         enemyCenterY: enemyCenterY,
@@ -2872,8 +2872,8 @@ class EnemyCastSystem {
     required double playerVelY,
     required double projectileSpeed,
     required int currentTick,
-    required ProjectileItemId projectileItemId,
-    required ProjectileItemDef projectileItem,
+    required ProjectileId projectileId,
+    required ProjectileDef projectile,
   }) {
     final tuning = unocoDemonTuning;
 
@@ -2903,9 +2903,9 @@ class EnemyCastSystem {
     final payload = HitPayloadBuilder.build(
       ability: ability,
       source: enemy,
-      weaponStats: projectileItem.stats,
-      weaponDamageType: projectileItem.damageType,
-      weaponProcs: projectileItem.procs,
+      weaponStats: projectile.stats,
+      weaponDamageType: projectile.damageType,
+      weaponProcs: projectile.procs,
     );
 
     final windupTicks = _scaleAbilityTicks(ability.windupTicks);
@@ -2917,18 +2917,18 @@ class EnemyCastSystem {
     world.projectileIntent.set(
       enemy,
       ProjectileIntentDef(
-        projectileItemId: projectileItemId,
+        projectileId: projectileId,
         abilityId: ability.id,
         slot: AbilitySlot.projectile,
         damage100: payload.damage100,
         staminaCost100: ability.staminaCost,
         manaCost100: ability.manaCost,
         cooldownTicks: tuning.unocoDemonCastCooldownTicks,
-        projectileId: projectileItem.projectileId,
+        projectileId: projectile.projectileId,
         damageType: payload.damageType,
         procs: payload.procs,
-        ballistic: projectileItem.ballistic,
-        gravityScale: projectileItem.gravityScale,
+        ballistic: projectile.ballistic,
+        gravityScale: projectile.gravityScale,
         dirX: targetX - enemyCenterX,
         dirY: targetY - enemyCenterY,
         fallbackDirX: 1.0,
@@ -5117,7 +5117,7 @@ class ProjectileHitSystem {
     final transforms = world.transform;
     final colliders = world.colliderAabb;
     final enemies = world.enemy;
-    final projectileOrigins = world.projectileItemOrigin;
+    final projectileOrigins = world.projectileOrigin;
 
     final count = projectiles.denseEntities.length;
     for (var pi = 0; pi < count; pi += 1) {
@@ -5176,14 +5176,14 @@ class ProjectileHitSystem {
 
       // -- Impact Handling --
       if (targetIndex != null) {
-        // Optimization: Resolve heavy metadata (EnemyId, ProjectileItemId) ONLY when a hit actually occurs.
+        // Optimization: Resolve heavy metadata (EnemyId, ProjectileId) ONLY when a hit actually occurs.
         // Doing this before the hit check would waste cycles for the 99% of frames a projectile is just flying.
         final ei = enemies.tryIndexOf(owner);
         final enemyId = ei != null ? enemies.enemyId[ei] : null;
         
         final si = projectileOrigins.tryIndexOf(p);
-        final projectileItemId =
-            si != null ? projectileOrigins.projectileItemId[si] : null;
+        final projectileId =
+            si != null ? projectileOrigins.projectileId[si] : null;
 
         // Dispatch damage event.
         world.damageQueue.add(
@@ -5196,7 +5196,7 @@ class ProjectileHitSystem {
             sourceKind: DeathSourceKind.projectile,
             sourceEnemyId: enemyId,
             sourceProjectileId: projectiles.projectileId[pi],
-            sourceProjectileItemId: projectileItemId,
+            sourceProjectileId: projectileId,
           ),
         );
 
@@ -5205,7 +5205,7 @@ class ProjectileHitSystem {
             ProjectileHitEvent(
               tick: currentTick,
               projectileId: projectiles.projectileId[pi],
-              projectileItemId: projectileItemId,
+              projectileId: projectileId,
               pos: Vec2(pcx, pcy),
               facing: facing,
               rotationRad: rotationRad,
@@ -5271,10 +5271,10 @@ class ProjectileLaunchSystem {
       final fi = factions.tryIndexOf(caster);
       if (fi == null) continue;
 
-      spawnProjectileItemFromCaster(
+      spawnProjectileFromCaster(
         world,
         projectiles: projectiles,
-        projectileItemId: intents.projectileItemId[ii],
+        projectileId: intents.projectileId[ii],
         projectileId: intents.projectileId[ii],
         faction: factions.faction[fi],
         owner: caster,
@@ -6290,8 +6290,8 @@ class EcsWorld {
   late final ControlLockStore controlLock = _register(ControlLockStore());
 
   /// Links a projectile back to its originating projectile item.
-  late final ProjectileItemOriginStore projectileItemOrigin = _register(
-    ProjectileItemOriginStore(),
+  late final ProjectileOriginStore projectileOrigin = _register(
+    ProjectileOriginStore(),
   );
 
   /// State for ground enemies navigating terrain (jumping gaps/walls).
@@ -6597,7 +6597,7 @@ class EnemyArchetype {
     required this.hitAnimSeconds,
     required this.deathAnimSeconds,
     this.deathBehavior = DeathBehavior.instant,
-    this.primaryProjectileItemId,
+    this.primaryProjectileId,
     this.artFacingDir = Facing.left,
     this.tags = const CreatureTagDef(),
     this.resistance = const DamageResistanceDef(),
@@ -6633,7 +6633,7 @@ class EnemyArchetype {
   /// Optional primary projectile item for this enemy.
   ///
   /// When present, the [EnemyCastSystem] will use this to write projectile intents.
-  final ProjectileItemId? primaryProjectileItemId;
+  final ProjectileId? primaryProjectileId;
 
   /// Direction the authored art faces when not mirrored.
   ///
@@ -6683,7 +6683,7 @@ class EnemyCatalog {
           hitAnimSeconds: _unocoHitAnimSeconds,
           deathAnimSeconds: _unocoDeathAnimSeconds,
           deathBehavior: DeathBehavior.instant,
-          primaryProjectileItemId: ProjectileItemId.thunderBolt,
+          primaryProjectileId: ProjectileId.thunderBolt,
           artFacingDir: Facing.left,
           tags: CreatureTagDef(
             mask: CreatureTagMask.flying | CreatureTagMask.demon,
@@ -6833,14 +6833,14 @@ class ProjectileHitEvent extends GameEvent {
     required this.pos,
     required this.facing,
     required this.rotationRad,
-    this.projectileItemId,
+    this.projectileId,
   });
 
   /// Simulation tick when the hit occurred.
   final int tick;
 
   final ProjectileId projectileId;
-  final ProjectileItemId? projectileItemId;
+  final ProjectileId? projectileId;
   final Vec2 pos;
   final Facing facing;
   final double rotationRad;
@@ -6879,7 +6879,7 @@ class DeathInfo {
     required this.kind,
     this.enemyId,
     this.projectileId,
-    this.projectileItemId,
+    this.projectileId,
   });
 
   /// Category of the damage source.
@@ -6891,8 +6891,8 @@ class DeathInfo {
   /// The [ProjectileId] responsible (if applicable).
   final ProjectileId? projectileId;
   
-  /// The [ProjectileItemId] responsible (if applicable).
-  final ProjectileItemId? projectileItemId;
+  /// The [ProjectileId] responsible (if applicable).
+  final ProjectileId? projectileId;
 }
 
 /// Aggregate statistics collected during a run.
@@ -7200,7 +7200,7 @@ class GameCore {
     CoreTuning tuning = const CoreTuning(),
     PlayerCharacterDefinition playerCharacter =
         PlayerCharacterRegistry.defaultCharacter,
-    ProjectileItemCatalog projectileItemCatalog = const ProjectileItemCatalog(),
+    ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
     ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
     EnemyCatalog enemyCatalog = const EnemyCatalog(),
     WeaponCatalog weaponCatalog = const WeaponCatalog(),
@@ -7217,7 +7217,7 @@ class GameCore {
            tuning: tuning,
            staticWorldGeometry: staticWorldGeometry,
          ),
-         projectileItemCatalog: projectileItemCatalog,
+         projectileCatalog: projectileCatalog,
          projectileCatalog: projectileCatalog,
          enemyCatalog: enemyCatalog,
          playerCharacter: playerCharacter,
@@ -7229,7 +7229,7 @@ class GameCore {
     required this.runId,
     required this.tickHz,
     required LevelDefinition levelDefinition,
-    required ProjectileItemCatalog projectileItemCatalog,
+    required ProjectileCatalog projectileCatalog,
     required ProjectileCatalog projectileCatalog,
     required EnemyCatalog enemyCatalog,
     required PlayerCharacterDefinition playerCharacter,
@@ -7265,7 +7265,7 @@ class GameCore {
        ),
        _navigationTuning = levelDefinition.tuning.navigation,
        _spatialGridTuning = levelDefinition.tuning.spatialGrid,
-       _projectileItems = projectileItemCatalog,
+       _projectiles = projectileCatalog,
        _projectiles = ProjectileCatalogDerived.from(
          projectileCatalog,
          tickHz: tickHz,
@@ -7417,7 +7417,7 @@ class GameCore {
       inputBufferTicks: _abilities.inputBufferTicks,
       abilities: const AbilityCatalog(),
       weapons: _weapons,
-      projectileItems: _projectileItems,
+      projectiles: _projectiles,
     );
     _hitboxDamageSystem = HitboxDamageSystem();
 
@@ -7483,7 +7483,7 @@ class GameCore {
     _enemyCastSystem = EnemyCastSystem(
       unocoDemonTuning: _unocoDemonTuning,
       enemyCatalog: _enemyCatalog,
-      projectileItems: _projectileItems,
+      projectiles: _projectiles,
       projectiles: _projectiles,
     );
     _enemyMeleeSystem = EnemyMeleeSystem(groundEnemyTuning: _groundEnemyTuning);
@@ -7524,25 +7524,25 @@ class GameCore {
         mask: playerArchetype.loadoutSlotMask,
         mainWeaponId: playerArchetype.weaponId,
         offhandWeaponId: playerArchetype.offhandWeaponId,
-        projectileItemId: playerArchetype.projectileItemId,
-        abilityProjectileId: _abilityIdForProjectileItem(
-          playerArchetype.projectileItemId,
+        projectileId: playerArchetype.projectileId,
+        abilityProjectileId: _abilityIdForProjectile(
+          playerArchetype.projectileId,
         ),
       ),
     );
   }
 
-  AbilityKey _abilityIdForProjectileItem(ProjectileItemId id) {
+  AbilityKey _abilityIdForProjectile(ProjectileId id) {
     switch (id) {
-      case ProjectileItemId.iceBolt:
+      case ProjectileId.iceBolt:
         return 'eloise.ice_bolt';
-      case ProjectileItemId.fireBolt:
+      case ProjectileId.fireBolt:
         return 'eloise.fire_bolt';
-      case ProjectileItemId.thunderBolt:
+      case ProjectileId.thunderBolt:
         return 'eloise.thunder_bolt';
-      case ProjectileItemId.throwingKnife:
+      case ProjectileId.throwingKnife:
         return 'eloise.throwing_knife';
-      case ProjectileItemId.throwingAxe:
+      case ProjectileId.throwingAxe:
         return 'eloise.throwing_knife';
     }
   }
@@ -7591,7 +7591,7 @@ class GameCore {
   // ─── Catalogs ───
   // Archetype definitions for entities.
 
-  final ProjectileItemCatalog _projectileItems;
+  final ProjectileCatalog _projectiles;
   final ProjectileCatalogDerived _projectiles;
   final EnemyCatalog _enemyCatalog;
   final PlayerCharacterDefinition _playerCharacter;
@@ -8204,8 +8204,8 @@ class GameCore {
       projectileId: _world.lastDamage.hasProjectileId[li]
           ? _world.lastDamage.projectileId[li]
           : null,
-      projectileItemId: _world.lastDamage.hasProjectileItemId[li]
-          ? _world.lastDamage.projectileItemId[li]
+      projectileId: _world.lastDamage.hasProjectileId[li]
+          ? _world.lastDamage.projectileId[li]
           : null,
     );
   }
@@ -8585,12 +8585,12 @@ class LoadoutValidator {
   const LoadoutValidator({
     required this.abilityCatalog,
     required this.weaponCatalog,
-    required this.projectileItemCatalog,
+    required this.projectileCatalog,
   });
 
   final AbilityCatalog abilityCatalog;
   final WeaponCatalog weaponCatalog;
-  final ProjectileItemCatalog projectileItemCatalog;
+  final ProjectileCatalog projectileCatalog;
 
   /// Validates an entire loadout definition.
   LoadoutValidationResult validate(EquippedLoadoutDef loadout) {
@@ -8611,8 +8611,8 @@ class LoadoutValidator {
       issues,
     );
 
-    final projectileItem = _resolveProjectileItem(
-      loadout.projectileItemId,
+    final projectile = _resolveProjectile(
+      loadout.projectileId,
       AbilitySlot.projectile,
       issues,
     );
@@ -8642,7 +8642,7 @@ class LoadoutValidator {
       slot: AbilitySlot.primary,
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
-      projectileItem: projectileItem,
+      projectile: projectile,
     );
 
     // Secondary
@@ -8652,7 +8652,7 @@ class LoadoutValidator {
       slot: AbilitySlot.secondary,
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
-      projectileItem: projectileItem,
+      projectile: projectile,
     );
 
     // Projectile
@@ -8662,7 +8662,7 @@ class LoadoutValidator {
       slot: AbilitySlot.projectile,
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
-      projectileItem: projectileItem,
+      projectile: projectile,
     );
 
     // Mobility (No weapon)
@@ -8672,7 +8672,7 @@ class LoadoutValidator {
       slot: AbilitySlot.mobility,
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
-      projectileItem: projectileItem,
+      projectile: projectile,
     );
 
     // Bonus: payload gating is now driven by AbilityDef.payloadSource.
@@ -8682,7 +8682,7 @@ class LoadoutValidator {
       slot: AbilitySlot.bonus,
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
-      projectileItem: projectileItem,
+      projectile: projectile,
     );
 
     // Jump (Fixed slot, no weapon)
@@ -8692,7 +8692,7 @@ class LoadoutValidator {
       slot: AbilitySlot.jump,
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
-      projectileItem: projectileItem,
+      projectile: projectile,
     );
 
     return LoadoutValidationResult(
@@ -8739,12 +8739,12 @@ class LoadoutValidator {
     return weapon;
   }
 
-  ProjectileItemDef? _resolveProjectileItem(
-    ProjectileItemId id,
+  ProjectileDef? _resolveProjectile(
+    ProjectileId id,
     AbilitySlot slot,
     List<LoadoutIssue> issues,
   ) {
-    final item = projectileItemCatalog.tryGet(id);
+    final item = projectileCatalog.tryGet(id);
     if (item == null) {
       issues.add(LoadoutIssue(
         slot: slot,
@@ -8763,7 +8763,7 @@ class LoadoutValidator {
     required AbilitySlot slot,
     required WeaponDef? mainWeapon,
     required WeaponDef? effectiveSecondaryWeapon,
-    required ProjectileItemDef? projectileItem,
+    required ProjectileDef? projectile,
   }) {
     final ability = abilityCatalog.resolve(abilityId);
     if (ability == null) {
@@ -8780,7 +8780,7 @@ class LoadoutValidator {
       ability,
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
-      projectileItem: projectileItem,
+      projectile: projectile,
     );
 
     // 1. Slot Compatibility
@@ -8822,7 +8822,7 @@ class LoadoutValidator {
     AbilityDef ability, {
     required WeaponDef? mainWeapon,
     required WeaponDef? effectiveSecondaryWeapon,
-    required ProjectileItemDef? projectileItem,
+    required ProjectileDef? projectile,
   }) {
     switch (ability.payloadSource) {
       case AbilityPayloadSource.none:
@@ -8832,8 +8832,8 @@ class LoadoutValidator {
       case AbilityPayloadSource.secondaryWeapon:
         // effectiveSecondaryWeapon already applies two-handed mapping
         return (effectiveSecondaryWeapon != null, effectiveSecondaryWeapon?.weaponType);
-      case AbilityPayloadSource.projectileItem:
-        return (projectileItem != null, projectileItem?.weaponType);
+      case AbilityPayloadSource.projectile:
+        return (projectile != null, projectile?.weaponType);
     }
   }
 }
@@ -11331,7 +11331,7 @@ const PlayerCatalog eloiseCatalog = PlayerCatalog(
   loadoutSlotMask: LoadoutSlotMask.all,
   weaponId: WeaponId.basicSword,
   offhandWeaponId: WeaponId.basicShield,
-  projectileItemId: ProjectileItemId.fireBolt,
+  projectileId: ProjectileId.fireBolt,
   facing: Facing.right,
 );
 
@@ -11436,7 +11436,7 @@ class PlayerArchetype {
     this.loadoutSlotMask = LoadoutSlotMask.defaultMask,
     this.weaponId = WeaponId.basicSword,
     this.offhandWeaponId = WeaponId.basicShield,
-    this.projectileItemId = ProjectileItemId.iceBolt,
+    this.projectileId = ProjectileId.iceBolt,
     this.facing = Facing.right,
   });
 
@@ -11489,7 +11489,7 @@ class PlayerArchetype {
   final WeaponId offhandWeaponId;
 
   /// Equipped projectile item used for thrown/ballistic projectiles.
-  final ProjectileItemId projectileItemId;
+  final ProjectileId projectileId;
 
   /// Initial facing direction when the player spawns.
   ///
@@ -11549,7 +11549,7 @@ class PlayerCatalog {
     this.loadoutSlotMask = LoadoutSlotMask.defaultMask,
     this.weaponId = WeaponId.basicSword,
     this.offhandWeaponId = WeaponId.basicShield,
-    this.projectileItemId = ProjectileItemId.iceBolt,
+    this.projectileId = ProjectileId.iceBolt,
     this.facing = Facing.right,
   });
 
@@ -11606,7 +11606,7 @@ class PlayerCatalog {
   final WeaponId offhandWeaponId;
 
   /// Default equipped projectile item at spawn time.
-  final ProjectileItemId projectileItemId;
+  final ProjectileId projectileId;
 
   /// Default facing direction at spawn time.
   ///
@@ -11702,7 +11702,7 @@ class PlayerCatalogDerived {
         loadoutSlotMask: base.loadoutSlotMask,
         weaponId: base.weaponId,
         offhandWeaponId: base.offhandWeaponId,
-        projectileItemId: base.projectileItemId,
+        projectileId: base.projectileId,
         facing: base.facing,
       ),
     );
@@ -12636,15 +12636,15 @@ import 'projectile_item_def.dart';
 import 'projectile_item_id.dart';
 
 /// Lookup table for projectile slot items (spells + throwing weapons).
-class ProjectileItemCatalog {
-  const ProjectileItemCatalog();
+class ProjectileCatalog {
+  const ProjectileCatalog();
 
-  ProjectileItemDef get(ProjectileItemId id) {
+  ProjectileDef get(ProjectileId id) {
     switch (id) {
       // Spells
-      case ProjectileItemId.iceBolt:
-        return const ProjectileItemDef(
-          id: ProjectileItemId.iceBolt,
+      case ProjectileId.iceBolt:
+        return const ProjectileDef(
+          id: ProjectileId.iceBolt,
           weaponType: WeaponType.projectileSpell,
           projectileId: ProjectileId.iceBolt,
           ballistic: false,
@@ -12658,9 +12658,9 @@ class ProjectileItemCatalog {
             ),
           ],
         );
-      case ProjectileItemId.fireBolt:
-        return const ProjectileItemDef(
-          id: ProjectileItemId.fireBolt,
+      case ProjectileId.fireBolt:
+        return const ProjectileDef(
+          id: ProjectileId.fireBolt,
           weaponType: WeaponType.projectileSpell,
           projectileId: ProjectileId.fireBolt,
           ballistic: false,
@@ -12674,9 +12674,9 @@ class ProjectileItemCatalog {
             ),
           ],
         );
-      case ProjectileItemId.thunderBolt:
-        return const ProjectileItemDef(
-          id: ProjectileItemId.thunderBolt,
+      case ProjectileId.thunderBolt:
+        return const ProjectileDef(
+          id: ProjectileId.thunderBolt,
           weaponType: WeaponType.projectileSpell,
           projectileId: ProjectileId.thunderBolt,
           ballistic: false,
@@ -12685,9 +12685,9 @@ class ProjectileItemCatalog {
         );
 
       // Throwing weapons
-      case ProjectileItemId.throwingKnife:
-        return const ProjectileItemDef(
-          id: ProjectileItemId.throwingKnife,
+      case ProjectileId.throwingKnife:
+        return const ProjectileDef(
+          id: ProjectileId.throwingKnife,
           weaponType: WeaponType.throwingWeapon,
           projectileId: ProjectileId.throwingKnife,
           originOffset: 6.0,
@@ -12695,9 +12695,9 @@ class ProjectileItemCatalog {
           gravityScale: 0.9,
           damageType: DamageType.physical,
         );
-      case ProjectileItemId.throwingAxe:
-        return const ProjectileItemDef(
-          id: ProjectileItemId.throwingAxe,
+      case ProjectileId.throwingAxe:
+        return const ProjectileDef(
+          id: ProjectileId.throwingAxe,
           weaponType: WeaponType.throwingWeapon,
           projectileId: ProjectileId.throwingAxe,
           originOffset: 8.0,
@@ -12708,7 +12708,7 @@ class ProjectileItemCatalog {
     }
   }
 
-  ProjectileItemDef? tryGet(ProjectileItemId id) {
+  ProjectileDef? tryGet(ProjectileId id) {
     try {
       return get(id);
     } catch (_) {
@@ -12727,8 +12727,8 @@ import '../weapons/weapon_stats.dart';
 import 'projectile_item_id.dart';
 
 /// Unified data definition for projectile slot items (spells + throwing weapons).
-class ProjectileItemDef {
-  const ProjectileItemDef({
+class ProjectileDef {
+  const ProjectileDef({
     required this.id,
     required this.weaponType,
     required this.projectileId,
@@ -12740,7 +12740,7 @@ class ProjectileItemDef {
     this.stats = const WeaponStats(),
   });
 
-  final ProjectileItemId id;
+  final ProjectileId id;
   final WeaponType weaponType;
 
   final ProjectileId projectileId;
@@ -12755,7 +12755,7 @@ class ProjectileItemDef {
 
 
 ===== FILE: lib/core/projectiles/projectile_item_id.dart =====
-enum ProjectileItemId {
+enum ProjectileId {
   iceBolt,
   fireBolt,
   thunderBolt,
@@ -13028,10 +13028,10 @@ const _dirEps2 = 1e-12;
   return (x: x * invLen, y: y * invLen);
 }
 
-EntityId spawnProjectileItemFromCaster(
+EntityId spawnProjectileFromCaster(
   EcsWorld world, {
   required ProjectileCatalogDerived projectiles,
-  required ProjectileItemId projectileItemId,
+  required ProjectileId projectileId,
   required ProjectileId projectileId,
   required Faction faction,
   required EntityId owner,
@@ -13090,9 +13090,9 @@ EntityId spawnProjectileItemFromCaster(
     ),
   );
 
-  world.projectileItemOrigin.add(
+  world.projectileOrigin.add(
     entity,
-    ProjectileItemOriginDef(projectileItemId: projectileItemId),
+    ProjectileOriginDef(projectileId: projectileId),
   );
 
   world.lifetime.add(
@@ -17377,7 +17377,7 @@ import 'weapon_stats.dart';
 
 /// Lookup table for weapon definitions.
 ///
-/// Similar to [ProjectileItemCatalog], but for melee weapons.
+/// Similar to [ProjectileCatalog], but for melee weapons.
 class WeaponCatalog {
   const WeaponCatalog();
 
@@ -27722,7 +27722,7 @@ class LoadoutSetupPage extends StatelessWidget {
                 MenuButton(
                   label: 'Fire Bolt',
                   onPressed: () => appState.setLoadout(
-                    _withProjectile(loadout, ProjectileItemId.fireBolt, 'eloise.fire_bolt'),
+                    _withProjectile(loadout, ProjectileId.fireBolt, 'eloise.fire_bolt'),
                   ),
                 ),
                 MenuButton(
@@ -27730,7 +27730,7 @@ class LoadoutSetupPage extends StatelessWidget {
                   onPressed: () => appState.setLoadout(
                     _withProjectile(
                       loadout,
-                      ProjectileItemId.thunderBolt,
+                      ProjectileId.thunderBolt,
                       'eloise.thunder_bolt',
                     ),
                   ),
@@ -27767,14 +27767,14 @@ class LoadoutSetupPage extends StatelessWidget {
 
 EquippedLoadoutDef _withProjectile(
   EquippedLoadoutDef base,
-  ProjectileItemId projectileItemId,
+  ProjectileId projectileId,
   String abilityProjectileId,
 ) {
   return EquippedLoadoutDef(
     mask: base.mask,
     mainWeaponId: base.mainWeaponId,
     offhandWeaponId: base.offhandWeaponId,
-    projectileItemId: projectileItemId,
+    projectileId: projectileId,
     abilityPrimaryId: base.abilityPrimaryId,
     abilitySecondaryId: base.abilitySecondaryId,
     abilityProjectileId: abilityProjectileId,
@@ -28985,7 +28985,7 @@ Map<String, Object?> _loadoutToJson(EquippedLoadoutDef loadout) {
     'mask': loadout.mask,
     'mainWeaponId': loadout.mainWeaponId.name,
     'offhandWeaponId': loadout.offhandWeaponId.name,
-    'projectileItemId': loadout.projectileItemId.name,
+    'projectileId': loadout.projectileId.name,
     'abilityPrimaryId': loadout.abilityPrimaryId,
     'abilitySecondaryId': loadout.abilitySecondaryId,
     'abilityProjectileId': loadout.abilityProjectileId,
@@ -29012,10 +29012,10 @@ EquippedLoadoutDef _loadoutFromJson(Object? raw) {
       map['offhandWeaponId'] as String?,
       WeaponId.basicShield,
     ),
-    projectileItemId: _enumFromName(
-      ProjectileItemId.values,
-      map['projectileItemId'] as String?,
-      ProjectileItemId.iceBolt,
+    projectileId: _enumFromName(
+      ProjectileId.values,
+      map['projectileId'] as String?,
+      ProjectileId.iceBolt,
     ),
     abilityPrimaryId: (map['abilityPrimaryId'] as String?) ??
         const EquippedLoadoutDef().abilityPrimaryId,

@@ -6,7 +6,7 @@ This document defines Eloise abilities equipped in `AbilitySlot.projectile`.
 
 All abilities here use:
 
-- `payloadSource: AbilityPayloadSource.projectileItem`
+- `payloadSource: AbilityPayloadSource.projectile`
 - `requiredWeaponTypes: {throwingWeapon, projectileSpell}`
 - `AnimKey.ranged`
 

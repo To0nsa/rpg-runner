@@ -9,7 +9,7 @@ import '../ecs/stores/mana_store.dart';
 import '../ecs/stores/stamina_store.dart';
 import '../snapshots/enums.dart';
 import '../projectiles/projectile_id.dart';
-import '../spells/spell_book_id.dart';
+import '../spellBook/spell_book_id.dart';
 import '../weapons/weapon_id.dart';
 import '../abilities/ability_def.dart';
 

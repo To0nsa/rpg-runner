@@ -5,10 +5,10 @@ import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:rpg_runner/core/loadout/loadout_issue.dart';
 import 'package:rpg_runner/core/loadout/loadout_validator.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
+import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
-import 'package:rpg_runner/core/spells/spell_book_catalog.dart';
-import 'package:rpg_runner/core/spells/spell_book_id.dart';
+import 'package:rpg_runner/core/spellBook/spell_book_catalog.dart';
+import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
 import 'package:rpg_runner/core/weapons/weapon_catalog.dart';
 import 'package:rpg_runner/core/weapons/weapon_category.dart';
 import 'package:rpg_runner/core/weapons/weapon_def.dart';
@@ -18,12 +18,12 @@ void main() {
   group('LoadoutValidator', () {
     const abilityCatalog = AbilityCatalog();
     const weaponCatalog = WeaponCatalog();
-    const projectileItemCatalog = ProjectileItemCatalog();
+    const projectileCatalog = ProjectileCatalog();
 
     final validator = LoadoutValidator(
       abilityCatalog: abilityCatalog,
       weaponCatalog: weaponCatalog,
-      projectileItemCatalog: projectileItemCatalog,
+      projectileCatalog: projectileCatalog,
       spellBookCatalog: const SpellBookCatalog(),
     );
 
@@ -246,7 +246,7 @@ void main() {
         const tagValidator = LoadoutValidator(
           abilityCatalog: TestAbilityCatalog(),
           weaponCatalog: weaponCatalog,
-          projectileItemCatalog: projectileItemCatalog,
+          projectileCatalog: projectileCatalog,
           spellBookCatalog: SpellBookCatalog(),
         );
 
@@ -276,7 +276,7 @@ void main() {
       final mockValidator = LoadoutValidator(
         abilityCatalog: abilityCatalog,
         weaponCatalog: const MockWeaponCatalog(),
-        projectileItemCatalog: projectileItemCatalog,
+        projectileCatalog: projectileCatalog,
         spellBookCatalog: const SpellBookCatalog(),
       );
 

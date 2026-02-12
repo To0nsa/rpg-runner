@@ -5,8 +5,8 @@ import '../../weapons/weapon_proc.dart';
 import '../entity_id.dart';
 import '../sparse_set.dart';
 
-class ProjectileDef {
-  const ProjectileDef({
+class ProjectileEntityDef {
+  const ProjectileEntityDef({
     required this.projectileId,
     required this.faction,
     required this.owner,
@@ -64,7 +64,7 @@ class ProjectileStore extends SparseSet {
   final List<int> maxPierceHits = <int>[];
   final List<bool> usePhysics = <bool>[];
 
-  void add(EntityId entity, ProjectileDef def) {
+  void add(EntityId entity, ProjectileEntityDef def) {
     final i = addEntity(entity);
     projectileId[i] = def.projectileId;
     faction[i] = def.faction;
@@ -83,7 +83,7 @@ class ProjectileStore extends SparseSet {
 
   @override
   void onDenseAdded(int denseIndex) {
-    projectileId.add(ProjectileId.iceBolt);
+    projectileId.add(ProjectileId.unknown);
     faction.add(Faction.player);
     owner.add(0);
     dirX.add(1.0);

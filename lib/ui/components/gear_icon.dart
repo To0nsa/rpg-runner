@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/accessories/accessory_id.dart';
 import '../../core/meta/gear_slot.dart';
 import '../../core/projectiles/projectile_id.dart';
-import '../../core/spells/spell_book_id.dart';
+import '../../core/spellBook/spell_book_id.dart';
 import '../../core/weapons/weapon_id.dart';
 import '../icons/throwing_weapon_asset.dart';
 import '../icons/ui_icon_coords.dart';

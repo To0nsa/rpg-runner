@@ -1,7 +1,7 @@
 import '../../core/accessories/accessory_id.dart';
 import '../../core/meta/gear_slot.dart';
 import '../../core/projectiles/projectile_id.dart';
-import '../../core/spells/spell_book_id.dart';
+import '../../core/spellBook/spell_book_id.dart';
 import '../../core/weapons/weapon_id.dart';
 
 /// User-facing display name for a [WeaponId].
@@ -17,12 +17,12 @@ String weaponDescription(WeaponId id) {
 /// User-facing display name for a [ProjectileId].
 ///
 /// Shared by gear picker and projectile source picker.
-String projectileItemDisplayName(ProjectileId id) {
+String projectileDisplayName(ProjectileId id) {
   return _projectileDisplayNameOverrides[id] ?? _titleCaseEnum(id.name);
 }
 
 /// User-facing short description for a [ProjectileId].
-String projectileItemDescription(ProjectileId id) {
+String projectileDescription(ProjectileId id) {
   return _projectileDescriptionOverrides[id] ?? _defaultDescription;
 }
 
@@ -54,7 +54,7 @@ String gearDisplayNameForSlot(GearSlot slot, Object id) {
   return switch (slot) {
     GearSlot.mainWeapon ||
     GearSlot.offhandWeapon => weaponDisplayName(id as WeaponId),
-    GearSlot.throwingWeapon => projectileItemDisplayName(id as ProjectileId),
+    GearSlot.throwingWeapon => projectileDisplayName(id as ProjectileId),
     GearSlot.spellBook => spellBookDisplayName(id as SpellBookId),
     GearSlot.accessory => accessoryDisplayName(id as AccessoryId),
   };
@@ -65,7 +65,7 @@ String gearDescriptionForSlot(GearSlot slot, Object id) {
   return switch (slot) {
     GearSlot.mainWeapon ||
     GearSlot.offhandWeapon => weaponDescription(id as WeaponId),
-    GearSlot.throwingWeapon => projectileItemDescription(id as ProjectileId),
+    GearSlot.throwingWeapon => projectileDescription(id as ProjectileId),
     GearSlot.spellBook => spellBookDescription(id as SpellBookId),
     GearSlot.accessory => accessoryDescription(id as AccessoryId),
   };

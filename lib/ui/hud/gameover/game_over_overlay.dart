@@ -367,6 +367,8 @@ String _enemyName(EnemyId id) {
 
 String _projectileName(ProjectileId id) {
   switch (id) {
+    case ProjectileId.unknown:
+      return 'Unknown Projectile';
     case ProjectileId.iceBolt:
       return 'Ice Bolt';
     case ProjectileId.thunderBolt:

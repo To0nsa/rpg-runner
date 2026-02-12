@@ -1,12 +1,12 @@
 import '../abilities/ability_catalog.dart';
 import '../abilities/ability_def.dart';
 import '../ecs/stores/combat/equipped_loadout_store.dart';
-import '../projectiles/projectile_item_catalog.dart';
+import '../projectiles/projectile_catalog.dart';
 import '../projectiles/projectile_item_def.dart';
 import '../projectiles/projectile_id.dart';
-import '../spells/spell_book_catalog.dart';
-import '../spells/spell_book_def.dart';
-import '../spells/spell_book_id.dart';
+import '../spellBook/spell_book_catalog.dart';
+import '../spellBook/spell_book_def.dart';
+import '../spellBook/spell_book_id.dart';
 import '../weapons/weapon_catalog.dart';
 import '../weapons/weapon_category.dart';
 import '../weapons/weapon_def.dart';
@@ -19,13 +19,13 @@ class LoadoutValidator {
   const LoadoutValidator({
     required this.abilityCatalog,
     required this.weaponCatalog,
-    required this.projectileItemCatalog,
+    required this.projectileCatalog,
     required this.spellBookCatalog,
   });
 
   final AbilityResolver abilityCatalog;
   final WeaponCatalog weaponCatalog;
-  final ProjectileItemCatalog projectileItemCatalog;
+  final ProjectileCatalog projectileCatalog;
   final SpellBookCatalog spellBookCatalog;
 
   /// Validates an entire loadout definition.
@@ -47,7 +47,7 @@ class LoadoutValidator {
       issues,
     );
 
-    final projectileItem = _resolveProjectileItem(
+    final projectile = _resolveProjectile(
       loadout.projectileId,
       AbilitySlot.projectile,
       issues,
@@ -82,7 +82,7 @@ class LoadoutValidator {
       slot: AbilitySlot.primary,
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
-      projectileItem: projectileItem,
+      projectile: projectile,
       spellBook: spellBook,
       projectileSlotSpellId: loadout.projectileSlotSpellId,
     );
@@ -94,7 +94,7 @@ class LoadoutValidator {
       slot: AbilitySlot.secondary,
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
-      projectileItem: projectileItem,
+      projectile: projectile,
       spellBook: spellBook,
       projectileSlotSpellId: loadout.projectileSlotSpellId,
     );
@@ -106,7 +106,7 @@ class LoadoutValidator {
       slot: AbilitySlot.projectile,
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
-      projectileItem: projectileItem,
+      projectile: projectile,
       spellBook: spellBook,
       projectileSlotSpellId: loadout.projectileSlotSpellId,
     );
@@ -118,7 +118,7 @@ class LoadoutValidator {
       slot: AbilitySlot.mobility,
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
-      projectileItem: projectileItem,
+      projectile: projectile,
       spellBook: spellBook,
       projectileSlotSpellId: loadout.projectileSlotSpellId,
     );
@@ -130,7 +130,7 @@ class LoadoutValidator {
       slot: AbilitySlot.spell,
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
-      projectileItem: projectileItem,
+      projectile: projectile,
       spellBook: spellBook,
       projectileSlotSpellId: loadout.projectileSlotSpellId,
     );
@@ -142,7 +142,7 @@ class LoadoutValidator {
       slot: AbilitySlot.jump,
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
-      projectileItem: projectileItem,
+      projectile: projectile,
       spellBook: spellBook,
       projectileSlotSpellId: loadout.projectileSlotSpellId,
     );
@@ -192,12 +192,12 @@ class LoadoutValidator {
     return weapon;
   }
 
-  ProjectileItemDef? _resolveProjectileItem(
+  ProjectileItemDef? _resolveProjectile(
     ProjectileId id,
     AbilitySlot slot,
     List<LoadoutIssue> issues,
   ) {
-    final item = projectileItemCatalog.tryGet(id);
+    final item = projectileCatalog.tryGet(id);
     if (item == null) {
       issues.add(
         LoadoutIssue(
@@ -234,7 +234,7 @@ class LoadoutValidator {
     required AbilitySlot slot,
     required WeaponDef? mainWeapon,
     required WeaponDef? effectiveSecondaryWeapon,
-    required ProjectileItemDef? projectileItem,
+    required ProjectileItemDef? projectile,
     required SpellBookDef? spellBook,
     required ProjectileId? projectileSlotSpellId,
   }) {
@@ -251,10 +251,10 @@ class LoadoutValidator {
       return;
     }
 
-    final effectiveProjectileItem = _effectiveProjectilePayloadForSlot(
+    final effectiveProjectile = _effectiveProjectilePayloadForSlot(
       issues: issues,
       slot: slot,
-      fallbackProjectileItem: projectileItem,
+      fallbackProjectile: projectile,
       spellBook: spellBook,
       projectileSlotSpellId: projectileSlotSpellId,
     );
@@ -263,7 +263,7 @@ class LoadoutValidator {
       ability,
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
-      projectileItem: effectiveProjectileItem,
+      projectile: effectiveProjectile,
       spellBook: spellBook,
     );
 
@@ -328,7 +328,7 @@ class LoadoutValidator {
   ProjectileItemDef? _effectiveProjectilePayloadForSlot({
     required List<LoadoutIssue> issues,
     required AbilitySlot slot,
-    required ProjectileItemDef? fallbackProjectileItem,
+    required ProjectileItemDef? fallbackProjectile,
     required SpellBookDef? spellBook,
     required ProjectileId? projectileSlotSpellId,
   }) {
@@ -341,10 +341,10 @@ class LoadoutValidator {
       AbilitySlot.jump => null,
     };
     if (selectedSpellId == null) {
-      return fallbackProjectileItem;
+      return fallbackProjectile;
     }
 
-    final selectedSpell = projectileItemCatalog.tryGet(selectedSpellId);
+    final selectedSpell = projectileCatalog.tryGet(selectedSpellId);
     if (selectedSpell == null) {
       issues.add(
         LoadoutIssue(
@@ -352,10 +352,10 @@ class LoadoutValidator {
           kind: IssueKind.catalogMissing,
           weaponId: selectedSpellId.toString(),
           message:
-              'Selected projectile spell was not found in ProjectileItemCatalog.',
+              'Selected projectile spell was not found in ProjectileCatalog.',
         ),
       );
-      return fallbackProjectileItem;
+      return fallbackProjectile;
     }
 
     if (selectedSpell.weaponType != WeaponType.projectileSpell) {
@@ -368,7 +368,7 @@ class LoadoutValidator {
           message: 'Selected slot spell must be a projectile spell item.',
         ),
       );
-      return fallbackProjectileItem;
+      return fallbackProjectile;
     }
 
     if (spellBook == null ||
@@ -382,7 +382,7 @@ class LoadoutValidator {
               'Selected projectile spell is not granted by the equipped spellbook.',
         ),
       );
-      return fallbackProjectileItem;
+      return fallbackProjectile;
     }
 
     return selectedSpell;
@@ -392,7 +392,7 @@ class LoadoutValidator {
     AbilityDef ability, {
     required WeaponDef? mainWeapon,
     required WeaponDef? effectiveSecondaryWeapon,
-    required ProjectileItemDef? projectileItem,
+    required ProjectileItemDef? projectile,
     required SpellBookDef? spellBook,
   }) {
     switch (ability.payloadSource) {
@@ -406,8 +406,8 @@ class LoadoutValidator {
           effectiveSecondaryWeapon != null,
           effectiveSecondaryWeapon?.weaponType,
         );
-      case AbilityPayloadSource.projectileItem:
-        return (projectileItem != null, projectileItem?.weaponType);
+      case AbilityPayloadSource.projectile:
+        return (projectile != null, projectile?.weaponType);
       case AbilityPayloadSource.spellBook:
         return (spellBook != null, spellBook?.weaponType);
     }

@@ -20,7 +20,7 @@ import 'package:rpg_runner/core/ecs/systems/melee_strike_system.dart';
 import 'package:rpg_runner/core/ecs/systems/projectile_hit_system.dart';
 import 'package:rpg_runner/core/ecs/systems/projectile_launch_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
+import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
@@ -82,10 +82,10 @@ void main() {
         tickHz: 60,
       ),
       enemyCatalog: const EnemyCatalog(),
-      projectileItems: const ProjectileItemCatalog(),
+      projectiles: const ProjectileCatalog(),
     );
     final launchSystem = ProjectileLaunchSystem(
-      projectileItems: const ProjectileItemCatalog(),
+      projectiles: const ProjectileCatalog(),
       tickHz: 60,
     );
     final cooldownSystem = CooldownSystem();
@@ -122,7 +122,7 @@ void main() {
     final thunderDamage = AbilityCatalog.tryGet(
       'common.enemy_cast',
     )!.baseDamage;
-    final projectileItem = const ProjectileItemCatalog().get(
+    final projectile = const ProjectileCatalog().get(
       ProjectileId.thunderBolt,
     );
 
@@ -162,11 +162,11 @@ void main() {
       ),
     );
 
-    final p = spawnProjectileItemFromCaster(
+    final p = spawnProjectileFromCaster(
       world,
       tickHz: 60,
       projectileId: ProjectileId.thunderBolt,
-      projectileItem: projectileItem,
+      projectile: projectile,
       faction: Faction.enemy,
       owner: unocoDemon,
       casterX: 100,
@@ -178,10 +178,10 @@ void main() {
       fallbackDirY: 0,
       damage100: thunderDamage,
       critChanceBp: 0,
-      damageType: projectileItem.damageType,
-      procs: projectileItem.procs,
-      ballistic: projectileItem.ballistic,
-      gravityScale: projectileItem.gravityScale,
+      damageType: projectile.damageType,
+      procs: projectile.procs,
+      ballistic: projectile.ballistic,
+      gravityScale: projectile.gravityScale,
     );
     expect(p, isNotNull);
 

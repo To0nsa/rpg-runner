@@ -3,6 +3,9 @@
 /// Each ID maps to a projectile item entry and determines visual appearance
 /// in the renderer.
 enum ProjectileId {
+  /// Sentinel value for uninitialized/placeholder projectile slots.
+  unknown,
+
   /// Player's primary ranged strike. Fast, short-lived.
   iceBolt,
 

@@ -39,11 +39,11 @@ const _dirEps2 = 1e-12;
   return (x: x * invLen, y: y * invLen);
 }
 
-EntityId spawnProjectileItemFromCaster(
+EntityId spawnProjectileFromCaster(
   EcsWorld world, {
   required int tickHz,
   required ProjectileId projectileId,
-  required ProjectileItemDef projectileItem,
+  required ProjectileItemDef projectile,
   required Faction faction,
   required EntityId owner,
   required double casterX,
@@ -64,8 +64,7 @@ EntityId spawnProjectileItemFromCaster(
   double speedScale = 1.0,
 }) {
   final safeSpeedScale = speedScale <= 0 ? 0.01 : speedScale;
-  final speedUnitsPerSecond =
-      projectileItem.speedUnitsPerSecond * safeSpeedScale;
+  final speedUnitsPerSecond = projectile.speedUnitsPerSecond * safeSpeedScale;
   final resolvedMaxPierceHits = max(1, maxPierceHits);
 
   final dir = _normalizeDirOrFallback(
@@ -93,7 +92,7 @@ EntityId spawnProjectileItemFromCaster(
 
   world.projectile.add(
     entity,
-    ProjectileDef(
+    ProjectileEntityDef(
       projectileId: projectileId,
       faction: faction,
       owner: owner,
@@ -112,23 +111,23 @@ EntityId spawnProjectileItemFromCaster(
 
   world.hitOnce.add(entity);
 
-  world.projectileItemOrigin.add(
+  world.projectileOrigin.add(
     entity,
-    ProjectileItemOriginDef(projectileId: projectileId),
+    ProjectileOriginDef(projectileId: projectileId),
   );
 
   world.lifetime.add(
     entity,
     LifetimeDef(
-      ticksLeft: ticksFromSecondsCeil(projectileItem.lifetimeSeconds, tickHz),
+      ticksLeft: ticksFromSecondsCeil(projectile.lifetimeSeconds, tickHz),
     ),
   );
 
   world.colliderAabb.add(
     entity,
     ColliderAabbDef(
-      halfX: projectileItem.colliderSizeX * 0.5,
-      halfY: projectileItem.colliderSizeY * 0.5,
+      halfX: projectile.colliderSizeX * 0.5,
+      halfY: projectile.colliderSizeY * 0.5,
     ),
   );
 

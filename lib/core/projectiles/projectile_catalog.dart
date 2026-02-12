@@ -6,11 +6,18 @@ import '../weapons/weapon_proc.dart';
 import 'projectile_item_def.dart';
 
 /// Lookup table for projectile slot items (spells + throwing weapons).
-class ProjectileItemCatalog {
-  const ProjectileItemCatalog();
+class ProjectileCatalog {
+  const ProjectileCatalog();
 
   ProjectileItemDef get(ProjectileId id) {
     switch (id) {
+      case ProjectileId.unknown:
+        throw ArgumentError.value(
+          id,
+          'id',
+          'ProjectileId.unknown has no catalog entry.',
+        );
+
       // Spells
       case ProjectileId.iceBolt:
         return const ProjectileItemDef(
@@ -80,6 +87,13 @@ class ProjectileItemCatalog {
           ballistic: false,
           gravityScale: 1.0,
           damageType: DamageType.thunder,
+          procs: <WeaponProc>[
+            WeaponProc(
+              hook: ProcHook.onHit,
+              statusProfileId: StatusProfileId.stunOnHit,
+              chanceBp: 10000,
+            ),
+          ],
         );
 
       // Throwing weapons

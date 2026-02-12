@@ -20,11 +20,11 @@ import 'package:rpg_runner/core/ecs/systems/ability_activation_system.dart';
 import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
 import 'package:rpg_runner/core/ecs/systems/projectile_hit_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
+import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/projectiles/spawn_projectile_item.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
-import 'package:rpg_runner/core/spells/spell_book_catalog.dart';
+import 'package:rpg_runner/core/spellBook/spell_book_catalog.dart';
 import 'package:rpg_runner/core/tuning/spatial_grid_tuning.dart';
 import 'package:rpg_runner/core/weapons/weapon_catalog.dart';
 
@@ -36,7 +36,7 @@ void main() {
       inputBufferTicks: 10,
       abilities: const AbilityCatalog(),
       weapons: const WeaponCatalog(),
-      projectileItems: const ProjectileItemCatalog(),
+      projectiles: const ProjectileCatalog(),
       spellBooks: const SpellBookCatalog(),
       accessories: const AccessoryCatalog(),
     );
@@ -114,7 +114,7 @@ void main() {
           inputBufferTicks: 10,
           abilities: const AbilityCatalog(),
           weapons: const WeaponCatalog(),
-          projectileItems: const ProjectileItemCatalog(),
+          projectiles: const ProjectileCatalog(),
           spellBooks: const SpellBookCatalog(),
           accessories: const AccessoryCatalog(),
         );
@@ -238,11 +238,11 @@ void main() {
     final enemyA = spawnEnemy(140);
     final enemyB = spawnEnemy(152);
 
-    final projectile = spawnProjectileItemFromCaster(
+    final projectile = spawnProjectileFromCaster(
       world,
       tickHz: 60,
       projectileId: ProjectileId.iceBolt,
-      projectileItem: const ProjectileItemCatalog().get(ProjectileId.iceBolt),
+      projectile: const ProjectileCatalog().get(ProjectileId.iceBolt),
       faction: Faction.player,
       owner: player,
       casterX: 146,
@@ -308,11 +308,11 @@ void main() {
         const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
       );
 
-      final projectile = spawnProjectileItemFromCaster(
+      final projectile = spawnProjectileFromCaster(
         world,
         tickHz: 60,
         projectileId: ProjectileId.iceBolt,
-        projectileItem: const ProjectileItemCatalog().get(ProjectileId.iceBolt),
+        projectile: const ProjectileCatalog().get(ProjectileId.iceBolt),
         faction: Faction.player,
         owner: player,
         casterX: 140,

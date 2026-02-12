@@ -1,6 +1,6 @@
 import '../../../accessories/accessory_id.dart';
 import '../../../projectiles/projectile_id.dart';
-import '../../../spells/spell_book_id.dart';
+import '../../../spellBook/spell_book_id.dart';
 import '../../../stats/character_stats_resolver.dart';
 import '../../../stats/gear_stat_bonuses.dart';
 import '../../../weapons/weapon_id.dart';

@@ -45,7 +45,7 @@ class ProjectileHitSystem {
     final transforms = world.transform;
     final colliders = world.colliderAabb;
     final enemies = world.enemy;
-    final projectileOrigins = world.projectileItemOrigin;
+    final projectileOrigins = world.projectileOrigin;
     final hitOnce = world.hitOnce;
 
     final count = projectiles.denseEntities.length;
@@ -213,7 +213,7 @@ class ProjectileHitSystem {
     required EntityId projectileEntity,
     required int projectileStoreIndex,
     required EnemyStore enemies,
-    required ProjectileItemOriginStore projectileOrigins,
+    required ProjectileOriginStore projectileOrigins,
   }) {
     final projectiles = world.projectile;
 
@@ -252,7 +252,7 @@ class ProjectileHitSystem {
     required Facing facing,
     required double rotationRad,
     required ProjectileStore projectiles,
-    required ProjectileItemOriginStore projectileOrigins,
+    required ProjectileOriginStore projectileOrigins,
   }) {
     if (queueHitEvent == null) return;
     final si = projectileOrigins.tryIndexOf(projectileEntity);

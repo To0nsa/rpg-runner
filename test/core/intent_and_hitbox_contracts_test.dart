@@ -15,7 +15,7 @@ import 'package:rpg_runner/core/ecs/systems/hitbox_follow_owner_system.dart';
 import 'package:rpg_runner/core/ecs/systems/melee_strike_system.dart';
 import 'package:rpg_runner/core/ecs/systems/projectile_launch_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
+import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/ecs/entity_factory.dart';
@@ -73,7 +73,7 @@ void main() {
     );
 
     final projectileLaunch = ProjectileLaunchSystem(
-      projectileItems: const ProjectileItemCatalog(),
+      projectiles: const ProjectileCatalog(),
       tickHz: 60,
     );
 

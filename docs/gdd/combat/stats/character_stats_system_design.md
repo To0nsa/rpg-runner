@@ -157,7 +157,7 @@ Damage application order in Core:
 
 ### 6.4 Projectile items
 
-- No direct stat bonus values currently assigned in `ProjectileItemCatalog`.
+- No direct stat bonus values currently assigned in `ProjectileCatalog`.
 - Projectile items currently contribute through damage type/procs plus projectile motion/collider tuning.
 
 ### 6.5 Global offensive + typed resistance authoring

@@ -18,7 +18,7 @@ import 'package:rpg_runner/core/enemies/enemy_id.dart';
 import 'package:rpg_runner/core/events/game_event.dart';
 import 'package:rpg_runner/core/game_core.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_catalog.dart';
+import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
 import 'package:rpg_runner/core/projectiles/spawn_projectile_item.dart';
@@ -30,7 +30,7 @@ import 'package:rpg_runner/core/ecs/entity_factory.dart';
 void main() {
   test('projectile kill records death metadata', () {
     final world = EcsWorld();
-    final projectileItem = const ProjectileItemCatalog().get(
+    final projectile = const ProjectileCatalog().get(
       ProjectileId.thunderBolt,
     );
     final thunderDamage = AbilityCatalog.tryGet(
@@ -57,11 +57,11 @@ void main() {
 
     final enemy = spawnUnocoDemon(world, posX: 120, posY: 100);
 
-    final projectile = spawnProjectileItemFromCaster(
+    final projectileItem = spawnProjectileFromCaster(
       world,
       tickHz: 60,
       projectileId: ProjectileId.thunderBolt,
-      projectileItem: projectileItem,
+      projectile: projectile,
       faction: Faction.enemy,
       owner: enemy,
       casterX: 100,
@@ -73,12 +73,12 @@ void main() {
       fallbackDirY: 0,
       damage100: thunderDamage,
       critChanceBp: 0,
-      damageType: projectileItem.damageType,
-      procs: projectileItem.procs,
-      ballistic: projectileItem.ballistic,
-      gravityScale: projectileItem.gravityScale,
+      damageType: projectile.damageType,
+      procs: projectile.procs,
+      ballistic: projectile.ballistic,
+      gravityScale: projectile.gravityScale,
     );
-    expect(projectile, isNotNull);
+    expect(projectileItem, isNotNull);
 
     final broadphase = BroadphaseGrid(
       index: GridIndex2D(

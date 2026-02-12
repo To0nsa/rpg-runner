@@ -1,10 +1,10 @@
 import '../accessories/accessory_catalog.dart';
 import '../accessories/accessory_id.dart';
 import '../abilities/ability_def.dart' show WeaponType;
-import '../projectiles/projectile_item_catalog.dart';
+import '../projectiles/projectile_catalog.dart';
 import '../projectiles/projectile_id.dart';
-import '../spells/spell_book_catalog.dart';
-import '../spells/spell_book_id.dart';
+import '../spellBook/spell_book_catalog.dart';
+import '../spellBook/spell_book_id.dart';
 import '../weapons/weapon_catalog.dart';
 import '../weapons/weapon_category.dart';
 import '../weapons/weapon_id.dart';
@@ -35,7 +35,7 @@ class MetaService {
 
   const MetaService({
     this.weapons = const WeaponCatalog(),
-    this.projectileItems = const ProjectileItemCatalog(),
+    this.projectiles = const ProjectileCatalog(),
     this.spellBooks = const SpellBookCatalog(),
     this.accessories = const AccessoryCatalog(),
   });
@@ -44,7 +44,7 @@ class MetaService {
   final WeaponCatalog weapons;
 
   /// Projectile item catalog dependency.
-  final ProjectileItemCatalog projectileItems;
+  final ProjectileCatalog projectiles;
 
   /// Spellbook catalog dependency.
   final SpellBookCatalog spellBooks;
@@ -91,7 +91,7 @@ class MetaService {
   Set<ProjectileId> _startingUnlockedThrowingWeaponIds() {
     final unlockedThrowingCandidates = <ProjectileId>[];
     for (final id in ProjectileId.values) {
-      final def = projectileItems.tryGet(id);
+      final def = projectiles.tryGet(id);
       if (def != null && def.weaponType == WeaponType.throwingWeapon) {
         unlockedThrowingCandidates.add(id);
       }
@@ -154,7 +154,7 @@ class MetaService {
     final unlocked = state.inventory.unlockedThrowingWeaponIds;
     final result = <GearSlotCandidate>[];
     for (final id in ProjectileId.values) {
-      final def = projectileItems.tryGet(id);
+      final def = projectiles.tryGet(id);
       if (def == null || def.weaponType != WeaponType.throwingWeapon) {
         continue;
       }
@@ -252,7 +252,7 @@ class MetaService {
     }
 
     var throwingWeaponId = gear.throwingWeaponId;
-    final throwingDef = projectileItems.tryGet(throwingWeaponId);
+    final throwingDef = projectiles.tryGet(throwingWeaponId);
     if (throwingDef == null ||
         throwingDef.weaponType != WeaponType.throwingWeapon ||
         !inventory.unlockedThrowingWeaponIds.contains(throwingWeaponId)) {
@@ -368,7 +368,7 @@ class MetaService {
         );
       case GearSlot.throwingWeapon:
         if (itemId is! ProjectileId) return normalized;
-        final def = projectileItems.tryGet(itemId);
+        final def = projectiles.tryGet(itemId);
         if (def == null || def.weaponType != WeaponType.throwingWeapon) {
           return normalized;
         }
