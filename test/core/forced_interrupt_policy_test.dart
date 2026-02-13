@@ -79,7 +79,6 @@ class _InjectedAbilityCatalog extends AbilityCatalog {
       windupTicks: 0,
       activeTicks: 0,
       recoveryTicks: 1,
-      defaultCost: AbilityResourceCost(staminaCost100: 0, manaCost100: 0),
       cooldownTicks: 0,
       forcedInterruptCauses: <ForcedInterruptCause>{
         ForcedInterruptCause.stun,

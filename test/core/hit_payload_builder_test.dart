@@ -22,7 +22,6 @@ const AbilityDef _testAbility = AbilityDef(
   windupTicks: 1,
   activeTicks: 1,
   recoveryTicks: 1,
-  defaultCost: AbilityResourceCost(staminaCost100: 0, manaCost100: 0),
   cooldownTicks: 1,
   animKey: AnimKey.strike,
   baseDamage: 1000,

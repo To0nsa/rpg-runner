@@ -331,7 +331,6 @@ class TestAbilityCatalog extends AbilityCatalog {
     windupTicks: 0,
     activeTicks: 0,
     recoveryTicks: 0,
-    defaultCost: AbilityResourceCost(staminaCost100: 0, manaCost100: 0),
     cooldownTicks: 0,
     animKey: AnimKey.idle,
     requiredWeaponTypes: {WeaponType.oneHandedSword},

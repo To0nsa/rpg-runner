@@ -48,7 +48,6 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 8,
       activeTicks: 4,
       recoveryTicks: 24,
-      defaultCost: AbilityResourceCost(staminaCost100: 0),
       cooldownTicks: 0,
       animKey: AnimKey.strike,
       baseDamage: 0,
@@ -66,7 +65,6 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 6,
       activeTicks: 2,
       recoveryTicks: 12,
-      defaultCost: AbilityResourceCost(manaCost100: 0),
       cooldownTicks: 0,
       animKey: AnimKey.cast,
       requiredWeaponTypes: {WeaponType.projectileSpell},
@@ -96,9 +94,7 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 8,
       activeTicks: 6,
       recoveryTicks: 8,
-      defaultCost: AbilityResourceCost(
-        staminaCost100: 500
-      ), // 5.0 stamina
+      defaultCost: AbilityResourceCost(staminaCost100: 500), // 5.0 stamina
       cooldownTicks: 18, // 0.30s
       animKey: AnimKey.strike,
       requiredWeaponTypes: {WeaponType.oneHandedSword},
@@ -179,7 +175,7 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 10,
       activeTicks: 6,
       recoveryTicks: 10,
-      defaultCost: AbilityResourceCost(staminaCost100: 600, manaCost100: 0),
+      defaultCost: AbilityResourceCost(staminaCost100: 600),
       cooldownTicks: 24,
       forcedInterruptCauses: <ForcedInterruptCause>{
         ForcedInterruptCause.stun,
@@ -251,14 +247,11 @@ class AbilityCatalog implements AbilityResolver {
       id: 'eloise.sword_parry',
       category: AbilityCategory.defense,
       allowedSlots: {AbilitySlot.primary},
-      targetingModel: TargetingModel.none,
       inputLifecycle: AbilityInputLifecycle.holdMaintain,
-      hitDelivery: SelfHitDelivery(),
       // Hold defense up to 3s at 60Hz.
       windupTicks: 2,
       activeTicks: 180,
       recoveryTicks: 2,
-      defaultCost: AbilityResourceCost(),
       holdMode: AbilityHoldMode.holdToMaintain,
       // Full 3s hold spends ~21.0 stamina (matches old one-shot cost envelope).
       holdStaminaDrainPerSecond100: 233,
@@ -266,7 +259,6 @@ class AbilityCatalog implements AbilityResolver {
       animKey: AnimKey.parry,
       requiredWeaponTypes: {WeaponType.oneHandedSword},
       payloadSource: AbilityPayloadSource.primaryWeapon,
-      baseDamage: 0,
     ),
 
     // ------------------------------------------------------------------------
@@ -397,7 +389,6 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 2,
       activeTicks: 180,
       recoveryTicks: 2,
-      defaultCost: AbilityResourceCost(),
       holdMode: AbilityHoldMode.holdToMaintain,
       holdStaminaDrainPerSecond100: 700,
       cooldownTicks: 30,
@@ -424,7 +415,7 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 10,
       activeTicks: 2,
       recoveryTicks: 12,
-      defaultCost: AbilityResourceCost(staminaCost100: 0, manaCost100: 800),
+      defaultCost: AbilityResourceCost(manaCost100: 800),
       costProfileByWeaponType: <WeaponType, AbilityResourceCost>{
         WeaponType.throwingWeapon: AbilityResourceCost(staminaCost100: 800),
       },
@@ -452,7 +443,7 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 10,
       activeTicks: 2,
       recoveryTicks: 12,
-      defaultCost: AbilityResourceCost(staminaCost100: 0, manaCost100: 600),
+      defaultCost: AbilityResourceCost(manaCost100: 600),
       costProfileByWeaponType: <WeaponType, AbilityResourceCost>{
         WeaponType.throwingWeapon: AbilityResourceCost(staminaCost100: 600),
       },
@@ -482,7 +473,7 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 10,
       activeTicks: 2,
       recoveryTicks: 12,
-      defaultCost: AbilityResourceCost(staminaCost100: 0, manaCost100: 1000),
+      defaultCost: AbilityResourceCost(manaCost100: 1000),
       costProfileByWeaponType: <WeaponType, AbilityResourceCost>{
         WeaponType.throwingWeapon: AbilityResourceCost(staminaCost100: 1000),
       },
@@ -510,7 +501,7 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 10,
       activeTicks: 2,
       recoveryTicks: 12,
-      defaultCost: AbilityResourceCost(staminaCost100: 0, manaCost100: 1300),
+      defaultCost: AbilityResourceCost(manaCost100: 1300),
       costProfileByWeaponType: <WeaponType, AbilityResourceCost>{
         WeaponType.throwingWeapon: AbilityResourceCost(staminaCost100: 1300),
       },
@@ -567,7 +558,7 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 0,
       activeTicks: 0,
       recoveryTicks: 10,
-      defaultCost: AbilityResourceCost(staminaCost100: 0, manaCost100: 1000),
+      defaultCost: AbilityResourceCost(manaCost100: 1000),
       cooldownTicks: 300, // 5s @ 60Hz
       animKey: AnimKey.cast,
       requiredWeaponTypes: {WeaponType.projectileSpell},
@@ -585,7 +576,7 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 0,
       activeTicks: 0,
       recoveryTicks: 10,
-      defaultCost: AbilityResourceCost(staminaCost100: 0, manaCost100: 1500),
+      defaultCost: AbilityResourceCost(manaCost100: 1500),
       cooldownTicks: 420, // 7s @ 60Hz
       animKey: AnimKey.cast,
       requiredWeaponTypes: {WeaponType.projectileSpell},
@@ -603,7 +594,7 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 0,
       activeTicks: 0,
       recoveryTicks: 10,
-      defaultCost: AbilityResourceCost(staminaCost100: 1500, manaCost100: 0),
+      defaultCost: AbilityResourceCost(staminaCost100: 1500),
       cooldownTicks: 420, // 7s @ 60Hz
       animKey: AnimKey.cast,
       requiredWeaponTypes: {WeaponType.projectileSpell},
@@ -621,7 +612,7 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 0,
       activeTicks: 0,
       recoveryTicks: 10,
-      defaultCost: AbilityResourceCost(staminaCost100: 0, manaCost100: 1500),
+      defaultCost: AbilityResourceCost(manaCost100: 1500),
       cooldownTicks: 420, // 7s @ 60Hz
       animKey: AnimKey.cast,
       requiredWeaponTypes: {WeaponType.projectileSpell},
@@ -640,13 +631,11 @@ class AbilityCatalog implements AbilityResolver {
       targetingModel: TargetingModel.none,
       inputLifecycle: AbilityInputLifecycle.tap,
       hitDelivery: SelfHitDelivery(),
-      payloadSource: AbilityPayloadSource.none,
       windupTicks: 0,
       activeTicks: 0,
       recoveryTicks: 0,
       defaultCost: AbilityResourceCost(
         staminaCost100: 200,
-        manaCost100: 0,
       ), // 2.0 stamina (matches default jump tuning)
       cooldownTicks: 0,
       animKey: AnimKey.jump,
@@ -660,14 +649,13 @@ class AbilityCatalog implements AbilityResolver {
       targetingModel: TargetingModel.directional,
       inputLifecycle: AbilityInputLifecycle.tap,
       hitDelivery: SelfHitDelivery(),
-      payloadSource: AbilityPayloadSource.none,
       // 4 frames @ 0.05s = 0.20s -> 12 ticks
       // Cooldown 2.0s -> 120 ticks
       // Cost 2.0 -> 200
       windupTicks: 0,
       activeTicks: 12,
       recoveryTicks: 0,
-      defaultCost: AbilityResourceCost(staminaCost100: 200, manaCost100: 0),
+      defaultCost: AbilityResourceCost(staminaCost100: 200),
       cooldownTicks: 120,
       animKey: AnimKey.dash,
       baseDamage: 0,
@@ -679,11 +667,10 @@ class AbilityCatalog implements AbilityResolver {
       targetingModel: TargetingModel.aimedCharge,
       inputLifecycle: AbilityInputLifecycle.holdRelease,
       hitDelivery: SelfHitDelivery(),
-      payloadSource: AbilityPayloadSource.none,
       windupTicks: 0,
       activeTicks: 12,
       recoveryTicks: 0,
-      defaultCost: AbilityResourceCost(staminaCost100: 225, manaCost100: 0),
+      defaultCost: AbilityResourceCost(staminaCost100: 225),
       cooldownTicks: 120,
       animKey: AnimKey.dash,
       chargeProfile: AbilityChargeProfile(
@@ -715,11 +702,10 @@ class AbilityCatalog implements AbilityResolver {
       targetingModel: TargetingModel.homing,
       inputLifecycle: AbilityInputLifecycle.holdRelease,
       hitDelivery: SelfHitDelivery(),
-      payloadSource: AbilityPayloadSource.none,
       windupTicks: 0,
       activeTicks: 12,
       recoveryTicks: 0,
-      defaultCost: AbilityResourceCost(staminaCost100: 240, manaCost100: 0),
+      defaultCost: AbilityResourceCost(staminaCost100: 240),
       cooldownTicks: 120,
       animKey: AnimKey.dash,
       chargeProfile: AbilityChargeProfile(
@@ -751,11 +737,10 @@ class AbilityCatalog implements AbilityResolver {
       targetingModel: TargetingModel.homing,
       inputLifecycle: AbilityInputLifecycle.holdMaintain,
       hitDelivery: SelfHitDelivery(),
-      payloadSource: AbilityPayloadSource.none,
       windupTicks: 0,
       activeTicks: 60,
       recoveryTicks: 0,
-      defaultCost: AbilityResourceCost(staminaCost100: 240, manaCost100: 0),
+      defaultCost: AbilityResourceCost(staminaCost100: 240),
       holdMode: AbilityHoldMode.holdToMaintain,
       holdStaminaDrainPerSecond100: 120,
       cooldownTicks: 120,
@@ -790,13 +775,12 @@ class AbilityCatalog implements AbilityResolver {
       targetingModel: TargetingModel.directional,
       inputLifecycle: AbilityInputLifecycle.tap,
       hitDelivery: SelfHitDelivery(),
-      payloadSource: AbilityPayloadSource.none,
       // 10 frames @ 0.05s = 0.50s -> 30 ticks
       // Cost ~200? (Same as dash for now?)
       windupTicks: 3,
       activeTicks: 24,
       recoveryTicks: 3,
-      defaultCost: AbilityResourceCost(staminaCost100: 200, manaCost100: 0),
+      defaultCost: AbilityResourceCost(staminaCost100: 200),
       cooldownTicks: 120,
       animKey: AnimKey.roll,
       baseDamage: 0,

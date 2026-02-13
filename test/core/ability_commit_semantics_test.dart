@@ -30,7 +30,7 @@ class MockAbilities extends AbilityCatalog {
         windupTicks: 5,
         activeTicks: 5,
         recoveryTicks: 5,
-        defaultCost: AbilityResourceCost(staminaCost100: 200, manaCost100: 0),
+        defaultCost: AbilityResourceCost(staminaCost100: 200),
         cooldownTicks: 10,
         animKey: AnimKey.strike,
         baseDamage: 100,

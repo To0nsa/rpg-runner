@@ -36,7 +36,6 @@ class _ChargeMeleeAbilities extends AbilityCatalog {
         windupTicks: 4,
         activeTicks: 4,
         recoveryTicks: 4,
-        defaultCost: AbilityResourceCost(staminaCost100: 0, manaCost100: 0),
         cooldownTicks: 10,
         animKey: AnimKey.strike,
         payloadSource: AbilityPayloadSource.primaryWeapon,
