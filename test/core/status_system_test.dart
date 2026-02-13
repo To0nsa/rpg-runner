@@ -8,6 +8,8 @@ import 'package:rpg_runner/core/combat/damage.dart';
 import 'package:rpg_runner/core/combat/damage_type.dart';
 import 'package:rpg_runner/core/combat/status/status.dart';
 import 'package:rpg_runner/core/ecs/stores/health_store.dart';
+import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
+import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/damage_resistance_store.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
@@ -131,6 +133,60 @@ void main() {
     expect(world.health.hp[world.health.indexOf(target)], equals(1700));
   });
 
+  test('restore mana profile applies immediate percentage restore', () {
+    final world = EcsWorld();
+    final status = StatusSystem(tickHz: 60);
+
+    final target = world.createEntity();
+    world.health.add(
+      target,
+      const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+    );
+    world.mana.add(
+      target,
+      const ManaDef(mana: 200, manaMax: 1000, regenPerSecond100: 0),
+    );
+
+    status.queue(
+      StatusRequest(target: target, profileId: StatusProfileId.restoreMana),
+    );
+    status.applyQueued(world, currentTick: 1);
+
+    expect(world.mana.mana[world.mana.indexOf(target)], equals(550));
+  });
+
+  test('resource-over-time profile restores resource on periodic pulses', () {
+    final world = EcsWorld();
+    final status = StatusSystem(
+      tickHz: 10,
+      profiles: const _ResourceOverTimeStatusProfileCatalog(),
+    );
+
+    final target = world.createEntity();
+    world.health.add(
+      target,
+      const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+    );
+    world.stamina.add(
+      target,
+      const StaminaDef(stamina: 0, staminaMax: 1000, regenPerSecond100: 0),
+    );
+
+    status.queue(
+      StatusRequest(
+        target: target,
+        profileId: StatusProfileId.restoreStamina,
+      ),
+    );
+    status.applyQueued(world, currentTick: 0);
+
+    for (var tick = 1; tick <= 20; tick += 1) {
+      status.tickExisting(world);
+    }
+
+    expect(world.stamina.stamina[world.stamina.indexOf(target)], equals(200));
+  });
+
   test('haste stacks additively with slow', () {
     final world = EcsWorld();
     final status = StatusSystem(tickHz: 60);
@@ -222,7 +278,7 @@ void main() {
     expect(world.dot.dps100[dotIndex][fireChannel!], equals(550));
   });
 
-  test('acid on-hit applies +20% global vulnerability for 5 seconds', () {
+  test('acid on-hit applies +50% global vulnerability for 5 seconds', () {
     final world = EcsWorld();
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
     final status = StatusSystem(
@@ -265,7 +321,7 @@ void main() {
     expect(world.vulnerable.has(target), isTrue);
 
     final vulnerableIndex = world.vulnerable.indexOf(target);
-    expect(world.vulnerable.magnitude[vulnerableIndex], equals(2000));
+    expect(world.vulnerable.magnitude[vulnerableIndex], equals(5000));
     expect(world.vulnerable.ticksLeft[vulnerableIndex], equals(300));
 
     world.damageQueue.add(
@@ -276,7 +332,7 @@ void main() {
       ),
     );
     damage.step(world, currentTick: 2);
-    expect(world.health.hp[world.health.indexOf(target)], equals(3800));
+    expect(world.health.hp[world.health.indexOf(target)], equals(3500));
 
     for (var tick = 0; tick < 299; tick += 1) {
       status.tickExisting(world);
@@ -373,5 +429,27 @@ class _AcidResistAccessoryCatalog extends AccessoryCatalog {
       id: AccessoryId.speedBoots,
       stats: GearStatBonuses(acidResistanceBp: 4000),
     );
+  }
+}
+
+class _ResourceOverTimeStatusProfileCatalog extends StatusProfileCatalog {
+  const _ResourceOverTimeStatusProfileCatalog();
+
+  @override
+  StatusProfile get(StatusProfileId id) {
+    switch (id) {
+      case StatusProfileId.restoreStamina:
+        return const StatusProfile(<StatusApplication>[
+          StatusApplication(
+            type: StatusEffectType.resourceOverTime,
+            magnitude: 1000, // 10% per pulse
+            durationSeconds: 2.1,
+            periodSeconds: 1.0,
+            resourceType: StatusResourceType.stamina,
+          ),
+        ]);
+      default:
+        return super.get(id);
+    }
   }
 }

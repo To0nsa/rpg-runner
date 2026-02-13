@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/accessories/accessory_catalog.dart';
+import 'package:rpg_runner/core/combat/status/status.dart';
 import 'package:rpg_runner/core/ecs/entity_factory.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
@@ -12,6 +13,7 @@ import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
 import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
 import 'package:rpg_runner/core/ecs/systems/ability_activation_system.dart';
 import 'package:rpg_runner/core/ecs/systems/self_ability_system.dart';
+import 'package:rpg_runner/core/ecs/systems/status_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/spellBook/spell_book_catalog.dart';
@@ -117,12 +119,29 @@ void main() {
       accessories: const AccessoryCatalog(),
     );
     final selfAbility = SelfAbilitySystem();
+    final status = StatusSystem(tickHz: 60);
 
     activation.step(world, player: player, currentTick: 5);
-    selfAbility.step(world, currentTick: 5);
+    selfAbility.step(
+      world,
+      currentTick: 5,
+      queueStatus: status.queue,
+    );
+    status.applyQueued(world, currentTick: 5);
 
     final ability = AbilityCatalog.shared.resolve('eloise.restore_mana')!;
-    final expectedRestore = (1000 * ability.selfRestoreManaBp) ~/ 10000;
+    final restoreProfile = const StatusProfileCatalog().get(
+      ability.selfStatusProfileId,
+    );
+    final expectedRestoreBp = restoreProfile.applications
+        .where(
+          (app) =>
+              app.type == StatusEffectType.resourceOverTime &&
+              app.resourceType == StatusResourceType.mana,
+        )
+        .first
+        .magnitude;
+    final expectedRestore = (1000 * expectedRestoreBp) ~/ 10000;
     expect(
       world.mana.mana[world.mana.indexOf(player)],
       equals(200 + expectedRestore),
@@ -137,7 +156,12 @@ void main() {
     world.activeAbility.clear(player);
     world.playerInput.spellPressed[pi] = true;
     activation.step(world, player: player, currentTick: 6);
-    selfAbility.step(world, currentTick: 6);
+    selfAbility.step(
+      world,
+      currentTick: 6,
+      queueStatus: status.queue,
+    );
+    status.applyQueued(world, currentTick: 6);
 
     expect(world.mana.mana[world.mana.indexOf(player)], equals(900));
 
@@ -145,7 +169,12 @@ void main() {
     world.activeAbility.clear(player);
     world.playerInput.spellPressed[pi] = true;
     activation.step(world, player: player, currentTick: 7);
-    selfAbility.step(world, currentTick: 7);
+    selfAbility.step(
+      world,
+      currentTick: 7,
+      queueStatus: status.queue,
+    );
+    status.applyQueued(world, currentTick: 7);
 
     expect(world.mana.mana[world.mana.indexOf(player)], equals(1000));
   });

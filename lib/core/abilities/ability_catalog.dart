@@ -554,7 +554,6 @@ class AbilityCatalog implements AbilityResolver {
       allowedSlots: {AbilitySlot.spell},
       targetingModel: TargetingModel.none,
       inputLifecycle: AbilityInputLifecycle.tap,
-      hitDelivery: SelfHitDelivery(),
       // Instant cast, short recovery.
       windupTicks: 0,
       activeTicks: 0,
@@ -565,7 +564,6 @@ class AbilityCatalog implements AbilityResolver {
       requiredWeaponTypes: {WeaponType.projectileSpell},
       payloadSource: AbilityPayloadSource.spellBook,
       selfStatusProfileId: StatusProfileId.speedBoost,
-      baseDamage: 0,
     ),
     'eloise.restore_health': AbilityDef(
       id: 'eloise.restore_health',
@@ -573,7 +571,6 @@ class AbilityCatalog implements AbilityResolver {
       allowedSlots: {AbilitySlot.spell},
       targetingModel: TargetingModel.none,
       inputLifecycle: AbilityInputLifecycle.tap,
-      hitDelivery: SelfHitDelivery(),
       windupTicks: 0,
       activeTicks: 0,
       recoveryTicks: 10,
@@ -582,8 +579,7 @@ class AbilityCatalog implements AbilityResolver {
       animKey: AnimKey.cast,
       requiredWeaponTypes: {WeaponType.projectileSpell},
       payloadSource: AbilityPayloadSource.spellBook,
-      selfRestoreHealthBp: 3500, // Restore 35% max HP
-      baseDamage: 0,
+      selfStatusProfileId: StatusProfileId.restoreHealth,
     ),
     'eloise.restore_mana': AbilityDef(
       id: 'eloise.restore_mana',
@@ -591,7 +587,6 @@ class AbilityCatalog implements AbilityResolver {
       allowedSlots: {AbilitySlot.spell},
       targetingModel: TargetingModel.none,
       inputLifecycle: AbilityInputLifecycle.tap,
-      hitDelivery: SelfHitDelivery(),
       windupTicks: 0,
       activeTicks: 0,
       recoveryTicks: 10,
@@ -600,8 +595,7 @@ class AbilityCatalog implements AbilityResolver {
       animKey: AnimKey.cast,
       requiredWeaponTypes: {WeaponType.projectileSpell},
       payloadSource: AbilityPayloadSource.spellBook,
-      selfRestoreManaBp: 3500, // Restore 35% max mana
-      baseDamage: 0,
+      selfStatusProfileId: StatusProfileId.restoreMana,
     ),
     'eloise.restore_stamina': AbilityDef(
       id: 'eloise.restore_stamina',
@@ -609,7 +603,6 @@ class AbilityCatalog implements AbilityResolver {
       allowedSlots: {AbilitySlot.spell},
       targetingModel: TargetingModel.none,
       inputLifecycle: AbilityInputLifecycle.tap,
-      hitDelivery: SelfHitDelivery(),
       windupTicks: 0,
       activeTicks: 0,
       recoveryTicks: 10,
@@ -618,8 +611,7 @@ class AbilityCatalog implements AbilityResolver {
       animKey: AnimKey.cast,
       requiredWeaponTypes: {WeaponType.projectileSpell},
       payloadSource: AbilityPayloadSource.spellBook,
-      selfRestoreStaminaBp: 3500, // Restore 35% max stamina
-      baseDamage: 0,
+      selfStatusProfileId: StatusProfileId.restoreStamina,
     ),
 
     // ------------------------------------------------------------------------
@@ -629,9 +621,7 @@ class AbilityCatalog implements AbilityResolver {
       id: 'eloise.jump',
       category: AbilityCategory.mobility,
       allowedSlots: {AbilitySlot.jump},
-      targetingModel: TargetingModel.none,
       inputLifecycle: AbilityInputLifecycle.tap,
-      hitDelivery: SelfHitDelivery(),
       windupTicks: 0,
       activeTicks: 0,
       recoveryTicks: 0,
@@ -640,7 +630,6 @@ class AbilityCatalog implements AbilityResolver {
       ), // 2.0 stamina (matches default jump tuning)
       cooldownTicks: 0,
       animKey: AnimKey.jump,
-      baseDamage: 0,
     ),
 
     'eloise.dash': AbilityDef(

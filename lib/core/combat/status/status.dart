@@ -2,7 +2,10 @@ import '../../ecs/entity_id.dart';
 import '../damage_type.dart';
 
 /// Runtime status effect categories.
-enum StatusEffectType { dot, slow, stun, haste, vulnerable }
+enum StatusEffectType { dot, slow, stun, haste, vulnerable, resourceOverTime }
+
+/// Resources that can be restored through status effects.
+enum StatusResourceType { health, mana, stamina }
 
 /// Stable identifiers for status application profiles.
 enum StatusProfileId {
@@ -13,6 +16,9 @@ enum StatusProfileId {
   meleeBleed,
   stunOnHit,
   speedBoost,
+  restoreHealth,
+  restoreMana,
+  restoreStamina,
 }
 
 /// A single status application inside a profile.
@@ -24,9 +30,23 @@ class StatusApplication {
     this.periodSeconds = 1.0,
     this.scaleByDamageType = false,
     this.dotDamageType,
+    this.resourceType,
+    this.applyOnApply = false,
   }) : assert(
          type != StatusEffectType.dot || dotDamageType != null,
          'dotDamageType is required when type is StatusEffectType.dot.',
+       ),
+       assert(
+         type != StatusEffectType.resourceOverTime || resourceType != null,
+         'resourceType is required when type is StatusEffectType.resourceOverTime.',
+       ),
+       assert(
+         periodSeconds > 0,
+         'periodSeconds must be > 0 for periodic status effects.',
+       ),
+       assert(
+         durationSeconds >= 0,
+         'durationSeconds cannot be negative.',
        );
 
   final StatusEffectType type;
@@ -34,6 +54,7 @@ class StatusApplication {
   /// Effect strength:
   /// - Slow/Haste: basis points (100 = 1%)
   /// - DoT: damage per second in fixed-point (100 = 1.0)
+  /// - ResourceOverTime: basis points restored per pulse (`100 = 1%` of max).
   final int magnitude;
 
   /// Total duration (seconds).
@@ -48,6 +69,12 @@ class StatusApplication {
   /// Damage type dealt by [StatusEffectType.dot]. Ignored for non-DoTs.
   final DamageType? dotDamageType;
 
+  /// Resource restored by [StatusEffectType.resourceOverTime].
+  final StatusResourceType? resourceType;
+
+  /// Applies one pulse immediately when the status is queued/applied.
+  final bool applyOnApply;
+
   StatusApplication copyWith({
     StatusEffectType? type,
     int? magnitude,
@@ -55,6 +82,8 @@ class StatusApplication {
     double? periodSeconds,
     bool? scaleByDamageType,
     DamageType? dotDamageType,
+    StatusResourceType? resourceType,
+    bool? applyOnApply,
   }) {
     return StatusApplication(
       type: type ?? this.type,
@@ -63,6 +92,8 @@ class StatusApplication {
       periodSeconds: periodSeconds ?? this.periodSeconds,
       scaleByDamageType: scaleByDamageType ?? this.scaleByDamageType,
       dotDamageType: dotDamageType ?? this.dotDamageType,
+      resourceType: resourceType ?? this.resourceType,
+      applyOnApply: applyOnApply ?? this.applyOnApply,
     );
   }
 }
@@ -119,7 +150,7 @@ class StatusApplicationPresets {
       StatusApplicationPreset(
         StatusApplication(
           type: StatusEffectType.vulnerable,
-          magnitude: 2000, // +20% incoming damage.
+          magnitude: 5000, // +50% incoming damage.
           durationSeconds: 5.0,
           scaleByDamageType: false,
         ),
@@ -142,6 +173,41 @@ class StatusApplicationPresets {
       scaleByDamageType: false,
     ),
   );
+
+  static const StatusApplicationPreset majorHealthRestore =
+      StatusApplicationPreset(
+        StatusApplication(
+          type: StatusEffectType.resourceOverTime,
+          magnitude: 3500, // 35% max health
+          durationSeconds: 0.0,
+          periodSeconds: 1.0,
+          resourceType: StatusResourceType.health,
+          applyOnApply: true,
+        ),
+      );
+
+  static const StatusApplicationPreset majorManaRestore = StatusApplicationPreset(
+    StatusApplication(
+      type: StatusEffectType.resourceOverTime,
+      magnitude: 3500, // 35% max mana
+      durationSeconds: 0.0,
+      periodSeconds: 1.0,
+      resourceType: StatusResourceType.mana,
+      applyOnApply: true,
+    ),
+  );
+
+  static const StatusApplicationPreset majorStaminaRestore =
+      StatusApplicationPreset(
+        StatusApplication(
+          type: StatusEffectType.resourceOverTime,
+          magnitude: 3500, // 35% max stamina
+          durationSeconds: 0.0,
+          periodSeconds: 1.0,
+          resourceType: StatusResourceType.stamina,
+          applyOnApply: true,
+        ),
+      );
 }
 
 /// A bundle of status applications applied on hit.
@@ -187,6 +253,18 @@ class StatusProfileCatalog {
       case StatusProfileId.speedBoost:
         return StatusProfile(<StatusApplication>[
           StatusApplicationPresets.speedBoost.baseline,
+        ]);
+      case StatusProfileId.restoreHealth:
+        return StatusProfile(<StatusApplication>[
+          StatusApplicationPresets.majorHealthRestore.baseline,
+        ]);
+      case StatusProfileId.restoreMana:
+        return StatusProfile(<StatusApplication>[
+          StatusApplicationPresets.majorManaRestore.baseline,
+        ]);
+      case StatusProfileId.restoreStamina:
+        return StatusProfile(<StatusApplication>[
+          StatusApplicationPresets.majorStaminaRestore.baseline,
         ]);
     }
   }

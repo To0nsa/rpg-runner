@@ -41,6 +41,7 @@ import 'stores/projectile_store.dart';
 import 'stores/restoration_item_store.dart';
 import 'stores/status/dot_store.dart';
 import 'stores/status/haste_store.dart';
+import 'stores/status/resource_over_time_store.dart';
 import 'stores/status/slow_store.dart';
 import 'stores/status/vulnerable_store.dart';
 import 'stores/control_lock_store.dart';
@@ -178,7 +179,7 @@ class EcsWorld {
   /// Tracks per-entity death lifecycle state.
   late final DeathStateStore deathState = _register(DeathStateStore());
 
-  /// Status immunities (dot, slow, stun, haste, vulnerable).
+  /// Status immunities (dot, slow, stun, haste, vulnerable, resource-over-time).
   late final StatusImmunityStore statusImmunity = _register(
     StatusImmunityStore(),
   );
@@ -230,6 +231,11 @@ class EcsWorld {
 
   /// Active haste effects.
   late final HasteStore haste = _register(HasteStore());
+
+  /// Active resource-over-time effects.
+  late final ResourceOverTimeStore resourceOverTime = _register(
+    ResourceOverTimeStore(),
+  );
 
   /// Active slow effects.
   late final SlowStore slow = _register(SlowStore());

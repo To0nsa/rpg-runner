@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/commands/command.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
+import 'package:rpg_runner/core/combat/status/status.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/game_core.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
@@ -380,8 +381,19 @@ void main() {
     expect(projectilesAfterBonus.length, 1);
 
     final restore = AbilityCatalog.shared.resolve('eloise.restore_mana')!;
+    final restoreProfile = const StatusProfileCatalog().get(
+      restore.selfStatusProfileId,
+    );
+    final restoreAmountBp = restoreProfile.applications
+        .where(
+          (app) =>
+              app.type == StatusEffectType.resourceOverTime &&
+              app.resourceType == StatusResourceType.mana,
+        )
+        .first
+        .magnitude;
     final expectedMana =
-        (beforeBonus.hud.mana + (20.0 * restore.selfRestoreManaBp / 10000.0))
+        (beforeBonus.hud.mana + (20.0 * restoreAmountBp / 10000.0))
             .clamp(0.0, 20.0);
     expect(afterBonus.hud.mana, closeTo(expectedMana, 1e-9));
   });

@@ -10,6 +10,7 @@ import '../../util/double_math.dart';
 import '../entity_id.dart';
 import '../stores/status/dot_store.dart';
 import '../stores/status/haste_store.dart';
+import '../stores/status/resource_over_time_store.dart';
 import '../stores/status/slow_store.dart';
 import '../stores/status/vulnerable_store.dart';
 import '../../combat/control_lock.dart';
@@ -45,6 +46,7 @@ class StatusSystem {
   /// Ticks existing statuses and queues DoT damage.
   void tickExisting(EcsWorld world) {
     _tickDot(world);
+    _tickResourceOverTime(world);
     _tickHaste(world);
     _tickSlow(world);
     _tickVulnerable(world);
@@ -104,6 +106,49 @@ class StatusSystem {
     }
     for (final target in _removeScratch) {
       dot.removeEntity(target);
+    }
+  }
+
+  void _tickResourceOverTime(EcsWorld world) {
+    final resource = world.resourceOverTime;
+    if (resource.denseEntities.isEmpty) return;
+
+    _removeScratch.clear();
+    for (var i = 0; i < resource.denseEntities.length; i += 1) {
+      final target = resource.denseEntities[i];
+      if (world.deathState.has(target)) {
+        _removeScratch.add(target);
+        continue;
+      }
+
+      var channel = resource.resourceTypes[i].length - 1;
+      while (channel >= 0) {
+        resource.ticksLeft[i][channel] -= 1;
+        if (resource.ticksLeft[i][channel] <= 0) {
+          resource.removeChannelAtEntityIndex(i, channel);
+          channel -= 1;
+          continue;
+        }
+
+        resource.periodTicksLeft[i][channel] -= 1;
+        if (resource.periodTicksLeft[i][channel] <= 0) {
+          resource.periodTicksLeft[i][channel] = resource.periodTicks[i][channel];
+          _applyResourcePulse(
+            world,
+            target: target,
+            resourceType: resource.resourceTypes[i][channel],
+            amountBp: resource.amountBp[i][channel],
+          );
+        }
+        channel -= 1;
+      }
+
+      if (resource.hasNoChannelsEntityIndex(i)) {
+        _removeScratch.add(target);
+      }
+    }
+    for (final target in _removeScratch) {
+      resource.removeEntity(target);
     }
   }
 
@@ -205,6 +250,24 @@ class StatusSystem {
               durationSeconds: app.durationSeconds,
               periodSeconds: app.periodSeconds,
               damageType: dotDamageType,
+            );
+          case StatusEffectType.resourceOverTime:
+            final resourceType = app.resourceType;
+            if (resourceType == null) {
+              assert(
+                false,
+                'StatusEffectType.resourceOverTime requires resourceType in StatusApplication.',
+              );
+              continue;
+            }
+            _applyResourceOverTime(
+              world,
+              target: req.target,
+              resourceType: resourceType,
+              amountBp: magnitude,
+              durationSeconds: app.durationSeconds,
+              periodSeconds: app.periodSeconds,
+              applyOnApply: app.applyOnApply,
             );
           case StatusEffectType.slow:
             _applySlow(world, req.target, magnitude, app.durationSeconds);
@@ -404,6 +467,119 @@ class StatusSystem {
     if (dps100 == currentDps &&
         ticksLeft > dot.ticksLeft[index][channelIndex]) {
       dot.ticksLeft[index][channelIndex] = ticksLeft;
+    }
+  }
+
+  void _applyResourceOverTime(
+    EcsWorld world, {
+    required EntityId target,
+    required StatusResourceType resourceType,
+    required int amountBp,
+    required double durationSeconds,
+    required double periodSeconds,
+    required bool applyOnApply,
+  }) {
+    final periodTicks = ticksFromSecondsCeil(periodSeconds, _tickHz);
+    if (periodTicks <= 0) return;
+
+    if (applyOnApply) {
+      _applyResourcePulse(
+        world,
+        target: target,
+        resourceType: resourceType,
+        amountBp: amountBp,
+      );
+    }
+
+    final ticksLeft = ticksFromSecondsCeil(durationSeconds, _tickHz);
+    if (ticksLeft <= 0) return;
+
+    final resource = world.resourceOverTime;
+    final index = resource.tryIndexOf(target);
+    if (index == null) {
+      resource.add(
+        target,
+        ResourceOverTimeDef(
+          resourceType: resourceType,
+          ticksLeft: ticksLeft,
+          periodTicks: periodTicks,
+          amountBp: amountBp,
+        ),
+      );
+      return;
+    }
+
+    final channelIndex = resource.channelIndexForEntityIndex(index, resourceType);
+    if (channelIndex == null) {
+      resource.addChannel(
+        target,
+        ResourceOverTimeDef(
+          resourceType: resourceType,
+          ticksLeft: ticksLeft,
+          periodTicks: periodTicks,
+          amountBp: amountBp,
+        ),
+      );
+      return;
+    }
+
+    final currentAmountBp = resource.amountBp[index][channelIndex];
+    if (amountBp > currentAmountBp) {
+      resource.setChannel(
+        target,
+        channelIndex,
+        ResourceOverTimeDef(
+          resourceType: resourceType,
+          ticksLeft: ticksLeft,
+          periodTicks: periodTicks,
+          amountBp: amountBp,
+        ),
+      );
+      return;
+    }
+
+    if (amountBp == currentAmountBp &&
+        ticksLeft > resource.ticksLeft[index][channelIndex]) {
+      resource.ticksLeft[index][channelIndex] = ticksLeft;
+    }
+  }
+
+  void _applyResourcePulse(
+    EcsWorld world, {
+    required EntityId target,
+    required StatusResourceType resourceType,
+    required int amountBp,
+  }) {
+    if (amountBp <= 0) return;
+
+    switch (resourceType) {
+      case StatusResourceType.health:
+        final hi = world.health.tryIndexOf(target);
+        if (hi == null) return;
+        final max = world.health.hpMax[hi];
+        if (max <= 0) return;
+        final restore = (max * amountBp) ~/ bpScale;
+        if (restore <= 0) return;
+        final next = world.health.hp[hi] + restore;
+        world.health.hp[hi] = next > max ? max : next;
+      case StatusResourceType.mana:
+        final mi = world.mana.tryIndexOf(target);
+        if (mi == null) return;
+        final max = world.mana.manaMax[mi];
+        if (max <= 0) return;
+        final restore = (max * amountBp) ~/ bpScale;
+        if (restore <= 0) return;
+        final next = world.mana.mana[mi] + restore;
+        world.mana.mana[mi] = next > max ? max : next;
+      case StatusResourceType.stamina:
+        final si = world.stamina.tryIndexOf(target);
+        if (si == null) return;
+        final max = world.stamina.staminaMax[si];
+        if (max <= 0) return;
+        final restore = (max * amountBp) ~/ bpScale;
+        if (restore <= 0) return;
+        final next = world.stamina.stamina[si] + restore;
+        world.stamina.stamina[si] = next > max ? max : next;
     }
   }
 
