@@ -22,7 +22,7 @@ import '../test_tunings.dart';
 
 void main() {
   test(
-    'projectile: sufficient mana => projectile spawns + costs + cooldown set',
+    'projectile throwing weapon: sufficient stamina => projectile spawns + costs + cooldown set',
     () {
       const tickHz = 20;
       final base = PlayerCharacterRegistry.eloise;
@@ -39,9 +39,9 @@ void main() {
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
-              playerManaMax: 10,
+              playerManaMax: 0,
               playerManaRegenPerSecond: 0,
-              playerStaminaMax: 0,
+              playerStaminaMax: 10,
               playerStaminaRegenPerSecond: 0,
             ),
           ),
@@ -73,17 +73,19 @@ void main() {
       expect(projectiles.length, 1);
 
       final p = projectiles.single;
-      final item = const ProjectileCatalog().get(
-        ProjectileId.throwingKnife,
-      );
+      final item = const ProjectileCatalog().get(ProjectileId.throwingKnife);
       expect(p.pos.x, closeTo(playerPosX + item.originOffset, 1e-9));
       expect(p.pos.y, closeTo(playerPosY, 1e-9));
 
       final ability = AbilityCatalog.tryGet('eloise.quick_shot')!;
-      expect(
-        snapshot.hud.mana,
-        closeTo(10.0 - (ability.manaCost / 100.0), 1e-9),
+      final throwCost = ability.resolveCostForWeaponType(
+        WeaponType.throwingWeapon,
       );
+      expect(
+        snapshot.hud.stamina,
+        closeTo(10.0 - (throwCost.staminaCost100 / 100.0), 1e-9),
+      );
+      expect(snapshot.hud.mana, closeTo(0.0, 1e-9));
       final cooldownTicks = ticksFromSecondsCeil(
         ability.cooldownTicks / 60.0,
         tickHz,
@@ -96,7 +98,7 @@ void main() {
   );
 
   test(
-    'projectile: insufficient mana => no projectile + no costs + no cooldown',
+    'projectile throwing weapon: insufficient stamina => no projectile + no costs + no cooldown',
     () {
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
@@ -112,9 +114,9 @@ void main() {
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
-              playerManaMax: 0,
+              playerManaMax: 10,
               playerManaRegenPerSecond: 0,
-              playerStaminaMax: 10,
+              playerStaminaMax: 0,
               playerStaminaRegenPerSecond: 0,
             ),
           ),
@@ -141,7 +143,8 @@ void main() {
         snapshot.entities.where((e) => e.kind == EntityKind.projectile),
         isEmpty,
       );
-      expect(snapshot.hud.mana, closeTo(0.0, 1e-9));
+      expect(snapshot.hud.mana, closeTo(10.0, 1e-9));
+      expect(snapshot.hud.stamina, closeTo(0.0, 1e-9));
       expect(snapshot.hud.cooldownTicksLeft[CooldownGroup.projectile], 0);
       expect(snapshot.hud.canAffordProjectile, isFalse);
     },
@@ -150,9 +153,7 @@ void main() {
   test('ProjectileWorldCollisionSystem despawns ballistic projectiles', () {
     final world = EcsWorld();
     final system = ProjectileWorldCollisionSystem();
-    final projectile = const ProjectileCatalog().get(
-      ProjectileId.throwingAxe,
-    );
+    final projectile = const ProjectileCatalog().get(ProjectileId.throwingAxe);
 
     final owner = world.createEntity();
     final p = spawnProjectileFromCaster(

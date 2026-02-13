@@ -3,6 +3,7 @@ import 'dart:math';
 import '../../abilities/ability_gate.dart';
 import '../../abilities/ability_catalog.dart';
 import '../../abilities/ability_def.dart';
+import '../../abilities/effective_ability_cost.dart';
 import '../../accessories/accessory_catalog.dart';
 import '../../combat/damage_type.dart';
 import '../../combat/hit_payload_builder.dart';
@@ -464,6 +465,15 @@ class AbilityActivationSystem {
         break;
     }
 
+    final commitCost = resolveEffectiveAbilityCostForSlot(
+      ability: ability,
+      loadout: world.equippedLoadout,
+      loadoutIndex: loadoutIndex,
+      slot: slot,
+      weapons: weapons,
+      projectiles: projectiles,
+      spellBooks: spellBooks,
+    );
     final windupTicks = _scaleAbilityTicks(ability.windupTicks);
     final activeTicks = _scaleAbilityTicks(ability.activeTicks);
     final recoveryTicks = _scaleAbilityTicks(ability.recoveryTicks);
@@ -479,8 +489,9 @@ class AbilityActivationSystem {
       entity: player,
       currentTick: commitTick,
       cooldownGroupId: cooldownGroupId,
-      manaCost100: ability.manaCost,
-      staminaCost100: ability.staminaCost,
+      healthCost100: commitCost.healthCost100,
+      manaCost100: commitCost.manaCost100,
+      staminaCost100: commitCost.staminaCost100,
     );
     if (fail != null) return false;
     if (ability.holdMode == AbilityHoldMode.holdToMaintain &&
@@ -502,8 +513,9 @@ class AbilityActivationSystem {
       facingDir: facing,
       cooldownGroupId: cooldownGroupId,
       cooldownTicks: cooldownTicks,
-      manaCost100: ability.manaCost,
-      staminaCost100: ability.staminaCost,
+      healthCost100: commitCost.healthCost100,
+      manaCost100: commitCost.manaCost100,
+      staminaCost100: commitCost.staminaCost100,
     );
 
     world.selfIntent.set(
@@ -520,8 +532,8 @@ class AbilityActivationSystem {
         activeTicks: activeTicks,
         recoveryTicks: recoveryTicks,
         cooldownTicks: cooldownTicks,
-        staminaCost100: ability.staminaCost,
-        manaCost100: ability.manaCost,
+        staminaCost100: commitCost.staminaCost100,
+        manaCost100: commitCost.manaCost100,
         cooldownGroupId: cooldownGroupId,
         tick: executeTick,
       ),
@@ -596,6 +608,15 @@ class AbilityActivationSystem {
         speedScaleBp: 10000,
       ),
     );
+    final commitCost = resolveEffectiveAbilityCostForSlot(
+      ability: ability,
+      loadout: world.equippedLoadout,
+      loadoutIndex: loadoutIndex,
+      slot: slot,
+      weapons: weapons,
+      projectiles: projectiles,
+      spellBooks: spellBooks,
+    );
 
     // Preserve old behavior: mobility cancels pending combat + buffered input + active combat ability.
     _cancelCombatOnMobilityPress(world, player);
@@ -605,7 +626,9 @@ class AbilityActivationSystem {
       entity: player,
       currentTick: commitTick,
       cooldownGroupId: cooldownGroupId,
-      staminaCost100: ability.staminaCost,
+      healthCost100: commitCost.healthCost100,
+      manaCost100: commitCost.manaCost100,
+      staminaCost100: commitCost.staminaCost100,
     );
     if (fail != null) return false;
 
@@ -625,8 +648,9 @@ class AbilityActivationSystem {
       facingDir: facingDir,
       cooldownGroupId: cooldownGroupId,
       cooldownTicks: cooldownTicks,
-      manaCost100: 0,
-      staminaCost100: ability.staminaCost,
+      healthCost100: commitCost.healthCost100,
+      manaCost100: commitCost.manaCost100,
+      staminaCost100: commitCost.staminaCost100,
       movementIndex: movementIndex,
     );
 
@@ -643,7 +667,7 @@ class AbilityActivationSystem {
         activeTicks: activeTicks,
         recoveryTicks: recoveryTicks,
         cooldownTicks: cooldownTicks,
-        staminaCost100: ability.staminaCost,
+        staminaCost100: commitCost.staminaCost100,
         cooldownGroupId: cooldownGroupId,
         tick: executeTick,
       ),
@@ -779,6 +803,15 @@ class AbilityActivationSystem {
       }
     }();
     final weapon = weapons.get(weaponId);
+    final commitCost = resolveEffectiveAbilityCostForSlot(
+      ability: ability,
+      loadout: world.equippedLoadout,
+      loadoutIndex: loadoutIndex,
+      slot: slot,
+      weapons: weapons,
+      projectiles: projectiles,
+      spellBooks: spellBooks,
+    );
     final resolvedStats = _resolvedStatsForLoadout(world, player);
 
     final payload = HitPayloadBuilder.build(
@@ -808,8 +841,9 @@ class AbilityActivationSystem {
       entity: player,
       currentTick: commitTick,
       cooldownGroupId: cooldownGroupId,
-      manaCost100: 0,
-      staminaCost100: ability.staminaCost,
+      healthCost100: commitCost.healthCost100,
+      manaCost100: commitCost.manaCost100,
+      staminaCost100: commitCost.staminaCost100,
     );
     if (fail != null) return false;
 
@@ -829,8 +863,9 @@ class AbilityActivationSystem {
       facingDir: facingDir,
       cooldownGroupId: cooldownGroupId,
       cooldownTicks: cooldownTicks,
-      manaCost100: 0,
-      staminaCost100: ability.staminaCost,
+      healthCost100: commitCost.healthCost100,
+      manaCost100: commitCost.manaCost100,
+      staminaCost100: commitCost.staminaCost100,
     );
 
     world.meleeIntent.set(
@@ -853,7 +888,7 @@ class AbilityActivationSystem {
         activeTicks: _scaleAbilityTicks(ability.activeTicks),
         recoveryTicks: _scaleAbilityTicks(ability.recoveryTicks),
         cooldownTicks: cooldownTicks,
-        staminaCost100: ability.staminaCost,
+        staminaCost100: commitCost.staminaCost100,
         cooldownGroupId: cooldownGroupId,
         tick: commitTick + _scaleAbilityTicks(ability.windupTicks),
       ),
@@ -909,11 +944,13 @@ class AbilityActivationSystem {
 
     switch (ability.payloadSource) {
       case AbilityPayloadSource.projectile:
-        final equippedId = _resolveProjectileForSlot(
-          world,
+        final equippedId = resolveProjectilePayloadForAbilitySlot(
+          ability: ability,
+          loadout: world.equippedLoadout,
           loadoutIndex: loadoutIndex,
           slot: slot,
-          ability: ability,
+          projectiles: projectiles,
+          spellBooks: spellBooks,
         );
         final projectile = projectiles.tryGet(equippedId);
         if (projectile == null) {
@@ -1034,14 +1071,24 @@ class AbilityActivationSystem {
     final cooldownTicks = resolvedStats.applyCooldownReduction(
       _scaleAbilityTicks(ability.cooldownTicks),
     );
+    final commitCost = resolveEffectiveAbilityCostForSlot(
+      ability: ability,
+      loadout: world.equippedLoadout,
+      loadoutIndex: loadoutIndex,
+      slot: slot,
+      weapons: weapons,
+      projectiles: projectiles,
+      spellBooks: spellBooks,
+    );
 
     final fail = AbilityGate.canCommitCombat(
       world,
       entity: player,
       currentTick: commitTick,
       cooldownGroupId: cooldownGroupId,
-      manaCost100: ability.manaCost,
-      staminaCost100: ability.staminaCost,
+      healthCost100: commitCost.healthCost100,
+      manaCost100: commitCost.manaCost100,
+      staminaCost100: commitCost.staminaCost100,
     );
     if (fail != null) return false;
 
@@ -1058,8 +1105,9 @@ class AbilityActivationSystem {
       facingDir: facingDir,
       cooldownGroupId: cooldownGroupId,
       cooldownTicks: cooldownTicks,
-      manaCost100: ability.manaCost,
-      staminaCost100: ability.staminaCost,
+      healthCost100: commitCost.healthCost100,
+      manaCost100: commitCost.manaCost100,
+      staminaCost100: commitCost.staminaCost100,
     );
 
     world.projectileIntent.set(
@@ -1070,8 +1118,8 @@ class AbilityActivationSystem {
         slot: slot,
         damage100: tunedDamage100,
         critChanceBp: tunedCritChanceBp,
-        staminaCost100: ability.staminaCost,
-        manaCost100: ability.manaCost,
+        staminaCost100: commitCost.staminaCost100,
+        manaCost100: commitCost.manaCost100,
         cooldownTicks: cooldownTicks,
         cooldownGroupId: cooldownGroupId,
         damageType: payload.damageType,
@@ -1284,53 +1332,6 @@ class AbilityActivationSystem {
     return (bestDx * invLen, bestDy * invLen);
   }
 
-  ProjectileId _resolveProjectileForSlot(
-    EcsWorld world, {
-    required int loadoutIndex,
-    required AbilitySlot slot,
-    required AbilityDef ability,
-  }) {
-    final loadout = world.equippedLoadout;
-    final selectedSpellId = _selectedSpellIdForSlot(
-      loadout,
-      loadoutIndex: loadoutIndex,
-      slot: slot,
-    );
-    if (selectedSpellId != null) {
-      final selectedSpell = projectiles.tryGet(selectedSpellId);
-      final spellBookId = loadout.spellBookId[loadoutIndex];
-      final spellBook = spellBooks.tryGet(spellBookId);
-      final supportsSpell =
-          selectedSpell != null &&
-          selectedSpell.weaponType == WeaponType.projectileSpell &&
-          spellBook != null &&
-          spellBook.containsProjectileSpell(selectedSpellId) &&
-          (ability.requiredWeaponTypes.isEmpty ||
-              ability.requiredWeaponTypes.contains(WeaponType.projectileSpell));
-      if (supportsSpell) {
-        return selectedSpellId;
-      }
-    }
-    return loadout.projectileId[loadoutIndex];
-  }
-
-  ProjectileId? _selectedSpellIdForSlot(
-    EquippedLoadoutStore loadout, {
-    required int loadoutIndex,
-    required AbilitySlot slot,
-  }) {
-    switch (slot) {
-      case AbilitySlot.projectile:
-        return loadout.projectileSlotSpellId[loadoutIndex];
-      case AbilitySlot.primary:
-      case AbilitySlot.secondary:
-      case AbilitySlot.mobility:
-      case AbilitySlot.spell:
-      case AbilitySlot.jump:
-        return null;
-    }
-  }
-
   double _spellOriginOffset(EcsWorld world, EntityId player) {
     var maxHalfExtent = 0.0;
     if (world.colliderAabb.has(player)) {
@@ -1361,6 +1362,7 @@ class AbilityActivationSystem {
     required Facing facingDir,
     required int cooldownGroupId,
     required int cooldownTicks,
+    required int healthCost100,
     required int manaCost100,
     required int staminaCost100,
     int? movementIndex,
@@ -1394,6 +1396,21 @@ class AbilityActivationSystem {
         final cur = world.stamina.stamina[si];
         final max = world.stamina.staminaMax[si];
         world.stamina.stamina[si] = clampInt(cur - staminaCost100, 0, max);
+      }
+    }
+
+    // Deduct health (fixed-point) with non-lethal floor.
+    if (healthCost100 > 0) {
+      final hi = world.health.tryIndexOf(player);
+      assert(
+        hi != null,
+        'Missing HealthStore on $player for healthCost=$healthCost100',
+      );
+      if (hi != null) {
+        final cur = world.health.hp[hi];
+        final max = world.health.hpMax[hi];
+        final next = clampInt(cur - healthCost100, _minCommitHp100, max);
+        world.health.hp[hi] = next;
       }
     }
 
@@ -1431,6 +1448,7 @@ class AbilityActivationSystem {
   }
 
   static const int _abilityTickHz = 60;
+  static const int _minCommitHp100 = 1;
 
   void _cancelCombatOnMobilityPress(EcsWorld world, EntityId player) {
     _clearCombatIntents(world, player);

@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/abilities/ability_gate.dart';
 import 'package:rpg_runner/core/combat/control_lock.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
+import 'package:rpg_runner/core/ecs/stores/health_store.dart';
 import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
@@ -26,6 +27,7 @@ void main() {
         entity: player,
         currentTick: 0,
         cooldownGroupId: 0,
+        healthCost100: 0,
         manaCost100: 20, // Need 20, have 10
         staminaCost100: 0,
       );
@@ -43,6 +45,7 @@ void main() {
         entity: player,
         currentTick: 5,
         cooldownGroupId: 0,
+        healthCost100: 0,
         manaCost100: 0,
         staminaCost100: 0,
       );
@@ -58,10 +61,51 @@ void main() {
         entity: player,
         currentTick: 5,
         cooldownGroupId: 0,
+        healthCost100: 0,
         manaCost100: 0,
         staminaCost100: 0,
       );
       expect(result, equals(AbilityGateFail.stunned));
+    });
+
+    test('Combat: health cost is non-lethal (must leave at least 1)', () {
+      final player = world.createEntity();
+      world.health.add(
+        player,
+        const HealthDef(hp: 500, hpMax: 500, regenPerSecond100: 0),
+      );
+
+      final result = AbilityGate.canCommitCombat(
+        world,
+        entity: player,
+        currentTick: 0,
+        cooldownGroupId: 0,
+        healthCost100: 500,
+        manaCost100: 0,
+        staminaCost100: 0,
+      );
+
+      expect(result, equals(AbilityGateFail.insufficientHealth));
+    });
+
+    test('Combat: health cost is allowed when HP remains above floor', () {
+      final player = world.createEntity();
+      world.health.add(
+        player,
+        const HealthDef(hp: 500, hpMax: 500, regenPerSecond100: 0),
+      );
+
+      final result = AbilityGate.canCommitCombat(
+        world,
+        entity: player,
+        currentTick: 0,
+        cooldownGroupId: 0,
+        healthCost100: 499,
+        manaCost100: 0,
+        staminaCost100: 0,
+      );
+
+      expect(result, isNull);
     });
 
     test('Mobility: Dash already active fails gate', () {
@@ -77,6 +121,8 @@ void main() {
         entity: player,
         currentTick: 0,
         cooldownGroupId: 0,
+        healthCost100: 0,
+        manaCost100: 0,
         staminaCost100: 0,
       );
       expect(result, equals(AbilityGateFail.dashAlreadyActive));
@@ -96,6 +142,8 @@ void main() {
         entity: player,
         currentTick: 0,
         cooldownGroupId: 0,
+        healthCost100: 0,
+        manaCost100: 0,
         staminaCost100: 0,
       );
       expect(result, isNull);

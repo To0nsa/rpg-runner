@@ -48,8 +48,7 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 8,
       activeTicks: 4,
       recoveryTicks: 24,
-      staminaCost: 0,
-      manaCost: 0,
+      defaultCost: AbilityResourceCost(staminaCost100: 0),
       cooldownTicks: 0,
       animKey: AnimKey.strike,
       baseDamage: 0,
@@ -67,8 +66,7 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 6,
       activeTicks: 2,
       recoveryTicks: 12,
-      staminaCost: 0,
-      manaCost: 0,
+      defaultCost: AbilityResourceCost(manaCost100: 0),
       cooldownTicks: 0,
       animKey: AnimKey.cast,
       requiredWeaponTypes: {WeaponType.projectileSpell},
@@ -98,8 +96,9 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 8,
       activeTicks: 6,
       recoveryTicks: 8,
-      staminaCost: 500,
-      manaCost: 0, // 5.0 stamina
+      defaultCost: AbilityResourceCost(
+        staminaCost100: 500
+      ), // 5.0 stamina
       cooldownTicks: 18, // 0.30s
       animKey: AnimKey.strike,
       requiredWeaponTypes: {WeaponType.oneHandedSword},
@@ -129,8 +128,7 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 10,
       activeTicks: 6,
       recoveryTicks: 10,
-      staminaCost: 550,
-      manaCost: 0,
+      defaultCost: AbilityResourceCost(staminaCost100: 550),
       cooldownTicks: 24,
       forcedInterruptCauses: <ForcedInterruptCause>{
         ForcedInterruptCause.stun,
@@ -181,8 +179,7 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 10,
       activeTicks: 6,
       recoveryTicks: 10,
-      staminaCost: 600,
-      manaCost: 0,
+      defaultCost: AbilityResourceCost(staminaCost100: 600, manaCost100: 0),
       cooldownTicks: 24,
       forcedInterruptCauses: <ForcedInterruptCause>{
         ForcedInterruptCause.stun,
@@ -235,8 +232,7 @@ class AbilityCatalog implements AbilityResolver {
       activeTicks: 6,
       recoveryTicks: 8,
       // Reliability tax for deterministic lock-on.
-      staminaCost: 550,
-      manaCost: 0,
+      defaultCost: AbilityResourceCost(staminaCost100: 550),
       cooldownTicks: 24,
       animKey: AnimKey.strike,
       requiredWeaponTypes: {WeaponType.oneHandedSword},
@@ -262,8 +258,7 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 2,
       activeTicks: 180,
       recoveryTicks: 2,
-      staminaCost: 0,
-      manaCost: 0,
+      defaultCost: AbilityResourceCost(),
       holdMode: AbilityHoldMode.holdToMaintain,
       // Full 3s hold spends ~21.0 stamina (matches old one-shot cost envelope).
       holdStaminaDrainPerSecond100: 233,
@@ -293,8 +288,7 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 8,
       activeTicks: 6,
       recoveryTicks: 8,
-      staminaCost: 500,
-      manaCost: 0,
+      defaultCost: AbilityResourceCost(staminaCost100: 500),
       cooldownTicks: 18, // 0.30s
       animKey: AnimKey.shieldBash,
       requiredWeaponTypes: {WeaponType.shield},
@@ -324,8 +318,7 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 10,
       activeTicks: 6,
       recoveryTicks: 10,
-      staminaCost: 550,
-      manaCost: 0,
+      defaultCost: AbilityResourceCost(staminaCost100: 550),
       cooldownTicks: 24,
       forcedInterruptCauses: <ForcedInterruptCause>{
         ForcedInterruptCause.stun,
@@ -378,8 +371,7 @@ class AbilityCatalog implements AbilityResolver {
       activeTicks: 6,
       recoveryTicks: 8,
       // Reliability tax for deterministic lock-on.
-      staminaCost: 550,
-      manaCost: 0,
+      defaultCost: AbilityResourceCost(staminaCost100: 550),
       cooldownTicks: 24,
       animKey: AnimKey.shieldBash,
       requiredWeaponTypes: {WeaponType.shield},
@@ -405,8 +397,7 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 2,
       activeTicks: 180,
       recoveryTicks: 2,
-      staminaCost: 0,
-      manaCost: 0,
+      defaultCost: AbilityResourceCost(),
       holdMode: AbilityHoldMode.holdToMaintain,
       holdStaminaDrainPerSecond100: 700,
       cooldownTicks: 30,
@@ -433,8 +424,10 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 10,
       activeTicks: 2,
       recoveryTicks: 12,
-      staminaCost: 0,
-      manaCost: 800,
+      defaultCost: AbilityResourceCost(staminaCost100: 0, manaCost100: 800),
+      costProfileByWeaponType: <WeaponType, AbilityResourceCost>{
+        WeaponType.throwingWeapon: AbilityResourceCost(staminaCost100: 800),
+      },
       cooldownTicks: 40,
       animKey: AnimKey.ranged,
       requiredWeaponTypes: {
@@ -459,8 +452,10 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 10,
       activeTicks: 2,
       recoveryTicks: 12,
-      staminaCost: 0,
-      manaCost: 600,
+      defaultCost: AbilityResourceCost(staminaCost100: 0, manaCost100: 600),
+      costProfileByWeaponType: <WeaponType, AbilityResourceCost>{
+        WeaponType.throwingWeapon: AbilityResourceCost(staminaCost100: 600),
+      },
       cooldownTicks: 14,
       animKey: AnimKey.ranged,
       requiredWeaponTypes: {
@@ -487,8 +482,10 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 10,
       activeTicks: 2,
       recoveryTicks: 12,
-      staminaCost: 0,
-      manaCost: 1000,
+      defaultCost: AbilityResourceCost(staminaCost100: 0, manaCost100: 1000),
+      costProfileByWeaponType: <WeaponType, AbilityResourceCost>{
+        WeaponType.throwingWeapon: AbilityResourceCost(staminaCost100: 1000),
+      },
       cooldownTicks: 32,
       animKey: AnimKey.ranged,
       requiredWeaponTypes: {
@@ -513,8 +510,10 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 10,
       activeTicks: 2,
       recoveryTicks: 12,
-      staminaCost: 0,
-      manaCost: 1300,
+      defaultCost: AbilityResourceCost(staminaCost100: 0, manaCost100: 1300),
+      costProfileByWeaponType: <WeaponType, AbilityResourceCost>{
+        WeaponType.throwingWeapon: AbilityResourceCost(staminaCost100: 1300),
+      },
       cooldownTicks: 40,
       forcedInterruptCauses: <ForcedInterruptCause>{
         ForcedInterruptCause.stun,
@@ -568,8 +567,7 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 0,
       activeTicks: 0,
       recoveryTicks: 10,
-      staminaCost: 0,
-      manaCost: 1000,
+      defaultCost: AbilityResourceCost(staminaCost100: 0, manaCost100: 1000),
       cooldownTicks: 300, // 5s @ 60Hz
       animKey: AnimKey.cast,
       requiredWeaponTypes: {WeaponType.projectileSpell},
@@ -587,8 +585,7 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 0,
       activeTicks: 0,
       recoveryTicks: 10,
-      staminaCost: 0,
-      manaCost: 1500,
+      defaultCost: AbilityResourceCost(staminaCost100: 0, manaCost100: 1500),
       cooldownTicks: 420, // 7s @ 60Hz
       animKey: AnimKey.cast,
       requiredWeaponTypes: {WeaponType.projectileSpell},
@@ -606,8 +603,7 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 0,
       activeTicks: 0,
       recoveryTicks: 10,
-      staminaCost: 1500,
-      manaCost: 0,
+      defaultCost: AbilityResourceCost(staminaCost100: 1500, manaCost100: 0),
       cooldownTicks: 420, // 7s @ 60Hz
       animKey: AnimKey.cast,
       requiredWeaponTypes: {WeaponType.projectileSpell},
@@ -625,8 +621,7 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 0,
       activeTicks: 0,
       recoveryTicks: 10,
-      staminaCost: 0,
-      manaCost: 1500,
+      defaultCost: AbilityResourceCost(staminaCost100: 0, manaCost100: 1500),
       cooldownTicks: 420, // 7s @ 60Hz
       animKey: AnimKey.cast,
       requiredWeaponTypes: {WeaponType.projectileSpell},
@@ -649,8 +644,10 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 0,
       activeTicks: 0,
       recoveryTicks: 0,
-      staminaCost: 200, // 2.0 stamina (matches default jump tuning)
-      manaCost: 0,
+      defaultCost: AbilityResourceCost(
+        staminaCost100: 200,
+        manaCost100: 0,
+      ), // 2.0 stamina (matches default jump tuning)
       cooldownTicks: 0,
       animKey: AnimKey.jump,
       baseDamage: 0,
@@ -670,8 +667,7 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 0,
       activeTicks: 12,
       recoveryTicks: 0,
-      staminaCost: 200,
-      manaCost: 0,
+      defaultCost: AbilityResourceCost(staminaCost100: 200, manaCost100: 0),
       cooldownTicks: 120,
       animKey: AnimKey.dash,
       baseDamage: 0,
@@ -687,8 +683,7 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 0,
       activeTicks: 12,
       recoveryTicks: 0,
-      staminaCost: 225,
-      manaCost: 0,
+      defaultCost: AbilityResourceCost(staminaCost100: 225, manaCost100: 0),
       cooldownTicks: 120,
       animKey: AnimKey.dash,
       chargeProfile: AbilityChargeProfile(
@@ -724,8 +719,7 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 0,
       activeTicks: 12,
       recoveryTicks: 0,
-      staminaCost: 240,
-      manaCost: 0,
+      defaultCost: AbilityResourceCost(staminaCost100: 240, manaCost100: 0),
       cooldownTicks: 120,
       animKey: AnimKey.dash,
       chargeProfile: AbilityChargeProfile(
@@ -761,8 +755,7 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 0,
       activeTicks: 60,
       recoveryTicks: 0,
-      staminaCost: 240,
-      manaCost: 0,
+      defaultCost: AbilityResourceCost(staminaCost100: 240, manaCost100: 0),
       holdMode: AbilityHoldMode.holdToMaintain,
       holdStaminaDrainPerSecond100: 120,
       cooldownTicks: 120,
@@ -803,8 +796,7 @@ class AbilityCatalog implements AbilityResolver {
       windupTicks: 3,
       activeTicks: 24,
       recoveryTicks: 3,
-      staminaCost: 200,
-      manaCost: 0,
+      defaultCost: AbilityResourceCost(staminaCost100: 200, manaCost100: 0),
       cooldownTicks: 120,
       animKey: AnimKey.roll,
       baseDamage: 0,

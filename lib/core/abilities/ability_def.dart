@@ -272,6 +272,23 @@ abstract final class CooldownGroup {
 // ABILITY DEFINITION
 // --------------------------------------------------------------------------
 
+/// Fixed-point resource costs for ability commits (`100 == 1.0`).
+class AbilityResourceCost {
+  const AbilityResourceCost({
+    this.healthCost100 = 0,
+    this.staminaCost100 = 0,
+    this.manaCost100 = 0,
+  }) : assert(healthCost100 >= 0, 'Health cost cannot be negative'),
+       assert(staminaCost100 >= 0, 'Stamina cost cannot be negative'),
+       assert(manaCost100 >= 0, 'Mana cost cannot be negative');
+
+  static const AbilityResourceCost zero = AbilityResourceCost();
+
+  final int healthCost100;
+  final int staminaCost100;
+  final int manaCost100;
+}
+
 /// Immutable authored definition for a playable/system ability.
 class AbilityDef {
   /// Default forced interrupts for authored abilities: stun + death.
@@ -292,8 +309,8 @@ class AbilityDef {
     required this.windupTicks,
     required this.activeTicks,
     required this.recoveryTicks,
-    required this.staminaCost,
-    required this.manaCost,
+    required this.defaultCost,
+    this.costProfileByWeaponType = const <WeaponType, AbilityResourceCost>{},
     this.holdMode = AbilityHoldMode.none,
     this.holdStaminaDrainPerSecond100 = 0,
     required this.cooldownTicks,
@@ -317,7 +334,6 @@ class AbilityDef {
          'Ticks cannot be negative',
        ),
        assert(cooldownTicks >= 0, 'Cooldown cannot be negative'),
-       assert(staminaCost >= 0 && manaCost >= 0, 'Costs cannot be negative'),
        assert(
          holdStaminaDrainPerSecond100 >= 0,
          'Hold stamina drain cannot be negative',
@@ -400,9 +416,15 @@ class AbilityDef {
   final int activeTicks;
   final int recoveryTicks;
 
-  /// Resource costs in fixed-point units (`100 == 1.0`).
-  final int staminaCost;
-  final int manaCost;
+  /// Default resource cost when no weapon-type override is authored.
+  final AbilityResourceCost defaultCost;
+
+  /// Optional resource-cost overrides keyed by resolved payload [WeaponType].
+  ///
+  /// This enables abilities whose commit cost depends on the active payload
+  /// source (for example, same projectile ability using spell mana or throw
+  /// stamina based on the currently selected projectile weapon type).
+  final Map<WeaponType, AbilityResourceCost> costProfileByWeaponType;
 
   /// Runtime hold behavior model.
   final AbilityHoldMode holdMode;
@@ -487,6 +509,14 @@ class AbilityDef {
   int effectiveCooldownGroup(AbilitySlot slot) {
     if (cooldownGroupId != null) return cooldownGroupId!;
     return CooldownGroup.fromSlot(slot);
+  }
+
+  /// Resolves the effective commit cost for the given payload [weaponType].
+  ///
+  /// Falls back to [defaultCost] when no matching override exists.
+  AbilityResourceCost resolveCostForWeaponType(WeaponType? weaponType) {
+    if (weaponType == null) return defaultCost;
+    return costProfileByWeaponType[weaponType] ?? defaultCost;
   }
 
   @override

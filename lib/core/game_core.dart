@@ -414,6 +414,9 @@ class GameCore {
       resources: _resourceTuning,
       enemyCatalog: _enemyCatalog,
       abilityCatalog: AbilityCatalog.shared,
+      weaponCatalog: _weapons,
+      projectileCatalog: _projectiles,
+      spellBookCatalog: _spellBooks,
       loadoutValidator: LoadoutValidator(
         abilityCatalog: AbilityCatalog.shared,
         weaponCatalog: _weapons,

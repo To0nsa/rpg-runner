@@ -109,7 +109,11 @@ This preserves your current execution logic (cost/cooldown checks, spawning, hit
 
 ### 7) Refactor ranged thrown weapons first (cleanest)
 
-Currently ranged weapons define `damage` and `staminaCost`.
+Currently ranged weapons define `damage` and rely on ability commit costs.
+Ability costs now support a `defaultCost` plus `costProfileByWeaponType`
+overrides (for example, mana for projectile spells and stamina for throws).
+`AbilityResourceCost` also supports `healthCost100` and commit checks are
+non-lethal by default (casts must leave at least `1` HP).
 Change to:
 
 * Ability defines: baseDamage, cost, cooldown, targeting, hit delivery template

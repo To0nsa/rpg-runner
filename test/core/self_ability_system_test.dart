@@ -129,7 +129,7 @@ void main() {
     );
     expect(
       world.stamina.stamina[world.stamina.indexOf(player)],
-      equals(5000 - ability.staminaCost),
+      equals(5000 - ability.defaultCost.staminaCost100),
     );
 
     // Re-cast after cooldown to verify clamping at max mana.

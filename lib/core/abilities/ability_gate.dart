@@ -21,6 +21,12 @@ enum AbilityGateFail {
   /// Available stamina is below requested cost.
   insufficientStamina,
 
+  /// Required health resource store is missing.
+  missingHealth,
+
+  /// Health cost would reduce HP below the non-lethal floor.
+  insufficientHealth,
+
   // Mobility-only
   /// Mobility requires [MovementStore], but entity has none.
   missingMovement,
@@ -46,6 +52,7 @@ abstract class AbilityGate {
     required EntityId entity,
     required int currentTick,
     required int cooldownGroupId,
+    required int healthCost100,
     required int manaCost100,
     required int staminaCost100,
   }) {
@@ -74,6 +81,14 @@ abstract class AbilityGate {
       }
     }
 
+    if (healthCost100 > 0) {
+      final hi = world.health.tryIndexOf(entity);
+      if (hi == null) return AbilityGateFail.missingHealth;
+      if (world.health.hp[hi] - healthCost100 < _minCommitHp100) {
+        return AbilityGateFail.insufficientHealth;
+      }
+    }
+
     return null;
   }
 
@@ -83,6 +98,8 @@ abstract class AbilityGate {
     required EntityId entity,
     required int currentTick,
     required int cooldownGroupId,
+    required int healthCost100,
+    required int manaCost100,
     required int staminaCost100,
   }) {
     if (world.controlLock.isStunned(entity, currentTick)) {
@@ -107,6 +124,14 @@ abstract class AbilityGate {
       return AbilityGateFail.onCooldown;
     }
 
+    if (manaCost100 > 0) {
+      final mi = world.mana.tryIndexOf(entity);
+      if (mi == null) return AbilityGateFail.missingMana;
+      if (world.mana.mana[mi] < manaCost100) {
+        return AbilityGateFail.insufficientMana;
+      }
+    }
+
     if (staminaCost100 > 0) {
       final si = world.stamina.tryIndexOf(entity);
       if (si == null) return AbilityGateFail.missingStamina;
@@ -115,6 +140,16 @@ abstract class AbilityGate {
       }
     }
 
+    if (healthCost100 > 0) {
+      final hi = world.health.tryIndexOf(entity);
+      if (hi == null) return AbilityGateFail.missingHealth;
+      if (world.health.hp[hi] - healthCost100 < _minCommitHp100) {
+        return AbilityGateFail.insufficientHealth;
+      }
+    }
+
     return null;
   }
+
+  static const int _minCommitHp100 = 1;
 }

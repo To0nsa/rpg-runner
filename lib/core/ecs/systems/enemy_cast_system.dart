@@ -157,6 +157,7 @@ class EnemyCastSystem {
       weaponDamageType: projectile.damageType,
       weaponProcs: projectile.procs,
     );
+    final commitCost = ability.resolveCostForWeaponType(projectile.weaponType);
 
     final windupTicks = _scaleAbilityTicks(ability.windupTicks);
     final activeTicks = _scaleAbilityTicks(ability.activeTicks);
@@ -172,8 +173,8 @@ class EnemyCastSystem {
         slot: AbilitySlot.projectile,
         damage100: payload.damage100,
         critChanceBp: payload.critChanceBp,
-        staminaCost100: ability.staminaCost,
-        manaCost100: ability.manaCost,
+        staminaCost100: commitCost.staminaCost100,
+        manaCost100: commitCost.manaCost100,
         cooldownTicks: tuning.unocoDemonCastCooldownTicks,
         pierce: false,
         maxPierceHits: 1,

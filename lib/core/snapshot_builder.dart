@@ -39,9 +39,13 @@ import 'players/player_tuning.dart';
 import 'util/vec2.dart';
 import 'abilities/ability_catalog.dart';
 import 'abilities/ability_def.dart';
+import 'abilities/effective_ability_cost.dart';
 import 'util/fixed_math.dart';
 import 'util/tick_math.dart';
 import 'loadout/loadout_validator.dart';
+import 'projectiles/projectile_catalog.dart';
+import 'spellBook/spell_book_catalog.dart';
+import 'weapons/weapon_catalog.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SnapshotBuilder
@@ -76,6 +80,9 @@ class SnapshotBuilder {
     required this.resources,
     required this.enemyCatalog,
     this.abilityCatalog = AbilityCatalog.shared,
+    required this.weaponCatalog,
+    required this.projectileCatalog,
+    required this.spellBookCatalog,
     required LoadoutValidator loadoutValidator,
   }) : _loadoutValidator = loadoutValidator;
 
@@ -100,6 +107,9 @@ class SnapshotBuilder {
   /// Enemy catalog for render metadata (art facing direction).
   final EnemyCatalog enemyCatalog;
   final AbilityResolver abilityCatalog;
+  final WeaponCatalog weaponCatalog;
+  final ProjectileCatalog projectileCatalog;
+  final SpellBookCatalog spellBookCatalog;
 
   final LoadoutValidator _loadoutValidator;
 
@@ -157,6 +167,7 @@ class SnapshotBuilder {
     // ─── Read current resource values ───
     final stamina = world.stamina.stamina[si];
     final mana = world.mana.mana[mai];
+    final hp100 = world.health.hp[hi];
     final loadout = world.equippedLoadout;
     final loadoutMask = loadout.mask[li];
     final loadoutDef = EquippedLoadoutDef(
@@ -190,36 +201,76 @@ class SnapshotBuilder {
 
     final projectileAbilityId = loadout.abilityProjectileId[li];
     final projectileAbility = abilityCatalog.resolve(projectileAbilityId);
-    final projectileManaCost = projectileAbility?.manaCost ?? 0;
-    final projectileStaminaCost = projectileAbility?.staminaCost ?? 0;
+    final projectileCost = _resolveAbilityCostForSlot(
+      ability: projectileAbility,
+      slot: AbilitySlot.projectile,
+      loadoutIndex: li,
+    );
+    final projectileManaCost = projectileCost.manaCost100;
+    final projectileStaminaCost = projectileCost.staminaCost100;
     final hasProjectileSlot = (loadoutMask & LoadoutSlotMask.projectile) != 0;
 
     final mobilityAbilityId = loadout.abilityMobilityId[li];
     final mobilityAbility = abilityCatalog.resolve(mobilityAbilityId);
-    final mobilityStaminaCost =
-        mobilityAbility?.staminaCost ?? resources.dashStaminaCost100;
+    final mobilityCost = _resolveAbilityCostForSlot(
+      ability: mobilityAbility,
+      slot: AbilitySlot.mobility,
+      loadoutIndex: li,
+    );
+    final mobilityManaCost = mobilityAbility == null
+        ? 0
+        : mobilityCost.manaCost100;
+    final mobilityStaminaCost = mobilityAbility == null
+        ? resources.dashStaminaCost100
+        : mobilityCost.staminaCost100;
 
     final jumpAbilityId = loadout.abilityJumpId[li];
     final jumpAbility = abilityCatalog.resolve(jumpAbilityId);
-    final jumpStaminaCost =
-        jumpAbility?.staminaCost ?? resources.jumpStaminaCost100;
+    final jumpCost = _resolveAbilityCostForSlot(
+      ability: jumpAbility,
+      slot: AbilitySlot.jump,
+      loadoutIndex: li,
+    );
+    final jumpManaCost = jumpAbility == null ? 0 : jumpCost.manaCost100;
+    final jumpStaminaCost = jumpAbility == null
+        ? resources.jumpStaminaCost100
+        : jumpCost.staminaCost100;
 
     final meleeAbilityId = loadout.abilityPrimaryId[li];
     final meleeAbility = abilityCatalog.resolve(meleeAbilityId);
-    final meleeStaminaCost =
-        meleeAbility?.staminaCost ??
-        toFixed100(abilities.base.meleeStaminaCost);
+    final meleeCost = _resolveAbilityCostForSlot(
+      ability: meleeAbility,
+      slot: AbilitySlot.primary,
+      loadoutIndex: li,
+    );
+    final meleeManaCost = meleeAbility == null ? 0 : meleeCost.manaCost100;
+    final meleeStaminaCost = meleeAbility == null
+        ? toFixed100(abilities.base.meleeStaminaCost)
+        : meleeCost.staminaCost100;
 
     final secondaryAbilityId = loadout.abilitySecondaryId[li];
     final secondaryAbility = abilityCatalog.resolve(secondaryAbilityId);
-    final secondaryStaminaCost =
-        secondaryAbility?.staminaCost ??
-        toFixed100(abilities.base.meleeStaminaCost);
+    final secondaryCost = _resolveAbilityCostForSlot(
+      ability: secondaryAbility,
+      slot: AbilitySlot.secondary,
+      loadoutIndex: li,
+    );
+    final secondaryManaCost = secondaryAbility == null
+        ? 0
+        : secondaryCost.manaCost100;
+    final secondaryStaminaCost = secondaryAbility == null
+        ? toFixed100(abilities.base.meleeStaminaCost)
+        : secondaryCost.staminaCost100;
 
     final spellAbilityId = loadout.abilitySpellId[li];
     final spellAbility = abilityCatalog.resolve(spellAbilityId);
-    final spellManaCost = spellAbility?.manaCost ?? 0;
-    final spellStaminaCost = spellAbility?.staminaCost ?? 0;
+    final spellCost = _resolveAbilityCostForSlot(
+      ability: spellAbility,
+      slot: AbilitySlot.spell,
+      loadoutIndex: li,
+    );
+    final spellManaCost = spellCost.manaCost100;
+    final spellStaminaCost = spellCost.staminaCost100;
 
     final meleeInputMode = _inputModeFor(meleeAbility);
     final secondaryInputMode = _inputModeFor(secondaryAbility);
@@ -235,23 +286,37 @@ class SnapshotBuilder {
     );
     // ─── Compute affordability flags ───
     // These tell the UI whether action buttons should appear enabled.
-    final canAffordJump = stamina >= jumpStaminaCost;
-    final canAffordMobility = stamina >= mobilityStaminaCost;
-    final canAffordMelee = stamina >= meleeStaminaCost;
+    final canAffordJump =
+        stamina >= jumpStaminaCost &&
+        mana >= jumpManaCost &&
+        _canAffordHealthCost(hp100, jumpCost.healthCost100);
+    final canAffordMobility =
+        stamina >= mobilityStaminaCost &&
+        mana >= mobilityManaCost &&
+        _canAffordHealthCost(hp100, mobilityCost.healthCost100);
+    final canAffordMelee =
+        stamina >= meleeStaminaCost &&
+        mana >= meleeManaCost &&
+        _canAffordHealthCost(hp100, meleeCost.healthCost100);
 
     final hasSecondarySlot = (loadoutMask & LoadoutSlotMask.offHand) != 0;
     final canAffordSecondary =
-        hasSecondarySlot && stamina >= secondaryStaminaCost;
+        hasSecondarySlot &&
+        stamina >= secondaryStaminaCost &&
+        mana >= secondaryManaCost &&
+        _canAffordHealthCost(hp100, secondaryCost.healthCost100);
 
     final canAffordProjectile =
         hasProjectileSlot &&
         stamina >= projectileStaminaCost &&
-        mana >= projectileManaCost;
+        mana >= projectileManaCost &&
+        _canAffordHealthCost(hp100, projectileCost.healthCost100);
 
     final canAffordSpell =
         spellAbility != null &&
         stamina >= spellStaminaCost &&
-        mana >= spellManaCost;
+        mana >= spellManaCost &&
+        _canAffordHealthCost(hp100, spellCost.healthCost100);
 
     // ─── Read cooldown timers ───
     final cooldownTicksLeft = List<int>.filled(kMaxCooldownGroups, 0);
@@ -527,7 +592,30 @@ class SnapshotBuilder {
     return max(1, fullThresholdTicks ~/ 2);
   }
 
+  AbilityResourceCost _resolveAbilityCostForSlot({
+    required AbilityDef? ability,
+    required AbilitySlot slot,
+    required int loadoutIndex,
+  }) {
+    if (ability == null) return AbilityResourceCost.zero;
+    return resolveEffectiveAbilityCostForSlot(
+      ability: ability,
+      loadout: world.equippedLoadout,
+      loadoutIndex: loadoutIndex,
+      slot: slot,
+      weapons: weaponCatalog,
+      projectiles: projectileCatalog,
+      spellBooks: spellBookCatalog,
+    );
+  }
+
+  bool _canAffordHealthCost(int hp100, int healthCost100) {
+    if (healthCost100 <= 0) return true;
+    return hp100 - healthCost100 >= _minCommitHp100;
+  }
+
   static const int _abilityTickHz = 60;
+  static const int _minCommitHp100 = 1;
   static const List<AbilitySlot> _chargePreviewSlotPriority = <AbilitySlot>[
     AbilitySlot.projectile,
     AbilitySlot.primary,

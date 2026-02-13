@@ -113,9 +113,12 @@ void main() {
       expect(p.pos.y, closeTo(playerPosY, 1e-9));
 
       final ability = AbilityCatalog.tryGet('eloise.charged_shot')!;
+      final spellCost = ability.resolveCostForWeaponType(
+        WeaponType.projectileSpell,
+      );
       expect(
         snapshot.hud.mana,
-        closeTo(20.0 - fixed100ToDouble(ability.manaCost), 1e-9),
+        closeTo(20.0 - fixed100ToDouble(spellCost.manaCost100), 1e-9),
       );
       final cooldownTicks = scaledAbilityTicks(
         ability.cooldownTicks,
@@ -167,9 +170,12 @@ void main() {
     expect(projectiles.single.projectileId, ProjectileId.fireBolt);
 
     final ability = AbilityCatalog.tryGet('eloise.charged_shot')!;
+    final spellCost = ability.resolveCostForWeaponType(
+      WeaponType.projectileSpell,
+    );
     expect(
       snapshot.hud.mana,
-      closeTo(20.0 - fixed100ToDouble(ability.manaCost), 1e-9),
+      closeTo(20.0 - fixed100ToDouble(spellCost.manaCost100), 1e-9),
     );
     final cooldownTicks = scaledAbilityTicks(
       ability.cooldownTicks,
@@ -218,10 +224,13 @@ void main() {
     }
 
     final ability = AbilityCatalog.tryGet('eloise.charged_shot')!;
+    final spellCost = ability.resolveCostForWeaponType(
+      WeaponType.projectileSpell,
+    );
     var snapshot = core.buildSnapshot();
     expect(
       snapshot.hud.mana,
-      closeTo(30.0 - fixed100ToDouble(ability.manaCost), 1e-9),
+      closeTo(30.0 - fixed100ToDouble(spellCost.manaCost100), 1e-9),
     );
     expect(
       snapshot.entities.where((e) => e.kind == EntityKind.projectile).length,
@@ -244,7 +253,7 @@ void main() {
     snapshot = core.buildSnapshot();
     expect(
       snapshot.hud.mana,
-      closeTo(30.0 - fixed100ToDouble(ability.manaCost * 2), 1e-9),
+      closeTo(30.0 - fixed100ToDouble(spellCost.manaCost100 * 2), 1e-9),
     );
     expect(
       snapshot.entities.where((e) => e.kind == EntityKind.projectile).length,
@@ -293,9 +302,12 @@ void main() {
       expect(projectiles.length, 1);
       expect(projectiles.single.projectileId, ProjectileId.fireBolt);
       final ability = AbilityCatalog.tryGet('eloise.quick_shot')!;
+      final spellCost = ability.resolveCostForWeaponType(
+        WeaponType.projectileSpell,
+      );
       expect(
         snapshot.hud.mana,
-        closeTo(10.0 - fixed100ToDouble(ability.manaCost), 1e-9),
+        closeTo(10.0 - fixed100ToDouble(spellCost.manaCost100), 1e-9),
       );
     },
   );
@@ -332,6 +344,9 @@ void main() {
       core.stepOneTick();
     }
     final shotAbility = AbilityCatalog.tryGet('eloise.charged_shot')!;
+    final shotSpellCost = shotAbility.resolveCostForWeaponType(
+      WeaponType.projectileSpell,
+    );
     final shotActiveTicks = scaledAbilityTicks(
       shotAbility.activeTicks,
       core.tickHz,
@@ -352,7 +367,7 @@ void main() {
     expect(projectilesBeforeBonus.length, 1);
     expect(
       beforeBonus.hud.mana,
-      closeTo(20.0 - fixed100ToDouble(shotAbility.manaCost), 1e-9),
+      closeTo(20.0 - fixed100ToDouble(shotSpellCost.manaCost100), 1e-9),
     );
 
     core.applyCommands(const [SpellPressedCommand(tick: 2)]);

@@ -5,6 +5,7 @@ import 'package:rpg_runner/core/accessories/accessory_catalog.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
+import 'package:rpg_runner/core/ecs/stores/health_store.dart';
 import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
 import 'package:rpg_runner/core/ecs/systems/ability_activation_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
@@ -29,8 +30,53 @@ class MockAbilities extends AbilityCatalog {
         windupTicks: 5,
         activeTicks: 5,
         recoveryTicks: 5,
-        staminaCost: 200,
-        manaCost: 0,
+        defaultCost: AbilityResourceCost(staminaCost100: 200, manaCost100: 0),
+        cooldownTicks: 10,
+        animKey: AnimKey.strike,
+        baseDamage: 100,
+        hitDelivery: MeleeHitDelivery(
+          sizeX: 10,
+          sizeY: 10,
+          offsetX: 0,
+          offsetY: 0,
+          hitPolicy: HitPolicy.oncePerTarget,
+        ),
+      );
+    }
+    if (key == 'test_blood_melee') {
+      return const AbilityDef(
+        id: 'test_blood_melee',
+        category: AbilityCategory.melee,
+        allowedSlots: {AbilitySlot.primary},
+        targetingModel: TargetingModel.directional,
+        inputLifecycle: AbilityInputLifecycle.tap,
+        windupTicks: 5,
+        activeTicks: 5,
+        recoveryTicks: 5,
+        defaultCost: AbilityResourceCost(healthCost100: 499),
+        cooldownTicks: 10,
+        animKey: AnimKey.strike,
+        baseDamage: 100,
+        hitDelivery: MeleeHitDelivery(
+          sizeX: 10,
+          sizeY: 10,
+          offsetX: 0,
+          offsetY: 0,
+          hitPolicy: HitPolicy.oncePerTarget,
+        ),
+      );
+    }
+    if (key == 'test_blood_melee_lethal') {
+      return const AbilityDef(
+        id: 'test_blood_melee_lethal',
+        category: AbilityCategory.melee,
+        allowedSlots: {AbilitySlot.primary},
+        targetingModel: TargetingModel.directional,
+        inputLifecycle: AbilityInputLifecycle.tap,
+        windupTicks: 5,
+        activeTicks: 5,
+        recoveryTicks: 5,
+        defaultCost: AbilityResourceCost(healthCost100: 500),
         cooldownTicks: 10,
         animKey: AnimKey.strike,
         baseDamage: 100,
@@ -110,6 +156,98 @@ void main() {
       expect(world.meleeIntent.has(player), isTrue);
       final mi = world.meleeIntent.indexOf(player);
       expect(world.meleeIntent.commitTick[mi], equals(100));
+    });
+
+    test('Health cost commit is non-lethal and clamps to 1 HP minimum', () {
+      final world = EcsWorld();
+      final system = AbilityActivationSystem(
+        tickHz: 60,
+        inputBufferTicks: 10,
+        abilities: const MockAbilities(),
+        weapons: const WeaponCatalog(),
+        projectiles: const ProjectileCatalog(),
+        spellBooks: const SpellBookCatalog(),
+        accessories: const AccessoryCatalog(),
+      );
+
+      final player = world.createEntity();
+      world.equippedLoadout.add(player);
+      world.playerInput.add(player);
+      world.movement.add(player, facing: Facing.right);
+      world.abilityInputBuffer.add(player);
+      world.health.add(
+        player,
+        const HealthDef(hp: 500, hpMax: 500, regenPerSecond100: 0),
+      );
+      world.stamina.add(
+        player,
+        const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
+      );
+      world.cooldown.add(player);
+      world.activeAbility.add(player);
+      world.meleeIntent.add(player);
+      world.colliderAabb.add(
+        player,
+        const ColliderAabbDef(halfX: 10, halfY: 10),
+      );
+
+      final li = world.equippedLoadout.indexOf(player);
+      world.equippedLoadout.mask[li] |= LoadoutSlotMask.mainHand;
+      world.equippedLoadout.mainWeaponId[li] = WeaponId.basicSword;
+      world.equippedLoadout.abilityPrimaryId[li] = 'test_blood_melee';
+
+      final ii = world.playerInput.indexOf(player);
+      world.playerInput.strikePressed[ii] = true;
+      system.step(world, player: player, currentTick: 100);
+
+      expect(world.health.hp[world.health.indexOf(player)], equals(1));
+      expect(world.activeAbility.has(player), isTrue);
+    });
+
+    test('Lethal health cost blocks commit and leaves HP unchanged', () {
+      final world = EcsWorld();
+      final system = AbilityActivationSystem(
+        tickHz: 60,
+        inputBufferTicks: 10,
+        abilities: const MockAbilities(),
+        weapons: const WeaponCatalog(),
+        projectiles: const ProjectileCatalog(),
+        spellBooks: const SpellBookCatalog(),
+        accessories: const AccessoryCatalog(),
+      );
+
+      final player = world.createEntity();
+      world.equippedLoadout.add(player);
+      world.playerInput.add(player);
+      world.movement.add(player, facing: Facing.right);
+      world.abilityInputBuffer.add(player);
+      world.health.add(
+        player,
+        const HealthDef(hp: 500, hpMax: 500, regenPerSecond100: 0),
+      );
+      world.stamina.add(
+        player,
+        const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
+      );
+      world.cooldown.add(player);
+      world.activeAbility.add(player);
+      world.meleeIntent.add(player);
+      world.colliderAabb.add(
+        player,
+        const ColliderAabbDef(halfX: 10, halfY: 10),
+      );
+
+      final li = world.equippedLoadout.indexOf(player);
+      world.equippedLoadout.mask[li] |= LoadoutSlotMask.mainHand;
+      world.equippedLoadout.mainWeaponId[li] = WeaponId.basicSword;
+      world.equippedLoadout.abilityPrimaryId[li] = 'test_blood_melee_lethal';
+
+      final ii = world.playerInput.indexOf(player);
+      world.playerInput.strikePressed[ii] = true;
+      system.step(world, player: player, currentTick: 100);
+
+      expect(world.health.hp[world.health.indexOf(player)], equals(500));
+      expect(world.activeAbility.hasActiveAbility(player), isFalse);
     });
   });
 }

@@ -98,17 +98,23 @@ void main() {
     final shieldAuto = AbilityCatalog.tryGet('eloise.shield_bash_auto_aim')!;
 
     expect(swordAuto.baseDamage, equals(1400));
-    expect(swordAuto.staminaCost, equals(550));
+    expect(swordAuto.defaultCost.staminaCost100, equals(550));
     expect(swordAuto.cooldownTicks, equals(24));
     expect(swordAuto.baseDamage, lessThan(swordBase.baseDamage));
-    expect(swordAuto.staminaCost, greaterThan(swordBase.staminaCost));
+    expect(
+      swordAuto.defaultCost.staminaCost100,
+      greaterThan(swordBase.defaultCost.staminaCost100),
+    );
     expect(swordAuto.cooldownTicks, greaterThan(swordBase.cooldownTicks));
 
     expect(shieldAuto.baseDamage, equals(1400));
-    expect(shieldAuto.staminaCost, equals(550));
+    expect(shieldAuto.defaultCost.staminaCost100, equals(550));
     expect(shieldAuto.cooldownTicks, equals(24));
     expect(shieldAuto.baseDamage, lessThan(shieldBase.baseDamage));
-    expect(shieldAuto.staminaCost, greaterThan(shieldBase.staminaCost));
+    expect(
+      shieldAuto.defaultCost.staminaCost100,
+      greaterThan(shieldBase.defaultCost.staminaCost100),
+    );
     expect(shieldAuto.cooldownTicks, greaterThan(shieldBase.cooldownTicks));
   });
 
