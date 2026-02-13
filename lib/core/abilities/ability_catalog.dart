@@ -56,7 +56,7 @@ class AbilityCatalog implements AbilityResolver {
     ),
     'common.enemy_cast': AbilityDef(
       id: 'common.enemy_cast',
-      category: AbilityCategory.magic,
+      category: AbilityCategory.ranged,
       allowedSlots: {AbilitySlot.projectile},
       targetingModel: TargetingModel.aimed,
       inputLifecycle: AbilityInputLifecycle.holdRelease,
@@ -279,7 +279,7 @@ class AbilityCatalog implements AbilityResolver {
     // ------------------------------------------------------------------------
     'eloise.shield_bash': AbilityDef(
       id: 'eloise.shield_bash',
-      category: AbilityCategory.defense,
+      category: AbilityCategory.melee,
       allowedSlots: {AbilitySlot.secondary},
       targetingModel: TargetingModel.directional,
       inputLifecycle: AbilityInputLifecycle.tap,
@@ -310,7 +310,7 @@ class AbilityCatalog implements AbilityResolver {
     ),
     'eloise.charged_shield_bash': AbilityDef(
       id: 'eloise.charged_shield_bash',
-      category: AbilityCategory.defense,
+      category: AbilityCategory.melee,
       allowedSlots: {AbilitySlot.secondary},
       targetingModel: TargetingModel.aimedCharge,
       inputLifecycle: AbilityInputLifecycle.holdRelease,
@@ -362,7 +362,7 @@ class AbilityCatalog implements AbilityResolver {
     ),
     'eloise.shield_bash_auto_aim': AbilityDef(
       id: 'eloise.shield_bash_auto_aim',
-      category: AbilityCategory.defense,
+      category: AbilityCategory.melee,
       allowedSlots: {AbilitySlot.secondary},
       targetingModel: TargetingModel.homing,
       inputLifecycle: AbilityInputLifecycle.tap,
@@ -421,7 +421,7 @@ class AbilityCatalog implements AbilityResolver {
     // ------------------------------------------------------------------------
     'eloise.auto_aim_shot': AbilityDef(
       id: 'eloise.auto_aim_shot',
-      category: AbilityCategory.magic,
+      category: AbilityCategory.ranged,
       allowedSlots: {AbilitySlot.projectile},
       targetingModel: TargetingModel.homing,
       inputLifecycle: AbilityInputLifecycle.tap,
@@ -501,7 +501,7 @@ class AbilityCatalog implements AbilityResolver {
 
     'eloise.charged_shot': AbilityDef(
       id: 'eloise.charged_shot',
-      category: AbilityCategory.magic,
+      category: AbilityCategory.ranged,
       allowedSlots: {AbilitySlot.projectile},
       targetingModel: TargetingModel.aimedCharge,
       inputLifecycle: AbilityInputLifecycle.holdRelease,

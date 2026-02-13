@@ -13,7 +13,7 @@ typedef AbilityKey = String;
 enum AbilitySlot { primary, secondary, projectile, mobility, spell, jump }
 
 /// High-level semantic grouping used by UI and systems.
-enum AbilityCategory { melee, ranged, magic, mobility, defense, utility }
+enum AbilityCategory { melee, ranged, mobility, defense, utility }
 
 /// Weapon family classification used for ability gating.
 enum WeaponType { oneHandedSword, shield, throwingWeapon, projectileSpell }

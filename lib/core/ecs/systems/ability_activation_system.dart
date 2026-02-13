@@ -889,8 +889,7 @@ class AbilityActivationSystem {
     final mask = world.equippedLoadout.mask[loadoutIndex];
     if ((mask & LoadoutSlotMask.projectile) == 0) return false;
 
-    if (ability.category != AbilityCategory.magic &&
-        ability.category != AbilityCategory.ranged) {
+    if (ability.category != AbilityCategory.ranged) {
       return false;
     }
 
