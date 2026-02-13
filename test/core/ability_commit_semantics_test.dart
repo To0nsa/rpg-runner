@@ -21,7 +21,7 @@ class MockAbilities extends AbilityCatalog {
   @override
   AbilityDef? resolve(AbilityKey key) {
     if (key == 'test_melee') {
-      return const AbilityDef(
+      return AbilityDef(
         id: 'test_melee',
         category: AbilityCategory.melee,
         allowedSlots: {AbilitySlot.primary},
@@ -44,7 +44,7 @@ class MockAbilities extends AbilityCatalog {
       );
     }
     if (key == 'test_blood_melee') {
-      return const AbilityDef(
+      return AbilityDef(
         id: 'test_blood_melee',
         category: AbilityCategory.melee,
         allowedSlots: {AbilitySlot.primary},
@@ -67,7 +67,7 @@ class MockAbilities extends AbilityCatalog {
       );
     }
     if (key == 'test_blood_melee_lethal') {
-      return const AbilityDef(
+      return AbilityDef(
         id: 'test_blood_melee_lethal',
         category: AbilityCategory.melee,
         allowedSlots: {AbilitySlot.primary},

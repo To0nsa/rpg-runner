@@ -138,7 +138,8 @@ void main() {
 
       final dt = 1.0 / controller.tickHz;
       final windupTicks = ticksFromSecondsCeil(
-        AbilityCatalog.tryGet('eloise.charged_shot')!.windupTicks / 60.0,
+        AbilityCatalog.shared.resolve('eloise.charged_shot')!.windupTicks /
+            60.0,
         controller.tickHz,
       );
 
@@ -196,7 +197,7 @@ void main() {
 
     final dt = 1.0 / controller.tickHz;
     final windupTicks = ticksFromSecondsCeil(
-      AbilityCatalog.tryGet('eloise.charged_shot')!.windupTicks / 60.0,
+      AbilityCatalog.shared.resolve('eloise.charged_shot')!.windupTicks / 60.0,
       controller.tickHz,
     );
 
@@ -249,7 +250,8 @@ void main() {
 
         final dt = 1.0 / controller.tickHz;
         final windupTicks = ticksFromSecondsCeil(
-          AbilityCatalog.tryGet('eloise.charged_shot')!.windupTicks / 60.0,
+          AbilityCatalog.shared.resolve('eloise.charged_shot')!.windupTicks /
+              60.0,
           controller.tickHz,
         );
 
@@ -309,7 +311,8 @@ void main() {
 
         final dt = 1.0 / controller.tickHz;
         final windupTicks = ticksFromSecondsCeil(
-          AbilityCatalog.tryGet('eloise.charged_shot')!.windupTicks / 60.0,
+          AbilityCatalog.shared.resolve('eloise.charged_shot')!.windupTicks /
+              60.0,
           controller.tickHz,
         );
 
@@ -368,7 +371,10 @@ void main() {
 
       final dt = 1.0 / controller.tickHz;
       final windupTicks = ticksFromSecondsCeil(
-        AbilityCatalog.tryGet('eloise.charged_shield_bash')!.windupTicks / 60.0,
+        AbilityCatalog.shared
+                .resolve('eloise.charged_shield_bash')!
+                .windupTicks /
+            60.0,
         controller.tickHz,
       );
 
@@ -425,7 +431,9 @@ void main() {
 
         final dt = 1.0 / controller.tickHz;
         final windupTicks = ticksFromSecondsCeil(
-          AbilityCatalog.tryGet('eloise.charged_shield_bash')!.windupTicks /
+          AbilityCatalog.shared
+                  .resolve('eloise.charged_shield_bash')!
+                  .windupTicks /
               60.0,
           controller.tickHz,
         );
@@ -612,7 +620,7 @@ void main() {
       final input = RunnerInputRouter(controller: controller);
       final dt = 1.0 / controller.tickHz;
       final windupTicks = ticksFromSecondsCeil(
-        AbilityCatalog.tryGet('eloise.quick_shot')!.windupTicks / 60.0,
+        AbilityCatalog.shared.resolve('eloise.quick_shot')!.windupTicks / 60.0,
         controller.tickHz,
       );
 
@@ -731,7 +739,8 @@ void main() {
       final input = RunnerInputRouter(controller: controller);
       final dt = 1.0 / controller.tickHz;
       final windupTicks = ticksFromSecondsCeil(
-        AbilityCatalog.tryGet('eloise.charged_shot')!.windupTicks / 60.0,
+        AbilityCatalog.shared.resolve('eloise.charged_shot')!.windupTicks /
+            60.0,
         controller.tickHz,
       );
 

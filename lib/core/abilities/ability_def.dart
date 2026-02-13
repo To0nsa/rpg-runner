@@ -183,9 +183,27 @@ class AbilityChargeTierDef {
 
 /// Data-authored charge profile shared by melee/projectile commit paths.
 class AbilityChargeProfile {
-  const AbilityChargeProfile({required this.tiers});
+  AbilityChargeProfile({required List<AbilityChargeTierDef> tiers})
+    : assert(tiers.isNotEmpty, 'Charge profile must define at least one tier'),
+      assert(
+        _isStrictlyIncreasingMinHoldTicks(tiers),
+        'Charge tiers must be strictly ordered by minHoldTicks60.',
+      ),
+      tiers = List<AbilityChargeTierDef>.unmodifiable(tiers);
 
   final List<AbilityChargeTierDef> tiers;
+
+  static bool _isStrictlyIncreasingMinHoldTicks(
+    List<AbilityChargeTierDef> tiers,
+  ) {
+    var previous = -1;
+    for (final tier in tiers) {
+      final current = tier.minHoldTicks60;
+      if (current <= previous) return false;
+      previous = current;
+    }
+    return true;
+  }
 }
 
 // --------------------------------------------------------------------------
@@ -298,17 +316,23 @@ class AbilityDef {
         ForcedInterruptCause.death,
       };
 
-  const AbilityDef({
+  /// Authoring constructor for immutable ability data.
+  ///
+  /// Parameter order is grouped by authoring flow:
+  /// identity -> delivery/input -> damage/payload -> timing/hold/charge
+  /// -> costs/cooldown -> gating/self-effects -> presentation.
+  ///
+  AbilityDef({
     required this.id,
     required this.category,
-    required this.allowedSlots,
+    required Set<AbilitySlot> allowedSlots,
     this.hitDelivery = const SelfHitDelivery(),
     this.targetingModel = TargetingModel.none,
     required this.inputLifecycle,
     this.payloadSource = AbilityPayloadSource.none,
     this.baseDamage = 0,
     this.baseDamageType = DamageType.physical,
-    this.procs = const <WeaponProc>[],
+    List<WeaponProc> procs = const <WeaponProc>[],
     required this.windupTicks,
     required this.activeTicks,
     required this.recoveryTicks,
@@ -317,18 +341,29 @@ class AbilityDef {
     this.chargeProfile,
     this.chargeMaxHoldTicks60 = 0,
     this.defaultCost = AbilityResourceCost.zero,
-    this.costProfileByWeaponType = const <WeaponType, AbilityResourceCost>{},
+    Map<WeaponType, AbilityResourceCost> costProfileByWeaponType =
+        const <WeaponType, AbilityResourceCost>{},
     required this.cooldownTicks,
     this.cooldownGroupId,
-    this.requiredWeaponTypes = const {},
+    Set<WeaponType> requiredWeaponTypes = const <WeaponType>{},
     this.requiresEquippedWeapon = false,
-    this.forcedInterruptCauses = defaultForcedInterruptCauses,
+    Set<ForcedInterruptCause> forcedInterruptCauses =
+        defaultForcedInterruptCauses,
     this.selfStatusProfileId = StatusProfileId.none,
     this.selfRestoreHealthBp = 0,
     this.selfRestoreManaBp = 0,
     this.selfRestoreStaminaBp = 0,
     required this.animKey,
-  }) : assert(id != '', 'Ability id cannot be empty.'),
+  }) : allowedSlots = Set<AbilitySlot>.unmodifiable(allowedSlots),
+       procs = List<WeaponProc>.unmodifiable(procs),
+       costProfileByWeaponType =
+           Map<WeaponType, AbilityResourceCost>.unmodifiable(
+             costProfileByWeaponType,
+           ),
+       requiredWeaponTypes = Set<WeaponType>.unmodifiable(requiredWeaponTypes),
+       forcedInterruptCauses =
+           Set<ForcedInterruptCause>.unmodifiable(forcedInterruptCauses),
+       assert(id != '', 'Ability id cannot be empty.'),
        assert(
          windupTicks >= 0 && activeTicks >= 0 && recoveryTicks >= 0,
          'Ticks cannot be negative',

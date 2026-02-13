@@ -269,9 +269,9 @@ void main() {
         stepPlayer(player, tick);
 
         final ai = world.animState.indexOf(player);
-        final expectedAnim = AbilityCatalog.tryGet(
-          'eloise.charged_shot',
-        )!.animKey;
+        final expectedAnim = AbilityCatalog.shared
+            .resolve('eloise.charged_shot')!
+            .animKey;
         expect(world.animState.anim[ai], equals(expectedAnim));
         expect(world.animState.animFrame[ai], equals(offset));
       });
@@ -294,9 +294,9 @@ void main() {
         stepPlayer(player, tick);
 
         final ai = world.animState.indexOf(player);
-        final expectedAnim = AbilityCatalog.tryGet(
-          'eloise.quick_shot',
-        )!.animKey;
+        final expectedAnim = AbilityCatalog.shared
+            .resolve('eloise.quick_shot')!
+            .animKey;
         expect(world.animState.anim[ai], equals(expectedAnim));
         expect(world.animState.animFrame[ai], equals(offset));
       });

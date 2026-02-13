@@ -20,7 +20,7 @@ class _ChargeMeleeAbilities extends AbilityCatalog {
   @override
   AbilityDef? resolve(AbilityKey key) {
     if (key == 'test.melee_charge') {
-      return const AbilityDef(
+      return AbilityDef(
         id: 'test.melee_charge',
         category: AbilityCategory.melee,
         allowedSlots: {AbilitySlot.primary},

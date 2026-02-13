@@ -257,7 +257,7 @@ class _MobilityDirectionAbilities extends AbilityCatalog {
   AbilityDef? resolve(AbilityKey key) {
     switch (key) {
       case 'test.mobility_directional':
-        return const AbilityDef(
+        return AbilityDef(
           id: 'test.mobility_directional',
           category: AbilityCategory.mobility,
           allowedSlots: {AbilitySlot.mobility},
@@ -272,7 +272,7 @@ class _MobilityDirectionAbilities extends AbilityCatalog {
           baseDamage: 0,
         );
       case 'test.mobility_aimed':
-        return const AbilityDef(
+        return AbilityDef(
           id: 'test.mobility_aimed',
           category: AbilityCategory.mobility,
           allowedSlots: {AbilitySlot.mobility},
@@ -287,7 +287,7 @@ class _MobilityDirectionAbilities extends AbilityCatalog {
           baseDamage: 0,
         );
       case 'test.mobility_homing':
-        return const AbilityDef(
+        return AbilityDef(
           id: 'test.mobility_homing',
           category: AbilityCategory.mobility,
           allowedSlots: {AbilitySlot.mobility},

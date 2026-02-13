@@ -24,7 +24,7 @@ void main() {
   double fixed100ToDouble(int value) => value / 100.0;
 
   int scaledWindupTicks(String abilityId, int tickHz) {
-    final ability = AbilityCatalog.tryGet(abilityId)!;
+    final ability = AbilityCatalog.shared.resolve(abilityId)!;
     return scaledAbilityTicks(ability.windupTicks, tickHz);
   }
 
@@ -112,7 +112,7 @@ void main() {
       expect(p.pos.x, closeTo(playerPosX + expectedOffset, 1e-9));
       expect(p.pos.y, closeTo(playerPosY, 1e-9));
 
-      final ability = AbilityCatalog.tryGet('eloise.charged_shot')!;
+      final ability = AbilityCatalog.shared.resolve('eloise.charged_shot')!;
       final spellCost = ability.resolveCostForWeaponType(
         WeaponType.projectileSpell,
       );
@@ -169,7 +169,7 @@ void main() {
     expect(projectiles.length, 1);
     expect(projectiles.single.projectileId, ProjectileId.fireBolt);
 
-    final ability = AbilityCatalog.tryGet('eloise.charged_shot')!;
+    final ability = AbilityCatalog.shared.resolve('eloise.charged_shot')!;
     final spellCost = ability.resolveCostForWeaponType(
       WeaponType.projectileSpell,
     );
@@ -223,7 +223,7 @@ void main() {
       core.stepOneTick();
     }
 
-    final ability = AbilityCatalog.tryGet('eloise.charged_shot')!;
+    final ability = AbilityCatalog.shared.resolve('eloise.charged_shot')!;
     final spellCost = ability.resolveCostForWeaponType(
       WeaponType.projectileSpell,
     );
@@ -301,7 +301,7 @@ void main() {
           .toList();
       expect(projectiles.length, 1);
       expect(projectiles.single.projectileId, ProjectileId.fireBolt);
-      final ability = AbilityCatalog.tryGet('eloise.quick_shot')!;
+      final ability = AbilityCatalog.shared.resolve('eloise.quick_shot')!;
       final spellCost = ability.resolveCostForWeaponType(
         WeaponType.projectileSpell,
       );
@@ -343,7 +343,7 @@ void main() {
       core.applyCommands(const <Command>[]);
       core.stepOneTick();
     }
-    final shotAbility = AbilityCatalog.tryGet('eloise.charged_shot')!;
+    final shotAbility = AbilityCatalog.shared.resolve('eloise.charged_shot')!;
     final shotSpellCost = shotAbility.resolveCostForWeaponType(
       WeaponType.projectileSpell,
     );
@@ -379,7 +379,7 @@ void main() {
         .toList();
     expect(projectilesAfterBonus.length, 1);
 
-    final restore = AbilityCatalog.tryGet('eloise.restore_mana')!;
+    final restore = AbilityCatalog.shared.resolve('eloise.restore_mana')!;
     final expectedMana =
         (beforeBonus.hud.mana + (20.0 * restore.selfRestoreManaBp / 10000.0))
             .clamp(0.0, 20.0);
@@ -420,7 +420,9 @@ void main() {
         core.stepOneTick();
       }
 
-      final projectileAbility = AbilityCatalog.tryGet('eloise.quick_shot')!;
+      final projectileAbility = AbilityCatalog.shared.resolve(
+        'eloise.quick_shot',
+      )!;
       final activeTicks = scaledAbilityTicks(
         projectileAbility.activeTicks,
         core.tickHz,
@@ -429,7 +431,9 @@ void main() {
         projectileAbility.recoveryTicks,
         core.tickHz,
       );
-      final bonusAbility = AbilityCatalog.tryGet('eloise.arcane_haste')!;
+      final bonusAbility = AbilityCatalog.shared.resolve(
+        'eloise.arcane_haste',
+      )!;
       final bonusCooldownTicks = scaledAbilityTicks(
         bonusAbility.cooldownTicks,
         core.tickHz,

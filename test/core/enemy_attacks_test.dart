@@ -119,12 +119,10 @@ void main() {
 
   test('enemy projectile (thunder) damages player', () {
     final world = EcsWorld();
-    final thunderDamage = AbilityCatalog.tryGet(
-      'common.enemy_cast',
-    )!.baseDamage;
-    final projectile = const ProjectileCatalog().get(
-      ProjectileId.thunderBolt,
-    );
+    final thunderDamage = AbilityCatalog.shared
+        .resolve('common.enemy_cast')!
+        .baseDamage;
+    final projectile = const ProjectileCatalog().get(ProjectileId.thunderBolt);
 
     final player = EntityFactory(world).createPlayer(
       posX: 100,

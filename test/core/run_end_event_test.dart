@@ -30,12 +30,10 @@ import 'package:rpg_runner/core/ecs/entity_factory.dart';
 void main() {
   test('projectile kill records death metadata', () {
     final world = EcsWorld();
-    final projectile = const ProjectileCatalog().get(
-      ProjectileId.thunderBolt,
-    );
-    final thunderDamage = AbilityCatalog.tryGet(
-      'common.enemy_cast',
-    )!.baseDamage;
+    final projectile = const ProjectileCatalog().get(ProjectileId.thunderBolt);
+    final thunderDamage = AbilityCatalog.shared
+        .resolve('common.enemy_cast')!
+        .baseDamage;
 
     final player = EntityFactory(world).createPlayer(
       posX: 100,

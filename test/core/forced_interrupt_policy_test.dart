@@ -69,7 +69,7 @@ class _InjectedAbilityCatalog extends AbilityCatalog {
     if (key != 'test.injected_interrupt') {
       return super.resolve(key);
     }
-    return const AbilityDef(
+    return AbilityDef(
       id: 'test.injected_interrupt',
       category: AbilityCategory.utility,
       allowedSlots: <AbilitySlot>{AbilitySlot.spell},

@@ -39,7 +39,7 @@ void main() {
       ),
     );
 
-    final ability = AbilityCatalog.tryGet('eloise.sword_parry')!;
+    final ability = AbilityCatalog.shared.resolve('eloise.sword_parry')!;
     world.activeAbility.set(
       player,
       id: ability.id,
@@ -88,11 +88,13 @@ void main() {
       expect(timeout.abilityId, 'eloise.sword_parry');
 
       final staminaIndex = world.stamina.indexOf(player);
-      // 180 active ticks at 2.33 stamina/sec => floor(180 * 233 / 60) = 699.
-      expect(world.stamina.stamina[staminaIndex], 99301);
+      // 180 active ticks at 7.00 stamina/sec => floor(180 * 700 / 60) = 2100.
+      expect(world.stamina.stamina[staminaIndex], 97900);
       expect(
         world.cooldown.getTicksLeft(player, CooldownGroup.primary),
-        equals(AbilityCatalog.tryGet('eloise.sword_parry')!.cooldownTicks),
+        equals(
+          AbilityCatalog.shared.resolve('eloise.sword_parry')!.cooldownTicks,
+        ),
       );
     },
   );
@@ -124,7 +126,9 @@ void main() {
     expect(world.activeAbility.activeTicks[activeIndex], 0);
     expect(
       world.cooldown.getTicksLeft(player, CooldownGroup.primary),
-      equals(AbilityCatalog.tryGet('eloise.sword_parry')!.cooldownTicks),
+      equals(
+        AbilityCatalog.shared.resolve('eloise.sword_parry')!.cooldownTicks,
+      ),
     );
   });
 
@@ -162,7 +166,9 @@ void main() {
     expect(world.activeAbility.phase[activeIndex], AbilityPhase.recovery);
     expect(
       world.cooldown.getTicksLeft(player, CooldownGroup.primary),
-      equals(AbilityCatalog.tryGet('eloise.sword_parry')!.cooldownTicks),
+      equals(
+        AbilityCatalog.shared.resolve('eloise.sword_parry')!.cooldownTicks,
+      ),
     );
   });
 
@@ -181,7 +187,9 @@ void main() {
     expect(world.activeAbility.phase[activeIndex], AbilityPhase.idle);
     expect(
       world.cooldown.getTicksLeft(player, CooldownGroup.primary),
-      equals(AbilityCatalog.tryGet('eloise.sword_parry')!.cooldownTicks),
+      equals(
+        AbilityCatalog.shared.resolve('eloise.sword_parry')!.cooldownTicks,
+      ),
     );
   });
 }

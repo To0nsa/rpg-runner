@@ -59,7 +59,7 @@ void main() {
     );
     world.stamina.add(
       player,
-      const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
+      const StaminaDef(stamina: 5000, staminaMax: 5000, regenPerSecond100: 0),
     );
     world.projectileIntent.add(player);
     world.equippedLoadout.add(
@@ -138,7 +138,11 @@ void main() {
         );
         world.stamina.add(
           player,
-          const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
+          const StaminaDef(
+            stamina: 5000,
+            staminaMax: 5000,
+            regenPerSecond100: 0,
+          ),
         );
         world.projectileIntent.add(player);
         world.equippedLoadout.add(
@@ -173,7 +177,7 @@ void main() {
       }
 
       final tap = resolveIntent(0);
-      final ability = AbilityCatalog.tryGet('eloise.charged_shot')!;
+      final ability = AbilityCatalog.shared.resolve('eloise.charged_shot')!;
       final hitDelivery = ability.hitDelivery as ProjectileHitDelivery;
       final baseMaxPierce = !hitDelivery.pierce
           ? 1

@@ -28,7 +28,8 @@ class AbilityCatalog implements AbilityResolver {
   ///
   /// Keys should remain stable because they are referenced by loadouts, tests,
   /// and persisted run/telemetry data.
-  static const Map<AbilityKey, AbilityDef> abilities = {
+  static final Map<AbilityKey, AbilityDef> abilities =
+      Map<AbilityKey, AbilityDef>.unmodifiable(<AbilityKey, AbilityDef>{
     // ------------------------------------------------------------------------
     // COMMON SYSTEM ABILITIES
     // ------------------------------------------------------------------------
@@ -253,8 +254,8 @@ class AbilityCatalog implements AbilityResolver {
       activeTicks: 180,
       recoveryTicks: 2,
       holdMode: AbilityHoldMode.holdToMaintain,
-      // Full 3s hold spends ~21.0 stamina (matches old one-shot cost envelope).
-      holdStaminaDrainPerSecond100: 233,
+      // Full 3s hold spends ~21.0 stamina.
+      holdStaminaDrainPerSecond100: 700,
       cooldownTicks: 30, // 0.50s
       animKey: AnimKey.parry,
       requiredWeaponTypes: {WeaponType.oneHandedSword},
@@ -785,7 +786,7 @@ class AbilityCatalog implements AbilityResolver {
       animKey: AnimKey.roll,
       baseDamage: 0,
     ),
-  };
+  });
 
   static final bool _integrityChecked = _validateIntegrity();
 
@@ -807,14 +808,6 @@ class AbilityCatalog implements AbilityResolver {
       return true;
     }());
     return true;
-  }
-
-  /// Legacy convenience lookup for static call sites.
-  ///
-  /// Prefer injecting [AbilityResolver] and calling [resolve].
-  static AbilityDef? tryGet(AbilityKey key) {
-    assert(_integrityChecked);
-    return shared.resolve(key);
   }
 
   @override

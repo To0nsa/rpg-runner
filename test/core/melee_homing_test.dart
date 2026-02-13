@@ -92,10 +92,14 @@ void main() {
   );
 
   test('auto-aim melee variants apply explicit reliability tax', () {
-    final swordBase = AbilityCatalog.tryGet('eloise.sword_strike')!;
-    final swordAuto = AbilityCatalog.tryGet('eloise.sword_strike_auto_aim')!;
-    final shieldBase = AbilityCatalog.tryGet('eloise.shield_bash')!;
-    final shieldAuto = AbilityCatalog.tryGet('eloise.shield_bash_auto_aim')!;
+    final swordBase = AbilityCatalog.shared.resolve('eloise.sword_strike')!;
+    final swordAuto = AbilityCatalog.shared.resolve(
+      'eloise.sword_strike_auto_aim',
+    )!;
+    final shieldBase = AbilityCatalog.shared.resolve('eloise.shield_bash')!;
+    final shieldAuto = AbilityCatalog.shared.resolve(
+      'eloise.shield_bash_auto_aim',
+    )!;
 
     expect(swordAuto.baseDamage, equals(1400));
     expect(swordAuto.defaultCost.staminaCost100, equals(550));

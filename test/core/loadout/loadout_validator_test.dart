@@ -321,7 +321,7 @@ class TestAbilityCatalog extends AbilityCatalog {
 
   static const String testAbilityId = 'test.shield_smash';
 
-  static const AbilityDef _testAbility = AbilityDef(
+  static final AbilityDef _testAbility = AbilityDef(
     id: testAbilityId,
     category: AbilityCategory.defense,
     allowedSlots: {AbilitySlot.secondary},

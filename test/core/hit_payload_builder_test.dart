@@ -5,7 +5,7 @@ import 'package:rpg_runner/core/combat/hit_payload_builder.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/stats/gear_stat_bonuses.dart';
 
-const AbilityDef _testAbility = AbilityDef(
+final AbilityDef _testAbility = AbilityDef(
   id: 'test.payload',
   category: AbilityCategory.melee,
   allowedSlots: {AbilitySlot.primary},

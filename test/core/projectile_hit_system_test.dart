@@ -25,12 +25,10 @@ import 'package:rpg_runner/core/ecs/entity_factory.dart';
 void main() {
   test('ProjectileHitSystem damages target and despawns projectile', () {
     final world = EcsWorld();
-    final iceBoltDamage = AbilityCatalog.tryGet(
-      'eloise.charged_shot',
-    )!.baseDamage;
-    final projectile = const ProjectileCatalog().get(
-      ProjectileId.iceBolt,
-    );
+    final iceBoltDamage = AbilityCatalog.shared
+        .resolve('eloise.charged_shot')!
+        .baseDamage;
+    final projectile = const ProjectileCatalog().get(ProjectileId.iceBolt);
 
     final player = EntityFactory(world).createPlayer(
       posX: 100,

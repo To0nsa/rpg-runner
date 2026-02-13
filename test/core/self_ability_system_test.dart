@@ -69,7 +69,7 @@ void main() {
       final ai = world.activeAbility.indexOf(player);
       expect(world.activeAbility.abilityId[ai], equals('eloise.arcane_haste'));
 
-      final ability = AbilityCatalog.tryGet('eloise.arcane_haste')!;
+      final ability = AbilityCatalog.shared.resolve('eloise.arcane_haste')!;
       expect(world.mana.mana[world.mana.indexOf(player)], equals(0));
 
       expect(
@@ -121,7 +121,7 @@ void main() {
     activation.step(world, player: player, currentTick: 5);
     selfAbility.step(world, currentTick: 5);
 
-    final ability = AbilityCatalog.tryGet('eloise.restore_mana')!;
+    final ability = AbilityCatalog.shared.resolve('eloise.restore_mana')!;
     final expectedRestore = (1000 * ability.selfRestoreManaBp) ~/ 10000;
     expect(
       world.mana.mana[world.mana.indexOf(player)],
