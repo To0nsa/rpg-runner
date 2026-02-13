@@ -50,6 +50,7 @@ class DamageSystem {
     final lastDamage = world.lastDamage;
     final resistance = world.damageResistance;
     final vulnerable = world.vulnerable;
+    final weaken = world.weaken;
 
     for (var i = 0; i < queue.length; i += 1) {
       if ((queue.flags[i] & DamageQueueFlags.canceled) != 0) continue;
@@ -60,6 +61,7 @@ class DamageSystem {
       final damageType = queue.damageType[i];
       final procs = queue.procs[i];
       final sourceKind = queue.sourceKind[i];
+      final sourceEntity = queue.sourceEntity[i];
       final sourceEnemyId = queue.sourceEnemyId[i];
       final sourceProjectileId = queue.sourceProjectileId[i];
 
@@ -78,8 +80,23 @@ class DamageSystem {
         continue; // Damage negated.
       }
 
-      // 3. Resolve outgoing critical strike (if any).
-      var amountAfterCrit = amount100;
+      // 3. Apply outgoing-source modifiers (e.g. weaken).
+      var amountAfterSourceModifiers = amount100;
+      if (sourceEntity != null) {
+        final wi = weaken.tryIndexOf(sourceEntity);
+        if (wi != null && weaken.ticksLeft[wi] > 0) {
+          amountAfterSourceModifiers = applyBp(
+            amountAfterSourceModifiers,
+            -weaken.magnitude[wi],
+          );
+          if (amountAfterSourceModifiers < 0) {
+            amountAfterSourceModifiers = 0;
+          }
+        }
+      }
+
+      // 4. Resolve outgoing critical strike (if any).
+      var amountAfterCrit = amountAfterSourceModifiers;
       if (critChanceBp >= bpScale) {
         amountAfterCrit = applyBp(amountAfterCrit, _critDamageBonusBp);
       } else if (critChanceBp > 0) {
@@ -90,12 +107,12 @@ class DamageSystem {
       }
       if (amountAfterCrit < 0) amountAfterCrit = 0;
 
-      // 4. Apply global defense (if the target has equipped gear stats).
+      // 5. Apply global defense (if the target has equipped gear stats).
       var amountAfterDefense = amountAfterCrit;
       final resolvedStats = _statsCache.resolveForEntity(world, target);
       amountAfterDefense = resolvedStats.applyDefense(amountAfterDefense);
 
-      // 5. Apply resistance/vulnerability modifier.
+      // 6. Apply resistance/vulnerability modifier.
       final ri = resistance.tryIndexOf(target);
       final baseTypedModBp = ri == null
           ? 0
@@ -116,7 +133,7 @@ class DamageSystem {
       final nextHp = clampInt(prevHp - appliedAmount, 0, health.hpMax[hi]);
       health.hp[hi] = nextHp;
 
-      // 6. Record Last Damage details (if store exists).
+      // 7. Record Last Damage details (if store exists).
       // Only useful if damage was actually taken.
       if (nextHp < prevHp) {
         _interruptOnDamageTaken(world, target);
@@ -146,7 +163,7 @@ class DamageSystem {
         }
       }
 
-      // 7. Queue status effects for non-zero damage requests.
+      // 8. Queue status effects for non-zero damage requests.
       if (queueStatus != null && amount100 > 0 && procs.isNotEmpty) {
         for (final proc in procs) {
           if (proc.hook != ProcHook.onHit) continue;
@@ -176,7 +193,7 @@ class DamageSystem {
         }
       }
 
-      // 8. Apply new Invulnerability frames.
+      // 9. Apply new Invulnerability frames.
       if (invulnerabilityTicksOnHit > 0 && ii != null) {
         invuln.ticksLeft[ii] = invulnerabilityTicksOnHit;
       }

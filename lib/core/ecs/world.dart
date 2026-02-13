@@ -44,6 +44,7 @@ import 'stores/status/haste_store.dart';
 import 'stores/status/resource_over_time_store.dart';
 import 'stores/status/slow_store.dart';
 import 'stores/status/vulnerable_store.dart';
+import 'stores/status/weaken_store.dart';
 import 'stores/control_lock_store.dart';
 import 'stores/damage_queue_store.dart';
 import 'stores/parry_consume_store.dart';
@@ -179,7 +180,8 @@ class EcsWorld {
   /// Tracks per-entity death lifecycle state.
   late final DeathStateStore deathState = _register(DeathStateStore());
 
-  /// Status immunities (dot, slow, stun, haste, vulnerable, resource-over-time).
+  /// Status immunities
+  /// (dot, slow, stun, haste, vulnerable, weaken, resource-over-time).
   late final StatusImmunityStore statusImmunity = _register(
     StatusImmunityStore(),
   );
@@ -242,6 +244,9 @@ class EcsWorld {
 
   /// Active vulnerability effects.
   late final VulnerableStore vulnerable = _register(VulnerableStore());
+
+  /// Active outgoing-damage reduction effects.
+  late final WeakenStore weaken = _register(WeakenStore());
 
   /// Control locks for ability/action gating (stun, movement locks, etc.).
   late final ControlLockStore controlLock = _register(ControlLockStore());

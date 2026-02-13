@@ -76,6 +76,25 @@ class ProjectileCatalog {
             ),
           ],
         );
+      case ProjectileId.darkBolt:
+        return const ProjectileItemDef(
+          id: ProjectileId.darkBolt,
+          weaponType: WeaponType.projectileSpell,
+          speedUnitsPerSecond: 900.0,
+          lifetimeSeconds: 1.0,
+          colliderSizeX: 20.0,
+          colliderSizeY: 10.0,
+          ballistic: false,
+          gravityScale: 1.0,
+          damageType: DamageType.dark,
+          procs: <WeaponProc>[
+            WeaponProc(
+              hook: ProcHook.onHit,
+              statusProfileId: StatusProfileId.weakenOnHit,
+              chanceBp: 10000,
+            ),
+          ],
+        );
       case ProjectileId.thunderBolt:
         return const ProjectileItemDef(
           id: ProjectileId.thunderBolt,

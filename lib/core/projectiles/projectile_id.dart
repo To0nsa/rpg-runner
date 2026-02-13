@@ -15,6 +15,9 @@ enum ProjectileId {
   /// Player's acid spell projectile. Medium speed and lifetime.
   acidBolt,
 
+  /// Player's dark spell projectile. Medium speed and short lifetime.
+  darkBolt,
+
   /// Enemy ranged strike. Slower but longer range.
   thunderBolt,
 

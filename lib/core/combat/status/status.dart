@@ -2,7 +2,15 @@ import '../../ecs/entity_id.dart';
 import '../damage_type.dart';
 
 /// Runtime status effect categories.
-enum StatusEffectType { dot, slow, stun, haste, vulnerable, resourceOverTime }
+enum StatusEffectType {
+  dot,
+  slow,
+  stun,
+  haste,
+  vulnerable,
+  weaken,
+  resourceOverTime,
+}
 
 /// Resources that can be restored through status effects.
 enum StatusResourceType { health, mana, stamina }
@@ -13,6 +21,7 @@ enum StatusProfileId {
   slowOnHit,
   burnOnHit,
   acidOnHit,
+  weakenOnHit,
   meleeBleed,
   stunOnHit,
   speedBoost,
@@ -156,6 +165,15 @@ class StatusApplicationPresets {
         ),
       );
 
+  static const StatusApplicationPreset weakenOnHit = StatusApplicationPreset(
+    StatusApplication(
+      type: StatusEffectType.weaken,
+      magnitude: 3500, // -35% outgoing damage.
+      durationSeconds: 5.0,
+      scaleByDamageType: false,
+    ),
+  );
+
   static const StatusApplicationPreset stunOnHit = StatusApplicationPreset(
     StatusApplication(
       type: StatusEffectType.stun,
@@ -245,6 +263,10 @@ class StatusProfileCatalog {
       case StatusProfileId.acidOnHit:
         return StatusProfile(<StatusApplication>[
           StatusApplicationPresets.vulnerableOnHit.baseline,
+        ]);
+      case StatusProfileId.weakenOnHit:
+        return StatusProfile(<StatusApplication>[
+          StatusApplicationPresets.weakenOnHit.baseline,
         ]);
       case StatusProfileId.stunOnHit:
         return StatusProfile(<StatusApplication>[

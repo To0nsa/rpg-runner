@@ -10,6 +10,8 @@ class SpellBookCatalog {
 
   static const List<ProjectileId> _basicProjectileSpells = <ProjectileId>[
     ProjectileId.fireBolt,
+    ProjectileId.acidBolt,
+    ProjectileId.darkBolt,
   ];
 
   static const List<ProjectileId> _solidProjectileSpells = <ProjectileId>[
@@ -21,6 +23,7 @@ class SpellBookCatalog {
     ProjectileId.iceBolt,
     ProjectileId.fireBolt,
     ProjectileId.acidBolt,
+    ProjectileId.darkBolt,
     ProjectileId.thunderBolt,
   ];
 

@@ -9,6 +9,7 @@ import 'package:rpg_runner/core/combat/damage.dart';
 import 'package:rpg_runner/core/combat/damage_type.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/damage_resistance_store.dart';
+import 'package:rpg_runner/core/ecs/stores/status/weaken_store.dart';
 import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/ecs/stores/health_store.dart';
@@ -141,6 +142,29 @@ void main() {
 
     // 1000 with fixed +50% crit bonus => 1500 applied.
     expect(world.health.hp[world.health.indexOf(target)], equals(3500));
+  });
+
+  test('DamageSystem applies weaken from source before hit resolution', () {
+    final world = EcsWorld();
+    final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
+
+    final source = world.createEntity();
+    world.weaken.add(source, const WeakenDef(ticksLeft: 60, magnitude: 3500));
+
+    final target = world.createEntity();
+    world.health.add(
+      target,
+      const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+    );
+
+    world.damageQueue.add(
+      DamageRequest(target: target, amount100: 1000, source: source),
+    );
+
+    damage.step(world, currentTick: 1);
+
+    // Weaken reduces outgoing damage by 35% -> 1000 becomes 650.
+    expect(world.health.hp[world.health.indexOf(target)], equals(9350));
   });
 
   test('DamageSystem interrupts charged shot on hit', () {

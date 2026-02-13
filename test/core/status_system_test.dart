@@ -173,10 +173,7 @@ void main() {
     );
 
     status.queue(
-      StatusRequest(
-        target: target,
-        profileId: StatusProfileId.restoreStamina,
-      ),
+      StatusRequest(target: target, profileId: StatusProfileId.restoreStamina),
     );
     status.applyQueued(world, currentTick: 0);
 
@@ -341,6 +338,55 @@ void main() {
 
     status.tickExisting(world);
     expect(world.vulnerable.has(target), isFalse);
+  });
+
+  test('weaken on-hit reduces source outgoing damage for 5 seconds', () {
+    final world = EcsWorld();
+    final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
+    final status = StatusSystem(tickHz: 60);
+
+    final source = world.createEntity();
+    world.health.add(
+      source,
+      const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+    );
+
+    final target = world.createEntity();
+    world.health.add(
+      target,
+      const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+    );
+
+    status.queue(
+      StatusRequest(
+        target: source,
+        profileId: StatusProfileId.weakenOnHit,
+        damageType: DamageType.dark,
+      ),
+    );
+    status.applyQueued(world, currentTick: 1);
+
+    expect(world.weaken.has(source), isTrue);
+    final weakenIndex = world.weaken.indexOf(source);
+    expect(world.weaken.magnitude[weakenIndex], equals(3500));
+    expect(world.weaken.ticksLeft[weakenIndex], equals(300));
+
+    world.damageQueue.add(
+      DamageRequest(target: target, amount100: 1000, source: source),
+    );
+    damage.step(world, currentTick: 2);
+    expect(world.health.hp[world.health.indexOf(target)], equals(9350));
+
+    for (var tick = 0; tick < 300; tick += 1) {
+      status.tickExisting(world);
+    }
+    expect(world.weaken.has(source), isFalse);
+
+    world.damageQueue.add(
+      DamageRequest(target: target, amount100: 1000, source: source),
+    );
+    damage.step(world, currentTick: 3);
+    expect(world.health.hp[world.health.indexOf(target)], equals(8350));
   });
 }
 

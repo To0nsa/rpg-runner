@@ -179,6 +179,54 @@ const RenderAnimSetDefinition _acidBoltRenderAnim = RenderAnimSetDefinition(
 );
 
 // -----------------------------------------------------------------------------
+// Dark Bolt render animation strip definitions (authoring-time)
+// -----------------------------------------------------------------------------
+
+const int _darkBoltFrameWidth = 40;
+const int _darkBoltFrameHeight = 32;
+
+const int _darkBoltStartFrames = 10;
+const int _darkBoltIdleFrames = 10;
+const int _darkBoltHitFrames = 6;
+
+const double _darkBoltStartStepSeconds = 0.05;
+const double _darkBoltIdleStepSeconds = 0.06;
+const double _darkBoltHitStepSeconds = 0.05;
+
+const Map<AnimKey, int> _darkBoltFrameCountsByKey = <AnimKey, int>{
+  AnimKey.spawn: _darkBoltStartFrames,
+  AnimKey.idle: _darkBoltIdleFrames,
+  AnimKey.hit: _darkBoltHitFrames,
+};
+
+const Map<AnimKey, int> _darkBoltRowByKey = <AnimKey, int>{
+  AnimKey.spawn: 0,
+  AnimKey.idle: 0,
+  AnimKey.hit: 1,
+};
+
+const Map<AnimKey, double> _darkBoltStepTimeSecondsByKey = <AnimKey, double>{
+  AnimKey.spawn: _darkBoltStartStepSeconds,
+  AnimKey.idle: _darkBoltIdleStepSeconds,
+  AnimKey.hit: _darkBoltHitStepSeconds,
+};
+
+const Map<AnimKey, String> _darkBoltSourcesByKey = <AnimKey, String>{
+  AnimKey.spawn: 'entities/spells/dark/bolt/spriteSheet.png',
+  AnimKey.idle: 'entities/spells/dark/bolt/spriteSheet.png',
+  AnimKey.hit: 'entities/spells/dark/bolt/spriteSheet.png',
+};
+
+const RenderAnimSetDefinition _darkBoltRenderAnim = RenderAnimSetDefinition(
+  frameWidth: _darkBoltFrameWidth,
+  frameHeight: _darkBoltFrameHeight,
+  sourcesByKey: _darkBoltSourcesByKey,
+  rowByKey: _darkBoltRowByKey,
+  frameCountsByKey: _darkBoltFrameCountsByKey,
+  stepTimeSecondsByKey: _darkBoltStepTimeSecondsByKey,
+);
+
+// -----------------------------------------------------------------------------
 // Throwing Axe render animation strip definitions (authoring-time)
 // -----------------------------------------------------------------------------
 
@@ -261,6 +309,8 @@ class ProjectileRenderCatalog {
         return _fireBoltRenderAnim;
       case ProjectileId.acidBolt:
         return _acidBoltRenderAnim;
+      case ProjectileId.darkBolt:
+        return _darkBoltRenderAnim;
       case ProjectileId.throwingAxe:
         return _throwingAxeRenderAnim;
       case ProjectileId.throwingKnife:

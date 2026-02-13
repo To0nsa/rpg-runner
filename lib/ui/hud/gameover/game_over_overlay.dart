@@ -377,6 +377,8 @@ String _projectileName(ProjectileId id) {
       return 'Fire Bolt';
     case ProjectileId.acidBolt:
       return 'Acid Bolt';
+    case ProjectileId.darkBolt:
+      return 'Dark Bolt';
     case ProjectileId.throwingAxe:
       return 'Throwing Axe';
     case ProjectileId.throwingKnife:

@@ -13,6 +13,7 @@ import '../stores/status/haste_store.dart';
 import '../stores/status/resource_over_time_store.dart';
 import '../stores/status/slow_store.dart';
 import '../stores/status/vulnerable_store.dart';
+import '../stores/status/weaken_store.dart';
 import '../../combat/control_lock.dart';
 import '../world.dart';
 
@@ -50,6 +51,7 @@ class StatusSystem {
     _tickHaste(world);
     _tickSlow(world);
     _tickVulnerable(world);
+    _tickWeaken(world);
   }
 
   /// Applies queued statuses and refreshes derived modifiers.
@@ -277,6 +279,8 @@ class StatusSystem {
             _applyStun(world, req.target, magnitude, app.durationSeconds);
           case StatusEffectType.vulnerable:
             _applyVulnerable(world, req.target, magnitude, app.durationSeconds);
+          case StatusEffectType.weaken:
+            _applyWeaken(world, req.target, magnitude, app.durationSeconds);
         }
       }
     }
@@ -399,6 +403,33 @@ class StatusSystem {
       } else if (clamped == currentMagnitude) {
         if (ticksLeft > vulnerable.ticksLeft[index]) {
           vulnerable.ticksLeft[index] = ticksLeft;
+        }
+      }
+    }
+  }
+
+  void _applyWeaken(
+    EcsWorld world,
+    EntityId target,
+    int magnitude,
+    double durationSeconds,
+  ) {
+    final ticksLeft = ticksFromSecondsCeil(durationSeconds, _tickHz);
+    if (ticksLeft <= 0) return;
+
+    final weaken = world.weaken;
+    final clamped = clampInt(magnitude, 0, 9000);
+    final index = weaken.tryIndexOf(target);
+    if (index == null) {
+      weaken.add(target, WeakenDef(ticksLeft: ticksLeft, magnitude: clamped));
+    } else {
+      final currentMagnitude = weaken.magnitude[index];
+      if (clamped > currentMagnitude) {
+        weaken.magnitude[index] = clamped;
+        weaken.ticksLeft[index] = ticksLeft;
+      } else if (clamped == currentMagnitude) {
+        if (ticksLeft > weaken.ticksLeft[index]) {
+          weaken.ticksLeft[index] = ticksLeft;
         }
       }
     }
@@ -636,6 +667,27 @@ class StatusSystem {
     }
     for (final target in _removeScratch) {
       vulnerable.removeEntity(target);
+    }
+  }
+
+  void _tickWeaken(EcsWorld world) {
+    final weaken = world.weaken;
+    if (weaken.denseEntities.isEmpty) return;
+
+    _removeScratch.clear();
+    for (var i = 0; i < weaken.denseEntities.length; i += 1) {
+      final target = weaken.denseEntities[i];
+      if (world.deathState.has(target)) {
+        _removeScratch.add(target);
+        continue;
+      }
+      weaken.ticksLeft[i] -= 1;
+      if (weaken.ticksLeft[i] <= 0) {
+        _removeScratch.add(target);
+      }
+    }
+    for (final target in _removeScratch) {
+      weaken.removeEntity(target);
     }
   }
 }

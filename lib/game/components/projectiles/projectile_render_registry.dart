@@ -143,6 +143,10 @@ class ProjectileRenderRegistry {
           id: ProjectileId.acidBolt,
           renderScale: Vector2.all(1.0),
         ),
+        ProjectileId.darkBolt: ProjectileRenderEntry(
+          id: ProjectileId.darkBolt,
+          renderScale: Vector2.all(1.0),
+        ),
         ProjectileId.throwingAxe: ProjectileRenderEntry(
           id: ProjectileId.throwingAxe,
           renderScale: Vector2.all(1.0),

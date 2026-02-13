@@ -4,14 +4,14 @@ This document maps player `WeaponType.projectileSpell` entries to their
 projectile render assets and required animation metadata.
 
 Source of truth in code:
-- `lib/core/projectiles/projectile_item_catalog.dart`
+- `lib/core/projectiles/projectile_catalog.dart`
 - `lib/core/projectiles/projectile_render_catalog.dart`
 
 Conventions:
 - Asset paths in Core are relative to `assets/images/`.
 - `AnimKey.spawn` and `AnimKey.hit` are one-shot animations.
 - `AnimKey.idle` loops.
-- `rowByKey` is not set for these spells (all use row `0`).
+- `rowByKey` defaults to row `0` unless explicitly listed for a key.
 - `frameStartByKey` defaults to `0` unless listed below.
 - If a field is not available from source-of-truth files, use `TBD` as a
   placeholder instead of leaving it blank.
@@ -21,6 +21,7 @@ Conventions:
 | ProjectileId | ProjectileId | Asset folder |
 | --- | --- | --- |
 | `acidBolt` | `acidBolt` | `assets/images/entities/spells/acid/bolt/` |
+| `darkBolt` | `darkBolt` | `assets/images/entities/spells/dark/bolt/` |
 | `iceBolt` | `iceBolt` | `assets/images/entities/spells/ice/bolt/` |
 | `fireBolt` | `fireBolt` | `assets/images/entities/spells/fire/bolt/` |
 | `thunderBolt` | `thunderBolt` | `assets/images/entities/spells/thunder/bolt/` |
@@ -30,9 +31,10 @@ Conventions:
 | ProjectileId | DamageType | Speed (units/s) | Lifetime (s) | Collider (w x h) | Ballistic | Gravity scale | On-hit status proc |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `acidBolt` | `acid` | `900.0` | `1.3` | `20.0 x 10.0` | `false` | `1.0` | `StatusProfileId.acidOnHit` |
+| `darkBolt` | `dark` | `900.0` | `1.0` | `20.0 x 10.0` | `false` | `1.0` | `StatusProfileId.weakenOnHit` |
 | `iceBolt` | `ice` | `1000.0` | `1.0` | `18.0 x 8.0` | `false` | `1.0` | `StatusProfileId.slowOnHit` |
 | `fireBolt` | `fire` | `900.0` | `1.3` | `20.0 x 10.0` | `false` | `1.0` | `StatusProfileId.burnOnHit` |
-| `thunderBolt` | `thunder` | `1000.0` | `1.2` | `16.0 x 8.0` | `false` | `1.0` | `none` |
+| `thunderBolt` | `thunder` | `1000.0` | `1.2` | `16.0 x 8.0` | `false` | `1.0` | `StatusProfileId.stunOnHit` |
 
 ## Animation Metadata
 
@@ -75,6 +77,18 @@ Frame size: `32 x 32`
 | `spawn` | `entities/spells/thunder/bolt/start.png` | `5` | `0` | `0.05` |
 | `idle` | `entities/spells/thunder/bolt/repeatable.png` | `5` | `0` | `0.06` |
 | `hit` | `entities/spells/thunder/bolt/hit.png` | `6` | `0` | `0.05` |
+
+### `darkBolt`
+
+Frame size: `40 x 32`
+
+Spritesheet is 0-indexed (Row, Column)
+
+| AnimKey | Asset path (relative to `assets/images/`) | Frame count | Frame start | Step time (seconds) |
+| --- | --- | --- | --- | --- |
+| `spawn` | `entities/spells/dark/bolt/spriteSheet.png` | `10` | `0 0` | `0.05` |
+| `idle` | `entities/spells/dark/bolt/spriteSheet.png` | `10` | `0 0` | `0.06` |
+| `hit` | `entities/spells/dark/bolt/spriteSheet.png` | `6` | `1 0` | `0.05` |
 
 ## Template (Use `TBD` Placeholders)
 

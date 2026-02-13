@@ -9,6 +9,7 @@ class DamageResistanceDef {
     this.iceBp = 0,
     this.thunderBp = 0,
     this.acidBp = 0,
+    this.darkBp = 0,
     this.bleedBp = 0,
   });
 
@@ -18,6 +19,7 @@ class DamageResistanceDef {
   final int iceBp;
   final int thunderBp;
   final int acidBp;
+  final int darkBp;
   final int bleedBp;
 
   int modBpFor(DamageType type) {
@@ -32,6 +34,8 @@ class DamageResistanceDef {
         return thunderBp;
       case DamageType.acid:
         return acidBp;
+      case DamageType.dark:
+        return darkBp;
       case DamageType.bleed:
         return bleedBp;
     }
@@ -46,6 +50,7 @@ class DamageResistanceStore extends SparseSet {
   final List<int> iceBp = <int>[];
   final List<int> thunderBp = <int>[];
   final List<int> acidBp = <int>[];
+  final List<int> darkBp = <int>[];
   final List<int> bleedBp = <int>[];
 
   void add(
@@ -58,6 +63,7 @@ class DamageResistanceStore extends SparseSet {
     iceBp[i] = def.iceBp;
     thunderBp[i] = def.thunderBp;
     acidBp[i] = def.acidBp;
+    darkBp[i] = def.darkBp;
     bleedBp[i] = def.bleedBp;
   }
 
@@ -79,6 +85,8 @@ class DamageResistanceStore extends SparseSet {
         return thunderBp[index];
       case DamageType.acid:
         return acidBp[index];
+      case DamageType.dark:
+        return darkBp[index];
       case DamageType.bleed:
         return bleedBp[index];
     }
@@ -91,6 +99,7 @@ class DamageResistanceStore extends SparseSet {
     iceBp.add(0);
     thunderBp.add(0);
     acidBp.add(0);
+    darkBp.add(0);
     bleedBp.add(0);
   }
 
@@ -101,6 +110,7 @@ class DamageResistanceStore extends SparseSet {
     iceBp[removeIndex] = iceBp[lastIndex];
     thunderBp[removeIndex] = thunderBp[lastIndex];
     acidBp[removeIndex] = acidBp[lastIndex];
+    darkBp[removeIndex] = darkBp[lastIndex];
     bleedBp[removeIndex] = bleedBp[lastIndex];
 
     physicalBp.removeLast();
@@ -108,6 +118,7 @@ class DamageResistanceStore extends SparseSet {
     iceBp.removeLast();
     thunderBp.removeLast();
     acidBp.removeLast();
+    darkBp.removeLast();
     bleedBp.removeLast();
   }
 }
