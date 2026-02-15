@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rpg_runner/core/combat/faction.dart';
+import 'package:rpg_runner/core/combat/control_lock.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
 import 'package:rpg_runner/core/ecs/stores/health_store.dart';
@@ -35,6 +36,73 @@ import 'test_spawns.dart';
 import 'package:rpg_runner/core/ecs/entity_factory.dart';
 
 void main() {
+  test('enemy cast is blocked by cast lock while silence is active', () {
+    final world = EcsWorld();
+
+    final player = EntityFactory(world).createPlayer(
+      posX: 100,
+      posY: 100,
+      velX: 0,
+      velY: 0,
+      facing: Facing.right,
+      grounded: true,
+      body: const BodyDef(isKinematic: true, useGravity: false),
+      collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+      health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
+    );
+
+    final unocoDemon = spawnUnocoDemon(
+      world,
+      posX: 130,
+      posY: 100,
+      velX: 0,
+      velY: 0,
+      facing: Facing.left,
+      body: const BodyDef(isKinematic: true, useGravity: false),
+      collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+      health: const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 8000, manaMax: 8000, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
+    );
+
+    world.cooldown.setTicksLeft(unocoDemon, CooldownGroup.projectile, 0);
+    world.controlLock.addLock(unocoDemon, LockFlag.cast, 180, 1);
+
+    final castSystem = EnemyCastSystem(
+      unocoDemonTuning: UnocoDemonTuningDerived.from(
+        const UnocoDemonTuning(),
+        tickHz: 60,
+      ),
+      enemyCatalog: const EnemyCatalog(),
+      projectiles: const ProjectileCatalog(),
+    );
+    final launchSystem = ProjectileLaunchSystem(
+      projectiles: const ProjectileCatalog(),
+      tickHz: 60,
+    );
+    final cooldownSystem = CooldownSystem();
+    final phaseSystem = ActiveAbilityPhaseSystem();
+
+    for (var tick = 1; tick <= 120; tick += 1) {
+      cooldownSystem.step(world);
+      phaseSystem.step(world, currentTick: tick);
+      castSystem.step(world, player: player, currentTick: tick);
+      launchSystem.step(world, currentTick: tick);
+    }
+
+    expect(world.projectile.denseEntities.length, equals(0));
+  });
+
   test('enemy cast respects cooldown before recast', () {
     final world = EcsWorld();
 

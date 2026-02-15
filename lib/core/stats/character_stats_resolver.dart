@@ -64,6 +64,7 @@ class ResolvedCharacterStats {
   int get darkResistanceBp => bonuses.darkResistanceBp;
   int get bleedResistanceBp => bonuses.bleedResistanceBp;
   int get earthResistanceBp => bonuses.earthResistanceBp;
+  int get holyResistanceBp => bonuses.holyResistanceBp;
 
   double get moveSpeedMultiplier => (bpScale + moveSpeedBonusBp) / bpScale;
 
@@ -116,6 +117,8 @@ class ResolvedCharacterStats {
         return bleedResistanceBp;
       case DamageType.earth:
         return earthResistanceBp;
+      case DamageType.holy:
+        return holyResistanceBp;
     }
   }
 
@@ -270,6 +273,11 @@ class CharacterStatsResolver {
       ),
       earthResistanceBp: _clampInt(
         input.earthResistanceBp,
+        CharacterStatCaps.minTypedResistanceBp,
+        CharacterStatCaps.maxTypedResistanceBp,
+      ),
+      holyResistanceBp: _clampInt(
+        input.holyResistanceBp,
         CharacterStatCaps.minTypedResistanceBp,
         CharacterStatCaps.maxTypedResistanceBp,
       ),

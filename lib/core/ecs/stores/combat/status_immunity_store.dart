@@ -11,7 +11,8 @@ class StatusImmunityMask {
   static const int haste = 1 << 3;
   static const int vulnerable = 1 << 4;
   static const int weaken = 1 << 5;
-  static const int resourceOverTime = 1 << 6;
+  static const int silence = 1 << 6;
+  static const int resourceOverTime = 1 << 7;
   static int forType(StatusEffectType type) {
     switch (type) {
       case StatusEffectType.dot:
@@ -26,6 +27,8 @@ class StatusImmunityMask {
         return vulnerable;
       case StatusEffectType.weaken:
         return weaken;
+      case StatusEffectType.silence:
+        return silence;
       case StatusEffectType.resourceOverTime:
         return resourceOverTime;
     }

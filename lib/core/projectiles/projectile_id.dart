@@ -21,6 +21,9 @@ enum ProjectileId {
   /// Player's earth spell projectile. Medium speed and lifetime.
   earthBolt,
 
+  /// Player's holy spell projectile. Medium speed and lifetime.
+  holyBolt,
+
   /// Enemy ranged strike. Slower but longer range.
   thunderBolt,
 

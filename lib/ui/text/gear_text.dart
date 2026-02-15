@@ -112,6 +112,7 @@ const Map<ProjectileId, String> _projectileDisplayNameOverrides =
       ProjectileId.acidBolt: 'Acid Bolt',
       ProjectileId.darkBolt: 'Dark Bolt',
       ProjectileId.earthBolt: 'Earth Bolt',
+      ProjectileId.holyBolt: 'Holy Bolt',
       ProjectileId.thunderBolt: 'Thunder Bolt',
       ProjectileId.throwingKnife: 'Throwing Knife',
       ProjectileId.throwingAxe: 'Throwing Axe',
@@ -126,6 +127,8 @@ const Map<ProjectileId, String> _projectileDescriptionOverrides =
       ProjectileId.darkBolt:
           'Spell projectile that weakens enemy outgoing damage on hit.',
       ProjectileId.earthBolt: 'Spell projectile that stuns enemies on hit.',
+      ProjectileId.holyBolt:
+          'Spell projectile that silences enemy casts for 3 seconds.',
       ProjectileId.thunderBolt: 'Spell projectile with thunder damage.',
       ProjectileId.throwingKnife: 'Fast ballistic throw with a light arc.',
       ProjectileId.throwingAxe: 'Heavy ballistic throw with a steeper arc.',

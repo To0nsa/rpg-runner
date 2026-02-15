@@ -3,21 +3,26 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/accessories/accessory_catalog.dart';
 import 'package:rpg_runner/core/accessories/accessory_def.dart';
 import 'package:rpg_runner/core/accessories/accessory_id.dart';
-import 'package:rpg_runner/core/abilities/ability_def.dart' show WeaponType;
+import 'package:rpg_runner/core/abilities/ability_def.dart'
+    show AbilitySlot, WeaponType;
 import 'package:rpg_runner/core/combat/damage.dart';
 import 'package:rpg_runner/core/combat/damage_type.dart';
+import 'package:rpg_runner/core/combat/control_lock.dart';
 import 'package:rpg_runner/core/combat/status/status.dart';
 import 'package:rpg_runner/core/ecs/stores/health_store.dart';
 import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
 import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/damage_resistance_store.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
+import 'package:rpg_runner/core/ecs/stores/enemies/enemy_store.dart';
 import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
 import 'package:rpg_runner/core/ecs/systems/status_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
+import 'package:rpg_runner/core/enemies/enemy_id.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_item_def.dart';
+import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/spellBook/spell_book_catalog.dart';
 import 'package:rpg_runner/core/spellBook/spell_book_def.dart';
 import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
@@ -387,6 +392,88 @@ void main() {
     );
     damage.step(world, currentTick: 3);
     expect(world.health.hp[world.health.indexOf(target)], equals(8350));
+  });
+
+  test(
+    'silence on-hit applies cast lock and interrupts enemy projectile cast during windup',
+    () {
+      final world = EcsWorld();
+      final status = StatusSystem(tickHz: 60);
+
+      final enemy = world.createEntity();
+      world.health.add(
+        enemy,
+        const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+      );
+      world.enemy.add(
+        enemy,
+        const EnemyDef(enemyId: EnemyId.unocoDemon, facing: Facing.left),
+      );
+      world.activeAbility.add(enemy);
+      world.projectileIntent.add(enemy);
+
+      world.activeAbility.set(
+        enemy,
+        id: 'common.enemy_cast',
+        slot: AbilitySlot.projectile,
+        commitTick: 10,
+        windupTicks: 5,
+        activeTicks: 2,
+        recoveryTicks: 3,
+        facingDir: Facing.left,
+      );
+
+      status.queue(
+        StatusRequest(
+          target: enemy,
+          profileId: StatusProfileId.silenceOnHit,
+          damageType: DamageType.holy,
+        ),
+      );
+      status.applyQueued(world, currentTick: 12);
+
+      expect(world.controlLock.isLocked(enemy, LockFlag.cast, 12), isTrue);
+      expect(world.activeAbility.hasActiveAbility(enemy), isFalse);
+    },
+  );
+
+  test('silence does not interrupt enemy projectile cast outside windup', () {
+    final world = EcsWorld();
+    final status = StatusSystem(tickHz: 60);
+
+    final enemy = world.createEntity();
+    world.health.add(
+      enemy,
+      const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+    );
+    world.enemy.add(
+      enemy,
+      const EnemyDef(enemyId: EnemyId.unocoDemon, facing: Facing.left),
+    );
+    world.activeAbility.add(enemy);
+
+    world.activeAbility.set(
+      enemy,
+      id: 'common.enemy_cast',
+      slot: AbilitySlot.projectile,
+      commitTick: 10,
+      windupTicks: 2,
+      activeTicks: 3,
+      recoveryTicks: 2,
+      facingDir: Facing.left,
+    );
+
+    status.queue(
+      StatusRequest(
+        target: enemy,
+        profileId: StatusProfileId.silenceOnHit,
+        damageType: DamageType.holy,
+      ),
+    );
+    status.applyQueued(world, currentTick: 13); // elapsed=3 => active phase.
+
+    expect(world.controlLock.isLocked(enemy, LockFlag.cast, 13), isTrue);
+    expect(world.activeAbility.hasActiveAbility(enemy), isTrue);
   });
 }
 

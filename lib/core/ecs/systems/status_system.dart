@@ -7,6 +7,7 @@ import '../../stats/resolved_stats_cache.dart';
 import '../../util/tick_math.dart';
 import '../../util/fixed_math.dart';
 import '../../util/double_math.dart';
+import '../../abilities/ability_def.dart' show AbilitySlot;
 import '../entity_id.dart';
 import '../stores/status/dot_store.dart';
 import '../stores/status/haste_store.dart';
@@ -15,6 +16,7 @@ import '../stores/status/slow_store.dart';
 import '../stores/status/vulnerable_store.dart';
 import '../stores/status/weaken_store.dart';
 import '../../combat/control_lock.dart';
+import 'ability_interrupt.dart';
 import '../world.dart';
 
 /// Applies status effects and ticks active statuses.
@@ -134,7 +136,8 @@ class StatusSystem {
 
         resource.periodTicksLeft[i][channel] -= 1;
         if (resource.periodTicksLeft[i][channel] <= 0) {
-          resource.periodTicksLeft[i][channel] = resource.periodTicks[i][channel];
+          resource.periodTicksLeft[i][channel] =
+              resource.periodTicks[i][channel];
           _applyResourcePulse(
             world,
             target: target,
@@ -281,6 +284,8 @@ class StatusSystem {
             _applyVulnerable(world, req.target, magnitude, app.durationSeconds);
           case StatusEffectType.weaken:
             _applyWeaken(world, req.target, magnitude, app.durationSeconds);
+          case StatusEffectType.silence:
+            _applySilence(world, req.target, app.durationSeconds);
         }
       }
     }
@@ -435,6 +440,32 @@ class StatusSystem {
     }
   }
 
+  void _applySilence(EcsWorld world, EntityId target, double durationSeconds) {
+    final ticksLeft = ticksFromSecondsCeil(durationSeconds, _tickHz);
+    if (ticksLeft <= 0) return;
+
+    world.controlLock.addLock(target, LockFlag.cast, ticksLeft, _currentTick);
+
+    // Silence only interrupts enemy casts and only while they are still in
+    // windup. Active/recovery phases continue uninterrupted.
+    if (!world.enemy.has(target)) return;
+    final activeIndex = world.activeAbility.tryIndexOf(target);
+    if (activeIndex == null) return;
+    final abilityId = world.activeAbility.abilityId[activeIndex];
+    if (abilityId == null || abilityId.isEmpty) return;
+    if (world.activeAbility.slot[activeIndex] != AbilitySlot.projectile) return;
+    final windupTicks = world.activeAbility.windupTicks[activeIndex];
+    if (windupTicks <= 0) return;
+    final elapsed = _currentTick - world.activeAbility.startTick[activeIndex];
+    if (elapsed < 0 || elapsed >= windupTicks) return;
+
+    AbilityInterrupt.clearActiveAndTransient(
+      world,
+      entity: target,
+      startDeferredCooldown: true,
+    );
+  }
+
   void _applyDot(
     EcsWorld world, {
     required EntityId target,
@@ -540,7 +571,10 @@ class StatusSystem {
       return;
     }
 
-    final channelIndex = resource.channelIndexForEntityIndex(index, resourceType);
+    final channelIndex = resource.channelIndexForEntityIndex(
+      index,
+      resourceType,
+    );
     if (channelIndex == null) {
       resource.addChannel(
         target,

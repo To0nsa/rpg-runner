@@ -25,6 +25,7 @@ Conventions:
 | `iceBolt` | `assets/images/entities/spells/ice/bolt/` |
 | `fireBolt` | `assets/images/entities/spells/fire/bolt/` |
 | `earthBolt` | `assets/images/entities/spells/earth/bolt/` |
+| `holyBolt` | `assets/images/entities/spells/holy/bolt/` |
 | `thunderBolt` | `assets/images/entities/spells/thunder/bolt/` |
 
 ## Gameplay Metadata (Core)
@@ -37,12 +38,13 @@ Conventions:
 | `fireBolt` | `fire` | `600.0` | `1.3` | `18.0 x 8.0` | `30.0` | `false` | `1.0` | `StatusProfileId.burnOnHit` |
 | `thunderBolt` | `thunder` | `650.0` | `1.3` | `18.0 x 8.0` | `30.0` | `false` | `1.0` | `StatusProfileId.stunOnHit` |
 | `earthBolt` | `earth` | `500.0` | `1.3` | `18.0 x 8.0` | `30.0` | `false` | `1.0` | `StatusProfileId.stunOnHit` |
+| `holyBolt` | `holy` | `550.0` | `1.3` | `18.0 x 8.0` | `30.0` | `false` | `1.0` | `StatusProfileId.silenceOnHit` |
 
 ## Animation Metadata
 
 ### `acidBolt`
 
-Frame size: `32 x 32`
+Frame size: `48 x 32`
 
 | AnimKey | Asset path (relative to `assets/images/`) | Frame count | Frame start | Step time (seconds) |
 | --- | --- | --- | --- | --- |
@@ -79,6 +81,16 @@ Frame size: `32 x 32`
 | `spawn` | `entities/spells/thunder/bolt/start.png` | `5` | `0` | `0.06` |
 | `idle` | `entities/spells/thunder/bolt/repeatable.png` | `5` | `0` | `0.06` |
 | `hit` | `entities/spells/thunder/bolt/hit.png` | `6` | `0` | `0.06` |
+
+### `holyBolt`
+
+Frame size: `32 x 32`
+
+| AnimKey | Asset path (relative to `assets/images/`) | Frame count | Frame start | Step time (seconds) |
+| --- | --- | --- | --- | --- |
+| `spawn` | `entities/spells/holy/bolt/start.png` | `2` | `0` | `0.06` |
+| `idle` | `entities/spells/holy/bolt/repeatable.png` | `8` | `0` | `0.06` |
+| `hit` | `entities/spells/holy/bolt/hit.png` | `6` | `0` | `0.06` |
 
 ### `darkBolt`
 

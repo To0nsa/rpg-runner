@@ -275,6 +275,47 @@ const RenderAnimSetDefinition _earthBoltRenderAnim = RenderAnimSetDefinition(
 );
 
 // -----------------------------------------------------------------------------
+// Holy Bolt render animation strip definitions (authoring-time)
+// -----------------------------------------------------------------------------
+
+const int _holyBoltFrameWidth = 48;
+const int _holyBoltFrameHeight = 32;
+
+const int _holyBoltStartFrames = 2;
+const int _holyBoltIdleFrames = 8;
+const int _holyBoltHitFrames = 6;
+
+const double _holyBoltStartStepSeconds = 0.06;
+const double _holyBoltIdleStepSeconds = 0.06;
+const double _holyBoltHitStepSeconds = 0.06;
+
+const Map<AnimKey, int> _holyBoltFrameCountsByKey = <AnimKey, int>{
+  AnimKey.spawn: _holyBoltStartFrames,
+  AnimKey.idle: _holyBoltIdleFrames,
+  AnimKey.hit: _holyBoltHitFrames,
+};
+
+const Map<AnimKey, double> _holyBoltStepTimeSecondsByKey = <AnimKey, double>{
+  AnimKey.spawn: _holyBoltStartStepSeconds,
+  AnimKey.idle: _holyBoltIdleStepSeconds,
+  AnimKey.hit: _holyBoltHitStepSeconds,
+};
+
+const Map<AnimKey, String> _holyBoltSourcesByKey = <AnimKey, String>{
+  AnimKey.spawn: 'entities/spells/holy/bolt/start.png',
+  AnimKey.idle: 'entities/spells/holy/bolt/repeatable.png',
+  AnimKey.hit: 'entities/spells/holy/bolt/hit.png',
+};
+
+const RenderAnimSetDefinition _holyBoltRenderAnim = RenderAnimSetDefinition(
+  frameWidth: _holyBoltFrameWidth,
+  frameHeight: _holyBoltFrameHeight,
+  sourcesByKey: _holyBoltSourcesByKey,
+  frameCountsByKey: _holyBoltFrameCountsByKey,
+  stepTimeSecondsByKey: _holyBoltStepTimeSecondsByKey,
+);
+
+// -----------------------------------------------------------------------------
 // Throwing Axe render animation strip definitions (authoring-time)
 // -----------------------------------------------------------------------------
 
@@ -361,6 +402,8 @@ class ProjectileRenderCatalog {
         return _darkBoltRenderAnim;
       case ProjectileId.earthBolt:
         return _earthBoltRenderAnim;
+      case ProjectileId.holyBolt:
+        return _holyBoltRenderAnim;
       case ProjectileId.throwingAxe:
         return _throwingAxeRenderAnim;
       case ProjectileId.throwingKnife:

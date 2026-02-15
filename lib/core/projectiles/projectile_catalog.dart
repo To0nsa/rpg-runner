@@ -106,6 +106,25 @@ class ProjectileCatalog {
             ),
           ],
         );
+      case ProjectileId.holyBolt:
+        return const ProjectileItemDef(
+          id: ProjectileId.holyBolt,
+          weaponType: WeaponType.projectileSpell,
+          speedUnitsPerSecond: 550.0,
+          lifetimeSeconds: 1.3,
+          colliderSizeX: 18.0,
+          colliderSizeY: 8.0,
+          originOffset: 30.0,
+          ballistic: false,
+          gravityScale: 1.0,
+          damageType: DamageType.holy,
+          procs: <WeaponProc>[
+            WeaponProc(
+              hook: ProcHook.onHit,
+              statusProfileId: StatusProfileId.silenceOnHit,
+            ),
+          ],
+        );
       case ProjectileId.thunderBolt:
         return const ProjectileItemDef(
           id: ProjectileId.thunderBolt,

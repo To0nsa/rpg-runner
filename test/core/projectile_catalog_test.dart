@@ -90,4 +90,47 @@ void main() {
     expect(anim.stepTimeSecondsByKey[AnimKey.idle], closeTo(0.06, 1e-9));
     expect(anim.stepTimeSecondsByKey[AnimKey.hit], closeTo(0.06, 1e-9));
   });
+
+  test('holyBolt gameplay metadata matches core tuning', () {
+    final item = const ProjectileCatalog().get(ProjectileId.holyBolt);
+
+    expect(item.weaponType, WeaponType.projectileSpell);
+    expect(item.damageType, DamageType.holy);
+    expect(item.speedUnitsPerSecond, 550.0);
+    expect(item.lifetimeSeconds, 1.3);
+    expect(item.colliderSizeX, 18.0);
+    expect(item.colliderSizeY, 8.0);
+    expect(item.originOffset, 30.0);
+    expect(item.ballistic, isFalse);
+    expect(item.gravityScale, 1.0);
+    expect(item.procs, hasLength(1));
+    expect(item.procs.single.statusProfileId, StatusProfileId.silenceOnHit);
+    expect(item.procs.single.chanceBp, 10000);
+  });
+
+  test('holyBolt render metadata maps to expected strips and timing', () {
+    final anim = const ProjectileRenderCatalog().get(ProjectileId.holyBolt);
+
+    expect(anim.frameWidth, 48);
+    expect(anim.frameHeight, 32);
+    expect(anim.rowByKey, isEmpty);
+
+    expect(
+      anim.sourcesByKey[AnimKey.spawn],
+      'entities/spells/holy/bolt/start.png',
+    );
+    expect(
+      anim.sourcesByKey[AnimKey.idle],
+      'entities/spells/holy/bolt/repeatable.png',
+    );
+    expect(anim.sourcesByKey[AnimKey.hit], 'entities/spells/holy/bolt/hit.png');
+
+    expect(anim.frameCountsByKey[AnimKey.spawn], 2);
+    expect(anim.frameCountsByKey[AnimKey.idle], 8);
+    expect(anim.frameCountsByKey[AnimKey.hit], 6);
+
+    expect(anim.stepTimeSecondsByKey[AnimKey.spawn], closeTo(0.06, 1e-9));
+    expect(anim.stepTimeSecondsByKey[AnimKey.idle], closeTo(0.06, 1e-9));
+    expect(anim.stepTimeSecondsByKey[AnimKey.hit], closeTo(0.06, 1e-9));
+  });
 }

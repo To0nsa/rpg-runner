@@ -151,6 +151,10 @@ class ProjectileRenderRegistry {
           id: ProjectileId.earthBolt,
           renderScale: Vector2.all(1.0),
         ),
+        ProjectileId.holyBolt: ProjectileRenderEntry(
+          id: ProjectileId.holyBolt,
+          renderScale: Vector2.all(1.0),
+        ),
         ProjectileId.throwingAxe: ProjectileRenderEntry(
           id: ProjectileId.throwingAxe,
           renderScale: Vector2.all(1.0),

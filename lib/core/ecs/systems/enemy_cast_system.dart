@@ -2,6 +2,7 @@ import 'dart:math';
 
 import '../../abilities/ability_catalog.dart';
 import '../../abilities/ability_def.dart';
+import '../../combat/control_lock.dart';
 import '../../combat/hit_payload_builder.dart';
 import '../../enemies/enemy_catalog.dart';
 import '../../projectiles/projectile_catalog.dart';
@@ -65,6 +66,9 @@ class EnemyCastSystem {
       if (!world.cooldown.has(enemy)) continue;
       if (world.cooldown.isOnCooldown(enemy, cooldownGroupId)) continue;
       if (world.controlLock.isStunned(enemy, currentTick)) continue;
+      if (world.controlLock.isLocked(enemy, LockFlag.cast, currentTick)) {
+        continue;
+      }
       if (world.activeAbility.hasActiveAbility(enemy)) continue;
 
       if (!world.projectileIntent.has(enemy)) {

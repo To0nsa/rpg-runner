@@ -9,6 +9,7 @@ enum StatusEffectType {
   haste,
   vulnerable,
   weaken,
+  silence,
   resourceOverTime,
 }
 
@@ -22,6 +23,7 @@ enum StatusProfileId {
   burnOnHit,
   acidOnHit,
   weakenOnHit,
+  silenceOnHit,
   meleeBleed,
   stunOnHit,
   speedBoost,
@@ -53,10 +55,7 @@ class StatusApplication {
          periodSeconds > 0,
          'periodSeconds must be > 0 for periodic status effects.',
        ),
-       assert(
-         durationSeconds >= 0,
-         'durationSeconds cannot be negative.',
-       );
+       assert(durationSeconds >= 0, 'durationSeconds cannot be negative.');
 
   final StatusEffectType type;
 
@@ -174,6 +173,15 @@ class StatusApplicationPresets {
     ),
   );
 
+  static const StatusApplicationPreset silenceOnHit = StatusApplicationPreset(
+    StatusApplication(
+      type: StatusEffectType.silence,
+      magnitude: 100, // placeholder (silence uses only duration ticks)
+      durationSeconds: 3.0,
+      scaleByDamageType: false,
+    ),
+  );
+
   static const StatusApplicationPreset stunOnHit = StatusApplicationPreset(
     StatusApplication(
       type: StatusEffectType.stun,
@@ -204,16 +212,17 @@ class StatusApplicationPresets {
         ),
       );
 
-  static const StatusApplicationPreset majorManaRestore = StatusApplicationPreset(
-    StatusApplication(
-      type: StatusEffectType.resourceOverTime,
-      magnitude: 3500, // 35% max mana
-      durationSeconds: 0.0,
-      periodSeconds: 1.0,
-      resourceType: StatusResourceType.mana,
-      applyOnApply: true,
-    ),
-  );
+  static const StatusApplicationPreset majorManaRestore =
+      StatusApplicationPreset(
+        StatusApplication(
+          type: StatusEffectType.resourceOverTime,
+          magnitude: 3500, // 35% max mana
+          durationSeconds: 0.0,
+          periodSeconds: 1.0,
+          resourceType: StatusResourceType.mana,
+          applyOnApply: true,
+        ),
+      );
 
   static const StatusApplicationPreset majorStaminaRestore =
       StatusApplicationPreset(
@@ -267,6 +276,10 @@ class StatusProfileCatalog {
       case StatusProfileId.weakenOnHit:
         return StatusProfile(<StatusApplication>[
           StatusApplicationPresets.weakenOnHit.baseline,
+        ]);
+      case StatusProfileId.silenceOnHit:
+        return StatusProfile(<StatusApplication>[
+          StatusApplicationPresets.silenceOnHit.baseline,
         ]);
       case StatusProfileId.stunOnHit:
         return StatusProfile(<StatusApplication>[
