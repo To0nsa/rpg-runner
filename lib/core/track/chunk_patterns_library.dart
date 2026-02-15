@@ -37,7 +37,7 @@ const List<ChunkPattern> easyPatterns = <ChunkPattern>[
       SpawnMarker(
         enemyId: EnemyId.unocoDemon,
         x: 240,
-        chancePercent: 10,
+        chancePercent: 100,
         salt: 0x11,
       ),
     ],

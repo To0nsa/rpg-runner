@@ -23,18 +23,16 @@ class ProjectileCatalog {
         return const ProjectileItemDef(
           id: ProjectileId.iceBolt,
           weaponType: WeaponType.projectileSpell,
-          speedUnitsPerSecond: 1000.0,
-          lifetimeSeconds: 1.0,
+          speedUnitsPerSecond: 600.0,
+          lifetimeSeconds: 1.3,
           colliderSizeX: 18.0,
           colliderSizeY: 8.0,
-          ballistic: false,
-          gravityScale: 1.0,
+          originOffset: 30.0,
           damageType: DamageType.ice,
           procs: <WeaponProc>[
             WeaponProc(
               hook: ProcHook.onHit,
               statusProfileId: StatusProfileId.slowOnHit,
-              chanceBp: 10000,
             ),
           ],
         );
@@ -42,18 +40,16 @@ class ProjectileCatalog {
         return const ProjectileItemDef(
           id: ProjectileId.fireBolt,
           weaponType: WeaponType.projectileSpell,
-          speedUnitsPerSecond: 900.0,
+          speedUnitsPerSecond: 600.0,
           lifetimeSeconds: 1.3,
-          colliderSizeX: 20.0,
-          colliderSizeY: 10.0,
-          ballistic: false,
-          gravityScale: 1.0,
+          colliderSizeX: 18.0,
+          colliderSizeY: 8.0,
+          originOffset: 30.0,
           damageType: DamageType.fire,
           procs: <WeaponProc>[
             WeaponProc(
               hook: ProcHook.onHit,
               statusProfileId: StatusProfileId.burnOnHit,
-              chanceBp: 10000,
             ),
           ],
         );
@@ -61,18 +57,16 @@ class ProjectileCatalog {
         return const ProjectileItemDef(
           id: ProjectileId.acidBolt,
           weaponType: WeaponType.projectileSpell,
-          speedUnitsPerSecond: 900.0,
+          speedUnitsPerSecond: 500.0,
           lifetimeSeconds: 1.3,
-          colliderSizeX: 20.0,
-          colliderSizeY: 10.0,
-          ballistic: false,
-          gravityScale: 1.0,
+          colliderSizeX: 18.0,
+          colliderSizeY: 8.0,
+          originOffset: 30.0,
           damageType: DamageType.acid,
           procs: <WeaponProc>[
             WeaponProc(
               hook: ProcHook.onHit,
               statusProfileId: StatusProfileId.acidOnHit,
-              chanceBp: 10000,
             ),
           ],
         );
@@ -80,18 +74,16 @@ class ProjectileCatalog {
         return const ProjectileItemDef(
           id: ProjectileId.darkBolt,
           weaponType: WeaponType.projectileSpell,
-          speedUnitsPerSecond: 900.0,
-          lifetimeSeconds: 1.0,
-          colliderSizeX: 20.0,
-          colliderSizeY: 10.0,
-          ballistic: false,
-          gravityScale: 1.0,
+          speedUnitsPerSecond: 550.0,
+          lifetimeSeconds: 1.3,
+          colliderSizeX: 18.0,
+          colliderSizeY: 8.0,
+          originOffset: 30.0,
           damageType: DamageType.dark,
           procs: <WeaponProc>[
             WeaponProc(
               hook: ProcHook.onHit,
               statusProfileId: StatusProfileId.weakenOnHit,
-              chanceBp: 10000,
             ),
           ],
         );
@@ -99,18 +91,16 @@ class ProjectileCatalog {
         return const ProjectileItemDef(
           id: ProjectileId.thunderBolt,
           weaponType: WeaponType.projectileSpell,
-          speedUnitsPerSecond: 1000.0,
-          lifetimeSeconds: 1.2,
-          colliderSizeX: 16.0,
+          speedUnitsPerSecond: 650.0,
+          lifetimeSeconds: 1.3,
+          colliderSizeX: 18.0,
           colliderSizeY: 8.0,
-          ballistic: false,
-          gravityScale: 1.0,
+          originOffset: 30.0,
           damageType: DamageType.thunder,
           procs: <WeaponProc>[
             WeaponProc(
               hook: ProcHook.onHit,
               statusProfileId: StatusProfileId.stunOnHit,
-              chanceBp: 10000,
             ),
           ],
         );
@@ -120,26 +110,26 @@ class ProjectileCatalog {
         return const ProjectileItemDef(
           id: ProjectileId.throwingKnife,
           weaponType: WeaponType.throwingWeapon,
-          speedUnitsPerSecond: 900.0,
-          lifetimeSeconds: 1.2,
-          colliderSizeX: 14.0,
-          colliderSizeY: 6.0,
-          originOffset: 6.0,
+          speedUnitsPerSecond: 600.0,
+          lifetimeSeconds: 3.0,
+          colliderSizeX: 18.0,
+          colliderSizeY: 8.0,
+          originOffset: 30.0,
           ballistic: true,
-          gravityScale: 0.9,
+          gravityScale: 0.6,
           damageType: DamageType.physical,
         );
       case ProjectileId.throwingAxe:
         return const ProjectileItemDef(
           id: ProjectileId.throwingAxe,
           weaponType: WeaponType.throwingWeapon,
-          speedUnitsPerSecond: 800.0,
-          lifetimeSeconds: 1.6,
-          colliderSizeX: 16.0,
-          colliderSizeY: 10.0,
-          originOffset: 8.0,
+          speedUnitsPerSecond: 600.0,
+          lifetimeSeconds: 3.0,
+          colliderSizeX: 18.0,
+          colliderSizeY: 8.0,
+          originOffset: 30.0,
           ballistic: true,
-          gravityScale: 1.0,
+          gravityScale: 0.7,
           damageType: DamageType.physical,
         );
     }

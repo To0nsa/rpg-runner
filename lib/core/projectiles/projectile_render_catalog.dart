@@ -13,9 +13,9 @@ const int _iceBoltStartFrames = 3;
 const int _iceBoltRepeatFrames = 10;
 const int _iceBoltHitFrames = 8;
 
-const double _iceBoltStartStepSeconds = 0.05;
+const double _iceBoltStartStepSeconds = 0.06;
 const double _iceBoltRepeatStepSeconds = 0.06;
-const double _iceBoltHitStepSeconds = 0.05;
+const double _iceBoltHitStepSeconds = 0.06;
 
 const Map<AnimKey, int> _iceBoltFrameCountsByKey = <AnimKey, int>{
   AnimKey.spawn: _iceBoltStartFrames,
@@ -54,9 +54,9 @@ const int _thunderBoltStartFrames = 5;
 const int _thunderBoltRepeatFrames = 5;
 const int _thunderBoltHitFrames = 6;
 
-const double _thunderBoltStartStepSeconds = 0.05;
+const double _thunderBoltStartStepSeconds = 0.06;
 const double _thunderBoltRepeatStepSeconds = 0.06;
-const double _thunderBoltHitStepSeconds = 0.05;
+const double _thunderBoltHitStepSeconds = 0.06;
 
 const Map<AnimKey, int> _thunderBoltFrameCountsByKey = <AnimKey, int>{
   AnimKey.spawn: _thunderBoltStartFrames,
@@ -94,9 +94,9 @@ const int _fireBoltFrameHeight = 48;
 const int _fireBoltStartFrames = 4;
 const int _fireBoltHitFrames = 6;
 
-const double _fireBoltStartStepSeconds = 0.05;
+const double _fireBoltStartStepSeconds = 0.06;
 const double _fireBoltIdleStepSeconds = 0.06;
-const double _fireBoltHitStepSeconds = 0.05;
+const double _fireBoltHitStepSeconds = 0.06;
 
 const Map<AnimKey, int> _fireBoltFrameCountsByKey = <AnimKey, int>{
   AnimKey.spawn: _fireBoltStartFrames,
@@ -135,15 +135,15 @@ const RenderAnimSetDefinition _fireBoltRenderAnim = RenderAnimSetDefinition(
 // Acid Bolt render animation strip definitions (authoring-time)
 // -----------------------------------------------------------------------------
 
-const int _acidBoltFrameWidth = 48;
-const int _acidBoltFrameHeight = 48;
+const int _acidBoltFrameWidth = 32;
+const int _acidBoltFrameHeight = 32;
 
 const int _acidBoltStartFrames = 10;
 const int _acidBoltHitFrames = 6;
 
-const double _acidBoltStartStepSeconds = 0.5;
+const double _acidBoltStartStepSeconds = 0.06;
 const double _acidBoltIdleStepSeconds = 0.06;
-const double _acidBoltHitStepSeconds = 0.05;
+const double _acidBoltHitStepSeconds = 0.06;
 
 const Map<AnimKey, int> _acidBoltFrameCountsByKey = <AnimKey, int>{
   AnimKey.spawn: _acidBoltStartFrames,
@@ -189,9 +189,9 @@ const int _darkBoltStartFrames = 10;
 const int _darkBoltIdleFrames = 10;
 const int _darkBoltHitFrames = 6;
 
-const double _darkBoltStartStepSeconds = 0.05;
+const double _darkBoltStartStepSeconds = 0.06;
 const double _darkBoltIdleStepSeconds = 0.06;
-const double _darkBoltHitStepSeconds = 0.05;
+const double _darkBoltHitStepSeconds = 0.06;
 
 const Map<AnimKey, int> _darkBoltFrameCountsByKey = <AnimKey, int>{
   AnimKey.spawn: _darkBoltStartFrames,

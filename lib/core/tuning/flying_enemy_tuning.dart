@@ -24,7 +24,7 @@ class UnocoDemonTuning {
     this.unocoDemonVerticalDeadzone = 20.0,
     this.unocoDemonAimLeadMinSeconds = 0.08,
     this.unocoDemonAimLeadMaxSeconds = 0.40,
-    this.unocoDemonCastCooldownSeconds = 2.0,
+    this.unocoDemonCastCooldownSeconds = 2.5,
     this.unocoDemonCastOriginOffset = 20.0,
   });
 
