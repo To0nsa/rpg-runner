@@ -60,7 +60,7 @@ class AbilityCatalog implements AbilityResolver {
       targetingModel: TargetingModel.aimed,
       inputLifecycle: AbilityInputLifecycle.holdRelease,
       hitDelivery: ProjectileHitDelivery(
-        projectileId: ProjectileId.thunderBolt,
+        projectileId: ProjectileId.fireBolt,
         hitPolicy: HitPolicy.oncePerTarget,
       ),
       windupTicks: 6,

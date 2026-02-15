@@ -14,10 +14,11 @@ void main() {
 
     expect(item.weaponType, WeaponType.projectileSpell);
     expect(item.damageType, DamageType.dark);
-    expect(item.speedUnitsPerSecond, 900.0);
-    expect(item.lifetimeSeconds, 1.0);
-    expect(item.colliderSizeX, 20.0);
-    expect(item.colliderSizeY, 10.0);
+    expect(item.speedUnitsPerSecond, 550.0);
+    expect(item.lifetimeSeconds, 1.3);
+    expect(item.colliderSizeX, 18.0);
+    expect(item.colliderSizeY, 8.0);
+    expect(item.originOffset, 30.0);
     expect(item.ballistic, isFalse);
     expect(item.gravityScale, 1.0);
     expect(item.procs, hasLength(1));
@@ -44,8 +45,49 @@ void main() {
     expect(anim.frameCountsByKey[AnimKey.idle], 10);
     expect(anim.frameCountsByKey[AnimKey.hit], 6);
 
-    expect(anim.stepTimeSecondsByKey[AnimKey.spawn], closeTo(0.05, 1e-9));
+    expect(anim.stepTimeSecondsByKey[AnimKey.spawn], closeTo(0.06, 1e-9));
     expect(anim.stepTimeSecondsByKey[AnimKey.idle], closeTo(0.06, 1e-9));
-    expect(anim.stepTimeSecondsByKey[AnimKey.hit], closeTo(0.05, 1e-9));
+    expect(anim.stepTimeSecondsByKey[AnimKey.hit], closeTo(0.06, 1e-9));
+  });
+
+  test('earthBolt gameplay metadata matches core tuning', () {
+    final item = const ProjectileCatalog().get(ProjectileId.earthBolt);
+
+    expect(item.weaponType, WeaponType.projectileSpell);
+    expect(item.damageType, DamageType.earth);
+    expect(item.speedUnitsPerSecond, 500.0);
+    expect(item.lifetimeSeconds, 1.3);
+    expect(item.colliderSizeX, 18.0);
+    expect(item.colliderSizeY, 8.0);
+    expect(item.originOffset, 30.0);
+    expect(item.ballistic, isFalse);
+    expect(item.gravityScale, 1.0);
+    expect(item.procs, hasLength(1));
+    expect(item.procs.single.statusProfileId, StatusProfileId.stunOnHit);
+    expect(item.procs.single.chanceBp, 10000);
+  });
+
+  test('earthBolt render metadata maps to expected sheet rows and timing', () {
+    final anim = const ProjectileRenderCatalog().get(ProjectileId.earthBolt);
+
+    expect(anim.frameWidth, 48);
+    expect(anim.frameHeight, 32);
+
+    const expectedSource = 'entities/spells/earth/bolt/spriteSheet.png';
+    expect(anim.sourcesByKey[AnimKey.spawn], expectedSource);
+    expect(anim.sourcesByKey[AnimKey.idle], expectedSource);
+    expect(anim.sourcesByKey[AnimKey.hit], expectedSource);
+
+    expect(anim.rowByKey[AnimKey.spawn], 0);
+    expect(anim.rowByKey[AnimKey.idle], 0);
+    expect(anim.rowByKey[AnimKey.hit], 1);
+
+    expect(anim.frameCountsByKey[AnimKey.spawn], 6);
+    expect(anim.frameCountsByKey[AnimKey.idle], 6);
+    expect(anim.frameCountsByKey[AnimKey.hit], 4);
+
+    expect(anim.stepTimeSecondsByKey[AnimKey.spawn], closeTo(0.06, 1e-9));
+    expect(anim.stepTimeSecondsByKey[AnimKey.idle], closeTo(0.06, 1e-9));
+    expect(anim.stepTimeSecondsByKey[AnimKey.hit], closeTo(0.06, 1e-9));
   });
 }

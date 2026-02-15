@@ -227,6 +227,54 @@ const RenderAnimSetDefinition _darkBoltRenderAnim = RenderAnimSetDefinition(
 );
 
 // -----------------------------------------------------------------------------
+// Earth Bolt render animation strip definitions (authoring-time)
+// -----------------------------------------------------------------------------
+
+const int _earthBoltFrameWidth = 48;
+const int _earthBoltFrameHeight = 32;
+
+const int _earthBoltStartFrames = 6;
+const int _earthBoltIdleFrames = 6;
+const int _earthBoltHitFrames = 4;
+
+const double _earthBoltStartStepSeconds = 0.06;
+const double _earthBoltIdleStepSeconds = 0.06;
+const double _earthBoltHitStepSeconds = 0.06;
+
+const Map<AnimKey, int> _earthBoltFrameCountsByKey = <AnimKey, int>{
+  AnimKey.spawn: _earthBoltStartFrames,
+  AnimKey.idle: _earthBoltIdleFrames,
+  AnimKey.hit: _earthBoltHitFrames,
+};
+
+const Map<AnimKey, int> _earthBoltRowByKey = <AnimKey, int>{
+  AnimKey.spawn: 0,
+  AnimKey.idle: 0,
+  AnimKey.hit: 1,
+};
+
+const Map<AnimKey, double> _earthBoltStepTimeSecondsByKey = <AnimKey, double>{
+  AnimKey.spawn: _earthBoltStartStepSeconds,
+  AnimKey.idle: _earthBoltIdleStepSeconds,
+  AnimKey.hit: _earthBoltHitStepSeconds,
+};
+
+const Map<AnimKey, String> _earthBoltSourcesByKey = <AnimKey, String>{
+  AnimKey.spawn: 'entities/spells/earth/bolt/spriteSheet.png',
+  AnimKey.idle: 'entities/spells/earth/bolt/spriteSheet.png',
+  AnimKey.hit: 'entities/spells/earth/bolt/spriteSheet.png',
+};
+
+const RenderAnimSetDefinition _earthBoltRenderAnim = RenderAnimSetDefinition(
+  frameWidth: _earthBoltFrameWidth,
+  frameHeight: _earthBoltFrameHeight,
+  sourcesByKey: _earthBoltSourcesByKey,
+  rowByKey: _earthBoltRowByKey,
+  frameCountsByKey: _earthBoltFrameCountsByKey,
+  stepTimeSecondsByKey: _earthBoltStepTimeSecondsByKey,
+);
+
+// -----------------------------------------------------------------------------
 // Throwing Axe render animation strip definitions (authoring-time)
 // -----------------------------------------------------------------------------
 
@@ -311,6 +359,8 @@ class ProjectileRenderCatalog {
         return _acidBoltRenderAnim;
       case ProjectileId.darkBolt:
         return _darkBoltRenderAnim;
+      case ProjectileId.earthBolt:
+        return _earthBoltRenderAnim;
       case ProjectileId.throwingAxe:
         return _throwingAxeRenderAnim;
       case ProjectileId.throwingKnife:

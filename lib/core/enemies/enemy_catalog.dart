@@ -293,7 +293,7 @@ class EnemyCatalog {
           hitAnimSeconds: _unocoHitAnimSeconds,
           deathAnimSeconds: _unocoDeathAnimSeconds,
           deathBehavior: DeathBehavior.instant,
-          primaryProjectileId: ProjectileId.thunderBolt,
+          primaryProjectileId: ProjectileId.fireBolt,
           artFacingDir: Facing.left,
           tags: CreatureTagDef(
             mask: CreatureTagMask.flying | CreatureTagMask.demon,

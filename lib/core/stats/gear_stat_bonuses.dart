@@ -25,6 +25,7 @@ class GearStatBonuses {
     this.acidResistanceBp = 0,
     this.darkResistanceBp = 0,
     this.bleedResistanceBp = 0,
+    this.earthResistanceBp = 0,
     // Legacy/non-V1 fields kept for compatibility during migration.
     this.critDamageBonusBp = 0,
     this.rangeScalarPercent = 100,
@@ -110,6 +111,11 @@ class GearStatBonuses {
   /// Positive values reduce bleed damage taken.
   final int bleedResistanceBp;
 
+  /// Basis points (100 = 1%).
+  ///
+  /// Positive values reduce earth damage taken.
+  final int earthResistanceBp;
+
   /// Legacy field (not part of V1 core stat set).
   final int critDamageBonusBp;
 
@@ -143,6 +149,7 @@ class GearStatBonuses {
       acidResistanceBp == 0 &&
       darkResistanceBp == 0 &&
       bleedResistanceBp == 0 &&
+      earthResistanceBp == 0 &&
       critDamageBonusBp == 0 &&
       rangeScalarPercent == 100;
 
@@ -166,6 +173,7 @@ class GearStatBonuses {
       acidResistanceBp: acidResistanceBp + other.acidResistanceBp,
       darkResistanceBp: darkResistanceBp + other.darkResistanceBp,
       bleedResistanceBp: bleedResistanceBp + other.bleedResistanceBp,
+      earthResistanceBp: earthResistanceBp + other.earthResistanceBp,
       critDamageBonusBp: critDamageBonusBp + other.critDamageBonusBp,
       rangeScalarPercent:
           (rangeScalarPercent * other.rangeScalarPercent) ~/ 100,

@@ -87,6 +87,25 @@ class ProjectileCatalog {
             ),
           ],
         );
+      case ProjectileId.earthBolt:
+        return const ProjectileItemDef(
+          id: ProjectileId.earthBolt,
+          weaponType: WeaponType.projectileSpell,
+          speedUnitsPerSecond: 500.0,
+          lifetimeSeconds: 1.3,
+          colliderSizeX: 18.0,
+          colliderSizeY: 8.0,
+          originOffset: 30.0,
+          ballistic: false,
+          gravityScale: 1.0,
+          damageType: DamageType.earth,
+          procs: <WeaponProc>[
+            WeaponProc(
+              hook: ProcHook.onHit,
+              statusProfileId: StatusProfileId.stunOnHit,
+            ),
+          ],
+        );
       case ProjectileId.thunderBolt:
         return const ProjectileItemDef(
           id: ProjectileId.thunderBolt,

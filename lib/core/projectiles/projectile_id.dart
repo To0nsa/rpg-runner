@@ -18,6 +18,9 @@ enum ProjectileId {
   /// Player's dark spell projectile. Medium speed and short lifetime.
   darkBolt,
 
+  /// Player's earth spell projectile. Medium speed and lifetime.
+  earthBolt,
+
   /// Enemy ranged strike. Slower but longer range.
   thunderBolt,
 

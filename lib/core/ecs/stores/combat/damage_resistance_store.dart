@@ -11,6 +11,7 @@ class DamageResistanceDef {
     this.acidBp = 0,
     this.darkBp = 0,
     this.bleedBp = 0,
+    this.earthBp = 0,
   });
 
   /// Basis points (100 = 1%).
@@ -21,6 +22,7 @@ class DamageResistanceDef {
   final int acidBp;
   final int darkBp;
   final int bleedBp;
+  final int earthBp;
 
   int modBpFor(DamageType type) {
     switch (type) {
@@ -38,6 +40,8 @@ class DamageResistanceDef {
         return darkBp;
       case DamageType.bleed:
         return bleedBp;
+      case DamageType.earth:
+        return earthBp;
     }
   }
 }
@@ -52,6 +56,7 @@ class DamageResistanceStore extends SparseSet {
   final List<int> acidBp = <int>[];
   final List<int> darkBp = <int>[];
   final List<int> bleedBp = <int>[];
+  final List<int> earthBp = <int>[];
 
   void add(
     EntityId entity, [
@@ -65,6 +70,7 @@ class DamageResistanceStore extends SparseSet {
     acidBp[i] = def.acidBp;
     darkBp[i] = def.darkBp;
     bleedBp[i] = def.bleedBp;
+    earthBp[i] = def.earthBp;
   }
 
   int modBpForEntity(EntityId entity, DamageType type) {
@@ -89,6 +95,8 @@ class DamageResistanceStore extends SparseSet {
         return darkBp[index];
       case DamageType.bleed:
         return bleedBp[index];
+      case DamageType.earth:
+        return earthBp[index];
     }
   }
 
@@ -101,6 +109,7 @@ class DamageResistanceStore extends SparseSet {
     acidBp.add(0);
     darkBp.add(0);
     bleedBp.add(0);
+    earthBp.add(0);
   }
 
   @override
@@ -112,6 +121,7 @@ class DamageResistanceStore extends SparseSet {
     acidBp[removeIndex] = acidBp[lastIndex];
     darkBp[removeIndex] = darkBp[lastIndex];
     bleedBp[removeIndex] = bleedBp[lastIndex];
+    earthBp[removeIndex] = earthBp[lastIndex];
 
     physicalBp.removeLast();
     fireBp.removeLast();
@@ -120,5 +130,6 @@ class DamageResistanceStore extends SparseSet {
     acidBp.removeLast();
     darkBp.removeLast();
     bleedBp.removeLast();
+    earthBp.removeLast();
   }
 }
