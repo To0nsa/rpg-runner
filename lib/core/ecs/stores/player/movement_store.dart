@@ -24,6 +24,7 @@ class MovementStore extends SparseSet {
 
   /// Dash speed multiplier sampled at commit-time.
   final List<double> dashSpeedScale = <double>[];
+  final List<double> mobilitySpeedX = <double>[];
 
   final List<Facing> facing = <Facing>[];
   final List<int> facingLockTicksLeft = <int>[];
@@ -43,6 +44,7 @@ class MovementStore extends SparseSet {
     dashDirX.add(1);
     dashDirY.add(0);
     dashSpeedScale.add(1.0);
+    mobilitySpeedX.add(0.0);
     facing.add(Facing.right);
     facingLockTicksLeft.add(0);
   }
@@ -55,6 +57,7 @@ class MovementStore extends SparseSet {
     dashDirX[removeIndex] = dashDirX[lastIndex];
     dashDirY[removeIndex] = dashDirY[lastIndex];
     dashSpeedScale[removeIndex] = dashSpeedScale[lastIndex];
+    mobilitySpeedX[removeIndex] = mobilitySpeedX[lastIndex];
     facing[removeIndex] = facing[lastIndex];
     facingLockTicksLeft[removeIndex] = facingLockTicksLeft[lastIndex];
 
@@ -64,6 +67,7 @@ class MovementStore extends SparseSet {
     dashDirX.removeLast();
     dashDirY.removeLast();
     dashSpeedScale.removeLast();
+    mobilitySpeedX.removeLast();
     facing.removeLast();
     facingLockTicksLeft.removeLast();
   }

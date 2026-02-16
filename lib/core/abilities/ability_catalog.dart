@@ -659,6 +659,7 @@ class AbilityCatalog implements AbilityResolver {
       recoveryTicks: 0,
       defaultCost: AbilityResourceCost(staminaCost100: 200),
       cooldownTicks: 120,
+      mobilitySpeedX: 550,
       animKey: AnimKey.dash,
     ),
 
@@ -677,6 +678,7 @@ class AbilityCatalog implements AbilityResolver {
         hitPolicy: HitPolicy.oncePerTarget,
         statusProfileId: StatusProfileId.stunOnHit,
       ),
+      mobilitySpeedX: 400,
       animKey: AnimKey.roll,
     ),
   });

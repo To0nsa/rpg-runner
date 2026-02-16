@@ -203,7 +203,6 @@ const PlayerTuning eloiseTuning = PlayerTuning(
     jumpSpeed: 500,
     coyoteTimeSeconds: 0.10,
     jumpBufferSeconds: 0.12,
-    dashSpeedX: 550,
     dashDurationSeconds: 0.20,
     dashCooldownSeconds: 2.0,
   ),

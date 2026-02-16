@@ -116,9 +116,10 @@ class PlayerMovementSystem {
       // -- Horizontal Movement --
       if (dashing) {
         // [State: Dashing]
-        // Lock velocity to the authored dash direction and sampled speed.
+        // Lock velocity to the authored mobility speed and sampled scale.
+        final baseSpeed = world.movement.mobilitySpeedX[mi];
         final dashSpeed =
-            t.dashSpeedX * moveSpeedMul * world.movement.dashSpeedScale[mi];
+            baseSpeed * moveSpeedMul * world.movement.dashSpeedScale[mi];
         world.transform.velX[ti] = world.movement.dashDirX[mi] * dashSpeed;
         world.transform.velY[ti] = world.movement.dashDirY[mi] * dashSpeed;
       } else {

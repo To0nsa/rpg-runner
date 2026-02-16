@@ -127,7 +127,6 @@ void main() {
       tickHz: defaultTickHz,
       tuning: noAutoscrollTuning,
     );
-    final tuning = const MovementTuning();
     final catalog = PlayerCharacterRegistry.eloise.catalog;
     final floorY =
         groundTopY.toDouble() -
@@ -136,7 +135,7 @@ void main() {
     // Start dashing from the ground.
     _tick(core, dashPressed: true);
 
-    expect(core.playerVelX, closeTo(tuning.dashSpeedX, 1e-9));
+    expect(core.playerVelX, closeTo(550, 1e-9));
     expect(core.playerVelY, closeTo(0, 1e-9));
     expect(core.playerPosY, closeTo(floorY, 1e-9));
   });
@@ -237,7 +236,7 @@ void main() {
 
     // Without stamina, the buffered jump won't execute and dash won't start.
     expect(core.playerVelY, greaterThanOrEqualTo(0));
-    expect(core.playerVelX.abs(), lessThan(const MovementTuning().dashSpeedX));
+    expect(core.playerVelX.abs(), lessThan(550));
 
     final hud = core.buildSnapshot().hud;
     expect(hud.stamina, closeTo(1.0, 1e-9));

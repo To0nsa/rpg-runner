@@ -36,7 +36,6 @@ class MovementTuning {
     this.jumpSpeed = 500,
     this.coyoteTimeSeconds = 0.10,
     this.jumpBufferSeconds = 0.12,
-    this.dashSpeedX = 550,
     this.dashDurationSeconds = 0.20,
     this.dashCooldownSeconds = 2.0,
   });
@@ -55,7 +54,6 @@ class MovementTuning {
   final double coyoteTimeSeconds;
   final double jumpBufferSeconds;
 
-  final double dashSpeedX;
   final double dashDurationSeconds;
   final double dashCooldownSeconds;
 }

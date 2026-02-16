@@ -670,6 +670,7 @@ class AbilityActivationSystem {
         dirX: dirX,
         dirY: dirY,
         speedScaleBp: chargeTuning.speedScaleBp,
+        mobilitySpeedX: ability.mobilitySpeedX ?? 0,
         commitTick: commitTick,
         windupTicks: windupTicks,
         activeTicks: activeTicks,

@@ -52,11 +52,13 @@ class MobilitySystem {
       final dirX = intents.dirX[ii];
       final dirY = intents.dirY[ii];
       final speedScale = intents.speedScaleBp[ii] / 10000.0;
-      final dashSpeed = tuning.base.dashSpeedX * moveSpeedMul * speedScale;
+      final baseSpeed = intents.mobilitySpeedX[ii];
+      final dashSpeed = baseSpeed * moveSpeedMul * speedScale;
 
       movements.dashDirX[mi] = dirX;
       movements.dashDirY[mi] = dirY;
       movements.dashSpeedScale[mi] = speedScale;
+      movements.mobilitySpeedX[mi] = intents.mobilitySpeedX[ii];
       movements.dashTicksLeft[mi] = activeTicks;
       if (dirX.abs() > 1e-6) {
         movements.facing[mi] = dirX >= 0 ? Facing.right : Facing.left;

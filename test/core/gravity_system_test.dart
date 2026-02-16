@@ -148,6 +148,7 @@ void main() {
         dirX: 1.0,
         dirY: 0.0,
         speedScaleBp: 10000,
+        mobilitySpeedX: 550,
         commitTick: 0,
         windupTicks: 0,
         activeTicks: tuning.dashDurationTicks,

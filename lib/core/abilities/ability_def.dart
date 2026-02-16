@@ -387,6 +387,7 @@ class AbilityDef {
     this.damageIgnoredBp = 0,
     this.grantsRiposteOnGuardedHit = false,
     this.mobilityImpact = MobilityImpactDef.none,
+    this.mobilitySpeedX,
     this.chargeProfile,
     this.chargeMaxHoldTicks60 = 0,
     this.defaultCost = AbilityResourceCost.zero,
@@ -431,6 +432,14 @@ class AbilityDef {
        assert(
          category == AbilityCategory.mobility || !mobilityImpact.hasAnyEffect,
          'Only mobility abilities may author mobilityImpact effects.',
+       ),
+       assert(
+         mobilitySpeedX == null || category == AbilityCategory.mobility,
+         'Only mobility abilities may define mobilitySpeedX.',
+       ),
+       assert(
+         mobilitySpeedX == null || mobilitySpeedX > 0,
+         'mobilitySpeedX must be positive when defined.',
        ),
        assert(
          mobilityImpact.damage100 > 0 || mobilityImpact.procs.isEmpty,
@@ -534,6 +543,12 @@ class AbilityDef {
 
   /// Optional contact payload applied during active mobility overlaps.
   final MobilityImpactDef mobilityImpact;
+
+  /// Horizontal speed in world-units/second for this mobility ability.
+  ///
+  /// Each mobility ability defines its own speed. Non-mobility abilities
+  /// leave this `null`.
+  final double? mobilitySpeedX;
 
   /// Cooldown duration in ticks.
   final int cooldownTicks;

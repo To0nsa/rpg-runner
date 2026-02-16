@@ -9,6 +9,7 @@ class MobilityIntentDef {
     required this.dirX,
     required this.dirY,
     required this.speedScaleBp,
+    required this.mobilitySpeedX,
     required this.commitTick,
     required this.windupTicks,
     required this.activeTicks,
@@ -30,6 +31,9 @@ class MobilityIntentDef {
 
   /// Mobility speed scale in basis points (`10000 == 1.0x`).
   final int speedScaleBp;
+
+  /// Horizontal speed in world-units/second for this mobility ability.
+  final double mobilitySpeedX;
 
   /// Tick the ability was committed (costs/cooldown start).
   final int commitTick;
@@ -62,6 +66,7 @@ class MobilityIntentStore extends SparseSet {
   final List<double> dirX = <double>[];
   final List<double> dirY = <double>[];
   final List<int> speedScaleBp = <int>[];
+  final List<double> mobilitySpeedX = <double>[];
   final List<int> commitTick = <int>[];
   final List<int> windupTicks = <int>[];
   final List<int> activeTicks = <int>[];
@@ -88,6 +93,7 @@ class MobilityIntentStore extends SparseSet {
     dirX[i] = def.dirX;
     dirY[i] = def.dirY;
     speedScaleBp[i] = def.speedScaleBp;
+    mobilitySpeedX[i] = def.mobilitySpeedX;
     commitTick[i] = def.commitTick;
     windupTicks[i] = def.windupTicks;
     activeTicks[i] = def.activeTicks;
@@ -105,6 +111,7 @@ class MobilityIntentStore extends SparseSet {
     dirX.add(1.0);
     dirY.add(0.0);
     speedScaleBp.add(10000);
+    mobilitySpeedX.add(0.0);
     commitTick.add(-1);
     windupTicks.add(0);
     activeTicks.add(0);
@@ -122,6 +129,7 @@ class MobilityIntentStore extends SparseSet {
     dirX[removeIndex] = dirX[lastIndex];
     dirY[removeIndex] = dirY[lastIndex];
     speedScaleBp[removeIndex] = speedScaleBp[lastIndex];
+    mobilitySpeedX[removeIndex] = mobilitySpeedX[lastIndex];
     commitTick[removeIndex] = commitTick[lastIndex];
     windupTicks[removeIndex] = windupTicks[lastIndex];
     activeTicks[removeIndex] = activeTicks[lastIndex];
@@ -136,6 +144,7 @@ class MobilityIntentStore extends SparseSet {
     dirX.removeLast();
     dirY.removeLast();
     speedScaleBp.removeLast();
+    mobilitySpeedX.removeLast();
     commitTick.removeLast();
     windupTicks.removeLast();
     activeTicks.removeLast();
