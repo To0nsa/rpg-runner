@@ -269,6 +269,7 @@ class _MobilityDirectionAbilities extends AbilityCatalog {
           recoveryTicks: 0,
           cooldownTicks: 0,
           animKey: AnimKey.dash,
+          mobilitySpeedX: 550,
           baseDamage: 0,
         );
       case 'test.mobility_aimed':
@@ -284,6 +285,7 @@ class _MobilityDirectionAbilities extends AbilityCatalog {
           recoveryTicks: 0,
           cooldownTicks: 0,
           animKey: AnimKey.dash,
+          mobilitySpeedX: 550,
           baseDamage: 0,
         );
       case 'test.mobility_homing':
@@ -299,6 +301,7 @@ class _MobilityDirectionAbilities extends AbilityCatalog {
           recoveryTicks: 0,
           cooldownTicks: 0,
           animKey: AnimKey.dash,
+          mobilitySpeedX: 550,
           baseDamage: 0,
         );
       case 'test.mobility_hold_homing_tiered':
@@ -317,6 +320,7 @@ class _MobilityDirectionAbilities extends AbilityCatalog {
           holdStaminaDrainPerSecond100: 120,
           cooldownTicks: 120,
           animKey: AnimKey.dash,
+          mobilitySpeedX: 550,
           chargeProfile: AbilityChargeProfile(
             tiers: <AbilityChargeTierDef>[
               AbilityChargeTierDef(
