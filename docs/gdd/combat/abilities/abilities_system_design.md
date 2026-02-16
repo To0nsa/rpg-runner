@@ -66,7 +66,7 @@ Track guardrails alongside the primary invariant:
 ### Canonical Cross-Category Equivalence Examples (Eloise)
 
 * `eloise.sword_strike` ↔ `eloise.shield_bash`: offensive tempo/throughput equivalent; differentiation comes from equipped weapon/shield payload.
-* `eloise.sword_parry` ↔ `eloise.shield_block`: defensive window/reward equivalent; differentiation comes from equipped weapon/shield payload and presentation.
+* `eloise.sword_riposte_guard` ↔ `eloise.shield_riposte_guard`: defensive window/reward equivalent; differentiation comes from equipped weapon/shield payload and presentation.
 
 ---
 
@@ -99,7 +99,7 @@ A weapon/projectile item:
 Weapons and projectile items do **not** define the ability’s structure (targeting, timing windows, hitbox/projectile shape).  
 They **parameterize** the outcome via modifiers, so one ability (e.g., *Strike* or *Ice Bolt*) can behave consistently while producing different payloads depending on the equipped item.
 
-**Example:** equipping a one-hand sword enables *Sword Strike* and *Sword Parry*, sets damage type to *slashing*, and may add an on-hit *bleed* proc.
+**Example:** equipping a one-hand sword enables *Sword Strike* and *Riposte Guard*, sets damage type to *slashing*, and may add an on-hit *bleed* proc.
 
 
 ### Weapon vs Ability: Damage & Effects Relationship
@@ -136,8 +136,8 @@ A character has a set of named ability slots. Slots map to input buttons.
 
 | Slot          | Role                              | Typical content                                          |
 | ------------- | --------------------------------- | -------------------------------------------------------- |
-| **Primary**   | Primary hand                      | strike, parry                                     |
-| **Secondary** | Secondary hand (used by two-handed) | shield bash, shield block       |
+| **Primary**   | Primary hand                      | strike, riposte guard                            |
+| **Secondary** | Secondary hand (used by two-handed) | shield bash, ripost guard      |
 | **Projectile**    | Projectile (projectile spells/throwing weapons) | Quick Shot, Charged Shot, firebolt, icebolt, thunderbolt          |
 | **Mobility**  | Mobility                          | dash, roll                                               |
 | **Jump**      | Fixed Mobility                    | jump (fixed slot, always available)                      |
@@ -410,8 +410,8 @@ Examples for Eloise:
 
 ### Expected Slots
 
-* Primary: Sword Strike **or** Sword Parry
-* Secondary: Shield Block **or** Shield Bash
+* Primary: Sword Strike **or** Riposte Guard
+* Secondary: Ripost Guard **or** Shield Bash
 * Mobility: Dash or Roll
 * Projectile: Ice Bolt or Throwing Knife
 * Spell: flexible
@@ -428,8 +428,8 @@ Examples for Eloise:
 
 **Loadout B (Defensive):**
 
-* Primary: Sword Parry
-* Secondary: Shield Block
+* Primary: Riposte Guard
+* Secondary: Ripost Guard
 * Mobility: Roll
 * Projectile: Ice Bolt
 * Spell: Sword Strike

@@ -13,8 +13,8 @@ void main() {
       final core = GameCore(
         seed: 1,
         equippedLoadoutOverride: const EquippedLoadoutDef(
-          abilityPrimaryId: 'eloise.sword_parry',
-          abilitySecondaryId: 'eloise.shield_block',
+          abilityPrimaryId: 'eloise.sword_riposte_guard',
+          abilitySecondaryId: 'eloise.shield_riposte_guard',
         ),
       );
 

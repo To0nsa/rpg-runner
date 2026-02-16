@@ -467,8 +467,8 @@ class GameCore {
       middlewares: [
         ParryMiddleware(
           abilityIds: const <AbilityKey>{
-            'eloise.sword_parry',
-            'eloise.shield_block',
+            'eloise.sword_riposte_guard',
+            'eloise.shield_riposte_guard',
           },
         ),
       ],

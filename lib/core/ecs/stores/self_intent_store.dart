@@ -95,7 +95,7 @@ class SelfIntentStore extends SparseSet {
 
   @override
   void onDenseAdded(int denseIndex) {
-    abilityId.add('eloise.sword_parry');
+    abilityId.add('eloise.sword_riposte_guard');
     slot.add(AbilitySlot.primary);
     selfStatusProfileId.add(StatusProfileId.none);
     commitTick.add(-1);

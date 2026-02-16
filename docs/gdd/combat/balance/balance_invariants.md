@@ -28,7 +28,7 @@ families so tuning stays coherent.
 ### Defensive Mirrors
 
 - Pairs:
-  - `eloise.sword_parry` vs `eloise.shield_block`
+  - `eloise.sword_riposte_guard` vs `eloise.shield_riposte_guard`
 - Primary invariant: equivalent defensive value per cooldown window.
 - Guardrails:
   - reward parity (counter window -> payoff),

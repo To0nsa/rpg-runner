@@ -33,7 +33,7 @@ void main() {
         offhandWeaponId: WeaponId.woodenShield,
         projectileId: ProjectileId.throwingKnife,
         abilityPrimaryId: 'eloise.sword_strike',
-        abilitySecondaryId: 'eloise.shield_block',
+        abilitySecondaryId: 'eloise.shield_riposte_guard',
         abilityProjectileId: 'eloise.quick_shot',
         abilityMobilityId: 'eloise.dash',
         abilitySpellId: 'eloise.arcane_haste',
@@ -225,7 +225,7 @@ void main() {
         offhandWeaponId: WeaponId
             .woodenSword, // Invalid for other reasons, but let's test gating
         abilitySecondaryId:
-            'eloise.shield_block', // Requires shield weapon type.
+            'eloise.shield_riposte_guard', // Requires shield weapon type.
       );
 
       // Note: This layout also triggers CategoryMismatch because Sword is not OffHand.

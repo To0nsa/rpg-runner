@@ -26,6 +26,8 @@ String _titleCaseSnake(String source) {
 }
 
 const Map<AbilityKey, String> _displayNameOverrides = <AbilityKey, String>{
+  'eloise.sword_riposte_guard': 'Riposte Guard',
+  'eloise.shield_riposte_guard': 'Ripost Guard',
   'eloise.arcane_haste': 'Arcane Haste',
   'eloise.restore_health': 'Restore Health',
   'eloise.restore_mana': 'Restore Mana',

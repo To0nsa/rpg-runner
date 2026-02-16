@@ -6,8 +6,8 @@ This document defines the deterministic contract for hold-to-maintain abilities.
 
 - Applies to abilities authored with `AbilityHoldMode.holdToMaintain`.
 - Current authored abilities:
-  - `eloise.sword_parry`
-  - `eloise.shield_block`
+  - `eloise.sword_riposte_guard`
+  - `eloise.shield_riposte_guard`
 
 ## Authoring Contract
 

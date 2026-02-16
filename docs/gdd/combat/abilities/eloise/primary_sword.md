@@ -19,7 +19,7 @@ Core units:
 | `eloise.charged_sword_strike` | `holdRelease` | `aimedCharge` | `10 / 6 / 10` | stamina `550` | `24` | `primaryWeapon` |
 | `eloise.charged_sword_strike_auto_aim` | `holdRelease` | `homing` | `10 / 6 / 10` | stamina `600` | `24` | `primaryWeapon` |
 | `eloise.sword_strike_auto_aim` | `tap` | `homing` | `8 / 6 / 8` | stamina `550` | `24` | `primaryWeapon` |
-| `eloise.sword_parry` | `holdMaintain` | `none` | `2 / 180 / 2` | hold drain `233/s` | `30` | `primaryWeapon` |
+| `eloise.sword_riposte_guard` | `holdMaintain` | `none` | `2 / 180 / 2` | hold drain `233/s` | `30` | `primaryWeapon` |
 
 ## Offensive Sword Abilities
 
@@ -56,7 +56,7 @@ Core units:
 
 ## Defensive Sword Ability
 
-### `eloise.sword_parry`
+### `eloise.sword_riposte_guard`
 
 - `holdMaintain` contract (`holdMode: holdToMaintain`)
 - Max active hold window authored as `180` ticks

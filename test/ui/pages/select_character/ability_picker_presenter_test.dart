@@ -172,7 +172,7 @@ void main() {
       () {
         const legacyLoadout = EquippedLoadoutDef(
           mask: LoadoutSlotMask.defaultMask,
-          abilitySecondaryId: 'eloise.shield_block',
+          abilitySecondaryId: 'eloise.shield_riposte_guard',
         );
 
         final candidates = abilityCandidatesForSlot(
@@ -182,7 +182,7 @@ void main() {
         );
 
         final shieldBlock = candidates.firstWhere(
-          (candidate) => candidate.id == 'eloise.shield_block',
+          (candidate) => candidate.id == 'eloise.shield_riposte_guard',
         );
         expect(shieldBlock.isEnabled, isTrue);
       },

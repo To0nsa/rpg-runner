@@ -72,7 +72,7 @@ void main() {
         playerCharacter: base.copyWith(
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(useGravity: false),
-            abilityPrimaryId: 'eloise.sword_parry',
+            abilityPrimaryId: 'eloise.sword_riposte_guard',
             projectileId: ProjectileId.iceBolt,
             abilityProjectileId: 'eloise.charged_shot',
           ),

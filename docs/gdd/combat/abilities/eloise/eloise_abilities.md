@@ -24,8 +24,8 @@ Core units:
 
 | Slot | Ability IDs |
 |---|---|
-| `primary` | `eloise.sword_strike`, `eloise.charged_sword_strike`, `eloise.charged_sword_strike_auto_aim`, `eloise.sword_strike_auto_aim`, `eloise.sword_parry` |
-| `secondary` | `eloise.shield_bash`, `eloise.charged_shield_bash`, `eloise.shield_bash_auto_aim`, `eloise.shield_block` |
+| `primary` | `eloise.sword_strike`, `eloise.charged_sword_strike`, `eloise.charged_sword_strike_auto_aim`, `eloise.sword_strike_auto_aim`, `eloise.sword_riposte_guard` |
+| `secondary` | `eloise.shield_bash`, `eloise.charged_shield_bash`, `eloise.shield_bash_auto_aim`, `eloise.shield_riposte_guard` |
 | `projectile` | `eloise.auto_aim_shot`, `eloise.quick_shot`, `eloise.piercing_shot`, `eloise.charged_shot` |
 | `mobility` | `eloise.dash`, `eloise.charged_aim_dash`, `eloise.charged_auto_dash`, `eloise.hold_auto_dash`, `eloise.roll` |
 | `jump` | `eloise.jump` |
@@ -39,11 +39,11 @@ Core units:
 | `eloise.charged_sword_strike` | `primary` | `holdRelease` | `aimedCharge` | `10/6/10` | `550` | `0` | `24` | `1600` |
 | `eloise.charged_sword_strike_auto_aim` | `primary` | `holdRelease` | `homing` | `10/6/10` | `600` | `0` | `24` | `1550` |
 | `eloise.sword_strike_auto_aim` | `primary` | `tap` | `homing` | `8/6/8` | `550` | `0` | `24` | `1400` |
-| `eloise.sword_parry` | `primary` | `holdMaintain` | `none` | `2/180/2` | `0` | `0` | `30` | `0` |
+| `eloise.sword_riposte_guard` | `primary` | `holdMaintain` | `none` | `2/180/2` | `0` | `0` | `30` | `0` |
 | `eloise.shield_bash` | `secondary` | `tap` | `directional` | `8/6/8` | `500` | `0` | `18` | `1500` |
 | `eloise.charged_shield_bash` | `secondary` | `holdRelease` | `aimedCharge` | `10/6/10` | `550` | `0` | `24` | `1600` |
 | `eloise.shield_bash_auto_aim` | `secondary` | `tap` | `homing` | `8/6/8` | `550` | `0` | `24` | `1400` |
-| `eloise.shield_block` | `secondary` | `holdMaintain` | `none` | `2/180/2` | `0` | `0` | `30` | `0` |
+| `eloise.shield_riposte_guard` | `secondary` | `holdMaintain` | `none` | `2/180/2` | `0` | `0` | `30` | `0` |
 | `eloise.auto_aim_shot` | `projectile` | `tap` | `homing` | `10/2/12` | `0` | `800` | `40` | `1300` |
 | `eloise.quick_shot` | `projectile` | `holdRelease` | `aimed` | `10/2/12` | `0` | `600` | `14` | `900` |
 | `eloise.piercing_shot` | `projectile` | `holdRelease` | `aimedLine` | `10/2/12` | `0` | `1000` | `32` | `1800` |
@@ -65,8 +65,8 @@ Core units:
    `damageTaken` in addition to `stun` and `death`.
 2. Projectile lane payload comes from equipped projectile-item path at commit.
 3. `holdMaintain` abilities use stamina drain:
-   - `eloise.sword_parry`: `233` per second
-   - `eloise.shield_block`: `700` per second
+   - `eloise.sword_riposte_guard`: `233` per second
+   - `eloise.shield_riposte_guard`: `700` per second
    - `eloise.hold_auto_dash`: `120` per second
 4. Bonus slot is currently self-spell utility only.
 

@@ -244,8 +244,8 @@ class AbilityCatalog implements AbilityResolver {
       baseDamage: 1400,
     ),
 
-    'eloise.sword_parry': AbilityDef(
-      id: 'eloise.sword_parry',
+    'eloise.sword_riposte_guard': AbilityDef(
+      id: 'eloise.sword_riposte_guard',
       category: AbilityCategory.defense,
       allowedSlots: {AbilitySlot.primary},
       inputLifecycle: AbilityInputLifecycle.holdMaintain,
@@ -379,14 +379,14 @@ class AbilityCatalog implements AbilityResolver {
       baseDamage: 1400,
     ),
 
-    'eloise.shield_block': AbilityDef(
-      id: 'eloise.shield_block',
+    'eloise.shield_riposte_guard': AbilityDef(
+      id: 'eloise.shield_riposte_guard',
       category: AbilityCategory.defense,
       allowedSlots: {AbilitySlot.secondary},
       targetingModel: TargetingModel.none,
       inputLifecycle: AbilityInputLifecycle.holdMaintain,
       hitDelivery: SelfHitDelivery(),
-      // Match Sword Parry exactly (only required weapon differs).
+      // Match primary Riposte Guard exactly (only required weapon differs).
       windupTicks: 2,
       activeTicks: 180,
       recoveryTicks: 2,

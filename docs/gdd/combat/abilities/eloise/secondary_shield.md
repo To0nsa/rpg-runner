@@ -18,7 +18,7 @@ Core units:
 | `eloise.shield_bash` | `tap` | `directional` | `8 / 6 / 8` | stamina `500` | `18` | `secondaryWeapon` |
 | `eloise.charged_shield_bash` | `holdRelease` | `aimedCharge` | `10 / 6 / 10` | stamina `550` | `24` | `secondaryWeapon` |
 | `eloise.shield_bash_auto_aim` | `tap` | `homing` | `8 / 6 / 8` | stamina `550` | `24` | `secondaryWeapon` |
-| `eloise.shield_block` | `holdMaintain` | `none` | `2 / 180 / 2` | hold drain `700/s` | `30` | `secondaryWeapon` |
+| `eloise.shield_riposte_guard` | `holdMaintain` | `none` | `2 / 180 / 2` | hold drain `700/s` | `30` | `secondaryWeapon` |
 
 ## Offensive Shield Abilities
 
@@ -48,7 +48,7 @@ Core units:
 
 ## Defensive Shield Ability
 
-### `eloise.shield_block`
+### `eloise.shield_riposte_guard`
 
 - `holdMaintain` contract (`holdMode: holdToMaintain`)
 - Max active hold window authored as `180` ticks

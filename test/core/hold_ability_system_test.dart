@@ -39,7 +39,7 @@ void main() {
       ),
     );
 
-    final ability = AbilityCatalog.shared.resolve('eloise.sword_parry')!;
+    final ability = AbilityCatalog.shared.resolve('eloise.sword_riposte_guard')!;
     world.activeAbility.set(
       player,
       id: ability.id,
@@ -85,7 +85,7 @@ void main() {
       final timeout = timeoutEvents.single;
       expect(timeout.reason, AbilityHoldEndReason.timeout);
       expect(timeout.tick, timeoutTick);
-      expect(timeout.abilityId, 'eloise.sword_parry');
+      expect(timeout.abilityId, 'eloise.sword_riposte_guard');
 
       final staminaIndex = world.stamina.indexOf(player);
       // 180 active ticks at 7.00 stamina/sec => floor(180 * 700 / 60) = 2100.
@@ -93,7 +93,7 @@ void main() {
       expect(
         world.cooldown.getTicksLeft(player, CooldownGroup.primary),
         equals(
-          AbilityCatalog.shared.resolve('eloise.sword_parry')!.cooldownTicks,
+          AbilityCatalog.shared.resolve('eloise.sword_riposte_guard')!.cooldownTicks,
         ),
       );
     },
@@ -127,7 +127,7 @@ void main() {
     expect(
       world.cooldown.getTicksLeft(player, CooldownGroup.primary),
       equals(
-        AbilityCatalog.shared.resolve('eloise.sword_parry')!.cooldownTicks,
+        AbilityCatalog.shared.resolve('eloise.sword_riposte_guard')!.cooldownTicks,
       ),
     );
   });
@@ -167,7 +167,7 @@ void main() {
     expect(
       world.cooldown.getTicksLeft(player, CooldownGroup.primary),
       equals(
-        AbilityCatalog.shared.resolve('eloise.sword_parry')!.cooldownTicks,
+        AbilityCatalog.shared.resolve('eloise.sword_riposte_guard')!.cooldownTicks,
       ),
     );
   });
@@ -188,7 +188,7 @@ void main() {
     expect(
       world.cooldown.getTicksLeft(player, CooldownGroup.primary),
       equals(
-        AbilityCatalog.shared.resolve('eloise.sword_parry')!.cooldownTicks,
+        AbilityCatalog.shared.resolve('eloise.sword_riposte_guard')!.cooldownTicks,
       ),
     );
   });
