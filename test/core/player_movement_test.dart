@@ -141,16 +141,14 @@ void main() {
     expect(core.playerPosY, closeTo(floorY, 1e-9));
   });
 
-  test('aimed mobility dash can launch on the Y axis', () {
+  test('roll mobility does not commit on vertical-only aim', () {
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
       seed: 1,
       tickHz: defaultTickHz,
       tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
-        catalog: testPlayerCatalog(
-          abilityMobilityId: 'eloise.charged_aim_dash',
-        ),
+        catalog: testPlayerCatalog(abilityMobilityId: 'eloise.roll'),
       ),
     );
 
@@ -160,7 +158,7 @@ void main() {
     ]);
     core.stepOneTick();
 
-    expect(core.playerVelY, lessThan(0));
+    expect(core.playerVelY.abs(), lessThan(1e-6));
     expect(core.playerVelX.abs(), lessThan(1e-6));
   });
 

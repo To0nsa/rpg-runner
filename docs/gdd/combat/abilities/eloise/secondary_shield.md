@@ -19,6 +19,7 @@ Core units:
 | `eloise.charged_shield_bash` | `holdRelease` | `aimedCharge` | `10 / 6 / 10` | stamina `550` | `24` | `secondaryWeapon` |
 | `eloise.shield_bash_auto_aim` | `tap` | `homing` | `8 / 6 / 8` | stamina `550` | `24` | `secondaryWeapon` |
 | `eloise.shield_riposte_guard` | `holdMaintain` | `none` | `2 / 180 / 2` | hold drain `700/s` | `30` | `secondaryWeapon` |
+| `eloise.shield_block` | `holdMaintain` | `none` | `2 / 180 / 2` | hold drain `700/s` | `30` | `secondaryWeapon` |
 
 ## Offensive Shield Abilities
 
@@ -46,13 +47,25 @@ Core units:
   - `16`: damage `1.30x`, `+10%` crit
 - `chargeMaxHoldTicks60: 150`
 
-## Defensive Shield Ability
+## Defensive Shield Abilities
 
 ### `eloise.shield_riposte_guard`
 
 - `holdMaintain` contract (`holdMode: holdToMaintain`)
 - Max active hold window authored as `180` ticks
 - Stamina drain while held: `700` per second
+- Incoming non-status hit mitigation: `5000` bp (`50%`)
+- Grants riposte bonus on first guarded hit per activation
+- No direct damage payload (`baseDamage: 0`, `SelfHitDelivery`)
+- Uses `AnimKey.shieldBlock`
+
+### `eloise.shield_block`
+
+- `holdMaintain` contract (`holdMode: holdToMaintain`)
+- Max active hold window authored as `180` ticks
+- Stamina drain while held: `700` per second
+- Incoming non-status hit mitigation: `10000` bp (`100%`)
+- Does not grant riposte bonus
 - No direct damage payload (`baseDamage: 0`, `SelfHitDelivery`)
 - Uses `AnimKey.shieldBlock`
 

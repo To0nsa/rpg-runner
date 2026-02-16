@@ -112,7 +112,7 @@ void main() {
   );
 
   test(
-    'hold-maintain homing tiered mobility resolves deterministic direction and commit tier from authoritative hold ticks',
+    'hold-maintain homing mobility resolves deterministic direction and commit tier from authoritative hold ticks',
     () {
       (int speedScaleBp, double dirX, double dirY) commitIntentForHoldTicks(
         int heldTicks,
@@ -134,7 +134,7 @@ void main() {
         );
         final player = _spawnPlayer(
           world,
-          abilityMobilityId: 'eloise.hold_auto_dash',
+          abilityMobilityId: 'test.mobility_hold_homing_tiered',
         );
         _spawnEnemy(world, x: 130, y: 140); // dx=30, dy=40
 
@@ -299,6 +299,44 @@ class _MobilityDirectionAbilities extends AbilityCatalog {
           recoveryTicks: 0,
           cooldownTicks: 0,
           animKey: AnimKey.dash,
+          baseDamage: 0,
+        );
+      case 'test.mobility_hold_homing_tiered':
+        return AbilityDef(
+          id: 'test.mobility_hold_homing_tiered',
+          category: AbilityCategory.mobility,
+          allowedSlots: {AbilitySlot.mobility},
+          targetingModel: TargetingModel.homing,
+          inputLifecycle: AbilityInputLifecycle.holdMaintain,
+          hitDelivery: SelfHitDelivery(),
+          windupTicks: 0,
+          activeTicks: 60,
+          recoveryTicks: 0,
+          defaultCost: AbilityResourceCost(staminaCost100: 240),
+          holdMode: AbilityHoldMode.holdToMaintain,
+          holdStaminaDrainPerSecond100: 120,
+          cooldownTicks: 120,
+          animKey: AnimKey.dash,
+          chargeProfile: AbilityChargeProfile(
+            tiers: <AbilityChargeTierDef>[
+              AbilityChargeTierDef(
+                minHoldTicks60: 0,
+                damageScaleBp: 10000,
+                speedScaleBp: 9000,
+              ),
+              AbilityChargeTierDef(
+                minHoldTicks60: 8,
+                damageScaleBp: 10000,
+                speedScaleBp: 10800,
+              ),
+              AbilityChargeTierDef(
+                minHoldTicks60: 16,
+                damageScaleBp: 10000,
+                speedScaleBp: 12400,
+              ),
+            ],
+          ),
+          chargeMaxHoldTicks60: 150,
           baseDamage: 0,
         );
       default:

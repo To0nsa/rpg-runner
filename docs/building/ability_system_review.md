@@ -31,13 +31,9 @@
     - `holdRelease` for non-aim hold-release abilities (for example `homing`)
   - Mobility commit no longer fails while aim is held.
   - Mobility direction resolution is now shared with melee/projectile targeting fallback policy.
-  - Mobility runtime now supports 2D dash vectors and charge-based speed scaling.
-  - Shared HUD charge preview now includes mobility tiered abilities (not `aimedCharge`-only).
+  - Mobility runtime now supports 2D dash vectors.
   - Added matrix-proof authored abilities:
     - `eloise.charged_sword_strike_auto_aim` (`homing + tiered`)
-    - `eloise.charged_aim_dash` (mobility charged aimed)
-    - `eloise.charged_auto_dash` (mobility charged auto-aim)
-    - `eloise.hold_auto_dash` (mobility holdMaintain + homing + tiered)
 
 ## Scope
 Review of the current ability system implementation across Core + Game layers, checked against

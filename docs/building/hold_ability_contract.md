@@ -8,6 +8,7 @@ This document defines the deterministic contract for hold-to-maintain abilities.
 - Current authored abilities:
   - `eloise.sword_riposte_guard`
   - `eloise.shield_riposte_guard`
+  - `eloise.shield_block`
 
 ## Authoring Contract
 
@@ -15,6 +16,8 @@ In `AbilityDef`:
 
 - `holdMode` controls whether an ability is maintainable after commit.
 - `holdStaminaDrainPerSecond100` defines stamina drain while held (`100 == 1.0/s`).
+- `damageIgnoredBp` defines incoming hit-damage mitigation while active
+  (`10000 == 100%`, `5000 == 50%`).
 - `activeTicks` remains authored at 60 Hz and is treated as the max hold window.
 - `chargeProfile` (optional) authors charged-commit tiers shared by melee and
   projectile paths using 60 Hz hold thresholds (`minHoldTicks60`) and per-tier
@@ -22,8 +25,21 @@ In `AbilityDef`:
 
 For the current defense holds:
 
-- Max hold: `180` ticks at 60 Hz (3 seconds).
-- Drain: `233` fixed/s (`~2.33 stamina/s`, `~7.0` over full hold).
+- `eloise.sword_riposte_guard`
+  - Max hold: `180` ticks at 60 Hz (3 seconds).
+  - Drain: `233` fixed/s (`~2.33 stamina/s`, `~7.0` over full hold).
+  - Mitigation: `5000` bp (50% incoming non-status hit damage ignored).
+  - Grants riposte on first guarded hit per activation.
+- `eloise.shield_riposte_guard`
+  - Max hold: `180` ticks at 60 Hz (3 seconds).
+  - Drain: `700` fixed/s (`~7.0 stamina/s`, `~21.0` over full hold).
+  - Mitigation: `5000` bp (50% incoming non-status hit damage ignored).
+  - Grants riposte on first guarded hit per activation.
+- `eloise.shield_block`
+  - Max hold: `180` ticks at 60 Hz (3 seconds).
+  - Drain: `700` fixed/s (`~7.0 stamina/s`, `~21.0` over full hold).
+  - Mitigation: `10000` bp (100% incoming non-status hit damage ignored).
+  - Does not grant riposte.
 
 ## Input Contract
 

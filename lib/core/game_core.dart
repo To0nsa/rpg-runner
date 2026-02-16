@@ -469,6 +469,7 @@ class GameCore {
           abilityIds: const <AbilityKey>{
             'eloise.sword_riposte_guard',
             'eloise.shield_riposte_guard',
+            'eloise.shield_block',
           },
         ),
       ],

@@ -338,6 +338,8 @@ class AbilityDef {
     required this.recoveryTicks,
     this.holdMode = AbilityHoldMode.none,
     this.holdStaminaDrainPerSecond100 = 0,
+    this.damageIgnoredBp = 0,
+    this.grantsRiposteOnGuardedHit = false,
     this.chargeProfile,
     this.chargeMaxHoldTicks60 = 0,
     this.defaultCost = AbilityResourceCost.zero,
@@ -358,8 +360,9 @@ class AbilityDef {
              costProfileByWeaponType,
            ),
        requiredWeaponTypes = Set<WeaponType>.unmodifiable(requiredWeaponTypes),
-       forcedInterruptCauses =
-           Set<ForcedInterruptCause>.unmodifiable(forcedInterruptCauses),
+       forcedInterruptCauses = Set<ForcedInterruptCause>.unmodifiable(
+         forcedInterruptCauses,
+       ),
        assert(id != '', 'Ability id cannot be empty.'),
        assert(
          windupTicks >= 0 && activeTicks >= 0 && recoveryTicks >= 0,
@@ -369,6 +372,10 @@ class AbilityDef {
        assert(
          holdStaminaDrainPerSecond100 >= 0,
          'Hold stamina drain cannot be negative',
+       ),
+       assert(
+         damageIgnoredBp >= 0 && damageIgnoredBp <= 10000,
+         'Damage ignored bp must be in range [0, 10000].',
        ),
        assert(
          holdMode != AbilityHoldMode.none || holdStaminaDrainPerSecond100 == 0,
@@ -456,6 +463,19 @@ class AbilityDef {
   ///
   /// `100 == 1.0 stamina/second`.
   final int holdStaminaDrainPerSecond100;
+
+  /// Incoming hit damage ignored while this ability is active.
+  ///
+  /// Basis points: `10000 == 100%` (full ignore), `5000 == 50%`.
+  /// This is consumed by combat middleware and is intentionally ability-authored
+  /// so defensive abilities can tune mitigation independently.
+  final int damageIgnoredBp;
+
+  /// Whether a guarded hit during this ability grants the one-shot riposte buff.
+  ///
+  /// This is intentionally independent from [damageIgnoredBp] so designers can
+  /// author "pure block" abilities (full mitigation, no riposte reward).
+  final bool grantsRiposteOnGuardedHit;
 
   /// Cooldown duration in ticks.
   final int cooldownTicks;

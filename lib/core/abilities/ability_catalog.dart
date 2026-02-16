@@ -28,8 +28,8 @@ class AbilityCatalog implements AbilityResolver {
   ///
   /// Keys should remain stable because they are referenced by loadouts, tests,
   /// and persisted run/telemetry data.
-  static final Map<AbilityKey, AbilityDef> abilities =
-      Map<AbilityKey, AbilityDef>.unmodifiable(<AbilityKey, AbilityDef>{
+  static final Map<AbilityKey, AbilityDef>
+  abilities = Map<AbilityKey, AbilityDef>.unmodifiable(<AbilityKey, AbilityDef>{
     // ------------------------------------------------------------------------
     // COMMON SYSTEM ABILITIES
     // ------------------------------------------------------------------------
@@ -249,13 +249,13 @@ class AbilityCatalog implements AbilityResolver {
       category: AbilityCategory.defense,
       allowedSlots: {AbilitySlot.primary},
       inputLifecycle: AbilityInputLifecycle.holdMaintain,
-      // Hold defense up to 3s at 60Hz.
       windupTicks: 2,
       activeTicks: 180,
       recoveryTicks: 2,
       holdMode: AbilityHoldMode.holdToMaintain,
-      // Full 3s hold spends ~21.0 stamina.
       holdStaminaDrainPerSecond100: 700,
+      damageIgnoredBp: 5000,
+      grantsRiposteOnGuardedHit: true,
       cooldownTicks: 30, // 0.50s
       animKey: AnimKey.parry,
       requiredWeaponTypes: {WeaponType.oneHandedSword},
@@ -383,20 +383,36 @@ class AbilityCatalog implements AbilityResolver {
       id: 'eloise.shield_riposte_guard',
       category: AbilityCategory.defense,
       allowedSlots: {AbilitySlot.secondary},
-      targetingModel: TargetingModel.none,
       inputLifecycle: AbilityInputLifecycle.holdMaintain,
-      hitDelivery: SelfHitDelivery(),
-      // Match primary Riposte Guard exactly (only required weapon differs).
       windupTicks: 2,
       activeTicks: 180,
       recoveryTicks: 2,
       holdMode: AbilityHoldMode.holdToMaintain,
       holdStaminaDrainPerSecond100: 700,
+      damageIgnoredBp: 5000,
+      grantsRiposteOnGuardedHit: true,
       cooldownTicks: 30,
       animKey: AnimKey.shieldBlock,
       requiredWeaponTypes: {WeaponType.shield},
       payloadSource: AbilityPayloadSource.secondaryWeapon,
-      baseDamage: 0,
+    ),
+
+    'eloise.shield_block': AbilityDef(
+      id: 'eloise.shield_block',
+      category: AbilityCategory.defense,
+      allowedSlots: {AbilitySlot.secondary},
+      inputLifecycle: AbilityInputLifecycle.holdMaintain,
+      windupTicks: 2,
+      activeTicks: 180,
+      recoveryTicks: 2,
+      holdMode: AbilityHoldMode.holdToMaintain,
+      holdStaminaDrainPerSecond100: 700,
+      damageIgnoredBp: 10000,
+      grantsRiposteOnGuardedHit: false,
+      cooldownTicks: 30,
+      animKey: AnimKey.shieldBlock,
+      requiredWeaponTypes: {WeaponType.shield},
+      payloadSource: AbilityPayloadSource.secondaryWeapon,
     ),
 
     // ------------------------------------------------------------------------
@@ -638,124 +654,12 @@ class AbilityCatalog implements AbilityResolver {
       allowedSlots: {AbilitySlot.mobility},
       targetingModel: TargetingModel.directional,
       inputLifecycle: AbilityInputLifecycle.tap,
-      hitDelivery: SelfHitDelivery(),
-      // 4 frames @ 0.05s = 0.20s -> 12 ticks
-      // Cooldown 2.0s -> 120 ticks
-      // Cost 2.0 -> 200
       windupTicks: 0,
       activeTicks: 12,
       recoveryTicks: 0,
       defaultCost: AbilityResourceCost(staminaCost100: 200),
       cooldownTicks: 120,
       animKey: AnimKey.dash,
-      baseDamage: 0,
-    ),
-    'eloise.charged_aim_dash': AbilityDef(
-      id: 'eloise.charged_aim_dash',
-      category: AbilityCategory.mobility,
-      allowedSlots: {AbilitySlot.mobility},
-      targetingModel: TargetingModel.aimedCharge,
-      inputLifecycle: AbilityInputLifecycle.holdRelease,
-      hitDelivery: SelfHitDelivery(),
-      windupTicks: 0,
-      activeTicks: 12,
-      recoveryTicks: 0,
-      defaultCost: AbilityResourceCost(staminaCost100: 225),
-      cooldownTicks: 120,
-      animKey: AnimKey.dash,
-      chargeProfile: AbilityChargeProfile(
-        tiers: <AbilityChargeTierDef>[
-          AbilityChargeTierDef(
-            minHoldTicks60: 0,
-            damageScaleBp: 10000,
-            speedScaleBp: 9000,
-          ),
-          AbilityChargeTierDef(
-            minHoldTicks60: 8,
-            damageScaleBp: 10000,
-            speedScaleBp: 11000,
-          ),
-          AbilityChargeTierDef(
-            minHoldTicks60: 16,
-            damageScaleBp: 10000,
-            speedScaleBp: 12800,
-          ),
-        ],
-      ),
-      chargeMaxHoldTicks60: 150,
-      baseDamage: 0,
-    ),
-    'eloise.charged_auto_dash': AbilityDef(
-      id: 'eloise.charged_auto_dash',
-      category: AbilityCategory.mobility,
-      allowedSlots: {AbilitySlot.mobility},
-      targetingModel: TargetingModel.homing,
-      inputLifecycle: AbilityInputLifecycle.holdRelease,
-      hitDelivery: SelfHitDelivery(),
-      windupTicks: 0,
-      activeTicks: 12,
-      recoveryTicks: 0,
-      defaultCost: AbilityResourceCost(staminaCost100: 240),
-      cooldownTicks: 120,
-      animKey: AnimKey.dash,
-      chargeProfile: AbilityChargeProfile(
-        tiers: <AbilityChargeTierDef>[
-          AbilityChargeTierDef(
-            minHoldTicks60: 0,
-            damageScaleBp: 10000,
-            speedScaleBp: 8800,
-          ),
-          AbilityChargeTierDef(
-            minHoldTicks60: 8,
-            damageScaleBp: 10000,
-            speedScaleBp: 10600,
-          ),
-          AbilityChargeTierDef(
-            minHoldTicks60: 16,
-            damageScaleBp: 10000,
-            speedScaleBp: 12300,
-          ),
-        ],
-      ),
-      chargeMaxHoldTicks60: 150,
-      baseDamage: 0,
-    ),
-    'eloise.hold_auto_dash': AbilityDef(
-      id: 'eloise.hold_auto_dash',
-      category: AbilityCategory.mobility,
-      allowedSlots: {AbilitySlot.mobility},
-      targetingModel: TargetingModel.homing,
-      inputLifecycle: AbilityInputLifecycle.holdMaintain,
-      hitDelivery: SelfHitDelivery(),
-      windupTicks: 0,
-      activeTicks: 60,
-      recoveryTicks: 0,
-      defaultCost: AbilityResourceCost(staminaCost100: 240),
-      holdMode: AbilityHoldMode.holdToMaintain,
-      holdStaminaDrainPerSecond100: 120,
-      cooldownTicks: 120,
-      animKey: AnimKey.dash,
-      chargeProfile: AbilityChargeProfile(
-        tiers: <AbilityChargeTierDef>[
-          AbilityChargeTierDef(
-            minHoldTicks60: 0,
-            damageScaleBp: 10000,
-            speedScaleBp: 9000,
-          ),
-          AbilityChargeTierDef(
-            minHoldTicks60: 8,
-            damageScaleBp: 10000,
-            speedScaleBp: 10800,
-          ),
-          AbilityChargeTierDef(
-            minHoldTicks60: 16,
-            damageScaleBp: 10000,
-            speedScaleBp: 12400,
-          ),
-        ],
-      ),
-      chargeMaxHoldTicks60: 150,
-      baseDamage: 0,
     ),
 
     'eloise.roll': AbilityDef(

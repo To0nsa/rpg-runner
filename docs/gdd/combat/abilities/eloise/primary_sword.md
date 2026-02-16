@@ -61,6 +61,8 @@ Core units:
 - `holdMaintain` contract (`holdMode: holdToMaintain`)
 - Max active hold window authored as `180` ticks
 - Stamina drain while held: `233` per second
+- Incoming non-status hit mitigation: `5000` bp (`50%`)
+- Grants riposte bonus on first guarded hit per activation
 - No direct damage payload (`baseDamage: 0`, `SelfHitDelivery`)
 - Uses `AnimKey.parry`
 

@@ -66,42 +66,6 @@ void main() {
     expect(hud.mobilityInputMode, AbilityInputMode.tap);
   });
 
-  test('snapshot exposes hold-aim-release for charged aimed mobility', () {
-    final core = GameCore(
-      seed: 1,
-      equippedLoadoutOverride: const EquippedLoadoutDef(
-        abilityMobilityId: 'eloise.charged_aim_dash',
-      ),
-    );
-
-    final hud = core.buildSnapshot().hud;
-    expect(hud.mobilityInputMode, AbilityInputMode.holdAimRelease);
-  });
-
-  test('snapshot exposes hold-release for charged homing mobility', () {
-    final core = GameCore(
-      seed: 1,
-      equippedLoadoutOverride: const EquippedLoadoutDef(
-        abilityMobilityId: 'eloise.charged_auto_dash',
-      ),
-    );
-
-    final hud = core.buildSnapshot().hud;
-    expect(hud.mobilityInputMode, AbilityInputMode.holdRelease);
-  });
-
-  test('snapshot exposes hold-maintain mode for hold auto-aim mobility', () {
-    final core = GameCore(
-      seed: 1,
-      equippedLoadoutOverride: const EquippedLoadoutDef(
-        abilityMobilityId: 'eloise.hold_auto_dash',
-      ),
-    );
-
-    final hud = core.buildSnapshot().hud;
-    expect(hud.mobilityInputMode, AbilityInputMode.holdMaintain);
-  });
-
   test(
     'all authored tiered homing hold-release abilities use non-directional hold-release mode',
     () {

@@ -58,13 +58,13 @@ void main() {
     });
 
     test(
-      'tiered homing melee and charged aimed mobility are valid in authored slots',
+      'tiered homing melee and dash mobility are valid in authored slots',
       () {
         const loadout = EquippedLoadoutDef(
           mainWeaponId: WeaponId.woodenSword,
           offhandWeaponId: WeaponId.woodenShield,
           abilityPrimaryId: 'eloise.charged_sword_strike_auto_aim',
-          abilityMobilityId: 'eloise.charged_aim_dash',
+          abilityMobilityId: 'eloise.dash',
         );
 
         final result = validator.validate(loadout);
@@ -73,20 +73,17 @@ void main() {
       },
     );
 
-    test(
-      'hold-maintain homing tiered mobility is valid in authored mobility slot',
-      () {
-        const loadout = EquippedLoadoutDef(
-          mainWeaponId: WeaponId.woodenSword,
-          offhandWeaponId: WeaponId.woodenShield,
-          abilityMobilityId: 'eloise.hold_auto_dash',
-        );
+    test('roll mobility is valid in authored mobility slot', () {
+      const loadout = EquippedLoadoutDef(
+        mainWeaponId: WeaponId.woodenSword,
+        offhandWeaponId: WeaponId.woodenShield,
+        abilityMobilityId: 'eloise.roll',
+      );
 
-        final result = validator.validate(loadout);
-        expect(result.isValid, isTrue, reason: 'Issues: ${result.issues}');
-        expect(result.issues, isEmpty);
-      },
-    );
+      final result = validator.validate(loadout);
+      expect(result.isValid, isTrue, reason: 'Issues: ${result.issues}');
+      expect(result.issues, isEmpty);
+    });
 
     test('quick throw is valid when projectile slot spell is selected', () {
       const loadout = EquippedLoadoutDef(

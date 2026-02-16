@@ -17,7 +17,91 @@ import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 
 void main() {
-  test('ParryMiddleware cancels hits and grants riposte once per activation', () {
+  test(
+    'ParryMiddleware mitigates hits and grants riposte once per activation',
+    () {
+      final world = EcsWorld();
+      final player = EntityFactory(world).createPlayer(
+        posX: 0,
+        posY: 0,
+        velX: 0,
+        velY: 0,
+        facing: Facing.right,
+        grounded: true,
+        body: const BodyDef(isKinematic: true, useGravity: false),
+        collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+        health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+        mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+        stamina: const StaminaDef(
+          stamina: 0,
+          staminaMax: 0,
+          regenPerSecond100: 0,
+        ),
+      );
+
+      final enemy = world.createEntity();
+      world.health.add(
+        enemy,
+        const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+      );
+
+      world.activeAbility.set(
+        player,
+        id: 'eloise.sword_riposte_guard',
+        slot: AbilitySlot.primary,
+        commitTick: 10,
+        windupTicks: 2,
+        activeTicks: 18,
+        recoveryTicks: 2,
+        facingDir: Facing.right,
+      );
+
+      final phaseSystem = ActiveAbilityPhaseSystem();
+      phaseSystem.step(world, currentTick: 12);
+
+      world.damageQueue.add(
+        DamageRequest(
+          target: player,
+          amount100: 1000,
+          source: enemy,
+          sourceKind: DeathSourceKind.meleeHitbox,
+        ),
+      );
+      world.damageQueue.add(
+        DamageRequest(
+          target: player,
+          amount100: 500,
+          source: enemy,
+          sourceKind: DeathSourceKind.meleeHitbox,
+        ),
+      );
+
+      final middleware = DamageMiddlewareSystem(
+        middlewares: [
+          ParryMiddleware(
+            abilityIds: const <AbilityKey>{'eloise.sword_riposte_guard'},
+            riposteBonusBp: 1234,
+            riposteLifetimeTicks: 7,
+          ),
+        ],
+      );
+      middleware.step(world, currentTick: 12);
+
+      expect(world.damageQueue.length, equals(2));
+      expect(world.damageQueue.flags[0] & DamageQueueFlags.canceled, equals(0));
+      expect(world.damageQueue.flags[1] & DamageQueueFlags.canceled, equals(0));
+      expect(world.damageQueue.amount100[0], equals(500));
+      expect(world.damageQueue.amount100[1], equals(250));
+      expect(world.parryConsume.consumedStartTick.single, equals(10));
+
+      expect(world.riposte.has(player), isTrue);
+      final ri = world.riposte.indexOf(player);
+      expect(world.riposte.bonusBp[ri], equals(1234));
+      expect(world.riposte.expiresTick[ri], equals(12 + 7));
+    },
+  );
+
+  test('Shield block can fully block damage without granting riposte', () {
     final world = EcsWorld();
     final player = EntityFactory(world).createPlayer(
       posX: 0,
@@ -30,7 +114,11 @@ void main() {
       collider: const ColliderAabbDef(halfX: 8, halfY: 8),
       health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
       mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
-      stamina: const StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
     );
 
     final enemy = world.createEntity();
@@ -41,8 +129,8 @@ void main() {
 
     world.activeAbility.set(
       player,
-      id: 'eloise.sword_riposte_guard',
-      slot: AbilitySlot.primary,
+      id: 'eloise.shield_block',
+      slot: AbilitySlot.secondary,
       commitTick: 10,
       windupTicks: 2,
       activeTicks: 18,
@@ -61,19 +149,11 @@ void main() {
         sourceKind: DeathSourceKind.meleeHitbox,
       ),
     );
-    world.damageQueue.add(
-      DamageRequest(
-        target: player,
-        amount100: 500,
-        source: enemy,
-        sourceKind: DeathSourceKind.meleeHitbox,
-      ),
-    );
 
     final middleware = DamageMiddlewareSystem(
       middlewares: [
         ParryMiddleware(
-          abilityIds: const <AbilityKey>{'eloise.sword_riposte_guard'},
+          abilityIds: const <AbilityKey>{'eloise.shield_block'},
           riposteBonusBp: 1234,
           riposteLifetimeTicks: 7,
         ),
@@ -81,14 +161,9 @@ void main() {
     );
     middleware.step(world, currentTick: 12);
 
-    expect(world.damageQueue.length, equals(2));
+    expect(world.damageQueue.length, equals(1));
     expect(world.damageQueue.flags[0] & DamageQueueFlags.canceled, equals(1));
-    expect(world.damageQueue.flags[1] & DamageQueueFlags.canceled, equals(1));
-    expect(world.parryConsume.consumedStartTick.single, equals(10));
-
-    expect(world.riposte.has(player), isTrue);
-    final ri = world.riposte.indexOf(player);
-    expect(world.riposte.bonusBp[ri], equals(1234));
-    expect(world.riposte.expiresTick[ri], equals(12 + 7));
+    expect(world.riposte.has(player), isFalse);
+    expect(world.parryConsume.denseEntities, isEmpty);
   });
 }

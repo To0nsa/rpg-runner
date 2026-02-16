@@ -540,17 +540,11 @@ void main() {
         loadoutSlotMask: LoadoutSlotMask.all,
         seedAim: (input) => input.setAimDir(1, 0),
       );
-
-      expectSharedPreview(
-        slot: AbilitySlot.mobility,
-        abilityMobilityId: 'eloise.charged_aim_dash',
-        seedAim: (input) => input.setAimDir(0, -1),
-      );
     },
   );
 
   test(
-    'mobility charged tier derives from authoritative held ticks on release commit',
+    'mobility tap ability does not scale with held ticks on release commit',
     () {
       double dashSpeedForHeldTicks(int heldTicks) {
         final base = PlayerCharacterRegistry.eloise;
@@ -561,7 +555,7 @@ void main() {
           playerCharacter: base.copyWith(
             catalog: testPlayerCatalog(
               bodyTemplate: BodyDef(useGravity: false),
-              abilityMobilityId: 'eloise.charged_aim_dash',
+              abilityMobilityId: 'eloise.dash',
             ),
           ),
         );
@@ -590,7 +584,7 @@ void main() {
       final shortHoldSpeed = dashSpeedForHeldTicks(0);
       final longHoldSpeed = dashSpeedForHeldTicks(20);
 
-      expect(longHoldSpeed, greaterThan(shortHoldSpeed));
+      expect(longHoldSpeed, closeTo(shortHoldSpeed, 1e-9));
     },
   );
 
