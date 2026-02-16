@@ -73,7 +73,7 @@ const int eloiseAnimDashFrames = 4;
 const double eloiseAnimDashStepSeconds = 0.05;
 
 const int eloiseAnimRollFrames = 10;
-const double eloiseAnimRollStepSeconds = 0.05;
+const double eloiseAnimRollStepSeconds = 0.01;
 
 const int eloiseAnimHitFrames = 4;
 const double eloiseAnimHitStepSeconds = 0.10;

@@ -6,6 +6,7 @@ import 'package:rpg_runner/core/combat/status/status.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/game_core.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
+import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
@@ -109,7 +110,9 @@ void main() {
       expect(projectiles.length, 1);
 
       final p = projectiles.single;
-      final expectedOffset = catalog.colliderMaxHalfExtent * 0.5;
+      final expectedOffset = const ProjectileCatalog()
+          .get(catalog.projectileId)
+          .originOffset;
       expect(p.pos.x, closeTo(playerPosX + expectedOffset, 1e-9));
       expect(p.pos.y, closeTo(playerPosY, 1e-9));
 
@@ -393,8 +396,10 @@ void main() {
         .first
         .magnitude;
     final expectedMana =
-        (beforeBonus.hud.mana + (20.0 * restoreAmountBp / 10000.0))
-            .clamp(0.0, 20.0);
+        (beforeBonus.hud.mana + (20.0 * restoreAmountBp / 10000.0)).clamp(
+          0.0,
+          20.0,
+        );
     expect(afterBonus.hud.mana, closeTo(expectedMana, 1e-9));
   });
 

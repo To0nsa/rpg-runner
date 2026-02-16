@@ -97,12 +97,12 @@ void main() {
     castSystem.step(world, player: player, currentTick: 2);
 
     final intentIndex = world.projectileIntent.indexOf(unocoDemon);
-    expect(world.projectileIntent.tick[intentIndex], equals(10)); // 2 + 8
-    expect(world.projectileIntent.windupTicks[intentIndex], equals(8));
-    expect(world.projectileIntent.recoveryTicks[intentIndex], equals(16));
+    expect(world.projectileIntent.tick[intentIndex], equals(14)); // 2 + 12
+    expect(world.projectileIntent.windupTicks[intentIndex], equals(12));
+    expect(world.projectileIntent.recoveryTicks[intentIndex], equals(24));
     expect(
       world.cooldown.getTicksLeft(unocoDemon, CooldownGroup.projectile),
-      equals(200),
+      equals(300),
     );
   });
 

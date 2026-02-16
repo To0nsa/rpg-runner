@@ -655,7 +655,7 @@ class AbilityCatalog implements AbilityResolver {
       targetingModel: TargetingModel.directional,
       inputLifecycle: AbilityInputLifecycle.tap,
       windupTicks: 0,
-      activeTicks: 12,
+      activeTicks: 15,
       recoveryTicks: 0,
       defaultCost: AbilityResourceCost(staminaCost100: 200),
       cooldownTicks: 120,
@@ -668,16 +668,16 @@ class AbilityCatalog implements AbilityResolver {
       allowedSlots: {AbilitySlot.mobility},
       targetingModel: TargetingModel.directional,
       inputLifecycle: AbilityInputLifecycle.tap,
-      hitDelivery: SelfHitDelivery(),
-      // 10 frames @ 0.05s = 0.50s -> 30 ticks
-      // Cost ~200? (Same as dash for now?)
-      windupTicks: 3,
-      activeTicks: 24,
-      recoveryTicks: 3,
+      windupTicks: 0,
+      activeTicks: 10,
+      recoveryTicks: 0,
       defaultCost: AbilityResourceCost(staminaCost100: 200),
       cooldownTicks: 120,
+      mobilityImpact: MobilityImpactDef(
+        hitPolicy: HitPolicy.oncePerTarget,
+        statusProfileId: StatusProfileId.stunOnHit,
+      ),
       animKey: AnimKey.roll,
-      baseDamage: 0,
     ),
   });
 

@@ -394,7 +394,7 @@ void main() {
     expect(world.health.hp[world.health.indexOf(target)], equals(8350));
   });
 
-  test('drench on-hit reduces action speed by 25% for 3 seconds', () {
+  test('drench on-hit reduces action speed by 50% for 5 seconds', () {
     final world = EcsWorld();
     final status = StatusSystem(tickHz: 60);
 
@@ -416,14 +416,14 @@ void main() {
 
     expect(world.drench.has(target), isTrue);
     final drenchIndex = world.drench.indexOf(target);
-    expect(world.drench.magnitude[drenchIndex], equals(2500));
-    expect(world.drench.ticksLeft[drenchIndex], equals(180));
+    expect(world.drench.magnitude[drenchIndex], equals(5000));
+    expect(world.drench.ticksLeft[drenchIndex], equals(300));
     expect(
       world.statModifier.actionSpeedBp[world.statModifier.indexOf(target)],
-      equals(7500),
+      equals(5000),
     );
 
-    for (var tick = 2; tick <= 181; tick += 1) {
+    for (var tick = 2; tick <= 301; tick += 1) {
       status.tickExisting(world);
       status.applyQueued(world, currentTick: tick);
     }

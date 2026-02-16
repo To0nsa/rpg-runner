@@ -138,6 +138,52 @@ class SelfHitDelivery extends HitDeliveryDef {
   const SelfHitDelivery();
 }
 
+/// Authored contact-impact payload for mobility abilities (dash/roll).
+///
+/// Effects are applied when the mobility user overlaps hostile targets during
+/// the active phase.
+class MobilityImpactDef {
+  const MobilityImpactDef({
+    this.hitPolicy = HitPolicy.oncePerTarget,
+    this.damage100 = 0,
+    this.critChanceBp = 0,
+    this.damageType = DamageType.physical,
+    this.procs = const <WeaponProc>[],
+    this.statusProfileId = StatusProfileId.none,
+  }) : assert(damage100 >= 0, 'mobility impact damage cannot be negative'),
+       assert(
+         critChanceBp >= 0 && critChanceBp <= 10000,
+         'mobility impact crit chance must be in range [0, 10000]',
+       );
+
+  /// Convenience "no contact effects" preset.
+  static const MobilityImpactDef none = MobilityImpactDef();
+
+  /// Delivery cadence during a single activation.
+  final HitPolicy hitPolicy;
+
+  /// Fixed-point contact damage (`100 == 1.0`).
+  final int damage100;
+
+  /// Crit chance in basis points (`10000 == 100%`).
+  final int critChanceBp;
+
+  /// Damage type used for queued contact damage and status scaling.
+  final DamageType damageType;
+
+  /// Optional on-hit procs for contact damage applications.
+  final List<WeaponProc> procs;
+
+  /// Optional direct status applied on contact (independent from damage).
+  final StatusProfileId statusProfileId;
+
+  /// True when this definition would produce at least one gameplay effect.
+  bool get hasAnyEffect =>
+      damage100 > 0 ||
+      procs.isNotEmpty ||
+      statusProfileId != StatusProfileId.none;
+}
+
 // --------------------------------------------------------------------------
 // CHARGE AUTHORING
 // --------------------------------------------------------------------------
@@ -340,6 +386,7 @@ class AbilityDef {
     this.holdStaminaDrainPerSecond100 = 0,
     this.damageIgnoredBp = 0,
     this.grantsRiposteOnGuardedHit = false,
+    this.mobilityImpact = MobilityImpactDef.none,
     this.chargeProfile,
     this.chargeMaxHoldTicks60 = 0,
     this.defaultCost = AbilityResourceCost.zero,
@@ -380,6 +427,14 @@ class AbilityDef {
        assert(
          holdMode != AbilityHoldMode.none || holdStaminaDrainPerSecond100 == 0,
          'Non-hold abilities must not define hold stamina drain.',
+       ),
+       assert(
+         category == AbilityCategory.mobility || !mobilityImpact.hasAnyEffect,
+         'Only mobility abilities may author mobilityImpact effects.',
+       ),
+       assert(
+         mobilityImpact.damage100 > 0 || mobilityImpact.procs.isEmpty,
+         'mobilityImpact procs require positive mobilityImpact damage.',
        ),
        assert(
          chargeMaxHoldTicks60 >= 0,
@@ -476,6 +531,9 @@ class AbilityDef {
   /// This is intentionally independent from [damageIgnoredBp] so designers can
   /// author "pure block" abilities (full mitigation, no riposte reward).
   final bool grantsRiposteOnGuardedHit;
+
+  /// Optional contact payload applied during active mobility overlaps.
+  final MobilityImpactDef mobilityImpact;
 
   /// Cooldown duration in ticks.
   final int cooldownTicks;

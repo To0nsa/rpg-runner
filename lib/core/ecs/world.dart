@@ -35,6 +35,7 @@ import 'stores/lifetime_store.dart';
 import 'stores/mana_store.dart';
 import 'stores/melee_intent_store.dart';
 import 'stores/mobility_intent_store.dart';
+import 'stores/mobility_impact_state_store.dart';
 import 'stores/player/movement_store.dart';
 import 'stores/player/player_input_store.dart';
 import 'stores/projectile_store.dart';
@@ -97,6 +98,10 @@ class EcsWorld {
 
   /// World-level damage request queue (shared across systems).
   final DamageQueueStore damageQueue = DamageQueueStore();
+
+  /// Mobility impact hit-policy tracker keyed by source entity + activation.
+  final MobilityImpactStateStore mobilityImpactState =
+      MobilityImpactStateStore();
 
   /// Parry consumption tracker (per activation).
   final ParryConsumeStore parryConsume = ParryConsumeStore();
@@ -324,6 +329,7 @@ class EcsWorld {
     for (final store in _stores) {
       store.removeEntity(entity);
     }
+    mobilityImpactState.removeEntity(entity);
     parryConsume.removeEntity(entity);
     _freeIds.add(entity);
     _freeIdsSet.add(entity);

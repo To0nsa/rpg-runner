@@ -141,7 +141,7 @@ void main() {
     expect(core.playerPosY, closeTo(floorY, 1e-9));
   });
 
-  test('roll mobility does not commit on vertical-only aim', () {
+  test('roll mobility commits vertical dash on vertical-only aim', () {
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
       seed: 1,
@@ -158,8 +158,8 @@ void main() {
     ]);
     core.stepOneTick();
 
-    expect(core.playerVelY.abs(), lessThan(1e-6));
     expect(core.playerVelX.abs(), lessThan(1e-6));
+    expect(core.playerVelY, lessThan(0));
   });
 
   test('jump spends stamina (2) when executed', () {

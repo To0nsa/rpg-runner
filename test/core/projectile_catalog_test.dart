@@ -139,11 +139,11 @@ void main() {
 
     expect(item.weaponType, WeaponType.projectileSpell);
     expect(item.damageType, DamageType.water);
-    expect(item.speedUnitsPerSecond, 500.0);
+    expect(item.speedUnitsPerSecond, 550.0);
     expect(item.lifetimeSeconds, 1.3);
     expect(item.colliderSizeX, 18.0);
     expect(item.colliderSizeY, 8.0);
-    expect(item.originOffset, 30.0);
+    expect(item.originOffset, 22.0);
     expect(item.ballistic, isFalse);
     expect(item.gravityScale, 1.0);
     expect(item.procs, hasLength(1));
@@ -154,8 +154,8 @@ void main() {
   test('waterBolt render metadata maps to wrapped sheet timing', () {
     final anim = const ProjectileRenderCatalog().get(ProjectileId.waterBolt);
 
-    expect(anim.frameWidth, 48);
-    expect(anim.frameHeight, 32);
+    expect(anim.frameWidth, 64);
+    expect(anim.frameHeight, 64);
 
     expect(
       anim.sourcesByKey[AnimKey.spawn],
@@ -186,7 +186,7 @@ void main() {
     expect(anim.frameCountsByKey[AnimKey.idle], 16);
     expect(anim.frameCountsByKey[AnimKey.hit], 15);
 
-    expect(anim.stepTimeSecondsByKey[AnimKey.spawn], closeTo(0.06, 1e-9));
+    expect(anim.stepTimeSecondsByKey[AnimKey.spawn], closeTo(0.01, 1e-9));
     expect(anim.stepTimeSecondsByKey[AnimKey.idle], closeTo(0.03, 1e-9));
     expect(anim.stepTimeSecondsByKey[AnimKey.hit], closeTo(0.03, 1e-9));
   });

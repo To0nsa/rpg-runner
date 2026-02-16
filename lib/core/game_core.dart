@@ -47,13 +47,14 @@
 /// 13. **Strike execution**: Spawn hitboxes/projectiles/self abilities.
 /// 14. **Hitbox positioning**: Follow owner entities.
 /// 15. **Hit resolution**: Detect overlaps, queue damage.
-/// 16. **Status ticking**: Apply DoT ticks and queue damage.
-/// 17. **Damage middleware**: Apply combat rule edits/cancellations.
-/// 18. **Damage application**: Apply queued damage, set invulnerability.
-/// 19. **Status application**: Apply on-hit status profiles.
-/// 20. **Death handling**: Despawn dead entities, record kills.
-/// 21. **Resource regen**: Regenerate mana/stamina.
-/// 22. **Lifetime cleanup**: Remove expired entities.
+/// 16. **Mobility impacts**: Apply overlap effects from active mobility.
+/// 17. **Status ticking**: Apply DoT ticks and queue damage.
+/// 18. **Damage middleware**: Apply combat rule edits/cancellations.
+/// 19. **Damage application**: Apply queued damage, set invulnerability.
+/// 20. **Status application**: Apply on-hit status profiles.
+/// 21. **Death handling**: Despawn dead entities, record kills.
+/// 22. **Resource regen**: Regenerate mana/stamina.
+/// 23. **Lifetime cleanup**: Remove expired entities.
 ///
 /// ## Determinism Contract
 ///
@@ -109,6 +110,7 @@ import 'ecs/systems/melee_strike_system.dart';
 import 'ecs/systems/ability_activation_system.dart';
 import 'ecs/systems/hold_ability_system.dart';
 import 'ecs/systems/mobility_system.dart';
+import 'ecs/systems/mobility_impact_system.dart';
 import 'ecs/systems/player_movement_system.dart';
 import 'ecs/systems/projectile_hit_system.dart';
 import 'ecs/systems/projectile_system.dart';
@@ -524,6 +526,7 @@ class GameCore {
       accessories: _accessories,
       statsCache: _resolvedStatsCache,
     );
+    _mobilityImpactSystem = MobilityImpactSystem(abilities: abilityCatalog);
     _hitboxDamageSystem = HitboxDamageSystem();
 
     // Pickup systems.
@@ -806,6 +809,7 @@ class GameCore {
   late final MeleeStrikeSystem _meleeStrikeSystem;
   late final ProjectileLaunchSystem _projectileLaunchSystem;
   late final HitboxDamageSystem _hitboxDamageSystem;
+  late final MobilityImpactSystem _mobilityImpactSystem;
   late final ResourceRegenSystem _resourceRegenSystem;
   late final AnimSystem _animSystem;
   late final EnemyCullSystem _enemyCullSystem;
@@ -1048,14 +1052,15 @@ class GameCore {
   /// 15. **Strike execution**: Spawn hitboxes/projectiles/self abilities from intents.
   /// 16. **Hitbox positioning**: Update hitbox positions from owners.
   /// 17. **Hit detection**: Check projectile and hitbox overlaps.
-  /// 18. **Status ticking**: Apply DoT ticks and queue damage.
-  /// 19. **Damage middleware**: Apply combat rule edits/cancellations.
-  /// 20. **Damage application**: Apply queued damage events.
-  /// 21. **Status application**: Apply on-hit status profiles.
-  /// 22. **Death handling**: Despawn dead entities, record kills.
-  /// 23. **Resource regen**: Regenerate mana and stamina.
-  /// 24. **Animation**: Compute per-entity anim key + frame.
-  /// 25. **Cleanup**: Remove entities past their lifetime.
+  /// 18. **Mobility impacts**: Apply overlap effects from active mobility.
+  /// 19. **Status ticking**: Apply DoT ticks and queue damage.
+  /// 20. **Damage middleware**: Apply combat rule edits/cancellations.
+  /// 21. **Damage application**: Apply queued damage events.
+  /// 22. **Status application**: Apply on-hit status profiles.
+  /// 23. **Death handling**: Despawn dead entities, record kills.
+  /// 24. **Resource regen**: Regenerate mana and stamina.
+  /// 25. **Animation**: Compute per-entity anim key + frame.
+  /// 26. **Cleanup**: Remove entities past their lifetime.
   ///
   /// If the run ends during this tick (player death, fell into gap, etc.),
   /// a [RunEndedEvent] is emitted and the simulation freezes.
@@ -1214,7 +1219,7 @@ class GameCore {
     // Update hitbox transforms to follow their owner entities.
     _hitboxFollowOwnerSystem.step(_world);
 
-    // ─── Phase 12: Hit resolution ───
+    // ─── Phase 12: Hit resolution + mobility impacts ───
     // Detect overlaps and queue damage events.
     _projectileHitSystem.step(
       _world,
@@ -1223,6 +1228,12 @@ class GameCore {
       queueHitEvent: (event) => _events.add(event),
     );
     _hitboxDamageSystem.step(_world, _broadphaseGrid, currentTick: tick);
+    _mobilityImpactSystem.step(
+      _world,
+      _broadphaseGrid,
+      currentTick: tick,
+      queueStatus: _statusSystem.queue,
+    );
     _projectileWorldCollisionSystem.step(_world);
     // ─── Phase 13: Status + damage ───
     _statusSystem.tickExisting(_world);
