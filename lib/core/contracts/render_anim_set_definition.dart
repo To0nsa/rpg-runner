@@ -13,6 +13,7 @@ class RenderAnimSetDefinition {
     this.rowByKey = const <AnimKey, int>{},
     this.anchorInFramePx,
     this.frameStartByKey = const <AnimKey, int>{},
+    this.gridColumnsByKey = const <AnimKey, int>{},
     required this.frameCountsByKey,
     required this.stepTimeSecondsByKey,
   });
@@ -47,6 +48,12 @@ class RenderAnimSetDefinition {
   /// Defaults to 0 (start of the strip). Use this when multiple animations
   /// share a single horizontal strip but start at different frame indices.
   final Map<AnimKey, int> frameStartByKey;
+
+  /// Optional sheet column count per [AnimKey] for row-wrapped animations.
+  ///
+  /// When present for a key, [frameStartByKey] is treated as a start column and
+  /// frame sampling wraps to following rows using this column count.
+  final Map<AnimKey, int> gridColumnsByKey;
 
   final Map<AnimKey, int> frameCountsByKey;
   final Map<AnimKey, double> stepTimeSecondsByKey;

@@ -133,4 +133,61 @@ void main() {
     expect(anim.stepTimeSecondsByKey[AnimKey.idle], closeTo(0.06, 1e-9));
     expect(anim.stepTimeSecondsByKey[AnimKey.hit], closeTo(0.06, 1e-9));
   });
+
+  test('waterBolt gameplay metadata matches core tuning', () {
+    final item = const ProjectileCatalog().get(ProjectileId.waterBolt);
+
+    expect(item.weaponType, WeaponType.projectileSpell);
+    expect(item.damageType, DamageType.water);
+    expect(item.speedUnitsPerSecond, 500.0);
+    expect(item.lifetimeSeconds, 1.3);
+    expect(item.colliderSizeX, 18.0);
+    expect(item.colliderSizeY, 8.0);
+    expect(item.originOffset, 30.0);
+    expect(item.ballistic, isFalse);
+    expect(item.gravityScale, 1.0);
+    expect(item.procs, hasLength(1));
+    expect(item.procs.single.statusProfileId, StatusProfileId.drenchOnHit);
+    expect(item.procs.single.chanceBp, 10000);
+  });
+
+  test('waterBolt render metadata maps to wrapped sheet timing', () {
+    final anim = const ProjectileRenderCatalog().get(ProjectileId.waterBolt);
+
+    expect(anim.frameWidth, 48);
+    expect(anim.frameHeight, 32);
+
+    expect(
+      anim.sourcesByKey[AnimKey.spawn],
+      'entities/spells/water/bolt/start_and_repeatable.png',
+    );
+    expect(
+      anim.sourcesByKey[AnimKey.idle],
+      'entities/spells/water/bolt/start_and_repeatable.png',
+    );
+    expect(
+      anim.sourcesByKey[AnimKey.hit],
+      'entities/spells/water/bolt/hit.png',
+    );
+
+    expect(anim.rowByKey[AnimKey.spawn], 0);
+    expect(anim.rowByKey[AnimKey.idle], 1);
+    expect(anim.rowByKey[AnimKey.hit], 0);
+
+    expect(anim.frameStartByKey[AnimKey.spawn], 0);
+    expect(anim.frameStartByKey[AnimKey.idle], 0);
+    expect(anim.frameStartByKey[AnimKey.hit], 0);
+
+    expect(anim.gridColumnsByKey[AnimKey.spawn], 5);
+    expect(anim.gridColumnsByKey[AnimKey.idle], 5);
+    expect(anim.gridColumnsByKey[AnimKey.hit], 4);
+
+    expect(anim.frameCountsByKey[AnimKey.spawn], 5);
+    expect(anim.frameCountsByKey[AnimKey.idle], 16);
+    expect(anim.frameCountsByKey[AnimKey.hit], 15);
+
+    expect(anim.stepTimeSecondsByKey[AnimKey.spawn], closeTo(0.06, 1e-9));
+    expect(anim.stepTimeSecondsByKey[AnimKey.idle], closeTo(0.03, 1e-9));
+    expect(anim.stepTimeSecondsByKey[AnimKey.hit], closeTo(0.03, 1e-9));
+  });
 }

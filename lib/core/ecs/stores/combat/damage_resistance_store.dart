@@ -7,6 +7,7 @@ class DamageResistanceDef {
     this.physicalBp = 0,
     this.fireBp = 0,
     this.iceBp = 0,
+    this.waterBp = 0,
     this.thunderBp = 0,
     this.acidBp = 0,
     this.darkBp = 0,
@@ -19,6 +20,7 @@ class DamageResistanceDef {
   final int physicalBp;
   final int fireBp;
   final int iceBp;
+  final int waterBp;
   final int thunderBp;
   final int acidBp;
   final int darkBp;
@@ -34,6 +36,8 @@ class DamageResistanceDef {
         return fireBp;
       case DamageType.ice:
         return iceBp;
+      case DamageType.water:
+        return waterBp;
       case DamageType.thunder:
         return thunderBp;
       case DamageType.acid:
@@ -56,6 +60,7 @@ class DamageResistanceStore extends SparseSet {
   final List<int> physicalBp = <int>[];
   final List<int> fireBp = <int>[];
   final List<int> iceBp = <int>[];
+  final List<int> waterBp = <int>[];
   final List<int> thunderBp = <int>[];
   final List<int> acidBp = <int>[];
   final List<int> darkBp = <int>[];
@@ -71,6 +76,7 @@ class DamageResistanceStore extends SparseSet {
     physicalBp[i] = def.physicalBp;
     fireBp[i] = def.fireBp;
     iceBp[i] = def.iceBp;
+    waterBp[i] = def.waterBp;
     thunderBp[i] = def.thunderBp;
     acidBp[i] = def.acidBp;
     darkBp[i] = def.darkBp;
@@ -93,6 +99,8 @@ class DamageResistanceStore extends SparseSet {
         return fireBp[index];
       case DamageType.ice:
         return iceBp[index];
+      case DamageType.water:
+        return waterBp[index];
       case DamageType.thunder:
         return thunderBp[index];
       case DamageType.acid:
@@ -113,6 +121,7 @@ class DamageResistanceStore extends SparseSet {
     physicalBp.add(0);
     fireBp.add(0);
     iceBp.add(0);
+    waterBp.add(0);
     thunderBp.add(0);
     acidBp.add(0);
     darkBp.add(0);
@@ -126,6 +135,7 @@ class DamageResistanceStore extends SparseSet {
     physicalBp[removeIndex] = physicalBp[lastIndex];
     fireBp[removeIndex] = fireBp[lastIndex];
     iceBp[removeIndex] = iceBp[lastIndex];
+    waterBp[removeIndex] = waterBp[lastIndex];
     thunderBp[removeIndex] = thunderBp[lastIndex];
     acidBp[removeIndex] = acidBp[lastIndex];
     darkBp[removeIndex] = darkBp[lastIndex];
@@ -136,6 +146,7 @@ class DamageResistanceStore extends SparseSet {
     physicalBp.removeLast();
     fireBp.removeLast();
     iceBp.removeLast();
+    waterBp.removeLast();
     thunderBp.removeLast();
     acidBp.removeLast();
     darkBp.removeLast();

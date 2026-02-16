@@ -316,6 +316,68 @@ const RenderAnimSetDefinition _holyBoltRenderAnim = RenderAnimSetDefinition(
 );
 
 // -----------------------------------------------------------------------------
+// Water Bolt render animation strip definitions (authoring-time)
+// -----------------------------------------------------------------------------
+
+const int _waterBoltFrameWidth = 64;
+const int _waterBoltFrameHeight = 64;
+
+const int _waterBoltSpawnFrames = 5;
+const int _waterBoltIdleFrames = 16;
+const int _waterBoltHitFrames = 15;
+
+const double _waterBoltSpawnStepSeconds = 0.01;
+const double _waterBoltIdleStepSeconds = 0.03;
+const double _waterBoltHitStepSeconds = 0.03;
+
+const Map<AnimKey, int> _waterBoltFrameCountsByKey = <AnimKey, int>{
+  AnimKey.spawn: _waterBoltSpawnFrames,
+  AnimKey.idle: _waterBoltIdleFrames,
+  AnimKey.hit: _waterBoltHitFrames,
+};
+
+const Map<AnimKey, int> _waterBoltRowByKey = <AnimKey, int>{
+  AnimKey.spawn: 0,
+  AnimKey.idle: 1,
+  AnimKey.hit: 0,
+};
+
+const Map<AnimKey, int> _waterBoltFrameStartByKey = <AnimKey, int>{
+  AnimKey.spawn: 0,
+  AnimKey.idle: 0,
+  AnimKey.hit: 0,
+};
+
+const Map<AnimKey, int> _waterBoltGridColumnsByKey = <AnimKey, int>{
+  AnimKey.spawn: 5,
+  AnimKey.idle: 5,
+  AnimKey.hit: 4,
+};
+
+const Map<AnimKey, double> _waterBoltStepTimeSecondsByKey = <AnimKey, double>{
+  AnimKey.spawn: _waterBoltSpawnStepSeconds,
+  AnimKey.idle: _waterBoltIdleStepSeconds,
+  AnimKey.hit: _waterBoltHitStepSeconds,
+};
+
+const Map<AnimKey, String> _waterBoltSourcesByKey = <AnimKey, String>{
+  AnimKey.spawn: 'entities/spells/water/bolt/start_and_repeatable.png',
+  AnimKey.idle: 'entities/spells/water/bolt/start_and_repeatable.png',
+  AnimKey.hit: 'entities/spells/water/bolt/hit.png',
+};
+
+const RenderAnimSetDefinition _waterBoltRenderAnim = RenderAnimSetDefinition(
+  frameWidth: _waterBoltFrameWidth,
+  frameHeight: _waterBoltFrameHeight,
+  sourcesByKey: _waterBoltSourcesByKey,
+  rowByKey: _waterBoltRowByKey,
+  frameStartByKey: _waterBoltFrameStartByKey,
+  gridColumnsByKey: _waterBoltGridColumnsByKey,
+  frameCountsByKey: _waterBoltFrameCountsByKey,
+  stepTimeSecondsByKey: _waterBoltStepTimeSecondsByKey,
+);
+
+// -----------------------------------------------------------------------------
 // Throwing Axe render animation strip definitions (authoring-time)
 // -----------------------------------------------------------------------------
 
@@ -404,6 +466,8 @@ class ProjectileRenderCatalog {
         return _earthBoltRenderAnim;
       case ProjectileId.holyBolt:
         return _holyBoltRenderAnim;
+      case ProjectileId.waterBolt:
+        return _waterBoltRenderAnim;
       case ProjectileId.throwingAxe:
         return _throwingAxeRenderAnim;
       case ProjectileId.throwingKnife:

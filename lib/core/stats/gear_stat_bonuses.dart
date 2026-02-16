@@ -21,6 +21,7 @@ class GearStatBonuses {
     this.physicalResistanceBp = 0,
     this.fireResistanceBp = 0,
     this.iceResistanceBp = 0,
+    this.waterResistanceBp = 0,
     this.thunderResistanceBp = 0,
     this.acidResistanceBp = 0,
     this.darkResistanceBp = 0,
@@ -94,6 +95,11 @@ class GearStatBonuses {
 
   /// Basis points (100 = 1%).
   ///
+  /// Positive values reduce water damage taken.
+  final int waterResistanceBp;
+
+  /// Basis points (100 = 1%).
+  ///
   /// Positive values reduce thunder damage taken.
   final int thunderResistanceBp;
 
@@ -151,6 +157,7 @@ class GearStatBonuses {
       physicalResistanceBp == 0 &&
       fireResistanceBp == 0 &&
       iceResistanceBp == 0 &&
+      waterResistanceBp == 0 &&
       thunderResistanceBp == 0 &&
       acidResistanceBp == 0 &&
       darkResistanceBp == 0 &&
@@ -176,6 +183,7 @@ class GearStatBonuses {
       physicalResistanceBp: physicalResistanceBp + other.physicalResistanceBp,
       fireResistanceBp: fireResistanceBp + other.fireResistanceBp,
       iceResistanceBp: iceResistanceBp + other.iceResistanceBp,
+      waterResistanceBp: waterResistanceBp + other.waterResistanceBp,
       thunderResistanceBp: thunderResistanceBp + other.thunderResistanceBp,
       acidResistanceBp: acidResistanceBp + other.acidResistanceBp,
       darkResistanceBp: darkResistanceBp + other.darkResistanceBp,

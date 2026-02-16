@@ -20,7 +20,9 @@ import 'package:rpg_runner/core/ecs/systems/hitbox_damage_system.dart';
 import 'package:rpg_runner/core/ecs/systems/melee_strike_system.dart';
 import 'package:rpg_runner/core/ecs/systems/projectile_hit_system.dart';
 import 'package:rpg_runner/core/ecs/systems/projectile_launch_system.dart';
+import 'package:rpg_runner/core/ecs/systems/status_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
+import 'package:rpg_runner/core/combat/status/status.dart';
 import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
@@ -36,6 +38,74 @@ import 'test_spawns.dart';
 import 'package:rpg_runner/core/ecs/entity_factory.dart';
 
 void main() {
+  test('enemy cast timing is slowed while drenched', () {
+    final world = EcsWorld();
+
+    final player = EntityFactory(world).createPlayer(
+      posX: 100,
+      posY: 100,
+      velX: 0,
+      velY: 0,
+      facing: Facing.right,
+      grounded: true,
+      body: const BodyDef(isKinematic: true, useGravity: false),
+      collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+      health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
+    );
+
+    final unocoDemon = spawnUnocoDemon(
+      world,
+      posX: 130,
+      posY: 100,
+      velX: 0,
+      velY: 0,
+      facing: Facing.left,
+      body: const BodyDef(isKinematic: true, useGravity: false),
+      collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+      health: const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 8000, manaMax: 8000, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
+    );
+
+    world.cooldown.setTicksLeft(unocoDemon, CooldownGroup.projectile, 0);
+
+    final statusSystem = StatusSystem(tickHz: 60);
+    statusSystem.queue(
+      StatusRequest(target: unocoDemon, profileId: StatusProfileId.drenchOnHit),
+    );
+    statusSystem.applyQueued(world, currentTick: 1);
+
+    final castSystem = EnemyCastSystem(
+      unocoDemonTuning: UnocoDemonTuningDerived.from(
+        const UnocoDemonTuning(),
+        tickHz: 60,
+      ),
+      enemyCatalog: const EnemyCatalog(),
+      projectiles: const ProjectileCatalog(),
+    );
+
+    castSystem.step(world, player: player, currentTick: 2);
+
+    final intentIndex = world.projectileIntent.indexOf(unocoDemon);
+    expect(world.projectileIntent.tick[intentIndex], equals(10)); // 2 + 8
+    expect(world.projectileIntent.windupTicks[intentIndex], equals(8));
+    expect(world.projectileIntent.recoveryTicks[intentIndex], equals(16));
+    expect(
+      world.cooldown.getTicksLeft(unocoDemon, CooldownGroup.projectile),
+      equals(200),
+    );
+  });
+
   test('enemy cast is blocked by cast lock while silence is active', () {
     final world = EcsWorld();
 

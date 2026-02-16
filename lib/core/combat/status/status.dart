@@ -9,6 +9,7 @@ enum StatusEffectType {
   haste,
   vulnerable,
   weaken,
+  drench,
   silence,
   resourceOverTime,
 }
@@ -23,6 +24,7 @@ enum StatusProfileId {
   burnOnHit,
   acidOnHit,
   weakenOnHit,
+  drenchOnHit,
   silenceOnHit,
   meleeBleed,
   stunOnHit,
@@ -173,6 +175,15 @@ class StatusApplicationPresets {
     ),
   );
 
+  static const StatusApplicationPreset drenchOnHit = StatusApplicationPreset(
+    StatusApplication(
+      type: StatusEffectType.drench,
+      magnitude: 5000, // -50% attack/cast speed.
+      durationSeconds: 5.0,
+      scaleByDamageType: false,
+    ),
+  );
+
   static const StatusApplicationPreset silenceOnHit = StatusApplicationPreset(
     StatusApplication(
       type: StatusEffectType.silence,
@@ -276,6 +287,10 @@ class StatusProfileCatalog {
       case StatusProfileId.weakenOnHit:
         return StatusProfile(<StatusApplication>[
           StatusApplicationPresets.weakenOnHit.baseline,
+        ]);
+      case StatusProfileId.drenchOnHit:
+        return StatusProfile(<StatusApplication>[
+          StatusApplicationPresets.drenchOnHit.baseline,
         ]);
       case StatusProfileId.silenceOnHit:
         return StatusProfile(<StatusApplication>[

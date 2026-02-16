@@ -10,6 +10,7 @@ import '../../util/double_math.dart';
 import '../../abilities/ability_def.dart' show AbilitySlot;
 import '../entity_id.dart';
 import '../stores/status/dot_store.dart';
+import '../stores/status/drench_store.dart';
 import '../stores/status/haste_store.dart';
 import '../stores/status/resource_over_time_store.dart';
 import '../stores/status/slow_store.dart';
@@ -54,6 +55,7 @@ class StatusSystem {
     _tickSlow(world);
     _tickVulnerable(world);
     _tickWeaken(world);
+    _tickDrench(world);
   }
 
   /// Applies queued statuses and refreshes derived modifiers.
@@ -284,6 +286,8 @@ class StatusSystem {
             _applyVulnerable(world, req.target, magnitude, app.durationSeconds);
           case StatusEffectType.weaken:
             _applyWeaken(world, req.target, magnitude, app.durationSeconds);
+          case StatusEffectType.drench:
+            _applyDrench(world, req.target, magnitude, app.durationSeconds);
           case StatusEffectType.silence:
             _applySilence(world, req.target, app.durationSeconds);
         }
@@ -435,6 +439,33 @@ class StatusSystem {
       } else if (clamped == currentMagnitude) {
         if (ticksLeft > weaken.ticksLeft[index]) {
           weaken.ticksLeft[index] = ticksLeft;
+        }
+      }
+    }
+  }
+
+  void _applyDrench(
+    EcsWorld world,
+    EntityId target,
+    int magnitude,
+    double durationSeconds,
+  ) {
+    final ticksLeft = ticksFromSecondsCeil(durationSeconds, _tickHz);
+    if (ticksLeft <= 0) return;
+
+    final drench = world.drench;
+    final clamped = clampInt(magnitude, 0, 9000);
+    final index = drench.tryIndexOf(target);
+    if (index == null) {
+      drench.add(target, DrenchDef(ticksLeft: ticksLeft, magnitude: clamped));
+    } else {
+      final currentMagnitude = drench.magnitude[index];
+      if (clamped > currentMagnitude) {
+        drench.magnitude[index] = clamped;
+        drench.ticksLeft[index] = ticksLeft;
+      } else if (clamped == currentMagnitude) {
+        if (ticksLeft > drench.ticksLeft[index]) {
+          drench.ticksLeft[index] = ticksLeft;
         }
       }
     }
@@ -654,6 +685,7 @@ class StatusSystem {
 
     for (var i = 0; i < mods.denseEntities.length; i += 1) {
       mods.moveSpeedMul[i] = 1.0;
+      mods.actionSpeedBp[i] = bpScale;
     }
 
     final slow = world.slow;
@@ -678,8 +710,19 @@ class StatusSystem {
       }
     }
 
+    final drench = world.drench;
+    if (drench.denseEntities.isNotEmpty) {
+      for (var i = 0; i < drench.denseEntities.length; i += 1) {
+        final target = drench.denseEntities[i];
+        final mi = mods.tryIndexOf(target);
+        if (mi == null) continue;
+        mods.actionSpeedBp[mi] -= drench.magnitude[i];
+      }
+    }
+
     for (var i = 0; i < mods.denseEntities.length; i += 1) {
       mods.moveSpeedMul[i] = clampDouble(mods.moveSpeedMul[i], 0.1, 2.0);
+      mods.actionSpeedBp[i] = clampInt(mods.actionSpeedBp[i], 1000, 20000);
     }
   }
 
@@ -722,6 +765,27 @@ class StatusSystem {
     }
     for (final target in _removeScratch) {
       weaken.removeEntity(target);
+    }
+  }
+
+  void _tickDrench(EcsWorld world) {
+    final drench = world.drench;
+    if (drench.denseEntities.isEmpty) return;
+
+    _removeScratch.clear();
+    for (var i = 0; i < drench.denseEntities.length; i += 1) {
+      final target = drench.denseEntities[i];
+      if (world.deathState.has(target)) {
+        _removeScratch.add(target);
+        continue;
+      }
+      drench.ticksLeft[i] -= 1;
+      if (drench.ticksLeft[i] <= 0) {
+        _removeScratch.add(target);
+      }
+    }
+    for (final target in _removeScratch) {
+      drench.removeEntity(target);
     }
   }
 }

@@ -83,15 +83,25 @@ class EnemyMeleeSystem {
       final offsetX = dirX * (ownerHalfX * 0.5 + halfX);
       const offsetY = 0.0;
 
+      final actionSpeedBp = _actionSpeedBpForEntity(world, enemy);
       final commitTick = meleeEngagement.strikeStartTick[i];
       final windupTicks = plannedHitTick > commitTick
           ? plannedHitTick - commitTick
-          : tuning.combat.meleeWindupTicks;
+          : _scaleTicksForActionSpeed(
+              tuning.combat.meleeWindupTicks,
+              actionSpeedBp,
+            );
+      final scaledAnimTicks = _scaleTicksForActionSpeed(
+        tuning.combat.meleeAnimTicks,
+        actionSpeedBp,
+      );
       final recoveryTicks =
-          tuning.combat.meleeAnimTicks -
-          windupTicks -
-          tuning.combat.meleeActiveTicks;
+          scaledAnimTicks - windupTicks - tuning.combat.meleeActiveTicks;
       final clampedRecovery = recoveryTicks < 0 ? 0 : recoveryTicks;
+      final cooldownTicks = _scaleTicksForActionSpeed(
+        tuning.combat.meleeCooldownTicks,
+        actionSpeedBp,
+      );
 
       world.meleeIntent.set(
         enemy,
@@ -110,7 +120,7 @@ class EnemyMeleeSystem {
           windupTicks: windupTicks,
           activeTicks: tuning.combat.meleeActiveTicks,
           recoveryTicks: clampedRecovery,
-          cooldownTicks: tuning.combat.meleeCooldownTicks,
+          cooldownTicks: cooldownTicks,
           staminaCost100: 0,
           cooldownGroupId: CooldownGroup.primary,
           tick: plannedHitTick,
@@ -119,11 +129,7 @@ class EnemyMeleeSystem {
 
       // Commit side effects (Cooldown + ActiveAbility) must be applied manually
       // since enemies don't use AbilityActivationSystem.
-      world.cooldown.startCooldown(
-        enemy,
-        CooldownGroup.primary,
-        tuning.combat.meleeCooldownTicks,
-      );
+      world.cooldown.startCooldown(enemy, CooldownGroup.primary, cooldownTicks);
 
       world.activeAbility.set(
         enemy,
@@ -138,7 +144,20 @@ class EnemyMeleeSystem {
 
       world.enemy.lastMeleeTick[enemyIndex] = currentTick;
       world.enemy.lastMeleeFacing[enemyIndex] = facing;
-      world.enemy.lastMeleeAnimTicks[enemyIndex] = tuning.combat.meleeAnimTicks;
+      world.enemy.lastMeleeAnimTicks[enemyIndex] = scaledAnimTicks;
     }
+  }
+
+  int _actionSpeedBpForEntity(EcsWorld world, EntityId entity) {
+    final modifierIndex = world.statModifier.tryIndexOf(entity);
+    if (modifierIndex == null) return bpScale;
+    return world.statModifier.actionSpeedBp[modifierIndex];
+  }
+
+  int _scaleTicksForActionSpeed(int ticks, int actionSpeedBp) {
+    if (ticks <= 0) return 0;
+    final clampedSpeedBp = clampInt(actionSpeedBp, 1000, 20000);
+    if (clampedSpeedBp == bpScale) return ticks;
+    return (ticks * bpScale + clampedSpeedBp - 1) ~/ clampedSpeedBp;
   }
 }

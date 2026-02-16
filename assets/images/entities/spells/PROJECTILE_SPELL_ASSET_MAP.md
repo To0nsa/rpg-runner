@@ -39,6 +39,7 @@ Conventions:
 | `thunderBolt` | `thunder` | `650.0` | `1.3` | `18.0 x 8.0` | `30.0` | `false` | `1.0` | `StatusProfileId.stunOnHit` |
 | `earthBolt` | `earth` | `500.0` | `1.3` | `18.0 x 8.0` | `30.0` | `false` | `1.0` | `StatusProfileId.stunOnHit` |
 | `holyBolt` | `holy` | `550.0` | `1.3` | `18.0 x 8.0` | `30.0` | `false` | `1.0` | `StatusProfileId.silenceOnHit` |
+| `waterBolt` | `water` | `500.0` | `1.3` | `18.0 x 8.0` | `30.0` | `false` | `1.0` | `StatusProfileId.drenchOnHit` |
 
 ## Animation Metadata
 
@@ -115,6 +116,21 @@ Spritesheet is 0-indexed (Row, Column)
 | `spawn` | `entities/spells/earth/bolt/spriteSheet.png` | `6` | `0 0` | `0.06` |
 | `idle` | `entities/spells/earth/bolt/spriteSheet.png` | `6` | `0 0` | `0.06` |
 | `hit` | `entities/spells/earth/bolt/spriteSheet.png` | `4` | `1 0` | `0.06` |
+
+### `waterBolt`
+
+Frame size: `48 x 32`
+
+Spritesheet is 0-indexed (Row, Column)
+`entities/spells/water/bolt/start_and_repeatable.png` size 5 rows x 5 columns
+`entities/spells/water/bolt/hit.png` size 4 rows x 4 columns
+Frame sampling wraps across rows using those authored column counts.
+
+| AnimKey | Asset path (relative to `assets/images/`) | Frame count | Frame start | Step time (seconds) |
+| --- | --- | --- | --- | --- |
+| `spawn` | `entities/spells/water/bolt/start_and_repeatable.png` | `5` | `0 0` | `0.06` |
+| `idle` | `entities/spells/water/bolt/start_and_repeatable.png` | `16` | `1 0` | `0.03` |
+| `hit` | `entities/spells/water/bolt/hit.png` | `15` | `0 0` | `0.03` |
 
 ## Template (Use `TBD` Placeholders)
 

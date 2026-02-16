@@ -59,6 +59,7 @@ class ResolvedCharacterStats {
   int get physicalResistanceBp => bonuses.physicalResistanceBp;
   int get fireResistanceBp => bonuses.fireResistanceBp;
   int get iceResistanceBp => bonuses.iceResistanceBp;
+  int get waterResistanceBp => bonuses.waterResistanceBp;
   int get thunderResistanceBp => bonuses.thunderResistanceBp;
   int get acidResistanceBp => bonuses.acidResistanceBp;
   int get darkResistanceBp => bonuses.darkResistanceBp;
@@ -107,6 +108,8 @@ class ResolvedCharacterStats {
         return fireResistanceBp;
       case DamageType.ice:
         return iceResistanceBp;
+      case DamageType.water:
+        return waterResistanceBp;
       case DamageType.thunder:
         return thunderResistanceBp;
       case DamageType.acid:
@@ -248,6 +251,11 @@ class CharacterStatsResolver {
       ),
       iceResistanceBp: _clampInt(
         input.iceResistanceBp,
+        CharacterStatCaps.minTypedResistanceBp,
+        CharacterStatCaps.maxTypedResistanceBp,
+      ),
+      waterResistanceBp: _clampInt(
+        input.waterResistanceBp,
         CharacterStatCaps.minTypedResistanceBp,
         CharacterStatCaps.maxTypedResistanceBp,
       ),

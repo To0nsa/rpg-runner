@@ -19,6 +19,7 @@ Future<SpriteAnimSet> loadStripAnimations(
   Map<AnimKey, int> rowByKey = const <AnimKey, int>{},
   Vec2? anchorInFramePx,
   Map<AnimKey, int> frameStartByKey = const <AnimKey, int>{},
+  Map<AnimKey, int> gridColumnsByKey = const <AnimKey, int>{},
   required Map<AnimKey, int> frameCountsByKey,
   required Map<AnimKey, double> stepTimeSecondsByKey,
   required Set<AnimKey> oneShotKeys,
@@ -64,18 +65,26 @@ Future<SpriteAnimSet> loadStripAnimations(
         frameCountsByKey[key] ?? frameCountsByKey[AnimKey.idle] ?? 1;
     final row = rowByKey[key] ?? 0;
     final startFrame = frameStartByKey[key] ?? 0;
+    final gridColumns = gridColumnsByKey[key];
 
     assert(
       startFrame >= 0,
       'frameStartByKey[$key] must be >= 0 (got $startFrame).',
     );
+    assert(
+      gridColumns == null || gridColumns > 0,
+      'gridColumnsByKey[$key] must be > 0 when provided.',
+    );
 
     final sprites = List<Sprite>.generate(frameCount, (i) {
+      final frameIndex = startFrame + i;
+      final col = gridColumns == null ? frameIndex : frameIndex % gridColumns;
+      final rowOffset = gridColumns == null ? 0 : frameIndex ~/ gridColumns;
       return Sprite(
         img,
         srcPosition: Vector2(
-          frameWidth.toDouble() * (startFrame + i),
-          frameHeight.toDouble() * row,
+          frameWidth.toDouble() * col,
+          frameHeight.toDouble() * (row + rowOffset),
         ),
         srcSize: frameSize,
       );
@@ -110,6 +119,7 @@ Future<SpriteAnimSet> loadAnimSetFromDefinition(
     rowByKey: renderAnim.rowByKey,
     anchorInFramePx: renderAnim.anchorInFramePx,
     frameStartByKey: renderAnim.frameStartByKey,
+    gridColumnsByKey: renderAnim.gridColumnsByKey,
     frameCountsByKey: renderAnim.frameCountsByKey,
     stepTimeSecondsByKey: renderAnim.stepTimeSecondsByKey,
     oneShotKeys: oneShotKeys,

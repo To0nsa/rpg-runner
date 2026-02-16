@@ -474,14 +474,25 @@ class AbilityActivationSystem {
       projectiles: projectiles,
       spellBooks: spellBooks,
     );
-    final windupTicks = _scaleAbilityTicks(ability.windupTicks);
+    final actionSpeedBp = _actionSpeedBpFor(world, player, slot: slot);
+    final windupTicks = _scaleTicksForActionSpeed(
+      _scaleAbilityTicks(ability.windupTicks),
+      actionSpeedBp,
+    );
     final activeTicks = _scaleAbilityTicks(ability.activeTicks);
-    final recoveryTicks = _scaleAbilityTicks(ability.recoveryTicks);
+    final recoveryTicks = _scaleTicksForActionSpeed(
+      _scaleAbilityTicks(ability.recoveryTicks),
+      actionSpeedBp,
+    );
     final executeTick = commitTick + windupTicks;
     final cooldownGroupId = ability.effectiveCooldownGroup(slot);
     final resolvedStats = _resolvedStatsForLoadout(world, player);
-    final cooldownTicks = resolvedStats.applyCooldownReduction(
+    final baseCooldownTicks = resolvedStats.applyCooldownReduction(
       _scaleAbilityTicks(ability.cooldownTicks),
+    );
+    final cooldownTicks = _scaleTicksForActionSpeed(
+      baseCooldownTicks,
+      actionSpeedBp,
     );
 
     final fail = AbilityGate.canCommitCombat(
@@ -828,9 +839,23 @@ class AbilityActivationSystem {
       10000,
     );
 
+    final actionSpeedBp = _actionSpeedBpFor(world, player, slot: slot);
+    final windupTicks = _scaleTicksForActionSpeed(
+      _scaleAbilityTicks(ability.windupTicks),
+      actionSpeedBp,
+    );
+    final activeTicks = _scaleAbilityTicks(ability.activeTicks);
+    final recoveryTicks = _scaleTicksForActionSpeed(
+      _scaleAbilityTicks(ability.recoveryTicks),
+      actionSpeedBp,
+    );
     final cooldownGroupId = ability.effectiveCooldownGroup(slot);
-    final cooldownTicks = resolvedStats.applyCooldownReduction(
+    final baseCooldownTicks = resolvedStats.applyCooldownReduction(
       _scaleAbilityTicks(ability.cooldownTicks),
+    );
+    final cooldownTicks = _scaleTicksForActionSpeed(
+      baseCooldownTicks,
+      actionSpeedBp,
     );
 
     final fail = AbilityGate.canCommitCombat(
@@ -854,9 +879,9 @@ class AbilityActivationSystem {
       abilityId: ability.id,
       slot: slot,
       commitTick: commitTick,
-      windupTicks: _scaleAbilityTicks(ability.windupTicks),
-      activeTicks: _scaleAbilityTicks(ability.activeTicks),
-      recoveryTicks: _scaleAbilityTicks(ability.recoveryTicks),
+      windupTicks: windupTicks,
+      activeTicks: activeTicks,
+      recoveryTicks: recoveryTicks,
       facingDir: facingDir,
       cooldownGroupId: cooldownGroupId,
       cooldownTicks: cooldownTicks,
@@ -881,13 +906,13 @@ class AbilityActivationSystem {
         dirX: dirX,
         dirY: dirY,
         commitTick: commitTick,
-        windupTicks: _scaleAbilityTicks(ability.windupTicks),
-        activeTicks: _scaleAbilityTicks(ability.activeTicks),
-        recoveryTicks: _scaleAbilityTicks(ability.recoveryTicks),
+        windupTicks: windupTicks,
+        activeTicks: activeTicks,
+        recoveryTicks: recoveryTicks,
         cooldownTicks: cooldownTicks,
         staminaCost100: commitCost.staminaCost100,
         cooldownGroupId: cooldownGroupId,
-        tick: commitTick + _scaleAbilityTicks(ability.windupTicks),
+        tick: commitTick + windupTicks,
       ),
     );
     return true;
@@ -927,9 +952,16 @@ class AbilityActivationSystem {
 
     final hitDelivery = ability.hitDelivery;
     if (hitDelivery is! ProjectileHitDelivery) return false;
-    final windupTicks = _scaleAbilityTicks(ability.windupTicks);
+    final actionSpeedBp = _actionSpeedBpFor(world, player, slot: slot);
+    final windupTicks = _scaleTicksForActionSpeed(
+      _scaleAbilityTicks(ability.windupTicks),
+      actionSpeedBp,
+    );
     final activeTicks = _scaleAbilityTicks(ability.activeTicks);
-    final recoveryTicks = _scaleAbilityTicks(ability.recoveryTicks);
+    final recoveryTicks = _scaleTicksForActionSpeed(
+      _scaleAbilityTicks(ability.recoveryTicks),
+      actionSpeedBp,
+    );
 
     final ProjectileId projectileId;
     final bool ballistic;
@@ -1065,8 +1097,12 @@ class AbilityActivationSystem {
     );
 
     final cooldownGroupId = ability.effectiveCooldownGroup(slot);
-    final cooldownTicks = resolvedStats.applyCooldownReduction(
+    final baseCooldownTicks = resolvedStats.applyCooldownReduction(
       _scaleAbilityTicks(ability.cooldownTicks),
+    );
+    final cooldownTicks = _scaleTicksForActionSpeed(
+      baseCooldownTicks,
+      actionSpeedBp,
     );
     final commitCost = resolveEffectiveAbilityCostForSlot(
       ability: ability,
@@ -1345,6 +1381,37 @@ class AbilityActivationSystem {
     EntityId entity,
   ) {
     return _statsCache.resolveForEntity(world, entity);
+  }
+
+  int _actionSpeedBpFor(
+    EcsWorld world,
+    EntityId entity, {
+    required AbilitySlot slot,
+  }) {
+    if (!_isAttackOrCastSlot(slot)) return bpScale;
+    final modifierIndex = world.statModifier.tryIndexOf(entity);
+    if (modifierIndex == null) return bpScale;
+    return world.statModifier.actionSpeedBp[modifierIndex];
+  }
+
+  bool _isAttackOrCastSlot(AbilitySlot slot) {
+    switch (slot) {
+      case AbilitySlot.primary:
+      case AbilitySlot.secondary:
+      case AbilitySlot.projectile:
+      case AbilitySlot.spell:
+        return true;
+      case AbilitySlot.mobility:
+      case AbilitySlot.jump:
+        return false;
+    }
+  }
+
+  int _scaleTicksForActionSpeed(int ticks, int actionSpeedBp) {
+    if (ticks <= 0) return 0;
+    final clampedSpeedBp = clampInt(actionSpeedBp, 1000, 20000);
+    if (clampedSpeedBp == bpScale) return ticks;
+    return (ticks * bpScale + clampedSpeedBp - 1) ~/ clampedSpeedBp;
   }
 
   void _applyCommitSideEffects(

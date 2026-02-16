@@ -24,6 +24,9 @@ enum ProjectileId {
   /// Player's holy spell projectile. Medium speed and lifetime.
   holyBolt,
 
+  /// Player's water spell projectile. Medium speed and lifetime.
+  waterBolt,
+
   /// Enemy ranged strike. Slower but longer range.
   thunderBolt,
 

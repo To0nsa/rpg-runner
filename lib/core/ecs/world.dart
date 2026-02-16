@@ -40,6 +40,7 @@ import 'stores/player/player_input_store.dart';
 import 'stores/projectile_store.dart';
 import 'stores/restoration_item_store.dart';
 import 'stores/status/dot_store.dart';
+import 'stores/status/drench_store.dart';
 import 'stores/status/haste_store.dart';
 import 'stores/status/resource_over_time_store.dart';
 import 'stores/status/slow_store.dart';
@@ -181,7 +182,7 @@ class EcsWorld {
   late final DeathStateStore deathState = _register(DeathStateStore());
 
   /// Status immunities
-  /// (dot, slow, stun, haste, vulnerable, weaken, resource-over-time).
+  /// (dot, slow, stun, haste, vulnerable, weaken, drench, resource-over-time).
   late final StatusImmunityStore statusImmunity = _register(
     StatusImmunityStore(),
   );
@@ -247,6 +248,9 @@ class EcsWorld {
 
   /// Active outgoing-damage reduction effects.
   late final WeakenStore weaken = _register(WeakenStore());
+
+  /// Active attack/cast speed reduction effects.
+  late final DrenchStore drench = _register(DrenchStore());
 
   /// Control locks for ability/action gating (stun, movement locks, etc.).
   late final ControlLockStore controlLock = _register(ControlLockStore());

@@ -20,6 +20,7 @@ String? throwingWeaponAssetPath(
     ProjectileId.darkBolt => null,
     ProjectileId.earthBolt => null,
     ProjectileId.holyBolt => null,
+    ProjectileId.waterBolt => null,
     ProjectileId.thunderBolt => null,
   };
 }

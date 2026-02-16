@@ -8,6 +8,7 @@ import '../../enemies/enemy_id.dart';
 import '../../tuning/ground_enemy_tuning.dart';
 import '../../util/deterministic_rng.dart';
 import '../../util/double_math.dart';
+import '../../util/fixed_math.dart';
 import '../stores/enemies/melee_engagement_store.dart';
 import '../world.dart';
 
@@ -74,6 +75,15 @@ class EnemyEngagementSystem {
       final chaseOffset = world.groundEnemyChaseOffset;
       final chaseOffsetX = chaseOffset.chaseOffsetX[chaseIndex];
       final chaseSpeedScale = chaseOffset.chaseSpeedScale[chaseIndex];
+      final actionSpeedBp = _actionSpeedBpForEntity(world, enemy);
+      final scaledMeleeAnimTicks = _scaleTicksForActionSpeed(
+        groundEnemyTuning.combat.meleeAnimTicks,
+        actionSpeedBp,
+      );
+      final scaledMeleeWindupTicks = _scaleTicksForActionSpeed(
+        groundEnemyTuning.combat.meleeWindupTicks,
+        actionSpeedBp,
+      );
 
       final navTargetX = world.navIntent.navTargetX[navIntentIndex];
 
@@ -139,10 +149,9 @@ class EnemyEngagementSystem {
                   distToPlayerX <= groundEnemyTuning.combat.meleeRangeX;
               if (cooldownReady && inMeleeRange) {
                 state = MeleeEngagementState.strike;
-                ticksLeft = groundEnemyTuning.combat.meleeAnimTicks;
+                ticksLeft = scaledMeleeAnimTicks;
                 strikeStartTick = currentTick;
-                plannedHitTick =
-                    currentTick + groundEnemyTuning.combat.meleeWindupTicks;
+                plannedHitTick = currentTick + scaledMeleeWindupTicks;
               }
             }
           }
@@ -150,7 +159,7 @@ class EnemyEngagementSystem {
         case MeleeEngagementState.strike:
           if (ticksLeft <= 0) {
             state = MeleeEngagementState.recover;
-            ticksLeft = groundEnemyTuning.combat.meleeAnimTicks;
+            ticksLeft = scaledMeleeAnimTicks;
             strikeStartTick = -1;
             plannedHitTick = -1;
           }
@@ -201,6 +210,19 @@ class EnemyEngagementSystem {
       world.meleeEngagement.strikeStartTick[meleeIndex] = strikeStartTick;
       world.meleeEngagement.plannedHitTick[meleeIndex] = plannedHitTick;
     }
+  }
+
+  int _actionSpeedBpForEntity(EcsWorld world, EntityId entity) {
+    final modifierIndex = world.statModifier.tryIndexOf(entity);
+    if (modifierIndex == null) return bpScale;
+    return world.statModifier.actionSpeedBp[modifierIndex];
+  }
+
+  int _scaleTicksForActionSpeed(int ticks, int actionSpeedBp) {
+    if (ticks <= 0) return 0;
+    final clampedSpeedBp = clampInt(actionSpeedBp, 1000, 20000);
+    if (clampedSpeedBp == bpScale) return ticks;
+    return (ticks * bpScale + clampedSpeedBp - 1) ~/ clampedSpeedBp;
   }
 
   void _ensureChaseOffsetInitialized(

@@ -11,6 +11,7 @@ import '../../projectiles/projectile_id.dart';
 import '../../snapshots/enums.dart';
 import '../../tuning/flying_enemy_tuning.dart';
 import '../../util/double_math.dart';
+import '../../util/fixed_math.dart';
 import '../entity_id.dart';
 import '../stores/projectile_intent_store.dart';
 import '../world.dart';
@@ -163,11 +164,22 @@ class EnemyCastSystem {
     );
     final commitCost = ability.resolveCostForWeaponType(projectile.weaponType);
 
-    final windupTicks = _scaleAbilityTicks(ability.windupTicks);
+    final actionSpeedBp = _actionSpeedBpForEntity(world, enemy);
+    final windupTicks = _scaleTicksForActionSpeed(
+      _scaleAbilityTicks(ability.windupTicks),
+      actionSpeedBp,
+    );
     final activeTicks = _scaleAbilityTicks(ability.activeTicks);
-    final recoveryTicks = _scaleAbilityTicks(ability.recoveryTicks);
+    final recoveryTicks = _scaleTicksForActionSpeed(
+      _scaleAbilityTicks(ability.recoveryTicks),
+      actionSpeedBp,
+    );
     final commitTick = currentTick;
     final executeTick = commitTick + windupTicks;
+    final cooldownTicks = _scaleTicksForActionSpeed(
+      tuning.unocoDemonCastCooldownTicks,
+      actionSpeedBp,
+    );
 
     world.projectileIntent.set(
       enemy,
@@ -179,7 +191,7 @@ class EnemyCastSystem {
         critChanceBp: payload.critChanceBp,
         staminaCost100: commitCost.staminaCost100,
         manaCost100: commitCost.manaCost100,
-        cooldownTicks: tuning.unocoDemonCastCooldownTicks,
+        cooldownTicks: cooldownTicks,
         pierce: false,
         maxPierceHits: 1,
         damageType: payload.damageType,
@@ -202,11 +214,7 @@ class EnemyCastSystem {
 
     // Commit side effects (Cooldown + ActiveAbility) must be applied manually
     // since enemies don't use AbilityActivationSystem.
-    world.cooldown.startCooldown(
-      enemy,
-      cooldownGroupId,
-      tuning.unocoDemonCastCooldownTicks,
-    );
+    world.cooldown.startCooldown(enemy, cooldownGroupId, cooldownTicks);
     world.activeAbility.set(
       enemy,
       id: ability.id,
@@ -224,6 +232,19 @@ class EnemyCastSystem {
     if (unocoDemonTuning.tickHz <= 0) return ticks;
     final seconds = ticks / _abilityTickHz;
     return (seconds * unocoDemonTuning.tickHz).ceil();
+  }
+
+  int _actionSpeedBpForEntity(EcsWorld world, EntityId entity) {
+    final modifierIndex = world.statModifier.tryIndexOf(entity);
+    if (modifierIndex == null) return bpScale;
+    return world.statModifier.actionSpeedBp[modifierIndex];
+  }
+
+  int _scaleTicksForActionSpeed(int ticks, int actionSpeedBp) {
+    if (ticks <= 0) return 0;
+    final clampedSpeedBp = clampInt(actionSpeedBp, 1000, 20000);
+    if (clampedSpeedBp == bpScale) return ticks;
+    return (ticks * bpScale + clampedSpeedBp - 1) ~/ clampedSpeedBp;
   }
 
   static const int _abilityTickHz = 60;

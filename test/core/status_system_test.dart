@@ -394,6 +394,47 @@ void main() {
     expect(world.health.hp[world.health.indexOf(target)], equals(8350));
   });
 
+  test('drench on-hit reduces action speed by 25% for 3 seconds', () {
+    final world = EcsWorld();
+    final status = StatusSystem(tickHz: 60);
+
+    final target = world.createEntity();
+    world.health.add(
+      target,
+      const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+    );
+    world.statModifier.add(target);
+
+    status.queue(
+      StatusRequest(
+        target: target,
+        profileId: StatusProfileId.drenchOnHit,
+        damageType: DamageType.water,
+      ),
+    );
+    status.applyQueued(world, currentTick: 1);
+
+    expect(world.drench.has(target), isTrue);
+    final drenchIndex = world.drench.indexOf(target);
+    expect(world.drench.magnitude[drenchIndex], equals(2500));
+    expect(world.drench.ticksLeft[drenchIndex], equals(180));
+    expect(
+      world.statModifier.actionSpeedBp[world.statModifier.indexOf(target)],
+      equals(7500),
+    );
+
+    for (var tick = 2; tick <= 181; tick += 1) {
+      status.tickExisting(world);
+      status.applyQueued(world, currentTick: tick);
+    }
+
+    expect(world.drench.has(target), isFalse);
+    expect(
+      world.statModifier.actionSpeedBp[world.statModifier.indexOf(target)],
+      equals(10000),
+    );
+  });
+
   test(
     'silence on-hit applies cast lock and interrupts enemy projectile cast during windup',
     () {
