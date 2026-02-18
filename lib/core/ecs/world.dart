@@ -14,6 +14,7 @@ import 'stores/combat/stat_modifier_store.dart';
 import 'stores/combat/status_immunity_store.dart';
 import 'stores/collectible_store.dart';
 import 'stores/player/gravity_control_store.dart';
+import 'stores/player/jump_state_store.dart';
 import 'stores/enemies/flying_enemy_steering_store.dart';
 import 'stores/faction_store.dart';
 import 'stores/anim/anim_state_store.dart';
@@ -127,6 +128,9 @@ class EcsWorld {
 
   /// Logic and state for movement, including facing direction.
   late final MovementStore movement = _register(MovementStore());
+
+  /// Jump-specific runtime state (coyote, buffer, air jump usage).
+  late final JumpStateStore jumpState = _register(JumpStateStore());
 
   /// Physics properties like mass, friction, and restitution.
   late final BodyStore body = _register(BodyStore());

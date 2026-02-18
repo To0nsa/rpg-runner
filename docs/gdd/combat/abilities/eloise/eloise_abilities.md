@@ -54,6 +54,7 @@ Core units:
 | `eloise.restore_mana` | `bonus` | `tap` | `none` | `0/0/10` | `1500` | `0` | `420` | `0` |
 | `eloise.restore_stamina` | `bonus` | `tap` | `none` | `0/0/10` | `0` | `1500` | `420` | `0` |
 | `eloise.jump` | `jump` | `tap` | `none` | `0/0/0` | `200` | `0` | `0` | `0` |
+| `eloise.double_jump` | `jump` | `tap` | `none` | `0/0/0` | `200` | `0` | `0` | `0` |
 | `eloise.dash` | `mobility` | `tap` | `directional` | `0/12/0` | `200` | `0` | `120` | `0` |
 | `eloise.roll` | `mobility` | `tap` | `directional` | `3/24/3` | `200` | `0` | `120` | `0` |
 
@@ -66,3 +67,6 @@ Core units:
    - `eloise.sword_riposte_guard`: `233` per second
    - `eloise.shield_riposte_guard`: `700` per second
 4. Bonus slot is currently self-spell utility only.
+5. `eloise.double_jump` supports one extra air jump:
+   - ground jump cost: `200` stamina
+   - air jump cost: `200` mana

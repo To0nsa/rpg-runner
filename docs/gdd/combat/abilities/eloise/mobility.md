@@ -18,6 +18,7 @@ Core units:
 | Ability ID | Slot | Lifecycle | Targeting | Timing (W/A/R) | Stamina | Cooldown |
 |---|---|---|---|---|---:|---:|
 | `eloise.jump` | `jump` | `tap` | `none` | `0 / 0 / 0` | `200` | `0` |
+| `eloise.double_jump` | `jump` | `tap` | `none` | `0 / 0 / 0` | `200` | `0` |
 | `eloise.dash` | `mobility` | `tap` | `directional` | `0 / 12 / 0` | `200` | `120` |
 | `eloise.roll` | `mobility` | `tap` | `directional` | `3 / 24 / 3` | `200` | `120` |
 
@@ -31,7 +32,13 @@ Core units:
 ### Jump
 
 - Jump remains an authored ability (`eloise.jump`) in fixed jump slot.
-- Execution remains movement-system driven after commit (buffer/coyote rules).
+- Execution remains system-driven after commit (buffer/coyote rules).
+- `eloise.jump` stays single-jump only (ground/coyote jump).
+- `eloise.double_jump` adds one air jump (`maxAirJumps = 1`).
+- For `eloise.double_jump`:
+  - first jump consumes stamina (`200`)
+  - second jump consumes mana (`200`)
+  - both taps use fixed vertical impulse and produce a two-arc path based on second-tap timing.
 
 ## Contract Notes
 

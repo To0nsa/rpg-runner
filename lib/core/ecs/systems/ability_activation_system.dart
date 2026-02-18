@@ -629,38 +629,42 @@ class AbilityActivationSystem {
     // Preserve old behavior: mobility cancels pending combat + buffered input + active combat ability.
     _cancelCombatOnMobilityPress(world, player);
 
+    final isJump = slot == AbilitySlot.jump;
     final fail = AbilityGate.canCommitMobility(
       world,
       entity: player,
       currentTick: commitTick,
       cooldownGroupId: cooldownGroupId,
-      healthCost100: commitCost.healthCost100,
-      manaCost100: commitCost.manaCost100,
-      staminaCost100: commitCost.staminaCost100,
+      healthCost100: isJump ? 0 : commitCost.healthCost100,
+      manaCost100: isJump ? 0 : commitCost.manaCost100,
+      staminaCost100: isJump ? 0 : commitCost.staminaCost100,
     );
     if (fail != null) return false;
 
-    final facingDir = _facingFromDirectionX(
-      dirX,
-      fallbackDirX: directionalFallback.$1,
-    );
-    _applyCommitSideEffects(
-      world,
-      player: player,
-      abilityId: ability.id,
-      slot: slot,
-      commitTick: commitTick,
-      windupTicks: windupTicks,
-      activeTicks: activeTicks,
-      recoveryTicks: recoveryTicks,
-      facingDir: facingDir,
-      cooldownGroupId: cooldownGroupId,
-      cooldownTicks: cooldownTicks,
-      healthCost100: commitCost.healthCost100,
-      manaCost100: commitCost.manaCost100,
-      staminaCost100: commitCost.staminaCost100,
-      movementIndex: movementIndex,
-    );
+    // Jump resolves resources/execution in JumpSystem (ground vs air costs).
+    if (!isJump) {
+      final facingDir = _facingFromDirectionX(
+        dirX,
+        fallbackDirX: directionalFallback.$1,
+      );
+      _applyCommitSideEffects(
+        world,
+        player: player,
+        abilityId: ability.id,
+        slot: slot,
+        commitTick: commitTick,
+        windupTicks: windupTicks,
+        activeTicks: activeTicks,
+        recoveryTicks: recoveryTicks,
+        facingDir: facingDir,
+        cooldownGroupId: cooldownGroupId,
+        cooldownTicks: cooldownTicks,
+        healthCost100: commitCost.healthCost100,
+        manaCost100: commitCost.manaCost100,
+        staminaCost100: commitCost.staminaCost100,
+        movementIndex: movementIndex,
+      );
+    }
 
     world.mobilityIntent.set(
       player,

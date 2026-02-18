@@ -166,7 +166,7 @@ void main() {
     expect(core.playerVelY, lessThan(0));
   });
 
-  test('jump spends stamina (2) when executed', () {
+  test('ground jump spends stamina (2) and not mana', () {
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
       levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
@@ -175,6 +175,8 @@ void main() {
       playerCharacter: base.copyWith(
         tuning: base.tuning.copyWith(
           resource: const ResourceTuning(
+            playerManaMax: 10,
+            playerManaRegenPerSecond: 0,
             playerStaminaMax: 10,
             playerStaminaRegenPerSecond: 0,
             jumpStaminaCost: 2,
@@ -187,6 +189,150 @@ void main() {
 
     final hud = core.buildSnapshot().hud;
     expect(hud.stamina, closeTo(8.0, 1e-9));
+    expect(hud.mana, closeTo(10.0, 1e-9));
+  });
+
+  test('air jump spends mana (2) and not stamina', () {
+    final base = PlayerCharacterRegistry.eloise;
+    final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
+      seed: 1,
+      tickHz: defaultTickHz,
+      playerCharacter: base.copyWith(
+        catalog: testPlayerCatalog(abilityJumpId: 'eloise.double_jump'),
+        tuning: base.tuning.copyWith(
+          resource: const ResourceTuning(
+            playerManaMax: 10,
+            playerManaRegenPerSecond: 0,
+            playerStaminaMax: 10,
+            playerStaminaRegenPerSecond: 0,
+            jumpStaminaCost: 2,
+          ),
+        ),
+      ),
+    );
+
+    _tick(core, jumpPressed: true); // ground jump
+    _tick(core, jumpPressed: true); // air jump
+
+    final hud = core.buildSnapshot().hud;
+    expect(hud.stamina, closeTo(8.0, 1e-9));
+    expect(hud.mana, closeTo(8.0, 1e-9));
+  });
+
+  test('ground jump remains available with zero mana', () {
+    final base = PlayerCharacterRegistry.eloise;
+    final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
+      seed: 1,
+      tickHz: defaultTickHz,
+      playerCharacter: base.copyWith(
+        tuning: base.tuning.copyWith(
+          resource: const ResourceTuning(
+            playerManaMax: 0,
+            playerManaRegenPerSecond: 0,
+            playerStaminaMax: 10,
+            playerStaminaRegenPerSecond: 0,
+            jumpStaminaCost: 2,
+          ),
+        ),
+      ),
+    );
+
+    _tick(core, jumpPressed: true);
+
+    expect(core.playerVelY, lessThan(0));
+    final hud = core.buildSnapshot().hud;
+    expect(hud.mana, closeTo(0.0, 1e-9));
+    expect(hud.stamina, closeTo(8.0, 1e-9));
+  });
+
+  test('after leaving ground, exactly one air jump is available', () {
+    final base = PlayerCharacterRegistry.eloise;
+    final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
+      seed: 1,
+      tickHz: defaultTickHz,
+      playerCharacter: base.copyWith(
+        catalog: testPlayerCatalog(abilityJumpId: 'eloise.double_jump'),
+        tuning: base.tuning.copyWith(
+          resource: const ResourceTuning(
+            playerManaMax: 10,
+            playerManaRegenPerSecond: 0,
+            playerStaminaMax: 10,
+            playerStaminaRegenPerSecond: 0,
+            jumpStaminaCost: 2,
+          ),
+        ),
+      ),
+    );
+    final catalog = PlayerCharacterRegistry.eloise.catalog;
+    final floorY =
+        defaultLevelGroundTopYInt.toDouble() -
+        (catalog.colliderOffsetY + catalog.colliderHalfY);
+
+    core.setPlayerPosXY(core.playerPosX, floorY - 200);
+    core.setPlayerVelXY(0, 0);
+
+    // Let coyote-time expire while airborne.
+    for (var i = 0; i < 7; i += 1) {
+      _tick(core);
+      expect(core.playerGrounded, isFalse);
+    }
+
+    _tick(core, jumpPressed: true); // first air jump allowed
+    final afterFirst = core.buildSnapshot().hud;
+    expect(afterFirst.mana, closeTo(8.0, 1e-9));
+    expect(afterFirst.stamina, closeTo(10.0, 1e-9));
+
+    _tick(core, jumpPressed: true); // second air jump blocked
+    final afterSecond = core.buildSnapshot().hud;
+    expect(afterSecond.mana, closeTo(8.0, 1e-9));
+    expect(afterSecond.stamina, closeTo(10.0, 1e-9));
+  });
+
+  test('double jump peak stays at or below single jump peak', () {
+    final base = PlayerCharacterRegistry.eloise;
+    final single = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
+      seed: 1,
+      tickHz: defaultTickHz,
+      playerCharacter: base,
+    );
+    final doubleJump = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
+      seed: 1,
+      tickHz: defaultTickHz,
+      playerCharacter: base.copyWith(
+        catalog: testPlayerCatalog(abilityJumpId: 'eloise.double_jump'),
+      ),
+    );
+
+    _tick(single, jumpPressed: true);
+    var singlePeakY = single.playerPosY;
+    for (var i = 0; i < 120; i += 1) {
+      _tick(single);
+      if (single.playerPosY < singlePeakY) singlePeakY = single.playerPosY;
+      if (single.playerGrounded) break;
+    }
+
+    _tick(doubleJump, jumpPressed: true);
+    var doublePeakY = doubleJump.playerPosY;
+    var secondTapFired = false;
+    for (var i = 0; i < 120; i += 1) {
+      if (!secondTapFired && doubleJump.playerVelY >= 0) {
+        _tick(doubleJump, jumpPressed: true);
+        secondTapFired = true;
+      } else {
+        _tick(doubleJump);
+      }
+      if (doubleJump.playerPosY < doublePeakY) {
+        doublePeakY = doubleJump.playerPosY;
+      }
+      if (doubleJump.playerGrounded && secondTapFired) break;
+    }
+
+    expect(doublePeakY, greaterThanOrEqualTo(singlePeakY - 1e-6));
   });
 
   test('dash spends stamina (2) when started', () {

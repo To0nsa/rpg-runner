@@ -4,15 +4,13 @@ import 'world.dart';
 /// Callback signature for iterating over entities with movement-related components.
 ///
 /// [e] is the Entity ID.
-/// [mi], [ti], [ii], [bi], [ci], [si] are the **dense indices** for:
+/// [mi], [ti], [ii], [bi] are the **dense indices** for:
 /// - [mi]: MovementStore
 /// - [ti]: TransformStore
 /// - [ii]: PlayerInputStore
 /// - [bi]: BodyStore
-/// - [ci]: CollisionStateStore
-/// - [si]: StaminaStore
 typedef MovementQueryFn =
-    void Function(EntityId e, int mi, int ti, int ii, int bi, int ci, int si);
+    void Function(EntityId e, int mi, int ti, int ii, int bi);
 
 /// Callback signature for iterating over entities with collision-related components.
 ///
@@ -33,7 +31,7 @@ typedef ColliderQueryFn =
 /// for the presence of other required components.
 class EcsQueries {
   /// Iterates over all entities that have [MovementStore], [TransformStore],
-  /// [PlayerInputStore], [BodyStore], [CollisionStateStore], and [StaminaStore].
+  /// [PlayerInputStore], and [BodyStore].
   ///
   /// This query is typically used by the [MovementSystem] to process player movement.
   /// It effectively filters for "controllable physics bodies".
@@ -52,12 +50,8 @@ class EcsQueries {
       if (ii == null) continue;
       final bi = world.body.tryIndexOf(e);
       if (bi == null) continue;
-      final ci = world.collision.tryIndexOf(e);
-      if (ci == null) continue;
-      final si = world.stamina.tryIndexOf(e);
-      if (si == null) continue;
 
-      fn(e, mi, ti, ii, bi, ci, si);
+      fn(e, mi, ti, ii, bi);
     }
   }
 

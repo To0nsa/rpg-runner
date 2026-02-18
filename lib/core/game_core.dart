@@ -36,25 +36,26 @@
 /// 2. **Cooldowns & invulnerability**: Decrement timers.
 /// 3. **Enemy AI steering**: Path planning and movement intent.
 /// 4. **Player input**: Resolve ability intents (including mobility).
-/// 5. **Player movement**: Apply input to velocity.
-/// 6. **Mobility execution**: Apply dash/roll state.
-/// 7. **Gravity**: Apply gravity to non-kinematic bodies.
-/// 8. **Collision**: Resolve static world collisions.
-/// 9. **Pickups**: Collect items overlapping player.
-/// 10. **Broadphase rebuild**: Update spatial grid for hit detection.
-/// 11. **Projectile movement**: Advance existing projectiles.
-/// 12. **Strike intents**: Enemies and player queue strikes.
-/// 13. **Strike execution**: Spawn hitboxes/projectiles/self abilities.
-/// 14. **Hitbox positioning**: Follow owner entities.
-/// 15. **Hit resolution**: Detect overlaps, queue damage.
-/// 16. **Mobility impacts**: Apply overlap effects from active mobility.
-/// 17. **Status ticking**: Apply DoT ticks and queue damage.
-/// 18. **Damage middleware**: Apply combat rule edits/cancellations.
-/// 19. **Damage application**: Apply queued damage, set invulnerability.
-/// 20. **Status application**: Apply on-hit status profiles.
-/// 21. **Death handling**: Despawn dead entities, record kills.
-/// 22. **Resource regen**: Regenerate mana/stamina.
-/// 23. **Lifetime cleanup**: Remove expired entities.
+/// 5. **Jump execution**: Apply coyote/buffer/air-jump rules.
+/// 6. **Player movement**: Apply horizontal input to velocity.
+/// 7. **Mobility execution**: Apply dash/roll state.
+/// 8. **Gravity**: Apply gravity to non-kinematic bodies.
+/// 9. **Collision**: Resolve static world collisions.
+/// 10. **Pickups**: Collect items overlapping player.
+/// 11. **Broadphase rebuild**: Update spatial grid for hit detection.
+/// 12. **Projectile movement**: Advance existing projectiles.
+/// 13. **Strike intents**: Enemies and player queue strikes.
+/// 14. **Strike execution**: Spawn hitboxes/projectiles/self abilities.
+/// 15. **Hitbox positioning**: Follow owner entities.
+/// 16. **Hit resolution**: Detect overlaps, queue damage.
+/// 17. **Mobility impacts**: Apply overlap effects from active mobility.
+/// 18. **Status ticking**: Apply DoT ticks and queue damage.
+/// 19. **Damage middleware**: Apply combat rule edits/cancellations.
+/// 20. **Damage application**: Apply queued damage, set invulnerability.
+/// 21. **Status application**: Apply on-hit status profiles.
+/// 22. **Death handling**: Despawn dead entities, record kills.
+/// 23. **Resource regen**: Regenerate mana/stamina.
+/// 24. **Lifetime cleanup**: Remove expired entities.
 ///
 /// ## Determinism Contract
 ///
@@ -112,6 +113,7 @@ import 'ecs/systems/hold_ability_system.dart';
 import 'ecs/systems/mobility_system.dart';
 import 'ecs/systems/mobility_impact_system.dart';
 import 'ecs/systems/player_movement_system.dart';
+import 'ecs/systems/jump_system.dart';
 import 'ecs/systems/projectile_hit_system.dart';
 import 'ecs/systems/projectile_system.dart';
 import 'ecs/systems/projectile_world_collision_system.dart';
@@ -378,6 +380,7 @@ class GameCore {
       statsResolver: _statsResolver,
       statsCache: _resolvedStatsCache,
     );
+    _jumpSystem = JumpSystem(abilities: abilityCatalog);
     _mobilitySystem = MobilitySystem();
     _collisionSystem = CollisionSystem();
     _cooldownSystem = CooldownSystem();
@@ -705,6 +708,7 @@ class GameCore {
   // Stateless processors that operate on component stores.
 
   late final PlayerMovementSystem _movementSystem;
+  late final JumpSystem _jumpSystem;
   late final MobilitySystem _mobilitySystem;
   late final CollisionSystem _collisionSystem;
   late final CooldownSystem _cooldownSystem;
@@ -906,7 +910,7 @@ class GameCore {
             }
           }
 
-        // Jump: Consumed by AbilityActivationSystem (mobility), executed by PlayerMovementSystem.
+        // Jump: Consumed by AbilityActivationSystem (mobility), executed by JumpSystem.
         case JumpPressedCommand():
           _world.playerInput.jumpPressed[inputIndex] = true;
 
@@ -973,28 +977,29 @@ class GameCore {
   /// 3. **Enemy AI**: Compute paths and movement intentions.
   /// 4. **Ability upkeep + input**: Maintain hold abilities, then resolve new
   ///    ability intents (including mobility).
-  /// 5. **Player movement**: Apply input to velocity.
-  /// 6. **Mobility execution**: Apply dash/roll state.
-  /// 7. **Gravity**: Apply gravitational acceleration.
-  /// 8. **Collision**: Resolve against static world geometry.
-  /// 9. **Death checks**: Detect fall-into-gap and fell-behind-camera.
-  /// 10. **Camera update**: Advance autoscroll position.
-  /// 11. **Pickups**: Process collectible and restoration item collection.
-  /// 12. **Broadphase**: Rebuild spatial grid for hit detection.
-  /// 13. **Projectiles**: Move existing projectiles.
-  /// 14. **Strike intents**: Queue enemy and player strikes.
-  /// 15. **Strike execution**: Spawn hitboxes/projectiles/self abilities from intents.
-  /// 16. **Hitbox positioning**: Update hitbox positions from owners.
-  /// 17. **Hit detection**: Check projectile and hitbox overlaps.
-  /// 18. **Mobility impacts**: Apply overlap effects from active mobility.
-  /// 19. **Status ticking**: Apply DoT ticks and queue damage.
-  /// 20. **Damage middleware**: Apply combat rule edits/cancellations.
-  /// 21. **Damage application**: Apply queued damage events.
-  /// 22. **Status application**: Apply on-hit status profiles.
-  /// 23. **Death handling**: Despawn dead entities, record kills.
-  /// 24. **Resource regen**: Regenerate mana and stamina.
-  /// 25. **Animation**: Compute per-entity anim key + frame.
-  /// 26. **Cleanup**: Remove entities past their lifetime.
+  /// 5. **Jump execution**: Apply coyote/buffer/air-jump rules.
+  /// 6. **Player movement**: Apply horizontal input to velocity.
+  /// 7. **Mobility execution**: Apply dash/roll state.
+  /// 8. **Gravity**: Apply gravitational acceleration.
+  /// 9. **Collision**: Resolve against static world geometry.
+  /// 10. **Death checks**: Detect fall-into-gap and fell-behind-camera.
+  /// 11. **Camera update**: Advance autoscroll position.
+  /// 12. **Pickups**: Process collectible and restoration item collection.
+  /// 13. **Broadphase**: Rebuild spatial grid for hit detection.
+  /// 14. **Projectiles**: Move existing projectiles.
+  /// 15. **Strike intents**: Queue enemy and player strikes.
+  /// 16. **Strike execution**: Spawn hitboxes/projectiles/self abilities from intents.
+  /// 17. **Hitbox positioning**: Update hitbox positions from owners.
+  /// 18. **Hit detection**: Check projectile and hitbox overlaps.
+  /// 19. **Mobility impacts**: Apply overlap effects from active mobility.
+  /// 20. **Status ticking**: Apply DoT ticks and queue damage.
+  /// 21. **Damage middleware**: Apply combat rule edits/cancellations.
+  /// 22. **Damage application**: Apply queued damage events.
+  /// 23. **Status application**: Apply on-hit status profiles.
+  /// 24. **Death handling**: Despawn dead entities, record kills.
+  /// 25. **Resource regen**: Regenerate mana and stamina.
+  /// 26. **Animation**: Compute per-entity anim key + frame.
+  /// 27. **Cleanup**: Remove entities past their lifetime.
   ///
   /// If the run ends during this tick (player death, fell into gap, etc.),
   /// a [RunEndedEvent] is emitted and the simulation freezes.
@@ -1074,10 +1079,10 @@ class GameCore {
     );
 
     _abilityActivationSystem.step(_world, player: _player, currentTick: tick);
+    _jumpSystem.step(_world, _movement, currentTick: tick);
     _movementSystem.step(
       _world,
       _movement,
-      resources: _resourceTuning,
       currentTick: tick,
       fixedPointPilotEnabled: _physicsTuning.fixedPointPilot.enabled,
       fixedPointSubpixelScale: _physicsTuning.fixedPointPilot.subpixelScale,

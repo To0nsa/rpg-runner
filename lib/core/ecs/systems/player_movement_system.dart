@@ -1,4 +1,3 @@
-import '../../abilities/ability_def.dart';
 import '../../stats/character_stats_resolver.dart';
 import '../../stats/resolved_stats_cache.dart';
 import '../../snapshots/enums.dart';
@@ -14,14 +13,14 @@ import '../world.dart';
 /// - Movement
 /// - Body
 ///
-/// PlayerMovementSystem writes velocities only (input/jump/dash state/gravity/clamps).
+/// PlayerMovementSystem writes movement velocities only (input/dash/clamps).
 /// Dash initiation is handled by [MobilitySystem].
 /// Position integration and collision resolution are handled by CollisionSystem.
 ///
 /// **Responsibilities**:
-/// *   Update movement state timers (Dash cooldown, Coyote time, Jump buffer).
-/// *   Process Input (Jump request, Horizontal move).
-/// *   Apply velocities based on state.
+/// *   Update movement state timers (dash + facing locks).
+/// *   Process horizontal input and dash movement state.
+/// *   Apply horizontal/active-dash velocities.
 class PlayerMovementSystem {
   PlayerMovementSystem({
     CharacterStatsResolver statsResolver = const CharacterStatsResolver(),
@@ -33,17 +32,15 @@ class PlayerMovementSystem {
   void step(
     EcsWorld world,
     MovementTuningDerived tuning, {
-    required ResourceTuningDerived resources,
     required int currentTick,
     bool fixedPointPilotEnabled = false,
     int fixedPointSubpixelScale = defaultPhysicsSubpixelScale,
   }) {
     final dt = tuning.dtSeconds;
-    final t = tuning.base;
 
     // Iterate over all controllable entities (Join: Movement + Input + Body +...).
     // Uses EcsQueries to efficiently fetch entities with all required components.
-    EcsQueries.forMovementBodies(world, (e, mi, ti, ii, bi, ci, si) {
+    EcsQueries.forMovementBodies(world, (e, mi, ti, ii, bi) {
       if (!world.body.enabled[bi]) return;
 
       // Kinematic bodies are moved by scripts/physics directly, not by player input.
@@ -72,38 +69,11 @@ class PlayerMovementSystem {
       }
 
       // -- Timers --
-      // Decrement state timers. These track cooldowns and temporary states (dash, buffers).
+      // Decrement state timers. These track temporary movement states.
 
       if (world.movement.dashTicksLeft[mi] > 0) {
         world.movement.dashTicksLeft[mi] -= 1;
       }
-      if (world.movement.jumpBufferTicksLeft[mi] > 0) {
-        world.movement.jumpBufferTicksLeft[mi] -= 1;
-      }
-
-      // -- Coyote Time --
-      // "Coyote Time" allows the player to jump for a few frames after walking off a ledge.
-      // - If currently grounded (from CollisionSystem last frame), reset the timer to full.
-      // - If in air, decrement the timer.
-      final wasGrounded = world.collision.grounded[ci];
-      if (wasGrounded) {
-        world.movement.coyoteTicksLeft[mi] = tuning.coyoteTicks;
-      } else if (world.movement.coyoteTicksLeft[mi] > 0) {
-        world.movement.coyoteTicksLeft[mi] -= 1;
-      }
-
-      // -- Input Buffering --
-      // Buffer a jump request coming from the ability pipeline.
-      final jumpIntentIndex = world.mobilityIntent.tryIndexOf(e);
-      final hasJumpIntent =
-          jumpIntentIndex != null &&
-          world.mobilityIntent.slot[jumpIntentIndex] == AbilitySlot.jump;
-      if (hasJumpIntent &&
-          world.mobilityIntent.commitTick[jumpIntentIndex] == currentTick) {
-        // Jump pressed this tick: prime the buffer.
-        world.movement.jumpBufferTicksLeft[mi] = tuning.jumpBufferTicks;
-      }
-
       final dashing = world.movement.dashTicksLeft[mi] > 0;
       final gearMoveSpeedMul = _gearMoveSpeedMultiplier(world, e);
       final modifierIndex = world.statModifier.tryIndexOf(e);
@@ -143,56 +113,6 @@ class PlayerMovementSystem {
           tuning,
           moveSpeedMul,
         );
-
-        // -- Jumping --
-        // Execute Jump if:
-        // 1. Jump is buffered (Pressed recently).
-        // 2. Player can jump (Grounded OR Coyote Time active).
-        // 3. Sufficient Stamina.
-        if (world.movement.jumpBufferTicksLeft[mi] > 0 &&
-            (wasGrounded || world.movement.coyoteTicksLeft[mi] > 0)) {
-          final jumpCost = hasJumpIntent
-              ? world.mobilityIntent.staminaCost100[jumpIntentIndex]
-              : resources.jumpStaminaCost100;
-          if (world.stamina.stamina[si] >= jumpCost) {
-            // Stamina cost is handled by AbilityActivationSystem at commit time.
-            // world.stamina.stamina[si] -= jumpCost;
-
-            // Apply instantaneous upward velocity.
-            world.transform.velY[ti] = -t.jumpSpeed;
-
-            // Consume the buffer and coyote time immediately to prevent double-jumping
-            // in the same window.
-            world.movement.jumpBufferTicksLeft[mi] = 0;
-            world.movement.coyoteTicksLeft[mi] = 0;
-
-            if (hasJumpIntent) {
-              // Mark the jump intent as consumed and stamp the active ability.
-              final intent = world.mobilityIntent;
-              intent.tick[jumpIntentIndex] = -1;
-              intent.commitTick[jumpIntentIndex] = -1;
-
-              if (world.activeAbility.has(e)) {
-                world.activeAbility.set(
-                  e,
-                  id: intent.abilityId[jumpIntentIndex],
-                  slot: intent.slot[jumpIntentIndex],
-                  commitTick: currentTick,
-                  windupTicks: intent.windupTicks[jumpIntentIndex],
-                  activeTicks: intent.activeTicks[jumpIntentIndex],
-                  recoveryTicks: intent.recoveryTicks[jumpIntentIndex],
-                  facingDir: world.movement.facing[mi],
-                );
-              }
-            }
-          }
-        }
-      }
-
-      // If a jump intent is buffered but expired, clear it.
-      if (hasJumpIntent && world.movement.jumpBufferTicksLeft[mi] <= 0) {
-        world.mobilityIntent.tick[jumpIntentIndex] = -1;
-        world.mobilityIntent.commitTick[jumpIntentIndex] = -1;
       }
 
       // -- Limits --

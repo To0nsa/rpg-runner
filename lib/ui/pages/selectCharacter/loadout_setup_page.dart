@@ -266,7 +266,7 @@ class _ActionSlotGrid extends StatelessWidget {
     _ActionSlotSpec(
       slot: AbilitySlot.jump,
       hudLabel: 'Jump',
-      isEditable: false,
+      isEditable: true,
     ),
     _ActionSlotSpec(
       slot: AbilitySlot.secondary,

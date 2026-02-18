@@ -18,7 +18,7 @@ import '../world.dart';
 ///     -   Stops horizontal movement upon collision.
 ///
 /// Order within a tick:
-/// - PlayerMovementSystem computes control velocities (jump/dash/horizontal).
+/// - JumpSystem/PlayerMovementSystem/MobilitySystem compute control velocities.
 /// - GravitySystem applies vertical gravity acceleration.
 /// - CollisionSystem integrates `pos += vel * dt`, resolves collisions, and
 ///   finalizes grounded/contact state for the tick.
@@ -53,7 +53,6 @@ class CollisionSystem {
       if (world.body.isKinematic[bi]) {
         return;
       }
-
 
       final prevPosX = world.transform.posX[ti];
       final prevPosY = world.transform.posY[ti];
@@ -100,8 +99,7 @@ class CollisionSystem {
         staticWorld.queryTops(minX + eps, maxX - eps, _queryBuffer);
         for (final solid in _queryBuffer) {
           final topY = solid.minY;
-          final crossesTop =
-              prevBottom <= topY + eps && bottom >= topY - eps;
+          final crossesTop = prevBottom <= topY + eps && bottom >= topY - eps;
           if (!crossesTop) continue;
 
           if (bestTopY == null || topY < bestTopY) {
@@ -135,13 +133,17 @@ class CollisionSystem {
       // Treated same as one-way platforms.
       if (world.transform.velY[ti] > 0) {
         _groundSegBuffer.clear();
-        staticWorld.queryGroundSegments(minX + eps, maxX - eps, _groundSegBuffer);
+        staticWorld.queryGroundSegments(
+          minX + eps,
+          maxX - eps,
+          _groundSegBuffer,
+        );
         for (final seg in _groundSegBuffer) {
           final groundTopY = seg.topY;
           final crossesTop =
               prevBottom <= groundTopY + eps && bottom >= groundTopY - eps;
           if (!crossesTop) continue;
-          
+
           if (bestTopY == null || groundTopY < bestTopY) {
             bestTopY = groundTopY;
           }
@@ -177,7 +179,7 @@ class CollisionSystem {
       final sideMask = world.body.sideMask[bi];
       final velX = world.transform.velX[ti];
 
-      if (velX > 0 && (sideMask &  BodyDef.sideRight) != 0) {
+      if (velX > 0 && (sideMask & BodyDef.sideRight) != 0) {
         // Moving Right.
         final prevRight = prevCenterX + halfX;
         final right = resolvedCenterX + halfX;
@@ -189,7 +191,8 @@ class CollisionSystem {
         for (final solid in _queryBuffer) {
           // Filter by vertical overlap (y-axis).
           final overlapY =
-              resolvedMaxY > solid.minY + eps && resolvedMinY < solid.maxY - eps;
+              resolvedMaxY > solid.minY + eps &&
+              resolvedMinY < solid.maxY - eps;
           if (!overlapY) continue;
 
           final wallX = solid.minX;
@@ -220,7 +223,8 @@ class CollisionSystem {
         for (final solid in _queryBuffer) {
           // Filter by vertical overlap (y-axis).
           final overlapY =
-              resolvedMaxY > solid.minY + eps && resolvedMinY < solid.maxY - eps;
+              resolvedMaxY > solid.minY + eps &&
+              resolvedMinY < solid.maxY - eps;
           if (!overlapY) continue;
 
           final wallX = solid.maxX;

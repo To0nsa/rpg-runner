@@ -158,6 +158,7 @@ class SnapshotBuilder {
     // ─── Query player component indices ───
     final mi = world.movement.indexOf(player);
     final onGround = world.collision.grounded[world.collision.indexOf(player)];
+    final jumpStateIndex = world.jumpState.tryIndexOf(player);
     final hi = world.health.indexOf(player);
     final mai = world.mana.indexOf(player);
     final si = world.stamina.indexOf(player);
@@ -231,10 +232,28 @@ class SnapshotBuilder {
       slot: AbilitySlot.jump,
       loadoutIndex: li,
     );
+    final jumpAirCost = jumpAbility?.airJumpCost ?? AbilityResourceCost.zero;
     final jumpManaCost = jumpAbility == null ? 0 : jumpCost.manaCost100;
     final jumpStaminaCost = jumpAbility == null
         ? resources.jumpStaminaCost100
         : jumpCost.staminaCost100;
+    final canGroundJumpNow =
+        onGround ||
+        (jumpStateIndex != null &&
+            world.jumpState.coyoteTicksLeft[jumpStateIndex] > 0);
+    final airJumpsUsed = jumpStateIndex == null
+        ? 0
+        : world.jumpState.airJumpsUsed[jumpStateIndex];
+    final canAirJumpNow =
+        !canGroundJumpNow && airJumpsUsed < (jumpAbility?.maxAirJumps ?? 0);
+    final canAffordGroundJump =
+        stamina >= jumpStaminaCost &&
+        mana >= jumpManaCost &&
+        _canAffordHealthCost(hp100, jumpCost.healthCost100);
+    final canAffordAirJump =
+        stamina >= jumpAirCost.staminaCost100 &&
+        mana >= jumpAirCost.manaCost100 &&
+        _canAffordHealthCost(hp100, jumpAirCost.healthCost100);
 
     final meleeAbilityId = loadout.abilityPrimaryId[li];
     final meleeAbility = abilityCatalog.resolve(meleeAbilityId);
@@ -286,10 +305,9 @@ class SnapshotBuilder {
     );
     // ─── Compute affordability flags ───
     // These tell the UI whether action buttons should appear enabled.
-    final canAffordJump =
-        stamina >= jumpStaminaCost &&
-        mana >= jumpManaCost &&
-        _canAffordHealthCost(hp100, jumpCost.healthCost100);
+    final canAffordJump = canGroundJumpNow
+        ? canAffordGroundJump
+        : (canAirJumpNow ? canAffordAirJump : false);
     final canAffordMobility =
         stamina >= mobilityStaminaCost &&
         mana >= mobilityManaCost &&
@@ -353,8 +371,9 @@ class SnapshotBuilder {
         ? 0
         : _scaleAbilityTicks(spellAbility.cooldownTicks);
 
-    // Jump currently has no cooldown (buffer/coyote are handled by MovementSystem).
-    cooldownTicksTotal[CooldownGroup.jump] = 0;
+    cooldownTicksTotal[CooldownGroup.jump] = jumpAbility == null
+        ? 0
+        : _scaleAbilityTicks(jumpAbility.cooldownTicks);
 
     // ─── Read player transform ───
     final ti = world.transform.indexOf(player);

@@ -5,7 +5,7 @@ import '../sparse_set.dart';
 ///
 /// This is intentionally "config-like" and reusable across players/enemies:
 /// - `Transform` holds state (pos/vel)
-/// - `Movement` holds controller-specific timers/state (coyote, dash, etc.)
+/// - `Movement`/`JumpState` hold controller-specific runtime state
 /// - `Body` holds physics participation and constraints (gravity, clamps, kinematic)
 class BodyDef {
   const BodyDef({

@@ -167,6 +167,25 @@ void main() {
       expect(shieldAutoAim.isEnabled, isTrue);
     });
 
+    test('jump slot exposes jump and double jump as enabled options', () {
+      const loadout = EquippedLoadoutDef(abilityJumpId: 'eloise.jump');
+
+      final candidates = abilityCandidatesForSlot(
+        characterId: PlayerCharacterId.eloise,
+        slot: AbilitySlot.jump,
+        loadout: loadout,
+      );
+
+      final jump = candidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.jump',
+      );
+      final doubleJump = candidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.double_jump',
+      );
+      expect(jump.isEnabled, isTrue);
+      expect(doubleJump.isEnabled, isTrue);
+    });
+
     test(
       'secondary slot uses character-authored mask (legacy mask normalized)',
       () {

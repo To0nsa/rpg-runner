@@ -648,6 +648,27 @@ class AbilityCatalog implements AbilityResolver {
       animKey: AnimKey.jump,
     ),
 
+    // Two-tap jump profile:
+    // - First jump uses fixed lower impulse.
+    // - Second tap (air jump) applies the same fixed impulse.
+    // Timing of the second tap changes the resulting two-arc path.
+    'eloise.double_jump': AbilityDef(
+      id: 'eloise.double_jump',
+      category: AbilityCategory.mobility,
+      allowedSlots: {AbilitySlot.jump},
+      inputLifecycle: AbilityInputLifecycle.tap,
+      windupTicks: 0,
+      activeTicks: 0,
+      recoveryTicks: 0,
+      defaultCost: AbilityResourceCost(staminaCost100: 200),
+      groundJumpSpeedY: 450,
+      airJumpSpeedY: 450,
+      maxAirJumps: 1,
+      airJumpCost: AbilityResourceCost(manaCost100: 200),
+      cooldownTicks: 0,
+      animKey: AnimKey.jump,
+    ),
+
     'eloise.dash': AbilityDef(
       id: 'eloise.dash',
       category: AbilityCategory.mobility,

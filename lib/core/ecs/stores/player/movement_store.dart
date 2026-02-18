@@ -2,19 +2,14 @@ import '../../../snapshots/enums.dart';
 import '../../entity_id.dart';
 import '../../sparse_set.dart';
 
-/// Movement state for platformer-style motion (timers + grounded + facing).
+/// Movement state for platformer-style motion (dash timers + facing).
 ///
-/// Contains transient state counters for precise movement tech:
-/// - Coyote time (jump after leaving ledge)
-/// - Jump buffer (press before landing)
+/// Contains transient movement state counters:
 /// - Active dash state (duration, direction)
 ///
 /// **Note**: Dash *cooldown* is now managed by [CooldownStore] using
 /// [CooldownGroup.mobility]. This store only tracks active dash execution.
 class MovementStore extends SparseSet {
-  final List<int> coyoteTicksLeft = <int>[];
-  final List<int> jumpBufferTicksLeft = <int>[];
-
   /// Ticks remaining in active dash. 0 = not dashing.
   final List<int> dashTicksLeft = <int>[];
 
@@ -38,8 +33,6 @@ class MovementStore extends SparseSet {
 
   @override
   void onDenseAdded(int denseIndex) {
-    coyoteTicksLeft.add(0);
-    jumpBufferTicksLeft.add(0);
     dashTicksLeft.add(0);
     dashDirX.add(1);
     dashDirY.add(0);
@@ -51,8 +44,6 @@ class MovementStore extends SparseSet {
 
   @override
   void onSwapRemove(int removeIndex, int lastIndex) {
-    coyoteTicksLeft[removeIndex] = coyoteTicksLeft[lastIndex];
-    jumpBufferTicksLeft[removeIndex] = jumpBufferTicksLeft[lastIndex];
     dashTicksLeft[removeIndex] = dashTicksLeft[lastIndex];
     dashDirX[removeIndex] = dashDirX[lastIndex];
     dashDirY[removeIndex] = dashDirY[lastIndex];
@@ -61,8 +52,6 @@ class MovementStore extends SparseSet {
     facing[removeIndex] = facing[lastIndex];
     facingLockTicksLeft[removeIndex] = facingLockTicksLeft[lastIndex];
 
-    coyoteTicksLeft.removeLast();
-    jumpBufferTicksLeft.removeLast();
     dashTicksLeft.removeLast();
     dashDirX.removeLast();
     dashDirY.removeLast();

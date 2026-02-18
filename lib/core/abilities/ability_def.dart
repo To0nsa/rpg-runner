@@ -388,6 +388,10 @@ class AbilityDef {
     this.grantsRiposteOnGuardedHit = false,
     this.mobilityImpact = MobilityImpactDef.none,
     this.mobilitySpeedX,
+    this.groundJumpSpeedY,
+    this.airJumpSpeedY,
+    this.maxAirJumps = 0,
+    this.airJumpCost = AbilityResourceCost.zero,
     this.chargeProfile,
     this.chargeMaxHoldTicks60 = 0,
     this.defaultCost = AbilityResourceCost.zero,
@@ -440,6 +444,59 @@ class AbilityDef {
        assert(
          mobilitySpeedX == null || mobilitySpeedX > 0,
          'mobilitySpeedX must be positive when defined.',
+       ),
+       assert(
+         groundJumpSpeedY == null || groundJumpSpeedY > 0,
+         'groundJumpSpeedY must be positive when defined.',
+       ),
+       assert(
+         airJumpSpeedY == null || airJumpSpeedY > 0,
+         'airJumpSpeedY must be positive when defined.',
+       ),
+       assert(
+         groundJumpSpeedY == null || allowedSlots.contains(AbilitySlot.jump),
+         'Only jump-slot abilities may define groundJumpSpeedY.',
+       ),
+       assert(
+         airJumpSpeedY == null || allowedSlots.contains(AbilitySlot.jump),
+         'Only jump-slot abilities may define airJumpSpeedY.',
+       ),
+       assert(
+         groundJumpSpeedY == null || category == AbilityCategory.mobility,
+         'Only mobility abilities may define groundJumpSpeedY.',
+       ),
+       assert(
+         airJumpSpeedY == null || category == AbilityCategory.mobility,
+         'Only mobility abilities may define airJumpSpeedY.',
+       ),
+       assert(maxAirJumps >= 0, 'maxAirJumps cannot be negative.'),
+       assert(
+         maxAirJumps == 0 || allowedSlots.contains(AbilitySlot.jump),
+         'Only jump-slot abilities may define maxAirJumps.',
+       ),
+       assert(
+         maxAirJumps == 0 || category == AbilityCategory.mobility,
+         'Only mobility abilities may define maxAirJumps.',
+       ),
+       assert(
+         airJumpCost.healthCost100 >= 0 &&
+             airJumpCost.staminaCost100 >= 0 &&
+             airJumpCost.manaCost100 >= 0,
+         'airJumpCost cannot contain negative values.',
+       ),
+       assert(
+         (airJumpCost.healthCost100 == 0 &&
+                 airJumpCost.staminaCost100 == 0 &&
+                 airJumpCost.manaCost100 == 0) ||
+             allowedSlots.contains(AbilitySlot.jump),
+         'Only jump-slot abilities may define airJumpCost.',
+       ),
+       assert(
+         (airJumpCost.healthCost100 == 0 &&
+                 airJumpCost.staminaCost100 == 0 &&
+                 airJumpCost.manaCost100 == 0) ||
+             category == AbilityCategory.mobility,
+         'Only mobility abilities may define airJumpCost.',
        ),
        assert(
          mobilityImpact.damage100 > 0 || mobilityImpact.procs.isEmpty,
@@ -549,6 +606,28 @@ class AbilityDef {
   /// Each mobility ability defines its own speed. Non-mobility abilities
   /// leave this `null`.
   final double? mobilitySpeedX;
+
+  /// Optional authored initial vertical speed for ground jump execution.
+  ///
+  /// Positive value in world-units/second. Runtime applies this upward
+  /// (negative Y velocity) when a ground/coyote jump executes.
+  final double? groundJumpSpeedY;
+
+  /// Optional authored fixed vertical speed for air-jump execution.
+  ///
+  /// Positive value in world-units/second. Runtime applies this upward
+  /// (negative Y velocity) when an air jump executes.
+  final double? airJumpSpeedY;
+
+  /// Number of extra airborne jumps allowed before touching ground.
+  ///
+  /// `0` means no extra air jump.
+  final int maxAirJumps;
+
+  /// Resource cost applied when performing an airborne jump.
+  ///
+  /// Ground jumps still use [defaultCost].
+  final AbilityResourceCost airJumpCost;
 
   /// Cooldown duration in ticks.
   final int cooldownTicks;

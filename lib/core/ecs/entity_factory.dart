@@ -38,6 +38,7 @@ class EntityFactory {
   /// - [PlayerInputStore]: Marks this entity as controllable by player input.
   /// - [AnimStateStore]: Stores resolved animation state for rendering.
   /// - [MovementStore]: Handles movement logic and facing direction.
+  /// - [JumpStateStore]: Tracks coyote/buffer/air-jump runtime counters.
   /// - [BodyStore]: Physics body properties (mass, friction, etc.).
   /// - [ColliderAabbStore]: Axis-aligned bounding box for collision detection.
   /// - [CollisionStateStore]: Tracks current collision state.
@@ -83,6 +84,7 @@ class EntityFactory {
     world.activeAbility.add(id);
     world.animState.add(id);
     world.movement.add(id, facing: facing);
+    world.jumpState.add(id);
     world.body.add(id, body);
     world.colliderAabb.add(id, collider);
     world.collision.add(id);
