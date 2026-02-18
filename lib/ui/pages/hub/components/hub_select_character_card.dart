@@ -25,9 +25,7 @@ class HubSelectCharacterCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final ui = context.ui;
     final hub = context.hub;
-    final def =
-        PlayerCharacterRegistry.byId[characterId] ??
-        PlayerCharacterRegistry.defaultCharacter;
+    final def = PlayerCharacterRegistry.resolve(characterId);
 
     return HubSelectCardFrame(
       onTap: onChange,

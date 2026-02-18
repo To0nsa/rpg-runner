@@ -2,13 +2,18 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rpg_runner/core/commands/command.dart';
 import 'package:rpg_runner/core/game_core.dart';
+import 'support/test_level.dart';
 import 'package:rpg_runner/game/game_controller.dart';
 
 import 'test_tunings.dart';
 
 void main() {
   test('GameController dedupes MoveAxis per tick (last wins)', () {
-    final core = GameCore(seed: 1, tuning: noAutoscrollTuning);
+    final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
+      playerCharacter: testPlayerCharacter,
+      seed: 1,
+    );
     final controller = GameController(core: core);
 
     controller.enqueue(const MoveAxisCommand(tick: 1, axis: 1));
@@ -21,7 +26,11 @@ void main() {
   });
 
   test('GameController merges multiple button presses per tick', () {
-    final core = GameCore(seed: 1, tuning: noAutoscrollTuning);
+    final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
+      playerCharacter: testPlayerCharacter,
+      seed: 1,
+    );
     final controller = GameController(core: core);
 
     controller.enqueue(const JumpPressedCommand(tick: 1));
@@ -38,7 +47,11 @@ void main() {
   });
 
   test('GameController dedupes AimDir per tick (last wins)', () {
-    final core = GameCore(seed: 1, tuning: noAutoscrollTuning);
+    final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
+      playerCharacter: testPlayerCharacter,
+      seed: 1,
+    );
     final controller = GameController(core: core);
 
     controller.enqueue(const AimDirCommand(tick: 1, x: 1, y: 0));
@@ -50,7 +63,11 @@ void main() {
   });
 
   test('GameController notifies once after stepping ticks', () {
-    final core = GameCore(seed: 1, tuning: noAutoscrollTuning);
+    final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
+      playerCharacter: testPlayerCharacter,
+      seed: 1,
+    );
     final controller = GameController(core: core);
     var notifyCount = 0;
     controller.addListener(() {
@@ -65,7 +82,11 @@ void main() {
   });
 
   test('GameController notifies when paused and shutdown', () {
-    final core = GameCore(seed: 1, tuning: noAutoscrollTuning);
+    final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
+      playerCharacter: testPlayerCharacter,
+      seed: 1,
+    );
     final controller = GameController(core: core);
     var notifyCount = 0;
     controller.addListener(() {

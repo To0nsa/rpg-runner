@@ -41,8 +41,7 @@ class AppState extends ChangeNotifier {
   final UserProfileStore _profileStore;
   final MetaService _metaService;
   static const AbilityCatalog _abilityCatalog = AbilityCatalog();
-  static const ProjectileCatalog _projectileCatalog =
-      ProjectileCatalog();
+  static const ProjectileCatalog _projectileCatalog = ProjectileCatalog();
   static const SpellBookCatalog _spellBookCatalog = SpellBookCatalog();
   static const LoadoutValidator _loadoutValidator = LoadoutValidator(
     abilityCatalog: _abilityCatalog,
@@ -179,7 +178,6 @@ class AppState extends ChangeNotifier {
   void startWarmup() {
     if (_warmupStarted) return;
     _warmupStarted = true;
-    // TODO: kick off non-critical asset caching and lightweight services.
   }
 
   RunStartArgs buildRunStartArgs({int? seed}) {
@@ -236,9 +234,7 @@ class AppState extends ChangeNotifier {
     PlayerCharacterId characterId,
   ) {
     final gear = _meta.equippedFor(characterId);
-    final character =
-        PlayerCharacterRegistry.byId[characterId] ??
-        PlayerCharacterRegistry.defaultCharacter;
+    final character = PlayerCharacterRegistry.resolve(characterId);
     final catalog = character.catalog;
     var normalized = EquippedLoadoutDef(
       mask: catalog.loadoutSlotMask,

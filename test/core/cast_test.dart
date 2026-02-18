@@ -5,6 +5,7 @@ import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/combat/status/status.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/game_core.dart';
+import '../support/test_level.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
 import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
@@ -33,9 +34,9 @@ void main() {
   test('cast: insufficient mana => no projectile', () {
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
       seed: 1,
       tickHz: 20,
-      tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
@@ -78,9 +79,9 @@ void main() {
       );
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
+        levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
         seed: 1,
         tickHz: 20,
-        tuning: noAutoscrollTuning,
         playerCharacter: base.copyWith(
           catalog: catalog,
           tuning: base.tuning.copyWith(
@@ -144,9 +145,9 @@ void main() {
     );
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
       seed: 1,
       tickHz: 20,
-      tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
         catalog: catalog,
         tuning: base.tuning.copyWith(
@@ -194,9 +195,9 @@ void main() {
   test('cast: cooldown blocks recast until it expires', () {
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
       seed: 1,
       tickHz: 20,
-      tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
@@ -270,9 +271,9 @@ void main() {
     () {
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
+        levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
         seed: 1,
         tickHz: 20,
-        tuning: noAutoscrollTuning,
         playerCharacter: base.copyWith(
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
@@ -319,9 +320,9 @@ void main() {
   test('spell-slot self spell restores mana without spawning projectiles', () {
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
       seed: 1,
       tickHz: 20,
-      tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
@@ -408,9 +409,9 @@ void main() {
     () {
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
+        levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
         seed: 1,
         tickHz: 20,
-        tuning: noAutoscrollTuning,
         playerCharacter: base.copyWith(
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
@@ -485,9 +486,9 @@ void main() {
   test('auto-aim shot uses tap input mode for projectile slot', () {
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
       seed: 1,
       tickHz: 20,
-      tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
@@ -503,9 +504,9 @@ void main() {
   test('quick shot keeps hold-aim-release input mode', () {
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
       seed: 1,
       tickHz: 20,
-      tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),

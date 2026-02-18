@@ -5,10 +5,11 @@
 library;
 
 import '../levels/level_id.dart';
+import 'camera_snapshot.dart';
 import 'entity_render_snapshot.dart';
 import 'enums.dart';
+import 'ground_surface_snapshot.dart';
 import 'player_hud_snapshot.dart';
-import 'static_ground_gap_snapshot.dart';
 import 'static_solid_snapshot.dart';
 
 /// Complete game state snapshot at a specific simulation tick.
@@ -25,12 +26,11 @@ class GameStateSnapshot {
     required this.distance,
     required this.paused,
     required this.gameOver,
-    required this.cameraCenterX,
-    required this.cameraCenterY,
+    required this.camera,
     required this.hud,
     required this.entities,
     required this.staticSolids,
-    required this.groundGaps,
+    required this.groundSurfaces,
   });
 
   /// Current simulation tick.
@@ -60,9 +60,8 @@ class GameStateSnapshot {
   /// Whether the run has ended (simulation is frozen).
   final bool gameOver;
 
-  /// Camera center used for rendering this snapshot.
-  final double cameraCenterX;
-  final double cameraCenterY;
+  /// Camera snapshot used for rendering this frame.
+  final CameraSnapshot camera;
 
   /// HUD-only player stats.
   final PlayerHudSnapshot hud;
@@ -73,8 +72,8 @@ class GameStateSnapshot {
   /// Render-only static collision geometry (platforms/obstacles) for this run.
   final List<StaticSolidSnapshot> staticSolids;
 
-  /// Render-only ground gaps (holes in the ground band).
-  final List<StaticGroundGapSnapshot> groundGaps;
+  /// Render-only walkable ground surfaces for this run.
+  final List<GroundSurfaceSnapshot> groundSurfaces;
 
   /// Returns the player entity snapshot, or `null` if not found.
   ///

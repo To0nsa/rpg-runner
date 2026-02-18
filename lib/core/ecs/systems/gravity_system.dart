@@ -1,5 +1,6 @@
 import '../../players/player_tuning.dart';
 import '../../tuning/physics_tuning.dart';
+import '../../util/fixed_math.dart';
 import '../world.dart';
 
 /// Applies gravity to all enabled, non-kinematic bodies that opt into gravity.
@@ -15,6 +16,7 @@ class GravitySystem {
     if (dt <= 0.0) return;
 
     final gravityY = physics.gravityY;
+    final fixedPointPilot = physics.fixedPointPilot;
     final bodies = world.body;
 
     for (var bi = 0; bi < bodies.denseEntities.length; bi += 1) {
@@ -52,12 +54,30 @@ class GravitySystem {
 
       // -- Apply Gravity --
       final scaledGravityY = gravityY * bodies.gravityScale[bi];
-      world.transform.velY[ti] += scaledGravityY * dt;
+      if (fixedPointPilot.enabled) {
+        final deltaVel = accelerationDeltaPerTickFixed(
+          accelerationPerSecondSq: scaledGravityY,
+          tickHz: movement.tickHz,
+          scale: fixedPointPilot.subpixelScale,
+        );
+        world.transform.velY[ti] = quantizeToScale(
+          world.transform.velY[ti] + deltaVel,
+          fixedPointPilot.subpixelScale,
+        );
+      } else {
+        world.transform.velY[ti] += scaledGravityY * dt;
+      }
 
       // -- Terminal Velocity --
       final maxVelY = bodies.maxVelY[bi];
       world.transform.velY[ti] = world.transform.velY[ti]
           .clamp(-maxVelY, maxVelY);
+      if (fixedPointPilot.enabled) {
+        world.transform.quantizeVelAtIndex(
+          ti,
+          subpixelScale: fixedPointPilot.subpixelScale,
+        );
+      }
     }
   }
 }

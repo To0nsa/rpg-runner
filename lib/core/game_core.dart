@@ -131,7 +131,6 @@ import 'enemies/enemy_id.dart';
 import 'events/game_event.dart';
 import 'levels/level_definition.dart';
 import 'levels/level_id.dart';
-import 'levels/level_registry.dart';
 import 'navigation/surface_graph_builder.dart';
 import 'navigation/surface_navigator.dart';
 import 'navigation/surface_pathfinder.dart';
@@ -139,10 +138,10 @@ import 'navigation/utils/jump_template.dart';
 import 'navigation/utils/trajectory_predictor.dart';
 import 'players/player_catalog.dart';
 import 'players/player_character_definition.dart';
-import 'players/player_character_registry.dart';
 import 'projectiles/projectile_catalog.dart';
 import 'spellBook/spell_book_catalog.dart';
 import 'snapshots/enums.dart';
+import 'snapshots/camera_snapshot.dart';
 import 'snapshots/game_state_snapshot.dart';
 import 'snapshot_builder.dart';
 import 'loadout/loadout_validator.dart';
@@ -158,7 +157,6 @@ import 'ecs/stores/mana_store.dart';
 import 'ecs/stores/stamina_store.dart';
 import 'tuning/camera_tuning.dart';
 import 'tuning/collectible_tuning.dart';
-import 'tuning/core_tuning.dart';
 import 'tuning/flying_enemy_tuning.dart';
 import 'tuning/ground_enemy_tuning.dart';
 import 'tuning/navigation_tuning.dart';
@@ -182,99 +180,32 @@ import 'util/tick_math.dart';
 /// - Steps physics, AI, and combat systems in order.
 /// - Produces [GameStateSnapshot]s for the render layer.
 /// - Emits [GameEvent]s for UI feedback (run ended, etc.).
-///
-/// ## Usage
-///
-/// ```dart
-/// final core = GameCore(seed: 42);
-/// core.applyCommands([JumpPressedCommand()]);
-/// core.stepOneTick();
-/// final snapshot = core.buildSnapshot();
-/// final events = core.drainEvents();
-/// ```
-///
-/// ## Custom Configuration
-///
-/// Use [CoreTuning] to customize world/level parameters:
-/// ```dart
-/// final core = GameCore(
-///   seed: 123,
-///   tuning: CoreTuning(track: TrackTuning(enabled: false)),
-/// );
-/// ```
-///
-/// Use [PlayerCharacterDefinition] to select player-specific tuning + collider:
-/// ```dart
-/// final core = GameCore(
-///   seed: 123,
-///   playerCharacter: PlayerCharacterRegistry.eloise,
-/// );
-/// ```
-///
-/// Use [LevelDefinition] to select a level configuration:
-/// ```dart
-/// final core = GameCore(
-///   seed: 123,
-///   levelDefinition: LevelRegistry.byId(LevelId.defaultLevel),
-/// );
-/// ```
 class GameCore {
-  static LevelDefinition _resolveLevelDefinition({
-    required CoreTuning tuning,
-    required StaticWorldGeometry staticWorldGeometry,
-    LevelDefinition? levelDefinition,
-  }) {
-    if (levelDefinition != null) return levelDefinition;
-    final base = LevelRegistry.defaultLevel;
-    return LevelDefinition(
-      id: base.id,
-      patternPool: base.patternPool,
-      earlyPatternChunks: base.earlyPatternChunks,
-      noEnemyChunks: base.noEnemyChunks,
-      themeId: base.themeId,
-      tuning: tuning,
-      staticWorldGeometry: staticWorldGeometry,
-    );
-  }
-
   /// Creates a new game simulation with the given configuration.
   ///
   /// Parameters:
   /// - [seed]: Master RNG seed for deterministic generation.
   /// - [runId]: Unique identifier for this run session (replay/ghost).
   /// - [tickHz]: Fixed tick rate (default 60). Higher = smoother but more CPU.
-  /// - [tuning]: Aggregate tuning configuration (see [CoreTuning]).
+  /// - [levelDefinition]: Selected level configuration (required).
   /// - Catalogs: Entity archetype definitions (spells, enemies, etc.).
-  /// - [staticWorldGeometry]: Base level geometry (ground, initial platforms).
-  /// - [levelDefinition]: Optional level config. When provided, its tuning,
-  ///   static geometry, and pattern pools are used (and [tuning] /
-  ///   [staticWorldGeometry] are ignored).
   GameCore({
     required int seed,
     int runId = 0,
     int tickHz = defaultTickHz,
-    CoreTuning tuning = const CoreTuning(),
-    PlayerCharacterDefinition playerCharacter =
-        PlayerCharacterRegistry.defaultCharacter,
+    required LevelDefinition levelDefinition,
+    required PlayerCharacterDefinition playerCharacter,
     EquippedLoadoutDef? equippedLoadoutOverride,
     ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
     SpellBookCatalog spellBookCatalog = const SpellBookCatalog(),
     EnemyCatalog enemyCatalog = const EnemyCatalog(),
     WeaponCatalog weaponCatalog = const WeaponCatalog(),
     AccessoryCatalog accessoryCatalog = const AccessoryCatalog(),
-    StaticWorldGeometry staticWorldGeometry = const StaticWorldGeometry(
-      groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
-    ),
-    LevelDefinition? levelDefinition,
   }) : this._fromLevel(
          seed: seed,
          runId: runId,
          tickHz: tickHz,
-         levelDefinition: _resolveLevelDefinition(
-           levelDefinition: levelDefinition,
-           tuning: tuning,
-           staticWorldGeometry: staticWorldGeometry,
-         ),
+         levelDefinition: levelDefinition,
          projectileCatalog: projectileCatalog,
          spellBookCatalog: spellBookCatalog,
          enemyCatalog: enemyCatalog,
@@ -349,8 +280,6 @@ class GameCore {
 
   /// Common initialization shared by all constructors.
   void _initializeWorld(LevelDefinition levelDefinition) {
-    final staticWorldGeometry = levelDefinition.staticWorldGeometry;
-    final cameraTuning = levelDefinition.tuning.camera;
     // ─── Initialize ECS world and entity factory ───
     _world = EcsWorld(seed: seed);
     _entityFactory = EntityFactory(_world);
@@ -359,13 +288,19 @@ class GameCore {
     _initializeSystems();
 
     // ─── Initialize autoscrolling camera ───
-    _cameraTuning = CameraTuningDerived.from(cameraTuning, movement: _movement);
+    _cameraTuning = CameraTuningDerived.from(
+      levelDefinition.tuning.camera,
+      movement: _movement,
+    );
     _camera = AutoscrollCamera(
       viewWidth: virtualWidth.toDouble(),
+      viewHeight: virtualHeight.toDouble(),
       tuning: _cameraTuning,
       initial: CameraState(
         centerX: virtualWidth * 0.5,
         targetX: virtualWidth * 0.5,
+        centerY: levelDefinition.cameraCenterY,
+        targetY: levelDefinition.cameraCenterY,
         speedX: 0.0,
       ),
     );
@@ -384,8 +319,7 @@ class GameCore {
     );
 
     // ─── Spawn player entity (must happen before TrackManager) ───
-    final effectiveGroundTopY =
-        staticWorldGeometry.groundPlane?.topY ?? groundTopY.toDouble();
+    final effectiveGroundTopY = levelDefinition.groundTopY;
     _spawnPlayer(effectiveGroundTopY);
 
     // ─── Initialize track manager (needs player for callbacks) ───
@@ -394,7 +328,7 @@ class GameCore {
       trackTuning: _trackTuning,
       collectibleTuning: _collectibleTuning,
       restorationItemTuning: _restorationItemTuning,
-      baseGeometry: staticWorldGeometry,
+      baseGeometry: levelDefinition.staticWorldGeometry,
       surfaceGraphBuilder: _surfaceGraphBuilder,
       jumpTemplate: _groundEnemyJumpTemplate,
       enemyNavigationSystem: _enemyNavigationSystem,
@@ -1092,8 +1026,7 @@ class GameCore {
     tick += 1;
 
     // Cache ground Y once per tick (ground plane doesn't change mid-tick).
-    final effectiveGroundTopY =
-        staticWorldGeometry.groundPlane?.topY ?? groundTopY.toDouble();
+    final effectiveGroundTopY = _levelDefinition.groundTopY;
 
     // ─── Phase 1: World generation ───
     _stepTrackManager(effectiveGroundTopY);
@@ -1146,6 +1079,8 @@ class GameCore {
       _movement,
       resources: _resourceTuning,
       currentTick: tick,
+      fixedPointPilotEnabled: _physicsTuning.fixedPointPilot.enabled,
+      fixedPointSubpixelScale: _physicsTuning.fixedPointPilot.subpixelScale,
     );
     _mobilitySystem.step(_world, _movement, currentTick: tick);
     _gravitySystem.step(_world, _movement, physics: _physicsTuning);
@@ -1153,6 +1088,8 @@ class GameCore {
       _world,
       _movement,
       staticWorld: _trackManager.staticIndex,
+      fixedPointPilotEnabled: _physicsTuning.fixedPointPilot.enabled,
+      fixedPointSubpixelScale: _physicsTuning.fixedPointPilot.subpixelScale,
     );
 
     // ─── Phase 4: Distance tracking ───
@@ -1165,8 +1102,13 @@ class GameCore {
       return;
     }
 
-    _camera.updateTick(dtSeconds: _movement.dtSeconds, playerX: playerPosX);
-    if (_checkFellBehindCamera()) {
+    _camera.updateTick(
+      dtSeconds: _movement.dtSeconds,
+      playerRightX: _playerRightX(),
+      playerY: _playerYOrNull(),
+    );
+    final cameraLeft = _camera.left();
+    if (_checkFellBehindCamera(cameraLeft: cameraLeft)) {
       _endRun(RunEndReason.fellBehindCamera);
       return;
     }
@@ -1175,7 +1117,7 @@ class GameCore {
     _collectibleSystem.step(
       _world,
       player: _player,
-      cameraLeft: _camera.left(),
+      cameraLeft: cameraLeft,
       tuning: _collectibleTuning,
       onCollected: (value) {
         collectibles += 1;
@@ -1185,7 +1127,7 @@ class GameCore {
     _restorationItemSystem.step(
       _world,
       player: _player,
-      cameraLeft: _camera.left(),
+      cameraLeft: cameraLeft,
       tuning: _restorationItemTuning,
     );
 
@@ -1249,7 +1191,7 @@ class GameCore {
     _killedEnemiesScratch.clear();
     _enemyCullSystem.step(
       _world,
-      cameraLeft: _camera.left(),
+      cameraLeft: cameraLeft,
       groundTopY: effectiveGroundTopY,
       tuning: _trackTuning,
     );
@@ -1414,18 +1356,27 @@ class GameCore {
   ///
   /// This is a "soft" death—the player can still be on solid ground but
   /// has failed to keep up with the autoscrolling camera.
-  bool _checkFellBehindCamera() {
-    if (!(_world.transform.has(_player) && _world.colliderAabb.has(_player))) {
-      return false;
-    }
+  bool _checkFellBehindCamera({required double cameraLeft}) {
+    final rightX = _playerRightX();
+    if (rightX == null) return false;
 
+    // Player's right edge must stay ahead of camera's left edge.
+    return rightX < cameraLeft;
+  }
+
+  double? _playerRightX() {
+    if (!(_world.transform.has(_player) && _world.colliderAabb.has(_player))) {
+      return null;
+    }
     final ti = _world.transform.indexOf(_player);
     final ai = _world.colliderAabb.indexOf(_player);
     final centerX = _world.transform.posX[ti] + _world.colliderAabb.offsetX[ai];
-    final right = centerX + _world.colliderAabb.halfX[ai];
+    return centerX + _world.colliderAabb.halfX[ai];
+  }
 
-    // Player's right edge must stay ahead of camera's left edge.
-    return right < _camera.left();
+  double? _playerYOrNull() {
+    if (!_world.transform.has(_player)) return null;
+    return _world.transform.posY[_world.transform.indexOf(_player)];
   }
 
   /// Checks if the player has fallen into a ground gap (pit).
@@ -1539,7 +1490,7 @@ class GameCore {
   /// The snapshot contains everything needed to render a single frame:
   /// - Entity positions, velocities, and animations
   /// - Player HUD data (HP, mana, stamina, cooldowns)
-  /// - Static geometry (platforms, ground gaps)
+  /// - Static geometry (platforms, ground surfaces, ground gaps)
   /// - Camera position
   ///
   /// Snapshots are immutable and safe to pass to async render code.
@@ -1553,12 +1504,16 @@ class GameCore {
       distance: distance,
       paused: paused,
       gameOver: gameOver,
-      cameraCenterX: _camera.state.centerX,
-      cameraCenterY: cameraFixedY,
+      camera: CameraSnapshot(
+        centerX: _camera.state.centerX,
+        centerY: _camera.state.centerY,
+        viewWidth: virtualWidth.toDouble(),
+        viewHeight: virtualHeight.toDouble(),
+      ),
       collectibles: collectibles,
       collectibleScore: collectibleScore,
       staticSolids: _trackManager.staticSolidsSnapshot,
-      groundGaps: _trackManager.staticGroundGapsSnapshot,
+      groundSurfaces: _trackManager.groundSurfacesSnapshot,
     );
   }
 }

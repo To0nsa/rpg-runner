@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rpg_runner/core/collision/static_world_geometry.dart';
 import 'package:rpg_runner/core/game_core.dart';
+import '../support/test_level.dart';
 import 'package:rpg_runner/core/tuning/core_tuning.dart';
 import 'package:rpg_runner/core/tuning/track_tuning.dart';
 
@@ -24,12 +25,15 @@ void main() {
     );
 
     final core = GameCore(
-      seed: 1,
-      staticWorldGeometry: geometry,
-      tuning: const CoreTuning(
-        camera: noAutoscrollCameraTuning,
-        track: TrackTuning(enabled: false),
+      levelDefinition: testFieldLevel(
+        staticWorldGeometry: geometry,
+        tuning: const CoreTuning(
+          camera: noAutoscrollCameraTuning,
+          track: TrackTuning(enabled: false),
+        ),
       ),
+      playerCharacter: testPlayerCharacter,
+      seed: 1,
     );
     final snapshot = core.buildSnapshot();
 
@@ -41,5 +45,11 @@ void main() {
     expect(s.maxY, 40);
     expect(s.sides, StaticSolid.sideAll);
     expect(s.oneWayTop, isFalse);
+
+    expect(snapshot.groundSurfaces, hasLength(1));
+    final surface = snapshot.groundSurfaces.single;
+    expect(surface.minX, double.negativeInfinity);
+    expect(surface.maxX, double.infinity);
+    expect(surface.topY, 255);
   });
 }

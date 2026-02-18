@@ -42,7 +42,7 @@ class RunnerGameWidget extends StatefulWidget {
     super.key,
     this.runId = 0,
     this.seed = 1,
-    this.levelId = LevelId.field,
+    required this.levelId,
     this.playerCharacterId = PlayerCharacterId.eloise,
     this.runType = RunType.practice,
     this.equippedLoadout = const EquippedLoadoutDef(),
@@ -334,9 +334,9 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   void _initGame() {
-    final playerCharacter =
-        PlayerCharacterRegistry.byId[widget.playerCharacterId] ??
-        PlayerCharacterRegistry.defaultCharacter;
+    final playerCharacter = PlayerCharacterRegistry.resolve(
+      widget.playerCharacterId,
+    );
     _controller = GameController(
       core: GameCore(
         seed: widget.seed,

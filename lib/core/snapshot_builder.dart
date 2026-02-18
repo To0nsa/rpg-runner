@@ -30,10 +30,11 @@ import 'ecs/stores/restoration_item_store.dart';
 import 'levels/level_id.dart';
 import 'enemies/enemy_catalog.dart';
 import 'snapshots/enums.dart';
+import 'snapshots/camera_snapshot.dart';
 import 'snapshots/entity_render_snapshot.dart';
 import 'snapshots/game_state_snapshot.dart';
+import 'snapshots/ground_surface_snapshot.dart';
 import 'snapshots/player_hud_snapshot.dart';
-import 'snapshots/static_ground_gap_snapshot.dart';
 import 'snapshots/static_solid_snapshot.dart';
 import 'players/player_tuning.dart';
 import 'util/vec2.dart';
@@ -134,11 +135,11 @@ class SnapshotBuilder {
   /// - [distance]: Total distance traveled (world units).
   /// - [paused]: Whether the game is currently paused.
   /// - [gameOver]: Whether the run has ended.
-  /// - [cameraCenterX], [cameraCenterY]: Camera focus point (world coords).
+  /// - [camera]: Camera framing (world-space center + viewport dimensions).
   /// - [collectibles]: Number of collectibles picked up this run.
   /// - [collectibleScore]: Total score from collectibles.
   /// - [staticSolids]: Pre-built list of platform snapshots.
-  /// - [groundGaps]: Pre-built list of ground gap snapshots.
+  /// - [groundSurfaces]: Pre-built list of walkable ground surface snapshots.
   GameStateSnapshot build({
     required int tick,
     required int runId,
@@ -148,12 +149,11 @@ class SnapshotBuilder {
     required double distance,
     required bool paused,
     required bool gameOver,
-    required double cameraCenterX,
-    required double cameraCenterY,
+    required CameraSnapshot camera,
     required int collectibles,
     required int collectibleScore,
     required List<StaticSolidSnapshot> staticSolids,
-    required List<StaticGroundGapSnapshot> groundGaps,
+    required List<GroundSurfaceSnapshot> groundSurfaces,
   }) {
     // ─── Query player component indices ───
     final mi = world.movement.indexOf(player);
@@ -422,8 +422,7 @@ class SnapshotBuilder {
       distance: distance,
       paused: paused,
       gameOver: gameOver,
-      cameraCenterX: cameraCenterX,
-      cameraCenterY: cameraCenterY,
+      camera: camera,
       hud: PlayerHudSnapshot(
         hp: fromFixed100(world.health.hp[hi]),
         hpMax: fromFixed100(world.health.hpMax[hi]),
@@ -461,7 +460,7 @@ class SnapshotBuilder {
       ),
       entities: entities,
       staticSolids: staticSolids,
-      groundGaps: groundGaps,
+      groundSurfaces: groundSurfaces,
     );
   }
 

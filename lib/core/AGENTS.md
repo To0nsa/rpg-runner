@@ -162,8 +162,17 @@ Example determinism test pattern:
 
 ```dart
 test('same seed produces same results', () {
-  final game1 = GameCore(seed: 12345);
-  final game2 = GameCore(seed: 12345);
+  final level = LevelRegistry.byId(LevelId.field);
+  final game1 = GameCore(
+    seed: 12345,
+    levelDefinition: level,
+    playerCharacter: PlayerCharacterRegistry.eloise,
+  );
+  final game2 = GameCore(
+    seed: 12345,
+    levelDefinition: level,
+    playerCharacter: PlayerCharacterRegistry.eloise,
+  );
   
   for (int i = 0; i < 100; i++) {
     game1.tick();

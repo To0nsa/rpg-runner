@@ -7,6 +7,7 @@ import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/ecs/systems/projectile_world_collision_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/game_core.dart';
+import '../support/test_level.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
 import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
@@ -27,9 +28,9 @@ void main() {
       const tickHz = 20;
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
+        levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
         seed: 1,
         tickHz: tickHz,
-        tuning: noAutoscrollTuning,
         playerCharacter: base.copyWith(
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
@@ -102,9 +103,9 @@ void main() {
     () {
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
+        levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
         seed: 1,
         tickHz: 20,
-        tuning: noAutoscrollTuning,
         playerCharacter: base.copyWith(
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),

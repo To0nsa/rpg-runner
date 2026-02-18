@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/commands/command.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/game_core.dart';
+import '../support/test_level.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
@@ -16,9 +17,9 @@ void main() {
     () {
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
+        levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
         seed: 1,
         tickHz: 10,
-        tuning: noAutoscrollTuning,
         playerCharacter: base.copyWith(
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(useGravity: false),

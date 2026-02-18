@@ -3,6 +3,7 @@ import '../../stats/character_stats_resolver.dart';
 import '../../stats/resolved_stats_cache.dart';
 import '../../snapshots/enums.dart';
 import '../../players/player_tuning.dart';
+import '../../util/fixed_math.dart';
 import '../../util/velocity_math.dart';
 import '../queries.dart';
 import '../world.dart';
@@ -34,6 +35,8 @@ class PlayerMovementSystem {
     MovementTuningDerived tuning, {
     required ResourceTuningDerived resources,
     required int currentTick,
+    bool fixedPointPilotEnabled = false,
+    int fixedPointSubpixelScale = defaultPhysicsSubpixelScale,
   }) {
     final dt = tuning.dtSeconds;
     final t = tuning.base;
@@ -198,6 +201,13 @@ class PlayerMovementSystem {
         -world.body.maxVelX[bi],
         world.body.maxVelX[bi],
       );
+
+      if (fixedPointPilotEnabled) {
+        world.transform.quantizeVelAtIndex(
+          ti,
+          subpixelScale: fixedPointSubpixelScale,
+        );
+      }
     });
   }
 

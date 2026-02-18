@@ -11,10 +11,7 @@ import 'asset_scopes.dart';
 import 'lru_cache.dart';
 
 class IdleAnimBundle {
-  const IdleAnimBundle({
-    required this.animation,
-    required this.anchor,
-  });
+  const IdleAnimBundle({required this.animation, required this.anchor});
 
   final SpriteAnimation animation;
   final Anchor anchor;
@@ -68,14 +65,16 @@ class UiAssetLifecycle {
     final existing = inFlight[id];
     if (existing != null) return existing;
 
-    final future = _loadIdleBundle(id).then((bundle) {
-      cache.put(id, bundle);
-      inFlight.remove(id);
-      return bundle;
-    }).catchError((error, stackTrace) {
-      inFlight.remove(id);
-      return Future<IdleAnimBundle>.error(error, stackTrace);
-    });
+    final future = _loadIdleBundle(id)
+        .then((bundle) {
+          cache.put(id, bundle);
+          inFlight.remove(id);
+          return bundle;
+        })
+        .catchError((error, stackTrace) {
+          inFlight.remove(id);
+          return Future<IdleAnimBundle>.error(error, stackTrace);
+        });
 
     inFlight[id] = future;
     return future;
@@ -113,10 +112,7 @@ class UiAssetLifecycle {
     required BuildContext context,
   }) async {
     try {
-      final layers = await getParallaxLayers(
-        themeId,
-        scope: AssetScope.hub,
-      );
+      final layers = await getParallaxLayers(themeId, scope: AssetScope.hub);
       if (!context.mounted) return;
       await Future.wait([
         getIdle(characterId, scope: AssetScope.hub),
@@ -167,9 +163,7 @@ class UiAssetLifecycle {
   }
 
   Future<IdleAnimBundle> _loadIdleBundle(PlayerCharacterId characterId) async {
-    final def =
-        PlayerCharacterRegistry.byId[characterId] ??
-        PlayerCharacterRegistry.defaultCharacter;
+    final def = PlayerCharacterRegistry.resolve(characterId);
     final animSet = await loadPlayerAnimations(
       _idleImages,
       renderAnim: def.renderAnim,
@@ -198,18 +192,15 @@ class UiAssetLifecycle {
     ];
   }
 
-  Future<void> _precacheImageOnce(
-    AssetImage provider,
-    BuildContext context,
-  ) {
+  Future<void> _precacheImageOnce(AssetImage provider, BuildContext context) {
     final existing = _parallaxPrecacheInFlight[provider];
     if (existing != null) return existing;
 
     final future = precacheImage(provider, context)
         .catchError((_) {})
         .whenComplete(() {
-      _parallaxPrecacheInFlight.remove(provider);
-    });
+          _parallaxPrecacheInFlight.remove(provider);
+        });
 
     _parallaxPrecacheInFlight[provider] = future;
     return future;

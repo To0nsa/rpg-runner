@@ -22,13 +22,14 @@ import 'components/enemies/enemy_render_registry.dart';
 import 'components/pickups/pickup_render_registry.dart';
 import 'components/projectiles/projectile_render_registry.dart';
 import 'components/sprite_anim/deterministic_anim_view_component.dart';
+import 'components/ground_surface_component.dart';
 import 'tuning/player_render_tuning.dart';
 import 'input/runner_input_router.dart';
 import 'input/aim_preview.dart';
 import 'components/pixel_parallax_backdrop_component.dart';
-import 'components/tiled_ground_band_component.dart';
 import 'components/aim_ray_component.dart';
 import 'game_controller.dart';
+import 'spatial/world_view_transform.dart';
 import 'themes/parallax_theme_registry.dart';
 import 'util/math_util.dart' as math;
 
@@ -165,14 +166,12 @@ class RunnerFlameGame extends FlameGame {
       )..priority = _priorityBackgroundParallax,
     );
 
-    // Ground tiles (with gap support)
     camera.backdrop.add(
-      TiledGroundBandComponent(
+      GroundSurfaceComponent(
         assetPath: theme.groundLayerAsset,
         controller: controller,
         virtualWidth: virtualWidth,
         virtualHeight: virtualHeight,
-        renderInBackdrop: true,
       )..priority = _priorityGroundTiles,
     );
 
@@ -254,13 +253,13 @@ class RunnerFlameGame extends FlameGame {
     }
 
     final camX = math.lerpDouble(
-      prevSnapshot.cameraCenterX,
-      currSnapshot.cameraCenterX,
+      prevSnapshot.camera.centerX,
+      currSnapshot.camera.centerX,
       alpha,
     );
     final camY = math.lerpDouble(
-      prevSnapshot.cameraCenterY,
-      currSnapshot.cameraCenterY,
+      prevSnapshot.camera.centerY,
+      currSnapshot.camera.centerY,
       alpha,
     );
     _cameraCenterScratch.setValues(camX, camY);
@@ -698,13 +697,19 @@ class RunnerFlameGame extends FlameGame {
   }) {
     if (solids.isEmpty) return;
     if (_staticSolids.length != solids.length) return;
+    final transform = WorldViewTransform(
+      cameraCenterX: cameraCenter.x,
+      cameraCenterY: cameraCenter.y,
+      viewWidth: virtualWidth.toDouble(),
+      viewHeight: virtualHeight.toDouble(),
+    );
 
     for (var i = 0; i < solids.length; i++) {
       final solid = solids[i];
       final view = _staticSolids[i];
       view.position.setValues(
-        math.snapWorldToPixelsInCameraSpace1d(solid.minX, cameraCenter.x),
-        math.snapWorldToPixelsInCameraSpace1d(solid.minY, cameraCenter.y),
+        math.snapWorldToPixelsInViewX(solid.minX, transform),
+        math.snapWorldToPixelsInViewY(solid.minY, transform),
       );
     }
   }

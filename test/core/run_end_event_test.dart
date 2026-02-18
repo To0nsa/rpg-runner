@@ -17,6 +17,9 @@ import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/enemies/enemy_id.dart';
 import 'package:rpg_runner/core/events/game_event.dart';
 import 'package:rpg_runner/core/game_core.dart';
+import '../support/test_level.dart';
+import 'package:rpg_runner/core/levels/level_id.dart';
+import 'package:rpg_runner/core/levels/level_registry.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
@@ -159,7 +162,11 @@ void main() {
   });
 
   test('give up emits RunEndReason.gaveUp', () {
-    final core = GameCore(seed: 1);
+    final core = GameCore(
+      levelDefinition: LevelRegistry.byId(LevelId.field),
+      playerCharacter: testPlayerCharacter,
+      seed: 1,
+    );
     core.giveUp();
 
     final ended = core.drainEvents().whereType<RunEndedEvent>().single;

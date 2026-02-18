@@ -44,7 +44,7 @@ import 'ecs/systems/enemy_navigation_system.dart';
 import 'enemies/enemy_id.dart';
 import 'navigation/surface_graph_builder.dart';
 import 'navigation/utils/jump_template.dart';
-import 'snapshots/static_ground_gap_snapshot.dart';
+import 'snapshots/ground_surface_snapshot.dart';
 import 'snapshots/static_solid_snapshot.dart';
 import 'spawn_service.dart' hide StaticSolid;
 import 'track/chunk_pattern_pool.dart';
@@ -135,22 +135,22 @@ class TrackManager {
     int earlyPatternChunks = defaultEarlyPatternChunks,
     int noEnemyChunks = defaultNoEnemyChunks,
   }) : _trackTuning = trackTuning,
-        _collectibleTuning = collectibleTuning,
-        _restorationItemTuning = restorationItemTuning,
-        _baseGeometry = baseGeometry,
-        _surfaceGraphBuilder = surfaceGraphBuilder,
-        _jumpTemplate = jumpTemplate,
-        _enemyNavigationSystem = enemyNavigationSystem,
-        _groundEnemyLocomotionSystem = groundEnemyLocomotionSystem,
-        _spawnService = spawnService,
-        _patternPool = patternPool,
-        _earlyPatternChunks = earlyPatternChunks,
-        _noEnemyChunks = noEnemyChunks {
+       _collectibleTuning = collectibleTuning,
+       _restorationItemTuning = restorationItemTuning,
+       _baseGeometry = baseGeometry,
+       _surfaceGraphBuilder = surfaceGraphBuilder,
+       _jumpTemplate = jumpTemplate,
+       _enemyNavigationSystem = enemyNavigationSystem,
+       _groundEnemyLocomotionSystem = groundEnemyLocomotionSystem,
+       _spawnService = spawnService,
+       _patternPool = patternPool,
+       _earlyPatternChunks = earlyPatternChunks,
+       _noEnemyChunks = noEnemyChunks {
     // Initialize geometry state from base level.
     _staticGeometry = baseGeometry;
     _staticIndex = StaticWorldGeometryIndex.from(baseGeometry);
     _staticSolidsSnapshot = _buildStaticSolidsSnapshot(baseGeometry);
-    _staticGroundGapsSnapshot = _buildGroundGapsSnapshot(baseGeometry);
+    _groundSurfacesSnapshot = _buildGroundSurfacesSnapshot(_staticIndex);
 
     // Create track streamer if procedural generation is enabled.
     if (_trackTuning.enabled) {
@@ -199,8 +199,8 @@ class TrackManager {
   /// Immutable snapshot of solids for the render layer.
   late List<StaticSolidSnapshot> _staticSolidsSnapshot;
 
-  /// Immutable snapshot of ground gaps for the render layer.
-  late List<StaticGroundGapSnapshot> _staticGroundGapsSnapshot;
+  /// Immutable snapshot of walkable ground surfaces for the render layer.
+  late List<GroundSurfaceSnapshot> _groundSurfacesSnapshot;
 
   // ───────────────────────────────────────────────────────────────────────────
   // Public API
@@ -221,11 +221,9 @@ class TrackManager {
   /// Contains platform AABBs, side masks, and one-way flags.
   List<StaticSolidSnapshot> get staticSolidsSnapshot => _staticSolidsSnapshot;
 
-  /// Immutable snapshot of ground gaps for rendering.
-  ///
-  /// Used to draw pit hazard indicators.
-  List<StaticGroundGapSnapshot> get staticGroundGapsSnapshot =>
-      _staticGroundGapsSnapshot;
+  /// Immutable snapshot of walkable ground surfaces for rendering.
+  List<GroundSurfaceSnapshot> get groundSurfacesSnapshot =>
+      _groundSurfacesSnapshot;
 
   /// Advances the track streamer and updates geometry if needed.
   ///
@@ -336,7 +334,7 @@ class TrackManager {
     _staticGeometry = geometry;
     _staticIndex = StaticWorldGeometryIndex.from(geometry);
     _staticSolidsSnapshot = _buildStaticSolidsSnapshot(geometry);
-    _staticGroundGapsSnapshot = _buildGroundGapsSnapshot(geometry);
+    _groundSurfacesSnapshot = _buildGroundSurfacesSnapshot(_staticIndex);
     _rebuildSurfaceGraph();
   }
 
@@ -391,18 +389,25 @@ class TrackManager {
     );
   }
 
-  /// Builds an immutable list of [StaticGroundGapSnapshot] from geometry.
+  /// Builds an immutable list of [GroundSurfaceSnapshot] from indexed geometry.
   ///
-  /// Returns an empty const list if no gaps exist (avoids allocation).
-  static List<StaticGroundGapSnapshot> _buildGroundGapsSnapshot(
-    StaticWorldGeometry geometry,
+  /// Uses [StaticWorldGeometryIndex.groundSegments] so both explicit authored
+  /// segments and derived plane-minus-gap segments are represented consistently.
+  static List<GroundSurfaceSnapshot> _buildGroundSurfacesSnapshot(
+    StaticWorldGeometryIndex index,
   ) {
-    if (geometry.groundGaps.isEmpty) {
-      return const <StaticGroundGapSnapshot>[];
+    if (index.groundSegments.isEmpty) {
+      return const <GroundSurfaceSnapshot>[];
     }
-    return List<StaticGroundGapSnapshot>.unmodifiable(
-      geometry.groundGaps.map(
-        (g) => StaticGroundGapSnapshot(minX: g.minX, maxX: g.maxX),
+    return List<GroundSurfaceSnapshot>.unmodifiable(
+      index.groundSegments.map(
+        (segment) => GroundSurfaceSnapshot(
+          minX: segment.minX,
+          maxX: segment.maxX,
+          topY: segment.topY,
+          chunkIndex: segment.chunkIndex,
+          localSegmentIndex: segment.localSegmentIndex,
+        ),
       ),
     );
   }

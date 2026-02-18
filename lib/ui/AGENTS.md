@@ -178,7 +178,9 @@ import 'package:rpg_runner/runner.dart';
 
 Navigator.push(
   context,
-  MaterialPageRoute(builder: (context) => RunnerGameWidget()),
+  MaterialPageRoute(
+    builder: (context) => RunnerGameWidget(levelId: LevelId.field),
+  ),
 );
 ```
 

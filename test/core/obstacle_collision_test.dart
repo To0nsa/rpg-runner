@@ -2,9 +2,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rpg_runner/core/collision/static_world_geometry.dart';
 import 'package:rpg_runner/core/commands/command.dart';
-import 'package:rpg_runner/core/contracts/render_contract.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/game_core.dart';
+import '../support/test_level.dart';
+import 'package:rpg_runner/core/levels/level_world_constants.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
 import 'package:rpg_runner/core/tuning/core_tuning.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
@@ -26,32 +27,32 @@ void main() {
     const r = 8.0;
     const obstacleMinX = 120.0;
     const obstacleMaxX = 140.0;
+    const obstacleMinY = defaultLevelGroundTopY - 35.0;
 
     final core = GameCore(
+      levelDefinition: testFieldLevel(
+        staticWorldGeometry: const StaticWorldGeometry(
+          groundPlane: StaticGroundPlane(topY: defaultLevelGroundTopY),
+          solids: <StaticSolid>[
+            StaticSolid(
+              minX: obstacleMinX,
+              minY: obstacleMinY,
+              maxX: obstacleMaxX,
+              maxY: defaultLevelGroundTopY,
+              sides: StaticSolid.sideAll,
+              oneWayTop: false,
+            ),
+          ],
+        ),
+        tuning: const CoreTuning(
+          camera: noAutoscrollCameraTuning,
+          track: TrackTuning(enabled: false),
+        ),
+      ),
       seed: 1,
       tickHz: defaultTickHz,
-      staticWorldGeometry: const StaticWorldGeometry(
-        groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
-        solids: <StaticSolid>[
-          StaticSolid(
-            minX: obstacleMinX,
-            minY: 220,
-            maxX: obstacleMaxX,
-            maxY: groundTopY * 1.0,
-            sides: StaticSolid.sideAll,
-            oneWayTop: false,
-          ),
-        ],
-      ),
-      tuning: const CoreTuning(
-        camera: noAutoscrollCameraTuning,
-        track: TrackTuning(enabled: false),
-      ),
       playerCharacter: PlayerCharacterRegistry.eloise.copyWith(
-        catalog: testPlayerCatalog(
-          colliderWidth: r * 2,
-          colliderHeight: r * 2,
-        ),
+        catalog: testPlayerCatalog(colliderWidth: r * 2, colliderHeight: r * 2),
       ),
     );
 
@@ -82,27 +83,30 @@ void main() {
     const r = 8.0;
     const obstacleMinX = 120.0;
     const obstacleMaxX = 140.0;
+    const obstacleMinY = defaultLevelGroundTopY - 35.0;
 
     final core = GameCore(
+      levelDefinition: testFieldLevel(
+        staticWorldGeometry: const StaticWorldGeometry(
+          groundPlane: StaticGroundPlane(topY: defaultLevelGroundTopY),
+          solids: <StaticSolid>[
+            StaticSolid(
+              minX: obstacleMinX,
+              minY: obstacleMinY,
+              maxX: obstacleMaxX,
+              maxY: defaultLevelGroundTopY,
+              sides: StaticSolid.sideAll,
+              oneWayTop: false,
+            ),
+          ],
+        ),
+        tuning: const CoreTuning(
+          camera: noAutoscrollCameraTuning,
+          track: TrackTuning(enabled: false),
+        ),
+      ),
       seed: 1,
       tickHz: defaultTickHz,
-      staticWorldGeometry: const StaticWorldGeometry(
-        groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
-        solids: <StaticSolid>[
-          StaticSolid(
-            minX: obstacleMinX,
-            minY: 220,
-            maxX: obstacleMaxX,
-            maxY: groundTopY * 1.0,
-            sides: StaticSolid.sideAll,
-            oneWayTop: false,
-          ),
-        ],
-      ),
-      tuning: const CoreTuning(
-        camera: noAutoscrollCameraTuning,
-        track: TrackTuning(enabled: false),
-      ),
       playerCharacter: PlayerCharacterRegistry.eloise.copyWith(
         catalog: testPlayerCatalog(
           colliderWidth: r * 2,
@@ -129,32 +133,32 @@ void main() {
     const r = 8.0;
     const obstacleMinX = 120.0;
     const obstacleMaxX = 140.0;
+    const obstacleMinY = defaultLevelGroundTopY - 35.0;
 
     final core = GameCore(
+      levelDefinition: testFieldLevel(
+        staticWorldGeometry: const StaticWorldGeometry(
+          groundPlane: StaticGroundPlane(topY: defaultLevelGroundTopY),
+          solids: <StaticSolid>[
+            StaticSolid(
+              minX: obstacleMinX,
+              minY: obstacleMinY,
+              maxX: obstacleMaxX,
+              maxY: defaultLevelGroundTopY,
+              sides: StaticSolid.sideAll,
+              oneWayTop: false,
+            ),
+          ],
+        ),
+        tuning: const CoreTuning(
+          camera: noAutoscrollCameraTuning,
+          track: TrackTuning(enabled: false),
+        ),
+      ),
       seed: 1,
       tickHz: defaultTickHz,
-      staticWorldGeometry: const StaticWorldGeometry(
-        groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
-        solids: <StaticSolid>[
-          StaticSolid(
-            minX: obstacleMinX,
-            minY: 220,
-            maxX: obstacleMaxX,
-            maxY: groundTopY * 1.0,
-            sides: StaticSolid.sideAll,
-            oneWayTop: false,
-          ),
-        ],
-      ),
-      tuning: const CoreTuning(
-        camera: noAutoscrollCameraTuning,
-        track: TrackTuning(enabled: false),
-      ),
       playerCharacter: PlayerCharacterRegistry.eloise.copyWith(
-        catalog: testPlayerCatalog(
-          colliderWidth: r * 2,
-          colliderHeight: r * 2,
-        ),
+        catalog: testPlayerCatalog(colliderWidth: r * 2, colliderHeight: r * 2),
       ),
     );
 

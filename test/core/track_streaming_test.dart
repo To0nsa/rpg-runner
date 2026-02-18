@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/commands/command.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/game_core.dart';
+import 'package:rpg_runner/core/levels/level_id.dart';
+import 'package:rpg_runner/core/levels/level_registry.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
 
 import '../support/test_player.dart';
@@ -24,6 +26,22 @@ void _expectSolidsEqual(GameCore a, GameCore b) {
   }
 }
 
+void _expectGroundSurfacesEqual(GameCore a, GameCore b) {
+  final sa = a.buildSnapshot().groundSurfaces;
+  final sb = b.buildSnapshot().groundSurfaces;
+  expect(sb.length, sa.length);
+
+  for (var i = 0; i < sa.length; i += 1) {
+    final x = sa[i];
+    final y = sb[i];
+    expect(y.minX, x.minX);
+    expect(y.maxX, x.maxX);
+    expect(y.topY, x.topY);
+    expect(y.chunkIndex, x.chunkIndex);
+    expect(y.localSegmentIndex, x.localSegmentIndex);
+  }
+}
+
 void main() {
   test('track streaming is deterministic and stays bounded (culling)', () {
     const seed = 12345;
@@ -38,8 +56,16 @@ void main() {
         bodyTemplate: BodyDef(sideMask: BodyDef.sideLeft, useGravity: false),
       ),
     );
-    final a = GameCore(seed: seed, playerCharacter: playerCharacter);
-    final b = GameCore(seed: seed, playerCharacter: playerCharacter);
+    final a = GameCore(
+      levelDefinition: LevelRegistry.byId(LevelId.field),
+      seed: seed,
+      playerCharacter: playerCharacter,
+    );
+    final b = GameCore(
+      levelDefinition: LevelRegistry.byId(LevelId.field),
+      seed: seed,
+      playerCharacter: playerCharacter,
+    );
 
     // Always move right so the player stays in view and the camera keeps advancing.
     const ticks =
@@ -55,6 +81,7 @@ void main() {
 
       if (t % 20 == 0) {
         _expectSolidsEqual(a, b);
+        _expectGroundSurfacesEqual(a, b);
       }
 
       final solids = a.buildSnapshot().staticSolids.length;

@@ -2,8 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rpg_runner/core/collision/static_world_geometry.dart';
 import 'package:rpg_runner/core/commands/command.dart';
-import 'package:rpg_runner/core/contracts/render_contract.dart';
 import 'package:rpg_runner/core/game_core.dart';
+import '../support/test_level.dart';
+import 'package:rpg_runner/core/levels/level_world_constants.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
 import 'package:rpg_runner/core/tuning/core_tuning.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
@@ -12,10 +13,7 @@ import 'package:rpg_runner/core/tuning/track_tuning.dart';
 import '../support/test_player.dart';
 import '../test_tunings.dart';
 
-void _tick(
-  GameCore core, {
-  double axis = 0,
-}) {
+void _tick(GameCore core, {double axis = 0}) {
   final targetTick = core.tick + 1;
   core.applyCommands([
     if (axis != 0) MoveAxisCommand(tick: targetTick, axis: axis),
@@ -34,18 +32,20 @@ void main() {
     );
 
     final core = GameCore(
+      levelDefinition: testFieldLevel(
+        staticWorldGeometry: const StaticWorldGeometry(
+          groundPlane: StaticGroundPlane(topY: defaultLevelGroundTopYInt * 1.0),
+          solids: <StaticSolid>[
+            StaticSolid(minX: 0, minY: topY, maxX: 240, maxY: topY + 16),
+          ],
+        ),
+        tuning: const CoreTuning(
+          camera: noAutoscrollCameraTuning,
+          track: TrackTuning(enabled: false),
+        ),
+      ),
       seed: 1,
       tickHz: defaultTickHz,
-      staticWorldGeometry: const StaticWorldGeometry(
-        groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
-        solids: <StaticSolid>[
-          StaticSolid(minX: 0, minY: topY, maxX: 240, maxY: topY + 16),
-        ],
-      ),
-      tuning: const CoreTuning(
-        camera: noAutoscrollCameraTuning,
-        track: TrackTuning(enabled: false),
-      ),
       playerCharacter: PlayerCharacterRegistry.eloise.copyWith(
         catalog: catalog,
       ),
@@ -67,7 +67,7 @@ void main() {
     expect(safety, greaterThan(0));
     expect(core.playerPosY, closeTo(topY - r, 1e-9));
     expect(core.playerVelY, closeTo(0, 1e-9));
-    expect(core.playerPosY, lessThan(groundTopY.toDouble() - r));
+    expect(core.playerPosY, lessThan(defaultLevelGroundTopYInt.toDouble() - r));
   });
 
   test('one-way platform does not block upward motion from below', () {
@@ -80,18 +80,20 @@ void main() {
     );
 
     final core = GameCore(
+      levelDefinition: testFieldLevel(
+        staticWorldGeometry: const StaticWorldGeometry(
+          groundPlane: StaticGroundPlane(topY: defaultLevelGroundTopYInt * 1.0),
+          solids: <StaticSolid>[
+            StaticSolid(minX: 0, minY: topY, maxX: 240, maxY: topY + 16),
+          ],
+        ),
+        tuning: const CoreTuning(
+          camera: noAutoscrollCameraTuning,
+          track: TrackTuning(enabled: false),
+        ),
+      ),
       seed: 1,
       tickHz: defaultTickHz,
-      staticWorldGeometry: const StaticWorldGeometry(
-        groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
-        solids: <StaticSolid>[
-          StaticSolid(minX: 0, minY: topY, maxX: 240, maxY: topY + 16),
-        ],
-      ),
-      tuning: const CoreTuning(
-        camera: noAutoscrollCameraTuning,
-        track: TrackTuning(enabled: false),
-      ),
       playerCharacter: PlayerCharacterRegistry.eloise.copyWith(
         catalog: catalog,
       ),
@@ -118,18 +120,25 @@ void main() {
     );
 
     final core = GameCore(
+      levelDefinition: testFieldLevel(
+        staticWorldGeometry: const StaticWorldGeometry(
+          groundPlane: StaticGroundPlane(topY: defaultLevelGroundTopYInt * 1.0),
+          solids: <StaticSolid>[
+            StaticSolid(
+              minX: 0,
+              minY: topY,
+              maxX: platformMaxX,
+              maxY: topY + 16,
+            ),
+          ],
+        ),
+        tuning: const CoreTuning(
+          camera: noAutoscrollCameraTuning,
+          track: TrackTuning(enabled: false),
+        ),
+      ),
       seed: 1,
       tickHz: defaultTickHz,
-      staticWorldGeometry: const StaticWorldGeometry(
-        groundPlane: StaticGroundPlane(topY: groundTopY * 1.0),
-        solids: <StaticSolid>[
-          StaticSolid(minX: 0, minY: topY, maxX: platformMaxX, maxY: topY + 16),
-        ],
-      ),
-      tuning: const CoreTuning(
-        camera: noAutoscrollCameraTuning,
-        track: TrackTuning(enabled: false),
-      ),
       playerCharacter: PlayerCharacterRegistry.eloise.copyWith(
         catalog: catalog,
       ),
@@ -164,6 +173,6 @@ void main() {
     expect(leftPlatform, isTrue);
     expect(sawAirborne, isTrue);
     expect(core.playerPosY, greaterThan(topY - r));
-    expect(core.playerPosY, lessThan(groundTopY.toDouble() - r));
+    expect(core.playerPosY, lessThan(defaultLevelGroundTopYInt.toDouble() - r));
   });
 }

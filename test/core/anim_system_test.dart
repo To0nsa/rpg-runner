@@ -58,11 +58,11 @@ void main() {
     setUp(() {
       world = EcsWorld();
       playerMovement = MovementTuningDerived.from(
-        PlayerCharacterRegistry.defaultCharacter.tuning.movement,
+        PlayerCharacterRegistry.eloise.tuning.movement,
         tickHz: 60,
       );
       playerAnimTuning = AnimTuningDerived.from(
-        PlayerCharacterRegistry.defaultCharacter.tuning.anim,
+        PlayerCharacterRegistry.eloise.tuning.anim,
         tickHz: 60,
       );
       animSystem = AnimSystem(

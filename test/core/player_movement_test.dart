@@ -1,9 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rpg_runner/core/commands/command.dart';
-import 'package:rpg_runner/core/contracts/render_contract.dart';
 import 'package:rpg_runner/core/game_core.dart';
+import '../support/test_level.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
+import 'package:rpg_runner/core/levels/level_world_constants.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
 
@@ -30,9 +31,10 @@ void _tick(
 void main() {
   test('accelerates toward desired horizontal speed', () {
     final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
+      playerCharacter: testPlayerCharacter,
       seed: 1,
       tickHz: defaultTickHz,
-      tuning: noAutoscrollTuning,
     );
 
     _tick(core, axis: 1);
@@ -52,13 +54,14 @@ void main() {
 
   test('jump from ground sets upward velocity', () {
     final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
+      playerCharacter: testPlayerCharacter,
       seed: 1,
       tickHz: defaultTickHz,
-      tuning: noAutoscrollTuning,
     );
     final catalog = PlayerCharacterRegistry.eloise.catalog;
     final floorY =
-        groundTopY.toDouble() -
+        defaultLevelGroundTopYInt.toDouble() -
         (catalog.colliderOffsetY + catalog.colliderHalfY);
 
     expect(core.playerPosY, closeTo(floorY, 1e-9));
@@ -74,13 +77,14 @@ void main() {
 
   test('jump buffer triggers on the tick after landing', () {
     final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
+      playerCharacter: testPlayerCharacter,
       seed: 1,
       tickHz: defaultTickHz,
-      tuning: noAutoscrollTuning,
     );
     final catalog = PlayerCharacterRegistry.eloise.catalog;
     final floorY =
-        groundTopY.toDouble() -
+        defaultLevelGroundTopYInt.toDouble() -
         (catalog.colliderOffsetY + catalog.colliderHalfY);
 
     // Put the player high above the floor so coyote time expires before landing.
@@ -123,13 +127,14 @@ void main() {
 
   test('dash sets constant horizontal speed and cancels vertical velocity', () {
     final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
+      playerCharacter: testPlayerCharacter,
       seed: 1,
       tickHz: defaultTickHz,
-      tuning: noAutoscrollTuning,
     );
     final catalog = PlayerCharacterRegistry.eloise.catalog;
     final floorY =
-        groundTopY.toDouble() -
+        defaultLevelGroundTopYInt.toDouble() -
         (catalog.colliderOffsetY + catalog.colliderHalfY);
 
     // Start dashing from the ground.
@@ -143,9 +148,9 @@ void main() {
   test('roll mobility commits vertical dash on vertical-only aim', () {
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
       seed: 1,
       tickHz: defaultTickHz,
-      tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
         catalog: testPlayerCatalog(abilityMobilityId: 'eloise.roll'),
       ),
@@ -164,9 +169,9 @@ void main() {
   test('jump spends stamina (2) when executed', () {
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
       seed: 1,
       tickHz: defaultTickHz,
-      tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
         tuning: base.tuning.copyWith(
           resource: const ResourceTuning(
@@ -187,9 +192,9 @@ void main() {
   test('dash spends stamina (2) when started', () {
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
       seed: 1,
       tickHz: defaultTickHz,
-      tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
         tuning: base.tuning.copyWith(
           resource: const ResourceTuning(
@@ -210,9 +215,9 @@ void main() {
   test('insufficient stamina blocks dash and jump', () {
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
       seed: 1,
       tickHz: defaultTickHz,
-      tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
         tuning: base.tuning.copyWith(
           resource: const ResourceTuning(
@@ -227,7 +232,7 @@ void main() {
 
     final catalog = PlayerCharacterRegistry.eloise.catalog;
     final floorY =
-        groundTopY.toDouble() -
+        defaultLevelGroundTopYInt.toDouble() -
         (catalog.colliderOffsetY + catalog.colliderHalfY);
     expect(core.playerPosY, closeTo(floorY, 1e-9));
     expect(core.playerGrounded, isTrue);
@@ -245,16 +250,16 @@ void main() {
   test('Body.gravityScale=0 disables gravity integration', () {
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
       seed: 1,
       tickHz: defaultTickHz,
-      tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
         catalog: testPlayerCatalog(bodyTemplate: BodyDef(gravityScale: 0)),
       ),
     );
     final catalog = testPlayerCatalog(bodyTemplate: BodyDef(gravityScale: 0));
     final floorY =
-        groundTopY.toDouble() -
+        defaultLevelGroundTopYInt.toDouble() -
         (catalog.colliderOffsetY + catalog.colliderHalfY);
 
     core.setPlayerPosXY(core.playerPosX, floorY - 120);
@@ -269,16 +274,16 @@ void main() {
   test('Body.isKinematic skips physics integration', () {
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
       seed: 1,
       tickHz: defaultTickHz,
-      tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
         catalog: testPlayerCatalog(bodyTemplate: BodyDef(isKinematic: true)),
       ),
     );
     final catalog = testPlayerCatalog(bodyTemplate: BodyDef(isKinematic: true));
     final floorY =
-        groundTopY.toDouble() -
+        defaultLevelGroundTopYInt.toDouble() -
         (catalog.colliderOffsetY + catalog.colliderHalfY);
 
     core.setPlayerPosXY(core.playerPosX, floorY - 120);
@@ -294,9 +299,9 @@ void main() {
   test('Body.maxVelY clamps jump velocity', () {
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
       seed: 1,
       tickHz: defaultTickHz,
-      tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
         tuning: base.tuning.copyWith(
           movement: const MovementTuning(maxVelY: 100),

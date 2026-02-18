@@ -21,7 +21,7 @@ void main() {
 
     // Setup player
     final playerArchetype = PlayerCatalogDerived.from(
-      PlayerCharacterRegistry.defaultCharacter.catalog,
+      PlayerCharacterRegistry.eloise.catalog,
       movement: MovementTuningDerived.from(const MovementTuning(), tickHz: 60),
       resources: ResourceTuningDerived.from(const ResourceTuning()),
     ).archetype;

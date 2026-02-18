@@ -10,12 +10,18 @@ class PlayerCharacterRegistry {
   static const PlayerCharacterDefinition eloise = eloiseCharacter;
   static const PlayerCharacterDefinition eloiseWip = eloiseWipCharacter;
 
-  static const PlayerCharacterDefinition defaultCharacter = eloise;
-
   static const List<PlayerCharacterDefinition> all = [eloise, eloiseWip];
 
   static final Map<PlayerCharacterId, PlayerCharacterDefinition> byId =
       _buildById(all);
+
+  static PlayerCharacterDefinition resolve(PlayerCharacterId id) {
+    final def = byId[id];
+    if (def == null) {
+      throw StateError('Unknown PlayerCharacterId $id');
+    }
+    return def;
+  }
 
   static Map<PlayerCharacterId, PlayerCharacterDefinition> _buildById(
     List<PlayerCharacterDefinition> defs,

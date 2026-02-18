@@ -7,6 +7,7 @@
 import 'package:flame/components.dart';
 
 import '../../core/util/vec2.dart';
+import '../spatial/world_view_transform.dart';
 
 /// Returns `value % mod`, always in the range `[0, mod)`.
 ///
@@ -49,3 +50,11 @@ Vector2 snapWorldToPixelsInCameraSpace(Vec2 world, Vector2 camera) => Vector2(
   snapWorldToPixelsInCameraSpace1d(world.x, camera.x),
   snapWorldToPixelsInCameraSpace1d(world.y, camera.y),
 );
+
+/// Snaps a world X coordinate using an explicit [WorldViewTransform].
+double snapWorldToPixelsInViewX(double worldX, WorldViewTransform transform) =>
+    transform.viewToWorldX(roundToPixels(transform.worldToViewX(worldX)));
+
+/// Snaps a world Y coordinate using an explicit [WorldViewTransform].
+double snapWorldToPixelsInViewY(double worldY, WorldViewTransform transform) =>
+    transform.viewToWorldY(roundToPixels(transform.worldToViewY(worldY)));

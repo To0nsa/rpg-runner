@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rpg_runner/core/game_core.dart';
+import '../support/test_level.dart';
 import 'package:rpg_runner/game/game_controller.dart';
 import 'package:rpg_runner/ui/hud/game/survival_timer_overlay.dart';
 
@@ -9,7 +10,11 @@ import '../test_tunings.dart';
 
 void main() {
   testWidgets('SurvivalTimerOverlay formats tick-based mm:ss', (tester) async {
-    final core = GameCore(seed: 1, tuning: noAutoscrollTuning);
+    final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
+      playerCharacter: testPlayerCharacter,
+      seed: 1,
+    );
     final controller = GameController(core: core);
 
     await tester.pumpWidget(

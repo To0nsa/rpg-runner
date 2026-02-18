@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/game_core.dart';
+import 'support/test_level.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
@@ -22,9 +23,9 @@ void main() {
   test('move axis release overwrites buffered future ticks', () {
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
       seed: 1,
       tickHz: 60,
-      tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(useGravity: false),
@@ -66,9 +67,9 @@ void main() {
     () {
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
+        levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
         seed: 1,
         tickHz: 60,
-        tuning: noAutoscrollTuning,
         playerCharacter: base.copyWith(
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(useGravity: false),
@@ -116,9 +117,9 @@ void main() {
     () {
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
+        levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
         seed: 1,
         tickHz: 60,
-        tuning: noAutoscrollTuning,
         playerCharacter: base.copyWith(
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(useGravity: false),
@@ -175,9 +176,9 @@ void main() {
   test('release-to-cast keeps aimed dir for the cast tick', () {
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
       seed: 1,
       tickHz: 60,
-      tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(useGravity: false),
@@ -227,9 +228,9 @@ void main() {
       double launchSpeedForAimHoldTicks(int aimHoldTicks) {
         final base = PlayerCharacterRegistry.eloise;
         final core = GameCore(
+          levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
           seed: 1,
           tickHz: 60,
-          tuning: noAutoscrollTuning,
           playerCharacter: base.copyWith(
             catalog: testPlayerCatalog(
               bodyTemplate: BodyDef(useGravity: false),
@@ -288,9 +289,9 @@ void main() {
       double launchSpeedForHeldTicks(int heldTicks) {
         final base = PlayerCharacterRegistry.eloise;
         final core = GameCore(
+          levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
           seed: 1,
           tickHz: 60,
-          tuning: noAutoscrollTuning,
           playerCharacter: base.copyWith(
             catalog: testPlayerCatalog(
               bodyTemplate: BodyDef(useGravity: false),
@@ -353,9 +354,9 @@ void main() {
     () {
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
+        levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
         seed: 1,
         tickHz: 60,
-        tuning: noAutoscrollTuning,
         playerCharacter: base.copyWith(
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(useGravity: false),
@@ -413,9 +414,9 @@ void main() {
       double hitboxWidthForHeldTicks(int heldTicks) {
         final base = PlayerCharacterRegistry.eloise;
         final core = GameCore(
+          levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
           seed: 1,
           tickHz: 60,
-          tuning: noAutoscrollTuning,
           playerCharacter: base.copyWith(
             catalog: testPlayerCatalog(
               bodyTemplate: BodyDef(useGravity: false),
@@ -484,9 +485,9 @@ void main() {
       }) {
         final base = PlayerCharacterRegistry.eloise;
         final core = GameCore(
+          levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
           seed: 1,
           tickHz: 60,
-          tuning: noAutoscrollTuning,
           playerCharacter: base.copyWith(
             catalog: testPlayerCatalog(
               bodyTemplate: BodyDef(useGravity: false),
@@ -549,9 +550,9 @@ void main() {
       double dashSpeedForHeldTicks(int heldTicks) {
         final base = PlayerCharacterRegistry.eloise;
         final core = GameCore(
+          levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
           seed: 1,
           tickHz: 60,
-          tuning: noAutoscrollTuning,
           playerCharacter: base.copyWith(
             catalog: testPlayerCatalog(
               bodyTemplate: BodyDef(useGravity: false),
@@ -593,9 +594,9 @@ void main() {
     () {
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
+        levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
         seed: 1,
         tickHz: 60,
-        tuning: noAutoscrollTuning,
         playerCharacter: base.copyWith(
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(useGravity: false),
@@ -640,9 +641,9 @@ void main() {
   test('starting a new slot hold replaces the previous held slot', () {
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
       seed: 1,
       tickHz: 60,
-      tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(useGravity: false),
@@ -677,9 +678,9 @@ void main() {
   test('same-tick slot hold replacement keeps latest hold winner', () {
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
       seed: 1,
       tickHz: 60,
-      tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(useGravity: false),
@@ -711,9 +712,9 @@ void main() {
     () {
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
+        levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
         seed: 1,
         tickHz: 60,
-        tuning: noAutoscrollTuning,
         playerCharacter: base.copyWith(
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(useGravity: false),

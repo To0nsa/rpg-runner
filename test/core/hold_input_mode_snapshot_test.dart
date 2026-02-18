@@ -4,6 +4,9 @@ import 'package:rpg_runner/core/abilities/ability_catalog.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:rpg_runner/core/game_core.dart';
+import '../support/test_level.dart';
+import 'package:rpg_runner/core/levels/level_id.dart';
+import 'package:rpg_runner/core/levels/level_registry.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 
 void main() {
@@ -11,6 +14,8 @@ void main() {
     'snapshot exposes hold-maintain input mode for parry/block abilities',
     () {
       final core = GameCore(
+        levelDefinition: LevelRegistry.byId(LevelId.field),
+        playerCharacter: testPlayerCharacter,
         seed: 1,
         equippedLoadoutOverride: const EquippedLoadoutDef(
           abilityPrimaryId: 'eloise.sword_riposte_guard',
@@ -26,6 +31,8 @@ void main() {
 
   test('snapshot exposes hold-aim-release for charged secondary melee', () {
     final core = GameCore(
+      levelDefinition: LevelRegistry.byId(LevelId.field),
+      playerCharacter: testPlayerCharacter,
       seed: 1,
       equippedLoadoutOverride: const EquippedLoadoutDef(
         abilitySecondaryId: 'eloise.charged_shield_bash',
@@ -38,6 +45,8 @@ void main() {
 
   test('snapshot exposes hold-release for charged homing primary melee', () {
     final core = GameCore(
+      levelDefinition: LevelRegistry.byId(LevelId.field),
+      playerCharacter: testPlayerCharacter,
       seed: 1,
       equippedLoadoutOverride: const EquippedLoadoutDef(
         abilityPrimaryId: 'eloise.charged_sword_strike_auto_aim',
@@ -50,6 +59,8 @@ void main() {
 
   test('snapshot keeps non-charged secondary melee on tap mode', () {
     final core = GameCore(
+      levelDefinition: LevelRegistry.byId(LevelId.field),
+      playerCharacter: testPlayerCharacter,
       seed: 1,
       equippedLoadoutOverride: const EquippedLoadoutDef(
         abilitySecondaryId: 'eloise.shield_bash',
@@ -61,7 +72,11 @@ void main() {
   });
 
   test('snapshot exposes tap input mode for default mobility ability', () {
-    final core = GameCore(seed: 1);
+    final core = GameCore(
+      levelDefinition: LevelRegistry.byId(LevelId.field),
+      playerCharacter: testPlayerCharacter,
+      seed: 1,
+    );
     final hud = core.buildSnapshot().hud;
     expect(hud.mobilityInputMode, AbilityInputMode.tap);
   });
@@ -97,7 +112,12 @@ void main() {
             AbilitySlot.spell || AbilitySlot.jump => const EquippedLoadoutDef(),
           };
 
-          final core = GameCore(seed: 1, equippedLoadoutOverride: loadout);
+          final core = GameCore(
+            levelDefinition: LevelRegistry.byId(LevelId.field),
+            playerCharacter: testPlayerCharacter,
+            seed: 1,
+            equippedLoadoutOverride: loadout,
+          );
           final hud = core.buildSnapshot().hud;
           final mode = switch (slot) {
             AbilitySlot.primary => hud.meleeInputMode,

@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/commands/command.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/game_core.dart';
+import '../support/test_level.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
@@ -30,9 +31,9 @@ void main() {
     final abilityDerived = AbilityTuningDerived.from(abilityTuning, tickHz: 60);
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
       seed: 1,
       tickHz: 60,
-      tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
         catalog: catalog,
         tuning: base.tuning.copyWith(
@@ -123,9 +124,9 @@ void main() {
     );
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
       seed: 1,
       tickHz: 60,
-      tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
         catalog: catalog,
         tuning: base.tuning.copyWith(

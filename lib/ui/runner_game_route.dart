@@ -18,7 +18,7 @@ import 'state/selection_state.dart';
 Route<void> createRunnerGameRoute({
   int runId = 0,
   int seed = 1,
-  LevelId levelId = LevelId.field,
+  required LevelId levelId,
   PlayerCharacterId playerCharacterId = PlayerCharacterId.eloise,
   RunType runType = RunType.practice,
   EquippedLoadoutDef equippedLoadout = const EquippedLoadoutDef(),

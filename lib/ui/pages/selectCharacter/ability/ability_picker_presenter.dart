@@ -138,9 +138,7 @@ EquippedLoadoutDef normalizeLoadoutMaskForCharacter({
   required PlayerCharacterId characterId,
   required EquippedLoadoutDef loadout,
 }) {
-  final def =
-      PlayerCharacterRegistry.byId[characterId] ??
-      PlayerCharacterRegistry.defaultCharacter;
+  final def = PlayerCharacterRegistry.resolve(characterId);
   final targetMask = def.catalog.loadoutSlotMask;
   if (loadout.mask == targetMask) return loadout;
   return _copyLoadout(loadout, mask: targetMask);

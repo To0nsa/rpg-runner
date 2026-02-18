@@ -1,5 +1,6 @@
 import '../entity_id.dart';
 import '../sparse_set.dart';
+import '../../util/fixed_math.dart';
 
 /// SoA store for `Transform` (position + velocity).
 ///
@@ -34,6 +35,19 @@ class TransformStore extends SparseSet {
     final i = indexOf(entity);
     velX[i] = x;
     velY[i] = y;
+  }
+
+  /// Quantizes velocity to a subpixel grid for fixed-point pilot paths.
+  void quantizeVelAtIndex(int denseIndex, {required int subpixelScale}) {
+    velX[denseIndex] = quantizeToScale(velX[denseIndex], subpixelScale);
+    velY[denseIndex] = quantizeToScale(velY[denseIndex], subpixelScale);
+  }
+
+  /// Quantizes position + velocity to a subpixel grid for fixed-point pilot paths.
+  void quantizePosVelAtIndex(int denseIndex, {required int subpixelScale}) {
+    posX[denseIndex] = quantizeToScale(posX[denseIndex], subpixelScale);
+    posY[denseIndex] = quantizeToScale(posY[denseIndex], subpixelScale);
+    quantizeVelAtIndex(denseIndex, subpixelScale: subpixelScale);
   }
 
   @override

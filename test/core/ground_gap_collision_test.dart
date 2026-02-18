@@ -1,8 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rpg_runner/core/collision/static_world_geometry.dart';
-import 'package:rpg_runner/core/contracts/render_contract.dart';
 import 'package:rpg_runner/core/game_core.dart';
+import '../support/test_level.dart';
+import 'package:rpg_runner/core/levels/level_world_constants.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
 import 'package:rpg_runner/core/tuning/core_tuning.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
@@ -17,44 +18,44 @@ void _tick(GameCore core) {
 
 void main() {
   test('ground collision ignores gaps between segments', () {
-    const topY = groundTopY * 1.0;
+    const topY = defaultLevelGroundTopYInt * 1.0;
     const r = 8.0;
 
     final core = GameCore(
+      levelDefinition: testFieldLevel(
+        staticWorldGeometry: const StaticWorldGeometry(
+          groundPlane: StaticGroundPlane(topY: topY),
+          groundSegments: <StaticGroundSegment>[
+            StaticGroundSegment(
+              minX: 0,
+              maxX: 120,
+              topY: defaultLevelGroundTopYInt * 1.0,
+              chunkIndex: 0,
+              localSegmentIndex: 0,
+            ),
+            StaticGroundSegment(
+              minX: 200,
+              maxX: 320,
+              topY: defaultLevelGroundTopYInt * 1.0,
+              chunkIndex: 0,
+              localSegmentIndex: 1,
+            ),
+          ],
+          groundGaps: <StaticGroundGap>[StaticGroundGap(minX: 120, maxX: 200)],
+        ),
+        tuning: const CoreTuning(
+          camera: noAutoscrollCameraTuning,
+          track: TrackTuning(enabled: false),
+        ),
+      ),
       seed: 1,
       tickHz: defaultTickHz,
-      staticWorldGeometry: const StaticWorldGeometry(
-        groundPlane: StaticGroundPlane(topY: topY),
-        groundSegments: <StaticGroundSegment>[
-          StaticGroundSegment(
-            minX: 0,
-            maxX: 120,
-            topY: groundTopY * 1.0,
-            chunkIndex: 0,
-            localSegmentIndex: 0,
-          ),
-          StaticGroundSegment(
-            minX: 200,
-            maxX: 320,
-            topY: groundTopY * 1.0,
-            chunkIndex: 0,
-            localSegmentIndex: 1,
-          ),
-        ],
-        groundGaps: <StaticGroundGap>[
-          StaticGroundGap(minX: 120, maxX: 200),
-        ],
-      ),
-      tuning: const CoreTuning(
-        camera: noAutoscrollCameraTuning,
-        track: TrackTuning(enabled: false),
-      ),
       playerCharacter: PlayerCharacterRegistry.eloise.copyWith(
         catalog: testPlayerCatalog(colliderWidth: r * 2, colliderHeight: r * 2),
       ),
     );
 
-    core.setPlayerPosXY(160, groundTopY - r - 60);
+    core.setPlayerPosXY(160, defaultLevelGroundTopYInt - r - 60);
     core.setPlayerVelXY(0, 0);
 
     _tick(core);
@@ -65,6 +66,6 @@ void main() {
     }
 
     expect(core.playerGrounded, isFalse);
-    expect(core.playerPosY, greaterThan(groundTopY - r));
+    expect(core.playerPosY, greaterThan(defaultLevelGroundTopYInt - r));
   });
 }

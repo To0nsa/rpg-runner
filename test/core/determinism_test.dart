@@ -2,14 +2,18 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rpg_runner/core/commands/command.dart';
 import 'package:rpg_runner/core/game_core.dart';
+import '../support/test_level.dart';
+import 'package:rpg_runner/core/levels/level_definition.dart';
+import 'package:rpg_runner/core/levels/level_id.dart';
+import 'package:rpg_runner/core/levels/level_registry.dart';
 
 String _digest(GameCore core) {
   final s = core.buildSnapshot();
   final parts = <String>[
     't=${s.tick}',
     'dist=${s.distance.toStringAsFixed(6)}',
-    'camx=${s.cameraCenterX.toStringAsFixed(6)}',
-    'camy=${s.cameraCenterY.toStringAsFixed(6)}',
+    'camx=${s.camera.centerX.toStringAsFixed(6)}',
+    'camy=${s.camera.centerY.toStringAsFixed(6)}',
     'level=${s.levelId.name}',
     'theme=${s.themeId}',
     'hp=${s.hud.hp.toStringAsFixed(6)}',
@@ -18,6 +22,7 @@ String _digest(GameCore core) {
     'collectibles=${s.hud.collectibles}',
     'collectibleScore=${s.hud.collectibleScore}',
     'solids=${s.staticSolids.length}',
+    'groundSurfaces=${s.groundSurfaces.length}',
     'ents=${s.entities.length}',
     'paused=${s.paused}',
     'gameOver=${s.gameOver}',
@@ -45,11 +50,20 @@ String _digest(GameCore core) {
 }
 
 void main() {
-  test('same seed + same commands => identical snapshots', () {
-    const seed = 42;
-    final a = GameCore(seed: seed);
-    final b = GameCore(seed: seed);
-
+  void runDeterminismScenario({
+    required int seed,
+    required LevelDefinition level,
+  }) {
+    final a = GameCore(
+      seed: seed,
+      levelDefinition: level,
+      playerCharacter: testPlayerCharacter,
+    );
+    final b = GameCore(
+      seed: seed,
+      levelDefinition: level,
+      playerCharacter: testPlayerCharacter,
+    );
     // Deterministic command schedule. Note that MoveAxis must be sent each tick
     // while held because Core resets tick inputs before applying commands.
     const ticks = 240;
@@ -69,5 +83,13 @@ void main() {
 
       expect(_digest(a), _digest(b));
     }
+  }
+
+  test('same seed + same commands => identical snapshots (field)', () {
+    runDeterminismScenario(seed: 42, level: LevelRegistry.byId(LevelId.field));
+  });
+
+  test('same seed + same commands => identical snapshots (forest)', () {
+    runDeterminismScenario(seed: 42, level: LevelRegistry.byId(LevelId.forest));
   });
 }

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/game_core.dart';
+import 'support/test_level.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
@@ -20,9 +21,9 @@ void main() {
   test('projectile aim dir is quantized (stable payload) before casting', () {
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
       seed: 1,
       tickHz: 60,
-      tuning: noAutoscrollTuning,
       playerCharacter: base.copyWith(
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(useGravity: false),

@@ -1,5 +1,6 @@
 import '../../collision/static_world_geometry_index.dart';
 import '../../players/player_tuning.dart';
+import '../../util/fixed_math.dart';
 import '../queries.dart';
 import '../stores/body_store.dart';
 import '../world.dart';
@@ -34,6 +35,8 @@ class CollisionSystem {
     EcsWorld world,
     MovementTuningDerived tuning, {
     required StaticWorldGeometryIndex staticWorld,
+    bool fixedPointPilotEnabled = false,
+    int fixedPointSubpixelScale = defaultPhysicsSubpixelScale,
   }) {
     final dt = tuning.dtSeconds;
     // Epsilon for floating point comparisons and overlap tolerance.
@@ -56,8 +59,23 @@ class CollisionSystem {
       final prevPosY = world.transform.posY[ti];
 
       // Integrate position from the current velocity.
-      world.transform.posX[ti] += world.transform.velX[ti] * dt;
-      world.transform.posY[ti] += world.transform.velY[ti] * dt;
+      if (fixedPointPilotEnabled) {
+        world.transform.posX[ti] = integratePerTickFixed(
+          position: world.transform.posX[ti],
+          velocityPerSecond: world.transform.velX[ti],
+          tickHz: tuning.tickHz,
+          scale: fixedPointSubpixelScale,
+        );
+        world.transform.posY[ti] = integratePerTickFixed(
+          position: world.transform.posY[ti],
+          velocityPerSecond: world.transform.velY[ti],
+          tickHz: tuning.tickHz,
+          scale: fixedPointSubpixelScale,
+        );
+      } else {
+        world.transform.posX[ti] += world.transform.velX[ti] * dt;
+        world.transform.posY[ti] += world.transform.velY[ti] * dt;
+      }
 
       final halfX = world.colliderAabb.halfX[aabbi];
       final halfY = world.colliderAabb.halfY[aabbi];
@@ -222,6 +240,13 @@ class CollisionSystem {
           world.transform.velX[ti] = 0;
           world.collision.hitLeft[coli] = true;
         }
+      }
+
+      if (fixedPointPilotEnabled) {
+        world.transform.quantizePosVelAtIndex(
+          ti,
+          subpixelScale: fixedPointSubpixelScale,
+        );
       }
     });
   }

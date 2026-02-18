@@ -3,32 +3,7 @@
 /// This class bundles all tuning parameters into a single object, simplifying
 /// the [GameCore] constructor API. All fields have sensible defaults, so you
 /// only need to override what you want to customize.
-///
-/// ## Usage
-///
-/// ```dart
-/// // Default configuration:
-/// final core = GameCore(seed: 42);
-///
-/// // Custom configuration:
-/// final core = GameCore(
-///   seed: 42,
-///   tuning: CoreTuning(
-///     track: TrackTuning(enabled: false),
-///   ),
-/// );
-/// ```
-///
-/// ## Testing
-///
-/// For unit tests, create a custom [CoreTuning] with specific overrides:
-/// ```dart
-/// final testTuning = CoreTuning(
-///   track: TrackTuning(enabled: false),  // Disable procedural gen
-///   physics: PhysicsTuning(gravityY: 0), // Zero gravity
-/// );
-/// final core = GameCore(seed: 123, tuning: testTuning);
-/// ```
+
 library;
 
 import 'camera_tuning.dart';
