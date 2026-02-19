@@ -1,6 +1,7 @@
 import '../../../anim/anim_resolver.dart';
 import '../../../abilities/ability_catalog.dart';
 import '../../../abilities/ability_def.dart';
+import '../../../events/game_event.dart';
 import '../../../snapshots/enums.dart';
 import '../../../enemies/death_behavior.dart';
 import '../../../enemies/enemy_catalog.dart';
@@ -213,9 +214,14 @@ class AnimSystem {
     final velX = ti == null ? 0.0 : world.transform.velX[ti];
     final velY = ti == null ? 0.0 : world.transform.velY[ti];
 
-    final lastDamageTick = world.lastDamage.has(entity)
-        ? world.lastDamage.tick[world.lastDamage.indexOf(entity)]
-        : -1;
+    var lastDamageTick = -1;
+    if (world.lastDamage.has(entity)) {
+      final lastDamageIndex = world.lastDamage.indexOf(entity);
+      if (world.lastDamage.kind[lastDamageIndex] !=
+          DeathSourceKind.statusEffect) {
+        lastDamageTick = world.lastDamage.tick[lastDamageIndex];
+      }
+    }
 
     final stunLocked = world.controlLock.isStunned(entity, currentTick);
     final stunStartTick = world.controlLock.stunStartTickFor(

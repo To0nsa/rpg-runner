@@ -16,6 +16,7 @@ import 'package:rpg_runner/core/enemies/enemy_id.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/combat/control_lock.dart';
+import 'package:rpg_runner/core/events/game_event.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
 import 'package:rpg_runner/core/enemies/death_behavior.dart';
@@ -195,6 +196,21 @@ void main() {
         final ai = world.animState.indexOf(player);
         expect(world.animState.anim[ai], equals(AnimKey.stun));
         expect(world.animState.animFrame[ai], equals(5));
+      });
+
+      test('status-effect damage does not trigger hit animation', () {
+        final player = spawnPlayer(grounded: true);
+        final tick = playerAnimTuning.spawnAnimTicks + 5;
+
+        world.lastDamage.add(player);
+        final ldi = world.lastDamage.indexOf(player);
+        world.lastDamage.kind[ldi] = DeathSourceKind.statusEffect;
+        world.lastDamage.tick[ldi] = tick - 1;
+
+        stepPlayer(player, tick);
+
+        final ai = world.animState.indexOf(player);
+        expect(world.animState.anim[ai], equals(AnimKey.idle));
       });
 
       test('strike uses active ability anim and frame', () {
@@ -668,6 +684,20 @@ void main() {
         final ai = world.animState.indexOf(enemy);
         expect(world.animState.anim[ai], equals(AnimKey.hit));
         expect(world.animState.animFrame[ai], equals(1)); // 11 - 10
+      });
+
+      test('status-effect damage does not trigger hit animation', () {
+        final enemy = spawnGroundEnemy(world, posX: 100, posY: 100);
+
+        world.lastDamage.add(enemy);
+        final ldi = world.lastDamage.indexOf(enemy);
+        world.lastDamage.kind[ldi] = DeathSourceKind.statusEffect;
+        world.lastDamage.tick[ldi] = 10;
+
+        stepEnemies(11);
+
+        final ai = world.animState.indexOf(enemy);
+        expect(world.animState.anim[ai], isNot(equals(AnimKey.hit)));
       });
 
       test('death animation when hp <= 0', () {
