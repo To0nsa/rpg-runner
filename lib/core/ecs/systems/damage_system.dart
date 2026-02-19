@@ -1,6 +1,7 @@
 import '../../abilities/ability_def.dart';
 import '../../abilities/forced_interrupt_policy.dart';
 import '../../combat/status/status.dart';
+import '../../events/game_event.dart';
 import '../../stats/character_stats_resolver.dart';
 import '../../stats/resolved_stats_cache.dart';
 import '../../util/deterministic_rng.dart';
@@ -9,6 +10,13 @@ import '../../weapons/weapon_proc.dart';
 import 'ability_interrupt.dart';
 import '../stores/damage_queue_store.dart';
 import '../world.dart';
+
+typedef DamageAppliedCallback =
+    void Function({
+      required int target,
+      required int appliedAmount100,
+      required DeathSourceKind sourceKind,
+    });
 
 /// Central system for validating and applying damage to entities.
 ///
@@ -41,6 +49,7 @@ class DamageSystem {
     EcsWorld world, {
     required int currentTick,
     void Function(StatusRequest request)? queueStatus,
+    DamageAppliedCallback? onDamageApplied,
   }) {
     final queue = world.damageQueue;
     if (queue.length == 0) return;
@@ -161,6 +170,12 @@ class DamageSystem {
             lastDamage.hasSourceProjectileId[li] = false;
           }
         }
+
+        onDamageApplied?.call(
+          target: target,
+          appliedAmount100: appliedAmount,
+          sourceKind: sourceKind,
+        );
       }
 
       // 8. Queue status effects for non-zero damage requests.

@@ -7,6 +7,7 @@ enum UiHapticsCue {
   chargeFullTierReached,
   holdAbilityTimedOut,
   holdAbilityStaminaDepleted,
+  playerHit,
 }
 
 /// Relative haptic intensity.

@@ -44,6 +44,8 @@ class UiHapticsService implements UiHaptics {
         return UiHapticsIntensity.heavy;
       case UiHapticsCue.holdAbilityStaminaDepleted:
         return UiHapticsIntensity.medium;
+      case UiHapticsCue.playerHit:
+        return UiHapticsIntensity.medium;
     }
   }
 }

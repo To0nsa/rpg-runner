@@ -105,6 +105,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   late AimPreviewModel _meleeAimPreview;
   late ValueNotifier<Rect?> _aimCancelHitboxRect;
   late ValueNotifier<int> _forceAimCancelSignal;
+  late ValueNotifier<int> _playerImpactFeedbackSignal;
   int _lastPlayerDamageTick = -1;
   int _lastChargeTier = 0;
   late RunnerFlameGame _game;
@@ -191,6 +192,12 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _lastChargeTier = nextTier;
   }
 
+  UiHapticsIntensity _impactHapticsIntensity(int amount100) {
+    if (amount100 >= 1400) return UiHapticsIntensity.heavy;
+    if (amount100 >= 700) return UiHapticsIntensity.medium;
+    return UiHapticsIntensity.light;
+  }
+
   AppState? _maybeAppState() {
     try {
       return Provider.of<AppState>(context, listen: false);
@@ -212,6 +219,14 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   void _handleGameEvent(GameEvent event) {
+    if (event is PlayerImpactFeedbackEvent) {
+      _haptics.trigger(
+        UiHapticsCue.playerHit,
+        intensityOverride: _impactHapticsIntensity(event.amount100),
+      );
+      _playerImpactFeedbackSignal.value = _playerImpactFeedbackSignal.value + 1;
+      return;
+    }
     if (event is AbilityHoldEndedEvent) {
       switch (event.reason) {
         case AbilityHoldEndReason.timeout:
@@ -279,6 +294,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     final oldMeleePreview = _meleeAimPreview;
     final oldAimCancelHitboxRect = _aimCancelHitboxRect;
     final oldForceAimCancelSignal = _forceAimCancelSignal;
+    final oldPlayerImpactFeedbackSignal = _playerImpactFeedbackSignal;
     oldController.removeEventListener(_handleGameEvent);
     oldController.removeListener(_onControllerTick);
 
@@ -301,6 +317,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       oldMeleePreview.dispose();
       oldAimCancelHitboxRect.dispose();
       oldForceAimCancelSignal.dispose();
+      oldPlayerImpactFeedbackSignal.dispose();
     });
   }
 
@@ -353,6 +370,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _meleeAimPreview = AimPreviewModel();
     _aimCancelHitboxRect = ValueNotifier<Rect?>(null);
     _forceAimCancelSignal = ValueNotifier<int>(0);
+    _playerImpactFeedbackSignal = ValueNotifier<int>(0);
     _lastPlayerDamageTick = _controller.snapshot.hud.lastDamageTick;
     _lastChargeTier = 0;
     _game = RunnerFlameGame(
@@ -373,6 +391,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _meleeAimPreview.dispose();
     _aimCancelHitboxRect.dispose();
     _forceAimCancelSignal.dispose();
+    _playerImpactFeedbackSignal.dispose();
   }
 
   @override
@@ -447,6 +466,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                   meleeAimPreview: _meleeAimPreview,
                   aimCancelHitboxRect: _aimCancelHitboxRect,
                   forceAimCancelSignal: _forceAimCancelSignal,
+                  playerImpactFeedbackSignal: _playerImpactFeedbackSignal,
                   uiState: uiState,
                   onStart: _startGame,
                   onTogglePause: _togglePause,

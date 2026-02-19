@@ -13,6 +13,7 @@ import 'package:rpg_runner/core/ecs/stores/status/weaken_store.dart';
 import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/ecs/stores/health_store.dart';
+import 'package:rpg_runner/core/events/game_event.dart';
 import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_item_def.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
@@ -46,6 +47,55 @@ void main() {
 
     final hi = world.health.indexOf(e);
     expect(world.health.hp[hi], equals(0));
+  });
+
+  test('DamageSystem reports callbacks only for applied direct hits', () {
+    final world = EcsWorld();
+    final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
+
+    final target = world.createEntity();
+    world.health.add(
+      target,
+      const HealthDef(hp: 1000, hpMax: 1000, regenPerSecond100: 0),
+    );
+
+    final callbackTargets = <int>[];
+    final callbackAmounts = <int>[];
+    final callbackKinds = <DeathSourceKind>[];
+
+    world.damageQueue.add(const DamageRequest(target: 999, amount100: 500));
+    world.damageQueue.add(
+      const DamageRequest(
+        target: 999,
+        amount100: 400,
+        sourceKind: DeathSourceKind.statusEffect,
+      ),
+    );
+    world.damageQueue.add(
+      DamageRequest(
+        target: target,
+        amount100: 300,
+        sourceKind: DeathSourceKind.projectile,
+      ),
+    );
+
+    damage.step(
+      world,
+      currentTick: 1,
+      onDamageApplied:
+          ({required target, required appliedAmount100, required sourceKind}) {
+            callbackTargets.add(target);
+            callbackAmounts.add(appliedAmount100);
+            callbackKinds.add(sourceKind);
+          },
+    );
+
+    expect(callbackTargets, equals(<int>[target]));
+    expect(callbackAmounts, equals(<int>[300]));
+    expect(
+      callbackKinds,
+      equals(<DeathSourceKind>[DeathSourceKind.projectile]),
+    );
   });
 
   test('DamageSystem applies global defense from equipped loadout', () {

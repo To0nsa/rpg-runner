@@ -131,6 +131,7 @@ import 'enemies/enemy_catalog.dart';
 import 'enemies/death_behavior.dart';
 import 'enemies/enemy_id.dart';
 import 'events/game_event.dart';
+import 'events/player_impact_feedback_gate.dart';
 import 'levels/level_definition.dart';
 import 'levels/level_id.dart';
 import 'navigation/surface_graph_builder.dart';
@@ -420,6 +421,7 @@ class GameCore {
       statsCache: _resolvedStatsCache,
       forcedInterruptPolicy: forcedInterruptPolicy,
     );
+    _playerImpactFeedbackGate = PlayerImpactFeedbackGate(tickHz: tickHz);
     _statusSystem = StatusSystem(
       tickHz: tickHz,
       statsResolver: _statsResolver,
@@ -773,6 +775,7 @@ class GameCore {
 
   /// Pending events to be consumed by UI (drained each frame).
   final List<GameEvent> _events = <GameEvent>[];
+  late final PlayerImpactFeedbackGate _playerImpactFeedbackGate;
 
   // ─── Scratch/Tracking State ───
 
@@ -1189,7 +1192,20 @@ class GameCore {
       _world,
       currentTick: tick,
       queueStatus: _statusSystem.queue,
+      onDamageApplied:
+          ({required target, required appliedAmount100, required sourceKind}) {
+            _playerImpactFeedbackGate.recordAppliedDamage(
+              tick: tick,
+              playerTarget: target == _player,
+              appliedAmount100: appliedAmount100,
+              sourceKind: sourceKind,
+            );
+          },
     );
+    final playerImpactEvent = _playerImpactFeedbackGate.flushTick(tick);
+    if (playerImpactEvent != null) {
+      _events.add(playerImpactEvent);
+    }
     _statusSystem.applyQueued(_world, currentTick: tick);
 
     // ─── Phase 14: Death handling ───

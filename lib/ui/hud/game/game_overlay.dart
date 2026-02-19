@@ -14,6 +14,7 @@ import 'top_center_hud_overlay.dart';
 import 'top_left_hud_overlay.dart';
 import 'top_right_hud_overlay.dart';
 import 'aim_cancel_button_overlay.dart';
+import 'player_impact_border_overlay.dart';
 
 class GameOverlay extends StatelessWidget {
   const GameOverlay({
@@ -24,6 +25,7 @@ class GameOverlay extends StatelessWidget {
     required this.meleeAimPreview,
     required this.aimCancelHitboxRect,
     required this.forceAimCancelSignal,
+    required this.playerImpactFeedbackSignal,
     required this.uiState,
     required this.onStart,
     required this.onTogglePause,
@@ -40,6 +42,7 @@ class GameOverlay extends StatelessWidget {
   final AimPreviewModel meleeAimPreview;
   final ValueNotifier<Rect?> aimCancelHitboxRect;
   final ValueListenable<int> forceAimCancelSignal;
+  final ValueListenable<int> playerImpactFeedbackSignal;
   final RunnerGameUiState uiState;
   final VoidCallback onStart;
   final VoidCallback onTogglePause;
@@ -182,6 +185,7 @@ class GameOverlay extends StatelessWidget {
           showExitButton: showExitButton,
           onExit: onExit,
         ),
+        PlayerImpactBorderOverlay(triggerSignal: playerImpactFeedbackSignal),
       ],
     );
   }

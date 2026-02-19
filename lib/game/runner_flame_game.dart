@@ -3,6 +3,8 @@
 // Reads the latest `GameStateSnapshot` from `GameController` each frame and
 // renders a minimal representation (a player dot + debug text). This file is
 // intentionally tiny and non-authoritative: gameplay truth lives in Core.
+import 'dart:math' as dart_math;
+
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/foundation.dart';
@@ -52,6 +54,7 @@ const _priorityActorHitboxes = 2;
 const _priorityProjectileAimRay = 5;
 const _priorityMeleeAimRay = 6;
 const PlayerRenderTuning _playerRenderTuning = PlayerRenderTuning();
+const _damageForMaxShake100 = 1500;
 
 enum RunLoadPhase {
   start,
@@ -143,6 +146,9 @@ class RunnerFlameGame extends FlameGame {
   final Map<int, int> _projectileSpawnTicks = <int, int>{};
   final Set<int> _seenIdsScratch = <int>{};
   final List<int> _toRemoveScratch = <int>[];
+  final _CameraShakeController _cameraShake = _CameraShakeController();
+  final Vector2 _cameraBaseCenterScratch = Vector2.zero();
+  final Vector2 _cameraShakeOffsetScratch = Vector2.zero();
   final Vector2 _cameraCenterScratch = Vector2.zero();
   final Vector2 _snapScratch = Vector2.zero();
   final List<ProjectileHitEvent> _pendingProjectileHitEvents =
@@ -275,7 +281,12 @@ class RunnerFlameGame extends FlameGame {
       currSnapshot.camera.centerY,
       alpha,
     );
-    _cameraCenterScratch.setValues(camX, camY);
+    _cameraBaseCenterScratch.setValues(camX, camY);
+    _cameraShake.sample(dt, _cameraShakeOffsetScratch);
+    _cameraCenterScratch.setValues(
+      _cameraBaseCenterScratch.x + _cameraShakeOffsetScratch.x,
+      _cameraBaseCenterScratch.y + _cameraShakeOffsetScratch.y,
+    );
     camera.viewfinder.position = _cameraCenterScratch;
 
     _syncStaticSolids(currSnapshot.staticSolids);
@@ -463,9 +474,21 @@ class RunnerFlameGame extends FlameGame {
   }
 
   void _handleGameEvent(GameEvent event) {
+    if (event is PlayerImpactFeedbackEvent) {
+      _cameraShake.trigger(
+        intensity01: _shakeIntensityFromDamage100(event.amount100),
+      );
+      return;
+    }
     if (event is ProjectileHitEvent) {
       _pendingProjectileHitEvents.add(event);
     }
+  }
+
+  double _shakeIntensityFromDamage100(int amount100) {
+    if (amount100 <= 0) return 0.0;
+    final normalized = (amount100 / _damageForMaxShake100).clamp(0.0, 1.0);
+    return dart_math.sqrt(normalized);
   }
 
   void _flushPendingProjectileHitEvents({required Vector2 cameraCenter}) {
@@ -768,6 +791,51 @@ class RunnerFlameGame extends FlameGame {
     );
     return math.roundToPixels(transform.worldToViewY(floorTopY));
   }
+}
+
+/// Lightweight procedural camera shake.
+///
+/// The shake is additive to the authoritative camera center from Core.
+class _CameraShakeController {
+  double _elapsedSeconds = 0.0;
+  double _durationSeconds = 0.0;
+  double _amplitudePixels = 0.0;
+  double _seedPhase = 0.0;
+
+  void trigger({required double intensity01}) {
+    final clamped = intensity01.clamp(0.0, 1.0);
+    if (clamped <= 0.0) return;
+
+    _durationSeconds = _lerp(0.12, 0.24, clamped);
+    _amplitudePixels = _lerp(1.5, 5.5, clamped);
+    _elapsedSeconds = 0.0;
+    _seedPhase += dart_math.pi * 0.31;
+  }
+
+  void sample(double dtSeconds, Vector2 out) {
+    if (_durationSeconds <= 0.0 || _elapsedSeconds >= _durationSeconds) {
+      out.setZero();
+      return;
+    }
+
+    _elapsedSeconds += dtSeconds;
+    if (_elapsedSeconds >= _durationSeconds) {
+      out.setZero();
+      return;
+    }
+
+    final t = _elapsedSeconds / _durationSeconds;
+    final damper = (1.0 - t) * (1.0 - t);
+    final angle = _seedPhase + (_elapsedSeconds * _oscillationRadPerSecond);
+    out.setValues(
+      dart_math.sin(angle) * _amplitudePixels * damper,
+      dart_math.cos(angle * 1.73) * (_amplitudePixels * 0.65) * damper,
+    );
+  }
+
+  static const double _oscillationRadPerSecond = 44.0 * 2.0 * dart_math.pi;
+
+  double _lerp(double min, double max, double t) => min + (max - min) * t;
 }
 
 /// Temporary black backdrop mask from floor level downward.
