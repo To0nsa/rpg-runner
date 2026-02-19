@@ -23,6 +23,7 @@ import 'components/pickups/pickup_render_registry.dart';
 import 'components/projectiles/projectile_render_registry.dart';
 import 'components/sprite_anim/deterministic_anim_view_component.dart';
 import 'components/ground_surface_component.dart';
+import 'components/ground_band_parallax_foreground_component.dart';
 import 'tuning/player_render_tuning.dart';
 import 'input/runner_input_router.dart';
 import 'input/aim_preview.dart';
@@ -187,12 +188,13 @@ class RunnerFlameGame extends FlameGame {
 
     // Foreground parallax layers (grass, bushes, etc.)
     camera.backdrop.add(
-      PixelParallaxBackdropComponent(
+      GroundBandParallaxForegroundComponent(
+        controller: controller,
         virtualWidth: virtualWidth,
         virtualHeight: virtualHeight,
-        snapScrollToPixels: false,
         layers: theme.foregroundLayers,
-        layerBottomAnchorYProvider: _foregroundParallaxLayerBottomAnchorY,
+        bandFillDepthProvider: () => _groundSurface.materialHeight,
+        snapScrollToPixels: false,
       )..priority = _priorityForegroundParallax,
     );
     _setLoadState(RunLoadPhase.parallaxMounted, 0.35);
@@ -765,14 +767,6 @@ class RunnerFlameGame extends FlameGame {
       viewHeight: virtualHeight.toDouble(),
     );
     return math.roundToPixels(transform.worldToViewY(floorTopY));
-  }
-
-  /// Foreground parallax anchor aligned to the ground band bottom edge.
-  ///
-  /// This places foliage/foreground pixels in front of the rendered ground band
-  /// rather than stopping at its top edge.
-  double _foregroundParallaxLayerBottomAnchorY() {
-    return _parallaxLayerBottomAnchorY() + _groundSurface.materialHeight;
   }
 }
 
