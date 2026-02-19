@@ -18,11 +18,101 @@ import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
 import 'package:rpg_runner/core/projectiles/spawn_projectile_item.dart';
 import 'package:rpg_runner/core/tuning/spatial_grid_tuning.dart';
+import 'package:rpg_runner/core/enemies/death_behavior.dart';
+import 'package:rpg_runner/core/ecs/stores/death_state_store.dart';
 
 import 'test_spawns.dart';
 import 'package:rpg_runner/core/ecs/entity_factory.dart';
 
 void main() {
+  test(
+    'ProjectileHitSystem keeps projectile alive when owner is in death state',
+    () {
+      final world = EcsWorld();
+      final projectileDef = const ProjectileCatalog().get(
+        ProjectileId.fireBolt,
+      );
+      final iceBoltDamage = AbilityCatalog.shared
+          .resolve('eloise.charged_shot')!
+          .baseDamage;
+
+      final owner = spawnUnocoDemon(
+        world,
+        posX: 100,
+        posY: 100,
+        body: const BodyDef(isKinematic: true, useGravity: false),
+        collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+        health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+        mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+        stamina: const StaminaDef(
+          stamina: 0,
+          staminaMax: 0,
+          regenPerSecond100: 0,
+        ),
+      );
+      world.deathState.add(
+        owner,
+        const DeathStateDef(
+          phase: DeathPhase.deathAnim,
+          deathStartTick: 1,
+          despawnTick: 10,
+        ),
+      );
+
+      // Keep a valid target in broadphase so hit system runs, but far away to
+      // avoid overlap-based despawn.
+      EntityFactory(world).createPlayer(
+        posX: 500,
+        posY: 100,
+        velX: 0,
+        velY: 0,
+        facing: Facing.left,
+        grounded: true,
+        body: const BodyDef(isKinematic: true, useGravity: false),
+        collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+        health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+        mana: const ManaDef(mana: 10000, manaMax: 10000, regenPerSecond100: 0),
+        stamina: const StaminaDef(
+          stamina: 0,
+          staminaMax: 0,
+          regenPerSecond100: 0,
+        ),
+      );
+
+      final projectileEntity = spawnProjectileFromCaster(
+        world,
+        tickHz: 60,
+        projectileId: ProjectileId.fireBolt,
+        projectile: projectileDef,
+        faction: Faction.enemy,
+        owner: owner,
+        casterX: 100,
+        casterY: 100,
+        originOffset: 0,
+        dirX: 1,
+        dirY: 0,
+        fallbackDirX: 1,
+        fallbackDirY: 0,
+        damage100: iceBoltDamage,
+        critChanceBp: 0,
+        damageType: projectileDef.damageType,
+        procs: projectileDef.procs,
+        ballistic: projectileDef.ballistic,
+        gravityScale: projectileDef.gravityScale,
+      );
+
+      final broadphase = BroadphaseGrid(
+        index: GridIndex2D(
+          cellSize: const SpatialGridTuning().broadphaseCellSize,
+        ),
+      )..rebuild(world);
+      final hits = ProjectileHitSystem();
+      hits.step(world, broadphase, currentTick: 1);
+
+      expect(world.projectile.has(projectileEntity), isTrue);
+    },
+  );
+
   test('ProjectileHitSystem damages target and despawns projectile', () {
     final world = EcsWorld();
     final iceBoltDamage = AbilityCatalog.shared

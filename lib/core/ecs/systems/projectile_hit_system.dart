@@ -83,11 +83,15 @@ class ProjectileHitSystem {
       final by = pcy + dirY * halfLength;
 
       // -- Hit Resolution --
-      final owner = projectiles.owner[pi];
+      var owner = projectiles.owner[pi];
       final sourceFaction = projectiles.faction[pi];
-      if (world.deathState.has(owner)) {
-        _toDespawn.add(p);
-        continue;
+      // Keep projectiles alive even if the caster has entered death state.
+      //
+      // If the caster entity has already been destroyed, detach ownership to
+      // avoid stale/recycled entity-id coupling in later ticks.
+      if (owner != 0 && !world.faction.has(owner)) {
+        owner = 0;
+        projectiles.owner[pi] = 0;
       }
 
       final isPiercing = projectiles.pierce[pi];
