@@ -15,7 +15,7 @@ void main() {
         home: Scaffold(
           body: Center(
             child: HoldActionButton(
-              label: 'Sec',
+              label: 'Shield',
               icon: Icons.shield,
               onHoldStart: () => startCount += 1,
               onHoldEnd: () => endCount += 1,

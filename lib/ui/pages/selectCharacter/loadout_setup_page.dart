@@ -247,7 +247,7 @@ class _ActionSlotGrid extends StatelessWidget {
   static const List<_ActionSlotSpec> _topRow = [
     _ActionSlotSpec(
       slot: AbilitySlot.mobility,
-      hudLabel: 'Mob',
+      hudLabel: 'Dash',
       isEditable: true,
     ),
     _ActionSlotSpec(
@@ -270,7 +270,7 @@ class _ActionSlotGrid extends StatelessWidget {
     ),
     _ActionSlotSpec(
       slot: AbilitySlot.secondary,
-      hudLabel: 'Sec',
+      hudLabel: 'Shield',
       isEditable: true,
     ),
     _ActionSlotSpec(

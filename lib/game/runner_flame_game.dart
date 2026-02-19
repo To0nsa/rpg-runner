@@ -38,6 +38,7 @@ import 'util/math_util.dart' as math;
 // ─────────────────────────────────────────────────────────────────────────────
 
 const _priorityBackgroundParallax = -30;
+const _priorityTemporaryFloorMask = -25;
 const _priorityGroundTiles = -20;
 const _priorityForegroundParallax = -10;
 const _priorityStaticSolids = -5;
@@ -164,6 +165,14 @@ class RunnerFlameGame extends FlameGame {
         snapScrollToPixels: false,
         layers: theme.backgroundLayers,
       )..priority = _priorityBackgroundParallax,
+    );
+
+    camera.backdrop.add(
+      _TemporaryFloorMaskComponent(
+        controller: controller,
+        virtualWidth: virtualWidth,
+        virtualHeight: virtualHeight,
+      )..priority = _priorityTemporaryFloorMask,
     );
 
     camera.backdrop.add(
@@ -730,6 +739,64 @@ class RunnerFlameGame extends FlameGame {
   void _setLoadState(RunLoadPhase phase, double progress) {
     final clamped = progress.clamp(0.0, 1.0);
     loadState.value = RunLoadState(phase: phase, progress: clamped);
+  }
+}
+
+/// Temporary black backdrop mask from floor level downward.
+///
+/// Keep this local and disposable: delete this class and the one mount call in
+/// `onLoad` when no longer needed.
+class _TemporaryFloorMaskComponent extends Component
+    with HasGameReference<FlameGame> {
+  _TemporaryFloorMaskComponent({
+    required this.controller,
+    required this.virtualWidth,
+    required this.virtualHeight,
+  });
+
+  final GameController controller;
+  final int virtualWidth;
+  final int virtualHeight;
+
+  final Paint _paint = Paint()..color = const Color(0xFF000000);
+
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+
+    final surfaces = controller.snapshot.groundSurfaces;
+    if (surfaces.isEmpty) return;
+
+    // Use the lowest visible ground top so the mask starts at floor level.
+    var floorTopY = surfaces.first.topY;
+    for (final surface in surfaces) {
+      if (surface.topY > floorTopY) {
+        floorTopY = surface.topY;
+      }
+    }
+
+    final camX = -game.camera.viewfinder.transform.offset.x;
+    final camY = -game.camera.viewfinder.transform.offset.y;
+    final transform = WorldViewTransform(
+      cameraCenterX: camX,
+      cameraCenterY: camY,
+      viewWidth: virtualWidth.toDouble(),
+      viewHeight: virtualHeight.toDouble(),
+    );
+
+    final maskTopY = math.roundToPixels(transform.worldToViewY(floorTopY));
+    final clampedTopY = maskTopY.clamp(0.0, virtualHeight.toDouble());
+    if (clampedTopY >= virtualHeight.toDouble()) return;
+
+    canvas.drawRect(
+      Rect.fromLTWH(
+        0.0,
+        clampedTopY,
+        virtualWidth.toDouble(),
+        virtualHeight.toDouble() - clampedTopY,
+      ),
+      _paint,
+    );
   }
 }
 

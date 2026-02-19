@@ -60,8 +60,8 @@ class MeleeControl extends StatelessWidget {
     final cooldownRing = tuning.style.cooldownRing;
     if (inputMode == AbilityInputMode.tap) {
       return ActionButton(
-        label: 'Atk',
-        icon: Icons.close,
+        label: 'Strike',
+        icon: Icons.sports_martial_arts_rounded,
         onPressed: onPressed,
         tuning: action,
         cooldownRing: cooldownRing,
@@ -73,8 +73,8 @@ class MeleeControl extends StatelessWidget {
     }
     if (inputMode == AbilityInputMode.holdMaintain) {
       return HoldActionButton(
-        label: 'Atk',
-        icon: Icons.close,
+        label: 'Strike',
+        icon: Icons.sports_martial_arts_rounded,
         onHoldStart: onHoldStart,
         onHoldEnd: onHoldEnd,
         tuning: action,
@@ -87,8 +87,8 @@ class MeleeControl extends StatelessWidget {
     }
     if (inputMode == AbilityInputMode.holdRelease) {
       return HoldActionButton(
-        label: 'Atk',
-        icon: Icons.close,
+        label: 'Strike',
+        icon: Icons.sports_martial_arts_rounded,
         onHoldStart: onChargeHoldStart,
         onHoldEnd: onChargeHoldEnd,
         onRelease: onCommitted,
@@ -101,8 +101,8 @@ class MeleeControl extends StatelessWidget {
       );
     }
     return DirectionalActionButton(
-      label: 'Atk',
-      icon: Icons.close,
+      label: 'Strike',
+      icon: Icons.sports_martial_arts_rounded,
       onHoldStart: onChargeHoldStart,
       onHoldEnd: onChargeHoldEnd,
       onAimDir: onAimDir,
