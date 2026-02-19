@@ -1,101 +1,61 @@
-# RPG-Runner (Flutter + Flame)
+# RPG Runner
 
-Deterministic 2D runner prototype, ported from an SFML/C++ version into Flutter (Dart) + Flame.
+A Flutter + Flame action runner focused on deterministic gameplay architecture.
 
-The goal is to adapt a desktop version to a mobile one, preserving the gameplay while having a "production-grade" repo that can scale up. I tried to focus on mobile performance, clean boundaries, and future online-ready determinism (replay, ghost run, multiplayer). Except for the parallax (that doesnt fit the game view perfectly), I used placeholder geometric shapes to keep the focus on architecture and gameplay for this prototype.
+This is a portfolio-style game project designed to demonstrate production-minded engineering for mobile games: clean layering, testable simulation, and systems ready for replay/online expansion.
 
-This package is designed to be embedded into an existing Flutter app.
+## Why It Stands Out
 
----
+- Deterministic ECS simulation loop in pure Dart (`lib/core/`)
+- Snapshot-driven rendering pipeline in Flame (`lib/game/`)
+- Command-based input flow and fixed-tick simulation (60 Hz)
+- Clear separation between gameplay authority and visuals
+- Strong automated test coverage for gameplay and UI behavior
 
-## TL;DR
+## Current Scope (Implemented)
 
-* **Core** (`lib/core/`): pure Dart, deterministic simulation (authoritative gameplay).
-* **Render** (`lib/game/`): Flame-only visuals, reads snapshots.
-* **UI** (`lib/ui/`): Flutter overlays + controls, sends Commands.
-* **Public embedding API**: `lib/runner.dart`.
-* **Dev host app**: `lib/main.dart`.
+- 2 playable levels: `forest`, `field`
+- 2 selectable character definitions
+- 24 authored abilities (mobility, melee, ranged, defense, utility)
+- 2 enemy archetypes (ground + flying)
+- Gear/loadout setup flow before runs
+- In-game HUD, pause, game-over, and scoring
+- Local leaderboard persistence (SharedPreferences)
+- 100+ Dart test files (`*_test.dart`) in `test/`
+- Firebase app initialization configured for future backend features
 
----
+## Architecture (Simple View)
 
-## Run (standalone dev host)
+- `lib/core/`: Authoritative deterministic simulation (ECS, combat, movement, AI, snapshots)
+- `lib/game/`: Flame rendering and visual components that consume snapshots
+- `lib/ui/`: Flutter menus, overlays, controls, and state orchestration
+
+## Run Locally
 
 ```bash
 flutter pub get
 flutter run
 ```
 
-The dev host launches a minimal menu (`DevMenuPage`) which routes to a
-development menu (`RunnerMenuPage`) where you can select a level and start a
-run.
-
----
-
-## Asset Sync
-
-`flutter.assets` in `pubspec.yaml` is generated from real directories under
-`assets/images/**`.
+Run tests:
 
 ```bash
-dart run tool/sync_assets.dart
-dart run tool/sync_assets.dart --check
+flutter test
 ```
 
-The script updates only the block between:
-- `# BEGIN AUTO-ASSETS`
-- `# END AUTO-ASSETS`
+## Tech Stack
 
----
+- Flutter
+- Dart
+- Flame
+- Firebase Core
+- Provider
+- SharedPreferences
 
-## Embed (host app)
+## Roadmap Direction
 
-Import the public embedding API (`lib/runner.dart`) and push the route:
-
-```dart
-import 'package:rpg_runner/runner.dart';
-
-Navigator.of(context).push(
-  createRunnerGameRoute(
-    runId: 12345, // optional: tag the run for replay/ghost metadata
-    seed: 123,
-    levelId: LevelId.forest,
-  ),
-);
-```
-
----
-
-## Architecture
-
-### 1) Core — deterministic simulation (`lib/core/`)
-
-* Fixed-tick simulation (e.g. 60 Hz); ticks are the only time authority.
-* Inputs are **Commands** scheduled per tick.
-* RNG is seeded and owned by Core.
-* Output is an immutable `GameStateSnapshot` + transient `GameEvent`s.
-
-Core must **not** import Flutter or Flame.
-
-### 2) Render — Flame (`lib/game/`)
-
-* `RunnerFlameGame` reads the latest snapshot each frame.
-* Rendering is intentionally non-authoritative.
-* Pixel-friendly camera/viewport components live here (parallax, ground band, aim ray, etc.).
-
-### 3) UI — Flutter overlays (`lib/ui/`)
-
-* HUD + game over overlay + leaderboard.
-* Touch controls (joystick + action buttons + directional action buttons).
-* UI sends **Commands** to the controller; UI does not mutate simulation state directly.
-
----
-
-## Controls
-
-Current control surface (mobile-friendly), (no debug keys for keyboard as I tested directly on mobile):
-
-* movement joystick / axis
-* Jump
-* Dash
-* Melee strike (directional)
-* Projectile/spell aim + cast (directional)
+- Expand to 3+ polished levels and more enemy types
+- Add deeper character/loadout progression
+- Implement metaloop, achievements based progression, and unlockables
+- Implement ghost runs and online race-ready infrastructure
+- Connect leaderboard/progression to backend services
