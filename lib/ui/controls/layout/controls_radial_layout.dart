@@ -108,9 +108,9 @@ class ControlsRadialLayoutSolver {
     );
 
     final spellSize = actionSize;
-    final spellRight = rightFor(meleeOffset, spellSize);
+    final spellRight = rightFor(secondaryOffset, spellSize);
     final spellBottom =
-        bottomFor(meleeOffset, spellSize) + layout.spellVerticalOffset;
+        bottomFor(secondaryOffset, spellSize) + layout.spellVerticalOffset;
 
     return ControlsRadialLayout(
       jumpSize: jumpSize,

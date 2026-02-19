@@ -8,29 +8,29 @@ import 'package:rpg_runner/ui/controls/directional_action_button.dart';
 import 'package:rpg_runner/ui/controls/layout/controls_radial_layout.dart';
 import 'package:rpg_runner/ui/controls/runner_controls_overlay_radial.dart';
 import 'package:rpg_runner/ui/controls/widgets/spell_control.dart';
-import 'package:rpg_runner/ui/controls/widgets/melee_control.dart';
 
 void main() {
-  testWidgets('spell control is anchored above Atk control by tuning offset', (
-    tester,
-  ) async {
-    final harness = _OverlayHarness();
-    addTearDown(harness.dispose);
+  testWidgets(
+    'spell control is anchored above Shield control by tuning offset',
+    (tester) async {
+      final harness = _OverlayHarness();
+      addTearDown(harness.dispose);
 
-    const tuning = ControlsTuning.fixed;
-    await tester.pumpWidget(
-      _testHost(child: harness.buildOverlay(tuning: tuning)),
-    );
+      const tuning = ControlsTuning.fixed;
+      await tester.pumpWidget(
+        _testHost(child: harness.buildOverlay(tuning: tuning)),
+      );
 
-    final bonus = _positionedFor(tester, find.byType(SpellControl));
-    final melee = _positionedFor(tester, find.byType(MeleeControl));
+      final bonus = _positionedFor(tester, find.byType(SpellControl));
+      final shield = _positionedFor(tester, find.text('Shield'));
 
-    expect(bonus.right, closeTo(melee.right!, 0.001));
-    expect(
-      bonus.bottom,
-      closeTo(melee.bottom! + tuning.layout.spellVerticalOffset, 0.001),
-    );
-  });
+      expect(bonus.right, closeTo(shield.right!, 0.001));
+      expect(
+        bonus.bottom,
+        closeTo(shield.bottom! + tuning.layout.spellVerticalOffset, 0.001),
+      );
+    },
+  );
 
   testWidgets('charge bar anchor maps to projectile charge layout', (
     tester,
