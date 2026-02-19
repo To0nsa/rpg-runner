@@ -247,7 +247,7 @@ class _ActionSlotGrid extends StatelessWidget {
   static const List<_ActionSlotSpec> _topRow = [
     _ActionSlotSpec(
       slot: AbilitySlot.mobility,
-      hudLabel: 'Dash',
+      hudLabel: 'Mobility',
       isEditable: true,
     ),
     _ActionSlotSpec(

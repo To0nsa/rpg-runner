@@ -270,7 +270,7 @@ class RunnerControlsOverlay extends StatelessWidget {
           bottom: layout.dash.bottom,
           child: mobilityInputMode == AbilityInputMode.tap
               ? ActionButton(
-                  label: 'Dash',
+                  label: 'Mobility',
                   icon: Icons.flash_on,
                   onPressed: onMobilityPressed,
                   tuning: action,
@@ -282,7 +282,7 @@ class RunnerControlsOverlay extends StatelessWidget {
                 )
               : mobilityInputMode == AbilityInputMode.holdMaintain
               ? HoldActionButton(
-                  label: 'Dash',
+                  label: 'Mobility',
                   icon: Icons.flash_on,
                   onHoldStart: onMobilityHoldStart,
                   onHoldEnd: onMobilityHoldEnd,
@@ -295,7 +295,7 @@ class RunnerControlsOverlay extends StatelessWidget {
                 )
               : mobilityInputMode == AbilityInputMode.holdRelease
               ? HoldActionButton(
-                  label: 'Dash',
+                  label: 'Mobility',
                   icon: Icons.flash_on,
                   onHoldStart: onMobilityHoldStart,
                   onHoldEnd: onMobilityHoldEnd,
@@ -308,7 +308,7 @@ class RunnerControlsOverlay extends StatelessWidget {
                   size: layout.actionSize,
                 )
               : DirectionalActionButton(
-                  label: 'Dash',
+                  label: 'Mobility',
                   icon: Icons.flash_on,
                   onHoldStart: onMobilityHoldStart,
                   onHoldEnd: onMobilityHoldEnd,
