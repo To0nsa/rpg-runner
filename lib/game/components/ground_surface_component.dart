@@ -36,13 +36,19 @@ class GroundSurfaceComponent extends Component
 
   late final ui.Image _image;
   late final ui.Rect _materialSrcRect;
-  late final double _materialHeight;
+  double _materialHeight = _fallbackMaterialHeight;
 
   final Paint _paint = Paint()..filterQuality = FilterQuality.none;
 
   static const int _alphaOpaqueThreshold = 1;
   static const double _rowCoverageThreshold = 0.20;
   static const double _fallbackMaterialHeight = 16.0;
+
+  /// Effective ground material height used for band fill.
+  ///
+  /// Exposed so other render-only components can align visuals with the same
+  /// authored band depth.
+  double get materialHeight => _materialHeight;
 
   @override
   Future<void> onLoad() async {

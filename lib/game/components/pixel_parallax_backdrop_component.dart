@@ -27,6 +27,7 @@ class PixelParallaxBackdropComponent extends Component
     required this.virtualHeight,
     required this.layers,
     this.snapScrollToPixels = true,
+    this.layerBottomAnchorYProvider,
   });
 
   /// Width of the virtual viewport in pixels.
@@ -40,6 +41,11 @@ class PixelParallaxBackdropComponent extends Component
 
   /// If true, scroll offsets are rounded to whole pixels for crisp rendering.
   final bool snapScrollToPixels;
+
+  /// Optional runtime provider for the vertical bottom anchor (in view-space).
+  ///
+  /// When unset, layers are anchored to the viewport bottom (legacy behavior).
+  final double Function()? layerBottomAnchorYProvider;
 
   /// Loaded images for each layer (parallel to [layers]).
   late final List<ui.Image> _images;
@@ -98,6 +104,7 @@ class PixelParallaxBackdropComponent extends Component
 
     final viewWidth = virtualWidth;
     final viewHeight = virtualHeight;
+    final bottomAnchorY = layerBottomAnchorYProvider?.call();
 
     canvas.save();
     canvas.clipRect(
@@ -109,7 +116,11 @@ class PixelParallaxBackdropComponent extends Component
 
       final imageW = image.width;
       final imageH = image.height;
-      final y = (viewHeight - imageH).toDouble(); // Bottom-aligned.
+      final y = resolveLayerTopY(
+        viewHeight: viewHeight,
+        imageHeight: imageH,
+        bottomAnchorY: bottomAnchorY,
+      );
 
       // Optionally snap to whole pixels for crisp pixel-art rendering.
       final scroll = snapScrollToPixels
@@ -125,6 +136,19 @@ class PixelParallaxBackdropComponent extends Component
     }
 
     canvas.restore();
+  }
+
+  /// Computes top Y for a layer from an optional bottom anchor.
+  static double resolveLayerTopY({
+    required int viewHeight,
+    required int imageHeight,
+    required double? bottomAnchorY,
+  }) {
+    final resolvedBottom = bottomAnchorY;
+    if (resolvedBottom == null || !resolvedBottom.isFinite) {
+      return (viewHeight - imageHeight).toDouble();
+    }
+    return resolvedBottom - imageHeight;
   }
 }
 

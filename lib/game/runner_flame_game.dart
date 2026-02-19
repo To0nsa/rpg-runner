@@ -113,6 +113,7 @@ class RunnerFlameGame extends FlameGame {
   );
 
   late final PlayerViewComponent _player;
+  late final GroundSurfaceComponent _groundSurface;
   final EnemyRenderRegistry _enemyRenderRegistry;
   final ProjectileRenderRegistry _projectileRenderRegistry;
   final PickupRenderRegistry _pickupRenderRegistry;
@@ -164,6 +165,7 @@ class RunnerFlameGame extends FlameGame {
         virtualHeight: virtualHeight,
         snapScrollToPixels: false,
         layers: theme.backgroundLayers,
+        layerBottomAnchorYProvider: _parallaxLayerBottomAnchorY,
       )..priority = _priorityBackgroundParallax,
     );
 
@@ -175,14 +177,13 @@ class RunnerFlameGame extends FlameGame {
       )..priority = _priorityTemporaryFloorMask,
     );
 
-    camera.backdrop.add(
-      GroundSurfaceComponent(
-        assetPath: theme.groundLayerAsset,
-        controller: controller,
-        virtualWidth: virtualWidth,
-        virtualHeight: virtualHeight,
-      )..priority = _priorityGroundTiles,
-    );
+    _groundSurface = GroundSurfaceComponent(
+      assetPath: theme.groundLayerAsset,
+      controller: controller,
+      virtualWidth: virtualWidth,
+      virtualHeight: virtualHeight,
+    )..priority = _priorityGroundTiles;
+    camera.backdrop.add(_groundSurface);
 
     // Foreground parallax layers (grass, bushes, etc.)
     camera.backdrop.add(
@@ -191,6 +192,7 @@ class RunnerFlameGame extends FlameGame {
         virtualHeight: virtualHeight,
         snapScrollToPixels: false,
         layers: theme.foregroundLayers,
+        layerBottomAnchorYProvider: _foregroundParallaxLayerBottomAnchorY,
       )..priority = _priorityForegroundParallax,
     );
     _setLoadState(RunLoadPhase.parallaxMounted, 0.35);
@@ -739,6 +741,38 @@ class RunnerFlameGame extends FlameGame {
   void _setLoadState(RunLoadPhase phase, double progress) {
     final clamped = progress.clamp(0.0, 1.0);
     loadState.value = RunLoadState(phase: phase, progress: clamped);
+  }
+
+  /// Bottom anchor for parallax layers, aligned to the visible ground top.
+  double _parallaxLayerBottomAnchorY() {
+    final surfaces = controller.snapshot.groundSurfaces;
+    if (surfaces.isEmpty) {
+      return virtualHeight.toDouble();
+    }
+
+    var floorTopY = surfaces.first.topY;
+    for (final surface in surfaces) {
+      if (surface.topY > floorTopY) {
+        floorTopY = surface.topY;
+      }
+    }
+
+    final cameraCenter = camera.viewfinder.position;
+    final transform = WorldViewTransform(
+      cameraCenterX: cameraCenter.x,
+      cameraCenterY: cameraCenter.y,
+      viewWidth: virtualWidth.toDouble(),
+      viewHeight: virtualHeight.toDouble(),
+    );
+    return math.roundToPixels(transform.worldToViewY(floorTopY));
+  }
+
+  /// Foreground parallax anchor aligned to the ground band bottom edge.
+  ///
+  /// This places foliage/foreground pixels in front of the rendered ground band
+  /// rather than stopping at its top edge.
+  double _foregroundParallaxLayerBottomAnchorY() {
+    return _parallaxLayerBottomAnchorY() + _groundSurface.materialHeight;
   }
 }
 
