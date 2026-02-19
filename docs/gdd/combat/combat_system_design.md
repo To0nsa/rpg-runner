@@ -10,6 +10,7 @@ Balance framework:
 - `docs/gdd/combat/balance/balance_invariants.md`
 - `docs/gdd/combat/balance/scenario_matrix.md`
 - `docs/gdd/combat/balance/ability_tuning_template.md`
+- `docs/gdd/combat/visual_feedback_system_design.md`
 
 ## Data Primitives
 

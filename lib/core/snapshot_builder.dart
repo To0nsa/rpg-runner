@@ -41,6 +41,7 @@ import 'util/vec2.dart';
 import 'abilities/ability_catalog.dart';
 import 'abilities/ability_def.dart';
 import 'abilities/effective_ability_cost.dart';
+import 'combat/control_lock.dart';
 import 'util/fixed_math.dart';
 import 'util/tick_math.dart';
 import 'loadout/loadout_validator.dart';
@@ -421,6 +422,7 @@ class SnapshotBuilder {
         anim: anim,
         grounded: onGround,
         animFrame: playerAnimFrame,
+        statusVisualMask: _statusVisualMaskForEntity(player, tick: tick),
       ),
     ];
 
@@ -644,6 +646,45 @@ class SnapshotBuilder {
   // ───────────────────────────────────────────────────────────────────────────
   // Private Entity Collectors
   // ───────────────────────────────────────────────────────────────────────────
+
+  int _statusVisualMaskForEntity(EntityId entity, {required int tick}) {
+    var mask = EntityStatusVisualMask.none;
+
+    final slowIndex = world.slow.tryIndexOf(entity);
+    if (slowIndex != null && world.slow.ticksLeft[slowIndex] > 0) {
+      mask |= EntityStatusVisualMask.slow;
+    }
+
+    final hasteIndex = world.haste.tryIndexOf(entity);
+    if (hasteIndex != null && world.haste.ticksLeft[hasteIndex] > 0) {
+      mask |= EntityStatusVisualMask.haste;
+    }
+
+    final vulnerableIndex = world.vulnerable.tryIndexOf(entity);
+    if (vulnerableIndex != null &&
+        world.vulnerable.ticksLeft[vulnerableIndex] > 0) {
+      mask |= EntityStatusVisualMask.vulnerable;
+    }
+
+    final weakenIndex = world.weaken.tryIndexOf(entity);
+    if (weakenIndex != null && world.weaken.ticksLeft[weakenIndex] > 0) {
+      mask |= EntityStatusVisualMask.weaken;
+    }
+
+    final drenchIndex = world.drench.tryIndexOf(entity);
+    if (drenchIndex != null && world.drench.ticksLeft[drenchIndex] > 0) {
+      mask |= EntityStatusVisualMask.drench;
+    }
+
+    if (world.controlLock.isStunned(entity, tick)) {
+      mask |= EntityStatusVisualMask.stun;
+    }
+    if (world.controlLock.isLocked(entity, LockFlag.cast, tick)) {
+      mask |= EntityStatusVisualMask.silence;
+    }
+
+    return mask;
+  }
 
   /// Appends projectile entity snapshots to [entities].
   ///
@@ -873,6 +914,7 @@ class SnapshotBuilder {
           anim: anim,
           grounded: grounded,
           animFrame: animFrame,
+          statusVisualMask: _statusVisualMaskForEntity(e, tick: tick),
         ),
       );
     }

@@ -27,6 +27,7 @@ import 'components/sprite_anim/deterministic_anim_view_component.dart';
 import 'components/ground_surface_component.dart';
 import 'components/ground_band_parallax_foreground_component.dart';
 import 'tuning/player_render_tuning.dart';
+import 'tuning/combat_feedback_tuning.dart';
 import 'input/runner_input_router.dart';
 import 'input/aim_preview.dart';
 import 'components/pixel_parallax_backdrop_component.dart';
@@ -55,6 +56,7 @@ const _priorityProjectileAimRay = 5;
 const _priorityMeleeAimRay = 6;
 const PlayerRenderTuning _playerRenderTuning = PlayerRenderTuning();
 const _damageForMaxShake100 = 1500;
+const _visualCueIntensityScaleBp = 10000;
 
 enum RunLoadPhase {
   start,
@@ -86,9 +88,11 @@ class RunnerFlameGame extends FlameGame {
     required this.projectileAimPreview,
     required this.meleeAimPreview,
     required this.playerCharacter,
+    CombatFeedbackTuning combatFeedbackTuning = const CombatFeedbackTuning(),
   }) : _enemyRenderRegistry = EnemyRenderRegistry(
          enemyCatalog: controller.enemyCatalog,
        ),
+       _combatFeedbackTuning = combatFeedbackTuning,
        _projectileRenderRegistry = ProjectileRenderRegistry(),
        _pickupRenderRegistry = PickupRenderRegistry(),
        super(
@@ -121,6 +125,7 @@ class RunnerFlameGame extends FlameGame {
   final EnemyRenderRegistry _enemyRenderRegistry;
   final ProjectileRenderRegistry _projectileRenderRegistry;
   final PickupRenderRegistry _pickupRenderRegistry;
+  final CombatFeedbackTuning _combatFeedbackTuning;
   final List<RectangleComponent> _staticSolids = <RectangleComponent>[];
   List<StaticSolidSnapshot>? _lastStaticSolidsSnapshot;
 
@@ -153,6 +158,8 @@ class RunnerFlameGame extends FlameGame {
   final Vector2 _snapScratch = Vector2.zero();
   final List<ProjectileHitEvent> _pendingProjectileHitEvents =
       <ProjectileHitEvent>[];
+  final List<EntityVisualCueEvent> _pendingEntityVisualCueEvents =
+      <EntityVisualCueEvent>[];
 
   @override
   Future<void> onLoad() async {
@@ -217,6 +224,7 @@ class RunnerFlameGame extends FlameGame {
     _player = PlayerViewComponent(
       animationSet: playerAnimations,
       renderScale: Vector2.all(_playerRenderTuning.scale),
+      feedbackTuning: _combatFeedbackTuning,
     )..priority = _priorityPlayer;
     world.add(_player);
 
@@ -309,6 +317,7 @@ class RunnerFlameGame extends FlameGame {
         tickHz: controller.tickHz,
         pos: _snapScratch,
       );
+      _player.setStatusVisualMask(player.statusVisualMask);
     }
 
     _syncEnemies(
@@ -317,6 +326,7 @@ class RunnerFlameGame extends FlameGame {
       alpha: alpha,
       cameraCenter: _cameraCenterScratch,
     );
+    _flushPendingEntityVisualCueEvents(playerEntityId: player?.id);
     _syncProjectiles(
       currSnapshot.entities,
       prevById: _prevEntitiesById,
@@ -443,6 +453,7 @@ class RunnerFlameGame extends FlameGame {
       if (view == null) {
         view = entry.viewFactory(entry.animSet, entry.renderScale)
           ..priority = _priorityEnemies;
+        view.setFeedbackTuning(_combatFeedbackTuning);
         _enemies[e.id] = view;
         world.add(view);
       }
@@ -461,6 +472,7 @@ class RunnerFlameGame extends FlameGame {
 
       _snapScratch.setValues(snappedX, snappedY);
       view.applySnapshot(e, tickHz: controller.tickHz, pos: _snapScratch);
+      view.setStatusVisualMask(e.statusVisualMask);
     }
 
     if (_enemies.isEmpty) return;
@@ -480,6 +492,10 @@ class RunnerFlameGame extends FlameGame {
       );
       return;
     }
+    if (event is EntityVisualCueEvent) {
+      _pendingEntityVisualCueEvents.add(event);
+      return;
+    }
     if (event is ProjectileHitEvent) {
       _pendingProjectileHitEvents.add(event);
     }
@@ -489,6 +505,45 @@ class RunnerFlameGame extends FlameGame {
     if (amount100 <= 0) return 0.0;
     final normalized = (amount100 / _damageForMaxShake100).clamp(0.0, 1.0);
     return dart_math.sqrt(normalized);
+  }
+
+  void _flushPendingEntityVisualCueEvents({required int? playerEntityId}) {
+    if (_pendingEntityVisualCueEvents.isEmpty) return;
+
+    for (final event in _pendingEntityVisualCueEvents) {
+      final intensity01 = _visualCueIntensity01(event.intensityBp);
+      if (intensity01 <= 0.0) continue;
+
+      final DeterministicAnimViewComponent? view;
+      if (playerEntityId != null && event.entityId == playerEntityId) {
+        view = _player;
+      } else {
+        view = _enemies[event.entityId];
+      }
+      if (view == null) continue;
+
+      switch (event.kind) {
+        case EntityVisualCueKind.directHit:
+          view.triggerDirectHitFlash(intensity01: intensity01);
+        case EntityVisualCueKind.dotPulse:
+          view.triggerDotPulse(
+            color: _combatFeedbackTuning.dotColorFor(event.damageType),
+            intensity01: intensity01,
+          );
+        case EntityVisualCueKind.resourcePulse:
+          view.triggerResourcePulse(
+            color: _combatFeedbackTuning.resourceColorFor(event.resourceType),
+            intensity01: intensity01,
+          );
+      }
+    }
+
+    _pendingEntityVisualCueEvents.clear();
+  }
+
+  double _visualCueIntensity01(int intensityBp) {
+    if (intensityBp <= 0) return 0.0;
+    return (intensityBp / _visualCueIntensityScaleBp).clamp(0.0, 1.0);
   }
 
   void _flushPendingProjectileHitEvents({required Vector2 cameraCenter}) {

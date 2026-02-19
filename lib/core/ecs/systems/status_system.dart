@@ -20,6 +20,13 @@ import '../../combat/control_lock.dart';
 import 'ability_interrupt.dart';
 import '../world.dart';
 
+typedef ResourcePulseCallback =
+    void Function({
+      required EntityId target,
+      required StatusResourceType resourceType,
+      required int restoredAmount100,
+    });
+
 /// Applies status effects and ticks active statuses.
 class StatusSystem {
   StatusSystem({
@@ -48,9 +55,9 @@ class StatusSystem {
   }
 
   /// Ticks existing statuses and queues DoT damage.
-  void tickExisting(EcsWorld world) {
+  void tickExisting(EcsWorld world, {ResourcePulseCallback? onResourcePulse}) {
     _tickDot(world);
-    _tickResourceOverTime(world);
+    _tickResourceOverTime(world, onResourcePulse: onResourcePulse);
     _tickHaste(world);
     _tickSlow(world);
     _tickVulnerable(world);
@@ -59,10 +66,14 @@ class StatusSystem {
   }
 
   /// Applies queued statuses and refreshes derived modifiers.
-  void applyQueued(EcsWorld world, {required int currentTick}) {
+  void applyQueued(
+    EcsWorld world, {
+    required int currentTick,
+    ResourcePulseCallback? onResourcePulse,
+  }) {
     _currentTick = currentTick;
     if (_pending.isNotEmpty) {
-      _applyPending(world);
+      _applyPending(world, onResourcePulse: onResourcePulse);
       _pending.clear();
     }
     _refreshMoveSpeed(world);
@@ -115,7 +126,10 @@ class StatusSystem {
     }
   }
 
-  void _tickResourceOverTime(EcsWorld world) {
+  void _tickResourceOverTime(
+    EcsWorld world, {
+    ResourcePulseCallback? onResourcePulse,
+  }) {
     final resource = world.resourceOverTime;
     if (resource.denseEntities.isEmpty) return;
 
@@ -145,6 +159,7 @@ class StatusSystem {
             target: target,
             resourceType: resource.resourceTypes[i][channel],
             amountBp: resource.amountBp[i][channel],
+            onResourcePulse: onResourcePulse,
           );
         }
         channel -= 1;
@@ -201,7 +216,7 @@ class StatusSystem {
     }
   }
 
-  void _applyPending(EcsWorld world) {
+  void _applyPending(EcsWorld world, {ResourcePulseCallback? onResourcePulse}) {
     final resistance = world.damageResistance;
     final immunity = world.statusImmunity;
     final invuln = world.invulnerability;
@@ -275,6 +290,7 @@ class StatusSystem {
               durationSeconds: app.durationSeconds,
               periodSeconds: app.periodSeconds,
               applyOnApply: app.applyOnApply,
+              onResourcePulse: onResourcePulse,
             );
           case StatusEffectType.slow:
             _applySlow(world, req.target, magnitude, app.durationSeconds);
@@ -571,6 +587,7 @@ class StatusSystem {
     required double durationSeconds,
     required double periodSeconds,
     required bool applyOnApply,
+    ResourcePulseCallback? onResourcePulse,
   }) {
     final periodTicks = ticksFromSecondsCeil(periodSeconds, _tickHz);
     if (periodTicks <= 0) return;
@@ -581,6 +598,7 @@ class StatusSystem {
         target: target,
         resourceType: resourceType,
         amountBp: amountBp,
+        onResourcePulse: onResourcePulse,
       );
     }
 
@@ -645,6 +663,7 @@ class StatusSystem {
     required EntityId target,
     required StatusResourceType resourceType,
     required int amountBp,
+    ResourcePulseCallback? onResourcePulse,
   }) {
     if (amountBp <= 0) return;
 
@@ -657,7 +676,15 @@ class StatusSystem {
         final restore = (max * amountBp) ~/ bpScale;
         if (restore <= 0) return;
         final next = world.health.hp[hi] + restore;
-        world.health.hp[hi] = next > max ? max : next;
+        final clamped = next > max ? max : next;
+        final applied = clamped - world.health.hp[hi];
+        if (applied <= 0) return;
+        world.health.hp[hi] = clamped;
+        onResourcePulse?.call(
+          target: target,
+          resourceType: resourceType,
+          restoredAmount100: applied,
+        );
       case StatusResourceType.mana:
         final mi = world.mana.tryIndexOf(target);
         if (mi == null) return;
@@ -666,7 +693,15 @@ class StatusSystem {
         final restore = (max * amountBp) ~/ bpScale;
         if (restore <= 0) return;
         final next = world.mana.mana[mi] + restore;
-        world.mana.mana[mi] = next > max ? max : next;
+        final clamped = next > max ? max : next;
+        final applied = clamped - world.mana.mana[mi];
+        if (applied <= 0) return;
+        world.mana.mana[mi] = clamped;
+        onResourcePulse?.call(
+          target: target,
+          resourceType: resourceType,
+          restoredAmount100: applied,
+        );
       case StatusResourceType.stamina:
         final si = world.stamina.tryIndexOf(target);
         if (si == null) return;
@@ -675,7 +710,15 @@ class StatusSystem {
         final restore = (max * amountBp) ~/ bpScale;
         if (restore <= 0) return;
         final next = world.stamina.stamina[si] + restore;
-        world.stamina.stamina[si] = next > max ? max : next;
+        final clamped = next > max ? max : next;
+        final applied = clamped - world.stamina.stamina[si];
+        if (applied <= 0) return;
+        world.stamina.stamina[si] = clamped;
+        onResourcePulse?.call(
+          target: target,
+          resourceType: resourceType,
+          restoredAmount100: applied,
+        );
     }
   }
 

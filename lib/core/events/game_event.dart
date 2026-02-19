@@ -12,6 +12,8 @@
 library;
 
 import '../abilities/ability_def.dart';
+import '../combat/damage_type.dart';
+import '../combat/status/status.dart';
 import '../enemies/enemy_id.dart';
 import '../projectiles/projectile_id.dart';
 import '../snapshots/enums.dart';

@@ -1,5 +1,6 @@
 import '../../abilities/ability_def.dart';
 import '../../abilities/forced_interrupt_policy.dart';
+import '../../combat/damage_type.dart';
 import '../../combat/status/status.dart';
 import '../../events/game_event.dart';
 import '../../stats/character_stats_resolver.dart';
@@ -16,6 +17,7 @@ typedef DamageAppliedCallback =
       required int target,
       required int appliedAmount100,
       required DeathSourceKind sourceKind,
+      required DamageType damageType,
     });
 
 /// Central system for validating and applying damage to entities.
@@ -175,6 +177,7 @@ class DamageSystem {
           target: target,
           appliedAmount100: appliedAmount,
           sourceKind: sourceKind,
+          damageType: damageType,
         );
       }
 

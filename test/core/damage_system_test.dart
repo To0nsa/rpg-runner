@@ -83,7 +83,12 @@ void main() {
       world,
       currentTick: 1,
       onDamageApplied:
-          ({required target, required appliedAmount100, required sourceKind}) {
+          ({
+            required target,
+            required appliedAmount100,
+            required sourceKind,
+            required damageType,
+          }) {
             callbackTargets.add(target);
             callbackAmounts.add(appliedAmount100);
             callbackKinds.add(sourceKind);

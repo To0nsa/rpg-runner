@@ -79,6 +79,8 @@ import 'abilities/ability_def.dart';
 import 'abilities/forced_interrupt_policy.dart';
 import 'accessories/accessory_catalog.dart';
 import 'combat/middleware/parry_middleware.dart';
+import 'combat/damage_type.dart';
+import 'combat/status/status.dart';
 import 'collision/static_world_geometry_index.dart';
 import 'commands/command.dart';
 import 'contracts/render_contract.dart';
@@ -131,6 +133,7 @@ import 'enemies/enemy_catalog.dart';
 import 'enemies/death_behavior.dart';
 import 'enemies/enemy_id.dart';
 import 'events/game_event.dart';
+import 'events/entity_visual_cue_coalescer.dart';
 import 'events/player_impact_feedback_gate.dart';
 import 'levels/level_definition.dart';
 import 'levels/level_id.dart';
@@ -422,6 +425,7 @@ class GameCore {
       forcedInterruptPolicy: forcedInterruptPolicy,
     );
     _playerImpactFeedbackGate = PlayerImpactFeedbackGate(tickHz: tickHz);
+    _entityVisualCueCoalescer = EntityVisualCueCoalescer();
     _statusSystem = StatusSystem(
       tickHz: tickHz,
       statsResolver: _statsResolver,
@@ -776,6 +780,7 @@ class GameCore {
   /// Pending events to be consumed by UI (drained each frame).
   final List<GameEvent> _events = <GameEvent>[];
   late final PlayerImpactFeedbackGate _playerImpactFeedbackGate;
+  late final EntityVisualCueCoalescer _entityVisualCueCoalescer;
 
   // ─── Scratch/Tracking State ───
 
@@ -1186,19 +1191,51 @@ class GameCore {
     );
     _projectileWorldCollisionSystem.step(_world);
     // ─── Phase 13: Status + damage ───
-    _statusSystem.tickExisting(_world);
+    _entityVisualCueCoalescer.resetForTick(tick);
+    _statusSystem.tickExisting(
+      _world,
+      onResourcePulse:
+          ({
+            required EntityId target,
+            required StatusResourceType resourceType,
+            required int restoredAmount100,
+          }) {
+            _entityVisualCueCoalescer.record(
+              tick: tick,
+              entityId: target,
+              kind: EntityVisualCueKind.resourcePulse,
+              intensityBp: _resourcePulseIntensityBp(restoredAmount100),
+              resourceType: resourceType,
+            );
+          },
+    );
     _damageMiddlewareSystem.step(_world, currentTick: tick);
     _damageSystem.step(
       _world,
       currentTick: tick,
       queueStatus: _statusSystem.queue,
       onDamageApplied:
-          ({required target, required appliedAmount100, required sourceKind}) {
+          ({
+            required EntityId target,
+            required int appliedAmount100,
+            required DeathSourceKind sourceKind,
+            required DamageType damageType,
+          }) {
             _playerImpactFeedbackGate.recordAppliedDamage(
               tick: tick,
               playerTarget: target == _player,
               appliedAmount100: appliedAmount100,
               sourceKind: sourceKind,
+            );
+            final kind = sourceKind == DeathSourceKind.statusEffect
+                ? EntityVisualCueKind.dotPulse
+                : EntityVisualCueKind.directHit;
+            _entityVisualCueCoalescer.record(
+              tick: tick,
+              entityId: target,
+              kind: kind,
+              intensityBp: _damagePulseIntensityBp(appliedAmount100),
+              damageType: damageType,
             );
           },
     );
@@ -1206,7 +1243,25 @@ class GameCore {
     if (playerImpactEvent != null) {
       _events.add(playerImpactEvent);
     }
-    _statusSystem.applyQueued(_world, currentTick: tick);
+    _statusSystem.applyQueued(
+      _world,
+      currentTick: tick,
+      onResourcePulse:
+          ({
+            required EntityId target,
+            required StatusResourceType resourceType,
+            required int restoredAmount100,
+          }) {
+            _entityVisualCueCoalescer.record(
+              tick: tick,
+              entityId: target,
+              kind: EntityVisualCueKind.resourcePulse,
+              intensityBp: _resourcePulseIntensityBp(restoredAmount100),
+              resourceType: resourceType,
+            );
+          },
+    );
+    _entityVisualCueCoalescer.emit((event) => _events.add(event));
 
     // ─── Phase 14: Death handling ───
     _killedEnemiesScratch.clear();
@@ -1488,6 +1543,31 @@ class GameCore {
     final baseAirSeconds = (2.0 * jumpSpeed) / gravity;
     return ticksFromSecondsCeil(baseAirSeconds * 1.5, tickHz);
   }
+
+  int _damagePulseIntensityBp(int appliedAmount100) {
+    if (appliedAmount100 <= 0) return 0;
+    final scaled =
+        (appliedAmount100 * _visualCueIntensityScaleBp) ~/
+        _damagePulseMaxAmount100;
+    return scaled.clamp(_damagePulseMinIntensityBp, _visualCueIntensityScaleBp);
+  }
+
+  int _resourcePulseIntensityBp(int restoredAmount100) {
+    if (restoredAmount100 <= 0) return 0;
+    final scaled =
+        (restoredAmount100 * _visualCueIntensityScaleBp) ~/
+        _resourcePulseMaxAmount100;
+    return scaled.clamp(
+      _resourcePulseMinIntensityBp,
+      _visualCueIntensityScaleBp,
+    );
+  }
+
+  static const int _visualCueIntensityScaleBp = 10000;
+  static const int _damagePulseMaxAmount100 = 1500;
+  static const int _resourcePulseMaxAmount100 = 1200;
+  static const int _damagePulseMinIntensityBp = 1800;
+  static const int _resourcePulseMinIntensityBp = 2000;
 
   // ─────────────────────────────────────────────────────────────────────────
   // Events & Snapshots

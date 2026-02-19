@@ -20,3 +20,39 @@ class PlayerImpactFeedbackEvent extends GameEvent {
   /// Source category that produced the impact.
   final DeathSourceKind sourceKind;
 }
+
+/// Visual pulse categories consumed by the render layer.
+enum EntityVisualCueKind { directHit, dotPulse, resourcePulse }
+
+/// Coalesced, per-entity visual pulse emitted by Core.
+///
+/// This event is render-only and intentionally does not encode style (colors,
+/// shader choice). The Game layer maps these semantics to visuals.
+class EntityVisualCueEvent extends GameEvent {
+  const EntityVisualCueEvent({
+    required this.tick,
+    required this.entityId,
+    required this.kind,
+    required this.intensityBp,
+    this.damageType,
+    this.resourceType,
+  });
+
+  /// Simulation tick when the cue was produced.
+  final int tick;
+
+  /// Entity receiving the visual cue.
+  final int entityId;
+
+  /// Cue semantics (hit pulse vs DoT pulse vs RoT pulse).
+  final EntityVisualCueKind kind;
+
+  /// Relative strength in basis points (`10000 == 1.0`).
+  final int intensityBp;
+
+  /// Damage type metadata for DoT pulses (optional).
+  final DamageType? damageType;
+
+  /// Resource type metadata for resource pulses (optional).
+  final StatusResourceType? resourceType;
+}

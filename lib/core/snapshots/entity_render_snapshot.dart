@@ -30,6 +30,7 @@ class EntityRenderSnapshot {
     this.z,
     this.rotationRad = 0.0,
     this.animFrame,
+    this.statusVisualMask = EntityStatusVisualMask.none,
   });
 
   /// Stable entity identifier (protocol-stable).
@@ -82,6 +83,21 @@ class EntityRenderSnapshot {
 
   /// Optional frame hint for deterministic animation in replays/networking.
   final int? animFrame;
+
+  /// Bitmask of always-on status visuals for this entity.
+  final int statusVisualMask;
+}
+
+/// Bitmask flags for persistent status visuals.
+abstract class EntityStatusVisualMask {
+  static const int none = 0;
+  static const int slow = 1 << 0;
+  static const int haste = 1 << 1;
+  static const int vulnerable = 1 << 2;
+  static const int weaken = 1 << 3;
+  static const int drench = 1 << 4;
+  static const int stun = 1 << 5;
+  static const int silence = 1 << 6;
 }
 
 /// Variant codes for pickup rendering.
