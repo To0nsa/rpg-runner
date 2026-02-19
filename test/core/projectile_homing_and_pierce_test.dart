@@ -98,6 +98,69 @@ void main() {
   });
 
   test(
+    'homing projectile predicts moving target with execute-time + flight lead',
+    () {
+      final world = EcsWorld();
+      final system = AbilityActivationSystem(
+        tickHz: 60,
+        inputBufferTicks: 10,
+        abilities: const AbilityCatalog(),
+        weapons: const WeaponCatalog(),
+        projectiles: const ProjectileCatalog(),
+        spellBooks: const SpellBookCatalog(),
+        accessories: const AccessoryCatalog(),
+      );
+
+      final player = world.createEntity();
+      world.transform.add(player, posX: 100, posY: 100, velX: 0, velY: 0);
+      world.faction.add(player, const FactionDef(faction: Faction.player));
+      world.health.add(
+        player,
+        const HealthDef(hp: 1000, hpMax: 1000, regenPerSecond100: 0),
+      );
+      world.playerInput.add(player);
+      world.movement.add(player, facing: Facing.right);
+      world.abilityInputBuffer.add(player);
+      world.activeAbility.add(player);
+      world.cooldown.add(player);
+      world.mana.add(
+        player,
+        const ManaDef(mana: 5000, manaMax: 5000, regenPerSecond100: 0),
+      );
+      world.stamina.add(
+        player,
+        const StaminaDef(stamina: 5000, staminaMax: 5000, regenPerSecond100: 0),
+      );
+      world.projectileIntent.add(player);
+      world.equippedLoadout.add(
+        player,
+        const EquippedLoadoutDef(
+          abilityProjectileId: 'eloise.auto_aim_shot',
+          projectileSlotSpellId: ProjectileId.iceBolt,
+        ),
+      );
+
+      final enemy = world.createEntity();
+      world.transform.add(enemy, posX: 160, posY: 100, velX: 0, velY: 300);
+      world.faction.add(enemy, const FactionDef(faction: Faction.enemy));
+      world.health.add(
+        enemy,
+        const HealthDef(hp: 1000, hpMax: 1000, regenPerSecond100: 0),
+      );
+
+      final inputIndex = world.playerInput.indexOf(player);
+      world.playerInput.projectilePressed[inputIndex] = true;
+
+      system.step(world, player: player, currentTick: 1);
+
+      final intentIndex = world.projectileIntent.indexOf(player);
+      expect(world.projectileIntent.dirX[intentIndex], greaterThan(0.3));
+      expect(world.projectileIntent.dirX[intentIndex], lessThan(0.6));
+      expect(world.projectileIntent.dirY[intentIndex], greaterThan(0.8));
+    },
+  );
+
+  test(
     'charged shot uses tiered damage/speed/effects from charge hold ticks',
     () {
       ({

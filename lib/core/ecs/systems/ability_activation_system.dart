@@ -575,6 +575,9 @@ class AbilityActivationSystem {
     final rawAimY =
         aimOverrideY ??
         (inputIndex == null ? 0.0 : world.playerInput.aimDirY[inputIndex]);
+    final windupTicks = _scaleAbilityTicks(ability.windupTicks);
+    final activeTicks = _scaleAbilityTicks(ability.activeTicks);
+    final recoveryTicks = _scaleAbilityTicks(ability.recoveryTicks);
     final directionalFallback = _directionalFallbackDirection(
       world,
       movementIndex: movementIndex,
@@ -588,13 +591,11 @@ class AbilityActivationSystem {
       rawAimY: rawAimY,
       directionalFallbackX: directionalFallback.$1,
       directionalFallbackY: directionalFallback.$2,
+      homingWindupTicks: windupTicks,
+      homingProjectileSpeedUnitsPerSecond: null,
     );
     final dirX = dir.$1;
     final dirY = dir.$2;
-
-    final windupTicks = _scaleAbilityTicks(ability.windupTicks);
-    final activeTicks = _scaleAbilityTicks(ability.activeTicks);
-    final recoveryTicks = _scaleAbilityTicks(ability.recoveryTicks);
     final executeTick = commitTick + windupTicks;
     final cooldownGroupId = ability.effectiveCooldownGroup(slot);
     final resolvedStats = _resolvedStatsForLoadout(world, player);
@@ -741,6 +742,16 @@ class AbilityActivationSystem {
     final rawAimY =
         aimOverrideY ??
         (inputIndex == null ? 0.0 : world.playerInput.aimDirY[inputIndex]);
+    final actionSpeedBp = _actionSpeedBpFor(world, player, slot: slot);
+    final windupTicks = _scaleTicksForActionSpeed(
+      _scaleAbilityTicks(ability.windupTicks),
+      actionSpeedBp,
+    );
+    final activeTicks = _scaleAbilityTicks(ability.activeTicks);
+    final recoveryTicks = _scaleTicksForActionSpeed(
+      _scaleAbilityTicks(ability.recoveryTicks),
+      actionSpeedBp,
+    );
     final directionalFallback = _directionalFallbackDirection(
       world,
       movementIndex: world.movement.indexOf(player),
@@ -754,6 +765,8 @@ class AbilityActivationSystem {
       rawAimY: rawAimY,
       directionalFallbackX: directionalFallback.$1,
       directionalFallbackY: directionalFallback.$2,
+      homingWindupTicks: windupTicks,
+      homingProjectileSpeedUnitsPerSecond: null,
     );
     final dirX = dir.$1;
     final dirY = dir.$2;
@@ -844,16 +857,6 @@ class AbilityActivationSystem {
       10000,
     );
 
-    final actionSpeedBp = _actionSpeedBpFor(world, player, slot: slot);
-    final windupTicks = _scaleTicksForActionSpeed(
-      _scaleAbilityTicks(ability.windupTicks),
-      actionSpeedBp,
-    );
-    final activeTicks = _scaleAbilityTicks(ability.activeTicks);
-    final recoveryTicks = _scaleTicksForActionSpeed(
-      _scaleAbilityTicks(ability.recoveryTicks),
-      actionSpeedBp,
-    );
     final cooldownGroupId = ability.effectiveCooldownGroup(slot);
     final baseCooldownTicks = resolvedStats.applyCooldownReduction(
       _scaleAbilityTicks(ability.cooldownTicks),
@@ -972,6 +975,7 @@ class AbilityActivationSystem {
     final bool ballistic;
     final double gravityScale;
     final double originOffset;
+    final double projectileBaseSpeedUnitsPerSecond;
     GearStatBonuses? weaponStats;
     DamageType? weaponDamageType;
     List<WeaponProc> weaponProcs = const <WeaponProc>[];
@@ -998,6 +1002,7 @@ class AbilityActivationSystem {
         projectileId = equippedId;
         ballistic = projectile.ballistic;
         gravityScale = projectile.gravityScale;
+        projectileBaseSpeedUnitsPerSecond = projectile.speedUnitsPerSecond;
         originOffset =
             projectile.weaponType == WeaponType.projectileSpell &&
                 projectile.originOffset == 0
@@ -1015,6 +1020,9 @@ class AbilityActivationSystem {
           return false;
         }
         projectileId = hitDelivery.projectileId;
+        projectileBaseSpeedUnitsPerSecond = projectiles
+            .get(projectileId)
+            .speedUnitsPerSecond;
         ballistic = false;
         gravityScale = 1.0;
         originOffset = _spellOriginOffset(world, player);
@@ -1027,6 +1035,26 @@ class AbilityActivationSystem {
       case AbilityPayloadSource.secondaryWeapon:
         return false;
     }
+
+    final chargeTicks = _resolveCommitChargeTicks(
+      world,
+      player: player,
+      slot: slot,
+      commitTick: commitTick,
+    );
+    final basePierce = hitDelivery.pierce;
+    final baseMaxPierceHits = _maxPierceHitsFor(hitDelivery);
+    final chargeTuning = _resolveChargeTuning(
+      ability: ability,
+      chargeTicks: chargeTicks,
+      defaults: _ChargeTuning(
+        damageScaleBp: 10000,
+        critBonusBp: 0,
+        speedScaleBp: 10000,
+        pierce: basePierce,
+        maxPierceHits: baseMaxPierceHits,
+      ),
+    );
 
     final rawAimX =
         aimOverrideX ??
@@ -1049,6 +1077,10 @@ class AbilityActivationSystem {
       rawAimY: rawAimY,
       directionalFallbackX: fallbackDirX,
       directionalFallbackY: fallbackDirY,
+      homingWindupTicks: windupTicks,
+      homingProjectileSpeedUnitsPerSecond:
+          projectileBaseSpeedUnitsPerSecond *
+          (chargeTuning.speedScaleBp / 10000.0),
     );
     final aimX = resolvedDir.$1;
     final aimY = resolvedDir.$2;
@@ -1073,25 +1105,6 @@ class AbilityActivationSystem {
       weaponDamageType: weaponDamageType,
       weaponProcs: weaponProcs,
       globalCritChanceBonusBp: resolvedStats.globalCritChanceBonusBp,
-    );
-    final chargeTicks = _resolveCommitChargeTicks(
-      world,
-      player: player,
-      slot: slot,
-      commitTick: commitTick,
-    );
-    final basePierce = hitDelivery.pierce;
-    final baseMaxPierceHits = _maxPierceHitsFor(hitDelivery);
-    final chargeTuning = _resolveChargeTuning(
-      ability: ability,
-      chargeTicks: chargeTicks,
-      defaults: _ChargeTuning(
-        damageScaleBp: 10000,
-        critBonusBp: 0,
-        speedScaleBp: 10000,
-        pierce: basePierce,
-        maxPierceHits: baseMaxPierceHits,
-      ),
     );
     final tunedDamage100 =
         (payload.damage100 * chargeTuning.damageScaleBp) ~/ 10000;
@@ -1235,6 +1248,8 @@ class AbilityActivationSystem {
     required double rawAimY,
     required double directionalFallbackX,
     required double directionalFallbackY,
+    required int homingWindupTicks,
+    required double? homingProjectileSpeedUnitsPerSecond,
   }) {
     final targetSpecific = _resolveTargetSpecificDirection(
       world,
@@ -1244,6 +1259,8 @@ class AbilityActivationSystem {
       rawAimY: rawAimY,
       directionalFallbackX: directionalFallbackX,
       directionalFallbackY: directionalFallbackY,
+      homingWindupTicks: homingWindupTicks,
+      homingProjectileSpeedUnitsPerSecond: homingProjectileSpeedUnitsPerSecond,
     );
     if (targetSpecific != null) return targetSpecific;
 
@@ -1272,12 +1289,19 @@ class AbilityActivationSystem {
     required double rawAimY,
     required double directionalFallbackX,
     required double directionalFallbackY,
+    required int homingWindupTicks,
+    required double? homingProjectileSpeedUnitsPerSecond,
   }) {
     switch (ability.targetingModel) {
       case TargetingModel.none:
         return null;
       case TargetingModel.homing:
-        return _nearestHostileAim(world, source: source);
+        return _nearestHostileAim(
+          world,
+          source: source,
+          windupTicks: homingWindupTicks,
+          projectileSpeedUnitsPerSecond: homingProjectileSpeedUnitsPerSecond,
+        );
       case TargetingModel.directional:
         return _normalizeDirectionOrNull(rawAimX, rawAimY) ??
             _normalizeDirectionOrNull(
@@ -1322,6 +1346,8 @@ class AbilityActivationSystem {
   (double, double)? _nearestHostileAim(
     EcsWorld world, {
     required EntityId source,
+    required int windupTicks,
+    required double? projectileSpeedUnitsPerSecond,
   }) {
     final sourceTi = world.transform.tryIndexOf(source);
     if (sourceTi == null) return null;
@@ -1331,10 +1357,21 @@ class AbilityActivationSystem {
 
     final sourceX = world.transform.posX[sourceTi];
     final sourceY = world.transform.posY[sourceTi];
+    final sourceVelX = world.transform.velX[sourceTi];
+    final sourceVelY = world.transform.velY[sourceTi];
+    final windupSeconds = max(0.0, windupTicks.toDouble()) / tickHz;
+    final sourceExecuteX = sourceX + sourceVelX * windupSeconds;
+    final sourceExecuteY = sourceY + sourceVelY * windupSeconds;
+
+    final hasProjectileLead =
+        projectileSpeedUnitsPerSecond != null &&
+        projectileSpeedUnitsPerSecond > 1e-6;
 
     var bestDist2 = double.infinity;
-    var bestDx = 0.0;
-    var bestDy = 0.0;
+    var bestInterceptSeconds = double.infinity;
+    var bestHasIntercept = false;
+    var bestAimX = 0.0;
+    var bestAimY = 0.0;
     var bestEntity = -1;
 
     final targets = world.health.denseEntities;
@@ -1348,26 +1385,123 @@ class AbilityActivationSystem {
 
       final targetTi = world.transform.tryIndexOf(target);
       if (targetTi == null) continue;
-      final dx = world.transform.posX[targetTi] - sourceX;
-      final dy = world.transform.posY[targetTi] - sourceY;
-      final dist2 = dx * dx + dy * dy;
-      if (dist2 <= 1e-12) continue;
+      final targetX = world.transform.posX[targetTi];
+      final targetY = world.transform.posY[targetTi];
+      final targetVelX = world.transform.velX[targetTi];
+      final targetVelY = world.transform.velY[targetTi];
 
-      final closer = dist2 < bestDist2 - 1e-9;
-      final sameDist = (dist2 - bestDist2).abs() <= 1e-9;
-      final betterTie = sameDist && (bestEntity == -1 || target < bestEntity);
-      if (closer || betterTie) {
-        bestDist2 = dist2;
-        bestDx = dx;
-        bestDy = dy;
+      final targetExecuteX = targetX + targetVelX * windupSeconds;
+      final targetExecuteY = targetY + targetVelY * windupSeconds;
+      final relX = targetExecuteX - sourceExecuteX;
+      final relY = targetExecuteY - sourceExecuteY;
+      final relDist2 = relX * relX + relY * relY;
+      if (relDist2 <= 1e-12) continue;
+
+      var candidateHasIntercept = false;
+      var candidateInterceptSeconds = double.infinity;
+      var candidateAimX = relX;
+      var candidateAimY = relY;
+
+      if (hasProjectileLead) {
+        final interceptSeconds = _solveInterceptSeconds(
+          relX: relX,
+          relY: relY,
+          targetVelX: targetVelX,
+          targetVelY: targetVelY,
+          projectileSpeedUnitsPerSecond: projectileSpeedUnitsPerSecond,
+        );
+        if (interceptSeconds != null) {
+          candidateHasIntercept = true;
+          candidateInterceptSeconds = interceptSeconds;
+          candidateAimX = relX + targetVelX * interceptSeconds;
+          candidateAimY = relY + targetVelY * interceptSeconds;
+        }
+      }
+
+      final candidateAimLen2 =
+          candidateAimX * candidateAimX + candidateAimY * candidateAimY;
+      if (candidateAimLen2 <= 1e-12) continue;
+
+      var take = false;
+      if (bestEntity == -1) {
+        take = true;
+      } else if (hasProjectileLead) {
+        if (candidateHasIntercept != bestHasIntercept) {
+          take = candidateHasIntercept && !bestHasIntercept;
+        } else if (candidateHasIntercept) {
+          final faster =
+              candidateInterceptSeconds < bestInterceptSeconds - 1e-9;
+          final sameTime =
+              (candidateInterceptSeconds - bestInterceptSeconds).abs() <= 1e-9;
+          final betterTie = sameTime && target < bestEntity;
+          take = faster || betterTie;
+        } else {
+          final closer = relDist2 < bestDist2 - 1e-9;
+          final sameDist = (relDist2 - bestDist2).abs() <= 1e-9;
+          final betterTie = sameDist && target < bestEntity;
+          take = closer || betterTie;
+        }
+      } else {
+        final closer = relDist2 < bestDist2 - 1e-9;
+        final sameDist = (relDist2 - bestDist2).abs() <= 1e-9;
+        final betterTie = sameDist && target < bestEntity;
+        take = closer || betterTie;
+      }
+
+      if (take) {
         bestEntity = target;
+        bestDist2 = relDist2;
+        bestInterceptSeconds = candidateInterceptSeconds;
+        bestHasIntercept = candidateHasIntercept;
+        bestAimX = candidateAimX;
+        bestAimY = candidateAimY;
       }
     }
 
     if (bestEntity == -1) return null;
 
-    final invLen = 1.0 / sqrt(bestDist2);
-    return (bestDx * invLen, bestDy * invLen);
+    final bestAimLen2 = bestAimX * bestAimX + bestAimY * bestAimY;
+    if (bestAimLen2 <= 1e-12) return null;
+    final invLen = 1.0 / sqrt(bestAimLen2);
+    return (bestAimX * invLen, bestAimY * invLen);
+  }
+
+  double? _solveInterceptSeconds({
+    required double relX,
+    required double relY,
+    required double targetVelX,
+    required double targetVelY,
+    required double projectileSpeedUnitsPerSecond,
+  }) {
+    if (projectileSpeedUnitsPerSecond <= 1e-9) return null;
+    final c = relX * relX + relY * relY;
+    if (c <= 1e-12) return 0.0;
+
+    final speed2 =
+        projectileSpeedUnitsPerSecond * projectileSpeedUnitsPerSecond;
+    final vv = targetVelX * targetVelX + targetVelY * targetVelY;
+    final rv = relX * targetVelX + relY * targetVelY;
+    final a = vv - speed2;
+    final b = 2.0 * rv;
+
+    // Degenerate to linear solve when quadratic term is tiny.
+    if (a.abs() <= 1e-9) {
+      if (b.abs() <= 1e-9) return null;
+      final t = -c / b;
+      return t >= 0.0 ? t : null;
+    }
+
+    final discriminant = b * b - 4.0 * a * c;
+    if (discriminant < 0.0) return null;
+    final sqrtDisc = sqrt(discriminant);
+    final denom = 2.0 * a;
+    final t0 = (-b - sqrtDisc) / denom;
+    final t1 = (-b + sqrtDisc) / denom;
+
+    double? best;
+    if (t0 >= 0.0) best = t0;
+    if (t1 >= 0.0 && (best == null || t1 < best)) best = t1;
+    return best;
   }
 
   double _spellOriginOffset(EcsWorld world, EntityId player) {

@@ -159,6 +159,30 @@ void main() {
       expect(longHoldDamage, greaterThan(shortHoldDamage));
     },
   );
+
+  test(
+    'homing melee predicts execute-time position from source and target velocity',
+    () {
+      final world = EcsWorld();
+      final system = _buildSystem();
+      final player = _spawnPlayer(
+        world,
+        abilityPrimaryId: 'eloise.sword_strike_auto_aim',
+        velX: 300,
+      );
+
+      _spawnEnemy(world, x: 130, y: 140, velX: 0, velY: 0);
+
+      final inputIndex = world.playerInput.indexOf(player);
+      world.playerInput.strikePressed[inputIndex] = true;
+
+      system.step(world, player: player, currentTick: 1);
+
+      final meleeIndex = world.meleeIntent.indexOf(player);
+      expect(world.meleeIntent.dirX[meleeIndex], lessThan(0));
+      expect(world.meleeIntent.dirY[meleeIndex], greaterThan(0.95));
+    },
+  );
 }
 
 AbilityActivationSystem _buildSystem() {
@@ -178,9 +202,11 @@ EntityId _spawnPlayer(
   String abilityPrimaryId = 'eloise.sword_strike',
   String abilitySecondaryId = 'eloise.shield_bash',
   Facing facing = Facing.right,
+  double velX = 0,
+  double velY = 0,
 }) {
   final player = world.createEntity();
-  world.transform.add(player, posX: 100, posY: 100, velX: 0, velY: 0);
+  world.transform.add(player, posX: 100, posY: 100, velX: velX, velY: velY);
   world.faction.add(player, const FactionDef(faction: Faction.player));
   world.health.add(
     player,
@@ -212,9 +238,15 @@ EntityId _spawnPlayer(
   return player;
 }
 
-EntityId _spawnEnemy(EcsWorld world, {required double x, required double y}) {
+EntityId _spawnEnemy(
+  EcsWorld world, {
+  required double x,
+  required double y,
+  double velX = 0,
+  double velY = 0,
+}) {
   final enemy = world.createEntity();
-  world.transform.add(enemy, posX: x, posY: y, velX: 0, velY: 0);
+  world.transform.add(enemy, posX: x, posY: y, velX: velX, velY: velY);
   world.faction.add(enemy, const FactionDef(faction: Faction.enemy));
   world.health.add(
     enemy,
