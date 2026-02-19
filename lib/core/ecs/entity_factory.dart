@@ -120,6 +120,7 @@ class EntityFactory {
   /// - [CreatureTagStore]: Broad combat classification tags.
   /// - [FactionStore]: Sets faction to [Faction.enemy].
   /// - [HealthStore], [ManaStore], [StaminaStore]: Vital stats.
+  /// - [LastDamageStore]: Tracks most recent applied damage metadata.
   /// - [MeleeIntentStore]: Melee strike intent.
   /// - [DamageResistanceStore]: Damage modifiers per type.
   /// - [StatusImmunityStore]: Status effect immunities.
@@ -160,6 +161,7 @@ class EntityFactory {
     world.creatureTag.add(id, tags);
     world.faction.add(id, const FactionDef(faction: Faction.enemy));
     world.health.add(id, health);
+    world.lastDamage.add(id);
     world.damageResistance.add(id, resistance);
     world.mana.add(id, mana);
     world.meleeIntent.add(id);
