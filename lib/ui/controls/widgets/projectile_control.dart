@@ -1,9 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/abilities/ability_def.dart';
 import '../../../core/snapshots/enums.dart';
 import '../../../game/input/aim_preview.dart';
 import '../action_button.dart';
+import '../ability_slot_visual_spec.dart';
 import '../controls_tuning.dart';
 import '../directional_action_button.dart';
 import '../hold_action_button.dart';
@@ -52,13 +54,14 @@ class ProjectileControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final slot = abilityRadialLayoutSpec.slotSpec(AbilitySlot.projectile);
     final action = tuning.style.actionButton;
     final directional = tuning.style.directionalActionButton;
     final cooldownRing = tuning.style.cooldownRing;
     if (inputMode == AbilityInputMode.tap) {
       return ActionButton(
-        label: 'Projectile',
-        icon: Icons.auto_awesome,
+        label: slot.label,
+        icon: slot.icon,
         onPressed: onPressed,
         tuning: action,
         cooldownRing: cooldownRing,
@@ -70,8 +73,8 @@ class ProjectileControl extends StatelessWidget {
     }
     if (inputMode == AbilityInputMode.holdRelease) {
       return HoldActionButton(
-        label: 'Projectile',
-        icon: Icons.auto_awesome,
+        label: slot.label,
+        icon: slot.icon,
         onHoldStart: onHoldStart,
         onHoldEnd: onHoldEnd,
         onRelease: onCommitted,
@@ -84,8 +87,8 @@ class ProjectileControl extends StatelessWidget {
       );
     }
     return DirectionalActionButton(
-      label: 'Projectile',
-      icon: Icons.auto_awesome,
+      label: slot.label,
+      icon: slot.icon,
       onHoldStart: onHoldStart,
       onHoldEnd: onHoldEnd,
       onAimDir: onAimDir,

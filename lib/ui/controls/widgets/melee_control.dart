@@ -1,9 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/abilities/ability_def.dart';
 import '../../../core/snapshots/enums.dart';
 import '../../../game/input/aim_preview.dart';
 import '../action_button.dart';
+import '../ability_slot_visual_spec.dart';
 import '../controls_tuning.dart';
 import '../directional_action_button.dart';
 import '../hold_action_button.dart';
@@ -55,13 +57,14 @@ class MeleeControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final slot = abilityRadialLayoutSpec.slotSpec(AbilitySlot.primary);
     final action = tuning.style.actionButton;
     final directional = tuning.style.directionalActionButton;
     final cooldownRing = tuning.style.cooldownRing;
     if (inputMode == AbilityInputMode.tap) {
       return ActionButton(
-        label: 'Sword',
-        icon: Icons.sports_martial_arts_rounded,
+        label: slot.label,
+        icon: slot.icon,
         onPressed: onPressed,
         tuning: action,
         cooldownRing: cooldownRing,
@@ -73,8 +76,8 @@ class MeleeControl extends StatelessWidget {
     }
     if (inputMode == AbilityInputMode.holdMaintain) {
       return HoldActionButton(
-        label: 'Sword',
-        icon: Icons.sports_martial_arts_rounded,
+        label: slot.label,
+        icon: slot.icon,
         onHoldStart: onHoldStart,
         onHoldEnd: onHoldEnd,
         tuning: action,
@@ -87,8 +90,8 @@ class MeleeControl extends StatelessWidget {
     }
     if (inputMode == AbilityInputMode.holdRelease) {
       return HoldActionButton(
-        label: 'Sword',
-        icon: Icons.sports_martial_arts_rounded,
+        label: slot.label,
+        icon: slot.icon,
         onHoldStart: onChargeHoldStart,
         onHoldEnd: onChargeHoldEnd,
         onRelease: onCommitted,
@@ -101,8 +104,8 @@ class MeleeControl extends StatelessWidget {
       );
     }
     return DirectionalActionButton(
-      label: 'Sword',
-      icon: Icons.sports_martial_arts_rounded,
+      label: slot.label,
+      icon: slot.icon,
       onHoldStart: onChargeHoldStart,
       onHoldEnd: onChargeHoldEnd,
       onAimDir: onAimDir,

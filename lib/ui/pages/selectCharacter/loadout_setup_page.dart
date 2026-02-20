@@ -1,22 +1,24 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import 'package:provider/provider.dart';
 
 import '../../../core/abilities/ability_def.dart';
-import '../../../core/ecs/stores/combat/equipped_loadout_store.dart';
 import '../../../core/meta/gear_slot.dart';
 import '../../../core/meta/meta_service.dart';
 import '../../../core/players/player_character_definition.dart';
 import '../../../core/players/player_character_registry.dart';
-import '../../components/ability_placeholder_icon.dart';
 import '../../components/gear_icon.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
+import '../../controls/action_button.dart';
+import '../../controls/ability_slot_visual_spec.dart';
+import '../../controls/controls_tuning.dart';
+import '../../controls/layout/controls_radial_layout.dart';
 import '../../state/app_state.dart';
-import '../../text/ability_text.dart';
 import '../../theme/ui_tokens.dart';
 import 'ability/ability_picker_dialog.dart';
-import 'ability/ability_picker_presenter.dart';
 import 'gear/gear_picker_dialog.dart';
 
 class LoadoutSetupPage extends StatefulWidget {
@@ -105,91 +107,100 @@ class _CharacterGearPanel extends StatelessWidget {
     final ui = context.ui;
     final appState = context.watch<AppState>();
     final meta = appState.meta;
-    final loadout = appState.selection.equippedLoadout;
     final gear = meta.equippedFor(characterId);
     const service = MetaService();
 
     return Padding(
-      padding: EdgeInsets.all(ui.space.xxs),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: EdgeInsets.only(left: ui.space.xxs, top: ui.space.xxs),
+      child: Stack(
+        fit: StackFit.expand,
         children: [
-          Text('Equipped Gear', style: ui.text.headline),
-          SizedBox(height: ui.space.xxs),
-          Wrap(
-            spacing: ui.space.xs,
-            runSpacing: ui.space.xs,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _GearSlotButton(
-                label: 'Sword',
-                child: GearIcon(
-                  slot: GearSlot.mainWeapon,
-                  id: gear.mainWeaponId,
-                ),
-                onTap: () => showGearPickerDialog(
-                  context,
-                  meta: meta,
-                  service: service,
-                  characterId: characterId,
-                  slot: GearSlot.mainWeapon,
-                ),
-              ),
-              _GearSlotButton(
-                label: 'Shield',
-                child: GearIcon(
-                  slot: GearSlot.offhandWeapon,
-                  id: gear.offhandWeaponId,
-                ),
-                onTap: () => showGearPickerDialog(
-                  context,
-                  meta: meta,
-                  service: service,
-                  characterId: characterId,
-                  slot: GearSlot.offhandWeapon,
-                ),
-              ),
-              _GearSlotButton(
-                label: 'Throw',
-                child: GearIcon(
-                  slot: GearSlot.throwingWeapon,
-                  id: gear.throwingWeaponId,
-                ),
-                onTap: () => showGearPickerDialog(
-                  context,
-                  meta: meta,
-                  service: service,
-                  characterId: characterId,
-                  slot: GearSlot.throwingWeapon,
-                ),
-              ),
-              _GearSlotButton(
-                label: 'Book',
-                child: GearIcon(slot: GearSlot.spellBook, id: gear.spellBookId),
-                onTap: () => showGearPickerDialog(
-                  context,
-                  meta: meta,
-                  service: service,
-                  characterId: characterId,
-                  slot: GearSlot.spellBook,
-                ),
-              ),
-              _GearSlotButton(
-                label: 'Trinket',
-                child: GearIcon(slot: GearSlot.accessory, id: gear.accessoryId),
-                onTap: () => showGearPickerDialog(
-                  context,
-                  meta: meta,
-                  service: service,
-                  characterId: characterId,
-                  slot: GearSlot.accessory,
-                ),
+              Text('Equipped Gear', style: ui.text.headline),
+              SizedBox(height: ui.space.xxs),
+              Wrap(
+                spacing: ui.space.xs,
+                runSpacing: ui.space.xs,
+                children: [
+                  _GearSlotButton(
+                    label: 'Sword',
+                    child: GearIcon(
+                      slot: GearSlot.mainWeapon,
+                      id: gear.mainWeaponId,
+                    ),
+                    onTap: () => showGearPickerDialog(
+                      context,
+                      meta: meta,
+                      service: service,
+                      characterId: characterId,
+                      slot: GearSlot.mainWeapon,
+                    ),
+                  ),
+                  _GearSlotButton(
+                    label: 'Shield',
+                    child: GearIcon(
+                      slot: GearSlot.offhandWeapon,
+                      id: gear.offhandWeaponId,
+                    ),
+                    onTap: () => showGearPickerDialog(
+                      context,
+                      meta: meta,
+                      service: service,
+                      characterId: characterId,
+                      slot: GearSlot.offhandWeapon,
+                    ),
+                  ),
+                  _GearSlotButton(
+                    label: 'Throw',
+                    child: GearIcon(
+                      slot: GearSlot.throwingWeapon,
+                      id: gear.throwingWeaponId,
+                    ),
+                    onTap: () => showGearPickerDialog(
+                      context,
+                      meta: meta,
+                      service: service,
+                      characterId: characterId,
+                      slot: GearSlot.throwingWeapon,
+                    ),
+                  ),
+                  _GearSlotButton(
+                    label: 'Book',
+                    child: GearIcon(
+                      slot: GearSlot.spellBook,
+                      id: gear.spellBookId,
+                    ),
+                    onTap: () => showGearPickerDialog(
+                      context,
+                      meta: meta,
+                      service: service,
+                      characterId: characterId,
+                      slot: GearSlot.spellBook,
+                    ),
+                  ),
+                  _GearSlotButton(
+                    label: 'Trinket',
+                    child: GearIcon(
+                      slot: GearSlot.accessory,
+                      id: gear.accessoryId,
+                    ),
+                    onTap: () => showGearPickerDialog(
+                      context,
+                      meta: meta,
+                      service: service,
+                      characterId: characterId,
+                      slot: GearSlot.accessory,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-          SizedBox(height: ui.space.md),
-          Text('Action Slots', style: ui.text.headline),
-          SizedBox(height: ui.space.xs),
-          _ActionSlotGrid(characterId: characterId, loadout: loadout),
+          Positioned.fill(
+            child: _ActionSlotRadialPanel(characterId: characterId),
+          ),
         ],
       ),
     );
@@ -238,208 +249,203 @@ class _GearSlotButton extends StatelessWidget {
   }
 }
 
-class _ActionSlotGrid extends StatelessWidget {
-  const _ActionSlotGrid({required this.characterId, required this.loadout});
+class _ActionSlotRadialPanel extends StatelessWidget {
+  const _ActionSlotRadialPanel({required this.characterId});
 
   final PlayerCharacterId characterId;
-  final EquippedLoadoutDef loadout;
-
-  static const List<_ActionSlotSpec> _topRow = [
-    _ActionSlotSpec(
-      slot: AbilitySlot.mobility,
-      hudLabel: 'Mobility',
-      isEditable: true,
-    ),
-    _ActionSlotSpec(
-      slot: AbilitySlot.primary,
-      hudLabel: 'Prim',
-      isEditable: true,
-    ),
-    _ActionSlotSpec(
-      slot: AbilitySlot.projectile,
-      hudLabel: 'Proj',
-      isEditable: true,
-    ),
-  ];
-
-  static const List<_ActionSlotSpec> _bottomRow = [
-    _ActionSlotSpec(
-      slot: AbilitySlot.jump,
-      hudLabel: 'Jump',
-      isEditable: true,
-    ),
-    _ActionSlotSpec(
-      slot: AbilitySlot.secondary,
-      hudLabel: 'Shield',
-      isEditable: true,
-    ),
-    _ActionSlotSpec(
-      slot: AbilitySlot.spell,
-      hudLabel: 'Spell',
-      isEditable: true,
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
-    final ui = context.ui;
-    return Column(
-      children: [
-        _ActionSlotRow(
-          specs: _topRow,
-          characterId: characterId,
-          loadout: loadout,
-        ),
-        SizedBox(height: ui.space.xs),
-        _ActionSlotRow(
-          specs: _bottomRow,
-          characterId: characterId,
-          loadout: loadout,
-        ),
-      ],
-    );
-  }
-}
-
-class _ActionSlotRow extends StatelessWidget {
-  const _ActionSlotRow({
-    required this.specs,
-    required this.characterId,
-    required this.loadout,
-  });
-
-  final List<_ActionSlotSpec> specs;
-  final PlayerCharacterId characterId;
-  final EquippedLoadoutDef loadout;
-
-  @override
-  Widget build(BuildContext context) {
-    final ui = context.ui;
-    return Row(
-      children: [
-        for (var i = 0; i < specs.length; i++) ...[
-          Expanded(
-            child: _ActionSlotButton(
-              spec: specs[i],
-              characterId: characterId,
-              loadout: loadout,
-            ),
+    return SizedBox.expand(
+      child: Align(
+        alignment: Alignment.bottomRight,
+        child: SizedBox(
+          width: _selectionActionSlotGeometry.width,
+          height: _selectionActionSlotGeometry.height,
+          child: Stack(
+            children: [
+              for (final slot in abilityRadialLayoutSpec.selectionOrder) ...[
+                Positioned(
+                  left:
+                      _selectionActionSlotGeometry.placements[slot]!.buttonLeft,
+                  top: _selectionActionSlotGeometry.placements[slot]!.buttonTop,
+                  child: _ActionSlotButton(
+                    slot: slot,
+                    characterId: characterId,
+                    buttonSize: _selectionActionSlotGeometry
+                        .placements[slot]!
+                        .buttonSize,
+                  ),
+                ),
+              ],
+            ],
           ),
-          if (i < specs.length - 1) SizedBox(width: ui.space.xs),
-        ],
-      ],
+        ),
+      ),
     );
   }
 }
 
 class _ActionSlotButton extends StatelessWidget {
   const _ActionSlotButton({
-    required this.spec,
+    required this.slot,
     required this.characterId,
-    required this.loadout,
+    required this.buttonSize,
   });
 
-  final _ActionSlotSpec spec;
+  final AbilitySlot slot;
   final PlayerCharacterId characterId;
-  final EquippedLoadoutDef loadout;
+  final double buttonSize;
 
   @override
   Widget build(BuildContext context) {
-    final ui = context.ui;
-    final abilityId = abilityIdForSlot(loadout, spec.slot);
-    final abilityName = spec.isEditable
-        ? abilityDisplayName(abilityId)
-        : '${abilityDisplayName(abilityId)} (fixed)';
-    final isEditable = spec.isEditable;
-    const size = 56.0;
-    final borderColor = isEditable
-        ? ui.colors.outline
-        : ui.colors.outline.withValues(alpha: 0.4);
-    final iconColor = isEditable
-        ? ui.colors.textPrimary
-        : ui.colors.textMuted.withValues(alpha: 0.8);
-    final iconLabel = _abilityPlaceholderLabel(abilityName);
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: isEditable
-                ? () => showAbilityPickerDialog(
-                    context,
-                    characterId: characterId,
-                    slot: spec.slot,
-                  )
-                : null,
-            customBorder: const CircleBorder(),
-            child: Ink(
-              width: size,
-              height: size,
-              decoration: BoxDecoration(
-                color: const Color(0xFF131313),
-                shape: BoxShape.circle,
-                border: Border.all(color: borderColor),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  AbilityPlaceholderIcon(
-                    label: iconLabel,
-                    size: 20,
-                    enabled: isEditable,
-                  ),
-                  SizedBox(height: ui.space.xxs),
-                  Text(
-                    spec.hudLabel,
-                    style: ui.text.caption.copyWith(
-                      color: iconColor,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        SizedBox(height: ui.space.xxs),
-        Text(
-          abilityName,
-          style: ui.text.caption.copyWith(
-            color: isEditable ? ui.colors.textPrimary : ui.colors.textMuted,
-            fontSize: 10,
-          ),
-          textAlign: TextAlign.center,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
+    final slotVisual = abilityRadialLayoutSpec.slotSpec(slot);
+    return ActionButton(
+      label: slotVisual.label,
+      icon: slotVisual.icon,
+      onPressed: () => showAbilityPickerDialog(
+        context,
+        characterId: characterId,
+        slot: slot,
+      ),
+      tuning: _actionButtonTuningForSelectionSlot(
+        tuning: _selectionControlsTuning,
+        slot: slot,
+      ),
+      cooldownRing: _selectionControlsTuning.style.cooldownRing,
+      size: buttonSize,
     );
   }
 }
 
-class _ActionSlotSpec {
-  const _ActionSlotSpec({
-    required this.slot,
-    required this.hudLabel,
-    required this.isEditable,
+@immutable
+class _ActionSlotPlacement {
+  const _ActionSlotPlacement({
+    required this.buttonLeft,
+    required this.buttonTop,
+    required this.buttonSize,
   });
 
-  final AbilitySlot slot;
-  final String hudLabel;
-  final bool isEditable;
+  final double buttonLeft;
+  final double buttonTop;
+  final double buttonSize;
 }
 
-String _abilityPlaceholderLabel(String abilityName) {
-  final cleaned = abilityName.replaceAll('(', '').replaceAll(')', '').trim();
-  final words = cleaned.split(RegExp(r'\s+')).where((w) => w.isNotEmpty);
-  final buffer = StringBuffer();
-  for (final word in words) {
-    buffer.write(word[0].toUpperCase());
-    if (buffer.length >= 2) break;
+@immutable
+class _ActionSlotGeometry {
+  const _ActionSlotGeometry({
+    required this.width,
+    required this.height,
+    required this.placements,
+  });
+
+  final double width;
+  final double height;
+  final Map<AbilitySlot, _ActionSlotPlacement> placements;
+}
+
+const ControlsTuning _selectionControlsTuning = ControlsTuning.fixed;
+final ControlsRadialLayout _selectionControlsRadialLayout =
+    ControlsRadialLayoutSolver.solve(
+      layout: _selectionControlsTuning.layout,
+      action: _selectionControlsTuning.style.actionButton,
+      directional: _selectionControlsTuning.style.directionalActionButton,
+    );
+final _ActionSlotGeometry _selectionActionSlotGeometry =
+    _buildActionSlotsGeometry(layout: _selectionControlsRadialLayout);
+
+_ActionSlotGeometry _buildActionSlotsGeometry({
+  required ControlsRadialLayout layout,
+}) {
+  final rawSizes = <AbilitySlot, double>{
+    for (final slot in abilityRadialLayoutSpec.selectionOrder)
+      slot: abilityRadialLayoutSpec.sizeFor(layout: layout, slot: slot),
+  };
+  var baseWidth = 0.0;
+  var baseHeight = 0.0;
+  for (final slot in abilityRadialLayoutSpec.selectionOrder) {
+    final size = rawSizes[slot]!;
+    final anchor = abilityRadialLayoutSpec.anchorFor(
+      layout: layout,
+      slot: slot,
+    );
+    baseWidth = math.max(baseWidth, anchor.right + size);
+    baseHeight = math.max(baseHeight, anchor.bottom + size);
   }
-  final value = buffer.toString();
-  return value.isEmpty ? '?' : value;
+
+  final rawPlacements = <AbilitySlot, _ActionSlotPlacement>{};
+  for (final slot in abilityRadialLayoutSpec.selectionOrder) {
+    final size = rawSizes[slot]!;
+    final anchor = abilityRadialLayoutSpec.anchorFor(
+      layout: layout,
+      slot: slot,
+    );
+    final buttonLeft = baseWidth - anchor.right - size;
+    final buttonTop = baseHeight - anchor.bottom - size;
+    rawPlacements[slot] = _ActionSlotPlacement(
+      buttonLeft: buttonLeft,
+      buttonTop: buttonTop,
+      buttonSize: size,
+    );
+  }
+
+  var minX = double.infinity;
+  var minY = double.infinity;
+  var maxX = double.negativeInfinity;
+  var maxY = double.negativeInfinity;
+  for (final placement in rawPlacements.values) {
+    minX = math.min(minX, placement.buttonLeft);
+    minY = math.min(minY, placement.buttonTop);
+    maxX = math.max(maxX, placement.buttonLeft + placement.buttonSize);
+    maxY = math.max(maxY, placement.buttonTop + placement.buttonSize);
+  }
+  final shiftX = minX < 0 ? -minX : 0.0;
+  final shiftY = minY < 0 ? -minY : 0.0;
+
+  final normalized = <AbilitySlot, _ActionSlotPlacement>{};
+  for (final slot in abilityRadialLayoutSpec.selectionOrder) {
+    final placement = rawPlacements[slot]!;
+    normalized[slot] = _ActionSlotPlacement(
+      buttonLeft: placement.buttonLeft + shiftX,
+      buttonTop: placement.buttonTop + shiftY,
+      buttonSize: placement.buttonSize,
+    );
+  }
+  return _ActionSlotGeometry(
+    width: maxX + shiftX,
+    height: maxY + shiftY,
+    placements: normalized,
+  );
+}
+
+ActionButtonTuning _actionButtonTuningForSelectionSlot({
+  required ControlsTuning tuning,
+  required AbilitySlot slot,
+}) {
+  final family = abilityRadialLayoutSpec.slotSpec(slot).family;
+  if (family == AbilityRadialSlotFamily.directional) {
+    final directional = tuning.style.directionalActionButton;
+    return _highContrastSelectionActionButtonTuning(
+      ActionButtonTuning(
+        size: directional.size,
+        backgroundColor: directional.backgroundColor,
+        foregroundColor: directional.foregroundColor,
+        labelFontSize: directional.labelFontSize,
+        labelGap: directional.labelGap,
+      ),
+    );
+  }
+  return _highContrastSelectionActionButtonTuning(tuning.style.actionButton);
+}
+
+ActionButtonTuning _highContrastSelectionActionButtonTuning(
+  ActionButtonTuning base,
+) {
+  return ActionButtonTuning(
+    size: base.size,
+    backgroundColor: const Color(0xFFFFFFFF),
+    foregroundColor: const Color(0xFF000000),
+    labelFontSize: base.labelFontSize,
+    labelGap: base.labelGap,
+  );
 }

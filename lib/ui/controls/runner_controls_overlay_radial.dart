@@ -1,9 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import 'package:rpg_runner/core/abilities/ability_def.dart';
 import '../../game/input/aim_preview.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'action_button.dart';
+import 'ability_slot_visual_spec.dart';
 import 'controls_tuning.dart';
 import 'directional_action_button.dart';
 import 'hold_action_button.dart';
@@ -132,10 +134,25 @@ class RunnerControlsOverlay extends StatelessWidget {
     final style = tuning.style;
     final action = style.actionButton;
     final cooldownRing = style.cooldownRing;
+    final secondarySlot = abilityRadialLayoutSpec.slotSpec(
+      AbilitySlot.secondary,
+    );
+    final mobilitySlot = abilityRadialLayoutSpec.slotSpec(AbilitySlot.mobility);
+    final jumpSlot = abilityRadialLayoutSpec.slotSpec(AbilitySlot.jump);
     final layout = ControlsRadialLayoutSolver.solve(
       layout: tuning.layout,
       action: action,
       directional: style.directionalActionButton,
+    );
+    ControlsAnchor anchorFor(AbilitySlot slot) =>
+        abilityRadialLayoutSpec.anchorFor(layout: layout, slot: slot);
+    double sizeFor(
+      AbilitySlot slot, {
+      AbilityRadialSlotFamily? familyOverride,
+    }) => abilityRadialLayoutSpec.sizeFor(
+      layout: layout,
+      slot: slot,
+      familyOverride: familyOverride,
     );
 
     return Stack(
@@ -146,12 +163,12 @@ class RunnerControlsOverlay extends StatelessWidget {
           child: MovementControl(tuning: tuning, onMoveAxis: onMoveAxis),
         ),
         Positioned(
-          right: layout.projectile.right,
-          bottom: layout.projectile.bottom,
+          right: anchorFor(AbilitySlot.projectile).right,
+          bottom: anchorFor(AbilitySlot.projectile).bottom,
           child: ProjectileControl(
             tuning: tuning,
             inputMode: projectileInputMode,
-            size: layout.directionalSize,
+            size: sizeFor(AbilitySlot.projectile),
             deadzoneRadius: layout.directionalDeadzoneRadius,
             onPressed: onProjectilePressed,
             onHoldStart: onProjectileHoldStart,
@@ -168,11 +185,11 @@ class RunnerControlsOverlay extends StatelessWidget {
           ),
         ),
         Positioned(
-          right: layout.spell.right,
-          bottom: layout.spell.bottom,
+          right: anchorFor(AbilitySlot.spell).right,
+          bottom: anchorFor(AbilitySlot.spell).bottom,
           child: SpellControl(
             tuning: tuning,
-            size: layout.actionSize,
+            size: sizeFor(AbilitySlot.spell),
             onPressed: onSpellPressed,
             affordable: spellAffordable,
             cooldownTicksLeft: spellCooldownTicksLeft,
@@ -180,12 +197,12 @@ class RunnerControlsOverlay extends StatelessWidget {
           ),
         ),
         Positioned(
-          right: layout.secondary.right,
-          bottom: layout.secondary.bottom,
+          right: anchorFor(AbilitySlot.secondary).right,
+          bottom: anchorFor(AbilitySlot.secondary).bottom,
           child: secondaryInputMode == AbilityInputMode.holdMaintain
               ? HoldActionButton(
-                  label: 'Shield',
-                  icon: Icons.shield,
+                  label: secondarySlot.label,
+                  icon: secondarySlot.icon,
                   onHoldStart: onSecondaryHoldStart,
                   onHoldEnd: onSecondaryHoldEnd,
                   tuning: action,
@@ -193,12 +210,12 @@ class RunnerControlsOverlay extends StatelessWidget {
                   affordable: secondaryAffordable,
                   cooldownTicksLeft: secondaryCooldownTicksLeft,
                   cooldownTicksTotal: secondaryCooldownTicksTotal,
-                  size: layout.actionSize,
+                  size: sizeFor(AbilitySlot.secondary),
                 )
               : secondaryInputMode == AbilityInputMode.holdRelease
               ? HoldActionButton(
-                  label: 'Shield',
-                  icon: Icons.shield,
+                  label: secondarySlot.label,
+                  icon: secondarySlot.icon,
                   onHoldStart: onSecondaryHoldStart,
                   onHoldEnd: onSecondaryHoldEnd,
                   onRelease: onSecondaryCommitted,
@@ -207,12 +224,12 @@ class RunnerControlsOverlay extends StatelessWidget {
                   affordable: secondaryAffordable,
                   cooldownTicksLeft: secondaryCooldownTicksLeft,
                   cooldownTicksTotal: secondaryCooldownTicksTotal,
-                  size: layout.actionSize,
+                  size: sizeFor(AbilitySlot.secondary),
                 )
               : secondaryInputMode == AbilityInputMode.holdAimRelease
               ? DirectionalActionButton(
-                  label: 'Shield',
-                  icon: Icons.shield,
+                  label: secondarySlot.label,
+                  icon: secondarySlot.icon,
                   onHoldStart: onSecondaryHoldStart,
                   onHoldEnd: onSecondaryHoldEnd,
                   onAimDir: onAimDir,
@@ -225,29 +242,32 @@ class RunnerControlsOverlay extends StatelessWidget {
                   affordable: secondaryAffordable,
                   cooldownTicksLeft: secondaryCooldownTicksLeft,
                   cooldownTicksTotal: secondaryCooldownTicksTotal,
-                  size: layout.directionalSize,
+                  size: sizeFor(
+                    AbilitySlot.secondary,
+                    familyOverride: AbilityRadialSlotFamily.directional,
+                  ),
                   deadzoneRadius: layout.directionalDeadzoneRadius,
                   forceCancelSignal: forceAimCancelSignal,
                 )
               : ActionButton(
-                  label: 'Shield',
-                  icon: Icons.shield,
+                  label: secondarySlot.label,
+                  icon: secondarySlot.icon,
                   onPressed: onSecondaryPressed,
                   tuning: action,
                   cooldownRing: cooldownRing,
                   affordable: secondaryAffordable,
                   cooldownTicksLeft: secondaryCooldownTicksLeft,
                   cooldownTicksTotal: secondaryCooldownTicksTotal,
-                  size: layout.actionSize,
+                  size: sizeFor(AbilitySlot.secondary),
                 ),
         ),
         Positioned(
-          right: layout.melee.right,
-          bottom: layout.melee.bottom,
+          right: anchorFor(AbilitySlot.primary).right,
+          bottom: anchorFor(AbilitySlot.primary).bottom,
           child: MeleeControl(
             tuning: tuning,
             inputMode: meleeInputMode,
-            size: layout.directionalSize,
+            size: sizeFor(AbilitySlot.primary),
             deadzoneRadius: layout.directionalDeadzoneRadius,
             onPressed: onMeleePressed,
             onHoldStart: onMeleeHoldStart,
@@ -266,24 +286,24 @@ class RunnerControlsOverlay extends StatelessWidget {
           ),
         ),
         Positioned(
-          right: layout.dash.right,
-          bottom: layout.dash.bottom,
+          right: anchorFor(AbilitySlot.mobility).right,
+          bottom: anchorFor(AbilitySlot.mobility).bottom,
           child: mobilityInputMode == AbilityInputMode.tap
               ? ActionButton(
-                  label: 'Mobility',
-                  icon: Icons.flash_on,
+                  label: mobilitySlot.label,
+                  icon: mobilitySlot.icon,
                   onPressed: onMobilityPressed,
                   tuning: action,
                   cooldownRing: cooldownRing,
                   affordable: mobilityAffordable,
                   cooldownTicksLeft: mobilityCooldownTicksLeft,
                   cooldownTicksTotal: mobilityCooldownTicksTotal,
-                  size: layout.actionSize,
+                  size: sizeFor(AbilitySlot.mobility),
                 )
               : mobilityInputMode == AbilityInputMode.holdMaintain
               ? HoldActionButton(
-                  label: 'Mobility',
-                  icon: Icons.flash_on,
+                  label: mobilitySlot.label,
+                  icon: mobilitySlot.icon,
                   onHoldStart: onMobilityHoldStart,
                   onHoldEnd: onMobilityHoldEnd,
                   tuning: action,
@@ -291,12 +311,12 @@ class RunnerControlsOverlay extends StatelessWidget {
                   affordable: mobilityAffordable,
                   cooldownTicksLeft: mobilityCooldownTicksLeft,
                   cooldownTicksTotal: mobilityCooldownTicksTotal,
-                  size: layout.actionSize,
+                  size: sizeFor(AbilitySlot.mobility),
                 )
               : mobilityInputMode == AbilityInputMode.holdRelease
               ? HoldActionButton(
-                  label: 'Mobility',
-                  icon: Icons.flash_on,
+                  label: mobilitySlot.label,
+                  icon: mobilitySlot.icon,
                   onHoldStart: onMobilityHoldStart,
                   onHoldEnd: onMobilityHoldEnd,
                   onRelease: onMobilityCommitted,
@@ -305,11 +325,11 @@ class RunnerControlsOverlay extends StatelessWidget {
                   affordable: mobilityAffordable,
                   cooldownTicksLeft: mobilityCooldownTicksLeft,
                   cooldownTicksTotal: mobilityCooldownTicksTotal,
-                  size: layout.actionSize,
+                  size: sizeFor(AbilitySlot.mobility),
                 )
               : DirectionalActionButton(
-                  label: 'Mobility',
-                  icon: Icons.flash_on,
+                  label: mobilitySlot.label,
+                  icon: mobilitySlot.icon,
                   onHoldStart: onMobilityHoldStart,
                   onHoldEnd: onMobilityHoldEnd,
                   onAimDir: onAimDir,
@@ -322,22 +342,25 @@ class RunnerControlsOverlay extends StatelessWidget {
                   affordable: mobilityAffordable,
                   cooldownTicksLeft: mobilityCooldownTicksLeft,
                   cooldownTicksTotal: mobilityCooldownTicksTotal,
-                  size: layout.directionalSize,
+                  size: sizeFor(
+                    AbilitySlot.mobility,
+                    familyOverride: AbilityRadialSlotFamily.directional,
+                  ),
                   deadzoneRadius: layout.directionalDeadzoneRadius,
                   forceCancelSignal: forceAimCancelSignal,
                 ),
         ),
         Positioned(
-          right: layout.jump.right,
-          bottom: layout.jump.bottom,
+          right: anchorFor(AbilitySlot.jump).right,
+          bottom: anchorFor(AbilitySlot.jump).bottom,
           child: ActionButton(
-            label: 'Jump',
-            icon: Icons.arrow_upward,
+            label: jumpSlot.label,
+            icon: jumpSlot.icon,
             onPressed: onJumpPressed,
             tuning: action,
             cooldownRing: cooldownRing,
             affordable: jumpAffordable,
-            size: layout.jumpSize,
+            size: sizeFor(AbilitySlot.jump),
           ),
         ),
         if (chargeBarVisible)

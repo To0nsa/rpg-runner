@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/abilities/ability_def.dart';
 import '../action_button.dart';
+import '../ability_slot_visual_spec.dart';
 import '../controls_tuning.dart';
 
 /// Tap-only spell slot control (self-targeted spells).
@@ -24,11 +26,12 @@ class SpellControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final slot = abilityRadialLayoutSpec.slotSpec(AbilitySlot.spell);
     final action = tuning.style.actionButton;
     final cooldownRing = tuning.style.cooldownRing;
     return ActionButton(
-      label: 'Spell',
-      icon: Icons.star,
+      label: slot.label,
+      icon: slot.icon,
       onPressed: onPressed,
       tuning: action,
       cooldownRing: cooldownRing,
