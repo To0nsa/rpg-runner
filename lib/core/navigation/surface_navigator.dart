@@ -276,11 +276,14 @@ class SurfaceNavigator {
         );
       }
 
-      // Jump edge in-flight: aim for landing point.
+      // Jump edge in-flight: keep commit direction stable to avoid
+      // air-turn reversals when landingX ends up slightly behind due to
+      // overshoot or edge clamping.
       return SurfaceNavIntent(
         desiredX: edge.landingX,
         jumpNow: false,
         hasPlan: true,
+        commitMoveDirX: edge.commitDirX,
       );
     }
 

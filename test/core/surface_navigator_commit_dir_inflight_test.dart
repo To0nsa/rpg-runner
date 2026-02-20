@@ -9,7 +9,7 @@ import 'package:rpg_runner/core/navigation/types/walk_surface.dart';
 import 'package:rpg_runner/core/navigation/utils/surface_spatial_index.dart';
 
 void main() {
-  test('SurfaceNavigator keeps commitMoveDirX while executing an edge in-flight', () {
+  test('SurfaceNavigator keeps commitMoveDirX while executing drop edge in-flight', () {
     final navStore = SurfaceNavStateStore();
     const entityId = 1;
     navStore.add(entityId);
@@ -79,6 +79,81 @@ void main() {
       targetHalfWidth: 1.0,
       targetGrounded: true,
     );
+    expect(inflightIntent.commitMoveDirX, 1);
+  });
+
+  test('SurfaceNavigator keeps commitMoveDirX while executing jump edge in-flight', () {
+    final navStore = SurfaceNavStateStore();
+    const entityId = 2;
+    navStore.add(entityId);
+    final navIndex = navStore.indexOf(entityId);
+
+    const surfaces = <WalkSurface>[
+      WalkSurface(id: 10, xMin: 0, xMax: 120, yTop: 0),
+      WalkSurface(id: 20, xMin: 180, xMax: 300, yTop: 0),
+    ];
+    final spatialIndex = SurfaceSpatialIndex(index: GridIndex2D(cellSize: 64));
+    spatialIndex.rebuild(surfaces);
+
+    final graph = SurfaceGraph(
+      surfaces: surfaces,
+      edgeOffsets: <int>[0, 1, 1],
+      edges: <SurfaceEdge>[
+        SurfaceEdge(
+          to: 1,
+          kind: SurfaceEdgeKind.jump,
+          takeoffX: 110,
+          landingX: 190,
+          commitDirX: 1,
+          travelTicks: 20,
+          cost: 1.0,
+        ),
+      ],
+      indexById: <int, int>{10: 0, 20: 1},
+    );
+
+    final navigator = SurfaceNavigator(
+      pathfinder: SurfacePathfinder(maxExpandedNodes: 8, runSpeedX: 100.0),
+      repathCooldownTicks: 0,
+    );
+
+    final takeoffIntent = navigator.update(
+      navStore: navStore,
+      navIndex: navIndex,
+      graph: graph,
+      spatialIndex: spatialIndex,
+      graphVersion: 1,
+      entityX: 110.0,
+      entityBottomY: 0.0,
+      entityHalfWidth: 1.0,
+      entityGrounded: true,
+      targetX: 220.0,
+      targetBottomY: 0.0,
+      targetHalfWidth: 1.0,
+      targetGrounded: true,
+    );
+    expect(navStore.activeEdgeIndex[navIndex], 0);
+    expect(takeoffIntent.jumpNow, isTrue);
+    expect(takeoffIntent.commitMoveDirX, 1);
+
+    final inflightIntent = navigator.update(
+      navStore: navStore,
+      navIndex: navIndex,
+      graph: graph,
+      spatialIndex: spatialIndex,
+      graphVersion: 1,
+      entityX: 250.0,
+      entityBottomY: -10.0,
+      entityHalfWidth: 1.0,
+      entityGrounded: false,
+      targetX: 220.0,
+      targetBottomY: 0.0,
+      targetHalfWidth: 1.0,
+      targetGrounded: true,
+    );
+
+    expect(inflightIntent.hasPlan, isTrue);
+    expect(inflightIntent.jumpNow, isFalse);
     expect(inflightIntent.commitMoveDirX, 1);
   });
 }

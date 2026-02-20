@@ -242,7 +242,13 @@ class GroundEnemyLocomotionSystem {
             final currentAbs = currentVelX.abs();
             final snapAbs = min(desiredAbs, max(currentAbs, requiredAbs));
             if (snapAbs > nextVelX.abs()) {
-              final sign = desiredVelX >= 0.0 ? 1.0 : -1.0;
+              final sign = edge.commitDirX != 0
+                  ? edge.commitDirX.toDouble()
+                  : (desiredVelX > 0.0
+                        ? 1.0
+                        : (desiredVelX < 0.0
+                              ? -1.0
+                              : (edge.landingX >= ex ? 1.0 : -1.0)));
               jumpSnapVelX = sign * snapAbs;
             }
           }
