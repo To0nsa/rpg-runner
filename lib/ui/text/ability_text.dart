@@ -26,26 +26,46 @@ String _titleCaseSnake(String source) {
 }
 
 const Map<AbilityKey, String> _displayNameOverrides = <AbilityKey, String>{
-  'eloise.sword_riposte_guard': 'Riposte Guard',
-  'eloise.shield_riposte_guard': 'Ripost Guard',
+  // Primary: sword arts.
+  'eloise.bloodletter_slash': 'Bloodletter Slash',
+  'eloise.bloodletter_cleave': 'Bloodletter Cleave',
+  'eloise.seeker_slash': 'Seeker Slash',
+  'eloise.riposte_guard': 'Riposte Guard',
+
+  // Secondary: shield arts.
+  'eloise.concussive_bash': 'Concussive Bash',
+  'eloise.concussive_breaker': 'Concussive Breaker',
+  'eloise.seeker_bash': 'Seeker Bash',
+  'eloise.aegis_riposte': 'Aegis Riposte',
+  'eloise.shield_block': 'Shield block',
+
+  // Projectile: ranged attacks.
+  'eloise.homing_bolt': 'Homing Bolt',
+  'eloise.snap_shot': 'Snap Shot',
+  'eloise.skewer_shot': 'Skewer Shot',
+  'eloise.overcharge_shot': 'Overcharge Bolt',
+
+  // Spell: utility and sustain.
   'eloise.arcane_haste': 'Arcane Haste',
-  'eloise.restore_health': 'Restore Health',
-  'eloise.restore_mana': 'Restore Mana',
-  'eloise.restore_stamina': 'Restore Stamina',
-  'eloise.auto_aim_shot': 'Auto-Aim Shot',
-  'eloise.quick_shot': 'Quick Shot',
-  'eloise.piercing_shot': 'Piercing Shot',
-  'eloise.charged_shot': 'Charged Shot',
+  'eloise.vital_surge': 'Vital Surge',
+  'eloise.mana_infusion': 'Mana Infusion',
+  'eloise.second_wind': 'Second Wind',
+
+  // Mobility.
+  'eloise.jump': 'Jump',
+  'eloise.double_jump': 'Double Jump',
+  'eloise.dash': 'Dash',
+  'eloise.roll': 'Concussive Roll',
 };
 
 const Map<AbilityKey, String> _roleTextOverrides = <AbilityKey, String>{
   'eloise.arcane_haste': 'Self-cast haste buff for short burst movement',
-  'eloise.restore_health': 'Restore a chunk of max health',
-  'eloise.restore_mana': 'Restore a chunk of max mana',
-  'eloise.restore_stamina': 'Restore a chunk of max stamina',
-  'eloise.auto_aim_shot': 'Reliable lock-on, lower efficiency',
-  'eloise.quick_shot': 'Fast weave shot, low damage per action',
-  'eloise.piercing_shot': 'Line-up reward, inconsistent in duels',
-  'eloise.charged_shot':
+  'eloise.vital_surge': 'Restore a chunk of max health',
+  'eloise.mana_infusion': 'Restore a chunk of max mana',
+  'eloise.second_wind': 'Restore a chunk of max stamina',
+  'eloise.homing_bolt': 'Reliable lock-on, lower efficiency',
+  'eloise.snap_shot': 'Fast weave shot, low damage per action',
+  'eloise.skewer_shot': 'Line-up reward, inconsistent in duels',
+  'eloise.overcharge_shot':
       'Tiered charge: tap/half/full scale damage, speed, and effects',
 };

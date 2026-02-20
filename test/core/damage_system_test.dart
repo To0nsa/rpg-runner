@@ -237,7 +237,7 @@ void main() {
 
     world.activeAbility.set(
       target,
-      id: 'eloise.charged_shot',
+      id: 'eloise.overcharge_shot',
       slot: AbilitySlot.projectile,
       commitTick: 10,
       windupTicks: 24,
@@ -251,7 +251,7 @@ void main() {
     world.abilityInputBuffer.setBuffer(
       target,
       slot: AbilitySlot.projectile,
-      abilityId: 'eloise.charged_shot',
+      abilityId: 'eloise.overcharge_shot',
       aimDirX: 1.0,
       aimDirY: 0.0,
       facing: Facing.right,
@@ -290,7 +290,7 @@ void main() {
 
       world.activeAbility.set(
         target,
-        id: 'eloise.charged_shot',
+        id: 'eloise.overcharge_shot',
         slot: AbilitySlot.projectile,
         commitTick: 10,
         windupTicks: 24,
@@ -328,7 +328,7 @@ void main() {
 
     world.activeAbility.set(
       target,
-      id: 'eloise.quick_shot',
+      id: 'eloise.snap_shot',
       slot: AbilitySlot.projectile,
       commitTick: 10,
       windupTicks: 3,
@@ -342,7 +342,7 @@ void main() {
     world.abilityInputBuffer.setBuffer(
       target,
       slot: AbilitySlot.projectile,
-      abilityId: 'eloise.quick_shot',
+      abilityId: 'eloise.snap_shot',
       aimDirX: 1.0,
       aimDirY: 0.0,
       facing: Facing.right,
@@ -358,7 +358,7 @@ void main() {
     final activeIndex = world.activeAbility.indexOf(target);
     expect(
       world.activeAbility.abilityId[activeIndex],
-      equals('eloise.quick_shot'),
+      equals('eloise.snap_shot'),
     );
     expect(world.projectileIntent.tick[intentIndex], equals(13));
     expect(world.projectileIntent.commitTick[intentIndex], equals(10));

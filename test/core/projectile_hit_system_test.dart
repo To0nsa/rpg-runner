@@ -33,7 +33,7 @@ void main() {
         ProjectileId.fireBolt,
       );
       final iceBoltDamage = AbilityCatalog.shared
-          .resolve('eloise.charged_shot')!
+          .resolve('eloise.overcharge_shot')!
           .baseDamage;
 
       final owner = spawnUnocoDemon(
@@ -116,7 +116,7 @@ void main() {
   test('ProjectileHitSystem damages target and despawns projectile', () {
     final world = EcsWorld();
     final iceBoltDamage = AbilityCatalog.shared
-        .resolve('eloise.charged_shot')!
+        .resolve('eloise.overcharge_shot')!
         .baseDamage;
     final projectile = const ProjectileCatalog().get(ProjectileId.iceBolt);
 

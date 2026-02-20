@@ -68,7 +68,7 @@ void main() {
 
     // This test expects the primary button to execute a melee strike (not parry).
     final li = world.equippedLoadout.indexOf(player);
-    world.equippedLoadout.abilityPrimaryId[li] = 'eloise.sword_strike';
+    world.equippedLoadout.abilityPrimaryId[li] = 'eloise.bloodletter_slash';
 
     final enemy = world.createEntity();
     world.transform.add(enemy, posX: 110, posY: 100, velX: 0, velY: 0);

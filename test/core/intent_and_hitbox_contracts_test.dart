@@ -47,7 +47,7 @@ void main() {
       caster,
       const ProjectileIntentDef(
         projectileId: ProjectileId.iceBolt,
-        abilityId: 'eloise.charged_shot',
+        abilityId: 'eloise.overcharge_shot',
         slot: AbilitySlot.projectile,
         damage100: 100,
         staminaCost100: 0,

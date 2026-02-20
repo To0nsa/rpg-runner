@@ -17,7 +17,7 @@ void main() {
   test('charged shot opts into damage-taken forced interruption', () {
     expect(
       ForcedInterruptPolicy.defaultPolicy.abilityAllowsForcedInterrupt(
-        'eloise.charged_shot',
+        'eloise.overcharge_shot',
         ForcedInterruptCause.damageTaken,
       ),
       isTrue,
@@ -27,21 +27,21 @@ void main() {
   test('quick shot keeps default forced interruption causes', () {
     expect(
       ForcedInterruptPolicy.defaultPolicy.abilityAllowsForcedInterrupt(
-        'eloise.quick_shot',
+        'eloise.snap_shot',
         ForcedInterruptCause.damageTaken,
       ),
       isFalse,
     );
     expect(
       ForcedInterruptPolicy.defaultPolicy.abilityAllowsForcedInterrupt(
-        'eloise.quick_shot',
+        'eloise.snap_shot',
         ForcedInterruptCause.stun,
       ),
       isTrue,
     );
     expect(
       ForcedInterruptPolicy.defaultPolicy.abilityAllowsForcedInterrupt(
-        'eloise.quick_shot',
+        'eloise.snap_shot',
         ForcedInterruptCause.death,
       ),
       isTrue,

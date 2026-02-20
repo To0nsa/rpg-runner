@@ -112,7 +112,7 @@ void main() {
     );
     final loadoutIndex = world.equippedLoadout.indexOf(player);
     world.equippedLoadout.abilityProjectileId[loadoutIndex] =
-        'eloise.charged_shot';
+        'eloise.overcharge_shot';
 
     final system = AbilityChargeTrackingSystem(
       tickHz: 60,
@@ -132,7 +132,7 @@ void main() {
     expect(events.whereType<AbilityChargeEndedEvent>().length, equals(1));
     final event = events.whereType<AbilityChargeEndedEvent>().single;
     expect(event.slot, equals(slot));
-    expect(event.abilityId, equals('eloise.charged_shot'));
+    expect(event.abilityId, equals('eloise.overcharge_shot'));
     expect(event.reason, equals(AbilityChargeEndReason.timeout));
   });
 }

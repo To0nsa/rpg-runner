@@ -48,11 +48,11 @@ void main() {
 
       expect(
         appState.selection.equippedLoadout.abilityPrimaryId,
-        'eloise.sword_strike',
+        'eloise.bloodletter_slash',
       );
       expect(
         selectionStore.saved.equippedLoadout.abilityPrimaryId,
-        'eloise.sword_strike',
+        'eloise.bloodletter_slash',
       );
     });
 
@@ -63,7 +63,7 @@ void main() {
         final appState = AppState(selectionStore: selectionStore);
 
         await appState.setLoadout(
-          const EquippedLoadoutDef(abilitySpellId: 'eloise.restore_mana'),
+          const EquippedLoadoutDef(abilitySpellId: 'eloise.mana_infusion'),
         );
 
         expect(
@@ -195,11 +195,11 @@ void main() {
           itemId: SpellBookId.solidSpellBook,
         );
         await appState.setLoadout(
-          const EquippedLoadoutDef(abilitySpellId: 'eloise.restore_health'),
+          const EquippedLoadoutDef(abilitySpellId: 'eloise.vital_surge'),
         );
         expect(
           appState.selection.equippedLoadout.abilitySpellId,
-          'eloise.restore_health',
+          'eloise.vital_surge',
         );
 
         await appState.equipGear(
@@ -346,11 +346,11 @@ void main() {
 
       expect(
         appState.selection.equippedLoadout.abilityPrimaryId,
-        'eloise.sword_strike',
+        'eloise.bloodletter_slash',
       );
       expect(
         selectionStore.saved.equippedLoadout.abilityPrimaryId,
-        'eloise.sword_strike',
+        'eloise.bloodletter_slash',
       );
     });
   });

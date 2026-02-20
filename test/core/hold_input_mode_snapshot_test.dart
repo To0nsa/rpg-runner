@@ -18,8 +18,8 @@ void main() {
         playerCharacter: testPlayerCharacter,
         seed: 1,
         equippedLoadoutOverride: const EquippedLoadoutDef(
-          abilityPrimaryId: 'eloise.sword_riposte_guard',
-          abilitySecondaryId: 'eloise.shield_riposte_guard',
+          abilityPrimaryId: 'eloise.riposte_guard',
+          abilitySecondaryId: 'eloise.aegis_riposte',
         ),
       );
 
@@ -35,7 +35,7 @@ void main() {
       playerCharacter: testPlayerCharacter,
       seed: 1,
       equippedLoadoutOverride: const EquippedLoadoutDef(
-        abilitySecondaryId: 'eloise.charged_shield_bash',
+        abilitySecondaryId: 'eloise.concussive_breaker',
       ),
     );
 
@@ -43,18 +43,18 @@ void main() {
     expect(hud.secondaryInputMode, AbilityInputMode.holdAimRelease);
   });
 
-  test('snapshot exposes hold-release for charged homing primary melee', () {
+  test('snapshot exposes hold-aim-release for charged primary melee', () {
     final core = GameCore(
       levelDefinition: LevelRegistry.byId(LevelId.field),
       playerCharacter: testPlayerCharacter,
       seed: 1,
       equippedLoadoutOverride: const EquippedLoadoutDef(
-        abilityPrimaryId: 'eloise.charged_sword_strike_auto_aim',
+        abilityPrimaryId: 'eloise.bloodletter_cleave',
       ),
     );
 
     final hud = core.buildSnapshot().hud;
-    expect(hud.meleeInputMode, AbilityInputMode.holdRelease);
+    expect(hud.meleeInputMode, AbilityInputMode.holdAimRelease);
   });
 
   test('snapshot keeps non-charged secondary melee on tap mode', () {
@@ -63,7 +63,7 @@ void main() {
       playerCharacter: testPlayerCharacter,
       seed: 1,
       equippedLoadoutOverride: const EquippedLoadoutDef(
-        abilitySecondaryId: 'eloise.shield_bash',
+        abilitySecondaryId: 'eloise.concussive_bash',
       ),
     );
 
@@ -81,58 +81,13 @@ void main() {
     expect(hud.mobilityInputMode, AbilityInputMode.tap);
   });
 
-  test(
-    'all authored tiered homing hold-release abilities use non-directional hold-release mode',
-    () {
-      final authored = AbilityCatalog.abilities.values.where((ability) {
-        return ability.chargeProfile != null &&
-            ability.targetingModel == TargetingModel.homing &&
-            ability.inputLifecycle == AbilityInputLifecycle.holdRelease;
-      }).toList();
+  test('no authored tiered homing hold-release abilities remain', () {
+    final authored = AbilityCatalog.abilities.values.where((ability) {
+      return ability.chargeProfile != null &&
+          ability.targetingModel == TargetingModel.homing &&
+          ability.inputLifecycle == AbilityInputLifecycle.holdRelease;
+    }).toList();
 
-      expect(authored, isNotEmpty);
-
-      for (final ability in authored) {
-        for (final slot in ability.allowedSlots) {
-          if (slot == AbilitySlot.jump || slot == AbilitySlot.spell) continue;
-
-          final loadout = switch (slot) {
-            AbilitySlot.primary => EquippedLoadoutDef(
-              abilityPrimaryId: ability.id,
-            ),
-            AbilitySlot.secondary => EquippedLoadoutDef(
-              abilitySecondaryId: ability.id,
-            ),
-            AbilitySlot.projectile => EquippedLoadoutDef(
-              abilityProjectileId: ability.id,
-            ),
-            AbilitySlot.mobility => EquippedLoadoutDef(
-              abilityMobilityId: ability.id,
-            ),
-            AbilitySlot.spell || AbilitySlot.jump => const EquippedLoadoutDef(),
-          };
-
-          final core = GameCore(
-            levelDefinition: LevelRegistry.byId(LevelId.field),
-            playerCharacter: testPlayerCharacter,
-            seed: 1,
-            equippedLoadoutOverride: loadout,
-          );
-          final hud = core.buildSnapshot().hud;
-          final mode = switch (slot) {
-            AbilitySlot.primary => hud.meleeInputMode,
-            AbilitySlot.secondary => hud.secondaryInputMode,
-            AbilitySlot.projectile => hud.projectileInputMode,
-            AbilitySlot.mobility => hud.mobilityInputMode,
-            AbilitySlot.spell || AbilitySlot.jump => AbilityInputMode.tap,
-          };
-          expect(
-            mode,
-            AbilityInputMode.holdRelease,
-            reason: '${ability.id} in $slot should not require directional aim',
-          );
-        }
-      }
-    },
-  );
+    expect(authored, isEmpty);
+  });
 }

@@ -17,7 +17,6 @@ Core units:
 |---|---|---|---|---:|---:|---|
 | `eloise.sword_strike` | `holdRelease` | `directional` | `8 / 6 / 8` | stamina `500` | `18` | `primaryWeapon` |
 | `eloise.charged_sword_strike` | `holdRelease` | `aimedCharge` | `10 / 6 / 10` | stamina `550` | `24` | `primaryWeapon` |
-| `eloise.charged_sword_strike_auto_aim` | `holdRelease` | `homing` | `10 / 6 / 10` | stamina `600` | `24` | `primaryWeapon` |
 | `eloise.sword_strike_auto_aim` | `tap` | `homing` | `8 / 6 / 8` | stamina `550` | `24` | `primaryWeapon` |
 | `eloise.sword_riposte_guard` | `holdMaintain` | `none` | `2 / 180 / 2` | hold drain `233/s` | `30` | `primaryWeapon` |
 
@@ -46,13 +45,6 @@ Core units:
   - `8`: damage `1.08x`, `+5%` crit
   - `16`: damage `1.30x`, `+10%` crit
 - `chargeMaxHoldTicks60: 150`
-
-### `eloise.charged_sword_strike_auto_aim`
-
-- Same charged structure as above, with `homing` targeting.
-- Costs slightly higher for lock-on reliability:
-  - stamina `600`
-  - top tier damage `1.325x` (vs `1.30x` on aimed variant)
 
 ## Defensive Sword Ability
 

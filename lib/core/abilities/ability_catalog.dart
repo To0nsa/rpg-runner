@@ -77,8 +77,8 @@ class AbilityCatalog implements AbilityResolver {
     // ------------------------------------------------------------------------
     // ELOISE: PRIMARY (Sword)
     // ------------------------------------------------------------------------
-    'eloise.sword_strike': AbilityDef(
-      id: 'eloise.sword_strike',
+    'eloise.bloodletter_slash': AbilityDef(
+      id: 'eloise.bloodletter_slash',
       category: AbilityCategory.melee,
       allowedSlots: {AbilitySlot.primary},
       targetingModel: TargetingModel.directional,
@@ -109,8 +109,8 @@ class AbilityCatalog implements AbilityResolver {
       ],
       baseDamage: 1500, // PlayerTuning meleeDamage 15.0
     ),
-    'eloise.charged_sword_strike': AbilityDef(
-      id: 'eloise.charged_sword_strike',
+    'eloise.bloodletter_cleave': AbilityDef(
+      id: 'eloise.bloodletter_cleave',
       category: AbilityCategory.melee,
       allowedSlots: {AbilitySlot.primary},
       targetingModel: TargetingModel.aimedCharge,
@@ -160,59 +160,8 @@ class AbilityCatalog implements AbilityResolver {
       ],
       baseDamage: 1600,
     ),
-    'eloise.charged_sword_strike_auto_aim': AbilityDef(
-      id: 'eloise.charged_sword_strike_auto_aim',
-      category: AbilityCategory.melee,
-      allowedSlots: {AbilitySlot.primary},
-      targetingModel: TargetingModel.homing,
-      inputLifecycle: AbilityInputLifecycle.holdRelease,
-      hitDelivery: MeleeHitDelivery(
-        sizeX: 32,
-        sizeY: 32,
-        offsetX: 12,
-        offsetY: 0.0,
-        hitPolicy: HitPolicy.oncePerTarget,
-      ),
-      windupTicks: 10,
-      activeTicks: 6,
-      recoveryTicks: 10,
-      defaultCost: AbilityResourceCost(staminaCost100: 600),
-      cooldownTicks: 24,
-      forcedInterruptCauses: <ForcedInterruptCause>{
-        ForcedInterruptCause.stun,
-        ForcedInterruptCause.death,
-        ForcedInterruptCause.damageTaken,
-      },
-      animKey: AnimKey.strike,
-      requiredWeaponTypes: {WeaponType.oneHandedSword},
-      payloadSource: AbilityPayloadSource.primaryWeapon,
-      chargeProfile: AbilityChargeProfile(
-        tiers: <AbilityChargeTierDef>[
-          AbilityChargeTierDef(minHoldTicks60: 0, damageScaleBp: 9000),
-          AbilityChargeTierDef(
-            minHoldTicks60: 8,
-            damageScaleBp: 10800,
-            critBonusBp: 500,
-          ),
-          AbilityChargeTierDef(
-            minHoldTicks60: 16,
-            damageScaleBp: 13250,
-            critBonusBp: 1000,
-          ),
-        ],
-      ),
-      chargeMaxHoldTicks60: 150,
-      procs: <WeaponProc>[
-        WeaponProc(
-          hook: ProcHook.onHit,
-          statusProfileId: StatusProfileId.meleeBleed,
-          chanceBp: 10000,
-        ),
-      ],
-      baseDamage: 1550,
-    ),
-    'eloise.sword_strike_auto_aim': AbilityDef(
-      id: 'eloise.sword_strike_auto_aim',
+    'eloise.seeker_slash': AbilityDef(
+      id: 'eloise.seeker_slash',
       category: AbilityCategory.melee,
       allowedSlots: {AbilitySlot.primary},
       targetingModel: TargetingModel.homing,
@@ -244,8 +193,8 @@ class AbilityCatalog implements AbilityResolver {
       baseDamage: 1400,
     ),
 
-    'eloise.sword_riposte_guard': AbilityDef(
-      id: 'eloise.sword_riposte_guard',
+    'eloise.riposte_guard': AbilityDef(
+      id: 'eloise.riposte_guard',
       category: AbilityCategory.defense,
       allowedSlots: {AbilitySlot.primary},
       inputLifecycle: AbilityInputLifecycle.holdMaintain,
@@ -265,8 +214,8 @@ class AbilityCatalog implements AbilityResolver {
     // ------------------------------------------------------------------------
     // ELOISE: SECONDARY (Shield)
     // ------------------------------------------------------------------------
-    'eloise.shield_bash': AbilityDef(
-      id: 'eloise.shield_bash',
+    'eloise.concussive_bash': AbilityDef(
+      id: 'eloise.concussive_bash',
       category: AbilityCategory.melee,
       allowedSlots: {AbilitySlot.secondary},
       targetingModel: TargetingModel.directional,
@@ -295,8 +244,8 @@ class AbilityCatalog implements AbilityResolver {
       ],
       baseDamage: 1500, // Assuming standardized melee damage
     ),
-    'eloise.charged_shield_bash': AbilityDef(
-      id: 'eloise.charged_shield_bash',
+    'eloise.concussive_breaker': AbilityDef(
+      id: 'eloise.concussive_breaker',
       category: AbilityCategory.melee,
       allowedSlots: {AbilitySlot.secondary},
       targetingModel: TargetingModel.aimedCharge,
@@ -346,8 +295,8 @@ class AbilityCatalog implements AbilityResolver {
       ],
       baseDamage: 1600,
     ),
-    'eloise.shield_bash_auto_aim': AbilityDef(
-      id: 'eloise.shield_bash_auto_aim',
+    'eloise.seeker_bash': AbilityDef(
+      id: 'eloise.seeker_bash',
       category: AbilityCategory.melee,
       allowedSlots: {AbilitySlot.secondary},
       targetingModel: TargetingModel.homing,
@@ -379,8 +328,8 @@ class AbilityCatalog implements AbilityResolver {
       baseDamage: 1400,
     ),
 
-    'eloise.shield_riposte_guard': AbilityDef(
-      id: 'eloise.shield_riposte_guard',
+    'eloise.aegis_riposte': AbilityDef(
+      id: 'eloise.aegis_riposte',
       category: AbilityCategory.defense,
       allowedSlots: {AbilitySlot.secondary},
       inputLifecycle: AbilityInputLifecycle.holdMaintain,
@@ -418,8 +367,8 @@ class AbilityCatalog implements AbilityResolver {
     // ------------------------------------------------------------------------
     // ELOISE: PROJECTILE
     // ------------------------------------------------------------------------
-    'eloise.auto_aim_shot': AbilityDef(
-      id: 'eloise.auto_aim_shot',
+    'eloise.homing_bolt': AbilityDef(
+      id: 'eloise.homing_bolt',
       category: AbilityCategory.ranged,
       allowedSlots: {AbilitySlot.projectile},
       targetingModel: TargetingModel.homing,
@@ -446,8 +395,8 @@ class AbilityCatalog implements AbilityResolver {
       baseDamage: 1300,
     ),
 
-    'eloise.quick_shot': AbilityDef(
-      id: 'eloise.quick_shot',
+    'eloise.snap_shot': AbilityDef(
+      id: 'eloise.snap_shot',
       category: AbilityCategory.ranged,
       allowedSlots: {AbilitySlot.projectile},
       targetingModel: TargetingModel.aimed,
@@ -474,8 +423,8 @@ class AbilityCatalog implements AbilityResolver {
       baseDamage: 900,
     ),
 
-    'eloise.piercing_shot': AbilityDef(
-      id: 'eloise.piercing_shot',
+    'eloise.skewer_shot': AbilityDef(
+      id: 'eloise.skewer_shot',
       category: AbilityCategory.ranged,
       allowedSlots: {AbilitySlot.projectile},
       targetingModel: TargetingModel.aimedLine,
@@ -504,8 +453,8 @@ class AbilityCatalog implements AbilityResolver {
       baseDamage: 1800,
     ),
 
-    'eloise.charged_shot': AbilityDef(
-      id: 'eloise.charged_shot',
+    'eloise.overcharge_shot': AbilityDef(
+      id: 'eloise.overcharge_shot',
       category: AbilityCategory.ranged,
       allowedSlots: {AbilitySlot.projectile},
       targetingModel: TargetingModel.aimedCharge,
@@ -581,8 +530,8 @@ class AbilityCatalog implements AbilityResolver {
       payloadSource: AbilityPayloadSource.spellBook,
       selfStatusProfileId: StatusProfileId.speedBoost,
     ),
-    'eloise.restore_health': AbilityDef(
-      id: 'eloise.restore_health',
+    'eloise.vital_surge': AbilityDef(
+      id: 'eloise.vital_surge',
       category: AbilityCategory.utility,
       allowedSlots: {AbilitySlot.spell},
       targetingModel: TargetingModel.none,
@@ -597,8 +546,8 @@ class AbilityCatalog implements AbilityResolver {
       payloadSource: AbilityPayloadSource.spellBook,
       selfStatusProfileId: StatusProfileId.restoreHealth,
     ),
-    'eloise.restore_mana': AbilityDef(
-      id: 'eloise.restore_mana',
+    'eloise.mana_infusion': AbilityDef(
+      id: 'eloise.mana_infusion',
       category: AbilityCategory.utility,
       allowedSlots: {AbilitySlot.spell},
       targetingModel: TargetingModel.none,
@@ -613,8 +562,8 @@ class AbilityCatalog implements AbilityResolver {
       payloadSource: AbilityPayloadSource.spellBook,
       selfStatusProfileId: StatusProfileId.restoreMana,
     ),
-    'eloise.restore_stamina': AbilityDef(
-      id: 'eloise.restore_stamina',
+    'eloise.second_wind': AbilityDef(
+      id: 'eloise.second_wind',
       category: AbilityCategory.utility,
       allowedSlots: {AbilitySlot.spell},
       targetingModel: TargetingModel.none,

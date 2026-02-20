@@ -24,7 +24,7 @@ Core units:
 
 | Slot | Ability IDs |
 |---|---|
-| `primary` | `eloise.sword_strike`, `eloise.charged_sword_strike`, `eloise.charged_sword_strike_auto_aim`, `eloise.sword_strike_auto_aim`, `eloise.sword_riposte_guard` |
+| `primary` | `eloise.sword_strike`, `eloise.charged_sword_strike`, `eloise.sword_strike_auto_aim`, `eloise.sword_riposte_guard` |
 | `secondary` | `eloise.shield_bash`, `eloise.charged_shield_bash`, `eloise.shield_bash_auto_aim`, `eloise.shield_riposte_guard`, `eloise.shield_block` |
 | `projectile` | `eloise.auto_aim_shot`, `eloise.quick_shot`, `eloise.piercing_shot`, `eloise.charged_shot` |
 | `mobility` | `eloise.dash`, `eloise.roll` |
@@ -37,7 +37,6 @@ Core units:
 |---|---|---|---|---|---:|---:|---:|---:|
 | `eloise.sword_strike` | `primary` | `holdRelease` | `directional` | `8/6/8` | `500` | `0` | `18` | `1500` |
 | `eloise.charged_sword_strike` | `primary` | `holdRelease` | `aimedCharge` | `10/6/10` | `550` | `0` | `24` | `1600` |
-| `eloise.charged_sword_strike_auto_aim` | `primary` | `holdRelease` | `homing` | `10/6/10` | `600` | `0` | `24` | `1550` |
 | `eloise.sword_strike_auto_aim` | `primary` | `tap` | `homing` | `8/6/8` | `550` | `0` | `24` | `1400` |
 | `eloise.sword_riposte_guard` | `primary` | `holdMaintain` | `none` | `2/180/2` | `0` | `0` | `30` | `0` |
 | `eloise.shield_bash` | `secondary` | `tap` | `directional` | `8/6/8` | `500` | `0` | `18` | `1500` |

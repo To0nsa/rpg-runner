@@ -41,7 +41,7 @@ void main() {
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
           projectileId: ProjectileId.iceBolt,
-          abilityProjectileId: 'eloise.charged_shot',
+          abilityProjectileId: 'eloise.overcharge_shot',
         ),
         tuning: base.tuning.copyWith(
           resource: const ResourceTuning(
@@ -54,7 +54,7 @@ void main() {
 
     core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
     core.stepOneTick();
-    final windupTicks = scaledWindupTicks('eloise.charged_shot', core.tickHz);
+    final windupTicks = scaledWindupTicks('eloise.overcharge_shot', core.tickHz);
     for (var i = 0; i < windupTicks; i += 1) {
       core.applyCommands(const <Command>[]);
       core.stepOneTick();
@@ -75,7 +75,7 @@ void main() {
       final catalog = testPlayerCatalog(
         bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
         projectileId: ProjectileId.iceBolt,
-        abilityProjectileId: 'eloise.charged_shot',
+        abilityProjectileId: 'eloise.overcharge_shot',
       );
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
@@ -98,7 +98,7 @@ void main() {
 
       core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
       core.stepOneTick();
-      final windupTicks = scaledWindupTicks('eloise.charged_shot', core.tickHz);
+      final windupTicks = scaledWindupTicks('eloise.overcharge_shot', core.tickHz);
       for (var i = 0; i < windupTicks; i += 1) {
         core.applyCommands(const <Command>[]);
         core.stepOneTick();
@@ -117,7 +117,7 @@ void main() {
       expect(p.pos.x, closeTo(playerPosX + expectedOffset, 1e-9));
       expect(p.pos.y, closeTo(playerPosY, 1e-9));
 
-      final ability = AbilityCatalog.shared.resolve('eloise.charged_shot')!;
+      final ability = AbilityCatalog.shared.resolve('eloise.overcharge_shot')!;
       final spellCost = ability.resolveCostForWeaponType(
         WeaponType.projectileSpell,
       );
@@ -141,7 +141,7 @@ void main() {
       bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
       projectileId: ProjectileId.throwingKnife,
       projectileSlotSpellId: ProjectileId.fireBolt,
-      abilityProjectileId: 'eloise.charged_shot',
+      abilityProjectileId: 'eloise.overcharge_shot',
     );
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
@@ -161,7 +161,7 @@ void main() {
 
     core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
     core.stepOneTick();
-    final windupTicks = scaledWindupTicks('eloise.charged_shot', core.tickHz);
+    final windupTicks = scaledWindupTicks('eloise.overcharge_shot', core.tickHz);
     for (var i = 0; i < windupTicks; i += 1) {
       core.applyCommands(const <Command>[]);
       core.stepOneTick();
@@ -174,7 +174,7 @@ void main() {
     expect(projectiles.length, 1);
     expect(projectiles.single.projectileId, ProjectileId.fireBolt);
 
-    final ability = AbilityCatalog.shared.resolve('eloise.charged_shot')!;
+    final ability = AbilityCatalog.shared.resolve('eloise.overcharge_shot')!;
     final spellCost = ability.resolveCostForWeaponType(
       WeaponType.projectileSpell,
     );
@@ -202,7 +202,7 @@ void main() {
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
           projectileId: ProjectileId.iceBolt,
-          abilityProjectileId: 'eloise.charged_shot',
+          abilityProjectileId: 'eloise.overcharge_shot',
         ),
         tuning: base.tuning.copyWith(
           resource: const ResourceTuning(
@@ -215,7 +215,7 @@ void main() {
 
     core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
     core.stepOneTick();
-    final windupTicks = scaledWindupTicks('eloise.charged_shot', core.tickHz);
+    final windupTicks = scaledWindupTicks('eloise.overcharge_shot', core.tickHz);
     for (var i = 0; i < windupTicks; i += 1) {
       core.applyCommands(const <Command>[]);
       core.stepOneTick();
@@ -228,7 +228,7 @@ void main() {
       core.stepOneTick();
     }
 
-    final ability = AbilityCatalog.shared.resolve('eloise.charged_shot')!;
+    final ability = AbilityCatalog.shared.resolve('eloise.overcharge_shot')!;
     final spellCost = ability.resolveCostForWeaponType(
       WeaponType.projectileSpell,
     );
@@ -279,7 +279,7 @@ void main() {
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
             projectileId: ProjectileId.throwingKnife,
             projectileSlotSpellId: ProjectileId.fireBolt,
-            abilityProjectileId: 'eloise.quick_shot',
+            abilityProjectileId: 'eloise.snap_shot',
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
@@ -294,7 +294,7 @@ void main() {
 
       core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
       core.stepOneTick();
-      final windupTicks = scaledWindupTicks('eloise.quick_shot', core.tickHz);
+      final windupTicks = scaledWindupTicks('eloise.snap_shot', core.tickHz);
       for (var i = 0; i < windupTicks; i += 1) {
         core.applyCommands(const <Command>[]);
         core.stepOneTick();
@@ -306,7 +306,7 @@ void main() {
           .toList();
       expect(projectiles.length, 1);
       expect(projectiles.single.projectileId, ProjectileId.fireBolt);
-      final ability = AbilityCatalog.shared.resolve('eloise.quick_shot')!;
+      final ability = AbilityCatalog.shared.resolve('eloise.snap_shot')!;
       final spellCost = ability.resolveCostForWeaponType(
         WeaponType.projectileSpell,
       );
@@ -326,8 +326,8 @@ void main() {
       playerCharacter: base.copyWith(
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-          abilityProjectileId: 'eloise.charged_shot',
-          abilitySpellId: 'eloise.restore_mana',
+          abilityProjectileId: 'eloise.overcharge_shot',
+          abilitySpellId: 'eloise.mana_infusion',
           spellBookId: SpellBookId.epicSpellBook,
         ),
         tuning: base.tuning.copyWith(
@@ -343,12 +343,12 @@ void main() {
 
     core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
     core.stepOneTick();
-    final windupTicks = scaledWindupTicks('eloise.charged_shot', core.tickHz);
+    final windupTicks = scaledWindupTicks('eloise.overcharge_shot', core.tickHz);
     for (var i = 0; i < windupTicks; i += 1) {
       core.applyCommands(const <Command>[]);
       core.stepOneTick();
     }
-    final shotAbility = AbilityCatalog.shared.resolve('eloise.charged_shot')!;
+    final shotAbility = AbilityCatalog.shared.resolve('eloise.overcharge_shot')!;
     final shotSpellCost = shotAbility.resolveCostForWeaponType(
       WeaponType.projectileSpell,
     );
@@ -384,7 +384,7 @@ void main() {
         .toList();
     expect(projectilesAfterBonus.length, 1);
 
-    final restore = AbilityCatalog.shared.resolve('eloise.restore_mana')!;
+    final restore = AbilityCatalog.shared.resolve('eloise.mana_infusion')!;
     final restoreProfile = const StatusProfileCatalog().get(
       restore.selfStatusProfileId,
     );
@@ -416,7 +416,7 @@ void main() {
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
             projectileId: ProjectileId.throwingKnife,
-            abilityProjectileId: 'eloise.quick_shot',
+            abilityProjectileId: 'eloise.snap_shot',
             abilitySpellId: 'eloise.arcane_haste',
           ),
           tuning: base.tuning.copyWith(
@@ -432,14 +432,14 @@ void main() {
 
       core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
       core.stepOneTick();
-      final windupTicks = scaledWindupTicks('eloise.quick_shot', core.tickHz);
+      final windupTicks = scaledWindupTicks('eloise.snap_shot', core.tickHz);
       for (var i = 0; i < windupTicks; i += 1) {
         core.applyCommands(const <Command>[]);
         core.stepOneTick();
       }
 
       final projectileAbility = AbilityCatalog.shared.resolve(
-        'eloise.quick_shot',
+        'eloise.snap_shot',
       )!;
       final activeTicks = scaledAbilityTicks(
         projectileAbility.activeTicks,
@@ -492,7 +492,7 @@ void main() {
       playerCharacter: base.copyWith(
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-          abilityProjectileId: 'eloise.auto_aim_shot',
+          abilityProjectileId: 'eloise.homing_bolt',
         ),
       ),
     );
@@ -510,7 +510,7 @@ void main() {
       playerCharacter: base.copyWith(
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-          abilityProjectileId: 'eloise.quick_shot',
+          abilityProjectileId: 'eloise.snap_shot',
         ),
       ),
     );

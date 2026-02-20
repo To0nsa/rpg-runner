@@ -36,7 +36,7 @@ void main() {
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
             projectileId: ProjectileId.throwingKnife,
             projectileSlotSpellId: null,
-            abilityProjectileId: 'eloise.quick_shot',
+            abilityProjectileId: 'eloise.snap_shot',
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
@@ -59,7 +59,7 @@ void main() {
       core.stepOneTick();
 
       final windupTicks = ticksFromSecondsCeil(
-        AbilityCatalog.shared.resolve('eloise.quick_shot')!.windupTicks / 60.0,
+        AbilityCatalog.shared.resolve('eloise.snap_shot')!.windupTicks / 60.0,
         tickHz,
       );
       for (var i = 0; i < windupTicks; i += 1) {
@@ -78,7 +78,7 @@ void main() {
       expect(p.pos.x, closeTo(playerPosX + item.originOffset, 1e-9));
       expect(p.pos.y, closeTo(playerPosY, 1e-9));
 
-      final ability = AbilityCatalog.shared.resolve('eloise.quick_shot')!;
+      final ability = AbilityCatalog.shared.resolve('eloise.snap_shot')!;
       final throwCost = ability.resolveCostForWeaponType(
         WeaponType.throwingWeapon,
       );
@@ -111,7 +111,7 @@ void main() {
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
             projectileId: ProjectileId.throwingKnife,
             projectileSlotSpellId: null,
-            abilityProjectileId: 'eloise.quick_shot',
+            abilityProjectileId: 'eloise.snap_shot',
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
@@ -131,7 +131,7 @@ void main() {
       core.stepOneTick();
 
       final windupTicks = ticksFromSecondsCeil(
-        AbilityCatalog.shared.resolve('eloise.quick_shot')!.windupTicks / 60.0,
+        AbilityCatalog.shared.resolve('eloise.snap_shot')!.windupTicks / 60.0,
         core.tickHz,
       );
       for (var i = 0; i < windupTicks; i += 1) {

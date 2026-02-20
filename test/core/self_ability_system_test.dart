@@ -104,7 +104,7 @@ void main() {
     final li = world.equippedLoadout.indexOf(player);
     world.equippedLoadout.mask[li] |= LoadoutSlotMask.projectile;
     world.equippedLoadout.spellBookId[li] = SpellBookId.epicSpellBook;
-    world.equippedLoadout.abilitySpellId[li] = 'eloise.restore_mana';
+    world.equippedLoadout.abilitySpellId[li] = 'eloise.mana_infusion';
 
     final pi = world.playerInput.indexOf(player);
     world.playerInput.spellPressed[pi] = true;
@@ -129,7 +129,7 @@ void main() {
     );
     status.applyQueued(world, currentTick: 5);
 
-    final ability = AbilityCatalog.shared.resolve('eloise.restore_mana')!;
+    final ability = AbilityCatalog.shared.resolve('eloise.mana_infusion')!;
     final restoreProfile = const StatusProfileCatalog().get(
       ability.selfStatusProfileId,
     );
@@ -204,7 +204,7 @@ void main() {
       final li = world.equippedLoadout.indexOf(player);
       world.equippedLoadout.mask[li] |= LoadoutSlotMask.projectile;
       world.equippedLoadout.spellBookId[li] = SpellBookId.basicSpellBook;
-      world.equippedLoadout.abilitySpellId[li] = 'eloise.restore_mana';
+      world.equippedLoadout.abilitySpellId[li] = 'eloise.mana_infusion';
 
       final pi = world.playerInput.indexOf(player);
       world.playerInput.spellPressed[pi] = true;

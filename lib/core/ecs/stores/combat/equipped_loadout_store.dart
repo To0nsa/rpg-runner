@@ -39,9 +39,9 @@ class EquippedLoadoutDef {
     this.spellBookId = SpellBookId.basicSpellBook,
     this.projectileSlotSpellId = ProjectileId.fireBolt,
     this.accessoryId = AccessoryId.speedBoots,
-    this.abilityPrimaryId = 'eloise.sword_strike',
-    this.abilitySecondaryId = 'eloise.shield_riposte_guard',
-    this.abilityProjectileId = 'eloise.quick_shot',
+    this.abilityPrimaryId = 'eloise.bloodletter_slash',
+    this.abilitySecondaryId = 'eloise.aegis_riposte',
+    this.abilityProjectileId = 'eloise.snap_shot',
     this.abilitySpellId = 'eloise.arcane_haste',
     this.abilityMobilityId = 'eloise.dash',
     this.abilityJumpId = 'eloise.jump',
@@ -158,9 +158,9 @@ class EquippedLoadoutStore extends SparseSet {
     spellBookId.add(SpellBookId.basicSpellBook);
     projectileSlotSpellId.add(ProjectileId.fireBolt);
     accessoryId.add(AccessoryId.speedBoots);
-    abilityPrimaryId.add('eloise.sword_strike');
-    abilitySecondaryId.add('eloise.shield_riposte_guard');
-    abilityProjectileId.add('eloise.quick_shot');
+    abilityPrimaryId.add('eloise.bloodletter_slash');
+    abilitySecondaryId.add('eloise.aegis_riposte');
+    abilityProjectileId.add('eloise.snap_shot');
     abilitySpellId.add('eloise.arcane_haste');
     abilityMobilityId.add('eloise.dash');
     abilityJumpId.add('eloise.jump');

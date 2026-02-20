@@ -47,7 +47,7 @@ void main() {
 
       world.activeAbility.set(
         player,
-        id: 'eloise.sword_riposte_guard',
+        id: 'eloise.riposte_guard',
         slot: AbilitySlot.primary,
         commitTick: 10,
         windupTicks: 2,
@@ -79,7 +79,7 @@ void main() {
       final middleware = DamageMiddlewareSystem(
         middlewares: [
           ParryMiddleware(
-            abilityIds: const <AbilityKey>{'eloise.sword_riposte_guard'},
+            abilityIds: const <AbilityKey>{'eloise.riposte_guard'},
             riposteBonusBp: 1234,
             riposteLifetimeTicks: 7,
           ),

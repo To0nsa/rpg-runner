@@ -211,7 +211,7 @@ class StatusApplicationPresets {
     ),
   );
 
-  static const StatusApplicationPreset majorHealthRestore =
+  static const StatusApplicationPreset healthRestore =
       StatusApplicationPreset(
         StatusApplication(
           type: StatusEffectType.resourceOverTime,
@@ -223,7 +223,7 @@ class StatusApplicationPresets {
         ),
       );
 
-  static const StatusApplicationPreset majorManaRestore =
+  static const StatusApplicationPreset manaRestore =
       StatusApplicationPreset(
         StatusApplication(
           type: StatusEffectType.resourceOverTime,
@@ -235,7 +235,7 @@ class StatusApplicationPresets {
         ),
       );
 
-  static const StatusApplicationPreset majorStaminaRestore =
+  static const StatusApplicationPreset staminaRestore =
       StatusApplicationPreset(
         StatusApplication(
           type: StatusEffectType.resourceOverTime,
@@ -306,15 +306,15 @@ class StatusProfileCatalog {
         ]);
       case StatusProfileId.restoreHealth:
         return StatusProfile(<StatusApplication>[
-          StatusApplicationPresets.majorHealthRestore.baseline,
+          StatusApplicationPresets.healthRestore.baseline,
         ]);
       case StatusProfileId.restoreMana:
         return StatusProfile(<StatusApplication>[
-          StatusApplicationPresets.majorManaRestore.baseline,
+          StatusApplicationPresets.manaRestore.baseline,
         ]);
       case StatusProfileId.restoreStamina:
         return StatusProfile(<StatusApplication>[
-          StatusApplicationPresets.majorStaminaRestore.baseline,
+          StatusApplicationPresets.staminaRestore.baseline,
         ]);
     }
   }

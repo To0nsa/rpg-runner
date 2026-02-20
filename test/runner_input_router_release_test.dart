@@ -30,7 +30,7 @@ void main() {
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(useGravity: false),
           projectileId: ProjectileId.iceBolt,
-          abilityProjectileId: 'eloise.charged_shot',
+          abilityProjectileId: 'eloise.overcharge_shot',
         ),
         tuning: base.tuning.copyWith(
           movement: const MovementTuning(
@@ -73,9 +73,9 @@ void main() {
         playerCharacter: base.copyWith(
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(useGravity: false),
-            abilityPrimaryId: 'eloise.sword_riposte_guard',
+            abilityPrimaryId: 'eloise.riposte_guard',
             projectileId: ProjectileId.iceBolt,
-            abilityProjectileId: 'eloise.charged_shot',
+            abilityProjectileId: 'eloise.overcharge_shot',
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
@@ -124,7 +124,7 @@ void main() {
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(useGravity: false),
             projectileId: ProjectileId.iceBolt,
-            abilityProjectileId: 'eloise.charged_shot',
+            abilityProjectileId: 'eloise.overcharge_shot',
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
@@ -139,7 +139,7 @@ void main() {
 
       final dt = 1.0 / controller.tickHz;
       final windupTicks = ticksFromSecondsCeil(
-        AbilityCatalog.shared.resolve('eloise.charged_shot')!.windupTicks /
+        AbilityCatalog.shared.resolve('eloise.overcharge_shot')!.windupTicks /
             60.0,
         controller.tickHz,
       );
@@ -183,7 +183,7 @@ void main() {
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(useGravity: false),
           projectileId: ProjectileId.iceBolt,
-          abilityProjectileId: 'eloise.charged_shot',
+          abilityProjectileId: 'eloise.overcharge_shot',
         ),
         tuning: base.tuning.copyWith(
           resource: const ResourceTuning(
@@ -198,7 +198,7 @@ void main() {
 
     final dt = 1.0 / controller.tickHz;
     final windupTicks = ticksFromSecondsCeil(
-      AbilityCatalog.shared.resolve('eloise.charged_shot')!.windupTicks / 60.0,
+      AbilityCatalog.shared.resolve('eloise.overcharge_shot')!.windupTicks / 60.0,
       controller.tickHz,
     );
 
@@ -236,7 +236,7 @@ void main() {
               bodyTemplate: BodyDef(useGravity: false),
               projectileId: ProjectileId.throwingKnife,
               projectileSlotSpellId: null,
-              abilityProjectileId: 'eloise.charged_shot',
+              abilityProjectileId: 'eloise.overcharge_shot',
             ),
             tuning: base.tuning.copyWith(
               resource: const ResourceTuning(
@@ -251,7 +251,7 @@ void main() {
 
         final dt = 1.0 / controller.tickHz;
         final windupTicks = ticksFromSecondsCeil(
-          AbilityCatalog.shared.resolve('eloise.charged_shot')!.windupTicks /
+          AbilityCatalog.shared.resolve('eloise.overcharge_shot')!.windupTicks /
               60.0,
           controller.tickHz,
         );
@@ -297,7 +297,7 @@ void main() {
               bodyTemplate: BodyDef(useGravity: false),
               projectileId: ProjectileId.throwingKnife,
               projectileSlotSpellId: null,
-              abilityProjectileId: 'eloise.charged_shot',
+              abilityProjectileId: 'eloise.overcharge_shot',
             ),
             tuning: base.tuning.copyWith(
               resource: const ResourceTuning(
@@ -312,7 +312,7 @@ void main() {
 
         final dt = 1.0 / controller.tickHz;
         final windupTicks = ticksFromSecondsCeil(
-          AbilityCatalog.shared.resolve('eloise.charged_shot')!.windupTicks /
+          AbilityCatalog.shared.resolve('eloise.overcharge_shot')!.windupTicks /
               60.0,
           controller.tickHz,
         );
@@ -361,9 +361,9 @@ void main() {
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(useGravity: false),
             loadoutSlotMask: LoadoutSlotMask.all,
-            abilitySecondaryId: 'eloise.charged_shield_bash',
+            abilitySecondaryId: 'eloise.concussive_breaker',
             projectileId: ProjectileId.iceBolt,
-            abilityProjectileId: 'eloise.charged_shot',
+            abilityProjectileId: 'eloise.overcharge_shot',
           ),
         ),
       );
@@ -373,7 +373,7 @@ void main() {
       final dt = 1.0 / controller.tickHz;
       final windupTicks = ticksFromSecondsCeil(
         AbilityCatalog.shared
-                .resolve('eloise.charged_shield_bash')!
+                .resolve('eloise.concussive_breaker')!
                 .windupTicks /
             60.0,
         controller.tickHz,
@@ -421,9 +421,9 @@ void main() {
             catalog: testPlayerCatalog(
               bodyTemplate: BodyDef(useGravity: false),
               loadoutSlotMask: LoadoutSlotMask.all,
-              abilitySecondaryId: 'eloise.charged_shield_bash',
+              abilitySecondaryId: 'eloise.concussive_breaker',
               projectileId: ProjectileId.iceBolt,
-              abilityProjectileId: 'eloise.charged_shot',
+              abilityProjectileId: 'eloise.overcharge_shot',
             ),
           ),
         );
@@ -433,7 +433,7 @@ void main() {
         final dt = 1.0 / controller.tickHz;
         final windupTicks = ticksFromSecondsCeil(
           AbilityCatalog.shared
-                  .resolve('eloise.charged_shield_bash')!
+                  .resolve('eloise.concussive_breaker')!
                   .windupTicks /
               60.0,
           controller.tickHz,
@@ -525,19 +525,19 @@ void main() {
 
       expectSharedPreview(
         slot: AbilitySlot.projectile,
-        abilityProjectileId: 'eloise.charged_shot',
+        abilityProjectileId: 'eloise.overcharge_shot',
         seedAim: (input) => input.setAimDir(1, 0),
       );
 
       expectSharedPreview(
         slot: AbilitySlot.primary,
-        abilityPrimaryId: 'eloise.charged_sword_strike',
+        abilityPrimaryId: 'eloise.bloodletter_cleave',
         seedAim: (input) => input.setAimDir(1, 0),
       );
 
       expectSharedPreview(
         slot: AbilitySlot.secondary,
-        abilitySecondaryId: 'eloise.charged_shield_bash',
+        abilitySecondaryId: 'eloise.concussive_breaker',
         loadoutSlotMask: LoadoutSlotMask.all,
         seedAim: (input) => input.setAimDir(1, 0),
       );
@@ -601,7 +601,7 @@ void main() {
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(useGravity: false),
             projectileId: ProjectileId.throwingKnife,
-            abilityProjectileId: 'eloise.quick_shot',
+            abilityProjectileId: 'eloise.snap_shot',
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
@@ -615,7 +615,7 @@ void main() {
       final input = RunnerInputRouter(controller: controller);
       final dt = 1.0 / controller.tickHz;
       final windupTicks = ticksFromSecondsCeil(
-        AbilityCatalog.shared.resolve('eloise.quick_shot')!.windupTicks / 60.0,
+        AbilityCatalog.shared.resolve('eloise.snap_shot')!.windupTicks / 60.0,
         controller.tickHz,
       );
 
@@ -648,8 +648,8 @@ void main() {
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(useGravity: false),
           loadoutSlotMask: LoadoutSlotMask.all,
-          abilitySecondaryId: 'eloise.charged_shield_bash',
-          abilityProjectileId: 'eloise.charged_shot',
+          abilitySecondaryId: 'eloise.concussive_breaker',
+          abilityProjectileId: 'eloise.overcharge_shot',
           projectileId: ProjectileId.throwingKnife,
           projectileSlotSpellId: null,
         ),
@@ -685,8 +685,8 @@ void main() {
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(useGravity: false),
           loadoutSlotMask: LoadoutSlotMask.all,
-          abilitySecondaryId: 'eloise.charged_shield_bash',
-          abilityProjectileId: 'eloise.charged_shot',
+          abilitySecondaryId: 'eloise.concussive_breaker',
+          abilityProjectileId: 'eloise.overcharge_shot',
           projectileId: ProjectileId.throwingKnife,
           projectileSlotSpellId: null,
         ),
@@ -720,7 +720,7 @@ void main() {
             bodyTemplate: BodyDef(useGravity: false),
             projectileId: ProjectileId.throwingKnife,
             projectileSlotSpellId: null,
-            abilityProjectileId: 'eloise.charged_shot',
+            abilityProjectileId: 'eloise.overcharge_shot',
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
@@ -734,7 +734,7 @@ void main() {
       final input = RunnerInputRouter(controller: controller);
       final dt = 1.0 / controller.tickHz;
       final windupTicks = ticksFromSecondsCeil(
-        AbilityCatalog.shared.resolve('eloise.charged_shot')!.windupTicks /
+        AbilityCatalog.shared.resolve('eloise.overcharge_shot')!.windupTicks /
             60.0,
         controller.tickHz,
       );

@@ -68,7 +68,7 @@ void main() {
       player,
       ProjectileIntentDef(
         projectileId: ProjectileId.iceBolt,
-        abilityId: 'eloise.charged_shot',
+        abilityId: 'eloise.overcharge_shot',
         slot: AbilitySlot.projectile,
         dirX: 1.0,
         dirY: 0.0,
@@ -108,7 +108,7 @@ void main() {
     // Simulate AbilityActivationSystem's side effect (setting active ability)
     world.activeAbility.set(
       player,
-      id: 'eloise.charged_shot',
+      id: 'eloise.overcharge_shot',
       slot: AbilitySlot.projectile,
       commitTick: tick,
       windupTicks: 0,
@@ -125,7 +125,7 @@ void main() {
     );
     final activeId =
         world.activeAbility.abilityId[world.activeAbility.indexOf(player)];
-    expect(activeId, equals('eloise.charged_shot'));
+    expect(activeId, equals('eloise.overcharge_shot'));
 
     // Step AnimSystem
     animSystem.step(world, player: player, currentTick: tick);

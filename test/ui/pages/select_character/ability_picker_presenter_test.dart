@@ -66,7 +66,7 @@ void main() {
     test('projectile slot exposes all enabled projectile abilities', () {
       const loadout = EquippedLoadoutDef(
         spellBookId: SpellBookId.solidSpellBook,
-        abilityProjectileId: 'eloise.quick_shot',
+        abilityProjectileId: 'eloise.snap_shot',
         projectileSlotSpellId: ProjectileId.iceBolt,
       );
 
@@ -79,16 +79,16 @@ void main() {
       );
 
       final autoAim = candidates.firstWhere(
-        (candidate) => candidate.id == 'eloise.auto_aim_shot',
+        (candidate) => candidate.id == 'eloise.homing_bolt',
       );
       final quickShot = candidates.firstWhere(
-        (candidate) => candidate.id == 'eloise.quick_shot',
+        (candidate) => candidate.id == 'eloise.snap_shot',
       );
       final piercingShot = candidates.firstWhere(
-        (candidate) => candidate.id == 'eloise.piercing_shot',
+        (candidate) => candidate.id == 'eloise.skewer_shot',
       );
       final chargedShot = candidates.firstWhere(
-        (candidate) => candidate.id == 'eloise.charged_shot',
+        (candidate) => candidate.id == 'eloise.overcharge_shot',
       );
       expect(autoAim.isEnabled, isTrue);
       expect(quickShot.isEnabled, isTrue);
@@ -110,19 +110,19 @@ void main() {
         isTrue,
       );
       expect(
-        candidates.any((candidate) => candidate.id == 'eloise.restore_mana'),
+        candidates.any((candidate) => candidate.id == 'eloise.mana_infusion'),
         isTrue,
       );
       expect(
-        candidates.any((candidate) => candidate.id == 'eloise.restore_health'),
+        candidates.any((candidate) => candidate.id == 'eloise.vital_surge'),
         isTrue,
       );
       expect(
-        candidates.any((candidate) => candidate.id == 'eloise.quick_shot'),
+        candidates.any((candidate) => candidate.id == 'eloise.snap_shot'),
         isFalse,
       );
       expect(
-        candidates.any((candidate) => candidate.id == 'eloise.charged_shot'),
+        candidates.any((candidate) => candidate.id == 'eloise.overcharge_shot'),
         isFalse,
       );
 
@@ -130,10 +130,10 @@ void main() {
         (candidate) => candidate.id == 'eloise.arcane_haste',
       );
       final restoreMana = candidates.firstWhere(
-        (candidate) => candidate.id == 'eloise.restore_mana',
+        (candidate) => candidate.id == 'eloise.mana_infusion',
       );
       final restoreHealth = candidates.firstWhere(
-        (candidate) => candidate.id == 'eloise.restore_health',
+        (candidate) => candidate.id == 'eloise.vital_surge',
       );
       expect(arcaneHaste.isEnabled, isTrue);
       expect(restoreMana.isEnabled, isFalse);
@@ -142,8 +142,8 @@ void main() {
 
     test('primary and secondary slots expose melee auto-aim variants', () {
       const loadout = EquippedLoadoutDef(
-        abilityPrimaryId: 'eloise.sword_strike',
-        abilitySecondaryId: 'eloise.shield_bash',
+        abilityPrimaryId: 'eloise.bloodletter_slash',
+        abilitySecondaryId: 'eloise.concussive_bash',
       );
 
       final primaryCandidates = abilityCandidatesForSlot(
@@ -158,10 +158,10 @@ void main() {
       );
 
       final swordAutoAim = primaryCandidates.firstWhere(
-        (candidate) => candidate.id == 'eloise.sword_strike_auto_aim',
+        (candidate) => candidate.id == 'eloise.seeker_slash',
       );
       final shieldAutoAim = secondaryCandidates.firstWhere(
-        (candidate) => candidate.id == 'eloise.shield_bash_auto_aim',
+        (candidate) => candidate.id == 'eloise.seeker_bash',
       );
       expect(swordAutoAim.isEnabled, isTrue);
       expect(shieldAutoAim.isEnabled, isTrue);
@@ -191,7 +191,7 @@ void main() {
       () {
         const legacyLoadout = EquippedLoadoutDef(
           mask: LoadoutSlotMask.defaultMask,
-          abilitySecondaryId: 'eloise.shield_riposte_guard',
+          abilitySecondaryId: 'eloise.aegis_riposte',
         );
 
         final candidates = abilityCandidatesForSlot(
@@ -201,7 +201,7 @@ void main() {
         );
 
         final shieldBlock = candidates.firstWhere(
-          (candidate) => candidate.id == 'eloise.shield_riposte_guard',
+          (candidate) => candidate.id == 'eloise.aegis_riposte',
         );
         expect(shieldBlock.isEnabled, isTrue);
       },
@@ -209,7 +209,7 @@ void main() {
 
     test('invalid source disables projectile abilities through validator', () {
       const loadout = EquippedLoadoutDef(
-        abilityProjectileId: 'eloise.quick_shot',
+        abilityProjectileId: 'eloise.snap_shot',
       );
 
       final candidates = abilityCandidatesForSlot(
@@ -221,16 +221,16 @@ void main() {
       );
 
       final autoAim = candidates.firstWhere(
-        (candidate) => candidate.id == 'eloise.auto_aim_shot',
+        (candidate) => candidate.id == 'eloise.homing_bolt',
       );
       final quickShot = candidates.firstWhere(
-        (candidate) => candidate.id == 'eloise.quick_shot',
+        (candidate) => candidate.id == 'eloise.snap_shot',
       );
       final piercingShot = candidates.firstWhere(
-        (candidate) => candidate.id == 'eloise.piercing_shot',
+        (candidate) => candidate.id == 'eloise.skewer_shot',
       );
       final chargedShot = candidates.firstWhere(
-        (candidate) => candidate.id == 'eloise.charged_shot',
+        (candidate) => candidate.id == 'eloise.overcharge_shot',
       );
       expect(autoAim.isEnabled, isFalse);
       expect(quickShot.isEnabled, isFalse);

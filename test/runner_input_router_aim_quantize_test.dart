@@ -28,7 +28,7 @@ void main() {
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(useGravity: false),
           projectileId: ProjectileId.iceBolt,
-          abilityProjectileId: 'eloise.charged_shot',
+          abilityProjectileId: 'eloise.overcharge_shot',
         ),
         tuning: base.tuning.copyWith(
           resource: const ResourceTuning(
@@ -48,7 +48,7 @@ void main() {
 
     final dt = 1.0 / controller.tickHz;
     final windupTicks = ticksFromSecondsCeil(
-      AbilityCatalog.shared.resolve('eloise.charged_shot')!.windupTicks / 60.0,
+      AbilityCatalog.shared.resolve('eloise.overcharge_shot')!.windupTicks / 60.0,
       controller.tickHz,
     );
 

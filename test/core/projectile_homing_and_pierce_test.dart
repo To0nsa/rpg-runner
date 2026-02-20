@@ -65,7 +65,7 @@ void main() {
     world.equippedLoadout.add(
       player,
       const EquippedLoadoutDef(
-        abilityProjectileId: 'eloise.auto_aim_shot',
+        abilityProjectileId: 'eloise.homing_bolt',
         projectileSlotSpellId: ProjectileId.iceBolt,
       ),
     );
@@ -135,7 +135,7 @@ void main() {
       world.equippedLoadout.add(
         player,
         const EquippedLoadoutDef(
-          abilityProjectileId: 'eloise.auto_aim_shot',
+          abilityProjectileId: 'eloise.homing_bolt',
           projectileSlotSpellId: ProjectileId.iceBolt,
         ),
       );
@@ -211,7 +211,7 @@ void main() {
         world.equippedLoadout.add(
           player,
           const EquippedLoadoutDef(
-            abilityProjectileId: 'eloise.charged_shot',
+            abilityProjectileId: 'eloise.overcharge_shot',
             projectileSlotSpellId: null,
             projectileId: ProjectileId.throwingKnife,
           ),
@@ -240,7 +240,7 @@ void main() {
       }
 
       final tap = resolveIntent(0);
-      final ability = AbilityCatalog.shared.resolve('eloise.charged_shot')!;
+      final ability = AbilityCatalog.shared.resolve('eloise.overcharge_shot')!;
       final hitDelivery = ability.hitDelivery as ProjectileHitDelivery;
       final baseMaxPierce = !hitDelivery.pierce
           ? 1

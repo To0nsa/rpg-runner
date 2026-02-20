@@ -219,7 +219,7 @@ void main() {
         const offset = 1;
         world.activeAbility.set(
           player,
-          id: 'eloise.sword_strike',
+          id: 'eloise.bloodletter_slash',
           slot: AbilitySlot.primary,
           commitTick: tick - offset,
           windupTicks: 0,
@@ -246,7 +246,7 @@ void main() {
           const offset = 1;
           world.activeAbility.set(
             player,
-            id: 'eloise.sword_strike',
+            id: 'eloise.bloodletter_slash',
             slot: AbilitySlot.primary,
             commitTick: tick - offset,
             windupTicks: 0,
@@ -256,7 +256,7 @@ void main() {
           );
 
           final meleeIndex = world.meleeIntent.indexOf(player);
-          world.meleeIntent.abilityId[meleeIndex] = 'eloise.sword_strike';
+          world.meleeIntent.abilityId[meleeIndex] = 'eloise.bloodletter_slash';
           world.meleeIntent.dirX[meleeIndex] = -1.0;
 
           stepPlayer(player, tick);
@@ -273,7 +273,7 @@ void main() {
         const offset = 1;
         world.activeAbility.set(
           player,
-          id: 'eloise.charged_shot',
+          id: 'eloise.overcharge_shot',
           slot: AbilitySlot.projectile,
           commitTick: tick - offset,
           windupTicks: 0,
@@ -286,7 +286,7 @@ void main() {
 
         final ai = world.animState.indexOf(player);
         final expectedAnim = AbilityCatalog.shared
-            .resolve('eloise.charged_shot')!
+            .resolve('eloise.overcharge_shot')!
             .animKey;
         expect(world.animState.anim[ai], equals(expectedAnim));
         expect(world.animState.animFrame[ai], equals(offset));
@@ -298,7 +298,7 @@ void main() {
         const offset = 1;
         world.activeAbility.set(
           player,
-          id: 'eloise.quick_shot',
+          id: 'eloise.snap_shot',
           slot: AbilitySlot.projectile,
           commitTick: tick - offset,
           windupTicks: 0,
@@ -311,7 +311,7 @@ void main() {
 
         final ai = world.animState.indexOf(player);
         final expectedAnim = AbilityCatalog.shared
-            .resolve('eloise.quick_shot')!
+            .resolve('eloise.snap_shot')!
             .animKey;
         expect(world.animState.anim[ai], equals(expectedAnim));
         expect(world.animState.animFrame[ai], equals(offset));
@@ -347,7 +347,7 @@ void main() {
           final tick = playerAnimTuning.spawnAnimTicks + 5;
           world.activeAbility.set(
             player,
-            id: 'eloise.quick_shot',
+            id: 'eloise.snap_shot',
             slot: AbilitySlot.projectile,
             commitTick: tick - 1,
             windupTicks: 0,
@@ -364,7 +364,7 @@ void main() {
           expect(world.activeAbility.hasActiveAbility(player), isTrue);
           expect(
             world.activeAbility.abilityId[activeIndex],
-            'eloise.quick_shot',
+            'eloise.snap_shot',
           );
         },
       );
@@ -392,7 +392,7 @@ void main() {
 
         world.activeAbility.set(
           player,
-          id: 'eloise.quick_shot',
+          id: 'eloise.snap_shot',
           slot: AbilitySlot.projectile,
           commitTick: tick - 2,
           windupTicks: 0,

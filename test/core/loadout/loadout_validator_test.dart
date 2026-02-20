@@ -32,9 +32,9 @@ void main() {
         mainWeaponId: WeaponId.woodenSword,
         offhandWeaponId: WeaponId.woodenShield,
         projectileId: ProjectileId.throwingKnife,
-        abilityPrimaryId: 'eloise.sword_strike',
-        abilitySecondaryId: 'eloise.shield_riposte_guard',
-        abilityProjectileId: 'eloise.quick_shot',
+        abilityPrimaryId: 'eloise.bloodletter_slash',
+        abilitySecondaryId: 'eloise.aegis_riposte',
+        abilityProjectileId: 'eloise.snap_shot',
         abilityMobilityId: 'eloise.dash',
         abilitySpellId: 'eloise.arcane_haste',
       );
@@ -48,8 +48,8 @@ void main() {
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.woodenSword,
         offhandWeaponId: WeaponId.woodenShield,
-        abilityPrimaryId: 'eloise.sword_strike_auto_aim',
-        abilitySecondaryId: 'eloise.shield_bash_auto_aim',
+        abilityPrimaryId: 'eloise.seeker_slash',
+        abilitySecondaryId: 'eloise.seeker_bash',
       );
 
       final result = validator.validate(loadout);
@@ -58,12 +58,12 @@ void main() {
     });
 
     test(
-      'tiered homing melee and dash mobility are valid in authored slots',
+      'tiered melee and dash mobility are valid in authored slots',
       () {
         const loadout = EquippedLoadoutDef(
           mainWeaponId: WeaponId.woodenSword,
           offhandWeaponId: WeaponId.woodenShield,
-          abilityPrimaryId: 'eloise.charged_sword_strike_auto_aim',
+          abilityPrimaryId: 'eloise.bloodletter_cleave',
           abilityMobilityId: 'eloise.dash',
         );
 
@@ -91,7 +91,7 @@ void main() {
         offhandWeaponId: WeaponId.woodenShield,
         projectileId: ProjectileId.throwingKnife,
         projectileSlotSpellId: ProjectileId.fireBolt,
-        abilityProjectileId: 'eloise.quick_shot',
+        abilityProjectileId: 'eloise.snap_shot',
         abilitySpellId: 'eloise.arcane_haste',
       );
 
@@ -105,8 +105,8 @@ void main() {
         mainWeaponId: WeaponId.woodenSword,
         offhandWeaponId: WeaponId.woodenShield,
         projectileId: ProjectileId.throwingKnife,
-        abilityProjectileId: 'eloise.charged_shot',
-        abilitySpellId: 'eloise.quick_shot',
+        abilityProjectileId: 'eloise.overcharge_shot',
+        abilitySpellId: 'eloise.snap_shot',
       );
 
       final result = validator.validate(loadout);
@@ -127,7 +127,7 @@ void main() {
         offhandWeaponId: WeaponId.woodenShield,
         projectileId: ProjectileId.throwingKnife,
         spellBookId: SpellBookId.epicSpellBook,
-        abilitySpellId: 'eloise.restore_health',
+        abilitySpellId: 'eloise.vital_surge',
       );
 
       final result = validator.validate(loadout);
@@ -138,7 +138,7 @@ void main() {
     test('spell-slot self spell must be granted by equipped spellbook', () {
       const loadout = EquippedLoadoutDef(
         spellBookId: SpellBookId.basicSpellBook,
-        abilitySpellId: 'eloise.restore_health',
+        abilitySpellId: 'eloise.vital_surge',
       );
 
       final result = validator.validate(loadout);
@@ -156,7 +156,7 @@ void main() {
     test('selected slot spell must be a projectile spell item', () {
       const loadout = EquippedLoadoutDef(
         projectileSlotSpellId: ProjectileId.throwingAxe,
-        abilityProjectileId: 'eloise.quick_shot',
+        abilityProjectileId: 'eloise.snap_shot',
       );
 
       final result = validator.validate(loadout);
@@ -191,7 +191,7 @@ void main() {
     test('invalid slot (shield bash in primary) should fail', () {
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.basicSword,
-        abilityPrimaryId: 'eloise.shield_bash', // Requires Secondary slot
+        abilityPrimaryId: 'eloise.concussive_bash', // Requires Secondary slot
       );
 
       final result = validator.validate(loadout);
@@ -205,7 +205,7 @@ void main() {
     test('category mismatch (shield in primary) should fail', () {
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.basicShield, // OffHand category
-        abilityPrimaryId: 'eloise.sword_strike',
+        abilityPrimaryId: 'eloise.bloodletter_slash',
       );
 
       final result = validator.validate(loadout);
@@ -222,7 +222,7 @@ void main() {
         offhandWeaponId: WeaponId
             .woodenSword, // Invalid for other reasons, but let's test gating
         abilitySecondaryId:
-            'eloise.shield_riposte_guard', // Requires shield weapon type.
+            'eloise.aegis_riposte', // Requires shield weapon type.
       );
 
       // Note: This layout also triggers CategoryMismatch because Sword is not OffHand.
@@ -280,7 +280,7 @@ void main() {
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.solidSword, // Mocked as 2H
         offhandWeaponId: WeaponId.basicShield, // Conflict!
-        abilityPrimaryId: 'eloise.sword_strike',
+        abilityPrimaryId: 'eloise.bloodletter_slash',
       );
 
       final result = mockValidator.validate(loadout);

@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
-import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/accessories/accessory_catalog.dart';
 import 'package:rpg_runner/core/combat/faction.dart';
 import 'package:rpg_runner/core/ecs/entity_id.dart';
@@ -23,7 +22,7 @@ void main() {
     final system = _buildSystem();
     final player = _spawnPlayer(
       world,
-      abilityPrimaryId: 'eloise.sword_strike_auto_aim',
+      abilityPrimaryId: 'eloise.seeker_slash',
     );
 
     _spawnEnemy(world, x: 130, y: 140); // dx=30, dy=40, len=50
@@ -37,7 +36,7 @@ void main() {
     final meleeIndex = world.meleeIntent.indexOf(player);
     expect(
       world.meleeIntent.abilityId[meleeIndex],
-      'eloise.sword_strike_auto_aim',
+      'eloise.seeker_slash',
     );
     expect(world.meleeIntent.tick[meleeIndex], greaterThanOrEqualTo(1));
     expect(world.meleeIntent.dirX[meleeIndex], closeTo(0.6, 1e-9));
@@ -49,7 +48,7 @@ void main() {
     final system = _buildSystem();
     final player = _spawnPlayer(
       world,
-      abilitySecondaryId: 'eloise.shield_bash_auto_aim',
+      abilitySecondaryId: 'eloise.seeker_bash',
     );
 
     _spawnEnemy(world, x: 70, y: 100);
@@ -63,7 +62,7 @@ void main() {
     final meleeIndex = world.meleeIntent.indexOf(player);
     expect(
       world.meleeIntent.abilityId[meleeIndex],
-      'eloise.shield_bash_auto_aim',
+      'eloise.seeker_bash',
     );
     expect(world.meleeIntent.dirX[meleeIndex], closeTo(-1.0, 1e-9));
     expect(world.meleeIntent.dirY[meleeIndex].abs(), lessThan(1e-9));
@@ -76,7 +75,7 @@ void main() {
       final system = _buildSystem();
       final player = _spawnPlayer(
         world,
-        abilityPrimaryId: 'eloise.sword_strike_auto_aim',
+        abilityPrimaryId: 'eloise.seeker_slash',
         facing: Facing.left,
       );
 
@@ -92,13 +91,13 @@ void main() {
   );
 
   test('auto-aim melee variants apply explicit reliability tax', () {
-    final swordBase = AbilityCatalog.shared.resolve('eloise.sword_strike')!;
+    final swordBase = AbilityCatalog.shared.resolve('eloise.bloodletter_slash')!;
     final swordAuto = AbilityCatalog.shared.resolve(
-      'eloise.sword_strike_auto_aim',
+      'eloise.seeker_slash',
     )!;
-    final shieldBase = AbilityCatalog.shared.resolve('eloise.shield_bash')!;
+    final shieldBase = AbilityCatalog.shared.resolve('eloise.concussive_bash')!;
     final shieldAuto = AbilityCatalog.shared.resolve(
-      'eloise.shield_bash_auto_aim',
+      'eloise.seeker_bash',
     )!;
 
     expect(swordAuto.baseDamage, equals(1400));
@@ -123,51 +122,13 @@ void main() {
   });
 
   test(
-    'charged auto-aim melee uses homing direction and tiered damage on release hold',
-    () {
-      int commitDamageForReleasedTicks(int releasedTicks) {
-        final world = EcsWorld();
-        final system = _buildSystem();
-        final player = _spawnPlayer(
-          world,
-          abilityPrimaryId: 'eloise.charged_sword_strike_auto_aim',
-        );
-
-        _spawnEnemy(world, x: 130, y: 140); // dx=30, dy=40, len=50
-
-        final chargeIndex = world.abilityCharge.indexOf(player);
-        final slotOffset = world.abilityCharge.slotOffsetForDenseIndex(
-          chargeIndex,
-          AbilitySlot.primary,
-        );
-        world.abilityCharge.releasedHoldTicksBySlot[slotOffset] = releasedTicks;
-        world.abilityCharge.releasedTickBySlot[slotOffset] = 1;
-
-        final inputIndex = world.playerInput.indexOf(player);
-        world.playerInput.strikePressed[inputIndex] = true;
-
-        system.step(world, player: player, currentTick: 1);
-
-        final meleeIndex = world.meleeIntent.indexOf(player);
-        expect(world.meleeIntent.dirX[meleeIndex], closeTo(0.6, 1e-9));
-        expect(world.meleeIntent.dirY[meleeIndex], closeTo(0.8, 1e-9));
-        return world.meleeIntent.damage100[meleeIndex];
-      }
-
-      final shortHoldDamage = commitDamageForReleasedTicks(0);
-      final longHoldDamage = commitDamageForReleasedTicks(20);
-      expect(longHoldDamage, greaterThan(shortHoldDamage));
-    },
-  );
-
-  test(
     'homing melee predicts execute-time position from source and target velocity',
     () {
       final world = EcsWorld();
       final system = _buildSystem();
       final player = _spawnPlayer(
         world,
-        abilityPrimaryId: 'eloise.sword_strike_auto_aim',
+        abilityPrimaryId: 'eloise.seeker_slash',
         velX: 300,
       );
 
@@ -199,8 +160,8 @@ AbilityActivationSystem _buildSystem() {
 
 EntityId _spawnPlayer(
   EcsWorld world, {
-  String abilityPrimaryId = 'eloise.sword_strike',
-  String abilitySecondaryId = 'eloise.shield_bash',
+  String abilityPrimaryId = 'eloise.bloodletter_slash',
+  String abilitySecondaryId = 'eloise.concussive_bash',
   Facing facing = Facing.right,
   double velX = 0,
   double velY = 0,

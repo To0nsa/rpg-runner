@@ -49,7 +49,7 @@ void main() {
     core.applyCommands(const [StrikePressedCommand(tick: 1)]);
     core.stepOneTick();
 
-    final ability = const AbilityCatalog().resolve('eloise.sword_strike');
+    final ability = const AbilityCatalog().resolve('eloise.bloodletter_slash');
     final windupTicks = ticksFromSecondsCeil(
       ability!.windupTicks / 60.0,
       core.tickHz,
@@ -145,7 +145,7 @@ void main() {
     ]);
     core.stepOneTick();
 
-    final ability = const AbilityCatalog().resolve('eloise.sword_strike')!;
+    final ability = const AbilityCatalog().resolve('eloise.bloodletter_slash')!;
     final windupTicks = ticksFromSecondsCeil(
       ability.windupTicks / 60.0,
       core.tickHz,

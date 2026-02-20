@@ -323,7 +323,7 @@ class SelfIntentStore extends SparseSet {
 
   @override
   void onDenseAdded(int denseIndex) {
-    abilityId.add('eloise.sword_riposte_guard');
+    abilityId.add('eloise.riposte_guard');
     slot.add(AbilitySlot.primary);
     commitTick.add(-1);
     windupTicks.add(0);
@@ -7384,8 +7384,8 @@ class GameCore {
       middlewares: [
         ParryMiddleware(
           abilityIds: const <AbilityKey>{
-            'eloise.sword_riposte_guard',
-            'eloise.shield_riposte_guard',
+            'eloise.riposte_guard',
+            'eloise.aegis_riposte',
           },
         ),
       ],

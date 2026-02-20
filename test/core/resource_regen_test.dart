@@ -24,7 +24,7 @@ void main() {
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(useGravity: false),
             projectileId: ProjectileId.iceBolt,
-            abilityProjectileId: 'eloise.charged_shot',
+            abilityProjectileId: 'eloise.overcharge_shot',
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
