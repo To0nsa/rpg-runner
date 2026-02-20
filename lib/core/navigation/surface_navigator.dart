@@ -130,7 +130,7 @@ class SurfaceNavigator {
 
     var targetSurfaceId = prevTargetId;
     if (targetGrounded) {
-      final targetIndex = _locateSurfaceIndex(
+      var targetIndex = _locateSurfaceIndex(
         graph,
         spatialIndex,
         _candidateBuffer,
@@ -139,6 +139,21 @@ class SurfaceNavigator {
         targetHalfWidth,
         surfaceEps,
       );
+      if (targetIndex == null && targetHalfWidth > 0.0) {
+        // Target lookup is allowed to be edge-tolerant: if the full footprint
+        // check fails (target near a ledge), still resolve a surface by center.
+        // This keeps pathfinding active instead of falling back to no-plan
+        // clamping on the wrong side of an obstacle.
+        targetIndex = _locateSurfaceIndex(
+          graph,
+          spatialIndex,
+          _candidateBuffer,
+          targetX,
+          targetBottomY,
+          0.0,
+          surfaceEps,
+        );
+      }
       targetSurfaceId = targetIndex == null
           ? surfaceIdUnknown
           : graph.surfaces[targetIndex].id;
@@ -188,14 +203,33 @@ class SurfaceNavigator {
       final startIndex = graph.indexOfSurfaceId(currentSurfaceId);
       final goalIndex = graph.indexOfSurfaceId(targetSurfaceId);
       if (startIndex != null && goalIndex != null) {
-        final found = pathfinder.findPath(
-          graph,
-          startIndex: startIndex,
-          goalIndex: goalIndex,
-          outEdges: plan,
-          startX: entityX,
-          goalX: targetX,
+        final preferredDirX = _preferredDirectionX(
+          entityX: entityX,
+          targetX: targetX,
         );
+        var found = false;
+        if (preferredDirX != 0) {
+          found = pathfinder.findPath(
+            graph,
+            startIndex: startIndex,
+            goalIndex: goalIndex,
+            outEdges: plan,
+            startX: entityX,
+            goalX: targetX,
+            preferredDirectionX: preferredDirX,
+            restrictToPreferredDirection: true,
+          );
+        }
+        if (!found) {
+          found = pathfinder.findPath(
+            graph,
+            startIndex: startIndex,
+            goalIndex: goalIndex,
+            outEdges: plan,
+            startX: entityX,
+            goalX: targetX,
+          );
+        }
         navStore.pathCursor[navIndex] = 0;
         navStore.activeEdgeIndex[navIndex] = -1;
         if (!found) {
@@ -323,6 +357,13 @@ class SurfaceNavigator {
   }
 }
 
+int _preferredDirectionX({required double entityX, required double targetX}) {
+  final dx = targetX - entityX;
+  if (dx > navTieEps) return 1;
+  if (dx < -navTieEps) return -1;
+  return 0;
+}
+
 /// Finds the best surface index for a given entity footprint.
 ///
 /// **Algorithm**:
@@ -357,8 +398,10 @@ int? _locateSurfaceIndex(
   double? bestY;
   for (final i in candidates) {
     final s = graph.surfaces[i];
-    final standableMinX = s.xMin + halfWidth;
-    final standableMaxX = s.xMax - halfWidth;
+    // Allow tiny horizontal overhang tolerance to match runtime collision
+    // support rules on narrow tops.
+    final standableMinX = s.xMin + halfWidth - eps;
+    final standableMaxX = s.xMax - halfWidth + eps;
     if (standableMinX > standableMaxX + eps) continue;
     // Entity center must be inside standable range.
     if (x < standableMinX - eps || x > standableMaxX + eps) continue;

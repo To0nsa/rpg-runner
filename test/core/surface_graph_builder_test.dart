@@ -1,11 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rpg_runner/core/collision/static_world_geometry.dart';
+import 'package:rpg_runner/core/enemies/enemy_catalog.dart';
+import 'package:rpg_runner/core/enemies/enemy_id.dart';
 import 'package:rpg_runner/core/ecs/spatial/grid_index_2d.dart';
 import 'package:rpg_runner/core/navigation/utils/jump_template.dart';
 import 'package:rpg_runner/core/navigation/surface_extractor.dart';
 import 'package:rpg_runner/core/navigation/types/surface_graph.dart';
 import 'package:rpg_runner/core/navigation/surface_graph_builder.dart';
+import 'package:rpg_runner/core/track/chunk_builder.dart';
+import 'package:rpg_runner/core/track/chunk_patterns_library.dart';
 
 JumpReachabilityTemplate _template() {
   const profile = JumpProfile(
@@ -555,4 +559,75 @@ void main() {
 
     expect(hasMicroJump, isFalse);
   });
+
+  test(
+    'high-platform-over-obstacle emits left-ground jump edge onto obstacle top',
+    () {
+      final pattern = allPatterns.firstWhere(
+        (p) => p.name == 'high-platform-over-obstacle',
+      );
+      const groundTopY = 220.0;
+      const chunkWidth = 600.0;
+      const gridSnap = 16.0;
+
+      final solids = buildSolids(
+        pattern,
+        chunkStartX: 0.0,
+        chunkIndex: 0,
+        groundTopY: groundTopY,
+        chunkWidth: chunkWidth,
+        gridSnap: gridSnap,
+      );
+      final ground = buildGroundSegments(
+        pattern,
+        chunkStartX: 0.0,
+        chunkIndex: 0,
+        groundTopY: groundTopY,
+        chunkWidth: chunkWidth,
+        gridSnap: gridSnap,
+      );
+      final geometry = StaticWorldGeometry(
+        groundPlane: const StaticGroundPlane(topY: groundTopY),
+        solids: List<StaticSolid>.unmodifiable(solids),
+        groundSegments: List<StaticGroundSegment>.unmodifiable(ground.segments),
+        groundGaps: List<StaticGroundGap>.unmodifiable(ground.gaps),
+      );
+
+      const enemyCatalog = EnemyCatalog();
+      final grojib = enemyCatalog.get(EnemyId.grojib);
+      final jumpTemplate = JumpReachabilityTemplate.build(
+        JumpProfile(
+          jumpSpeed: 500.0,
+          gravityY: 1200.0,
+          maxAirTicks: 120,
+          airSpeedX: 300.0,
+          dtSeconds: 1.0 / 60.0,
+          agentHalfWidth: grojib.collider.halfX,
+          agentHalfHeight: grojib.collider.halfY,
+          collideCeilings: !grojib.body.ignoreCeilings,
+          collideLeftWalls: (grojib.body.sideMask & 0x1) != 0,
+          collideRightWalls: (grojib.body.sideMask & 0x2) != 0,
+        ),
+      );
+
+      final graph = SurfaceGraphBuilder(
+        surfaceGrid: GridIndex2D(cellSize: 64),
+      ).build(geometry: geometry, jumpTemplate: jumpTemplate).graph;
+
+      final leftGroundIndex = _indexForSurface(
+        graph,
+        yTop: groundTopY,
+        xMin: 0.0,
+        xMax: 128.0,
+      );
+      final obstacleTopIndex = _indexForSurface(
+        graph,
+        yTop: 156.0,
+        xMin: 128.0,
+        xMax: 176.0,
+      );
+
+      expect(_hasJumpEdgeTo(graph, leftGroundIndex, obstacleTopIndex), isTrue);
+    },
+  );
 }

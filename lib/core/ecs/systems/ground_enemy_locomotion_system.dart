@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:rpg_runner/core/ecs/entity_id.dart';
 
 import '../../navigation/types/surface_graph.dart';
@@ -84,7 +82,8 @@ class GroundEnemyLocomotionSystem {
         continue;
       }
       final meleeState = world.meleeEngagement.state[meleeIndex];
-      final lockFacingToPlayer = meleeState == MeleeEngagementState.engage ||
+      final lockFacingToPlayer =
+          meleeState == MeleeEngagementState.engage ||
           meleeState == MeleeEngagementState.strike ||
           meleeState == MeleeEngagementState.recover;
 
@@ -191,6 +190,13 @@ class GroundEnemyLocomotionSystem {
   }) {
     final tuning = groundEnemyTuning;
     final enemy = world.enemy.denseEntities[enemyIndex];
+    final enemyCi = world.collision.tryIndexOf(enemy);
+    final grounded = enemyCi != null && world.collision.grounded[enemyCi];
+    final activeJumpEdge = _activeJumpEdge(
+      world,
+      navIndex: navIndex,
+      graph: graph,
+    );
     final modIndex = world.statModifier.tryIndexOf(enemy);
     final moveSpeedMul = modIndex == null
         ? 1.0
@@ -200,14 +206,51 @@ class GroundEnemyLocomotionSystem {
     if (arrivalSlowRadiusX > 0.0) {
       arrivalScale = clampDouble(dx.abs() / arrivalSlowRadiusX, 0.0, 1.0);
     }
-    final baseSpeed = tuning.locomotion.speedX *
+    final baseSpeed =
+        tuning.locomotion.speedX *
         effectiveSpeedScale *
         stateSpeedMul *
         moveSpeedMul;
+    final currentVelX = world.transform.velX[enemyTi];
+    final lockAirborneJumpVelX = hasPlan && !grounded && activeJumpEdge != null;
+    final activeJumpEdgeDirX = _resolveEdgeCommitDirX(
+      activeJumpEdge,
+      referenceX: ex,
+    );
+    final activeJumpCruiseAbs = _edgeCruiseAbsSpeed(
+      edge: activeJumpEdge,
+      dtSeconds: dtSeconds,
+      maxSpeedAbs: baseSpeed,
+    );
     double desiredVelX = 0.0;
     int desiredDirX = 0;
+    double? forcedAirborneVelX;
+    final facingDirX = world.enemy.facing[enemyIndex] == Facing.right ? 1 : -1;
+    final jumpDirX = _resolveJumpForwardDirX(
+      commitMoveDirX: commitMoveDirX,
+      jumpNow: jumpNow,
+      activeJumpEdge: activeJumpEdge,
+      facingDirX: facingDirX,
+    );
 
-    if (commitMoveDirX != 0) {
+    if (lockAirborneJumpVelX) {
+      const edgeOffCourseVelEps = 1.0;
+      final offCourse =
+          activeJumpEdgeDirX != 0 &&
+          (currentVelX * activeJumpEdgeDirX.toDouble()) <= edgeOffCourseVelEps;
+      if (offCourse && activeJumpCruiseAbs > 0.0) {
+        desiredDirX = activeJumpEdgeDirX;
+        desiredVelX = desiredDirX.toDouble() * activeJumpCruiseAbs;
+        // Recover from wall-induced zero/flip velocity while executing a jump
+        // edge so traversal doesn't devolve into vertical hopping in place.
+        forcedAirborneVelX = desiredVelX;
+      } else {
+        desiredVelX = currentVelX;
+        if (currentVelX.abs() > 1e-6) {
+          desiredDirX = currentVelX > 0.0 ? 1 : -1;
+        }
+      }
+    } else if (commitMoveDirX != 0) {
       desiredDirX = commitMoveDirX;
       desiredVelX = desiredDirX.toDouble() * baseSpeed;
     } else if (dx.abs() > tuning.locomotion.stopDistanceX) {
@@ -215,11 +258,18 @@ class GroundEnemyLocomotionSystem {
       desiredVelX = desiredDirX.toDouble() * baseSpeed * arrivalScale;
     }
 
+    if (jumpNow && jumpDirX != 0 && !hasPlan) {
+      desiredDirX = jumpDirX;
+      // Avoid takeoff slowdowns that can produce "jump in place" behavior.
+      if (desiredVelX.abs() < baseSpeed) {
+        desiredVelX = jumpDirX.toDouble() * baseSpeed;
+      }
+    }
+
     if (jumpNow) {
       world.transform.velY[enemyTi] = -tuning.locomotion.jumpSpeed;
     }
 
-    final currentVelX = world.transform.velX[enemyTi];
     final nextVelX = applyAccelDecel(
       current: currentVelX,
       desired: desiredVelX,
@@ -229,45 +279,50 @@ class GroundEnemyLocomotionSystem {
     );
 
     double? jumpSnapVelX;
-    if (hasPlan && jumpNow && graph != null) {
-      final activeEdgeIndex = world.surfaceNav.activeEdgeIndex[navIndex];
-      if (activeEdgeIndex >= 0 && activeEdgeIndex < graph.edges.length) {
-        final edge = graph.edges[activeEdgeIndex];
-        if (edge.kind == SurfaceEdgeKind.jump && edge.travelTicks > 0) {
-          final travelSeconds = edge.travelTicks * dtSeconds;
-          if (travelSeconds > 0.0) {
-            final dxAbs = (edge.landingX - ex).abs();
-            final requiredAbs = dxAbs / travelSeconds;
-            final desiredAbs = desiredVelX.abs();
-            final currentAbs = currentVelX.abs();
-            final snapAbs = min(desiredAbs, max(currentAbs, requiredAbs));
-            if (snapAbs > nextVelX.abs()) {
-              final sign = edge.commitDirX != 0
-                  ? edge.commitDirX.toDouble()
-                  : (desiredVelX > 0.0
-                        ? 1.0
-                        : (desiredVelX < 0.0
-                              ? -1.0
-                              : (edge.landingX >= ex ? 1.0 : -1.0)));
-              jumpSnapVelX = sign * snapAbs;
-            }
-          }
+    if (hasPlan &&
+        jumpNow &&
+        activeJumpEdge != null &&
+        activeJumpEdge.travelTicks > 0) {
+      final edge = activeJumpEdge;
+      final travelSeconds = edge.travelTicks * dtSeconds;
+      if (travelSeconds > 0.0) {
+        final dxAbs = (edge.landingX - ex).abs();
+        final requiredAbs = dxAbs / travelSeconds;
+        final snapAbs = clampDouble(requiredAbs, 0.0, baseSpeed);
+        if (snapAbs > 0.0) {
+          final sign = edge.commitDirX != 0
+              ? edge.commitDirX.toDouble()
+              : (desiredVelX > 0.0
+                    ? 1.0
+                    : (desiredVelX < 0.0
+                          ? -1.0
+                          : (edge.landingX >= ex ? 1.0 : -1.0)));
+          jumpSnapVelX = sign * snapAbs;
         }
       }
     }
 
-    world.transform.velX[enemyTi] = jumpSnapVelX ?? nextVelX;
+    if (jumpNow && jumpDirX != 0 && !hasPlan) {
+      final candidateVelX = jumpSnapVelX ?? nextVelX;
+      if (candidateVelX.abs() < baseSpeed) {
+        jumpSnapVelX = jumpDirX.toDouble() * baseSpeed;
+      }
+    }
+
+    final resolvedVelX = jumpSnapVelX ?? forcedAirborneVelX ?? nextVelX;
+
+    world.transform.velX[enemyTi] = resolvedVelX;
 
     if (commitMoveDirX != 0) {
-      world.enemy.facing[enemyIndex] =
-          commitMoveDirX > 0 ? Facing.right : Facing.left;
+      world.enemy.facing[enemyIndex] = commitMoveDirX > 0
+          ? Facing.right
+          : Facing.left;
     } else {
-      final enemyCi = world.collision.tryIndexOf(enemy);
-      final grounded = enemyCi != null && world.collision.grounded[enemyCi];
       if (grounded) {
         if (desiredDirX != 0) {
-          world.enemy.facing[enemyIndex] =
-              desiredDirX > 0 ? Facing.right : Facing.left;
+          world.enemy.facing[enemyIndex] = desiredDirX > 0
+              ? Facing.right
+              : Facing.left;
         }
       } else {
         const airFacingVelDeadzone = 1.0;
@@ -291,9 +346,59 @@ class GroundEnemyLocomotionSystem {
     if (lockFacingToPlayer) {
       final dxToPlayer = playerX - ex;
       if (dxToPlayer.abs() > 1e-6) {
-        world.enemy.facing[enemyIndex] =
-            dxToPlayer >= 0 ? Facing.right : Facing.left;
+        world.enemy.facing[enemyIndex] = dxToPlayer >= 0
+            ? Facing.right
+            : Facing.left;
       }
     }
+  }
+
+  int _resolveJumpForwardDirX({
+    required int commitMoveDirX,
+    required bool jumpNow,
+    required SurfaceEdge? activeJumpEdge,
+    required int facingDirX,
+  }) {
+    if (!jumpNow) return 0;
+    if (commitMoveDirX != 0) return commitMoveDirX;
+    if (activeJumpEdge != null && activeJumpEdge.commitDirX != 0) {
+      return activeJumpEdge.commitDirX;
+    }
+    return facingDirX;
+  }
+
+  SurfaceEdge? _activeJumpEdge(
+    EcsWorld world, {
+    required int navIndex,
+    required SurfaceGraph? graph,
+  }) {
+    if (graph == null) return null;
+    final activeEdgeIndex = world.surfaceNav.activeEdgeIndex[navIndex];
+    if (activeEdgeIndex < 0 || activeEdgeIndex >= graph.edges.length) {
+      return null;
+    }
+    final edge = graph.edges[activeEdgeIndex];
+    return edge.kind == SurfaceEdgeKind.jump ? edge : null;
+  }
+
+  int _resolveEdgeCommitDirX(SurfaceEdge? edge, {required double referenceX}) {
+    if (edge == null) return 0;
+    if (edge.commitDirX != 0) return edge.commitDirX;
+    if (edge.landingX > referenceX) return 1;
+    if (edge.landingX < referenceX) return -1;
+    return 0;
+  }
+
+  double _edgeCruiseAbsSpeed({
+    required SurfaceEdge? edge,
+    required double dtSeconds,
+    required double maxSpeedAbs,
+  }) {
+    if (edge == null || edge.travelTicks <= 0 || dtSeconds <= 0.0) return 0.0;
+    final travelSeconds = edge.travelTicks * dtSeconds;
+    if (travelSeconds <= 0.0) return 0.0;
+    final edgeDxAbs = (edge.landingX - edge.takeoffX).abs();
+    final requiredAbs = edgeDxAbs / travelSeconds;
+    return clampDouble(requiredAbs, 0.0, maxSpeedAbs);
   }
 }

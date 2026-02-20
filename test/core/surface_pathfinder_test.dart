@@ -203,4 +203,72 @@ void main() {
     expect(path[0], 1);
     expect(path[1], 3);
   });
+
+  test(
+    'pathfinder can restrict expansion to preferred horizontal direction',
+    () {
+      final graph = SurfaceGraph(
+        surfaces: const <WalkSurface>[
+          WalkSurface(id: 1, xMin: 0, xMax: 100, yTop: 0), // start
+          WalkSurface(id: 2, xMin: -160, xMax: -60, yTop: 0), // left detour
+          WalkSurface(id: 3, xMin: 180, xMax: 280, yTop: 0), // right goal
+        ],
+        edgeOffsets: const <int>[0, 1, 2, 2],
+        edges: const <SurfaceEdge>[
+          // start -> left (backward)
+          SurfaceEdge(
+            to: 1,
+            kind: SurfaceEdgeKind.jump,
+            takeoffX: 10,
+            landingX: -100,
+            commitDirX: -1,
+            travelTicks: 20,
+            cost: 0.1,
+          ),
+          // left -> goal (forward)
+          SurfaceEdge(
+            to: 2,
+            kind: SurfaceEdgeKind.jump,
+            takeoffX: -90,
+            landingX: 190,
+            commitDirX: 1,
+            travelTicks: 20,
+            cost: 0.1,
+          ),
+        ],
+        indexById: const <int, int>{1: 0, 2: 1, 3: 2},
+      );
+
+      final pathfinder = SurfacePathfinder(
+        maxExpandedNodes: 16,
+        runSpeedX: 100.0,
+      );
+
+      final unrestricted = <int>[];
+      final unrestrictedFound = pathfinder.findPath(
+        graph,
+        startIndex: 0,
+        goalIndex: 2,
+        outEdges: unrestricted,
+        startX: 50.0,
+        goalX: 210.0,
+      );
+      expect(unrestrictedFound, isTrue);
+      expect(unrestricted, equals(<int>[0, 1]));
+
+      final forwardOnly = <int>[];
+      final forwardOnlyFound = pathfinder.findPath(
+        graph,
+        startIndex: 0,
+        goalIndex: 2,
+        outEdges: forwardOnly,
+        startX: 50.0,
+        goalX: 210.0,
+        preferredDirectionX: 1,
+        restrictToPreferredDirection: true,
+      );
+      expect(forwardOnlyFound, isFalse);
+      expect(forwardOnly, isEmpty);
+    },
+  );
 }

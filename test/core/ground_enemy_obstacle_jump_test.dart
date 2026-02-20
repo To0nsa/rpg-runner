@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:rpg_runner/core/enemies/enemy_catalog.dart';
 import 'package:rpg_runner/core/collision/static_world_geometry_index.dart';
 import 'package:rpg_runner/core/enemies/enemy_id.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
@@ -203,4 +204,171 @@ void main() {
     expect(jumped, isTrue);
     expect(clearedObstacle, isTrue);
   });
+
+  test(
+    'ground enemy still crosses when player is just beyond obstacle edge',
+    () {
+      final world = EcsWorld();
+      const enemyCatalog = EnemyCatalog();
+      final grojib = enemyCatalog.get(EnemyId.grojib);
+
+      const groundTopY = 220.0;
+      const wallMinX = 180.0;
+      const wallMaxX = 244.0;
+      const wallHeight = 80.0;
+      const playerHalf = 20.0;
+      const playerX = 250.0; // edge-adjacent target position
+
+      final player = world.createEntity();
+      world.transform.add(
+        player,
+        posX: playerX,
+        posY: groundTopY - playerHalf,
+        velX: 0.0,
+        velY: 0.0,
+      );
+      world.colliderAabb.add(
+        player,
+        const ColliderAabbDef(halfX: playerHalf, halfY: playerHalf),
+      );
+      world.body.add(
+        player,
+        const BodyDef(
+          isKinematic: false,
+          useGravity: true,
+          gravityScale: 1.0,
+          maxVelY: 9999,
+        ),
+      );
+      world.collision.add(player);
+      world.collision.grounded[world.collision.indexOf(player)] = true;
+
+      final enemy = EntityFactory(world).createEnemy(
+        enemyId: EnemyId.grojib,
+        posX: 40.0,
+        posY: groundTopY - (grojib.collider.offsetY + grojib.collider.halfY),
+        velX: 0.0,
+        velY: 0.0,
+        facing: Facing.right,
+        body: grojib.body,
+        collider: grojib.collider,
+        health: const HealthDef(hp: 1000, hpMax: 1000, regenPerSecond100: 0),
+        mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+        stamina: const StaminaDef(
+          stamina: 0,
+          staminaMax: 0,
+          regenPerSecond100: 0,
+        ),
+      );
+
+      const geometry = StaticWorldGeometry(
+        groundPlane: StaticGroundPlane(topY: groundTopY),
+        solids: <StaticSolid>[
+          StaticSolid(
+            minX: wallMinX,
+            minY: groundTopY - wallHeight,
+            maxX: wallMaxX,
+            maxY: groundTopY,
+            sides: StaticSolid.sideAll,
+            oneWayTop: false,
+            chunkIndex: 0,
+            localSolidIndex: 0,
+          ),
+        ],
+      );
+      final staticWorld = StaticWorldGeometryIndex.from(geometry);
+
+      final movement = MovementTuningDerived.from(
+        const MovementTuning(),
+        tickHz: 60,
+      );
+      const physics = PhysicsTuning();
+      final collision = CollisionSystem();
+      final gravity = GravitySystem();
+
+      final graphBuilder = SurfaceGraphBuilder(
+        surfaceGrid: GridIndex2D(cellSize: 32),
+        extractor: SurfaceExtractor(groundPadding: 400.0),
+      );
+      final jumpTemplate = JumpReachabilityTemplate.build(
+        JumpProfile(
+          jumpSpeed: 500.0,
+          gravityY: physics.gravityY,
+          maxAirTicks: 120,
+          airSpeedX: 300.0,
+          dtSeconds: movement.dtSeconds,
+          agentHalfWidth: grojib.collider.halfX,
+          agentHalfHeight: grojib.collider.halfY,
+          collideCeilings: !grojib.body.ignoreCeilings,
+          collideLeftWalls: (grojib.body.sideMask & BodyDef.sideLeft) != 0,
+          collideRightWalls: (grojib.body.sideMask & BodyDef.sideRight) != 0,
+        ),
+      );
+      final graphResult = graphBuilder.build(
+        geometry: geometry,
+        jumpTemplate: jumpTemplate,
+      );
+
+      final pathfinder = SurfacePathfinder(
+        maxExpandedNodes: 256,
+        runSpeedX: 300.0,
+        edgePenaltySeconds: 0.05,
+      );
+      final navigationSystem = EnemyNavigationSystem(
+        surfaceNavigator: SurfaceNavigator(
+          pathfinder: pathfinder,
+          repathCooldownTicks: 5,
+          takeoffEps: 6.0,
+        ),
+      );
+      final tuning = GroundEnemyTuningDerived.from(
+        const GroundEnemyTuning(),
+        tickHz: 60,
+      );
+      final engagementSystem = EnemyEngagementSystem(groundEnemyTuning: tuning);
+      final locomotionSystem = GroundEnemyLocomotionSystem(
+        groundEnemyTuning: tuning,
+      );
+      navigationSystem.setSurfaceGraph(
+        graph: graphResult.graph,
+        spatialIndex: graphResult.spatialIndex,
+        graphVersion: 1,
+      );
+      locomotionSystem.setSurfaceGraph(graph: graphResult.graph);
+
+      final enemyAabb = world.colliderAabb.indexOf(enemy);
+      final enemyHalfX = world.colliderAabb.halfX[enemyAabb];
+      final enemyHalfY = world.colliderAabb.halfY[enemyAabb];
+      final enemyOffsetY = world.colliderAabb.offsetY[enemyAabb];
+      final groundY = groundTopY - (enemyOffsetY + enemyHalfY);
+
+      var clearedObstacle = false;
+      for (var tick = 0; tick < 900; tick += 1) {
+        navigationSystem.step(world, player: player, currentTick: tick);
+        engagementSystem.step(world, player: player, currentTick: tick);
+        locomotionSystem.step(
+          world,
+          player: player,
+          dtSeconds: movement.dtSeconds,
+          currentTick: tick,
+        );
+        gravity.step(world, movement, physics: physics);
+        collision.step(world, movement, staticWorld: staticWorld);
+
+        final ti = world.transform.indexOf(enemy);
+        final ci = world.collision.indexOf(enemy);
+        final ex = world.transform.posX[ti];
+        final ey = world.transform.posY[ti];
+        final grounded = world.collision.grounded[ci];
+        if (ex > wallMaxX + enemyHalfX &&
+            grounded &&
+            (ey - groundY).abs() < 1.0) {
+          clearedObstacle = true;
+          break;
+        }
+      }
+
+      expect(clearedObstacle, isTrue);
+    },
+  );
 }

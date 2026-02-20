@@ -166,6 +166,10 @@ class EnemyNavigationSystem {
       var hasSafeSurface = false;
       var safeSurfaceMinX = 0.0;
       var safeSurfaceMaxX = 0.0;
+      final ex = world.transform.posX[ti];
+      final enemyGrounded =
+          world.collision.has(enemy) &&
+          world.collision.grounded[world.collision.indexOf(enemy)];
 
       if (graph == null ||
           spatialIndex == null ||
@@ -180,11 +184,7 @@ class EnemyNavigationSystem {
         final enemyHalfX = world.colliderAabb.halfX[ai];
         final enemyHalfY = world.colliderAabb.halfY[ai];
         final offsetY = world.colliderAabb.offsetY[ai];
-        final ex = world.transform.posX[ti];
         final enemyBottomY = world.transform.posY[ti] + offsetY + enemyHalfY;
-        final grounded =
-            world.collision.has(enemy) &&
-            world.collision.grounded[world.collision.indexOf(enemy)];
 
         intent = surfaceNavigator.update(
           navStore: world.surfaceNav,
@@ -195,7 +195,7 @@ class EnemyNavigationSystem {
           entityX: ex,
           entityBottomY: enemyBottomY,
           entityHalfWidth: enemyHalfX,
-          entityGrounded: grounded,
+          entityGrounded: enemyGrounded,
           targetX: navTargetX,
           targetBottomY: navTargetBottomY,
           targetHalfWidth: playerHalfX,

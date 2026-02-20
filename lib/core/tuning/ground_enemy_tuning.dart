@@ -209,22 +209,23 @@ class GroundEnemyTuningDerived {
         );
         // Ensure the hit tick occurs while the strike animation is still visible.
         final maxWindupTicks = meleeAnimTicks > 0 ? meleeAnimTicks - 1 : 0;
-        final meleeWindupTicks =
-            rawWindupTicks > maxWindupTicks ? maxWindupTicks : rawWindupTicks;
+        final meleeWindupTicks = rawWindupTicks > maxWindupTicks
+            ? maxWindupTicks
+            : rawWindupTicks;
         return GroundEnemyCombatTuningDerived(
-        meleeRangeX: combat.meleeRangeX,
-        meleeCooldownSeconds: combat.meleeCooldownSeconds,
-        meleeActiveSeconds: combat.meleeActiveSeconds,
-        meleeAnimSeconds: combat.meleeAnimSeconds,
-        meleeWindupSeconds: combat.meleeWindupSeconds,
-        meleeDamage: combat.meleeDamage,
-        meleeHitboxSizeX: combat.meleeHitboxSizeX,
-        meleeHitboxSizeY: combat.meleeHitboxSizeY,
-        meleeCooldownTicks: meleeCooldownTicks,
-        meleeActiveTicks: meleeActiveTicks,
-        meleeAnimTicks: meleeAnimTicks,
-        meleeWindupTicks: meleeWindupTicks,
-      );
+          meleeRangeX: combat.meleeRangeX,
+          meleeCooldownSeconds: combat.meleeCooldownSeconds,
+          meleeActiveSeconds: combat.meleeActiveSeconds,
+          meleeAnimSeconds: combat.meleeAnimSeconds,
+          meleeWindupSeconds: combat.meleeWindupSeconds,
+          meleeDamage: combat.meleeDamage,
+          meleeHitboxSizeX: combat.meleeHitboxSizeX,
+          meleeHitboxSizeY: combat.meleeHitboxSizeY,
+          meleeCooldownTicks: meleeCooldownTicks,
+          meleeActiveTicks: meleeActiveTicks,
+          meleeAnimTicks: meleeAnimTicks,
+          meleeWindupTicks: meleeWindupTicks,
+        );
       }(),
     );
   }

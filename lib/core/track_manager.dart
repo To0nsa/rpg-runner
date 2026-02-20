@@ -93,6 +93,7 @@ class TrackStepResult {
 /// ```dart
 /// final manager = TrackManager(seed: 42, ...);
 /// final result = manager.step(
+///   currentTick: tick,
 ///   cameraLeft: cam.left,
 ///   cameraRight: cam.right,
 ///   spawnEnemy: (id, x) => spawner.spawn(id, x),
@@ -241,6 +242,7 @@ class TrackManager {
   ///
   /// Returns a [TrackStepResult] indicating whether geometry changed.
   TrackStepResult step({
+    required int currentTick,
     required double cameraLeft,
     required double cameraRight,
     required SpawnEnemyCallback spawnEnemy,

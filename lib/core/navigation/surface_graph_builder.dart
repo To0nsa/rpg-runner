@@ -39,7 +39,7 @@ class SurfaceGraphBuilder {
   SurfaceGraphBuilder({
     required GridIndex2D surfaceGrid,
     SurfaceExtractor? extractor,
-    this.standableEps = navGeomEps,
+    this.standableEps = navSpatialEps,
     this.dropSampleOffset = navSpatialEps,
     this.takeoffSampleMaxStep = 64.0,
   }) : _surfaceGrid = surfaceGrid,
@@ -120,6 +120,7 @@ class SurfaceGraphBuilder {
           dropX,
           from.yTop,
           jumpTemplate.profile.agentHalfWidth,
+          standableEps,
         );
         if (landingIndex == null) continue;
 
@@ -287,8 +288,10 @@ class _Range {
 /// The agent's center must be at least [halfWidth] from each edge.
 /// Returns `null` if the surface is too narrow.
 _Range? _standableRange(WalkSurface surface, double halfWidth, double eps) {
-  final min = surface.xMin + halfWidth;
-  final max = surface.xMax - halfWidth;
+  // Allow a tiny support overhang to stay aligned with runtime collision,
+  // which accepts partial horizontal overlap when landing.
+  final min = surface.xMin + halfWidth - eps;
+  final max = surface.xMax - halfWidth + eps;
   if (min > max + eps) return null;
   return _Range(min, max);
 }
@@ -362,6 +365,7 @@ int? _findFirstSurfaceBelow(
   double x,
   double fromY,
   double halfWidth,
+  double eps,
 ) {
   int? bestIndex;
   double? bestY;
@@ -371,9 +375,9 @@ int? _findFirstSurfaceBelow(
     // Must be below starting point.
     if (s.yTop <= fromY) continue;
     // Must be standable at this X.
-    final minX = s.xMin + halfWidth;
-    final maxX = s.xMax - halfWidth;
-    if (minX > maxX) continue;
+    final minX = s.xMin + halfWidth - eps;
+    final maxX = s.xMax - halfWidth + eps;
+    if (minX > maxX + eps) continue;
     if (x < minX || x > maxX) continue;
 
     // Prefer highest surface (lowest yTop).

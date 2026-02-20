@@ -22,6 +22,7 @@ class TrackSpawnedChunk {
   const TrackSpawnedChunk({
     required this.index,
     required this.startX,
+    required this.patternName,
   });
 
   /// Sequential chunk number (0 = first chunk).
@@ -29,6 +30,9 @@ class TrackSpawnedChunk {
 
   /// World X coordinate where this chunk begins.
   final double startX;
+
+  /// Pattern identifier used to generate this chunk.
+  final String patternName;
 }
 
 /// Result of a single [TrackStreamer.step] call.
@@ -160,7 +164,11 @@ class TrackStreamer {
         ),
       );
       spawnedChunks.add(
-        TrackSpawnedChunk(index: chunkIndex, startX: startX),
+        TrackSpawnedChunk(
+          index: chunkIndex,
+          startX: startX,
+          patternName: pattern.name,
+        ),
       );
 
       // Roll for enemy spawns.
@@ -194,10 +202,12 @@ class TrackStreamer {
         rebuiltGroundGaps.addAll(c.groundGaps);
       }
       _dynamicSolids = List<StaticSolid>.unmodifiable(rebuilt);
-      _dynamicGroundSegments =
-          List<StaticGroundSegment>.unmodifiable(rebuiltGroundSegments);
-      _dynamicGroundGaps =
-          List<StaticGroundGap>.unmodifiable(rebuiltGroundGaps);
+      _dynamicGroundSegments = List<StaticGroundSegment>.unmodifiable(
+        rebuiltGroundSegments,
+      );
+      _dynamicGroundGaps = List<StaticGroundGap>.unmodifiable(
+        rebuiltGroundGaps,
+      );
     }
 
     return TrackStreamStepResult(

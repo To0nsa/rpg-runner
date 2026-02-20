@@ -1330,6 +1330,7 @@ class GameCore {
   /// This is extracted from [stepOneTick] to keep the main loop readable.
   void _stepTrackManager(double effectiveGroundTopY) {
     _trackManager.step(
+      currentTick: tick,
       cameraLeft: _camera.left(),
       cameraRight: _camera.right(),
       spawnEnemy: (enemyId, x) {

@@ -1,4 +1,5 @@
 import '../types/surface_graph.dart';
+import '../types/nav_tolerances.dart';
 import 'surface_spatial_index.dart';
 
 /// Prediction result for where an airborne entity will land.
@@ -186,8 +187,10 @@ class TrajectoryPredictor {
       final landingX = prevX + (x - prevX) * t;
 
       // Check standability at landing X.
-      final standableMinX = surface.xMin + entityHalfWidth;
-      final standableMaxX = surface.xMax - entityHalfWidth;
+      // Allow tiny horizontal overhang tolerance to stay consistent with
+      // runtime collision support checks on narrow tops.
+      final standableMinX = surface.xMin + entityHalfWidth - navSpatialEps;
+      final standableMaxX = surface.xMax - entityHalfWidth + navSpatialEps;
       if (standableMinX > standableMaxX) continue;
       if (landingX < standableMinX || landingX > standableMaxX) continue;
 

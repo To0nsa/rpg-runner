@@ -77,6 +77,9 @@ class SurfacePathfinder {
   /// - [startIndex], [goalIndex]: Surface indices in [graph.surfaces].
   /// - [outEdges]: Receives ordered edge indices from start to goal.
   /// - [startX], [goalX]: Optional precise X positions for cost accuracy.
+  /// - [preferredDirectionX]: Preferred horizontal edge direction (-1/0/+1).
+  /// - [restrictToPreferredDirection]: When `true`, edges that explicitly move
+  ///   opposite to [preferredDirectionX] are ignored.
   ///
   /// **Returns**: `true` if a path was found, `false` otherwise.
   bool findPath(
@@ -86,7 +89,10 @@ class SurfacePathfinder {
     required List<int> outEdges,
     double? startX,
     double? goalX,
+    int preferredDirectionX = 0,
+    bool restrictToPreferredDirection = false,
   }) {
+    assert(preferredDirectionX >= -1 && preferredDirectionX <= 1);
     outEdges.clear();
     if (startIndex == goalIndex) return true;
 
@@ -122,6 +128,12 @@ class SurfacePathfinder {
       );
       for (var ei = start; ei < end; ei += 1) {
         final edge = graph.edges[ei];
+        if (restrictToPreferredDirection && preferredDirectionX != 0) {
+          final edgeDirX = _edgeDirectionX(edge);
+          if (edgeDirX != 0 && edgeDirX != preferredDirectionX) {
+            continue;
+          }
+        }
         final neighbor = edge.to;
         _touch(neighbor);
 
@@ -191,6 +203,15 @@ class SurfacePathfinder {
   double _runCost(SurfaceEdge edge, {required double originX}) {
     final dx = (edge.takeoffX - originX).abs();
     return dx / runSpeedX;
+  }
+
+  /// Resolved horizontal direction for an edge: -1, 0, or +1.
+  int _edgeDirectionX(SurfaceEdge edge) {
+    if (edge.commitDirX != 0) return edge.commitDirX;
+    final dx = edge.landingX - edge.takeoffX;
+    if (dx > 0.0) return 1;
+    if (dx < 0.0) return -1;
+    return 0;
   }
 
   /// Additional cost for landing distance to goal (only on final edge).
