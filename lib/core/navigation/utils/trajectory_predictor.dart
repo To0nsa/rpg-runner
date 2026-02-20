@@ -54,7 +54,7 @@ class LandingPrediction {
 /// );
 /// ```
 class TrajectoryPredictor {
-  const TrajectoryPredictor({
+  TrajectoryPredictor({
     required this.gravityY,
     required this.dtSeconds,
     required this.maxTicks,
@@ -68,6 +68,9 @@ class TrajectoryPredictor {
 
   /// Maximum ticks to simulate before giving up.
   final int maxTicks;
+
+  /// Reused candidate buffer for spatial queries (avoids per-call allocation).
+  final List<int> _candidateBuffer = <int>[];
 
   /// Predicts landing position for an airborne entity.
   ///
@@ -100,10 +103,8 @@ class TrajectoryPredictor {
     var vy = velY;
     final dt = dtSeconds;
 
-    // Reusable buffer for spatial queries.
-    final candidates = <int>[];
-
     for (var tick = 1; tick <= maxTicks; tick += 1) {
+      final prevX = x;
       final prevY = y;
 
       // Semi-implicit Euler (matches GravitySystem).
@@ -118,7 +119,8 @@ class TrajectoryPredictor {
       final landing = _findLandingSurface(
         graph: graph,
         spatialIndex: spatialIndex,
-        candidates: candidates,
+        candidates: _candidateBuffer,
+        prevX: prevX,
         x: x,
         prevY: prevY,
         y: y,
@@ -139,20 +141,23 @@ class TrajectoryPredictor {
     required SurfaceGraph graph,
     required SurfaceSpatialIndex spatialIndex,
     required List<int> candidates,
+    required double prevX,
     required double x,
     required double prevY,
     required double y,
     required double entityHalfWidth,
     required int tick,
   }) {
-    // Query surfaces in the vertical band we just traversed.
+    // Query surfaces in the swept AABB traversed this tick.
+    final minX = (prevX < x ? prevX : x) - entityHalfWidth;
+    final maxX = (prevX > x ? prevX : x) + entityHalfWidth;
     final minY = prevY < y ? prevY : y;
     final maxY = prevY > y ? prevY : y;
 
     spatialIndex.queryAabb(
-      minX: x - entityHalfWidth,
+      minX: minX,
       minY: minY,
-      maxX: x + entityHalfWidth,
+      maxX: maxX,
       maxY: maxY,
       outSurfaceIndices: candidates,
     );
@@ -163,14 +168,12 @@ class TrajectoryPredictor {
     // This handles cases where trajectory passes through multiple surfaces.
     int? bestIndex;
     double? bestYTop;
+    double? bestLandingX;
+    final dyStep = y - prevY;
+    if (dyStep == 0.0) return null;
 
     for (final surfaceIndex in candidates) {
       final surface = graph.surfaces[surfaceIndex];
-
-      // Check horizontal overlap: entity must fit on surface.
-      final entityMinX = x - entityHalfWidth;
-      final entityMaxX = x + entityHalfWidth;
-      if (entityMinX > surface.xMax || entityMaxX < surface.xMin) continue;
 
       // Check vertical crossing: prevY was above (or at) surface, y is at or below.
       // We want surfaces where prevY <= yTop <= y (crossed from above).
@@ -178,17 +181,28 @@ class TrajectoryPredictor {
       if (prevY > yTop) continue; // Started below surface, can't land on it.
       if (y < yTop) continue; // Ended above surface, haven't reached it yet.
 
+      // Interpolate horizontal position at the exact crossing time.
+      final t = (yTop - prevY) / dyStep;
+      final landingX = prevX + (x - prevX) * t;
+
+      // Check standability at landing X.
+      final standableMinX = surface.xMin + entityHalfWidth;
+      final standableMaxX = surface.xMax - entityHalfWidth;
+      if (standableMinX > standableMaxX) continue;
+      if (landingX < standableMinX || landingX > standableMaxX) continue;
+
       // Valid landing candidate. Prefer highest surface (lowest yTop).
       if (bestYTop == null || yTop < bestYTop) {
         bestYTop = yTop;
         bestIndex = surfaceIndex;
+        bestLandingX = landingX;
       }
     }
 
     if (bestIndex == null) return null;
 
     return LandingPrediction(
-      x: x,
+      x: bestLandingX!,
       bottomY: bestYTop!,
       surfaceIndex: bestIndex,
       ticksToLand: tick,

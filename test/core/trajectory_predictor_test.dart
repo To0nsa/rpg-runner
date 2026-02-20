@@ -28,14 +28,12 @@ void main() {
     late SurfaceSpatialIndex spatialIndex;
 
     setUp(() {
-      predictor = const TrajectoryPredictor(
+      predictor = TrajectoryPredictor(
         gravityY: 1200.0,
         dtSeconds: 1.0 / 60.0,
         maxTicks: 120,
       );
-      spatialIndex = SurfaceSpatialIndex(
-        index: GridIndex2D(cellSize: 32),
-      );
+      spatialIndex = SurfaceSpatialIndex(index: GridIndex2D(cellSize: 32));
     });
 
     test('simple fall onto ground plane', () {
@@ -148,33 +146,34 @@ void main() {
       expect(prediction, isNull);
     });
 
-    test('entity too wide for surface still lands with partial overlap', () {
-      // Narrow surface that entity cannot fully fit on.
-      final surfaces = <WalkSurface>[
-        WalkSurface(
-          id: packSurfaceId(chunkIndex: 0, localSolidIndex: 0),
-          xMin: -5,
-          xMax: 5, // Only 10 units wide
-          yTop: 100,
-        ),
-      ];
-      final graph = _buildGraph(surfaces);
-      spatialIndex.rebuild(surfaces);
+    test(
+      'entity too wide for surface does not count as a standable landing',
+      () {
+        // Narrow surface that entity cannot fully fit on.
+        final surfaces = <WalkSurface>[
+          WalkSurface(
+            id: packSurfaceId(chunkIndex: 0, localSolidIndex: 0),
+            xMin: -5,
+            xMax: 5, // Only 10 units wide
+            yTop: 100,
+          ),
+        ];
+        final graph = _buildGraph(surfaces);
+        spatialIndex.rebuild(surfaces);
 
-      final prediction = predictor.predictLanding(
-        startX: 0,
-        startBottomY: 50,
-        velX: 0,
-        velY: 0,
-        graph: graph,
-        spatialIndex: spatialIndex,
-        entityHalfWidth: 20, // Entity is 40 units wide, surface is only 10
-      );
+        final prediction = predictor.predictLanding(
+          startX: 0,
+          startBottomY: 50,
+          velX: 0,
+          velY: 0,
+          graph: graph,
+          spatialIndex: spatialIndex,
+          entityHalfWidth: 20, // Entity is 40 units wide, surface is only 10
+        );
 
-      // Entity should still land if center is over the surface
-      // (partial overlap is allowed in current implementation).
-      expect(prediction, isNotNull);
-    });
+        expect(prediction, isNull);
+      },
+    );
 
     test('horizontal miss - trajectory passes beside surface', () {
       // Surface only exists far to the right.
@@ -202,6 +201,36 @@ void main() {
       // Should not land on surface that's too far away.
       expect(prediction, isNull);
     });
+
+    test(
+      'high horizontal speed still detects thin-platform landing via swept query',
+      () {
+        final surfaces = <WalkSurface>[
+          WalkSurface(
+            id: packSurfaceId(chunkIndex: 0, localSolidIndex: 0),
+            xMin: 72.0,
+            xMax: 74.0,
+            yTop: 100.0,
+          ),
+        ];
+        final graph = _buildGraph(surfaces);
+        spatialIndex.rebuild(surfaces);
+
+        final prediction = predictor.predictLanding(
+          startX: 43.5,
+          startBottomY: 95.0,
+          velX: 1320.0, // 22 units per tick; can skip thin platform endpoints.
+          velY: 200.0, // Already descending.
+          graph: graph,
+          spatialIndex: spatialIndex,
+          entityHalfWidth: 0.5,
+        );
+
+        expect(prediction, isNotNull);
+        expect(prediction!.bottomY, equals(100.0));
+        expect(prediction.x, inInclusiveRange(72.5, 73.5));
+      },
+    );
 
     test('ascending entity does not trigger landing', () {
       // Entity jumping up through a platform should not "land" on it mid-ascent.

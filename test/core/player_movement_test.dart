@@ -291,7 +291,7 @@ void main() {
     expect(afterSecond.stamina, closeTo(10.0, 1e-9));
   });
 
-  test('double jump peak stays at or below single jump peak', () {
+  test('double jump delayed second tap can exceed single-jump peak', () {
     final base = PlayerCharacterRegistry.eloise;
     final single = GameCore(
       levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
@@ -332,7 +332,8 @@ void main() {
       if (doubleJump.playerGrounded && secondTapFired) break;
     }
 
-    expect(doublePeakY, greaterThanOrEqualTo(singlePeakY - 1e-6));
+    expect(secondTapFired, isTrue);
+    expect(doublePeakY, lessThan(singlePeakY - 1e-6));
   });
 
   test('dash spends stamina (2) when started', () {

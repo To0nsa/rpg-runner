@@ -19,14 +19,14 @@ class StaticWorldGeometryIndex {
     required double maxBottomWidth,
     required double maxLeftWidth,
     required double maxRightWidth,
-  })  : _tops = tops,
-        _bottoms = bottoms,
-        _leftWalls = leftWalls,
-        _rightWalls = rightWalls,
-        _maxTopWidth = maxTopWidth,
-        _maxBottomWidth = maxBottomWidth,
-        _maxLeftWidth = maxLeftWidth,
-        _maxRightWidth = maxRightWidth;
+  }) : _tops = tops,
+       _bottoms = bottoms,
+       _leftWalls = leftWalls,
+       _rightWalls = rightWalls,
+       _maxTopWidth = maxTopWidth,
+       _maxBottomWidth = maxBottomWidth,
+       _maxLeftWidth = maxLeftWidth,
+       _maxRightWidth = maxRightWidth;
 
   /// Creates a spatial index from the raw static geometry.
   ///
@@ -141,7 +141,11 @@ class StaticWorldGeometryIndex {
   ///
   /// Ground segments are guaranteed to be sorted and disjoint, allowing efficient
   /// traversal.
-  void queryGroundSegments(double minX, double maxX, List<StaticGroundSegment> out) {
+  void queryGroundSegments(
+    double minX,
+    double maxX,
+    List<StaticGroundSegment> out,
+  ) {
     final start = _lowerBoundSegments(groundSegments, minX);
     for (var i = start; i < groundSegments.length; i += 1) {
       final seg = groundSegments[i];
@@ -230,6 +234,7 @@ int _lowerBoundSegments(List<StaticGroundSegment> list, double xValue) {
 List<StaticGroundSegment> _buildGroundSegments(StaticWorldGeometry geometry) {
   // If segments are already provided (e.g. from a chunk generator), use them.
   if (geometry.groundSegments.isNotEmpty) {
+    _validateProvidedGroundSegments(geometry.groundSegments);
     return List<StaticGroundSegment>.unmodifiable(geometry.groundSegments);
   }
 
@@ -267,8 +272,10 @@ List<StaticGroundSegment> _buildGroundSegments(StaticWorldGeometry geometry) {
     if (gap.minX <= last.maxX) {
       // Overlapping or touching gap. Extend the last gap if needed.
       if (gap.maxX > last.maxX) {
-        merged[merged.length - 1] =
-            StaticGroundGap(minX: last.minX, maxX: gap.maxX);
+        merged[merged.length - 1] = StaticGroundGap(
+          minX: last.minX,
+          maxX: gap.maxX,
+        );
       }
     } else {
       // Disjoint gap.
@@ -313,4 +320,39 @@ List<StaticGroundSegment> _buildGroundSegments(StaticWorldGeometry geometry) {
   }
 
   return List<StaticGroundSegment>.unmodifiable(segments);
+}
+
+/// Validates externally-provided ground segments.
+///
+/// Required contract:
+/// - sorted by [minX] ascending
+/// - disjoint (touching is allowed, overlap is not)
+/// - valid ranges (`maxX >= minX`)
+void _validateProvidedGroundSegments(List<StaticGroundSegment> segments) {
+  if (segments.isEmpty) return;
+  const eps = 1e-9;
+
+  for (var i = 0; i < segments.length; i += 1) {
+    final segment = segments[i];
+    if (segment.maxX < segment.minX - eps) {
+      throw StateError(
+        'Invalid ground segment at index $i: maxX (${segment.maxX}) < minX (${segment.minX}).',
+      );
+    }
+
+    if (i == 0) continue;
+    final previous = segments[i - 1];
+    if (segment.minX < previous.minX - eps) {
+      throw StateError(
+        'Ground segments must be sorted by minX. '
+        'Index ${i - 1} has minX=${previous.minX}, index $i has minX=${segment.minX}.',
+      );
+    }
+    if (segment.minX < previous.maxX - eps) {
+      throw StateError(
+        'Ground segments must be disjoint. '
+        'Index ${i - 1} maxX=${previous.maxX} overlaps index $i minX=${segment.minX}.',
+      );
+    }
+  }
 }

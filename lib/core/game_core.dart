@@ -89,6 +89,7 @@ import 'ecs/entity_id.dart';
 import 'ecs/spatial/broadphase_grid.dart';
 import 'ecs/spatial/grid_index_2d.dart';
 import 'ecs/stores/restoration_item_store.dart';
+import 'ecs/stores/body_store.dart';
 import 'ecs/systems/collectible_system.dart';
 import 'ecs/systems/collision_system.dart';
 import 'ecs/systems/cooldown_system.dart';
@@ -490,6 +491,7 @@ class GameCore {
       surfaceGrid: GridIndex2D(cellSize: _spatialGridTuning.broadphaseCellSize),
       takeoffSampleMaxStep: _navigationTuning.takeoffSampleMaxStep,
     );
+    final groundEnemyArchetype = _enemyCatalog.get(EnemyId.grojib);
     _groundEnemyJumpTemplate = JumpReachabilityTemplate.build(
       JumpProfile(
         jumpSpeed: _groundEnemyTuning.locomotion.jumpSpeed,
@@ -497,7 +499,13 @@ class GameCore {
         maxAirTicks: _groundEnemyMaxAirTicks(),
         airSpeedX: _groundEnemyTuning.locomotion.speedX,
         dtSeconds: _movement.dtSeconds,
-        agentHalfWidth: _enemyCatalog.get(EnemyId.grojib).collider.halfX,
+        agentHalfWidth: groundEnemyArchetype.collider.halfX,
+        agentHalfHeight: groundEnemyArchetype.collider.halfY,
+        collideCeilings: !groundEnemyArchetype.body.ignoreCeilings,
+        collideLeftWalls:
+            (groundEnemyArchetype.body.sideMask & BodyDef.sideLeft) != 0,
+        collideRightWalls:
+            (groundEnemyArchetype.body.sideMask & BodyDef.sideRight) != 0,
       ),
     );
     _surfacePathfinder = SurfacePathfinder(

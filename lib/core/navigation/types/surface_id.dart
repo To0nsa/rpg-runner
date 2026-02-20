@@ -14,6 +14,10 @@ library;
 /// The "Top" surface kind (entities stand on top of the solid).
 const int surfaceKindTop = 0;
 
+const int _signed32Min = -0x80000000;
+const int _signed32Max = 0x7FFFFFFF;
+const int _maxPackedLocalSolidIndex = 0x3FFFFFFF;
+
 /// Sentinel value for "no surface" / invalid.
 const int surfaceIdUnknown = -1;
 
@@ -30,6 +34,13 @@ int packSurfaceId({
   required int localSolidIndex,
   int surfaceKind = surfaceKindTop,
 }) {
+  if (chunkIndex < _signed32Min || chunkIndex > _signed32Max) {
+    throw ArgumentError.value(
+      chunkIndex,
+      'chunkIndex',
+      'must fit in signed 32-bit range',
+    );
+  }
   if (localSolidIndex < 0) {
     throw ArgumentError.value(
       localSolidIndex,
@@ -37,8 +48,18 @@ int packSurfaceId({
       'must be >= 0',
     );
   }
+  if (localSolidIndex > _maxPackedLocalSolidIndex) {
+    throw ArgumentError.value(
+      localSolidIndex,
+      'localSolidIndex',
+      'must be <= $_maxPackedLocalSolidIndex (30-bit)',
+    );
+  }
+  if (surfaceKind < 0 || surfaceKind > 0x3) {
+    throw ArgumentError.value(surfaceKind, 'surfaceKind', 'must fit in 2 bits');
+  }
   // XOR with sign bit to make signed chunkIndex sort correctly as unsigned.
-  final chunk = (chunkIndex ^ 0x80000000) & 0xFFFFFFFF;
+  final chunk = ((chunkIndex & 0xFFFFFFFF) ^ 0x80000000) & 0xFFFFFFFF;
   // Pack localSolidIndex and surfaceKind into lower 32 bits.
   final local = ((localSolidIndex << 2) | (surfaceKind & 0x3)) & 0xFFFFFFFF;
   return (chunk << 32) | local;
@@ -47,7 +68,8 @@ int packSurfaceId({
 /// Extracts the chunk index from a packed [surfaceId].
 int unpackChunkIndex(int surfaceId) {
   final chunk = (surfaceId >> 32) & 0xFFFFFFFF;
-  return (chunk ^ 0x80000000);
+  final signed = (chunk ^ 0x80000000) & 0xFFFFFFFF;
+  return (signed & 0x80000000) != 0 ? signed - 0x100000000 : signed;
 }
 
 /// Extracts the local solid index from a packed [surfaceId].

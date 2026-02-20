@@ -27,9 +27,9 @@ class SurfacePathfinder {
     required this.maxExpandedNodes,
     required this.runSpeedX,
     this.edgePenaltySeconds = 0.0,
-  })  : assert(maxExpandedNodes > 0),
-        assert(runSpeedX > 0),
-        assert(edgePenaltySeconds >= 0.0);
+  }) : assert(maxExpandedNodes > 0),
+       assert(runSpeedX > 0),
+       assert(edgePenaltySeconds >= 0.0);
 
   /// Maximum nodes to expand before giving up (prevents runaway searches).
   final int maxExpandedNodes;
@@ -114,20 +114,21 @@ class SurfacePathfinder {
       // Iterate outgoing edges (CSR format).
       final start = graph.edgeOffsets[current];
       final end = graph.edgeOffsets[current + 1];
+      final originX = _originX(
+        graph,
+        current,
+        startIndex: startIndex,
+        startX: startX,
+      );
       for (var ei = start; ei < end; ei += 1) {
         final edge = graph.edges[ei];
         final neighbor = edge.to;
         _touch(neighbor);
 
         // Total edge cost: base + run-to-takeoff + landing adjustment + penalty.
-        final edgeCost = edge.cost +
-            _runCost(
-              graph,
-              current,
-              edge,
-              startIndex: startIndex,
-              startX: startX,
-            ) +
+        final edgeCost =
+            edge.cost +
+            _runCost(edge, originX: originX) +
             _goalLandingCost(
               edge,
               neighbor: neighbor,
@@ -161,23 +162,33 @@ class SurfacePathfinder {
   /// Ignores vertical distance (platforms can be reached by jumps/falls
   /// with minimal time penalty relative to horizontal travel).
   double _heuristic(SurfaceGraph graph, int from, int goal) {
-    final dx =
-        (graph.surfaces[goal].centerX - graph.surfaces[from].centerX).abs();
+    final dx = (graph.surfaces[goal].centerX - graph.surfaces[from].centerX)
+        .abs();
     return dx / runSpeedX;
   }
 
-  /// Cost to run from current position to edge takeoff point.
-  double _runCost(
+  /// Effective horizontal origin used when leaving [nodeIndex].
+  ///
+  /// Uses predecessor landing position when available, so path costs reflect
+  /// where the entity actually arrives on intermediate surfaces.
+  double _originX(
     SurfaceGraph graph,
-    int fromIndex,
-    SurfaceEdge edge, {
+    int nodeIndex, {
     required int startIndex,
     required double? startX,
   }) {
-    final fromSurface = graph.surfaces[fromIndex];
-    // Use exact position for start node, otherwise surface center.
-    final originX =
-        (fromIndex == startIndex && startX != null) ? startX : fromSurface.centerX;
+    if (nodeIndex == startIndex && startX != null) {
+      return startX;
+    }
+    final fromEdge = _cameFromEdge[nodeIndex];
+    if (fromEdge >= 0) {
+      return graph.edges[fromEdge].landingX;
+    }
+    return graph.surfaces[nodeIndex].centerX;
+  }
+
+  /// Cost to run from current position to edge takeoff point.
+  double _runCost(SurfaceEdge edge, {required double originX}) {
     final dx = (edge.takeoffX - originX).abs();
     return dx / runSpeedX;
   }

@@ -33,9 +33,21 @@ class SurfaceExtractor {
   /// **Returns**: Unmodifiable list of [WalkSurface]s, sorted and merged.
   List<WalkSurface> extract(StaticWorldGeometry geometry) {
     final segments = <_SurfaceSegment>[];
+    final nextGroundLocalIndexByChunk = <int, int>{};
 
-    // Stride for ground segment IDs to avoid collisions with tile IDs.
-    const groundPieceStride = 1000;
+    void reserveGroundLocalSpace(int chunkIndex, int localSolidIndex) {
+      final candidateNext = localSolidIndex + 1;
+      final currentNext = nextGroundLocalIndexByChunk[chunkIndex];
+      if (currentNext == null || candidateNext > currentNext) {
+        nextGroundLocalIndexByChunk[chunkIndex] = candidateNext;
+      }
+    }
+
+    int allocateGroundLocalIndex(int chunkIndex) {
+      final next = nextGroundLocalIndexByChunk[chunkIndex] ?? 0;
+      nextGroundLocalIndexByChunk[chunkIndex] = next + 1;
+      return next;
+    }
 
     // -------------------------------------------------------------------------
     // Step 1: Collect solid top faces.
@@ -63,6 +75,8 @@ class SurfaceExtractor {
         localSolidIndex = i;
       }
 
+      reserveGroundLocalSpace(solid.chunkIndex, localSolidIndex);
+
       final id = packSurfaceId(
         chunkIndex: solid.chunkIndex,
         localSolidIndex: localSolidIndex,
@@ -84,14 +98,11 @@ class SurfaceExtractor {
       // Explicit ground segments (from level data).
       for (var gi = 0; gi < geometry.groundSegments.length; gi += 1) {
         final ground = geometry.groundSegments[gi];
-        var localSegmentIndex = ground.localSegmentIndex;
-        if (localSegmentIndex < 0) {
-          if (ground.chunkIndex != StaticSolid.noChunk) {
-            throw StateError(
-              'Ground segment is missing a localSegmentIndex; check track streamer.',
-            );
-          }
-          localSegmentIndex = gi;
+        if (ground.localSegmentIndex < 0 &&
+            ground.chunkIndex != StaticSolid.noChunk) {
+          throw StateError(
+            'Ground segment is missing a localSegmentIndex; check track streamer.',
+          );
         }
 
         // Subtract solids that block the ground at this Y.
@@ -113,7 +124,7 @@ class SurfaceExtractor {
           final seg = groundSegments[i];
           final id = packSurfaceId(
             chunkIndex: ground.chunkIndex,
-            localSolidIndex: localSegmentIndex * groundPieceStride + i,
+            localSolidIndex: allocateGroundLocalIndex(ground.chunkIndex),
           );
           segments.add(
             _SurfaceSegment(
@@ -153,7 +164,9 @@ class SurfaceExtractor {
             _SurfaceSegment(
               id: packSurfaceId(
                 chunkIndex: StaticSolid.groundChunk,
-                localSolidIndex: i,
+                localSolidIndex: allocateGroundLocalIndex(
+                  StaticSolid.groundChunk,
+                ),
               ),
               xMin: seg.min,
               xMax: seg.max,
@@ -167,6 +180,8 @@ class SurfaceExtractor {
     if (segments.isEmpty) {
       return const <WalkSurface>[];
     }
+
+    _assertUniqueSegmentIds(segments);
 
     // -------------------------------------------------------------------------
     // Step 3: Sort and merge adjacent coplanar segments.
@@ -376,4 +391,19 @@ int _compareSegments(_SurfaceSegment a, _SurfaceSegment b) {
   if (a.id < b.id) return -1;
   if (a.id > b.id) return 1;
   return 0;
+}
+
+/// Debug assertion to catch accidental surface-ID collisions in extraction.
+void _assertUniqueSegmentIds(List<_SurfaceSegment> segments) {
+  assert(() {
+    final seen = <int>{};
+    for (final segment in segments) {
+      if (!seen.add(segment.id)) {
+        throw StateError(
+          'Duplicate surface ID detected during extraction: ${segment.id}.',
+        );
+      }
+    }
+    return true;
+  }());
 }

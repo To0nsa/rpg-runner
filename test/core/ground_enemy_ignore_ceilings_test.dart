@@ -131,6 +131,8 @@ void main() {
           airSpeedX: 200.0,
           dtSeconds: movement.dtSeconds,
           agentHalfWidth: enemyHalf,
+          agentHalfHeight: enemyHalf,
+          collideCeilings: false,
         ),
       );
       final graphResult = graphBuilder.build(

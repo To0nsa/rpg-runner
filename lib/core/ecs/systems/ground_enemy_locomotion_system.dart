@@ -131,12 +131,19 @@ class GroundEnemyLocomotionSystem {
       }
     }
 
-    final effectiveSpeedScale = navIntent.hasPlan[navIntentIndex]
+    final hasPlan = navIntent.hasPlan[navIntentIndex];
+    final effectiveSpeedScale = hasPlan
         ? 1.0
         : engagementIntent.speedScale[engagementIndex];
-    final arrivalSlowRadiusX =
-        engagementIntent.arrivalSlowRadiusX[engagementIndex];
-    final stateSpeedMul = engagementIntent.stateSpeedMul[engagementIndex];
+    // Traversal plans (especially jump edges) should not inherit melee
+    // approach/strike slowdown multipliers, or enemies can under-speed jumps
+    // and appear to "jump in place" on ledges.
+    final arrivalSlowRadiusX = hasPlan
+        ? 0.0
+        : engagementIntent.arrivalSlowRadiusX[engagementIndex];
+    final stateSpeedMul = hasPlan
+        ? 1.0
+        : engagementIntent.stateSpeedMul[engagementIndex];
 
     _applyGroundEnemyPhysics(
       world,

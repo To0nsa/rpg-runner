@@ -52,6 +52,18 @@ int _indexForSurface(
   throw StateError('Surface not found for y=$yTop x=[$xMin,$xMax].');
 }
 
+bool _hasJumpEdgeTo(SurfaceGraph graph, int fromIndex, int toIndex) {
+  final start = graph.edgeOffsets[fromIndex];
+  final end = graph.edgeOffsets[fromIndex + 1];
+  for (var i = start; i < end; i += 1) {
+    final edge = graph.edges[i];
+    if (edge.kind == SurfaceEdgeKind.jump && edge.to == toIndex) {
+      return true;
+    }
+  }
+  return false;
+}
+
 void main() {
   test('surface graph build is deterministic', () {
     const geometry = StaticWorldGeometry(
@@ -80,9 +92,7 @@ void main() {
       ],
     );
 
-    final builder = SurfaceGraphBuilder(
-      surfaceGrid: GridIndex2D(cellSize: 64),
-    );
+    final builder = SurfaceGraphBuilder(surfaceGrid: GridIndex2D(cellSize: 64));
 
     final a = builder.build(geometry: geometry, jumpTemplate: _template());
     final b = builder.build(geometry: geometry, jumpTemplate: _template());
@@ -127,9 +137,7 @@ void main() {
       ],
     );
 
-    final builder = SurfaceGraphBuilder(
-      surfaceGrid: GridIndex2D(cellSize: 64),
-    );
+    final builder = SurfaceGraphBuilder(surfaceGrid: GridIndex2D(cellSize: 64));
 
     final result = builder.build(geometry: geometry, jumpTemplate: _template());
     final graph = result.graph;
@@ -184,13 +192,10 @@ void main() {
       ],
     );
 
-    final builder = SurfaceGraphBuilder(
-      surfaceGrid: GridIndex2D(cellSize: 64),
-    );
-    final graph = builder.build(
-      geometry: geometry,
-      jumpTemplate: _template(),
-    ).graph;
+    final builder = SurfaceGraphBuilder(surfaceGrid: GridIndex2D(cellSize: 64));
+    final graph = builder
+        .build(geometry: geometry, jumpTemplate: _template())
+        .graph;
 
     final fromIndex = _indexForSurface(
       graph,
@@ -241,13 +246,10 @@ void main() {
       ],
     );
 
-    final builder = SurfaceGraphBuilder(
-      surfaceGrid: GridIndex2D(cellSize: 64),
-    );
-    final graph = builder.build(
-      geometry: geometry,
-      jumpTemplate: _template(),
-    ).graph;
+    final builder = SurfaceGraphBuilder(surfaceGrid: GridIndex2D(cellSize: 64));
+    final graph = builder
+        .build(geometry: geometry, jumpTemplate: _template())
+        .graph;
 
     final leftIndex = _indexForSurface(
       graph,
@@ -262,18 +264,234 @@ void main() {
       xMax: 300,
     );
 
-    var hasJump = false;
-    final start = graph.edgeOffsets[leftIndex];
-    final end = graph.edgeOffsets[leftIndex + 1];
-    for (var i = start; i < end; i += 1) {
-      final edge = graph.edges[i];
-      if (edge.kind == SurfaceEdgeKind.jump && edge.to == rightIndex) {
-        hasJump = true;
-        break;
-      }
-    }
+    expect(_hasJumpEdgeTo(graph, leftIndex, rightIndex), isTrue);
+  });
 
-    expect(hasJump, isTrue);
+  test(
+    'ceiling blockers suppress jump edges when ceiling collision is enabled',
+    () {
+      const sourceTopY = 100.0;
+      const targetTopY = 60.0;
+      const geometry = StaticWorldGeometry(
+        groundPlane: null,
+        solids: <StaticSolid>[
+          StaticSolid(
+            minX: 0.0,
+            minY: sourceTopY,
+            maxX: 100.0,
+            maxY: sourceTopY + 16.0,
+            sides: StaticSolid.sideTop,
+            oneWayTop: true,
+            chunkIndex: 0,
+            localSolidIndex: 0,
+          ),
+          StaticSolid(
+            minX: 120.0,
+            minY: targetTopY,
+            maxX: 220.0,
+            maxY: targetTopY + 16.0,
+            sides: StaticSolid.sideTop,
+            oneWayTop: true,
+            chunkIndex: 0,
+            localSolidIndex: 1,
+          ),
+          // Ceiling slab between source and target.
+          StaticSolid(
+            minX: 0.0,
+            minY: 70.0,
+            maxX: 220.0,
+            maxY: 80.0,
+            sides: StaticSolid.sideBottom,
+            oneWayTop: false,
+            chunkIndex: 0,
+            localSolidIndex: 2,
+          ),
+        ],
+      );
+
+      final builder = SurfaceGraphBuilder(
+        surfaceGrid: GridIndex2D(cellSize: 64),
+      );
+      final jumpTemplate = JumpReachabilityTemplate.build(
+        const JumpProfile(
+          jumpSpeed: 300.0,
+          gravityY: 100.0,
+          maxAirTicks: 80,
+          airSpeedX: 200.0,
+          dtSeconds: 0.1,
+          agentHalfWidth: 8.0,
+          agentHalfHeight: 8.0,
+          collideCeilings: true,
+        ),
+      );
+      final graph = builder
+          .build(geometry: geometry, jumpTemplate: jumpTemplate)
+          .graph;
+
+      final sourceIndex = _indexForSurface(
+        graph,
+        yTop: sourceTopY,
+        xMin: 0.0,
+        xMax: 100.0,
+      );
+      final targetIndex = _indexForSurface(
+        graph,
+        yTop: targetTopY,
+        xMin: 120.0,
+        xMax: 220.0,
+      );
+
+      expect(_hasJumpEdgeTo(graph, sourceIndex, targetIndex), isFalse);
+    },
+  );
+
+  test(
+    'ceiling blockers are ignored when profile disables ceiling collision',
+    () {
+      const sourceTopY = 100.0;
+      const targetTopY = 60.0;
+      const geometry = StaticWorldGeometry(
+        groundPlane: null,
+        solids: <StaticSolid>[
+          StaticSolid(
+            minX: 0.0,
+            minY: sourceTopY,
+            maxX: 100.0,
+            maxY: sourceTopY + 16.0,
+            sides: StaticSolid.sideTop,
+            oneWayTop: true,
+            chunkIndex: 0,
+            localSolidIndex: 0,
+          ),
+          StaticSolid(
+            minX: 120.0,
+            minY: targetTopY,
+            maxX: 220.0,
+            maxY: targetTopY + 16.0,
+            sides: StaticSolid.sideTop,
+            oneWayTop: true,
+            chunkIndex: 0,
+            localSolidIndex: 1,
+          ),
+          StaticSolid(
+            minX: 0.0,
+            minY: 70.0,
+            maxX: 220.0,
+            maxY: 80.0,
+            sides: StaticSolid.sideBottom,
+            oneWayTop: false,
+            chunkIndex: 0,
+            localSolidIndex: 2,
+          ),
+        ],
+      );
+
+      final builder = SurfaceGraphBuilder(
+        surfaceGrid: GridIndex2D(cellSize: 64),
+      );
+      final jumpTemplate = JumpReachabilityTemplate.build(
+        const JumpProfile(
+          jumpSpeed: 300.0,
+          gravityY: 100.0,
+          maxAirTicks: 80,
+          airSpeedX: 200.0,
+          dtSeconds: 0.1,
+          agentHalfWidth: 8.0,
+          agentHalfHeight: 8.0,
+          collideCeilings: false,
+        ),
+      );
+      final graph = builder
+          .build(geometry: geometry, jumpTemplate: jumpTemplate)
+          .graph;
+
+      final sourceIndex = _indexForSurface(
+        graph,
+        yTop: sourceTopY,
+        xMin: 0.0,
+        xMax: 100.0,
+      );
+      final targetIndex = _indexForSurface(
+        graph,
+        yTop: targetTopY,
+        xMin: 120.0,
+        xMax: 220.0,
+      );
+
+      expect(_hasJumpEdgeTo(graph, sourceIndex, targetIndex), isTrue);
+    },
+  );
+
+  test('wall blockers suppress jump edges when wall collision is enabled', () {
+    const topY = 200.0;
+    const geometry = StaticWorldGeometry(
+      groundPlane: null,
+      solids: <StaticSolid>[
+        StaticSolid(
+          minX: 0.0,
+          minY: topY,
+          maxX: 100.0,
+          maxY: topY + 16.0,
+          sides: StaticSolid.sideTop,
+          oneWayTop: true,
+          chunkIndex: 0,
+          localSolidIndex: 0,
+        ),
+        StaticSolid(
+          minX: 160.0,
+          minY: topY,
+          maxX: 260.0,
+          maxY: topY + 16.0,
+          sides: StaticSolid.sideTop,
+          oneWayTop: true,
+          chunkIndex: 0,
+          localSolidIndex: 1,
+        ),
+        // Wall between source and destination.
+        StaticSolid(
+          minX: 110.0,
+          minY: 0.0,
+          maxX: 120.0,
+          maxY: 260.0,
+          sides: StaticSolid.sideLeft,
+          oneWayTop: false,
+          chunkIndex: 0,
+          localSolidIndex: 2,
+        ),
+      ],
+    );
+
+    final builder = SurfaceGraphBuilder(surfaceGrid: GridIndex2D(cellSize: 64));
+    final jumpTemplate = JumpReachabilityTemplate.build(
+      const JumpProfile(
+        jumpSpeed: 500.0,
+        gravityY: 1200.0,
+        maxAirTicks: 90,
+        airSpeedX: 300.0,
+        dtSeconds: 1.0 / 60.0,
+        agentHalfWidth: 10.0,
+        agentHalfHeight: 10.0,
+        collideRightWalls: true,
+      ),
+    );
+    final graph = builder
+        .build(geometry: geometry, jumpTemplate: jumpTemplate)
+        .graph;
+
+    final sourceIndex = _indexForSurface(
+      graph,
+      yTop: topY,
+      xMin: 0.0,
+      xMax: 100.0,
+    );
+    final targetIndex = _indexForSurface(
+      graph,
+      yTop: topY,
+      xMin: 160.0,
+      xMax: 260.0,
+    );
+
+    expect(_hasJumpEdgeTo(graph, sourceIndex, targetIndex), isFalse);
   });
 
   test('does not emit jump edges for coplanar, near-contiguous surfaces', () {
@@ -311,7 +529,9 @@ void main() {
       surfaceGrid: GridIndex2D(cellSize: 64),
       extractor: SurfaceExtractor(mergeEps: 1e-6),
     );
-    final graph = builder.build(geometry: geometry, jumpTemplate: _template()).graph;
+    final graph = builder
+        .build(geometry: geometry, jumpTemplate: _template())
+        .graph;
 
     expect(graph.surfaces, hasLength(2));
     final leftIndex = _indexForSurface(graph, yTop: topY, xMin: 0, xMax: 100);

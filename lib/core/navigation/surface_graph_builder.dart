@@ -1,4 +1,4 @@
-import '../collision/static_world_geometry.dart';
+import '../collision/static_world_geometry_index.dart';
 import '../ecs/spatial/grid_index_2d.dart';
 import 'utils/jump_template.dart';
 import 'types/nav_tolerances.dart';
@@ -42,8 +42,8 @@ class SurfaceGraphBuilder {
     this.standableEps = navGeomEps,
     this.dropSampleOffset = navSpatialEps,
     this.takeoffSampleMaxStep = 64.0,
-  })  : _surfaceGrid = surfaceGrid,
-        _extractor = extractor ?? SurfaceExtractor();
+  }) : _surfaceGrid = surfaceGrid,
+       _extractor = extractor ?? SurfaceExtractor();
 
   /// Grid for spatial index bucket allocation.
   final GridIndex2D _surfaceGrid;
@@ -77,6 +77,7 @@ class SurfaceGraphBuilder {
     final surfaces = _extractor.extract(geometry);
     final spatialIndex = SurfaceSpatialIndex(index: _surfaceGrid);
     spatialIndex.rebuild(surfaces);
+    final staticWorld = StaticWorldGeometryIndex.from(geometry);
 
     // Build surface ID → index lookup.
     final indexById = <int, int>{};
@@ -90,6 +91,7 @@ class SurfaceGraphBuilder {
     final edges = <SurfaceEdge>[];
     final edgeOffsets = List<int>.filled(surfaces.length + 1, 0);
     final tempCandidates = <int>[];
+    final solidQueryBuffer = <StaticSolid>[];
 
     for (var i = 0; i < surfaces.length; i += 1) {
       edgeOffsets[i] = edges.length;
@@ -176,9 +178,7 @@ class SurfaceGraphBuilder {
         );
 
         // Sort for deterministic edge ordering.
-        tempCandidates.sort(
-          (a, b) => surfaces[a].id.compareTo(surfaces[b].id),
-        );
+        tempCandidates.sort((a, b) => surfaces[a].id.compareTo(surfaces[b].id));
 
         for (final targetIndex in tempCandidates) {
           if (targetIndex == i) continue; // Skip self.
@@ -227,6 +227,17 @@ class SurfaceGraphBuilder {
           final commitDirX = landingX > takeoffX + navGeomEps
               ? 1
               : (landingX < takeoffX - navGeomEps ? -1 : 0);
+
+          final blocked = _isJumpPathObstructed(
+            staticWorld: staticWorld,
+            jumpTemplate: jumpTemplate,
+            takeoffX: takeoffX,
+            landingX: landingX,
+            startBottomY: from.yTop,
+            landingTick: landingTick.tick,
+            queryBuffer: solidQueryBuffer,
+          );
+          if (blocked) continue;
 
           final edge = SurfaceEdge(
             to: targetIndex,
@@ -327,10 +338,7 @@ List<double> _dropSamples(double min, double max) {
 }
 
 /// Removes duplicate samples within [eps] tolerance.
-List<double> _dedupeSamples(
-  List<double> samples, {
-  double eps = navGeomEps,
-}) {
+List<double> _dedupeSamples(List<double> samples, {double eps = navGeomEps}) {
   samples.sort();
   final deduped = <double>[];
   for (final s in samples) {
@@ -388,4 +396,101 @@ double _clamp(double v, double min, double max) {
   if (v < min) return min;
   if (v > max) return max;
   return v;
+}
+
+/// Returns true when the jump path intersects blocking ceilings or walls.
+///
+/// This validates the specific takeoff/landing pair used for an emitted edge.
+bool _isJumpPathObstructed({
+  required StaticWorldGeometryIndex staticWorld,
+  required JumpReachabilityTemplate jumpTemplate,
+  required double takeoffX,
+  required double landingX,
+  required double startBottomY,
+  required int landingTick,
+  required List<StaticSolid> queryBuffer,
+}) {
+  if (landingTick <= 0) return false;
+
+  final profile = jumpTemplate.profile;
+  final halfWidth = profile.agentHalfWidth;
+  final halfHeight = profile.effectiveHalfHeight;
+  final totalTicks = landingTick.toDouble();
+  const eps = navGeomEps;
+
+  if (landingTick > jumpTemplate.samples.length) {
+    return true;
+  }
+
+  for (var tick = 1; tick <= landingTick; tick += 1) {
+    final sample = jumpTemplate.samples[tick - 1];
+    final prevBottomY = startBottomY + sample.prevY;
+    final bottomY = startBottomY + sample.y;
+    final prevTopY = prevBottomY - (halfHeight * 2.0);
+    final topY = bottomY - (halfHeight * 2.0);
+
+    final prevT = (tick - 1) / totalTicks;
+    final currT = tick / totalTicks;
+    final prevX = takeoffX + (landingX - takeoffX) * prevT;
+    final x = takeoffX + (landingX - takeoffX) * currT;
+
+    final sweepMinX = (prevX < x ? prevX : x) - halfWidth;
+    final sweepMaxX = (prevX > x ? prevX : x) + halfWidth;
+    final sweepMinY = prevTopY < topY ? prevTopY : topY;
+    final sweepMaxY = prevBottomY > bottomY ? prevBottomY : bottomY;
+
+    // Ceiling collisions while traveling upward.
+    if (profile.collideCeilings && topY < prevTopY - eps) {
+      queryBuffer.clear();
+      staticWorld.queryBottoms(sweepMinX + eps, sweepMaxX - eps, queryBuffer);
+      for (final solid in queryBuffer) {
+        final bottomYLine = solid.maxY;
+        final crossesBottom =
+            prevTopY >= bottomYLine - eps && topY <= bottomYLine + eps;
+        if (!crossesBottom) continue;
+
+        final overlapsX =
+            sweepMaxX > solid.minX + eps && sweepMinX < solid.maxX - eps;
+        if (!overlapsX) continue;
+
+        return true;
+      }
+    }
+
+    // Rightward wall collisions against left walls.
+    if (profile.collideRightWalls && x > prevX + eps) {
+      final prevRight = prevX + halfWidth;
+      final right = x + halfWidth;
+      queryBuffer.clear();
+      staticWorld.queryLeftWalls(prevRight - eps, right + eps, queryBuffer);
+      for (final solid in queryBuffer) {
+        final overlapsY =
+            sweepMaxY > solid.minY + eps && sweepMinY < solid.maxY - eps;
+        if (!overlapsY) continue;
+
+        final wallX = solid.minX;
+        final crossesWall = prevRight <= wallX + eps && right >= wallX - eps;
+        if (crossesWall) return true;
+      }
+    }
+
+    // Leftward wall collisions against right walls.
+    if (profile.collideLeftWalls && x < prevX - eps) {
+      final prevLeft = prevX - halfWidth;
+      final left = x - halfWidth;
+      queryBuffer.clear();
+      staticWorld.queryRightWalls(left - eps, prevLeft + eps, queryBuffer);
+      for (final solid in queryBuffer) {
+        final overlapsY =
+            sweepMaxY > solid.minY + eps && sweepMinY < solid.maxY - eps;
+        if (!overlapsY) continue;
+
+        final wallX = solid.maxX;
+        final crossesWall = prevLeft >= wallX - eps && left <= wallX + eps;
+        if (crossesWall) return true;
+      }
+    }
+  }
+
+  return false;
 }

@@ -62,9 +62,9 @@ class SurfaceNavIntent {
 class SurfaceNavigator {
   SurfaceNavigator({
     required this.pathfinder,
-    this.repathCooldownTicks = 30,
+    this.repathCooldownTicks = 12,
     this.surfaceEps = navSpatialEps,
-    this.takeoffEps = 2.0,
+    this.takeoffEps = 4.0,
   });
 
   /// Pathfinder used for A* queries.
@@ -209,9 +209,9 @@ class SurfaceNavigator {
     // Step 4: Same-surface shortcut.
     // -------------------------------------------------------------------------
     if (entityGrounded &&
-      navStore.activeEdgeIndex[navIndex] < 0 &&
-      currentSurfaceId != surfaceIdUnknown &&
-      currentSurfaceId == targetSurfaceId) {
+        navStore.activeEdgeIndex[navIndex] < 0 &&
+        currentSurfaceId != surfaceIdUnknown &&
+        currentSurfaceId == targetSurfaceId) {
       plan.clear();
       navStore.pathCursor[navIndex] = 0;
       navStore.activeEdgeIndex[navIndex] = -1;
@@ -285,21 +285,23 @@ class SurfaceNavigator {
     }
 
     // --- Approaching takeoff point ---
-    // For jump edges with commitMoveDirX, the entity may overshoot the exact
-    // takeoff point at high speeds. Check if the entity is at OR past the
-    // takeoff point in the direction of travel.
+    // With commit direction, allow activation when the entity is at OR past the
+    // takeoff point in travel direction. This prevents overshoot oscillation.
     final dir = edge.commitDirX;
-    final closeEnough = edge.kind == SurfaceEdgeKind.jump && dir != 0
-        ? (dir > 0 ? entityX >= edge.takeoffX - takeoffEps : entityX <= edge.takeoffX + takeoffEps)
-        : (entityX - edge.takeoffX).abs() <= takeoffEps;
+    final closeEnough = dir > 0
+        ? entityX >= edge.takeoffX - takeoffEps
+        : (dir < 0
+              ? entityX <= edge.takeoffX + takeoffEps
+              : (entityX - edge.takeoffX).abs() <= takeoffEps);
     if (entityGrounded && closeEnough) {
       // Initiate edge execution.
       navStore.activeEdgeIndex[navIndex] = edgeIndex;
 
       final jumpNow = edge.kind == SurfaceEdgeKind.jump;
       return SurfaceNavIntent(
-        desiredX:
-            edge.kind == SurfaceEdgeKind.drop ? edge.takeoffX : edge.landingX,
+        desiredX: edge.kind == SurfaceEdgeKind.drop
+            ? edge.takeoffX
+            : edge.landingX,
         jumpNow: jumpNow,
         hasPlan: true,
         commitMoveDirX: edge.commitDirX,
@@ -313,8 +315,7 @@ class SurfaceNavigator {
       desiredX: edge.takeoffX,
       jumpNow: false,
       hasPlan: true,
-      commitMoveDirX:
-          edge.kind == SurfaceEdgeKind.jump ? edge.commitDirX : 0,
+      commitMoveDirX: edge.commitDirX,
     );
   }
 }
@@ -353,8 +354,11 @@ int? _locateSurfaceIndex(
   double? bestY;
   for (final i in candidates) {
     final s = graph.surfaces[i];
-    // Skip if no horizontal overlap.
-    if (s.xMin > maxX || s.xMax < minX) continue;
+    final standableMinX = s.xMin + halfWidth;
+    final standableMaxX = s.xMax - halfWidth;
+    if (standableMinX > standableMaxX + eps) continue;
+    // Entity center must be inside standable range.
+    if (x < standableMinX - eps || x > standableMaxX + eps) continue;
     // Skip if too far vertically.
     if ((s.yTop - bottomY).abs() > eps) continue;
 

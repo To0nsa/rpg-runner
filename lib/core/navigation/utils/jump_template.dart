@@ -11,8 +11,14 @@ class JumpProfile {
     required this.airSpeedX,
     required this.dtSeconds,
     required this.agentHalfWidth,
-  })  : assert(maxAirTicks > 0),
-        assert(dtSeconds > 0);
+    this.agentHalfHeight,
+    this.collideCeilings = true,
+    this.collideLeftWalls = true,
+    this.collideRightWalls = true,
+  }) : assert(maxAirTicks > 0),
+       assert(dtSeconds > 0),
+       assert(agentHalfWidth > 0.0),
+       assert(agentHalfHeight == null || agentHalfHeight > 0.0);
 
   /// Instantaneous vertical speed at jump start (negative = upward).
   final double jumpSpeed;
@@ -31,6 +37,23 @@ class JumpProfile {
 
   /// Agent's collider half-width (for landing overlap calculations).
   final double agentHalfWidth;
+
+  /// Agent's collider half-height for jump obstruction checks.
+  ///
+  /// If not provided, [agentHalfWidth] is used.
+  final double? agentHalfHeight;
+
+  /// Whether jump arc validation should treat ceiling bottoms as blocking.
+  final bool collideCeilings;
+
+  /// Whether jump arc validation should treat left-side body collisions as active.
+  final bool collideLeftWalls;
+
+  /// Whether jump arc validation should treat right-side body collisions as active.
+  final bool collideRightWalls;
+
+  /// Effective half-height used by jump obstruction checks.
+  double get effectiveHalfHeight => agentHalfHeight ?? agentHalfWidth;
 }
 
 /// A single sample point along a precomputed jump arc.
@@ -116,27 +139,21 @@ class JumpReachabilityTemplate {
 
     for (var tick = 1; tick <= profile.maxAirTicks; tick += 1) {
       final prevY = y;
-      
+
       // Semi-implicit Euler: update velocity first, then position.
       velY += profile.gravityY * dt;
       y += velY * dt;
-      
+
       // Horizontal reach increases linearly with time.
       final maxDx = profile.airSpeedX * dt * tick;
-      
+
       // Track bounding box.
       if (y < minDy) minDy = y;
       if (y > maxDy) maxDy = y;
       if (maxDx > maxDxOverall) maxDxOverall = maxDx;
-      
+
       samples.add(
-        JumpSample(
-          tick: tick,
-          prevY: prevY,
-          y: y,
-          velY: velY,
-          maxDx: maxDx,
-        ),
+        JumpSample(tick: tick, prevY: prevY, y: y, velY: velY, maxDx: maxDx),
       );
     }
 
@@ -172,16 +189,16 @@ class JumpReachabilityTemplate {
     for (final sample in samples) {
       // Only consider descending phase.
       if (sample.velY < 0) continue;
-      
+
       // Check vertical crossing: prevY <= dy <= y (with tolerance).
       final crosses = (sample.prevY <= dy + eps) && (sample.y >= dy - eps);
       if (!crosses) continue;
 
       // Check horizontal reachability.
       final maxDx = sample.maxDx;
-      if (dxMin > maxDx + eps) continue;  // Target too far right.
+      if (dxMin > maxDx + eps) continue; // Target too far right.
       if (dxMax < -maxDx - eps) continue; // Target too far left.
-      
+
       return JumpLanding(tick: sample.tick, maxDx: maxDx);
     }
 
@@ -205,15 +222,15 @@ int estimateFallTicks({
   required int maxTicks,
 }) {
   if (dy <= 0) return 0;
-  
+
   var y = 0.0;
   var velY = 0.0;
-  
+
   for (var tick = 1; tick <= maxTicks; tick += 1) {
     velY += gravityY * dtSeconds;
     y += velY * dtSeconds;
     if (y >= dy) return tick;
   }
-  
+
   return maxTicks;
 }

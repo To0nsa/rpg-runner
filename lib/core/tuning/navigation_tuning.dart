@@ -9,11 +9,11 @@ import '../navigation/types/nav_tolerances.dart';
 
 class NavigationTuning {
   const NavigationTuning({
-    this.repathCooldownTicks = 30,
+    this.repathCooldownTicks = 12,
     this.maxExpandedNodes = 128,
     this.edgePenaltySeconds = 0.05,
     this.surfaceEps = navSpatialEps,
-    this.takeoffEpsMin = 2.0,
+    this.takeoffEpsMin = 4.0,
     this.takeoffSampleMaxStep = 64.0,
   }) : assert(repathCooldownTicks >= 0),
        assert(maxExpandedNodes > 0),
@@ -23,6 +23,9 @@ class NavigationTuning {
        assert(takeoffSampleMaxStep > 0.0);
 
   /// Throttle replans per entity to avoid per-tick A* on mobile.
+  ///
+  /// Default `12` ticks is ~200 ms at 60 Hz: responsive enough for pursuit
+  /// changes while still avoiding per-frame replanning churn.
   final int repathCooldownTicks;
 
   /// Hard cap on A* node expansions (fail fast deterministically).
@@ -38,6 +41,8 @@ class NavigationTuning {
   ///
   /// The actual takeoff epsilon can be increased by the locomotion controller
   /// (e.g. tied to an enemy's stop distance) to avoid "stops too early to jump".
+  /// Default `4` units gives stable jump/drop triggering for slower movers
+  /// that do not override this with a larger stop distance.
   final double takeoffEpsMin;
 
   /// Maximum step between takeoff samples on long surfaces (world units).

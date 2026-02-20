@@ -105,8 +105,9 @@ void main() {
     final extractor = SurfaceExtractor(groundPadding: 100.0, mergeEps: 1e-6);
     final surfaces = extractor.extract(geometry);
 
-    final groundSurfaces =
-        surfaces.where((s) => (s.yTop - groundTopY).abs() < 1e-9).toList();
+    final groundSurfaces = surfaces
+        .where((s) => (s.yTop - groundTopY).abs() < 1e-9)
+        .toList();
     expect(groundSurfaces, hasLength(2));
     expect(groundSurfaces[0].xMax, closeTo(40, 1e-9));
     expect(groundSurfaces[1].xMin, closeTo(60, 1e-9));
@@ -132,19 +133,62 @@ void main() {
           localSegmentIndex: 1,
         ),
       ],
-      groundGaps: <StaticGroundGap>[
-        StaticGroundGap(minX: 120, maxX: 200),
-      ],
+      groundGaps: <StaticGroundGap>[StaticGroundGap(minX: 120, maxX: 200)],
     );
 
     final extractor = SurfaceExtractor(mergeEps: 1e-6);
     final surfaces = extractor.extract(geometry);
 
-    final groundSurfaces =
-        surfaces.where((s) => (s.yTop - groundTopY).abs() < 1e-9).toList();
+    final groundSurfaces = surfaces
+        .where((s) => (s.yTop - groundTopY).abs() < 1e-9)
+        .toList();
     expect(groundSurfaces, hasLength(2));
     expect(groundSurfaces[0].xMax, closeTo(120, 1e-9));
     expect(groundSurfaces[1].xMin, closeTo(200, 1e-9));
+  });
+
+  test('ground extraction keeps unique IDs under heavy segment splitting', () {
+    const groundTopY = 200.0;
+    final blockers = List<StaticSolid>.generate(1000, (i) {
+      final minX = (i * 2 + 1).toDouble();
+      return StaticSolid(
+        minX: minX,
+        minY: groundTopY - 10.0,
+        maxX: minX + 1.0,
+        maxY: groundTopY,
+        sides: StaticSolid.sideLeft | StaticSolid.sideRight,
+        oneWayTop: false,
+        chunkIndex: 42,
+        localSolidIndex: i,
+      );
+    });
+
+    final geometry = StaticWorldGeometry(
+      groundPlane: null,
+      groundSegments: const <StaticGroundSegment>[
+        StaticGroundSegment(
+          minX: 0,
+          maxX: 2001,
+          topY: groundTopY,
+          chunkIndex: 42,
+          localSegmentIndex: 0,
+        ),
+        StaticGroundSegment(
+          minX: 3000,
+          maxX: 3200,
+          topY: groundTopY,
+          chunkIndex: 42,
+          localSegmentIndex: 1,
+        ),
+      ],
+      solids: blockers,
+    );
+
+    final surfaces = SurfaceExtractor(mergeEps: 1e-6).extract(geometry);
+    expect(surfaces.length, greaterThan(1001));
+
+    final uniqueIds = surfaces.map((s) => s.id).toSet();
+    expect(uniqueIds.length, surfaces.length);
   });
 
   test('spatial index returns surfaces overlapping query AABB', () {
