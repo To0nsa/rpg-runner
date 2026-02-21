@@ -138,7 +138,7 @@ void main() {
     expect(world.health.hp[world.health.indexOf(target)], equals(1700));
   });
 
-  test('restore mana profile applies immediate percentage restore', () {
+  test('restore mana profile restores gradually across its duration', () {
     final world = EcsWorld();
     final status = StatusSystem(tickHz: 60);
 
@@ -157,10 +157,16 @@ void main() {
     );
     status.applyQueued(world, currentTick: 1);
 
+    expect(world.mana.mana[world.mana.indexOf(target)], equals(200));
+
+    for (var tick = 0; tick < 60 * 5; tick += 1) {
+      status.tickExisting(world);
+    }
+
     expect(world.mana.mana[world.mana.indexOf(target)], equals(550));
   });
 
-  test('resource-over-time profile restores resource on periodic pulses', () {
+  test('resource-over-time profile restores configured total smoothly', () {
     final world = EcsWorld();
     final status = StatusSystem(
       tickHz: 10,
@@ -182,11 +188,13 @@ void main() {
     );
     status.applyQueued(world, currentTick: 0);
 
-    for (var tick = 1; tick <= 20; tick += 1) {
+    expect(world.stamina.stamina[world.stamina.indexOf(target)], equals(0));
+
+    for (var tick = 1; tick <= 21; tick += 1) {
       status.tickExisting(world);
     }
 
-    expect(world.stamina.stamina[world.stamina.indexOf(target)], equals(200));
+    expect(world.stamina.stamina[world.stamina.indexOf(target)], equals(100));
   });
 
   test('haste stacks additively with slow', () {
@@ -616,7 +624,7 @@ class _ResourceOverTimeStatusProfileCatalog extends StatusProfileCatalog {
         return const StatusProfile(<StatusApplication>[
           StatusApplication(
             type: StatusEffectType.resourceOverTime,
-            magnitude: 1000, // 10% per pulse
+            magnitude: 1000, // 10% total across duration
             durationSeconds: 2.1,
             periodSeconds: 1.0,
             resourceType: StatusResourceType.stamina,

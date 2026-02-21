@@ -24,9 +24,9 @@ Core units:
 | Ability ID | Timing (W/A/R) | Cost | Cooldown | Primary Effect |
 |---|---|---:|---:|---|
 | `eloise.arcane_haste` | `0 / 0 / 10` | mana `1000` | `300` | apply `StatusProfileId.speedBoost` |
-| `eloise.restore_health` | `0 / 0 / 10` | mana `1500` | `420` | restore `35%` max HP |
-| `eloise.restore_mana` | `0 / 0 / 10` | stamina `1500` | `420` | restore `35%` max mana |
-| `eloise.restore_stamina` | `0 / 0 / 10` | mana `1500` | `420` | restore `35%` max stamina |
+| `eloise.restore_health` | `0 / 0 / 10` | mana `1500` | `420` | restore `35%` max HP over `5.0s` |
+| `eloise.restore_mana` | `0 / 0 / 10` | stamina `1500` | `420` | restore `35%` max mana over `5.0s` |
+| `eloise.restore_stamina` | `0 / 0 / 10` | mana `1500` | `420` | restore `35%` max stamina over `5.0s` |
 
 ## Effect Notes
 
@@ -43,6 +43,7 @@ Core units:
 - `restore_stamina`: `selfRestoreStaminaBp = 3500`
 
 Restore values are percentages of max resource and clamp to each resource max.
+Restore is distributed smoothly over the authored duration (no immediate burst).
 
 ## Contract Notes
 

@@ -54,7 +54,10 @@ void main() {
 
     core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
     core.stepOneTick();
-    final windupTicks = scaledWindupTicks('eloise.overcharge_shot', core.tickHz);
+    final windupTicks = scaledWindupTicks(
+      'eloise.overcharge_shot',
+      core.tickHz,
+    );
     for (var i = 0; i < windupTicks; i += 1) {
       core.applyCommands(const <Command>[]);
       core.stepOneTick();
@@ -98,7 +101,10 @@ void main() {
 
       core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
       core.stepOneTick();
-      final windupTicks = scaledWindupTicks('eloise.overcharge_shot', core.tickHz);
+      final windupTicks = scaledWindupTicks(
+        'eloise.overcharge_shot',
+        core.tickHz,
+      );
       for (var i = 0; i < windupTicks; i += 1) {
         core.applyCommands(const <Command>[]);
         core.stepOneTick();
@@ -161,7 +167,10 @@ void main() {
 
     core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
     core.stepOneTick();
-    final windupTicks = scaledWindupTicks('eloise.overcharge_shot', core.tickHz);
+    final windupTicks = scaledWindupTicks(
+      'eloise.overcharge_shot',
+      core.tickHz,
+    );
     for (var i = 0; i < windupTicks; i += 1) {
       core.applyCommands(const <Command>[]);
       core.stepOneTick();
@@ -215,7 +224,10 @@ void main() {
 
     core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
     core.stepOneTick();
-    final windupTicks = scaledWindupTicks('eloise.overcharge_shot', core.tickHz);
+    final windupTicks = scaledWindupTicks(
+      'eloise.overcharge_shot',
+      core.tickHz,
+    );
     for (var i = 0; i < windupTicks; i += 1) {
       core.applyCommands(const <Command>[]);
       core.stepOneTick();
@@ -317,92 +329,120 @@ void main() {
     },
   );
 
-  test('spell-slot self spell restores mana without spawning projectiles', () {
-    final base = PlayerCharacterRegistry.eloise;
-    final core = GameCore(
-      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
-      seed: 1,
-      tickHz: 20,
-      playerCharacter: base.copyWith(
-        catalog: testPlayerCatalog(
-          bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-          abilityProjectileId: 'eloise.overcharge_shot',
-          abilitySpellId: 'eloise.mana_infusion',
-          spellBookId: SpellBookId.epicSpellBook,
-        ),
-        tuning: base.tuning.copyWith(
-          resource: const ResourceTuning(
-            playerManaMax: 20,
-            playerManaRegenPerSecond: 0,
-            playerStaminaMax: 20,
-            playerStaminaRegenPerSecond: 0,
+  test(
+    'spell-slot self spell restores mana smoothly over time without spawning projectiles',
+    () {
+      final base = PlayerCharacterRegistry.eloise;
+      final core = GameCore(
+        levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
+        seed: 1,
+        tickHz: 20,
+        playerCharacter: base.copyWith(
+          catalog: testPlayerCatalog(
+            bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+            abilityProjectileId: 'eloise.overcharge_shot',
+            abilitySpellId: 'eloise.mana_infusion',
+            spellBookId: SpellBookId.epicSpellBook,
+          ),
+          tuning: base.tuning.copyWith(
+            resource: const ResourceTuning(
+              playerManaMax: 20,
+              playerManaRegenPerSecond: 0,
+              playerStaminaMax: 20,
+              playerStaminaRegenPerSecond: 0,
+            ),
           ),
         ),
-      ),
-    );
+      );
 
-    core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
-    core.stepOneTick();
-    final windupTicks = scaledWindupTicks('eloise.overcharge_shot', core.tickHz);
-    for (var i = 0; i < windupTicks; i += 1) {
-      core.applyCommands(const <Command>[]);
+      core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
       core.stepOneTick();
-    }
-    final shotAbility = AbilityCatalog.shared.resolve('eloise.overcharge_shot')!;
-    final shotSpellCost = shotAbility.resolveCostForWeaponType(
-      WeaponType.projectileSpell,
-    );
-    final shotActiveTicks = scaledAbilityTicks(
-      shotAbility.activeTicks,
-      core.tickHz,
-    );
-    final shotRecoveryTicks = scaledAbilityTicks(
-      shotAbility.recoveryTicks,
-      core.tickHz,
-    );
-    for (var i = 0; i < shotActiveTicks + shotRecoveryTicks; i += 1) {
-      core.applyCommands(const <Command>[]);
+      final windupTicks = scaledWindupTicks(
+        'eloise.overcharge_shot',
+        core.tickHz,
+      );
+      for (var i = 0; i < windupTicks; i += 1) {
+        core.applyCommands(const <Command>[]);
+        core.stepOneTick();
+      }
+      final shotAbility = AbilityCatalog.shared.resolve(
+        'eloise.overcharge_shot',
+      )!;
+      final shotSpellCost = shotAbility.resolveCostForWeaponType(
+        WeaponType.projectileSpell,
+      );
+      final shotActiveTicks = scaledAbilityTicks(
+        shotAbility.activeTicks,
+        core.tickHz,
+      );
+      final shotRecoveryTicks = scaledAbilityTicks(
+        shotAbility.recoveryTicks,
+        core.tickHz,
+      );
+      for (var i = 0; i < shotActiveTicks + shotRecoveryTicks; i += 1) {
+        core.applyCommands(const <Command>[]);
+        core.stepOneTick();
+      }
+
+      final beforeBonus = core.buildSnapshot();
+      final projectilesBeforeBonus = beforeBonus.entities
+          .where((e) => e.kind == EntityKind.projectile)
+          .toList();
+      expect(projectilesBeforeBonus.length, 1);
+      expect(
+        beforeBonus.hud.mana,
+        closeTo(20.0 - fixed100ToDouble(shotSpellCost.manaCost100), 1e-9),
+      );
+
+      core.applyCommands(const [SpellPressedCommand(tick: 2)]);
       core.stepOneTick();
-    }
 
-    final beforeBonus = core.buildSnapshot();
-    final projectilesBeforeBonus = beforeBonus.entities
-        .where((e) => e.kind == EntityKind.projectile)
-        .toList();
-    expect(projectilesBeforeBonus.length, 1);
-    expect(
-      beforeBonus.hud.mana,
-      closeTo(20.0 - fixed100ToDouble(shotSpellCost.manaCost100), 1e-9),
-    );
+      final afterBonusPressed = core.buildSnapshot();
+      final projectilesAfterBonus = afterBonusPressed.entities
+          .where((e) => e.kind == EntityKind.projectile)
+          .toList();
+      expect(projectilesAfterBonus.length, 1);
 
-    core.applyCommands(const [SpellPressedCommand(tick: 2)]);
-    core.stepOneTick();
+      final restore = AbilityCatalog.shared.resolve('eloise.mana_infusion')!;
+      final restoreProfile = const StatusProfileCatalog().get(
+        restore.selfStatusProfileId,
+      );
+      final restoreAmountBp = restoreProfile.applications
+          .where(
+            (app) =>
+                app.type == StatusEffectType.resourceOverTime &&
+                app.resourceType == StatusResourceType.mana,
+          )
+          .first
+          .magnitude;
+      expect(afterBonusPressed.hud.mana, closeTo(beforeBonus.hud.mana, 1e-9));
 
-    final afterBonus = core.buildSnapshot();
-    final projectilesAfterBonus = afterBonus.entities
-        .where((e) => e.kind == EntityKind.projectile)
-        .toList();
-    expect(projectilesAfterBonus.length, 1);
+      final restoreDurationSeconds = restoreProfile.applications
+          .where(
+            (app) =>
+                app.type == StatusEffectType.resourceOverTime &&
+                app.resourceType == StatusResourceType.mana,
+          )
+          .first
+          .durationSeconds;
+      final restoreDurationTicks = ticksFromSecondsCeil(
+        restoreDurationSeconds,
+        core.tickHz,
+      );
+      for (var i = 0; i < restoreDurationTicks; i += 1) {
+        core.applyCommands(const <Command>[]);
+        core.stepOneTick();
+      }
 
-    final restore = AbilityCatalog.shared.resolve('eloise.mana_infusion')!;
-    final restoreProfile = const StatusProfileCatalog().get(
-      restore.selfStatusProfileId,
-    );
-    final restoreAmountBp = restoreProfile.applications
-        .where(
-          (app) =>
-              app.type == StatusEffectType.resourceOverTime &&
-              app.resourceType == StatusResourceType.mana,
-        )
-        .first
-        .magnitude;
-    final expectedMana =
-        (beforeBonus.hud.mana + (20.0 * restoreAmountBp / 10000.0)).clamp(
-          0.0,
-          20.0,
-        );
-    expect(afterBonus.hud.mana, closeTo(expectedMana, 1e-9));
-  });
+      final afterRestore = core.buildSnapshot();
+      final expectedMana =
+          (beforeBonus.hud.mana + (20.0 * restoreAmountBp / 10000.0)).clamp(
+            0.0,
+            20.0,
+          );
+      expect(afterRestore.hud.mana, closeTo(expectedMana, 1e-9));
+    },
+  );
 
   test(
     'projectile and spell cooldown groups stay independent (projectile + self spell)',

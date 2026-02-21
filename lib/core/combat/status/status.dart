@@ -211,41 +211,32 @@ class StatusApplicationPresets {
     ),
   );
 
-  static const StatusApplicationPreset healthRestore =
-      StatusApplicationPreset(
-        StatusApplication(
-          type: StatusEffectType.resourceOverTime,
-          magnitude: 3500, // 35% max health
-          durationSeconds: 0.0,
-          periodSeconds: 1.0,
-          resourceType: StatusResourceType.health,
-          applyOnApply: true,
-        ),
-      );
+  static const StatusApplicationPreset healthRestore = StatusApplicationPreset(
+    StatusApplication(
+      type: StatusEffectType.resourceOverTime,
+      magnitude: 3500, // 35% max health over full duration
+      durationSeconds: 5.0,
+      resourceType: StatusResourceType.health,
+    ),
+  );
 
-  static const StatusApplicationPreset manaRestore =
-      StatusApplicationPreset(
-        StatusApplication(
-          type: StatusEffectType.resourceOverTime,
-          magnitude: 3500, // 35% max mana
-          durationSeconds: 0.0,
-          periodSeconds: 1.0,
-          resourceType: StatusResourceType.mana,
-          applyOnApply: true,
-        ),
-      );
+  static const StatusApplicationPreset manaRestore = StatusApplicationPreset(
+    StatusApplication(
+      type: StatusEffectType.resourceOverTime,
+      magnitude: 3500, // 35% max mana over full duration
+      durationSeconds: 5.0,
+      resourceType: StatusResourceType.mana,
+    ),
+  );
 
-  static const StatusApplicationPreset staminaRestore =
-      StatusApplicationPreset(
-        StatusApplication(
-          type: StatusEffectType.resourceOverTime,
-          magnitude: 3500, // 35% max stamina
-          durationSeconds: 0.0,
-          periodSeconds: 1.0,
-          resourceType: StatusResourceType.stamina,
-          applyOnApply: true,
-        ),
-      );
+  static const StatusApplicationPreset staminaRestore = StatusApplicationPreset(
+    StatusApplication(
+      type: StatusEffectType.resourceOverTime,
+      magnitude: 3500, // 35% max stamina over full duration
+      durationSeconds: 5.0,
+      resourceType: StatusResourceType.stamina,
+    ),
+  );
 }
 
 /// A bundle of status applications applied on hit.

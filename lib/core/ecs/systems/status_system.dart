@@ -57,7 +57,7 @@ class StatusSystem {
   /// Ticks existing statuses and queues DoT damage.
   void tickExisting(EcsWorld world, {ResourcePulseCallback? onResourcePulse}) {
     _tickDot(world);
-    _tickResourceOverTime(world, onResourcePulse: onResourcePulse);
+    _tickResourceOverTime(world);
     _tickHaste(world);
     _tickSlow(world);
     _tickVulnerable(world);
@@ -126,10 +126,8 @@ class StatusSystem {
     }
   }
 
-  void _tickResourceOverTime(
-    EcsWorld world, {
-    ResourcePulseCallback? onResourcePulse,
-  }) {
+  void _tickResourceOverTime(EcsWorld world) {
+    // Continuous restore is intentionally visual-pulse free.
     final resource = world.resourceOverTime;
     if (resource.denseEntities.isEmpty) return;
 
@@ -143,24 +141,35 @@ class StatusSystem {
 
       var channel = resource.resourceTypes[i].length - 1;
       while (channel >= 0) {
-        resource.ticksLeft[i][channel] -= 1;
         if (resource.ticksLeft[i][channel] <= 0) {
           resource.removeChannelAtEntityIndex(i, channel);
           channel -= 1;
           continue;
         }
 
-        resource.periodTicksLeft[i][channel] -= 1;
-        if (resource.periodTicksLeft[i][channel] <= 0) {
-          resource.periodTicksLeft[i][channel] =
-              resource.periodTicks[i][channel];
-          _applyResourcePulse(
-            world,
-            target: target,
-            resourceType: resource.resourceTypes[i][channel],
-            amountBp: resource.amountBp[i][channel],
-            onResourcePulse: onResourcePulse,
-          );
+        final totalTicks = resource.totalTicks[i][channel];
+        final totalAmount100 = resource.totalAmount100[i][channel];
+        if (totalTicks > 0 && totalAmount100 > 0) {
+          final numerator =
+              resource.accumulatorNumerator[i][channel] + totalAmount100;
+          final delta = numerator ~/ totalTicks;
+          resource.accumulatorNumerator[i][channel] =
+              numerator - (delta * totalTicks);
+          if (delta > 0) {
+            _applyResourceAmount100(
+              world,
+              target: target,
+              resourceType: resource.resourceTypes[i][channel],
+              restoreAmount100: delta,
+            );
+          }
+        }
+
+        resource.ticksLeft[i][channel] -= 1;
+        if (resource.ticksLeft[i][channel] <= 0) {
+          resource.removeChannelAtEntityIndex(i, channel);
+          channel -= 1;
+          continue;
         }
         channel -= 1;
       }
@@ -589,8 +598,7 @@ class StatusSystem {
     required bool applyOnApply,
     ResourcePulseCallback? onResourcePulse,
   }) {
-    final periodTicks = ticksFromSecondsCeil(periodSeconds, _tickHz);
-    if (periodTicks <= 0) return;
+    if (periodSeconds <= 0.0) return;
 
     if (applyOnApply) {
       _applyResourcePulse(
@@ -604,19 +612,26 @@ class StatusSystem {
 
     final ticksLeft = ticksFromSecondsCeil(durationSeconds, _tickHz);
     if (ticksLeft <= 0) return;
+    final totalAmount100 = _resourceRestoreAmount100FromBp(
+      world,
+      target: target,
+      resourceType: resourceType,
+      amountBp: amountBp,
+    );
+    if (totalAmount100 <= 0) return;
+
+    final rotDef = ResourceOverTimeDef(
+      resourceType: resourceType,
+      ticksLeft: ticksLeft,
+      totalTicks: ticksLeft,
+      totalAmount100: totalAmount100,
+      amountBp: amountBp,
+    );
 
     final resource = world.resourceOverTime;
     final index = resource.tryIndexOf(target);
     if (index == null) {
-      resource.add(
-        target,
-        ResourceOverTimeDef(
-          resourceType: resourceType,
-          ticksLeft: ticksLeft,
-          periodTicks: periodTicks,
-          amountBp: amountBp,
-        ),
-      );
+      resource.add(target, rotDef);
       return;
     }
 
@@ -625,36 +640,19 @@ class StatusSystem {
       resourceType,
     );
     if (channelIndex == null) {
-      resource.addChannel(
-        target,
-        ResourceOverTimeDef(
-          resourceType: resourceType,
-          ticksLeft: ticksLeft,
-          periodTicks: periodTicks,
-          amountBp: amountBp,
-        ),
-      );
+      resource.addChannel(target, rotDef);
       return;
     }
 
     final currentAmountBp = resource.amountBp[index][channelIndex];
     if (amountBp > currentAmountBp) {
-      resource.setChannel(
-        target,
-        channelIndex,
-        ResourceOverTimeDef(
-          resourceType: resourceType,
-          ticksLeft: ticksLeft,
-          periodTicks: periodTicks,
-          amountBp: amountBp,
-        ),
-      );
+      resource.setChannel(target, channelIndex, rotDef);
       return;
     }
 
     if (amountBp == currentAmountBp &&
         ticksLeft > resource.ticksLeft[index][channelIndex]) {
-      resource.ticksLeft[index][channelIndex] = ticksLeft;
+      resource.setChannel(target, channelIndex, rotDef);
     }
   }
 
@@ -667,53 +665,110 @@ class StatusSystem {
   }) {
     if (amountBp <= 0) return;
 
+    final restoreAmount100 = _resourceRestoreAmount100FromBp(
+      world,
+      target: target,
+      resourceType: resourceType,
+      amountBp: amountBp,
+    );
+    _applyResourceAmount100(
+      world,
+      target: target,
+      resourceType: resourceType,
+      restoreAmount100: restoreAmount100,
+      onResourcePulse: onResourcePulse,
+    );
+  }
+
+  int _resourceRestoreAmount100FromBp(
+    EcsWorld world, {
+    required EntityId target,
+    required StatusResourceType resourceType,
+    required int amountBp,
+  }) {
+    final max = _resourceMax100(
+      world,
+      target: target,
+      resourceType: resourceType,
+    );
+    if (max <= 0 || amountBp <= 0) return 0;
+    return (max * amountBp) ~/ bpScale;
+  }
+
+  int _resourceMax100(
+    EcsWorld world, {
+    required EntityId target,
+    required StatusResourceType resourceType,
+  }) {
     switch (resourceType) {
       case StatusResourceType.health:
-        final hi = world.health.tryIndexOf(target);
-        if (hi == null) return;
-        final max = world.health.hpMax[hi];
+        final index = world.health.tryIndexOf(target);
+        if (index == null) return 0;
+        return world.health.hpMax[index];
+      case StatusResourceType.mana:
+        final index = world.mana.tryIndexOf(target);
+        if (index == null) return 0;
+        return world.mana.manaMax[index];
+      case StatusResourceType.stamina:
+        final index = world.stamina.tryIndexOf(target);
+        if (index == null) return 0;
+        return world.stamina.staminaMax[index];
+    }
+  }
+
+  void _applyResourceAmount100(
+    EcsWorld world, {
+    required EntityId target,
+    required StatusResourceType resourceType,
+    required int restoreAmount100,
+    ResourcePulseCallback? onResourcePulse,
+  }) {
+    if (restoreAmount100 <= 0) return;
+
+    switch (resourceType) {
+      case StatusResourceType.health:
+        final index = world.health.tryIndexOf(target);
+        if (index == null) return;
+        final max = world.health.hpMax[index];
         if (max <= 0) return;
-        final restore = (max * amountBp) ~/ bpScale;
-        if (restore <= 0) return;
-        final next = world.health.hp[hi] + restore;
+        final current = world.health.hp[index];
+        final next = current + restoreAmount100;
         final clamped = next > max ? max : next;
-        final applied = clamped - world.health.hp[hi];
+        final applied = clamped - current;
         if (applied <= 0) return;
-        world.health.hp[hi] = clamped;
+        world.health.hp[index] = clamped;
         onResourcePulse?.call(
           target: target,
           resourceType: resourceType,
           restoredAmount100: applied,
         );
       case StatusResourceType.mana:
-        final mi = world.mana.tryIndexOf(target);
-        if (mi == null) return;
-        final max = world.mana.manaMax[mi];
+        final index = world.mana.tryIndexOf(target);
+        if (index == null) return;
+        final max = world.mana.manaMax[index];
         if (max <= 0) return;
-        final restore = (max * amountBp) ~/ bpScale;
-        if (restore <= 0) return;
-        final next = world.mana.mana[mi] + restore;
+        final current = world.mana.mana[index];
+        final next = current + restoreAmount100;
         final clamped = next > max ? max : next;
-        final applied = clamped - world.mana.mana[mi];
+        final applied = clamped - current;
         if (applied <= 0) return;
-        world.mana.mana[mi] = clamped;
+        world.mana.mana[index] = clamped;
         onResourcePulse?.call(
           target: target,
           resourceType: resourceType,
           restoredAmount100: applied,
         );
       case StatusResourceType.stamina:
-        final si = world.stamina.tryIndexOf(target);
-        if (si == null) return;
-        final max = world.stamina.staminaMax[si];
+        final index = world.stamina.tryIndexOf(target);
+        if (index == null) return;
+        final max = world.stamina.staminaMax[index];
         if (max <= 0) return;
-        final restore = (max * amountBp) ~/ bpScale;
-        if (restore <= 0) return;
-        final next = world.stamina.stamina[si] + restore;
+        final current = world.stamina.stamina[index];
+        final next = current + restoreAmount100;
         final clamped = next > max ? max : next;
-        final applied = clamped - world.stamina.stamina[si];
+        final applied = clamped - current;
         if (applied <= 0) return;
-        world.stamina.stamina[si] = clamped;
+        world.stamina.stamina[index] = clamped;
         onResourcePulse?.call(
           target: target,
           resourceType: resourceType,

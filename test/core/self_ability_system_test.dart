@@ -81,7 +81,7 @@ void main() {
     },
   );
 
-  test('restore mana self spell applies restore and clamps to max', () {
+  test('restore mana self spell restores gradually and clamps to max', () {
     final world = EcsWorld();
     final player = EntityFactory(world).createPlayer(
       posX: 0,
@@ -122,26 +122,30 @@ void main() {
     final status = StatusSystem(tickHz: 60);
 
     activation.step(world, player: player, currentTick: 5);
-    selfAbility.step(
-      world,
-      currentTick: 5,
-      queueStatus: status.queue,
-    );
+    selfAbility.step(world, currentTick: 5, queueStatus: status.queue);
     status.applyQueued(world, currentTick: 5);
 
     final ability = AbilityCatalog.shared.resolve('eloise.mana_infusion')!;
     final restoreProfile = const StatusProfileCatalog().get(
       ability.selfStatusProfileId,
     );
-    final expectedRestoreBp = restoreProfile.applications
+    final restoreApplication = restoreProfile.applications
         .where(
           (app) =>
               app.type == StatusEffectType.resourceOverTime &&
               app.resourceType == StatusResourceType.mana,
         )
-        .first
-        .magnitude;
+        .first;
+    final expectedRestoreBp = restoreApplication.magnitude;
+    final durationTicks = (restoreApplication.durationSeconds * 60).ceil();
     final expectedRestore = (1000 * expectedRestoreBp) ~/ 10000;
+
+    expect(world.mana.mana[world.mana.indexOf(player)], equals(200));
+
+    for (var i = 0; i < durationTicks; i += 1) {
+      status.tickExisting(world);
+    }
+
     expect(
       world.mana.mana[world.mana.indexOf(player)],
       equals(200 + expectedRestore),
@@ -151,31 +155,33 @@ void main() {
       equals(5000 - ability.defaultCost.staminaCost100),
     );
 
-    // Re-cast after cooldown to verify clamping at max mana.
+    // Re-cast after cooldown to verify clamping at max mana over time.
     world.cooldown.setTicksLeft(player, CooldownGroup.spell0, 0);
     world.activeAbility.clear(player);
     world.playerInput.spellPressed[pi] = true;
     activation.step(world, player: player, currentTick: 6);
-    selfAbility.step(
-      world,
-      currentTick: 6,
-      queueStatus: status.queue,
-    );
+    selfAbility.step(world, currentTick: 6, queueStatus: status.queue);
     status.applyQueued(world, currentTick: 6);
 
+    expect(
+      world.mana.mana[world.mana.indexOf(player)],
+      equals(200 + expectedRestore),
+    );
+    for (var i = 0; i < durationTicks; i += 1) {
+      status.tickExisting(world);
+    }
     expect(world.mana.mana[world.mana.indexOf(player)], equals(900));
 
     world.cooldown.setTicksLeft(player, CooldownGroup.spell0, 0);
     world.activeAbility.clear(player);
     world.playerInput.spellPressed[pi] = true;
     activation.step(world, player: player, currentTick: 7);
-    selfAbility.step(
-      world,
-      currentTick: 7,
-      queueStatus: status.queue,
-    );
+    selfAbility.step(world, currentTick: 7, queueStatus: status.queue);
     status.applyQueued(world, currentTick: 7);
 
+    for (var i = 0; i < durationTicks; i += 1) {
+      status.tickExisting(world);
+    }
     expect(world.mana.mana[world.mana.indexOf(player)], equals(1000));
   });
 
