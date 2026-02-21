@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -21,6 +22,11 @@ import '../../theme/ui_tokens.dart';
 import 'ability/ability_picker_dialog.dart';
 import 'gear/gear_picker_dialog.dart';
 
+// Keep multi-character backend logic intact; UI currently exposes only primary.
+const List<PlayerCharacterDefinition> _loadoutSetupUiCharacters = [
+  PlayerCharacterRegistry.eloise,
+];
+
 class LoadoutSetupPage extends StatefulWidget {
   const LoadoutSetupPage({super.key});
 
@@ -36,12 +42,16 @@ class _LoadoutSetupPageState extends State<LoadoutSetupPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_seeded) return;
-    final selection = context.read<AppState>().selection;
-    final defs = PlayerCharacterRegistry.all;
+    final appState = context.read<AppState>();
+    final selection = appState.selection;
+    final defs = _loadoutSetupUiCharacters;
     _initialTabIndex = defs.indexWhere(
       (d) => d.id == selection.selectedCharacterId,
     );
-    if (_initialTabIndex < 0) _initialTabIndex = 0;
+    if (_initialTabIndex < 0) {
+      _initialTabIndex = 0;
+      unawaited(appState.setCharacter(defs.first.id));
+    }
     _seeded = true;
   }
 
@@ -49,24 +59,30 @@ class _LoadoutSetupPageState extends State<LoadoutSetupPage> {
   Widget build(BuildContext context) {
     final ui = context.ui;
     final appState = context.watch<AppState>();
-    final defs = PlayerCharacterRegistry.all;
+    final defs = _loadoutSetupUiCharacters;
+    final appBarTitle = defs.length > 1
+        ? TabBar(
+            isScrollable: true,
+            labelColor: ui.colors.textPrimary,
+            unselectedLabelColor: ui.colors.textMuted,
+            labelStyle: ui.text.label,
+            indicatorColor: ui.colors.accent,
+            onTap: (index) {
+              final def = defs[index];
+              appState.setCharacter(def.id);
+            },
+            tabs: [for (final def in defs) Tab(text: def.displayName)],
+          )
+        : Text(
+            defs.first.displayName,
+            style: ui.text.label.copyWith(color: ui.colors.textPrimary),
+          );
 
     return DefaultTabController(
       length: defs.length,
       initialIndex: _initialTabIndex,
       child: MenuScaffold(
-        appBarTitle: TabBar(
-          isScrollable: true,
-          labelColor: ui.colors.textPrimary,
-          unselectedLabelColor: ui.colors.textMuted,
-          labelStyle: ui.text.label,
-          indicatorColor: ui.colors.accent,
-          onTap: (index) {
-            final def = defs[index];
-            appState.setCharacter(def.id);
-          },
-          tabs: [for (final def in defs) Tab(text: def.displayName)],
-        ),
+        appBarTitle: appBarTitle,
         child: const MenuLayout(scrollable: false, child: _LoadoutSetupBody()),
       ),
     );
@@ -78,7 +94,7 @@ class _LoadoutSetupBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final defs = PlayerCharacterRegistry.all;
+    final defs = _loadoutSetupUiCharacters;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
