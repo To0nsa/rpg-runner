@@ -12,11 +12,6 @@ String abilityDisplayName(AbilityKey id) {
   return _titleCaseSnake(raw);
 }
 
-/// Short user-facing role text for an [AbilityKey].
-String abilityRoleText(AbilityKey id) {
-  return _roleTextOverrides[id] ?? '';
-}
-
 String _titleCaseSnake(String source) {
   final words = source.split('_');
   return words
@@ -56,16 +51,4 @@ const Map<AbilityKey, String> _displayNameOverrides = <AbilityKey, String>{
   'eloise.double_jump': 'Double Jump',
   'eloise.dash': 'Dash',
   'eloise.roll': 'Concussive Roll',
-};
-
-const Map<AbilityKey, String> _roleTextOverrides = <AbilityKey, String>{
-  'eloise.arcane_haste': 'Self-cast haste buff for short burst movement',
-  'eloise.vital_surge': 'Restore a chunk of max health',
-  'eloise.mana_infusion': 'Restore a chunk of max mana',
-  'eloise.second_wind': 'Restore a chunk of max stamina',
-  'eloise.homing_bolt': 'Reliable lock-on, lower efficiency',
-  'eloise.snap_shot': 'Fast weave shot, low damage per action',
-  'eloise.skewer_shot': 'Line-up reward, inconsistent in duels',
-  'eloise.overcharge_shot':
-      'Tiered charge: tap/half/full scale damage, speed, and effects',
 };

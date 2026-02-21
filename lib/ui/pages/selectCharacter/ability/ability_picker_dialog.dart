@@ -10,7 +10,7 @@ import '../../../components/ability_placeholder_icon.dart';
 import '../../../components/app_button.dart';
 import '../../../components/gear_icon.dart';
 import '../../../state/app_state.dart';
-import '../../../text/ability_text.dart';
+import '../../../text/ability_tooltip_builder.dart';
 import '../../../theme/ui_tokens.dart';
 import 'ability_picker_presenter.dart';
 
@@ -174,6 +174,8 @@ class _AbilityPickerDialogState extends State<_AbilityPickerDialog> {
                     ],
                     Expanded(
                       child: _AbilityPanel(
+                        slot: widget.slot,
+                        selectedSourceSpellId: _selectedSourceSpellId,
                         candidates: candidates,
                         selectedAbilityId: _selectedAbilityId,
                         onSelected: (id) =>
@@ -471,11 +473,18 @@ class _SourceSelectableTile extends StatelessWidget {
 
 class _AbilityPanel extends StatelessWidget {
   const _AbilityPanel({
+    required this.slot,
+    required this.selectedSourceSpellId,
     required this.candidates,
     required this.selectedAbilityId,
     required this.onSelected,
   });
 
+  static const DefaultAbilityTooltipBuilder _tooltipBuilder =
+      DefaultAbilityTooltipBuilder();
+
+  final AbilitySlot slot;
+  final ProjectileId? selectedSourceSpellId;
   final List<AbilityPickerCandidate> candidates;
   final AbilityKey selectedAbilityId;
   final ValueChanged<AbilityKey> onSelected;
@@ -490,11 +499,24 @@ class _AbilityPanel extends StatelessWidget {
         itemBuilder: (context, index) {
           final candidate = candidates[index];
           final selected = candidate.id == selectedAbilityId;
+          final tooltip = _tooltipBuilder.build(
+            candidate.def,
+            ctx: AbilityTooltipContext(
+              selectedProjectileSpellId: slot == AbilitySlot.projectile
+                  ? selectedSourceSpellId
+                  : null,
+              payloadWeaponType: _payloadWeaponTypeForTooltip(
+                def: candidate.def,
+                slot: slot,
+                selectedSourceSpellId: selectedSourceSpellId,
+              ),
+            ),
+          );
           return _SelectableTile(
             selected: selected,
             enabled: candidate.isEnabled,
-            title: abilityDisplayName(candidate.id),
-            subtitle: _abilitySubtitle(candidate.def),
+            title: tooltip.title,
+            subtitle: tooltip.subtitle,
             onTap: candidate.isEnabled ? () => onSelected(candidate.id) : null,
           );
         },
@@ -660,25 +682,26 @@ String _slotTitle(AbilitySlot slot) {
   }
 }
 
-String _abilitySubtitle(AbilityDef def) {
-  final roleText = abilityRoleText(def.id);
-  if (roleText.isNotEmpty) return roleText;
-  final category = def.category.name;
-  final payload = def.payloadSource.name;
-  return '${_humanize(category)} | ${_humanize(payload)}';
-}
-
-String _humanize(String raw) {
-  return raw
-      .replaceAllMapped(
-        RegExp(r'([a-z0-9])([A-Z])'),
-        (match) => '${match.group(1)} ${match.group(2)}',
-      )
-      .replaceAll('_', ' ')
-      .split(' ')
-      .where((word) => word.isNotEmpty)
-      .map((word) => '${word[0].toUpperCase()}${word.substring(1)}')
-      .join(' ');
+WeaponType? _payloadWeaponTypeForTooltip({
+  required AbilityDef def,
+  required AbilitySlot slot,
+  required ProjectileId? selectedSourceSpellId,
+}) {
+  switch (def.payloadSource) {
+    case AbilityPayloadSource.none:
+      return null;
+    case AbilityPayloadSource.primaryWeapon:
+      return null;
+    case AbilityPayloadSource.secondaryWeapon:
+      return null;
+    case AbilityPayloadSource.projectile:
+      if (slot == AbilitySlot.projectile && selectedSourceSpellId != null) {
+        return WeaponType.projectileSpell;
+      }
+      return WeaponType.throwingWeapon;
+    case AbilityPayloadSource.spellBook:
+      return WeaponType.projectileSpell;
+  }
 }
 
 String _placeholderLabel(String text) {
