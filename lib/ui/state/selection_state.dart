@@ -11,49 +11,66 @@ enum RunType { practice, competitive }
 
 /// Persistent menu selection state.
 class SelectionState {
-  const SelectionState({
+  SelectionState({
     required this.selectedLevelId,
     required this.selectedRunType,
     required this.selectedCharacterId,
-    required this.equippedLoadout,
+    required Map<PlayerCharacterId, EquippedLoadoutDef> loadoutsByCharacter,
     required this.buildName,
-  });
+  }) : loadoutsByCharacter = Map.unmodifiable(
+         _ensureLoadoutsForAllCharacters(loadoutsByCharacter),
+       );
 
   static const String defaultBuildName = 'Build 1';
   static const int buildNameMaxLength = 24;
 
-  static const SelectionState defaults = SelectionState(
+  static final SelectionState defaults = SelectionState(
     selectedLevelId: LevelId.field,
     selectedRunType: RunType.practice,
     selectedCharacterId: PlayerCharacterId.eloise,
-    equippedLoadout: EquippedLoadoutDef(),
+    loadoutsByCharacter: _seedLoadoutsWith(const EquippedLoadoutDef()),
     buildName: defaultBuildName,
   );
 
   final LevelId selectedLevelId;
   final RunType selectedRunType;
   final PlayerCharacterId selectedCharacterId;
-  final EquippedLoadoutDef equippedLoadout;
+  final Map<PlayerCharacterId, EquippedLoadoutDef> loadoutsByCharacter;
   final String buildName;
 
   bool get isCompetitive => selectedRunType == RunType.competitive;
+
+  EquippedLoadoutDef loadoutFor(PlayerCharacterId id) {
+    return loadoutsByCharacter[id] ?? const EquippedLoadoutDef();
+  }
 
   SelectionState copyWith({
     LevelId? selectedLevelId,
     RunType? selectedRunType,
     PlayerCharacterId? selectedCharacterId,
-    EquippedLoadoutDef? equippedLoadout,
+    Map<PlayerCharacterId, EquippedLoadoutDef>? loadoutsByCharacter,
     String? buildName,
   }) {
     return SelectionState(
       selectedLevelId: selectedLevelId ?? this.selectedLevelId,
       selectedRunType: selectedRunType ?? this.selectedRunType,
       selectedCharacterId: selectedCharacterId ?? this.selectedCharacterId,
-      equippedLoadout: equippedLoadout ?? this.equippedLoadout,
+      loadoutsByCharacter: loadoutsByCharacter ?? this.loadoutsByCharacter,
       buildName: buildName == null
           ? this.buildName
           : normalizeBuildName(buildName),
     );
+  }
+
+  SelectionState withLoadoutFor(
+    PlayerCharacterId id,
+    EquippedLoadoutDef loadout,
+  ) {
+    final next = Map<PlayerCharacterId, EquippedLoadoutDef>.from(
+      loadoutsByCharacter,
+    );
+    next[id] = loadout;
+    return copyWith(loadoutsByCharacter: next);
   }
 
   Map<String, Object?> toJson() {
@@ -61,7 +78,10 @@ class SelectionState {
       'levelId': selectedLevelId.name,
       'runType': selectedRunType.name,
       'characterId': selectedCharacterId.name,
-      'loadout': _loadoutToJson(equippedLoadout),
+      'loadoutsByCharacter': <String, Object?>{
+        for (final id in PlayerCharacterId.values)
+          id.name: _loadoutToJson(loadoutFor(id)),
+      },
       'buildName': buildName,
     };
   }
@@ -82,7 +102,21 @@ class SelectionState {
       json['characterId'] as String?,
       PlayerCharacterId.eloise,
     );
-    final loadout = _loadoutFromJson(json['loadout']);
+    final baseLoadout = json.containsKey('loadout')
+        ? _loadoutFromJson(json['loadout'])
+        : const EquippedLoadoutDef();
+    final loadouts = _seedLoadoutsWith(baseLoadout);
+    final loadoutsRaw = json['loadoutsByCharacter'];
+    if (loadoutsRaw is Map) {
+      for (final id in PlayerCharacterId.values) {
+        final raw = loadoutsRaw[id.name];
+        if (raw is Map<String, dynamic>) {
+          loadouts[id] = _loadoutFromJson(raw);
+        } else if (raw is Map) {
+          loadouts[id] = _loadoutFromJson(Map<String, dynamic>.from(raw));
+        }
+      }
+    }
     final buildName = normalizeBuildName(
       json['buildName'] is String ? json['buildName'] as String : null,
     );
@@ -91,7 +125,7 @@ class SelectionState {
       selectedLevelId: levelId,
       selectedRunType: runType,
       selectedCharacterId: characterId,
-      equippedLoadout: loadout,
+      loadoutsByCharacter: loadouts,
       buildName: buildName,
     );
   }
@@ -102,6 +136,23 @@ class SelectionState {
     if (trimmed.length <= buildNameMaxLength) return trimmed;
     return trimmed.substring(0, buildNameMaxLength);
   }
+}
+
+Map<PlayerCharacterId, EquippedLoadoutDef> _seedLoadoutsWith(
+  EquippedLoadoutDef loadout,
+) {
+  return <PlayerCharacterId, EquippedLoadoutDef>{
+    for (final id in PlayerCharacterId.values) id: loadout,
+  };
+}
+
+Map<PlayerCharacterId, EquippedLoadoutDef> _ensureLoadoutsForAllCharacters(
+  Map<PlayerCharacterId, EquippedLoadoutDef> source,
+) {
+  return <PlayerCharacterId, EquippedLoadoutDef>{
+    for (final id in PlayerCharacterId.values)
+      id: source[id] ?? const EquippedLoadoutDef(),
+  };
 }
 
 T _enumFromName<T extends Enum>(List<T> values, String? name, T fallback) {

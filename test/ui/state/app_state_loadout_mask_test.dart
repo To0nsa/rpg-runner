@@ -33,8 +33,11 @@ void main() {
           const EquippedLoadoutDef(mask: LoadoutSlotMask.defaultMask),
         );
 
-        expect(appState.selection.equippedLoadout.mask, LoadoutSlotMask.all);
-        expect(selectionStore.saved.equippedLoadout.mask, LoadoutSlotMask.all);
+        expect(_selectedLoadout(appState.selection).mask, LoadoutSlotMask.all);
+        expect(
+          _selectedLoadout(selectionStore.saved).mask,
+          LoadoutSlotMask.all,
+        );
       },
     );
 
@@ -47,11 +50,11 @@ void main() {
       );
 
       expect(
-        appState.selection.equippedLoadout.abilityPrimaryId,
+        _selectedLoadout(appState.selection).abilityPrimaryId,
         'eloise.bloodletter_slash',
       );
       expect(
-        selectionStore.saved.equippedLoadout.abilityPrimaryId,
+        _selectedLoadout(selectionStore.saved).abilityPrimaryId,
         'eloise.bloodletter_slash',
       );
     });
@@ -67,11 +70,11 @@ void main() {
         );
 
         expect(
-          appState.selection.equippedLoadout.abilitySpellId,
+          _selectedLoadout(appState.selection).abilitySpellId,
           'eloise.arcane_haste',
         );
         expect(
-          selectionStore.saved.equippedLoadout.abilitySpellId,
+          _selectedLoadout(selectionStore.saved).abilitySpellId,
           'eloise.arcane_haste',
         );
       },
@@ -88,11 +91,11 @@ void main() {
         );
 
         expect(
-          appState.selection.equippedLoadout.projectileSlotSpellId,
+          _selectedLoadout(appState.selection).projectileSlotSpellId,
           ProjectileId.fireBolt,
         );
         expect(
-          selectionStore.saved.equippedLoadout.projectileSlotSpellId,
+          _selectedLoadout(selectionStore.saved).projectileSlotSpellId,
           ProjectileId.fireBolt,
         );
       },
@@ -124,11 +127,11 @@ void main() {
         );
 
         expect(
-          appState.selection.equippedLoadout.projectileSlotSpellId,
+          _selectedLoadout(appState.selection).projectileSlotSpellId,
           ProjectileId.iceBolt,
         );
         expect(
-          selectionStore.saved.equippedLoadout.projectileSlotSpellId,
+          _selectedLoadout(selectionStore.saved).projectileSlotSpellId,
           ProjectileId.iceBolt,
         );
       },
@@ -159,19 +162,19 @@ void main() {
         );
 
         expect(
-          appState.selection.equippedLoadout.projectileId,
+          _selectedLoadout(appState.selection).projectileId,
           ProjectileId.throwingAxe,
         );
         expect(
-          appState.selection.equippedLoadout.spellBookId,
+          _selectedLoadout(appState.selection).spellBookId,
           SpellBookId.solidSpellBook,
         );
         expect(
-          selectionStore.saved.equippedLoadout.projectileId,
+          _selectedLoadout(selectionStore.saved).projectileId,
           ProjectileId.throwingAxe,
         );
         expect(
-          selectionStore.saved.equippedLoadout.spellBookId,
+          _selectedLoadout(selectionStore.saved).spellBookId,
           SpellBookId.solidSpellBook,
         );
       },
@@ -198,7 +201,7 @@ void main() {
           const EquippedLoadoutDef(abilitySpellId: 'eloise.vital_surge'),
         );
         expect(
-          appState.selection.equippedLoadout.abilitySpellId,
+          _selectedLoadout(appState.selection).abilitySpellId,
           'eloise.vital_surge',
         );
 
@@ -209,11 +212,11 @@ void main() {
         );
 
         expect(
-          appState.selection.equippedLoadout.abilitySpellId,
+          _selectedLoadout(appState.selection).abilitySpellId,
           'eloise.arcane_haste',
         );
         expect(
-          selectionStore.saved.equippedLoadout.abilitySpellId,
+          _selectedLoadout(selectionStore.saved).abilitySpellId,
           'eloise.arcane_haste',
         );
       },
@@ -240,7 +243,7 @@ void main() {
           const EquippedLoadoutDef(projectileSlotSpellId: ProjectileId.iceBolt),
         );
         expect(
-          appState.selection.equippedLoadout.projectileSlotSpellId,
+          _selectedLoadout(appState.selection).projectileSlotSpellId,
           ProjectileId.iceBolt,
         );
 
@@ -251,11 +254,11 @@ void main() {
         );
 
         expect(
-          appState.selection.equippedLoadout.projectileSlotSpellId,
+          _selectedLoadout(appState.selection).projectileSlotSpellId,
           ProjectileId.fireBolt,
         );
         expect(
-          selectionStore.saved.equippedLoadout.projectileSlotSpellId,
+          _selectedLoadout(selectionStore.saved).projectileSlotSpellId,
           ProjectileId.fireBolt,
         );
       },
@@ -284,9 +287,12 @@ void main() {
             selectedLevelId: SelectionState.defaults.selectedLevelId,
             selectedRunType: SelectionState.defaults.selectedRunType,
             selectedCharacterId: PlayerCharacterId.eloise,
-            equippedLoadout: EquippedLoadoutDef(
-              projectileId: ProjectileId.throwingKnife,
-              spellBookId: SpellBookId.basicSpellBook,
+            loadoutsByCharacter: _loadoutsWithSelected(
+              characterId: PlayerCharacterId.eloise,
+              loadout: EquippedLoadoutDef(
+                projectileId: ProjectileId.throwingKnife,
+                spellBookId: SpellBookId.basicSpellBook,
+              ),
             ),
             buildName: SelectionState.defaultBuildName,
           ),
@@ -302,19 +308,19 @@ void main() {
         await appState.bootstrap(force: true);
 
         expect(
-          appState.selection.equippedLoadout.projectileId,
+          _selectedLoadout(appState.selection).projectileId,
           ProjectileId.throwingAxe,
         );
         expect(
-          appState.selection.equippedLoadout.spellBookId,
+          _selectedLoadout(appState.selection).spellBookId,
           SpellBookId.solidSpellBook,
         );
         expect(
-          selectionStore.saved.equippedLoadout.projectileId,
+          _selectedLoadout(selectionStore.saved).projectileId,
           ProjectileId.throwingAxe,
         );
         expect(
-          selectionStore.saved.equippedLoadout.spellBookId,
+          _selectedLoadout(selectionStore.saved).spellBookId,
           SpellBookId.solidSpellBook,
         );
       },
@@ -326,8 +332,11 @@ void main() {
           selectedLevelId: SelectionState.defaults.selectedLevelId,
           selectedRunType: SelectionState.defaults.selectedRunType,
           selectedCharacterId: PlayerCharacterId.eloise,
-          equippedLoadout: const EquippedLoadoutDef(
-            abilityPrimaryId: 'common.unarmed_strike',
+          loadoutsByCharacter: _loadoutsWithSelected(
+            characterId: PlayerCharacterId.eloise,
+            loadout: const EquippedLoadoutDef(
+              abilityPrimaryId: 'common.unarmed_strike',
+            ),
           ),
           buildName: SelectionState.defaultBuildName,
         ),
@@ -345,15 +354,29 @@ void main() {
       await appState.bootstrap(force: true);
 
       expect(
-        appState.selection.equippedLoadout.abilityPrimaryId,
+        _selectedLoadout(appState.selection).abilityPrimaryId,
         'eloise.bloodletter_slash',
       );
       expect(
-        selectionStore.saved.equippedLoadout.abilityPrimaryId,
+        _selectedLoadout(selectionStore.saved).abilityPrimaryId,
         'eloise.bloodletter_slash',
       );
     });
   });
+}
+
+EquippedLoadoutDef _selectedLoadout(SelectionState state) {
+  return state.loadoutFor(state.selectedCharacterId);
+}
+
+Map<PlayerCharacterId, EquippedLoadoutDef> _loadoutsWithSelected({
+  required PlayerCharacterId characterId,
+  required EquippedLoadoutDef loadout,
+}) {
+  return <PlayerCharacterId, EquippedLoadoutDef>{
+    for (final id in PlayerCharacterId.values)
+      id: id == characterId ? loadout : const EquippedLoadoutDef(),
+  };
 }
 
 class _MemorySelectionStore extends SelectionStore {

@@ -69,7 +69,7 @@ class AppState extends ChangeNotifier {
     _selection = loadedSelection;
     _meta = loadedMeta;
     _profile = loadedProfile;
-    await _normalizeSelectionLoadoutIfNeeded();
+    await _normalizeSelectionLoadoutsIfNeeded();
     _bootstrapped = true;
     notifyListeners();
   }
@@ -97,24 +97,22 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> setCharacter(PlayerCharacterId id) async {
-    final normalizedLoadout = _normalizeLoadoutForCharacter(
-      _selection.equippedLoadout,
-      id,
-    );
-    _selection = _selection.copyWith(
-      selectedCharacterId: id,
-      equippedLoadout: normalizedLoadout,
-    );
+    final currentLoadout = _selection.loadoutFor(id);
+    final normalizedLoadout = _normalizeLoadoutForCharacter(currentLoadout, id);
+    _selection = _selection
+        .withLoadoutFor(id, normalizedLoadout)
+        .copyWith(selectedCharacterId: id);
     _persistSelection();
     notifyListeners();
   }
 
   Future<void> setLoadout(EquippedLoadoutDef loadout) async {
+    final characterId = _selection.selectedCharacterId;
     final normalizedLoadout = _normalizeLoadoutForCharacter(
       loadout,
-      _selection.selectedCharacterId,
+      characterId,
     );
-    _selection = _selection.copyWith(equippedLoadout: normalizedLoadout);
+    _selection = _selection.withLoadoutFor(characterId, normalizedLoadout);
     _persistSelection();
     notifyListeners();
   }
@@ -132,15 +130,11 @@ class AppState extends ChangeNotifier {
     );
     _meta = next;
     _persistMeta();
-    if (characterId == _selection.selectedCharacterId) {
-      final synced = _normalizeLoadoutForCharacter(
-        _selection.equippedLoadout,
-        characterId,
-      );
-      if (!_sameLoadout(_selection.equippedLoadout, synced)) {
-        _selection = _selection.copyWith(equippedLoadout: synced);
-        _persistSelection();
-      }
+    final currentLoadout = _selection.loadoutFor(characterId);
+    final synced = _normalizeLoadoutForCharacter(currentLoadout, characterId);
+    if (!_sameLoadout(currentLoadout, synced)) {
+      _selection = _selection.withLoadoutFor(characterId, synced);
+      _persistSelection();
     }
     notifyListeners();
   }
@@ -193,9 +187,10 @@ class AppState extends ChangeNotifier {
   }
 
   EquippedLoadoutDef _buildRunEquippedLoadout() {
+    final characterId = _selection.selectedCharacterId;
     return _normalizeLoadoutForCharacter(
-      _selection.equippedLoadout,
-      _selection.selectedCharacterId,
+      _selection.loadoutFor(characterId),
+      characterId,
     );
   }
 
@@ -219,13 +214,21 @@ class AppState extends ChangeNotifier {
     _profileStore.save(_profile);
   }
 
-  Future<void> _normalizeSelectionLoadoutIfNeeded() async {
-    final normalizedLoadout = _normalizeLoadoutForCharacter(
-      _selection.equippedLoadout,
-      _selection.selectedCharacterId,
-    );
-    if (_sameLoadout(normalizedLoadout, _selection.equippedLoadout)) return;
-    _selection = _selection.copyWith(equippedLoadout: normalizedLoadout);
+  Future<void> _normalizeSelectionLoadoutsIfNeeded() async {
+    var changed = false;
+    var normalizedSelection = _selection;
+    for (final characterId in PlayerCharacterId.values) {
+      final current = normalizedSelection.loadoutFor(characterId);
+      final normalized = _normalizeLoadoutForCharacter(current, characterId);
+      if (_sameLoadout(current, normalized)) continue;
+      normalizedSelection = normalizedSelection.withLoadoutFor(
+        characterId,
+        normalized,
+      );
+      changed = true;
+    }
+    if (!changed) return;
+    _selection = normalizedSelection;
     await _selectionStore.save(_selection);
   }
 

@@ -50,7 +50,8 @@ class _AbilityPickerDialogState extends State<_AbilityPickerDialog> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_seeded) return;
-    final loadout = context.read<AppState>().selection.equippedLoadout;
+    final selection = context.read<AppState>().selection;
+    final loadout = selection.loadoutFor(widget.characterId);
     _selectedAbilityId = abilityIdForSlot(loadout, widget.slot);
     _selectedSourceSpellId = _initialSourceSpellId(loadout, widget.slot);
     _spellBookExpanded = _selectedSourceSpellId != null;
@@ -62,7 +63,7 @@ class _AbilityPickerDialogState extends State<_AbilityPickerDialog> {
     final ui = context.ui;
     final media = MediaQuery.of(context);
     final appState = context.watch<AppState>();
-    final rawLoadout = appState.selection.equippedLoadout;
+    final rawLoadout = appState.selection.loadoutFor(widget.characterId);
     final loadout = normalizeLoadoutMaskForCharacter(
       characterId: widget.characterId,
       loadout: rawLoadout,
