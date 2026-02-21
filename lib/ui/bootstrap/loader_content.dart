@@ -4,14 +4,16 @@ import 'package:flutter/material.dart';
 class LoaderContent extends StatelessWidget {
   const LoaderContent({
     super.key,
-    this.title = 'Éloïse: long run',
-    this.subtitle = 'Loading...',
+    this.title = 'The Long Run',
+    this.subtitle = 'Lothringen',
+    this.loadingMessage = 'Loading...',
     this.errorMessage,
     this.onContinue,
   });
 
   final String title;
   final String subtitle;
+  final String loadingMessage;
   final String? errorMessage;
   final VoidCallback? onContinue;
 
@@ -22,6 +24,17 @@ class LoaderContent extends StatelessWidget {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
+        Text(
+          subtitle,
+          // Game subtitle style only used here.
+          style: const TextStyle(
+            fontFamily: 'Cinzel',
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+            letterSpacing: 2,
+          ),
+        ),
         Text(
           title,
           // Game title style only used here.
@@ -37,7 +50,7 @@ class LoaderContent extends StatelessWidget {
         if (!_hasError) ...[
           const CircularProgressIndicator(color: Colors.white),
           const SizedBox(height: 16),
-          Text(subtitle, style: const TextStyle(color: Colors.white70)),
+          Text(loadingMessage, style: const TextStyle(color: Colors.white70)),
         ],
         if (_hasError) ...[
           const Text(

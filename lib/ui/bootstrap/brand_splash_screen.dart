@@ -29,7 +29,7 @@ class _BrandSplashScreenState extends State<BrandSplashScreen> {
       backgroundColor: Colors.black,
       body: Center(
         child: Text(
-          'ToonsaCorp',
+          'Luxis Games',
           style: Theme.of(context).textTheme.headlineLarge?.copyWith(
             color: Colors.white,
             fontWeight: FontWeight.bold,
