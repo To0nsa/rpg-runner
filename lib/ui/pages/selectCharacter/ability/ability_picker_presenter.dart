@@ -1,3 +1,12 @@
+// Presenter helpers for ability selection UI.
+//
+// This file translates authoritative Core loadout/catalog data into UI-facing
+// models, runs trial-loadout legality checks through `LoadoutValidator`, and
+// provides immutable slot update helpers for widgets.
+//
+// Keeping this logic centralized ensures picker screens stay aligned with Core
+// rules (visibility, legality, and source constraints) without mutating
+// loadouts directly in widget code.
 import '../../../../core/abilities/ability_catalog.dart';
 import '../../../../core/abilities/ability_def.dart';
 import '../../../../core/accessories/accessory_id.dart';
@@ -24,6 +33,9 @@ const LoadoutValidator _loadoutValidator = LoadoutValidator(
 );
 
 /// Display model for one ability option in a picker.
+///
+/// [isEnabled] represents legality for the current trial loadout, not unlock
+/// ownership. UI can still render disabled entries for discoverability.
 class AbilityPickerCandidate {
   const AbilityPickerCandidate({
     required this.id,
@@ -44,12 +56,10 @@ class ProjectileSourceOption {
   const ProjectileSourceOption({
     required this.spellId,
     required this.displayName,
-    required this.isSpell,
   });
 
   final ProjectileId? spellId;
   final String displayName;
-  final bool isSpell;
 }
 
 /// Display model for the left projectile source panel.
@@ -84,9 +94,10 @@ class ProjectileSpellOption {
   final String displayName;
 }
 
-/// Returns all legal ability candidates for [slot] under the current loadout.
+/// Returns all visible ability candidates for [slot] under the current loadout.
 ///
 /// Legality is validated through [LoadoutValidator] so UI remains Core-driven.
+/// The returned list is sorted by id for deterministic UI ordering.
 List<AbilityPickerCandidate> abilityCandidatesForSlot({
   required PlayerCharacterId characterId,
   required AbilitySlot slot,
@@ -107,6 +118,9 @@ List<AbilityPickerCandidate> abilityCandidatesForSlot({
 
   final equippedAbilityId = abilityIdForSlot(normalizedLoadout, slot);
   final equippedAbility = _abilityCatalog.resolve(equippedAbilityId);
+  // Keep currently equipped ability visible even when character visibility
+  // rules changed, so the player can always see and replace invalid legacy
+  // selections.
   if (equippedAbility != null &&
       !candidates.any((def) => def.id == equippedAbility.id)) {
     candidates.add(equippedAbility);
@@ -148,7 +162,6 @@ EquippedLoadoutDef normalizeLoadoutMaskForCharacter({
 ProjectileSourcePanelModel projectileSourcePanelModel(
   EquippedLoadoutDef loadout,
 ) {
-  final _ = _projectileCatalog.get(loadout.projectileId);
   final spellBook = _spellBookCatalog.get(loadout.spellBookId);
   final spellOptions = <ProjectileSpellOption>[];
   for (final spellId in spellBook.projectileSpellIds) {
@@ -170,6 +183,8 @@ ProjectileSourcePanelModel projectileSourcePanelModel(
 }
 
 /// Returns flat projectile source options for compatibility with existing call sites.
+///
+/// `spellId == null` always represents the equipped throwing weapon source.
 List<ProjectileSourceOption> projectileSourceOptions(
   EquippedLoadoutDef loadout,
 ) {
@@ -178,7 +193,6 @@ List<ProjectileSourceOption> projectileSourceOptions(
     ProjectileSourceOption(
       spellId: null,
       displayName: sourceModel.throwingWeaponDisplayName,
-      isSpell: false,
     ),
   ];
   for (final spell in sourceModel.spellOptions) {
@@ -186,7 +200,6 @@ List<ProjectileSourceOption> projectileSourceOptions(
       ProjectileSourceOption(
         spellId: spell.spellId,
         displayName: spell.displayName,
-        isSpell: true,
       ),
     );
   }
@@ -259,6 +272,9 @@ EquippedLoadoutDef setProjectileSourceForSlot(
   }
 }
 
+/// Returns whether [id] should appear in the picker for [characterId].
+///
+/// Character-prefixed and non-enemy common abilities are visible.
 bool _isAbilityVisibleForCharacter(
   PlayerCharacterId characterId,
   AbilityKey id,
@@ -275,6 +291,7 @@ bool _isAbilityLegalForSlot({
   required ProjectileId? selectedSourceSpellId,
   required bool overrideSelectedSource,
 }) {
+  // Validate a trial loadout so legality always mirrors Core loadout rules.
   var trial = setAbilityForSlot(loadout, slot: slot, abilityId: abilityId);
   if (overrideSelectedSource && slot == AbilitySlot.projectile) {
     trial = setProjectileSourceForSlot(
@@ -290,6 +307,10 @@ bool _isAbilityLegalForSlot({
   return true;
 }
 
+/// Copies [loadout] while preserving omitted fields.
+///
+/// [projectileSlotSpellId] uses [_keepValue] to distinguish "leave unchanged"
+/// from an intentional `null` assignment.
 EquippedLoadoutDef _copyLoadout(
   EquippedLoadoutDef loadout, {
   int? mask,
@@ -325,4 +346,5 @@ EquippedLoadoutDef _copyLoadout(
   );
 }
 
+/// Sentinel used by [_copyLoadout] for nullable override semantics.
 const Object _keepValue = Object();
