@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -115,7 +113,10 @@ class _SkillsBarState extends State<SkillsBar> {
                 ),
               ),
               SizedBox(width: layout.gap),
-              Expanded(child: SkillsDetailsPane(tooltip: tooltip)),
+              SizedBox(
+                width: layout.detailsWidth,
+                child: SkillsDetailsPane(tooltip: tooltip),
+              ),
               SizedBox(width: layout.gap),
               SizedBox(
                 width: layout.radialWidth,
@@ -270,36 +271,34 @@ class _SkillsBarState extends State<SkillsBar> {
 class _SkillsLayoutSpec {
   const _SkillsLayoutSpec({
     required this.listWidth,
+    required this.detailsWidth,
     required this.radialWidth,
     required this.gap,
   });
 
   final double listWidth;
+  final double detailsWidth;
   final double radialWidth;
   final double gap;
 }
 
 /// Computes side-panel widths for the skills screen at [width].
 ///
-/// Guarantees a minimum center pane width so details remain readable.
+/// Uses tunable ratios across list, details, and radial columns.
 _SkillsLayoutSpec _skillsLayoutForWidth(double width) {
-  final gap = width < 420 ? 4.0 : (width < 760 ? 6.0 : 10.0);
-  var listWidth = (width * (width < 760 ? 0.33 : 0.30))
-      .clamp(100.0, 300.0)
-      .toDouble();
-  var radialWidth = (width * (width < 760 ? 0.28 : 0.26))
-      .clamp(84.0, 240.0)
-      .toDouble();
-  final minMiddle = width < 760 ? 120.0 : 210.0;
-  final maxSideTotal = math.max(140.0, width - minMiddle - (gap * 2));
-  final sideTotal = listWidth + radialWidth;
-  if (sideTotal > maxSideTotal) {
-    final scale = maxSideTotal / sideTotal;
-    listWidth *= scale;
-    radialWidth *= scale;
-  }
+  const gap = 8.0;
+  const listRatio = 0.31;
+  const detailsRatio = 0.44;
+  const radialRatio = 0.25;
+  const ratioTotal = listRatio + detailsRatio + radialRatio;
+  final contentWidth =
+      (width - (gap * 2)).clamp(0.0, double.infinity).toDouble();
+  final listWidth = contentWidth * (listRatio / ratioTotal);
+  final detailsWidth = contentWidth * (detailsRatio / ratioTotal);
+  final radialWidth = contentWidth * (radialRatio / ratioTotal);
   return _SkillsLayoutSpec(
     listWidth: listWidth,
+    detailsWidth: detailsWidth,
     radialWidth: radialWidth,
     gap: gap,
   );

@@ -49,7 +49,7 @@ class SkillsListPane extends StatelessWidget {
           Align(
             alignment: Alignment.center,
             child: Text(
-              '${_slotTitle(selectedSlot)} Abilities',
+              '${_slotTitle(selectedSlot).toUpperCase()} SKILLS',
               style: titleStyle,
               textAlign: TextAlign.center,
               maxLines: 1,
