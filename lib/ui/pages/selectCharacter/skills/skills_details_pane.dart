@@ -43,9 +43,26 @@ class _AbilityDetailsPane extends StatelessWidget {
               tooltip!.title,
               style: ui.text.headline.copyWith(color: ui.colors.textPrimary),
             ),
+            if (tooltip!.cooldownSeconds != null) ...[
+              SizedBox(height: ui.space.xxs),
+              _DetailsMetricLine(
+                label: 'Cooldown: ',
+                value:
+                    '${_formatCooldownSeconds(tooltip!.cooldownSeconds!)} sec',
+              ),
+            ],
+            if (tooltip!.costLines.isNotEmpty) ...[
+              for (final costLine in tooltip!.costLines) ...[
+                SizedBox(height: ui.space.xxs),
+                _DetailsMetricLine(
+                  label: costLine.label,
+                  value: costLine.value,
+                ),
+              ],
+            ],
             SizedBox(height: ui.space.xxs),
             Text(
-              tooltip!.subtitle,
+              tooltip!.description,
               style: ui.text.body.copyWith(color: ui.colors.textMuted),
             ),
             if (tooltip!.badges.isNotEmpty) ...[
@@ -64,6 +81,41 @@ class _AbilityDetailsPane extends StatelessWidget {
       ),
     );
   }
+}
+
+class _DetailsMetricLine extends StatelessWidget {
+  const _DetailsMetricLine({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final ui = context.ui;
+    return Text.rich(
+      TextSpan(
+        style: ui.text.body.copyWith(color: ui.colors.textMuted),
+        children: [
+          TextSpan(text: label),
+          TextSpan(
+            text: value,
+            style: ui.text.body.copyWith(
+              color: ui.colors.success,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _formatCooldownSeconds(double seconds) {
+  final formatted = seconds.toStringAsFixed(1);
+  if (formatted.endsWith('.0')) {
+    return formatted.substring(0, formatted.length - 2);
+  }
+  return formatted;
 }
 
 class _AbilityBadge extends StatelessWidget {

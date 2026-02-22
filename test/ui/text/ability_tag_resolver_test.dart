@@ -16,64 +16,24 @@ void main() {
   }
 
   group('ability tag resolver', () {
-    test(
-      'derives melee hold-release slash as offense multi-target dot aimed',
-      () {
-        final tags = resolver.resolve(ability('eloise.bloodletter_slash'));
+    test('derives melee hold-release slash as damage aimed', () {
+      final tags = resolver.resolve(ability('eloise.bloodletter_slash'));
 
-        expect(tags, contains(AbilityUiTag.offense));
-        expect(tags, contains(AbilityUiTag.multiTarget));
-        expect(tags, contains(AbilityUiTag.dot));
-        expect(tags, contains(AbilityUiTag.aimed));
-        expect(tags, isNot(contains(AbilityUiTag.singleTarget)));
-      },
-    );
-
-    test(
-      'derives defense guard abilities as guard riposte channel stamina',
-      () {
-        final tags = resolver.resolve(ability('eloise.riposte_guard'));
-
-        expect(tags, contains(AbilityUiTag.defense));
-        expect(tags, contains(AbilityUiTag.guard));
-        expect(tags, contains(AbilityUiTag.riposte));
-        expect(tags, contains(AbilityUiTag.channel));
-        expect(tags, contains(AbilityUiTag.staminaSpend));
-      },
-    );
-
-    test('derives resource tags from context for projectile cost profiles', () {
-      final def = ability('eloise.overcharge_shot');
-      final allCosts = resolver.resolve(def);
-      final spellCost = resolver.resolve(
-        def,
-        ctx: const AbilityTagContext(
-          payloadWeaponType: WeaponType.projectileSpell,
-          resolveResourceForContextOnly: true,
-        ),
-      );
-      final throwCost = resolver.resolve(
-        def,
-        ctx: const AbilityTagContext(
-          payloadWeaponType: WeaponType.throwingWeapon,
-          resolveResourceForContextOnly: true,
-        ),
-      );
-
-      expect(allCosts, contains(AbilityUiTag.manaSpend));
-      expect(allCosts, contains(AbilityUiTag.staminaSpend));
-      expect(spellCost, contains(AbilityUiTag.manaSpend));
-      expect(spellCost, isNot(contains(AbilityUiTag.staminaSpend)));
-      expect(throwCost, contains(AbilityUiTag.staminaSpend));
-      expect(throwCost, isNot(contains(AbilityUiTag.manaSpend)));
+      expect(tags, contains(AbilityUiTag.damage));
+      expect(tags, contains(AbilityUiTag.aimed));
     });
 
-    test('derives sustain role from restorative self status', () {
+    test('derives defense tags for guard abilities', () {
+      final tags = resolver.resolve(ability('eloise.riposte_guard'));
+
+      expect(tags, contains(AbilityUiTag.defense));
+      expect(tags, contains(AbilityUiTag.hold));
+    });
+
+    test('derives utility role from restorative self status', () {
       final tags = resolver.resolve(ability('eloise.vital_surge'));
 
-      expect(tags, contains(AbilityUiTag.sustain));
-      expect(tags, isNot(contains(AbilityUiTag.utility)));
-      expect(tags, contains(AbilityUiTag.manaSpend));
+      expect(tags, contains(AbilityUiTag.utility));
     });
 
     test('derives auto-target from homing targeting model', () {
@@ -82,6 +42,40 @@ void main() {
       expect(tags, contains(AbilityUiTag.autoTarget));
       expect(tags, isNot(contains(AbilityUiTag.aimed)));
     });
+
+    test('derives dash tag for roll and dash abilities', () {
+      final rollTags = resolver.resolve(ability('eloise.roll'));
+      final dashTags = resolver.resolve(ability('eloise.dash'));
+
+      expect(rollTags, contains(AbilityUiTag.dash));
+      expect(dashTags, contains(AbilityUiTag.dash));
+      expect(rollTags, isNot(contains(AbilityUiTag.jump)));
+      expect(dashTags, isNot(contains(AbilityUiTag.jump)));
+    });
+
+    test('derives jump tag for jump abilities', () {
+      final jumpTags = resolver.resolve(ability('eloise.jump'));
+      final doubleJumpTags = resolver.resolve(ability('eloise.double_jump'));
+
+      expect(jumpTags, contains(AbilityUiTag.jump));
+      expect(doubleJumpTags, contains(AbilityUiTag.jump));
+      expect(jumpTags, isNot(contains(AbilityUiTag.dash)));
+      expect(doubleJumpTags, isNot(contains(AbilityUiTag.dash)));
+    });
+
+    test('derives hold tag for guard hold abilities', () {
+      final riposteGuardTags = resolver.resolve(
+        ability('eloise.riposte_guard'),
+      );
+      final shieldBlockTags = resolver.resolve(ability('eloise.shield_block'));
+      final aegisRiposteTags = resolver.resolve(
+        ability('eloise.aegis_riposte'),
+      );
+
+      expect(riposteGuardTags, contains(AbilityUiTag.hold));
+      expect(shieldBlockTags, contains(AbilityUiTag.hold));
+      expect(aegisRiposteTags, contains(AbilityUiTag.hold));
+    });
   });
 
   group('ability tooltip builder', () {
@@ -89,24 +83,23 @@ void main() {
       final tooltip = tooltipBuilder.build(ability('eloise.overcharge_shot'));
 
       expect(tooltip.title, 'Overcharge Bolt');
-      expect(tooltip.badges, contains('Charge'));
-      expect(tooltip.badges, contains('Burst'));
+      expect(tooltip.badges, contains('CHARGED'));
     });
 
-    test('builds guard subtitle from defensive mechanics', () {
+    test('builds guard description from defensive mechanics', () {
       final tooltip = tooltipBuilder.build(ability('eloise.shield_block'));
 
-      expect(tooltip.subtitle, contains('guard'));
-      expect(tooltip.subtitle, contains('100%'));
+      expect(tooltip.description, contains('guard'));
+      expect(tooltip.description, contains('100%'));
     });
 
-    test('builds self-status subtitle from status profile metadata', () {
+    test('builds self-status description from status profile metadata', () {
       final tooltip = tooltipBuilder.build(ability('eloise.vital_surge'));
 
-      expect(tooltip.subtitle, equals('Tap to gain Health Regen for 5.0s.'));
+      expect(tooltip.description, equals('Tap to gain Health Regen for 5.0s.'));
     });
 
-    test('uses projectile source context in ranged fallback subtitle', () {
+    test('uses projectile source context in ranged fallback description', () {
       final tooltip = tooltipBuilder.build(
         ability('eloise.snap_shot'),
         ctx: const AbilityTooltipContext(
@@ -115,7 +108,71 @@ void main() {
         ),
       );
 
-      expect(tooltip.subtitle, contains('selected spell projectile'));
+      expect(tooltip.description, contains('selected spell projectile'));
+    });
+
+    test('maps authored cooldown ticks to seconds', () {
+      final tooltip = tooltipBuilder.build(ability('eloise.vital_surge'));
+
+      expect(tooltip.cooldownSeconds, 7);
+    });
+
+    test('keeps cooldown null when authored cooldown is zero', () {
+      final tooltip = tooltipBuilder.build(ability('eloise.jump'));
+
+      expect(tooltip.cooldownSeconds, isNull);
+    });
+
+    test('maps authored resource cost to one cost line', () {
+      final tooltip = tooltipBuilder.build(ability('eloise.vital_surge'));
+
+      expect(tooltip.costLines, hasLength(1));
+      expect(tooltip.costLines.single.label, equals('Cost: '));
+      expect(tooltip.costLines.single.value, equals('15 Mana'));
+    });
+
+    test('resolves cost line from payload weapon context', () {
+      final def = ability('eloise.snap_shot');
+
+      final spellTooltip = tooltipBuilder.build(
+        def,
+        ctx: const AbilityTooltipContext(
+          payloadWeaponType: WeaponType.projectileSpell,
+        ),
+      );
+      final throwTooltip = tooltipBuilder.build(
+        def,
+        ctx: const AbilityTooltipContext(
+          payloadWeaponType: WeaponType.throwingWeapon,
+        ),
+      );
+
+      expect(spellTooltip.costLines.single.value, equals('6 Mana'));
+      expect(throwTooltip.costLines.single.value, equals('6 Stamina'));
+    });
+
+    test('keeps cost lines empty when authored cost is zero', () {
+      final tooltip = tooltipBuilder.build(ability('common.enemy_strike'));
+
+      expect(tooltip.costLines, isEmpty);
+    });
+
+    test('uses first and second jump cost lines for double jump', () {
+      final tooltip = tooltipBuilder.build(ability('eloise.double_jump'));
+
+      expect(tooltip.costLines, hasLength(2));
+      expect(tooltip.costLines.first.label, equals('Cost for first jump: '));
+      expect(tooltip.costLines.first.value, equals('2 Stamina'));
+      expect(tooltip.costLines.last.label, equals('Cost for second jump: '));
+      expect(tooltip.costLines.last.value, equals('2 Mana'));
+    });
+
+    test('uses cost per second line for hold abilities', () {
+      final tooltip = tooltipBuilder.build(ability('eloise.shield_block'));
+
+      expect(tooltip.costLines, hasLength(1));
+      expect(tooltip.costLines.single.label, equals('Cost per second: '));
+      expect(tooltip.costLines.single.value, equals('7 Stamina'));
     });
   });
 }

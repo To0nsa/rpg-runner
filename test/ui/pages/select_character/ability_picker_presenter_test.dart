@@ -19,7 +19,6 @@ void main() {
 
         expect(options, isNotEmpty);
         expect(options.first.spellId, isNull);
-        expect(options.first.isSpell, isFalse);
         expect(options.any((o) => o.spellId == ProjectileId.fireBolt), isTrue);
         expect(options.any((o) => o.spellId == ProjectileId.iceBolt), isFalse);
         expect(
