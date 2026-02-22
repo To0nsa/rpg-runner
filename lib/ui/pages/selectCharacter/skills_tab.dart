@@ -91,14 +91,6 @@ class _SkillsBarState extends State<SkillsBar> {
                   selectedSlot: _selectedSlot,
                   candidates: candidates,
                   selectedAbilityId: inspectedAbilityId,
-                  panePadding: ui.space.xs,
-                  sectionSpacing: ui.space.xxs,
-                  titleStyle: ui.text.body.copyWith(
-                    color: ui.colors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                  tileHorizontalPadding: ui.space.xs,
-                  tileVerticalPadding: ui.space.xxs,
                   onSelectAbility: (candidate) => _onSelectAbility(
                     appState: appState,
                     loadout: loadout,
@@ -291,8 +283,9 @@ _SkillsLayoutSpec _skillsLayoutForWidth(double width) {
   const detailsRatio = 0.44;
   const radialRatio = 0.25;
   const ratioTotal = listRatio + detailsRatio + radialRatio;
-  final contentWidth =
-      (width - (gap * 2)).clamp(0.0, double.infinity).toDouble();
+  final contentWidth = (width - (gap * 2))
+      .clamp(0.0, double.infinity)
+      .toDouble();
   final listWidth = contentWidth * (listRatio / ratioTotal);
   final detailsWidth = contentWidth * (detailsRatio / ratioTotal);
   final radialWidth = contentWidth * (radialRatio / ratioTotal);

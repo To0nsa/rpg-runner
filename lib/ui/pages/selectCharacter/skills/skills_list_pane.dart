@@ -13,11 +13,6 @@ class SkillsListPane extends StatelessWidget {
     required this.selectedSlot,
     required this.candidates,
     required this.selectedAbilityId,
-    required this.panePadding,
-    required this.sectionSpacing,
-    required this.titleStyle,
-    required this.tileHorizontalPadding,
-    required this.tileVerticalPadding,
     required this.onSelectAbility,
     required this.onSelectProjectileSource,
   });
@@ -25,11 +20,6 @@ class SkillsListPane extends StatelessWidget {
   final AbilitySlot selectedSlot;
   final List<AbilityPickerCandidate> candidates;
   final AbilityKey? selectedAbilityId;
-  final double panePadding;
-  final double sectionSpacing;
-  final TextStyle titleStyle;
-  final double tileHorizontalPadding;
-  final double tileVerticalPadding;
   final ValueChanged<AbilityPickerCandidate> onSelectAbility;
   final VoidCallback? onSelectProjectileSource;
 
@@ -42,7 +32,7 @@ class SkillsListPane extends StatelessWidget {
         borderRadius: BorderRadius.circular(ui.radii.md),
         border: Border.all(color: ui.colors.outline.withValues(alpha: 0.25)),
       ),
-      padding: EdgeInsets.all(panePadding),
+      padding: EdgeInsets.all(ui.space.xs),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -50,13 +40,16 @@ class SkillsListPane extends StatelessWidget {
             alignment: Alignment.center,
             child: Text(
               '${_slotTitle(selectedSlot).toUpperCase()} SKILLS',
-              style: titleStyle,
+              style: ui.text.body.copyWith(
+                color: ui.colors.textPrimary,
+                fontWeight: FontWeight.w700,
+              ),
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          SizedBox(height: sectionSpacing),
+          SizedBox(height: ui.space.xxs),
           if (onSelectProjectileSource != null) ...[
             Align(
               alignment: Alignment.center,
@@ -67,13 +60,13 @@ class SkillsListPane extends StatelessWidget {
                 onPressed: onSelectProjectileSource,
               ),
             ),
-            SizedBox(height: sectionSpacing),
+            SizedBox(height: ui.space.xxs),
           ],
-          SizedBox(height: sectionSpacing),
+          SizedBox(height: ui.space.xxs),
           Expanded(
             child: ListView.separated(
               itemCount: candidates.length,
-              separatorBuilder: (_, _) => SizedBox(height: sectionSpacing),
+              separatorBuilder: (_, _) => SizedBox(height: ui.space.xxs),
               itemBuilder: (context, index) {
                 final candidate = candidates[index];
                 final selected = candidate.id == selectedAbilityId;
@@ -81,8 +74,6 @@ class SkillsListPane extends StatelessWidget {
                   title: abilityDisplayName(candidate.id),
                   selected: selected,
                   enabled: candidate.isEnabled,
-                  tileHorizontalPadding: tileHorizontalPadding,
-                  tileVerticalPadding: tileVerticalPadding,
                   onTap: () => onSelectAbility(candidate),
                 );
               },
@@ -130,7 +121,12 @@ class SkillsProjectileSourceTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(ui.radii.sm),
             border: Border.all(color: borderColor),
           ),
-          child: _tileTitleContent(context: context, title: title),
+          child: Text(
+            title,
+            style: ui.text.body.copyWith(color: ui.colors.textPrimary),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
       ),
     );
@@ -142,16 +138,12 @@ class _AbilityListTile extends StatelessWidget {
     required this.title,
     required this.selected,
     required this.enabled,
-    required this.tileHorizontalPadding,
-    required this.tileVerticalPadding,
     required this.onTap,
   });
 
   final String title;
   final bool selected;
   final bool enabled;
-  final double tileHorizontalPadding;
-  final double tileVerticalPadding;
   final VoidCallback onTap;
 
   @override
@@ -173,55 +165,38 @@ class _AbilityListTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(ui.radii.sm),
           child: Container(
             padding: EdgeInsets.symmetric(
-              horizontal: tileHorizontalPadding,
-              vertical: tileVerticalPadding,
+              horizontal: ui.space.xs,
+              vertical: ui.space.xxs,
             ),
             decoration: BoxDecoration(
               color: fillColor,
               borderRadius: BorderRadius.circular(ui.radii.sm),
               border: Border.all(color: borderColor),
             ),
-            child: _tileTitleContent(
-              context: context,
-              title: title,
-              uppercase: true,
-              leading: AbilityPlaceholderIcon(
-                label: '',
-                size: 40,
-                emphasis: selected,
-                enabled: enabled,
-              ),
-              leadingGap: ui.space.md,
+            child: Row(
+              children: [
+                AbilityPlaceholderIcon(
+                  label: '',
+                  size: 40,
+                  emphasis: selected,
+                  enabled: enabled,
+                ),
+                SizedBox(width: ui.space.md),
+                Expanded(
+                  child: Text(
+                    title.toUpperCase(),
+                    style: ui.text.body.copyWith(color: ui.colors.textPrimary),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
       ),
     );
   }
-}
-
-Widget _tileTitleContent({
-  required BuildContext context,
-  required String title,
-  bool uppercase = false,
-  Widget? leading,
-  double leadingGap = 0,
-}) {
-  final ui = context.ui;
-  final text = Text(
-    uppercase ? title.toUpperCase() : title,
-    style: ui.text.body.copyWith(color: ui.colors.textPrimary),
-    maxLines: 1,
-    overflow: TextOverflow.ellipsis,
-  );
-  if (leading == null) return text;
-  return Row(
-    children: [
-      leading,
-      SizedBox(width: leadingGap),
-      Expanded(child: text),
-    ],
-  );
 }
 
 String _slotTitle(AbilitySlot slot) {
