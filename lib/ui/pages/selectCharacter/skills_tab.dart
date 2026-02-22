@@ -93,7 +93,14 @@ class _SkillsBarState extends State<SkillsBar> {
                   selectedSlot: _selectedSlot,
                   candidates: candidates,
                   selectedAbilityId: inspectedAbilityId,
-                  compact: layout.compact,
+                  panePadding: ui.space.xs,
+                  sectionSpacing: ui.space.xxs,
+                  titleStyle: ui.text.body.copyWith(
+                    color: ui.colors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  tileHorizontalPadding: ui.space.xs,
+                  tileVerticalPadding: ui.space.xxs,
                   onSelectAbility: (candidate) => _onSelectAbility(
                     appState: appState,
                     loadout: loadout,
@@ -265,28 +272,25 @@ class _SkillsLayoutSpec {
     required this.listWidth,
     required this.radialWidth,
     required this.gap,
-    required this.compact,
   });
 
   final double listWidth;
   final double radialWidth;
   final double gap;
-  final bool compact;
 }
 
 /// Computes side-panel widths for the skills screen at [width].
 ///
 /// Guarantees a minimum center pane width so details remain readable.
 _SkillsLayoutSpec _skillsLayoutForWidth(double width) {
-  final compact = width < 760;
-  final gap = width < 420 ? 4.0 : (compact ? 6.0 : 10.0);
-  var listWidth = (width * (compact ? 0.33 : 0.30))
+  final gap = width < 420 ? 4.0 : (width < 760 ? 6.0 : 10.0);
+  var listWidth = (width * (width < 760 ? 0.33 : 0.30))
       .clamp(100.0, 300.0)
       .toDouble();
-  var radialWidth = (width * (compact ? 0.28 : 0.26))
+  var radialWidth = (width * (width < 760 ? 0.28 : 0.26))
       .clamp(84.0, 240.0)
       .toDouble();
-  final minMiddle = compact ? 120.0 : 210.0;
+  final minMiddle = width < 760 ? 120.0 : 210.0;
   final maxSideTotal = math.max(140.0, width - minMiddle - (gap * 2));
   final sideTotal = listWidth + radialWidth;
   if (sideTotal > maxSideTotal) {
@@ -298,7 +302,6 @@ _SkillsLayoutSpec _skillsLayoutForWidth(double width) {
     listWidth: listWidth,
     radialWidth: radialWidth,
     gap: gap,
-    compact: compact,
   );
 }
 

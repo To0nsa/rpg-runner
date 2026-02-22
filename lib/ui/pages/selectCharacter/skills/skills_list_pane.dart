@@ -13,7 +13,11 @@ class SkillsListPane extends StatelessWidget {
     required this.selectedSlot,
     required this.candidates,
     required this.selectedAbilityId,
-    required this.compact,
+    required this.panePadding,
+    required this.sectionSpacing,
+    required this.titleStyle,
+    required this.tileHorizontalPadding,
+    required this.tileVerticalPadding,
     required this.onSelectAbility,
     required this.onSelectProjectileSource,
   });
@@ -21,20 +25,17 @@ class SkillsListPane extends StatelessWidget {
   final AbilitySlot selectedSlot;
   final List<AbilityPickerCandidate> candidates;
   final AbilityKey? selectedAbilityId;
-  final bool compact;
+  final double panePadding;
+  final double sectionSpacing;
+  final TextStyle titleStyle;
+  final double tileHorizontalPadding;
+  final double tileVerticalPadding;
   final ValueChanged<AbilityPickerCandidate> onSelectAbility;
   final VoidCallback? onSelectProjectileSource;
 
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
-    final panePadding = compact ? ui.space.xs : ui.space.sm;
-    final titleStyle = compact
-        ? ui.text.body.copyWith(
-            color: ui.colors.textPrimary,
-            fontWeight: FontWeight.w700,
-          )
-        : ui.text.headline.copyWith(color: ui.colors.textPrimary);
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF111111),
@@ -55,7 +56,7 @@ class SkillsListPane extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          SizedBox(height: compact ? ui.space.xxs : ui.space.xs),
+          SizedBox(height: sectionSpacing),
           if (onSelectProjectileSource != null) ...[
             Align(
               alignment: Alignment.center,
@@ -66,14 +67,13 @@ class SkillsListPane extends StatelessWidget {
                 onPressed: onSelectProjectileSource,
               ),
             ),
-            SizedBox(height: compact ? ui.space.xxs : ui.space.xs),
+            SizedBox(height: sectionSpacing),
           ],
-          SizedBox(height: compact ? ui.space.xxs : ui.space.xs),
+          SizedBox(height: sectionSpacing),
           Expanded(
             child: ListView.separated(
               itemCount: candidates.length,
-              separatorBuilder: (_, _) =>
-                  SizedBox(height: compact ? ui.space.xxs : ui.space.xs),
+              separatorBuilder: (_, _) => SizedBox(height: sectionSpacing),
               itemBuilder: (context, index) {
                 final candidate = candidates[index];
                 final selected = candidate.id == selectedAbilityId;
@@ -81,7 +81,8 @@ class SkillsListPane extends StatelessWidget {
                   title: abilityDisplayName(candidate.id),
                   selected: selected,
                   enabled: candidate.isEnabled,
-                  compact: compact,
+                  tileHorizontalPadding: tileHorizontalPadding,
+                  tileVerticalPadding: tileVerticalPadding,
                   onTap: () => onSelectAbility(candidate),
                 );
               },
@@ -141,14 +142,16 @@ class _AbilityListTile extends StatelessWidget {
     required this.title,
     required this.selected,
     required this.enabled,
-    required this.compact,
+    required this.tileHorizontalPadding,
+    required this.tileVerticalPadding,
     required this.onTap,
   });
 
   final String title;
   final bool selected;
   final bool enabled;
-  final bool compact;
+  final double tileHorizontalPadding;
+  final double tileVerticalPadding;
   final VoidCallback onTap;
 
   @override
@@ -170,8 +173,8 @@ class _AbilityListTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(ui.radii.sm),
           child: Container(
             padding: EdgeInsets.symmetric(
-              horizontal: compact ? ui.space.xs : ui.space.sm,
-              vertical: compact ? ui.space.xxs : ui.space.xs,
+              horizontal: tileHorizontalPadding,
+              vertical: tileVerticalPadding,
             ),
             decoration: BoxDecoration(
               color: fillColor,
