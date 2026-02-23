@@ -291,7 +291,7 @@ void main() {
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
             projectileId: ProjectileId.throwingKnife,
             projectileSlotSpellId: ProjectileId.fireBolt,
-            abilityProjectileId: 'eloise.snap_shot',
+            abilityProjectileId: 'eloise.quick_shot',
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
@@ -306,7 +306,7 @@ void main() {
 
       core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
       core.stepOneTick();
-      final windupTicks = scaledWindupTicks('eloise.snap_shot', core.tickHz);
+      final windupTicks = scaledWindupTicks('eloise.quick_shot', core.tickHz);
       for (var i = 0; i < windupTicks; i += 1) {
         core.applyCommands(const <Command>[]);
         core.stepOneTick();
@@ -318,7 +318,7 @@ void main() {
           .toList();
       expect(projectiles.length, 1);
       expect(projectiles.single.projectileId, ProjectileId.fireBolt);
-      final ability = AbilityCatalog.shared.resolve('eloise.snap_shot')!;
+      final ability = AbilityCatalog.shared.resolve('eloise.quick_shot')!;
       final spellCost = ability.resolveCostForWeaponType(
         WeaponType.projectileSpell,
       );
@@ -456,7 +456,7 @@ void main() {
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
             projectileId: ProjectileId.throwingKnife,
-            abilityProjectileId: 'eloise.snap_shot',
+            abilityProjectileId: 'eloise.quick_shot',
             abilitySpellId: 'eloise.arcane_haste',
           ),
           tuning: base.tuning.copyWith(
@@ -472,14 +472,14 @@ void main() {
 
       core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
       core.stepOneTick();
-      final windupTicks = scaledWindupTicks('eloise.snap_shot', core.tickHz);
+      final windupTicks = scaledWindupTicks('eloise.quick_shot', core.tickHz);
       for (var i = 0; i < windupTicks; i += 1) {
         core.applyCommands(const <Command>[]);
         core.stepOneTick();
       }
 
       final projectileAbility = AbilityCatalog.shared.resolve(
-        'eloise.snap_shot',
+        'eloise.quick_shot',
       )!;
       final activeTicks = scaledAbilityTicks(
         projectileAbility.activeTicks,
@@ -532,7 +532,7 @@ void main() {
       playerCharacter: base.copyWith(
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-          abilityProjectileId: 'eloise.homing_bolt',
+          abilityProjectileId: 'eloise.snap_shot',
         ),
       ),
     );
@@ -550,7 +550,7 @@ void main() {
       playerCharacter: base.copyWith(
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-          abilityProjectileId: 'eloise.snap_shot',
+          abilityProjectileId: 'eloise.quick_shot',
         ),
       ),
     );

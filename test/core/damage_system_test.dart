@@ -328,7 +328,7 @@ void main() {
 
     world.activeAbility.set(
       target,
-      id: 'eloise.snap_shot',
+      id: 'eloise.quick_shot',
       slot: AbilitySlot.projectile,
       commitTick: 10,
       windupTicks: 3,
@@ -342,7 +342,7 @@ void main() {
     world.abilityInputBuffer.setBuffer(
       target,
       slot: AbilitySlot.projectile,
-      abilityId: 'eloise.snap_shot',
+      abilityId: 'eloise.quick_shot',
       aimDirX: 1.0,
       aimDirY: 0.0,
       facing: Facing.right,
@@ -358,7 +358,7 @@ void main() {
     final activeIndex = world.activeAbility.indexOf(target);
     expect(
       world.activeAbility.abilityId[activeIndex],
-      equals('eloise.snap_shot'),
+      equals('eloise.quick_shot'),
     );
     expect(world.projectileIntent.tick[intentIndex], equals(13));
     expect(world.projectileIntent.commitTick[intentIndex], equals(10));

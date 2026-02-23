@@ -35,8 +35,8 @@ const Map<AbilityKey, String> _displayNameOverrides = <AbilityKey, String>{
   'eloise.shield_block': 'Shield block',
 
   // Projectile: ranged attacks.
-  'eloise.homing_bolt': 'Homing Bolt',
   'eloise.snap_shot': 'Snap Shot',
+  'eloise.quick_shot': 'Quick Shot',
   'eloise.skewer_shot': 'Skewer Shot',
   'eloise.overcharge_shot': 'Overcharge Bolt',
 

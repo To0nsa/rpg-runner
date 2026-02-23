@@ -601,7 +601,7 @@ void main() {
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(useGravity: false),
             projectileId: ProjectileId.throwingKnife,
-            abilityProjectileId: 'eloise.snap_shot',
+            abilityProjectileId: 'eloise.quick_shot',
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
@@ -615,7 +615,7 @@ void main() {
       final input = RunnerInputRouter(controller: controller);
       final dt = 1.0 / controller.tickHz;
       final windupTicks = ticksFromSecondsCeil(
-        AbilityCatalog.shared.resolve('eloise.snap_shot')!.windupTicks / 60.0,
+        AbilityCatalog.shared.resolve('eloise.quick_shot')!.windupTicks / 60.0,
         controller.tickHz,
       );
 

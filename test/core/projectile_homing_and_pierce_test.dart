@@ -65,7 +65,7 @@ void main() {
     world.equippedLoadout.add(
       player,
       const EquippedLoadoutDef(
-        abilityProjectileId: 'eloise.homing_bolt',
+        abilityProjectileId: 'eloise.snap_shot',
         projectileSlotSpellId: ProjectileId.iceBolt,
       ),
     );
@@ -135,7 +135,7 @@ void main() {
       world.equippedLoadout.add(
         player,
         const EquippedLoadoutDef(
-          abilityProjectileId: 'eloise.homing_bolt',
+          abilityProjectileId: 'eloise.snap_shot',
           projectileSlotSpellId: ProjectileId.iceBolt,
         ),
       );

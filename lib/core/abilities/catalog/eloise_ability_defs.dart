@@ -299,8 +299,8 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
   // --------------------------------------------------------------------------
   // ELOISE: PROJECTILE
   // --------------------------------------------------------------------------
-  'eloise.homing_bolt': AbilityDef(
-    id: 'eloise.homing_bolt',
+  'eloise.snap_shot': AbilityDef(
+    id: 'eloise.snap_shot',
     category: AbilityCategory.ranged,
     allowedSlots: {AbilitySlot.projectile},
     targetingModel: TargetingModel.homing,
@@ -327,8 +327,8 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     baseDamage: 1300,
   ),
 
-  'eloise.snap_shot': AbilityDef(
-    id: 'eloise.snap_shot',
+  'eloise.quick_shot': AbilityDef(
+    id: 'eloise.quick_shot',
     category: AbilityCategory.ranged,
     allowedSlots: {AbilitySlot.projectile},
     targetingModel: TargetingModel.aimed,

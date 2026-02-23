@@ -41,7 +41,7 @@ class EquippedLoadoutDef {
     this.accessoryId = AccessoryId.speedBoots,
     this.abilityPrimaryId = 'eloise.bloodletter_slash',
     this.abilitySecondaryId = 'eloise.aegis_riposte',
-    this.abilityProjectileId = 'eloise.snap_shot',
+    this.abilityProjectileId = 'eloise.quick_shot',
     this.abilitySpellId = 'eloise.arcane_haste',
     this.abilityMobilityId = 'eloise.dash',
     this.abilityJumpId = 'eloise.jump',
@@ -160,7 +160,7 @@ class EquippedLoadoutStore extends SparseSet {
     accessoryId.add(AccessoryId.speedBoots);
     abilityPrimaryId.add('eloise.bloodletter_slash');
     abilitySecondaryId.add('eloise.aegis_riposte');
-    abilityProjectileId.add('eloise.snap_shot');
+    abilityProjectileId.add('eloise.quick_shot');
     abilitySpellId.add('eloise.arcane_haste');
     abilityMobilityId.add('eloise.dash');
     abilityJumpId.add('eloise.jump');

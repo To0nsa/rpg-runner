@@ -66,8 +66,8 @@ class _SkillsBarState extends State<SkillsBar> {
         : _tooltipBuilder.build(
             inspectedCandidate.def,
             ctx: AbilityTooltipContext(
-              selectedProjectileSpellId: isProjectileSlot
-                  ? selectedSourceSpellId
+              activeProjectileId: isProjectileSlot
+                  ? (selectedSourceSpellId ?? loadout.projectileId)
                   : null,
               payloadWeaponType: payloadWeaponTypeForTooltip(
                 def: inspectedCandidate.def,

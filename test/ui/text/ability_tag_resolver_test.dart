@@ -4,6 +4,7 @@ import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/combat/middleware/parry_middleware.dart';
 import 'package:rpg_runner/core/combat/status/status.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
+import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/ui/text/ability_tag_resolver.dart';
 import 'package:rpg_runner/ui/text/ability_tooltip_builder.dart';
 
@@ -48,7 +49,7 @@ void main() {
     });
 
     test('derives auto-target from homing targeting model', () {
-      final tags = resolver.resolve(ability('eloise.homing_bolt'));
+      final tags = resolver.resolve(ability('eloise.snap_shot'));
 
       expect(tags, contains(AbilityUiTag.autoTarget));
       expect(tags, isNot(contains(AbilityUiTag.aimed)));
@@ -154,10 +155,49 @@ void main() {
       expect(tooltip.dynamicDescriptionValues, contains(expectedRiposteBonus));
     });
 
-    test('builds self-status description from status profile metadata', () {
-      final tooltip = tooltipBuilder.build(ability('eloise.vital_surge'));
+    test('builds self-status descriptions from profile metadata', () {
+      final expectedStatusByAbility = <String, String>{
+        'eloise.arcane_haste': 'Haste',
+        'eloise.vital_surge': 'Health Regen',
+        'eloise.mana_infusion': 'Mana Regen',
+        'eloise.second_wind': 'Stamina Regen',
+      };
 
-      expect(tooltip.description, equals('Tap to gain Health Regen for 5.0s.'));
+      for (final entry in expectedStatusByAbility.entries) {
+        final def = ability(entry.key);
+        final profile = const StatusProfileCatalog().get(def.selfStatusProfileId);
+        final duration = profile.applications.first.durationSeconds.toStringAsFixed(
+          1,
+        );
+        final tooltip = tooltipBuilder.build(def);
+
+        expect(
+          tooltip.description,
+          equals('Tap to gain ${entry.value} for ${duration}s.'),
+        );
+        expect(tooltip.dynamicDescriptionValues, contains(entry.value));
+        expect(tooltip.dynamicDescriptionValues, contains(duration));
+      }
+    });
+
+    test('builds self-status description without id-specific branching', () {
+      final def = AbilityDef(
+        id: 'test.mana_regen',
+        category: AbilityCategory.utility,
+        allowedSlots: {AbilitySlot.spell},
+        inputLifecycle: AbilityInputLifecycle.tap,
+        windupTicks: 0,
+        activeTicks: 0,
+        recoveryTicks: 0,
+        cooldownTicks: 0,
+        selfStatusProfileId: StatusProfileId.restoreMana,
+        animKey: AnimKey.cast,
+      );
+      final tooltip = tooltipBuilder.build(def);
+
+      expect(tooltip.description, equals('Tap to gain Mana Regen for 5.0s.'));
+      expect(tooltip.dynamicDescriptionValues, contains('Mana Regen'));
+      expect(tooltip.dynamicDescriptionValues, contains('5.0'));
     });
 
     test('builds seeker slash DoT values from authored profile data', () {
@@ -303,6 +343,26 @@ void main() {
       },
     );
 
+    test('builds dash description without speed or duration details', () {
+      final tooltip = tooltipBuilder.build(ability('eloise.dash'));
+
+      expect(tooltip.description, equals('Dash forward quickly.'));
+      expect(tooltip.dynamicDescriptionValues, isEmpty);
+    });
+
+    test('builds concussive roll description without speed or duration', () {
+      final def = ability('eloise.roll');
+      final tooltip = tooltipBuilder.build(def);
+
+      expect(
+        tooltip.description,
+        equals(
+          'Perform a concussive roll. Enemies hit are affected by Stun.',
+        ),
+      );
+      expect(tooltip.dynamicDescriptionValues, contains('Stun'));
+    });
+
     test('builds bloodletter slash values from authored data', () {
       final def = ability('eloise.bloodletter_slash');
       final bleedProfileId = def.procs.first.statusProfileId;
@@ -388,7 +448,7 @@ void main() {
       );
     });
 
-    test('resolves templated melee descriptions without placeholders', () {
+    test('resolves templated descriptions without placeholders', () {
       final slashTooltip = tooltipBuilder.build(
         ability('eloise.bloodletter_slash'),
       );
@@ -401,6 +461,9 @@ void main() {
       final breakerTooltip = tooltipBuilder.build(
         ability('eloise.concussive_breaker'),
       );
+      final snapShotTooltip = tooltipBuilder.build(ability('eloise.snap_shot'));
+      final dashTooltip = tooltipBuilder.build(ability('eloise.dash'));
+      final rollTooltip = tooltipBuilder.build(ability('eloise.roll'));
 
       expect(slashTooltip.description, isNot(contains('{')));
       expect(slashTooltip.description, isNot(contains('}')));
@@ -410,18 +473,58 @@ void main() {
       expect(cleaveTooltip.description, isNot(contains('}')));
       expect(breakerTooltip.description, isNot(contains('{')));
       expect(breakerTooltip.description, isNot(contains('}')));
+      expect(snapShotTooltip.description, isNot(contains('{')));
+      expect(snapShotTooltip.description, isNot(contains('}')));
+      expect(dashTooltip.description, isNot(contains('{')));
+      expect(dashTooltip.description, isNot(contains('}')));
+      expect(rollTooltip.description, isNot(contains('{')));
+      expect(rollTooltip.description, isNot(contains('}')));
     });
 
-    test('uses projectile source context in ranged fallback description', () {
-      final tooltip = tooltipBuilder.build(
-        ability('eloise.snap_shot'),
+    test('builds snap shot description from authored values and context', () {
+      final def = ability('eloise.snap_shot');
+      final defaultTooltip = tooltipBuilder.build(def);
+      final selectedTooltip = tooltipBuilder.build(
+        def,
         ctx: const AbilityTooltipContext(
-          selectedProjectileSpellId: ProjectileId.fireBolt,
+          activeProjectileId: ProjectileId.fireBolt,
+          payloadWeaponType: WeaponType.projectileSpell,
+        ),
+      );
+      final expectedDamage = formatFixed100(def.baseDamage);
+
+      expect(
+        defaultTooltip.description,
+        equals(
+          'Fire your equipped projectile, it deals $expectedDamage damage to the closest enemy.',
+        ),
+      );
+      expect(
+        selectedTooltip.description,
+        contains('Fire the selected spell projectile (Fire Bolt),'),
+      );
+      expect(defaultTooltip.dynamicDescriptionValues, contains(expectedDamage));
+      expect(selectedTooltip.dynamicDescriptionValues, contains(expectedDamage));
+    });
+
+    test('builds quick shot description with projectile source and damage', () {
+      final tooltip = tooltipBuilder.build(
+        ability('eloise.quick_shot'),
+        ctx: const AbilityTooltipContext(
+          activeProjectileId: ProjectileId.fireBolt,
           payloadWeaponType: WeaponType.projectileSpell,
         ),
       );
 
-      expect(tooltip.description, contains('selected spell projectile'));
+      expect(
+        tooltip.description,
+        equals(
+          'Aim and fire the selected spell projectile (Fire Bolt). '
+          'It deals 9 damage.',
+        ),
+      );
+      expect(tooltip.dynamicDescriptionValues, contains(' (Fire Bolt)'));
+      expect(tooltip.dynamicDescriptionValues, contains('9'));
     });
 
     test('maps authored cooldown ticks to seconds', () {
@@ -465,7 +568,7 @@ void main() {
     });
 
     test('resolves cost line from payload weapon context', () {
-      final def = ability('eloise.snap_shot');
+      final def = ability('eloise.quick_shot');
 
       final spellTooltip = tooltipBuilder.build(
         def,

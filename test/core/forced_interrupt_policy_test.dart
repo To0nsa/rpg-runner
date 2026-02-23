@@ -27,21 +27,21 @@ void main() {
   test('quick shot keeps default forced interruption causes', () {
     expect(
       ForcedInterruptPolicy.defaultPolicy.abilityAllowsForcedInterrupt(
-        'eloise.snap_shot',
+        'eloise.quick_shot',
         ForcedInterruptCause.damageTaken,
       ),
       isFalse,
     );
     expect(
       ForcedInterruptPolicy.defaultPolicy.abilityAllowsForcedInterrupt(
-        'eloise.snap_shot',
+        'eloise.quick_shot',
         ForcedInterruptCause.stun,
       ),
       isTrue,
     );
     expect(
       ForcedInterruptPolicy.defaultPolicy.abilityAllowsForcedInterrupt(
-        'eloise.snap_shot',
+        'eloise.quick_shot',
         ForcedInterruptCause.death,
       ),
       isTrue,

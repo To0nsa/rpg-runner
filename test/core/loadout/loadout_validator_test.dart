@@ -34,7 +34,7 @@ void main() {
         projectileId: ProjectileId.throwingKnife,
         abilityPrimaryId: 'eloise.bloodletter_slash',
         abilitySecondaryId: 'eloise.aegis_riposte',
-        abilityProjectileId: 'eloise.snap_shot',
+        abilityProjectileId: 'eloise.quick_shot',
         abilityMobilityId: 'eloise.dash',
         abilitySpellId: 'eloise.arcane_haste',
       );
@@ -91,7 +91,7 @@ void main() {
         offhandWeaponId: WeaponId.woodenShield,
         projectileId: ProjectileId.throwingKnife,
         projectileSlotSpellId: ProjectileId.fireBolt,
-        abilityProjectileId: 'eloise.snap_shot',
+        abilityProjectileId: 'eloise.quick_shot',
         abilitySpellId: 'eloise.arcane_haste',
       );
 
@@ -106,7 +106,7 @@ void main() {
         offhandWeaponId: WeaponId.woodenShield,
         projectileId: ProjectileId.throwingKnife,
         abilityProjectileId: 'eloise.overcharge_shot',
-        abilitySpellId: 'eloise.snap_shot',
+        abilitySpellId: 'eloise.quick_shot',
       );
 
       final result = validator.validate(loadout);
@@ -156,7 +156,7 @@ void main() {
     test('selected slot spell must be a projectile spell item', () {
       const loadout = EquippedLoadoutDef(
         projectileSlotSpellId: ProjectileId.throwingAxe,
-        abilityProjectileId: 'eloise.snap_shot',
+        abilityProjectileId: 'eloise.quick_shot',
       );
 
       final result = validator.validate(loadout);

@@ -184,7 +184,7 @@ const PlayerCatalog eloiseCatalog = PlayerCatalog(
   projectileSlotSpellId: ProjectileId.fireBolt,
   abilityPrimaryId: 'eloise.bloodletter_slash',
   abilitySecondaryId: 'eloise.aegis_riposte',
-  abilityProjectileId: 'eloise.snap_shot',
+  abilityProjectileId: 'eloise.quick_shot',
   abilitySpellId: 'eloise.arcane_haste',
   abilityMobilityId: 'eloise.dash',
   abilityJumpId: 'eloise.jump',

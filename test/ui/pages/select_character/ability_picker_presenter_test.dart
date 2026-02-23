@@ -65,7 +65,7 @@ void main() {
     test('projectile slot exposes all enabled projectile abilities', () {
       const loadout = EquippedLoadoutDef(
         spellBookId: SpellBookId.solidSpellBook,
-        abilityProjectileId: 'eloise.snap_shot',
+        abilityProjectileId: 'eloise.quick_shot',
         projectileSlotSpellId: ProjectileId.iceBolt,
       );
 
@@ -78,10 +78,10 @@ void main() {
       );
 
       final autoAim = candidates.firstWhere(
-        (candidate) => candidate.id == 'eloise.homing_bolt',
+        (candidate) => candidate.id == 'eloise.snap_shot',
       );
       final quickShot = candidates.firstWhere(
-        (candidate) => candidate.id == 'eloise.snap_shot',
+        (candidate) => candidate.id == 'eloise.quick_shot',
       );
       final piercingShot = candidates.firstWhere(
         (candidate) => candidate.id == 'eloise.skewer_shot',
@@ -117,7 +117,7 @@ void main() {
         isTrue,
       );
       expect(
-        candidates.any((candidate) => candidate.id == 'eloise.snap_shot'),
+        candidates.any((candidate) => candidate.id == 'eloise.quick_shot'),
         isFalse,
       );
       expect(
@@ -208,7 +208,7 @@ void main() {
 
     test('invalid source disables projectile abilities through validator', () {
       const loadout = EquippedLoadoutDef(
-        abilityProjectileId: 'eloise.snap_shot',
+        abilityProjectileId: 'eloise.quick_shot',
       );
 
       final candidates = abilityCandidatesForSlot(
@@ -220,10 +220,10 @@ void main() {
       );
 
       final autoAim = candidates.firstWhere(
-        (candidate) => candidate.id == 'eloise.homing_bolt',
+        (candidate) => candidate.id == 'eloise.snap_shot',
       );
       final quickShot = candidates.firstWhere(
-        (candidate) => candidate.id == 'eloise.snap_shot',
+        (candidate) => candidate.id == 'eloise.quick_shot',
       );
       final piercingShot = candidates.firstWhere(
         (candidate) => candidate.id == 'eloise.skewer_shot',

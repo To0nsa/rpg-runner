@@ -298,7 +298,7 @@ void main() {
         const offset = 1;
         world.activeAbility.set(
           player,
-          id: 'eloise.snap_shot',
+          id: 'eloise.quick_shot',
           slot: AbilitySlot.projectile,
           commitTick: tick - offset,
           windupTicks: 0,
@@ -311,7 +311,7 @@ void main() {
 
         final ai = world.animState.indexOf(player);
         final expectedAnim = AbilityCatalog.shared
-            .resolve('eloise.snap_shot')!
+            .resolve('eloise.quick_shot')!
             .animKey;
         expect(world.animState.anim[ai], equals(expectedAnim));
         expect(world.animState.animFrame[ai], equals(offset));
@@ -347,7 +347,7 @@ void main() {
           final tick = playerAnimTuning.spawnAnimTicks + 5;
           world.activeAbility.set(
             player,
-            id: 'eloise.snap_shot',
+            id: 'eloise.quick_shot',
             slot: AbilitySlot.projectile,
             commitTick: tick - 1,
             windupTicks: 0,
@@ -364,7 +364,7 @@ void main() {
           expect(world.activeAbility.hasActiveAbility(player), isTrue);
           expect(
             world.activeAbility.abilityId[activeIndex],
-            'eloise.snap_shot',
+            'eloise.quick_shot',
           );
         },
       );
@@ -392,7 +392,7 @@ void main() {
 
         world.activeAbility.set(
           player,
-          id: 'eloise.snap_shot',
+          id: 'eloise.quick_shot',
           slot: AbilitySlot.projectile,
           commitTick: tick - 2,
           windupTicks: 0,

@@ -40,6 +40,8 @@ class SpellBookCatalog {
   static const List<AbilityKey> _solidSpellSlotAbilities = <AbilityKey>[
     'eloise.arcane_haste',
     'eloise.vital_surge',
+    'eloise.mana_infusion',
+    'eloise.second_wind',
   ];
 
   static const List<AbilityKey> _allSpellSlotAbilities = <AbilityKey>[

@@ -4,6 +4,7 @@ import '../../core/combat/status/status.dart';
 import '../../core/projectiles/projectile_id.dart';
 import 'ability_tag_resolver.dart';
 import 'ability_text.dart';
+import 'gear_text.dart';
 
 class AbilityCostLine {
   const AbilityCostLine({required this.label, required this.value});
@@ -14,11 +15,13 @@ class AbilityCostLine {
 
 class AbilityTooltipContext {
   const AbilityTooltipContext({
-    this.selectedProjectileSpellId,
+    this.activeProjectileId,
     this.payloadWeaponType,
   });
 
-  final ProjectileId? selectedProjectileSpellId;
+  /// The projectile that will actually be fired — either a spell projectile
+  /// (e.g. Fire Bolt) or a physical throwing weapon (e.g. Throwing Knife).
+  final ProjectileId? activeProjectileId;
   final WeaponType? payloadWeaponType;
 }
 
@@ -68,6 +71,12 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
       'Keep your guard up and reduce incoming damage by {reduction}% while held.';
   static const String _templateRiposteGrant =
       ' Guarded hits grant {riposte}, empowering your next melee hit by +{riposteBonus}% damage.';
+  static const String _templateSelfStatus =
+      'Grant {status} for {duration} seconds.';
+  static const String _templateSnapShot =
+      'Fire {projectileSource}{projectileName}, it deals {damage} damage to the closest enemy.';
+  static const String _templateQuickShot =
+      'Aim and fire {projectileSource}{projectileName}. It deals {damage} damage to a single target.';
   static const String _riposteLabel = 'Riposte';
   static const String _targetClosestAndReach =
       'the closest enemy and all those who are in the attack reach';
@@ -109,6 +118,9 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
     AbilityDef def,
     AbilityTooltipContext ctx,
   ) {
+    if (def.selfStatusProfileId != StatusProfileId.none) {
+      return _selfStatusDescription(def);
+    }
     switch (def.id) {
       case 'eloise.bloodletter_slash':
         return _bloodletterSlashDescription(def);
@@ -122,13 +134,21 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
         return _concussiveBashDescription(def);
       case 'eloise.concussive_breaker':
         return _concussiveBreakerDescription(def);
+      case 'eloise.snap_shot':
+        return _snapShotDescription(def, ctx);
+      case 'eloise.quick_shot':
+        return _quickShotDescription(def, ctx);
+      case 'eloise.dash':
+        return _dashDescription(def);
+      case 'eloise.roll':
+        return _concussiveRollDescription(def);
       case 'eloise.riposte_guard':
       case 'eloise.aegis_riposte':
       case 'eloise.shield_block':
         return _guardDescription(def);
       default:
         return _DescriptionWithHighlights(
-          description: _buildDescriptionForAbility(def, ctx),
+          description: _fallbackDescription(def, ctx),
         );
     }
   }
@@ -220,63 +240,22 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
     return badges;
   }
 
-  String _buildDescriptionForAbility(
-    AbilityDef def,
-    AbilityTooltipContext ctx,
-  ) {
+  String _fallbackDescription(AbilityDef def, AbilityTooltipContext ctx) {
     switch (def.id) {
       case 'common.enemy_strike':
         return 'Tap to strike in front of you.';
       case 'common.enemy_cast':
         return 'Hold then release to cast a ranged bolt.';
-      case 'eloise.bloodletter_slash':
-        return 'Hold then release to perform a bleeding sword slash.';
-      case 'eloise.bloodletter_cleave':
-        return 'Hold then release to charge and unleash a heavy cleave.';
-      case 'eloise.seeker_slash':
-        return 'Tap to auto-target and slash a nearby enemy.';
-      case 'eloise.riposte_guard':
-        return 'Hold to guard and reduce damage by 50% while held.';
-      case 'eloise.concussive_bash':
-        return 'Tap to bash with your shield and stun enemies on hit.';
-      case 'eloise.concussive_breaker':
-        return 'Hold then release to perform a charged shield breaker.';
-      case 'eloise.seeker_bash':
-        return 'Tap to auto-target and bash with your shield.';
-      case 'eloise.aegis_riposte':
-        return 'Hold to guard and reduce damage by 50% while held.';
-      case 'eloise.shield_block':
-        return 'Hold to guard and reduce damage by 100% while held.';
-      case 'eloise.homing_bolt':
-        return ctx.selectedProjectileSpellId != null
-            ? 'Tap to fire the selected spell projectile with homing.'
-            : 'Tap to fire your equipped projectile with homing.';
-      case 'eloise.snap_shot':
-        return ctx.selectedProjectileSpellId != null
-            ? 'Hold then release to fire the selected spell projectile.'
-            : 'Hold then release to fire your equipped projectile.';
       case 'eloise.skewer_shot':
-        return ctx.selectedProjectileSpellId != null
+        return ctx.payloadWeaponType == WeaponType.projectileSpell
             ? 'Hold then release to fire a piercing line shot with the selected spell projectile.'
             : 'Hold then release to fire a piercing line shot.';
       case 'eloise.overcharge_shot':
         return 'Hold then release to charge a stronger projectile shot.';
-      case 'eloise.arcane_haste':
-        return 'Tap to gain Haste for 5.0s.';
-      case 'eloise.vital_surge':
-        return 'Tap to gain Health Regen for 5.0s.';
-      case 'eloise.mana_infusion':
-        return 'Tap to gain Mana Regen for 5.0s.';
-      case 'eloise.second_wind':
-        return 'Tap to gain Stamina Regen for 5.0s.';
       case 'eloise.jump':
         return 'Tap to jump.';
       case 'eloise.double_jump':
         return 'Tap to jump, then tap again in the air for a second jump.';
-      case 'eloise.dash':
-        return 'Tap to dash forward quickly.';
-      case 'eloise.roll':
-        return 'Tap to roll forward and stun enemies on contact.';
       default:
         return 'Tap to use this ability.';
     }
@@ -379,6 +358,66 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
         'damageBonus',
         'critBonus',
       ],
+    );
+  }
+
+  _DescriptionWithHighlights _snapShotDescription(
+    AbilityDef def,
+    AbilityTooltipContext ctx,
+  ) {
+    return _descriptionFromTemplate(
+      template: _templateSnapShot,
+      values: <String, String>{
+        'projectileSource': _projectileSourceLabel(ctx),
+        'projectileName': _projectileName(ctx),
+        'damage': _formatFixed100(def.baseDamage),
+      },
+      dynamicKeys: <String>['projectileName', 'damage'],
+    );
+  }
+
+  _DescriptionWithHighlights _quickShotDescription(
+    AbilityDef def,
+    AbilityTooltipContext ctx,
+  ) {
+    return _descriptionFromTemplate(
+      template: _templateQuickShot,
+      values: <String, String>{
+        'projectileSource': _projectileSourceLabel(ctx),
+        'projectileName': _projectileName(ctx),
+        'damage': _formatFixed100(def.baseDamage),
+      },
+      dynamicKeys: <String>['projectileName', 'damage'],
+    );
+  }
+
+  _DescriptionWithHighlights _dashDescription(AbilityDef def) {
+    return const _DescriptionWithHighlights(description: 'Dash forward quickly.');
+  }
+
+  _DescriptionWithHighlights _concussiveRollDescription(AbilityDef def) {
+    final control = _mobilityControlEffect(def);
+    return _descriptionFromTemplate(
+      template: 'Perform a concussive roll. Enemies hit are affected by {status}.',
+      values: <String, String>{
+        'status': control.name,
+      },
+      dynamicKeys: <String>['status'],
+    );
+  }
+
+  _DescriptionWithHighlights _selfStatusDescription(AbilityDef def) {
+    final profile = _statusProfiles.get(def.selfStatusProfileId);
+    final application = profile.applications.first;
+    final statusLabel = _selfStatusLabel(application);
+    final duration = _formatOneDecimal(application.durationSeconds);
+    return _descriptionFromTemplate(
+      template: _templateSelfStatus,
+      values: <String, String>{
+        'status': statusLabel,
+        'duration': duration,
+      },
+      dynamicKeys: <String>['status', 'duration'],
     );
   }
 
@@ -512,6 +551,33 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
     return const _StatusControlSummary.none();
   }
 
+  _StatusControlSummary _mobilityControlEffect(AbilityDef def) {
+    final profileId = def.mobilityImpact.statusProfileId;
+    if (profileId == StatusProfileId.none) {
+      return const _StatusControlSummary.none();
+    }
+    final profile = _statusProfiles.get(profileId);
+    for (final application in profile.applications) {
+      switch (application.type) {
+        case StatusEffectType.stun:
+        case StatusEffectType.slow:
+        case StatusEffectType.silence:
+        case StatusEffectType.weaken:
+        case StatusEffectType.vulnerable:
+        case StatusEffectType.drench:
+          return _StatusControlSummary(
+            name: _statusDisplayName(profileId),
+            durationSeconds: application.durationSeconds,
+          );
+        case StatusEffectType.dot:
+        case StatusEffectType.haste:
+        case StatusEffectType.resourceOverTime:
+          continue;
+      }
+    }
+    return const _StatusControlSummary.none();
+  }
+
   _ChargeBonusSummary _maxChargeBonuses(AbilityDef def) {
     final tiers = def.chargeProfile?.tiers;
     if (tiers == null || tiers.isEmpty) {
@@ -552,6 +618,48 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
       default:
         return 'damage over time';
     }
+  }
+
+  String _projectileSourceLabel(AbilityTooltipContext ctx) {
+    return ctx.payloadWeaponType == WeaponType.projectileSpell
+        ? 'the selected spell projectile'
+        : 'your equipped projectile';
+  }
+
+  String _projectileName(AbilityTooltipContext ctx) {
+    final activeProjectileId = ctx.activeProjectileId;
+    if (activeProjectileId == null) return '';
+    return ' (${projectileDisplayName(activeProjectileId)})';
+  }
+
+  String _selfStatusLabel(StatusApplication application) {
+    switch (application.type) {
+      case StatusEffectType.haste:
+        return 'Haste';
+      case StatusEffectType.resourceOverTime:
+        switch (application.resourceType) {
+          case StatusResourceType.health:
+            return 'Health Regeneration';
+          case StatusResourceType.mana:
+            return 'Mana Regeneration';
+          case StatusResourceType.stamina:
+            return 'Stamina Regeneration';
+          case null:
+            return 'Resource Regeneration';
+        }
+      case StatusEffectType.dot:
+      case StatusEffectType.slow:
+      case StatusEffectType.stun:
+      case StatusEffectType.vulnerable:
+      case StatusEffectType.weaken:
+      case StatusEffectType.drench:
+      case StatusEffectType.silence:
+        return 'Status Effect';
+    }
+  }
+
+  String _formatOneDecimal(double value) {
+    return value.toStringAsFixed(1);
   }
 
   String _formatDecimal(double value) {
