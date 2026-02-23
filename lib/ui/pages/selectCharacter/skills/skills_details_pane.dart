@@ -61,9 +61,21 @@ class _AbilityDetailsPane extends StatelessWidget {
               ],
             ],
             SizedBox(height: ui.space.xxs),
-            Text(
-              tooltip!.description,
-              style: ui.text.body.copyWith(color: ui.colors.textMuted),
+            Text.rich(
+              TextSpan(
+                style: ui.text.body.copyWith(color: ui.colors.textMuted),
+                children: _buildDescriptionSpans(
+                  description: tooltip!.description,
+                  dynamicValues: tooltip!.dynamicDescriptionValues,
+                  normalStyle: ui.text.body.copyWith(
+                    color: ui.colors.textMuted,
+                  ),
+                  dynamicStyle: ui.text.body.copyWith(
+                    color: ui.colors.success,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ),
             if (tooltip!.badges.isNotEmpty) ...[
               SizedBox(height: ui.space.xs),
@@ -81,6 +93,42 @@ class _AbilityDetailsPane extends StatelessWidget {
       ),
     );
   }
+}
+
+List<TextSpan> _buildDescriptionSpans({
+  required String description,
+  required List<String> dynamicValues,
+  required TextStyle normalStyle,
+  required TextStyle dynamicStyle,
+}) {
+  final values =
+      dynamicValues.toSet().where((value) => value.isNotEmpty).toList()
+        ..sort((a, b) => b.length.compareTo(a.length));
+  if (values.isEmpty) {
+    return <TextSpan>[TextSpan(text: description, style: normalStyle)];
+  }
+
+  final pattern = values.map(RegExp.escape).join('|');
+  final regex = RegExp(pattern);
+  final spans = <TextSpan>[];
+  var index = 0;
+  for (final match in regex.allMatches(description)) {
+    if (match.start > index) {
+      spans.add(
+        TextSpan(
+          text: description.substring(index, match.start),
+          style: normalStyle,
+        ),
+      );
+    }
+    spans.add(TextSpan(text: match.group(0), style: dynamicStyle));
+    index = match.end;
+  }
+
+  if (index < description.length) {
+    spans.add(TextSpan(text: description.substring(index), style: normalStyle));
+  }
+  return spans;
 }
 
 class _DetailsMetricLine extends StatelessWidget {

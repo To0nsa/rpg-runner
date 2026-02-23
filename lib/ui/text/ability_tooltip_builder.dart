@@ -4,17 +4,6 @@ import '../../core/projectiles/projectile_id.dart';
 import 'ability_tag_resolver.dart';
 import 'ability_text.dart';
 
-abstract interface class StatusTextResolver {
-  StatusText? describe(StatusProfileId id);
-}
-
-class StatusText {
-  const StatusText({required this.name, this.durationSeconds});
-
-  final String name;
-  final double? durationSeconds;
-}
-
 class AbilityCostLine {
   const AbilityCostLine({required this.label, required this.value});
 
@@ -26,18 +15,17 @@ class AbilityTooltipContext {
   const AbilityTooltipContext({
     this.selectedProjectileSpellId,
     this.payloadWeaponType,
-    this.statusTextResolver,
   });
 
   final ProjectileId? selectedProjectileSpellId;
   final WeaponType? payloadWeaponType;
-  final StatusTextResolver? statusTextResolver;
 }
 
 class AbilityTooltip {
   const AbilityTooltip({
     required this.title,
     required this.description,
+    this.dynamicDescriptionValues = const <String>[],
     this.badges = const <String>[],
     this.tags = const <AbilityUiTag>{},
     this.cooldownSeconds,
@@ -46,6 +34,7 @@ class AbilityTooltip {
 
   final String title;
   final String description;
+  final List<String> dynamicDescriptionValues;
   final List<String> badges;
   final Set<AbilityUiTag> tags;
   final double? cooldownSeconds;
@@ -78,14 +67,36 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   }) {
     final tags = _tagResolver.resolve(def);
     final badges = _buildBadges(tags);
+    final descriptionWithHighlights = _descriptionWithHighlights(def, ctx);
     return AbilityTooltip(
       title: abilityDisplayName(def.id),
-      description: _buildDescriptionForAbility(def, ctx),
+      description: descriptionWithHighlights.description,
+      dynamicDescriptionValues: List<String>.unmodifiable(
+        descriptionWithHighlights.dynamicValues,
+      ),
       badges: List<String>.unmodifiable(badges),
       tags: tags,
       cooldownSeconds: _cooldownSeconds(def),
       costLines: List<AbilityCostLine>.unmodifiable(_costLines(def, ctx)),
     );
+  }
+
+  _DescriptionWithHighlights _descriptionWithHighlights(
+    AbilityDef def,
+    AbilityTooltipContext ctx,
+  ) {
+    switch (def.id) {
+      case 'eloise.bloodletter_slash':
+        return _bloodletterSlashDescription(def);
+      case 'eloise.seeker_slash':
+        return _seekerSlashDescription(def);
+      case 'eloise.bloodletter_cleave':
+        return _bloodletterCleaveDescription(def);
+      default:
+        return _DescriptionWithHighlights(
+          description: _buildDescriptionForAbility(def, ctx),
+        );
+    }
   }
 
   double? _cooldownSeconds(AbilityDef def) {
@@ -169,7 +180,10 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
     return badges;
   }
 
-  String _buildDescriptionForAbility(AbilityDef def, AbilityTooltipContext ctx) {
+  String _buildDescriptionForAbility(
+    AbilityDef def,
+    AbilityTooltipContext ctx,
+  ) {
     switch (def.id) {
       case 'common.enemy_strike':
         return 'Tap to strike in front of you.';
@@ -208,10 +222,13 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
       case 'eloise.overcharge_shot':
         return 'Hold then release to charge a stronger projectile shot.';
       case 'eloise.arcane_haste':
+        return 'Tap to gain Haste for 5.0s.';
       case 'eloise.vital_surge':
+        return 'Tap to gain Health Regen for 5.0s.';
       case 'eloise.mana_infusion':
+        return 'Tap to gain Mana Regen for 5.0s.';
       case 'eloise.second_wind':
-        return _selfStatusDescription(def, ctx);
+        return 'Tap to gain Stamina Regen for 5.0s.';
       case 'eloise.jump':
         return 'Tap to jump.';
       case 'eloise.double_jump':
@@ -225,66 +242,135 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
     }
   }
 
-  String _selfStatusDescription(AbilityDef def, AbilityTooltipContext ctx) {
-    final inputHint = switch (def.inputLifecycle) {
-      AbilityInputLifecycle.tap => 'Tap',
-      AbilityInputLifecycle.holdRelease => 'Hold then release',
-      AbilityInputLifecycle.holdMaintain => 'Hold',
-    };
-    final statusText = ctx.statusTextResolver?.describe(
-      def.selfStatusProfileId,
+  _DescriptionWithHighlights _seekerSlashDescription(AbilityDef def) {
+    final damage = _formatFixed100(def.baseDamage);
+    final dot = _firstDotEffect(def);
+    final statusName = dot.name;
+    final dotDamage = _formatFixed100(dot.damage100);
+    final dotDuration = _formatDecimal(dot.durationSeconds);
+    return _DescriptionWithHighlights(
+      description:
+          'Launch an attack that deals $damage damage to the closest enemy and all those who are in the attack reach causing $statusName that deals $dotDamage damage per second for $dotDuration seconds.',
+      dynamicValues: _orderedUniqueNonEmpty(<String>[
+        damage,
+        statusName,
+        dotDamage,
+        dotDuration,
+      ]),
     );
-    final fallback = _describeStatusFromProfile(def.selfStatusProfileId);
-    final resolved = statusText ?? fallback;
-    if (resolved != null) {
-      final duration = resolved.durationSeconds;
-      if (duration == null) return '$inputHint to gain ${resolved.name}.';
-      return '$inputHint to gain ${resolved.name} for ${duration.toStringAsFixed(1)}s.';
+  }
+
+  _DescriptionWithHighlights _bloodletterSlashDescription(AbilityDef def) {
+    final damage = _formatFixed100(def.baseDamage);
+    final dot = _firstDotEffect(def);
+    final statusName = dot.name;
+    final dotDamage = _formatFixed100(dot.damage100);
+    final dotDuration = _formatDecimal(dot.durationSeconds);
+    return _DescriptionWithHighlights(
+      description:
+          'Unleash a sword slash that deals $damage damage to enemies in aiming direction and in the attack reach. It causes $statusName, dealing $dotDamage damage per second for $dotDuration seconds.',
+      dynamicValues: _orderedUniqueNonEmpty(<String>[
+        damage,
+        statusName,
+        dotDamage,
+        dotDuration,
+      ]),
+    );
+  }
+
+  _DescriptionWithHighlights _bloodletterCleaveDescription(AbilityDef def) {
+    final damage = _formatFixed100(def.baseDamage);
+    final dot = _firstDotEffect(def);
+    final charge = _maxChargeBonuses(def);
+    final statusName = dot.name;
+    final dotDamage = _formatFixed100(dot.damage100);
+    final dotDuration = _formatDecimal(dot.durationSeconds);
+    final damageBonus = _formatDecimal(charge.damageBonusBp / 100.0);
+    final critBonus = _formatDecimal(charge.critBonusBp / 100.0);
+
+    return _DescriptionWithHighlights(
+      description:
+          'Unleash a powerful cleaving attack that deals $damage damage to all enemies in aiming direction and in the attack reach. It causes $statusName, dealing $dotDamage damage per second for $dotDuration seconds. Charging increases damage (up to +$damageBonus%) and critical chance (up to +$critBonus%). This attack can be interrupted by taking damage.',
+      dynamicValues: _orderedUniqueNonEmpty(<String>[
+        damage,
+        statusName,
+        dotDamage,
+        dotDuration,
+        damageBonus,
+        critBonus,
+      ]),
+    );
+  }
+
+  _StatusDotSummary _firstDotEffect(AbilityDef def) {
+    for (final proc in def.procs) {
+      if (proc.statusProfileId == StatusProfileId.none) continue;
+      final profile = _statusProfiles.get(proc.statusProfileId);
+      for (final application in profile.applications) {
+        if (application.type != StatusEffectType.dot) continue;
+        return _StatusDotSummary(
+          name: _statusDisplayName(proc.statusProfileId),
+          damage100: application.magnitude,
+          durationSeconds: application.durationSeconds,
+        );
+      }
     }
-    return '$inputHint to apply a self effect.';
+    return const _StatusDotSummary.none();
   }
 
-  StatusText? _describeStatusFromProfile(StatusProfileId id) {
-    if (id == StatusProfileId.none) return null;
-    final profile = _statusProfiles.get(id);
-    if (profile.applications.isEmpty) return null;
+  _ChargeBonusSummary _maxChargeBonuses(AbilityDef def) {
+    final tiers = def.chargeProfile?.tiers;
+    if (tiers == null || tiers.isEmpty) {
+      return const _ChargeBonusSummary.none();
+    }
 
-    final first = profile.applications.first;
-    return StatusText(
-      name: _statusName(id),
-      durationSeconds: first.durationSeconds,
+    var maxDamageScaleBp = tiers.first.damageScaleBp;
+    var maxCritBonusBp = tiers.first.critBonusBp;
+    for (final tier in tiers.skip(1)) {
+      if (tier.damageScaleBp > maxDamageScaleBp) {
+        maxDamageScaleBp = tier.damageScaleBp;
+      }
+      if (tier.critBonusBp > maxCritBonusBp) {
+        maxCritBonusBp = tier.critBonusBp;
+      }
+    }
+
+    final damageBonusBp = maxDamageScaleBp > 10000
+        ? maxDamageScaleBp - 10000
+        : 0;
+    final critBonusBp = maxCritBonusBp > 0 ? maxCritBonusBp : 0;
+    return _ChargeBonusSummary(
+      damageBonusBp: damageBonusBp,
+      critBonusBp: critBonusBp,
     );
   }
 
-  String _statusName(StatusProfileId id) {
+  String _statusDisplayName(StatusProfileId id) {
     switch (id) {
-      case StatusProfileId.none:
-        return 'Effect';
-      case StatusProfileId.slowOnHit:
-        return 'Slow';
+      case StatusProfileId.meleeBleed:
+        return 'Bleed';
       case StatusProfileId.burnOnHit:
         return 'Burn';
       case StatusProfileId.acidOnHit:
-        return 'Vulnerable';
-      case StatusProfileId.weakenOnHit:
-        return 'Weaken';
-      case StatusProfileId.drenchOnHit:
-        return 'Drench';
-      case StatusProfileId.silenceOnHit:
-        return 'Silence';
-      case StatusProfileId.meleeBleed:
-        return 'Bleed';
-      case StatusProfileId.stunOnHit:
-        return 'Stun';
-      case StatusProfileId.speedBoost:
-        return 'Haste';
-      case StatusProfileId.restoreHealth:
-        return 'Health Regen';
-      case StatusProfileId.restoreMana:
-        return 'Mana Regen';
-      case StatusProfileId.restoreStamina:
-        return 'Stamina Regen';
+        return 'Acid';
+      default:
+        return 'damage over time';
     }
+  }
+
+  String _formatDecimal(double value) {
+    final text = value.toStringAsFixed(2);
+    return text.replaceFirst(RegExp(r'\.?0+$'), '');
+  }
+
+  List<String> _orderedUniqueNonEmpty(List<String> values) {
+    final seen = <String>{};
+    final result = <String>[];
+    for (final value in values) {
+      if (value.isEmpty || !seen.add(value)) continue;
+      result.add(value);
+    }
+    return result;
   }
 
   String? _badgeLabel(AbilityUiTag tag) {
@@ -311,4 +397,43 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
         return 'AIM';
     }
   }
+}
+
+class _StatusDotSummary {
+  const _StatusDotSummary({
+    required this.name,
+    required this.damage100,
+    required this.durationSeconds,
+  });
+
+  const _StatusDotSummary.none()
+    : name = 'damage over time',
+      damage100 = 0,
+      durationSeconds = 0;
+
+  final String name;
+  final int damage100;
+  final double durationSeconds;
+}
+
+class _ChargeBonusSummary {
+  const _ChargeBonusSummary({
+    required this.damageBonusBp,
+    required this.critBonusBp,
+  });
+
+  const _ChargeBonusSummary.none() : damageBonusBp = 0, critBonusBp = 0;
+
+  final int damageBonusBp;
+  final int critBonusBp;
+}
+
+class _DescriptionWithHighlights {
+  const _DescriptionWithHighlights({
+    required this.description,
+    this.dynamicValues = const <String>[],
+  });
+
+  final String description;
+  final List<String> dynamicValues;
 }

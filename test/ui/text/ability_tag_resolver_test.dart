@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
+import 'package:rpg_runner/core/combat/status/status.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/ui/text/ability_tag_resolver.dart';
 import 'package:rpg_runner/ui/text/ability_tooltip_builder.dart';
@@ -8,6 +9,15 @@ import 'package:rpg_runner/ui/text/ability_tooltip_builder.dart';
 void main() {
   final resolver = AbilityTagResolver();
   const tooltipBuilder = DefaultAbilityTooltipBuilder();
+  String formatFixed100(int value100) {
+    final value = (value100 / 100.0).toStringAsFixed(2);
+    return value.replaceFirst(RegExp(r'\.?0+$'), '');
+  }
+
+  String formatDecimal(double value) {
+    final text = value.toStringAsFixed(2);
+    return text.replaceFirst(RegExp(r'\.?0+$'), '');
+  }
 
   AbilityDef ability(String id) {
     final def = AbilityCatalog.shared.resolve(id);
@@ -97,6 +107,118 @@ void main() {
       final tooltip = tooltipBuilder.build(ability('eloise.vital_surge'));
 
       expect(tooltip.description, equals('Tap to gain Health Regen for 5.0s.'));
+    });
+
+    test('builds seeker slash DoT values from authored profile data', () {
+      final def = ability('eloise.seeker_slash');
+      final profile = const StatusProfileCatalog().get(
+        StatusProfileId.meleeBleed,
+      );
+      final dot = profile.applications.firstWhere(
+        (application) => application.type == StatusEffectType.dot,
+      );
+      final tooltip = tooltipBuilder.build(def);
+
+      expect(
+        tooltip.description,
+        contains('deals ${formatFixed100(def.baseDamage)} damage'),
+      );
+      expect(
+        tooltip.description,
+        contains(
+          'Bleed that deals ${formatFixed100(dot.magnitude)} damage per second for ${formatDecimal(dot.durationSeconds)} seconds.',
+        ),
+      );
+      final highlightedValues = tooltip.dynamicDescriptionValues;
+      expect(highlightedValues, contains(formatFixed100(def.baseDamage)));
+      expect(highlightedValues, contains('Bleed'));
+      expect(highlightedValues, contains(formatFixed100(dot.magnitude)));
+      expect(highlightedValues, contains(formatDecimal(dot.durationSeconds)));
+    });
+
+    test('builds bloodletter slash values from authored data', () {
+      final def = ability('eloise.bloodletter_slash');
+      final bleedProfileId = def.procs.first.statusProfileId;
+      final profile = const StatusProfileCatalog().get(bleedProfileId);
+      final dot = profile.applications.firstWhere(
+        (application) => application.type == StatusEffectType.dot,
+      );
+      final tooltip = tooltipBuilder.build(def);
+
+      expect(
+        tooltip.description,
+        contains(
+          'deals ${formatFixed100(def.baseDamage)} damage to enemies in aiming direction and in the attack reach.',
+        ),
+      );
+      expect(
+        tooltip.description,
+        contains(
+          'Bleed, dealing ${formatFixed100(dot.magnitude)} damage per second for ${formatDecimal(dot.durationSeconds)} seconds.',
+        ),
+      );
+      final highlightedValues = tooltip.dynamicDescriptionValues;
+      expect(highlightedValues, contains(formatFixed100(def.baseDamage)));
+      expect(highlightedValues, contains('Bleed'));
+      expect(highlightedValues, contains(formatFixed100(dot.magnitude)));
+      expect(highlightedValues, contains(formatDecimal(dot.durationSeconds)));
+    });
+
+    test('builds bloodletter cleave values from authored data', () {
+      final def = ability('eloise.bloodletter_cleave');
+      final bleedProfileId = def.procs.first.statusProfileId;
+      final profile = const StatusProfileCatalog().get(bleedProfileId);
+      final dot = profile.applications.firstWhere(
+        (application) => application.type == StatusEffectType.dot,
+      );
+      final tiers = def.chargeProfile!.tiers;
+      var maxDamageScaleBp = tiers.first.damageScaleBp;
+      var maxCritBonusBp = tiers.first.critBonusBp;
+      for (final tier in tiers.skip(1)) {
+        if (tier.damageScaleBp > maxDamageScaleBp) {
+          maxDamageScaleBp = tier.damageScaleBp;
+        }
+        if (tier.critBonusBp > maxCritBonusBp) {
+          maxCritBonusBp = tier.critBonusBp;
+        }
+      }
+      final damageBonusBp = maxDamageScaleBp > 10000
+          ? maxDamageScaleBp - 10000
+          : 0;
+      final tooltip = tooltipBuilder.build(def);
+
+      expect(
+        tooltip.description,
+        contains(
+          'deals ${formatFixed100(def.baseDamage)} damage to all enemies in aiming direction and in the attack reach.',
+        ),
+      );
+      expect(
+        tooltip.description,
+        contains(
+          'Bleed, dealing ${formatFixed100(dot.magnitude)} damage per second for ${formatDecimal(dot.durationSeconds)} seconds.',
+        ),
+      );
+      expect(
+        tooltip.description,
+        contains('up to +${formatDecimal(damageBonusBp / 100.0)}%'),
+      );
+      expect(
+        tooltip.description,
+        contains(
+          'critical chance (up to +${formatDecimal(maxCritBonusBp / 100.0)}%)',
+        ),
+      );
+      final highlightedValues = tooltip.dynamicDescriptionValues;
+      expect(highlightedValues, contains(formatFixed100(def.baseDamage)));
+      expect(highlightedValues, contains('Bleed'));
+      expect(highlightedValues, contains(formatFixed100(dot.magnitude)));
+      expect(highlightedValues, contains(formatDecimal(dot.durationSeconds)));
+      expect(highlightedValues, contains(formatDecimal(damageBonusBp / 100.0)));
+      expect(
+        highlightedValues,
+        contains(formatDecimal(maxCritBonusBp / 100.0)),
+      );
     });
 
     test('uses projectile source context in ranged fallback description', () {
