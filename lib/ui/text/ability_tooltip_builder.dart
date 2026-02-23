@@ -1,4 +1,5 @@
 import '../../core/abilities/ability_def.dart';
+import '../../core/combat/middleware/parry_middleware.dart';
 import '../../core/combat/status/status.dart';
 import '../../core/projectiles/projectile_id.dart';
 import 'ability_tag_resolver.dart';
@@ -29,6 +30,7 @@ class AbilityTooltip {
     this.badges = const <String>[],
     this.tags = const <AbilityUiTag>{},
     this.cooldownSeconds,
+    this.maxDurationSeconds,
     this.costLines = const <AbilityCostLine>[],
   });
 
@@ -38,6 +40,7 @@ class AbilityTooltip {
   final List<String> badges;
   final Set<AbilityUiTag> tags;
   final double? cooldownSeconds;
+  final double? maxDurationSeconds;
   final List<AbilityCostLine> costLines;
 }
 
@@ -53,11 +56,19 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   static const String _templateMeleeDot =
       '{action} that deals {damage} damage to {targets}. '
       'It causes {status}, dealing {dotDamage} damage per second for {dotDuration} seconds.';
+  static const String _templateMeleeControl =
+      '{action} that deals {damage} damage to {targets}. '
+      'It causes {status} for {duration} seconds.';
   static const String _templateChargedBonus =
       ' Charging increases damage (up to +{damageBonus}%) '
       'and critical chance (up to +{critBonus}%).';
   static const String _templateInterruptible =
       ' This attack can be interrupted by taking damage.';
+  static const String _templateGuard =
+      'Keep your guard up and reduce incoming damage by {reduction}% while held.';
+  static const String _templateRiposteGrant =
+      ' Guarded hits grant {riposte}, empowering your next melee hit by +{riposteBonus}% damage.';
+  static const String _riposteLabel = 'Riposte';
   static const String _targetClosestAndReach =
       'the closest enemy and all those who are in the attack reach';
   static const String _targetAimingDirectionAndReach =
@@ -89,6 +100,7 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
       badges: List<String>.unmodifiable(badges),
       tags: tags,
       cooldownSeconds: _cooldownSeconds(def),
+      maxDurationSeconds: _maxDurationSeconds(def),
       costLines: List<AbilityCostLine>.unmodifiable(_costLines(def, ctx)),
     );
   }
@@ -104,6 +116,16 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
         return _seekerSlashDescription(def);
       case 'eloise.bloodletter_cleave':
         return _bloodletterCleaveDescription(def);
+      case 'eloise.seeker_bash':
+        return _seekerBashDescription(def);
+      case 'eloise.concussive_bash':
+        return _concussiveBashDescription(def);
+      case 'eloise.concussive_breaker':
+        return _concussiveBreakerDescription(def);
+      case 'eloise.riposte_guard':
+      case 'eloise.aegis_riposte':
+      case 'eloise.shield_block':
+        return _guardDescription(def);
       default:
         return _DescriptionWithHighlights(
           description: _buildDescriptionForAbility(def, ctx),
@@ -114,6 +136,12 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   double? _cooldownSeconds(AbilityDef def) {
     if (def.cooldownTicks <= 0) return null;
     return def.cooldownTicks / _authoredTicksPerSecond;
+  }
+
+  double? _maxDurationSeconds(AbilityDef def) {
+    if (def.holdMode != AbilityHoldMode.holdToMaintain) return null;
+    if (def.activeTicks <= 0) return null;
+    return def.activeTicks / _authoredTicksPerSecond;
   }
 
   List<AbilityCostLine> _costLines(AbilityDef def, AbilityTooltipContext ctx) {
@@ -294,6 +322,66 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
     );
   }
 
+  _DescriptionWithHighlights _seekerBashDescription(AbilityDef def) {
+    final damage = _formatFixed100(def.baseDamage);
+    final control = _firstControlEffect(def);
+    return _descriptionFromTemplate(
+      template: _templateMeleeControl,
+      values: <String, String>{
+        'action': 'Strike with a shield bash',
+        'damage': damage,
+        'targets': _targetClosestAndReach,
+        'status': control.name,
+        'duration': _formatDecimal(control.durationSeconds),
+      },
+      dynamicKeys: <String>['damage', 'status', 'duration'],
+    );
+  }
+
+  _DescriptionWithHighlights _concussiveBashDescription(AbilityDef def) {
+    final damage = _formatFixed100(def.baseDamage);
+    final control = _firstControlEffect(def);
+    return _descriptionFromTemplate(
+      template: _templateMeleeControl,
+      values: <String, String>{
+        'action': 'Perform a shield bash',
+        'damage': damage,
+        'targets': _targetAimingDirectionAndReach,
+        'status': control.name,
+        'duration': _formatDecimal(control.durationSeconds),
+      },
+      dynamicKeys: <String>['damage', 'status', 'duration'],
+    );
+  }
+
+  _DescriptionWithHighlights _concussiveBreakerDescription(AbilityDef def) {
+    final damage = _formatFixed100(def.baseDamage);
+    final control = _firstControlEffect(def);
+    final charge = _maxChargeBonuses(def);
+    final damageBonus = _formatDecimal(charge.damageBonusBp / 100.0);
+    final critBonus = _formatDecimal(charge.critBonusBp / 100.0);
+
+    return _descriptionFromTemplate(
+      template: _templateMeleeControl + _templateChargedBonus + _templateInterruptible,
+      values: <String, String>{
+        'action': 'Launch a heavy shield breaker',
+        'damage': damage,
+        'targets': _targetAimingDirectionAndReach,
+        'status': control.name,
+        'duration': _formatDecimal(control.durationSeconds),
+        'damageBonus': damageBonus,
+        'critBonus': critBonus,
+      },
+      dynamicKeys: <String>[
+        'damage',
+        'status',
+        'duration',
+        'damageBonus',
+        'critBonus',
+      ],
+    );
+  }
+
   _DescriptionWithHighlights _buildMeleeDotDescription({
     required String action,
     required String damage,
@@ -339,6 +427,31 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
     );
   }
 
+  _DescriptionWithHighlights _guardDescription(AbilityDef def) {
+    final reduction = _formatDecimal(def.damageIgnoredBp / 100.0);
+    final riposteBonus = _formatDecimal(
+      ParryMiddleware.defaultRiposteBonusBp / 100.0,
+    );
+    final values = <String, String>{
+      'reduction': reduction,
+      if (def.grantsRiposteOnGuardedHit) 'riposte': _riposteLabel,
+      if (def.grantsRiposteOnGuardedHit) 'riposteBonus': riposteBonus,
+    };
+    var template = _templateGuard;
+    final dynamicKeys = <String>['reduction'];
+    if (def.grantsRiposteOnGuardedHit) {
+      template += _templateRiposteGrant;
+      dynamicKeys
+        ..add('riposte')
+        ..add('riposteBonus');
+    }
+    return _descriptionFromTemplate(
+      template: template,
+      values: values,
+      dynamicKeys: dynamicKeys,
+    );
+  }
+
   _DescriptionWithHighlights _descriptionFromTemplate({
     required String template,
     required Map<String, String> values,
@@ -371,6 +484,32 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
       }
     }
     return const _StatusDotSummary.none();
+  }
+
+  _StatusControlSummary _firstControlEffect(AbilityDef def) {
+    for (final proc in def.procs) {
+      if (proc.statusProfileId == StatusProfileId.none) continue;
+      final profile = _statusProfiles.get(proc.statusProfileId);
+      for (final application in profile.applications) {
+        switch (application.type) {
+          case StatusEffectType.stun:
+          case StatusEffectType.slow:
+          case StatusEffectType.silence:
+          case StatusEffectType.weaken:
+          case StatusEffectType.vulnerable:
+          case StatusEffectType.drench:
+            return _StatusControlSummary(
+              name: _statusDisplayName(proc.statusProfileId),
+              durationSeconds: application.durationSeconds,
+            );
+          case StatusEffectType.dot:
+          case StatusEffectType.haste:
+          case StatusEffectType.resourceOverTime:
+            continue;
+        }
+      }
+    }
+    return const _StatusControlSummary.none();
   }
 
   _ChargeBonusSummary _maxChargeBonuses(AbilityDef def) {
@@ -408,6 +547,8 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
         return 'Burn';
       case StatusProfileId.acidOnHit:
         return 'Acid';
+      case StatusProfileId.stunOnHit:
+        return 'Stun';
       default:
         return 'damage over time';
     }
@@ -468,6 +609,18 @@ class _StatusDotSummary {
 
   final String name;
   final int damage100;
+  final double durationSeconds;
+}
+
+class _StatusControlSummary {
+  const _StatusControlSummary({
+    required this.name,
+    required this.durationSeconds,
+  });
+
+  const _StatusControlSummary.none() : name = 'Control', durationSeconds = 0;
+
+  final String name;
   final double durationSeconds;
 }
 

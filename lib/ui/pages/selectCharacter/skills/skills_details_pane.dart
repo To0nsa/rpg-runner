@@ -60,6 +60,14 @@ class _AbilityDetailsPane extends StatelessWidget {
                 ),
               ],
             ],
+            if (tooltip!.maxDurationSeconds != null) ...[
+              SizedBox(height: ui.space.xxs),
+              _DetailsMetricLine(
+                label: 'Max duration: ',
+                value:
+                    '${_formatCooldownSeconds(tooltip!.maxDurationSeconds!)} sec',
+              ),
+            ],
             SizedBox(height: ui.space.xxs),
             Text.rich(
               TextSpan(

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
+import 'package:rpg_runner/core/combat/middleware/parry_middleware.dart';
 import 'package:rpg_runner/core/combat/status/status.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/ui/text/ability_tag_resolver.dart';
@@ -97,10 +98,60 @@ void main() {
     });
 
     test('builds guard description from defensive mechanics', () {
-      final tooltip = tooltipBuilder.build(ability('eloise.shield_block'));
+      final def = ability('eloise.shield_block');
+      final tooltip = tooltipBuilder.build(def);
+      final expectedReduction = formatDecimal(def.damageIgnoredBp / 100.0);
 
       expect(tooltip.description, contains('guard'));
-      expect(tooltip.description, contains('100%'));
+      expect(tooltip.description, contains('$expectedReduction%'));
+      expect(tooltip.description, isNot(contains('Riposte')));
+      expect(tooltip.dynamicDescriptionValues, contains(expectedReduction));
+    });
+
+    test('builds riposte guard description from authored mechanics', () {
+      final def = ability('eloise.riposte_guard');
+      final tooltip = tooltipBuilder.build(def);
+      final expectedReduction = formatDecimal(def.damageIgnoredBp / 100.0);
+      final expectedRiposteBonus = formatDecimal(
+        ParryMiddleware.defaultRiposteBonusBp / 100.0,
+      );
+
+      expect(
+        tooltip.description,
+        contains('reduce incoming damage by $expectedReduction% while held.'),
+      );
+      expect(
+        tooltip.description,
+        contains(
+          'Guarded hits grant Riposte, empowering your next melee hit by +$expectedRiposteBonus% damage.',
+        ),
+      );
+      expect(tooltip.dynamicDescriptionValues, contains(expectedReduction));
+      expect(tooltip.dynamicDescriptionValues, contains('Riposte'));
+      expect(tooltip.dynamicDescriptionValues, contains(expectedRiposteBonus));
+    });
+
+    test('builds aegis riposte description from authored mechanics', () {
+      final def = ability('eloise.aegis_riposte');
+      final tooltip = tooltipBuilder.build(def);
+      final expectedReduction = formatDecimal(def.damageIgnoredBp / 100.0);
+      final expectedRiposteBonus = formatDecimal(
+        ParryMiddleware.defaultRiposteBonusBp / 100.0,
+      );
+
+      expect(
+        tooltip.description,
+        contains('reduce incoming damage by $expectedReduction% while held.'),
+      );
+      expect(
+        tooltip.description,
+        contains(
+          'Guarded hits grant Riposte, empowering your next melee hit by +$expectedRiposteBonus% damage.',
+        ),
+      );
+      expect(tooltip.dynamicDescriptionValues, contains(expectedReduction));
+      expect(tooltip.dynamicDescriptionValues, contains('Riposte'));
+      expect(tooltip.dynamicDescriptionValues, contains(expectedRiposteBonus));
     });
 
     test('builds self-status description from status profile metadata', () {
@@ -135,6 +186,122 @@ void main() {
       expect(highlightedValues, contains(formatFixed100(dot.magnitude)));
       expect(highlightedValues, contains(formatDecimal(dot.durationSeconds)));
     });
+
+    test('builds seeker bash control values from authored profile data', () {
+      final def = ability('eloise.seeker_bash');
+      final profile = const StatusProfileCatalog().get(
+        StatusProfileId.stunOnHit,
+      );
+      final stun = profile.applications.firstWhere(
+        (application) => application.type == StatusEffectType.stun,
+      );
+      final tooltip = tooltipBuilder.build(def);
+
+      expect(
+        tooltip.description,
+        contains('deals ${formatFixed100(def.baseDamage)} damage'),
+      );
+      expect(
+        tooltip.description,
+        contains('Stun for ${formatDecimal(stun.durationSeconds)} seconds.'),
+      );
+      final highlightedValues = tooltip.dynamicDescriptionValues;
+      expect(highlightedValues, contains(formatFixed100(def.baseDamage)));
+      expect(highlightedValues, contains('Stun'));
+      expect(highlightedValues, contains(formatDecimal(stun.durationSeconds)));
+    });
+
+    test(
+      'builds concussive bash control values from authored profile data',
+      () {
+        final def = ability('eloise.concussive_bash');
+        final profile = const StatusProfileCatalog().get(
+          StatusProfileId.stunOnHit,
+        );
+        final stun = profile.applications.firstWhere(
+          (application) => application.type == StatusEffectType.stun,
+        );
+        final tooltip = tooltipBuilder.build(def);
+
+        expect(
+          tooltip.description,
+          contains('deals ${formatFixed100(def.baseDamage)} damage'),
+        );
+        expect(
+          tooltip.description,
+          contains('Stun for ${formatDecimal(stun.durationSeconds)} seconds.'),
+        );
+        final highlightedValues = tooltip.dynamicDescriptionValues;
+        expect(highlightedValues, contains(formatFixed100(def.baseDamage)));
+        expect(highlightedValues, contains('Stun'));
+        expect(
+          highlightedValues,
+          contains(formatDecimal(stun.durationSeconds)),
+        );
+      },
+    );
+
+    test(
+      'builds concussive breaker control and charge values from authored data',
+      () {
+        final def = ability('eloise.concussive_breaker');
+        final profile = const StatusProfileCatalog().get(
+          StatusProfileId.stunOnHit,
+        );
+        final stun = profile.applications.firstWhere(
+          (application) => application.type == StatusEffectType.stun,
+        );
+        final tiers = def.chargeProfile!.tiers;
+        var maxDamageScaleBp = tiers.first.damageScaleBp;
+        var maxCritBonusBp = tiers.first.critBonusBp;
+        for (final tier in tiers.skip(1)) {
+          if (tier.damageScaleBp > maxDamageScaleBp) {
+            maxDamageScaleBp = tier.damageScaleBp;
+          }
+          if (tier.critBonusBp > maxCritBonusBp) {
+            maxCritBonusBp = tier.critBonusBp;
+          }
+        }
+        final damageBonusBp = maxDamageScaleBp > 10000
+            ? maxDamageScaleBp - 10000
+            : 0;
+        final tooltip = tooltipBuilder.build(def);
+
+        expect(
+          tooltip.description,
+          contains(
+            'deals ${formatFixed100(def.baseDamage)} damage to enemies in aiming direction and in the attack reach.',
+          ),
+        );
+        expect(
+          tooltip.description,
+          contains('Stun for ${formatDecimal(stun.durationSeconds)} seconds.'),
+        );
+        expect(
+          tooltip.description,
+          contains('up to +${formatDecimal(damageBonusBp / 100.0)}%'),
+        );
+        expect(
+          tooltip.description,
+          contains(
+            'critical chance (up to +${formatDecimal(maxCritBonusBp / 100.0)}%)',
+          ),
+        );
+        expect(
+          tooltip.description,
+          contains('This attack can be interrupted by taking damage.'),
+        );
+        final highlightedValues = tooltip.dynamicDescriptionValues;
+        expect(highlightedValues, contains(formatFixed100(def.baseDamage)));
+        expect(highlightedValues, contains('Stun'));
+        expect(highlightedValues, contains(formatDecimal(stun.durationSeconds)));
+        expect(highlightedValues, contains(formatDecimal(damageBonusBp / 100.0)));
+        expect(
+          highlightedValues,
+          contains(formatDecimal(maxCritBonusBp / 100.0)),
+        );
+      },
+    );
 
     test('builds bloodletter slash values from authored data', () {
       final def = ability('eloise.bloodletter_slash');
@@ -231,6 +398,9 @@ void main() {
       final cleaveTooltip = tooltipBuilder.build(
         ability('eloise.bloodletter_cleave'),
       );
+      final breakerTooltip = tooltipBuilder.build(
+        ability('eloise.concussive_breaker'),
+      );
 
       expect(slashTooltip.description, isNot(contains('{')));
       expect(slashTooltip.description, isNot(contains('}')));
@@ -238,6 +408,8 @@ void main() {
       expect(seekerTooltip.description, isNot(contains('}')));
       expect(cleaveTooltip.description, isNot(contains('{')));
       expect(cleaveTooltip.description, isNot(contains('}')));
+      expect(breakerTooltip.description, isNot(contains('{')));
+      expect(breakerTooltip.description, isNot(contains('}')));
     });
 
     test('uses projectile source context in ranged fallback description', () {
@@ -262,6 +434,26 @@ void main() {
       final tooltip = tooltipBuilder.build(ability('eloise.jump'));
 
       expect(tooltip.cooldownSeconds, isNull);
+    });
+
+    test('maps hold ability active ticks to max duration seconds', () {
+      final riposteGuard = tooltipBuilder.build(
+        ability('eloise.riposte_guard'),
+      );
+      final aegisRiposte = tooltipBuilder.build(
+        ability('eloise.aegis_riposte'),
+      );
+      final shieldBlock = tooltipBuilder.build(ability('eloise.shield_block'));
+
+      expect(riposteGuard.maxDurationSeconds, 3);
+      expect(aegisRiposte.maxDurationSeconds, 3);
+      expect(shieldBlock.maxDurationSeconds, 3);
+    });
+
+    test('keeps max duration null for non-hold abilities', () {
+      final tooltip = tooltipBuilder.build(ability('eloise.bloodletter_slash'));
+
+      expect(tooltip.maxDurationSeconds, isNull);
     });
 
     test('maps authored resource cost to one cost line', () {

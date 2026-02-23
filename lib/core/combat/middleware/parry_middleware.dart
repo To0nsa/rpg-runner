@@ -12,13 +12,16 @@ import '../../util/fixed_math.dart';
 /// This is used by multiple abilities (e.g. sword parry, shield block) to keep
 /// defense rules centralized and deterministic.
 class ParryMiddleware implements DamageMiddleware {
+  static const int defaultRiposteBonusBp = 10000;
+  static const int defaultRiposteLifetimeTicks = 60;
+
   ParryMiddleware({
     required Set<AbilityKey> abilityIds,
     this.abilityResolver = AbilityCatalog.shared,
     this.defaultDamageIgnoredBp = bpScale,
     this.defaultGrantsRiposte = true,
-    this.riposteBonusBp = 10000,
-    this.riposteLifetimeTicks = 60,
+    this.riposteBonusBp = defaultRiposteBonusBp,
+    this.riposteLifetimeTicks = defaultRiposteLifetimeTicks,
   }) : _abilityIds = abilityIds,
        assert(
          defaultDamageIgnoredBp >= 0 && defaultDamageIgnoredBp <= bpScale,
