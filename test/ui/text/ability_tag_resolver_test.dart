@@ -126,7 +126,7 @@ void main() {
       expect(
         tooltip.description,
         contains(
-          'Bleed that deals ${formatFixed100(dot.magnitude)} damage per second for ${formatDecimal(dot.durationSeconds)} seconds.',
+          'Bleed, dealing ${formatFixed100(dot.magnitude)} damage per second for ${formatDecimal(dot.durationSeconds)} seconds.',
         ),
       );
       final highlightedValues = tooltip.dynamicDescriptionValues;
@@ -190,7 +190,7 @@ void main() {
       expect(
         tooltip.description,
         contains(
-          'deals ${formatFixed100(def.baseDamage)} damage to all enemies in aiming direction and in the attack reach.',
+          'deals ${formatFixed100(def.baseDamage)} damage to enemies in aiming direction and in the attack reach.',
         ),
       );
       expect(
@@ -219,6 +219,25 @@ void main() {
         highlightedValues,
         contains(formatDecimal(maxCritBonusBp / 100.0)),
       );
+    });
+
+    test('resolves templated melee descriptions without placeholders', () {
+      final slashTooltip = tooltipBuilder.build(
+        ability('eloise.bloodletter_slash'),
+      );
+      final seekerTooltip = tooltipBuilder.build(
+        ability('eloise.seeker_slash'),
+      );
+      final cleaveTooltip = tooltipBuilder.build(
+        ability('eloise.bloodletter_cleave'),
+      );
+
+      expect(slashTooltip.description, isNot(contains('{')));
+      expect(slashTooltip.description, isNot(contains('}')));
+      expect(seekerTooltip.description, isNot(contains('{')));
+      expect(seekerTooltip.description, isNot(contains('}')));
+      expect(cleaveTooltip.description, isNot(contains('{')));
+      expect(cleaveTooltip.description, isNot(contains('}')));
     });
 
     test('uses projectile source context in ranged fallback description', () {

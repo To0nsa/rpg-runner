@@ -50,6 +50,18 @@ abstract interface class AbilityTooltipBuilder {
 
 class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   static const double _authoredTicksPerSecond = 60.0;
+  static const String _templateMeleeDot =
+      '{action} that deals {damage} damage to {targets}. '
+      'It causes {status}, dealing {dotDamage} damage per second for {dotDuration} seconds.';
+  static const String _templateChargedBonus =
+      ' Charging increases damage (up to +{damageBonus}%) '
+      'and critical chance (up to +{critBonus}%).';
+  static const String _templateInterruptible =
+      ' This attack can be interrupted by taking damage.';
+  static const String _targetClosestAndReach =
+      'the closest enemy and all those who are in the attack reach';
+  static const String _targetAimingDirectionAndReach =
+      'enemies in aiming direction and in the attack reach';
 
   const DefaultAbilityTooltipBuilder({
     AbilityTagResolver tagResolver = const AbilityTagResolver(),
@@ -245,36 +257,22 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   _DescriptionWithHighlights _seekerSlashDescription(AbilityDef def) {
     final damage = _formatFixed100(def.baseDamage);
     final dot = _firstDotEffect(def);
-    final statusName = dot.name;
-    final dotDamage = _formatFixed100(dot.damage100);
-    final dotDuration = _formatDecimal(dot.durationSeconds);
-    return _DescriptionWithHighlights(
-      description:
-          'Launch an attack that deals $damage damage to the closest enemy and all those who are in the attack reach causing $statusName that deals $dotDamage damage per second for $dotDuration seconds.',
-      dynamicValues: _orderedUniqueNonEmpty(<String>[
-        damage,
-        statusName,
-        dotDamage,
-        dotDuration,
-      ]),
+    return _buildMeleeDotDescription(
+      action: 'Launch an attack',
+      damage: damage,
+      targets: _targetClosestAndReach,
+      dot: dot,
     );
   }
 
   _DescriptionWithHighlights _bloodletterSlashDescription(AbilityDef def) {
     final damage = _formatFixed100(def.baseDamage);
     final dot = _firstDotEffect(def);
-    final statusName = dot.name;
-    final dotDamage = _formatFixed100(dot.damage100);
-    final dotDuration = _formatDecimal(dot.durationSeconds);
-    return _DescriptionWithHighlights(
-      description:
-          'Unleash a sword slash that deals $damage damage to enemies in aiming direction and in the attack reach. It causes $statusName, dealing $dotDamage damage per second for $dotDuration seconds.',
-      dynamicValues: _orderedUniqueNonEmpty(<String>[
-        damage,
-        statusName,
-        dotDamage,
-        dotDuration,
-      ]),
+    return _buildMeleeDotDescription(
+      action: 'Unleash a sword slash',
+      damage: damage,
+      targets: _targetAimingDirectionAndReach,
+      dot: dot,
     );
   }
 
@@ -282,23 +280,80 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
     final damage = _formatFixed100(def.baseDamage);
     final dot = _firstDotEffect(def);
     final charge = _maxChargeBonuses(def);
-    final statusName = dot.name;
-    final dotDamage = _formatFixed100(dot.damage100);
-    final dotDuration = _formatDecimal(dot.durationSeconds);
     final damageBonus = _formatDecimal(charge.damageBonusBp / 100.0);
     final critBonus = _formatDecimal(charge.critBonusBp / 100.0);
 
+    return _buildMeleeDotDescription(
+      action: 'Unleash a powerful cleaving attack',
+      damage: damage,
+      targets: _targetAimingDirectionAndReach,
+      dot: dot,
+      damageBonus: damageBonus,
+      critBonus: critBonus,
+      includeInterruptibleLine: true,
+    );
+  }
+
+  _DescriptionWithHighlights _buildMeleeDotDescription({
+    required String action,
+    required String damage,
+    required String targets,
+    required _StatusDotSummary dot,
+    String? damageBonus,
+    String? critBonus,
+    bool includeInterruptibleLine = false,
+  }) {
+    final values = <String, String>{
+      'action': action,
+      'damage': damage,
+      'targets': targets,
+      'status': dot.name,
+      'dotDamage': _formatFixed100(dot.damage100),
+      'dotDuration': _formatDecimal(dot.durationSeconds),
+      if (damageBonus != null) 'damageBonus': damageBonus,
+      if (critBonus != null) 'critBonus': critBonus,
+    };
+
+    var template = _templateMeleeDot;
+    final dynamicKeys = <String>[
+      'damage',
+      'status',
+      'dotDamage',
+      'dotDuration',
+    ];
+
+    if (damageBonus != null && critBonus != null) {
+      template += _templateChargedBonus;
+      dynamicKeys
+        ..add('damageBonus')
+        ..add('critBonus');
+    }
+    if (includeInterruptibleLine) {
+      template += _templateInterruptible;
+    }
+
+    return _descriptionFromTemplate(
+      template: template,
+      values: values,
+      dynamicKeys: dynamicKeys,
+    );
+  }
+
+  _DescriptionWithHighlights _descriptionFromTemplate({
+    required String template,
+    required Map<String, String> values,
+    required List<String> dynamicKeys,
+  }) {
+    var description = template;
+    for (final entry in values.entries) {
+      description = description.replaceAll('{${entry.key}}', entry.value);
+    }
+    final dynamicValues = _orderedUniqueNonEmpty(<String>[
+      for (final key in dynamicKeys) values[key] ?? '',
+    ]);
     return _DescriptionWithHighlights(
-      description:
-          'Unleash a powerful cleaving attack that deals $damage damage to all enemies in aiming direction and in the attack reach. It causes $statusName, dealing $dotDamage damage per second for $dotDuration seconds. Charging increases damage (up to +$damageBonus%) and critical chance (up to +$critBonus%). This attack can be interrupted by taking damage.',
-      dynamicValues: _orderedUniqueNonEmpty(<String>[
-        damage,
-        statusName,
-        dotDamage,
-        dotDuration,
-        damageBonus,
-        critBonus,
-      ]),
+      description: description,
+      dynamicValues: dynamicValues,
     );
   }
 
