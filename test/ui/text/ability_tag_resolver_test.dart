@@ -527,6 +527,59 @@ void main() {
       expect(tooltip.dynamicDescriptionValues, contains('9'));
     });
 
+    test('builds overcharge shot description with charge bonuses and interruptible', () {
+      final def = ability('eloise.overcharge_shot');
+      final tooltip = tooltipBuilder.build(
+        def,
+        ctx: const AbilityTooltipContext(
+          activeProjectileId: ProjectileId.fireBolt,
+          payloadWeaponType: WeaponType.projectileSpell,
+        ),
+      );
+      final expectedDamage = formatFixed100(def.baseDamage);
+
+      expect(
+        tooltip.description,
+        equals(
+          'Charge and release the selected spell projectile (Fire Bolt). '
+          'It deals $expectedDamage damage. '
+          'Charging increases damage (up to +22.5%) '
+          'and critical chance (up to +10%). '
+          'This attack can be interrupted by taking damage.',
+        ),
+      );
+      expect(tooltip.dynamicDescriptionValues, contains(' (Fire Bolt)'));
+      expect(tooltip.dynamicDescriptionValues, contains(expectedDamage));
+      expect(tooltip.dynamicDescriptionValues, contains('22.5'));
+      expect(tooltip.dynamicDescriptionValues, contains('10'));
+    });
+
+    test('builds skewer shot description with pierce count', () {
+      final def = ability('eloise.skewer_shot');
+      final tooltip = tooltipBuilder.build(
+        def,
+        ctx: const AbilityTooltipContext(
+          activeProjectileId: ProjectileId.throwingAxe,
+          payloadWeaponType: WeaponType.throwingWeapon,
+        ),
+      );
+      final expectedDamage = formatFixed100(def.baseDamage);
+
+      expect(
+        tooltip.description,
+        equals(
+          'Aim and fire a piercing your equipped projectile (Throwing Axe) in a line. '
+          'It deals $expectedDamage damage and can hit up to 3 enemies.',
+        ),
+      );
+      expect(
+        tooltip.dynamicDescriptionValues,
+        contains(' (Throwing Axe)'),
+      );
+      expect(tooltip.dynamicDescriptionValues, contains(expectedDamage));
+      expect(tooltip.dynamicDescriptionValues, contains('3'));
+    });
+
     test('maps authored cooldown ticks to seconds', () {
       final tooltip = tooltipBuilder.build(ability('eloise.vital_surge'));
 

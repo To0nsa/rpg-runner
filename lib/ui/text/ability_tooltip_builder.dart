@@ -77,6 +77,12 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
       'Fire {projectileSource}{projectileName}, it deals {damage} damage to the closest enemy.';
   static const String _templateQuickShot =
       'Aim and fire {projectileSource}{projectileName}. It deals {damage} damage to a single target.';
+  static const String _templateOverchargeShot =
+      'Charge and release {projectileSource}{projectileName}. '
+      'It deals {damage} damage to a single target.';
+  static const String _templateSkewerShot =
+      'Fire {projectileSource}{projectileName}, piercing through enemies in its path. '
+      'It deals {damage} damage and can hit up to {maxHits} enemies.';
   static const String _riposteLabel = 'Riposte';
   static const String _targetClosestAndReach =
       'the closest enemy and all those who are in the attack reach';
@@ -138,6 +144,10 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
         return _snapShotDescription(def, ctx);
       case 'eloise.quick_shot':
         return _quickShotDescription(def, ctx);
+      case 'eloise.overcharge_shot':
+        return _overchargeShotDescription(def, ctx);
+      case 'eloise.skewer_shot':
+        return _skewerShotDescription(def, ctx);
       case 'eloise.dash':
         return _dashDescription(def);
       case 'eloise.roll':
@@ -148,7 +158,7 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
         return _guardDescription(def);
       default:
         return _DescriptionWithHighlights(
-          description: _fallbackDescription(def, ctx),
+          description: _notBuildDescription(def, ctx),
         );
     }
   }
@@ -240,18 +250,12 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
     return badges;
   }
 
-  String _fallbackDescription(AbilityDef def, AbilityTooltipContext ctx) {
+  String _notBuildDescription(AbilityDef def, AbilityTooltipContext ctx) {
     switch (def.id) {
       case 'common.enemy_strike':
         return 'Tap to strike in front of you.';
       case 'common.enemy_cast':
         return 'Hold then release to cast a ranged bolt.';
-      case 'eloise.skewer_shot':
-        return ctx.payloadWeaponType == WeaponType.projectileSpell
-            ? 'Hold then release to fire a piercing line shot with the selected spell projectile.'
-            : 'Hold then release to fire a piercing line shot.';
-      case 'eloise.overcharge_shot':
-        return 'Hold then release to charge a stronger projectile shot.';
       case 'eloise.jump':
         return 'Tap to jump.';
       case 'eloise.double_jump':
@@ -388,6 +392,53 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
         'damage': _formatFixed100(def.baseDamage),
       },
       dynamicKeys: <String>['projectileName', 'damage'],
+    );
+  }
+
+  _DescriptionWithHighlights _overchargeShotDescription(
+    AbilityDef def,
+    AbilityTooltipContext ctx,
+  ) {
+    final charge = _maxChargeBonuses(def);
+    final damageBonus = _formatDecimal(charge.damageBonusBp / 100.0);
+    final critBonus = _formatDecimal(charge.critBonusBp / 100.0);
+
+    return _descriptionFromTemplate(
+      template:
+          _templateOverchargeShot + _templateChargedBonus + _templateInterruptible,
+      values: <String, String>{
+        'projectileSource': _projectileSourceLabel(ctx),
+        'projectileName': _projectileName(ctx),
+        'damage': _formatFixed100(def.baseDamage),
+        'damageBonus': damageBonus,
+        'critBonus': critBonus,
+      },
+      dynamicKeys: <String>[
+        'projectileName',
+        'damage',
+        'damageBonus',
+        'critBonus',
+      ],
+    );
+  }
+
+  _DescriptionWithHighlights _skewerShotDescription(
+    AbilityDef def,
+    AbilityTooltipContext ctx,
+  ) {
+    final hitDelivery = def.hitDelivery;
+    final maxHits = hitDelivery is ProjectileHitDelivery
+        ? hitDelivery.chainCount.toString()
+        : '?';
+    return _descriptionFromTemplate(
+      template: _templateSkewerShot,
+      values: <String, String>{
+        'projectileSource': _projectileSourceLabel(ctx),
+        'projectileName': _projectileName(ctx),
+        'damage': _formatFixed100(def.baseDamage),
+        'maxHits': maxHits,
+      },
+      dynamicKeys: <String>['projectileName', 'damage', 'maxHits'],
     );
   }
 
