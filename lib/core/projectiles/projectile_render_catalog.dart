@@ -278,7 +278,7 @@ const RenderAnimSetDefinition _earthBoltRenderAnim = RenderAnimSetDefinition(
 // Holy Bolt render animation strip definitions (authoring-time)
 // -----------------------------------------------------------------------------
 
-const int _holyBoltFrameWidth = 48;
+const int _holyBoltFrameWidth = 32;
 const int _holyBoltFrameHeight = 32;
 
 const int _holyBoltStartFrames = 2;

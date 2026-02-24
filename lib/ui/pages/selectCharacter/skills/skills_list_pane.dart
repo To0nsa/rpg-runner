@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/abilities/ability_def.dart';
+import '../../../../core/projectiles/projectile_id.dart';
 import '../../../components/ability_placeholder_icon.dart';
 import '../../../components/app_button.dart';
+import '../../../icons/projectile_icon_frame.dart';
 import '../../../text/ability_text.dart';
 import '../../../theme/ui_tokens.dart';
 import '../ability/ability_picker_presenter.dart';
@@ -87,6 +89,7 @@ class SkillsListPane extends StatelessWidget {
 class SkillsProjectileSourceTile extends StatelessWidget {
   const SkillsProjectileSourceTile({
     super.key,
+    required this.projectileId,
     required this.title,
     required this.selected,
     required this.onTap,
@@ -94,6 +97,9 @@ class SkillsProjectileSourceTile extends StatelessWidget {
     this.damageTypeName,
     this.statusLines = const <String>[],
   });
+
+  /// The [ProjectileId] used to extract the first idle frame as an icon.
+  final ProjectileId projectileId;
 
   final String title;
   final bool selected;
@@ -140,10 +146,9 @@ class SkillsProjectileSourceTile extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  AbilityPlaceholderIcon(
-                    label: '',
+                  ProjectileIconFrame(
+                    projectileId: projectileId,
                     size: 32,
-                    emphasis: selected,
                   ),
                   SizedBox(width: ui.space.xs),
                   Expanded(

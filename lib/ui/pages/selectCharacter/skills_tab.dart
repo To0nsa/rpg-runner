@@ -321,6 +321,7 @@ class _ProjectileSourceDialogState extends State<_ProjectileSourceDialog> {
                     final option = widget.options[index];
                     final selected = option.spellId == _selected;
                     return SkillsProjectileSourceTile(
+                      projectileId: option.projectileId,
                       title: option.displayName,
                       selected: selected,
                       description: option.description,

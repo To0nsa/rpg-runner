@@ -54,12 +54,16 @@ class AbilityPickerCandidate {
 /// - [spellId] != null means "use this spell from spellbook".
 class ProjectileSourceOption {
   const ProjectileSourceOption({
+    required this.projectileId,
     required this.spellId,
     required this.displayName,
     this.description = '',
     this.damageTypeName = '',
     this.statusLines = const <String>[],
   });
+
+  /// Canonical [ProjectileId] for this source (used for icon lookup).
+  final ProjectileId projectileId;
 
   final ProjectileId? spellId;
   final String displayName;
@@ -204,6 +208,7 @@ List<ProjectileSourceOption> projectileSourceOptions(
   final throwingDef = _projectileCatalog.get(sourceModel.throwingWeaponId);
   final options = <ProjectileSourceOption>[
     ProjectileSourceOption(
+      projectileId: sourceModel.throwingWeaponId,
       spellId: null,
       displayName: sourceModel.throwingWeaponDisplayName,
       description: projectileDescription(sourceModel.throwingWeaponId),
@@ -215,6 +220,7 @@ List<ProjectileSourceOption> projectileSourceOptions(
     final spellDef = _projectileCatalog.get(spell.spellId);
     options.add(
       ProjectileSourceOption(
+        projectileId: spell.spellId,
         spellId: spell.spellId,
         displayName: spell.displayName,
         description: projectileDescription(spell.spellId),
