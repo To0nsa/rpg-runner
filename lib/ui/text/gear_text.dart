@@ -1,8 +1,12 @@
 import '../../core/accessories/accessory_id.dart';
+import '../../core/combat/damage_type.dart';
+import '../../core/combat/status/status.dart';
 import '../../core/meta/gear_slot.dart';
 import '../../core/projectiles/projectile_id.dart';
+import '../../core/projectiles/projectile_item_def.dart';
 import '../../core/spellBook/spell_book_id.dart';
 import '../../core/weapons/weapon_id.dart';
+import '../../core/weapons/weapon_proc.dart';
 
 /// User-facing display name for a [WeaponId].
 String weaponDisplayName(WeaponId id) {
@@ -24,6 +28,90 @@ String projectileDisplayName(ProjectileId id) {
 /// User-facing short description for a [ProjectileId].
 String projectileDescription(ProjectileId id) {
   return _projectileDescriptionOverrides[id] ?? _defaultDescription;
+}
+
+/// User-facing display name for a [DamageType].
+String damageTypeDisplayName(DamageType type) {
+  return switch (type) {
+    DamageType.physical => 'Physical',
+    DamageType.fire => 'Fire',
+    DamageType.ice => 'Ice',
+    DamageType.water => 'Water',
+    DamageType.thunder => 'Thunder',
+    DamageType.acid => 'Acid',
+    DamageType.dark => 'Dark',
+    DamageType.bleed => 'Bleed',
+    DamageType.earth => 'Earth',
+    DamageType.holy => 'Holy',
+  };
+}
+
+/// Returns detailed status effect summaries for a projectile's on-hit procs.
+///
+/// Each entry is a human-readable line with the effect name and numbers,
+/// e.g. "Burn: 5 fire damage/s for 5s" or "Stun: 1s".
+List<String> projectileStatusSummaries(
+  ProjectileItemDef def, {
+  StatusProfileCatalog statusProfiles = const StatusProfileCatalog(),
+}) {
+  final lines = <String>[];
+  for (final proc in def.procs) {
+    if (proc.statusProfileId == StatusProfileId.none) continue;
+    final profile = statusProfiles.get(proc.statusProfileId);
+    for (final app in profile.applications) {
+      final line = _statusApplicationSummary(app, proc);
+      if (line != null) lines.add(line);
+    }
+  }
+  return lines;
+}
+
+String? _statusApplicationSummary(StatusApplication app, WeaponProc proc) {
+  final duration = _formatDuration(app.durationSeconds);
+  final chance = proc.chanceBp < 10000
+      ? ' (${_formatBp(proc.chanceBp)}% chance)'
+      : '';
+
+  switch (app.type) {
+    case StatusEffectType.dot:
+      final dps = _formatFixed100(app.magnitude);
+      final dmgType = app.dotDamageType != null
+          ? damageTypeDisplayName(app.dotDamageType!)
+          : 'DoT';
+      return '$dmgType: $dps damage per second for $duration$chance';
+    case StatusEffectType.slow:
+      return 'Slow: -${_formatBp(app.magnitude)}% speed for $duration$chance';
+    case StatusEffectType.stun:
+      return 'Stun: $duration$chance';
+    case StatusEffectType.silence:
+      return 'Silence: $duration$chance';
+    case StatusEffectType.vulnerable:
+      return 'Vulnerable: +${_formatBp(app.magnitude)}% damage taken for $duration$chance';
+    case StatusEffectType.weaken:
+      return 'Weaken: -${_formatBp(app.magnitude)}% outgoing damage for $duration$chance';
+    case StatusEffectType.drench:
+      return 'Drench: -${_formatBp(app.magnitude)}% attack/cast speed for $duration$chance';
+    case StatusEffectType.haste:
+    case StatusEffectType.resourceOverTime:
+      return null;
+  }
+}
+
+String _formatDuration(double seconds) {
+  final text = seconds.toStringAsFixed(1);
+  final value = text.replaceFirst(RegExp(r'\.0$'), '');
+  return value == '1' ? '$value second' : '$value seconds';
+}
+
+String _formatBp(int bp) {
+  final percent = bp / 100.0;
+  final text = percent.toStringAsFixed(1);
+  return text.replaceFirst(RegExp(r'\.0$'), '');
+}
+
+String _formatFixed100(int value100) {
+  final value = (value100 / 100.0).toStringAsFixed(2);
+  return value.replaceFirst(RegExp(r'\.?0+$'), '');
 }
 
 /// User-facing display name for a [SpellBookId].

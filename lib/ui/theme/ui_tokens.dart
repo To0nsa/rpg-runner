@@ -31,6 +31,7 @@ class UiTokens extends ThemeExtension<UiTokens> {
       outlineStrong: Colors.white,
       accent: Color(0xFFFFF59D),
       accentStrong: Color(0xFFFFD54F),
+      valueHighlight: Color(0xFF66BB6A),
       danger: Colors.redAccent,
       success: Colors.greenAccent,
       scrim: Color(0xAA000000),
@@ -209,6 +210,7 @@ class UiColors {
     required this.outlineStrong,
     required this.accent,
     required this.accentStrong,
+    required this.valueHighlight,
     required this.danger,
     required this.success,
     required this.scrim,
@@ -224,6 +226,7 @@ class UiColors {
   final Color outlineStrong;
   final Color accent;
   final Color accentStrong;
+  final Color valueHighlight;
   final Color danger;
   final Color success;
   final Color scrim;

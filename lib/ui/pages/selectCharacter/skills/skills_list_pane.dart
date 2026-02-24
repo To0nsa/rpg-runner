@@ -91,11 +91,23 @@ class SkillsProjectileSourceTile extends StatelessWidget {
     required this.title,
     required this.selected,
     required this.onTap,
+    this.description,
+    this.damageTypeName,
+    this.statusLines = const <String>[],
   });
 
   final String title;
   final bool selected;
   final VoidCallback onTap;
+
+  /// Short description shown when expanded (selected).
+  final String? description;
+
+  /// Damage type label shown when expanded (selected).
+  final String? damageTypeName;
+
+  /// Detailed status effect summaries shown when expanded.
+  final List<String> statusLines;
 
   @override
   Widget build(BuildContext context) {
@@ -111,7 +123,9 @@ class SkillsProjectileSourceTile extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(ui.radii.sm),
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
           padding: EdgeInsets.symmetric(
             horizontal: ui.space.sm,
             vertical: ui.space.xs,
@@ -121,16 +135,166 @@ class SkillsProjectileSourceTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(ui.radii.sm),
             border: Border.all(color: borderColor),
           ),
-          child: Text(
-            title,
-            style: ui.text.body.copyWith(color: ui.colors.textPrimary),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: ui.text.body.copyWith(
+                        color: ui.colors.textPrimary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  AnimatedRotation(
+                    turns: selected ? 0.5 : 0.0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(
+                      Icons.expand_more,
+                      size: 18,
+                      color: ui.colors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+              AnimatedCrossFade(
+                firstChild: const SizedBox.shrink(),
+                secondChild: _ExpandedDetails(
+                  description: description,
+                  damageTypeName: damageTypeName,
+                  statusLines: statusLines,
+                ),
+                crossFadeState: selected
+                    ? CrossFadeState.showSecond
+                    : CrossFadeState.showFirst,
+                duration: const Duration(milliseconds: 200),
+                sizeCurve: Curves.easeInOut,
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+}
+
+class _ExpandedDetails extends StatelessWidget {
+  const _ExpandedDetails({
+    this.description,
+    this.damageTypeName,
+    this.statusLines = const <String>[],
+  });
+
+  final String? description;
+  final String? damageTypeName;
+  final List<String> statusLines;
+
+  @override
+  Widget build(BuildContext context) {
+    final ui = context.ui;
+    final hasDescription = description != null && description!.isNotEmpty;
+    final hasDamageType = damageTypeName != null && damageTypeName!.isNotEmpty;
+    final hasStatus = statusLines.isNotEmpty;
+    if (!hasDescription && !hasDamageType && !hasStatus) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: EdgeInsets.only(top: ui.space.xxs),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (hasDamageType)
+            Row(
+              children: [
+                Text(
+                  'Damage: ',
+                  style: ui.text.caption.copyWith(color: ui.colors.textMuted),
+                ),
+                Text(
+                  damageTypeName!,
+                  style: ui.text.caption.copyWith(
+                    color: ui.colors.valueHighlight,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          if (hasDamageType && (hasDescription || hasStatus))
+            SizedBox(height: ui.space.xxs),
+          if (hasDescription)
+            Text(
+              description!,
+              style: ui.text.caption.copyWith(color: ui.colors.textMuted),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          if (hasDescription && hasStatus) SizedBox(height: ui.space.xxs),
+          for (final line in statusLines)
+            Padding(
+              padding: EdgeInsets.only(top: statusLines.first == line ? 0 : 2),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '• ',
+                    style: ui.text.caption.copyWith(
+                      color: ui.colors.valueHighlight,
+                    ),
+                  ),
+                  Expanded(
+                    child: Text.rich(
+                      TextSpan(
+                        children: _highlightValues(
+                          line,
+                          normal: ui.text.caption.copyWith(
+                            color: ui.colors.textPrimary,
+                          ),
+                          highlight: ui.text.caption.copyWith(
+                            color: ui.colors.valueHighlight,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Builds [TextSpan]s from [text], highlighting numeric tokens
+/// (e.g. "25", "-25%", "3 seconds", "50% chance") in [highlight] style.
+List<TextSpan> _highlightValues(
+  String text, {
+  required TextStyle normal,
+  required TextStyle highlight,
+}) {
+  // Matches numbers with optional leading sign and optional trailing %.
+  final regex = RegExp(r'[+-]?\d+(?:\.\d+)?%?');
+  final spans = <TextSpan>[];
+  var index = 0;
+  for (final match in regex.allMatches(text)) {
+    if (match.start > index) {
+      spans.add(TextSpan(text: text.substring(index, match.start), style: normal));
+    }
+    spans.add(TextSpan(text: match.group(0), style: highlight));
+    index = match.end;
+  }
+  if (index < text.length) {
+    spans.add(TextSpan(text: text.substring(index), style: normal));
+  }
+  return spans;
 }
 
 class _AbilityListTile extends StatelessWidget {

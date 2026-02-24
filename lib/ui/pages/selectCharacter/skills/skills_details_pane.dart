@@ -48,7 +48,7 @@ class _AbilityDetailsPane extends StatelessWidget {
               _DetailsMetricLine(
                 label: 'Cooldown: ',
                 value:
-                    '${_formatCooldownSeconds(tooltip!.cooldownSeconds!)} sec',
+                    '${_formatCooldownSeconds(tooltip!.cooldownSeconds!)} seconds',
               ),
             ],
             if (tooltip!.costLines.isNotEmpty) ...[
@@ -65,7 +65,7 @@ class _AbilityDetailsPane extends StatelessWidget {
               _DetailsMetricLine(
                 label: 'Max duration: ',
                 value:
-                    '${_formatCooldownSeconds(tooltip!.maxDurationSeconds!)} sec',
+                    '${_formatCooldownSeconds(tooltip!.maxDurationSeconds!)} seconds',
               ),
             ],
             SizedBox(height: ui.space.xxs),
@@ -79,7 +79,7 @@ class _AbilityDetailsPane extends StatelessWidget {
                     color: ui.colors.textMuted,
                   ),
                   dynamicStyle: ui.text.body.copyWith(
-                    color: ui.colors.success,
+                    color: ui.colors.valueHighlight,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -156,7 +156,7 @@ class _DetailsMetricLine extends StatelessWidget {
           TextSpan(
             text: value,
             style: ui.text.body.copyWith(
-              color: ui.colors.success,
+              color: ui.colors.valueHighlight,
               fontWeight: FontWeight.w600,
             ),
           ),

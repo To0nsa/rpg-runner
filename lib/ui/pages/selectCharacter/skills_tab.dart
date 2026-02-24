@@ -156,7 +156,6 @@ class _SkillsBarState extends State<SkillsBar> {
     required EquippedLoadoutDef loadout,
   }) {
     final options = projectileSourceOptions(loadout);
-    final selectedSource = loadout.projectileSlotSpellId;
     return showDialog<void>(
       context: context,
       barrierColor: context.ui.colors.scrim,
@@ -170,69 +169,19 @@ class _SkillsBarState extends State<SkillsBar> {
             .clamp(220.0, 520.0)
             .toDouble();
 
-        Future<void> selectSource(ProjectileId? sourceSpellId) async {
-          final next = setProjectileSourceForSlot(
-            loadout,
-            slot: AbilitySlot.projectile,
-            selectedSpellId: sourceSpellId,
-          );
-          await appState.setLoadout(next);
-          // Guard against async completion after the dialog tree is disposed.
-          if (!dialogContext.mounted) return;
-          Navigator.of(dialogContext).pop();
-        }
-
-        return Dialog(
-          backgroundColor: const Color(0xFF0D0D0D),
-          insetPadding: EdgeInsets.all(ui.space.sm),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(ui.radii.md),
-            side: BorderSide(color: ui.colors.outline.withValues(alpha: 0.35)),
-          ),
-          child: SizedBox(
-            width: maxWidth,
-            height: maxHeight,
-            child: Padding(
-              padding: EdgeInsets.all(ui.space.md),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Select Projectile Source',
-                    style: ui.text.headline.copyWith(
-                      color: ui.colors.textPrimary,
-                    ),
-                  ),
-                  SizedBox(height: ui.space.sm),
-                  Expanded(
-                    child: ListView.separated(
-                      itemCount: options.length,
-                      separatorBuilder: (_, _) => SizedBox(height: ui.space.xs),
-                      itemBuilder: (context, index) {
-                        final option = options[index];
-                        final selected = option.spellId == selectedSource;
-                        return SkillsProjectileSourceTile(
-                          title: option.displayName,
-                          selected: selected,
-                          onTap: () => selectSource(option.spellId),
-                        );
-                      },
-                    ),
-                  ),
-                  SizedBox(height: ui.space.sm),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: AppButton(
-                      label: 'Close',
-                      variant: AppButtonVariant.secondary,
-                      size: AppButtonSize.xs,
-                      onPressed: () => Navigator.of(dialogContext).pop(),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+        return _ProjectileSourceDialog(
+          options: options,
+          initialSelection: loadout.projectileSlotSpellId,
+          maxWidth: maxWidth,
+          maxHeight: maxHeight,
+          onSelect: (sourceSpellId) async {
+            final next = setProjectileSourceForSlot(
+              loadout,
+              slot: AbilitySlot.projectile,
+              selectedSpellId: sourceSpellId,
+            );
+            await appState.setLoadout(next);
+          },
         );
       },
     );
@@ -306,4 +255,99 @@ AbilityPickerCandidate? _candidateById(
     if (candidate.id == id) return candidate;
   }
   return null;
+}
+
+/// Stateful dialog that lets the user browse projectile sources with
+/// expandable detail panels before dismissing.
+class _ProjectileSourceDialog extends StatefulWidget {
+  const _ProjectileSourceDialog({
+    required this.options,
+    required this.initialSelection,
+    required this.maxWidth,
+    required this.maxHeight,
+    required this.onSelect,
+  });
+
+  final List<ProjectileSourceOption> options;
+  final ProjectileId? initialSelection;
+  final double maxWidth;
+  final double maxHeight;
+  final ValueChanged<ProjectileId?> onSelect;
+
+  @override
+  State<_ProjectileSourceDialog> createState() =>
+      _ProjectileSourceDialogState();
+}
+
+class _ProjectileSourceDialogState extends State<_ProjectileSourceDialog> {
+  late ProjectileId? _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = widget.initialSelection;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ui = context.ui;
+    return Dialog(
+      backgroundColor: const Color(0xFF0D0D0D),
+      insetPadding: EdgeInsets.all(ui.space.sm),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(ui.radii.md),
+        side: BorderSide(color: ui.colors.outline.withValues(alpha: 0.35)),
+      ),
+      child: SizedBox(
+        width: widget.maxWidth,
+        height: widget.maxHeight,
+        child: Padding(
+          padding: EdgeInsets.all(ui.space.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Select Projectile Source',
+                style: ui.text.headline.copyWith(
+                  color: ui.colors.textPrimary,
+                ),
+              ),
+              SizedBox(height: ui.space.sm),
+              Expanded(
+                child: ListView.separated(
+                  itemCount: widget.options.length,
+                  separatorBuilder: (_, _) => SizedBox(height: ui.space.xs),
+                  itemBuilder: (context, index) {
+                    final option = widget.options[index];
+                    final selected = option.spellId == _selected;
+                    return SkillsProjectileSourceTile(
+                      title: option.displayName,
+                      selected: selected,
+                      description: option.description,
+                      damageTypeName: option.damageTypeName,
+                      statusLines: option.statusLines,
+                      onTap: () {
+                        setState(() => _selected = option.spellId);
+                        widget.onSelect(option.spellId);
+                      },
+                    );
+                  },
+                ),
+              ),
+              SizedBox(height: ui.space.sm),
+              Align(
+                alignment: Alignment.centerRight,
+                child: AppButton(
+                  label: 'Close',
+                  variant: AppButtonVariant.secondary,
+                  size: AppButtonSize.xs,
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

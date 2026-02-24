@@ -56,10 +56,22 @@ class ProjectileSourceOption {
   const ProjectileSourceOption({
     required this.spellId,
     required this.displayName,
+    this.description = '',
+    this.damageTypeName = '',
+    this.statusLines = const <String>[],
   });
 
   final ProjectileId? spellId;
   final String displayName;
+
+  /// Short description of what this projectile does.
+  final String description;
+
+  /// User-facing damage type label (e.g. "Fire", "Physical").
+  final String damageTypeName;
+
+  /// Detailed status effect summaries with numbers.
+  final List<String> statusLines;
 }
 
 /// Display model for the left projectile source panel.
@@ -189,17 +201,25 @@ List<ProjectileSourceOption> projectileSourceOptions(
   EquippedLoadoutDef loadout,
 ) {
   final sourceModel = projectileSourcePanelModel(loadout);
+  final throwingDef = _projectileCatalog.get(sourceModel.throwingWeaponId);
   final options = <ProjectileSourceOption>[
     ProjectileSourceOption(
       spellId: null,
       displayName: sourceModel.throwingWeaponDisplayName,
+      description: projectileDescription(sourceModel.throwingWeaponId),
+      damageTypeName: damageTypeDisplayName(throwingDef.damageType),
+      statusLines: projectileStatusSummaries(throwingDef),
     ),
   ];
   for (final spell in sourceModel.spellOptions) {
+    final spellDef = _projectileCatalog.get(spell.spellId);
     options.add(
       ProjectileSourceOption(
         spellId: spell.spellId,
         displayName: spell.displayName,
+        description: projectileDescription(spell.spellId),
+        damageTypeName: damageTypeDisplayName(spellDef.damageType),
+        statusLines: projectileStatusSummaries(spellDef),
       ),
     );
   }
