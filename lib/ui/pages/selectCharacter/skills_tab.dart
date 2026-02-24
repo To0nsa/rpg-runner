@@ -282,10 +282,22 @@ class _ProjectileSourceDialog extends StatefulWidget {
 class _ProjectileSourceDialogState extends State<_ProjectileSourceDialog> {
   late ProjectileId? _selected;
 
+  /// Index of the tile whose detail panel is open, or `null` when all
+  /// tiles are collapsed.
+  int? _expandedIndex;
+
   @override
   void initState() {
     super.initState();
     _selected = widget.initialSelection;
+    // Start with the initially-selected tile expanded so the user
+    // immediately sees its details.
+    for (var i = 0; i < widget.options.length; i += 1) {
+      if (widget.options[i].spellId == _selected) {
+        _expandedIndex = i;
+        break;
+      }
+    }
   }
 
   @override
@@ -319,16 +331,24 @@ class _ProjectileSourceDialogState extends State<_ProjectileSourceDialog> {
                   separatorBuilder: (_, _) => SizedBox(height: ui.space.xs),
                   itemBuilder: (context, index) {
                     final option = widget.options[index];
-                    final selected = option.spellId == _selected;
+                    final isSelected = option.spellId == _selected;
+                    final isExpanded = _expandedIndex == index;
                     return SkillsProjectileSourceTile(
                       projectileId: option.projectileId,
                       title: option.displayName,
-                      selected: selected,
+                      selected: isSelected,
+                      expanded: isExpanded,
                       description: option.description,
                       damageTypeName: option.damageTypeName,
                       statusLines: option.statusLines,
                       onTap: () {
-                        setState(() => _selected = option.spellId);
+                        setState(() {
+                          _selected = option.spellId;
+                          // Toggle expansion: collapse if already open,
+                          // otherwise expand the tapped tile.
+                          _expandedIndex =
+                              _expandedIndex == index ? null : index;
+                        });
                         widget.onSelect(option.spellId);
                       },
                     );

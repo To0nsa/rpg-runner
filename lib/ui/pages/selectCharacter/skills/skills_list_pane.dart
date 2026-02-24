@@ -93,6 +93,7 @@ class SkillsProjectileSourceTile extends StatelessWidget {
     required this.title,
     required this.selected,
     required this.onTap,
+    this.expanded = false,
     this.description,
     this.damageTypeName,
     this.statusLines = const <String>[],
@@ -102,8 +103,16 @@ class SkillsProjectileSourceTile extends StatelessWidget {
   final ProjectileId projectileId;
 
   final String title;
+
+  /// Whether this tile is the currently chosen projectile source (border
+  /// highlight).
   final bool selected;
+
   final VoidCallback onTap;
+
+  /// Whether the details panel is currently visible. Toggled independently
+  /// of [selected] so the user can collapse an already-selected card.
+  final bool expanded;
 
   /// Short description shown when expanded (selected).
   final String? description;
@@ -162,7 +171,7 @@ class SkillsProjectileSourceTile extends StatelessWidget {
                     ),
                   ),
                   AnimatedRotation(
-                    turns: selected ? 0.5 : 0.0,
+                    turns: expanded ? 0.5 : 0.0,
                     duration: const Duration(milliseconds: 200),
                     child: Icon(
                       Icons.expand_more,
@@ -179,7 +188,7 @@ class SkillsProjectileSourceTile extends StatelessWidget {
                   damageTypeName: damageTypeName,
                   statusLines: statusLines,
                 ),
-                crossFadeState: selected
+                crossFadeState: expanded
                     ? CrossFadeState.showSecond
                     : CrossFadeState.showFirst,
                 duration: const Duration(milliseconds: 200),
