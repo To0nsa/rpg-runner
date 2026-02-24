@@ -162,7 +162,7 @@ class SkillsProjectileSourceTile extends StatelessWidget {
                   SizedBox(width: ui.space.xs),
                   Expanded(
                     child: Text(
-                      title,
+                      title.toUpperCase(),
                       style: ui.text.body.copyWith(
                         color: ui.colors.textPrimary,
                       ),
