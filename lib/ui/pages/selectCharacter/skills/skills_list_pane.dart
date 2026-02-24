@@ -60,7 +60,6 @@ class SkillsListPane extends StatelessWidget {
                 onPressed: onSelectProjectileSource,
               ),
             ),
-            SizedBox(height: ui.space.xxs),
           ],
           SizedBox(height: ui.space.xxs),
           Expanded(
@@ -141,6 +140,12 @@ class SkillsProjectileSourceTile extends StatelessWidget {
             children: [
               Row(
                 children: [
+                  AbilityPlaceholderIcon(
+                    label: '',
+                    size: 32,
+                    emphasis: selected,
+                  ),
+                  SizedBox(width: ui.space.xs),
                   Expanded(
                     child: Text(
                       title,

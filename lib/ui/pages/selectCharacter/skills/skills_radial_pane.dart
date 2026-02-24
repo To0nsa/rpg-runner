@@ -7,6 +7,7 @@ import '../../../controls/action_button.dart';
 import '../../../controls/ability_slot_visual_spec.dart';
 import '../../../controls/controls_tuning.dart';
 import '../../../controls/layout/controls_radial_layout.dart';
+import '../../../theme/ui_tokens.dart';
 
 class SkillsRadialPane extends StatelessWidget {
   const SkillsRadialPane({
@@ -66,6 +67,7 @@ class _ActionSlotButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ui = context.ui;
     final slotVisual = abilityRadialLayoutSpec.slotSpec(slot);
     // Slightly oversize the ring so selection emphasis stays outside the icon.
     final borderWidth = buttonSize * 1.08;
@@ -73,7 +75,7 @@ class _ActionSlotButton extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
-          color: selected ? const Color(0xFFFFD700) : Colors.transparent,
+          color: selected ? ui.colors.accentStrong : Colors.transparent,
           width: borderWidth,
         ),
       ),

@@ -74,7 +74,7 @@ String? _statusApplicationSummary(StatusApplication app, WeaponProc proc) {
 
   switch (app.type) {
     case StatusEffectType.dot:
-      final dps = _formatFixed100(app.magnitude);
+      final dps = formatFixed100(app.magnitude);
       final dmgType = app.dotDamageType != null
           ? damageTypeDisplayName(app.dotDamageType!)
           : 'DoT';
@@ -109,7 +109,8 @@ String _formatBp(int bp) {
   return text.replaceFirst(RegExp(r'\.0$'), '');
 }
 
-String _formatFixed100(int value100) {
+/// Formats a fixed-point ×100 integer as a minimal decimal string (e.g. 1500 → "15").
+String formatFixed100(int value100) {
   final value = (value100 / 100.0).toStringAsFixed(2);
   return value.replaceFirst(RegExp(r'\.?0+$'), '');
 }

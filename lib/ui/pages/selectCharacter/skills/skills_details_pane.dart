@@ -103,6 +103,10 @@ class _AbilityDetailsPane extends StatelessWidget {
   }
 }
 
+/// Splits [description] into styled [TextSpan]s, highlighting [dynamicValues].
+///
+/// Values are matched longest-first to prevent partial overlaps when a shorter
+/// token is a substring of a longer one (e.g. "5" inside "50%").
 List<TextSpan> _buildDescriptionSpans({
   required String description,
   required List<String> dynamicValues,
@@ -167,11 +171,7 @@ class _DetailsMetricLine extends StatelessWidget {
 }
 
 String _formatCooldownSeconds(double seconds) {
-  final formatted = seconds.toStringAsFixed(1);
-  if (formatted.endsWith('.0')) {
-    return formatted.substring(0, formatted.length - 2);
-  }
-  return formatted;
+  return seconds.toStringAsFixed(1).replaceFirst(RegExp(r'\.0$'), '');
 }
 
 class _AbilityBadge extends StatelessWidget {

@@ -200,7 +200,7 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
       lines.add(
         AbilityCostLine(
           label: 'Cost per second: ',
-          value: '${_formatFixed100(def.holdStaminaDrainPerSecond100)} Stamina',
+          value: '${formatFixed100(def.holdStaminaDrainPerSecond100)} Stamina',
         ),
       );
     }
@@ -217,21 +217,16 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   String? _formatCostValue(AbilityResourceCost cost) {
     final parts = <String>[];
     if (cost.healthCost100 > 0) {
-      parts.add('${_formatFixed100(cost.healthCost100)} Health');
+      parts.add('${formatFixed100(cost.healthCost100)} Health');
     }
     if (cost.staminaCost100 > 0) {
-      parts.add('${_formatFixed100(cost.staminaCost100)} Stamina');
+      parts.add('${formatFixed100(cost.staminaCost100)} Stamina');
     }
     if (cost.manaCost100 > 0) {
-      parts.add('${_formatFixed100(cost.manaCost100)} Mana');
+      parts.add('${formatFixed100(cost.manaCost100)} Mana');
     }
     if (parts.isEmpty) return null;
     return parts.join(' / ');
-  }
-
-  String _formatFixed100(int value100) {
-    final value = (value100 / 100.0).toStringAsFixed(2);
-    return value.replaceFirst(RegExp(r'\.?0+$'), '');
   }
 
   List<String> _buildBadges(Set<AbilityUiTag> tags) {
@@ -266,7 +261,7 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   }
 
   _DescriptionWithHighlights _seekerSlashDescription(AbilityDef def) {
-    final damage = _formatFixed100(def.baseDamage);
+    final damage = formatFixed100(def.baseDamage);
     final dot = _firstDotEffect(def);
     return _buildMeleeDotDescription(
       action: 'Launch an attack',
@@ -277,7 +272,7 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   }
 
   _DescriptionWithHighlights _bloodletterSlashDescription(AbilityDef def) {
-    final damage = _formatFixed100(def.baseDamage);
+    final damage = formatFixed100(def.baseDamage);
     final dot = _firstDotEffect(def);
     return _buildMeleeDotDescription(
       action: 'Unleash a sword slash',
@@ -288,7 +283,7 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   }
 
   _DescriptionWithHighlights _bloodletterCleaveDescription(AbilityDef def) {
-    final damage = _formatFixed100(def.baseDamage);
+    final damage = formatFixed100(def.baseDamage);
     final dot = _firstDotEffect(def);
     final charge = _maxChargeBonuses(def);
     final damageBonus = _formatDecimal(charge.damageBonusBp / 100.0);
@@ -306,7 +301,7 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   }
 
   _DescriptionWithHighlights _seekerBashDescription(AbilityDef def) {
-    final damage = _formatFixed100(def.baseDamage);
+    final damage = formatFixed100(def.baseDamage);
     final control = _firstControlEffect(def);
     return _descriptionFromTemplate(
       template: _templateMeleeControl,
@@ -322,7 +317,7 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   }
 
   _DescriptionWithHighlights _concussiveBashDescription(AbilityDef def) {
-    final damage = _formatFixed100(def.baseDamage);
+    final damage = formatFixed100(def.baseDamage);
     final control = _firstControlEffect(def);
     return _descriptionFromTemplate(
       template: _templateMeleeControl,
@@ -338,7 +333,7 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   }
 
   _DescriptionWithHighlights _concussiveBreakerDescription(AbilityDef def) {
-    final damage = _formatFixed100(def.baseDamage);
+    final damage = formatFixed100(def.baseDamage);
     final control = _firstControlEffect(def);
     final charge = _maxChargeBonuses(def);
     final damageBonus = _formatDecimal(charge.damageBonusBp / 100.0);
@@ -374,7 +369,7 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
       values: <String, String>{
         'projectileSource': _projectileSourceLabel(ctx),
         'projectileName': _projectileName(ctx),
-        'damage': _formatFixed100(def.baseDamage),
+        'damage': formatFixed100(def.baseDamage),
       },
       dynamicKeys: <String>['projectileName', 'damage'],
     );
@@ -389,7 +384,7 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
       values: <String, String>{
         'projectileSource': _projectileSourceLabel(ctx),
         'projectileName': _projectileName(ctx),
-        'damage': _formatFixed100(def.baseDamage),
+        'damage': formatFixed100(def.baseDamage),
       },
       dynamicKeys: <String>['projectileName', 'damage'],
     );
@@ -409,7 +404,7 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
       values: <String, String>{
         'projectileSource': _projectileSourceLabel(ctx),
         'projectileName': _projectileName(ctx),
-        'damage': _formatFixed100(def.baseDamage),
+        'damage': formatFixed100(def.baseDamage),
         'damageBonus': damageBonus,
         'critBonus': critBonus,
       },
@@ -435,7 +430,7 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
       values: <String, String>{
         'projectileSource': _projectileSourceLabel(ctx),
         'projectileName': _projectileName(ctx),
-        'damage': _formatFixed100(def.baseDamage),
+        'damage': formatFixed100(def.baseDamage),
         'maxHits': maxHits,
       },
       dynamicKeys: <String>['projectileName', 'damage', 'maxHits'],
@@ -486,7 +481,7 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
       'damage': damage,
       'targets': targets,
       'status': dot.name,
-      'dotDamage': _formatFixed100(dot.damage100),
+      'dotDamage': formatFixed100(dot.damage100),
       'dotDuration': _formatDecimal(dot.durationSeconds),
       if (damageBonus != null) 'damageBonus': damageBonus,
       if (critBonus != null) 'critBonus': critBonus,

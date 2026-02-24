@@ -304,6 +304,9 @@ bool _isAbilityVisibleForCharacter(
   return false;
 }
 
+/// Validates a trial loadout with [abilityId] in [slot] against Core rules.
+///
+/// Returns `false` when the validator reports any issue for the target slot.
 bool _isAbilityLegalForSlot({
   required EquippedLoadoutDef loadout,
   required AbilitySlot slot,
