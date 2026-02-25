@@ -1,5 +1,43 @@
 import 'package:flutter/material.dart';
 
+/// Shared brand palette constants for cross-component color reuse.
+class UiBrandPalette {
+  const UiBrandPalette._();
+
+  static const baseBackground = Color(0xFF0F141A);
+  static const cardBackground = Color(0xFF131A22);
+
+  static const steelBlueBackground = Color(0xFF1D2731);
+  static const steelBlueForeground = Color(0xFFD2DAE3);
+  static const steelBlueMutedText = Color(0xB3D2DAE3);
+  static const steelBlueSurfaceTop = Color(0xFF354656);
+  static const steelBlueSurfaceBottom = Color(0xFF131C24);
+  static const steelBlueInsetTop = Color(0xFF283748);
+  static const steelBlueInsetBottom = Color(0xFF10161C);
+
+  static const wornGoldBorder = Color(0xFF8E7A4F);
+  static const wornGoldOutline = Color(0xB38E7A4F);
+  static const wornGoldInsetBorder = Color(0xFFAE9664);
+  static const wornGoldGlow = Color(0x1A8E7A4F);
+
+  static const mutedMossValueHighlight = Color(0xFF7A8F7D);
+  static const mutedMossSuccess = Color(0xFF7E957E);
+
+  static const mutedPlumBackground = Color(0xFF282328);
+  static const mutedPlumForeground = Color(0xFFD9CFD7);
+  static const mutedPlumBorder = Color(0xFF7E6675);
+  static const mutedPlumSurfaceTop = Color(0xFF433843);
+  static const mutedPlumSurfaceBottom = Color(0xFF191519);
+  static const mutedPlumInsetTop = Color(0xFF332A33);
+  static const mutedPlumInsetBottom = Color(0xFF141114);
+  static const mutedPlumInsetBorder = Color(0xFF957C8C);
+  static const mutedPlumGlow = Color(0x1A7E6675);
+
+  static const scrim = Color(0xAA000000);
+  static const shadow = Color(0x8A000000);
+  static const buttonShadow = Color(0xB3000000);
+}
+
 @immutable
 class UiTokens extends ThemeExtension<UiTokens> {
   const UiTokens({
@@ -22,20 +60,20 @@ class UiTokens extends ThemeExtension<UiTokens> {
     space: UiSpace(xxs: 4, xs: 8, sm: 12, md: 16, lg: 24, xl: 32, xxl: 48),
     radii: UiRadii(sm: 8, md: 12, lg: 16, xl: 24),
     colors: UiColors(
-      background: Colors.black,
-      surface: Color.fromARGB(255, 19, 32, 59),
-      cardBackground: Color.fromARGB(255, 0, 0, 0),
-      textPrimary: Colors.white,
-      textMuted: Colors.white70,
-      outline: Color(0xB3FFFFFF),
-      outlineStrong: Colors.white,
-      accent: Color(0xFFFFF59D),
-      accentStrong: Color(0xFFFFD54F),
-      valueHighlight: Color(0xFF66BB6A),
-      danger: Colors.redAccent,
-      success: Colors.greenAccent,
-      scrim: Color(0xAA000000),
-      shadow: Color(0x8A000000),
+      background: UiBrandPalette.baseBackground,
+      surface: UiBrandPalette.steelBlueBackground,
+      cardBackground: UiBrandPalette.cardBackground,
+      textPrimary: UiBrandPalette.steelBlueForeground,
+      textMuted: UiBrandPalette.steelBlueMutedText,
+      outline: UiBrandPalette.wornGoldOutline,
+      outlineStrong: UiBrandPalette.wornGoldInsetBorder,
+      accent: UiBrandPalette.wornGoldBorder,
+      accentStrong: UiBrandPalette.wornGoldInsetBorder,
+      valueHighlight: UiBrandPalette.mutedMossValueHighlight,
+      danger: UiBrandPalette.mutedPlumBorder,
+      success: UiBrandPalette.mutedMossSuccess,
+      scrim: UiBrandPalette.scrim,
+      shadow: UiBrandPalette.shadow,
     ),
     sizes: UiSizes(
       tapTarget: 48,
