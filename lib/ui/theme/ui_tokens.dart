@@ -24,7 +24,7 @@ class UiTokens extends ThemeExtension<UiTokens> {
     colors: UiColors(
       background: Colors.black,
       surface: Color.fromARGB(255, 19, 32, 59),
-      cardBackground: Color(0xFF263238),
+      cardBackground: Color.fromARGB(255, 0, 0, 0),
       textPrimary: Colors.white,
       textMuted: Colors.white70,
       outline: Color(0xB3FFFFFF),
@@ -111,8 +111,8 @@ class UiTokens extends ThemeExtension<UiTokens> {
       cardLabel: TextStyle(
         fontFamily: 'CrimsonText',
         color: Colors.white,
-        fontSize: 12,
-        letterSpacing: 1.5,
+        fontSize: 14,
+        letterSpacing: 1,
         fontWeight: FontWeight.w700,
         shadows: [
           Shadow(color: Colors.black, blurRadius: 4, offset: Offset(0, 4)),
@@ -121,7 +121,7 @@ class UiTokens extends ThemeExtension<UiTokens> {
       cardTitle: TextStyle(
         fontFamily: 'CrimsonText',
         color: Colors.white,
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: FontWeight.w700,
         letterSpacing: 0.3,
         shadows: [
@@ -131,7 +131,7 @@ class UiTokens extends ThemeExtension<UiTokens> {
       cardSubtitle: TextStyle(
         fontFamily: 'CrimsonText',
         color: Colors.white,
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: FontWeight.w700,
         shadows: [
           Shadow(color: Colors.black, blurRadius: 4, offset: Offset(0, 4)),

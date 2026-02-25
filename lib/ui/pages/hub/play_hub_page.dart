@@ -23,8 +23,6 @@ class PlayHubPage extends StatefulWidget {
 }
 
 class _PlayHubPageState extends State<PlayHubPage> {
-  bool _menuOpen = false;
-
   @override
   void initState() {
     super.initState();
@@ -47,71 +45,63 @@ class _PlayHubPageState extends State<PlayHubPage> {
       child: MenuLayout(
         horizontalPadding: ui.space.lg,
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AppIconButton(
-                  onPressed: () => setState(() => _menuOpen = !_menuOpen),
-                  icon: Icons.menu,
-                  tooltip: _menuOpen ? 'Close menu' : 'Open menu',
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AppIconButton(
+                      icon: Icons.library_books,
+                      label: 'Codex',
+                      onPressed: () =>
+                          Navigator.of(context).pushNamed(UiRoutes.library),
+                    ),
+                    AppIconButton(
+                      icon: Icons.storefront,
+                      label: 'Town',
+                      onPressed: () =>
+                          Navigator.of(context).pushNamed(UiRoutes.town),
+                    ),
+                  ],
                 ),
-                if (_menuOpen) ...[
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      AppIconButton(
-                        icon: Icons.library_books,
-                        label: 'Codex',
-                        onPressed: () =>
-                            Navigator.of(context).pushNamed(UiRoutes.library),
-                      ),
-                      AppIconButton(
-                        icon: Icons.storefront,
-                        label: 'Town',
-                        onPressed: () =>
-                            Navigator.of(context).pushNamed(UiRoutes.town),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      AppIconButton(
-                        icon: Icons.person,
-                        label: 'Profile',
-                        onPressed: () =>
-                            Navigator.of(context).pushNamed(UiRoutes.profile),
-                      ),
-                      AppIconButton(
-                        icon: Icons.leaderboard,
-                        label: 'Top',
-                        onPressed: () => Navigator.of(
-                          context,
-                        ).pushNamed(UiRoutes.leaderboards),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      AppIconButton(
-                        icon: Icons.settings,
-                        label: 'Options',
-                        onPressed: () =>
-                            Navigator.of(context).pushNamed(UiRoutes.options),
-                      ),
-                      AppIconButton(
-                        icon: Icons.monetization_on,
-                        label: 'Support',
-                        onPressed: () =>
-                            Navigator.of(context).pushNamed(UiRoutes.support),
-                      ),
-                    ],
-                  ),
-                ],
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AppIconButton(
+                      icon: Icons.person,
+                      label: 'Profile',
+                      onPressed: () =>
+                          Navigator.of(context).pushNamed(UiRoutes.profile),
+                    ),
+                    AppIconButton(
+                      icon: Icons.leaderboard,
+                      label: 'Top',
+                      onPressed: () =>
+                          Navigator.of(context).pushNamed(UiRoutes.leaderboards),
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AppIconButton(
+                      icon: Icons.settings,
+                      label: 'Options',
+                      onPressed: () =>
+                          Navigator.of(context).pushNamed(UiRoutes.options),
+                    ),
+                    AppIconButton(
+                      icon: Icons.monetization_on,
+                      label: 'Support',
+                      onPressed: () =>
+                          Navigator.of(context).pushNamed(UiRoutes.support),
+                    ),
+                  ],
+                ),
               ],
             ),
             SizedBox(width: ui.space.xs),
