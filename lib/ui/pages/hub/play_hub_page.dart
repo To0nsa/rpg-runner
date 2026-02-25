@@ -3,10 +3,10 @@ import 'package:provider/provider.dart';
 
 import '../../app/ui_routes.dart';
 import '../../components/app_button.dart';
-import '../../components/app_icon_button.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
 import '../../components/weekly_badge_row.dart';
+import 'components/hub_menu_icon_column.dart';
 import 'components/hub_select_character_card.dart';
 import 'components/hub_select_level_card.dart';
 import 'components/hub_top_row.dart';
@@ -47,69 +47,21 @@ class _PlayHubPageState extends State<PlayHubPage> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    AppIconButton(
-                      icon: Icons.library_books,
-                      label: 'Codex',
-                      onPressed: () =>
-                          Navigator.of(context).pushNamed(UiRoutes.library),
-                    ),
-                    AppIconButton(
-                      icon: Icons.storefront,
-                      label: 'Town',
-                      onPressed: () =>
-                          Navigator.of(context).pushNamed(UiRoutes.town),
-                    ),
-                  ],
-                ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    AppIconButton(
-                      icon: Icons.person,
-                      label: 'Profile',
-                      onPressed: () =>
-                          Navigator.of(context).pushNamed(UiRoutes.profile),
-                    ),
-                    AppIconButton(
-                      icon: Icons.leaderboard,
-                      label: 'Top',
-                      onPressed: () => Navigator.of(
-                        context,
-                      ).pushNamed(UiRoutes.leaderboards),
-                    ),
-                  ],
-                ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    AppIconButton(
-                      icon: Icons.message,
-                      label: 'Messages',
-                      onPressed: () =>
-                          Navigator.of(context).pushNamed(UiRoutes.messages),
-                    ),
-                    AppIconButton(
-                      icon: Icons.monetization_on,
-                      label: 'Support',
-                      onPressed: () =>
-                          Navigator.of(context).pushNamed(UiRoutes.support),
-                    ),
-                  ],
-                ),
-                AppIconButton(
-                  icon: Icons.settings,
-                  label: 'Options',
-                  onPressed: () =>
-                      Navigator.of(context).pushNamed(UiRoutes.options),
-                ),
-              ],
+            HubMenuIconColumn(
+              onCodexPressed: () =>
+                  Navigator.of(context).pushNamed(UiRoutes.library),
+              onTownPressed: () =>
+                  Navigator.of(context).pushNamed(UiRoutes.town),
+              onProfilePressed: () =>
+                  Navigator.of(context).pushNamed(UiRoutes.profile),
+              onLeaderboardsPressed: () =>
+                  Navigator.of(context).pushNamed(UiRoutes.leaderboards),
+              onMessagesPressed: () =>
+                  Navigator.of(context).pushNamed(UiRoutes.messages),
+              onSupportPressed: () =>
+                  Navigator.of(context).pushNamed(UiRoutes.support),
+              onOptionsPressed: () =>
+                  Navigator.of(context).pushNamed(UiRoutes.options),
             ),
             SizedBox(width: ui.space.xs),
             Expanded(

@@ -35,11 +35,11 @@ class UiSegmentedControlTheme extends ThemeExtension<UiSegmentedControlTheme> {
   final bool showSelectedIcon;
 
   static const UiSegmentedControlTheme standard = UiSegmentedControlTheme(
-    background: Colors.transparent,
-    selectedBackground: Colors.white,
-    foreground: Colors.white,
-    selectedForeground: Colors.black,
-    border: Colors.white,
+    background: UiBrandPalette.steelBlueSurfaceBottom,
+    selectedBackground: UiBrandPalette.wornGoldInsetBorder,
+    foreground: UiBrandPalette.steelBlueForeground,
+    selectedForeground: UiBrandPalette.baseBackground,
+    border: UiBrandPalette.wornGoldBorder,
     sizes: UiSegmentedControlSizes(
       sm: UiSegmentedControlSizeMetrics(height: 32, paddingHorizontal: 8),
       md: UiSegmentedControlSizeMetrics(height: 48, paddingHorizontal: 16),

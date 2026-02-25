@@ -36,11 +36,11 @@ class UiInlineEditTextTheme extends ThemeExtension<UiInlineEditTextTheme> {
   final EdgeInsets fieldPadding;
 
   static const UiInlineEditTextTheme standard = UiInlineEditTextTheme(
-    valueStyle: TextStyle(color: Colors.white),
-    hintStyle: TextStyle(color: Colors.white24),
-    borderColor: Colors.white,
-    enabledBorderColor: Colors.white70,
-    focusedBorderColor: Colors.white,
+    valueStyle: TextStyle(color: UiBrandPalette.steelBlueForeground),
+    hintStyle: TextStyle(color: UiBrandPalette.steelBlueMutedText),
+    borderColor: UiBrandPalette.wornGoldInsetBorder,
+    enabledBorderColor: UiBrandPalette.wornGoldOutline,
+    focusedBorderColor: UiBrandPalette.wornGoldInsetBorder,
     editButtonVariant: AppInlineIconButtonVariant.discrete,
     saveButtonVariant: AppInlineIconButtonVariant.success,
     cancelButtonVariant: AppInlineIconButtonVariant.discrete,

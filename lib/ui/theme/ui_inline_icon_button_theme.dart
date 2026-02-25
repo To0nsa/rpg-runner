@@ -25,9 +25,15 @@ class UiInlineIconButtonTheme extends ThemeExtension<UiInlineIconButtonTheme> {
   final double disabledAlpha;
 
   static const UiInlineIconButtonTheme standard = UiInlineIconButtonTheme(
-    discrete: UiInlineIconButtonVariantTheme(iconColor: Colors.white54),
-    success: UiInlineIconButtonVariantTheme(iconColor: Colors.greenAccent),
-    danger: UiInlineIconButtonVariantTheme(iconColor: Colors.redAccent),
+    discrete: UiInlineIconButtonVariantTheme(
+      iconColor: UiBrandPalette.steelBlueMutedText,
+    ),
+    success: UiInlineIconButtonVariantTheme(
+      iconColor: UiBrandPalette.mutedMossSuccess,
+    ),
+    danger: UiInlineIconButtonVariantTheme(
+      iconColor: UiBrandPalette.crimsonDanger,
+    ),
     sizes: UiInlineIconButtonSizes(
       xs: UiInlineIconButtonSizeMetrics(
         iconSize: 16,

@@ -28,16 +28,16 @@ class UiIconButtonTheme extends ThemeExtension<UiIconButtonTheme> {
 
   static const UiIconButtonTheme standard = UiIconButtonTheme(
     primary: UiIconButtonVariantTheme(
-      iconColor: Colors.white,
-      labelColor: Colors.white70,
+      iconColor: UiBrandPalette.steelBlueForeground,
+      labelColor: UiBrandPalette.steelBlueForeground,
     ),
     secondary: UiIconButtonVariantTheme(
-      iconColor: Colors.black,
-      labelColor: Colors.black54,
+      iconColor: UiBrandPalette.baseBackground,
+      labelColor: UiBrandPalette.steelBlueSurfaceTop,
     ),
     danger: UiIconButtonVariantTheme(
-      iconColor: Colors.redAccent,
-      labelColor: Colors.redAccent,
+      iconColor: UiBrandPalette.crimsonDanger,
+      labelColor: UiBrandPalette.crimsonDanger,
     ),
     sizes: UiIconButtonSizes(
       sm: UiIconButtonSizeMetrics(iconSize: 24),

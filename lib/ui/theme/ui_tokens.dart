@@ -22,6 +22,7 @@ class UiBrandPalette {
 
   static const mutedMossValueHighlight = Color(0xFF7A8F7D);
   static const mutedMossSuccess = Color(0xFF7E957E);
+  static const crimsonDanger = Color(0xFFA93D48);
 
   static const mutedPlumBackground = Color(0xFF282328);
   static const mutedPlumForeground = Color(0xFFD9CFD7);
@@ -70,7 +71,7 @@ class UiTokens extends ThemeExtension<UiTokens> {
       accent: UiBrandPalette.wornGoldBorder,
       accentStrong: UiBrandPalette.wornGoldInsetBorder,
       valueHighlight: UiBrandPalette.mutedMossValueHighlight,
-      danger: UiBrandPalette.mutedPlumBorder,
+      danger: UiBrandPalette.crimsonDanger,
       success: UiBrandPalette.mutedMossSuccess,
       scrim: UiBrandPalette.scrim,
       shadow: UiBrandPalette.shadow,
@@ -96,59 +97,59 @@ class UiTokens extends ThemeExtension<UiTokens> {
     text: UiTextStyles(
       display: TextStyle(
         fontFamily: 'CrimsonText',
-        color: Colors.white,
+        color: UiBrandPalette.steelBlueForeground,
         fontSize: 32,
         fontWeight: FontWeight.w700,
         letterSpacing: 0.4,
       ),
       title: TextStyle(
         fontFamily: 'CrimsonText',
-        color: Colors.white,
+        color: UiBrandPalette.steelBlueForeground,
         fontSize: 24,
         fontWeight: FontWeight.w700,
         letterSpacing: 0.3,
       ),
       headline: TextStyle(
         fontFamily: 'CrimsonText',
-        color: Colors.white,
+        color: UiBrandPalette.steelBlueForeground,
         fontSize: 18,
         fontWeight: FontWeight.w700,
       ),
       body: TextStyle(
         fontFamily: 'CrimsonText',
-        color: Colors.white,
+        color: UiBrandPalette.steelBlueForeground,
         fontSize: 14,
         fontWeight: FontWeight.w400,
       ),
       label: TextStyle(
         fontFamily: 'CrimsonText',
-        color: Colors.white,
+        color: UiBrandPalette.steelBlueForeground,
         fontSize: 12,
         fontWeight: FontWeight.w600,
         letterSpacing: 1.2,
       ),
       caption: TextStyle(
         fontFamily: 'CrimsonText',
-        color: Color(0xB3FFFFFF),
+        color: UiBrandPalette.steelBlueMutedText,
         fontSize: 12,
         fontWeight: FontWeight.w500,
       ),
       loreHeading: TextStyle(
         fontFamily: 'CrimsonText',
-        color: Colors.white,
+        color: UiBrandPalette.steelBlueForeground,
         fontSize: 16,
         fontWeight: FontWeight.w600,
         letterSpacing: 0.2,
       ),
       loreBody: TextStyle(
         fontFamily: 'CrimsonText',
-        color: Color(0xB3FFFFFF),
+        color: UiBrandPalette.steelBlueMutedText,
         fontSize: 12,
         fontWeight: FontWeight.w400,
       ),
       cardLabel: TextStyle(
         fontFamily: 'CrimsonText',
-        color: Colors.white,
+        color: UiBrandPalette.steelBlueForeground,
         fontSize: 14,
         letterSpacing: 1,
         fontWeight: FontWeight.w700,
@@ -158,7 +159,7 @@ class UiTokens extends ThemeExtension<UiTokens> {
       ),
       cardTitle: TextStyle(
         fontFamily: 'CrimsonText',
-        color: Colors.white,
+        color: UiBrandPalette.steelBlueForeground,
         fontSize: 18,
         fontWeight: FontWeight.w700,
         letterSpacing: 0.3,
@@ -168,7 +169,7 @@ class UiTokens extends ThemeExtension<UiTokens> {
       ),
       cardSubtitle: TextStyle(
         fontFamily: 'CrimsonText',
-        color: Colors.white,
+        color: UiBrandPalette.steelBlueForeground,
         fontSize: 14,
         fontWeight: FontWeight.w700,
         shadows: [
