@@ -18,6 +18,7 @@ class UiRoutes {
   static const String options = '/meta/options';
   static const String library = '/meta/library';
   static const String town = '/meta/town';
+  static const String messages = '/meta/messages';
   static const String support = '/meta/support';
   static const String credits = '/credits';
   static const String run = '/run';

@@ -49,7 +49,7 @@ class _PlayHubPageState extends State<PlayHubPage> {
           children: [
             Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Row(
                   mainAxisSize: MainAxisSize.min,
@@ -80,8 +80,9 @@ class _PlayHubPageState extends State<PlayHubPage> {
                     AppIconButton(
                       icon: Icons.leaderboard,
                       label: 'Top',
-                      onPressed: () =>
-                          Navigator.of(context).pushNamed(UiRoutes.leaderboards),
+                      onPressed: () => Navigator.of(
+                        context,
+                      ).pushNamed(UiRoutes.leaderboards),
                     ),
                   ],
                 ),
@@ -89,10 +90,10 @@ class _PlayHubPageState extends State<PlayHubPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     AppIconButton(
-                      icon: Icons.settings,
-                      label: 'Options',
+                      icon: Icons.message,
+                      label: 'Messages',
                       onPressed: () =>
-                          Navigator.of(context).pushNamed(UiRoutes.options),
+                          Navigator.of(context).pushNamed(UiRoutes.messages),
                     ),
                     AppIconButton(
                       icon: Icons.monetization_on,
@@ -101,6 +102,12 @@ class _PlayHubPageState extends State<PlayHubPage> {
                           Navigator.of(context).pushNamed(UiRoutes.support),
                     ),
                   ],
+                ),
+                AppIconButton(
+                  icon: Icons.settings,
+                  label: 'Options',
+                  onPressed: () =>
+                      Navigator.of(context).pushNamed(UiRoutes.options),
                 ),
               ],
             ),

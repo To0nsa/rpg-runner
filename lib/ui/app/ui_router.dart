@@ -11,6 +11,7 @@ import '../pages/meta/town_page.dart';
 import '../pages/meta/support_page.dart';
 import '../pages/meta/library_page.dart';
 import '../pages/meta/options_page.dart';
+import '../pages/meta/messages_page.dart';
 import '../pages/profile/profile_page.dart';
 import '../pages/selectLevel/level_setup_page.dart';
 import '../pages/selectCharacter/loadout_setup_page.dart';
@@ -90,6 +91,11 @@ class UiRouter {
         return MaterialPageRoute<void>(
           settings: settings,
           builder: (_) => const SupportPage(),
+        );
+      case UiRoutes.messages:
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const MessagesPage(),
         );
       case UiRoutes.credits:
         return MaterialPageRoute<void>(
