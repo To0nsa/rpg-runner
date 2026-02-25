@@ -156,48 +156,62 @@ class SkillsProjectileSourceTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(ui.radii.sm),
             border: Border.all(color: borderColor),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
+          child: Stack(
             children: [
-              Row(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  ProjectileIconFrame(projectileId: projectileId, size: 32),
-                  SizedBox(width: ui.space.xs),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: ui.text.body.copyWith(
-                        color: ui.colors.textPrimary,
+                  Row(
+                    children: [
+                      ProjectileIconFrame(projectileId: projectileId, size: 32),
+                      SizedBox(width: ui.space.xs),
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: ui.text.body.copyWith(
+                            color: ui.colors.textPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                      Padding(
+                        // Reserves top-right corner space for selected badge.
+                        padding: EdgeInsets.only(right: ui.space.md),
+                        child: AnimatedRotation(
+                          turns: expanded ? 0.5 : 0.0,
+                          duration: const Duration(milliseconds: 200),
+                          child: Icon(
+                            Icons.expand_more,
+                            size: 18,
+                            color: ui.colors.textMuted,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  AnimatedRotation(
-                    turns: expanded ? 0.5 : 0.0,
-                    duration: const Duration(milliseconds: 200),
-                    child: Icon(
-                      Icons.expand_more,
-                      size: 18,
-                      color: ui.colors.textMuted,
+                  AnimatedCrossFade(
+                    firstChild: const SizedBox.shrink(),
+                    secondChild: _ExpandedDetails(
+                      description: description,
+                      damageTypeName: damageTypeName,
+                      statusLines: statusLines,
                     ),
+                    crossFadeState: expanded
+                        ? CrossFadeState.showSecond
+                        : CrossFadeState.showFirst,
+                    duration: const Duration(milliseconds: 200),
+                    sizeCurve: Curves.easeInOut,
                   ),
                 ],
               ),
-              AnimatedCrossFade(
-                firstChild: const SizedBox.shrink(),
-                secondChild: _ExpandedDetails(
-                  description: description,
-                  damageTypeName: damageTypeName,
-                  statusLines: statusLines,
+              if (selected)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: _SelectedCheckBadge(color: ui.colors.success),
                 ),
-                crossFadeState: expanded
-                    ? CrossFadeState.showSecond
-                    : CrossFadeState.showFirst,
-                duration: const Duration(milliseconds: 200),
-                sizeCurve: Curves.easeInOut,
-              ),
             ],
           ),
         ),
@@ -365,27 +379,62 @@ class _AbilityListTile extends StatelessWidget {
               borderRadius: BorderRadius.circular(ui.radii.sm),
               border: Border.all(color: borderColor),
             ),
-            child: Row(
+            child: Stack(
               children: [
-                AbilityPlaceholderIcon(
-                  label: '',
-                  size: 40,
-                  emphasis: selected,
-                  enabled: enabled,
+                Row(
+                  children: [
+                    AbilityPlaceholderIcon(
+                      label: '',
+                      size: 40,
+                      emphasis: selected,
+                      enabled: enabled,
+                    ),
+                    SizedBox(width: ui.space.md),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: ui.text.body.copyWith(
+                          color: ui.colors.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
-                SizedBox(width: ui.space.md),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: ui.text.body.copyWith(color: ui.colors.textPrimary),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                if (selected)
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: _SelectedCheckBadge(color: ui.colors.success),
                   ),
-                ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Selected-state badge used across skills selection tiles.
+class _SelectedCheckBadge extends StatelessWidget {
+  const _SelectedCheckBadge({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final ui = context.ui;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: ui.colors.cardBackground,
+        shape: BoxShape.circle,
+        border: Border.all(color: color),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(2),
+        child: Icon(Icons.check, size: 11, color: color),
       ),
     );
   }
