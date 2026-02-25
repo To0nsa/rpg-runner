@@ -57,11 +57,31 @@ class UiButtonTheme extends ThemeExtension<UiButtonTheme> {
       lg: UiButtonSizeMetrics(width: 192, height: 48),
     ),
     text: UiButtonTextStyles(
-      xxs: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-      xs: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-      sm: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-      md: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-      lg: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      xxs: TextStyle(
+        fontFamily: 'CrimsonText',
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+      ),
+      xs: TextStyle(
+        fontFamily: 'CrimsonText',
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+      ),
+      sm: TextStyle(
+        fontFamily: 'CrimsonText',
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+      ),
+      md: TextStyle(
+        fontFamily: 'CrimsonText',
+        fontSize: 16,
+        fontWeight: FontWeight.w700,
+      ),
+      lg: TextStyle(
+        fontFamily: 'CrimsonText',
+        fontSize: 18,
+        fontWeight: FontWeight.w700,
+      ),
     ),
   );
 

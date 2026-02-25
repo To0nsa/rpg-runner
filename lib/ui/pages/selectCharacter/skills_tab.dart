@@ -320,7 +320,7 @@ class _ProjectileSourceDialogState extends State<_ProjectileSourceDialog> {
             children: [
               Text(
                 'Select Projectile Source',
-                style: ui.text.headline.copyWith(
+                style: ui.text.loreHeading.copyWith(
                   color: ui.colors.textPrimary,
                 ),
               ),
@@ -346,8 +346,9 @@ class _ProjectileSourceDialogState extends State<_ProjectileSourceDialog> {
                           _selected = option.spellId;
                           // Toggle expansion: collapse if already open,
                           // otherwise expand the tapped tile.
-                          _expandedIndex =
-                              _expandedIndex == index ? null : index;
+                          _expandedIndex = _expandedIndex == index
+                              ? null
+                              : index;
                         });
                         widget.onSelect(option.spellId);
                       },

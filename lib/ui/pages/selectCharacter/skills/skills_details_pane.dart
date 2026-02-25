@@ -41,7 +41,12 @@ class _AbilityDetailsPane extends StatelessWidget {
           ] else ...[
             Text(
               tooltip!.title,
-              style: ui.text.headline.copyWith(color: ui.colors.textPrimary),
+              style: ui.text.loreHeading.copyWith(color: ui.colors.textPrimary),
+            ),
+            SizedBox(height: ui.space.xxs),
+            Container(
+              height: 1,
+              color: ui.colors.outline.withValues(alpha: 0.35),
             ),
             if (tooltip!.cooldownSeconds != null) ...[
               SizedBox(height: ui.space.xxs),
@@ -152,18 +157,20 @@ class _DetailsMetricLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
+    final labelStyle = ui.text.loreBody.copyWith(
+      color: ui.colors.textMuted,
+      fontWeight: FontWeight.w600,
+    );
+    final valueStyle = ui.text.body.copyWith(
+      color: ui.colors.valueHighlight,
+      fontWeight: FontWeight.w600,
+    );
     return Text.rich(
       TextSpan(
-        style: ui.text.body.copyWith(color: ui.colors.textMuted),
+        style: labelStyle,
         children: [
-          TextSpan(text: label),
-          TextSpan(
-            text: value,
-            style: ui.text.body.copyWith(
-              color: ui.colors.valueHighlight,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          TextSpan(text: label, style: labelStyle),
+          TextSpan(text: value, style: valueStyle),
         ],
       ),
     );
@@ -194,7 +201,10 @@ class _AbilityBadge extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: ui.text.caption.copyWith(color: ui.colors.textPrimary),
+        style: ui.text.caption.copyWith(
+          color: ui.colors.textPrimary,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }

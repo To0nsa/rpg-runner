@@ -57,57 +57,82 @@ class UiTokens extends ThemeExtension<UiTokens> {
     ),
     text: UiTextStyles(
       display: TextStyle(
+        fontFamily: 'CrimsonText',
         color: Colors.white,
         fontSize: 32,
-        fontWeight: FontWeight.bold,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.4,
       ),
       title: TextStyle(
+        fontFamily: 'CrimsonText',
         color: Colors.white,
         fontSize: 24,
-        fontWeight: FontWeight.bold,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.3,
       ),
       headline: TextStyle(
+        fontFamily: 'CrimsonText',
         color: Colors.white,
         fontSize: 16,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w700,
       ),
       body: TextStyle(
+        fontFamily: 'CrimsonText',
         color: Colors.white,
         fontSize: 12,
         fontWeight: FontWeight.w400,
       ),
       label: TextStyle(
+        fontFamily: 'CrimsonText',
         color: Colors.white,
         fontSize: 12,
         fontWeight: FontWeight.w600,
         letterSpacing: 1.2,
       ),
       caption: TextStyle(
+        fontFamily: 'CrimsonText',
         color: Color(0xB3FFFFFF),
         fontSize: 12,
         fontWeight: FontWeight.w500,
       ),
+      loreHeading: TextStyle(
+        fontFamily: 'CrimsonText',
+        color: Colors.white,
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.2,
+      ),
+      loreBody: TextStyle(
+        fontFamily: 'CrimsonText',
+        color: Color(0xB3FFFFFF),
+        fontSize: 12,
+        fontWeight: FontWeight.w400,
+      ),
       cardLabel: TextStyle(
+        fontFamily: 'CrimsonText',
         color: Colors.white,
         fontSize: 12,
         letterSpacing: 1.5,
-        fontWeight: FontWeight.bold,
+        fontWeight: FontWeight.w700,
         shadows: [
           Shadow(color: Colors.black, blurRadius: 4, offset: Offset(0, 4)),
         ],
       ),
       cardTitle: TextStyle(
+        fontFamily: 'CrimsonText',
         color: Colors.white,
         fontSize: 16,
-        fontWeight: FontWeight.bold,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.3,
         shadows: [
           Shadow(color: Colors.black, blurRadius: 4, offset: Offset(0, 4)),
         ],
       ),
       cardSubtitle: TextStyle(
+        fontFamily: 'CrimsonText',
         color: Colors.white,
         fontSize: 12,
-        fontWeight: FontWeight.bold,
+        fontWeight: FontWeight.w700,
         shadows: [
           Shadow(color: Colors.black, blurRadius: 4, offset: Offset(0, 4)),
         ],
@@ -183,6 +208,8 @@ class UiTextStyles {
     required this.body,
     required this.label,
     required this.caption,
+    required this.loreHeading,
+    required this.loreBody,
     required this.cardLabel,
     required this.cardTitle,
     required this.cardSubtitle,
@@ -194,6 +221,8 @@ class UiTextStyles {
   final TextStyle body;
   final TextStyle label;
   final TextStyle caption;
+  final TextStyle loreHeading;
+  final TextStyle loreBody;
   final TextStyle cardLabel;
   final TextStyle cardTitle;
   final TextStyle cardSubtitle;

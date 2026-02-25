@@ -155,6 +155,7 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
             seedColor: Colors.white,
             brightness: Brightness.dark,
           ),
+          fontFamily: 'CrimsonText',
           useMaterial3: true,
           extensions: const [
             UiTokens.standard,

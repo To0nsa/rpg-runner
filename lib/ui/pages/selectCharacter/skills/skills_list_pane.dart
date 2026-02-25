@@ -42,14 +42,21 @@ class SkillsListPane extends StatelessWidget {
             alignment: Alignment.center,
             child: Text(
               '${_slotTitle(selectedSlot).toUpperCase()} SKILLS',
-              style: ui.text.body.copyWith(
+              style: ui.text.loreHeading.copyWith(
                 color: ui.colors.textPrimary,
-                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.3,
               ),
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
+          ),
+          SizedBox(height: ui.space.xxs),
+          Container(
+            height: 1,
+            color: ui.colors.outline.withValues(alpha: 0.35),
           ),
           SizedBox(height: ui.space.xxs),
           if (onSelectProjectileSource != null) ...[
@@ -155,10 +162,7 @@ class SkillsProjectileSourceTile extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  ProjectileIconFrame(
-                    projectileId: projectileId,
-                    size: 32,
-                  ),
+                  ProjectileIconFrame(projectileId: projectileId, size: 32),
                   SizedBox(width: ui.space.xs),
                   Expanded(
                     child: Text(
@@ -234,7 +238,10 @@ class _ExpandedDetails extends StatelessWidget {
               children: [
                 Text(
                   'Damage: ',
-                  style: ui.text.caption.copyWith(color: ui.colors.textMuted),
+                  style: ui.text.loreBody.copyWith(
+                    color: ui.colors.textMuted,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 Text(
                   damageTypeName!,
@@ -263,8 +270,8 @@ class _ExpandedDetails extends StatelessWidget {
                 children: [
                   Text(
                     '• ',
-                    style: ui.text.caption.copyWith(
-                      color: ui.colors.valueHighlight,
+                    style: ui.text.loreBody.copyWith(
+                      color: ui.colors.textMuted,
                     ),
                   ),
                   Expanded(
@@ -305,7 +312,9 @@ List<TextSpan> _highlightValues(
   var index = 0;
   for (final match in regex.allMatches(text)) {
     if (match.start > index) {
-      spans.add(TextSpan(text: text.substring(index, match.start), style: normal));
+      spans.add(
+        TextSpan(text: text.substring(index, match.start), style: normal),
+      );
     }
     spans.add(TextSpan(text: match.group(0), style: highlight));
     index = match.end;
