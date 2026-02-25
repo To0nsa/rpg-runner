@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../components/app_button.dart';
+import '../../theme/ui_tokens.dart';
 
 class PauseOverlay extends StatelessWidget {
   const PauseOverlay({
@@ -19,26 +20,27 @@ class PauseOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!visible) return const SizedBox.shrink();
+    final ui = context.ui;
 
     return SizedBox.expand(
       child: ColoredBox(
-        color: const Color(0x66000000),
+        color: ui.colors.shadow.withValues(alpha: 0.4),
         child: SafeArea(
-          minimum: const EdgeInsets.all(18),
+          minimum: EdgeInsets.all(ui.space.md),
           child: Center(
             child: exitConfirmOpen
                 ? Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
+                      Text(
                         'Want to exit?',
-                        style: TextStyle(
-                          color: Color(0xFFFFFFFF),
+                        style: ui.text.title.copyWith(
+                          color: ui.colors.textPrimary,
                           fontSize: 22,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 14),
+                      SizedBox(height: ui.space.sm + ui.space.xxs / 2),
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -48,7 +50,7 @@ class PauseOverlay extends StatelessWidget {
                             size: AppButtonSize.xs,
                             onPressed: onResume,
                           ),
-                          const SizedBox(width: 12),
+                          SizedBox(width: ui.space.sm),
                           AppButton(
                             label: 'Exit',
                             variant: AppButtonVariant.secondary,

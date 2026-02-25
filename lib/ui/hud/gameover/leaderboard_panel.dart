@@ -87,16 +87,16 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final ui = context.ui;
     final runTypeLabel = switch (widget.runType) {
       RunType.practice => 'Practice',
       RunType.competitive => 'Competitive',
     };
-    final titleStyle = const TextStyle(
-      color: Color(0xFFFFFFFF),
-      fontSize: 14,
+    final titleStyle = ui.text.body.copyWith(
+      color: ui.colors.textPrimary,
       fontWeight: FontWeight.w600,
     );
-    final spec = context.leaderboards.resolveSpec(ui: context.ui);
+    final spec = context.leaderboards.resolveSpec(ui: ui);
     final textStyle = spec.rowTextStyle;
 
     Widget content;
@@ -131,7 +131,7 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
               '${widget.levelId.displayName} $runTypeLabel Scoreboard',
               style: titleStyle,
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: ui.space.xs),
             if (height == null)
               styledContent
             else
@@ -143,10 +143,10 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
           constraints: const BoxConstraints(maxWidth: 240),
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: const Color(0x66000000),
-              borderRadius: BorderRadius.circular(10),
+              color: ui.colors.shadow.withValues(alpha: 0.4),
+              borderRadius: BorderRadius.circular(ui.radii.sm),
             ),
-            child: Padding(padding: const EdgeInsets.all(12), child: body),
+            child: Padding(padding: EdgeInsets.all(ui.space.sm), child: body),
           ),
         );
 

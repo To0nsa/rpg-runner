@@ -24,7 +24,7 @@ class _AbilityDetailsPane extends StatelessWidget {
     final ui = context.ui;
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF0F0F0F),
+        color: ui.colors.cardBackground,
         borderRadius: BorderRadius.circular(ui.radii.md),
         border: Border.all(color: ui.colors.outline.withValues(alpha: 0.25)),
       ),
@@ -195,7 +195,7 @@ class _AbilityBadge extends StatelessWidget {
         vertical: ui.space.xxs,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: UiBrandPalette.steelBlueInsetBottom,
         borderRadius: BorderRadius.circular(ui.radii.sm),
         border: Border.all(color: ui.colors.outline.withValues(alpha: 0.35)),
       ),

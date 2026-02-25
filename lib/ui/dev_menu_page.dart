@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'app/ui_routes.dart';
+import 'theme/ui_tokens.dart';
 
 /// Development-only menu used by the standalone host app (`lib/main.dart`).
 ///
@@ -11,13 +12,20 @@ class DevMenuPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ui = context.ui;
     return Scaffold(
+      backgroundColor: ui.colors.background,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'rpg Runner (Dev)',
-          style: TextStyle(color: Colors.white),
+          style: ui.text.title.copyWith(
+            color: ui.colors.textPrimary,
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
         ),
-        backgroundColor: Color.fromARGB(255, 6, 21, 48),
+        backgroundColor: ui.colors.background,
+        iconTheme: IconThemeData(color: ui.colors.textPrimary),
       ),
       body: Center(
         child: FilledButton(

@@ -49,12 +49,12 @@ class LevelCard extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(borderRadius),
           border: Border.all(
-            color: selected ? Colors.amberAccent : Colors.white,
-            width: 2,
+            color: selected ? ui.colors.accentStrong : ui.colors.outline,
+            width: ui.sizes.borderWidth,
           ),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
-              color: Colors.black54,
+              color: ui.colors.shadow,
               blurRadius: 8,
               offset: Offset(0, 4),
             ),

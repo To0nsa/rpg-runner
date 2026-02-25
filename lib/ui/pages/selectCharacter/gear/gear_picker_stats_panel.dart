@@ -25,8 +25,8 @@ class GearPickerStatsPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
-    const panelFillColor = Color(0xFF101010);
-    const iconFrameFillColor = Color(0xFF151515);
+    final panelFillColor = ui.colors.cardBackground;
+    final iconFrameFillColor = UiBrandPalette.steelBlueInsetBottom;
     final lines = id == null ? const <GearStatLine>[] : gearStatsFor(slot, id!);
     final compareLines = (id == null || equippedForCompare == null)
         ? const <GearStatLine>[]
@@ -163,7 +163,7 @@ class _StatSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
-    const sectionFillColor = Color(0xFF0D0D0D);
+    final sectionFillColor = ui.colors.background;
     final sectionPadding = const EdgeInsets.symmetric(
       horizontal: 6,
       vertical: 4,

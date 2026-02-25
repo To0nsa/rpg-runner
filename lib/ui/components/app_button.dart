@@ -70,7 +70,7 @@ class _AppButtonState extends State<AppButton> {
     if (_pressed) {
       color = _blendOver(
         base: color,
-        overlay: Colors.black,
+        overlay: UiBrandPalette.black,
         alpha: buttons.pressedOverlayAlpha + 0.08,
       );
     } else {
@@ -98,7 +98,7 @@ class _AppButtonState extends State<AppButton> {
       return base.withValues(alpha: buttons.disabledBorderAlpha);
     }
     if (_pressed) {
-      return _blendOver(base: base, overlay: Colors.black, alpha: 0.1);
+      return _blendOver(base: base, overlay: UiBrandPalette.black, alpha: 0.1);
     }
     if (_hovered || _focused) {
       return _blendOver(base: base, overlay: foreground, alpha: 0.12);
@@ -170,7 +170,7 @@ class _AppButtonState extends State<AppButton> {
       height: 1,
       shadows: [
         Shadow(
-          color: Colors.black.withValues(alpha: enabled ? 0.65 : 0.4),
+          color: UiBrandPalette.black.withValues(alpha: enabled ? 0.65 : 0.4),
           blurRadius: _pressed ? 1 : 2.5,
           offset: Offset(0, _pressed ? 0.5 : 1.2),
         ),

@@ -37,6 +37,7 @@ class UiBrandPalette {
   static const scrim = Color(0xAA000000);
   static const shadow = Color(0x8A000000);
   static const buttonShadow = Color(0xB3000000);
+  static const black = Color(0xFF000000);
 }
 
 @immutable
@@ -85,13 +86,17 @@ class UiTokens extends ThemeExtension<UiTokens> {
     shadows: UiShadows(
       card: [
         BoxShadow(
-          color: Color(0x8A000000),
+          color: UiBrandPalette.shadow,
           blurRadius: 8,
           offset: Offset(0, 4),
         ),
       ],
       textStrong: [
-        Shadow(color: Colors.black, blurRadius: 4, offset: Offset(0, 4)),
+        Shadow(
+          color: UiBrandPalette.black,
+          blurRadius: 4,
+          offset: Offset(0, 4),
+        ),
       ],
     ),
     text: UiTextStyles(
@@ -154,7 +159,11 @@ class UiTokens extends ThemeExtension<UiTokens> {
         letterSpacing: 1,
         fontWeight: FontWeight.w700,
         shadows: [
-          Shadow(color: Colors.black, blurRadius: 4, offset: Offset(0, 4)),
+          Shadow(
+            color: UiBrandPalette.black,
+            blurRadius: 4,
+            offset: Offset(0, 4),
+          ),
         ],
       ),
       cardTitle: TextStyle(
@@ -164,7 +173,11 @@ class UiTokens extends ThemeExtension<UiTokens> {
         fontWeight: FontWeight.w700,
         letterSpacing: 0.3,
         shadows: [
-          Shadow(color: Colors.black, blurRadius: 4, offset: Offset(0, 4)),
+          Shadow(
+            color: UiBrandPalette.black,
+            blurRadius: 4,
+            offset: Offset(0, 4),
+          ),
         ],
       ),
       cardSubtitle: TextStyle(
@@ -173,7 +186,11 @@ class UiTokens extends ThemeExtension<UiTokens> {
         fontSize: 14,
         fontWeight: FontWeight.w700,
         shadows: [
-          Shadow(color: Colors.black, blurRadius: 4, offset: Offset(0, 4)),
+          Shadow(
+            color: UiBrandPalette.black,
+            blurRadius: 4,
+            offset: Offset(0, 4),
+          ),
         ],
       ),
     ),

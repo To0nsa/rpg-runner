@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/ui_tokens.dart';
+
 class GameOverHeader extends StatelessWidget {
   const GameOverHeader({
     super.key,
@@ -12,35 +14,32 @@ class GameOverHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ui = context.ui;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text(
+        Text(
           'Game Over',
-          style: TextStyle(
-            color: Color(0xFFFFFFFF),
+          style: ui.text.title.copyWith(
+            color: ui.colors.textPrimary,
             fontSize: 28,
             fontWeight: FontWeight.w600,
           ),
         ),
         if (subtitleDeathReason != null) ...[
-          const SizedBox(height: 8),
+          SizedBox(height: ui.space.xs),
           Text(
             subtitleDeathReason!,
-            style: const TextStyle(
-              color: Color(0xFFFFFFFF),
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
+            style: ui.text.body.copyWith(color: ui.colors.textPrimary),
             textAlign: TextAlign.center,
           ),
         ],
         if (displayScore != null) ...[
-          const SizedBox(height: 14),
+          SizedBox(height: ui.space.sm + ui.space.xxs / 2),
           Text(
             'Score: $displayScore',
-            style: const TextStyle(
-              color: Color(0xFFFFFFFF),
+            style: ui.text.headline.copyWith(
+              color: ui.colors.textPrimary,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),

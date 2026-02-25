@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../assets/ui_asset_lifecycle.dart';
+import '../theme/ui_tokens.dart';
 
 /// Static (non-scrolling) parallax preview for menu cards.
 ///
@@ -14,7 +15,7 @@ class LevelParallaxPreview extends StatefulWidget {
   const LevelParallaxPreview({
     super.key,
     required this.themeId,
-    this.baseColor = const Color(0xFF0B1020),
+    this.baseColor = UiBrandPalette.baseBackground,
     this.alignment = Alignment.bottomCenter,
     this.filterQuality = FilterQuality.none,
   });
@@ -87,6 +88,7 @@ class _LevelParallaxPreviewState extends State<LevelParallaxPreview> {
 
   @override
   Widget build(BuildContext context) {
+    final overlayColor = context.ui.colors.shadow.withValues(alpha: 0.4);
     return RepaintBoundary(
       child: Stack(
         fit: StackFit.expand,
@@ -108,7 +110,7 @@ class _LevelParallaxPreviewState extends State<LevelParallaxPreview> {
             ),
 
           // Hardcoded tint overlay to improve text readability on top of previews.
-          const Positioned.fill(child: ColoredBox(color: Color(0x66000000))),
+          Positioned.fill(child: ColoredBox(color: overlayColor)),
         ],
       ),
     );

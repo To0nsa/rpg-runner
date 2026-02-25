@@ -101,9 +101,9 @@ class _GearCandidateTile extends StatelessWidget {
     final ui = context.ui;
     const tileSize = 64.0;
     const iconSize = 48.0;
-    const lockedFillColor = Color(0xFF171717);
-    const selectedFillColor = Color(0xFF101010);
-    const defaultFillColor = Color(0xFF131313);
+    final lockedFillColor = ui.colors.background.withValues(alpha: 0.95);
+    final selectedFillColor = UiBrandPalette.steelBlueInsetBottom;
+    final defaultFillColor = ui.colors.cardBackground;
     final borderColor = isLocked
         ? ui.colors.outline.withValues(alpha: 0.35)
         : selected

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/ui_tokens.dart';
+
 class ExitButtonOverlay extends StatelessWidget {
   const ExitButtonOverlay({
     super.key,
@@ -12,14 +14,15 @@ class ExitButtonOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ui = context.ui;
     return Align(
       alignment: Alignment.topRight,
       child: Padding(
-        padding: const EdgeInsets.all(8),
+        padding: EdgeInsets.all(ui.space.xs),
         child: IconButton(
           onPressed: onPressed,
           icon: const Icon(Icons.close),
-          color: highlight ? Colors.white : null,
+          color: highlight ? ui.colors.textPrimary : null,
         ),
       ),
     );

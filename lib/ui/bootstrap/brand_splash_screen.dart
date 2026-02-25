@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../app/ui_routes.dart';
+import '../theme/ui_tokens.dart';
 
 class BrandSplashScreen extends StatefulWidget {
   const BrandSplashScreen({super.key});
@@ -25,14 +26,16 @@ class _BrandSplashScreenState extends State<BrandSplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final ui = context.ui;
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: ui.colors.background,
       body: Center(
         child: Text(
           'Luxis Games',
-          style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
+          style: ui.text.display.copyWith(
+            fontSize: 36,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.6,
           ),
         ),
       ),

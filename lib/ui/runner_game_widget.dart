@@ -27,6 +27,7 @@ import 'runner_game_ui_state.dart';
 import 'state/app_state.dart';
 import 'state/profile_counter_keys.dart';
 import 'state/selection_state.dart';
+import 'theme/ui_tokens.dart';
 import 'viewport/game_viewport.dart';
 import 'viewport/viewport_metrics.dart';
 
@@ -493,7 +494,7 @@ class _RunLoadingView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: Colors.black,
+      color: context.ui.colors.background,
       child: MenuLayout(
         alignment: Alignment.center,
         scrollable: false,

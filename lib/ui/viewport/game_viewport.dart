@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import '../theme/ui_tokens.dart';
 import 'viewport_metrics.dart';
 
 /// Scales a fixed virtual canvas into the available space.
@@ -11,7 +12,7 @@ class GameViewport extends StatelessWidget {
     super.key,
     required this.metrics,
     required this.child,
-    this.letterboxColor = const Color(0xFF000000),
+    this.letterboxColor = UiBrandPalette.black,
   });
 
   final ViewportMetrics metrics;

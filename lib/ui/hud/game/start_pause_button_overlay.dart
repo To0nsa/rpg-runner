@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../runner_game_ui_state.dart';
+import '../../theme/ui_tokens.dart';
 
 class StartPauseButtonOverlay extends StatelessWidget {
   const StartPauseButtonOverlay({
@@ -16,6 +17,7 @@ class StartPauseButtonOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ui = context.ui;
     return IconButton(
       onPressed: uiState.gameOver
           ? null
@@ -27,7 +29,7 @@ class StartPauseButtonOverlay extends StatelessWidget {
               onTogglePause();
             },
       icon: Icon(uiState.paused ? Icons.play_arrow : Icons.pause),
-      color: Colors.white,
+      color: ui.colors.textPrimary,
       tooltip: uiState.paused ? 'Play' : 'Pause',
     );
   }

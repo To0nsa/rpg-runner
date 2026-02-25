@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../game/input/aim_preview.dart';
+import '../../theme/ui_tokens.dart';
 
 /// Visual-only cancel affordance for aimed actions.
 ///
@@ -65,7 +66,8 @@ class _AimCancelButtonOverlayState extends State<AimCancelButtonOverlay> {
   }
 
   bool get _active =>
-      widget.projectileAimPreview.value.active || widget.meleeAimPreview.value.active;
+      widget.projectileAimPreview.value.active ||
+      widget.meleeAimPreview.value.active;
 
   void _onAimChanged() {
     if (!mounted) return;
@@ -99,6 +101,7 @@ class _AimCancelButtonOverlayState extends State<AimCancelButtonOverlay> {
   @override
   Widget build(BuildContext context) {
     if (!_active) return const SizedBox.shrink();
+    final ui = context.ui;
 
     // Fixed screen-space location between clock (top-center) and distance (top-right).
     // The hitbox is intentionally larger than the icon for mobile ergonomics.
@@ -114,15 +117,11 @@ class _AimCancelButtonOverlayState extends State<AimCancelButtonOverlay> {
           height: 56,
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: const Color.fromARGB(26, 255, 0, 0),
+              color: ui.colors.danger.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(28),
             ),
-            child: const Center(
-              child: Icon(
-                Icons.close,
-                size: 22,
-                color: Colors.white,
-              ),
+            child: Center(
+              child: Icon(Icons.close, size: 22, color: ui.colors.textPrimary),
             ),
           ),
         ),

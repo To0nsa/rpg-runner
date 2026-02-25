@@ -16,6 +16,7 @@ import 'score_breakdown_formatter.dart';
 import 'score_distribution.dart';
 import 'score_feed_controller.dart';
 import '../../components/app_button.dart';
+import '../../theme/ui_tokens.dart';
 // import '../../../core/spells/spell_id.dart';
 
 class GameOverOverlay extends StatefulWidget {
@@ -87,19 +88,18 @@ class _GameOverOverlayState extends State<GameOverOverlay>
     );
   }
 
-  Widget? _buildGoldPanel() {
+  Widget? _buildGoldPanel(BuildContext context) {
     final goldEarned = widget.goldEarned;
     if (goldEarned == null) return null;
     final totalGold = widget.totalGold;
+    final ui = context.ui;
 
-    const labelStyle = TextStyle(
-      color: Color(0xFFFFFFFF),
-      fontSize: 14,
+    final labelStyle = ui.text.body.copyWith(
+      color: ui.colors.textPrimary,
       fontWeight: FontWeight.w600,
     );
-    const valueStyle = TextStyle(
-      color: Color(0xFFFFD54F),
-      fontSize: 14,
+    final valueStyle = ui.text.body.copyWith(
+      color: ui.colors.accentStrong,
       fontWeight: FontWeight.w700,
     );
 
@@ -115,17 +115,20 @@ class _GameOverOverlayState extends State<GameOverOverlay>
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: const Color(0x33000000),
-        borderRadius: BorderRadius.circular(8),
+        color: ui.colors.shadow.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(ui.radii.sm),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: EdgeInsets.symmetric(
+          horizontal: ui.space.sm,
+          vertical: ui.space.xs,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             buildRow('Gold earned', '+$goldEarned'),
             if (totalGold != null) ...[
-              const SizedBox(height: 4),
+              SizedBox(height: ui.space.xxs),
               buildRow('Total gold', '$totalGold'),
             ],
           ],
@@ -203,6 +206,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
   @override
   Widget build(BuildContext context) {
     if (!widget.visible) return const SizedBox.shrink();
+    final ui = context.ui;
 
     final subtitleDeathReason = _buildSubtitleDeathReason(widget.runEndedEvent);
     final showCollectButton =
@@ -213,7 +217,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
     final collectLabel = _feedController.feedState == ScoreFeedState.idle
         ? 'Collect Score'
         : 'Skip';
-    final goldPanel = _buildGoldPanel();
+    final goldPanel = _buildGoldPanel(context);
     final rowLabels = [
       for (var i = 0; i < _feedController.rows.length; i += 1)
         formatScoreRow(
@@ -225,9 +229,9 @@ class _GameOverOverlayState extends State<GameOverOverlay>
 
     return SizedBox.expand(
       child: ColoredBox(
-        color: const Color(0x88000000),
+        color: ui.colors.scrim.withValues(alpha: 0.53),
         child: SafeArea(
-          minimum: const EdgeInsets.all(18),
+          minimum: EdgeInsets.all(ui.space.md),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -245,10 +249,10 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                             : null,
                       ),
                       if (goldPanel != null) ...[
-                        const SizedBox(height: 10),
+                        SizedBox(height: ui.space.xs + ui.space.xxs / 2),
                         goldPanel,
                       ],
-                      const SizedBox(height: 14),
+                      SizedBox(height: ui.space.sm + ui.space.xxs / 2),
                       if (showCollectButton)
                         AppButton(
                           label: collectLabel,
@@ -273,7 +277,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                                 )
                               : null,
                         ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: ui.space.md),
                       Flexible(child: ScoreDistribution(rowLabels: rowLabels)),
                     ],
                   ),

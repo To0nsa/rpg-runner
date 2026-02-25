@@ -1,19 +1,27 @@
 import 'package:flutter/widgets.dart';
 
 import '../../../game/game_controller.dart';
+import '../../theme/ui_tokens.dart';
 
 class SurvivalTimerOverlay extends StatelessWidget {
   const SurvivalTimerOverlay({
     super.key,
     required this.controller,
-    this.padding = const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+    this.padding,
   });
 
   final GameController controller;
-  final EdgeInsets padding;
+  final EdgeInsets? padding;
 
   @override
   Widget build(BuildContext context) {
+    final ui = context.ui;
+    final resolvedPadding =
+        padding ??
+        EdgeInsets.symmetric(
+          horizontal: ui.space.xs + ui.space.xxs / 2,
+          vertical: ui.space.xs - ui.space.xxs / 2,
+        );
     return AnimatedBuilder(
       animation: controller,
       builder: (context, _) {
@@ -30,18 +38,17 @@ class SurvivalTimerOverlay extends StatelessWidget {
         return IgnorePointer(
           child: RepaintBoundary(
             child: Container(
-              padding: padding,
+              padding: resolvedPadding,
               decoration: BoxDecoration(
-                color: const Color(0x66000000),
-                borderRadius: BorderRadius.circular(10),
+                color: ui.colors.shadow.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(ui.radii.sm),
               ),
               child: Text(
                 text,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 18,
-                  color: Color(0xFFFFFFFF),
-                  fontFeatures: [FontFeature.tabularFigures()],
+                style: ui.text.headline.copyWith(
+                  color: ui.colors.textPrimary,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
             ),

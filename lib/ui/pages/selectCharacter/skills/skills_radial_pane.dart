@@ -87,6 +87,8 @@ class _ActionSlotButton extends StatelessWidget {
           tuning: _actionButtonTuningForSelectionSlot(
             tuning: _selectionControlsTuning,
             slot: slot,
+            backgroundColor: ui.colors.textPrimary,
+            foregroundColor: ui.colors.background,
           ),
           cooldownRing: _selectionControlsTuning.style.cooldownRing,
           size: buttonSize,
@@ -211,6 +213,8 @@ _ActionSlotGeometry _buildActionSlotsGeometry({
 ActionButtonTuning _actionButtonTuningForSelectionSlot({
   required ControlsTuning tuning,
   required AbilitySlot slot,
+  required Color backgroundColor,
+  required Color foregroundColor,
 }) {
   final family = abilityRadialLayoutSpec.slotSpec(slot).family;
   if (family == AbilityRadialSlotFamily.directional) {
@@ -223,19 +227,27 @@ ActionButtonTuning _actionButtonTuningForSelectionSlot({
         labelFontSize: directional.labelFontSize,
         labelGap: directional.labelGap,
       ),
+      backgroundColor: backgroundColor,
+      foregroundColor: foregroundColor,
     );
   }
-  return _highContrastSelectionActionButtonTuning(tuning.style.actionButton);
+  return _highContrastSelectionActionButtonTuning(
+    tuning.style.actionButton,
+    backgroundColor: backgroundColor,
+    foregroundColor: foregroundColor,
+  );
 }
 
 /// Forces high-contrast icon buttons for menu readability.
 ActionButtonTuning _highContrastSelectionActionButtonTuning(
-  ActionButtonTuning base,
-) {
+  ActionButtonTuning base, {
+  required Color backgroundColor,
+  required Color foregroundColor,
+}) {
   return ActionButtonTuning(
     size: base.size,
-    backgroundColor: const Color(0xFFFFFFFF),
-    foregroundColor: const Color(0xFF000000),
+    backgroundColor: backgroundColor,
+    foregroundColor: foregroundColor,
     labelFontSize: base.labelFontSize,
     labelGap: base.labelGap,
   );

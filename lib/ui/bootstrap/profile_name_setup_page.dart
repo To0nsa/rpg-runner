@@ -8,6 +8,7 @@ import '../components/menu_scaffold.dart';
 import '../profile/display_name_policy.dart';
 import '../state/app_state.dart';
 import '../state/profile_flag_keys.dart';
+import '../theme/ui_tokens.dart';
 
 class ProfileNameSetupPage extends StatefulWidget {
   const ProfileNameSetupPage({super.key});
@@ -75,6 +76,7 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
 
   @override
   Widget build(BuildContext context) {
+    final ui = context.ui;
     return MenuScaffold(
       showAppBar: false,
       child: MenuLayout(
@@ -84,37 +86,46 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
+                Text(
                   'Choose your name',
-                  style: TextStyle(
+                  style: ui.text.title.copyWith(
                     fontSize: 28,
                     fontWeight: FontWeight.w700,
-                    color: Colors.white,
                   ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
+                SizedBox(height: ui.space.xs),
+                Text(
                   'This is optional. You can change it later in Profile.',
-                  style: TextStyle(color: Colors.white70),
+                  style: ui.text.body.copyWith(color: ui.colors.textMuted),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: ui.space.lg),
                 TextField(
                   controller: _controller,
-                  style: const TextStyle(color: Colors.white),
+                  style: ui.text.body.copyWith(color: ui.colors.textPrimary),
                   decoration: InputDecoration(
                     labelText: 'Display name',
-                    labelStyle: const TextStyle(color: Colors.white70),
+                    labelStyle: ui.text.caption.copyWith(
+                      color: ui.colors.textMuted,
+                    ),
                     errorText: _error,
                     filled: true,
-                    fillColor: Colors.white10,
+                    fillColor: ui.colors.cardBackground.withValues(alpha: 0.8),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(ui.radii.md),
+                      borderSide: BorderSide(color: ui.colors.outline),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(ui.radii.md),
+                      borderSide: BorderSide(color: ui.colors.outlineStrong),
+                    ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(ui.radii.md),
                     ),
                   ),
                   onChanged: (_) => setState(() => _error = null),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: ui.space.md + ui.space.xxs),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -126,7 +137,7 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
                           ? null
                           : () => _complete(skipped: true),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: ui.space.sm),
                     AppButton(
                       label: 'Confirm',
                       size: AppButtonSize.md,

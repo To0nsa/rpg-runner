@@ -3,6 +3,8 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../theme/ui_tokens.dart';
+
 /// Full-screen red border pulse for direct player impact feedback.
 class PlayerImpactBorderOverlay extends StatelessWidget {
   const PlayerImpactBorderOverlay({super.key, required this.triggerSignal});
@@ -44,7 +46,7 @@ class _PlayerImpactBorderPainter extends CustomPainter {
   const _PlayerImpactBorderPainter({required this.intensity});
 
   final double intensity;
-  static const Color _baseColor = Color(0xFFFF3B30);
+  static const Color _baseColor = UiBrandPalette.crimsonDanger;
 
   @override
   void paint(Canvas canvas, Size size) {

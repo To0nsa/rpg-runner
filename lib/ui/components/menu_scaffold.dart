@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
-/// A scaffold wrapper for menu pages with consistent black/white styling.
+import '../theme/ui_tokens.dart';
+
+/// A scaffold wrapper for menu pages with consistent theme-token styling.
 ///
 /// Handles:
-/// - Black background
+/// - Brand background
 /// - Optional AppBar with back button
 /// - SafeArea (top/bottom) for content
 ///
@@ -40,16 +42,24 @@ class MenuScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ui = context.ui;
     final topPadding = MediaQuery.paddingOf(context).top;
     final resolvedTitle =
         appBarTitle ??
         (title != null
-            ? Text(title!, style: const TextStyle(color: Colors.white))
+            ? Text(
+                title!,
+                style: ui.text.title.copyWith(
+                  color: ui.colors.textPrimary,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                ),
+              )
             : null);
     final appBarWidget = AppBar(
       title: resolvedTitle,
-      backgroundColor: Colors.black,
-      iconTheme: const IconThemeData(color: Colors.white),
+      backgroundColor: ui.colors.background,
+      iconTheme: IconThemeData(color: ui.colors.textPrimary),
       // We'll apply our own SafeArea so we can ignore transient horizontal
       // insets (e.g. Android nav bar) that can cause jitter.
       primary: false,
@@ -58,7 +68,7 @@ class MenuScaffold extends StatelessWidget {
     );
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: ui.colors.background,
       appBar: showAppBar
           ? PreferredSize(
               preferredSize: Size.fromHeight(

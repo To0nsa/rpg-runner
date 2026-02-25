@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'menu_layout.dart';
 import 'menu_scaffold.dart';
+import '../theme/ui_tokens.dart';
 
 /// A reusable placeholder page for features not yet implemented.
 ///
@@ -22,6 +23,7 @@ class PlaceholderPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ui = context.ui;
     return MenuScaffold(
       title: title,
       child: MenuLayout(
@@ -29,10 +31,7 @@ class PlaceholderPage extends StatelessWidget {
         scrollable: false,
         child: Text(
           message,
-          style: const TextStyle(
-            fontSize: 24,
-            color: Colors.white54,
-          ),
+          style: ui.text.title.copyWith(color: ui.colors.textMuted),
         ),
       ),
     );

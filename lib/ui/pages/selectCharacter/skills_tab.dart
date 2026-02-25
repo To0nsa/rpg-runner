@@ -304,7 +304,7 @@ class _ProjectileSourceDialogState extends State<_ProjectileSourceDialog> {
   Widget build(BuildContext context) {
     final ui = context.ui;
     return Dialog(
-      backgroundColor: const Color(0xFF0D0D0D),
+      backgroundColor: ui.colors.cardBackground,
       insetPadding: EdgeInsets.all(ui.space.sm),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(ui.radii.md),

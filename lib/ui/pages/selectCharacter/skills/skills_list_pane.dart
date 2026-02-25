@@ -30,7 +30,7 @@ class SkillsListPane extends StatelessWidget {
     final ui = context.ui;
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF111111),
+        color: ui.colors.cardBackground,
         borderRadius: BorderRadius.circular(ui.radii.md),
         border: Border.all(color: ui.colors.outline.withValues(alpha: 0.25)),
       ),
@@ -137,8 +137,8 @@ class SkillsProjectileSourceTile extends StatelessWidget {
         ? ui.colors.accentStrong
         : ui.colors.outline.withValues(alpha: 0.45);
     final fillColor = selected
-        ? const Color(0xFF1A1A1A)
-        : const Color(0xFF131313);
+        ? UiBrandPalette.steelBlueInsetBottom
+        : ui.colors.cardBackground;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -345,8 +345,8 @@ class _AbilityListTile extends StatelessWidget {
         ? ui.colors.accentStrong
         : ui.colors.outline.withValues(alpha: 0.45);
     final fillColor = selected
-        ? const Color(0xFF1A1A1A)
-        : const Color(0xFF131313);
+        ? UiBrandPalette.steelBlueInsetBottom
+        : ui.colors.cardBackground;
 
     return Opacity(
       opacity: enabled ? 1 : 0.45,
