@@ -151,9 +151,33 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
         title: 'rpg-runner',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.white,
-            brightness: Brightness.dark,
+          colorScheme:
+              ColorScheme.fromSeed(
+                seedColor: UiBrandPalette.steelBlueBackground,
+                brightness: Brightness.dark,
+              ).copyWith(
+                surface: UiBrandPalette.cardBackground,
+                onSurface: UiBrandPalette.steelBlueForeground,
+                outline: UiBrandPalette.wornGoldOutline,
+              ),
+          scaffoldBackgroundColor: UiBrandPalette.baseBackground,
+          canvasColor: UiBrandPalette.cardBackground,
+          dividerColor: UiBrandPalette.wornGoldOutline,
+          appBarTheme: const AppBarTheme(
+            backgroundColor: UiBrandPalette.baseBackground,
+            foregroundColor: UiBrandPalette.steelBlueForeground,
+            iconTheme: IconThemeData(color: UiBrandPalette.steelBlueForeground),
+            titleTextStyle: TextStyle(
+              fontFamily: 'CrimsonText',
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: UiBrandPalette.steelBlueForeground,
+            ),
+          ),
+          textSelectionTheme: const TextSelectionThemeData(
+            cursorColor: UiBrandPalette.wornGoldInsetBorder,
+            selectionColor: UiBrandPalette.wornGoldGlow,
+            selectionHandleColor: UiBrandPalette.wornGoldInsetBorder,
           ),
           fontFamily: 'CrimsonText',
           useMaterial3: true,

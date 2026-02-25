@@ -8,6 +8,7 @@ import '../../profile/display_name_policy.dart';
 import '../../state/app_state.dart';
 import '../../state/profile_counter_keys.dart';
 import '../../state/user_profile.dart';
+import '../../theme/ui_tokens.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -75,6 +76,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final ui = context.ui;
     final appState = context.watch<AppState>();
     final profile = appState.profile;
     final gold = profile.counters[ProfileCounterKeys.gold] ?? 0;
@@ -90,10 +92,13 @@ class _ProfilePageState extends State<ProfilePage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(ui.space.md),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.white24),
-                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: ui.colors.outline,
+                      width: ui.sizes.borderWidth,
+                    ),
+                    borderRadius: BorderRadius.circular(ui.radii.md),
                   ),
                   child: Column(
                     children: [
@@ -111,15 +116,14 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildDisplayNameRow(UserProfile profile) {
+    final ui = context.ui;
     final currentName = profile.displayName;
+    final labelStyle = ui.text.label.copyWith(color: ui.colors.textMuted);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          const SizedBox(
-            width: 80,
-            child: Text('Name', style: TextStyle(color: Colors.white70)),
-          ),
+          SizedBox(width: 80, child: Text('Name', style: labelStyle)),
           Expanded(
             child: AppInlineEditText(
               text: currentName,
@@ -135,18 +139,18 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _row(String label, String value) {
+    final ui = context.ui;
+    final labelStyle = ui.text.label.copyWith(color: ui.colors.textMuted);
+    final valueStyle = ui.text.body.copyWith(color: ui.colors.textPrimary);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          SizedBox(
-            width: 80,
-            child: Text(label, style: const TextStyle(color: Colors.white70)),
-          ),
+          SizedBox(width: 80, child: Text(label, style: labelStyle)),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(color: Colors.white),
+              style: valueStyle,
               overflow: TextOverflow.ellipsis,
             ),
           ),

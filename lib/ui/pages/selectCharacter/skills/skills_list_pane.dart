@@ -166,7 +166,7 @@ class SkillsProjectileSourceTile extends StatelessWidget {
                   SizedBox(width: ui.space.xs),
                   Expanded(
                     child: Text(
-                      title.toUpperCase(),
+                      title,
                       style: ui.text.body.copyWith(
                         color: ui.colors.textPrimary,
                       ),
@@ -376,7 +376,7 @@ class _AbilityListTile extends StatelessWidget {
                 SizedBox(width: ui.space.md),
                 Expanded(
                   child: Text(
-                    title.toUpperCase(),
+                    title,
                     style: ui.text.body.copyWith(color: ui.colors.textPrimary),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

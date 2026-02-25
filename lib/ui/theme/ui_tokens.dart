@@ -20,8 +20,8 @@ class UiBrandPalette {
   static const wornGoldInsetBorder = Color(0xFFAE9664);
   static const wornGoldGlow = Color(0x1A8E7A4F);
 
-  static const mutedMossValueHighlight = Color(0xFF7A8F7D);
-  static const mutedMossSuccess = Color(0xFF7E957E);
+  static const mutedMossValueHighlight = Color.fromARGB(255, 68, 134, 78);
+  static const mutedMossSuccess = Color.fromARGB(255, 63, 146, 63);
   static const crimsonDanger = Color(0xFFA93D48);
 
   static const mutedPlumBackground = Color(0xFF282328);
