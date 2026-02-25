@@ -100,9 +100,7 @@ class _ProjectileSourceDialogState extends State<_ProjectileSourceDialog> {
             children: [
               Text(
                 'Select Projectile Source',
-                style: ui.text.loreHeading.copyWith(
-                  color: ui.colors.textPrimary,
-                ),
+                style: ui.text.headline.copyWith(color: ui.colors.textPrimary),
               ),
               SizedBox(height: ui.space.sm),
               Expanded(

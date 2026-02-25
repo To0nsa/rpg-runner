@@ -58,25 +58,27 @@ class UiTokens extends ThemeExtension<UiTokens> {
   final UiSizes sizes;
   final UiShadows shadows;
 
-  static const UiTokens standard = UiTokens(
+  static const UiColors _standardColors = UiColors(
+    background: UiBrandPalette.baseBackground,
+    surface: UiBrandPalette.steelBlueBackground,
+    cardBackground: UiBrandPalette.cardBackground,
+    textPrimary: UiBrandPalette.steelBlueForeground,
+    textMuted: UiBrandPalette.steelBlueMutedText,
+    outline: UiBrandPalette.wornGoldOutline,
+    outlineStrong: UiBrandPalette.wornGoldInsetBorder,
+    accent: UiBrandPalette.wornGoldBorder,
+    accentStrong: UiBrandPalette.wornGoldInsetBorder,
+    valueHighlight: UiBrandPalette.mutedMossValueHighlight,
+    danger: UiBrandPalette.crimsonDanger,
+    success: UiBrandPalette.mutedMossSuccess,
+    scrim: UiBrandPalette.scrim,
+    shadow: UiBrandPalette.shadow,
+  );
+
+  static final UiTokens standard = UiTokens(
     space: UiSpace(xxs: 4, xs: 8, sm: 12, md: 16, lg: 24, xl: 32, xxl: 48),
     radii: UiRadii(sm: 8, md: 12, lg: 16, xl: 24),
-    colors: UiColors(
-      background: UiBrandPalette.baseBackground,
-      surface: UiBrandPalette.steelBlueBackground,
-      cardBackground: UiBrandPalette.cardBackground,
-      textPrimary: UiBrandPalette.steelBlueForeground,
-      textMuted: UiBrandPalette.steelBlueMutedText,
-      outline: UiBrandPalette.wornGoldOutline,
-      outlineStrong: UiBrandPalette.wornGoldInsetBorder,
-      accent: UiBrandPalette.wornGoldBorder,
-      accentStrong: UiBrandPalette.wornGoldInsetBorder,
-      valueHighlight: UiBrandPalette.mutedMossValueHighlight,
-      danger: UiBrandPalette.crimsonDanger,
-      success: UiBrandPalette.mutedMossSuccess,
-      scrim: UiBrandPalette.scrim,
-      shadow: UiBrandPalette.shadow,
-    ),
+    colors: _standardColors,
     sizes: UiSizes(
       tapTarget: 48,
       iconSize: UiIconSizes(xs: 12, sm: 16, md: 24, lg: 32),
@@ -116,7 +118,7 @@ class UiTokens extends ThemeExtension<UiTokens> {
       ),
       headline: TextStyle(
         fontFamily: 'CrimsonText',
-        color: UiBrandPalette.steelBlueForeground,
+        color: _standardColors.textPrimary,
         fontSize: 18,
         fontWeight: FontWeight.w700,
       ),
@@ -132,25 +134,6 @@ class UiTokens extends ThemeExtension<UiTokens> {
         fontSize: 12,
         fontWeight: FontWeight.w600,
         letterSpacing: 1.2,
-      ),
-      caption: TextStyle(
-        fontFamily: 'CrimsonText',
-        color: UiBrandPalette.steelBlueMutedText,
-        fontSize: 12,
-        fontWeight: FontWeight.w500,
-      ),
-      loreHeading: TextStyle(
-        fontFamily: 'CrimsonText',
-        color: UiBrandPalette.steelBlueForeground,
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 0.2,
-      ),
-      loreBody: TextStyle(
-        fontFamily: 'CrimsonText',
-        color: UiBrandPalette.steelBlueMutedText,
-        fontSize: 12,
-        fontWeight: FontWeight.w400,
       ),
       cardLabel: TextStyle(
         fontFamily: 'CrimsonText',
@@ -263,9 +246,6 @@ class UiTextStyles {
     required this.headline,
     required this.body,
     required this.label,
-    required this.caption,
-    required this.loreHeading,
-    required this.loreBody,
     required this.cardLabel,
     required this.cardTitle,
     required this.cardSubtitle,
@@ -276,9 +256,6 @@ class UiTextStyles {
   final TextStyle headline;
   final TextStyle body;
   final TextStyle label;
-  final TextStyle caption;
-  final TextStyle loreHeading;
-  final TextStyle loreBody;
   final TextStyle cardLabel;
   final TextStyle cardTitle;
   final TextStyle cardSubtitle;

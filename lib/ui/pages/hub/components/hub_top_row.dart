@@ -98,10 +98,7 @@ class _HubTopRowState extends State<HubTopRow> {
           ),
           SizedBox(width: ui.space.sm),
           // Gold
-          Text(
-            widget.gold.toString(),
-            style: ui.text.headline,
-          ),
+          Text(widget.gold.toString(), style: ui.text.headline),
           SizedBox(width: ui.space.xs),
           Icon(
             Icons.monetization_on,
@@ -118,10 +115,7 @@ class _HubTopRowState extends State<HubTopRow> {
           // Battery
           Icon(_batteryIcon, color: _batteryColor, size: ui.sizes.iconSize.sm),
           SizedBox(width: ui.space.xxs),
-          Text(
-            '$_batteryLevel%',
-            style: ui.text.caption,
-          ),
+          Text('$_batteryLevel%', style: ui.text.body),
           SizedBox(width: ui.space.md),
           // Time
           Icon(
@@ -130,10 +124,7 @@ class _HubTopRowState extends State<HubTopRow> {
             size: ui.sizes.iconSize.sm,
           ),
           SizedBox(width: ui.space.xxs),
-          Text(
-            timeStr,
-            style: ui.text.caption,
-          ),
+          Text(timeStr, style: ui.text.body),
         ],
       ),
     );

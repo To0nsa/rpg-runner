@@ -105,7 +105,7 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
                   style: ui.text.body.copyWith(color: ui.colors.textPrimary),
                   decoration: InputDecoration(
                     labelText: 'Display name',
-                    labelStyle: ui.text.caption.copyWith(
+                    labelStyle: ui.text.body.copyWith(
                       color: ui.colors.textMuted,
                     ),
                     errorText: _error,

@@ -181,7 +181,7 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
           ),
           fontFamily: 'CrimsonText',
           useMaterial3: true,
-          extensions: const [
+          extensions: [
             UiTokens.standard,
             UiHubTheme.standard,
             UiButtonTheme.standard,

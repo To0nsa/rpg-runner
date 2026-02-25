@@ -42,7 +42,7 @@ class AbilityPlaceholderIcon extends StatelessWidget {
         child: Center(
           child: Text(
             label,
-            style: ui.text.caption.copyWith(
+            style: ui.text.body.copyWith(
               color: textColor,
               fontSize: (size * 0.34).clamp(8.0, 11.0),
               fontWeight: FontWeight.w700,

@@ -55,7 +55,7 @@ class GearPickerStatsPanel extends StatelessWidget {
               child: Center(
                 child: Text(
                   'Select an item to preview stats.',
-                  style: ui.text.caption.copyWith(color: ui.colors.textMuted),
+                  style: ui.text.body.copyWith(color: ui.colors.textMuted),
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -91,19 +91,15 @@ class GearPickerStatsPanel extends StatelessWidget {
                           children: [
                             Text(
                               gearDisplayNameForSlot(slot, id!),
-                              style: ui.text.caption.copyWith(
-                                color: ui.colors.textPrimary,
-                              ),
+                              style: ui.text.headline,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 1),
                             Text(
                               '"${gearDescriptionForSlot(slot, id!)}"',
-                              style: ui.text.caption.copyWith(
+                              style: ui.text.body.copyWith(
                                 color: ui.colors.textMuted,
-                                fontSize: 9,
-                                height: 1.0,
                               ),
                               maxLines: 2,
                               softWrap: true,
@@ -168,19 +164,12 @@ class _StatSection extends StatelessWidget {
       horizontal: 6,
       vertical: 4,
     );
-    final headingStyle = ui.text.caption.copyWith(
+    final headingStyle = ui.text.body.copyWith(
       color: ui.colors.textMuted,
-      fontWeight: FontWeight.w700,
-      fontSize: 10,
-      height: 1.0,
     );
-    final emptyStyle = ui.text.caption.copyWith(
-      color: ui.colors.textMuted,
-      fontSize: 10,
-      height: 1.0,
-    );
+    final emptyStyle = ui.text.body.copyWith(color: ui.colors.textMuted);
     const interItemGap = 2.0;
-    const estimatedRowHeight = 12.0;
+    const estimatedRowHeight = 18.0;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -254,16 +243,10 @@ class _StatLineText extends StatelessWidget {
       GearStatLineTone.positive => ui.colors.success,
       GearStatLineTone.negative => ui.colors.danger,
     };
-    final labelStyle = ui.text.caption.copyWith(
-      color: ui.colors.textMuted,
-      fontSize: 10,
-      height: 1.0,
-    );
-    final valueStyle = ui.text.caption.copyWith(
+    final labelStyle = ui.text.body.copyWith(color: ui.colors.textMuted);
+    final valueStyle = ui.text.body.copyWith(
       color: valueColor,
       fontWeight: FontWeight.w600,
-      fontSize: 10,
-      height: 1.0,
     );
 
     return Padding(

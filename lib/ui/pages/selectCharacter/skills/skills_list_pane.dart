@@ -42,7 +42,7 @@ class SkillsListPane extends StatelessWidget {
             alignment: Alignment.center,
             child: Text(
               '${_slotTitle(selectedSlot).toUpperCase()} SKILLS',
-              style: ui.text.loreHeading.copyWith(
+              style: ui.text.headline.copyWith(
                 color: ui.colors.textPrimary,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -252,14 +252,14 @@ class _ExpandedDetails extends StatelessWidget {
               children: [
                 Text(
                   'Damage: ',
-                  style: ui.text.loreBody.copyWith(
+                  style: ui.text.body.copyWith(
                     color: ui.colors.textMuted,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 Text(
                   damageTypeName!,
-                  style: ui.text.caption.copyWith(
+                  style: ui.text.body.copyWith(
                     color: ui.colors.valueHighlight,
                     fontWeight: FontWeight.w600,
                   ),
@@ -271,7 +271,7 @@ class _ExpandedDetails extends StatelessWidget {
           if (hasDescription)
             Text(
               description!,
-              style: ui.text.caption.copyWith(color: ui.colors.textMuted),
+              style: ui.text.body.copyWith(color: ui.colors.textMuted),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
             ),
@@ -284,19 +284,17 @@ class _ExpandedDetails extends StatelessWidget {
                 children: [
                   Text(
                     '• ',
-                    style: ui.text.loreBody.copyWith(
-                      color: ui.colors.textMuted,
-                    ),
+                    style: ui.text.body.copyWith(color: ui.colors.textMuted),
                   ),
                   Expanded(
                     child: Text.rich(
                       TextSpan(
                         children: _highlightValues(
                           line,
-                          normal: ui.text.caption.copyWith(
+                          normal: ui.text.body.copyWith(
                             color: ui.colors.textPrimary,
                           ),
-                          highlight: ui.text.caption.copyWith(
+                          highlight: ui.text.body.copyWith(
                             color: ui.colors.valueHighlight,
                             fontWeight: FontWeight.w600,
                           ),
