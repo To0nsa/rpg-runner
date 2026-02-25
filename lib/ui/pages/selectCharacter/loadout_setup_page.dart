@@ -52,7 +52,7 @@ class _LoadoutSetupPageState extends State<LoadoutSetupPage> {
         appBarTitle: TabBar(
           labelColor: ui.colors.textPrimary,
           unselectedLabelColor: ui.colors.textMuted,
-          labelStyle: ui.text.label,
+          labelStyle: ui.text.headline,
           indicatorColor: ui.colors.accent,
           tabs: const [
             Tab(text: 'Gear'),
