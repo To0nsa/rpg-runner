@@ -95,18 +95,15 @@ class _LevelParallaxPreviewState extends State<LevelParallaxPreview> {
 
           for (final provider in _layers)
             Positioned.fill(
-              child: Align(
+              child: Image(
+                image: provider,
+                fit: BoxFit.cover,
                 alignment: widget.alignment,
-                child: Image(
-                  image: provider,
-                  fit: BoxFit.cover,
-                  alignment: widget.alignment,
-                  filterQuality: widget.filterQuality,
-                  errorBuilder: (context, error, stackTrace) {
-                    // If one layer is missing, just skip it visually.
-                    return const SizedBox.shrink();
-                  },
-                ),
+                filterQuality: widget.filterQuality,
+                errorBuilder: (context, error, stackTrace) {
+                  // If one layer is missing, just skip it visually.
+                  return const SizedBox.shrink();
+                },
               ),
             ),
 
