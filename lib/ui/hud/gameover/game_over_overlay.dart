@@ -211,7 +211,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
     final showScoreInHeader =
         _feedController.feedState == ScoreFeedState.complete;
     final collectLabel = _feedController.feedState == ScoreFeedState.idle
-        ? 'Collect score'
+        ? 'Collect Score'
         : 'Skip';
     final goldPanel = _buildGoldPanel();
     final rowLabels = [
@@ -253,7 +253,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                         AppButton(
                           label: collectLabel,
                           variant: AppButtonVariant.secondary,
-                          size: AppButtonSize.xs,
+                          size: AppButtonSize.md,
                           onPressed: _onCollectPressed,
                         )
                       else

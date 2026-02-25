@@ -73,13 +73,13 @@ class UiTokens extends ThemeExtension<UiTokens> {
       headline: TextStyle(
         fontFamily: 'CrimsonText',
         color: Colors.white,
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: FontWeight.w700,
       ),
       body: TextStyle(
         fontFamily: 'CrimsonText',
         color: Colors.white,
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: FontWeight.w400,
       ),
       label: TextStyle(
