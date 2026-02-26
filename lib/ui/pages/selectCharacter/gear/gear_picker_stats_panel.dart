@@ -117,7 +117,6 @@ class GearPickerStatsPanel extends StatelessWidget {
                       children: [
                         Expanded(
                           child: _StatSection(
-                            title: 'Stats',
                             lines: lines,
                             emptyText: 'No non-zero stat bonuses.',
                           ),
@@ -126,7 +125,6 @@ class GearPickerStatsPanel extends StatelessWidget {
                           SizedBox(height: blockSpacing),
                           Expanded(
                             child: _StatSection(
-                              title: 'Compared to equipped gear:',
                               lines: compareLines,
                               emptyText: compareEmptyText,
                             ),
@@ -147,12 +145,10 @@ class GearPickerStatsPanel extends StatelessWidget {
 /// Small bordered section used for base stats and compare stats.
 class _StatSection extends StatelessWidget {
   const _StatSection({
-    required this.title,
     required this.lines,
     required this.emptyText,
   });
 
-  final String title;
   final List<GearStatLine> lines;
   final String emptyText;
 
@@ -163,9 +159,6 @@ class _StatSection extends StatelessWidget {
     final sectionPadding = const EdgeInsets.symmetric(
       horizontal: 6,
       vertical: 4,
-    );
-    final headingStyle = ui.text.body.copyWith(
-      color: ui.colors.textMuted,
     );
     final emptyStyle = ui.text.body.copyWith(color: ui.colors.textMuted);
     const interItemGap = 2.0;
@@ -197,12 +190,6 @@ class _StatSection extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: headingStyle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
               SizedBox(height: interItemGap),
               if (lines.isEmpty)
                 Text(

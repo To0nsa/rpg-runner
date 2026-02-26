@@ -108,7 +108,6 @@ List<GearStatLine> _projectileStats(ProjectileItemDef def) {
   final lines = <GearStatLine>[
     GearStatLine('Type', _enumLabel(def.weaponType.name)),
     GearStatLine('Damage Type', _enumLabel(def.damageType.name)),
-    GearStatLine('Ballistic', def.ballistic ? 'Yes' : 'No'),
   ];
   _addCoreStatLines(lines, stats);
   return lines;
