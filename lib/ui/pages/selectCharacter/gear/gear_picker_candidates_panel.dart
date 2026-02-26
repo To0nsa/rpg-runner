@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/meta/gear_slot.dart';
@@ -8,8 +10,8 @@ import 'gear_picker_parts.dart';
 
 /// Right-side candidate panel.
 ///
-/// Renders all slot candidates (unlocked + locked), while keeping the grid
-/// non-scrollable and dense for landscape-only presentation.
+/// Renders unlocked slot candidates while keeping the grid non-scrollable and
+/// dense for landscape-only presentation.
 class GearPickerCandidatesPanel extends StatelessWidget {
   const GearPickerCandidatesPanel({
     super.key,
@@ -41,39 +43,72 @@ class GearPickerCandidatesPanel extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final spacing = ui.space.xs;
-        final gridSpec = candidateGridSpecForAvailableSpace(
-          itemCount: candidates.length,
-          availableWidth: constraints.maxWidth,
-          availableHeight: constraints.maxHeight,
-          spacing: spacing,
-        );
+        const targetColumns = 5;
+        const targetRows = 3;
+        final widthPerTile =
+            (constraints.maxWidth - (spacing * (targetColumns - 1))) /
+            targetColumns;
+        final heightPerTile =
+            (constraints.maxHeight - (spacing * (targetRows - 1))) / targetRows;
+        final tileSize = math
+            .min(widthPerTile, heightPerTile)
+            .clamp(44.0, 64.0)
+            .toDouble();
+        final targetCapacity = targetColumns * targetRows;
+        final itemCount = math.max(candidates.length, targetCapacity);
 
         return GridView.builder(
-          itemCount: candidates.length,
+          itemCount: itemCount,
           physics: const NeverScrollableScrollPhysics(),
           padding: EdgeInsets.zero,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: gridSpec.crossAxisCount,
-            mainAxisSpacing: gridSpec.spacing,
-            crossAxisSpacing: gridSpec.spacing,
-            mainAxisExtent: gridSpec.mainAxisExtent,
+            crossAxisCount: targetColumns,
+            mainAxisSpacing: spacing,
+            crossAxisSpacing: spacing,
+            mainAxisExtent: tileSize,
           ),
           itemBuilder: (context, index) {
+            if (index >= candidates.length) {
+              return _EmptyGearCandidateTile(tileSize: tileSize);
+            }
             final candidate = candidates[index];
             return _GearCandidateTile(
               slot: slot,
               id: candidate.id,
-              isLocked: !candidate.isUnlocked,
+              tileSize: tileSize,
               isEquipped: candidate.id == equippedId,
               selected: candidate.id == selectedId,
-              // Locked candidates remain visible but are fully untappable.
-              onTap: candidate.isUnlocked
-                  ? () => onSelected(candidate.id)
-                  : null,
+              onTap: () => onSelected(candidate.id),
             );
           },
         );
       },
+    );
+  }
+}
+
+class _EmptyGearCandidateTile extends StatelessWidget {
+  const _EmptyGearCandidateTile({required this.tileSize});
+
+  final double tileSize;
+
+  @override
+  Widget build(BuildContext context) {
+    final ui = context.ui;
+    return Align(
+      alignment: Alignment.center,
+      child: SizedBox.square(
+        dimension: tileSize,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: ui.colors.background.withValues(alpha: 0.35),
+            borderRadius: BorderRadius.circular(ui.radii.sm),
+            border: Border.all(
+              color: ui.colors.outline.withValues(alpha: 0.22),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -83,7 +118,7 @@ class _GearCandidateTile extends StatelessWidget {
   const _GearCandidateTile({
     required this.slot,
     required this.id,
-    required this.isLocked,
+    required this.tileSize,
     required this.isEquipped,
     required this.selected,
     required this.onTap,
@@ -91,30 +126,21 @@ class _GearCandidateTile extends StatelessWidget {
 
   final GearSlot slot;
   final Object id;
-  final bool isLocked;
+  final double tileSize;
   final bool isEquipped;
   final bool selected;
-  final VoidCallback? onTap;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
-    const tileSize = 64.0;
-    const iconSize = 48.0;
-    final lockedFillColor = ui.colors.background.withValues(alpha: 0.95);
+    final iconSize = (tileSize * 0.75).clamp(24.0, 48.0);
     final selectedFillColor = UiBrandPalette.steelBlueInsetBottom;
     final defaultFillColor = ui.colors.cardBackground;
-    final borderColor = isLocked
-        ? ui.colors.outline.withValues(alpha: 0.35)
-        : selected
+    final borderColor = selected
         ? ui.colors.accentStrong
         : (isEquipped ? ui.colors.success : ui.colors.outline);
-
-    final fillColor = isLocked
-        ? lockedFillColor
-        : selected
-        ? selectedFillColor
-        : defaultFillColor;
+    final fillColor = selected ? selectedFillColor : defaultFillColor;
     final radius = ui.radii.sm;
 
     return Align(
@@ -142,21 +168,8 @@ class _GearCandidateTile extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   Center(
-                    child: Opacity(
-                      opacity: isLocked ? 0.45 : 1,
-                      child: GearIcon(slot: slot, id: id, size: iconSize),
-                    ),
+                    child: GearIcon(slot: slot, id: id, size: iconSize),
                   ),
-                  if (isLocked)
-                    Positioned(
-                      top: 2,
-                      left: 2,
-                      child: Icon(
-                        Icons.lock,
-                        size: 10,
-                        color: ui.colors.textMuted,
-                      ),
-                    ),
                   if (isEquipped || selected)
                     Positioned(
                       top: 2,

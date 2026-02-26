@@ -46,7 +46,10 @@ class _GearsTabState extends State<GearsTab> {
     final meta = appState.meta;
     final equipped = meta.equippedFor(widget.characterId);
 
-    final candidates = _service.candidatesForSlot(meta, _selectedSlot);
+    final candidates = _service
+        .candidatesForSlot(meta, _selectedSlot)
+        .where((candidate) => candidate.isUnlocked)
+        .toList(growable: false);
     final equippedId = _equippedIdForSlot(_selectedSlot, equipped);
     final selectedId = _selectedCandidateIdForSlot(
       slot: _selectedSlot,
@@ -54,61 +57,103 @@ class _GearsTabState extends State<GearsTab> {
       equippedId: equippedId,
     );
     final selectedCandidate = _candidateById(candidates, selectedId);
-    final canEquip =
-        selectedId != equippedId && (selectedCandidate?.isUnlocked ?? false);
+    final canEquip = selectedId != equippedId && selectedCandidate != null;
 
     return Padding(
-      padding: EdgeInsets.only(left: ui.space.xxs, top: ui.space.xxs),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  flex: 1,
-                  child: _GearDetailsPane(
-                    slotSpecs: _slotSpecs,
-                    selectedSlot: _selectedSlot,
-                    equipped: equipped,
-                    selectedId: selectedId,
-                    onSelectSlot: (slot) {
-                      if (_selectedSlot == slot) return;
-                      setState(() {
-                        _selectedSlot = slot;
-                        _selectedCandidateBySlot.putIfAbsent(
-                          slot,
-                          () => _equippedIdForSlot(slot, equipped),
-                        );
-                      });
-                    },
-                  ),
-                ),
-                SizedBox(width: ui.space.sm),
-                Expanded(
-                  flex: 1,
-                  child: _GearCandidatesPane(
-                    slot: _selectedSlot,
-                    candidates: candidates,
-                    equippedId: equippedId,
-                    selectedId: selectedId,
-                    canEquip: canEquip,
-                    onSelected: (value) => setState(() {
-                      _selectedCandidateBySlot[_selectedSlot] = value;
-                    }),
-                    onEquip: () => _equipSelected(
-                      appState: appState,
-                      slot: _selectedSlot,
-                      selectedId: selectedId,
-                      equippedId: equippedId,
+      padding: EdgeInsets.only(top: ui.space.xxs),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(
+                      width: 48,
+                      child: _GearSlotSelector(
+                        slotSpecs: _slotSpecs,
+                        selectedSlot: _selectedSlot,
+                        equipped: equipped,
+                        onSelectSlot: (slot) {
+                          if (_selectedSlot == slot) return;
+                          setState(() {
+                            _selectedSlot = slot;
+                            _selectedCandidateBySlot.putIfAbsent(
+                              slot,
+                              () => _equippedIdForSlot(slot, equipped),
+                            );
+                          });
+                        },
+                      ),
                     ),
-                  ),
+                    SizedBox(
+                      width: ui.space.md,
+                      child: VerticalDivider(
+                        width: ui.space.xxs,
+                        thickness: ui.sizes.borderWidth,
+                        color: ui.colors.outline,
+                        indent: ui.space.xxs,
+                        endIndent: ui.space.xxs,
+                      ),
+                    ),
+                    Expanded(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: ui.colors.cardBackground,
+                          borderRadius: BorderRadius.circular(ui.radii.md),
+                          border: Border.all(
+                            color: ui.colors.outline.withValues(alpha: 0.4),
+                          ),
+                          boxShadow: ui.shadows.card,
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.all(ui.space.sm),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                flex: 1,
+                                child: _GearDetailsPane(
+                                  slot: _selectedSlot,
+                                  selectedId: selectedId,
+                                  equippedForCompare: equippedId,
+                                ),
+                              ),
+                              SizedBox(width: ui.space.sm),
+                              Expanded(
+                                flex: 1,
+                                child: _GearCandidatesPane(
+                                  slot: _selectedSlot,
+                                  candidates: candidates,
+                                  equippedId: equippedId,
+                                  selectedId: selectedId,
+                                  canEquip: canEquip,
+                                  onSelected: (value) => setState(() {
+                                    _selectedCandidateBySlot[_selectedSlot] =
+                                        value;
+                                  }),
+                                  onEquip: () => _equipSelected(
+                                    appState: appState,
+                                    slot: _selectedSlot,
+                                    selectedId: selectedId,
+                                    equippedId: equippedId,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -124,7 +169,10 @@ class _GearsTabState extends State<GearsTab> {
         if (candidate.id == selected) return selected;
       }
     }
-    return equippedId;
+    for (final candidate in candidates) {
+      if (candidate.id == equippedId) return equippedId;
+    }
+    return candidates.isNotEmpty ? candidates.first.id : equippedId;
   }
 
   Future<void> _equipSelected({
@@ -144,45 +192,21 @@ class _GearsTabState extends State<GearsTab> {
 
 class _GearDetailsPane extends StatelessWidget {
   const _GearDetailsPane({
-    required this.slotSpecs,
-    required this.selectedSlot,
-    required this.equipped,
+    required this.slot,
     required this.selectedId,
-    required this.onSelectSlot,
+    required this.equippedForCompare,
   });
 
-  final List<_GearSlotSpec> slotSpecs;
-  final GearSlot selectedSlot;
-  final EquippedGear equipped;
+  final GearSlot slot;
   final Object selectedId;
-  final ValueChanged<GearSlot> onSelectSlot;
+  final Object equippedForCompare;
 
   @override
   Widget build(BuildContext context) {
-    final ui = context.ui;
-    final equippedForCompare = _equippedIdForSlot(selectedSlot, equipped);
-    const slotListWidth = 48.0;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SizedBox(
-          width: slotListWidth,
-          child: _GearSlotSelector(
-            slotSpecs: slotSpecs,
-            selectedSlot: selectedSlot,
-            equipped: equipped,
-            onSelectSlot: onSelectSlot,
-          ),
-        ),
-        SizedBox(width: ui.space.sm),
-        Expanded(
-          child: GearPickerStatsPanel(
-            slot: selectedSlot,
-            id: selectedId,
-            equippedForCompare: equippedForCompare,
-          ),
-        ),
-      ],
+    return GearPickerStatsPanel(
+      slot: slot,
+      id: selectedId,
+      equippedForCompare: equippedForCompare,
     );
   }
 }
@@ -223,7 +247,7 @@ class _GearCandidatesPane extends StatelessWidget {
         ),
         SizedBox(height: ui.space.sm),
         Align(
-          alignment: Alignment.centerRight,
+          alignment: Alignment.center,
           child: AppButton(
             label: 'Equip',
             variant: AppButtonVariant.primary,
@@ -252,19 +276,20 @@ class _GearSlotSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
-    return ListView.separated(
-      itemCount: slotSpecs.length,
-      padding: EdgeInsets.zero,
-      itemBuilder: (context, index) {
-        final spec = slotSpecs[index];
-        return _GearSlotTab(
-          slot: spec.slot,
-          equippedId: _equippedIdForSlot(spec.slot, equipped),
-          selected: spec.slot == selectedSlot,
-          onTap: () => onSelectSlot(spec.slot),
-        );
-      },
-      separatorBuilder: (_, _) => SizedBox(height: ui.space.xs),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        for (var i = 0; i < slotSpecs.length; i++) ...[
+          _GearSlotTab(
+            slot: slotSpecs[i].slot,
+            equippedId: _equippedIdForSlot(slotSpecs[i].slot, equipped),
+            selected: slotSpecs[i].slot == selectedSlot,
+            onTap: () => onSelectSlot(slotSpecs[i].slot),
+          ),
+          if (i < slotSpecs.length - 1) SizedBox(height: ui.space.xs),
+        ],
+      ],
     );
   }
 }

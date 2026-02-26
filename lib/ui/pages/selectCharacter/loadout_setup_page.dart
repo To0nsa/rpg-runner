@@ -45,57 +45,61 @@ class _LoadoutSetupPageState extends State<LoadoutSetupPage> {
     final ui = context.ui;
     final selectedDef = _loadoutSetupUiCharacters.first;
     final segmentedRadius = BorderRadius.circular(ui.radii.md);
+    final safeRight = MediaQuery.paddingOf(context).right;
 
     return DefaultTabController(
       length: 2,
       initialIndex: 0,
       child: MenuScaffold(
-        appBarTitle: SizedBox(
-          height: 44,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: ui.colors.surface,
-              borderRadius: segmentedRadius,
-              border: Border.all(
-                color: ui.colors.outlineStrong,
-                width: ui.sizes.borderWidth / 2,
+        appBarTitle: Padding(
+          padding: EdgeInsets.only(right: safeRight + ui.space.sm),
+          child: SizedBox(
+            height: 44,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: ui.colors.surface,
+                borderRadius: segmentedRadius,
+                border: Border.all(
+                  color: ui.colors.outlineStrong,
+                  width: ui.sizes.borderWidth / 2,
+                ),
               ),
-            ),
-            child: ClipRRect(
-              borderRadius: segmentedRadius,
-              child: TabBar(
-                dividerColor: Colors.transparent,
-                indicatorSize: TabBarIndicatorSize.tab,
-                indicatorPadding: EdgeInsets.all(ui.space.xxs),
-                indicator: BoxDecoration(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(ui.radii.sm),
-                ),
-                splashBorderRadius: segmentedRadius,
-                labelColor: ui.colors.accentStrong,
-                unselectedLabelColor: ui.colors.background,
-                labelStyle: ui.text.label.copyWith(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
-                unselectedLabelStyle: ui.text.label.copyWith(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
-                tabs: const [
-                  Tab(
-                    child: _LoadoutTopTabLabel(
-                      icon: Icons.shield_outlined,
-                      text: 'Gear',
-                    ),
+              child: ClipRRect(
+                borderRadius: segmentedRadius,
+                child: TabBar(
+                  dividerColor: Colors.transparent,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  indicatorPadding: EdgeInsets.all(ui.space.xxs),
+                  indicator: BoxDecoration(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(ui.radii.sm),
                   ),
-                  Tab(
-                    child: _LoadoutTopTabLabel(
-                      icon: Icons.auto_awesome_outlined,
-                      text: 'Skills',
-                    ),
+                  splashBorderRadius: segmentedRadius,
+                  labelColor: ui.colors.accentStrong,
+                  unselectedLabelColor: ui.colors.background,
+                  labelStyle: ui.text.label.copyWith(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
                   ),
-                ],
+                  unselectedLabelStyle: ui.text.label.copyWith(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  tabs: const [
+                    Tab(
+                      child: _LoadoutTopTabLabel(
+                        icon: Icons.shield_outlined,
+                        text: 'Gear',
+                      ),
+                    ),
+                    Tab(
+                      child: _LoadoutTopTabLabel(
+                        icon: Icons.auto_awesome_outlined,
+                        text: 'Skills',
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
