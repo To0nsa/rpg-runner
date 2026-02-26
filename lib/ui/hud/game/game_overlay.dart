@@ -73,6 +73,14 @@ class GameOverlay extends StatelessWidget {
     final chargeBarProgress01 = hud.chargeFullTicks > 0
         ? (hud.chargeTicks / hud.chargeFullTicks).clamp(0.0, 1.0)
         : 0.0;
+    final equippedAbilityIdsBySlot = <AbilitySlot, AbilityKey>{
+      AbilitySlot.primary: hud.abilityPrimaryId,
+      AbilitySlot.secondary: hud.abilitySecondaryId,
+      AbilitySlot.projectile: hud.abilityProjectileId,
+      AbilitySlot.mobility: hud.abilityMobilityId,
+      AbilitySlot.spell: hud.abilitySpellId,
+      AbilitySlot.jump: hud.abilityJumpId,
+    };
 
     return Stack(
       fit: StackFit.expand,
@@ -126,6 +134,7 @@ class GameOverlay extends StatelessWidget {
                 input.startAbilitySlotHold(AbilitySlot.primary),
             onMeleeChargeHoldEnd: () =>
                 input.endAbilitySlotHold(AbilitySlot.primary),
+            equippedAbilityIdsBySlot: equippedAbilityIdsBySlot,
             meleeAimPreview: meleeAimPreview,
             aimCancelHitboxRect: aimCancelHitboxRect,
             meleeAffordable: meleeAffordable,

@@ -15,6 +15,8 @@ class SpellControl extends StatelessWidget {
     required this.affordable,
     required this.cooldownTicksLeft,
     required this.cooldownTicksTotal,
+    this.label,
+    this.iconWidget,
   });
 
   final ControlsTuning tuning;
@@ -23,15 +25,19 @@ class SpellControl extends StatelessWidget {
   final bool affordable;
   final int cooldownTicksLeft;
   final int cooldownTicksTotal;
+  final String? label;
+  final Widget? iconWidget;
 
   @override
   Widget build(BuildContext context) {
     final slot = abilityRadialLayoutSpec.slotSpec(AbilitySlot.spell);
+    final resolvedLabel = label ?? slot.label;
     final action = tuning.style.actionButton;
     final cooldownRing = tuning.style.cooldownRing;
     return ActionButton(
-      label: slot.label,
+      label: resolvedLabel,
       icon: slot.icon,
+      iconWidget: iconWidget,
       onPressed: onPressed,
       tuning: action,
       cooldownRing: cooldownRing,

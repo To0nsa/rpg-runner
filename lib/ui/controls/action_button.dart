@@ -12,6 +12,7 @@ class ActionButton extends StatelessWidget {
     super.key,
     required this.label,
     required this.icon,
+    this.iconWidget,
     required this.onPressed,
     required this.tuning,
     required this.size,
@@ -23,6 +24,7 @@ class ActionButton extends StatelessWidget {
 
   final String label;
   final IconData icon;
+  final Widget? iconWidget;
   final VoidCallback onPressed;
   final ActionButtonTuning tuning;
   final CooldownRingTuning cooldownRing;
@@ -55,6 +57,7 @@ class ActionButton extends StatelessWidget {
           child: ControlButtonContent(
             label: label,
             icon: icon,
+            iconWidget: iconWidget,
             foregroundColor: visual.foregroundColor,
             labelFontSize: tuning.labelFontSize,
             labelGap: tuning.labelGap,

@@ -18,6 +18,7 @@ class DirectionalActionButton extends StatefulWidget {
     super.key,
     required this.label,
     required this.icon,
+    this.iconWidget,
     required this.onAimDir,
     required this.onAimClear,
     required this.onCommit,
@@ -37,6 +38,7 @@ class DirectionalActionButton extends StatefulWidget {
 
   final String label;
   final IconData icon;
+  final Widget? iconWidget;
   final void Function(double x, double y) onAimDir;
   final VoidCallback onAimClear;
   final VoidCallback onCommit;
@@ -106,6 +108,7 @@ class _DirectionalActionButtonState extends State<DirectionalActionButton> {
             child: ControlButtonContent(
               label: widget.label,
               icon: widget.icon,
+              iconWidget: widget.iconWidget,
               foregroundColor: visual.foregroundColor,
               labelFontSize: widget.tuning.labelFontSize,
               labelGap: widget.tuning.labelGap,

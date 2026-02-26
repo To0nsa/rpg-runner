@@ -32,6 +32,8 @@ class MeleeControl extends StatelessWidget {
     required this.cooldownTicksTotal,
     required this.cancelHitboxRect,
     required this.forceCancelSignal,
+    this.label,
+    this.iconWidget,
   });
 
   final ControlsTuning tuning;
@@ -54,17 +56,21 @@ class MeleeControl extends StatelessWidget {
   final int cooldownTicksTotal;
   final ValueListenable<Rect?> cancelHitboxRect;
   final ValueListenable<int> forceCancelSignal;
+  final String? label;
+  final Widget? iconWidget;
 
   @override
   Widget build(BuildContext context) {
     final slot = abilityRadialLayoutSpec.slotSpec(AbilitySlot.primary);
+    final resolvedLabel = label ?? slot.label;
     final action = tuning.style.actionButton;
     final directional = tuning.style.directionalActionButton;
     final cooldownRing = tuning.style.cooldownRing;
     if (inputMode == AbilityInputMode.tap) {
       return ActionButton(
-        label: slot.label,
+        label: resolvedLabel,
         icon: slot.icon,
+        iconWidget: iconWidget,
         onPressed: onPressed,
         tuning: action,
         cooldownRing: cooldownRing,
@@ -76,8 +82,9 @@ class MeleeControl extends StatelessWidget {
     }
     if (inputMode == AbilityInputMode.holdMaintain) {
       return HoldActionButton(
-        label: slot.label,
+        label: resolvedLabel,
         icon: slot.icon,
+        iconWidget: iconWidget,
         onHoldStart: onHoldStart,
         onHoldEnd: onHoldEnd,
         tuning: action,
@@ -90,8 +97,9 @@ class MeleeControl extends StatelessWidget {
     }
     if (inputMode == AbilityInputMode.holdRelease) {
       return HoldActionButton(
-        label: slot.label,
+        label: resolvedLabel,
         icon: slot.icon,
+        iconWidget: iconWidget,
         onHoldStart: onChargeHoldStart,
         onHoldEnd: onChargeHoldEnd,
         onRelease: onCommitted,
@@ -104,8 +112,9 @@ class MeleeControl extends StatelessWidget {
       );
     }
     return DirectionalActionButton(
-      label: slot.label,
+      label: resolvedLabel,
       icon: slot.icon,
+      iconWidget: iconWidget,
       onHoldStart: onChargeHoldStart,
       onHoldEnd: onChargeHoldEnd,
       onAimDir: onAimDir,

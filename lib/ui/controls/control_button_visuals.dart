@@ -85,6 +85,7 @@ class ControlButtonContent extends StatelessWidget {
     super.key,
     required this.label,
     required this.icon,
+    this.iconWidget,
     required this.foregroundColor,
     required this.labelFontSize,
     required this.labelGap,
@@ -92,6 +93,7 @@ class ControlButtonContent extends StatelessWidget {
 
   final String label;
   final IconData icon;
+  final Widget? iconWidget;
   final Color foregroundColor;
   final double labelFontSize;
   final double labelGap;
@@ -99,16 +101,34 @@ class ControlButtonContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: foregroundColor),
-          SizedBox(height: labelGap),
-          Text(
-            label,
-            style: TextStyle(fontSize: labelFontSize, color: foregroundColor),
-          ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final labelBottomOffset = constraints.maxHeight * 0.05 + labelGap;
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              Center(child: iconWidget ?? Icon(icon, color: foregroundColor)),
+              if (label.isNotEmpty)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: labelBottomOffset,
+                  child: IgnorePointer(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: labelFontSize,
+                        color: foregroundColor,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }

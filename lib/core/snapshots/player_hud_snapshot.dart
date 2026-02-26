@@ -4,6 +4,7 @@
 /// (HP bars, cooldowns, etc.) without scanning all entities.
 library;
 
+import '../abilities/ability_def.dart';
 import 'enums.dart';
 
 class PlayerHudSnapshot {
@@ -41,6 +42,12 @@ class PlayerHudSnapshot {
     required this.lastDamageTick,
     required this.collectibles,
     required this.collectibleScore,
+    required this.abilityPrimaryId,
+    required this.abilitySecondaryId,
+    required this.abilityProjectileId,
+    required this.abilityMobilityId,
+    required this.abilitySpellId,
+    required this.abilityJumpId,
   });
 
   /// Current health.
@@ -141,4 +148,22 @@ class PlayerHudSnapshot {
 
   /// Score value earned from collectibles.
   final int collectibleScore;
+
+  /// Equipped primary-slot ability id for current player loadout.
+  final AbilityKey abilityPrimaryId;
+
+  /// Equipped secondary-slot ability id for current player loadout.
+  final AbilityKey abilitySecondaryId;
+
+  /// Equipped projectile-slot ability id for current player loadout.
+  final AbilityKey abilityProjectileId;
+
+  /// Equipped mobility-slot ability id for current player loadout.
+  final AbilityKey abilityMobilityId;
+
+  /// Equipped spell-slot ability id for current player loadout.
+  final AbilityKey abilitySpellId;
+
+  /// Equipped jump-slot ability id for current player loadout.
+  final AbilityKey abilityJumpId;
 }

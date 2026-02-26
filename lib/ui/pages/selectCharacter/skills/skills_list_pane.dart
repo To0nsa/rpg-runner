@@ -2,42 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/abilities/ability_def.dart';
 import '../../../../core/projectiles/projectile_id.dart';
-import '../../../components/ability_placeholder_icon.dart';
 import '../../../components/app_button.dart';
+import '../../../icons/ability_skill_icon.dart';
 import '../../../icons/projectile_icon_frame.dart';
 import '../../../text/ability_text.dart';
+import '../../../theme/ui_skill_icon_theme.dart';
 import '../../../theme/ui_tokens.dart';
 import '../ability/ability_picker_presenter.dart';
-
-const Map<AbilityKey, String> _abilityListIconAssets = <AbilityKey, String>{
-  'eloise.aegis_riposte': 'assets/images/icons/skills-icons/aegis_riposte.png',
-  'eloise.arcane_haste': 'assets/images/icons/skills-icons/arcane_haste.png',
-  'eloise.bloodletter_cleave':
-      'assets/images/icons/skills-icons/bloodletter_cleave.png',
-  'eloise.bloodletter_slash':
-      'assets/images/icons/skills-icons/bloodletter_slash.png',
-  'eloise.concussive_bash':
-      'assets/images/icons/skills-icons/concussive_bash.png',
-  'eloise.concussive_breaker':
-      'assets/images/icons/skills-icons/concussive_breaker.png',
-  'eloise.dash': 'assets/images/icons/skills-icons/dash.png',
-  'eloise.double_jump': 'assets/images/icons/skills-icons/double_jump.png',
-  'eloise.jump': 'assets/images/icons/skills-icons/jump.png',
-  'eloise.mana_infusion': 'assets/images/icons/skills-icons/mana_infusion.png',
-  'eloise.overcharge_shot':
-      'assets/images/icons/skills-icons/overcharge_shot.png',
-  'eloise.quick_shot': 'assets/images/icons/skills-icons/quick_shot.png',
-  'eloise.riposte_guard': 'assets/images/icons/skills-icons/riposte_guard.png',
-  'eloise.roll': 'assets/images/icons/skills-icons/roll.png',
-  'eloise.second_wind': 'assets/images/icons/skills-icons/second_wind.png',
-  'eloise.seeker_bash': 'assets/images/icons/skills-icons/seeker_bash.png',
-  'eloise.seeker_slash': 'assets/images/icons/skills-icons/seeker_slash.png',
-  'eloise.shield_block': 'assets/images/icons/skills-icons/shield_block.png',
-  'eloise.skewer_shot': 'assets/images/icons/skills-icons/skewer_shot.png',
-  'eloise.snap_shot': 'assets/images/icons/skills-icons/snap_shot.png',
-  'eloise.vital_surge': 'assets/images/icons/skills-icons/vital_surge.png',
-};
-const double _abilityListIconSize = 32;
 
 class SkillsListPane extends StatelessWidget {
   const SkillsListPane({
@@ -414,11 +385,7 @@ class _AbilityListTile extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    _AbilityListIcon(
-                      abilityId: abilityId,
-                      selected: selected,
-                      enabled: enabled,
-                    ),
+                    _AbilityListIcon(abilityId: abilityId),
                     SizedBox(width: ui.space.md),
                     Expanded(
                       child: Text(
@@ -448,41 +415,15 @@ class _AbilityListTile extends StatelessWidget {
 }
 
 class _AbilityListIcon extends StatelessWidget {
-  const _AbilityListIcon({
-    required this.abilityId,
-    required this.selected,
-    required this.enabled,
-  });
+  const _AbilityListIcon({required this.abilityId});
 
   final AbilityKey abilityId;
-  final bool selected;
-  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
-    final iconAsset = _abilityListIconAssets[abilityId];
-    if (iconAsset == null) {
-      return AbilityPlaceholderIcon(
-        label: '',
-        size: _abilityListIconSize,
-        emphasis: selected,
-        enabled: enabled,
-      );
-    }
-    return SizedBox(
-      width: _abilityListIconSize,
-      height: _abilityListIconSize,
-      child: Image.asset(
-        iconAsset,
-        fit: BoxFit.contain,
-        filterQuality: FilterQuality.medium,
-        errorBuilder: (_, _, _) => AbilityPlaceholderIcon(
-          label: '',
-          size: _abilityListIconSize,
-          emphasis: selected,
-          enabled: enabled,
-        ),
-      ),
+    return AbilitySkillIcon(
+      abilityId: abilityId,
+      size: context.skillIcons.listIconSize,
     );
   }
 }

@@ -13,6 +13,7 @@ class HoldActionButton extends StatefulWidget {
     super.key,
     required this.label,
     required this.icon,
+    this.iconWidget,
     required this.onHoldStart,
     required this.onHoldEnd,
     this.onRelease,
@@ -26,6 +27,7 @@ class HoldActionButton extends StatefulWidget {
 
   final String label;
   final IconData icon;
+  final Widget? iconWidget;
   final VoidCallback onHoldStart;
   final VoidCallback onHoldEnd;
   final VoidCallback? onRelease;
@@ -69,6 +71,7 @@ class _HoldActionButtonState extends State<HoldActionButton> {
             child: ControlButtonContent(
               label: widget.label,
               icon: widget.icon,
+              iconWidget: widget.iconWidget,
               foregroundColor: visual.foregroundColor,
               labelFontSize: widget.tuning.labelFontSize,
               labelGap: widget.tuning.labelGap,

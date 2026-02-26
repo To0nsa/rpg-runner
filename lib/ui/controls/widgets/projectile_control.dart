@@ -30,6 +30,8 @@ class ProjectileControl extends StatelessWidget {
     required this.cooldownTicksTotal,
     required this.cancelHitboxRect,
     required this.forceCancelSignal,
+    this.label,
+    this.iconWidget,
   });
 
   final ControlsTuning tuning;
@@ -51,17 +53,21 @@ class ProjectileControl extends StatelessWidget {
   final ValueListenable<Rect?> cancelHitboxRect;
 
   final ValueListenable<int> forceCancelSignal;
+  final String? label;
+  final Widget? iconWidget;
 
   @override
   Widget build(BuildContext context) {
     final slot = abilityRadialLayoutSpec.slotSpec(AbilitySlot.projectile);
+    final resolvedLabel = label ?? slot.label;
     final action = tuning.style.actionButton;
     final directional = tuning.style.directionalActionButton;
     final cooldownRing = tuning.style.cooldownRing;
     if (inputMode == AbilityInputMode.tap) {
       return ActionButton(
-        label: slot.label,
+        label: resolvedLabel,
         icon: slot.icon,
+        iconWidget: iconWidget,
         onPressed: onPressed,
         tuning: action,
         cooldownRing: cooldownRing,
@@ -73,8 +79,9 @@ class ProjectileControl extends StatelessWidget {
     }
     if (inputMode == AbilityInputMode.holdRelease) {
       return HoldActionButton(
-        label: slot.label,
+        label: resolvedLabel,
         icon: slot.icon,
+        iconWidget: iconWidget,
         onHoldStart: onHoldStart,
         onHoldEnd: onHoldEnd,
         onRelease: onCommitted,
@@ -87,8 +94,9 @@ class ProjectileControl extends StatelessWidget {
       );
     }
     return DirectionalActionButton(
-      label: slot.label,
+      label: resolvedLabel,
       icon: slot.icon,
+      iconWidget: iconWidget,
       onHoldStart: onHoldStart,
       onHoldEnd: onHoldEnd,
       onAimDir: onAimDir,

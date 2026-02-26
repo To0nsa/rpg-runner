@@ -55,6 +55,10 @@ class _SkillsBarState extends State<SkillsBar> {
       overrideSelectedSource: isProjectileSlot,
     );
     final equippedAbilityId = abilityIdForSlot(loadout, _selectedSlot);
+    final equippedAbilityIdsBySlot = <AbilitySlot, AbilityKey>{
+      for (final slot in AbilitySlot.values)
+        slot: abilityIdForSlot(loadout, slot),
+    };
     final inspectedAbilityId = _resolveInspectedAbilityId(
       candidates,
       equippedAbilityId: equippedAbilityId,
@@ -113,6 +117,7 @@ class _SkillsBarState extends State<SkillsBar> {
                 width: layout.radialWidth,
                 child: SkillsRadialPane(
                   selectedSlot: _selectedSlot,
+                  equippedAbilityIdsBySlot: equippedAbilityIdsBySlot,
                   onSelectSlot: _onSelectSlot,
                 ),
               ),

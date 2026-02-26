@@ -7,16 +7,20 @@ import '../../../controls/action_button.dart';
 import '../../../controls/ability_slot_visual_spec.dart';
 import '../../../controls/controls_tuning.dart';
 import '../../../controls/layout/controls_radial_layout.dart';
-import '../../../theme/ui_tokens.dart';
+import '../../../icons/ability_skill_icon.dart';
+import '../../../theme/ui_action_button_theme.dart';
+import '../../../theme/ui_skill_icon_theme.dart';
 
 class SkillsRadialPane extends StatelessWidget {
   const SkillsRadialPane({
     super.key,
     required this.selectedSlot,
+    required this.equippedAbilityIdsBySlot,
     required this.onSelectSlot,
   });
 
   final AbilitySlot selectedSlot;
+  final Map<AbilitySlot, AbilityKey> equippedAbilityIdsBySlot;
   final ValueChanged<AbilitySlot> onSelectSlot;
 
   @override
@@ -37,6 +41,7 @@ class SkillsRadialPane extends StatelessWidget {
                   top: _selectionActionSlotGeometry.placements[slot]!.buttonTop,
                   child: _ActionSlotButton(
                     slot: slot,
+                    abilityId: equippedAbilityIdsBySlot[slot],
                     selected: slot == selectedSlot,
                     onSelectSlot: onSelectSlot,
                     buttonSize: _selectionActionSlotGeometry
@@ -55,41 +60,54 @@ class SkillsRadialPane extends StatelessWidget {
 class _ActionSlotButton extends StatelessWidget {
   const _ActionSlotButton({
     required this.slot,
+    required this.abilityId,
     required this.selected,
     required this.onSelectSlot,
     required this.buttonSize,
   });
 
   final AbilitySlot slot;
+  final AbilityKey? abilityId;
   final bool selected;
   final ValueChanged<AbilitySlot> onSelectSlot;
   final double buttonSize;
 
   @override
   Widget build(BuildContext context) {
-    final ui = context.ui;
+    final actionButtons = context.actionButtons;
+    final iconSize = context.skillIcons.selectionRadialIconSize;
     final slotVisual = abilityRadialLayoutSpec.slotSpec(slot);
+    final buttonTuning = _actionButtonTuningForSelectionSlot(
+      slot: slot,
+      actionTuning: actionButtons.resolveAction(
+        base: _selectionControlsTuning.style.actionButton,
+        surface: UiActionButtonSurface.selection,
+      ),
+      directionalTuning: actionButtons.resolveDirectional(
+        base: _selectionControlsTuning.style.directionalActionButton,
+        surface: UiActionButtonSurface.selection,
+      ),
+    );
     // Slightly oversize the ring so selection emphasis stays outside the icon.
-    final borderWidth = buttonSize * 1.08;
+    final borderWidth =
+        buttonSize * actionButtons.selectionRing.borderWidthScale;
     return DecoratedBox(
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
-          color: selected ? ui.colors.accentStrong : Colors.transparent,
+          color: selected
+              ? actionButtons.selectionRing.selectedBorderColor
+              : Colors.transparent,
           width: borderWidth,
         ),
       ),
       child: Center(
         child: ActionButton(
-          label: slotVisual.label,
+          label: slotVisual.label.toUpperCase(),
           icon: slotVisual.icon,
+          iconWidget: AbilitySkillIcon(abilityId: abilityId, size: iconSize),
           onPressed: () => onSelectSlot(slot),
-          tuning: _actionButtonTuningForSelectionSlot(
-            tuning: _selectionControlsTuning,
-            slot: slot,
-            backgroundColor: ui.colors.textPrimary,
-            foregroundColor: ui.colors.background,
-          ),
+          tuning: buttonTuning,
           cooldownRing: _selectionControlsTuning.style.cooldownRing,
           size: buttonSize,
         ),
@@ -211,44 +229,19 @@ _ActionSlotGeometry _buildActionSlotsGeometry({
 /// Directional slots reuse directional sizing metrics but are rendered with the
 /// same high-contrast palette as regular selection buttons.
 ActionButtonTuning _actionButtonTuningForSelectionSlot({
-  required ControlsTuning tuning,
   required AbilitySlot slot,
-  required Color backgroundColor,
-  required Color foregroundColor,
+  required ActionButtonTuning actionTuning,
+  required DirectionalActionButtonTuning directionalTuning,
 }) {
   final family = abilityRadialLayoutSpec.slotSpec(slot).family;
   if (family == AbilityRadialSlotFamily.directional) {
-    final directional = tuning.style.directionalActionButton;
-    return _highContrastSelectionActionButtonTuning(
-      ActionButtonTuning(
-        size: directional.size,
-        backgroundColor: directional.backgroundColor,
-        foregroundColor: directional.foregroundColor,
-        labelFontSize: directional.labelFontSize,
-        labelGap: directional.labelGap,
-      ),
-      backgroundColor: backgroundColor,
-      foregroundColor: foregroundColor,
+    return ActionButtonTuning(
+      size: directionalTuning.size,
+      backgroundColor: directionalTuning.backgroundColor,
+      foregroundColor: directionalTuning.foregroundColor,
+      labelFontSize: directionalTuning.labelFontSize,
+      labelGap: directionalTuning.labelGap,
     );
   }
-  return _highContrastSelectionActionButtonTuning(
-    tuning.style.actionButton,
-    backgroundColor: backgroundColor,
-    foregroundColor: foregroundColor,
-  );
-}
-
-/// Forces high-contrast icon buttons for menu readability.
-ActionButtonTuning _highContrastSelectionActionButtonTuning(
-  ActionButtonTuning base, {
-  required Color backgroundColor,
-  required Color foregroundColor,
-}) {
-  return ActionButtonTuning(
-    size: base.size,
-    backgroundColor: backgroundColor,
-    foregroundColor: foregroundColor,
-    labelFontSize: base.labelFontSize,
-    labelGap: base.labelGap,
-  );
+  return actionTuning;
 }

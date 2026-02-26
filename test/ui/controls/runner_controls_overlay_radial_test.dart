@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/game/input/aim_preview.dart';
 import 'package:rpg_runner/ui/controls/cooldown_ring.dart';
@@ -22,7 +23,7 @@ void main() {
       );
 
       final bonus = _positionedFor(tester, find.byType(SpellControl));
-      final shield = _positionedFor(tester, find.text('Shield'));
+      final shield = _positionedFor(tester, find.text('SHIELD'));
 
       expect(bonus.right, closeTo(shield.right!, 0.001));
       expect(
@@ -285,7 +286,13 @@ Widget _testHost({required Widget child}) {
 Positioned _positionedFor(WidgetTester tester, Finder childFinder) {
   final positionedFinder = find.ancestor(
     of: childFinder,
-    matching: find.byType(Positioned),
+    matching: find.byWidgetPredicate((widget) {
+      if (widget is! Positioned) return false;
+      return widget.left == null &&
+          widget.top == null &&
+          widget.right != null &&
+          widget.bottom != null;
+    }),
   );
   expect(positionedFinder, findsOneWidget);
   return tester.widget<Positioned>(positionedFinder);
@@ -367,6 +374,14 @@ class _OverlayHarness {
       spellCooldownTicksLeft: 0,
       spellCooldownTicksTotal: 0,
       forceAimCancelSignal: forceCancelSignal,
+      equippedAbilityIdsBySlot: const <AbilitySlot, AbilityKey>{
+        AbilitySlot.primary: 'eloise.bloodletter_slash',
+        AbilitySlot.secondary: 'eloise.riposte_guard',
+        AbilitySlot.projectile: 'eloise.quick_shot',
+        AbilitySlot.mobility: 'eloise.dash',
+        AbilitySlot.spell: 'eloise.arcane_haste',
+        AbilitySlot.jump: 'eloise.jump',
+      },
     );
   }
 

@@ -9,7 +9,10 @@ import 'ability_slot_visual_spec.dart';
 import 'controls_tuning.dart';
 import 'directional_action_button.dart';
 import 'hold_action_button.dart';
+import '../icons/ability_skill_icon.dart';
 import 'layout/controls_radial_layout.dart';
+import '../theme/ui_action_button_theme.dart';
+import '../theme/ui_skill_icon_theme.dart';
 import 'widgets/spell_control.dart';
 import 'widgets/melee_control.dart';
 import 'widgets/movement_control.dart';
@@ -50,6 +53,7 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.onMeleeHoldEnd,
     required this.onMeleeChargeHoldStart,
     required this.onMeleeChargeHoldEnd,
+    required this.equippedAbilityIdsBySlot,
     required this.meleeAimPreview,
     required this.aimCancelHitboxRect,
     required this.meleeAffordable,
@@ -107,6 +111,7 @@ class RunnerControlsOverlay extends StatelessWidget {
   final VoidCallback onMeleeHoldEnd;
   final VoidCallback onMeleeChargeHoldStart;
   final VoidCallback onMeleeChargeHoldEnd;
+  final Map<AbilitySlot, AbilityKey> equippedAbilityIdsBySlot;
   final AimPreviewModel meleeAimPreview;
   final ValueListenable<Rect?> aimCancelHitboxRect;
   final bool meleeAffordable;
@@ -131,18 +136,24 @@ class RunnerControlsOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = tuning.style;
+    final themedTuning = _resolveRunControlsTuning(
+      base: tuning,
+      actionButtons: context.actionButtons,
+    );
+    final style = themedTuning.style;
     final action = style.actionButton;
+    final directional = style.directionalActionButton;
     final cooldownRing = style.cooldownRing;
+    final runAbilityIconSize = context.skillIcons.runRadialIconSize;
     final secondarySlot = abilityRadialLayoutSpec.slotSpec(
       AbilitySlot.secondary,
     );
     final mobilitySlot = abilityRadialLayoutSpec.slotSpec(AbilitySlot.mobility);
     final jumpSlot = abilityRadialLayoutSpec.slotSpec(AbilitySlot.jump);
     final layout = ControlsRadialLayoutSolver.solve(
-      layout: tuning.layout,
+      layout: themedTuning.layout,
       action: action,
-      directional: style.directionalActionButton,
+      directional: directional,
     );
     ControlsAnchor anchorFor(AbilitySlot slot) =>
         abilityRadialLayoutSpec.anchorFor(layout: layout, slot: slot);
@@ -154,22 +165,30 @@ class RunnerControlsOverlay extends StatelessWidget {
       slot: slot,
       familyOverride: familyOverride,
     );
+    String labelFor(AbilitySlot slot) =>
+        abilityRadialLayoutSpec.slotSpec(slot).label.toUpperCase();
+    Widget iconForSlot(AbilitySlot slot) => AbilitySkillIcon(
+      abilityId: equippedAbilityIdsBySlot[slot],
+      size: runAbilityIconSize,
+    );
 
     return Stack(
       children: [
         Positioned(
-          left: tuning.layout.edgePadding,
-          bottom: tuning.layout.bottomEdgePadding,
-          child: MovementControl(tuning: tuning, onMoveAxis: onMoveAxis),
+          left: themedTuning.layout.edgePadding,
+          bottom: themedTuning.layout.bottomEdgePadding,
+          child: MovementControl(tuning: themedTuning, onMoveAxis: onMoveAxis),
         ),
         Positioned(
           right: anchorFor(AbilitySlot.projectile).right,
           bottom: anchorFor(AbilitySlot.projectile).bottom,
           child: ProjectileControl(
-            tuning: tuning,
+            tuning: themedTuning,
             inputMode: projectileInputMode,
             size: sizeFor(AbilitySlot.projectile),
             deadzoneRadius: layout.directionalDeadzoneRadius,
+            label: labelFor(AbilitySlot.projectile),
+            iconWidget: iconForSlot(AbilitySlot.projectile),
             onPressed: onProjectilePressed,
             onHoldStart: onProjectileHoldStart,
             onHoldEnd: onProjectileHoldEnd,
@@ -188,8 +207,10 @@ class RunnerControlsOverlay extends StatelessWidget {
           right: anchorFor(AbilitySlot.spell).right,
           bottom: anchorFor(AbilitySlot.spell).bottom,
           child: SpellControl(
-            tuning: tuning,
+            tuning: themedTuning,
             size: sizeFor(AbilitySlot.spell),
+            label: labelFor(AbilitySlot.spell),
+            iconWidget: iconForSlot(AbilitySlot.spell),
             onPressed: onSpellPressed,
             affordable: spellAffordable,
             cooldownTicksLeft: spellCooldownTicksLeft,
@@ -201,8 +222,9 @@ class RunnerControlsOverlay extends StatelessWidget {
           bottom: anchorFor(AbilitySlot.secondary).bottom,
           child: secondaryInputMode == AbilityInputMode.holdMaintain
               ? HoldActionButton(
-                  label: secondarySlot.label,
+                  label: labelFor(AbilitySlot.secondary),
                   icon: secondarySlot.icon,
+                  iconWidget: iconForSlot(AbilitySlot.secondary),
                   onHoldStart: onSecondaryHoldStart,
                   onHoldEnd: onSecondaryHoldEnd,
                   tuning: action,
@@ -214,8 +236,9 @@ class RunnerControlsOverlay extends StatelessWidget {
                 )
               : secondaryInputMode == AbilityInputMode.holdRelease
               ? HoldActionButton(
-                  label: secondarySlot.label,
+                  label: labelFor(AbilitySlot.secondary),
                   icon: secondarySlot.icon,
+                  iconWidget: iconForSlot(AbilitySlot.secondary),
                   onHoldStart: onSecondaryHoldStart,
                   onHoldEnd: onSecondaryHoldEnd,
                   onRelease: onSecondaryCommitted,
@@ -228,15 +251,16 @@ class RunnerControlsOverlay extends StatelessWidget {
                 )
               : secondaryInputMode == AbilityInputMode.holdAimRelease
               ? DirectionalActionButton(
-                  label: secondarySlot.label,
+                  label: labelFor(AbilitySlot.secondary),
                   icon: secondarySlot.icon,
+                  iconWidget: iconForSlot(AbilitySlot.secondary),
                   onHoldStart: onSecondaryHoldStart,
                   onHoldEnd: onSecondaryHoldEnd,
                   onAimDir: onAimDir,
                   onAimClear: onAimClear,
                   onCommit: onSecondaryCommitted,
                   projectileAimPreview: meleeAimPreview,
-                  tuning: style.directionalActionButton,
+                  tuning: directional,
                   cooldownRing: cooldownRing,
                   cancelHitboxRect: aimCancelHitboxRect,
                   affordable: secondaryAffordable,
@@ -250,8 +274,9 @@ class RunnerControlsOverlay extends StatelessWidget {
                   forceCancelSignal: forceAimCancelSignal,
                 )
               : ActionButton(
-                  label: secondarySlot.label,
+                  label: labelFor(AbilitySlot.secondary),
                   icon: secondarySlot.icon,
+                  iconWidget: iconForSlot(AbilitySlot.secondary),
                   onPressed: onSecondaryPressed,
                   tuning: action,
                   cooldownRing: cooldownRing,
@@ -265,10 +290,12 @@ class RunnerControlsOverlay extends StatelessWidget {
           right: anchorFor(AbilitySlot.primary).right,
           bottom: anchorFor(AbilitySlot.primary).bottom,
           child: MeleeControl(
-            tuning: tuning,
+            tuning: themedTuning,
             inputMode: meleeInputMode,
             size: sizeFor(AbilitySlot.primary),
             deadzoneRadius: layout.directionalDeadzoneRadius,
+            label: labelFor(AbilitySlot.primary),
+            iconWidget: iconForSlot(AbilitySlot.primary),
             onPressed: onMeleePressed,
             onHoldStart: onMeleeHoldStart,
             onHoldEnd: onMeleeHoldEnd,
@@ -290,8 +317,9 @@ class RunnerControlsOverlay extends StatelessWidget {
           bottom: anchorFor(AbilitySlot.mobility).bottom,
           child: mobilityInputMode == AbilityInputMode.tap
               ? ActionButton(
-                  label: mobilitySlot.label,
+                  label: labelFor(AbilitySlot.mobility),
                   icon: mobilitySlot.icon,
+                  iconWidget: iconForSlot(AbilitySlot.mobility),
                   onPressed: onMobilityPressed,
                   tuning: action,
                   cooldownRing: cooldownRing,
@@ -302,8 +330,9 @@ class RunnerControlsOverlay extends StatelessWidget {
                 )
               : mobilityInputMode == AbilityInputMode.holdMaintain
               ? HoldActionButton(
-                  label: mobilitySlot.label,
+                  label: labelFor(AbilitySlot.mobility),
                   icon: mobilitySlot.icon,
+                  iconWidget: iconForSlot(AbilitySlot.mobility),
                   onHoldStart: onMobilityHoldStart,
                   onHoldEnd: onMobilityHoldEnd,
                   tuning: action,
@@ -315,8 +344,9 @@ class RunnerControlsOverlay extends StatelessWidget {
                 )
               : mobilityInputMode == AbilityInputMode.holdRelease
               ? HoldActionButton(
-                  label: mobilitySlot.label,
+                  label: labelFor(AbilitySlot.mobility),
                   icon: mobilitySlot.icon,
+                  iconWidget: iconForSlot(AbilitySlot.mobility),
                   onHoldStart: onMobilityHoldStart,
                   onHoldEnd: onMobilityHoldEnd,
                   onRelease: onMobilityCommitted,
@@ -328,15 +358,16 @@ class RunnerControlsOverlay extends StatelessWidget {
                   size: sizeFor(AbilitySlot.mobility),
                 )
               : DirectionalActionButton(
-                  label: mobilitySlot.label,
+                  label: labelFor(AbilitySlot.mobility),
                   icon: mobilitySlot.icon,
+                  iconWidget: iconForSlot(AbilitySlot.mobility),
                   onHoldStart: onMobilityHoldStart,
                   onHoldEnd: onMobilityHoldEnd,
                   onAimDir: onAimDir,
                   onAimClear: onAimClear,
                   onCommit: onMobilityCommitted,
                   projectileAimPreview: meleeAimPreview,
-                  tuning: style.directionalActionButton,
+                  tuning: directional,
                   cooldownRing: cooldownRing,
                   cancelHitboxRect: aimCancelHitboxRect,
                   affordable: mobilityAffordable,
@@ -354,8 +385,9 @@ class RunnerControlsOverlay extends StatelessWidget {
           right: anchorFor(AbilitySlot.jump).right,
           bottom: anchorFor(AbilitySlot.jump).bottom,
           child: ActionButton(
-            label: jumpSlot.label,
+            label: labelFor(AbilitySlot.jump),
             icon: jumpSlot.icon,
+            iconWidget: iconForSlot(AbilitySlot.jump),
             onPressed: onJumpPressed,
             tuning: action,
             cooldownRing: cooldownRing,
@@ -376,6 +408,29 @@ class RunnerControlsOverlay extends StatelessWidget {
       ],
     );
   }
+}
+
+ControlsTuning _resolveRunControlsTuning({
+  required ControlsTuning base,
+  required UiActionButtonTheme actionButtons,
+}) {
+  final baseStyle = base.style;
+  return ControlsTuning(
+    layout: base.layout,
+    moveButtons: base.moveButtons,
+    style: ControlsStyleTuning(
+      actionButton: actionButtons.resolveAction(
+        base: baseStyle.actionButton,
+        surface: UiActionButtonSurface.run,
+      ),
+      directionalActionButton: actionButtons.resolveDirectional(
+        base: baseStyle.directionalActionButton,
+        surface: UiActionButtonSurface.run,
+      ),
+      cooldownRing: baseStyle.cooldownRing,
+      chargeBar: baseStyle.chargeBar,
+    ),
+  );
 }
 
 class _ChargeBar extends StatelessWidget {
