@@ -36,8 +36,18 @@ class UiActionButtonTheme extends ThemeExtension<UiActionButtonTheme> {
         labelGap: labelGap,
       ),
       selectionRing: const UiActionButtonSelectionRing(
-        selectedBorderColor: UiBrandPalette.wornGoldInsetBorder,
-        borderWidthScale: 1.08,
+        outerScale: 1.08,
+        gradientColors: <Color>[
+          UiBrandPalette.wornGoldInsetBorder,
+          UiBrandPalette.crimsonDanger,
+          UiBrandPalette.wornGoldBorder,
+          UiBrandPalette.wornGoldInsetBorder,
+        ],
+        gradientStops: <double>[0.0, 0.42, 0.78, 1.0],
+        glowColor: UiBrandPalette.crimsonDanger,
+        glowAlpha: 1.0,
+        glowBlurRadius: 14,
+        glowSpreadRadius: 2,
       ),
     );
   }
@@ -118,12 +128,22 @@ class UiActionButtonVisual {
 @immutable
 class UiActionButtonSelectionRing {
   const UiActionButtonSelectionRing({
-    required this.selectedBorderColor,
-    required this.borderWidthScale,
+    required this.outerScale,
+    required this.gradientColors,
+    required this.gradientStops,
+    required this.glowColor,
+    required this.glowAlpha,
+    required this.glowBlurRadius,
+    required this.glowSpreadRadius,
   });
 
-  final Color selectedBorderColor;
-  final double borderWidthScale;
+  final double outerScale;
+  final List<Color> gradientColors;
+  final List<double> gradientStops;
+  final Color glowColor;
+  final double glowAlpha;
+  final double glowBlurRadius;
+  final double glowSpreadRadius;
 }
 
 extension UiActionButtonThemeContext on BuildContext {

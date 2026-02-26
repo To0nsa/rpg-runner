@@ -88,29 +88,54 @@ class _ActionSlotButton extends StatelessWidget {
         surface: UiActionButtonSurface.selection,
       ),
     );
-    // Slightly oversize the ring so selection emphasis stays outside the icon.
-    final borderWidth =
-        buttonSize * actionButtons.selectionRing.borderWidthScale;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: selected
-              ? actionButtons.selectionRing.selectedBorderColor
-              : Colors.transparent,
-          width: borderWidth,
-        ),
-      ),
-      child: Center(
-        child: ActionButton(
-          label: slotVisual.label.toUpperCase(),
-          icon: slotVisual.icon,
-          iconWidget: AbilitySkillIcon(abilityId: abilityId, size: iconSize),
-          onPressed: () => onSelectSlot(slot),
-          tuning: buttonTuning,
-          cooldownRing: _selectionControlsTuning.style.cooldownRing,
-          size: buttonSize,
-        ),
+    final button = ActionButton(
+      label: slotVisual.label.toUpperCase(),
+      icon: slotVisual.icon,
+      iconWidget: AbilitySkillIcon(abilityId: abilityId, size: iconSize),
+      onPressed: () => onSelectSlot(slot),
+      tuning: buttonTuning,
+      cooldownRing: _selectionControlsTuning.style.cooldownRing,
+      size: buttonSize,
+    );
+
+    if (!selected) return button;
+
+    final ring = actionButtons.selectionRing;
+    final outerSize = buttonSize * ring.outerScale;
+    final ringOffset = (outerSize - buttonSize) / 2;
+    return SizedBox(
+      width: buttonSize,
+      height: buttonSize,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            left: -ringOffset,
+            top: -ringOffset,
+            width: outerSize,
+            height: outerSize,
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: SweepGradient(
+                    colors: ring.gradientColors,
+                    stops: ring.gradientStops,
+                    transform: const GradientRotation(-math.pi / 2),
+                  ),
+                  boxShadow: <BoxShadow>[
+                    BoxShadow(
+                      color: ring.glowColor.withValues(alpha: ring.glowAlpha),
+                      blurRadius: ring.glowBlurRadius,
+                      spreadRadius: ring.glowSpreadRadius,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned.fill(child: button),
+        ],
       ),
     );
   }
