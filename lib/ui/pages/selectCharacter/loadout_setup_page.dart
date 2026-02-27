@@ -44,7 +44,6 @@ class _LoadoutSetupPageState extends State<LoadoutSetupPage> {
   Widget build(BuildContext context) {
     final ui = context.ui;
     final selectedDef = _loadoutSetupUiCharacters.first;
-    final segmentedRadius = BorderRadius.circular(ui.radii.md);
 
     return DefaultTabController(
       length: 2,
@@ -52,52 +51,33 @@ class _LoadoutSetupPageState extends State<LoadoutSetupPage> {
       child: MenuScaffold(
         appBarTitle: SizedBox(
           height: 44,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: ui.colors.surface,
-              borderRadius: segmentedRadius,
-              border: Border.all(
-                color: ui.colors.outlineStrong,
-                width: ui.sizes.borderWidth / 2,
-              ),
+          child: TabBar(
+            dividerColor: ui.colors.outline.withValues(alpha: 0.35),
+            indicatorColor: Colors.transparent,
+            labelColor: ui.colors.accentStrong,
+            unselectedLabelColor: ui.colors.textPrimary.withValues(alpha: 0.5),
+            labelStyle: ui.text.label.copyWith(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
             ),
-            child: ClipRRect(
-              borderRadius: segmentedRadius,
-              child: TabBar(
-                dividerColor: Colors.transparent,
-                indicatorSize: TabBarIndicatorSize.tab,
-                indicatorPadding: EdgeInsets.all(ui.space.xxs),
-                indicator: BoxDecoration(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(ui.radii.sm),
-                ),
-                splashBorderRadius: segmentedRadius,
-                labelColor: ui.colors.accentStrong,
-                unselectedLabelColor: ui.colors.background,
-                labelStyle: ui.text.label.copyWith(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
-                unselectedLabelStyle: ui.text.label.copyWith(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
-                tabs: const [
-                  Tab(
-                    child: _LoadoutTopTabLabel(
-                      icon: Icons.shield_outlined,
-                      text: 'Gear',
-                    ),
-                  ),
-                  Tab(
-                    child: _LoadoutTopTabLabel(
-                      icon: Icons.auto_awesome_outlined,
-                      text: 'Skills',
-                    ),
-                  ),
-                ],
-              ),
+            unselectedLabelStyle: ui.text.label.copyWith(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
             ),
+            tabs: const [
+              Tab(
+                child: _LoadoutTopTabLabel(
+                  icon: Icons.shield_outlined,
+                  text: 'Gear',
+                ),
+              ),
+              Tab(
+                child: _LoadoutTopTabLabel(
+                  icon: Icons.auto_awesome_outlined,
+                  text: 'Skills',
+                ),
+              ),
+            ],
           ),
         ),
         centerAppBarTitle: true,
