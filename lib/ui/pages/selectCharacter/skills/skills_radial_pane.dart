@@ -57,7 +57,7 @@ class SkillsRadialPane extends StatelessWidget {
   }
 }
 
-class _ActionSlotButton extends StatelessWidget {
+class _ActionSlotButton extends StatefulWidget {
   const _ActionSlotButton({
     required this.slot,
     required this.abilityId,
@@ -73,12 +73,116 @@ class _ActionSlotButton extends StatelessWidget {
   final double buttonSize;
 
   @override
+  State<_ActionSlotButton> createState() => _ActionSlotButtonState();
+}
+
+class _ActionSlotButtonState extends State<_ActionSlotButton> {
+  final LayerLink _buttonLayerLink = LayerLink();
+  OverlayEntry? _selectionRingOverlayEntry;
+  bool _overlaySyncScheduled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduleOverlaySync();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ActionSlotButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!widget.selected) {
+      _removeSelectionRingOverlay();
+      return;
+    }
+    if (!oldWidget.selected || oldWidget.buttonSize != widget.buttonSize) {
+      _scheduleOverlaySync();
+      return;
+    }
+    _selectionRingOverlayEntry?.markNeedsBuild();
+  }
+
+  @override
+  void dispose() {
+    _removeSelectionRingOverlay();
+    super.dispose();
+  }
+
+  void _scheduleOverlaySync() {
+    if (_overlaySyncScheduled) return;
+    _overlaySyncScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _overlaySyncScheduled = false;
+      if (!mounted) return;
+      _syncSelectionRingOverlay();
+    });
+  }
+
+  void _syncSelectionRingOverlay() {
+    if (!widget.selected) {
+      _removeSelectionRingOverlay();
+      return;
+    }
+    if (_selectionRingOverlayEntry != null) {
+      _selectionRingOverlayEntry!.markNeedsBuild();
+      return;
+    }
+    final overlay = Overlay.of(context, rootOverlay: true);
+    // The ring is painted in the root overlay so it can extend into system
+    // safe insets while the tap target remains safely inside page content.
+    final entry = OverlayEntry(
+      builder: (context) => IgnorePointer(
+        child: CompositedTransformFollower(
+          link: _buttonLayerLink,
+          showWhenUnlinked: false,
+          offset: Offset(-_ringOffset, -_ringOffset),
+          child: SizedBox(
+            width: _outerRingSize,
+            height: _outerRingSize,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: SweepGradient(
+                  colors: _ring.gradientColors,
+                  stops: _ring.gradientStops,
+                  transform: const GradientRotation(-math.pi / 2),
+                ),
+                boxShadow: <BoxShadow>[
+                  BoxShadow(
+                    color: _ring.glowColor.withValues(alpha: _ring.glowAlpha),
+                    blurRadius: _ring.glowBlurRadius,
+                    spreadRadius: _ring.glowSpreadRadius,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    _selectionRingOverlayEntry = entry;
+    overlay.insert(entry);
+  }
+
+  void _removeSelectionRingOverlay() {
+    final entry = _selectionRingOverlayEntry;
+    if (entry == null) return;
+    entry.remove();
+    _selectionRingOverlayEntry = null;
+  }
+
+  UiActionButtonSelectionRing get _ring => context.actionButtons.selectionRing;
+
+  double get _outerRingSize => widget.buttonSize * _ring.outerScale;
+
+  double get _ringOffset => (_outerRingSize - widget.buttonSize) / 2;
+
+  @override
   Widget build(BuildContext context) {
     final actionButtons = context.actionButtons;
     final iconSize = context.skillIcons.selectionRadialIconSize;
-    final slotVisual = abilityRadialLayoutSpec.slotSpec(slot);
+    final slotVisual = abilityRadialLayoutSpec.slotSpec(widget.slot);
     final buttonTuning = _actionButtonTuningForSelectionSlot(
-      slot: slot,
+      slot: widget.slot,
       actionTuning: actionButtons.resolveAction(
         base: _selectionControlsTuning.style.actionButton,
         surface: UiActionButtonSurface.selection,
@@ -91,51 +195,19 @@ class _ActionSlotButton extends StatelessWidget {
     final button = ActionButton(
       label: slotVisual.label.toUpperCase(),
       icon: slotVisual.icon,
-      iconWidget: AbilitySkillIcon(abilityId: abilityId, size: iconSize),
-      onPressed: () => onSelectSlot(slot),
+      iconWidget: AbilitySkillIcon(abilityId: widget.abilityId, size: iconSize),
+      onPressed: () => widget.onSelectSlot(widget.slot),
       tuning: buttonTuning,
       cooldownRing: _selectionControlsTuning.style.cooldownRing,
-      size: buttonSize,
+      size: widget.buttonSize,
     );
 
-    if (!selected) return button;
-
-    final ring = actionButtons.selectionRing;
-    final outerSize = buttonSize * ring.outerScale;
-    final ringOffset = (outerSize - buttonSize) / 2;
-    return SizedBox(
-      width: buttonSize,
-      height: buttonSize,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned(
-            left: -ringOffset,
-            top: -ringOffset,
-            width: outerSize,
-            height: outerSize,
-            child: IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: SweepGradient(
-                    colors: ring.gradientColors,
-                    stops: ring.gradientStops,
-                    transform: const GradientRotation(-math.pi / 2),
-                  ),
-                  boxShadow: <BoxShadow>[
-                    BoxShadow(
-                      color: ring.glowColor.withValues(alpha: ring.glowAlpha),
-                      blurRadius: ring.glowBlurRadius,
-                      spreadRadius: ring.glowSpreadRadius,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Positioned.fill(child: button),
-        ],
+    return CompositedTransformTarget(
+      link: _buttonLayerLink,
+      child: SizedBox(
+        width: widget.buttonSize,
+        height: widget.buttonSize,
+        child: button,
       ),
     );
   }
