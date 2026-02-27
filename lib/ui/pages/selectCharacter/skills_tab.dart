@@ -81,7 +81,7 @@ class _SkillsBarState extends State<SkillsBar> {
           );
 
     return Padding(
-      padding: EdgeInsets.only(left: ui.space.xxs, top: ui.space.xxs),
+      padding: EdgeInsets.only(left: ui.space.xxs),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final layout = _skillsLayoutForWidth(constraints.maxWidth);

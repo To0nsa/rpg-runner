@@ -26,7 +26,8 @@ class _AbilityDetailsPane extends StatelessWidget {
       decoration: BoxDecoration(
         color: ui.colors.cardBackground,
         borderRadius: BorderRadius.circular(ui.radii.md),
-        border: Border.all(color: ui.colors.outline.withValues(alpha: 0.25)),
+        border: Border.all(color: ui.colors.outline.withValues(alpha: 0.4)),
+        boxShadow: ui.shadows.card,
       ),
       padding: EdgeInsets.all(ui.space.sm),
       child: Column(
@@ -157,10 +158,8 @@ class _DetailsMetricLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
-    final labelStyle = ui.text.body.copyWith(
-      color: ui.colors.textMuted,
-      fontWeight: FontWeight.w600,
-    );
+    // Match gear compare rows: regular muted labels + emphasized values.
+    final labelStyle = ui.text.body.copyWith(color: ui.colors.textMuted);
     final valueStyle = ui.text.body.copyWith(
       color: ui.colors.valueHighlight,
       fontWeight: FontWeight.w600,

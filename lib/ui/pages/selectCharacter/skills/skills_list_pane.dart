@@ -33,7 +33,8 @@ class SkillsListPane extends StatelessWidget {
       decoration: BoxDecoration(
         color: ui.colors.cardBackground,
         borderRadius: BorderRadius.circular(ui.radii.md),
-        border: Border.all(color: ui.colors.outline.withValues(alpha: 0.25)),
+        border: Border.all(color: ui.colors.outline.withValues(alpha: 0.4)),
+        boxShadow: ui.shadows.card,
       ),
       padding: EdgeInsets.all(ui.space.xs),
       child: Column(

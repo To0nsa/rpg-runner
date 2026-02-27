@@ -288,19 +288,10 @@ class _GearSlotSelectionDivider extends StatelessWidget {
           final clampedY = targetY
               .clamp(0.0, math.max(0.0, maxHeight - markerHeight))
               .toDouble();
-          final markerWidth = (width * 0.35).clamp(3.0, 6.0).toDouble();
+          final markerWidth = (width * 0.24).clamp(2.0, 4.0).toDouble();
 
           return Stack(
             children: [
-              Positioned.fill(
-                child: VerticalDivider(
-                  width: ui.space.xxs,
-                  thickness: ui.sizes.borderWidth,
-                  color: ui.colors.outline,
-                  indent: ui.space.xxs,
-                  endIndent: ui.space.xxs,
-                ),
-              ),
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 180),
                 curve: Curves.easeOutCubic,
