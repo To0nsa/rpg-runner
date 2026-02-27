@@ -36,19 +36,18 @@ Restore effects are continuous over duration (not instant burst).
 
 `cleanse` is authored with `canCommitWhileStunned: true` so it can be used to break stun.
 
-## Spellbook Grant Gating
+## Spell List Ownership
 
-Spell-slot abilities are spellbook-granted and validated by loadout normalization.
+Spell-slot abilities are owned per character via Spell List and validated by
+loadout normalization.
 
-| Spellbook | Granted spell-slot abilities |
-|---|---|
-| `basicSpellBook` | `eloise.arcane_haste` |
-| `solidSpellBook` | `eloise.arcane_haste`, `eloise.focus`, `eloise.arcane_ward`, `eloise.cleanse`, `eloise.vital_surge`, `eloise.mana_infusion`, `eloise.second_wind` |
-| `epicSpellBook` | `eloise.arcane_haste`, `eloise.focus`, `eloise.arcane_ward`, `eloise.cleanse`, `eloise.vital_surge`, `eloise.mana_infusion`, `eloise.second_wind` |
+- Eloise starter Spell List is defined in character catalog fields and currently
+  includes all authored Eloise spell-slot abilities in this document.
 
-## Projectile Spell Grants (Related)
+## Projectile Spell Selection (Related)
 
-Projectile-slot spell options also come from the equipped spellbook:
+Projectile-slot spell options also come from Spell List ownership:
 
-- `basicSpellBook`: `fireBolt`, `acidBolt`, `darkBolt`, `earthBolt`, `holyBolt`, `waterBolt`
-- `solidSpellBook`/`epicSpellBook`: all projectile spells (`iceBolt`, `fireBolt`, `acidBolt`, `darkBolt`, `earthBolt`, `holyBolt`, `waterBolt`, `thunderBolt`)
+- Eloise starter Spell List is defined in character catalog fields and currently
+  includes all authored spell projectile IDs.
+- Any learned spell projectile can be selected regardless of equipped spellbook.

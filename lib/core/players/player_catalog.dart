@@ -45,10 +45,12 @@ class PlayerCatalog {
     required this.projectileId,
     required this.spellBookId,
     required this.projectileSlotSpellId,
+    this.startingProjectileSpellIds = const <ProjectileId>{},
     required this.abilityPrimaryId,
     required this.abilitySecondaryId,
     required this.abilityProjectileId,
     required this.abilitySpellId,
+    this.startingSpellAbilityIds = const <AbilityKey>{},
     required this.abilityMobilityId,
     required this.abilityJumpId,
     required this.facing,
@@ -115,11 +117,18 @@ class PlayerCatalog {
   /// Optional spell selection used by projectile-slot projectile abilities.
   final ProjectileId? projectileSlotSpellId;
 
+  /// Initial learned projectile spells for Spell List seeding.
+  final Set<ProjectileId> startingProjectileSpellIds;
+
   /// Default equipped ability IDs at spawn time.
   final AbilityKey abilityPrimaryId;
   final AbilityKey abilitySecondaryId;
   final AbilityKey abilityProjectileId;
   final AbilityKey abilitySpellId;
+
+  /// Initial learned spell-slot abilities for Spell List seeding.
+  final Set<AbilityKey> startingSpellAbilityIds;
+
   final AbilityKey abilityMobilityId;
   final AbilityKey abilityJumpId;
 

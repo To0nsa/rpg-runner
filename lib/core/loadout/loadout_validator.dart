@@ -255,7 +255,6 @@ class LoadoutValidator {
       issues: issues,
       slot: slot,
       fallbackProjectile: projectile,
-      spellBook: spellBook,
       projectileSlotSpellId: projectileSlotSpellId,
     );
 
@@ -308,28 +307,12 @@ class LoadoutValidator {
       }
     }
 
-    // 4. Spellbook grant gating for spell-slot self-spells.
-    if (slot == AbilitySlot.spell &&
-        ability.payloadSource == AbilityPayloadSource.spellBook &&
-        spellBook != null &&
-        !spellBook.containsSpellAbility(ability.id)) {
-      issues.add(
-        LoadoutIssue(
-          slot: slot,
-          kind: IssueKind.catalogMissing,
-          abilityId: ability.id,
-          weaponId: spellBook.id.toString(),
-          message: 'Selected spell is not granted by the spellbook.',
-        ),
-      );
-    }
   }
 
   ProjectileItemDef? _effectiveProjectilePayloadForSlot({
     required List<LoadoutIssue> issues,
     required AbilitySlot slot,
     required ProjectileItemDef? fallbackProjectile,
-    required SpellBookDef? spellBook,
     required ProjectileId? projectileSlotSpellId,
   }) {
     final selectedSpellId = switch (slot) {
@@ -366,20 +349,6 @@ class LoadoutValidator {
           weaponId: selectedSpellId.toString(),
           missingWeaponTypes: const <WeaponType>{WeaponType.spell},
           message: 'Selected slot spell must be a projectile spell item.',
-        ),
-      );
-      return fallbackProjectile;
-    }
-
-    if (spellBook == null ||
-        !spellBook.containsProjectileSpell(selectedSpellId)) {
-      issues.add(
-        LoadoutIssue(
-          slot: slot,
-          kind: IssueKind.catalogMissing,
-          weaponId: selectedSpellId.toString(),
-          message:
-              'Selected projectile spell is not granted by the equipped spellbook.',
         ),
       );
       return fallbackProjectile;

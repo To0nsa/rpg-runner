@@ -47,7 +47,9 @@ All abilities here:
 
 The projectile-slot source is resolved at commit:
 
-- if `projectileSlotSpellId` is valid for the equipped spellbook, that spell projectile is used
+- if `projectileSlotSpellId` is in the character Spell List, that spell
+  projectile is used
 - otherwise the equipped throwing weapon projectile is used
 
 This keeps one ability structure reusable across spell and throwing builds.
+`spellBook` does not gate projectile spell availability.

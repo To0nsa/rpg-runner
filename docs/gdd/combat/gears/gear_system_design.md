@@ -16,7 +16,7 @@ Separation rule:
 | `mainWeapon` | Primary-hand weapon payload + stats |
 | `offhandWeapon` | Secondary-hand payload + stats |
 | `throwingWeapon` | Physical projectile fallback source |
-| `spellBook` | Spell projectile grants + spell-slot ability grants + stats |
+| `spellBook` | Spell-tag gear stats and payload context |
 | `accessory` | Passive stat item |
 
 ## Loadout and Ability Gating
@@ -24,9 +24,9 @@ Separation rule:
 - Primary abilities gate on main weapon type.
 - Secondary abilities gate on off-hand (or main if future two-handed support is authored).
 - Projectile abilities resolve payload from selected projectile source:
-  - selected spell projectile from spellbook grants, or
+  - selected learned spell projectile from Spell List, or
   - equipped throwing weapon fallback.
-- Spell-slot abilities are gated by spellbook spell-ability grants.
+- Spell-slot abilities are gated by learned Spell List ownership.
 
 Validation is enforced at equip/loadout normalization time (`LoadoutValidator` + app-state normalization).
 
@@ -58,7 +58,8 @@ Legality is data-driven through:
 
 - required weapon types in ability defs
 - slot legality in ability defs
-- spellbook grant checks for projectile spells and spell-slot abilities
+- Spell List ownership checks for projectile spell selection and spell-slot
+  ability selection
 
 ## Deterministic Order
 

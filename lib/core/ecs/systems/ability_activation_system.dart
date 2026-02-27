@@ -484,10 +484,6 @@ class AbilityActivationSystem {
         final spellBookId = world.equippedLoadout.spellBookId[loadoutIndex];
         final spellBook = spellBooks.tryGet(spellBookId);
         if (spellBook == null) return false;
-        if (slot == AbilitySlot.spell &&
-            !spellBook.containsSpellAbility(ability.id)) {
-          return false;
-        }
         break;
     }
 
@@ -1018,7 +1014,6 @@ class AbilityActivationSystem {
           loadoutIndex: loadoutIndex,
           slot: slot,
           projectiles: projectiles,
-          spellBooks: spellBooks,
         );
         final projectile = projectiles.tryGet(equippedId);
         if (projectile == null) {

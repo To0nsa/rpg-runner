@@ -59,7 +59,6 @@ WeaponType? resolvePayloadWeaponTypeForAbilitySlot({
         loadoutIndex: loadoutIndex,
         slot: slot,
         projectiles: projectiles,
-        spellBooks: spellBooks,
       );
       return projectiles.tryGet(projectileId)?.weaponType;
     case AbilityPayloadSource.spellBook:
@@ -78,19 +77,15 @@ ProjectileId resolveProjectilePayloadForAbilitySlot({
   required int loadoutIndex,
   required AbilitySlot slot,
   required ProjectileCatalog projectiles,
-  required SpellBookCatalog spellBooks,
 }) {
   final selectedSpellId = slot == AbilitySlot.projectile
       ? loadout.projectileSlotSpellId[loadoutIndex]
       : null;
   if (selectedSpellId != null) {
     final selectedSpell = projectiles.tryGet(selectedSpellId);
-    final spellBook = spellBooks.tryGet(loadout.spellBookId[loadoutIndex]);
     final supportsSpell =
         selectedSpell != null &&
         selectedSpell.weaponType == WeaponType.spell &&
-        spellBook != null &&
-        spellBook.containsProjectileSpell(selectedSpellId) &&
         (ability.requiredWeaponTypes.isEmpty ||
             ability.requiredWeaponTypes.contains(WeaponType.spell));
     if (supportsSpell) return selectedSpellId;

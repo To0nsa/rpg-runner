@@ -10,12 +10,12 @@ import '../../core/loadout/loadout_validator.dart';
 import '../../core/meta/gear_slot.dart';
 import '../../core/meta/meta_service.dart';
 import '../../core/meta/meta_state.dart';
+import '../../core/players/character_ability_namespace.dart';
 import '../../core/players/player_character_definition.dart';
 import '../../core/players/player_character_registry.dart';
 import '../../core/projectiles/projectile_catalog.dart';
 import '../../core/projectiles/projectile_id.dart';
 import '../../core/spellBook/spell_book_catalog.dart';
-import '../../core/spellBook/spell_book_id.dart';
 import '../../core/weapons/weapon_catalog.dart';
 import '../app/ui_routes.dart';
 import 'selection_state.dart';
@@ -237,6 +237,7 @@ class AppState extends ChangeNotifier {
     PlayerCharacterId characterId,
   ) {
     final gear = _meta.equippedFor(characterId);
+    final spellList = _meta.spellListFor(characterId);
     final character = PlayerCharacterRegistry.resolve(characterId);
     final catalog = character.catalog;
     var normalized = EquippedLoadoutDef(
@@ -279,7 +280,10 @@ class AppState extends ChangeNotifier {
       ),
     );
     final normalizedProjectileSpellId =
-        _normalizeProjectileSpellSelectionForLoadout(normalized);
+        _normalizeProjectileSpellSelectionForLoadout(
+          normalized,
+          learnedProjectileSpellIds: spellList.learnedProjectileSpellIds,
+        );
     if (normalizedProjectileSpellId != normalized.projectileSlotSpellId) {
       normalized = _withProjectileSpellSelection(
         normalized,
@@ -289,6 +293,7 @@ class AppState extends ChangeNotifier {
     final normalizedSpellAbilityId = _normalizeSpellAbilityForLoadout(
       normalized,
       characterId: characterId,
+      learnedSpellAbilityIds: spellList.learnedSpellAbilityIds,
     );
     if (normalizedSpellAbilityId != normalized.abilitySpellId) {
       normalized = _withAbilityForSlot(
@@ -320,78 +325,63 @@ class AppState extends ChangeNotifier {
   AbilityKey _normalizeSpellAbilityForLoadout(
     EquippedLoadoutDef loadout, {
     required PlayerCharacterId characterId,
+    required Set<AbilityKey> learnedSpellAbilityIds,
   }) {
     final current = loadout.abilitySpellId;
-    if (_isAbilityValidForSlot(
-      loadout,
-      slot: AbilitySlot.spell,
-      abilityId: current,
-    )) {
+    if (learnedSpellAbilityIds.contains(current) &&
+        _isAbilityVisibleForCharacter(characterId, current) &&
+        _isAbilityValidForSlot(
+          loadout,
+          slot: AbilitySlot.spell,
+          abilityId: current,
+        )) {
       return current;
     }
 
-    final replacement = _firstValidAbilityForSlot(
-      loadout,
-      slot: AbilitySlot.spell,
-      characterId: characterId,
-    );
-    return replacement ?? current;
+    final orderedLearned = learnedSpellAbilityIds.toList(growable: false)
+      ..sort((a, b) => a.compareTo(b));
+    for (final abilityId in orderedLearned) {
+      if (!_isAbilityVisibleForCharacter(characterId, abilityId)) continue;
+      if (_isAbilityValidForSlot(
+        loadout,
+        slot: AbilitySlot.spell,
+        abilityId: abilityId,
+      )) {
+        return abilityId;
+      }
+    }
+
+    return current;
   }
 
   ProjectileId? _normalizeProjectileSpellSelectionForLoadout(
-    EquippedLoadoutDef loadout,
-  ) {
+    EquippedLoadoutDef loadout, {
+    required Set<ProjectileId> learnedProjectileSpellIds,
+  }) {
     final current = loadout.projectileSlotSpellId;
     if (current == null) return null;
-    if (_isProjectileSpellAllowedBySpellBook(loadout.spellBookId, current)) {
+    if (_isProjectileSpellLearned(current, learnedProjectileSpellIds)) {
       return current;
     }
 
-    final spellBook = _spellBookCatalog.tryGet(loadout.spellBookId);
-    if (spellBook == null) return null;
-
-    for (final spellId in spellBook.projectileSpellIds) {
-      if (_isProjectileSpellAllowedBySpellBook(loadout.spellBookId, spellId)) {
+    final orderedLearned = learnedProjectileSpellIds.toList(growable: false)
+      ..sort((a, b) => a.index.compareTo(b.index));
+    for (final spellId in orderedLearned) {
+      if (_isProjectileSpellLearned(spellId, learnedProjectileSpellIds)) {
         return spellId;
       }
     }
     return null;
   }
 
-  bool _isProjectileSpellAllowedBySpellBook(
-    SpellBookId spellBookId,
+  bool _isProjectileSpellLearned(
     ProjectileId spellId,
+    Set<ProjectileId> learnedProjectileSpellIds,
   ) {
-    final spellBook = _spellBookCatalog.tryGet(spellBookId);
-    if (spellBook == null) return false;
-    if (!spellBook.containsProjectileSpell(spellId)) return false;
+    if (!learnedProjectileSpellIds.contains(spellId)) return false;
     final spellItem = _projectileCatalog.tryGet(spellId);
     if (spellItem == null) return false;
     return spellItem.weaponType == WeaponType.spell;
-  }
-
-  AbilityKey? _firstValidAbilityForSlot(
-    EquippedLoadoutDef loadout, {
-    required AbilitySlot slot,
-    required PlayerCharacterId characterId,
-  }) {
-    final candidates = <AbilityDef>[
-      for (final def in AbilityCatalog.abilities.values)
-        if (_isAbilityVisibleForCharacter(characterId, def.id) &&
-            def.allowedSlots.contains(slot))
-          def,
-    ]..sort((a, b) => a.id.compareTo(b.id));
-
-    for (final candidate in candidates) {
-      if (_isAbilityValidForSlot(
-        loadout,
-        slot: slot,
-        abilityId: candidate.id,
-      )) {
-        return candidate.id;
-      }
-    }
-    return null;
   }
 
   bool _isAbilityValidForSlot(
@@ -472,7 +462,8 @@ class AppState extends ChangeNotifier {
     PlayerCharacterId characterId,
     AbilityKey id,
   ) {
-    if (id.startsWith('${characterId.name}.')) {
+    final namespace = characterAbilityNamespace(characterId);
+    if (id.startsWith('$namespace.')) {
       return true;
     }
     if (id.startsWith('common.') && !id.startsWith('common.enemy_')) {

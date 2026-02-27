@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/abilities/ability_def.dart';
 import '../../../core/ecs/stores/combat/equipped_loadout_store.dart';
+import '../../../core/meta/spell_list.dart';
 import '../../../core/players/player_character_definition.dart';
 import '../../state/app_state.dart';
 import '../../text/ability_tooltip_builder.dart';
@@ -43,6 +44,7 @@ class _SkillsBarState extends State<SkillsBar> {
       characterId: widget.characterId,
       loadout: rawLoadout,
     );
+    final spellList = appState.meta.spellListFor(widget.characterId);
     final isProjectileSlot = _selectedSlot == AbilitySlot.projectile;
     final selectedSourceSpellId = isProjectileSlot
         ? loadout.projectileSlotSpellId
@@ -51,6 +53,7 @@ class _SkillsBarState extends State<SkillsBar> {
       characterId: widget.characterId,
       slot: _selectedSlot,
       loadout: loadout,
+      spellList: spellList,
       selectedSourceSpellId: selectedSourceSpellId,
       overrideSelectedSource: isProjectileSlot,
     );
@@ -103,6 +106,7 @@ class _SkillsBarState extends State<SkillsBar> {
                       ? () => _showProjectileSourcePicker(
                           appState: appState,
                           loadout: loadout,
+                          spellList: spellList,
                         )
                       : null,
                 ),
@@ -158,8 +162,9 @@ class _SkillsBarState extends State<SkillsBar> {
   Future<void> _showProjectileSourcePicker({
     required AppState appState,
     required EquippedLoadoutDef loadout,
+    required SpellList spellList,
   }) {
-    final options = projectileSourceOptions(loadout);
+    final options = projectileSourceOptions(loadout, spellList);
     return showProjectileSourceDialog(
       context,
       options: options,

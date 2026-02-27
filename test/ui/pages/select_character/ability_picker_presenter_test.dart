@@ -1,78 +1,81 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
+import 'package:rpg_runner/core/meta/spell_list.dart';
 import 'package:rpg_runner/core/players/player_character_definition.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
-import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
 import 'package:rpg_runner/ui/pages/selectCharacter/ability/ability_picker_presenter.dart';
+
+const SpellList _defaultSpellList = SpellList(
+  learnedProjectileSpellIds: <ProjectileId>{ProjectileId.fireBolt},
+  learnedSpellAbilityIds: <AbilityKey>{'eloise.arcane_haste'},
+);
 
 void main() {
   group('ability picker presenter', () {
-    test(
-      'projectile source options include equipped throw + spellbook spells',
-      () {
-        const loadout = EquippedLoadoutDef(
-          projectileId: ProjectileId.throwingKnife,
-        );
+    test('projectile source options include equipped throw + learned spells', () {
+      const loadout = EquippedLoadoutDef(projectileId: ProjectileId.throwingKnife);
+      const spellList = SpellList(
+        learnedProjectileSpellIds: <ProjectileId>{
+          ProjectileId.fireBolt,
+          ProjectileId.iceBolt,
+        },
+        learnedSpellAbilityIds: <AbilityKey>{'eloise.arcane_haste'},
+      );
 
-        final options = projectileSourceOptions(loadout);
+      final options = projectileSourceOptions(loadout, spellList);
 
-        expect(options, isNotEmpty);
-        expect(options.first.spellId, isNull);
-        expect(options.any((o) => o.spellId == ProjectileId.fireBolt), isTrue);
-        expect(options.any((o) => o.spellId == ProjectileId.iceBolt), isFalse);
-        expect(
-          options.any((o) => o.spellId == ProjectileId.thunderBolt),
-          isFalse,
-        );
-      },
-    );
+      expect(options, isNotEmpty);
+      expect(options.first.spellId, isNull);
+      expect(options.any((o) => o.spellId == ProjectileId.fireBolt), isTrue);
+      expect(options.any((o) => o.spellId == ProjectileId.iceBolt), isTrue);
+      expect(options.any((o) => o.spellId == ProjectileId.thunderBolt), isFalse);
+    });
 
-    test(
-      'projectile source panel model separates throw and spellbook groups',
-      () {
-        const loadout = EquippedLoadoutDef(
-          projectileId: ProjectileId.throwingKnife,
-          spellBookId: SpellBookId.basicSpellBook,
-        );
+    test('projectile source panel model separates throw and spell list groups', () {
+      const loadout = EquippedLoadoutDef(projectileId: ProjectileId.throwingKnife);
+      const spellList = SpellList(
+        learnedProjectileSpellIds: <ProjectileId>{
+          ProjectileId.fireBolt,
+          ProjectileId.iceBolt,
+        },
+        learnedSpellAbilityIds: <AbilityKey>{'eloise.arcane_haste'},
+      );
 
-        final model = projectileSourcePanelModel(loadout);
+      final model = projectileSourcePanelModel(loadout, spellList);
 
-        expect(model.throwingWeaponId, ProjectileId.throwingKnife);
-        expect(model.spellBookId, SpellBookId.basicSpellBook);
-        expect(model.spellOptions, isNotEmpty);
-        expect(
-          model.spellOptions.any(
-            (spell) => spell.spellId == ProjectileId.fireBolt,
-          ),
-          isTrue,
-        );
-        expect(
-          model.spellOptions.any(
-            (spell) => spell.spellId == ProjectileId.iceBolt,
-          ),
-          isFalse,
-        );
-        expect(
-          model.spellOptions.any(
-            (spell) => spell.spellId == ProjectileId.thunderBolt,
-          ),
-          isFalse,
-        );
-      },
-    );
+      expect(model.throwingWeaponId, ProjectileId.throwingKnife);
+      expect(model.spellListDisplayName, 'Spell List');
+      expect(model.spellOptions, isNotEmpty);
+      expect(
+        model.spellOptions.any((spell) => spell.spellId == ProjectileId.fireBolt),
+        isTrue,
+      );
+      expect(
+        model.spellOptions.any((spell) => spell.spellId == ProjectileId.iceBolt),
+        isTrue,
+      );
+      expect(
+        model.spellOptions.any((spell) => spell.spellId == ProjectileId.thunderBolt),
+        isFalse,
+      );
+    });
 
     test('projectile slot exposes all enabled projectile abilities', () {
       const loadout = EquippedLoadoutDef(
-        spellBookId: SpellBookId.solidSpellBook,
         abilityProjectileId: 'eloise.quick_shot',
         projectileSlotSpellId: ProjectileId.iceBolt,
+      );
+      const spellList = SpellList(
+        learnedProjectileSpellIds: <ProjectileId>{ProjectileId.iceBolt},
+        learnedSpellAbilityIds: <AbilityKey>{'eloise.arcane_haste'},
       );
 
       final candidates = abilityCandidatesForSlot(
         characterId: PlayerCharacterId.eloise,
         slot: AbilitySlot.projectile,
         loadout: loadout,
+        spellList: spellList,
         selectedSourceSpellId: ProjectileId.iceBolt,
         overrideSelectedSource: true,
       );
@@ -95,13 +98,23 @@ void main() {
       expect(chargedShot.isEnabled, isTrue);
     });
 
-    test('spell slot exposes only self spell abilities', () {
+    test('spell slot exposes only learned spell abilities', () {
       const loadout = EquippedLoadoutDef(abilitySpellId: 'eloise.arcane_haste');
+      const spellList = SpellList(
+        learnedProjectileSpellIds: <ProjectileId>{ProjectileId.fireBolt},
+        learnedSpellAbilityIds: <AbilityKey>{
+          'eloise.arcane_haste',
+          'eloise.mana_infusion',
+          'eloise.cleanse',
+          'eloise.vital_surge',
+        },
+      );
 
       final candidates = abilityCandidatesForSlot(
         characterId: PlayerCharacterId.eloise,
         slot: AbilitySlot.spell,
         loadout: loadout,
+        spellList: spellList,
       );
 
       expect(
@@ -125,7 +138,7 @@ void main() {
         isFalse,
       );
       expect(
-        candidates.any((candidate) => candidate.id == 'eloise.overcharge_shot'),
+        candidates.any((candidate) => candidate.id == 'eloise.focus'),
         isFalse,
       );
 
@@ -142,9 +155,9 @@ void main() {
         (candidate) => candidate.id == 'eloise.vital_surge',
       );
       expect(arcaneHaste.isEnabled, isTrue);
-      expect(restoreMana.isEnabled, isFalse);
-      expect(cleanse.isEnabled, isFalse);
-      expect(restoreHealth.isEnabled, isFalse);
+      expect(restoreMana.isEnabled, isTrue);
+      expect(cleanse.isEnabled, isTrue);
+      expect(restoreHealth.isEnabled, isTrue);
     });
 
     test('primary and secondary slots expose melee auto-aim variants', () {
@@ -157,11 +170,13 @@ void main() {
         characterId: PlayerCharacterId.eloise,
         slot: AbilitySlot.primary,
         loadout: loadout,
+        spellList: _defaultSpellList,
       );
       final secondaryCandidates = abilityCandidatesForSlot(
         characterId: PlayerCharacterId.eloise,
         slot: AbilitySlot.secondary,
         loadout: loadout,
+        spellList: _defaultSpellList,
       );
 
       final swordAutoAim = primaryCandidates.firstWhere(
@@ -181,6 +196,7 @@ void main() {
         characterId: PlayerCharacterId.eloise,
         slot: AbilitySlot.jump,
         loadout: loadout,
+        spellList: _defaultSpellList,
       );
 
       final jump = candidates.firstWhere(
@@ -205,6 +221,7 @@ void main() {
           characterId: PlayerCharacterId.eloise,
           slot: AbilitySlot.secondary,
           loadout: legacyLoadout,
+          spellList: _defaultSpellList,
         );
 
         final shieldBlock = candidates.firstWhere(
@@ -223,6 +240,7 @@ void main() {
         characterId: PlayerCharacterId.eloise,
         slot: AbilitySlot.projectile,
         loadout: loadout,
+        spellList: _defaultSpellList,
         selectedSourceSpellId: ProjectileId.throwingAxe,
         overrideSelectedSource: true,
       );

@@ -12,6 +12,8 @@ import '../../../../core/abilities/ability_def.dart';
 import '../../../../core/accessories/accessory_id.dart';
 import '../../../../core/ecs/stores/combat/equipped_loadout_store.dart';
 import '../../../../core/loadout/loadout_validator.dart';
+import '../../../../core/meta/spell_list.dart';
+import '../../../../core/players/character_ability_namespace.dart';
 import '../../../../core/players/player_character_definition.dart';
 import '../../../../core/players/player_character_registry.dart';
 import '../../../../core/projectiles/projectile_catalog.dart';
@@ -51,7 +53,7 @@ class AbilityPickerCandidate {
 /// Display model for projectile payload selection.
 ///
 /// - [spellId] == null means "use equipped throwing weapon".
-/// - [spellId] != null means "use this spell from spellbook".
+/// - [spellId] != null means "use this learned spell from Spell List".
 class ProjectileSourceOption {
   const ProjectileSourceOption({
     required this.projectileId,
@@ -82,24 +84,22 @@ class ProjectileSourceOption {
 ///
 /// It explicitly separates source families:
 /// - equipped throwing weapon (single tap-select entry)
-/// - equipped spellbook (expandable list of spell projectile entries)
+/// - learned projectile spells from Spell List
 class ProjectileSourcePanelModel {
   const ProjectileSourcePanelModel({
     required this.throwingWeaponId,
     required this.throwingWeaponDisplayName,
-    required this.spellBookId,
-    required this.spellBookDisplayName,
+    required this.spellListDisplayName,
     required this.spellOptions,
   });
 
   final ProjectileId throwingWeaponId;
   final String throwingWeaponDisplayName;
-  final SpellBookId spellBookId;
-  final String spellBookDisplayName;
+  final String spellListDisplayName;
   final List<ProjectileSpellOption> spellOptions;
 }
 
-/// Display model for one spell projectile available in the equipped spellbook.
+/// Display model for one learned projectile spell in the spell list.
 class ProjectileSpellOption {
   const ProjectileSpellOption({
     required this.spellId,
@@ -118,6 +118,7 @@ List<AbilityPickerCandidate> abilityCandidatesForSlot({
   required PlayerCharacterId characterId,
   required AbilitySlot slot,
   required EquippedLoadoutDef loadout,
+  required SpellList spellList,
   ProjectileId? selectedSourceSpellId,
   bool overrideSelectedSource = false,
 }) {
@@ -128,6 +129,8 @@ List<AbilityPickerCandidate> abilityCandidatesForSlot({
   final candidates = <AbilityDef>[
     for (final def in AbilityCatalog.abilities.values)
       if (_isAbilityVisibleForCharacter(characterId, def.id) &&
+          (slot != AbilitySlot.spell ||
+              spellList.learnedSpellAbilityIds.contains(def.id)) &&
           def.allowedSlots.contains(slot))
         def,
   ];
@@ -174,14 +177,21 @@ EquippedLoadoutDef normalizeLoadoutMaskForCharacter({
   return _copyLoadout(loadout, mask: targetMask);
 }
 
-/// Returns projectile source options exposed by the equipped throwing weapon and spellbook.
+/// Returns projectile source options exposed by the equipped throwing weapon
+/// and character spell list.
 ProjectileSourcePanelModel projectileSourcePanelModel(
   EquippedLoadoutDef loadout,
+  SpellList spellList,
 ) {
-  final spellBook = _spellBookCatalog.get(loadout.spellBookId);
   final spellOptions = <ProjectileSpellOption>[];
-  for (final spellId in spellBook.projectileSpellIds) {
-    if (_projectileCatalog.tryGet(spellId) == null) continue;
+  final orderedLearned = spellList.learnedProjectileSpellIds.toList(
+    growable: false,
+  )..sort((a, b) => a.index.compareTo(b.index));
+  for (final spellId in orderedLearned) {
+    final spellItem = _projectileCatalog.tryGet(spellId);
+    if (spellItem == null || spellItem.weaponType != WeaponType.spell) {
+      continue;
+    }
     spellOptions.add(
       ProjectileSpellOption(
         spellId: spellId,
@@ -192,8 +202,7 @@ ProjectileSourcePanelModel projectileSourcePanelModel(
   return ProjectileSourcePanelModel(
     throwingWeaponId: loadout.projectileId,
     throwingWeaponDisplayName: projectileDisplayName(loadout.projectileId),
-    spellBookId: loadout.spellBookId,
-    spellBookDisplayName: spellBookDisplayName(loadout.spellBookId),
+    spellListDisplayName: 'Spell List',
     spellOptions: spellOptions,
   );
 }
@@ -203,8 +212,9 @@ ProjectileSourcePanelModel projectileSourcePanelModel(
 /// `spellId == null` always represents the equipped throwing weapon source.
 List<ProjectileSourceOption> projectileSourceOptions(
   EquippedLoadoutDef loadout,
+  SpellList spellList,
 ) {
-  final sourceModel = projectileSourcePanelModel(loadout);
+  final sourceModel = projectileSourcePanelModel(loadout, spellList);
   final throwingDef = _projectileCatalog.get(sourceModel.throwingWeaponId);
   final options = <ProjectileSourceOption>[
     ProjectileSourceOption(
@@ -232,13 +242,14 @@ List<ProjectileSourceOption> projectileSourceOptions(
   return options;
 }
 
-/// Returns [selected] when still valid for the equipped spellbook, otherwise null.
+/// Returns [selected] when still valid for the current spell list.
 ProjectileId? normalizeProjectileSourceSelection(
   EquippedLoadoutDef loadout,
+  SpellList spellList,
   ProjectileId? selected,
 ) {
   if (selected == null) return null;
-  final options = projectileSourceOptions(loadout);
+  final options = projectileSourceOptions(loadout, spellList);
   final exists = options.any((option) => option.spellId == selected);
   return exists ? selected : null;
 }
@@ -305,7 +316,8 @@ bool _isAbilityVisibleForCharacter(
   PlayerCharacterId characterId,
   AbilityKey id,
 ) {
-  if (id.startsWith('${characterId.name}.')) return true;
+  final namespace = characterAbilityNamespace(characterId);
+  if (id.startsWith('$namespace.')) return true;
   if (id.startsWith('common.') && !id.startsWith('common.enemy_')) return true;
   return false;
 }

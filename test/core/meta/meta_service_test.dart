@@ -1,14 +1,37 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/accessories/accessory_id.dart';
 import 'package:rpg_runner/core/meta/gear_slot.dart';
+import 'package:rpg_runner/core/meta/equipped_gear.dart';
 import 'package:rpg_runner/core/meta/inventory_state.dart';
 import 'package:rpg_runner/core/meta/meta_defaults.dart';
 import 'package:rpg_runner/core/meta/meta_service.dart';
 import 'package:rpg_runner/core/meta/meta_state.dart';
+import 'package:rpg_runner/core/meta/spell_list.dart';
 import 'package:rpg_runner/core/players/player_character_definition.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
 import 'package:rpg_runner/core/weapons/weapon_id.dart';
+
+const Set<ProjectileId> _eloiseStarterProjectileSpells = <ProjectileId>{
+  ProjectileId.iceBolt,
+  ProjectileId.fireBolt,
+  ProjectileId.acidBolt,
+  ProjectileId.darkBolt,
+  ProjectileId.earthBolt,
+  ProjectileId.holyBolt,
+  ProjectileId.waterBolt,
+  ProjectileId.thunderBolt,
+};
+
+const Set<String> _eloiseStarterSpellAbilities = <String>{
+  'eloise.arcane_haste',
+  'eloise.focus',
+  'eloise.arcane_ward',
+  'eloise.cleanse',
+  'eloise.vital_surge',
+  'eloise.mana_infusion',
+  'eloise.second_wind',
+};
 
 void main() {
   test('MetaService.createNew equips defaults for every character', () {
@@ -138,4 +161,61 @@ void main() {
     expect(ids, contains(ProjectileId.throwingAxe));
     expect(ids, isNot(contains(ProjectileId.thunderBolt)));
   });
+
+  test('MetaService.createNew seeds spell list per character', () {
+    const service = MetaService();
+    final meta = service.createNew();
+
+    for (final id in PlayerCharacterId.values) {
+      final spellList = meta.spellListFor(id);
+      expect(
+        spellList.learnedProjectileSpellIds,
+        _eloiseStarterProjectileSpells,
+      );
+      expect(spellList.learnedSpellAbilityIds, _eloiseStarterSpellAbilities);
+    }
+  });
+
+  test(
+    'MetaService.normalize seeds default spell list for older schema saves',
+    () {
+      const service = MetaService();
+      final legacy = MetaState(
+        schemaVersion: 1,
+        inventory: InventoryState(
+          unlockedWeaponIds: service
+              .seedAllUnlockedInventory()
+              .unlockedWeaponIds,
+          unlockedThrowingWeaponIds: service
+              .seedAllUnlockedInventory()
+              .unlockedThrowingWeaponIds,
+          unlockedSpellBookIds: <SpellBookId>{
+            SpellBookId.basicSpellBook,
+            SpellBookId.solidSpellBook,
+          },
+          unlockedAccessoryIds: service
+              .seedAllUnlockedInventory()
+              .unlockedAccessoryIds,
+        ),
+        equippedByCharacter: <PlayerCharacterId, EquippedGear>{
+          for (final id in PlayerCharacterId.values)
+            id: MetaDefaults.equippedGear,
+        },
+        spellListByCharacter: <PlayerCharacterId, SpellList>{
+          for (final id in PlayerCharacterId.values) id: SpellList.empty,
+        },
+      );
+
+      final normalized = service.normalize(legacy);
+
+      for (final id in PlayerCharacterId.values) {
+        final spellList = normalized.spellListFor(id);
+        expect(
+          spellList.learnedProjectileSpellIds,
+          _eloiseStarterProjectileSpells,
+        );
+        expect(spellList.learnedSpellAbilityIds, _eloiseStarterSpellAbilities);
+      }
+    },
+  );
 }

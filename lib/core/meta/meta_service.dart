@@ -1,6 +1,7 @@
 import '../accessories/accessory_catalog.dart';
 import '../accessories/accessory_id.dart';
-import '../abilities/ability_def.dart' show WeaponType;
+import '../abilities/ability_catalog.dart';
+import '../abilities/ability_def.dart' show AbilityKey, AbilitySlot, WeaponType;
 import '../projectiles/projectile_catalog.dart';
 import '../projectiles/projectile_id.dart';
 import '../spellBook/spell_book_catalog.dart';
@@ -13,7 +14,10 @@ import 'gear_slot.dart';
 import 'inventory_state.dart';
 import 'meta_defaults.dart';
 import 'meta_state.dart';
+import 'spell_list.dart';
 import '../players/player_character_definition.dart';
+import '../players/character_ability_namespace.dart';
+import '../players/player_character_registry.dart';
 
 /// Slot candidate DTO consumed by gear picker UI.
 ///
@@ -51,6 +55,8 @@ class MetaService {
 
   /// Accessory catalog dependency.
   final AccessoryCatalog accessories;
+
+  static const AbilityCatalog _abilityCatalog = AbilityCatalog();
 
   /// Seeds initial inventory according to startup unlock policy.
   InventoryState seedAllUnlockedInventory() {
@@ -113,7 +119,10 @@ class MetaService {
   /// Creates a new normalized meta state for first-time users.
   MetaState createNew() {
     return normalize(
-      MetaState.seedAllUnlocked(inventory: seedAllUnlockedInventory()),
+      MetaState.seedAllUnlocked(
+        inventory: seedAllUnlockedInventory(),
+        spellListByCharacter: _startingSpellListsByCharacter(),
+      ),
     );
   }
 
@@ -187,6 +196,7 @@ class MetaService {
   /// - startup unlock ceilings per domain
   /// - default items always unlocked
   /// - equipped gear always valid and unlocked
+  /// - spell list ownership valid per character
   MetaState normalize(MetaState state) {
     var inventory = state.inventory;
     final allowedWeapons = _startingUnlockedWeaponIds();
@@ -226,11 +236,117 @@ class MetaService {
       equippedByCharacter[id] = _normalizeEquipped(gear, inventory);
     }
 
+    final spellListByCharacter = <PlayerCharacterId, SpellList>{};
+    for (final id in PlayerCharacterId.values) {
+      spellListByCharacter[id] = _normalizeSpellListForCharacter(
+        state.spellListFor(id),
+        characterId: id,
+      );
+    }
+
     return state.copyWith(
       schemaVersion: MetaState.latestSchemaVersion,
       inventory: inventory,
       equippedByCharacter: equippedByCharacter,
+      spellListByCharacter: spellListByCharacter,
     );
+  }
+
+  Map<PlayerCharacterId, SpellList> _startingSpellListsByCharacter() {
+    return <PlayerCharacterId, SpellList>{
+      for (final id in PlayerCharacterId.values)
+        id: _startingSpellListForCharacter(id),
+    };
+  }
+
+  SpellList _startingSpellListForCharacter(PlayerCharacterId characterId) {
+    final catalog = PlayerCharacterRegistry.resolve(characterId).catalog;
+    final projectileSpells = <ProjectileId>{
+      for (final id in catalog.startingProjectileSpellIds)
+        if (_isSpellProjectile(id)) id,
+    };
+    final abilityIds = <AbilityKey>{
+      for (final id in catalog.startingSpellAbilityIds)
+        if (_isSpellAbilityForCharacter(id, characterId: characterId)) id,
+    };
+
+    if (projectileSpells.isEmpty) {
+      final defaultProjectileSpellId = catalog.projectileSlotSpellId;
+      if (defaultProjectileSpellId != null &&
+          _isSpellProjectile(defaultProjectileSpellId)) {
+        projectileSpells.add(defaultProjectileSpellId);
+      }
+    }
+    if (projectileSpells.isEmpty &&
+        _isSpellProjectile(MetaDefaults.projectileSpellId)) {
+      projectileSpells.add(MetaDefaults.projectileSpellId);
+    }
+
+    if (abilityIds.isEmpty &&
+        _isSpellAbilityForCharacter(
+          catalog.abilitySpellId,
+          characterId: characterId,
+        )) {
+      abilityIds.add(catalog.abilitySpellId);
+    }
+    if (abilityIds.isEmpty &&
+        _isSpellAbilityForCharacter(
+          MetaDefaults.spellAbilityId,
+          characterId: characterId,
+        )) {
+      abilityIds.add(MetaDefaults.spellAbilityId);
+    }
+
+    return SpellList(
+      learnedProjectileSpellIds: projectileSpells,
+      learnedSpellAbilityIds: abilityIds,
+    );
+  }
+
+  SpellList _normalizeSpellListForCharacter(
+    SpellList spellList, {
+    required PlayerCharacterId characterId,
+  }) {
+    final learnedProjectileSpellIds = <ProjectileId>{
+      for (final id in spellList.learnedProjectileSpellIds)
+        if (_isSpellProjectile(id)) id,
+    };
+    final learnedSpellAbilityIds = <AbilityKey>{
+      for (final id in spellList.learnedSpellAbilityIds)
+        if (_isSpellAbilityForCharacter(id, characterId: characterId)) id,
+    };
+
+    final defaults = _startingSpellListForCharacter(characterId);
+    if (learnedProjectileSpellIds.isEmpty) {
+      learnedProjectileSpellIds.addAll(defaults.learnedProjectileSpellIds);
+    }
+    if (learnedSpellAbilityIds.isEmpty) {
+      learnedSpellAbilityIds.addAll(defaults.learnedSpellAbilityIds);
+    }
+
+    return SpellList(
+      learnedProjectileSpellIds: learnedProjectileSpellIds,
+      learnedSpellAbilityIds: learnedSpellAbilityIds,
+    );
+  }
+
+  bool _isSpellProjectile(ProjectileId id) {
+    return projectiles.tryGet(id)?.weaponType == WeaponType.spell;
+  }
+
+  bool _isSpellAbilityForCharacter(
+    AbilityKey id, {
+    required PlayerCharacterId characterId,
+  }) {
+    final ability = _abilityCatalog.resolve(id);
+    if (ability == null) return false;
+    if (!ability.allowedSlots.contains(AbilitySlot.spell)) return false;
+    final namespace = characterAbilityNamespace(characterId);
+    if (id.startsWith('$namespace.')) return true;
+    if (id.startsWith('common.') && !id.startsWith('common.enemy_')) {
+      return true;
+    }
+    return false;
   }
 
   /// Validates and repairs a single character loadout against [inventory].

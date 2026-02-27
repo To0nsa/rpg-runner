@@ -1,4 +1,5 @@
 import '../accessories/accessory_id.dart';
+import '../abilities/ability_def.dart';
 import '../projectiles/projectile_id.dart';
 import '../spellBook/spell_book_id.dart';
 import '../weapons/weapon_id.dart';
@@ -21,6 +22,12 @@ class MetaDefaults {
 
   /// Default spellbook.
   static const SpellBookId spellBookId = SpellBookId.basicSpellBook;
+
+  /// Default learned projectile spell for migration/fallback.
+  static const ProjectileId projectileSpellId = ProjectileId.fireBolt;
+
+  /// Default learned spell-slot ability for migration/fallback.
+  static const AbilityKey spellAbilityId = 'eloise.arcane_haste';
 
   /// Default accessory.
   static const AccessoryId accessoryId = AccessoryId.speedBoots;

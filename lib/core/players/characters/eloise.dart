@@ -2,6 +2,7 @@ library;
 
 import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
 
+import '../../abilities/ability_def.dart';
 import '../../ecs/stores/body_store.dart';
 import '../../ecs/stores/combat/creature_tag_store.dart';
 import '../../ecs/stores/combat/damage_resistance_store.dart';
@@ -156,6 +157,27 @@ const RenderAnimSetDefinition eloiseRenderAnim = RenderAnimSetDefinition(
   stepTimeSecondsByKey: eloiseAnimStepTimeSecondsByKey,
 );
 
+const Set<ProjectileId> eloiseStartingProjectileSpellIds = <ProjectileId>{
+  ProjectileId.iceBolt,
+  ProjectileId.fireBolt,
+  ProjectileId.acidBolt,
+  ProjectileId.darkBolt,
+  ProjectileId.earthBolt,
+  ProjectileId.holyBolt,
+  ProjectileId.waterBolt,
+  ProjectileId.thunderBolt,
+};
+
+const Set<AbilityKey> eloiseStartingSpellAbilityIds = <AbilityKey>{
+  'eloise.arcane_haste',
+  'eloise.focus',
+  'eloise.arcane_ward',
+  'eloise.cleanse',
+  'eloise.vital_surge',
+  'eloise.mana_infusion',
+  'eloise.second_wind',
+};
+
 // -----------------------------------------------------------------------------
 // Éloïse authored Core values (single-file source of truth)
 // -----------------------------------------------------------------------------
@@ -182,10 +204,12 @@ const PlayerCatalog eloiseCatalog = PlayerCatalog(
   projectileId: ProjectileId.throwingKnife,
   spellBookId: SpellBookId.basicSpellBook,
   projectileSlotSpellId: ProjectileId.fireBolt,
+  startingProjectileSpellIds: eloiseStartingProjectileSpellIds,
   abilityPrimaryId: 'eloise.bloodletter_slash',
   abilitySecondaryId: 'eloise.aegis_riposte',
   abilityProjectileId: 'eloise.quick_shot',
   abilitySpellId: 'eloise.arcane_haste',
+  startingSpellAbilityIds: eloiseStartingSpellAbilityIds,
   abilityMobilityId: 'eloise.dash',
   abilityJumpId: 'eloise.jump',
   facing: Facing.right,

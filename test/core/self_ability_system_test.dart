@@ -443,7 +443,7 @@ void main() {
   });
 
   test(
-    'spell-slot self spell commit is blocked when spellbook does not grant it',
+    'spell-slot self spell commit is not blocked by spellbook grants',
     () {
       final world = EcsWorld();
       final player = EntityFactory(world).createPlayer(
@@ -484,11 +484,10 @@ void main() {
 
       activation.step(world, player: player, currentTick: 5);
 
-      expect(world.activeAbility.hasActiveAbility(player), isFalse);
-      expect(
-        world.selfIntent.tick[world.selfIntent.indexOf(player)],
-        equals(-1),
-      );
+      expect(world.activeAbility.hasActiveAbility(player), isTrue);
+      final activeIndex = world.activeAbility.indexOf(player);
+      expect(world.activeAbility.abilityId[activeIndex], 'eloise.mana_infusion');
+      expect(world.selfIntent.tick[world.selfIntent.indexOf(player)], equals(5));
       expect(world.mana.mana[world.mana.indexOf(player)], equals(2000));
     },
   );

@@ -5,7 +5,8 @@ Design contract for authored abilities and slot loadouts.
 ## Core Contracts
 
 1. Slots are never empty: every slot always has a valid equipped ability.
-2. Ability structure lives in ability defs; payload comes from equipped gear/spellbook.
+2. Ability structure lives in ability defs; payload comes from equipped
+   gear and projectile-source selection.
 3. Deterministic modifier order is fixed: ability -> gear payload -> passive/global.
 4. Mobility preempts combat: dash/jump input cancels queued/active combat intents.
 
@@ -34,8 +35,12 @@ Current ability slots:
 
 ### Slot Notes
 
-- `projectile` slot abilities use the projectile payload source selected for that slot (throwing weapon or spell projectile from spellbook grants).
-- `spell` slot currently hosts spellbook-granted self-utility abilities (`arcane_haste`, `focus`, `arcane_ward`, `cleanse`, `vital_surge`, `mana_infusion`, `second_wind`).
+- `projectile` slot abilities use the projectile payload source selected for
+  that slot (equipped throwing weapon or a learned projectile spell from the
+  character Spell List).
+- `spell` slot hosts learned self-utility spell abilities from the character
+  Spell List (for example `arcane_haste`, `focus`, `arcane_ward`,
+  `cleanse`, `vital_surge`, `mana_infusion`, `second_wind`).
 - `jump` is a fixed action slot but still authored as abilities (`eloise.jump`, `eloise.double_jump`).
 
 ## Targeting and Input Lifecycle

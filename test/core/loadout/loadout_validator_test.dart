@@ -135,22 +135,15 @@ void main() {
       expect(result.issues, isEmpty);
     });
 
-    test('spell-slot self spell must be granted by equipped spellbook', () {
+    test('spell-slot self spell is not gated by spellbook grants', () {
       const loadout = EquippedLoadoutDef(
         spellBookId: SpellBookId.basicSpellBook,
         abilitySpellId: 'eloise.vital_surge',
       );
 
       final result = validator.validate(loadout);
-      expect(result.isValid, isFalse);
-      expect(
-        result.issues.any(
-          (issue) =>
-              issue.slot == AbilitySlot.spell &&
-              issue.kind == IssueKind.catalogMissing,
-        ),
-        isTrue,
-      );
+      expect(result.isValid, isTrue, reason: 'Issues: ${result.issues}');
+      expect(result.issues, isEmpty);
     });
 
     test('selected slot spell must be a projectile spell item', () {

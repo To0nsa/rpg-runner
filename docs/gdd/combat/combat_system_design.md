@@ -140,7 +140,10 @@ DamageRequest {
 Projectile abilities use one execution path while payload is resolved from the equipped projectile source:
 
 - Throwing weapon (`ProjectileId.throwingKnife`/`throwingAxe`) or
-- Spell projectile selected from spellbook grants (`projectileSlotSpellId`)
+- Learned spell projectile selected from Spell List (`projectileSlotSpellId`)
+
+`spellBook` remains part of equipped gear for stat/payload context, but it does
+not gate spell availability.
 
 Core systems involved: `AbilityActivationSystem`, `ProjectileLaunchSystem`, `ProjectileHitSystem`, `ProjectileWorldCollisionSystem`, `DamageSystem`.
 

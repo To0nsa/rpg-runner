@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/meta/gear_slot.dart';
 import 'package:rpg_runner/core/meta/meta_service.dart';
 import 'package:rpg_runner/core/meta/meta_state.dart';
+import 'package:rpg_runner/core/meta/spell_list.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
 import 'package:rpg_runner/core/players/player_character_definition.dart';
@@ -60,7 +61,7 @@ void main() {
     });
 
     test(
-      'setLoadout repairs stale spell-slot spell for equipped spellbook',
+      'setLoadout keeps learned spell-slot spell from default spell list',
       () async {
         final selectionStore = _MemorySelectionStore();
         final appState = AppState(selectionStore: selectionStore);
@@ -71,17 +72,17 @@ void main() {
 
         expect(
           _selectedLoadout(appState.selection).abilitySpellId,
-          'eloise.arcane_haste',
+          'eloise.mana_infusion',
         );
         expect(
           _selectedLoadout(selectionStore.saved).abilitySpellId,
-          'eloise.arcane_haste',
+          'eloise.mana_infusion',
         );
       },
     );
 
     test(
-      'setLoadout repairs stale projectile spell for equipped spellbook',
+      'setLoadout keeps learned projectile spell from default spell list',
       () async {
         final selectionStore = _MemorySelectionStore();
         final appState = AppState(selectionStore: selectionStore);
@@ -92,27 +93,38 @@ void main() {
 
         expect(
           _selectedLoadout(appState.selection).projectileSlotSpellId,
-          ProjectileId.fireBolt,
+          ProjectileId.iceBolt,
         );
         expect(
           _selectedLoadout(selectionStore.saved).projectileSlotSpellId,
-          ProjectileId.fireBolt,
+          ProjectileId.iceBolt,
         );
       },
     );
 
     test(
-      'setLoadout stale projectile spell repairs to first granted spell only',
+      'setLoadout stale projectile spell repairs to first learned spell only',
       () async {
         final selectionStore = _MemorySelectionStore();
         final baseMeta = const MetaService().createNew();
-        final metaWithEpicEquipped = baseMeta.setEquippedFor(
-          PlayerCharacterId.eloise,
-          baseMeta
-              .equippedFor(PlayerCharacterId.eloise)
-              .copyWith(spellBookId: SpellBookId.epicSpellBook),
-        );
-        final metaStore = _MemoryMetaStore(saved: metaWithEpicEquipped);
+        final metaWithCustomSpellList = baseMeta
+            .setEquippedFor(
+              PlayerCharacterId.eloise,
+              baseMeta
+                  .equippedFor(PlayerCharacterId.eloise)
+                  .copyWith(spellBookId: SpellBookId.epicSpellBook),
+            )
+            .setSpellListFor(
+              PlayerCharacterId.eloise,
+              const SpellList(
+                learnedProjectileSpellIds: <ProjectileId>{
+                  ProjectileId.iceBolt,
+                  ProjectileId.fireBolt,
+                },
+                learnedSpellAbilityIds: <String>{'eloise.arcane_haste'},
+              ),
+            );
+        final metaStore = _MemoryMetaStore(saved: metaWithCustomSpellList);
         final appState = AppState(
           selectionStore: selectionStore,
           metaStore: metaStore,
@@ -181,16 +193,28 @@ void main() {
     );
 
     test(
-      'equipGear spellbook swap repairs stale spell-slot spell immediately',
+      'equipGear spellbook swap does not mutate learned spell-slot selection',
       () async {
         final selectionStore = _MemorySelectionStore();
+        final baseMeta = const MetaService().createNew();
         final metaStore = _MemoryMetaStore(
-          saved: const MetaService().createNew(),
+          saved: baseMeta.setSpellListFor(
+            PlayerCharacterId.eloise,
+            const SpellList(
+              learnedProjectileSpellIds: <ProjectileId>{ProjectileId.fireBolt},
+              learnedSpellAbilityIds: <String>{
+                'eloise.arcane_haste',
+                'eloise.vital_surge',
+              },
+            ),
+          ),
         );
         final appState = AppState(
           selectionStore: selectionStore,
           metaStore: metaStore,
+          userProfileStore: _MemoryUserProfileStore(),
         );
+        await appState.bootstrap(force: true);
 
         await appState.equipGear(
           characterId: PlayerCharacterId.eloise,
@@ -213,26 +237,38 @@ void main() {
 
         expect(
           _selectedLoadout(appState.selection).abilitySpellId,
-          'eloise.arcane_haste',
+          'eloise.vital_surge',
         );
         expect(
           _selectedLoadout(selectionStore.saved).abilitySpellId,
-          'eloise.arcane_haste',
+          'eloise.vital_surge',
         );
       },
     );
 
     test(
-      'equipGear spellbook swap repairs stale projectile spell immediately',
+      'equipGear spellbook swap does not mutate learned projectile spell',
       () async {
         final selectionStore = _MemorySelectionStore();
+        final baseMeta = const MetaService().createNew();
         final metaStore = _MemoryMetaStore(
-          saved: const MetaService().createNew(),
+          saved: baseMeta.setSpellListFor(
+            PlayerCharacterId.eloise,
+            const SpellList(
+              learnedProjectileSpellIds: <ProjectileId>{
+                ProjectileId.fireBolt,
+                ProjectileId.iceBolt,
+              },
+              learnedSpellAbilityIds: <String>{'eloise.arcane_haste'},
+            ),
+          ),
         );
         final appState = AppState(
           selectionStore: selectionStore,
           metaStore: metaStore,
+          userProfileStore: _MemoryUserProfileStore(),
         );
+        await appState.bootstrap(force: true);
 
         await appState.equipGear(
           characterId: PlayerCharacterId.eloise,
@@ -255,11 +291,11 @@ void main() {
 
         expect(
           _selectedLoadout(appState.selection).projectileSlotSpellId,
-          ProjectileId.fireBolt,
+          ProjectileId.iceBolt,
         );
         expect(
           _selectedLoadout(selectionStore.saved).projectileSlotSpellId,
-          ProjectileId.fireBolt,
+          ProjectileId.iceBolt,
         );
       },
     );
