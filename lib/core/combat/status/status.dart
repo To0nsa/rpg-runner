@@ -13,6 +13,7 @@ enum StatusEffectType {
   drench,
   silence,
   resourceOverTime,
+  offenseBuff,
 }
 
 /// Resources that can be restored through status effects.
@@ -34,6 +35,7 @@ enum StatusProfileId {
   restoreHealth,
   restoreMana,
   restoreStamina,
+  focus,
 }
 
 /// Stable identifiers for deterministic self-purge profiles.
@@ -52,6 +54,7 @@ class StatusApplication {
     this.scaleByDamageType = false,
     this.dotDamageType,
     this.resourceType,
+    this.critBonusBp,
     this.applyOnApply = false,
   }) : assert(
          type != StatusEffectType.dot || dotDamageType != null,
@@ -73,6 +76,7 @@ class StatusApplication {
   /// - Slow/Haste: basis points (100 = 1%)
   /// - DoT: damage per second in fixed-point (100 = 1.0)
   /// - ResourceOverTime: basis points restored per pulse (`100 = 1%` of max).
+  /// - OffenseBuff: power bonus in basis points (100 = 1%).
   final int magnitude;
 
   /// Total duration (seconds).
@@ -90,6 +94,9 @@ class StatusApplication {
   /// Resource restored by [StatusEffectType.resourceOverTime].
   final StatusResourceType? resourceType;
 
+  /// Crit chance bonus for [StatusEffectType.offenseBuff] in basis points.
+  final int? critBonusBp;
+
   /// Applies one pulse immediately when the status is queued/applied.
   final bool applyOnApply;
 
@@ -101,6 +108,7 @@ class StatusApplication {
     bool? scaleByDamageType,
     DamageType? dotDamageType,
     StatusResourceType? resourceType,
+    int? critBonusBp,
     bool? applyOnApply,
   }) {
     return StatusApplication(
@@ -111,6 +119,7 @@ class StatusApplication {
       scaleByDamageType: scaleByDamageType ?? this.scaleByDamageType,
       dotDamageType: dotDamageType ?? this.dotDamageType,
       resourceType: resourceType ?? this.resourceType,
+      critBonusBp: critBonusBp ?? this.critBonusBp,
       applyOnApply: applyOnApply ?? this.applyOnApply,
     );
   }
@@ -130,6 +139,7 @@ class StatusApplicationPreset {
     double? periodSeconds,
     bool? scaleByDamageType,
     DamageType? dotDamageType,
+    int? critBonusBp,
   }) {
     return _baseline.copyWith(
       magnitude: magnitude,
@@ -137,6 +147,7 @@ class StatusApplicationPreset {
       periodSeconds: periodSeconds,
       scaleByDamageType: scaleByDamageType,
       dotDamageType: dotDamageType,
+      critBonusBp: critBonusBp,
     );
   }
 }
@@ -253,6 +264,15 @@ class StatusApplicationPresets {
       resourceType: StatusResourceType.stamina,
     ),
   );
+
+  static const StatusApplicationPreset focus = StatusApplicationPreset(
+    StatusApplication(
+      type: StatusEffectType.offenseBuff,
+      magnitude: 2500, // +25% power
+      critBonusBp: 1500, // +15% crit chance
+      durationSeconds: 5.0,
+    ),
+  );
 }
 
 /// A bundle of status applications applied on hit.
@@ -326,6 +346,10 @@ class StatusProfileCatalog {
       case StatusProfileId.restoreStamina:
         return StatusProfile(<StatusApplication>[
           StatusApplicationPresets.staminaRestore.baseline,
+        ]);
+      case StatusProfileId.focus:
+        return StatusProfile(<StatusApplication>[
+          StatusApplicationPresets.focus.baseline,
         ]);
     }
   }

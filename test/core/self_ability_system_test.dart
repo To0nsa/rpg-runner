@@ -240,6 +240,141 @@ void main() {
     expect(world.mana.mana[world.mana.indexOf(player)], equals(800));
   });
 
+  test(
+    'Focus self spell increases projectile payload damage and crit chance',
+    () {
+      final baselineWorld = EcsWorld();
+      final baselinePlayer = EntityFactory(baselineWorld).createPlayer(
+        posX: 0,
+        posY: 0,
+        velX: 0,
+        velY: 0,
+        facing: Facing.right,
+        grounded: true,
+        body: const BodyDef(isKinematic: true, useGravity: false),
+        collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+        health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+        mana: const ManaDef(mana: 5000, manaMax: 5000, regenPerSecond100: 0),
+        stamina: const StaminaDef(
+          stamina: 1000,
+          staminaMax: 1000,
+          regenPerSecond100: 0,
+        ),
+      );
+      final baselineLoadoutIndex = baselineWorld.equippedLoadout.indexOf(
+        baselinePlayer,
+      );
+      baselineWorld.equippedLoadout.mask[baselineLoadoutIndex] |=
+          LoadoutSlotMask.projectile;
+      baselineWorld.equippedLoadout.spellBookId[baselineLoadoutIndex] =
+          SpellBookId.epicSpellBook;
+      baselineWorld.equippedLoadout.abilityProjectileId[baselineLoadoutIndex] =
+          'eloise.snap_shot';
+      baselineWorld.equippedLoadout.abilitySpellId[baselineLoadoutIndex] =
+          'eloise.focus';
+
+      final baselineActivation = AbilityActivationSystem(
+        tickHz: 60,
+        inputBufferTicks: 10,
+        abilities: const AbilityCatalog(),
+        weapons: const WeaponCatalog(),
+        projectiles: const ProjectileCatalog(),
+        spellBooks: const SpellBookCatalog(),
+        accessories: const AccessoryCatalog(),
+      );
+
+      final baselineInputIndex = baselineWorld.playerInput.indexOf(
+        baselinePlayer,
+      );
+      baselineWorld.playerInput.projectilePressed[baselineInputIndex] = true;
+      baselineActivation.step(
+        baselineWorld,
+        player: baselinePlayer,
+        currentTick: 5,
+      );
+      baselineWorld.playerInput.projectilePressed[baselineInputIndex] = false;
+
+      final baselineProjectileIndex = baselineWorld.projectileIntent.indexOf(
+        baselinePlayer,
+      );
+      final baselineDamage =
+          baselineWorld.projectileIntent.damage100[baselineProjectileIndex];
+      final baselineCritChance =
+          baselineWorld.projectileIntent.critChanceBp[baselineProjectileIndex];
+
+      final focusWorld = EcsWorld();
+      final focusPlayer = EntityFactory(focusWorld).createPlayer(
+        posX: 0,
+        posY: 0,
+        velX: 0,
+        velY: 0,
+        facing: Facing.right,
+        grounded: true,
+        body: const BodyDef(isKinematic: true, useGravity: false),
+        collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+        health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+        mana: const ManaDef(mana: 5000, manaMax: 5000, regenPerSecond100: 0),
+        stamina: const StaminaDef(
+          stamina: 1000,
+          staminaMax: 1000,
+          regenPerSecond100: 0,
+        ),
+      );
+      final focusLoadoutIndex = focusWorld.equippedLoadout.indexOf(focusPlayer);
+      focusWorld.equippedLoadout.mask[focusLoadoutIndex] |=
+          LoadoutSlotMask.projectile;
+      focusWorld.equippedLoadout.spellBookId[focusLoadoutIndex] =
+          SpellBookId.epicSpellBook;
+      focusWorld.equippedLoadout.abilityProjectileId[focusLoadoutIndex] =
+          'eloise.snap_shot';
+      focusWorld.equippedLoadout.abilitySpellId[focusLoadoutIndex] =
+          'eloise.focus';
+
+      final focusActivation = AbilityActivationSystem(
+        tickHz: 60,
+        inputBufferTicks: 10,
+        abilities: const AbilityCatalog(),
+        weapons: const WeaponCatalog(),
+        projectiles: const ProjectileCatalog(),
+        spellBooks: const SpellBookCatalog(),
+        accessories: const AccessoryCatalog(),
+      );
+      final focusSelfAbility = SelfAbilitySystem();
+      final focusStatus = StatusSystem(tickHz: 60);
+
+      final focusInputIndex = focusWorld.playerInput.indexOf(focusPlayer);
+      focusWorld.playerInput.spellPressed[focusInputIndex] = true;
+      focusActivation.step(focusWorld, player: focusPlayer, currentTick: 5);
+      focusWorld.playerInput.spellPressed[focusInputIndex] = false;
+
+      focusSelfAbility.step(
+        focusWorld,
+        currentTick: 5,
+        queueStatus: focusStatus.queue,
+      );
+      focusStatus.applyQueued(focusWorld, currentTick: 5);
+      expect(focusWorld.offenseBuff.has(focusPlayer), isTrue);
+
+      // Clear the utility active state so a projectile cast can commit immediately.
+      focusWorld.activeAbility.clear(focusPlayer);
+
+      focusWorld.playerInput.projectilePressed[focusInputIndex] = true;
+      focusActivation.step(focusWorld, player: focusPlayer, currentTick: 6);
+      focusWorld.playerInput.projectilePressed[focusInputIndex] = false;
+
+      final focusProjectileIndex = focusWorld.projectileIntent.indexOf(
+        focusPlayer,
+      );
+      final focusDamage =
+          focusWorld.projectileIntent.damage100[focusProjectileIndex];
+      final focusCritChance =
+          focusWorld.projectileIntent.critChanceBp[focusProjectileIndex];
+
+      expect(focusDamage, greaterThan(baselineDamage));
+      expect(focusCritChance, equals(baselineCritChance + 1500));
+    },
+  );
+
   test('Cleanse self spell purges debuffs including stun', () {
     final world = EcsWorld();
     final player = EntityFactory(world).createPlayer(

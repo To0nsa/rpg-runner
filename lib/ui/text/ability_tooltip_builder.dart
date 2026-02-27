@@ -507,6 +507,14 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
               'Restore $restorePct% of $resourceLabel over $duration seconds.',
           dynamicValues: <String>[restorePct, resourceLabel, duration],
         );
+      case StatusEffectType.offenseBuff:
+        final powerBonus = _formatDecimal(application.magnitude / 100.0);
+        final critBonus = _formatDecimal((application.critBonusBp ?? 0) / 100.0);
+        return _DescriptionWithHighlights(
+          description:
+              'Increase power by $powerBonus% and critical chance by $critBonus% for $duration seconds.',
+          dynamicValues: <String>[powerBonus, critBonus, duration],
+        );
       case StatusEffectType.dot:
       case StatusEffectType.slow:
       case StatusEffectType.stun:
@@ -669,6 +677,7 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
           case StatusEffectType.haste:
           case StatusEffectType.damageReduction:
           case StatusEffectType.resourceOverTime:
+          case StatusEffectType.offenseBuff:
             continue;
         }
       }
@@ -698,6 +707,7 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
         case StatusEffectType.haste:
         case StatusEffectType.damageReduction:
         case StatusEffectType.resourceOverTime:
+        case StatusEffectType.offenseBuff:
           continue;
       }
     }
@@ -775,6 +785,8 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
           case null:
             return 'Resource Regen';
         }
+      case StatusEffectType.offenseBuff:
+        return 'Focus';
       case StatusEffectType.dot:
       case StatusEffectType.slow:
       case StatusEffectType.stun:

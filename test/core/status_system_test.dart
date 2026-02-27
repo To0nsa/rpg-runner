@@ -18,6 +18,7 @@ import 'package:rpg_runner/core/ecs/stores/enemies/enemy_store.dart';
 import 'package:rpg_runner/core/ecs/stores/status/dot_store.dart';
 import 'package:rpg_runner/core/ecs/stores/status/slow_store.dart';
 import 'package:rpg_runner/core/ecs/stores/status/haste_store.dart';
+import 'package:rpg_runner/core/ecs/stores/status/offense_buff_store.dart';
 import 'package:rpg_runner/core/ecs/stores/status/vulnerable_store.dart';
 import 'package:rpg_runner/core/ecs/stores/status/weaken_store.dart';
 import 'package:rpg_runner/core/ecs/stores/status/drench_store.dart';
@@ -270,6 +271,9 @@ void main() {
         StatusRequest(target: target, profileId: StatusProfileId.arcaneWard),
       );
       status.queue(
+        StatusRequest(target: target, profileId: StatusProfileId.focus),
+      );
+      status.queue(
         StatusRequest(target: target, profileId: StatusProfileId.burnOnHit),
       );
       status.applyQueued(world, currentTick: 1);
@@ -278,6 +282,11 @@ void main() {
       final wardIndex = world.damageReduction.indexOf(target);
       expect(world.damageReduction.magnitude[wardIndex], equals(4000));
       expect(world.damageReduction.ticksLeft[wardIndex], equals(240));
+      expect(world.offenseBuff.has(target), isTrue);
+      final offenseIndex = world.offenseBuff.indexOf(target);
+      expect(world.offenseBuff.powerBonusBp[offenseIndex], equals(2500));
+      expect(world.offenseBuff.critBonusBp[offenseIndex], equals(1500));
+      expect(world.offenseBuff.ticksLeft[offenseIndex], equals(300));
       expect(world.dot.has(target), isFalse);
     },
   );
@@ -336,6 +345,59 @@ void main() {
     expect(world.damageReduction.ticksLeft[wardIndex], equals(120));
   });
 
+  test('Focus stack policy uses dominance and equal refresh', () {
+    final world = EcsWorld();
+    final status = StatusSystem(
+      tickHz: 60,
+      profiles: const _OffenseBuffStatusProfileCatalog(),
+    );
+
+    final target = world.createEntity();
+    world.health.add(
+      target,
+      const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+    );
+
+    status.queue(StatusRequest(target: target, profileId: StatusProfileId.focus));
+    status.applyQueued(world, currentTick: 1);
+
+    var offenseIndex = world.offenseBuff.indexOf(target);
+    expect(world.offenseBuff.powerBonusBp[offenseIndex], equals(2500));
+    expect(world.offenseBuff.critBonusBp[offenseIndex], equals(1500));
+    expect(world.offenseBuff.ticksLeft[offenseIndex], equals(300));
+
+    for (var tick = 0; tick < 100; tick += 1) {
+      status.tickExisting(world);
+    }
+
+    status.queue(
+      StatusRequest(target: target, profileId: StatusProfileId.restoreHealth),
+    ); // same stats, longer duration
+    status.applyQueued(world, currentTick: 2);
+    offenseIndex = world.offenseBuff.indexOf(target);
+    expect(world.offenseBuff.powerBonusBp[offenseIndex], equals(2500));
+    expect(world.offenseBuff.critBonusBp[offenseIndex], equals(1500));
+    expect(world.offenseBuff.ticksLeft[offenseIndex], equals(420));
+
+    status.queue(
+      StatusRequest(target: target, profileId: StatusProfileId.speedBoost),
+    ); // lower power but higher crit -> no dominance
+    status.applyQueued(world, currentTick: 3);
+    offenseIndex = world.offenseBuff.indexOf(target);
+    expect(world.offenseBuff.powerBonusBp[offenseIndex], equals(2500));
+    expect(world.offenseBuff.critBonusBp[offenseIndex], equals(1500));
+    expect(world.offenseBuff.ticksLeft[offenseIndex], equals(420));
+
+    status.queue(
+      StatusRequest(target: target, profileId: StatusProfileId.restoreMana),
+    ); // dominant (higher power, equal crit)
+    status.applyQueued(world, currentTick: 4);
+    offenseIndex = world.offenseBuff.indexOf(target);
+    expect(world.offenseBuff.powerBonusBp[offenseIndex], equals(3200));
+    expect(world.offenseBuff.critBonusBp[offenseIndex], equals(1500));
+    expect(world.offenseBuff.ticksLeft[offenseIndex], equals(120));
+  });
+
   test('cleanse purge removes debuffs including stun but preserves buffs', () {
     final world = EcsWorld();
     final status = StatusSystem(tickHz: 60);
@@ -362,6 +424,14 @@ void main() {
     world.weaken.add(target, const WeakenDef(ticksLeft: 30, magnitude: 3500));
     world.drench.add(target, const DrenchDef(ticksLeft: 30, magnitude: 5000));
     world.haste.add(target, const HasteDef(ticksLeft: 30, magnitude: 2000));
+    world.offenseBuff.add(
+      target,
+      const OffenseBuffDef(
+        ticksLeft: 30,
+        powerBonusBp: 2500,
+        critBonusBp: 1500,
+      ),
+    );
     world.controlLock.addLock(target, LockFlag.stun, 20, 0);
     world.controlLock.addLock(target, LockFlag.cast, 20, 0);
 
@@ -376,6 +446,7 @@ void main() {
     expect(world.weaken.has(target), isFalse);
     expect(world.drench.has(target), isFalse);
     expect(world.haste.has(target), isTrue);
+    expect(world.offenseBuff.has(target), isTrue);
 
     expect(world.controlLock.isLocked(target, LockFlag.stun, 0), isFalse);
     expect(world.controlLock.isLocked(target, LockFlag.cast, 0), isFalse);
@@ -810,6 +881,54 @@ class _DamageReductionStatusProfileCatalog extends StatusProfileCatalog {
           StatusApplication(
             type: StatusEffectType.damageReduction,
             magnitude: 6000,
+            durationSeconds: 2.0,
+          ),
+        ]);
+      default:
+        return super.get(id);
+    }
+  }
+}
+
+class _OffenseBuffStatusProfileCatalog extends StatusProfileCatalog {
+  const _OffenseBuffStatusProfileCatalog();
+
+  @override
+  StatusProfile get(StatusProfileId id) {
+    switch (id) {
+      case StatusProfileId.focus:
+        return const StatusProfile(<StatusApplication>[
+          StatusApplication(
+            type: StatusEffectType.offenseBuff,
+            magnitude: 2500,
+            critBonusBp: 1500,
+            durationSeconds: 5.0,
+          ),
+        ]);
+      case StatusProfileId.restoreHealth:
+        return const StatusProfile(<StatusApplication>[
+          StatusApplication(
+            type: StatusEffectType.offenseBuff,
+            magnitude: 2500,
+            critBonusBp: 1500,
+            durationSeconds: 7.0,
+          ),
+        ]);
+      case StatusProfileId.speedBoost:
+        return const StatusProfile(<StatusApplication>[
+          StatusApplication(
+            type: StatusEffectType.offenseBuff,
+            magnitude: 2000,
+            critBonusBp: 2000,
+            durationSeconds: 8.0,
+          ),
+        ]);
+      case StatusProfileId.restoreMana:
+        return const StatusProfile(<StatusApplication>[
+          StatusApplication(
+            type: StatusEffectType.offenseBuff,
+            magnitude: 3200,
+            critBonusBp: 1500,
             durationSeconds: 2.0,
           ),
         ]);

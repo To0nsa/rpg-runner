@@ -77,6 +77,7 @@ class AbilityTagResolver {
       case StatusEffectType.vulnerable:
       case StatusEffectType.weaken:
       case StatusEffectType.resourceOverTime:
+      case StatusEffectType.offenseBuff:
         return false;
     }
   }

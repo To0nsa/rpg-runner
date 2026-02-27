@@ -13,6 +13,7 @@ import '../stores/status/dot_store.dart';
 import '../stores/status/damage_reduction_store.dart';
 import '../stores/status/drench_store.dart';
 import '../stores/status/haste_store.dart';
+import '../stores/status/offense_buff_store.dart';
 import '../stores/status/resource_over_time_store.dart';
 import '../stores/status/slow_store.dart';
 import '../stores/status/vulnerable_store.dart';
@@ -68,6 +69,7 @@ class StatusSystem {
     _tickDot(world);
     _tickResourceOverTime(world);
     _tickDamageReduction(world);
+    _tickOffenseBuff(world);
     _tickHaste(world);
     _tickSlow(world);
     _tickVulnerable(world);
@@ -301,7 +303,11 @@ class StatusSystem {
             magnitude = applyBp(magnitude, modBp);
           }
         }
-        if (magnitude <= 0) continue;
+        final critBonusBp = app.critBonusBp ?? 0;
+        final hasOffenseBuffMagnitude =
+            app.type == StatusEffectType.offenseBuff &&
+            (magnitude > 0 || critBonusBp > 0);
+        if (magnitude <= 0 && !hasOffenseBuffMagnitude) continue;
 
         switch (app.type) {
           case StatusEffectType.dot:
@@ -361,8 +367,64 @@ class StatusSystem {
             _applyDrench(world, req.target, magnitude, app.durationSeconds);
           case StatusEffectType.silence:
             _applySilence(world, req.target, app.durationSeconds);
+          case StatusEffectType.offenseBuff:
+            _applyOffenseBuff(
+              world,
+              req.target,
+              magnitude,
+              critBonusBp,
+              app.durationSeconds,
+            );
         }
       }
+    }
+  }
+
+  void _applyOffenseBuff(
+    EcsWorld world,
+    EntityId target,
+    int powerBonusBp,
+    int critBonusBp,
+    double durationSeconds,
+  ) {
+    final ticksLeft = ticksFromSecondsCeil(durationSeconds, _tickHz);
+    if (ticksLeft <= 0) return;
+
+    final offense = world.offenseBuff;
+    final clampedPower = clampInt(powerBonusBp, 0, 20000);
+    final clampedCrit = clampInt(critBonusBp, 0, 10000);
+    if (clampedPower <= 0 && clampedCrit <= 0) return;
+
+    final index = offense.tryIndexOf(target);
+    if (index == null) {
+      offense.add(
+        target,
+        OffenseBuffDef(
+          ticksLeft: ticksLeft,
+          powerBonusBp: clampedPower,
+          critBonusBp: clampedCrit,
+        ),
+      );
+      return;
+    }
+
+    final currentPower = offense.powerBonusBp[index];
+    final currentCrit = offense.critBonusBp[index];
+    final dominatesCurrent =
+        clampedPower >= currentPower &&
+        clampedCrit >= currentCrit &&
+        (clampedPower > currentPower || clampedCrit > currentCrit);
+    final equalsCurrent =
+        clampedPower == currentPower && clampedCrit == currentCrit;
+
+    if (dominatesCurrent) {
+      offense.powerBonusBp[index] = clampedPower;
+      offense.critBonusBp[index] = clampedCrit;
+      offense.ticksLeft[index] = ticksLeft;
+      return;
+    }
+    if (equalsCurrent && ticksLeft > offense.ticksLeft[index]) {
+      offense.ticksLeft[index] = ticksLeft;
     }
   }
 
@@ -942,6 +1004,27 @@ class StatusSystem {
     }
   }
 
+  void _tickOffenseBuff(EcsWorld world) {
+    final offense = world.offenseBuff;
+    if (offense.denseEntities.isEmpty) return;
+
+    _removeScratch.clear();
+    for (var i = 0; i < offense.denseEntities.length; i += 1) {
+      final target = offense.denseEntities[i];
+      if (world.deathState.has(target)) {
+        _removeScratch.add(target);
+        continue;
+      }
+      offense.ticksLeft[i] -= 1;
+      if (offense.ticksLeft[i] <= 0) {
+        _removeScratch.add(target);
+      }
+    }
+    for (final target in _removeScratch) {
+      offense.removeEntity(target);
+    }
+  }
+
   void _tickWeaken(EcsWorld world) {
     final weaken = world.weaken;
     if (weaken.denseEntities.isEmpty) return;
@@ -997,6 +1080,7 @@ class StatusSystem {
       case StatusEffectType.haste:
       case StatusEffectType.damageReduction:
       case StatusEffectType.resourceOverTime:
+      case StatusEffectType.offenseBuff:
         return false;
     }
   }

@@ -35,7 +35,7 @@ Current ability slots:
 ### Slot Notes
 
 - `projectile` slot abilities use the projectile payload source selected for that slot (throwing weapon or spell projectile from spellbook grants).
-- `spell` slot currently hosts spellbook-granted self-utility abilities (`arcane_haste`, `arcane_ward`, `cleanse`, `vital_surge`, `mana_infusion`, `second_wind`).
+- `spell` slot currently hosts spellbook-granted self-utility abilities (`arcane_haste`, `focus`, `arcane_ward`, `cleanse`, `vital_surge`, `mana_infusion`, `second_wind`).
 - `jump` is a fixed action slot but still authored as abilities (`eloise.jump`, `eloise.double_jump`).
 
 ## Targeting and Input Lifecycle
@@ -87,3 +87,4 @@ Commit gating is stun-blocked by default; exceptions can opt in via `canCommitWh
 - Every slot triggers exactly one equipped ability.
 - Illegal slot/gear/ability combinations are blocked by loadout validation.
 - Ability commit, cooldown, and interruption behavior is deterministic and slot-consistent.
+- Offensive self-buffs (for example `focus`) affect outgoing hit payload through `HitPayloadBuilder` globals, not ad-hoc per-ability math.

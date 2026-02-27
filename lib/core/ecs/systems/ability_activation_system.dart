@@ -867,15 +867,17 @@ class AbilityActivationSystem {
       spellBooks: spellBooks,
     );
     final resolvedStats = _resolvedStatsForLoadout(world, player);
+    final offenseBuff = _offenseBuffBonusesFor(world, player);
 
     final payload = HitPayloadBuilder.build(
       ability: ability,
       source: player,
       weaponStats: weapon.stats,
-      globalPowerBonusBp: resolvedStats.globalPowerBonusBp,
+      globalPowerBonusBp: resolvedStats.globalPowerBonusBp + offenseBuff.$1,
       weaponDamageType: weapon.damageType,
       weaponProcs: weapon.procs,
-      globalCritChanceBonusBp: resolvedStats.globalCritChanceBonusBp,
+      globalCritChanceBonusBp:
+          resolvedStats.globalCritChanceBonusBp + offenseBuff.$2,
     );
     final tunedDamage100 =
         (payload.damage100 * chargeTuning.damageScaleBp) ~/ 10000;
@@ -1124,15 +1126,17 @@ class AbilityActivationSystem {
     }
 
     final resolvedStats = _resolvedStatsForLoadout(world, player);
+    final offenseBuff = _offenseBuffBonusesFor(world, player);
 
     final payload = HitPayloadBuilder.build(
       ability: ability,
       source: player,
       weaponStats: weaponStats,
-      globalPowerBonusBp: resolvedStats.globalPowerBonusBp,
+      globalPowerBonusBp: resolvedStats.globalPowerBonusBp + offenseBuff.$1,
       weaponDamageType: weaponDamageType,
       weaponProcs: weaponProcs,
-      globalCritChanceBonusBp: resolvedStats.globalCritChanceBonusBp,
+      globalCritChanceBonusBp:
+          resolvedStats.globalCritChanceBonusBp + offenseBuff.$2,
     );
     final tunedDamage100 =
         (payload.damage100 * chargeTuning.damageScaleBp) ~/ 10000;
@@ -1548,6 +1552,16 @@ class AbilityActivationSystem {
     EntityId entity,
   ) {
     return _statsCache.resolveForEntity(world, entity);
+  }
+
+  (int, int) _offenseBuffBonusesFor(EcsWorld world, EntityId entity) {
+    final index = world.offenseBuff.tryIndexOf(entity);
+    if (index == null) return (0, 0);
+    if (world.offenseBuff.ticksLeft[index] <= 0) return (0, 0);
+    return (
+      world.offenseBuff.powerBonusBp[index],
+      world.offenseBuff.critBonusBp[index],
+    );
   }
 
   int _actionSpeedBpFor(

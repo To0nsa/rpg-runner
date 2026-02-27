@@ -18,6 +18,7 @@ Status effects add deterministic pressure/control/tempo changes through authored
 - `drench`
 - `silence`
 - `resourceOverTime`
+- `offenseBuff`
 
 `StatusProfileId` currently includes:
 
@@ -35,6 +36,7 @@ Status effects add deterministic pressure/control/tempo changes through authored
 - `restoreHealth`
 - `restoreMana`
 - `restoreStamina`
+- `focus`
 
 `PurgeProfileId` currently includes:
 
@@ -55,6 +57,7 @@ Status effects add deterministic pressure/control/tempo changes through authored
 | `drenchOnHit` | drench `-50%` action speed for `5.0s` |
 | `silenceOnHit` | cast lock (`silence`) for `3.0s` |
 | `speedBoost` | haste `+50%` move speed for `5.0s` |
+| `focus` | offense buff `+25%` power and `+15%` crit chance for `5.0s` |
 | `restoreHealth` | restore `35%` max HP over `5.0s` |
 | `restoreMana` | restore `35%` max mana over `5.0s` |
 | `restoreStamina` | restore `35%` max stamina over `5.0s` |
@@ -95,6 +98,13 @@ Status effects add deterministic pressure/control/tempo changes through authored
 - equal magnitude extends to max remaining
 - weaker ignored
 
+### Offense buff (`OffenseBuffStore`)
+
+- stores two dimensions: `powerBonusBp` and `critBonusBp`
+- dominance policy: new effect replaces only when it is `>=` on both dimensions and `>` on at least one
+- equal pair refreshes duration to max remaining
+- mixed weaker/stronger pairs are ignored (no partial overwrite)
+
 ### Arcane Ward Damage Rules
 
 - implemented as `StatusEffectType.damageReduction` on `DamageReductionStore`
@@ -107,7 +117,7 @@ Status effects add deterministic pressure/control/tempo changes through authored
 - removes active `DotStore` channels
 - removes `slow`, `vulnerable`, `weaken`, and `drench` stores
 - clears control-lock flags for `stun` and `silence` (`LockFlag.stun | LockFlag.cast`)
-- does not remove beneficial statuses (`haste`, `damageReduction`, `resourceOverTime`)
+- does not remove beneficial statuses (`haste`, `damageReduction`, `resourceOverTime`, `offenseBuff`)
 
 ### Stun
 
@@ -126,13 +136,14 @@ Status effects add deterministic pressure/control/tempo changes through authored
 - `scaleByDamageType` scales magnitude up only when combined typed modifier is positive.
 - Apply-time gating skips status when target is dead or missing health.
 - Invulnerability gating applies only to harmful statuses (`dot`, `slow`, `stun`, `vulnerable`, `weaken`, `drench`, `silence`).
-- Beneficial statuses (`haste`, `damageReduction`, `resourceOverTime`) still apply during invulnerability.
+- Beneficial statuses (`haste`, `damageReduction`, `resourceOverTime`, `offenseBuff`) still apply during invulnerability.
 
 ## Derived Runtime Effects
 
 - slow/haste modify `StatModifierStore.moveSpeedMul`
 - drench modifies `StatModifierStore.actionSpeedBp`
 - `damageReduction` is consumed by `WardMiddleware` during `DamageMiddlewareSystem.step`
+- `offenseBuff` is consumed by `HitPayloadBuilder` call sites as global power/crit addends
 - action speed affects attack/cast timing and cooldown scaling at commit for combat slots
 
 ## Determinism Rules
@@ -144,6 +155,6 @@ Status effects add deterministic pressure/control/tempo changes through authored
 
 ## Known Gaps
 
-1. No generic cleanse/dispel yet
+1. Cleanse behavior is authored as a fixed profile (`PurgeProfileId.cleanse`), not yet data-driven by status tags
 2. No diminishing returns system yet
 3. No duration scaling by source stats (only profile/authored values)

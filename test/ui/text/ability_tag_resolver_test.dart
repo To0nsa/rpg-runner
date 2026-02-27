@@ -157,16 +157,12 @@ void main() {
 
     test('builds self-status descriptions with exact effect details', () {
       final expectedDescriptionByAbility = <String, String>{
-        'eloise.arcane_haste':
-            'Increase move speed by 50% for 5.0 seconds.',
+        'eloise.arcane_haste': 'Increase move speed by 50% for 5.0 seconds.',
         'eloise.arcane_ward':
             'Reduce direct-hit damage by 40% and cancel damage-over-time effects for 4.0 seconds.',
-        'eloise.vital_surge':
-            'Restore 35% of max Health over 5.0 seconds.',
-        'eloise.mana_infusion':
-            'Restore 35% of max Mana over 5.0 seconds.',
-        'eloise.second_wind':
-            'Restore 35% of max Stamina over 5.0 seconds.',
+        'eloise.vital_surge': 'Restore 35% of max Health over 5.0 seconds.',
+        'eloise.mana_infusion': 'Restore 35% of max Mana over 5.0 seconds.',
+        'eloise.second_wind': 'Restore 35% of max Stamina over 5.0 seconds.',
       };
 
       for (final entry in expectedDescriptionByAbility.entries) {
@@ -346,8 +342,14 @@ void main() {
         final highlightedValues = tooltip.dynamicDescriptionValues;
         expect(highlightedValues, contains(formatFixed100(def.baseDamage)));
         expect(highlightedValues, contains('Stun'));
-        expect(highlightedValues, contains(formatDecimal(stun.durationSeconds)));
-        expect(highlightedValues, contains(formatDecimal(damageBonusBp / 100.0)));
+        expect(
+          highlightedValues,
+          contains(formatDecimal(stun.durationSeconds)),
+        );
+        expect(
+          highlightedValues,
+          contains(formatDecimal(damageBonusBp / 100.0)),
+        );
         expect(
           highlightedValues,
           contains(formatDecimal(maxCritBonusBp / 100.0)),
@@ -368,9 +370,7 @@ void main() {
 
       expect(
         tooltip.description,
-        equals(
-          'Perform a concussive roll. Enemies hit are affected by Stun.',
-        ),
+        equals('Perform a concussive roll. Enemies hit are affected by Stun.'),
       );
       expect(tooltip.dynamicDescriptionValues, contains('Stun'));
     });
@@ -516,7 +516,10 @@ void main() {
         contains('Fire the selected spell projectile (Fire Bolt),'),
       );
       expect(defaultTooltip.dynamicDescriptionValues, contains(expectedDamage));
-      expect(selectedTooltip.dynamicDescriptionValues, contains(expectedDamage));
+      expect(
+        selectedTooltip.dynamicDescriptionValues,
+        contains(expectedDamage),
+      );
     });
 
     test('builds quick shot description with projectile source and damage', () {
@@ -532,39 +535,42 @@ void main() {
         tooltip.description,
         equals(
           'Aim and fire the selected spell projectile (Fire Bolt). '
-          'It deals 9 damage.',
+          'It deals 9 damage to a single target.',
         ),
       );
       expect(tooltip.dynamicDescriptionValues, contains(' (Fire Bolt)'));
       expect(tooltip.dynamicDescriptionValues, contains('9'));
     });
 
-    test('builds overcharge shot description with charge bonuses and interruptible', () {
-      final def = ability('eloise.overcharge_shot');
-      final tooltip = tooltipBuilder.build(
-        def,
-        ctx: const AbilityTooltipContext(
-          activeProjectileId: ProjectileId.fireBolt,
-          payloadWeaponType: WeaponType.projectileSpell,
-        ),
-      );
-      final expectedDamage = formatFixed100(def.baseDamage);
+    test(
+      'builds overcharge shot description with charge bonuses and interruptible',
+      () {
+        final def = ability('eloise.overcharge_shot');
+        final tooltip = tooltipBuilder.build(
+          def,
+          ctx: const AbilityTooltipContext(
+            activeProjectileId: ProjectileId.fireBolt,
+            payloadWeaponType: WeaponType.projectileSpell,
+          ),
+        );
+        final expectedDamage = formatFixed100(def.baseDamage);
 
-      expect(
-        tooltip.description,
-        equals(
-          'Charge and release the selected spell projectile (Fire Bolt). '
-          'It deals $expectedDamage damage. '
-          'Charging increases damage (up to +22.5%) '
-          'and critical chance (up to +10%). '
-          'This attack can be interrupted by taking damage.',
-        ),
-      );
-      expect(tooltip.dynamicDescriptionValues, contains(' (Fire Bolt)'));
-      expect(tooltip.dynamicDescriptionValues, contains(expectedDamage));
-      expect(tooltip.dynamicDescriptionValues, contains('22.5'));
-      expect(tooltip.dynamicDescriptionValues, contains('10'));
-    });
+        expect(
+          tooltip.description,
+          equals(
+            'Charge and release the selected spell projectile (Fire Bolt). '
+            'It deals $expectedDamage damage to a single target. '
+            'Charging increases damage (up to +22.5%) '
+            'and critical chance (up to +10%). '
+            'This attack can be interrupted by taking damage.',
+          ),
+        );
+        expect(tooltip.dynamicDescriptionValues, contains(' (Fire Bolt)'));
+        expect(tooltip.dynamicDescriptionValues, contains(expectedDamage));
+        expect(tooltip.dynamicDescriptionValues, contains('22.5'));
+        expect(tooltip.dynamicDescriptionValues, contains('10'));
+      },
+    );
 
     test('builds skewer shot description with pierce count', () {
       final def = ability('eloise.skewer_shot');
@@ -580,14 +586,11 @@ void main() {
       expect(
         tooltip.description,
         equals(
-          'Aim and fire a piercing your equipped projectile (Throwing Axe) in a line. '
+          'Fire your equipped projectile (Throwing Axe), piercing through enemies in its path. '
           'It deals $expectedDamage damage and can hit up to 3 enemies.',
         ),
       );
-      expect(
-        tooltip.dynamicDescriptionValues,
-        contains(' (Throwing Axe)'),
-      );
+      expect(tooltip.dynamicDescriptionValues, contains(' (Throwing Axe)'));
       expect(tooltip.dynamicDescriptionValues, contains(expectedDamage));
       expect(tooltip.dynamicDescriptionValues, contains('3'));
     });

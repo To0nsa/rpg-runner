@@ -13,8 +13,8 @@ This document reflects the current Core combat contracts used by `GameCore`.
 
 ### Status System
 
-- `StatusEffectType`: `dot`, `slow`, `stun`, `haste`, `damageReduction`, `vulnerable`, `weaken`, `drench`, `silence`, `resourceOverTime`
-- `StatusProfileId`: authored bundles (for example `slowOnHit`, `burnOnHit`, `arcaneWard`, `stunOnHit`, `restoreHealth`)
+- `StatusEffectType`: `dot`, `slow`, `stun`, `haste`, `damageReduction`, `vulnerable`, `weaken`, `drench`, `silence`, `resourceOverTime`, `offenseBuff`
+- `StatusProfileId`: authored bundles (for example `slowOnHit`, `burnOnHit`, `arcaneWard`, `focus`, `stunOnHit`, `restoreHealth`)
 - `PurgeProfileId`: deterministic purge bundles (currently `cleanse`)
 - `StatusApplication`: one application entry (magnitude, duration, optional period/type/resource)
 - `StatusProfileCatalog`: stable profile lookup
@@ -40,6 +40,7 @@ See `docs/gdd/combat/status/status_system_design.md`.
 | `SlowStore` | Active slow |
 | `HasteStore` | Active haste |
 | `DamageReductionStore` | Active ward-style direct-hit reduction |
+| `OffenseBuffStore` | Active outgoing power/crit buff |
 | `VulnerableStore` | Incoming-damage amplification |
 | `WeakenStore` | Outgoing-damage reduction |
 | `DrenchStore` | Action-speed reduction |
@@ -107,7 +108,7 @@ DamageRequest {
 
 - Ticks and applies periodic damage from `DotStore`
 - Ticks `ResourceOverTimeStore` and applies smooth resource restoration
-- Ticks `slow/haste/damageReduction/vulnerable/weaken/drench`
+- Ticks `slow/haste/damageReduction/offenseBuff/vulnerable/weaken/drench`
 - Queues DoT `DamageRequest`s
 
 ### `StatusSystem.applyQueued`
@@ -129,6 +130,10 @@ DamageRequest {
 - `WardMiddleware` consumes `DamageReductionStore`:
   - direct hits are reduced by ward magnitude
   - DoT (`DeathSourceKind.statusEffect`) is canceled while ward is active
+
+### Payload builder note
+
+- `HitPayloadBuilder` receives additive global power/crit bonuses from resolved stats and active `OffenseBuffStore` (for example `StatusProfileId.focus`).
 
 ## Projectile Items (Spells + Throws)
 

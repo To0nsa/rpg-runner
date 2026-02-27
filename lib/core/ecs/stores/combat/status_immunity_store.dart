@@ -15,6 +15,7 @@ class StatusImmunityMask {
   static const int drench = 1 << 7;
   static const int silence = 1 << 8;
   static const int resourceOverTime = 1 << 9;
+  static const int offenseBuff = 1 << 10;
   static int forType(StatusEffectType type) {
     switch (type) {
       case StatusEffectType.dot:
@@ -37,6 +38,8 @@ class StatusImmunityMask {
         return silence;
       case StatusEffectType.resourceOverTime:
         return resourceOverTime;
+      case StatusEffectType.offenseBuff:
+        return offenseBuff;
     }
   }
 }

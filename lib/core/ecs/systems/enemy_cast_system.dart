@@ -155,10 +155,21 @@ class EnemyCastSystem {
     }
 
     final enemy = world.enemy.denseEntities[enemyIndex];
+    final offenseIndex = world.offenseBuff.tryIndexOf(enemy);
+    final offensePowerBp =
+        offenseIndex != null && world.offenseBuff.ticksLeft[offenseIndex] > 0
+        ? world.offenseBuff.powerBonusBp[offenseIndex]
+        : 0;
+    final offenseCritBp =
+        offenseIndex != null && world.offenseBuff.ticksLeft[offenseIndex] > 0
+        ? world.offenseBuff.critBonusBp[offenseIndex]
+        : 0;
     final payload = HitPayloadBuilder.build(
       ability: ability,
       source: enemy,
       weaponStats: projectile.stats,
+      globalPowerBonusBp: offensePowerBp,
+      globalCritChanceBonusBp: offenseCritBp,
       weaponDamageType: projectile.damageType,
       weaponProcs: projectile.procs,
     );

@@ -94,6 +94,7 @@ String? _statusApplicationSummary(StatusApplication app, WeaponProc proc) {
     case StatusEffectType.haste:
     case StatusEffectType.damageReduction:
     case StatusEffectType.resourceOverTime:
+    case StatusEffectType.offenseBuff:
       return null;
   }
 }

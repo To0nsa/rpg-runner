@@ -17,7 +17,7 @@ Core units:
 | `projectile` | `eloise.snap_shot`, `eloise.quick_shot`, `eloise.skewer_shot`, `eloise.overcharge_shot` |
 | `mobility` | `eloise.dash`, `eloise.roll` |
 | `jump` | `eloise.jump`, `eloise.double_jump` |
-| `spell` | `eloise.arcane_haste`, `eloise.arcane_ward`, `eloise.cleanse`, `eloise.vital_surge`, `eloise.mana_infusion`, `eloise.second_wind` |
+| `spell` | `eloise.arcane_haste`, `eloise.focus`, `eloise.arcane_ward`, `eloise.cleanse`, `eloise.vital_surge`, `eloise.mana_infusion`, `eloise.second_wind` |
 
 ## Full Ability Table
 
@@ -37,6 +37,7 @@ Core units:
 | `eloise.skewer_shot` | `projectile` | `holdRelease` | `aimedLine` | `10/2/12` | mana `1000` (throwing: stamina `1000`) | `32` |
 | `eloise.overcharge_shot` | `projectile` | `holdRelease` | `aimedCharge` | `10/2/12` | mana `1300` (throwing: stamina `1300`) | `40` |
 | `eloise.arcane_haste` | `spell` | `tap` | `none` | `0/0/10` | mana `1000` | `300` |
+| `eloise.focus` | `spell` | `tap` | `none` | `0/0/10` | mana `1200` | `420` |
 | `eloise.arcane_ward` | `spell` | `tap` | `none` | `0/0/10` | mana `1200` | `420` |
 | `eloise.cleanse` | `spell` | `tap` | `none` | `0/0/10` | mana `1400` | `480` |
 | `eloise.vital_surge` | `spell` | `tap` | `none` | `0/0/10` | mana `1500` | `420` |
@@ -53,6 +54,7 @@ Core units:
 2. Projectile-slot abilities resolve payload from projectile source selection at commit time.
 3. `riposte_guard` and `aegis_riposte` both mitigate `50%` incoming hit damage while active and grant riposte on guarded hit.
 4. `shield_block` mitigates `100%` incoming hit damage while active and does not grant riposte.
-5. `arcane_ward` applies `StatusProfileId.arcaneWard` (`40%` direct-hit mitigation, DoT canceled while active).
-6. `cleanse` applies `PurgeProfileId.cleanse`, removes active debuffs including stun, and can commit while stunned.
-7. `roll` has mobility contact status (`stunOnHit`) via `MobilityImpactDef`.
+5. `focus` applies `StatusProfileId.focus` (`+25%` power, `+15%` crit chance for `5.0s`).
+6. `arcane_ward` applies `StatusProfileId.arcaneWard` (`40%` direct-hit mitigation, DoT canceled while active).
+7. `cleanse` applies `PurgeProfileId.cleanse`, removes active debuffs including stun, and can commit while stunned.
+8. `roll` has mobility contact status (`stunOnHit`) via `MobilityImpactDef`.
