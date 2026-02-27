@@ -46,7 +46,7 @@ class UiActionButtonTheme extends ThemeExtension<UiActionButtonTheme> {
         gradientStops: <double>[0.0, 0.42, 0.78, 1.0],
         glowColor: UiBrandPalette.crimsonDanger,
         glowAlpha: 1.0,
-        glowBlurRadius: 14,
+        glowBlurRadius: 8,
         glowSpreadRadius: 2,
       ),
     );

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -38,124 +40,188 @@ class _GearsTabState extends State<GearsTab> {
 
   GearSlot _selectedSlot = GearSlot.mainWeapon;
   final Map<GearSlot, Object> _selectedCandidateBySlot = <GearSlot, Object>{};
+  late final PageController _slotPageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _slotPageController = PageController(
+      initialPage: _indexForSlot(_selectedSlot),
+    );
+  }
+
+  @override
+  void dispose() {
+    _slotPageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
+    final safePadding = MediaQuery.paddingOf(context);
     final appState = context.watch<AppState>();
     final meta = appState.meta;
     final equipped = meta.equippedFor(widget.characterId);
-
-    final candidates = _service
-        .candidatesForSlot(meta, _selectedSlot)
-        .where((candidate) => candidate.isUnlocked)
-        .toList(growable: false);
-    final equippedId = _equippedIdForSlot(_selectedSlot, equipped);
-    final selectedId = _selectedCandidateIdForSlot(
-      slot: _selectedSlot,
-      candidates: candidates,
-      equippedId: equippedId,
-    );
-    final selectedCandidate = _candidateById(candidates, selectedId);
-    final canEquip = selectedId != equippedId && selectedCandidate != null;
+    final selectedSlotIndex = _indexForSlot(_selectedSlot);
 
     return Padding(
-      padding: EdgeInsets.only(top: ui.space.xxs),
+      padding: EdgeInsets.only(
+        left: safePadding.left + ui.space.xs,
+        right: safePadding.right,
+      ),
       child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1200),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    SizedBox(
-                      width: 48,
-                      child: _GearSlotSelector(
-                        slotSpecs: _slotSpecs,
-                        selectedSlot: _selectedSlot,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(
+                    width: 56,
+                    child: _GearSlotSelector(
+                      slotSpecs: _slotSpecs,
+                      selectedSlot: _selectedSlot,
+                      equipped: equipped,
+                      onSelectSlot: (slot) => _onSelectSlot(
+                        slot: slot,
                         equipped: equipped,
-                        onSelectSlot: (slot) {
-                          if (_selectedSlot == slot) return;
-                          setState(() {
-                            _selectedSlot = slot;
-                            _selectedCandidateBySlot.putIfAbsent(
-                              slot,
-                              () => _equippedIdForSlot(slot, equipped),
-                            );
-                          });
-                        },
+                        animatePage: true,
                       ),
                     ),
-                    SizedBox(
-                      width: ui.space.md,
-                      child: VerticalDivider(
-                        width: ui.space.xxs,
-                        thickness: ui.sizes.borderWidth,
-                        color: ui.colors.outline,
-                        indent: ui.space.xxs,
-                        endIndent: ui.space.xxs,
-                      ),
-                    ),
-                    Expanded(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: ui.colors.cardBackground,
-                          borderRadius: BorderRadius.circular(ui.radii.md),
-                          border: Border.all(
-                            color: ui.colors.outline.withValues(alpha: 0.4),
-                          ),
-                          boxShadow: ui.shadows.card,
+                  ),
+                  _GearSlotSelectionDivider(
+                    width: ui.space.md,
+                    selectedIndex: selectedSlotIndex,
+                    slotCount: _slotSpecs.length,
+                  ),
+                  Expanded(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: ui.colors.cardBackground,
+                        borderRadius: BorderRadius.circular(ui.radii.md),
+                        border: Border.all(
+                          color: ui.colors.outline.withValues(alpha: 0.4),
                         ),
-                        child: Padding(
-                          padding: EdgeInsets.all(ui.space.sm),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Expanded(
-                                flex: 1,
-                                child: _GearDetailsPane(
-                                  slot: _selectedSlot,
-                                  selectedId: selectedId,
-                                  equippedForCompare: equippedId,
-                                ),
-                              ),
-                              SizedBox(width: ui.space.sm),
-                              Expanded(
-                                flex: 1,
-                                child: _GearCandidatesPane(
-                                  slot: _selectedSlot,
-                                  candidates: candidates,
-                                  equippedId: equippedId,
-                                  selectedId: selectedId,
-                                  canEquip: canEquip,
-                                  onSelected: (value) => setState(() {
-                                    _selectedCandidateBySlot[_selectedSlot] =
-                                        value;
-                                  }),
-                                  onEquip: () => _equipSelected(
-                                    appState: appState,
-                                    slot: _selectedSlot,
+                        boxShadow: ui.shadows.card,
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.all(ui.space.sm),
+                        child: PageView.builder(
+                          controller: _slotPageController,
+                          scrollDirection: Axis.vertical,
+                          itemCount: _slotSpecs.length,
+                          onPageChanged: (index) =>
+                              _onPageChanged(index: index, equipped: equipped),
+                          itemBuilder: (context, index) {
+                            final slot = _slotSpecs[index].slot;
+                            final candidates = _service
+                                .candidatesForSlot(meta, slot)
+                                .where((candidate) => candidate.isUnlocked)
+                                .toList(growable: false);
+                            final equippedId = _equippedIdForSlot(
+                              slot,
+                              equipped,
+                            );
+                            final selectedId = _selectedCandidateIdForSlot(
+                              slot: slot,
+                              candidates: candidates,
+                              equippedId: equippedId,
+                            );
+                            final selectedCandidate = _candidateById(
+                              candidates,
+                              selectedId,
+                            );
+                            final canEquip =
+                                selectedId != equippedId &&
+                                selectedCandidate != null;
+
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(
+                                  flex: 1,
+                                  child: _GearDetailsPane(
+                                    slot: slot,
                                     selectedId: selectedId,
-                                    equippedId: equippedId,
+                                    equippedForCompare: equippedId,
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
+                                SizedBox(width: ui.space.sm),
+                                Expanded(
+                                  flex: 1,
+                                  child: _GearCandidatesPane(
+                                    slot: slot,
+                                    candidates: candidates,
+                                    equippedId: equippedId,
+                                    selectedId: selectedId,
+                                    canEquip: canEquip,
+                                    onSelected: (value) => setState(() {
+                                      _selectedCandidateBySlot[slot] = value;
+                                    }),
+                                    onEquip: () => _equipSelected(
+                                      appState: appState,
+                                      slot: slot,
+                                      selectedId: selectedId,
+                                      equippedId: equippedId,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  void _onSelectSlot({
+    required GearSlot slot,
+    required EquippedGear equipped,
+    required bool animatePage,
+  }) {
+    if (_selectedSlot == slot) return;
+    setState(() {
+      _selectedSlot = slot;
+      _selectedCandidateBySlot.putIfAbsent(
+        slot,
+        () => _equippedIdForSlot(slot, equipped),
+      );
+    });
+    if (!animatePage || !_slotPageController.hasClients) return;
+    _slotPageController.animateToPage(
+      _indexForSlot(slot),
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  void _onPageChanged({required int index, required EquippedGear equipped}) {
+    final slot = _slotSpecs[index].slot;
+    if (_selectedSlot == slot) return;
+    setState(() {
+      _selectedSlot = slot;
+      _selectedCandidateBySlot.putIfAbsent(
+        slot,
+        () => _equippedIdForSlot(slot, equipped),
+      );
+    });
+  }
+
+  int _indexForSlot(GearSlot slot) {
+    for (var i = 0; i < _slotSpecs.length; i++) {
+      if (_slotSpecs[i].slot == slot) return i;
+    }
+    return 0;
   }
 
   Object _selectedCandidateIdForSlot({
@@ -186,6 +252,78 @@ class _GearsTabState extends State<GearsTab> {
       characterId: widget.characterId,
       slot: slot,
       itemId: selectedId,
+    );
+  }
+}
+
+class _GearSlotSelectionDivider extends StatelessWidget {
+  const _GearSlotSelectionDivider({
+    required this.width,
+    required this.selectedIndex,
+    required this.slotCount,
+  });
+
+  final double width;
+  final int selectedIndex;
+  final int slotCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final ui = context.ui;
+    const markerHeight = 28.0;
+    const slotSize = 48.0;
+    final gap = ui.space.xs;
+
+    return SizedBox(
+      width: width,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final maxHeight = constraints.maxHeight;
+          final laneHeight =
+              ((slotCount * slotSize) + ((slotCount - 1).clamp(0, 9999) * gap))
+                  .toDouble();
+          final startY = ((maxHeight - laneHeight) / 2)
+              .clamp(0.0, maxHeight)
+              .toDouble();
+          final targetY =
+              startY +
+              (selectedIndex * (slotSize + gap)) +
+              ((slotSize - markerHeight) / 2);
+          final clampedY = targetY
+              .clamp(0.0, math.max(0.0, maxHeight - markerHeight))
+              .toDouble();
+          final markerWidth = (width * 0.35).clamp(3.0, 6.0).toDouble();
+
+          return Stack(
+            children: [
+              Positioned.fill(
+                child: VerticalDivider(
+                  width: ui.space.xxs,
+                  thickness: ui.sizes.borderWidth,
+                  color: ui.colors.outline,
+                  indent: ui.space.xxs,
+                  endIndent: ui.space.xxs,
+                ),
+              ),
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOutCubic,
+                left: (width - markerWidth) / 2,
+                top: clampedY,
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: ui.colors.accentStrong,
+                      borderRadius: BorderRadius.circular(ui.radii.sm),
+                    ),
+                    child: SizedBox(width: markerWidth, height: markerHeight),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }
@@ -314,6 +452,14 @@ class _GearSlotTab extends StatelessWidget {
         ? UiBrandPalette.steelBlueInsetBottom
         : ui.colors.cardBackground;
     final borderColor = selected ? ui.colors.accentStrong : ui.colors.outline;
+    final selectedShadows = <BoxShadow>[
+      ...ui.shadows.card,
+      BoxShadow(
+        color: ui.colors.accentStrong.withValues(alpha: 0.5),
+        blurRadius: 10,
+        spreadRadius: 1,
+      ),
+    ];
 
     return SizedBox.square(
       dimension: 48,
@@ -329,7 +475,7 @@ class _GearSlotTab extends StatelessWidget {
               color: fillColor,
               borderRadius: BorderRadius.circular(ui.radii.sm),
               border: Border.all(color: borderColor),
-              boxShadow: selected ? ui.shadows.card : null,
+              boxShadow: selected ? selectedShadows : null,
             ),
             alignment: Alignment.center,
             child: GearIcon(slot: slot, id: equippedId),

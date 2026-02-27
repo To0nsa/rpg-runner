@@ -52,7 +52,7 @@ class _LoadoutSetupPageState extends State<LoadoutSetupPage> {
       initialIndex: 0,
       child: MenuScaffold(
         appBarTitle: Padding(
-          padding: EdgeInsets.only(right: safeRight + ui.space.sm),
+          padding: EdgeInsets.only(right: safeRight + ui.space.lg),
           child: SizedBox(
             height: 44,
             child: DecoratedBox(
