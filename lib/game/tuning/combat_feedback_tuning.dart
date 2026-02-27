@@ -118,6 +118,7 @@ class CombatFeedbackTuning {
   static const Map<int, Color> _defaultStatusColorByMaskBit = <int, Color>{
     EntityStatusVisualMask.slow: Color(0xFF67E8F9),
     EntityStatusVisualMask.haste: Color(0xFF86EFAC),
+    EntityStatusVisualMask.ward: Color(0xFF93C5FD),
     EntityStatusVisualMask.vulnerable: Color(0xFFF472B6),
     EntityStatusVisualMask.weaken: Color(0xFFF59E0B),
     EntityStatusVisualMask.drench: Color(0xFF60A5FA),

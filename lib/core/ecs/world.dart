@@ -42,6 +42,7 @@ import 'stores/player/player_input_store.dart';
 import 'stores/projectile_store.dart';
 import 'stores/restoration_item_store.dart';
 import 'stores/status/dot_store.dart';
+import 'stores/status/damage_reduction_store.dart';
 import 'stores/status/drench_store.dart';
 import 'stores/status/haste_store.dart';
 import 'stores/status/resource_over_time_store.dart';
@@ -191,7 +192,7 @@ class EcsWorld {
   late final DeathStateStore deathState = _register(DeathStateStore());
 
   /// Status immunities
-  /// (dot, slow, stun, haste, vulnerable, weaken, drench, resource-over-time).
+  /// (dot, slow, stun, haste, damageReduction, vulnerable, weaken, drench, resource-over-time).
   late final StatusImmunityStore statusImmunity = _register(
     StatusImmunityStore(),
   );
@@ -243,6 +244,11 @@ class EcsWorld {
 
   /// Active haste effects.
   late final HasteStore haste = _register(HasteStore());
+
+  /// Active direct-hit damage reduction effects.
+  late final DamageReductionStore damageReduction = _register(
+    DamageReductionStore(),
+  );
 
   /// Active resource-over-time effects.
   late final ResourceOverTimeStore resourceOverTime = _register(

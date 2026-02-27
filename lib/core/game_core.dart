@@ -79,6 +79,7 @@ import 'abilities/ability_def.dart';
 import 'abilities/forced_interrupt_policy.dart';
 import 'accessories/accessory_catalog.dart';
 import 'combat/middleware/parry_middleware.dart';
+import 'combat/middleware/ward_middleware.dart';
 import 'combat/damage_type.dart';
 import 'combat/status/status.dart';
 import 'collision/static_world_geometry_index.dart';
@@ -416,6 +417,7 @@ class GameCore {
             'eloise.shield_block',
           },
         ),
+        const WardMiddleware(),
       ],
     );
     _damageSystem = DamageSystem(

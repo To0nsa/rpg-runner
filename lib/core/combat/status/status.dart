@@ -7,6 +7,7 @@ enum StatusEffectType {
   slow,
   stun,
   haste,
+  damageReduction,
   vulnerable,
   weaken,
   drench,
@@ -22,6 +23,7 @@ enum StatusProfileId {
   none,
   slowOnHit,
   burnOnHit,
+  arcaneWard,
   acidOnHit,
   weakenOnHit,
   drenchOnHit,
@@ -211,6 +213,14 @@ class StatusApplicationPresets {
     ),
   );
 
+  static const StatusApplicationPreset arcaneWard = StatusApplicationPreset(
+    StatusApplication(
+      type: StatusEffectType.damageReduction,
+      magnitude: 4000, // 40% direct-hit mitigation
+      durationSeconds: 4.0,
+    ),
+  );
+
   static const StatusApplicationPreset healthRestore = StatusApplicationPreset(
     StatusApplication(
       type: StatusEffectType.resourceOverTime,
@@ -270,6 +280,10 @@ class StatusProfileCatalog {
           StatusApplicationPresets.onHitDot.build(
             dotDamageType: DamageType.fire,
           ),
+        ]);
+      case StatusProfileId.arcaneWard:
+        return StatusProfile(<StatusApplication>[
+          StatusApplicationPresets.arcaneWard.baseline,
         ]);
       case StatusProfileId.acidOnHit:
         return StatusProfile(<StatusApplication>[

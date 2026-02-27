@@ -666,6 +666,11 @@ class SnapshotBuilder {
       mask |= EntityStatusVisualMask.haste;
     }
 
+    final wardIndex = world.damageReduction.tryIndexOf(entity);
+    if (wardIndex != null && world.damageReduction.ticksLeft[wardIndex] > 0) {
+      mask |= EntityStatusVisualMask.ward;
+    }
+
     final vulnerableIndex = world.vulnerable.tryIndexOf(entity);
     if (vulnerableIndex != null &&
         world.vulnerable.ticksLeft[vulnerableIndex] > 0) {

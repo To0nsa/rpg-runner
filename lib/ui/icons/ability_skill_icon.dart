@@ -5,6 +5,7 @@ import '../../core/abilities/ability_def.dart';
 const Map<AbilityKey, String> abilitySkillIconAssets = <AbilityKey, String>{
   'eloise.aegis_riposte': 'assets/images/icons/skills-icons/aegis_riposte.png',
   'eloise.arcane_haste': 'assets/images/icons/skills-icons/arcane_haste.png',
+  'eloise.arcane_ward': 'assets/images/icons/skills-icons/arcane_ward.png',
   'eloise.bloodletter_cleave':
       'assets/images/icons/skills-icons/bloodletter_cleave.png',
   'eloise.bloodletter_slash':

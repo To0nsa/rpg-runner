@@ -12,6 +12,7 @@ Status effects add deterministic pressure/control/tempo changes through authored
 - `slow`
 - `stun`
 - `haste`
+- `damageReduction`
 - `vulnerable`
 - `weaken`
 - `drench`
@@ -23,6 +24,7 @@ Status effects add deterministic pressure/control/tempo changes through authored
 - `none`
 - `slowOnHit`
 - `burnOnHit`
+- `arcaneWard`
 - `acidOnHit`
 - `weakenOnHit`
 - `drenchOnHit`
@@ -42,6 +44,7 @@ Status effects add deterministic pressure/control/tempo changes through authored
 | `burnOnHit` | DoT `5.0 DPS` fire for `5.0s` |
 | `meleeBleed` | DoT `3.0 DPS` physical for `5.0s` |
 | `stunOnHit` | stun `1.0s` |
+| `arcaneWard` | reduce direct-hit damage `40%` and cancel DoT for `4.0s` |
 | `acidOnHit` | vulnerable `+50%` incoming for `5.0s` |
 | `weakenOnHit` | weaken `-35%` outgoing for `5.0s` |
 | `drenchOnHit` | drench `-50%` action speed for `5.0s` |
@@ -81,11 +84,18 @@ Status effects add deterministic pressure/control/tempo changes through authored
 - stronger `amountBp` replaces weaker channel
 - equal `amountBp` refreshes duration
 
-### Slow/Haste/Vulnerable/Weaken/Drench
+### Slow/Haste/DamageReduction/Vulnerable/Weaken/Drench
 
 - stronger magnitude replaces and refreshes
 - equal magnitude extends to max remaining
 - weaker ignored
+
+### Arcane Ward Damage Rules
+
+- implemented as `StatusEffectType.damageReduction` on `DamageReductionStore`
+- applied in damage middleware (no active-ability phase requirement)
+- direct hits are reduced by ward magnitude basis points
+- DoT (`DeathSourceKind.statusEffect`) is canceled while ward is active
 
 ### Stun
 
@@ -102,12 +112,15 @@ Status effects add deterministic pressure/control/tempo changes through authored
 
 - Per-entity immunity via `StatusImmunityStore` bitmask.
 - `scaleByDamageType` scales magnitude up only when combined typed modifier is positive.
-- Apply-time gating skips status when target is dead, missing health, or currently invulnerable.
+- Apply-time gating skips status when target is dead or missing health.
+- Invulnerability gating applies only to harmful statuses (`dot`, `slow`, `stun`, `vulnerable`, `weaken`, `drench`, `silence`).
+- Beneficial statuses (`haste`, `damageReduction`, `resourceOverTime`) still apply during invulnerability.
 
 ## Derived Runtime Effects
 
 - slow/haste modify `StatModifierStore.moveSpeedMul`
 - drench modifies `StatModifierStore.actionSpeedBp`
+- `damageReduction` is consumed by `WardMiddleware` during `DamageMiddlewareSystem.step`
 - action speed affects attack/cast timing and cooldown scaling at commit for combat slots
 
 ## Determinism Rules
@@ -121,4 +134,4 @@ Status effects add deterministic pressure/control/tempo changes through authored
 
 1. No generic cleanse/dispel yet
 2. No diminishing returns system yet
-3. Beneficial statuses are currently blocked by invulnerability gating
+3. No duration scaling by source stats (only profile/authored values)

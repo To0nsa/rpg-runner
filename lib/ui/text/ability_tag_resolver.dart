@@ -73,6 +73,7 @@ class AbilityTagResolver {
         return true;
       case StatusEffectType.dot:
       case StatusEffectType.haste:
+      case StatusEffectType.damageReduction:
       case StatusEffectType.vulnerable:
       case StatusEffectType.weaken:
       case StatusEffectType.resourceOverTime:

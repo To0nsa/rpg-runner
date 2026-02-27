@@ -15,6 +15,7 @@ All abilities in this file are:
 | Ability ID | W/A/R | Cost | Cooldown | Primary Effect |
 |---|---|---|---:|---|
 | `eloise.arcane_haste` | `0/0/10` | mana `1000` | `300` | apply `StatusProfileId.speedBoost` |
+| `eloise.arcane_ward` | `0/0/10` | mana `1200` | `420` | apply `StatusProfileId.arcaneWard` |
 | `eloise.vital_surge` | `0/0/10` | mana `1500` | `420` | apply `StatusProfileId.restoreHealth` |
 | `eloise.mana_infusion` | `0/0/10` | stamina `1500` | `420` | apply `StatusProfileId.restoreMana` |
 | `eloise.second_wind` | `0/0/10` | mana `1500` | `420` | apply `StatusProfileId.restoreStamina` |
@@ -22,6 +23,7 @@ All abilities in this file are:
 ## Effect Notes
 
 - `speedBoost`: haste `+50%` move speed for `5.0s`
+- `arcaneWard`: reduce direct-hit damage by `40%` and cancel all DoT ticks for `4.0s`
 - `restoreHealth`: restore `35%` max HP over `5.0s`
 - `restoreMana`: restore `35%` max mana over `5.0s`
 - `restoreStamina`: restore `35%` max stamina over `5.0s`
@@ -35,8 +37,8 @@ Spell-slot abilities are spellbook-granted and validated by loadout normalizatio
 | Spellbook | Granted spell-slot abilities |
 |---|---|
 | `basicSpellBook` | `eloise.arcane_haste` |
-| `solidSpellBook` | `eloise.arcane_haste`, `eloise.vital_surge`, `eloise.mana_infusion`, `eloise.second_wind` |
-| `epicSpellBook` | `eloise.arcane_haste`, `eloise.vital_surge`, `eloise.mana_infusion`, `eloise.second_wind` |
+| `solidSpellBook` | `eloise.arcane_haste`, `eloise.arcane_ward`, `eloise.vital_surge`, `eloise.mana_infusion`, `eloise.second_wind` |
+| `epicSpellBook` | `eloise.arcane_haste`, `eloise.arcane_ward`, `eloise.vital_surge`, `eloise.mana_infusion`, `eloise.second_wind` |
 
 ## Projectile Spell Grants (Related)
 

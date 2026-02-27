@@ -462,6 +462,22 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     payloadSource: AbilityPayloadSource.spellBook,
     selfStatusProfileId: StatusProfileId.speedBoost,
   ),
+  'eloise.arcane_ward': AbilityDef(
+    id: 'eloise.arcane_ward',
+    category: AbilityCategory.utility,
+    allowedSlots: {AbilitySlot.spell},
+    targetingModel: TargetingModel.none,
+    inputLifecycle: AbilityInputLifecycle.tap,
+    windupTicks: 0,
+    activeTicks: 0,
+    recoveryTicks: 10,
+    defaultCost: AbilityResourceCost(manaCost100: 1200),
+    cooldownTicks: 420, // 7s @ 60Hz
+    animKey: AnimKey.cast,
+    requiredWeaponTypes: {WeaponType.projectileSpell},
+    payloadSource: AbilityPayloadSource.spellBook,
+    selfStatusProfileId: StatusProfileId.arcaneWard,
+  ),
   'eloise.vital_surge': AbilityDef(
     id: 'eloise.vital_surge',
     category: AbilityCategory.utility,

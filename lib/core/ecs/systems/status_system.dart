@@ -10,6 +10,7 @@ import '../../util/double_math.dart';
 import '../../abilities/ability_def.dart' show AbilitySlot;
 import '../entity_id.dart';
 import '../stores/status/dot_store.dart';
+import '../stores/status/damage_reduction_store.dart';
 import '../stores/status/drench_store.dart';
 import '../stores/status/haste_store.dart';
 import '../stores/status/resource_over_time_store.dart';
@@ -58,6 +59,7 @@ class StatusSystem {
   void tickExisting(EcsWorld world, {ResourcePulseCallback? onResourcePulse}) {
     _tickDot(world);
     _tickResourceOverTime(world);
+    _tickDamageReduction(world);
     _tickHaste(world);
     _tickSlow(world);
     _tickVulnerable(world);
@@ -236,12 +238,15 @@ class StatusSystem {
       if (!world.health.has(req.target)) continue;
 
       final ii = invuln.tryIndexOf(req.target);
-      if (ii != null && invuln.ticksLeft[ii] > 0) continue;
+      final hasInvulnerability = ii != null && invuln.ticksLeft[ii] > 0;
 
       final profile = _profiles.get(req.profileId);
       if (profile.applications.isEmpty) continue;
 
       for (final app in profile.applications) {
+        if (hasInvulnerability && _isBlockedByInvulnerability(app.type)) {
+          continue;
+        }
         if (immunity.isImmune(req.target, app.type)) continue;
 
         var magnitude = app.magnitude;
@@ -305,6 +310,13 @@ class StatusSystem {
             _applySlow(world, req.target, magnitude, app.durationSeconds);
           case StatusEffectType.haste:
             _applyHaste(world, req.target, magnitude, app.durationSeconds);
+          case StatusEffectType.damageReduction:
+            _applyDamageReduction(
+              world,
+              req.target,
+              magnitude,
+              app.durationSeconds,
+            );
           case StatusEffectType.stun:
             _applyStun(world, req.target, magnitude, app.durationSeconds);
           case StatusEffectType.vulnerable:
@@ -407,6 +419,36 @@ class StatusSystem {
       } else if (clamped == currentMagnitude) {
         if (ticksLeft > haste.ticksLeft[index]) {
           haste.ticksLeft[index] = ticksLeft;
+        }
+      }
+    }
+  }
+
+  void _applyDamageReduction(
+    EcsWorld world,
+    EntityId target,
+    int magnitude,
+    double durationSeconds,
+  ) {
+    final ticksLeft = ticksFromSecondsCeil(durationSeconds, _tickHz);
+    if (ticksLeft <= 0) return;
+
+    final damageReduction = world.damageReduction;
+    final clamped = clampInt(magnitude, 0, 10000);
+    final index = damageReduction.tryIndexOf(target);
+    if (index == null) {
+      damageReduction.add(
+        target,
+        DamageReductionDef(ticksLeft: ticksLeft, magnitude: clamped),
+      );
+    } else {
+      final currentMagnitude = damageReduction.magnitude[index];
+      if (clamped > currentMagnitude) {
+        damageReduction.magnitude[index] = clamped;
+        damageReduction.ticksLeft[index] = ticksLeft;
+      } else if (clamped == currentMagnitude) {
+        if (ticksLeft > damageReduction.ticksLeft[index]) {
+          damageReduction.ticksLeft[index] = ticksLeft;
         }
       }
     }
@@ -845,6 +887,27 @@ class StatusSystem {
     }
   }
 
+  void _tickDamageReduction(EcsWorld world) {
+    final damageReduction = world.damageReduction;
+    if (damageReduction.denseEntities.isEmpty) return;
+
+    _removeScratch.clear();
+    for (var i = 0; i < damageReduction.denseEntities.length; i += 1) {
+      final target = damageReduction.denseEntities[i];
+      if (world.deathState.has(target)) {
+        _removeScratch.add(target);
+        continue;
+      }
+      damageReduction.ticksLeft[i] -= 1;
+      if (damageReduction.ticksLeft[i] <= 0) {
+        _removeScratch.add(target);
+      }
+    }
+    for (final target in _removeScratch) {
+      damageReduction.removeEntity(target);
+    }
+  }
+
   void _tickWeaken(EcsWorld world) {
     final weaken = world.weaken;
     if (weaken.denseEntities.isEmpty) return;
@@ -884,6 +947,23 @@ class StatusSystem {
     }
     for (final target in _removeScratch) {
       drench.removeEntity(target);
+    }
+  }
+
+  bool _isBlockedByInvulnerability(StatusEffectType type) {
+    switch (type) {
+      case StatusEffectType.dot:
+      case StatusEffectType.slow:
+      case StatusEffectType.stun:
+      case StatusEffectType.vulnerable:
+      case StatusEffectType.weaken:
+      case StatusEffectType.drench:
+      case StatusEffectType.silence:
+        return true;
+      case StatusEffectType.haste:
+      case StatusEffectType.damageReduction:
+      case StatusEffectType.resourceOverTime:
+        return false;
     }
   }
 }

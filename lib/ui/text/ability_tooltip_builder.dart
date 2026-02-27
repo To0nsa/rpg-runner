@@ -589,6 +589,7 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
             );
           case StatusEffectType.dot:
           case StatusEffectType.haste:
+          case StatusEffectType.damageReduction:
           case StatusEffectType.resourceOverTime:
             continue;
         }
@@ -617,6 +618,7 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
           );
         case StatusEffectType.dot:
         case StatusEffectType.haste:
+        case StatusEffectType.damageReduction:
         case StatusEffectType.resourceOverTime:
           continue;
       }
@@ -682,16 +684,18 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
     switch (application.type) {
       case StatusEffectType.haste:
         return 'Haste';
+      case StatusEffectType.damageReduction:
+        return 'Arcane Ward';
       case StatusEffectType.resourceOverTime:
         switch (application.resourceType) {
           case StatusResourceType.health:
-            return 'Health Regeneration';
+            return 'Health Regen';
           case StatusResourceType.mana:
-            return 'Mana Regeneration';
+            return 'Mana Regen';
           case StatusResourceType.stamina:
-            return 'Stamina Regeneration';
+            return 'Stamina Regen';
           case null:
-            return 'Resource Regeneration';
+            return 'Resource Regen';
         }
       case StatusEffectType.dot:
       case StatusEffectType.slow:

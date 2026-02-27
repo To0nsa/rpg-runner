@@ -92,6 +92,7 @@ String? _statusApplicationSummary(StatusApplication app, WeaponProc proc) {
     case StatusEffectType.drench:
       return 'Drench: -${_formatBp(app.magnitude)}% attack/cast speed for $duration$chance';
     case StatusEffectType.haste:
+    case StatusEffectType.damageReduction:
     case StatusEffectType.resourceOverTime:
       return null;
   }

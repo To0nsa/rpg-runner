@@ -185,6 +185,57 @@ void main() {
     expect(world.mana.mana[world.mana.indexOf(player)], equals(1000));
   });
 
+  test('Arcane Ward self spell applies damage reduction status', () {
+    final world = EcsWorld();
+    final player = EntityFactory(world).createPlayer(
+      posX: 0,
+      posY: 0,
+      velX: 0,
+      velY: 0,
+      facing: Facing.right,
+      grounded: true,
+      body: const BodyDef(isKinematic: true, useGravity: false),
+      collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+      health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 2000, manaMax: 2000, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 1000,
+        staminaMax: 1000,
+        regenPerSecond100: 0,
+      ),
+    );
+
+    final li = world.equippedLoadout.indexOf(player);
+    world.equippedLoadout.mask[li] |= LoadoutSlotMask.projectile;
+    world.equippedLoadout.spellBookId[li] = SpellBookId.epicSpellBook;
+    world.equippedLoadout.abilitySpellId[li] = 'eloise.arcane_ward';
+
+    final pi = world.playerInput.indexOf(player);
+    world.playerInput.spellPressed[pi] = true;
+
+    final activation = AbilityActivationSystem(
+      tickHz: 60,
+      inputBufferTicks: 10,
+      abilities: const AbilityCatalog(),
+      weapons: const WeaponCatalog(),
+      projectiles: const ProjectileCatalog(),
+      spellBooks: const SpellBookCatalog(),
+      accessories: const AccessoryCatalog(),
+    );
+    final selfAbility = SelfAbilitySystem();
+    final status = StatusSystem(tickHz: 60);
+
+    activation.step(world, player: player, currentTick: 5);
+    selfAbility.step(world, currentTick: 5, queueStatus: status.queue);
+    status.applyQueued(world, currentTick: 5);
+
+    expect(world.damageReduction.has(player), isTrue);
+    final wardIndex = world.damageReduction.indexOf(player);
+    expect(world.damageReduction.magnitude[wardIndex], equals(4000));
+    expect(world.damageReduction.ticksLeft[wardIndex], equals(240));
+    expect(world.mana.mana[world.mana.indexOf(player)], equals(800));
+  });
+
   test(
     'spell-slot self spell commit is blocked when spellbook does not grant it',
     () {

@@ -74,7 +74,7 @@ Current defaults (`lib/game/tuning/combat_feedback_tuning.dart`):
 
 Always-on status tint uses `EntityStatusVisualMask` bits:
 
-- `slow`, `haste`, `vulnerable`, `weaken`, `drench`, `stun`, `silence`
+- `slow`, `haste`, `ward`, `vulnerable`, `weaken`, `drench`, `stun`, `silence`
 
 Alpha combines by active status-type count:
 

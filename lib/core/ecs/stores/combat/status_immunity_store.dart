@@ -9,11 +9,12 @@ class StatusImmunityMask {
   static const int slow = 1 << 1;
   static const int stun = 1 << 2;
   static const int haste = 1 << 3;
-  static const int vulnerable = 1 << 4;
-  static const int weaken = 1 << 5;
-  static const int drench = 1 << 6;
-  static const int silence = 1 << 7;
-  static const int resourceOverTime = 1 << 8;
+  static const int damageReduction = 1 << 4;
+  static const int vulnerable = 1 << 5;
+  static const int weaken = 1 << 6;
+  static const int drench = 1 << 7;
+  static const int silence = 1 << 8;
+  static const int resourceOverTime = 1 << 9;
   static int forType(StatusEffectType type) {
     switch (type) {
       case StatusEffectType.dot:
@@ -24,6 +25,8 @@ class StatusImmunityMask {
         return stun;
       case StatusEffectType.haste:
         return haste;
+      case StatusEffectType.damageReduction:
+        return damageReduction;
       case StatusEffectType.vulnerable:
         return vulnerable;
       case StatusEffectType.weaken:

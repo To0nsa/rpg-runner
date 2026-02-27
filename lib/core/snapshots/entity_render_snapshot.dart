@@ -93,11 +93,12 @@ abstract class EntityStatusVisualMask {
   static const int none = 0;
   static const int slow = 1 << 0;
   static const int haste = 1 << 1;
-  static const int vulnerable = 1 << 2;
-  static const int weaken = 1 << 3;
-  static const int drench = 1 << 4;
-  static const int stun = 1 << 5;
-  static const int silence = 1 << 6;
+  static const int ward = 1 << 2;
+  static const int vulnerable = 1 << 3;
+  static const int weaken = 1 << 4;
+  static const int drench = 1 << 5;
+  static const int stun = 1 << 6;
+  static const int silence = 1 << 7;
 }
 
 /// Variant codes for pickup rendering.

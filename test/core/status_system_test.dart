@@ -243,6 +243,93 @@ void main() {
     expect(world.statModifier.moveSpeedMul[index], closeTo(2.0, 1e-6));
   });
 
+  test(
+    'invulnerability blocks harmful statuses but allows Arcane Ward',
+    () {
+      final world = EcsWorld();
+      final status = StatusSystem(tickHz: 60);
+
+      final target = world.createEntity();
+      world.health.add(
+        target,
+        const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+      );
+      world.invulnerability.add(target);
+      world.statusImmunity.add(target);
+
+      final invulnIndex = world.invulnerability.indexOf(target);
+      world.invulnerability.ticksLeft[invulnIndex] = 120;
+
+      status.queue(
+        StatusRequest(target: target, profileId: StatusProfileId.arcaneWard),
+      );
+      status.queue(
+        StatusRequest(target: target, profileId: StatusProfileId.burnOnHit),
+      );
+      status.applyQueued(world, currentTick: 1);
+
+      expect(world.damageReduction.has(target), isTrue);
+      final wardIndex = world.damageReduction.indexOf(target);
+      expect(world.damageReduction.magnitude[wardIndex], equals(4000));
+      expect(world.damageReduction.ticksLeft[wardIndex], equals(240));
+      expect(world.dot.has(target), isFalse);
+    },
+  );
+
+  test('Arcane Ward stack policy uses stronger replace and equal refresh', () {
+    final world = EcsWorld();
+    final status = StatusSystem(
+      tickHz: 60,
+      profiles: const _DamageReductionStatusProfileCatalog(),
+    );
+
+    final target = world.createEntity();
+    world.health.add(
+      target,
+      const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+    );
+
+    status.queue(
+      StatusRequest(target: target, profileId: StatusProfileId.arcaneWard),
+    );
+    status.applyQueued(world, currentTick: 1);
+
+    var wardIndex = world.damageReduction.indexOf(target);
+    expect(world.damageReduction.magnitude[wardIndex], equals(4000));
+    expect(world.damageReduction.ticksLeft[wardIndex], equals(240));
+
+    for (var tick = 0; tick < 100; tick += 1) {
+      status.tickExisting(world);
+    }
+
+    status.queue(
+      StatusRequest(target: target, profileId: StatusProfileId.restoreHealth),
+    );
+    status.applyQueued(world, currentTick: 2);
+
+    wardIndex = world.damageReduction.indexOf(target);
+    expect(world.damageReduction.magnitude[wardIndex], equals(4000));
+    expect(world.damageReduction.ticksLeft[wardIndex], equals(420));
+
+    status.queue(
+      StatusRequest(target: target, profileId: StatusProfileId.speedBoost),
+    );
+    status.applyQueued(world, currentTick: 3);
+
+    wardIndex = world.damageReduction.indexOf(target);
+    expect(world.damageReduction.magnitude[wardIndex], equals(4000));
+    expect(world.damageReduction.ticksLeft[wardIndex], equals(420));
+
+    status.queue(
+      StatusRequest(target: target, profileId: StatusProfileId.restoreMana),
+    );
+    status.applyQueued(world, currentTick: 4);
+
+    wardIndex = world.damageReduction.indexOf(target);
+    expect(world.damageReduction.magnitude[wardIndex], equals(6000));
+    expect(world.damageReduction.ticksLeft[wardIndex], equals(120));
+  });
+
   test('status scaling uses combined typed modifier from store and gear', () {
     final world = EcsWorld();
     final status = StatusSystem(
@@ -628,6 +715,50 @@ class _ResourceOverTimeStatusProfileCatalog extends StatusProfileCatalog {
             durationSeconds: 2.1,
             periodSeconds: 1.0,
             resourceType: StatusResourceType.stamina,
+          ),
+        ]);
+      default:
+        return super.get(id);
+    }
+  }
+}
+
+class _DamageReductionStatusProfileCatalog extends StatusProfileCatalog {
+  const _DamageReductionStatusProfileCatalog();
+
+  @override
+  StatusProfile get(StatusProfileId id) {
+    switch (id) {
+      case StatusProfileId.arcaneWard:
+        return const StatusProfile(<StatusApplication>[
+          StatusApplication(
+            type: StatusEffectType.damageReduction,
+            magnitude: 4000,
+            durationSeconds: 4.0,
+          ),
+        ]);
+      case StatusProfileId.restoreHealth:
+        return const StatusProfile(<StatusApplication>[
+          StatusApplication(
+            type: StatusEffectType.damageReduction,
+            magnitude: 4000,
+            durationSeconds: 7.0,
+          ),
+        ]);
+      case StatusProfileId.speedBoost:
+        return const StatusProfile(<StatusApplication>[
+          StatusApplication(
+            type: StatusEffectType.damageReduction,
+            magnitude: 2500,
+            durationSeconds: 10.0,
+          ),
+        ]);
+      case StatusProfileId.restoreMana:
+        return const StatusProfile(<StatusApplication>[
+          StatusApplication(
+            type: StatusEffectType.damageReduction,
+            magnitude: 6000,
+            durationSeconds: 2.0,
           ),
         ]);
       default:

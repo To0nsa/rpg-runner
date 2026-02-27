@@ -13,8 +13,8 @@ This document reflects the current Core combat contracts used by `GameCore`.
 
 ### Status System
 
-- `StatusEffectType`: `dot`, `slow`, `stun`, `haste`, `vulnerable`, `weaken`, `drench`, `silence`, `resourceOverTime`
-- `StatusProfileId`: authored bundles (for example `slowOnHit`, `burnOnHit`, `stunOnHit`, `restoreHealth`)
+- `StatusEffectType`: `dot`, `slow`, `stun`, `haste`, `damageReduction`, `vulnerable`, `weaken`, `drench`, `silence`, `resourceOverTime`
+- `StatusProfileId`: authored bundles (for example `slowOnHit`, `burnOnHit`, `arcaneWard`, `stunOnHit`, `restoreHealth`)
 - `StatusApplication`: one application entry (magnitude, duration, optional period/type/resource)
 - `StatusProfileCatalog`: stable profile lookup
 
@@ -38,6 +38,7 @@ See `docs/gdd/combat/status/status_system_design.md`.
 | `DotStore` | Active DoT channels (by damage type) |
 | `SlowStore` | Active slow |
 | `HasteStore` | Active haste |
+| `DamageReductionStore` | Active ward-style direct-hit reduction |
 | `VulnerableStore` | Incoming-damage amplification |
 | `WeakenStore` | Outgoing-damage reduction |
 | `DrenchStore` | Action-speed reduction |
@@ -105,7 +106,7 @@ DamageRequest {
 
 - Ticks and applies periodic damage from `DotStore`
 - Ticks `ResourceOverTimeStore` and applies smooth resource restoration
-- Ticks `slow/haste/vulnerable/weaken/drench`
+- Ticks `slow/haste/damageReduction/vulnerable/weaken/drench`
 - Queues DoT `DamageRequest`s
 
 ### `StatusSystem.applyQueued`
@@ -115,6 +116,12 @@ DamageRequest {
 - Applies or refreshes status stores
 - Applies stun/cast locks in `ControlLockStore`
 - Refreshes derived move/action modifiers
+
+### Damage middleware note
+
+- `WardMiddleware` consumes `DamageReductionStore`:
+  - direct hits are reduced by ward magnitude
+  - DoT (`DeathSourceKind.statusEffect`) is canceled while ward is active
 
 ## Projectile Items (Spells + Throws)
 
