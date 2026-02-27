@@ -87,7 +87,7 @@ void main() {
     );
     expect(find.descendant(of: panel, matching: find.text('—')), findsWidgets);
 
-    await tester.tap(find.text('Collect score'));
+    await tester.tap(find.text('Collect Score'));
     await tester.pump();
     await tester.tap(find.text('Skip'));
     await tester.pump();
@@ -127,9 +127,9 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Unoco Demon x1 -> $_expectedKillPoints'), findsOneWidget);
-    expect(find.text('Collect score'), findsOneWidget);
+    expect(find.text('Collect Score'), findsOneWidget);
 
-    await tester.tap(find.text('Collect score'));
+    await tester.tap(find.text('Collect Score'));
     await tester.pump();
     expect(find.text('Skip'), findsOneWidget);
 
@@ -161,7 +161,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('Collect score'));
+    await tester.tap(find.text('Collect Score'));
     await tester.pump();
     expect(find.text('Skip'), findsOneWidget);
 

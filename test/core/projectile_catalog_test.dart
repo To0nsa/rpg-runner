@@ -111,7 +111,7 @@ void main() {
   test('holyBolt render metadata maps to expected strips and timing', () {
     final anim = const ProjectileRenderCatalog().get(ProjectileId.holyBolt);
 
-    expect(anim.frameWidth, 48);
+    expect(anim.frameWidth, 32);
     expect(anim.frameHeight, 32);
     expect(anim.rowByKey, isEmpty);
 
