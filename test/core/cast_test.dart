@@ -124,9 +124,7 @@ void main() {
       expect(p.pos.y, closeTo(playerPosY, 1e-9));
 
       final ability = AbilityCatalog.shared.resolve('eloise.overcharge_shot')!;
-      final spellCost = ability.resolveCostForWeaponType(
-        WeaponType.projectileSpell,
-      );
+      final spellCost = ability.resolveCostForWeaponType(WeaponType.spell);
       expect(
         snapshot.hud.mana,
         closeTo(20.0 - fixed100ToDouble(spellCost.manaCost100), 1e-9),
@@ -184,9 +182,7 @@ void main() {
     expect(projectiles.single.projectileId, ProjectileId.fireBolt);
 
     final ability = AbilityCatalog.shared.resolve('eloise.overcharge_shot')!;
-    final spellCost = ability.resolveCostForWeaponType(
-      WeaponType.projectileSpell,
-    );
+    final spellCost = ability.resolveCostForWeaponType(WeaponType.spell);
     expect(
       snapshot.hud.mana,
       closeTo(20.0 - fixed100ToDouble(spellCost.manaCost100), 1e-9),
@@ -241,9 +237,7 @@ void main() {
     }
 
     final ability = AbilityCatalog.shared.resolve('eloise.overcharge_shot')!;
-    final spellCost = ability.resolveCostForWeaponType(
-      WeaponType.projectileSpell,
-    );
+    final spellCost = ability.resolveCostForWeaponType(WeaponType.spell);
     var snapshot = core.buildSnapshot();
     expect(
       snapshot.hud.mana,
@@ -319,9 +313,7 @@ void main() {
       expect(projectiles.length, 1);
       expect(projectiles.single.projectileId, ProjectileId.fireBolt);
       final ability = AbilityCatalog.shared.resolve('eloise.quick_shot')!;
-      final spellCost = ability.resolveCostForWeaponType(
-        WeaponType.projectileSpell,
-      );
+      final spellCost = ability.resolveCostForWeaponType(WeaponType.spell);
       expect(
         snapshot.hud.mana,
         closeTo(10.0 - fixed100ToDouble(spellCost.manaCost100), 1e-9),
@@ -369,7 +361,7 @@ void main() {
         'eloise.overcharge_shot',
       )!;
       final shotSpellCost = shotAbility.resolveCostForWeaponType(
-        WeaponType.projectileSpell,
+        WeaponType.spell,
       );
       final shotActiveTicks = scaledAbilityTicks(
         shotAbility.activeTicks,

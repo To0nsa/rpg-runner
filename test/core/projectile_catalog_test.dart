@@ -12,7 +12,7 @@ void main() {
   test('darkBolt gameplay metadata matches core tuning', () {
     final item = const ProjectileCatalog().get(ProjectileId.darkBolt);
 
-    expect(item.weaponType, WeaponType.projectileSpell);
+    expect(item.weaponType, WeaponType.spell);
     expect(item.damageType, DamageType.dark);
     expect(item.speedUnitsPerSecond, 550.0);
     expect(item.lifetimeSeconds, 1.3);
@@ -53,7 +53,7 @@ void main() {
   test('earthBolt gameplay metadata matches core tuning', () {
     final item = const ProjectileCatalog().get(ProjectileId.earthBolt);
 
-    expect(item.weaponType, WeaponType.projectileSpell);
+    expect(item.weaponType, WeaponType.spell);
     expect(item.damageType, DamageType.earth);
     expect(item.speedUnitsPerSecond, 500.0);
     expect(item.lifetimeSeconds, 1.3);
@@ -94,7 +94,7 @@ void main() {
   test('holyBolt gameplay metadata matches core tuning', () {
     final item = const ProjectileCatalog().get(ProjectileId.holyBolt);
 
-    expect(item.weaponType, WeaponType.projectileSpell);
+    expect(item.weaponType, WeaponType.spell);
     expect(item.damageType, DamageType.holy);
     expect(item.speedUnitsPerSecond, 550.0);
     expect(item.lifetimeSeconds, 1.3);
@@ -137,7 +137,7 @@ void main() {
   test('waterBolt gameplay metadata matches core tuning', () {
     final item = const ProjectileCatalog().get(ProjectileId.waterBolt);
 
-    expect(item.weaponType, WeaponType.projectileSpell);
+    expect(item.weaponType, WeaponType.spell);
     expect(item.damageType, DamageType.water);
     expect(item.speedUnitsPerSecond, 550.0);
     expect(item.lifetimeSeconds, 1.3);

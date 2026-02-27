@@ -500,7 +500,7 @@ void main() {
         def,
         ctx: const AbilityTooltipContext(
           activeProjectileId: ProjectileId.fireBolt,
-          payloadWeaponType: WeaponType.projectileSpell,
+          payloadWeaponType: WeaponType.spell,
         ),
       );
       final expectedDamage = formatFixed100(def.baseDamage);
@@ -527,7 +527,7 @@ void main() {
         ability('eloise.quick_shot'),
         ctx: const AbilityTooltipContext(
           activeProjectileId: ProjectileId.fireBolt,
-          payloadWeaponType: WeaponType.projectileSpell,
+          payloadWeaponType: WeaponType.spell,
         ),
       );
 
@@ -550,7 +550,7 @@ void main() {
           def,
           ctx: const AbilityTooltipContext(
             activeProjectileId: ProjectileId.fireBolt,
-            payloadWeaponType: WeaponType.projectileSpell,
+            payloadWeaponType: WeaponType.spell,
           ),
         );
         final expectedDamage = formatFixed100(def.baseDamage);
@@ -640,9 +640,7 @@ void main() {
 
       final spellTooltip = tooltipBuilder.build(
         def,
-        ctx: const AbilityTooltipContext(
-          payloadWeaponType: WeaponType.projectileSpell,
-        ),
+        ctx: const AbilityTooltipContext(payloadWeaponType: WeaponType.spell),
       );
       final throwTooltip = tooltipBuilder.build(
         def,

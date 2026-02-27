@@ -341,7 +341,10 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
     final critBonus = _formatDecimal(charge.critBonusBp / 100.0);
 
     return _descriptionFromTemplate(
-      template: _templateMeleeControl + _templateChargedBonus + _templateInterruptible,
+      template:
+          _templateMeleeControl +
+          _templateChargedBonus +
+          _templateInterruptible,
       values: <String, String>{
         'action': 'Launch a heavy shield breaker',
         'damage': damage,
@@ -401,7 +404,9 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
 
     return _descriptionFromTemplate(
       template:
-          _templateOverchargeShot + _templateChargedBonus + _templateInterruptible,
+          _templateOverchargeShot +
+          _templateChargedBonus +
+          _templateInterruptible,
       values: <String, String>{
         'projectileSource': _projectileSourceLabel(ctx),
         'projectileName': _projectileName(ctx),
@@ -439,16 +444,17 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   }
 
   _DescriptionWithHighlights _dashDescription(AbilityDef def) {
-    return const _DescriptionWithHighlights(description: 'Dash forward quickly.');
+    return const _DescriptionWithHighlights(
+      description: 'Dash forward quickly.',
+    );
   }
 
   _DescriptionWithHighlights _concussiveRollDescription(AbilityDef def) {
     final control = _mobilityControlEffect(def);
     return _descriptionFromTemplate(
-      template: 'Perform a concussive roll. Enemies hit are affected by {status}.',
-      values: <String, String>{
-        'status': control.name,
-      },
+      template:
+          'Perform a concussive roll. Enemies hit are affected by {status}.',
+      values: <String, String>{'status': control.name},
       dynamicKeys: <String>['status'],
     );
   }
@@ -509,7 +515,9 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
         );
       case StatusEffectType.offenseBuff:
         final powerBonus = _formatDecimal(application.magnitude / 100.0);
-        final critBonus = _formatDecimal((application.critBonusBp ?? 0) / 100.0);
+        final critBonus = _formatDecimal(
+          (application.critBonusBp ?? 0) / 100.0,
+        );
         return _DescriptionWithHighlights(
           description:
               'Increase power by $powerBonus% and critical chance by $critBonus% for $duration seconds.',
@@ -757,7 +765,7 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   }
 
   String _projectileSourceLabel(AbilityTooltipContext ctx) {
-    return ctx.payloadWeaponType == WeaponType.projectileSpell
+    return ctx.payloadWeaponType == WeaponType.spell
         ? 'the selected spell projectile'
         : 'your equipped projectile';
   }

@@ -1034,7 +1034,7 @@ class AbilityActivationSystem {
         gravityScale = projectile.gravityScale;
         projectileBaseSpeedUnitsPerSecond = projectile.speedUnitsPerSecond;
         originOffset =
-            projectile.weaponType == WeaponType.projectileSpell &&
+            projectile.weaponType == WeaponType.spell &&
                 projectile.originOffset == 0
             ? _spellOriginOffset(world, player)
             : projectile.originOffset;

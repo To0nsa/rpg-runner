@@ -88,11 +88,11 @@ ProjectileId resolveProjectilePayloadForAbilitySlot({
     final spellBook = spellBooks.tryGet(loadout.spellBookId[loadoutIndex]);
     final supportsSpell =
         selectedSpell != null &&
-        selectedSpell.weaponType == WeaponType.projectileSpell &&
+        selectedSpell.weaponType == WeaponType.spell &&
         spellBook != null &&
         spellBook.containsProjectileSpell(selectedSpellId) &&
         (ability.requiredWeaponTypes.isEmpty ||
-            ability.requiredWeaponTypes.contains(WeaponType.projectileSpell));
+            ability.requiredWeaponTypes.contains(WeaponType.spell));
     if (supportsSpell) return selectedSpellId;
   }
   return loadout.projectileId[loadoutIndex];

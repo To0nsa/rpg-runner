@@ -5,7 +5,7 @@ Eloise projectile-slot abilities (`AbilitySlot.projectile`).
 All abilities here:
 
 - use `payloadSource: AbilityPayloadSource.projectile`
-- require `WeaponType.throwingWeapon` or `WeaponType.projectileSpell`
+- require `WeaponType.throwingWeapon` or `WeaponType.spell`
 - use `AnimKey.ranged`
 
 ## Ability Matrix

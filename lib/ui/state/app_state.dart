@@ -367,7 +367,7 @@ class AppState extends ChangeNotifier {
     if (!spellBook.containsProjectileSpell(spellId)) return false;
     final spellItem = _projectileCatalog.tryGet(spellId);
     if (spellItem == null) return false;
-    return spellItem.weaponType == WeaponType.projectileSpell;
+    return spellItem.weaponType == WeaponType.spell;
   }
 
   AbilityKey? _firstValidAbilityForSlot(

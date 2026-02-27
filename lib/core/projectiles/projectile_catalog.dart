@@ -22,7 +22,7 @@ class ProjectileCatalog {
       case ProjectileId.iceBolt:
         return const ProjectileItemDef(
           id: ProjectileId.iceBolt,
-          weaponType: WeaponType.projectileSpell,
+          weaponType: WeaponType.spell,
           speedUnitsPerSecond: 600.0,
           lifetimeSeconds: 1.3,
           colliderSizeX: 18.0,
@@ -39,7 +39,7 @@ class ProjectileCatalog {
       case ProjectileId.fireBolt:
         return const ProjectileItemDef(
           id: ProjectileId.fireBolt,
-          weaponType: WeaponType.projectileSpell,
+          weaponType: WeaponType.spell,
           speedUnitsPerSecond: 600.0,
           lifetimeSeconds: 1.3,
           colliderSizeX: 18.0,
@@ -56,7 +56,7 @@ class ProjectileCatalog {
       case ProjectileId.acidBolt:
         return const ProjectileItemDef(
           id: ProjectileId.acidBolt,
-          weaponType: WeaponType.projectileSpell,
+          weaponType: WeaponType.spell,
           speedUnitsPerSecond: 500.0,
           lifetimeSeconds: 1.3,
           colliderSizeX: 18.0,
@@ -73,7 +73,7 @@ class ProjectileCatalog {
       case ProjectileId.darkBolt:
         return const ProjectileItemDef(
           id: ProjectileId.darkBolt,
-          weaponType: WeaponType.projectileSpell,
+          weaponType: WeaponType.spell,
           speedUnitsPerSecond: 550.0,
           lifetimeSeconds: 1.3,
           colliderSizeX: 18.0,
@@ -90,7 +90,7 @@ class ProjectileCatalog {
       case ProjectileId.earthBolt:
         return const ProjectileItemDef(
           id: ProjectileId.earthBolt,
-          weaponType: WeaponType.projectileSpell,
+          weaponType: WeaponType.spell,
           speedUnitsPerSecond: 500.0,
           lifetimeSeconds: 1.3,
           colliderSizeX: 18.0,
@@ -107,7 +107,7 @@ class ProjectileCatalog {
       case ProjectileId.holyBolt:
         return const ProjectileItemDef(
           id: ProjectileId.holyBolt,
-          weaponType: WeaponType.projectileSpell,
+          weaponType: WeaponType.spell,
           speedUnitsPerSecond: 550.0,
           lifetimeSeconds: 1.3,
           colliderSizeX: 18.0,
@@ -124,7 +124,7 @@ class ProjectileCatalog {
       case ProjectileId.waterBolt:
         return const ProjectileItemDef(
           id: ProjectileId.waterBolt,
-          weaponType: WeaponType.projectileSpell,
+          weaponType: WeaponType.spell,
           speedUnitsPerSecond: 550.0,
           lifetimeSeconds: 1.3,
           colliderSizeX: 18.0,
@@ -141,7 +141,7 @@ class ProjectileCatalog {
       case ProjectileId.thunderBolt:
         return const ProjectileItemDef(
           id: ProjectileId.thunderBolt,
-          weaponType: WeaponType.projectileSpell,
+          weaponType: WeaponType.spell,
           speedUnitsPerSecond: 650.0,
           lifetimeSeconds: 1.3,
           colliderSizeX: 18.0,

@@ -9,7 +9,7 @@ import 'spell_book_id.dart';
 class SpellBookDef {
   const SpellBookDef({
     required this.id,
-    this.weaponType = WeaponType.projectileSpell,
+    this.weaponType = WeaponType.spell,
     this.projectileSpellIds = const <ProjectileId>[],
     this.spellAbilityIds = const <AbilityKey>[],
     this.stats = const GearStatBonuses(),

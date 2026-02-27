@@ -19,10 +19,10 @@ WeaponType? payloadWeaponTypeForTooltip({
       return null;
     case AbilityPayloadSource.projectile:
       if (slot == AbilitySlot.projectile && selectedSourceSpellId != null) {
-        return WeaponType.projectileSpell;
+        return WeaponType.spell;
       }
       return WeaponType.throwingWeapon;
     case AbilityPayloadSource.spellBook:
-      return WeaponType.projectileSpell;
+      return WeaponType.spell;
   }
 }

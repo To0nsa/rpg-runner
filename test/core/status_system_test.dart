@@ -250,46 +250,43 @@ void main() {
     expect(world.statModifier.moveSpeedMul[index], closeTo(2.0, 1e-6));
   });
 
-  test(
-    'invulnerability blocks harmful statuses but allows Arcane Ward',
-    () {
-      final world = EcsWorld();
-      final status = StatusSystem(tickHz: 60);
+  test('invulnerability blocks harmful statuses but allows Arcane Ward', () {
+    final world = EcsWorld();
+    final status = StatusSystem(tickHz: 60);
 
-      final target = world.createEntity();
-      world.health.add(
-        target,
-        const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
-      );
-      world.invulnerability.add(target);
-      world.statusImmunity.add(target);
+    final target = world.createEntity();
+    world.health.add(
+      target,
+      const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+    );
+    world.invulnerability.add(target);
+    world.statusImmunity.add(target);
 
-      final invulnIndex = world.invulnerability.indexOf(target);
-      world.invulnerability.ticksLeft[invulnIndex] = 120;
+    final invulnIndex = world.invulnerability.indexOf(target);
+    world.invulnerability.ticksLeft[invulnIndex] = 120;
 
-      status.queue(
-        StatusRequest(target: target, profileId: StatusProfileId.arcaneWard),
-      );
-      status.queue(
-        StatusRequest(target: target, profileId: StatusProfileId.focus),
-      );
-      status.queue(
-        StatusRequest(target: target, profileId: StatusProfileId.burnOnHit),
-      );
-      status.applyQueued(world, currentTick: 1);
+    status.queue(
+      StatusRequest(target: target, profileId: StatusProfileId.arcaneWard),
+    );
+    status.queue(
+      StatusRequest(target: target, profileId: StatusProfileId.focus),
+    );
+    status.queue(
+      StatusRequest(target: target, profileId: StatusProfileId.burnOnHit),
+    );
+    status.applyQueued(world, currentTick: 1);
 
-      expect(world.damageReduction.has(target), isTrue);
-      final wardIndex = world.damageReduction.indexOf(target);
-      expect(world.damageReduction.magnitude[wardIndex], equals(4000));
-      expect(world.damageReduction.ticksLeft[wardIndex], equals(240));
-      expect(world.offenseBuff.has(target), isTrue);
-      final offenseIndex = world.offenseBuff.indexOf(target);
-      expect(world.offenseBuff.powerBonusBp[offenseIndex], equals(2500));
-      expect(world.offenseBuff.critBonusBp[offenseIndex], equals(1500));
-      expect(world.offenseBuff.ticksLeft[offenseIndex], equals(300));
-      expect(world.dot.has(target), isFalse);
-    },
-  );
+    expect(world.damageReduction.has(target), isTrue);
+    final wardIndex = world.damageReduction.indexOf(target);
+    expect(world.damageReduction.magnitude[wardIndex], equals(4000));
+    expect(world.damageReduction.ticksLeft[wardIndex], equals(240));
+    expect(world.offenseBuff.has(target), isTrue);
+    final offenseIndex = world.offenseBuff.indexOf(target);
+    expect(world.offenseBuff.powerBonusBp[offenseIndex], equals(2500));
+    expect(world.offenseBuff.critBonusBp[offenseIndex], equals(1500));
+    expect(world.offenseBuff.ticksLeft[offenseIndex], equals(300));
+    expect(world.dot.has(target), isFalse);
+  });
 
   test('Arcane Ward stack policy uses stronger replace and equal refresh', () {
     final world = EcsWorld();
@@ -358,7 +355,9 @@ void main() {
       const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
     );
 
-    status.queue(StatusRequest(target: target, profileId: StatusProfileId.focus));
+    status.queue(
+      StatusRequest(target: target, profileId: StatusProfileId.focus),
+    );
     status.applyQueued(world, currentTick: 1);
 
     var offenseIndex = world.offenseBuff.indexOf(target);
@@ -794,7 +793,7 @@ class _FlatSpellBookCatalog extends SpellBookCatalog {
   SpellBookDef get(SpellBookId id) {
     return const SpellBookDef(
       id: SpellBookId.basicSpellBook,
-      weaponType: WeaponType.projectileSpell,
+      weaponType: WeaponType.spell,
       stats: GearStatBonuses(),
     );
   }

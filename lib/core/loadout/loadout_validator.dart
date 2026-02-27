@@ -358,13 +358,13 @@ class LoadoutValidator {
       return fallbackProjectile;
     }
 
-    if (selectedSpell.weaponType != WeaponType.projectileSpell) {
+    if (selectedSpell.weaponType != WeaponType.spell) {
       issues.add(
         LoadoutIssue(
           slot: slot,
           kind: IssueKind.missingRequiredWeaponTypes,
           weaponId: selectedSpellId.toString(),
-          missingWeaponTypes: const <WeaponType>{WeaponType.projectileSpell},
+          missingWeaponTypes: const <WeaponType>{WeaponType.spell},
           message: 'Selected slot spell must be a projectile spell item.',
         ),
       );

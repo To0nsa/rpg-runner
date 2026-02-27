@@ -8,7 +8,7 @@ All abilities in this file are:
 - `targetingModel: none`
 - `hitDelivery: SelfHitDelivery`
 - `payloadSource: AbilityPayloadSource.spellBook`
-- `requiredWeaponTypes: {projectileSpell}`
+- `requiredWeaponTypes: {spell}`
 
 ## Ability Matrix
 

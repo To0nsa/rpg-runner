@@ -319,10 +319,7 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     },
     cooldownTicks: 40,
     animKey: AnimKey.ranged,
-    requiredWeaponTypes: {
-      WeaponType.throwingWeapon,
-      WeaponType.projectileSpell,
-    },
+    requiredWeaponTypes: {WeaponType.throwingWeapon, WeaponType.spell},
     payloadSource: AbilityPayloadSource.projectile,
     baseDamage: 1300,
   ),
@@ -347,10 +344,7 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     },
     cooldownTicks: 14,
     animKey: AnimKey.ranged,
-    requiredWeaponTypes: {
-      WeaponType.throwingWeapon,
-      WeaponType.projectileSpell,
-    },
+    requiredWeaponTypes: {WeaponType.throwingWeapon, WeaponType.spell},
     payloadSource: AbilityPayloadSource.projectile,
     baseDamage: 900,
   ),
@@ -377,10 +371,7 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     },
     cooldownTicks: 32,
     animKey: AnimKey.ranged,
-    requiredWeaponTypes: {
-      WeaponType.throwingWeapon,
-      WeaponType.projectileSpell,
-    },
+    requiredWeaponTypes: {WeaponType.throwingWeapon, WeaponType.spell},
     payloadSource: AbilityPayloadSource.projectile,
     baseDamage: 1800,
   ),
@@ -410,10 +401,7 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
       ForcedInterruptCause.damageTaken,
     },
     animKey: AnimKey.ranged,
-    requiredWeaponTypes: {
-      WeaponType.throwingWeapon,
-      WeaponType.projectileSpell,
-    },
+    requiredWeaponTypes: {WeaponType.throwingWeapon, WeaponType.spell},
     payloadSource: AbilityPayloadSource.projectile,
     chargeProfile: AbilityChargeProfile(
       tiers: <AbilityChargeTierDef>[
@@ -458,7 +446,7 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     defaultCost: AbilityResourceCost(manaCost100: 1000),
     cooldownTicks: 300, // 5s @ 60Hz
     animKey: AnimKey.cast,
-    requiredWeaponTypes: {WeaponType.projectileSpell},
+    requiredWeaponTypes: {WeaponType.spell},
     payloadSource: AbilityPayloadSource.spellBook,
     selfStatusProfileId: StatusProfileId.speedBoost,
   ),
@@ -474,7 +462,7 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     defaultCost: AbilityResourceCost(manaCost100: 1200),
     cooldownTicks: 420, // 7s @ 60Hz
     animKey: AnimKey.cast,
-    requiredWeaponTypes: {WeaponType.projectileSpell},
+    requiredWeaponTypes: {WeaponType.spell},
     payloadSource: AbilityPayloadSource.spellBook,
     selfStatusProfileId: StatusProfileId.focus,
   ),
@@ -490,7 +478,7 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     defaultCost: AbilityResourceCost(manaCost100: 1200),
     cooldownTicks: 420, // 7s @ 60Hz
     animKey: AnimKey.cast,
-    requiredWeaponTypes: {WeaponType.projectileSpell},
+    requiredWeaponTypes: {WeaponType.spell},
     payloadSource: AbilityPayloadSource.spellBook,
     selfStatusProfileId: StatusProfileId.arcaneWard,
   ),
@@ -506,7 +494,7 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     defaultCost: AbilityResourceCost(manaCost100: 1400),
     cooldownTicks: 480, // 8s @ 60Hz
     animKey: AnimKey.cast,
-    requiredWeaponTypes: {WeaponType.projectileSpell},
+    requiredWeaponTypes: {WeaponType.spell},
     payloadSource: AbilityPayloadSource.spellBook,
     canCommitWhileStunned: true,
     selfPurgeProfileId: PurgeProfileId.cleanse,
@@ -523,7 +511,7 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     defaultCost: AbilityResourceCost(manaCost100: 1500),
     cooldownTicks: 420, // 7s @ 60Hz
     animKey: AnimKey.cast,
-    requiredWeaponTypes: {WeaponType.projectileSpell},
+    requiredWeaponTypes: {WeaponType.spell},
     payloadSource: AbilityPayloadSource.spellBook,
     selfStatusProfileId: StatusProfileId.restoreHealth,
   ),
@@ -539,7 +527,7 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     defaultCost: AbilityResourceCost(staminaCost100: 1500),
     cooldownTicks: 420, // 7s @ 60Hz
     animKey: AnimKey.cast,
-    requiredWeaponTypes: {WeaponType.projectileSpell},
+    requiredWeaponTypes: {WeaponType.spell},
     payloadSource: AbilityPayloadSource.spellBook,
     selfStatusProfileId: StatusProfileId.restoreMana,
   ),
@@ -555,7 +543,7 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     defaultCost: AbilityResourceCost(manaCost100: 1500),
     cooldownTicks: 420, // 7s @ 60Hz
     animKey: AnimKey.cast,
-    requiredWeaponTypes: {WeaponType.projectileSpell},
+    requiredWeaponTypes: {WeaponType.spell},
     payloadSource: AbilityPayloadSource.spellBook,
     selfStatusProfileId: StatusProfileId.restoreStamina,
   ),

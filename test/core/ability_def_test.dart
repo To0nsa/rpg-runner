@@ -19,14 +19,14 @@ void main() {
 
   test('AbilityDef copies mutable collections defensively', () {
     final allowedSlots = <AbilitySlot>{AbilitySlot.spell};
-    final requiredWeaponTypes = <WeaponType>{WeaponType.projectileSpell};
+    final requiredWeaponTypes = <WeaponType>{WeaponType.spell};
     final procs = <WeaponProc>[];
     final forcedInterruptCauses = <ForcedInterruptCause>{
       ForcedInterruptCause.stun,
       ForcedInterruptCause.death,
     };
     final costProfileByWeaponType = <WeaponType, AbilityResourceCost>{
-      WeaponType.projectileSpell: const AbilityResourceCost(manaCost100: 100),
+      WeaponType.spell: const AbilityResourceCost(manaCost100: 100),
     };
 
     final ability = AbilityDef(
@@ -60,10 +60,7 @@ void main() {
         const AbilityResourceCost(staminaCost100: 100);
 
     expect(ability.allowedSlots, equals(<AbilitySlot>{AbilitySlot.spell}));
-    expect(
-      ability.requiredWeaponTypes,
-      equals(<WeaponType>{WeaponType.projectileSpell}),
-    );
+    expect(ability.requiredWeaponTypes, equals(<WeaponType>{WeaponType.spell}));
     expect(ability.procs, isEmpty);
     expect(
       ability.forcedInterruptCauses,
@@ -74,7 +71,7 @@ void main() {
     );
     expect(
       ability.costProfileByWeaponType.keys,
-      equals(<WeaponType>[WeaponType.projectileSpell]),
+      equals(<WeaponType>[WeaponType.spell]),
     );
   });
 }

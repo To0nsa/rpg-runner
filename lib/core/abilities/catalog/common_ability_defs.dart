@@ -40,7 +40,7 @@ final Map<AbilityKey, AbilityDef> commonAbilityDefs = <AbilityKey, AbilityDef>{
     recoveryTicks: 12,
     cooldownTicks: 0,
     animKey: AnimKey.cast,
-    requiredWeaponTypes: {WeaponType.projectileSpell},
+    requiredWeaponTypes: {WeaponType.spell},
     payloadSource: AbilityPayloadSource.projectile,
     baseDamage: 500, // Thunder bolt legacy damage 5.0
     baseDamageType: DamageType.physical,

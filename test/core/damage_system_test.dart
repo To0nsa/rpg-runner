@@ -429,7 +429,7 @@ class _FlatSpellBookCatalog extends SpellBookCatalog {
   SpellBookDef get(SpellBookId id) {
     return const SpellBookDef(
       id: SpellBookId.basicSpellBook,
-      weaponType: WeaponType.projectileSpell,
+      weaponType: WeaponType.spell,
     );
   }
 }
