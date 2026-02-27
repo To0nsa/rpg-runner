@@ -7,7 +7,7 @@ import '../theme/ui_tokens.dart';
 /// Handles:
 /// - Brand background
 /// - Optional AppBar with back button
-/// - SafeArea (top/bottom) for content
+/// - SafeArea for content
 ///
 /// Use this for all menu pages to maintain consistency and DRY principles.
 class MenuScaffold extends StatelessWidget {
@@ -60,8 +60,8 @@ class MenuScaffold extends StatelessWidget {
       title: resolvedTitle,
       backgroundColor: ui.colors.background,
       iconTheme: IconThemeData(color: ui.colors.textPrimary),
-      // We'll apply our own SafeArea so we can ignore transient horizontal
-      // insets (e.g. Android nav bar) that can cause jitter.
+      // We provide our own SafeArea so all menu pages share one safe-area
+      // policy from the app shell MediaQuery configuration.
       primary: false,
       centerTitle: centerAppBarTitle,
       titleSpacing: appBarTitle != null ? 0 : null,
@@ -74,25 +74,10 @@ class MenuScaffold extends StatelessWidget {
               preferredSize: Size.fromHeight(
                 topPadding + appBarWidget.preferredSize.height,
               ),
-              child: SafeArea(
-                left: false,
-                right: false,
-                bottom: false,
-                child: appBarWidget,
-              ),
+              child: SafeArea(bottom: false, child: appBarWidget),
             )
           : null,
-      // Avoid horizontal "layout jitter" when transient system UI (e.g. the
-      // Android navigation bar) briefly appears/disappears during keyboard and
-      // focus transitions. Menu content already applies its own horizontal
-      // padding via MenuLayout, and most menu pages are safe to treat as
-      // horizontally full-bleed.
-      body: SafeArea(
-        left: false,
-        right: false,
-        maintainBottomViewPadding: true,
-        child: child,
-      ),
+      body: SafeArea(maintainBottomViewPadding: true, child: child),
     );
   }
 }

@@ -152,6 +152,12 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
       child: MaterialApp(
         title: 'rpg-runner',
         debugShowCheckedModeBanner: false,
+        builder: (context, child) {
+          if (child == null) {
+            return const SizedBox.shrink();
+          }
+          return _StableHorizontalSafePadding(child: child);
+        },
         theme: ThemeData(
           colorScheme:
               ColorScheme.fromSeed(
@@ -249,3 +255,29 @@ class _UiRouteObserver extends NavigatorObserver {
 }
 
 enum _UiRouteChange { push, pop, replace, remove }
+
+/// Ensures horizontal safe-area insets stay stable across transient
+/// system UI visibility changes (e.g. Android nav bar gestures).
+class _StableHorizontalSafePadding extends StatelessWidget {
+  const _StableHorizontalSafePadding({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final normalizedPadding = mediaQuery.padding.copyWith(
+      left: mediaQuery.viewPadding.left,
+      right: mediaQuery.viewPadding.right,
+    );
+
+    if (normalizedPadding == mediaQuery.padding) {
+      return child;
+    }
+
+    return MediaQuery(
+      data: mediaQuery.copyWith(padding: normalizedPadding),
+      child: child,
+    );
+  }
+}

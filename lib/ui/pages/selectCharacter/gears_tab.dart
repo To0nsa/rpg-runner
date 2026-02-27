@@ -59,17 +59,13 @@ class _GearsTabState extends State<GearsTab> {
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
-    final safePadding = MediaQuery.paddingOf(context);
     final appState = context.watch<AppState>();
     final meta = appState.meta;
     final equipped = meta.equippedFor(widget.characterId);
     final selectedSlotIndex = _indexForSlot(_selectedSlot);
 
     return Padding(
-      padding: EdgeInsets.only(
-        left: safePadding.left + ui.space.xs,
-        right: safePadding.right,
-      ),
+      padding: EdgeInsets.only(left: ui.space.xs),
       child: Center(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
