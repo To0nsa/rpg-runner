@@ -761,7 +761,7 @@ class _FlatWeaponCatalog extends WeaponCatalog {
   @override
   WeaponDef get(WeaponId id) {
     return const WeaponDef(
-      id: WeaponId.basicSword,
+      id: WeaponId.plainsteel,
       category: WeaponCategory.primary,
       weaponType: WeaponType.oneHandedSword,
       stats: GearStatBonuses(),

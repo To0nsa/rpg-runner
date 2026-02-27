@@ -30,7 +30,7 @@ const PlayerCatalog testPlayerCatalogDefaults = PlayerCatalog(
   resistance: DamageResistanceDef(),
   statusImmunity: StatusImmunityDef(),
   loadoutSlotMask: LoadoutSlotMask.defaultMask,
-  weaponId: WeaponId.basicSword,
+  weaponId: WeaponId.plainsteel,
   offhandWeaponId: WeaponId.basicShield,
   projectileId: ProjectileId.fireBolt,
   spellBookId: SpellBookId.basicSpellBook,

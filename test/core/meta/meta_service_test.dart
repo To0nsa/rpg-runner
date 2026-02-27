@@ -75,12 +75,14 @@ void main() {
     );
   });
 
-  test('MetaService.createNew locks third-tier gear by default', () {
+  test('MetaService.createNew unlocks all swords for loadout selection', () {
     const service = MetaService();
     final meta = service.createNew();
     final inventory = meta.inventory;
 
-    expect(inventory.unlockedWeaponIds.contains(WeaponId.solidSword), isFalse);
+    expect(inventory.unlockedWeaponIds.contains(WeaponId.plainsteel), isTrue);
+    expect(inventory.unlockedWeaponIds.contains(WeaponId.graveglass), isTrue);
+    expect(inventory.unlockedWeaponIds.contains(WeaponId.duelistsOath), isTrue);
     expect(inventory.unlockedWeaponIds.contains(WeaponId.solidShield), isFalse);
     expect(
       inventory.unlockedSpellBookIds.contains(SpellBookId.epicSpellBook),
@@ -108,10 +110,8 @@ void main() {
       final normalized = service.normalize(loaded);
       final inventory = normalized.inventory;
 
-      expect(
-        inventory.unlockedWeaponIds.contains(WeaponId.solidSword),
-        isFalse,
-      );
+      expect(inventory.unlockedWeaponIds.contains(WeaponId.plainsteel), isTrue);
+      expect(inventory.unlockedWeaponIds.contains(WeaponId.graveglass), isTrue);
       expect(
         inventory.unlockedWeaponIds.contains(WeaponId.solidShield),
         isFalse,
@@ -131,20 +131,28 @@ void main() {
     },
   );
 
-  test('MetaService.candidatesForSlot includes locked entries', () {
+  test('MetaService.candidatesForSlot includes sword and shield entries', () {
     const service = MetaService();
     final meta = service.createNew();
 
     final mainCandidates = service.candidatesForSlot(meta, GearSlot.mainWeapon);
-    final solidSword = mainCandidates.firstWhere(
-      (candidate) => candidate.id == WeaponId.solidSword,
+    final graveglass = mainCandidates.firstWhere(
+      (candidate) => candidate.id == WeaponId.graveglass,
     );
-    final basicSword = mainCandidates.firstWhere(
-      (candidate) => candidate.id == WeaponId.basicSword,
+    final plainsteel = mainCandidates.firstWhere(
+      (candidate) => candidate.id == WeaponId.plainsteel,
+    );
+    final offhandCandidates = service.candidatesForSlot(
+      meta,
+      GearSlot.offhandWeapon,
+    );
+    final solidShield = offhandCandidates.firstWhere(
+      (candidate) => candidate.id == WeaponId.solidShield,
     );
 
-    expect(solidSword.isUnlocked, isFalse);
-    expect(basicSword.isUnlocked, isTrue);
+    expect(graveglass.isUnlocked, isTrue);
+    expect(plainsteel.isUnlocked, isTrue);
+    expect(solidShield.isUnlocked, isFalse);
   });
 
   test('MetaService.candidatesForSlot returns throwing weapons only', () {

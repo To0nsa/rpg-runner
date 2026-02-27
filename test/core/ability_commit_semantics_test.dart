@@ -132,7 +132,7 @@ void main() {
       // Setup Loadout
       final li = world.equippedLoadout.indexOf(player);
       world.equippedLoadout.mask[li] |= LoadoutSlotMask.mainHand;
-      world.equippedLoadout.mainWeaponId[li] = WeaponId.basicSword;
+      world.equippedLoadout.mainWeaponId[li] = WeaponId.plainsteel;
       world.equippedLoadout.abilityPrimaryId[li] = 'test_melee';
 
       // Simulate Input
@@ -193,7 +193,7 @@ void main() {
 
       final li = world.equippedLoadout.indexOf(player);
       world.equippedLoadout.mask[li] |= LoadoutSlotMask.mainHand;
-      world.equippedLoadout.mainWeaponId[li] = WeaponId.basicSword;
+      world.equippedLoadout.mainWeaponId[li] = WeaponId.plainsteel;
       world.equippedLoadout.abilityPrimaryId[li] = 'test_blood_melee';
 
       final ii = world.playerInput.indexOf(player);
@@ -239,7 +239,7 @@ void main() {
 
       final li = world.equippedLoadout.indexOf(player);
       world.equippedLoadout.mask[li] |= LoadoutSlotMask.mainHand;
-      world.equippedLoadout.mainWeaponId[li] = WeaponId.basicSword;
+      world.equippedLoadout.mainWeaponId[li] = WeaponId.plainsteel;
       world.equippedLoadout.abilityPrimaryId[li] = 'test_blood_melee_lethal';
 
       final ii = world.playerInput.indexOf(player);

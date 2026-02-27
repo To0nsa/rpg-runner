@@ -57,7 +57,6 @@ Primary knobs:
 - Role: fast pressure, bleed attrition
 - Stats: `power +50bp`
 - Proc: `onHit -> bleed` at `25-35%`
-- Interaction note: baseline sword primaries should not have guaranteed bleed; charged sword variants can retain it as a separate identity lever
 - Tradeoff: lower upfront burst for better sustained pressure
 
 ### 3) Cinderedge

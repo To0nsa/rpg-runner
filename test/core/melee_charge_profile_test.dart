@@ -88,7 +88,7 @@ void main() {
 
       final li = world.equippedLoadout.indexOf(player);
       world.equippedLoadout.mask[li] |= LoadoutSlotMask.mainHand;
-      world.equippedLoadout.mainWeaponId[li] = WeaponId.basicSword;
+      world.equippedLoadout.mainWeaponId[li] = WeaponId.plainsteel;
       world.equippedLoadout.abilityPrimaryId[li] = 'test.melee_charge';
 
       final chargeIndex = world.abilityCharge.indexOf(player);

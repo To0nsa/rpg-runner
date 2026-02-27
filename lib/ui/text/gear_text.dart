@@ -179,18 +179,36 @@ String _titleCaseEnum(String source) {
 const String _defaultDescription = 'No description available yet.';
 
 const Map<WeaponId, String> _weaponDisplayNameOverrides = <WeaponId, String>{
-  WeaponId.woodenSword: 'Wooden Sword',
-  WeaponId.basicSword: 'Basic Sword',
-  WeaponId.solidSword: 'Solid Sword',
+  WeaponId.plainsteel: 'Plainsteel',
+  WeaponId.waspfang: 'Waspfang',
+  WeaponId.cinderedge: 'Cinderedge',
+  WeaponId.basiliskKiss: 'Basilisk Kiss',
+  WeaponId.frostbrand: 'Frostbrand',
+  WeaponId.stormneedle: 'Stormneedle',
+  WeaponId.nullblade: 'Nullblade',
+  WeaponId.sunlitVow: 'Sunlit Vow',
+  WeaponId.graveglass: 'Graveglass',
+  WeaponId.duelistsOath: "Duelist's Oath",
   WeaponId.woodenShield: 'Wooden Shield',
   WeaponId.basicShield: 'Basic Shield',
   WeaponId.solidShield: 'Solid Shield',
 };
 
 const Map<WeaponId, String> _weaponDescriptionOverrides = <WeaponId, String>{
-  WeaponId.woodenSword: 'Starter blade with low power.',
-  WeaponId.basicSword: 'Balanced one-handed sword.',
-  WeaponId.solidSword: 'Heavier one-handed sword with higher power.',
+  WeaponId.plainsteel: 'Baseline one-handed sword with consistent output.',
+  WeaponId.waspfang: 'Bleed pressure sword with lower upfront power.',
+  WeaponId.cinderedge: 'Crit-focused blade that ignites on critical strikes.',
+  WeaponId.basiliskKiss:
+      'Anti-tank sword that trades burst for acid vulnerability pressure.',
+  WeaponId.frostbrand: 'Control sword that applies slows for safer tempo.',
+  WeaponId.stormneedle: 'Low-frequency stun sword built around clutch control.',
+  WeaponId.nullblade: 'Anti-caster sword that can silence on hit.',
+  WeaponId.sunlitVow:
+      'Sustain sword that grants haste on kills and boosts defense.',
+  WeaponId.graveglass:
+      'High-risk amplifier with extra global power and lower defense.',
+  WeaponId.duelistsOath:
+      "Skill sword that rewards crit consistency with weaken windows.",
   WeaponId.woodenShield: 'Starter shield with low output.',
   WeaponId.basicShield: 'Balanced shield for defensive actions.',
   WeaponId.solidShield: 'Reinforced shield with higher output.',

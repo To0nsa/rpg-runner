@@ -33,7 +33,7 @@ class LoadoutSlotMask {
 class EquippedLoadoutDef {
   const EquippedLoadoutDef({
     this.mask = LoadoutSlotMask.defaultMask,
-    this.mainWeaponId = WeaponId.woodenSword,
+    this.mainWeaponId = WeaponId.plainsteel,
     this.offhandWeaponId = WeaponId.woodenShield,
     this.projectileId = ProjectileId.throwingKnife,
     this.spellBookId = SpellBookId.basicSpellBook,
@@ -152,7 +152,7 @@ class EquippedLoadoutStore extends SparseSet {
   @override
   void onDenseAdded(int denseIndex) {
     mask.add(LoadoutSlotMask.defaultMask);
-    mainWeaponId.add(WeaponId.woodenSword);
+    mainWeaponId.add(WeaponId.plainsteel);
     offhandWeaponId.add(WeaponId.woodenShield);
     projectileId.add(ProjectileId.throwingKnife);
     spellBookId.add(SpellBookId.basicSpellBook);

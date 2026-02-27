@@ -10,8 +10,8 @@ void main() {
   group('gear text', () {
     test('slot display names are resolved from UI mappings', () {
       expect(
-        gearDisplayNameForSlot(GearSlot.mainWeapon, WeaponId.basicSword),
-        equals('Basic Sword'),
+        gearDisplayNameForSlot(GearSlot.mainWeapon, WeaponId.plainsteel),
+        equals('Plainsteel'),
       );
       expect(
         gearDisplayNameForSlot(
@@ -32,8 +32,10 @@ void main() {
 
     test('slot descriptions are resolved from UI mappings', () {
       expect(
-        gearDescriptionForSlot(GearSlot.mainWeapon, WeaponId.solidSword),
-        equals('Heavier one-handed sword with higher power.'),
+        gearDescriptionForSlot(GearSlot.mainWeapon, WeaponId.graveglass),
+        equals(
+          'High-risk amplifier with extra global power and lower defense.',
+        ),
       );
       expect(
         gearDescriptionForSlot(GearSlot.throwingWeapon, ProjectileId.fireBolt),
@@ -51,10 +53,7 @@ void main() {
 
     test('projectile source names use the shared projectile mapping', () {
       expect(projectileDisplayName(ProjectileId.iceBolt), 'Ice Bolt');
-      expect(
-        projectileDisplayName(ProjectileId.throwingAxe),
-        'Throwing Axe',
-      );
+      expect(projectileDisplayName(ProjectileId.throwingAxe), 'Throwing Axe');
     });
   });
 }

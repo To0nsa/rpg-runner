@@ -7,6 +7,7 @@ import 'package:rpg_runner/core/abilities/ability_def.dart'
     show AbilitySlot, CooldownGroup, WeaponType;
 import 'package:rpg_runner/core/combat/damage.dart';
 import 'package:rpg_runner/core/combat/damage_type.dart';
+import 'package:rpg_runner/core/combat/status/status.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/damage_resistance_store.dart';
 import 'package:rpg_runner/core/ecs/stores/status/weaken_store.dart';
@@ -26,6 +27,7 @@ import 'package:rpg_runner/core/weapons/weapon_catalog.dart';
 import 'package:rpg_runner/core/weapons/weapon_category.dart';
 import 'package:rpg_runner/core/weapons/weapon_def.dart';
 import 'package:rpg_runner/core/weapons/weapon_id.dart';
+import 'package:rpg_runner/core/weapons/weapon_proc.dart';
 import 'package:rpg_runner/core/stats/gear_stat_bonuses.dart';
 
 void main() {
@@ -126,7 +128,7 @@ void main() {
       target,
       const EquippedLoadoutDef(
         mask: LoadoutSlotMask.mainHand,
-        mainWeaponId: WeaponId.woodenSword,
+        mainWeaponId: WeaponId.plainsteel,
       ),
     );
 
@@ -369,6 +371,78 @@ void main() {
       isTrue,
     );
   });
+
+  test('DamageSystem queues onCrit status only when hit crits', () {
+    final world = EcsWorld();
+    final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
+
+    final target = world.createEntity();
+    world.health.add(
+      target,
+      const HealthDef(hp: 2000, hpMax: 2000, regenPerSecond100: 0),
+    );
+
+    final queued = <StatusRequest>[];
+    world.damageQueue.add(
+      DamageRequest(
+        target: target,
+        amount100: 1000,
+        critChanceBp: 10000,
+        procs: const <WeaponProc>[
+          WeaponProc(
+            hook: ProcHook.onCrit,
+            statusProfileId: StatusProfileId.burnOnHit,
+            chanceBp: 10000,
+          ),
+        ],
+      ),
+    );
+
+    damage.step(world, currentTick: 1, queueStatus: queued.add);
+
+    expect(queued, hasLength(1));
+    expect(queued.single.target, equals(target));
+    expect(queued.single.profileId, equals(StatusProfileId.burnOnHit));
+  });
+
+  test('DamageSystem queues onKill status on source entity', () {
+    final world = EcsWorld();
+    final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
+
+    final source = world.createEntity();
+    world.health.add(
+      source,
+      const HealthDef(hp: 2000, hpMax: 2000, regenPerSecond100: 0),
+    );
+    final target = world.createEntity();
+    world.health.add(
+      target,
+      const HealthDef(hp: 1000, hpMax: 1000, regenPerSecond100: 0),
+    );
+
+    final queued = <StatusRequest>[];
+    world.damageQueue.add(
+      DamageRequest(
+        target: target,
+        amount100: 1000,
+        source: source,
+        procs: const <WeaponProc>[
+          WeaponProc(
+            hook: ProcHook.onKill,
+            statusProfileId: StatusProfileId.speedBoost,
+            chanceBp: 10000,
+          ),
+        ],
+      ),
+    );
+
+    damage.step(world, currentTick: 1, queueStatus: queued.add);
+
+    expect(world.health.hp[world.health.indexOf(target)], equals(0));
+    expect(queued, hasLength(1));
+    expect(queued.single.target, equals(source));
+    expect(queued.single.profileId, equals(StatusProfileId.speedBoost));
+  });
 }
 
 class _DefenseWeaponCatalog extends WeaponCatalog {
@@ -376,9 +450,9 @@ class _DefenseWeaponCatalog extends WeaponCatalog {
 
   @override
   WeaponDef get(WeaponId id) {
-    if (id == WeaponId.woodenSword) {
+    if (id == WeaponId.plainsteel) {
       return const WeaponDef(
-        id: WeaponId.woodenSword,
+        id: WeaponId.plainsteel,
         category: WeaponCategory.primary,
         weaponType: WeaponType.oneHandedSword,
         stats: GearStatBonuses(defenseBonusBp: 2000),
@@ -398,7 +472,7 @@ class _FlatWeaponCatalog extends WeaponCatalog {
   @override
   WeaponDef get(WeaponId id) {
     return const WeaponDef(
-      id: WeaponId.woodenSword,
+      id: WeaponId.plainsteel,
       category: WeaponCategory.primary,
       weaponType: WeaponType.oneHandedSword,
       stats: GearStatBonuses(),

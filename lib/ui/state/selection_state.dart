@@ -191,7 +191,7 @@ EquippedLoadoutDef _loadoutFromJson(Object? raw) {
     mainWeaponId: _enumFromName(
       WeaponId.values,
       map['mainWeaponId'] as String?,
-      WeaponId.woodenSword,
+      WeaponId.plainsteel,
     ),
     offhandWeaponId: _enumFromName(
       WeaponId.values,

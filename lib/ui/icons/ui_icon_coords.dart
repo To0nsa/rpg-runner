@@ -11,9 +11,16 @@ class UiIconCoords {
 
 UiIconCoords? uiIconCoordsForWeapon(WeaponId id) {
   return switch (id) {
-    WeaponId.woodenSword => const UiIconCoords(5, 0),
-    WeaponId.basicSword => const UiIconCoords(5, 1),
-    WeaponId.solidSword => const UiIconCoords(5, 2),
+    WeaponId.plainsteel => const UiIconCoords(5, 0),
+    WeaponId.waspfang => const UiIconCoords(5, 1),
+    WeaponId.cinderedge => const UiIconCoords(5, 2),
+    WeaponId.basiliskKiss => const UiIconCoords(5, 0),
+    WeaponId.frostbrand => const UiIconCoords(5, 1),
+    WeaponId.stormneedle => const UiIconCoords(5, 2),
+    WeaponId.nullblade => const UiIconCoords(5, 0),
+    WeaponId.sunlitVow => const UiIconCoords(5, 1),
+    WeaponId.graveglass => const UiIconCoords(5, 2),
+    WeaponId.duelistsOath => const UiIconCoords(5, 0),
     WeaponId.woodenShield => const UiIconCoords(6, 0),
     WeaponId.basicShield => const UiIconCoords(6, 1),
     WeaponId.solidShield => const UiIconCoords(6, 2),

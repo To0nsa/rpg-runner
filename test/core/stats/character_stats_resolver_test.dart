@@ -30,7 +30,7 @@ void main() {
 
     final stats = resolver.resolveEquipped(
       mask: LoadoutSlotMask.mainHand,
-      mainWeaponId: WeaponId.basicSword,
+      mainWeaponId: WeaponId.plainsteel,
       offhandWeaponId: WeaponId.basicShield,
       projectileId: ProjectileId.throwingKnife,
       spellBookId: SpellBookId.basicSpellBook,
@@ -54,7 +54,7 @@ void main() {
 
     final stats = resolver.resolveEquipped(
       mask: LoadoutSlotMask.mainHand | LoadoutSlotMask.offHand,
-      mainWeaponId: WeaponId.woodenSword,
+      mainWeaponId: WeaponId.plainsteel,
       offhandWeaponId: WeaponId.basicShield,
       projectileId: ProjectileId.throwingKnife,
       spellBookId: SpellBookId.basicSpellBook,
@@ -74,7 +74,7 @@ void main() {
 
     final stats = resolver.resolveEquipped(
       mask: LoadoutSlotMask.mainHand,
-      mainWeaponId: WeaponId.basicSword,
+      mainWeaponId: WeaponId.plainsteel,
       offhandWeaponId: WeaponId.basicShield,
       projectileId: ProjectileId.throwingKnife,
       spellBookId: SpellBookId.basicSpellBook,
@@ -96,7 +96,7 @@ void main() {
 
     final stats = resolver.resolveEquipped(
       mask: LoadoutSlotMask.mainHand,
-      mainWeaponId: WeaponId.basicSword,
+      mainWeaponId: WeaponId.plainsteel,
       offhandWeaponId: WeaponId.basicShield,
       projectileId: ProjectileId.throwingKnife,
       spellBookId: SpellBookId.basicSpellBook,
@@ -124,7 +124,7 @@ void main() {
 
     final stats = resolver.resolveEquipped(
       mask: LoadoutSlotMask.mainHand,
-      mainWeaponId: WeaponId.basicSword,
+      mainWeaponId: WeaponId.plainsteel,
       offhandWeaponId: WeaponId.basicShield,
       projectileId: ProjectileId.throwingKnife,
       spellBookId: SpellBookId.basicSpellBook,
@@ -164,7 +164,7 @@ class _FlatWeaponCatalog extends WeaponCatalog {
   @override
   WeaponDef get(WeaponId id) {
     return const WeaponDef(
-      id: WeaponId.basicSword,
+      id: WeaponId.plainsteel,
       category: WeaponCategory.primary,
       weaponType: WeaponType.oneHandedSword,
       stats: GearStatBonuses(),
@@ -178,9 +178,9 @@ class _TwoHandedWeaponCatalog extends WeaponCatalog {
   @override
   WeaponDef get(WeaponId id) {
     switch (id) {
-      case WeaponId.woodenSword:
+      case WeaponId.plainsteel:
         return const WeaponDef(
-          id: WeaponId.woodenSword,
+          id: WeaponId.plainsteel,
           category: WeaponCategory.primary,
           weaponType: WeaponType.oneHandedSword,
           stats: GearStatBonuses(powerBonusBp: 100),
@@ -195,7 +195,7 @@ class _TwoHandedWeaponCatalog extends WeaponCatalog {
         );
       default:
         return const WeaponDef(
-          id: WeaponId.basicSword,
+          id: WeaponId.plainsteel,
           category: WeaponCategory.primary,
           weaponType: WeaponType.oneHandedSword,
           stats: GearStatBonuses(),

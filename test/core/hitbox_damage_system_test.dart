@@ -97,8 +97,8 @@ void main() {
       }
     }
 
-    // Default starter loadout has -1% power; 1500 base becomes 1485.
-    expect(world.health.hp[world.health.indexOf(enemy)], equals(8515));
+    // Default starter loadout uses Plainsteel (+1% power); 1500 base becomes 1515.
+    expect(world.health.hp[world.health.indexOf(enemy)], equals(8485));
 
     // Next tick: still overlapping, but should not re-hit the same target.
     activation.step(world, player: player, currentTick: 10);
@@ -109,6 +109,6 @@ void main() {
     damage.step(world, currentTick: 10);
     lifetime.step(world);
 
-    expect(world.health.hp[world.health.indexOf(enemy)], equals(8515));
+    expect(world.health.hp[world.health.indexOf(enemy)], equals(8485));
   });
 }

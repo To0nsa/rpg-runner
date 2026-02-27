@@ -36,7 +36,7 @@ void main() {
 
     cache.resolveForEntity(world, entity);
     final li = world.equippedLoadout.indexOf(entity);
-    world.equippedLoadout.mainWeaponId[li] = WeaponId.solidSword;
+    world.equippedLoadout.mainWeaponId[li] = WeaponId.graveglass;
     cache.resolveForEntity(world, entity);
 
     expect(resolver.calls, equals(2));

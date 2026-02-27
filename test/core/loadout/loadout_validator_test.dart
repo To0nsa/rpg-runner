@@ -29,7 +29,7 @@ void main() {
 
     test('valid standard loadout should pass', () {
       const loadout = EquippedLoadoutDef(
-        mainWeaponId: WeaponId.woodenSword,
+        mainWeaponId: WeaponId.plainsteel,
         offhandWeaponId: WeaponId.woodenShield,
         projectileId: ProjectileId.throwingKnife,
         abilityPrimaryId: 'eloise.bloodletter_slash',
@@ -46,7 +46,7 @@ void main() {
 
     test('auto-aim melee variants are valid in their authored slots', () {
       const loadout = EquippedLoadoutDef(
-        mainWeaponId: WeaponId.woodenSword,
+        mainWeaponId: WeaponId.plainsteel,
         offhandWeaponId: WeaponId.woodenShield,
         abilityPrimaryId: 'eloise.seeker_slash',
         abilitySecondaryId: 'eloise.seeker_bash',
@@ -57,25 +57,22 @@ void main() {
       expect(result.issues, isEmpty);
     });
 
-    test(
-      'tiered melee and dash mobility are valid in authored slots',
-      () {
-        const loadout = EquippedLoadoutDef(
-          mainWeaponId: WeaponId.woodenSword,
-          offhandWeaponId: WeaponId.woodenShield,
-          abilityPrimaryId: 'eloise.bloodletter_cleave',
-          abilityMobilityId: 'eloise.dash',
-        );
+    test('tiered melee and dash mobility are valid in authored slots', () {
+      const loadout = EquippedLoadoutDef(
+        mainWeaponId: WeaponId.plainsteel,
+        offhandWeaponId: WeaponId.woodenShield,
+        abilityPrimaryId: 'eloise.bloodletter_cleave',
+        abilityMobilityId: 'eloise.dash',
+      );
 
-        final result = validator.validate(loadout);
-        expect(result.isValid, isTrue, reason: 'Issues: ${result.issues}');
-        expect(result.issues, isEmpty);
-      },
-    );
+      final result = validator.validate(loadout);
+      expect(result.isValid, isTrue, reason: 'Issues: ${result.issues}');
+      expect(result.issues, isEmpty);
+    });
 
     test('roll mobility is valid in authored mobility slot', () {
       const loadout = EquippedLoadoutDef(
-        mainWeaponId: WeaponId.woodenSword,
+        mainWeaponId: WeaponId.plainsteel,
         offhandWeaponId: WeaponId.woodenShield,
         abilityMobilityId: 'eloise.roll',
       );
@@ -87,7 +84,7 @@ void main() {
 
     test('quick throw is valid when projectile slot spell is selected', () {
       const loadout = EquippedLoadoutDef(
-        mainWeaponId: WeaponId.woodenSword,
+        mainWeaponId: WeaponId.plainsteel,
         offhandWeaponId: WeaponId.woodenShield,
         projectileId: ProjectileId.throwingKnife,
         projectileSlotSpellId: ProjectileId.fireBolt,
@@ -102,7 +99,7 @@ void main() {
 
     test('non-spell ability cannot be equipped in spell slot', () {
       const loadout = EquippedLoadoutDef(
-        mainWeaponId: WeaponId.woodenSword,
+        mainWeaponId: WeaponId.plainsteel,
         offhandWeaponId: WeaponId.woodenShield,
         projectileId: ProjectileId.throwingKnife,
         abilityProjectileId: 'eloise.overcharge_shot',
@@ -123,7 +120,7 @@ void main() {
 
     test('spell-slot self spell is valid', () {
       const loadout = EquippedLoadoutDef(
-        mainWeaponId: WeaponId.woodenSword,
+        mainWeaponId: WeaponId.plainsteel,
         offhandWeaponId: WeaponId.woodenShield,
         projectileId: ProjectileId.throwingKnife,
         spellBookId: SpellBookId.epicSpellBook,
@@ -183,7 +180,7 @@ void main() {
 
     test('invalid slot (shield bash in primary) should fail', () {
       const loadout = EquippedLoadoutDef(
-        mainWeaponId: WeaponId.basicSword,
+        mainWeaponId: WeaponId.plainsteel,
         abilityPrimaryId: 'eloise.concussive_bash', // Requires Secondary slot
       );
 
@@ -211,9 +208,9 @@ void main() {
 
     test('missing required weapon types (shield block with sword) should fail', () {
       const loadout = EquippedLoadoutDef(
-        mainWeaponId: WeaponId.woodenSword,
+        mainWeaponId: WeaponId.plainsteel,
         offhandWeaponId: WeaponId
-            .woodenSword, // Invalid for other reasons, but let's test gating
+            .plainsteel, // Invalid for other reasons, but let's test gating
         abilitySecondaryId:
             'eloise.aegis_riposte', // Requires shield weapon type.
       );
@@ -262,7 +259,7 @@ void main() {
     );
 
     test('two-handed primary with off-hand equipped should fail', () {
-      // Use mock catalog that defines solidSword as Two-Handed
+      // Use mock catalog that defines graveglass as Two-Handed.
       final mockValidator = LoadoutValidator(
         abilityCatalog: abilityCatalog,
         weaponCatalog: const MockWeaponCatalog(),
@@ -271,7 +268,7 @@ void main() {
       );
 
       const loadout = EquippedLoadoutDef(
-        mainWeaponId: WeaponId.solidSword, // Mocked as 2H
+        mainWeaponId: WeaponId.graveglass, // Mocked as 2H
         offhandWeaponId: WeaponId.basicShield, // Conflict!
         abilityPrimaryId: 'eloise.bloodletter_slash',
       );
@@ -291,9 +288,9 @@ class MockWeaponCatalog implements WeaponCatalog {
 
   @override
   WeaponDef? tryGet(WeaponId id) {
-    if (id == WeaponId.solidSword) {
+    if (id == WeaponId.graveglass) {
       return const WeaponDef(
-        id: WeaponId.solidSword,
+        id: WeaponId.graveglass,
         category: WeaponCategory.primary,
         weaponType: WeaponType.oneHandedSword,
         isTwoHanded: true,

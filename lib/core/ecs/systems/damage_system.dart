@@ -9,6 +9,7 @@ import '../../util/deterministic_rng.dart';
 import '../../util/fixed_math.dart';
 import '../../weapons/weapon_proc.dart';
 import 'ability_interrupt.dart';
+import '../entity_id.dart';
 import '../stores/damage_queue_store.dart';
 import '../world.dart';
 
@@ -108,12 +109,15 @@ class DamageSystem {
 
       // 4. Resolve outgoing critical strike (if any).
       var amountAfterCrit = amountAfterSourceModifiers;
+      var didCrit = false;
       if (critChanceBp >= bpScale) {
         amountAfterCrit = applyBp(amountAfterCrit, _critDamageBonusBp);
+        didCrit = true;
       } else if (critChanceBp > 0) {
         _rngState = nextUint32(_rngState);
         if ((_rngState % bpScale) < critChanceBp) {
           amountAfterCrit = applyBp(amountAfterCrit, _critDamageBonusBp);
+          didCrit = true;
         }
       }
       if (amountAfterCrit < 0) amountAfterCrit = 0;
@@ -143,6 +147,7 @@ class DamageSystem {
       final prevHp = health.hp[hi];
       final nextHp = clampInt(prevHp - appliedAmount, 0, health.hpMax[hi]);
       health.hp[hi] = nextHp;
+      final didKill = prevHp > 0 && nextHp == 0;
 
       // 7. Record Last Damage details (if store exists).
       // Only useful if damage was actually taken.
@@ -184,30 +189,41 @@ class DamageSystem {
       // 8. Queue status effects for non-zero damage requests.
       if (queueStatus != null && amount100 > 0 && procs.isNotEmpty) {
         for (final proc in procs) {
-          if (proc.hook != ProcHook.onHit) continue;
           if (proc.statusProfileId == StatusProfileId.none) continue;
+
+          EntityId? statusTarget;
+          switch (proc.hook) {
+            case ProcHook.onHit:
+              statusTarget = target;
+              break;
+            case ProcHook.onCrit:
+              if (!didCrit) continue;
+              statusTarget = target;
+              break;
+            case ProcHook.onKill:
+              if (!didKill || sourceEntity == null) continue;
+              statusTarget = sourceEntity;
+              break;
+            case ProcHook.onBlock:
+              continue;
+          }
+
           final chance = proc.chanceBp;
-          if (chance >= bpScale) {
-            queueStatus(
-              StatusRequest(
-                target: target,
-                profileId: proc.statusProfileId,
-                damageType: damageType,
-              ),
-            );
-            continue;
-          }
           if (chance <= 0) continue;
-          _rngState = nextUint32(_rngState);
-          if ((_rngState % bpScale) < chance) {
-            queueStatus(
-              StatusRequest(
-                target: target,
-                profileId: proc.statusProfileId,
-                damageType: damageType,
-              ),
-            );
+          if (chance < bpScale) {
+            _rngState = nextUint32(_rngState);
+            if ((_rngState % bpScale) >= chance) {
+              continue;
+            }
           }
+
+          queueStatus(
+            StatusRequest(
+              target: statusTarget,
+              profileId: proc.statusProfileId,
+              damageType: damageType,
+            ),
+          );
         }
       }
 

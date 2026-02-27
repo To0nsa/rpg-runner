@@ -70,7 +70,7 @@ class MetaService {
 
   /// Returns starter unlocked main/off-hand weapon IDs.
   Set<WeaponId> _startingUnlockedWeaponIds() {
-    final unlockedPrimaryWeapons = <WeaponId>[];
+    final unlockedPrimaryWeapons = <WeaponId>{};
     final unlockedOffhandWeapons = <WeaponId>[];
     for (final id in WeaponId.values) {
       final def = weapons.tryGet(id);
@@ -88,7 +88,7 @@ class MetaService {
     }
 
     return <WeaponId>{
-      ...unlockedPrimaryWeapons.take(_startingUnlockedPerCatalog),
+      ...unlockedPrimaryWeapons,
       ...unlockedOffhandWeapons.take(_startingUnlockedPerCatalog),
     };
   }
