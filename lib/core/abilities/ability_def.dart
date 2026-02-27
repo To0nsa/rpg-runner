@@ -401,9 +401,11 @@ class AbilityDef {
     this.cooldownGroupId,
     Set<WeaponType> requiredWeaponTypes = const <WeaponType>{},
     this.requiresEquippedWeapon = false,
+    this.canCommitWhileStunned = false,
     Set<ForcedInterruptCause> forcedInterruptCauses =
         defaultForcedInterruptCauses,
     this.selfStatusProfileId = StatusProfileId.none,
+    this.selfPurgeProfileId = PurgeProfileId.none,
     required this.animKey,
   }) : allowedSlots = Set<AbilitySlot>.unmodifiable(allowedSlots),
        procs = List<WeaponProc>.unmodifiable(procs),
@@ -657,12 +659,18 @@ class AbilityDef {
   /// even if [requiredWeaponTypes] is empty.
   final bool requiresEquippedWeapon;
 
+  /// If true, this ability can be committed while stunned.
+  final bool canCommitWhileStunned;
+
   /// Guaranteed or probabilistic effects applied on hit (ability-owned).
   /// Merged deterministically with item procs in [HitPayloadBuilder].
   final List<WeaponProc> procs;
 
   /// Status profile applied to self on execute (SelfHitDelivery only).
   final StatusProfileId selfStatusProfileId;
+
+  /// Purge profile applied to self on execute (SelfHitDelivery only).
+  final PurgeProfileId selfPurgeProfileId;
 
   /// Optional charge tuning profile for hold/release commits.
   final AbilityChargeProfile? chargeProfile;

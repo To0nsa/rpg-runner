@@ -43,6 +43,7 @@ const Map<AbilityKey, String> _displayNameOverrides = <AbilityKey, String>{
   // Spell: utility and sustain.
   'eloise.arcane_haste': 'Arcane Haste',
   'eloise.arcane_ward': 'Arcane Ward',
+  'eloise.cleanse': 'Cleanse',
   'eloise.vital_surge': 'Vital Surge',
   'eloise.mana_infusion': 'Mana Infusion',
   'eloise.second_wind': 'Second Wind',

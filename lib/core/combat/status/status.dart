@@ -36,6 +36,12 @@ enum StatusProfileId {
   restoreStamina,
 }
 
+/// Stable identifiers for deterministic self-purge profiles.
+enum PurgeProfileId {
+  none,
+  cleanse,
+}
+
 /// A single status application inside a profile.
 class StatusApplication {
   const StatusApplication({
@@ -336,4 +342,12 @@ class StatusRequest {
   final EntityId target;
   final StatusProfileId profileId;
   final DamageType damageType;
+}
+
+/// Runtime request for purging status/control effects from a target.
+class PurgeRequest {
+  const PurgeRequest({required this.target, required this.profileId});
+
+  final EntityId target;
+  final PurgeProfileId profileId;
 }

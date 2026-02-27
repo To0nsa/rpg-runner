@@ -8,6 +8,7 @@ class SelfIntentDef {
     required this.abilityId,
     required this.slot,
     this.selfStatusProfileId = StatusProfileId.none,
+    this.selfPurgeProfileId = PurgeProfileId.none,
     required this.commitTick,
     required this.windupTicks,
     required this.activeTicks,
@@ -22,6 +23,7 @@ class SelfIntentDef {
   final AbilityKey abilityId;
   final AbilitySlot slot;
   final StatusProfileId selfStatusProfileId;
+  final PurgeProfileId selfPurgeProfileId;
 
   /// Tick the ability was committed (costs/cooldown start).
   final int commitTick;
@@ -55,6 +57,7 @@ class SelfIntentStore extends SparseSet {
   final List<AbilityKey> abilityId = <AbilityKey>[];
   final List<AbilitySlot> slot = <AbilitySlot>[];
   final List<StatusProfileId> selfStatusProfileId = <StatusProfileId>[];
+  final List<PurgeProfileId> selfPurgeProfileId = <PurgeProfileId>[];
   final List<int> commitTick = <int>[];
   final List<int> windupTicks = <int>[];
   final List<int> activeTicks = <int>[];
@@ -82,6 +85,7 @@ class SelfIntentStore extends SparseSet {
     abilityId[i] = def.abilityId;
     slot[i] = def.slot;
     selfStatusProfileId[i] = def.selfStatusProfileId;
+    selfPurgeProfileId[i] = def.selfPurgeProfileId;
     commitTick[i] = def.commitTick;
     windupTicks[i] = def.windupTicks;
     activeTicks[i] = def.activeTicks;
@@ -98,6 +102,7 @@ class SelfIntentStore extends SparseSet {
     abilityId.add('eloise.riposte_guard');
     slot.add(AbilitySlot.primary);
     selfStatusProfileId.add(StatusProfileId.none);
+    selfPurgeProfileId.add(PurgeProfileId.none);
     commitTick.add(-1);
     windupTicks.add(0);
     activeTicks.add(0);
@@ -114,6 +119,7 @@ class SelfIntentStore extends SparseSet {
     abilityId[removeIndex] = abilityId[lastIndex];
     slot[removeIndex] = slot[lastIndex];
     selfStatusProfileId[removeIndex] = selfStatusProfileId[lastIndex];
+    selfPurgeProfileId[removeIndex] = selfPurgeProfileId[lastIndex];
     commitTick[removeIndex] = commitTick[lastIndex];
     windupTicks[removeIndex] = windupTicks[lastIndex];
     activeTicks[removeIndex] = activeTicks[lastIndex];
@@ -127,6 +133,7 @@ class SelfIntentStore extends SparseSet {
     abilityId.removeLast();
     slot.removeLast();
     selfStatusProfileId.removeLast();
+    selfPurgeProfileId.removeLast();
     commitTick.removeLast();
     windupTicks.removeLast();
     activeTicks.removeLast();

@@ -44,6 +44,7 @@ class StatusSystem {
   final ResolvedStatsCache _statsCache;
 
   final List<StatusRequest> _pending = <StatusRequest>[];
+  final List<PurgeRequest> _pendingPurges = <PurgeRequest>[];
   final List<EntityId> _removeScratch = <EntityId>[];
 
   /// Current tick, set at the start of applyQueued.
@@ -55,8 +56,15 @@ class StatusSystem {
     _pending.add(request);
   }
 
+  /// Queues a deterministic purge profile to apply.
+  void queuePurge(PurgeRequest request) {
+    if (request.profileId == PurgeProfileId.none) return;
+    _pendingPurges.add(request);
+  }
+
   /// Ticks existing statuses and queues DoT damage.
   void tickExisting(EcsWorld world, {ResourcePulseCallback? onResourcePulse}) {
+    _applyPendingPurges(world);
     _tickDot(world);
     _tickResourceOverTime(world);
     _tickDamageReduction(world);
@@ -79,6 +87,32 @@ class StatusSystem {
       _pending.clear();
     }
     _refreshMoveSpeed(world);
+  }
+
+  void _applyPendingPurges(EcsWorld world) {
+    if (_pendingPurges.isEmpty) return;
+
+    for (final req in _pendingPurges) {
+      if (world.deathState.has(req.target)) continue;
+      switch (req.profileId) {
+        case PurgeProfileId.none:
+          continue;
+        case PurgeProfileId.cleanse:
+          _applyCleanse(world, req.target);
+      }
+    }
+    _pendingPurges.clear();
+  }
+
+  void _applyCleanse(EcsWorld world, EntityId target) {
+    world.dot.removeEntity(target);
+    world.slow.removeEntity(target);
+    world.vulnerable.removeEntity(target);
+    world.weaken.removeEntity(target);
+    world.drench.removeEntity(target);
+
+    // Cleanse removes both silence and stun control locks.
+    world.controlLock.clearLock(target, LockFlag.cast | LockFlag.stun);
   }
 
   void _tickDot(EcsWorld world) {

@@ -15,6 +15,7 @@ This document reflects the current Core combat contracts used by `GameCore`.
 
 - `StatusEffectType`: `dot`, `slow`, `stun`, `haste`, `damageReduction`, `vulnerable`, `weaken`, `drench`, `silence`, `resourceOverTime`
 - `StatusProfileId`: authored bundles (for example `slowOnHit`, `burnOnHit`, `arcaneWard`, `stunOnHit`, `restoreHealth`)
+- `PurgeProfileId`: deterministic purge bundles (currently `cleanse`)
 - `StatusApplication`: one application entry (magnitude, duration, optional period/type/resource)
 - `StatusProfileCatalog`: stable profile lookup
 
@@ -116,6 +117,12 @@ DamageRequest {
 - Applies or refreshes status stores
 - Applies stun/cast locks in `ControlLockStore`
 - Refreshes derived move/action modifiers
+
+### `StatusSystem.queuePurge` / purge processing
+
+- `SelfAbilitySystem` can queue `PurgeRequest`s (for example `eloise.cleanse`)
+- Purges are processed at the start of `StatusSystem.tickExisting`
+- `cleanse` removes debuffs including `stun` and `silence` control locks
 
 ### Damage middleware note
 

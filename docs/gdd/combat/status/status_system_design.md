@@ -36,6 +36,11 @@ Status effects add deterministic pressure/control/tempo changes through authored
 - `restoreMana`
 - `restoreStamina`
 
+`PurgeProfileId` currently includes:
+
+- `none`
+- `cleanse`
+
 ## Current Profile Reference
 
 | Profile | Effects |
@@ -96,6 +101,13 @@ Status effects add deterministic pressure/control/tempo changes through authored
 - applied in damage middleware (no active-ability phase requirement)
 - direct hits are reduced by ward magnitude basis points
 - DoT (`DeathSourceKind.statusEffect`) is canceled while ward is active
+
+### Purge Rules (`PurgeProfileId.cleanse`)
+
+- removes active `DotStore` channels
+- removes `slow`, `vulnerable`, `weaken`, and `drench` stores
+- clears control-lock flags for `stun` and `silence` (`LockFlag.stun | LockFlag.cast`)
+- does not remove beneficial statuses (`haste`, `damageReduction`, `resourceOverTime`)
 
 ### Stun
 

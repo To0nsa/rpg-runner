@@ -35,7 +35,7 @@ Current ability slots:
 ### Slot Notes
 
 - `projectile` slot abilities use the projectile payload source selected for that slot (throwing weapon or spell projectile from spellbook grants).
-- `spell` slot currently hosts spellbook-granted self-utility abilities (`arcane_haste`, `arcane_ward`, `vital_surge`, `mana_infusion`, `second_wind`).
+- `spell` slot currently hosts spellbook-granted self-utility abilities (`arcane_haste`, `arcane_ward`, `cleanse`, `vital_surge`, `mana_infusion`, `second_wind`).
 - `jump` is a fixed action slot but still authored as abilities (`eloise.jump`, `eloise.double_jump`).
 
 ## Targeting and Input Lifecycle
@@ -67,6 +67,8 @@ Default forced interrupt causes are:
 - `death`
 
 Some abilities also opt into `damageTaken` (for example charged variants).
+
+Commit gating is stun-blocked by default; exceptions can opt in via `canCommitWhileStunned` (currently `eloise.cleanse`).
 
 ## Input Buffering
 

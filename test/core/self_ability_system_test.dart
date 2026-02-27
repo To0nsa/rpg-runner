@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/accessories/accessory_catalog.dart';
+import 'package:rpg_runner/core/combat/damage_type.dart';
 import 'package:rpg_runner/core/combat/status/status.dart';
+import 'package:rpg_runner/core/combat/control_lock.dart';
 import 'package:rpg_runner/core/ecs/entity_factory.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
@@ -11,6 +13,8 @@ import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:rpg_runner/core/ecs/stores/health_store.dart';
 import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
 import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
+import 'package:rpg_runner/core/ecs/stores/status/dot_store.dart';
+import 'package:rpg_runner/core/ecs/stores/status/slow_store.dart';
 import 'package:rpg_runner/core/ecs/systems/ability_activation_system.dart';
 import 'package:rpg_runner/core/ecs/systems/self_ability_system.dart';
 import 'package:rpg_runner/core/ecs/systems/status_system.dart';
@@ -234,6 +238,73 @@ void main() {
     expect(world.damageReduction.magnitude[wardIndex], equals(4000));
     expect(world.damageReduction.ticksLeft[wardIndex], equals(240));
     expect(world.mana.mana[world.mana.indexOf(player)], equals(800));
+  });
+
+  test('Cleanse self spell purges debuffs including stun', () {
+    final world = EcsWorld();
+    final player = EntityFactory(world).createPlayer(
+      posX: 0,
+      posY: 0,
+      velX: 0,
+      velY: 0,
+      facing: Facing.right,
+      grounded: true,
+      body: const BodyDef(isKinematic: true, useGravity: false),
+      collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+      health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 2000, manaMax: 2000, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 1000,
+        staminaMax: 1000,
+        regenPerSecond100: 0,
+      ),
+    );
+
+    world.dot.add(
+      player,
+      const DotDef(
+        damageType: DamageType.fire,
+        ticksLeft: 30,
+        periodTicks: 1,
+        dps100: 500,
+      ),
+    );
+    world.slow.add(player, const SlowDef(ticksLeft: 30, magnitude: 2500));
+    world.controlLock.addLock(player, LockFlag.stun, 30, 0);
+
+    final li = world.equippedLoadout.indexOf(player);
+    world.equippedLoadout.mask[li] |= LoadoutSlotMask.projectile;
+    world.equippedLoadout.spellBookId[li] = SpellBookId.epicSpellBook;
+    world.equippedLoadout.abilitySpellId[li] = 'eloise.cleanse';
+
+    final pi = world.playerInput.indexOf(player);
+    world.playerInput.spellPressed[pi] = true;
+
+    final activation = AbilityActivationSystem(
+      tickHz: 60,
+      inputBufferTicks: 10,
+      abilities: const AbilityCatalog(),
+      weapons: const WeaponCatalog(),
+      projectiles: const ProjectileCatalog(),
+      spellBooks: const SpellBookCatalog(),
+      accessories: const AccessoryCatalog(),
+    );
+    final selfAbility = SelfAbilitySystem();
+    final status = StatusSystem(tickHz: 60);
+
+    activation.step(world, player: player, currentTick: 5);
+    selfAbility.step(
+      world,
+      currentTick: 5,
+      queueStatus: status.queue,
+      queuePurge: status.queuePurge,
+    );
+    status.tickExisting(world);
+
+    expect(world.dot.has(player), isFalse);
+    expect(world.slow.has(player), isFalse);
+    expect(world.controlLock.isLocked(player, LockFlag.stun, 5), isFalse);
+    expect(world.mana.mana[world.mana.indexOf(player)], equals(600));
   });
 
   test(

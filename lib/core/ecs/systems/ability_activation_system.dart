@@ -82,7 +82,7 @@ class AbilityActivationSystem {
     final loadoutIndex = world.equippedLoadout.tryIndexOf(player);
     if (loadoutIndex == null) return;
 
-    if (world.controlLock.isStunned(player, currentTick)) return;
+    final isStunned = world.controlLock.isStunned(player, currentTick);
 
     final axis = world.playerInput.moveAxis[inputIndex];
     final Facing facing = axis != 0
@@ -135,6 +135,32 @@ class AbilityActivationSystem {
     }
 
     final slotPressed = _resolvePressedSlot(world, inputIndex);
+
+    if (isStunned) {
+      if (slotPressed == null) return;
+      final stunnedAbilityId = _abilityIdForSlot(
+        world,
+        loadoutIndex,
+        slotPressed,
+        inputIndex: inputIndex,
+      );
+      if (stunnedAbilityId == null) return;
+      final stunnedAbility = abilities.resolve(stunnedAbilityId);
+      if (stunnedAbility == null || !stunnedAbility.canCommitWhileStunned) {
+        return;
+      }
+      _commitSlot(
+        world,
+        player: player,
+        loadoutIndex: loadoutIndex,
+        inputIndex: inputIndex,
+        movementIndex: movementIndex,
+        facing: facing,
+        slot: slotPressed,
+        commitTick: currentTick,
+      );
+      return;
+    }
 
     if (hasActive) {
       if (slotPressed != null && isRecovery) {
@@ -503,6 +529,7 @@ class AbilityActivationSystem {
       healthCost100: commitCost.healthCost100,
       manaCost100: commitCost.manaCost100,
       staminaCost100: commitCost.staminaCost100,
+      ignoreStun: ability.canCommitWhileStunned,
     );
     if (fail != null) return false;
     if (ability.holdMode == AbilityHoldMode.holdToMaintain &&
@@ -535,6 +562,7 @@ class AbilityActivationSystem {
         abilityId: ability.id,
         slot: slot,
         selfStatusProfileId: ability.selfStatusProfileId,
+        selfPurgeProfileId: ability.selfPurgeProfileId,
         commitTick: commitTick,
         windupTicks: windupTicks,
         activeTicks: activeTicks,

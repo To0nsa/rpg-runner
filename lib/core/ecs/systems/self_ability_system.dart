@@ -7,12 +7,14 @@ import '../world.dart';
 /// **Execution Only**:
 /// - Reads committed intents (`tick == currentTick`).
 /// - Queues self status profiles (buffs/restoration/other self effects).
+/// - Queues self purge profiles (cleanse effects).
 /// - Does **not** deduct resources or start cooldowns.
 class SelfAbilitySystem {
   void step(
     EcsWorld world, {
     required int currentTick,
     void Function(StatusRequest request)? queueStatus,
+    void Function(PurgeRequest request)? queuePurge,
   }) {
     final intents = world.selfIntent;
     if (intents.denseEntities.isEmpty) return;
@@ -32,6 +34,12 @@ class SelfAbilitySystem {
         final profileId = intents.selfStatusProfileId[ii];
         if (profileId != StatusProfileId.none) {
           queueStatus(StatusRequest(target: target, profileId: profileId));
+        }
+      }
+      if (queuePurge != null) {
+        final profileId = intents.selfPurgeProfileId[ii];
+        if (profileId != PurgeProfileId.none) {
+          queuePurge(PurgeRequest(target: target, profileId: profileId));
         }
       }
 

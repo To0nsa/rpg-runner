@@ -15,6 +15,12 @@ import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/damage_resistance_store.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:rpg_runner/core/ecs/stores/enemies/enemy_store.dart';
+import 'package:rpg_runner/core/ecs/stores/status/dot_store.dart';
+import 'package:rpg_runner/core/ecs/stores/status/slow_store.dart';
+import 'package:rpg_runner/core/ecs/stores/status/haste_store.dart';
+import 'package:rpg_runner/core/ecs/stores/status/vulnerable_store.dart';
+import 'package:rpg_runner/core/ecs/stores/status/weaken_store.dart';
+import 'package:rpg_runner/core/ecs/stores/status/drench_store.dart';
 import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
 import 'package:rpg_runner/core/ecs/systems/status_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
@@ -328,6 +334,52 @@ void main() {
     wardIndex = world.damageReduction.indexOf(target);
     expect(world.damageReduction.magnitude[wardIndex], equals(6000));
     expect(world.damageReduction.ticksLeft[wardIndex], equals(120));
+  });
+
+  test('cleanse purge removes debuffs including stun but preserves buffs', () {
+    final world = EcsWorld();
+    final status = StatusSystem(tickHz: 60);
+
+    final target = world.createEntity();
+    world.health.add(
+      target,
+      const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+    );
+    world.dot.add(
+      target,
+      const DotDef(
+        damageType: DamageType.fire,
+        ticksLeft: 30,
+        periodTicks: 1,
+        dps100: 500,
+      ),
+    );
+    world.slow.add(target, const SlowDef(ticksLeft: 30, magnitude: 2500));
+    world.vulnerable.add(
+      target,
+      const VulnerableDef(ticksLeft: 30, magnitude: 5000),
+    );
+    world.weaken.add(target, const WeakenDef(ticksLeft: 30, magnitude: 3500));
+    world.drench.add(target, const DrenchDef(ticksLeft: 30, magnitude: 5000));
+    world.haste.add(target, const HasteDef(ticksLeft: 30, magnitude: 2000));
+    world.controlLock.addLock(target, LockFlag.stun, 20, 0);
+    world.controlLock.addLock(target, LockFlag.cast, 20, 0);
+
+    status.queuePurge(
+      PurgeRequest(target: target, profileId: PurgeProfileId.cleanse),
+    );
+    status.tickExisting(world);
+
+    expect(world.dot.has(target), isFalse);
+    expect(world.slow.has(target), isFalse);
+    expect(world.vulnerable.has(target), isFalse);
+    expect(world.weaken.has(target), isFalse);
+    expect(world.drench.has(target), isFalse);
+    expect(world.haste.has(target), isTrue);
+
+    expect(world.controlLock.isLocked(target, LockFlag.stun, 0), isFalse);
+    expect(world.controlLock.isLocked(target, LockFlag.cast, 0), isFalse);
+    expect(world.damageQueue.length, equals(0));
   });
 
   test('status scaling uses combined typed modifier from store and gear', () {

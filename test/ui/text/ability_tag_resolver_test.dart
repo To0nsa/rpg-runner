@@ -199,6 +199,19 @@ void main() {
       expect(tooltip.dynamicDescriptionValues, contains('5.0'));
     });
 
+    test('builds cleanse description with explicit debuff list', () {
+      final tooltip = tooltipBuilder.build(ability('eloise.cleanse'));
+
+      expect(
+        tooltip.description,
+        contains('including stun, silence, slow, vulnerability'),
+      );
+      expect(tooltip.description, contains('damage-over-time effects'));
+      expect(tooltip.dynamicDescriptionValues, contains('stun'));
+      expect(tooltip.dynamicDescriptionValues, contains('silence'));
+      expect(tooltip.dynamicDescriptionValues, contains('damage-over-time'));
+    });
+
     test('builds seeker slash DoT values from authored profile data', () {
       final def = ability('eloise.seeker_slash');
       final profile = const StatusProfileCatalog().get(

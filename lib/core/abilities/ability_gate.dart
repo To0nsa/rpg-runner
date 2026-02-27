@@ -55,8 +55,9 @@ abstract class AbilityGate {
     required int healthCost100,
     required int manaCost100,
     required int staminaCost100,
+    bool ignoreStun = false,
   }) {
-    if (world.controlLock.isStunned(entity, currentTick)) {
+    if (!ignoreStun && world.controlLock.isStunned(entity, currentTick)) {
       return AbilityGateFail.stunned;
     }
     // Cooldown is checked before resource costs so failures report "on cooldown"

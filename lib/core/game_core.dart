@@ -1174,6 +1174,7 @@ class GameCore {
       _world,
       currentTick: tick,
       queueStatus: _statusSystem.queue,
+      queuePurge: _statusSystem.queuePurge,
     );
     // Convert intents into actual hitboxes/projectiles.
     // Self abilities first so buffs/blocks/i-frames can affect spawns & downstream combat deterministically.

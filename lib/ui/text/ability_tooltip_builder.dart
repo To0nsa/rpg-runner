@@ -122,6 +122,9 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
     AbilityDef def,
     AbilityTooltipContext ctx,
   ) {
+    if (def.selfPurgeProfileId != PurgeProfileId.none) {
+      return _selfPurgeDescription(def);
+    }
     if (def.selfStatusProfileId != StatusProfileId.none) {
       return _selfStatusDescription(def);
     }
@@ -515,6 +518,29 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
         return _DescriptionWithHighlights(
           description: 'Apply $statusLabel for $duration seconds.',
           dynamicValues: <String>[statusLabel, duration],
+        );
+    }
+  }
+
+  _DescriptionWithHighlights _selfPurgeDescription(AbilityDef def) {
+    switch (def.selfPurgeProfileId) {
+      case PurgeProfileId.none:
+        return const _DescriptionWithHighlights(
+          description: 'Tap to use this ability.',
+        );
+      case PurgeProfileId.cleanse:
+        return const _DescriptionWithHighlights(
+          description:
+              'Cleanse all active debuffs, including stun, silence, slow, vulnerability, weaken, drench, and damage-over-time effects.',
+          dynamicValues: <String>[
+            'stun',
+            'silence',
+            'slow',
+            'vulnerability',
+            'weaken',
+            'drench',
+            'damage-over-time',
+          ],
         );
     }
   }

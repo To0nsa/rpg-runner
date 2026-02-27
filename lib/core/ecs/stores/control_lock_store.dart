@@ -121,6 +121,40 @@ class ControlLockStore extends SparseSet {
     return activeMask[idx];
   }
 
+  /// Clears specific lock flags on [entity] immediately.
+  void clearLock(EntityId entity, int flag) {
+    final idx = tryIndexOf(entity);
+    if (idx == null) return;
+
+    if ((flag & LockFlag.stun) != 0) {
+      untilTickStun[idx] = 0;
+      stunStartTick[idx] = -1;
+    }
+    if ((flag & LockFlag.move) != 0) {
+      untilTickMove[idx] = 0;
+    }
+    if ((flag & LockFlag.jump) != 0) {
+      untilTickJump[idx] = 0;
+    }
+    if ((flag & LockFlag.dash) != 0) {
+      untilTickDash[idx] = 0;
+    }
+    if ((flag & LockFlag.strike) != 0) {
+      untilTickStrike[idx] = 0;
+    }
+    if ((flag & LockFlag.cast) != 0) {
+      untilTickCast[idx] = 0;
+    }
+    if ((flag & LockFlag.ranged) != 0) {
+      untilTickRanged[idx] = 0;
+    }
+    if ((flag & LockFlag.nav) != 0) {
+      untilTickNav[idx] = 0;
+    }
+
+    activeMask[idx] &= ~flag;
+  }
+
   /// Refreshes the active mask for entity at [idx] based on [currentTick].
   ///
   /// Called by ControlLockSystem each tick and after addLock.

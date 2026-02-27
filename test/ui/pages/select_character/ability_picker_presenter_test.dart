@@ -113,6 +113,10 @@ void main() {
         isTrue,
       );
       expect(
+        candidates.any((candidate) => candidate.id == 'eloise.cleanse'),
+        isTrue,
+      );
+      expect(
         candidates.any((candidate) => candidate.id == 'eloise.vital_surge'),
         isTrue,
       );
@@ -131,11 +135,15 @@ void main() {
       final restoreMana = candidates.firstWhere(
         (candidate) => candidate.id == 'eloise.mana_infusion',
       );
+      final cleanse = candidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.cleanse',
+      );
       final restoreHealth = candidates.firstWhere(
         (candidate) => candidate.id == 'eloise.vital_surge',
       );
       expect(arcaneHaste.isEnabled, isTrue);
       expect(restoreMana.isEnabled, isFalse);
+      expect(cleanse.isEnabled, isFalse);
       expect(restoreHealth.isEnabled, isFalse);
     });
 
