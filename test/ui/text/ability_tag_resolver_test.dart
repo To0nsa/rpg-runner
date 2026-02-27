@@ -155,28 +155,23 @@ void main() {
       expect(tooltip.dynamicDescriptionValues, contains(expectedRiposteBonus));
     });
 
-    test('builds self-status descriptions from profile metadata', () {
-      final expectedStatusByAbility = <String, String>{
-        'eloise.arcane_haste': 'Haste',
-        'eloise.vital_surge': 'Health Regen',
-        'eloise.mana_infusion': 'Mana Regen',
-        'eloise.second_wind': 'Stamina Regen',
+    test('builds self-status descriptions with exact effect details', () {
+      final expectedDescriptionByAbility = <String, String>{
+        'eloise.arcane_haste':
+            'Increase move speed by 50% for 5.0 seconds.',
+        'eloise.arcane_ward':
+            'Reduce direct-hit damage by 40% and cancel damage-over-time effects for 4.0 seconds.',
+        'eloise.vital_surge':
+            'Restore 35% of max Health over 5.0 seconds.',
+        'eloise.mana_infusion':
+            'Restore 35% of max Mana over 5.0 seconds.',
+        'eloise.second_wind':
+            'Restore 35% of max Stamina over 5.0 seconds.',
       };
 
-      for (final entry in expectedStatusByAbility.entries) {
-        final def = ability(entry.key);
-        final profile = const StatusProfileCatalog().get(def.selfStatusProfileId);
-        final duration = profile.applications.first.durationSeconds.toStringAsFixed(
-          1,
-        );
-        final tooltip = tooltipBuilder.build(def);
-
-        expect(
-          tooltip.description,
-          equals('Tap to gain ${entry.value} for ${duration}s.'),
-        );
-        expect(tooltip.dynamicDescriptionValues, contains(entry.value));
-        expect(tooltip.dynamicDescriptionValues, contains(duration));
+      for (final entry in expectedDescriptionByAbility.entries) {
+        final tooltip = tooltipBuilder.build(ability(entry.key));
+        expect(tooltip.description, equals(entry.value));
       }
     });
 
@@ -195,8 +190,12 @@ void main() {
       );
       final tooltip = tooltipBuilder.build(def);
 
-      expect(tooltip.description, equals('Tap to gain Mana Regen for 5.0s.'));
-      expect(tooltip.dynamicDescriptionValues, contains('Mana Regen'));
+      expect(
+        tooltip.description,
+        equals('Restore 35% of max Mana over 5.0 seconds.'),
+      );
+      expect(tooltip.dynamicDescriptionValues, contains('35'));
+      expect(tooltip.dynamicDescriptionValues, contains('max Mana'));
       expect(tooltip.dynamicDescriptionValues, contains('5.0'));
     });
 

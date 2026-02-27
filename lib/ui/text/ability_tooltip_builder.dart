@@ -71,8 +71,6 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
       'Keep your guard up and reduce incoming damage by {reduction}% while held.';
   static const String _templateRiposteGrant =
       ' Guarded hits grant {riposte}, empowering your next melee hit by +{riposteBonus}% damage.';
-  static const String _templateSelfStatus =
-      'Grant {status} for {duration} seconds.';
   static const String _templateSnapShot =
       'Fire {projectileSource}{projectileName}, it deals {damage} damage to the closest enemy.';
   static const String _templateQuickShot =
@@ -454,17 +452,71 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
 
   _DescriptionWithHighlights _selfStatusDescription(AbilityDef def) {
     final profile = _statusProfiles.get(def.selfStatusProfileId);
-    final application = profile.applications.first;
-    final statusLabel = _selfStatusLabel(application);
-    final duration = _formatOneDecimal(application.durationSeconds);
-    return _descriptionFromTemplate(
-      template: _templateSelfStatus,
-      values: <String, String>{
-        'status': statusLabel,
-        'duration': duration,
-      },
-      dynamicKeys: <String>['status', 'duration'],
+    if (profile.applications.isEmpty) {
+      return const _DescriptionWithHighlights(
+        description: 'Tap to use this ability.',
+      );
+    }
+
+    final parts = <String>[];
+    final dynamicValues = <String>[];
+    for (final application in profile.applications) {
+      final detail = _selfStatusEffectDescription(application);
+      parts.add(detail.description);
+      dynamicValues.addAll(detail.dynamicValues);
+    }
+
+    return _DescriptionWithHighlights(
+      description: parts.join(' '),
+      dynamicValues: _orderedUniqueNonEmpty(dynamicValues),
     );
+  }
+
+  _DescriptionWithHighlights _selfStatusEffectDescription(
+    StatusApplication application,
+  ) {
+    final duration = _formatOneDecimal(application.durationSeconds);
+    switch (application.type) {
+      case StatusEffectType.haste:
+        final speedBonus = _formatDecimal(application.magnitude / 100.0);
+        return _DescriptionWithHighlights(
+          description:
+              'Increase move speed by $speedBonus% for $duration seconds.',
+          dynamicValues: <String>[speedBonus, duration],
+        );
+      case StatusEffectType.damageReduction:
+        final mitigation = _formatDecimal(application.magnitude / 100.0);
+        return _DescriptionWithHighlights(
+          description:
+              'Reduce direct-hit damage by $mitigation% and cancel damage-over-time effects for $duration seconds.',
+          dynamicValues: <String>[mitigation, duration],
+        );
+      case StatusEffectType.resourceOverTime:
+        final restorePct = _formatDecimal(application.magnitude / 100.0);
+        final resourceLabel = switch (application.resourceType) {
+          StatusResourceType.health => 'max Health',
+          StatusResourceType.mana => 'max Mana',
+          StatusResourceType.stamina => 'max Stamina',
+          null => 'max resource',
+        };
+        return _DescriptionWithHighlights(
+          description:
+              'Restore $restorePct% of $resourceLabel over $duration seconds.',
+          dynamicValues: <String>[restorePct, resourceLabel, duration],
+        );
+      case StatusEffectType.dot:
+      case StatusEffectType.slow:
+      case StatusEffectType.stun:
+      case StatusEffectType.vulnerable:
+      case StatusEffectType.weaken:
+      case StatusEffectType.drench:
+      case StatusEffectType.silence:
+        final statusLabel = _selfStatusLabel(application);
+        return _DescriptionWithHighlights(
+          description: 'Apply $statusLabel for $duration seconds.',
+          dynamicValues: <String>[statusLabel, duration],
+        );
+    }
   }
 
   _DescriptionWithHighlights _buildMeleeDotDescription({
