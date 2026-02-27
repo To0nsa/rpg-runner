@@ -2,59 +2,82 @@
 
 ## Purpose
 
-Define what must stay equivalent (or intentionally different) across ability
-families so tuning stays coherent.
+Defines parity targets and guardrails for current ability families.
 
 ## Core Invariants
 
 ### Projectile Family
 
-- Primary invariant: `DPRS` (Damage Per Resource Per Second)
-- Guardrails:
-  - burst window parity (short windows should not dominate sustained windows),
-  - reliability tax visibility (homing/tap variants pay clear cost),
-  - no strict dominant pick across standard scenarios.
+Set:
+
+- `eloise.snap_shot`
+- `eloise.quick_shot`
+- `eloise.skewer_shot`
+- `eloise.overcharge_shot`
+
+Primary invariant: `DPRS` (damage per resource per second).
+
+Guardrails:
+
+- burst windows should not dominate sustained windows by default
+- homing/reliability options must pay explicit tax
+- no strict dominant pick across standard scenarios
 
 ### Primary vs Secondary Offensive Mirrors
 
-- Pairs:
-  - `eloise.sword_strike` vs `eloise.shield_bash`
-  - `eloise.sword_strike_auto_aim` vs `eloise.shield_bash_auto_aim`
-- Primary invariant: sustained throughput parity in equivalent encounter setups.
-- Guardrails:
-  - same role should not differ by hidden utility,
-  - differentiation should come from explicit payload/proc differences.
+Pairs:
+
+- `eloise.bloodletter_slash` vs `eloise.concussive_bash`
+- `eloise.seeker_slash` vs `eloise.seeker_bash`
+- `eloise.bloodletter_cleave` vs `eloise.concussive_breaker`
+
+Primary invariant: sustained throughput parity in equivalent encounter setups.
+
+Guardrails:
+
+- differentiation comes from explicit status/proc payloads
+- no hidden uptime/commit advantage outside authored taxes
 
 ### Defensive Mirrors
 
-- Pairs:
-  - `eloise.sword_riposte_guard` vs `eloise.shield_riposte_guard`
-- Primary invariant: equivalent defensive value per cooldown window.
-- Guardrails:
-  - reward parity (counter window -> payoff),
-  - no one-sided uptime advantage without explicit tax.
+Pairs:
+
+- `eloise.riposte_guard` vs `eloise.aegis_riposte`
+
+Primary invariant: equivalent defensive value per cooldown window.
+
+Guardrails:
+
+- riposte reward parity
+- no one-sided uptime without explicit tax
 
 ### Mobility Family
 
-- Set:
-  - `dash`, `roll`, `charged_aim_dash`, `charged_auto_dash`, `hold_auto_dash`
-- Primary invariant: movement payoff must scale with risk/cost model.
-- Guardrails:
-  - stronger reliability or speed tiers require explicit stamina/cooldown tax,
-  - mobility must not invalidate core runner pacing.
+Set:
+
+- `eloise.dash`
+- `eloise.roll`
+- `eloise.jump`
+- `eloise.double_jump`
+
+Primary invariant: mobility payoff scales with risk/cost and does not break runner pacing.
+
+Guardrails:
+
+- stronger reliability/control effects require explicit cooldown/resource tax
+- mobility should not invalidate core obstacle/jump cadence
 
 ## Metric Definitions
 
-- `TTK`: time to kill against fixed target profile.
-- `Burst Window`: damage dealt during first `N` ticks after commit.
-- `Sustained Throughput`: average damage over long fixed window.
-- `Resource Efficiency`: total damage / total resource spent.
+- `TTK`: time to kill against fixed target profile
+- `Burst Window`: damage during first `N` ticks after commit
+- `Sustained Throughput`: average damage over a fixed long window
+- `Resource Efficiency`: total damage / total resource spent
 
-Use fixed seed and deterministic command streams for all metric collection.
+Use fixed seeds and deterministic command streams for every pass.
 
 ## Pass Criteria
 
-1. Every mirrored set has one primary invariant and measured delta.
-2. Any intentional asymmetry is explicitly documented as a tax axis.
+1. Each mirrored set has a measured primary invariant delta.
+2. Intentional asymmetries are explicitly documented as tax axes.
 3. No unresolved dominance in the scenario matrix.
-

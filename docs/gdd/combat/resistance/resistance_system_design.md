@@ -2,26 +2,26 @@
 
 ## Purpose
 
-Damage resistance defines per-damage-type mitigation or vulnerability at the
-entity level. It exists to support:
+Typed resistance defines deterministic per-damage-type mitigation/vulnerability.
 
-- enemy identity (elemental strengths/weaknesses),
-- readable counterplay in loadouts,
-- deterministic balancing knobs for content expansion.
+It supports:
 
----
+- enemy identity and counters
+- loadout tradeoffs
+- predictable balance knobs
 
 ## Scope
 
-This document covers typed damage resistance (`DamageResistanceStore`) only.
+Covers typed modifiers from:
 
-It does not replace:
+- `DamageResistanceStore` (entity/archetype base)
+- resolved gear typed resistance (`ResolvedCharacterStats`)
 
-- global defense (`defenseBonusBp` in resolved stats),
-- invulnerability frames,
-- status immunity.
+Does not replace:
 
----
+- global defense
+- invulnerability
+- status immunity
 
 ## Current Runtime Model
 
@@ -29,143 +29,84 @@ It does not replace:
 
 `DamageType` currently includes:
 
-- `physical`
-- `fire`
-- `ice`
-- `thunder`
-- `bleed`
+- `physical`, `fire`, `ice`, `water`, `thunder`, `acid`, `dark`, `bleed`, `earth`, `holy`
 
-### Storage contract
+### Store fields
 
-Per entity, resistance is stored in `DamageResistanceStore` as basis points:
+`DamageResistanceStore` stores bp fields per entity:
 
-- `physicalBp`
-- `fireBp`
-- `iceBp`
-- `thunderBp`
-- `bleedBp`
+- `physicalBp`, `fireBp`, `iceBp`, `waterBp`, `thunderBp`
+- `acidBp`, `darkBp`, `bleedBp`, `earthBp`, `holyBp`
 
-Unit:
+Units:
 
 - `100 bp = 1%`
-- `+5000 bp = +50% damage taken` (vulnerability)
-- `-5000 bp = -50% damage taken` (resistance)
-- `-10000 bp = 0 damage after typed resistance step`
+- positive bp = vulnerability (more damage taken)
+- negative bp = resistance (less damage taken)
 
-If an entity has no `DamageResistanceStore` entry, typed modifier defaults to `0`.
+Missing store entry resolves to neutral (`0`).
 
----
+## Damage Order in `DamageSystem`
 
-## Authoritative Damage Formula Order
+Incoming damage resolves as:
 
-In `DamageSystem.step`, incoming damage is resolved in this order:
+1. Source-side `weaken` reduction (if present)
+2. Crit
+3. Global defense
+4. Typed modifier
+5. Target `vulnerable` bonus
+6. Clamp `>= 0`
 
-1. Crit resolution (`critChanceBp` with deterministic RNG, +50% crit bonus)
-2. Global defense (`ResolvedCharacterStats.applyDefense`)
-3. Typed resistance/vulnerability from:
-   - base/archetype runtime store (`DamageResistanceStore`)
-   - gear typed resistance (`ResolvedCharacterStats`)
-4. Final clamp `>= 0`
+Typed step:
 
-Typed resistance application:
+```text
+combinedTypedModBp = baseTypedModBp + gearIncomingModBp
+amountAfterTyped = applyBp(amountAfterDefense, combinedTypedModBp)
+```
 
-`combinedTypedModBp = storeTypedModBp + (-gearTypedResistanceBp)`
+Where `gearIncomingModBp` is already sign-adjusted (`-resistanceBp`).
 
-`appliedAmount = applyBp(amountAfterDefense, combinedTypedModBp)`
+## Relation with Status Scaling
 
-Where:
+For status applications with `scaleByDamageType = true`:
 
-- positive bp increases incoming damage,
-- negative bp decreases incoming damage.
+- Status magnitude scales up only when combined typed modifier is positive.
+- Negative combined modifier does not scale status down.
 
----
-
-## Relationship with Defense
-
-Defense and typed resistance are separate layers:
-
-- Defense is global and comes from resolved gear stats (`defenseBonusBp`).
-- Typed resistance is per damage category and comes from both:
-  - entity archetype/store (`DamageResistanceStore`)
-  - resolved gear typed resistance.
-
-Current order is intentional:
-
-`crit -> defense -> typed resistance`
-
-This means typed vulnerabilities amplify damage after defense has already reduced the base.
-
----
-
-## Relationship with Status Scaling
-
-Status applications using `scaleByDamageType` read the same combined typed modifier
-(`store + gear`) using the request `damageType`.
-
-Current behavior in `StatusSystem`:
-
-- Positive modifier (`> 0`) scales status magnitude up.
-- Negative modifier (`<= 0`) does not scale status magnitude down.
-
-So typed resistance can fully reduce damage but still allow a status proc to
-apply at base magnitude.
-
----
+So resistance can reduce damage while status still applies at base magnitude.
 
 ## Current Content Examples
 
-- Player (Eloise default): all typed resistance values are `0`.
-- `EnemyId.unocoDemon`: `fireBp = -5000`, `iceBp = +5000`.
-- `EnemyId.grojib`: all typed resistance values are `0`.
-
----
+- Eloise default: neutral typed store values
+- `EnemyId.unocoDemon`: `fireBp = -5000`, `iceBp = 5000`
+- `EnemyId.grojib`: neutral typed store values
 
 ## Determinism Contract
 
-1. Resistance values are integer basis points.
-2. Lookup is direct by enum switch (`modBpForIndex`), no hashing/randomness.
-3. Same command stream and seed yields identical damage outcomes.
-4. Missing store entries deterministically resolve to neutral (`0`).
+1. Integer bp values only
+2. Enum-switch lookup (no hash ordering)
+3. Missing entries resolve to `0`
+4. Same command stream + seed => same outcomes
 
----
+## Constraints
 
-## Current Constraints and Gaps
+- `DamageResistanceStore` itself has no clamp.
+- Gear typed resistance is clamped in `CharacterStatsResolver` (`-9000..7500`).
+- Authoring store values outside sane ranges can produce extreme outcomes.
 
-1. No explicit clamp in `DamageResistanceStore` today.
-2. Authoring can technically exceed `[-10000, +10000]`, which can create
-   extreme outcomes.
-3. No dedicated UI/snapshot exposure for per-type resistance values yet.
-4. No resistance-penetration mechanic yet (flat or percent shred).
-
-Recommended authoring guardrail until clamps are introduced:
-
-- keep per-type values in `[-10000, +10000]`.
-
----
+Recommended store guardrail: keep authored values in `[-10000, 10000]` unless explicitly testing extremes.
 
 ## Extension Template
 
 ### Add a new damage type
 
-1. Add enum value in `DamageType`.
-2. Add field in `DamageResistanceDef` and `DamageResistanceStore`.
-3. Update `modBpFor` and `modBpForIndex` switches.
-4. Ensure damage producers can emit the new `DamageType`.
-5. Add tests for neutral, resistance, and vulnerability cases.
+1. Add enum in `DamageType`
+2. Add fields/switch handling in:
+   - `DamageResistanceDef`
+   - `DamageResistanceStore`
+   - `GearStatBonuses` / resolver accessors
+3. Update producers and tests
 
-### Typed resistance on gear (implemented)
+### Add penetration/shred (future)
 
-Implemented path:
-
-1. `GearStatBonuses` exposes typed resistance fields
-   (`physical/fire/ice/thunder/bleedResistanceBp`).
-2. `CharacterStatCaps` clamps typed resistance.
-3. `CharacterStatsResolver` aggregates typed resistance and exposes per-type access.
-4. Runtime application combines store and gear in `DamageSystem`:
-   `storeTypedModBp + (-gearTypedResistanceBp)`.
-5. `StatusSystem` uses the same combined typed modifier for `scaleByDamageType`.
-
-### Add penetration / shred later
-
-Prefer explicit pipeline stage after defense and before typed resistance, with
-deterministic clamping and test coverage for stacking order.
+Prefer explicit stage between defense and typed resistance, with deterministic stacking tests.

@@ -1,61 +1,53 @@
 # Eloise Projectile Slot: Ranged
 
-## Scope
+Eloise projectile-slot abilities (`AbilitySlot.projectile`).
 
-This document defines Eloise abilities equipped in `AbilitySlot.projectile`.
+All abilities here:
 
-All abilities here use:
+- use `payloadSource: AbilityPayloadSource.projectile`
+- require `WeaponType.throwingWeapon` or `WeaponType.projectileSpell`
+- use `AnimKey.ranged`
 
-- `payloadSource: AbilityPayloadSource.projectile`
-- `requiredWeaponTypes: {throwingWeapon, projectileSpell}`
-- `AnimKey.ranged`
+## Ability Matrix
 
-Core units:
-
-- Damage/cost: fixed-point (`100 = 1.0`)
-- Percent/buffs: basis points (`100 = 1%`)
-- Ticks authored at 60 Hz
-
-## Ability Matrix (Current Core)
-
-| Ability ID | Lifecycle | Targeting | Timing (W/A/R) | Cost | Cooldown | Base Damage |
-|---|---|---|---|---:|---:|---:|
-| `eloise.auto_aim_shot` | `tap` | `homing` | `10 / 2 / 12` | mana `800` | `40` | `1300` |
-| `eloise.quick_shot` | `holdRelease` | `aimed` | `10 / 2 / 12` | mana `600` | `14` | `900` |
-| `eloise.piercing_shot` | `holdRelease` | `aimedLine` | `10 / 2 / 12` | mana `1000` | `32` | `1800` |
-| `eloise.charged_shot` | `holdRelease` | `aimedCharge` | `10 / 2 / 12` | mana `1300` | `40` | `2300` |
+| Ability ID | Lifecycle | Targeting | W/A/R | Cost | Cooldown | Base Damage |
+|---|---|---|---|---|---:|---:|
+| `eloise.snap_shot` | `tap` | `homing` | `10/2/12` | mana `800` (throwing override: stamina `800`) | `40` | `1300` |
+| `eloise.quick_shot` | `holdRelease` | `aimed` | `10/2/12` | mana `600` (throwing override: stamina `600`) | `14` | `900` |
+| `eloise.skewer_shot` | `holdRelease` | `aimedLine` | `10/2/12` | mana `1000` (throwing override: stamina `1000`) | `32` | `1800` |
+| `eloise.overcharge_shot` | `holdRelease` | `aimedCharge` | `10/2/12` | mana `1300` (throwing override: stamina `1300`) | `40` | `2300` |
 
 ## Ability Notes
 
-### `eloise.auto_aim_shot`
+### `eloise.snap_shot`
 
-- Deterministic lock-on (`TargetingModel.homing`)
-- Simplest fire-and-forget projectile lane entry
+- deterministic lock-on (`TargetingModel.homing`)
+- highest reliability, explicit cooldown/resource tax
 
 ### `eloise.quick_shot`
 
-- Fast low-cost aimed projectile
-- Best cadence in projectile lane via low cooldown (`14`)
+- fastest cadence in lane (`cooldown 14`)
+- aimed single-target projectile
 
-### `eloise.piercing_shot`
+### `eloise.skewer_shot`
 
-- Line-aim variant for alignment scenarios
-- Projectile delivery includes `pierce: true` and `chainCount: 3`
+- line-aim variant for aligned targets
+- authored delivery: `pierce: true`, `chainCount: 3`
 
-### `eloise.charged_shot`
+### `eloise.overcharge_shot`
 
-- Forced interrupts: `stun`, `death`, `damageTaken`
-- Tiered charge profile (`minHoldTicks60`):
+- forced interrupt causes: `stun`, `death`, `damageTaken`
+- charge tiers (`minHoldTicks60`):
   - `0`: damage `0.82x`, speed `0.90x`
-  - `5`: damage `1.00x`, speed `1.05x`, `+5%` crit
-  - `10`: damage `1.225x`, speed `1.20x`, `+10%` crit, pierce `true`, max pierce hits `2`
-- `chargeMaxHoldTicks60: 150`
+  - `5`: damage `1.00x`, speed `1.05x`, crit `+5%`
+  - `10`: damage `1.225x`, speed `1.20x`, crit `+10%`, `pierce: true`, `maxPierceHits: 2`
+- max hold: `150` ticks
 
-## Payload Behavior
+## Payload Resolution
 
-Authored projectile IDs in these ability defs are defaults/fallbacks. Runtime
-payload (projectile type, procs, damage type, stats) is resolved from equipped
-projectile item path at commit time.
+The projectile-slot source is resolved at commit:
 
-This keeps one ranged ability structure reusable across spell and throwing
-weapon builds.
+- if `projectileSlotSpellId` is valid for the equipped spellbook, that spell projectile is used
+- otherwise the equipped throwing weapon projectile is used
+
+This keeps one ability structure reusable across spell and throwing builds.

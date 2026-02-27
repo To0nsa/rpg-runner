@@ -2,202 +2,123 @@
 
 ## Purpose
 
-Status effects add combat depth by creating short, readable state changes over time:
+Status effects add deterministic pressure/control/tempo changes through authored `StatusProfileId` bundles.
 
-- pressure tools (burn/bleed),
-- control tools (slow/stun),
-- self-tempo buffs (haste).
-
-The status model must stay deterministic, data-authored, and reusable across player and enemies.
-
----
-
-## Design Goals
-
-1. Deterministic behavior at fixed tick rate (`tickHz`), no frame-time dependence.
-2. Clear authoring contract: statuses are declared as `StatusProfile`s, not hardcoded per ability.
-3. Multiplayer/ghost safety: same input + seed => same status outcomes and expiration.
-4. Readable combat: each status has one primary gameplay purpose.
-
----
-
-## Runtime Taxonomy (Current)
+## Current Taxonomy
 
 `StatusEffectType` currently includes:
 
-- `burn` (DoT, fire)
-- `bleed` (DoT, bleed)
-- `slow` (move speed reduction)
-- `stun` (control lock)
-- `haste` (move speed increase)
+- `dot`
+- `slow`
+- `stun`
+- `haste`
+- `vulnerable`
+- `weaken`
+- `drench`
+- `silence`
+- `resourceOverTime`
 
 `StatusProfileId` currently includes:
 
 - `none`
-- `iceBolt` -> slow
-- `fireBolt` -> burn
-- `meleeBleed` -> bleed
-- `stunOnHit` -> stun
-- `speedBoost` -> haste
+- `slowOnHit`
+- `burnOnHit`
+- `acidOnHit`
+- `weakenOnHit`
+- `drenchOnHit`
+- `silenceOnHit`
+- `meleeBleed`
+- `stunOnHit`
+- `speedBoost`
+- `restoreHealth`
+- `restoreMana`
+- `restoreStamina`
 
----
+## Current Profile Reference
 
-## Current V1 Profile Table
-
-| Profile | Effects | Default source(s) |
-|---|---|---|
-| `iceBolt` | `slow` 25% for 3.0s | projectile proc (ice bolt) |
-| `fireBolt` | `burn` 5.0 DPS for 5.0s, 1.0s period | projectile proc (fire bolt) |
-| `meleeBleed` | `bleed` 3.0 DPS for 4.0s, 1.0s period | melee proc (sword variants) |
-| `stunOnHit` | `stun` for 0.5s | melee proc (shield bash variants) |
-| `speedBoost` | `haste` +50% for 5.0s | self ability (`eloise.arcane_haste`) |
-
-Notes:
-
-- Magnitudes are fixed-point / bp (`100 = 1.0` for DoT DPS, `100 = 1%` for slow/haste).
-- Status applications may be flagged `scaleByDamageType`.
-
----
+| Profile | Effects |
+|---|---|
+| `slowOnHit` | slow `25%` for `3.0s` |
+| `burnOnHit` | DoT `5.0 DPS` fire for `5.0s` |
+| `meleeBleed` | DoT `3.0 DPS` physical for `5.0s` |
+| `stunOnHit` | stun `1.0s` |
+| `acidOnHit` | vulnerable `+50%` incoming for `5.0s` |
+| `weakenOnHit` | weaken `-35%` outgoing for `5.0s` |
+| `drenchOnHit` | drench `-50%` action speed for `5.0s` |
+| `silenceOnHit` | cast lock (`silence`) for `3.0s` |
+| `speedBoost` | haste `+50%` move speed for `5.0s` |
+| `restoreHealth` | restore `35%` max HP over `5.0s` |
+| `restoreMana` | restore `35%` max mana over `5.0s` |
+| `restoreStamina` | restore `35%` max stamina over `5.0s` |
 
 ## Authoritative Pipeline
 
-### 1) Status source declaration
+### Sources
 
-Statuses are sourced from:
+- `WeaponProc` on hit (`DamageSystem`)
+- self abilities (`SelfAbilitySystem`) via `selfStatusProfileId`
+- mobility contact effects (`MobilityImpactSystem`) via `statusProfileId`
 
-- `WeaponProc` on damage events (`DamageSystem`),
-- self abilities (`SelfAbilitySystem`) via `selfStatusProfileId`.
+### Tick order in `GameCore`
 
-### 2) Queueing
-
-- Systems enqueue `StatusRequest(target, profileId, damageType)`.
-- Requests are stored in `StatusSystem` pending queue.
-
-### 3) Tick existing statuses
-
-`StatusSystem.tickExisting`:
-
-- ticks burn/bleed/slow/haste durations,
-- emits periodic DoT `DamageRequest`s for burn/bleed.
-
-### 4) Apply queued statuses
-
-`StatusSystem.applyQueued`:
-
-- resolves profile entries,
-- enforces immunity and guards,
-- applies/refreshes status stores,
-- updates derived movement modifier state.
-
-### 5) Combat loop ordering
-
-In `GameCore.stepOneTick`, status processing order is:
-
-1. `StatusSystem.tickExisting` (queues DoT damage)
+1. `StatusSystem.tickExisting`
 2. `DamageMiddlewareSystem.step`
-3. `DamageSystem.step` (may enqueue new status requests from procs)
+3. `DamageSystem.step`
 4. `StatusSystem.applyQueued`
 
-This means DoT damage and on-hit status applications are deterministic within the same tick pipeline.
+## Stacking and Refresh Rules
 
----
+### DoT (`DotStore`)
 
-## Stacking, Refresh, and Clamps (Current Contract)
+- channels are keyed by damage type
+- stronger DPS replaces weaker channel
+- equal DPS refreshes duration to max remaining
+- lower DPS ignored
 
-### Slow / Haste
+### Resource over time
 
-- New stronger magnitude replaces weaker and refreshes duration.
-- Equal magnitude extends duration to max remaining.
-- Weaker magnitude is ignored.
-- Slow magnitude clamp: `0..9000` bp.
-- Haste magnitude clamp: `0..20000` bp.
-- Final move speed multiplier clamp after all status math: `0.1..2.0`.
+- channels keyed by resource type
+- stronger `amountBp` replaces weaker channel
+- equal `amountBp` refreshes duration
 
-### Burn / Bleed (DoT)
+### Slow/Haste/Vulnerable/Weaken/Drench
 
-- New higher DPS replaces lower DPS and refreshes duration.
-- Equal DPS extends duration to max remaining.
-- Lower DPS is ignored.
-- On stronger replacement, period is updated and period timer resets.
+- stronger magnitude replaces and refreshes
+- equal magnitude extends to max remaining
+- weaker ignored
 
 ### Stun
 
-- Applies `LockFlag.stun` through `ControlLockStore`.
-- Overlapping stuns extend via `max(untilTick, newUntilTick)`.
-- Continuous stun window preserves original `stunStartTick`.
-- On apply, current melee/projectile/self intents are canceled and active dash is stopped.
+- applies `LockFlag.stun`
+- overlapping stuns extend lock with max-until behavior
+- interrupts active intents and active dash
 
----
+### Silence
 
-## Immunity, Resistance Scaling, and Gating
+- applies `LockFlag.cast`
+- interrupts only enemy projectile casts still in windup
 
-### Immunity
+## Immunity, Scaling, and Gating
 
-- Per-entity immunities are bitmask-based (`StatusImmunityStore`).
-- Immune effects are skipped per application entry.
+- Per-entity immunity via `StatusImmunityStore` bitmask.
+- `scaleByDamageType` scales magnitude up only when combined typed modifier is positive.
+- Apply-time gating skips status when target is dead, missing health, or currently invulnerable.
 
-### Damage-type scaling
+## Derived Runtime Effects
 
-For applications with `scaleByDamageType = true`:
-
-- status magnitude is increased when target has positive vulnerability for the incoming `damageType`,
-- negative resistance does not reduce status magnitude in current implementation.
-
-### Apply-time gating
-
-Queued status applications are skipped when target:
-
-- is dead,
-- has no `HealthStore`,
-- is currently invulnerable (`InvulnerabilityStore` ticks left > 0).
-
-Implication: invulnerability currently blocks both harmful and beneficial profile applications.
-
----
+- slow/haste modify `StatModifierStore.moveSpeedMul`
+- drench modifies `StatModifierStore.actionSpeedBp`
+- action speed affects attack/cast timing and cooldown scaling at commit for combat slots
 
 ## Determinism Rules
 
-1. All durations are converted to ticks using authoritative tick math.
-2. All magnitudes use integer fixed-point/basis points.
-3. Proc chance rolls come from deterministic RNG.
-4. Store iteration order is dense-array deterministic.
-5. Status math is side-effect free outside explicit store writes and queued damage.
+1. integer magnitudes + tick-based durations
+2. deterministic proc RNG
+3. deterministic store iteration
+4. explicit queue + store writes only
 
----
+## Known Gaps
 
-## UI / Snapshot Contract (Current)
-
-Current snapshots do not expose a generic active-status list yet.
-
-Player-visible effects are currently indirect:
-
-- movement speed changes are reflected in movement behavior,
-- stun is reflected through lock behavior and stun animation priority.
-
-Future HUD status icon bars should be sourced from Core snapshot data, not from Game/UI inference.
-
----
-
-## Extension Template (New Status Type)
-
-When adding a new status:
-
-1. Add enum value in `StatusEffectType`.
-2. Add immunity mask mapping in `StatusImmunityStore`.
-3. Add a dedicated status store (`lib/core/ecs/stores/status/`).
-4. Add apply/tick behavior in `StatusSystem`.
-5. If needed, project derived values into `StatModifierStore`.
-6. Add one or more `StatusProfileId` definitions in `StatusProfileCatalog`.
-7. Wire one source (proc, self ability, or enemy ability).
-8. Add deterministic tests (apply, tick, stacking, immunity, expiry).
-
----
-
-## Known Gaps and V2 Targets
-
-1. No generic cleanse/purge/dispel mechanics yet.
-2. No diminishing returns for repeated control effects.
-3. No snapshot-level status list for HUD iconization/tooltips.
-4. Invulnerability blocks beneficial statuses too; likely needs harmful/beneficial split.
-5. Status magnitude scaling currently ignores negative resistances for `scaleByDamageType`.
-
+1. No generic cleanse/dispel yet
+2. No diminishing returns system yet
+3. Beneficial statuses are currently blocked by invulnerability gating

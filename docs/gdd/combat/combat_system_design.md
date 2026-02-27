@@ -1,232 +1,151 @@
 # Combat Pipeline
 
-This document describes the Core combat primitives and how to extend them.
-
-> **Reusability**: All combat systems work for any entity with the required components (player, enemies, NPCs). Design additions to be entity-agnostic.
-
-Balance framework:
-
-- `docs/gdd/combat/balance/README.md`
-- `docs/gdd/combat/balance/balance_invariants.md`
-- `docs/gdd/combat/balance/scenario_matrix.md`
-- `docs/gdd/combat/balance/ability_tuning_template.md`
-- `docs/gdd/combat/visual_feedback_system_design.md`
+This document reflects the current Core combat contracts used by `GameCore`.
 
 ## Data Primitives
 
-### Damage & Combat IDs
+### Damage and Combat IDs
 
-- `DamageType`: Categories for resistance/vulnerability (physical, fire, ice, thunder, bleed)
-- Detailed resistance design + runtime contract: `docs/gdd/combat/resistance/resistance_system_design.md`
-- `WeaponId`: Stable IDs for melee weapons
-- `ProjectileId`: Stable ID used for projectile slot items and spawned projectile identity
-- `Faction`: Entity faction for friendly-fire rules
+- `DamageType`: `physical`, `fire`, `ice`, `water`, `thunder`, `acid`, `dark`, `bleed`, `earth`, `holy`
+- `WeaponId`: stable melee/off-hand IDs
+- `ProjectileId`: stable projectile item IDs (throwing + spell projectiles)
+- `Faction`: friendly-fire routing
 
 ### Status System
 
-- `StatusEffectType`: Runtime status categories (burn, slow, bleed, stun, haste)
-- `StatusProfileId`: Stable IDs for status bundles (none, iceBolt, fireBolt, meleeBleed, stunOnHit, speedBoost)
-- `StatusApplication`: Single effect config (type, magnitude, duration, period)
-- `StatusProfile`: Bundle of applications applied on hit
-- `StatusProfileCatalog`: Maps IDs to application lists
-- Detailed design + runtime contract: `docs/gdd/combat/status/status_system_design.md`
+- `StatusEffectType`: `dot`, `slow`, `stun`, `haste`, `vulnerable`, `weaken`, `drench`, `silence`, `resourceOverTime`
+- `StatusProfileId`: authored bundles (for example `slowOnHit`, `burnOnHit`, `stunOnHit`, `restoreHealth`)
+- `StatusApplication`: one application entry (magnitude, duration, optional period/type/resource)
+- `StatusProfileCatalog`: stable profile lookup
 
-### Definitions
+See `docs/gdd/combat/status/status_system_design.md`.
 
-- `WeaponDef`: Melee/off-hand weapon payload (damageType, procs, stats, weaponType)
-- `ProjectileDef`: Projectile slot item payload (spells + throws: projectileId, speed/lifetime/collider tuning, ballistic/gravity, damageType, procs, stats, weaponType)
+## ECS Stores
 
-## Stores (ECS Components)
-
-### Health & Damage
+### Health and Damage
 
 | Store | Purpose |
-|-------|---------|
-| `HealthStore` | Current/max HP per entity |
-| `DamageResistanceStore` | Per-type damage modifiers (physical, fire, ice, thunder, bleed) |
-| `InvulnerabilityStore` | I-frame ticks remaining after damage |
-| `LastDamageStore` | Source tracking for death events/analytics |
+|---|---|
+| `HealthStore` | Current/max HP |
+| `DamageResistanceStore` | Per-type incoming modifier bp |
+| `InvulnerabilityStore` | Post-hit i-frame ticks |
+| `LastDamageStore` | Last lethal/non-lethal source details |
 
 ### Status Effects
 
 | Store | Purpose |
-|-------|---------|
-| `BurnStore` | Active burn DoT state (SoA) |
-| `BleedStore` | Active bleed DoT state (SoA) |
-| `SlowStore` | Active slow state (SoA) |
-| `StatusImmunityStore` | Per-entity status immunities |
-| `StatModifierStore` | Derived modifiers (e.g., move speed from slow) |
-| `ControlLockStore` | Action gating (stun, move, cast, etc.) |
+|---|---|
+| `DotStore` | Active DoT channels (by damage type) |
+| `SlowStore` | Active slow |
+| `HasteStore` | Active haste |
+| `VulnerableStore` | Incoming-damage amplification |
+| `WeakenStore` | Outgoing-damage reduction |
+| `DrenchStore` | Action-speed reduction |
+| `ResourceOverTimeStore` | Timed health/mana/stamina restore |
+| `StatusImmunityStore` | Per-status immunity mask |
+| `StatModifierStore` | Derived move/action speed modifiers |
+| `ControlLockStore` | Stun/cast/etc. lock flags |
 
-### Equipment
-
-| Store | Purpose |
-|-------|---------|
-| `EquippedLoadoutStore` | Per-entity loadout (weapons, projectile item, ability IDs, slot masks) |
-
-### Other
+### Loadout and Tags
 
 | Store | Purpose |
-|-------|---------|
-| `CreatureTagStore` | Reusable tags (humanoid, flying, etc.) |
+|---|---|
+| `EquippedLoadoutStore` | Equipped gear + ability IDs |
+| `CreatureTagStore` | Shared creature tags |
 
-## Systems (Tick Order)
+## Combat Tick Order (Current)
 
-```
-1. StatusSystem.tickExisting    → Ticks DoTs, queues damage requests
-2. ControlLockSystem.step       → Refreshes active lock masks, clears expired locks
-3. DamageMiddlewareSystem.step  → Applies combat rule edits/cancellations
-4. DamageSystem.step            → Applies damage, rolls procs, queues status
-5. StatusSystem.applyQueued     → Applies profiles, refreshes stat modifiers
-```
+Combat-relevant order inside `GameCore.stepOneTick`:
+
+1. `ControlLockSystem.step`
+2. `ActiveAbilityPhaseSystem.step`
+3. `AbilityChargeTrackingSystem.step`
+4. `HoldAbilitySystem.step`
+5. Intent writing/execution systems (self/melee/projectile/mobility)
+6. Hit resolution systems queue `DamageRequest`/`StatusRequest`
+7. `StatusSystem.tickExisting`
+8. `DamageMiddlewareSystem.step`
+9. `DamageSystem.step`
+10. `StatusSystem.applyQueued`
 
 ## Damage Pipeline
 
-### DamageRequest Flow
+### `DamageRequest`
 
 ```dart
 DamageRequest {
-  target: EntityId,
-  amount100: int,
-  damageType: DamageType,
-  procs: List<WeaponProc>,
-  source: EntityId?,
-  sourceKind: DeathSourceKind,
-  sourceEnemyId: EnemyId?,
-  sourceProjectileId: ProjectileId?,
+  target,
+  amount100,
+  damageType,
+  critChanceBp,
+  procs,
+  source,
+  sourceKind,
+  sourceEnemyId,
+  sourceProjectileId,
 }
 ```
 
-### Damage Queue & Middleware
+### Resolution Order in `DamageSystem`
 
-- Hit resolution systems append `DamageRequest` entries to `EcsWorld.damageQueue`.
-- `DamageMiddlewareSystem` can cancel/modify queued damage (e.g., parry, shields).
-- `DamageSystem` consumes the queue and skips canceled entries.
+1. Skip if no health or invulnerable
+2. Apply attacker `weaken` (outgoing penalty)
+3. Roll/apply crit
+4. Apply global defense (`ResolvedCharacterStats.applyDefense`)
+5. Apply typed modifier: `baseTypedModBp + gearIncomingModBp`
+6. Apply target `vulnerable`
+7. Clamp `>= 0`, subtract HP
+8. Record `LastDamageStore`, emit callbacks, process forced interrupt on damage-taken
+9. Queue on-hit proc statuses
+10. Apply i-frames
 
-### Damage Formula
+## Status Pipeline
 
-```
-amountAfterCrit = applyCrit(baseDamage, critChanceBp)
-amountAfterDefense = applyDefense(amountAfterCrit, defenseBonusBp)
-combinedTypedMod = storeTypedModBp + (-gearTypedResistanceBp)
-finalDamage = amountAfterDefense × (1 + combinedTypedMod)
-```
+### `StatusSystem.tickExisting`
 
-Where:
-- `storeTypedModBp` comes from `DamageResistanceStore` by `DamageType`.
-- `gearTypedResistanceBp` comes from resolved gear stats.
-- Positive combined mod = vulnerability (more damage).
-- Negative combined mod = resistance (less damage).
-- Zero combined mod = neutral.
+- Ticks and applies periodic damage from `DotStore`
+- Ticks `ResourceOverTimeStore` and applies smooth resource restoration
+- Ticks `slow/haste/vulnerable/weaken/drench`
+- Queues DoT `DamageRequest`s
 
-### DamageSystem Processing
+### `StatusSystem.applyQueued`
 
-1. Resolve target's `HealthStore` component
-2. Check `InvulnerabilityStore` for i-frames → skip if active
-3. Resolve crit outcome and crit-adjusted amount
-4. Apply global defense from resolved loadout stats
-5. Apply combined typed modifier (`store + gear`)
-6. Reduce `HealthStore.hp`
-7. Record in `LastDamageStore` (for death messages/analytics)
-8. Roll `procs` (onHit) for non-zero `amount100` and queue `StatusRequest` for triggered effects
-9. Apply i-frames to `InvulnerabilityStore`
-
-## Status Effect Pipeline
-
-### StatusSystem.tickExisting
-
-- Ticks `BurnStore`: applies fire damage per period
-- Ticks `BleedStore`: applies bleed damage per period
-- Ticks `SlowStore`: reduces duration, removes when expired
-- Queues `DamageRequest` for DoT damage
-- (*Note*: Stun expiry is handled by `ControlLockSystem`)
-
-### StatusSystem.applyQueued
-
-- Processes pending `StatusRequest` queue
-- Looks up `StatusProfile` from catalog
-- For each `StatusApplication`:
-  - Check `StatusImmunityStore` → skip if immune
-  - Apply magnitude scaling if `scaleByDamageType` (uses resistance mod)
-  - Add/refresh appropriate store (burn, bleed, slow)
-- For Stun: Adds lock to `ControlLockStore` and clears active intents (Melee, Projectile, Dash)
-- Refreshes `StatModifierStore` (e.g., move speed from slow)
+- Resolves `StatusProfileId` -> applications
+- Applies immunity checks and optional damage-type scaling
+- Applies or refreshes status stores
+- Applies stun/cast locks in `ControlLockStore`
+- Refreshes derived move/action modifiers
 
 ## Projectile Items (Spells + Throws)
 
-Projectile slot items unify spells and throwing weapons under a single data
-structure (`ProjectileDef`) and a single execution pipeline.
+Projectile abilities use one execution path while payload is resolved from the equipped projectile source:
 
-### Key Pieces
+- Throwing weapon (`ProjectileId.throwingKnife`/`throwingAxe`) or
+- Spell projectile selected from spellbook grants (`projectileSlotSpellId`)
 
-- **Data**: `ProjectileDef`/`ProjectileCatalog` (payload + motion/collider: id, speed/lifetime/collider, damageType, procs, stats)
-- **Stores**: `EquippedLoadoutStore`, `ProjectileIntentStore`, `ProjectileOriginStore`
-- **Systems**:
-  - `AbilityActivationSystem` writes `ProjectileIntentDef` from player input
-  - `ProjectileLaunchSystem` validates costs/cooldown, spawns projectiles, sets cooldowns
-  - `ProjectileHitSystem` applies `DamageRequest` with `sourceProjectileId`
-  - `ProjectileWorldCollisionSystem` removes ballistic projectiles on collision
+Core systems involved: `AbilityActivationSystem`, `ProjectileLaunchSystem`, `ProjectileHitSystem`, `ProjectileWorldCollisionSystem`, `DamageSystem`.
 
-### Projectile Flow
+## Mobility Abilities
 
-1. Player presses projectile → `AbilityActivationSystem` resolves ability + projectile item.
-2. `ProjectileLaunchSystem` checks costs, sets `projectileCooldownTicksLeft`, spawns projectile.
-3. Projectile hits target → `DamageRequest` with `sourceProjectileId`.
-4. `DamageSystem` processes → applies damage + queues status/procs.
+Mobility is authored as `AbilityCategory.mobility` and can include optional contact effects via `MobilityImpactDef`.
 
-## Melee Weapons
+- Commits through `AbilityActivationSystem`
+- Execution through `MobilitySystem`
+- Contact overlaps through `MobilityImpactSystem`
+- Mobility press preempts queued/active combat intents
 
-### WeaponDef Structure
+## Extension Notes
 
-```dart
-WeaponDef {
-  id: WeaponId,
-  weaponType: WeaponType,
-  damageType: DamageType,
-  procs: List<WeaponProc>,
-  stats: GearStatBonuses,
-}
-```
+### Add a new status
 
-Melee weapons contribute `damageType` and `procs` to the hit payload (merged with ability/buff/passive procs).
+1. Add `StatusEffectType`
+2. Add/extend status store(s)
+3. Add apply/tick logic in `StatusSystem`
+4. Add immunity bit mapping
+5. Add `StatusProfileId` + catalog entries
 
-## Control Locks
+### Add a new damage type
 
-We use a bitmask-based locking system to prevent actions (Stun, Move, Cast, etc.).
-
-### ControlLockStore
-
-- Stores `activeMask` and per-flag `untilTick` values.
-- `LockFlag.stun` (Bit 0) is the master lock that blocks everything.
-- `addLock(flag, duration)` refreshes expiry using `max(current, new)`.
-
-### Gate Checks
-
-Systems check `isLocked(flag)` or `isStunned()` before processing:
-  - `isStunned()` -> Blocks Intent Creation (Melee, Projectile) and Movement (Input, Locomotion).
-
-## Extending with a New Status
-
-1. Add a new `StatusEffectType` value
-2. Create a new SparseSet store in `lib/core/ecs/stores/status/`
-3. Add store to `EcsWorld`
-4. Implement apply + tick logic in `StatusSystem`
-5. Add a new `StatusProfileId` entry in the catalog
-6. Test with determinism checks
-
-## Extending with a New Damage Type
-
-1. Add value to `DamageType` enum
-2. Add field to `DamageResistanceDef` and `DamageResistanceStore`
-3. Update `modFor()` / `modForIndex()` switch statements
-4. Test resistance/vulnerability interactions
-
-## Mobility Abilities (TODO)
-
-_Section placeholder for upcoming mobility system (dash, dodge, jump, teleport)._
-
-Key considerations:
-- Abilities should be entity-agnostic (reusable by enemies and other characters if possible and relevant)
-- Use command pattern for activation (for player-characters, input events)
-- Cooldown tracking via dedicated store
-- Events for VFX/SFX triggers
+1. Add enum in `DamageType`
+2. Add fields/switch handling in `DamageResistanceStore` and stat bonuses/resolver
+3. Update authoring + tests for neutral/resist/vulnerable cases

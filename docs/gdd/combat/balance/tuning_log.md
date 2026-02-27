@@ -12,5 +12,4 @@ Use one entry per tuning pass. Keep entries short and comparable.
 
 | Date | Scope | Change Summary | Invariant Target | Scenarios | Result | Next |
 |---|---|---|---|---|---|---|
-| 2026-02-11 | `eloise.quick_shot` vs `eloise.auto_aim_shot` | cooldown +2 ticks on auto-aim variant | projectile DPRS parity | S1,S2,S6 | pass on S1/S6, slight S2 dominance remains | retune mana cost next pass |
-
+| 2026-02-11 | `eloise.quick_shot` vs `eloise.snap_shot` | cooldown +2 ticks on homing variant | projectile DPRS parity | S1,S2,S6 | pass on S1/S6, slight S2 dominance remains | retune mana cost next pass |

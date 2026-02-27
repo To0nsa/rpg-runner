@@ -1,9 +1,6 @@
-# Eloise Spell Slot: Self Spells
+# Eloise Spell Slot: Self Utility Spells
 
-## Scope
-
-This document defines Eloise spell slot self spells (`AbilitySlot.spell`) as
-currently implemented.
+Spell-slot Eloise abilities (`AbilitySlot.spell`) as currently implemented.
 
 All abilities in this file are:
 
@@ -13,51 +10,37 @@ All abilities in this file are:
 - `payloadSource: AbilityPayloadSource.spellBook`
 - `requiredWeaponTypes: {projectileSpell}`
 
-Core units:
+## Ability Matrix
 
-- Resource/cost: fixed-point (`100 = 1.0`)
-- Percent restores/buffs: basis points (`100 = 1%`)
-- Ticks authored at 60 Hz
-
-## Ability Matrix (Current Core)
-
-| Ability ID | Timing (W/A/R) | Cost | Cooldown | Primary Effect |
-|---|---|---:|---:|---|
-| `eloise.arcane_haste` | `0 / 0 / 10` | mana `1000` | `300` | apply `StatusProfileId.speedBoost` |
-| `eloise.restore_health` | `0 / 0 / 10` | mana `1500` | `420` | restore `35%` max HP over `5.0s` |
-| `eloise.restore_mana` | `0 / 0 / 10` | stamina `1500` | `420` | restore `35%` max mana over `5.0s` |
-| `eloise.restore_stamina` | `0 / 0 / 10` | mana `1500` | `420` | restore `35%` max stamina over `5.0s` |
+| Ability ID | W/A/R | Cost | Cooldown | Primary Effect |
+|---|---|---|---:|---|
+| `eloise.arcane_haste` | `0/0/10` | mana `1000` | `300` | apply `StatusProfileId.speedBoost` |
+| `eloise.vital_surge` | `0/0/10` | mana `1500` | `420` | apply `StatusProfileId.restoreHealth` |
+| `eloise.mana_infusion` | `0/0/10` | stamina `1500` | `420` | apply `StatusProfileId.restoreMana` |
+| `eloise.second_wind` | `0/0/10` | mana `1500` | `420` | apply `StatusProfileId.restoreStamina` |
 
 ## Effect Notes
 
-### `eloise.arcane_haste`
+- `speedBoost`: haste `+50%` move speed for `5.0s`
+- `restoreHealth`: restore `35%` max HP over `5.0s`
+- `restoreMana`: restore `35%` max mana over `5.0s`
+- `restoreStamina`: restore `35%` max stamina over `5.0s`
 
-- Applies self status profile `speedBoost`
-- Profile currently grants haste (`+50% move speed`, 5.0s)
-- See `docs/gdd/combat/status/status_system_design.md` for status details
+Restore effects are continuous over duration (not instant burst).
 
-### Restore spells
+## Spellbook Grant Gating
 
-- `restore_health`: `selfRestoreHealthBp = 3500`
-- `restore_mana`: `selfRestoreManaBp = 3500`
-- `restore_stamina`: `selfRestoreStaminaBp = 3500`
+Spell-slot abilities are spellbook-granted and validated by loadout normalization.
 
-Restore values are percentages of max resource and clamp to each resource max.
-Restore is distributed smoothly over the authored duration (no immediate burst).
-
-## Contract Notes
-
-1. Spell slot is intentionally self-spell only in current vertical slice.
-2. These abilities are deterministic utility actions (no hit payload damage).
-3. Cooldown lane uses spell group by default (unless explicitly overridden).
-4. Spell-slot self-spell equip eligibility is spellbook-gated.
-5. On loadout normalization (including spellbook swap), stale invalid spell-slot selection is auto-repaired to the first valid granted spell-slot spell.
-6. On loadout normalization (including spellbook swap), stale invalid `projectileSlotSpellId` selection is auto-repaired to the first valid spell granted by the equipped spellbook.
-
-## Spellbook Grants (Current Core)
-
-| Spellbook | Granted spell-slot self-spells |
+| Spellbook | Granted spell-slot abilities |
 |---|---|
 | `basicSpellBook` | `eloise.arcane_haste` |
-| `solidSpellBook` | `eloise.arcane_haste`, `eloise.restore_health` |
-| `epicSpellBook` | `eloise.arcane_haste`, `eloise.restore_health`, `eloise.restore_mana`, `eloise.restore_stamina` |
+| `solidSpellBook` | `eloise.arcane_haste`, `eloise.vital_surge`, `eloise.mana_infusion`, `eloise.second_wind` |
+| `epicSpellBook` | `eloise.arcane_haste`, `eloise.vital_surge`, `eloise.mana_infusion`, `eloise.second_wind` |
+
+## Projectile Spell Grants (Related)
+
+Projectile-slot spell options also come from the equipped spellbook:
+
+- `basicSpellBook`: `fireBolt`, `acidBolt`, `darkBolt`, `earthBolt`, `holyBolt`, `waterBolt`
+- `solidSpellBook`/`epicSpellBook`: all projectile spells (`iceBolt`, `fireBolt`, `acidBolt`, `darkBolt`, `earthBolt`, `holyBolt`, `waterBolt`, `thunderBolt`)

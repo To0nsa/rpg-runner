@@ -1,23 +1,16 @@
-# Character Stats (V1 Design + Current Implementation)
+# Character Stats (Current Core)
 
-This document defines the V1 character stat model and records the **actual implemented behavior** in Core as of **February 12, 2026**.
+This document reflects the implemented stat model as of **2026-02-27**.
 
-It is a design companion to `docs/gdd/11_gear.md`.
+## Goals
 
----
+- Keep buildcraft readable in runner pacing
+- Preserve deterministic, multiplayer-safe resolution
+- Keep tuning surface small and explicit
 
-## 1. Goals
+## V1 Stat Set
 
-- Keep buildcraft readable in a fast runner context.
-- Keep balancing tractable while content volume is still growing.
-- Preserve deterministic, multiplayer-ready resolution.
-- Allow meaningful gear identity without creating a bloated stat sheet.
-
----
-
-## 2. V1 Stat Set
-
-The game uses a small universal stat set:
+Core gameplay stats:
 
 - Health
 - Mana
@@ -28,176 +21,103 @@ The game uses a small universal stat set:
 - Cooldown Reduction
 - Crit Chance
 
-### 2.1 Implementation status
+Runtime also supports typed resistance fields for all current `DamageType` values.
 
-| Stat | Current runtime behavior |
+## Implementation Status
+
+| Stat | Current behavior |
 |---|---|
-| Health | Implemented as max-pool scaling from equipped loadout at player spawn. |
-| Mana | Implemented as max-pool scaling from equipped loadout at player spawn. |
-| Stamina | Implemented as max-pool scaling from equipped loadout at player spawn. |
-| Defense | Implemented globally on incoming damage before per-type resistance. |
-| Power | Implemented as a hybrid model: global outgoing power (`globalPowerBonusBp`) plus payload-source power (`powerBonusBp`). |
-| Move Speed | Implemented as a multiplier from resolved loadout stats, then combined with status speed modifiers. |
-| Cooldown Reduction | Implemented on all ability commit cooldown start paths. |
-| Crit Chance | Implemented as a hybrid model: global crit chance (`globalCritChanceBonusBp`) plus payload-source crit chance (`critChanceBonusBp`) with final clamping. |
-| Typed Resistance | Implemented from both archetype/store resistance and gear resistance (`physical/fire/ice/thunder/bleed`). |
+| Health/Mana/Stamina | Max-pool scaling from resolved loadout stats at spawn. |
+| Defense | Global incoming reduction before typed resistance. |
+| Power | Hybrid: global power + payload-source power. |
+| Move Speed | Gear multiplier composed with status modifier multiplier. |
+| Cooldown Reduction | Applied at ability commit. |
+| Crit Chance | Hybrid: global crit chance + payload-source crit chance, final clamp. |
+| Typed Resistance | Applied from store + gear incoming mod for all 10 damage types. |
 
----
+## Numeric Units
 
-## 3. Numeric Units
+- basis points: `100 = 1%`
+- fixed-point resources/damage: `100 = 1.0`
 
-### 3.1 Basis points
+## Key Formulas
 
-- Percent-type stats use basis points (bp).
-- `100 bp = 1%`
-- `10000 bp = 100%`
+### Resource max scaling
 
-### 3.2 Fixed-100 resources
+`scaledMax = applyBp(baseMax100, resourceBonusBp)`
 
-- Resource pools and damage use fixed-100 where `100 = 1.0`.
-- Example: `10000 = 100.0`.
+### Move speed
 
----
+`finalMoveSpeed = gearMoveSpeedMultiplier * statusMoveSpeedMultiplier`
 
-## 4. Formulas and Order of Operations
+### Cooldown reduction
 
-### 4.1 Resource max scaling
+`scaledCooldownTicks = ceil(baseCooldownTicks * (10000 - cooldownReductionBp) / 10000)`
 
-- `scaledMax = applyBp(baseMax100, resourceBonusBp)`
-- Current value is clamped to new max on spawn initialization.
+### Outgoing damage
 
-### 4.2 Move speed
+1. apply global power
+2. apply payload-source power
+3. clamp `>= 0`
 
-- `moveSpeedMultiplier = (10000 + moveSpeedBonusBp) / 10000`
-- Runtime movement multiplier is:
-  - `gearMoveSpeedMultiplier * statusMoveSpeedMultiplier`
+### Crit chance
 
-### 4.3 Cooldown reduction
+`finalCritChanceBp = clamp(globalCritChanceBonusBp + payloadSourceCritChanceBp, 0, 10000)`
 
-- `effectiveScaleBp = 10000 - cooldownReductionBp`
-- `scaledCooldownTicks = ceil(baseCooldownTicks * effectiveScaleBp / 10000)`
-- Cooldown is applied at commit time.
+Crit bonus is currently fixed at `+5000 bp` (`+50%`).
 
-### 4.4 Outgoing damage and crit
+### Incoming damage order
 
-- Outgoing scaling uses a hybrid stage:
-  - `damageAfterGlobal = applyBp(baseDamage, globalPowerBonusBp)`
-  - `finalDamage = applyBp(damageAfterGlobal, payloadSourcePowerBonusBp)`
-  - Clamped at minimum `0`.
-- Final crit chance:
-  - `finalCritChanceBp = clamp(globalCritChanceBonusBp + payloadSourceCritChanceBp, 0, 10000)`.
-- Crit damage bonus is currently fixed to `+5000 bp` (`+50%`).
+1. source `weaken` penalty
+2. crit
+3. defense
+4. typed modifier (`store + gearIncomingMod`)
+5. target `vulnerable` bonus
+6. clamp `>= 0`
 
-### 4.5 Incoming damage order
+## Resolved Stats Cache Lifecycle
 
-Damage application order in Core:
+- Resolved via `ResolvedStatsCache`
+- Recomputed only when equipped loadout snapshot changes
+- Neutral stats returned when no loadout exists
+- Status effects apply through status/modifier stores, not by mutating resolved gear bundle
 
-1. Resolve crit outcome and crit-adjusted amount.
-2. Apply global defense.
-3. Apply combined per-damage-type resistance/vulnerability modifier:
-   - `storeTypedModBp + (-gearTypedResistanceBp)`
-4. Clamp final damage to `>= 0`.
-
-### 4.6 Resolved stat lifecycle (runtime)
-
-- Gear-derived stats are resolved through `ResolvedStatsCache` (ECS-backed).
-- Hot-path systems (`PlayerMovementSystem`, `AbilityActivationSystem`, `DamageSystem`, `StatusSystem`) read cached resolved stats.
-- Recompute occurs lazily only when the equipped loadout snapshot changes:
-  - `mask`
-  - `mainWeaponId`
-  - `offhandWeaponId`
-  - `projectileId`
-  - `spellBookId`
-  - `accessoryId`
-- If an entity has no loadout, runtime uses neutral resolved stats (all zero bonuses).
-- Status effects currently do **not** mutate the gear-resolved stat bundle; they are applied through runtime modifier stores (`StatModifierStore`, status stores) and compose at use sites.
-
----
-
-## 5. Stat Caps (Current Core Values)
+## Stat Caps (Current)
 
 | Stat | Min | Max |
 |---|---:|---:|
-| Health bonus | `-9000 bp` (-90%) | `+20000 bp` (+200%) |
-| Mana bonus | `-9000 bp` (-90%) | `+20000 bp` (+200%) |
-| Stamina bonus | `-9000 bp` (-90%) | `+20000 bp` (+200%) |
-| Defense | `-9000 bp` (-90%) | `+7500 bp` (+75%) |
-| Global Power | `-9000 bp` (-90%) | `+10000 bp` (+100%) |
-| Payload-source Power | `-9000 bp` (-90%) | `+10000 bp` (+100%) |
-| Move Speed | `-9000 bp` (-90%) | `+5000 bp` (+50%) |
-| Cooldown Reduction | `-5000 bp` (-50% effectiveness, longer cooldowns) | `+5000 bp` (+50% reduction) |
-| Global Crit Chance | `0 bp` (0%) | `+6000 bp` (+60%) |
-| Payload-source Crit Chance | `0 bp` (0%) | `+6000 bp` (+60%) |
-| Typed Resistance (per type) | `-9000 bp` (vulnerability) | `+7500 bp` (resistance) |
+| Health bonus bp | `-9000` | `20000` |
+| Mana bonus bp | `-9000` | `20000` |
+| Stamina bonus bp | `-9000` | `20000` |
+| Defense bp | `-9000` | `7500` |
+| Global power bp | `-9000` | `10000` |
+| Payload power bp | `-9000` | `10000` |
+| Move speed bp | `-9000` | `5000` |
+| Cooldown reduction bp | `-5000` | `5000` |
+| Global crit chance bp | `0` | `6000` |
+| Payload crit chance bp | `0` | `6000` |
+| Typed resistance bp (each type) | `-9000` | `7500` |
 
----
+## Current Catalog Highlights
 
-## 6. Current Catalog Values
+- Weapons power: wooden `-1%`, basic `+1%`, solid `+2%`
+- Spellbooks power: basic `-1%`, solid `+1%`, epic `+2%`
+- Accessories:
+  - speed boots: `+5%` move speed
+  - golden ring: `+2%` max health
+  - teeth necklace: `+2%` max stamina
+- Projectile items currently contribute via payload/procs, not direct stat bonuses
 
-### 6.1 Weapons (Power)
+## Eloise Baseline (Pre-Gear)
 
-- `Wooden Sword`: `-100 bp` (-1%)
-- `Basic Sword`: `+100 bp` (+1%)
-- `Solid Sword`: `+200 bp` (+2%)
-- `Wooden Shield`: `-100 bp` (-1%)
-- `Basic Shield`: `+100 bp` (+1%)
-- `Solid Shield`: `+200 bp` (+2%)
-
-### 6.2 Spell books (Power)
-
-- `Basic Spellbook`: `-100 bp` (-1%)
-- `Solid Spellbook`: `+100 bp` (+1%)
-- `Epic Spellbook`: `+200 bp` (+2%)
-
-### 6.3 Accessories
-
-- `Speed Boots`: `moveSpeedBonusBp = +500` (+5% move speed)
-- `Golden Ring`: `hpBonus100 = +200` (+2% health max)
-- `Teeth Necklace`: `staminaBonus100 = +200` (+2% stamina max)
-
-### 6.4 Projectile items
-
-- No direct stat bonus values currently assigned in `ProjectileCatalog`.
-- Projectile items currently contribute through damage type/procs plus projectile motion/collider tuning.
-
-### 6.5 Global offensive + typed resistance authoring
-
-- Default catalog content currently uses payload-source Power on weapons/spellbooks.
-- No default catalog content currently grants global offensive stats.
-- No default catalog content currently grants typed gear resistance.
-
----
-
-## 7. Base Character Reference (Eloise defaults)
-
-Current Eloise baseline (before gear scaling):
-
-- Health max: `100`
+- HP max: `100`
 - Mana max: `100`
 - Stamina max: `100`
-- Health regen: `0.5 / sec`
-- Mana regen: `2.0 / sec`
-- Stamina regen: `1.0 / sec`
+- HP regen: `0.5/s`
+- Mana regen: `2.0/s`
+- Stamina regen: `1.0/s`
 
-These values are converted to fixed-100 in runtime stores.
+## Notes
 
----
-
-## 8. Known V1 Notes
-
-- Crit damage bonus remains fixed at `+50%`.
-- Default catalog content currently does not grant global offensive stats.
-- Default catalog content currently does not grant typed gear resistance.
-
----
-
-## 9. Future Expansion Policy
-
-Add a new permanent stat only if all checks pass:
-
-1. Creates a new decision, not a renamed multiplier.
-2. Is understandable in one short UI line.
-3. Has clear tradeoffs/counterplay.
-4. Preserves deterministic clarity.
-
-Prefer proc/trait/status mechanics over new global stats when possible.
+- Default shipped content currently does not grant global offensive stats.
+- Default shipped content currently does not grant typed gear resistance bonuses.

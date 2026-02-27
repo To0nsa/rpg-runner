@@ -1,65 +1,51 @@
 # Eloise Primary: Sword
 
-## Scope
+Abilities requiring `WeaponType.oneHandedSword` and equipable in `AbilitySlot.primary`.
 
-This document defines Eloise abilities that require `WeaponType.oneHandedSword`
-and are equipped in `AbilitySlot.primary`.
+## Ability Matrix
 
-Core units:
+| Ability ID | Lifecycle | Targeting | W/A/R | Cost | Cooldown | Payload Source |
+|---|---|---|---|---|---:|---|
+| `eloise.bloodletter_slash` | `holdRelease` | `directional` | `8/6/8` | stamina `500` | `18` | `primaryWeapon` |
+| `eloise.bloodletter_cleave` | `holdRelease` | `aimedCharge` | `10/6/10` | stamina `550` | `24` | `primaryWeapon` |
+| `eloise.seeker_slash` | `tap` | `homing` | `8/6/8` | stamina `550` | `24` | `primaryWeapon` |
+| `eloise.riposte_guard` | `holdMaintain` | `none` | `2/180/2` | hold drain `700/s` | `30` | `primaryWeapon` |
 
-- Damage/cost: fixed-point (`100 = 1.0`)
-- Percent/buffs: basis points (`100 = 1%`)
-- Ticks authored at 60 Hz
+## Ability Notes
 
-## Ability Matrix (Current Core)
+### `eloise.bloodletter_slash`
 
-| Ability ID | Lifecycle | Targeting | Timing (W/A/R) | Cost | Cooldown | Payload Source |
-|---|---|---|---|---:|---:|---|
-| `eloise.sword_strike` | `holdRelease` | `directional` | `8 / 6 / 8` | stamina `500` | `18` | `primaryWeapon` |
-| `eloise.charged_sword_strike` | `holdRelease` | `aimedCharge` | `10 / 6 / 10` | stamina `550` | `24` | `primaryWeapon` |
-| `eloise.sword_strike_auto_aim` | `tap` | `homing` | `8 / 6 / 8` | stamina `550` | `24` | `primaryWeapon` |
-| `eloise.sword_riposte_guard` | `holdMaintain` | `none` | `2 / 180 / 2` | hold drain `233/s` | `30` | `primaryWeapon` |
+- base damage: `1500`
+- on-hit proc: guaranteed `StatusProfileId.meleeBleed`
+- melee delivery: `32x32`, offset `(12, 0)`, `oncePerTarget`
 
-## Offensive Sword Abilities
+### `eloise.seeker_slash`
 
-### `eloise.sword_strike`
+Homing variant of slash with reliability tax:
 
-- Base damage: `1500`
-- Ability proc: guaranteed `StatusProfileId.meleeBleed` on hit
-- Hit delivery: melee box `32x32`, offset `(12, 0)`, `oncePerTarget`
+- damage `1400` (vs `1500`)
+- stamina `550` (vs `500`)
+- cooldown `24` (vs `18`)
 
-### `eloise.sword_strike_auto_aim`
+### `eloise.bloodletter_cleave`
 
-- Same structure as `sword_strike` but `homing` + `tap` lifecycle.
-- Reliability tax is explicit in authored values:
-  - damage `1500 -> 1400`
-  - stamina `500 -> 550`
-  - cooldown `18 -> 24`
-
-### `eloise.charged_sword_strike`
-
-- Base damage: `1600`
-- Forced interrupts: `stun`, `death`, `damageTaken`
-- Charge tiers (`minHoldTicks60`):
+- base damage: `1600`
+- forced interrupt causes: `stun`, `death`, `damageTaken`
+- charge tiers (`minHoldTicks60`):
   - `0`: damage `0.90x`
-  - `8`: damage `1.08x`, `+5%` crit
-  - `16`: damage `1.30x`, `+10%` crit
-- `chargeMaxHoldTicks60: 150`
+  - `8`: damage `1.08x`, crit `+5%`
+  - `16`: damage `1.30x`, crit `+10%`
+- max hold: `150` ticks
 
-## Defensive Sword Ability
+### `eloise.riposte_guard`
 
-### `eloise.sword_riposte_guard`
+- hold-maintain guard (`holdToMaintain`)
+- max active window: `180` ticks
+- hold drain: `700` stamina/sec
+- hit mitigation: `5000 bp` (`50%`)
+- grants one riposte bonus on first guarded hit per activation
 
-- `holdMaintain` contract (`holdMode: holdToMaintain`)
-- Max active hold window authored as `180` ticks
-- Stamina drain while held: `233` per second
-- Incoming non-status hit mitigation: `5000` bp (`50%`)
-- Grants riposte bonus on first guarded hit per activation
-- No direct damage payload (`baseDamage: 0`, `SelfHitDelivery`)
-- Uses `AnimKey.parry`
+## Constraints
 
-## Design Constraints
-
-1. All abilities in this file require `WeaponType.oneHandedSword`.
-2. Payload/procs are sourced from primary weapon path (`AbilityPayloadSource.primaryWeapon`).
-3. Charged variants are interruption-sensitive by design (`damageTaken` included).
+- All abilities in this file require `WeaponType.oneHandedSword`.
+- Payload/procs resolve from `AbilityPayloadSource.primaryWeapon`.
