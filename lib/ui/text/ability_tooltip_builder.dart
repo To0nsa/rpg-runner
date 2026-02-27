@@ -56,6 +56,8 @@ abstract interface class AbilityTooltipBuilder {
 
 class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   static const double _authoredTicksPerSecond = 60.0;
+  static const String _templateMeleeDamage =
+      '{action} that deals {damage} damage to {targets}.';
   static const String _templateMeleeDot =
       '{action} that deals {damage} damage to {targets}. '
       'It causes {status}, dealing {dotDamage} damage per second for {dotDuration} seconds.';
@@ -262,24 +264,20 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   }
 
   _DescriptionWithHighlights _seekerSlashDescription(AbilityDef def) {
-    final damage = formatFixed100(def.baseDamage);
-    final dot = _firstDotEffect(def);
-    return _buildMeleeDotDescription(
+    return _buildMeleeDescription(
+      def: def,
       action: 'Launch an attack',
-      damage: damage,
+      damage: formatFixed100(def.baseDamage),
       targets: _targetClosestAndReach,
-      dot: dot,
     );
   }
 
   _DescriptionWithHighlights _bloodletterSlashDescription(AbilityDef def) {
-    final damage = formatFixed100(def.baseDamage);
-    final dot = _firstDotEffect(def);
-    return _buildMeleeDotDescription(
+    return _buildMeleeDescription(
+      def: def,
       action: 'Unleash a sword slash',
-      damage: damage,
+      damage: formatFixed100(def.baseDamage),
       targets: _targetAimingDirectionAndReach,
-      dot: dot,
     );
   }
 
@@ -603,6 +601,32 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
       template: template,
       values: values,
       dynamicKeys: dynamicKeys,
+    );
+  }
+
+  _DescriptionWithHighlights _buildMeleeDescription({
+    required AbilityDef def,
+    required String action,
+    required String damage,
+    required String targets,
+  }) {
+    final dot = _firstDotEffect(def);
+    if (dot.damage100 <= 0 || dot.durationSeconds <= 0) {
+      return _descriptionFromTemplate(
+        template: _templateMeleeDamage,
+        values: <String, String>{
+          'action': action,
+          'damage': damage,
+          'targets': targets,
+        },
+        dynamicKeys: <String>['damage'],
+      );
+    }
+    return _buildMeleeDotDescription(
+      action: action,
+      damage: damage,
+      targets: targets,
+      dot: dot,
     );
   }
 

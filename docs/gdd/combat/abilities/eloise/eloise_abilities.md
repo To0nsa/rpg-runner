@@ -51,10 +51,11 @@ Core units:
 ## Runtime Notes
 
 1. Charged variants (`bloodletter_cleave`, `concussive_breaker`, `overcharge_shot`) opt into forced interrupt on `damageTaken`.
-2. Projectile-slot abilities resolve payload from projectile source selection at commit time.
-3. `riposte_guard` and `aegis_riposte` both mitigate `50%` incoming hit damage while active and grant riposte on guarded hit.
-4. `shield_block` mitigates `100%` incoming hit damage while active and does not grant riposte.
-5. `focus` applies `StatusProfileId.focus` (`+25%` power, `+15%` crit chance for `5.0s`).
-6. `arcane_ward` applies `StatusProfileId.arcaneWard` (`40%` direct-hit mitigation, DoT canceled while active).
-7. `cleanse` applies `PurgeProfileId.cleanse`, removes active debuffs including stun, and can commit while stunned.
-8. `roll` has mobility contact status (`stunOnHit`) via `MobilityImpactDef`.
+2. For sword primaries, guaranteed `StatusProfileId.meleeBleed` is on `bloodletter_cleave` only; `bloodletter_slash` and `seeker_slash` have no innate on-hit status proc.
+3. Projectile-slot abilities resolve payload from projectile source selection at commit time.
+4. `riposte_guard` and `aegis_riposte` both mitigate `50%` incoming hit damage while active and grant riposte on guarded hit.
+5. `shield_block` mitigates `100%` incoming hit damage while active and does not grant riposte.
+6. `focus` applies `StatusProfileId.focus` (`+25%` power, `+15%` crit chance for `5.0s`).
+7. `arcane_ward` applies `StatusProfileId.arcaneWard` (`40%` direct-hit mitigation, DoT canceled while active).
+8. `cleanse` applies `PurgeProfileId.cleanse`, removes active debuffs including stun, and can commit while stunned.
+9. `roll` has mobility contact status (`stunOnHit`) via `MobilityImpactDef`.

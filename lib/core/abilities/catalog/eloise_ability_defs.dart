@@ -32,13 +32,6 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     animKey: AnimKey.strike,
     requiredWeaponTypes: {WeaponType.oneHandedSword},
     payloadSource: AbilityPayloadSource.primaryWeapon,
-    procs: <WeaponProc>[
-      WeaponProc(
-        hook: ProcHook.onHit,
-        statusProfileId: StatusProfileId.meleeBleed,
-        chanceBp: 10000,
-      ),
-    ],
     baseDamage: 1500, // PlayerTuning meleeDamage 15.0
   ),
   'eloise.bloodletter_cleave': AbilityDef(
@@ -115,13 +108,6 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     animKey: AnimKey.strike,
     requiredWeaponTypes: {WeaponType.oneHandedSword},
     payloadSource: AbilityPayloadSource.primaryWeapon,
-    procs: <WeaponProc>[
-      WeaponProc(
-        hook: ProcHook.onHit,
-        statusProfileId: StatusProfileId.meleeBleed,
-        chanceBp: 10000,
-      ),
-    ],
     baseDamage: 1400,
   ),
 

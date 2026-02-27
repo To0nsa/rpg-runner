@@ -208,31 +208,18 @@ void main() {
       expect(tooltip.dynamicDescriptionValues, contains('damage-over-time'));
     });
 
-    test('builds seeker slash DoT values from authored profile data', () {
+    test('builds seeker slash values from authored profile data', () {
       final def = ability('eloise.seeker_slash');
-      final profile = const StatusProfileCatalog().get(
-        StatusProfileId.meleeBleed,
-      );
-      final dot = profile.applications.firstWhere(
-        (application) => application.type == StatusEffectType.dot,
-      );
       final tooltip = tooltipBuilder.build(def);
 
       expect(
         tooltip.description,
         contains('deals ${formatFixed100(def.baseDamage)} damage'),
       );
-      expect(
-        tooltip.description,
-        contains(
-          'Bleed, dealing ${formatFixed100(dot.magnitude)} damage per second for ${formatDecimal(dot.durationSeconds)} seconds.',
-        ),
-      );
+      expect(tooltip.description, isNot(contains('Bleed')));
       final highlightedValues = tooltip.dynamicDescriptionValues;
       expect(highlightedValues, contains(formatFixed100(def.baseDamage)));
-      expect(highlightedValues, contains('Bleed'));
-      expect(highlightedValues, contains(formatFixed100(dot.magnitude)));
-      expect(highlightedValues, contains(formatDecimal(dot.durationSeconds)));
+      expect(highlightedValues, isNot(contains('Bleed')));
     });
 
     test('builds seeker bash control values from authored profile data', () {
@@ -377,11 +364,6 @@ void main() {
 
     test('builds bloodletter slash values from authored data', () {
       final def = ability('eloise.bloodletter_slash');
-      final bleedProfileId = def.procs.first.statusProfileId;
-      final profile = const StatusProfileCatalog().get(bleedProfileId);
-      final dot = profile.applications.firstWhere(
-        (application) => application.type == StatusEffectType.dot,
-      );
       final tooltip = tooltipBuilder.build(def);
 
       expect(
@@ -390,17 +372,10 @@ void main() {
           'deals ${formatFixed100(def.baseDamage)} damage to enemies in aiming direction and in the attack reach.',
         ),
       );
-      expect(
-        tooltip.description,
-        contains(
-          'Bleed, dealing ${formatFixed100(dot.magnitude)} damage per second for ${formatDecimal(dot.durationSeconds)} seconds.',
-        ),
-      );
+      expect(tooltip.description, isNot(contains('Bleed')));
       final highlightedValues = tooltip.dynamicDescriptionValues;
       expect(highlightedValues, contains(formatFixed100(def.baseDamage)));
-      expect(highlightedValues, contains('Bleed'));
-      expect(highlightedValues, contains(formatFixed100(dot.magnitude)));
-      expect(highlightedValues, contains(formatDecimal(dot.durationSeconds)));
+      expect(highlightedValues, isNot(contains('Bleed')));
     });
 
     test('builds bloodletter cleave values from authored data', () {
