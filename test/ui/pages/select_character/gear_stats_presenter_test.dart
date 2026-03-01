@@ -62,7 +62,7 @@ void main() {
       final lines = gearStatsFor(GearSlot.mainWeapon, WeaponId.plainsteel);
       final powerLine = lines.firstWhere((line) => line.label == 'Power');
 
-      expect(powerLine.value, equals('+1%'));
+      expect(powerLine.value, equals('+10%'));
       expect(powerLine.tone, GearStatLineTone.positive);
     });
 
@@ -70,7 +70,7 @@ void main() {
       final lines = gearStatsFor(GearSlot.mainWeapon, WeaponId.graveglass);
       final defenseLine = lines.firstWhere((line) => line.label == 'Defense');
 
-      expect(defenseLine.value, equals('-1.5%'));
+      expect(defenseLine.value, equals('-15%'));
       expect(defenseLine.tone, GearStatLineTone.negative);
     });
 

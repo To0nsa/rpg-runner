@@ -35,10 +35,21 @@ class GearIcon extends StatelessWidget {
       case GearSlot.mainWeapon:
       case GearSlot.offhandWeapon:
         final weaponId = id as WeaponId;
-        final coords = uiIconCoordsForWeapon(weaponId);
-        child = coords == null
-            ? const SizedBox.shrink()
-            : UiIconTile(coords: coords, size: size);
+        final spec = uiIconSpecForWeapon(weaponId);
+        final imagePath = spec.imageAssetPath;
+        final coords = spec.coords;
+        if (imagePath != null) {
+          child = Image.asset(imagePath, width: size, height: size);
+        } else if (coords != null) {
+          child = UiIconTile(
+            coords: coords,
+            size: size,
+            assetPath: spec.spriteAssetPath!,
+            tilePx: spec.tilePx,
+          );
+        } else {
+          child = const SizedBox.shrink();
+        }
         break;
       case GearSlot.spellBook:
         final bookId = id as SpellBookId;

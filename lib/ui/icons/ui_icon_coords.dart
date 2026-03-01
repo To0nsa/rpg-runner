@@ -9,22 +9,89 @@ class UiIconCoords {
   final int col;
 }
 
-UiIconCoords? uiIconCoordsForWeapon(WeaponId id) {
+/// Icon descriptor for weapon ids.
+///
+/// A weapon icon can come from a sprite sheet ([coords] + [spriteAssetPath]) or
+/// a dedicated raster asset ([imageAssetPath]).
+class UiWeaponIconSpec {
+  const UiWeaponIconSpec.sprite({
+    required this.coords,
+    required this.spriteAssetPath,
+    this.tilePx = 32,
+  }) : imageAssetPath = null;
+
+  const UiWeaponIconSpec.image(this.imageAssetPath)
+    : coords = null,
+      spriteAssetPath = null,
+      tilePx = 32;
+
+  final UiIconCoords? coords;
+  final String? spriteAssetPath;
+  final String? imageAssetPath;
+  final int tilePx;
+}
+
+const String _defaultUiSpritePath = 'assets/images/icons/transparentIcons.png';
+const String _swordUiSpritePath =
+    'assets/images/icons/gear-icons/sword/transparentIcons.png';
+
+/// Full weapon icon mapping for loadout and gear picker UI.
+UiWeaponIconSpec uiIconSpecForWeapon(WeaponId id) {
   return switch (id) {
-    WeaponId.plainsteel => const UiIconCoords(5, 0),
-    WeaponId.waspfang => const UiIconCoords(5, 1),
-    WeaponId.cinderedge => const UiIconCoords(5, 2),
-    WeaponId.basiliskKiss => const UiIconCoords(5, 0),
-    WeaponId.frostbrand => const UiIconCoords(5, 1),
-    WeaponId.stormneedle => const UiIconCoords(5, 2),
-    WeaponId.nullblade => const UiIconCoords(5, 0),
-    WeaponId.sunlitVow => const UiIconCoords(5, 1),
-    WeaponId.graveglass => const UiIconCoords(5, 2),
-    WeaponId.duelistsOath => const UiIconCoords(5, 0),
-    WeaponId.woodenShield => const UiIconCoords(6, 0),
-    WeaponId.basicShield => const UiIconCoords(6, 1),
-    WeaponId.solidShield => const UiIconCoords(6, 2),
+    WeaponId.plainsteel => const UiWeaponIconSpec.sprite(
+      coords: UiIconCoords(5, 1),
+      spriteAssetPath: _swordUiSpritePath,
+    ),
+    WeaponId.waspfang => const UiWeaponIconSpec.image(
+      'assets/images/icons/gear-icons/sword/waspfang.png',
+    ),
+    WeaponId.cinderedge => const UiWeaponIconSpec.sprite(
+      coords: UiIconCoords(5, 7),
+      spriteAssetPath: _swordUiSpritePath,
+    ),
+    WeaponId.basiliskKiss => const UiWeaponIconSpec.sprite(
+      coords: UiIconCoords(5, 0),
+      spriteAssetPath: _swordUiSpritePath,
+    ),
+    WeaponId.frostbrand => const UiWeaponIconSpec.sprite(
+      coords: UiIconCoords(5, 2),
+      spriteAssetPath: _swordUiSpritePath,
+    ),
+    WeaponId.stormneedle => const UiWeaponIconSpec.sprite(
+      coords: UiIconCoords(5, 3),
+      spriteAssetPath: _swordUiSpritePath,
+    ),
+    WeaponId.nullblade => const UiWeaponIconSpec.sprite(
+      coords: UiIconCoords(5, 5),
+      spriteAssetPath: _swordUiSpritePath,
+    ),
+    WeaponId.sunlitVow => const UiWeaponIconSpec.sprite(
+      coords: UiIconCoords(5, 4),
+      spriteAssetPath: _swordUiSpritePath,
+    ),
+    WeaponId.graveglass => const UiWeaponIconSpec.image(
+      'assets/images/icons/gear-icons/sword/graveglass.png',
+    ),
+    WeaponId.duelistsOath => const UiWeaponIconSpec.image(
+      'assets/images/icons/gear-icons/sword/duelistsOath.png',
+    ),
+    WeaponId.woodenShield => const UiWeaponIconSpec.sprite(
+      coords: UiIconCoords(6, 0),
+      spriteAssetPath: _defaultUiSpritePath,
+    ),
+    WeaponId.basicShield => const UiWeaponIconSpec.sprite(
+      coords: UiIconCoords(6, 1),
+      spriteAssetPath: _defaultUiSpritePath,
+    ),
+    WeaponId.solidShield => const UiWeaponIconSpec.sprite(
+      coords: UiIconCoords(6, 2),
+      spriteAssetPath: _defaultUiSpritePath,
+    ),
   };
+}
+
+UiIconCoords? uiIconCoordsForWeapon(WeaponId id) {
+  return uiIconSpecForWeapon(id).coords;
 }
 
 UiIconCoords? uiIconCoordsForSpellBook(SpellBookId id) {

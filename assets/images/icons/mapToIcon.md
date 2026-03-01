@@ -1,14 +1,22 @@
 # Icon Mapping Resource
 
-**Source File**: `assets\images\icons\transparentIcons.png`
 **Grid Configuration**: 0-indexed (Row, Column)
 
 ## Primary Weapons
-| Icon Name | Coordinates (Row, Col) |
+| Icon Name | Coordinates (Row, Col) | Source File |
 | :--- | :---: |
-| `woodenSword` | (5, 0) |
-| `basicSword` | (5, 1) |
-| `solidSword` | (5, 2) |
+| `plainsteel` | (5, 1) | `assets\images\gear-icons\sword\transparentIcons.png` |
+| `cinderedge` | (5, 7) | `assets\images\gear-icons\sword\transparentIcons.png` |
+| `basiliskKiss` | (5, 0) | `assets\images\gear-icons\sword\transparentIcons.png` |
+| `frostbrand` | (5, 2) | `assets\images\gear-icons\sword\transparentIcons.png` |
+| `stormneedle` | (5, 3) | `assets\images\gear-icons\sword\transparentIcons.png` |
+| `nullblade` | (5, 5) | `assets\images\gear-icons\sword\transparentIcons.png` |
+| `sunlitVow` | (5, 4) | `assets\images\gear-icons\sword\transparentIcons.png` |
+| `graveglass` | (0, 0) | `assets\images\icons\gear-icons\sword\graveglass.png` |
+| `duelistsOath` | (0, 0) | `assets\images\icons\gear-icons\sword\duelistsOath.png` |
+| `waspfang` | (0, 0) | `assets\images\icons\gear-icons\sword\waspfang.png` |
+
+**Source File**: `assets\images\icons\transparentIcons.png`
 
 ## Secondary Weapons
 | Icon Name | Coordinates (Row, Col) |

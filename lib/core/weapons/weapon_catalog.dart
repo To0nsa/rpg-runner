@@ -19,7 +19,7 @@ class WeaponCatalog {
           id: WeaponId.plainsteel,
           category: WeaponCategory.primary,
           weaponType: WeaponType.oneHandedSword,
-          stats: GearStatBonuses(powerBonusBp: 100),
+          stats: GearStatBonuses(powerBonusBp: 1000),
         );
       case WeaponId.waspfang:
         return const WeaponDef(
@@ -30,10 +30,10 @@ class WeaponCatalog {
             WeaponProc(
               hook: ProcHook.onHit,
               statusProfileId: StatusProfileId.meleeBleed,
-              chanceBp: 3000,
+              chanceBp: 3500,
             ),
           ],
-          stats: GearStatBonuses(powerBonusBp: 50),
+          stats: GearStatBonuses(powerBonusBp: 1000),
         );
       case WeaponId.cinderedge:
         return const WeaponDef(
@@ -47,7 +47,7 @@ class WeaponCatalog {
               chanceBp: 10000,
             ),
           ],
-          stats: GearStatBonuses(critChanceBonusBp: 200),
+          stats: GearStatBonuses(critChanceBonusBp: 1000),
         );
       case WeaponId.basiliskKiss:
         return const WeaponDef(
@@ -58,10 +58,10 @@ class WeaponCatalog {
             WeaponProc(
               hook: ProcHook.onHit,
               statusProfileId: StatusProfileId.acidOnHit,
-              chanceBp: 2500,
+              chanceBp: 3500,
             ),
           ],
-          stats: GearStatBonuses(powerBonusBp: 50, critChanceBonusBp: -100),
+          stats: GearStatBonuses(powerBonusBp: 2500, critChanceBonusBp: -1000),
         );
       case WeaponId.frostbrand:
         return const WeaponDef(
@@ -72,10 +72,10 @@ class WeaponCatalog {
             WeaponProc(
               hook: ProcHook.onHit,
               statusProfileId: StatusProfileId.slowOnHit,
-              chanceBp: 3000,
+              chanceBp: 3500,
             ),
           ],
-          stats: GearStatBonuses(powerBonusBp: 80),
+          stats: GearStatBonuses(powerBonusBp: 2000),
         );
       case WeaponId.stormneedle:
         return const WeaponDef(
@@ -86,10 +86,10 @@ class WeaponCatalog {
             WeaponProc(
               hook: ProcHook.onHit,
               statusProfileId: StatusProfileId.stunOnHit,
-              chanceBp: 800,
+              chanceBp: 2000,
             ),
           ],
-          stats: GearStatBonuses(powerBonusBp: 70),
+          stats: GearStatBonuses(powerBonusBp: 2000),
         );
       case WeaponId.nullblade:
         return const WeaponDef(
@@ -100,10 +100,10 @@ class WeaponCatalog {
             WeaponProc(
               hook: ProcHook.onHit,
               statusProfileId: StatusProfileId.silenceOnHit,
-              chanceBp: 1500,
+              chanceBp: 2000,
             ),
           ],
-          stats: GearStatBonuses(powerBonusBp: 80),
+          stats: GearStatBonuses(powerBonusBp: 1000, critChanceBonusBp: 1000),
         );
       case WeaponId.sunlitVow:
         return const WeaponDef(
@@ -117,7 +117,7 @@ class WeaponCatalog {
               chanceBp: 10000,
             ),
           ],
-          stats: GearStatBonuses(powerBonusBp: 70, defenseBonusBp: 100),
+          stats: GearStatBonuses(powerBonusBp: 700, defenseBonusBp: 1000),
         );
       case WeaponId.graveglass:
         return const WeaponDef(
@@ -128,10 +128,13 @@ class WeaponCatalog {
             WeaponProc(
               hook: ProcHook.onHit,
               statusProfileId: StatusProfileId.acidOnHit,
-              chanceBp: 700,
+              chanceBp: 2000,
             ),
           ],
-          stats: GearStatBonuses(globalPowerBonusBp: 120, defenseBonusBp: -150),
+          stats: GearStatBonuses(
+            globalPowerBonusBp: 3000,
+            defenseBonusBp: -1500,
+          ),
         );
       case WeaponId.duelistsOath:
         return const WeaponDef(
@@ -145,7 +148,7 @@ class WeaponCatalog {
               chanceBp: 10000,
             ),
           ],
-          stats: GearStatBonuses(powerBonusBp: 50, critChanceBonusBp: 150),
+          stats: GearStatBonuses(powerBonusBp: 2000, critChanceBonusBp: 1500),
         );
       case WeaponId.woodenShield:
         return const WeaponDef(

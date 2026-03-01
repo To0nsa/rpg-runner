@@ -48,70 +48,70 @@ Primary knobs:
 ### 1) Plainsteel
 
 - Role: baseline consistency
-- Stats: `power +100bp`
+- Stats: `power +1000bp`
 - Proc: none
 - Tradeoff: no specialization ceiling
 
 ### 2) Waspfang
 
 - Role: fast pressure, bleed attrition
-- Stats: `power +50bp`
-- Proc: `onHit -> bleed` at `25-35%`
+- Stats: `power +1000bp`
+- Proc: `onHit -> bleed` at `35%`
 - Tradeoff: lower upfront burst for better sustained pressure
 
 ### 3) Cinderedge
 
 - Role: crit-trigger burn, spiky output
-- Stats: `crit +200bp`, `power +0bp`
+- Stats: `crit +1000bp`, `power +0bp`
 - Proc: `onCrit -> burn` at `100%`
 - Tradeoff: volatile performance, weaker when crit stack is low
 
 ### 4) Basilisk Kiss
 
 - Role: acid shred, anti-tank
-- Stats: `power +50bp`, `crit -100bp`
-- Proc: `onHit -> acid` at `20-30%`
+- Stats: `power +2500bp`, `crit -1000bp`
+- Proc: `onHit -> acid` at `35%`
 - Tradeoff: lower burst in exchange for strong long-fight scaling
 
 ### 5) Frostbrand
 
 - Role: tempo control through slows
-- Stats: `power +80bp`
-- Proc: `onHit -> slow` at `25-40%`
+- Stats: `power +2000bp`
+- Proc: `onHit -> slow` at `35%`
 - Tradeoff: slightly reduced raw DPS for safer engagements
 
 ### 6) Stormneedle
 
 - Role: rare clutch stun control
-- Stats: `power +70bp`
-- Proc: `onHit -> stun` at `6-10%`
+- Stats: `power +2000bp`
+- Proc: `onHit -> stun` at `20%`
 - Tradeoff: control wins runs, so direct damage is intentionally taxed
 
 ### 7) Nullblade
 
 - Role: anti-caster silence utility
-- Stats: `power +80bp`
-- Proc: `onHit -> silence` at `10-20%`
+- Stats: `power +1000bp`, , `crit +1000bp`
+- Proc: `onHit -> silence` at `20%`
 - Tradeoff: situationally dominant versus casters, below-average in non-caster fights
 
 ### 8) Sunlit Vow
 
 - Role: sustain and wave stability
-- Stats: `power +70bp`, `defense +100bp`
+- Stats: `power +700bp`, `defense +1000bp`
 - Proc: `onKill -> haste (short)` at `100%` (or small heal status if sustain profile is preferred)
 - Tradeoff: excellent in wave clear, reduced boss value due to kill-gated trigger
 
 ### 9) Graveglass
 
 - Role: high-risk global amplifier
-- Stats: `globalPower +120bp`, `defense -150bp`
-- Proc: none, or optional `onHit -> vulnerable` at `5-10%`
+- Stats: `globalPower +3000bp`, `defense -1500bp`
+- Proc:  `onHit -> vulnerable` at `20%`
 - Tradeoff: fastest clear potential with the highest death risk
 
 ### 10) Duelist's Oath
 
 - Role: skill sword rewarding crit consistency
-- Stats: `crit +150bp`, `power +50bp`
+- Stats: `crit +1500bp`, `power +2000bp`
 - Proc: `onCrit -> weaken` at `100%` (short duration)
 - Tradeoff: requires crit uptime and execution; adds safety windows rather than direct proc damage
 
@@ -131,4 +131,3 @@ The roster intentionally covers the major build identities:
 
 - Keep sword identity in data (`GearDef` stats + proc profile hooks), not hardcoded behavior branches.
 - Reuse existing status profiles where possible (`bleed`, `burn`, `acid/vulnerable`, `slow`, `stun`, `silence`, `haste`, `weaken`).
-- If optional effects are enabled (`Graveglass vulnerable`, `Sunlit Vow heal`), treat them as explicit balance variants and test both configurations.
