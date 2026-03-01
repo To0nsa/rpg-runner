@@ -5,6 +5,7 @@ import '../../core/projectiles/projectile_id.dart';
 import 'ability_tag_resolver.dart';
 import 'ability_text.dart';
 import 'gear_text.dart';
+import 'semantic_text.dart';
 
 class AbilityCostLine {
   const AbilityCostLine({required this.label, required this.value});
@@ -30,6 +31,7 @@ class AbilityTooltip {
     required this.title,
     required this.description,
     this.dynamicDescriptionValues = const <String>[],
+    this.semanticDescription = UiSemanticText.empty,
     this.badges = const <String>[],
     this.tags = const <AbilityUiTag>{},
     this.cooldownSeconds,
@@ -40,6 +42,7 @@ class AbilityTooltip {
   final String title;
   final String description;
   final List<String> dynamicDescriptionValues;
+  final UiSemanticText semanticDescription;
   final List<String> badges;
   final Set<AbilityUiTag> tags;
   final double? cooldownSeconds;
@@ -111,6 +114,13 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
       description: descriptionWithHighlights.description,
       dynamicDescriptionValues: List<String>.unmodifiable(
         descriptionWithHighlights.dynamicValues,
+      ),
+      semanticDescription: UiSemanticText.single(
+        descriptionWithHighlights.description,
+        highlights: <UiSemanticHighlight>[
+          for (final value in descriptionWithHighlights.dynamicValues)
+            UiSemanticHighlight(value, tone: UiSemanticTone.accent),
+        ],
       ),
       badges: List<String>.unmodifiable(badges),
       tags: tags,

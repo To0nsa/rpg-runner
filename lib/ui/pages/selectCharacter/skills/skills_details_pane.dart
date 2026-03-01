@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../text/ability_tooltip_builder.dart';
+import '../../../text/semantic_text.dart';
 import '../../../theme/ui_tokens.dart';
 
 class SkillsDetailsPane extends StatelessWidget {
@@ -75,20 +76,22 @@ class _AbilityDetailsPane extends StatelessWidget {
               ),
             ],
             SizedBox(height: ui.space.xxs),
-            Text.rich(
-              TextSpan(
-                style: ui.text.body.copyWith(color: ui.colors.textMuted),
-                children: _buildDescriptionSpans(
-                  description: tooltip!.description,
-                  dynamicValues: tooltip!.dynamicDescriptionValues,
-                  normalStyle: ui.text.body.copyWith(
-                    color: ui.colors.textMuted,
-                  ),
-                  dynamicStyle: ui.text.body.copyWith(
-                    color: ui.colors.valueHighlight,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+            UiSemanticRichText(
+              semanticText: tooltip!.semanticDescription,
+              normalStyleForTone: (tone) => ui.text.body.copyWith(
+                color: switch (tone) {
+                  UiSemanticTone.positive => ui.colors.success,
+                  UiSemanticTone.negative => ui.colors.danger,
+                  _ => ui.colors.textMuted,
+                },
+              ),
+              highlightStyleForTone: (tone) => ui.text.body.copyWith(
+                color: switch (tone) {
+                  UiSemanticTone.positive => ui.colors.success,
+                  UiSemanticTone.negative => ui.colors.danger,
+                  _ => ui.colors.valueHighlight,
+                },
+                fontWeight: FontWeight.w600,
               ),
             ),
             if (tooltip!.badges.isNotEmpty) ...[
@@ -107,46 +110,6 @@ class _AbilityDetailsPane extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Splits [description] into styled [TextSpan]s, highlighting [dynamicValues].
-///
-/// Values are matched longest-first to prevent partial overlaps when a shorter
-/// token is a substring of a longer one (e.g. "5" inside "50%").
-List<TextSpan> _buildDescriptionSpans({
-  required String description,
-  required List<String> dynamicValues,
-  required TextStyle normalStyle,
-  required TextStyle dynamicStyle,
-}) {
-  final values =
-      dynamicValues.toSet().where((value) => value.isNotEmpty).toList()
-        ..sort((a, b) => b.length.compareTo(a.length));
-  if (values.isEmpty) {
-    return <TextSpan>[TextSpan(text: description, style: normalStyle)];
-  }
-
-  final pattern = values.map(RegExp.escape).join('|');
-  final regex = RegExp(pattern);
-  final spans = <TextSpan>[];
-  var index = 0;
-  for (final match in regex.allMatches(description)) {
-    if (match.start > index) {
-      spans.add(
-        TextSpan(
-          text: description.substring(index, match.start),
-          style: normalStyle,
-        ),
-      );
-    }
-    spans.add(TextSpan(text: match.group(0), style: dynamicStyle));
-    index = match.end;
-  }
-
-  if (index < description.length) {
-    spans.add(TextSpan(text: description.substring(index), style: normalStyle));
-  }
-  return spans;
 }
 
 class _DetailsMetricLine extends StatelessWidget {

@@ -43,7 +43,7 @@ class GearPickerCandidatesPanel extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final spacing = ui.space.xs;
-        const targetColumns = 5;
+        const targetColumns = 4;
         const targetRows = 3;
         final widthPerTile =
             (constraints.maxWidth - (spacing * (targetColumns - 1))) /

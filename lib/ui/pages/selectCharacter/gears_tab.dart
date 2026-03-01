@@ -137,16 +137,26 @@ class _GearsTabState extends State<GearsTab> {
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 Expanded(
-                                  flex: 1,
+                                  flex: 3,
                                   child: _GearDetailsPane(
                                     slot: slot,
                                     selectedId: selectedId,
                                     equippedForCompare: equippedId,
                                   ),
                                 ),
-                                SizedBox(width: ui.space.sm),
+                                SizedBox(width: ui.space.xs),
+                                Container(
+                                  width: 1,
+                                  margin: EdgeInsets.symmetric(
+                                    vertical: ui.space.xs,
+                                  ),
+                                  color: ui.colors.outline.withValues(
+                                    alpha: 0.35,
+                                  ),
+                                ),
+                                SizedBox(width: ui.space.xs),
                                 Expanded(
-                                  flex: 1,
+                                  flex: 2,
                                   child: _GearCandidatesPane(
                                     slot: slot,
                                     candidates: candidates,

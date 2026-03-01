@@ -131,6 +131,53 @@ void main() {
     },
   );
 
+  test(
+    'MetaService.normalize grants all primary swords for existing inventories',
+    () {
+      const service = MetaService();
+      final legacy = MetaState(
+        schemaVersion: 1,
+        inventory: InventoryState(
+          unlockedWeaponIds: <WeaponId>{
+            WeaponId.plainsteel,
+            WeaponId.woodenShield,
+            WeaponId.basicShield,
+          },
+          unlockedThrowingWeaponIds: service
+              .seedAllUnlockedInventory()
+              .unlockedThrowingWeaponIds,
+          unlockedSpellBookIds: service
+              .seedAllUnlockedInventory()
+              .unlockedSpellBookIds,
+          unlockedAccessoryIds: service
+              .seedAllUnlockedInventory()
+              .unlockedAccessoryIds,
+        ),
+        equippedByCharacter: <PlayerCharacterId, EquippedGear>{
+          for (final id in PlayerCharacterId.values)
+            id: MetaDefaults.equippedGear,
+        },
+        spellListByCharacter: <PlayerCharacterId, SpellList>{
+          for (final id in PlayerCharacterId.values) id: SpellList.empty,
+        },
+      );
+
+      final normalized = service.normalize(legacy);
+      final unlocked = normalized.inventory.unlockedWeaponIds;
+
+      expect(unlocked.contains(WeaponId.plainsteel), isTrue);
+      expect(unlocked.contains(WeaponId.waspfang), isTrue);
+      expect(unlocked.contains(WeaponId.cinderedge), isTrue);
+      expect(unlocked.contains(WeaponId.basiliskKiss), isTrue);
+      expect(unlocked.contains(WeaponId.frostbrand), isTrue);
+      expect(unlocked.contains(WeaponId.stormneedle), isTrue);
+      expect(unlocked.contains(WeaponId.nullblade), isTrue);
+      expect(unlocked.contains(WeaponId.sunlitVow), isTrue);
+      expect(unlocked.contains(WeaponId.graveglass), isTrue);
+      expect(unlocked.contains(WeaponId.duelistsOath), isTrue);
+    },
+  );
+
   test('MetaService.candidatesForSlot includes sword and shield entries', () {
     const service = MetaService();
     final meta = service.createNew();

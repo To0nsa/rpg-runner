@@ -200,12 +200,20 @@ class MetaService {
   MetaState normalize(MetaState state) {
     var inventory = state.inventory;
     final allowedWeapons = _startingUnlockedWeaponIds();
+    final guaranteedPrimaryWeapons = <WeaponId>{};
+    for (final id in allowedWeapons) {
+      final def = weapons.tryGet(id);
+      if (def != null && def.category == WeaponCategory.primary) {
+        guaranteedPrimaryWeapons.add(id);
+      }
+    }
     final allowedThrowingWeapons = _startingUnlockedThrowingWeaponIds();
     final allowedSpellBooks = _startingUnlockedSpellBookIds();
     final allowedAccessories = _startingUnlockedAccessoryIds();
 
     final unlockedWeapons = Set<WeaponId>.from(inventory.unlockedWeaponIds)
       ..removeWhere((id) => !allowedWeapons.contains(id))
+      ..addAll(guaranteedPrimaryWeapons)
       ..add(MetaDefaults.mainWeaponId)
       ..add(MetaDefaults.offhandWeaponId);
     final unlockedThrowing =
