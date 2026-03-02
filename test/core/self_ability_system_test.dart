@@ -107,7 +107,7 @@ void main() {
 
     final li = world.equippedLoadout.indexOf(player);
     world.equippedLoadout.mask[li] |= LoadoutSlotMask.projectile;
-    world.equippedLoadout.spellBookId[li] = SpellBookId.epicSpellBook;
+    world.equippedLoadout.spellBookId[li] = SpellBookId.crownOfFocus;
     world.equippedLoadout.abilitySpellId[li] = 'eloise.mana_infusion';
 
     final pi = world.playerInput.indexOf(player);
@@ -211,7 +211,7 @@ void main() {
 
     final li = world.equippedLoadout.indexOf(player);
     world.equippedLoadout.mask[li] |= LoadoutSlotMask.projectile;
-    world.equippedLoadout.spellBookId[li] = SpellBookId.epicSpellBook;
+    world.equippedLoadout.spellBookId[li] = SpellBookId.crownOfFocus;
     world.equippedLoadout.abilitySpellId[li] = 'eloise.arcane_ward';
 
     final pi = world.playerInput.indexOf(player);
@@ -267,7 +267,7 @@ void main() {
       baselineWorld.equippedLoadout.mask[baselineLoadoutIndex] |=
           LoadoutSlotMask.projectile;
       baselineWorld.equippedLoadout.spellBookId[baselineLoadoutIndex] =
-          SpellBookId.epicSpellBook;
+          SpellBookId.crownOfFocus;
       baselineWorld.equippedLoadout.abilityProjectileId[baselineLoadoutIndex] =
           'eloise.snap_shot';
       baselineWorld.equippedLoadout.abilitySpellId[baselineLoadoutIndex] =
@@ -324,7 +324,7 @@ void main() {
       focusWorld.equippedLoadout.mask[focusLoadoutIndex] |=
           LoadoutSlotMask.projectile;
       focusWorld.equippedLoadout.spellBookId[focusLoadoutIndex] =
-          SpellBookId.epicSpellBook;
+          SpellBookId.crownOfFocus;
       focusWorld.equippedLoadout.abilityProjectileId[focusLoadoutIndex] =
           'eloise.snap_shot';
       focusWorld.equippedLoadout.abilitySpellId[focusLoadoutIndex] =
@@ -409,7 +409,7 @@ void main() {
 
     final li = world.equippedLoadout.indexOf(player);
     world.equippedLoadout.mask[li] |= LoadoutSlotMask.projectile;
-    world.equippedLoadout.spellBookId[li] = SpellBookId.epicSpellBook;
+    world.equippedLoadout.spellBookId[li] = SpellBookId.crownOfFocus;
     world.equippedLoadout.abilitySpellId[li] = 'eloise.cleanse';
 
     final pi = world.playerInput.indexOf(player);
@@ -442,53 +442,50 @@ void main() {
     expect(world.mana.mana[world.mana.indexOf(player)], equals(600));
   });
 
-  test(
-    'spell-slot self spell commit is not blocked by spellbook grants',
-    () {
-      final world = EcsWorld();
-      final player = EntityFactory(world).createPlayer(
-        posX: 0,
-        posY: 0,
-        velX: 0,
-        velY: 0,
-        facing: Facing.right,
-        grounded: true,
-        body: const BodyDef(isKinematic: true, useGravity: false),
-        collider: const ColliderAabbDef(halfX: 8, halfY: 8),
-        health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
-        mana: const ManaDef(mana: 2000, manaMax: 2000, regenPerSecond100: 0),
-        stamina: const StaminaDef(
-          stamina: 5000,
-          staminaMax: 5000,
-          regenPerSecond100: 0,
-        ),
-      );
+  test('spell-slot self spell commit is not blocked by spellbook grants', () {
+    final world = EcsWorld();
+    final player = EntityFactory(world).createPlayer(
+      posX: 0,
+      posY: 0,
+      velX: 0,
+      velY: 0,
+      facing: Facing.right,
+      grounded: true,
+      body: const BodyDef(isKinematic: true, useGravity: false),
+      collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+      health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 2000, manaMax: 2000, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 5000,
+        staminaMax: 5000,
+        regenPerSecond100: 0,
+      ),
+    );
 
-      final li = world.equippedLoadout.indexOf(player);
-      world.equippedLoadout.mask[li] |= LoadoutSlotMask.projectile;
-      world.equippedLoadout.spellBookId[li] = SpellBookId.basicSpellBook;
-      world.equippedLoadout.abilitySpellId[li] = 'eloise.mana_infusion';
+    final li = world.equippedLoadout.indexOf(player);
+    world.equippedLoadout.mask[li] |= LoadoutSlotMask.projectile;
+    world.equippedLoadout.spellBookId[li] = SpellBookId.apprenticePrimer;
+    world.equippedLoadout.abilitySpellId[li] = 'eloise.mana_infusion';
 
-      final pi = world.playerInput.indexOf(player);
-      world.playerInput.spellPressed[pi] = true;
+    final pi = world.playerInput.indexOf(player);
+    world.playerInput.spellPressed[pi] = true;
 
-      final activation = AbilityActivationSystem(
-        tickHz: 60,
-        inputBufferTicks: 10,
-        abilities: const AbilityCatalog(),
-        weapons: const WeaponCatalog(),
-        projectiles: const ProjectileCatalog(),
-        spellBooks: const SpellBookCatalog(),
-        accessories: const AccessoryCatalog(),
-      );
+    final activation = AbilityActivationSystem(
+      tickHz: 60,
+      inputBufferTicks: 10,
+      abilities: const AbilityCatalog(),
+      weapons: const WeaponCatalog(),
+      projectiles: const ProjectileCatalog(),
+      spellBooks: const SpellBookCatalog(),
+      accessories: const AccessoryCatalog(),
+    );
 
-      activation.step(world, player: player, currentTick: 5);
+    activation.step(world, player: player, currentTick: 5);
 
-      expect(world.activeAbility.hasActiveAbility(player), isTrue);
-      final activeIndex = world.activeAbility.indexOf(player);
-      expect(world.activeAbility.abilityId[activeIndex], 'eloise.mana_infusion');
-      expect(world.selfIntent.tick[world.selfIntent.indexOf(player)], equals(5));
-      expect(world.mana.mana[world.mana.indexOf(player)], equals(2000));
-    },
-  );
+    expect(world.activeAbility.hasActiveAbility(player), isTrue);
+    final activeIndex = world.activeAbility.indexOf(player);
+    expect(world.activeAbility.abilityId[activeIndex], 'eloise.mana_infusion');
+    expect(world.selfIntent.tick[world.selfIntent.indexOf(player)], equals(5));
+    expect(world.mana.mana[world.mana.indexOf(player)], equals(2000));
+  });
 }

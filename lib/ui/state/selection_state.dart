@@ -206,7 +206,7 @@ EquippedLoadoutDef _loadoutFromJson(Object? raw) {
     spellBookId: _enumFromName(
       SpellBookId.values,
       map['spellBookId'] as String?,
-      SpellBookId.basicSpellBook,
+      SpellBookId.apprenticePrimer,
     ),
     projectileSlotSpellId: map.containsKey('projectileSlotSpellId')
         ? _enumFromNameNullable(

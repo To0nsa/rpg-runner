@@ -114,9 +114,14 @@ UiIconCoords? uiIconCoordsForWeapon(WeaponId id) {
 
 UiIconCoords? uiIconCoordsForSpellBook(SpellBookId id) {
   return switch (id) {
-    SpellBookId.basicSpellBook => const UiIconCoords(13, 0),
-    SpellBookId.solidSpellBook => const UiIconCoords(13, 1),
-    SpellBookId.epicSpellBook => const UiIconCoords(13, 2),
+    SpellBookId.apprenticePrimer => const UiIconCoords(13, 0),
+    SpellBookId.bastionCodex => const UiIconCoords(13, 1),
+    SpellBookId.emberGrimoire => const UiIconCoords(13, 2),
+    SpellBookId.tideAlmanac => const UiIconCoords(13, 3),
+    SpellBookId.hexboundLexicon => const UiIconCoords(13, 4),
+    SpellBookId.galeFolio => const UiIconCoords(13, 5),
+    SpellBookId.nullTestament => const UiIconCoords(13, 6),
+    SpellBookId.crownOfFocus => const UiIconCoords(13, 7),
   };
 }
 

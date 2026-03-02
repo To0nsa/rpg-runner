@@ -270,17 +270,35 @@ const Map<ProjectileId, String> _projectileDescriptionOverrides =
 
 const Map<SpellBookId, String> _spellBookDisplayNameOverrides =
     <SpellBookId, String>{
-      SpellBookId.basicSpellBook: 'Basic Spellbook',
-      SpellBookId.solidSpellBook: 'Solid Spellbook',
-      SpellBookId.epicSpellBook: 'Epic Spellbook',
+      SpellBookId.apprenticePrimer: 'Apprentice Primer',
+      SpellBookId.bastionCodex: 'Bastion Codex',
+      SpellBookId.emberGrimoire: 'Ember Grimoire',
+      SpellBookId.tideAlmanac: 'Tide Almanac',
+      SpellBookId.hexboundLexicon: 'Hexbound Lexicon',
+      SpellBookId.galeFolio: 'Gale Folio',
+      SpellBookId.nullTestament: 'Null Testament',
+      SpellBookId.crownOfFocus: 'Crown of Focus',
     };
 
-const Map<SpellBookId, String> _spellBookDescriptionOverrides =
-    <SpellBookId, String>{
-      SpellBookId.basicSpellBook: 'Starter spell focus with lower output.',
-      SpellBookId.solidSpellBook: 'Balanced spell focus.',
-      SpellBookId.epicSpellBook: 'Advanced spell focus with higher output.',
-    };
+const Map<SpellBookId, String>
+_spellBookDescriptionOverrides = <SpellBookId, String>{
+  SpellBookId.apprenticePrimer:
+      'Baseline spellbook with small power and mana gains.',
+  SpellBookId.bastionCodex:
+      'Defensive spellbook with ward on kill and slower cooldowns.',
+  SpellBookId.emberGrimoire:
+      'Aggressive spellbook with burn pressure and lower defense.',
+  SpellBookId.tideAlmanac:
+      'Control spellbook with higher mana/cooldown efficiency and lower power.',
+  SpellBookId.hexboundLexicon:
+      'Crit-leaning spellbook that weakens on crit at reduced base power.',
+  SpellBookId.galeFolio:
+      'Kiting spellbook with speed/ stamina and slow-on-hit utility.',
+  SpellBookId.nullTestament:
+      'Anti-caster spellbook with dark/holy resistance and crit-gated silence.',
+  SpellBookId.crownOfFocus:
+      'High-risk snowball spellbook with strong global offense and low defense.',
+};
 
 const Map<AccessoryId, String> _accessoryDisplayNameOverrides =
     <AccessoryId, String>{

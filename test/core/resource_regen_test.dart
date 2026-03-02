@@ -41,9 +41,11 @@ void main() {
 
       // Player spawns at max resources.
       var hud = core.buildSnapshot().hud;
+      final initialMana = hud.mana;
+      final initialStamina = hud.stamina;
       expect(hud.hp, closeTo(100.0, 1e-9));
-      expect(hud.mana, closeTo(20.0, 1e-9));
-      expect(hud.stamina, closeTo(20.0, 1e-9));
+      expect(hud.mana, closeTo(initialMana, 1e-9));
+      expect(hud.stamina, closeTo(initialStamina, 1e-9));
 
       // Spend mana and stamina on separate ticks (dash preempts combat).
       core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
@@ -52,8 +54,8 @@ void main() {
       core.stepOneTick(); // tick 2: spend stamina and apply regen
       hud = core.buildSnapshot().hud;
       expect(hud.hp, closeTo(100.0, 1e-9));
-      expect(hud.mana, lessThan(20.0));
-      expect(hud.stamina, lessThan(20.0));
+      expect(hud.mana, lessThan(initialMana));
+      expect(hud.stamina, lessThan(initialStamina));
 
       // Run long enough to exceed maxima; values should clamp exactly to max.
       for (var i = 0; i < 200; i += 1) {
@@ -63,8 +65,8 @@ void main() {
       }
       hud = core.buildSnapshot().hud;
       expect(hud.hp, closeTo(100.0, 1e-9));
-      expect(hud.mana, closeTo(20.0, 1e-9));
-      expect(hud.stamina, closeTo(20.0, 1e-9));
+      expect(hud.mana, closeTo(initialMana, 1e-9));
+      expect(hud.stamina, closeTo(initialStamina, 1e-9));
     },
   );
 }

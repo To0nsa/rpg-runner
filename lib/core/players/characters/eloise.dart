@@ -202,7 +202,7 @@ const PlayerCatalog eloiseCatalog = PlayerCatalog(
   weaponId: WeaponId.plainsteel,
   offhandWeaponId: WeaponId.roadguard,
   projectileId: ProjectileId.throwingKnife,
-  spellBookId: SpellBookId.basicSpellBook,
+  spellBookId: SpellBookId.apprenticePrimer,
   projectileSlotSpellId: ProjectileId.fireBolt,
   startingProjectileSpellIds: eloiseStartingProjectileSpellIds,
   abilityPrimaryId: 'eloise.bloodletter_slash',

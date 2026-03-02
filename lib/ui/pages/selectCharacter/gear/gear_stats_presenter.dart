@@ -135,12 +135,7 @@ List<GearStatLine> _projectileStats(ProjectileItemDef def) {
 
 List<GearStatLine> _spellBookStats(SpellBookDef def) {
   final stats = def.stats;
-  final lines = <GearStatLine>[
-    GearStatLine(
-      'Damage Type',
-      def.damageType == null ? 'Ability' : _enumLabel(def.damageType!.name),
-    ),
-  ];
+  final lines = <GearStatLine>[];
   _addCoreStatLines(lines, stats);
   lines.addAll(_buildProcHookLines(def.procs));
   return lines;

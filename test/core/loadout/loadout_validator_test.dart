@@ -123,7 +123,7 @@ void main() {
         mainWeaponId: WeaponId.plainsteel,
         offhandWeaponId: WeaponId.roadguard,
         projectileId: ProjectileId.throwingKnife,
-        spellBookId: SpellBookId.epicSpellBook,
+        spellBookId: SpellBookId.crownOfFocus,
         abilitySpellId: 'eloise.vital_surge',
       );
 
@@ -134,7 +134,7 @@ void main() {
 
     test('spell-slot self spell is not gated by spellbook grants', () {
       const loadout = EquippedLoadoutDef(
-        spellBookId: SpellBookId.basicSpellBook,
+        spellBookId: SpellBookId.apprenticePrimer,
         abilitySpellId: 'eloise.vital_surge',
       );
 

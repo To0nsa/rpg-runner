@@ -124,6 +124,8 @@ void main() {
         ),
       );
 
+      final initialMana = core.buildSnapshot().hud.mana;
+
       core.applyCommands(const [
         AimDirCommand(tick: 1, x: 1, y: 0),
         ProjectilePressedCommand(tick: 1),
@@ -144,7 +146,7 @@ void main() {
         snapshot.entities.where((e) => e.kind == EntityKind.projectile),
         isEmpty,
       );
-      expect(snapshot.hud.mana, closeTo(10.0, 1e-9));
+      expect(snapshot.hud.mana, closeTo(initialMana, 1e-9));
       expect(snapshot.hud.stamina, closeTo(0.0, 1e-9));
       expect(snapshot.hud.cooldownTicksLeft[CooldownGroup.projectile], 0);
       expect(snapshot.hud.canAffordProjectile, isFalse);

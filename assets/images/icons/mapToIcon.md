@@ -33,11 +33,16 @@
 | `oathwallRelic` | `assets\images\icons\gear-icons\shields\oathwallRelic.png` |
 
 ## Spellbooks
-| Icon Name | Coordinates (Row, Col) |
-| :--- | :---: |
-| `basicSpellBook` | (13, 0) |
-| `solidSpellBook` | (13, 1) |
-| `epicSpellBook` | (13, 2) |
+| Icon Name | Coordinates (Row, Col) | Source File |
+| :--- | :---: | :--- |
+| `apprenticePrimer` | (13, 0) | `assets\images\gear-icons\sword\transparentIcons.png` |
+| `bastionCodex` | (13, 1) | `assets\images\gear-icons\sword\transparentIcons.png` |
+| `emberGrimoire` | (13, 2) | `assets\images\gear-icons\sword\transparentIcons.png` |
+| `tideAlmanac` | (13, 3) | `assets\images\gear-icons\sword\transparentIcons.png` |
+| `hexboundLexicon` | (13, 4) | `assets\images\gear-icons\sword\transparentIcons.png` |
+| `galeFolio` | (13, 5) | `assets\images\gear-icons\sword\transparentIcons.png` |
+| `nullTestament` | (13, 6) | `assets\images\gear-icons\sword\transparentIcons.png` |
+| `crownOfFocus` | (13, 7) | `assets\images\gear-icons\sword\transparentIcons.png` |
 
 ## Accessories
 | Icon Name | Coordinates (Row, Col) |

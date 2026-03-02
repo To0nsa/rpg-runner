@@ -33,7 +33,7 @@ const PlayerCatalog testPlayerCatalogDefaults = PlayerCatalog(
   weaponId: WeaponId.plainsteel,
   offhandWeaponId: WeaponId.roadguard,
   projectileId: ProjectileId.fireBolt,
-  spellBookId: SpellBookId.basicSpellBook,
+  spellBookId: SpellBookId.apprenticePrimer,
   projectileSlotSpellId: ProjectileId.fireBolt,
   abilityPrimaryId: 'eloise.bloodletter_slash',
   abilitySecondaryId: 'eloise.aegis_riposte',

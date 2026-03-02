@@ -9,6 +9,9 @@ import '../icons/throwing_weapon_asset.dart';
 import '../icons/ui_icon_coords.dart';
 import '../icons/ui_icon_tile.dart';
 
+const String _spellbookIconSheetPath =
+    'assets/images/icons/gear-icons/sword/transparentIcons.png';
+
 /// Shared gear icon renderer for loadout screens and gear picker UI.
 ///
 /// The [id] type depends on [slot]:
@@ -56,7 +59,11 @@ class GearIcon extends StatelessWidget {
         final coords = uiIconCoordsForSpellBook(bookId);
         child = coords == null
             ? const SizedBox.shrink()
-            : UiIconTile(coords: coords, size: size);
+            : UiIconTile(
+                coords: coords,
+                size: size,
+                assetPath: _spellbookIconSheetPath,
+              );
         break;
       case GearSlot.accessory:
         final accessoryId = id as AccessoryId;

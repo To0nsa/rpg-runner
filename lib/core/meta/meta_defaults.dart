@@ -21,7 +21,7 @@ class MetaDefaults {
   static const ProjectileId throwingWeaponId = ProjectileId.throwingKnife;
 
   /// Default spellbook.
-  static const SpellBookId spellBookId = SpellBookId.basicSpellBook;
+  static const SpellBookId spellBookId = SpellBookId.apprenticePrimer;
 
   /// Default learned projectile spell for migration/fallback.
   static const ProjectileId projectileSpellId = ProjectileId.fireBolt;

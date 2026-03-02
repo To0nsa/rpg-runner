@@ -33,7 +33,7 @@ void main() {
       mainWeaponId: WeaponId.plainsteel,
       offhandWeaponId: WeaponId.roadguard,
       projectileId: ProjectileId.throwingKnife,
-      spellBookId: SpellBookId.basicSpellBook,
+      spellBookId: SpellBookId.apprenticePrimer,
       accessoryId: AccessoryId.speedBoots,
     );
 
@@ -57,7 +57,7 @@ void main() {
       mainWeaponId: WeaponId.plainsteel,
       offhandWeaponId: WeaponId.roadguard,
       projectileId: ProjectileId.throwingKnife,
-      spellBookId: SpellBookId.basicSpellBook,
+      spellBookId: SpellBookId.apprenticePrimer,
       accessoryId: AccessoryId.speedBoots,
     );
 
@@ -77,7 +77,7 @@ void main() {
       mainWeaponId: WeaponId.plainsteel,
       offhandWeaponId: WeaponId.roadguard,
       projectileId: ProjectileId.throwingKnife,
-      spellBookId: SpellBookId.basicSpellBook,
+      spellBookId: SpellBookId.apprenticePrimer,
       accessoryId: AccessoryId.goldenRing,
     );
 
@@ -99,7 +99,7 @@ void main() {
       mainWeaponId: WeaponId.plainsteel,
       offhandWeaponId: WeaponId.roadguard,
       projectileId: ProjectileId.throwingKnife,
-      spellBookId: SpellBookId.basicSpellBook,
+      spellBookId: SpellBookId.apprenticePrimer,
       accessoryId: AccessoryId.speedBoots,
     );
 
@@ -127,7 +127,7 @@ void main() {
       mainWeaponId: WeaponId.plainsteel,
       offhandWeaponId: WeaponId.roadguard,
       projectileId: ProjectileId.throwingKnife,
-      spellBookId: SpellBookId.basicSpellBook,
+      spellBookId: SpellBookId.apprenticePrimer,
       accessoryId: AccessoryId.speedBoots,
     );
 
@@ -227,7 +227,7 @@ class _FlatSpellBookCatalog extends SpellBookCatalog {
   @override
   SpellBookDef get(SpellBookId id) {
     return const SpellBookDef(
-      id: SpellBookId.basicSpellBook,
+      id: SpellBookId.apprenticePrimer,
       weaponType: WeaponType.spell,
       stats: GearStatBonuses(),
     );

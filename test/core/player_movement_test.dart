@@ -184,12 +184,13 @@ void main() {
         ),
       ),
     );
+    final initialHud = core.buildSnapshot().hud;
 
     _tick(core, jumpPressed: true);
 
     final hud = core.buildSnapshot().hud;
-    expect(hud.stamina, closeTo(8.0, 1e-9));
-    expect(hud.mana, closeTo(10.0, 1e-9));
+    expect(hud.stamina, closeTo(initialHud.stamina - 2.0, 1e-9));
+    expect(hud.mana, closeTo(initialHud.mana, 1e-9));
   });
 
   test('air jump spends mana (2) and not stamina', () {
@@ -211,13 +212,14 @@ void main() {
         ),
       ),
     );
+    final initialHud = core.buildSnapshot().hud;
 
     _tick(core, jumpPressed: true); // ground jump
     _tick(core, jumpPressed: true); // air jump
 
     final hud = core.buildSnapshot().hud;
-    expect(hud.stamina, closeTo(8.0, 1e-9));
-    expect(hud.mana, closeTo(8.0, 1e-9));
+    expect(hud.stamina, closeTo(initialHud.stamina - 2.0, 1e-9));
+    expect(hud.mana, closeTo(initialHud.mana - 2.0, 1e-9));
   });
 
   test('ground jump remains available with zero mana', () {
@@ -266,6 +268,7 @@ void main() {
         ),
       ),
     );
+    final initialHud = core.buildSnapshot().hud;
     final catalog = PlayerCharacterRegistry.eloise.catalog;
     final floorY =
         defaultLevelGroundTopYInt.toDouble() -
@@ -282,13 +285,13 @@ void main() {
 
     _tick(core, jumpPressed: true); // first air jump allowed
     final afterFirst = core.buildSnapshot().hud;
-    expect(afterFirst.mana, closeTo(8.0, 1e-9));
-    expect(afterFirst.stamina, closeTo(10.0, 1e-9));
+    expect(afterFirst.mana, closeTo(initialHud.mana - 2.0, 1e-9));
+    expect(afterFirst.stamina, closeTo(initialHud.stamina, 1e-9));
 
     _tick(core, jumpPressed: true); // second air jump blocked
     final afterSecond = core.buildSnapshot().hud;
-    expect(afterSecond.mana, closeTo(8.0, 1e-9));
-    expect(afterSecond.stamina, closeTo(10.0, 1e-9));
+    expect(afterSecond.mana, closeTo(initialHud.mana - 2.0, 1e-9));
+    expect(afterSecond.stamina, closeTo(initialHud.stamina, 1e-9));
   });
 
   test('double jump delayed second tap can exceed single-jump peak', () {

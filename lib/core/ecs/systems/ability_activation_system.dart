@@ -1035,7 +1035,12 @@ class AbilityActivationSystem {
             : projectile.originOffset;
         weaponStats = projectile.stats;
         weaponDamageType = projectile.damageType;
-        weaponProcs = projectile.procs;
+        weaponProcs = _resolveProjectilePayloadProcs(
+          world,
+          loadoutIndex: loadoutIndex,
+          projectileWeaponType: projectile.weaponType,
+          projectileProcs: projectile.procs,
+        );
         break;
       case AbilityPayloadSource.spellBook:
         final spellBookId = world.equippedLoadout.spellBookId[loadoutIndex];
@@ -1220,6 +1225,24 @@ class AbilityActivationSystem {
       ),
     );
     return true;
+  }
+
+  List<WeaponProc> _resolveProjectilePayloadProcs(
+    EcsWorld world, {
+    required int loadoutIndex,
+    required WeaponType projectileWeaponType,
+    required List<WeaponProc> projectileProcs,
+  }) {
+    if (projectileWeaponType != WeaponType.spell) return projectileProcs;
+
+    final spellBookId = world.equippedLoadout.spellBookId[loadoutIndex];
+    final spellBook = spellBooks.tryGet(spellBookId);
+    if (spellBook == null || spellBook.procs.isEmpty) return projectileProcs;
+    if (projectileProcs.isEmpty) return spellBook.procs;
+
+    // Canonical order for projectile payload source: projectile item procs first,
+    // spellbook procs second. HitPayloadBuilder handles deterministic dedupe.
+    return <WeaponProc>[...projectileProcs, ...spellBook.procs];
   }
 
   _ChargeTuning _resolveChargeTuning({

@@ -21,8 +21,8 @@ void main() {
         equals('Throwing Knife'),
       );
       expect(
-        gearDisplayNameForSlot(GearSlot.spellBook, SpellBookId.epicSpellBook),
-        equals('Epic Spellbook'),
+        gearDisplayNameForSlot(GearSlot.spellBook, SpellBookId.crownOfFocus),
+        equals('Crown of Focus'),
       );
       expect(
         gearDisplayNameForSlot(GearSlot.accessory, AccessoryId.goldenRing),
@@ -42,8 +42,11 @@ void main() {
         equals('Spell projectile that burns on hit.'),
       );
       expect(
-        gearDescriptionForSlot(GearSlot.spellBook, SpellBookId.basicSpellBook),
-        equals('Starter spell focus with lower output.'),
+        gearDescriptionForSlot(
+          GearSlot.spellBook,
+          SpellBookId.apprenticePrimer,
+        ),
+        equals('Baseline spellbook with small power and mana gains.'),
       );
       expect(
         gearDescriptionForSlot(GearSlot.accessory, AccessoryId.speedBoots),

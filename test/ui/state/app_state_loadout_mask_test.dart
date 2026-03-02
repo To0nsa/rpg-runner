@@ -112,7 +112,7 @@ void main() {
               PlayerCharacterId.eloise,
               baseMeta
                   .equippedFor(PlayerCharacterId.eloise)
-                  .copyWith(spellBookId: SpellBookId.epicSpellBook),
+                  .copyWith(spellBookId: SpellBookId.crownOfFocus),
             )
             .setSpellListFor(
               PlayerCharacterId.eloise,
@@ -170,7 +170,7 @@ void main() {
         await appState.equipGear(
           characterId: PlayerCharacterId.eloise,
           slot: GearSlot.spellBook,
-          itemId: SpellBookId.solidSpellBook,
+          itemId: SpellBookId.bastionCodex,
         );
 
         expect(
@@ -179,7 +179,7 @@ void main() {
         );
         expect(
           _selectedLoadout(appState.selection).spellBookId,
-          SpellBookId.solidSpellBook,
+          SpellBookId.bastionCodex,
         );
         expect(
           _selectedLoadout(selectionStore.saved).projectileId,
@@ -187,7 +187,7 @@ void main() {
         );
         expect(
           _selectedLoadout(selectionStore.saved).spellBookId,
-          SpellBookId.solidSpellBook,
+          SpellBookId.bastionCodex,
         );
       },
     );
@@ -219,7 +219,7 @@ void main() {
         await appState.equipGear(
           characterId: PlayerCharacterId.eloise,
           slot: GearSlot.spellBook,
-          itemId: SpellBookId.solidSpellBook,
+          itemId: SpellBookId.bastionCodex,
         );
         await appState.setLoadout(
           const EquippedLoadoutDef(abilitySpellId: 'eloise.vital_surge'),
@@ -232,7 +232,7 @@ void main() {
         await appState.equipGear(
           characterId: PlayerCharacterId.eloise,
           slot: GearSlot.spellBook,
-          itemId: SpellBookId.basicSpellBook,
+          itemId: SpellBookId.apprenticePrimer,
         );
 
         expect(
@@ -273,7 +273,7 @@ void main() {
         await appState.equipGear(
           characterId: PlayerCharacterId.eloise,
           slot: GearSlot.spellBook,
-          itemId: SpellBookId.solidSpellBook,
+          itemId: SpellBookId.bastionCodex,
         );
         await appState.setLoadout(
           const EquippedLoadoutDef(projectileSlotSpellId: ProjectileId.iceBolt),
@@ -286,7 +286,7 @@ void main() {
         await appState.equipGear(
           characterId: PlayerCharacterId.eloise,
           slot: GearSlot.spellBook,
-          itemId: SpellBookId.basicSpellBook,
+          itemId: SpellBookId.apprenticePrimer,
         );
 
         expect(
@@ -315,7 +315,7 @@ void main() {
           meta,
           characterId: PlayerCharacterId.eloise,
           slot: GearSlot.spellBook,
-          itemId: SpellBookId.solidSpellBook,
+          itemId: SpellBookId.bastionCodex,
         );
 
         final selectionStore = _MemorySelectionStore(
@@ -327,7 +327,7 @@ void main() {
               characterId: PlayerCharacterId.eloise,
               loadout: EquippedLoadoutDef(
                 projectileId: ProjectileId.throwingKnife,
-                spellBookId: SpellBookId.basicSpellBook,
+                spellBookId: SpellBookId.apprenticePrimer,
               ),
             ),
             buildName: SelectionState.defaultBuildName,
@@ -349,7 +349,7 @@ void main() {
         );
         expect(
           _selectedLoadout(appState.selection).spellBookId,
-          SpellBookId.solidSpellBook,
+          SpellBookId.bastionCodex,
         );
         expect(
           _selectedLoadout(selectionStore.saved).projectileId,
@@ -357,7 +357,7 @@ void main() {
         );
         expect(
           _selectedLoadout(selectionStore.saved).spellBookId,
-          SpellBookId.solidSpellBook,
+          SpellBookId.bastionCodex,
         );
       },
     );

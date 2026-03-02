@@ -6,6 +6,7 @@ import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/accessories/accessory_catalog.dart';
 import 'package:rpg_runner/core/combat/damage_type.dart';
 import 'package:rpg_runner/core/combat/faction.dart';
+import 'package:rpg_runner/core/combat/status/status.dart';
 import 'package:rpg_runner/core/ecs/entity_factory.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
@@ -25,8 +26,11 @@ import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/projectiles/spawn_projectile_item.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/spellBook/spell_book_catalog.dart';
+import 'package:rpg_runner/core/spellBook/spell_book_def.dart';
+import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
 import 'package:rpg_runner/core/tuning/spatial_grid_tuning.dart';
 import 'package:rpg_runner/core/weapons/weapon_catalog.dart';
+import 'package:rpg_runner/core/weapons/weapon_proc.dart';
 
 void main() {
   test('homing projectile intent aims at nearest hostile target', () {
@@ -270,6 +274,129 @@ void main() {
     },
   );
 
+  test(
+    'projectile slot spell merges projectile procs with equipped spellbook procs',
+    () {
+      final world = EcsWorld();
+      final system = AbilityActivationSystem(
+        tickHz: 60,
+        inputBufferTicks: 10,
+        abilities: const AbilityCatalog(),
+        weapons: const WeaponCatalog(),
+        projectiles: const ProjectileCatalog(),
+        spellBooks: const _SpellProcBookCatalog(),
+        accessories: const AccessoryCatalog(),
+      );
+
+      final player = world.createEntity();
+      world.transform.add(player, posX: 100, posY: 100, velX: 0, velY: 0);
+      world.faction.add(player, const FactionDef(faction: Faction.player));
+      world.health.add(
+        player,
+        const HealthDef(hp: 1000, hpMax: 1000, regenPerSecond100: 0),
+      );
+      world.playerInput.add(player);
+      world.movement.add(player, facing: Facing.right);
+      world.abilityInputBuffer.add(player);
+      world.activeAbility.add(player);
+      world.cooldown.add(player);
+      world.mana.add(
+        player,
+        const ManaDef(mana: 5000, manaMax: 5000, regenPerSecond100: 0),
+      );
+      world.stamina.add(
+        player,
+        const StaminaDef(stamina: 5000, staminaMax: 5000, regenPerSecond100: 0),
+      );
+      world.projectileIntent.add(player);
+      world.equippedLoadout.add(
+        player,
+        const EquippedLoadoutDef(
+          abilityProjectileId: 'eloise.quick_shot',
+          projectileId: ProjectileId.throwingKnife,
+          projectileSlotSpellId: ProjectileId.fireBolt,
+          spellBookId: SpellBookId.apprenticePrimer,
+        ),
+      );
+
+      final inputIndex = world.playerInput.indexOf(player);
+      world.playerInput.projectilePressed[inputIndex] = true;
+
+      system.step(world, player: player, currentTick: 1);
+
+      final intentIndex = world.projectileIntent.indexOf(player);
+      expect(
+        world.projectileIntent.projectileId[intentIndex],
+        equals(ProjectileId.fireBolt),
+      );
+
+      final procs = world.projectileIntent.procs[intentIndex];
+      expect(procs, hasLength(3));
+      expect(procs[0].hook, equals(ProcHook.onHit));
+      expect(procs[0].statusProfileId, equals(StatusProfileId.burnOnHit));
+      expect(procs[1].hook, equals(ProcHook.onKill));
+      expect(procs[1].statusProfileId, equals(StatusProfileId.restoreMana));
+      expect(procs[2].hook, equals(ProcHook.onCrit));
+      expect(procs[2].statusProfileId, equals(StatusProfileId.focus));
+    },
+  );
+
+  test('throwing projectile does not inherit spellbook procs', () {
+    final world = EcsWorld();
+    final system = AbilityActivationSystem(
+      tickHz: 60,
+      inputBufferTicks: 10,
+      abilities: const AbilityCatalog(),
+      weapons: const WeaponCatalog(),
+      projectiles: const ProjectileCatalog(),
+      spellBooks: const _SpellProcBookCatalog(),
+      accessories: const AccessoryCatalog(),
+    );
+
+    final player = world.createEntity();
+    world.transform.add(player, posX: 100, posY: 100, velX: 0, velY: 0);
+    world.faction.add(player, const FactionDef(faction: Faction.player));
+    world.health.add(
+      player,
+      const HealthDef(hp: 1000, hpMax: 1000, regenPerSecond100: 0),
+    );
+    world.playerInput.add(player);
+    world.movement.add(player, facing: Facing.right);
+    world.abilityInputBuffer.add(player);
+    world.activeAbility.add(player);
+    world.cooldown.add(player);
+    world.mana.add(
+      player,
+      const ManaDef(mana: 5000, manaMax: 5000, regenPerSecond100: 0),
+    );
+    world.stamina.add(
+      player,
+      const StaminaDef(stamina: 5000, staminaMax: 5000, regenPerSecond100: 0),
+    );
+    world.projectileIntent.add(player);
+    world.equippedLoadout.add(
+      player,
+      const EquippedLoadoutDef(
+        abilityProjectileId: 'eloise.quick_shot',
+        projectileId: ProjectileId.throwingKnife,
+        projectileSlotSpellId: null,
+        spellBookId: SpellBookId.apprenticePrimer,
+      ),
+    );
+
+    final inputIndex = world.playerInput.indexOf(player);
+    world.playerInput.projectilePressed[inputIndex] = true;
+
+    system.step(world, player: player, currentTick: 1);
+
+    final intentIndex = world.projectileIntent.indexOf(player);
+    expect(
+      world.projectileIntent.projectileId[intentIndex],
+      equals(ProjectileId.throwingKnife),
+    );
+    expect(world.projectileIntent.procs[intentIndex], isEmpty);
+  });
+
   test('piercing projectile damages multiple targets in one pass', () {
     final world = EcsWorld();
     final player = EntityFactory(world).createPlayer(
@@ -417,4 +544,27 @@ void main() {
       expect(world.health.hp[world.health.indexOf(enemy)], hpAfterFirst);
     },
   );
+}
+
+class _SpellProcBookCatalog extends SpellBookCatalog {
+  const _SpellProcBookCatalog();
+
+  static const List<WeaponProc> _basicSpellBookProcs = <WeaponProc>[
+    WeaponProc(
+      hook: ProcHook.onKill,
+      statusProfileId: StatusProfileId.restoreMana,
+    ),
+    WeaponProc(hook: ProcHook.onCrit, statusProfileId: StatusProfileId.focus),
+  ];
+
+  @override
+  SpellBookDef get(SpellBookId id) {
+    if (id == SpellBookId.apprenticePrimer) {
+      return const SpellBookDef(
+        id: SpellBookId.apprenticePrimer,
+        procs: _basicSpellBookProcs,
+      );
+    }
+    return super.get(id);
+  }
 }

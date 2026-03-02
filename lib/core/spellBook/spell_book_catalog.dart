@@ -1,4 +1,6 @@
+import '../combat/status/status.dart';
 import '../stats/gear_stat_bonuses.dart';
+import '../weapons/weapon_proc.dart';
 import 'spell_book_def.dart';
 import 'spell_book_id.dart';
 
@@ -8,20 +10,119 @@ class SpellBookCatalog {
 
   SpellBookDef get(SpellBookId id) {
     switch (id) {
-      case SpellBookId.basicSpellBook:
+      case SpellBookId.apprenticePrimer:
         return const SpellBookDef(
-          id: SpellBookId.basicSpellBook,
-          stats: GearStatBonuses(powerBonusBp: -100), // -1% Damage
+          id: SpellBookId.apprenticePrimer,
+          stats: GearStatBonuses(powerBonusBp: 200, manaBonusBp: 1000),
         );
-      case SpellBookId.solidSpellBook:
+      case SpellBookId.bastionCodex:
         return const SpellBookDef(
-          id: SpellBookId.solidSpellBook,
-          stats: GearStatBonuses(powerBonusBp: 100), // +1% Damage
+          id: SpellBookId.bastionCodex,
+          stats: GearStatBonuses(
+            defenseBonusBp: 1200,
+            healthBonusBp: 1000,
+            cooldownReductionBp: -400,
+          ),
+          procs: <WeaponProc>[
+            WeaponProc(
+              hook: ProcHook.onKill,
+              statusProfileId: StatusProfileId.arcaneWard,
+            ),
+          ],
         );
-      case SpellBookId.epicSpellBook:
+      case SpellBookId.emberGrimoire:
         return const SpellBookDef(
-          id: SpellBookId.epicSpellBook,
-          stats: GearStatBonuses(powerBonusBp: 200), // +2% Damage
+          id: SpellBookId.emberGrimoire,
+          stats: GearStatBonuses(
+            powerBonusBp: 700,
+            cooldownReductionBp: 300,
+            defenseBonusBp: -500,
+          ),
+          procs: <WeaponProc>[
+            WeaponProc(
+              hook: ProcHook.onHit,
+              statusProfileId: StatusProfileId.burnOnHit,
+              chanceBp: 3500,
+            ),
+          ],
+        );
+      case SpellBookId.tideAlmanac:
+        return const SpellBookDef(
+          id: SpellBookId.tideAlmanac,
+          stats: GearStatBonuses(
+            manaBonusBp: 2500,
+            cooldownReductionBp: 500,
+            powerBonusBp: -300,
+          ),
+          procs: <WeaponProc>[
+            WeaponProc(
+              hook: ProcHook.onHit,
+              statusProfileId: StatusProfileId.drenchOnHit,
+              chanceBp: 2500,
+            ),
+          ],
+        );
+      case SpellBookId.hexboundLexicon:
+        return const SpellBookDef(
+          id: SpellBookId.hexboundLexicon,
+          stats: GearStatBonuses(
+            critChanceBonusBp: 1000,
+            globalPowerBonusBp: -200,
+          ),
+          procs: <WeaponProc>[
+            WeaponProc(
+              hook: ProcHook.onCrit,
+              statusProfileId: StatusProfileId.weakenOnHit,
+            ),
+          ],
+        );
+      case SpellBookId.galeFolio:
+        return const SpellBookDef(
+          id: SpellBookId.galeFolio,
+          stats: GearStatBonuses(
+            moveSpeedBonusBp: 600,
+            staminaBonusBp: 1200,
+            powerBonusBp: -200,
+          ),
+          procs: <WeaponProc>[
+            WeaponProc(
+              hook: ProcHook.onHit,
+              statusProfileId: StatusProfileId.slowOnHit,
+              chanceBp: 3000,
+            ),
+          ],
+        );
+      case SpellBookId.nullTestament:
+        return const SpellBookDef(
+          id: SpellBookId.nullTestament,
+          stats: GearStatBonuses(
+            darkResistanceBp: 2000,
+            holyResistanceBp: 2000,
+            powerBonusBp: 300,
+          ),
+          procs: <WeaponProc>[
+            WeaponProc(
+              hook: ProcHook.onCrit,
+              statusProfileId: StatusProfileId.silenceOnHit,
+              chanceBp: 6000,
+            ),
+          ],
+        );
+      case SpellBookId.crownOfFocus:
+        return const SpellBookDef(
+          id: SpellBookId.crownOfFocus,
+          stats: GearStatBonuses(
+            globalPowerBonusBp: 1500,
+            globalCritChanceBonusBp: 1000,
+            defenseBonusBp: -1500,
+            healthBonusBp: -1000,
+          ),
+          procs: <WeaponProc>[
+            WeaponProc(
+              hook: ProcHook.onKill,
+              statusProfileId: StatusProfileId.focus,
+            ),
+          ],
         );
     }
   }

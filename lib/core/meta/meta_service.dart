@@ -102,7 +102,7 @@ class MetaService {
 
   /// Returns starter unlocked spellbook IDs.
   Set<SpellBookId> _startingUnlockedSpellBookIds() {
-    return SpellBookId.values.take(_startingUnlockedPerCatalog).toSet();
+    return SpellBookId.values.toSet();
   }
 
   /// Returns starter unlocked accessory IDs.

@@ -502,7 +502,7 @@ class _FlatSpellBookCatalog extends SpellBookCatalog {
   @override
   SpellBookDef get(SpellBookId id) {
     return const SpellBookDef(
-      id: SpellBookId.basicSpellBook,
+      id: SpellBookId.apprenticePrimer,
       weaponType: WeaponType.spell,
     );
   }

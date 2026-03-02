@@ -89,8 +89,8 @@ void main() {
       isTrue,
     );
     expect(
-      inventory.unlockedSpellBookIds.contains(SpellBookId.epicSpellBook),
-      isFalse,
+      inventory.unlockedSpellBookIds.contains(SpellBookId.crownOfFocus),
+      isTrue,
     );
     expect(
       inventory.unlockedAccessoryIds.contains(AccessoryId.teethNecklace),
@@ -123,8 +123,8 @@ void main() {
       isFalse,
     );
     expect(
-      inventory.unlockedSpellBookIds.contains(SpellBookId.epicSpellBook),
-      isFalse,
+      inventory.unlockedSpellBookIds.contains(SpellBookId.crownOfFocus),
+      isTrue,
     );
     expect(
       inventory.unlockedAccessoryIds.contains(AccessoryId.teethNecklace),
@@ -256,8 +256,8 @@ void main() {
               .seedAllUnlockedInventory()
               .unlockedThrowingWeaponIds,
           unlockedSpellBookIds: <SpellBookId>{
-            SpellBookId.basicSpellBook,
-            SpellBookId.solidSpellBook,
+            SpellBookId.apprenticePrimer,
+            SpellBookId.bastionCodex,
           },
           unlockedAccessoryIds: service
               .seedAllUnlockedInventory()

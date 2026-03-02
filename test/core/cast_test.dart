@@ -98,6 +98,7 @@ void main() {
 
       final playerPosX = core.playerPosX;
       final playerPosY = core.playerPosY;
+      final initialMana = core.buildSnapshot().hud.mana;
 
       core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
       core.stepOneTick();
@@ -127,7 +128,7 @@ void main() {
       final spellCost = ability.resolveCostForWeaponType(WeaponType.spell);
       expect(
         snapshot.hud.mana,
-        closeTo(20.0 - fixed100ToDouble(spellCost.manaCost100), 1e-9),
+        closeTo(initialMana - fixed100ToDouble(spellCost.manaCost100), 1e-9),
       );
       final cooldownTicks = scaledAbilityTicks(
         ability.cooldownTicks,
@@ -163,6 +164,8 @@ void main() {
       ),
     );
 
+    final initialMana = core.buildSnapshot().hud.mana;
+
     core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
     core.stepOneTick();
     final windupTicks = scaledWindupTicks(
@@ -185,7 +188,7 @@ void main() {
     final spellCost = ability.resolveCostForWeaponType(WeaponType.spell);
     expect(
       snapshot.hud.mana,
-      closeTo(20.0 - fixed100ToDouble(spellCost.manaCost100), 1e-9),
+      closeTo(initialMana - fixed100ToDouble(spellCost.manaCost100), 1e-9),
     );
     final cooldownTicks = scaledAbilityTicks(
       ability.cooldownTicks,
@@ -217,6 +220,7 @@ void main() {
         ),
       ),
     );
+    final initialMana = core.buildSnapshot().hud.mana;
 
     core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
     core.stepOneTick();
@@ -241,7 +245,7 @@ void main() {
     var snapshot = core.buildSnapshot();
     expect(
       snapshot.hud.mana,
-      closeTo(30.0 - fixed100ToDouble(spellCost.manaCost100), 1e-9),
+      closeTo(initialMana - fixed100ToDouble(spellCost.manaCost100), 1e-9),
     );
     expect(
       snapshot.entities.where((e) => e.kind == EntityKind.projectile).length,
@@ -264,7 +268,7 @@ void main() {
     snapshot = core.buildSnapshot();
     expect(
       snapshot.hud.mana,
-      closeTo(30.0 - fixed100ToDouble(spellCost.manaCost100 * 2), 1e-9),
+      closeTo(initialMana - fixed100ToDouble(spellCost.manaCost100 * 2), 1e-9),
     );
     expect(
       snapshot.entities.where((e) => e.kind == EntityKind.projectile).length,
@@ -298,6 +302,8 @@ void main() {
         ),
       );
 
+      final initialMana = core.buildSnapshot().hud.mana;
+
       core.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
       core.stepOneTick();
       final windupTicks = scaledWindupTicks('eloise.quick_shot', core.tickHz);
@@ -316,7 +322,7 @@ void main() {
       final spellCost = ability.resolveCostForWeaponType(WeaponType.spell);
       expect(
         snapshot.hud.mana,
-        closeTo(10.0 - fixed100ToDouble(spellCost.manaCost100), 1e-9),
+        closeTo(initialMana - fixed100ToDouble(spellCost.manaCost100), 1e-9),
       );
     },
   );
@@ -334,7 +340,7 @@ void main() {
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
             abilityProjectileId: 'eloise.overcharge_shot',
             abilitySpellId: 'eloise.mana_infusion',
-            spellBookId: SpellBookId.epicSpellBook,
+            spellBookId: SpellBookId.crownOfFocus,
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
