@@ -116,6 +116,7 @@ flutter:
     - assets/images/entities/spells/water/splash/
     - assets/images/icons/
     - assets/images/icons/gear-icons/shields/
+    - assets/images/icons/gear-icons/spellbook/
     - assets/images/icons/gear-icons/sword/
     - assets/images/icons/skills-icons/
     - assets/images/parallax/field/
