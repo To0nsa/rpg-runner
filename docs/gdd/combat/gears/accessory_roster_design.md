@@ -113,7 +113,7 @@ Primary knobs:
 - Runtime ID: `strengthBelt`
 - Status: implemented
 - Role: offense-forward speed clear option
-- Stats: `globalPower +500bp`, `critChance +500bp`, `stamina -100bp`
+- Stats: `globalPower +500bp`, `critChance +500bp`, `stamina -500bp`
 - Tradeoff: stronger damage pacing at a small stamina comfort tax
 
 ## Identity Coverage Check

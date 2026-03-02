@@ -45,6 +45,7 @@ void main() {
 
     final playerX = core.playerPosX;
     final playerY = core.playerPosY;
+    final initialHud = core.buildSnapshot().hud;
 
     core.applyCommands(const [StrikePressedCommand(tick: 1)]);
     core.stepOneTick();
@@ -81,10 +82,7 @@ void main() {
     expect(hitboxes.single.pos.y, closeTo(playerY, 1e-9));
     expect(
       snapshot.hud.stamina,
-      closeTo(
-        resourceTuning.playerStaminaMax - abilityTuning.meleeStaminaCost,
-        1e-9,
-      ),
+      closeTo(initialHud.stamina - abilityTuning.meleeStaminaCost, 1e-9),
     );
     expect(
       core.playerMeleeCooldownTicksLeft,

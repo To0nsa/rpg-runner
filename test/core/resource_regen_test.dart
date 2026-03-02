@@ -41,9 +41,10 @@ void main() {
 
       // Player spawns at max resources.
       var hud = core.buildSnapshot().hud;
+      final initialHp = hud.hp;
       final initialMana = hud.mana;
       final initialStamina = hud.stamina;
-      expect(hud.hp, closeTo(100.0, 1e-9));
+      expect(hud.hp, closeTo(initialHp, 1e-9));
       expect(hud.mana, closeTo(initialMana, 1e-9));
       expect(hud.stamina, closeTo(initialStamina, 1e-9));
 
@@ -53,7 +54,7 @@ void main() {
       core.applyCommands(const [DashPressedCommand(tick: 2)]);
       core.stepOneTick(); // tick 2: spend stamina and apply regen
       hud = core.buildSnapshot().hud;
-      expect(hud.hp, closeTo(100.0, 1e-9));
+      expect(hud.hp, closeTo(initialHp, 1e-9));
       expect(hud.mana, lessThan(initialMana));
       expect(hud.stamina, lessThan(initialStamina));
 
@@ -64,7 +65,7 @@ void main() {
         core.stepOneTick();
       }
       hud = core.buildSnapshot().hud;
-      expect(hud.hp, closeTo(100.0, 1e-9));
+      expect(hud.hp, closeTo(initialHp, 1e-9));
       expect(hud.mana, closeTo(initialMana, 1e-9));
       expect(hud.stamina, closeTo(initialStamina, 1e-9));
     },

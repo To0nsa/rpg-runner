@@ -51,6 +51,7 @@ void main() {
 
       final playerPosX = core.playerPosX;
       final playerPosY = core.playerPosY;
+      final initialHud = core.buildSnapshot().hud;
 
       core.applyCommands(const [
         AimDirCommand(tick: 1, x: 1, y: 0),
@@ -84,7 +85,7 @@ void main() {
       );
       expect(
         snapshot.hud.stamina,
-        closeTo(10.0 - (throwCost.staminaCost100 / 100.0), 1e-9),
+        closeTo(initialHud.stamina - (throwCost.staminaCost100 / 100.0), 1e-9),
       );
       expect(snapshot.hud.mana, closeTo(0.0, 1e-9));
       final cooldownTicks = ticksFromSecondsCeil(

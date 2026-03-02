@@ -240,13 +240,14 @@ void main() {
         ),
       ),
     );
+    final initialHud = core.buildSnapshot().hud;
 
     _tick(core, jumpPressed: true);
 
     expect(core.playerVelY, lessThan(0));
     final hud = core.buildSnapshot().hud;
     expect(hud.mana, closeTo(0.0, 1e-9));
-    expect(hud.stamina, closeTo(8.0, 1e-9));
+    expect(hud.stamina, closeTo(initialHud.stamina - 2.0, 1e-9));
   });
 
   test('after leaving ground, exactly one air jump is available', () {
@@ -355,11 +356,12 @@ void main() {
         ),
       ),
     );
+    final initialHud = core.buildSnapshot().hud;
 
     _tick(core, dashPressed: true);
 
     final hud = core.buildSnapshot().hud;
-    expect(hud.stamina, closeTo(8.0, 1e-9));
+    expect(hud.stamina, closeTo(initialHud.stamina - 2.0, 1e-9));
   });
 
   test('insufficient stamina blocks dash and jump', () {
@@ -386,6 +388,7 @@ void main() {
         (catalog.colliderOffsetY + catalog.colliderHalfY);
     expect(core.playerPosY, closeTo(floorY, 1e-9));
     expect(core.playerGrounded, isTrue);
+    final initialHud = core.buildSnapshot().hud;
 
     _tick(core, jumpPressed: true, dashPressed: true);
 
@@ -394,7 +397,7 @@ void main() {
     expect(core.playerVelX.abs(), lessThan(550));
 
     final hud = core.buildSnapshot().hud;
-    expect(hud.stamina, closeTo(1.0, 1e-9));
+    expect(hud.stamina, closeTo(initialHud.stamina, 1e-9));
   });
 
   test('Body.gravityScale=0 disables gravity integration', () {

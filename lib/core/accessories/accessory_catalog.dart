@@ -18,53 +18,74 @@ class AccessoryCatalog {
       case AccessoryId.speedBoots:
         return const AccessoryDef(
           id: AccessoryId.speedBoots,
-          // 500 bp = +5% move speed.
-          stats: GearStatBonuses(moveSpeedBonusBp: 500),
+          // Tempo baseline with stamina comfort and durability tax.
+          stats: GearStatBonuses(
+            moveSpeedBonusBp: 1000,
+            staminaBonusBp: 1000,
+            healthBonusBp: -500,
+          ),
         );
       case AccessoryId.goldenRing:
         return const AccessoryDef(
           id: AccessoryId.goldenRing,
-          // 200 bp = +2% max health.
-          stats: GearStatBonuses(hpBonus100: 200),
+          // General survivability floor with lower stamina comfort.
+          stats: GearStatBonuses(
+            healthBonusBp: 1000,
+            defenseBonusBp: 1000,
+            staminaBonusBp: -500,
+          ),
         );
       case AccessoryId.teethNecklace:
         return const AccessoryDef(
           id: AccessoryId.teethNecklace,
-          // 200 bp = +2% max stamina.
-          stats: GearStatBonuses(staminaBonus100: 200),
+          // Stamina sustain package with a small health tax.
+          stats: GearStatBonuses(staminaBonusBp: 2000, healthBonusBp: -500),
         );
       case AccessoryId.diamondRing:
         return const AccessoryDef(
           id: AccessoryId.diamondRing,
-          // 250 bp = +2.5% max mana.
-          stats: GearStatBonuses(manaBonusBp: 250),
+          // Caster sustain package with a small stamina tax.
+          stats: GearStatBonuses(manaBonusBp: 2000, staminaBonusBp: -500),
         );
       case AccessoryId.ironBoots:
         return const AccessoryDef(
           id: AccessoryId.ironBoots,
-          // 700 bp = +7% defense.
-          stats: GearStatBonuses(defenseBonusBp: 700),
+          // Mitigation anchor with offense gain and route-speed tax.
+          stats: GearStatBonuses(
+            defenseBonusBp: 1000,
+            globalPowerBonusBp: 1000,
+            moveSpeedBonusBp: -300,
+          ),
         );
       case AccessoryId.oathBeads:
         return const AccessoryDef(
           id: AccessoryId.oathBeads,
-          // 300 bp = +3% cooldown reduction.
-          stats: GearStatBonuses(cooldownReductionBp: 300),
+          // Rotation consistency package with a small health tax.
+          stats: GearStatBonuses(
+            cooldownReductionBp: 1000,
+            globalPowerBonusBp: 500,
+            healthBonusBp: -500,
+          ),
         );
       case AccessoryId.resilienceCape:
         return const AccessoryDef(
           id: AccessoryId.resilienceCape,
-          // Counterpick resist package for status-heavy encounters.
+          // Counterpick resist package with a small health tax.
           stats: GearStatBonuses(
             bleedResistanceBp: 1200,
             darkResistanceBp: 800,
+            healthBonusBp: -500,
           ),
         );
       case AccessoryId.strengthBelt:
         return const AccessoryDef(
           id: AccessoryId.strengthBelt,
-          // Offense-forward pick with a small stamina comfort tax.
-          stats: GearStatBonuses(globalPowerBonusBp: 500, staminaBonusBp: -100),
+          // Offense-forward pick with crit pressure and stamina tax.
+          stats: GearStatBonuses(
+            globalPowerBonusBp: 500,
+            globalCritChanceBonusBp: 500,
+            staminaBonusBp: -500,
+          ),
         );
     }
   }
