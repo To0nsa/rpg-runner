@@ -31,7 +31,7 @@ void main() {
     final stats = resolver.resolveEquipped(
       mask: LoadoutSlotMask.mainHand,
       mainWeaponId: WeaponId.plainsteel,
-      offhandWeaponId: WeaponId.basicShield,
+      offhandWeaponId: WeaponId.roadguard,
       projectileId: ProjectileId.throwingKnife,
       spellBookId: SpellBookId.basicSpellBook,
       accessoryId: AccessoryId.speedBoots,
@@ -55,7 +55,7 @@ void main() {
     final stats = resolver.resolveEquipped(
       mask: LoadoutSlotMask.mainHand | LoadoutSlotMask.offHand,
       mainWeaponId: WeaponId.plainsteel,
-      offhandWeaponId: WeaponId.basicShield,
+      offhandWeaponId: WeaponId.roadguard,
       projectileId: ProjectileId.throwingKnife,
       spellBookId: SpellBookId.basicSpellBook,
       accessoryId: AccessoryId.speedBoots,
@@ -75,7 +75,7 @@ void main() {
     final stats = resolver.resolveEquipped(
       mask: LoadoutSlotMask.mainHand,
       mainWeaponId: WeaponId.plainsteel,
-      offhandWeaponId: WeaponId.basicShield,
+      offhandWeaponId: WeaponId.roadguard,
       projectileId: ProjectileId.throwingKnife,
       spellBookId: SpellBookId.basicSpellBook,
       accessoryId: AccessoryId.goldenRing,
@@ -97,7 +97,7 @@ void main() {
     final stats = resolver.resolveEquipped(
       mask: LoadoutSlotMask.mainHand,
       mainWeaponId: WeaponId.plainsteel,
-      offhandWeaponId: WeaponId.basicShield,
+      offhandWeaponId: WeaponId.roadguard,
       projectileId: ProjectileId.throwingKnife,
       spellBookId: SpellBookId.basicSpellBook,
       accessoryId: AccessoryId.speedBoots,
@@ -125,7 +125,7 @@ void main() {
     final stats = resolver.resolveEquipped(
       mask: LoadoutSlotMask.mainHand,
       mainWeaponId: WeaponId.plainsteel,
-      offhandWeaponId: WeaponId.basicShield,
+      offhandWeaponId: WeaponId.roadguard,
       projectileId: ProjectileId.throwingKnife,
       spellBookId: SpellBookId.basicSpellBook,
       accessoryId: AccessoryId.speedBoots,
@@ -186,9 +186,9 @@ class _TwoHandedWeaponCatalog extends WeaponCatalog {
           stats: GearStatBonuses(powerBonusBp: 100),
           isTwoHanded: true,
         );
-      case WeaponId.basicShield:
+      case WeaponId.roadguard:
         return const WeaponDef(
-          id: WeaponId.basicShield,
+          id: WeaponId.roadguard,
           category: WeaponCategory.offHand,
           weaponType: WeaponType.shield,
           stats: GearStatBonuses(powerBonusBp: 900),

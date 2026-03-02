@@ -11,8 +11,13 @@ enum CharacterStatId {
   physicalResistance,
   fireResistance,
   iceResistance,
+  waterResistance,
   thunderResistance,
+  acidResistance,
+  darkResistance,
   bleedResistance,
+  earthResistance,
+  holyResistance,
 }
 
 /// Stable metadata for stat display and future localization mapping.
@@ -62,7 +67,7 @@ const List<CharacterStatDescriptor> kCharacterStatDescriptors =
       ),
       CharacterStatDescriptor(
         id: CharacterStatId.cooldownReduction,
-        displayName: 'CDR',
+        displayName: 'Cooldown Reduction',
         localizationKey: 'gear.stat.cooldown_reduction',
       ),
       CharacterStatDescriptor(
@@ -86,14 +91,39 @@ const List<CharacterStatDescriptor> kCharacterStatDescriptors =
         localizationKey: 'gear.stat.ice_resistance',
       ),
       CharacterStatDescriptor(
+        id: CharacterStatId.waterResistance,
+        displayName: 'Water Resist',
+        localizationKey: 'gear.stat.water_resistance',
+      ),
+      CharacterStatDescriptor(
         id: CharacterStatId.thunderResistance,
         displayName: 'Thunder Resist',
         localizationKey: 'gear.stat.thunder_resistance',
       ),
       CharacterStatDescriptor(
+        id: CharacterStatId.acidResistance,
+        displayName: 'Acid Resist',
+        localizationKey: 'gear.stat.acid_resistance',
+      ),
+      CharacterStatDescriptor(
+        id: CharacterStatId.darkResistance,
+        displayName: 'Dark Resist',
+        localizationKey: 'gear.stat.dark_resistance',
+      ),
+      CharacterStatDescriptor(
         id: CharacterStatId.bleedResistance,
         displayName: 'Bleed Resist',
         localizationKey: 'gear.stat.bleed_resistance',
+      ),
+      CharacterStatDescriptor(
+        id: CharacterStatId.earthResistance,
+        displayName: 'Earth Resist',
+        localizationKey: 'gear.stat.earth_resistance',
+      ),
+      CharacterStatDescriptor(
+        id: CharacterStatId.holyResistance,
+        displayName: 'Holy Resist',
+        localizationKey: 'gear.stat.holy_resistance',
       ),
     ];
 

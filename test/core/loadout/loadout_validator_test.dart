@@ -30,7 +30,7 @@ void main() {
     test('valid standard loadout should pass', () {
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.plainsteel,
-        offhandWeaponId: WeaponId.woodenShield,
+        offhandWeaponId: WeaponId.roadguard,
         projectileId: ProjectileId.throwingKnife,
         abilityPrimaryId: 'eloise.bloodletter_slash',
         abilitySecondaryId: 'eloise.aegis_riposte',
@@ -47,7 +47,7 @@ void main() {
     test('auto-aim melee variants are valid in their authored slots', () {
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.plainsteel,
-        offhandWeaponId: WeaponId.woodenShield,
+        offhandWeaponId: WeaponId.roadguard,
         abilityPrimaryId: 'eloise.seeker_slash',
         abilitySecondaryId: 'eloise.seeker_bash',
       );
@@ -60,7 +60,7 @@ void main() {
     test('tiered melee and dash mobility are valid in authored slots', () {
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.plainsteel,
-        offhandWeaponId: WeaponId.woodenShield,
+        offhandWeaponId: WeaponId.roadguard,
         abilityPrimaryId: 'eloise.bloodletter_cleave',
         abilityMobilityId: 'eloise.dash',
       );
@@ -73,7 +73,7 @@ void main() {
     test('roll mobility is valid in authored mobility slot', () {
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.plainsteel,
-        offhandWeaponId: WeaponId.woodenShield,
+        offhandWeaponId: WeaponId.roadguard,
         abilityMobilityId: 'eloise.roll',
       );
 
@@ -85,7 +85,7 @@ void main() {
     test('quick throw is valid when projectile slot spell is selected', () {
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.plainsteel,
-        offhandWeaponId: WeaponId.woodenShield,
+        offhandWeaponId: WeaponId.roadguard,
         projectileId: ProjectileId.throwingKnife,
         projectileSlotSpellId: ProjectileId.fireBolt,
         abilityProjectileId: 'eloise.quick_shot',
@@ -100,7 +100,7 @@ void main() {
     test('non-spell ability cannot be equipped in spell slot', () {
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.plainsteel,
-        offhandWeaponId: WeaponId.woodenShield,
+        offhandWeaponId: WeaponId.roadguard,
         projectileId: ProjectileId.throwingKnife,
         abilityProjectileId: 'eloise.overcharge_shot',
         abilitySpellId: 'eloise.quick_shot',
@@ -121,7 +121,7 @@ void main() {
     test('spell-slot self spell is valid', () {
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.plainsteel,
-        offhandWeaponId: WeaponId.woodenShield,
+        offhandWeaponId: WeaponId.roadguard,
         projectileId: ProjectileId.throwingKnife,
         spellBookId: SpellBookId.epicSpellBook,
         abilitySpellId: 'eloise.vital_surge',
@@ -194,7 +194,7 @@ void main() {
 
     test('category mismatch (shield in primary) should fail', () {
       const loadout = EquippedLoadoutDef(
-        mainWeaponId: WeaponId.basicShield, // OffHand category
+        mainWeaponId: WeaponId.roadguard, // OffHand category
         abilityPrimaryId: 'eloise.bloodletter_slash',
       );
 
@@ -238,7 +238,7 @@ void main() {
         );
 
         const loadout = EquippedLoadoutDef(
-          offhandWeaponId: WeaponId.basicShield,
+          offhandWeaponId: WeaponId.roadguard,
           abilitySecondaryId: TestAbilityCatalog.testAbilityId,
         );
 
@@ -269,7 +269,7 @@ void main() {
 
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.graveglass, // Mocked as 2H
-        offhandWeaponId: WeaponId.basicShield, // Conflict!
+        offhandWeaponId: WeaponId.roadguard, // Conflict!
         abilityPrimaryId: 'eloise.bloodletter_slash',
       );
 

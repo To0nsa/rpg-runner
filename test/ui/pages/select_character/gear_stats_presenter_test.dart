@@ -50,6 +50,27 @@ void main() {
       expect(onKillLine.single.value, contains('5 seconds'));
     });
 
+    test('offhand can show reactive proc hook labels', () {
+      final onDamagedLines = gearStatsFor(
+        GearSlot.offhandWeapon,
+        WeaponId.thornbark,
+      );
+      final onLowHealthLines = gearStatsFor(
+        GearSlot.offhandWeapon,
+        WeaponId.oathwallRelic,
+      );
+
+      final onDamagedLine = onDamagedLines.where(
+        (line) => line.label == 'On Damaged',
+      );
+      final onLowHealthLine = onLowHealthLines.where(
+        (line) => line.label == 'On Low Health',
+      );
+
+      expect(onDamagedLine.single.value, contains('Bleed'));
+      expect(onLowHealthLine.single.value, contains('Haste'));
+    });
+
     test('bleed proc uses semantic status naming', () {
       final lines = gearStatsFor(GearSlot.mainWeapon, WeaponId.waspfang);
       final onHitLine = lines.firstWhere((line) => line.label == 'On Hit');

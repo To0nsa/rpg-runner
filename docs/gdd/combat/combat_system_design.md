@@ -8,6 +8,7 @@ This document reflects the current Core combat contracts used by `GameCore`.
 
 - `DamageType`: `physical`, `fire`, `ice`, `water`, `thunder`, `acid`, `dark`, `bleed`, `earth`, `holy`
 - `WeaponId`: stable melee/off-hand IDs
+- `ReactiveProcHook`: `onDamaged`, `onLowHealth` (offhand defensive hooks)
 - `ProjectileId`: stable projectile item IDs (throwing + spell projectiles)
 - `Faction`: friendly-fire routing
 
@@ -55,6 +56,8 @@ See `docs/gdd/combat/status/status_system_design.md`.
 |---|---|
 | `EquippedLoadoutStore` | Equipped gear + ability IDs |
 | `CreatureTagStore` | Shared creature tags |
+| `ReactiveDamageEventQueueStore` | Post-damage outcomes for reactive procs |
+| `ReactiveProcCooldownStore` | Per-entity reactive proc internal cooldowns |
 
 ## Combat Tick Order (Current)
 
@@ -69,7 +72,8 @@ Combat-relevant order inside `GameCore.stepOneTick`:
 7. `StatusSystem.tickExisting`
 8. `DamageMiddlewareSystem.step`
 9. `DamageSystem.step`
-10. `StatusSystem.applyQueued`
+10. `ReactiveProcSystem.step`
+11. `StatusSystem.applyQueued`
 
 ## Damage Pipeline
 
@@ -100,7 +104,14 @@ DamageRequest {
 7. Clamp `>= 0`, subtract HP
 8. Record `LastDamageStore`, emit callbacks, process forced interrupt on damage-taken
 9. Queue on-hit proc statuses
-10. Apply i-frames
+10. Queue post-damage reactive events (`ReactiveDamageEventQueueStore`)
+11. Apply i-frames
+
+`onKill` proc note:
+
+- `onKill` remains payload-based.
+- It only rolls from procs attached to the payload source that authored the kill
+  (main weapon, offhand weapon, or projectile/spell payload).
 
 ## Status Pipeline
 

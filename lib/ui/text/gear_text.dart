@@ -189,9 +189,16 @@ const Map<WeaponId, String> _weaponDisplayNameOverrides = <WeaponId, String>{
   WeaponId.sunlitVow: 'Sunlit Vow',
   WeaponId.graveglass: 'Graveglass',
   WeaponId.duelistsOath: "Duelist's Oath",
-  WeaponId.woodenShield: 'Wooden Shield',
-  WeaponId.basicShield: 'Basic Shield',
-  WeaponId.solidShield: 'Solid Shield',
+  WeaponId.roadguard: 'Roadguard',
+  WeaponId.thornbark: 'Thornbark',
+  WeaponId.cinderWard: 'Cinder Ward',
+  WeaponId.tideguardShell: 'Tideguard Shell',
+  WeaponId.frostlockBuckler: 'Frostlock Buckler',
+  WeaponId.ironBastion: 'Iron Bastion',
+  WeaponId.stormAegis: 'Storm Aegis',
+  WeaponId.nullPrism: 'Null Prism',
+  WeaponId.warbannerGuard: 'Warbanner Guard',
+  WeaponId.oathwallRelic: 'Oathwall Relic',
 };
 
 const Map<WeaponId, String> _weaponDescriptionOverrides = <WeaponId, String>{
@@ -209,9 +216,24 @@ const Map<WeaponId, String> _weaponDescriptionOverrides = <WeaponId, String>{
       'High-risk amplifier with extra global power and lower defense.',
   WeaponId.duelistsOath:
       "Skill sword that rewards crit consistency with weaken windows.",
-  WeaponId.woodenShield: 'Starter shield with low output.',
-  WeaponId.basicShield: 'Balanced shield for defensive actions.',
-  WeaponId.solidShield: 'Reinforced shield with higher output.',
+  WeaponId.roadguard: 'Baseline all-rounder shield with dependable defense.',
+  WeaponId.thornbark: 'Retaliation shield that bleeds attackers on damage.',
+  WeaponId.cinderWard:
+      'Fire-counter shield that can burn attackers when struck.',
+  WeaponId.tideguardShell:
+      'Caster pressure stabilizer with water resistance and retaliation silence.',
+  WeaponId.frostlockBuckler:
+      'Peel shield that slows attackers and improves mobility.',
+  WeaponId.ironBastion:
+      'Heavy face-tank shield with the strongest soak and lower mobility.',
+  WeaponId.stormAegis:
+      'Reactive anti-burst shield that can grant haste when damaged.',
+  WeaponId.nullPrism:
+      'Anti-caster shield with dark/holy resistance and silence retaliation.',
+  WeaponId.warbannerGuard:
+      'Aggressive tempo shield that grants haste on payload-sourced kills.',
+  WeaponId.oathwallRelic:
+      'Clutch survival shield with low-health haste and permanent offense tax.',
 };
 
 const Map<ProjectileId, String> _projectileDisplayNameOverrides =

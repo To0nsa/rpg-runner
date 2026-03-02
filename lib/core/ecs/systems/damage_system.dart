@@ -184,6 +184,16 @@ class DamageSystem {
           sourceKind: sourceKind,
           damageType: damageType,
         );
+
+        world.reactiveDamageEventQueue.add(
+          targetEntity: target,
+          source: sourceEntity,
+          appliedDamage100: appliedAmount,
+          previousHp100: prevHp,
+          nextHpAfterDamage100: nextHp,
+          maxHpAtApply100: health.hpMax[hi],
+          type: damageType,
+        );
       }
 
       // 8. Queue status effects for non-zero damage requests.

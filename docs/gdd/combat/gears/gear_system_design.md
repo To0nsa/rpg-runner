@@ -52,6 +52,13 @@ Weapon/projectile/spellbook payload can provide:
 - on-hit procs/status profiles
 - projectile motion/collider tuning (for projectile items)
 
+Offhand gear can also provide reactive procs resolved from incoming-damage
+outcomes:
+
+- `onDamaged`: triggers after non-zero damage is applied
+- `onLowHealth`: triggers on threshold crossing (configured in bp of max HP)
+- per-proc internal cooldowns (ticks) and target policy (`self`/`attacker`)
+
 ### Compatibility
 
 Legality is data-driven through:

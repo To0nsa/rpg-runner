@@ -15,7 +15,7 @@ class MetaDefaults {
   static const WeaponId mainWeaponId = WeaponId.plainsteel;
 
   /// Default off-hand weapon.
-  static const WeaponId offhandWeaponId = WeaponId.woodenShield;
+  static const WeaponId offhandWeaponId = WeaponId.roadguard;
 
   /// Default throwing weapon.
   static const ProjectileId throwingWeaponId = ProjectileId.throwingKnife;

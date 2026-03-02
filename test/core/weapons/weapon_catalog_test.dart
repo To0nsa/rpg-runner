@@ -1,11 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/combat/status/status.dart';
+import 'package:rpg_runner/core/weapons/reactive_proc.dart';
 import 'package:rpg_runner/core/weapons/weapon_catalog.dart';
 import 'package:rpg_runner/core/weapons/weapon_id.dart';
 import 'package:rpg_runner/core/weapons/weapon_proc.dart';
 
 void main() {
-  group('weapon catalog sword roster values', () {
+  group('weapon catalog roster values', () {
     const catalog = WeaponCatalog();
 
     test('plainsteel baseline stats', () {
@@ -100,5 +101,45 @@ void main() {
       );
       expect(duelistsOath.procs.single.chanceBp, 10000);
     });
+
+    test('shield roster includes baseline and reactive profiles', () {
+      final roadguard = catalog.get(WeaponId.roadguard);
+      expect(roadguard.procs, isEmpty);
+      expect(roadguard.reactiveProcs, isEmpty);
+      expect(roadguard.stats.defenseBonusBp, 1500);
+      expect(roadguard.stats.healthBonusBp, 1000);
+
+      final thornbark = catalog.get(WeaponId.thornbark);
+      expect(thornbark.reactiveProcs, hasLength(1));
+      final onDamaged = thornbark.reactiveProcs.firstWhere(
+        (proc) => proc.hook == ReactiveProcHook.onDamaged,
+      );
+      expect(onDamaged.statusProfileId, StatusProfileId.meleeBleed);
+      expect(onDamaged.target, ReactiveProcTarget.attacker);
+      expect(onDamaged.chanceBp, 3500);
+    });
+
+    test(
+      'warbanner uses payload-based onKill and oathwall has low-health proc',
+      () {
+        final warbanner = catalog.get(WeaponId.warbannerGuard);
+        expect(warbanner.procs, hasLength(1));
+        expect(warbanner.procs.single.hook, ProcHook.onKill);
+        expect(
+          warbanner.procs.single.statusProfileId,
+          StatusProfileId.speedBoost,
+        );
+        expect(warbanner.procs.single.chanceBp, 10000);
+
+        final oathwall = catalog.get(WeaponId.oathwallRelic);
+        final onLowHealth = oathwall.reactiveProcs.firstWhere(
+          (proc) => proc.hook == ReactiveProcHook.onLowHealth,
+        );
+        expect(onLowHealth.statusProfileId, StatusProfileId.speedBoost);
+        expect(onLowHealth.target, ReactiveProcTarget.self);
+        expect(onLowHealth.lowHealthThresholdBp, 3000);
+        expect(onLowHealth.internalCooldownTicks, 1800);
+      },
+    );
   });
 }

@@ -459,7 +459,7 @@ class _DefenseWeaponCatalog extends WeaponCatalog {
       );
     }
     return const WeaponDef(
-      id: WeaponId.basicShield,
+      id: WeaponId.roadguard,
       category: WeaponCategory.offHand,
       weaponType: WeaponType.shield,
     );

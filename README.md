@@ -40,7 +40,13 @@ flutter run
 Run tests:
 
 ```bash
-flutter test
+flutter test --exclude-tags=integration
+```
+
+Run integration benchmark test:
+
+```bash
+flutter drive --driver=test_driver/integration_test.dart --target=test/integration_test/core-fixed-point/core_fixed_point_benchmark_test.dart -d <deviceId> --profile
 ```
 
 ## Tech Stack

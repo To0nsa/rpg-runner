@@ -62,7 +62,7 @@ class ResolvedStatsCacheStore extends SparseSet {
   void onDenseAdded(int denseIndex) {
     mask.add(0);
     mainWeaponId.add(WeaponId.plainsteel);
-    offhandWeaponId.add(WeaponId.woodenShield);
+    offhandWeaponId.add(WeaponId.roadguard);
     projectileId.add(ProjectileId.throwingKnife);
     spellBookId.add(SpellBookId.basicSpellBook);
     accessoryId.add(AccessoryId.speedBoots);

@@ -208,7 +208,7 @@ class _StatLineText extends StatelessWidget {
             ),
           ),
           Expanded(
-            flex: isProcDetailLine ? 14 : 4,
+            flex: isProcDetailLine ? 10 : 4,
             child: semanticValue == null
                 ? Text(
                     line.value,

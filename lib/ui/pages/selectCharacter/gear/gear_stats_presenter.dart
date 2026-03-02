@@ -15,6 +15,7 @@ import '../../../../core/weapons/weapon_def.dart';
 import '../../../../core/weapons/weapon_id.dart';
 import '../../../../core/weapons/weapon_catalog.dart';
 import '../../../../core/weapons/weapon_proc.dart';
+import '../../../../core/weapons/reactive_proc.dart';
 import '../../../text/semantic_text.dart';
 
 typedef GearStatLineTone = UiSemanticTone;
@@ -118,6 +119,7 @@ List<GearStatLine> _weaponDefStats(WeaponDef def) {
   final lines = <GearStatLine>[];
   _addCoreStatLines(lines, stats);
   lines.addAll(_buildProcHookLines(def.procs));
+  lines.addAll(_buildReactiveProcHookLines(def.reactiveProcs));
   return lines;
 }
 
@@ -192,12 +194,55 @@ List<GearStatLine> _buildProcHookLines(List<WeaponProc> procs) {
   return procLines;
 }
 
+List<GearStatLine> _buildReactiveProcHookLines(List<ReactiveProc> procs) {
+  if (procs.isEmpty) return const <GearStatLine>[];
+  const profiles = StatusProfileCatalog();
+  final hooks = <ReactiveProcHook>[];
+  final procLines = <GearStatLine>[];
+  for (final proc in procs) {
+    if (hooks.contains(proc.hook)) continue;
+    hooks.add(proc.hook);
+  }
+  for (final hook in hooks) {
+    for (final proc in procs) {
+      if (proc.hook != hook || proc.statusProfileId == StatusProfileId.none) {
+        continue;
+      }
+      final profile = profiles.get(proc.statusProfileId);
+      for (final app in profile.applications) {
+        final summary = _reactiveProcEffectSummary(app, proc);
+        if (summary == null) continue;
+        procLines.add(
+          GearStatLine(
+            _reactiveProcHookLabel(hook),
+            summary.text,
+            highlights: summary.highlights,
+            semanticValue: UiSemanticText.single(
+              summary.text,
+              highlights: summary.highlights,
+            ),
+            forcePositiveHighlightTones: true,
+          ),
+        );
+      }
+    }
+  }
+  return procLines;
+}
+
 String _procHookLabel(ProcHook hook) {
   return switch (hook) {
     ProcHook.onHit => 'On Hit',
     ProcHook.onCrit => 'On Crit',
     ProcHook.onKill => 'On Kill',
     ProcHook.onBlock => 'On Block',
+  };
+}
+
+String _reactiveProcHookLabel(ReactiveProcHook hook) {
+  return switch (hook) {
+    ReactiveProcHook.onDamaged => 'On Damaged',
+    ReactiveProcHook.onLowHealth => 'On Low Health',
   };
 }
 
@@ -284,11 +329,38 @@ _procEffectTemplates = <StatusEffectType, _ProcEffectTemplate>{
 };
 
 _ProcEffectSummary? _procEffectSummary(StatusApplication app, WeaponProc proc) {
+  return _procEffectSummaryFromProfile(
+    app,
+    statusProfileId: proc.statusProfileId,
+    chanceBp: proc.chanceBp,
+  );
+}
+
+_ProcEffectSummary? _reactiveProcEffectSummary(
+  StatusApplication app,
+  ReactiveProc proc,
+) {
+  return _procEffectSummaryFromProfile(
+    app,
+    statusProfileId: proc.statusProfileId,
+    chanceBp: proc.chanceBp,
+  );
+}
+
+_ProcEffectSummary? _procEffectSummaryFromProfile(
+  StatusApplication app, {
+  required StatusProfileId statusProfileId,
+  required int chanceBp,
+}) {
   final template = _procEffectTemplates[app.type];
   if (template == null) return null;
 
-  final chance = _procChanceSummary(proc.chanceBp);
-  final values = _procTemplateValues(app, proc, chanceSuffix: chance.suffix);
+  final chance = _procChanceSummary(chanceBp);
+  final values = _procTemplateValues(
+    app,
+    statusProfileId: statusProfileId,
+    chanceSuffix: chance.suffix,
+  );
   final text = _resolveTemplate(template.sentenceTemplate, values);
   final highlightTokens = <String>[
     for (final key in template.highlightKeys) values[key] ?? '',
@@ -306,15 +378,15 @@ _ProcEffectSummary? _procEffectSummary(StatusApplication app, WeaponProc proc) {
 }
 
 Map<String, String> _procTemplateValues(
-  StatusApplication app,
-  WeaponProc proc, {
+  StatusApplication app, {
+  required StatusProfileId statusProfileId,
   required String chanceSuffix,
 }) {
   final duration = _formatDuration(app.durationSeconds);
   switch (app.type) {
     case StatusEffectType.dot:
       return <String, String>{
-        'status': _dotStatusLabel(proc.statusProfileId),
+        'status': _dotStatusLabel(statusProfileId),
         'dps': _formatFixed100(app.magnitude),
         'duration': duration,
         'chanceSuffix': chanceSuffix,
@@ -430,6 +502,8 @@ List<GearStatLine> _diffWeaponStats(WeaponDef equipped, WeaponDef candidate) {
     candidate.stats,
     equippedProcs: equipped.procs,
     candidateProcs: candidate.procs,
+    equippedReactiveProcs: equipped.reactiveProcs,
+    candidateReactiveProcs: candidate.reactiveProcs,
   );
 }
 
@@ -438,12 +512,20 @@ List<GearStatLine> _diffWeaponStatsLike(
   GearStatBonuses b, {
   List<WeaponProc> equippedProcs = const <WeaponProc>[],
   List<WeaponProc> candidateProcs = const <WeaponProc>[],
+  List<ReactiveProc> equippedReactiveProcs = const <ReactiveProc>[],
+  List<ReactiveProc> candidateReactiveProcs = const <ReactiveProc>[],
 }) {
   final lines = _diffStatBonuses(a, b);
   lines.addAll(
     _diffProcHookLines(
       equippedProcs: equippedProcs,
       candidateProcs: candidateProcs,
+    ),
+  );
+  lines.addAll(
+    _diffReactiveProcHookLines(
+      equippedProcs: equippedReactiveProcs,
+      candidateProcs: candidateReactiveProcs,
     ),
   );
   return lines;
@@ -512,6 +594,65 @@ List<GearStatLine> _diffProcHookLines({
   return lines;
 }
 
+List<GearStatLine> _diffReactiveProcHookLines({
+  required List<ReactiveProc> equippedProcs,
+  required List<ReactiveProc> candidateProcs,
+}) {
+  final equippedByHook = _reactiveProcSummariesByHook(equippedProcs);
+  final candidateByHook = _reactiveProcSummariesByHook(candidateProcs);
+  final lines = <GearStatLine>[];
+  for (final hook in ReactiveProcHook.values) {
+    final removed = _summaryDifferenceWithCounts(
+      equippedByHook[hook] ?? const <_ProcEffectSummary>[],
+      candidateByHook[hook] ?? const <_ProcEffectSummary>[],
+    );
+    final added = _summaryDifferenceWithCounts(
+      candidateByHook[hook] ?? const <_ProcEffectSummary>[],
+      equippedByHook[hook] ?? const <_ProcEffectSummary>[],
+    );
+    if (removed.isEmpty && added.isEmpty) continue;
+    final parts = <String>[];
+    final segments = <UiSemanticTextSegment>[];
+    final highlights = <GearStatHighlight>[];
+    if (removed.isNotEmpty) {
+      final section = 'Lose: ${_joinSummaryTexts(removed)}';
+      final sectionHighlights = _retoneSummaryHighlights(
+        removed,
+        tone: GearStatLineTone.negative,
+      );
+      parts.add(section);
+      highlights.addAll(sectionHighlights);
+      segments.add(
+        UiSemanticTextSegment(section, highlights: sectionHighlights),
+      );
+    }
+    if (added.isNotEmpty) {
+      final section = 'Add: ${_joinSummaryTexts(added)}';
+      final sectionHighlights = _retoneSummaryHighlights(
+        added,
+        tone: GearStatLineTone.positive,
+      );
+      parts.add(section);
+      highlights.addAll(sectionHighlights);
+      segments.add(
+        UiSemanticTextSegment(section, highlights: sectionHighlights),
+      );
+    }
+    lines.add(
+      GearStatLine(
+        _reactiveProcHookLabel(hook),
+        parts.join(' | '),
+        highlights: highlights,
+        semanticValue: UiSemanticText(
+          segments: segments,
+          segmentSeparator: ' | ',
+        ),
+      ),
+    );
+  }
+  return lines;
+}
+
 Map<ProcHook, List<_ProcEffectSummary>> _procSummariesByHook(
   List<WeaponProc> procs,
 ) {
@@ -523,6 +664,26 @@ Map<ProcHook, List<_ProcEffectSummary>> _procSummariesByHook(
     final profile = profiles.get(proc.statusProfileId);
     for (final app in profile.applications) {
       final summary = _procEffectSummary(app, proc);
+      if (summary == null) continue;
+      byHook.putIfAbsent(proc.hook, () => <_ProcEffectSummary>[]).add(summary);
+    }
+  }
+  return byHook;
+}
+
+Map<ReactiveProcHook, List<_ProcEffectSummary>> _reactiveProcSummariesByHook(
+  List<ReactiveProc> procs,
+) {
+  if (procs.isEmpty) {
+    return const <ReactiveProcHook, List<_ProcEffectSummary>>{};
+  }
+  const profiles = StatusProfileCatalog();
+  final byHook = <ReactiveProcHook, List<_ProcEffectSummary>>{};
+  for (final proc in procs) {
+    if (proc.statusProfileId == StatusProfileId.none) continue;
+    final profile = profiles.get(proc.statusProfileId);
+    for (final app in profile.applications) {
+      final summary = _reactiveProcEffectSummary(app, proc);
       if (summary == null) continue;
       byHook.putIfAbsent(proc.hook, () => <_ProcEffectSummary>[]).add(summary);
     }
@@ -607,13 +768,38 @@ void _addCoreStatLines(List<GearStatLine> lines, GearStatBonuses stats) {
   );
   _addBpStat(
     lines,
+    _labelFor(CharacterStatId.waterResistance),
+    stats.waterResistanceBp,
+  );
+  _addBpStat(
+    lines,
     _labelFor(CharacterStatId.thunderResistance),
     stats.thunderResistanceBp,
   );
   _addBpStat(
     lines,
+    _labelFor(CharacterStatId.acidResistance),
+    stats.acidResistanceBp,
+  );
+  _addBpStat(
+    lines,
+    _labelFor(CharacterStatId.darkResistance),
+    stats.darkResistanceBp,
+  );
+  _addBpStat(
+    lines,
     _labelFor(CharacterStatId.bleedResistance),
     stats.bleedResistanceBp,
+  );
+  _addBpStat(
+    lines,
+    _labelFor(CharacterStatId.earthResistance),
+    stats.earthResistanceBp,
+  );
+  _addBpStat(
+    lines,
+    _labelFor(CharacterStatId.holyResistance),
+    stats.holyResistanceBp,
   );
 }
 
@@ -718,6 +904,15 @@ List<GearStatLine> _diffStatBonuses(GearStatBonuses a, GearStatBonuses b) {
       ),
     );
   }
+  if (b.waterResistanceBp != a.waterResistanceBp) {
+    lines.add(
+      _deltaBpLine(
+        _labelFor(CharacterStatId.waterResistance),
+        a.waterResistanceBp,
+        b.waterResistanceBp,
+      ),
+    );
+  }
   if (b.thunderResistanceBp != a.thunderResistanceBp) {
     lines.add(
       _deltaBpLine(
@@ -727,12 +922,48 @@ List<GearStatLine> _diffStatBonuses(GearStatBonuses a, GearStatBonuses b) {
       ),
     );
   }
+  if (b.acidResistanceBp != a.acidResistanceBp) {
+    lines.add(
+      _deltaBpLine(
+        _labelFor(CharacterStatId.acidResistance),
+        a.acidResistanceBp,
+        b.acidResistanceBp,
+      ),
+    );
+  }
+  if (b.darkResistanceBp != a.darkResistanceBp) {
+    lines.add(
+      _deltaBpLine(
+        _labelFor(CharacterStatId.darkResistance),
+        a.darkResistanceBp,
+        b.darkResistanceBp,
+      ),
+    );
+  }
   if (b.bleedResistanceBp != a.bleedResistanceBp) {
     lines.add(
       _deltaBpLine(
         _labelFor(CharacterStatId.bleedResistance),
         a.bleedResistanceBp,
         b.bleedResistanceBp,
+      ),
+    );
+  }
+  if (b.earthResistanceBp != a.earthResistanceBp) {
+    lines.add(
+      _deltaBpLine(
+        _labelFor(CharacterStatId.earthResistance),
+        a.earthResistanceBp,
+        b.earthResistanceBp,
+      ),
+    );
+  }
+  if (b.holyResistanceBp != a.holyResistanceBp) {
+    lines.add(
+      _deltaBpLine(
+        _labelFor(CharacterStatId.holyResistance),
+        a.holyResistanceBp,
+        b.holyResistanceBp,
       ),
     );
   }

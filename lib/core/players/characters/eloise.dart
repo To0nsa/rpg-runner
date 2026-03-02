@@ -200,7 +200,7 @@ const PlayerCatalog eloiseCatalog = PlayerCatalog(
   statusImmunity: StatusImmunityDef(),
   loadoutSlotMask: LoadoutSlotMask.all,
   weaponId: WeaponId.plainsteel,
-  offhandWeaponId: WeaponId.woodenShield,
+  offhandWeaponId: WeaponId.roadguard,
   projectileId: ProjectileId.throwingKnife,
   spellBookId: SpellBookId.basicSpellBook,
   projectileSlotSpellId: ProjectileId.fireBolt,

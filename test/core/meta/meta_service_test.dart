@@ -56,7 +56,7 @@ void main() {
       meta,
       characterId: PlayerCharacterId.eloise,
       slot: GearSlot.mainWeapon,
-      itemId: WeaponId.woodenShield,
+      itemId: WeaponId.roadguard,
     );
     expect(
       bad.equippedFor(PlayerCharacterId.eloise).mainWeaponId,
@@ -75,7 +75,7 @@ void main() {
     );
   });
 
-  test('MetaService.createNew unlocks all swords for loadout selection', () {
+  test('MetaService.createNew unlocks all swords and shields', () {
     const service = MetaService();
     final meta = service.createNew();
     final inventory = meta.inventory;
@@ -83,7 +83,45 @@ void main() {
     expect(inventory.unlockedWeaponIds.contains(WeaponId.plainsteel), isTrue);
     expect(inventory.unlockedWeaponIds.contains(WeaponId.graveglass), isTrue);
     expect(inventory.unlockedWeaponIds.contains(WeaponId.duelistsOath), isTrue);
-    expect(inventory.unlockedWeaponIds.contains(WeaponId.solidShield), isFalse);
+    expect(inventory.unlockedWeaponIds.contains(WeaponId.roadguard), isTrue);
+    expect(
+      inventory.unlockedWeaponIds.contains(WeaponId.oathwallRelic),
+      isTrue,
+    );
+    expect(
+      inventory.unlockedSpellBookIds.contains(SpellBookId.epicSpellBook),
+      isFalse,
+    );
+    expect(
+      inventory.unlockedAccessoryIds.contains(AccessoryId.teethNecklace),
+      isFalse,
+    );
+  });
+
+  test('MetaService.normalize keeps full shield roster unlocked', () {
+    const service = MetaService();
+    final loaded = MetaState.seedAllUnlocked(
+      inventory: InventoryState(
+        unlockedWeaponIds: WeaponId.values.toSet(),
+        unlockedThrowingWeaponIds: ProjectileId.values.toSet(),
+        unlockedSpellBookIds: SpellBookId.values.toSet(),
+        unlockedAccessoryIds: AccessoryId.values.toSet(),
+      ),
+    );
+
+    final normalized = service.normalize(loaded);
+    final inventory = normalized.inventory;
+
+    expect(inventory.unlockedWeaponIds.contains(WeaponId.plainsteel), isTrue);
+    expect(inventory.unlockedWeaponIds.contains(WeaponId.graveglass), isTrue);
+    expect(
+      inventory.unlockedWeaponIds.contains(WeaponId.oathwallRelic),
+      isTrue,
+    );
+    expect(
+      inventory.unlockedThrowingWeaponIds.contains(ProjectileId.thunderBolt),
+      isFalse,
+    );
     expect(
       inventory.unlockedSpellBookIds.contains(SpellBookId.epicSpellBook),
       isFalse,
@@ -95,44 +133,7 @@ void main() {
   });
 
   test(
-    'MetaService.normalize re-locks third-tier gear from persisted state',
-    () {
-      const service = MetaService();
-      final loaded = MetaState.seedAllUnlocked(
-        inventory: InventoryState(
-          unlockedWeaponIds: WeaponId.values.toSet(),
-          unlockedThrowingWeaponIds: ProjectileId.values.toSet(),
-          unlockedSpellBookIds: SpellBookId.values.toSet(),
-          unlockedAccessoryIds: AccessoryId.values.toSet(),
-        ),
-      );
-
-      final normalized = service.normalize(loaded);
-      final inventory = normalized.inventory;
-
-      expect(inventory.unlockedWeaponIds.contains(WeaponId.plainsteel), isTrue);
-      expect(inventory.unlockedWeaponIds.contains(WeaponId.graveglass), isTrue);
-      expect(
-        inventory.unlockedWeaponIds.contains(WeaponId.solidShield),
-        isFalse,
-      );
-      expect(
-        inventory.unlockedThrowingWeaponIds.contains(ProjectileId.thunderBolt),
-        isFalse,
-      );
-      expect(
-        inventory.unlockedSpellBookIds.contains(SpellBookId.epicSpellBook),
-        isFalse,
-      );
-      expect(
-        inventory.unlockedAccessoryIds.contains(AccessoryId.teethNecklace),
-        isFalse,
-      );
-    },
-  );
-
-  test(
-    'MetaService.normalize grants all primary swords for existing inventories',
+    'MetaService.normalize grants all primary swords and shields for existing inventories',
     () {
       const service = MetaService();
       final legacy = MetaState(
@@ -140,8 +141,8 @@ void main() {
         inventory: InventoryState(
           unlockedWeaponIds: <WeaponId>{
             WeaponId.plainsteel,
-            WeaponId.woodenShield,
-            WeaponId.basicShield,
+            WeaponId.roadguard,
+            WeaponId.thornbark,
           },
           unlockedThrowingWeaponIds: service
               .seedAllUnlockedInventory()
@@ -175,6 +176,16 @@ void main() {
       expect(unlocked.contains(WeaponId.sunlitVow), isTrue);
       expect(unlocked.contains(WeaponId.graveglass), isTrue);
       expect(unlocked.contains(WeaponId.duelistsOath), isTrue);
+      expect(unlocked.contains(WeaponId.roadguard), isTrue);
+      expect(unlocked.contains(WeaponId.thornbark), isTrue);
+      expect(unlocked.contains(WeaponId.cinderWard), isTrue);
+      expect(unlocked.contains(WeaponId.tideguardShell), isTrue);
+      expect(unlocked.contains(WeaponId.frostlockBuckler), isTrue);
+      expect(unlocked.contains(WeaponId.ironBastion), isTrue);
+      expect(unlocked.contains(WeaponId.stormAegis), isTrue);
+      expect(unlocked.contains(WeaponId.nullPrism), isTrue);
+      expect(unlocked.contains(WeaponId.warbannerGuard), isTrue);
+      expect(unlocked.contains(WeaponId.oathwallRelic), isTrue);
     },
   );
 
@@ -193,13 +204,13 @@ void main() {
       meta,
       GearSlot.offhandWeapon,
     );
-    final solidShield = offhandCandidates.firstWhere(
-      (candidate) => candidate.id == WeaponId.solidShield,
+    final rosterShield = offhandCandidates.firstWhere(
+      (candidate) => candidate.id == WeaponId.oathwallRelic,
     );
 
     expect(graveglass.isUnlocked, isTrue);
     expect(plainsteel.isUnlocked, isTrue);
-    expect(solidShield.isUnlocked, isFalse);
+    expect(rosterShield.isUnlocked, isTrue);
   });
 
   test('MetaService.candidatesForSlot returns throwing weapons only', () {

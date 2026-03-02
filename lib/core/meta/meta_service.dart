@@ -70,27 +70,21 @@ class MetaService {
 
   /// Returns starter unlocked main/off-hand weapon IDs.
   Set<WeaponId> _startingUnlockedWeaponIds() {
-    final unlockedPrimaryWeapons = <WeaponId>{};
-    final unlockedOffhandWeapons = <WeaponId>[];
+    final unlockedWeapons = <WeaponId>{};
     for (final id in WeaponId.values) {
       final def = weapons.tryGet(id);
       if (def == null) continue;
       switch (def.category) {
         case WeaponCategory.primary:
-          unlockedPrimaryWeapons.add(id);
-          break;
         case WeaponCategory.offHand:
-          unlockedOffhandWeapons.add(id);
+          unlockedWeapons.add(id);
           break;
         case WeaponCategory.projectile:
           break;
       }
     }
 
-    return <WeaponId>{
-      ...unlockedPrimaryWeapons,
-      ...unlockedOffhandWeapons.take(_startingUnlockedPerCatalog),
-    };
+    return unlockedWeapons;
   }
 
   /// Returns starter unlocked throwing weapon IDs.
@@ -201,10 +195,19 @@ class MetaService {
     var inventory = state.inventory;
     final allowedWeapons = _startingUnlockedWeaponIds();
     final guaranteedPrimaryWeapons = <WeaponId>{};
+    final guaranteedOffhandWeapons = <WeaponId>{};
     for (final id in allowedWeapons) {
       final def = weapons.tryGet(id);
-      if (def != null && def.category == WeaponCategory.primary) {
-        guaranteedPrimaryWeapons.add(id);
+      if (def == null) continue;
+      switch (def.category) {
+        case WeaponCategory.primary:
+          guaranteedPrimaryWeapons.add(id);
+          break;
+        case WeaponCategory.offHand:
+          guaranteedOffhandWeapons.add(id);
+          break;
+        case WeaponCategory.projectile:
+          break;
       }
     }
     final allowedThrowingWeapons = _startingUnlockedThrowingWeaponIds();
@@ -214,6 +217,7 @@ class MetaService {
     final unlockedWeapons = Set<WeaponId>.from(inventory.unlockedWeaponIds)
       ..removeWhere((id) => !allowedWeapons.contains(id))
       ..addAll(guaranteedPrimaryWeapons)
+      ..addAll(guaranteedOffhandWeapons)
       ..add(MetaDefaults.mainWeaponId)
       ..add(MetaDefaults.offhandWeaponId);
     final unlockedThrowing =

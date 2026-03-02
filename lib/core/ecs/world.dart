@@ -55,6 +55,8 @@ import 'stores/damage_queue_store.dart';
 import 'stores/parry_consume_store.dart';
 import 'stores/riposte_store.dart';
 import 'stores/projectile_item_origin_store.dart';
+import 'stores/reactive_damage_event_queue_store.dart';
+import 'stores/reactive_proc_cooldown_store.dart';
 import 'stores/stamina_store.dart';
 import 'stores/enemies/surface_nav_state_store.dart';
 import 'stores/transform_store.dart';
@@ -101,6 +103,14 @@ class EcsWorld {
 
   /// World-level damage request queue (shared across systems).
   final DamageQueueStore damageQueue = DamageQueueStore();
+
+  /// World-level post-damage queue for reactive proc resolution.
+  final ReactiveDamageEventQueueStore reactiveDamageEventQueue =
+      ReactiveDamageEventQueueStore();
+
+  /// Per-entity cooldown state for reactive proc hooks.
+  final ReactiveProcCooldownStore reactiveProcCooldown =
+      ReactiveProcCooldownStore();
 
   /// Mobility impact hit-policy tracker keyed by source entity + activation.
   final MobilityImpactStateStore mobilityImpactState =
@@ -345,6 +355,7 @@ class EcsWorld {
     }
     mobilityImpactState.removeEntity(entity);
     parryConsume.removeEntity(entity);
+    reactiveProcCooldown.removeEntity(entity);
     _freeIds.add(entity);
     _freeIdsSet.add(entity);
   }

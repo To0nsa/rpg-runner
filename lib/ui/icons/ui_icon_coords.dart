@@ -31,9 +31,9 @@ class UiWeaponIconSpec {
   final int tilePx;
 }
 
-const String _defaultUiSpritePath = 'assets/images/icons/transparentIcons.png';
 const String _swordUiSpritePath =
     'assets/images/icons/gear-icons/sword/transparentIcons.png';
+const String _shieldIconBasePath = 'assets/images/icons/gear-icons/shields/';
 
 /// Full weapon icon mapping for loadout and gear picker UI.
 UiWeaponIconSpec uiIconSpecForWeapon(WeaponId id) {
@@ -75,17 +75,35 @@ UiWeaponIconSpec uiIconSpecForWeapon(WeaponId id) {
     WeaponId.duelistsOath => const UiWeaponIconSpec.image(
       'assets/images/icons/gear-icons/sword/duelistsOath.png',
     ),
-    WeaponId.woodenShield => const UiWeaponIconSpec.sprite(
-      coords: UiIconCoords(6, 0),
-      spriteAssetPath: _defaultUiSpritePath,
+    WeaponId.roadguard => const UiWeaponIconSpec.image(
+      '${_shieldIconBasePath}roadguard.png',
     ),
-    WeaponId.basicShield => const UiWeaponIconSpec.sprite(
-      coords: UiIconCoords(6, 1),
-      spriteAssetPath: _defaultUiSpritePath,
+    WeaponId.thornbark => const UiWeaponIconSpec.image(
+      '${_shieldIconBasePath}thornbark.png',
     ),
-    WeaponId.solidShield => const UiWeaponIconSpec.sprite(
-      coords: UiIconCoords(6, 2),
-      spriteAssetPath: _defaultUiSpritePath,
+    WeaponId.cinderWard => const UiWeaponIconSpec.image(
+      '${_shieldIconBasePath}cinderward.png',
+    ),
+    WeaponId.tideguardShell => const UiWeaponIconSpec.image(
+      '${_shieldIconBasePath}tideguardShell.png',
+    ),
+    WeaponId.frostlockBuckler => const UiWeaponIconSpec.image(
+      '${_shieldIconBasePath}frostlockBuckler.png',
+    ),
+    WeaponId.ironBastion => const UiWeaponIconSpec.image(
+      '${_shieldIconBasePath}ironBastion.png',
+    ),
+    WeaponId.stormAegis => const UiWeaponIconSpec.image(
+      '${_shieldIconBasePath}stormAegis.png',
+    ),
+    WeaponId.nullPrism => const UiWeaponIconSpec.image(
+      '${_shieldIconBasePath}nullPrism.png',
+    ),
+    WeaponId.warbannerGuard => const UiWeaponIconSpec.image(
+      '${_shieldIconBasePath}warbannerGuard.png',
+    ),
+    WeaponId.oathwallRelic => const UiWeaponIconSpec.image(
+      '${_shieldIconBasePath}oathwallRelic.png',
     ),
   };
 }

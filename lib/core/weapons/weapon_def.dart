@@ -2,6 +2,7 @@ import '../abilities/ability_def.dart' show WeaponType;
 import '../combat/damage_type.dart';
 import 'weapon_category.dart';
 import 'weapon_id.dart';
+import 'reactive_proc.dart';
 import 'weapon_proc.dart';
 import '../stats/gear_stat_bonuses.dart';
 
@@ -17,6 +18,7 @@ class WeaponDef {
     required this.weaponType,
     this.damageType = DamageType.physical,
     this.procs = const [],
+    this.reactiveProcs = const [],
     this.stats = const GearStatBonuses(),
     this.isTwoHanded = false,
   });
@@ -34,6 +36,9 @@ class WeaponDef {
 
   /// New, extensible proc list (Phase 2+).
   final List<WeaponProc> procs;
+
+  /// Defensive/reactive proc list resolved from incoming-damage outcomes.
+  final List<ReactiveProc> reactiveProcs;
 
   /// Passive stats provided by this weapon (future use).
   final GearStatBonuses stats;

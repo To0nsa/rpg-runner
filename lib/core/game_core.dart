@@ -52,10 +52,11 @@
 /// 18. **Status ticking**: Apply DoT ticks and queue damage.
 /// 19. **Damage middleware**: Apply combat rule edits/cancellations.
 /// 20. **Damage application**: Apply queued damage, set invulnerability.
-/// 21. **Status application**: Apply on-hit status profiles.
-/// 22. **Death handling**: Despawn dead entities, record kills.
-/// 23. **Resource regen**: Regenerate mana/stamina.
-/// 24. **Lifetime cleanup**: Remove expired entities.
+/// 21. **Reactive procs**: Resolve on-damaged/low-health hooks.
+/// 22. **Status application**: Apply queued status profiles.
+/// 23. **Death handling**: Despawn dead entities, record kills.
+/// 24. **Resource regen**: Regenerate mana/stamina.
+/// 25. **Lifetime cleanup**: Remove expired entities.
 ///
 /// ## Determinism Contract
 ///
@@ -122,6 +123,7 @@ import 'ecs/systems/projectile_hit_system.dart';
 import 'ecs/systems/projectile_system.dart';
 import 'ecs/systems/projectile_world_collision_system.dart';
 import 'ecs/systems/projectile_launch_system.dart';
+import 'ecs/systems/reactive_proc_system.dart';
 import 'ecs/systems/resource_regen_system.dart';
 import 'ecs/systems/restoration_item_system.dart';
 import 'ecs/systems/self_ability_system.dart';
@@ -427,6 +429,7 @@ class GameCore {
       statsCache: _resolvedStatsCache,
       forcedInterruptPolicy: forcedInterruptPolicy,
     );
+    _reactiveProcSystem = ReactiveProcSystem(weapons: _weapons, rngSeed: seed);
     _playerImpactFeedbackGate = PlayerImpactFeedbackGate(tickHz: tickHz);
     _entityVisualCueCoalescer = EntityVisualCueCoalescer();
     _statusSystem = StatusSystem(
@@ -740,6 +743,7 @@ class GameCore {
   late final InvulnerabilitySystem _invulnerabilitySystem;
   late final DamageMiddlewareSystem _damageMiddlewareSystem;
   late final DamageSystem _damageSystem;
+  late final ReactiveProcSystem _reactiveProcSystem;
   late final StatusSystem _statusSystem;
   late final ControlLockSystem _controlLockSystem;
   late final ActiveAbilityPhaseSystem _activeAbilityPhaseSystem;
@@ -1013,11 +1017,12 @@ class GameCore {
   /// 20. **Status ticking**: Apply DoT ticks and queue damage.
   /// 21. **Damage middleware**: Apply combat rule edits/cancellations.
   /// 22. **Damage application**: Apply queued damage events.
-  /// 23. **Status application**: Apply on-hit status profiles.
-  /// 24. **Death handling**: Despawn dead entities, record kills.
-  /// 25. **Resource regen**: Regenerate mana and stamina.
-  /// 26. **Animation**: Compute per-entity anim key + frame.
-  /// 27. **Cleanup**: Remove entities past their lifetime.
+  /// 23. **Reactive procs**: Resolve defensive reactive hooks.
+  /// 24. **Status application**: Apply queued status profiles.
+  /// 25. **Death handling**: Despawn dead entities, record kills.
+  /// 26. **Resource regen**: Regenerate mana and stamina.
+  /// 27. **Animation**: Compute per-entity anim key + frame.
+  /// 28. **Cleanup**: Remove entities past their lifetime.
   ///
   /// If the run ends during this tick (player death, fell into gap, etc.),
   /// a [RunEndedEvent] is emitted and the simulation freezes.
@@ -1249,6 +1254,11 @@ class GameCore {
               damageType: damageType,
             );
           },
+    );
+    _reactiveProcSystem.step(
+      _world,
+      currentTick: tick,
+      queueStatus: _statusSystem.queue,
     );
     final playerImpactEvent = _playerImpactFeedbackGate.flushTick(tick);
     if (playerImpactEvent != null) {
