@@ -64,9 +64,9 @@ class CombatFeedbackTuning {
     this.dotColorByDamageType = _defaultDotColorByDamageType,
     this.resourceColorByType = _defaultResourceColorByType,
     this.statusColorByMaskBit = _defaultStatusColorByMaskBit,
-    this.statusBaseAlpha = 0.35,
+    this.statusBaseAlpha = 0.55,
     this.statusAdditionalAlphaPerEffect = 0.025,
-    this.statusMaxAlpha = 0.45,
+    this.statusMaxAlpha = 0.75,
   });
 
   final Color directHitColor;

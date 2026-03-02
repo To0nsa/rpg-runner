@@ -85,9 +85,9 @@ alpha = clamp(statusBaseAlpha + (count - 1) * statusAdditionalAlphaPerEffect,
 
 Current defaults:
 
-- `statusBaseAlpha = 0.35`
+- `statusBaseAlpha = 0.55`
 - `statusAdditionalAlphaPerEffect = 0.025`
-- `statusMaxAlpha = 0.45`
+- `statusMaxAlpha = 0.75`
 
 ## Source of Truth
 

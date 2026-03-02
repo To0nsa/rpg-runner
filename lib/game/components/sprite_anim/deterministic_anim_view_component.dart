@@ -260,26 +260,12 @@ class DeterministicAnimViewComponent
       count += 1;
     }
 
-    if ((mask & EntityStatusVisualMask.slow) != 0) {
-      addForBit(EntityStatusVisualMask.slow);
-    }
-    if ((mask & EntityStatusVisualMask.haste) != 0) {
-      addForBit(EntityStatusVisualMask.haste);
-    }
-    if ((mask & EntityStatusVisualMask.vulnerable) != 0) {
-      addForBit(EntityStatusVisualMask.vulnerable);
-    }
-    if ((mask & EntityStatusVisualMask.weaken) != 0) {
-      addForBit(EntityStatusVisualMask.weaken);
-    }
-    if ((mask & EntityStatusVisualMask.drench) != 0) {
-      addForBit(EntityStatusVisualMask.drench);
-    }
-    if ((mask & EntityStatusVisualMask.stun) != 0) {
-      addForBit(EntityStatusVisualMask.stun);
-    }
-    if ((mask & EntityStatusVisualMask.silence) != 0) {
-      addForBit(EntityStatusVisualMask.silence);
+    // Apply all configured status-color bits so newly added mask bits do not
+    // require manual updates here.
+    for (final bit in _feedbackTuning.statusColorByMaskBit.keys) {
+      if ((mask & bit) != 0) {
+        addForBit(bit);
+      }
     }
 
     if (count == 0) {
