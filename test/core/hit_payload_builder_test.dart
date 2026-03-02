@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/combat/hit_payload_builder.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
-import 'package:rpg_runner/core/stats/gear_stat_bonuses.dart';
 
 final AbilityDef _testAbility = AbilityDef(
   id: 'test.payload',
@@ -28,32 +27,24 @@ final AbilityDef _testAbility = AbilityDef(
 );
 
 void main() {
-  test(
-    'HitPayloadBuilder applies global and payload-source offensive stats',
-    () {
-      final payload = HitPayloadBuilder.build(
-        ability: _testAbility,
-        source: 1,
-        globalPowerBonusBp: 2000,
-        globalCritChanceBonusBp: 700,
-        weaponStats: const GearStatBonuses(
-          powerBonusBp: 1000,
-          critChanceBonusBp: 500,
-        ),
-      );
+  test('HitPayloadBuilder applies global offensive stats', () {
+    final payload = HitPayloadBuilder.build(
+      ability: _testAbility,
+      source: 1,
+      globalPowerBonusBp: 2000,
+      globalCritChanceBonusBp: 700,
+    );
 
-      // 1000 * 1.20 * 1.10 = 1320
-      expect(payload.damage100, equals(1320));
-      expect(payload.critChanceBp, equals(1200));
-    },
-  );
+    // 1000 * 1.20 = 1200
+    expect(payload.damage100, equals(1200));
+    expect(payload.critChanceBp, equals(700));
+  });
 
   test('HitPayloadBuilder clamps crit chance to 100%', () {
     final payload = HitPayloadBuilder.build(
       ability: _testAbility,
       source: 1,
-      globalCritChanceBonusBp: 9000,
-      weaponStats: const GearStatBonuses(critChanceBonusBp: 3000),
+      globalCritChanceBonusBp: 12000,
     );
 
     expect(payload.critChanceBp, equals(10000));

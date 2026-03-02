@@ -167,7 +167,6 @@ class EnemyCastSystem {
     final payload = HitPayloadBuilder.build(
       ability: ability,
       source: enemy,
-      weaponStats: projectile.stats,
       globalPowerBonusBp: offensePowerBp,
       globalCritChanceBonusBp: offenseCritBp,
       weaponDamageType: projectile.damageType,

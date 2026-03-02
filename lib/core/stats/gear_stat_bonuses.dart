@@ -14,10 +14,8 @@ class GearStatBonuses {
     this.defenseBonusBp = 0,
     this.globalPowerBonusBp = 0,
     this.globalCritChanceBonusBp = 0,
-    this.powerBonusBp = 0,
     this.moveSpeedBonusBp = 0,
     this.cooldownReductionBp = 0,
-    this.critChanceBonusBp = 0,
     this.physicalResistanceBp = 0,
     this.fireResistanceBp = 0,
     this.iceResistanceBp = 0,
@@ -63,20 +61,10 @@ class GearStatBonuses {
   final int globalCritChanceBonusBp;
 
   /// Basis points (100 = 1%).
-  ///
-  /// Positive values increase outgoing damage for the selected payload source.
-  final int powerBonusBp;
-
-  /// Basis points (100 = 1%).
   final int moveSpeedBonusBp;
 
   /// Basis points (100 = 1%).
   final int cooldownReductionBp;
-
-  /// Basis points (100 = 1%).
-  ///
-  /// Positive values increase crit chance for the selected payload source.
-  final int critChanceBonusBp;
 
   /// Basis points (100 = 1%).
   ///
@@ -150,10 +138,8 @@ class GearStatBonuses {
       defenseBonusBp == 0 &&
       globalPowerBonusBp == 0 &&
       globalCritChanceBonusBp == 0 &&
-      powerBonusBp == 0 &&
       moveSpeedBonusBp == 0 &&
       cooldownReductionBp == 0 &&
-      critChanceBonusBp == 0 &&
       physicalResistanceBp == 0 &&
       fireResistanceBp == 0 &&
       iceResistanceBp == 0 &&
@@ -176,10 +162,8 @@ class GearStatBonuses {
       globalPowerBonusBp: globalPowerBonusBp + other.globalPowerBonusBp,
       globalCritChanceBonusBp:
           globalCritChanceBonusBp + other.globalCritChanceBonusBp,
-      powerBonusBp: powerBonusBp + other.powerBonusBp,
       moveSpeedBonusBp: moveSpeedBonusBp + other.moveSpeedBonusBp,
       cooldownReductionBp: cooldownReductionBp + other.cooldownReductionBp,
-      critChanceBonusBp: critChanceBonusBp + other.critChanceBonusBp,
       physicalResistanceBp: physicalResistanceBp + other.physicalResistanceBp,
       fireResistanceBp: fireResistanceBp + other.fireResistanceBp,
       iceResistanceBp: iceResistanceBp + other.iceResistanceBp,

@@ -1,6 +1,6 @@
 # Combat Pipeline
 
-This document reflects the current Core combat contracts used by `GameCore`.
+This document tracks the current Core combat contracts used by `GameCore`.
 
 ## Data Primitives
 
@@ -8,23 +8,23 @@ This document reflects the current Core combat contracts used by `GameCore`.
 
 - `DamageType`: `physical`, `fire`, `ice`, `water`, `thunder`, `acid`, `dark`, `bleed`, `earth`, `holy`
 - `WeaponId`: stable melee/off-hand IDs
-- `ReactiveProcHook`: `onDamaged`, `onLowHealth` (offhand defensive hooks)
+- `ReactiveProcHook`: `onDamaged`, `onLowHealth`
 - `ProjectileId`: stable projectile item IDs (throwing + spell projectiles)
 - `Faction`: friendly-fire routing
 
 ### Status System
 
 - `StatusEffectType`: `dot`, `slow`, `stun`, `haste`, `damageReduction`, `vulnerable`, `weaken`, `drench`, `silence`, `resourceOverTime`, `offenseBuff`
-- `StatusProfileId`: authored bundles (for example `slowOnHit`, `burnOnHit`, `arcaneWard`, `focus`, `stunOnHit`, `restoreHealth`)
+- `StatusProfileId`: authored status bundles (for example `slowOnHit`, `burnOnHit`, `arcaneWard`, `focus`, `stunOnHit`, `restoreHealth`)
 - `PurgeProfileId`: deterministic purge bundles (currently `cleanse`)
-- `StatusApplication`: one application entry (magnitude, duration, optional period/type/resource)
-- `StatusProfileCatalog`: stable profile lookup
+- `StatusApplication`: one profile application entry (magnitude, duration, period, optional type/resource metadata)
+- `StatusProfileCatalog`: profile lookup
 
 See `docs/gdd/combat/status/status_system_design.md`.
 
-## ECS Stores
+## ECS Stores (Combat-Relevant)
 
-### Health and Damage
+### Health, Damage, and Queues
 
 | Store | Purpose |
 |---|---|
@@ -32,12 +32,13 @@ See `docs/gdd/combat/status/status_system_design.md`.
 | `DamageResistanceStore` | Per-type incoming modifier bp |
 | `InvulnerabilityStore` | Post-hit i-frame ticks |
 | `LastDamageStore` | Last lethal/non-lethal source details |
+| `DamageQueueStore` | Pending `DamageRequest`s processed by middleware + damage system |
 
 ### Status Effects
 
 | Store | Purpose |
 |---|---|
-| `DotStore` | Active DoT channels (by damage type) |
+| `DotStore` | Active DoT channels (per damage type) |
 | `SlowStore` | Active slow |
 | `HasteStore` | Active haste |
 | `DamageReductionStore` | Active ward-style direct-hit reduction |
@@ -45,35 +46,64 @@ See `docs/gdd/combat/status/status_system_design.md`.
 | `VulnerableStore` | Incoming-damage amplification |
 | `WeakenStore` | Outgoing-damage reduction |
 | `DrenchStore` | Action-speed reduction |
-| `ResourceOverTimeStore` | Timed health/mana/stamina restore |
+| `ResourceOverTimeStore` | Timed health/mana/stamina restoration |
 | `StatusImmunityStore` | Per-status immunity mask |
 | `StatModifierStore` | Derived move/action speed modifiers |
-| `ControlLockStore` | Stun/cast/etc. lock flags |
+| `ControlLockStore` | Stun/cast lock flags |
+
+### Ability State and Intents
+
+| Store | Purpose |
+|---|---|
+| `ActiveAbilityStateStore` | Authoritative committed ability phase/timing |
+| `AbilityInputBufferStore` | Buffered combat input during recovery |
+| `MeleeIntentStore` | Queued melee execution payload |
+| `ProjectileIntentStore` | Queued projectile execution payload |
+| `SelfIntentStore` | Queued self-ability execution payload |
+| `MobilityIntentStore` | Queued mobility execution payload |
+| `AbilityChargeStore` | Authoritative held-duration charge state |
+
+### Reactive/Guard Subsystems
+
+| Store | Purpose |
+|---|---|
+| `ReactiveDamageEventQueueStore` | Post-damage outcomes consumed by reactive procs |
+| `ReactiveProcCooldownStore` | Per-entity reactive proc internal cooldowns |
+| `ParryConsumeStore` | One-riposte-per-activation guard bookkeeping |
+| `RiposteStore` | Temporary one-shot riposte bonus |
 
 ### Loadout and Tags
 
 | Store | Purpose |
 |---|---|
-| `EquippedLoadoutStore` | Equipped gear + ability IDs |
+| `EquippedLoadoutStore` | Equipped gear + ability IDs + slot mask + projectile slot spell selection |
 | `CreatureTagStore` | Shared creature tags |
-| `ReactiveDamageEventQueueStore` | Post-damage outcomes for reactive procs |
-| `ReactiveProcCooldownStore` | Per-entity reactive proc internal cooldowns |
 
 ## Combat Tick Order (Current)
 
-Combat-relevant order inside `GameCore.stepOneTick`:
+Combat-relevant ordering inside `GameCore.stepOneTick`:
 
 1. `ControlLockSystem.step`
 2. `ActiveAbilityPhaseSystem.step`
 3. `AbilityChargeTrackingSystem.step`
 4. `HoldAbilitySystem.step`
-5. Intent writing/execution systems (self/melee/projectile/mobility)
-6. Hit resolution systems queue `DamageRequest`/`StatusRequest`
-7. `StatusSystem.tickExisting`
-8. `DamageMiddlewareSystem.step`
-9. `DamageSystem.step`
-10. `ReactiveProcSystem.step`
-11. `StatusSystem.applyQueued`
+5. `AbilityActivationSystem.step` (player input -> intent commit)
+6. Enemy combat intent writers: `EnemyCastSystem.step`, `EnemyMeleeSystem.step`
+7. Intent execution: `SelfAbilitySystem.step`, `MeleeStrikeSystem.step`, `ProjectileLaunchSystem.step`
+8. `HitboxFollowOwnerSystem.step`
+9. Hit/contact resolution: `ProjectileHitSystem.step`, `HitboxDamageSystem.step`, `MobilityImpactSystem.step`
+10. `ProjectileWorldCollisionSystem.step`
+11. `EntityVisualCueCoalescer.resetForTick`
+12. `StatusSystem.tickExisting`
+13. `DamageMiddlewareSystem.step`
+14. `DamageSystem.step`
+15. `ReactiveProcSystem.step`
+16. `StatusSystem.applyQueued`
+17. `EntityVisualCueCoalescer.emit`
+
+Notes:
+- Player mobility/jump presses preempt queued/active combat intents before mobility/jump commit.
+- Death/despawn handling runs after combat processing.
 
 ## Damage Pipeline
 
@@ -83,8 +113,8 @@ Combat-relevant order inside `GameCore.stepOneTick`:
 DamageRequest {
   target,
   amount100,
-  damageType,
   critChanceBp,
+  damageType,
   procs,
   source,
   sourceKind,
@@ -93,94 +123,142 @@ DamageRequest {
 }
 ```
 
+### Middleware Stage (`DamageMiddlewareSystem`)
+
+Current middleware stack order:
+
+1. `ParryMiddleware`
+2. `WardMiddleware`
+
+`ParryMiddleware`:
+- Applies only while a configured guard ability is active (`AbilityPhase.active`).
+- Ignores status-effect sourced damage (`DeathSourceKind.statusEffect`).
+- Can reduce or cancel direct-hit queue entries.
+- Can grant a one-shot riposte bonus at most once per guard activation.
+
+`WardMiddleware`:
+- Reduces direct-hit queued damage by `DamageReductionStore` magnitude.
+- Cancels DoT/status-sourced queued damage while ward is active.
+
 ### Resolution Order in `DamageSystem`
 
-1. Skip if no health or invulnerable
-2. Apply attacker `weaken` (outgoing penalty)
-3. Roll/apply crit
-4. Apply global defense (`ResolvedCharacterStats.applyDefense`)
-5. Apply typed modifier: `baseTypedModBp + gearIncomingModBp`
-6. Apply target `vulnerable`
-7. Clamp `>= 0`, subtract HP
-8. Record `LastDamageStore`, emit callbacks, process forced interrupt on damage-taken
-9. Queue on-hit proc statuses
-10. Queue post-damage reactive events (`ReactiveDamageEventQueueStore`)
-11. Apply i-frames
+Per uncanceled queue entry:
 
-`onKill` proc note:
+1. Skip when target has no `HealthStore` entry.
+2. Skip when target has active i-frames (`InvulnerabilityStore.ticksLeft > 0`).
+3. Apply source-side `weaken` outgoing penalty (when source entity exists and is weakened).
+4. Roll/apply crit from `critChanceBp` (`+50%` crit bonus in V1 runtime).
+5. Apply global defense (`ResolvedCharacterStats.applyDefense`).
+6. Apply typed modifier: `DamageResistanceStore` typed mod + gear typed incoming mod.
+7. Apply target `vulnerable` amplification.
+8. Clamp `>= 0`, subtract HP, detect kill.
+9. If HP changed (`nextHp < prevHp`):
+   - process forced interrupt (`damageTaken`) when policy allows,
+   - update `LastDamageStore`,
+   - emit `onDamageApplied` callback,
+   - enqueue `ReactiveDamageEventQueueStore` outcome.
+10. Queue proc statuses when `amount100 > 0` and procs exist:
+   - `onHit` -> target,
+   - `onCrit` -> target (only if crit happened),
+   - `onKill` -> source entity (only if this hit killed target),
+   - chance roll per proc.
+11. Apply post-hit i-frames.
 
-- `onKill` remains payload-based.
-- It only rolls from procs attached to the payload source that authored the kill
-  (main weapon, offhand weapon, or projectile/spell payload).
+Important nuance:
+- Reactive proc outcomes are queued only when applied damage is non-zero.
+- Proc status roll gating uses request `amount100 > 0` (not post-middleware/post-defense applied amount).
 
 ## Status Pipeline
 
 ### `StatusSystem.tickExisting`
 
-- Ticks and applies periodic damage from `DotStore`
-- Ticks `ResourceOverTimeStore` and applies smooth resource restoration
-- Ticks `slow/haste/damageReduction/offenseBuff/vulnerable/weaken/drench`
-- Queues DoT `DamageRequest`s
+Order inside `tickExisting`:
+
+1. Apply pending purges.
+2. Tick/apply `DotStore` pulses and queue DoT `DamageRequest`s.
+3. Tick/apply smooth `ResourceOverTimeStore` restoration.
+4. Tick durations for `damageReduction`, `offenseBuff`, `haste`, `slow`, `vulnerable`, `weaken`, `drench`.
 
 ### `StatusSystem.applyQueued`
 
-- Resolves `StatusProfileId` -> applications
-- Applies immunity checks and optional damage-type scaling
-- Applies or refreshes status stores
-- Applies stun/cast locks in `ControlLockStore`
-- Refreshes derived move/action modifiers
+Per queued status application:
 
-### `StatusSystem.queuePurge` / purge processing
+1. Skip dead targets and targets without health.
+2. Resolve profile -> applications.
+3. Apply invulnerability blocking rules:
+   - blocked while invulnerable: `dot`, `slow`, `stun`, `vulnerable`, `weaken`, `drench`, `silence`
+   - not blocked: `haste`, `damageReduction`, `resourceOverTime`, `offenseBuff`
+4. Apply `StatusImmunityStore` checks.
+5. Apply optional damage-type scaling where authored (`scaleByDamageType`).
+6. Apply/refresh status stores with strongest-wins and longer-duration tie behavior.
+7. Refresh derived move/action modifiers.
 
-- `SelfAbilitySystem` can queue `PurgeRequest`s (for example `eloise.cleanse`)
-- Purges are processed at the start of `StatusSystem.tickExisting`
-- `cleanse` removes debuffs including `stun` and `silence` control locks
+Control-lock behavior:
+- `stun`: adds `LockFlag.stun`, clears pending combat intents, cancels dash.
+- `silence`: adds `LockFlag.cast`; additionally interrupts enemy projectile-slot casts only when they are still in windup.
 
-### Damage middleware note
+### Purge Processing
 
-- `WardMiddleware` consumes `DamageReductionStore`:
-  - direct hits are reduced by ward magnitude
-  - DoT (`DeathSourceKind.statusEffect`) is canceled while ward is active
+`PurgeProfileId.cleanse` currently:
+- removes `dot`, `slow`, `vulnerable`, `weaken`, `drench`
+- clears `LockFlag.cast | LockFlag.stun`
 
-### Payload builder note
+## Projectile Payload Source Resolution
 
-- `HitPayloadBuilder` receives additive global power/crit bonuses from resolved stats and active `OffenseBuffStore` (for example `StatusProfileId.focus`).
+Projectile-slot cast payload resolution is deterministic and slot-aware.
 
-## Projectile Items (Spells + Throws)
+For `AbilityPayloadSource.projectile`:
 
-Projectile abilities use one execution path while payload is resolved from the equipped projectile source:
+1. `resolveProjectilePayloadForAbilitySlot` first checks `projectileSlotSpellId` when slot is `AbilitySlot.projectile`.
+2. Selected projectile spell is used only if:
+   - it exists in `ProjectileCatalog`,
+   - it is `WeaponType.spell`,
+   - ability `requiredWeaponTypes` is empty or includes `WeaponType.spell`.
+3. Otherwise fallback is equipped `projectileId`.
 
-- Throwing weapon (`ProjectileId.throwingKnife`/`throwingAxe`) or
-- Learned spell projectile selected from Spell List (`projectileSlotSpellId`)
+Proc merge rule for projectile-slot spell payloads:
+- order is projectile item procs first, spellbook procs second.
 
-`spellBook` remains part of equipped gear for stat/payload context, but it does
-not gate spell availability. For projectile-slot casts that resolve to a spell
-projectile, payload procs are merged in this order: projectile item procs, then
-equipped spellbook procs. Throwing projectiles keep projectile-item procs only.
+Character policy note:
+- `PlayerCatalog.projectileSlotAllowsThrowingWeapon` defines whether projectile-slot payload may use throwing fallback.
+- Eloise currently sets this to `false`; UI/meta normalization enforces spell selection for projectile slot payload in that case.
 
-Core systems involved: `AbilityActivationSystem`, `ProjectileLaunchSystem`, `ProjectileHitSystem`, `ProjectileWorldCollisionSystem`, `DamageSystem`.
+## Payload Assembly (`HitPayloadBuilder`)
 
-## Mobility Abilities
+`AbilityActivationSystem` builds payloads through `HitPayloadBuilder` with this order:
 
-Mobility is authored as `AbilityCategory.mobility` and can include optional contact effects via `MobilityImpactDef`.
+1. Start from ability base payload (`baseDamage`, `baseDamageType`, ability procs).
+2. Apply global offensive bonuses (`globalPowerBonusBp`, `globalCritChanceBonusBp`), including active `OffenseBuffStore` bonuses.
+3. Apply optional payload-source damage-type override.
+4. Merge proc lists in canonical order: ability -> item -> buffs -> passives.
+5. Deduplicate procs by `(hook, statusProfileId)` key and clamp crit chance to `[0, 10000]`.
 
-- Commits through `AbilityActivationSystem`
-- Execution through `MobilitySystem`
-- Contact overlaps through `MobilityImpactSystem`
-- Mobility press preempts queued/active combat intents
+Damage type override rule:
+- payload-source weapon damage type only overrides when ability base damage type is `physical`.
+
+## Mobility Preemption Contract
+
+On mobility/jump press in `AbilityActivationSystem`:
+
+1. Clear queued combat intents (`melee`, `projectile`, `self`).
+2. Clear buffered combat input.
+3. Clear active non-mobility ability state.
+4. Commit mobility/jump slot action.
+
+This keeps mobility as the deterministic preemption path over combat actions.
 
 ## Extension Notes
 
 ### Add a new status
 
-1. Add `StatusEffectType`
-2. Add/extend status store(s)
-3. Add apply/tick logic in `StatusSystem`
-4. Add immunity bit mapping
-5. Add `StatusProfileId` + catalog entries
+1. Add `StatusEffectType`.
+2. Add/extend status store(s).
+3. Add apply/tick logic in `StatusSystem`.
+4. Add immunity bit mapping.
+5. Add `StatusProfileId` + catalog entries.
 
 ### Add a new damage type
 
-1. Add enum in `DamageType`
-2. Add fields/switch handling in `DamageResistanceStore` and stat bonuses/resolver
-3. Update authoring + tests for neutral/resist/vulnerable cases
+1. Add enum in `DamageType`.
+2. Add fields/switch handling in `DamageResistanceStore` and stat bonuses/resolver.
+3. Update authoring + tests for neutral/resist/vulnerable cases.

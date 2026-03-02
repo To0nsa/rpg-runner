@@ -61,7 +61,7 @@ void main() {
       accessoryId: AccessoryId.speedBoots,
     );
 
-    expect(stats.powerBonusBp, equals(100));
+    expect(stats.globalPowerBonusBp, equals(100));
   });
 
   test('resource bonuses scale max pools deterministically', () {
@@ -183,7 +183,7 @@ class _TwoHandedWeaponCatalog extends WeaponCatalog {
           id: WeaponId.plainsteel,
           category: WeaponCategory.primary,
           weaponType: WeaponType.oneHandedSword,
-          stats: GearStatBonuses(powerBonusBp: 100),
+          stats: GearStatBonuses(globalPowerBonusBp: 100),
           isTwoHanded: true,
         );
       case WeaponId.roadguard:
@@ -191,7 +191,7 @@ class _TwoHandedWeaponCatalog extends WeaponCatalog {
           id: WeaponId.roadguard,
           category: WeaponCategory.offHand,
           weaponType: WeaponType.shield,
-          stats: GearStatBonuses(powerBonusBp: 900),
+          stats: GearStatBonuses(globalPowerBonusBp: 900),
         );
       default:
         return const WeaponDef(

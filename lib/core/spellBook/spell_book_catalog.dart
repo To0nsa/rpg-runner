@@ -13,7 +13,7 @@ class SpellBookCatalog {
       case SpellBookId.apprenticePrimer:
         return const SpellBookDef(
           id: SpellBookId.apprenticePrimer,
-          stats: GearStatBonuses(powerBonusBp: 200, manaBonusBp: 1000),
+          stats: GearStatBonuses(globalPowerBonusBp: 200, manaBonusBp: 1000),
         );
       case SpellBookId.bastionCodex:
         return const SpellBookDef(
@@ -34,7 +34,7 @@ class SpellBookCatalog {
         return const SpellBookDef(
           id: SpellBookId.emberGrimoire,
           stats: GearStatBonuses(
-            powerBonusBp: 700,
+            globalPowerBonusBp: 700,
             cooldownReductionBp: 300,
             defenseBonusBp: -500,
           ),
@@ -52,7 +52,7 @@ class SpellBookCatalog {
           stats: GearStatBonuses(
             manaBonusBp: 2500,
             cooldownReductionBp: 500,
-            powerBonusBp: -300,
+            globalPowerBonusBp: -300,
           ),
           procs: <WeaponProc>[
             WeaponProc(
@@ -66,7 +66,7 @@ class SpellBookCatalog {
         return const SpellBookDef(
           id: SpellBookId.hexboundLexicon,
           stats: GearStatBonuses(
-            critChanceBonusBp: 1000,
+            globalCritChanceBonusBp: 1000,
             globalPowerBonusBp: -200,
           ),
           procs: <WeaponProc>[
@@ -82,7 +82,7 @@ class SpellBookCatalog {
           stats: GearStatBonuses(
             moveSpeedBonusBp: 600,
             staminaBonusBp: 1200,
-            powerBonusBp: -200,
+            globalPowerBonusBp: -200,
           ),
           procs: <WeaponProc>[
             WeaponProc(
@@ -98,7 +98,7 @@ class SpellBookCatalog {
           stats: GearStatBonuses(
             darkResistanceBp: 2000,
             holyResistanceBp: 2000,
-            powerBonusBp: 300,
+            globalPowerBonusBp: 300,
           ),
           procs: <WeaponProc>[
             WeaponProc(

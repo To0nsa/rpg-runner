@@ -1,5 +1,4 @@
 import '../weapons/weapon_proc.dart';
-import '../stats/gear_stat_bonuses.dart';
 import '../abilities/ability_def.dart';
 import '../ecs/entity_id.dart';
 import 'damage_type.dart';
@@ -17,8 +16,7 @@ class HitPayloadBuilder {
   static HitPayload build({
     required AbilityDef ability,
     required EntityId source,
-    // Modifiers (extracted from WeaponDef or ProjectileItemDef or Buffs)
-    GearStatBonuses? weaponStats,
+    // Global modifiers (stats + buffs)
     int globalPowerBonusBp = 0,
     int globalCritChanceBonusBp = 0,
     DamageType? weaponDamageType,
@@ -38,29 +36,15 @@ class HitPayloadBuilder {
       if (finalDamage100 < 0) finalDamage100 = 0;
     }
 
-    // 3. Apply payload-source weapon modifiers.
-    if (weaponStats != null) {
-      // A. Power Scaling (Integer Math)
-      // Math: damage = base * (1 + bonusBp/10000)
-      // Impl: (base * (10000 + bonusBp)) ~/ 10000
-      final bonusBp = weaponStats.powerBonusBp;
-      // e.g. 1500 * 12000 ~/ 10000 = 1800
-      finalDamage100 = (finalDamage100 * (10000 + bonusBp)) ~/ 10000;
-      if (finalDamage100 < 0) finalDamage100 = 0;
-
-      // B. Crit chance is additive, with later cap at payload level.
-      finalCritChanceBp += weaponStats.critChanceBonusBp;
-    }
-
     if (weaponDamageType != null) {
-      // C. Damage Type Override
+      // 3. Damage Type Override
       // Rule: Weapon overrides Physical ability. Elemental ability (Fire/Ice) keeps its element.
       if (finalDamageType == DamageType.physical) {
         finalDamageType = weaponDamageType;
       }
     }
 
-    // D. Procs (deterministic merge + dedupe)
+    // 4. Procs (deterministic merge + dedupe)
     // Order is canonical: ability -> item -> buffs -> passives.
     final Set<int> seen = <int>{};
     void addProcs(List<WeaponProc> procs) {

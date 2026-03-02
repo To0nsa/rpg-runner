@@ -19,8 +19,8 @@ Normalize a basic sword to an offense budget of `+1.0` EV.
 
 When a sword gains extra EV through DoT, vulnerable, or strong control, it must pay using one or more taxes:
 
-- lower `powerBonusBp`
-- lower `critChanceBonusBp`
+- lower `globalPowerBonusBp`
+- lower `globalCritChanceBonusBp`
 - cooldown penalty
 - move speed penalty
 - defense penalty
@@ -37,8 +37,8 @@ Run each sword through a fast, deterministic test loop:
 
 Primary knobs:
 
-- `powerBonusBp`
-- `critChanceBonusBp`
+- `globalPowerBonusBp`
+- `globalCritChanceBonusBp`
 - proc chance
 - proc duration/magnitude
 - downside magnitude (`defense`, mobility, cooldown penalties)
@@ -48,56 +48,56 @@ Primary knobs:
 ### 1) Plainsteel
 
 - Role: baseline consistency
-- Stats: `power +1000bp`
+- Stats: `globalPower +1000bp`
 - Proc: none
 - Tradeoff: no specialization ceiling
 
 ### 2) Waspfang
 
 - Role: fast pressure, bleed attrition
-- Stats: `power +1000bp`
+- Stats: `globalPower +1000bp`
 - Proc: `onHit -> bleed` at `35%`
 - Tradeoff: lower upfront burst for better sustained pressure
 
 ### 3) Cinderedge
 
 - Role: crit-trigger burn, spiky output
-- Stats: `crit +1000bp`, `power +0bp`
+- Stats: `globalCrit +1000bp`, `globalPower +0bp`
 - Proc: `onCrit -> burn` at `100%`
 - Tradeoff: volatile performance, weaker when crit stack is low
 
 ### 4) Basilisk Kiss
 
 - Role: acid shred, anti-tank
-- Stats: `power +2500bp`, `crit -1000bp`
+- Stats: `globalPower +2500bp`, `globalCrit -1000bp`
 - Proc: `onHit -> acid` at `35%`
 - Tradeoff: lower burst in exchange for strong long-fight scaling
 
 ### 5) Frostbrand
 
 - Role: tempo control through slows
-- Stats: `power +2000bp`
+- Stats: `globalPower +2000bp`
 - Proc: `onHit -> slow` at `35%`
 - Tradeoff: slightly reduced raw DPS for safer engagements
 
 ### 6) Stormneedle
 
 - Role: rare clutch stun control
-- Stats: `power +2000bp`
+- Stats: `globalPower +2000bp`
 - Proc: `onHit -> stun` at `20%`
 - Tradeoff: control wins runs, so direct damage is intentionally taxed
 
 ### 7) Nullblade
 
 - Role: anti-caster silence utility
-- Stats: `power +1000bp`, , `crit +1000bp`
+- Stats: `globalPower +1000bp`, `globalCrit +1000bp`
 - Proc: `onHit -> silence` at `20%`
 - Tradeoff: situationally dominant versus casters, below-average in non-caster fights
 
 ### 8) Sunlit Vow
 
 - Role: sustain and wave stability
-- Stats: `power +700bp`, `defense +1000bp`
+- Stats: `globalPower +700bp`, `defense +1000bp`
 - Proc: `onKill -> haste (short)` at `100%` (or small heal status if sustain profile is preferred)
 - Tradeoff: excellent in wave clear, reduced boss value due to kill-gated trigger
 
@@ -111,7 +111,7 @@ Primary knobs:
 ### 10) Duelist's Oath
 
 - Role: skill sword rewarding crit consistency
-- Stats: `crit +1500bp`, `power +2000bp`
+- Stats: `globalCrit +1500bp`, `globalPower +2000bp`
 - Proc: `onCrit -> weaken` at `100%` (short duration)
 - Tradeoff: requires crit uptime and execution; adds safety windows rather than direct proc damage
 

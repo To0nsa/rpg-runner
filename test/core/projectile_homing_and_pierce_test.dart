@@ -28,6 +28,7 @@ import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/spellBook/spell_book_catalog.dart';
 import 'package:rpg_runner/core/spellBook/spell_book_def.dart';
 import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
+import 'package:rpg_runner/core/stats/character_stats_resolver.dart';
 import 'package:rpg_runner/core/tuning/spatial_grid_tuning.dart';
 import 'package:rpg_runner/core/weapons/weapon_catalog.dart';
 import 'package:rpg_runner/core/weapons/weapon_proc.dart';
@@ -253,20 +254,30 @@ void main() {
       final fullTierTicks = math.max(halfTierTicks + 1, ability.windupTicks);
       final half = resolveIntent(halfTierTicks);
       final full = resolveIntent(fullTierTicks);
+      final resolvedStats = const CharacterStatsResolver().resolveLoadout(
+        const EquippedLoadoutDef(
+          abilityProjectileId: 'eloise.overcharge_shot',
+          projectileSlotSpellId: null,
+          projectileId: ProjectileId.throwingKnife,
+        ),
+      );
+      final baseDamageAfterGlobal = (ability.baseDamage *
+              (10000 + resolvedStats.globalPowerBonusBp)) ~/
+          10000;
 
-      expect(tap.damage100, (ability.baseDamage * 8200) ~/ 10000);
+      expect(tap.damage100, (baseDamageAfterGlobal * 8200) ~/ 10000);
       expect(tap.critBp, 0);
       expect(tap.speedScaleBp, 9000);
       expect(tap.pierce, hitDelivery.pierce);
       expect(tap.maxPierce, baseMaxPierce);
 
-      expect(half.damage100, (ability.baseDamage * 10000) ~/ 10000);
+      expect(half.damage100, (baseDamageAfterGlobal * 10000) ~/ 10000);
       expect(half.critBp, 500);
       expect(half.speedScaleBp, 10500);
       expect(half.pierce, hitDelivery.pierce);
       expect(half.maxPierce, baseMaxPierce);
 
-      expect(full.damage100, (ability.baseDamage * 12250) ~/ 10000);
+      expect(full.damage100, (baseDamageAfterGlobal * 12250) ~/ 10000);
       expect(full.critBp, 1000);
       expect(full.speedScaleBp, 12000);
       expect(full.pierce, isTrue);

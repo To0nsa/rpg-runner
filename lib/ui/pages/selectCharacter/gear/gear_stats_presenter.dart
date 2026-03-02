@@ -981,11 +981,11 @@ GearStatLineTone _toneForDelta(int delta) {
 }
 
 int _effectivePowerBp(GearStatBonuses stats) {
-  return stats.powerBonusBp + stats.globalPowerBonusBp;
+  return stats.globalPowerBonusBp;
 }
 
 int _effectiveCritChanceBp(GearStatBonuses stats) {
-  return stats.critChanceBonusBp + stats.globalCritChanceBonusBp;
+  return stats.globalCritChanceBonusBp;
 }
 
 String _bpPct(int bp) => _signedPercent(bp / 100);

@@ -29,10 +29,10 @@ Runtime also supports typed resistance fields for all current `DamageType` value
 |---|---|
 | Health/Mana/Stamina | Max-pool scaling from resolved loadout stats at spawn. |
 | Defense | Global incoming reduction before typed resistance. |
-| Power | Hybrid: global power + payload-source power. |
+| Power | Global power only (resolved + offense-buff). |
 | Move Speed | Gear multiplier composed with status modifier multiplier. |
-| Cooldown Reduction | Applied at ability commit. |
-| Crit Chance | Hybrid: global crit chance + payload-source crit chance, final clamp. |
+| Cooldown Reduction | Applied at ability commit (then action-speed scaling on attack/cast slots). |
+| Crit Chance | Global crit chance only (resolved + offense-buff), final clamp. |
 | Typed Resistance | Applied from store + gear incoming mod for all 10 damage types. |
 
 ## Numeric Units
@@ -41,6 +41,18 @@ Runtime also supports typed resistance fields for all current `DamageType` value
 - fixed-point resources/damage: `100 = 1.0`
 
 ## Key Formulas
+
+### Loadout stat aggregation
+
+`total = mainWeapon`
+
+`if (mask has offHand && mainWeapon is not two-handed) total += offhandWeapon`
+
+`if (mask has projectile) total += projectile + spellBook`
+
+`total += accessory`
+
+`resolved = clampPerStat(total)`
 
 ### Resource max scaling
 
@@ -54,15 +66,19 @@ Runtime also supports typed resistance fields for all current `DamageType` value
 
 `scaledCooldownTicks = ceil(baseCooldownTicks * (10000 - cooldownReductionBp) / 10000)`
 
-### Outgoing damage
+### Outgoing payload build (stats-relevant)
 
-1. apply global power
-2. apply payload-source power
-3. clamp `>= 0`
+1. start from `AbilityDef.baseDamage`, `baseDamageType`, and ability procs
+2. apply global power (`resolvedGlobalPowerBp + offenseBuffPowerBp`)
+3. if payload source provides a damage type and ability base type is physical, override damage type
+4. merge procs in canonical order (ability -> item -> buffs -> passives) with deterministic dedupe
+5. clamp damage to `>= 0`
 
 ### Crit chance
 
-`finalCritChanceBp = clamp(globalCritChanceBonusBp + payloadSourceCritChanceBp, 0, 10000)`
+`resolvedGlobalCritChanceBp = clamp(globalCritChanceBonusBp, -9000, 6000)`
+
+`finalCritChanceBp = clamp(resolvedGlobalCritChanceBp + offenseBuffCritChanceBp, 0, 10000)`
 
 Crit bonus is currently fixed at `+5000 bp` (`+50%`).
 
@@ -73,12 +89,14 @@ Crit bonus is currently fixed at `+5000 bp` (`+50%`).
 3. defense
 4. typed modifier (`store + gearIncomingMod`)
 5. target `vulnerable` bonus
-6. clamp `>= 0`
+6. clamp `>= 0` after each stage that can go negative
 
 ## Resolved Stats Cache Lifecycle
 
 - Resolved via `ResolvedStatsCache`
 - Recomputed only when equipped loadout snapshot changes
+- Snapshot key fields: `mask`, `mainWeaponId`, `offhandWeaponId`, `projectileId`, `spellBookId`, `accessoryId`
+- `projectileSlotSpellId` and ability IDs do not affect resolved stat cache invalidation
 - Neutral stats returned when no loadout exists
 - Status effects apply through status/modifier stores, not by mutating resolved gear bundle
 
@@ -91,27 +109,11 @@ Crit bonus is currently fixed at `+5000 bp` (`+50%`).
 | Stamina bonus bp | `-9000` | `20000` |
 | Defense bp | `-9000` | `7500` |
 | Global power bp | `-9000` | `10000` |
-| Payload power bp | `-9000` | `10000` |
 | Move speed bp | `-9000` | `5000` |
 | Cooldown reduction bp | `-5000` | `5000` |
-| Global crit chance bp | `0` | `6000` |
-| Payload crit chance bp | `0` | `6000` |
+| Global crit chance bp | `-9000` | `6000` |
+| Final payload crit chance bp (post-merge clamp) | `0` | `10000` |
 | Typed resistance bp (each type) | `-9000` | `7500` |
-
-## Current Catalog Highlights
-
-- Weapons power: wooden `-1%`, basic `+1%`, solid `+2%`
-- Spellbooks power: basic `-1%`, solid `+1%`, epic `+2%`
-- Accessories:
-  - speed boots: `+5%` move speed
-  - golden ring: `+2%` max health
-  - teeth necklace: `+2%` max stamina
-  - diamond ring: `+2.5%` max mana
-  - iron boots: `+7%` defense
-  - oath beads: `+3%` cooldown reduction
-  - resilience cape: `+12%` bleed resist, `+8%` dark resist
-  - strength belt: `+5%` global power, `-1%` max stamina
-- Projectile items currently contribute via payload/procs, not direct stat bonuses
 
 ## Eloise Baseline (Pre-Gear)
 
@@ -124,5 +126,5 @@ Crit bonus is currently fixed at `+5000 bp` (`+50%`).
 
 ## Notes
 
-- Global offensive stats and typed resistance bonuses are now present on select
-  accessories (`strengthBelt`, `resilienceCape`).
+- Global offensive stats and typed resistance bonuses exist across current gear
+  catalogs (weapons, spell books, and accessories).

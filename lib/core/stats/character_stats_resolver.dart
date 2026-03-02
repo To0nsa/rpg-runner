@@ -18,9 +18,6 @@ class CharacterStatCaps {
   static const int maxDefenseBp = 7500;
   static const int minDefenseBp = -9000;
 
-  static const int maxPowerBp = 10000;
-  static const int minPowerBp = -9000;
-
   static const int maxGlobalPowerBp = 10000;
   static const int minGlobalPowerBp = -9000;
 
@@ -30,7 +27,7 @@ class CharacterStatCaps {
   static const int maxCooldownReductionBp = 5000;
   static const int minCooldownReductionBp = -5000;
 
-  static const int maxCritChanceBp = 6000;
+  static const int minGlobalCritChanceBp = -9000;
   static const int maxGlobalCritChanceBp = 6000;
 
   static const int minResourceBonusBp = -9000;
@@ -52,10 +49,8 @@ class ResolvedCharacterStats {
   int get defenseBonusBp => bonuses.defenseBonusBp;
   int get globalPowerBonusBp => bonuses.globalPowerBonusBp;
   int get globalCritChanceBonusBp => bonuses.globalCritChanceBonusBp;
-  int get powerBonusBp => bonuses.powerBonusBp;
   int get moveSpeedBonusBp => bonuses.moveSpeedBonusBp;
   int get cooldownReductionBp => bonuses.cooldownReductionBp;
-  int get critChanceBonusBp => bonuses.critChanceBonusBp;
   int get physicalResistanceBp => bonuses.physicalResistanceBp;
   int get fireResistanceBp => bonuses.fireResistanceBp;
   int get iceResistanceBp => bonuses.iceResistanceBp;
@@ -216,13 +211,8 @@ class CharacterStatsResolver {
       ),
       globalCritChanceBonusBp: _clampInt(
         input.globalCritChanceBonusBp,
-        0,
+        CharacterStatCaps.minGlobalCritChanceBp,
         CharacterStatCaps.maxGlobalCritChanceBp,
-      ),
-      powerBonusBp: _clampInt(
-        input.powerBonusBp,
-        CharacterStatCaps.minPowerBp,
-        CharacterStatCaps.maxPowerBp,
       ),
       moveSpeedBonusBp: _clampInt(
         input.moveSpeedBonusBp,
@@ -233,11 +223,6 @@ class CharacterStatsResolver {
         input.cooldownReductionBp,
         CharacterStatCaps.minCooldownReductionBp,
         CharacterStatCaps.maxCooldownReductionBp,
-      ),
-      critChanceBonusBp: _clampInt(
-        input.critChanceBonusBp,
-        0,
-        CharacterStatCaps.maxCritChanceBp,
       ),
       physicalResistanceBp: _clampInt(
         input.physicalResistanceBp,

@@ -13,7 +13,6 @@ import '../../projectiles/projectile_catalog.dart';
 import '../../spellBook/spell_book_catalog.dart';
 import '../../weapons/weapon_catalog.dart';
 import '../../weapons/weapon_proc.dart';
-import '../../stats/gear_stat_bonuses.dart';
 import '../../stats/character_stats_resolver.dart';
 import '../../stats/resolved_stats_cache.dart';
 import '../../util/fixed_math.dart';
@@ -868,7 +867,6 @@ class AbilityActivationSystem {
     final payload = HitPayloadBuilder.build(
       ability: ability,
       source: player,
-      weaponStats: weapon.stats,
       globalPowerBonusBp: resolvedStats.globalPowerBonusBp + offenseBuff.$1,
       weaponDamageType: weapon.damageType,
       weaponProcs: weapon.procs,
@@ -1002,7 +1000,6 @@ class AbilityActivationSystem {
     final double gravityScale;
     final double originOffset;
     final double projectileBaseSpeedUnitsPerSecond;
-    GearStatBonuses? weaponStats;
     DamageType? weaponDamageType;
     List<WeaponProc> weaponProcs = const <WeaponProc>[];
 
@@ -1033,7 +1030,6 @@ class AbilityActivationSystem {
                 projectile.originOffset == 0
             ? _spellOriginOffset(world, player)
             : projectile.originOffset;
-        weaponStats = projectile.stats;
         weaponDamageType = projectile.damageType;
         weaponProcs = _resolveProjectilePayloadProcs(
           world,
@@ -1056,7 +1052,6 @@ class AbilityActivationSystem {
         ballistic = false;
         gravityScale = 1.0;
         originOffset = _spellOriginOffset(world, player);
-        weaponStats = spellBook.stats;
         weaponDamageType = spellBook.damageType;
         weaponProcs = spellBook.procs;
         break;
@@ -1131,7 +1126,6 @@ class AbilityActivationSystem {
     final payload = HitPayloadBuilder.build(
       ability: ability,
       source: player,
-      weaponStats: weaponStats,
       globalPowerBonusBp: resolvedStats.globalPowerBonusBp + offenseBuff.$1,
       weaponDamageType: weaponDamageType,
       weaponProcs: weaponProcs,

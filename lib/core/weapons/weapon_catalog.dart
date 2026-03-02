@@ -22,7 +22,7 @@ class WeaponCatalog {
           id: WeaponId.plainsteel,
           category: WeaponCategory.primary,
           weaponType: WeaponType.oneHandedSword,
-          stats: GearStatBonuses(powerBonusBp: 1000),
+          stats: GearStatBonuses(globalPowerBonusBp: 1000),
         );
       case WeaponId.waspfang:
         return const WeaponDef(
@@ -36,7 +36,7 @@ class WeaponCatalog {
               chanceBp: 3500,
             ),
           ],
-          stats: GearStatBonuses(powerBonusBp: 1000),
+          stats: GearStatBonuses(globalPowerBonusBp: 1000),
         );
       case WeaponId.cinderedge:
         return const WeaponDef(
@@ -50,7 +50,7 @@ class WeaponCatalog {
               chanceBp: 10000,
             ),
           ],
-          stats: GearStatBonuses(critChanceBonusBp: 1000),
+          stats: GearStatBonuses(globalCritChanceBonusBp: 1000),
         );
       case WeaponId.basiliskKiss:
         return const WeaponDef(
@@ -64,7 +64,10 @@ class WeaponCatalog {
               chanceBp: 3500,
             ),
           ],
-          stats: GearStatBonuses(powerBonusBp: 2500, critChanceBonusBp: -1000),
+          stats: GearStatBonuses(
+            globalPowerBonusBp: 2500,
+            globalCritChanceBonusBp: -1000,
+          ),
         );
       case WeaponId.frostbrand:
         return const WeaponDef(
@@ -78,7 +81,7 @@ class WeaponCatalog {
               chanceBp: 3500,
             ),
           ],
-          stats: GearStatBonuses(powerBonusBp: 2000),
+          stats: GearStatBonuses(globalPowerBonusBp: 2000),
         );
       case WeaponId.stormneedle:
         return const WeaponDef(
@@ -92,7 +95,7 @@ class WeaponCatalog {
               chanceBp: 2000,
             ),
           ],
-          stats: GearStatBonuses(powerBonusBp: 2000),
+          stats: GearStatBonuses(globalPowerBonusBp: 2000),
         );
       case WeaponId.nullblade:
         return const WeaponDef(
@@ -106,7 +109,10 @@ class WeaponCatalog {
               chanceBp: 2000,
             ),
           ],
-          stats: GearStatBonuses(powerBonusBp: 1000, critChanceBonusBp: 1000),
+          stats: GearStatBonuses(
+            globalPowerBonusBp: 1000,
+            globalCritChanceBonusBp: 1000,
+          ),
         );
       case WeaponId.sunlitVow:
         return const WeaponDef(
@@ -120,7 +126,10 @@ class WeaponCatalog {
               chanceBp: 10000,
             ),
           ],
-          stats: GearStatBonuses(powerBonusBp: 700, defenseBonusBp: 1000),
+          stats: GearStatBonuses(
+            globalPowerBonusBp: 700,
+            defenseBonusBp: 1000,
+          ),
         );
       case WeaponId.graveglass:
         return const WeaponDef(
@@ -151,7 +160,10 @@ class WeaponCatalog {
               chanceBp: 10000,
             ),
           ],
-          stats: GearStatBonuses(powerBonusBp: 2000, critChanceBonusBp: 1500),
+          stats: GearStatBonuses(
+            globalPowerBonusBp: 2000,
+            globalCritChanceBonusBp: 1500,
+          ),
         );
       case WeaponId.roadguard:
         return const WeaponDef(

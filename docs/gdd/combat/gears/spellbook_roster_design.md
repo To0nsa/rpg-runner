@@ -19,7 +19,6 @@ Normalize a baseline spellbook to a spell throughput budget of `+1.0` ST.
 
 When a spellbook gains extra ST through procs, cooldown efficiency, or crit scaling, it must pay through one or more taxes:
 
-- lower `powerBonusBp`
 - lower `globalPowerBonusBp`
 - lower `globalCritChanceBonusBp`
 - reduced defenses (`defense`, `health`)
@@ -38,7 +37,7 @@ Run each spellbook through deterministic validation passes:
 
 Primary knobs:
 
-- `powerBonusBp` / `globalPowerBonusBp`
+- `globalPowerBonusBp`
 - `globalCritChanceBonusBp`
 - `cooldownReductionBp`
 - resource bonuses (`mana`, `stamina`, `health`)
@@ -49,7 +48,7 @@ Primary knobs:
 ### 1) Apprentice Primer
 
 - Role: baseline all-rounder
-- Stats: `power +200bp`, `mana +1000bp`
+- Stats: `globalPower +200bp`, `mana +1000bp`
 - Proc: none
 - Tradeoff: low specialization ceiling
 
@@ -63,35 +62,35 @@ Primary knobs:
 ### 3) Ember Grimoire
 
 - Role: aggressive DoT pressure
-- Stats: `power +700bp`, `cooldownReduction +300bp`, `defense -500bp`
+- Stats: `globalPower +700bp`, `cooldownReduction +300bp`, `defense -500bp`
 - Proc: `onHit -> burn` at `35%`
 - Tradeoff: high clear tempo, weak survivability
 
 ### 4) Tide Almanac
 
 - Role: control and anti-caster pacing
-- Stats: `mana +2500bp`, `cooldownReduction +500bp`, `power -300bp`
+- Stats: `mana +2500bp`, `cooldownReduction +500bp`, `globalPower -300bp`
 - Proc: `onHit -> drench` at `25%`
 - Tradeoff: lower direct damage for stronger control windows
 
 ### 5) Hexbound Lexicon
 
 - Role: anti-elite debuff utility
-- Stats: `crit +1000bp`, `globalPower -200bp`
+- Stats: `globalCrit +1000bp`, `globalPower -200bp`
 - Proc: `onCrit -> weaken` at `100%`
 - Tradeoff: value depends on crit consistency; lower base throughput
 
 ### 6) Gale Folio
 
 - Role: kite support and tempo safety
-- Stats: `moveSpeed +600bp`, `stamina +1200bp`, `power -200bp`
+- Stats: `moveSpeed +600bp`, `stamina +1200bp`, `globalPower -200bp`
 - Proc: `onHit -> slow` at `30%`
 - Tradeoff: safer spacing but lower burst ceiling
 
 ### 7) Null Testament
 
 - Role: anti-caster disruption
-- Stats: `darkRes +2000bp`, `holyRes +2000bp`, `power +300bp`
+- Stats: `darkRes +2000bp`, `holyRes +2000bp`, `globalPower +300bp`
 - Proc: `onCrit -> silence` at `60%`
 - Tradeoff: matchup-skewed value, weaker in physical-heavy encounters
 

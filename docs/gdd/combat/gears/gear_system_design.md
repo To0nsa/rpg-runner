@@ -39,7 +39,6 @@ Current stat contribution path supports:
 - resource max bonuses (health/mana/stamina)
 - defense
 - global power / global crit chance
-- payload-source power / crit chance
 - move speed
 - cooldown reduction
 - typed resistances (`physical`, `fire`, `ice`, `water`, `thunder`, `acid`, `dark`, `bleed`, `earth`, `holy`)

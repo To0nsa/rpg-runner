@@ -11,13 +11,13 @@ void main() {
 
     test('plainsteel baseline stats', () {
       final def = catalog.get(WeaponId.plainsteel);
-      expect(def.stats.powerBonusBp, 1000);
+      expect(def.stats.globalPowerBonusBp, 1000);
       expect(def.procs, isEmpty);
     });
 
     test('waspfang bleed pressure values', () {
       final def = catalog.get(WeaponId.waspfang);
-      expect(def.stats.powerBonusBp, 1000);
+      expect(def.stats.globalPowerBonusBp, 1000);
       expect(def.procs.single.hook, ProcHook.onHit);
       expect(def.procs.single.statusProfileId, StatusProfileId.meleeBleed);
       expect(def.procs.single.chanceBp, 3500);
@@ -25,8 +25,8 @@ void main() {
 
     test('cinderedge crit burn values', () {
       final def = catalog.get(WeaponId.cinderedge);
-      expect(def.stats.powerBonusBp, 0);
-      expect(def.stats.critChanceBonusBp, 1000);
+      expect(def.stats.globalPowerBonusBp, 0);
+      expect(def.stats.globalCritChanceBonusBp, 1000);
       expect(def.procs.single.hook, ProcHook.onCrit);
       expect(def.procs.single.statusProfileId, StatusProfileId.burnOnHit);
       expect(def.procs.single.chanceBp, 10000);
@@ -34,8 +34,8 @@ void main() {
 
     test('basilisk kiss anti-tank values', () {
       final def = catalog.get(WeaponId.basiliskKiss);
-      expect(def.stats.powerBonusBp, 2500);
-      expect(def.stats.critChanceBonusBp, -1000);
+      expect(def.stats.globalPowerBonusBp, 2500);
+      expect(def.stats.globalCritChanceBonusBp, -1000);
       expect(def.procs.single.hook, ProcHook.onHit);
       expect(def.procs.single.statusProfileId, StatusProfileId.acidOnHit);
       expect(def.procs.single.chanceBp, 3500);
@@ -43,7 +43,7 @@ void main() {
 
     test('frostbrand and stormneedle control values', () {
       final frostbrand = catalog.get(WeaponId.frostbrand);
-      expect(frostbrand.stats.powerBonusBp, 2000);
+      expect(frostbrand.stats.globalPowerBonusBp, 2000);
       expect(frostbrand.procs.single.hook, ProcHook.onHit);
       expect(
         frostbrand.procs.single.statusProfileId,
@@ -52,7 +52,7 @@ void main() {
       expect(frostbrand.procs.single.chanceBp, 3500);
 
       final stormneedle = catalog.get(WeaponId.stormneedle);
-      expect(stormneedle.stats.powerBonusBp, 2000);
+      expect(stormneedle.stats.globalPowerBonusBp, 2000);
       expect(stormneedle.procs.single.hook, ProcHook.onHit);
       expect(
         stormneedle.procs.single.statusProfileId,
@@ -63,8 +63,8 @@ void main() {
 
     test('nullblade utility values', () {
       final def = catalog.get(WeaponId.nullblade);
-      expect(def.stats.powerBonusBp, 1000);
-      expect(def.stats.critChanceBonusBp, 1000);
+      expect(def.stats.globalPowerBonusBp, 1000);
+      expect(def.stats.globalCritChanceBonusBp, 1000);
       expect(def.procs.single.hook, ProcHook.onHit);
       expect(def.procs.single.statusProfileId, StatusProfileId.silenceOnHit);
       expect(def.procs.single.chanceBp, 2000);
@@ -72,7 +72,7 @@ void main() {
 
     test('sunlit vow, graveglass, duelist oath values', () {
       final sunlitVow = catalog.get(WeaponId.sunlitVow);
-      expect(sunlitVow.stats.powerBonusBp, 700);
+      expect(sunlitVow.stats.globalPowerBonusBp, 700);
       expect(sunlitVow.stats.defenseBonusBp, 1000);
       expect(sunlitVow.procs.single.hook, ProcHook.onKill);
       expect(
@@ -92,8 +92,8 @@ void main() {
       expect(graveglass.procs.single.chanceBp, 2000);
 
       final duelistsOath = catalog.get(WeaponId.duelistsOath);
-      expect(duelistsOath.stats.powerBonusBp, 2000);
-      expect(duelistsOath.stats.critChanceBonusBp, 1500);
+      expect(duelistsOath.stats.globalPowerBonusBp, 2000);
+      expect(duelistsOath.stats.globalCritChanceBonusBp, 1500);
       expect(duelistsOath.procs.single.hook, ProcHook.onCrit);
       expect(
         duelistsOath.procs.single.statusProfileId,
