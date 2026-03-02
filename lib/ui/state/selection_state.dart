@@ -216,7 +216,7 @@ EquippedLoadoutDef _loadoutFromJson(Object? raw) {
         : const EquippedLoadoutDef().projectileSlotSpellId,
     accessoryId: _enumFromName(
       AccessoryId.values,
-      map['accessoryId'] as String?,
+      _migrateAccessoryName(map['accessoryId'] as String?),
       AccessoryId.speedBoots,
     ),
     abilityPrimaryId:
@@ -247,4 +247,9 @@ T? _enumFromNameNullable<T extends Enum>(List<T> values, String? name) {
     if (value.name == name) return value;
   }
   return null;
+}
+
+String? _migrateAccessoryName(String? raw) {
+  if (raw == 'ironBracers') return 'ironBoots';
+  return raw;
 }

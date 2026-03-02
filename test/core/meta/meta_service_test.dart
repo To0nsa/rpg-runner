@@ -75,28 +75,31 @@ void main() {
     );
   });
 
-  test('MetaService.createNew unlocks all swords and shields', () {
-    const service = MetaService();
-    final meta = service.createNew();
-    final inventory = meta.inventory;
+  test(
+    'MetaService.createNew unlocks all swords, shields, and accessories',
+    () {
+      const service = MetaService();
+      final meta = service.createNew();
+      final inventory = meta.inventory;
 
-    expect(inventory.unlockedWeaponIds.contains(WeaponId.plainsteel), isTrue);
-    expect(inventory.unlockedWeaponIds.contains(WeaponId.graveglass), isTrue);
-    expect(inventory.unlockedWeaponIds.contains(WeaponId.duelistsOath), isTrue);
-    expect(inventory.unlockedWeaponIds.contains(WeaponId.roadguard), isTrue);
-    expect(
-      inventory.unlockedWeaponIds.contains(WeaponId.oathwallRelic),
-      isTrue,
-    );
-    expect(
-      inventory.unlockedSpellBookIds.contains(SpellBookId.crownOfFocus),
-      isTrue,
-    );
-    expect(
-      inventory.unlockedAccessoryIds.contains(AccessoryId.teethNecklace),
-      isFalse,
-    );
-  });
+      expect(inventory.unlockedWeaponIds.contains(WeaponId.plainsteel), isTrue);
+      expect(inventory.unlockedWeaponIds.contains(WeaponId.graveglass), isTrue);
+      expect(
+        inventory.unlockedWeaponIds.contains(WeaponId.duelistsOath),
+        isTrue,
+      );
+      expect(inventory.unlockedWeaponIds.contains(WeaponId.roadguard), isTrue);
+      expect(
+        inventory.unlockedWeaponIds.contains(WeaponId.oathwallRelic),
+        isTrue,
+      );
+      expect(
+        inventory.unlockedSpellBookIds.contains(SpellBookId.crownOfFocus),
+        isTrue,
+      );
+      expect(inventory.unlockedAccessoryIds, AccessoryId.values.toSet());
+    },
+  );
 
   test('MetaService.normalize keeps full shield roster unlocked', () {
     const service = MetaService();
@@ -126,10 +129,7 @@ void main() {
       inventory.unlockedSpellBookIds.contains(SpellBookId.crownOfFocus),
       isTrue,
     );
-    expect(
-      inventory.unlockedAccessoryIds.contains(AccessoryId.teethNecklace),
-      isFalse,
-    );
+    expect(inventory.unlockedAccessoryIds, AccessoryId.values.toSet());
   });
 
   test(
@@ -186,6 +186,10 @@ void main() {
       expect(unlocked.contains(WeaponId.nullPrism), isTrue);
       expect(unlocked.contains(WeaponId.warbannerGuard), isTrue);
       expect(unlocked.contains(WeaponId.oathwallRelic), isTrue);
+      expect(
+        normalized.inventory.unlockedAccessoryIds,
+        AccessoryId.values.toSet(),
+      );
     },
   );
 
@@ -284,4 +288,46 @@ void main() {
       }
     },
   );
+
+  test('MetaState load migrates legacy accessory runtime id to ironBoots', () {
+    const service = MetaService();
+    final fallback = service.createNew();
+    final raw = <String, dynamic>{
+      'schemaVersion': 1,
+      'inventory': <String, Object?>{
+        'weapons': <String>[for (final id in WeaponId.values) id.name],
+        'throwingWeapons': <String>[
+          for (final id in ProjectileId.values) id.name,
+        ],
+        'spellBooks': <String>[for (final id in SpellBookId.values) id.name],
+        'accessories': <String>['ironBracers'],
+      },
+      'equippedByCharacter': <String, Object?>{
+        for (final id in PlayerCharacterId.values)
+          id.name: <String, Object?>{
+            'mainWeaponId': MetaDefaults.mainWeaponId.name,
+            'offhandWeaponId': MetaDefaults.offhandWeaponId.name,
+            'throwingWeaponId': MetaDefaults.throwingWeaponId.name,
+            'spellBookId': MetaDefaults.spellBookId.name,
+            'accessoryId': 'ironBracers',
+          },
+      },
+      'spellListByCharacter': <String, Object?>{
+        for (final id in PlayerCharacterId.values)
+          id.name: SpellList.empty.toJson(),
+      },
+    };
+
+    final loaded = MetaState.fromJson(raw, fallback: fallback);
+    final normalized = service.normalize(loaded);
+
+    expect(
+      normalized.equippedFor(PlayerCharacterId.eloise).accessoryId,
+      AccessoryId.ironBoots,
+    );
+    expect(
+      normalized.equippedFor(PlayerCharacterId.eloiseWip).accessoryId,
+      AccessoryId.ironBoots,
+    );
+  });
 }

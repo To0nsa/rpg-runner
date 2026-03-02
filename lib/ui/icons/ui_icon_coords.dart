@@ -130,6 +130,11 @@ UiIconCoords? uiIconCoordsForAccessory(AccessoryId id) {
     AccessoryId.speedBoots => const UiIconCoords(8, 2),
     AccessoryId.goldenRing => const UiIconCoords(8, 4),
     AccessoryId.teethNecklace => const UiIconCoords(8, 8),
+    AccessoryId.diamondRing => const UiIconCoords(8, 5),
+    AccessoryId.ironBoots => const UiIconCoords(8, 3),
+    AccessoryId.oathBeads => const UiIconCoords(8, 7),
+    AccessoryId.resilienceCape => const UiIconCoords(7, 14),
+    AccessoryId.strengthBelt => const UiIconCoords(7, 15),
   };
 }
 

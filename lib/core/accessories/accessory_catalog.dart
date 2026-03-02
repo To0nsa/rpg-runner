@@ -33,6 +33,39 @@ class AccessoryCatalog {
           // 200 bp = +2% max stamina.
           stats: GearStatBonuses(staminaBonus100: 200),
         );
+      case AccessoryId.diamondRing:
+        return const AccessoryDef(
+          id: AccessoryId.diamondRing,
+          // 250 bp = +2.5% max mana.
+          stats: GearStatBonuses(manaBonusBp: 250),
+        );
+      case AccessoryId.ironBoots:
+        return const AccessoryDef(
+          id: AccessoryId.ironBoots,
+          // 700 bp = +7% defense.
+          stats: GearStatBonuses(defenseBonusBp: 700),
+        );
+      case AccessoryId.oathBeads:
+        return const AccessoryDef(
+          id: AccessoryId.oathBeads,
+          // 300 bp = +3% cooldown reduction.
+          stats: GearStatBonuses(cooldownReductionBp: 300),
+        );
+      case AccessoryId.resilienceCape:
+        return const AccessoryDef(
+          id: AccessoryId.resilienceCape,
+          // Counterpick resist package for status-heavy encounters.
+          stats: GearStatBonuses(
+            bleedResistanceBp: 1200,
+            darkResistanceBp: 800,
+          ),
+        );
+      case AccessoryId.strengthBelt:
+        return const AccessoryDef(
+          id: AccessoryId.strengthBelt,
+          // Offense-forward pick with a small stamina comfort tax.
+          stats: GearStatBonuses(globalPowerBonusBp: 500, staminaBonusBp: -100),
+        );
     }
   }
 }

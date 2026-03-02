@@ -107,7 +107,7 @@ class MetaService {
 
   /// Returns starter unlocked accessory IDs.
   Set<AccessoryId> _startingUnlockedAccessoryIds() {
-    return AccessoryId.values.take(_startingUnlockedPerCatalog).toSet();
+    return AccessoryId.values.toSet();
   }
 
   /// Creates a new normalized meta state for first-time users.
@@ -233,6 +233,7 @@ class MetaService {
     final unlockedAccessories =
         Set<AccessoryId>.from(inventory.unlockedAccessoryIds)
           ..removeWhere((id) => !allowedAccessories.contains(id))
+          ..addAll(allowedAccessories)
           ..add(MetaDefaults.accessoryId);
 
     inventory = inventory.copyWith(

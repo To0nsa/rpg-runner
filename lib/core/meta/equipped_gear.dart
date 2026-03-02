@@ -87,10 +87,9 @@ class EquippedGear {
         json['spellBookId'] as String?,
         fallback.spellBookId,
       ),
-      accessoryId: _enumFromName(
-        AccessoryId.values,
+      accessoryId: _accessoryIdFromName(
         json['accessoryId'] as String?,
-        fallback.accessoryId,
+        fallback: fallback.accessoryId,
       ),
     );
   }
@@ -103,4 +102,16 @@ T _enumFromName<T extends Enum>(List<T> values, String? name, T fallback) {
     if (value.name == name) return value;
   }
   return fallback;
+}
+
+AccessoryId _accessoryIdFromName(
+  String? name, {
+  required AccessoryId fallback,
+}) {
+  if (name == null) return fallback;
+  if (name == 'ironBracers') {
+    // Save-data migration: old runtime ID renamed to ironBoots.
+    return AccessoryId.ironBoots;
+  }
+  return _enumFromName(AccessoryId.values, name, fallback);
 }

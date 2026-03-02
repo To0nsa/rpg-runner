@@ -28,6 +28,14 @@ void main() {
         gearDisplayNameForSlot(GearSlot.accessory, AccessoryId.goldenRing),
         equals('Golden Ring'),
       );
+      expect(
+        gearDisplayNameForSlot(GearSlot.accessory, AccessoryId.resilienceCape),
+        equals('Resilience Cape'),
+      );
+      expect(
+        gearDisplayNameForSlot(GearSlot.accessory, AccessoryId.ironBoots),
+        equals('Iron Boots'),
+      );
     });
 
     test('slot descriptions are resolved from UI mappings', () {
@@ -51,6 +59,10 @@ void main() {
       expect(
         gearDescriptionForSlot(GearSlot.accessory, AccessoryId.speedBoots),
         equals('Improves move speed.'),
+      );
+      expect(
+        gearDescriptionForSlot(GearSlot.accessory, AccessoryId.oathBeads),
+        equals('Improves cooldown recovery.'),
       );
     });
 

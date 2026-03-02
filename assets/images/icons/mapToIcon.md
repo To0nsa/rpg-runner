@@ -47,9 +47,14 @@
 ## Accessories
 | Icon Name | Coordinates (Row, Col) |
 | :--- | :---: |
-| `speedBoots` | (8, 2) |
+| `speedBoots` | (8, 2) | `assets\images\gear-icons\sword\transparentIcons.png` |
 | `goldenRing` | (8, 4) |
 | `teethNecklace` | (8, 8) |
+| `diamondRing` | (8, 5) |
+| `ironBoots` | (8, 3) |
+| `oathBeads` | (8, 7) |
+| `resilienceCape` | (7, 14) |
+| `strengthBelt` | (7, 15) |
 
 ## UI Icons
 | Icon Name | Coordinates (Row, Col) |

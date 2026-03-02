@@ -305,6 +305,11 @@ const Map<AccessoryId, String> _accessoryDisplayNameOverrides =
       AccessoryId.speedBoots: 'Speed Boots',
       AccessoryId.goldenRing: 'Golden Ring',
       AccessoryId.teethNecklace: 'Teeth Necklace',
+      AccessoryId.diamondRing: 'Diamond Ring',
+      AccessoryId.ironBoots: 'Iron Boots',
+      AccessoryId.oathBeads: 'Oath Beads',
+      AccessoryId.resilienceCape: 'Resilience Cape',
+      AccessoryId.strengthBelt: 'Strength Belt',
     };
 
 const Map<AccessoryId, String> _accessoryDescriptionOverrides =
@@ -312,4 +317,11 @@ const Map<AccessoryId, String> _accessoryDescriptionOverrides =
       AccessoryId.speedBoots: 'Improves move speed.',
       AccessoryId.goldenRing: 'Improves maximum health.',
       AccessoryId.teethNecklace: 'Improves maximum stamina.',
+      AccessoryId.diamondRing: 'Improves maximum mana.',
+      AccessoryId.ironBoots: 'Improves defense for safer front-line pacing.',
+      AccessoryId.oathBeads: 'Improves cooldown recovery.',
+      AccessoryId.resilienceCape:
+          'Improves bleed and dark resistance for status-heavy encounters.',
+      AccessoryId.strengthBelt:
+          'Increases global power at a small stamina comfort cost.',
     };

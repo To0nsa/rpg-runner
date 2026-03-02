@@ -1,6 +1,6 @@
 # Character Stats (Current Core)
 
-This document reflects the implemented stat model as of **2026-02-27**.
+This document reflects the implemented stat model as of **2026-03-02**.
 
 ## Goals
 
@@ -106,6 +106,11 @@ Crit bonus is currently fixed at `+5000 bp` (`+50%`).
   - speed boots: `+5%` move speed
   - golden ring: `+2%` max health
   - teeth necklace: `+2%` max stamina
+  - diamond ring: `+2.5%` max mana
+  - iron boots: `+7%` defense
+  - oath beads: `+3%` cooldown reduction
+  - resilience cape: `+12%` bleed resist, `+8%` dark resist
+  - strength belt: `+5%` global power, `-1%` max stamina
 - Projectile items currently contribute via payload/procs, not direct stat bonuses
 
 ## Eloise Baseline (Pre-Gear)
@@ -119,5 +124,5 @@ Crit bonus is currently fixed at `+5000 bp` (`+50%`).
 
 ## Notes
 
-- Default shipped content currently does not grant global offensive stats.
-- Default shipped content currently does not grant typed gear resistance bonuses.
+- Global offensive stats and typed resistance bonuses are now present on select
+  accessories (`strengthBelt`, `resilienceCape`).

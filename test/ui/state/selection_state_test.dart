@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:rpg_runner/core/accessories/accessory_id.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:rpg_runner/core/levels/level_id.dart';
 import 'package:rpg_runner/core/players/player_character_definition.dart';
@@ -54,6 +55,22 @@ void main() {
       final eloise =
           loadouts[PlayerCharacterId.eloise.name]! as Map<String, Object?>;
       expect(eloise['abilityJumpId'], 'eloise.custom_jump');
+    });
+
+    test('fromJson migrates legacy accessory runtime id', () {
+      final state = SelectionState.fromJson(<String, dynamic>{
+        'characterId': PlayerCharacterId.eloise.name,
+        'loadoutsByCharacter': <String, Object?>{
+          PlayerCharacterId.eloise.name: <String, Object?>{
+            'accessoryId': 'ironBracers',
+          },
+        },
+      });
+
+      expect(
+        state.loadoutFor(PlayerCharacterId.eloise).accessoryId,
+        AccessoryId.ironBoots,
+      );
     });
   });
 }

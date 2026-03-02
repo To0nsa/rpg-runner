@@ -80,10 +80,9 @@ class InventoryState {
         SpellBookId.values,
         fallback.unlockedSpellBookIds,
       ),
-      unlockedAccessoryIds: _readEnumSet(
+      unlockedAccessoryIds: _readAccessoryIdSet(
         json['accessories'],
-        AccessoryId.values,
-        fallback.unlockedAccessoryIds,
+        fallback: fallback.unlockedAccessoryIds,
       ),
     );
   }
@@ -110,4 +109,17 @@ Set<T> _readEnumSet<T extends Enum>(
     }
   }
   return result.isEmpty ? fallback : result;
+}
+
+Set<AccessoryId> _readAccessoryIdSet(
+  Object? raw, {
+  required Set<AccessoryId> fallback,
+}) {
+  if (raw is! List) return fallback;
+  final migrated = <String>[];
+  for (final item in raw) {
+    if (item is! String) continue;
+    migrated.add(item == 'ironBracers' ? 'ironBoots' : item);
+  }
+  return _readEnumSet(migrated, AccessoryId.values, fallback);
 }
