@@ -77,6 +77,8 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.spellCooldownTicksLeft,
     required this.spellCooldownTicksTotal,
     required this.forceAimCancelSignal,
+    required this.hasSecondarySlot,
+    required this.hasProjectileSlot,
     this.tuning = ControlsTuning.fixed,
   });
 
@@ -132,6 +134,8 @@ class RunnerControlsOverlay extends StatelessWidget {
   final int spellCooldownTicksLeft;
   final int spellCooldownTicksTotal;
   final ValueListenable<int> forceAimCancelSignal;
+  final bool hasSecondarySlot;
+  final bool hasProjectileSlot;
   final ControlsTuning tuning;
 
   @override
@@ -179,30 +183,31 @@ class RunnerControlsOverlay extends StatelessWidget {
           bottom: themedTuning.layout.bottomEdgePadding,
           child: MovementControl(tuning: themedTuning, onMoveAxis: onMoveAxis),
         ),
-        Positioned(
-          right: anchorFor(AbilitySlot.projectile).right,
-          bottom: anchorFor(AbilitySlot.projectile).bottom,
-          child: ProjectileControl(
-            tuning: themedTuning,
-            inputMode: projectileInputMode,
-            size: sizeFor(AbilitySlot.projectile),
-            deadzoneRadius: layout.directionalDeadzoneRadius,
-            label: labelFor(AbilitySlot.projectile),
-            iconWidget: iconForSlot(AbilitySlot.projectile),
-            onPressed: onProjectilePressed,
-            onHoldStart: onProjectileHoldStart,
-            onHoldEnd: onProjectileHoldEnd,
-            onAimDir: onAimDir,
-            onAimClear: onAimClear,
-            onCommitted: onProjectileCommitted,
-            aimPreview: projectileAimPreview,
-            affordable: projectileAffordable,
-            cooldownTicksLeft: projectileCooldownTicksLeft,
-            cooldownTicksTotal: projectileCooldownTicksTotal,
-            cancelHitboxRect: aimCancelHitboxRect,
-            forceCancelSignal: forceAimCancelSignal,
+        if (hasProjectileSlot)
+          Positioned(
+            right: anchorFor(AbilitySlot.projectile).right,
+            bottom: anchorFor(AbilitySlot.projectile).bottom,
+            child: ProjectileControl(
+              tuning: themedTuning,
+              inputMode: projectileInputMode,
+              size: sizeFor(AbilitySlot.projectile),
+              deadzoneRadius: layout.directionalDeadzoneRadius,
+              label: labelFor(AbilitySlot.projectile),
+              iconWidget: iconForSlot(AbilitySlot.projectile),
+              onPressed: onProjectilePressed,
+              onHoldStart: onProjectileHoldStart,
+              onHoldEnd: onProjectileHoldEnd,
+              onAimDir: onAimDir,
+              onAimClear: onAimClear,
+              onCommitted: onProjectileCommitted,
+              aimPreview: projectileAimPreview,
+              affordable: projectileAffordable,
+              cooldownTicksLeft: projectileCooldownTicksLeft,
+              cooldownTicksTotal: projectileCooldownTicksTotal,
+              cancelHitboxRect: aimCancelHitboxRect,
+              forceCancelSignal: forceAimCancelSignal,
+            ),
           ),
-        ),
         Positioned(
           right: anchorFor(AbilitySlot.spell).right,
           bottom: anchorFor(AbilitySlot.spell).bottom,
@@ -217,75 +222,76 @@ class RunnerControlsOverlay extends StatelessWidget {
             cooldownTicksTotal: spellCooldownTicksTotal,
           ),
         ),
-        Positioned(
-          right: anchorFor(AbilitySlot.secondary).right,
-          bottom: anchorFor(AbilitySlot.secondary).bottom,
-          child: secondaryInputMode == AbilityInputMode.holdMaintain
-              ? HoldActionButton(
-                  label: labelFor(AbilitySlot.secondary),
-                  icon: secondarySlot.icon,
-                  iconWidget: iconForSlot(AbilitySlot.secondary),
-                  onHoldStart: onSecondaryHoldStart,
-                  onHoldEnd: onSecondaryHoldEnd,
-                  tuning: action,
-                  cooldownRing: cooldownRing,
-                  affordable: secondaryAffordable,
-                  cooldownTicksLeft: secondaryCooldownTicksLeft,
-                  cooldownTicksTotal: secondaryCooldownTicksTotal,
-                  size: sizeFor(AbilitySlot.secondary),
-                )
-              : secondaryInputMode == AbilityInputMode.holdRelease
-              ? HoldActionButton(
-                  label: labelFor(AbilitySlot.secondary),
-                  icon: secondarySlot.icon,
-                  iconWidget: iconForSlot(AbilitySlot.secondary),
-                  onHoldStart: onSecondaryHoldStart,
-                  onHoldEnd: onSecondaryHoldEnd,
-                  onRelease: onSecondaryCommitted,
-                  tuning: action,
-                  cooldownRing: cooldownRing,
-                  affordable: secondaryAffordable,
-                  cooldownTicksLeft: secondaryCooldownTicksLeft,
-                  cooldownTicksTotal: secondaryCooldownTicksTotal,
-                  size: sizeFor(AbilitySlot.secondary),
-                )
-              : secondaryInputMode == AbilityInputMode.holdAimRelease
-              ? DirectionalActionButton(
-                  label: labelFor(AbilitySlot.secondary),
-                  icon: secondarySlot.icon,
-                  iconWidget: iconForSlot(AbilitySlot.secondary),
-                  onHoldStart: onSecondaryHoldStart,
-                  onHoldEnd: onSecondaryHoldEnd,
-                  onAimDir: onAimDir,
-                  onAimClear: onAimClear,
-                  onCommit: onSecondaryCommitted,
-                  projectileAimPreview: meleeAimPreview,
-                  tuning: directional,
-                  cooldownRing: cooldownRing,
-                  cancelHitboxRect: aimCancelHitboxRect,
-                  affordable: secondaryAffordable,
-                  cooldownTicksLeft: secondaryCooldownTicksLeft,
-                  cooldownTicksTotal: secondaryCooldownTicksTotal,
-                  size: sizeFor(
-                    AbilitySlot.secondary,
-                    familyOverride: AbilityRadialSlotFamily.directional,
+        if (hasSecondarySlot)
+          Positioned(
+            right: anchorFor(AbilitySlot.secondary).right,
+            bottom: anchorFor(AbilitySlot.secondary).bottom,
+            child: secondaryInputMode == AbilityInputMode.holdMaintain
+                ? HoldActionButton(
+                    label: labelFor(AbilitySlot.secondary),
+                    icon: secondarySlot.icon,
+                    iconWidget: iconForSlot(AbilitySlot.secondary),
+                    onHoldStart: onSecondaryHoldStart,
+                    onHoldEnd: onSecondaryHoldEnd,
+                    tuning: action,
+                    cooldownRing: cooldownRing,
+                    affordable: secondaryAffordable,
+                    cooldownTicksLeft: secondaryCooldownTicksLeft,
+                    cooldownTicksTotal: secondaryCooldownTicksTotal,
+                    size: sizeFor(AbilitySlot.secondary),
+                  )
+                : secondaryInputMode == AbilityInputMode.holdRelease
+                ? HoldActionButton(
+                    label: labelFor(AbilitySlot.secondary),
+                    icon: secondarySlot.icon,
+                    iconWidget: iconForSlot(AbilitySlot.secondary),
+                    onHoldStart: onSecondaryHoldStart,
+                    onHoldEnd: onSecondaryHoldEnd,
+                    onRelease: onSecondaryCommitted,
+                    tuning: action,
+                    cooldownRing: cooldownRing,
+                    affordable: secondaryAffordable,
+                    cooldownTicksLeft: secondaryCooldownTicksLeft,
+                    cooldownTicksTotal: secondaryCooldownTicksTotal,
+                    size: sizeFor(AbilitySlot.secondary),
+                  )
+                : secondaryInputMode == AbilityInputMode.holdAimRelease
+                ? DirectionalActionButton(
+                    label: labelFor(AbilitySlot.secondary),
+                    icon: secondarySlot.icon,
+                    iconWidget: iconForSlot(AbilitySlot.secondary),
+                    onHoldStart: onSecondaryHoldStart,
+                    onHoldEnd: onSecondaryHoldEnd,
+                    onAimDir: onAimDir,
+                    onAimClear: onAimClear,
+                    onCommit: onSecondaryCommitted,
+                    projectileAimPreview: meleeAimPreview,
+                    tuning: directional,
+                    cooldownRing: cooldownRing,
+                    cancelHitboxRect: aimCancelHitboxRect,
+                    affordable: secondaryAffordable,
+                    cooldownTicksLeft: secondaryCooldownTicksLeft,
+                    cooldownTicksTotal: secondaryCooldownTicksTotal,
+                    size: sizeFor(
+                      AbilitySlot.secondary,
+                      familyOverride: AbilityRadialSlotFamily.directional,
+                    ),
+                    deadzoneRadius: layout.directionalDeadzoneRadius,
+                    forceCancelSignal: forceAimCancelSignal,
+                  )
+                : ActionButton(
+                    label: labelFor(AbilitySlot.secondary),
+                    icon: secondarySlot.icon,
+                    iconWidget: iconForSlot(AbilitySlot.secondary),
+                    onPressed: onSecondaryPressed,
+                    tuning: action,
+                    cooldownRing: cooldownRing,
+                    affordable: secondaryAffordable,
+                    cooldownTicksLeft: secondaryCooldownTicksLeft,
+                    cooldownTicksTotal: secondaryCooldownTicksTotal,
+                    size: sizeFor(AbilitySlot.secondary),
                   ),
-                  deadzoneRadius: layout.directionalDeadzoneRadius,
-                  forceCancelSignal: forceAimCancelSignal,
-                )
-              : ActionButton(
-                  label: labelFor(AbilitySlot.secondary),
-                  icon: secondarySlot.icon,
-                  iconWidget: iconForSlot(AbilitySlot.secondary),
-                  onPressed: onSecondaryPressed,
-                  tuning: action,
-                  cooldownRing: cooldownRing,
-                  affordable: secondaryAffordable,
-                  cooldownTicksLeft: secondaryCooldownTicksLeft,
-                  cooldownTicksTotal: secondaryCooldownTicksTotal,
-                  size: sizeFor(AbilitySlot.secondary),
-                ),
-        ),
+          ),
         Positioned(
           right: anchorFor(AbilitySlot.primary).right,
           bottom: anchorFor(AbilitySlot.primary).bottom,

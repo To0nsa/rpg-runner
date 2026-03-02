@@ -212,20 +212,24 @@ ProjectileSourcePanelModel projectileSourcePanelModel(
 /// `spellId == null` always represents the equipped throwing weapon source.
 List<ProjectileSourceOption> projectileSourceOptions(
   EquippedLoadoutDef loadout,
-  SpellList spellList,
-) {
+  SpellList spellList, {
+  bool includeEquippedThrowingSource = true,
+}) {
   final sourceModel = projectileSourcePanelModel(loadout, spellList);
-  final throwingDef = _projectileCatalog.get(sourceModel.throwingWeaponId);
-  final options = <ProjectileSourceOption>[
-    ProjectileSourceOption(
-      projectileId: sourceModel.throwingWeaponId,
-      spellId: null,
-      displayName: sourceModel.throwingWeaponDisplayName,
-      description: projectileDescription(sourceModel.throwingWeaponId),
-      damageTypeName: damageTypeDisplayName(throwingDef.damageType),
-      statusLines: projectileStatusSummaries(throwingDef),
-    ),
-  ];
+  final options = <ProjectileSourceOption>[];
+  if (includeEquippedThrowingSource) {
+    final throwingDef = _projectileCatalog.get(sourceModel.throwingWeaponId);
+    options.add(
+      ProjectileSourceOption(
+        projectileId: sourceModel.throwingWeaponId,
+        spellId: null,
+        displayName: sourceModel.throwingWeaponDisplayName,
+        description: projectileDescription(sourceModel.throwingWeaponId),
+        damageTypeName: damageTypeDisplayName(throwingDef.damageType),
+        statusLines: projectileStatusSummaries(throwingDef),
+      ),
+    );
+  }
   for (final spell in sourceModel.spellOptions) {
     final spellDef = _projectileCatalog.get(spell.spellId);
     options.add(
@@ -246,10 +250,15 @@ List<ProjectileSourceOption> projectileSourceOptions(
 ProjectileId? normalizeProjectileSourceSelection(
   EquippedLoadoutDef loadout,
   SpellList spellList,
-  ProjectileId? selected,
-) {
+  ProjectileId? selected, {
+  bool includeEquippedThrowingSource = true,
+}) {
   if (selected == null) return null;
-  final options = projectileSourceOptions(loadout, spellList);
+  final options = projectileSourceOptions(
+    loadout,
+    spellList,
+    includeEquippedThrowingSource: includeEquippedThrowingSource,
+  );
   final exists = options.any((option) => option.spellId == selected);
   return exists ? selected : null;
 }

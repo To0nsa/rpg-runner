@@ -63,6 +63,8 @@ class GameOverlay extends StatelessWidget {
     final secondaryAffordable =
         hud.canAffordSecondary && hud.secondarySlotValid;
     final spellAffordable = hud.canAffordSpell && hud.spellSlotValid;
+    final hasSecondarySlot = hud.hasSecondarySlot;
+    final hasProjectileSlot = hud.hasProjectileSlot;
     final secondaryUsesSlotHold =
         hud.secondaryInputMode == AbilityInputMode.holdAimRelease ||
         hud.secondaryInputMode == AbilityInputMode.holdRelease;
@@ -162,6 +164,8 @@ class GameOverlay extends StatelessWidget {
             spellCooldownTicksTotal:
                 hud.cooldownTicksTotal[CooldownGroup.spell0],
             forceAimCancelSignal: forceAimCancelSignal,
+            hasSecondarySlot: hasSecondarySlot,
+            hasProjectileSlot: hasProjectileSlot,
           ),
         ),
         PauseOverlay(

@@ -457,6 +457,8 @@ class SnapshotBuilder {
         mobilitySlotValid: mobilitySlotValid,
         spellSlotValid: spellSlotValid,
         jumpSlotValid: jumpSlotValid,
+        hasSecondarySlot: hasSecondarySlot,
+        hasProjectileSlot: hasProjectileSlot,
         canAffordJump: canAffordJump,
         canAffordMobility: canAffordMobility,
         canAffordMelee: canAffordMelee,

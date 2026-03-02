@@ -21,6 +21,8 @@ class PlayerHudSnapshot {
     required this.mobilitySlotValid,
     required this.spellSlotValid,
     required this.jumpSlotValid,
+    required this.hasSecondarySlot,
+    required this.hasProjectileSlot,
     required this.canAffordJump,
     required this.canAffordMobility,
     required this.canAffordMelee,
@@ -85,6 +87,12 @@ class PlayerHudSnapshot {
 
   /// Whether the jump slot ability is valid for the current loadout.
   final bool jumpSlotValid;
+
+  /// Whether the character has an enabled secondary/off-hand slot.
+  final bool hasSecondarySlot;
+
+  /// Whether the character has an enabled projectile slot.
+  final bool hasProjectileSlot;
 
   /// Whether stamina is sufficient for jumping.
   final bool canAffordJump;

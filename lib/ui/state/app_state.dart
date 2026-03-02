@@ -8,6 +8,7 @@ import '../../core/ecs/stores/combat/equipped_loadout_store.dart';
 import '../../core/levels/level_id.dart';
 import '../../core/loadout/loadout_validator.dart';
 import '../../core/meta/gear_slot.dart';
+import '../../core/meta/meta_defaults.dart';
 import '../../core/meta/meta_service.dart';
 import '../../core/meta/meta_state.dart';
 import '../../core/players/character_ability_namespace.dart';
@@ -283,6 +284,7 @@ class AppState extends ChangeNotifier {
         _normalizeProjectileSpellSelectionForLoadout(
           normalized,
           learnedProjectileSpellIds: spellList.learnedProjectileSpellIds,
+          requireSpellSelection: !catalog.projectileSlotAllowsThrowingWeapon,
         );
     if (normalizedProjectileSpellId != normalized.projectileSlotSpellId) {
       normalized = _withProjectileSpellSelection(
@@ -357,10 +359,11 @@ class AppState extends ChangeNotifier {
   ProjectileId? _normalizeProjectileSpellSelectionForLoadout(
     EquippedLoadoutDef loadout, {
     required Set<ProjectileId> learnedProjectileSpellIds,
+    required bool requireSpellSelection,
   }) {
     final current = loadout.projectileSlotSpellId;
-    if (current == null) return null;
-    if (_isProjectileSpellLearned(current, learnedProjectileSpellIds)) {
+    if (current != null &&
+        _isProjectileSpellLearned(current, learnedProjectileSpellIds)) {
       return current;
     }
 
@@ -369,6 +372,14 @@ class AppState extends ChangeNotifier {
     for (final spellId in orderedLearned) {
       if (_isProjectileSpellLearned(spellId, learnedProjectileSpellIds)) {
         return spellId;
+      }
+    }
+    if (requireSpellSelection) {
+      if (_isProjectileSpellLearned(
+        MetaDefaults.projectileSpellId,
+        learnedProjectileSpellIds,
+      )) {
+        return MetaDefaults.projectileSpellId;
       }
     }
     return null;

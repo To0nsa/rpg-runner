@@ -5,6 +5,7 @@ import '../../../core/abilities/ability_def.dart';
 import '../../../core/ecs/stores/combat/equipped_loadout_store.dart';
 import '../../../core/meta/spell_list.dart';
 import '../../../core/players/player_character_definition.dart';
+import '../../../core/players/player_character_registry.dart';
 import '../../state/app_state.dart';
 import '../../text/ability_tooltip_builder.dart';
 import '../../theme/ui_tokens.dart';
@@ -44,20 +45,27 @@ class _SkillsBarState extends State<SkillsBar> {
       characterId: widget.characterId,
       loadout: rawLoadout,
     );
+    final availableSlots = _availableSlotsForMask(loadout.mask);
+    final selectedSlot = _selectedSlotForBuild(availableSlots);
     final spellList = appState.meta.spellListFor(widget.characterId);
-    final isProjectileSlot = _selectedSlot == AbilitySlot.projectile;
+    final characterCatalog = PlayerCharacterRegistry.resolve(
+      widget.characterId,
+    ).catalog;
+    final includeEquippedThrowingSource =
+        characterCatalog.projectileSlotAllowsThrowingWeapon;
+    final isProjectileSlot = selectedSlot == AbilitySlot.projectile;
     final selectedSourceSpellId = isProjectileSlot
         ? loadout.projectileSlotSpellId
         : null;
     final candidates = abilityCandidatesForSlot(
       characterId: widget.characterId,
-      slot: _selectedSlot,
+      slot: selectedSlot,
       loadout: loadout,
       spellList: spellList,
       selectedSourceSpellId: selectedSourceSpellId,
       overrideSelectedSource: isProjectileSlot,
     );
-    final equippedAbilityId = abilityIdForSlot(loadout, _selectedSlot);
+    final equippedAbilityId = abilityIdForSlot(loadout, selectedSlot);
     final equippedAbilityIdsBySlot = <AbilitySlot, AbilityKey>{
       for (final slot in AbilitySlot.values)
         slot: abilityIdForSlot(loadout, slot),
@@ -77,7 +85,7 @@ class _SkillsBarState extends State<SkillsBar> {
                   : null,
               payloadWeaponType: payloadWeaponTypeForTooltip(
                 def: inspectedCandidate.def,
-                slot: _selectedSlot,
+                slot: selectedSlot,
                 selectedSourceSpellId: selectedSourceSpellId,
               ),
             ),
@@ -94,19 +102,22 @@ class _SkillsBarState extends State<SkillsBar> {
               SizedBox(
                 width: layout.listWidth,
                 child: SkillsListPane(
-                  selectedSlot: _selectedSlot,
+                  selectedSlot: selectedSlot,
                   candidates: candidates,
                   selectedAbilityId: inspectedAbilityId,
                   onSelectAbility: (candidate) => _onSelectAbility(
                     appState: appState,
                     loadout: loadout,
                     candidate: candidate,
+                    slot: selectedSlot,
                   ),
                   onSelectProjectileSource: isProjectileSlot
                       ? () => _showProjectileSourcePicker(
                           appState: appState,
                           loadout: loadout,
                           spellList: spellList,
+                          includeEquippedThrowingSource:
+                              includeEquippedThrowingSource,
                         )
                       : null,
                 ),
@@ -120,7 +131,8 @@ class _SkillsBarState extends State<SkillsBar> {
               SizedBox(
                 width: layout.radialWidth,
                 child: SkillsRadialPane(
-                  selectedSlot: _selectedSlot,
+                  availableSlots: availableSlots,
+                  selectedSlot: selectedSlot,
                   equippedAbilityIdsBySlot: equippedAbilityIdsBySlot,
                   onSelectSlot: _onSelectSlot,
                 ),
@@ -144,27 +156,48 @@ class _SkillsBarState extends State<SkillsBar> {
     required AppState appState,
     required EquippedLoadoutDef loadout,
     required AbilityPickerCandidate candidate,
+    required AbilitySlot slot,
   }) async {
     setState(() {
       _inspectedAbilityId = candidate.id;
     });
     if (!candidate.isEnabled) return;
-    final equippedAbilityId = abilityIdForSlot(loadout, _selectedSlot);
+    final equippedAbilityId = abilityIdForSlot(loadout, slot);
     if (equippedAbilityId == candidate.id) return;
     final next = setAbilityForSlot(
       loadout,
-      slot: _selectedSlot,
+      slot: slot,
       abilityId: candidate.id,
     );
     await appState.setLoadout(next);
+  }
+
+  AbilitySlot _selectedSlotForBuild(List<AbilitySlot> availableSlots) {
+    if (availableSlots.isEmpty) return AbilitySlot.primary;
+    if (availableSlots.contains(_selectedSlot)) return _selectedSlot;
+
+    final fallback = availableSlots.first;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _selectedSlot == fallback) return;
+      setState(() {
+        _selectedSlot = fallback;
+        _inspectedAbilityId = null;
+      });
+    });
+    return fallback;
   }
 
   Future<void> _showProjectileSourcePicker({
     required AppState appState,
     required EquippedLoadoutDef loadout,
     required SpellList spellList,
+    required bool includeEquippedThrowingSource,
   }) {
-    final options = projectileSourceOptions(loadout, spellList);
+    final options = projectileSourceOptions(
+      loadout,
+      spellList,
+      includeEquippedThrowingSource: includeEquippedThrowingSource,
+    );
     return showProjectileSourceDialog(
       context,
       options: options,
@@ -198,6 +231,36 @@ class _SkillsBarState extends State<SkillsBar> {
     }
     // Deterministic fallback keeps inspection stable when no equipped match.
     return candidates.first.id;
+  }
+}
+
+List<AbilitySlot> _availableSlotsForMask(int mask) {
+  final ordered = <AbilitySlot>[
+    AbilitySlot.primary,
+    AbilitySlot.secondary,
+    AbilitySlot.projectile,
+    AbilitySlot.mobility,
+    AbilitySlot.spell,
+    AbilitySlot.jump,
+  ];
+  return [
+    for (final slot in ordered)
+      if (_isSlotEnabledByMask(slot, mask)) slot,
+  ];
+}
+
+bool _isSlotEnabledByMask(AbilitySlot slot, int mask) {
+  switch (slot) {
+    case AbilitySlot.primary:
+      return (mask & LoadoutSlotMask.mainHand) != 0;
+    case AbilitySlot.secondary:
+      return (mask & LoadoutSlotMask.offHand) != 0;
+    case AbilitySlot.projectile:
+      return (mask & LoadoutSlotMask.projectile) != 0;
+    case AbilitySlot.mobility:
+    case AbilitySlot.spell:
+    case AbilitySlot.jump:
+      return true;
   }
 }
 

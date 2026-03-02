@@ -103,6 +103,27 @@ void main() {
     );
 
     test(
+      'setLoadout enforces spell projectile source when selection is null',
+      () async {
+        final selectionStore = _MemorySelectionStore();
+        final appState = AppState(selectionStore: selectionStore);
+
+        await appState.setLoadout(
+          const EquippedLoadoutDef(projectileSlotSpellId: null),
+        );
+
+        expect(
+          _selectedLoadout(appState.selection).projectileSlotSpellId,
+          isNotNull,
+        );
+        expect(
+          _selectedLoadout(selectionStore.saved).projectileSlotSpellId,
+          isNotNull,
+        );
+      },
+    );
+
+    test(
       'setLoadout stale projectile spell repairs to first learned spell only',
       () async {
         final selectionStore = _MemorySelectionStore();

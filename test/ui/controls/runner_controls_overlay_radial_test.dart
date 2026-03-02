@@ -275,6 +275,36 @@ void main() {
     // Projectile + melee directional controls remain; mobility is hold-release.
     expect(find.byType(DirectionalActionButton), findsNWidgets(2));
   });
+
+  testWidgets('projectile control is hidden when projectile slot is absent', (
+    tester,
+  ) async {
+    final harness = _OverlayHarness();
+    addTearDown(harness.dispose);
+
+    harness.hasProjectileSlot = false;
+    await tester.pumpWidget(
+      _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
+    );
+
+    expect(find.text('PROJECTILE'), findsNothing);
+    // Baseline directional controls are projectile + melee.
+    expect(find.byType(DirectionalActionButton), findsOneWidget);
+  });
+
+  testWidgets('secondary control is hidden when secondary slot is absent', (
+    tester,
+  ) async {
+    final harness = _OverlayHarness();
+    addTearDown(harness.dispose);
+
+    harness.hasSecondarySlot = false;
+    await tester.pumpWidget(
+      _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
+    );
+
+    expect(find.text('SHIELD'), findsNothing);
+  });
 }
 
 Widget _testHost({required Widget child}) {
@@ -320,6 +350,8 @@ class _OverlayHarness {
   int chargeBarTier = 0;
   AbilityInputMode secondaryInputMode = AbilityInputMode.tap;
   AbilityInputMode mobilityInputMode = AbilityInputMode.tap;
+  bool hasSecondarySlot = true;
+  bool hasProjectileSlot = true;
 
   RunnerControlsOverlay buildOverlay({required ControlsTuning tuning}) {
     return RunnerControlsOverlay(
@@ -374,6 +406,8 @@ class _OverlayHarness {
       spellCooldownTicksLeft: 0,
       spellCooldownTicksTotal: 0,
       forceAimCancelSignal: forceCancelSignal,
+      hasSecondarySlot: hasSecondarySlot,
+      hasProjectileSlot: hasProjectileSlot,
       equippedAbilityIdsBySlot: const <AbilitySlot, AbilityKey>{
         AbilitySlot.primary: 'eloise.bloodletter_slash',
         AbilitySlot.secondary: 'eloise.riposte_guard',

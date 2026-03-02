@@ -13,52 +13,91 @@ const SpellList _defaultSpellList = SpellList(
 
 void main() {
   group('ability picker presenter', () {
-    test('projectile source options include equipped throw + learned spells', () {
-      const loadout = EquippedLoadoutDef(projectileId: ProjectileId.throwingKnife);
+    test(
+      'projectile source options include equipped throw + learned spells',
+      () {
+        const loadout = EquippedLoadoutDef(
+          projectileId: ProjectileId.throwingKnife,
+        );
+        const spellList = SpellList(
+          learnedProjectileSpellIds: <ProjectileId>{
+            ProjectileId.fireBolt,
+            ProjectileId.iceBolt,
+          },
+          learnedSpellAbilityIds: <AbilityKey>{'eloise.arcane_haste'},
+        );
+
+        final options = projectileSourceOptions(loadout, spellList);
+
+        expect(options, isNotEmpty);
+        expect(options.first.spellId, isNull);
+        expect(options.any((o) => o.spellId == ProjectileId.fireBolt), isTrue);
+        expect(options.any((o) => o.spellId == ProjectileId.iceBolt), isTrue);
+        expect(
+          options.any((o) => o.spellId == ProjectileId.thunderBolt),
+          isFalse,
+        );
+      },
+    );
+
+    test(
+      'projectile source panel model separates throw and spell list groups',
+      () {
+        const loadout = EquippedLoadoutDef(
+          projectileId: ProjectileId.throwingKnife,
+        );
+        const spellList = SpellList(
+          learnedProjectileSpellIds: <ProjectileId>{
+            ProjectileId.fireBolt,
+            ProjectileId.iceBolt,
+          },
+          learnedSpellAbilityIds: <AbilityKey>{'eloise.arcane_haste'},
+        );
+
+        final model = projectileSourcePanelModel(loadout, spellList);
+
+        expect(model.throwingWeaponId, ProjectileId.throwingKnife);
+        expect(model.spellListDisplayName, 'Spell List');
+        expect(model.spellOptions, isNotEmpty);
+        expect(
+          model.spellOptions.any(
+            (spell) => spell.spellId == ProjectileId.fireBolt,
+          ),
+          isTrue,
+        );
+        expect(
+          model.spellOptions.any(
+            (spell) => spell.spellId == ProjectileId.iceBolt,
+          ),
+          isTrue,
+        );
+        expect(
+          model.spellOptions.any(
+            (spell) => spell.spellId == ProjectileId.thunderBolt,
+          ),
+          isFalse,
+        );
+      },
+    );
+
+    test('projectile source options can exclude equipped throwing source', () {
+      const loadout = EquippedLoadoutDef(
+        projectileId: ProjectileId.throwingKnife,
+      );
       const spellList = SpellList(
-        learnedProjectileSpellIds: <ProjectileId>{
-          ProjectileId.fireBolt,
-          ProjectileId.iceBolt,
-        },
+        learnedProjectileSpellIds: <ProjectileId>{ProjectileId.fireBolt},
         learnedSpellAbilityIds: <AbilityKey>{'eloise.arcane_haste'},
       );
 
-      final options = projectileSourceOptions(loadout, spellList);
+      final options = projectileSourceOptions(
+        loadout,
+        spellList,
+        includeEquippedThrowingSource: false,
+      );
 
       expect(options, isNotEmpty);
-      expect(options.first.spellId, isNull);
+      expect(options.any((o) => o.spellId == null), isFalse);
       expect(options.any((o) => o.spellId == ProjectileId.fireBolt), isTrue);
-      expect(options.any((o) => o.spellId == ProjectileId.iceBolt), isTrue);
-      expect(options.any((o) => o.spellId == ProjectileId.thunderBolt), isFalse);
-    });
-
-    test('projectile source panel model separates throw and spell list groups', () {
-      const loadout = EquippedLoadoutDef(projectileId: ProjectileId.throwingKnife);
-      const spellList = SpellList(
-        learnedProjectileSpellIds: <ProjectileId>{
-          ProjectileId.fireBolt,
-          ProjectileId.iceBolt,
-        },
-        learnedSpellAbilityIds: <AbilityKey>{'eloise.arcane_haste'},
-      );
-
-      final model = projectileSourcePanelModel(loadout, spellList);
-
-      expect(model.throwingWeaponId, ProjectileId.throwingKnife);
-      expect(model.spellListDisplayName, 'Spell List');
-      expect(model.spellOptions, isNotEmpty);
-      expect(
-        model.spellOptions.any((spell) => spell.spellId == ProjectileId.fireBolt),
-        isTrue,
-      );
-      expect(
-        model.spellOptions.any((spell) => spell.spellId == ProjectileId.iceBolt),
-        isTrue,
-      );
-      expect(
-        model.spellOptions.any((spell) => spell.spellId == ProjectileId.thunderBolt),
-        isFalse,
-      );
     });
 
     test('projectile slot exposes all enabled projectile abilities', () {

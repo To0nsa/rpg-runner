@@ -205,6 +205,7 @@ const PlayerCatalog eloiseCatalog = PlayerCatalog(
   spellBookId: SpellBookId.apprenticePrimer,
   projectileSlotSpellId: ProjectileId.fireBolt,
   startingProjectileSpellIds: eloiseStartingProjectileSpellIds,
+  projectileSlotAllowsThrowingWeapon: false,
   abilityPrimaryId: 'eloise.bloodletter_slash',
   abilitySecondaryId: 'eloise.aegis_riposte',
   abilityProjectileId: 'eloise.quick_shot',

@@ -14,11 +14,13 @@ import '../../../theme/ui_skill_icon_theme.dart';
 class SkillsRadialPane extends StatelessWidget {
   const SkillsRadialPane({
     super.key,
+    required this.availableSlots,
     required this.selectedSlot,
     required this.equippedAbilityIdsBySlot,
     required this.onSelectSlot,
   });
 
+  final List<AbilitySlot> availableSlots;
   final AbilitySlot selectedSlot;
   final Map<AbilitySlot, AbilityKey> equippedAbilityIdsBySlot;
   final ValueChanged<AbilitySlot> onSelectSlot;
@@ -36,20 +38,24 @@ class SkillsRadialPane extends StatelessWidget {
             clipBehavior: Clip.none,
             children: [
               for (final slot in abilityRadialLayoutSpec.selectionOrder)
-                Positioned(
-                  left:
-                      _selectionActionSlotGeometry.placements[slot]!.buttonLeft,
-                  top: _selectionActionSlotGeometry.placements[slot]!.buttonTop,
-                  child: _ActionSlotButton(
-                    slot: slot,
-                    abilityId: equippedAbilityIdsBySlot[slot],
-                    selected: slot == selectedSlot,
-                    onSelectSlot: onSelectSlot,
-                    buttonSize: _selectionActionSlotGeometry
+                if (availableSlots.contains(slot))
+                  Positioned(
+                    left: _selectionActionSlotGeometry
                         .placements[slot]!
-                        .buttonSize,
+                        .buttonLeft,
+                    top: _selectionActionSlotGeometry
+                        .placements[slot]!
+                        .buttonTop,
+                    child: _ActionSlotButton(
+                      slot: slot,
+                      abilityId: equippedAbilityIdsBySlot[slot],
+                      selected: slot == selectedSlot,
+                      onSelectSlot: onSelectSlot,
+                      buttonSize: _selectionActionSlotGeometry
+                          .placements[slot]!
+                          .buttonSize,
+                    ),
                   ),
-                ),
             ],
           ),
         ),

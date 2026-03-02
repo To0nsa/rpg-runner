@@ -46,6 +46,7 @@ class PlayerCatalog {
     required this.spellBookId,
     required this.projectileSlotSpellId,
     this.startingProjectileSpellIds = const <ProjectileId>{},
+    this.projectileSlotAllowsThrowingWeapon = true,
     required this.abilityPrimaryId,
     required this.abilitySecondaryId,
     required this.abilityProjectileId,
@@ -119,6 +120,12 @@ class PlayerCatalog {
 
   /// Initial learned projectile spells for Spell List seeding.
   final Set<ProjectileId> startingProjectileSpellIds;
+
+  /// Whether the projectile slot may use equipped throwing weapons as payload.
+  ///
+  /// When false, gameplay/UI should force projectile-slot payload to learned
+  /// projectile spells only (no throwing fallback for the character).
+  final bool projectileSlotAllowsThrowingWeapon;
 
   /// Default equipped ability IDs at spawn time.
   final AbilityKey abilityPrimaryId;

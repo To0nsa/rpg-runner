@@ -3,10 +3,12 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/ecs/stores/combat/equipped_loadout_store.dart';
 import '../../../core/meta/equipped_gear.dart';
 import '../../../core/meta/gear_slot.dart';
 import '../../../core/meta/meta_service.dart';
 import '../../../core/players/player_character_definition.dart';
+import '../../../core/players/player_character_registry.dart';
 import '../../components/app_button.dart';
 import '../../components/gear_icon.dart';
 import '../../state/app_state.dart';
@@ -29,7 +31,7 @@ class GearsTab extends StatefulWidget {
 }
 
 class _GearsTabState extends State<GearsTab> {
-  static const List<_GearSlotSpec> _slotSpecs = <_GearSlotSpec>[
+  static const List<_GearSlotSpec> _allSlotSpecs = <_GearSlotSpec>[
     _GearSlotSpec(slot: GearSlot.mainWeapon),
     _GearSlotSpec(slot: GearSlot.offhandWeapon),
     _GearSlotSpec(slot: GearSlot.throwingWeapon),
@@ -46,7 +48,7 @@ class _GearsTabState extends State<GearsTab> {
   void initState() {
     super.initState();
     _slotPageController = PageController(
-      initialPage: _indexForSlot(_selectedSlot),
+      initialPage: _indexForSlot(_selectedSlot, _allSlotSpecs),
     );
   }
 
@@ -62,7 +64,17 @@ class _GearsTabState extends State<GearsTab> {
     final appState = context.watch<AppState>();
     final meta = appState.meta;
     final equipped = meta.equippedFor(widget.characterId);
-    final selectedSlotIndex = _indexForSlot(_selectedSlot);
+    final loadout = appState.selection.loadoutFor(widget.characterId);
+    final allowThrowingSlot = PlayerCharacterRegistry.resolve(
+      widget.characterId,
+    ).catalog.projectileSlotAllowsThrowingWeapon;
+    final slotSpecs = _slotSpecsForMask(
+      loadout.mask,
+      includeThrowingWeapon: allowThrowingSlot,
+    );
+    final selectedSlot = _selectedSlotForBuild(slotSpecs, equipped);
+    final selectedSlotIndex = _indexForSlot(selectedSlot, slotSpecs);
+    _syncSlotPage(selectedSlotIndex);
 
     return Padding(
       padding: EdgeInsets.only(left: ui.space.xs),
@@ -77,11 +89,12 @@ class _GearsTabState extends State<GearsTab> {
                   SizedBox(
                     width: 56,
                     child: _GearSlotSelector(
-                      slotSpecs: _slotSpecs,
-                      selectedSlot: _selectedSlot,
+                      slotSpecs: slotSpecs,
+                      selectedSlot: selectedSlot,
                       equipped: equipped,
                       onSelectSlot: (slot) => _onSelectSlot(
                         slot: slot,
+                        slotSpecs: slotSpecs,
                         equipped: equipped,
                         animatePage: true,
                       ),
@@ -90,7 +103,7 @@ class _GearsTabState extends State<GearsTab> {
                   _GearSlotSelectionDivider(
                     width: ui.space.md,
                     selectedIndex: selectedSlotIndex,
-                    slotCount: _slotSpecs.length,
+                    slotCount: slotSpecs.length,
                   ),
                   Expanded(
                     child: DecoratedBox(
@@ -107,11 +120,14 @@ class _GearsTabState extends State<GearsTab> {
                         child: PageView.builder(
                           controller: _slotPageController,
                           scrollDirection: Axis.vertical,
-                          itemCount: _slotSpecs.length,
-                          onPageChanged: (index) =>
-                              _onPageChanged(index: index, equipped: equipped),
+                          itemCount: slotSpecs.length,
+                          onPageChanged: (index) => _onPageChanged(
+                            index: index,
+                            slotSpecs: slotSpecs,
+                            equipped: equipped,
+                          ),
                           itemBuilder: (context, index) {
-                            final slot = _slotSpecs[index].slot;
+                            final slot = slotSpecs[index].slot;
                             final candidates = _service
                                 .candidatesForSlot(meta, slot)
                                 .where((candidate) => candidate.isUnlocked)
@@ -192,6 +208,7 @@ class _GearsTabState extends State<GearsTab> {
 
   void _onSelectSlot({
     required GearSlot slot,
+    required List<_GearSlotSpec> slotSpecs,
     required EquippedGear equipped,
     required bool animatePage,
   }) {
@@ -205,14 +222,18 @@ class _GearsTabState extends State<GearsTab> {
     });
     if (!animatePage || !_slotPageController.hasClients) return;
     _slotPageController.animateToPage(
-      _indexForSlot(slot),
+      _indexForSlot(slot, slotSpecs),
       duration: const Duration(milliseconds: 220),
       curve: Curves.easeOutCubic,
     );
   }
 
-  void _onPageChanged({required int index, required EquippedGear equipped}) {
-    final slot = _slotSpecs[index].slot;
+  void _onPageChanged({
+    required int index,
+    required List<_GearSlotSpec> slotSpecs,
+    required EquippedGear equipped,
+  }) {
+    final slot = slotSpecs[index].slot;
     if (_selectedSlot == slot) return;
     setState(() {
       _selectedSlot = slot;
@@ -223,11 +244,45 @@ class _GearsTabState extends State<GearsTab> {
     });
   }
 
-  int _indexForSlot(GearSlot slot) {
-    for (var i = 0; i < _slotSpecs.length; i++) {
-      if (_slotSpecs[i].slot == slot) return i;
+  int _indexForSlot(GearSlot slot, List<_GearSlotSpec> slotSpecs) {
+    for (var i = 0; i < slotSpecs.length; i++) {
+      if (slotSpecs[i].slot == slot) return i;
     }
     return 0;
+  }
+
+  GearSlot _selectedSlotForBuild(
+    List<_GearSlotSpec> slotSpecs,
+    EquippedGear equipped,
+  ) {
+    if (slotSpecs.isEmpty) return GearSlot.mainWeapon;
+    for (final spec in slotSpecs) {
+      if (spec.slot == _selectedSlot) return _selectedSlot;
+    }
+
+    final fallback = slotSpecs.first.slot;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _selectedSlot == fallback) return;
+      setState(() {
+        _selectedSlot = fallback;
+        _selectedCandidateBySlot.putIfAbsent(
+          fallback,
+          () => _equippedIdForSlot(fallback, equipped),
+        );
+      });
+    });
+    return fallback;
+  }
+
+  void _syncSlotPage(int selectedSlotIndex) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_slotPageController.hasClients) return;
+      final currentPage = _slotPageController.page;
+      if (currentPage != null && currentPage.round() == selectedSlotIndex) {
+        return;
+      }
+      _slotPageController.jumpToPage(selectedSlotIndex);
+    });
   }
 
   Object _selectedCandidateIdForSlot({
@@ -487,6 +542,21 @@ class _GearSlotSpec {
   const _GearSlotSpec({required this.slot});
 
   final GearSlot slot;
+}
+
+List<_GearSlotSpec> _slotSpecsForMask(
+  int mask, {
+  required bool includeThrowingWeapon,
+}) {
+  return <_GearSlotSpec>[
+    const _GearSlotSpec(slot: GearSlot.mainWeapon),
+    if ((mask & LoadoutSlotMask.offHand) != 0)
+      const _GearSlotSpec(slot: GearSlot.offhandWeapon),
+    if (includeThrowingWeapon && (mask & LoadoutSlotMask.projectile) != 0)
+      const _GearSlotSpec(slot: GearSlot.throwingWeapon),
+    const _GearSlotSpec(slot: GearSlot.spellBook),
+    const _GearSlotSpec(slot: GearSlot.accessory),
+  ];
 }
 
 Object _equippedIdForSlot(GearSlot slot, EquippedGear equipped) {

@@ -2,6 +2,10 @@
 
 Eloise projectile-slot abilities (`AbilitySlot.projectile`).
 
+> Availability note (March 2, 2026): Eloise keeps the projectile slot enabled,
+> but current setup is spell-projectile focused (no throwing-weapon picker in
+> character setup UI).
+
 All abilities here:
 
 - use `payloadSource: AbilityPayloadSource.projectile`
