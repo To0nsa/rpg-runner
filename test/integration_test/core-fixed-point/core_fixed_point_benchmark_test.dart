@@ -8,7 +8,6 @@
 /// Output contract:
 /// - `BENCHMARK_SUMMARY::...` one line per scenario for quick log scanning
 /// - `BENCHMARK_JSON::...` full machine-readable payload for artifact capture
-@Tags(<String>['integration'])
 library;
 
 import 'dart:convert';
@@ -18,7 +17,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:rpg_runner/core/commands/command.dart';
 import 'package:rpg_runner/core/game_core.dart';
-import 'package:test/test.dart' show Tags;
 import '../../support/test_level.dart';
 import 'package:rpg_runner/core/tuning/camera_tuning.dart';
 import 'package:rpg_runner/core/tuning/core_tuning.dart';
@@ -73,7 +71,7 @@ void main() {
           'No-track benchmark overhead must stay under '
           '${noTrackConfig.maxOverheadPct.toStringAsFixed(2)}%',
     );
-  });
+  }, tags: <String>['integration']);
 }
 
 class _BenchmarkConfig {
