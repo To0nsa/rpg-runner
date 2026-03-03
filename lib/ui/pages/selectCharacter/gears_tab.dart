@@ -8,7 +8,6 @@ import '../../../core/meta/equipped_gear.dart';
 import '../../../core/meta/gear_slot.dart';
 import '../../../core/meta/meta_service.dart';
 import '../../../core/players/player_character_definition.dart';
-import '../../../core/players/player_character_registry.dart';
 import '../../components/app_button.dart';
 import '../../components/gear_icon.dart';
 import '../../state/app_state.dart';
@@ -34,7 +33,6 @@ class _GearsTabState extends State<GearsTab> {
   static const List<_GearSlotSpec> _allSlotSpecs = <_GearSlotSpec>[
     _GearSlotSpec(slot: GearSlot.mainWeapon),
     _GearSlotSpec(slot: GearSlot.offhandWeapon),
-    _GearSlotSpec(slot: GearSlot.throwingWeapon),
     _GearSlotSpec(slot: GearSlot.spellBook),
     _GearSlotSpec(slot: GearSlot.accessory),
   ];
@@ -65,13 +63,7 @@ class _GearsTabState extends State<GearsTab> {
     final meta = appState.meta;
     final equipped = meta.equippedFor(widget.characterId);
     final loadout = appState.selection.loadoutFor(widget.characterId);
-    final allowThrowingSlot = PlayerCharacterRegistry.resolve(
-      widget.characterId,
-    ).catalog.projectileSlotAllowsThrowingWeapon;
-    final slotSpecs = _slotSpecsForMask(
-      loadout.mask,
-      includeThrowingWeapon: allowThrowingSlot,
-    );
+    final slotSpecs = _slotSpecsForMask(loadout.mask);
     final selectedSlot = _selectedSlotForBuild(slotSpecs, equipped);
     final selectedSlotIndex = _indexForSlot(selectedSlot, slotSpecs);
     _syncSlotPage(selectedSlotIndex);
@@ -544,16 +536,11 @@ class _GearSlotSpec {
   final GearSlot slot;
 }
 
-List<_GearSlotSpec> _slotSpecsForMask(
-  int mask, {
-  required bool includeThrowingWeapon,
-}) {
+List<_GearSlotSpec> _slotSpecsForMask(int mask) {
   return <_GearSlotSpec>[
     const _GearSlotSpec(slot: GearSlot.mainWeapon),
     if ((mask & LoadoutSlotMask.offHand) != 0)
       const _GearSlotSpec(slot: GearSlot.offhandWeapon),
-    if (includeThrowingWeapon && (mask & LoadoutSlotMask.projectile) != 0)
-      const _GearSlotSpec(slot: GearSlot.throwingWeapon),
     const _GearSlotSpec(slot: GearSlot.spellBook),
     const _GearSlotSpec(slot: GearSlot.accessory),
   ];
@@ -563,7 +550,6 @@ Object _equippedIdForSlot(GearSlot slot, EquippedGear equipped) {
   return switch (slot) {
     GearSlot.mainWeapon => equipped.mainWeaponId,
     GearSlot.offhandWeapon => equipped.offhandWeaponId,
-    GearSlot.throwingWeapon => equipped.throwingWeaponId,
     GearSlot.spellBook => equipped.spellBookId,
     GearSlot.accessory => equipped.accessoryId,
   };

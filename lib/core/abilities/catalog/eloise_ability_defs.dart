@@ -291,7 +291,7 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     allowedSlots: {AbilitySlot.projectile},
     targetingModel: TargetingModel.homing,
     inputLifecycle: AbilityInputLifecycle.tap,
-    // Projectile id comes from the equipped projectile item at runtime.
+    // Projectile id comes from selected projectile spell source at runtime.
     hitDelivery: ProjectileHitDelivery(
       projectileId: ProjectileId.iceBolt,
       hitPolicy: HitPolicy.oncePerTarget,
@@ -300,12 +300,9 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     activeTicks: 2,
     recoveryTicks: 12,
     defaultCost: AbilityResourceCost(manaCost100: 800),
-    costProfileByWeaponType: <WeaponType, AbilityResourceCost>{
-      WeaponType.throwingWeapon: AbilityResourceCost(staminaCost100: 800),
-    },
     cooldownTicks: 40,
     animKey: AnimKey.ranged,
-    requiredWeaponTypes: {WeaponType.throwingWeapon, WeaponType.spell},
+    requiredWeaponTypes: {WeaponType.spell},
     payloadSource: AbilityPayloadSource.projectile,
     baseDamage: 1300,
   ),
@@ -316,21 +313,18 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     allowedSlots: {AbilitySlot.projectile},
     targetingModel: TargetingModel.aimed,
     inputLifecycle: AbilityInputLifecycle.holdRelease,
-    // Projectile id comes from the equipped projectile item at runtime.
+    // Projectile id comes from selected projectile spell source at runtime.
     hitDelivery: ProjectileHitDelivery(
-      projectileId: ProjectileId.throwingKnife,
+      projectileId: ProjectileId.fireBolt,
       hitPolicy: HitPolicy.oncePerTarget,
     ),
     windupTicks: 10,
     activeTicks: 2,
     recoveryTicks: 12,
     defaultCost: AbilityResourceCost(manaCost100: 600),
-    costProfileByWeaponType: <WeaponType, AbilityResourceCost>{
-      WeaponType.throwingWeapon: AbilityResourceCost(staminaCost100: 600),
-    },
     cooldownTicks: 14,
     animKey: AnimKey.ranged,
-    requiredWeaponTypes: {WeaponType.throwingWeapon, WeaponType.spell},
+    requiredWeaponTypes: {WeaponType.spell},
     payloadSource: AbilityPayloadSource.projectile,
     baseDamage: 900,
   ),
@@ -341,9 +335,9 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     allowedSlots: {AbilitySlot.projectile},
     targetingModel: TargetingModel.aimedLine,
     inputLifecycle: AbilityInputLifecycle.holdRelease,
-    // Projectile id comes from the equipped projectile item at runtime.
+    // Projectile id comes from selected projectile spell source at runtime.
     hitDelivery: ProjectileHitDelivery(
-      projectileId: ProjectileId.throwingAxe,
+      projectileId: ProjectileId.thunderBolt,
       pierce: true,
       chainCount: 3,
       hitPolicy: HitPolicy.oncePerTarget,
@@ -352,12 +346,9 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     activeTicks: 2,
     recoveryTicks: 12,
     defaultCost: AbilityResourceCost(manaCost100: 1000),
-    costProfileByWeaponType: <WeaponType, AbilityResourceCost>{
-      WeaponType.throwingWeapon: AbilityResourceCost(staminaCost100: 1000),
-    },
     cooldownTicks: 32,
     animKey: AnimKey.ranged,
-    requiredWeaponTypes: {WeaponType.throwingWeapon, WeaponType.spell},
+    requiredWeaponTypes: {WeaponType.spell},
     payloadSource: AbilityPayloadSource.projectile,
     baseDamage: 1800,
   ),
@@ -368,7 +359,7 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     allowedSlots: {AbilitySlot.projectile},
     targetingModel: TargetingModel.aimedCharge,
     inputLifecycle: AbilityInputLifecycle.holdRelease,
-    // Projectile id comes from the equipped projectile item at runtime.
+    // Projectile id comes from selected projectile spell source at runtime.
     hitDelivery: ProjectileHitDelivery(
       projectileId: ProjectileId.fireBolt,
       hitPolicy: HitPolicy.oncePerTarget,
@@ -377,9 +368,6 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     activeTicks: 2,
     recoveryTicks: 12,
     defaultCost: AbilityResourceCost(manaCost100: 1300),
-    costProfileByWeaponType: <WeaponType, AbilityResourceCost>{
-      WeaponType.throwingWeapon: AbilityResourceCost(staminaCost100: 1300),
-    },
     cooldownTicks: 40,
     forcedInterruptCauses: <ForcedInterruptCause>{
       ForcedInterruptCause.stun,
@@ -387,7 +375,7 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
       ForcedInterruptCause.damageTaken,
     },
     animKey: AnimKey.ranged,
-    requiredWeaponTypes: {WeaponType.throwingWeapon, WeaponType.spell},
+    requiredWeaponTypes: {WeaponType.spell},
     payloadSource: AbilityPayloadSource.projectile,
     chargeProfile: AbilityChargeProfile(
       tiers: <AbilityChargeTierDef>[

@@ -2,8 +2,6 @@ import '../accessories/accessory_catalog.dart';
 import '../accessories/accessory_id.dart';
 import '../combat/damage_type.dart';
 import '../ecs/stores/combat/equipped_loadout_store.dart';
-import '../projectiles/projectile_catalog.dart';
-import '../projectiles/projectile_id.dart';
 import '../spellBook/spell_book_catalog.dart';
 import '../spellBook/spell_book_id.dart';
 import '../util/fixed_math.dart';
@@ -150,13 +148,11 @@ class ResolvedCharacterStats {
 class CharacterStatsResolver {
   const CharacterStatsResolver({
     this.weapons = const WeaponCatalog(),
-    this.projectiles = const ProjectileCatalog(),
     this.spellBooks = const SpellBookCatalog(),
     this.accessories = const AccessoryCatalog(),
   });
 
   final WeaponCatalog weapons;
-  final ProjectileCatalog projectiles;
   final SpellBookCatalog spellBooks;
   final AccessoryCatalog accessories;
 
@@ -165,7 +161,6 @@ class CharacterStatsResolver {
       mask: loadout.mask,
       mainWeaponId: loadout.mainWeaponId,
       offhandWeaponId: loadout.offhandWeaponId,
-      projectileId: loadout.projectileId,
       spellBookId: loadout.spellBookId,
       accessoryId: loadout.accessoryId,
     );
@@ -175,7 +170,6 @@ class CharacterStatsResolver {
     required int mask,
     required WeaponId mainWeaponId,
     required WeaponId offhandWeaponId,
-    required ProjectileId projectileId,
     required SpellBookId spellBookId,
     required AccessoryId accessoryId,
   }) {
@@ -189,7 +183,6 @@ class CharacterStatsResolver {
 
     final hasProjectile = (mask & LoadoutSlotMask.projectile) != 0;
     if (hasProjectile) {
-      total += projectiles.get(projectileId).stats;
       total += spellBooks.get(spellBookId).stats;
     }
 

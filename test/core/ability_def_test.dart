@@ -56,7 +56,7 @@ void main() {
       ),
     );
     forcedInterruptCauses.add(ForcedInterruptCause.damageTaken);
-    costProfileByWeaponType[WeaponType.throwingWeapon] =
+    costProfileByWeaponType[WeaponType.spell] =
         const AbilityResourceCost(staminaCost100: 100);
 
     expect(ability.allowedSlots, equals(<AbilitySlot>{AbilitySlot.spell}));

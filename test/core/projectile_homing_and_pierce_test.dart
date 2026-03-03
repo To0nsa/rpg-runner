@@ -217,8 +217,7 @@ void main() {
           player,
           const EquippedLoadoutDef(
             abilityProjectileId: 'eloise.overcharge_shot',
-            projectileSlotSpellId: null,
-            projectileId: ProjectileId.throwingKnife,
+            projectileSlotSpellId: ProjectileId.fireBolt,
           ),
         );
 
@@ -257,8 +256,7 @@ void main() {
       final resolvedStats = const CharacterStatsResolver().resolveLoadout(
         const EquippedLoadoutDef(
           abilityProjectileId: 'eloise.overcharge_shot',
-          projectileSlotSpellId: null,
-          projectileId: ProjectileId.throwingKnife,
+          projectileSlotSpellId: ProjectileId.fireBolt,
         ),
       );
       final baseDamageAfterGlobal = (ability.baseDamage *
@@ -324,7 +322,6 @@ void main() {
         player,
         const EquippedLoadoutDef(
           abilityProjectileId: 'eloise.quick_shot',
-          projectileId: ProjectileId.throwingKnife,
           projectileSlotSpellId: ProjectileId.fireBolt,
           spellBookId: SpellBookId.apprenticePrimer,
         ),
@@ -351,62 +348,6 @@ void main() {
       expect(procs[2].statusProfileId, equals(StatusProfileId.focus));
     },
   );
-
-  test('throwing projectile does not inherit spellbook procs', () {
-    final world = EcsWorld();
-    final system = AbilityActivationSystem(
-      tickHz: 60,
-      inputBufferTicks: 10,
-      abilities: const AbilityCatalog(),
-      weapons: const WeaponCatalog(),
-      projectiles: const ProjectileCatalog(),
-      spellBooks: const _SpellProcBookCatalog(),
-      accessories: const AccessoryCatalog(),
-    );
-
-    final player = world.createEntity();
-    world.transform.add(player, posX: 100, posY: 100, velX: 0, velY: 0);
-    world.faction.add(player, const FactionDef(faction: Faction.player));
-    world.health.add(
-      player,
-      const HealthDef(hp: 1000, hpMax: 1000, regenPerSecond100: 0),
-    );
-    world.playerInput.add(player);
-    world.movement.add(player, facing: Facing.right);
-    world.abilityInputBuffer.add(player);
-    world.activeAbility.add(player);
-    world.cooldown.add(player);
-    world.mana.add(
-      player,
-      const ManaDef(mana: 5000, manaMax: 5000, regenPerSecond100: 0),
-    );
-    world.stamina.add(
-      player,
-      const StaminaDef(stamina: 5000, staminaMax: 5000, regenPerSecond100: 0),
-    );
-    world.projectileIntent.add(player);
-    world.equippedLoadout.add(
-      player,
-      const EquippedLoadoutDef(
-        abilityProjectileId: 'eloise.quick_shot',
-        projectileId: ProjectileId.throwingKnife,
-        projectileSlotSpellId: null,
-        spellBookId: SpellBookId.apprenticePrimer,
-      ),
-    );
-
-    final inputIndex = world.playerInput.indexOf(player);
-    world.playerInput.projectilePressed[inputIndex] = true;
-
-    system.step(world, player: player, currentTick: 1);
-
-    final intentIndex = world.projectileIntent.indexOf(player);
-    expect(
-      world.projectileIntent.projectileId[intentIndex],
-      equals(ProjectileId.throwingKnife),
-    );
-    expect(world.projectileIntent.procs[intentIndex], isEmpty);
-  });
 
   test('piercing projectile damages multiple targets in one pass', () {
     final world = EcsWorld();

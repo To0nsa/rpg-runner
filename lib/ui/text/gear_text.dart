@@ -145,7 +145,6 @@ String gearDisplayNameForSlot(GearSlot slot, Object id) {
   return switch (slot) {
     GearSlot.mainWeapon ||
     GearSlot.offhandWeapon => weaponDisplayName(id as WeaponId),
-    GearSlot.throwingWeapon => projectileDisplayName(id as ProjectileId),
     GearSlot.spellBook => spellBookDisplayName(id as SpellBookId),
     GearSlot.accessory => accessoryDisplayName(id as AccessoryId),
   };
@@ -156,7 +155,6 @@ String gearDescriptionForSlot(GearSlot slot, Object id) {
   return switch (slot) {
     GearSlot.mainWeapon ||
     GearSlot.offhandWeapon => weaponDescription(id as WeaponId),
-    GearSlot.throwingWeapon => projectileDescription(id as ProjectileId),
     GearSlot.spellBook => spellBookDescription(id as SpellBookId),
     GearSlot.accessory => accessoryDescription(id as AccessoryId),
   };
@@ -246,8 +244,6 @@ const Map<ProjectileId, String> _projectileDisplayNameOverrides =
       ProjectileId.holyBolt: 'Holy Bolt',
       ProjectileId.waterBolt: 'Water Bolt',
       ProjectileId.thunderBolt: 'Thunder Bolt',
-      ProjectileId.throwingKnife: 'Throwing Knife',
-      ProjectileId.throwingAxe: 'Throwing Axe',
     };
 
 const Map<ProjectileId, String> _projectileDescriptionOverrides =
@@ -264,8 +260,6 @@ const Map<ProjectileId, String> _projectileDescriptionOverrides =
       ProjectileId.waterBolt:
           'Spell projectile that drenches and slows attack/cast speed.',
       ProjectileId.thunderBolt: 'Spell projectile with thunder damage.',
-      ProjectileId.throwingKnife: 'Fast ballistic throw with a light arc.',
-      ProjectileId.throwingAxe: 'Heavy ballistic throw with a steeper arc.',
     };
 
 const Map<SpellBookId, String> _spellBookDisplayNameOverrides =

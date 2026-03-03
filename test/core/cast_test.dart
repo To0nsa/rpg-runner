@@ -40,7 +40,7 @@ void main() {
       playerCharacter: base.copyWith(
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-          projectileId: ProjectileId.iceBolt,
+          projectileSlotSpellId: ProjectileId.iceBolt,
           abilityProjectileId: 'eloise.overcharge_shot',
         ),
         tuning: base.tuning.copyWith(
@@ -77,7 +77,7 @@ void main() {
     () {
       final catalog = testPlayerCatalog(
         bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-        projectileId: ProjectileId.iceBolt,
+        projectileSlotSpellId: ProjectileId.iceBolt,
         abilityProjectileId: 'eloise.overcharge_shot',
       );
       final base = PlayerCharacterRegistry.eloise;
@@ -119,7 +119,7 @@ void main() {
 
       final p = projectiles.single;
       final expectedOffset = const ProjectileCatalog()
-          .get(catalog.projectileId)
+          .get(catalog.projectileSlotSpellId)
           .originOffset;
       expect(p.pos.x, closeTo(playerPosX + expectedOffset, 1e-9));
       expect(p.pos.y, closeTo(playerPosY, 1e-9));
@@ -144,7 +144,6 @@ void main() {
   test('cast: selected projectile-slot spell overrides throwing item', () {
     final catalog = testPlayerCatalog(
       bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-      projectileId: ProjectileId.throwingKnife,
       projectileSlotSpellId: ProjectileId.fireBolt,
       abilityProjectileId: 'eloise.overcharge_shot',
     );
@@ -209,7 +208,7 @@ void main() {
       playerCharacter: base.copyWith(
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-          projectileId: ProjectileId.iceBolt,
+          projectileSlotSpellId: ProjectileId.iceBolt,
           abilityProjectileId: 'eloise.overcharge_shot',
         ),
         tuning: base.tuning.copyWith(
@@ -287,7 +286,6 @@ void main() {
         playerCharacter: base.copyWith(
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-            projectileId: ProjectileId.throwingKnife,
             projectileSlotSpellId: ProjectileId.fireBolt,
             abilityProjectileId: 'eloise.quick_shot',
           ),
@@ -453,7 +451,7 @@ void main() {
         playerCharacter: base.copyWith(
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-            projectileId: ProjectileId.throwingKnife,
+            projectileSlotSpellId: ProjectileId.fireBolt,
             abilityProjectileId: 'eloise.quick_shot',
             abilitySpellId: 'eloise.arcane_haste',
           ),

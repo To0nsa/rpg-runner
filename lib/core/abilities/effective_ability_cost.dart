@@ -60,6 +60,7 @@ WeaponType? resolvePayloadWeaponTypeForAbilitySlot({
         slot: slot,
         projectiles: projectiles,
       );
+      if (projectileId == null) return null;
       return projectiles.tryGet(projectileId)?.weaponType;
     case AbilityPayloadSource.spellBook:
       return spellBooks.tryGet(loadout.spellBookId[loadoutIndex])?.weaponType;
@@ -68,27 +69,22 @@ WeaponType? resolvePayloadWeaponTypeForAbilitySlot({
 
 /// Resolves the projectile item id that ability payload should use for [slot].
 ///
-/// For projectile slot abilities this will prefer a selected projectile spell
-/// from the equipped spellbook when valid; otherwise it falls back to the
-/// equipped projectile item.
-ProjectileId resolveProjectilePayloadForAbilitySlot({
+/// For projectile slot abilities this uses the selected projectile spell.
+ProjectileId? resolveProjectilePayloadForAbilitySlot({
   required AbilityDef ability,
   required EquippedLoadoutStore loadout,
   required int loadoutIndex,
   required AbilitySlot slot,
   required ProjectileCatalog projectiles,
 }) {
-  final selectedSpellId = slot == AbilitySlot.projectile
-      ? loadout.projectileSlotSpellId[loadoutIndex]
-      : null;
-  if (selectedSpellId != null) {
-    final selectedSpell = projectiles.tryGet(selectedSpellId);
-    final supportsSpell =
-        selectedSpell != null &&
-        selectedSpell.weaponType == WeaponType.spell &&
-        (ability.requiredWeaponTypes.isEmpty ||
-            ability.requiredWeaponTypes.contains(WeaponType.spell));
-    if (supportsSpell) return selectedSpellId;
-  }
-  return loadout.projectileId[loadoutIndex];
+  if (slot != AbilitySlot.projectile) return null;
+  final selectedSpellId = loadout.projectileSlotSpellId[loadoutIndex];
+  final selectedSpell = projectiles.tryGet(selectedSpellId);
+  final supportsSpell =
+      selectedSpell != null &&
+      selectedSpell.weaponType == WeaponType.spell &&
+      (ability.requiredWeaponTypes.isEmpty ||
+          ability.requiredWeaponTypes.contains(WeaponType.spell));
+  if (supportsSpell) return selectedSpellId;
+  return null;
 }

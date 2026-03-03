@@ -1,5 +1,4 @@
 import '../accessories/accessory_id.dart';
-import '../projectiles/projectile_id.dart';
 import '../spellBook/spell_book_id.dart';
 import '../weapons/weapon_id.dart';
 
@@ -10,16 +9,12 @@ import '../weapons/weapon_id.dart';
 class InventoryState {
   const InventoryState({
     required this.unlockedWeaponIds,
-    required this.unlockedThrowingWeaponIds,
     required this.unlockedSpellBookIds,
     required this.unlockedAccessoryIds,
   });
 
   /// Unlocked melee/off-hand weapon IDs.
   final Set<WeaponId> unlockedWeaponIds;
-
-  /// Unlocked throwing-weapon IDs.
-  final Set<ProjectileId> unlockedThrowingWeaponIds;
 
   /// Unlocked spellbook IDs.
   final Set<SpellBookId> unlockedSpellBookIds;
@@ -30,14 +25,11 @@ class InventoryState {
   /// Returns a copy with optional unlocked-set replacements.
   InventoryState copyWith({
     Set<WeaponId>? unlockedWeaponIds,
-    Set<ProjectileId>? unlockedThrowingWeaponIds,
     Set<SpellBookId>? unlockedSpellBookIds,
     Set<AccessoryId>? unlockedAccessoryIds,
   }) {
     return InventoryState(
       unlockedWeaponIds: unlockedWeaponIds ?? this.unlockedWeaponIds,
-      unlockedThrowingWeaponIds:
-          unlockedThrowingWeaponIds ?? this.unlockedThrowingWeaponIds,
       unlockedSpellBookIds: unlockedSpellBookIds ?? this.unlockedSpellBookIds,
       unlockedAccessoryIds: unlockedAccessoryIds ?? this.unlockedAccessoryIds,
     );
@@ -47,9 +39,6 @@ class InventoryState {
   Map<String, Object?> toJson() {
     return <String, Object?>{
       'weapons': unlockedWeaponIds.map((e) => e.name).toList(growable: false),
-      'throwingWeapons': unlockedThrowingWeaponIds
-          .map((e) => e.name)
-          .toList(growable: false),
       'spellBooks': unlockedSpellBookIds
           .map((e) => e.name)
           .toList(growable: false),
@@ -69,11 +58,6 @@ class InventoryState {
         json['weapons'],
         WeaponId.values,
         fallback.unlockedWeaponIds,
-      ),
-      unlockedThrowingWeaponIds: _readEnumSet(
-        json['throwingWeapons'],
-        ProjectileId.values,
-        fallback.unlockedThrowingWeaponIds,
       ),
       unlockedSpellBookIds: _readEnumSet(
         json['spellBooks'],

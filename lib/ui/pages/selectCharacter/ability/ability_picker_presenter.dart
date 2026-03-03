@@ -51,9 +51,6 @@ class AbilityPickerCandidate {
 }
 
 /// Display model for projectile payload selection.
-///
-/// - [spellId] == null means "use equipped throwing weapon".
-/// - [spellId] != null means "use this learned spell from Spell List".
 class ProjectileSourceOption {
   const ProjectileSourceOption({
     required this.projectileId,
@@ -67,7 +64,8 @@ class ProjectileSourceOption {
   /// Canonical [ProjectileId] for this source (used for icon lookup).
   final ProjectileId projectileId;
 
-  final ProjectileId? spellId;
+  /// Selected learned spell id.
+  final ProjectileId spellId;
   final String displayName;
 
   /// Short description of what this projectile does.
@@ -82,19 +80,13 @@ class ProjectileSourceOption {
 
 /// Display model for the left projectile source panel.
 ///
-/// It explicitly separates source families:
-/// - equipped throwing weapon (single tap-select entry)
-/// - learned projectile spells from Spell List
+/// It exposes learned projectile spells from Spell List.
 class ProjectileSourcePanelModel {
   const ProjectileSourcePanelModel({
-    required this.throwingWeaponId,
-    required this.throwingWeaponDisplayName,
     required this.spellListDisplayName,
     required this.spellOptions,
   });
 
-  final ProjectileId throwingWeaponId;
-  final String throwingWeaponDisplayName;
   final String spellListDisplayName;
   final List<ProjectileSpellOption> spellOptions;
 }
@@ -177,8 +169,7 @@ EquippedLoadoutDef normalizeLoadoutMaskForCharacter({
   return _copyLoadout(loadout, mask: targetMask);
 }
 
-/// Returns projectile source options exposed by the equipped throwing weapon
-/// and character spell list.
+/// Returns projectile source options exposed by the character spell list.
 ProjectileSourcePanelModel projectileSourcePanelModel(
   EquippedLoadoutDef loadout,
   SpellList spellList,
@@ -200,36 +191,18 @@ ProjectileSourcePanelModel projectileSourcePanelModel(
     );
   }
   return ProjectileSourcePanelModel(
-    throwingWeaponId: loadout.projectileId,
-    throwingWeaponDisplayName: projectileDisplayName(loadout.projectileId),
     spellListDisplayName: 'Spell List',
     spellOptions: spellOptions,
   );
 }
 
 /// Returns flat projectile source options for compatibility with existing call sites.
-///
-/// `spellId == null` always represents the equipped throwing weapon source.
 List<ProjectileSourceOption> projectileSourceOptions(
   EquippedLoadoutDef loadout,
-  SpellList spellList, {
-  bool includeEquippedThrowingSource = true,
-}) {
+  SpellList spellList,
+) {
   final sourceModel = projectileSourcePanelModel(loadout, spellList);
   final options = <ProjectileSourceOption>[];
-  if (includeEquippedThrowingSource) {
-    final throwingDef = _projectileCatalog.get(sourceModel.throwingWeaponId);
-    options.add(
-      ProjectileSourceOption(
-        projectileId: sourceModel.throwingWeaponId,
-        spellId: null,
-        displayName: sourceModel.throwingWeaponDisplayName,
-        description: projectileDescription(sourceModel.throwingWeaponId),
-        damageTypeName: damageTypeDisplayName(throwingDef.damageType),
-        statusLines: projectileStatusSummaries(throwingDef),
-      ),
-    );
-  }
   for (final spell in sourceModel.spellOptions) {
     final spellDef = _projectileCatalog.get(spell.spellId);
     options.add(
@@ -250,15 +223,10 @@ List<ProjectileSourceOption> projectileSourceOptions(
 ProjectileId? normalizeProjectileSourceSelection(
   EquippedLoadoutDef loadout,
   SpellList spellList,
-  ProjectileId? selected, {
-  bool includeEquippedThrowingSource = true,
-}) {
+  ProjectileId? selected,
+) {
   if (selected == null) return null;
-  final options = projectileSourceOptions(
-    loadout,
-    spellList,
-    includeEquippedThrowingSource: includeEquippedThrowingSource,
-  );
+  final options = projectileSourceOptions(loadout, spellList);
   final exists = options.any((option) => option.spellId == selected);
   return exists ? selected : null;
 }
@@ -304,7 +272,7 @@ EquippedLoadoutDef setAbilityForSlot(
 EquippedLoadoutDef setProjectileSourceForSlot(
   EquippedLoadoutDef loadout, {
   required AbilitySlot slot,
-  required ProjectileId? selectedSpellId,
+  required ProjectileId selectedSpellId,
 }) {
   switch (slot) {
     case AbilitySlot.projectile:
@@ -343,7 +311,9 @@ bool _isAbilityLegalForSlot({
 }) {
   // Validate a trial loadout so legality always mirrors Core loadout rules.
   var trial = setAbilityForSlot(loadout, slot: slot, abilityId: abilityId);
-  if (overrideSelectedSource && slot == AbilitySlot.projectile) {
+  if (overrideSelectedSource &&
+      slot == AbilitySlot.projectile &&
+      selectedSourceSpellId != null) {
     trial = setProjectileSourceForSlot(
       trial,
       slot: slot,
@@ -358,17 +328,13 @@ bool _isAbilityLegalForSlot({
 }
 
 /// Copies [loadout] while preserving omitted fields.
-///
-/// [projectileSlotSpellId] uses [_keepValue] to distinguish "leave unchanged"
-/// from an intentional `null` assignment.
 EquippedLoadoutDef _copyLoadout(
   EquippedLoadoutDef loadout, {
   int? mask,
   WeaponId? mainWeaponId,
   WeaponId? offhandWeaponId,
-  ProjectileId? projectileId,
   SpellBookId? spellBookId,
-  Object? projectileSlotSpellId = _keepValue,
+  ProjectileId? projectileSlotSpellId,
   AccessoryId? accessoryId,
   AbilityKey? abilityPrimaryId,
   AbilityKey? abilitySecondaryId,
@@ -381,11 +347,8 @@ EquippedLoadoutDef _copyLoadout(
     mask: mask ?? loadout.mask,
     mainWeaponId: mainWeaponId ?? loadout.mainWeaponId,
     offhandWeaponId: offhandWeaponId ?? loadout.offhandWeaponId,
-    projectileId: projectileId ?? loadout.projectileId,
     spellBookId: spellBookId ?? loadout.spellBookId,
-    projectileSlotSpellId: identical(projectileSlotSpellId, _keepValue)
-        ? loadout.projectileSlotSpellId
-        : projectileSlotSpellId as ProjectileId?,
+    projectileSlotSpellId: projectileSlotSpellId ?? loadout.projectileSlotSpellId,
     accessoryId: accessoryId ?? loadout.accessoryId,
     abilityPrimaryId: abilityPrimaryId ?? loadout.abilityPrimaryId,
     abilitySecondaryId: abilitySecondaryId ?? loadout.abilitySecondaryId,
@@ -395,6 +358,3 @@ EquippedLoadoutDef _copyLoadout(
     abilityJumpId: abilityJumpId ?? loadout.abilityJumpId,
   );
 }
-
-/// Sentinel used by [_copyLoadout] for nullable override semantics.
-const Object _keepValue = Object();

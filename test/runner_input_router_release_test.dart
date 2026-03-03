@@ -234,7 +234,7 @@ void main() {
           playerCharacter: base.copyWith(
             catalog: testPlayerCatalog(
               bodyTemplate: BodyDef(useGravity: false),
-              projectileId: ProjectileId.throwingKnife,
+              projectileId: ProjectileId.fireBolt,
               projectileSlotSpellId: null,
               abilityProjectileId: 'eloise.overcharge_shot',
             ),
@@ -295,7 +295,7 @@ void main() {
           playerCharacter: base.copyWith(
             catalog: testPlayerCatalog(
               bodyTemplate: BodyDef(useGravity: false),
-              projectileId: ProjectileId.throwingKnife,
+              projectileId: ProjectileId.fireBolt,
               projectileSlotSpellId: null,
               abilityProjectileId: 'eloise.overcharge_shot',
             ),
@@ -496,7 +496,7 @@ void main() {
               abilitySecondaryId: abilitySecondaryId,
               abilityProjectileId: abilityProjectileId,
               abilityMobilityId: abilityMobilityId,
-              projectileId: ProjectileId.throwingKnife,
+              projectileId: ProjectileId.fireBolt,
               projectileSlotSpellId: null,
             ),
           ),
@@ -600,7 +600,7 @@ void main() {
         playerCharacter: base.copyWith(
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(useGravity: false),
-            projectileId: ProjectileId.throwingKnife,
+            projectileId: ProjectileId.fireBolt,
             abilityProjectileId: 'eloise.quick_shot',
           ),
           tuning: base.tuning.copyWith(
@@ -650,7 +650,7 @@ void main() {
           loadoutSlotMask: LoadoutSlotMask.all,
           abilitySecondaryId: 'eloise.concussive_breaker',
           abilityProjectileId: 'eloise.overcharge_shot',
-          projectileId: ProjectileId.throwingKnife,
+          projectileId: ProjectileId.fireBolt,
           projectileSlotSpellId: null,
         ),
       ),
@@ -687,7 +687,7 @@ void main() {
           loadoutSlotMask: LoadoutSlotMask.all,
           abilitySecondaryId: 'eloise.concussive_breaker',
           abilityProjectileId: 'eloise.overcharge_shot',
-          projectileId: ProjectileId.throwingKnife,
+          projectileId: ProjectileId.fireBolt,
           projectileSlotSpellId: null,
         ),
       ),
@@ -718,7 +718,7 @@ void main() {
         playerCharacter: base.copyWith(
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(useGravity: false),
-            projectileId: ProjectileId.throwingKnife,
+            projectileId: ProjectileId.fireBolt,
             projectileSlotSpellId: null,
             abilityProjectileId: 'eloise.overcharge_shot',
           ),

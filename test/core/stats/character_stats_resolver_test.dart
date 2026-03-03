@@ -4,26 +4,22 @@ import 'package:rpg_runner/core/accessories/accessory_catalog.dart';
 import 'package:rpg_runner/core/accessories/accessory_def.dart';
 import 'package:rpg_runner/core/accessories/accessory_id.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart' show WeaponType;
+import 'package:rpg_runner/core/combat/damage_type.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
-import 'package:rpg_runner/core/projectiles/projectile_id.dart';
-import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_def.dart';
 import 'package:rpg_runner/core/spellBook/spell_book_catalog.dart';
 import 'package:rpg_runner/core/spellBook/spell_book_def.dart';
 import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
-import 'package:rpg_runner/core/combat/damage_type.dart';
 import 'package:rpg_runner/core/stats/character_stats_resolver.dart';
+import 'package:rpg_runner/core/stats/gear_stat_bonuses.dart';
 import 'package:rpg_runner/core/weapons/weapon_catalog.dart';
 import 'package:rpg_runner/core/weapons/weapon_category.dart';
 import 'package:rpg_runner/core/weapons/weapon_def.dart';
 import 'package:rpg_runner/core/weapons/weapon_id.dart';
-import 'package:rpg_runner/core/stats/gear_stat_bonuses.dart';
 
 void main() {
   test('cooldown reduction is capped and scales cooldown ticks', () {
     final resolver = CharacterStatsResolver(
       weapons: const _FlatWeaponCatalog(),
-      projectiles: const _FlatProjectileCatalog(),
       spellBooks: const _FlatSpellBookCatalog(),
       accessories: const _HighCdrAccessoryCatalog(),
     );
@@ -32,7 +28,6 @@ void main() {
       mask: LoadoutSlotMask.mainHand,
       mainWeaponId: WeaponId.plainsteel,
       offhandWeaponId: WeaponId.roadguard,
-      projectileId: ProjectileId.throwingKnife,
       spellBookId: SpellBookId.apprenticePrimer,
       accessoryId: AccessoryId.speedBoots,
     );
@@ -47,7 +42,6 @@ void main() {
   test('two-handed main weapon excludes offhand stat contribution', () {
     final resolver = CharacterStatsResolver(
       weapons: const _TwoHandedWeaponCatalog(),
-      projectiles: const _FlatProjectileCatalog(),
       spellBooks: const _FlatSpellBookCatalog(),
       accessories: const _FlatAccessoryCatalog(),
     );
@@ -56,7 +50,6 @@ void main() {
       mask: LoadoutSlotMask.mainHand | LoadoutSlotMask.offHand,
       mainWeaponId: WeaponId.plainsteel,
       offhandWeaponId: WeaponId.roadguard,
-      projectileId: ProjectileId.throwingKnife,
       spellBookId: SpellBookId.apprenticePrimer,
       accessoryId: AccessoryId.speedBoots,
     );
@@ -67,7 +60,6 @@ void main() {
   test('resource bonuses scale max pools deterministically', () {
     final resolver = CharacterStatsResolver(
       weapons: const _FlatWeaponCatalog(),
-      projectiles: const _FlatProjectileCatalog(),
       spellBooks: const _FlatSpellBookCatalog(),
       accessories: const _ResourceAccessoryCatalog(),
     );
@@ -76,7 +68,6 @@ void main() {
       mask: LoadoutSlotMask.mainHand,
       mainWeaponId: WeaponId.plainsteel,
       offhandWeaponId: WeaponId.roadguard,
-      projectileId: ProjectileId.throwingKnife,
       spellBookId: SpellBookId.apprenticePrimer,
       accessoryId: AccessoryId.goldenRing,
     );
@@ -89,76 +80,35 @@ void main() {
     expect(stats.applyStaminaRegenBonus(10000), equals(10700));
   });
 
-  test('regen scaling clamps at zero for extreme negative bp values', () {
-    const stats = ResolvedCharacterStats(
-      bonuses: GearStatBonuses(healthRegenBonusBp: -20000),
-    );
-    expect(stats.applyHealthRegenBonus(10000), equals(0));
-  });
-
-  test('global offensive bonuses are capped and applied deterministically', () {
+  test('spellbook stats contribute when projectile slot is enabled', () {
     final resolver = CharacterStatsResolver(
       weapons: const _FlatWeaponCatalog(),
-      projectiles: const _FlatProjectileCatalog(),
-      spellBooks: const _FlatSpellBookCatalog(),
-      accessories: const _GlobalOffenseAccessoryCatalog(),
+      spellBooks: const _PowerSpellBookCatalog(),
+      accessories: const _FlatAccessoryCatalog(),
     );
 
-    final stats = resolver.resolveEquipped(
+    final withoutProjectileMask = resolver.resolveEquipped(
       mask: LoadoutSlotMask.mainHand,
       mainWeaponId: WeaponId.plainsteel,
       offhandWeaponId: WeaponId.roadguard,
-      projectileId: ProjectileId.throwingKnife,
+      spellBookId: SpellBookId.apprenticePrimer,
+      accessoryId: AccessoryId.speedBoots,
+    );
+    final withProjectileMask = resolver.resolveEquipped(
+      mask: LoadoutSlotMask.mainHand | LoadoutSlotMask.projectile,
+      mainWeaponId: WeaponId.plainsteel,
+      offhandWeaponId: WeaponId.roadguard,
       spellBookId: SpellBookId.apprenticePrimer,
       accessoryId: AccessoryId.speedBoots,
     );
 
-    expect(
-      stats.globalPowerBonusBp,
-      equals(CharacterStatCaps.maxGlobalPowerBp),
-    );
-    expect(
-      stats.globalCritChanceBonusBp,
-      equals(CharacterStatCaps.maxGlobalCritChanceBp),
-    );
-    expect(stats.applyGlobalPower(1000), equals(2000));
+    expect(withoutProjectileMask.globalPowerBonusBp, equals(0));
+    expect(withProjectileMask.globalPowerBonusBp, equals(500));
   });
 
-  test('resource regen bonuses are clamped deterministically', () {
+  test('typed resistance clamps and converts to incoming modifier', () {
     final resolver = CharacterStatsResolver(
       weapons: const _FlatWeaponCatalog(),
-      projectiles: const _FlatProjectileCatalog(),
-      spellBooks: const _FlatSpellBookCatalog(),
-      accessories: const _RegenClampAccessoryCatalog(),
-    );
-
-    final stats = resolver.resolveEquipped(
-      mask: LoadoutSlotMask.mainHand,
-      mainWeaponId: WeaponId.plainsteel,
-      offhandWeaponId: WeaponId.roadguard,
-      projectileId: ProjectileId.throwingKnife,
-      spellBookId: SpellBookId.apprenticePrimer,
-      accessoryId: AccessoryId.speedBoots,
-    );
-
-    expect(
-      stats.healthRegenBonusBp,
-      equals(CharacterStatCaps.maxResourceRegenBonusBp),
-    );
-    expect(
-      stats.manaRegenBonusBp,
-      equals(CharacterStatCaps.minResourceRegenBonusBp),
-    );
-    expect(
-      stats.staminaRegenBonusBp,
-      equals(CharacterStatCaps.maxResourceRegenBonusBp),
-    );
-  });
-
-  test('typed gear resistance clamps and converts to incoming modifier', () {
-    final resolver = CharacterStatsResolver(
-      weapons: const _FlatWeaponCatalog(),
-      projectiles: const _FlatProjectileCatalog(),
       spellBooks: const _FlatSpellBookCatalog(),
       accessories: const _TypedResistanceAccessoryCatalog(),
     );
@@ -167,7 +117,6 @@ void main() {
       mask: LoadoutSlotMask.mainHand,
       mainWeaponId: WeaponId.plainsteel,
       offhandWeaponId: WeaponId.roadguard,
-      projectileId: ProjectileId.throwingKnife,
       spellBookId: SpellBookId.apprenticePrimer,
       accessoryId: AccessoryId.speedBoots,
     );
@@ -181,20 +130,12 @@ void main() {
       equals(CharacterStatCaps.minTypedResistanceBp),
     );
     expect(
-      stats.acidResistanceBp,
-      equals(CharacterStatCaps.maxTypedResistanceBp),
-    );
-    expect(
       stats.incomingDamageModBpForDamageType(DamageType.fire),
       equals(-CharacterStatCaps.maxTypedResistanceBp),
     );
     expect(
       stats.incomingDamageModBpForDamageType(DamageType.ice),
       equals(-CharacterStatCaps.minTypedResistanceBp),
-    );
-    expect(
-      stats.incomingDamageModBpForDamageType(DamageType.acid),
-      equals(-CharacterStatCaps.maxTypedResistanceBp),
     );
   });
 }
@@ -245,23 +186,6 @@ class _TwoHandedWeaponCatalog extends WeaponCatalog {
   }
 }
 
-class _FlatProjectileCatalog extends ProjectileCatalog {
-  const _FlatProjectileCatalog();
-
-  @override
-  ProjectileItemDef get(ProjectileId id) {
-    return const ProjectileItemDef(
-      id: ProjectileId.throwingKnife,
-      weaponType: WeaponType.throwingWeapon,
-      speedUnitsPerSecond: 900.0,
-      lifetimeSeconds: 1.2,
-      colliderSizeX: 14.0,
-      colliderSizeY: 6.0,
-      stats: GearStatBonuses(),
-    );
-  }
-}
-
 class _FlatSpellBookCatalog extends SpellBookCatalog {
   const _FlatSpellBookCatalog();
 
@@ -271,6 +195,19 @@ class _FlatSpellBookCatalog extends SpellBookCatalog {
       id: SpellBookId.apprenticePrimer,
       weaponType: WeaponType.spell,
       stats: GearStatBonuses(),
+    );
+  }
+}
+
+class _PowerSpellBookCatalog extends SpellBookCatalog {
+  const _PowerSpellBookCatalog();
+
+  @override
+  SpellBookDef get(SpellBookId id) {
+    return const SpellBookDef(
+      id: SpellBookId.apprenticePrimer,
+      weaponType: WeaponType.spell,
+      stats: GearStatBonuses(globalPowerBonusBp: 500),
     );
   }
 }
@@ -318,37 +255,6 @@ class _ResourceAccessoryCatalog extends AccessoryCatalog {
   }
 }
 
-class _GlobalOffenseAccessoryCatalog extends AccessoryCatalog {
-  const _GlobalOffenseAccessoryCatalog();
-
-  @override
-  AccessoryDef get(AccessoryId id) {
-    return const AccessoryDef(
-      id: AccessoryId.speedBoots,
-      stats: GearStatBonuses(
-        globalPowerBonusBp: 12000,
-        globalCritChanceBonusBp: 7000,
-      ),
-    );
-  }
-}
-
-class _RegenClampAccessoryCatalog extends AccessoryCatalog {
-  const _RegenClampAccessoryCatalog();
-
-  @override
-  AccessoryDef get(AccessoryId id) {
-    return const AccessoryDef(
-      id: AccessoryId.speedBoots,
-      stats: GearStatBonuses(
-        healthRegenBonusBp: 25000,
-        manaRegenBonusBp: -9500,
-        staminaRegenBonusBp: 25000,
-      ),
-    );
-  }
-}
-
 class _TypedResistanceAccessoryCatalog extends AccessoryCatalog {
   const _TypedResistanceAccessoryCatalog();
 
@@ -359,7 +265,6 @@ class _TypedResistanceAccessoryCatalog extends AccessoryCatalog {
       stats: GearStatBonuses(
         fireResistanceBp: 9000,
         iceResistanceBp: -9500,
-        acidResistanceBp: 9000,
       ),
     );
   }

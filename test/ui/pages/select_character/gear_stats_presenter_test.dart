@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/accessories/accessory_id.dart';
 import 'package:rpg_runner/core/meta/gear_slot.dart';
-import 'package:rpg_runner/core/projectiles/projectile_id.dart';
+import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
 import 'package:rpg_runner/core/weapons/weapon_id.dart';
 import 'package:rpg_runner/ui/pages/selectCharacter/gear/gear_stats_presenter.dart';
 
@@ -17,28 +17,28 @@ void main() {
       expect(lines.last.label, equals('On Crit'));
     });
 
-    test('hides ballistic line for throwing axe', () {
+    test('hides ballistic line for spellbook', () {
       final lines = gearStatsFor(
-        GearSlot.throwingWeapon,
-        ProjectileId.throwingAxe,
+        GearSlot.spellBook,
+        SpellBookId.apprenticePrimer,
       );
       final hasBallistic = lines.any((line) => line.label == 'Ballistic');
       expect(hasBallistic, isFalse);
     });
 
-    test('hides ballistic line for throwing knife', () {
+    test('hides ballistic line for alternate spellbook', () {
       final lines = gearStatsFor(
-        GearSlot.throwingWeapon,
-        ProjectileId.throwingKnife,
+        GearSlot.spellBook,
+        SpellBookId.emberGrimoire,
       );
       final hasBallistic = lines.any((line) => line.label == 'Ballistic');
       expect(hasBallistic, isFalse);
     });
 
-    test('throwing weapon hides type line', () {
+    test('spellbook hides type line', () {
       final lines = gearStatsFor(
-        GearSlot.throwingWeapon,
-        ProjectileId.throwingAxe,
+        GearSlot.spellBook,
+        SpellBookId.apprenticePrimer,
       );
       final hasType = lines.any((line) => line.label == 'Type');
       expect(hasType, isFalse);

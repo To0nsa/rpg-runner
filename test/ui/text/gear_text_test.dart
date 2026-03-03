@@ -15,10 +15,10 @@ void main() {
       );
       expect(
         gearDisplayNameForSlot(
-          GearSlot.throwingWeapon,
-          ProjectileId.throwingKnife,
+          GearSlot.spellBook,
+          SpellBookId.apprenticePrimer,
         ),
-        equals('Throwing Knife'),
+        equals('Apprentice Primer'),
       );
       expect(
         gearDisplayNameForSlot(GearSlot.spellBook, SpellBookId.crownOfFocus),
@@ -46,8 +46,8 @@ void main() {
         ),
       );
       expect(
-        gearDescriptionForSlot(GearSlot.throwingWeapon, ProjectileId.fireBolt),
-        equals('Spell projectile that burns on hit.'),
+        gearDescriptionForSlot(GearSlot.spellBook, SpellBookId.emberGrimoire),
+        equals('Aggressive spellbook with burn pressure and lower defense.'),
       );
       expect(
         gearDescriptionForSlot(
@@ -68,7 +68,7 @@ void main() {
 
     test('projectile source names use the shared projectile mapping', () {
       expect(projectileDisplayName(ProjectileId.iceBolt), 'Ice Bolt');
-      expect(projectileDisplayName(ProjectileId.throwingAxe), 'Throwing Axe');
+      expect(projectileDisplayName(ProjectileId.fireBolt), 'Fire Bolt');
     });
   });
 }

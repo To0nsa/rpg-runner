@@ -3,9 +3,6 @@ import '../../../../core/accessories/accessory_def.dart';
 import '../../../../core/accessories/accessory_id.dart';
 import '../../../../core/combat/status/status.dart';
 import '../../../../core/meta/gear_slot.dart';
-import '../../../../core/projectiles/projectile_catalog.dart';
-import '../../../../core/projectiles/projectile_item_def.dart';
-import '../../../../core/projectiles/projectile_id.dart';
 import '../../../../core/spellBook/spell_book_catalog.dart';
 import '../../../../core/spellBook/spell_book_def.dart';
 import '../../../../core/spellBook/spell_book_id.dart';
@@ -49,9 +46,6 @@ List<GearStatLine> gearStatsFor(GearSlot slot, Object id) {
     case GearSlot.offhandWeapon:
       final def = const WeaponCatalog().get(id as WeaponId);
       return _weaponDefStats(def);
-    case GearSlot.throwingWeapon:
-      final def = const ProjectileCatalog().get(id as ProjectileId);
-      return _projectileStats(def);
     case GearSlot.spellBook:
       final def = const SpellBookCatalog().get(id as SpellBookId);
       return _spellBookStats(def);
@@ -76,15 +70,6 @@ List<GearStatLine> gearCompareStats(
       final a = const WeaponCatalog().get(equipped as WeaponId);
       final b = const WeaponCatalog().get(candidate as WeaponId);
       return _diffWeaponStats(a, b);
-    case GearSlot.throwingWeapon:
-      final a = const ProjectileCatalog().get(equipped as ProjectileId);
-      final b = const ProjectileCatalog().get(candidate as ProjectileId);
-      return _diffWeaponStatsLike(
-        a.stats,
-        b.stats,
-        equippedProcs: a.procs,
-        candidateProcs: b.procs,
-      );
     case GearSlot.spellBook:
       final a = const SpellBookCatalog().get(equipped as SpellBookId);
       final b = const SpellBookCatalog().get(candidate as SpellBookId);
@@ -120,16 +105,6 @@ List<GearStatLine> _weaponDefStats(WeaponDef def) {
   _addCoreStatLines(lines, stats);
   lines.addAll(_buildProcHookLines(def.procs));
   lines.addAll(_buildReactiveProcHookLines(def.reactiveProcs));
-  return lines;
-}
-
-List<GearStatLine> _projectileStats(ProjectileItemDef def) {
-  final stats = def.stats;
-  final lines = <GearStatLine>[
-    GearStatLine('Damage Type', _enumLabel(def.damageType.name)),
-  ];
-  _addCoreStatLines(lines, stats);
-  lines.addAll(_buildProcHookLines(def.procs));
   return lines;
 }
 
@@ -1040,23 +1015,6 @@ String _signedPercent(double value) {
 String _formatNumber(double value) {
   final fixed = value.toStringAsFixed(2);
   return fixed.replaceFirst(RegExp(r'\.?0+$'), '');
-}
-
-String _enumLabel(String source) {
-  final normalized = source
-      .replaceAll('_', ' ')
-      .replaceAllMapped(
-        RegExp(r'([a-z0-9])([A-Z])'),
-        (match) => '${match.group(1)} ${match.group(2)}',
-      );
-  final words = normalized.split(RegExp(r'\s+'));
-  return words
-      .where((word) => word.isNotEmpty)
-      .map((word) {
-        if (word == word.toUpperCase()) return word;
-        return '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}';
-      })
-      .join(' ');
 }
 
 String _labelFor(CharacterStatId id) => characterStatDescriptor(id).displayName;

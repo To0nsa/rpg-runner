@@ -168,9 +168,8 @@ Map<String, Object?> _loadoutToJson(EquippedLoadoutDef loadout) {
     'mask': loadout.mask,
     'mainWeaponId': loadout.mainWeaponId.name,
     'offhandWeaponId': loadout.offhandWeaponId.name,
-    'ProjectileId': loadout.projectileId.name,
     'spellBookId': loadout.spellBookId.name,
-    'projectileSlotSpellId': loadout.projectileSlotSpellId?.name,
+    'projectileSlotSpellId': loadout.projectileSlotSpellId.name,
     'accessoryId': loadout.accessoryId.name,
     'abilityPrimaryId': loadout.abilityPrimaryId,
     'abilitySecondaryId': loadout.abilitySecondaryId,
@@ -198,22 +197,16 @@ EquippedLoadoutDef _loadoutFromJson(Object? raw) {
       map['offhandWeaponId'] as String?,
       WeaponId.roadguard,
     ),
-    projectileId: _enumFromName(
-      ProjectileId.values,
-      map['ProjectileId'] as String?,
-      ProjectileId.throwingKnife,
-    ),
     spellBookId: _enumFromName(
       SpellBookId.values,
       map['spellBookId'] as String?,
       SpellBookId.apprenticePrimer,
     ),
-    projectileSlotSpellId: map.containsKey('projectileSlotSpellId')
-        ? _enumFromNameNullable(
-            ProjectileId.values,
-            map['projectileSlotSpellId'] as String?,
-          )
-        : const EquippedLoadoutDef().projectileSlotSpellId,
+    projectileSlotSpellId: _enumFromName(
+      ProjectileId.values,
+      map['projectileSlotSpellId'] as String?,
+      const EquippedLoadoutDef().projectileSlotSpellId,
+    ),
     accessoryId: _enumFromName(
       AccessoryId.values,
       _migrateAccessoryName(map['accessoryId'] as String?),
@@ -239,14 +232,6 @@ EquippedLoadoutDef _loadoutFromJson(Object? raw) {
         (map['abilityJumpId'] as String?) ??
         const EquippedLoadoutDef().abilityJumpId,
   );
-}
-
-T? _enumFromNameNullable<T extends Enum>(List<T> values, String? name) {
-  if (name == null) return null;
-  for (final value in values) {
-    if (value.name == name) return value;
-  }
-  return null;
 }
 
 String? _migrateAccessoryName(String? raw) {

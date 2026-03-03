@@ -23,7 +23,7 @@ import '../test_tunings.dart';
 
 void main() {
   test(
-    'projectile throwing weapon: sufficient stamina => projectile spawns + costs + cooldown set',
+    'projectile spell: sufficient mana => projectile spawns + costs + cooldown set',
     () {
       const tickHz = 20;
       final base = PlayerCharacterRegistry.eloise;
@@ -34,15 +34,15 @@ void main() {
         playerCharacter: base.copyWith(
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-            projectileId: ProjectileId.throwingKnife,
+            projectileId: ProjectileId.fireBolt,
             projectileSlotSpellId: null,
             abilityProjectileId: 'eloise.quick_shot',
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
-              playerManaMax: 0,
+              playerManaMax: 10,
               playerManaRegenPerSecond: 0,
-              playerStaminaMax: 10,
+              playerStaminaMax: 0,
               playerStaminaRegenPerSecond: 0,
             ),
           ),
@@ -75,19 +75,19 @@ void main() {
       expect(projectiles.length, 1);
 
       final p = projectiles.single;
-      final item = const ProjectileCatalog().get(ProjectileId.throwingKnife);
+      final item = const ProjectileCatalog().get(ProjectileId.fireBolt);
       expect(p.pos.x, closeTo(playerPosX + item.originOffset, 1e-9));
       expect(p.pos.y, closeTo(playerPosY, 1e-9));
 
       final ability = AbilityCatalog.shared.resolve('eloise.quick_shot')!;
-      final throwCost = ability.resolveCostForWeaponType(
-        WeaponType.throwingWeapon,
+      final shotCost = ability.resolveCostForWeaponType(
+        WeaponType.spell,
       );
       expect(
-        snapshot.hud.stamina,
-        closeTo(initialHud.stamina - (throwCost.staminaCost100 / 100.0), 1e-9),
+        snapshot.hud.mana,
+        closeTo(initialHud.mana - (shotCost.manaCost100 / 100.0), 1e-9),
       );
-      expect(snapshot.hud.mana, closeTo(0.0, 1e-9));
+      expect(snapshot.hud.stamina, closeTo(initialHud.stamina, 1e-9));
       final cooldownTicks = ticksFromSecondsCeil(
         ability.cooldownTicks / 60.0,
         tickHz,
@@ -100,7 +100,7 @@ void main() {
   );
 
   test(
-    'projectile throwing weapon: insufficient stamina => no projectile + no costs + no cooldown',
+    'projectile spell: insufficient mana => no projectile + no costs + no cooldown',
     () {
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
@@ -110,22 +110,22 @@ void main() {
         playerCharacter: base.copyWith(
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-            projectileId: ProjectileId.throwingKnife,
+            projectileId: ProjectileId.fireBolt,
             projectileSlotSpellId: null,
             abilityProjectileId: 'eloise.quick_shot',
           ),
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
-              playerManaMax: 10,
+              playerManaMax: 0,
               playerManaRegenPerSecond: 0,
-              playerStaminaMax: 0,
+              playerStaminaMax: 10,
               playerStaminaRegenPerSecond: 0,
             ),
           ),
         ),
       );
 
-      final initialMana = core.buildSnapshot().hud.mana;
+      final initialHud = core.buildSnapshot().hud;
 
       core.applyCommands(const [
         AimDirCommand(tick: 1, x: 1, y: 0),
@@ -147,8 +147,8 @@ void main() {
         snapshot.entities.where((e) => e.kind == EntityKind.projectile),
         isEmpty,
       );
-      expect(snapshot.hud.mana, closeTo(initialMana, 1e-9));
-      expect(snapshot.hud.stamina, closeTo(0.0, 1e-9));
+      expect(snapshot.hud.mana, closeTo(initialHud.mana, 1e-9));
+      expect(snapshot.hud.stamina, closeTo(initialHud.stamina, 1e-9));
       expect(snapshot.hud.cooldownTicksLeft[CooldownGroup.projectile], 0);
       expect(snapshot.hud.canAffordProjectile, isFalse);
     },
@@ -157,13 +157,13 @@ void main() {
   test('ProjectileWorldCollisionSystem despawns ballistic projectiles', () {
     final world = EcsWorld();
     final system = ProjectileWorldCollisionSystem();
-    final projectile = const ProjectileCatalog().get(ProjectileId.throwingAxe);
+    final projectile = const ProjectileCatalog().get(ProjectileId.iceBolt);
 
     final owner = world.createEntity();
     final p = spawnProjectileFromCaster(
       world,
       tickHz: 20,
-      projectileId: ProjectileId.throwingAxe,
+      projectileId: ProjectileId.iceBolt,
       projectile: projectile,
       faction: Faction.player,
       owner: owner,

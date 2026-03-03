@@ -47,12 +47,6 @@ class LoadoutValidator {
       issues,
     );
 
-    final projectile = _resolveProjectile(
-      loadout.projectileId,
-      AbilitySlot.projectile,
-      issues,
-    );
-
     final spellBook = _resolveSpellBook(loadout.spellBookId, issues);
 
     // 2. Derive Effective Weapons (Two-Handed Logic)
@@ -82,7 +76,6 @@ class LoadoutValidator {
       slot: AbilitySlot.primary,
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
-      projectile: projectile,
       spellBook: spellBook,
       projectileSlotSpellId: loadout.projectileSlotSpellId,
     );
@@ -94,7 +87,6 @@ class LoadoutValidator {
       slot: AbilitySlot.secondary,
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
-      projectile: projectile,
       spellBook: spellBook,
       projectileSlotSpellId: loadout.projectileSlotSpellId,
     );
@@ -106,7 +98,6 @@ class LoadoutValidator {
       slot: AbilitySlot.projectile,
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
-      projectile: projectile,
       spellBook: spellBook,
       projectileSlotSpellId: loadout.projectileSlotSpellId,
     );
@@ -118,7 +109,6 @@ class LoadoutValidator {
       slot: AbilitySlot.mobility,
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
-      projectile: projectile,
       spellBook: spellBook,
       projectileSlotSpellId: loadout.projectileSlotSpellId,
     );
@@ -130,7 +120,6 @@ class LoadoutValidator {
       slot: AbilitySlot.spell,
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
-      projectile: projectile,
       spellBook: spellBook,
       projectileSlotSpellId: loadout.projectileSlotSpellId,
     );
@@ -142,7 +131,6 @@ class LoadoutValidator {
       slot: AbilitySlot.jump,
       mainWeapon: mainWeapon,
       effectiveSecondaryWeapon: effectiveSecondaryWeapon,
-      projectile: projectile,
       spellBook: spellBook,
       projectileSlotSpellId: loadout.projectileSlotSpellId,
     );
@@ -192,26 +180,6 @@ class LoadoutValidator {
     return weapon;
   }
 
-  ProjectileItemDef? _resolveProjectile(
-    ProjectileId id,
-    AbilitySlot slot,
-    List<LoadoutIssue> issues,
-  ) {
-    final item = projectileCatalog.tryGet(id);
-    if (item == null) {
-      issues.add(
-        LoadoutIssue(
-          slot: slot,
-          kind: IssueKind.catalogMissing,
-          weaponId: id.toString(),
-          message: 'Projectile item ID not found in catalog.',
-        ),
-      );
-      return null;
-    }
-    return item;
-  }
-
   SpellBookDef? _resolveSpellBook(SpellBookId id, List<LoadoutIssue> issues) {
     final book = spellBookCatalog.tryGet(id);
     if (book == null) {
@@ -234,9 +202,8 @@ class LoadoutValidator {
     required AbilitySlot slot,
     required WeaponDef? mainWeapon,
     required WeaponDef? effectiveSecondaryWeapon,
-    required ProjectileItemDef? projectile,
     required SpellBookDef? spellBook,
-    required ProjectileId? projectileSlotSpellId,
+    required ProjectileId projectileSlotSpellId,
   }) {
     final ability = abilityCatalog.resolve(abilityId);
     if (ability == null) {
@@ -254,7 +221,6 @@ class LoadoutValidator {
     final effectiveProjectile = _effectiveProjectilePayloadForSlot(
       issues: issues,
       slot: slot,
-      fallbackProjectile: projectile,
       projectileSlotSpellId: projectileSlotSpellId,
     );
 
@@ -306,39 +272,27 @@ class LoadoutValidator {
         );
       }
     }
-
   }
 
   ProjectileItemDef? _effectiveProjectilePayloadForSlot({
     required List<LoadoutIssue> issues,
     required AbilitySlot slot,
-    required ProjectileItemDef? fallbackProjectile,
-    required ProjectileId? projectileSlotSpellId,
+    required ProjectileId projectileSlotSpellId,
   }) {
-    final selectedSpellId = switch (slot) {
-      AbilitySlot.projectile => projectileSlotSpellId,
-      AbilitySlot.primary ||
-      AbilitySlot.secondary ||
-      AbilitySlot.mobility ||
-      AbilitySlot.spell ||
-      AbilitySlot.jump => null,
-    };
-    if (selectedSpellId == null) {
-      return fallbackProjectile;
-    }
+    if (slot != AbilitySlot.projectile) return null;
 
-    final selectedSpell = projectileCatalog.tryGet(selectedSpellId);
+    final selectedSpell = projectileCatalog.tryGet(projectileSlotSpellId);
     if (selectedSpell == null) {
       issues.add(
         LoadoutIssue(
           slot: slot,
           kind: IssueKind.catalogMissing,
-          weaponId: selectedSpellId.toString(),
+          weaponId: projectileSlotSpellId.toString(),
           message:
               'Selected projectile spell was not found in ProjectileCatalog.',
         ),
       );
-      return fallbackProjectile;
+      return null;
     }
 
     if (selectedSpell.weaponType != WeaponType.spell) {
@@ -346,12 +300,12 @@ class LoadoutValidator {
         LoadoutIssue(
           slot: slot,
           kind: IssueKind.missingRequiredWeaponTypes,
-          weaponId: selectedSpellId.toString(),
+          weaponId: projectileSlotSpellId.toString(),
           missingWeaponTypes: const <WeaponType>{WeaponType.spell},
           message: 'Selected slot spell must be a projectile spell item.',
         ),
       );
-      return fallbackProjectile;
+      return null;
     }
 
     return selectedSpell;

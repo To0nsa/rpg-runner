@@ -8,9 +8,6 @@ enum GearSlot {
   /// Off-hand weapon slot (for example shields).
   offhandWeapon,
 
-  /// Throwable/ranged weapon slot.
-  throwingWeapon,
-
   /// Spellbook slot.
   spellBook,
 

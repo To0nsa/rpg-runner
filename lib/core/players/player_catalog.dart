@@ -42,11 +42,9 @@ class PlayerCatalog {
     required this.loadoutSlotMask,
     required this.weaponId,
     required this.offhandWeaponId,
-    required this.projectileId,
     required this.spellBookId,
     required this.projectileSlotSpellId,
     this.startingProjectileSpellIds = const <ProjectileId>{},
-    this.projectileSlotAllowsThrowingWeapon = true,
     required this.abilityPrimaryId,
     required this.abilitySecondaryId,
     required this.abilityProjectileId,
@@ -109,23 +107,14 @@ class PlayerCatalog {
   /// Default equipped off-hand weapon or shield at spawn time.
   final WeaponId offhandWeaponId;
 
-  /// Default equipped projectile item at spawn time.
-  final ProjectileId projectileId;
-
   /// Default equipped spell book at spawn time.
   final SpellBookId spellBookId;
 
-  /// Optional spell selection used by projectile-slot projectile abilities.
-  final ProjectileId? projectileSlotSpellId;
+  /// Spell selection used by projectile-slot projectile abilities.
+  final ProjectileId projectileSlotSpellId;
 
   /// Initial learned projectile spells for Spell List seeding.
   final Set<ProjectileId> startingProjectileSpellIds;
-
-  /// Whether the projectile slot may use equipped throwing weapons as payload.
-  ///
-  /// When false, gameplay/UI should force projectile-slot payload to learned
-  /// projectile spells only (no throwing fallback for the character).
-  final bool projectileSlotAllowsThrowingWeapon;
 
   /// Default equipped ability IDs at spawn time.
   final AbilityKey abilityPrimaryId;
@@ -233,7 +222,6 @@ class PlayerCatalogDerived {
         loadoutSlotMask: base.loadoutSlotMask,
         weaponId: base.weaponId,
         offhandWeaponId: base.offhandWeaponId,
-        projectileId: base.projectileId,
         spellBookId: base.spellBookId,
         projectileSlotSpellId: base.projectileSlotSpellId,
         abilityPrimaryId: base.abilityPrimaryId,

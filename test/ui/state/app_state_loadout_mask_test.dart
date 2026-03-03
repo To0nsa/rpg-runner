@@ -103,22 +103,22 @@ void main() {
     );
 
     test(
-      'setLoadout enforces spell projectile source when selection is null',
+      'setLoadout preserves valid projectile spell selection',
       () async {
         final selectionStore = _MemorySelectionStore();
         final appState = AppState(selectionStore: selectionStore);
 
         await appState.setLoadout(
-          const EquippedLoadoutDef(projectileSlotSpellId: null),
+          const EquippedLoadoutDef(projectileSlotSpellId: ProjectileId.fireBolt),
         );
 
         expect(
           _selectedLoadout(appState.selection).projectileSlotSpellId,
-          isNotNull,
+          ProjectileId.fireBolt,
         );
         expect(
           _selectedLoadout(selectionStore.saved).projectileSlotSpellId,
-          isNotNull,
+          ProjectileId.fireBolt,
         );
       },
     );
@@ -155,7 +155,7 @@ void main() {
         await appState.bootstrap(force: true);
         await appState.setLoadout(
           const EquippedLoadoutDef(
-            projectileSlotSpellId: ProjectileId.throwingAxe,
+            projectileSlotSpellId: ProjectileId.iceBolt,
           ),
         );
 
@@ -171,7 +171,7 @@ void main() {
     );
 
     test(
-      'equipGear syncs selected loadout projectile and spellbook sources',
+      'equipGear syncs spellbook without mutating selected projectile spell',
       () async {
         final selectionStore = _MemorySelectionStore();
         final metaStore = _MemoryMetaStore(
@@ -184,27 +184,21 @@ void main() {
 
         await appState.equipGear(
           characterId: PlayerCharacterId.eloise,
-          slot: GearSlot.throwingWeapon,
-          itemId: ProjectileId.throwingAxe,
-        );
-
-        await appState.equipGear(
-          characterId: PlayerCharacterId.eloise,
           slot: GearSlot.spellBook,
           itemId: SpellBookId.bastionCodex,
         );
 
         expect(
-          _selectedLoadout(appState.selection).projectileId,
-          ProjectileId.throwingAxe,
+          _selectedLoadout(appState.selection).projectileSlotSpellId,
+          ProjectileId.fireBolt,
         );
         expect(
           _selectedLoadout(appState.selection).spellBookId,
           SpellBookId.bastionCodex,
         );
         expect(
-          _selectedLoadout(selectionStore.saved).projectileId,
-          ProjectileId.throwingAxe,
+          _selectedLoadout(selectionStore.saved).projectileSlotSpellId,
+          ProjectileId.fireBolt,
         );
         expect(
           _selectedLoadout(selectionStore.saved).spellBookId,
@@ -329,12 +323,6 @@ void main() {
         meta = service.equip(
           meta,
           characterId: PlayerCharacterId.eloise,
-          slot: GearSlot.throwingWeapon,
-          itemId: ProjectileId.throwingAxe,
-        );
-        meta = service.equip(
-          meta,
-          characterId: PlayerCharacterId.eloise,
           slot: GearSlot.spellBook,
           itemId: SpellBookId.bastionCodex,
         );
@@ -347,7 +335,7 @@ void main() {
             loadoutsByCharacter: _loadoutsWithSelected(
               characterId: PlayerCharacterId.eloise,
               loadout: EquippedLoadoutDef(
-                projectileId: ProjectileId.throwingKnife,
+                projectileSlotSpellId: ProjectileId.fireBolt,
                 spellBookId: SpellBookId.apprenticePrimer,
               ),
             ),
@@ -365,16 +353,16 @@ void main() {
         await appState.bootstrap(force: true);
 
         expect(
-          _selectedLoadout(appState.selection).projectileId,
-          ProjectileId.throwingAxe,
+          _selectedLoadout(appState.selection).projectileSlotSpellId,
+          ProjectileId.fireBolt,
         );
         expect(
           _selectedLoadout(appState.selection).spellBookId,
           SpellBookId.bastionCodex,
         );
         expect(
-          _selectedLoadout(selectionStore.saved).projectileId,
-          ProjectileId.throwingAxe,
+          _selectedLoadout(selectionStore.saved).projectileSlotSpellId,
+          ProjectileId.fireBolt,
         );
         expect(
           _selectedLoadout(selectionStore.saved).spellBookId,

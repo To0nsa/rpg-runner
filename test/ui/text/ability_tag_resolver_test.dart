@@ -552,8 +552,8 @@ void main() {
       final tooltip = tooltipBuilder.build(
         def,
         ctx: const AbilityTooltipContext(
-          activeProjectileId: ProjectileId.throwingAxe,
-          payloadWeaponType: WeaponType.throwingWeapon,
+          activeProjectileId: ProjectileId.iceBolt,
+          payloadWeaponType: WeaponType.spell,
         ),
       );
       final expectedDamage = formatFixed100(def.baseDamage);
@@ -561,11 +561,11 @@ void main() {
       expect(
         tooltip.description,
         equals(
-          'Fire your equipped projectile (Throwing Axe), piercing through enemies in its path. '
+          'Fire the selected spell projectile (Ice Bolt), piercing through enemies in its path. '
           'It deals $expectedDamage damage and can hit up to 3 enemies.',
         ),
       );
-      expect(tooltip.dynamicDescriptionValues, contains(' (Throwing Axe)'));
+      expect(tooltip.dynamicDescriptionValues, contains(' (Ice Bolt)'));
       expect(tooltip.dynamicDescriptionValues, contains(expectedDamage));
       expect(tooltip.dynamicDescriptionValues, contains('3'));
     });
@@ -617,15 +617,8 @@ void main() {
         def,
         ctx: const AbilityTooltipContext(payloadWeaponType: WeaponType.spell),
       );
-      final throwTooltip = tooltipBuilder.build(
-        def,
-        ctx: const AbilityTooltipContext(
-          payloadWeaponType: WeaponType.throwingWeapon,
-        ),
-      );
 
       expect(spellTooltip.costLines.single.value, equals('6 Mana'));
-      expect(throwTooltip.costLines.single.value, equals('6 Stamina'));
     });
 
     test('keeps cost lines empty when authored cost is zero', () {

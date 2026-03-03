@@ -26,9 +26,6 @@ import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
 import 'package:rpg_runner/core/ecs/systems/status_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/enemies/enemy_id.dart';
-import 'package:rpg_runner/core/projectiles/projectile_id.dart';
-import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_def.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/spellBook/spell_book_catalog.dart';
 import 'package:rpg_runner/core/spellBook/spell_book_def.dart';
@@ -457,9 +454,7 @@ void main() {
     final status = StatusSystem(
       tickHz: 60,
       statsResolver: CharacterStatsResolver(
-        weapons: const _FlatWeaponCatalog(),
-        projectiles: const _FlatProjectileCatalog(),
-        spellBooks: const _FlatSpellBookCatalog(),
+        weapons: const _FlatWeaponCatalog(),        spellBooks: const _FlatSpellBookCatalog(),
         accessories: const _FireResistAccessoryCatalog(),
       ),
     );
@@ -503,9 +498,7 @@ void main() {
     final status = StatusSystem(
       tickHz: 60,
       statsResolver: CharacterStatsResolver(
-        weapons: const _FlatWeaponCatalog(),
-        projectiles: const _FlatProjectileCatalog(),
-        spellBooks: const _FlatSpellBookCatalog(),
+        weapons: const _FlatWeaponCatalog(),        spellBooks: const _FlatSpellBookCatalog(),
         accessories: const _AcidResistAccessoryCatalog(),
       ),
     );
@@ -764,23 +757,6 @@ class _FlatWeaponCatalog extends WeaponCatalog {
       id: WeaponId.plainsteel,
       category: WeaponCategory.primary,
       weaponType: WeaponType.oneHandedSword,
-      stats: GearStatBonuses(),
-    );
-  }
-}
-
-class _FlatProjectileCatalog extends ProjectileCatalog {
-  const _FlatProjectileCatalog();
-
-  @override
-  ProjectileItemDef get(ProjectileId id) {
-    return const ProjectileItemDef(
-      id: ProjectileId.throwingKnife,
-      weaponType: WeaponType.throwingWeapon,
-      speedUnitsPerSecond: 900.0,
-      lifetimeSeconds: 1.2,
-      colliderSizeX: 14.0,
-      colliderSizeY: 6.0,
       stats: GearStatBonuses(),
     );
   }

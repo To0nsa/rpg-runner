@@ -15,9 +15,6 @@ import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
 import 'package:rpg_runner/core/ecs/world.dart';
 import 'package:rpg_runner/core/ecs/stores/health_store.dart';
 import 'package:rpg_runner/core/events/game_event.dart';
-import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
-import 'package:rpg_runner/core/projectiles/projectile_item_def.dart';
-import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/spellBook/spell_book_catalog.dart';
 import 'package:rpg_runner/core/spellBook/spell_book_def.dart';
 import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
@@ -108,9 +105,7 @@ void main() {
   test('DamageSystem applies global defense from equipped loadout', () {
     final world = EcsWorld();
     final resolver = CharacterStatsResolver(
-      weapons: const _DefenseWeaponCatalog(),
-      projectiles: const _FlatProjectileCatalog(),
-      spellBooks: const _FlatSpellBookCatalog(),
+      weapons: const _DefenseWeaponCatalog(),      spellBooks: const _FlatSpellBookCatalog(),
       accessories: const _FlatAccessoryCatalog(),
     );
     final damage = DamageSystem(
@@ -142,9 +137,7 @@ void main() {
   test('DamageSystem combines store typed mod with gear typed resistance', () {
     final world = EcsWorld();
     final resolver = CharacterStatsResolver(
-      weapons: const _FlatWeaponCatalog(),
-      projectiles: const _FlatProjectileCatalog(),
-      spellBooks: const _FlatSpellBookCatalog(),
+      weapons: const _FlatWeaponCatalog(),      spellBooks: const _FlatSpellBookCatalog(),
       accessories: const _TypedResistanceAccessoryCatalog(),
     );
     final damage = DamageSystem(
@@ -476,22 +469,6 @@ class _FlatWeaponCatalog extends WeaponCatalog {
       category: WeaponCategory.primary,
       weaponType: WeaponType.oneHandedSword,
       stats: GearStatBonuses(),
-    );
-  }
-}
-
-class _FlatProjectileCatalog extends ProjectileCatalog {
-  const _FlatProjectileCatalog();
-
-  @override
-  ProjectileItemDef get(ProjectileId id) {
-    return const ProjectileItemDef(
-      id: ProjectileId.throwingKnife,
-      weaponType: WeaponType.throwingWeapon,
-      speedUnitsPerSecond: 900.0,
-      lifetimeSeconds: 1.2,
-      colliderSizeX: 14.0,
-      colliderSizeY: 6.0,
     );
   }
 }

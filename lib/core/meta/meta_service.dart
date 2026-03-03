@@ -34,9 +34,6 @@ class GearSlotCandidate {
 
 /// Domain service for meta inventory, unlock rules, and equip validation.
 class MetaService {
-  /// Number of starting unlocks granted per catalog domain.
-  static const int _startingUnlockedPerCatalog = 2;
-
   const MetaService({
     this.weapons = const WeaponCatalog(),
     this.projectiles = const ProjectileCatalog(),
@@ -62,7 +59,6 @@ class MetaService {
   InventoryState seedAllUnlockedInventory() {
     return InventoryState(
       unlockedWeaponIds: _startingUnlockedWeaponIds(),
-      unlockedThrowingWeaponIds: _startingUnlockedThrowingWeaponIds(),
       unlockedSpellBookIds: _startingUnlockedSpellBookIds(),
       unlockedAccessoryIds: _startingUnlockedAccessoryIds(),
     );
@@ -85,19 +81,6 @@ class MetaService {
     }
 
     return unlockedWeapons;
-  }
-
-  /// Returns starter unlocked throwing weapon IDs.
-  Set<ProjectileId> _startingUnlockedThrowingWeaponIds() {
-    final unlockedThrowingCandidates = <ProjectileId>[];
-    for (final id in ProjectileId.values) {
-      final def = projectiles.tryGet(id);
-      if (def != null && def.weaponType == WeaponType.throwingWeapon) {
-        unlockedThrowingCandidates.add(id);
-      }
-    }
-
-    return unlockedThrowingCandidates.take(_startingUnlockedPerCatalog).toSet();
   }
 
   /// Returns starter unlocked spellbook IDs.
@@ -131,7 +114,6 @@ class MetaService {
         state,
         WeaponCategory.offHand,
       ),
-      GearSlot.throwingWeapon => _throwingWeaponCandidates(state),
       GearSlot.spellBook => _spellBookCandidates(state),
       GearSlot.accessory => _accessoryCandidates(state),
     };
@@ -147,20 +129,6 @@ class MetaService {
     for (final id in WeaponId.values) {
       final def = weapons.tryGet(id);
       if (def == null || def.category != category) continue;
-      result.add(GearSlotCandidate(id: id, isUnlocked: unlocked.contains(id)));
-    }
-    return result;
-  }
-
-  /// Builds throwing-weapon candidates only.
-  List<GearSlotCandidate> _throwingWeaponCandidates(MetaState state) {
-    final unlocked = state.inventory.unlockedThrowingWeaponIds;
-    final result = <GearSlotCandidate>[];
-    for (final id in ProjectileId.values) {
-      final def = projectiles.tryGet(id);
-      if (def == null || def.weaponType != WeaponType.throwingWeapon) {
-        continue;
-      }
       result.add(GearSlotCandidate(id: id, isUnlocked: unlocked.contains(id)));
     }
     return result;
@@ -210,7 +178,6 @@ class MetaService {
           break;
       }
     }
-    final allowedThrowingWeapons = _startingUnlockedThrowingWeaponIds();
     final allowedSpellBooks = _startingUnlockedSpellBookIds();
     final allowedAccessories = _startingUnlockedAccessoryIds();
 
@@ -220,10 +187,6 @@ class MetaService {
       ..addAll(guaranteedOffhandWeapons)
       ..add(MetaDefaults.mainWeaponId)
       ..add(MetaDefaults.offhandWeaponId);
-    final unlockedThrowing =
-        Set<ProjectileId>.from(inventory.unlockedThrowingWeaponIds)
-          ..removeWhere((id) => !allowedThrowingWeapons.contains(id))
-          ..add(MetaDefaults.throwingWeaponId);
     final unlockedSpellBooks = Set<SpellBookId>.from(
       inventory.unlockedSpellBookIds,
     );
@@ -238,7 +201,6 @@ class MetaService {
 
     inventory = inventory.copyWith(
       unlockedWeaponIds: unlockedWeapons,
-      unlockedThrowingWeaponIds: unlockedThrowing,
       unlockedSpellBookIds: unlockedSpellBooks,
       unlockedAccessoryIds: unlockedAccessories,
     );
@@ -285,8 +247,7 @@ class MetaService {
 
     if (projectileSpells.isEmpty) {
       final defaultProjectileSpellId = catalog.projectileSlotSpellId;
-      if (defaultProjectileSpellId != null &&
-          _isSpellProjectile(defaultProjectileSpellId)) {
+      if (_isSpellProjectile(defaultProjectileSpellId)) {
         projectileSpells.add(defaultProjectileSpellId);
       }
     }
@@ -380,14 +341,6 @@ class MetaService {
       offhandWeaponId = MetaDefaults.offhandWeaponId;
     }
 
-    var throwingWeaponId = gear.throwingWeaponId;
-    final throwingDef = projectiles.tryGet(throwingWeaponId);
-    if (throwingDef == null ||
-        throwingDef.weaponType != WeaponType.throwingWeapon ||
-        !inventory.unlockedThrowingWeaponIds.contains(throwingWeaponId)) {
-      throwingWeaponId = MetaDefaults.throwingWeaponId;
-    }
-
     var spellBookId = gear.spellBookId;
     if (spellBooks.tryGet(spellBookId) == null ||
         !inventory.unlockedSpellBookIds.contains(spellBookId)) {
@@ -402,7 +355,6 @@ class MetaService {
     return EquippedGear(
       mainWeaponId: mainWeaponId,
       offhandWeaponId: offhandWeaponId,
-      throwingWeaponId: throwingWeaponId,
       spellBookId: spellBookId,
       accessoryId: accessoryId,
     );
@@ -430,13 +382,6 @@ class MetaService {
         result.add(id);
       }
     }
-    result.sort((a, b) => a.index.compareTo(b.index));
-    return result;
-  }
-
-  /// Legacy helper: unlocked throwing weapons only.
-  List<ProjectileId> unlockedThrowingWeapons(MetaState state) {
-    final result = state.inventory.unlockedThrowingWeaponIds.toList();
     result.sort((a, b) => a.index.compareTo(b.index));
     return result;
   }
@@ -494,19 +439,6 @@ class MetaService {
         return normalized.setEquippedFor(
           characterId,
           current.copyWith(offhandWeaponId: itemId),
-        );
-      case GearSlot.throwingWeapon:
-        if (itemId is! ProjectileId) return normalized;
-        final def = projectiles.tryGet(itemId);
-        if (def == null || def.weaponType != WeaponType.throwingWeapon) {
-          return normalized;
-        }
-        if (!normalized.inventory.unlockedThrowingWeaponIds.contains(itemId)) {
-          return normalized;
-        }
-        return normalized.setEquippedFor(
-          characterId,
-          current.copyWith(throwingWeaponId: itemId),
         );
       case GearSlot.spellBook:
         if (itemId is! SpellBookId) return normalized;

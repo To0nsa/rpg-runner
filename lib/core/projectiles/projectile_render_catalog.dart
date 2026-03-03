@@ -377,66 +377,6 @@ const RenderAnimSetDefinition _waterBoltRenderAnim = RenderAnimSetDefinition(
   stepTimeSecondsByKey: _waterBoltStepTimeSecondsByKey,
 );
 
-// -----------------------------------------------------------------------------
-// Throwing Axe render animation strip definitions (authoring-time)
-// -----------------------------------------------------------------------------
-
-const int _throwingAxeFrameWidth = 32;
-const int _throwingAxeFrameHeight = 32;
-
-const int _throwingAxeFrames = 1;
-const double _throwingAxeStepSeconds = 0.10;
-
-const Map<AnimKey, int> _throwingAxeFrameCountsByKey = <AnimKey, int>{
-  AnimKey.idle: _throwingAxeFrames,
-};
-
-const Map<AnimKey, double> _throwingAxeStepTimeSecondsByKey = <AnimKey, double>{
-  AnimKey.idle: _throwingAxeStepSeconds,
-};
-
-const Map<AnimKey, String> _throwingAxeSourcesByKey = <AnimKey, String>{
-  AnimKey.idle: 'weapons/throwingWeapons/throwingAxe.png',
-};
-
-const RenderAnimSetDefinition _throwingAxeRenderAnim = RenderAnimSetDefinition(
-  frameWidth: _throwingAxeFrameWidth,
-  frameHeight: _throwingAxeFrameHeight,
-  sourcesByKey: _throwingAxeSourcesByKey,
-  frameCountsByKey: _throwingAxeFrameCountsByKey,
-  stepTimeSecondsByKey: _throwingAxeStepTimeSecondsByKey,
-);
-
-// -----------------------------------------------------------------------------
-// Throwing Axe render animation strip definitions (authoring-time)
-// -----------------------------------------------------------------------------
-
-const int _throwingKnifeFrameWidth = 32;
-const int _throwingKnifeFrameHeight = 32;
-
-const int _throwingKnifeFrames = 1;
-const double _throwingKnifeStepSeconds = 0.10;
-
-const Map<AnimKey, int> _throwingKnifeFrameCountsByKey = <AnimKey, int>{
-  AnimKey.idle: _throwingKnifeFrames,
-};
-
-const Map<AnimKey, double> _throwingKnifeStepTimeSecondsByKey =
-    <AnimKey, double>{AnimKey.idle: _throwingKnifeStepSeconds};
-
-const Map<AnimKey, String> _throwingKnifeSourcesByKey = <AnimKey, String>{
-  AnimKey.idle: 'weapons/throwingWeapons/throwingKnife.png',
-};
-
-const RenderAnimSetDefinition _throwingKnifeRenderAnim =
-    RenderAnimSetDefinition(
-      frameWidth: _throwingKnifeFrameWidth,
-      frameHeight: _throwingKnifeFrameHeight,
-      sourcesByKey: _throwingKnifeSourcesByKey,
-      frameCountsByKey: _throwingKnifeFrameCountsByKey,
-      stepTimeSecondsByKey: _throwingKnifeStepTimeSecondsByKey,
-    );
-
 /// Lookup table for projectile render animation definitions.
 ///
 /// Core owns the animation timing and frame metadata. The renderer uses this
@@ -468,10 +408,6 @@ class ProjectileRenderCatalog {
         return _holyBoltRenderAnim;
       case ProjectileId.waterBolt:
         return _waterBoltRenderAnim;
-      case ProjectileId.throwingAxe:
-        return _throwingAxeRenderAnim;
-      case ProjectileId.throwingKnife:
-        return _throwingKnifeRenderAnim;
     }
   }
 }

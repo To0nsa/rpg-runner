@@ -39,7 +39,6 @@ class PlayerArchetype {
     required this.loadoutSlotMask,
     required this.weaponId,
     required this.offhandWeaponId,
-    required this.projectileId,
     required this.spellBookId,
     required this.projectileSlotSpellId,
     required this.abilityPrimaryId,
@@ -99,14 +98,11 @@ class PlayerArchetype {
   /// Equipped off-hand weapon or shield.
   final WeaponId offhandWeaponId;
 
-  /// Equipped projectile item used for thrown/ballistic projectiles.
-  final ProjectileId projectileId;
-
   /// Equipped spell book used for spell payloads.
   final SpellBookId spellBookId;
 
-  /// Optional spell selection used by projectile-slot projectile abilities.
-  final ProjectileId? projectileSlotSpellId;
+  /// Spell selection used by projectile-slot projectile abilities.
+  final ProjectileId projectileSlotSpellId;
 
   /// Equipped ability IDs (loadout defaults).
   final AbilityKey abilityPrimaryId;

@@ -11,8 +11,6 @@ import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
 import 'package:rpg_runner/core/weapons/weapon_id.dart';
 
-const Object _unset = Object();
-
 const PlayerCatalog testPlayerCatalogDefaults = PlayerCatalog(
   bodyTemplate: BodyDef(
     isKinematic: false,
@@ -32,7 +30,6 @@ const PlayerCatalog testPlayerCatalogDefaults = PlayerCatalog(
   loadoutSlotMask: LoadoutSlotMask.defaultMask,
   weaponId: WeaponId.plainsteel,
   offhandWeaponId: WeaponId.roadguard,
-  projectileId: ProjectileId.fireBolt,
   spellBookId: SpellBookId.apprenticePrimer,
   projectileSlotSpellId: ProjectileId.fireBolt,
   abilityPrimaryId: 'eloise.bloodletter_slash',
@@ -56,9 +53,10 @@ PlayerCatalog testPlayerCatalog({
   int? loadoutSlotMask,
   WeaponId? weaponId,
   WeaponId? offhandWeaponId,
-  ProjectileId? projectileId,
   SpellBookId? spellBookId,
-  Object? projectileSlotSpellId = _unset,
+  ProjectileId? projectileId,
+  ProjectileId? projectileSlotSpellId,
+  bool? projectileSlotAllowsThrowingWeapon,
   AbilityKey? abilityPrimaryId,
   AbilityKey? abilitySecondaryId,
   AbilityKey? abilityProjectileId,
@@ -83,11 +81,11 @@ PlayerCatalog testPlayerCatalog({
     weaponId: weaponId ?? testPlayerCatalogDefaults.weaponId,
     offhandWeaponId:
         offhandWeaponId ?? testPlayerCatalogDefaults.offhandWeaponId,
-    projectileId: projectileId ?? testPlayerCatalogDefaults.projectileId,
     spellBookId: spellBookId ?? testPlayerCatalogDefaults.spellBookId,
-    projectileSlotSpellId: identical(projectileSlotSpellId, _unset)
-        ? testPlayerCatalogDefaults.projectileSlotSpellId
-        : projectileSlotSpellId as ProjectileId?,
+    projectileSlotSpellId:
+        projectileSlotSpellId ??
+        projectileId ??
+        testPlayerCatalogDefaults.projectileSlotSpellId,
     abilityPrimaryId:
         abilityPrimaryId ?? testPlayerCatalogDefaults.abilityPrimaryId,
     abilitySecondaryId:

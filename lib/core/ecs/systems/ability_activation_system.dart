@@ -51,7 +51,6 @@ class AbilityActivationSystem {
            ResolvedStatsCache(
              resolver: CharacterStatsResolver(
                weapons: weapons,
-               projectiles: projectiles,
                spellBooks: spellBooks,
                accessories: accessories,
              ),
@@ -1012,6 +1011,9 @@ class AbilityActivationSystem {
           slot: slot,
           projectiles: projectiles,
         );
+        if (equippedId == null) {
+          return false;
+        }
         final projectile = projectiles.tryGet(equippedId);
         if (projectile == null) {
           assert(false, 'Projectile item not found: $equippedId');

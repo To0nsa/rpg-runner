@@ -31,7 +31,7 @@ void main() {
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.plainsteel,
         offhandWeaponId: WeaponId.roadguard,
-        projectileId: ProjectileId.throwingKnife,
+        projectileSlotSpellId: ProjectileId.fireBolt,
         abilityPrimaryId: 'eloise.bloodletter_slash',
         abilitySecondaryId: 'eloise.aegis_riposte',
         abilityProjectileId: 'eloise.quick_shot',
@@ -86,7 +86,6 @@ void main() {
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.plainsteel,
         offhandWeaponId: WeaponId.roadguard,
-        projectileId: ProjectileId.throwingKnife,
         projectileSlotSpellId: ProjectileId.fireBolt,
         abilityProjectileId: 'eloise.quick_shot',
         abilitySpellId: 'eloise.arcane_haste',
@@ -101,7 +100,7 @@ void main() {
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.plainsteel,
         offhandWeaponId: WeaponId.roadguard,
-        projectileId: ProjectileId.throwingKnife,
+        projectileSlotSpellId: ProjectileId.fireBolt,
         abilityProjectileId: 'eloise.overcharge_shot',
         abilitySpellId: 'eloise.quick_shot',
       );
@@ -122,7 +121,7 @@ void main() {
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.plainsteel,
         offhandWeaponId: WeaponId.roadguard,
-        projectileId: ProjectileId.throwingKnife,
+        projectileSlotSpellId: ProjectileId.fireBolt,
         spellBookId: SpellBookId.crownOfFocus,
         abilitySpellId: 'eloise.vital_surge',
       );
@@ -143,9 +142,9 @@ void main() {
       expect(result.issues, isEmpty);
     });
 
-    test('selected slot spell must be a projectile spell item', () {
+    test('unknown slot spell id fails validation', () {
       const loadout = EquippedLoadoutDef(
-        projectileSlotSpellId: ProjectileId.throwingAxe,
+        projectileSlotSpellId: ProjectileId.unknown,
         abilityProjectileId: 'eloise.quick_shot',
       );
 
@@ -155,7 +154,7 @@ void main() {
         result.issues.any(
           (issue) =>
               issue.slot == AbilitySlot.projectile &&
-              issue.kind == IssueKind.missingRequiredWeaponTypes,
+              issue.kind == IssueKind.catalogMissing,
         ),
         isTrue,
       );

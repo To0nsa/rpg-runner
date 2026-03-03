@@ -16,7 +16,7 @@ enum AbilitySlot { primary, secondary, projectile, mobility, spell, jump }
 enum AbilityCategory { melee, ranged, mobility, defense, utility }
 
 /// Weapon family classification used for ability gating.
-enum WeaponType { oneHandedSword, shield, throwingWeapon, spell }
+enum WeaponType { oneHandedSword, shield, spell }
 
 /// Where this ability should fetch its combat payload from at commit-time.
 ///
@@ -640,7 +640,7 @@ class AbilityDef {
   /// Suggested defaults:
   ///   0 = primary melee
   ///   1 = secondary melee
-  ///   2 = projectile
+///   2 = projectile spell
   ///   3 = mobility
   ///   4 = jump
   ///   5-7 = future/spell

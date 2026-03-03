@@ -42,7 +42,7 @@ void main() {
       final gear = meta.equippedFor(id);
       expect(gear.mainWeaponId, MetaDefaults.mainWeaponId);
       expect(gear.offhandWeaponId, MetaDefaults.offhandWeaponId);
-      expect(gear.throwingWeaponId, MetaDefaults.throwingWeaponId);
+      expect(gear.spellBookId, MetaDefaults.spellBookId);
       expect(gear.spellBookId, MetaDefaults.spellBookId);
       expect(gear.accessoryId, MetaDefaults.accessoryId);
     }
@@ -66,12 +66,12 @@ void main() {
     final good = service.equip(
       meta,
       characterId: PlayerCharacterId.eloise,
-      slot: GearSlot.throwingWeapon,
-      itemId: ProjectileId.throwingAxe,
+      slot: GearSlot.spellBook,
+      itemId: SpellBookId.bastionCodex,
     );
     expect(
-      good.equippedFor(PlayerCharacterId.eloise).throwingWeaponId,
-      ProjectileId.throwingAxe,
+      good.equippedFor(PlayerCharacterId.eloise).spellBookId,
+      SpellBookId.bastionCodex,
     );
   });
 
@@ -106,7 +106,6 @@ void main() {
     final loaded = MetaState.seedAllUnlocked(
       inventory: InventoryState(
         unlockedWeaponIds: WeaponId.values.toSet(),
-        unlockedThrowingWeaponIds: ProjectileId.values.toSet(),
         unlockedSpellBookIds: SpellBookId.values.toSet(),
         unlockedAccessoryIds: AccessoryId.values.toSet(),
       ),
@@ -120,10 +119,6 @@ void main() {
     expect(
       inventory.unlockedWeaponIds.contains(WeaponId.oathwallRelic),
       isTrue,
-    );
-    expect(
-      inventory.unlockedThrowingWeaponIds.contains(ProjectileId.thunderBolt),
-      isFalse,
     );
     expect(
       inventory.unlockedSpellBookIds.contains(SpellBookId.crownOfFocus),
@@ -144,9 +139,6 @@ void main() {
             WeaponId.roadguard,
             WeaponId.thornbark,
           },
-          unlockedThrowingWeaponIds: service
-              .seedAllUnlockedInventory()
-              .unlockedThrowingWeaponIds,
           unlockedSpellBookIds: service
               .seedAllUnlockedInventory()
               .unlockedSpellBookIds,
@@ -217,19 +209,18 @@ void main() {
     expect(rosterShield.isUnlocked, isTrue);
   });
 
-  test('MetaService.candidatesForSlot returns throwing weapons only', () {
+  test('MetaService.candidatesForSlot returns spellbook entries', () {
     const service = MetaService();
     final meta = service.createNew();
 
-    final throwingCandidates = service.candidatesForSlot(
+    final spellBookCandidates = service.candidatesForSlot(
       meta,
-      GearSlot.throwingWeapon,
+      GearSlot.spellBook,
     );
-    final ids = throwingCandidates.map((candidate) => candidate.id).toList();
+    final ids = spellBookCandidates.map((candidate) => candidate.id).toList();
 
-    expect(ids, contains(ProjectileId.throwingKnife));
-    expect(ids, contains(ProjectileId.throwingAxe));
-    expect(ids, isNot(contains(ProjectileId.thunderBolt)));
+    expect(ids, contains(SpellBookId.apprenticePrimer));
+    expect(ids, contains(SpellBookId.crownOfFocus));
   });
 
   test('MetaService.createNew seeds spell list per character', () {
@@ -256,9 +247,6 @@ void main() {
           unlockedWeaponIds: service
               .seedAllUnlockedInventory()
               .unlockedWeaponIds,
-          unlockedThrowingWeaponIds: service
-              .seedAllUnlockedInventory()
-              .unlockedThrowingWeaponIds,
           unlockedSpellBookIds: <SpellBookId>{
             SpellBookId.apprenticePrimer,
             SpellBookId.bastionCodex,
@@ -307,7 +295,6 @@ void main() {
           id.name: <String, Object?>{
             'mainWeaponId': MetaDefaults.mainWeaponId.name,
             'offhandWeaponId': MetaDefaults.offhandWeaponId.name,
-            'throwingWeaponId': MetaDefaults.throwingWeaponId.name,
             'spellBookId': MetaDefaults.spellBookId.name,
             'accessoryId': 'ironBracers',
           },

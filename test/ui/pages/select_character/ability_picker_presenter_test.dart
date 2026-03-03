@@ -14,10 +14,10 @@ const SpellList _defaultSpellList = SpellList(
 void main() {
   group('ability picker presenter', () {
     test(
-      'projectile source options include equipped throw + learned spells',
+      'projectile source options include learned projectile spells',
       () {
         const loadout = EquippedLoadoutDef(
-          projectileId: ProjectileId.throwingKnife,
+          projectileSlotSpellId: ProjectileId.fireBolt,
         );
         const spellList = SpellList(
           learnedProjectileSpellIds: <ProjectileId>{
@@ -30,7 +30,6 @@ void main() {
         final options = projectileSourceOptions(loadout, spellList);
 
         expect(options, isNotEmpty);
-        expect(options.first.spellId, isNull);
         expect(options.any((o) => o.spellId == ProjectileId.fireBolt), isTrue);
         expect(options.any((o) => o.spellId == ProjectileId.iceBolt), isTrue);
         expect(
@@ -41,10 +40,10 @@ void main() {
     );
 
     test(
-      'projectile source panel model separates throw and spell list groups',
+      'projectile source panel model exposes spell list options',
       () {
         const loadout = EquippedLoadoutDef(
-          projectileId: ProjectileId.throwingKnife,
+          projectileSlotSpellId: ProjectileId.fireBolt,
         );
         const spellList = SpellList(
           learnedProjectileSpellIds: <ProjectileId>{
@@ -56,7 +55,6 @@ void main() {
 
         final model = projectileSourcePanelModel(loadout, spellList);
 
-        expect(model.throwingWeaponId, ProjectileId.throwingKnife);
         expect(model.spellListDisplayName, 'Spell List');
         expect(model.spellOptions, isNotEmpty);
         expect(
@@ -79,26 +77,6 @@ void main() {
         );
       },
     );
-
-    test('projectile source options can exclude equipped throwing source', () {
-      const loadout = EquippedLoadoutDef(
-        projectileId: ProjectileId.throwingKnife,
-      );
-      const spellList = SpellList(
-        learnedProjectileSpellIds: <ProjectileId>{ProjectileId.fireBolt},
-        learnedSpellAbilityIds: <AbilityKey>{'eloise.arcane_haste'},
-      );
-
-      final options = projectileSourceOptions(
-        loadout,
-        spellList,
-        includeEquippedThrowingSource: false,
-      );
-
-      expect(options, isNotEmpty);
-      expect(options.any((o) => o.spellId == null), isFalse);
-      expect(options.any((o) => o.spellId == ProjectileId.fireBolt), isTrue);
-    });
 
     test('projectile slot exposes all enabled projectile abilities', () {
       const loadout = EquippedLoadoutDef(
@@ -270,7 +248,9 @@ void main() {
       },
     );
 
-    test('invalid source disables projectile abilities through validator', () {
+    test(
+      'catalog-valid source keeps projectile abilities enabled through validator',
+      () {
       const loadout = EquippedLoadoutDef(
         abilityProjectileId: 'eloise.quick_shot',
       );
@@ -280,7 +260,7 @@ void main() {
         slot: AbilitySlot.projectile,
         loadout: loadout,
         spellList: _defaultSpellList,
-        selectedSourceSpellId: ProjectileId.throwingAxe,
+        selectedSourceSpellId: ProjectileId.iceBolt,
         overrideSelectedSource: true,
       );
 
@@ -296,10 +276,10 @@ void main() {
       final chargedShot = candidates.firstWhere(
         (candidate) => candidate.id == 'eloise.overcharge_shot',
       );
-      expect(autoAim.isEnabled, isFalse);
-      expect(quickShot.isEnabled, isFalse);
-      expect(piercingShot.isEnabled, isFalse);
-      expect(chargedShot.isEnabled, isFalse);
+      expect(autoAim.isEnabled, isTrue);
+      expect(quickShot.isEnabled, isTrue);
+      expect(piercingShot.isEnabled, isTrue);
+      expect(chargedShot.isEnabled, isTrue);
     });
 
     test(

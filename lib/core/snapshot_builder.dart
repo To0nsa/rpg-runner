@@ -176,7 +176,6 @@ class SnapshotBuilder {
       mask: loadoutMask,
       mainWeaponId: loadout.mainWeaponId[li],
       offhandWeaponId: loadout.offhandWeaponId[li],
-      projectileId: loadout.projectileId[li],
       spellBookId: loadout.spellBookId[li],
       projectileSlotSpellId: loadout.projectileSlotSpellId[li],
       accessoryId: loadout.accessoryId[li],

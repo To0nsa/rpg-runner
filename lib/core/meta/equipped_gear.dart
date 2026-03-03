@@ -1,5 +1,4 @@
 import '../accessories/accessory_id.dart';
-import '../projectiles/projectile_id.dart';
 import '../spellBook/spell_book_id.dart';
 import '../weapons/weapon_id.dart';
 
@@ -11,7 +10,6 @@ class EquippedGear {
   const EquippedGear({
     required this.mainWeaponId,
     required this.offhandWeaponId,
-    required this.throwingWeaponId,
     required this.spellBookId,
     required this.accessoryId,
   });
@@ -21,9 +19,6 @@ class EquippedGear {
 
   /// Equipped off-hand weapon.
   final WeaponId offhandWeaponId;
-
-  /// Equipped throwing weapon.
-  final ProjectileId throwingWeaponId;
 
   /// Equipped spellbook.
   final SpellBookId spellBookId;
@@ -35,14 +30,12 @@ class EquippedGear {
   EquippedGear copyWith({
     WeaponId? mainWeaponId,
     WeaponId? offhandWeaponId,
-    ProjectileId? throwingWeaponId,
     SpellBookId? spellBookId,
     AccessoryId? accessoryId,
   }) {
     return EquippedGear(
       mainWeaponId: mainWeaponId ?? this.mainWeaponId,
       offhandWeaponId: offhandWeaponId ?? this.offhandWeaponId,
-      throwingWeaponId: throwingWeaponId ?? this.throwingWeaponId,
       spellBookId: spellBookId ?? this.spellBookId,
       accessoryId: accessoryId ?? this.accessoryId,
     );
@@ -53,7 +46,6 @@ class EquippedGear {
     return <String, Object?>{
       'mainWeaponId': mainWeaponId.name,
       'offhandWeaponId': offhandWeaponId.name,
-      'throwingWeaponId': throwingWeaponId.name,
       'spellBookId': spellBookId.name,
       'accessoryId': accessoryId.name,
     };
@@ -76,11 +68,6 @@ class EquippedGear {
         WeaponId.values,
         json['offhandWeaponId'] as String?,
         fallback.offhandWeaponId,
-      ),
-      throwingWeaponId: _enumFromName(
-        ProjectileId.values,
-        json['throwingWeaponId'] as String?,
-        fallback.throwingWeaponId,
       ),
       spellBookId: _enumFromName(
         SpellBookId.values,

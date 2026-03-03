@@ -21,7 +21,7 @@ WeaponType? payloadWeaponTypeForTooltip({
       if (slot == AbilitySlot.projectile && selectedSourceSpellId != null) {
         return WeaponType.spell;
       }
-      return WeaponType.throwingWeapon;
+      return null;
     case AbilityPayloadSource.spellBook:
       return WeaponType.spell;
   }

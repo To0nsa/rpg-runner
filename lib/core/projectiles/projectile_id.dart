@@ -29,10 +29,4 @@ enum ProjectileId {
 
   /// Enemy ranged strike. Slower but longer range.
   thunderBolt,
-
-  /// Physical throwing axe projectile (ballistic).
-  throwingAxe,
-
-  /// Physical throwing knife projectile (ballistic).
-  throwingKnife,
 }

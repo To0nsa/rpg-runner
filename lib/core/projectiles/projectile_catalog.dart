@@ -156,33 +156,6 @@ class ProjectileCatalog {
           ],
         );
 
-      // Throwing weapons
-      case ProjectileId.throwingKnife:
-        return const ProjectileItemDef(
-          id: ProjectileId.throwingKnife,
-          weaponType: WeaponType.throwingWeapon,
-          speedUnitsPerSecond: 600.0,
-          lifetimeSeconds: 3.0,
-          colliderSizeX: 18.0,
-          colliderSizeY: 8.0,
-          originOffset: 30.0,
-          ballistic: true,
-          gravityScale: 0.6,
-          damageType: DamageType.physical,
-        );
-      case ProjectileId.throwingAxe:
-        return const ProjectileItemDef(
-          id: ProjectileId.throwingAxe,
-          weaponType: WeaponType.throwingWeapon,
-          speedUnitsPerSecond: 600.0,
-          lifetimeSeconds: 3.0,
-          colliderSizeX: 18.0,
-          colliderSizeY: 8.0,
-          originOffset: 30.0,
-          ballistic: true,
-          gravityScale: 0.7,
-          damageType: DamageType.physical,
-        );
     }
   }
 

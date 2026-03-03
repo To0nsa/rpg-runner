@@ -17,9 +17,6 @@ class MetaDefaults {
   /// Default off-hand weapon.
   static const WeaponId offhandWeaponId = WeaponId.roadguard;
 
-  /// Default throwing weapon.
-  static const ProjectileId throwingWeaponId = ProjectileId.throwingKnife;
-
   /// Default spellbook.
   static const SpellBookId spellBookId = SpellBookId.apprenticePrimer;
 
@@ -36,7 +33,6 @@ class MetaDefaults {
   static const EquippedGear equippedGear = EquippedGear(
     mainWeaponId: mainWeaponId,
     offhandWeaponId: offhandWeaponId,
-    throwingWeaponId: throwingWeaponId,
     spellBookId: spellBookId,
     accessoryId: accessoryId,
   );

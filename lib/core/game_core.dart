@@ -276,7 +276,6 @@ class GameCore {
        _accessories = accessoryCatalog,
        _statsResolver = CharacterStatsResolver(
          weapons: weaponCatalog,
-         projectiles: projectileCatalog,
          spellBooks: spellBookCatalog,
          accessories: accessoryCatalog,
        ),
@@ -582,7 +581,6 @@ class GameCore {
           mask: playerArchetype.loadoutSlotMask,
           mainWeaponId: playerArchetype.weaponId,
           offhandWeaponId: playerArchetype.offhandWeaponId,
-          projectileId: playerArchetype.projectileId,
           spellBookId: playerArchetype.spellBookId,
           projectileSlotSpellId: playerArchetype.projectileSlotSpellId,
           abilityPrimaryId: playerArchetype.abilityPrimaryId,

@@ -245,7 +245,6 @@ class AppState extends ChangeNotifier {
       mask: catalog.loadoutSlotMask,
       mainWeaponId: gear.mainWeaponId,
       offhandWeaponId: gear.offhandWeaponId,
-      projectileId: gear.throwingWeaponId,
       spellBookId: gear.spellBookId,
       projectileSlotSpellId: loadout.projectileSlotSpellId,
       accessoryId: gear.accessoryId,
@@ -284,7 +283,6 @@ class AppState extends ChangeNotifier {
         _normalizeProjectileSpellSelectionForLoadout(
           normalized,
           learnedProjectileSpellIds: spellList.learnedProjectileSpellIds,
-          requireSpellSelection: !catalog.projectileSlotAllowsThrowingWeapon,
         );
     if (normalizedProjectileSpellId != normalized.projectileSlotSpellId) {
       normalized = _withProjectileSpellSelection(
@@ -356,14 +354,12 @@ class AppState extends ChangeNotifier {
     return current;
   }
 
-  ProjectileId? _normalizeProjectileSpellSelectionForLoadout(
+  ProjectileId _normalizeProjectileSpellSelectionForLoadout(
     EquippedLoadoutDef loadout, {
     required Set<ProjectileId> learnedProjectileSpellIds,
-    required bool requireSpellSelection,
   }) {
     final current = loadout.projectileSlotSpellId;
-    if (current != null &&
-        _isProjectileSpellLearned(current, learnedProjectileSpellIds)) {
+    if (_isProjectileSpellLearned(current, learnedProjectileSpellIds)) {
       return current;
     }
 
@@ -374,15 +370,13 @@ class AppState extends ChangeNotifier {
         return spellId;
       }
     }
-    if (requireSpellSelection) {
-      if (_isProjectileSpellLearned(
-        MetaDefaults.projectileSpellId,
-        learnedProjectileSpellIds,
-      )) {
-        return MetaDefaults.projectileSpellId;
-      }
+    if (_isProjectileSpellLearned(
+      MetaDefaults.projectileSpellId,
+      learnedProjectileSpellIds,
+    )) {
+      return MetaDefaults.projectileSpellId;
     }
-    return null;
+    return const EquippedLoadoutDef().projectileSlotSpellId;
   }
 
   bool _isProjectileSpellLearned(
@@ -423,7 +417,6 @@ class AppState extends ChangeNotifier {
       mask: loadout.mask,
       mainWeaponId: loadout.mainWeaponId,
       offhandWeaponId: loadout.offhandWeaponId,
-      projectileId: loadout.projectileId,
       spellBookId: loadout.spellBookId,
       projectileSlotSpellId: loadout.projectileSlotSpellId,
       accessoryId: loadout.accessoryId,
@@ -450,13 +443,12 @@ class AppState extends ChangeNotifier {
 
   EquippedLoadoutDef _withProjectileSpellSelection(
     EquippedLoadoutDef loadout, {
-    required ProjectileId? projectileSlotSpellId,
+    required ProjectileId projectileSlotSpellId,
   }) {
     return EquippedLoadoutDef(
       mask: loadout.mask,
       mainWeaponId: loadout.mainWeaponId,
       offhandWeaponId: loadout.offhandWeaponId,
-      projectileId: loadout.projectileId,
       spellBookId: loadout.spellBookId,
       projectileSlotSpellId: projectileSlotSpellId,
       accessoryId: loadout.accessoryId,
@@ -487,7 +479,6 @@ class AppState extends ChangeNotifier {
     return a.mask == b.mask &&
         a.mainWeaponId == b.mainWeaponId &&
         a.offhandWeaponId == b.offhandWeaponId &&
-        a.projectileId == b.projectileId &&
         a.spellBookId == b.spellBookId &&
         a.projectileSlotSpellId == b.projectileSlotSpellId &&
         a.accessoryId == b.accessoryId &&

@@ -5,7 +5,6 @@ import '../../../core/abilities/ability_def.dart';
 import '../../../core/ecs/stores/combat/equipped_loadout_store.dart';
 import '../../../core/meta/spell_list.dart';
 import '../../../core/players/player_character_definition.dart';
-import '../../../core/players/player_character_registry.dart';
 import '../../state/app_state.dart';
 import '../../text/ability_tooltip_builder.dart';
 import '../../theme/ui_tokens.dart';
@@ -48,11 +47,6 @@ class _SkillsBarState extends State<SkillsBar> {
     final availableSlots = _availableSlotsForMask(loadout.mask);
     final selectedSlot = _selectedSlotForBuild(availableSlots);
     final spellList = appState.meta.spellListFor(widget.characterId);
-    final characterCatalog = PlayerCharacterRegistry.resolve(
-      widget.characterId,
-    ).catalog;
-    final includeEquippedThrowingSource =
-        characterCatalog.projectileSlotAllowsThrowingWeapon;
     final isProjectileSlot = selectedSlot == AbilitySlot.projectile;
     final selectedSourceSpellId = isProjectileSlot
         ? loadout.projectileSlotSpellId
@@ -81,7 +75,7 @@ class _SkillsBarState extends State<SkillsBar> {
             inspectedCandidate.def,
             ctx: AbilityTooltipContext(
               activeProjectileId: isProjectileSlot
-                  ? (selectedSourceSpellId ?? loadout.projectileId)
+                  ? selectedSourceSpellId
                   : null,
               payloadWeaponType: payloadWeaponTypeForTooltip(
                 def: inspectedCandidate.def,
@@ -116,8 +110,6 @@ class _SkillsBarState extends State<SkillsBar> {
                           appState: appState,
                           loadout: loadout,
                           spellList: spellList,
-                          includeEquippedThrowingSource:
-                              includeEquippedThrowingSource,
                         )
                       : null,
                 ),
@@ -191,13 +183,8 @@ class _SkillsBarState extends State<SkillsBar> {
     required AppState appState,
     required EquippedLoadoutDef loadout,
     required SpellList spellList,
-    required bool includeEquippedThrowingSource,
   }) {
-    final options = projectileSourceOptions(
-      loadout,
-      spellList,
-      includeEquippedThrowingSource: includeEquippedThrowingSource,
-    );
+    final options = projectileSourceOptions(loadout, spellList);
     return showProjectileSourceDialog(
       context,
       options: options,
@@ -206,7 +193,7 @@ class _SkillsBarState extends State<SkillsBar> {
         final next = setProjectileSourceForSlot(
           loadout,
           slot: AbilitySlot.projectile,
-          selectedSpellId: sourceSpellId,
+          selectedSpellId: sourceSpellId!,
         );
         await appState.setLoadout(next);
       },
