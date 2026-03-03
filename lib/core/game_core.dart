@@ -428,7 +428,11 @@ class GameCore {
       statsCache: _resolvedStatsCache,
       forcedInterruptPolicy: forcedInterruptPolicy,
     );
-    _reactiveProcSystem = ReactiveProcSystem(weapons: _weapons, rngSeed: seed);
+    _reactiveProcSystem = ReactiveProcSystem(
+      weapons: _weapons,
+      accessories: _accessories,
+      rngSeed: seed,
+    );
     _playerImpactFeedbackGate = PlayerImpactFeedbackGate(tickHz: tickHz);
     _entityVisualCueCoalescer = EntityVisualCueCoalescer();
     _statusSystem = StatusSystem(

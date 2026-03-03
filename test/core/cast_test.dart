@@ -387,7 +387,10 @@ void main() {
       expect(projectilesBeforeBonus.length, 1);
       expect(
         beforeBonus.hud.mana,
-        closeTo(20.0 - fixed100ToDouble(shotSpellCost.manaCost100), 1e-9),
+        closeTo(
+          beforeBonus.hud.manaMax - fixed100ToDouble(shotSpellCost.manaCost100),
+          1e-9,
+        ),
       );
 
       core.applyCommands(const [SpellPressedCommand(tick: 2)]);
@@ -432,9 +435,11 @@ void main() {
 
       final afterRestore = core.buildSnapshot();
       final expectedMana =
-          (beforeBonus.hud.mana + (20.0 * restoreAmountBp / 10000.0)).clamp(
+          (beforeBonus.hud.mana +
+                  (beforeBonus.hud.manaMax * restoreAmountBp / 10000.0))
+              .clamp(
             0.0,
-            20.0,
+            beforeBonus.hud.manaMax,
           );
       expect(afterRestore.hud.mana, closeTo(expectedMana, 1e-9));
     },

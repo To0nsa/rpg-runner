@@ -82,7 +82,7 @@ List<GearStatLine> gearCompareStats(
     case GearSlot.accessory:
       final a = const AccessoryCatalog().get(equipped as AccessoryId);
       final b = const AccessoryCatalog().get(candidate as AccessoryId);
-      return _diffAccessoryStats(a.stats, b.stats);
+      return _diffAccessoryStats(a, b);
   }
 }
 
@@ -120,6 +120,7 @@ List<GearStatLine> _accessoryStats(AccessoryDef def) {
   final stats = def.stats;
   final lines = <GearStatLine>[];
   _addCoreStatLines(lines, stats);
+  lines.addAll(_buildReactiveProcHookLines(def.reactiveProcs));
   return lines;
 }
 
@@ -501,8 +502,15 @@ List<GearStatLine> _diffWeaponStatsLike(
   return lines;
 }
 
-List<GearStatLine> _diffAccessoryStats(GearStatBonuses a, GearStatBonuses b) {
-  return _diffStatBonuses(a, b);
+List<GearStatLine> _diffAccessoryStats(AccessoryDef a, AccessoryDef b) {
+  final lines = _diffStatBonuses(a.stats, b.stats);
+  lines.addAll(
+    _diffReactiveProcHookLines(
+      equippedProcs: a.reactiveProcs,
+      candidateProcs: b.reactiveProcs,
+    ),
+  );
+  return lines;
 }
 
 List<GearStatLine> _diffProcHookLines({

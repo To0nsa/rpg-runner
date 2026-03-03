@@ -1,4 +1,5 @@
 import '../stats/gear_stat_bonuses.dart';
+import '../weapons/reactive_proc.dart';
 import 'accessory_id.dart';
 
 /// Accessory equip location.
@@ -9,13 +10,14 @@ enum AccessorySlot { trinket }
 
 /// Immutable authored definition for an accessory item.
 ///
-/// Accessories currently contribute only aggregated stat bonuses. Combat proc
-/// behavior is intentionally modeled elsewhere and is not part of this payload.
+/// Accessories contribute aggregated stat bonuses and can optionally define
+/// reactive procs (for example, low-health sustain triggers).
 class AccessoryDef {
   const AccessoryDef({
     required this.id,
     this.slot = AccessorySlot.trinket,
     this.stats = const GearStatBonuses(),
+    this.reactiveProcs = const <ReactiveProc>[],
   });
 
   /// Stable accessory key referenced by meta/inventory state.
@@ -28,4 +30,7 @@ class AccessoryDef {
   ///
   /// Values use [GearStatBonuses] units (`100 = 1%` for basis-point fields).
   final GearStatBonuses stats;
+
+  /// Reactive proc definitions resolved from post-damage outcomes.
+  final List<ReactiveProc> reactiveProcs;
 }

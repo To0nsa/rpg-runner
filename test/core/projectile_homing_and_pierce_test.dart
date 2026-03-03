@@ -264,19 +264,19 @@ void main() {
           10000;
 
       expect(tap.damage100, (baseDamageAfterGlobal * 8200) ~/ 10000);
-      expect(tap.critBp, 0);
+      expect(tap.critBp, resolvedStats.globalCritChanceBonusBp);
       expect(tap.speedScaleBp, 9000);
       expect(tap.pierce, hitDelivery.pierce);
       expect(tap.maxPierce, baseMaxPierce);
 
       expect(half.damage100, (baseDamageAfterGlobal * 10000) ~/ 10000);
-      expect(half.critBp, 500);
+      expect(half.critBp, resolvedStats.globalCritChanceBonusBp + 500);
       expect(half.speedScaleBp, 10500);
       expect(half.pierce, hitDelivery.pierce);
       expect(half.maxPierce, baseMaxPierce);
 
       expect(full.damage100, (baseDamageAfterGlobal * 12250) ~/ 10000);
-      expect(full.critBp, 1000);
+      expect(full.critBp, resolvedStats.globalCritChanceBonusBp + 1000);
       expect(full.speedScaleBp, 12000);
       expect(full.pierce, isTrue);
       expect(full.maxPierce, math.max(baseMaxPierce, 2));

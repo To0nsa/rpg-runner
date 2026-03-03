@@ -1,5 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:rpg_runner/core/accessories/accessory_catalog.dart';
+import 'package:rpg_runner/core/accessories/accessory_def.dart';
+import 'package:rpg_runner/core/accessories/accessory_id.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart' show WeaponType;
 import 'package:rpg_runner/core/combat/damage.dart';
 import 'package:rpg_runner/core/combat/status/status.dart';
@@ -165,6 +168,40 @@ void main() {
       expect(queued[0].profileId, equals(StatusProfileId.speedBoost));
       expect(queued[1].profileId, equals(StatusProfileId.speedBoost));
     });
+
+    test('queues accessory onLowHealth sustain without offhand slot', () {
+      final world = EcsWorld();
+      final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 15);
+      final reactive = ReactiveProcSystem(
+        weapons: const _ReactiveShieldCatalog(reactiveProcs: <ReactiveProc>[]),
+        accessories: const _ReactiveAccessoryCatalog(
+          reactiveProcs: <ReactiveProc>[
+            ReactiveProc(
+              hook: ReactiveProcHook.onLowHealth,
+              statusProfileId: StatusProfileId.restoreHealth,
+              target: ReactiveProcTarget.self,
+              chanceBp: 10000,
+              lowHealthThresholdBp: 3000,
+              internalCooldownTicks: 1800,
+            ),
+          ],
+        ),
+        rngSeed: 15,
+      );
+
+      final target = _spawnEntity(world, hp: 4000, hpMax: 10000);
+      _equipAccessoryOnly(world, target);
+
+      world.damageQueue.add(DamageRequest(target: target, amount100: 1500));
+
+      final queued = <StatusRequest>[];
+      damage.step(world, currentTick: 10);
+      reactive.step(world, currentTick: 10, queueStatus: queued.add);
+
+      expect(queued, hasLength(1));
+      expect(queued.single.target, equals(target));
+      expect(queued.single.profileId, equals(StatusProfileId.restoreHealth));
+    });
   });
 }
 
@@ -183,6 +220,16 @@ void _equipReactiveOffhand(EcsWorld world, int entity) {
     const EquippedLoadoutDef(
       mask: LoadoutSlotMask.offHand,
       offhandWeaponId: WeaponId.roadguard,
+    ),
+  );
+}
+
+void _equipAccessoryOnly(EcsWorld world, int entity) {
+  world.equippedLoadout.add(
+    entity,
+    const EquippedLoadoutDef(
+      mask: LoadoutSlotMask.mainHand,
+      accessoryId: AccessoryId.speedBoots,
     ),
   );
 }
@@ -207,5 +254,22 @@ class _ReactiveShieldCatalog extends WeaponCatalog {
       category: WeaponCategory.primary,
       weaponType: WeaponType.oneHandedSword,
     );
+  }
+}
+
+class _ReactiveAccessoryCatalog extends AccessoryCatalog {
+  const _ReactiveAccessoryCatalog({required this.reactiveProcs});
+
+  final List<ReactiveProc> reactiveProcs;
+
+  @override
+  AccessoryDef get(AccessoryId id) {
+    if (id == AccessoryId.speedBoots) {
+      return AccessoryDef(
+        id: AccessoryId.speedBoots,
+        reactiveProcs: reactiveProcs,
+      );
+    }
+    return super.get(id);
   }
 }

@@ -97,9 +97,9 @@ void main() {
       }
     }
 
-    // Default starter loadout uses Plainsteel (+10%) + Apprentice Primer (+2%):
-    // 1500 base becomes 1680.
-    expect(world.health.hp[world.health.indexOf(enemy)], equals(8320));
+    // Default starter loadout uses Plainsteel (+10%) with no spellbook power bonus:
+    // 1500 base becomes 1650.
+    expect(world.health.hp[world.health.indexOf(enemy)], equals(8350));
 
     // Next tick: still overlapping, but should not re-hit the same target.
     activation.step(world, player: player, currentTick: 10);
@@ -110,6 +110,6 @@ void main() {
     damage.step(world, currentTick: 10);
     lifetime.step(world);
 
-    expect(world.health.hp[world.health.indexOf(enemy)], equals(8320));
+    expect(world.health.hp[world.health.indexOf(enemy)], equals(8350));
   });
 }

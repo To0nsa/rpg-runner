@@ -12,8 +12,8 @@ void main() {
       final typeLine = lines.where((line) => line.label == 'Type');
       final procHookLine = lines.where((line) => line.label == 'On Crit');
       expect(typeLine, isEmpty);
-      expect(procHookLine.single.value, contains('Applies Burn'));
-      expect(procHookLine.single.value, contains('5 damage per second'));
+      expect(procHookLine.single.value, contains('Applies Weaken'));
+      expect(procHookLine.single.value, contains('35%'));
       expect(lines.last.label, equals('On Crit'));
     });
 
@@ -92,7 +92,7 @@ void main() {
       final lines = gearStatsFor(GearSlot.mainWeapon, WeaponId.graveglass);
       final defenseLine = lines.firstWhere((line) => line.label == 'Defense');
 
-      expect(defenseLine.value, equals('-15%'));
+      expect(defenseLine.value, equals('-10%'));
       expect(defenseLine.tone, GearStatLineTone.negative);
     });
 
@@ -160,6 +160,16 @@ void main() {
 
       expect(manaRegenLine.value, equals('+10%'));
       expect(manaRegenLine.tone, GearStatLineTone.positive);
+    });
+
+    test('accessory can show reactive low-health proc hook labels', () {
+      final lines = gearStatsFor(GearSlot.accessory, AccessoryId.goldenRing);
+      final onLowHealthLine = lines.where(
+        (line) => line.label == 'On Low Health',
+      );
+
+      expect(onLowHealthLine.single.value, contains('Restores Health'));
+      expect(onLowHealthLine.single.value, contains('35%'));
     });
   });
 }
