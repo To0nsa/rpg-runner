@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:rpg_runner/core/accessories/accessory_id.dart';
 import 'package:rpg_runner/core/meta/gear_slot.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/weapons/weapon_id.dart';
@@ -135,6 +136,30 @@ void main() {
         ),
         isTrue,
       );
+    });
+
+    test('accessory base lines include regen stats', () {
+      final lines = gearStatsFor(GearSlot.accessory, AccessoryId.diamondRing);
+      final manaRegenLine = lines.firstWhere(
+        (line) => line.label == 'Mana Regen',
+      );
+
+      expect(manaRegenLine.value, equals('+10%'));
+      expect(manaRegenLine.tone, GearStatLineTone.positive);
+    });
+
+    test('accessory compare includes regen deltas', () {
+      final lines = gearCompareStats(
+        GearSlot.accessory,
+        equipped: AccessoryId.speedBoots,
+        candidate: AccessoryId.diamondRing,
+      );
+      final manaRegenLine = lines.firstWhere(
+        (line) => line.label == 'Mana Regen',
+      );
+
+      expect(manaRegenLine.value, equals('+10%'));
+      expect(manaRegenLine.tone, GearStatLineTone.positive);
     });
   });
 }

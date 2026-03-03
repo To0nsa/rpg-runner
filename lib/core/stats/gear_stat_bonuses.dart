@@ -11,6 +11,9 @@ class GearStatBonuses {
     int? manaBonus100,
     int staminaBonusBp = 0,
     int? staminaBonus100,
+    this.healthRegenBonusBp = 0,
+    this.manaRegenBonusBp = 0,
+    this.staminaRegenBonusBp = 0,
     this.defenseBonusBp = 0,
     this.globalPowerBonusBp = 0,
     this.globalCritChanceBonusBp = 0,
@@ -44,6 +47,15 @@ class GearStatBonuses {
 
   /// Basis points (100 = 1%).
   final int staminaBonusBp;
+
+  /// Basis points (100 = 1%).
+  final int healthRegenBonusBp;
+
+  /// Basis points (100 = 1%).
+  final int manaRegenBonusBp;
+
+  /// Basis points (100 = 1%).
+  final int staminaRegenBonusBp;
 
   /// Basis points (100 = 1%).
   ///
@@ -135,6 +147,9 @@ class GearStatBonuses {
       healthBonusBp == 0 &&
       manaBonusBp == 0 &&
       staminaBonusBp == 0 &&
+      healthRegenBonusBp == 0 &&
+      manaRegenBonusBp == 0 &&
+      staminaRegenBonusBp == 0 &&
       defenseBonusBp == 0 &&
       globalPowerBonusBp == 0 &&
       globalCritChanceBonusBp == 0 &&
@@ -158,6 +173,9 @@ class GearStatBonuses {
       healthBonusBp: healthBonusBp + other.healthBonusBp,
       manaBonusBp: manaBonusBp + other.manaBonusBp,
       staminaBonusBp: staminaBonusBp + other.staminaBonusBp,
+      healthRegenBonusBp: healthRegenBonusBp + other.healthRegenBonusBp,
+      manaRegenBonusBp: manaRegenBonusBp + other.manaRegenBonusBp,
+      staminaRegenBonusBp: staminaRegenBonusBp + other.staminaRegenBonusBp,
       defenseBonusBp: defenseBonusBp + other.defenseBonusBp,
       globalPowerBonusBp: globalPowerBonusBp + other.globalPowerBonusBp,
       globalCritChanceBonusBp:

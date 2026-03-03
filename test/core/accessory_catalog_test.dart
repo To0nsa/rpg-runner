@@ -16,6 +16,7 @@ void main() {
     test('golden ring survivability values', () {
       final def = catalog.get(AccessoryId.goldenRing);
       expect(def.stats.healthBonusBp, 1000);
+      expect(def.stats.healthRegenBonusBp, 500);
       expect(def.stats.defenseBonusBp, 1000);
       expect(def.stats.staminaBonusBp, -500);
     });
@@ -23,12 +24,14 @@ void main() {
     test('teeth necklace stamina sustain values', () {
       final def = catalog.get(AccessoryId.teethNecklace);
       expect(def.stats.staminaBonusBp, 2000);
+      expect(def.stats.staminaRegenBonusBp, 1000);
       expect(def.stats.healthBonusBp, -500);
     });
 
     test('diamond ring caster sustain values', () {
       final def = catalog.get(AccessoryId.diamondRing);
       expect(def.stats.manaBonusBp, 2000);
+      expect(def.stats.manaRegenBonusBp, 1000);
       expect(def.stats.staminaBonusBp, -500);
     });
 

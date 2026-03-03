@@ -1,5 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:rpg_runner/core/accessories/accessory_catalog.dart';
+import 'package:rpg_runner/core/accessories/accessory_def.dart';
+import 'package:rpg_runner/core/accessories/accessory_id.dart';
 import 'package:rpg_runner/core/commands/command.dart';
 import 'package:rpg_runner/core/ecs/stores/body_store.dart';
 import 'package:rpg_runner/core/game_core.dart';
@@ -7,11 +10,60 @@ import '../support/test_level.dart';
 import 'package:rpg_runner/core/players/player_character_registry.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
+import 'package:rpg_runner/core/stats/gear_stat_bonuses.dart';
 
 import '../support/test_player.dart';
 import '../test_tunings.dart';
 
 void main() {
+  test('loadout regen bonuses scale runtime regen ticks', () {
+    final base = PlayerCharacterRegistry.eloise;
+    GameCore buildCore(AccessoryCatalog accessories) {
+      return GameCore(
+        levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
+        seed: 7,
+        tickHz: 10,
+        accessoryCatalog: accessories,
+        playerCharacter: base.copyWith(
+          catalog: testPlayerCatalog(
+            bodyTemplate: BodyDef(useGravity: false),
+            projectileId: ProjectileId.iceBolt,
+            abilityProjectileId: 'eloise.overcharge_shot',
+          ),
+          tuning: base.tuning.copyWith(
+            resource: const ResourceTuning(
+              playerHpMax: 100,
+              playerHpRegenPerSecond: 0,
+              playerManaMax: 20,
+              playerManaRegenPerSecond: 1,
+              playerStaminaMax: 20,
+              playerStaminaRegenPerSecond: 0,
+            ),
+          ),
+        ),
+      );
+    }
+
+    final baseCore = buildCore(const _ZeroRegenAccessoryCatalog());
+    final boostedCore = buildCore(const _BoostedRegenAccessoryCatalog());
+
+    baseCore.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
+    boostedCore.applyCommands(const [ProjectilePressedCommand(tick: 1)]);
+    baseCore.stepOneTick();
+    boostedCore.stepOneTick();
+
+    for (var i = 0; i < 20; i += 1) {
+      baseCore.applyCommands(const <Command>[]);
+      boostedCore.applyCommands(const <Command>[]);
+      baseCore.stepOneTick();
+      boostedCore.stepOneTick();
+    }
+
+    final baseMana = baseCore.buildSnapshot().hud.mana;
+    final boostedMana = boostedCore.buildSnapshot().hud.mana;
+    expect(boostedMana, greaterThan(baseMana));
+  });
+
   test(
     'resource regen refills after spending and clamps at max (via snapshot HUD)',
     () {
@@ -70,4 +122,25 @@ void main() {
       expect(hud.stamina, closeTo(initialStamina, 1e-9));
     },
   );
+}
+
+class _ZeroRegenAccessoryCatalog extends AccessoryCatalog {
+  const _ZeroRegenAccessoryCatalog();
+
+  @override
+  AccessoryDef get(AccessoryId id) {
+    return AccessoryDef(id: id);
+  }
+}
+
+class _BoostedRegenAccessoryCatalog extends AccessoryCatalog {
+  const _BoostedRegenAccessoryCatalog();
+
+  @override
+  AccessoryDef get(AccessoryId id) {
+    return AccessoryDef(
+      id: id,
+      stats: const GearStatBonuses(manaRegenBonusBp: 10000),
+    );
+  }
 }

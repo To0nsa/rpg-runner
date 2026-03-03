@@ -31,6 +31,7 @@ class AccessoryCatalog {
           // General survivability floor with lower stamina comfort.
           stats: GearStatBonuses(
             healthBonusBp: 1000,
+            healthRegenBonusBp: 500,
             defenseBonusBp: 1000,
             staminaBonusBp: -500,
           ),
@@ -39,13 +40,21 @@ class AccessoryCatalog {
         return const AccessoryDef(
           id: AccessoryId.teethNecklace,
           // Stamina sustain package with a small health tax.
-          stats: GearStatBonuses(staminaBonusBp: 2000, healthBonusBp: -500),
+          stats: GearStatBonuses(
+            staminaBonusBp: 2000,
+            staminaRegenBonusBp: 1000,
+            healthBonusBp: -500,
+          ),
         );
       case AccessoryId.diamondRing:
         return const AccessoryDef(
           id: AccessoryId.diamondRing,
           // Caster sustain package with a small stamina tax.
-          stats: GearStatBonuses(manaBonusBp: 2000, staminaBonusBp: -500),
+          stats: GearStatBonuses(
+            manaBonusBp: 2000,
+            manaRegenBonusBp: 1000,
+            staminaBonusBp: -500,
+          ),
         );
       case AccessoryId.ironBoots:
         return const AccessoryDef(

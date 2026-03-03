@@ -626,7 +626,7 @@ class GameCore {
     return HealthDef(
       hp: scaledHp > scaledMax ? scaledMax : scaledHp,
       hpMax: scaledMax,
-      regenPerSecond100: base.regenPerSecond100,
+      regenPerSecond100: stats.applyHealthRegenBonus(base.regenPerSecond100),
     );
   }
 
@@ -636,7 +636,7 @@ class GameCore {
     return ManaDef(
       mana: scaledCurrent > scaledMax ? scaledMax : scaledCurrent,
       manaMax: scaledMax,
-      regenPerSecond100: base.regenPerSecond100,
+      regenPerSecond100: stats.applyManaRegenBonus(base.regenPerSecond100),
     );
   }
 
@@ -646,7 +646,7 @@ class GameCore {
     return StaminaDef(
       stamina: scaledCurrent > scaledMax ? scaledMax : scaledCurrent,
       staminaMax: scaledMax,
-      regenPerSecond100: base.regenPerSecond100,
+      regenPerSecond100: stats.applyStaminaRegenBonus(base.regenPerSecond100),
     );
   }
 

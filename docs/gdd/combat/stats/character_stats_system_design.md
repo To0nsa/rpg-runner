@@ -1,6 +1,6 @@
 # Character Stats (Current Core)
 
-This document reflects the implemented stat model as of **2026-03-02**.
+This document reflects the implemented stat model as of **2026-03-03**.
 
 ## Goals
 
@@ -15,6 +15,9 @@ Core gameplay stats:
 - Health
 - Mana
 - Stamina
+- Health Regen
+- Mana Regen
+- Stamina Regen
 - Defense
 - Power
 - Move Speed
@@ -28,6 +31,7 @@ Runtime also supports typed resistance fields for all current `DamageType` value
 | Stat | Current behavior |
 |---|---|
 | Health/Mana/Stamina | Max-pool scaling from resolved loadout stats at spawn. |
+| Health Regen/Mana Regen/Stamina Regen | Regen-per-second scaling from resolved loadout stats at spawn, clamped to `>= 0`. |
 | Defense | Global incoming reduction before typed resistance. |
 | Power | Global power only (resolved + offense-buff). |
 | Move Speed | Gear multiplier composed with status modifier multiplier. |
@@ -57,6 +61,10 @@ Runtime also supports typed resistance fields for all current `DamageType` value
 ### Resource max scaling
 
 `scaledMax = applyBp(baseMax100, resourceBonusBp)`
+
+### Resource regen scaling
+
+`scaledRegenPerSecond100 = max(0, applyBp(baseRegenPerSecond100, resourceRegenBonusBp))`
 
 ### Move speed
 
@@ -107,6 +115,9 @@ Crit bonus is currently fixed at `+5000 bp` (`+50%`).
 | Health bonus bp | `-9000` | `20000` |
 | Mana bonus bp | `-9000` | `20000` |
 | Stamina bonus bp | `-9000` | `20000` |
+| Health regen bonus bp | `-9000` | `20000` |
+| Mana regen bonus bp | `-9000` | `20000` |
+| Stamina regen bonus bp | `-9000` | `20000` |
 | Defense bp | `-9000` | `7500` |
 | Global power bp | `-9000` | `10000` |
 | Move speed bp | `-9000` | `5000` |
@@ -126,5 +137,4 @@ Crit bonus is currently fixed at `+5000 bp` (`+50%`).
 
 ## Notes
 
-- Global offensive stats and typed resistance bonuses exist across current gear
-  catalogs (weapons, spell books, and accessories).
+- Global offensive stats, typed resistance bonuses, and resource regen bonuses exist across current gear catalogs (weapons, spell books, and accessories).

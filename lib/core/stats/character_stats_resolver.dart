@@ -33,6 +33,9 @@ class CharacterStatCaps {
   static const int minResourceBonusBp = -9000;
   static const int maxResourceBonusBp = 20000;
 
+  static const int minResourceRegenBonusBp = -9000;
+  static const int maxResourceRegenBonusBp = 20000;
+
   static const int minTypedResistanceBp = -9000;
   static const int maxTypedResistanceBp = 7500;
 }
@@ -46,6 +49,9 @@ class ResolvedCharacterStats {
   int get healthBonusBp => bonuses.healthBonusBp;
   int get manaBonusBp => bonuses.manaBonusBp;
   int get staminaBonusBp => bonuses.staminaBonusBp;
+  int get healthRegenBonusBp => bonuses.healthRegenBonusBp;
+  int get manaRegenBonusBp => bonuses.manaRegenBonusBp;
+  int get staminaRegenBonusBp => bonuses.staminaRegenBonusBp;
   int get defenseBonusBp => bonuses.defenseBonusBp;
   int get globalPowerBonusBp => bonuses.globalPowerBonusBp;
   int get globalCritChanceBonusBp => bonuses.globalCritChanceBonusBp;
@@ -67,6 +73,12 @@ class ResolvedCharacterStats {
   int applyHealthMaxBonus(int base100) => applyBp(base100, healthBonusBp);
   int applyManaMaxBonus(int base100) => applyBp(base100, manaBonusBp);
   int applyStaminaMaxBonus(int base100) => applyBp(base100, staminaBonusBp);
+  int applyHealthRegenBonus(int base100) =>
+      _clampResourceRegen(applyBp(base100, healthRegenBonusBp));
+  int applyManaRegenBonus(int base100) =>
+      _clampResourceRegen(applyBp(base100, manaRegenBonusBp));
+  int applyStaminaRegenBonus(int base100) =>
+      _clampResourceRegen(applyBp(base100, staminaRegenBonusBp));
 
   /// Applies global incoming damage reduction (defense) only.
   int applyDefense(int incomingDamage100) {
@@ -124,6 +136,10 @@ class ResolvedCharacterStats {
   /// Positive resistance reduces incoming damage, so sign is inverted.
   int incomingDamageModBpForDamageType(DamageType type) {
     return -resistanceBpForDamageType(type);
+  }
+
+  int _clampResourceRegen(int value100) {
+    return value100 < 0 ? 0 : value100;
   }
 }
 
@@ -198,6 +214,21 @@ class CharacterStatsResolver {
         input.staminaBonusBp,
         CharacterStatCaps.minResourceBonusBp,
         CharacterStatCaps.maxResourceBonusBp,
+      ),
+      healthRegenBonusBp: _clampInt(
+        input.healthRegenBonusBp,
+        CharacterStatCaps.minResourceRegenBonusBp,
+        CharacterStatCaps.maxResourceRegenBonusBp,
+      ),
+      manaRegenBonusBp: _clampInt(
+        input.manaRegenBonusBp,
+        CharacterStatCaps.minResourceRegenBonusBp,
+        CharacterStatCaps.maxResourceRegenBonusBp,
+      ),
+      staminaRegenBonusBp: _clampInt(
+        input.staminaRegenBonusBp,
+        CharacterStatCaps.minResourceRegenBonusBp,
+        CharacterStatCaps.maxResourceRegenBonusBp,
       ),
       defenseBonusBp: _clampInt(
         input.defenseBonusBp,

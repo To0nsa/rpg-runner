@@ -84,6 +84,16 @@ void main() {
     expect(stats.applyHealthMaxBonus(10000), equals(10200));
     expect(stats.applyManaMaxBonus(10000), equals(10300));
     expect(stats.applyStaminaMaxBonus(10000), equals(10400));
+    expect(stats.applyHealthRegenBonus(10000), equals(10500));
+    expect(stats.applyManaRegenBonus(10000), equals(10600));
+    expect(stats.applyStaminaRegenBonus(10000), equals(10700));
+  });
+
+  test('regen scaling clamps at zero for extreme negative bp values', () {
+    const stats = ResolvedCharacterStats(
+      bonuses: GearStatBonuses(healthRegenBonusBp: -20000),
+    );
+    expect(stats.applyHealthRegenBonus(10000), equals(0));
   });
 
   test('global offensive bonuses are capped and applied deterministically', () {
@@ -112,6 +122,37 @@ void main() {
       equals(CharacterStatCaps.maxGlobalCritChanceBp),
     );
     expect(stats.applyGlobalPower(1000), equals(2000));
+  });
+
+  test('resource regen bonuses are clamped deterministically', () {
+    final resolver = CharacterStatsResolver(
+      weapons: const _FlatWeaponCatalog(),
+      projectiles: const _FlatProjectileCatalog(),
+      spellBooks: const _FlatSpellBookCatalog(),
+      accessories: const _RegenClampAccessoryCatalog(),
+    );
+
+    final stats = resolver.resolveEquipped(
+      mask: LoadoutSlotMask.mainHand,
+      mainWeaponId: WeaponId.plainsteel,
+      offhandWeaponId: WeaponId.roadguard,
+      projectileId: ProjectileId.throwingKnife,
+      spellBookId: SpellBookId.apprenticePrimer,
+      accessoryId: AccessoryId.speedBoots,
+    );
+
+    expect(
+      stats.healthRegenBonusBp,
+      equals(CharacterStatCaps.maxResourceRegenBonusBp),
+    );
+    expect(
+      stats.manaRegenBonusBp,
+      equals(CharacterStatCaps.minResourceRegenBonusBp),
+    );
+    expect(
+      stats.staminaRegenBonusBp,
+      equals(CharacterStatCaps.maxResourceRegenBonusBp),
+    );
   });
 
   test('typed gear resistance clamps and converts to incoming modifier', () {
@@ -269,6 +310,9 @@ class _ResourceAccessoryCatalog extends AccessoryCatalog {
         healthBonusBp: 200,
         manaBonusBp: 300,
         staminaBonusBp: 400,
+        healthRegenBonusBp: 500,
+        manaRegenBonusBp: 600,
+        staminaRegenBonusBp: 700,
       ),
     );
   }
@@ -284,6 +328,22 @@ class _GlobalOffenseAccessoryCatalog extends AccessoryCatalog {
       stats: GearStatBonuses(
         globalPowerBonusBp: 12000,
         globalCritChanceBonusBp: 7000,
+      ),
+    );
+  }
+}
+
+class _RegenClampAccessoryCatalog extends AccessoryCatalog {
+  const _RegenClampAccessoryCatalog();
+
+  @override
+  AccessoryDef get(AccessoryId id) {
+    return const AccessoryDef(
+      id: AccessoryId.speedBoots,
+      stats: GearStatBonuses(
+        healthRegenBonusBp: 25000,
+        manaRegenBonusBp: -9500,
+        staminaRegenBonusBp: 25000,
       ),
     );
   }

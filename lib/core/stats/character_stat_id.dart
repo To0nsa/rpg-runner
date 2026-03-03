@@ -3,6 +3,9 @@ enum CharacterStatId {
   health,
   mana,
   stamina,
+  healthRegen,
+  manaRegen,
+  staminaRegen,
   defense,
   power,
   moveSpeed,
@@ -49,6 +52,21 @@ const List<CharacterStatDescriptor> kCharacterStatDescriptors =
         id: CharacterStatId.stamina,
         displayName: 'Stamina',
         localizationKey: 'gear.stat.stamina',
+      ),
+      CharacterStatDescriptor(
+        id: CharacterStatId.healthRegen,
+        displayName: 'Health Regen',
+        localizationKey: 'gear.stat.health_regen',
+      ),
+      CharacterStatDescriptor(
+        id: CharacterStatId.manaRegen,
+        displayName: 'Mana Regen',
+        localizationKey: 'gear.stat.mana_regen',
+      ),
+      CharacterStatDescriptor(
+        id: CharacterStatId.staminaRegen,
+        displayName: 'Stamina Regen',
+        localizationKey: 'gear.stat.stamina_regen',
       ),
       CharacterStatDescriptor(
         id: CharacterStatId.defense,

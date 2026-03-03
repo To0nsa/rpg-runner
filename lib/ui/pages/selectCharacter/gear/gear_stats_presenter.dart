@@ -729,6 +729,21 @@ void _addCoreStatLines(List<GearStatLine> lines, GearStatBonuses stats) {
   _addBpStat(lines, _labelFor(CharacterStatId.health), stats.healthBonusBp);
   _addBpStat(lines, _labelFor(CharacterStatId.mana), stats.manaBonusBp);
   _addBpStat(lines, _labelFor(CharacterStatId.stamina), stats.staminaBonusBp);
+  _addBpStat(
+    lines,
+    _labelFor(CharacterStatId.healthRegen),
+    stats.healthRegenBonusBp,
+  );
+  _addBpStat(
+    lines,
+    _labelFor(CharacterStatId.manaRegen),
+    stats.manaRegenBonusBp,
+  );
+  _addBpStat(
+    lines,
+    _labelFor(CharacterStatId.staminaRegen),
+    stats.staminaRegenBonusBp,
+  );
   _addBpStat(lines, _labelFor(CharacterStatId.defense), stats.defenseBonusBp);
   _addBpStat(lines, _labelFor(CharacterStatId.power), _effectivePowerBp(stats));
   _addBpStat(
@@ -824,6 +839,33 @@ List<GearStatLine> _diffStatBonuses(GearStatBonuses a, GearStatBonuses b) {
         _labelFor(CharacterStatId.stamina),
         a.staminaBonusBp,
         b.staminaBonusBp,
+      ),
+    );
+  }
+  if (b.healthRegenBonusBp != a.healthRegenBonusBp) {
+    lines.add(
+      _deltaBpLine(
+        _labelFor(CharacterStatId.healthRegen),
+        a.healthRegenBonusBp,
+        b.healthRegenBonusBp,
+      ),
+    );
+  }
+  if (b.manaRegenBonusBp != a.manaRegenBonusBp) {
+    lines.add(
+      _deltaBpLine(
+        _labelFor(CharacterStatId.manaRegen),
+        a.manaRegenBonusBp,
+        b.manaRegenBonusBp,
+      ),
+    );
+  }
+  if (b.staminaRegenBonusBp != a.staminaRegenBonusBp) {
+    lines.add(
+      _deltaBpLine(
+        _labelFor(CharacterStatId.staminaRegen),
+        a.staminaRegenBonusBp,
+        b.staminaRegenBonusBp,
       ),
     );
   }
