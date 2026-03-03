@@ -50,12 +50,11 @@ Missing store entry resolves to neutral (`0`).
 
 Incoming damage resolves as:
 
-1. Source-side `weaken` reduction (if present)
-2. Crit
+1. Source-side `weaken` reduction (if present), then clamp `>= 0`
+2. Crit, then clamp `>= 0`
 3. Global defense
-4. Typed modifier
-5. Target `vulnerable` bonus
-6. Clamp `>= 0`
+4. Typed modifier, then clamp `>= 0`
+5. Target `vulnerable` bonus, then clamp `>= 0`
 
 Typed step:
 
@@ -106,7 +105,3 @@ Recommended store guardrail: keep authored values in `[-10000, 10000]` unless ex
    - `DamageResistanceStore`
    - `GearStatBonuses` / resolver accessors
 3. Update producers and tests
-
-### Add penetration/shred (future)
-
-Prefer explicit stage between defense and typed resistance, with deterministic stacking tests.

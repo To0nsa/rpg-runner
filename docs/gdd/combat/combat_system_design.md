@@ -9,7 +9,7 @@ This document tracks the current Core combat contracts used by `GameCore`.
 - `DamageType`: `physical`, `fire`, `ice`, `water`, `thunder`, `acid`, `dark`, `bleed`, `earth`, `holy`
 - `WeaponId`: stable melee/off-hand IDs
 - `ReactiveProcHook`: `onDamaged`, `onLowHealth`
-- `ProjectileId`: stable projectile item IDs (throwing + spell projectiles)
+- `ProjectileId`: stable projectile spell item IDs used by projectile-slot payloads
 - `Faction`: friendly-fire routing
 
 ### Status System
@@ -209,19 +209,19 @@ Projectile-slot cast payload resolution is deterministic and slot-aware.
 
 For `AbilityPayloadSource.projectile`:
 
-1. `resolveProjectilePayloadForAbilitySlot` first checks `projectileSlotSpellId` when slot is `AbilitySlot.projectile`.
+1. `resolveProjectilePayloadForAbilitySlot` checks `projectileSlotSpellId` when slot is `AbilitySlot.projectile`.
 2. Selected projectile spell is used only if:
    - it exists in `ProjectileCatalog`,
    - it is `WeaponType.spell`,
    - ability `requiredWeaponTypes` is empty or includes `WeaponType.spell`.
-3. Otherwise fallback is equipped `projectileId`.
+3. If selected spell is invalid or missing, no projectile payload is resolved and commit is rejected.
 
 Proc merge rule for projectile-slot spell payloads:
 - order is projectile item procs first, spellbook procs second.
 
 Character policy note:
-- `PlayerCatalog.projectileSlotAllowsThrowingWeapon` defines whether projectile-slot payload may use throwing fallback.
-- Eloise currently sets this to `false`; UI/meta normalization enforces spell selection for projectile slot payload in that case.
+- current runtime contracts are projectile-spell-only for projectile-slot payload resolution.
+- `PlayerCatalog` and `EquippedLoadoutStore` keep `projectileSlotSpellId` as the source selector.
 
 ## Payload Assembly (`HitPayloadBuilder`)
 

@@ -91,11 +91,12 @@ Every level supports two run types:
 
 ## Player controls (current intent)
 - Designed for **two-thumb mobile play**
-  - **Left thumb:** virtual joystick for movement
-  - **Right thumb:** action buttons (mobility / melee / ranged-or-spell / bonus) + jump
+  - **Left thumb:** horizontal arrows for movement
+  - **Right thumb:** action buttons (mobility / melee / projectile / shield / spell) + jump
 - Targeting models:
   - **Instant** (quick tap uses facing direction / default)
   - **Aim + confirm** (hold to aim, release to commit)
+  - **Aim + hold** (hold to aim, commit release, interruptible on damage taken)
 - Key rule: **aim is a commitment**, but **survival is priority** (mobility ability cancels aim)
 
 ## Game feel goals
@@ -106,9 +107,7 @@ Every level supports two run types:
 
 ## Content scope (ready for playtesting)
 A playable slice that proves the loop:
-- **2 characters** with distinct identity
-- Per character:
-  - at least **4 abilities per main action slot** (to validate loadout choices)
+- **1 character** with abilities and gears
 - **6 enemies** with different behaviors (melee, ranged, jumper, tank, etc.)
 - **2 levels/biomes** (different obstacle + encounter patterns)
 - **Run types**
@@ -145,7 +144,7 @@ A playable slice that proves the loop:
 ## Success metrics (early)
 - A run is fun even when you lose.
 - Players can explain in 1 sentence why they died.
-- Retention proxy: players voluntarily retry to beat their ghost / leaderboard.
+- Retention proxy: players voluntarily retry to beat their score / leaderboard.
 - Clear "build curiosity": players want to try different loadouts.
 
 ## Non-goals (for now)
@@ -160,12 +159,12 @@ Potential additions once the core loop is proven:
 - Replay viewer for top runs (without racing)
 - Advanced progression (passives / ultimates / deeper build synergies)
 - Seasonal events with unique rewards
-- Future modes: expand beyond the core runner into **Challenge/Platformer**, **Survivor/Horde**
+- Future modes: expand beyond the core runner into **Challenge/Platformer**, **Survivor/Horde**, **synchronous PvP**, or even a **level editor + sharing** system
 - Accessibility and control options (left-handed layout, button scaling, joystick tuning)
 
 ## Key risks
 - **Controls ambiguity / misinputs on mobile**
-  - thumb occlusion, fat-finger errors, joystick drift, action button proximity, and aim/commit rules that feel inconsistent
+  - thumb occlusion, fat-finger errors, action button proximity, and aim/commit rules that feel inconsistent
 - **High-speed readability**
   - telegraphs, hit VFX, damage numbers, and parallax noise fighting for attention at runner speed
 - **Loadout system complexity creep**

@@ -52,7 +52,7 @@ Runtime also supports typed resistance fields for all current `DamageType` value
 
 `if (mask has offHand && mainWeapon is not two-handed) total += offhandWeapon`
 
-`if (mask has projectile) total += projectile + spellBook`
+`if (mask has projectile) total += spellBook`
 
 `total += accessory`
 
@@ -103,7 +103,7 @@ Crit bonus is currently fixed at `+5000 bp` (`+50%`).
 
 - Resolved via `ResolvedStatsCache`
 - Recomputed only when equipped loadout snapshot changes
-- Snapshot key fields: `mask`, `mainWeaponId`, `offhandWeaponId`, `projectileId`, `spellBookId`, `accessoryId`
+- Snapshot key fields: `mask`, `mainWeaponId`, `offhandWeaponId`, `spellBookId`, `accessoryId`
 - `projectileSlotSpellId` and ability IDs do not affect resolved stat cache invalidation
 - Neutral stats returned when no loadout exists
 - Status effects apply through status/modifier stores, not by mutating resolved gear bundle

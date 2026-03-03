@@ -2,24 +2,23 @@
 
 Eloise projectile-slot abilities (`AbilitySlot.projectile`).
 
-> Availability note (March 2, 2026): Eloise keeps the projectile slot enabled,
-> but current setup is spell-projectile focused (no throwing-weapon picker in
-> character setup UI).
+> Availability note (March 3, 2026): Eloise projectile-slot payload is sourced
+> from selected projectile spells only.
 
 All abilities here:
 
 - use `payloadSource: AbilityPayloadSource.projectile`
-- require `WeaponType.throwingWeapon` or `WeaponType.spell`
+- require `WeaponType.spell`
 - use `AnimKey.ranged`
 
 ## Ability Matrix
 
 | Ability ID | Lifecycle | Targeting | W/A/R | Cost | Cooldown | Base Damage |
 |---|---|---|---|---|---:|---:|
-| `eloise.snap_shot` | `tap` | `homing` | `10/2/12` | mana `800` (throwing override: stamina `800`) | `40` | `1300` |
-| `eloise.quick_shot` | `holdRelease` | `aimed` | `10/2/12` | mana `600` (throwing override: stamina `600`) | `14` | `900` |
-| `eloise.skewer_shot` | `holdRelease` | `aimedLine` | `10/2/12` | mana `1000` (throwing override: stamina `1000`) | `32` | `1800` |
-| `eloise.overcharge_shot` | `holdRelease` | `aimedCharge` | `10/2/12` | mana `1300` (throwing override: stamina `1300`) | `40` | `2300` |
+| `eloise.snap_shot` | `tap` | `homing` | `10/2/12` | mana `800` | `40` | `1300` |
+| `eloise.quick_shot` | `holdRelease` | `aimed` | `10/2/12` | mana `600` | `14` | `900` |
+| `eloise.skewer_shot` | `holdRelease` | `aimedLine` | `10/2/12` | mana `1000` | `32` | `1800` |
+| `eloise.overcharge_shot` | `holdRelease` | `aimedCharge` | `10/2/12` | mana `1300` | `40` | `2300` |
 
 ## Ability Notes
 
@@ -51,9 +50,9 @@ All abilities here:
 
 The projectile-slot source is resolved at commit:
 
-- if `projectileSlotSpellId` is in the character Spell List, that spell
+- if `projectileSlotSpellId` resolves to a valid spell projectile, that
   projectile is used
-- otherwise the equipped throwing weapon projectile is used
+- otherwise commit is rejected (no fallback payload)
 
-This keeps one ability structure reusable across spell and throwing builds.
+This keeps one projectile ability structure reusable across learned spell projectiles.
 `spellBook` does not gate projectile spell availability.

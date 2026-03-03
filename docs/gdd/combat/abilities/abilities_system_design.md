@@ -36,8 +36,8 @@ Current ability slots:
 ### Slot Notes
 
 - `projectile` slot abilities use the projectile payload source selected for
-  that slot (equipped throwing weapon or a learned projectile spell from the
-  character Spell List).
+  that slot (learned projectile spell from the character Spell List, stored as
+  `projectileSlotSpellId` on loadout).
 - `spell` slot hosts learned self-utility spell abilities from the character
   Spell List (for example `arcane_haste`, `focus`, `arcane_ward`,
   `cleanse`, `vital_surge`, `mana_infusion`, `second_wind`).

@@ -32,10 +32,10 @@ Core units:
 | `eloise.seeker_bash` | `secondary` | `tap` | `homing` | `8/6/8` | stamina `550` | `24` |
 | `eloise.aegis_riposte` | `secondary` | `holdMaintain` | `none` | `2/180/2` | hold drain `700/s` | `30` |
 | `eloise.shield_block` | `secondary` | `holdMaintain` | `none` | `2/180/2` | hold drain `700/s` | `30` |
-| `eloise.snap_shot` | `projectile` | `tap` | `homing` | `10/2/12` | mana `800` (throwing: stamina `800`) | `40` |
-| `eloise.quick_shot` | `projectile` | `holdRelease` | `aimed` | `10/2/12` | mana `600` (throwing: stamina `600`) | `14` |
-| `eloise.skewer_shot` | `projectile` | `holdRelease` | `aimedLine` | `10/2/12` | mana `1000` (throwing: stamina `1000`) | `32` |
-| `eloise.overcharge_shot` | `projectile` | `holdRelease` | `aimedCharge` | `10/2/12` | mana `1300` (throwing: stamina `1300`) | `40` |
+| `eloise.snap_shot` | `projectile` | `tap` | `homing` | `10/2/12` | mana `800` | `40` |
+| `eloise.quick_shot` | `projectile` | `holdRelease` | `aimed` | `10/2/12` | mana `600` | `14` |
+| `eloise.skewer_shot` | `projectile` | `holdRelease` | `aimedLine` | `10/2/12` | mana `1000` | `32` |
+| `eloise.overcharge_shot` | `projectile` | `holdRelease` | `aimedCharge` | `10/2/12` | mana `1300` | `40` |
 | `eloise.arcane_haste` | `spell` | `tap` | `none` | `0/0/10` | mana `1000` | `300` |
 | `eloise.focus` | `spell` | `tap` | `none` | `0/0/10` | mana `1200` | `420` |
 | `eloise.arcane_ward` | `spell` | `tap` | `none` | `0/0/10` | mana `1200` | `420` |
