@@ -15,20 +15,34 @@ void main() {
   group('gear authoring constraints', () {
     test('weapon catalog respects slot identity and proc-family rules', () {
       const catalog = WeaponCatalog();
+      final usedProcIdentities = <String>{};
+      final primaryIdentity = <String>{};
+      final offhandIdentity = <String>{};
+
       for (final id in WeaponId.values) {
         final def = catalog.get(id);
         final stats = _statMap(def.stats);
         final outgoingCount = def.procs.length;
         final reactiveCount = def.reactiveProcs.length;
+        final positiveCount = _positiveStatCount(stats);
+        final negativeCount = _negativeStatCount(stats);
 
-        expect(outgoingCount + reactiveCount <= 1, isTrue, reason: '$id');
-        expect(outgoingCount == 0 || reactiveCount == 0, isTrue, reason: '$id');
+        _expectProcClusterConstraints(
+          id: id,
+          procs: def.procs,
+          reactiveProcs: def.reactiveProcs,
+        );
 
         for (final entry in stats.entries) {
           final value = entry.value;
           if (value == 0) continue;
           expect(value.abs() >= 500, isTrue, reason: '$id ${entry.key}');
-          expect(_isWithinStatBounds(entry.key, value), isTrue, reason: '$id ${entry.key}: $value');
+          expect(value % 500 == 0, isTrue, reason: '$id ${entry.key}: $value');
+          expect(
+            _isWithinStatBounds(entry.key, value),
+            isTrue,
+            reason: '$id ${entry.key}: $value',
+          );
         }
 
         if (def.category == WeaponCategory.primary) {
@@ -50,10 +64,37 @@ void main() {
           }
 
           for (final proc in def.procs) {
-            expect(proc.statusProfileId != StatusProfileId.none, isTrue, reason: '$id');
+            expect(
+              proc.statusProfileId != StatusProfileId.none,
+              isTrue,
+              reason: '$id',
+            );
             expect(_isOutgoingProcAllowed(proc), isTrue, reason: '$id $proc');
+            final procIdentity = _outgoingProcIdentityKey(
+              slot: _slotKeyForWeaponCategory(def.category),
+              proc: proc,
+            );
+            expect(
+              usedProcIdentities.add(procIdentity),
+              isTrue,
+              reason: '$id duplicate proc identity $procIdentity',
+            );
           }
           expect(def.reactiveProcs, isEmpty, reason: '$id');
+
+          _expectStatTemplate(
+            id: id,
+            hasProc: outgoingCount == 1,
+            positiveCount: positiveCount,
+            negativeCount: negativeCount,
+          );
+          expect(
+            primaryIdentity.add(
+              _identitySignature(stats, def.procs, def.reactiveProcs),
+            ),
+            isTrue,
+            reason: '$id duplicate primary identity',
+          );
         } else {
           for (final entry in stats.entries) {
             final value = entry.value;
@@ -74,24 +115,63 @@ void main() {
 
           expect(def.procs, isEmpty, reason: '$id');
           for (final proc in def.reactiveProcs) {
-            expect(proc.statusProfileId != StatusProfileId.none, isTrue, reason: '$id');
-            expect(_isOffhandReactiveProcAllowed(proc), isTrue, reason: '$id $proc');
+            expect(
+              proc.statusProfileId != StatusProfileId.none,
+              isTrue,
+              reason: '$id',
+            );
+            expect(
+              _isOffhandReactiveProcAllowed(proc),
+              isTrue,
+              reason: '$id $proc',
+            );
+            final procIdentity = _reactiveProcIdentityKey(
+              slot: _slotKeyForWeaponCategory(def.category),
+              proc: proc,
+            );
+            expect(
+              usedProcIdentities.add(procIdentity),
+              isTrue,
+              reason: '$id duplicate proc identity $procIdentity',
+            );
           }
+
+          _expectStatTemplate(
+            id: id,
+            hasProc: reactiveCount == 1,
+            positiveCount: positiveCount,
+            negativeCount: negativeCount,
+          );
+          expect(
+            offhandIdentity.add(
+              _identitySignature(stats, def.procs, def.reactiveProcs),
+            ),
+            isTrue,
+            reason: '$id duplicate offhand identity',
+          );
         }
       }
     });
 
     test('spellbook catalog respects slot identity (stats-only, no procs)', () {
       const catalog = SpellBookCatalog();
+      final identity = <String>{};
+
       for (final id in SpellBookId.values) {
         final def = catalog.get(id);
         expect(def.procs, isEmpty, reason: '$id');
         final stats = _statMap(def.stats);
+
         for (final entry in stats.entries) {
           final value = entry.value;
           if (value == 0) continue;
           expect(value.abs() >= 500, isTrue, reason: '$id ${entry.key}');
-          expect(_isWithinStatBounds(entry.key, value), isTrue, reason: '$id ${entry.key}: $value');
+          expect(value % 500 == 0, isTrue, reason: '$id ${entry.key}: $value');
+          expect(
+            _isWithinStatBounds(entry.key, value),
+            isTrue,
+            reason: '$id ${entry.key}: $value',
+          );
           if (value > 0) {
             expect(
               _spellbookPositive.contains(entry.key),
@@ -106,45 +186,167 @@ void main() {
             );
           }
         }
+
+        _expectStatTemplate(
+          id: id,
+          hasProc: false,
+          positiveCount: _positiveStatCount(stats),
+          negativeCount: _negativeStatCount(stats),
+        );
+        expect(
+          identity.add(_identitySignature(stats, const [], const [])),
+          isTrue,
+          reason: '$id duplicate identity',
+        );
       }
     });
 
-    test('accessory catalog respects dump rules and low-health sustain proc rules', () {
-      const catalog = AccessoryCatalog();
-      for (final id in AccessoryId.values) {
-        final def = catalog.get(id);
-        final stats = _statMap(def.stats);
-        expect(def.reactiveProcs.length <= 1, isTrue, reason: '$id');
+    test(
+      'accessory catalog respects dump rules and low-health sustain proc rules',
+      () {
+        const catalog = AccessoryCatalog();
+        final identity = <String>{};
+        final usedProcIdentities = <String>{};
 
-        for (final entry in stats.entries) {
-          final value = entry.value;
-          if (value == 0) continue;
-          expect(value.abs() >= 500, isTrue, reason: '$id ${entry.key}');
-          expect(_isWithinStatBounds(entry.key, value), isTrue, reason: '$id ${entry.key}: $value');
-          if (value < 0) {
+        for (final id in AccessoryId.values) {
+          final def = catalog.get(id);
+          final stats = _statMap(def.stats);
+          _expectProcClusterConstraints(
+            id: id,
+            procs: const <WeaponProc>[],
+            reactiveProcs: def.reactiveProcs,
+          );
+
+          for (final entry in stats.entries) {
+            final value = entry.value;
+            if (value == 0) continue;
+            expect(value.abs() >= 500, isTrue, reason: '$id ${entry.key}');
             expect(
-              _accessoryDump.contains(entry.key),
+              value % 500 == 0,
               isTrue,
-              reason: '$id negative ${entry.key}',
+              reason: '$id ${entry.key}: $value',
+            );
+            expect(
+              _isWithinStatBounds(entry.key, value),
+              isTrue,
+              reason: '$id ${entry.key}: $value',
+            );
+            if (value < 0) {
+              expect(
+                _accessoryDump.contains(entry.key),
+                isTrue,
+                reason: '$id negative ${entry.key}',
+              );
+            }
+          }
+
+          for (final proc in def.reactiveProcs) {
+            expect(proc.hook, ReactiveProcHook.onLowHealth, reason: '$id');
+            expect(proc.target, ReactiveProcTarget.self, reason: '$id');
+            expect(proc.chanceBp, 10000, reason: '$id');
+            expect(
+              proc.lowHealthThresholdBp >= 2500 &&
+                  proc.lowHealthThresholdBp <= 3500,
+              isTrue,
+              reason: '$id threshold',
+            );
+            expect(
+              proc.internalCooldownTicks >= 1800,
+              isTrue,
+              reason: '$id cooldown',
+            );
+            expect(
+              _statusFamily(proc.statusProfileId),
+              _StatusFamily.sustain,
+              reason: '$id',
+            );
+            final procIdentity = _reactiveProcIdentityKey(
+              slot: 'accessory',
+              proc: proc,
+            );
+            expect(
+              usedProcIdentities.add(procIdentity),
+              isTrue,
+              reason: '$id duplicate proc identity $procIdentity',
             );
           }
-        }
 
-        for (final proc in def.reactiveProcs) {
-          expect(proc.hook, ReactiveProcHook.onLowHealth, reason: '$id');
-          expect(proc.target, ReactiveProcTarget.self, reason: '$id');
-          expect(proc.chanceBp, 10000, reason: '$id');
-          expect(
-            proc.lowHealthThresholdBp >= 2500 && proc.lowHealthThresholdBp <= 3500,
-            isTrue,
-            reason: '$id threshold',
+          _expectStatTemplate(
+            id: id,
+            hasProc: def.reactiveProcs.isNotEmpty,
+            positiveCount: _positiveStatCount(stats),
+            negativeCount: _negativeStatCount(stats),
           );
-          expect(proc.internalCooldownTicks >= 1800, isTrue, reason: '$id cooldown');
-          expect(_statusFamily(proc.statusProfileId), _StatusFamily.sustain, reason: '$id');
+          expect(
+            identity.add(
+              _identitySignature(
+                stats,
+                const <WeaponProc>[],
+                def.reactiveProcs,
+              ),
+            ),
+            isTrue,
+            reason: '$id duplicate identity',
+          );
         }
-      }
-    });
+      },
+    );
   });
+}
+
+int _positiveStatCount(Map<String, int> stats) =>
+    stats.values.where((value) => value > 0).length;
+
+int _negativeStatCount(Map<String, int> stats) =>
+    stats.values.where((value) => value < 0).length;
+
+void _expectStatTemplate({
+  required Object id,
+  required bool hasProc,
+  required int positiveCount,
+  required int negativeCount,
+}) {
+  if (hasProc) {
+    expect(positiveCount, 2, reason: '$id positive-count');
+    expect(negativeCount, 1, reason: '$id dump-count');
+    return;
+  }
+  expect(positiveCount, 3, reason: '$id positive-count');
+  expect(negativeCount, 1, reason: '$id dump-count');
+}
+
+String _identitySignature(
+  Map<String, int> stats,
+  List<WeaponProc> procs,
+  List<ReactiveProc> reactiveProcs,
+) {
+  final statPart =
+      stats.entries
+          .where((entry) => entry.value != 0)
+          .map((entry) => '${entry.key}:${entry.value}')
+          .toList()
+        ..sort();
+
+  final outgoingPart =
+      procs
+          .map(
+            (proc) =>
+                '${proc.hook.name}:${proc.statusProfileId.name}:${proc.chanceBp}',
+          )
+          .toList()
+        ..sort();
+  final reactivePart =
+      reactiveProcs
+          .map(
+            (proc) =>
+                '${proc.hook.name}:${proc.statusProfileId.name}:${proc.target.name}:${proc.chanceBp}:${proc.lowHealthThresholdBp}:${proc.internalCooldownTicks}',
+          )
+          .toList()
+        ..sort();
+
+  final out = outgoingPart.isEmpty ? 'none' : outgoingPart.join(',');
+  final react = reactivePart.isEmpty ? 'none' : reactivePart.join(',');
+  return '${statPart.join('|')}|out:$out|react:$react';
 }
 
 Map<String, int> _statMap(GearStatBonuses stats) => <String, int>{
@@ -233,7 +435,9 @@ bool _isWithinStatBounds(String statKey, int valueBp) {
   if (valueBp >= 0) {
     final cap = switch (statKey) {
       'healthBonusBp' || 'manaBonusBp' || 'staminaBonusBp' => 2000,
-      'healthRegenBonusBp' || 'manaRegenBonusBp' || 'staminaRegenBonusBp' => 1200,
+      'healthRegenBonusBp' ||
+      'manaRegenBonusBp' ||
+      'staminaRegenBonusBp' => 1200,
       'defenseBonusBp' || 'globalPowerBonusBp' => 1800,
       'globalCritChanceBonusBp' => 1200,
       'moveSpeedBonusBp' => 1000,
@@ -295,15 +499,108 @@ bool _isOffhandReactiveProcAllowed(ReactiveProc proc) {
   }
 }
 
-enum _StatusFamily { neutral, dot, softControl, hardCc, debuff, selfBuff, sustain }
+void _expectProcClusterConstraints({
+  required Object id,
+  required List<WeaponProc> procs,
+  required List<ReactiveProc> reactiveProcs,
+}) {
+  final totalEntries = procs.length + reactiveProcs.length;
+  expect(totalEntries <= 2, isTrue, reason: '$id proc-cluster-budget');
+  if (totalEntries <= 1) return;
+
+  final hookKeys = <String>{
+    for (final proc in procs) 'out:${proc.hook.name}',
+    for (final proc in reactiveProcs) 'react:${proc.hook.name}',
+  };
+  expect(
+    hookKeys.length,
+    totalEntries,
+    reason: '$id proc-cluster duplicate hook',
+  );
+
+  final themes = <_ProcClusterTheme>{
+    for (final proc in procs)
+      _clusterThemeForStatusFamily(_statusFamily(proc.statusProfileId)),
+    for (final proc in reactiveProcs)
+      _clusterThemeForStatusFamily(_statusFamily(proc.statusProfileId)),
+  };
+  expect(themes.length, 1, reason: '$id proc-cluster theme mismatch');
+}
+
+String _slotKeyForWeaponCategory(WeaponCategory category) {
+  switch (category) {
+    case WeaponCategory.primary:
+      return 'mainWeapon';
+    case WeaponCategory.offHand:
+      return 'offhandWeapon';
+    case WeaponCategory.projectile:
+      return 'projectileWeapon';
+  }
+}
+
+_ProcClusterTheme _clusterThemeForStatusFamily(_StatusFamily family) {
+  switch (family) {
+    case _StatusFamily.selfBuff:
+    case _StatusFamily.sustain:
+      return _ProcClusterTheme.defensive;
+    case _StatusFamily.dot:
+    case _StatusFamily.softControl:
+    case _StatusFamily.hardCc:
+    case _StatusFamily.debuff:
+      return _ProcClusterTheme.offensive;
+    case _StatusFamily.neutral:
+      return _ProcClusterTheme.neutral;
+  }
+}
+
+String _outgoingTargetPolicy(ProcHook hook) {
+  switch (hook) {
+    case ProcHook.onHit:
+    case ProcHook.onCrit:
+    case ProcHook.onBlock:
+      return 'target';
+    case ProcHook.onKill:
+      return 'self';
+  }
+}
+
+String _outgoingProcIdentityKey({
+  required String slot,
+  required WeaponProc proc,
+}) {
+  return '$slot:${proc.hook.name}:${_statusFamily(proc.statusProfileId).name}:${_outgoingTargetPolicy(proc.hook)}';
+}
+
+String _reactiveProcIdentityKey({
+  required String slot,
+  required ReactiveProc proc,
+}) {
+  return '$slot:${proc.hook.name}:${_statusFamily(proc.statusProfileId).name}:${proc.target.name}';
+}
+
+enum _StatusFamily {
+  neutral,
+  dot,
+  softControl,
+  hardCc,
+  debuff,
+  selfBuff,
+  sustain,
+}
+
+enum _ProcClusterTheme { neutral, offensive, defensive }
 
 _StatusFamily _statusFamily(StatusProfileId id) {
   return switch (id) {
     StatusProfileId.none => _StatusFamily.neutral,
-    StatusProfileId.meleeBleed || StatusProfileId.burnOnHit => _StatusFamily.dot,
-    StatusProfileId.slowOnHit || StatusProfileId.drenchOnHit => _StatusFamily.softControl,
-    StatusProfileId.stunOnHit || StatusProfileId.silenceOnHit => _StatusFamily.hardCc,
-    StatusProfileId.acidOnHit || StatusProfileId.weakenOnHit => _StatusFamily.debuff,
+    StatusProfileId.meleeBleed ||
+    StatusProfileId.burnOnHit => _StatusFamily.dot,
+    StatusProfileId.slowOnHit ||
+    StatusProfileId.drenchOnHit => _StatusFamily.softControl,
+    StatusProfileId.stunOnHit ||
+    StatusProfileId.silenceOnHit => _StatusFamily.hardCc,
+    StatusProfileId.acidOnHit ||
+    StatusProfileId.weakenOnHit => _StatusFamily.debuff,
     StatusProfileId.speedBoost ||
     StatusProfileId.focus ||
     StatusProfileId.arcaneWard => _StatusFamily.selfBuff,

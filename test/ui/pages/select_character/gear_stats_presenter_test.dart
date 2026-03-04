@@ -12,8 +12,8 @@ void main() {
       final typeLine = lines.where((line) => line.label == 'Type');
       final procHookLine = lines.where((line) => line.label == 'On Crit');
       expect(typeLine, isEmpty);
-      expect(procHookLine.single.value, contains('Applies Weaken'));
-      expect(procHookLine.single.value, contains('35%'));
+      expect(procHookLine.single.value, contains('Applies Stun'));
+      expect(procHookLine.single.value, contains('20%'));
       expect(lines.last.label, equals('On Crit'));
     });
 
@@ -27,10 +27,7 @@ void main() {
     });
 
     test('hides ballistic line for alternate spellbook', () {
-      final lines = gearStatsFor(
-        GearSlot.spellBook,
-        SpellBookId.emberGrimoire,
-      );
+      final lines = gearStatsFor(GearSlot.spellBook, SpellBookId.emberGrimoire);
       final hasBallistic = lines.any((line) => line.label == 'Ballistic');
       expect(hasBallistic, isFalse);
     });
@@ -84,12 +81,12 @@ void main() {
       final lines = gearStatsFor(GearSlot.mainWeapon, WeaponId.plainsteel);
       final powerLine = lines.firstWhere((line) => line.label == 'Power');
 
-      expect(powerLine.value, equals('+18%'));
+      expect(powerLine.value, equals('+15%'));
       expect(powerLine.tone, GearStatLineTone.positive);
     });
 
     test('base stat tone is negative for negative values', () {
-      final lines = gearStatsFor(GearSlot.mainWeapon, WeaponId.basiliskKiss);
+      final lines = gearStatsFor(GearSlot.mainWeapon, WeaponId.plainsteel);
       final defenseLine = lines.firstWhere((line) => line.label == 'Defense');
 
       expect(defenseLine.value, equals('-5%'));
@@ -97,21 +94,21 @@ void main() {
     });
 
     test('negative status lines expose negative highlight tokens', () {
-      final lines = gearStatsFor(GearSlot.mainWeapon, WeaponId.frostbrand);
-      final onHitLine = lines.firstWhere((line) => line.label == 'On Hit');
+      final lines = gearStatsFor(GearSlot.mainWeapon, WeaponId.cinderedge);
+      final onCritLine = lines.firstWhere((line) => line.label == 'On Crit');
 
-      expect(onHitLine.highlights, isNotEmpty);
+      expect(onCritLine.highlights, isNotEmpty);
       expect(
-        onHitLine.highlights.any(
+        onCritLine.highlights.any(
           (entry) =>
-              entry.token == 'Slow' && entry.tone == GearStatLineTone.negative,
+              entry.token == 'Stun' && entry.tone == GearStatLineTone.negative,
         ),
         isTrue,
       );
       expect(
-        onHitLine.highlights.any(
+        onCritLine.highlights.any(
           (entry) =>
-              entry.token == '25%' && entry.tone == GearStatLineTone.negative,
+              entry.token == '20%' && entry.tone == GearStatLineTone.negative,
         ),
         isTrue,
       );
@@ -144,7 +141,7 @@ void main() {
         (line) => line.label == 'Mana Regen',
       );
 
-      expect(manaRegenLine.value, equals('+12%'));
+      expect(manaRegenLine.value, equals('+10%'));
       expect(manaRegenLine.tone, GearStatLineTone.positive);
     });
 
@@ -158,7 +155,7 @@ void main() {
         (line) => line.label == 'Mana Regen',
       );
 
-      expect(manaRegenLine.value, equals('+12%'));
+      expect(manaRegenLine.value, equals('+10%'));
       expect(manaRegenLine.tone, GearStatLineTone.positive);
     });
 

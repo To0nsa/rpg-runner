@@ -236,7 +236,7 @@ void main() {
     expect(world.damageReduction.has(player), isTrue);
     final wardIndex = world.damageReduction.indexOf(player);
     expect(world.damageReduction.magnitude[wardIndex], equals(4000));
-    expect(world.damageReduction.ticksLeft[wardIndex], equals(240));
+    expect(world.damageReduction.ticksLeft[wardIndex], equals(300));
     expect(world.mana.mana[world.mana.indexOf(player)], equals(800));
   });
 

@@ -97,9 +97,9 @@ void main() {
       }
     }
 
-    // Default starter loadout uses Plainsteel (+10%) with no spellbook power bonus:
-    // 1500 base becomes 1650.
-    expect(world.health.hp[world.health.indexOf(enemy)], equals(8350));
+    // Default starter loadout uses Plainsteel (+15%) with no spellbook power bonus:
+    // 1500 base becomes 1725.
+    expect(world.health.hp[world.health.indexOf(enemy)], equals(8275));
 
     // Next tick: still overlapping, but should not re-hit the same target.
     activation.step(world, player: player, currentTick: 10);
@@ -110,6 +110,6 @@ void main() {
     damage.step(world, currentTick: 10);
     lifetime.step(world);
 
-    expect(world.health.hp[world.health.indexOf(enemy)], equals(8350));
+    expect(world.health.hp[world.health.indexOf(enemy)], equals(8275));
   });
 }

@@ -11,73 +11,28 @@ void main() {
 
     test('plainsteel baseline stats', () {
       final def = catalog.get(WeaponId.plainsteel);
-      expect(def.stats.globalPowerBonusBp, 1000);
+      expect(def.stats.globalPowerBonusBp, 1500);
+      expect(def.stats.globalCritChanceBonusBp, 500);
+      expect(def.stats.staminaBonusBp, 1000);
+      expect(def.stats.defenseBonusBp, -500);
       expect(def.procs, isEmpty);
     });
 
-    test('waspfang bleed pressure values', () {
-      final def = catalog.get(WeaponId.waspfang);
-      expect(def.stats.globalPowerBonusBp, 1000);
-      expect(def.stats.staminaBonusBp, 500);
-      expect(def.procs.single.hook, ProcHook.onHit);
-      expect(def.procs.single.statusProfileId, StatusProfileId.meleeBleed);
-      expect(def.procs.single.chanceBp, 3500);
-    });
+    test('sword proc roster uses one unique hook per proc item', () {
+      final waspfang = catalog.get(WeaponId.waspfang);
+      expect(waspfang.procs.single.hook, ProcHook.onHit);
+      expect(waspfang.procs.single.statusProfileId, StatusProfileId.meleeBleed);
+      expect(waspfang.procs.single.chanceBp, 3500);
 
-    test('cinderedge crit weaken values', () {
-      final def = catalog.get(WeaponId.cinderedge);
-      expect(def.stats.globalPowerBonusBp, 0);
-      expect(def.stats.globalCritChanceBonusBp, 1000);
-      expect(def.stats.staminaRegenBonusBp, 500);
-      expect(def.procs.single.hook, ProcHook.onCrit);
-      expect(def.procs.single.statusProfileId, StatusProfileId.weakenOnHit);
-      expect(def.procs.single.chanceBp, 10000);
-    });
-
-    test('basilisk kiss anti-tank values', () {
-      final def = catalog.get(WeaponId.basiliskKiss);
-      expect(def.stats.globalPowerBonusBp, 1800);
-      expect(def.stats.defenseBonusBp, -1000);
-      expect(def.procs.single.hook, ProcHook.onCrit);
-      expect(def.procs.single.statusProfileId, StatusProfileId.acidOnHit);
-      expect(def.procs.single.chanceBp, 10000);
-    });
-
-    test('frostbrand and stormneedle control values', () {
-      final frostbrand = catalog.get(WeaponId.frostbrand);
-      expect(frostbrand.stats.globalPowerBonusBp, 1500);
-      expect(frostbrand.stats.staminaBonusBp, 500);
-      expect(frostbrand.procs.single.hook, ProcHook.onHit);
+      final cinderedge = catalog.get(WeaponId.cinderedge);
+      expect(cinderedge.procs.single.hook, ProcHook.onCrit);
       expect(
-        frostbrand.procs.single.statusProfileId,
-        StatusProfileId.slowOnHit,
-      );
-      expect(frostbrand.procs.single.chanceBp, 3500);
-
-      final stormneedle = catalog.get(WeaponId.stormneedle);
-      expect(stormneedle.stats.globalPowerBonusBp, 1500);
-      expect(stormneedle.stats.globalCritChanceBonusBp, 500);
-      expect(stormneedle.procs.single.hook, ProcHook.onCrit);
-      expect(
-        stormneedle.procs.single.statusProfileId,
+        cinderedge.procs.single.statusProfileId,
         StatusProfileId.stunOnHit,
       );
-      expect(stormneedle.procs.single.chanceBp, 2000);
-    });
+      expect(cinderedge.procs.single.chanceBp, 2000);
 
-    test('nullblade utility values', () {
-      final def = catalog.get(WeaponId.nullblade);
-      expect(def.stats.globalPowerBonusBp, 1000);
-      expect(def.stats.globalCritChanceBonusBp, 1000);
-      expect(def.procs.single.hook, ProcHook.onCrit);
-      expect(def.procs.single.statusProfileId, StatusProfileId.silenceOnHit);
-      expect(def.procs.single.chanceBp, 2000);
-    });
-
-    test('sunlit vow, graveglass, duelist oath values', () {
       final sunlitVow = catalog.get(WeaponId.sunlitVow);
-      expect(sunlitVow.stats.globalPowerBonusBp, 700);
-      expect(sunlitVow.stats.staminaBonusBp, 500);
       expect(sunlitVow.procs.single.hook, ProcHook.onKill);
       expect(
         sunlitVow.procs.single.statusProfileId,
@@ -86,63 +41,53 @@ void main() {
       expect(sunlitVow.procs.single.chanceBp, 10000);
 
       final graveglass = catalog.get(WeaponId.graveglass);
-      expect(graveglass.stats.globalPowerBonusBp, 1800);
-      expect(graveglass.stats.defenseBonusBp, -1000);
-      expect(graveglass.procs.single.hook, ProcHook.onCrit);
-      expect(
-        graveglass.procs.single.statusProfileId,
-        StatusProfileId.acidOnHit,
-      );
-      expect(graveglass.procs.single.chanceBp, 2000);
-
-      final duelistsOath = catalog.get(WeaponId.duelistsOath);
-      expect(duelistsOath.stats.globalPowerBonusBp, 1800);
-      expect(duelistsOath.stats.globalCritChanceBonusBp, 1200);
-      expect(duelistsOath.procs.single.hook, ProcHook.onCrit);
-      expect(
-        duelistsOath.procs.single.statusProfileId,
-        StatusProfileId.weakenOnHit,
-      );
-      expect(duelistsOath.procs.single.chanceBp, 10000);
+      expect(graveglass.procs, isEmpty);
     });
 
-    test('shield roster includes baseline and reactive profiles', () {
+    test('non-proc swords include dump tradeoffs', () {
+      final basiliskKiss = catalog.get(WeaponId.basiliskKiss);
+      expect(basiliskKiss.procs, isEmpty);
+      expect(basiliskKiss.stats.globalPowerBonusBp, 1500);
+      expect(basiliskKiss.stats.staminaRegenBonusBp, 1000);
+      expect(basiliskKiss.stats.healthBonusBp, -1000);
+
+      final duelistsOath = catalog.get(WeaponId.duelistsOath);
+      expect(duelistsOath.procs, isEmpty);
+      expect(duelistsOath.stats.globalCritChanceBonusBp, 1000);
+      expect(duelistsOath.stats.staminaBonusBp, 2000);
+      expect(duelistsOath.stats.manaRegenBonusBp, -500);
+    });
+
+    test('roadguard baseline shield values', () {
       final roadguard = catalog.get(WeaponId.roadguard);
       expect(roadguard.procs, isEmpty);
       expect(roadguard.reactiveProcs, isEmpty);
       expect(roadguard.stats.defenseBonusBp, 1500);
-      expect(roadguard.stats.staminaBonusBp, 500);
+      expect(roadguard.stats.staminaBonusBp, 1500);
+      expect(roadguard.stats.physicalResistanceBp, 1000);
+      expect(roadguard.stats.moveSpeedBonusBp, -500);
+    });
 
+    test('thornbark and oathwall define shield reactive hooks', () {
       final thornbark = catalog.get(WeaponId.thornbark);
-      expect(thornbark.reactiveProcs, hasLength(1));
-      final onDamaged = thornbark.reactiveProcs.firstWhere(
+      final onDamaged = thornbark.reactiveProcs.singleWhere(
         (proc) => proc.hook == ReactiveProcHook.onDamaged,
       );
       expect(onDamaged.statusProfileId, StatusProfileId.meleeBleed);
       expect(onDamaged.target, ReactiveProcTarget.attacker);
       expect(onDamaged.chanceBp, 3500);
-    });
-
-    test('warbanner and oathwall use reactive proc contracts', () {
-      final warbanner = catalog.get(WeaponId.warbannerGuard);
-      expect(warbanner.procs, isEmpty);
-      expect(warbanner.reactiveProcs, hasLength(1));
-      expect(warbanner.reactiveProcs.single.hook, ReactiveProcHook.onDamaged);
-      expect(
-        warbanner.reactiveProcs.single.statusProfileId,
-        StatusProfileId.burnOnHit,
-      );
-      expect(warbanner.reactiveProcs.single.target, ReactiveProcTarget.attacker);
-      expect(warbanner.reactiveProcs.single.chanceBp, 2500);
 
       final oathwall = catalog.get(WeaponId.oathwallRelic);
-      final onLowHealth = oathwall.reactiveProcs.firstWhere(
+      final onLowHealth = oathwall.reactiveProcs.singleWhere(
         (proc) => proc.hook == ReactiveProcHook.onLowHealth,
       );
       expect(onLowHealth.statusProfileId, StatusProfileId.speedBoost);
       expect(onLowHealth.target, ReactiveProcTarget.self);
       expect(onLowHealth.lowHealthThresholdBp, 3000);
       expect(onLowHealth.internalCooldownTicks, 1800);
+
+      final warbanner = catalog.get(WeaponId.warbannerGuard);
+      expect(warbanner.reactiveProcs, isEmpty);
     });
   });
 }

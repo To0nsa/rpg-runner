@@ -159,7 +159,7 @@ void main() {
       final expectedDescriptionByAbility = <String, String>{
         'eloise.arcane_haste': 'Increase move speed by 50% for 5.0 seconds.',
         'eloise.arcane_ward':
-            'Reduce direct-hit damage by 40% and cancel damage-over-time effects for 4.0 seconds.',
+            'Reduce direct-hit damage by 40% and cancel damage-over-time effects for 5.0 seconds.',
         'eloise.vital_surge': 'Restore 35% of max Health over 5.0 seconds.',
         'eloise.mana_infusion': 'Restore 35% of max Mana over 5.0 seconds.',
         'eloise.second_wind': 'Restore 35% of max Stamina over 5.0 seconds.',

@@ -23,10 +23,10 @@ class WeaponCatalog {
           category: WeaponCategory.primary,
           weaponType: WeaponType.oneHandedSword,
           stats: GearStatBonuses(
-            globalPowerBonusBp: 1800,
-            globalCritChanceBonusBp: 1200,
-            staminaBonusBp: 2000,
-            staminaRegenBonusBp: 800,
+            globalPowerBonusBp: 1500,
+            globalCritChanceBonusBp: 500,
+            staminaBonusBp: 1000,
+            defenseBonusBp: -500,
           ),
         );
       case WeaponId.waspfang:
@@ -42,10 +42,9 @@ class WeaponCatalog {
             ),
           ],
           stats: GearStatBonuses(
-            globalPowerBonusBp: 1800,
-            globalCritChanceBonusBp: 1000,
-            staminaBonusBp: 2000,
-            staminaRegenBonusBp: 600,
+            globalPowerBonusBp: 1000,
+            staminaBonusBp: 1500,
+            healthBonusBp: -500,
           ),
         );
       case WeaponId.cinderedge:
@@ -56,15 +55,14 @@ class WeaponCatalog {
           procs: <WeaponProc>[
             WeaponProc(
               hook: ProcHook.onCrit,
-              statusProfileId: StatusProfileId.weakenOnHit,
-              chanceBp: 10000,
+              statusProfileId: StatusProfileId.stunOnHit,
+              chanceBp: 2000,
             ),
           ],
           stats: GearStatBonuses(
-            globalPowerBonusBp: 1300,
-            globalCritChanceBonusBp: 800,
-            staminaBonusBp: 1200,
-            staminaRegenBonusBp: 500,
+            globalPowerBonusBp: 500,
+            globalCritChanceBonusBp: 1000,
+            manaRegenBonusBp: -500,
           ),
         );
       case WeaponId.basiliskKiss:
@@ -72,18 +70,11 @@ class WeaponCatalog {
           id: WeaponId.basiliskKiss,
           category: WeaponCategory.primary,
           weaponType: WeaponType.oneHandedSword,
-          procs: <WeaponProc>[
-            WeaponProc(
-              hook: ProcHook.onCrit,
-              statusProfileId: StatusProfileId.acidOnHit,
-              chanceBp: 10000,
-            ),
-          ],
           stats: GearStatBonuses(
             globalPowerBonusBp: 1500,
-            globalCritChanceBonusBp: 800,
-            staminaBonusBp: 1000,
-            defenseBonusBp: -500,
+            globalCritChanceBonusBp: 500,
+            staminaRegenBonusBp: 1000,
+            healthBonusBp: -1000,
           ),
         );
       case WeaponId.frostbrand:
@@ -91,18 +82,11 @@ class WeaponCatalog {
           id: WeaponId.frostbrand,
           category: WeaponCategory.primary,
           weaponType: WeaponType.oneHandedSword,
-          procs: <WeaponProc>[
-            WeaponProc(
-              hook: ProcHook.onHit,
-              statusProfileId: StatusProfileId.slowOnHit,
-              chanceBp: 3500,
-            ),
-          ],
           stats: GearStatBonuses(
-            globalPowerBonusBp: 1800,
-            globalCritChanceBonusBp: 900,
+            globalPowerBonusBp: 1000,
             staminaBonusBp: 2000,
-            staminaRegenBonusBp: 800,
+            staminaRegenBonusBp: 500,
+            defenseBonusBp: -500,
           ),
         );
       case WeaponId.stormneedle:
@@ -110,18 +94,11 @@ class WeaponCatalog {
           id: WeaponId.stormneedle,
           category: WeaponCategory.primary,
           weaponType: WeaponType.oneHandedSword,
-          procs: <WeaponProc>[
-            WeaponProc(
-              hook: ProcHook.onCrit,
-              statusProfileId: StatusProfileId.stunOnHit,
-              chanceBp: 2000,
-            ),
-          ],
           stats: GearStatBonuses(
-            globalPowerBonusBp: 1800,
-            globalCritChanceBonusBp: 1200,
-            staminaBonusBp: 2000,
+            globalCritChanceBonusBp: 1000,
+            staminaBonusBp: 1500,
             staminaRegenBonusBp: 500,
+            healthBonusBp: -500,
           ),
         );
       case WeaponId.nullblade:
@@ -129,18 +106,11 @@ class WeaponCatalog {
           id: WeaponId.nullblade,
           category: WeaponCategory.primary,
           weaponType: WeaponType.oneHandedSword,
-          procs: <WeaponProc>[
-            WeaponProc(
-              hook: ProcHook.onCrit,
-              statusProfileId: StatusProfileId.silenceOnHit,
-              chanceBp: 2000,
-            ),
-          ],
           stats: GearStatBonuses(
-            globalPowerBonusBp: 1700,
-            globalCritChanceBonusBp: 1200,
-            staminaBonusBp: 2000,
-            staminaRegenBonusBp: 600,
+            globalPowerBonusBp: 500,
+            globalCritChanceBonusBp: 1000,
+            staminaBonusBp: 1000,
+            defenseBonusBp: -1000,
           ),
         );
       case WeaponId.sunlitVow:
@@ -156,10 +126,9 @@ class WeaponCatalog {
             ),
           ],
           stats: GearStatBonuses(
-            globalPowerBonusBp: 1500,
-            globalCritChanceBonusBp: 1000,
-            staminaBonusBp: 1500,
-            staminaRegenBonusBp: 600,
+            globalPowerBonusBp: 1000,
+            staminaRegenBonusBp: 1000,
+            healthBonusBp: -500,
           ),
         );
       case WeaponId.graveglass:
@@ -167,18 +136,11 @@ class WeaponCatalog {
           id: WeaponId.graveglass,
           category: WeaponCategory.primary,
           weaponType: WeaponType.oneHandedSword,
-          procs: <WeaponProc>[
-            WeaponProc(
-              hook: ProcHook.onCrit,
-              statusProfileId: StatusProfileId.acidOnHit,
-              chanceBp: 2000,
-            ),
-          ],
           stats: GearStatBonuses(
-            globalPowerBonusBp: 1800,
-            globalCritChanceBonusBp: 1200,
-            staminaBonusBp: 2000,
-            staminaRegenBonusBp: 500,
+            globalPowerBonusBp: 1500,
+            globalCritChanceBonusBp: 1000,
+            staminaBonusBp: 500,
+            defenseBonusBp: -1000,
           ),
         );
       case WeaponId.duelistsOath:
@@ -186,17 +148,11 @@ class WeaponCatalog {
           id: WeaponId.duelistsOath,
           category: WeaponCategory.primary,
           weaponType: WeaponType.oneHandedSword,
-          procs: <WeaponProc>[
-            WeaponProc(
-              hook: ProcHook.onCrit,
-              statusProfileId: StatusProfileId.weakenOnHit,
-              chanceBp: 10000,
-            ),
-          ],
           stats: GearStatBonuses(
-            globalPowerBonusBp: 1500,
-            globalCritChanceBonusBp: 1200,
-            staminaBonusBp: 700,
+            globalCritChanceBonusBp: 1000,
+            staminaBonusBp: 2000,
+            staminaRegenBonusBp: 500,
+            manaRegenBonusBp: -500,
           ),
         );
       case WeaponId.roadguard:
@@ -205,10 +161,10 @@ class WeaponCatalog {
           category: WeaponCategory.offHand,
           weaponType: WeaponType.shield,
           stats: GearStatBonuses(
-            defenseBonusBp: 1800,
-            staminaBonusBp: 2000,
-            staminaRegenBonusBp: 1200,
-            physicalResistanceBp: 1900,
+            defenseBonusBp: 1500,
+            staminaBonusBp: 1500,
+            physicalResistanceBp: 1000,
+            moveSpeedBonusBp: -500,
           ),
         );
       case WeaponId.thornbark:
@@ -225,10 +181,9 @@ class WeaponCatalog {
             ),
           ],
           stats: GearStatBonuses(
-            defenseBonusBp: 1800,
-            staminaBonusBp: 1800,
-            staminaRegenBonusBp: 700,
+            defenseBonusBp: 1000,
             bleedResistanceBp: 2000,
+            globalPowerBonusBp: -500,
           ),
         );
       case WeaponId.cinderWard:
@@ -236,19 +191,11 @@ class WeaponCatalog {
           id: WeaponId.cinderWard,
           category: WeaponCategory.offHand,
           weaponType: WeaponType.shield,
-          reactiveProcs: <ReactiveProc>[
-            ReactiveProc(
-              hook: ReactiveProcHook.onDamaged,
-              statusProfileId: StatusProfileId.burnOnHit,
-              target: ReactiveProcTarget.attacker,
-              chanceBp: 2500,
-            ),
-          ],
           stats: GearStatBonuses(
             fireResistanceBp: 2500,
-            defenseBonusBp: 1800,
-            staminaBonusBp: 1200,
-            staminaRegenBonusBp: 800,
+            defenseBonusBp: 1000,
+            staminaRegenBonusBp: 500,
+            globalCritChanceBonusBp: -500,
           ),
         );
       case WeaponId.tideguardShell:
@@ -256,19 +203,11 @@ class WeaponCatalog {
           id: WeaponId.tideguardShell,
           category: WeaponCategory.offHand,
           weaponType: WeaponType.shield,
-          reactiveProcs: <ReactiveProc>[
-            ReactiveProc(
-              hook: ReactiveProcHook.onDamaged,
-              statusProfileId: StatusProfileId.drenchOnHit,
-              target: ReactiveProcTarget.attacker,
-              chanceBp: 1500,
-            ),
-          ],
           stats: GearStatBonuses(
-            waterResistanceBp: 2500,
-            defenseBonusBp: 1800,
-            staminaBonusBp: 1800,
-            staminaRegenBonusBp: 500,
+            waterResistanceBp: 2000,
+            staminaBonusBp: 1500,
+            defenseBonusBp: 500,
+            globalPowerBonusBp: -500,
           ),
         );
       case WeaponId.frostlockBuckler:
@@ -276,19 +215,11 @@ class WeaponCatalog {
           id: WeaponId.frostlockBuckler,
           category: WeaponCategory.offHand,
           weaponType: WeaponType.shield,
-          reactiveProcs: <ReactiveProc>[
-            ReactiveProc(
-              hook: ReactiveProcHook.onDamaged,
-              statusProfileId: StatusProfileId.slowOnHit,
-              target: ReactiveProcTarget.attacker,
-              chanceBp: 3500,
-            ),
-          ],
           stats: GearStatBonuses(
-            iceResistanceBp: 2500,
-            defenseBonusBp: 1600,
-            staminaBonusBp: 1500,
-            staminaRegenBonusBp: 600,
+            iceResistanceBp: 2000,
+            defenseBonusBp: 1000,
+            staminaBonusBp: 1000,
+            globalCritChanceBonusBp: -500,
           ),
         );
       case WeaponId.ironBastion:
@@ -297,10 +228,9 @@ class WeaponCatalog {
           category: WeaponCategory.offHand,
           weaponType: WeaponType.shield,
           stats: GearStatBonuses(
-            defenseBonusBp: 1800,
-            staminaBonusBp: 2000,
-            staminaRegenBonusBp: 1200,
-            physicalResistanceBp: 1100,
+            defenseBonusBp: 1500,
+            physicalResistanceBp: 1500,
+            staminaRegenBonusBp: 1000,
             moveSpeedBonusBp: -1000,
           ),
         );
@@ -309,19 +239,11 @@ class WeaponCatalog {
           id: WeaponId.stormAegis,
           category: WeaponCategory.offHand,
           weaponType: WeaponType.shield,
-          reactiveProcs: <ReactiveProc>[
-            ReactiveProc(
-              hook: ReactiveProcHook.onDamaged,
-              statusProfileId: StatusProfileId.slowOnHit,
-              target: ReactiveProcTarget.attacker,
-              chanceBp: 2500,
-            ),
-          ],
           stats: GearStatBonuses(
             thunderResistanceBp: 2500,
-            defenseBonusBp: 1700,
-            staminaBonusBp: 1500,
-            staminaRegenBonusBp: 700,
+            defenseBonusBp: 500,
+            staminaRegenBonusBp: 1000,
+            globalCritChanceBonusBp: -1000,
           ),
         );
       case WeaponId.nullPrism:
@@ -329,19 +251,11 @@ class WeaponCatalog {
           id: WeaponId.nullPrism,
           category: WeaponCategory.offHand,
           weaponType: WeaponType.shield,
-          reactiveProcs: <ReactiveProc>[
-            ReactiveProc(
-              hook: ReactiveProcHook.onDamaged,
-              statusProfileId: StatusProfileId.drenchOnHit,
-              target: ReactiveProcTarget.attacker,
-              chanceBp: 2000,
-            ),
-          ],
           stats: GearStatBonuses(
             darkResistanceBp: 2000,
-            holyResistanceBp: 2000,
-            defenseBonusBp: 1400,
-            staminaBonusBp: 900,
+            holyResistanceBp: 1500,
+            defenseBonusBp: 500,
+            moveSpeedBonusBp: -500,
           ),
         );
       case WeaponId.warbannerGuard:
@@ -349,20 +263,11 @@ class WeaponCatalog {
           id: WeaponId.warbannerGuard,
           category: WeaponCategory.offHand,
           weaponType: WeaponType.shield,
-          reactiveProcs: <ReactiveProc>[
-            ReactiveProc(
-              hook: ReactiveProcHook.onDamaged,
-              statusProfileId: StatusProfileId.burnOnHit,
-              target: ReactiveProcTarget.attacker,
-              chanceBp: 2500,
-            ),
-          ],
           stats: GearStatBonuses(
-            defenseBonusBp: 1800,
+            defenseBonusBp: 1000,
             staminaBonusBp: 2000,
-            staminaRegenBonusBp: 1000,
-            physicalResistanceBp: 1300,
-            globalPowerBonusBp: -500,
+            bleedResistanceBp: 500,
+            globalCritChanceBonusBp: -1000,
           ),
         );
       case WeaponId.oathwallRelic:
@@ -381,11 +286,9 @@ class WeaponCatalog {
             ),
           ],
           stats: GearStatBonuses(
-            defenseBonusBp: 1800,
-            staminaBonusBp: 1200,
-            holyResistanceBp: 500,
-            globalPowerBonusBp: -500,
-            globalCritChanceBonusBp: -1000,
+            defenseBonusBp: 1500,
+            holyResistanceBp: 1000,
+            globalPowerBonusBp: -1000,
           ),
         );
     }

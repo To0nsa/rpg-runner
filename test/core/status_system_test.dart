@@ -276,7 +276,7 @@ void main() {
     expect(world.damageReduction.has(target), isTrue);
     final wardIndex = world.damageReduction.indexOf(target);
     expect(world.damageReduction.magnitude[wardIndex], equals(4000));
-    expect(world.damageReduction.ticksLeft[wardIndex], equals(240));
+    expect(world.damageReduction.ticksLeft[wardIndex], equals(300));
     expect(world.offenseBuff.has(target), isTrue);
     final offenseIndex = world.offenseBuff.indexOf(target);
     expect(world.offenseBuff.powerBonusBp[offenseIndex], equals(2500));
@@ -454,7 +454,8 @@ void main() {
     final status = StatusSystem(
       tickHz: 60,
       statsResolver: CharacterStatsResolver(
-        weapons: const _FlatWeaponCatalog(),        spellBooks: const _FlatSpellBookCatalog(),
+        weapons: const _FlatWeaponCatalog(),
+        spellBooks: const _FlatSpellBookCatalog(),
         accessories: const _FireResistAccessoryCatalog(),
       ),
     );
@@ -467,10 +468,7 @@ void main() {
     world.damageResistance.add(target, const DamageResistanceDef(fireBp: 5000));
     world.equippedLoadout.add(
       target,
-      const EquippedLoadoutDef(
-        mask: LoadoutSlotMask.mainHand,
-        accessoryId: AccessoryId.speedBoots,
-      ),
+      const EquippedLoadoutDef(mask: 0, accessoryId: AccessoryId.speedBoots),
     );
     world.invulnerability.add(target);
     world.statusImmunity.add(target);
@@ -488,8 +486,8 @@ void main() {
     final dotIndex = world.dot.indexOf(target);
     final fireChannel = world.dot.channelIndexFor(target, DamageType.fire);
     expect(fireChannel, isNotNull);
-    // FireBolt base dps100=500. Combined typed mod: +5000 store - 4000 gear = +1000.
-    expect(world.dot.dps100[dotIndex][fireChannel!], equals(550));
+    // FireBolt base dps100=300. Combined typed mod: +5000 store - 4000 gear = +1000.
+    expect(world.dot.dps100[dotIndex][fireChannel!], equals(330));
   });
 
   test('acid on-hit applies +50% global vulnerability for 5 seconds', () {
@@ -498,7 +496,8 @@ void main() {
     final status = StatusSystem(
       tickHz: 60,
       statsResolver: CharacterStatsResolver(
-        weapons: const _FlatWeaponCatalog(),        spellBooks: const _FlatSpellBookCatalog(),
+        weapons: const _FlatWeaponCatalog(),
+        spellBooks: const _FlatSpellBookCatalog(),
         accessories: const _AcidResistAccessoryCatalog(),
       ),
     );
@@ -512,7 +511,8 @@ void main() {
     world.equippedLoadout.add(
       target,
       const EquippedLoadoutDef(
-        mask: LoadoutSlotMask.mainHand,
+        mask: 0,
+        mainWeaponId: WeaponId.waspfang,
         accessoryId: AccessoryId.speedBoots,
       ),
     );
@@ -583,14 +583,14 @@ void main() {
 
     expect(world.weaken.has(source), isTrue);
     final weakenIndex = world.weaken.indexOf(source);
-    expect(world.weaken.magnitude[weakenIndex], equals(3500));
+    expect(world.weaken.magnitude[weakenIndex], equals(5000));
     expect(world.weaken.ticksLeft[weakenIndex], equals(300));
 
     world.damageQueue.add(
       DamageRequest(target: target, amount100: 1000, source: source),
     );
     damage.step(world, currentTick: 2);
-    expect(world.health.hp[world.health.indexOf(target)], equals(9350));
+    expect(world.health.hp[world.health.indexOf(target)], equals(9500));
 
     for (var tick = 0; tick < 300; tick += 1) {
       status.tickExisting(world);
@@ -601,7 +601,7 @@ void main() {
       DamageRequest(target: target, amount100: 1000, source: source),
     );
     damage.step(world, currentTick: 3);
-    expect(world.health.hp[world.health.indexOf(target)], equals(8350));
+    expect(world.health.hp[world.health.indexOf(target)], equals(8500));
   });
 
   test('drench on-hit reduces action speed by 50% for 5 seconds', () {

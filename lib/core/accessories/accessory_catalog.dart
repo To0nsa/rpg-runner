@@ -20,19 +20,16 @@ class AccessoryCatalog {
       case AccessoryId.speedBoots:
         return const AccessoryDef(
           id: AccessoryId.speedBoots,
-          // Tempo baseline with stamina comfort and mana-tax dump.
           stats: GearStatBonuses(
             moveSpeedBonusBp: 1000,
-            staminaBonusBp: 2000,
-            defenseBonusBp: 1200,
-            globalPowerBonusBp: 1800,
+            staminaBonusBp: 1500,
+            staminaRegenBonusBp: 500,
             manaBonusBp: -500,
           ),
         );
       case AccessoryId.goldenRing:
         return const AccessoryDef(
           id: AccessoryId.goldenRing,
-          // Survivability baseline with low-health self-heal.
           reactiveProcs: <ReactiveProc>[
             ReactiveProc(
               hook: ReactiveProcHook.onLowHealth,
@@ -45,98 +42,68 @@ class AccessoryCatalog {
           ],
           stats: GearStatBonuses(
             healthBonusBp: 2000,
-            healthRegenBonusBp: 1200,
-            defenseBonusBp: 1800,
-            manaBonusBp: -500,
+            defenseBonusBp: 1000,
+            cooldownReductionBp: -500,
           ),
         );
       case AccessoryId.teethNecklace:
         return const AccessoryDef(
           id: AccessoryId.teethNecklace,
-          // Stamina sustain package with low-health stamina recovery.
-          reactiveProcs: <ReactiveProc>[
-            ReactiveProc(
-              hook: ReactiveProcHook.onLowHealth,
-              statusProfileId: StatusProfileId.restoreStamina,
-              target: ReactiveProcTarget.self,
-              chanceBp: 10000,
-              lowHealthThresholdBp: 3000,
-              internalCooldownTicks: 1800,
-            ),
-          ],
           stats: GearStatBonuses(
             staminaBonusBp: 2000,
-            staminaRegenBonusBp: 1200,
+            healthRegenBonusBp: 1000,
             defenseBonusBp: 500,
-            globalPowerBonusBp: 1200,
             manaBonusBp: -500,
           ),
         );
       case AccessoryId.diamondRing:
         return const AccessoryDef(
           id: AccessoryId.diamondRing,
-          // Caster sustain package with low-health mana recovery.
-          reactiveProcs: <ReactiveProc>[
-            ReactiveProc(
-              hook: ReactiveProcHook.onLowHealth,
-              statusProfileId: StatusProfileId.restoreMana,
-              target: ReactiveProcTarget.self,
-              chanceBp: 10000,
-              lowHealthThresholdBp: 3000,
-              internalCooldownTicks: 1800,
-            ),
-          ],
           stats: GearStatBonuses(
             manaBonusBp: 2000,
-            manaRegenBonusBp: 1200,
-            cooldownReductionBp: 800,
-            globalCritChanceBonusBp: 500,
+            manaRegenBonusBp: 1000,
+            globalCritChanceBonusBp: 1000,
+            fireResistanceBp: -500,
           ),
         );
       case AccessoryId.ironBoots:
         return const AccessoryDef(
           id: AccessoryId.ironBoots,
-          // Mitigation anchor with route control and offense pressure.
           stats: GearStatBonuses(
-            defenseBonusBp: 1800,
-            globalPowerBonusBp: 1800,
-            moveSpeedBonusBp: 1000,
-            staminaBonusBp: 1000,
+            defenseBonusBp: 1500,
+            moveSpeedBonusBp: 500,
+            globalPowerBonusBp: 1000,
+            cooldownReductionBp: -500,
           ),
         );
       case AccessoryId.oathBeads:
         return const AccessoryDef(
           id: AccessoryId.oathBeads,
-          // Rotation consistency package with mana-tax dump.
           stats: GearStatBonuses(
-            cooldownReductionBp: 800,
-            manaRegenBonusBp: 1200,
-            globalPowerBonusBp: 1800,
-            globalCritChanceBonusBp: 1200,
-            manaBonusBp: -500,
+            cooldownReductionBp: 500,
+            globalPowerBonusBp: 1500,
+            manaRegenBonusBp: 500,
+            waterResistanceBp: -500,
           ),
         );
       case AccessoryId.resilienceCape:
         return const AccessoryDef(
           id: AccessoryId.resilienceCape,
-          // Counterpick resist package with mana-tax dump.
           stats: GearStatBonuses(
             bleedResistanceBp: 2500,
-            darkResistanceBp: 2500,
-            healthBonusBp: 2000,
+            darkResistanceBp: 2000,
+            healthBonusBp: 1000,
             manaBonusBp: -500,
           ),
         );
       case AccessoryId.strengthBelt:
         return const AccessoryDef(
           id: AccessoryId.strengthBelt,
-          // Offense-forward pick with crit pressure and mana-tax dump.
           stats: GearStatBonuses(
-            healthBonusBp: 1000,
-            globalPowerBonusBp: 1800,
-            globalCritChanceBonusBp: 1200,
-            staminaBonusBp: 2000,
-            manaBonusBp: -500,
+            globalPowerBonusBp: 1500,
+            globalCritChanceBonusBp: 1000,
+            staminaBonusBp: 1000,
+            iceResistanceBp: -500,
           ),
         );
     }

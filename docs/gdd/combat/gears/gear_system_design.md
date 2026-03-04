@@ -87,11 +87,11 @@ effect families by hook in weapon/shield/accessory catalogs.
 
 | Hook | Runtime receiver | Runtime allowed status profiles | Currently authored effects |
 |---|---|---|---|
-| `OnHit` | damaged target | any non-`none` `StatusProfileId` | `meleeBleed` (Bleed DoT), `slowOnHit` (Slow) |
-| `OnCrit` | damaged target | any non-`none` `StatusProfileId` | `acidOnHit` (Vulnerable), `weakenOnHit` (Weaken), `stunOnHit` (Stun), `silenceOnHit` (Silence) |
+| `OnHit` | damaged target | any non-`none` `StatusProfileId` | `meleeBleed` (Bleed DoT) |
+| `OnCrit` | damaged target | any non-`none` `StatusProfileId` | `stunOnHit` (Stun) |
 | `OnKill` | source entity | any non-`none` `StatusProfileId` | `speedBoost` (Haste) |
-| `onDamaged` (`ReactiveProcHook.onDamaged`) | `self` or `attacker` (reactive target policy) | any non-`none` `StatusProfileId` | `meleeBleed` (Bleed DoT), `burnOnHit` (Burn DoT), `slowOnHit` (Slow), `drenchOnHit` (Drench) |
-| `onLowHealth` (`ReactiveProcHook.onLowHealth`) | `self` or `attacker` (reactive target policy) | any non-`none` `StatusProfileId` | `speedBoost` (Haste, offhand), `restoreHealth` / `restoreMana` / `restoreStamina` (Sustain, accessory) |
+| `onDamaged` (`ReactiveProcHook.onDamaged`) | `self` or `attacker` (reactive target policy) | any non-`none` `StatusProfileId` | `meleeBleed` (Bleed DoT, attacker-targeted) |
+| `onLowHealth` (`ReactiveProcHook.onLowHealth`) | `self` or `attacker` (reactive target policy) | any non-`none` `StatusProfileId` | `speedBoost` (Haste, offhand), `restoreHealth` (Sustain, accessory) |
 
 ### Compatibility Rules
 
@@ -180,15 +180,18 @@ A stat line cannot exceed these values, even if budget/dump rules would allow mo
 
 #### Hard Authoring Rules
 
-1. One proc per item maximum.
-   This means at most one total proc entry across both `procs` and `reactiveProcs` on a single item definition.
-2. An item cannot define both outgoing and reactive proc lists at the same time.
-3. An item can either have 2 positive stats, 1 proc and 1 dump or 3 positive stats, no procs and one dump.
-4. Items should be unique in their stat combinations and proc effects. If two items have the same identity, one of them should be reworked to have a different stat/proc combination or removed.
+1. One proc cluster per item. A cluster is all proc entries on the item across `procs` and `reactiveProcs`.
+2. Proc cluster budget is strict: each proc entry costs `1` point, and the cluster cap is `2` points (`0-2` total proc entries per item).
+3. If an item uses a 2-entry proc cluster, both entries must be thematically related (same effect-theme family), and must not duplicate the same hook within that item.
+4. An item can either have 2 positive stats, a proc cluster (`1-2` entries), and 1 dump or 3 positive stats, no procs, and one dump.
+5. Items should be unique in their stat combinations and proc effects. If two items have the same identity, one of them should be reworked to have a different stat/proc combination or removed.
+6. Shared hooks are allowed, but proc identities must be unique per slot by `(hook + status family + target policy + slot)`. Two items can share a hook only when at least one of the other dimensions differs.
+7. Minimal value for a non-zero positive or negative stat is `500bp` to ensure meaningful contribution and clear tradeoffs.
+8. Non-zero positive and negative stats should always be a multiple of '500bp'. 
 
 #### Hard Caps for Proc Effects (Per Item)
 
-These caps constrain one authored proc entry on one item.
+These caps constrain each authored proc entry on an item.
 They apply in addition to hook-family restrictions and slot identity constraints.
 
 ##### Trigger Caps by Hook
@@ -229,14 +232,6 @@ If a stat family is not listed as positive in "Slot Identity Matrix" and not lis
 | `offhandWeapon` (Shield) | `moveSpeedBonusBp`, `globalPowerBonusBp`, `globalCritChanceBonusBp` |
 | `spellBook` | `staminaBonusBp`, `staminaRegenBonusBp`, `healthRegenBonusBp` |
 | `accessory` | `manaBonusBp`, `cooldownReductionBp`, typed resistance (`*ResistanceBp`) |
-
-#### Minimum Authoring Magnitude (No Tiny Values)
-
-To avoid fake variety via negligible numbers, non-zero stat lines must be meaningful.
-
-Rule:
-
-- any authored non-zero stat line must satisfy `abs(valueBp) >= 500`
 
 #### Hard Floors for Negative Stats (Per Item)
 

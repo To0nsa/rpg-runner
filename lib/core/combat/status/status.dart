@@ -39,10 +39,7 @@ enum StatusProfileId {
 }
 
 /// Stable identifiers for deterministic self-purge profiles.
-enum PurgeProfileId {
-  none,
-  cleanse,
-}
+enum PurgeProfileId { none, cleanse }
 
 /// A single status application inside a profile.
 class StatusApplication {
@@ -160,7 +157,7 @@ class StatusApplicationPresets {
     StatusApplication(
       type: StatusEffectType.slow,
       magnitude: 2500, // 25%
-      durationSeconds: 3.0,
+      durationSeconds: 5.0,
       scaleByDamageType: true,
     ),
   );
@@ -168,7 +165,7 @@ class StatusApplicationPresets {
   static const StatusApplicationPreset onHitDot = StatusApplicationPreset(
     StatusApplication(
       type: StatusEffectType.dot,
-      magnitude: 500, // 5.0 DPS
+      magnitude: 300, // 3.0 DPS
       durationSeconds: 5.0,
       scaleByDamageType: true,
       dotDamageType: DamageType.fire,
@@ -188,7 +185,7 @@ class StatusApplicationPresets {
   static const StatusApplicationPreset weakenOnHit = StatusApplicationPreset(
     StatusApplication(
       type: StatusEffectType.weaken,
-      magnitude: 3500, // -35% outgoing damage.
+      magnitude: 5000, // -50% outgoing damage.
       durationSeconds: 5.0,
       scaleByDamageType: false,
     ),
@@ -207,7 +204,7 @@ class StatusApplicationPresets {
     StatusApplication(
       type: StatusEffectType.silence,
       magnitude: 100, // placeholder (silence uses only duration ticks)
-      durationSeconds: 3.0,
+      durationSeconds: 5.0,
       scaleByDamageType: false,
     ),
   );
@@ -234,7 +231,7 @@ class StatusApplicationPresets {
     StatusApplication(
       type: StatusEffectType.damageReduction,
       magnitude: 4000, // 40% direct-hit mitigation
-      durationSeconds: 4.0,
+      durationSeconds: 5.0,
     ),
   );
 

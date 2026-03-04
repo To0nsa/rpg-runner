@@ -17,15 +17,11 @@ Normalize a basic sword to an offense budget of `+1.0` EV.
 
 `Plainsteel` is the control group and sets baseline expectations.
 
-When a sword gains extra EV through DoT, vulnerable, or strong control, it must pay using one or more taxes:
+When a sword gains extra EV through proc utility, it must pay using one or more taxes:
 
 - lower `globalPowerBonusBp`
 - lower `globalCritChanceBonusBp`
-- cooldown penalty
-- move speed penalty
-- defense penalty
-
-Control-heavy effects (stun, silence, strong slow) must pay through lower direct damage EV and/or low chance/short duration.
+- a dump stat in an allowed sword dump family
 
 ## Validation Loop
 
@@ -39,95 +35,37 @@ Primary knobs:
 
 - `globalPowerBonusBp`
 - `globalCritChanceBonusBp`
-- proc chance
-- proc duration/magnitude
-- downside magnitude (`defense`, mobility, cooldown penalties)
+- `staminaBonusBp`
+- `staminaRegenBonusBp`
+- downside magnitude (`health`, `defense`, `manaRegen` dumps)
 
 ## Sword Roster
 
-### 1) Plainsteel
-
-- Role: baseline consistency
-- Stats: `globalPower +1000bp`
-- Proc: none
-- Tradeoff: no specialization ceiling
-
-### 2) Waspfang
-
-- Role: fast pressure, bleed attrition
-- Stats: `globalPower +1000bp`
-- Proc: `onHit -> bleed` at `35%`
-- Tradeoff: lower upfront burst for better sustained pressure
-
-### 3) Cinderedge
-
-- Role: crit-trigger burn, spiky output
-- Stats: `globalCrit +1000bp`, `globalPower +0bp`
-- Proc: `onCrit -> burn` at `100%`
-- Tradeoff: volatile performance, weaker when crit stack is low
-
-### 4) Basilisk Kiss
-
-- Role: acid shred, anti-tank
-- Stats: `globalPower +2500bp`, `globalCrit -1000bp`
-- Proc: `onHit -> acid` at `35%`
-- Tradeoff: lower burst in exchange for strong long-fight scaling
-
-### 5) Frostbrand
-
-- Role: tempo control through slows
-- Stats: `globalPower +2000bp`
-- Proc: `onHit -> slow` at `35%`
-- Tradeoff: slightly reduced raw DPS for safer engagements
-
-### 6) Stormneedle
-
-- Role: rare clutch stun control
-- Stats: `globalPower +2000bp`
-- Proc: `onHit -> stun` at `20%`
-- Tradeoff: control wins runs, so direct damage is intentionally taxed
-
-### 7) Nullblade
-
-- Role: anti-caster silence utility
-- Stats: `globalPower +1000bp`, `globalCrit +1000bp`
-- Proc: `onHit -> silence` at `20%`
-- Tradeoff: situationally dominant versus casters, below-average in non-caster fights
-
-### 8) Sunlit Vow
-
-- Role: sustain and wave stability
-- Stats: `globalPower +700bp`, `defense +1000bp`
-- Proc: `onKill -> haste (short)` at `100%` (or small heal status if sustain profile is preferred)
-- Tradeoff: excellent in wave clear, reduced boss value due to kill-gated trigger
-
-### 9) Graveglass
-
-- Role: high-risk global amplifier
-- Stats: `globalPower +3000bp`, `defense -1500bp`
-- Proc:  `onHit -> vulnerable` at `20%`
-- Tradeoff: fastest clear potential with the highest death risk
-
-### 10) Duelist's Oath
-
-- Role: skill sword rewarding crit consistency
-- Stats: `globalCrit +1500bp`, `globalPower +2000bp`
-- Proc: `onCrit -> weaken` at `100%` (short duration)
-- Tradeoff: requires crit uptime and execution; adds safety windows rather than direct proc damage
+| # | Sword | Role | Positive Stats (bp) | Dump (bp) | Proc | Tradeoff |
+|---|---|---|---|---|---|---|
+| 1 | `Plainsteel` | baseline consistency | `globalPower +1500`, `globalCrit +500`, `stamina +1000` | `defense -500` | none | no proc upside; accepts a small defense dump for stable offense |
+| 2 | `Waspfang` | bleed pressure | `globalPower +1000`, `stamina +1500` | `health -500` | `onHit -> bleed` at `35%` | lower raw stat density than no-proc swords |
+| 3 | `Cinderedge` | crit-gated control spike | `globalPower +500`, `globalCrit +1000` | `manaRegen -500` | `onCrit -> stun` at `20%` | control value is crit-dependent and carries regen tax |
+| 4 | `Basilisk Kiss` | sustained duel profile | `globalPower +1500`, `globalCrit +500`, `staminaRegen +1000` | `health -1000` | none | large health dump for high sustained stats |
+| 5 | `Frostbrand` | stamina-heavy tempo baseline | `globalPower +1000`, `stamina +2000`, `staminaRegen +500` | `defense -500` | none | no reactive/control proc utility |
+| 6 | `Stormneedle` | crit-forward mobility loop support | `globalCrit +1000`, `stamina +1500`, `staminaRegen +500` | `health -500` | none | lower direct power scaling than power-heavy swords |
+| 7 | `Nullblade` | high-crit skirmish blade | `globalPower +500`, `globalCrit +1000`, `stamina +1000` | `defense -1000` | none | steep defense dump to hold offense stats |
+| 8 | `Sunlit Vow` | kill-chain momentum | `globalPower +1000`, `staminaRegen +1000` | `health -500` | `onKill -> haste` at `100%` | kill-gated value with lower baseline stat breadth |
+| 9 | `Graveglass` | high-risk amplifier | `globalPower +1500`, `globalCrit +1000`, `stamina +500` | `defense -1000` | none | strong offense profile with heavy defense tax |
+| 10 | `Duelist's Oath` | crit/stamina endurance profile | `globalCrit +1000`, `stamina +2000`, `staminaRegen +500` | `manaRegen -500` | none | no proc ceiling; carries regen dump |
 
 ## Identity Coverage Check
 
 The roster intentionally covers the major build identities:
 
 - Baseline consistency: `Plainsteel`
-- DoT pressure: `Waspfang`, `Cinderedge`
-- Anti-tank shred: `Basilisk Kiss`
-- Tempo/control: `Frostbrand`, `Stormneedle`, `Nullblade`
-- Sustain/stability: `Sunlit Vow`
-- Risk-reward amplifier: `Graveglass`
-- Crit mastery: `Duelist's Oath`
+- Proc pressure/control: `Waspfang`, `Cinderedge`, `Sunlit Vow`
+- No-proc stat anchors: `Basilisk Kiss`, `Frostbrand`, `Stormneedle`
+- Risk-reward offense: `Nullblade`, `Graveglass`
+- Crit/stamina endurance: `Duelist's Oath`
 
 ## Implementation Notes
 
-- Keep sword identity in data (`GearDef` stats + proc profile hooks), not hardcoded behavior branches.
-- Reuse existing status profiles where possible (`bleed`, `burn`, `acid/vulnerable`, `slow`, `stun`, `silence`, `haste`, `weaken`).
+- Keep sword identity in data (`GearDef` stats + proc hooks), not hardcoded behavior branches.
+- Proc hooks are intentionally sparse in V1 to satisfy hard authoring constraints.
+- Reuse existing status profiles (`bleed`, `stun`, `haste`) for deterministic behavior.

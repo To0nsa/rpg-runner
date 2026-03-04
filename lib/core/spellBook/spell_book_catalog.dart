@@ -12,13 +12,10 @@ class SpellBookCatalog {
         return const SpellBookDef(
           id: SpellBookId.apprenticePrimer,
           stats: GearStatBonuses(
-            manaBonusBp: 2000,
-            manaRegenBonusBp: 1200,
-            globalCritChanceBonusBp: 1200,
-            cooldownReductionBp: 800,
-            staminaBonusBp: -1000,
-            staminaRegenBonusBp: -500,
-            healthRegenBonusBp: -800,
+            manaBonusBp: 1500,
+            manaRegenBonusBp: 500,
+            globalCritChanceBonusBp: 500,
+            staminaBonusBp: -500,
           ),
         );
       case SpellBookId.bastionCodex:
@@ -26,25 +23,19 @@ class SpellBookCatalog {
           id: SpellBookId.bastionCodex,
           stats: GearStatBonuses(
             manaBonusBp: 2000,
-            manaRegenBonusBp: 1200,
-            globalCritChanceBonusBp: 1000,
-            cooldownReductionBp: 800,
-            staminaBonusBp: -800,
-            staminaRegenBonusBp: -800,
-            healthRegenBonusBp: -800,
+            manaRegenBonusBp: 1000,
+            cooldownReductionBp: 500,
+            healthRegenBonusBp: -500,
           ),
         );
       case SpellBookId.emberGrimoire:
         return const SpellBookDef(
           id: SpellBookId.emberGrimoire,
           stats: GearStatBonuses(
-            manaBonusBp: 1700,
-            manaRegenBonusBp: 1200,
-            globalCritChanceBonusBp: 1200,
-            cooldownReductionBp: 800,
-            staminaBonusBp: -1000,
-            staminaRegenBonusBp: -800,
-            healthRegenBonusBp: -500,
+            manaBonusBp: 1000,
+            globalCritChanceBonusBp: 1000,
+            cooldownReductionBp: 500,
+            staminaRegenBonusBp: -500,
           ),
         );
       case SpellBookId.tideAlmanac:
@@ -52,64 +43,49 @@ class SpellBookCatalog {
           id: SpellBookId.tideAlmanac,
           stats: GearStatBonuses(
             manaBonusBp: 2000,
-            manaRegenBonusBp: 1000,
-            globalCritChanceBonusBp: 1200,
-            cooldownReductionBp: 800,
+            manaRegenBonusBp: 500,
+            cooldownReductionBp: 500,
             staminaBonusBp: -1000,
-            staminaRegenBonusBp: -800,
-            healthRegenBonusBp: -500,
           ),
         );
       case SpellBookId.hexboundLexicon:
         return const SpellBookDef(
           id: SpellBookId.hexboundLexicon,
           stats: GearStatBonuses(
-            manaBonusBp: 1600,
-            manaRegenBonusBp: 1200,
-            globalCritChanceBonusBp: 1200,
-            cooldownReductionBp: 800,
-            staminaBonusBp: -1000,
-            staminaRegenBonusBp: -700,
-            healthRegenBonusBp: -800,
+            manaBonusBp: 1000,
+            manaRegenBonusBp: 1000,
+            globalCritChanceBonusBp: 1000,
+            healthRegenBonusBp: -500,
           ),
         );
       case SpellBookId.galeFolio:
         return const SpellBookDef(
           id: SpellBookId.galeFolio,
           stats: GearStatBonuses(
-            cooldownReductionBp: 800,
             manaBonusBp: 2000,
-            manaRegenBonusBp: 1200,
-            globalCritChanceBonusBp: 1000,
-            staminaBonusBp: -1000,
-            staminaRegenBonusBp: -800,
-            healthRegenBonusBp: -800,
+            globalCritChanceBonusBp: 500,
+            cooldownReductionBp: 500,
+            staminaBonusBp: -500,
           ),
         );
       case SpellBookId.nullTestament:
         return const SpellBookDef(
           id: SpellBookId.nullTestament,
           stats: GearStatBonuses(
-            manaBonusBp: 1800,
-            manaRegenBonusBp: 1200,
-            globalCritChanceBonusBp: 1200,
-            cooldownReductionBp: 700,
-            staminaBonusBp: -1000,
-            staminaRegenBonusBp: -700,
-            healthRegenBonusBp: -800,
+            manaBonusBp: 1500,
+            manaRegenBonusBp: 1000,
+            globalCritChanceBonusBp: 500,
+            staminaRegenBonusBp: -500,
           ),
         );
       case SpellBookId.crownOfFocus:
         return const SpellBookDef(
           id: SpellBookId.crownOfFocus,
           stats: GearStatBonuses(
-            globalCritChanceBonusBp: 1200,
             manaBonusBp: 2000,
-            manaRegenBonusBp: 1000,
-            cooldownReductionBp: 800,
+            globalCritChanceBonusBp: 1000,
+            cooldownReductionBp: 500,
             staminaBonusBp: -1000,
-            staminaRegenBonusBp: -800,
-            healthRegenBonusBp: -500,
           ),
         );
     }

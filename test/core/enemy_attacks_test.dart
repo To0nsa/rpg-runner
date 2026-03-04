@@ -7,6 +7,7 @@ import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
 import 'package:rpg_runner/core/ecs/stores/health_store.dart';
 import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
 import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
+import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:rpg_runner/core/ecs/spatial/broadphase_grid.dart';
 import 'package:rpg_runner/core/ecs/spatial/grid_index_2d.dart';
 import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
@@ -33,6 +34,7 @@ import 'package:rpg_runner/core/enemies/enemy_catalog.dart';
 import 'package:rpg_runner/core/tuning/ground_enemy_tuning.dart';
 import 'package:rpg_runner/core/tuning/flying_enemy_tuning.dart';
 import 'package:rpg_runner/core/tuning/spatial_grid_tuning.dart';
+import 'package:rpg_runner/core/weapons/weapon_id.dart';
 
 import 'test_spawns.dart';
 import 'package:rpg_runner/core/ecs/entity_factory.dart';
@@ -57,6 +59,10 @@ void main() {
         staminaMax: 0,
         regenPerSecond100: 0,
       ),
+    );
+    world.equippedLoadout.set(
+      player,
+      const EquippedLoadoutDef(mask: 0, mainWeaponId: WeaponId.waspfang),
     );
 
     final unocoDemon = spawnUnocoDemon(
@@ -125,6 +131,10 @@ void main() {
         staminaMax: 0,
         regenPerSecond100: 0,
       ),
+    );
+    world.equippedLoadout.set(
+      player,
+      const EquippedLoadoutDef(mask: 0, mainWeaponId: WeaponId.waspfang),
     );
 
     final unocoDemon = spawnUnocoDemon(
@@ -331,10 +341,7 @@ void main() {
     hit.step(world, broadphase, currentTick: 1);
     damage.step(world, currentTick: 1);
 
-    expect(
-      world.health.hp[world.health.indexOf(player)],
-      equals(10000 - thunderDamage),
-    );
+    expect(world.health.hp[world.health.indexOf(player)], equals(9475));
     expect(world.projectile.has(p), isFalse);
   });
 
@@ -390,8 +397,7 @@ void main() {
       ),
       tickHz: 60,
     );
-    final expectedHp =
-        10000 - (groundEnemyTuning.combat.meleeDamage * 100).round();
+    const expectedHp = 8425;
 
     final engagement = EnemyEngagementSystem(
       groundEnemyTuning: groundEnemyTuning,
