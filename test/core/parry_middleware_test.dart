@@ -47,8 +47,8 @@ void main() {
 
       world.activeAbility.set(
         player,
-        id: 'eloise.riposte_guard',
-        slot: AbilitySlot.primary,
+        id: 'eloise.aegis_riposte',
+        slot: AbilitySlot.secondary,
         commitTick: 10,
         windupTicks: 2,
         activeTicks: 18,
@@ -79,7 +79,7 @@ void main() {
       final middleware = DamageMiddlewareSystem(
         middlewares: [
           ParryMiddleware(
-            abilityIds: const <AbilityKey>{'eloise.riposte_guard'},
+            abilityIds: const <AbilityKey>{'eloise.aegis_riposte'},
             riposteBonusBp: 1234,
             riposteLifetimeTicks: 7,
           ),

@@ -20,10 +20,7 @@ void main() {
   test('sword strike auto-aim commits melee intent toward nearest hostile', () {
     final world = EcsWorld();
     final system = _buildSystem();
-    final player = _spawnPlayer(
-      world,
-      abilityPrimaryId: 'eloise.seeker_slash',
-    );
+    final player = _spawnPlayer(world, abilityPrimaryId: 'eloise.seeker_slash');
 
     _spawnEnemy(world, x: 130, y: 140); // dx=30, dy=40, len=50
     _spawnEnemy(world, x: 320, y: 100);
@@ -34,38 +31,10 @@ void main() {
     system.step(world, player: player, currentTick: 1);
 
     final meleeIndex = world.meleeIntent.indexOf(player);
-    expect(
-      world.meleeIntent.abilityId[meleeIndex],
-      'eloise.seeker_slash',
-    );
+    expect(world.meleeIntent.abilityId[meleeIndex], 'eloise.seeker_slash');
     expect(world.meleeIntent.tick[meleeIndex], greaterThanOrEqualTo(1));
     expect(world.meleeIntent.dirX[meleeIndex], closeTo(0.6, 1e-9));
     expect(world.meleeIntent.dirY[meleeIndex], closeTo(0.8, 1e-9));
-  });
-
-  test('shield bash auto-aim commits melee intent toward nearest hostile', () {
-    final world = EcsWorld();
-    final system = _buildSystem();
-    final player = _spawnPlayer(
-      world,
-      abilitySecondaryId: 'eloise.seeker_bash',
-    );
-
-    _spawnEnemy(world, x: 70, y: 100);
-    _spawnEnemy(world, x: 220, y: 100);
-
-    final inputIndex = world.playerInput.indexOf(player);
-    world.playerInput.secondaryPressed[inputIndex] = true;
-
-    system.step(world, player: player, currentTick: 1);
-
-    final meleeIndex = world.meleeIntent.indexOf(player);
-    expect(
-      world.meleeIntent.abilityId[meleeIndex],
-      'eloise.seeker_bash',
-    );
-    expect(world.meleeIntent.dirX[meleeIndex], closeTo(-1.0, 1e-9));
-    expect(world.meleeIntent.dirY[meleeIndex].abs(), lessThan(1e-9));
   });
 
   test(
@@ -90,15 +59,11 @@ void main() {
     },
   );
 
-  test('auto-aim melee variants apply explicit reliability tax', () {
-    final swordBase = AbilityCatalog.shared.resolve('eloise.bloodletter_slash')!;
-    final swordAuto = AbilityCatalog.shared.resolve(
-      'eloise.seeker_slash',
+  test('auto-aim sword melee variant applies explicit reliability tax', () {
+    final swordBase = AbilityCatalog.shared.resolve(
+      'eloise.bloodletter_slash',
     )!;
-    final shieldBase = AbilityCatalog.shared.resolve('eloise.concussive_bash')!;
-    final shieldAuto = AbilityCatalog.shared.resolve(
-      'eloise.seeker_bash',
-    )!;
+    final swordAuto = AbilityCatalog.shared.resolve('eloise.seeker_slash')!;
 
     expect(swordAuto.baseDamage, equals(1400));
     expect(swordAuto.defaultCost.staminaCost100, equals(550));
@@ -109,16 +74,6 @@ void main() {
       greaterThan(swordBase.defaultCost.staminaCost100),
     );
     expect(swordAuto.cooldownTicks, greaterThan(swordBase.cooldownTicks));
-
-    expect(shieldAuto.baseDamage, equals(1400));
-    expect(shieldAuto.defaultCost.staminaCost100, equals(550));
-    expect(shieldAuto.cooldownTicks, equals(24));
-    expect(shieldAuto.baseDamage, lessThan(shieldBase.baseDamage));
-    expect(
-      shieldAuto.defaultCost.staminaCost100,
-      greaterThan(shieldBase.defaultCost.staminaCost100),
-    );
-    expect(shieldAuto.cooldownTicks, greaterThan(shieldBase.cooldownTicks));
   });
 
   test(
@@ -161,7 +116,7 @@ AbilityActivationSystem _buildSystem() {
 EntityId _spawnPlayer(
   EcsWorld world, {
   String abilityPrimaryId = 'eloise.bloodletter_slash',
-  String abilitySecondaryId = 'eloise.concussive_bash',
+  String abilitySecondaryId = 'eloise.aegis_riposte',
   Facing facing = Facing.right,
   double velX = 0,
   double velY = 0,

@@ -410,7 +410,7 @@ class _OverlayHarness {
       hasProjectileSlot: hasProjectileSlot,
       equippedAbilityIdsBySlot: const <AbilitySlot, AbilityKey>{
         AbilitySlot.primary: 'eloise.bloodletter_slash',
-        AbilitySlot.secondary: 'eloise.riposte_guard',
+        AbilitySlot.secondary: 'eloise.aegis_riposte',
         AbilitySlot.projectile: 'eloise.quick_shot',
         AbilitySlot.mobility: 'eloise.dash',
         AbilitySlot.spell: 'eloise.arcane_haste',

@@ -81,11 +81,6 @@ Commit gating is stun-blocked by default; exceptions can opt in via `canCommitWh
 - Buffer is consumed on the first valid frame after recovery.
 - Buffer is cleared when mobility preempts combat or forced interruption clears active/transient state.
 
-## Current Eloise Equivalence Pairs
-
-- Offensive mirror: `eloise.bloodletter_slash` <-> `eloise.concussive_bash`
-- Homing mirror: `eloise.seeker_slash` <-> `eloise.seeker_bash`
-- Defensive mirror: `eloise.riposte_guard` <-> `eloise.aegis_riposte`
 
 ## Acceptance Criteria
 

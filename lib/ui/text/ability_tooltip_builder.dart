@@ -64,9 +64,6 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   static const String _templateMeleeDot =
       '{action} that deals {damage} damage to {targets}. '
       'It causes {status}, dealing {dotDamage} damage per second for {dotDuration} seconds.';
-  static const String _templateMeleeControl =
-      '{action} that deals {damage} damage to {targets}. '
-      'It causes {status} for {duration} seconds.';
   static const String _templateChargedBonus =
       ' Charging increases damage (up to +{damageBonus}%) '
       'and critical chance (up to +{critBonus}%).';
@@ -147,12 +144,6 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
         return _seekerSlashDescription(def);
       case 'eloise.bloodletter_cleave':
         return _bloodletterCleaveDescription(def);
-      case 'eloise.seeker_bash':
-        return _seekerBashDescription(def);
-      case 'eloise.concussive_bash':
-        return _concussiveBashDescription(def);
-      case 'eloise.concussive_breaker':
-        return _concussiveBreakerDescription(def);
       case 'eloise.snap_shot':
         return _snapShotDescription(def, ctx);
       case 'eloise.quick_shot':
@@ -165,7 +156,6 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
         return _dashDescription(def);
       case 'eloise.roll':
         return _concussiveRollDescription(def);
-      case 'eloise.riposte_guard':
       case 'eloise.aegis_riposte':
       case 'eloise.shield_block':
         return _guardDescription(def);
@@ -306,69 +296,6 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
       damageBonus: damageBonus,
       critBonus: critBonus,
       includeInterruptibleLine: true,
-    );
-  }
-
-  _DescriptionWithHighlights _seekerBashDescription(AbilityDef def) {
-    final damage = formatFixed100(def.baseDamage);
-    final control = _firstControlEffect(def);
-    return _descriptionFromTemplate(
-      template: _templateMeleeControl,
-      values: <String, String>{
-        'action': 'Strike with a shield bash',
-        'damage': damage,
-        'targets': _targetClosestAndReach,
-        'status': control.name,
-        'duration': _formatDecimal(control.durationSeconds),
-      },
-      dynamicKeys: <String>['damage', 'status', 'duration'],
-    );
-  }
-
-  _DescriptionWithHighlights _concussiveBashDescription(AbilityDef def) {
-    final damage = formatFixed100(def.baseDamage);
-    final control = _firstControlEffect(def);
-    return _descriptionFromTemplate(
-      template: _templateMeleeControl,
-      values: <String, String>{
-        'action': 'Perform a shield bash',
-        'damage': damage,
-        'targets': _targetAimingDirectionAndReach,
-        'status': control.name,
-        'duration': _formatDecimal(control.durationSeconds),
-      },
-      dynamicKeys: <String>['damage', 'status', 'duration'],
-    );
-  }
-
-  _DescriptionWithHighlights _concussiveBreakerDescription(AbilityDef def) {
-    final damage = formatFixed100(def.baseDamage);
-    final control = _firstControlEffect(def);
-    final charge = _maxChargeBonuses(def);
-    final damageBonus = _formatDecimal(charge.damageBonusBp / 100.0);
-    final critBonus = _formatDecimal(charge.critBonusBp / 100.0);
-
-    return _descriptionFromTemplate(
-      template:
-          _templateMeleeControl +
-          _templateChargedBonus +
-          _templateInterruptible,
-      values: <String, String>{
-        'action': 'Launch a heavy shield breaker',
-        'damage': damage,
-        'targets': _targetAimingDirectionAndReach,
-        'status': control.name,
-        'duration': _formatDecimal(control.durationSeconds),
-        'damageBonus': damageBonus,
-        'critBonus': critBonus,
-      },
-      dynamicKeys: <String>[
-        'damage',
-        'status',
-        'duration',
-        'damageBonus',
-        'critBonus',
-      ],
     );
   }
 
@@ -697,34 +624,6 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
       }
     }
     return const _StatusDotSummary.none();
-  }
-
-  _StatusControlSummary _firstControlEffect(AbilityDef def) {
-    for (final proc in def.procs) {
-      if (proc.statusProfileId == StatusProfileId.none) continue;
-      final profile = _statusProfiles.get(proc.statusProfileId);
-      for (final application in profile.applications) {
-        switch (application.type) {
-          case StatusEffectType.stun:
-          case StatusEffectType.slow:
-          case StatusEffectType.silence:
-          case StatusEffectType.weaken:
-          case StatusEffectType.vulnerable:
-          case StatusEffectType.drench:
-            return _StatusControlSummary(
-              name: _statusDisplayName(proc.statusProfileId),
-              durationSeconds: application.durationSeconds,
-            );
-          case StatusEffectType.dot:
-          case StatusEffectType.haste:
-          case StatusEffectType.damageReduction:
-          case StatusEffectType.resourceOverTime:
-          case StatusEffectType.offenseBuff:
-            continue;
-        }
-      }
-    }
-    return const _StatusControlSummary.none();
   }
 
   _StatusControlSummary _mobilityControlEffect(AbilityDef def) {

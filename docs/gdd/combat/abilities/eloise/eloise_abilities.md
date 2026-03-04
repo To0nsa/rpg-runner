@@ -12,8 +12,8 @@ Core units:
 
 | Slot | Ability IDs |
 |---|---|
-| `primary` | `eloise.bloodletter_slash`, `eloise.bloodletter_cleave`, `eloise.seeker_slash`, `eloise.riposte_guard` |
-| `secondary` | `eloise.concussive_bash`, `eloise.concussive_breaker`, `eloise.seeker_bash`, `eloise.aegis_riposte`, `eloise.shield_block` |
+| `primary` | `eloise.bloodletter_slash`, `eloise.bloodletter_cleave`, `eloise.seeker_slash` |
+| `secondary` | `eloise.aegis_riposte`, `eloise.shield_block` |
 | `projectile` | `eloise.snap_shot`, `eloise.quick_shot`, `eloise.skewer_shot`, `eloise.overcharge_shot` |
 | `mobility` | `eloise.dash`, `eloise.roll` |
 | `jump` | `eloise.jump`, `eloise.double_jump` |
@@ -26,10 +26,6 @@ Core units:
 | `eloise.bloodletter_slash` | `primary` | `holdRelease` | `directional` | `8/6/8` | stamina `500` | `18` |
 | `eloise.bloodletter_cleave` | `primary` | `holdRelease` | `aimedCharge` | `10/6/10` | stamina `550` | `24` |
 | `eloise.seeker_slash` | `primary` | `tap` | `homing` | `8/6/8` | stamina `550` | `24` |
-| `eloise.riposte_guard` | `primary` | `holdMaintain` | `none` | `2/180/2` | hold drain `700/s` | `30` |
-| `eloise.concussive_bash` | `secondary` | `tap` | `directional` | `8/6/8` | stamina `500` | `18` |
-| `eloise.concussive_breaker` | `secondary` | `holdRelease` | `aimedCharge` | `10/6/10` | stamina `550` | `24` |
-| `eloise.seeker_bash` | `secondary` | `tap` | `homing` | `8/6/8` | stamina `550` | `24` |
 | `eloise.aegis_riposte` | `secondary` | `holdMaintain` | `none` | `2/180/2` | hold drain `700/s` | `30` |
 | `eloise.shield_block` | `secondary` | `holdMaintain` | `none` | `2/180/2` | hold drain `700/s` | `30` |
 | `eloise.snap_shot` | `projectile` | `tap` | `homing` | `10/2/12` | mana `800` | `40` |
@@ -50,10 +46,10 @@ Core units:
 
 ## Runtime Notes
 
-1. Charged variants (`bloodletter_cleave`, `concussive_breaker`, `overcharge_shot`) opt into forced interrupt on `damageTaken`.
+1. Charged variants (`bloodletter_cleave`, `overcharge_shot`) opt into forced interrupt on `damageTaken`.
 2. For sword primaries, guaranteed `StatusProfileId.meleeBleed` is on `bloodletter_cleave` only; `bloodletter_slash` and `seeker_slash` have no innate on-hit status proc.
 3. Projectile-slot abilities resolve payload from projectile source selection at commit time.
-4. `riposte_guard` and `aegis_riposte` both mitigate `50%` incoming hit damage while active and grant riposte on guarded hit.
+4. `aegis_riposte` mitigates `50%` incoming hit damage while active and grants riposte on guarded hit.
 5. `shield_block` mitigates `100%` incoming hit damage while active and does not grant riposte.
 6. `focus` applies `StatusProfileId.focus` (`+25%` power, `+15%` crit chance for `5.0s`).
 7. `arcane_ward` applies `StatusProfileId.arcaneWard` (`40%` direct-hit mitigation, DoT canceled while active).

@@ -25,12 +25,8 @@ const Map<AbilityKey, String> _displayNameOverrides = <AbilityKey, String>{
   'eloise.bloodletter_slash': 'Bloodletter Slash',
   'eloise.bloodletter_cleave': 'Bloodletter Cleave',
   'eloise.seeker_slash': 'Seeker Slash',
-  'eloise.riposte_guard': 'Riposte Guard',
 
   // Secondary: shield arts.
-  'eloise.concussive_bash': 'Concussive Bash',
-  'eloise.concussive_breaker': 'Concussive Breaker',
-  'eloise.seeker_bash': 'Seeker Bash',
   'eloise.aegis_riposte': 'Aegis Riposte',
   'eloise.shield_block': 'Shield block',
 

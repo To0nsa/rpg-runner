@@ -99,7 +99,7 @@ class SelfIntentStore extends SparseSet {
 
   @override
   void onDenseAdded(int denseIndex) {
-    abilityId.add('eloise.riposte_guard');
+    abilityId.add('eloise.bloodletter_slash');
     slot.add(AbilitySlot.primary);
     selfStatusProfileId.add(StatusProfileId.none);
     selfPurgeProfileId.add(PurgeProfileId.none);

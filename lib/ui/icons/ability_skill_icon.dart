@@ -12,10 +12,6 @@ const Map<AbilityKey, String> abilitySkillIconAssets = <AbilityKey, String>{
       'assets/images/icons/skills-icons/bloodletter_cleave.png',
   'eloise.bloodletter_slash':
       'assets/images/icons/skills-icons/bloodletter_slash.png',
-  'eloise.concussive_bash':
-      'assets/images/icons/skills-icons/concussive_bash.png',
-  'eloise.concussive_breaker':
-      'assets/images/icons/skills-icons/concussive_breaker.png',
   'eloise.dash': 'assets/images/icons/skills-icons/dash.png',
   'eloise.double_jump': 'assets/images/icons/skills-icons/double_jump.png',
   'eloise.jump': 'assets/images/icons/skills-icons/jump.png',
@@ -23,10 +19,8 @@ const Map<AbilityKey, String> abilitySkillIconAssets = <AbilityKey, String>{
   'eloise.overcharge_shot':
       'assets/images/icons/skills-icons/overcharge_shot.png',
   'eloise.quick_shot': 'assets/images/icons/skills-icons/quick_shot.png',
-  'eloise.riposte_guard': 'assets/images/icons/skills-icons/riposte_guard.png',
   'eloise.roll': 'assets/images/icons/skills-icons/roll.png',
   'eloise.second_wind': 'assets/images/icons/skills-icons/second_wind.png',
-  'eloise.seeker_bash': 'assets/images/icons/skills-icons/seeker_bash.png',
   'eloise.seeker_slash': 'assets/images/icons/skills-icons/seeker_slash.png',
   'eloise.shield_block': 'assets/images/icons/skills-icons/shield_block.png',
   'eloise.skewer_shot': 'assets/images/icons/skills-icons/skewer_shot.png',

@@ -63,7 +63,7 @@ void main() {
   });
 
   test(
-    'primary hold uses edge commands and stays latched until explicit release',
+    'secondary hold uses edge commands and stays latched until explicit release',
     () {
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
@@ -73,7 +73,8 @@ void main() {
         playerCharacter: base.copyWith(
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(useGravity: false),
-            abilityPrimaryId: 'eloise.riposte_guard',
+            loadoutSlotMask: LoadoutSlotMask.all,
+            abilitySecondaryId: 'eloise.aegis_riposte',
             projectileId: ProjectileId.iceBolt,
             abilityProjectileId: 'eloise.overcharge_shot',
           ),
@@ -91,7 +92,7 @@ void main() {
       final dt = 1.0 / controller.tickHz;
 
       // Emit a single hold-start edge. No per-frame hold commands follow.
-      input.startPrimaryHold();
+      input.startSecondaryHold();
       input.pumpHeldInputs();
       controller.advanceFrame(dt);
 
@@ -101,14 +102,20 @@ void main() {
       }
 
       // If hold state were reset each tick, cooldown would have started already.
-      expect(core.playerMeleeCooldownTicksLeft, equals(0));
+      expect(
+        core.buildSnapshot().hud.cooldownTicksLeft[CooldownGroup.secondary],
+        equals(0),
+      );
 
       // Release with a single hold-end edge and verify cooldown starts.
-      input.endPrimaryHold();
+      input.endSecondaryHold();
       input.pumpHeldInputs();
       controller.advanceFrame(dt);
 
-      expect(core.playerMeleeCooldownTicksLeft, greaterThan(0));
+      expect(
+        core.buildSnapshot().hud.cooldownTicksLeft[CooldownGroup.secondary],
+        greaterThan(0),
+      );
     },
   );
 
@@ -198,7 +205,8 @@ void main() {
 
     final dt = 1.0 / controller.tickHz;
     final windupTicks = ticksFromSecondsCeil(
-      AbilityCatalog.shared.resolve('eloise.overcharge_shot')!.windupTicks / 60.0,
+      AbilityCatalog.shared.resolve('eloise.overcharge_shot')!.windupTicks /
+          60.0,
       controller.tickHz,
     );
 
@@ -350,7 +358,7 @@ void main() {
   );
 
   test(
-    'secondary release commit keeps melee aim and consumes secondary slot input',
+    'primary release commit keeps melee aim and consumes primary slot input',
     () {
       final base = PlayerCharacterRegistry.eloise;
       final core = GameCore(
@@ -361,7 +369,7 @@ void main() {
           catalog: testPlayerCatalog(
             bodyTemplate: BodyDef(useGravity: false),
             loadoutSlotMask: LoadoutSlotMask.all,
-            abilitySecondaryId: 'eloise.concussive_breaker',
+            abilityPrimaryId: 'eloise.bloodletter_cleave',
             projectileId: ProjectileId.iceBolt,
             abilityProjectileId: 'eloise.overcharge_shot',
           ),
@@ -373,18 +381,18 @@ void main() {
       final dt = 1.0 / controller.tickHz;
       final windupTicks = ticksFromSecondsCeil(
         AbilityCatalog.shared
-                .resolve('eloise.concussive_breaker')!
+                .resolve('eloise.bloodletter_cleave')!
                 .windupTicks /
             60.0,
         controller.tickHz,
       );
 
       input.setAimDir(0, -1);
-      input.startAbilitySlotHold(AbilitySlot.secondary);
+      input.startAbilitySlotHold(AbilitySlot.primary);
       input.pumpHeldInputs();
       controller.advanceFrame(dt);
-      input.endAbilitySlotHold(AbilitySlot.secondary);
-      input.commitSecondaryStrike();
+      input.endAbilitySlotHold(AbilitySlot.primary);
+      input.commitMeleeStrike();
 
       for (var i = 0; i < windupTicks + 2; i += 1) {
         input.pumpHeldInputs();
@@ -401,78 +409,78 @@ void main() {
       expect(math.cos(rotation), closeTo(0, 0.2));
       expect(math.sin(rotation), lessThan(-0.8));
       expect(
-        snapshot.hud.cooldownTicksLeft[CooldownGroup.secondary],
+        snapshot.hud.cooldownTicksLeft[CooldownGroup.primary],
         greaterThan(0),
       );
-      expect(snapshot.hud.cooldownTicksLeft[CooldownGroup.primary], equals(0));
+      expect(
+        snapshot.hud.cooldownTicksLeft[CooldownGroup.secondary],
+        equals(0),
+      );
     },
   );
 
-  test(
-    'secondary charged melee keeps stable hitbox size across hold tiers',
-    () {
-      double hitboxWidthForHeldTicks(int heldTicks) {
-        final base = PlayerCharacterRegistry.eloise;
-        final core = GameCore(
-          levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
-          seed: 1,
-          tickHz: 60,
-          playerCharacter: base.copyWith(
-            catalog: testPlayerCatalog(
-              bodyTemplate: BodyDef(useGravity: false),
-              loadoutSlotMask: LoadoutSlotMask.all,
-              abilitySecondaryId: 'eloise.concussive_breaker',
-              projectileId: ProjectileId.iceBolt,
-              abilityProjectileId: 'eloise.overcharge_shot',
-            ),
+  test('primary charged melee keeps stable hitbox size across hold tiers', () {
+    double hitboxWidthForHeldTicks(int heldTicks) {
+      final base = PlayerCharacterRegistry.eloise;
+      final core = GameCore(
+        levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
+        seed: 1,
+        tickHz: 60,
+        playerCharacter: base.copyWith(
+          catalog: testPlayerCatalog(
+            bodyTemplate: BodyDef(useGravity: false),
+            loadoutSlotMask: LoadoutSlotMask.all,
+            abilityPrimaryId: 'eloise.bloodletter_cleave',
+            projectileId: ProjectileId.iceBolt,
+            abilityProjectileId: 'eloise.overcharge_shot',
           ),
-        );
-        final controller = GameController(core: core);
-        final input = RunnerInputRouter(controller: controller);
+        ),
+      );
+      final controller = GameController(core: core);
+      final input = RunnerInputRouter(controller: controller);
 
-        final dt = 1.0 / controller.tickHz;
-        final windupTicks = ticksFromSecondsCeil(
-          AbilityCatalog.shared
-                  .resolve('eloise.concussive_breaker')!
-                  .windupTicks /
-              60.0,
-          controller.tickHz,
-        );
+      final dt = 1.0 / controller.tickHz;
+      final windupTicks = ticksFromSecondsCeil(
+        AbilityCatalog.shared
+                .resolve('eloise.bloodletter_cleave')!
+                .windupTicks /
+            60.0,
+        controller.tickHz,
+      );
 
-        input.setAimDir(1, 0);
-        input.startAbilitySlotHold(AbilitySlot.secondary);
+      input.setAimDir(1, 0);
+      input.startAbilitySlotHold(AbilitySlot.primary);
+      input.pumpHeldInputs();
+      controller.advanceFrame(dt);
+
+      for (var i = 0; i < heldTicks; i += 1) {
         input.pumpHeldInputs();
         controller.advanceFrame(dt);
-
-        for (var i = 0; i < heldTicks; i += 1) {
-          input.pumpHeldInputs();
-          controller.advanceFrame(dt);
-        }
-
-        input.endAbilitySlotHold(AbilitySlot.secondary);
-        input.commitSecondaryStrike();
-
-        for (var i = 0; i < windupTicks + 2; i += 1) {
-          input.pumpHeldInputs();
-          controller.advanceFrame(dt);
-        }
-
-        final snapshot = core.buildSnapshot();
-        final trigger = snapshot.entities.firstWhere(
-          (e) => e.kind == EntityKind.trigger,
-        );
-        return trigger.size!.x;
       }
 
-      final shortHoldWidth = hitboxWidthForHeldTicks(0);
-      final longHoldWidth = hitboxWidthForHeldTicks(20);
+      input.endAbilitySlotHold(AbilitySlot.primary);
+      input.commitMeleeStrike();
 
-      expect(longHoldWidth, closeTo(shortHoldWidth, 1e-9));
-    },
-  );
+      for (var i = 0; i < windupTicks + 2; i += 1) {
+        input.pumpHeldInputs();
+        controller.advanceFrame(dt);
+      }
+
+      final snapshot = core.buildSnapshot();
+      final trigger = snapshot.entities.firstWhere(
+        (e) => e.kind == EntityKind.trigger,
+      );
+      return trigger.size!.x;
+    }
+
+    final shortHoldWidth = hitboxWidthForHeldTicks(0);
+    final longHoldWidth = hitboxWidthForHeldTicks(20);
+
+    expect(longHoldWidth, closeTo(shortHoldWidth, 1e-9));
+  });
 
   test(
-    'hud charge preview is shared across projectile and charged melee slots',
+    'hud charge preview is shared across projectile and primary charged slots',
     () {
       void expectSharedPreview({
         required AbilitySlot slot,
@@ -532,13 +540,6 @@ void main() {
       expectSharedPreview(
         slot: AbilitySlot.primary,
         abilityPrimaryId: 'eloise.bloodletter_cleave',
-        seedAim: (input) => input.setAimDir(1, 0),
-      );
-
-      expectSharedPreview(
-        slot: AbilitySlot.secondary,
-        abilitySecondaryId: 'eloise.concussive_breaker',
-        loadoutSlotMask: LoadoutSlotMask.all,
         seedAim: (input) => input.setAimDir(1, 0),
       );
     },
@@ -648,7 +649,7 @@ void main() {
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(useGravity: false),
           loadoutSlotMask: LoadoutSlotMask.all,
-          abilitySecondaryId: 'eloise.concussive_breaker',
+          abilityPrimaryId: 'eloise.bloodletter_cleave',
           abilityProjectileId: 'eloise.overcharge_shot',
           projectileId: ProjectileId.fireBolt,
           projectileSlotSpellId: null,
@@ -667,11 +668,11 @@ void main() {
     expect(core.buildSnapshot().hud.chargeFullTicks, equals(10));
 
     input.setAimDir(1, 0);
-    input.startAbilitySlotHold(AbilitySlot.secondary);
+    input.startAbilitySlotHold(AbilitySlot.primary);
     input.pumpHeldInputs();
     controller.advanceFrame(dt);
 
-    // Charged shield bash full threshold is 16 ticks at 60 Hz.
+    // Charged bloodletter cleave full threshold is 16 ticks at 60 Hz.
     expect(core.buildSnapshot().hud.chargeFullTicks, equals(16));
   });
 
@@ -685,7 +686,7 @@ void main() {
         catalog: testPlayerCatalog(
           bodyTemplate: BodyDef(useGravity: false),
           loadoutSlotMask: LoadoutSlotMask.all,
-          abilitySecondaryId: 'eloise.concussive_breaker',
+          abilityPrimaryId: 'eloise.bloodletter_cleave',
           abilityProjectileId: 'eloise.overcharge_shot',
           projectileId: ProjectileId.fireBolt,
           projectileSlotSpellId: null,
@@ -698,12 +699,12 @@ void main() {
 
     input.setAimDir(1, 0);
     input.startAbilitySlotHold(AbilitySlot.projectile);
-    // Replacement on the same tick should keep secondary as the winner.
-    input.startAbilitySlotHold(AbilitySlot.secondary);
+    // Replacement on the same tick should keep primary as the winner.
+    input.startAbilitySlotHold(AbilitySlot.primary);
     input.pumpHeldInputs();
     controller.advanceFrame(dt);
 
-    // Charged shield bash full threshold is 16 ticks at 60 Hz.
+    // Charged bloodletter cleave full threshold is 16 ticks at 60 Hz.
     expect(core.buildSnapshot().hud.chargeFullTicks, equals(16));
   });
 

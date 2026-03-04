@@ -39,17 +39,17 @@ void main() {
       ),
     );
 
-    final ability = AbilityCatalog.shared.resolve('eloise.riposte_guard')!;
+    final ability = AbilityCatalog.shared.resolve('eloise.aegis_riposte')!;
     world.activeAbility.set(
       player,
       id: ability.id,
-      slot: AbilitySlot.primary,
+      slot: AbilitySlot.secondary,
       commitTick: commitTick,
       windupTicks: ability.windupTicks,
       activeTicks: ability.activeTicks,
       recoveryTicks: ability.recoveryTicks,
       facingDir: Facing.right,
-      cooldownGroupId: ability.effectiveCooldownGroup(AbilitySlot.primary),
+      cooldownGroupId: ability.effectiveCooldownGroup(AbilitySlot.secondary),
       cooldownTicks: ability.cooldownTicks,
       cooldownStarted: false,
     );
@@ -71,7 +71,11 @@ void main() {
 
       final timeoutTick = commitTick + 2 + 180;
       for (var tick = commitTick; tick <= timeoutTick; tick += 1) {
-        world.playerInput.setAbilitySlotHeld(player, AbilitySlot.primary, true);
+        world.playerInput.setAbilitySlotHeld(
+          player,
+          AbilitySlot.secondary,
+          true,
+        );
         phase.step(world, currentTick: tick);
         hold.step(
           world,
@@ -85,15 +89,15 @@ void main() {
       final timeout = timeoutEvents.single;
       expect(timeout.reason, AbilityHoldEndReason.timeout);
       expect(timeout.tick, timeoutTick);
-      expect(timeout.abilityId, 'eloise.riposte_guard');
+      expect(timeout.abilityId, 'eloise.aegis_riposte');
 
       final staminaIndex = world.stamina.indexOf(player);
       // 180 active ticks at 7.00 stamina/sec => floor(180 * 700 / 60) = 2100.
       expect(world.stamina.stamina[staminaIndex], 97900);
       expect(
-        world.cooldown.getTicksLeft(player, CooldownGroup.primary),
+        world.cooldown.getTicksLeft(player, CooldownGroup.secondary),
         equals(
-          AbilityCatalog.shared.resolve('eloise.riposte_guard')!.cooldownTicks,
+          AbilityCatalog.shared.resolve('eloise.aegis_riposte')!.cooldownTicks,
         ),
       );
     },
@@ -111,7 +115,7 @@ void main() {
 
     for (var tick = commitTick; tick <= commitTick + 30; tick += 1) {
       final held = tick <= commitTick + 12;
-      world.playerInput.setAbilitySlotHeld(player, AbilitySlot.primary, held);
+      world.playerInput.setAbilitySlotHeld(player, AbilitySlot.secondary, held);
       phase.step(world, currentTick: tick);
       hold.step(
         world,
@@ -125,9 +129,9 @@ void main() {
     expect(world.activeAbility.phase[activeIndex], isNot(AbilityPhase.active));
     expect(world.activeAbility.activeTicks[activeIndex], 0);
     expect(
-      world.cooldown.getTicksLeft(player, CooldownGroup.primary),
+      world.cooldown.getTicksLeft(player, CooldownGroup.secondary),
       equals(
-        AbilityCatalog.shared.resolve('eloise.riposte_guard')!.cooldownTicks,
+        AbilityCatalog.shared.resolve('eloise.aegis_riposte')!.cooldownTicks,
       ),
     );
   });
@@ -143,7 +147,7 @@ void main() {
     final events = <GameEvent>[];
 
     for (var tick = commitTick; tick <= commitTick + 120; tick += 1) {
-      world.playerInput.setAbilitySlotHeld(player, AbilitySlot.primary, true);
+      world.playerInput.setAbilitySlotHeld(player, AbilitySlot.secondary, true);
       phase.step(world, currentTick: tick);
       hold.step(
         world,
@@ -165,9 +169,9 @@ void main() {
     final activeIndex = world.activeAbility.indexOf(player);
     expect(world.activeAbility.phase[activeIndex], AbilityPhase.recovery);
     expect(
-      world.cooldown.getTicksLeft(player, CooldownGroup.primary),
+      world.cooldown.getTicksLeft(player, CooldownGroup.secondary),
       equals(
-        AbilityCatalog.shared.resolve('eloise.riposte_guard')!.cooldownTicks,
+        AbilityCatalog.shared.resolve('eloise.aegis_riposte')!.cooldownTicks,
       ),
     );
   });
@@ -178,7 +182,7 @@ void main() {
     final phase = ActiveAbilityPhaseSystem();
 
     final tick = commitTick + 4;
-    world.playerInput.setAbilitySlotHeld(player, AbilitySlot.primary, true);
+    world.playerInput.setAbilitySlotHeld(player, AbilitySlot.secondary, true);
     world.controlLock.addLock(player, LockFlag.stun, 5, tick);
 
     phase.step(world, currentTick: tick);
@@ -186,9 +190,9 @@ void main() {
     final activeIndex = world.activeAbility.indexOf(player);
     expect(world.activeAbility.phase[activeIndex], AbilityPhase.idle);
     expect(
-      world.cooldown.getTicksLeft(player, CooldownGroup.primary),
+      world.cooldown.getTicksLeft(player, CooldownGroup.secondary),
       equals(
-        AbilityCatalog.shared.resolve('eloise.riposte_guard')!.cooldownTicks,
+        AbilityCatalog.shared.resolve('eloise.aegis_riposte')!.cooldownTicks,
       ),
     );
   });

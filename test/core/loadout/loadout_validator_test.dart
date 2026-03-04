@@ -44,12 +44,12 @@ void main() {
       expect(result.issues, isEmpty);
     });
 
-    test('auto-aim melee variants are valid in their authored slots', () {
+    test('melee auto-aim and shield guard are valid in authored slots', () {
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.plainsteel,
         offhandWeaponId: WeaponId.roadguard,
         abilityPrimaryId: 'eloise.seeker_slash',
-        abilitySecondaryId: 'eloise.seeker_bash',
+        abilitySecondaryId: 'eloise.aegis_riposte',
       );
 
       final result = validator.validate(loadout);
@@ -177,10 +177,10 @@ void main() {
       );
     });
 
-    test('invalid slot (shield bash in primary) should fail', () {
+    test('invalid slot (shield guard in primary) should fail', () {
       const loadout = EquippedLoadoutDef(
         mainWeaponId: WeaponId.plainsteel,
-        abilityPrimaryId: 'eloise.concussive_bash', // Requires Secondary slot
+        abilityPrimaryId: 'eloise.aegis_riposte', // Requires Secondary slot
       );
 
       final result = validator.validate(loadout);

@@ -11,36 +11,35 @@ import 'package:rpg_runner/core/snapshots/enums.dart';
 
 void main() {
   test(
-    'snapshot exposes hold-maintain input mode for parry/block abilities',
+    'snapshot exposes hold-maintain input mode for defensive secondary abilities',
     () {
       final core = GameCore(
         levelDefinition: LevelRegistry.byId(LevelId.field),
         playerCharacter: testPlayerCharacter,
         seed: 1,
         equippedLoadoutOverride: const EquippedLoadoutDef(
-          abilityPrimaryId: 'eloise.riposte_guard',
           abilitySecondaryId: 'eloise.aegis_riposte',
         ),
       );
 
       final hud = core.buildSnapshot().hud;
-      expect(hud.meleeInputMode, AbilityInputMode.holdMaintain);
+      expect(hud.meleeInputMode, AbilityInputMode.holdAimRelease);
       expect(hud.secondaryInputMode, AbilityInputMode.holdMaintain);
     },
   );
 
-  test('snapshot exposes hold-aim-release for charged secondary melee', () {
+  test('snapshot exposes hold-maintain for shield block secondary', () {
     final core = GameCore(
       levelDefinition: LevelRegistry.byId(LevelId.field),
       playerCharacter: testPlayerCharacter,
       seed: 1,
       equippedLoadoutOverride: const EquippedLoadoutDef(
-        abilitySecondaryId: 'eloise.concussive_breaker',
+        abilitySecondaryId: 'eloise.shield_block',
       ),
     );
 
     final hud = core.buildSnapshot().hud;
-    expect(hud.secondaryInputMode, AbilityInputMode.holdAimRelease);
+    expect(hud.secondaryInputMode, AbilityInputMode.holdMaintain);
   });
 
   test('snapshot exposes hold-aim-release for charged primary melee', () {
@@ -57,18 +56,15 @@ void main() {
     expect(hud.meleeInputMode, AbilityInputMode.holdAimRelease);
   });
 
-  test('snapshot keeps non-charged secondary melee on tap mode', () {
+  test('snapshot keeps default secondary guard on hold-maintain mode', () {
     final core = GameCore(
       levelDefinition: LevelRegistry.byId(LevelId.field),
       playerCharacter: testPlayerCharacter,
       seed: 1,
-      equippedLoadoutOverride: const EquippedLoadoutDef(
-        abilitySecondaryId: 'eloise.concussive_bash',
-      ),
     );
 
     final hud = core.buildSnapshot().hud;
-    expect(hud.secondaryInputMode, AbilityInputMode.tap);
+    expect(hud.secondaryInputMode, AbilityInputMode.holdMaintain);
   });
 
   test('snapshot exposes tap input mode for default mobility ability', () {

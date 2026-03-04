@@ -9,7 +9,6 @@ Abilities requiring `WeaponType.oneHandedSword` and equipable in `AbilitySlot.pr
 | `eloise.bloodletter_slash` | `holdRelease` | `directional` | `8/6/8` | stamina `500` | `18` | `primaryWeapon` |
 | `eloise.bloodletter_cleave` | `holdRelease` | `aimedCharge` | `10/6/10` | stamina `550` | `24` | `primaryWeapon` |
 | `eloise.seeker_slash` | `tap` | `homing` | `8/6/8` | stamina `550` | `24` | `primaryWeapon` |
-| `eloise.riposte_guard` | `holdMaintain` | `none` | `2/180/2` | hold drain `700/s` | `30` | `primaryWeapon` |
 
 ## Ability Notes
 
@@ -38,14 +37,6 @@ Homing variant of slash with reliability tax:
   - `8`: damage `1.08x`, crit `+5%`
   - `16`: damage `1.30x`, crit `+10%`
 - max hold: `150` ticks
-
-### `eloise.riposte_guard`
-
-- hold-maintain guard (`holdToMaintain`)
-- max active window: `180` ticks
-- hold drain: `700` stamina/sec
-- hit mitigation: `5000 bp` (`50%`)
-- grants one riposte bonus on first guarded hit per activation
 
 ## Constraints
 
