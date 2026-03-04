@@ -84,15 +84,15 @@ void main() {
       final lines = gearStatsFor(GearSlot.mainWeapon, WeaponId.plainsteel);
       final powerLine = lines.firstWhere((line) => line.label == 'Power');
 
-      expect(powerLine.value, equals('+10%'));
+      expect(powerLine.value, equals('+18%'));
       expect(powerLine.tone, GearStatLineTone.positive);
     });
 
     test('base stat tone is negative for negative values', () {
-      final lines = gearStatsFor(GearSlot.mainWeapon, WeaponId.graveglass);
+      final lines = gearStatsFor(GearSlot.mainWeapon, WeaponId.basiliskKiss);
       final defenseLine = lines.firstWhere((line) => line.label == 'Defense');
 
-      expect(defenseLine.value, equals('-10%'));
+      expect(defenseLine.value, equals('-5%'));
       expect(defenseLine.tone, GearStatLineTone.negative);
     });
 
@@ -144,7 +144,7 @@ void main() {
         (line) => line.label == 'Mana Regen',
       );
 
-      expect(manaRegenLine.value, equals('+10%'));
+      expect(manaRegenLine.value, equals('+12%'));
       expect(manaRegenLine.tone, GearStatLineTone.positive);
     });
 
@@ -158,7 +158,7 @@ void main() {
         (line) => line.label == 'Mana Regen',
       );
 
-      expect(manaRegenLine.value, equals('+10%'));
+      expect(manaRegenLine.value, equals('+12%'));
       expect(manaRegenLine.tone, GearStatLineTone.positive);
     });
 

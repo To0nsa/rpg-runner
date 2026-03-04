@@ -22,7 +22,12 @@ class WeaponCatalog {
           id: WeaponId.plainsteel,
           category: WeaponCategory.primary,
           weaponType: WeaponType.oneHandedSword,
-          stats: GearStatBonuses(globalPowerBonusBp: 1000),
+          stats: GearStatBonuses(
+            globalPowerBonusBp: 1800,
+            globalCritChanceBonusBp: 1200,
+            staminaBonusBp: 2000,
+            staminaRegenBonusBp: 800,
+          ),
         );
       case WeaponId.waspfang:
         return const WeaponDef(
@@ -36,7 +41,12 @@ class WeaponCatalog {
               chanceBp: 3500,
             ),
           ],
-          stats: GearStatBonuses(globalPowerBonusBp: 1000, staminaBonusBp: 500),
+          stats: GearStatBonuses(
+            globalPowerBonusBp: 1800,
+            globalCritChanceBonusBp: 1000,
+            staminaBonusBp: 2000,
+            staminaRegenBonusBp: 600,
+          ),
         );
       case WeaponId.cinderedge:
         return const WeaponDef(
@@ -51,7 +61,9 @@ class WeaponCatalog {
             ),
           ],
           stats: GearStatBonuses(
-            globalCritChanceBonusBp: 1000,
+            globalPowerBonusBp: 1300,
+            globalCritChanceBonusBp: 800,
+            staminaBonusBp: 1200,
             staminaRegenBonusBp: 500,
           ),
         );
@@ -68,8 +80,10 @@ class WeaponCatalog {
             ),
           ],
           stats: GearStatBonuses(
-            globalPowerBonusBp: 1800,
-            defenseBonusBp: -1000,
+            globalPowerBonusBp: 1500,
+            globalCritChanceBonusBp: 800,
+            staminaBonusBp: 1000,
+            defenseBonusBp: -500,
           ),
         );
       case WeaponId.frostbrand:
@@ -85,8 +99,10 @@ class WeaponCatalog {
             ),
           ],
           stats: GearStatBonuses(
-            globalPowerBonusBp: 1500,
-            staminaBonusBp: 500,
+            globalPowerBonusBp: 1800,
+            globalCritChanceBonusBp: 900,
+            staminaBonusBp: 2000,
+            staminaRegenBonusBp: 800,
           ),
         );
       case WeaponId.stormneedle:
@@ -102,8 +118,10 @@ class WeaponCatalog {
             ),
           ],
           stats: GearStatBonuses(
-            globalPowerBonusBp: 1500,
-            globalCritChanceBonusBp: 500,
+            globalPowerBonusBp: 1800,
+            globalCritChanceBonusBp: 1200,
+            staminaBonusBp: 2000,
+            staminaRegenBonusBp: 500,
           ),
         );
       case WeaponId.nullblade:
@@ -119,8 +137,10 @@ class WeaponCatalog {
             ),
           ],
           stats: GearStatBonuses(
-            globalPowerBonusBp: 1000,
-            globalCritChanceBonusBp: 1000,
+            globalPowerBonusBp: 1700,
+            globalCritChanceBonusBp: 1200,
+            staminaBonusBp: 2000,
+            staminaRegenBonusBp: 600,
           ),
         );
       case WeaponId.sunlitVow:
@@ -136,8 +156,10 @@ class WeaponCatalog {
             ),
           ],
           stats: GearStatBonuses(
-            globalPowerBonusBp: 700,
-            staminaBonusBp: 500,
+            globalPowerBonusBp: 1500,
+            globalCritChanceBonusBp: 1000,
+            staminaBonusBp: 1500,
+            staminaRegenBonusBp: 600,
           ),
         );
       case WeaponId.graveglass:
@@ -154,7 +176,9 @@ class WeaponCatalog {
           ],
           stats: GearStatBonuses(
             globalPowerBonusBp: 1800,
-            defenseBonusBp: -1000,
+            globalCritChanceBonusBp: 1200,
+            staminaBonusBp: 2000,
+            staminaRegenBonusBp: 500,
           ),
         );
       case WeaponId.duelistsOath:
@@ -170,8 +194,9 @@ class WeaponCatalog {
             ),
           ],
           stats: GearStatBonuses(
-            globalPowerBonusBp: 1800,
+            globalPowerBonusBp: 1500,
             globalCritChanceBonusBp: 1200,
+            staminaBonusBp: 700,
           ),
         );
       case WeaponId.roadguard:
@@ -179,7 +204,12 @@ class WeaponCatalog {
           id: WeaponId.roadguard,
           category: WeaponCategory.offHand,
           weaponType: WeaponType.shield,
-          stats: GearStatBonuses(defenseBonusBp: 1500, staminaBonusBp: 500),
+          stats: GearStatBonuses(
+            defenseBonusBp: 1800,
+            staminaBonusBp: 2000,
+            staminaRegenBonusBp: 1200,
+            physicalResistanceBp: 1900,
+          ),
         );
       case WeaponId.thornbark:
         return const WeaponDef(
@@ -194,7 +224,12 @@ class WeaponCatalog {
               chanceBp: 3500,
             ),
           ],
-          stats: GearStatBonuses(defenseBonusBp: 1200),
+          stats: GearStatBonuses(
+            defenseBonusBp: 1800,
+            staminaBonusBp: 1800,
+            staminaRegenBonusBp: 700,
+            bleedResistanceBp: 2000,
+          ),
         );
       case WeaponId.cinderWard:
         return const WeaponDef(
@@ -209,7 +244,12 @@ class WeaponCatalog {
               chanceBp: 2500,
             ),
           ],
-          stats: GearStatBonuses(fireResistanceBp: 2000, defenseBonusBp: 700),
+          stats: GearStatBonuses(
+            fireResistanceBp: 2500,
+            defenseBonusBp: 1800,
+            staminaBonusBp: 1200,
+            staminaRegenBonusBp: 800,
+          ),
         );
       case WeaponId.tideguardShell:
         return const WeaponDef(
@@ -225,9 +265,10 @@ class WeaponCatalog {
             ),
           ],
           stats: GearStatBonuses(
-            waterResistanceBp: 2000,
-            defenseBonusBp: 500,
-            staminaBonusBp: 500,
+            waterResistanceBp: 2500,
+            defenseBonusBp: 1800,
+            staminaBonusBp: 1800,
+            staminaRegenBonusBp: 500,
           ),
         );
       case WeaponId.frostlockBuckler:
@@ -244,9 +285,10 @@ class WeaponCatalog {
             ),
           ],
           stats: GearStatBonuses(
-            iceResistanceBp: 2000,
-            defenseBonusBp: 800,
-            staminaRegenBonusBp: 500,
+            iceResistanceBp: 2500,
+            defenseBonusBp: 1600,
+            staminaBonusBp: 1500,
+            staminaRegenBonusBp: 600,
           ),
         );
       case WeaponId.ironBastion:
@@ -256,8 +298,10 @@ class WeaponCatalog {
           weaponType: WeaponType.shield,
           stats: GearStatBonuses(
             defenseBonusBp: 1800,
-            staminaBonusBp: 1000,
-            moveSpeedBonusBp: -500,
+            staminaBonusBp: 2000,
+            staminaRegenBonusBp: 1200,
+            physicalResistanceBp: 1100,
+            moveSpeedBonusBp: -1000,
           ),
         );
       case WeaponId.stormAegis:
@@ -274,9 +318,10 @@ class WeaponCatalog {
             ),
           ],
           stats: GearStatBonuses(
-            thunderResistanceBp: 2000,
-            defenseBonusBp: 700,
-            staminaRegenBonusBp: 500,
+            thunderResistanceBp: 2500,
+            defenseBonusBp: 1700,
+            staminaBonusBp: 1500,
+            staminaRegenBonusBp: 700,
           ),
         );
       case WeaponId.nullPrism:
@@ -293,9 +338,10 @@ class WeaponCatalog {
             ),
           ],
           stats: GearStatBonuses(
-            darkResistanceBp: 2500,
-            holyResistanceBp: 1500,
-            defenseBonusBp: 600,
+            darkResistanceBp: 2000,
+            holyResistanceBp: 2000,
+            defenseBonusBp: 1400,
+            staminaBonusBp: 900,
           ),
         );
       case WeaponId.warbannerGuard:
@@ -312,8 +358,10 @@ class WeaponCatalog {
             ),
           ],
           stats: GearStatBonuses(
-            defenseBonusBp: 1000,
-            staminaBonusBp: 500,
+            defenseBonusBp: 1800,
+            staminaBonusBp: 2000,
+            staminaRegenBonusBp: 1000,
+            physicalResistanceBp: 1300,
             globalPowerBonusBp: -500,
           ),
         );
@@ -334,6 +382,8 @@ class WeaponCatalog {
           ],
           stats: GearStatBonuses(
             defenseBonusBp: 1800,
+            staminaBonusBp: 1200,
+            holyResistanceBp: 500,
             globalPowerBonusBp: -500,
             globalCritChanceBonusBp: -1000,
           ),

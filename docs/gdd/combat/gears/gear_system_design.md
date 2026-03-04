@@ -183,6 +183,8 @@ A stat line cannot exceed these values, even if budget/dump rules would allow mo
 1. One proc per item maximum.
    This means at most one total proc entry across both `procs` and `reactiveProcs` on a single item definition.
 2. An item cannot define both outgoing and reactive proc lists at the same time.
+3. An item can either have 2 positive stats, 1 proc and 1 dump or 3 positive stats, no procs and one dump.
+4. Items should be unique in their stat combinations and proc effects. If two items have the same identity, one of them should be reworked to have a different stat/proc combination or removed.
 
 #### Hard Caps for Proc Effects (Per Item)
 
@@ -256,67 +258,3 @@ An item cannot go below these values even if dump cap still allows more.
 | `cooldownReductionBp` | `-1000` |
 | typed resistance (`*ResistanceBp`, each type) | `-1000` |
 
-## Balancing Framework
-
-### Goal
-All gear items should be power-equivalent inside their slot identity.
-
-### Item Power Score (IPS)
-`IPS = StatScore + ProcScore + DumpCredit`
-
-- `StatScore = sum((valueBp / 100) * statWeight)` for positive lines.
-- `DumpCredit = sum((abs(valueBp) / 100) * statWeight * 0.6)` for negative lines.
-- `DumpCredit` cap: max `30%` of target slot budget.
-- `ProcScore = hookBase * familyMultiplier * (chanceBp / 10000) * uptimeFactor`.
-
-### Target Budgets
-| Slot | Target IPS | Allowed band |
-|---|---:|---:|
-| `mainWeapon` | `100` | `95..105` |
-| `offhandWeapon` | `100` | `95..105` |
-| `spellBook` | `100` | `95..105` |
-| `accessory` | `100` | `95..105` |
-
-### Starter Stat Weights (per 100 bp)
-| Stat family | Weight |
-|---|---:|
-| `globalPowerBonusBp` | `2.0` |
-| `globalCritChanceBonusBp` | `2.2` |
-| `defenseBonusBp` | `1.7` |
-| `cooldownReductionBp` | `2.4` |
-| `moveSpeedBonusBp` | `2.0` |
-| resource max (`health/mana/stamina`) | `1.2` |
-| resource regen (`health/mana/stamina`) | `1.4` |
-| typed resistance (`*ResistanceBp`) | `1.5` |
-
-### Proc Valuation Baseline
-| Hook | Base points |
-|---|---:|
-| `OnHit` | `26` |
-| `OnCrit` | `32` |
-| `OnKill` | `22` |
-| `onDamaged` | `24` |
-| `onLowHealth` | `28` |
-
-| Family | Multiplier |
-|---|---:|
-| `DoT` | `1.0` |
-| `SoftControl` | `1.05` |
-| `HardCC` | `1.2` |
-| `Debuff` | `1.1` |
-| `SelfBuff` | `1.0` |
-| `Sustain` | `1.0` |
-
-### Acceptance Gates
-1. IPS must be inside target band (`95..105`).
-2. One stat line cannot exceed `40%` of item IPS.
-3. Proc contribution cannot exceed `40%` of item IPS.
-4. Keep all existing caps/floors/hook-family/slot-dump constraints.
-5. No tiny values (`abs(valueBp) >= 500`).
-
-### Fast Tuning Loop
-1. Author item.
-2. Compute IPS in a sheet.
-3. If out of band, adjust largest line first in `100 bp` steps.
-4. Re-test in 3 scenarios: single target, multi target, low-health clutch.
-5. Lock once all scenarios are within ±5% performance of slot baseline.

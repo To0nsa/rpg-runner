@@ -23,7 +23,9 @@ class AccessoryCatalog {
           // Tempo baseline with stamina comfort and mana-tax dump.
           stats: GearStatBonuses(
             moveSpeedBonusBp: 1000,
-            staminaBonusBp: 1000,
+            staminaBonusBp: 2000,
+            defenseBonusBp: 1200,
+            globalPowerBonusBp: 1800,
             manaBonusBp: -500,
           ),
         );
@@ -42,9 +44,9 @@ class AccessoryCatalog {
             ),
           ],
           stats: GearStatBonuses(
-            healthBonusBp: 1500,
-            healthRegenBonusBp: 500,
-            defenseBonusBp: 1000,
+            healthBonusBp: 2000,
+            healthRegenBonusBp: 1200,
+            defenseBonusBp: 1800,
             manaBonusBp: -500,
           ),
         );
@@ -64,7 +66,9 @@ class AccessoryCatalog {
           ],
           stats: GearStatBonuses(
             staminaBonusBp: 2000,
-            staminaRegenBonusBp: 1000,
+            staminaRegenBonusBp: 1200,
+            defenseBonusBp: 500,
+            globalPowerBonusBp: 1200,
             manaBonusBp: -500,
           ),
         );
@@ -84,8 +88,9 @@ class AccessoryCatalog {
           ],
           stats: GearStatBonuses(
             manaBonusBp: 2000,
-            manaRegenBonusBp: 1000,
+            manaRegenBonusBp: 1200,
             cooldownReductionBp: 800,
+            globalCritChanceBonusBp: 500,
           ),
         );
       case AccessoryId.ironBoots:
@@ -93,9 +98,10 @@ class AccessoryCatalog {
           id: AccessoryId.ironBoots,
           // Mitigation anchor with route control and offense pressure.
           stats: GearStatBonuses(
-            defenseBonusBp: 1200,
-            globalPowerBonusBp: 1000,
-            moveSpeedBonusBp: 500,
+            defenseBonusBp: 1800,
+            globalPowerBonusBp: 1800,
+            moveSpeedBonusBp: 1000,
+            staminaBonusBp: 1000,
           ),
         );
       case AccessoryId.oathBeads:
@@ -104,8 +110,9 @@ class AccessoryCatalog {
           // Rotation consistency package with mana-tax dump.
           stats: GearStatBonuses(
             cooldownReductionBp: 800,
-            globalPowerBonusBp: 500,
-            globalCritChanceBonusBp: 500,
+            manaRegenBonusBp: 1200,
+            globalPowerBonusBp: 1800,
+            globalCritChanceBonusBp: 1200,
             manaBonusBp: -500,
           ),
         );
@@ -114,9 +121,9 @@ class AccessoryCatalog {
           id: AccessoryId.resilienceCape,
           // Counterpick resist package with mana-tax dump.
           stats: GearStatBonuses(
-            bleedResistanceBp: 1200,
-            darkResistanceBp: 800,
-            healthBonusBp: 500,
+            bleedResistanceBp: 2500,
+            darkResistanceBp: 2500,
+            healthBonusBp: 2000,
             manaBonusBp: -500,
           ),
         );
@@ -125,9 +132,10 @@ class AccessoryCatalog {
           id: AccessoryId.strengthBelt,
           // Offense-forward pick with crit pressure and mana-tax dump.
           stats: GearStatBonuses(
-            globalPowerBonusBp: 1000,
-            globalCritChanceBonusBp: 1000,
-            staminaBonusBp: 1000,
+            healthBonusBp: 1000,
+            globalPowerBonusBp: 1800,
+            globalCritChanceBonusBp: 1200,
+            staminaBonusBp: 2000,
             manaBonusBp: -500,
           ),
         );

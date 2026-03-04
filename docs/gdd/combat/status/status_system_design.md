@@ -47,15 +47,15 @@ Status effects add deterministic pressure/control/tempo changes through authored
 
 | Profile | Effects |
 |---|---|
-| `slowOnHit` | slow `25%` for `3.0s` |
-| `burnOnHit` | DoT `5.0 DPS` fire for `5.0s` |
+| `slowOnHit` | slow `25%` for `5.0s` |
+| `burnOnHit` | DoT `3.0 DPS` fire for `5.0s` |
 | `meleeBleed` | DoT `3.0 DPS` physical for `5.0s` |
 | `stunOnHit` | stun `1.0s` |
-| `arcaneWard` | reduce direct-hit damage `40%` and cancel DoT for `4.0s` |
+| `arcaneWard` | reduce direct-hit damage `40%` and cancel DoT for `5.0s` |
 | `acidOnHit` | vulnerable `+50%` incoming for `5.0s` |
-| `weakenOnHit` | weaken `-35%` outgoing for `5.0s` |
+| `weakenOnHit` | weaken `-50%` outgoing for `5.0s` |
 | `drenchOnHit` | drench `-50%` action speed for `5.0s` |
-| `silenceOnHit` | cast lock (`silence`) for `3.0s` |
+| `silenceOnHit` | cast lock (`silence`) for `5.0s` |
 | `speedBoost` | haste `+50%` move speed for `5.0s` |
 | `focus` | offense buff `+25%` power and `+15%` crit chance for `5.0s` |
 | `restoreHealth` | restore `35%` max HP over `5.0s` |
