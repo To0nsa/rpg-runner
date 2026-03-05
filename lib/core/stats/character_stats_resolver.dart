@@ -298,8 +298,6 @@ class CharacterStatsResolver {
         CharacterStatCaps.minTypedResistanceBp,
         CharacterStatCaps.maxTypedResistanceBp,
       ),
-      critDamageBonusBp: input.critDamageBonusBp,
-      rangeScalarPercent: input.rangeScalarPercent,
     );
   }
 

@@ -29,13 +29,9 @@ class GearStatBonuses {
     this.bleedResistanceBp = 0,
     this.earthResistanceBp = 0,
     this.holyResistanceBp = 0,
-    // Legacy/non-V1 fields kept for compatibility during migration.
-    this.critDamageBonusBp = 0,
-    this.rangeScalarPercent = 100,
   }) : healthBonusBp = hpBonus100 ?? healthBonusBp,
        manaBonusBp = manaBonus100 ?? manaBonusBp,
-       staminaBonusBp = staminaBonus100 ?? staminaBonusBp,
-       assert(rangeScalarPercent > 0, 'rangeScalarPercent must be > 0');
+       staminaBonusBp = staminaBonus100 ?? staminaBonusBp;
 
   static const GearStatBonuses zero = GearStatBonuses();
 
@@ -128,12 +124,6 @@ class GearStatBonuses {
   /// Positive values reduce holy damage taken.
   final int holyResistanceBp;
 
-  /// Legacy field (not part of V1 core stat set).
-  final int critDamageBonusBp;
-
-  /// Legacy field (not part of V1 core stat set), `100 = unchanged`.
-  final int rangeScalarPercent;
-
   /// Legacy alias retained to minimize migration surface.
   int get hpBonus100 => healthBonusBp;
 
@@ -164,9 +154,7 @@ class GearStatBonuses {
       darkResistanceBp == 0 &&
       bleedResistanceBp == 0 &&
       earthResistanceBp == 0 &&
-      holyResistanceBp == 0 &&
-      critDamageBonusBp == 0 &&
-      rangeScalarPercent == 100;
+      holyResistanceBp == 0;
 
   GearStatBonuses operator +(GearStatBonuses other) {
     return GearStatBonuses(
@@ -192,9 +180,6 @@ class GearStatBonuses {
       bleedResistanceBp: bleedResistanceBp + other.bleedResistanceBp,
       earthResistanceBp: earthResistanceBp + other.earthResistanceBp,
       holyResistanceBp: holyResistanceBp + other.holyResistanceBp,
-      critDamageBonusBp: critDamageBonusBp + other.critDamageBonusBp,
-      rangeScalarPercent:
-          (rangeScalarPercent * other.rangeScalarPercent) ~/ 100,
     );
   }
 }

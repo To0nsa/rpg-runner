@@ -45,7 +45,7 @@ class DamageSystem {
   final ForcedInterruptPolicy forcedInterruptPolicy;
 
   int _rngState;
-  static const int _critDamageBonusBp = 5000; // +50% on crit.
+  static const int _critBonusBp = 5000; // +50% on crit.
 
   /// Processes all pending damage requests.
   void step(
@@ -111,12 +111,12 @@ class DamageSystem {
       var amountAfterCrit = amountAfterSourceModifiers;
       var didCrit = false;
       if (critChanceBp >= bpScale) {
-        amountAfterCrit = applyBp(amountAfterCrit, _critDamageBonusBp);
+        amountAfterCrit = applyBp(amountAfterCrit, _critBonusBp);
         didCrit = true;
       } else if (critChanceBp > 0) {
         _rngState = nextUint32(_rngState);
         if ((_rngState % bpScale) < critChanceBp) {
-          amountAfterCrit = applyBp(amountAfterCrit, _critDamageBonusBp);
+          amountAfterCrit = applyBp(amountAfterCrit, _critBonusBp);
           didCrit = true;
         }
       }
