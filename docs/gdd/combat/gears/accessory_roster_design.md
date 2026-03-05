@@ -3,8 +3,8 @@
 ## Purpose
 
 Define an 8-accessory roster for the vertical slice that keeps accessories as
-passive, deterministic stat modifiers with one optional low-health sustain proc
-anchor.
+passive, deterministic stat modifiers with optional low-health sustain proc
+variants.
 
 This roster is fully implemented in Core/UI and maps directly to the accessory
 IDs listed in `assets/images/icons/mapToIcon.md`.
@@ -13,8 +13,10 @@ IDs listed in `assets/images/icons/mapToIcon.md`.
 
 - Every accessory should solve one clear problem (tempo, survivability,
   resource sustain, or offense pacing).
-- Accessory value should primarily come from passive stats, with at most one
-  low-health sustain proc in the slot roster.
+- Every accessory should have a unique stat/proc signature (no duplicate
+  identity templates).
+- Accessory value should primarily come from passive stats, and any proc usage
+  should stay on deterministic low-health sustain hooks.
 - No accessory should be universal best-in-slot across all levels and enemy mixes.
 - The roster should be icon-complete so catalog expansion can happen without UI remapping work.
 
@@ -29,7 +31,7 @@ survivability), it should pay through one or more taxes:
 
 - lower primary stat magnitude
 - narrow matchup profile (typed resistance)
-- explicit dump (`manaBonusBp`, `cooldownReductionBp`, or typed resistance)
+- explicit dump (one negative stat line)
 
 Accessory tuning should bias toward small basis-point deltas and fast
 iterations.
@@ -55,25 +57,27 @@ Primary knobs:
 
 | # | Accessory | Runtime ID | Status | Role | Positive Stats (bp) | Dump (bp) | Proc | Tradeoff |
 |---|---|---|---|---|---|---|---|---|
-| 1 | `Speed Boots` | `speedBoots` | implemented | movement tempo baseline | `moveSpeed +1000`, `stamina +1500`, `staminaRegen +500` | `mana -500` | none | no direct proc utility |
-| 2 | `Golden Ring` | `goldenRing` | implemented | survivability floor and clutch sustain | `health +2000`, `defense +1000` | `cooldownReduction -500` | `onLowHealth -> restoreHealth` at `100%` (`30s` internal cooldown) | gives up cooldown pace for survivability spike |
-| 3 | `Teeth Necklace` | `teethNecklace` | implemented | stamina-heavy durability | `stamina +2000`, `healthRegen +1000`, `defense +500` | `mana -500` | none | no direct offense or proc pressure |
-| 4 | `Diamond Ring` | `diamondRing` | implemented | caster economy with crit support | `mana +2000`, `manaRegen +1000`, `globalCrit +1000` | `fireRes -500` | none | fire matchup hole from typed-resistance dump |
-| 5 | `Iron Boots` | `ironBoots` | implemented | front-line offense/defense blend | `defense +1500`, `moveSpeed +500`, `globalPower +1000` | `cooldownReduction -500` | none | slower rotation cadence due to cooldown dump |
-| 6 | `Oath Beads` | `oathBeads` | implemented | rotation consistency with power bump | `cooldownReduction +500`, `globalPower +1500`, `manaRegen +500` | `waterRes -500` | none | water matchup hole from typed-resistance dump |
-| 7 | `Resilience Cape` | `resilienceCape` | implemented | status-heavy encounter counterpick | `bleedRes +2500`, `darkRes +2000`, `health +1000` | `mana -500` | none | value narrows outside bleed/dark pressure |
-| 8 | `Strength Belt` | `strengthBelt` | implemented | offense-forward speed clear option | `globalPower +1500`, `globalCrit +1000`, `stamina +1000` | `iceRes -500` | none | ice matchup hole from typed-resistance dump |
+| 1 | `Speed Boots` | `speedBoots` | implemented | pure tempo and route control | `moveSpeed +1000`, `staminaRegen +1000`, `cooldownReduction +500` | `mana -1000` | none | mobility/cadence gains come with weaker mana economy |
+| 2 | `Golden Ring` | `goldenRing` | implemented | survivability floor and clutch sustain | `health +1500` | `cooldownReduction -500` | `onLowHealth -> restoreHealth` at `100%` (`30s` internal cooldown) | strongest health safety pick but slows ability rotation |
+| 3 | `Teeth Necklace` | `teethNecklace` | implemented | stamina clutch sustain | `stamina +1500` | `health -500` | `onLowHealth -> restoreStamina` at `100%` (`30s` internal cooldown) | stamina rescue option that lowers max health |
+| 4 | `Diamond Ring` | `diamondRing` | implemented | mana clutch sustain | `mana +1500` | `stamina -500` | `onLowHealth -> restoreMana` at `100%` (`30s` internal cooldown) | mana rescue option that lowers max stamina |
+| 5 | `Iron Boots` | `ironBoots` | implemented | physical soak anchor | `defense +1500`, `physicalRes +1500`, `health +500` | `globalPower -500` | none | front-line mitigation with reduced offense |
+| 6 | `Oath Beads` | `oathBeads` | implemented | spell cadence + offense bridge | `cooldownReduction +500`, `manaRegen +1000`, `globalPower +1000` | `defense -500` | none | higher spell pressure with lower durability |
+| 7 | `Resilience Cape` | `resilienceCape` | implemented | elemental/dark counterpick | `fireRes +2500`, `darkRes +2000`, `defense +1000` | `mana -500` | none | defensive counterpick with reduced mana headroom |
+| 8 | `Strength Belt` | `strengthBelt` | implemented | burst damage finisher | `globalPower +1500`, `globalCrit +1000`, `stamina +1000` | `cooldownReduction -500` | none | highest burst package, but weaker rotation cadence |
 
 ## Identity Coverage Check
 
 The roster intentionally covers core accessory identities:
 
 - Tempo: `Speed Boots`
-- Durable clutch anchor: `Golden Ring`
-- Resource sustain: `Teeth Necklace`, `Diamond Ring`
-- Mitigation/offense blends: `Iron Boots`, `Strength Belt`
-- Cooldown pacing: `Oath Beads`
+- Health clutch sustain: `Golden Ring`
+- Stamina clutch sustain: `Teeth Necklace`
+- Mana clutch sustain: `Diamond Ring`
+- Physical mitigation anchor: `Iron Boots`
+- Rotation/power bridge: `Oath Beads`
 - Matchup counterpick: `Resilience Cape`
+- Burst finisher: `Strength Belt`
 
 ## Icon Mapping (From `mapToIcon.md`)
 

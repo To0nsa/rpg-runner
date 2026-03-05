@@ -201,9 +201,7 @@ void main() {
       }
     });
 
-    test(
-      'accessory catalog respects dump rules and low-health sustain proc rules',
-      () {
+    test('accessory catalog respects low-health sustain proc invariants', () {
         const catalog = AccessoryCatalog();
         final identity = <String>{};
         final usedProcIdentities = <String>{};
@@ -231,13 +229,6 @@ void main() {
               isTrue,
               reason: '$id ${entry.key}: $value',
             );
-            if (value < 0) {
-              expect(
-                _accessoryDump.contains(entry.key),
-                isTrue,
-                reason: '$id negative ${entry.key}',
-              );
-            }
           }
 
           for (final proc in def.reactiveProcs) {
@@ -271,7 +262,7 @@ void main() {
             );
           }
 
-          _expectStatTemplate(
+          _expectAccessoryStatTemplate(
             id: id,
             hasProc: def.reactiveProcs.isNotEmpty,
             positiveCount: _positiveStatCount(stats),
@@ -425,12 +416,6 @@ const Set<String> _spellbookDump = <String>{
   'healthRegenBonusBp',
 };
 
-const Set<String> _accessoryDump = <String>{
-  'manaBonusBp',
-  'cooldownReductionBp',
-  ..._typedResistance,
-};
-
 bool _isWithinStatBounds(String statKey, int valueBp) {
   if (valueBp >= 0) {
     final cap = switch (statKey) {
@@ -575,7 +560,26 @@ String _reactiveProcIdentityKey({
   required String slot,
   required ReactiveProc proc,
 }) {
-  return '$slot:${proc.hook.name}:${_statusFamily(proc.statusProfileId).name}:${proc.target.name}';
+  return '$slot:${proc.hook.name}:${proc.statusProfileId.name}:${proc.target.name}';
+}
+
+void _expectAccessoryStatTemplate({
+  required Object id,
+  required bool hasProc,
+  required int positiveCount,
+  required int negativeCount,
+}) {
+  if (hasProc) {
+    expect(
+      positiveCount >= 1 && positiveCount <= 2,
+      isTrue,
+      reason: '$id positive-count',
+    );
+    expect(negativeCount, 1, reason: '$id dump-count');
+    return;
+  }
+  expect(positiveCount, 3, reason: '$id positive-count');
+  expect(negativeCount, 1, reason: '$id dump-count');
 }
 
 enum _StatusFamily {

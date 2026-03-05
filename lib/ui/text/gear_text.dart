@@ -308,14 +308,20 @@ const Map<AccessoryId, String> _accessoryDisplayNameOverrides =
 
 const Map<AccessoryId, String> _accessoryDescriptionOverrides =
     <AccessoryId, String>{
-      AccessoryId.speedBoots: 'Improves move speed.',
-      AccessoryId.goldenRing: 'Improves maximum health.',
-      AccessoryId.teethNecklace: 'Improves maximum stamina.',
-      AccessoryId.diamondRing: 'Improves maximum mana.',
-      AccessoryId.ironBoots: 'Improves defense for safer front-line pacing.',
-      AccessoryId.oathBeads: 'Improves cooldown recovery.',
+      AccessoryId.speedBoots:
+          'Tempo accessory with movement, stamina regen, and cooldown pacing at heavy mana tax.',
+      AccessoryId.goldenRing:
+          'Clutch sustain ring with health and emergency low-health healing.',
+      AccessoryId.teethNecklace:
+          'Stamina ring with low-health stamina restore, traded against max health.',
+      AccessoryId.diamondRing:
+          'Mana ring with low-health mana restore, traded against max stamina.',
+      AccessoryId.ironBoots:
+          'Defensive boots with physical resistance that tax global power.',
+      AccessoryId.oathBeads:
+          'Caster-tempo beads with cooldown, mana regen, and power at a defense tax.',
       AccessoryId.resilienceCape:
-          'Improves bleed and dark resistance for status-heavy encounters.',
+          'Elemental counterpick with fire and dark resistance plus defense.',
       AccessoryId.strengthBelt:
-          'Increases global power at a small stamina comfort cost.',
+          'Burst belt with power, crit, and stamina at slower cooldown recovery.',
     };

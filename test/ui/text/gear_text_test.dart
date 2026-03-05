@@ -58,11 +58,15 @@ void main() {
       );
       expect(
         gearDescriptionForSlot(GearSlot.accessory, AccessoryId.speedBoots),
-        equals('Improves move speed.'),
+        equals(
+          'Tempo accessory with movement, stamina regen, and cooldown pacing at heavy mana tax.',
+        ),
       );
       expect(
         gearDescriptionForSlot(GearSlot.accessory, AccessoryId.oathBeads),
-        equals('Improves cooldown recovery.'),
+        equals(
+          'Caster-tempo beads with cooldown, mana regen, and power at a defense tax.',
+        ),
       );
     });
 

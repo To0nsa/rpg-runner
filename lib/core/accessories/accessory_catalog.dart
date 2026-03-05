@@ -22,9 +22,9 @@ class AccessoryCatalog {
           id: AccessoryId.speedBoots,
           stats: GearStatBonuses(
             moveSpeedBonusBp: 1000,
-            staminaBonusBp: 1500,
-            staminaRegenBonusBp: 500,
-            manaBonusBp: -500,
+            staminaRegenBonusBp: 1000,
+            cooldownReductionBp: 500,
+            manaBonusBp: -1000,
           ),
         );
       case AccessoryId.goldenRing:
@@ -41,39 +41,54 @@ class AccessoryCatalog {
             ),
           ],
           stats: GearStatBonuses(
-            healthBonusBp: 2000,
-            defenseBonusBp: 1000,
+            healthBonusBp: 1500,
             cooldownReductionBp: -500,
           ),
         );
       case AccessoryId.teethNecklace:
         return const AccessoryDef(
           id: AccessoryId.teethNecklace,
+          reactiveProcs: <ReactiveProc>[
+            ReactiveProc(
+              hook: ReactiveProcHook.onLowHealth,
+              statusProfileId: StatusProfileId.restoreStamina,
+              target: ReactiveProcTarget.self,
+              chanceBp: 10000,
+              lowHealthThresholdBp: 3000,
+              internalCooldownTicks: 1800,
+            ),
+          ],
           stats: GearStatBonuses(
-            staminaBonusBp: 2000,
-            healthRegenBonusBp: 1000,
-            defenseBonusBp: 500,
-            manaBonusBp: -500,
+            staminaBonusBp: 1500,
+            healthBonusBp: -500,
           ),
         );
       case AccessoryId.diamondRing:
         return const AccessoryDef(
           id: AccessoryId.diamondRing,
+          reactiveProcs: <ReactiveProc>[
+            ReactiveProc(
+              hook: ReactiveProcHook.onLowHealth,
+              statusProfileId: StatusProfileId.restoreMana,
+              target: ReactiveProcTarget.self,
+              chanceBp: 10000,
+              lowHealthThresholdBp: 3000,
+              internalCooldownTicks: 1800,
+            ),
+          ],
           stats: GearStatBonuses(
-            manaBonusBp: 2000,
-            manaRegenBonusBp: 1000,
-            globalCritChanceBonusBp: 1000,
-            fireResistanceBp: -500,
+            manaBonusBp: 1500,
+            staminaBonusBp: -500,
           ),
         );
       case AccessoryId.ironBoots:
         return const AccessoryDef(
           id: AccessoryId.ironBoots,
           stats: GearStatBonuses(
+            healthBonusBp: 500,
             defenseBonusBp: 1500,
-            moveSpeedBonusBp: 500,
-            globalPowerBonusBp: 1000,
-            cooldownReductionBp: -500,
+            physicalResistanceBp: 1500,
+            globalPowerBonusBp: -500,
           ),
         );
       case AccessoryId.oathBeads:
@@ -81,18 +96,18 @@ class AccessoryCatalog {
           id: AccessoryId.oathBeads,
           stats: GearStatBonuses(
             cooldownReductionBp: 500,
-            globalPowerBonusBp: 1500,
-            manaRegenBonusBp: 500,
-            waterResistanceBp: -500,
+            globalPowerBonusBp: 1000,
+            manaRegenBonusBp: 1000,
+            defenseBonusBp: -500,
           ),
         );
       case AccessoryId.resilienceCape:
         return const AccessoryDef(
           id: AccessoryId.resilienceCape,
           stats: GearStatBonuses(
-            bleedResistanceBp: 2500,
+            fireResistanceBp: 2500,
             darkResistanceBp: 2000,
-            healthBonusBp: 1000,
+            defenseBonusBp: 1000,
             manaBonusBp: -500,
           ),
         );
@@ -103,7 +118,7 @@ class AccessoryCatalog {
             globalPowerBonusBp: 1500,
             globalCritChanceBonusBp: 1000,
             staminaBonusBp: 1000,
-            iceResistanceBp: -500,
+            cooldownReductionBp: -500,
           ),
         );
     }

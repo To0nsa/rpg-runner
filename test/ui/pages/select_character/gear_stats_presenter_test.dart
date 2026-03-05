@@ -136,7 +136,7 @@ void main() {
     });
 
     test('accessory base lines include regen stats', () {
-      final lines = gearStatsFor(GearSlot.accessory, AccessoryId.diamondRing);
+      final lines = gearStatsFor(GearSlot.accessory, AccessoryId.oathBeads);
       final manaRegenLine = lines.firstWhere(
         (line) => line.label == 'Mana Regen',
       );
@@ -149,7 +149,7 @@ void main() {
       final lines = gearCompareStats(
         GearSlot.accessory,
         equipped: AccessoryId.speedBoots,
-        candidate: AccessoryId.diamondRing,
+        candidate: AccessoryId.oathBeads,
       );
       final manaRegenLine = lines.firstWhere(
         (line) => line.label == 'Mana Regen',
