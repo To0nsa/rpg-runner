@@ -1,6 +1,6 @@
 # Eloise Secondary: Shield
 
-Abilities requiring `WeaponType.shield` and equipable in `AbilitySlot.secondary`.
+Abilities requiring `WeaponType.shield` and equippable in `AbilitySlot.secondary`.
 
 ## Ability Matrix
 
@@ -30,4 +30,8 @@ Abilities requiring `WeaponType.shield` and equipable in `AbilitySlot.secondary`
 ## Constraints
 
 - All abilities in this file require `WeaponType.shield`.
-- Payload/procs resolve from `AbilityPayloadSource.secondaryWeapon`.
+- `AbilityPayloadSource.secondaryWeapon` is used for payload-slot gating.
+- Guard mitigation/riposte behavior is ability-authored (`damageIgnoredBp`,
+  `grantsRiposteOnGuardedHit`) and does not consume weapon procs.
+- Cooldown (`30`) starts when hold ends (release, timeout, or stamina depletion),
+  not at commit.

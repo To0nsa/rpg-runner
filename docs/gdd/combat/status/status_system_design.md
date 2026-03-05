@@ -66,16 +66,18 @@ Status effects add deterministic pressure/control/tempo changes through authored
 
 ### Sources
 
-- `WeaponProc` on hit (`DamageSystem`)
+- `WeaponProc` outcomes from `DamageSystem` (`onHit`, `onCrit`, `onKill`)
 - self abilities (`SelfAbilitySystem`) via `selfStatusProfileId`
 - mobility contact effects (`MobilityImpactSystem`) via `statusProfileId`
+- reactive defensive procs (`ReactiveProcSystem`)
 
 ### Tick order in `GameCore`
 
 1. `StatusSystem.tickExisting`
 2. `DamageMiddlewareSystem.step`
 3. `DamageSystem.step`
-4. `StatusSystem.applyQueued`
+4. `ReactiveProcSystem.step`
+5. `StatusSystem.applyQueued`
 
 ## Stacking and Refresh Rules
 

@@ -53,6 +53,9 @@ The projectile-slot source is resolved at commit:
 - if `projectileSlotSpellId` resolves to a valid spell projectile, that
   projectile is used
 - otherwise commit is rejected (no fallback payload)
+- for spell projectiles, payload procs merge in deterministic order:
+  projectile procs first, then `spellBook` procs (dedupe handled in
+  `HitPayloadBuilder`)
 
 This keeps one projectile ability structure reusable across learned spell projectiles.
 `spellBook` does not gate projectile spell availability.

@@ -1,6 +1,4 @@
-# Character Stats (Current Core)
-
-This document reflects the implemented stat model as of **2026-03-03**.
+# Character Stats
 
 ## Goals
 
@@ -8,7 +6,7 @@ This document reflects the implemented stat model as of **2026-03-03**.
 - Preserve deterministic, multiplayer-safe resolution
 - Keep tuning surface small and explicit
 
-## V1 Stat Set
+## Current Stat Set
 
 Core gameplay stats:
 
@@ -79,7 +77,7 @@ Runtime also supports typed resistance fields for all current `DamageType` value
 1. start from `AbilityDef.baseDamage`, `baseDamageType`, and ability procs
 2. apply global power (`resolvedGlobalPowerBp + offenseBuffPowerBp`)
 3. if payload source provides a damage type and ability base type is physical, override damage type
-4. merge procs in canonical order (ability -> item -> buffs -> passives) with deterministic dedupe
+4. merge procs in canonical builder order (ability -> item -> buffs -> passives) with deterministic dedupe; current runtime call sites wire ability + item proc sources
 5. clamp damage to `>= 0`
 
 ### Crit chance
@@ -134,7 +132,3 @@ Crit bonus is currently fixed at `+5000 bp` (`+50%`).
 - HP regen: `0.5/s`
 - Mana regen: `2.0/s`
 - Stamina regen: `1.0/s`
-
-## Notes
-
-- Global offensive stats, typed resistance bonuses, and resource regen bonuses exist across current gear catalogs (weapons, spell books, and accessories).

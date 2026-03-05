@@ -1,4 +1,4 @@
-# Accessory Roster Design (V1)
+# Accessory Roster Design
 
 ## Purpose
 

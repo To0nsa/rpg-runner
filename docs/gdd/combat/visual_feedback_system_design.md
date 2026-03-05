@@ -25,6 +25,18 @@ static const int _damagePulseMinIntensityBp = 1800;
 static const int _resourcePulseMinIntensityBp = 2000;
 ```
 
+Core also emits player-impact feedback (`PlayerImpactFeedbackEvent`) through a
+separate channel for camera/haptics/border feedback:
+
+- source stream: `DamageSystem.onDamageApplied` callback in `GameCore`
+- gate: `PlayerImpactFeedbackGate`
+- rules:
+  - player-target only
+  - ignore zero/negative applied damage
+  - ignore `DeathSourceKind.statusEffect`
+  - same-tick coalesce: keep highest `appliedAmount100`
+  - throttle: at most one emitted event per second (`tickHz` ticks)
+
 ### Render Layer
 
 Render styling lives in `CombatFeedbackTuning`:
@@ -57,6 +69,31 @@ intensityBp = clamp(scaled, 2000, 10000) if restoredAmount100 > 0 else 0
 - metadata from the winning cue is kept
 
 This is independent from `PlayerImpactFeedbackGate` (camera/haptics/border throttling).
+
+## Player Impact Feedback Mapping
+
+`PlayerImpactFeedbackEvent` is consumed independently from entity cue pulses.
+
+### Render (Camera Shake)
+
+`RunnerFlameGame` maps impact amount to shake intensity with:
+
+```text
+normalized = clamp(amount100 / 1500, 0.0, 1.0)
+shakeIntensity01 = sqrt(normalized)
+```
+
+### UI (Haptics + Border Pulse)
+
+`RunnerGameWidget` consumes the same event stream:
+
+- haptics intensity:
+  - `heavy` when `amount100 >= 1400`
+  - `medium` when `amount100 >= 700`
+  - `light` otherwise
+- border pulse:
+  - increments `playerImpactFeedbackSignal`, consumed by
+    `PlayerImpactBorderOverlay`
 
 ## Current Render Mapping
 
@@ -94,8 +131,12 @@ Current defaults:
 - Core cue emission/intensity:
   - `lib/core/game_core.dart`
   - `lib/core/events/entity_visual_cue_coalescer.dart`
+  - `lib/core/events/player_impact_feedback_gate.dart`
   - `lib/core/events/feedback_events.dart`
 - Render mapping/tuning:
   - `lib/game/tuning/combat_feedback_tuning.dart`
   - `lib/game/runner_flame_game.dart`
   - `lib/game/components/sprite_anim/deterministic_anim_view_component.dart`
+- UI impact mapping:
+  - `lib/ui/runner_game_widget.dart`
+  - `lib/ui/hud/game/player_impact_border_overlay.dart`

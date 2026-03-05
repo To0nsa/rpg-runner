@@ -48,6 +48,11 @@ Missing store entry resolves to neutral (`0`).
 
 ## Damage Order in `DamageSystem`
 
+Before `DamageSystem` runs, queued damage passes through
+`DamageMiddlewareSystem` (currently `ParryMiddleware` and `WardMiddleware`).
+Middleware may cancel or modify requests; typed resistance applies only to
+requests that remain after middleware.
+
 Incoming damage resolves as:
 
 1. Source-side `weaken` reduction (if present), then clamp `>= 0`
@@ -68,6 +73,10 @@ Where `gearIncomingModBp` is already sign-adjusted (`-resistanceBp`).
 ## Relation with Status Scaling
 
 For status applications with `scaleByDamageType = true`:
+
+- `StatusSystem.applyQueued` first gates by target state (dead/missing health),
+  invulnerability, and status immunity.
+- Typed scaling is evaluated only for applications that pass those gates.
 
 - Status magnitude scales up only when combined typed modifier is positive.
 - Negative combined modifier does not scale status down.

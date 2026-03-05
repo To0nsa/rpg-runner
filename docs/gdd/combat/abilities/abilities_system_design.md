@@ -4,11 +4,17 @@ Design contract for authored abilities and slot loadouts.
 
 ## Core Contracts
 
-1. Slots are never empty: every slot always has a valid equipped ability.
+1. Loadouts are authored with no empty slots: each slot is expected to have an
+   equipped ability ID.
 2. Ability structure lives in ability defs; payload comes from equipped
    gear and projectile-source selection.
-3. Deterministic modifier order is fixed: ability -> gear payload -> passive/global.
+3. Deterministic payload build order is fixed:
+   base ability -> global power/crit -> damage-type override (physical-only) ->
+   proc merge (ability -> item -> buffs -> passives).
 4. Mobility preempts combat: dash/jump input cancels queued/active combat intents.
+
+Runtime safety note: invalid/unknown ability IDs are still handled
+deterministically (blocked by loadout validation and skipped at commit).
 
 ## Ability Model
 
@@ -84,7 +90,7 @@ Commit gating is stun-blocked by default; exceptions can opt in via `canCommitWh
 
 ## Acceptance Criteria
 
-- Every slot triggers exactly one equipped ability.
+- For valid loadouts, every slot triggers exactly one equipped ability.
 - Illegal slot/gear/ability combinations are blocked by loadout validation.
 - Ability commit, cooldown, and interruption behavior is deterministic and slot-consistent.
 - Offensive self-buffs (for example `focus`) affect outgoing hit payload through `HitPayloadBuilder` globals, not ad-hoc per-ability math.

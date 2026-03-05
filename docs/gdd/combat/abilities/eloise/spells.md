@@ -26,7 +26,7 @@ All abilities in this file are:
 
 - `speedBoost`: haste `+50%` move speed for `5.0s`
 - `focus`: `+25%` outgoing power and `+15%` crit chance for `5.0s`
-- `arcaneWard`: reduce direct-hit damage by `40%` and cancel all DoT ticks for `4.0s`
+- `arcaneWard`: reduce direct-hit damage by `40%` and cancel all DoT ticks for `5.0s`
 - `cleanse`: remove active debuffs (`stun`, `silence`, `slow`, `vulnerable`, `weaken`, `drench`, and DoT channels)
 - `restoreHealth`: restore `35%` max HP over `5.0s`
 - `restoreMana`: restore `35%` max mana over `5.0s`
