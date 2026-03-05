@@ -87,11 +87,11 @@ effect families by hook in weapon/shield/accessory catalogs.
 
 | Hook | Runtime receiver | Runtime allowed status profiles | Currently authored effects |
 |---|---|---|---|
-| `OnHit` | damaged target | any non-`none` `StatusProfileId` | `meleeBleed` (Bleed DoT) |
-| `OnCrit` | damaged target | any non-`none` `StatusProfileId` | `stunOnHit` (Stun) |
-| `OnKill` | source entity | any non-`none` `StatusProfileId` | `speedBoost` (Haste) |
+| `OnHit` | damaged target | any non-`none` `StatusProfileId` | `meleeBleed` (Bleed DoT), `acidOnHit` (Vulnerable), `slowOnHit` (Slow), `silenceOnHit` (Silence) |
+| `OnCrit` | damaged target | any non-`none` `StatusProfileId` | `burnOnHit` (Burn DoT) |
+| `OnKill` | source entity | any non-`none` `StatusProfileId` | `focus` (Offense Buff) |
 | `onDamaged` (`ReactiveProcHook.onDamaged`) | `self` or `attacker` (reactive target policy) | any non-`none` `StatusProfileId` | `meleeBleed` (Bleed DoT, attacker-targeted) |
-| `onLowHealth` (`ReactiveProcHook.onLowHealth`) | `self` or `attacker` (reactive target policy) | any non-`none` `StatusProfileId` | `speedBoost` (Haste, offhand), `restoreHealth` (Sustain, accessory) |
+| `onLowHealth` (`ReactiveProcHook.onLowHealth`) | `self` or `attacker` (reactive target policy) | any non-`none` `StatusProfileId` | `speedBoost` (Haste, offhand), `restoreHealth`/`restoreMana`/`restoreStamina` (Sustain, accessory) |
 
 ### Compatibility Rules
 
@@ -129,10 +129,10 @@ Modifier order remains:
 
 | Slot | Role | Allowed stats | Allowed procs | Allowed dump families |
 |---|---|---|---|---|
-| `mainWeapon` (Sword) | Primary offense + stamina combat loop | `globalPowerBonusBp`, `globalCritChanceBonusBp`, `staminaBonusBp`, `staminaRegenBonusBp` | Outgoing `OnHit`, `OnCrit`, `OnKill` | `healthBonusBp`, `defenseBonusBp`, `manaRegenBonusBp` |
+| `mainWeapon` (Sword) | Primary offense + stamina combat loop | `globalPowerBonusBp`, `globalCritChanceBonusBp`, `staminaBonusBp`, `staminaRegenBonusBp` | Outgoing `OnHit`, `OnCrit`, `OnKill` | `healthBonusBp`, `staminaBonusBp`, `defenseBonusBp`, `manaRegenBonusBp` |
 | `offhandWeapon` (Shield) | Defense and counterplay | `defenseBonusBp`, typed resistance fields, `staminaBonusBp`, `staminaRegenBonusBp` | Reactive `onDamaged`, `onLowHealth` | `moveSpeedBonusBp`, `globalPowerBonusBp`, `globalCritChanceBonusBp` |
 | `spellBook` | Casting economy + spell cadence | `manaBonusBp`, `manaRegenBonusBp`, `cooldownReductionBp`, `globalCritChanceBonusBp` | None (default target) | `staminaBonusBp`, `staminaRegenBonusBp`, `healthRegenBonusBp` |
-| `accessory` | Flexible build accent | Any non-proc stat family | Reactive `onLowHealth` sustain only | `manaBonusBp`, `cooldownReductionBp`, typed resistance (`*ResistanceBp`) |
+| `accessory` | Flexible build accent | Any non-proc stat family | Reactive `onLowHealth` sustain only | Any non-proc stat family |
 
 #### Hard Ceilings for Positive Stats (Per Item)
 
@@ -172,8 +172,8 @@ A stat line cannot exceed these values, even if budget/dump rules would allow mo
 
 | Hook | Allowed families | Disallowed highlights |
 |---|---|---|
-| `OnHit` | `DoT`, `SoftControl` | `Debuff`, `HardCC`, `SelfBuff`, `Sustain` |
-| `OnCrit` | `Debuff`, `HardCC` | `SelfBuff`, `Sustain` |
+| `OnHit` | `DoT`, `SoftControl`, `Debuff`, `HardCC` | `SelfBuff`, `Sustain` |
+| `OnCrit` | `DoT`, `Debuff`, `HardCC` | `SelfBuff`, `Sustain` |
 | `OnKill` | `SelfBuff` | enemy debuff/control families (`DoT`, `SoftControl`, `HardCC`, `Debuff`), `Sustain` |
 | `onDamaged` | attacker-targeted `DoT`, `SoftControl` | `Debuff`, `HardCC`, `SelfBuff`, `Sustain` |
 | `onLowHealth` | self-targeted `SelfBuff`; `Sustain` (accessory only) | attacker-targeted effects; `Sustain` on non-accessory items |
@@ -183,9 +183,9 @@ A stat line cannot exceed these values, even if budget/dump rules would allow mo
 1. One proc cluster per item. A cluster is all proc entries on the item across `procs` and `reactiveProcs`.
 2. Proc cluster budget is strict: each proc entry costs `1` point, and the cluster cap is `2` points (`0-2` total proc entries per item).
 3. If an item uses a 2-entry proc cluster, both entries must be thematically related (same effect-theme family), and must not duplicate the same hook within that item.
-4. An item can either have 2 positive stats, a proc cluster (`1-2` entries), and 1 dump or 3 positive stats, no procs, and one dump.
+4. An item can either have `1-2` positive stats, a proc cluster (`1-2` entries), and 1 dump or 3 positive stats, no procs, and one dump.
 5. Items should be unique in their stat combinations and proc effects. If two items have the same identity, one of them should be reworked to have a different stat/proc combination or removed.
-6. Shared hooks are allowed, but proc identities must be unique per slot by `(hook + status family + target policy + slot)`. Two items can share a hook only when at least one of the other dimensions differs.
+6. Shared hooks are allowed, but proc identities must be unique per slot by `(hook + status profile + target policy + slot)`. Two items can share a hook only when at least one of the other dimensions differs.
 7. Minimal value for a non-zero positive or negative stat is `500bp` to ensure meaningful contribution and clear tradeoffs.
 8. Non-zero positive and negative stats should always be a multiple of '500bp'. 
 
@@ -200,7 +200,7 @@ They apply in addition to hook-family restrictions and slot identity constraints
 |---|---:|---|
 | `OnHit` | `<= 3500` | none |
 | `OnCrit` | `<= 10000` | none |
-| `OnKill` | `= 10000` | none |
+| `OnKill` | `<= 10000` | none |
 | `onDamaged` | `<= 3500` | `internalCooldownTicks >= 0` (`0` allowed) |
 | `onLowHealth` | `= 10000` | `lowHealthThresholdBp` in `[2500..3500]`; `internalCooldownTicks >= 1800` |
 
@@ -228,10 +228,10 @@ If a stat family is not listed as positive in "Slot Identity Matrix" and not lis
 
 | Slot | Allowed dump families |
 |---|---|
-| `mainWeapon` (Sword) | `healthBonusBp`, `defenseBonusBp`, `manaRegenBonusBp` |
+| `mainWeapon` (Sword) | `healthBonusBp`, `staminaBonusBp`, `defenseBonusBp`, `manaRegenBonusBp` |
 | `offhandWeapon` (Shield) | `moveSpeedBonusBp`, `globalPowerBonusBp`, `globalCritChanceBonusBp` |
 | `spellBook` | `staminaBonusBp`, `staminaRegenBonusBp`, `healthRegenBonusBp` |
-| `accessory` | `manaBonusBp`, `cooldownReductionBp`, typed resistance (`*ResistanceBp`) |
+| `accessory` | Any non-proc stat family |
 
 #### Hard Floors for Negative Stats (Per Item)
 

@@ -258,7 +258,7 @@ void main() {
     );
 
     test('two-handed primary with off-hand equipped should fail', () {
-      // Use mock catalog that defines graveglass as Two-Handed.
+      // Use mock catalog that defines stormneedle as Two-Handed.
       final mockValidator = LoadoutValidator(
         abilityCatalog: abilityCatalog,
         weaponCatalog: const MockWeaponCatalog(),
@@ -267,7 +267,7 @@ void main() {
       );
 
       const loadout = EquippedLoadoutDef(
-        mainWeaponId: WeaponId.graveglass, // Mocked as 2H
+        mainWeaponId: WeaponId.stormneedle, // Mocked as 2H
         offhandWeaponId: WeaponId.roadguard, // Conflict!
         abilityPrimaryId: 'eloise.bloodletter_slash',
       );
@@ -287,9 +287,9 @@ class MockWeaponCatalog implements WeaponCatalog {
 
   @override
   WeaponDef? tryGet(WeaponId id) {
-    if (id == WeaponId.graveglass) {
+    if (id == WeaponId.stormneedle) {
       return const WeaponDef(
-        id: WeaponId.graveglass,
+        id: WeaponId.stormneedle,
         category: WeaponCategory.primary,
         weaponType: WeaponType.oneHandedSword,
         isTwoHanded: true,

@@ -40,9 +40,9 @@ void main() {
 
     test('slot descriptions are resolved from UI mappings', () {
       expect(
-        gearDescriptionForSlot(GearSlot.mainWeapon, WeaponId.graveglass),
+        gearDescriptionForSlot(GearSlot.mainWeapon, WeaponId.nullblade),
         equals(
-          'High-risk amplifier with extra global power and lower defense.',
+          'Anti-caster sword that can silence on hit.',
         ),
       );
       expect(

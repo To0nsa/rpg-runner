@@ -77,7 +77,7 @@ Stable weapon catalog IDs for main-hand and off-hand loadout slots.
 
 Current IDs:
 
-- primary (`WeaponCategory.primary`): `plainsteel`, `waspfang`, `cinderedge`, `basiliskKiss`, `frostbrand`, `stormneedle`, `nullblade`, `sunlitVow`, `graveglass`, `duelistsOath`
+- primary (`WeaponCategory.primary`): `plainsteel`, `waspfang`, `cinderedge`, `basiliskKiss`, `frostbrand`, `stormneedle`, `nullblade`, `sunlitVow`
 - offhand (`WeaponCategory.offHand`): `roadguard`, `thornbark`, `cinderWard`, `tideguardShell`, `frostlockBuckler`, `ironBastion`, `stormAegis`, `nullPrism`, `warbannerGuard`, `oathwallRelic`
 
 Contract notes:

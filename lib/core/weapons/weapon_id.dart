@@ -12,8 +12,6 @@ enum WeaponId {
   stormneedle,
   nullblade,
   sunlitVow,
-  graveglass,
-  duelistsOath,
   roadguard,
   thornbark,
   cinderWard,

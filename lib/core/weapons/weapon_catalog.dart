@@ -24,7 +24,7 @@ class WeaponCatalog {
           weaponType: WeaponType.oneHandedSword,
           stats: GearStatBonuses(
             globalPowerBonusBp: 1500,
-            globalCritChanceBonusBp: 500,
+            globalCritChanceBonusBp: 1000,
             staminaBonusBp: 1000,
             defenseBonusBp: -500,
           ),
@@ -38,12 +38,11 @@ class WeaponCatalog {
             WeaponProc(
               hook: ProcHook.onHit,
               statusProfileId: StatusProfileId.meleeBleed,
-              chanceBp: 3500,
+              chanceBp: 2000,
             ),
           ],
           stats: GearStatBonuses(
-            globalPowerBonusBp: 1000,
-            staminaBonusBp: 1500,
+            globalPowerBonusBp: 500,
             healthBonusBp: -500,
           ),
         );
@@ -55,12 +54,11 @@ class WeaponCatalog {
           procs: <WeaponProc>[
             WeaponProc(
               hook: ProcHook.onCrit,
-              statusProfileId: StatusProfileId.stunOnHit,
-              chanceBp: 2000,
+              statusProfileId: StatusProfileId.burnOnHit,
+              chanceBp: 10000,
             ),
           ],
           stats: GearStatBonuses(
-            globalPowerBonusBp: 500,
             globalCritChanceBonusBp: 1000,
             manaRegenBonusBp: -500,
           ),
@@ -70,11 +68,16 @@ class WeaponCatalog {
           id: WeaponId.basiliskKiss,
           category: WeaponCategory.primary,
           weaponType: WeaponType.oneHandedSword,
+          procs: <WeaponProc>[
+            WeaponProc(
+              hook: ProcHook.onHit,
+              statusProfileId: StatusProfileId.acidOnHit,
+              chanceBp: 2000,
+            ),
+          ],
           stats: GearStatBonuses(
-            globalPowerBonusBp: 1500,
-            globalCritChanceBonusBp: 500,
             staminaRegenBonusBp: 1000,
-            healthBonusBp: -1000,
+            healthBonusBp: -500,
           ),
         );
       case WeaponId.frostbrand:
@@ -82,10 +85,15 @@ class WeaponCatalog {
           id: WeaponId.frostbrand,
           category: WeaponCategory.primary,
           weaponType: WeaponType.oneHandedSword,
+          procs: <WeaponProc>[
+            WeaponProc(
+              hook: ProcHook.onHit,
+              statusProfileId: StatusProfileId.slowOnHit,
+              chanceBp: 2000,
+            ),
+          ],
           stats: GearStatBonuses(
             globalPowerBonusBp: 1000,
-            staminaBonusBp: 2000,
-            staminaRegenBonusBp: 500,
             defenseBonusBp: -500,
           ),
         );
@@ -106,11 +114,16 @@ class WeaponCatalog {
           id: WeaponId.nullblade,
           category: WeaponCategory.primary,
           weaponType: WeaponType.oneHandedSword,
+          procs: <WeaponProc>[
+            WeaponProc(
+              hook: ProcHook.onHit,
+              statusProfileId: StatusProfileId.silenceOnHit,
+              chanceBp: 2000,
+            ),
+          ],
           stats: GearStatBonuses(
-            globalPowerBonusBp: 500,
             globalCritChanceBonusBp: 1000,
-            staminaBonusBp: 1000,
-            defenseBonusBp: -1000,
+            staminaBonusBp: -500,
           ),
         );
       case WeaponId.sunlitVow:
@@ -121,38 +134,14 @@ class WeaponCatalog {
           procs: <WeaponProc>[
             WeaponProc(
               hook: ProcHook.onKill,
-              statusProfileId: StatusProfileId.speedBoost,
-              chanceBp: 10000,
+              statusProfileId: StatusProfileId.focus,
+              chanceBp: 3500,
             ),
           ],
           stats: GearStatBonuses(
             globalPowerBonusBp: 1000,
             staminaRegenBonusBp: 1000,
             healthBonusBp: -500,
-          ),
-        );
-      case WeaponId.graveglass:
-        return const WeaponDef(
-          id: WeaponId.graveglass,
-          category: WeaponCategory.primary,
-          weaponType: WeaponType.oneHandedSword,
-          stats: GearStatBonuses(
-            globalPowerBonusBp: 1500,
-            globalCritChanceBonusBp: 1000,
-            staminaBonusBp: 500,
-            defenseBonusBp: -1000,
-          ),
-        );
-      case WeaponId.duelistsOath:
-        return const WeaponDef(
-          id: WeaponId.duelistsOath,
-          category: WeaponCategory.primary,
-          weaponType: WeaponType.oneHandedSword,
-          stats: GearStatBonuses(
-            globalCritChanceBonusBp: 1000,
-            staminaBonusBp: 2000,
-            staminaRegenBonusBp: 500,
-            manaRegenBonusBp: -500,
           ),
         );
       case WeaponId.roadguard:
@@ -182,7 +171,6 @@ class WeaponCatalog {
           ],
           stats: GearStatBonuses(
             defenseBonusBp: 1000,
-            bleedResistanceBp: 2000,
             globalPowerBonusBp: -500,
           ),
         );
@@ -194,7 +182,6 @@ class WeaponCatalog {
           stats: GearStatBonuses(
             fireResistanceBp: 2500,
             defenseBonusBp: 1000,
-            staminaRegenBonusBp: 500,
             globalCritChanceBonusBp: -500,
           ),
         );
@@ -243,7 +230,7 @@ class WeaponCatalog {
             thunderResistanceBp: 2500,
             defenseBonusBp: 500,
             staminaRegenBonusBp: 1000,
-            globalCritChanceBonusBp: -1000,
+            globalCritChanceBonusBp: -500,
           ),
         );
       case WeaponId.nullPrism:
@@ -287,7 +274,6 @@ class WeaponCatalog {
           ],
           stats: GearStatBonuses(
             defenseBonusBp: 1500,
-            holyResistanceBp: 1000,
             globalPowerBonusBp: -1000,
           ),
         );

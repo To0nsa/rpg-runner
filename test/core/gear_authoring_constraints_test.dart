@@ -298,11 +298,19 @@ void _expectStatTemplate({
   required int negativeCount,
 }) {
   if (hasProc) {
-    expect(positiveCount, 2, reason: '$id positive-count');
+    expect(
+      positiveCount >= 1 && positiveCount <= 2,
+      isTrue,
+      reason: '$id positive-count',
+    );
     expect(negativeCount, 1, reason: '$id dump-count');
     return;
   }
-  expect(positiveCount, 3, reason: '$id positive-count');
+  expect(
+    positiveCount >= 2 && positiveCount <= 3,
+    isTrue,
+    reason: '$id positive-count',
+  );
   expect(negativeCount, 1, reason: '$id dump-count');
 }
 
@@ -386,6 +394,7 @@ const Set<String> _primaryPositive = <String>{
 
 const Set<String> _primaryDump = <String>{
   'healthBonusBp',
+  'staminaBonusBp',
   'defenseBonusBp',
   'manaRegenBonusBp',
 };
@@ -453,12 +462,17 @@ bool _isOutgoingProcAllowed(WeaponProc proc) {
   switch (proc.hook) {
     case ProcHook.onHit:
       return proc.chanceBp <= 3500 &&
-          (family == _StatusFamily.dot || family == _StatusFamily.softControl);
+          (family == _StatusFamily.dot ||
+              family == _StatusFamily.softControl ||
+              family == _StatusFamily.debuff ||
+              family == _StatusFamily.hardCc);
     case ProcHook.onCrit:
       return proc.chanceBp <= 10000 &&
-          (family == _StatusFamily.debuff || family == _StatusFamily.hardCc);
+          (family == _StatusFamily.dot ||
+              family == _StatusFamily.debuff ||
+              family == _StatusFamily.hardCc);
     case ProcHook.onKill:
-      return proc.chanceBp == 10000 && family == _StatusFamily.selfBuff;
+      return proc.chanceBp <= 10000 && family == _StatusFamily.selfBuff;
     case ProcHook.onBlock:
       return false;
   }

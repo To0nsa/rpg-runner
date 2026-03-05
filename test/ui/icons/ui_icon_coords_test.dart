@@ -23,10 +23,9 @@ void main() {
       expect(sunlitVow.coords?.col, 4);
     });
 
-    test('maps dedicated sword png assets', () {
+    test('maps dedicated weapon png assets', () {
       final waspfang = uiIconSpecForWeapon(WeaponId.waspfang);
-      final graveglass = uiIconSpecForWeapon(WeaponId.graveglass);
-      final duelistsOath = uiIconSpecForWeapon(WeaponId.duelistsOath);
+      final roadguard = uiIconSpecForWeapon(WeaponId.roadguard);
 
       expect(waspfang.coords, isNull);
       expect(
@@ -34,12 +33,8 @@ void main() {
         'assets/images/icons/gear-icons/sword/waspfang.png',
       );
       expect(
-        graveglass.imageAssetPath,
-        'assets/images/icons/gear-icons/sword/graveglass.png',
-      );
-      expect(
-        duelistsOath.imageAssetPath,
-        'assets/images/icons/gear-icons/sword/duelistsOath.png',
+        roadguard.imageAssetPath,
+        'assets/images/icons/gear-icons/shields/roadguard.png',
       );
     });
   });

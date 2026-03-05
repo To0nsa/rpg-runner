@@ -43,15 +43,15 @@ Primary knobs:
 | # | Shield | Role | Positive Stats (bp) | Dump (bp) | Proc | Tradeoff |
 |---|---|---|---|---|---|---|
 | 1 | `Roadguard` | baseline all-rounder | `defense +1500`, `stamina +1500`, `physicalRes +1000` | `moveSpeed -500` | none | steady baseline with no reactive spike |
-| 2 | `Thornbark` | melee attrition punish | `defense +1000`, `bleedRes +2000` | `globalPower -500` | `onDamaged -> bleed` at `35%` | lower outgoing pressure from permanent power dump |
-| 3 | `Cinder Ward` | fire encounter counterpick | `fireRes +2500`, `defense +1000`, `staminaRegen +500` | `globalCritChance -500` | none | no reactive utility and reduced crit scaling |
+| 2 | `Thornbark` | melee attrition punish | `defense +1000` | `globalPower -500` | `onDamaged -> bleed` at `35%` | lower outgoing pressure from permanent power dump |
+| 3 | `Cinder Ward` | fire encounter counterpick | `fireRes +2500`, `defense +1000` | `globalCritChance -500` | none | no reactive utility and reduced crit scaling |
 | 4 | `Tideguard Shell` | stamina-backed elemental stabilizer | `waterRes +2000`, `stamina +1500`, `defense +500` | `globalPower -500` | none | lower direct offense with moderate armor |
 | 5 | `Frostlock Buckler` | balanced cold matchup pick | `iceRes +2000`, `defense +1000`, `stamina +1000` | `globalCritChance -500` | none | no clutch proc and crit tax |
 | 6 | `Iron Bastion` | pure soak anchor | `defense +1500`, `physicalRes +1500`, `staminaRegen +1000` | `moveSpeed -1000` | none | strongest soak tax comes from heavy mobility loss |
-| 7 | `Storm Aegis` | thunder-heavy counterpick | `thunderRes +2500`, `defense +500`, `staminaRegen +1000` | `globalCritChance -1000` | none | high crit dump and no reactive clutch effect |
+| 7 | `Storm Aegis` | thunder-heavy counterpick | `thunderRes +2500`, `defense +500`, `staminaRegen +1000` | `globalCritChance -500` | none | moderate crit dump and no reactive clutch effect |
 | 8 | `Null Prism` | dual dark/holy resist pick | `darkRes +2000`, `holyRes +1500`, `defense +500` | `moveSpeed -500` | none | mobility tax for dual-resist coverage |
 | 9 | `Warbanner Guard` | stamina-forward frontline guard | `defense +1000`, `stamina +2000`, `bleedRes +500` | `globalCritChance -1000` | none | large crit dump, no reactive upside |
-| 10 | `Oathwall Relic` | high-risk clutch survivability | `defense +1500`, `holyRes +1000` | `globalPower -1000` | `onLowHealth -> haste` at `100%` (`30s` internal cooldown) | strongest panic safety at a permanent power tax |
+| 10 | `Oathwall Relic` | high-risk clutch survivability | `defense +1500` | `globalPower -1000` | `onLowHealth -> haste` at `100%` (`30s` internal cooldown) | strongest panic safety at a permanent power tax |
 
 ## Identity Coverage Check
 

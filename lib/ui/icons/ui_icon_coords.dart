@@ -69,12 +69,6 @@ UiWeaponIconSpec uiIconSpecForWeapon(WeaponId id) {
       coords: UiIconCoords(5, 4),
       spriteAssetPath: _swordUiSpritePath,
     ),
-    WeaponId.graveglass => const UiWeaponIconSpec.image(
-      'assets/images/icons/gear-icons/sword/graveglass.png',
-    ),
-    WeaponId.duelistsOath => const UiWeaponIconSpec.image(
-      'assets/images/icons/gear-icons/sword/duelistsOath.png',
-    ),
     WeaponId.roadguard => const UiWeaponIconSpec.image(
       '${_shieldIconBasePath}roadguard.png',
     ),

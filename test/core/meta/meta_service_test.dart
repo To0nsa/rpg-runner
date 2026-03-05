@@ -83,9 +83,9 @@ void main() {
       final inventory = meta.inventory;
 
       expect(inventory.unlockedWeaponIds.contains(WeaponId.plainsteel), isTrue);
-      expect(inventory.unlockedWeaponIds.contains(WeaponId.graveglass), isTrue);
+      expect(inventory.unlockedWeaponIds.contains(WeaponId.stormneedle), isTrue);
       expect(
-        inventory.unlockedWeaponIds.contains(WeaponId.duelistsOath),
+        inventory.unlockedWeaponIds.contains(WeaponId.nullblade),
         isTrue,
       );
       expect(inventory.unlockedWeaponIds.contains(WeaponId.roadguard), isTrue);
@@ -115,7 +115,7 @@ void main() {
     final inventory = normalized.inventory;
 
     expect(inventory.unlockedWeaponIds.contains(WeaponId.plainsteel), isTrue);
-    expect(inventory.unlockedWeaponIds.contains(WeaponId.graveglass), isTrue);
+    expect(inventory.unlockedWeaponIds.contains(WeaponId.stormneedle), isTrue);
     expect(
       inventory.unlockedWeaponIds.contains(WeaponId.oathwallRelic),
       isTrue,
@@ -166,8 +166,8 @@ void main() {
       expect(unlocked.contains(WeaponId.stormneedle), isTrue);
       expect(unlocked.contains(WeaponId.nullblade), isTrue);
       expect(unlocked.contains(WeaponId.sunlitVow), isTrue);
-      expect(unlocked.contains(WeaponId.graveglass), isTrue);
-      expect(unlocked.contains(WeaponId.duelistsOath), isTrue);
+      expect(unlocked.contains(WeaponId.stormneedle), isTrue);
+      expect(unlocked.contains(WeaponId.nullblade), isTrue);
       expect(unlocked.contains(WeaponId.roadguard), isTrue);
       expect(unlocked.contains(WeaponId.thornbark), isTrue);
       expect(unlocked.contains(WeaponId.cinderWard), isTrue);
@@ -190,8 +190,8 @@ void main() {
     final meta = service.createNew();
 
     final mainCandidates = service.candidatesForSlot(meta, GearSlot.mainWeapon);
-    final graveglass = mainCandidates.firstWhere(
-      (candidate) => candidate.id == WeaponId.graveglass,
+    final stormneedle = mainCandidates.firstWhere(
+      (candidate) => candidate.id == WeaponId.stormneedle,
     );
     final plainsteel = mainCandidates.firstWhere(
       (candidate) => candidate.id == WeaponId.plainsteel,
@@ -204,7 +204,7 @@ void main() {
       (candidate) => candidate.id == WeaponId.oathwallRelic,
     );
 
-    expect(graveglass.isUnlocked, isTrue);
+    expect(stormneedle.isUnlocked, isTrue);
     expect(plainsteel.isUnlocked, isTrue);
     expect(rosterShield.isUnlocked, isTrue);
   });

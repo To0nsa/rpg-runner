@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define a 10-sword, one-handed roster for the vertical slice with clear build identities and explicit tradeoffs so no single sword becomes universal best-in-slot.
+Define an 8-sword, one-handed roster for the vertical slice with clear build identities and explicit tradeoffs so no single sword becomes universal best-in-slot.
 
 ## Design Targets
 
@@ -43,29 +43,26 @@ Primary knobs:
 
 | # | Sword | Role | Positive Stats (bp) | Dump (bp) | Proc | Tradeoff |
 |---|---|---|---|---|---|---|
-| 1 | `Plainsteel` | baseline consistency | `globalPower +1500`, `globalCrit +500`, `stamina +1000` | `defense -500` | none | no proc upside; accepts a small defense dump for stable offense |
-| 2 | `Waspfang` | bleed pressure | `globalPower +1000`, `stamina +1500` | `health -500` | `onHit -> bleed` at `35%` | lower raw stat density than no-proc swords |
-| 3 | `Cinderedge` | crit-gated control spike | `globalPower +500`, `globalCrit +1000` | `manaRegen -500` | `onCrit -> stun` at `20%` | control value is crit-dependent and carries regen tax |
-| 4 | `Basilisk Kiss` | sustained duel profile | `globalPower +1500`, `globalCrit +500`, `staminaRegen +1000` | `health -1000` | none | large health dump for high sustained stats |
-| 5 | `Frostbrand` | stamina-heavy tempo baseline | `globalPower +1000`, `stamina +2000`, `staminaRegen +500` | `defense -500` | none | no reactive/control proc utility |
-| 6 | `Stormneedle` | crit-forward mobility loop support | `globalCrit +1000`, `stamina +1500`, `staminaRegen +500` | `health -500` | none | lower direct power scaling than power-heavy swords |
-| 7 | `Nullblade` | high-crit skirmish blade | `globalPower +500`, `globalCrit +1000`, `stamina +1000` | `defense -1000` | none | steep defense dump to hold offense stats |
-| 8 | `Sunlit Vow` | kill-chain momentum | `globalPower +1000`, `staminaRegen +1000` | `health -500` | `onKill -> haste` at `100%` | kill-gated value with lower baseline stat breadth |
-| 9 | `Graveglass` | high-risk amplifier | `globalPower +1500`, `globalCrit +1000`, `stamina +500` | `defense -1000` | none | strong offense profile with heavy defense tax |
-| 10 | `Duelist's Oath` | crit/stamina endurance profile | `globalCrit +1000`, `stamina +2000`, `staminaRegen +500` | `manaRegen -500` | none | no proc ceiling; carries regen dump |
+| 1 | `Plainsteel` | baseline consistency | `globalPower +1500`, `globalCrit +1000`, `stamina +1000` | `defense -500` | none | no proc upside; accepts a small defense dump for stable offense |
+| 2 | `Waspfang` | bleed pressure | `globalPower +500` | `health -500` | `onHit -> bleed` at `20%` | lower raw stat density than no-proc swords |
+| 3 | `Cinderedge` | crit-gated burn pressure | `globalCrit +1000` | `manaRegen -500` | `onCrit -> burn` at `100%` | proc value is crit-gated and carries regen tax |
+| 4 | `Basilisk Kiss` | anti-tank corrosion pressure | `staminaRegen +1000` | `health -500` | `onHit -> acid` at `20%` | lower max health for sustained vulnerability pressure |
+| 5 | `Frostbrand` | control skirmish profile | `globalPower +1000` | `defense -500` | `onHit -> slow` at `20%` | lighter stat package than non-proc offense swords |
+| 6 | `Stormneedle` | crit/stamina sustain profile | `globalCrit +1000`, `stamina +1500`, `staminaRegen +500` | `health -500` | none | no proc utility despite strong sustained stat loop |
+| 7 | `Nullblade` | anti-caster disruptor | `globalCrit +1000` | `stamina -500` | `onHit -> silence` at `20%` | control utility comes at stamina comfort cost |
+| 8 | `Sunlit Vow` | kill-chain offense spike | `globalPower +1000`, `staminaRegen +1000` | `health -500` | `onKill -> focus` at `35%` | kill-gated offensive spike with lower baseline durability |
 
 ## Identity Coverage Check
 
 The roster intentionally covers the major build identities:
 
 - Baseline consistency: `Plainsteel`
-- Proc pressure/control: `Waspfang`, `Cinderedge`, `Sunlit Vow`
-- No-proc stat anchors: `Basilisk Kiss`, `Frostbrand`, `Stormneedle`
-- Risk-reward offense: `Nullblade`, `Graveglass`
-- Crit/stamina endurance: `Duelist's Oath`
+- Proc pressure/control: `Waspfang`, `Cinderedge`, `Basilisk Kiss`, `Frostbrand`, `Nullblade`, `Sunlit Vow`
+- No-proc stat anchor: `Stormneedle`
+- Kill-chain offense spike: `Sunlit Vow`
 
 ## Implementation Notes
 
 - Keep sword identity in data (`GearDef` stats + proc hooks), not hardcoded behavior branches.
 - Proc hooks are intentionally sparse in V1 to satisfy hard authoring constraints.
-- Reuse existing status profiles (`bleed`, `stun`, `haste`) for deterministic behavior.
+- Reuse existing status profiles (`bleed`, `burn`, `acid`, `slow`, `silence`, `focus`) for deterministic behavior.

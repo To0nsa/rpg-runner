@@ -12,8 +12,8 @@ void main() {
       final typeLine = lines.where((line) => line.label == 'Type');
       final procHookLine = lines.where((line) => line.label == 'On Crit');
       expect(typeLine, isEmpty);
-      expect(procHookLine.single.value, contains('Applies Stun'));
-      expect(procHookLine.single.value, contains('20%'));
+      expect(procHookLine.single.value, contains('Applies Burn'));
+      expect(procHookLine.single.value, contains('5 seconds'));
       expect(lines.last.label, equals('On Crit'));
     });
 
@@ -44,7 +44,8 @@ void main() {
     test('on kill line shows effect details', () {
       final lines = gearStatsFor(GearSlot.mainWeapon, WeaponId.sunlitVow);
       final onKillLine = lines.where((line) => line.label == 'On Kill');
-      expect(onKillLine.single.value, contains('Haste'));
+      expect(onKillLine.single.value, contains('Offense Buff'));
+      expect(onKillLine.single.value, contains('35% chance'));
       expect(onKillLine.single.value, contains('5 seconds'));
     });
 
@@ -101,14 +102,14 @@ void main() {
       expect(
         onCritLine.highlights.any(
           (entry) =>
-              entry.token == 'Stun' && entry.tone == GearStatLineTone.negative,
+              entry.token == 'Burn' && entry.tone == GearStatLineTone.negative,
         ),
         isTrue,
       );
       expect(
         onCritLine.highlights.any(
           (entry) =>
-              entry.token == '20%' && entry.tone == GearStatLineTone.negative,
+              entry.token == '3' && entry.tone == GearStatLineTone.negative,
         ),
         isTrue,
       );
@@ -122,14 +123,15 @@ void main() {
       expect(
         onKillLine.highlights.any(
           (entry) =>
-              entry.token == 'Haste' && entry.tone == GearStatLineTone.positive,
+              entry.token == 'Offense Buff' &&
+              entry.tone == GearStatLineTone.positive,
         ),
         isTrue,
       );
       expect(
         onKillLine.highlights.any(
           (entry) =>
-              entry.token == '50%' && entry.tone == GearStatLineTone.positive,
+              entry.token == '25%' && entry.tone == GearStatLineTone.positive,
         ),
         isTrue,
       );

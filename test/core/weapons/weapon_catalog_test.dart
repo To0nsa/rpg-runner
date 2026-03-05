@@ -12,7 +12,7 @@ void main() {
     test('plainsteel baseline stats', () {
       final def = catalog.get(WeaponId.plainsteel);
       expect(def.stats.globalPowerBonusBp, 1500);
-      expect(def.stats.globalCritChanceBonusBp, 500);
+      expect(def.stats.globalCritChanceBonusBp, 1000);
       expect(def.stats.staminaBonusBp, 1000);
       expect(def.stats.defenseBonusBp, -500);
       expect(def.procs, isEmpty);
@@ -22,40 +22,39 @@ void main() {
       final waspfang = catalog.get(WeaponId.waspfang);
       expect(waspfang.procs.single.hook, ProcHook.onHit);
       expect(waspfang.procs.single.statusProfileId, StatusProfileId.meleeBleed);
-      expect(waspfang.procs.single.chanceBp, 3500);
+      expect(waspfang.procs.single.chanceBp, 2000);
 
       final cinderedge = catalog.get(WeaponId.cinderedge);
       expect(cinderedge.procs.single.hook, ProcHook.onCrit);
       expect(
         cinderedge.procs.single.statusProfileId,
-        StatusProfileId.stunOnHit,
+        StatusProfileId.burnOnHit,
       );
-      expect(cinderedge.procs.single.chanceBp, 2000);
+      expect(cinderedge.procs.single.chanceBp, 10000);
 
       final sunlitVow = catalog.get(WeaponId.sunlitVow);
       expect(sunlitVow.procs.single.hook, ProcHook.onKill);
       expect(
         sunlitVow.procs.single.statusProfileId,
-        StatusProfileId.speedBoost,
+        StatusProfileId.focus,
       );
-      expect(sunlitVow.procs.single.chanceBp, 10000);
+      expect(sunlitVow.procs.single.chanceBp, 3500);
 
-      final graveglass = catalog.get(WeaponId.graveglass);
-      expect(graveglass.procs, isEmpty);
+      final stormneedle = catalog.get(WeaponId.stormneedle);
+      expect(stormneedle.procs, isEmpty);
     });
 
     test('non-proc swords include dump tradeoffs', () {
-      final basiliskKiss = catalog.get(WeaponId.basiliskKiss);
-      expect(basiliskKiss.procs, isEmpty);
-      expect(basiliskKiss.stats.globalPowerBonusBp, 1500);
-      expect(basiliskKiss.stats.staminaRegenBonusBp, 1000);
-      expect(basiliskKiss.stats.healthBonusBp, -1000);
+      final plainsteel = catalog.get(WeaponId.plainsteel);
+      expect(plainsteel.procs, isEmpty);
+      expect(plainsteel.stats.globalPowerBonusBp, 1500);
+      expect(plainsteel.stats.defenseBonusBp, -500);
 
-      final duelistsOath = catalog.get(WeaponId.duelistsOath);
-      expect(duelistsOath.procs, isEmpty);
-      expect(duelistsOath.stats.globalCritChanceBonusBp, 1000);
-      expect(duelistsOath.stats.staminaBonusBp, 2000);
-      expect(duelistsOath.stats.manaRegenBonusBp, -500);
+      final stormneedle = catalog.get(WeaponId.stormneedle);
+      expect(stormneedle.procs, isEmpty);
+      expect(stormneedle.stats.globalCritChanceBonusBp, 1000);
+      expect(stormneedle.stats.staminaBonusBp, 1500);
+      expect(stormneedle.stats.healthBonusBp, -500);
     });
 
     test('roadguard baseline shield values', () {
@@ -68,6 +67,22 @@ void main() {
       expect(roadguard.stats.moveSpeedBonusBp, -500);
     });
 
+    test('shield stat variants match authored values', () {
+      final cinderWard = catalog.get(WeaponId.cinderWard);
+      expect(cinderWard.stats.fireResistanceBp, 2500);
+      expect(cinderWard.stats.defenseBonusBp, 1000);
+      expect(cinderWard.stats.globalCritChanceBonusBp, -500);
+
+      final stormAegis = catalog.get(WeaponId.stormAegis);
+      expect(stormAegis.stats.thunderResistanceBp, 2500);
+      expect(stormAegis.stats.staminaRegenBonusBp, 1000);
+      expect(stormAegis.stats.globalCritChanceBonusBp, -500);
+
+      final oathwall = catalog.get(WeaponId.oathwallRelic);
+      expect(oathwall.stats.defenseBonusBp, 1500);
+      expect(oathwall.stats.globalPowerBonusBp, -1000);
+    });
+
     test('thornbark and oathwall define shield reactive hooks', () {
       final thornbark = catalog.get(WeaponId.thornbark);
       final onDamaged = thornbark.reactiveProcs.singleWhere(
@@ -76,6 +91,8 @@ void main() {
       expect(onDamaged.statusProfileId, StatusProfileId.meleeBleed);
       expect(onDamaged.target, ReactiveProcTarget.attacker);
       expect(onDamaged.chanceBp, 3500);
+      expect(thornbark.stats.defenseBonusBp, 1000);
+      expect(thornbark.stats.globalPowerBonusBp, -500);
 
       final oathwall = catalog.get(WeaponId.oathwallRelic);
       final onLowHealth = oathwall.reactiveProcs.singleWhere(

@@ -185,8 +185,6 @@ const Map<WeaponId, String> _weaponDisplayNameOverrides = <WeaponId, String>{
   WeaponId.stormneedle: 'Stormneedle',
   WeaponId.nullblade: 'Nullblade',
   WeaponId.sunlitVow: 'Sunlit Vow',
-  WeaponId.graveglass: 'Graveglass',
-  WeaponId.duelistsOath: "Duelist's Oath",
   WeaponId.roadguard: 'Roadguard',
   WeaponId.thornbark: 'Thornbark',
   WeaponId.cinderWard: 'Cinder Ward',
@@ -206,30 +204,27 @@ const Map<WeaponId, String> _weaponDescriptionOverrides = <WeaponId, String>{
   WeaponId.basiliskKiss:
       'Anti-tank sword that trades burst for acid vulnerability pressure.',
   WeaponId.frostbrand: 'Control sword that applies slows for safer tempo.',
-  WeaponId.stormneedle: 'Low-frequency stun sword built around clutch control.',
+  WeaponId.stormneedle:
+      'Sustained crit/stamina sword with regen and a health tradeoff.',
   WeaponId.nullblade: 'Anti-caster sword that can silence on hit.',
   WeaponId.sunlitVow:
-      'Sustain sword that grants haste on kills and boosts defense.',
-  WeaponId.graveglass:
-      'High-risk amplifier with extra global power and lower defense.',
-  WeaponId.duelistsOath:
-      "Skill sword that rewards crit consistency with weaken windows.",
+      'Kill-chain sword that can grant Focus and boosts sustained pressure.',
   WeaponId.roadguard: 'Baseline all-rounder shield with dependable defense.',
   WeaponId.thornbark: 'Retaliation shield that bleeds attackers on damage.',
   WeaponId.cinderWard:
-      'Fire-counter shield that can burn attackers when struck.',
+      'Fire-counter shield with defense and a crit-scaling dump.',
   WeaponId.tideguardShell:
-      'Caster pressure stabilizer with water resistance and retaliation silence.',
+      'Water-stabilizer shield with stamina support and power tax.',
   WeaponId.frostlockBuckler:
-      'Peel shield that slows attackers and improves mobility.',
+      'Cold matchup shield with balanced defense and stamina.',
   WeaponId.ironBastion:
       'Heavy face-tank shield with the strongest soak and lower mobility.',
   WeaponId.stormAegis:
-      'Reactive anti-burst shield that can grant haste when damaged.',
+      'Thunder counterpick shield with regen and a crit dump.',
   WeaponId.nullPrism:
-      'Anti-caster shield with dark/holy resistance and silence retaliation.',
+      'Dual dark/holy resist shield that trades mobility for coverage.',
   WeaponId.warbannerGuard:
-      'Aggressive tempo shield that grants haste on payload-sourced kills.',
+      'Stamina-forward frontline shield with a heavy crit dump.',
   WeaponId.oathwallRelic:
       'Clutch survival shield with low-health haste and permanent offense tax.',
 };
