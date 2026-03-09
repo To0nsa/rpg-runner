@@ -105,7 +105,7 @@ List<GearStatLine> _weaponDefStats(WeaponDef def) {
   _addCoreStatLines(lines, stats);
   lines.addAll(_buildProcHookLines(def.procs));
   lines.addAll(_buildReactiveProcHookLines(def.reactiveProcs));
-  return lines;
+  return _withNegativeLinesFirst(lines);
 }
 
 List<GearStatLine> _spellBookStats(SpellBookDef def) {
@@ -113,7 +113,7 @@ List<GearStatLine> _spellBookStats(SpellBookDef def) {
   final lines = <GearStatLine>[];
   _addCoreStatLines(lines, stats);
   lines.addAll(_buildProcHookLines(def.procs));
-  return lines;
+  return _withNegativeLinesFirst(lines);
 }
 
 List<GearStatLine> _accessoryStats(AccessoryDef def) {
@@ -121,7 +121,22 @@ List<GearStatLine> _accessoryStats(AccessoryDef def) {
   final lines = <GearStatLine>[];
   _addCoreStatLines(lines, stats);
   lines.addAll(_buildReactiveProcHookLines(def.reactiveProcs));
-  return lines;
+  return _withNegativeLinesFirst(lines);
+}
+
+List<GearStatLine> _withNegativeLinesFirst(List<GearStatLine> lines) {
+  if (lines.length < 2) return lines;
+  final negatives = <GearStatLine>[];
+  final others = <GearStatLine>[];
+  for (final line in lines) {
+    if (line.tone == GearStatLineTone.negative) {
+      negatives.add(line);
+      continue;
+    }
+    others.add(line);
+  }
+  if (negatives.isEmpty) return lines;
+  return <GearStatLine>[...negatives, ...others];
 }
 
 void _addBpStat(List<GearStatLine> lines, String label, int value) {

@@ -94,6 +94,20 @@ void main() {
       expect(defenseLine.tone, GearStatLineTone.negative);
     });
 
+    test('base stats place negative lines before positive lines', () {
+      final lines = gearStatsFor(GearSlot.offhandWeapon, WeaponId.roadguard);
+      final firstPositiveIndex = lines.indexWhere(
+        (line) => line.tone == GearStatLineTone.positive,
+      );
+      final lastNegativeIndex = lines.lastIndexWhere(
+        (line) => line.tone == GearStatLineTone.negative,
+      );
+
+      expect(lastNegativeIndex, greaterThanOrEqualTo(0));
+      expect(firstPositiveIndex, greaterThanOrEqualTo(0));
+      expect(lastNegativeIndex, lessThan(firstPositiveIndex));
+    });
+
     test('negative status lines expose negative highlight tokens', () {
       final lines = gearStatsFor(GearSlot.mainWeapon, WeaponId.cinderedge);
       final onCritLine = lines.firstWhere((line) => line.label == 'On Crit');
