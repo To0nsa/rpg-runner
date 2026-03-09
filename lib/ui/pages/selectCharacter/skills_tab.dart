@@ -39,11 +39,7 @@ class _SkillsBarState extends State<SkillsBar> {
   Widget build(BuildContext context) {
     final ui = context.ui;
     final appState = context.watch<AppState>();
-    final rawLoadout = appState.selection.loadoutFor(widget.characterId);
-    final loadout = normalizeLoadoutMaskForCharacter(
-      characterId: widget.characterId,
-      loadout: rawLoadout,
-    );
+    final loadout = appState.selection.loadoutFor(widget.characterId);
     final availableSlots = _availableSlotsForMask(loadout.mask);
     final selectedSlot = _selectedSlotForBuild(availableSlots);
     final spellList = appState.meta.spellListFor(widget.characterId);

@@ -70,7 +70,6 @@ class AppState extends ChangeNotifier {
     _selection = loadedSelection;
     _meta = loadedMeta;
     _profile = loadedProfile;
-    await _normalizeSelectionLoadoutsIfNeeded();
     _bootstrapped = true;
     notifyListeners();
   }
@@ -213,24 +212,6 @@ class AppState extends ChangeNotifier {
 
   void _persistProfile() {
     _profileStore.save(_profile);
-  }
-
-  Future<void> _normalizeSelectionLoadoutsIfNeeded() async {
-    var changed = false;
-    var normalizedSelection = _selection;
-    for (final characterId in PlayerCharacterId.values) {
-      final current = normalizedSelection.loadoutFor(characterId);
-      final normalized = _normalizeLoadoutForCharacter(current, characterId);
-      if (_sameLoadout(current, normalized)) continue;
-      normalizedSelection = normalizedSelection.withLoadoutFor(
-        characterId,
-        normalized,
-      );
-      changed = true;
-    }
-    if (!changed) return;
-    _selection = normalizedSelection;
-    await _selectionStore.save(_selection);
   }
 
   EquippedLoadoutDef _normalizeLoadoutForCharacter(

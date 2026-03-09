@@ -1,6 +1,7 @@
 import '../../core/ecs/stores/combat/equipped_loadout_store.dart';
 import '../../core/levels/level_id.dart';
 import '../../core/players/player_character_definition.dart';
+import '../../core/players/player_character_registry.dart';
 import '../../core/projectiles/projectile_id.dart';
 import '../../core/spellBook/spell_book_id.dart';
 import '../../core/accessories/accessory_id.dart';
@@ -23,12 +24,13 @@ class SelectionState {
 
   static const String defaultBuildName = 'Build 1';
   static const int buildNameMaxLength = 24;
+  static const int schemaVersion = 1;
 
   static final SelectionState defaults = SelectionState(
     selectedLevelId: LevelId.field,
     selectedRunType: RunType.practice,
     selectedCharacterId: PlayerCharacterId.eloise,
-    loadoutsByCharacter: _seedLoadoutsWith(const EquippedLoadoutDef()),
+    loadoutsByCharacter: _seedLoadoutsWithDefaults(),
     buildName: defaultBuildName,
   );
 
@@ -41,7 +43,7 @@ class SelectionState {
   bool get isCompetitive => selectedRunType == RunType.competitive;
 
   EquippedLoadoutDef loadoutFor(PlayerCharacterId id) {
-    return loadoutsByCharacter[id] ?? const EquippedLoadoutDef();
+    return loadoutsByCharacter[id] ?? _defaultLoadoutForCharacter(id);
   }
 
   SelectionState copyWith({
@@ -75,6 +77,7 @@ class SelectionState {
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
+      'schemaVersion': schemaVersion,
       'levelId': selectedLevelId.name,
       'runType': selectedRunType.name,
       'characterId': selectedCharacterId.name,
@@ -87,6 +90,16 @@ class SelectionState {
   }
 
   static SelectionState fromJson(Map<String, dynamic> json) {
+    final storedSchemaVersion = json['schemaVersion'];
+    if (storedSchemaVersion is! int || storedSchemaVersion != schemaVersion) {
+      return SelectionState.defaults;
+    }
+
+    final loadoutsRaw = json['loadoutsByCharacter'];
+    if (loadoutsRaw is! Map) {
+      return SelectionState.defaults;
+    }
+
     final levelId = _enumFromName(
       LevelId.values,
       json['levelId'] as String?,
@@ -102,19 +115,16 @@ class SelectionState {
       json['characterId'] as String?,
       PlayerCharacterId.eloise,
     );
-    final baseLoadout = json.containsKey('loadout')
-        ? _loadoutFromJson(json['loadout'])
-        : const EquippedLoadoutDef();
-    final loadouts = _seedLoadoutsWith(baseLoadout);
-    final loadoutsRaw = json['loadoutsByCharacter'];
-    if (loadoutsRaw is Map) {
-      for (final id in PlayerCharacterId.values) {
-        final raw = loadoutsRaw[id.name];
-        if (raw is Map<String, dynamic>) {
-          loadouts[id] = _loadoutFromJson(raw);
-        } else if (raw is Map) {
-          loadouts[id] = _loadoutFromJson(Map<String, dynamic>.from(raw));
-        }
+    final loadouts = _seedLoadoutsWithDefaults();
+    for (final id in PlayerCharacterId.values) {
+      final raw = loadoutsRaw[id.name];
+      if (raw is Map<String, dynamic>) {
+        loadouts[id] = _loadoutFromJson(raw, fallback: loadouts[id]!);
+      } else if (raw is Map) {
+        loadouts[id] = _loadoutFromJson(
+          Map<String, dynamic>.from(raw),
+          fallback: loadouts[id]!,
+        );
       }
     }
     final buildName = normalizeBuildName(
@@ -138,11 +148,10 @@ class SelectionState {
   }
 }
 
-Map<PlayerCharacterId, EquippedLoadoutDef> _seedLoadoutsWith(
-  EquippedLoadoutDef loadout,
-) {
+Map<PlayerCharacterId, EquippedLoadoutDef> _seedLoadoutsWithDefaults() {
   return <PlayerCharacterId, EquippedLoadoutDef>{
-    for (final id in PlayerCharacterId.values) id: loadout,
+    for (final id in PlayerCharacterId.values)
+      id: _defaultLoadoutForCharacter(id),
   };
 }
 
@@ -151,7 +160,7 @@ Map<PlayerCharacterId, EquippedLoadoutDef> _ensureLoadoutsForAllCharacters(
 ) {
   return <PlayerCharacterId, EquippedLoadoutDef>{
     for (final id in PlayerCharacterId.values)
-      id: source[id] ?? const EquippedLoadoutDef(),
+      id: source[id] ?? _defaultLoadoutForCharacter(id),
   };
 }
 
@@ -180,61 +189,69 @@ Map<String, Object?> _loadoutToJson(EquippedLoadoutDef loadout) {
   };
 }
 
-EquippedLoadoutDef _loadoutFromJson(Object? raw) {
+EquippedLoadoutDef _loadoutFromJson(
+  Object? raw, {
+  required EquippedLoadoutDef fallback,
+}) {
   if (raw is! Map) {
-    return const EquippedLoadoutDef();
+    return fallback;
   }
   final map = Map<String, dynamic>.from(raw);
   return EquippedLoadoutDef(
-    mask: map['mask'] is int ? map['mask'] as int : LoadoutSlotMask.defaultMask,
+    mask: map['mask'] is int ? map['mask'] as int : fallback.mask,
     mainWeaponId: _enumFromName(
       WeaponId.values,
       map['mainWeaponId'] as String?,
-      WeaponId.plainsteel,
+      fallback.mainWeaponId,
     ),
     offhandWeaponId: _enumFromName(
       WeaponId.values,
       map['offhandWeaponId'] as String?,
-      WeaponId.roadguard,
+      fallback.offhandWeaponId,
     ),
     spellBookId: _enumFromName(
       SpellBookId.values,
       map['spellBookId'] as String?,
-      SpellBookId.apprenticePrimer,
+      fallback.spellBookId,
     ),
     projectileSlotSpellId: _enumFromName(
       ProjectileId.values,
       map['projectileSlotSpellId'] as String?,
-      const EquippedLoadoutDef().projectileSlotSpellId,
+      fallback.projectileSlotSpellId,
     ),
     accessoryId: _enumFromName(
       AccessoryId.values,
-      _migrateAccessoryName(map['accessoryId'] as String?),
-      AccessoryId.strengthBelt,
+      map['accessoryId'] as String?,
+      fallback.accessoryId,
     ),
     abilityPrimaryId:
-        (map['abilityPrimaryId'] as String?) ??
-        const EquippedLoadoutDef().abilityPrimaryId,
+        (map['abilityPrimaryId'] as String?) ?? fallback.abilityPrimaryId,
     abilitySecondaryId:
-        (map['abilitySecondaryId'] as String?) ??
-        const EquippedLoadoutDef().abilitySecondaryId,
+        (map['abilitySecondaryId'] as String?) ?? fallback.abilitySecondaryId,
     abilityProjectileId:
-        (map['abilityProjectileId'] as String?) ??
-        const EquippedLoadoutDef().abilityProjectileId,
+        (map['abilityProjectileId'] as String?) ?? fallback.abilityProjectileId,
     abilitySpellId:
-        (map['abilitySpellId'] as String?) ??
-        (map['abilityBonusId'] as String?) ??
-        const EquippedLoadoutDef().abilitySpellId,
+        (map['abilitySpellId'] as String?) ?? fallback.abilitySpellId,
     abilityMobilityId:
-        (map['abilityMobilityId'] as String?) ??
-        const EquippedLoadoutDef().abilityMobilityId,
-    abilityJumpId:
-        (map['abilityJumpId'] as String?) ??
-        const EquippedLoadoutDef().abilityJumpId,
+        (map['abilityMobilityId'] as String?) ?? fallback.abilityMobilityId,
+    abilityJumpId: (map['abilityJumpId'] as String?) ?? fallback.abilityJumpId,
   );
 }
 
-String? _migrateAccessoryName(String? raw) {
-  if (raw == 'ironBracers') return 'ironBoots';
-  return raw;
+EquippedLoadoutDef _defaultLoadoutForCharacter(PlayerCharacterId id) {
+  final catalog = PlayerCharacterRegistry.resolve(id).catalog;
+  return EquippedLoadoutDef(
+    mask: catalog.loadoutSlotMask,
+    mainWeaponId: catalog.weaponId,
+    offhandWeaponId: catalog.offhandWeaponId,
+    spellBookId: catalog.spellBookId,
+    projectileSlotSpellId: catalog.projectileSlotSpellId,
+    accessoryId: AccessoryId.strengthBelt,
+    abilityPrimaryId: catalog.abilityPrimaryId,
+    abilitySecondaryId: catalog.abilitySecondaryId,
+    abilityProjectileId: catalog.abilityProjectileId,
+    abilitySpellId: catalog.abilitySpellId,
+    abilityMobilityId: catalog.abilityMobilityId,
+    abilityJumpId: catalog.abilityJumpId,
+  );
 }

@@ -114,10 +114,6 @@ List<AbilityPickerCandidate> abilityCandidatesForSlot({
   ProjectileId? selectedSourceSpellId,
   bool overrideSelectedSource = false,
 }) {
-  final normalizedLoadout = normalizeLoadoutMaskForCharacter(
-    characterId: characterId,
-    loadout: loadout,
-  );
   final candidates = <AbilityDef>[
     for (final def in AbilityCatalog.abilities.values)
       if (_isAbilityVisibleForCharacter(characterId, def.id) &&
@@ -131,16 +127,6 @@ List<AbilityPickerCandidate> abilityCandidatesForSlot({
         def,
   ];
 
-  final equippedAbilityId = abilityIdForSlot(normalizedLoadout, slot);
-  final equippedAbility = _abilityCatalog.resolve(equippedAbilityId);
-  // Keep currently equipped ability visible even when character visibility
-  // rules changed, so the player can always see and replace invalid legacy
-  // selections.
-  if (equippedAbility != null &&
-      !candidates.any((def) => def.id == equippedAbility.id)) {
-    candidates.add(equippedAbility);
-  }
-
   candidates.sort((a, b) => a.id.compareTo(b.id));
 
   return [
@@ -149,7 +135,7 @@ List<AbilityPickerCandidate> abilityCandidatesForSlot({
         id: def.id,
         def: def,
         isEnabled: _isAbilityLegalForSlot(
-          loadout: normalizedLoadout,
+          loadout: loadout,
           slot: slot,
           abilityId: def.id,
           selectedSourceSpellId: selectedSourceSpellId,
@@ -157,20 +143,6 @@ List<AbilityPickerCandidate> abilityCandidatesForSlot({
         ),
       ),
   ];
-}
-
-/// Forces [loadout.mask] to the selected character's authored slot mask.
-///
-/// This keeps UI validation and runtime behavior aligned even when older saved
-/// selections still carry legacy masks.
-EquippedLoadoutDef normalizeLoadoutMaskForCharacter({
-  required PlayerCharacterId characterId,
-  required EquippedLoadoutDef loadout,
-}) {
-  final def = PlayerCharacterRegistry.resolve(characterId);
-  final targetMask = def.catalog.loadoutSlotMask;
-  if (loadout.mask == targetMask) return loadout;
-  return _copyLoadout(loadout, mask: targetMask);
 }
 
 /// Returns projectile source options exposed by the character spell list.
@@ -375,7 +347,8 @@ EquippedLoadoutDef _copyLoadout(
     mainWeaponId: mainWeaponId ?? loadout.mainWeaponId,
     offhandWeaponId: offhandWeaponId ?? loadout.offhandWeaponId,
     spellBookId: spellBookId ?? loadout.spellBookId,
-    projectileSlotSpellId: projectileSlotSpellId ?? loadout.projectileSlotSpellId,
+    projectileSlotSpellId:
+        projectileSlotSpellId ?? loadout.projectileSlotSpellId,
     accessoryId: accessoryId ?? loadout.accessoryId,
     abilityPrimaryId: abilityPrimaryId ?? loadout.abilityPrimaryId,
     abilitySecondaryId: abilitySecondaryId ?? loadout.abilitySecondaryId,

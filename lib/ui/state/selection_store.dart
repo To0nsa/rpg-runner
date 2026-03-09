@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'selection_state.dart';
 
 class SelectionStore {
-  static const String _prefsKey = 'ui.selection_state.v1';
+  static const String _prefsKey = 'ui.selection_state.v2';
 
   Future<SelectionState> load() async {
     final prefs = await SharedPreferences.getInstance();

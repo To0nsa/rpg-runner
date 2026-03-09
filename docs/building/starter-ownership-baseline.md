@@ -37,4 +37,6 @@ Spell-slot ownership remains `SpellList`-driven.
 ## Notes
 
 - Spell ownership remains decoupled from spellbook ownership.
-- Legacy saves are normalized into the starter-owned baseline.
+- Pre-live cleanup removed legacy selection migrations.
+- Selection state now uses strict schema loading; mismatched/old payloads
+  reset to defaults.

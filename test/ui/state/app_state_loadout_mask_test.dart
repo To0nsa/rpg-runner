@@ -313,66 +313,63 @@ void main() {
       },
     );
 
-    test(
-      'bootstrap syncs stale selection gear ids from persisted meta',
-      () async {
-        const service = MetaService();
-        final meta = service.createNew();
+    test('bootstrap keeps saved selection gear ids unchanged', () async {
+      const service = MetaService();
+      final meta = service.createNew();
 
-        final selectionStore = _MemorySelectionStore(
-          saved: SelectionState(
-            selectedLevelId: SelectionState.defaults.selectedLevelId,
-            selectedRunType: SelectionState.defaults.selectedRunType,
-            selectedCharacterId: PlayerCharacterId.eloise,
-            loadoutsByCharacter: _loadoutsWithSelected(
-              characterId: PlayerCharacterId.eloise,
-              loadout: EquippedLoadoutDef(
-                projectileSlotSpellId: ProjectileId.acidBolt,
-                spellBookId: SpellBookId.apprenticePrimer,
-                accessoryId: AccessoryId.speedBoots,
-              ),
+      final selectionStore = _MemorySelectionStore(
+        saved: SelectionState(
+          selectedLevelId: SelectionState.defaults.selectedLevelId,
+          selectedRunType: SelectionState.defaults.selectedRunType,
+          selectedCharacterId: PlayerCharacterId.eloise,
+          loadoutsByCharacter: _loadoutsWithSelected(
+            characterId: PlayerCharacterId.eloise,
+            loadout: EquippedLoadoutDef(
+              projectileSlotSpellId: ProjectileId.acidBolt,
+              spellBookId: SpellBookId.apprenticePrimer,
+              accessoryId: AccessoryId.speedBoots,
             ),
-            buildName: SelectionState.defaultBuildName,
           ),
-        );
-        final metaStore = _MemoryMetaStore(saved: meta);
-        final profileStore = _MemoryUserProfileStore();
-        final appState = AppState(
-          selectionStore: selectionStore,
-          metaStore: metaStore,
-          userProfileStore: profileStore,
-        );
+          buildName: SelectionState.defaultBuildName,
+        ),
+      );
+      final metaStore = _MemoryMetaStore(saved: meta);
+      final profileStore = _MemoryUserProfileStore();
+      final appState = AppState(
+        selectionStore: selectionStore,
+        metaStore: metaStore,
+        userProfileStore: profileStore,
+      );
 
-        await appState.bootstrap(force: true);
+      await appState.bootstrap(force: true);
 
-        expect(
-          _selectedLoadout(appState.selection).projectileSlotSpellId,
-          ProjectileId.acidBolt,
-        );
-        expect(
-          _selectedLoadout(appState.selection).spellBookId,
-          SpellBookId.apprenticePrimer,
-        );
-        expect(
-          _selectedLoadout(appState.selection).accessoryId,
-          AccessoryId.strengthBelt,
-        );
-        expect(
-          _selectedLoadout(selectionStore.saved).projectileSlotSpellId,
-          ProjectileId.acidBolt,
-        );
-        expect(
-          _selectedLoadout(selectionStore.saved).spellBookId,
-          SpellBookId.apprenticePrimer,
-        );
-        expect(
-          _selectedLoadout(selectionStore.saved).accessoryId,
-          AccessoryId.strengthBelt,
-        );
-      },
-    );
+      expect(
+        _selectedLoadout(appState.selection).projectileSlotSpellId,
+        ProjectileId.acidBolt,
+      );
+      expect(
+        _selectedLoadout(appState.selection).spellBookId,
+        SpellBookId.apprenticePrimer,
+      );
+      expect(
+        _selectedLoadout(appState.selection).accessoryId,
+        AccessoryId.speedBoots,
+      );
+      expect(
+        _selectedLoadout(selectionStore.saved).projectileSlotSpellId,
+        ProjectileId.acidBolt,
+      );
+      expect(
+        _selectedLoadout(selectionStore.saved).spellBookId,
+        SpellBookId.apprenticePrimer,
+      );
+      expect(
+        _selectedLoadout(selectionStore.saved).accessoryId,
+        AccessoryId.speedBoots,
+      );
+    });
 
-    test('bootstrap repairs unknown saved ability ids', () async {
+    test('bootstrap keeps unknown saved ability ids unchanged', () async {
       final selectionStore = _MemorySelectionStore(
         saved: SelectionState(
           selectedLevelId: SelectionState.defaults.selectedLevelId,
@@ -401,11 +398,11 @@ void main() {
 
       expect(
         _selectedLoadout(appState.selection).abilityPrimaryId,
-        'eloise.seeker_slash',
+        'common.unarmed_strike',
       );
       expect(
         _selectedLoadout(selectionStore.saved).abilityPrimaryId,
-        'eloise.seeker_slash',
+        'common.unarmed_strike',
       );
     });
   });

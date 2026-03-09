@@ -72,47 +72,42 @@ void main() {
       );
     });
 
-    test(
-      'projectile slot exposes owned starter ability and legacy equipped fallback',
-      () {
-        const loadout = EquippedLoadoutDef(
-          abilityProjectileId: 'eloise.quick_shot',
-          projectileSlotSpellId: ProjectileId.iceBolt,
-        );
-        const spellList = SpellList(
-          learnedProjectileSpellIds: <ProjectileId>{ProjectileId.iceBolt},
-          learnedSpellAbilityIds: <AbilityKey>{'eloise.arcane_haste'},
-        );
+    test('projectile slot exposes only owned starter ability', () {
+      const loadout = EquippedLoadoutDef(
+        abilityProjectileId: 'eloise.quick_shot',
+        projectileSlotSpellId: ProjectileId.iceBolt,
+      );
+      const spellList = SpellList(
+        learnedProjectileSpellIds: <ProjectileId>{ProjectileId.iceBolt},
+        learnedSpellAbilityIds: <AbilityKey>{'eloise.arcane_haste'},
+      );
 
-        final candidates = abilityCandidatesForSlot(
-          characterId: PlayerCharacterId.eloise,
-          slot: AbilitySlot.projectile,
-          loadout: loadout,
-          spellList: spellList,
-          selectedSourceSpellId: ProjectileId.iceBolt,
-          overrideSelectedSource: true,
-        );
+      final candidates = abilityCandidatesForSlot(
+        characterId: PlayerCharacterId.eloise,
+        slot: AbilitySlot.projectile,
+        loadout: loadout,
+        spellList: spellList,
+        selectedSourceSpellId: ProjectileId.iceBolt,
+        overrideSelectedSource: true,
+      );
 
-        final autoAim = candidates.firstWhere(
-          (candidate) => candidate.id == 'eloise.snap_shot',
-        );
-        final quickShot = candidates.firstWhere(
-          (candidate) => candidate.id == 'eloise.quick_shot',
-        );
-        expect(autoAim.isEnabled, isTrue);
-        expect(quickShot.isEnabled, isTrue);
-        expect(
-          candidates.any((candidate) => candidate.id == 'eloise.skewer_shot'),
-          isFalse,
-        );
-        expect(
-          candidates.any(
-            (candidate) => candidate.id == 'eloise.overcharge_shot',
-          ),
-          isFalse,
-        );
-      },
-    );
+      final autoAim = candidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.snap_shot',
+      );
+      expect(autoAim.isEnabled, isTrue);
+      expect(
+        candidates.any((candidate) => candidate.id == 'eloise.quick_shot'),
+        isFalse,
+      );
+      expect(
+        candidates.any((candidate) => candidate.id == 'eloise.skewer_shot'),
+        isFalse,
+      );
+      expect(
+        candidates.any((candidate) => candidate.id == 'eloise.overcharge_shot'),
+        isFalse,
+      );
+    });
 
     test('spell slot exposes only learned spell abilities', () {
       const loadout = EquippedLoadoutDef(abilitySpellId: 'eloise.arcane_haste');
@@ -176,7 +171,7 @@ void main() {
       expect(restoreHealth.isEnabled, isTrue);
     });
 
-    test('primary exposes auto-aim and secondary exposes guard options', () {
+    test('primary and secondary expose only owned starter options', () {
       const loadout = EquippedLoadoutDef(
         abilityPrimaryId: 'eloise.bloodletter_slash',
         abilitySecondaryId: 'eloise.aegis_riposte',
@@ -198,15 +193,23 @@ void main() {
       final swordAutoAim = primaryCandidates.firstWhere(
         (candidate) => candidate.id == 'eloise.seeker_slash',
       );
-      final aegisRiposte = secondaryCandidates.firstWhere(
-        (candidate) => candidate.id == 'eloise.aegis_riposte',
-      );
       final shieldBlock = secondaryCandidates.firstWhere(
         (candidate) => candidate.id == 'eloise.shield_block',
       );
       expect(swordAutoAim.isEnabled, isTrue);
-      expect(aegisRiposte.isEnabled, isTrue);
       expect(shieldBlock.isEnabled, isTrue);
+      expect(
+        primaryCandidates.any(
+          (candidate) => candidate.id == 'eloise.bloodletter_slash',
+        ),
+        isFalse,
+      );
+      expect(
+        secondaryCandidates.any(
+          (candidate) => candidate.id == 'eloise.aegis_riposte',
+        ),
+        isFalse,
+      );
     });
 
     test('jump slot exposes only owned starter jump option', () {
@@ -229,29 +232,26 @@ void main() {
       );
     });
 
-    test(
-      'secondary slot uses character-authored mask (legacy mask normalized)',
-      () {
-        const legacyLoadout = EquippedLoadoutDef(
-          mask: LoadoutSlotMask.defaultMask,
-          abilitySecondaryId: 'eloise.aegis_riposte',
-        );
+    test('secondary slot remains legal under current validator rules', () {
+      const legacyLoadout = EquippedLoadoutDef(
+        mask: LoadoutSlotMask.defaultMask,
+        abilitySecondaryId: 'eloise.shield_block',
+      );
 
-        final candidates = abilityCandidatesForSlot(
-          characterId: PlayerCharacterId.eloise,
-          slot: AbilitySlot.secondary,
-          loadout: legacyLoadout,
-          spellList: _defaultSpellList,
-        );
+      final candidates = abilityCandidatesForSlot(
+        characterId: PlayerCharacterId.eloise,
+        slot: AbilitySlot.secondary,
+        loadout: legacyLoadout,
+        spellList: _defaultSpellList,
+      );
 
-        final shieldBlock = candidates.firstWhere(
-          (candidate) => candidate.id == 'eloise.aegis_riposte',
-        );
-        expect(shieldBlock.isEnabled, isTrue);
-      },
-    );
+      final shieldBlock = candidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.shield_block',
+      );
+      expect(shieldBlock.isEnabled, isTrue);
+    });
 
-    test('catalog-valid source keeps owned projectile options enabled', () {
+    test('catalog-valid source keeps starter projectile option enabled', () {
       const loadout = EquippedLoadoutDef(
         abilityProjectileId: 'eloise.quick_shot',
       );
@@ -268,11 +268,11 @@ void main() {
       final autoAim = candidates.firstWhere(
         (candidate) => candidate.id == 'eloise.snap_shot',
       );
-      final quickShot = candidates.firstWhere(
-        (candidate) => candidate.id == 'eloise.quick_shot',
-      );
       expect(autoAim.isEnabled, isTrue);
-      expect(quickShot.isEnabled, isTrue);
+      expect(
+        candidates.any((candidate) => candidate.id == 'eloise.quick_shot'),
+        isFalse,
+      );
       expect(
         candidates.any((candidate) => candidate.id == 'eloise.skewer_shot'),
         isFalse,
