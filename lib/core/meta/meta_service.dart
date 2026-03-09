@@ -66,31 +66,17 @@ class MetaService {
 
   /// Returns starter unlocked main/off-hand weapon IDs.
   Set<WeaponId> _startingUnlockedWeaponIds() {
-    final unlockedWeapons = <WeaponId>{};
-    for (final id in WeaponId.values) {
-      final def = weapons.tryGet(id);
-      if (def == null) continue;
-      switch (def.category) {
-        case WeaponCategory.primary:
-        case WeaponCategory.offHand:
-          unlockedWeapons.add(id);
-          break;
-        case WeaponCategory.projectile:
-          break;
-      }
-    }
-
-    return unlockedWeapons;
+    return <WeaponId>{MetaDefaults.mainWeaponId, MetaDefaults.offhandWeaponId};
   }
 
   /// Returns starter unlocked spellbook IDs.
   Set<SpellBookId> _startingUnlockedSpellBookIds() {
-    return SpellBookId.values.toSet();
+    return <SpellBookId>{MetaDefaults.spellBookId};
   }
 
   /// Returns starter unlocked accessory IDs.
   Set<AccessoryId> _startingUnlockedAccessoryIds() {
-    return AccessoryId.values.toSet();
+    return <AccessoryId>{MetaDefaults.accessoryId};
   }
 
   /// Creates a new normalized meta state for first-time users.

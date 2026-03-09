@@ -21,13 +21,13 @@ class MetaDefaults {
   static const SpellBookId spellBookId = SpellBookId.apprenticePrimer;
 
   /// Default learned projectile spell for migration/fallback.
-  static const ProjectileId projectileSpellId = ProjectileId.fireBolt;
+  static const ProjectileId projectileSpellId = ProjectileId.acidBolt;
 
   /// Default learned spell-slot ability for migration/fallback.
   static const AbilityKey spellAbilityId = 'eloise.arcane_haste';
 
   /// Default accessory.
-  static const AccessoryId accessoryId = AccessoryId.speedBoots;
+  static const AccessoryId accessoryId = AccessoryId.strengthBelt;
 
   /// Canonical default equipped set.
   static const EquippedGear equippedGear = EquippedGear(

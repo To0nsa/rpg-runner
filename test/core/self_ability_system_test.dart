@@ -23,6 +23,7 @@ import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/spellBook/spell_book_catalog.dart';
 import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
+import 'package:rpg_runner/core/stats/character_stats_resolver.dart';
 import 'package:rpg_runner/core/weapons/weapon_catalog.dart';
 
 void main() {
@@ -76,11 +77,17 @@ void main() {
       expect(world.activeAbility.abilityId[ai], equals('eloise.arcane_haste'));
 
       final ability = AbilityCatalog.shared.resolve('eloise.arcane_haste')!;
+      final resolvedStats = const CharacterStatsResolver().resolveLoadout(
+        const EquippedLoadoutDef(),
+      );
+      final expectedCooldownTicks = resolvedStats.applyCooldownReduction(
+        ability.cooldownTicks,
+      );
       expect(world.mana.mana[world.mana.indexOf(player)], equals(0));
 
       expect(
         world.cooldown.getTicksLeft(player, CooldownGroup.spell0),
-        equals(ability.cooldownTicks),
+        equals(expectedCooldownTicks),
       );
     },
   );

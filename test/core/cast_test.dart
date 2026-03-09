@@ -11,8 +11,11 @@ import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
+import 'package:rpg_runner/core/players/player_catalog.dart';
 import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
+import 'package:rpg_runner/core/stats/character_stats_resolver.dart';
 import 'package:rpg_runner/core/util/tick_math.dart';
+import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
 
 import '../support/test_player.dart';
 import '../test_tunings.dart';
@@ -25,6 +28,24 @@ void main() {
   }
 
   double fixed100ToDouble(int value) => value / 100.0;
+
+  ResolvedCharacterStats resolvedStatsForCatalog(PlayerCatalog catalog) {
+    return const CharacterStatsResolver().resolveLoadout(
+      EquippedLoadoutDef(
+        mask: catalog.loadoutSlotMask,
+        mainWeaponId: catalog.weaponId,
+        offhandWeaponId: catalog.offhandWeaponId,
+        spellBookId: catalog.spellBookId,
+        projectileSlotSpellId: catalog.projectileSlotSpellId,
+        abilityPrimaryId: catalog.abilityPrimaryId,
+        abilitySecondaryId: catalog.abilitySecondaryId,
+        abilityProjectileId: catalog.abilityProjectileId,
+        abilitySpellId: catalog.abilitySpellId,
+        abilityMobilityId: catalog.abilityMobilityId,
+        abilityJumpId: catalog.abilityJumpId,
+      ),
+    );
+  }
 
   int scaledWindupTicks(String abilityId, int tickHz) {
     final ability = AbilityCatalog.shared.resolve(abilityId)!;
@@ -130,9 +151,9 @@ void main() {
         snapshot.hud.mana,
         closeTo(initialMana - fixed100ToDouble(spellCost.manaCost100), 1e-9),
       );
-      final cooldownTicks = scaledAbilityTicks(
-        ability.cooldownTicks,
-        core.tickHz,
+      final resolvedStats = resolvedStatsForCatalog(catalog);
+      final cooldownTicks = resolvedStats.applyCooldownReduction(
+        scaledAbilityTicks(ability.cooldownTicks, core.tickHz),
       );
       expect(
         core.playerProjectileCooldownTicksLeft,
@@ -189,9 +210,9 @@ void main() {
       snapshot.hud.mana,
       closeTo(initialMana - fixed100ToDouble(spellCost.manaCost100), 1e-9),
     );
-    final cooldownTicks = scaledAbilityTicks(
-      ability.cooldownTicks,
-      core.tickHz,
+    final resolvedStats = resolvedStatsForCatalog(catalog);
+    final cooldownTicks = resolvedStats.applyCooldownReduction(
+      scaledAbilityTicks(ability.cooldownTicks, core.tickHz),
     );
     expect(
       core.playerProjectileCooldownTicksLeft,
@@ -437,10 +458,7 @@ void main() {
       final expectedMana =
           (beforeBonus.hud.mana +
                   (beforeBonus.hud.manaMax * restoreAmountBp / 10000.0))
-              .clamp(
-            0.0,
-            beforeBonus.hud.manaMax,
-          );
+              .clamp(0.0, beforeBonus.hud.manaMax);
       expect(afterRestore.hud.mana, closeTo(expectedMana, 1e-9));
     },
   );
@@ -449,17 +467,18 @@ void main() {
     'projectile and spell cooldown groups stay independent (projectile + self spell)',
     () {
       final base = PlayerCharacterRegistry.eloise;
+      final catalog = testPlayerCatalog(
+        bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+        projectileSlotSpellId: ProjectileId.fireBolt,
+        abilityProjectileId: 'eloise.quick_shot',
+        abilitySpellId: 'eloise.arcane_haste',
+      );
       final core = GameCore(
         levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
         seed: 1,
         tickHz: 20,
         playerCharacter: base.copyWith(
-          catalog: testPlayerCatalog(
-            bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-            projectileSlotSpellId: ProjectileId.fireBolt,
-            abilityProjectileId: 'eloise.quick_shot',
-            abilitySpellId: 'eloise.arcane_haste',
-          ),
+          catalog: catalog,
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
               playerManaMax: 20,
@@ -493,9 +512,9 @@ void main() {
       final bonusAbility = AbilityCatalog.shared.resolve(
         'eloise.arcane_haste',
       )!;
-      final bonusCooldownTicks = scaledAbilityTicks(
-        bonusAbility.cooldownTicks,
-        core.tickHz,
+      final resolvedStats = resolvedStatsForCatalog(catalog);
+      final bonusCooldownTicks = resolvedStats.applyCooldownReduction(
+        scaledAbilityTicks(bonusAbility.cooldownTicks, core.tickHz),
       );
       for (var i = 0; i < activeTicks + recoveryTicks; i += 1) {
         core.applyCommands(const <Command>[]);

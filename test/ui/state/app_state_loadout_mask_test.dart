@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:rpg_runner/core/accessories/accessory_id.dart';
 import 'package:rpg_runner/core/meta/gear_slot.dart';
 import 'package:rpg_runner/core/meta/meta_service.dart';
 import 'package:rpg_runner/core/meta/meta_state.dart';
@@ -52,11 +53,11 @@ void main() {
 
       expect(
         _selectedLoadout(appState.selection).abilityPrimaryId,
-        'eloise.bloodletter_slash',
+        'eloise.seeker_slash',
       );
       expect(
         _selectedLoadout(selectionStore.saved).abilityPrimaryId,
-        'eloise.bloodletter_slash',
+        'eloise.seeker_slash',
       );
     });
 
@@ -67,16 +68,16 @@ void main() {
         final appState = AppState(selectionStore: selectionStore);
 
         await appState.setLoadout(
-          const EquippedLoadoutDef(abilitySpellId: 'eloise.mana_infusion'),
+          const EquippedLoadoutDef(abilitySpellId: 'eloise.arcane_haste'),
         );
 
         expect(
           _selectedLoadout(appState.selection).abilitySpellId,
-          'eloise.mana_infusion',
+          'eloise.arcane_haste',
         );
         expect(
           _selectedLoadout(selectionStore.saved).abilitySpellId,
-          'eloise.mana_infusion',
+          'eloise.arcane_haste',
         );
       },
     );
@@ -88,40 +89,39 @@ void main() {
         final appState = AppState(selectionStore: selectionStore);
 
         await appState.setLoadout(
-          const EquippedLoadoutDef(projectileSlotSpellId: ProjectileId.iceBolt),
+          const EquippedLoadoutDef(
+            projectileSlotSpellId: ProjectileId.holyBolt,
+          ),
         );
 
         expect(
           _selectedLoadout(appState.selection).projectileSlotSpellId,
-          ProjectileId.iceBolt,
+          ProjectileId.holyBolt,
         );
         expect(
           _selectedLoadout(selectionStore.saved).projectileSlotSpellId,
-          ProjectileId.iceBolt,
+          ProjectileId.holyBolt,
         );
       },
     );
 
-    test(
-      'setLoadout preserves valid projectile spell selection',
-      () async {
-        final selectionStore = _MemorySelectionStore();
-        final appState = AppState(selectionStore: selectionStore);
+    test('setLoadout preserves valid projectile spell selection', () async {
+      final selectionStore = _MemorySelectionStore();
+      final appState = AppState(selectionStore: selectionStore);
 
-        await appState.setLoadout(
-          const EquippedLoadoutDef(projectileSlotSpellId: ProjectileId.fireBolt),
-        );
+      await appState.setLoadout(
+        const EquippedLoadoutDef(projectileSlotSpellId: ProjectileId.acidBolt),
+      );
 
-        expect(
-          _selectedLoadout(appState.selection).projectileSlotSpellId,
-          ProjectileId.fireBolt,
-        );
-        expect(
-          _selectedLoadout(selectionStore.saved).projectileSlotSpellId,
-          ProjectileId.fireBolt,
-        );
-      },
-    );
+      expect(
+        _selectedLoadout(appState.selection).projectileSlotSpellId,
+        ProjectileId.acidBolt,
+      );
+      expect(
+        _selectedLoadout(selectionStore.saved).projectileSlotSpellId,
+        ProjectileId.acidBolt,
+      );
+    });
 
     test(
       'setLoadout stale projectile spell repairs to first learned spell only',
@@ -154,9 +154,7 @@ void main() {
 
         await appState.bootstrap(force: true);
         await appState.setLoadout(
-          const EquippedLoadoutDef(
-            projectileSlotSpellId: ProjectileId.iceBolt,
-          ),
+          const EquippedLoadoutDef(projectileSlotSpellId: ProjectileId.iceBolt),
         );
 
         expect(
@@ -171,7 +169,7 @@ void main() {
     );
 
     test(
-      'equipGear syncs spellbook without mutating selected projectile spell',
+      'equipGear keeps starter spellbook and selected projectile spell',
       () async {
         final selectionStore = _MemorySelectionStore();
         final metaStore = _MemoryMetaStore(
@@ -190,19 +188,19 @@ void main() {
 
         expect(
           _selectedLoadout(appState.selection).projectileSlotSpellId,
-          ProjectileId.fireBolt,
+          ProjectileId.acidBolt,
         );
         expect(
           _selectedLoadout(appState.selection).spellBookId,
-          SpellBookId.bastionCodex,
+          SpellBookId.apprenticePrimer,
         );
         expect(
           _selectedLoadout(selectionStore.saved).projectileSlotSpellId,
-          ProjectileId.fireBolt,
+          ProjectileId.acidBolt,
         );
         expect(
           _selectedLoadout(selectionStore.saved).spellBookId,
-          SpellBookId.bastionCodex,
+          SpellBookId.apprenticePrimer,
         );
       },
     );
@@ -319,13 +317,7 @@ void main() {
       'bootstrap syncs stale selection gear ids from persisted meta',
       () async {
         const service = MetaService();
-        var meta = service.createNew();
-        meta = service.equip(
-          meta,
-          characterId: PlayerCharacterId.eloise,
-          slot: GearSlot.spellBook,
-          itemId: SpellBookId.bastionCodex,
-        );
+        final meta = service.createNew();
 
         final selectionStore = _MemorySelectionStore(
           saved: SelectionState(
@@ -335,8 +327,9 @@ void main() {
             loadoutsByCharacter: _loadoutsWithSelected(
               characterId: PlayerCharacterId.eloise,
               loadout: EquippedLoadoutDef(
-                projectileSlotSpellId: ProjectileId.fireBolt,
+                projectileSlotSpellId: ProjectileId.acidBolt,
                 spellBookId: SpellBookId.apprenticePrimer,
+                accessoryId: AccessoryId.speedBoots,
               ),
             ),
             buildName: SelectionState.defaultBuildName,
@@ -354,19 +347,27 @@ void main() {
 
         expect(
           _selectedLoadout(appState.selection).projectileSlotSpellId,
-          ProjectileId.fireBolt,
+          ProjectileId.acidBolt,
         );
         expect(
           _selectedLoadout(appState.selection).spellBookId,
-          SpellBookId.bastionCodex,
+          SpellBookId.apprenticePrimer,
+        );
+        expect(
+          _selectedLoadout(appState.selection).accessoryId,
+          AccessoryId.strengthBelt,
         );
         expect(
           _selectedLoadout(selectionStore.saved).projectileSlotSpellId,
-          ProjectileId.fireBolt,
+          ProjectileId.acidBolt,
         );
         expect(
           _selectedLoadout(selectionStore.saved).spellBookId,
-          SpellBookId.bastionCodex,
+          SpellBookId.apprenticePrimer,
+        );
+        expect(
+          _selectedLoadout(selectionStore.saved).accessoryId,
+          AccessoryId.strengthBelt,
         );
       },
     );
@@ -400,11 +401,11 @@ void main() {
 
       expect(
         _selectedLoadout(appState.selection).abilityPrimaryId,
-        'eloise.bloodletter_slash',
+        'eloise.seeker_slash',
       );
       expect(
         _selectedLoadout(selectionStore.saved).abilityPrimaryId,
-        'eloise.bloodletter_slash',
+        'eloise.seeker_slash',
       );
     });
   });

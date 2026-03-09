@@ -121,8 +121,12 @@ List<AbilityPickerCandidate> abilityCandidatesForSlot({
   final candidates = <AbilityDef>[
     for (final def in AbilityCatalog.abilities.values)
       if (_isAbilityVisibleForCharacter(characterId, def.id) &&
-          (slot != AbilitySlot.spell ||
-              spellList.learnedSpellAbilityIds.contains(def.id)) &&
+          _isAbilityOwnedForSlot(
+            characterId: characterId,
+            slot: slot,
+            abilityId: def.id,
+            spellList: spellList,
+          ) &&
           def.allowedSlots.contains(slot))
         def,
   ];
@@ -297,6 +301,29 @@ bool _isAbilityVisibleForCharacter(
   if (id.startsWith('$namespace.')) return true;
   if (id.startsWith('common.') && !id.startsWith('common.enemy_')) return true;
   return false;
+}
+
+bool _isAbilityOwnedForSlot({
+  required PlayerCharacterId characterId,
+  required AbilitySlot slot,
+  required AbilityKey abilityId,
+  required SpellList spellList,
+}) {
+  final catalog = PlayerCharacterRegistry.resolve(characterId).catalog;
+  switch (slot) {
+    case AbilitySlot.primary:
+      return abilityId == catalog.abilityPrimaryId;
+    case AbilitySlot.secondary:
+      return abilityId == catalog.abilitySecondaryId;
+    case AbilitySlot.projectile:
+      return abilityId == catalog.abilityProjectileId;
+    case AbilitySlot.mobility:
+      return abilityId == catalog.abilityMobilityId;
+    case AbilitySlot.jump:
+      return abilityId == catalog.abilityJumpId;
+    case AbilitySlot.spell:
+      return spellList.learnedSpellAbilityIds.contains(abilityId);
+  }
 }
 
 /// Validates a trial loadout with [abilityId] in [slot] against Core rules.

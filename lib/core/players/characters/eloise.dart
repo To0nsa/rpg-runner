@@ -158,24 +158,13 @@ const RenderAnimSetDefinition eloiseRenderAnim = RenderAnimSetDefinition(
 );
 
 const Set<ProjectileId> eloiseStartingProjectileSpellIds = <ProjectileId>{
-  ProjectileId.iceBolt,
-  ProjectileId.fireBolt,
   ProjectileId.acidBolt,
-  ProjectileId.darkBolt,
-  ProjectileId.earthBolt,
   ProjectileId.holyBolt,
-  ProjectileId.waterBolt,
-  ProjectileId.thunderBolt,
 };
 
 const Set<AbilityKey> eloiseStartingSpellAbilityIds = <AbilityKey>{
   'eloise.arcane_haste',
   'eloise.focus',
-  'eloise.arcane_ward',
-  'eloise.cleanse',
-  'eloise.vital_surge',
-  'eloise.mana_infusion',
-  'eloise.second_wind',
 };
 
 // -----------------------------------------------------------------------------
@@ -202,11 +191,11 @@ const PlayerCatalog eloiseCatalog = PlayerCatalog(
   weaponId: WeaponId.plainsteel,
   offhandWeaponId: WeaponId.roadguard,
   spellBookId: SpellBookId.apprenticePrimer,
-  projectileSlotSpellId: ProjectileId.fireBolt,
+  projectileSlotSpellId: ProjectileId.acidBolt,
   startingProjectileSpellIds: eloiseStartingProjectileSpellIds,
-  abilityPrimaryId: 'eloise.bloodletter_slash',
-  abilitySecondaryId: 'eloise.aegis_riposte',
-  abilityProjectileId: 'eloise.quick_shot',
+  abilityPrimaryId: 'eloise.seeker_slash',
+  abilitySecondaryId: 'eloise.shield_block',
+  abilityProjectileId: 'eloise.snap_shot',
   abilitySpellId: 'eloise.arcane_haste',
   startingSpellAbilityIds: eloiseStartingSpellAbilityIds,
   abilityMobilityId: 'eloise.dash',

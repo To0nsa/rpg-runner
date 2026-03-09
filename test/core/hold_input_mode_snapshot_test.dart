@@ -23,7 +23,7 @@ void main() {
       );
 
       final hud = core.buildSnapshot().hud;
-      expect(hud.meleeInputMode, AbilityInputMode.holdAimRelease);
+      expect(hud.meleeInputMode, AbilityInputMode.tap);
       expect(hud.secondaryInputMode, AbilityInputMode.holdMaintain);
     },
   );

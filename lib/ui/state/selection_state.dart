@@ -210,7 +210,7 @@ EquippedLoadoutDef _loadoutFromJson(Object? raw) {
     accessoryId: _enumFromName(
       AccessoryId.values,
       _migrateAccessoryName(map['accessoryId'] as String?),
-      AccessoryId.speedBoots,
+      AccessoryId.strengthBelt,
     ),
     abilityPrimaryId:
         (map['abilityPrimaryId'] as String?) ??

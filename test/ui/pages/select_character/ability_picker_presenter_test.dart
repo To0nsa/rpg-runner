@@ -72,42 +72,47 @@ void main() {
       );
     });
 
-    test('projectile slot exposes all enabled projectile abilities', () {
-      const loadout = EquippedLoadoutDef(
-        abilityProjectileId: 'eloise.quick_shot',
-        projectileSlotSpellId: ProjectileId.iceBolt,
-      );
-      const spellList = SpellList(
-        learnedProjectileSpellIds: <ProjectileId>{ProjectileId.iceBolt},
-        learnedSpellAbilityIds: <AbilityKey>{'eloise.arcane_haste'},
-      );
+    test(
+      'projectile slot exposes owned starter ability and legacy equipped fallback',
+      () {
+        const loadout = EquippedLoadoutDef(
+          abilityProjectileId: 'eloise.quick_shot',
+          projectileSlotSpellId: ProjectileId.iceBolt,
+        );
+        const spellList = SpellList(
+          learnedProjectileSpellIds: <ProjectileId>{ProjectileId.iceBolt},
+          learnedSpellAbilityIds: <AbilityKey>{'eloise.arcane_haste'},
+        );
 
-      final candidates = abilityCandidatesForSlot(
-        characterId: PlayerCharacterId.eloise,
-        slot: AbilitySlot.projectile,
-        loadout: loadout,
-        spellList: spellList,
-        selectedSourceSpellId: ProjectileId.iceBolt,
-        overrideSelectedSource: true,
-      );
+        final candidates = abilityCandidatesForSlot(
+          characterId: PlayerCharacterId.eloise,
+          slot: AbilitySlot.projectile,
+          loadout: loadout,
+          spellList: spellList,
+          selectedSourceSpellId: ProjectileId.iceBolt,
+          overrideSelectedSource: true,
+        );
 
-      final autoAim = candidates.firstWhere(
-        (candidate) => candidate.id == 'eloise.snap_shot',
-      );
-      final quickShot = candidates.firstWhere(
-        (candidate) => candidate.id == 'eloise.quick_shot',
-      );
-      final piercingShot = candidates.firstWhere(
-        (candidate) => candidate.id == 'eloise.skewer_shot',
-      );
-      final chargedShot = candidates.firstWhere(
-        (candidate) => candidate.id == 'eloise.overcharge_shot',
-      );
-      expect(autoAim.isEnabled, isTrue);
-      expect(quickShot.isEnabled, isTrue);
-      expect(piercingShot.isEnabled, isTrue);
-      expect(chargedShot.isEnabled, isTrue);
-    });
+        final autoAim = candidates.firstWhere(
+          (candidate) => candidate.id == 'eloise.snap_shot',
+        );
+        final quickShot = candidates.firstWhere(
+          (candidate) => candidate.id == 'eloise.quick_shot',
+        );
+        expect(autoAim.isEnabled, isTrue);
+        expect(quickShot.isEnabled, isTrue);
+        expect(
+          candidates.any((candidate) => candidate.id == 'eloise.skewer_shot'),
+          isFalse,
+        );
+        expect(
+          candidates.any(
+            (candidate) => candidate.id == 'eloise.overcharge_shot',
+          ),
+          isFalse,
+        );
+      },
+    );
 
     test('spell slot exposes only learned spell abilities', () {
       const loadout = EquippedLoadoutDef(abilitySpellId: 'eloise.arcane_haste');
@@ -204,7 +209,7 @@ void main() {
       expect(shieldBlock.isEnabled, isTrue);
     });
 
-    test('jump slot exposes jump and double jump as enabled options', () {
+    test('jump slot exposes only owned starter jump option', () {
       const loadout = EquippedLoadoutDef(abilityJumpId: 'eloise.jump');
 
       final candidates = abilityCandidatesForSlot(
@@ -217,11 +222,11 @@ void main() {
       final jump = candidates.firstWhere(
         (candidate) => candidate.id == 'eloise.jump',
       );
-      final doubleJump = candidates.firstWhere(
-        (candidate) => candidate.id == 'eloise.double_jump',
-      );
       expect(jump.isEnabled, isTrue);
-      expect(doubleJump.isEnabled, isTrue);
+      expect(
+        candidates.any((candidate) => candidate.id == 'eloise.double_jump'),
+        isFalse,
+      );
     });
 
     test(
@@ -246,40 +251,37 @@ void main() {
       },
     );
 
-    test(
-      'catalog-valid source keeps projectile abilities enabled through validator',
-      () {
-        const loadout = EquippedLoadoutDef(
-          abilityProjectileId: 'eloise.quick_shot',
-        );
+    test('catalog-valid source keeps owned projectile options enabled', () {
+      const loadout = EquippedLoadoutDef(
+        abilityProjectileId: 'eloise.quick_shot',
+      );
 
-        final candidates = abilityCandidatesForSlot(
-          characterId: PlayerCharacterId.eloise,
-          slot: AbilitySlot.projectile,
-          loadout: loadout,
-          spellList: _defaultSpellList,
-          selectedSourceSpellId: ProjectileId.iceBolt,
-          overrideSelectedSource: true,
-        );
+      final candidates = abilityCandidatesForSlot(
+        characterId: PlayerCharacterId.eloise,
+        slot: AbilitySlot.projectile,
+        loadout: loadout,
+        spellList: _defaultSpellList,
+        selectedSourceSpellId: ProjectileId.iceBolt,
+        overrideSelectedSource: true,
+      );
 
-        final autoAim = candidates.firstWhere(
-          (candidate) => candidate.id == 'eloise.snap_shot',
-        );
-        final quickShot = candidates.firstWhere(
-          (candidate) => candidate.id == 'eloise.quick_shot',
-        );
-        final piercingShot = candidates.firstWhere(
-          (candidate) => candidate.id == 'eloise.skewer_shot',
-        );
-        final chargedShot = candidates.firstWhere(
-          (candidate) => candidate.id == 'eloise.overcharge_shot',
-        );
-        expect(autoAim.isEnabled, isTrue);
-        expect(quickShot.isEnabled, isTrue);
-        expect(piercingShot.isEnabled, isTrue);
-        expect(chargedShot.isEnabled, isTrue);
-      },
-    );
+      final autoAim = candidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.snap_shot',
+      );
+      final quickShot = candidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.quick_shot',
+      );
+      expect(autoAim.isEnabled, isTrue);
+      expect(quickShot.isEnabled, isTrue);
+      expect(
+        candidates.any((candidate) => candidate.id == 'eloise.skewer_shot'),
+        isFalse,
+      );
+      expect(
+        candidates.any((candidate) => candidate.id == 'eloise.overcharge_shot'),
+        isFalse,
+      );
+    });
 
     test(
       'setProjectileSourceForSlot updates only the requested slot source',

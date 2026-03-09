@@ -23,7 +23,9 @@ import 'package:rpg_runner/core/abilities/ability_catalog.dart';
 import 'package:rpg_runner/core/accessories/accessory_catalog.dart';
 import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
 import 'package:rpg_runner/core/spellBook/spell_book_catalog.dart';
+import 'package:rpg_runner/core/stats/character_stats_resolver.dart';
 import 'package:rpg_runner/core/weapons/weapon_catalog.dart';
+import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
 
 void main() {
   test('melee hitbox damages only once per swing', () {
@@ -97,9 +99,16 @@ void main() {
       }
     }
 
-    // Default starter loadout uses Plainsteel (+15%) with no spellbook power bonus:
-    // 1500 base becomes 1725.
-    expect(world.health.hp[world.health.indexOf(enemy)], equals(8275));
+    final ability = AbilityCatalog.shared.resolve('eloise.bloodletter_slash')!;
+    final resolvedStats = const CharacterStatsResolver().resolveLoadout(
+      const EquippedLoadoutDef(abilityPrimaryId: 'eloise.bloodletter_slash'),
+    );
+    final expectedDamage = resolvedStats.applyGlobalPower(ability.baseDamage);
+    final expectedEnemyHp = 10000 - expectedDamage;
+    expect(
+      world.health.hp[world.health.indexOf(enemy)],
+      equals(expectedEnemyHp),
+    );
 
     // Next tick: still overlapping, but should not re-hit the same target.
     activation.step(world, player: player, currentTick: 10);
@@ -110,6 +119,9 @@ void main() {
     damage.step(world, currentTick: 10);
     lifetime.step(world);
 
-    expect(world.health.hp[world.health.indexOf(enemy)], equals(8275));
+    expect(
+      world.health.hp[world.health.indexOf(enemy)],
+      equals(expectedEnemyHp),
+    );
   });
 }

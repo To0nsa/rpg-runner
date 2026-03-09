@@ -13,24 +13,13 @@ import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
 import 'package:rpg_runner/core/weapons/weapon_id.dart';
 
 const Set<ProjectileId> _eloiseStarterProjectileSpells = <ProjectileId>{
-  ProjectileId.iceBolt,
-  ProjectileId.fireBolt,
   ProjectileId.acidBolt,
-  ProjectileId.darkBolt,
-  ProjectileId.earthBolt,
   ProjectileId.holyBolt,
-  ProjectileId.waterBolt,
-  ProjectileId.thunderBolt,
 };
 
 const Set<String> _eloiseStarterSpellAbilities = <String>{
   'eloise.arcane_haste',
   'eloise.focus',
-  'eloise.arcane_ward',
-  'eloise.cleanse',
-  'eloise.vital_surge',
-  'eloise.mana_infusion',
-  'eloise.second_wind',
 };
 
 void main() {
@@ -48,7 +37,7 @@ void main() {
     }
   });
 
-  test('MetaService.equip enforces slot categories', () {
+  test('MetaService.equip enforces slot categories and starter ownership', () {
     const service = MetaService();
     final meta = service.createNew();
 
@@ -63,45 +52,38 @@ void main() {
       MetaDefaults.mainWeaponId,
     );
 
-    final good = service.equip(
+    final locked = service.equip(
       meta,
       characterId: PlayerCharacterId.eloise,
       slot: GearSlot.spellBook,
       itemId: SpellBookId.bastionCodex,
     );
     expect(
-      good.equippedFor(PlayerCharacterId.eloise).spellBookId,
-      SpellBookId.bastionCodex,
+      locked.equippedFor(PlayerCharacterId.eloise).spellBookId,
+      MetaDefaults.spellBookId,
     );
   });
 
-  test(
-    'MetaService.createNew unlocks all swords, shields, and accessories',
-    () {
-      const service = MetaService();
-      final meta = service.createNew();
-      final inventory = meta.inventory;
+  test('MetaService.createNew seeds starter-only unlocked gear', () {
+    const service = MetaService();
+    final meta = service.createNew();
+    final inventory = meta.inventory;
 
-      expect(inventory.unlockedWeaponIds.contains(WeaponId.plainsteel), isTrue);
-      expect(inventory.unlockedWeaponIds.contains(WeaponId.stormneedle), isTrue);
-      expect(
-        inventory.unlockedWeaponIds.contains(WeaponId.nullblade),
-        isTrue,
-      );
-      expect(inventory.unlockedWeaponIds.contains(WeaponId.roadguard), isTrue);
-      expect(
-        inventory.unlockedWeaponIds.contains(WeaponId.oathwallRelic),
-        isTrue,
-      );
-      expect(
-        inventory.unlockedSpellBookIds.contains(SpellBookId.crownOfFocus),
-        isTrue,
-      );
-      expect(inventory.unlockedAccessoryIds, AccessoryId.values.toSet());
-    },
-  );
+    expect(
+      inventory.unlockedWeaponIds,
+      <WeaponId>{WeaponId.plainsteel, WeaponId.roadguard},
+    );
+    expect(
+      inventory.unlockedSpellBookIds,
+      <SpellBookId>{SpellBookId.apprenticePrimer},
+    );
+    expect(
+      inventory.unlockedAccessoryIds,
+      <AccessoryId>{AccessoryId.strengthBelt},
+    );
+  });
 
-  test('MetaService.normalize keeps full shield roster unlocked', () {
+  test('MetaService.normalize trims unlocked gear to starter set', () {
     const service = MetaService();
     final loaded = MetaState.seedAllUnlocked(
       inventory: InventoryState(
@@ -114,76 +96,63 @@ void main() {
     final normalized = service.normalize(loaded);
     final inventory = normalized.inventory;
 
-    expect(inventory.unlockedWeaponIds.contains(WeaponId.plainsteel), isTrue);
-    expect(inventory.unlockedWeaponIds.contains(WeaponId.stormneedle), isTrue);
     expect(
-      inventory.unlockedWeaponIds.contains(WeaponId.oathwallRelic),
-      isTrue,
+      inventory.unlockedWeaponIds,
+      <WeaponId>{WeaponId.plainsteel, WeaponId.roadguard},
     );
     expect(
-      inventory.unlockedSpellBookIds.contains(SpellBookId.crownOfFocus),
-      isTrue,
+      inventory.unlockedSpellBookIds,
+      <SpellBookId>{SpellBookId.apprenticePrimer},
     );
-    expect(inventory.unlockedAccessoryIds, AccessoryId.values.toSet());
+    expect(
+      inventory.unlockedAccessoryIds,
+      <AccessoryId>{AccessoryId.strengthBelt},
+    );
   });
 
-  test(
-    'MetaService.normalize grants all primary swords and shields for existing inventories',
-    () {
-      const service = MetaService();
-      final legacy = MetaState(
-        schemaVersion: 1,
-        inventory: InventoryState(
-          unlockedWeaponIds: <WeaponId>{
-            WeaponId.plainsteel,
-            WeaponId.roadguard,
-            WeaponId.thornbark,
-          },
-          unlockedSpellBookIds: service
-              .seedAllUnlockedInventory()
-              .unlockedSpellBookIds,
-          unlockedAccessoryIds: service
-              .seedAllUnlockedInventory()
-              .unlockedAccessoryIds,
-        ),
-        equippedByCharacter: <PlayerCharacterId, EquippedGear>{
-          for (final id in PlayerCharacterId.values)
-            id: MetaDefaults.equippedGear,
+  test('MetaService.normalize removes legacy extra unlocks', () {
+    const service = MetaService();
+    final legacy = MetaState(
+      schemaVersion: 1,
+      inventory: InventoryState(
+        unlockedWeaponIds: <WeaponId>{
+          WeaponId.plainsteel,
+          WeaponId.roadguard,
+          WeaponId.thornbark,
         },
-        spellListByCharacter: <PlayerCharacterId, SpellList>{
-          for (final id in PlayerCharacterId.values) id: SpellList.empty,
+        unlockedSpellBookIds: <SpellBookId>{
+          SpellBookId.apprenticePrimer,
+          SpellBookId.bastionCodex,
         },
-      );
+        unlockedAccessoryIds: <AccessoryId>{
+          AccessoryId.strengthBelt,
+          AccessoryId.speedBoots,
+        },
+      ),
+      equippedByCharacter: <PlayerCharacterId, EquippedGear>{
+        for (final id in PlayerCharacterId.values)
+          id: MetaDefaults.equippedGear,
+      },
+      spellListByCharacter: <PlayerCharacterId, SpellList>{
+        for (final id in PlayerCharacterId.values) id: SpellList.empty,
+      },
+    );
 
-      final normalized = service.normalize(legacy);
-      final unlocked = normalized.inventory.unlockedWeaponIds;
+    final normalized = service.normalize(legacy);
 
-      expect(unlocked.contains(WeaponId.plainsteel), isTrue);
-      expect(unlocked.contains(WeaponId.waspfang), isTrue);
-      expect(unlocked.contains(WeaponId.cinderedge), isTrue);
-      expect(unlocked.contains(WeaponId.basiliskKiss), isTrue);
-      expect(unlocked.contains(WeaponId.frostbrand), isTrue);
-      expect(unlocked.contains(WeaponId.stormneedle), isTrue);
-      expect(unlocked.contains(WeaponId.nullblade), isTrue);
-      expect(unlocked.contains(WeaponId.sunlitVow), isTrue);
-      expect(unlocked.contains(WeaponId.stormneedle), isTrue);
-      expect(unlocked.contains(WeaponId.nullblade), isTrue);
-      expect(unlocked.contains(WeaponId.roadguard), isTrue);
-      expect(unlocked.contains(WeaponId.thornbark), isTrue);
-      expect(unlocked.contains(WeaponId.cinderWard), isTrue);
-      expect(unlocked.contains(WeaponId.tideguardShell), isTrue);
-      expect(unlocked.contains(WeaponId.frostlockBuckler), isTrue);
-      expect(unlocked.contains(WeaponId.ironBastion), isTrue);
-      expect(unlocked.contains(WeaponId.stormAegis), isTrue);
-      expect(unlocked.contains(WeaponId.nullPrism), isTrue);
-      expect(unlocked.contains(WeaponId.warbannerGuard), isTrue);
-      expect(unlocked.contains(WeaponId.oathwallRelic), isTrue);
-      expect(
-        normalized.inventory.unlockedAccessoryIds,
-        AccessoryId.values.toSet(),
-      );
-    },
-  );
+    expect(
+      normalized.inventory.unlockedWeaponIds,
+      <WeaponId>{WeaponId.plainsteel, WeaponId.roadguard},
+    );
+    expect(
+      normalized.inventory.unlockedSpellBookIds,
+      <SpellBookId>{SpellBookId.apprenticePrimer},
+    );
+    expect(
+      normalized.inventory.unlockedAccessoryIds,
+      <AccessoryId>{AccessoryId.strengthBelt},
+    );
+  });
 
   test('MetaService.candidatesForSlot includes sword and shield entries', () {
     const service = MetaService();
@@ -204,9 +173,9 @@ void main() {
       (candidate) => candidate.id == WeaponId.oathwallRelic,
     );
 
-    expect(stormneedle.isUnlocked, isTrue);
+    expect(stormneedle.isUnlocked, isFalse);
     expect(plainsteel.isUnlocked, isTrue);
-    expect(rosterShield.isUnlocked, isTrue);
+    expect(rosterShield.isUnlocked, isFalse);
   });
 
   test('MetaService.candidatesForSlot returns spellbook entries', () {
@@ -277,44 +246,47 @@ void main() {
     },
   );
 
-  test('MetaState load migrates legacy accessory runtime id to ironBoots', () {
-    const service = MetaService();
-    final fallback = service.createNew();
-    final raw = <String, dynamic>{
-      'schemaVersion': 1,
-      'inventory': <String, Object?>{
-        'weapons': <String>[for (final id in WeaponId.values) id.name],
-        'throwingWeapons': <String>[
-          for (final id in ProjectileId.values) id.name,
-        ],
-        'spellBooks': <String>[for (final id in SpellBookId.values) id.name],
-        'accessories': <String>['ironBracers'],
-      },
-      'equippedByCharacter': <String, Object?>{
-        for (final id in PlayerCharacterId.values)
-          id.name: <String, Object?>{
-            'mainWeaponId': MetaDefaults.mainWeaponId.name,
-            'offhandWeaponId': MetaDefaults.offhandWeaponId.name,
-            'spellBookId': MetaDefaults.spellBookId.name,
-            'accessoryId': 'ironBracers',
-          },
-      },
-      'spellListByCharacter': <String, Object?>{
-        for (final id in PlayerCharacterId.values)
-          id.name: SpellList.empty.toJson(),
-      },
-    };
+  test(
+    'MetaState load with legacy accessory id normalizes to starter accessory',
+    () {
+      const service = MetaService();
+      final fallback = service.createNew();
+      final raw = <String, dynamic>{
+        'schemaVersion': 1,
+        'inventory': <String, Object?>{
+          'weapons': <String>[for (final id in WeaponId.values) id.name],
+          'throwingWeapons': <String>[
+            for (final id in ProjectileId.values) id.name,
+          ],
+          'spellBooks': <String>[for (final id in SpellBookId.values) id.name],
+          'accessories': <String>['ironBracers'],
+        },
+        'equippedByCharacter': <String, Object?>{
+          for (final id in PlayerCharacterId.values)
+            id.name: <String, Object?>{
+              'mainWeaponId': MetaDefaults.mainWeaponId.name,
+              'offhandWeaponId': MetaDefaults.offhandWeaponId.name,
+              'spellBookId': MetaDefaults.spellBookId.name,
+              'accessoryId': 'ironBracers',
+            },
+        },
+        'spellListByCharacter': <String, Object?>{
+          for (final id in PlayerCharacterId.values)
+            id.name: SpellList.empty.toJson(),
+        },
+      };
 
-    final loaded = MetaState.fromJson(raw, fallback: fallback);
-    final normalized = service.normalize(loaded);
+      final loaded = MetaState.fromJson(raw, fallback: fallback);
+      final normalized = service.normalize(loaded);
 
-    expect(
-      normalized.equippedFor(PlayerCharacterId.eloise).accessoryId,
-      AccessoryId.ironBoots,
-    );
-    expect(
-      normalized.equippedFor(PlayerCharacterId.eloiseWip).accessoryId,
-      AccessoryId.ironBoots,
-    );
-  });
+      expect(
+        normalized.equippedFor(PlayerCharacterId.eloise).accessoryId,
+        AccessoryId.strengthBelt,
+      );
+      expect(
+        normalized.equippedFor(PlayerCharacterId.eloiseWip).accessoryId,
+        AccessoryId.strengthBelt,
+      );
+    },
+  );
 }

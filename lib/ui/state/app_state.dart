@@ -267,6 +267,7 @@ class AppState extends ChangeNotifier {
         abilityId: loadout.abilitySpellId,
         slot: AbilitySlot.spell,
         fallback: catalog.abilitySpellId,
+        enforceSingleOwnedSkill: false,
       ),
       abilityMobilityId: _normalizeAbilityForSlot(
         abilityId: loadout.abilityMobilityId,
@@ -309,8 +310,10 @@ class AppState extends ChangeNotifier {
     required AbilityKey abilityId,
     required AbilitySlot slot,
     required AbilityKey fallback,
+    bool enforceSingleOwnedSkill = true,
   }) {
-    final ability = _abilityCatalog.resolve(abilityId);
+    final candidate = enforceSingleOwnedSkill ? fallback : abilityId;
+    final ability = _abilityCatalog.resolve(candidate);
     if (ability != null && ability.allowedSlots.contains(slot)) {
       return ability.id;
     }

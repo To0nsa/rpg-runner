@@ -11,7 +11,9 @@ import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
+import 'package:rpg_runner/core/stats/character_stats_resolver.dart';
 import 'package:rpg_runner/core/util/tick_math.dart';
+import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
 
 import '../support/test_player.dart';
 import '../test_tunings.dart';
@@ -28,7 +30,6 @@ void main() {
       playerManaRegenPerSecond: 0,
       playerHpRegenPerSecond: 0,
     );
-    final abilityDerived = AbilityTuningDerived.from(abilityTuning, tickHz: 60);
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
       levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
@@ -84,9 +85,27 @@ void main() {
       snapshot.hud.stamina,
       closeTo(initialHud.stamina - abilityTuning.meleeStaminaCost, 1e-9),
     );
+    final resolvedStats = const CharacterStatsResolver().resolveLoadout(
+      EquippedLoadoutDef(
+        mask: catalog.loadoutSlotMask,
+        mainWeaponId: catalog.weaponId,
+        offhandWeaponId: catalog.offhandWeaponId,
+        spellBookId: catalog.spellBookId,
+        projectileSlotSpellId: catalog.projectileSlotSpellId,
+        abilityPrimaryId: catalog.abilityPrimaryId,
+        abilitySecondaryId: catalog.abilitySecondaryId,
+        abilityProjectileId: catalog.abilityProjectileId,
+        abilitySpellId: catalog.abilitySpellId,
+        abilityMobilityId: catalog.abilityMobilityId,
+        abilityJumpId: catalog.abilityJumpId,
+      ),
+    );
+    final expectedMeleeCooldownTicks = resolvedStats.applyCooldownReduction(
+      ticksFromSecondsCeil(ability.cooldownTicks / 60.0, core.tickHz),
+    );
     expect(
       core.playerMeleeCooldownTicksLeft,
-      abilityDerived.meleeCooldownTicks - windupTicks,
+      expectedMeleeCooldownTicks - windupTicks,
     );
 
     // Hitbox should exist for the active window (including the spawn tick).

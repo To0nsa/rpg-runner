@@ -14,9 +14,11 @@ import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/snapshots/enums.dart';
 import 'package:rpg_runner/core/players/player_tuning.dart';
 import 'package:rpg_runner/core/abilities/ability_catalog.dart';
+import 'package:rpg_runner/core/stats/character_stats_resolver.dart';
 import 'package:rpg_runner/core/util/tick_math.dart';
 import 'package:rpg_runner/core/projectiles/spawn_projectile_item.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
+import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
 
 import '../support/test_player.dart';
 import '../test_tunings.dart';
@@ -27,17 +29,18 @@ void main() {
     () {
       const tickHz = 20;
       final base = PlayerCharacterRegistry.eloise;
+      final catalog = testPlayerCatalog(
+        bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
+        projectileId: ProjectileId.fireBolt,
+        projectileSlotSpellId: null,
+        abilityProjectileId: 'eloise.quick_shot',
+      );
       final core = GameCore(
         levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
         seed: 1,
         tickHz: tickHz,
         playerCharacter: base.copyWith(
-          catalog: testPlayerCatalog(
-            bodyTemplate: BodyDef(isKinematic: true, useGravity: false),
-            projectileId: ProjectileId.fireBolt,
-            projectileSlotSpellId: null,
-            abilityProjectileId: 'eloise.quick_shot',
-          ),
+          catalog: catalog,
           tuning: base.tuning.copyWith(
             resource: const ResourceTuning(
               playerManaMax: 10,
@@ -80,17 +83,29 @@ void main() {
       expect(p.pos.y, closeTo(playerPosY, 1e-9));
 
       final ability = AbilityCatalog.shared.resolve('eloise.quick_shot')!;
-      final shotCost = ability.resolveCostForWeaponType(
-        WeaponType.spell,
-      );
+      final shotCost = ability.resolveCostForWeaponType(WeaponType.spell);
       expect(
         snapshot.hud.mana,
         closeTo(initialHud.mana - (shotCost.manaCost100 / 100.0), 1e-9),
       );
       expect(snapshot.hud.stamina, closeTo(initialHud.stamina, 1e-9));
-      final cooldownTicks = ticksFromSecondsCeil(
-        ability.cooldownTicks / 60.0,
-        tickHz,
+      final resolvedStats = const CharacterStatsResolver().resolveLoadout(
+        EquippedLoadoutDef(
+          mask: catalog.loadoutSlotMask,
+          mainWeaponId: catalog.weaponId,
+          offhandWeaponId: catalog.offhandWeaponId,
+          spellBookId: catalog.spellBookId,
+          projectileSlotSpellId: catalog.projectileSlotSpellId,
+          abilityPrimaryId: catalog.abilityPrimaryId,
+          abilitySecondaryId: catalog.abilitySecondaryId,
+          abilityProjectileId: catalog.abilityProjectileId,
+          abilitySpellId: catalog.abilitySpellId,
+          abilityMobilityId: catalog.abilityMobilityId,
+          abilityJumpId: catalog.abilityJumpId,
+        ),
+      );
+      final cooldownTicks = resolvedStats.applyCooldownReduction(
+        ticksFromSecondsCeil(ability.cooldownTicks / 60.0, tickHz),
       );
       expect(
         snapshot.hud.cooldownTicksLeft[CooldownGroup.projectile],

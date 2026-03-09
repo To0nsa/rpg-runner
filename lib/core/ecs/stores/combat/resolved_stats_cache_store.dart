@@ -58,7 +58,7 @@ class ResolvedStatsCacheStore extends SparseSet {
     mainWeaponId.add(WeaponId.plainsteel);
     offhandWeaponId.add(WeaponId.roadguard);
     spellBookId.add(SpellBookId.apprenticePrimer);
-    accessoryId.add(AccessoryId.speedBoots);
+    accessoryId.add(AccessoryId.strengthBelt);
     stats.add(const ResolvedCharacterStats(bonuses: GearStatBonuses.zero));
   }
 
