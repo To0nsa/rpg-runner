@@ -346,46 +346,6 @@ class MetaService {
     );
   }
 
-  /// Legacy helper: unlocked primary weapons only.
-  List<WeaponId> unlockedMainWeapons(MetaState state) {
-    final result = <WeaponId>[];
-    for (final id in state.inventory.unlockedWeaponIds) {
-      final def = weapons.tryGet(id);
-      if (def != null && def.category == WeaponCategory.primary) {
-        result.add(id);
-      }
-    }
-    result.sort((a, b) => a.index.compareTo(b.index));
-    return result;
-  }
-
-  /// Legacy helper: unlocked off-hand weapons only.
-  List<WeaponId> unlockedOffhands(MetaState state) {
-    final result = <WeaponId>[];
-    for (final id in state.inventory.unlockedWeaponIds) {
-      final def = weapons.tryGet(id);
-      if (def != null && def.category == WeaponCategory.offHand) {
-        result.add(id);
-      }
-    }
-    result.sort((a, b) => a.index.compareTo(b.index));
-    return result;
-  }
-
-  /// Legacy helper: unlocked spellbooks only.
-  List<SpellBookId> unlockedSpellBooks(MetaState state) {
-    final result = state.inventory.unlockedSpellBookIds.toList();
-    result.sort((a, b) => a.index.compareTo(b.index));
-    return result;
-  }
-
-  /// Legacy helper: unlocked accessories only.
-  List<AccessoryId> unlockedAccessories(MetaState state) {
-    final result = state.inventory.unlockedAccessoryIds.toList();
-    result.sort((a, b) => a.index.compareTo(b.index));
-    return result;
-  }
-
   /// Attempts to equip [itemId] into [slot] for [characterId].
   ///
   /// Invalid item types/categories or locked items are ignored and return

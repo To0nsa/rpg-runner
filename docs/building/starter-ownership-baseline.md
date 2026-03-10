@@ -40,3 +40,5 @@ Spell-slot ownership remains `SpellList`-driven.
 - Pre-live cleanup removed legacy selection migrations.
 - Selection state now uses strict schema loading; mismatched/old payloads
   reset to defaults.
+- Local-first server boundary plan:
+  `docs/building/loadout-ownership-api-local-first-plan.md`.

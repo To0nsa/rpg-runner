@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Replace with the numeric Play Games project ID from Play Console. -->
+    <string name="game_services_project_id">964001571974</string>
+</resources>

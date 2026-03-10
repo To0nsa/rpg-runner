@@ -152,12 +152,11 @@ class _SkillsBarState extends State<SkillsBar> {
     if (!candidate.isEnabled) return;
     final equippedAbilityId = abilityIdForSlot(loadout, slot);
     if (equippedAbilityId == candidate.id) return;
-    final next = setAbilityForSlot(
-      loadout,
+    await appState.setAbilitySlot(
+      characterId: widget.characterId,
       slot: slot,
       abilityId: candidate.id,
     );
-    await appState.setLoadout(next);
   }
 
   AbilitySlot _selectedSlotForBuild(List<AbilitySlot> availableSlots) {
@@ -186,12 +185,10 @@ class _SkillsBarState extends State<SkillsBar> {
       options: options,
       initialSelection: loadout.projectileSlotSpellId,
       onSelect: (sourceSpellId) async {
-        final next = setProjectileSourceForSlot(
-          loadout,
-          slot: AbilitySlot.projectile,
-          selectedSpellId: sourceSpellId!,
+        await appState.setProjectileSpell(
+          characterId: widget.characterId,
+          spellId: sourceSpellId!,
         );
-        await appState.setLoadout(next);
       },
     );
   }

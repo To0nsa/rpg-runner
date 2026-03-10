@@ -12,7 +12,20 @@
           "package_name": "com.example.rpg_runner"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "964001571974-1oj69a5gnr9rn660t7dodggkr8uu6dr2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.rpg_runner",
+            "certificate_hash": "6687ec4b062efc915ad59be0f1ebafaea3ae1fc5"
+          }
+        },
+        {
+          "client_id": "964001571974-dajrtiro395fjpise2ibskleearagtgm.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyB_RE8QyjyVnoBQ-H59DCIbGbc39faaixA"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "964001571974-dajrtiro395fjpise2ibskleearagtgm.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "964001571974-u4kduk7b8j6kicmjuih0aa5o8jukr62v.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.rpgRunner"
+              }
+            }
+          ]
         }
       }
     }

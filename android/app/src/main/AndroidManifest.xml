@@ -1,10 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
         android:label="rpg_runner"
-        android:name="${applicationName}"
+        android:name="com.example.rpg_runner.RpgRunnerApplication"
         android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
         android:isGame="true"
         android:appCategory="game">
+        <meta-data
+            android:name="com.google.android.gms.games.APP_ID"
+            android:value="@string/game_services_project_id" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:rpg_runner/core/accessories/accessory_id.dart';
 import 'package:rpg_runner/core/meta/gear_slot.dart';
 import 'package:rpg_runner/core/meta/meta_service.dart';
@@ -16,6 +17,12 @@ import 'package:rpg_runner/ui/state/user_profile.dart';
 import 'package:rpg_runner/ui/state/user_profile_store.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+  });
+
   group('AppState loadout mask normalization', () {
     test('buildRunStartArgs uses character-authored loadout mask', () {
       final appState = AppState();
@@ -313,63 +320,66 @@ void main() {
       },
     );
 
-    test('bootstrap keeps saved selection gear ids unchanged', () async {
-      const service = MetaService();
-      final meta = service.createNew();
+    test(
+      'bootstrap canonicalizes saved selection gear ids from meta',
+      () async {
+        const service = MetaService();
+        final meta = service.createNew();
 
-      final selectionStore = _MemorySelectionStore(
-        saved: SelectionState(
-          selectedLevelId: SelectionState.defaults.selectedLevelId,
-          selectedRunType: SelectionState.defaults.selectedRunType,
-          selectedCharacterId: PlayerCharacterId.eloise,
-          loadoutsByCharacter: _loadoutsWithSelected(
-            characterId: PlayerCharacterId.eloise,
-            loadout: EquippedLoadoutDef(
-              projectileSlotSpellId: ProjectileId.acidBolt,
-              spellBookId: SpellBookId.apprenticePrimer,
-              accessoryId: AccessoryId.speedBoots,
+        final selectionStore = _MemorySelectionStore(
+          saved: SelectionState(
+            selectedLevelId: SelectionState.defaults.selectedLevelId,
+            selectedRunType: SelectionState.defaults.selectedRunType,
+            selectedCharacterId: PlayerCharacterId.eloise,
+            loadoutsByCharacter: _loadoutsWithSelected(
+              characterId: PlayerCharacterId.eloise,
+              loadout: EquippedLoadoutDef(
+                projectileSlotSpellId: ProjectileId.acidBolt,
+                spellBookId: SpellBookId.apprenticePrimer,
+                accessoryId: AccessoryId.speedBoots,
+              ),
             ),
+            buildName: SelectionState.defaultBuildName,
           ),
-          buildName: SelectionState.defaultBuildName,
-        ),
-      );
-      final metaStore = _MemoryMetaStore(saved: meta);
-      final profileStore = _MemoryUserProfileStore();
-      final appState = AppState(
-        selectionStore: selectionStore,
-        metaStore: metaStore,
-        userProfileStore: profileStore,
-      );
+        );
+        final metaStore = _MemoryMetaStore(saved: meta);
+        final profileStore = _MemoryUserProfileStore();
+        final appState = AppState(
+          selectionStore: selectionStore,
+          metaStore: metaStore,
+          userProfileStore: profileStore,
+        );
 
-      await appState.bootstrap(force: true);
+        await appState.bootstrap(force: true);
 
-      expect(
-        _selectedLoadout(appState.selection).projectileSlotSpellId,
-        ProjectileId.acidBolt,
-      );
-      expect(
-        _selectedLoadout(appState.selection).spellBookId,
-        SpellBookId.apprenticePrimer,
-      );
-      expect(
-        _selectedLoadout(appState.selection).accessoryId,
-        AccessoryId.speedBoots,
-      );
-      expect(
-        _selectedLoadout(selectionStore.saved).projectileSlotSpellId,
-        ProjectileId.acidBolt,
-      );
-      expect(
-        _selectedLoadout(selectionStore.saved).spellBookId,
-        SpellBookId.apprenticePrimer,
-      );
-      expect(
-        _selectedLoadout(selectionStore.saved).accessoryId,
-        AccessoryId.speedBoots,
-      );
-    });
+        expect(
+          _selectedLoadout(appState.selection).projectileSlotSpellId,
+          ProjectileId.acidBolt,
+        );
+        expect(
+          _selectedLoadout(appState.selection).spellBookId,
+          SpellBookId.apprenticePrimer,
+        );
+        expect(
+          _selectedLoadout(appState.selection).accessoryId,
+          AccessoryId.strengthBelt,
+        );
+        expect(
+          _selectedLoadout(selectionStore.saved).projectileSlotSpellId,
+          ProjectileId.acidBolt,
+        );
+        expect(
+          _selectedLoadout(selectionStore.saved).spellBookId,
+          SpellBookId.apprenticePrimer,
+        );
+        expect(
+          _selectedLoadout(selectionStore.saved).accessoryId,
+          AccessoryId.strengthBelt,
+        );
+      },
+    );
 
-    test('bootstrap keeps unknown saved ability ids unchanged', () async {
+    test('bootstrap canonicalizes unknown saved ability ids', () async {
       final selectionStore = _MemorySelectionStore(
         saved: SelectionState(
           selectedLevelId: SelectionState.defaults.selectedLevelId,
@@ -398,11 +408,11 @@ void main() {
 
       expect(
         _selectedLoadout(appState.selection).abilityPrimaryId,
-        'common.unarmed_strike',
+        'eloise.seeker_slash',
       );
       expect(
         _selectedLoadout(selectionStore.saved).abilityPrimaryId,
-        'common.unarmed_strike',
+        'eloise.seeker_slash',
       );
     });
   });

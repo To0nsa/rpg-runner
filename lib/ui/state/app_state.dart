@@ -2,118 +2,249 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
-import '../../core/abilities/ability_catalog.dart';
 import '../../core/abilities/ability_def.dart';
 import '../../core/ecs/stores/combat/equipped_loadout_store.dart';
 import '../../core/levels/level_id.dart';
-import '../../core/loadout/loadout_validator.dart';
 import '../../core/meta/gear_slot.dart';
-import '../../core/meta/meta_defaults.dart';
 import '../../core/meta/meta_service.dart';
 import '../../core/meta/meta_state.dart';
-import '../../core/players/character_ability_namespace.dart';
 import '../../core/players/player_character_definition.dart';
-import '../../core/players/player_character_registry.dart';
-import '../../core/projectiles/projectile_catalog.dart';
 import '../../core/projectiles/projectile_id.dart';
-import '../../core/spellBook/spell_book_catalog.dart';
-import '../../core/weapons/weapon_catalog.dart';
 import '../app/ui_routes.dart';
+import 'auth_api.dart';
+import 'local_auth_api.dart';
+import 'loadout_ownership_api.dart';
+import 'local_loadout_ownership_api.dart';
+import 'meta_store.dart';
 import 'selection_state.dart';
 import 'selection_store.dart';
-import 'meta_store.dart';
 import 'user_profile.dart';
 import 'user_profile_store.dart';
 
 class AppState extends ChangeNotifier {
-  AppState({
+  factory AppState({
     SelectionStore? selectionStore,
     MetaStore? metaStore,
     UserProfileStore? userProfileStore,
     MetaService? metaService,
-  }) : _selectionStore = selectionStore ?? SelectionStore(),
-       _metaStore = metaStore ?? MetaStore(),
-       _profileStore = userProfileStore ?? UserProfileStore(),
-       _metaService = metaService ?? const MetaService();
+    AuthApi? authApi,
+    LoadoutOwnershipApi? loadoutOwnershipApi,
+  }) {
+    final resolvedAuthApi = authApi ?? LocalAuthApi();
+    final resolvedOwnershipApi =
+        loadoutOwnershipApi ??
+        LocalLoadoutOwnershipApi(
+          selectionStore: selectionStore ?? SelectionStore(),
+          metaStore: metaStore ?? MetaStore(),
+          metaService: metaService ?? const MetaService(),
+          authApi: resolvedAuthApi,
+        );
+    return AppState._internal(
+      userProfileStore: userProfileStore,
+      authApi: resolvedAuthApi,
+      loadoutOwnershipApi: resolvedOwnershipApi,
+    );
+  }
+
+  AppState._internal({
+    UserProfileStore? userProfileStore,
+    required AuthApi authApi,
+    required LoadoutOwnershipApi loadoutOwnershipApi,
+  }) : _profileStore = userProfileStore ?? UserProfileStore(),
+       _authApi = authApi,
+       _ownershipApi = loadoutOwnershipApi;
 
   final Random _random = Random();
-  final SelectionStore _selectionStore;
-  final MetaStore _metaStore;
+  final AuthApi _authApi;
+  final LoadoutOwnershipApi _ownershipApi;
   final UserProfileStore _profileStore;
-  final MetaService _metaService;
-  static const AbilityCatalog _abilityCatalog = AbilityCatalog();
-  static const ProjectileCatalog _projectileCatalog = ProjectileCatalog();
-  static const SpellBookCatalog _spellBookCatalog = SpellBookCatalog();
-  static const LoadoutValidator _loadoutValidator = LoadoutValidator(
-    abilityCatalog: _abilityCatalog,
-    weaponCatalog: WeaponCatalog(),
-    projectileCatalog: _projectileCatalog,
-    spellBookCatalog: _spellBookCatalog,
-  );
 
   SelectionState _selection = SelectionState.defaults;
   MetaState _meta = const MetaService().createNew();
   UserProfile _profile = UserProfile.empty();
+  AuthSession _authSession = AuthSession.unauthenticated;
+  int _ownershipRevision = 0;
   bool _bootstrapped = false;
   bool _warmupStarted = false;
 
   SelectionState get selection => _selection;
   MetaState get meta => _meta;
   UserProfile get profile => _profile;
+  AuthSession get authSession => _authSession;
   bool get isBootstrapped => _bootstrapped;
+  int get ownershipRevision => _ownershipRevision;
 
   Future<void> bootstrap({bool force = false}) async {
     if (_bootstrapped && !force) return;
-    final loadedSelection = await _selectionStore.load();
-    final loadedMeta = await _metaStore.load(_metaService);
+    final session = await _ensureAuthSession();
     final loadedProfile = await _profileStore.load();
-    _selection = loadedSelection;
-    _meta = loadedMeta;
+    final canonical = await _ownershipApi.loadCanonicalState(
+      profileId: loadedProfile.profileId,
+      userId: session.userId,
+      sessionId: session.sessionId,
+    );
     _profile = loadedProfile;
+    _applyCanonicalState(canonical);
     _bootstrapped = true;
     notifyListeners();
   }
 
-  void applyDefaults() {
-    _selection = SelectionState.defaults;
-    _meta = _metaService.createNew();
-    _profile = _profileStore.createFresh();
-    _persistSelection();
-    _persistMeta();
-    _persistProfile();
+  Future<void> applyDefaults() async {
+    final session = await _ensureAuthSession();
+    final freshProfile = _profileStore.createFresh();
+    _profile = freshProfile;
+    await _profileStore.save(freshProfile);
+    final loaded = await _ownershipApi.loadCanonicalState(
+      profileId: freshProfile.profileId,
+      userId: session.userId,
+      sessionId: session.sessionId,
+    );
+    _applyCanonicalState(loaded);
+    final resetResult = await _ownershipApi.resetOwnership(
+      ResetOwnershipCommand(
+        profileId: freshProfile.profileId,
+        userId: session.userId,
+        sessionId: session.sessionId,
+        expectedRevision: _ownershipRevision,
+        commandId: _newCommandId(),
+      ),
+    );
+    _applyOwnershipResult(resetResult);
+    _bootstrapped = true;
     notifyListeners();
   }
 
   Future<void> setLevel(LevelId levelId) async {
-    _selection = _selection.copyWith(selectedLevelId: levelId);
-    _persistSelection();
-    notifyListeners();
+    final nextSelection = _selection.copyWith(selectedLevelId: levelId);
+    await _setSelection(nextSelection);
   }
 
   Future<void> setRunType(RunType runType) async {
-    _selection = _selection.copyWith(selectedRunType: runType);
-    _persistSelection();
-    notifyListeners();
+    final nextSelection = _selection.copyWith(selectedRunType: runType);
+    await _setSelection(nextSelection);
   }
 
   Future<void> setCharacter(PlayerCharacterId id) async {
-    final currentLoadout = _selection.loadoutFor(id);
-    final normalizedLoadout = _normalizeLoadoutForCharacter(currentLoadout, id);
-    _selection = _selection
-        .withLoadoutFor(id, normalizedLoadout)
-        .copyWith(selectedCharacterId: id);
-    _persistSelection();
-    notifyListeners();
+    final nextSelection = _selection.copyWith(selectedCharacterId: id);
+    await _setSelection(nextSelection);
   }
 
   Future<void> setLoadout(EquippedLoadoutDef loadout) async {
-    final characterId = _selection.selectedCharacterId;
-    final normalizedLoadout = _normalizeLoadoutForCharacter(
-      loadout,
-      characterId,
+    final session = await _ensureAuthSession();
+    final result = await _ownershipApi.setLoadout(
+      SetLoadoutCommand(
+        profileId: _profile.profileId,
+        userId: session.userId,
+        sessionId: session.sessionId,
+        expectedRevision: _ownershipRevision,
+        commandId: _newCommandId(),
+        characterId: _selection.selectedCharacterId,
+        loadout: loadout,
+      ),
     );
-    _selection = _selection.withLoadoutFor(characterId, normalizedLoadout);
-    _persistSelection();
+    _applyOwnershipResult(result);
+    notifyListeners();
+  }
+
+  Future<void> setAbilitySlot({
+    required PlayerCharacterId characterId,
+    required AbilitySlot slot,
+    required AbilityKey abilityId,
+  }) async {
+    final session = await _ensureAuthSession();
+    final result = await _ownershipApi.setAbilitySlot(
+      SetAbilitySlotCommand(
+        profileId: _profile.profileId,
+        userId: session.userId,
+        sessionId: session.sessionId,
+        expectedRevision: _ownershipRevision,
+        commandId: _newCommandId(),
+        characterId: characterId,
+        slot: slot,
+        abilityId: abilityId,
+      ),
+    );
+    _applyOwnershipResult(result);
+    notifyListeners();
+  }
+
+  Future<void> setProjectileSpell({
+    required PlayerCharacterId characterId,
+    required ProjectileId spellId,
+  }) async {
+    final session = await _ensureAuthSession();
+    final result = await _ownershipApi.setProjectileSpell(
+      SetProjectileSpellCommand(
+        profileId: _profile.profileId,
+        userId: session.userId,
+        sessionId: session.sessionId,
+        expectedRevision: _ownershipRevision,
+        commandId: _newCommandId(),
+        characterId: characterId,
+        spellId: spellId,
+      ),
+    );
+    _applyOwnershipResult(result);
+    notifyListeners();
+  }
+
+  Future<void> learnProjectileSpell({
+    required PlayerCharacterId characterId,
+    required ProjectileId spellId,
+  }) async {
+    final session = await _ensureAuthSession();
+    final result = await _ownershipApi.learnProjectileSpell(
+      LearnProjectileSpellCommand(
+        profileId: _profile.profileId,
+        userId: session.userId,
+        sessionId: session.sessionId,
+        expectedRevision: _ownershipRevision,
+        commandId: _newCommandId(),
+        characterId: characterId,
+        spellId: spellId,
+      ),
+    );
+    _applyOwnershipResult(result);
+    notifyListeners();
+  }
+
+  Future<void> learnSpellAbility({
+    required PlayerCharacterId characterId,
+    required AbilityKey abilityId,
+  }) async {
+    final session = await _ensureAuthSession();
+    final result = await _ownershipApi.learnSpellAbility(
+      LearnSpellAbilityCommand(
+        profileId: _profile.profileId,
+        userId: session.userId,
+        sessionId: session.sessionId,
+        expectedRevision: _ownershipRevision,
+        commandId: _newCommandId(),
+        characterId: characterId,
+        abilityId: abilityId,
+      ),
+    );
+    _applyOwnershipResult(result);
+    notifyListeners();
+  }
+
+  Future<void> unlockGear({
+    required GearSlot slot,
+    required Object itemId,
+  }) async {
+    final session = await _ensureAuthSession();
+    final result = await _ownershipApi.unlockGear(
+      UnlockGearCommand(
+        profileId: _profile.profileId,
+        userId: session.userId,
+        sessionId: session.sessionId,
+        expectedRevision: _ownershipRevision,
+        commandId: _newCommandId(),
+        slot: slot,
+        itemId: itemId,
+      ),
+    );
+    _applyOwnershipResult(result);
     notifyListeners();
   }
 
@@ -122,29 +253,35 @@ class AppState extends ChangeNotifier {
     required GearSlot slot,
     required Object itemId,
   }) async {
-    final next = _metaService.equip(
-      _meta,
-      characterId: characterId,
-      slot: slot,
-      itemId: itemId,
+    final session = await _ensureAuthSession();
+    final result = await _ownershipApi.equipGear(
+      EquipGearCommand(
+        profileId: _profile.profileId,
+        userId: session.userId,
+        sessionId: session.sessionId,
+        expectedRevision: _ownershipRevision,
+        commandId: _newCommandId(),
+        characterId: characterId,
+        slot: slot,
+        itemId: itemId,
+      ),
     );
-    _meta = next;
-    _persistMeta();
-    final currentLoadout = _selection.loadoutFor(characterId);
-    final synced = _normalizeLoadoutForCharacter(currentLoadout, characterId);
-    if (!_sameLoadout(currentLoadout, synced)) {
-      _selection = _selection.withLoadoutFor(characterId, synced);
-      _persistSelection();
-    }
+    _applyOwnershipResult(result);
     notifyListeners();
   }
 
   Future<void> setBuildName(String buildName) async {
     final normalized = SelectionState.normalizeBuildName(buildName);
     if (normalized == _selection.buildName) return;
-    _selection = _selection.copyWith(buildName: normalized);
-    _persistSelection();
+    final nextSelection = _selection.copyWith(buildName: normalized);
+    await _setSelection(nextSelection);
+  }
+
+  Future<AuthLinkResult> linkAuthProvider(AuthLinkProvider provider) async {
+    final result = await _authApi.linkAuthProvider(provider);
+    _authSession = result.session;
     notifyListeners();
+    return result;
   }
 
   Future<void> updateProfile(
@@ -175,22 +312,14 @@ class AppState extends ChangeNotifier {
   }
 
   RunStartArgs buildRunStartArgs({int? seed}) {
-    final equipped = _buildRunEquippedLoadout();
+    final characterId = _selection.selectedCharacterId;
     return RunStartArgs(
       runId: createRunId(),
       seed: seed ?? _random.nextInt(1 << 31),
       levelId: _selection.selectedLevelId,
-      playerCharacterId: _selection.selectedCharacterId,
+      playerCharacterId: characterId,
       runType: _selection.selectedRunType,
-      equippedLoadout: equipped,
-    );
-  }
-
-  EquippedLoadoutDef _buildRunEquippedLoadout() {
-    final characterId = _selection.selectedCharacterId;
-    return _normalizeLoadoutForCharacter(
-      _selection.loadoutFor(characterId),
-      characterId,
+      equippedLoadout: _selection.loadoutFor(characterId),
     );
   }
 
@@ -202,275 +331,41 @@ class AppState extends ChangeNotifier {
     return (nowMs << 20) | salt;
   }
 
-  void _persistSelection() {
-    _selectionStore.save(_selection);
-  }
-
-  void _persistMeta() {
-    _metaStore.save(_meta);
-  }
-
-  void _persistProfile() {
-    _profileStore.save(_profile);
-  }
-
-  EquippedLoadoutDef _normalizeLoadoutForCharacter(
-    EquippedLoadoutDef loadout,
-    PlayerCharacterId characterId,
-  ) {
-    final gear = _meta.equippedFor(characterId);
-    final spellList = _meta.spellListFor(characterId);
-    final character = PlayerCharacterRegistry.resolve(characterId);
-    final catalog = character.catalog;
-    var normalized = EquippedLoadoutDef(
-      mask: catalog.loadoutSlotMask,
-      mainWeaponId: gear.mainWeaponId,
-      offhandWeaponId: gear.offhandWeaponId,
-      spellBookId: gear.spellBookId,
-      projectileSlotSpellId: loadout.projectileSlotSpellId,
-      accessoryId: gear.accessoryId,
-      abilityPrimaryId: _normalizeAbilityForSlot(
-        abilityId: loadout.abilityPrimaryId,
-        slot: AbilitySlot.primary,
-        fallback: catalog.abilityPrimaryId,
-      ),
-      abilitySecondaryId: _normalizeAbilityForSlot(
-        abilityId: loadout.abilitySecondaryId,
-        slot: AbilitySlot.secondary,
-        fallback: catalog.abilitySecondaryId,
-      ),
-      abilityProjectileId: _normalizeAbilityForSlot(
-        abilityId: loadout.abilityProjectileId,
-        slot: AbilitySlot.projectile,
-        fallback: catalog.abilityProjectileId,
-      ),
-      abilitySpellId: _normalizeAbilityForSlot(
-        abilityId: loadout.abilitySpellId,
-        slot: AbilitySlot.spell,
-        fallback: catalog.abilitySpellId,
-        enforceSingleOwnedSkill: false,
-      ),
-      abilityMobilityId: _normalizeAbilityForSlot(
-        abilityId: loadout.abilityMobilityId,
-        slot: AbilitySlot.mobility,
-        fallback: catalog.abilityMobilityId,
-      ),
-      abilityJumpId: _normalizeAbilityForSlot(
-        abilityId: loadout.abilityJumpId,
-        slot: AbilitySlot.jump,
-        fallback: catalog.abilityJumpId,
+  Future<void> _setSelection(SelectionState nextSelection) async {
+    final session = await _ensureAuthSession();
+    final result = await _ownershipApi.setSelection(
+      SetSelectionCommand(
+        profileId: _profile.profileId,
+        userId: session.userId,
+        sessionId: session.sessionId,
+        expectedRevision: _ownershipRevision,
+        commandId: _newCommandId(),
+        selection: nextSelection,
       ),
     );
-    final normalizedProjectileSpellId =
-        _normalizeProjectileSpellSelectionForLoadout(
-          normalized,
-          learnedProjectileSpellIds: spellList.learnedProjectileSpellIds,
-        );
-    if (normalizedProjectileSpellId != normalized.projectileSlotSpellId) {
-      normalized = _withProjectileSpellSelection(
-        normalized,
-        projectileSlotSpellId: normalizedProjectileSpellId,
-      );
-    }
-    final normalizedSpellAbilityId = _normalizeSpellAbilityForLoadout(
-      normalized,
-      characterId: characterId,
-      learnedSpellAbilityIds: spellList.learnedSpellAbilityIds,
-    );
-    if (normalizedSpellAbilityId != normalized.abilitySpellId) {
-      normalized = _withAbilityForSlot(
-        normalized,
-        slot: AbilitySlot.spell,
-        abilityId: normalizedSpellAbilityId,
-      );
-    }
-    return _sameLoadout(normalized, loadout) ? loadout : normalized;
+    _applyOwnershipResult(result);
+    notifyListeners();
   }
 
-  AbilityKey _normalizeAbilityForSlot({
-    required AbilityKey abilityId,
-    required AbilitySlot slot,
-    required AbilityKey fallback,
-    bool enforceSingleOwnedSkill = true,
-  }) {
-    final candidate = enforceSingleOwnedSkill ? fallback : abilityId;
-    final ability = _abilityCatalog.resolve(candidate);
-    if (ability != null && ability.allowedSlots.contains(slot)) {
-      return ability.id;
-    }
-    final fallbackAbility = _abilityCatalog.resolve(fallback);
-    if (fallbackAbility != null &&
-        fallbackAbility.allowedSlots.contains(slot)) {
-      return fallbackAbility.id;
-    }
-    return fallback;
+  void _applyOwnershipResult(OwnershipCommandResult result) {
+    _applyCanonicalState(result.canonicalState);
   }
 
-  AbilityKey _normalizeSpellAbilityForLoadout(
-    EquippedLoadoutDef loadout, {
-    required PlayerCharacterId characterId,
-    required Set<AbilityKey> learnedSpellAbilityIds,
-  }) {
-    final current = loadout.abilitySpellId;
-    if (learnedSpellAbilityIds.contains(current) &&
-        _isAbilityVisibleForCharacter(characterId, current) &&
-        _isAbilityValidForSlot(
-          loadout,
-          slot: AbilitySlot.spell,
-          abilityId: current,
-        )) {
-      return current;
-    }
-
-    final orderedLearned = learnedSpellAbilityIds.toList(growable: false)
-      ..sort((a, b) => a.compareTo(b));
-    for (final abilityId in orderedLearned) {
-      if (!_isAbilityVisibleForCharacter(characterId, abilityId)) continue;
-      if (_isAbilityValidForSlot(
-        loadout,
-        slot: AbilitySlot.spell,
-        abilityId: abilityId,
-      )) {
-        return abilityId;
-      }
-    }
-
-    return current;
+  void _applyCanonicalState(OwnershipCanonicalState canonical) {
+    _selection = canonical.selection;
+    _meta = canonical.meta;
+    _ownershipRevision = canonical.revision;
   }
 
-  ProjectileId _normalizeProjectileSpellSelectionForLoadout(
-    EquippedLoadoutDef loadout, {
-    required Set<ProjectileId> learnedProjectileSpellIds,
-  }) {
-    final current = loadout.projectileSlotSpellId;
-    if (_isProjectileSpellLearned(current, learnedProjectileSpellIds)) {
-      return current;
-    }
-
-    final orderedLearned = learnedProjectileSpellIds.toList(growable: false)
-      ..sort((a, b) => a.index.compareTo(b.index));
-    for (final spellId in orderedLearned) {
-      if (_isProjectileSpellLearned(spellId, learnedProjectileSpellIds)) {
-        return spellId;
-      }
-    }
-    if (_isProjectileSpellLearned(
-      MetaDefaults.projectileSpellId,
-      learnedProjectileSpellIds,
-    )) {
-      return MetaDefaults.projectileSpellId;
-    }
-    return const EquippedLoadoutDef().projectileSlotSpellId;
+  Future<AuthSession> _ensureAuthSession() async {
+    final session = await _authApi.ensureAuthenticatedSession();
+    _authSession = session;
+    return session;
   }
 
-  bool _isProjectileSpellLearned(
-    ProjectileId spellId,
-    Set<ProjectileId> learnedProjectileSpellIds,
-  ) {
-    if (!learnedProjectileSpellIds.contains(spellId)) return false;
-    final spellItem = _projectileCatalog.tryGet(spellId);
-    if (spellItem == null) return false;
-    return spellItem.weaponType == WeaponType.spell;
-  }
-
-  bool _isAbilityValidForSlot(
-    EquippedLoadoutDef loadout, {
-    required AbilitySlot slot,
-    required AbilityKey abilityId,
-  }) {
-    final trial = _withAbilityForSlot(
-      loadout,
-      slot: slot,
-      abilityId: abilityId,
-    );
-    final result = _loadoutValidator.validate(trial);
-    for (final issue in result.issues) {
-      if (issue.slot == slot) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  EquippedLoadoutDef _withAbilityForSlot(
-    EquippedLoadoutDef loadout, {
-    required AbilitySlot slot,
-    required AbilityKey abilityId,
-  }) {
-    return EquippedLoadoutDef(
-      mask: loadout.mask,
-      mainWeaponId: loadout.mainWeaponId,
-      offhandWeaponId: loadout.offhandWeaponId,
-      spellBookId: loadout.spellBookId,
-      projectileSlotSpellId: loadout.projectileSlotSpellId,
-      accessoryId: loadout.accessoryId,
-      abilityPrimaryId: slot == AbilitySlot.primary
-          ? abilityId
-          : loadout.abilityPrimaryId,
-      abilitySecondaryId: slot == AbilitySlot.secondary
-          ? abilityId
-          : loadout.abilitySecondaryId,
-      abilityProjectileId: slot == AbilitySlot.projectile
-          ? abilityId
-          : loadout.abilityProjectileId,
-      abilitySpellId: slot == AbilitySlot.spell
-          ? abilityId
-          : loadout.abilitySpellId,
-      abilityMobilityId: slot == AbilitySlot.mobility
-          ? abilityId
-          : loadout.abilityMobilityId,
-      abilityJumpId: slot == AbilitySlot.jump
-          ? abilityId
-          : loadout.abilityJumpId,
-    );
-  }
-
-  EquippedLoadoutDef _withProjectileSpellSelection(
-    EquippedLoadoutDef loadout, {
-    required ProjectileId projectileSlotSpellId,
-  }) {
-    return EquippedLoadoutDef(
-      mask: loadout.mask,
-      mainWeaponId: loadout.mainWeaponId,
-      offhandWeaponId: loadout.offhandWeaponId,
-      spellBookId: loadout.spellBookId,
-      projectileSlotSpellId: projectileSlotSpellId,
-      accessoryId: loadout.accessoryId,
-      abilityPrimaryId: loadout.abilityPrimaryId,
-      abilitySecondaryId: loadout.abilitySecondaryId,
-      abilityProjectileId: loadout.abilityProjectileId,
-      abilitySpellId: loadout.abilitySpellId,
-      abilityMobilityId: loadout.abilityMobilityId,
-      abilityJumpId: loadout.abilityJumpId,
-    );
-  }
-
-  bool _isAbilityVisibleForCharacter(
-    PlayerCharacterId characterId,
-    AbilityKey id,
-  ) {
-    final namespace = characterAbilityNamespace(characterId);
-    if (id.startsWith('$namespace.')) {
-      return true;
-    }
-    if (id.startsWith('common.') && !id.startsWith('common.enemy_')) {
-      return true;
-    }
-    return false;
-  }
-
-  bool _sameLoadout(EquippedLoadoutDef a, EquippedLoadoutDef b) {
-    return a.mask == b.mask &&
-        a.mainWeaponId == b.mainWeaponId &&
-        a.offhandWeaponId == b.offhandWeaponId &&
-        a.spellBookId == b.spellBookId &&
-        a.projectileSlotSpellId == b.projectileSlotSpellId &&
-        a.accessoryId == b.accessoryId &&
-        a.abilityPrimaryId == b.abilityPrimaryId &&
-        a.abilitySecondaryId == b.abilitySecondaryId &&
-        a.abilityProjectileId == b.abilityProjectileId &&
-        a.abilitySpellId == b.abilitySpellId &&
-        a.abilityMobilityId == b.abilityMobilityId &&
-        a.abilityJumpId == b.abilityJumpId;
+  String _newCommandId() {
+    final nowMs = DateTime.now().microsecondsSinceEpoch;
+    final salt = _random.nextInt(1 << 31);
+    return 'cmd_${nowMs.toRadixString(36)}_${salt.toRadixString(36)}';
   }
 }

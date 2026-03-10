@@ -7,6 +7,9 @@ import 'package:provider/provider.dart';
 import '../assets/ui_asset_lifecycle.dart';
 import '../levels/level_id_ui.dart';
 import '../state/app_state.dart';
+import '../state/firebase_auth_api.dart';
+import '../state/firebase_loadout_ownership_api.dart';
+import '../state/local_loadout_ownership_api.dart';
 import '../theme/ui_button_theme.dart';
 import '../theme/ui_hub_theme.dart';
 import '../theme/ui_icon_button_theme.dart';
@@ -143,7 +146,19 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AppState()),
+        ChangeNotifierProvider(
+          create: (_) {
+            final authApi = FirebaseAuthApi();
+            final localFallback = LocalLoadoutOwnershipApi(authApi: authApi);
+            final ownershipApi = FirebaseLoadoutOwnershipApi(
+              fallbackApi: localFallback,
+            );
+            return AppState(
+              authApi: authApi,
+              loadoutOwnershipApi: ownershipApi,
+            );
+          },
+        ),
         Provider<UiAssetLifecycle>(
           create: (_) => UiAssetLifecycle(),
           dispose: (_, lifecycle) => lifecycle.dispose(),

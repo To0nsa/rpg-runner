@@ -1,11 +1,14 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../components/app_button.dart';
 import '../../components/app_inline_edit_text.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
 import '../../profile/display_name_policy.dart';
 import '../../state/app_state.dart';
+import '../../state/auth_api.dart';
 import '../../state/profile_counter_keys.dart';
 import '../../state/user_profile.dart';
 import '../../theme/ui_tokens.dart';
@@ -21,6 +24,7 @@ class _ProfilePageState extends State<ProfilePage> {
   final _policy = const DisplayNamePolicy();
 
   static const Duration _cooldown = Duration(hours: 24);
+  AuthLinkProvider? _linkingProvider;
 
   String _fallbackName(String displayName) =>
       displayName.isEmpty ? 'Guest' : displayName;
@@ -74,6 +78,56 @@ class _ProfilePageState extends State<ProfilePage> {
     ).showSnackBar(const SnackBar(content: Text('Name updated')));
   }
 
+  bool _isLinking(AuthLinkProvider provider) => _linkingProvider == provider;
+
+  Future<void> _linkAccount(AuthLinkProvider provider) async {
+    if (_linkingProvider != null) return;
+    setState(() => _linkingProvider = provider);
+    final appState = context.read<AppState>();
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final result = await appState.linkAuthProvider(provider);
+      if (!mounted) return;
+      final providerName = _providerDisplayName(provider);
+      final message = _linkResultMessage(result, providerName);
+      messenger.showSnackBar(SnackBar(content: Text(message)));
+    } catch (_) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Could not link ${_providerDisplayName(provider)} account.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _linkingProvider = null);
+      }
+    }
+  }
+
+  String _providerDisplayName(AuthLinkProvider provider) {
+    return switch (provider) {
+      AuthLinkProvider.google => 'Google',
+      AuthLinkProvider.playGames => 'Play Games',
+    };
+  }
+
+  String _linkResultMessage(AuthLinkResult result, String providerName) {
+    return switch (result.status) {
+      AuthLinkStatus.linked => '$providerName account linked.',
+      AuthLinkStatus.alreadyLinked => '$providerName is already linked.',
+      AuthLinkStatus.canceled => '$providerName sign-in canceled.',
+      AuthLinkStatus.unsupported =>
+        result.errorMessage ?? '$providerName sign-in is not available here.',
+      AuthLinkStatus.failed =>
+        result.errorCode == null
+            ? 'Could not link $providerName account.'
+            : 'Could not link $providerName account (${result.errorCode}).',
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
@@ -103,7 +157,9 @@ class _ProfilePageState extends State<ProfilePage> {
                   child: Column(
                     children: [
                       _buildDisplayNameRow(profile),
+                      _buildAccountRow(appState.authSession),
                       _row('Gold', gold.toString()),
+                      _buildManageLinkedAccounts(appState.authSession),
                     ],
                   ),
                 ),
@@ -132,6 +188,72 @@ class _ProfilePageState extends State<ProfilePage> {
               validator: (value) => _validateDisplayName(profile, value),
               onCommit: _commitDisplayName,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAccountRow(AuthSession session) {
+    final linkedCount = session.linkedProviders.length;
+    final value = session.isAnonymous
+        ? 'Guest (Anonymous)'
+        : linkedCount == 0
+        ? 'Registered'
+        : 'Registered ($linkedCount linked)';
+    return _row('Account', value);
+  }
+
+  Widget _buildManageLinkedAccounts(AuthSession session) {
+    final ui = context.ui;
+    return Padding(
+      padding: EdgeInsets.only(top: ui.space.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Manage linked accounts',
+            style: ui.text.label.copyWith(color: ui.colors.textMuted),
+          ),
+          SizedBox(height: ui.space.xs),
+          _buildProviderLinkRow(session, AuthLinkProvider.google),
+          if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android)
+            _buildProviderLinkRow(session, AuthLinkProvider.playGames),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProviderLinkRow(AuthSession session, AuthLinkProvider provider) {
+    final ui = context.ui;
+    final isLinked = session.isProviderLinked(provider);
+    final canLink = !isLinked && _linkingProvider == null;
+    final providerName = _providerDisplayName(provider);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              providerName,
+              style: ui.text.label.copyWith(color: ui.colors.textMuted),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              isLinked ? 'Linked' : 'Not linked',
+              style: ui.text.body.copyWith(color: ui.colors.textPrimary),
+            ),
+          ),
+          AppButton(
+            label: _isLinking(provider)
+                ? 'Linking...'
+                : isLinked
+                ? 'Linked'
+                : 'Link $providerName',
+            size: AppButtonSize.xs,
+            onPressed: canLink ? () => _linkAccount(provider) : null,
           ),
         ],
       ),

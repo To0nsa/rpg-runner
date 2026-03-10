@@ -45,3 +45,8 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // Required by Play Games Services v2 sign-in.
+    implementation("com.google.android.gms:play-services-games-v2:21.0.0")
+}
