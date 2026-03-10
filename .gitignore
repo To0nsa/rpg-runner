@@ -105,3 +105,10 @@ resources/
 # Agent / tooling outputs
 tools/output/src-bundle-flutter.txt
 tools/output/tree.txt
+
+# =========================
+# Node / pnpm
+# =========================
+node_modules/
+.pnpm-store/
+node_modules

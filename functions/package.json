@@ -1,0 +1,24 @@
+{
+  "name": "rpg-runner-functions",
+  "private": true,
+  "engines": {
+    "node": "20"
+  },
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "serve": "corepack pnpm run build && firebase emulators:start --only functions,firestore",
+    "shell": "corepack pnpm run build && firebase functions:shell",
+    "deploy": "firebase deploy --only functions,firestore:rules",
+    "test": "echo \"No backend tests configured yet.\""
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^6.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.57",
+    "typescript": "^5.8.3"
+  }
+}
