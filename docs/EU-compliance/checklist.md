@@ -1,79 +1,90 @@
-# Firebase + Play Games + Anonymous Auth + Firestore — EU compliance checklist
+# Firebase + Play Games + Anonymous Auth + Firestore - EU compliance checklist
 
-This document is a **practical implementation checklist** for a mobile game that uses:
+This document is a practical implementation checklist for a mobile game that uses:
 
-* Firebase Authentication
+- Firebase Authentication
+  - Anonymous auth
+  - Google Play Games sign-in
+- Cloud Firestore
+- Google Play distribution
 
-  * Anonymous auth
-  * Google Play Games sign-in
-* Cloud Firestore
-* Google Play distribution
+It is written from a small game studio / solo developer perspective.
 
-It is written for a small game studio / solo developer perspective.
-
-It is **not legal advice**. It is the concrete engineering and product work you should do so the app is materially closer to compliance with **EU GDPR + Google Play policy**.
+It is not legal advice. It is concrete engineering and product work that will move the app materially closer to compliance with EU GDPR and Google Play policy.
 
 ---
 
-## 1. What you are actually processing
+## 1. How to use this document
 
-With this stack, you are processing **personal data** under EU law, even if you never ask for a real name manually.
+Use this checklist in three passes:
 
-That is because the app can process things such as:
+1. identify what data the current app actually processes
+2. make sure the release baseline is covered
+3. re-open the document whenever the stack changes, especially if you add analytics, ads, attribution SDKs, child-directed features, or more social features
 
-* Firebase UID
-* Google account identifiers
-* Play Games account identifiers and profile data
-* device-linked or account-linked records in Firestore
-* gameplay progress tied to a user or pseudonymous account
-* authentication logs
-* IP/network metadata processed by providers
+The goal is not to "show a GDPR popup." The goal is to know what data you process, justify it, disclose it, secure it, and delete it when required.
+
+---
+
+## 2. Why this stack is in scope
+
+With this stack, you are processing personal data under EU law even if you never ask for a real name manually.
+
+Typical examples in this setup:
+
+- Firebase UID
+- Google account identifiers
+- Play Games account identifiers and profile data
+- device-linked or account-linked records in Firestore
+- gameplay progress tied to a user or pseudonymous account
+- authentication logs
+- IP/network metadata processed by providers
 
 The GDPR is technology-neutral and applies whenever personal data is processed in an organized way. ([commission.europa.eu](https://commission.europa.eu/law/law-topic/data-protection/data-protection-explained_en?utm_source=chatgpt.com))
 
-**Action:** treat this project as a personal-data processing system from day one.
+Practical takeaway: treat this project as a personal-data processing system from day one.
 
 ---
 
-## 2. Your role: controller, and Google/Firebase as processor or separate party depending on the feature
+## 3. Roles and platform constraints
 
-For your game backend and player data model, you are typically the **data controller** for the data you decide to collect and store for your game features.
+For your game backend and player data model, you are typically the data controller for the data you decide to collect and store for your own features.
 
-Google/Firebase provides contractual data-processing terms for Firebase services. Firebase also documents privacy/security information and data transfer mechanisms for its services. ([firebase.google.com](https://firebase.google.com/terms/data-processing-terms?utm_source=chatgpt.com))
+Google / Firebase provides contractual data-processing terms and service privacy/security materials for Firebase services. ([firebase.google.com](https://firebase.google.com/terms/data-processing-terms?utm_source=chatgpt.com))
 
-For **Google Play Games Services**, Google states that user data made available through PGS may be used **solely to provide and improve your games**, and **must not be used for advertising purposes**. ([developer.android.com](https://developer.android.com/games/pgs/terms?utm_source=chatgpt.com))
+Google Play Games Services data is restricted in purpose. Google states that user data made available through PGS may be used solely to provide and improve your games and must not be used for advertising purposes. ([developer.android.com](https://developer.android.com/games/pgs/terms?utm_source=chatgpt.com))
 
-**Action:**
+Practical takeaway:
 
-* Document internally which systems you control.
-* Document which Google/Firebase products you use.
-* Do not reuse Play Games user data for ads, profiling, or unrelated marketing.
-
----
-
-## 3. The minimum legal/operational baseline you need
-
-You need, at minimum:
-
-1. a **privacy policy**
-2. an accurate **record of what data you collect and why**
-3. a defined **lawful basis** for each processing purpose
-4. **data minimization**
-5. **retention rules**
-6. **user-rights handling**
-7. **secure access control** in Firestore
-8. Google Play **Data safety** answers that match reality
-9. **account deletion** support if users can create/link accounts
-
-This comes directly out of GDPR principles like transparency, purpose limitation, data minimization, storage limitation, integrity/confidentiality, and accountability. Legitimate interest is possible in some cases, but only if you actually assess and justify it. ([commission.europa.eu](https://commission.europa.eu/law/law-topic/data-protection/data-protection-explained_en?utm_source=chatgpt.com))
+- document which systems you control
+- document which Google/Firebase products you use
+- do not reuse Play Games data for ads, profiling, or unrelated marketing
 
 ---
 
-## 4. Lawful basis — do not lump everything together
+## 4. Release baseline
 
-Do **not** use one vague sentence like “we process data to run the game.”
+Before release, this stack should have all of the following:
 
-Break your processing into purposes.
+- a public privacy policy
+- privacy-policy access inside the app
+- a data inventory and purpose map
+- a lawful-basis map for each processing purpose
+- data minimization and retention rules
+- a working path for user rights handling
+- secure backend access control and tests
+- in-app account deletion plus a web deletion resource if app accounts exist
+- accurate Google Play Data Safety and account-deletion answers
+
+This baseline comes directly from GDPR principles like transparency, purpose limitation, data minimization, storage limitation, integrity/confidentiality, and accountability. ([commission.europa.eu](https://commission.europa.eu/law/law-topic/data-protection/data-protection-explained_en?utm_source=chatgpt.com))
+
+---
+
+## 5. Workstream A - data inventory and lawful basis
+
+Do not use one vague sentence like "we process data to run the game."
+
+Break processing into purposes and record the data used for each one.
 
 ### Recommended purpose map
 
@@ -81,492 +92,344 @@ Break your processing into purposes.
 
 Examples:
 
-* anonymous sign-in
-* Play Games sign-in
-* account linking
-* session restoration
-* anti-abuse checks tied to auth state
+- anonymous sign-in
+- Play Games sign-in
+- account linking
+- session restoration
+- anti-abuse checks tied to auth state
 
-**Most defensible basis:**
+Most defensible basis:
 
-* **contract necessity** for features the user actively requests
-* sometimes **legitimate interest** for security/abuse prevention
+- contract necessity for features the user actively requests
+- sometimes legitimate interest for security / abuse prevention
 
 #### B. Saving progress and cloud-linked player data
 
 Examples:
 
-* save files in Firestore
-* unlocked abilities/gears
-* progression, inventory, settings
+- save files in Firestore
+- unlocked abilities / gear
+- progression, inventory, settings
 
-**Most defensible basis:**
+Most defensible basis:
 
-* **contract necessity** when these are part of the service the user uses
+- contract necessity when these are part of the service the user uses
 
-#### C. Support / account recovery / deletion handling
-
-Examples:
-
-* responding to user requests
-* restoring access
-* deletion logs
-
-**Most defensible basis:**
-
-* **contract necessity** or **legal obligation**, depending on context
-
-#### D. Product analytics / gameplay telemetry
+#### C. Support, account recovery, and deletion handling
 
 Examples:
 
-* death causes
-* level completion
-* weapon pick rate
-* session funnel
+- responding to user requests
+- restoring access
+- deletion logs
 
-**Do not assume this is exempt.** This can still be personal-data processing if tied to a persistent identifier. Depending on implementation, this may rely on **legitimate interest** or may require user choice/consent under local tracker rules. The CNIL notes limited consent exemptions can exist for strict audience measurement under conditions, including user information and an objection mechanism. ([cnil.fr](https://www.cnil.fr/en/sheet-ndeg16-use-analytics-your-websites-and-applications?utm_source=chatgpt.com))
+Most defensible basis:
 
-**Action:** separate analytics from auth in both code and legal documentation.
+- contract necessity or legal obligation, depending on context
+
+#### D. Analytics / telemetry later
+
+Examples:
+
+- death causes
+- level completion
+- weapon pick rate
+- session funnel
+
+Do not assume analytics is exempt. If it is tied to a persistent identifier, it can still be personal-data processing. Depending on implementation, this may rely on legitimate interest or may require user choice / consent under local tracker rules. As a France-specific example, the CNIL notes limited consent exemptions can exist for strict audience measurement under conditions, including user information and an objection mechanism. ([cnil.fr](https://www.cnil.fr/en/sheet-ndeg16-use-analytics-your-websites-and-applications?utm_source=chatgpt.com))
+
+Practical takeaway:
+
+- keep a simple data inventory table
+- map each purpose to a lawful basis
+- keep analytics separate from auth and core gameplay processing
 
 ---
 
-## 5. What to build in the app UI
+## 6. Workstream B - transparency and player-facing controls
 
-### Mandatory / strongly recommended screens
+### In-app UI baseline
 
-#### Settings or Profile screen
+The app should expose the following in a settings or profile area:
 
-Add these entries:
+- `Privacy Policy`
+- `Delete Account`
+- `Export / Request My Data` or a support contact for that request
+- `Linked Accounts`
+- `Analytics Preferences` if analytics is added later beyond strictly necessary processing
 
-* `Privacy Policy`
-* `Delete Account`
-* `Export / Request My Data` or support contact for this request
-* `Linked Accounts`
-* `Analytics Preferences` if you later add analytics beyond strictly necessary processing
-
-#### Account-linking UI
+### Account-linking UX
 
 For Google / Play Games linking:
 
-* explain the **benefit** first
+- explain the benefit first
+- link only on explicit user action if not silently auto-authenticated
+- state that privacy details are in the privacy policy
 
-  * save progress across devices
-  * enable achievements / social game features
-* link only on explicit user action if not silently auto-authenticated
-* state that privacy details are in the privacy policy
+This is product transparency, not the same thing as a generic GDPR popup.
 
-This is not the same as a GDPR popup. It is product transparency.
+### Privacy policy contents
 
-#### Deletion UI
+The privacy policy should be public and also reachable inside the app. Google Play's current User Data policy requires all apps to provide a privacy policy link in Play Console and a privacy policy link or text within the app itself. ([support.google.com](https://support.google.com/googleplay/android-developer/answer/10144311?hl=en&utm_source=chatgpt.com))
 
-If your app enables account creation or linking, Google Play requires:
+The privacy policy should cover, at minimum:
 
-* an **in-app path** to delete the app account and associated data
-* a **web link** where users can request deletion outside the app
+- controller identity and privacy contact details
+- data categories collected
+- purposes of processing
+- lawful bases
+- recipients / processors
+- international transfers
+- retention periods
+- user rights
+- how users can exercise those rights
 
-Google Play explicitly requires this for apps with app accounts. ([support.google.com](https://support.google.com/googleplay/android-developer/answer/13327111?hl=en&utm_source=chatgpt.com))
+For user rights, mention at least:
 
----
+- access
+- rectification
+- erasure
+- data portability where applicable
+- restriction
+- objection where applicable
+- complaint to a supervisory authority
 
-## 6. What must be in your privacy policy
+### Deletion UX
 
-Your privacy policy should be public and also reachable **inside the app**. Google Play requires a publicly accessible privacy policy and, where personal/sensitive data is handled, also requires it within the app. ([support.google.com](https://support.google.com/googleplay/android-developer/answer/11150561?hl=en&utm_source=chatgpt.com))
+If your app lets users create an app account from within the app, Google Play requires:
 
-### Include these sections
+- an in-app path to delete the app account and associated data, or an in-app link to that deletion resource
+- a web resource outside the app where account deletion can also be requested
 
-#### Identity of the controller
+([support.google.com](https://support.google.com/googleplay/android-developer/answer/13327111?hl=en&utm_source=chatgpt.com))
 
-* studio / company / sole trader name
-* email contact for privacy requests
-* postal/business address if applicable
+Practical takeaway:
 
-#### Data categories
-
-List clearly:
-
-* authentication identifiers
-* linked account data
-* player progression/save data
-* support/deletion request data
-* optional analytics data, if any
-
-#### Purposes
-
-For example:
-
-* authenticate the player
-* restore saved progress across devices
-* store unlocked items and game state
-* provide Play Games features such as achievements/leaderboards
-* secure accounts and prevent abuse
-* handle support and deletion requests
-
-#### Lawful bases
-
-Map each purpose to its legal basis.
-
-#### Recipients / processors
-
-Disclose that data may be processed using:
-
-* Firebase Authentication
-* Cloud Firestore
-* Google Play Games Services
-* Google Play / Google infrastructure as relevant
-
-#### International transfers
-
-Firebase states Google relies on recognized transfer solutions, including the EU-U.S. Data Privacy Framework where applicable. The European Commission’s adequacy decision for the EU-U.S. DPF remains in force, and the Finnish DPA explains that adequacy decisions allow transfers without additional safeguards to participating companies. ([firebase.google.com](https://firebase.google.com/support/privacy?utm_source=chatgpt.com))
-
-You should still say plainly that some data may be processed outside the EU/EEA through Google/Firebase infrastructure, and reference the safeguards/framework relied upon.
-
-#### Retention
-
-State how long you keep:
-
-* active account/save data
-* anonymous guest data
-* deletion logs
-* support emails/tickets
-* backups if applicable
-
-#### User rights
-
-Mention rights to:
-
-* access
-* rectification
-* erasure
-* restriction
-* objection where applicable
-* complaint to a supervisory authority
-
-#### How to exercise rights
-
-Provide one real channel:
-
-* support email
-* web form
-* in-app request route
+- keep privacy policy, deletion, linked accounts, and support / export access visible in one place
+- use one real support or privacy contact channel
 
 ---
 
-## 7. Data minimization rules you should enforce technically
+## 7. Workstream C - data handling and backend controls
 
-This is where most indie projects get sloppy.
+### Data minimization
 
-### For Firebase Auth
+For Firebase Auth:
 
-Do:
-
-* store only the auth identifier(s) you need
-* avoid copying profile data you do not actually use
-* avoid persisting avatar URL, display name, locale, etc. unless they are required by a real feature
+- store only the auth identifiers you need
+- avoid copying profile data you do not actually use
+- avoid persisting avatar URL, display name, locale, or similar fields unless a real feature requires them
 
 Do not:
 
-* mirror all Google profile fields into Firestore “just in case”
-* keep stale linked-provider metadata forever
+- mirror all Google profile fields into Firestore "just in case"
+- keep stale linked-provider metadata forever
 
-### For Anonymous Auth
+For anonymous auth:
 
-Anonymous does **not** mean outside GDPR. Treat anonymous UID-linked progress as personal data if it remains attributable to a user/device/session pattern.
+- do not treat anonymous auth as outside GDPR
+- define a retention period for abandoned anonymous accounts
+- clean up orphaned anonymous user documents after inactivity
 
-Do:
+For Firestore:
 
-* define a clear retention period for abandoned anonymous accounts
-* clean up orphaned anonymous user documents after inactivity
+- store game data under player-owned paths or server-controlled canonical paths
+- keep schemas narrow
+- avoid unbounded logs in production
+- do not store full sign-in tokens
+- do not store secrets client-side in Firestore
 
-### For Firestore
-
-Do:
-
-* store game data under player-owned paths
-* keep schemas narrow
-* avoid event logs that grow forever
-* avoid storing raw debugging blobs in production
-
-Do not:
-
-* store full sign-in tokens
-* store secrets client-side in Firestore
-* keep free-form sensitive notes about users
-
----
-
-## 8. Firestore security is not optional
+### Access control
 
 Firestore Security Rules are one of the core technical controls here. Firebase explicitly documents Security Rules as the layer protecting your data and recommends using Firebase Authentication with Firestore Rules for user-based access systems. ([firebase.google.com](https://firebase.google.com/docs/rules?utm_source=chatgpt.com))
 
-### Minimum rule posture
+Minimum posture:
 
-* a user can read/write only their own documents unless a stricter rule applies
-* validate document shape on writes
-* reject unknown fields where practical
-* reject writes to admin/system-owned collections from clients
-* separate public game content from private player data
+- users only access data they are supposed to access, unless a stricter deny-all design is used
+- writes are shape-validated where practical
+- admin/system collections are not writable from clients
+- private player data is clearly separated from public game content
 
-### Minimum engineering tasks
+Minimum engineering tasks:
 
-* write Firestore Security Rules for every collection
-* add emulator tests for the rules
-* verify anonymous users can only touch their own guest data
-* verify linked users cannot read another player’s save
-* verify account-link migration does not expose old guest data to the wrong UID
+- write rules for every collection involved in player data
+- add emulator-backed tests
+- verify anonymous users cannot touch other users' data
+- verify linked users cannot read another player's save
+- verify account-link migration does not expose data to the wrong UID
 
-If your rules are weak, your compliance story is already broken even if your privacy policy looks polished.
+### Account deletion implementation
 
----
+A compliant deletion flow should:
 
-## 9. Account deletion flow — build this properly
+- explain what will be deleted
+- explain what may remain temporarily in backups or logs
+- require explicit confirmation
+- delete or queue deletion of the Firebase Auth user and associated backend data
 
-This matters for both GDPR and Google Play.
+Firebase documents Auth user deletion and provides a Delete User Data extension that can delete configured Firestore / Realtime Database / Storage data keyed by user ID. This is useful infrastructure, but it does not by itself guarantee legal compliance, and Firestore deletion behavior depends on how you configure it. ([firebase.google.com](https://firebase.google.com/docs/extensions/official/delete-user-data?utm_source=chatgpt.com))
 
-### In-app deletion flow
+Recommended implementation:
 
-You need a user-visible path like:
+- use Firebase Auth user deletion for identity removal
+- use the Firebase `delete-user-data` extension or an equivalent backend function to delete UID-scoped data
+- verify the exact deletion scope you configured
+- record only minimal deletion audit data
 
-`Profile > Account > Delete account`
+### Retention
 
-The flow should:
+If you do not define retention, you will keep junk forever.
 
-* explain what will be deleted
-* explain what may remain temporarily in backups/logs
-* require explicit confirmation
-* delete or queue deletion of:
+Reasonable first pass:
 
-  * Firebase Auth user
-  * Firestore player data keyed by UID
-  * any linked gameplay profile data
+- linked-account save data: keep while the account is active
+- anonymous guest accounts with no activity: auto-delete after a defined inactivity period, for example 90-180 days depending on recovery design
+- deletion request records: keep only what is necessary to prove handling and defend against disputes, for a limited period
+- support emails: define a retention period, for example 12-24 months unless legally needed longer
+- operational logs: keep short and narrow
 
-Firebase documents user deletion in Auth, and provides a Delete User Data extension that can delete Firestore/Realtime Database/Storage data keyed by the user ID when the user is deleted. ([firebase.google.com](https://firebase.google.com/docs/auth/web/manage-users?utm_source=chatgpt.com))
-
-### Recommended implementation
-
-* Use Firebase Auth user deletion for the account identity.
-* Use the Firebase `delete-user-data` extension or an equivalent backend function to cascade-delete player data by UID.
-* Record a minimal deletion audit entry that does **not** retain unnecessary personal data.
-
-### Also required
-
-Provide a **web link** outside the app for deletion requests, because Google Play requires an out-of-app path too. ([support.google.com](https://support.google.com/googleplay/android-developer/answer/13327111?hl=en&utm_source=chatgpt.com))
-
----
-
-## 10. Google Play obligations you must complete
-
-### A. Privacy policy on the Play listing
-
-It must be public and accessible. Google Play requires this. ([support.google.com](https://support.google.com/googleplay/android-developer/answer/11150561?hl=en&utm_source=chatgpt.com))
-
-### B. Privacy policy inside the app
-
-If your app accesses, collects, uses, or shares personal and sensitive user data, Google Play requires the privacy policy within the app too. ([support.google.com](https://support.google.com/googleplay/android-developer/answer/11150561?hl=en&utm_source=chatgpt.com))
-
-### C. Data Safety form
-
-You must complete the Play Console **Data safety** form accurately. The Data Safety section is shown on the store listing; it is not the same as an in-app disclosure. ([support.google.com](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en&utm_source=chatgpt.com))
-
-### D. Data deletion section
-
-You must answer the Play Console data deletion questions consistently with your actual in-app deletion flow. ([support.google.com](https://support.google.com/googleplay/android-developer/answer/13327111?hl=en&utm_source=chatgpt.com))
-
-### E. Prominent disclosure and consent
-
-This is **not automatically required** just because you use Firebase Auth. But if you collect/use/share personal or sensitive user data in ways not reasonably expected or not clearly disclosed, Google Play may require prominent in-app disclosure and affirmative consent. ([support.google.com](https://support.google.com/googleplay/android-developer/answer/11150561?hl=en&utm_source=chatgpt.com))
-
-For your current stack, auth + save-sync generally belongs in the expected core functionality bucket if disclosed properly.
-
----
-
-## 11. What to say about Google Play Games specifically
-
-Google Play Games Services data is restricted in purpose.
-
-You should document that PGS data is used only to:
-
-* authenticate/link the player where applicable
-* provide Play Games features
-* improve the game experience in relation to those features
-
-And you should explicitly avoid using PGS data for advertising use cases, because Google forbids that. ([developer.android.com](https://developer.android.com/games/pgs/terms?utm_source=chatgpt.com))
-
----
-
-## 12. International transfers — what you need to do in practice
-
-Do not panic here, but do not ignore it either.
-
-### Practical baseline
-
-* Review Firebase/Google contractual terms in the project owner account.
-* Keep a note of the Google/Firebase terms and transfer mechanism you rely on.
-* Mention international processing/transfers in the privacy policy.
-* Avoid adding extra third-party SDKs without checking transfers and contracts first.
-
-Firebase states it uses recognized transfer solutions including the Data Privacy Framework where applicable, and Google’s cloud contractual materials also refer to data transfer solutions and SCC-based alternatives where needed. The EU adequacy decision for the EU-U.S. DPF is in force. ([firebase.google.com](https://firebase.google.com/support/privacy?utm_source=chatgpt.com))
-
-This does **not** remove your accountability. It just means the provider-side transfer framework is not something you should invent yourself.
-
----
-
-## 13. Retention policy — define one now
-
-If you do not define retention, you will keep junk forever. That is bad engineering and bad GDPR hygiene.
-
-### Recommended first pass
-
-* **Linked account save data:** keep while account is active
-* **Anonymous guest accounts with no activity:** auto-delete after a defined inactivity period, for example 90–180 days, depending on your recovery design
-* **Deletion request records:** keep only what is necessary to prove handling and defend against disputes, for a limited period
-* **Support emails:** define a retention period, e.g. 12–24 months unless legally needed longer
-* **Operational logs:** keep short and narrow
-
-**Action:** put the exact periods in your policy and backend ops checklist.
-
----
-
-## 14. Data subject rights — what you must actually be able to do
+### Rights handling
 
 You need an operational response path for:
 
-* access request
-* deletion request
-* correction request
-* objection request where applicable
-* complaint escalation details
+- access requests
+- deletion requests
+- correction requests
+- objection requests where applicable
+- portability requests where applicable
+- complaint escalation details
 
-For a small game, this can be simple:
+If you cannot locate, export, or delete a user's data by UID / provider link, your system is not operationally compliant.
 
-* one support email address
-* one internal playbook
-* one export path for player save/profile data
+Practical takeaway:
 
-If you cannot locate, export, or delete a user’s data by UID/provider link, your system is not operationally compliant.
-
----
-
-## 15. Concrete backlog: what to build now
-
-### P0 — mandatory before release
-
-* [ ] Create a public privacy policy page
-* [ ] Add `Privacy Policy` inside the app
-* [ ] Inventory all data fields stored in Firebase Auth + Firestore
-* [ ] Write the purpose + lawful-basis map
-* [ ] Implement Firestore Security Rules for every collection
-* [ ] Add tests for Firestore Rules
-* [ ] Add in-app `Delete Account` flow
-* [ ] Add out-of-app deletion request page/link
-* [ ] Implement actual user-data deletion by UID
-* [ ] Complete Google Play Data Safety form accurately
-* [ ] Complete Google Play data deletion section accurately
-* [ ] Ensure PGS data is not reused for ads/marketing
-
-### P1 — strongly recommended
-
-* [ ] Add retention rules for anonymous and linked users
-* [ ] Add scheduled cleanup for abandoned anonymous accounts
-* [ ] Add a support workflow for data-access and deletion requests
-* [ ] Add an internal data map document
-* [ ] Avoid duplicating Google profile metadata in Firestore
-* [ ] Add privacy/version tracking so policy changes are auditable
-
-### P2 — needed later when analytics/ads arrive
-
-* [ ] Separate analytics preference controls from auth/account linking
-* [ ] Assess whether analytics can rely on legitimate interest or need consent
-* [ ] Add EU consent flow for ads/marketing tracking if introduced
-* [ ] Re-check Data Safety answers when SDKs/features change
+- minimization, access control, deletion, retention, and rights handling should be treated as one workstream, not five disconnected tasks
 
 ---
 
-## 16. Recommended architecture decisions for your game
+## 8. Workstream D - Google Play obligations
 
-### Good
+Google Play work should be handled as a release checklist, not as an afterthought.
 
-* guest play allowed by default
-* optional account linking
-* Firestore player document keyed by UID
-* strict per-user security rules
-* account deletion cascade
-* minimal profile data copy
+Required items:
 
-### Bad
+- privacy policy link in Play Console
+- privacy policy link or text inside the app
+- accurate Data Safety form answers
+- accurate account-deletion answers
+- consistency between the Play listing, the app UI, and the backend behavior
 
-* auto-copying all provider profile fields into Firestore
-* no retention for anonymous accounts
-* weak or global Firestore rules
-* no delete path
-* mixing auth consent, analytics consent, and ads consent into one vague popup
-* using Play Games data for anything ad-related
+Prominent disclosure and affirmative consent are not automatically required just because the app uses Firebase Auth. They become relevant when personal or sensitive user data is collected, used, or shared in ways that are not reasonably expected or not clearly disclosed. ([support.google.com](https://support.google.com/googleplay/android-developer/answer/11150561?hl=en&utm_source=chatgpt.com))
+
+For the current stack, auth plus cloud save / sync is usually part of expected core functionality if it is disclosed properly.
 
 ---
 
-## 17. What this does **not** cover completely
+## 9. Special topics and later-scope items
 
-This checklist is focused on:
+### Google Play Games specific note
 
-* GDPR basics relevant to your current stack
-* Google Play obligations
-* technical implementation hygiene
+Document that Play Games Services data is used only to:
 
-It does **not** fully cover, unless you add them later:
+- authenticate or link the player where applicable
+- provide Play Games features
+- improve the game experience in relation to those features
 
-* ads consent frameworks
-* children-directed processing / age-gating regimes
-* biometric/location/contact data
-* employee/contractor internal compliance
-* full Records of Processing Activities formalization
-* DPIA requirements in edge cases
+Do not use Play Games data for advertising use cases.
 
-If you later add ads, attribution SDKs, broader analytics, or child-targeted features, re-open this document and expand the compliance scope.
+### International transfers
+
+Practical baseline:
+
+- review Firebase / Google contractual terms in the project owner account
+- note the transfer mechanism you rely on
+- mention international processing / transfers in the privacy policy
+- do not add extra third-party SDKs without checking transfers and contracts first
+
+Firebase states it uses recognized transfer solutions including the Data Privacy Framework where applicable, and the EU adequacy decision for the EU-U.S. DPF remains in force. ([firebase.google.com](https://firebase.google.com/support/privacy?utm_source=chatgpt.com))
+
+### Out of scope for now
+
+This checklist does not fully cover, unless you add them later:
+
+- ads consent frameworks
+- children-directed processing / age-gating regimes
+- biometric, location, contact-list, or similar sensitive categories
+- employee / contractor internal compliance
+- full Records of Processing Activities formalization
+- DPIA requirements in edge cases
+
+If you later add ads, attribution SDKs, broader analytics, or child-targeted features, reopen this document and expand the compliance scope.
 
 ---
 
-## 18. The blunt version
+## 10. Repo status snapshot (current implementation only)
 
-For your current stack, the work is not “show a GDPR popup.”
+This section is based only on the repository state as of March 11, 2026.
 
-The real work is:
+It is a practical engineering status check against the checklist above. It is not a legal sign-off, and it can go stale as soon as the implementation changes.
 
-* know what data you collect
-* justify why you collect it
-* disclose it clearly
-* secure it properly
-* delete it when requested
-* answer Google Play honestly
-* do not over-collect
+### Done
 
-That is the actual compliance backbone.
+- [x] Firebase-backed app accounts already exist in practice through anonymous auth and optional Play Games linking (`lib/ui/state/firebase_auth_api.dart`).
+- [x] There is an in-app Delete Account flow with two-step confirmation (`lib/ui/pages/profile/profile_page.dart`).
+- [x] There is a backend account-deletion callable that deletes the Firebase Auth user and UID-scoped Firestore data including player profile, ownership data, and ghost data (`functions/src/index.ts`, `functions/src/account/delete.ts`).
+- [x] Backend callables require authentication and reject mismatched `userId` values (`functions/src/index.ts`).
+- [x] Firestore client access is locked down with deny-by-default rules (`firestore.rules`).
+- [x] Emulator-backed backend tests exist for ownership and account-deletion flows (`functions/package.json`, `functions/test/account/account_delete_callable.test.ts`, `functions/test/ownership/ownership_callable.test.ts`).
+- [x] Current remote profile persistence is relatively narrow: display name and `displayNameLastChangedAtMs` (`functions/src/profile/store.ts`, `lib/ui/state/firebase_user_profile_remote_api.dart`).
+- [x] The app also stores local data in `SharedPreferences`, so local profile and leaderboard data should be disclosed too (`lib/ui/state/user_profile_store.dart`, `lib/ui/leaderboard/shared_prefs_leaderboard_store.dart`).
+- [x] No ads or analytics SDKs are visible in the current app dependencies (`pubspec.yaml`).
+
+### Missing
+
+- [ ] A public privacy-policy page / URL.
+- [ ] A privacy-policy link or privacy-policy text inside the app. The current support page is still a placeholder (`lib/ui/pages/meta/support_page.dart`).
+- [ ] An out-of-app account-deletion page or form on the web.
+- [ ] A real support / privacy contact channel such as a support email or web form.
+- [ ] A privacy policy that covers the exact data already processed today, including Firebase Auth identifiers, Play Games linking, display name, `displayNameLastChangedAtMs`, server-side ownership / loadout / progression data, local `SharedPreferences` profile data, and local leaderboard data.
+- [ ] Defined retention periods, especially for abandoned anonymous accounts and local / cloud player data.
+- [ ] An operational path for access, export, correction, and deletion requests.
+- [ ] Accurate Google Play Data Safety answers and account-deletion answers aligned to the current implementation.
+- [ ] An internal note confirming that Firebase / Google terms and international-transfer wording are handled in the project owner setup and privacy policy.
+
+### Not needed yet
+
+- Ads consent / CMP is not needed yet unless ad SDKs are added later.
+- Analytics consent UI or analytics preferences are not needed yet unless analytics / telemetry is added later.
+- Extra prominent-disclosure UX is not automatically needed for the current auth / save / delete behavior unless data use expands beyond what a player would reasonably expect.
+
+### Important interpretation
+
+Because the app currently creates Firebase-authenticated anonymous users during bootstrap (`lib/ui/state/firebase_auth_api.dart`), the safest Google Play interpretation is to treat this as an app-account implementation and meet the account-deletion policy accordingly.
 
 ---
 
-## 19. Source anchors
+## 11. Source anchors
 
 Key official references used for this checklist:
 
-* European Commission — GDPR/data protection overview and individuals’ rights ([commission.europa.eu](https://commission.europa.eu/law/law-topic/data-protection/data-protection-explained_en?utm_source=chatgpt.com))
-* European Commission — legitimate interest overview ([commission.europa.eu](https://commission.europa.eu/law/law-topic/data-protection/rules-business-and-organisations/legal-grounds-processing-data/grounds-processing/what-does-grounds-legitimate-interest-mean_en?utm_source=chatgpt.com))
-* EDPB — Guidelines 1/2024 on legitimate interest ([edpb.europa.eu](https://www.edpb.europa.eu/system/files/2024-10/edpb_guidelines_202401_legitimateinterest_en.pdf?utm_source=chatgpt.com))
-* CNIL — analytics/audience measurement conditions and objection requirement ([cnil.fr](https://www.cnil.fr/en/sheet-ndeg16-use-analytics-your-websites-and-applications?utm_source=chatgpt.com))
-* Firebase — privacy/security information and data transfer information ([firebase.google.com](https://firebase.google.com/support/privacy?utm_source=chatgpt.com))
-* Firebase — Security Rules / Firestore access control documentation ([firebase.google.com](https://firebase.google.com/docs/rules?utm_source=chatgpt.com))
-* Firebase — delete user / delete user data extension ([firebase.google.com](https://firebase.google.com/docs/extensions/official/delete-user-data?utm_source=chatgpt.com))
-* Google Play — Data Safety requirements ([support.google.com](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en&utm_source=chatgpt.com))
-* Google Play — privacy policy + prominent disclosure guidance ([support.google.com](https://support.google.com/googleplay/android-developer/answer/11150561?hl=en&utm_source=chatgpt.com))
-* Google Play — account deletion requirements ([support.google.com](https://support.google.com/googleplay/android-developer/answer/13327111?hl=en&utm_source=chatgpt.com))
-* Google Play Games Services terms ([developer.android.com](https://developer.android.com/games/pgs/terms?utm_source=chatgpt.com))
-* EU-U.S. Data Privacy Framework adequacy decision and Finnish DPA summary ([eur-lex.europa.eu](https://eur-lex.europa.eu/eli/dec_impl/2023/1795/oj/eng?utm_source=chatgpt.com))
+- European Commission - GDPR / data protection overview and individuals' rights ([commission.europa.eu](https://commission.europa.eu/law/law-topic/data-protection/data-protection-explained_en?utm_source=chatgpt.com))
+- European Commission - legitimate interest overview ([commission.europa.eu](https://commission.europa.eu/law/law-topic/data-protection/rules-business-and-organisations/legal-grounds-processing-data/grounds-processing/what-does-grounds-legitimate-interest-mean_en?utm_source=chatgpt.com))
+- EDPB - Guidelines 1/2024 on legitimate interest (consultation-stage draft at time of writing) ([edpb.europa.eu](https://www.edpb.europa.eu/system/files/2024-10/edpb_guidelines_202401_legitimateinterest_en.pdf?utm_source=chatgpt.com))
+- CNIL - France-specific analytics / audience-measurement conditions and objection requirement ([cnil.fr](https://www.cnil.fr/en/sheet-ndeg16-use-analytics-your-websites-and-applications?utm_source=chatgpt.com))
+- Firebase - privacy / security information and data-transfer information ([firebase.google.com](https://firebase.google.com/support/privacy?utm_source=chatgpt.com))
+- Firebase - Security Rules / Firestore access-control documentation ([firebase.google.com](https://firebase.google.com/docs/rules?utm_source=chatgpt.com))
+- Firebase - delete-user-data extension ([firebase.google.com](https://firebase.google.com/docs/extensions/official/delete-user-data?utm_source=chatgpt.com))
+- Google Play - User Data policy (privacy policy, account deletion, prominent disclosure) ([support.google.com](https://support.google.com/googleplay/android-developer/answer/10144311?hl=en&utm_source=chatgpt.com))
+- Google Play - Data Safety requirements ([support.google.com](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en&utm_source=chatgpt.com))
+- Google Play - privacy policy + prominent disclosure guidance ([support.google.com](https://support.google.com/googleplay/android-developer/answer/11150561?hl=en&utm_source=chatgpt.com))
+- Google Play - account deletion requirements ([support.google.com](https://support.google.com/googleplay/android-developer/answer/13327111?hl=en&utm_source=chatgpt.com))
+- Google Play Games Services terms ([developer.android.com](https://developer.android.com/games/pgs/terms?utm_source=chatgpt.com))
+- EU-U.S. Data Privacy Framework adequacy decision ([eur-lex.europa.eu](https://eur-lex.europa.eu/eli/dec_impl/2023/1795/oj/eng?utm_source=chatgpt.com))
 
 ---
 
-## 20. Next practical step
+## 12. Next practical deliverables
 
 After this checklist, the highest-value next deliverables are:
 
-1. a **data inventory table** for your exact Firebase/Auth/Firestore fields
-2. a **privacy policy draft** tailored to your game
-3. a **Firestore deletion + retention design**
-4. a **Play Console Data Safety answer sheet** for your current implementation
+1. a data inventory table for the exact Firebase / Auth / Firestore / local-storage fields in the current app
+2. a privacy-policy draft tailored to the current implementation
+3. a deletion and retention design for anonymous and linked users
+4. a Play Console Data Safety answer sheet for the current implementation
