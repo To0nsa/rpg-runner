@@ -1,318 +1,133 @@
 # AGENTS.md - UI Layer
 
-Instructions for AI coding agents working in the **UI** layer (`lib/ui/`).
+Instructions for AI coding agents working in `lib/ui/`.
 
 ## UI Layer Responsibility
 
-The UI layer is responsible for **Flutter widgets**: menus, overlays, navigation, settings, and HUD elements.
-
-**Critical rule:** UI **never modifies gameplay state directly**. It sends **Commands** to the game controller.
-
-## House Style (Clean UI Code)
-
-Default conventions in this repo aim for **clean, theme-driven, low-surface-area widgets**.
+`lib/ui/` is now a full Flutter app layer, not just overlays. It owns:
 
-### Component Theming
-
-- Use `ThemeExtension` for global tokens (`UiTokens`) and for component themes (e.g. `UiButtonTheme`, `UiHubTheme`).
-- **Do not add component-specific sizing/colors to `UiTokens`**. If something is specific to a component, it belongs in that component’s theme extension.
-- Prefer a single “resolved spec” object for components (e.g. `resolveSpec(...) → UiButtonSpec`) to keep widget build methods small and avoid scattered lookups / local “resolved*” variables.
-
-### Component APIs
+- the app shell and route graph
+- bootstrap, auth warmup, resume handling, and profile onboarding
+- hub/setup/meta/town/profile/leaderboard pages
+- HUD, controls, and game-over presentation
+- theme extensions and shared UI components
+- app state, Firebase client adapters, and local orchestration around backend data
+- viewport integration, scoped orientation/system UI helpers, and haptics
 
-- Expose **semantic inputs only** (`variant`, `size`, `enabled`, callbacks, ids). Avoid ad-hoc styling knobs (`width/height/padding/textStyle/colors`) unless explicitly requested.
-- Prefer enums (`Variant`, `Size`) + theme-defined presets (width/height/typography/padding) over per-call overrides.
-- If the user asks for “theme”, “cleanup”, or “make it consistent”, assume it’s OK to do the full refactor in one pass: add the theme extension, migrate all call sites, and delete the legacy tokens/params.
+Widgets should stay focused on presentation and orchestration, not backend or gameplay internals.
 
-### Modern Flutter APIs
+## Current Important Areas
 
-- Use `WidgetState` / `WidgetStateProperty` (not `MaterialState*`).
-- Use `Color.withValues(alpha: …)` (not `withOpacity`).
+- `lib/ui/app/`: `UiApp`, routes, navigation shell
+- `lib/ui/bootstrap/`: startup loader, brand splash, profile-name setup
+- `lib/ui/pages/`: hub, level/setup, town, options, library, support, messages, credits, lab, profile, leaderboards
+- `lib/ui/hud/` and `lib/ui/controls/`: in-run overlays and input widgets
+- `lib/ui/components/`, `lib/ui/text/`, `lib/ui/icons/`, `lib/ui/theme/`: shared design system pieces
+- `lib/ui/state/`: `AppState`, auth/profile/ownership/account-deletion APIs, Firebase-backed implementations
+- `lib/ui/assets/`: preview cache and warmup lifecycle
+- `lib/ui/viewport/` and `lib/ui/scoped/`: viewport fitting and scoped system UI/orientation behavior
 
-### System UI
+## House Style
 
-- Avoid calling `SystemChrome` inside widget `build` methods.
-- Prefer app-level orchestration (route observer / lifecycle) for global fullscreen behavior.
-- Use `ScopedSystemUiMode` only when a behavior truly needs to be scoped to a subtree/route.
+Default to the existing UI patterns:
 
-## Command Pattern
+- use `ThemeExtension`-driven component themes
+- expose semantic widget inputs such as `variant`, `size`, ids, callbacks, and selected state
+- avoid style-knob APIs unless the user explicitly asks for them
+- keep widgets small by resolving theme specs up front instead of scattering visual calculations in `build`
 
-### Sending Commands to Core
+When cleaning up UI code, prefer a full migration to the active component/theme pattern over leaving half-old, half-new APIs in place.
 
-UI interacts with Core gameplay through the Command pattern:
+## Modern Flutter Rules
 
-```dart
-class PauseButton extends StatelessWidget {
-  final GameController controller;
-  
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      icon: Icon(Icons.pause),
-      onPressed: () {
-        // Send command to Core
-        controller.enqueueCommand(
-          PauseCommand(tickNumber: controller.currentTick)
-        );
-      },
-    );
-  }
-}
-```
+- use `WidgetState` and `WidgetStateProperty`, not deprecated `MaterialState*`
+- use `Color.withValues(alpha: ...)`, not `withOpacity`
+- avoid side effects in `build`
+- keep `SystemChrome` usage in app-shell or scoped helper code, not leaf widgets
 
-**Rules:**
-- Never access Core state directly
-- Never mutate gameplay state from UI code
-- Always use Commands for gameplay interactions
-- Examples: pause, resume, level selection, ability activation
+This repo already centralizes global immersive-mode behavior in `UiApp` and route-scoped behavior in `scoped/`. Reuse that.
 
-### Command Examples
+## App State And Backend Access
 
-Common UI → Core command patterns:
+`AppState` is the main orchestration boundary for authenticated app state. Current responsibilities include:
 
-- **Level selection** → `LoadLevelCommand(levelId: 'level_2')`
-- **Pause/Resume** → `PauseCommand()` / `ResumeCommand()`
-- **Settings changes** → `UpdateSettingsCommand(volume: 0.8)`
-- **Player actions** → Typically from Game input, but UI can also send them (e.g., virtual buttons)
+- auth session bootstrap
+- loading remote profile data
+- loading and mutating remote ownership canonical state
+- building run-start args from selected level/character/loadout
+- awarding run gold back into remote progression
+- handling account deletion reset flow
 
-## Widget Organization
+Rules:
 
-### HUD Components
+- widgets should call `AppState` or a narrow UI-facing abstraction, not Firebase SDKs directly
+- keep backend contract handling in `lib/ui/state/**`
+- when a callable/backend contract changes, update both the client adapter and the consuming UI/state flow
 
-HUD (Heads-Up Display) elements are overlays that show game state:
+## Run Route Responsibilities
 
-- **Health bars** (`lib/ui/hud/`) - Display player health from snapshots
-- **Score display** - Show current score, combo, multiplier
-- **Progress indicators** - Level progress, distance traveled
-- **Ability cooldowns** - Visual timers for abilities
-- **Mini-map** (if applicable) - Simplified world view
+The run route is a UI-owned assembly of lower layers:
 
-**Pattern:**
-```dart
-class HealthBar extends StatelessWidget {
-  final GameStateSnapshot snapshot;
-  
-  @override
-  Widget build(BuildContext context) {
-    final health = snapshot.player.health;
-    final maxHealth = snapshot.player.maxHealth;
-    
-    return LinearProgressIndicator(
-      value: health / maxHealth,
-      backgroundColor: Colors.red[900],
-      valueColor: AlwaysStoppedAnimation(Colors.red),
-    );
-  }
-}
-```
+- `RunnerGameWidget` creates and owns the controller, Flame game, aim preview state, and overlay wiring
+- `RunnerGameRoute` scopes orientation and system UI behavior for embedded or routed runs
+- HUD and controls read snapshots and send input through the existing router/controller path
 
-### Menu Screens
+Do not push menu or backend concerns down into `lib/game/`. Do not bypass the run widget and assemble ad-hoc game routes in random pages.
 
-Menu screens for navigation and settings:
+## UI State Versus Gameplay State
 
-- **Play hub + setup** (`lib/ui/pages/`) - Start run, setup, meta routes
-- **Pause menu** - Resume, restart, quit to menu
-- **Game over screen** - Score, retry, quit
-- **Level selection** - Choose which level to play
-- **Settings** - Audio, graphics, controls
+Keep the separation clean:
 
-### Controls
+- gameplay truth comes from Core snapshots and events
+- app/meta state lives in `AppState` and its value objects
+- ephemeral widget state stays local to the widget subtree when possible
 
-Input widgets that send commands:
+Avoid duplicating gameplay state in UI-only models just to make rendering easier.
 
-- **Virtual joystick** (`lib/ui/controls/`) - Directional input
-- **Action buttons** - Jump, strike, ability buttons
-- **Touch zones** - Swipe gestures, tap-to-jump areas
+## Asset, Preview, And Warmup Rules
 
-## State Management
+The UI layer already manages preview and warmup behavior:
 
-### UI State vs Gameplay State
+- hub selection warmup in `UiApp`
+- run cache purging after leaving a run
+- preview asset lifecycle in `lib/ui/assets/`
 
-**Separation of concerns:**
+If a page or widget needs art previews, integrate with the existing asset lifecycle instead of adding one-off preload code.
 
-- **Gameplay state** - Lives in Core, authoritative, deterministic
-- **UI state** - Lives in UI layer, ephemeral, non-deterministic
-  - Examples: menu visibility, animation states, selected options
+## What Belongs In This Layer
 
-### RunnerGameUIState
+Good fits for `lib/ui/`:
 
-UI-specific state management:
-
-```dart
-class RunnerGameUIState {
-  bool isPaused = false;
-  bool isMenuOpen = false;
-  String? selectedLevel;
-  
-  // UI state only - not part of Core
-}
-```
-
-**Rules:**
-- Keep UI state separate from gameplay state
-- UI state can be mutable and non-deterministic
-- Gameplay state must go through Core and Commands
+- route changes
+- page flow and onboarding logic
+- component/theme cleanup
+- HUD layout and controls
+- backend-client integration through `AppState` and state APIs
+- local leaderboard presentation and profile/account flows
 
-### Scoped State
-
-Use scoped state management (`lib/ui/scoped/`) for widgets that need shared UI state without affecting Core:
-
-- Provider/InheritedWidget patterns for UI state
-- Never use for gameplay state
-- Keep scope narrow (menu-level, screen-level)
-
-## Embedding Contract
-
-### Public API
-
-The game is embeddable via a stable public API:
-
-- **`lib/runner.dart`** - Public entry point, exports main widgets/routes
-- **`RunnerGameWidget`** - Main game widget component
-- **`RunnerGameRoute`** - Flutter route for navigation
-
-**Usage:**
-```dart
-// In another app
-import 'package:rpg_runner/runner.dart';
-
-Navigator.push(
-  context,
-  MaterialPageRoute(
-    builder: (context) => RunnerGameWidget(levelId: LevelId.field),
-  ),
-);
-```
-
-### Dev Host
-
-- **`lib/main.dart`** - Development host/demo app only
-- Treat as a development harness, not part of the public API
-- Safe to modify for development/testing without affecting embedding
-
-## Viewport Integration
-
-### Letterboxing & Safe Areas
-
-UI overlays must respect the game viewport:
-
-```dart
-class GameOverlay extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Stack(
-        children: [
-          // Game viewport (rendered by Flame)
-          GameWidget(),
-          
-          // UI overlay (respects safe areas)
-          Positioned(
-            top: 16,
-            left: 16,
-            child: HealthBar(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-```
-
-**Rules:**
-- Use `SafeArea` to avoid notches/system UI
-- Position HUD elements outside the game viewport if needed
-- Respect letterboxing (black bars) in layout
-- Don't cover critical gameplay areas with UI
-
-## Snapshot Consumption
-
-UI can read snapshots for display purposes:
-
-```dart
-class ScoreDisplay extends StatelessWidget {
-  final GameStateSnapshot snapshot;
-  
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      'Score: ${snapshot.score}',
-      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-    );
-  }
-}
-```
-
-**Rules:**
-- Read snapshot data for display only
-- Never mutate snapshots
-- Never simulate or extrapolate gameplay from snapshots in UI
-
-## Level Selection
-
-Level selection is a UI concern that sends commands to Core:
-
-```dart
-class LevelSelectScreen extends StatelessWidget {
-  final GameController controller;
-  
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      children: [
-        LevelButton(
-          levelId: 'level_1',
-          onTap: () {
-            controller.enqueueCommand(
-              LoadLevelCommand(levelId: 'level_1')
-            );
-            Navigator.push(context, GameRoute());
-          },
-        ),
-        // ... more levels
-      ],
-    );
-  }
-}
-```
-
-**Pattern:**
-- Display level metadata (name, preview, locked state)
-- Send `LoadLevelCommand` when level is selected
-- Navigate to game route after command is sent
-- Core handles actual level loading deterministically
-
-## Common UI Subsystems
-
-- **Controls** (`lib/ui/controls/`) - Input widgets (joystick, buttons)
-- **HUD** (`lib/ui/hud/`) - In-game overlays (health, score, progress)
-- **Assets** (`lib/ui/assets/`) - UI preview asset lifecycle (hub/run cache + warmup)
-- **App** (`lib/ui/app/`) - App shell, routes, navigation
-- **Bootstrap** (`lib/ui/bootstrap/`) - Loader + startup tasks
-- **State** (`lib/ui/state/`) - Menu selection state + persistence
-- **Pages** (`lib/ui/pages/`) - Menu/meta screens (hub, setup, meta, lab)
-- **Levels** (`lib/ui/levels/`) - Level selection UI
-- **Leaderboard** (`lib/ui/leaderboard/`) - Score display and rankings
-- **Scoped** (`lib/ui/scoped/`) - Scoped state management
-- **Viewport** (`lib/ui/viewport/`) - Viewport and safe area management
-
-## What NOT to Do in UI Layer
-
-- ❌ **Do not modify gameplay state directly** - use Commands
-- ❌ **Do not simulate gameplay** - that's Core's job
-- ❌ **Do not access Core internals** - use snapshots and commands
-- ❌ **Do not mix UI state with gameplay state** - keep them separate
-- ❌ **Do not mutate snapshots** - they are read-only
-
-## Best Practices
-
-✅ **Send Commands** for all gameplay interactions
-✅ **Read snapshots** for display purposes only
-✅ **Separate concerns** - UI state vs gameplay state
-✅ **Respect viewport** - use SafeArea and letterboxing
-✅ **Keep embedding API stable** - `lib/runner.dart` is public
-✅ **Use Flutter best practices** - StatelessWidget, composition, etc.
+Bad fits for `lib/ui/`:
+
+- authoritative gameplay rules
+- Flame-only rendering concerns
+- direct Firestore or Cloud Functions usage from widget trees
+- system-wide side effects fired from `build`
+
+## Testing Expectations
+
+UI changes should be verified with the right slice:
+
+- widget tests for components, pages, overlays, and route behavior
+- state tests for `AppState` and UI-facing APIs where relevant
+- integration tests when the change spans app shell, run route, and backend/state interactions
+
+## Documentation Responsibilities
+
+If you change UI architecture or public usage, update:
+
+- this file for UI-layer rules
+- `lib/AGENTS.md` for app-wide boundaries
+- `README.md` or public API docs when embedding or setup behavior changes
 
 ---
 
-**For cross-layer architecture and general rules**, see [lib/AGENTS.md](file:///c:/dev/rpg_runner/lib/AGENTS.md).
+For app-level architecture, see `lib/AGENTS.md`. For the backend contract side of profile/ownership/account flows, see `functions/AGENTS.md`.

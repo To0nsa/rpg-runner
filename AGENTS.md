@@ -1,85 +1,115 @@
 # AGENTS.md
 
-Repository-wide instructions for AI coding agents working on this Flutter + Flame runner game.
+Repository-wide instructions for AI coding agents working in `rpg_runner`.
 
-## Project Direction
+## What This Repo Is
 
-This is a **Flutter (Dart) + Flame** runner game. The vision is to create a **complete vertical slice** with:
+This repo is no longer just a prototype of a runner architecture. It is a working Flutter + Flame game slice with a deterministic simulation core, a real Flutter app shell, and a Firebase Functions backend for authenticated profile and ownership state.
 
-- **2-3 distinct playable levels** with varied gameplay
-- **Advanced combat system** with mobility abilities, spells, weapons, and ultimates
-- **2 playable characters** with unique characteristics
-- **Character customization** via loadout menu (ability selection before each run)
-- **5-6 enemy types** with distinct behaviors
-- **Light narrative integration** to enhance player engagement
-- **Firebase backend** for player data and progression
-- **Ghost run feature** - race against other players' recorded runs
-- **Multiplayer-ready architecture** - scalable for online races and future battle royale mode
-- **Monetization pipeline** integration
+Current implemented scope includes:
 
-**Implementation approach**: Step-by-step, with the deterministic Core architecture supporting all features (especially multiplayer/ghost replay).
+- Deterministic Core gameplay in `lib/core/`
+- Flame rendering bridge in `lib/game/`
+- Full Flutter app shell, setup flow, hub, town/meta pages, HUD, and run route in `lib/ui/`
+- Backend-authenticated profile and loadout ownership state via Firebase Functions + Firestore
+- Two playable levels and two selectable characters
+- Loadout, gear, projectile/spell, and progression state flowing through local UI + remote backend contracts
 
-**For detailed layer-specific guidance**, see:
-- **[lib/AGENTS.md](file:///c:/dev/rpg_runner/lib/AGENTS.md)** - Architecture overview and cross-cutting concerns
-- **[lib/core/AGENTS.md](file:///c:/dev/rpg_runner/lib/core/AGENTS.md)** - Pure Dart simulation layer (ECS, determinism, Core contracts)
-- **[lib/game/AGENTS.md](file:///c:/dev/rpg_runner/lib/game/AGENTS.md)** - Flame rendering layer (visuals, snapshots, camera)
-- **[lib/ui/AGENTS.md](file:///c:/dev/rpg_runner/lib/ui/AGENTS.md)** - Flutter UI layer (widgets, menus, commands)
+Roadmap work still exists, but AGENTS guidance must describe the code that exists today. Do not write docs that assume future systems already exist.
 
-## Collaboration Guidelines
+## Read These First
 
-### Consent Before Changing Code
+Use the most specific AGENTS file that matches the area you are touching:
 
-When the user asks a question (e.g. "how do I…?", "why…?", "is it possible…?") or explicitly says "no code / just answer":
+- `AGENTS.md`: repo-wide rules and cross-cutting quality bar
+- `lib/AGENTS.md`: app-level architecture and layer boundaries
+- `lib/core/AGENTS.md`: deterministic simulation layer
+- `lib/game/AGENTS.md`: Flame renderer and controller bridge
+- `lib/ui/AGENTS.md`: Flutter app shell, pages, state, HUD, and theming
+- `functions/AGENTS.md`: Firebase Functions backend in TypeScript
 
-- **Do not make code changes.** Answer with options/tradeoffs only.
-- If implementation would help, **ask for confirmation first** before editing any files.
+Also consult:
 
-Only implement changes when the user clearly requests it (e.g. "please implement", "make the change", "can you do X in the repo?").
+- `docs/rules/documentation_and_commenting_guide.md` for comment and API doc standards
+- `.agent/workflows/` when the task matches an existing workflow
 
-### Non-Trivial Tasks
+## Repo Map
 
-For any non-trivial task (anything that affects architecture, touches multiple layers/files, introduces a new subsystem, or changes a core contract):
+- `lib/`: Flutter package and embeddable runner implementation
+- `functions/`: Firebase Functions backend in TypeScript
+- `test/`: Dart tests across core, game, UI, and integration slices
+- `docs/building/`: implementation plans and checklists
+- `assets/`: runtime art/audio/fonts content
 
-- Brainstorm 1-3 viable approaches (with tradeoffs) before coding.
-- Check whether a good solution already exists (repo patterns, Flame APIs, well-maintained packages).
-- Write a short plan (steps + acceptance criteria) and align on it before implementing.
-- Ask clarifying questions when requirements are underspecified.
+## Current Architectural Split
 
-For trivial/surgical changes (tiny refactors, obvious bug fixes), proceed directly but keep changes minimal and consistent with existing patterns.
+- `lib/core/` is the authoritative deterministic gameplay layer
+- `lib/game/` is the Flame rendering and input bridge layer
+- `lib/ui/` is the Flutter app shell, menu/meta UI, HUD, state orchestration, and backend client layer
+- `functions/src/` is the server-side authority for authenticated profile, ownership, and account deletion flows
 
-### Default Quality Bar (Always-On)
+When a feature crosses Flutter and backend boundaries, update both ends in the same change:
 
-When implementing (or refactoring) anything in this repo, default to **senior-level “done”**:
+- backend callable contract in `functions/src/**`
+- client adapter in `lib/ui/state/**`
+- local state/application flow in `lib/ui/**`
+- docs for any changed contract or invariant
 
-- **Prefer one clean pass over iterations** when the request implies cleanup/refactor/theme work. Use the repo’s existing “house style” (layer `AGENTS.md`) as the default and only ask questions when a decision is genuinely ambiguous.
-- **Finish migrations in the same change**: update all call sites, remove the legacy API/tokens, and ensure `dart analyze` is clean for the touched files. Don’t leave “temporary” parallel systems behind.
-- **Minimize surface area**: component widgets should expose semantic inputs (e.g. `variant`, `size`) and avoid ad-hoc styling knobs (`width/height/padding/textStyle/colors`) unless explicitly requested.
-- **No deprecated Flutter APIs** in new/edited code: prefer `WidgetState/WidgetStateProperty` over `MaterialState*`, and prefer `Color.withValues(alpha: …)` over `withOpacity`.
-- **No side effects in `build`**: avoid calling `SystemChrome` (and similar) from `build`; centralize app-wide behavior in the app shell or use scoped widgets.
+## Collaboration Rules
+
+### Consent Before Editing
+
+When the user is asking for explanation only, or explicitly says not to change code, do not edit files. Answer with options, tradeoffs, and concrete references.
+
+### Non-Trivial Work
+
+For non-trivial tasks:
+
+- inspect the existing implementation before proposing changes
+- consider 1-3 viable approaches and prefer the one that fits current repo patterns
+- share a short plan with acceptance criteria before editing
+- ask a clarifying question only when a wrong assumption would create risky churn
+
+For surgical fixes, proceed directly after a brief inspection.
+
+## Default Quality Bar
+
+Treat every change as production-minded cleanup, not a quick patch:
+
+- finish migrations in one pass; do not leave parallel legacy paths behind
+- keep layer boundaries intact instead of solving issues by reaching across layers
+- prefer semantic APIs over ad-hoc knobs, especially in Flutter widgets
+- avoid deprecated Flutter APIs in new or edited code
+- keep side effects out of widget `build` methods
+- keep backend source-of-truth in `functions/src/**`; never hand-edit `functions/lib/**` or `functions/lib_test/**`
+- keep comments high-signal and aligned with the documentation guide
+
+## Validation Expectations
+
+Run the smallest relevant checks for the slice you touched:
+
+- Flutter/Dart changes: `dart analyze` and relevant `flutter test` targets
+- Backend changes: `corepack pnpm --dir functions build` and `corepack pnpm --dir functions test`
+- Cross-layer contract changes: validate both the Flutter client side and the backend side
+
+If you cannot run a relevant check, state that clearly in the final handoff.
 
 ## Documentation Upkeep
 
-When you implement changes, keep documentation in sync (add new docs when needed, not just code):
+Keep docs in sync when contracts, boundaries, or behavior change:
 
-- **Architecture/contract docs** when boundaries or APIs change: layer-specific `AGENTS.md`, `docs/building/plan.md`
-- **Milestone/checklists** when scope shifts: `docs/building/TODO.md`
-- **User-facing docs** when behavior changes: `README.md`, public API docs (e.g. `lib/runner.dart`)
-- **Code commenting/documentation quality** for code changes: follow `docs/rules/documentation_and_commenting_guide.md` as the source of truth for `///` and `//` usage.
+- update the relevant `AGENTS.md` file when working rules or boundaries drift
+- update `README.md` when public capabilities or setup steps change
+- update `docs/building/plan.md` or the relevant checklist when milestone scope shifts
+- update public API docs around `lib/runner.dart`, `lib/ui/runner_game_widget.dart`, and `lib/ui/runner_game_route.dart` when embedding behavior changes
 
-## Antigravity Integration
+## Practical Guardrails
 
-### Workflows
-
-Common development workflows are defined in `.agent/workflows/`. If you're performing a standard task, check if a workflow exists:
-
-- **Adding a new level**: `.agent/workflows/add-new-level.md`
-- **Creating ECS components**: `.agent/workflows/create-ecs-component.md`
-- **Adding Core systems**: `.agent/workflows/add-core-system.md`
-
-### Skills
-
-Reusable skills for specialized tasks are available in `.agent/skills/`. Consult skills when working on complex patterns or domain-specific tasks.
+- Prefer existing repo patterns before inventing new abstractions
+- Keep generated files generated
+- Ignore unrelated dirty-worktree changes unless they conflict with the task
+- Do not weaken determinism, auth checks, or revision/idempotency rules to make a feature "work"
 
 ---
 
-**For implementation details, architecture rules, and layer-specific conventions**, always refer to the appropriate AGENTS.md file listed above.
+For implementation detail, always drop into the closest layer-specific `AGENTS.md` before editing.

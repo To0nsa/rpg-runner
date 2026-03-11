@@ -1,211 +1,134 @@
 # AGENTS.md - Core Layer
 
-Instructions for AI coding agents working in the **Core** simulation layer (`lib/core/`).
+Instructions for AI coding agents working in `lib/core/`.
 
 ## Core Responsibility
 
-The Core layer is a **pure Dart simulation engine**. It is the single source of truth for all gameplay logic, physics, AI, and state management.
+`lib/core/` is the authoritative gameplay layer. It is pure Dart and owns:
 
-**Hard rule:** Core must **never import Flutter or Flame**. This ensures determinism, testability, and future network-readiness.
+- simulation timing and deterministic progression
+- ECS world state, stores, and systems
+- commands, events, and snapshots
+- combat, movement, AI, collision, projectiles, pickups, and scoring rules
+- level definitions, track streaming, spawn logic, and tuning data
+- player, gear, loadout, meta, and progression data structures used by the run
 
-## ECS Architecture
+If gameplay truth matters, it belongs here.
 
-### Entity Storage
+## Hard Constraints
 
-Core uses **SoA (Structure of Arrays) + SparseSet** per component type.
+- never import Flutter
+- never import Flame
+- never use wall-clock time as gameplay authority
+- never move authoritative gameplay rules into `lib/game/` or `lib/ui/`
 
-**Entity ID rules:**
-- Entity IDs are **monotonic** and **never reused**
-- IDs increment sequentially as entities are spawned
-- Destroyed entity IDs are not recycled
+Core is intentionally portable and testable. Preserve that.
 
-### Component Iteration
+## Key Entry Points And Coordinators
 
-**Query-based iteration:**
-- Systems iterate via queries (e.g., `world.query<Position, Velocity>()`)
-- Never directly access sparse/dense arrays unless implementing a new storage mechanism
+Important files to understand before editing:
 
-**Structural change rules:**
-- **Do not add/remove components or destroy entities mid-iteration**
-- Queue structural changes and apply them after system execution
-- Use deferred operations or command buffers for mid-tick mutations
-- Do not keep references to dense arrays across ticks
+- `lib/core/game_core.dart`: central simulation coordinator and system ordering contract
+- `lib/core/track_manager.dart`: track streaming and world geometry lifecycle
+- `lib/core/spawn_service.dart`: deterministic entity spawning
+- `lib/core/snapshot_builder.dart`: ECS-to-snapshot conversion
+- `lib/core/levels/`: level IDs, registry, definitions, world constants
+- `lib/core/ecs/`: world, stores, queries, spatial helpers, hit logic, systems
+- `lib/core/events/` and `lib/core/snapshots/`: output contracts consumed by Game/UI
 
-### System Patterns
+Treat `GameCore.stepOneTick()` ordering as a behavior contract, not incidental implementation detail.
 
-Systems should follow these patterns:
+## Determinism Rules
 
-```dart
-class ExampleSystem {
-  void execute(World world, double dt) {
-    // Query entities with required components
-    final entities = world.query<ComponentA, ComponentB>();
-    
-    // Process entities (read-only iteration)
-    for (final entity in entities) {
-      final a = world.get<ComponentA>(entity);
-      final b = world.get<ComponentB>(entity);
-      
-      // Update components in-place (safe)
-      a.value += b.delta;
-      
-      // NEVER: world.destroyEntity(entity) here!
-      // NEVER: world.addComponent(entity, newComponent) here!
-    }
-    
-    // Apply structural changes after iteration
-    // (queued during iteration, applied here)
-  }
-}
-```
+Core currently depends on deterministic fixed-tick behavior. Preserve these rules:
 
-## Determinism Requirements
+- commands are tick-stamped and processed in tick order
+- RNG must come from the deterministic facilities already used by Core
+- timing should be expressed in ticks or derived tick math, not frame-time drift
+- equal inputs must continue to produce equal snapshots and events
+- tie-breaks must stay stable when iterating entities or resolving conflicts
 
-### Fixed Tick Simulation
+If you touch a rule that could affect replay stability, document it and add or update tests.
 
-- Simulation runs at a **fixed tick rate** (e.g., 60 Hz / 16.67ms per tick)
-- Ticks are the **only time authority** in Core
-- Use tick count for all timing logic, not wall-clock time
+## How The Current Core Is Organized
 
-### Seeded RNG
+The current directory layout is broader than the older ECS-only docs. Major areas include:
 
-- RNG is owned by Core and **must be seeded**
-- Use a seeded `Random` instance stored in the game state
-- Never use `Random()` without a seed in Core code
-- Never use `DateTime.now()` or any wall-clock source for randomness
+- gameplay definitions: `abilities/`, `weapons/`, `accessories/`, `spellBook/`, `projectiles/`, `players/`, `enemies/`
+- simulation contracts: `commands/`, `events/`, `snapshots/`, `contracts/`
+- infrastructure: `ecs/`, `util/`, `collision/`, `camera/`, `navigation/`
+- run content and flow: `levels/`, `track/`, `pickups/`, `scoring/`, `progression/`
+- player/meta state used during runs: `loadout/`, `meta/`, `stats/`, `tuning/`
 
-### Command Queueing
+When extending behavior, put the change in the domain that owns it instead of growing `game_core.dart` into a dumping ground.
 
-- Inputs are represented as **Command objects**
-- Commands are queued for a specific tick
-- Commands are processed deterministically during tick execution
-- Example: `JumpCommand(tickNumber: 1234, playerId: 0)`
+## Working Rules For Systems And Stores
 
-### Resumption Behavior
+Follow existing ECS patterns:
 
-- On app resume, **clamp the frame delta-time**
-- **Never** try to "catch up" thousands of ticks after backgrounding
-- Skip or fast-forward deterministically if catch-up is needed
+- put persistent component data in stores under `ecs/stores/`
+- put per-tick logic in systems under `ecs/systems/`
+- keep systems focused; if behavior spans phases, use explicit ordering in `GameCore`
+- prefer typed stores, typed payloads, and catalog lookups over stringly-typed maps
+- keep hot paths allocation-light
 
-## Core Outputs
+When changing system order:
 
-### GameStateSnapshot
+- explain why the order matters
+- update nearby docs/comments in `game_core.dart`
+- verify downstream systems and events that depend on that order
 
-- **Immutable** representation of the current game state
-- Serializable and renderer-friendly
-- Contains all data needed for rendering (positions, animations, health, etc.)
-- Includes a `runId` field for session/replay/ghost metadata
-- Produced once per tick
-- Consumer layers (Game/UI) must treat this as **read-only**
+## Commands, Events, And Snapshots
 
-### GameEvents
+Core is consumed through explicit contracts:
 
-- **Transient** events emitted during tick execution
-- Examples: spawn, despawn, hit, sfx, screenshake, reward, level-up
-- Events have a short lifetime (typically one frame)
-- Consumed by Game layer for VFX, sound effects, camera shake, etc.
-- Not part of the persistent state
+- inputs enter through `commands/`
+- transient feedback leaves through `events/`
+- renderer/UI state leaves through `snapshots/`
 
-### Animation State
+Rules:
 
-- Animation selection is resolved **in Core** via `AnimSystem`
-- Uses `AnimResolver` + `AnimProfile` to determine which animation to play
-- Stored in `AnimStateStore` for snapshot consumption
-- Game layer reads animation state from snapshots and updates Flame sprite components accordingly
+- do not sneak render-only data into systems when a snapshot or render contract is the correct boundary
+- do not emit backend/UI-specific concepts from Core unless the run actually depends on them
+- keep snapshots immutable and renderer-friendly
+- keep events transient and side-effect free from the Core perspective
 
-## Data Flow Pattern
+## Adding Or Changing Gameplay Content
 
-**Commands → Core → Snapshots + Events**
+When adding a new gameplay item such as an ability, weapon, projectile, enemy, or level, check the full Core surface:
 
-1. **Input**: Game and UI layers create `Command` objects
-2. **Queue**: Commands are queued for the next tick
-3. **Process**: Core executes the tick, processing all queued commands
-4. **Output**: Core produces:
-   - One `GameStateSnapshot` (read by Game/UI for rendering)
-   - Zero or more `GameEvent`s (consumed by Game for VFX/SFX)
+- definitions and catalogs
+- tuning or stat resolution
+- spawn/setup path
+- command handling if player-triggered
+- snapshot and event exposure if render/UI need to know about it
+- loadout validation if equip/select behavior changes
 
-## Performance Considerations
+Do not stop after the first compile error. Finish the content path end to end.
 
-### Allocation-Light Hot Loops
+## Testing Expectations
 
-- Avoid creating new `List`, `Map`, or objects in per-tick hot loops
-- Prefer reusing buffers or pre-allocated pools
-- Profile and optimize allocation-heavy systems
+Core changes usually need tests. Target the most relevant slice:
 
-### Value Types
+- `test/core/**` for gameplay rules and deterministic behavior
+- integration tests when a feature spans multiple systems or run flow
 
-- Prefer **value types** for small structs (e.g., `Vec2`, `Rect`, `Color`)
-- Use `final` and `const` where possible to prevent accidental mutations
-- Avoid boxing primitives unnecessarily
+Focus tests on:
 
-### No Dynamic Types
+- deterministic output for stable seeds and command streams
+- ordering-sensitive behavior
+- combat/status/resource edge cases
+- level/track streaming invariants
+- regression coverage for bug fixes
 
-- **Never use `dynamic`** in Core gameplay code
-- Prefer strongly-typed payloads for all data structures
-- If a temporary map is unavoidable, confine it to debug/tooling only
+## Common Failure Modes To Avoid
 
-## Testing Core
-
-### Unit Tests
-
-- Core behavior should be covered by **unit tests** in `test/core/**`
-- Run tests with: `dart test`
-- Focus on:
-  - Determinism (same seed → same results)
-  - System behavior (physics, collision, AI)
-  - Command processing
-  - Edge cases (entity destruction, spawn limits, etc.)
-
-### Determinism Tests
-
-Example determinism test pattern:
-
-```dart
-test('same seed produces same results', () {
-  final level = LevelRegistry.byId(LevelId.field);
-  final game1 = GameCore(
-    seed: 12345,
-    levelDefinition: level,
-    playerCharacter: PlayerCharacterRegistry.eloise,
-  );
-  final game2 = GameCore(
-    seed: 12345,
-    levelDefinition: level,
-    playerCharacter: PlayerCharacterRegistry.eloise,
-  );
-  
-  for (int i = 0; i < 100; i++) {
-    game1.tick();
-    game2.tick();
-    
-    expect(game1.snapshot, equals(game2.snapshot));
-  }
-});
-```
-
-## Common Core Subsystems
-
-- **ECS** (`lib/core/ecs/`) - Entity-Component-System framework
-- **Commands** (`lib/core/commands/`) - Input command definitions
-- **Snapshots** (`lib/core/snapshots/`) - Snapshot data structures
-- **Events** (`lib/core/events/`) - Game event definitions
-- **Collision** (`lib/core/collision/`) - Authoritative collision detection
-- **Combat** (`lib/core/combat/`) - Damage, health, abilities
-- **Levels** (`lib/core/levels/`) - Level definitions and loading
-- **Navigation** (`lib/core/navigation/`) - Pathfinding, AI movement
-- **Track** (`lib/core/track/`) - Track/lane system
-- **Tuning** (`lib/core/tuning/`) - Gameplay constants and balance values
-- **Util** (`lib/core/util/`) - Pure Dart utilities (math, geometry, RNG helpers)
-
-## What NOT to Do in Core
-
-- ❌ **Do not import Flutter** (`package:flutter/...`)
-- ❌ **Do not import Flame** (`package:flame/...`)
-- ❌ **Do not use wall-clock time** (`DateTime.now()`, `Stopwatch`, frame delta-time)
-- ❌ **Do not mutate structure mid-iteration** (adding/removing components, destroying entities)
-- ❌ **Do not make rendering decisions** (that's Game layer's job)
-- ❌ **Do not read user input directly** (use Commands instead)
+- importing UI or Flame convenience types into Core
+- using `DateTime.now()` or unseeded randomness for gameplay
+- burying important rules in widgets or render components
+- changing snapshot/event shape without updating all consumers
+- weakening loadout or stats validation to bypass a content bug
 
 ---
 
-**For cross-layer architecture and general rules**, see [lib/AGENTS.md](file:///c:/dev/rpg_runner/lib/AGENTS.md).
+For app-level boundaries, see `lib/AGENTS.md`. For render/UI consumers of Core, see `lib/game/AGENTS.md` and `lib/ui/AGENTS.md`.
