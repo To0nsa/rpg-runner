@@ -6,11 +6,11 @@ import '../../components/app_button.dart';
 import '../../components/app_inline_edit_text.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
+import '../../profile/display_name_save_error.dart';
 import '../../profile/display_name_policy.dart';
-import '../../state/app_state.dart';
 import '../../state/account_deletion_api.dart';
+import '../../state/app_state.dart';
 import '../../state/auth_api.dart';
-import '../../state/profile_counter_keys.dart';
 import '../../state/user_profile.dart';
 import '../../theme/ui_tokens.dart';
 
@@ -61,18 +61,10 @@ class _ProfilePageState extends State<ProfilePage> {
     final appState = context.read<AppState>();
     final profile = appState.profile;
     final trimmed = raw.trim();
-
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final shouldSetCooldown = profile.displayName.isNotEmpty;
-
-    await appState.updateProfile((p) {
-      return p.copyWith(
-        displayName: trimmed,
-        displayNameLastChangedAtMs: shouldSetCooldown
-            ? nowMs
-            : p.displayNameLastChangedAtMs,
-      );
-    });
+    if (trimmed == profile.displayName) {
+      return;
+    }
+    await appState.updateDisplayName(trimmed);
 
     if (!mounted) return;
     ScaffoldMessenger.of(
@@ -81,11 +73,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   String? _displayNameSaveError(Object error) {
-    final raw = '$error'.toLowerCase();
-    if (raw.contains('already-exists') || raw.contains('already exists')) {
-      return 'That name is already taken.';
-    }
-    return null;
+    return displayNameSaveErrorText(error);
   }
 
   String _accountDeletionFailureMessage(AccountDeletionResult result) {
@@ -277,7 +265,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final appState = context.watch<AppState>();
     final profile = appState.profile;
     final authSession = appState.authSession;
-    final gold = profile.counters[ProfileCounterKeys.gold] ?? 0;
+    final gold = appState.progression.gold;
 
     return MenuScaffold(
       title: 'Profile',

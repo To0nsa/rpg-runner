@@ -377,8 +377,8 @@ It is a practical engineering status check against the checklist above. It is no
 - [x] Backend callables require authentication and reject mismatched `userId` values (`functions/src/index.ts`).
 - [x] Firestore client access is locked down with deny-by-default rules (`firestore.rules`).
 - [x] Emulator-backed backend tests exist for ownership and account-deletion flows (`functions/package.json`, `functions/test/account/account_delete_callable.test.ts`, `functions/test/ownership/ownership_callable.test.ts`).
-- [x] Current remote profile persistence is relatively narrow: display name and `displayNameLastChangedAtMs` (`functions/src/profile/store.ts`, `lib/ui/state/firebase_user_profile_remote_api.dart`).
-- [x] The app also stores local data in `SharedPreferences`, so local profile and leaderboard data should be disclosed too (`lib/ui/state/user_profile_store.dart`, `lib/ui/leaderboard/shared_prefs_leaderboard_store.dart`).
+- [x] Remote profile persistence now covers display name, display-name cooldown timestamp, and onboarding completion, while ownership stores server-side selection/meta/progression state (`functions/src/profile/store.ts`, `functions/src/ownership/contracts.ts`, `lib/ui/state/firebase_user_profile_remote_api.dart`).
+- [x] The app still stores local leaderboard data in `SharedPreferences`, so that local data should still be disclosed (`lib/ui/leaderboard/shared_prefs_leaderboard_store.dart`).
 - [x] No ads or analytics SDKs are visible in the current app dependencies (`pubspec.yaml`).
 
 ### Missing
@@ -387,7 +387,7 @@ It is a practical engineering status check against the checklist above. It is no
 - [ ] A privacy-policy link or privacy-policy text inside the app. The current support page is still a placeholder (`lib/ui/pages/meta/support_page.dart`).
 - [ ] An out-of-app account-deletion page or form on the web.
 - [ ] A real support / privacy contact channel such as a support email or web form.
-- [ ] A privacy policy that covers the exact data already processed today, including Firebase Auth identifiers, Play Games linking, display name, `displayNameLastChangedAtMs`, server-side ownership / loadout / progression data, local `SharedPreferences` profile data, and local leaderboard data.
+- [ ] A privacy policy that covers the exact data already processed today, including Firebase Auth identifiers, Play Games linking, display name, `displayNameLastChangedAtMs`, onboarding-completion status, server-side ownership / loadout / progression data, and local leaderboard data.
 - [ ] Defined retention periods, especially for abandoned anonymous accounts and local / cloud player data.
 - [ ] An operational path for access, export, correction, and deletion requests.
 - [ ] Accurate Google Play Data Safety answers and account-deletion answers aligned to the current implementation.

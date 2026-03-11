@@ -24,7 +24,6 @@ abstract class AccountDeletionApi {
   Future<AccountDeletionResult> deleteAccountAndData({
     required String userId,
     required String sessionId,
-    required String profileId,
   });
 }
 
@@ -35,7 +34,6 @@ class NoopAccountDeletionApi implements AccountDeletionApi {
   Future<AccountDeletionResult> deleteAccountAndData({
     required String userId,
     required String sessionId,
-    required String profileId,
   }) async {
     return const AccountDeletionResult(
       status: AccountDeletionStatus.unsupported,

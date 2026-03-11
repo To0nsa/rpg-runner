@@ -6,6 +6,7 @@ import 'package:rpg_runner/core/meta/meta_service.dart';
 import 'package:rpg_runner/core/players/player_character_definition.dart';
 import 'package:rpg_runner/ui/state/firebase_loadout_ownership_api.dart';
 import 'package:rpg_runner/ui/state/loadout_ownership_api.dart';
+import 'package:rpg_runner/ui/state/progression_state.dart';
 import 'package:rpg_runner/ui/state/selection_state.dart';
 
 void main() {
@@ -16,6 +17,7 @@ void main() {
       revision: 7,
       selection: SelectionState.defaults,
       meta: const MetaService().createNew(),
+      progression: const ProgressionState(gold: 42),
     );
     source.loadCanonicalResponse = <String, dynamic>{
       'canonicalState': expected.toJson(),
@@ -23,13 +25,13 @@ void main() {
     final api = FirebaseLoadoutOwnershipApi(source: source);
 
     final actual = await api.loadCanonicalState(
-      profileId: 'p1',
       userId: 'u1',
       sessionId: 's1',
     );
 
     expect(actual.profileId, expected.profileId);
     expect(actual.revision, expected.revision);
+    expect(actual.progression.gold, 42);
   });
 
   test('setAbilitySlot forwards typed command to Firebase source', () async {
@@ -39,6 +41,7 @@ void main() {
       revision: 1,
       selection: SelectionState.defaults,
       meta: const MetaService().createNew(),
+      progression: ProgressionState.initial,
     );
     source.commandResponse = OwnershipCommandResult(
       canonicalState: canonical,
@@ -49,7 +52,6 @@ void main() {
 
     final result = await api.setAbilitySlot(
       const SetAbilitySlotCommand(
-        profileId: 'p1',
         userId: 'u1',
         sessionId: 's1',
         expectedRevision: 0,
@@ -72,7 +74,6 @@ void main() {
     await expectLater(
       () => api.unlockGear(
         const UnlockGearCommand(
-          profileId: 'p1',
           userId: 'u1',
           sessionId: 's1',
           expectedRevision: 0,
@@ -96,7 +97,6 @@ class _FakeFirebaseLoadoutOwnershipSource
 
   @override
   Future<Map<String, dynamic>> loadCanonicalState({
-    required String profileId,
     required String userId,
     required String sessionId,
   }) async {

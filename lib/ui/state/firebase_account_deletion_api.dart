@@ -14,13 +14,11 @@ class FirebaseAccountDeletionApi implements AccountDeletionApi {
   Future<AccountDeletionResult> deleteAccountAndData({
     required String userId,
     required String sessionId,
-    required String profileId,
   }) async {
     try {
       final response = await _source.deleteAccountAndData(
         userId: userId,
         sessionId: sessionId,
-        profileId: profileId,
       );
       return _decodeResult(response);
     } on FirebaseFunctionsException catch (error) {
@@ -177,7 +175,6 @@ abstract class FirebaseAccountDeletionSource {
   Future<Map<String, dynamic>> deleteAccountAndData({
     required String userId,
     required String sessionId,
-    required String profileId,
   });
 }
 
@@ -196,13 +193,11 @@ class PluginFirebaseAccountDeletionSource
   Future<Map<String, dynamic>> deleteAccountAndData({
     required String userId,
     required String sessionId,
-    required String profileId,
   }) async {
     final callable = _functions.httpsCallable(deleteCallableName);
     final result = await callable.call(<String, Object?>{
       'userId': userId,
       'sessionId': sessionId,
-      'profileId': profileId,
     });
     return _decodeMap(result.data);
   }

@@ -8,6 +8,7 @@ export const ownershipCommandTypes = [
   "learnProjectileSpell",
   "learnSpellAbility",
   "unlockGear",
+  "awardRunGold",
 ] as const;
 
 export type OwnershipCommandType = (typeof ownershipCommandTypes)[number];
@@ -33,11 +34,11 @@ export interface OwnershipCanonicalState {
   revision: number;
   selection: JsonObject;
   meta: JsonObject;
+  progression: JsonObject;
 }
 
 export interface OwnershipCommandEnvelope {
   type: OwnershipCommandType;
-  profileId: string;
   userId: string;
   sessionId: string;
   expectedRevision: number;
@@ -58,6 +59,7 @@ export interface CanonicalDocument {
   revision: number;
   selection: JsonObject;
   meta: JsonObject;
+  progression: JsonObject;
   createdAt?: unknown;
   updatedAt?: unknown;
 }

@@ -1,13 +1,16 @@
 import '../../core/abilities/ability_def.dart';
+import '../../core/accessories/accessory_id.dart';
 import '../../core/ecs/stores/combat/equipped_loadout_store.dart';
 import '../../core/meta/gear_slot.dart';
 import '../../core/meta/meta_state.dart';
 import '../../core/players/player_character_definition.dart';
 import '../../core/projectiles/projectile_id.dart';
-import '../../core/accessories/accessory_id.dart';
 import '../../core/spellBook/spell_book_id.dart';
 import '../../core/weapons/weapon_id.dart';
+import 'progression_state.dart';
 import 'selection_state.dart';
+
+const String defaultOwnershipProfileId = 'main';
 
 /// Canonical ownership state returned by the ownership API.
 class OwnershipCanonicalState {
@@ -16,24 +19,28 @@ class OwnershipCanonicalState {
     required this.revision,
     required this.selection,
     required this.meta,
+    required this.progression,
   });
 
   final String profileId;
   final int revision;
   final SelectionState selection;
   final MetaState meta;
+  final ProgressionState progression;
 
   OwnershipCanonicalState copyWith({
     String? profileId,
     int? revision,
     SelectionState? selection,
     MetaState? meta,
+    ProgressionState? progression,
   }) {
     return OwnershipCanonicalState(
       profileId: profileId ?? this.profileId,
       revision: revision ?? this.revision,
       selection: selection ?? this.selection,
       meta: meta ?? this.meta,
+      progression: progression ?? this.progression,
     );
   }
 
@@ -43,6 +50,7 @@ class OwnershipCanonicalState {
       'revision': revision,
       'selection': selection.toJson(),
       'meta': meta.toJson(),
+      'progression': progression.toJson(),
     };
   }
 
@@ -54,6 +62,7 @@ class OwnershipCanonicalState {
     final revisionRaw = json['revision'];
     final selectionRaw = json['selection'];
     final metaRaw = json['meta'];
+    final progressionRaw = json['progression'];
     final profileId = profileIdRaw is String && profileIdRaw.isNotEmpty
         ? profileIdRaw
         : fallback.profileId;
@@ -73,11 +82,19 @@ class OwnershipCanonicalState {
                   fallback: fallback.meta,
                 )
               : fallback.meta);
+    final progression = progressionRaw is Map<String, dynamic>
+        ? ProgressionState.fromJson(progressionRaw)
+        : (progressionRaw is Map
+              ? ProgressionState.fromJson(
+                  Map<String, dynamic>.from(progressionRaw),
+                )
+              : fallback.progression);
     return OwnershipCanonicalState(
       profileId: profileId,
       revision: revision,
       selection: selection,
       meta: meta,
+      progression: progression,
     );
   }
 }
@@ -194,14 +211,12 @@ class NoopOwnershipConflictSimulator implements OwnershipConflictSimulator {
 /// Base command envelope for ownership mutations.
 abstract class OwnershipCommand {
   const OwnershipCommand({
-    required this.profileId,
     required this.userId,
     required this.sessionId,
     required this.expectedRevision,
     required this.commandId,
   });
 
-  final String profileId;
   final String userId;
   final String sessionId;
   final int expectedRevision;
@@ -212,7 +227,6 @@ abstract class OwnershipCommand {
   Map<String, Object?> toJson() {
     return <String, Object?>{
       'type': type,
-      'profileId': profileId,
       'userId': userId,
       'sessionId': sessionId,
       'expectedRevision': expectedRevision,
@@ -226,7 +240,6 @@ abstract class OwnershipCommand {
 
 class SetSelectionCommand extends OwnershipCommand {
   const SetSelectionCommand({
-    required super.profileId,
     required super.userId,
     required super.sessionId,
     required super.expectedRevision,
@@ -247,7 +260,6 @@ class SetSelectionCommand extends OwnershipCommand {
 
 class ResetOwnershipCommand extends OwnershipCommand {
   const ResetOwnershipCommand({
-    required super.profileId,
     required super.userId,
     required super.sessionId,
     required super.expectedRevision,
@@ -263,7 +275,6 @@ class ResetOwnershipCommand extends OwnershipCommand {
 
 class SetLoadoutCommand extends OwnershipCommand {
   const SetLoadoutCommand({
-    required super.profileId,
     required super.userId,
     required super.sessionId,
     required super.expectedRevision,
@@ -289,7 +300,6 @@ class SetLoadoutCommand extends OwnershipCommand {
 
 class SetAbilitySlotCommand extends OwnershipCommand {
   const SetAbilitySlotCommand({
-    required super.profileId,
     required super.userId,
     required super.sessionId,
     required super.expectedRevision,
@@ -318,7 +328,6 @@ class SetAbilitySlotCommand extends OwnershipCommand {
 
 class SetProjectileSpellCommand extends OwnershipCommand {
   const SetProjectileSpellCommand({
-    required super.profileId,
     required super.userId,
     required super.sessionId,
     required super.expectedRevision,
@@ -344,7 +353,6 @@ class SetProjectileSpellCommand extends OwnershipCommand {
 
 class EquipGearCommand extends OwnershipCommand {
   const EquipGearCommand({
-    required super.profileId,
     required super.userId,
     required super.sessionId,
     required super.expectedRevision,
@@ -373,7 +381,6 @@ class EquipGearCommand extends OwnershipCommand {
 
 class LearnProjectileSpellCommand extends OwnershipCommand {
   const LearnProjectileSpellCommand({
-    required super.profileId,
     required super.userId,
     required super.sessionId,
     required super.expectedRevision,
@@ -399,7 +406,6 @@ class LearnProjectileSpellCommand extends OwnershipCommand {
 
 class LearnSpellAbilityCommand extends OwnershipCommand {
   const LearnSpellAbilityCommand({
-    required super.profileId,
     required super.userId,
     required super.sessionId,
     required super.expectedRevision,
@@ -425,7 +431,6 @@ class LearnSpellAbilityCommand extends OwnershipCommand {
 
 class UnlockGearCommand extends OwnershipCommand {
   const UnlockGearCommand({
-    required super.profileId,
     required super.userId,
     required super.sessionId,
     required super.expectedRevision,
@@ -449,10 +454,34 @@ class UnlockGearCommand extends OwnershipCommand {
   }
 }
 
+class AwardRunGoldCommand extends OwnershipCommand {
+  const AwardRunGoldCommand({
+    required super.userId,
+    required super.sessionId,
+    required super.expectedRevision,
+    required super.commandId,
+    required this.runId,
+    required this.goldEarned,
+  });
+
+  final int runId;
+  final int goldEarned;
+
+  @override
+  String get type => 'awardRunGold';
+
+  @override
+  Map<String, Object?> payloadToJson() {
+    return <String, Object?>{
+      'runId': runId,
+      'goldEarned': goldEarned,
+    };
+  }
+}
+
 /// Ownership API boundary used by [AppState].
 abstract class LoadoutOwnershipApi {
   Future<OwnershipCanonicalState> loadCanonicalState({
-    required String profileId,
     required String userId,
     required String sessionId,
   });
@@ -480,6 +509,8 @@ abstract class LoadoutOwnershipApi {
   );
 
   Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command);
+
+  Future<OwnershipCommandResult> awardRunGold(AwardRunGoldCommand command);
 }
 
 Map<String, Object?> _loadoutToJson(EquippedLoadoutDef loadout) {

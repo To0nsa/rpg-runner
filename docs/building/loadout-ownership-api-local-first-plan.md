@@ -9,9 +9,11 @@ This plan documents the original local-first bridge phase.
 
 Current state:
 
+- `LocalAuthApi` has been removed from `lib/ui/state`.
 - `LocalLoadoutOwnershipApi` has been removed from `lib/ui/state`.
-- `AppState` no longer defaults to a local ownership adapter.
-- Production and test composition now require explicit ownership API wiring.
+- The legacy local selection/meta persistence files have been removed from `lib/ui/state`.
+- `AppState` no longer defaults to local auth or local ownership adapters.
+- Production and test composition now require explicit auth and ownership API wiring.
 - Firebase ownership client path is fail-closed (no runtime mutation fallback).
 
 ## Goal
@@ -203,7 +205,7 @@ Local persistence remains storage only. Authority is the API boundary.
 
 That means:
 
-- `AppState` never writes `SelectionStore`/`MetaStore` directly.
+- `AppState` never writes local selection/meta persistence directly.
 - only `LocalLoadoutOwnershipApi` touches local stores.
 
 ### Conflict Simulation (Testability)
@@ -396,21 +398,22 @@ Completed in this phase:
 - Added Firebase callable-backed profile name persistence:
   - Functions callables:
     - `playerProfileLoad`
-    - `playerProfileSaveDisplayName`
+    - `playerProfileUpdate`
   - Firestore-backed profile store (`player_profiles/{uid}`) for
-    `displayName` + `displayNameLastChangedAtMs`.
+    `displayName`, `displayNameLastChangedAtMs`, and
+    `namePromptCompleted`.
   - Added unique-name reservation index (`display_name_index/{normalizedName}`)
     enforced transactionally on save.
 - Added UI remote profile adapter (`FirebaseUserProfileRemoteApi`) and wired
-  `AppState` bootstrap/updateProfile to sync display names with backend while
-  keeping non-name profile fields local.
+  `AppState` bootstrap/profile mutations to use backend-only profile loading
+  and server-authoritative ownership/progression state.
 - Added account-deletion contract and production adapter:
   - `AccountDeletionApi` boundary in `lib/ui/state`
   - Firebase callable adapter (`FirebaseAccountDeletionApi`) using
     `accountDelete`
   - `AppState.deleteAccountAndData()` orchestration:
     - call backend deletion
-    - clear local profile/session persistence
+    - clear session and in-memory UI state
     - reset in-memory state for clean relaunch
   - Profile page "Danger zone" with two-step delete confirmation and
     app-close on success (prevents immediate guest re-creation in-process).

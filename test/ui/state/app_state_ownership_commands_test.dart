@@ -7,9 +7,8 @@ import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/ui/state/app_state.dart';
 import 'package:rpg_runner/ui/state/auth_api.dart';
 import 'package:rpg_runner/ui/state/loadout_ownership_api.dart';
+import 'package:rpg_runner/ui/state/progression_state.dart';
 import 'package:rpg_runner/ui/state/selection_state.dart';
-import 'package:rpg_runner/ui/state/user_profile.dart';
-import 'package:rpg_runner/ui/state/user_profile_store.dart';
 
 void main() {
   test(
@@ -19,7 +18,6 @@ void main() {
       final appState = AppState(
         authApi: _StaticAuthApi.authenticated(),
         loadoutOwnershipApi: api,
-        userProfileStore: _MemoryUserProfileStore(),
       );
 
       await appState.bootstrap(force: true);
@@ -51,7 +49,6 @@ void main() {
       final appState = AppState(
         authApi: _StaticAuthApi.authenticated(),
         loadoutOwnershipApi: api,
-        userProfileStore: _MemoryUserProfileStore(),
       );
 
       await appState.bootstrap(force: true);
@@ -94,6 +91,7 @@ class _RecordingOwnershipApi implements LoadoutOwnershipApi {
       revision: _revision,
       selection: SelectionState.defaults,
       meta: _metaService.createNew(),
+      progression: ProgressionState.initial,
     );
   }
 
@@ -109,7 +107,6 @@ class _RecordingOwnershipApi implements LoadoutOwnershipApi {
 
   @override
   Future<OwnershipCanonicalState> loadCanonicalState({
-    required String profileId,
     required String userId,
     required String sessionId,
   }) async {
@@ -178,6 +175,11 @@ class _RecordingOwnershipApi implements LoadoutOwnershipApi {
     unlockGearCalls += 1;
     return _acceptedResult();
   }
+  
+  @override
+  Future<OwnershipCommandResult> awardRunGold(AwardRunGoldCommand command) async {
+    return _acceptedResult();
+  }
 }
 
 class _StaticAuthApi implements AuthApi {
@@ -213,23 +215,4 @@ class _StaticAuthApi implements AuthApi {
 
   @override
   Future<void> clearSession() async {}
-}
-
-class _MemoryUserProfileStore extends UserProfileStore {
-  _MemoryUserProfileStore({UserProfile? saved})
-    : saved =
-          saved ?? UserProfile.createNew(profileId: 'test_profile', nowMs: 1);
-
-  UserProfile saved;
-
-  @override
-  Future<UserProfile> load() async => saved;
-
-  @override
-  Future<void> save(UserProfile profile) async {
-    saved = profile;
-  }
-
-  @override
-  UserProfile createFresh() => saved;
 }

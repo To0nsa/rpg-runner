@@ -10,6 +10,9 @@ import {
   starterCanonicalState,
 } from "./defaults.js";
 
+const maxAwardRunGold = 10_000;
+const maxTrackedAwardedRunIds = 512;
+
 export type ApplyCommandResult =
   | {
       accepted: true;
@@ -24,7 +27,7 @@ export function applyOwnershipCommand(
   canonical: OwnershipCanonicalState,
   command: OwnershipCommandEnvelope,
 ): ApplyCommandResult {
-  const state = normalizeCanonicalState(canonical, command.profileId);
+  const state = normalizeCanonicalState(canonical, canonical.profileId);
   const payload = asRecord(command.payload);
   if (payload === null) {
     return rejected("invalidCommand");
@@ -35,7 +38,7 @@ export function applyOwnershipCommand(
       return applySetSelection(state, payload);
     case "resetOwnership":
       return accepted({
-        ...starterCanonicalState(command.profileId),
+        ...starterCanonicalState(state.profileId),
         revision: state.revision,
       });
     case "setLoadout":
@@ -52,6 +55,8 @@ export function applyOwnershipCommand(
       return applyLearnSpellAbility(state, payload);
     case "unlockGear":
       return applyUnlockGear(state, payload);
+    case "awardRunGold":
+      return applyAwardRunGold(state, payload);
   }
 }
 
@@ -263,6 +268,48 @@ function applyUnlockGear(
   });
 }
 
+function applyAwardRunGold(
+  canonical: OwnershipCanonicalState,
+  payload: Record<string, unknown>,
+): ApplyCommandResult {
+  const runId = integerValue(payload.runId);
+  const goldEarned = integerValue(payload.goldEarned);
+  if (
+    runId === null ||
+    runId < 0 ||
+    goldEarned === null ||
+    goldEarned <= 0 ||
+    goldEarned > maxAwardRunGold
+  ) {
+    return rejected("invalidCommand");
+  }
+
+  const progression = ensureProgressionObject(canonical.progression);
+  const awardedRunIds = ensureIntegerList(progression, "awardedRunIds");
+  if (awardedRunIds.includes(runId)) {
+    return accepted({
+      ...canonical,
+      progression,
+    });
+  }
+
+  const currentGold = integerValue(progression.gold) ?? 0;
+  const nextGold = currentGold + goldEarned;
+  if (!Number.isSafeInteger(nextGold) || nextGold < 0) {
+    return rejected("invalidCommand");
+  }
+  progression.gold = nextGold;
+  awardedRunIds.push(runId);
+  if (awardedRunIds.length > maxTrackedAwardedRunIds) {
+    awardedRunIds.splice(0, awardedRunIds.length - maxTrackedAwardedRunIds);
+  }
+
+  return accepted({
+    ...canonical,
+    progression,
+  });
+}
+
 function accepted(canonicalState: OwnershipCanonicalState): ApplyCommandResult {
   return { accepted: true, canonicalState };
 }
@@ -294,12 +341,40 @@ function nonEmptyString(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+function integerValue(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isInteger(value)) {
+    return null;
+  }
+  return value;
+}
+
 function ensureSelectionObject(selection: JsonObject): JsonObject {
   return structuredClone(selection);
 }
 
 function ensureMetaObject(meta: JsonObject): JsonObject {
   return structuredClone(meta);
+}
+
+function ensureProgressionObject(progression: JsonObject): JsonObject {
+  return structuredClone(progression);
+}
+
+function ensureIntegerList(parent: Record<string, unknown>, key: string): number[] {
+  const raw = parent[key];
+  if (Array.isArray(raw)) {
+    const out: number[] = [];
+    for (const value of raw) {
+      if (typeof value === "number" && Number.isInteger(value) && value >= 0) {
+        out.push(value);
+      }
+    }
+    parent[key] = out;
+    return out;
+  }
+  const created: number[] = [];
+  parent[key] = created;
+  return created;
 }
 
 function ensureMap(

@@ -15,7 +15,6 @@ import {
 } from "./defaults.js";
 
 interface LoadCanonicalRequest {
-  profileId: string;
   userId: string;
   sessionId: string;
 }
@@ -27,7 +26,6 @@ interface ExecuteCommandRequest {
 export function parseLoadCanonicalRequest(raw: unknown): LoadCanonicalRequest {
   const data = requireObject(raw, "request");
   return {
-    profileId: requireNonEmptyString(data.profileId, "profileId"),
     userId: requireNonEmptyString(data.userId, "userId"),
     sessionId: requireNonEmptyString(data.sessionId, "sessionId"),
   };
@@ -56,7 +54,6 @@ export function parseExecuteCommandRequest(raw: unknown): ExecuteCommandRequest 
   }
   const command: OwnershipCommandEnvelope = {
     type,
-    profileId: requireNonEmptyString(commandRaw.profileId, "command.profileId"),
     userId: requireNonEmptyString(commandRaw.userId, "command.userId"),
     sessionId: requireNonEmptyString(commandRaw.sessionId, "command.sessionId"),
     expectedRevision,

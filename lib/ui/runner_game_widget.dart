@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flame/game.dart';
@@ -25,7 +26,6 @@ import 'haptics/haptics_cue.dart';
 import 'haptics/haptics_service.dart';
 import 'runner_game_ui_state.dart';
 import 'state/app_state.dart';
-import 'state/profile_counter_keys.dart';
 import 'state/selection_state.dart';
 import 'theme/ui_tokens.dart';
 import 'viewport/game_viewport.dart';
@@ -262,15 +262,11 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       return;
     }
 
-    final currentGold = appState.profile.counters[ProfileCounterKeys.gold] ?? 0;
+    final currentGold = appState.progression.gold;
     final nextGold = currentGold + event.goldEarned;
     _lastGoldTotal = nextGold;
 
-    appState.updateProfile((current) {
-      final counters = Map<String, int>.from(current.counters);
-      counters[ProfileCounterKeys.gold] = nextGold;
-      return current.copyWith(counters: counters);
-    });
+    unawaited(appState.awardRunGold(runId: runId, goldEarned: event.goldEarned));
   }
 
   RunnerGameUiState _buildUiState({required bool runLoaded}) {

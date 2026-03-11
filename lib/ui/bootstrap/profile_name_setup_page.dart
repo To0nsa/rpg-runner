@@ -5,9 +5,9 @@ import '../app/ui_routes.dart';
 import '../components/app_button.dart';
 import '../components/menu_layout.dart';
 import '../components/menu_scaffold.dart';
+import '../profile/display_name_save_error.dart';
 import '../profile/display_name_policy.dart';
 import '../state/app_state.dart';
-import '../state/profile_flag_keys.dart';
 import '../theme/ui_tokens.dart';
 
 class ProfileNameSetupPage extends StatefulWidget {
@@ -40,27 +40,11 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
     setState(() => _saving = true);
 
     final appState = context.read<AppState>();
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
 
     try {
-      await appState.updateProfile((p) {
-        final flags = Map<String, bool>.from(p.flags);
-        flags[ProfileFlagKeys.namePromptCompleted] = true;
-
-        if (skipped) {
-          return p.copyWith(flags: flags);
-        }
-
-        final raw = _controller.text;
-        final shouldSetCooldown = p.displayName.isNotEmpty;
-        return p.copyWith(
-          displayName: raw.trim(),
-          displayNameLastChangedAtMs: shouldSetCooldown
-              ? nowMs
-              : p.displayNameLastChangedAtMs,
-          flags: flags,
-        );
-      });
+      await appState.completeNamePrompt(
+        displayName: skipped ? null : _controller.text,
+      );
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -84,11 +68,7 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
   }
 
   String _displayNameSaveError(Object error) {
-    final text = '$error'.toLowerCase();
-    if (text.contains('already-exists') || text.contains('already exists')) {
-      return 'That name is already taken.';
-    }
-    return 'Could not save name. Please try again.';
+    return displayNameSaveErrorText(error);
   }
 
   @override

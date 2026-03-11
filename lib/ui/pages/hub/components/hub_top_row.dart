@@ -9,12 +9,10 @@ class HubTopRow extends StatefulWidget {
   const HubTopRow({
     super.key,
     required this.displayName,
-    required this.profileId,
     required this.gold,
   });
 
   final String displayName;
-  final String profileId;
   final int gold;
 
   @override

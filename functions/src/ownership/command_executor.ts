@@ -3,12 +3,11 @@ import type { Firestore } from "firebase-admin/firestore";
 import { applyOwnershipCommand } from "./apply_command.js";
 import {
   canonicalMergeWriteData,
-  canonicalStateFromDocument,
   canonicalWriteData,
   idempotencyWriteData,
+  resolveCanonicalStateForTransaction,
 } from "./canonical_store.js";
 import type {
-  CanonicalDocument,
   IdempotencyDocument,
   JsonValue,
   OwnershipCanonicalState,
@@ -17,8 +16,7 @@ import type {
   OwnershipRejectedReason,
 } from "./contracts.js";
 import { canonicalJsonString, sha256Hex } from "./hash.js";
-import { canonicalDocRef, idempotencyDocRef } from "./firestore_paths.js";
-import { starterCanonicalState } from "./defaults.js";
+import { idempotencyDocRef } from "./firestore_paths.js";
 
 export async function executeOwnershipCommand(args: {
   db: Firestore;
@@ -26,21 +24,20 @@ export async function executeOwnershipCommand(args: {
   command: OwnershipCommandEnvelope;
 }): Promise<OwnershipCommandResult> {
   const { db, uid, command } = args;
-  const canonicalRef = canonicalDocRef(db, uid, command.profileId);
-  const idempotencyRef = idempotencyDocRef(canonicalRef, command.commandId);
   const payloadHash = sha256Hex(
     canonicalJsonString(command as unknown as JsonValue),
   );
 
   return db.runTransaction(async (tx) => {
-    const canonicalSnap = await tx.get(canonicalRef);
+    const resolved = await resolveCanonicalStateForTransaction({
+      db,
+      tx,
+      uid,
+    });
+    const canonicalRef = resolved.canonicalRef;
+    const idempotencyRef = idempotencyDocRef(canonicalRef, command.commandId);
     const idempotencySnap = await tx.get(idempotencyRef);
-    const canonical = canonicalSnap.exists
-      ? canonicalStateFromDocument(
-          canonicalSnap.data() as CanonicalDocument | undefined,
-          command.profileId,
-        )
-      : starterCanonicalState(command.profileId);
+    const canonical = resolved.canonical;
 
     if (idempotencySnap.exists) {
       const stored = idempotencySnap.data() as IdempotencyDocument | undefined;
@@ -53,7 +50,7 @@ export async function executeOwnershipCommand(args: {
     // Guard against command actor spoofing. Identity authority is auth uid.
     if (command.userId !== uid) {
       const rejected = rejectResult(canonical, "forbidden");
-      if (!canonicalSnap.exists) {
+      if (!resolved.exists) {
         tx.set(canonicalRef, canonicalWriteData(uid, canonical));
       }
       tx.set(idempotencyRef, idempotencyWriteData({ payloadHash, result: rejected }));
@@ -62,7 +59,7 @@ export async function executeOwnershipCommand(args: {
 
     if (command.expectedRevision !== canonical.revision) {
       const rejected = rejectResult(canonical, "staleRevision");
-      if (!canonicalSnap.exists) {
+      if (!resolved.exists) {
         tx.set(canonicalRef, canonicalWriteData(uid, canonical));
       }
       tx.set(idempotencyRef, idempotencyWriteData({ payloadHash, result: rejected }));
@@ -72,7 +69,7 @@ export async function executeOwnershipCommand(args: {
     const applyResult = applyOwnershipCommand(canonical, command);
     if (!applyResult.accepted) {
       const rejected = rejectResult(canonical, applyResult.rejectedReason);
-      if (!canonicalSnap.exists) {
+      if (!resolved.exists) {
         tx.set(canonicalRef, canonicalWriteData(uid, canonical));
       }
       tx.set(idempotencyRef, idempotencyWriteData({ payloadHash, result: rejected }));
@@ -81,7 +78,7 @@ export async function executeOwnershipCommand(args: {
 
     const nextCanonical: OwnershipCanonicalState = {
       ...applyResult.canonicalState,
-      profileId: command.profileId,
+      profileId: canonical.profileId,
       revision: canonical.revision + 1,
     };
     const accepted: OwnershipCommandResult = {
@@ -90,7 +87,7 @@ export async function executeOwnershipCommand(args: {
       replayedFromIdempotency: false,
       rejectedReason: null,
     };
-    if (canonicalSnap.exists) {
+    if (resolved.exists) {
       tx.set(canonicalRef, canonicalMergeWriteData(uid, nextCanonical), {
         merge: true,
       });

@@ -11,7 +11,6 @@ import 'components/hub_select_character_card.dart';
 import 'components/hub_select_level_card.dart';
 import 'components/hub_top_row.dart';
 import '../../state/app_state.dart';
-import '../../state/profile_counter_keys.dart';
 import '../../state/selection_state.dart';
 import '../../theme/ui_tokens.dart';
 
@@ -38,7 +37,7 @@ class _PlayHubPageState extends State<PlayHubPage> {
     final appState = context.watch<AppState>();
     final selection = appState.selection;
     final profile = appState.profile;
-    final gold = profile.counters[ProfileCounterKeys.gold] ?? 0;
+    final gold = appState.progression.gold;
 
     return MenuScaffold(
       showAppBar: false,
@@ -72,7 +71,6 @@ class _PlayHubPageState extends State<PlayHubPage> {
                     displayName: profile.displayName.isEmpty
                         ? 'Guest'
                         : profile.displayName,
-                    profileId: profile.profileId,
                     gold: gold,
                   ),
                   SizedBox(height: ui.space.sm),

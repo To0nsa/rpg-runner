@@ -2,13 +2,11 @@ import 'package:cloud_functions/cloud_functions.dart';
 
 import '../../core/meta/meta_service.dart';
 import 'loadout_ownership_api.dart';
+import 'progression_state.dart';
 import 'selection_state.dart';
 
 /// Firebase-backed [LoadoutOwnershipApi] adapter for server-authoritative
 /// ownership and loadout commands.
-///
-/// This adapter keeps the same command envelope and canonical response contract
-/// used by the local ownership adapter, so `AppState` remains transport-agnostic.
 class FirebaseLoadoutOwnershipApi implements LoadoutOwnershipApi {
   FirebaseLoadoutOwnershipApi({
     FirebaseLoadoutOwnershipSource? source,
@@ -21,13 +19,11 @@ class FirebaseLoadoutOwnershipApi implements LoadoutOwnershipApi {
 
   @override
   Future<OwnershipCanonicalState> loadCanonicalState({
-    required String profileId,
     required String userId,
     required String sessionId,
   }) async {
-    final fallbackCanonical = _fallbackCanonical(profileId);
+    final fallbackCanonical = _fallbackCanonical();
     final response = await _source.loadCanonicalState(
-      profileId: profileId,
       userId: userId,
       sessionId: sessionId,
     );
@@ -88,20 +84,26 @@ class FirebaseLoadoutOwnershipApi implements LoadoutOwnershipApi {
     return _executeCommand(command);
   }
 
+  @override
+  Future<OwnershipCommandResult> awardRunGold(AwardRunGoldCommand command) {
+    return _executeCommand(command);
+  }
+
   Future<OwnershipCommandResult> _executeCommand(
     OwnershipCommand command,
   ) async {
-    final fallbackCanonical = _fallbackCanonical(command.profileId);
+    final fallbackCanonical = _fallbackCanonical();
     final response = await _source.executeCommand(command: command);
     return _decodeCommandResult(response, fallbackCanonical: fallbackCanonical);
   }
 
-  OwnershipCanonicalState _fallbackCanonical(String profileId) {
+  OwnershipCanonicalState _fallbackCanonical() {
     return OwnershipCanonicalState(
-      profileId: profileId,
+      profileId: defaultOwnershipProfileId,
       revision: 0,
       selection: SelectionState.defaults,
       meta: _metaService.createNew(),
+      progression: ProgressionState.initial,
     );
   }
 
@@ -155,7 +157,6 @@ class FirebaseLoadoutOwnershipApi implements LoadoutOwnershipApi {
 /// Transport abstraction for Firebase ownership callable invocations.
 abstract class FirebaseLoadoutOwnershipSource {
   Future<Map<String, dynamic>> loadCanonicalState({
-    required String profileId,
     required String userId,
     required String sessionId,
   });
@@ -180,13 +181,11 @@ class PluginFirebaseLoadoutOwnershipSource
 
   @override
   Future<Map<String, dynamic>> loadCanonicalState({
-    required String profileId,
     required String userId,
     required String sessionId,
   }) async {
     final callable = _functions.httpsCallable(loadCanonicalCallableName);
     final result = await callable.call(<String, Object?>{
-      'profileId': profileId,
       'userId': userId,
       'sessionId': sessionId,
     });

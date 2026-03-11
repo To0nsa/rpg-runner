@@ -4,10 +4,13 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 
 import { deleteAccountAndData } from "./account/delete.js";
 import { parseAccountDeleteRequest } from "./account/validators.js";
-import { loadPlayerDisplayName, savePlayerDisplayName } from "./profile/store.js";
+import {
+  loadOrCreatePlayerProfile,
+  updatePlayerProfile,
+} from "./profile/store.js";
 import {
   parseLoadPlayerProfileRequest,
-  parseSavePlayerDisplayNameRequest,
+  parseUpdatePlayerProfileRequest,
 } from "./profile/validators.js";
 import { loadOrCreateCanonicalState } from "./ownership/canonical_store.js";
 import { executeOwnershipCommand } from "./ownership/command_executor.js";
@@ -27,11 +30,13 @@ export const loadoutOwnershipLoadCanonicalState = onCall(async (request) => {
   if (!uid) {
     throw new HttpsError("unauthenticated", "Authentication required.");
   }
-  const { profileId } = parseLoadCanonicalRequest(request.data);
+  const { userId } = parseLoadCanonicalRequest(request.data);
+  if (userId !== uid) {
+    throw new HttpsError("permission-denied", "userId does not match auth uid.");
+  }
   const canonicalState = await loadOrCreateCanonicalState({
     db,
     uid,
-    profileId,
   });
   return { canonicalState };
 });
@@ -42,8 +47,8 @@ export const loadoutOwnershipExecuteCommand = onCall(async (request) => {
     throw new HttpsError("unauthenticated", "Authentication required.");
   }
   const { command } = parseExecuteCommandRequest(request.data);
-  if (command.profileId.trim().length === 0) {
-    throw new HttpsError("invalid-argument", "profileId must be non-empty.");
+  if (command.userId !== uid) {
+    throw new HttpsError("permission-denied", "userId does not match auth uid.");
   }
   const result = await executeOwnershipCommand({
     db,
@@ -62,25 +67,30 @@ export const playerProfileLoad = onCall(async (request) => {
   if (userId !== uid) {
     throw new HttpsError("permission-denied", "userId does not match auth uid.");
   }
-  const profile = await loadPlayerDisplayName({ db, uid });
+  const profile = await loadOrCreatePlayerProfile({ db, uid });
   return { profile };
 });
 
-export const playerProfileSaveDisplayName = onCall(async (request) => {
+export const playerProfileUpdate = onCall(async (request) => {
   const uid = request.auth?.uid;
   if (!uid) {
     throw new HttpsError("unauthenticated", "Authentication required.");
   }
-  const { userId, displayName, displayNameLastChangedAtMs } =
-    parseSavePlayerDisplayNameRequest(request.data);
+  const {
+    userId,
+    displayName,
+    displayNameLastChangedAtMs,
+    namePromptCompleted,
+  } = parseUpdatePlayerProfileRequest(request.data);
   if (userId !== uid) {
     throw new HttpsError("permission-denied", "userId does not match auth uid.");
   }
-  const profile = await savePlayerDisplayName({
+  const profile = await updatePlayerProfile({
     db,
     uid,
     displayName,
     displayNameLastChangedAtMs,
+    namePromptCompleted,
   });
   return { profile };
 });
@@ -90,14 +100,13 @@ export const accountDelete = onCall(async (request) => {
   if (!uid) {
     throw new HttpsError("unauthenticated", "Authentication required.");
   }
-  const { userId, profileId } = parseAccountDeleteRequest(request.data);
+  const { userId } = parseAccountDeleteRequest(request.data);
   if (userId !== uid) {
     throw new HttpsError("permission-denied", "userId does not match auth uid.");
   }
   const result = await deleteAccountAndData({
     db,
     uid,
-    profileId,
   });
   return { result };
 });

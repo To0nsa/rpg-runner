@@ -6,9 +6,8 @@ import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/ui/state/app_state.dart';
 import 'package:rpg_runner/ui/state/auth_api.dart';
 import 'package:rpg_runner/ui/state/loadout_ownership_api.dart';
+import 'package:rpg_runner/ui/state/progression_state.dart';
 import 'package:rpg_runner/ui/state/selection_state.dart';
-import 'package:rpg_runner/ui/state/user_profile.dart';
-import 'package:rpg_runner/ui/state/user_profile_store.dart';
 
 void main() {
   test('bootstrap hydrates AppState from canonical ownership state', () async {
@@ -27,14 +26,12 @@ void main() {
       revision: 9,
       selection: canonicalSelection,
       meta: const MetaService().createNew(),
+      progression: ProgressionState.initial,
     );
     final ownershipApi = _ScriptedOwnershipApi(canonical);
     final appState = AppState(
       authApi: _StaticAuthApi.authenticated(),
       loadoutOwnershipApi: ownershipApi,
-      userProfileStore: _MemoryUserProfileStore(
-        saved: UserProfile.createNew(profileId: 'profile_bootstrap', nowMs: 1),
-      ),
     );
 
     await appState.bootstrap(force: true);
@@ -58,6 +55,7 @@ void main() {
         revision: 0,
         selection: SelectionState.defaults,
         meta: const MetaService().createNew(),
+        progression: ProgressionState.initial,
       );
       final updatedSelection = SelectionState.defaults.withLoadoutFor(
         PlayerCharacterId.eloise,
@@ -68,6 +66,7 @@ void main() {
         revision: 1,
         selection: updatedSelection,
         meta: const MetaService().createNew(),
+        progression: ProgressionState.initial,
       );
       final ownershipApi = _ScriptedOwnershipApi(initial)
         ..nextSetLoadoutResult = OwnershipCommandResult(
@@ -78,12 +77,6 @@ void main() {
       final appState = AppState(
         authApi: _StaticAuthApi.authenticated(),
         loadoutOwnershipApi: ownershipApi,
-        userProfileStore: _MemoryUserProfileStore(
-          saved: UserProfile.createNew(
-            profileId: 'profile_set_loadout',
-            nowMs: 1,
-          ),
-        ),
       );
       await appState.bootstrap(force: true);
 
@@ -117,14 +110,12 @@ void main() {
         revision: 1,
         selection: selection,
         meta: const MetaService().createNew(),
+        progression: ProgressionState.initial,
       ),
     );
     final appState = AppState(
       authApi: _StaticAuthApi.authenticated(),
       loadoutOwnershipApi: ownershipApi,
-      userProfileStore: _MemoryUserProfileStore(
-        saved: UserProfile.createNew(profileId: 'profile_run_args', nowMs: 1),
-      ),
     );
     await appState.bootstrap(force: true);
 
@@ -144,7 +135,6 @@ class _ScriptedOwnershipApi implements LoadoutOwnershipApi {
 
   @override
   Future<OwnershipCanonicalState> loadCanonicalState({
-    required String profileId,
     required String userId,
     required String sessionId,
   }) async {
@@ -227,6 +217,11 @@ class _ScriptedOwnershipApi implements LoadoutOwnershipApi {
     return _acceptedNoop();
   }
 
+  @override
+  Future<OwnershipCommandResult> awardRunGold(AwardRunGoldCommand command) async {
+    return _acceptedNoop();
+  }
+
   OwnershipCommandResult _acceptedNoop() {
     return OwnershipCommandResult(
       canonicalState: _canonical,
@@ -269,21 +264,4 @@ class _StaticAuthApi implements AuthApi {
 
   @override
   Future<void> clearSession() async {}
-}
-
-class _MemoryUserProfileStore extends UserProfileStore {
-  _MemoryUserProfileStore({required this.saved});
-
-  UserProfile saved;
-
-  @override
-  Future<UserProfile> load() async => saved;
-
-  @override
-  Future<void> save(UserProfile profile) async {
-    saved = profile;
-  }
-
-  @override
-  UserProfile createFresh() => saved;
 }

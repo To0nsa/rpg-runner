@@ -1,172 +1,61 @@
-import 'profile_counter_keys.dart';
-
 class UserProfile {
-  UserProfile({
-    required this.schemaVersion,
-    required this.profileId,
-    required this.createdAtMs,
-    required this.updatedAtMs,
-    required this.revision,
+  const UserProfile({
     required this.displayName,
     required this.displayNameLastChangedAtMs,
-    required Map<String, bool> flags,
-    required Map<String, int> counters,
-  }) : flags = Map<String, bool>.unmodifiable(flags),
-       counters = Map<String, int>.unmodifiable(counters);
+    required this.namePromptCompleted,
+  });
 
-  static const int latestSchemaVersion = 2;
-
-  final int schemaVersion;
-  final String profileId;
-  final int createdAtMs;
-  final int updatedAtMs;
-  final int revision;
   final String displayName;
   final int displayNameLastChangedAtMs;
-  final Map<String, bool> flags;
-  final Map<String, int> counters;
+  final bool namePromptCompleted;
 
-  static UserProfile empty() {
-    return UserProfile(
-      schemaVersion: latestSchemaVersion,
-      profileId: 'guest',
-      createdAtMs: 0,
-      updatedAtMs: 0,
-      revision: 0,
-      displayName: '',
-      displayNameLastChangedAtMs: 0,
-      flags: const <String, bool>{},
-      counters: const <String, int>{ProfileCounterKeys.gold: 0},
-    );
-  }
-
-  static UserProfile createNew({
-    required String profileId,
-    required int nowMs,
-  }) {
-    return UserProfile(
-      schemaVersion: latestSchemaVersion,
-      profileId: profileId,
-      createdAtMs: nowMs,
-      updatedAtMs: nowMs,
-      revision: 0,
-      displayName: '',
-      displayNameLastChangedAtMs: 0,
-      flags: const <String, bool>{},
-      counters: const <String, int>{ProfileCounterKeys.gold: 0},
-    );
-  }
+  static const UserProfile empty = UserProfile(
+    displayName: '',
+    displayNameLastChangedAtMs: 0,
+    namePromptCompleted: false,
+  );
 
   UserProfile copyWith({
-    int? schemaVersion,
-    String? profileId,
-    int? createdAtMs,
-    int? updatedAtMs,
-    int? revision,
     String? displayName,
     int? displayNameLastChangedAtMs,
-    Map<String, bool>? flags,
-    Map<String, int>? counters,
+    bool? namePromptCompleted,
   }) {
     return UserProfile(
-      schemaVersion: schemaVersion ?? this.schemaVersion,
-      profileId: profileId ?? this.profileId,
-      createdAtMs: createdAtMs ?? this.createdAtMs,
-      updatedAtMs: updatedAtMs ?? this.updatedAtMs,
-      revision: revision ?? this.revision,
       displayName: displayName ?? this.displayName,
       displayNameLastChangedAtMs:
           displayNameLastChangedAtMs ?? this.displayNameLastChangedAtMs,
-      flags: flags ?? this.flags,
-      counters: counters ?? this.counters,
+      namePromptCompleted: namePromptCompleted ?? this.namePromptCompleted,
     );
   }
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
-      'schemaVersion': schemaVersion,
-      'profileId': profileId,
-      'createdAtMs': createdAtMs,
-      'updatedAtMs': updatedAtMs,
-      'revision': revision,
       'displayName': displayName,
       'displayNameLastChangedAtMs': displayNameLastChangedAtMs,
-      'flags': flags,
-      'counters': counters,
+      'namePromptCompleted': namePromptCompleted,
     };
   }
 
-  factory UserProfile.fromJson(
-    Map<String, dynamic> json, {
-    required String fallbackProfileId,
-    required int nowMs,
-  }) {
-    final schemaVersion =
-        _readInt(json['schemaVersion']) ?? latestSchemaVersion;
-    final profileId = _readString(json['profileId']) ?? fallbackProfileId;
-    final createdAtMs = _readInt(json['createdAtMs']) ?? nowMs;
-    final updatedAtMs = _readInt(json['updatedAtMs']) ?? createdAtMs;
-    final revision = _readInt(json['revision']) ?? 0;
-    final displayName = _readStringAllowEmpty(json['displayName']) ?? '';
+  factory UserProfile.fromJson(Map<String, dynamic> json) {
+    final displayNameRaw = json['displayName'];
+    final displayNameLastChangedAtMsRaw = json['displayNameLastChangedAtMs'];
+    final namePromptCompletedRaw = json['namePromptCompleted'];
+    final displayName = displayNameRaw is String ? displayNameRaw.trim() : '';
     final displayNameLastChangedAtMs =
-        _readInt(json['displayNameLastChangedAtMs']) ?? 0;
-    final flags = _readBoolMap(json['flags']);
-    final counters = _readIntMap(json['counters']);
-    counters.putIfAbsent(ProfileCounterKeys.gold, () => 0);
-
+        displayNameLastChangedAtMsRaw is int
+        ? displayNameLastChangedAtMsRaw
+        : (displayNameLastChangedAtMsRaw is num
+              ? displayNameLastChangedAtMsRaw.toInt()
+              : 0);
+    final namePromptCompleted = namePromptCompletedRaw is bool
+        ? namePromptCompletedRaw
+        : false;
     return UserProfile(
-      schemaVersion: schemaVersion,
-      profileId: profileId,
-      createdAtMs: createdAtMs,
-      updatedAtMs: updatedAtMs,
-      revision: revision,
       displayName: displayName,
-      displayNameLastChangedAtMs: displayNameLastChangedAtMs,
-      flags: flags,
-      counters: counters,
+      displayNameLastChangedAtMs: displayNameLastChangedAtMs < 0
+          ? 0
+          : displayNameLastChangedAtMs,
+      namePromptCompleted: namePromptCompleted,
     );
   }
-}
-
-int? _readInt(Object? raw) {
-  if (raw is int) return raw;
-  if (raw is num) return raw.toInt();
-  return null;
-}
-
-String? _readString(Object? raw) {
-  if (raw is String && raw.isNotEmpty) return raw;
-  return null;
-}
-
-String? _readStringAllowEmpty(Object? raw) {
-  if (raw is String) return raw;
-  return null;
-}
-
-Map<String, bool> _readBoolMap(Object? raw) {
-  if (raw is! Map) return <String, bool>{};
-  final map = <String, bool>{};
-  raw.forEach((key, value) {
-    if (key is String && value is bool) {
-      map[key] = value;
-    }
-  });
-  return map;
-}
-
-Map<String, int> _readIntMap(Object? raw) {
-  if (raw is! Map) return <String, int>{};
-  final map = <String, int>{};
-  raw.forEach((key, value) {
-    if (key is! String) return;
-    if (value is int) {
-      map[key] = value;
-      return;
-    }
-    if (value is num) {
-      map[key] = value.toInt();
-    }
-  });
-  return map;
 }

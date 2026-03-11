@@ -13,25 +13,21 @@ import '../../core/projectiles/projectile_id.dart';
 import '../app/ui_routes.dart';
 import 'account_deletion_api.dart';
 import 'auth_api.dart';
-import 'local_auth_api.dart';
 import 'loadout_ownership_api.dart';
+import 'progression_state.dart';
 import 'selection_state.dart';
 import 'user_profile.dart';
 import 'user_profile_remote_api.dart';
-import 'user_profile_store.dart';
 
 class AppState extends ChangeNotifier {
   factory AppState({
-    UserProfileStore? userProfileStore,
-    AuthApi? authApi,
+    required AuthApi authApi,
     UserProfileRemoteApi? userProfileRemoteApi,
     AccountDeletionApi? accountDeletionApi,
     required LoadoutOwnershipApi loadoutOwnershipApi,
   }) {
-    final resolvedAuthApi = authApi ?? LocalAuthApi();
     return AppState._internal(
-      userProfileStore: userProfileStore,
-      authApi: resolvedAuthApi,
+      authApi: authApi,
       userProfileRemoteApi: userProfileRemoteApi,
       accountDeletionApi: accountDeletionApi,
       loadoutOwnershipApi: loadoutOwnershipApi,
@@ -39,13 +35,11 @@ class AppState extends ChangeNotifier {
   }
 
   AppState._internal({
-    UserProfileStore? userProfileStore,
     required AuthApi authApi,
     UserProfileRemoteApi? userProfileRemoteApi,
     AccountDeletionApi? accountDeletionApi,
     required LoadoutOwnershipApi loadoutOwnershipApi,
-  }) : _profileStore = userProfileStore ?? UserProfileStore(),
-       _authApi = authApi,
+  }) : _authApi = authApi,
        _profileRemoteApi =
            userProfileRemoteApi ?? const NoopUserProfileRemoteApi(),
        _accountDeletionApi =
@@ -57,37 +51,38 @@ class AppState extends ChangeNotifier {
   final UserProfileRemoteApi _profileRemoteApi;
   final AccountDeletionApi _accountDeletionApi;
   final LoadoutOwnershipApi _ownershipApi;
-  final UserProfileStore _profileStore;
 
   SelectionState _selection = SelectionState.defaults;
   MetaState _meta = const MetaService().createNew();
-  UserProfile _profile = UserProfile.empty();
+  ProgressionState _progression = ProgressionState.initial;
+  UserProfile _profile = UserProfile.empty;
   AuthSession _authSession = AuthSession.unauthenticated;
+  String _profileId = defaultOwnershipProfileId;
   int _ownershipRevision = 0;
   bool _bootstrapped = false;
   bool _warmupStarted = false;
 
   SelectionState get selection => _selection;
   MetaState get meta => _meta;
+  ProgressionState get progression => _progression;
   UserProfile get profile => _profile;
   AuthSession get authSession => _authSession;
+  String get profileId => _profileId;
   bool get isBootstrapped => _bootstrapped;
   int get ownershipRevision => _ownershipRevision;
 
   Future<void> bootstrap({bool force = false}) async {
     if (_bootstrapped && !force) return;
     final session = await _ensureAuthSession();
-    final loadedProfile = await _profileStore.load();
-    final syncedProfile = await _syncProfileDisplayNameFromRemote(
-      localProfile: loadedProfile,
-      session: session,
-    );
-    final canonical = await _ownershipApi.loadCanonicalState(
-      profileId: syncedProfile.profileId,
+    final loadedProfile = await _profileRemoteApi.loadProfile(
       userId: session.userId,
       sessionId: session.sessionId,
     );
-    _profile = syncedProfile;
+    final canonical = await _ownershipApi.loadCanonicalState(
+      userId: session.userId,
+      sessionId: session.sessionId,
+    );
+    _profile = loadedProfile;
     _applyCanonicalState(canonical);
     _bootstrapped = true;
     notifyListeners();
@@ -95,25 +90,47 @@ class AppState extends ChangeNotifier {
 
   Future<void> applyDefaults() async {
     final session = await _ensureAuthSession();
-    final freshProfile = _profileStore.createFresh();
-    _profile = freshProfile;
-    await _profileStore.save(freshProfile);
-    final loaded = await _ownershipApi.loadCanonicalState(
-      profileId: freshProfile.profileId,
-      userId: session.userId,
-      sessionId: session.sessionId,
-    );
-    _applyCanonicalState(loaded);
-    final resetResult = await _ownershipApi.resetOwnership(
-      ResetOwnershipCommand(
-        profileId: freshProfile.profileId,
+    try {
+      _profile = await _profileRemoteApi.loadProfile(
         userId: session.userId,
         sessionId: session.sessionId,
-        expectedRevision: _ownershipRevision,
-        commandId: _newCommandId(),
-      ),
-    );
-    _applyOwnershipResult(resetResult);
+      );
+    } catch (error) {
+      debugPrint('Profile fallback load failed: $error');
+      _profile = UserProfile.empty;
+    }
+
+    OwnershipCanonicalState canonical;
+    try {
+      canonical = await _ownershipApi.loadCanonicalState(
+        userId: session.userId,
+        sessionId: session.sessionId,
+      );
+    } catch (error) {
+      debugPrint('Ownership fallback load failed: $error');
+      canonical = OwnershipCanonicalState(
+        profileId: defaultOwnershipProfileId,
+        revision: 0,
+        selection: SelectionState.defaults,
+        meta: const MetaService().createNew(),
+        progression: ProgressionState.initial,
+      );
+    }
+    _applyCanonicalState(canonical);
+
+    try {
+      final resetResult = await _ownershipApi.resetOwnership(
+        ResetOwnershipCommand(
+          userId: session.userId,
+          sessionId: session.sessionId,
+          expectedRevision: _ownershipRevision,
+          commandId: _newCommandId(),
+        ),
+      );
+      _applyOwnershipResult(resetResult);
+    } catch (error) {
+      debugPrint('Ownership fallback reset failed: $error');
+    }
     _bootstrapped = true;
     notifyListeners();
   }
@@ -137,7 +154,6 @@ class AppState extends ChangeNotifier {
     final session = await _ensureAuthSession();
     final result = await _ownershipApi.setLoadout(
       SetLoadoutCommand(
-        profileId: _profile.profileId,
         userId: session.userId,
         sessionId: session.sessionId,
         expectedRevision: _ownershipRevision,
@@ -158,7 +174,6 @@ class AppState extends ChangeNotifier {
     final session = await _ensureAuthSession();
     final result = await _ownershipApi.setAbilitySlot(
       SetAbilitySlotCommand(
-        profileId: _profile.profileId,
         userId: session.userId,
         sessionId: session.sessionId,
         expectedRevision: _ownershipRevision,
@@ -179,7 +194,6 @@ class AppState extends ChangeNotifier {
     final session = await _ensureAuthSession();
     final result = await _ownershipApi.setProjectileSpell(
       SetProjectileSpellCommand(
-        profileId: _profile.profileId,
         userId: session.userId,
         sessionId: session.sessionId,
         expectedRevision: _ownershipRevision,
@@ -199,7 +213,6 @@ class AppState extends ChangeNotifier {
     final session = await _ensureAuthSession();
     final result = await _ownershipApi.learnProjectileSpell(
       LearnProjectileSpellCommand(
-        profileId: _profile.profileId,
         userId: session.userId,
         sessionId: session.sessionId,
         expectedRevision: _ownershipRevision,
@@ -219,7 +232,6 @@ class AppState extends ChangeNotifier {
     final session = await _ensureAuthSession();
     final result = await _ownershipApi.learnSpellAbility(
       LearnSpellAbilityCommand(
-        profileId: _profile.profileId,
         userId: session.userId,
         sessionId: session.sessionId,
         expectedRevision: _ownershipRevision,
@@ -239,7 +251,6 @@ class AppState extends ChangeNotifier {
     final session = await _ensureAuthSession();
     final result = await _ownershipApi.unlockGear(
       UnlockGearCommand(
-        profileId: _profile.profileId,
         userId: session.userId,
         sessionId: session.sessionId,
         expectedRevision: _ownershipRevision,
@@ -260,7 +271,6 @@ class AppState extends ChangeNotifier {
     final session = await _ensureAuthSession();
     final result = await _ownershipApi.equipGear(
       EquipGearCommand(
-        profileId: _profile.profileId,
         userId: session.userId,
         sessionId: session.sessionId,
         expectedRevision: _ownershipRevision,
@@ -281,6 +291,83 @@ class AppState extends ChangeNotifier {
     await _setSelection(nextSelection);
   }
 
+  Future<void> updateDisplayName(String displayName) async {
+    final session = await _ensureAuthSession();
+    final trimmed = displayName.trim();
+    if (trimmed == _profile.displayName) {
+      return;
+    }
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final shouldSetCooldown = _profile.displayName.isNotEmpty;
+    final nextProfile = await _profileRemoteApi.updateProfile(
+      userId: session.userId,
+      sessionId: session.sessionId,
+      update: UserProfileUpdate(
+        displayName: trimmed,
+        displayNameLastChangedAtMs: shouldSetCooldown
+            ? nowMs
+            : _profile.displayNameLastChangedAtMs,
+      ),
+    );
+    _profile = nextProfile;
+    notifyListeners();
+  }
+
+  Future<void> completeNamePrompt({String? displayName}) async {
+    final session = await _ensureAuthSession();
+    final trimmed = displayName?.trim();
+    final shouldUpdateDisplayName = trimmed != null && trimmed.isNotEmpty;
+    final shouldSetCooldown =
+        shouldUpdateDisplayName && _profile.displayName.isNotEmpty;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final nextProfile = await _profileRemoteApi.updateProfile(
+      userId: session.userId,
+      sessionId: session.sessionId,
+      update: UserProfileUpdate(
+        displayName: shouldUpdateDisplayName ? trimmed : null,
+        displayNameLastChangedAtMs: shouldUpdateDisplayName
+            ? (shouldSetCooldown ? nowMs : _profile.displayNameLastChangedAtMs)
+            : null,
+        namePromptCompleted: true,
+      ),
+    );
+    _profile = nextProfile;
+    notifyListeners();
+  }
+
+  Future<void> awardRunGold({
+    required int runId,
+    required int goldEarned,
+  }) async {
+    if (goldEarned <= 0) {
+      return;
+    }
+    final session = await _ensureAuthSession();
+    var result = await _ownershipApi.awardRunGold(
+      _newAwardRunGoldCommand(
+        session: session,
+        runId: runId,
+        goldEarned: goldEarned,
+      ),
+    );
+    if (result.rejectedReason == OwnershipRejectedReason.staleRevision) {
+      final canonical = await _ownershipApi.loadCanonicalState(
+        userId: session.userId,
+        sessionId: session.sessionId,
+      );
+      _applyCanonicalState(canonical);
+      result = await _ownershipApi.awardRunGold(
+        _newAwardRunGoldCommand(
+          session: session,
+          runId: runId,
+          goldEarned: goldEarned,
+        ),
+      );
+    }
+    _applyOwnershipResult(result);
+    notifyListeners();
+  }
+
   Future<AuthLinkResult> linkAuthProvider(AuthLinkProvider provider) async {
     final result = await _authApi.linkAuthProvider(provider);
     _authSession = result.session;
@@ -293,54 +380,23 @@ class AppState extends ChangeNotifier {
     final result = await _accountDeletionApi.deleteAccountAndData(
       userId: session.userId,
       sessionId: session.sessionId,
-      profileId: _profile.profileId,
     );
     if (!result.succeeded) {
       return result;
     }
 
-    await _profileStore.clear();
     await _authApi.clearSession();
     _selection = SelectionState.defaults;
     _meta = const MetaService().createNew();
-    _profile = UserProfile.empty();
+    _progression = ProgressionState.initial;
+    _profile = UserProfile.empty;
     _authSession = AuthSession.unauthenticated;
+    _profileId = defaultOwnershipProfileId;
     _ownershipRevision = 0;
     _bootstrapped = false;
     _warmupStarted = false;
     notifyListeners();
     return result;
-  }
-
-  Future<void> updateProfile(
-    UserProfile Function(UserProfile current) fn,
-  ) async {
-    final current = _profile;
-    final updated = fn(current);
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final next = updated.copyWith(
-      schemaVersion: UserProfile.latestSchemaVersion,
-      profileId: updated.profileId.isEmpty
-          ? current.profileId
-          : updated.profileId,
-      createdAtMs: updated.createdAtMs == 0
-          ? current.createdAtMs
-          : updated.createdAtMs,
-      updatedAtMs: nowMs,
-      revision: current.revision + 1,
-    );
-    final hasDisplayNameDelta = _didDisplayNameChange(current, next);
-    if (hasDisplayNameDelta) {
-      final session = await _ensureAuthSession();
-      await _saveDisplayNameToRemote(
-        session: session,
-        profile: next,
-        swallowErrors: false,
-      );
-    }
-    _profile = next;
-    await _profileStore.save(next);
-    notifyListeners();
   }
 
   void startWarmup() {
@@ -372,7 +428,6 @@ class AppState extends ChangeNotifier {
     final session = await _ensureAuthSession();
     final result = await _ownershipApi.setSelection(
       SetSelectionCommand(
-        profileId: _profile.profileId,
         userId: session.userId,
         sessionId: session.sessionId,
         expectedRevision: _ownershipRevision,
@@ -389,8 +444,10 @@ class AppState extends ChangeNotifier {
   }
 
   void _applyCanonicalState(OwnershipCanonicalState canonical) {
+    _profileId = canonical.profileId;
     _selection = canonical.selection;
     _meta = canonical.meta;
+    _progression = canonical.progression;
     _ownershipRevision = canonical.revision;
   }
 
@@ -400,80 +457,19 @@ class AppState extends ChangeNotifier {
     return session;
   }
 
-  bool _didDisplayNameChange(UserProfile current, UserProfile next) {
-    return current.displayName != next.displayName ||
-        current.displayNameLastChangedAtMs != next.displayNameLastChangedAtMs;
-  }
-
-  Future<UserProfile> _syncProfileDisplayNameFromRemote({
-    required UserProfile localProfile,
+  AwardRunGoldCommand _newAwardRunGoldCommand({
     required AuthSession session,
-  }) async {
-    if (!session.isAuthenticated) {
-      return localProfile;
-    }
-
-    try {
-      final remote = await _profileRemoteApi.loadDisplayName(
-        userId: session.userId,
-        sessionId: session.sessionId,
-      );
-      if (remote != null) {
-        final hasNameDelta =
-            remote.displayName != localProfile.displayName ||
-            remote.displayNameLastChangedAtMs !=
-                localProfile.displayNameLastChangedAtMs;
-        if (!hasNameDelta) {
-          return localProfile;
-        }
-        final merged = localProfile.copyWith(
-          displayName: remote.displayName,
-          displayNameLastChangedAtMs: remote.displayNameLastChangedAtMs,
-          updatedAtMs: DateTime.now().millisecondsSinceEpoch,
-          revision: localProfile.revision + 1,
-        );
-        await _profileStore.save(merged);
-        return merged;
-      }
-    } catch (error) {
-      debugPrint('Remote displayName load failed: $error');
-      return localProfile;
-    }
-
-    await _saveDisplayNameToRemote(
-      session: session,
-      profile: localProfile,
-      swallowErrors: true,
+    required int runId,
+    required int goldEarned,
+  }) {
+    return AwardRunGoldCommand(
+      userId: session.userId,
+      sessionId: session.sessionId,
+      expectedRevision: _ownershipRevision,
+      commandId: 'award_run_gold_${runId}_${_newCommandId()}',
+      runId: runId,
+      goldEarned: goldEarned,
     );
-    return localProfile;
-  }
-
-  Future<void> _saveDisplayNameToRemote({
-    required AuthSession session,
-    required UserProfile profile,
-    required bool swallowErrors,
-  }) async {
-    if (!session.isAuthenticated) {
-      return;
-    }
-    final displayName = profile.displayName.trim();
-    if (displayName.isEmpty) {
-      return;
-    }
-    try {
-      await _profileRemoteApi.saveDisplayName(
-        userId: session.userId,
-        sessionId: session.sessionId,
-        displayName: displayName,
-        displayNameLastChangedAtMs: profile.displayNameLastChangedAtMs,
-      );
-    } catch (error) {
-      if (swallowErrors) {
-        debugPrint('Remote displayName save failed: $error');
-        return;
-      }
-      rethrow;
-    }
   }
 
   String _newCommandId() {

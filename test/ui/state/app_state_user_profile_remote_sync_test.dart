@@ -3,142 +3,208 @@ import 'package:rpg_runner/core/meta/meta_service.dart';
 import 'package:rpg_runner/ui/state/app_state.dart';
 import 'package:rpg_runner/ui/state/auth_api.dart';
 import 'package:rpg_runner/ui/state/loadout_ownership_api.dart';
+import 'package:rpg_runner/ui/state/progression_state.dart';
 import 'package:rpg_runner/ui/state/selection_state.dart';
 import 'package:rpg_runner/ui/state/user_profile.dart';
 import 'package:rpg_runner/ui/state/user_profile_remote_api.dart';
-import 'package:rpg_runner/ui/state/user_profile_store.dart';
 
 void main() {
-  test(
-    'bootstrap adopts remote displayName into local profile store',
-    () async {
-      final store = _MemoryUserProfileStore(
-        saved: UserProfile.createNew(profileId: 'test_profile', nowMs: 1),
-      );
-      final remoteApi = _FakeUserProfileRemoteApi(
-        loadResult: const RemoteDisplayNameProfile(
-          displayName: 'RemoteHero',
-          displayNameLastChangedAtMs: 123,
-        ),
-      );
-      final appState = AppState(
-        authApi: const _StaticAuthApi(),
-        loadoutOwnershipApi: _NoopOwnershipApi(),
-        userProfileStore: store,
-        userProfileRemoteApi: remoteApi,
-      );
-
-      await appState.bootstrap(force: true);
-
-      expect(appState.profile.displayName, 'RemoteHero');
-      expect(appState.profile.displayNameLastChangedAtMs, 123);
-      expect(store.saved.displayName, 'RemoteHero');
-      expect(remoteApi.savedCalls.length, 0);
-    },
-  );
-
-  test(
-    'bootstrap backfills remote displayName when remote is missing',
-    () async {
-      final local = UserProfile.createNew(
-        profileId: 'test_profile',
-        nowMs: 1,
-      ).copyWith(displayName: 'LocalHero', displayNameLastChangedAtMs: 0);
-      final remoteApi = _FakeUserProfileRemoteApi(loadResult: null);
-      final appState = AppState(
-        authApi: const _StaticAuthApi(),
-        loadoutOwnershipApi: _NoopOwnershipApi(),
-        userProfileStore: _MemoryUserProfileStore(saved: local),
-        userProfileRemoteApi: remoteApi,
-      );
-
-      await appState.bootstrap(force: true);
-
-      expect(remoteApi.savedCalls.length, 1);
-      expect(remoteApi.savedCalls.single.displayName, 'LocalHero');
-    },
-  );
-
-  test('updateProfile syncs remote only when displayName changes', () async {
-    final remoteApi = _FakeUserProfileRemoteApi(loadResult: null);
+  test('bootstrap loads remote profile before canonical ownership', () async {
+    final remoteApi = _FakeUserProfileRemoteApi(
+      loadedProfile: const UserProfile(
+        displayName: 'RemoteHero',
+        displayNameLastChangedAtMs: 123,
+        namePromptCompleted: true,
+      ),
+    );
     final appState = AppState(
       authApi: const _StaticAuthApi(),
       loadoutOwnershipApi: _NoopOwnershipApi(),
-      userProfileStore: _MemoryUserProfileStore(
-        saved: UserProfile.createNew(profileId: 'test_profile', nowMs: 1),
-      ),
       userProfileRemoteApi: remoteApi,
     );
 
     await appState.bootstrap(force: true);
-    remoteApi.clearSavedCalls();
 
-    await appState.updateProfile((current) {
-      return current.copyWith(counters: <String, int>{'gold': 10});
-    });
-    expect(remoteApi.savedCalls, isEmpty);
-
-    await appState.updateProfile((current) {
-      return current.copyWith(
-        displayName: 'HeroName',
-        displayNameLastChangedAtMs: 1700000000000,
-      );
-    });
-    expect(remoteApi.savedCalls.length, 1);
-    expect(remoteApi.savedCalls.single.displayName, 'HeroName');
-    expect(
-      remoteApi.savedCalls.single.displayNameLastChangedAtMs,
-      1700000000000,
-    );
+    expect(appState.profile.displayName, 'RemoteHero');
+    expect(appState.profile.displayNameLastChangedAtMs, 123);
+    expect(appState.profile.namePromptCompleted, isTrue);
+    expect(appState.progression.gold, 5);
+    expect(remoteApi.loadCalls, 1);
   });
 
-  test(
-    'updateProfile keeps local name unchanged when remote save rejects',
-    () async {
-      final remoteApi = _FakeUserProfileRemoteApi(
-        loadResult: null,
-        saveError: StateError('already-exists'),
-      );
-      final appState = AppState(
-        authApi: const _StaticAuthApi(),
-        loadoutOwnershipApi: _NoopOwnershipApi(),
-        userProfileStore: _MemoryUserProfileStore(
-          saved: UserProfile.createNew(profileId: 'test_profile', nowMs: 1),
-        ),
-        userProfileRemoteApi: remoteApi,
-      );
+  test('updateDisplayName updates remote profile and local state', () async {
+    final remoteApi = _FakeUserProfileRemoteApi(
+      loadedProfile: const UserProfile(
+        displayName: '',
+        displayNameLastChangedAtMs: 0,
+        namePromptCompleted: false,
+      ),
+    );
+    final appState = AppState(
+      authApi: const _StaticAuthApi(),
+      loadoutOwnershipApi: _NoopOwnershipApi(),
+      userProfileRemoteApi: remoteApi,
+    );
 
-      await appState.bootstrap(force: true);
+    await appState.bootstrap(force: true);
+    await appState.updateDisplayName('HeroName');
 
-      await expectLater(
-        () => appState.updateProfile((current) {
-          return current.copyWith(
-            displayName: 'TakenName',
-            displayNameLastChangedAtMs: 1700000000000,
-          );
-        }),
-        throwsA(isA<StateError>()),
-      );
-      expect(appState.profile.displayName, isEmpty);
-    },
-  );
-}
+    expect(remoteApi.updateCalls.length, 1);
+    expect(remoteApi.updateCalls.single.update.displayName, 'HeroName');
+    expect(appState.profile.displayName, 'HeroName');
+  });
 
-class _MemoryUserProfileStore extends UserProfileStore {
-  _MemoryUserProfileStore({required this.saved});
+  test('completeNamePrompt can update flag without changing the name', () async {
+    final remoteApi = _FakeUserProfileRemoteApi(
+      loadedProfile: const UserProfile(
+        displayName: '',
+        displayNameLastChangedAtMs: 0,
+        namePromptCompleted: false,
+      ),
+    );
+    final appState = AppState(
+      authApi: const _StaticAuthApi(),
+      loadoutOwnershipApi: _NoopOwnershipApi(),
+      userProfileRemoteApi: remoteApi,
+    );
 
-  UserProfile saved;
+    await appState.bootstrap(force: true);
+    await appState.completeNamePrompt();
 
-  @override
-  Future<UserProfile> load() async => saved;
+    expect(remoteApi.updateCalls.length, 1);
+    expect(remoteApi.updateCalls.single.update.displayName, isNull);
+    expect(remoteApi.updateCalls.single.update.namePromptCompleted, isTrue);
+    expect(appState.profile.namePromptCompleted, isTrue);
+  });
 
-  @override
-  Future<void> save(UserProfile profile) async {
-    saved = profile;
-  }
+  test('awardRunGold updates canonical progression without touching profile', () async {
+    final remoteApi = _FakeUserProfileRemoteApi(
+      loadedProfile: const UserProfile(
+        displayName: 'Hero',
+        displayNameLastChangedAtMs: 10,
+        namePromptCompleted: true,
+      ),
+    );
+    final ownershipApi = _NoopOwnershipApi();
+    final appState = AppState(
+      authApi: const _StaticAuthApi(),
+      loadoutOwnershipApi: ownershipApi,
+      userProfileRemoteApi: remoteApi,
+    );
 
-  @override
-  UserProfile createFresh() => saved;
+    await appState.bootstrap(force: true);
+    await appState.awardRunGold(runId: 99, goldEarned: 7);
+
+    expect(ownershipApi.awardRunGoldCalls.length, 1);
+    expect(ownershipApi.awardRunGoldCalls.single.runId, 99);
+    expect(appState.progression.gold, 12);
+    expect(appState.profile.displayName, 'Hero');
+    expect(remoteApi.updateCalls, isEmpty);
+  });
+
+  test('awardRunGold retries staleRevision with a fresh command id', () async {
+    final remoteApi = _FakeUserProfileRemoteApi(
+      loadedProfile: const UserProfile(
+        displayName: 'Hero',
+        displayNameLastChangedAtMs: 10,
+        namePromptCompleted: true,
+      ),
+    );
+    final ownershipApi = _NoopOwnershipApi(staleOnFirstAward: true);
+    final appState = AppState(
+      authApi: const _StaticAuthApi(),
+      loadoutOwnershipApi: ownershipApi,
+      userProfileRemoteApi: remoteApi,
+    );
+
+    await appState.bootstrap(force: true);
+    await appState.awardRunGold(runId: 100, goldEarned: 4);
+
+    expect(ownershipApi.awardRunGoldCalls.length, 2);
+    expect(ownershipApi.loadCanonicalStateCalls, 2);
+    expect(
+      ownershipApi.awardRunGoldCalls[0].commandId,
+      isNot(ownershipApi.awardRunGoldCalls[1].commandId),
+    );
+    expect(appState.progression.gold, 9);
+  });
+
+  test('updateDisplayName keeps local name unchanged when remote update rejects', () async {
+    final remoteApi = _FakeUserProfileRemoteApi(
+      loadedProfile: const UserProfile(
+        displayName: '',
+        displayNameLastChangedAtMs: 0,
+        namePromptCompleted: false,
+      ),
+      updateError: StateError('already-exists'),
+    );
+    final appState = AppState(
+      authApi: const _StaticAuthApi(),
+      loadoutOwnershipApi: _NoopOwnershipApi(),
+      userProfileRemoteApi: remoteApi,
+    );
+
+    await appState.bootstrap(force: true);
+
+    await expectLater(
+      () => appState.updateDisplayName('TakenName'),
+      throwsA(isA<StateError>()),
+    );
+    expect(appState.profile.displayName, isEmpty);
+  });
+
+  test('applyDefaults falls back to empty profile when remote profile load fails', () async {
+    final remoteApi = _FakeUserProfileRemoteApi(
+      loadedProfile: const UserProfile(
+        displayName: 'RemoteHero',
+        displayNameLastChangedAtMs: 123,
+        namePromptCompleted: true,
+      ),
+      loadError: StateError('profile load failed'),
+    );
+    final ownershipApi = _NoopOwnershipApi();
+    final appState = AppState(
+      authApi: const _StaticAuthApi(),
+      loadoutOwnershipApi: ownershipApi,
+      userProfileRemoteApi: remoteApi,
+    );
+
+    await appState.applyDefaults();
+
+    expect(appState.isBootstrapped, isTrue);
+    expect(appState.profile, UserProfile.empty);
+    expect(appState.progression.gold, 5);
+    expect(ownershipApi.resetOwnershipCalls, 1);
+  });
+
+  test('applyDefaults keeps local canonical defaults when ownership fallback fails', () async {
+    final remoteApi = _FakeUserProfileRemoteApi(
+      loadedProfile: const UserProfile(
+        displayName: 'RemoteHero',
+        displayNameLastChangedAtMs: 123,
+        namePromptCompleted: true,
+      ),
+    );
+    final ownershipApi = _NoopOwnershipApi(
+      loadCanonicalError: StateError('ownership load failed'),
+      resetError: StateError('ownership reset failed'),
+    );
+    final appState = AppState(
+      authApi: const _StaticAuthApi(),
+      loadoutOwnershipApi: ownershipApi,
+      userProfileRemoteApi: remoteApi,
+    );
+
+    await appState.applyDefaults();
+
+    expect(appState.isBootstrapped, isTrue);
+    expect(appState.profile.displayName, 'RemoteHero');
+    expect(appState.selection, SelectionState.defaults);
+    expect(appState.progression, ProgressionState.initial);
+    expect(appState.profileId, defaultOwnershipProfileId);
+    expect(appState.ownershipRevision, 0);
+    expect(ownershipApi.resetOwnershipCalls, 1);
+  });
 }
 
 class _StaticAuthApi implements AuthApi {
@@ -171,39 +237,43 @@ class _StaticAuthApi implements AuthApi {
 }
 
 class _NoopOwnershipApi implements LoadoutOwnershipApi {
-  final MetaService _metaService = const MetaService();
+  _NoopOwnershipApi({
+    this.staleOnFirstAward = false,
+    this.loadCanonicalError,
+    this.resetError,
+  });
 
-  OwnershipCanonicalState _canonical() {
-    return OwnershipCanonicalState(
-      profileId: 'test_profile',
-      revision: 0,
-      selection: SelectionState.defaults,
-      meta: _metaService.createNew(),
-    );
-  }
+  final bool staleOnFirstAward;
+  final Object? loadCanonicalError;
+  final Object? resetError;
+  OwnershipCanonicalState _canonical = OwnershipCanonicalState(
+    profileId: 'test_profile',
+    revision: 0,
+    selection: SelectionState.defaults,
+    meta: const MetaService().createNew(),
+    progression: const ProgressionState(gold: 5),
+  );
 
-  OwnershipCommandResult _accepted() {
-    final canonical = _canonical();
-    return OwnershipCommandResult(
-      canonicalState: canonical,
-      newRevision: canonical.revision,
-      replayedFromIdempotency: false,
-    );
-  }
+  final List<AwardRunGoldCommand> awardRunGoldCalls = <AwardRunGoldCommand>[];
+  int loadCanonicalStateCalls = 0;
+  int resetOwnershipCalls = 0;
+  bool _returnedStaleForAward = false;
 
   @override
   Future<OwnershipCanonicalState> loadCanonicalState({
-    required String profileId,
     required String userId,
     required String sessionId,
   }) async {
-    return _canonical();
+    final error = loadCanonicalError;
+    if (error != null) {
+      throw error;
+    }
+    loadCanonicalStateCalls += 1;
+    return _canonical;
   }
 
   @override
-  Future<OwnershipCommandResult> setSelection(
-    SetSelectionCommand command,
-  ) async {
+  Future<OwnershipCommandResult> setSelection(SetSelectionCommand command) async {
     return _accepted();
   }
 
@@ -211,6 +281,11 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
   Future<OwnershipCommandResult> resetOwnership(
     ResetOwnershipCommand command,
   ) async {
+    resetOwnershipCalls += 1;
+    final error = resetError;
+    if (error != null) {
+      throw error;
+    }
     return _accepted();
   }
 
@@ -256,59 +331,98 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
   Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command) async {
     return _accepted();
   }
+
+  @override
+  Future<OwnershipCommandResult> awardRunGold(AwardRunGoldCommand command) async {
+    awardRunGoldCalls.add(command);
+    if (staleOnFirstAward && !_returnedStaleForAward) {
+      _returnedStaleForAward = true;
+      return OwnershipCommandResult(
+        canonicalState: _canonical,
+        newRevision: _canonical.revision,
+        replayedFromIdempotency: false,
+        rejectedReason: OwnershipRejectedReason.staleRevision,
+      );
+    }
+    _canonical = _canonical.copyWith(
+      revision: _canonical.revision + 1,
+      progression: _canonical.progression.copyWith(
+        gold: _canonical.progression.gold + command.goldEarned,
+      ),
+    );
+    return _accepted();
+  }
+
+  OwnershipCommandResult _accepted() {
+    return OwnershipCommandResult(
+      canonicalState: _canonical,
+      newRevision: _canonical.revision,
+      replayedFromIdempotency: false,
+    );
+  }
 }
 
 class _FakeUserProfileRemoteApi implements UserProfileRemoteApi {
-  _FakeUserProfileRemoteApi({required this.loadResult, this.saveError});
+  _FakeUserProfileRemoteApi({
+    required this.loadedProfile,
+    this.loadError,
+    this.updateError,
+  }) : _currentProfile = loadedProfile;
 
-  final RemoteDisplayNameProfile? loadResult;
-  final Object? saveError;
-  final List<_SavedDisplayNameCall> savedCalls = <_SavedDisplayNameCall>[];
+  final UserProfile loadedProfile;
+  final Object? loadError;
+  final Object? updateError;
+  final List<_UserProfileUpdateCall> updateCalls = <_UserProfileUpdateCall>[];
+  int loadCalls = 0;
+  UserProfile _currentProfile;
 
   @override
-  Future<RemoteDisplayNameProfile?> loadDisplayName({
+  Future<UserProfile> loadProfile({
     required String userId,
     required String sessionId,
   }) async {
-    return loadResult;
-  }
-
-  @override
-  Future<void> saveDisplayName({
-    required String userId,
-    required String sessionId,
-    required String displayName,
-    required int displayNameLastChangedAtMs,
-  }) async {
-    final error = saveError;
+    final error = loadError;
     if (error != null) {
       throw error;
     }
-    savedCalls.add(
-      _SavedDisplayNameCall(
-        userId: userId,
-        sessionId: sessionId,
-        displayName: displayName,
-        displayNameLastChangedAtMs: displayNameLastChangedAtMs,
-      ),
-    );
+    loadCalls += 1;
+    return _currentProfile;
   }
 
-  void clearSavedCalls() {
-    savedCalls.clear();
+  @override
+  Future<UserProfile> updateProfile({
+    required String userId,
+    required String sessionId,
+    required UserProfileUpdate update,
+  }) async {
+    final error = updateError;
+    if (error != null) {
+      throw error;
+    }
+    updateCalls.add(
+      _UserProfileUpdateCall(
+        userId: userId,
+        sessionId: sessionId,
+        update: update,
+      ),
+    );
+    _currentProfile = _currentProfile.copyWith(
+      displayName: update.displayName,
+      displayNameLastChangedAtMs: update.displayNameLastChangedAtMs,
+      namePromptCompleted: update.namePromptCompleted,
+    );
+    return _currentProfile;
   }
 }
 
-class _SavedDisplayNameCall {
-  const _SavedDisplayNameCall({
+class _UserProfileUpdateCall {
+  const _UserProfileUpdateCall({
     required this.userId,
     required this.sessionId,
-    required this.displayName,
-    required this.displayNameLastChangedAtMs,
+    required this.update,
   });
 
   final String userId;
   final String sessionId;
-  final String displayName;
-  final int displayNameLastChangedAtMs;
+  final UserProfileUpdate update;
 }

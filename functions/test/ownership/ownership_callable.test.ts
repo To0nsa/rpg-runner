@@ -6,15 +6,15 @@ import { getFirestore, type Firestore } from "firebase-admin/firestore";
 
 import { loadOrCreateCanonicalState } from "../../src/ownership/canonical_store.js";
 import { executeOwnershipCommand } from "../../src/ownership/command_executor.js";
-import {
-  loadPlayerDisplayName,
-  savePlayerDisplayName,
-} from "../../src/profile/store.js";
 import type {
-  JsonObject,
   OwnershipCanonicalState,
   OwnershipCommandEnvelope,
 } from "../../src/ownership/contracts.js";
+import { defaultCanonicalProfileId } from "../../src/ownership/firestore_paths.js";
+import {
+  loadOrCreatePlayerProfile,
+  updatePlayerProfile,
+} from "../../src/profile/store.js";
 
 const firestoreEmulatorHost = process.env.FIRESTORE_EMULATOR_HOST;
 if (!firestoreEmulatorHost) {
@@ -23,14 +23,17 @@ if (!firestoreEmulatorHost) {
   );
 }
 
-const projectId = process.env.GCLOUD_PROJECT ?? "demo-rpg-runner-functions-tests";
+const emulatorProjectIdBase =
+  process.env.GCLOUD_PROJECT ?? "demo-rpg-runner-functions-tests";
+const projectId = `${emulatorProjectIdBase}-ownership`;
 const appName = `ownership-tests-${process.pid}-${Date.now()}`;
 const app = initializeApp({ projectId }, appName);
 const db = getFirestore(app);
 
-const profileId = "profile_ownership_test";
+const profileId = defaultCanonicalProfileId;
 const uid = "uid_owner";
 const sessionId = "session_1";
+const maxAwardRunGold = 10_000;
 
 beforeEach(async () => {
   await Promise.all([
@@ -48,11 +51,11 @@ test("loadOrCreateCanonicalState creates starter canonical state", async () => {
   const canonical = await loadOrCreateCanonicalState({
     db,
     uid,
-    profileId,
   });
 
   assert.equal(canonical.profileId, profileId);
   assert.equal(canonical.revision, 0);
+  assert.equal(canonical.progression.gold, 0);
   assert.equal(
     loadoutFor(canonical, "eloise").projectileSlotSpellId,
     "acidBolt",
@@ -78,12 +81,58 @@ test("accepted command increments revision and persists canonical mutation", asy
     "holyBolt",
   );
 
-  const persisted = await loadOrCreateCanonicalState({ db, uid, profileId });
+  const persisted = await loadOrCreateCanonicalState({ db, uid });
   assert.equal(persisted.revision, 1);
   assert.equal(
     loadoutFor(persisted, "eloise").projectileSlotSpellId,
     "holyBolt",
   );
+});
+
+test("awardRunGold increments canonical progression and is idempotent", async () => {
+  const command = awardRunGoldCommand({
+    expectedRevision: 0,
+    commandId: "cmd_award_gold",
+    runId: 77,
+    goldEarned: 9,
+  });
+
+  const first = await executeOwnershipCommand({ db, uid, command });
+  const replay = await executeOwnershipCommand({ db, uid, command });
+
+  assert.equal(first.rejectedReason, null);
+  assert.equal(first.canonicalState.progression.gold, 9);
+  assert.equal(replay.replayedFromIdempotency, true);
+  assert.equal(replay.canonicalState.progression.gold, 9);
+
+  const duplicateRun = await executeOwnershipCommand({
+    db,
+    uid,
+    command: awardRunGoldCommand({
+      expectedRevision: first.newRevision,
+      commandId: "cmd_award_gold_duplicate_run",
+      runId: 77,
+      goldEarned: 9,
+    }),
+  });
+  assert.equal(duplicateRun.rejectedReason, null);
+  assert.equal(duplicateRun.canonicalState.progression.gold, 9);
+});
+
+test("awardRunGold rejects oversized gold payload", async () => {
+  const result = await executeOwnershipCommand({
+    db,
+    uid,
+    command: awardRunGoldCommand({
+      expectedRevision: 0,
+      commandId: "cmd_award_gold_oversized",
+      runId: 88,
+      goldEarned: maxAwardRunGold + 1,
+    }),
+  });
+
+  assert.equal(result.rejectedReason, "invalidCommand");
+  assert.equal(result.canonicalState.progression.gold, 0);
 });
 
 test("stale revision returns staleRevision and leaves canonical unchanged", async () => {
@@ -190,7 +239,6 @@ test("equipGear keeps meta and selection gear in sync", async () => {
     uid,
     command: {
       type: "equipGear",
-      profileId,
       userId: uid,
       sessionId,
       expectedRevision: 0,
@@ -222,7 +270,6 @@ test("invalid character payload rejects with invalidCommand", async () => {
     uid,
     command: {
       type: "setAbilitySlot",
-      profileId,
       userId: uid,
       sessionId,
       expectedRevision: 0,
@@ -239,29 +286,34 @@ test("invalid character payload rejects with invalidCommand", async () => {
   assert.equal(invalid.newRevision, 0);
 });
 
-test("savePlayerDisplayName persists and loadPlayerDisplayName returns profile", async () => {
-  const saved = await savePlayerDisplayName({
+test("loadOrCreatePlayerProfile creates a default remote profile", async () => {
+  const loaded = await loadOrCreatePlayerProfile({ db, uid });
+
+  assert.equal(loaded.displayName, "");
+  assert.equal(loaded.displayNameLastChangedAtMs, 0);
+  assert.equal(loaded.namePromptCompleted, false);
+});
+
+test("updatePlayerProfile persists name and onboarding flag", async () => {
+  const updated = await updatePlayerProfile({
     db,
     uid,
     displayName: "HeroName",
     displayNameLastChangedAtMs: 1700000000000,
+    namePromptCompleted: true,
   });
-  assert.equal(saved.displayName, "HeroName");
-  assert.equal(saved.displayNameLastChangedAtMs, 1700000000000);
+  assert.equal(updated.displayName, "HeroName");
+  assert.equal(updated.displayNameLastChangedAtMs, 1700000000000);
+  assert.equal(updated.namePromptCompleted, true);
 
-  const loaded = await loadPlayerDisplayName({ db, uid });
-  assert.notEqual(loaded, null);
-  assert.equal(loaded?.displayName, "HeroName");
-  assert.equal(loaded?.displayNameLastChangedAtMs, 1700000000000);
+  const loaded = await loadOrCreatePlayerProfile({ db, uid });
+  assert.equal(loaded.displayName, "HeroName");
+  assert.equal(loaded.displayNameLastChangedAtMs, 1700000000000);
+  assert.equal(loaded.namePromptCompleted, true);
 });
 
-test("loadPlayerDisplayName returns null when profile is missing", async () => {
-  const loaded = await loadPlayerDisplayName({ db, uid: "uid_missing_profile" });
-  assert.equal(loaded, null);
-});
-
-test("savePlayerDisplayName rejects duplicate normalized name across users", async () => {
-  await savePlayerDisplayName({
+test("updatePlayerProfile rejects duplicate normalized name across users", async () => {
+  await updatePlayerProfile({
     db,
     uid: "uid_primary",
     displayName: "Hero Name",
@@ -270,7 +322,7 @@ test("savePlayerDisplayName rejects duplicate normalized name across users", asy
 
   await assert.rejects(
     () =>
-      savePlayerDisplayName({
+      updatePlayerProfile({
         db,
         uid: "uid_secondary",
         displayName: "hero   name",
@@ -280,21 +332,21 @@ test("savePlayerDisplayName rejects duplicate normalized name across users", asy
   );
 });
 
-test("savePlayerDisplayName rename releases prior name for another user", async () => {
-  await savePlayerDisplayName({
+test("updatePlayerProfile rename releases prior name for another user", async () => {
+  await updatePlayerProfile({
     db,
     uid: "uid_primary",
     displayName: "Alpha",
     displayNameLastChangedAtMs: 100,
   });
-  await savePlayerDisplayName({
+  await updatePlayerProfile({
     db,
     uid: "uid_primary",
     displayName: "Beta",
     displayNameLastChangedAtMs: 101,
   });
 
-  const claimed = await savePlayerDisplayName({
+  const claimed = await updatePlayerProfile({
     db,
     uid: "uid_secondary",
     displayName: "alpha",
@@ -311,7 +363,6 @@ function setProjectileSpellCommand(args: {
 }): OwnershipCommandEnvelope {
   return {
     type: "setProjectileSpell",
-    profileId,
     userId: args.userId ?? uid,
     sessionId,
     expectedRevision: args.expectedRevision,
@@ -319,6 +370,26 @@ function setProjectileSpellCommand(args: {
     payload: {
       characterId: "eloise",
       spellId: args.spellId,
+    },
+  };
+}
+
+function awardRunGoldCommand(args: {
+  expectedRevision: number;
+  commandId: string;
+  runId: number;
+  goldEarned: number;
+  userId?: string;
+}): OwnershipCommandEnvelope {
+  return {
+    type: "awardRunGold",
+    userId: args.userId ?? uid,
+    sessionId,
+    expectedRevision: args.expectedRevision,
+    commandId: args.commandId,
+    payload: {
+      runId: args.runId,
+      goldEarned: args.goldEarned,
     },
   };
 }

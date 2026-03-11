@@ -5,9 +5,8 @@ import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/ui/state/app_state.dart';
 import 'package:rpg_runner/ui/state/auth_api.dart';
 import 'package:rpg_runner/ui/state/loadout_ownership_api.dart';
+import 'package:rpg_runner/ui/state/progression_state.dart';
 import 'package:rpg_runner/ui/state/selection_state.dart';
-import 'package:rpg_runner/ui/state/user_profile.dart';
-import 'package:rpg_runner/ui/state/user_profile_store.dart';
 
 void main() {
   test(
@@ -21,9 +20,6 @@ void main() {
       final appState = AppState(
         authApi: authApi,
         loadoutOwnershipApi: api,
-        userProfileStore: _MemoryUserProfileStore(
-          saved: UserProfile.createNew(profileId: 'test_profile', nowMs: 1),
-        ),
       );
 
       await appState.bootstrap(force: true);
@@ -72,9 +68,6 @@ void main() {
     final appState = AppState(
       authApi: authApi,
       loadoutOwnershipApi: api,
-      userProfileStore: _MemoryUserProfileStore(
-        saved: UserProfile.createNew(profileId: 'test_profile', nowMs: 1),
-      ),
     );
 
     await appState.bootstrap(force: true);
@@ -107,9 +100,6 @@ void main() {
     final appState = AppState(
       authApi: authApi,
       loadoutOwnershipApi: api,
-      userProfileStore: _MemoryUserProfileStore(
-        saved: UserProfile.createNew(profileId: 'test_profile', nowMs: 1),
-      ),
     );
 
     await appState.bootstrap(force: true);
@@ -133,6 +123,7 @@ class _RevisionedOwnershipApi implements LoadoutOwnershipApi {
           revision: 0,
           selection: SelectionState.defaults,
           meta: const MetaService().createNew(),
+          progression: ProgressionState.initial,
         ),
       };
 
@@ -141,23 +132,22 @@ class _RevisionedOwnershipApi implements LoadoutOwnershipApi {
 
   @override
   Future<OwnershipCanonicalState> loadCanonicalState({
-    required String profileId,
     required String userId,
     required String sessionId,
   }) async {
     return _canonicalByUser[userId] ??
         OwnershipCanonicalState(
-          profileId: profileId,
+          profileId: 'test_profile',
           revision: 0,
           selection: SelectionState.defaults,
           meta: const MetaService().createNew(),
+          progression: ProgressionState.initial,
         );
   }
 
   @override
   Future<OwnershipCommandResult> setLoadout(SetLoadoutCommand command) async {
     var canonical = await loadCanonicalState(
-      profileId: command.profileId,
       userId: command.userId,
       sessionId: command.sessionId,
     );
@@ -241,6 +231,11 @@ class _RevisionedOwnershipApi implements LoadoutOwnershipApi {
     return _acceptedFor(command.userId);
   }
 
+  @override
+  Future<OwnershipCommandResult> awardRunGold(AwardRunGoldCommand command) async {
+    return _acceptedFor(command.userId);
+  }
+
   OwnershipCommandResult _acceptedFor(String userId) {
     final canonical = _canonicalByUser[userId] ?? _canonicalByUser.values.first;
     return OwnershipCommandResult(
@@ -249,23 +244,6 @@ class _RevisionedOwnershipApi implements LoadoutOwnershipApi {
       replayedFromIdempotency: false,
     );
   }
-}
-
-class _MemoryUserProfileStore extends UserProfileStore {
-  _MemoryUserProfileStore({required this.saved});
-
-  UserProfile saved;
-
-  @override
-  Future<UserProfile> load() async => saved;
-
-  @override
-  Future<void> save(UserProfile profile) async {
-    saved = profile;
-  }
-
-  @override
-  UserProfile createFresh() => saved;
 }
 
 AuthSession _session({required String userId, required String sessionId}) {

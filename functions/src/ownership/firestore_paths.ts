@@ -6,6 +6,7 @@ import type {
 
 const ownershipProfilesCollection = "ownership_profiles";
 const idempotencyCollection = "idempotency";
+export const defaultCanonicalProfileId = "main";
 
 export function canonicalDocId(uid: string, profileId: string): string {
   return `${uid}__${profileId}`;

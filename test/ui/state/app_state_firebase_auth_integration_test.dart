@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:rpg_runner/core/meta/meta_service.dart';
@@ -6,9 +7,8 @@ import 'package:rpg_runner/ui/state/app_state.dart';
 import 'package:rpg_runner/ui/state/auth_api.dart';
 import 'package:rpg_runner/ui/state/firebase_auth_api.dart';
 import 'package:rpg_runner/ui/state/loadout_ownership_api.dart';
+import 'package:rpg_runner/ui/state/progression_state.dart';
 import 'package:rpg_runner/ui/state/selection_state.dart';
-import 'package:rpg_runner/ui/state/user_profile.dart';
-import 'package:rpg_runner/ui/state/user_profile_store.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -32,7 +32,6 @@ void main() {
       final appState = AppState(
         authApi: authApi,
         loadoutOwnershipApi: ownershipApi,
-        userProfileStore: _MemoryUserProfileStore(),
       );
 
       await appState.bootstrap(force: true);
@@ -74,7 +73,6 @@ void main() {
       final appState = AppState(
         authApi: authApi,
         loadoutOwnershipApi: ownershipApi,
-        userProfileStore: _MemoryUserProfileStore(),
       );
 
       await appState.bootstrap(force: true);
@@ -83,6 +81,52 @@ void main() {
       expect(appState.authSession.userId, 'restored_u1');
       expect(appState.authSession.isAnonymous, isFalse);
       expect(source.tryRestorePlayGamesSessionCalls, 1);
+      expect(source.signInAnonymouslyCalls, 0);
+    },
+  );
+
+  test(
+    'bootstrap falls back to cached Firebase user when token lookup fails offline',
+    () async {
+      final now = DateTime.utc(2026, 3, 10, 12);
+      final cachedCurrent = _snapshot(
+        userId: 'restored_u1',
+        token: 'token_cached',
+        now: now,
+        isAnonymous: false,
+        linkedProviders: const <AuthLinkProvider>{AuthLinkProvider.playGames},
+      );
+      final source = _FakeFirebaseAuthSessionSource(
+        current: cachedCurrent,
+        anonymousSignInSession: _snapshot(
+          userId: 'anon_u1',
+          token: 'token_u1_bootstrap',
+          now: now,
+        ),
+      )..readCurrentError = FirebaseAuthException(
+        code: 'network-request-failed',
+        message:
+            'A network error (such as timeout, interrupted connection or unreachable host) has occurred.',
+      );
+      final authApi = FirebaseAuthApi(source: source, now: () => now);
+      final ownershipApi = _SessionScopedOwnershipApi(
+        profileId: 'test_profile',
+      );
+      final appState = AppState(
+        authApi: authApi,
+        loadoutOwnershipApi: ownershipApi,
+      );
+
+      await appState.bootstrap(force: true);
+
+      expect(appState.isBootstrapped, isTrue);
+      expect(appState.authSession.userId, 'restored_u1');
+      expect(appState.authSession.isAnonymous, isFalse);
+      expect(
+        appState.authSession.isProviderLinked(AuthLinkProvider.playGames),
+        isTrue,
+      );
+      expect(source.readCachedCurrentCalls, 1);
       expect(source.signInAnonymouslyCalls, 0);
     },
   );
@@ -110,7 +154,6 @@ void main() {
     final appState = AppState(
       authApi: authApi,
       loadoutOwnershipApi: ownershipApi,
-      userProfileStore: _MemoryUserProfileStore(),
     );
 
     await appState.bootstrap(force: true);
@@ -154,7 +197,6 @@ void main() {
       final appState = AppState(
         authApi: authApi,
         loadoutOwnershipApi: ownershipApi,
-        userProfileStore: _MemoryUserProfileStore(),
       );
 
       await appState.bootstrap(force: true);
@@ -404,10 +446,12 @@ class _FakeFirebaseAuthSessionSource implements FirebaseAuthSessionSource {
       <FirebaseAuthSessionSnapshot?>[];
   final Map<AuthLinkProvider, _FakeUpgradeOutcome> _upgradeOutcomes =
       <AuthLinkProvider, _FakeUpgradeOutcome>{};
+  Object? readCurrentError;
 
   int tryRestorePlayGamesSessionCalls = 0;
   int signInAnonymouslyCalls = 0;
   int forceRefreshReadCalls = 0;
+  int readCachedCurrentCalls = 0;
   int linkProviderCalls = 0;
   AuthLinkProvider? lastLinkedProvider;
 
@@ -427,12 +471,22 @@ class _FakeFirebaseAuthSessionSource implements FirebaseAuthSessionSource {
   Future<FirebaseAuthSessionSnapshot?> readCurrent({
     required bool forceRefresh,
   }) async {
+    final error = readCurrentError;
+    if (error != null) {
+      throw error;
+    }
     if (forceRefresh) {
       forceRefreshReadCalls += 1;
       if (_forceRefreshQueue.isNotEmpty) {
         _current = _forceRefreshQueue.removeAt(0);
       }
     }
+    return _current;
+  }
+
+  @override
+  Future<FirebaseAuthSessionSnapshot?> readCachedCurrent() async {
+    readCachedCurrentCalls += 1;
     return _current;
   }
 
@@ -498,25 +552,6 @@ class _FakeUpgradeOutcome {
   final Object? error;
 }
 
-class _MemoryUserProfileStore extends UserProfileStore {
-  _MemoryUserProfileStore({UserProfile? saved})
-    : saved =
-          saved ?? UserProfile.createNew(profileId: 'test_profile', nowMs: 1);
-
-  UserProfile saved;
-
-  @override
-  Future<UserProfile> load() async => saved;
-
-  @override
-  Future<void> save(UserProfile profile) async {
-    saved = profile;
-  }
-
-  @override
-  UserProfile createFresh() => saved;
-}
-
 class _SessionScopedOwnershipApi implements LoadoutOwnershipApi {
   _SessionScopedOwnershipApi({required this.profileId});
 
@@ -526,7 +561,6 @@ class _SessionScopedOwnershipApi implements LoadoutOwnershipApi {
 
   @override
   Future<OwnershipCanonicalState> loadCanonicalState({
-    required String profileId,
     required String userId,
     required String sessionId,
   }) async {
@@ -611,6 +645,11 @@ class _SessionScopedOwnershipApi implements LoadoutOwnershipApi {
     return _acceptedFor(command.userId);
   }
 
+  @override
+  Future<OwnershipCommandResult> awardRunGold(AwardRunGoldCommand command) async {
+    return _acceptedFor(command.userId);
+  }
+
   OwnershipCanonicalState _canonicalFor(String userId) {
     return _canonicalByUser.putIfAbsent(
       userId,
@@ -619,6 +658,7 @@ class _SessionScopedOwnershipApi implements LoadoutOwnershipApi {
         revision: 0,
         selection: SelectionState.defaults,
         meta: const MetaService().createNew(),
+        progression: ProgressionState.initial,
       ),
     );
   }

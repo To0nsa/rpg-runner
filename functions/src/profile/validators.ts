@@ -7,11 +7,12 @@ interface LoadPlayerProfileRequest {
   sessionId: string;
 }
 
-interface SavePlayerDisplayNameRequest {
+interface UpdatePlayerProfileRequest {
   userId: string;
   sessionId: string;
-  displayName: string;
-  displayNameLastChangedAtMs: number;
+  displayName?: string;
+  displayNameLastChangedAtMs?: number;
+  namePromptCompleted?: boolean;
 }
 
 const minDisplayNameLength = 3;
@@ -46,22 +47,74 @@ export function parseLoadPlayerProfileRequest(
   };
 }
 
-export function parseSavePlayerDisplayNameRequest(
+export function parseUpdatePlayerProfileRequest(
   raw: unknown,
-): SavePlayerDisplayNameRequest {
+): UpdatePlayerProfileRequest {
   const data = requireObject(raw, "request");
-  const displayNameRaw = requireNonEmptyString(data.displayName, "displayName");
-  const displayName = displayNameRaw.trim();
-  validateDisplayName(displayName);
+  const displayName = parseOptionalDisplayName(data.displayName);
+  const displayNameLastChangedAtMs = parseOptionalNonNegativeInteger(
+    data.displayNameLastChangedAtMs,
+    "displayNameLastChangedAtMs",
+  );
+  const namePromptCompleted = parseOptionalBoolean(
+    data.namePromptCompleted,
+    "namePromptCompleted",
+  );
+
+  const hasDisplayName = displayName !== undefined;
+  const hasDisplayNameTimestamp = displayNameLastChangedAtMs !== undefined;
+  if (hasDisplayName != hasDisplayNameTimestamp) {
+    throw new HttpsError(
+      "invalid-argument",
+      "displayName and displayNameLastChangedAtMs must be supplied together.",
+    );
+  }
+  if (!hasDisplayName && namePromptCompleted === undefined) {
+    throw new HttpsError(
+      "invalid-argument",
+      "At least one profile field must be updated.",
+    );
+  }
+
   return {
     userId: requireNonEmptyString(data.userId, "userId"),
     sessionId: requireNonEmptyString(data.sessionId, "sessionId"),
     displayName,
-    displayNameLastChangedAtMs: requireNonNegativeInteger(
-      data.displayNameLastChangedAtMs,
-      "displayNameLastChangedAtMs",
-    ),
+    displayNameLastChangedAtMs,
+    namePromptCompleted,
   };
+}
+
+function parseOptionalDisplayName(value: unknown): string | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  const displayName = requireNonEmptyString(value, "displayName").trim();
+  validateDisplayName(displayName);
+  return displayName;
+}
+
+function parseOptionalNonNegativeInteger(
+  value: unknown,
+  fieldName: string,
+): number | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  return requireNonNegativeInteger(value, fieldName);
+}
+
+function parseOptionalBoolean(
+  value: unknown,
+  fieldName: string,
+): boolean | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value !== "boolean") {
+    throw new HttpsError("invalid-argument", `${fieldName} must be a boolean`);
+  }
+  return value;
 }
 
 function validateDisplayName(name: string): void {

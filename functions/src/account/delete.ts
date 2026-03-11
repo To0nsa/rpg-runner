@@ -5,7 +5,6 @@ import type {
   Firestore,
 } from "firebase-admin/firestore";
 
-import { canonicalDocRef } from "../ownership/firestore_paths.js";
 import { normalizeDisplayNameForPolicy } from "../profile/validators.js";
 
 const playerProfilesCollection = "player_profiles";
@@ -46,7 +45,6 @@ export interface AccountDeleteResult {
 interface AccountDeleteArgs {
   db: Firestore;
   uid: string;
-  profileId: string;
   deleteAuthUser?: (uid: string) => Promise<void>;
 }
 
@@ -86,7 +84,6 @@ export async function deleteAccountAndData(
   await deleteOwnershipData({
     db: args.db,
     uid: args.uid,
-    profileId: args.profileId,
     counters,
   });
   await deleteGhostData({
@@ -176,13 +173,9 @@ async function deletePlayerProfileAndNameIndex(args: {
 async function deleteOwnershipData(args: {
   db: Firestore;
   uid: string;
-  profileId: string;
   counters: AccountDeleteCounters;
 }): Promise<void> {
   const docRefsByPath = new Map<string, DocumentReference>();
-  const explicitRef = canonicalDocRef(args.db, args.uid, args.profileId);
-  docRefsByPath.set(explicitRef.path, explicitRef);
-
   const ownedQuery = await args.db
     .collection(ownershipProfilesCollection)
     .where("uid", "==", args.uid)

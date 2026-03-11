@@ -7,7 +7,6 @@ import '../app/ui_routes.dart';
 import '../components/menu_layout.dart';
 import '../components/menu_scaffold.dart';
 import '../state/app_state.dart';
-import '../state/profile_flag_keys.dart';
 import 'app_bootstrapper.dart';
 import 'loader_content.dart';
 
@@ -70,8 +69,7 @@ class _LoaderPageState extends State<LoaderPage> {
     }
 
     final appState = context.read<AppState>();
-    final completed =
-        appState.profile.flags[ProfileFlagKeys.namePromptCompleted] == true;
+    final completed = appState.profile.namePromptCompleted;
 
     if (!widget.args.isResume && !completed) {
       navigator.pushReplacementNamed(UiRoutes.setupProfileName);
@@ -83,7 +81,15 @@ class _LoaderPageState extends State<LoaderPage> {
 
   Future<void> _continueWithDefaults() async {
     final appState = context.read<AppState>();
-    await appState.applyDefaults();
+    try {
+      await appState.applyDefaults();
+    } catch (error, stackTrace) {
+      if (!mounted) return;
+      setState(() {
+        _result = BootstrapResult.failure(error, stackTrace);
+      });
+      return;
+    }
     if (!mounted) return;
     _complete();
   }
@@ -96,7 +102,7 @@ class _LoaderPageState extends State<LoaderPage> {
       showAppBar: false,
       child: MenuLayout(
         alignment: Alignment.center,
-        scrollable: false,
+        scrollable: hasError,
         child: hasError
             ? LoaderContent(
                 errorMessage: '${_result!.error}',

@@ -4,75 +4,77 @@ import 'package:rpg_runner/ui/state/account_deletion_api.dart';
 import 'package:rpg_runner/ui/state/app_state.dart';
 import 'package:rpg_runner/ui/state/auth_api.dart';
 import 'package:rpg_runner/ui/state/loadout_ownership_api.dart';
+import 'package:rpg_runner/ui/state/progression_state.dart';
 import 'package:rpg_runner/ui/state/selection_state.dart';
 import 'package:rpg_runner/ui/state/user_profile.dart';
-import 'package:rpg_runner/ui/state/user_profile_store.dart';
+import 'package:rpg_runner/ui/state/user_profile_remote_api.dart';
 
 void main() {
-  test(
-    'deleteAccountAndData clears local stores and resets app state',
-    () async {
-      final profile = UserProfile.createNew(profileId: 'profile_u1', nowMs: 1);
-      final authApi = _StaticAuthApi();
-      final deletionApi = _StaticAccountDeletionApi(
-        result: const AccountDeletionResult(
-          status: AccountDeletionStatus.deleted,
+  test('deleteAccountAndData clears in-memory state and signs out', () async {
+    final authApi = _StaticAuthApi();
+    final deletionApi = _StaticAccountDeletionApi(
+      result: const AccountDeletionResult(
+        status: AccountDeletionStatus.deleted,
+      ),
+    );
+    final appState = AppState(
+      authApi: authApi,
+      accountDeletionApi: deletionApi,
+      userProfileRemoteApi: const _StaticUserProfileRemoteApi(
+        profile: UserProfile(
+          displayName: 'Hero',
+          displayNameLastChangedAtMs: 1,
+          namePromptCompleted: true,
         ),
-      );
-      final profileStore = _MemoryUserProfileStore(saved: profile);
-      final appState = AppState(
-        authApi: authApi,
-        accountDeletionApi: deletionApi,
-        userProfileStore: profileStore,
-        loadoutOwnershipApi: _NoopOwnershipApi(profileId: profile.profileId),
-      );
+      ),
+      loadoutOwnershipApi: _NoopOwnershipApi(profileId: 'profile_u1'),
+    );
 
-      await appState.bootstrap(force: true);
-      final result = await appState.deleteAccountAndData();
+    await appState.bootstrap(force: true);
+    final result = await appState.deleteAccountAndData();
 
-      expect(result.succeeded, isTrue);
-      expect(deletionApi.calls.length, 1);
-      expect(deletionApi.calls.single.userId, 'u1');
-      expect(deletionApi.calls.single.sessionId, 's1');
-      expect(deletionApi.calls.single.profileId, profile.profileId);
-      expect(profileStore.clearCalls, 1);
-      expect(authApi.clearSessionCalls, 1);
-      expect(appState.authSession.userId, isEmpty);
-      expect(appState.profile.profileId, 'guest');
-      expect(appState.isBootstrapped, isFalse);
-    },
-  );
+    expect(result.succeeded, isTrue);
+    expect(deletionApi.calls.length, 1);
+    expect(deletionApi.calls.single.userId, 'u1');
+    expect(deletionApi.calls.single.sessionId, 's1');
+    expect(authApi.clearSessionCalls, 1);
+    expect(appState.authSession.userId, isEmpty);
+    expect(appState.profile.displayName, isEmpty);
+    expect(appState.progression.gold, 0);
+    expect(appState.isBootstrapped, isFalse);
+  });
 
-  test(
-    'deleteAccountAndData keeps local state when backend deletion fails',
-    () async {
-      final profile = UserProfile.createNew(profileId: 'profile_u1', nowMs: 1);
-      final authApi = _StaticAuthApi();
-      final deletionApi = _StaticAccountDeletionApi(
-        result: const AccountDeletionResult(
-          status: AccountDeletionStatus.failed,
-          errorCode: 'internal',
+  test('deleteAccountAndData keeps state when backend deletion fails', () async {
+    final authApi = _StaticAuthApi();
+    final deletionApi = _StaticAccountDeletionApi(
+      result: const AccountDeletionResult(
+        status: AccountDeletionStatus.failed,
+        errorCode: 'internal',
+      ),
+    );
+    final appState = AppState(
+      authApi: authApi,
+      accountDeletionApi: deletionApi,
+      userProfileRemoteApi: const _StaticUserProfileRemoteApi(
+        profile: UserProfile(
+          displayName: 'Hero',
+          displayNameLastChangedAtMs: 1,
+          namePromptCompleted: true,
         ),
-      );
-      final profileStore = _MemoryUserProfileStore(saved: profile);
-      final appState = AppState(
-        authApi: authApi,
-        accountDeletionApi: deletionApi,
-        userProfileStore: profileStore,
-        loadoutOwnershipApi: _NoopOwnershipApi(profileId: profile.profileId),
-      );
+      ),
+      loadoutOwnershipApi: _NoopOwnershipApi(profileId: 'profile_u1'),
+    );
 
-      await appState.bootstrap(force: true);
-      final result = await appState.deleteAccountAndData();
+    await appState.bootstrap(force: true);
+    final result = await appState.deleteAccountAndData();
 
-      expect(result.status, AccountDeletionStatus.failed);
-      expect(profileStore.clearCalls, 0);
-      expect(authApi.clearSessionCalls, 0);
-      expect(appState.authSession.userId, 'u1');
-      expect(appState.profile.profileId, profile.profileId);
-      expect(appState.isBootstrapped, isTrue);
-    },
-  );
+    expect(result.status, AccountDeletionStatus.failed);
+    expect(authApi.clearSessionCalls, 0);
+    expect(appState.authSession.userId, 'u1');
+    expect(appState.profile.displayName, 'Hero');
+    expect(appState.profileId, 'profile_u1');
+    expect(appState.isBootstrapped, isTrue);
+  });
 }
 
 class _StaticAuthApi implements AuthApi {
@@ -116,48 +118,44 @@ class _StaticAccountDeletionApi implements AccountDeletionApi {
   Future<AccountDeletionResult> deleteAccountAndData({
     required String userId,
     required String sessionId,
-    required String profileId,
   }) async {
-    calls.add(
-      _DeleteCall(userId: userId, sessionId: sessionId, profileId: profileId),
-    );
+    calls.add(_DeleteCall(userId: userId, sessionId: sessionId));
     return result;
   }
 }
 
 class _DeleteCall {
-  const _DeleteCall({
-    required this.userId,
-    required this.sessionId,
-    required this.profileId,
-  });
+  const _DeleteCall({required this.userId, required this.sessionId});
 
   final String userId;
   final String sessionId;
-  final String profileId;
 }
 
-class _MemoryUserProfileStore extends UserProfileStore {
-  _MemoryUserProfileStore({required this.saved});
+class _StaticUserProfileRemoteApi implements UserProfileRemoteApi {
+  const _StaticUserProfileRemoteApi({required this.profile});
 
-  UserProfile saved;
-  int clearCalls = 0;
-
-  @override
-  Future<UserProfile> load() async => saved;
+  final UserProfile profile;
 
   @override
-  Future<void> save(UserProfile profile) async {
-    saved = profile;
+  Future<UserProfile> loadProfile({
+    required String userId,
+    required String sessionId,
+  }) async {
+    return profile;
   }
 
   @override
-  Future<void> clear() async {
-    clearCalls += 1;
+  Future<UserProfile> updateProfile({
+    required String userId,
+    required String sessionId,
+    required UserProfileUpdate update,
+  }) async {
+    return profile.copyWith(
+      displayName: update.displayName,
+      displayNameLastChangedAtMs: update.displayNameLastChangedAtMs,
+      namePromptCompleted: update.namePromptCompleted,
+    );
   }
-
-  @override
-  UserProfile createFresh() => saved;
 }
 
 class _NoopOwnershipApi implements LoadoutOwnershipApi {
@@ -172,6 +170,7 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
       revision: 0,
       selection: SelectionState.defaults,
       meta: _metaService.createNew(),
+      progression: const ProgressionState(gold: 7),
     );
   }
 
@@ -186,7 +185,6 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
 
   @override
   Future<OwnershipCanonicalState> loadCanonicalState({
-    required String profileId,
     required String userId,
     required String sessionId,
   }) async {
@@ -194,9 +192,7 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
   }
 
   @override
-  Future<OwnershipCommandResult> setSelection(
-    SetSelectionCommand command,
-  ) async {
+  Future<OwnershipCommandResult> setSelection(SetSelectionCommand command) async {
     return _accepted();
   }
 
@@ -247,6 +243,11 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
 
   @override
   Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command) async {
+    return _accepted();
+  }
+
+  @override
+  Future<OwnershipCommandResult> awardRunGold(AwardRunGoldCommand command) async {
     return _accepted();
   }
 }

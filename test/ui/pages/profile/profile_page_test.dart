@@ -8,10 +8,10 @@ import 'package:rpg_runner/ui/state/account_deletion_api.dart';
 import 'package:rpg_runner/ui/state/app_state.dart';
 import 'package:rpg_runner/ui/state/auth_api.dart';
 import 'package:rpg_runner/ui/state/loadout_ownership_api.dart';
+import 'package:rpg_runner/ui/state/progression_state.dart';
 import 'package:rpg_runner/ui/state/selection_state.dart';
 import 'package:rpg_runner/ui/state/user_profile.dart';
 import 'package:rpg_runner/ui/state/user_profile_remote_api.dart';
-import 'package:rpg_runner/ui/state/user_profile_store.dart';
 import 'package:rpg_runner/ui/theme/ui_button_theme.dart';
 import 'package:rpg_runner/ui/theme/ui_tokens.dart';
 
@@ -93,7 +93,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Final confirmation'), findsOneWidget);
 
-      await tester.tap(find.text('Delete account'));
+      await tester.tap(_dialogButton('Delete account'));
       await tester.pumpAndSettle();
 
       expect(deletionApi.calls, 1);
@@ -114,7 +114,6 @@ void main() {
     final appState = AppState(
       authApi: authApi,
       accountDeletionApi: deletionApi,
-      userProfileStore: _MemoryUserProfileStore(),
       loadoutOwnershipApi: _NoopOwnershipApi(),
     );
 
@@ -135,7 +134,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Delete account'));
+    await tester.tap(_dialogButton('Delete account'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
@@ -145,6 +144,13 @@ void main() {
       isTrue,
     );
   });
+}
+
+Finder _dialogButton(String label) {
+  return find.descendant(
+    of: find.byType(AlertDialog),
+    matching: find.text(label),
+  );
 }
 
 class _TestApp extends StatelessWidget {
@@ -218,6 +224,7 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
     revision: 0,
     selection: SelectionState.defaults,
     meta: const MetaService().createNew(),
+    progression: ProgressionState.initial,
   );
 
   OwnershipCommandResult get _accepted => OwnershipCommandResult(
@@ -228,7 +235,6 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
 
   @override
   Future<OwnershipCanonicalState> loadCanonicalState({
-    required String profileId,
     required String userId,
     required String sessionId,
   }) async {
@@ -291,6 +297,11 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
   Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command) async {
     return _accepted;
   }
+
+  @override
+  Future<OwnershipCommandResult> awardRunGold(AwardRunGoldCommand command) async {
+    return _accepted;
+  }
 }
 
 class _StaticAccountDeletionApi implements AccountDeletionApi {
@@ -303,52 +314,32 @@ class _StaticAccountDeletionApi implements AccountDeletionApi {
   Future<AccountDeletionResult> deleteAccountAndData({
     required String userId,
     required String sessionId,
-    required String profileId,
   }) async {
     calls += 1;
     return result;
   }
 }
 
-class _MemoryUserProfileStore extends UserProfileStore {
-  _MemoryUserProfileStore()
-    : _saved = UserProfile.createNew(profileId: 'profile_test', nowMs: 1);
-
-  UserProfile _saved;
-
-  @override
-  Future<UserProfile> load() async => _saved;
-
-  @override
-  Future<void> save(UserProfile profile) async {
-    _saved = profile;
-  }
-
-  @override
-  Future<void> clear() async {}
-
-  @override
-  UserProfile createFresh() => _saved;
-}
-
 class _FailingUserProfileRemoteApi implements UserProfileRemoteApi {
   const _FailingUserProfileRemoteApi();
 
   @override
-  Future<RemoteDisplayNameProfile?> loadDisplayName({
+  Future<UserProfile> loadProfile({
     required String userId,
     required String sessionId,
   }) async {
-    return null;
+    return UserProfile.empty;
   }
 
   @override
-  Future<void> saveDisplayName({
+  Future<UserProfile> updateProfile({
     required String userId,
     required String sessionId,
-    required String displayName,
-    required int displayNameLastChangedAtMs,
-  }) {
-    throw StateError('already-exists');
+    required UserProfileUpdate update,
+  }) async {
+    throw const UserProfileRemoteException(
+      code: 'already-exists',
+      message: 'displayName is already taken.',
+    );
   }
 }

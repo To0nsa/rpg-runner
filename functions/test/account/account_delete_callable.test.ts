@@ -7,7 +7,7 @@ import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { deleteAccountAndData } from "../../src/account/delete.js";
 import { parseAccountDeleteRequest } from "../../src/account/validators.js";
 import { canonicalDocRef } from "../../src/ownership/firestore_paths.js";
-import { savePlayerDisplayName } from "../../src/profile/store.js";
+import { updatePlayerProfile } from "../../src/profile/store.js";
 
 const firestoreEmulatorHost = process.env.FIRESTORE_EMULATOR_HOST;
 if (!firestoreEmulatorHost) {
@@ -16,7 +16,9 @@ if (!firestoreEmulatorHost) {
   );
 }
 
-const projectId = process.env.GCLOUD_PROJECT ?? "demo-rpg-runner-functions-tests";
+const emulatorProjectIdBase =
+  process.env.GCLOUD_PROJECT ?? "demo-rpg-runner-functions-tests";
+const projectId = `${emulatorProjectIdBase}-account`;
 const appName = `account-delete-tests-${process.pid}-${Date.now()}`;
 const app = initializeApp({ projectId }, appName);
 const db = getFirestore(app);
@@ -40,11 +42,9 @@ test("parseAccountDeleteRequest validates required fields", () => {
   const parsed = parseAccountDeleteRequest({
     userId: "u1",
     sessionId: "s1",
-    profileId: "p1",
   });
   assert.equal(parsed.userId, "u1");
   assert.equal(parsed.sessionId, "s1");
-  assert.equal(parsed.profileId, "p1");
 });
 
 test("deleteAccountAndData removes UID-scoped profile, ownership, and ghost data", async () => {
@@ -53,13 +53,13 @@ test("deleteAccountAndData removes UID-scoped profile, ownership, and ghost data
   const otherUid = "uid_keep";
   const otherProfileId = "profile_other";
 
-  await savePlayerDisplayName({
+  await updatePlayerProfile({
     db,
     uid,
     displayName: "Delete Me",
     displayNameLastChangedAtMs: 100,
   });
-  await savePlayerDisplayName({
+  await updatePlayerProfile({
     db,
     uid: otherUid,
     displayName: "Keep Me",
@@ -116,7 +116,6 @@ test("deleteAccountAndData removes UID-scoped profile, ownership, and ghost data
   const result = await deleteAccountAndData({
     db,
     uid,
-    profileId,
     deleteAuthUser: async (value) => {
       deletedAuthUid = value;
     },
@@ -158,7 +157,6 @@ test("deleteAccountAndData tolerates already-missing auth user", async () => {
   const result = await deleteAccountAndData({
     db,
     uid,
-    profileId: "profile_missing_auth",
     deleteAuthUser: async () => {
       const error = new Error("not found") as Error & { code?: string };
       error.code = "auth/user-not-found";

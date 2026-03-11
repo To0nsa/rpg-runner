@@ -18,7 +18,6 @@ void main() {
     final result = await api.deleteAccountAndData(
       userId: 'u1',
       sessionId: 's1',
-      profileId: 'p1',
     );
 
     expect(result.status, AccountDeletionStatus.requiresRecentLogin);
@@ -33,7 +32,6 @@ void main() {
     final result = await api.deleteAccountAndData(
       userId: 'u1',
       sessionId: 's1',
-      profileId: 'p1',
     );
 
     expect(result.status, AccountDeletionStatus.deleted);
@@ -53,7 +51,6 @@ void main() {
       final result = await api.deleteAccountAndData(
         userId: 'u1',
         sessionId: 's1',
-        profileId: 'p1',
       );
 
       expect(result.status, AccountDeletionStatus.unauthorized);
@@ -72,7 +69,6 @@ void main() {
     final result = await api.deleteAccountAndData(
       userId: 'u1',
       sessionId: 's1',
-      profileId: 'p1',
     );
 
     expect(result.status, AccountDeletionStatus.unsupported);
@@ -89,7 +85,6 @@ class _FakeFirebaseAccountDeletionSource
   Future<Map<String, dynamic>> deleteAccountAndData({
     required String userId,
     required String sessionId,
-    required String profileId,
   }) async {
     final currentError = error;
     if (currentError != null) {

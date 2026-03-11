@@ -21,7 +21,7 @@ This is a portfolio-style game project designed to demonstrate production-minded
 - Gear/loadout setup flow before runs
 - In-game HUD, pause, game-over, and scoring
 - Local leaderboard persistence (SharedPreferences)
-- Backend display-name persistence via Firebase Functions + Firestore
+- Backend-authenticated player profile plus ownership/progression persistence via Firebase Functions + Firestore
 - 100+ Dart test files (`*_test.dart`) in `test/`
 - Firebase Auth + callable backend integration
 

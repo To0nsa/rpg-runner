@@ -20,7 +20,7 @@ class FirebaseAuthApi implements AuthApi {
 
   @override
   Future<AuthSession> loadSession() async {
-    final snapshot = await _source.readCurrent(forceRefresh: false);
+    final snapshot = await _readCurrentWithCachedFallback(forceRefresh: false);
     if (snapshot == null) {
       return AuthSession.unauthenticated;
     }
@@ -33,7 +33,7 @@ class FirebaseAuthApi implements AuthApi {
 
   @override
   Future<AuthSession> ensureAuthenticatedSession() async {
-    var snapshot = await _source.readCurrent(forceRefresh: false);
+    var snapshot = await _readCurrentWithCachedFallback(forceRefresh: false);
     if (snapshot == null) {
       final restored = await _source.tryRestorePlayGamesSession();
       if (restored != null) {
@@ -45,7 +45,7 @@ class FirebaseAuthApi implements AuthApi {
     final now = _now();
     if (_expiresSoon(snapshot, now)) {
       snapshot =
-          await _source.readCurrent(forceRefresh: true) ??
+          await _readCurrentWithCachedFallback(forceRefresh: true) ??
           await _source.tryRestorePlayGamesSession() ??
           await _source.signInAnonymously();
     }
@@ -53,7 +53,7 @@ class FirebaseAuthApi implements AuthApi {
     var session = _toSession(snapshot);
     if (!session.isAuthenticatedAt(now.millisecondsSinceEpoch)) {
       snapshot =
-          await _source.readCurrent(forceRefresh: true) ??
+          await _readCurrentWithCachedFallback(forceRefresh: true) ??
           await _source.tryRestorePlayGamesSession() ??
           await _source.signInAnonymously();
       session = _toSession(snapshot);
@@ -154,6 +154,56 @@ class FirebaseAuthApi implements AuthApi {
     return fallback;
   }
 
+  Future<FirebaseAuthSessionSnapshot?> _readCurrentWithCachedFallback({
+    required bool forceRefresh,
+  }) async {
+    try {
+      return await _source.readCurrent(forceRefresh: forceRefresh);
+    } on FirebaseAuthException catch (error) {
+      final fallback = await _cachedFallbackForNetworkError(
+        code: error.code,
+        message: error.message,
+      );
+      if (fallback != null) {
+        return fallback;
+      }
+      rethrow;
+    } on PlatformException catch (error) {
+      final fallback = await _cachedFallbackForNetworkError(
+        code: error.code,
+        message: error.message,
+      );
+      if (fallback != null) {
+        return fallback;
+      }
+      rethrow;
+    }
+  }
+
+  Future<FirebaseAuthSessionSnapshot?> _cachedFallbackForNetworkError({
+    required String code,
+    required String? message,
+  }) async {
+    if (!_isNetworkRequestFailure(code: code, message: message)) {
+      return null;
+    }
+    return _source.readCachedCurrent();
+  }
+
+  bool _isNetworkRequestFailure({
+    required String code,
+    required String? message,
+  }) {
+    if (code == 'network-request-failed') {
+      return true;
+    }
+    final normalized = message?.toLowerCase() ?? '';
+    return normalized.contains('network error') ||
+        normalized.contains('timeout') ||
+        normalized.contains('unreachable host') ||
+        normalized.contains('interrupted connection');
+  }
+
   bool _expiresSoon(FirebaseAuthSessionSnapshot snapshot, DateTime now) {
     final expiresAt = snapshot.expiresAt;
     if (expiresAt == null) return false;
@@ -250,6 +300,8 @@ abstract class FirebaseAuthSessionSource {
     required bool forceRefresh,
   });
 
+  Future<FirebaseAuthSessionSnapshot?> readCachedCurrent();
+
   Future<FirebaseAuthSessionSnapshot?> tryRestorePlayGamesSession();
 
   Future<FirebaseAuthSessionSnapshot> signInAnonymously();
@@ -283,6 +335,20 @@ class PluginFirebaseAuthSessionSource implements FirebaseAuthSessionSource {
     }
     final tokenResult = await user.getIdTokenResult(forceRefresh);
     return _toSnapshot(user, tokenResult);
+  }
+
+  @override
+  Future<FirebaseAuthSessionSnapshot?> readCachedCurrent() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      return null;
+    }
+    return FirebaseAuthSessionSnapshot(
+      userId: user.uid,
+      isAnonymous: user.isAnonymous,
+      refreshToken: user.refreshToken,
+      linkedProviders: _extractLinkedProviders(user),
+    );
   }
 
   @override

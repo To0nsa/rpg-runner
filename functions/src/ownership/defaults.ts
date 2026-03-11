@@ -89,12 +89,20 @@ export function starterMeta(): JsonObject {
   } satisfies JsonObject);
 }
 
+export function starterProgression(): JsonObject {
+  return structuredClone({
+    gold: 0,
+    awardedRunIds: [],
+  } satisfies JsonObject);
+}
+
 export function starterCanonicalState(profileId: string): OwnershipCanonicalState {
   return {
     profileId,
     revision: 0,
     selection: starterSelection(),
     meta: starterMeta(),
+    progression: starterProgression(),
   };
 }
 
@@ -109,6 +117,7 @@ export function starterCanonicalDocument(
     revision: canonical.revision,
     selection: canonical.selection,
     meta: canonical.meta,
+    progression: canonical.progression,
   };
 }
 
@@ -126,6 +135,9 @@ export function normalizeCanonicalState(
   const meta = isJsonObject(candidate.meta)
     ? structuredClone(candidate.meta)
     : fallback.meta;
+  const progression = isJsonObject(candidate.progression)
+    ? structuredClone(candidate.progression)
+    : fallback.progression;
   const revision =
     typeof candidate.revision === "number" && Number.isInteger(candidate.revision)
       ? candidate.revision
@@ -139,6 +151,7 @@ export function normalizeCanonicalState(
     revision,
     selection,
     meta,
+    progression,
   };
 }
 
