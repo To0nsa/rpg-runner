@@ -9,7 +9,6 @@ import '../levels/level_id_ui.dart';
 import '../state/app_state.dart';
 import '../state/firebase_auth_api.dart';
 import '../state/firebase_loadout_ownership_api.dart';
-import '../state/local_loadout_ownership_api.dart';
 import '../theme/ui_button_theme.dart';
 import '../theme/ui_hub_theme.dart';
 import '../theme/ui_icon_button_theme.dart';
@@ -149,10 +148,7 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
         ChangeNotifierProvider(
           create: (_) {
             final authApi = FirebaseAuthApi();
-            final localFallback = LocalLoadoutOwnershipApi(authApi: authApi);
-            final ownershipApi = FirebaseLoadoutOwnershipApi(
-              fallbackApi: localFallback,
-            );
+            final ownershipApi = FirebaseLoadoutOwnershipApi();
             return AppState(
               authApi: authApi,
               loadoutOwnershipApi: ownershipApi,

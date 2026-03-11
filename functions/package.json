@@ -7,11 +7,12 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
+    "build:test": "tsc -p tsconfig.test.json",
     "build:watch": "tsc --watch",
     "serve": "corepack pnpm run build && firebase emulators:start --only functions,firestore",
     "shell": "corepack pnpm run build && firebase functions:shell",
     "deploy": "firebase deploy --only functions,firestore:rules",
-    "test": "echo \"No backend tests configured yet.\""
+    "test": "corepack pnpm run build:test && firebase emulators:exec --only firestore \"node --test lib_test/test/ownership/ownership_callable.test.js\""
   },
   "dependencies": {
     "firebase-admin": "^12.7.0",

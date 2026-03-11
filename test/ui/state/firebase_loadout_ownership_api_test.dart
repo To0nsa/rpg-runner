@@ -64,29 +64,25 @@ void main() {
     expect(source.lastCommand?.type, 'setAbilitySlot');
   });
 
-  test('falls back to provided API when Firebase source fails', () async {
+  test('throws when Firebase source fails and fallback is disabled', () async {
     final source = _FakeFirebaseLoadoutOwnershipSource()
       ..commandError = StateError('backend unavailable');
-    final fallback = _RecordingFallbackOwnershipApi();
-    final api = FirebaseLoadoutOwnershipApi(
-      source: source,
-      fallbackApi: fallback,
-    );
+    final api = FirebaseLoadoutOwnershipApi(source: source);
 
-    final result = await api.unlockGear(
-      const UnlockGearCommand(
-        profileId: 'p1',
-        userId: 'u1',
-        sessionId: 's1',
-        expectedRevision: 0,
-        commandId: 'cmd-fallback',
-        slot: GearSlot.accessory,
-        itemId: AccessoryId.strengthBelt,
+    await expectLater(
+      () => api.unlockGear(
+        const UnlockGearCommand(
+          profileId: 'p1',
+          userId: 'u1',
+          sessionId: 's1',
+          expectedRevision: 0,
+          commandId: 'cmd-fallback',
+          slot: GearSlot.accessory,
+          itemId: AccessoryId.strengthBelt,
+        ),
       ),
+      throwsA(isA<StateError>()),
     );
-
-    expect(result.accepted, isTrue);
-    expect(fallback.unlockGearCalls, 1);
   });
 }
 
@@ -121,92 +117,5 @@ class _FakeFirebaseLoadoutOwnershipSource
       throw error;
     }
     return commandResponse;
-  }
-}
-
-class _RecordingFallbackOwnershipApi implements LoadoutOwnershipApi {
-  int unlockGearCalls = 0;
-
-  OwnershipCanonicalState get _canonical => OwnershipCanonicalState(
-    profileId: 'fallback_profile',
-    revision: 0,
-    selection: SelectionState.defaults,
-    meta: const MetaService().createNew(),
-  );
-
-  OwnershipCommandResult _accepted() {
-    final canonical = _canonical;
-    return OwnershipCommandResult(
-      canonicalState: canonical,
-      newRevision: canonical.revision,
-      replayedFromIdempotency: false,
-    );
-  }
-
-  @override
-  Future<OwnershipCanonicalState> loadCanonicalState({
-    required String profileId,
-    required String userId,
-    required String sessionId,
-  }) async {
-    return _canonical;
-  }
-
-  @override
-  Future<OwnershipCommandResult> setSelection(
-    SetSelectionCommand command,
-  ) async {
-    return _accepted();
-  }
-
-  @override
-  Future<OwnershipCommandResult> resetOwnership(
-    ResetOwnershipCommand command,
-  ) async {
-    return _accepted();
-  }
-
-  @override
-  Future<OwnershipCommandResult> equipGear(EquipGearCommand command) async {
-    return _accepted();
-  }
-
-  @override
-  Future<OwnershipCommandResult> setLoadout(SetLoadoutCommand command) async {
-    return _accepted();
-  }
-
-  @override
-  Future<OwnershipCommandResult> setAbilitySlot(
-    SetAbilitySlotCommand command,
-  ) async {
-    return _accepted();
-  }
-
-  @override
-  Future<OwnershipCommandResult> setProjectileSpell(
-    SetProjectileSpellCommand command,
-  ) async {
-    return _accepted();
-  }
-
-  @override
-  Future<OwnershipCommandResult> learnProjectileSpell(
-    LearnProjectileSpellCommand command,
-  ) async {
-    return _accepted();
-  }
-
-  @override
-  Future<OwnershipCommandResult> learnSpellAbility(
-    LearnSpellAbilityCommand command,
-  ) async {
-    return _accepted();
-  }
-
-  @override
-  Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command) async {
-    unlockGearCalls += 1;
-    return _accepted();
   }
 }

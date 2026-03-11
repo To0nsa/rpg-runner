@@ -1,38 +1,29 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:rpg_runner/core/meta/meta_service.dart';
-import 'package:rpg_runner/core/meta/meta_state.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/ui/state/app_state.dart';
 import 'package:rpg_runner/ui/state/auth_api.dart';
 import 'package:rpg_runner/ui/state/loadout_ownership_api.dart';
-import 'package:rpg_runner/ui/state/local_loadout_ownership_api.dart';
-import 'package:rpg_runner/ui/state/meta_store.dart';
 import 'package:rpg_runner/ui/state/selection_state.dart';
-import 'package:rpg_runner/ui/state/selection_store.dart';
 import 'package:rpg_runner/ui/state/user_profile.dart';
 import 'package:rpg_runner/ui/state/user_profile_store.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-
-  setUp(() {
-    SharedPreferences.setMockInitialValues(<String, Object>{});
-  });
-
   test(
     'AppState applies stale-revision canonical state and recovers on next command',
     () async {
-      final simulator = _OneShotConflictSimulator();
-      final api = LocalLoadoutOwnershipApi(
-        selectionStore: _MemorySelectionStore(),
-        metaStore: _MemoryMetaStore(saved: const MetaService().createNew()),
-        conflictSimulator: simulator,
+      final authApi = _QueueAuthApi(
+        initial: _session(userId: 'u1', sessionId: 's1'),
       );
+      final api = _RevisionedOwnershipApi(profileId: 'test_profile')
+        ..forceStaleOnNextSetLoadout = true;
       final appState = AppState(
+        authApi: authApi,
         loadoutOwnershipApi: api,
-        userProfileStore: _MemoryUserProfileStore(),
+        userProfileStore: _MemoryUserProfileStore(
+          saved: UserProfile.createNew(profileId: 'test_profile', nowMs: 1),
+        ),
       );
 
       await appState.bootstrap(force: true);
@@ -77,15 +68,13 @@ void main() {
       initial: AuthSession.unauthenticated,
       ensureResponses: <AuthSession>[_session(userId: 'u1', sessionId: 's1')],
     );
-    final api = LocalLoadoutOwnershipApi(
-      selectionStore: _MemorySelectionStore(),
-      metaStore: _MemoryMetaStore(saved: const MetaService().createNew()),
-      authApi: authApi,
-    );
+    final api = _RevisionedOwnershipApi(profileId: 'test_profile');
     final appState = AppState(
       authApi: authApi,
       loadoutOwnershipApi: api,
-      userProfileStore: _MemoryUserProfileStore(),
+      userProfileStore: _MemoryUserProfileStore(
+        saved: UserProfile.createNew(profileId: 'test_profile', nowMs: 1),
+      ),
     );
 
     await appState.bootstrap(force: true);
@@ -114,15 +103,13 @@ void main() {
         _session(userId: 'u1', sessionId: 'fresh'),
       ],
     );
-    final api = LocalLoadoutOwnershipApi(
-      selectionStore: _MemorySelectionStore(),
-      metaStore: _MemoryMetaStore(saved: const MetaService().createNew()),
-      authApi: authApi,
-    );
+    final api = _RevisionedOwnershipApi(profileId: 'test_profile');
     final appState = AppState(
       authApi: authApi,
       loadoutOwnershipApi: api,
-      userProfileStore: _MemoryUserProfileStore(),
+      userProfileStore: _MemoryUserProfileStore(
+        saved: UserProfile.createNew(profileId: 'test_profile', nowMs: 1),
+      ),
     );
 
     await appState.bootstrap(force: true);
@@ -138,39 +125,134 @@ void main() {
   });
 }
 
-class _MemorySelectionStore extends SelectionStore {
-  _MemorySelectionStore({SelectionState? saved})
-    : saved = saved ?? SelectionState.defaults;
+class _RevisionedOwnershipApi implements LoadoutOwnershipApi {
+  _RevisionedOwnershipApi({required String profileId})
+    : _canonicalByUser = <String, OwnershipCanonicalState>{
+        'u1': OwnershipCanonicalState(
+          profileId: profileId,
+          revision: 0,
+          selection: SelectionState.defaults,
+          meta: const MetaService().createNew(),
+        ),
+      };
 
-  SelectionState saved;
+  final Map<String, OwnershipCanonicalState> _canonicalByUser;
+  bool forceStaleOnNextSetLoadout = false;
 
   @override
-  Future<SelectionState> load() async => saved;
-
-  @override
-  Future<void> save(SelectionState state) async {
-    saved = state;
+  Future<OwnershipCanonicalState> loadCanonicalState({
+    required String profileId,
+    required String userId,
+    required String sessionId,
+  }) async {
+    return _canonicalByUser[userId] ??
+        OwnershipCanonicalState(
+          profileId: profileId,
+          revision: 0,
+          selection: SelectionState.defaults,
+          meta: const MetaService().createNew(),
+        );
   }
-}
-
-class _MemoryMetaStore extends MetaStore {
-  _MemoryMetaStore({required this.saved});
-
-  MetaState saved;
 
   @override
-  Future<MetaState> load(MetaService service) async => saved;
+  Future<OwnershipCommandResult> setLoadout(SetLoadoutCommand command) async {
+    var canonical = await loadCanonicalState(
+      profileId: command.profileId,
+      userId: command.userId,
+      sessionId: command.sessionId,
+    );
+    if (forceStaleOnNextSetLoadout) {
+      forceStaleOnNextSetLoadout = false;
+      canonical = canonical.copyWith(revision: canonical.revision + 1);
+      _canonicalByUser[command.userId] = canonical;
+    }
+    if (command.expectedRevision != canonical.revision) {
+      return OwnershipCommandResult(
+        canonicalState: canonical,
+        newRevision: canonical.revision,
+        replayedFromIdempotency: false,
+        rejectedReason: OwnershipRejectedReason.staleRevision,
+      );
+    }
+    final nextCanonical = canonical.copyWith(
+      revision: canonical.revision + 1,
+      selection: canonical.selection.withLoadoutFor(
+        command.characterId,
+        command.loadout,
+      ),
+    );
+    _canonicalByUser[command.userId] = nextCanonical;
+    return OwnershipCommandResult(
+      canonicalState: nextCanonical,
+      newRevision: nextCanonical.revision,
+      replayedFromIdempotency: false,
+    );
+  }
 
   @override
-  Future<void> save(MetaState state) async {
-    saved = state;
+  Future<OwnershipCommandResult> setSelection(
+    SetSelectionCommand command,
+  ) async {
+    return _acceptedFor(command.userId);
+  }
+
+  @override
+  Future<OwnershipCommandResult> resetOwnership(
+    ResetOwnershipCommand command,
+  ) async {
+    return _acceptedFor(command.userId);
+  }
+
+  @override
+  Future<OwnershipCommandResult> equipGear(EquipGearCommand command) async {
+    return _acceptedFor(command.userId);
+  }
+
+  @override
+  Future<OwnershipCommandResult> setAbilitySlot(
+    SetAbilitySlotCommand command,
+  ) async {
+    return _acceptedFor(command.userId);
+  }
+
+  @override
+  Future<OwnershipCommandResult> setProjectileSpell(
+    SetProjectileSpellCommand command,
+  ) async {
+    return _acceptedFor(command.userId);
+  }
+
+  @override
+  Future<OwnershipCommandResult> learnProjectileSpell(
+    LearnProjectileSpellCommand command,
+  ) async {
+    return _acceptedFor(command.userId);
+  }
+
+  @override
+  Future<OwnershipCommandResult> learnSpellAbility(
+    LearnSpellAbilityCommand command,
+  ) async {
+    return _acceptedFor(command.userId);
+  }
+
+  @override
+  Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command) async {
+    return _acceptedFor(command.userId);
+  }
+
+  OwnershipCommandResult _acceptedFor(String userId) {
+    final canonical = _canonicalByUser[userId] ?? _canonicalByUser.values.first;
+    return OwnershipCommandResult(
+      canonicalState: canonical,
+      newRevision: canonical.revision,
+      replayedFromIdempotency: false,
+    );
   }
 }
 
 class _MemoryUserProfileStore extends UserProfileStore {
-  _MemoryUserProfileStore({UserProfile? saved})
-    : saved =
-          saved ?? UserProfile.createNew(profileId: 'test_profile', nowMs: 1);
+  _MemoryUserProfileStore({required this.saved});
 
   UserProfile saved;
 
@@ -184,17 +266,6 @@ class _MemoryUserProfileStore extends UserProfileStore {
 
   @override
   UserProfile createFresh() => saved;
-}
-
-class _OneShotConflictSimulator implements OwnershipConflictSimulator {
-  bool _used = false;
-
-  @override
-  bool shouldForceConflictForNextCommand() {
-    if (_used) return false;
-    _used = true;
-    return true;
-  }
 }
 
 AuthSession _session({required String userId, required String sessionId}) {
@@ -232,34 +303,10 @@ class _QueueAuthApi implements AuthApi {
 
   @override
   Future<AuthLinkResult> linkAuthProvider(AuthLinkProvider provider) async {
-    if (!_session.isAuthenticated) {
-      return AuthLinkResult(
-        provider: provider,
-        status: AuthLinkStatus.failed,
-        session: _session,
-      );
-    }
-    if (_session.isProviderLinked(provider)) {
-      return AuthLinkResult(
-        provider: provider,
-        status: AuthLinkStatus.alreadyLinked,
-        session: _session,
-      );
-    }
-    final nextProviders = <AuthLinkProvider>{
-      ..._session.linkedProviders,
-      provider,
-    };
-    final upgraded = _session.copyWith(
-      isAnonymous: false,
-      linkedProviders: nextProviders,
-      sessionId: '${_session.sessionId}_linked',
-    );
-    _session = upgraded;
     return AuthLinkResult(
       provider: provider,
-      status: AuthLinkStatus.linked,
-      session: upgraded,
+      status: AuthLinkStatus.alreadyLinked,
+      session: _session,
     );
   }
 

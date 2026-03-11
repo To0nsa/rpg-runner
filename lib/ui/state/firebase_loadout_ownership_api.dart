@@ -1,5 +1,4 @@
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:flutter/foundation.dart';
 
 import '../../core/meta/meta_service.dart';
 import 'loadout_ownership_api.dart';
@@ -13,14 +12,11 @@ import 'selection_state.dart';
 class FirebaseLoadoutOwnershipApi implements LoadoutOwnershipApi {
   FirebaseLoadoutOwnershipApi({
     FirebaseLoadoutOwnershipSource? source,
-    LoadoutOwnershipApi? fallbackApi,
     MetaService? metaService,
   }) : _source = source ?? PluginFirebaseLoadoutOwnershipSource(),
-       _fallbackApi = fallbackApi,
        _metaService = metaService ?? const MetaService();
 
   final FirebaseLoadoutOwnershipSource _source;
-  final LoadoutOwnershipApi? _fallbackApi;
   final MetaService _metaService;
 
   @override
@@ -30,136 +26,74 @@ class FirebaseLoadoutOwnershipApi implements LoadoutOwnershipApi {
     required String sessionId,
   }) async {
     final fallbackCanonical = _fallbackCanonical(profileId);
-    try {
-      final response = await _source.loadCanonicalState(
-        profileId: profileId,
-        userId: userId,
-        sessionId: sessionId,
-      );
-      return _decodeCanonicalState(
-        response,
-        fallbackCanonical: fallbackCanonical,
-      );
-    } catch (error) {
-      debugPrint('Firebase ownership canonical load failed: $error');
-      final fallbackApi = _fallbackApi;
-      if (fallbackApi != null) {
-        return fallbackApi.loadCanonicalState(
-          profileId: profileId,
-          userId: userId,
-          sessionId: sessionId,
-        );
-      }
-      return fallbackCanonical;
-    }
+    final response = await _source.loadCanonicalState(
+      profileId: profileId,
+      userId: userId,
+      sessionId: sessionId,
+    );
+    return _decodeCanonicalState(
+      response,
+      fallbackCanonical: fallbackCanonical,
+    );
   }
 
   @override
   Future<OwnershipCommandResult> setSelection(SetSelectionCommand command) {
-    return _executeCommand(
-      command,
-      fallbackInvoke: (api) => api.setSelection(command),
-    );
+    return _executeCommand(command);
   }
 
   @override
   Future<OwnershipCommandResult> resetOwnership(ResetOwnershipCommand command) {
-    return _executeCommand(
-      command,
-      fallbackInvoke: (api) => api.resetOwnership(command),
-    );
+    return _executeCommand(command);
   }
 
   @override
   Future<OwnershipCommandResult> equipGear(EquipGearCommand command) {
-    return _executeCommand(
-      command,
-      fallbackInvoke: (api) => api.equipGear(command),
-    );
+    return _executeCommand(command);
   }
 
   @override
   Future<OwnershipCommandResult> setLoadout(SetLoadoutCommand command) {
-    return _executeCommand(
-      command,
-      fallbackInvoke: (api) => api.setLoadout(command),
-    );
+    return _executeCommand(command);
   }
 
   @override
   Future<OwnershipCommandResult> setAbilitySlot(SetAbilitySlotCommand command) {
-    return _executeCommand(
-      command,
-      fallbackInvoke: (api) => api.setAbilitySlot(command),
-    );
+    return _executeCommand(command);
   }
 
   @override
   Future<OwnershipCommandResult> setProjectileSpell(
     SetProjectileSpellCommand command,
   ) {
-    return _executeCommand(
-      command,
-      fallbackInvoke: (api) => api.setProjectileSpell(command),
-    );
+    return _executeCommand(command);
   }
 
   @override
   Future<OwnershipCommandResult> learnProjectileSpell(
     LearnProjectileSpellCommand command,
   ) {
-    return _executeCommand(
-      command,
-      fallbackInvoke: (api) => api.learnProjectileSpell(command),
-    );
+    return _executeCommand(command);
   }
 
   @override
   Future<OwnershipCommandResult> learnSpellAbility(
     LearnSpellAbilityCommand command,
   ) {
-    return _executeCommand(
-      command,
-      fallbackInvoke: (api) => api.learnSpellAbility(command),
-    );
+    return _executeCommand(command);
   }
 
   @override
   Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command) {
-    return _executeCommand(
-      command,
-      fallbackInvoke: (api) => api.unlockGear(command),
-    );
+    return _executeCommand(command);
   }
 
   Future<OwnershipCommandResult> _executeCommand(
-    OwnershipCommand command, {
-    required Future<OwnershipCommandResult> Function(LoadoutOwnershipApi api)
-    fallbackInvoke,
-  }) async {
+    OwnershipCommand command,
+  ) async {
     final fallbackCanonical = _fallbackCanonical(command.profileId);
-    try {
-      final response = await _source.executeCommand(command: command);
-      return _decodeCommandResult(
-        response,
-        fallbackCanonical: fallbackCanonical,
-      );
-    } catch (error) {
-      debugPrint(
-        'Firebase ownership command failed: ${command.type} '
-        'profile=${command.profileId} error=$error',
-      );
-      final fallbackApi = _fallbackApi;
-      if (fallbackApi != null) {
-        return fallbackInvoke(fallbackApi);
-      }
-      return OwnershipCommandResult(
-        canonicalState: fallbackCanonical,
-        newRevision: fallbackCanonical.revision,
-        replayedFromIdempotency: false,
-        rejectedReason: _mapRejectedReason(error),
-      );
-    }
+    final response = await _source.executeCommand(command: command);
+    return _decodeCommandResult(response, fallbackCanonical: fallbackCanonical);
   }
 
   OwnershipCanonicalState _fallbackCanonical(String profileId) {
@@ -215,20 +149,6 @@ class FirebaseLoadoutOwnershipApi implements LoadoutOwnershipApi {
       response,
       fallbackCanonicalState: fallbackCanonical,
     );
-  }
-
-  OwnershipRejectedReason _mapRejectedReason(Object error) {
-    if (error is FirebaseFunctionsException) {
-      return switch (error.code) {
-        'unauthenticated' => OwnershipRejectedReason.unauthorized,
-        'permission-denied' => OwnershipRejectedReason.forbidden,
-        'invalid-argument' => OwnershipRejectedReason.invalidCommand,
-        'aborted' => OwnershipRejectedReason.staleRevision,
-        'already-exists' => OwnershipRejectedReason.idempotencyKeyReuseMismatch,
-        _ => OwnershipRejectedReason.forbidden,
-      };
-    }
-    return OwnershipRejectedReason.forbidden;
   }
 }
 

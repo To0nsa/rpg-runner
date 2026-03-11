@@ -1,469 +1,278 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:rpg_runner/core/accessories/accessory_id.dart';
-import 'package:rpg_runner/core/meta/gear_slot.dart';
-import 'package:rpg_runner/core/meta/meta_service.dart';
-import 'package:rpg_runner/core/meta/meta_state.dart';
-import 'package:rpg_runner/core/meta/spell_list.dart';
-import 'package:rpg_runner/core/projectiles/projectile_id.dart';
-import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
-import 'package:rpg_runner/core/players/player_character_definition.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
+import 'package:rpg_runner/core/meta/meta_service.dart';
+import 'package:rpg_runner/core/players/player_character_definition.dart';
+import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/ui/state/app_state.dart';
-import 'package:rpg_runner/ui/state/meta_store.dart';
+import 'package:rpg_runner/ui/state/auth_api.dart';
+import 'package:rpg_runner/ui/state/loadout_ownership_api.dart';
 import 'package:rpg_runner/ui/state/selection_state.dart';
-import 'package:rpg_runner/ui/state/selection_store.dart';
 import 'package:rpg_runner/ui/state/user_profile.dart';
 import 'package:rpg_runner/ui/state/user_profile_store.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
+  test('bootstrap hydrates AppState from canonical ownership state', () async {
+    final customLoadout = const EquippedLoadoutDef(
+      projectileSlotSpellId: ProjectileId.holyBolt,
+      abilitySpellId: 'eloise.focus',
+    );
+    final canonicalSelection = SelectionState.defaults
+        .copyWith(
+          selectedCharacterId: PlayerCharacterId.eloiseWip,
+          buildName: 'Hybrid Build',
+        )
+        .withLoadoutFor(PlayerCharacterId.eloiseWip, customLoadout);
+    final canonical = OwnershipCanonicalState(
+      profileId: 'profile_bootstrap',
+      revision: 9,
+      selection: canonicalSelection,
+      meta: const MetaService().createNew(),
+    );
+    final ownershipApi = _ScriptedOwnershipApi(canonical);
+    final appState = AppState(
+      authApi: _StaticAuthApi.authenticated(),
+      loadoutOwnershipApi: ownershipApi,
+      userProfileStore: _MemoryUserProfileStore(
+        saved: UserProfile.createNew(profileId: 'profile_bootstrap', nowMs: 1),
+      ),
+    );
 
-  setUp(() {
-    SharedPreferences.setMockInitialValues(<String, Object>{});
+    await appState.bootstrap(force: true);
+
+    expect(appState.ownershipRevision, 9);
+    expect(appState.selection.selectedCharacterId, PlayerCharacterId.eloiseWip);
+    expect(appState.selection.buildName, 'Hybrid Build');
+    expect(
+      appState.selection
+          .loadoutFor(PlayerCharacterId.eloiseWip)
+          .projectileSlotSpellId,
+      ProjectileId.holyBolt,
+    );
   });
 
-  group('AppState loadout mask normalization', () {
-    test('buildRunStartArgs uses character-authored loadout mask', () {
-      final appState = AppState();
-
-      final args = appState.buildRunStartArgs(seed: 123);
-
-      expect(args.equippedLoadout.mask, LoadoutSlotMask.all);
-    });
-
-    test(
-      'setLoadout normalizes legacy mask to selected character mask',
-      () async {
-        final selectionStore = _MemorySelectionStore();
-        final appState = AppState(selectionStore: selectionStore);
-
-        await appState.setLoadout(
-          const EquippedLoadoutDef(mask: LoadoutSlotMask.defaultMask),
-        );
-
-        expect(_selectedLoadout(appState.selection).mask, LoadoutSlotMask.all);
-        expect(
-          _selectedLoadout(selectionStore.saved).mask,
-          LoadoutSlotMask.all,
-        );
-      },
-    );
-
-    test('setLoadout repairs unknown ability ids', () async {
-      final selectionStore = _MemorySelectionStore();
-      final appState = AppState(selectionStore: selectionStore);
-
-      await appState.setLoadout(
-        const EquippedLoadoutDef(abilityPrimaryId: 'common.unarmed_strike'),
+  test(
+    'setLoadout applies canonical command result from ownership API',
+    () async {
+      final initial = OwnershipCanonicalState(
+        profileId: 'profile_set_loadout',
+        revision: 0,
+        selection: SelectionState.defaults,
+        meta: const MetaService().createNew(),
       );
-
-      expect(
-        _selectedLoadout(appState.selection).abilityPrimaryId,
-        'eloise.seeker_slash',
+      final updatedSelection = SelectionState.defaults.withLoadoutFor(
+        PlayerCharacterId.eloise,
+        const EquippedLoadoutDef(projectileSlotSpellId: ProjectileId.holyBolt),
       );
-      expect(
-        _selectedLoadout(selectionStore.saved).abilityPrimaryId,
-        'eloise.seeker_slash',
+      final updatedCanonical = OwnershipCanonicalState(
+        profileId: 'profile_set_loadout',
+        revision: 1,
+        selection: updatedSelection,
+        meta: const MetaService().createNew(),
       );
-    });
-
-    test(
-      'setLoadout keeps learned spell-slot spell from default spell list',
-      () async {
-        final selectionStore = _MemorySelectionStore();
-        final appState = AppState(selectionStore: selectionStore);
-
-        await appState.setLoadout(
-          const EquippedLoadoutDef(abilitySpellId: 'eloise.arcane_haste'),
+      final ownershipApi = _ScriptedOwnershipApi(initial)
+        ..nextSetLoadoutResult = OwnershipCommandResult(
+          canonicalState: updatedCanonical,
+          newRevision: 1,
+          replayedFromIdempotency: false,
         );
-
-        expect(
-          _selectedLoadout(appState.selection).abilitySpellId,
-          'eloise.arcane_haste',
-        );
-        expect(
-          _selectedLoadout(selectionStore.saved).abilitySpellId,
-          'eloise.arcane_haste',
-        );
-      },
-    );
-
-    test(
-      'setLoadout keeps learned projectile spell from default spell list',
-      () async {
-        final selectionStore = _MemorySelectionStore();
-        final appState = AppState(selectionStore: selectionStore);
-
-        await appState.setLoadout(
-          const EquippedLoadoutDef(
-            projectileSlotSpellId: ProjectileId.holyBolt,
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: ownershipApi,
+        userProfileStore: _MemoryUserProfileStore(
+          saved: UserProfile.createNew(
+            profileId: 'profile_set_loadout',
+            nowMs: 1,
           ),
-        );
-
-        expect(
-          _selectedLoadout(appState.selection).projectileSlotSpellId,
-          ProjectileId.holyBolt,
-        );
-        expect(
-          _selectedLoadout(selectionStore.saved).projectileSlotSpellId,
-          ProjectileId.holyBolt,
-        );
-      },
-    );
-
-    test('setLoadout preserves valid projectile spell selection', () async {
-      final selectionStore = _MemorySelectionStore();
-      final appState = AppState(selectionStore: selectionStore);
-
-      await appState.setLoadout(
-        const EquippedLoadoutDef(projectileSlotSpellId: ProjectileId.acidBolt),
-      );
-
-      expect(
-        _selectedLoadout(appState.selection).projectileSlotSpellId,
-        ProjectileId.acidBolt,
-      );
-      expect(
-        _selectedLoadout(selectionStore.saved).projectileSlotSpellId,
-        ProjectileId.acidBolt,
-      );
-    });
-
-    test(
-      'setLoadout stale projectile spell repairs to first learned spell only',
-      () async {
-        final selectionStore = _MemorySelectionStore();
-        final baseMeta = const MetaService().createNew();
-        final metaWithCustomSpellList = baseMeta
-            .setEquippedFor(
-              PlayerCharacterId.eloise,
-              baseMeta
-                  .equippedFor(PlayerCharacterId.eloise)
-                  .copyWith(spellBookId: SpellBookId.crownOfFocus),
-            )
-            .setSpellListFor(
-              PlayerCharacterId.eloise,
-              const SpellList(
-                learnedProjectileSpellIds: <ProjectileId>{
-                  ProjectileId.iceBolt,
-                  ProjectileId.fireBolt,
-                },
-                learnedSpellAbilityIds: <String>{'eloise.arcane_haste'},
-              ),
-            );
-        final metaStore = _MemoryMetaStore(saved: metaWithCustomSpellList);
-        final appState = AppState(
-          selectionStore: selectionStore,
-          metaStore: metaStore,
-          userProfileStore: _MemoryUserProfileStore(),
-        );
-
-        await appState.bootstrap(force: true);
-        await appState.setLoadout(
-          const EquippedLoadoutDef(projectileSlotSpellId: ProjectileId.iceBolt),
-        );
-
-        expect(
-          _selectedLoadout(appState.selection).projectileSlotSpellId,
-          ProjectileId.iceBolt,
-        );
-        expect(
-          _selectedLoadout(selectionStore.saved).projectileSlotSpellId,
-          ProjectileId.iceBolt,
-        );
-      },
-    );
-
-    test(
-      'equipGear keeps starter spellbook and selected projectile spell',
-      () async {
-        final selectionStore = _MemorySelectionStore();
-        final metaStore = _MemoryMetaStore(
-          saved: const MetaService().createNew(),
-        );
-        final appState = AppState(
-          selectionStore: selectionStore,
-          metaStore: metaStore,
-        );
-
-        await appState.equipGear(
-          characterId: PlayerCharacterId.eloise,
-          slot: GearSlot.spellBook,
-          itemId: SpellBookId.bastionCodex,
-        );
-
-        expect(
-          _selectedLoadout(appState.selection).projectileSlotSpellId,
-          ProjectileId.acidBolt,
-        );
-        expect(
-          _selectedLoadout(appState.selection).spellBookId,
-          SpellBookId.apprenticePrimer,
-        );
-        expect(
-          _selectedLoadout(selectionStore.saved).projectileSlotSpellId,
-          ProjectileId.acidBolt,
-        );
-        expect(
-          _selectedLoadout(selectionStore.saved).spellBookId,
-          SpellBookId.apprenticePrimer,
-        );
-      },
-    );
-
-    test(
-      'equipGear spellbook swap does not mutate learned spell-slot selection',
-      () async {
-        final selectionStore = _MemorySelectionStore();
-        final baseMeta = const MetaService().createNew();
-        final metaStore = _MemoryMetaStore(
-          saved: baseMeta.setSpellListFor(
-            PlayerCharacterId.eloise,
-            const SpellList(
-              learnedProjectileSpellIds: <ProjectileId>{ProjectileId.fireBolt},
-              learnedSpellAbilityIds: <String>{
-                'eloise.arcane_haste',
-                'eloise.vital_surge',
-              },
-            ),
-          ),
-        );
-        final appState = AppState(
-          selectionStore: selectionStore,
-          metaStore: metaStore,
-          userProfileStore: _MemoryUserProfileStore(),
-        );
-        await appState.bootstrap(force: true);
-
-        await appState.equipGear(
-          characterId: PlayerCharacterId.eloise,
-          slot: GearSlot.spellBook,
-          itemId: SpellBookId.bastionCodex,
-        );
-        await appState.setLoadout(
-          const EquippedLoadoutDef(abilitySpellId: 'eloise.vital_surge'),
-        );
-        expect(
-          _selectedLoadout(appState.selection).abilitySpellId,
-          'eloise.vital_surge',
-        );
-
-        await appState.equipGear(
-          characterId: PlayerCharacterId.eloise,
-          slot: GearSlot.spellBook,
-          itemId: SpellBookId.apprenticePrimer,
-        );
-
-        expect(
-          _selectedLoadout(appState.selection).abilitySpellId,
-          'eloise.vital_surge',
-        );
-        expect(
-          _selectedLoadout(selectionStore.saved).abilitySpellId,
-          'eloise.vital_surge',
-        );
-      },
-    );
-
-    test(
-      'equipGear spellbook swap does not mutate learned projectile spell',
-      () async {
-        final selectionStore = _MemorySelectionStore();
-        final baseMeta = const MetaService().createNew();
-        final metaStore = _MemoryMetaStore(
-          saved: baseMeta.setSpellListFor(
-            PlayerCharacterId.eloise,
-            const SpellList(
-              learnedProjectileSpellIds: <ProjectileId>{
-                ProjectileId.fireBolt,
-                ProjectileId.iceBolt,
-              },
-              learnedSpellAbilityIds: <String>{'eloise.arcane_haste'},
-            ),
-          ),
-        );
-        final appState = AppState(
-          selectionStore: selectionStore,
-          metaStore: metaStore,
-          userProfileStore: _MemoryUserProfileStore(),
-        );
-        await appState.bootstrap(force: true);
-
-        await appState.equipGear(
-          characterId: PlayerCharacterId.eloise,
-          slot: GearSlot.spellBook,
-          itemId: SpellBookId.bastionCodex,
-        );
-        await appState.setLoadout(
-          const EquippedLoadoutDef(projectileSlotSpellId: ProjectileId.iceBolt),
-        );
-        expect(
-          _selectedLoadout(appState.selection).projectileSlotSpellId,
-          ProjectileId.iceBolt,
-        );
-
-        await appState.equipGear(
-          characterId: PlayerCharacterId.eloise,
-          slot: GearSlot.spellBook,
-          itemId: SpellBookId.apprenticePrimer,
-        );
-
-        expect(
-          _selectedLoadout(appState.selection).projectileSlotSpellId,
-          ProjectileId.iceBolt,
-        );
-        expect(
-          _selectedLoadout(selectionStore.saved).projectileSlotSpellId,
-          ProjectileId.iceBolt,
-        );
-      },
-    );
-
-    test(
-      'bootstrap canonicalizes saved selection gear ids from meta',
-      () async {
-        const service = MetaService();
-        final meta = service.createNew();
-
-        final selectionStore = _MemorySelectionStore(
-          saved: SelectionState(
-            selectedLevelId: SelectionState.defaults.selectedLevelId,
-            selectedRunType: SelectionState.defaults.selectedRunType,
-            selectedCharacterId: PlayerCharacterId.eloise,
-            loadoutsByCharacter: _loadoutsWithSelected(
-              characterId: PlayerCharacterId.eloise,
-              loadout: EquippedLoadoutDef(
-                projectileSlotSpellId: ProjectileId.acidBolt,
-                spellBookId: SpellBookId.apprenticePrimer,
-                accessoryId: AccessoryId.speedBoots,
-              ),
-            ),
-            buildName: SelectionState.defaultBuildName,
-          ),
-        );
-        final metaStore = _MemoryMetaStore(saved: meta);
-        final profileStore = _MemoryUserProfileStore();
-        final appState = AppState(
-          selectionStore: selectionStore,
-          metaStore: metaStore,
-          userProfileStore: profileStore,
-        );
-
-        await appState.bootstrap(force: true);
-
-        expect(
-          _selectedLoadout(appState.selection).projectileSlotSpellId,
-          ProjectileId.acidBolt,
-        );
-        expect(
-          _selectedLoadout(appState.selection).spellBookId,
-          SpellBookId.apprenticePrimer,
-        );
-        expect(
-          _selectedLoadout(appState.selection).accessoryId,
-          AccessoryId.strengthBelt,
-        );
-        expect(
-          _selectedLoadout(selectionStore.saved).projectileSlotSpellId,
-          ProjectileId.acidBolt,
-        );
-        expect(
-          _selectedLoadout(selectionStore.saved).spellBookId,
-          SpellBookId.apprenticePrimer,
-        );
-        expect(
-          _selectedLoadout(selectionStore.saved).accessoryId,
-          AccessoryId.strengthBelt,
-        );
-      },
-    );
-
-    test('bootstrap canonicalizes unknown saved ability ids', () async {
-      final selectionStore = _MemorySelectionStore(
-        saved: SelectionState(
-          selectedLevelId: SelectionState.defaults.selectedLevelId,
-          selectedRunType: SelectionState.defaults.selectedRunType,
-          selectedCharacterId: PlayerCharacterId.eloise,
-          loadoutsByCharacter: _loadoutsWithSelected(
-            characterId: PlayerCharacterId.eloise,
-            loadout: const EquippedLoadoutDef(
-              abilityPrimaryId: 'common.unarmed_strike',
-            ),
-          ),
-          buildName: SelectionState.defaultBuildName,
         ),
       );
-      final metaStore = _MemoryMetaStore(
-        saved: const MetaService().createNew(),
-      );
-      final profileStore = _MemoryUserProfileStore();
-      final appState = AppState(
-        selectionStore: selectionStore,
-        metaStore: metaStore,
-        userProfileStore: profileStore,
-      );
-
       await appState.bootstrap(force: true);
 
-      expect(
-        _selectedLoadout(appState.selection).abilityPrimaryId,
-        'eloise.seeker_slash',
+      await appState.setLoadout(
+        const EquippedLoadoutDef(projectileSlotSpellId: ProjectileId.holyBolt),
       );
+
+      expect(ownershipApi.setLoadoutCalls, 1);
+      expect(appState.ownershipRevision, 1);
       expect(
-        _selectedLoadout(selectionStore.saved).abilityPrimaryId,
-        'eloise.seeker_slash',
+        appState.selection
+            .loadoutFor(appState.selection.selectedCharacterId)
+            .projectileSlotSpellId,
+        ProjectileId.holyBolt,
       );
-    });
+    },
+  );
+
+  test('buildRunStartArgs uses current selected character loadout', () async {
+    final loadout = const EquippedLoadoutDef(
+      projectileSlotSpellId: ProjectileId.holyBolt,
+      abilitySpellId: 'eloise.focus',
+    );
+    final selection = SelectionState.defaults.withLoadoutFor(
+      PlayerCharacterId.eloise,
+      loadout,
+    );
+    final ownershipApi = _ScriptedOwnershipApi(
+      OwnershipCanonicalState(
+        profileId: 'profile_run_args',
+        revision: 1,
+        selection: selection,
+        meta: const MetaService().createNew(),
+      ),
+    );
+    final appState = AppState(
+      authApi: _StaticAuthApi.authenticated(),
+      loadoutOwnershipApi: ownershipApi,
+      userProfileStore: _MemoryUserProfileStore(
+        saved: UserProfile.createNew(profileId: 'profile_run_args', nowMs: 1),
+      ),
+    );
+    await appState.bootstrap(force: true);
+
+    final args = appState.buildRunStartArgs(seed: 123);
+
+    expect(args.equippedLoadout.projectileSlotSpellId, ProjectileId.holyBolt);
+    expect(args.equippedLoadout.abilitySpellId, 'eloise.focus');
   });
 }
 
-EquippedLoadoutDef _selectedLoadout(SelectionState state) {
-  return state.loadoutFor(state.selectedCharacterId);
-}
+class _ScriptedOwnershipApi implements LoadoutOwnershipApi {
+  _ScriptedOwnershipApi(this._canonical);
 
-Map<PlayerCharacterId, EquippedLoadoutDef> _loadoutsWithSelected({
-  required PlayerCharacterId characterId,
-  required EquippedLoadoutDef loadout,
-}) {
-  return <PlayerCharacterId, EquippedLoadoutDef>{
-    for (final id in PlayerCharacterId.values)
-      id: id == characterId ? loadout : const EquippedLoadoutDef(),
-  };
-}
-
-class _MemorySelectionStore extends SelectionStore {
-  _MemorySelectionStore({SelectionState? saved})
-    : saved = saved ?? SelectionState.defaults;
-
-  SelectionState saved;
+  OwnershipCanonicalState _canonical;
+  OwnershipCommandResult? nextSetLoadoutResult;
+  int setLoadoutCalls = 0;
 
   @override
-  Future<SelectionState> load() async => saved;
+  Future<OwnershipCanonicalState> loadCanonicalState({
+    required String profileId,
+    required String userId,
+    required String sessionId,
+  }) async {
+    return _canonical;
+  }
 
   @override
-  Future<void> save(SelectionState state) async {
-    saved = state;
+  Future<OwnershipCommandResult> setLoadout(SetLoadoutCommand command) async {
+    setLoadoutCalls += 1;
+    final scripted = nextSetLoadoutResult;
+    if (scripted != null) {
+      nextSetLoadoutResult = null;
+      _canonical = scripted.canonicalState;
+      return scripted;
+    }
+    final nextCanonical = _canonical.copyWith(
+      revision: _canonical.revision + 1,
+      selection: _canonical.selection.withLoadoutFor(
+        command.characterId,
+        command.loadout,
+      ),
+    );
+    _canonical = nextCanonical;
+    return OwnershipCommandResult(
+      canonicalState: nextCanonical,
+      newRevision: nextCanonical.revision,
+      replayedFromIdempotency: false,
+    );
+  }
+
+  @override
+  Future<OwnershipCommandResult> setSelection(
+    SetSelectionCommand command,
+  ) async {
+    return _acceptedNoop();
+  }
+
+  @override
+  Future<OwnershipCommandResult> resetOwnership(
+    ResetOwnershipCommand command,
+  ) async {
+    return _acceptedNoop();
+  }
+
+  @override
+  Future<OwnershipCommandResult> equipGear(EquipGearCommand command) async {
+    return _acceptedNoop();
+  }
+
+  @override
+  Future<OwnershipCommandResult> setAbilitySlot(
+    SetAbilitySlotCommand command,
+  ) async {
+    return _acceptedNoop();
+  }
+
+  @override
+  Future<OwnershipCommandResult> setProjectileSpell(
+    SetProjectileSpellCommand command,
+  ) async {
+    return _acceptedNoop();
+  }
+
+  @override
+  Future<OwnershipCommandResult> learnProjectileSpell(
+    LearnProjectileSpellCommand command,
+  ) async {
+    return _acceptedNoop();
+  }
+
+  @override
+  Future<OwnershipCommandResult> learnSpellAbility(
+    LearnSpellAbilityCommand command,
+  ) async {
+    return _acceptedNoop();
+  }
+
+  @override
+  Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command) async {
+    return _acceptedNoop();
+  }
+
+  OwnershipCommandResult _acceptedNoop() {
+    return OwnershipCommandResult(
+      canonicalState: _canonical,
+      newRevision: _canonical.revision,
+      replayedFromIdempotency: false,
+    );
   }
 }
 
-class _MemoryMetaStore extends MetaStore {
-  _MemoryMetaStore({required this.saved});
+class _StaticAuthApi implements AuthApi {
+  _StaticAuthApi._(this._session);
 
-  MetaState saved;
-
-  @override
-  Future<MetaState> load(MetaService service) async => saved;
-
-  @override
-  Future<void> save(MetaState state) async {
-    saved = state;
+  factory _StaticAuthApi.authenticated() {
+    return _StaticAuthApi._(
+      const AuthSession(
+        userId: 'u1',
+        sessionId: 's1',
+        isAnonymous: true,
+        expiresAtMs: 0,
+      ),
+    );
   }
+
+  final AuthSession _session;
+
+  @override
+  Future<AuthSession> ensureAuthenticatedSession() async => _session;
+
+  @override
+  Future<AuthSession> loadSession() async => _session;
+
+  @override
+  Future<AuthLinkResult> linkAuthProvider(AuthLinkProvider provider) async {
+    return AuthLinkResult(
+      provider: provider,
+      status: AuthLinkStatus.alreadyLinked,
+      session: _session,
+    );
+  }
+
+  @override
+  Future<void> clearSession() async {}
 }
 
 class _MemoryUserProfileStore extends UserProfileStore {
-  _MemoryUserProfileStore({UserProfile? saved})
-    : saved = saved ?? UserProfile.empty();
+  _MemoryUserProfileStore({required this.saved});
 
   UserProfile saved;
 

@@ -14,35 +14,21 @@ import '../app/ui_routes.dart';
 import 'auth_api.dart';
 import 'local_auth_api.dart';
 import 'loadout_ownership_api.dart';
-import 'local_loadout_ownership_api.dart';
-import 'meta_store.dart';
 import 'selection_state.dart';
-import 'selection_store.dart';
 import 'user_profile.dart';
 import 'user_profile_store.dart';
 
 class AppState extends ChangeNotifier {
   factory AppState({
-    SelectionStore? selectionStore,
-    MetaStore? metaStore,
     UserProfileStore? userProfileStore,
-    MetaService? metaService,
     AuthApi? authApi,
-    LoadoutOwnershipApi? loadoutOwnershipApi,
+    required LoadoutOwnershipApi loadoutOwnershipApi,
   }) {
     final resolvedAuthApi = authApi ?? LocalAuthApi();
-    final resolvedOwnershipApi =
-        loadoutOwnershipApi ??
-        LocalLoadoutOwnershipApi(
-          selectionStore: selectionStore ?? SelectionStore(),
-          metaStore: metaStore ?? MetaStore(),
-          metaService: metaService ?? const MetaService(),
-          authApi: resolvedAuthApi,
-        );
     return AppState._internal(
       userProfileStore: userProfileStore,
       authApi: resolvedAuthApi,
-      loadoutOwnershipApi: resolvedOwnershipApi,
+      loadoutOwnershipApi: loadoutOwnershipApi,
     );
   }
 

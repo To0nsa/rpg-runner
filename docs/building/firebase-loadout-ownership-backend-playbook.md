@@ -265,8 +265,9 @@ Implement tests for:
 
 After backend is green in staging:
 
-1. Disable fallback in `UiApp` production wiring:
-   - stop passing `fallbackApi` to `FirebaseLoadoutOwnershipApi`
+1. Ensure client is fail-closed in production wiring:
+   - `FirebaseLoadoutOwnershipApi` is instantiated without runtime fallback
+   - callable/load errors must surface to UI/app flow (no synthetic canonical)
 2. Keep fallback only in debug/dev if desired.
 3. Run these client tests:
    - `test/ui/state/firebase_loadout_ownership_api_test.dart`

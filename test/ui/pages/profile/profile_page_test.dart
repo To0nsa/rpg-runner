@@ -2,9 +2,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import 'package:rpg_runner/core/meta/meta_service.dart';
 import 'package:rpg_runner/ui/pages/profile/profile_page.dart';
 import 'package:rpg_runner/ui/state/app_state.dart';
 import 'package:rpg_runner/ui/state/auth_api.dart';
+import 'package:rpg_runner/ui/state/loadout_ownership_api.dart';
+import 'package:rpg_runner/ui/state/selection_state.dart';
 import 'package:rpg_runner/ui/theme/ui_button_theme.dart';
 import 'package:rpg_runner/ui/theme/ui_tokens.dart';
 
@@ -13,7 +16,10 @@ void main() {
     tester,
   ) async {
     final authApi = _FakeAuthApi(session: _anonymousSession());
-    final appState = AppState(authApi: authApi);
+    final appState = AppState(
+      authApi: authApi,
+      loadoutOwnershipApi: _NoopOwnershipApi(),
+    );
 
     await tester.pumpWidget(_TestApp(appState: appState));
 
@@ -31,7 +37,10 @@ void main() {
     tester,
   ) async {
     final authApi = _FakeAuthApi(session: _anonymousSession());
-    final appState = AppState(authApi: authApi);
+    final appState = AppState(
+      authApi: authApi,
+      loadoutOwnershipApi: _NoopOwnershipApi(),
+    );
 
     await tester.pumpWidget(_TestApp(appState: appState));
 
@@ -58,7 +67,10 @@ void main() {
       return;
     }
     final authApi = _FakeAuthApi(session: _anonymousSession());
-    final appState = AppState(authApi: authApi);
+    final appState = AppState(
+      authApi: authApi,
+      loadoutOwnershipApi: _NoopOwnershipApi(),
+    );
 
     await tester.pumpWidget(_TestApp(appState: appState));
 
@@ -80,7 +92,10 @@ void main() {
     tester,
   ) async {
     final authApi = _FakeAuthApi(session: _linkedGoogleSession());
-    final appState = AppState(authApi: authApi);
+    final appState = AppState(
+      authApi: authApi,
+      loadoutOwnershipApi: _NoopOwnershipApi(),
+    );
     await appState.linkAuthProvider(AuthLinkProvider.google);
 
     await tester.pumpWidget(_TestApp(appState: appState));
@@ -177,4 +192,85 @@ AuthSession _linkedGoogleSession() {
     expiresAtMs: 0,
     linkedProviders: <AuthLinkProvider>{AuthLinkProvider.google},
   );
+}
+
+class _NoopOwnershipApi implements LoadoutOwnershipApi {
+  OwnershipCanonicalState get _canonical => OwnershipCanonicalState(
+    profileId: 'profile_noop',
+    revision: 0,
+    selection: SelectionState.defaults,
+    meta: const MetaService().createNew(),
+  );
+
+  OwnershipCommandResult get _accepted => OwnershipCommandResult(
+    canonicalState: _canonical,
+    newRevision: _canonical.revision,
+    replayedFromIdempotency: false,
+  );
+
+  @override
+  Future<OwnershipCanonicalState> loadCanonicalState({
+    required String profileId,
+    required String userId,
+    required String sessionId,
+  }) async {
+    return _canonical;
+  }
+
+  @override
+  Future<OwnershipCommandResult> setSelection(
+    SetSelectionCommand command,
+  ) async {
+    return _accepted;
+  }
+
+  @override
+  Future<OwnershipCommandResult> resetOwnership(
+    ResetOwnershipCommand command,
+  ) async {
+    return _accepted;
+  }
+
+  @override
+  Future<OwnershipCommandResult> equipGear(EquipGearCommand command) async {
+    return _accepted;
+  }
+
+  @override
+  Future<OwnershipCommandResult> setLoadout(SetLoadoutCommand command) async {
+    return _accepted;
+  }
+
+  @override
+  Future<OwnershipCommandResult> setAbilitySlot(
+    SetAbilitySlotCommand command,
+  ) async {
+    return _accepted;
+  }
+
+  @override
+  Future<OwnershipCommandResult> setProjectileSpell(
+    SetProjectileSpellCommand command,
+  ) async {
+    return _accepted;
+  }
+
+  @override
+  Future<OwnershipCommandResult> learnProjectileSpell(
+    LearnProjectileSpellCommand command,
+  ) async {
+    return _accepted;
+  }
+
+  @override
+  Future<OwnershipCommandResult> learnSpellAbility(
+    LearnSpellAbilityCommand command,
+  ) async {
+    return _accepted;
+  }
+
+  @override
+  Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command) async {
+    return _accepted;
+  }
 }

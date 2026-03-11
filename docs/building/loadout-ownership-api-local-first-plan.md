@@ -3,6 +3,17 @@
 Date: March 9, 2026
 Status: Implemented
 
+## Superseded Note (March 11, 2026)
+
+This plan documents the original local-first bridge phase.
+
+Current state:
+
+- `LocalLoadoutOwnershipApi` has been removed from `lib/ui/state`.
+- `AppState` no longer defaults to a local ownership adapter.
+- Production and test composition now require explicit ownership API wiring.
+- Firebase ownership client path is fail-closed (no runtime mutation fallback).
+
 ## Goal
 
 Build a local-first ownership pipeline for gear, skills, and spells that is

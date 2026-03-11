@@ -1,25 +1,17 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:rpg_runner/core/meta/meta_service.dart';
-import 'package:rpg_runner/core/meta/meta_state.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/ui/state/app_state.dart';
 import 'package:rpg_runner/ui/state/auth_api.dart';
 import 'package:rpg_runner/ui/state/firebase_auth_api.dart';
-import 'package:rpg_runner/ui/state/local_loadout_ownership_api.dart';
-import 'package:rpg_runner/ui/state/meta_store.dart';
+import 'package:rpg_runner/ui/state/loadout_ownership_api.dart';
 import 'package:rpg_runner/ui/state/selection_state.dart';
-import 'package:rpg_runner/ui/state/selection_store.dart';
 import 'package:rpg_runner/ui/state/user_profile.dart';
 import 'package:rpg_runner/ui/state/user_profile_store.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-
-  setUp(() {
-    SharedPreferences.setMockInitialValues(<String, Object>{});
-  });
 
   test(
     'bootstrap signs in anonymously when Firebase session is missing',
@@ -34,10 +26,8 @@ void main() {
         ),
       );
       final authApi = FirebaseAuthApi(source: source, now: () => now);
-      final ownershipApi = LocalLoadoutOwnershipApi(
-        selectionStore: _MemorySelectionStore(),
-        metaStore: _MemoryMetaStore(saved: const MetaService().createNew()),
-        authApi: authApi,
+      final ownershipApi = _SessionScopedOwnershipApi(
+        profileId: 'test_profile',
       );
       final appState = AppState(
         authApi: authApi,
@@ -77,11 +67,7 @@ void main() {
       anonymousSignInSession: refreshed,
     )..enqueueForceRefresh(refreshed);
     final authApi = FirebaseAuthApi(source: source, now: () => now);
-    final ownershipApi = LocalLoadoutOwnershipApi(
-      selectionStore: _MemorySelectionStore(),
-      metaStore: _MemoryMetaStore(saved: const MetaService().createNew()),
-      authApi: authApi,
-    );
+    final ownershipApi = _SessionScopedOwnershipApi(profileId: 'test_profile');
     final appState = AppState(
       authApi: authApi,
       loadoutOwnershipApi: ownershipApi,
@@ -123,10 +109,8 @@ void main() {
         anonymousSignInSession: userA,
       );
       final authApi = FirebaseAuthApi(source: source, now: () => now);
-      final ownershipApi = LocalLoadoutOwnershipApi(
-        selectionStore: _MemorySelectionStore(),
-        metaStore: _MemoryMetaStore(saved: const MetaService().createNew()),
-        authApi: authApi,
+      final ownershipApi = _SessionScopedOwnershipApi(
+        profileId: 'test_profile',
       );
       final appState = AppState(
         authApi: authApi,
@@ -502,35 +486,6 @@ class _FakeUpgradeOutcome {
   final Object? error;
 }
 
-class _MemorySelectionStore extends SelectionStore {
-  _MemorySelectionStore({SelectionState? saved})
-    : saved = saved ?? SelectionState.defaults;
-
-  SelectionState saved;
-
-  @override
-  Future<SelectionState> load() async => saved;
-
-  @override
-  Future<void> save(SelectionState state) async {
-    saved = state;
-  }
-}
-
-class _MemoryMetaStore extends MetaStore {
-  _MemoryMetaStore({required this.saved});
-
-  MetaState saved;
-
-  @override
-  Future<MetaState> load(MetaService service) async => saved;
-
-  @override
-  Future<void> save(MetaState state) async {
-    saved = state;
-  }
-}
-
 class _MemoryUserProfileStore extends UserProfileStore {
   _MemoryUserProfileStore({UserProfile? saved})
     : saved =
@@ -548,4 +503,120 @@ class _MemoryUserProfileStore extends UserProfileStore {
 
   @override
   UserProfile createFresh() => saved;
+}
+
+class _SessionScopedOwnershipApi implements LoadoutOwnershipApi {
+  _SessionScopedOwnershipApi({required this.profileId});
+
+  final String profileId;
+  final Map<String, OwnershipCanonicalState> _canonicalByUser =
+      <String, OwnershipCanonicalState>{};
+
+  @override
+  Future<OwnershipCanonicalState> loadCanonicalState({
+    required String profileId,
+    required String userId,
+    required String sessionId,
+  }) async {
+    return _canonicalFor(userId);
+  }
+
+  @override
+  Future<OwnershipCommandResult> setLoadout(SetLoadoutCommand command) async {
+    final canonical = _canonicalFor(command.userId);
+    if (command.expectedRevision != canonical.revision) {
+      return OwnershipCommandResult(
+        canonicalState: canonical,
+        newRevision: canonical.revision,
+        replayedFromIdempotency: false,
+        rejectedReason: OwnershipRejectedReason.staleRevision,
+      );
+    }
+    final nextCanonical = canonical.copyWith(
+      revision: canonical.revision + 1,
+      selection: canonical.selection.withLoadoutFor(
+        command.characterId,
+        command.loadout,
+      ),
+    );
+    _canonicalByUser[command.userId] = nextCanonical;
+    return OwnershipCommandResult(
+      canonicalState: nextCanonical,
+      newRevision: nextCanonical.revision,
+      replayedFromIdempotency: false,
+    );
+  }
+
+  @override
+  Future<OwnershipCommandResult> setSelection(
+    SetSelectionCommand command,
+  ) async {
+    return _acceptedFor(command.userId);
+  }
+
+  @override
+  Future<OwnershipCommandResult> resetOwnership(
+    ResetOwnershipCommand command,
+  ) async {
+    return _acceptedFor(command.userId);
+  }
+
+  @override
+  Future<OwnershipCommandResult> equipGear(EquipGearCommand command) async {
+    return _acceptedFor(command.userId);
+  }
+
+  @override
+  Future<OwnershipCommandResult> setAbilitySlot(
+    SetAbilitySlotCommand command,
+  ) async {
+    return _acceptedFor(command.userId);
+  }
+
+  @override
+  Future<OwnershipCommandResult> setProjectileSpell(
+    SetProjectileSpellCommand command,
+  ) async {
+    return _acceptedFor(command.userId);
+  }
+
+  @override
+  Future<OwnershipCommandResult> learnProjectileSpell(
+    LearnProjectileSpellCommand command,
+  ) async {
+    return _acceptedFor(command.userId);
+  }
+
+  @override
+  Future<OwnershipCommandResult> learnSpellAbility(
+    LearnSpellAbilityCommand command,
+  ) async {
+    return _acceptedFor(command.userId);
+  }
+
+  @override
+  Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command) async {
+    return _acceptedFor(command.userId);
+  }
+
+  OwnershipCanonicalState _canonicalFor(String userId) {
+    return _canonicalByUser.putIfAbsent(
+      userId,
+      () => OwnershipCanonicalState(
+        profileId: profileId,
+        revision: 0,
+        selection: SelectionState.defaults,
+        meta: const MetaService().createNew(),
+      ),
+    );
+  }
+
+  OwnershipCommandResult _acceptedFor(String userId) {
+    final canonical = _canonicalFor(userId);
+    return OwnershipCommandResult(
+      canonicalState: canonical,
+      newRevision: canonical.revision,
+      replayedFromIdempotency: false,
+    );
+  }
 }
