@@ -13,6 +13,7 @@ class AppInlineEditText extends StatefulWidget {
     required this.onCommit,
     this.enabled = true,
     this.validator,
+    this.errorTextFromError,
     this.keyboardType,
     this.textCapitalization = TextCapitalization.none,
     this.maxLength,
@@ -24,6 +25,7 @@ class AppInlineEditText extends StatefulWidget {
   final bool enabled;
 
   final String? Function(String value)? validator;
+  final String? Function(Object error)? errorTextFromError;
   final Future<void> Function(String value) onCommit;
 
   final TextInputType? keyboardType;
@@ -108,11 +110,12 @@ class _AppInlineEditTextState extends State<AppInlineEditText> {
         _saving = false;
         _editing = false;
       });
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
       setState(() {
         _saving = false;
-        _error = 'Something went wrong.';
+        _error =
+            widget.errorTextFromError?.call(error) ?? 'Something went wrong.';
       });
     }
   }

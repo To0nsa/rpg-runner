@@ -42,24 +42,33 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
     final appState = context.read<AppState>();
     final nowMs = DateTime.now().millisecondsSinceEpoch;
 
-    await appState.updateProfile((p) {
-      final flags = Map<String, bool>.from(p.flags);
-      flags[ProfileFlagKeys.namePromptCompleted] = true;
+    try {
+      await appState.updateProfile((p) {
+        final flags = Map<String, bool>.from(p.flags);
+        flags[ProfileFlagKeys.namePromptCompleted] = true;
 
-      if (skipped) {
-        return p.copyWith(flags: flags);
-      }
+        if (skipped) {
+          return p.copyWith(flags: flags);
+        }
 
-      final raw = _controller.text;
-      final shouldSetCooldown = p.displayName.isNotEmpty;
-      return p.copyWith(
-        displayName: raw.trim(),
-        displayNameLastChangedAtMs: shouldSetCooldown
-            ? nowMs
-            : p.displayNameLastChangedAtMs,
-        flags: flags,
-      );
-    });
+        final raw = _controller.text;
+        final shouldSetCooldown = p.displayName.isNotEmpty;
+        return p.copyWith(
+          displayName: raw.trim(),
+          displayNameLastChangedAtMs: shouldSetCooldown
+              ? nowMs
+              : p.displayNameLastChangedAtMs,
+          flags: flags,
+        );
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _error = _displayNameSaveError(error);
+      });
+      return;
+    }
 
     if (!mounted) return;
     Navigator.of(context).pushReplacementNamed(UiRoutes.hub);
@@ -72,6 +81,14 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
       return;
     }
     await _complete(skipped: false);
+  }
+
+  String _displayNameSaveError(Object error) {
+    final text = '$error'.toLowerCase();
+    if (text.contains('already-exists') || text.contains('already exists')) {
+      return 'That name is already taken.';
+    }
+    return 'Could not save name. Please try again.';
   }
 
   @override

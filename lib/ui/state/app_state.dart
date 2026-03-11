@@ -16,18 +16,21 @@ import 'local_auth_api.dart';
 import 'loadout_ownership_api.dart';
 import 'selection_state.dart';
 import 'user_profile.dart';
+import 'user_profile_remote_api.dart';
 import 'user_profile_store.dart';
 
 class AppState extends ChangeNotifier {
   factory AppState({
     UserProfileStore? userProfileStore,
     AuthApi? authApi,
+    UserProfileRemoteApi? userProfileRemoteApi,
     required LoadoutOwnershipApi loadoutOwnershipApi,
   }) {
     final resolvedAuthApi = authApi ?? LocalAuthApi();
     return AppState._internal(
       userProfileStore: userProfileStore,
       authApi: resolvedAuthApi,
+      userProfileRemoteApi: userProfileRemoteApi,
       loadoutOwnershipApi: loadoutOwnershipApi,
     );
   }
@@ -35,13 +38,17 @@ class AppState extends ChangeNotifier {
   AppState._internal({
     UserProfileStore? userProfileStore,
     required AuthApi authApi,
+    UserProfileRemoteApi? userProfileRemoteApi,
     required LoadoutOwnershipApi loadoutOwnershipApi,
   }) : _profileStore = userProfileStore ?? UserProfileStore(),
        _authApi = authApi,
+       _profileRemoteApi =
+           userProfileRemoteApi ?? const NoopUserProfileRemoteApi(),
        _ownershipApi = loadoutOwnershipApi;
 
   final Random _random = Random();
   final AuthApi _authApi;
+  final UserProfileRemoteApi _profileRemoteApi;
   final LoadoutOwnershipApi _ownershipApi;
   final UserProfileStore _profileStore;
 
@@ -64,12 +71,16 @@ class AppState extends ChangeNotifier {
     if (_bootstrapped && !force) return;
     final session = await _ensureAuthSession();
     final loadedProfile = await _profileStore.load();
+    final syncedProfile = await _syncProfileDisplayNameFromRemote(
+      localProfile: loadedProfile,
+      session: session,
+    );
     final canonical = await _ownershipApi.loadCanonicalState(
-      profileId: loadedProfile.profileId,
+      profileId: syncedProfile.profileId,
       userId: session.userId,
       sessionId: session.sessionId,
     );
-    _profile = loadedProfile;
+    _profile = syncedProfile;
     _applyCanonicalState(canonical);
     _bootstrapped = true;
     notifyListeners();
@@ -287,6 +298,15 @@ class AppState extends ChangeNotifier {
       updatedAtMs: nowMs,
       revision: current.revision + 1,
     );
+    final hasDisplayNameDelta = _didDisplayNameChange(current, next);
+    if (hasDisplayNameDelta) {
+      final session = await _ensureAuthSession();
+      await _saveDisplayNameToRemote(
+        session: session,
+        profile: next,
+        swallowErrors: false,
+      );
+    }
     _profile = next;
     await _profileStore.save(next);
     notifyListeners();
@@ -347,6 +367,82 @@ class AppState extends ChangeNotifier {
     final session = await _authApi.ensureAuthenticatedSession();
     _authSession = session;
     return session;
+  }
+
+  bool _didDisplayNameChange(UserProfile current, UserProfile next) {
+    return current.displayName != next.displayName ||
+        current.displayNameLastChangedAtMs != next.displayNameLastChangedAtMs;
+  }
+
+  Future<UserProfile> _syncProfileDisplayNameFromRemote({
+    required UserProfile localProfile,
+    required AuthSession session,
+  }) async {
+    if (!session.isAuthenticated) {
+      return localProfile;
+    }
+
+    try {
+      final remote = await _profileRemoteApi.loadDisplayName(
+        userId: session.userId,
+        sessionId: session.sessionId,
+      );
+      if (remote != null) {
+        final hasNameDelta =
+            remote.displayName != localProfile.displayName ||
+            remote.displayNameLastChangedAtMs !=
+                localProfile.displayNameLastChangedAtMs;
+        if (!hasNameDelta) {
+          return localProfile;
+        }
+        final merged = localProfile.copyWith(
+          displayName: remote.displayName,
+          displayNameLastChangedAtMs: remote.displayNameLastChangedAtMs,
+          updatedAtMs: DateTime.now().millisecondsSinceEpoch,
+          revision: localProfile.revision + 1,
+        );
+        await _profileStore.save(merged);
+        return merged;
+      }
+    } catch (error) {
+      debugPrint('Remote displayName load failed: $error');
+      return localProfile;
+    }
+
+    await _saveDisplayNameToRemote(
+      session: session,
+      profile: localProfile,
+      swallowErrors: true,
+    );
+    return localProfile;
+  }
+
+  Future<void> _saveDisplayNameToRemote({
+    required AuthSession session,
+    required UserProfile profile,
+    required bool swallowErrors,
+  }) async {
+    if (!session.isAuthenticated) {
+      return;
+    }
+    final displayName = profile.displayName.trim();
+    if (displayName.isEmpty) {
+      return;
+    }
+    try {
+      await _profileRemoteApi.saveDisplayName(
+        userId: session.userId,
+        sessionId: session.sessionId,
+        displayName: displayName,
+        displayNameLastChangedAtMs: profile.displayNameLastChangedAtMs,
+      );
+    } catch (error) {
+      if (swallowErrors) {
+        debugPrint('Remote displayName save failed: $error');
+        return;
+      }
+      rethrow;
+    }
   }
 
   String _newCommandId() {

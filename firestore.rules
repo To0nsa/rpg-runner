@@ -8,5 +8,13 @@ service cloud.firestore {
         allow read, write: if false;
       }
     }
+
+    match /player_profiles/{uid} {
+      allow read, write: if false;
+    }
+
+    match /display_name_index/{normalizedName} {
+      allow read, write: if false;
+    }
   }
 }

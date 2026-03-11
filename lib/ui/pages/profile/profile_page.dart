@@ -78,6 +78,14 @@ class _ProfilePageState extends State<ProfilePage> {
     ).showSnackBar(const SnackBar(content: Text('Name updated')));
   }
 
+  String? _displayNameSaveError(Object error) {
+    final raw = '$error'.toLowerCase();
+    if (raw.contains('already-exists') || raw.contains('already exists')) {
+      return 'That name is already taken.';
+    }
+    return null;
+  }
+
   bool _isLinking(AuthLinkProvider provider) => _linkingProvider == provider;
 
   Future<void> _linkAccount(AuthLinkProvider provider) async {
@@ -186,6 +194,7 @@ class _ProfilePageState extends State<ProfilePage> {
               displayText: _fallbackName(currentName),
               hintText: 'Enter name',
               validator: (value) => _validateDisplayName(profile, value),
+              errorTextFromError: _displayNameSaveError,
               onCommit: _commitDisplayName,
             ),
           ),

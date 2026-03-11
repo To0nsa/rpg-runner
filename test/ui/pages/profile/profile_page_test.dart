@@ -8,6 +8,7 @@ import 'package:rpg_runner/ui/state/app_state.dart';
 import 'package:rpg_runner/ui/state/auth_api.dart';
 import 'package:rpg_runner/ui/state/loadout_ownership_api.dart';
 import 'package:rpg_runner/ui/state/selection_state.dart';
+import 'package:rpg_runner/ui/state/user_profile_remote_api.dart';
 import 'package:rpg_runner/ui/theme/ui_button_theme.dart';
 import 'package:rpg_runner/ui/theme/ui_tokens.dart';
 
@@ -105,6 +106,26 @@ void main() {
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       expect(find.text('Link Play Games'), findsOneWidget);
     }
+  });
+
+  testWidgets('name edit shows specific duplicate-name error', (tester) async {
+    final authApi = _FakeAuthApi(session: _anonymousSession());
+    final appState = AppState(
+      authApi: authApi,
+      loadoutOwnershipApi: _NoopOwnershipApi(),
+      userProfileRemoteApi: const _FailingUserProfileRemoteApi(),
+    );
+
+    await tester.pumpWidget(_TestApp(appState: appState));
+
+    await tester.tap(find.byIcon(Icons.edit));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'HeroName');
+    await tester.tap(find.byIcon(Icons.check));
+    await tester.pumpAndSettle();
+
+    expect(find.text('That name is already taken.'), findsOneWidget);
   });
 }
 
@@ -272,5 +293,27 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
   @override
   Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command) async {
     return _accepted;
+  }
+}
+
+class _FailingUserProfileRemoteApi implements UserProfileRemoteApi {
+  const _FailingUserProfileRemoteApi();
+
+  @override
+  Future<RemoteDisplayNameProfile?> loadDisplayName({
+    required String userId,
+    required String sessionId,
+  }) async {
+    return null;
+  }
+
+  @override
+  Future<void> saveDisplayName({
+    required String userId,
+    required String sessionId,
+    required String displayName,
+    required int displayNameLastChangedAtMs,
+  }) {
+    throw StateError('already-exists');
   }
 }

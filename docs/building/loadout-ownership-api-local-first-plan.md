@@ -395,6 +395,17 @@ Completed in this phase:
   linking (including already-linked/unsupported/canceled branches).
 - Added Profile page "Manage linked accounts" section for both anonymous and
   non-anonymous users (`Link Google`, `Link Play Games` on Android).
+- Added Firebase callable-backed profile name persistence:
+  - Functions callables:
+    - `playerProfileLoad`
+    - `playerProfileSaveDisplayName`
+  - Firestore-backed profile store (`player_profiles/{uid}`) for
+    `displayName` + `displayNameLastChangedAtMs`.
+  - Added unique-name reservation index (`display_name_index/{normalizedName}`)
+    enforced transactionally on save.
+- Added UI remote profile adapter (`FirebaseUserProfileRemoteApi`) and wired
+  `AppState` bootstrap/updateProfile to sync display names with backend while
+  keeping non-name profile fields local.
 
 Still pending for full server authority:
 

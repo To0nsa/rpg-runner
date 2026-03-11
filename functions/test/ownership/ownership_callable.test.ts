@@ -6,6 +6,10 @@ import { getFirestore, type Firestore } from "firebase-admin/firestore";
 
 import { loadOrCreateCanonicalState } from "../../src/ownership/canonical_store.js";
 import { executeOwnershipCommand } from "../../src/ownership/command_executor.js";
+import {
+  loadPlayerDisplayName,
+  savePlayerDisplayName,
+} from "../../src/profile/store.js";
 import type {
   JsonObject,
   OwnershipCanonicalState,
@@ -29,7 +33,11 @@ const uid = "uid_owner";
 const sessionId = "session_1";
 
 beforeEach(async () => {
-  await clearOwnershipCollections(db);
+  await Promise.all([
+    clearOwnershipCollections(db),
+    clearPlayerProfiles(db),
+    clearDisplayNameIndex(db),
+  ]);
 });
 
 after(async () => {
@@ -231,6 +239,70 @@ test("invalid character payload rejects with invalidCommand", async () => {
   assert.equal(invalid.newRevision, 0);
 });
 
+test("savePlayerDisplayName persists and loadPlayerDisplayName returns profile", async () => {
+  const saved = await savePlayerDisplayName({
+    db,
+    uid,
+    displayName: "HeroName",
+    displayNameLastChangedAtMs: 1700000000000,
+  });
+  assert.equal(saved.displayName, "HeroName");
+  assert.equal(saved.displayNameLastChangedAtMs, 1700000000000);
+
+  const loaded = await loadPlayerDisplayName({ db, uid });
+  assert.notEqual(loaded, null);
+  assert.equal(loaded?.displayName, "HeroName");
+  assert.equal(loaded?.displayNameLastChangedAtMs, 1700000000000);
+});
+
+test("loadPlayerDisplayName returns null when profile is missing", async () => {
+  const loaded = await loadPlayerDisplayName({ db, uid: "uid_missing_profile" });
+  assert.equal(loaded, null);
+});
+
+test("savePlayerDisplayName rejects duplicate normalized name across users", async () => {
+  await savePlayerDisplayName({
+    db,
+    uid: "uid_primary",
+    displayName: "Hero Name",
+    displayNameLastChangedAtMs: 100,
+  });
+
+  await assert.rejects(
+    () =>
+      savePlayerDisplayName({
+        db,
+        uid: "uid_secondary",
+        displayName: "hero   name",
+        displayNameLastChangedAtMs: 101,
+      }),
+    (error: { code?: string }) => error.code === "already-exists",
+  );
+});
+
+test("savePlayerDisplayName rename releases prior name for another user", async () => {
+  await savePlayerDisplayName({
+    db,
+    uid: "uid_primary",
+    displayName: "Alpha",
+    displayNameLastChangedAtMs: 100,
+  });
+  await savePlayerDisplayName({
+    db,
+    uid: "uid_primary",
+    displayName: "Beta",
+    displayNameLastChangedAtMs: 101,
+  });
+
+  const claimed = await savePlayerDisplayName({
+    db,
+    uid: "uid_secondary",
+    displayName: "alpha",
+    displayNameLastChangedAtMs: 102,
+  });
+  assert.equal(claimed.displayName, "alpha");
+});
+
 function setProjectileSpellCommand(args: {
   expectedRevision: number;
   commandId: string;
@@ -278,5 +350,15 @@ function asRecord(value: unknown): Record<string, unknown> {
 
 async function clearOwnershipCollections(dbValue: Firestore): Promise<void> {
   const docs = await dbValue.collection("ownership_profiles").listDocuments();
+  await Promise.all(docs.map((docRef) => dbValue.recursiveDelete(docRef)));
+}
+
+async function clearPlayerProfiles(dbValue: Firestore): Promise<void> {
+  const docs = await dbValue.collection("player_profiles").listDocuments();
+  await Promise.all(docs.map((docRef) => dbValue.recursiveDelete(docRef)));
+}
+
+async function clearDisplayNameIndex(dbValue: Firestore): Promise<void> {
+  const docs = await dbValue.collection("display_name_index").listDocuments();
   await Promise.all(docs.map((docRef) => dbValue.recursiveDelete(docRef)));
 }
