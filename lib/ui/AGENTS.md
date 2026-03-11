@@ -35,6 +35,7 @@ Default to the existing UI patterns:
 - expose semantic widget inputs such as `variant`, `size`, ids, callbacks, and selected state
 - avoid style-knob APIs unless the user explicitly asks for them
 - keep widgets small by resolving theme specs up front instead of scattering visual calculations in `build`
+- keep page-local widgets near the page that owns them, but move any widget reused across flows into `lib/ui/components/`
 
 When cleaning up UI code, prefer a full migration to the active component/theme pattern over leaving half-old, half-new APIs in place.
 
