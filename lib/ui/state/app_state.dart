@@ -11,6 +11,7 @@ import '../../core/meta/meta_state.dart';
 import '../../core/players/player_character_definition.dart';
 import '../../core/projectiles/projectile_id.dart';
 import '../app/ui_routes.dart';
+import 'account_deletion_api.dart';
 import 'auth_api.dart';
 import 'local_auth_api.dart';
 import 'loadout_ownership_api.dart';
@@ -24,6 +25,7 @@ class AppState extends ChangeNotifier {
     UserProfileStore? userProfileStore,
     AuthApi? authApi,
     UserProfileRemoteApi? userProfileRemoteApi,
+    AccountDeletionApi? accountDeletionApi,
     required LoadoutOwnershipApi loadoutOwnershipApi,
   }) {
     final resolvedAuthApi = authApi ?? LocalAuthApi();
@@ -31,6 +33,7 @@ class AppState extends ChangeNotifier {
       userProfileStore: userProfileStore,
       authApi: resolvedAuthApi,
       userProfileRemoteApi: userProfileRemoteApi,
+      accountDeletionApi: accountDeletionApi,
       loadoutOwnershipApi: loadoutOwnershipApi,
     );
   }
@@ -39,16 +42,20 @@ class AppState extends ChangeNotifier {
     UserProfileStore? userProfileStore,
     required AuthApi authApi,
     UserProfileRemoteApi? userProfileRemoteApi,
+    AccountDeletionApi? accountDeletionApi,
     required LoadoutOwnershipApi loadoutOwnershipApi,
   }) : _profileStore = userProfileStore ?? UserProfileStore(),
        _authApi = authApi,
        _profileRemoteApi =
            userProfileRemoteApi ?? const NoopUserProfileRemoteApi(),
+       _accountDeletionApi =
+           accountDeletionApi ?? const NoopAccountDeletionApi(),
        _ownershipApi = loadoutOwnershipApi;
 
   final Random _random = Random();
   final AuthApi _authApi;
   final UserProfileRemoteApi _profileRemoteApi;
+  final AccountDeletionApi _accountDeletionApi;
   final LoadoutOwnershipApi _ownershipApi;
   final UserProfileStore _profileStore;
 
@@ -277,6 +284,30 @@ class AppState extends ChangeNotifier {
   Future<AuthLinkResult> linkAuthProvider(AuthLinkProvider provider) async {
     final result = await _authApi.linkAuthProvider(provider);
     _authSession = result.session;
+    notifyListeners();
+    return result;
+  }
+
+  Future<AccountDeletionResult> deleteAccountAndData() async {
+    final session = await _ensureAuthSession();
+    final result = await _accountDeletionApi.deleteAccountAndData(
+      userId: session.userId,
+      sessionId: session.sessionId,
+      profileId: _profile.profileId,
+    );
+    if (!result.succeeded) {
+      return result;
+    }
+
+    await _profileStore.clear();
+    await _authApi.clearSession();
+    _selection = SelectionState.defaults;
+    _meta = const MetaService().createNew();
+    _profile = UserProfile.empty();
+    _authSession = AuthSession.unauthenticated;
+    _ownershipRevision = 0;
+    _bootstrapped = false;
+    _warmupStarted = false;
     notifyListeners();
     return result;
   }

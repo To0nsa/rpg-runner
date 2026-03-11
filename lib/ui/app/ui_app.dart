@@ -8,6 +8,7 @@ import '../assets/ui_asset_lifecycle.dart';
 import '../levels/level_id_ui.dart';
 import '../state/app_state.dart';
 import '../state/firebase_auth_api.dart';
+import '../state/firebase_account_deletion_api.dart';
 import '../state/firebase_loadout_ownership_api.dart';
 import '../state/firebase_user_profile_remote_api.dart';
 import '../theme/ui_button_theme.dart';
@@ -149,10 +150,12 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
         ChangeNotifierProvider(
           create: (_) {
             final authApi = FirebaseAuthApi();
+            final accountDeletionApi = FirebaseAccountDeletionApi();
             final ownershipApi = FirebaseLoadoutOwnershipApi();
             final userProfileRemoteApi = FirebaseUserProfileRemoteApi();
             return AppState(
               authApi: authApi,
+              accountDeletionApi: accountDeletionApi,
               userProfileRemoteApi: userProfileRemoteApi,
               loadoutOwnershipApi: ownershipApi,
             );

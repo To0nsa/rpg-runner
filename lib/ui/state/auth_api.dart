@@ -1,4 +1,4 @@
-enum AuthLinkProvider { google, playGames }
+enum AuthLinkProvider { playGames }
 
 class AuthSession {
   const AuthSession({
@@ -124,7 +124,6 @@ abstract class AuthApi {
 
 String _encodeAuthLinkProvider(AuthLinkProvider provider) {
   return switch (provider) {
-    AuthLinkProvider.google => 'google',
     AuthLinkProvider.playGames => 'playGames',
   };
 }
@@ -140,7 +139,6 @@ Set<AuthLinkProvider> _decodeAuthLinkProviders(
   for (final value in raw) {
     if (value is! String) continue;
     final provider = switch (value) {
-      'google' => AuthLinkProvider.google,
       'playGames' => AuthLinkProvider.playGames,
       _ => null,
     };

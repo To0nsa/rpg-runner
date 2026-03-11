@@ -1,11 +1,10 @@
-# Firebase + Google Sign-In + Play Games + Anonymous Auth + Firestore — EU compliance checklist
+# Firebase + Play Games + Anonymous Auth + Firestore — EU compliance checklist
 
 This document is a **practical implementation checklist** for a mobile game that uses:
 
 * Firebase Authentication
 
   * Anonymous auth
-  * Google Sign-In
   * Google Play Games sign-in
 * Cloud Firestore
 * Google Play distribution
@@ -83,7 +82,6 @@ Break your processing into purposes.
 Examples:
 
 * anonymous sign-in
-* Google sign-in
 * Play Games sign-in
 * account linking
 * session restoration

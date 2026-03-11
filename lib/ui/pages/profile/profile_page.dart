@@ -1,5 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../components/app_button.dart';
@@ -8,6 +8,7 @@ import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
 import '../../profile/display_name_policy.dart';
 import '../../state/app_state.dart';
+import '../../state/account_deletion_api.dart';
 import '../../state/auth_api.dart';
 import '../../state/profile_counter_keys.dart';
 import '../../state/user_profile.dart';
@@ -22,9 +23,10 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   final _policy = const DisplayNamePolicy();
+  bool _deleteInFlight = false;
+  bool _playGamesLinkInFlight = false;
 
   static const Duration _cooldown = Duration(hours: 24);
-  AuthLinkProvider? _linkingProvider;
 
   String _fallbackName(String displayName) =>
       displayName.isEmpty ? 'Guest' : displayName;
@@ -86,54 +88,187 @@ class _ProfilePageState extends State<ProfilePage> {
     return null;
   }
 
-  bool _isLinking(AuthLinkProvider provider) => _linkingProvider == provider;
+  String _accountDeletionFailureMessage(AccountDeletionResult result) {
+    switch (result.status) {
+      case AccountDeletionStatus.requiresRecentLogin:
+        return 'Please sign in again and retry account deletion.';
+      case AccountDeletionStatus.unauthorized:
+        return 'Session expired. Please restart the game and try again.';
+      case AccountDeletionStatus.unsupported:
+        return 'Account deletion is not available in this environment.';
+      case AccountDeletionStatus.failed:
+        final message = result.errorMessage?.trim();
+        if (message != null && message.isNotEmpty) {
+          return message;
+        }
+        return 'Account deletion failed. Please try again.';
+      case AccountDeletionStatus.deleted:
+        return 'Account deleted.';
+    }
+  }
 
-  Future<void> _linkAccount(AuthLinkProvider provider) async {
-    if (_linkingProvider != null) return;
-    setState(() => _linkingProvider = provider);
-    final appState = context.read<AppState>();
-    final messenger = ScaffoldMessenger.of(context);
+  String _playGamesLinkResultMessage(AuthLinkResult result) {
+    switch (result.status) {
+      case AuthLinkStatus.linked:
+        return 'Play Games account linked.';
+      case AuthLinkStatus.alreadyLinked:
+        return 'Play Games is already linked.';
+      case AuthLinkStatus.canceled:
+        return 'Play Games sign-in canceled.';
+      case AuthLinkStatus.unsupported:
+        final unsupportedMessage = result.errorMessage?.trim();
+        if (unsupportedMessage != null && unsupportedMessage.isNotEmpty) {
+          return unsupportedMessage;
+        }
+        return 'Play Games sign-in is not available on this device.';
+      case AuthLinkStatus.failed:
+        final failureMessage = result.errorMessage?.trim();
+        if (failureMessage != null && failureMessage.isNotEmpty) {
+          return failureMessage;
+        }
+        return 'Could not link Play Games account. Please try again.';
+    }
+  }
+
+  bool _shouldShowPlayGamesUpgrade(AuthSession session) {
+    return session.isAuthenticated &&
+        session.isAnonymous &&
+        !session.isProviderLinked(AuthLinkProvider.playGames);
+  }
+
+  Future<void> _linkPlayGames() async {
+    if (_playGamesLinkInFlight) {
+      return;
+    }
+    setState(() {
+      _playGamesLinkInFlight = true;
+    });
     try {
-      final result = await appState.linkAuthProvider(provider);
+      final appState = context.read<AppState>();
+      final result = await appState.linkAuthProvider(
+        AuthLinkProvider.playGames,
+      );
       if (!mounted) return;
-      final providerName = _providerDisplayName(provider);
-      final message = _linkResultMessage(result, providerName);
-      messenger.showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_playGamesLinkResultMessage(result))),
+      );
     } catch (_) {
       if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            'Could not link ${_providerDisplayName(provider)} account.',
-          ),
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not link Play Games account. Please try again.'),
         ),
       );
     } finally {
       if (mounted) {
-        setState(() => _linkingProvider = null);
+        setState(() {
+          _playGamesLinkInFlight = false;
+        });
       }
     }
   }
 
-  String _providerDisplayName(AuthLinkProvider provider) {
-    return switch (provider) {
-      AuthLinkProvider.google => 'Google',
-      AuthLinkProvider.playGames => 'Play Games',
-    };
+  Future<bool> _confirmDeletionStepOne() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Delete account and data?'),
+          content: const Text(
+            'This will permanently delete your account, profile, and cloud '
+            'progress for this user.',
+          ),
+          actions: [
+            AppButton(
+              label: 'Cancel',
+              variant: AppButtonVariant.secondary,
+              size: AppButtonSize.xs,
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+            ),
+            AppButton(
+              label: 'Continue',
+              variant: AppButtonVariant.secondary,
+              size: AppButtonSize.xs,
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+            ),
+          ],
+        );
+      },
+    );
+    return confirmed ?? false;
   }
 
-  String _linkResultMessage(AuthLinkResult result, String providerName) {
-    return switch (result.status) {
-      AuthLinkStatus.linked => '$providerName account linked.',
-      AuthLinkStatus.alreadyLinked => '$providerName is already linked.',
-      AuthLinkStatus.canceled => '$providerName sign-in canceled.',
-      AuthLinkStatus.unsupported =>
-        result.errorMessage ?? '$providerName sign-in is not available here.',
-      AuthLinkStatus.failed =>
-        result.errorCode == null
-            ? 'Could not link $providerName account.'
-            : 'Could not link $providerName account (${result.errorCode}).',
-    };
+  Future<bool> _confirmDeletionStepTwo() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Final confirmation'),
+          content: const Text(
+            'This action cannot be undone. Delete this account permanently?',
+          ),
+          actions: [
+            AppButton(
+              label: 'Keep account',
+              variant: AppButtonVariant.secondary,
+              size: AppButtonSize.md,
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+            ),
+            AppButton(
+              label: 'Delete account',
+              variant: AppButtonVariant.danger,
+              size: AppButtonSize.md,
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+            ),
+          ],
+        );
+      },
+    );
+    return confirmed ?? false;
+  }
+
+  Future<void> _deleteAccountAndData() async {
+    if (_deleteInFlight) {
+      return;
+    }
+    final stepOneConfirmed = await _confirmDeletionStepOne();
+    if (!stepOneConfirmed || !mounted) {
+      return;
+    }
+    final stepTwoConfirmed = await _confirmDeletionStepTwo();
+    if (!stepTwoConfirmed || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _deleteInFlight = true;
+    });
+
+    try {
+      final appState = context.read<AppState>();
+      final result = await appState.deleteAccountAndData();
+      if (!mounted) return;
+      if (!result.succeeded) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_accountDeletionFailureMessage(result))),
+        );
+        return;
+      }
+      await SystemNavigator.pop();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Account deletion failed. Please try again.'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _deleteInFlight = false;
+        });
+      }
+    }
   }
 
   @override
@@ -141,6 +276,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final ui = context.ui;
     final appState = context.watch<AppState>();
     final profile = appState.profile;
+    final authSession = appState.authSession;
     final gold = profile.counters[ProfileCounterKeys.gold] ?? 0;
 
     return MenuScaffold(
@@ -165,12 +301,16 @@ class _ProfilePageState extends State<ProfilePage> {
                   child: Column(
                     children: [
                       _buildDisplayNameRow(profile),
-                      _buildAccountRow(appState.authSession),
                       _row('Gold', gold.toString()),
-                      _buildManageLinkedAccounts(appState.authSession),
                     ],
                   ),
                 ),
+                SizedBox(height: ui.space.md),
+                if (_shouldShowPlayGamesUpgrade(authSession)) ...[
+                  _buildPlayGamesUpgradeCard(),
+                  SizedBox(height: ui.space.md),
+                ],
+                _buildDangerZoneCard(),
               ],
             ),
           ),
@@ -203,72 +343,6 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildAccountRow(AuthSession session) {
-    final linkedCount = session.linkedProviders.length;
-    final value = session.isAnonymous
-        ? 'Guest (Anonymous)'
-        : linkedCount == 0
-        ? 'Registered'
-        : 'Registered ($linkedCount linked)';
-    return _row('Account', value);
-  }
-
-  Widget _buildManageLinkedAccounts(AuthSession session) {
-    final ui = context.ui;
-    return Padding(
-      padding: EdgeInsets.only(top: ui.space.sm),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Manage linked accounts',
-            style: ui.text.label.copyWith(color: ui.colors.textMuted),
-          ),
-          SizedBox(height: ui.space.xs),
-          _buildProviderLinkRow(session, AuthLinkProvider.google),
-          if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android)
-            _buildProviderLinkRow(session, AuthLinkProvider.playGames),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProviderLinkRow(AuthSession session, AuthLinkProvider provider) {
-    final ui = context.ui;
-    final isLinked = session.isProviderLinked(provider);
-    final canLink = !isLinked && _linkingProvider == null;
-    final providerName = _providerDisplayName(provider);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              providerName,
-              style: ui.text.label.copyWith(color: ui.colors.textMuted),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              isLinked ? 'Linked' : 'Not linked',
-              style: ui.text.body.copyWith(color: ui.colors.textPrimary),
-            ),
-          ),
-          AppButton(
-            label: _isLinking(provider)
-                ? 'Linking...'
-                : isLinked
-                ? 'Linked'
-                : 'Link $providerName',
-            size: AppButtonSize.xs,
-            onPressed: canLink ? () => _linkAccount(provider) : null,
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _row(String label, String value) {
     final ui = context.ui;
     final labelStyle = ui.text.label.copyWith(color: ui.colors.textMuted);
@@ -283,6 +357,84 @@ class _ProfilePageState extends State<ProfilePage> {
               value,
               style: valueStyle,
               overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDangerZoneCard() {
+    final ui = context.ui;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(ui.space.md),
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: ui.colors.danger.withValues(alpha: 0.7),
+          width: ui.sizes.borderWidth,
+        ),
+        borderRadius: BorderRadius.circular(ui.radii.md),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Danger zone',
+            style: ui.text.headline.copyWith(color: ui.colors.danger),
+          ),
+          SizedBox(height: ui.space.xs),
+          Text(
+            'Delete your account and all linked player data permanently.',
+            style: ui.text.body.copyWith(color: ui.colors.textMuted),
+          ),
+          SizedBox(height: ui.space.sm),
+          Align(
+            alignment: Alignment.center,
+            child: AppButton(
+              label: _deleteInFlight ? 'Deleting...' : 'Delete account',
+              variant: AppButtonVariant.danger,
+              size: AppButtonSize.sm,
+              onPressed: _deleteInFlight ? null : _deleteAccountAndData,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlayGamesUpgradeCard() {
+    final ui = context.ui;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(ui.space.md),
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: ui.colors.outline,
+          width: ui.sizes.borderWidth,
+        ),
+        borderRadius: BorderRadius.circular(ui.radii.md),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Upgrade guest account',
+            style: ui.text.headline.copyWith(color: ui.colors.textPrimary),
+          ),
+          SizedBox(height: ui.space.xs),
+          Text(
+            'Link Play Games to keep progress across devices.',
+            style: ui.text.body.copyWith(color: ui.colors.textMuted),
+          ),
+          SizedBox(height: ui.space.sm),
+          Align(
+            alignment: Alignment.center,
+            child: AppButton(
+              label: _playGamesLinkInFlight ? 'Linking...' : 'Link Play Games',
+              variant: AppButtonVariant.secondary,
+              size: AppButtonSize.lg,
+              onPressed: _playGamesLinkInFlight ? null : _linkPlayGames,
             ),
           ),
         ],

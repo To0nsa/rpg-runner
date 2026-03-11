@@ -1,115 +1,55 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:rpg_runner/core/meta/meta_service.dart';
 import 'package:rpg_runner/ui/pages/profile/profile_page.dart';
+import 'package:rpg_runner/ui/state/account_deletion_api.dart';
 import 'package:rpg_runner/ui/state/app_state.dart';
 import 'package:rpg_runner/ui/state/auth_api.dart';
 import 'package:rpg_runner/ui/state/loadout_ownership_api.dart';
 import 'package:rpg_runner/ui/state/selection_state.dart';
+import 'package:rpg_runner/ui/state/user_profile.dart';
 import 'package:rpg_runner/ui/state/user_profile_remote_api.dart';
+import 'package:rpg_runner/ui/state/user_profile_store.dart';
 import 'package:rpg_runner/ui/theme/ui_button_theme.dart';
 import 'package:rpg_runner/ui/theme/ui_tokens.dart';
 
 void main() {
-  testWidgets('shows manage linked accounts for anonymous session', (
+  testWidgets('shows Play Games upgrade action for anonymous account', (
     tester,
   ) async {
-    final authApi = _FakeAuthApi(session: _anonymousSession());
+    final authApi = _StaticAuthApi(session: _anonymousSession());
     final appState = AppState(
       authApi: authApi,
       loadoutOwnershipApi: _NoopOwnershipApi(),
     );
+    await appState.bootstrap(force: true);
 
     await tester.pumpWidget(_TestApp(appState: appState));
 
-    expect(find.text('Manage linked accounts'), findsOneWidget);
-    expect(find.text('Link Google'), findsOneWidget);
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      expect(find.text('Link Play Games'), findsOneWidget);
-    } else {
-      expect(find.text('Link Play Games'), findsNothing);
-    }
-    expect(find.text('Guest (Anonymous)'), findsOneWidget);
+    expect(find.text('Upgrade guest account'), findsOneWidget);
+    expect(find.text('Link Play Games'), findsOneWidget);
   });
 
-  testWidgets('Link Google button triggers provider link and feedback', (
+  testWidgets('hides Play Games upgrade action for non-anonymous account', (
     tester,
   ) async {
-    final authApi = _FakeAuthApi(session: _anonymousSession());
+    final authApi = _StaticAuthApi(session: _playGamesLinkedSession());
     final appState = AppState(
       authApi: authApi,
       loadoutOwnershipApi: _NoopOwnershipApi(),
     );
+    await appState.bootstrap(force: true);
 
     await tester.pumpWidget(_TestApp(appState: appState));
 
-    await tester.tap(find.text('Link Google'));
-    await tester.pumpAndSettle();
-
-    expect(authApi.upgradeCalls, 1);
-    expect(authApi.lastProvider, AuthLinkProvider.google);
-    expect(find.text('Google account linked.'), findsOneWidget);
-    expect(
-      appState.authSession.isProviderLinked(AuthLinkProvider.google),
-      isTrue,
-    );
-    expect(find.text('Registered (1 linked)'), findsOneWidget);
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      expect(find.text('Link Play Games'), findsOneWidget);
-    }
-  });
-
-  testWidgets('Link Play Games button triggers provider link and feedback', (
-    tester,
-  ) async {
-    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
-      return;
-    }
-    final authApi = _FakeAuthApi(session: _anonymousSession());
-    final appState = AppState(
-      authApi: authApi,
-      loadoutOwnershipApi: _NoopOwnershipApi(),
-    );
-
-    await tester.pumpWidget(_TestApp(appState: appState));
-
-    await tester.tap(find.text('Link Play Games'));
-    await tester.pumpAndSettle();
-
-    expect(authApi.upgradeCalls, 1);
-    expect(authApi.lastProvider, AuthLinkProvider.playGames);
-    expect(find.text('Play Games account linked.'), findsOneWidget);
-    expect(
-      appState.authSession.isProviderLinked(AuthLinkProvider.playGames),
-      isTrue,
-    );
-    expect(find.text('Registered (1 linked)'), findsOneWidget);
-    expect(find.text('Link Google'), findsOneWidget);
-  });
-
-  testWidgets('shows linked Google state and keeps other provider action', (
-    tester,
-  ) async {
-    final authApi = _FakeAuthApi(session: _linkedGoogleSession());
-    final appState = AppState(
-      authApi: authApi,
-      loadoutOwnershipApi: _NoopOwnershipApi(),
-    );
-    await appState.linkAuthProvider(AuthLinkProvider.google);
-
-    await tester.pumpWidget(_TestApp(appState: appState));
-
-    expect(find.text('Link Google'), findsNothing);
-    expect(find.text('Registered (1 linked)'), findsOneWidget);
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      expect(find.text('Link Play Games'), findsOneWidget);
-    }
+    expect(find.text('Upgrade guest account'), findsNothing);
+    expect(find.text('Link Play Games'), findsNothing);
   });
 
   testWidgets('name edit shows specific duplicate-name error', (tester) async {
-    final authApi = _FakeAuthApi(session: _anonymousSession());
+    final authApi = _StaticAuthApi(session: _anonymousSession());
     final appState = AppState(
       authApi: authApi,
       loadoutOwnershipApi: _NoopOwnershipApi(),
@@ -126,6 +66,84 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('That name is already taken.'), findsOneWidget);
+  });
+
+  testWidgets(
+    'delete account action requires two confirmations and calls app state flow',
+    (tester) async {
+      final authApi = _StaticAuthApi(session: _anonymousSession());
+      final deletionApi = _StaticAccountDeletionApi(
+        result: const AccountDeletionResult(
+          status: AccountDeletionStatus.unsupported,
+        ),
+      );
+      final appState = AppState(
+        authApi: authApi,
+        accountDeletionApi: deletionApi,
+        loadoutOwnershipApi: _NoopOwnershipApi(),
+      );
+
+      await tester.pumpWidget(_TestApp(appState: appState));
+
+      await tester.tap(find.text('Delete account'));
+      await tester.pumpAndSettle();
+      expect(find.text('Delete account and data?'), findsOneWidget);
+
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+      expect(find.text('Final confirmation'), findsOneWidget);
+
+      await tester.tap(find.text('Delete account'));
+      await tester.pumpAndSettle();
+
+      expect(deletionApi.calls, 1);
+      expect(
+        find.text('Account deletion is not available in this environment.'),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets('successful delete account closes app', (tester) async {
+    final authApi = _StaticAuthApi(session: _anonymousSession());
+    final deletionApi = _StaticAccountDeletionApi(
+      result: const AccountDeletionResult(
+        status: AccountDeletionStatus.deleted,
+      ),
+    );
+    final appState = AppState(
+      authApi: authApi,
+      accountDeletionApi: deletionApi,
+      userProfileStore: _MemoryUserProfileStore(),
+      loadoutOwnershipApi: _NoopOwnershipApi(),
+    );
+
+    final platformCalls = <MethodCall>[];
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      platformCalls.add(call);
+      return null;
+    });
+    addTearDown(
+      () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+    );
+
+    await tester.pumpWidget(_TestApp(appState: appState));
+
+    await tester.tap(find.text('Delete account'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete account'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(deletionApi.calls, 1);
+    expect(
+      platformCalls.any((call) => call.method == 'SystemNavigator.pop'),
+      isTrue,
+    );
   });
 }
 
@@ -149,12 +167,10 @@ class _TestApp extends StatelessWidget {
   }
 }
 
-class _FakeAuthApi implements AuthApi {
-  _FakeAuthApi({required this.session});
+class _StaticAuthApi implements AuthApi {
+  _StaticAuthApi({required this.session});
 
   AuthSession session;
-  int upgradeCalls = 0;
-  AuthLinkProvider? lastProvider;
 
   @override
   Future<AuthSession> loadSession() async => session;
@@ -164,29 +180,10 @@ class _FakeAuthApi implements AuthApi {
 
   @override
   Future<AuthLinkResult> linkAuthProvider(AuthLinkProvider provider) async {
-    upgradeCalls += 1;
-    lastProvider = provider;
-    if (session.isProviderLinked(provider)) {
-      return AuthLinkResult(
-        provider: provider,
-        status: AuthLinkStatus.alreadyLinked,
-        session: session,
-      );
-    }
-    final nextProviders = <AuthLinkProvider>{
-      ...session.linkedProviders,
-      provider,
-    };
-    final upgraded = session.copyWith(
-      isAnonymous: false,
-      linkedProviders: nextProviders,
-      sessionId: 'linked_${session.sessionId}',
-    );
-    session = upgraded;
     return AuthLinkResult(
       provider: provider,
-      status: AuthLinkStatus.linked,
-      session: upgraded,
+      status: AuthLinkStatus.alreadyLinked,
+      session: session,
     );
   }
 
@@ -205,13 +202,13 @@ AuthSession _anonymousSession() {
   );
 }
 
-AuthSession _linkedGoogleSession() {
+AuthSession _playGamesLinkedSession() {
   return const AuthSession(
-    userId: 'u1',
+    userId: 'user_u1',
     sessionId: 'sess_linked',
     isAnonymous: false,
     expiresAtMs: 0,
-    linkedProviders: <AuthLinkProvider>{AuthLinkProvider.google},
+    linkedProviders: <AuthLinkProvider>{AuthLinkProvider.playGames},
   );
 }
 
@@ -294,6 +291,44 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
   Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command) async {
     return _accepted;
   }
+}
+
+class _StaticAccountDeletionApi implements AccountDeletionApi {
+  _StaticAccountDeletionApi({required this.result});
+
+  final AccountDeletionResult result;
+  int calls = 0;
+
+  @override
+  Future<AccountDeletionResult> deleteAccountAndData({
+    required String userId,
+    required String sessionId,
+    required String profileId,
+  }) async {
+    calls += 1;
+    return result;
+  }
+}
+
+class _MemoryUserProfileStore extends UserProfileStore {
+  _MemoryUserProfileStore()
+    : _saved = UserProfile.createNew(profileId: 'profile_test', nowMs: 1);
+
+  UserProfile _saved;
+
+  @override
+  Future<UserProfile> load() async => _saved;
+
+  @override
+  Future<void> save(UserProfile profile) async {
+    _saved = profile;
+  }
+
+  @override
+  Future<void> clear() async {}
+
+  @override
+  UserProfile createFresh() => _saved;
 }
 
 class _FailingUserProfileRemoteApi implements UserProfileRemoteApi {

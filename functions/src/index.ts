@@ -2,6 +2,8 @@ import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
+import { deleteAccountAndData } from "./account/delete.js";
+import { parseAccountDeleteRequest } from "./account/validators.js";
 import { loadPlayerDisplayName, savePlayerDisplayName } from "./profile/store.js";
 import {
   parseLoadPlayerProfileRequest,
@@ -81,4 +83,21 @@ export const playerProfileSaveDisplayName = onCall(async (request) => {
     displayNameLastChangedAtMs,
   });
   return { profile };
+});
+
+export const accountDelete = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "Authentication required.");
+  }
+  const { userId, profileId } = parseAccountDeleteRequest(request.data);
+  if (userId !== uid) {
+    throw new HttpsError("permission-denied", "userId does not match auth uid.");
+  }
+  const result = await deleteAccountAndData({
+    db,
+    uid,
+    profileId,
+  });
+  return { result };
 });

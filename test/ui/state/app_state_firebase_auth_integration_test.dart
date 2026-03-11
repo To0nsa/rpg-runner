@@ -48,6 +48,45 @@ void main() {
     },
   );
 
+  test(
+    'bootstrap restores provider session before anonymous when Firebase session is missing',
+    () async {
+      final now = DateTime.utc(2026, 3, 10, 12);
+      final source = _FakeFirebaseAuthSessionSource(
+        current: null,
+        anonymousSignInSession: _snapshot(
+          userId: 'anon_u1',
+          token: 'token_u1_bootstrap',
+          now: now,
+        ),
+        restoredSession: _snapshot(
+          userId: 'restored_u1',
+          token: 'token_restored',
+          now: now,
+          isAnonymous: false,
+          linkedProviders: const <AuthLinkProvider>{AuthLinkProvider.playGames},
+        ),
+      );
+      final authApi = FirebaseAuthApi(source: source, now: () => now);
+      final ownershipApi = _SessionScopedOwnershipApi(
+        profileId: 'test_profile',
+      );
+      final appState = AppState(
+        authApi: authApi,
+        loadoutOwnershipApi: ownershipApi,
+        userProfileStore: _MemoryUserProfileStore(),
+      );
+
+      await appState.bootstrap(force: true);
+
+      expect(appState.isBootstrapped, isTrue);
+      expect(appState.authSession.userId, 'restored_u1');
+      expect(appState.authSession.isAnonymous, isFalse);
+      expect(source.tryRestorePlayGamesSessionCalls, 1);
+      expect(source.signInAnonymouslyCalls, 0);
+    },
+  );
+
   test('bootstrap refreshes expired Firebase token/session', () async {
     final now = DateTime.utc(2026, 3, 10, 12);
     final expired = _snapshot(
@@ -159,41 +198,6 @@ void main() {
     },
   );
 
-  test('linkAuthProvider links Google and flips session anonymity', () async {
-    final now = DateTime.utc(2026, 3, 10, 12);
-    final anonymous = _snapshot(
-      userId: 'anon_u1',
-      token: 'token_anon',
-      now: now,
-      isAnonymous: true,
-    );
-    final linked = _snapshot(
-      userId: 'anon_u1',
-      token: 'token_linked',
-      now: now.add(const Duration(minutes: 1)),
-      isAnonymous: false,
-      linkedProviders: const <AuthLinkProvider>{AuthLinkProvider.google},
-    );
-    final source =
-        _FakeFirebaseAuthSessionSource(
-          current: anonymous,
-          anonymousSignInSession: anonymous,
-        )..setLinkOutcome(
-          AuthLinkProvider.google,
-          _FakeUpgradeOutcome.linked(linked),
-        );
-    final authApi = FirebaseAuthApi(source: source, now: () => now);
-
-    final result = await authApi.linkAuthProvider(AuthLinkProvider.google);
-
-    expect(result.status, AuthLinkStatus.linked);
-    expect(result.session.userId, 'anon_u1');
-    expect(result.session.isAnonymous, isFalse);
-    expect(result.session.isProviderLinked(AuthLinkProvider.google), isTrue);
-    expect(source.linkProviderCalls, 1);
-    expect(source.lastLinkedProvider, AuthLinkProvider.google);
-  });
-
   test(
     'linkAuthProvider returns canceled when provider flow is aborted',
     () async {
@@ -209,12 +213,12 @@ void main() {
             current: anonymous,
             anonymousSignInSession: anonymous,
           )..setLinkOutcome(
-            AuthLinkProvider.google,
+            AuthLinkProvider.playGames,
             const _FakeUpgradeOutcome.canceled(),
           );
       final authApi = FirebaseAuthApi(source: source, now: () => now);
 
-      final result = await authApi.linkAuthProvider(AuthLinkProvider.google);
+      final result = await authApi.linkAuthProvider(AuthLinkProvider.playGames);
 
       expect(result.status, AuthLinkStatus.canceled);
       expect(result.session.userId, 'anon_u1');
@@ -296,29 +300,25 @@ void main() {
   );
 
   test(
-    'linkAuthProvider can add Play Games for non-anonymous Google session',
+    'linkAuthProvider can add Play Games for non-anonymous session',
     () async {
       final now = DateTime.utc(2026, 3, 10, 12);
-      final googleOnly = _snapshot(
+      final registeredUser = _snapshot(
         userId: 'u1',
-        token: 'token_google',
+        token: 'token_registered',
         now: now,
         isAnonymous: false,
-        linkedProviders: const <AuthLinkProvider>{AuthLinkProvider.google},
       );
-      final googleAndPlayGames = _snapshot(
+      final playGamesLinked = _snapshot(
         userId: 'u1',
-        token: 'token_google_play_games',
+        token: 'token_play_games_linked',
         now: now.add(const Duration(minutes: 1)),
         isAnonymous: false,
-        linkedProviders: const <AuthLinkProvider>{
-          AuthLinkProvider.google,
-          AuthLinkProvider.playGames,
-        },
+        linkedProviders: const <AuthLinkProvider>{AuthLinkProvider.playGames},
       );
       final source =
           _FakeFirebaseAuthSessionSource(
-            current: googleOnly,
+            current: registeredUser,
             anonymousSignInSession: _snapshot(
               userId: 'anon_fallback',
               token: 'anon_fallback_token',
@@ -326,7 +326,7 @@ void main() {
             ),
           )..setLinkOutcome(
             AuthLinkProvider.playGames,
-            _FakeUpgradeOutcome.linked(googleAndPlayGames),
+            _FakeUpgradeOutcome.linked(playGamesLinked),
           );
       final authApi = FirebaseAuthApi(source: source, now: () => now);
 
@@ -334,7 +334,6 @@ void main() {
 
       expect(result.status, AuthLinkStatus.linked);
       expect(result.session.isAnonymous, isFalse);
-      expect(result.session.isProviderLinked(AuthLinkProvider.google), isTrue);
       expect(
         result.session.isProviderLinked(AuthLinkProvider.playGames),
         isTrue,
@@ -346,15 +345,15 @@ void main() {
 
   test('linkAuthProvider returns alreadyLinked without source call', () async {
     final now = DateTime.utc(2026, 3, 10, 12);
-    final googleOnly = _snapshot(
+    final playGamesOnly = _snapshot(
       userId: 'u1',
-      token: 'token_google',
+      token: 'token_play_games',
       now: now,
       isAnonymous: false,
-      linkedProviders: const <AuthLinkProvider>{AuthLinkProvider.google},
+      linkedProviders: const <AuthLinkProvider>{AuthLinkProvider.playGames},
     );
     final source = _FakeFirebaseAuthSessionSource(
-      current: googleOnly,
+      current: playGamesOnly,
       anonymousSignInSession: _snapshot(
         userId: 'anon_fallback',
         token: 'anon_fallback_token',
@@ -363,11 +362,11 @@ void main() {
     );
     final authApi = FirebaseAuthApi(source: source, now: () => now);
 
-    final result = await authApi.linkAuthProvider(AuthLinkProvider.google);
+    final result = await authApi.linkAuthProvider(AuthLinkProvider.playGames);
 
     expect(result.status, AuthLinkStatus.alreadyLinked);
     expect(result.session.userId, 'u1');
-    expect(result.session.isProviderLinked(AuthLinkProvider.google), isTrue);
+    expect(result.session.isProviderLinked(AuthLinkProvider.playGames), isTrue);
     expect(source.linkProviderCalls, 0);
   });
 }
@@ -394,16 +393,19 @@ class _FakeFirebaseAuthSessionSource implements FirebaseAuthSessionSource {
   _FakeFirebaseAuthSessionSource({
     required FirebaseAuthSessionSnapshot? current,
     required FirebaseAuthSessionSnapshot anonymousSignInSession,
+    this.restoredSession,
   }) : _current = current,
        _anonymousSignInSession = anonymousSignInSession;
 
   FirebaseAuthSessionSnapshot? _current;
   final FirebaseAuthSessionSnapshot _anonymousSignInSession;
+  FirebaseAuthSessionSnapshot? restoredSession;
   final List<FirebaseAuthSessionSnapshot?> _forceRefreshQueue =
       <FirebaseAuthSessionSnapshot?>[];
   final Map<AuthLinkProvider, _FakeUpgradeOutcome> _upgradeOutcomes =
       <AuthLinkProvider, _FakeUpgradeOutcome>{};
 
+  int tryRestorePlayGamesSessionCalls = 0;
   int signInAnonymouslyCalls = 0;
   int forceRefreshReadCalls = 0;
   int linkProviderCalls = 0;
@@ -432,6 +434,16 @@ class _FakeFirebaseAuthSessionSource implements FirebaseAuthSessionSource {
       }
     }
     return _current;
+  }
+
+  @override
+  Future<FirebaseAuthSessionSnapshot?> tryRestorePlayGamesSession() async {
+    tryRestorePlayGamesSessionCalls += 1;
+    final restored = restoredSession;
+    if (restored != null) {
+      _current = restored;
+    }
+    return restored;
   }
 
   @override

@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 
 import 'auth_api.dart';
 
@@ -36,6 +35,10 @@ class FirebaseAuthApi implements AuthApi {
   Future<AuthSession> ensureAuthenticatedSession() async {
     var snapshot = await _source.readCurrent(forceRefresh: false);
     if (snapshot == null) {
+      final restored = await _source.tryRestorePlayGamesSession();
+      if (restored != null) {
+        return _toSession(restored);
+      }
       return _toSession(await _source.signInAnonymously());
     }
 
@@ -43,6 +46,7 @@ class FirebaseAuthApi implements AuthApi {
     if (_expiresSoon(snapshot, now)) {
       snapshot =
           await _source.readCurrent(forceRefresh: true) ??
+          await _source.tryRestorePlayGamesSession() ??
           await _source.signInAnonymously();
     }
 
@@ -50,6 +54,7 @@ class FirebaseAuthApi implements AuthApi {
     if (!session.isAuthenticatedAt(now.millisecondsSinceEpoch)) {
       snapshot =
           await _source.readCurrent(forceRefresh: true) ??
+          await _source.tryRestorePlayGamesSession() ??
           await _source.signInAnonymously();
       session = _toSession(snapshot);
     }
@@ -111,16 +116,6 @@ class FirebaseAuthApi implements AuthApi {
         session: await _resolveSessionFallback(current),
         errorCode: error.code,
         errorMessage: error.message,
-      );
-    } on GoogleSignInException catch (error) {
-      return AuthLinkResult(
-        provider: provider,
-        status: error.code == GoogleSignInExceptionCode.canceled
-            ? AuthLinkStatus.canceled
-            : AuthLinkStatus.failed,
-        session: await _resolveSessionFallback(current),
-        errorCode: error.code.name,
-        errorMessage: error.description,
       );
     } on PlatformException catch (error) {
       return AuthLinkResult(
@@ -255,6 +250,8 @@ abstract class FirebaseAuthSessionSource {
     required bool forceRefresh,
   });
 
+  Future<FirebaseAuthSessionSnapshot?> tryRestorePlayGamesSession();
+
   Future<FirebaseAuthSessionSnapshot> signInAnonymously();
 
   Future<FirebaseAuthSessionSnapshot?> linkAuthProvider(
@@ -268,18 +265,13 @@ abstract class FirebaseAuthSessionSource {
 class PluginFirebaseAuthSessionSource implements FirebaseAuthSessionSource {
   PluginFirebaseAuthSessionSource(
     this._auth, {
-    GoogleSignIn? googleSignIn,
     PlayGamesServerAuthCodeSource? playGamesAuthCodeSource,
-  }) : _googleSignIn = googleSignIn ?? GoogleSignIn.instance,
-       _playGamesAuthCodeSource =
+  }) : _playGamesAuthCodeSource =
            playGamesAuthCodeSource ??
            const MethodChannelPlayGamesServerAuthCodeSource();
 
   final FirebaseAuth _auth;
-  final GoogleSignIn _googleSignIn;
   final PlayGamesServerAuthCodeSource _playGamesAuthCodeSource;
-
-  static Future<void>? _googleSignInInitialization;
 
   @override
   Future<FirebaseAuthSessionSnapshot?> readCurrent({
@@ -291,6 +283,11 @@ class PluginFirebaseAuthSessionSource implements FirebaseAuthSessionSource {
     }
     final tokenResult = await user.getIdTokenResult(forceRefresh);
     return _toSnapshot(user, tokenResult);
+  }
+
+  @override
+  Future<FirebaseAuthSessionSnapshot?> tryRestorePlayGamesSession() async {
+    return _tryRestoreWithPlayGames();
   }
 
   @override
@@ -309,8 +306,6 @@ class PluginFirebaseAuthSessionSource implements FirebaseAuthSessionSource {
     AuthLinkProvider provider,
   ) async {
     switch (provider) {
-      case AuthLinkProvider.google:
-        return _linkWithGoogle();
       case AuthLinkProvider.playGames:
         return _linkWithPlayGames();
     }
@@ -319,36 +314,6 @@ class PluginFirebaseAuthSessionSource implements FirebaseAuthSessionSource {
   @override
   Future<void> signOut() async {
     await _auth.signOut();
-  }
-
-  Future<FirebaseAuthSessionSnapshot?> _linkWithGoogle() async {
-    final user = await _loadCurrentOrAnonymousUser();
-    if (_isProviderLinked(user, AuthLinkProvider.google)) {
-      final tokenResult = await user.getIdTokenResult(true);
-      return _toSnapshot(user, tokenResult);
-    }
-
-    await _ensureGoogleSignInInitialized();
-    if (!_googleSignIn.supportsAuthenticate()) {
-      throw UnsupportedError(
-        'Google sign-in is not supported on this platform with the current flow.',
-      );
-    }
-    final googleUser = await _googleSignIn.authenticate();
-
-    final idToken = googleUser.authentication.idToken;
-    if (idToken == null || idToken.isEmpty) {
-      throw StateError('Google Sign-In did not return an id token.');
-    }
-
-    final credential = GoogleAuthProvider.credential(idToken: idToken);
-    final linkedUser = await _linkUserWithCredential(
-      user: user,
-      provider: AuthLinkProvider.google,
-      credential: credential,
-    );
-    final tokenResult = await linkedUser.getIdTokenResult(true);
-    return _toSnapshot(linkedUser, tokenResult);
   }
 
   Future<FirebaseAuthSessionSnapshot?> _linkWithPlayGames() async {
@@ -389,6 +354,43 @@ class PluginFirebaseAuthSessionSource implements FirebaseAuthSessionSource {
     return _toSnapshot(linkedUser, tokenResult);
   }
 
+  Future<FirebaseAuthSessionSnapshot?> _tryRestoreWithPlayGames() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+      return null;
+    }
+
+    try {
+      final serverAuthCode = await _playGamesAuthCodeSource
+          .requestServerAuthCode();
+      if (serverAuthCode == null || serverAuthCode.isEmpty) {
+        return null;
+      }
+      final credential = PlayGamesAuthProvider.credential(
+        serverAuthCode: serverAuthCode,
+      );
+      final restored = await _auth.signInWithCredential(credential);
+      final user = restored.user;
+      if (user == null) {
+        throw StateError(
+          'FirebaseAuth.signInWithCredential returned null user during Play Games restore.',
+        );
+      }
+      final tokenResult = await user.getIdTokenResult(true);
+      return _toSnapshot(user, tokenResult);
+    } on PlatformException catch (error) {
+      debugPrint('Play Games restore failed: ${error.code} ${error.message}');
+      return null;
+    } on FirebaseAuthException catch (error) {
+      debugPrint(
+        'Play Games restore FirebaseAuthException: ${error.code} ${error.message}',
+      );
+      return null;
+    } catch (error) {
+      debugPrint('Play Games restore failed: $error');
+      return null;
+    }
+  }
+
   FirebaseAuthSessionSnapshot _toSnapshot(User user, IdTokenResult token) {
     return FirebaseAuthSessionSnapshot(
       userId: user.uid,
@@ -411,10 +413,6 @@ class PluginFirebaseAuthSessionSource implements FirebaseAuthSessionSource {
       throw StateError('FirebaseAuth returned null user during provider link.');
     }
     return user;
-  }
-
-  Future<void> _ensureGoogleSignInInitialized() {
-    return _googleSignInInitialization ??= _googleSignIn.initialize();
   }
 
   Future<User> _linkUserWithCredential({
@@ -457,12 +455,10 @@ class PluginFirebaseAuthSessionSource implements FirebaseAuthSessionSource {
 
   AuthLinkProvider? _providerFromId(String providerId) {
     return switch (providerId) {
-      _googleProviderId => AuthLinkProvider.google,
       _playGamesProviderId => AuthLinkProvider.playGames,
       _ => null,
     };
   }
 
-  static const String _googleProviderId = 'google.com';
   static const String _playGamesProviderId = 'playgames.google.com';
 }

@@ -373,7 +373,8 @@ Completed in this phase:
   `FirebaseAuthApi`.
 - Bound session lifecycle through `AppState` bootstrap/mutations via
   `ensureAuthenticatedSession()`:
-  - missing session => anonymous sign-in
+  - missing session => Play Games restore attempt before anonymous sign-in
+    fallback
   - expiring/expired token => refresh path
   - session/user change => stale write recovery via canonical reload path
 - Added AppState integration coverage for missing/expired/session-changed auth
@@ -383,9 +384,6 @@ Completed in this phase:
   - `linkAuthProvider(AuthLinkProvider provider)`
   - typed outcomes via `AuthLinkResult` (`linked`, `alreadyLinked`,
     `canceled`, `failed`, `unsupported`)
-- Implemented Google link path in `FirebaseAuthApi`
-  (`GoogleSignIn` + Firebase `linkWithCredential`) with explicit cancel/error
-  handling.
 - Implemented Play Games link path in `FirebaseAuthApi`
   (`PlayGames` v2 server-side access via Android method channel +
   `PlayGamesAuthProvider.credential`) for Android.
@@ -394,7 +392,7 @@ Completed in this phase:
 - Added Firebase auth adapter tests for anonymous and non-anonymous provider
   linking (including already-linked/unsupported/canceled branches).
 - Added Profile page "Manage linked accounts" section for both anonymous and
-  non-anonymous users (`Link Google`, `Link Play Games` on Android).
+  non-anonymous users (`Link Play Games` on Android).
 - Added Firebase callable-backed profile name persistence:
   - Functions callables:
     - `playerProfileLoad`
@@ -406,6 +404,34 @@ Completed in this phase:
 - Added UI remote profile adapter (`FirebaseUserProfileRemoteApi`) and wired
   `AppState` bootstrap/updateProfile to sync display names with backend while
   keeping non-name profile fields local.
+- Added account-deletion contract and production adapter:
+  - `AccountDeletionApi` boundary in `lib/ui/state`
+  - Firebase callable adapter (`FirebaseAccountDeletionApi`) using
+    `accountDelete`
+  - `AppState.deleteAccountAndData()` orchestration:
+    - call backend deletion
+    - clear local profile/session persistence
+    - reset in-memory state for clean relaunch
+  - Profile page "Danger zone" with two-step delete confirmation and
+    app-close on success (prevents immediate guest re-creation in-process).
+- Added tests for:
+  - Firebase account deletion adapter result/error mapping
+  - AppState deletion orchestration success/failure
+  - Profile page delete action confirmation flow.
+- Implemented and deployed backend callable `accountDelete`:
+  - Auth guard: callable requires authenticated Firebase user (`auth.uid`).
+  - Identity guard: `request.userId` must match `auth.uid`.
+  - Cascade deletion scope (UID-scoped):
+    - `player_profiles/{uid}`
+    - `display_name_index/*` documents claimed by `uid`
+    - all `ownership_profiles/*` documents where `uid` matches
+      (including nested idempotency subcollections via recursive delete)
+    - ghost collections (UID-scoped docs):
+      - `ghost_runs`
+      - `leaderboard_ghost_runs`
+      - `weekly_ghost_runs`
+  - Final step deletes the Firebase Auth user (`admin.auth().deleteUser(uid)`),
+    tolerating already-missing user records.
 
 Still pending for full server authority:
 
@@ -413,3 +439,5 @@ Still pending for full server authority:
 - Server-side revision/idempotency ledger for canonical state authority.
 - Account-link UX handling for provider collisions (e.g. credential already in
   use) and sign-in fallback flows.
+- Extend account-deletion cascade when new backend collections are introduced
+  (e.g. future ghost/leaderboard schemas outside current collection set).
