@@ -194,7 +194,7 @@ class _OfferIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final iconSize = context.ui.sizes.iconSize.md;
+    final iconSize = context.ui.sizes.iconSize.lg;
     switch (offer.domain) {
       case StoreDomain.gear:
         final gearSlot = _gearSlotForStoreSlot(offer.slot);

@@ -7,7 +7,7 @@ import '../pages/hub/play_hub_page.dart';
 import '../pages/leaderboards/leaderboards_page.dart';
 import '../pages/lab/loadout_lab_page.dart';
 import '../pages/meta/credits_page.dart';
-import '../pages/meta/town_page.dart';
+import '../pages/town/town_page.dart';
 import '../pages/meta/support_page.dart';
 import '../pages/meta/library_page.dart';
 import '../pages/meta/options_page.dart';

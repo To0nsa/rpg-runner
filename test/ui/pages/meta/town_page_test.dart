@@ -5,7 +5,9 @@ import 'package:rpg_runner/core/accessories/accessory_id.dart';
 import 'package:rpg_runner/core/meta/meta_service.dart';
 import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
 import 'package:rpg_runner/core/weapons/weapon_id.dart';
-import 'package:rpg_runner/ui/pages/meta/town_page.dart';
+import 'package:rpg_runner/ui/components/app_button.dart';
+import 'package:rpg_runner/ui/components/gold_display.dart';
+import 'package:rpg_runner/ui/pages/town/town_page.dart';
 import 'package:rpg_runner/ui/state/app_state.dart';
 import 'package:rpg_runner/ui/state/auth_api.dart';
 import 'package:rpg_runner/ui/state/loadout_ownership_api.dart';
@@ -107,9 +109,50 @@ void main() {
 
     await tester.tap(find.text('Refresh'));
     await tester.pumpAndSettle();
+    expect(find.text('Refresh store?'), findsOneWidget);
+    expect(find.text('Refreshing the store costs'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is GoldDisplay &&
+            widget.gold == 50 &&
+            widget.label == 'Cost' &&
+            widget.variant == GoldDisplayVariant.body,
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Are you sure you want to refresh the store?'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.widgetWithText(AppButton, 'Refresh').last);
+    await tester.pumpAndSettle();
 
     expect(ownershipApi.refreshStoreCalls, 1);
     expect(find.text('Store refreshed.'), findsOneWidget);
+  });
+
+  testWidgets('Town refresh dialog cancel leaves store unchanged', (
+    tester,
+  ) async {
+    final ownershipApi = _ScriptedOwnershipApi(
+      canonical: _canonicalWithStore(
+        gold: 500,
+        activeOffers: <StoreOfferState>[_swordOffer()],
+      ),
+    );
+    final appState = await _bootstrappedAppState(ownershipApi: ownershipApi);
+
+    await tester.pumpWidget(_TestApp(appState: appState));
+
+    await tester.tap(find.text('Refresh'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(AppButton, 'Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(ownershipApi.refreshStoreCalls, 0);
+    expect(find.text('Refresh store?'), findsNothing);
   });
 
   testWidgets('Town disables refresh when no offer can change', (tester) async {

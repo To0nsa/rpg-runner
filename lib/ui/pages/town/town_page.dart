@@ -13,11 +13,15 @@ import '../../../core/spellBook/spell_book_id.dart';
 import '../../../core/weapons/weapon_catalog.dart';
 import '../../../core/weapons/weapon_category.dart';
 import '../../../core/weapons/weapon_id.dart';
+import '../../components/app_button.dart';
+import '../../components/app_dialog.dart';
+import '../../components/gold_display.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
 import '../../state/app_state.dart';
 import '../../state/loadout_ownership_api.dart';
 import '../../state/progression_state.dart';
+import '../../theme/ui_tokens.dart';
 import 'town_store_widgets.dart';
 
 const int _dailyRefreshLimit = 3;
@@ -92,7 +96,7 @@ class _TownPageState extends State<TownPage> {
               refreshesRemaining: refreshesRemaining,
               inFlight: _refreshInFlight,
               canRefresh: canRefreshForGold,
-              onRefreshPressed: () => _refreshForGold(appState),
+              onRefreshPressed: () => _confirmRefreshForGold(appState),
               activeOffers: activeOffers,
               currentGold: appState.progression.gold,
               purchaseInFlight: _purchaseInFlight,
@@ -137,6 +141,59 @@ class _TownPageState extends State<TownPage> {
         });
       }
     }
+  }
+
+  Future<void> _confirmRefreshForGold(AppState appState) async {
+    if (_purchaseInFlight || _refreshInFlight) {
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        final ui = dialogContext.ui;
+        return AppDialog(
+          title: 'Refresh store?',
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Refreshing the store costs',
+                style: ui.text.body.copyWith(color: ui.colors.textPrimary),
+              ),
+              SizedBox(height: ui.space.xs),
+              const GoldDisplay(
+                gold: _goldRefreshCost,
+                label: 'Cost',
+                variant: GoldDisplayVariant.body,
+              ),
+              SizedBox(height: ui.space.xs),
+              Text(
+                'Are you sure you want to refresh the store?',
+                style: ui.text.body.copyWith(color: ui.colors.textPrimary),
+              ),
+            ],
+          ),
+          actions: [
+            AppButton(
+              label: 'Cancel',
+              variant: AppButtonVariant.secondary,
+              size: AppButtonSize.xs,
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+            ),
+            AppButton(
+              label: 'Refresh',
+              size: AppButtonSize.xs,
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+    await _refreshForGold(appState);
   }
 
   Future<void> _refreshForGold(AppState appState) async {
