@@ -36,7 +36,7 @@ export async function loadOrCreateCanonicalState(args: {
     meta: starterDoc.meta,
     progression: starterDoc.progression,
   }));
-  return canonicalStateFromDocument(starterDoc, resolved.canonical.profileId);
+  return canonicalStateFromDocument(starterDoc, resolved.canonical.profileId, uid);
 }
 
 export async function resolveCanonicalStateForTransaction(args: {
@@ -60,9 +60,10 @@ export async function resolveCanonicalStateForTransaction(args: {
 export function canonicalStateFromDocument(
   doc: CanonicalDocument | undefined,
   profileId: string,
+  uid: string,
 ): OwnershipCanonicalState {
   if (!doc) {
-    return normalizeCanonicalState(undefined, profileId);
+    return normalizeCanonicalState(undefined, profileId, uid);
   }
   return normalizeCanonicalState(
     {
@@ -73,6 +74,7 @@ export function canonicalStateFromDocument(
       progression: doc.progression,
     },
     profileId,
+    uid,
   );
 }
 
@@ -165,12 +167,16 @@ function resolveCanonicalStateFromQueryDocs(args: {
     const profileId = readProfileId(existing.data);
     return {
       canonicalRef: existing.ref,
-      canonical: canonicalStateFromDocument(existing.data, profileId),
+      canonical: canonicalStateFromDocument(existing.data, profileId, args.uid),
       exists: true,
     };
   }
 
-  const canonical = normalizeCanonicalState(undefined, defaultCanonicalProfileId);
+  const canonical = normalizeCanonicalState(
+    undefined,
+    defaultCanonicalProfileId,
+    args.uid,
+  );
   return {
     canonicalRef: canonicalDocRef(args.db, args.uid, canonical.profileId),
     canonical,

@@ -31,10 +31,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      _TestApp(
-        appState: appState,
-        bootstrapper: bootstrapper,
-      ),
+      _TestApp(appState: appState, bootstrapper: bootstrapper),
     );
     await tester.pump();
     await tester.pump();
@@ -63,10 +60,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      _TestApp(
-        appState: appState,
-        bootstrapper: bootstrapper,
-      ),
+      _TestApp(appState: appState, bootstrapper: bootstrapper),
     );
     await tester.pump();
     await tester.pump();
@@ -89,16 +83,15 @@ void main() {
     );
     final bootstrapper = _StaticBootstrapper(
       result: BootstrapResult.failure(
-        StateError(List<String>.filled(80, 'very long bootstrap error').join('\n')),
+        StateError(
+          List<String>.filled(80, 'very long bootstrap error').join('\n'),
+        ),
         StackTrace.current,
       ),
     );
 
     await tester.pumpWidget(
-      _TestApp(
-        appState: appState,
-        bootstrapper: bootstrapper,
-      ),
+      _TestApp(appState: appState, bootstrapper: bootstrapper),
     );
     await tester.pump();
     await tester.pump();
@@ -110,10 +103,7 @@ void main() {
 }
 
 class _TestApp extends StatelessWidget {
-  const _TestApp({
-    required this.appState,
-    required this.bootstrapper,
-  });
+  const _TestApp({required this.appState, required this.bootstrapper});
 
   final AppState appState;
   final AppBootstrapper bootstrapper;
@@ -123,10 +113,7 @@ class _TestApp extends StatelessWidget {
     return ChangeNotifierProvider<AppState>.value(
       value: appState,
       child: MaterialApp(
-        theme: ThemeData(
-          useMaterial3: true,
-          extensions: [UiTokens.standard],
-        ),
+        theme: ThemeData(useMaterial3: true, extensions: [UiTokens.standard]),
         home: LoaderPage(
           args: const LoaderArgs(isResume: true),
           bootstrapper: bootstrapper,
@@ -256,7 +243,9 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
   }
 
   @override
-  Future<OwnershipCommandResult> setSelection(SetSelectionCommand command) async {
+  Future<OwnershipCommandResult> setSelection(
+    SetSelectionCommand command,
+  ) async {
     return _accepted();
   }
 
@@ -311,7 +300,23 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
   }
 
   @override
-  Future<OwnershipCommandResult> awardRunGold(AwardRunGoldCommand command) async {
+  Future<OwnershipCommandResult> awardRunGold(
+    AwardRunGoldCommand command,
+  ) async {
+    return _accepted();
+  }
+
+  @override
+  Future<OwnershipCommandResult> purchaseStoreOffer(
+    PurchaseStoreOfferCommand command,
+  ) async {
+    return _accepted();
+  }
+
+  @override
+  Future<OwnershipCommandResult> refreshStore(
+    RefreshStoreCommand command,
+  ) async {
     return _accepted();
   }
 

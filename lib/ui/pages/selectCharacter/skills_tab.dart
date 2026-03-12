@@ -3,8 +3,9 @@ import 'package:provider/provider.dart';
 
 import '../../../core/abilities/ability_def.dart';
 import '../../../core/ecs/stores/combat/equipped_loadout_store.dart';
-import '../../../core/meta/spell_list.dart';
+import '../../../core/meta/ability_ownership_state.dart';
 import '../../../core/players/player_character_definition.dart';
+import '../../app/ui_routes.dart';
 import '../../state/app_state.dart';
 import '../../text/ability_tooltip_builder.dart';
 import '../../theme/ui_tokens.dart';
@@ -42,7 +43,9 @@ class _SkillsBarState extends State<SkillsBar> {
     final loadout = appState.selection.loadoutFor(widget.characterId);
     final availableSlots = _availableSlotsForMask(loadout.mask);
     final selectedSlot = _selectedSlotForBuild(availableSlots);
-    final spellList = appState.meta.spellListFor(widget.characterId);
+    final abilityOwnership = appState.meta.abilityOwnershipFor(
+      widget.characterId,
+    );
     final isProjectileSlot = selectedSlot == AbilitySlot.projectile;
     final selectedSourceSpellId = isProjectileSlot
         ? loadout.projectileSlotSpellId
@@ -51,7 +54,7 @@ class _SkillsBarState extends State<SkillsBar> {
       characterId: widget.characterId,
       slot: selectedSlot,
       loadout: loadout,
-      spellList: spellList,
+      abilityOwnership: abilityOwnership,
       selectedSourceSpellId: selectedSourceSpellId,
       overrideSelectedSource: isProjectileSlot,
     );
@@ -65,7 +68,7 @@ class _SkillsBarState extends State<SkillsBar> {
       equippedAbilityId: equippedAbilityId,
     );
     final inspectedCandidate = _candidateById(candidates, inspectedAbilityId);
-    final tooltip = inspectedCandidate == null
+    final tooltip = inspectedCandidate == null || !inspectedCandidate.isOwned
         ? null
         : _tooltipBuilder.build(
             inspectedCandidate.def,
@@ -105,7 +108,7 @@ class _SkillsBarState extends State<SkillsBar> {
                       ? () => _showProjectileSourcePicker(
                           appState: appState,
                           loadout: loadout,
-                          spellList: spellList,
+                          abilityOwnership: abilityOwnership,
                         )
                       : null,
                 ),
@@ -113,7 +116,11 @@ class _SkillsBarState extends State<SkillsBar> {
               SizedBox(width: layout.gap),
               SizedBox(
                 width: layout.detailsWidth,
-                child: SkillsDetailsPane(tooltip: tooltip),
+                child: SkillsDetailsPane(
+                  selectedCandidate: inspectedCandidate,
+                  tooltip: tooltip,
+                  onFindInTown: _openTownStoreFromLockedSkill,
+                ),
               ),
               SizedBox(width: layout.gap),
               SizedBox(
@@ -149,7 +156,7 @@ class _SkillsBarState extends State<SkillsBar> {
     setState(() {
       _inspectedAbilityId = candidate.id;
     });
-    if (!candidate.isEnabled) return;
+    if (!candidate.isOwned || !candidate.isEnabled) return;
     final equippedAbilityId = abilityIdForSlot(loadout, slot);
     if (equippedAbilityId == candidate.id) return;
     await appState.setAbilitySlot(
@@ -177,9 +184,9 @@ class _SkillsBarState extends State<SkillsBar> {
   Future<void> _showProjectileSourcePicker({
     required AppState appState,
     required EquippedLoadoutDef loadout,
-    required SpellList spellList,
+    required AbilityOwnershipState abilityOwnership,
   }) {
-    final options = projectileSourceOptions(loadout, spellList);
+    final options = projectileSourceOptions(loadout, abilityOwnership);
     return showProjectileSourceDialog(
       context,
       options: options,
@@ -191,6 +198,10 @@ class _SkillsBarState extends State<SkillsBar> {
         );
       },
     );
+  }
+
+  Future<void> _openTownStoreFromLockedSkill() {
+    return Navigator.of(context).pushNamed(UiRoutes.town);
   }
 
   AbilityKey? _resolveInspectedAbilityId(

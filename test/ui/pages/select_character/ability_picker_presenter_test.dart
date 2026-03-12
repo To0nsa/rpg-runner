@@ -1,14 +1,21 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
-import 'package:rpg_runner/core/meta/spell_list.dart';
+import 'package:rpg_runner/core/meta/ability_ownership_state.dart';
 import 'package:rpg_runner/core/players/player_character_definition.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/ui/pages/selectCharacter/ability/ability_picker_presenter.dart';
 
-const SpellList _defaultSpellList = SpellList(
+const AbilityOwnershipState _defaultAbilityOwnership = AbilityOwnershipState(
   learnedProjectileSpellIds: <ProjectileId>{ProjectileId.fireBolt},
-  learnedSpellAbilityIds: <AbilityKey>{'eloise.arcane_haste'},
+  learnedAbilityIdsBySlot: <AbilitySlot, Set<AbilityKey>>{
+    AbilitySlot.primary: <AbilityKey>{'eloise.seeker_slash'},
+    AbilitySlot.secondary: <AbilityKey>{'eloise.shield_block'},
+    AbilitySlot.projectile: <AbilityKey>{'eloise.snap_shot'},
+    AbilitySlot.mobility: <AbilityKey>{'eloise.dash'},
+    AbilitySlot.jump: <AbilityKey>{'eloise.jump'},
+    AbilitySlot.spell: <AbilityKey>{'eloise.arcane_haste'},
+  },
 );
 
 void main() {
@@ -17,15 +24,17 @@ void main() {
       const loadout = EquippedLoadoutDef(
         projectileSlotSpellId: ProjectileId.fireBolt,
       );
-      const spellList = SpellList(
+      const abilityOwnership = AbilityOwnershipState(
         learnedProjectileSpellIds: <ProjectileId>{
           ProjectileId.fireBolt,
           ProjectileId.iceBolt,
         },
-        learnedSpellAbilityIds: <AbilityKey>{'eloise.arcane_haste'},
+        learnedAbilityIdsBySlot: <AbilitySlot, Set<AbilityKey>>{
+          AbilitySlot.spell: <AbilityKey>{'eloise.arcane_haste'},
+        },
       );
 
-      final options = projectileSourceOptions(loadout, spellList);
+      final options = projectileSourceOptions(loadout, abilityOwnership);
 
       expect(options, isNotEmpty);
       expect(options.any((o) => o.spellId == ProjectileId.fireBolt), isTrue);
@@ -40,17 +49,19 @@ void main() {
       const loadout = EquippedLoadoutDef(
         projectileSlotSpellId: ProjectileId.fireBolt,
       );
-      const spellList = SpellList(
+      const abilityOwnership = AbilityOwnershipState(
         learnedProjectileSpellIds: <ProjectileId>{
           ProjectileId.fireBolt,
           ProjectileId.iceBolt,
         },
-        learnedSpellAbilityIds: <AbilityKey>{'eloise.arcane_haste'},
+        learnedAbilityIdsBySlot: <AbilitySlot, Set<AbilityKey>>{
+          AbilitySlot.spell: <AbilityKey>{'eloise.arcane_haste'},
+        },
       );
 
-      final model = projectileSourcePanelModel(loadout, spellList);
+      final model = projectileSourcePanelModel(loadout, abilityOwnership);
 
-      expect(model.spellListDisplayName, 'Spell List');
+      expect(model.abilityOwnershipDisplayName, 'Spell List');
       expect(model.spellOptions, isNotEmpty);
       expect(
         model.spellOptions.any(
@@ -72,21 +83,24 @@ void main() {
       );
     });
 
-    test('projectile slot exposes only owned starter ability', () {
+    test('projectile slot exposes owned and locked projectile abilities', () {
       const loadout = EquippedLoadoutDef(
         abilityProjectileId: 'eloise.quick_shot',
         projectileSlotSpellId: ProjectileId.iceBolt,
       );
-      const spellList = SpellList(
+      const abilityOwnership = AbilityOwnershipState(
         learnedProjectileSpellIds: <ProjectileId>{ProjectileId.iceBolt},
-        learnedSpellAbilityIds: <AbilityKey>{'eloise.arcane_haste'},
+        learnedAbilityIdsBySlot: <AbilitySlot, Set<AbilityKey>>{
+          AbilitySlot.projectile: <AbilityKey>{'eloise.snap_shot'},
+          AbilitySlot.spell: <AbilityKey>{'eloise.arcane_haste'},
+        },
       );
 
       final candidates = abilityCandidatesForSlot(
         characterId: PlayerCharacterId.eloise,
         slot: AbilitySlot.projectile,
         loadout: loadout,
-        spellList: spellList,
+        abilityOwnership: abilityOwnership,
         selectedSourceSpellId: ProjectileId.iceBolt,
         overrideSelectedSource: true,
       );
@@ -94,30 +108,33 @@ void main() {
       final autoAim = candidates.firstWhere(
         (candidate) => candidate.id == 'eloise.snap_shot',
       );
+      final quickShot = candidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.quick_shot',
+      );
+      final skewerShot = candidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.skewer_shot',
+      );
+      final overchargeShot = candidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.overcharge_shot',
+      );
+      expect(autoAim.isOwned, isTrue);
       expect(autoAim.isEnabled, isTrue);
-      expect(
-        candidates.any((candidate) => candidate.id == 'eloise.quick_shot'),
-        isFalse,
-      );
-      expect(
-        candidates.any((candidate) => candidate.id == 'eloise.skewer_shot'),
-        isFalse,
-      );
-      expect(
-        candidates.any((candidate) => candidate.id == 'eloise.overcharge_shot'),
-        isFalse,
-      );
+      expect(quickShot.isOwned, isFalse);
+      expect(skewerShot.isOwned, isFalse);
+      expect(overchargeShot.isOwned, isFalse);
     });
 
-    test('spell slot exposes only learned spell abilities', () {
+    test('spell slot exposes learned and locked spell abilities', () {
       const loadout = EquippedLoadoutDef(abilitySpellId: 'eloise.arcane_haste');
-      const spellList = SpellList(
+      const abilityOwnership = AbilityOwnershipState(
         learnedProjectileSpellIds: <ProjectileId>{ProjectileId.fireBolt},
-        learnedSpellAbilityIds: <AbilityKey>{
-          'eloise.arcane_haste',
-          'eloise.mana_infusion',
-          'eloise.cleanse',
-          'eloise.vital_surge',
+        learnedAbilityIdsBySlot: <AbilitySlot, Set<AbilityKey>>{
+          AbilitySlot.spell: <AbilityKey>{
+            'eloise.arcane_haste',
+            'eloise.mana_infusion',
+            'eloise.cleanse',
+            'eloise.vital_surge',
+          },
         },
       );
 
@@ -125,7 +142,7 @@ void main() {
         characterId: PlayerCharacterId.eloise,
         slot: AbilitySlot.spell,
         loadout: loadout,
-        spellList: spellList,
+        abilityOwnership: abilityOwnership,
       );
 
       expect(
@@ -145,11 +162,11 @@ void main() {
         isTrue,
       );
       expect(
-        candidates.any((candidate) => candidate.id == 'eloise.quick_shot'),
-        isFalse,
+        candidates.any((candidate) => candidate.id == 'eloise.focus'),
+        isTrue,
       );
       expect(
-        candidates.any((candidate) => candidate.id == 'eloise.focus'),
+        candidates.any((candidate) => candidate.id == 'eloise.quick_shot'),
         isFalse,
       );
 
@@ -165,13 +182,21 @@ void main() {
       final restoreHealth = candidates.firstWhere(
         (candidate) => candidate.id == 'eloise.vital_surge',
       );
+      final focus = candidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.focus',
+      );
+      expect(arcaneHaste.isOwned, isTrue);
+      expect(restoreMana.isOwned, isTrue);
+      expect(cleanse.isOwned, isTrue);
+      expect(restoreHealth.isOwned, isTrue);
       expect(arcaneHaste.isEnabled, isTrue);
       expect(restoreMana.isEnabled, isTrue);
       expect(cleanse.isEnabled, isTrue);
       expect(restoreHealth.isEnabled, isTrue);
+      expect(focus.isOwned, isFalse);
     });
 
-    test('primary and secondary expose only owned starter options', () {
+    test('primary and secondary expose owned and locked options', () {
       const loadout = EquippedLoadoutDef(
         abilityPrimaryId: 'eloise.bloodletter_slash',
         abilitySecondaryId: 'eloise.aegis_riposte',
@@ -181,13 +206,13 @@ void main() {
         characterId: PlayerCharacterId.eloise,
         slot: AbilitySlot.primary,
         loadout: loadout,
-        spellList: _defaultSpellList,
+        abilityOwnership: _defaultAbilityOwnership,
       );
       final secondaryCandidates = abilityCandidatesForSlot(
         characterId: PlayerCharacterId.eloise,
         slot: AbilitySlot.secondary,
         loadout: loadout,
-        spellList: _defaultSpellList,
+        abilityOwnership: _defaultAbilityOwnership,
       );
 
       final swordAutoAim = primaryCandidates.firstWhere(
@@ -196,40 +221,39 @@ void main() {
       final shieldBlock = secondaryCandidates.firstWhere(
         (candidate) => candidate.id == 'eloise.shield_block',
       );
+      final bloodletterSlash = primaryCandidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.bloodletter_slash',
+      );
+      final aegisRiposte = secondaryCandidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.aegis_riposte',
+      );
+      expect(swordAutoAim.isOwned, isTrue);
+      expect(shieldBlock.isOwned, isTrue);
       expect(swordAutoAim.isEnabled, isTrue);
       expect(shieldBlock.isEnabled, isTrue);
-      expect(
-        primaryCandidates.any(
-          (candidate) => candidate.id == 'eloise.bloodletter_slash',
-        ),
-        isFalse,
-      );
-      expect(
-        secondaryCandidates.any(
-          (candidate) => candidate.id == 'eloise.aegis_riposte',
-        ),
-        isFalse,
-      );
+      expect(bloodletterSlash.isOwned, isFalse);
+      expect(aegisRiposte.isOwned, isFalse);
     });
 
-    test('jump slot exposes only owned starter jump option', () {
+    test('jump slot exposes owned and locked jump options', () {
       const loadout = EquippedLoadoutDef(abilityJumpId: 'eloise.jump');
 
       final candidates = abilityCandidatesForSlot(
         characterId: PlayerCharacterId.eloise,
         slot: AbilitySlot.jump,
         loadout: loadout,
-        spellList: _defaultSpellList,
+        abilityOwnership: _defaultAbilityOwnership,
       );
 
       final jump = candidates.firstWhere(
         (candidate) => candidate.id == 'eloise.jump',
       );
-      expect(jump.isEnabled, isTrue);
-      expect(
-        candidates.any((candidate) => candidate.id == 'eloise.double_jump'),
-        isFalse,
+      final doubleJump = candidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.double_jump',
       );
+      expect(jump.isOwned, isTrue);
+      expect(jump.isEnabled, isTrue);
+      expect(doubleJump.isOwned, isFalse);
     });
 
     test('secondary slot remains legal under current validator rules', () {
@@ -242,7 +266,7 @@ void main() {
         characterId: PlayerCharacterId.eloise,
         slot: AbilitySlot.secondary,
         loadout: legacyLoadout,
-        spellList: _defaultSpellList,
+        abilityOwnership: _defaultAbilityOwnership,
       );
 
       final shieldBlock = candidates.firstWhere(
@@ -251,7 +275,7 @@ void main() {
       expect(shieldBlock.isEnabled, isTrue);
     });
 
-    test('catalog-valid source keeps starter projectile option enabled', () {
+    test('catalog-valid source keeps owned projectile option legal', () {
       const loadout = EquippedLoadoutDef(
         abilityProjectileId: 'eloise.quick_shot',
       );
@@ -260,7 +284,7 @@ void main() {
         characterId: PlayerCharacterId.eloise,
         slot: AbilitySlot.projectile,
         loadout: loadout,
-        spellList: _defaultSpellList,
+        abilityOwnership: _defaultAbilityOwnership,
         selectedSourceSpellId: ProjectileId.iceBolt,
         overrideSelectedSource: true,
       );
@@ -268,19 +292,37 @@ void main() {
       final autoAim = candidates.firstWhere(
         (candidate) => candidate.id == 'eloise.snap_shot',
       );
+      final quickShot = candidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.quick_shot',
+      );
+      expect(autoAim.isOwned, isTrue);
       expect(autoAim.isEnabled, isTrue);
-      expect(
-        candidates.any((candidate) => candidate.id == 'eloise.quick_shot'),
-        isFalse,
+      expect(quickShot.isOwned, isFalse);
+    });
+
+    test('candidate model separates ownership from legality', () {
+      const loadout = EquippedLoadoutDef(
+        abilityProjectileId: 'eloise.snap_shot',
       );
-      expect(
-        candidates.any((candidate) => candidate.id == 'eloise.skewer_shot'),
-        isFalse,
+
+      final candidates = abilityCandidatesForSlot(
+        characterId: PlayerCharacterId.eloise,
+        slot: AbilitySlot.projectile,
+        loadout: loadout,
+        abilityOwnership: _defaultAbilityOwnership,
+        selectedSourceSpellId: ProjectileId.unknown,
+        overrideSelectedSource: true,
       );
-      expect(
-        candidates.any((candidate) => candidate.id == 'eloise.overcharge_shot'),
-        isFalse,
+
+      final ownedProjectile = candidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.snap_shot',
       );
+      final lockedProjectile = candidates.firstWhere(
+        (candidate) => candidate.id == 'eloise.quick_shot',
+      );
+      expect(ownedProjectile.isOwned, isTrue);
+      expect(ownedProjectile.isEnabled, isFalse);
+      expect(lockedProjectile.isOwned, isFalse);
     });
 
     test(

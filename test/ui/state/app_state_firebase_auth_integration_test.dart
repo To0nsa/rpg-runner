@@ -96,18 +96,20 @@ void main() {
         isAnonymous: false,
         linkedProviders: const <AuthLinkProvider>{AuthLinkProvider.playGames},
       );
-      final source = _FakeFirebaseAuthSessionSource(
-        current: cachedCurrent,
-        anonymousSignInSession: _snapshot(
-          userId: 'anon_u1',
-          token: 'token_u1_bootstrap',
-          now: now,
-        ),
-      )..readCurrentError = FirebaseAuthException(
-        code: 'network-request-failed',
-        message:
-            'A network error (such as timeout, interrupted connection or unreachable host) has occurred.',
-      );
+      final source =
+          _FakeFirebaseAuthSessionSource(
+              current: cachedCurrent,
+              anonymousSignInSession: _snapshot(
+                userId: 'anon_u1',
+                token: 'token_u1_bootstrap',
+                now: now,
+              ),
+            )
+            ..readCurrentError = FirebaseAuthException(
+              code: 'network-request-failed',
+              message:
+                  'A network error (such as timeout, interrupted connection or unreachable host) has occurred.',
+            );
       final authApi = FirebaseAuthApi(source: source, now: () => now);
       final ownershipApi = _SessionScopedOwnershipApi(
         profileId: 'test_profile',
@@ -646,7 +648,23 @@ class _SessionScopedOwnershipApi implements LoadoutOwnershipApi {
   }
 
   @override
-  Future<OwnershipCommandResult> awardRunGold(AwardRunGoldCommand command) async {
+  Future<OwnershipCommandResult> awardRunGold(
+    AwardRunGoldCommand command,
+  ) async {
+    return _acceptedFor(command.userId);
+  }
+
+  @override
+  Future<OwnershipCommandResult> purchaseStoreOffer(
+    PurchaseStoreOfferCommand command,
+  ) async {
+    return _acceptedFor(command.userId);
+  }
+
+  @override
+  Future<OwnershipCommandResult> refreshStore(
+    RefreshStoreCommand command,
+  ) async {
     return _acceptedFor(command.userId);
   }
 

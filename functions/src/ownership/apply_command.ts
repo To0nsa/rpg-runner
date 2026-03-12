@@ -9,6 +9,11 @@ import {
   normalizeCanonicalState,
   starterCanonicalState,
 } from "./defaults.js";
+import {
+  isStoreRefreshMethodValue,
+  purchaseStoreOffer,
+  refreshStore,
+} from "./store_state.js";
 
 const maxAwardRunGold = 10_000;
 const maxTrackedAwardedRunIds = 512;
@@ -27,7 +32,11 @@ export function applyOwnershipCommand(
   canonical: OwnershipCanonicalState,
   command: OwnershipCommandEnvelope,
 ): ApplyCommandResult {
-  const state = normalizeCanonicalState(canonical, canonical.profileId);
+  const state = normalizeCanonicalState(
+    canonical,
+    canonical.profileId,
+    command.userId,
+  );
   const payload = asRecord(command.payload);
   if (payload === null) {
     return rejected("invalidCommand");
@@ -38,7 +47,7 @@ export function applyOwnershipCommand(
       return applySetSelection(state, payload);
     case "resetOwnership":
       return accepted({
-        ...starterCanonicalState(state.profileId),
+        ...starterCanonicalState(state.profileId, command.userId),
         revision: state.revision,
       });
     case "setLoadout":
@@ -57,6 +66,10 @@ export function applyOwnershipCommand(
       return applyUnlockGear(state, payload);
     case "awardRunGold":
       return applyAwardRunGold(state, payload);
+    case "purchaseStoreOffer":
+      return applyPurchaseStoreOffer(state, command, payload);
+    case "refreshStore":
+      return applyRefreshStore(state, command, payload);
   }
 }
 
@@ -203,9 +216,12 @@ function applyLearnProjectileSpell(
     return rejected("invalidCommand");
   }
   const meta = ensureMetaObject(canonical.meta);
-  const spellLists = ensureMap(meta, "spellListByCharacter");
-  const spellList = ensureMap(spellLists, characterId);
-  const projectileSpells = ensureStringList(spellList, "projectileSpells");
+  const abilityOwnershipByCharacter = ensureMap(
+    meta,
+    "abilityOwnershipByCharacter",
+  );
+  const abilityOwnership = ensureMap(abilityOwnershipByCharacter, characterId);
+  const projectileSpells = ensureStringList(abilityOwnership, "projectileSpells");
   addUnique(projectileSpells, spellId);
   return accepted({
     ...canonical,
@@ -226,9 +242,13 @@ function applyLearnSpellAbility(
     return rejected("invalidCommand");
   }
   const meta = ensureMetaObject(canonical.meta);
-  const spellLists = ensureMap(meta, "spellListByCharacter");
-  const spellList = ensureMap(spellLists, characterId);
-  const spellAbilities = ensureStringList(spellList, "spellAbilities");
+  const abilityOwnershipByCharacter = ensureMap(
+    meta,
+    "abilityOwnershipByCharacter",
+  );
+  const abilityOwnership = ensureMap(abilityOwnershipByCharacter, characterId);
+  const abilitiesBySlot = ensureMap(abilityOwnership, "abilitiesBySlot");
+  const spellAbilities = ensureStringList(abilitiesBySlot, "spell");
   addUnique(spellAbilities, abilityId);
   return accepted({
     ...canonical,
@@ -307,6 +327,72 @@ function applyAwardRunGold(
   return accepted({
     ...canonical,
     progression,
+  });
+}
+
+function applyPurchaseStoreOffer(
+  canonical: OwnershipCanonicalState,
+  command: OwnershipCommandEnvelope,
+  payload: Record<string, unknown>,
+): ApplyCommandResult {
+  const offerId = nonEmptyString(payload.offerId);
+  if (offerId === null) {
+    return rejected("invalidCommand");
+  }
+
+  const progression = ensureProgressionObject(canonical.progression);
+  const meta = ensureMetaObject(canonical.meta);
+  const selection = ensureSelectionObject(canonical.selection);
+  const result = purchaseStoreOffer({
+    progression,
+    meta,
+    selection,
+    userId: command.userId,
+    offerId,
+    nowMs: Date.now(),
+  });
+  if (!result.accepted) {
+    return rejected(result.rejectedReason ?? "invalidCommand");
+  }
+
+  return accepted({
+    ...canonical,
+    progression,
+    meta,
+    selection,
+  });
+}
+
+function applyRefreshStore(
+  canonical: OwnershipCanonicalState,
+  command: OwnershipCommandEnvelope,
+  payload: Record<string, unknown>,
+): ApplyCommandResult {
+  const methodRaw = nonEmptyString(payload.method);
+  if (methodRaw === null || !isStoreRefreshMethodValue(methodRaw)) {
+    return rejected("invalidRefreshMethod");
+  }
+
+  const progression = ensureProgressionObject(canonical.progression);
+  const meta = ensureMetaObject(canonical.meta);
+  const selection = ensureSelectionObject(canonical.selection);
+  const result = refreshStore({
+    progression,
+    meta,
+    selection,
+    userId: command.userId,
+    method: methodRaw,
+    nowMs: Date.now(),
+  });
+  if (!result.accepted) {
+    return rejected(result.rejectedReason ?? "invalidCommand");
+  }
+
+  return accepted({
+    ...canonical,
+    progression,
+    meta,
+    selection,
   });
 }
 

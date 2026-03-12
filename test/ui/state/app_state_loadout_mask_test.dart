@@ -218,7 +218,23 @@ class _ScriptedOwnershipApi implements LoadoutOwnershipApi {
   }
 
   @override
-  Future<OwnershipCommandResult> awardRunGold(AwardRunGoldCommand command) async {
+  Future<OwnershipCommandResult> awardRunGold(
+    AwardRunGoldCommand command,
+  ) async {
+    return _acceptedNoop();
+  }
+
+  @override
+  Future<OwnershipCommandResult> purchaseStoreOffer(
+    PurchaseStoreOfferCommand command,
+  ) async {
+    return _acceptedNoop();
+  }
+
+  @override
+  Future<OwnershipCommandResult> refreshStore(
+    RefreshStoreCommand command,
+  ) async {
     return _acceptedNoop();
   }
 

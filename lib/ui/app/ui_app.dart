@@ -20,6 +20,7 @@ import '../theme/ui_leaderboard_theme.dart';
 import '../theme/ui_action_button_theme.dart';
 import '../theme/ui_segmented_control_theme.dart';
 import '../theme/ui_skill_icon_theme.dart';
+import '../theme/ui_town_store_theme.dart';
 import '../theme/ui_tokens.dart';
 import 'ui_router.dart';
 import 'ui_routes.dart';
@@ -217,6 +218,7 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
             UiActionButtonTheme.standard,
             UiSkillIconTheme.standard,
             UiLeaderboardTheme.standard,
+            UiTownStoreTheme.standard,
           ],
         ),
         navigatorKey: _navigatorKey,

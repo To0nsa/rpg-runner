@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../components/app_button.dart';
+import '../../components/gold_display.dart';
 import '../../components/app_inline_edit_text.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
@@ -289,7 +290,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   child: Column(
                     children: [
                       _buildDisplayNameRow(profile),
-                      _row('Gold', gold.toString()),
+                      _buildGoldRow(gold),
                     ],
                   ),
                 ),
@@ -331,21 +332,16 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _row(String label, String value) {
+  Widget _buildGoldRow(int gold) {
     final ui = context.ui;
     final labelStyle = ui.text.label.copyWith(color: ui.colors.textMuted);
-    final valueStyle = ui.text.body.copyWith(color: ui.colors.textPrimary);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          SizedBox(width: 80, child: Text(label, style: labelStyle)),
+          SizedBox(width: 80, child: Text('Gold', style: labelStyle)),
           Expanded(
-            child: Text(
-              value,
-              style: valueStyle,
-              overflow: TextOverflow.ellipsis,
-            ),
+            child: GoldDisplay(gold: gold, variant: GoldDisplayVariant.body),
           ),
         ],
       ),

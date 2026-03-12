@@ -9,6 +9,8 @@ export const ownershipCommandTypes = [
   "learnSpellAbility",
   "unlockGear",
   "awardRunGold",
+  "purchaseStoreOffer",
+  "refreshStore",
 ] as const;
 
 export type OwnershipCommandType = (typeof ownershipCommandTypes)[number];
@@ -19,6 +21,15 @@ export const ownershipRejectedReasons = [
   "invalidCommand",
   "forbidden",
   "unauthorized",
+  "insufficientGold",
+  "offerUnavailable",
+  "alreadyOwned",
+  "refreshLimitReached",
+  "invalidRefreshMethod",
+  "rewardNotVerified",
+  "rewardAlreadyConsumed",
+  "rewardExpired",
+  "nothingToRefresh",
 ] as const;
 
 export type OwnershipRejectedReason = (typeof ownershipRejectedReasons)[number];

@@ -44,37 +44,40 @@ void main() {
     expect(appState.isBootstrapped, isFalse);
   });
 
-  test('deleteAccountAndData keeps state when backend deletion fails', () async {
-    final authApi = _StaticAuthApi();
-    final deletionApi = _StaticAccountDeletionApi(
-      result: const AccountDeletionResult(
-        status: AccountDeletionStatus.failed,
-        errorCode: 'internal',
-      ),
-    );
-    final appState = AppState(
-      authApi: authApi,
-      accountDeletionApi: deletionApi,
-      userProfileRemoteApi: const _StaticUserProfileRemoteApi(
-        profile: UserProfile(
-          displayName: 'Hero',
-          displayNameLastChangedAtMs: 1,
-          namePromptCompleted: true,
+  test(
+    'deleteAccountAndData keeps state when backend deletion fails',
+    () async {
+      final authApi = _StaticAuthApi();
+      final deletionApi = _StaticAccountDeletionApi(
+        result: const AccountDeletionResult(
+          status: AccountDeletionStatus.failed,
+          errorCode: 'internal',
         ),
-      ),
-      loadoutOwnershipApi: _NoopOwnershipApi(profileId: 'profile_u1'),
-    );
+      );
+      final appState = AppState(
+        authApi: authApi,
+        accountDeletionApi: deletionApi,
+        userProfileRemoteApi: const _StaticUserProfileRemoteApi(
+          profile: UserProfile(
+            displayName: 'Hero',
+            displayNameLastChangedAtMs: 1,
+            namePromptCompleted: true,
+          ),
+        ),
+        loadoutOwnershipApi: _NoopOwnershipApi(profileId: 'profile_u1'),
+      );
 
-    await appState.bootstrap(force: true);
-    final result = await appState.deleteAccountAndData();
+      await appState.bootstrap(force: true);
+      final result = await appState.deleteAccountAndData();
 
-    expect(result.status, AccountDeletionStatus.failed);
-    expect(authApi.clearSessionCalls, 0);
-    expect(appState.authSession.userId, 'u1');
-    expect(appState.profile.displayName, 'Hero');
-    expect(appState.profileId, 'profile_u1');
-    expect(appState.isBootstrapped, isTrue);
-  });
+      expect(result.status, AccountDeletionStatus.failed);
+      expect(authApi.clearSessionCalls, 0);
+      expect(appState.authSession.userId, 'u1');
+      expect(appState.profile.displayName, 'Hero');
+      expect(appState.profileId, 'profile_u1');
+      expect(appState.isBootstrapped, isTrue);
+    },
+  );
 }
 
 class _StaticAuthApi implements AuthApi {
@@ -192,7 +195,9 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
   }
 
   @override
-  Future<OwnershipCommandResult> setSelection(SetSelectionCommand command) async {
+  Future<OwnershipCommandResult> setSelection(
+    SetSelectionCommand command,
+  ) async {
     return _accepted();
   }
 
@@ -247,7 +252,23 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
   }
 
   @override
-  Future<OwnershipCommandResult> awardRunGold(AwardRunGoldCommand command) async {
+  Future<OwnershipCommandResult> awardRunGold(
+    AwardRunGoldCommand command,
+  ) async {
+    return _accepted();
+  }
+
+  @override
+  Future<OwnershipCommandResult> purchaseStoreOffer(
+    PurchaseStoreOfferCommand command,
+  ) async {
+    return _accepted();
+  }
+
+  @override
+  Future<OwnershipCommandResult> refreshStore(
+    RefreshStoreCommand command,
+  ) async {
     return _accepted();
   }
 }

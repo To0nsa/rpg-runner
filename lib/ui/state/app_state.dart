@@ -368,6 +368,77 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<OwnershipCommandResult> purchaseStoreOffer({
+    required String offerId,
+  }) async {
+    final session = await _ensureAuthSession();
+    var result = await _ownershipApi.purchaseStoreOffer(
+      PurchaseStoreOfferCommand(
+        userId: session.userId,
+        sessionId: session.sessionId,
+        expectedRevision: _ownershipRevision,
+        commandId: 'purchase_store_offer_${_newCommandId()}',
+        offerId: offerId,
+      ),
+    );
+    if (result.rejectedReason == OwnershipRejectedReason.staleRevision) {
+      final canonical = await _ownershipApi.loadCanonicalState(
+        userId: session.userId,
+        sessionId: session.sessionId,
+      );
+      _applyCanonicalState(canonical);
+      result = await _ownershipApi.purchaseStoreOffer(
+        PurchaseStoreOfferCommand(
+          userId: session.userId,
+          sessionId: session.sessionId,
+          expectedRevision: _ownershipRevision,
+          commandId: 'purchase_store_offer_${_newCommandId()}',
+          offerId: offerId,
+        ),
+      );
+    }
+    _applyOwnershipResult(result);
+    notifyListeners();
+    return result;
+  }
+
+  Future<OwnershipCommandResult> refreshStore({
+    required StoreRefreshMethod method,
+    String? refreshGrantId,
+  }) async {
+    final session = await _ensureAuthSession();
+    var result = await _ownershipApi.refreshStore(
+      RefreshStoreCommand(
+        userId: session.userId,
+        sessionId: session.sessionId,
+        expectedRevision: _ownershipRevision,
+        commandId: 'refresh_store_${method.name}_${_newCommandId()}',
+        method: method,
+        refreshGrantId: refreshGrantId,
+      ),
+    );
+    if (result.rejectedReason == OwnershipRejectedReason.staleRevision) {
+      final canonical = await _ownershipApi.loadCanonicalState(
+        userId: session.userId,
+        sessionId: session.sessionId,
+      );
+      _applyCanonicalState(canonical);
+      result = await _ownershipApi.refreshStore(
+        RefreshStoreCommand(
+          userId: session.userId,
+          sessionId: session.sessionId,
+          expectedRevision: _ownershipRevision,
+          commandId: 'refresh_store_${method.name}_${_newCommandId()}',
+          method: method,
+          refreshGrantId: refreshGrantId,
+        ),
+      );
+    }
+    _applyOwnershipResult(result);
+    notifyListeners();
+    return result;
+  }
+
   Future<AuthLinkResult> linkAuthProvider(AuthLinkProvider provider) async {
     final result = await _authApi.linkAuthProvider(provider);
     _authSession = result.session;

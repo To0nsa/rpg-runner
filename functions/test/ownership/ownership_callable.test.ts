@@ -11,6 +11,7 @@ import type {
   OwnershipCommandEnvelope,
 } from "../../src/ownership/contracts.js";
 import { defaultCanonicalProfileId } from "../../src/ownership/firestore_paths.js";
+import { defaultPriceGold, storeBuckets } from "../../src/ownership/store_pricing.js";
 import {
   loadOrCreatePlayerProfile,
   updatePlayerProfile,
@@ -34,6 +35,91 @@ const profileId = defaultCanonicalProfileId;
 const uid = "uid_owner";
 const sessionId = "session_1";
 const maxAwardRunGold = 10_000;
+const goldRefreshCost = 50;
+
+const swordItemIds = [
+  "plainsteel",
+  "waspfang",
+  "cinderedge",
+  "basiliskKiss",
+  "frostbrand",
+  "stormneedle",
+  "nullblade",
+  "sunlitVow",
+];
+
+const shieldItemIds = [
+  "roadguard",
+  "thornbark",
+  "cinderWard",
+  "tideguardShell",
+  "frostlockBuckler",
+  "ironBastion",
+  "stormAegis",
+  "nullPrism",
+  "warbannerGuard",
+  "oathwallRelic",
+];
+
+const spellBookItemIds = [
+  "apprenticePrimer",
+  "bastionCodex",
+  "emberGrimoire",
+  "tideAlmanac",
+  "hexboundLexicon",
+  "galeFolio",
+  "nullTestament",
+  "crownOfFocus",
+];
+
+const accessoryItemIds = [
+  "speedBoots",
+  "goldenRing",
+  "teethNecklace",
+  "diamondRing",
+  "ironBoots",
+  "oathBeads",
+  "resilienceCape",
+  "strengthBelt",
+];
+
+const projectileSpellIds = [
+  "iceBolt",
+  "fireBolt",
+  "acidBolt",
+  "darkBolt",
+  "earthBolt",
+  "holyBolt",
+  "waterBolt",
+  "thunderBolt",
+];
+
+const spellAbilityIds = [
+  "eloise.arcane_haste",
+  "eloise.focus",
+  "eloise.arcane_ward",
+  "eloise.cleanse",
+  "eloise.vital_surge",
+  "eloise.mana_infusion",
+  "eloise.second_wind",
+];
+
+const nonSpellAbilityIdsBySlot: Record<string, string[]> = {
+  primary: [
+    "eloise.bloodletter_slash",
+    "eloise.bloodletter_cleave",
+    "eloise.seeker_slash",
+  ],
+  secondary: ["eloise.aegis_riposte", "eloise.shield_block"],
+  projectile: [
+    "eloise.snap_shot",
+    "eloise.quick_shot",
+    "eloise.skewer_shot",
+    "eloise.overcharge_shot",
+  ],
+  mobility: ["eloise.dash", "eloise.roll"],
+  jump: ["eloise.jump", "eloise.double_jump"],
+};
 
 beforeEach(async () => {
   await Promise.all([
@@ -286,6 +372,299 @@ test("invalid character payload rejects with invalidCommand", async () => {
   assert.equal(invalid.newRevision, 0);
 });
 
+test("store seeds one priced and unowned offer per bucket", async () => {
+  const canonical = await loadOrCreateCanonicalState({ db, uid });
+  const offers = activeStoreOffers(canonical);
+  const offeredBuckets = offers.map((offer) => offer.bucket);
+
+  assert.equal(offers.length, storeBuckets.length);
+  assert.deepEqual([...offeredBuckets].sort(), [...storeBuckets].sort());
+  for (const offer of offers) {
+    assert.equal(offer.priceGold, defaultPriceGold);
+    assert.equal(offer.offerId, `${offer.domain}:${offer.slot}:${offer.itemId}`);
+    assert.equal(isOfferOwned(canonical, offer), false);
+  }
+});
+
+test("purchaseStoreOffer spends gold, unlocks ownership, and backfills same bucket", async () => {
+  const seeded = await loadOrCreateCanonicalState({ db, uid });
+  const swordBefore = storeOfferByBucket(seeded, "sword");
+  assert.ok(swordBefore);
+
+  const withGold = await executeOwnershipCommand({
+    db,
+    uid,
+    command: awardRunGoldCommand({
+      expectedRevision: seeded.revision,
+      commandId: "cmd_store_purchase_award",
+      runId: 501,
+      goldEarned: 500,
+    }),
+  });
+  assert.equal(withGold.rejectedReason, null);
+
+  const purchase = await executeOwnershipCommand({
+    db,
+    uid,
+    command: purchaseStoreOfferCommand({
+      expectedRevision: withGold.newRevision,
+      commandId: "cmd_store_purchase",
+      offerId: swordBefore.offerId,
+    }),
+  });
+  assert.equal(purchase.rejectedReason, null);
+  assert.equal(
+    purchase.canonicalState.progression.gold,
+    500 - swordBefore.priceGold,
+  );
+  assert.equal(isOfferOwned(purchase.canonicalState, swordBefore), true);
+
+  const swordAfter = storeOfferByBucket(purchase.canonicalState, "sword");
+  assert.ok(swordAfter);
+  assert.notEqual(swordAfter.offerId, swordBefore.offerId);
+  assert.equal(
+    activeStoreOffers(purchase.canonicalState).some(
+      (offer) => offer.offerId === swordBefore.offerId,
+    ),
+    false,
+  );
+});
+
+test("purchaseStoreOffer replay is idempotent with no double spend", async () => {
+  const seeded = await loadOrCreateCanonicalState({ db, uid });
+  const offer = activeStoreOffers(seeded)[0];
+  assert.ok(offer);
+
+  const withGold = await executeOwnershipCommand({
+    db,
+    uid,
+    command: awardRunGoldCommand({
+      expectedRevision: seeded.revision,
+      commandId: "cmd_store_purchase_replay_award",
+      runId: 502,
+      goldEarned: 500,
+    }),
+  });
+  assert.equal(withGold.rejectedReason, null);
+
+  const command = purchaseStoreOfferCommand({
+    expectedRevision: withGold.newRevision,
+    commandId: "cmd_store_purchase_replay",
+    offerId: offer.offerId,
+  });
+  const first = await executeOwnershipCommand({ db, uid, command });
+  const replay = await executeOwnershipCommand({ db, uid, command });
+
+  assert.equal(first.rejectedReason, null);
+  assert.equal(replay.replayedFromIdempotency, true);
+  assert.equal(replay.newRevision, first.newRevision);
+  assert.equal(
+    replay.canonicalState.progression.gold,
+    first.canonicalState.progression.gold,
+  );
+});
+
+test("purchaseStoreOffer rejects when gold is insufficient", async () => {
+  const seeded = await loadOrCreateCanonicalState({ db, uid });
+  const offer = activeStoreOffers(seeded)[0];
+  assert.ok(offer);
+
+  const purchase = await executeOwnershipCommand({
+    db,
+    uid,
+    command: purchaseStoreOfferCommand({
+      expectedRevision: seeded.revision,
+      commandId: "cmd_store_purchase_insufficient",
+      offerId: offer.offerId,
+    }),
+  });
+  assert.equal(purchase.rejectedReason, "insufficientGold");
+  assert.equal(purchase.newRevision, seeded.revision);
+});
+
+test("sword bucket eventually becomes sold out after all sword purchases", async () => {
+  const seeded = await loadOrCreateCanonicalState({ db, uid });
+  const goldBoost = swordItemIds.length * defaultPriceGold + 500;
+  const withGold = await executeOwnershipCommand({
+    db,
+    uid,
+    command: awardRunGoldCommand({
+      expectedRevision: seeded.revision,
+      commandId: "cmd_store_sword_sold_out_award",
+      runId: 503,
+      goldEarned: goldBoost,
+    }),
+  });
+  assert.equal(withGold.rejectedReason, null);
+
+  let canonical = withGold.canonicalState;
+  let purchases = 0;
+  for (;;) {
+    const swordOffer = storeOfferByBucket(canonical, "sword");
+    if (!swordOffer) {
+      break;
+    }
+    const result = await executeOwnershipCommand({
+      db,
+      uid,
+      command: purchaseStoreOfferCommand({
+        expectedRevision: canonical.revision,
+        commandId: `cmd_store_sword_sold_out_${purchases}`,
+        offerId: swordOffer.offerId,
+      }),
+    });
+    assert.equal(result.rejectedReason, null);
+    canonical = result.canonicalState;
+    purchases += 1;
+    assert.ok(purchases <= swordItemIds.length);
+  }
+
+  assert.equal(purchases, swordItemIds.length - 1);
+  assert.equal(storeOfferByBucket(canonical, "sword"), null);
+});
+
+test("refreshStore gold refresh rerolls offers and spends exactly 50 gold", async () => {
+  const seeded = await loadOrCreateCanonicalState({ db, uid });
+  const withGold = await executeOwnershipCommand({
+    db,
+    uid,
+    command: awardRunGoldCommand({
+      expectedRevision: seeded.revision,
+      commandId: "cmd_store_refresh_award",
+      runId: 504,
+      goldEarned: 200,
+    }),
+  });
+  assert.equal(withGold.rejectedReason, null);
+
+  const beforeStore = storeState(withGold.canonicalState);
+  const beforeOffers = storeOfferIdByBucket(withGold.canonicalState);
+  const refresh = await executeOwnershipCommand({
+    db,
+    uid,
+    command: refreshStoreCommand({
+      expectedRevision: withGold.newRevision,
+      commandId: "cmd_store_refresh_gold",
+      method: "gold",
+    }),
+  });
+  assert.equal(refresh.rejectedReason, null);
+  assert.equal(refresh.canonicalState.progression.gold, 200 - goldRefreshCost);
+
+  const afterStore = storeState(refresh.canonicalState);
+  assert.equal(afterStore.generation, beforeStore.generation + 1);
+  assert.equal(afterStore.refreshesUsedToday, beforeStore.refreshesUsedToday + 1);
+  assert.equal(changedBuckets(beforeOffers, storeOfferIdByBucket(refresh.canonicalState)) > 0, true);
+});
+
+test("refreshStore replay is idempotent with no double spend", async () => {
+  const seeded = await loadOrCreateCanonicalState({ db, uid });
+  const withGold = await executeOwnershipCommand({
+    db,
+    uid,
+    command: awardRunGoldCommand({
+      expectedRevision: seeded.revision,
+      commandId: "cmd_store_refresh_replay_award",
+      runId: 505,
+      goldEarned: 200,
+    }),
+  });
+  assert.equal(withGold.rejectedReason, null);
+
+  const command = refreshStoreCommand({
+    expectedRevision: withGold.newRevision,
+    commandId: "cmd_store_refresh_replay",
+    method: "gold",
+  });
+  const first = await executeOwnershipCommand({ db, uid, command });
+  const replay = await executeOwnershipCommand({ db, uid, command });
+
+  assert.equal(first.rejectedReason, null);
+  assert.equal(replay.replayedFromIdempotency, true);
+  assert.equal(replay.newRevision, first.newRevision);
+  assert.equal(
+    replay.canonicalState.progression.gold,
+    first.canonicalState.progression.gold,
+  );
+});
+
+test("refreshStore rejects after three successful refreshes in one UTC day", async () => {
+  const seeded = await loadOrCreateCanonicalState({ db, uid });
+  const withGold = await executeOwnershipCommand({
+    db,
+    uid,
+    command: awardRunGoldCommand({
+      expectedRevision: seeded.revision,
+      commandId: "cmd_store_refresh_limit_award",
+      runId: 506,
+      goldEarned: 500,
+    }),
+  });
+  assert.equal(withGold.rejectedReason, null);
+
+  let canonical = withGold.canonicalState;
+  for (let index = 0; index < 3; index += 1) {
+    const refreshed = await executeOwnershipCommand({
+      db,
+      uid,
+      command: refreshStoreCommand({
+        expectedRevision: canonical.revision,
+        commandId: `cmd_store_refresh_limit_ok_${index}`,
+        method: "gold",
+      }),
+    });
+    assert.equal(refreshed.rejectedReason, null);
+    canonical = refreshed.canonicalState;
+  }
+
+  const limitRejected = await executeOwnershipCommand({
+    db,
+    uid,
+    command: refreshStoreCommand({
+      expectedRevision: canonical.revision,
+      commandId: "cmd_store_refresh_limit_reject",
+      method: "gold",
+    }),
+  });
+  assert.equal(limitRejected.rejectedReason, "refreshLimitReached");
+  assert.equal(limitRejected.newRevision, canonical.revision);
+  assert.equal(
+    limitRejected.canonicalState.progression.gold,
+    canonical.progression.gold,
+  );
+});
+
+test("refreshStore rejects when no bucket can change", async () => {
+  const canonical = await loadOrCreateCanonicalState({ db, uid });
+  const canonicalRef = await ownershipCanonicalDocRef(db, uid);
+  const progression = asRecord(structuredClone(canonical.progression));
+  const store = asRecord(progression.store);
+  store.activeOffers = [];
+  progression.store = store;
+  progression.gold = goldRefreshCost + 10;
+
+  await canonicalRef.set(
+    {
+      meta: fullyOwnedMeta(canonical),
+      progression,
+    },
+    { merge: true },
+  );
+
+  const refreshed = await executeOwnershipCommand({
+    db,
+    uid,
+    command: refreshStoreCommand({
+      expectedRevision: canonical.revision,
+      commandId: "cmd_store_refresh_nothing",
+      method: "gold",
+    }),
+  });
+
+  assert.equal(refreshed.rejectedReason, "nothingToRefresh");
+  assert.equal(refreshed.newRevision, canonical.revision);
+});
+
 test("loadOrCreatePlayerProfile creates a default remote profile", async () => {
   const loaded = await loadOrCreatePlayerProfile({ db, uid });
 
@@ -394,6 +773,187 @@ function awardRunGoldCommand(args: {
   };
 }
 
+function purchaseStoreOfferCommand(args: {
+  expectedRevision: number;
+  commandId: string;
+  offerId: string;
+  userId?: string;
+}): OwnershipCommandEnvelope {
+  return {
+    type: "purchaseStoreOffer",
+    userId: args.userId ?? uid,
+    sessionId,
+    expectedRevision: args.expectedRevision,
+    commandId: args.commandId,
+    payload: {
+      offerId: args.offerId,
+    },
+  };
+}
+
+function refreshStoreCommand(args: {
+  expectedRevision: number;
+  commandId: string;
+  method: "gold" | "rewardedAd";
+  userId?: string;
+}): OwnershipCommandEnvelope {
+  return {
+    type: "refreshStore",
+    userId: args.userId ?? uid,
+    sessionId,
+    expectedRevision: args.expectedRevision,
+    commandId: args.commandId,
+    payload: {
+      method: args.method,
+    },
+  };
+}
+
+interface StoreOfferRecord {
+  offerId: string;
+  bucket: string;
+  domain: string;
+  slot: string;
+  itemId: string;
+  priceGold: number;
+}
+
+interface StoreStateRecord {
+  generation: number;
+  refreshesUsedToday: number;
+}
+
+function storeState(canonical: OwnershipCanonicalState): StoreStateRecord {
+  const progression = asRecord(canonical.progression);
+  const store = asRecord(progression.store);
+  return {
+    generation: asInteger(store.generation),
+    refreshesUsedToday: asInteger(store.refreshesUsedToday),
+  };
+}
+
+function activeStoreOffers(canonical: OwnershipCanonicalState): StoreOfferRecord[] {
+  const progression = asRecord(canonical.progression);
+  const store = asRecord(progression.store);
+  const offersRaw = store.activeOffers;
+  if (!Array.isArray(offersRaw)) {
+    return [];
+  }
+  return offersRaw.map((value) => {
+    const offer = asRecord(value);
+    return {
+      offerId: asNonEmptyString(offer.offerId),
+      bucket: asNonEmptyString(offer.bucket),
+      domain: asNonEmptyString(offer.domain),
+      slot: asNonEmptyString(offer.slot),
+      itemId: asNonEmptyString(offer.itemId),
+      priceGold: asInteger(offer.priceGold),
+    };
+  });
+}
+
+function storeOfferByBucket(
+  canonical: OwnershipCanonicalState,
+  bucket: string,
+): StoreOfferRecord | null {
+  for (const offer of activeStoreOffers(canonical)) {
+    if (offer.bucket === bucket) {
+      return offer;
+    }
+  }
+  return null;
+}
+
+function storeOfferIdByBucket(
+  canonical: OwnershipCanonicalState,
+): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const offer of activeStoreOffers(canonical)) {
+    out.set(offer.bucket, offer.offerId);
+  }
+  return out;
+}
+
+function changedBuckets(
+  before: Map<string, string>,
+  after: Map<string, string>,
+): number {
+  let count = 0;
+  for (const [bucket, offerId] of before.entries()) {
+    if (after.get(bucket) !== offerId) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+function isOfferOwned(
+  canonical: OwnershipCanonicalState,
+  offer: Pick<StoreOfferRecord, "domain" | "slot" | "itemId">,
+): boolean {
+  const meta = asRecord(canonical.meta);
+  const inventory = asRecord(meta.inventory);
+  if (offer.domain === "gear") {
+    if (offer.slot === "mainWeapon" || offer.slot === "offhandWeapon") {
+      return readStringList(inventory.weapons).includes(offer.itemId);
+    }
+    if (offer.slot === "spellBook") {
+      return readStringList(inventory.spellBooks).includes(offer.itemId);
+    }
+    if (offer.slot === "accessory") {
+      return readStringList(inventory.accessories).includes(offer.itemId);
+    }
+    return false;
+  }
+  const selection = asRecord(canonical.selection);
+  const selectedCharacterId = asNonEmptyString(selection.characterId);
+  const ownershipByCharacter = asRecord(meta.abilityOwnershipByCharacter);
+  const ownership = asRecord(ownershipByCharacter[selectedCharacterId]);
+  if (offer.domain === "projectileSpell") {
+    return readStringList(ownership.projectileSpells).includes(offer.itemId);
+  }
+  if (offer.domain === "ability") {
+    const abilitiesBySlot = asRecord(ownership.abilitiesBySlot);
+    return readStringList(abilitiesBySlot[offer.slot]).includes(offer.itemId);
+  }
+  return false;
+}
+
+function fullyOwnedMeta(
+  canonical: OwnershipCanonicalState,
+): Record<string, unknown> {
+  const meta = asRecord(structuredClone(canonical.meta));
+  meta.inventory = {
+    weapons: [...new Set([...swordItemIds, ...shieldItemIds])],
+    spellBooks: [...spellBookItemIds],
+    accessories: [...accessoryItemIds],
+  };
+  const ownershipByCharacter = asRecord(meta.abilityOwnershipByCharacter);
+  ownershipByCharacter.eloise = {
+    projectileSpells: [...projectileSpellIds],
+    abilitiesBySlot: {
+      primary: [...nonSpellAbilityIdsBySlot.primary],
+      secondary: [...nonSpellAbilityIdsBySlot.secondary],
+      projectile: [...nonSpellAbilityIdsBySlot.projectile],
+      mobility: [...nonSpellAbilityIdsBySlot.mobility],
+      jump: [...nonSpellAbilityIdsBySlot.jump],
+      spell: [...spellAbilityIds],
+    },
+  };
+  meta.abilityOwnershipByCharacter = ownershipByCharacter;
+  return meta;
+}
+
+async function ownershipCanonicalDocRef(dbValue: Firestore, uidValue: string) {
+  const snapshot = await dbValue
+    .collection("ownership_profiles")
+    .where("uid", "==", uidValue)
+    .limit(1)
+    .get();
+  assert.equal(snapshot.docs.length, 1);
+  return snapshot.docs[0]!.ref;
+}
+
 function loadoutFor(
   canonical: OwnershipCanonicalState,
   characterId: string,
@@ -417,6 +977,27 @@ function asRecord(value: unknown): Record<string, unknown> {
     return value as Record<string, unknown>;
   }
   throw new Error(`Expected record value, got ${typeof value}`);
+}
+
+function asInteger(value: unknown): number {
+  if (typeof value === "number" && Number.isInteger(value)) {
+    return value;
+  }
+  throw new Error(`Expected integer value, got ${typeof value}`);
+}
+
+function asNonEmptyString(value: unknown): string {
+  if (typeof value === "string" && value.trim().length > 0) {
+    return value.trim();
+  }
+  throw new Error(`Expected non-empty string value, got ${typeof value}`);
+}
+
+function readStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((item): item is string => typeof item === "string");
 }
 
 async function clearOwnershipCollections(dbValue: Firestore): Promise<void> {

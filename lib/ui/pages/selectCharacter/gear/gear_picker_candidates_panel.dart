@@ -20,6 +20,8 @@ class GearPickerCandidatesPanel extends StatelessWidget {
     required this.equippedId,
     required this.selectedId,
     required this.onSelected,
+    required this.showTownShortcut,
+    required this.onOpenTownStore,
   });
 
   final GearSlot slot;
@@ -27,6 +29,8 @@ class GearPickerCandidatesPanel extends StatelessWidget {
   final Object equippedId;
   final Object? selectedId;
   final ValueChanged<Object> onSelected;
+  final bool showTownShortcut;
+  final VoidCallback onOpenTownStore;
 
   @override
   Widget build(BuildContext context) {
@@ -69,6 +73,12 @@ class GearPickerCandidatesPanel extends StatelessWidget {
           ),
           itemBuilder: (context, index) {
             if (index >= candidates.length) {
+              if (showTownShortcut && index == candidates.length) {
+                return _TownShortcutTile(
+                  tileSize: tileSize,
+                  onTap: onOpenTownStore,
+                );
+              }
               return _EmptyGearCandidateTile(tileSize: tileSize);
             }
             final candidate = candidates[index];
@@ -83,6 +93,55 @@ class GearPickerCandidatesPanel extends StatelessWidget {
           },
         );
       },
+    );
+  }
+}
+
+class _TownShortcutTile extends StatelessWidget {
+  const _TownShortcutTile({required this.tileSize, required this.onTap});
+
+  final double tileSize;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ui = context.ui;
+    return Align(
+      alignment: Alignment.center,
+      child: SizedBox.square(
+        dimension: tileSize,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            key: const ValueKey<String>('gear-town-shortcut'),
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(ui.radii.sm),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: ui.colors.background.withValues(alpha: 0.35),
+                borderRadius: BorderRadius.circular(ui.radii.sm),
+                border: Border.all(
+                  color: ui.colors.accentStrong.withValues(alpha: 0.8),
+                ),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.add, color: ui.colors.accentStrong, size: 20),
+                  SizedBox(height: ui.space.xxs),
+                  Text(
+                    'Town',
+                    style: ui.text.label.copyWith(
+                      color: ui.colors.textPrimary,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

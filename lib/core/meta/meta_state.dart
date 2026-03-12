@@ -1,8 +1,8 @@
 import '../players/player_character_definition.dart';
+import 'ability_ownership_state.dart';
 import 'equipped_gear.dart';
 import 'inventory_state.dart';
 import 'meta_defaults.dart';
-import 'spell_list.dart';
 
 /// Persisted meta-progression state for gear inventory and loadouts.
 class MetaState {
@@ -10,11 +10,11 @@ class MetaState {
     required this.schemaVersion,
     required this.inventory,
     required this.equippedByCharacter,
-    required this.spellListByCharacter,
+    required this.abilityOwnershipByCharacter,
   });
 
   /// Latest supported serialization schema.
-  static const int latestSchemaVersion = 2;
+  static const int latestSchemaVersion = 3;
 
   /// Serialized schema version of this instance.
   final int schemaVersion;
@@ -25,21 +25,23 @@ class MetaState {
   /// Equipped gear per playable character.
   final Map<PlayerCharacterId, EquippedGear> equippedByCharacter;
 
-  /// Learned spell ownership per playable character.
-  final Map<PlayerCharacterId, SpellList> spellListByCharacter;
+  /// Learned ability ownership per playable character.
+  final Map<PlayerCharacterId, AbilityOwnershipState>
+  abilityOwnershipByCharacter;
 
   /// Returns a copy with optional field replacements.
   MetaState copyWith({
     int? schemaVersion,
     InventoryState? inventory,
     Map<PlayerCharacterId, EquippedGear>? equippedByCharacter,
-    Map<PlayerCharacterId, SpellList>? spellListByCharacter,
+    Map<PlayerCharacterId, AbilityOwnershipState>? abilityOwnershipByCharacter,
   }) {
     return MetaState(
       schemaVersion: schemaVersion ?? this.schemaVersion,
       inventory: inventory ?? this.inventory,
       equippedByCharacter: equippedByCharacter ?? this.equippedByCharacter,
-      spellListByCharacter: spellListByCharacter ?? this.spellListByCharacter,
+      abilityOwnershipByCharacter:
+          abilityOwnershipByCharacter ?? this.abilityOwnershipByCharacter,
     );
   }
 
@@ -55,16 +57,21 @@ class MetaState {
     return copyWith(equippedByCharacter: next);
   }
 
-  /// Reads learned spell ownership for [id], falling back to empty.
-  SpellList spellListFor(PlayerCharacterId id) {
-    return spellListByCharacter[id] ?? SpellList.empty;
+  /// Reads learned ability ownership for [id], falling back to empty.
+  AbilityOwnershipState abilityOwnershipFor(PlayerCharacterId id) {
+    return abilityOwnershipByCharacter[id] ?? AbilityOwnershipState.empty;
   }
 
-  /// Returns a copy with [spellList] assigned to character [id].
-  MetaState setSpellListFor(PlayerCharacterId id, SpellList spellList) {
-    final next = Map<PlayerCharacterId, SpellList>.from(spellListByCharacter);
-    next[id] = spellList;
-    return copyWith(spellListByCharacter: next);
+  /// Returns a copy with [abilityOwnership] assigned to character [id].
+  MetaState setAbilityOwnershipFor(
+    PlayerCharacterId id,
+    AbilityOwnershipState abilityOwnership,
+  ) {
+    final next = Map<PlayerCharacterId, AbilityOwnershipState>.from(
+      abilityOwnershipByCharacter,
+    );
+    next[id] = abilityOwnership;
+    return copyWith(abilityOwnershipByCharacter: next);
   }
 
   /// Serializes meta state as JSON-friendly maps/lists.
@@ -76,8 +83,8 @@ class MetaState {
         for (final entry in equippedByCharacter.entries)
           entry.key.name: entry.value.toJson(),
       },
-      'spellListByCharacter': <String, Object?>{
-        for (final entry in spellListByCharacter.entries)
+      'abilityOwnershipByCharacter': <String, Object?>{
+        for (final entry in abilityOwnershipByCharacter.entries)
           entry.key.name: entry.value.toJson(),
       },
     };
@@ -86,20 +93,20 @@ class MetaState {
   /// Seeds a new state where all characters start with default equipped gear.
   static MetaState seedAllUnlocked({
     required InventoryState inventory,
-    Map<PlayerCharacterId, SpellList>? spellListByCharacter,
+    Map<PlayerCharacterId, AbilityOwnershipState>? abilityOwnershipByCharacter,
   }) {
     final equipped = <PlayerCharacterId, EquippedGear>{
       for (final id in PlayerCharacterId.values) id: MetaDefaults.equippedGear,
     };
-    final spellLists = <PlayerCharacterId, SpellList>{
+    final ownershipByCharacter = <PlayerCharacterId, AbilityOwnershipState>{
       for (final id in PlayerCharacterId.values)
-        id: spellListByCharacter?[id] ?? SpellList.empty,
+        id: abilityOwnershipByCharacter?[id] ?? AbilityOwnershipState.empty,
     };
     return MetaState(
       schemaVersion: latestSchemaVersion,
       inventory: inventory,
       equippedByCharacter: equipped,
-      spellListByCharacter: spellLists,
+      abilityOwnershipByCharacter: ownershipByCharacter,
     );
   }
 
@@ -151,34 +158,38 @@ class MetaState {
       equippedByCharacter.putIfAbsent(id, () => MetaDefaults.equippedGear);
     }
 
-    final spellListByCharacter = <PlayerCharacterId, SpellList>{};
-    final spellListRaw = json['spellListByCharacter'];
-    if (spellListRaw is Map) {
+    final abilityOwnershipByCharacter =
+        <PlayerCharacterId, AbilityOwnershipState>{};
+    final abilityOwnershipRaw = json['abilityOwnershipByCharacter'];
+    if (abilityOwnershipRaw is Map) {
       for (final id in PlayerCharacterId.values) {
-        final rawEntry = spellListRaw[id.name];
-        final fallbackList = fallback.spellListFor(id);
+        final rawEntry = abilityOwnershipRaw[id.name];
+        final fallbackOwnership = fallback.abilityOwnershipFor(id);
         if (rawEntry is Map<String, dynamic>) {
-          spellListByCharacter[id] = SpellList.fromJson(
+          abilityOwnershipByCharacter[id] = AbilityOwnershipState.fromJson(
             rawEntry,
-            fallback: fallbackList,
+            fallback: fallbackOwnership,
           );
         } else if (rawEntry is Map) {
-          spellListByCharacter[id] = SpellList.fromJson(
+          abilityOwnershipByCharacter[id] = AbilityOwnershipState.fromJson(
             Map<String, dynamic>.from(rawEntry),
-            fallback: fallbackList,
+            fallback: fallbackOwnership,
           );
         }
       }
     }
     for (final id in PlayerCharacterId.values) {
-      spellListByCharacter.putIfAbsent(id, () => fallback.spellListFor(id));
+      abilityOwnershipByCharacter.putIfAbsent(
+        id,
+        () => fallback.abilityOwnershipFor(id),
+      );
     }
 
     return MetaState(
       schemaVersion: schemaVersion,
       inventory: inventory,
       equippedByCharacter: equippedByCharacter,
-      spellListByCharacter: spellListByCharacter,
+      abilityOwnershipByCharacter: abilityOwnershipByCharacter,
     );
   }
 }

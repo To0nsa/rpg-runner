@@ -9,13 +9,14 @@ import '../spellBook/spell_book_id.dart';
 import '../weapons/weapon_catalog.dart';
 import '../weapons/weapon_category.dart';
 import '../weapons/weapon_id.dart';
+import 'ability_ownership_state.dart';
 import 'equipped_gear.dart';
 import 'gear_slot.dart';
 import 'inventory_state.dart';
 import 'meta_defaults.dart';
 import 'meta_state.dart';
-import 'spell_list.dart';
 import '../players/player_character_definition.dart';
+import '../players/player_catalog.dart';
 import '../players/character_ability_namespace.dart';
 import '../players/player_character_registry.dart';
 
@@ -84,7 +85,7 @@ class MetaService {
     return normalize(
       MetaState.seedAllUnlocked(
         inventory: seedAllUnlockedInventory(),
-        spellListByCharacter: _startingSpellListsByCharacter(),
+        abilityOwnershipByCharacter: _startingAbilityOwnershipByCharacter(),
       ),
     );
   }
@@ -144,7 +145,7 @@ class MetaService {
   /// - startup unlock ceilings per domain
   /// - default items always unlocked
   /// - equipped gear always valid and unlocked
-  /// - spell list ownership valid per character
+  /// - ability ownership valid per character
   MetaState normalize(MetaState state) {
     var inventory = state.inventory;
     final allowedWeapons = _startingUnlockedWeaponIds();
@@ -197,10 +198,11 @@ class MetaService {
       equippedByCharacter[id] = _normalizeEquipped(gear, inventory);
     }
 
-    final spellListByCharacter = <PlayerCharacterId, SpellList>{};
+    final abilityOwnershipByCharacter =
+        <PlayerCharacterId, AbilityOwnershipState>{};
     for (final id in PlayerCharacterId.values) {
-      spellListByCharacter[id] = _normalizeSpellListForCharacter(
-        state.spellListFor(id),
+      abilityOwnershipByCharacter[id] = _normalizeAbilityOwnershipForCharacter(
+        state.abilityOwnershipFor(id),
         characterId: id,
       );
     }
@@ -209,27 +211,27 @@ class MetaService {
       schemaVersion: MetaState.latestSchemaVersion,
       inventory: inventory,
       equippedByCharacter: equippedByCharacter,
-      spellListByCharacter: spellListByCharacter,
+      abilityOwnershipByCharacter: abilityOwnershipByCharacter,
     );
   }
 
-  Map<PlayerCharacterId, SpellList> _startingSpellListsByCharacter() {
-    return <PlayerCharacterId, SpellList>{
+  Map<PlayerCharacterId, AbilityOwnershipState>
+  _startingAbilityOwnershipByCharacter() {
+    return <PlayerCharacterId, AbilityOwnershipState>{
       for (final id in PlayerCharacterId.values)
-        id: _startingSpellListForCharacter(id),
+        id: _startingAbilityOwnershipForCharacter(id),
     };
   }
 
-  SpellList _startingSpellListForCharacter(PlayerCharacterId characterId) {
+  AbilityOwnershipState _startingAbilityOwnershipForCharacter(
+    PlayerCharacterId characterId,
+  ) {
     final catalog = PlayerCharacterRegistry.resolve(characterId).catalog;
     final projectileSpells = <ProjectileId>{
       for (final id in catalog.startingProjectileSpellIds)
         if (_isSpellProjectile(id)) id,
     };
-    final abilityIds = <AbilityKey>{
-      for (final id in catalog.startingSpellAbilityIds)
-        if (_isSpellAbilityForCharacter(id, characterId: characterId)) id,
-    };
+    final abilityIdsBySlot = _startingAbilityIdsBySlotForCharacter(characterId);
 
     if (projectileSpells.isEmpty) {
       final defaultProjectileSpellId = catalog.projectileSlotSpellId;
@@ -242,51 +244,114 @@ class MetaService {
       projectileSpells.add(MetaDefaults.projectileSpellId);
     }
 
-    if (abilityIds.isEmpty &&
-        _isSpellAbilityForCharacter(
-          catalog.abilitySpellId,
-          characterId: characterId,
-        )) {
-      abilityIds.add(catalog.abilitySpellId);
-    }
-    if (abilityIds.isEmpty &&
-        _isSpellAbilityForCharacter(
-          MetaDefaults.spellAbilityId,
-          characterId: characterId,
-        )) {
-      abilityIds.add(MetaDefaults.spellAbilityId);
+    for (final slot in AbilitySlot.values) {
+      if (abilityIdsBySlot[slot]!.isNotEmpty) continue;
+      final fallbackId = _defaultStarterAbilityIdForSlot(catalog, slot: slot);
+      if (fallbackId != null &&
+          _isAbilityForSlotAndCharacter(
+            fallbackId,
+            slot: slot,
+            characterId: characterId,
+          )) {
+        abilityIdsBySlot[slot]!.add(fallbackId);
+      }
+      if (slot == AbilitySlot.spell &&
+          abilityIdsBySlot[slot]!.isEmpty &&
+          _isAbilityForSlotAndCharacter(
+            MetaDefaults.spellAbilityId,
+            slot: slot,
+            characterId: characterId,
+          )) {
+        abilityIdsBySlot[slot]!.add(MetaDefaults.spellAbilityId);
+      }
     }
 
-    return SpellList(
+    return AbilityOwnershipState(
       learnedProjectileSpellIds: projectileSpells,
-      learnedSpellAbilityIds: abilityIds,
+      learnedAbilityIdsBySlot: abilityIdsBySlot,
     );
   }
 
-  SpellList _normalizeSpellListForCharacter(
-    SpellList spellList, {
+  Map<AbilitySlot, Set<AbilityKey>> _startingAbilityIdsBySlotForCharacter(
+    PlayerCharacterId characterId,
+  ) {
+    final catalog = PlayerCharacterRegistry.resolve(characterId).catalog;
+    final learnedBySlot = <AbilitySlot, Set<AbilityKey>>{
+      for (final slot in AbilitySlot.values) slot: <AbilityKey>{},
+    };
+
+    void addStarter(AbilitySlot slot, AbilityKey id) {
+      if (_isAbilityForSlotAndCharacter(
+        id,
+        slot: slot,
+        characterId: characterId,
+      )) {
+        learnedBySlot[slot]!.add(id);
+      }
+    }
+
+    addStarter(AbilitySlot.primary, catalog.abilityPrimaryId);
+    addStarter(AbilitySlot.secondary, catalog.abilitySecondaryId);
+    addStarter(AbilitySlot.projectile, catalog.abilityProjectileId);
+    addStarter(AbilitySlot.mobility, catalog.abilityMobilityId);
+    addStarter(AbilitySlot.jump, catalog.abilityJumpId);
+    addStarter(AbilitySlot.spell, catalog.abilitySpellId);
+    for (final id in catalog.startingSpellAbilityIds) {
+      addStarter(AbilitySlot.spell, id);
+    }
+
+    return learnedBySlot;
+  }
+
+  AbilityKey? _defaultStarterAbilityIdForSlot(
+    PlayerCatalog catalog, {
+    required AbilitySlot slot,
+  }) {
+    return switch (slot) {
+      AbilitySlot.primary => catalog.abilityPrimaryId,
+      AbilitySlot.secondary => catalog.abilitySecondaryId,
+      AbilitySlot.projectile => catalog.abilityProjectileId,
+      AbilitySlot.mobility => catalog.abilityMobilityId,
+      AbilitySlot.spell => catalog.abilitySpellId,
+      AbilitySlot.jump => catalog.abilityJumpId,
+    };
+  }
+
+  AbilityOwnershipState _normalizeAbilityOwnershipForCharacter(
+    AbilityOwnershipState abilityOwnership, {
     required PlayerCharacterId characterId,
   }) {
     final learnedProjectileSpellIds = <ProjectileId>{
-      for (final id in spellList.learnedProjectileSpellIds)
+      for (final id in abilityOwnership.learnedProjectileSpellIds)
         if (_isSpellProjectile(id)) id,
     };
-    final learnedSpellAbilityIds = <AbilityKey>{
-      for (final id in spellList.learnedSpellAbilityIds)
-        if (_isSpellAbilityForCharacter(id, characterId: characterId)) id,
+    final learnedAbilityIdsBySlot = <AbilitySlot, Set<AbilityKey>>{
+      for (final slot in AbilitySlot.values)
+        slot: <AbilityKey>{
+          for (final id in abilityOwnership.learnedAbilityIdsForSlot(slot))
+            if (_isAbilityForSlotAndCharacter(
+              id,
+              slot: slot,
+              characterId: characterId,
+            ))
+              id,
+        },
     };
 
-    final defaults = _startingSpellListForCharacter(characterId);
+    final defaults = _startingAbilityOwnershipForCharacter(characterId);
     if (learnedProjectileSpellIds.isEmpty) {
       learnedProjectileSpellIds.addAll(defaults.learnedProjectileSpellIds);
     }
-    if (learnedSpellAbilityIds.isEmpty) {
-      learnedSpellAbilityIds.addAll(defaults.learnedSpellAbilityIds);
+    for (final slot in AbilitySlot.values) {
+      final learned = learnedAbilityIdsBySlot[slot]!;
+      if (learned.isEmpty) {
+        learned.addAll(defaults.learnedAbilityIdsForSlot(slot));
+      }
     }
 
-    return SpellList(
+    return AbilityOwnershipState(
       learnedProjectileSpellIds: learnedProjectileSpellIds,
-      learnedSpellAbilityIds: learnedSpellAbilityIds,
+      learnedAbilityIdsBySlot: learnedAbilityIdsBySlot,
     );
   }
 
@@ -294,13 +359,14 @@ class MetaService {
     return projectiles.tryGet(id)?.weaponType == WeaponType.spell;
   }
 
-  bool _isSpellAbilityForCharacter(
+  bool _isAbilityForSlotAndCharacter(
     AbilityKey id, {
+    required AbilitySlot slot,
     required PlayerCharacterId characterId,
   }) {
     final ability = _abilityCatalog.resolve(id);
     if (ability == null) return false;
-    if (!ability.allowedSlots.contains(AbilitySlot.spell)) return false;
+    if (!ability.allowedSlots.contains(slot)) return false;
     final namespace = characterAbilityNamespace(characterId);
     if (id.startsWith('$namespace.')) return true;
     if (id.startsWith('common.') && !id.startsWith('common.enemy_')) {

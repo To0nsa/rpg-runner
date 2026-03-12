@@ -84,7 +84,8 @@ class SkillsListPane extends StatelessWidget {
                   abilityId: candidate.id,
                   title: abilityDisplayName(candidate.id),
                   selected: selected,
-                  enabled: candidate.isEnabled,
+                  isOwned: candidate.isOwned,
+                  isLegal: candidate.isEnabled,
                   onTap: () => onSelectAbility(candidate),
                 );
               },
@@ -345,14 +346,16 @@ class _AbilityListTile extends StatelessWidget {
     required this.abilityId,
     required this.title,
     required this.selected,
-    required this.enabled,
+    required this.isOwned,
+    required this.isLegal,
     required this.onTap,
   });
 
   final AbilityKey abilityId;
   final String title;
   final bool selected;
-  final bool enabled;
+  final bool isOwned;
+  final bool isLegal;
   final VoidCallback onTap;
 
   @override
@@ -360,13 +363,23 @@ class _AbilityListTile extends StatelessWidget {
     final ui = context.ui;
     final borderColor = selected
         ? ui.colors.accentStrong
-        : ui.colors.outline.withValues(alpha: 0.45);
+        : isOwned
+        ? ui.colors.outline.withValues(alpha: 0.45)
+        : ui.colors.outline.withValues(alpha: 0.65);
     final fillColor = selected
         ? UiBrandPalette.steelBlueInsetBottom
         : ui.colors.cardBackground;
+    final opacity = isOwned ? (isLegal ? 1.0 : 0.68) : 0.92;
+    final statusBadge = _statusBadge(
+      context: context,
+      abilityId: abilityId,
+      selected: selected,
+      isOwned: isOwned,
+      isLegal: isLegal,
+    );
 
     return Opacity(
-      opacity: enabled ? 1 : 0.45,
+      opacity: opacity,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -400,18 +413,42 @@ class _AbilityListTile extends StatelessWidget {
                     ),
                   ],
                 ),
-                if (selected)
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: _SelectedCheckBadge(color: ui.colors.success),
-                  ),
+                if (statusBadge != null)
+                  Positioned(top: 0, right: 0, child: statusBadge),
               ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  Widget? _statusBadge({
+    required BuildContext context,
+    required AbilityKey abilityId,
+    required bool selected,
+    required bool isOwned,
+    required bool isLegal,
+  }) {
+    final ui = context.ui;
+    if (!isOwned) {
+      return _StatusIconBadge(
+        key: ValueKey<String>('skill-status-locked-$abilityId'),
+        icon: Icons.lock_outline,
+        color: ui.colors.accentStrong,
+      );
+    }
+    if (!isLegal) {
+      return _StatusIconBadge(
+        key: ValueKey<String>('skill-status-illegal-$abilityId'),
+        icon: Icons.block_outlined,
+        color: ui.colors.danger,
+      );
+    }
+    if (selected) {
+      return _SelectedCheckBadge(color: ui.colors.success);
+    }
+    return null;
   }
 }
 
@@ -447,6 +484,29 @@ class _SelectedCheckBadge extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(2),
         child: Icon(Icons.check, size: 11, color: color),
+      ),
+    );
+  }
+}
+
+class _StatusIconBadge extends StatelessWidget {
+  const _StatusIconBadge({super.key, required this.icon, required this.color});
+
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final ui = context.ui;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: ui.colors.cardBackground,
+        shape: BoxShape.circle,
+        border: Border.all(color: color),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(2),
+        child: Icon(icon, size: 11, color: color),
       ),
     );
   }

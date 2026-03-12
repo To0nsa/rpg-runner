@@ -1,12 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/core/accessories/accessory_id.dart';
+import 'package:rpg_runner/core/abilities/ability_def.dart';
 import 'package:rpg_runner/core/meta/gear_slot.dart';
+import 'package:rpg_runner/core/meta/ability_ownership_state.dart';
 import 'package:rpg_runner/core/meta/equipped_gear.dart';
 import 'package:rpg_runner/core/meta/inventory_state.dart';
 import 'package:rpg_runner/core/meta/meta_defaults.dart';
 import 'package:rpg_runner/core/meta/meta_service.dart';
 import 'package:rpg_runner/core/meta/meta_state.dart';
-import 'package:rpg_runner/core/meta/spell_list.dart';
 import 'package:rpg_runner/core/players/player_character_definition.dart';
 import 'package:rpg_runner/core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
@@ -17,10 +18,15 @@ const Set<ProjectileId> _eloiseStarterProjectileSpells = <ProjectileId>{
   ProjectileId.holyBolt,
 };
 
-const Set<String> _eloiseStarterSpellAbilities = <String>{
-  'eloise.arcane_haste',
-  'eloise.focus',
-};
+const Map<AbilitySlot, Set<String>> _eloiseStarterAbilitiesBySlot =
+    <AbilitySlot, Set<String>>{
+      AbilitySlot.primary: <String>{'eloise.seeker_slash'},
+      AbilitySlot.secondary: <String>{'eloise.shield_block'},
+      AbilitySlot.projectile: <String>{'eloise.snap_shot'},
+      AbilitySlot.mobility: <String>{'eloise.dash'},
+      AbilitySlot.spell: <String>{'eloise.arcane_haste', 'eloise.focus'},
+      AbilitySlot.jump: <String>{'eloise.jump'},
+    };
 
 void main() {
   test('MetaService.createNew equips defaults for every character', () {
@@ -69,18 +75,16 @@ void main() {
     final meta = service.createNew();
     final inventory = meta.inventory;
 
-    expect(
-      inventory.unlockedWeaponIds,
-      <WeaponId>{WeaponId.plainsteel, WeaponId.roadguard},
-    );
-    expect(
-      inventory.unlockedSpellBookIds,
-      <SpellBookId>{SpellBookId.apprenticePrimer},
-    );
-    expect(
-      inventory.unlockedAccessoryIds,
-      <AccessoryId>{AccessoryId.strengthBelt},
-    );
+    expect(inventory.unlockedWeaponIds, <WeaponId>{
+      WeaponId.plainsteel,
+      WeaponId.roadguard,
+    });
+    expect(inventory.unlockedSpellBookIds, <SpellBookId>{
+      SpellBookId.apprenticePrimer,
+    });
+    expect(inventory.unlockedAccessoryIds, <AccessoryId>{
+      AccessoryId.strengthBelt,
+    });
   });
 
   test('MetaService.normalize trims unlocked gear to starter set', () {
@@ -96,18 +100,16 @@ void main() {
     final normalized = service.normalize(loaded);
     final inventory = normalized.inventory;
 
-    expect(
-      inventory.unlockedWeaponIds,
-      <WeaponId>{WeaponId.plainsteel, WeaponId.roadguard},
-    );
-    expect(
-      inventory.unlockedSpellBookIds,
-      <SpellBookId>{SpellBookId.apprenticePrimer},
-    );
-    expect(
-      inventory.unlockedAccessoryIds,
-      <AccessoryId>{AccessoryId.strengthBelt},
-    );
+    expect(inventory.unlockedWeaponIds, <WeaponId>{
+      WeaponId.plainsteel,
+      WeaponId.roadguard,
+    });
+    expect(inventory.unlockedSpellBookIds, <SpellBookId>{
+      SpellBookId.apprenticePrimer,
+    });
+    expect(inventory.unlockedAccessoryIds, <AccessoryId>{
+      AccessoryId.strengthBelt,
+    });
   });
 
   test('MetaService.normalize removes legacy extra unlocks', () {
@@ -133,25 +135,24 @@ void main() {
         for (final id in PlayerCharacterId.values)
           id: MetaDefaults.equippedGear,
       },
-      spellListByCharacter: <PlayerCharacterId, SpellList>{
-        for (final id in PlayerCharacterId.values) id: SpellList.empty,
+      abilityOwnershipByCharacter: <PlayerCharacterId, AbilityOwnershipState>{
+        for (final id in PlayerCharacterId.values)
+          id: AbilityOwnershipState.empty,
       },
     );
 
     final normalized = service.normalize(legacy);
 
-    expect(
-      normalized.inventory.unlockedWeaponIds,
-      <WeaponId>{WeaponId.plainsteel, WeaponId.roadguard},
-    );
-    expect(
-      normalized.inventory.unlockedSpellBookIds,
-      <SpellBookId>{SpellBookId.apprenticePrimer},
-    );
-    expect(
-      normalized.inventory.unlockedAccessoryIds,
-      <AccessoryId>{AccessoryId.strengthBelt},
-    );
+    expect(normalized.inventory.unlockedWeaponIds, <WeaponId>{
+      WeaponId.plainsteel,
+      WeaponId.roadguard,
+    });
+    expect(normalized.inventory.unlockedSpellBookIds, <SpellBookId>{
+      SpellBookId.apprenticePrimer,
+    });
+    expect(normalized.inventory.unlockedAccessoryIds, <AccessoryId>{
+      AccessoryId.strengthBelt,
+    });
   });
 
   test('MetaService.candidatesForSlot includes sword and shield entries', () {
@@ -192,22 +193,27 @@ void main() {
     expect(ids, contains(SpellBookId.crownOfFocus));
   });
 
-  test('MetaService.createNew seeds spell list per character', () {
+  test('MetaService.createNew seeds ability ownership per character', () {
     const service = MetaService();
     final meta = service.createNew();
 
     for (final id in PlayerCharacterId.values) {
-      final spellList = meta.spellListFor(id);
+      final abilityOwnership = meta.abilityOwnershipFor(id);
       expect(
-        spellList.learnedProjectileSpellIds,
+        abilityOwnership.learnedProjectileSpellIds,
         _eloiseStarterProjectileSpells,
       );
-      expect(spellList.learnedSpellAbilityIds, _eloiseStarterSpellAbilities);
+      for (final slot in AbilitySlot.values) {
+        expect(
+          abilityOwnership.learnedAbilityIdsForSlot(slot),
+          _eloiseStarterAbilitiesBySlot[slot],
+        );
+      }
     }
   });
 
   test(
-    'MetaService.normalize seeds default spell list for older schema saves',
+    'MetaService.normalize seeds default ability ownership for older schema saves',
     () {
       const service = MetaService();
       final legacy = MetaState(
@@ -228,20 +234,26 @@ void main() {
           for (final id in PlayerCharacterId.values)
             id: MetaDefaults.equippedGear,
         },
-        spellListByCharacter: <PlayerCharacterId, SpellList>{
-          for (final id in PlayerCharacterId.values) id: SpellList.empty,
+        abilityOwnershipByCharacter: <PlayerCharacterId, AbilityOwnershipState>{
+          for (final id in PlayerCharacterId.values)
+            id: AbilityOwnershipState.empty,
         },
       );
 
       final normalized = service.normalize(legacy);
 
       for (final id in PlayerCharacterId.values) {
-        final spellList = normalized.spellListFor(id);
+        final abilityOwnership = normalized.abilityOwnershipFor(id);
         expect(
-          spellList.learnedProjectileSpellIds,
+          abilityOwnership.learnedProjectileSpellIds,
           _eloiseStarterProjectileSpells,
         );
-        expect(spellList.learnedSpellAbilityIds, _eloiseStarterSpellAbilities);
+        for (final slot in AbilitySlot.values) {
+          expect(
+            abilityOwnership.learnedAbilityIdsForSlot(slot),
+            _eloiseStarterAbilitiesBySlot[slot],
+          );
+        }
       }
     },
   );
@@ -270,9 +282,9 @@ void main() {
               'accessoryId': 'ironBracers',
             },
         },
-        'spellListByCharacter': <String, Object?>{
+        'abilityOwnershipByCharacter': <String, Object?>{
           for (final id in PlayerCharacterId.values)
-            id.name: SpellList.empty.toJson(),
+            id.name: AbilityOwnershipState.empty.toJson(),
         },
       };
 

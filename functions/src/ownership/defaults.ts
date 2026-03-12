@@ -3,6 +3,7 @@ import type {
   JsonObject,
   OwnershipCanonicalState,
 } from "./contracts.js";
+import { normalizeProgressionStore } from "./store_state.js";
 
 export const knownCharacterIds = ["eloise", "eloiseWip"] as const;
 export type KnownCharacterId = (typeof knownCharacterIds)[number];
@@ -56,7 +57,7 @@ export function starterSelection(): JsonObject {
 
 export function starterMeta(): JsonObject {
   return structuredClone({
-    schemaVersion: 2,
+    schemaVersion: 3,
     inventory: {
       weapons: ["plainsteel", "roadguard"],
       spellBooks: ["apprenticePrimer"],
@@ -76,33 +77,69 @@ export function starterMeta(): JsonObject {
         accessoryId: "strengthBelt",
       },
     },
-    spellListByCharacter: {
+    abilityOwnershipByCharacter: {
       eloise: {
         projectileSpells: ["acidBolt", "holyBolt"],
-        spellAbilities: ["eloise.arcane_haste", "eloise.focus"],
+        abilitiesBySlot: {
+          primary: ["eloise.seeker_slash"],
+          secondary: ["eloise.shield_block"],
+          projectile: ["eloise.snap_shot"],
+          mobility: ["eloise.dash"],
+          spell: ["eloise.arcane_haste", "eloise.focus"],
+          jump: ["eloise.jump"],
+        },
       },
       eloiseWip: {
         projectileSpells: ["acidBolt", "holyBolt"],
-        spellAbilities: ["eloise.arcane_haste", "eloise.focus"],
+        abilitiesBySlot: {
+          primary: ["eloise.seeker_slash"],
+          secondary: ["eloise.shield_block"],
+          projectile: ["eloise.snap_shot"],
+          mobility: ["eloise.dash"],
+          spell: ["eloise.arcane_haste", "eloise.focus"],
+          jump: ["eloise.jump"],
+        },
       },
     },
   } satisfies JsonObject);
 }
 
-export function starterProgression(): JsonObject {
-  return structuredClone({
+export function starterProgression(args: {
+  userId: string;
+  meta: JsonObject;
+  selection: JsonObject;
+}): JsonObject {
+  const progression = structuredClone({
     gold: 0,
     awardedRunIds: [],
   } satisfies JsonObject);
+  normalizeProgressionStore({
+    progression,
+    meta: args.meta,
+    selection: args.selection,
+    userId: args.userId,
+    nowMs: Date.now(),
+  });
+  return progression;
 }
 
-export function starterCanonicalState(profileId: string): OwnershipCanonicalState {
+export function starterCanonicalState(
+  profileId: string,
+  userId: string,
+): OwnershipCanonicalState {
+  const selection = starterSelection();
+  const meta = starterMeta();
+  const progression = starterProgression({
+    userId,
+    meta,
+    selection,
+  });
   return {
     profileId,
     revision: 0,
-    selection: starterSelection(),
-    meta: starterMeta(),
-    progression: starterProgression(),
+    selection,
+    meta,
+    progression,
   };
 }
 
@@ -110,7 +147,7 @@ export function starterCanonicalDocument(
   uid: string,
   profileId: string,
 ): CanonicalDocument {
-  const canonical = starterCanonicalState(profileId);
+  const canonical = starterCanonicalState(profileId, uid);
   return {
     uid,
     profileId: canonical.profileId,
@@ -124,8 +161,9 @@ export function starterCanonicalDocument(
 export function normalizeCanonicalState(
   candidate: Partial<OwnershipCanonicalState> | null | undefined,
   profileId: string,
+  userId: string,
 ): OwnershipCanonicalState {
-  const fallback = starterCanonicalState(profileId);
+  const fallback = starterCanonicalState(profileId, userId);
   if (!candidate) {
     return fallback;
   }
@@ -138,6 +176,13 @@ export function normalizeCanonicalState(
   const progression = isJsonObject(candidate.progression)
     ? structuredClone(candidate.progression)
     : fallback.progression;
+  normalizeProgressionStore({
+    progression,
+    meta,
+    selection,
+    userId,
+    nowMs: Date.now(),
+  });
   const revision =
     typeof candidate.revision === "number" && Number.isInteger(candidate.revision)
       ? candidate.revision

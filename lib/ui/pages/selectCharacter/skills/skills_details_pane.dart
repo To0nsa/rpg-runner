@@ -1,24 +1,48 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/abilities/ability_def.dart';
+import '../../../components/app_button.dart';
+import '../../../icons/ability_skill_icon.dart';
+import '../../../text/ability_text.dart';
 import '../../../text/ability_tooltip_builder.dart';
 import '../../../text/semantic_text.dart';
 import '../../../theme/ui_tokens.dart';
+import '../ability/ability_picker_presenter.dart';
 
 class SkillsDetailsPane extends StatelessWidget {
-  const SkillsDetailsPane({super.key, required this.tooltip});
+  const SkillsDetailsPane({
+    super.key,
+    required this.selectedCandidate,
+    required this.tooltip,
+    required this.onFindInTown,
+  });
 
+  final AbilityPickerCandidate? selectedCandidate;
   final AbilityTooltip? tooltip;
+  final VoidCallback onFindInTown;
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(child: _AbilityDetailsPane(tooltip: tooltip));
+    return SingleChildScrollView(
+      child: _AbilityDetailsPane(
+        selectedCandidate: selectedCandidate,
+        tooltip: tooltip,
+        onFindInTown: onFindInTown,
+      ),
+    );
   }
 }
 
 class _AbilityDetailsPane extends StatelessWidget {
-  const _AbilityDetailsPane({required this.tooltip});
+  const _AbilityDetailsPane({
+    required this.selectedCandidate,
+    required this.tooltip,
+    required this.onFindInTown,
+  });
 
+  final AbilityPickerCandidate? selectedCandidate;
   final AbilityTooltip? tooltip;
+  final VoidCallback onFindInTown;
 
   @override
   Widget build(BuildContext context) {
@@ -35,9 +59,19 @@ class _AbilityDetailsPane extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (tooltip == null) ...[
+          if (selectedCandidate == null) ...[
             Text(
               'No ability available for this slot.',
+              style: ui.text.body.copyWith(color: ui.colors.textMuted),
+            ),
+          ] else if (!selectedCandidate!.isOwned) ...[
+            _LockedAbilityDetailsPane(
+              abilityId: selectedCandidate!.id,
+              onFindInTown: onFindInTown,
+            ),
+          ] else if (tooltip == null) ...[
+            Text(
+              'No ability details available right now.',
               style: ui.text.body.copyWith(color: ui.colors.textMuted),
             ),
           ] else ...[
@@ -108,6 +142,53 @@ class _AbilityDetailsPane extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+class _LockedAbilityDetailsPane extends StatelessWidget {
+  const _LockedAbilityDetailsPane({
+    required this.abilityId,
+    required this.onFindInTown,
+  });
+
+  final AbilityKey abilityId;
+  final VoidCallback onFindInTown;
+
+  @override
+  Widget build(BuildContext context) {
+    final ui = context.ui;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            AbilitySkillIcon(abilityId: abilityId, size: ui.sizes.iconSize.md),
+            SizedBox(width: ui.space.sm),
+            Expanded(
+              child: Text(
+                abilityDisplayName(abilityId),
+                style: ui.text.headline.copyWith(color: ui.colors.textPrimary),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: ui.space.xs),
+        Text(
+          'Unlock this skill in Town to view full details.',
+          style: ui.text.body.copyWith(color: ui.colors.textMuted),
+        ),
+        SizedBox(height: ui.space.sm),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: AppButton(
+            label: 'Find in Town',
+            variant: AppButtonVariant.secondary,
+            size: AppButtonSize.sm,
+            onPressed: onFindInTown,
+          ),
+        ),
+      ],
     );
   }
 }

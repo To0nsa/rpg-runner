@@ -13,6 +13,7 @@ import {
   type KnownCharacterId,
   type KnownGearSlot,
 } from "./defaults.js";
+import { isStoreRefreshMethodValue } from "./store_state.js";
 
 interface LoadCanonicalRequest {
   userId: string;
@@ -42,6 +43,7 @@ export function parseExecuteCommandRequest(raw: unknown): ExecuteCommandRequest 
     );
   }
   const payloadRaw = requireObject(commandRaw.payload, "command.payload");
+  validateCommandPayload(type, payloadRaw);
   const expectedRevision = requireInteger(
     commandRaw.expectedRevision,
     "command.expectedRevision",
@@ -61,6 +63,25 @@ export function parseExecuteCommandRequest(raw: unknown): ExecuteCommandRequest 
     payload: payloadRaw as JsonObject,
   };
   return { command };
+}
+
+function validateCommandPayload(
+  type: OwnershipCommandEnvelope["type"],
+  payload: Record<string, unknown>,
+): void {
+  if (type === "purchaseStoreOffer") {
+    requireNonEmptyString(payload.offerId, "command.payload.offerId");
+    return;
+  }
+  if (type === "refreshStore") {
+    const method = requireNonEmptyString(payload.method, "command.payload.method");
+    if (!isStoreRefreshMethodValue(method)) {
+      throw new HttpsError(
+        "invalid-argument",
+        `Unsupported command.payload.method: ${method}`,
+      );
+    }
+  }
 }
 
 export function requireKnownCharacterId(

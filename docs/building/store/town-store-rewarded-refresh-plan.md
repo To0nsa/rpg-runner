@@ -1,7 +1,7 @@
 # Town Store Rewarded Refresh Plan
 
 Date: March 11, 2026
-Status: Proposed
+Status: In progress (Phases 1-4 complete, Phase 5 pending)
 
 ## Purpose
 
@@ -10,6 +10,14 @@ runtime integration begins.
 
 The Town store should let players buy permanent unlocks for loadout content
 while keeping ownership, pricing, and refresh behavior server-authoritative.
+
+## Delivery Assumption
+
+- This is pre-launch work with no live users.
+- No production data migration path is required for ownership/progression
+  schema changes.
+- During implementation, local/emulator state can be reset instead of carrying
+  legacy compatibility logic.
 
 ## Locked Decisions
 
@@ -23,8 +31,8 @@ These decisions are locked for v1 unless explicitly revised:
   - sword
   - shield
   - accessory
-  - spellbook
-  - projectile spell
+  - spellBook
+  - projectileSpell
   - spell
   - ability
 - `spell` means a spell-slot ability.
@@ -41,6 +49,8 @@ These decisions are locked for v1 unless explicitly revised:
 - Pricing is backend-authoritative through a `StorePricingCatalog`.
 - `defaultPriceGold = 150` for now, but each item still has its own catalog
   entry.
+- Ownership model changes ship as direct schema replacement (no live-data
+  migration track).
 
 ## Current Baseline
 
@@ -101,6 +111,16 @@ Use these terms consistently in code and docs:
 - `refresh`: rerolling the active store offers
 - `refresh grant`: a server-tracked entitlement created for rewarded refresh
   flow
+
+## Canonical Wire Literals
+
+Use these exact wire values across backend, Flutter client, tests, and docs:
+
+- `bucket`: `sword|shield|accessory|spellBook|projectileSpell|spell|ability`
+- `domain`: `gear|projectileSpell|ability`
+- `slot`:
+  `mainWeapon|offhandWeapon|spellBook|accessory|primary|secondary|projectile|mobility|jump|spell`
+- `refresh.method`: `gold|rewardedAd`
 
 ## Architecture Options
 
@@ -205,8 +225,8 @@ Bucket meaning:
 - `sword`: main-weapon offer
 - `shield`: offhand shield offer
 - `accessory`: accessory offer
-- `spellbook`: spellbook offer
-- `projectile spell`: projectile-spell ownership offer
+- `spellBook`: spellbook offer
+- `projectileSpell`: projectile-spell ownership offer
 - `spell`: spell-slot ability offer
 - `ability`: non-spell active ability offer
 
@@ -278,10 +298,10 @@ Current ownership is too narrow for a full Town store because it covers:
 
 It does not yet model non-spell active abilities as individually owned content.
 
-### Recommended migration
+### Direct replacement plan (no migration track)
 
-Replace the narrow `SpellList` concept with a broader per-character ability
-ownership model.
+Replace `SpellList` and `spellListByCharacter` with a broader per-character
+ability ownership model.
 
 Recommended shape:
 
@@ -297,22 +317,19 @@ AbilityOwnershipState
     spell: Set<AbilityKey>
 ```
 
+Implementation expectations:
+
+- bump schema/versioned defaults once
+- seed starter ownership directly in the new shape
+- remove legacy `SpellList` runtime paths in one pass
+- do not ship dual-read compatibility branches for old ownership payloads
+
 Why this is needed:
 
 - starter-owned skills remain seeded exactly once per slot
 - the store can sell non-spell abilities cleanly
 - `SkillsTab` can show owned vs locked consistently
 - the app avoids inventing a second temporary ownership system just for Town
-
-### Fallback if scope must be cut
-
-If schedule forces a smaller first slice, the store can ship for:
-
-- gear
-- projectile spells
-- spell-slot abilities
-
-That is explicitly a fallback, not the preferred direction.
 
 ## Canonical Data Model
 
@@ -508,6 +525,11 @@ Server transaction rules:
 15. if `method == rewardedAd`, mark the grant consumed
 16. persist canonical state and idempotency result
 
+Validator expectations:
+
+- backend validators must parse and constrain new store command payloads
+- command and rejection enums must remain typed across backend and Flutter
+
 ## Rejection Reasons
 
 Extend the ownership rejection surface with store-specific reasons:
@@ -623,13 +645,15 @@ Recommended offer states:
 
 Locked content should remain discoverable in loadout screens:
 
-- `GearsTab` should show locked gear entries
-- `SkillsTab` should show locked skills after ownership migration
-- locked entries should route players to Town instead of disappearing
+- `GearsTab` should remain owned-entry focused and expose Town through a `+`
+  CTA in the first unoccupied slot
+- `SkillsTab` should show locked skills in compact form (icon + name only)
+- locked skill details should route players to Town instead of disappearing
+- candidate models should separate ownership state from legality state
 
 Recommended CTA:
 
-- `Find in Town`
+- `Find in Town` (on locked skill details)
 
 ### Interaction rules
 
@@ -677,7 +701,7 @@ Required reuse pattern:
 
 ### Phase 1: Ownership model expansion
 
-- generalize spell-only ownership into broader skill ownership
+- replace spell-list ownership with broad ability ownership in one pass
 - update normalization and starter baseline
 - update picker presenters to respect new ownership model
 
@@ -689,6 +713,7 @@ Required reuse pattern:
 - add `purchaseStoreOffer`
 - add `refreshStore`
 - add store-specific rejection reasons
+- update validators and typed client/backend enums
 
 ### Phase 3: Town UI and gold refresh
 
@@ -699,8 +724,9 @@ Required reuse pattern:
 
 ### Phase 4: Locked-content discovery polish
 
-- update gear and skill pickers to expose locked entries clearly
-- add `Find in Town` affordances
+- add `GearsTab` first-empty-slot `+` CTA with confirmation routing to Town
+- update `SkillsTab` locked rendering to icon + name only in list/grid views
+- add locked-skill details-panel `Find in Town` affordance
 - harden empty and sold-out states
 
 ### Phase 5: Rewarded refresh via AdMob
@@ -716,6 +742,7 @@ Backend:
 
 - `functions/src/ownership/contracts.ts`
 - `functions/src/ownership/defaults.ts`
+- `functions/src/ownership/validators.ts`
 - `functions/src/ownership/apply_command.ts`
 - `functions/src/ownership/command_executor.ts`
 - `functions/src/ownership/store_pricing.ts`
@@ -729,7 +756,7 @@ Flutter:
 - `lib/ui/state/loadout_ownership_api.dart`
 - `lib/ui/state/firebase_loadout_ownership_api.dart`
 - `lib/ui/state/progression_state.dart`
-- `lib/core/meta/*` ownership models if skill ownership is generalized
+- `lib/core/meta/*` ownership models after replacing `SpellList`
 - `lib/ui/pages/meta/town_page.dart`
 - new shared store widgets under `lib/ui/components/`
 - Town-only helper widgets colocated with `lib/ui/pages/meta/town_page.dart`
@@ -751,10 +778,11 @@ Minimum backend tests:
 9. generated offers resolve `priceGold` from the pricing catalog
 10. existing offers keep their resolved price if catalog prices later change
 11. gold refresh deducts exactly `50` gold
-12. rewarded refresh succeeds only with a verified unused grant
-13. refresh rejects on the fourth successful claim in the same UTC day
-14. day rollover resets quota server-side
-15. refresh rejects when no bucket can change
+12. gold refresh replay is idempotent
+13. rewarded refresh succeeds only with a verified unused grant
+14. refresh rejects on the fourth successful claim in the same UTC day
+15. day rollover resets quota server-side
+16. refresh rejects when no bucket can change
 
 Minimum Flutter tests:
 
@@ -765,7 +793,10 @@ Minimum Flutter tests:
 5. rewarded refresh updates the store once implemented
 6. exhausted daily quota disables all refresh CTAs
 7. sold-out bucket states render without collapsing layout
-8. loadout locked-item CTA routes to Town
+8. `GearsTab` `+` CTA routes to Town after confirmation
+9. locked skills render compactly (icon + name only) in list/grid views
+10. locked skill details-panel `Find in Town` CTA routes to Town
+11. locked and illegal states render as distinct UI states in loadout pickers
 
 ## Acceptance Criteria
 
@@ -777,19 +808,22 @@ Minimum Flutter tests:
 - Gold refresh costs exactly `50` gold.
 - Rewarded refresh requires a verified backend-tracked grant.
 - Sold-out buckets render cleanly and never cross-fill from other categories.
-- Locked content is discoverable from loadout screens and routes to Town.
+- Locked discovery from loadout screens matches UX intent:
+  `GearsTab` via `+` CTA, and `SkillsTab` via locked details CTA to Town.
 - Town reuses the existing shared/select-character UI primitives where they
   already fit, and any store-specific styling is isolated behind the existing
   token/theme system.
+- No live-data migration path is required for launch.
 
 ## Risks
 
-### Ownership migration is larger than the current spell-only model
+### Ownership replacement still touches many surfaces
 
 Mitigation:
 
-- do the ownership-model migration first
-- do not bolt Town onto `SpellList`
+- complete the ownership replacement first
+- remove `SpellList` in one pass to avoid split models
+- keep serializer/default updates in the same change
 
 ### Rewarded ads are not yet integrated
 
@@ -808,7 +842,7 @@ Mitigation:
 
 ## Recommended Implementation Order
 
-1. Lock the ownership-model migration for sellable skills.
+1. Lock the ownership replacement for sellable skills.
 2. Implement store state, pricing catalog, and purchase command.
 3. Ship gold refresh first.
 4. Build and stabilize Town UI on top of the finalized backend contract.
@@ -832,3 +866,4 @@ Recommended v1 shape:
 - no automatic daily reroll
 - same-bucket backfill on purchase
 - gold refresh first, AdMob rewarded refresh last
+- pre-launch direct ownership schema replacement (no live-data migration track)

@@ -3,44 +3,82 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:rpg_runner/core/meta/meta_service.dart';
 import 'package:rpg_runner/ui/app/ui_routes.dart';
-import 'package:rpg_runner/ui/bootstrap/profile_name_setup_page.dart';
+import 'package:rpg_runner/ui/pages/selectCharacter/loadout_setup_page.dart';
 import 'package:rpg_runner/ui/state/app_state.dart';
 import 'package:rpg_runner/ui/state/auth_api.dart';
 import 'package:rpg_runner/ui/state/loadout_ownership_api.dart';
 import 'package:rpg_runner/ui/state/progression_state.dart';
 import 'package:rpg_runner/ui/state/selection_state.dart';
-import 'package:rpg_runner/ui/state/user_profile.dart';
-import 'package:rpg_runner/ui/state/user_profile_remote_api.dart';
 import 'package:rpg_runner/ui/theme/ui_button_theme.dart';
+import 'package:rpg_runner/ui/theme/ui_skill_icon_theme.dart';
 import 'package:rpg_runner/ui/theme/ui_tokens.dart';
 
 void main() {
-  testWidgets('setup page shows network-specific save error', (tester) async {
-    final appState = AppState(
-      authApi: const _StaticAuthApi(),
-      loadoutOwnershipApi: _NoopOwnershipApi(),
-      userProfileRemoteApi: const _FailingUserProfileRemoteApi(
-        error: UserProfileRemoteException(
-          code: 'unavailable',
-          message: 'network down',
+  testWidgets(
+    'GearsTab shows + Town shortcut and navigates after confirmation',
+    (tester) async {
+      final appState = await _bootstrappedAppState();
+      await tester.pumpWidget(_TestApp(appState: appState));
+      await tester.pumpAndSettle();
+
+      final shortcut = find.byKey(const ValueKey<String>('gear-town-shortcut'));
+      expect(shortcut, findsAtLeastNWidgets(1));
+
+      await tester.tap(shortcut.first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Visit Town store?'), findsOneWidget);
+      await tester.tap(find.text('Go to Town'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('town-page-marker'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'SkillsTab shows locked entries and locked details Find in Town CTA',
+    (tester) async {
+      final appState = await _bootstrappedAppState();
+      await tester.pumpWidget(_TestApp(appState: appState));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(Tab).at(1));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bloodletter Slash'), findsOneWidget);
+      expect(
+        find.byKey(
+          const ValueKey<String>(
+            'skill-status-locked-eloise.bloodletter_slash',
+          ),
         ),
-      ),
-    );
+        findsOneWidget,
+      );
 
-    await tester.pumpWidget(_TestApp(appState: appState));
+      await tester.tap(find.text('Bloodletter Slash'));
+      await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField), 'HeroName');
-    await tester.tap(find.text('Confirm'));
-    await tester.pumpAndSettle();
+      expect(
+        find.text('Unlock this skill in Town to view full details.'),
+        findsOneWidget,
+      );
+      expect(find.text('Find in Town'), findsOneWidget);
 
-    expect(
-      find.text(
-        'Could not reach the server. Check your connection and try again.',
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('hub-page'), findsNothing);
-  });
+      await tester.tap(find.text('Find in Town'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('town-page-marker'), findsOneWidget);
+    },
+  );
+}
+
+Future<AppState> _bootstrappedAppState() async {
+  final appState = AppState(
+    authApi: const _StaticAuthApi(),
+    loadoutOwnershipApi: _NoopOwnershipApi(),
+  );
+  await appState.bootstrap(force: true);
+  return appState;
 }
 
 class _TestApp extends StatelessWidget {
@@ -55,11 +93,15 @@ class _TestApp extends StatelessWidget {
       child: MaterialApp(
         theme: ThemeData(
           useMaterial3: true,
-          extensions: [UiTokens.standard, UiButtonTheme.standard],
+          extensions: <ThemeExtension<dynamic>>[
+            UiTokens.standard,
+            UiButtonTheme.standard,
+            UiSkillIconTheme.standard,
+          ],
         ),
-        home: const ProfileNameSetupPage(),
+        home: const LoadoutSetupPage(),
         routes: <String, WidgetBuilder>{
-          UiRoutes.hub: (_) => const _RouteMarker('hub-page'),
+          UiRoutes.town: (_) => const _RouteMarker('town-page-marker'),
         },
       ),
     );
@@ -207,28 +249,5 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
       newRevision: _canonical.revision,
       replayedFromIdempotency: false,
     );
-  }
-}
-
-class _FailingUserProfileRemoteApi implements UserProfileRemoteApi {
-  const _FailingUserProfileRemoteApi({required this.error});
-
-  final Object error;
-
-  @override
-  Future<UserProfile> loadProfile({
-    required String userId,
-    required String sessionId,
-  }) async {
-    return UserProfile.empty;
-  }
-
-  @override
-  Future<UserProfile> updateProfile({
-    required String userId,
-    required String sessionId,
-    required UserProfileUpdate update,
-  }) async {
-    throw error;
   }
 }

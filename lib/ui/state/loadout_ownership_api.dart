@@ -106,6 +106,15 @@ enum OwnershipRejectedReason {
   invalidCommand,
   forbidden,
   unauthorized,
+  insufficientGold,
+  offerUnavailable,
+  alreadyOwned,
+  refreshLimitReached,
+  invalidRefreshMethod,
+  rewardNotVerified,
+  rewardAlreadyConsumed,
+  rewardExpired,
+  nothingToRefresh,
 }
 
 /// Unified command result envelope for ownership API mutations.
@@ -472,9 +481,52 @@ class AwardRunGoldCommand extends OwnershipCommand {
 
   @override
   Map<String, Object?> payloadToJson() {
+    return <String, Object?>{'runId': runId, 'goldEarned': goldEarned};
+  }
+}
+
+class PurchaseStoreOfferCommand extends OwnershipCommand {
+  const PurchaseStoreOfferCommand({
+    required super.userId,
+    required super.sessionId,
+    required super.expectedRevision,
+    required super.commandId,
+    required this.offerId,
+  });
+
+  final String offerId;
+
+  @override
+  String get type => 'purchaseStoreOffer';
+
+  @override
+  Map<String, Object?> payloadToJson() {
+    return <String, Object?>{'offerId': offerId};
+  }
+}
+
+class RefreshStoreCommand extends OwnershipCommand {
+  const RefreshStoreCommand({
+    required super.userId,
+    required super.sessionId,
+    required super.expectedRevision,
+    required super.commandId,
+    required this.method,
+    this.refreshGrantId,
+  });
+
+  final StoreRefreshMethod method;
+  final String? refreshGrantId;
+
+  @override
+  String get type => 'refreshStore';
+
+  @override
+  Map<String, Object?> payloadToJson() {
     return <String, Object?>{
-      'runId': runId,
-      'goldEarned': goldEarned,
+      'method': method.name,
+      if (refreshGrantId != null && refreshGrantId!.trim().isNotEmpty)
+        'refreshGrantId': refreshGrantId!.trim(),
     };
   }
 }
@@ -511,6 +563,16 @@ abstract class LoadoutOwnershipApi {
   Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command);
 
   Future<OwnershipCommandResult> awardRunGold(AwardRunGoldCommand command);
+
+  Future<OwnershipCommandResult> purchaseStoreOffer(
+    PurchaseStoreOfferCommand command,
+  ) {
+    throw UnimplementedError('purchaseStoreOffer is not implemented.');
+  }
+
+  Future<OwnershipCommandResult> refreshStore(RefreshStoreCommand command) {
+    throw UnimplementedError('refreshStore is not implemented.');
+  }
 }
 
 Map<String, Object?> _loadoutToJson(EquippedLoadoutDef loadout) {

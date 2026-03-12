@@ -12,10 +12,9 @@ import '../../../../core/abilities/ability_def.dart';
 import '../../../../core/accessories/accessory_id.dart';
 import '../../../../core/ecs/stores/combat/equipped_loadout_store.dart';
 import '../../../../core/loadout/loadout_validator.dart';
-import '../../../../core/meta/spell_list.dart';
+import '../../../../core/meta/ability_ownership_state.dart';
 import '../../../../core/players/character_ability_namespace.dart';
 import '../../../../core/players/player_character_definition.dart';
-import '../../../../core/players/player_character_registry.dart';
 import '../../../../core/projectiles/projectile_catalog.dart';
 import '../../../../core/projectiles/projectile_id.dart';
 import '../../../../core/spellBook/spell_book_catalog.dart';
@@ -36,17 +35,20 @@ const LoadoutValidator _loadoutValidator = LoadoutValidator(
 
 /// Display model for one ability option in a picker.
 ///
-/// [isEnabled] represents legality for the current trial loadout, not unlock
-/// ownership. UI can still render disabled entries for discoverability.
+/// [isOwned] is ownership state, while [isEnabled] is legality for the current
+/// trial loadout. Keeping these separate lets UI distinguish locked from owned
+/// but currently illegal candidates.
 class AbilityPickerCandidate {
   const AbilityPickerCandidate({
     required this.id,
     required this.def,
+    required this.isOwned,
     required this.isEnabled,
   });
 
   final AbilityKey id;
   final AbilityDef def;
+  final bool isOwned;
   final bool isEnabled;
 }
 
@@ -80,14 +82,14 @@ class ProjectileSourceOption {
 
 /// Display model for the left projectile source panel.
 ///
-/// It exposes learned projectile spells from Spell List.
+/// It exposes learned projectile spells from ability ownership state.
 class ProjectileSourcePanelModel {
   const ProjectileSourcePanelModel({
-    required this.spellListDisplayName,
+    required this.abilityOwnershipDisplayName,
     required this.spellOptions,
   });
 
-  final String spellListDisplayName;
+  final String abilityOwnershipDisplayName;
   final List<ProjectileSpellOption> spellOptions;
 }
 
@@ -110,19 +112,13 @@ List<AbilityPickerCandidate> abilityCandidatesForSlot({
   required PlayerCharacterId characterId,
   required AbilitySlot slot,
   required EquippedLoadoutDef loadout,
-  required SpellList spellList,
+  required AbilityOwnershipState abilityOwnership,
   ProjectileId? selectedSourceSpellId,
   bool overrideSelectedSource = false,
 }) {
   final candidates = <AbilityDef>[
     for (final def in AbilityCatalog.abilities.values)
       if (_isAbilityVisibleForCharacter(characterId, def.id) &&
-          _isAbilityOwnedForSlot(
-            characterId: characterId,
-            slot: slot,
-            abilityId: def.id,
-            spellList: spellList,
-          ) &&
           def.allowedSlots.contains(slot))
         def,
   ];
@@ -131,27 +127,35 @@ List<AbilityPickerCandidate> abilityCandidatesForSlot({
 
   return [
     for (final def in candidates)
-      AbilityPickerCandidate(
-        id: def.id,
-        def: def,
-        isEnabled: _isAbilityLegalForSlot(
-          loadout: loadout,
+      () {
+        final isOwned = _isAbilityOwnedForSlot(
           slot: slot,
           abilityId: def.id,
-          selectedSourceSpellId: selectedSourceSpellId,
-          overrideSelectedSource: overrideSelectedSource,
-        ),
-      ),
+          abilityOwnership: abilityOwnership,
+        );
+        return AbilityPickerCandidate(
+          id: def.id,
+          def: def,
+          isOwned: isOwned,
+          isEnabled: _isAbilityLegalForSlot(
+            loadout: loadout,
+            slot: slot,
+            abilityId: def.id,
+            selectedSourceSpellId: selectedSourceSpellId,
+            overrideSelectedSource: overrideSelectedSource,
+          ),
+        );
+      }(),
   ];
 }
 
 /// Returns projectile source options exposed by the character spell list.
 ProjectileSourcePanelModel projectileSourcePanelModel(
   EquippedLoadoutDef loadout,
-  SpellList spellList,
+  AbilityOwnershipState abilityOwnership,
 ) {
   final spellOptions = <ProjectileSpellOption>[];
-  final orderedLearned = spellList.learnedProjectileSpellIds.toList(
+  final orderedLearned = abilityOwnership.learnedProjectileSpellIds.toList(
     growable: false,
   )..sort((a, b) => a.index.compareTo(b.index));
   for (final spellId in orderedLearned) {
@@ -167,7 +171,7 @@ ProjectileSourcePanelModel projectileSourcePanelModel(
     );
   }
   return ProjectileSourcePanelModel(
-    spellListDisplayName: 'Spell List',
+    abilityOwnershipDisplayName: 'Spell List',
     spellOptions: spellOptions,
   );
 }
@@ -175,9 +179,9 @@ ProjectileSourcePanelModel projectileSourcePanelModel(
 /// Returns flat projectile source options for compatibility with existing call sites.
 List<ProjectileSourceOption> projectileSourceOptions(
   EquippedLoadoutDef loadout,
-  SpellList spellList,
+  AbilityOwnershipState abilityOwnership,
 ) {
-  final sourceModel = projectileSourcePanelModel(loadout, spellList);
+  final sourceModel = projectileSourcePanelModel(loadout, abilityOwnership);
   final options = <ProjectileSourceOption>[];
   for (final spell in sourceModel.spellOptions) {
     final spellDef = _projectileCatalog.get(spell.spellId);
@@ -198,11 +202,11 @@ List<ProjectileSourceOption> projectileSourceOptions(
 /// Returns [selected] when still valid for the current spell list.
 ProjectileId? normalizeProjectileSourceSelection(
   EquippedLoadoutDef loadout,
-  SpellList spellList,
+  AbilityOwnershipState abilityOwnership,
   ProjectileId? selected,
 ) {
   if (selected == null) return null;
-  final options = projectileSourceOptions(loadout, spellList);
+  final options = projectileSourceOptions(loadout, abilityOwnership);
   final exists = options.any((option) => option.spellId == selected);
   return exists ? selected : null;
 }
@@ -276,26 +280,11 @@ bool _isAbilityVisibleForCharacter(
 }
 
 bool _isAbilityOwnedForSlot({
-  required PlayerCharacterId characterId,
   required AbilitySlot slot,
   required AbilityKey abilityId,
-  required SpellList spellList,
+  required AbilityOwnershipState abilityOwnership,
 }) {
-  final catalog = PlayerCharacterRegistry.resolve(characterId).catalog;
-  switch (slot) {
-    case AbilitySlot.primary:
-      return abilityId == catalog.abilityPrimaryId;
-    case AbilitySlot.secondary:
-      return abilityId == catalog.abilitySecondaryId;
-    case AbilitySlot.projectile:
-      return abilityId == catalog.abilityProjectileId;
-    case AbilitySlot.mobility:
-      return abilityId == catalog.abilityMobilityId;
-    case AbilitySlot.jump:
-      return abilityId == catalog.abilityJumpId;
-    case AbilitySlot.spell:
-      return spellList.learnedSpellAbilityIds.contains(abilityId);
-  }
+  return abilityOwnership.learnedAbilityIdsForSlot(slot).contains(abilityId);
 }
 
 /// Validates a trial loadout with [abilityId] in [slot] against Core rules.

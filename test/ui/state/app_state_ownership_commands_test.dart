@@ -72,6 +72,24 @@ void main() {
       expect(api.unlockGearCalls, 1);
     },
   );
+
+  test(
+    'AppState routes store purchase and refresh through dedicated commands',
+    () async {
+      final api = _RecordingOwnershipApi();
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: api,
+      );
+
+      await appState.bootstrap(force: true);
+      await appState.purchaseStoreOffer(offerId: 'gear:mainWeapon:waspfang');
+      await appState.refreshStore(method: StoreRefreshMethod.gold);
+
+      expect(api.purchaseStoreOfferCalls, 1);
+      expect(api.refreshStoreCalls, 1);
+    },
+  );
 }
 
 class _RecordingOwnershipApi implements LoadoutOwnershipApi {
@@ -84,6 +102,8 @@ class _RecordingOwnershipApi implements LoadoutOwnershipApi {
   int learnProjectileSpellCalls = 0;
   int learnSpellAbilityCalls = 0;
   int unlockGearCalls = 0;
+  int purchaseStoreOfferCalls = 0;
+  int refreshStoreCalls = 0;
 
   OwnershipCanonicalState _canonical() {
     return OwnershipCanonicalState(
@@ -175,9 +195,27 @@ class _RecordingOwnershipApi implements LoadoutOwnershipApi {
     unlockGearCalls += 1;
     return _acceptedResult();
   }
-  
+
   @override
-  Future<OwnershipCommandResult> awardRunGold(AwardRunGoldCommand command) async {
+  Future<OwnershipCommandResult> awardRunGold(
+    AwardRunGoldCommand command,
+  ) async {
+    return _acceptedResult();
+  }
+
+  @override
+  Future<OwnershipCommandResult> purchaseStoreOffer(
+    PurchaseStoreOfferCommand command,
+  ) async {
+    purchaseStoreOfferCalls += 1;
+    return _acceptedResult();
+  }
+
+  @override
+  Future<OwnershipCommandResult> refreshStore(
+    RefreshStoreCommand command,
+  ) async {
+    refreshStoreCalls += 1;
     return _acceptedResult();
   }
 }

@@ -17,10 +17,7 @@ void main() {
       );
       final api = _RevisionedOwnershipApi(profileId: 'test_profile')
         ..forceStaleOnNextSetLoadout = true;
-      final appState = AppState(
-        authApi: authApi,
-        loadoutOwnershipApi: api,
-      );
+      final appState = AppState(authApi: authApi, loadoutOwnershipApi: api);
 
       await appState.bootstrap(force: true);
       final initialRevision = appState.ownershipRevision;
@@ -65,10 +62,7 @@ void main() {
       ensureResponses: <AuthSession>[_session(userId: 'u1', sessionId: 's1')],
     );
     final api = _RevisionedOwnershipApi(profileId: 'test_profile');
-    final appState = AppState(
-      authApi: authApi,
-      loadoutOwnershipApi: api,
-    );
+    final appState = AppState(authApi: authApi, loadoutOwnershipApi: api);
 
     await appState.bootstrap(force: true);
 
@@ -97,10 +91,7 @@ void main() {
       ],
     );
     final api = _RevisionedOwnershipApi(profileId: 'test_profile');
-    final appState = AppState(
-      authApi: authApi,
-      loadoutOwnershipApi: api,
-    );
+    final appState = AppState(authApi: authApi, loadoutOwnershipApi: api);
 
     await appState.bootstrap(force: true);
 
@@ -232,7 +223,23 @@ class _RevisionedOwnershipApi implements LoadoutOwnershipApi {
   }
 
   @override
-  Future<OwnershipCommandResult> awardRunGold(AwardRunGoldCommand command) async {
+  Future<OwnershipCommandResult> awardRunGold(
+    AwardRunGoldCommand command,
+  ) async {
+    return _acceptedFor(command.userId);
+  }
+
+  @override
+  Future<OwnershipCommandResult> purchaseStoreOffer(
+    PurchaseStoreOfferCommand command,
+  ) async {
+    return _acceptedFor(command.userId);
+  }
+
+  @override
+  Future<OwnershipCommandResult> refreshStore(
+    RefreshStoreCommand command,
+  ) async {
     return _acceptedFor(command.userId);
   }
 

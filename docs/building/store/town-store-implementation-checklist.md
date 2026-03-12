@@ -1,13 +1,20 @@
 # Town Store Implementation Checklist
 
 Date: March 11, 2026
-Status: Not started
+Status: In progress (Phases 1-4 complete, Phase 5 pending)
 Source plan: `docs/building/store/town-store-rewarded-refresh-plan.md`
 
 ## Goal
 
 Turn the Town store plan into a phased execution checklist with concrete tasks,
 clear dependencies, and per-phase done criteria.
+
+## Delivery Assumption
+
+- This is a pre-launch implementation with no live users.
+- No production data migration is required for ownership/progression schema
+  changes.
+- Local/emulator data can be reset during development when schema changes.
 
 ## Phase Order
 
@@ -25,29 +32,35 @@ Do not start Phase 5 before Phases 1-4 are complete and stable.
 
 Objective:
 
-- support sellable non-spell abilities as first-class owned content
+- replace spell-list ownership with full ability ownership, without dual legacy
+  support
 
 Tasks:
 
-- [ ] Replace the narrow spell-only ownership model with a broader per-character
-      ability ownership model.
-- [ ] Define the new canonical ownership shape for:
+- [x] Replace `SpellList` / `spellListByCharacter` with
+      `AbilityOwnershipState` / `abilityOwnershipByCharacter` across:
+      - `lib/core/meta/**`
+      - `lib/ui/state/**`
+      - `functions/src/ownership/**`
+- [x] Bump meta schema version and align backend starter-meta shape to the new
+      ownership model.
+- [x] Define the canonical ownership shape for:
       - projectile spells
       - spell-slot abilities
       - non-spell active abilities by slot
-- [ ] Migrate starter-owned content into the new ownership model.
-- [ ] Update normalization logic so invalid or missing owned-content state is
+- [x] Seed starter-owned content directly into the new ownership model.
+- [x] Update normalization logic so invalid or missing owned-content state is
       repaired safely.
-- [ ] Update serializer/deserializer code for the new ownership model.
-- [ ] Update loadout validation/presenter read paths to use the new owned-skill
+- [x] Update serializer/deserializer code for the new ownership model only.
+- [x] Update loadout validation/presenter read paths to use the new owned-skill
       shape.
-- [ ] Add tests covering:
+- [x] Add tests covering:
       - starter ownership seeding
-      - migration fallback behavior
       - owned-vs-locked ability visibility
 
 Done when:
 
+- no active runtime paths depend on `SpellList`
 - non-spell abilities can be represented as owned/unowned without temporary
   side systems
 - existing starter baselines still load cleanly
@@ -61,52 +74,61 @@ Objective:
 
 Tasks:
 
-- [ ] Extend progression canonical state with Town store data:
+- [x] Extend progression canonical state with Town store data:
       - `generation`
       - `refreshDayKeyUtc`
       - `refreshesUsedToday`
       - `activeOffers`
-- [ ] Define `StoreOffer` DTO fields:
+- [x] Define `StoreOffer` DTO fields:
       - `offerId`
       - `bucket`
       - `domain`
       - `slot`
       - `itemId`
       - `priceGold`
-- [ ] Add backend `StorePricingCatalog`.
-- [ ] Seed the pricing catalog with all current sellable items.
-- [ ] Set `defaultPriceGold = 150` for all current entries.
-- [ ] Implement per-bucket eligible-pool builders for:
+- [x] Lock and document canonical wire literals:
+      - bucket: `sword|shield|accessory|spellBook|projectileSpell|spell|ability`
+      - domain: `gear|projectileSpell|ability`
+      - slot:
+        `mainWeapon|offhandWeapon|spellBook|accessory|primary|secondary|projectile|mobility|jump|spell`
+- [x] Add backend `StorePricingCatalog`.
+- [x] Seed the pricing catalog with all current sellable items.
+- [x] Set `defaultPriceGold = 150` for all current entries.
+- [x] Implement per-bucket eligible-pool builders for:
       - sword
       - shield
       - accessory
-      - spellbook
-      - projectile spell
+      - spellBook
+      - projectileSpell
       - spell
       - ability
-- [ ] Implement deterministic store generation by bucket.
-- [ ] Implement same-bucket backfill after purchase.
-- [ ] Implement sold-out bucket behavior.
-- [ ] Add `purchaseStoreOffer` command.
-- [ ] Add `refreshStore` command with `method = gold | rewardedAd`.
-- [ ] Implement gold refresh cost validation (`50` gold).
-- [ ] Implement UTC-day quota reset behavior.
-- [ ] Add store-specific rejection reasons.
-- [ ] Add backend tests covering:
+- [x] Implement deterministic store generation by bucket.
+- [x] Implement same-bucket backfill after purchase.
+- [x] Implement sold-out bucket behavior.
+- [x] Add `purchaseStoreOffer` command.
+- [x] Add `refreshStore` command with `method = gold | rewardedAd`.
+- [x] Update backend request validators for new store commands and enum values.
+- [x] Implement gold refresh cost validation (`50` gold).
+- [x] Implement UTC-day quota reset behavior.
+- [x] Add store-specific rejection reasons in both backend and Flutter typed
+      contracts.
+- [x] Add backend tests covering:
       - store seeding
       - price resolution
       - purchase success
+      - purchase idempotency replay (no double spend/unlock)
       - insufficient gold
       - same-bucket backfill
       - sold-out buckets
       - gold refresh success
+      - refresh idempotency replay (no double spend)
       - refresh limit reached
       - no-change refresh rejection
 
 Done when:
 
 - the backend can fully serve and mutate canonical Town store state without UI
-- purchase and gold refresh are both transactionally safe
+- purchase and gold refresh are both transactionally safe and idempotent
 - store offers persist resolved `priceGold`
 
 ## Phase 3: Town UI and Gold Refresh
@@ -117,11 +139,11 @@ Objective:
 
 Tasks:
 
-- [ ] Replace the placeholder Town page with a real store screen.
-- [ ] Build the Town surface from existing shared UI primitives where they fit:
+- [x] Replace the placeholder Town page with a real store screen.
+- [x] Build the Town surface from existing shared UI primitives where they fit:
       - `MenuScaffold`
       - `AppButton`
-- [ ] Render the fixed 7-bucket layout:
+- [x] Render the fixed 7-bucket layout:
       - Sword
       - Shield
       - Accessory
@@ -129,34 +151,34 @@ Tasks:
       - Projectile Spell
       - Spell
       - Ability
-- [ ] Reuse existing select-character/store-adjacent visual primitives for
+- [x] Reuse existing select-character/store-adjacent visual primitives for
       offer rendering:
       - `GearIcon`
       - `AbilitySkillIcon`
       - `ProjectileIconFrame`
       - existing ability/gear text helpers
-- [ ] Show current gold from canonical progression state.
-- [ ] Show offer price from resolved `priceGold`.
-- [ ] Render sold-out bucket states without collapsing the layout.
-- [ ] Keep `town_page.dart` orchestration-focused; extract reusable store
+- [x] Show current gold from canonical progression state.
+- [x] Show offer price from resolved `priceGold`.
+- [x] Render sold-out bucket states without collapsing the layout.
+- [x] Keep `town_page.dart` orchestration-focused; extract reusable store
       widgets if the page starts accumulating card/layout/state-detail logic.
-- [ ] Keep Town-only helper widgets colocated with the Town page, but move any
+- [x] Keep Town-only helper widgets colocated with the Town page, but move any
       cross-flow reused widget into `lib/ui/components/`.
-- [ ] Use `UiTokens` and existing component themes for spacing, typography, and
+- [x] Use `UiTokens` and existing component themes for spacing, typography, and
       shared colors.
-- [ ] If the store needs visuals specific to Town, add a dedicated store
+- [x] If the store needs visuals specific to Town, add a dedicated store
       `ThemeExtension` instead of page-local styling knobs or raw colors.
-- [ ] Implement purchase interaction:
+- [x] Implement purchase interaction:
       - select offer
       - confirm purchase
       - apply canonical response
-- [ ] Implement `Refresh for 50 Gold`.
-- [ ] Disable gold refresh when:
+- [x] Implement `Refresh for 50 Gold`.
+- [x] Disable gold refresh when:
       - player has less than `50` gold
       - daily quota is exhausted
       - no bucket can change
-- [ ] Show remaining daily refresh count.
-- [ ] Add UI tests covering:
+- [x] Show remaining daily refresh count.
+- [x] Add UI tests covering:
       - layout rendering
       - purchase success
       - insufficient-gold purchase
@@ -179,22 +201,35 @@ Objective:
 
 Tasks:
 
-- [ ] Update `GearsTab` to show locked entries, not only unlocked entries.
-- [ ] Update `SkillsTab` to show locked skills after ownership migration.
-- [ ] Add a clear locked-state presentation for loadout candidates.
-- [ ] Reuse or extract shared locked-state badges/tiles from select-character
+- [x] Keep `GearsTab` focused on owned entries, but reserve the first
+      unoccupied grid box as a `+` Town CTA.
+- [x] Add the `+` gear CTA interaction:
+      - tap opens a confirmation dialog
+      - confirm navigates to Town
+- [x] Update `SkillsTab` locked-entry rendering to show only:
+      - icon
+      - name
+      (no locked detail body in the list/grid row)
+- [x] Add a locked-skill details-panel action to open Town
+      (for example `Find in Town`).
+- [x] Keep ownership and legality as separate UI concerns for candidates (for
+      example, owned/locked vs currently legal/illegal).
+- [x] Reuse or extract shared locked-state badges/tiles from select-character
       flows instead of duplicating near-identical widgets in Town/loadout pages.
-- [ ] Add `Find in Town` CTA or equivalent navigation affordance.
-- [ ] Route locked-item CTA to the Town page.
-- [ ] Ensure loadout screens still distinguish:
+- [x] Ensure loadout screens still distinguish:
       - owned but illegal for current loadout
       - locked and not owned
-- [ ] Add widget/presenter tests for locked-content discovery behavior.
+- [x] Add widget/presenter tests covering:
+      - `GearsTab` `+` CTA visibility and confirmation routing
+      - `SkillsTab` locked entry compact rendering (icon + name only)
+      - locked details-panel Town CTA routing
+      - owned-vs-illegal vs locked state presentation
 
 Done when:
 
-- locked items are visible and understandable from setup screens
-- the player can navigate from a locked loadout item to Town directly
+- `GearsTab` exposes a clear `+` path to Town from the first unoccupied slot
+- locked skills are discoverable without exposing full locked details inline
+- the player can navigate from locked skill details to Town directly
 
 ## Phase 5: Rewarded Refresh Via AdMob
 
@@ -236,6 +271,8 @@ end.
 - [ ] Keep docs in sync if the contract changes.
 - [ ] Keep rejection reasons typed across client and backend.
 - [ ] Keep store logic server-authoritative; no client-only fallback logic.
+- [ ] Keep store enum literals centralized and consistent across docs, backend,
+      and Flutter clients.
 - [ ] Keep tests aligned with canonical revision/idempotency semantics.
 - [ ] Run targeted analysis/tests for touched files after each phase.
 
@@ -263,7 +300,8 @@ Run the relevant subset as each phase lands:
 - [ ] `flutter test test/ui/state`
 - [ ] `flutter test test/ui/pages`
 - [ ] `flutter test test/ui/components`
-- [ ] `pnpm --dir functions test`
+- [ ] `corepack pnpm --dir functions build`
+- [ ] `corepack pnpm --dir functions test`
 
 ## Exit Criteria
 
@@ -274,3 +312,4 @@ The checklist is complete when:
 - rewarded refresh works as the final phase
 - locked loadout content routes players back to Town
 - backend authority remains intact across pricing, ownership, and refresh flows
+- no legacy ownership migration path is required for launch

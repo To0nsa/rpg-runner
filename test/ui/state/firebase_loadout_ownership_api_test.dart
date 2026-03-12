@@ -24,10 +24,7 @@ void main() {
     };
     final api = FirebaseLoadoutOwnershipApi(source: source);
 
-    final actual = await api.loadCanonicalState(
-      userId: 'u1',
-      sessionId: 's1',
-    );
+    final actual = await api.loadCanonicalState(userId: 'u1', sessionId: 's1');
 
     expect(actual.profileId, expected.profileId);
     expect(actual.revision, expected.revision);
@@ -84,6 +81,36 @@ void main() {
       ),
       throwsA(isA<StateError>()),
     );
+  });
+
+  test('refreshStore forwards typed command to Firebase source', () async {
+    final source = _FakeFirebaseLoadoutOwnershipSource();
+    final canonical = OwnershipCanonicalState(
+      profileId: 'p1',
+      revision: 2,
+      selection: SelectionState.defaults,
+      meta: const MetaService().createNew(),
+      progression: ProgressionState.initial,
+    );
+    source.commandResponse = OwnershipCommandResult(
+      canonicalState: canonical,
+      newRevision: canonical.revision,
+      replayedFromIdempotency: false,
+    ).toJson();
+    final api = FirebaseLoadoutOwnershipApi(source: source);
+
+    final result = await api.refreshStore(
+      const RefreshStoreCommand(
+        userId: 'u1',
+        sessionId: 's1',
+        expectedRevision: 1,
+        commandId: 'cmd-refresh',
+        method: StoreRefreshMethod.gold,
+      ),
+    );
+
+    expect(result.accepted, isTrue);
+    expect(source.lastCommand?.type, 'refreshStore');
   });
 }
 

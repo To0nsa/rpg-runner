@@ -3,14 +3,11 @@ import 'dart:async';
 import 'package:battery_plus/battery_plus.dart';
 import 'package:flutter/material.dart';
 
+import '../../../components/gold_display.dart';
 import '../../../theme/ui_tokens.dart';
 
 class HubTopRow extends StatefulWidget {
-  const HubTopRow({
-    super.key,
-    required this.displayName,
-    required this.gold,
-  });
+  const HubTopRow({super.key, required this.displayName, required this.gold});
 
   final String displayName;
   final int gold;
@@ -95,14 +92,7 @@ class _HubTopRowState extends State<HubTopRow> {
             ),
           ),
           SizedBox(width: ui.space.sm),
-          // Gold
-          Text(widget.gold.toString(), style: ui.text.headline),
-          SizedBox(width: ui.space.xs),
-          Icon(
-            Icons.monetization_on,
-            color: ui.colors.accentStrong,
-            size: ui.sizes.iconSize.sm,
-          ),
+          GoldDisplay(gold: widget.gold, variant: GoldDisplayVariant.headline),
           SizedBox(width: ui.space.md),
           Container(
             width: ui.sizes.dividerThickness,

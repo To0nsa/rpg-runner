@@ -8,6 +8,7 @@ import '../../../core/meta/equipped_gear.dart';
 import '../../../core/meta/gear_slot.dart';
 import '../../../core/meta/meta_service.dart';
 import '../../../core/players/player_character_definition.dart';
+import '../../app/ui_routes.dart';
 import '../../components/app_button.dart';
 import '../../components/gear_icon.dart';
 import '../../state/app_state.dart';
@@ -120,10 +121,16 @@ class _GearsTabState extends State<GearsTab> {
                           ),
                           itemBuilder: (context, index) {
                             final slot = slotSpecs[index].slot;
-                            final candidates = _service
-                                .candidatesForSlot(meta, slot)
+                            final allCandidates = _service.candidatesForSlot(
+                              meta,
+                              slot,
+                            );
+                            final candidates = allCandidates
                                 .where((candidate) => candidate.isUnlocked)
                                 .toList(growable: false);
+                            final hasLockedCandidates = allCandidates.any(
+                              (candidate) => !candidate.isUnlocked,
+                            );
                             final equippedId = _equippedIdForSlot(
                               slot,
                               equipped,
@@ -171,6 +178,7 @@ class _GearsTabState extends State<GearsTab> {
                                     equippedId: equippedId,
                                     selectedId: selectedId,
                                     canEquip: canEquip,
+                                    showTownShortcut: hasLockedCandidates,
                                     onSelected: (value) => setState(() {
                                       _selectedCandidateBySlot[slot] = value;
                                     }),
@@ -180,6 +188,8 @@ class _GearsTabState extends State<GearsTab> {
                                       selectedId: selectedId,
                                       equippedId: equippedId,
                                     ),
+                                    onOpenTownStore: () =>
+                                        _confirmOpenTownStore(slot: slot),
                                   ),
                                 ),
                               ],
@@ -307,6 +317,33 @@ class _GearsTabState extends State<GearsTab> {
       itemId: selectedId,
     );
   }
+
+  Future<void> _confirmOpenTownStore({required GearSlot slot}) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Visit Town store?'),
+          content: Text(
+            'Open Town to browse locked ${_gearSlotLabel(slot)} options?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Go to Town'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed == true && mounted) {
+      await Navigator.of(context).pushNamed(UiRoutes.town);
+    }
+  }
 }
 
 class _GearSlotSelectionDivider extends StatelessWidget {
@@ -400,8 +437,10 @@ class _GearCandidatesPane extends StatelessWidget {
     required this.equippedId,
     required this.selectedId,
     required this.canEquip,
+    required this.showTownShortcut,
     required this.onSelected,
     required this.onEquip,
+    required this.onOpenTownStore,
   });
 
   final GearSlot slot;
@@ -409,8 +448,10 @@ class _GearCandidatesPane extends StatelessWidget {
   final Object equippedId;
   final Object selectedId;
   final bool canEquip;
+  final bool showTownShortcut;
   final ValueChanged<Object> onSelected;
   final VoidCallback onEquip;
+  final VoidCallback onOpenTownStore;
 
   @override
   Widget build(BuildContext context) {
@@ -424,6 +465,8 @@ class _GearCandidatesPane extends StatelessWidget {
             candidates: candidates,
             equippedId: equippedId,
             selectedId: selectedId,
+            showTownShortcut: showTownShortcut,
+            onOpenTownStore: onOpenTownStore,
             onSelected: onSelected,
           ),
         ),
@@ -534,6 +577,15 @@ class _GearSlotSpec {
   const _GearSlotSpec({required this.slot});
 
   final GearSlot slot;
+}
+
+String _gearSlotLabel(GearSlot slot) {
+  return switch (slot) {
+    GearSlot.mainWeapon => 'main weapon',
+    GearSlot.offhandWeapon => 'offhand',
+    GearSlot.spellBook => 'spellbook',
+    GearSlot.accessory => 'accessory',
+  };
 }
 
 List<_GearSlotSpec> _slotSpecsForMask(int mask) {
