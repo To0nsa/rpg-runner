@@ -1,12 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/commands/command.dart';
-import 'package:rpg_runner/core/events/game_event.dart';
-import 'package:rpg_runner/core/game_core.dart';
+import 'package:runner_core/commands/command.dart';
+import 'package:runner_core/events/game_event.dart';
+import 'package:runner_core/game_core.dart';
 import '../support/test_level.dart';
-import 'package:rpg_runner/core/tuning/core_tuning.dart';
-import 'package:rpg_runner/core/tuning/physics_tuning.dart';
-import 'package:rpg_runner/core/tuning/track_tuning.dart';
+import 'package:runner_core/tuning/core_tuning.dart';
+import 'package:runner_core/tuning/physics_tuning.dart';
+import 'package:runner_core/tuning/track_tuning.dart';
 
 import '../test_tunings.dart';
 

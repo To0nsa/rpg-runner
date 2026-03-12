@@ -2,14 +2,14 @@ import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/combat/faction.dart';
-import 'package:rpg_runner/core/ecs/spatial/broadphase_grid.dart';
-import 'package:rpg_runner/core/ecs/spatial/grid_index_2d.dart';
-import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
-import 'package:rpg_runner/core/ecs/stores/faction_store.dart';
-import 'package:rpg_runner/core/ecs/stores/health_store.dart';
-import 'package:rpg_runner/core/ecs/world.dart';
-import 'package:rpg_runner/core/tuning/spatial_grid_tuning.dart';
+import 'package:runner_core/combat/faction.dart';
+import 'package:runner_core/ecs/spatial/broadphase_grid.dart';
+import 'package:runner_core/ecs/spatial/grid_index_2d.dart';
+import 'package:runner_core/ecs/stores/collider_aabb_store.dart';
+import 'package:runner_core/ecs/stores/faction_store.dart';
+import 'package:runner_core/ecs/stores/health_store.dart';
+import 'package:runner_core/ecs/world.dart';
+import 'package:runner_core/tuning/spatial_grid_tuning.dart';
 
 void main() {
   test('BroadphaseGrid query matches brute-force overlap set', () {

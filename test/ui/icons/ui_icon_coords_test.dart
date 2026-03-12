@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rpg_runner/core/weapons/weapon_id.dart';
+import 'package:runner_core/weapons/weapon_id.dart';
 import 'package:rpg_runner/ui/icons/ui_icon_coords.dart';
 
 void main() {

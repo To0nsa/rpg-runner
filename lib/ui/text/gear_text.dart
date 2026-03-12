@@ -1,12 +1,12 @@
-import '../../core/accessories/accessory_id.dart';
-import '../../core/combat/damage_type.dart';
-import '../../core/combat/status/status.dart';
-import '../../core/meta/gear_slot.dart';
-import '../../core/projectiles/projectile_id.dart';
-import '../../core/projectiles/projectile_item_def.dart';
-import '../../core/spellBook/spell_book_id.dart';
-import '../../core/weapons/weapon_id.dart';
-import '../../core/weapons/weapon_proc.dart';
+import 'package:runner_core/accessories/accessory_id.dart';
+import 'package:runner_core/combat/damage_type.dart';
+import 'package:runner_core/combat/status/status.dart';
+import 'package:runner_core/meta/gear_slot.dart';
+import 'package:runner_core/projectiles/projectile_id.dart';
+import 'package:runner_core/projectiles/projectile_item_def.dart';
+import 'package:runner_core/spellBook/spell_book_id.dart';
+import 'package:runner_core/weapons/weapon_id.dart';
+import 'package:runner_core/weapons/weapon_proc.dart';
 
 /// User-facing display name for a [WeaponId].
 String weaponDisplayName(WeaponId id) {

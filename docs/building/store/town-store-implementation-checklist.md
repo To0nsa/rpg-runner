@@ -39,7 +39,7 @@ Tasks:
 
 - [x] Replace `SpellList` / `spellListByCharacter` with
       `AbilityOwnershipState` / `abilityOwnershipByCharacter` across:
-      - `lib/core/meta/**`
+      - `packages/runner_core/lib/meta/**`
       - `lib/ui/state/**`
       - `functions/src/ownership/**`
 - [x] Bump meta schema version and align backend starter-meta shape to the new
@@ -296,7 +296,7 @@ Before shipping rewarded refresh:
 
 Run the relevant subset as each phase lands:
 
-- [ ] `dart analyze lib/ui/state lib/ui/pages lib/ui/components lib/ui/theme lib/core/meta`
+- [ ] `dart analyze lib/ui/state lib/ui/pages lib/ui/components lib/ui/theme packages/runner_core/lib/meta`
 - [ ] `flutter test test/ui/state`
 - [ ] `flutter test test/ui/pages`
 - [ ] `flutter test test/ui/components`

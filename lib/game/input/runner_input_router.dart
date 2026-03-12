@@ -1,7 +1,7 @@
 import 'dart:math';
 
-import '../../core/abilities/ability_def.dart';
-import '../../core/commands/command.dart';
+import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/commands/command.dart';
 import '../game_controller.dart';
 import 'aim_quantizer.dart';
 

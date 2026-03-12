@@ -129,10 +129,10 @@ Current defaults:
 ## Source of Truth
 
 - Core cue emission/intensity:
-  - `lib/core/game_core.dart`
-  - `lib/core/events/entity_visual_cue_coalescer.dart`
-  - `lib/core/events/player_impact_feedback_gate.dart`
-  - `lib/core/events/feedback_events.dart`
+  - `packages/runner_core/lib/game_core.dart`
+  - `packages/runner_core/lib/events/entity_visual_cue_coalescer.dart`
+  - `packages/runner_core/lib/events/player_impact_feedback_gate.dart`
+  - `packages/runner_core/lib/events/feedback_events.dart`
 - Render mapping/tuning:
   - `lib/game/tuning/combat_feedback_tuning.dart`
   - `lib/game/runner_flame_game.dart`

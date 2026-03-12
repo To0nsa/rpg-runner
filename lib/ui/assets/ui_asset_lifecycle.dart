@@ -2,9 +2,9 @@ import 'package:flame/cache.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../core/players/player_character_definition.dart';
-import '../../core/players/player_character_registry.dart';
-import '../../core/snapshots/enums.dart';
+import 'package:runner_core/players/player_character_definition.dart';
+import 'package:runner_core/players/player_character_registry.dart';
+import 'package:runner_core/snapshots/enums.dart';
 import '../../game/components/player/player_animations.dart';
 import '../../game/themes/parallax_theme_registry.dart';
 import 'asset_scopes.dart';

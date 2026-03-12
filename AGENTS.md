@@ -8,7 +8,7 @@ This repo is no longer just a prototype of a runner architecture. It is a workin
 
 Current implemented scope includes:
 
-- Deterministic Core gameplay in `lib/core/`
+- Deterministic Core gameplay in `packages/runner_core/lib/`
 - Flame rendering bridge in `lib/game/`
 - Full Flutter app shell, setup flow, hub, town/meta pages, HUD, and run route in `lib/ui/`
 - Backend-authenticated profile and loadout ownership state via Firebase Functions + Firestore
@@ -23,7 +23,7 @@ Use the most specific AGENTS file that matches the area you are touching:
 
 - `AGENTS.md`: repo-wide rules and cross-cutting quality bar
 - `lib/AGENTS.md`: app-level architecture and layer boundaries
-- `lib/core/AGENTS.md`: deterministic simulation layer
+- `packages/runner_core/lib/AGENTS.md`: deterministic simulation layer
 - `lib/game/AGENTS.md`: Flame renderer and controller bridge
 - `lib/ui/AGENTS.md`: Flutter app shell, pages, state, HUD, and theming
 - `functions/AGENTS.md`: Firebase Functions backend in TypeScript
@@ -43,7 +43,7 @@ Also consult:
 
 ## Current Architectural Split
 
-- `lib/core/` is the authoritative deterministic gameplay layer
+- `packages/runner_core/lib/` is the authoritative deterministic gameplay layer
 - `lib/game/` is the Flame rendering and input bridge layer
 - `lib/ui/` is the Flutter app shell, menu/meta UI, HUD, state orchestration, and backend client layer
 - `functions/src/` is the server-side authority for authenticated profile, ownership, and account deletion flows

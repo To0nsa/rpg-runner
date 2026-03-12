@@ -1,15 +1,15 @@
-import 'package:rpg_runner/core/abilities/ability_def.dart';
-import 'package:rpg_runner/core/combat/creature_tag.dart';
-import 'package:rpg_runner/core/ecs/stores/body_store.dart';
-import 'package:rpg_runner/core/ecs/stores/combat/creature_tag_store.dart';
-import 'package:rpg_runner/core/ecs/stores/combat/damage_resistance_store.dart';
-import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
-import 'package:rpg_runner/core/ecs/stores/combat/status_immunity_store.dart';
-import 'package:rpg_runner/core/players/player_catalog.dart';
-import 'package:rpg_runner/core/projectiles/projectile_id.dart';
-import 'package:rpg_runner/core/snapshots/enums.dart';
-import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
-import 'package:rpg_runner/core/weapons/weapon_id.dart';
+import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/combat/creature_tag.dart';
+import 'package:runner_core/ecs/stores/body_store.dart';
+import 'package:runner_core/ecs/stores/combat/creature_tag_store.dart';
+import 'package:runner_core/ecs/stores/combat/damage_resistance_store.dart';
+import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
+import 'package:runner_core/ecs/stores/combat/status_immunity_store.dart';
+import 'package:runner_core/players/player_catalog.dart';
+import 'package:runner_core/projectiles/projectile_id.dart';
+import 'package:runner_core/snapshots/enums.dart';
+import 'package:runner_core/spellBook/spell_book_id.dart';
+import 'package:runner_core/weapons/weapon_id.dart';
 
 const PlayerCatalog testPlayerCatalogDefaults = PlayerCatalog(
   bodyTemplate: BodyDef(

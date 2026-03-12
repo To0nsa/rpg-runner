@@ -2,18 +2,18 @@ import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/commands/command.dart';
-import 'package:rpg_runner/core/ecs/stores/body_store.dart';
-import 'package:rpg_runner/core/game_core.dart';
+import 'package:runner_core/commands/command.dart';
+import 'package:runner_core/ecs/stores/body_store.dart';
+import 'package:runner_core/game_core.dart';
 import '../support/test_level.dart';
-import 'package:rpg_runner/core/players/player_character_registry.dart';
-import 'package:rpg_runner/core/snapshots/enums.dart';
-import 'package:rpg_runner/core/players/player_tuning.dart';
-import 'package:rpg_runner/core/abilities/ability_catalog.dart';
-import 'package:rpg_runner/core/abilities/ability_def.dart';
-import 'package:rpg_runner/core/stats/character_stats_resolver.dart';
-import 'package:rpg_runner/core/util/tick_math.dart';
-import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
+import 'package:runner_core/players/player_character_registry.dart';
+import 'package:runner_core/snapshots/enums.dart';
+import 'package:runner_core/players/player_tuning.dart';
+import 'package:runner_core/abilities/ability_catalog.dart';
+import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/stats/character_stats_resolver.dart';
+import 'package:runner_core/util/tick_math.dart';
+import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 
 import '../support/test_player.dart';
 import '../test_tunings.dart';

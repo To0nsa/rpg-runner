@@ -1,17 +1,17 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rpg_runner/core/accessories/accessory_id.dart';
-import 'package:rpg_runner/core/abilities/ability_def.dart';
-import 'package:rpg_runner/core/meta/gear_slot.dart';
-import 'package:rpg_runner/core/meta/ability_ownership_state.dart';
-import 'package:rpg_runner/core/meta/equipped_gear.dart';
-import 'package:rpg_runner/core/meta/inventory_state.dart';
-import 'package:rpg_runner/core/meta/meta_defaults.dart';
-import 'package:rpg_runner/core/meta/meta_service.dart';
-import 'package:rpg_runner/core/meta/meta_state.dart';
-import 'package:rpg_runner/core/players/player_character_definition.dart';
-import 'package:rpg_runner/core/projectiles/projectile_id.dart';
-import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
-import 'package:rpg_runner/core/weapons/weapon_id.dart';
+import 'package:runner_core/accessories/accessory_id.dart';
+import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/meta/gear_slot.dart';
+import 'package:runner_core/meta/ability_ownership_state.dart';
+import 'package:runner_core/meta/equipped_gear.dart';
+import 'package:runner_core/meta/inventory_state.dart';
+import 'package:runner_core/meta/meta_defaults.dart';
+import 'package:runner_core/meta/meta_service.dart';
+import 'package:runner_core/meta/meta_state.dart';
+import 'package:runner_core/players/player_character_definition.dart';
+import 'package:runner_core/projectiles/projectile_id.dart';
+import 'package:runner_core/spellBook/spell_book_id.dart';
+import 'package:runner_core/weapons/weapon_id.dart';
 
 const Set<ProjectileId> _eloiseStarterProjectileSpells = <ProjectileId>{
   ProjectileId.acidBolt,

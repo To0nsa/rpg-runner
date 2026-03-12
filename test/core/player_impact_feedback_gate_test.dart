@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/events/game_event.dart';
-import 'package:rpg_runner/core/events/player_impact_feedback_gate.dart';
+import 'package:runner_core/events/game_event.dart';
+import 'package:runner_core/events/player_impact_feedback_gate.dart';
 
 void main() {
   test('emits direct player impact at most once per second', () {

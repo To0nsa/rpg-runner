@@ -1,7 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rpg_runner/core/snapshots/ground_surface_snapshot.dart';
+import 'package:runner_core/snapshots/ground_surface_snapshot.dart';
 import 'package:rpg_runner/game/components/ground_surface_layout.dart';
 
 void main() {

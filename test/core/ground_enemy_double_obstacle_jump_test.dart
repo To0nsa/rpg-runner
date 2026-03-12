@@ -1,31 +1,31 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/collision/static_world_geometry_index.dart';
-import 'package:rpg_runner/core/enemies/enemy_catalog.dart';
-import 'package:rpg_runner/core/enemies/enemy_id.dart';
-import 'package:rpg_runner/core/ecs/entity_factory.dart';
-import 'package:rpg_runner/core/ecs/spatial/grid_index_2d.dart';
-import 'package:rpg_runner/core/ecs/stores/body_store.dart';
-import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
-import 'package:rpg_runner/core/ecs/stores/health_store.dart';
-import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
-import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
-import 'package:rpg_runner/core/ecs/systems/collision_system.dart';
-import 'package:rpg_runner/core/ecs/systems/enemy_engagement_system.dart';
-import 'package:rpg_runner/core/ecs/systems/enemy_navigation_system.dart';
-import 'package:rpg_runner/core/ecs/systems/gravity_system.dart';
-import 'package:rpg_runner/core/ecs/systems/ground_enemy_locomotion_system.dart';
-import 'package:rpg_runner/core/ecs/world.dart';
-import 'package:rpg_runner/core/navigation/surface_graph_builder.dart';
-import 'package:rpg_runner/core/navigation/surface_navigator.dart';
-import 'package:rpg_runner/core/navigation/surface_pathfinder.dart';
-import 'package:rpg_runner/core/navigation/utils/jump_template.dart';
-import 'package:rpg_runner/core/players/player_tuning.dart';
-import 'package:rpg_runner/core/snapshots/enums.dart';
-import 'package:rpg_runner/core/track/chunk_builder.dart';
-import 'package:rpg_runner/core/track/chunk_pattern.dart';
-import 'package:rpg_runner/core/tuning/ground_enemy_tuning.dart';
-import 'package:rpg_runner/core/tuning/physics_tuning.dart';
+import 'package:runner_core/collision/static_world_geometry_index.dart';
+import 'package:runner_core/enemies/enemy_catalog.dart';
+import 'package:runner_core/enemies/enemy_id.dart';
+import 'package:runner_core/ecs/entity_factory.dart';
+import 'package:runner_core/ecs/spatial/grid_index_2d.dart';
+import 'package:runner_core/ecs/stores/body_store.dart';
+import 'package:runner_core/ecs/stores/collider_aabb_store.dart';
+import 'package:runner_core/ecs/stores/health_store.dart';
+import 'package:runner_core/ecs/stores/mana_store.dart';
+import 'package:runner_core/ecs/stores/stamina_store.dart';
+import 'package:runner_core/ecs/systems/collision_system.dart';
+import 'package:runner_core/ecs/systems/enemy_engagement_system.dart';
+import 'package:runner_core/ecs/systems/enemy_navigation_system.dart';
+import 'package:runner_core/ecs/systems/gravity_system.dart';
+import 'package:runner_core/ecs/systems/ground_enemy_locomotion_system.dart';
+import 'package:runner_core/ecs/world.dart';
+import 'package:runner_core/navigation/surface_graph_builder.dart';
+import 'package:runner_core/navigation/surface_navigator.dart';
+import 'package:runner_core/navigation/surface_pathfinder.dart';
+import 'package:runner_core/navigation/utils/jump_template.dart';
+import 'package:runner_core/players/player_tuning.dart';
+import 'package:runner_core/snapshots/enums.dart';
+import 'package:runner_core/track/chunk_builder.dart';
+import 'package:runner_core/track/chunk_pattern.dart';
+import 'package:runner_core/tuning/ground_enemy_tuning.dart';
+import 'package:runner_core/tuning/physics_tuning.dart';
 
 void main() {
   test('ground enemy clears double-block obstacle sequence', () {

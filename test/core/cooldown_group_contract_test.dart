@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rpg_runner/core/abilities/ability_def.dart';
+import 'package:runner_core/abilities/ability_def.dart';
 
-import 'package:rpg_runner/core/ecs/world.dart';
+import 'package:runner_core/ecs/world.dart';
 
 void main() {
   group('Cooldown Group Contract', () {

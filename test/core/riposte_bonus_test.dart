@@ -1,15 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/combat/damage_type.dart';
-import 'package:rpg_runner/core/combat/faction.dart';
-import 'package:rpg_runner/core/ecs/spatial/broadphase_grid.dart';
-import 'package:rpg_runner/core/ecs/spatial/grid_index_2d.dart';
-import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
-import 'package:rpg_runner/core/ecs/stores/faction_store.dart';
-import 'package:rpg_runner/core/ecs/stores/health_store.dart';
-import 'package:rpg_runner/core/ecs/stores/hitbox_store.dart';
-import 'package:rpg_runner/core/ecs/systems/hitbox_damage_system.dart';
-import 'package:rpg_runner/core/ecs/world.dart';
+import 'package:runner_core/combat/damage_type.dart';
+import 'package:runner_core/combat/faction.dart';
+import 'package:runner_core/ecs/spatial/broadphase_grid.dart';
+import 'package:runner_core/ecs/spatial/grid_index_2d.dart';
+import 'package:runner_core/ecs/stores/collider_aabb_store.dart';
+import 'package:runner_core/ecs/stores/faction_store.dart';
+import 'package:runner_core/ecs/stores/health_store.dart';
+import 'package:runner_core/ecs/stores/hitbox_store.dart';
+import 'package:runner_core/ecs/systems/hitbox_damage_system.dart';
+import 'package:runner_core/ecs/world.dart';
 
 void main() {
   test('Riposte bonus applies only when a melee hit lands (and is then consumed)', () {

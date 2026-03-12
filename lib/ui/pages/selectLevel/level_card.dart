@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/levels/level_id.dart';
+import 'package:runner_core/levels/level_id.dart';
 import '../../levels/level_id_ui.dart';
 import '../../components/level_parallax_preview.dart';
 import '../../theme/ui_tokens.dart';

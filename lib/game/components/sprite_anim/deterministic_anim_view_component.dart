@@ -6,8 +6,8 @@ import 'dart:math' as dart_math;
 import 'package:flame/components.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../../core/snapshots/entity_render_snapshot.dart';
-import '../../../core/snapshots/enums.dart';
+import 'package:runner_core/snapshots/entity_render_snapshot.dart';
+import 'package:runner_core/snapshots/enums.dart';
 import '../../tuning/combat_feedback_tuning.dart';
 import 'sprite_anim_set.dart';
 import '../../util/math_util.dart' as math;

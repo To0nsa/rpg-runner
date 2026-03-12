@@ -1,15 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rpg_runner/core/accessories/accessory_catalog.dart';
-import 'package:rpg_runner/core/accessories/accessory_id.dart';
-import 'package:rpg_runner/core/combat/status/status.dart';
-import 'package:rpg_runner/core/spellBook/spell_book_catalog.dart';
-import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
-import 'package:rpg_runner/core/stats/gear_stat_bonuses.dart';
-import 'package:rpg_runner/core/weapons/reactive_proc.dart';
-import 'package:rpg_runner/core/weapons/weapon_catalog.dart';
-import 'package:rpg_runner/core/weapons/weapon_category.dart';
-import 'package:rpg_runner/core/weapons/weapon_id.dart';
-import 'package:rpg_runner/core/weapons/weapon_proc.dart';
+import 'package:runner_core/accessories/accessory_catalog.dart';
+import 'package:runner_core/accessories/accessory_id.dart';
+import 'package:runner_core/combat/status/status.dart';
+import 'package:runner_core/spellBook/spell_book_catalog.dart';
+import 'package:runner_core/spellBook/spell_book_id.dart';
+import 'package:runner_core/stats/gear_stat_bonuses.dart';
+import 'package:runner_core/weapons/reactive_proc.dart';
+import 'package:runner_core/weapons/weapon_catalog.dart';
+import 'package:runner_core/weapons/weapon_category.dart';
+import 'package:runner_core/weapons/weapon_id.dart';
+import 'package:runner_core/weapons/weapon_proc.dart';
 
 void main() {
   group('gear authoring constraints', () {

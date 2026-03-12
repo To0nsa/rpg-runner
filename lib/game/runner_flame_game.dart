@@ -10,12 +10,12 @@ import 'package:flame/game.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
-import '../core/contracts/render_contract.dart';
-import '../core/events/game_event.dart';
-import '../core/players/player_character_definition.dart';
-import '../core/snapshots/entity_render_snapshot.dart';
-import '../core/snapshots/enums.dart';
-import '../core/snapshots/static_solid_snapshot.dart';
+import 'package:runner_core/contracts/render_contract.dart';
+import 'package:runner_core/events/game_event.dart';
+import 'package:runner_core/players/player_character_definition.dart';
+import 'package:runner_core/snapshots/entity_render_snapshot.dart';
+import 'package:runner_core/snapshots/enums.dart';
+import 'package:runner_core/snapshots/static_solid_snapshot.dart';
 import 'debug/debug_aabb_overlay.dart';
 import 'debug/render_debug_flags.dart';
 import 'components/player/player_animations.dart';

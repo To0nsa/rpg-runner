@@ -2,8 +2,8 @@ import 'package:flame/components.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../core/snapshots/entity_render_snapshot.dart';
-import '../../core/snapshots/enums.dart';
+import 'package:runner_core/snapshots/entity_render_snapshot.dart';
+import 'package:runner_core/snapshots/enums.dart';
 import '../game_controller.dart';
 import '../input/aim_preview.dart';
 

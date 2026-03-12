@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rpg_runner/core/abilities/ability_def.dart';
-import 'package:rpg_runner/core/accessories/accessory_id.dart';
-import 'package:rpg_runner/core/meta/gear_slot.dart';
-import 'package:rpg_runner/core/meta/meta_service.dart';
-import 'package:rpg_runner/core/players/player_character_definition.dart';
+import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/accessories/accessory_id.dart';
+import 'package:runner_core/meta/gear_slot.dart';
+import 'package:runner_core/meta/meta_service.dart';
+import 'package:runner_core/players/player_character_definition.dart';
 import 'package:rpg_runner/ui/state/firebase_loadout_ownership_api.dart';
 import 'package:rpg_runner/ui/state/loadout_ownership_api.dart';
 import 'package:rpg_runner/ui/state/progression_state.dart';

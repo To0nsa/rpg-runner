@@ -2,8 +2,8 @@ import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rpg_runner/core/snapshots/entity_render_snapshot.dart';
-import 'package:rpg_runner/core/snapshots/enums.dart';
+import 'package:runner_core/snapshots/entity_render_snapshot.dart';
+import 'package:runner_core/snapshots/enums.dart';
 import 'package:rpg_runner/game/components/sprite_anim/deterministic_anim_view_component.dart';
 import 'package:rpg_runner/game/components/sprite_anim/sprite_anim_set.dart';
 

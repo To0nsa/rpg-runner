@@ -1,6 +1,6 @@
 # Eloise Abilities
 
-Canonical snapshot of currently shipped Eloise ability defs (`lib/core/abilities/catalog/eloise_ability_defs.dart`).
+Canonical snapshot of currently shipped Eloise ability defs (`packages/runner_core/lib/abilities/catalog/eloise_ability_defs.dart`).
 
 Core units:
 

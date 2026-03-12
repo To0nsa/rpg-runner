@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rpg_runner/core/meta/meta_service.dart';
+import 'package:runner_core/meta/meta_service.dart';
 import 'package:rpg_runner/ui/state/account_deletion_api.dart';
 import 'package:rpg_runner/ui/state/app_state.dart';
 import 'package:rpg_runner/ui/state/auth_api.dart';

@@ -21,7 +21,7 @@ Spell ownership is now decoupled from `spellBook` gear.
 
 ## Data Model and Persistence
 
-- Added `SpellList` model in `lib/core/meta/spell_list.dart`:
+- Added `SpellList` model in `packages/runner_core/lib/meta/spell_list.dart`:
   - `learnedProjectileSpellIds`
   - `learnedSpellAbilityIds`
 - Added per-character storage in `MetaState`:

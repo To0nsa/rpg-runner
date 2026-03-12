@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rpg_runner/core/combat/status/status.dart';
-import 'package:rpg_runner/core/weapons/reactive_proc.dart';
-import 'package:rpg_runner/core/weapons/weapon_catalog.dart';
-import 'package:rpg_runner/core/weapons/weapon_id.dart';
-import 'package:rpg_runner/core/weapons/weapon_proc.dart';
+import 'package:runner_core/combat/status/status.dart';
+import 'package:runner_core/weapons/reactive_proc.dart';
+import 'package:runner_core/weapons/weapon_catalog.dart';
+import 'package:runner_core/weapons/weapon_id.dart';
+import 'package:runner_core/weapons/weapon_proc.dart';
 
 void main() {
   group('weapon catalog roster values', () {

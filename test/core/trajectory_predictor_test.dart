@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/ecs/spatial/grid_index_2d.dart';
-import 'package:rpg_runner/core/navigation/types/surface_graph.dart';
-import 'package:rpg_runner/core/navigation/types/surface_id.dart';
-import 'package:rpg_runner/core/navigation/types/walk_surface.dart';
-import 'package:rpg_runner/core/navigation/utils/surface_spatial_index.dart';
-import 'package:rpg_runner/core/navigation/utils/trajectory_predictor.dart';
+import 'package:runner_core/ecs/spatial/grid_index_2d.dart';
+import 'package:runner_core/navigation/types/surface_graph.dart';
+import 'package:runner_core/navigation/types/surface_id.dart';
+import 'package:runner_core/navigation/types/walk_surface.dart';
+import 'package:runner_core/navigation/utils/surface_spatial_index.dart';
+import 'package:runner_core/navigation/utils/trajectory_predictor.dart';
 
 /// Helper to build a SurfaceGraph from a list of surfaces (no edges needed for
 /// trajectory prediction tests).

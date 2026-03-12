@@ -1,18 +1,18 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rpg_runner/core/abilities/ability_catalog.dart';
-import 'package:rpg_runner/core/abilities/ability_def.dart';
-import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
-import 'package:rpg_runner/core/loadout/loadout_issue.dart';
-import 'package:rpg_runner/core/loadout/loadout_validator.dart';
-import 'package:rpg_runner/core/snapshots/enums.dart';
-import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
-import 'package:rpg_runner/core/projectiles/projectile_id.dart';
-import 'package:rpg_runner/core/spellBook/spell_book_catalog.dart';
-import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
-import 'package:rpg_runner/core/weapons/weapon_catalog.dart';
-import 'package:rpg_runner/core/weapons/weapon_category.dart';
-import 'package:rpg_runner/core/weapons/weapon_def.dart';
-import 'package:rpg_runner/core/weapons/weapon_id.dart';
+import 'package:runner_core/abilities/ability_catalog.dart';
+import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
+import 'package:runner_core/loadout/loadout_issue.dart';
+import 'package:runner_core/loadout/loadout_validator.dart';
+import 'package:runner_core/snapshots/enums.dart';
+import 'package:runner_core/projectiles/projectile_catalog.dart';
+import 'package:runner_core/projectiles/projectile_id.dart';
+import 'package:runner_core/spellBook/spell_book_catalog.dart';
+import 'package:runner_core/spellBook/spell_book_id.dart';
+import 'package:runner_core/weapons/weapon_catalog.dart';
+import 'package:runner_core/weapons/weapon_category.dart';
+import 'package:runner_core/weapons/weapon_def.dart';
+import 'package:runner_core/weapons/weapon_id.dart';
 
 void main() {
   group('LoadoutValidator', () {

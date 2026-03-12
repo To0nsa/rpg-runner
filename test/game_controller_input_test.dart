@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/commands/command.dart';
-import 'package:rpg_runner/core/game_core.dart';
+import 'package:runner_core/commands/command.dart';
+import 'package:runner_core/game_core.dart';
 import 'support/test_level.dart';
 import 'package:rpg_runner/game/game_controller.dart';
 

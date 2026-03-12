@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../core/levels/level_id.dart';
+import 'package:runner_core/levels/level_id.dart';
 import '../state/selection_state.dart';
 import 'leaderboard_store.dart';
 import 'run_result.dart';

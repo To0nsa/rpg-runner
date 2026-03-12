@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/collision/static_world_geometry_index.dart';
+import 'package:runner_core/collision/static_world_geometry_index.dart';
 
 void main() {
   test('accepts sorted and disjoint provided ground segments', () {

@@ -2,8 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../../../core/meta/gear_slot.dart';
-import '../../../../core/meta/meta_service.dart';
+import 'package:runner_core/meta/gear_slot.dart';
+import 'package:runner_core/meta/meta_service.dart';
 import '../../../components/gameIcon/game_icon.dart';
 import '../../../theme/ui_tokens.dart';
 import 'gear_picker_parts.dart';

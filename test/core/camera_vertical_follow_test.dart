@@ -1,17 +1,17 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/camera/autoscroll_camera.dart';
-import 'package:rpg_runner/core/contracts/render_contract.dart';
-import 'package:rpg_runner/core/game_core.dart';
+import 'package:runner_core/camera/autoscroll_camera.dart';
+import 'package:runner_core/contracts/render_contract.dart';
+import 'package:runner_core/game_core.dart';
 import '../support/test_level.dart';
-import 'package:rpg_runner/core/levels/level_definition.dart';
-import 'package:rpg_runner/core/levels/level_id.dart';
-import 'package:rpg_runner/core/levels/level_registry.dart';
-import 'package:rpg_runner/core/levels/level_world_constants.dart';
-import 'package:rpg_runner/core/players/player_tuning.dart';
-import 'package:rpg_runner/core/tuning/camera_tuning.dart';
-import 'package:rpg_runner/core/tuning/core_tuning.dart';
-import 'package:rpg_runner/core/tuning/track_tuning.dart';
+import 'package:runner_core/levels/level_definition.dart';
+import 'package:runner_core/levels/level_id.dart';
+import 'package:runner_core/levels/level_registry.dart';
+import 'package:runner_core/levels/level_world_constants.dart';
+import 'package:runner_core/players/player_tuning.dart';
+import 'package:runner_core/tuning/camera_tuning.dart';
+import 'package:runner_core/tuning/core_tuning.dart';
+import 'package:runner_core/tuning/track_tuning.dart';
 
 CameraTuningDerived _derived(CameraTuning tuning) {
   final movement = MovementTuningDerived.from(

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:rpg_runner/core/events/game_event.dart';
-import 'package:rpg_runner/core/levels/level_id.dart';
-import 'package:rpg_runner/core/tuning/score_tuning.dart';
+import 'package:runner_core/events/game_event.dart';
+import 'package:runner_core/levels/level_id.dart';
+import 'package:runner_core/tuning/score_tuning.dart';
 import 'package:rpg_runner/ui/hud/gameover/game_over_overlay.dart';
 import 'package:rpg_runner/ui/hud/gameover/leaderboard_panel.dart';
 import 'package:rpg_runner/ui/leaderboard/leaderboard_store.dart';

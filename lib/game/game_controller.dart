@@ -10,13 +10,13 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
-import '../core/abilities/ability_def.dart';
-import '../core/commands/command.dart';
-import '../core/enemies/enemy_catalog.dart';
-import '../core/events/game_event.dart';
-import '../core/game_core.dart';
-import '../core/snapshots/game_state_snapshot.dart';
-import '../core/tuning/score_tuning.dart';
+import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/commands/command.dart';
+import 'package:runner_core/enemies/enemy_catalog.dart';
+import 'package:runner_core/events/game_event.dart';
+import 'package:runner_core/game_core.dart';
+import 'package:runner_core/snapshots/game_state_snapshot.dart';
+import 'package:runner_core/tuning/score_tuning.dart';
 import 'tick_input_frame.dart';
 
 typedef GameEventListener = void Function(GameEvent event);

@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rpg_runner/core/abilities/ability_catalog.dart';
-import 'package:rpg_runner/core/abilities/ability_def.dart';
-import 'package:rpg_runner/core/combat/middleware/parry_middleware.dart';
-import 'package:rpg_runner/core/combat/status/status.dart';
-import 'package:rpg_runner/core/projectiles/projectile_id.dart';
-import 'package:rpg_runner/core/snapshots/enums.dart';
+import 'package:runner_core/abilities/ability_catalog.dart';
+import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/combat/middleware/parry_middleware.dart';
+import 'package:runner_core/combat/status/status.dart';
+import 'package:runner_core/projectiles/projectile_id.dart';
+import 'package:runner_core/snapshots/enums.dart';
 import 'package:rpg_runner/ui/text/ability_tag_resolver.dart';
 import 'package:rpg_runner/ui/text/ability_tooltip_builder.dart';
 

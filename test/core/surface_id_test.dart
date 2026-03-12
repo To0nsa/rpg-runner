@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/navigation/types/surface_id.dart';
+import 'package:runner_core/navigation/types/surface_id.dart';
 
 void main() {
   test(

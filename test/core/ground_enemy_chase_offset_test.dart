@@ -1,29 +1,29 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/ecs/stores/body_store.dart';
-import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
-import 'package:rpg_runner/core/ecs/stores/health_store.dart';
-import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
-import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
-import 'package:rpg_runner/core/ecs/stores/enemies/melee_engagement_store.dart';
-import 'package:rpg_runner/core/ecs/stores/enemies/surface_nav_state_store.dart';
-import 'package:rpg_runner/core/ecs/spatial/grid_index_2d.dart';
-import 'package:rpg_runner/core/ecs/systems/enemy_engagement_system.dart';
-import 'package:rpg_runner/core/ecs/systems/ground_enemy_locomotion_system.dart';
-import 'package:rpg_runner/core/ecs/systems/enemy_navigation_system.dart';
-import 'package:rpg_runner/core/ecs/world.dart';
-import 'package:rpg_runner/core/navigation/types/surface_graph.dart';
-import 'package:rpg_runner/core/navigation/surface_navigator.dart';
-import 'package:rpg_runner/core/navigation/surface_pathfinder.dart';
-import 'package:rpg_runner/core/navigation/utils/surface_spatial_index.dart';
-import 'package:rpg_runner/core/navigation/types/walk_surface.dart';
-import 'package:rpg_runner/core/snapshots/enums.dart';
-import 'package:rpg_runner/core/tuning/ground_enemy_tuning.dart';
-import 'package:rpg_runner/core/util/deterministic_rng.dart';
-import 'package:rpg_runner/core/util/double_math.dart';
+import 'package:runner_core/ecs/stores/body_store.dart';
+import 'package:runner_core/ecs/stores/collider_aabb_store.dart';
+import 'package:runner_core/ecs/stores/health_store.dart';
+import 'package:runner_core/ecs/stores/mana_store.dart';
+import 'package:runner_core/ecs/stores/stamina_store.dart';
+import 'package:runner_core/ecs/stores/enemies/melee_engagement_store.dart';
+import 'package:runner_core/ecs/stores/enemies/surface_nav_state_store.dart';
+import 'package:runner_core/ecs/spatial/grid_index_2d.dart';
+import 'package:runner_core/ecs/systems/enemy_engagement_system.dart';
+import 'package:runner_core/ecs/systems/ground_enemy_locomotion_system.dart';
+import 'package:runner_core/ecs/systems/enemy_navigation_system.dart';
+import 'package:runner_core/ecs/world.dart';
+import 'package:runner_core/navigation/types/surface_graph.dart';
+import 'package:runner_core/navigation/surface_navigator.dart';
+import 'package:runner_core/navigation/surface_pathfinder.dart';
+import 'package:runner_core/navigation/utils/surface_spatial_index.dart';
+import 'package:runner_core/navigation/types/walk_surface.dart';
+import 'package:runner_core/snapshots/enums.dart';
+import 'package:runner_core/tuning/ground_enemy_tuning.dart';
+import 'package:runner_core/util/deterministic_rng.dart';
+import 'package:runner_core/util/double_math.dart';
 
 import 'test_spawns.dart';
-import 'package:rpg_runner/core/ecs/entity_factory.dart';
+import 'package:runner_core/ecs/entity_factory.dart';
 
 class SurfaceNavigatorProbe extends SurfaceNavigator {
   SurfaceNavigatorProbe()

@@ -5,8 +5,8 @@
 //
 // This keeps the public API stable while allowing internal folders/files to
 // evolve without breaking downstream imports.
-export 'core/levels/level_id.dart';
-export 'core/players/player_character_definition.dart';
-export 'core/players/player_character_registry.dart';
+export 'package:runner_core/levels/level_id.dart';
+export 'package:runner_core/players/player_character_definition.dart';
+export 'package:runner_core/players/player_character_registry.dart';
 export 'ui/runner_game_route.dart';
 export 'ui/runner_game_widget.dart';

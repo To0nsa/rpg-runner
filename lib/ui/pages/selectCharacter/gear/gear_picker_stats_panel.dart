@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/meta/gear_slot.dart';
+import 'package:runner_core/meta/gear_slot.dart';
 import '../../../text/gear_text.dart';
 import '../../../text/semantic_text.dart';
 import '../../../theme/ui_tokens.dart';

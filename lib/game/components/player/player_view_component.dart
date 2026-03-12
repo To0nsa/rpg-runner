@@ -3,7 +3,7 @@ library;
 
 import 'package:flame/components.dart';
 
-import '../../../core/snapshots/enums.dart';
+import 'package:runner_core/snapshots/enums.dart';
 import '../sprite_anim/deterministic_anim_view_component.dart';
 import '../sprite_anim/sprite_anim_set.dart';
 

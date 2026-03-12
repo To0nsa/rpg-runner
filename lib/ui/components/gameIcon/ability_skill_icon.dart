@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/abilities/ability_def.dart';
+import 'package:runner_core/abilities/ability_def.dart';
 
 const Map<AbilityKey, String> abilitySkillIconAssets = <AbilityKey, String>{
   'eloise.aegis_riposte': 'assets/images/icons/skills-icons/aegis_riposte.png',

@@ -7,20 +7,20 @@
 // Keeping this logic centralized ensures picker screens stay aligned with Core
 // rules (visibility, legality, and source constraints) without mutating
 // loadouts directly in widget code.
-import '../../../../core/abilities/ability_catalog.dart';
-import '../../../../core/abilities/ability_def.dart';
-import '../../../../core/accessories/accessory_id.dart';
-import '../../../../core/ecs/stores/combat/equipped_loadout_store.dart';
-import '../../../../core/loadout/loadout_validator.dart';
-import '../../../../core/meta/ability_ownership_state.dart';
-import '../../../../core/players/character_ability_namespace.dart';
-import '../../../../core/players/player_character_definition.dart';
-import '../../../../core/projectiles/projectile_catalog.dart';
-import '../../../../core/projectiles/projectile_id.dart';
-import '../../../../core/spellBook/spell_book_catalog.dart';
-import '../../../../core/spellBook/spell_book_id.dart';
-import '../../../../core/weapons/weapon_catalog.dart';
-import '../../../../core/weapons/weapon_id.dart';
+import 'package:runner_core/abilities/ability_catalog.dart';
+import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/accessories/accessory_id.dart';
+import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
+import 'package:runner_core/loadout/loadout_validator.dart';
+import 'package:runner_core/meta/ability_ownership_state.dart';
+import 'package:runner_core/players/character_ability_namespace.dart';
+import 'package:runner_core/players/player_character_definition.dart';
+import 'package:runner_core/projectiles/projectile_catalog.dart';
+import 'package:runner_core/projectiles/projectile_id.dart';
+import 'package:runner_core/spellBook/spell_book_catalog.dart';
+import 'package:runner_core/spellBook/spell_book_id.dart';
+import 'package:runner_core/weapons/weapon_catalog.dart';
+import 'package:runner_core/weapons/weapon_id.dart';
 import '../../../text/gear_text.dart';
 
 const AbilityCatalog _abilityCatalog = AbilityCatalog();

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/abilities/ability_def.dart';
-import '../../../core/ecs/stores/combat/equipped_loadout_store.dart';
-import '../../../core/meta/ability_ownership_state.dart';
-import '../../../core/players/player_character_definition.dart';
+import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
+import 'package:runner_core/meta/ability_ownership_state.dart';
+import 'package:runner_core/players/player_character_definition.dart';
 import '../../app/ui_routes.dart';
 import '../../state/app_state.dart';
 import '../../text/ability_tooltip_context_helper.dart';

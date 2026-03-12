@@ -1,6 +1,6 @@
-import '../../core/accessories/accessory_id.dart';
-import '../../core/spellBook/spell_book_id.dart';
-import '../../core/weapons/weapon_id.dart';
+import 'package:runner_core/accessories/accessory_id.dart';
+import 'package:runner_core/spellBook/spell_book_id.dart';
+import 'package:runner_core/weapons/weapon_id.dart';
 
 class UiIconCoords {
   const UiIconCoords(this.row, this.col);

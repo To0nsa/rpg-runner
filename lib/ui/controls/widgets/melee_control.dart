@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import '../../../core/abilities/ability_def.dart';
-import '../../../core/snapshots/enums.dart';
+import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/snapshots/enums.dart';
 import '../../../game/input/aim_preview.dart';
 import '../action_button.dart';
 import '../ability_slot_visual_spec.dart';

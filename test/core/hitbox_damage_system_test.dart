@@ -1,31 +1,31 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/combat/faction.dart';
-import 'package:rpg_runner/core/ecs/stores/body_store.dart';
-import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
-import 'package:rpg_runner/core/ecs/stores/faction_store.dart';
-import 'package:rpg_runner/core/ecs/stores/health_store.dart';
-import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
-import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
-import 'package:rpg_runner/core/ecs/spatial/broadphase_grid.dart';
-import 'package:rpg_runner/core/ecs/spatial/grid_index_2d.dart';
-import 'package:rpg_runner/core/ecs/systems/ability_activation_system.dart';
-import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
-import 'package:rpg_runner/core/ecs/systems/hitbox_damage_system.dart';
-import 'package:rpg_runner/core/ecs/systems/hitbox_follow_owner_system.dart';
-import 'package:rpg_runner/core/ecs/systems/lifetime_system.dart';
-import 'package:rpg_runner/core/ecs/systems/melee_strike_system.dart';
-import 'package:rpg_runner/core/ecs/world.dart';
-import 'package:rpg_runner/core/snapshots/enums.dart';
-import 'package:rpg_runner/core/tuning/spatial_grid_tuning.dart';
-import 'package:rpg_runner/core/ecs/entity_factory.dart';
-import 'package:rpg_runner/core/abilities/ability_catalog.dart';
-import 'package:rpg_runner/core/accessories/accessory_catalog.dart';
-import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
-import 'package:rpg_runner/core/spellBook/spell_book_catalog.dart';
-import 'package:rpg_runner/core/stats/character_stats_resolver.dart';
-import 'package:rpg_runner/core/weapons/weapon_catalog.dart';
-import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
+import 'package:runner_core/combat/faction.dart';
+import 'package:runner_core/ecs/stores/body_store.dart';
+import 'package:runner_core/ecs/stores/collider_aabb_store.dart';
+import 'package:runner_core/ecs/stores/faction_store.dart';
+import 'package:runner_core/ecs/stores/health_store.dart';
+import 'package:runner_core/ecs/stores/mana_store.dart';
+import 'package:runner_core/ecs/stores/stamina_store.dart';
+import 'package:runner_core/ecs/spatial/broadphase_grid.dart';
+import 'package:runner_core/ecs/spatial/grid_index_2d.dart';
+import 'package:runner_core/ecs/systems/ability_activation_system.dart';
+import 'package:runner_core/ecs/systems/damage_system.dart';
+import 'package:runner_core/ecs/systems/hitbox_damage_system.dart';
+import 'package:runner_core/ecs/systems/hitbox_follow_owner_system.dart';
+import 'package:runner_core/ecs/systems/lifetime_system.dart';
+import 'package:runner_core/ecs/systems/melee_strike_system.dart';
+import 'package:runner_core/ecs/world.dart';
+import 'package:runner_core/snapshots/enums.dart';
+import 'package:runner_core/tuning/spatial_grid_tuning.dart';
+import 'package:runner_core/ecs/entity_factory.dart';
+import 'package:runner_core/abilities/ability_catalog.dart';
+import 'package:runner_core/accessories/accessory_catalog.dart';
+import 'package:runner_core/projectiles/projectile_catalog.dart';
+import 'package:runner_core/spellBook/spell_book_catalog.dart';
+import 'package:runner_core/stats/character_stats_resolver.dart';
+import 'package:runner_core/weapons/weapon_catalog.dart';
+import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 
 void main() {
   test('melee hitbox damages only once per swing', () {

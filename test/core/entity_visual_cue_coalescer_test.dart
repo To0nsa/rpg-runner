@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rpg_runner/core/combat/damage_type.dart';
-import 'package:rpg_runner/core/combat/status/status.dart';
-import 'package:rpg_runner/core/events/entity_visual_cue_coalescer.dart';
-import 'package:rpg_runner/core/events/game_event.dart';
+import 'package:runner_core/combat/damage_type.dart';
+import 'package:runner_core/combat/status/status.dart';
+import 'package:runner_core/events/entity_visual_cue_coalescer.dart';
+import 'package:runner_core/events/game_event.dart';
 
 void main() {
   test(

@@ -1,0 +1,264 @@
+import '../../abilities/ability_def.dart';
+import '../../abilities/forced_interrupt_policy.dart';
+import '../../combat/damage_type.dart';
+import '../../combat/status/status.dart';
+import '../../events/game_event.dart';
+import '../../stats/character_stats_resolver.dart';
+import '../../stats/resolved_stats_cache.dart';
+import '../../util/deterministic_rng.dart';
+import '../../util/fixed_math.dart';
+import '../../weapons/weapon_proc.dart';
+import 'ability_interrupt.dart';
+import '../entity_id.dart';
+import '../stores/damage_queue_store.dart';
+import '../world.dart';
+
+typedef DamageAppliedCallback =
+    void Function({
+      required int target,
+      required int appliedAmount100,
+      required DeathSourceKind sourceKind,
+      required DamageType damageType,
+    });
+
+/// Central system for validating and applying damage to entities.
+///
+/// Handles:
+/// 1.  Processing queued [DamageRequest]s.
+/// 2.  Checking invulnerability frames (i-frames).
+/// 3.  Reducing [HealthStore] HP.
+/// 4.  Recording [LastDamageStore] details (source, amount) for UI/logic.
+/// 5.  Applying post-hit invulnerability.
+class DamageSystem {
+  DamageSystem({
+    required this.invulnerabilityTicksOnHit,
+    required int rngSeed,
+    CharacterStatsResolver statsResolver = const CharacterStatsResolver(),
+    ResolvedStatsCache? statsCache,
+    this.forcedInterruptPolicy = ForcedInterruptPolicy.defaultPolicy,
+  }) : _rngState = seedFrom(rngSeed, 0x44a3c2f1),
+       _statsCache = statsCache ?? ResolvedStatsCache(resolver: statsResolver);
+
+  /// Number of ticks an entity is invulnerable after taking damage.
+  final int invulnerabilityTicksOnHit;
+  final ResolvedStatsCache _statsCache;
+  final ForcedInterruptPolicy forcedInterruptPolicy;
+
+  int _rngState;
+  static const int _critBonusBp = 5000; // +50% on crit.
+
+  /// Processes all pending damage requests.
+  void step(
+    EcsWorld world, {
+    required int currentTick,
+    void Function(StatusRequest request)? queueStatus,
+    DamageAppliedCallback? onDamageApplied,
+  }) {
+    final queue = world.damageQueue;
+    if (queue.length == 0) return;
+
+    final health = world.health;
+    final invuln = world.invulnerability;
+    final lastDamage = world.lastDamage;
+    final resistance = world.damageResistance;
+    final vulnerable = world.vulnerable;
+    final weaken = world.weaken;
+
+    for (var i = 0; i < queue.length; i += 1) {
+      if ((queue.flags[i] & DamageQueueFlags.canceled) != 0) continue;
+
+      final target = queue.target[i];
+      final amount100 = queue.amount100[i];
+      final critChanceBp = queue.critChanceBp[i];
+      final damageType = queue.damageType[i];
+      final procs = queue.procs[i];
+      final sourceKind = queue.sourceKind[i];
+      final sourceEntity = queue.sourceEntity[i];
+      final sourceEnemyId = queue.sourceEnemyId[i];
+      final sourceProjectileId = queue.sourceProjectileId[i];
+
+      // 1. Resolve Health component.
+      // Use tryIndexOf (returns int?) to combine "has check" and "get index"
+      // into a single lookup for performance.
+      final hi = health.tryIndexOf(target);
+      if (hi == null) continue;
+
+      // 2. Resolve Invulnerability component (optional).
+      final ii = invuln.tryIndexOf(target);
+
+      // Invulnerability applies only to entities that have `InvulnerabilityStore`
+      // attached.
+      if (ii != null && invuln.ticksLeft[ii] > 0) {
+        continue; // Damage negated.
+      }
+
+      // 3. Apply outgoing-source modifiers (e.g. weaken).
+      var amountAfterSourceModifiers = amount100;
+      if (sourceEntity != null) {
+        final wi = weaken.tryIndexOf(sourceEntity);
+        if (wi != null && weaken.ticksLeft[wi] > 0) {
+          amountAfterSourceModifiers = applyBp(
+            amountAfterSourceModifiers,
+            -weaken.magnitude[wi],
+          );
+          if (amountAfterSourceModifiers < 0) {
+            amountAfterSourceModifiers = 0;
+          }
+        }
+      }
+
+      // 4. Resolve outgoing critical strike (if any).
+      var amountAfterCrit = amountAfterSourceModifiers;
+      var didCrit = false;
+      if (critChanceBp >= bpScale) {
+        amountAfterCrit = applyBp(amountAfterCrit, _critBonusBp);
+        didCrit = true;
+      } else if (critChanceBp > 0) {
+        _rngState = nextUint32(_rngState);
+        if ((_rngState % bpScale) < critChanceBp) {
+          amountAfterCrit = applyBp(amountAfterCrit, _critBonusBp);
+          didCrit = true;
+        }
+      }
+      if (amountAfterCrit < 0) amountAfterCrit = 0;
+
+      // 5. Apply global defense (if the target has equipped gear stats).
+      var amountAfterDefense = amountAfterCrit;
+      final resolvedStats = _statsCache.resolveForEntity(world, target);
+      amountAfterDefense = resolvedStats.applyDefense(amountAfterDefense);
+
+      // 6. Apply resistance/vulnerability modifier.
+      final ri = resistance.tryIndexOf(target);
+      final baseTypedModBp = ri == null
+          ? 0
+          : resistance.modBpForIndex(ri, damageType);
+      final gearTypedModBp = resolvedStats.incomingDamageModBpForDamageType(
+        damageType,
+      );
+      final modBp = baseTypedModBp + gearTypedModBp;
+      var appliedAmount = applyBp(amountAfterDefense, modBp);
+      if (appliedAmount < 0) appliedAmount = 0;
+      final vi = vulnerable.tryIndexOf(target);
+      if (vi != null && vulnerable.ticksLeft[vi] > 0) {
+        appliedAmount = applyBp(appliedAmount, vulnerable.magnitude[vi]);
+        if (appliedAmount < 0) appliedAmount = 0;
+      }
+
+      final prevHp = health.hp[hi];
+      final nextHp = clampInt(prevHp - appliedAmount, 0, health.hpMax[hi]);
+      health.hp[hi] = nextHp;
+      final didKill = prevHp > 0 && nextHp == 0;
+
+      // 7. Record Last Damage details (if store exists).
+      // Only useful if damage was actually taken.
+      if (nextHp < prevHp) {
+        _interruptOnDamageTaken(world, target);
+
+        final li = lastDamage.tryIndexOf(target);
+        if (li != null) {
+          lastDamage.kind[li] = sourceKind;
+          lastDamage.amount100[li] = appliedAmount;
+          lastDamage.tick[li] = currentTick;
+
+          if (sourceEnemyId != null) {
+            lastDamage.enemyId[li] = sourceEnemyId;
+            lastDamage.hasEnemyId[li] = true;
+          } else {
+            lastDamage.hasEnemyId[li] = false;
+          }
+
+          if (sourceProjectileId != null) {
+            lastDamage.projectileId[li] = sourceProjectileId;
+            lastDamage.hasProjectileId[li] = true;
+            lastDamage.sourceProjectileId[li] = sourceProjectileId;
+            lastDamage.hasSourceProjectileId[li] = true;
+          } else {
+            lastDamage.hasProjectileId[li] = false;
+            lastDamage.hasSourceProjectileId[li] = false;
+          }
+        }
+
+        onDamageApplied?.call(
+          target: target,
+          appliedAmount100: appliedAmount,
+          sourceKind: sourceKind,
+          damageType: damageType,
+        );
+
+        world.reactiveDamageEventQueue.add(
+          targetEntity: target,
+          source: sourceEntity,
+          appliedDamage100: appliedAmount,
+          previousHp100: prevHp,
+          nextHpAfterDamage100: nextHp,
+          maxHpAtApply100: health.hpMax[hi],
+          type: damageType,
+        );
+      }
+
+      // 8. Queue status effects for non-zero damage requests.
+      if (queueStatus != null && amount100 > 0 && procs.isNotEmpty) {
+        for (final proc in procs) {
+          if (proc.statusProfileId == StatusProfileId.none) continue;
+
+          EntityId? statusTarget;
+          switch (proc.hook) {
+            case ProcHook.onHit:
+              statusTarget = target;
+              break;
+            case ProcHook.onCrit:
+              if (!didCrit) continue;
+              statusTarget = target;
+              break;
+            case ProcHook.onKill:
+              if (!didKill || sourceEntity == null) continue;
+              statusTarget = sourceEntity;
+              break;
+            case ProcHook.onBlock:
+              continue;
+          }
+
+          final chance = proc.chanceBp;
+          if (chance <= 0) continue;
+          if (chance < bpScale) {
+            _rngState = nextUint32(_rngState);
+            if ((_rngState % bpScale) >= chance) {
+              continue;
+            }
+          }
+
+          queueStatus(
+            StatusRequest(
+              target: statusTarget,
+              profileId: proc.statusProfileId,
+              damageType: damageType,
+            ),
+          );
+        }
+      }
+
+      // 9. Apply new Invulnerability frames.
+      if (invulnerabilityTicksOnHit > 0 && ii != null) {
+        invuln.ticksLeft[ii] = invulnerabilityTicksOnHit;
+      }
+    }
+    queue.clear();
+  }
+
+  void _interruptOnDamageTaken(EcsWorld world, int entity) {
+    if (!world.activeAbility.has(entity)) return;
+    final activeIndex = world.activeAbility.indexOf(entity);
+    final activeAbilityId = world.activeAbility.abilityId[activeIndex];
+    if (!forcedInterruptPolicy.abilityAllowsForcedInterrupt(
+      activeAbilityId,
+      ForcedInterruptCause.damageTaken,
+    )) {
+      return;
+    }
+    AbilityInterrupt.clearActiveAndTransient(
+      world,
+      entity: entity,
+      startDeferredCooldown: true,
+    );
+  }
+}

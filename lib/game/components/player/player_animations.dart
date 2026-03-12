@@ -5,8 +5,8 @@ library;
 
 import 'package:flame/cache.dart';
 
-import '../../../core/contracts/render_anim_set_definition.dart';
-import '../../../core/snapshots/enums.dart';
+import 'package:runner_core/contracts/render_anim_set_definition.dart';
+import 'package:runner_core/snapshots/enums.dart';
 import '../sprite_anim/sprite_anim_set.dart';
 import '../sprite_anim/strip_animation_loader.dart';
 

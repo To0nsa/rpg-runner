@@ -3,7 +3,7 @@
 // The game schedules input commands ahead of time (via RunnerInputRouter).
 // Multiple commands may target the same tick, so this class merges them into
 // a single coherent state that the simulation consumes.
-import '../core/commands/command.dart';
+import 'package:runner_core/commands/command.dart';
 
 /// Aggregated per-tick input for the simulation.
 ///

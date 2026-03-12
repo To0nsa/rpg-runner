@@ -1,5 +1,5 @@
-import '../../core/abilities/ability_def.dart';
-import '../../core/combat/status/status.dart';
+import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/combat/status/status.dart';
 
 /// Coarse UI-facing tags derived from [AbilityDef] mechanics.
 ///

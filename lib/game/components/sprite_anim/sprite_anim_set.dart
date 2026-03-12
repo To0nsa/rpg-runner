@@ -5,7 +5,7 @@ import 'dart:math';
 
 import 'package:flame/components.dart';
 
-import '../../../core/snapshots/enums.dart';
+import 'package:runner_core/snapshots/enums.dart';
 
 class SpriteAnimSet {
   SpriteAnimSet({

@@ -2,13 +2,13 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 
-import 'package:rpg_runner/core/commands/command.dart';
-import 'package:rpg_runner/core/game_core.dart';
+import 'package:runner_core/commands/command.dart';
+import 'package:runner_core/game_core.dart';
 import '../../support/test_level.dart';
-import 'package:rpg_runner/core/tuning/camera_tuning.dart';
-import 'package:rpg_runner/core/tuning/core_tuning.dart';
-import 'package:rpg_runner/core/tuning/physics_tuning.dart';
-import 'package:rpg_runner/core/tuning/track_tuning.dart';
+import 'package:runner_core/tuning/camera_tuning.dart';
+import 'package:runner_core/tuning/core_tuning.dart';
+import 'package:runner_core/tuning/physics_tuning.dart';
+import 'package:runner_core/tuning/track_tuning.dart';
 
 /// Headless benchmark for comparing baseline vs fixed-point pilot Core tick cost.
 ///

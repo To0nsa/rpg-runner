@@ -3,11 +3,11 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/ecs/stores/combat/equipped_loadout_store.dart';
-import '../../../core/meta/equipped_gear.dart';
-import '../../../core/meta/gear_slot.dart';
-import '../../../core/meta/meta_service.dart';
-import '../../../core/players/player_character_definition.dart';
+import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
+import 'package:runner_core/meta/equipped_gear.dart';
+import 'package:runner_core/meta/gear_slot.dart';
+import 'package:runner_core/meta/meta_service.dart';
+import 'package:runner_core/players/player_character_definition.dart';
 import '../../app/ui_routes.dart';
 import '../../components/app_button.dart';
 import '../../components/app_dialog.dart';

@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/collision/static_world_geometry.dart';
-import 'package:rpg_runner/core/game_core.dart';
+import 'package:runner_core/collision/static_world_geometry.dart';
+import 'package:runner_core/game_core.dart';
 import '../support/test_level.dart';
-import 'package:rpg_runner/core/tuning/core_tuning.dart';
-import 'package:rpg_runner/core/tuning/track_tuning.dart';
+import 'package:runner_core/tuning/core_tuning.dart';
+import 'package:runner_core/tuning/track_tuning.dart';
 
 import '../test_tunings.dart';
 

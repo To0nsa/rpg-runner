@@ -3,9 +3,9 @@ library;
 
 import 'package:flutter/widgets.dart';
 
-import '../../core/combat/damage_type.dart';
-import '../../core/combat/status/status.dart';
-import '../../core/snapshots/entity_render_snapshot.dart';
+import 'package:runner_core/combat/damage_type.dart';
+import 'package:runner_core/combat/status/status.dart';
+import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 
 @immutable
 class FeedbackPulseTuning {

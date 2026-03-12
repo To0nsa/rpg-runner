@@ -1,28 +1,28 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/combat/faction.dart';
-import 'package:rpg_runner/core/ecs/stores/body_store.dart';
-import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
-import 'package:rpg_runner/core/ecs/stores/health_store.dart';
-import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
-import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
-import 'package:rpg_runner/core/ecs/spatial/broadphase_grid.dart';
-import 'package:rpg_runner/core/ecs/spatial/grid_index_2d.dart';
-import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
-import 'package:rpg_runner/core/ecs/systems/projectile_hit_system.dart';
-import 'package:rpg_runner/core/ecs/world.dart';
-import 'package:rpg_runner/core/events/game_event.dart';
-import 'package:rpg_runner/core/projectiles/projectile_id.dart';
-import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
-import 'package:rpg_runner/core/snapshots/enums.dart';
-import 'package:rpg_runner/core/abilities/ability_catalog.dart';
-import 'package:rpg_runner/core/projectiles/spawn_projectile_item.dart';
-import 'package:rpg_runner/core/tuning/spatial_grid_tuning.dart';
-import 'package:rpg_runner/core/enemies/death_behavior.dart';
-import 'package:rpg_runner/core/ecs/stores/death_state_store.dart';
+import 'package:runner_core/combat/faction.dart';
+import 'package:runner_core/ecs/stores/body_store.dart';
+import 'package:runner_core/ecs/stores/collider_aabb_store.dart';
+import 'package:runner_core/ecs/stores/health_store.dart';
+import 'package:runner_core/ecs/stores/mana_store.dart';
+import 'package:runner_core/ecs/stores/stamina_store.dart';
+import 'package:runner_core/ecs/spatial/broadphase_grid.dart';
+import 'package:runner_core/ecs/spatial/grid_index_2d.dart';
+import 'package:runner_core/ecs/systems/damage_system.dart';
+import 'package:runner_core/ecs/systems/projectile_hit_system.dart';
+import 'package:runner_core/ecs/world.dart';
+import 'package:runner_core/events/game_event.dart';
+import 'package:runner_core/projectiles/projectile_id.dart';
+import 'package:runner_core/projectiles/projectile_catalog.dart';
+import 'package:runner_core/snapshots/enums.dart';
+import 'package:runner_core/abilities/ability_catalog.dart';
+import 'package:runner_core/projectiles/spawn_projectile_item.dart';
+import 'package:runner_core/tuning/spatial_grid_tuning.dart';
+import 'package:runner_core/enemies/death_behavior.dart';
+import 'package:runner_core/ecs/stores/death_state_store.dart';
 
 import 'test_spawns.dart';
-import 'package:rpg_runner/core/ecs/entity_factory.dart';
+import 'package:runner_core/ecs/entity_factory.dart';
 
 void main() {
   test(

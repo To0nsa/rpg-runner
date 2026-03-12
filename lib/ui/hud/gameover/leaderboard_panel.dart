@@ -2,9 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../../core/events/game_event.dart';
-import '../../../core/levels/level_id.dart';
-import '../../../core/tuning/score_tuning.dart';
+import 'package:runner_core/events/game_event.dart';
+import 'package:runner_core/levels/level_id.dart';
+import 'package:runner_core/tuning/score_tuning.dart';
 import '../../components/leaderboard_table.dart';
 import '../../leaderboard/leaderboard_store.dart';
 import '../../leaderboard/run_result.dart';

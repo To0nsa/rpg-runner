@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import 'package:rpg_runner/core/abilities/ability_def.dart';
+import 'package:runner_core/abilities/ability_def.dart';
 import '../../game/input/aim_preview.dart';
-import 'package:rpg_runner/core/snapshots/enums.dart';
+import 'package:runner_core/snapshots/enums.dart';
 import 'action_button.dart';
 import 'ability_slot_visual_spec.dart';
 import 'controls_tuning.dart';

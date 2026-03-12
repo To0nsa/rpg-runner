@@ -1,5 +1,5 @@
-import '../../core/levels/level_id.dart';
-import '../../core/levels/level_registry.dart';
+import 'package:runner_core/levels/level_id.dart';
+import 'package:runner_core/levels/level_registry.dart';
 
 /// UI-layer extensions for [LevelId].
 extension LevelIdUi on LevelId {

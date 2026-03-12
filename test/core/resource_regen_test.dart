@@ -1,16 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/accessories/accessory_catalog.dart';
-import 'package:rpg_runner/core/accessories/accessory_def.dart';
-import 'package:rpg_runner/core/accessories/accessory_id.dart';
-import 'package:rpg_runner/core/commands/command.dart';
-import 'package:rpg_runner/core/ecs/stores/body_store.dart';
-import 'package:rpg_runner/core/game_core.dart';
+import 'package:runner_core/accessories/accessory_catalog.dart';
+import 'package:runner_core/accessories/accessory_def.dart';
+import 'package:runner_core/accessories/accessory_id.dart';
+import 'package:runner_core/commands/command.dart';
+import 'package:runner_core/ecs/stores/body_store.dart';
+import 'package:runner_core/game_core.dart';
 import '../support/test_level.dart';
-import 'package:rpg_runner/core/players/player_character_registry.dart';
-import 'package:rpg_runner/core/players/player_tuning.dart';
-import 'package:rpg_runner/core/projectiles/projectile_id.dart';
-import 'package:rpg_runner/core/stats/gear_stat_bonuses.dart';
+import 'package:runner_core/players/player_character_registry.dart';
+import 'package:runner_core/players/player_tuning.dart';
+import 'package:runner_core/projectiles/projectile_id.dart';
+import 'package:runner_core/stats/gear_stat_bonuses.dart';
 
 import '../support/test_player.dart';
 import '../test_tunings.dart';

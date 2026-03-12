@@ -1,26 +1,26 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/ecs/entity_id.dart';
-import 'package:rpg_runner/core/ecs/entity_factory.dart';
-import 'package:rpg_runner/core/ecs/stores/body_store.dart';
-import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
-import 'package:rpg_runner/core/ecs/stores/health_store.dart';
-import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
-import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
-import 'package:rpg_runner/core/ecs/stores/death_state_store.dart';
-import 'package:rpg_runner/core/ecs/systems/active_ability_phase_system.dart';
-import 'package:rpg_runner/core/ecs/systems/anim/anim_system.dart';
-import 'package:rpg_runner/core/ecs/world.dart';
-import 'package:rpg_runner/core/enemies/enemy_catalog.dart';
-import 'package:rpg_runner/core/enemies/enemy_id.dart';
-import 'package:rpg_runner/core/abilities/ability_catalog.dart';
-import 'package:rpg_runner/core/abilities/ability_def.dart';
-import 'package:rpg_runner/core/combat/control_lock.dart';
-import 'package:rpg_runner/core/events/game_event.dart';
-import 'package:rpg_runner/core/players/player_character_registry.dart';
-import 'package:rpg_runner/core/players/player_tuning.dart';
-import 'package:rpg_runner/core/enemies/death_behavior.dart';
-import 'package:rpg_runner/core/snapshots/enums.dart';
+import 'package:runner_core/ecs/entity_id.dart';
+import 'package:runner_core/ecs/entity_factory.dart';
+import 'package:runner_core/ecs/stores/body_store.dart';
+import 'package:runner_core/ecs/stores/collider_aabb_store.dart';
+import 'package:runner_core/ecs/stores/health_store.dart';
+import 'package:runner_core/ecs/stores/mana_store.dart';
+import 'package:runner_core/ecs/stores/stamina_store.dart';
+import 'package:runner_core/ecs/stores/death_state_store.dart';
+import 'package:runner_core/ecs/systems/active_ability_phase_system.dart';
+import 'package:runner_core/ecs/systems/anim/anim_system.dart';
+import 'package:runner_core/ecs/world.dart';
+import 'package:runner_core/enemies/enemy_catalog.dart';
+import 'package:runner_core/enemies/enemy_id.dart';
+import 'package:runner_core/abilities/ability_catalog.dart';
+import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/combat/control_lock.dart';
+import 'package:runner_core/events/game_event.dart';
+import 'package:runner_core/players/player_character_registry.dart';
+import 'package:runner_core/players/player_tuning.dart';
+import 'package:runner_core/enemies/death_behavior.dart';
+import 'package:runner_core/snapshots/enums.dart';
 
 import 'test_spawns.dart';
 

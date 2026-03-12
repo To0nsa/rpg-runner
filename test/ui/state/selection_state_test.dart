@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rpg_runner/core/accessories/accessory_id.dart';
-import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
-import 'package:rpg_runner/core/levels/level_id.dart';
-import 'package:rpg_runner/core/players/player_character_definition.dart';
-import 'package:rpg_runner/core/players/player_character_registry.dart';
+import 'package:runner_core/accessories/accessory_id.dart';
+import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
+import 'package:runner_core/levels/level_id.dart';
+import 'package:runner_core/players/player_character_definition.dart';
+import 'package:runner_core/players/player_character_registry.dart';
 import 'package:rpg_runner/ui/state/selection_state.dart';
 
 void main() {

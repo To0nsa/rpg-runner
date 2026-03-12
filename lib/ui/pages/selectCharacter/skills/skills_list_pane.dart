@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/abilities/ability_def.dart';
-import '../../../../core/projectiles/projectile_id.dart';
+import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/projectiles/projectile_id.dart';
 import '../../../components/app_button.dart';
 import '../../../components/gameIcon/game_icon.dart';
 import '../../../text/ability_text.dart';

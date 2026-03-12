@@ -1,16 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/ecs/stores/body_store.dart';
-import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
-import 'package:rpg_runner/core/ecs/stores/health_store.dart';
-import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
-import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
-import 'package:rpg_runner/core/ecs/stores/restoration_item_store.dart';
-import 'package:rpg_runner/core/ecs/systems/restoration_item_system.dart';
-import 'package:rpg_runner/core/ecs/world.dart';
-import 'package:rpg_runner/core/snapshots/enums.dart';
-import 'package:rpg_runner/core/tuning/restoration_item_tuning.dart';
-import 'package:rpg_runner/core/ecs/entity_factory.dart';
+import 'package:runner_core/ecs/stores/body_store.dart';
+import 'package:runner_core/ecs/stores/collider_aabb_store.dart';
+import 'package:runner_core/ecs/stores/health_store.dart';
+import 'package:runner_core/ecs/stores/mana_store.dart';
+import 'package:runner_core/ecs/stores/stamina_store.dart';
+import 'package:runner_core/ecs/stores/restoration_item_store.dart';
+import 'package:runner_core/ecs/systems/restoration_item_system.dart';
+import 'package:runner_core/ecs/world.dart';
+import 'package:runner_core/snapshots/enums.dart';
+import 'package:runner_core/tuning/restoration_item_tuning.dart';
+import 'package:runner_core/ecs/entity_factory.dart';
 
 void main() {
   test('RestorationItemSystem restores and despawns on overlap', () {

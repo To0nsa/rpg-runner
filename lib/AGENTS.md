@@ -8,7 +8,7 @@ Instructions for AI coding agents working in `lib/`.
 
 - `lib/main.dart`: standalone app entrypoint for this game app
 - `lib/runner.dart`: public embedding barrel for host apps
-- `lib/core/`: deterministic gameplay authority
+- `packages/runner_core/lib/`: deterministic gameplay authority
 - `lib/game/`: Flame renderer and fixed-tick bridge
 - `lib/ui/`: Flutter app shell, routes, pages, HUD, controls, state, and backend clients
 
@@ -31,7 +31,7 @@ The dependency direction is still strict:
 
 Current key boundary files:
 
-- `lib/core/game_core.dart`: authoritative simulation coordinator
+- `packages/runner_core/lib/game_core.dart`: authoritative simulation coordinator
 - `lib/game/game_controller.dart`: fixed-tick bridge from Flutter/Flame to Core
 - `lib/game/runner_flame_game.dart`: snapshot-driven Flame renderer
 - `lib/ui/app/ui_app.dart`: top-level Flutter shell
@@ -42,7 +42,7 @@ Current key boundary files:
 
 Put work in the layer that owns the behavior:
 
-- gameplay rules, combat, AI, level data, progression math, authoritative events: `lib/core/`
+- gameplay rules, combat, AI, level data, progression math, authoritative events: `packages/runner_core/lib/`
 - render components, interpolation, view registries, camera shake, aim rays, debug overlays: `lib/game/`
 - menus, hub/setup flow, town/meta screens, HUD widgets, theme extensions, provider state, backend adapters: `lib/ui/`
 
@@ -128,10 +128,10 @@ For multi-layer changes, do not stop at one slice's tests if the contract spans 
 When `lib/` contracts change, keep these docs aligned:
 
 - this file for app-level boundaries
-- `lib/core/AGENTS.md`, `lib/game/AGENTS.md`, or `lib/ui/AGENTS.md` for layer rules
+- `packages/runner_core/lib/AGENTS.md`, `lib/game/AGENTS.md`, or `lib/ui/AGENTS.md` for layer rules
 - `README.md` for public capabilities and setup if user-visible behavior changed
 - embedding docs and API docs when public usage changes
 
 ---
 
-Use the layer-specific AGENTS file before editing within `lib/core/`, `lib/game/`, or `lib/ui/`.
+Use the layer-specific AGENTS file before editing within `packages/runner_core/lib/`, `lib/game/`, or `lib/ui/`.

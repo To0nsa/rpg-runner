@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rpg_runner/core/contracts/render_contract.dart';
-import 'package:rpg_runner/core/game_core.dart';
+import 'package:runner_core/contracts/render_contract.dart';
+import 'package:runner_core/game_core.dart';
 import '../support/test_level.dart';
-import 'package:rpg_runner/core/levels/level_id.dart';
-import 'package:rpg_runner/core/levels/level_registry.dart';
+import 'package:runner_core/levels/level_id.dart';
+import 'package:runner_core/levels/level_registry.dart';
 
 void main() {
   test('snapshot exposes typed camera contract', () {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rpg_runner/core/abilities/ability_def.dart';
+import 'package:runner_core/abilities/ability_def.dart';
 import 'package:rpg_runner/ui/controls/ability_slot_visual_spec.dart';
 import 'package:rpg_runner/ui/controls/controls_tuning.dart';
 import 'package:rpg_runner/ui/controls/layout/controls_radial_layout.dart';

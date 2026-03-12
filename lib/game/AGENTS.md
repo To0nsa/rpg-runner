@@ -23,7 +23,7 @@ This layer does not own gameplay truth.
 - do not simulate future gameplay in the renderer
 - do not treat snapshots as mutable state
 
-If a change affects the actual rules of the game, it probably belongs in `lib/core/`.
+If a change affects the actual rules of the game, it probably belongs in `packages/runner_core/lib/`.
 
 ## Current Important Files
 
@@ -134,4 +134,4 @@ Do not assume a visual-only change is safe if it changes timing, camera transfor
 
 ---
 
-For app-level boundaries, see `lib/AGENTS.md`. For the authoritative simulation side, see `lib/core/AGENTS.md`.
+For app-level boundaries, see `lib/AGENTS.md`. For the authoritative simulation side, see `packages/runner_core/lib/AGENTS.md`.

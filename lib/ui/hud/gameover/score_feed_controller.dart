@@ -1,4 +1,4 @@
-import '../../../core/scoring/run_score_breakdown.dart';
+import 'package:runner_core/scoring/run_score_breakdown.dart';
 
 enum ScoreFeedState { idle, feeding, complete }
 

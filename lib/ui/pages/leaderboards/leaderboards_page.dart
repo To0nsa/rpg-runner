@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/levels/level_id.dart';
+import 'package:runner_core/levels/level_id.dart';
 import '../../components/app_segmented_control.dart';
 import '../../components/leaderboard_table.dart';
 import '../../components/menu_layout.dart';

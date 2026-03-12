@@ -1,6 +1,6 @@
 import 'package:cloud_functions/cloud_functions.dart';
 
-import '../../core/meta/meta_service.dart';
+import 'package:runner_core/meta/meta_service.dart';
 import 'loadout_ownership_api.dart';
 import 'progression_state.dart';
 import 'selection_state.dart';

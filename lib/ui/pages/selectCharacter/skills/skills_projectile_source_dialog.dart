@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/projectiles/projectile_id.dart';
+import 'package:runner_core/projectiles/projectile_id.dart';
 import '../../../components/app_button.dart';
 import '../../../theme/ui_tokens.dart';
 import '../ability/ability_picker_presenter.dart';

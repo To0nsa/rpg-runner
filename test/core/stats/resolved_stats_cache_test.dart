@@ -1,12 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/accessories/accessory_id.dart';
-import 'package:rpg_runner/core/ecs/world.dart';
-import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
-import 'package:rpg_runner/core/stats/character_stats_resolver.dart';
-import 'package:rpg_runner/core/stats/gear_stat_bonuses.dart';
-import 'package:rpg_runner/core/stats/resolved_stats_cache.dart';
-import 'package:rpg_runner/core/weapons/weapon_id.dart';
+import 'package:runner_core/accessories/accessory_id.dart';
+import 'package:runner_core/ecs/world.dart';
+import 'package:runner_core/spellBook/spell_book_id.dart';
+import 'package:runner_core/stats/character_stats_resolver.dart';
+import 'package:runner_core/stats/gear_stat_bonuses.dart';
+import 'package:runner_core/stats/resolved_stats_cache.dart';
+import 'package:runner_core/weapons/weapon_id.dart';
 
 void main() {
   test('resolved stats cache reuses value when loadout is unchanged', () {

@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rpg_runner/core/abilities/ability_def.dart';
-import 'package:rpg_runner/core/combat/status/status.dart';
-import 'package:rpg_runner/core/snapshots/enums.dart';
-import 'package:rpg_runner/core/weapons/weapon_proc.dart';
+import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/combat/status/status.dart';
+import 'package:runner_core/snapshots/enums.dart';
+import 'package:runner_core/weapons/weapon_proc.dart';
 
 void main() {
   test('AbilityChargeProfile requires strictly increasing tier thresholds', () {

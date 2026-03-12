@@ -756,7 +756,7 @@ Flutter:
 - `lib/ui/state/loadout_ownership_api.dart`
 - `lib/ui/state/firebase_loadout_ownership_api.dart`
 - `lib/ui/state/progression_state.dart`
-- `lib/core/meta/*` ownership models after replacing `SpellList`
+- `packages/runner_core/lib/meta/*` ownership models after replacing `SpellList`
 - `lib/ui/pages/meta/town_page.dart`
 - new shared store widgets under `lib/ui/components/`
 - Town-only helper widgets colocated with `lib/ui/pages/meta/town_page.dart`

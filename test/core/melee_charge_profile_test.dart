@@ -1,18 +1,18 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/abilities/ability_catalog.dart';
-import 'package:rpg_runner/core/abilities/ability_def.dart';
-import 'package:rpg_runner/core/accessories/accessory_catalog.dart';
-import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
-import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
-import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
-import 'package:rpg_runner/core/ecs/systems/ability_activation_system.dart';
-import 'package:rpg_runner/core/ecs/world.dart';
-import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
-import 'package:rpg_runner/core/snapshots/enums.dart';
-import 'package:rpg_runner/core/spellBook/spell_book_catalog.dart';
-import 'package:rpg_runner/core/weapons/weapon_catalog.dart';
-import 'package:rpg_runner/core/weapons/weapon_id.dart';
+import 'package:runner_core/abilities/ability_catalog.dart';
+import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/accessories/accessory_catalog.dart';
+import 'package:runner_core/ecs/stores/collider_aabb_store.dart';
+import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
+import 'package:runner_core/ecs/stores/stamina_store.dart';
+import 'package:runner_core/ecs/systems/ability_activation_system.dart';
+import 'package:runner_core/ecs/world.dart';
+import 'package:runner_core/projectiles/projectile_catalog.dart';
+import 'package:runner_core/snapshots/enums.dart';
+import 'package:runner_core/spellBook/spell_book_catalog.dart';
+import 'package:runner_core/weapons/weapon_catalog.dart';
+import 'package:runner_core/weapons/weapon_id.dart';
 
 class _ChargeMeleeAbilities extends AbilityCatalog {
   const _ChargeMeleeAbilities();

@@ -1,13 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/abilities/ability_catalog.dart';
-import 'package:rpg_runner/core/abilities/ability_def.dart';
-import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
-import 'package:rpg_runner/core/game_core.dart';
+import 'package:runner_core/abilities/ability_catalog.dart';
+import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
+import 'package:runner_core/game_core.dart';
 import '../support/test_level.dart';
-import 'package:rpg_runner/core/levels/level_id.dart';
-import 'package:rpg_runner/core/levels/level_registry.dart';
-import 'package:rpg_runner/core/snapshots/enums.dart';
+import 'package:runner_core/levels/level_id.dart';
+import 'package:runner_core/levels/level_registry.dart';
+import 'package:runner_core/snapshots/enums.dart';
 
 void main() {
   test(

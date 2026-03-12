@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/players/player_character_definition.dart';
-import '../../../core/players/player_character_registry.dart';
+import 'package:runner_core/players/player_character_definition.dart';
+import 'package:runner_core/players/player_character_registry.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
 import '../../state/app_state.dart';

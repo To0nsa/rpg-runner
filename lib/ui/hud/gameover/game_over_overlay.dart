@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
-import '../../../core/enemies/enemy_id.dart';
-import '../../../core/events/game_event.dart';
-import '../../../core/levels/level_id.dart';
-import '../../../core/projectiles/projectile_id.dart';
-import '../../../core/scoring/run_score_breakdown.dart';
-import '../../../core/tuning/score_tuning.dart';
+import 'package:runner_core/enemies/enemy_id.dart';
+import 'package:runner_core/events/game_event.dart';
+import 'package:runner_core/levels/level_id.dart';
+import 'package:runner_core/projectiles/projectile_id.dart';
+import 'package:runner_core/scoring/run_score_breakdown.dart';
+import 'package:runner_core/tuning/score_tuning.dart';
 import '../../leaderboard/leaderboard_store.dart';
 import '../../state/selection_state.dart';
 import 'game_over_header.dart';

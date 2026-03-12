@@ -4,22 +4,22 @@ This doc explains how authored animation data is consumed, which layer owns each
 
 ## 1) Ownership: who controls what
 
-- `AbilityDef` (`lib/core/abilities/ability_def.dart`)
+- `AbilityDef` (`packages/runner_core/lib/abilities/ability_def.dart`)
   - Owns gameplay action timing: `windupTicks`, `activeTicks`, `recoveryTicks`, `totalTicks`.
   - Owns logical action animation choice: `animKey`.
-- `ActiveAbilityPhaseSystem` (`lib/core/ecs/systems/active_ability_phase_system.dart`)
+- `ActiveAbilityPhaseSystem` (`packages/runner_core/lib/ecs/systems/active_ability_phase_system.dart`)
   - Advances `elapsedTicks` and phase each tick.
   - Clears active abilities when finished or forcibly interrupted.
-- `AnimSystem` + `AnimResolver` (`lib/core/ecs/systems/anim/anim_system.dart`, `lib/core/anim/anim_resolver.dart`)
+- `AnimSystem` + `AnimResolver` (`packages/runner_core/lib/ecs/systems/anim/anim_system.dart`, `packages/runner_core/lib/anim/anim_resolver.dart`)
   - Convert gameplay state into `(AnimKey, animFrame)` in deterministic Core ticks.
-- `RenderAnimSetDefinition` (`lib/core/contracts/render_anim_set_definition.dart`)
+- `RenderAnimSetDefinition` (`packages/runner_core/lib/contracts/render_anim_set_definition.dart`)
   - Defines frame count and step time per animation key.
 - Flame render components (`lib/game/components/sprite_anim/*.dart`)
   - Map `animFrame` to sprite frame index using `ticksPerFrame`.
 
 ## 2) Tick pipeline (authoritative flow)
 
-Per fixed tick in `GameCore.stepOneTick` (`lib/core/game_core.dart`):
+Per fixed tick in `GameCore.stepOneTick` (`packages/runner_core/lib/game_core.dart`):
 
 1. `ActiveAbilityPhaseSystem.step` updates active ability elapsed/phase.
 2. Gameplay systems run (movement, combat, death, etc.).

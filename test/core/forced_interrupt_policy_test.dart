@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/abilities/ability_catalog.dart';
-import 'package:rpg_runner/core/abilities/ability_def.dart';
-import 'package:rpg_runner/core/abilities/forced_interrupt_policy.dart';
-import 'package:rpg_runner/core/snapshots/enums.dart';
+import 'package:runner_core/abilities/ability_catalog.dart';
+import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/abilities/forced_interrupt_policy.dart';
+import 'package:runner_core/snapshots/enums.dart';
 
 void main() {
   test('unknown ability falls back to default forced interruption causes', () {

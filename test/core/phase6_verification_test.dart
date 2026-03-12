@@ -1,18 +1,18 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rpg_runner/core/ecs/world.dart';
-import 'package:rpg_runner/core/ecs/entity_factory.dart';
-import 'package:rpg_runner/core/ecs/systems/projectile_launch_system.dart';
-import 'package:rpg_runner/core/ecs/systems/anim/anim_system.dart';
-import 'package:rpg_runner/core/ecs/stores/projectile_intent_store.dart';
-import 'package:rpg_runner/core/abilities/ability_def.dart';
-import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
-import 'package:rpg_runner/core/projectiles/projectile_id.dart';
-import 'package:rpg_runner/core/players/player_character_registry.dart';
-import 'package:rpg_runner/core/players/player_catalog.dart';
-import 'package:rpg_runner/core/players/player_tuning.dart';
-import 'package:rpg_runner/core/enemies/enemy_catalog.dart';
-import 'package:rpg_runner/core/snapshots/enums.dart';
-import 'package:rpg_runner/core/combat/damage_type.dart';
+import 'package:runner_core/ecs/world.dart';
+import 'package:runner_core/ecs/entity_factory.dart';
+import 'package:runner_core/ecs/systems/projectile_launch_system.dart';
+import 'package:runner_core/ecs/systems/anim/anim_system.dart';
+import 'package:runner_core/ecs/stores/projectile_intent_store.dart';
+import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/projectiles/projectile_catalog.dart';
+import 'package:runner_core/projectiles/projectile_id.dart';
+import 'package:runner_core/players/player_character_registry.dart';
+import 'package:runner_core/players/player_catalog.dart';
+import 'package:runner_core/players/player_tuning.dart';
+import 'package:runner_core/enemies/enemy_catalog.dart';
+import 'package:runner_core/snapshots/enums.dart';
+import 'package:runner_core/combat/damage_type.dart';
 
 void main() {
   test('Phase 6 Unit Test: ProjectileLaunchSystem + AnimSystem', () {

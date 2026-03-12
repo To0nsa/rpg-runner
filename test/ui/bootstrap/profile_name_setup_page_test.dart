@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:rpg_runner/core/meta/meta_service.dart';
+import 'package:runner_core/meta/meta_service.dart';
 import 'package:rpg_runner/ui/app/ui_routes.dart';
 import 'package:rpg_runner/ui/bootstrap/profile_name_setup_page.dart';
 import 'package:rpg_runner/ui/state/app_state.dart';

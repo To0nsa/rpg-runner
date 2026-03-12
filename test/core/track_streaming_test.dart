@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/commands/command.dart';
-import 'package:rpg_runner/core/ecs/stores/body_store.dart';
-import 'package:rpg_runner/core/game_core.dart';
-import 'package:rpg_runner/core/levels/level_id.dart';
-import 'package:rpg_runner/core/levels/level_registry.dart';
-import 'package:rpg_runner/core/players/player_character_registry.dart';
+import 'package:runner_core/commands/command.dart';
+import 'package:runner_core/ecs/stores/body_store.dart';
+import 'package:runner_core/game_core.dart';
+import 'package:runner_core/levels/level_id.dart';
+import 'package:runner_core/levels/level_registry.dart';
+import 'package:runner_core/players/player_character_registry.dart';
 
 import '../support/test_player.dart';
 

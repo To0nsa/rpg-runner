@@ -1,12 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/collision/static_world_geometry.dart';
-import 'package:rpg_runner/core/ecs/spatial/grid_index_2d.dart';
-import 'package:rpg_runner/core/navigation/utils/jump_template.dart';
-import 'package:rpg_runner/core/navigation/types/surface_graph.dart';
-import 'package:rpg_runner/core/navigation/surface_graph_builder.dart';
-import 'package:rpg_runner/core/navigation/surface_pathfinder.dart';
-import 'package:rpg_runner/core/navigation/types/walk_surface.dart';
+import 'package:runner_core/collision/static_world_geometry.dart';
+import 'package:runner_core/ecs/spatial/grid_index_2d.dart';
+import 'package:runner_core/navigation/utils/jump_template.dart';
+import 'package:runner_core/navigation/types/surface_graph.dart';
+import 'package:runner_core/navigation/surface_graph_builder.dart';
+import 'package:runner_core/navigation/surface_pathfinder.dart';
+import 'package:runner_core/navigation/types/walk_surface.dart';
 
 void main() {
   test('surface pathfinder returns a deterministic path', () {

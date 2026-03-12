@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/abilities/ability_def.dart';
-import '../../../core/meta/gear_slot.dart';
-import '../../../core/projectiles/projectile_id.dart';
+import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/meta/gear_slot.dart';
+import 'package:runner_core/projectiles/projectile_id.dart';
 import 'ability_skill_icon.dart';
 import 'gear_icon.dart';
 import 'projectile_icon_frame.dart';

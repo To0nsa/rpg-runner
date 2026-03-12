@@ -32,7 +32,7 @@ Current conversions (code source of truth):
 - **meters** = `floor(distanceUnits / unitsPerMeter)`
 - **seconds** = `tick ~/ tickHz`
 
-Where `unitsPerMeter = kWorldUnitsPerMeter` (currently **50**) in `lib/core/tuning/score_tuning.dart`.
+Where `unitsPerMeter = kWorldUnitsPerMeter` (currently **50**) in `packages/runner_core/lib/tuning/score_tuning.dart`.
 
 ---
 
@@ -88,7 +88,7 @@ Enemy kill values (current):
 
 On run end, Core builds a `RunScoreBreakdown` via:
 
-- `buildRunScoreBreakdown(...)` in `lib/core/scoring/run_score_breakdown.dart`
+- `buildRunScoreBreakdown(...)` in `packages/runner_core/lib/scoring/run_score_breakdown.dart`
 
 Inputs include:
 
@@ -205,14 +205,14 @@ Current local scoreboard store uses:
 
 ## 9. Tuning knobs (where to edit)
 
-- `lib/core/tuning/score_tuning.dart`
+- `packages/runner_core/lib/tuning/score_tuning.dart`
   - `timeScorePerSecond`
   - `distanceScorePerMeter`
   - `groundEnemyKillScore`
   - `unocoDemonKillScore`
   - `kWorldUnitsPerMeter`
 
-- `lib/core/tuning/collectible_tuning.dart`
+- `packages/runner_core/lib/tuning/collectible_tuning.dart`
   - `valuePerCollectible`
 
 ---

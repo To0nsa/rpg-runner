@@ -1,4 +1,4 @@
-import '../../core/abilities/ability_def.dart';
+import 'package:runner_core/abilities/ability_def.dart';
 
 /// User-facing display name for an [AbilityKey].
 ///

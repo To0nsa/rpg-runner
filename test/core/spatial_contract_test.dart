@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rpg_runner/core/contracts/render_contract.dart';
-import 'package:rpg_runner/core/contracts/spatial_contract.dart';
-import 'package:rpg_runner/core/levels/level_world_constants.dart';
+import 'package:runner_core/contracts/render_contract.dart';
+import 'package:runner_core/contracts/spatial_contract.dart';
+import 'package:runner_core/levels/level_world_constants.dart';
 
 void main() {
   test('spatial contract constants match render contract aliases', () {

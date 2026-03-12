@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/levels/level_id.dart';
+import 'package:runner_core/levels/level_id.dart';
 import '../../../levels/level_id_ui.dart';
 import 'hub_select_card_body.dart';
 import 'hub_select_card_frame.dart';

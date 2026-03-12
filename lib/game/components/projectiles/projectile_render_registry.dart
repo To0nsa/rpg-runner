@@ -4,10 +4,10 @@ library;
 import 'package:flame/cache.dart';
 import 'package:flame/components.dart';
 
-import '../../../core/contracts/render_anim_set_definition.dart';
-import '../../../core/projectiles/projectile_id.dart';
-import '../../../core/projectiles/projectile_render_catalog.dart';
-import '../../../core/snapshots/enums.dart';
+import 'package:runner_core/contracts/render_anim_set_definition.dart';
+import 'package:runner_core/projectiles/projectile_id.dart';
+import 'package:runner_core/projectiles/projectile_render_catalog.dart';
+import 'package:runner_core/snapshots/enums.dart';
 import '../sprite_anim/deterministic_anim_view_component.dart';
 import '../sprite_anim/sprite_anim_set.dart';
 import '../sprite_anim/strip_animation_loader.dart';

@@ -1,7 +1,7 @@
-import '../../core/abilities/ability_def.dart';
-import '../../core/combat/middleware/parry_middleware.dart';
-import '../../core/combat/status/status.dart';
-import '../../core/projectiles/projectile_id.dart';
+import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/combat/middleware/parry_middleware.dart';
+import 'package:runner_core/combat/status/status.dart';
+import 'package:runner_core/projectiles/projectile_id.dart';
 import 'ability_tag_resolver.dart';
 import 'ability_text.dart';
 import 'gear_text.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rpg_runner/core/abilities/ability_def.dart';
-import 'package:rpg_runner/core/snapshots/enums.dart';
+import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/snapshots/enums.dart';
 import 'package:rpg_runner/game/input/aim_preview.dart';
 import 'package:rpg_runner/ui/controls/cooldown_ring.dart';
 import 'package:rpg_runner/ui/controls/controls_tuning.dart';

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:rpg_runner/core/meta/meta_service.dart';
+import 'package:runner_core/meta/meta_service.dart';
 import 'package:rpg_runner/ui/components/app_dialog.dart';
 import 'package:rpg_runner/ui/pages/profile/profile_page.dart';
 import 'package:rpg_runner/ui/state/account_deletion_api.dart';

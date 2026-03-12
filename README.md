@@ -6,7 +6,7 @@ This is a portfolio-style game project designed to demonstrate production-minded
 
 ## Why It Stands Out
 
-- Deterministic ECS simulation loop in pure Dart (`lib/core/`)
+- Deterministic ECS simulation loop in pure Dart (`packages/runner_core/lib/`)
 - Snapshot-driven rendering pipeline in Flame (`lib/game/`)
 - Command-based input flow and fixed-tick simulation (60 Hz)
 - Clear separation between gameplay authority and visuals
@@ -27,7 +27,7 @@ This is a portfolio-style game project designed to demonstrate production-minded
 
 ## Architecture (Simple View)
 
-- `lib/core/`: Authoritative deterministic simulation (ECS, combat, movement, AI, snapshots)
+- `packages/runner_core/lib/`: Authoritative deterministic simulation (ECS, combat, movement, AI, snapshots)
 - `lib/game/`: Flame rendering and visual components that consume snapshots
 - `lib/ui/`: Flutter menus, overlays, controls, and state orchestration
 

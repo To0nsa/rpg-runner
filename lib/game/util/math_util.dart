@@ -6,7 +6,7 @@
 
 import 'package:flame/components.dart';
 
-import '../../core/util/vec2.dart';
+import 'package:runner_core/util/vec2.dart';
 import '../spatial/world_view_transform.dart';
 
 /// Returns `value % mod`, always in the range `[0, mod)`.

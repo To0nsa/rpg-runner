@@ -1,14 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/combat/damage.dart';
-import 'package:rpg_runner/core/combat/middleware/ward_middleware.dart';
-import 'package:rpg_runner/core/ecs/stores/damage_queue_store.dart';
-import 'package:rpg_runner/core/ecs/stores/health_store.dart';
-import 'package:rpg_runner/core/ecs/stores/status/damage_reduction_store.dart';
-import 'package:rpg_runner/core/ecs/systems/damage_middleware_system.dart';
-import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
-import 'package:rpg_runner/core/ecs/world.dart';
-import 'package:rpg_runner/core/events/game_event.dart';
+import 'package:runner_core/combat/damage.dart';
+import 'package:runner_core/combat/middleware/ward_middleware.dart';
+import 'package:runner_core/ecs/stores/damage_queue_store.dart';
+import 'package:runner_core/ecs/stores/health_store.dart';
+import 'package:runner_core/ecs/stores/status/damage_reduction_store.dart';
+import 'package:runner_core/ecs/systems/damage_middleware_system.dart';
+import 'package:runner_core/ecs/systems/damage_system.dart';
+import 'package:runner_core/ecs/world.dart';
+import 'package:runner_core/events/game_event.dart';
 
 void main() {
   test('WardMiddleware reduces direct hits and cancels DoT without guard phase', () {

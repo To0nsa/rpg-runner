@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/abilities/ability_def.dart';
+import 'package:runner_core/abilities/ability_def.dart';
 import '../action_button.dart';
 import '../ability_slot_visual_spec.dart';
 import '../controls_tuning.dart';

@@ -2,7 +2,7 @@ import 'package:flame/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/players/player_character_definition.dart';
+import 'package:runner_core/players/player_character_definition.dart';
 import '../assets/ui_asset_lifecycle.dart';
 
 /// Lightweight UI preview for a character's idle animation.

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/abilities/ability_catalog.dart';
-import '../../../core/abilities/ability_def.dart';
-import '../../../core/accessories/accessory_id.dart';
-import '../../../core/meta/gear_slot.dart';
-import '../../../core/projectiles/projectile_catalog.dart';
-import '../../../core/projectiles/projectile_id.dart';
-import '../../../core/spellBook/spell_book_id.dart';
-import '../../../core/weapons/weapon_id.dart';
+import 'package:runner_core/abilities/ability_catalog.dart';
+import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/accessories/accessory_id.dart';
+import 'package:runner_core/meta/gear_slot.dart';
+import 'package:runner_core/projectiles/projectile_catalog.dart';
+import 'package:runner_core/projectiles/projectile_id.dart';
+import 'package:runner_core/spellBook/spell_book_id.dart';
+import 'package:runner_core/weapons/weapon_id.dart';
 import '../../components/app_button.dart';
 import '../../components/gameIcon/game_icon.dart';
 import '../../components/gold_display.dart';

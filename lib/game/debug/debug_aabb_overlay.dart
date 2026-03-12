@@ -4,7 +4,7 @@ library;
 import 'package:flame/components.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../core/snapshots/entity_render_snapshot.dart';
+import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 import '../util/math_util.dart' as math;
 
 void syncDebugAabbOverlays({

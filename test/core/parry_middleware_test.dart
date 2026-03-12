@@ -1,20 +1,20 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/abilities/ability_def.dart';
-import 'package:rpg_runner/core/combat/damage.dart';
-import 'package:rpg_runner/core/combat/middleware/parry_middleware.dart';
-import 'package:rpg_runner/core/ecs/entity_factory.dart';
-import 'package:rpg_runner/core/ecs/systems/active_ability_phase_system.dart';
-import 'package:rpg_runner/core/ecs/systems/damage_middleware_system.dart';
-import 'package:rpg_runner/core/ecs/stores/damage_queue_store.dart';
-import 'package:rpg_runner/core/ecs/world.dart';
-import 'package:rpg_runner/core/events/game_event.dart';
-import 'package:rpg_runner/core/ecs/stores/body_store.dart';
-import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
-import 'package:rpg_runner/core/ecs/stores/health_store.dart';
-import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
-import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
-import 'package:rpg_runner/core/snapshots/enums.dart';
+import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/combat/damage.dart';
+import 'package:runner_core/combat/middleware/parry_middleware.dart';
+import 'package:runner_core/ecs/entity_factory.dart';
+import 'package:runner_core/ecs/systems/active_ability_phase_system.dart';
+import 'package:runner_core/ecs/systems/damage_middleware_system.dart';
+import 'package:runner_core/ecs/stores/damage_queue_store.dart';
+import 'package:runner_core/ecs/world.dart';
+import 'package:runner_core/events/game_event.dart';
+import 'package:runner_core/ecs/stores/body_store.dart';
+import 'package:runner_core/ecs/stores/collider_aabb_store.dart';
+import 'package:runner_core/ecs/stores/health_store.dart';
+import 'package:runner_core/ecs/stores/mana_store.dart';
+import 'package:runner_core/ecs/stores/stamina_store.dart';
+import 'package:runner_core/snapshots/enums.dart';
 
 void main() {
   test(

@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/ecs/systems/lifetime_system.dart';
-import 'package:rpg_runner/core/ecs/stores/lifetime_store.dart';
-import 'package:rpg_runner/core/ecs/world.dart';
+import 'package:runner_core/ecs/systems/lifetime_system.dart';
+import 'package:runner_core/ecs/stores/lifetime_store.dart';
+import 'package:runner_core/ecs/world.dart';
 
 void main() {
   test('LifetimeSystem decrements and despawns at 0', () {

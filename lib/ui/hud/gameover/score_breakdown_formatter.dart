@@ -1,5 +1,5 @@
-import '../../../core/enemies/enemy_id.dart';
-import '../../../core/scoring/run_score_breakdown.dart';
+import 'package:runner_core/enemies/enemy_id.dart';
+import 'package:runner_core/scoring/run_score_breakdown.dart';
 
 String formatScoreRow(
   RunScoreRow row,

@@ -6,9 +6,9 @@ import 'dart:ui';
 import 'package:flame/cache.dart';
 import 'package:flame/components.dart';
 
-import '../../../core/contracts/render_anim_set_definition.dart';
-import '../../../core/snapshots/enums.dart';
-import '../../../core/util/vec2.dart';
+import 'package:runner_core/contracts/render_anim_set_definition.dart';
+import 'package:runner_core/snapshots/enums.dart';
+import 'package:runner_core/util/vec2.dart';
 import 'sprite_anim_set.dart';
 
 Future<SpriteAnimSet> loadStripAnimations(

@@ -1,6 +1,6 @@
-import '../../core/levels/level_id.dart';
-import '../../core/players/player_character_definition.dart';
-import '../../core/ecs/stores/combat/equipped_loadout_store.dart';
+import 'package:runner_core/levels/level_id.dart';
+import 'package:runner_core/players/player_character_definition.dart';
+import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import '../state/selection_state.dart';
 
 class UiRoutes {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/abilities/ability_def.dart';
+import 'package:runner_core/abilities/ability_def.dart';
 import 'layout/controls_radial_layout.dart';
 
 /// Visual family used to resolve slot button size/tuning.

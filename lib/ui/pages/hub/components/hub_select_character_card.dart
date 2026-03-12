@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/players/player_character_definition.dart';
-import '../../../../core/players/player_character_registry.dart';
+import 'package:runner_core/players/player_character_definition.dart';
+import 'package:runner_core/players/player_character_registry.dart';
 import 'hub_select_card_body.dart';
 import 'hub_select_card_frame.dart';
 import '../../../components/player_idle_preview.dart';

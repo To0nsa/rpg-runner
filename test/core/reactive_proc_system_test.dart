@@ -1,21 +1,21 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/accessories/accessory_catalog.dart';
-import 'package:rpg_runner/core/accessories/accessory_def.dart';
-import 'package:rpg_runner/core/accessories/accessory_id.dart';
-import 'package:rpg_runner/core/abilities/ability_def.dart' show WeaponType;
-import 'package:rpg_runner/core/combat/damage.dart';
-import 'package:rpg_runner/core/combat/status/status.dart';
-import 'package:rpg_runner/core/ecs/stores/combat/equipped_loadout_store.dart';
-import 'package:rpg_runner/core/ecs/stores/health_store.dart';
-import 'package:rpg_runner/core/ecs/systems/damage_system.dart';
-import 'package:rpg_runner/core/ecs/systems/reactive_proc_system.dart';
-import 'package:rpg_runner/core/ecs/world.dart';
-import 'package:rpg_runner/core/weapons/reactive_proc.dart';
-import 'package:rpg_runner/core/weapons/weapon_catalog.dart';
-import 'package:rpg_runner/core/weapons/weapon_category.dart';
-import 'package:rpg_runner/core/weapons/weapon_def.dart';
-import 'package:rpg_runner/core/weapons/weapon_id.dart';
+import 'package:runner_core/accessories/accessory_catalog.dart';
+import 'package:runner_core/accessories/accessory_def.dart';
+import 'package:runner_core/accessories/accessory_id.dart';
+import 'package:runner_core/abilities/ability_def.dart' show WeaponType;
+import 'package:runner_core/combat/damage.dart';
+import 'package:runner_core/combat/status/status.dart';
+import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
+import 'package:runner_core/ecs/stores/health_store.dart';
+import 'package:runner_core/ecs/systems/damage_system.dart';
+import 'package:runner_core/ecs/systems/reactive_proc_system.dart';
+import 'package:runner_core/ecs/world.dart';
+import 'package:runner_core/weapons/reactive_proc.dart';
+import 'package:runner_core/weapons/weapon_catalog.dart';
+import 'package:runner_core/weapons/weapon_category.dart';
+import 'package:runner_core/weapons/weapon_def.dart';
+import 'package:runner_core/weapons/weapon_id.dart';
 
 void main() {
   group('ReactiveProcSystem', () {

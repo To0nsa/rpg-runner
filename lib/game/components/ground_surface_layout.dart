@@ -1,6 +1,6 @@
 import 'dart:ui' as ui;
 
-import '../../core/snapshots/ground_surface_snapshot.dart';
+import 'package:runner_core/snapshots/ground_surface_snapshot.dart';
 
 /// Visible render span for one ground surface.
 class GroundSurfaceRenderBand {

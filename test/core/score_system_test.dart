@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/enemies/enemy_id.dart';
-import 'package:rpg_runner/core/scoring/run_score_breakdown.dart';
-import 'package:rpg_runner/core/tuning/score_tuning.dart';
+import 'package:runner_core/enemies/enemy_id.dart';
+import 'package:runner_core/scoring/run_score_breakdown.dart';
+import 'package:runner_core/tuning/score_tuning.dart';
 
 void main() {
   test('run score breakdown includes distance/time/collectibles/kills', () {

@@ -4,8 +4,8 @@ This document maps player `WeaponType.projectileSpell` entries to their
 projectile render assets and required animation metadata.
 
 Source of truth in code:
-- `lib/core/projectiles/projectile_catalog.dart`
-- `lib/core/projectiles/projectile_render_catalog.dart`
+- `packages/runner_core/lib/projectiles/projectile_catalog.dart`
+- `packages/runner_core/lib/projectiles/projectile_render_catalog.dart`
 
 Conventions:
 - Asset paths in Core are relative to `assets/images/`.

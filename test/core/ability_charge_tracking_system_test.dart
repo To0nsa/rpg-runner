@@ -1,17 +1,17 @@
-import 'package:rpg_runner/core/abilities/ability_catalog.dart';
+import 'package:runner_core/abilities/ability_catalog.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/abilities/ability_def.dart';
-import 'package:rpg_runner/core/ecs/entity_factory.dart';
-import 'package:rpg_runner/core/ecs/stores/body_store.dart';
-import 'package:rpg_runner/core/ecs/stores/collider_aabb_store.dart';
-import 'package:rpg_runner/core/ecs/stores/health_store.dart';
-import 'package:rpg_runner/core/ecs/stores/mana_store.dart';
-import 'package:rpg_runner/core/ecs/stores/stamina_store.dart';
-import 'package:rpg_runner/core/ecs/systems/ability_charge_tracking_system.dart';
-import 'package:rpg_runner/core/ecs/world.dart';
-import 'package:rpg_runner/core/events/game_event.dart';
-import 'package:rpg_runner/core/snapshots/enums.dart';
+import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/ecs/entity_factory.dart';
+import 'package:runner_core/ecs/stores/body_store.dart';
+import 'package:runner_core/ecs/stores/collider_aabb_store.dart';
+import 'package:runner_core/ecs/stores/health_store.dart';
+import 'package:runner_core/ecs/stores/mana_store.dart';
+import 'package:runner_core/ecs/stores/stamina_store.dart';
+import 'package:runner_core/ecs/systems/ability_charge_tracking_system.dart';
+import 'package:runner_core/ecs/world.dart';
+import 'package:runner_core/events/game_event.dart';
+import 'package:runner_core/snapshots/enums.dart';
 
 void main() {
   test(

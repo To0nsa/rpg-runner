@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rpg_runner/core/anim/anim_resolver.dart';
-import 'package:rpg_runner/core/enemies/death_behavior.dart';
-import 'package:rpg_runner/core/snapshots/enums.dart';
+import 'package:runner_core/anim/anim_resolver.dart';
+import 'package:runner_core/enemies/death_behavior.dart';
+import 'package:runner_core/snapshots/enums.dart';
 
 void main() {
   group('AnimResolver', () {

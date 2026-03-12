@@ -1,6 +1,6 @@
-import '../../core/events/game_event.dart';
-import '../../core/scoring/run_score_breakdown.dart';
-import '../../core/tuning/score_tuning.dart';
+import 'package:runner_core/events/game_event.dart';
+import 'package:runner_core/scoring/run_score_breakdown.dart';
+import 'package:runner_core/tuning/score_tuning.dart';
 
 class RunResult {
   const RunResult({

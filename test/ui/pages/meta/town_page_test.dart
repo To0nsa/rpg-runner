@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:rpg_runner/core/accessories/accessory_id.dart';
-import 'package:rpg_runner/core/meta/meta_service.dart';
-import 'package:rpg_runner/core/spellBook/spell_book_id.dart';
-import 'package:rpg_runner/core/weapons/weapon_id.dart';
+import 'package:runner_core/accessories/accessory_id.dart';
+import 'package:runner_core/meta/meta_service.dart';
+import 'package:runner_core/spellBook/spell_book_id.dart';
+import 'package:runner_core/weapons/weapon_id.dart';
 import 'package:rpg_runner/ui/components/app_button.dart';
 import 'package:rpg_runner/ui/components/gold_display.dart';
 import 'package:rpg_runner/ui/pages/town/town_page.dart';

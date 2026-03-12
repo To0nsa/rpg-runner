@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../../../core/abilities/ability_def.dart';
+import 'package:runner_core/abilities/ability_def.dart';
 import '../../../controls/action_button.dart';
 import '../../../controls/ability_slot_visual_spec.dart';
 import '../../../controls/controls_tuning.dart';

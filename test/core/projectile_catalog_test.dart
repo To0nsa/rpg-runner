@@ -1,12 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rpg_runner/core/abilities/ability_def.dart' show WeaponType;
-import 'package:rpg_runner/core/combat/damage_type.dart';
-import 'package:rpg_runner/core/combat/status/status.dart';
-import 'package:rpg_runner/core/projectiles/projectile_catalog.dart';
-import 'package:rpg_runner/core/projectiles/projectile_id.dart';
-import 'package:rpg_runner/core/projectiles/projectile_render_catalog.dart';
-import 'package:rpg_runner/core/snapshots/enums.dart';
+import 'package:runner_core/abilities/ability_def.dart' show WeaponType;
+import 'package:runner_core/combat/damage_type.dart';
+import 'package:runner_core/combat/status/status.dart';
+import 'package:runner_core/projectiles/projectile_catalog.dart';
+import 'package:runner_core/projectiles/projectile_id.dart';
+import 'package:runner_core/projectiles/projectile_render_catalog.dart';
+import 'package:runner_core/snapshots/enums.dart';
 
 void main() {
   test('darkBolt gameplay metadata matches core tuning', () {
