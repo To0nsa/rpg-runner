@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../core/accessories/accessory_id.dart';
-import '../../core/meta/gear_slot.dart';
-import '../../core/spellBook/spell_book_id.dart';
-import '../../core/weapons/weapon_id.dart';
-import '../icons/ui_icon_coords.dart';
-import '../icons/ui_icon_tile.dart';
+import '../../../core/accessories/accessory_id.dart';
+import '../../../core/meta/gear_slot.dart';
+import '../../../core/spellBook/spell_book_id.dart';
+import '../../../core/weapons/weapon_id.dart';
+import '../../icons/ui_icon_coords.dart';
+import '../../icons/ui_icon_tile.dart';
 
 const String _spellbookIconSheetPath =
     'assets/images/icons/gear-icons/sword/transparentIcons.png';

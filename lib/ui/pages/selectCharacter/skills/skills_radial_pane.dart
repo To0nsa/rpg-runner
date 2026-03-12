@@ -7,7 +7,7 @@ import '../../../controls/action_button.dart';
 import '../../../controls/ability_slot_visual_spec.dart';
 import '../../../controls/controls_tuning.dart';
 import '../../../controls/layout/controls_radial_layout.dart';
-import '../../../icons/ability_skill_icon.dart';
+import '../../../components/gameIcon/game_icon.dart';
 import '../../../theme/ui_action_button_theme.dart';
 import '../../../theme/ui_skill_icon_theme.dart';
 
@@ -98,7 +98,7 @@ class _ActionSlotButton extends StatelessWidget {
     final button = ActionButton(
       label: slotVisual.label.toUpperCase(),
       icon: slotVisual.icon,
-      iconWidget: AbilitySkillIcon(abilityId: abilityId, size: iconSize),
+      iconWidget: GameIcon.ability(abilityId: abilityId, size: iconSize),
       onPressed: () => onSelectSlot(slot),
       tuning: buttonTuning,
       cooldownRing: _selectionControlsTuning.style.cooldownRing,

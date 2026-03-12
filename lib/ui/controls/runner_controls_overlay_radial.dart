@@ -9,7 +9,7 @@ import 'ability_slot_visual_spec.dart';
 import 'controls_tuning.dart';
 import 'directional_action_button.dart';
 import 'hold_action_button.dart';
-import '../icons/ability_skill_icon.dart';
+import '../components/gameIcon/game_icon.dart';
 import 'layout/controls_radial_layout.dart';
 import '../theme/ui_action_button_theme.dart';
 import '../theme/ui_skill_icon_theme.dart';
@@ -171,7 +171,7 @@ class RunnerControlsOverlay extends StatelessWidget {
     );
     String labelFor(AbilitySlot slot) =>
         abilityRadialLayoutSpec.slotSpec(slot).label.toUpperCase();
-    Widget iconForSlot(AbilitySlot slot) => AbilitySkillIcon(
+    Widget iconForSlot(AbilitySlot slot) => GameIcon.ability(
       abilityId: equippedAbilityIdsBySlot[slot],
       size: runAbilityIconSize,
     );

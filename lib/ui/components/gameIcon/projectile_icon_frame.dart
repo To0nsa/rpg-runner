@@ -3,10 +3,10 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
-import '../../core/contracts/render_anim_set_definition.dart';
-import '../../core/projectiles/projectile_id.dart';
-import '../../core/projectiles/projectile_render_catalog.dart';
-import '../../core/snapshots/enums.dart';
+import '../../../core/contracts/render_anim_set_definition.dart';
+import '../../../core/projectiles/projectile_id.dart';
+import '../../../core/projectiles/projectile_render_catalog.dart';
+import '../../../core/snapshots/enums.dart';
 
 /// Displays the first frame of a projectile's idle animation as an icon.
 ///

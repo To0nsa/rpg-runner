@@ -10,7 +10,7 @@ import '../../../core/meta/meta_service.dart';
 import '../../../core/players/player_character_definition.dart';
 import '../../app/ui_routes.dart';
 import '../../components/app_button.dart';
-import '../../components/gear_icon.dart';
+import '../../components/gameIcon/game_icon.dart';
 import '../../state/app_state.dart';
 import '../../theme/ui_tokens.dart';
 import 'gear/gear_picker_candidates_panel.dart';
@@ -565,7 +565,7 @@ class _GearSlotTab extends StatelessWidget {
               boxShadow: selected ? selectedShadows : null,
             ),
             alignment: Alignment.center,
-            child: GearIcon(slot: slot, id: equippedId),
+            child: GameIcon.gear(slot: slot, id: equippedId),
           ),
         ),
       ),

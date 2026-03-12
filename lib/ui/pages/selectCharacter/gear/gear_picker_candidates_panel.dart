@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/meta/gear_slot.dart';
 import '../../../../core/meta/meta_service.dart';
-import '../../../components/gear_icon.dart';
+import '../../../components/gameIcon/game_icon.dart';
 import '../../../theme/ui_tokens.dart';
 import 'gear_picker_parts.dart';
 
@@ -227,7 +227,7 @@ class _GearCandidateTile extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   Center(
-                    child: GearIcon(slot: slot, id: id, size: iconSize),
+                    child: GameIcon.gear(slot: slot, id: id, size: iconSize),
                   ),
                   if (isEquipped || selected)
                     Positioned(

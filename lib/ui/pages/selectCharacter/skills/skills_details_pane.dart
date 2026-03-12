@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/abilities/ability_def.dart';
 import '../../../components/app_button.dart';
-import '../../../icons/ability_skill_icon.dart';
+import '../../../components/gameIcon/game_icon.dart';
 import '../../../text/ability_text.dart';
 import '../../../text/ability_tooltip_builder.dart';
 import '../../../text/semantic_text.dart';
@@ -163,7 +163,7 @@ class _LockedAbilityDetailsPane extends StatelessWidget {
       children: [
         Row(
           children: [
-            AbilitySkillIcon(abilityId: abilityId, size: ui.sizes.iconSize.md),
+            GameIcon.ability(abilityId: abilityId, size: ui.sizes.iconSize.md),
             SizedBox(width: ui.space.sm),
             Expanded(
               child: Text(

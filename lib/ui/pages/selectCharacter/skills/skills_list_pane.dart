@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/abilities/ability_def.dart';
 import '../../../../core/projectiles/projectile_id.dart';
 import '../../../components/app_button.dart';
-import '../../../icons/ability_skill_icon.dart';
-import '../../../icons/projectile_icon_frame.dart';
+import '../../../components/gameIcon/game_icon.dart';
 import '../../../text/ability_text.dart';
 import '../../../theme/ui_skill_icon_theme.dart';
 import '../../../theme/ui_tokens.dart';
@@ -168,7 +167,7 @@ class SkillsProjectileSourceTile extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      ProjectileIconFrame(projectileId: projectileId, size: 32),
+                      GameIcon.projectile(projectileId: projectileId, size: 32),
                       SizedBox(width: ui.space.xs),
                       Expanded(
                         child: Text(
@@ -459,7 +458,7 @@ class _AbilityListIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AbilitySkillIcon(
+    return GameIcon.ability(
       abilityId: abilityId,
       size: context.skillIcons.listIconSize,
     );

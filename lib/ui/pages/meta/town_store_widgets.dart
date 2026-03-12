@@ -6,10 +6,8 @@ import '../../../core/projectiles/projectile_id.dart';
 import '../../../core/spellBook/spell_book_id.dart';
 import '../../../core/weapons/weapon_id.dart';
 import '../../components/app_button.dart';
-import '../../components/gear_icon.dart';
+import '../../components/gameIcon/game_icon.dart';
 import '../../components/gold_display.dart';
-import '../../icons/ability_skill_icon.dart';
-import '../../icons/projectile_icon_frame.dart';
 import '../../state/progression_state.dart';
 import '../../text/ability_text.dart';
 import '../../text/gear_text.dart';
@@ -207,27 +205,15 @@ class _OfferIcon extends StatelessWidget {
         if (typedId == null) {
           break;
         }
-        return SizedBox.square(
-          dimension: iconSize,
-          child: GearIcon(slot: gearSlot, id: typedId, size: iconSize),
-        );
+        return GameIcon.gear(slot: gearSlot, id: typedId, size: iconSize);
       case StoreDomain.projectileSpell:
         final projectileId = _enumByName(ProjectileId.values, offer.itemId);
         if (projectileId == null || projectileId == ProjectileId.unknown) {
           break;
         }
-        return SizedBox.square(
-          dimension: iconSize,
-          child: ProjectileIconFrame(
-            projectileId: projectileId,
-            size: iconSize,
-          ),
-        );
+        return GameIcon.projectile(projectileId: projectileId, size: iconSize);
       case StoreDomain.ability:
-        return SizedBox.square(
-          dimension: iconSize,
-          child: AbilitySkillIcon(abilityId: offer.itemId, size: iconSize),
-        );
+        return GameIcon.ability(abilityId: offer.itemId, size: iconSize);
     }
 
     return SizedBox.square(dimension: iconSize);
