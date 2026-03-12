@@ -10,6 +10,7 @@ import '../../../core/meta/meta_service.dart';
 import '../../../core/players/player_character_definition.dart';
 import '../../app/ui_routes.dart';
 import '../../components/app_button.dart';
+import '../../components/app_dialog.dart';
 import '../../components/gameIcon/game_icon.dart';
 import '../../state/app_state.dart';
 import '../../theme/ui_tokens.dart';
@@ -321,24 +322,13 @@ class _GearsTabState extends State<GearsTab> {
   Future<void> _confirmOpenTownStore({required GearSlot slot}) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Visit Town store?'),
-          content: Text(
-            'Open Town to browse locked ${_gearSlotLabel(slot)} options?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Go to Town'),
-            ),
-          ],
-        );
-      },
+      builder: (dialogContext) => AppConfirmDialog(
+        title: 'Visit Town store?',
+        message: 'Open Town to browse locked ${_gearSlotLabel(slot)} options?',
+        cancelLabel: 'Cancel',
+        confirmLabel: 'Go to Town',
+        confirmVariant: AppButtonVariant.secondary,
+      ),
     );
     if (confirmed == true && mounted) {
       await Navigator.of(context).pushNamed(UiRoutes.town);

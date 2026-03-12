@@ -3,8 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../components/app_button.dart';
-import '../../components/gold_display.dart';
+import '../../components/app_dialog.dart';
 import '../../components/app_inline_edit_text.dart';
+import '../../components/gold_display.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
 import '../../profile/display_name_save_error.dart';
@@ -160,29 +161,15 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<bool> _confirmDeletionStepOne() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Delete account and data?'),
-          content: const Text(
+      builder: (dialogContext) => const AppConfirmDialog(
+        title: 'Delete account and data?',
+        message:
             'This will permanently delete your account, profile, and cloud '
             'progress for this user.',
-          ),
-          actions: [
-            AppButton(
-              label: 'Cancel',
-              variant: AppButtonVariant.secondary,
-              size: AppButtonSize.xs,
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-            ),
-            AppButton(
-              label: 'Continue',
-              variant: AppButtonVariant.secondary,
-              size: AppButtonSize.xs,
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-            ),
-          ],
-        );
-      },
+        cancelLabel: 'Cancel',
+        confirmLabel: 'Continue',
+        confirmVariant: AppButtonVariant.secondary,
+      ),
     );
     return confirmed ?? false;
   }
@@ -190,28 +177,15 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<bool> _confirmDeletionStepTwo() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Final confirmation'),
-          content: const Text(
+      builder: (dialogContext) => const AppConfirmDialog(
+        title: 'Final confirmation',
+        message:
             'This action cannot be undone. Delete this account permanently?',
-          ),
-          actions: [
-            AppButton(
-              label: 'Keep account',
-              variant: AppButtonVariant.secondary,
-              size: AppButtonSize.md,
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-            ),
-            AppButton(
-              label: 'Delete account',
-              variant: AppButtonVariant.danger,
-              size: AppButtonSize.md,
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-            ),
-          ],
-        );
-      },
+        cancelLabel: 'Keep account',
+        confirmLabel: 'Delete account',
+        confirmVariant: AppButtonVariant.danger,
+        buttonSize: AppButtonSize.md,
+      ),
     );
     return confirmed ?? false;
   }
