@@ -39,6 +39,41 @@ void main() {
     expect(find.textContaining('is sold out'), findsNothing);
   });
 
+  testWidgets('Town store offer expands to show item details', (tester) async {
+    final appState = await _bootstrappedAppState(
+      ownershipApi: _ScriptedOwnershipApi(
+        canonical: _canonicalWithStore(
+          gold: 300,
+          activeOffers: <StoreOfferState>[_swordOffer()],
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(_TestApp(appState: appState));
+
+    expect(
+      find.text('Bleed pressure sword with lower upfront power.'),
+      findsNothing,
+    );
+
+    await tester.tap(find.text('Waspfang'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Bleed pressure sword with lower upfront power.'),
+      findsOneWidget,
+    );
+    expect(find.text('On Hit'), findsOneWidget);
+
+    await tester.tap(find.text('Waspfang'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Bleed pressure sword with lower upfront power.'),
+      findsNothing,
+    );
+  });
+
   testWidgets('Town purchase uses direct buy interaction', (tester) async {
     final ownershipApi = _ScriptedOwnershipApi(
       canonical: _canonicalWithStore(

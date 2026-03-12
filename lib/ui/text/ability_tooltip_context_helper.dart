@@ -1,10 +1,10 @@
-import '../../../../core/abilities/ability_def.dart';
-import '../../../../core/projectiles/projectile_id.dart';
+import '../../core/abilities/ability_def.dart';
+import '../../core/projectiles/projectile_id.dart';
 
-/// Maps an ability definition to the weapon context used by tooltip text.
+/// Maps an ability definition to the payload context used by tooltip text.
 ///
-/// Projectile abilities resolve differently depending on whether the projectile
-/// slot is currently bound to a spell projectile or the throwing weapon.
+/// Projectile abilities resolve differently depending on whether the
+/// projectile slot is currently bound to a spell projectile.
 WeaponType? payloadWeaponTypeForTooltip({
   required AbilityDef def,
   required AbilitySlot slot,

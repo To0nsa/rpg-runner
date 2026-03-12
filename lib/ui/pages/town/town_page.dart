@@ -71,6 +71,9 @@ class _TownPageState extends State<TownPage> {
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
     final store = appState.progression.store;
+    final selectedLoadout = appState.selection.loadoutFor(
+      appState.selection.selectedCharacterId,
+    );
     final activeOffers = _sortActiveOffers(store.activeOffers);
     final refreshesRemaining = math.max(
       0,
@@ -97,6 +100,8 @@ class _TownPageState extends State<TownPage> {
               inFlight: _refreshInFlight,
               canRefresh: canRefreshForGold,
               onRefreshPressed: () => _confirmRefreshForGold(appState),
+              selectedProjectileSourceSpellId:
+                  selectedLoadout.projectileSlotSpellId,
               activeOffers: activeOffers,
               currentGold: appState.progression.gold,
               purchaseInFlight: _purchaseInFlight,
