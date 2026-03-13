@@ -25,42 +25,42 @@ void main() {
   });
 
   test(
-    'SharedPrefsLeaderboardStore keeps separate top10 per level and run type',
+    'SharedPrefsLeaderboardStore keeps separate top10 per level and run mode',
     () async {
       final store = SharedPrefsLeaderboardStore();
 
       await store.addResult(
         levelId: LevelId.forest,
-        runType: RunType.practice,
+        runMode: RunMode.practice,
         result: _result(score: 100),
       );
       await store.addResult(
         levelId: LevelId.field,
-        runType: RunType.practice,
+        runMode: RunMode.practice,
         result: _result(score: 200),
       );
       await store.addResult(
         levelId: LevelId.forest,
-        runType: RunType.practice,
+        runMode: RunMode.practice,
         result: _result(score: 300),
       );
       await store.addResult(
         levelId: LevelId.forest,
-        runType: RunType.competitive,
+        runMode: RunMode.competitive,
         result: _result(score: 999),
       );
 
       final forest = await store.loadTop10(
         levelId: LevelId.forest,
-        runType: RunType.practice,
+        runMode: RunMode.practice,
       );
       final field = await store.loadTop10(
         levelId: LevelId.field,
-        runType: RunType.practice,
+        runMode: RunMode.practice,
       );
       final forestCompetitive = await store.loadTop10(
         levelId: LevelId.forest,
-        runType: RunType.competitive,
+        runMode: RunMode.competitive,
       );
 
       expect(forest.map((e) => e.score).toList(), [300, 100]);

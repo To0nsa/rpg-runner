@@ -10,6 +10,8 @@ import '../state/app_state.dart';
 import '../state/firebase_auth_api.dart';
 import '../state/firebase_account_deletion_api.dart';
 import '../state/firebase_loadout_ownership_api.dart';
+import '../state/firebase_run_boards_api.dart';
+import '../state/firebase_run_session_api.dart';
 import '../state/firebase_user_profile_remote_api.dart';
 import '../theme/ui_button_theme.dart';
 import '../theme/ui_hub_theme.dart';
@@ -153,12 +155,16 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
             final authApi = FirebaseAuthApi();
             final accountDeletionApi = FirebaseAccountDeletionApi();
             final ownershipApi = FirebaseLoadoutOwnershipApi();
+            final runBoardsApi = FirebaseRunBoardsApi();
+            final runSessionApi = FirebaseRunSessionApi();
             final userProfileRemoteApi = FirebaseUserProfileRemoteApi();
             return AppState(
               authApi: authApi,
               accountDeletionApi: accountDeletionApi,
               userProfileRemoteApi: userProfileRemoteApi,
               loadoutOwnershipApi: ownershipApi,
+              runBoardsApi: runBoardsApi,
+              runSessionApi: runSessionApi,
             );
           },
         ),

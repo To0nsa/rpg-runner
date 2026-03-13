@@ -101,6 +101,17 @@ test("deleteAccountAndData removes UID-scoped profile, ownership, and ghost data
     meta: { schemaVersion: 1 },
   });
 
+  await db.collection("run_sessions").doc("run_target").set({
+    uid,
+    runSessionId: "run_target",
+    state: "issued",
+  });
+  await db.collection("run_sessions").doc("run_other").set({
+    uid: otherUid,
+    runSessionId: "run_other",
+    state: "issued",
+  });
+
   await db.collection("ghost_runs").doc("g1").set({ uid, runId: "r1" });
   await db
     .collection("leaderboard_ghost_runs")
@@ -126,6 +137,7 @@ test("deleteAccountAndData removes UID-scoped profile, ownership, and ghost data
   assert.equal(result.deleted.profileDocs, 1);
   assert.equal(result.deleted.displayNameIndexDocs, 1);
   assert.equal(result.deleted.ownershipDocs, 2);
+  assert.equal(result.deleted.runSessionDocs, 1);
   assert.equal(result.deleted.ghostDocs, 3);
 
   assert.equal((await db.collection("player_profiles").doc(uid).get()).exists, false);
@@ -144,10 +156,12 @@ test("deleteAccountAndData removes UID-scoped profile, ownership, and ghost data
     (await db.collection("weekly_ghost_runs").doc("g3").get()).exists,
     false,
   );
+  assert.equal((await db.collection("run_sessions").doc("run_target").get()).exists, false);
 
   assert.equal((await db.collection("player_profiles").doc(otherUid).get()).exists, true);
   assert.equal((await otherOwnershipRef.get()).exists, true);
   assert.equal((await db.collection("ghost_runs").doc("g_other").get()).exists, true);
+  assert.equal((await db.collection("run_sessions").doc("run_other").get()).exists, true);
 });
 
 test("deleteAccountAndData tolerates already-missing auth user", async () => {

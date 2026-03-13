@@ -23,13 +23,18 @@ class LevelSetupPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
-              child: AppSegmentedControl<RunType>(
-                values: const [RunType.practice, RunType.competitive],
-                selected: selection.selectedRunType,
-                onChanged: appState.setRunType,
+              child: AppSegmentedControl<RunMode>(
+                values: const [
+                  RunMode.practice,
+                  RunMode.competitive,
+                  RunMode.weekly,
+                ],
+                selected: selection.selectedRunMode,
+                onChanged: appState.setRunMode,
                 labelBuilder: (context, value) => switch (value) {
-                  RunType.practice => const Text('Practice (Random)'),
-                  RunType.competitive => const Text('Competitive (Season)'),
+                  RunMode.practice => const Text('Practice (Random)'),
+                  RunMode.competitive => const Text('Competitive (Season)'),
+                  RunMode.weekly => const Text('Weekly'),
                 },
               ),
             ),

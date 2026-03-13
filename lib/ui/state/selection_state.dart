@@ -6,15 +6,15 @@ import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/spellBook/spell_book_id.dart';
 import 'package:runner_core/accessories/accessory_id.dart';
 import 'package:runner_core/weapons/weapon_id.dart';
+import 'package:run_protocol/run_mode.dart';
 
-/// Menu-facing run type for the selected level.
-enum RunType { practice, competitive }
+export 'package:run_protocol/run_mode.dart';
 
 /// Persistent menu selection state.
 class SelectionState {
   SelectionState({
     required this.selectedLevelId,
-    required this.selectedRunType,
+    required this.selectedRunMode,
     required this.selectedCharacterId,
     required Map<PlayerCharacterId, EquippedLoadoutDef> loadoutsByCharacter,
     required this.buildName,
@@ -28,19 +28,19 @@ class SelectionState {
 
   static final SelectionState defaults = SelectionState(
     selectedLevelId: LevelId.field,
-    selectedRunType: RunType.practice,
+    selectedRunMode: RunMode.practice,
     selectedCharacterId: PlayerCharacterId.eloise,
     loadoutsByCharacter: _seedLoadoutsWithDefaults(),
     buildName: defaultBuildName,
   );
 
   final LevelId selectedLevelId;
-  final RunType selectedRunType;
+  final RunMode selectedRunMode;
   final PlayerCharacterId selectedCharacterId;
   final Map<PlayerCharacterId, EquippedLoadoutDef> loadoutsByCharacter;
   final String buildName;
 
-  bool get isCompetitive => selectedRunType == RunType.competitive;
+  bool get isCompetitive => selectedRunMode == RunMode.competitive;
 
   EquippedLoadoutDef loadoutFor(PlayerCharacterId id) {
     return loadoutsByCharacter[id] ?? _defaultLoadoutForCharacter(id);
@@ -48,14 +48,14 @@ class SelectionState {
 
   SelectionState copyWith({
     LevelId? selectedLevelId,
-    RunType? selectedRunType,
+    RunMode? selectedRunMode,
     PlayerCharacterId? selectedCharacterId,
     Map<PlayerCharacterId, EquippedLoadoutDef>? loadoutsByCharacter,
     String? buildName,
   }) {
     return SelectionState(
       selectedLevelId: selectedLevelId ?? this.selectedLevelId,
-      selectedRunType: selectedRunType ?? this.selectedRunType,
+      selectedRunMode: selectedRunMode ?? this.selectedRunMode,
       selectedCharacterId: selectedCharacterId ?? this.selectedCharacterId,
       loadoutsByCharacter: loadoutsByCharacter ?? this.loadoutsByCharacter,
       buildName: buildName == null
@@ -79,7 +79,9 @@ class SelectionState {
     return <String, Object?>{
       'schemaVersion': schemaVersion,
       'levelId': selectedLevelId.name,
-      'runType': selectedRunType.name,
+      'runMode': selectedRunMode.name,
+      // Keep legacy key for backward compatibility with older payload readers.
+      'runType': selectedRunMode.name,
       'characterId': selectedCharacterId.name,
       'loadoutsByCharacter': <String, Object?>{
         for (final id in PlayerCharacterId.values)
@@ -105,10 +107,10 @@ class SelectionState {
       json['levelId'] as String?,
       LevelId.field,
     );
-    final runType = _enumFromName(
-      RunType.values,
-      json['runType'] as String?,
-      RunType.practice,
+    final runMode = _enumFromName(
+      RunMode.values,
+      _stringOrNull(json['runMode']) ?? _stringOrNull(json['runType']),
+      RunMode.practice,
     );
     final characterId = _enumFromName(
       PlayerCharacterId.values,
@@ -133,7 +135,7 @@ class SelectionState {
 
     return SelectionState(
       selectedLevelId: levelId,
-      selectedRunType: runType,
+      selectedRunMode: runMode,
       selectedCharacterId: characterId,
       loadoutsByCharacter: loadouts,
       buildName: buildName,
@@ -171,6 +173,8 @@ T _enumFromName<T extends Enum>(List<T> values, String? name, T fallback) {
   }
   return fallback;
 }
+
+String? _stringOrNull(Object? raw) => raw is String ? raw : null;
 
 Map<String, Object?> _loadoutToJson(EquippedLoadoutDef loadout) {
   return <String, Object?>{

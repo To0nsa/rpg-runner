@@ -8,7 +8,7 @@ import 'leaderboard_store.dart';
 import 'run_result.dart';
 
 class SharedPrefsLeaderboardStore implements LeaderboardStore {
-  // v3: namespace leaderboards by run type.
+  // v3: namespace leaderboards by run mode.
   static const String _entriesKeyPrefix = 'leaderboard_v3_entries_';
   static const String _nextIdKeyPrefix = 'leaderboard_v3_next_id_';
 
@@ -16,11 +16,11 @@ class SharedPrefsLeaderboardStore implements LeaderboardStore {
   static const String _legacyEntriesKeyPrefix = 'leaderboard_v2_entries_';
   static const String _legacyNextIdKeyPrefix = 'leaderboard_v2_next_id_';
 
-  String _entriesKey(LevelId levelId, RunType runType) =>
-      '$_entriesKeyPrefix${levelId.name}_${runType.name}';
+  String _entriesKey(LevelId levelId, RunMode runMode) =>
+      '$_entriesKeyPrefix${levelId.name}_${runMode.name}';
 
-  String _nextIdKey(LevelId levelId, RunType runType) =>
-      '$_nextIdKeyPrefix${levelId.name}_${runType.name}';
+  String _nextIdKey(LevelId levelId, RunMode runMode) =>
+      '$_nextIdKeyPrefix${levelId.name}_${runMode.name}';
 
   String _legacyEntriesKey(LevelId levelId) =>
       '$_legacyEntriesKeyPrefix${levelId.name}';
@@ -31,19 +31,19 @@ class SharedPrefsLeaderboardStore implements LeaderboardStore {
   @override
   Future<LeaderboardSnapshot> addResult({
     required LevelId levelId,
-    required RunType runType,
+    required RunMode runMode,
     required RunResult result,
   }) async {
     final prefs = await SharedPreferences.getInstance();
 
-    final existingNextId = prefs.getInt(_nextIdKey(levelId, runType));
-    final entries = _loadEntries(prefs, levelId, runType);
+    final existingNextId = prefs.getInt(_nextIdKey(levelId, runMode));
+    final entries = _loadEntries(prefs, levelId, runMode);
     final nextId =
         existingNextId ??
         _nextIdFromLegacyOrEntries(
           prefs: prefs,
           levelId: levelId,
-          runType: runType,
+          runMode: runMode,
           entries: entries,
         );
     final stored = result.copyWith(runId: nextId);
@@ -55,8 +55,8 @@ class SharedPrefsLeaderboardStore implements LeaderboardStore {
 
     final unique = _dedupeByRunId(entries);
     final top = unique.length > 10 ? unique.sublist(0, 10) : unique;
-    await prefs.setString(_entriesKey(levelId, runType), _encode(top));
-    await prefs.setInt(_nextIdKey(levelId, runType), nextId + 1);
+    await prefs.setString(_entriesKey(levelId, runMode), _encode(top));
+    await prefs.setInt(_nextIdKey(levelId, runMode), nextId + 1);
 
     return LeaderboardSnapshot(
       entries: List<RunResult>.unmodifiable(top),
@@ -67,10 +67,10 @@ class SharedPrefsLeaderboardStore implements LeaderboardStore {
   @override
   Future<List<RunResult>> loadTop10({
     required LevelId levelId,
-    required RunType runType,
+    required RunMode runMode,
   }) async {
     final prefs = await SharedPreferences.getInstance();
-    final entries = _loadEntries(prefs, levelId, runType);
+    final entries = _loadEntries(prefs, levelId, runMode);
     entries.sort(_compare);
     final unique = _dedupeByRunId(entries);
     if (unique.length > 10) {
@@ -82,11 +82,11 @@ class SharedPrefsLeaderboardStore implements LeaderboardStore {
   List<RunResult> _loadEntries(
     SharedPreferences prefs,
     LevelId levelId,
-    RunType runType,
+    RunMode runMode,
   ) {
-    final primary = prefs.getString(_entriesKey(levelId, runType));
+    final primary = prefs.getString(_entriesKey(levelId, runMode));
     final raw = (primary == null || primary.isEmpty)
-        ? _loadLegacy(prefs, levelId, runType)
+        ? _loadLegacy(prefs, levelId, runMode)
         : primary;
     if (raw == null || raw.isEmpty) return <RunResult>[];
 
@@ -107,11 +107,11 @@ class SharedPrefsLeaderboardStore implements LeaderboardStore {
   String? _loadLegacy(
     SharedPreferences prefs,
     LevelId levelId,
-    RunType runType,
+    RunMode runMode,
   ) {
     // Best-effort: if a user upgrades from v2, show the legacy per-level
     // scores under practice so the leaderboard isn't empty.
-    if (runType != RunType.practice) return null;
+    if (runMode != RunMode.practice) return null;
     final legacy = prefs.getString(_legacyEntriesKey(levelId));
     if (legacy == null || legacy.isEmpty) return null;
     return legacy;
@@ -124,11 +124,11 @@ class SharedPrefsLeaderboardStore implements LeaderboardStore {
   int _nextIdFromLegacyOrEntries({
     required SharedPreferences prefs,
     required LevelId levelId,
-    required RunType runType,
+    required RunMode runMode,
     required List<RunResult> entries,
   }) {
     // Only attempt v2->v3 continuity for practice leaderboards.
-    if (runType != RunType.practice) return 1;
+    if (runMode != RunMode.practice) return 1;
 
     final legacyNextId = prefs.getInt(_legacyNextIdKey(levelId));
     if (legacyNextId != null && legacyNextId > 0) {

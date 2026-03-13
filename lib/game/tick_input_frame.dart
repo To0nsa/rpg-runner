@@ -4,6 +4,7 @@
 // Multiple commands may target the same tick, so this class merges them into
 // a single coherent state that the simulation consumes.
 import 'package:runner_core/commands/command.dart';
+import 'replay/replay_quantization.dart';
 
 /// Aggregated per-tick input for the simulation.
 ///
@@ -81,7 +82,7 @@ class TickInputFrame {
   void apply(Command command) {
     switch (command) {
       case MoveAxisCommand(:final axis):
-        moveAxis = axis.clamp(-1.0, 1.0);
+        moveAxis = ReplayQuantization.quantizeMoveAxis(axis);
       case JumpPressedCommand():
         jumpPressed = true;
       case DashPressedCommand():
@@ -90,8 +91,8 @@ class TickInputFrame {
         strikePressed = true;
       case AimDirCommand(:final x, :final y):
         aimDirSet = true;
-        aimDirX = x;
-        aimDirY = y;
+        aimDirX = ReplayQuantization.quantizeAimComponent(x);
+        aimDirY = ReplayQuantization.quantizeAimComponent(y);
       case ClearAimDirCommand():
         aimDirSet = false;
         aimDirX = 0;

@@ -68,7 +68,7 @@ void main() {
           onExit: null,
           showExitButton: false,
           levelId: LevelId.field,
-          runType: RunType.practice,
+          runMode: RunMode.practice,
           runEndedEvent: _buildEvent(),
           scoreTuning: _tuning,
           tickHz: _tickHz,
@@ -108,7 +108,7 @@ void main() {
           onExit: null,
           showExitButton: false,
           levelId: LevelId.field,
-          runType: RunType.practice,
+          runMode: RunMode.practice,
           runEndedEvent: _buildEvent(),
           scoreTuning: _tuning,
           tickHz: _tickHz,
@@ -153,7 +153,7 @@ void main() {
           onExit: null,
           showExitButton: false,
           levelId: LevelId.field,
-          runType: RunType.practice,
+          runMode: RunMode.practice,
           runEndedEvent: _buildEvent(),
           scoreTuning: _tuning,
           tickHz: _tickHz,
@@ -193,7 +193,7 @@ class _FakeLeaderboardStore implements LeaderboardStore {
   @override
   Future<LeaderboardSnapshot> addResult({
     required LevelId levelId,
-    required RunType runType,
+    required RunMode runMode,
     required RunResult result,
   }) async {
     return LeaderboardSnapshot(entries: [_current], current: _current);
@@ -202,6 +202,6 @@ class _FakeLeaderboardStore implements LeaderboardStore {
   @override
   Future<List<RunResult>> loadTop10({
     required LevelId levelId,
-    required RunType runType,
+    required RunMode runMode,
   }) async => <RunResult>[];
 }

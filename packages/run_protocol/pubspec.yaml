@@ -1,0 +1,13 @@
+name: run_protocol
+description: Shared replay, board, and leaderboard protocol contracts.
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.10.4
+
+dependencies:
+  crypto: ^3.0.6
+
+dev_dependencies:
+  test: ^1.25.8

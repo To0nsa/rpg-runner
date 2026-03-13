@@ -30,20 +30,22 @@ class LoaderArgs {
   final bool isResume;
 }
 
-class RunStartArgs {
-  const RunStartArgs({
+class RunStartDescriptor {
+  const RunStartDescriptor({
+    required this.runSessionId,
     required this.runId,
     required this.seed,
     required this.levelId,
     required this.playerCharacterId,
-    required this.runType,
+    required this.runMode,
     required this.equippedLoadout,
   });
 
+  final String runSessionId;
   final int runId;
   final int seed;
   final LevelId levelId;
   final PlayerCharacterId playerCharacterId;
-  final RunType runType;
+  final RunMode runMode;
   final EquippedLoadoutDef equippedLoadout;
 }

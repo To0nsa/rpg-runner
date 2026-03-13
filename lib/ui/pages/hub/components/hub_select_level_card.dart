@@ -12,12 +12,12 @@ class HubSelectedLevelCard extends StatelessWidget {
   const HubSelectedLevelCard({
     super.key,
     required this.levelId,
-    required this.runTypeLabel,
+    required this.runModeLabel,
     required this.onChange,
   });
 
   final LevelId levelId;
-  final String runTypeLabel;
+  final String runModeLabel;
   final VoidCallback onChange;
 
   @override
@@ -34,7 +34,7 @@ class HubSelectedLevelCard extends StatelessWidget {
       child: HubSelectCardBody(
         label: 'LEVEL SELECTION',
         title: levelId.displayName.toUpperCase(),
-        subtitle: runTypeLabel,
+        subtitle: runModeLabel,
       ),
     );
   }

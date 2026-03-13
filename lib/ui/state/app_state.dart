@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'dart:math';
 
+import 'package:crypto/crypto.dart' as crypto;
 import 'package:flutter/foundation.dart';
 
 import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/accessories/accessory_id.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/meta/gear_slot.dart';
@@ -10,14 +13,22 @@ import 'package:runner_core/meta/meta_service.dart';
 import 'package:runner_core/meta/meta_state.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
+import 'package:runner_core/spellBook/spell_book_id.dart';
+import 'package:runner_core/weapons/weapon_id.dart';
+import 'package:run_protocol/run_ticket.dart';
 import '../app/ui_routes.dart';
 import 'account_deletion_api.dart';
 import 'auth_api.dart';
+import 'run_boards_api.dart';
+import 'run_session_api.dart';
+import 'run_start_remote_exception.dart';
 import 'loadout_ownership_api.dart';
 import 'progression_state.dart';
 import 'selection_state.dart';
 import 'user_profile.dart';
 import 'user_profile_remote_api.dart';
+
+const String _defaultGameCompatVersion = '2026.03.0';
 
 class AppState extends ChangeNotifier {
   factory AppState({
@@ -25,12 +36,16 @@ class AppState extends ChangeNotifier {
     UserProfileRemoteApi? userProfileRemoteApi,
     AccountDeletionApi? accountDeletionApi,
     required LoadoutOwnershipApi loadoutOwnershipApi,
+    RunBoardsApi? runBoardsApi,
+    RunSessionApi? runSessionApi,
   }) {
     return AppState._internal(
       authApi: authApi,
       userProfileRemoteApi: userProfileRemoteApi,
       accountDeletionApi: accountDeletionApi,
       loadoutOwnershipApi: loadoutOwnershipApi,
+      runBoardsApi: runBoardsApi,
+      runSessionApi: runSessionApi,
     );
   }
 
@@ -39,18 +54,24 @@ class AppState extends ChangeNotifier {
     UserProfileRemoteApi? userProfileRemoteApi,
     AccountDeletionApi? accountDeletionApi,
     required LoadoutOwnershipApi loadoutOwnershipApi,
+    RunBoardsApi? runBoardsApi,
+    RunSessionApi? runSessionApi,
   }) : _authApi = authApi,
        _profileRemoteApi =
            userProfileRemoteApi ?? const NoopUserProfileRemoteApi(),
        _accountDeletionApi =
            accountDeletionApi ?? const NoopAccountDeletionApi(),
-       _ownershipApi = loadoutOwnershipApi;
+       _ownershipApi = loadoutOwnershipApi,
+       _runBoardsApi = runBoardsApi ?? const NoopRunBoardsApi(),
+       _runSessionApi = runSessionApi ?? const NoopRunSessionApi();
 
   final Random _random = Random();
   final AuthApi _authApi;
   final UserProfileRemoteApi _profileRemoteApi;
   final AccountDeletionApi _accountDeletionApi;
   final LoadoutOwnershipApi _ownershipApi;
+  final RunBoardsApi _runBoardsApi;
+  final RunSessionApi _runSessionApi;
 
   SelectionState _selection = SelectionState.defaults;
   MetaState _meta = const MetaService().createNew();
@@ -140,8 +161,8 @@ class AppState extends ChangeNotifier {
     await _setSelection(nextSelection);
   }
 
-  Future<void> setRunType(RunType runType) async {
-    final nextSelection = _selection.copyWith(selectedRunType: runType);
+  Future<void> setRunMode(RunMode runMode) async {
+    final nextSelection = _selection.copyWith(selectedRunMode: runMode);
     await _setSelection(nextSelection);
   }
 
@@ -475,25 +496,192 @@ class AppState extends ChangeNotifier {
     _warmupStarted = true;
   }
 
-  RunStartArgs buildRunStartArgs({int? seed}) {
-    final characterId = _selection.selectedCharacterId;
-    return RunStartArgs(
-      runId: createRunId(),
-      seed: seed ?? _random.nextInt(1 << 31),
-      levelId: _selection.selectedLevelId,
-      playerCharacterId: characterId,
-      runType: _selection.selectedRunType,
-      equippedLoadout: _selection.loadoutFor(characterId),
+  Future<RunStartDescriptor> prepareRunStartDescriptor({
+    RunMode? expectedMode,
+    LevelId? expectedLevelId,
+  }) async {
+    final session = await _ensureAuthSession();
+    // Force a live backend read before run start. If this fails, run start
+    // fails closed for all modes.
+    final canonical = await _ownershipApi.loadCanonicalState(
+      userId: session.userId,
+      sessionId: session.sessionId,
+    );
+    _applyCanonicalState(canonical);
+    final canonicalMode = _selection.selectedRunMode;
+    final canonicalLevelId = _selection.selectedLevelId;
+    if (expectedMode != null && expectedMode != canonicalMode) {
+      throw const RunStartRemoteException(
+        code: 'failed-precondition',
+        message:
+            'Run mode changed in canonical state. Return to hub before restart.',
+      );
+    }
+    if (expectedLevelId != null && expectedLevelId != canonicalLevelId) {
+      throw const RunStartRemoteException(
+        code: 'failed-precondition',
+        message:
+            'Selected level changed in canonical state. Return to hub before restart.',
+      );
+    }
+    final mode = expectedMode ?? canonicalMode;
+    final levelId = expectedLevelId ?? canonicalLevelId;
+
+    if (mode.requiresBoard) {
+      await _runBoardsApi.loadActiveBoard(
+        userId: session.userId,
+        sessionId: session.sessionId,
+        mode: mode,
+        levelId: levelId,
+        gameCompatVersion: _defaultGameCompatVersion,
+      );
+    }
+    final runTicket = await _runSessionApi.createRunSession(
+      userId: session.userId,
+      sessionId: session.sessionId,
+      mode: mode,
+      levelId: levelId,
+      gameCompatVersion: _defaultGameCompatVersion,
+    );
+    return _runStartDescriptorFromTicket(runTicket);
+  }
+
+  RunStartDescriptor _runStartDescriptorFromTicket(RunTicket ticket) {
+    final parsedLevelId = _levelIdFromWire(ticket.levelId);
+    final parsedCharacterId = _characterIdFromWire(ticket.playerCharacterId);
+    final fallbackLoadout = _selection.loadoutFor(parsedCharacterId);
+    final equippedLoadout = _equippedLoadoutFromSnapshot(
+      ticket.loadoutSnapshot,
+      fallback: fallbackLoadout,
+    );
+    return RunStartDescriptor(
+      runSessionId: ticket.runSessionId,
+      runId: _runIdFromRunSessionId(ticket.runSessionId),
+      seed: ticket.seed,
+      levelId: parsedLevelId,
+      playerCharacterId: parsedCharacterId,
+      runMode: ticket.mode,
+      equippedLoadout: equippedLoadout,
     );
   }
 
-  int createRunId() => _createRunId();
-
-  int _createRunId() {
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final salt = _random.nextInt(1 << 20);
-    return (nowMs << 20) | salt;
+  int _runIdFromRunSessionId(String runSessionId) {
+    final digestBytes = crypto.sha256.convert(utf8.encode(runSessionId)).bytes;
+    final digestWord = ByteData.sublistView(
+      Uint8List.fromList(digestBytes),
+      0,
+      4,
+    ).getUint32(0, Endian.big);
+    final positive = digestWord & 0x7fffffff;
+    return positive == 0 ? 1 : positive;
   }
+
+  LevelId _levelIdFromWire(String levelId) {
+    return _enumByName(LevelId.values, levelId, fieldName: 'runTicket.levelId');
+  }
+
+  PlayerCharacterId _characterIdFromWire(String characterId) {
+    return _enumByName(
+      PlayerCharacterId.values,
+      characterId,
+      fieldName: 'runTicket.playerCharacterId',
+    );
+  }
+
+  EquippedLoadoutDef _equippedLoadoutFromSnapshot(
+    Map<String, Object?> snapshot, {
+    required EquippedLoadoutDef fallback,
+  }) {
+    return EquippedLoadoutDef(
+      mask: _intOrFallback(snapshot['mask'], fallback.mask),
+      mainWeaponId: _enumFromStringOrFallback(
+        WeaponId.values,
+        snapshot['mainWeaponId'],
+        fallback.mainWeaponId,
+      ),
+      offhandWeaponId: _enumFromStringOrFallback(
+        WeaponId.values,
+        snapshot['offhandWeaponId'],
+        fallback.offhandWeaponId,
+      ),
+      spellBookId: _enumFromStringOrFallback(
+        SpellBookId.values,
+        snapshot['spellBookId'],
+        fallback.spellBookId,
+      ),
+      projectileSlotSpellId: _enumFromStringOrFallback(
+        ProjectileId.values,
+        snapshot['projectileSlotSpellId'],
+        fallback.projectileSlotSpellId,
+      ),
+      accessoryId: _enumFromStringOrFallback(
+        AccessoryId.values,
+        snapshot['accessoryId'],
+        fallback.accessoryId,
+      ),
+      abilityPrimaryId:
+          _stringOrNull(snapshot['abilityPrimaryId']) ??
+          fallback.abilityPrimaryId,
+      abilitySecondaryId:
+          _stringOrNull(snapshot['abilitySecondaryId']) ??
+          fallback.abilitySecondaryId,
+      abilityProjectileId:
+          _stringOrNull(snapshot['abilityProjectileId']) ??
+          fallback.abilityProjectileId,
+      abilitySpellId:
+          _stringOrNull(snapshot['abilitySpellId']) ?? fallback.abilitySpellId,
+      abilityMobilityId:
+          _stringOrNull(snapshot['abilityMobilityId']) ??
+          fallback.abilityMobilityId,
+      abilityJumpId:
+          _stringOrNull(snapshot['abilityJumpId']) ?? fallback.abilityJumpId,
+    );
+  }
+
+  T _enumByName<T extends Enum>(
+    List<T> values,
+    String raw, {
+    required String fieldName,
+  }) {
+    for (final value in values) {
+      if (value.name == raw) {
+        return value;
+      }
+    }
+    throw RunStartRemoteException(
+      code: 'invalid-response',
+      message: '$fieldName has unsupported value "$raw".',
+    );
+  }
+
+  T _enumFromStringOrFallback<T extends Enum>(
+    List<T> values,
+    Object? raw,
+    T fallback,
+  ) {
+    final rawName = _stringOrNull(raw);
+    if (rawName == null) {
+      return fallback;
+    }
+    for (final value in values) {
+      if (value.name == rawName) {
+        return value;
+      }
+    }
+    return fallback;
+  }
+
+  int _intOrFallback(Object? raw, int fallback) {
+    if (raw is int) {
+      return raw;
+    }
+    if (raw is num) {
+      return raw.toInt();
+    }
+    return fallback;
+  }
+
+  String? _stringOrNull(Object? raw) => raw is String ? raw : null;
 
   Future<void> _setSelection(SelectionState nextSelection) async {
     final session = await _ensureAuthSession();

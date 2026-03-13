@@ -1,0 +1,20 @@
+name: replay_validator
+description: Replay validation worker service for Cloud Run.
+publish_to: "none"
+version: 0.1.0
+
+environment:
+  sdk: ^3.10.4
+
+dependencies:
+  runner_core:
+    path: ../../packages/runner_core
+  run_protocol:
+    path: ../../packages/run_protocol
+  shelf: ^1.4.2
+  shelf_router: ^1.1.4
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.8
+

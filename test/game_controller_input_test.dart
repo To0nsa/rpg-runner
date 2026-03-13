@@ -1,7 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/commands/command.dart';
 import 'package:runner_core/game_core.dart';
+import 'package:run_protocol/replay_blob.dart';
 import 'support/test_level.dart';
 import 'package:rpg_runner/game/game_controller.dart';
 
@@ -101,5 +103,37 @@ void main() {
 
     controller.shutdown();
     expect(notifyCount, 2);
+  });
+
+  test('GameController emits applied command frame after coalescing', () {
+    final core = GameCore(
+      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
+      playerCharacter: testPlayerCharacter,
+      seed: 1,
+    );
+    final controller = GameController(core: core);
+    final frames = <ReplayCommandFrameV1>[];
+    controller.addAppliedCommandFrameListener(frames.add);
+
+    controller.enqueue(const MoveAxisCommand(tick: 1, axis: 1));
+    controller.enqueue(const MoveAxisCommand(tick: 1, axis: -1));
+    controller.enqueue(const JumpPressedCommand(tick: 1));
+    controller.enqueue(const DashPressedCommand(tick: 1));
+    controller.enqueue(const AbilitySlotHeldCommand(
+      tick: 1,
+      slot: AbilitySlot.secondary,
+      held: true,
+    ));
+
+    controller.advanceFrame(1 / controller.tickHz);
+
+    expect(frames, hasLength(1));
+    final frame = frames.single;
+    expect(frame.tick, 1);
+    expect(frame.moveAxis, -1);
+    expect(frame.jumpPressed, isTrue);
+    expect(frame.dashPressed, isTrue);
+    expect(frame.abilitySlotHeldChangedMask, 1 << AbilitySlot.secondary.index);
+    expect(frame.abilitySlotHeldValueMask, 1 << AbilitySlot.secondary.index);
   });
 }

@@ -36,9 +36,10 @@ class _LeaderboardsPageState extends State<LeaderboardsPage> {
     if (_seeded) return;
 
     final selection = context.read<AppState>().selection;
-    _runFilter = switch (selection.selectedRunType) {
-      RunType.practice => LeaderboardsRunFilter.practice,
-      RunType.competitive => LeaderboardsRunFilter.competitive,
+    _runFilter = switch (selection.selectedRunMode) {
+      RunMode.practice => LeaderboardsRunFilter.practice,
+      RunMode.competitive => LeaderboardsRunFilter.competitive,
+      RunMode.weekly => LeaderboardsRunFilter.weekly,
     };
     _initialTabIndex = _levelIndexOf(selection.selectedLevelId);
     // Weekly is a single leaderboard scope (one level). For now, we default it
@@ -47,9 +48,9 @@ class _LeaderboardsPageState extends State<LeaderboardsPage> {
     _seeded = true;
   }
 
-  RunType? _toRunType(LeaderboardsRunFilter filter) => switch (filter) {
-    LeaderboardsRunFilter.practice => RunType.practice,
-    LeaderboardsRunFilter.competitive => RunType.competitive,
+  RunMode? _toRunMode(LeaderboardsRunFilter filter) => switch (filter) {
+    LeaderboardsRunFilter.practice => RunMode.practice,
+    LeaderboardsRunFilter.competitive => RunMode.competitive,
     LeaderboardsRunFilter.weekly => null,
   };
 
@@ -60,8 +61,8 @@ class _LeaderboardsPageState extends State<LeaderboardsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final runType = _toRunType(_runFilter);
-    final isWeekly = runType == null;
+    final runMode = _toRunMode(_runFilter);
+    final isWeekly = runMode == null;
 
     final segmented = AppSegmentedControl<LeaderboardsRunFilter>(
       values: const [
@@ -88,7 +89,7 @@ class _LeaderboardsPageState extends State<LeaderboardsPage> {
             ? _WeeklyLeaderboardPlaceholder(levelId: _weeklyLevelId)
             : _PerLevelLeaderboards(
                 store: _store,
-                runType: runType,
+                runMode: runMode,
                 initialIndex: _initialTabIndex,
               ),
       ),
@@ -99,12 +100,12 @@ class _LeaderboardsPageState extends State<LeaderboardsPage> {
 class _PerLevelLeaderboards extends StatelessWidget {
   const _PerLevelLeaderboards({
     required this.store,
-    required this.runType,
+    required this.runMode,
     required this.initialIndex,
   });
 
   final SharedPrefsLeaderboardStore store;
-  final RunType runType;
+  final RunMode runMode;
   final int initialIndex;
 
   @override
@@ -134,10 +135,10 @@ class _PerLevelLeaderboards extends StatelessWidget {
               children: [
                 for (final levelId in levels)
                   _LeaderboardList(
-                    key: ValueKey('${levelId.name}-${runType.name}'),
+                    key: ValueKey('${levelId.name}-${runMode.name}'),
                     store: store,
                     levelId: levelId,
-                    runType: runType,
+                    runMode: runMode,
                   ),
               ],
             ),
@@ -153,12 +154,12 @@ class _LeaderboardList extends StatefulWidget {
     super.key,
     required this.store,
     required this.levelId,
-    required this.runType,
+    required this.runMode,
   });
 
   final SharedPrefsLeaderboardStore store;
   final LevelId levelId;
-  final RunType runType;
+  final RunMode runMode;
 
   @override
   State<_LeaderboardList> createState() => _LeaderboardListState();
@@ -177,7 +178,7 @@ class _LeaderboardListState extends State<_LeaderboardList> {
   void didUpdateWidget(covariant _LeaderboardList oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.levelId == widget.levelId &&
-        oldWidget.runType == widget.runType) {
+        oldWidget.runMode == widget.runMode) {
       return;
     }
     _future = _load();
@@ -186,7 +187,7 @@ class _LeaderboardListState extends State<_LeaderboardList> {
   Future<List<RunResult>> _load() {
     return widget.store.loadTop10(
       levelId: widget.levelId,
-      runType: widget.runType,
+      runMode: widget.runMode,
     );
   }
 

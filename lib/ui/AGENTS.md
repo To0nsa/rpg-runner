@@ -55,7 +55,8 @@ This repo already centralizes global immersive-mode behavior in `UiApp` and rout
 - auth session bootstrap
 - loading remote profile data
 - loading and mutating remote ownership canonical state
-- building run-start args from selected level/character/loadout
+- preparing run-start descriptors from selected level/character/loadout after
+  auth + ownership preflight
 - awarding run gold back into remote progression
 - handling account deletion reset flow
 

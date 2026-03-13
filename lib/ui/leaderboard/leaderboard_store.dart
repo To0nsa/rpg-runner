@@ -13,12 +13,12 @@ class LeaderboardSnapshot {
 abstract class LeaderboardStore {
   Future<LeaderboardSnapshot> addResult({
     required LevelId levelId,
-    required RunType runType,
+    required RunMode runMode,
     required RunResult result,
   });
 
   Future<List<RunResult>> loadTop10({
     required LevelId levelId,
-    required RunType runType,
+    required RunMode runMode,
   });
 }

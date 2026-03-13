@@ -1,5 +1,6 @@
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { setGlobalOptions } from "firebase-functions/v2";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
 import { deleteAccountAndData } from "./account/delete.js";
@@ -18,10 +19,18 @@ import {
   parseExecuteCommandRequest,
   parseLoadCanonicalRequest,
 } from "./ownership/validators.js";
+import {
+  handleRunBoardsLoadActive,
+  handleRunSessionCreate,
+} from "./runs/callable_handlers.js";
 
 if (getApps().length === 0) {
   initializeApp();
 }
+
+setGlobalOptions({
+  serviceAccount: "sa-run-control@rpg-runner-d7add.iam.gserviceaccount.com",
+});
 
 const db = getFirestore();
 
@@ -109,4 +118,12 @@ export const accountDelete = onCall(async (request) => {
     uid,
   });
   return { result };
+});
+
+export const runBoardsLoadActive = onCall(async (request) => {
+  return handleRunBoardsLoadActive(request, db);
+});
+
+export const runSessionCreate = onCall(async (request) => {
+  return handleRunSessionCreate(request, db);
 });

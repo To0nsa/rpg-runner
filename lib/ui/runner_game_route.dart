@@ -14,28 +14,44 @@ import 'state/selection_state.dart';
 /// Host apps can `Navigator.push(createRunnerGameRoute(...))` without depending
 /// on this package's development host app (`lib/main.dart`).
 ///
-/// Use [runId] to tag the run for replay/ghost metadata.
+/// [runSessionId], [runId], and [seed] must come from a server-issued run
+/// session ticket.
 Route<void> createRunnerGameRoute({
-  int runId = 0,
-  int seed = 1,
+  required String runSessionId,
+  required int runId,
+  required int seed,
   required LevelId levelId,
   PlayerCharacterId playerCharacterId = PlayerCharacterId.eloise,
-  RunType runType = RunType.practice,
+  RunMode runMode = RunMode.practice,
   EquippedLoadoutDef equippedLoadout = const EquippedLoadoutDef(),
   bool lockLandscape = true,
   List<DeviceOrientation>? restoreOrientations,
   SystemUiMode restoreSystemUiMode = SystemUiMode.edgeToEdge,
   RouteSettings? settings,
 }) {
+  if (runSessionId.trim().isEmpty) {
+    throw ArgumentError.value(
+      runSessionId,
+      'runSessionId',
+      'runSessionId must be non-empty.',
+    );
+  }
+  if (runId <= 0) {
+    throw ArgumentError.value(runId, 'runId', 'runId must be > 0.');
+  }
+  if (seed <= 0) {
+    throw ArgumentError.value(seed, 'seed', 'seed must be > 0.');
+  }
   return MaterialPageRoute<void>(
     settings: settings,
     builder: (context) {
       Widget child = RunnerGameWidget(
+        runSessionId: runSessionId,
         runId: runId,
         seed: seed,
         levelId: levelId,
         playerCharacterId: playerCharacterId,
-        runType: runType,
+        runMode: runMode,
         equippedLoadout: equippedLoadout,
         onExit: () => Navigator.of(context).maybePop(),
       );

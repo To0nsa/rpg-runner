@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +17,7 @@ import '../game/game_controller.dart';
 import '../game/input/aim_preview.dart';
 import '../game/input/runner_input_router.dart';
 import '../game/runner_flame_game.dart';
+import 'app/ui_routes.dart';
 import 'hud/game/game_overlay.dart';
 import 'hud/gameover/game_over_overlay.dart';
 import 'bootstrap/loader_content.dart';
@@ -26,6 +26,7 @@ import 'haptics/haptics_cue.dart';
 import 'haptics/haptics_service.dart';
 import 'runner_game_ui_state.dart';
 import 'state/app_state.dart';
+import 'state/run_start_remote_exception.dart';
 import 'state/selection_state.dart';
 import 'theme/ui_tokens.dart';
 import 'viewport/game_viewport.dart';
@@ -41,11 +42,12 @@ import 'viewport/viewport_metrics.dart';
 class RunnerGameWidget extends StatefulWidget {
   const RunnerGameWidget({
     super.key,
-    this.runId = 0,
-    this.seed = 1,
+    required this.runSessionId,
+    required this.runId,
+    required this.seed,
     required this.levelId,
     this.playerCharacterId = PlayerCharacterId.eloise,
-    this.runType = RunType.practice,
+    this.runMode = RunMode.practice,
     this.equippedLoadout = const EquippedLoadoutDef(),
     this.onExit,
     this.showExitButton = true,
@@ -57,6 +59,9 @@ class RunnerGameWidget extends StatefulWidget {
   final int seed;
 
   /// Unique identifier for this run session (replay/ghost).
+  final String runSessionId;
+
+  /// Legacy integer run identifier consumed by current in-run systems.
   final int runId;
 
   /// Which core level definition to run.
@@ -65,9 +70,9 @@ class RunnerGameWidget extends StatefulWidget {
   /// Which player character to use for this run.
   final PlayerCharacterId playerCharacterId;
 
-  /// Menu-selected run type (practice/competitive). Used by UI (e.g. leaderboard
+  /// Menu-selected run mode (practice/competitive/weekly). Used by UI (e.g. leaderboard
   /// namespacing) and may later affect rules/tuning.
-  final RunType runType;
+  final RunMode runMode;
 
   /// Per-run loadout override (from menu / meta inventory).
   final EquippedLoadoutDef equippedLoadout;
@@ -87,13 +92,20 @@ class RunnerGameWidget extends StatefulWidget {
 
 class _RunnerGameWidgetState extends State<RunnerGameWidget>
     with WidgetsBindingObserver {
-  final Random _runIdRandom = Random();
   final UiHaptics _haptics = const UiHapticsService();
 
   bool _pausedByLifecycle = false;
   bool _started = false;
   bool _exitConfirmOpen = false;
   bool _pausedBeforeExitConfirm = false;
+  bool _restartInFlight = false;
+
+  late String _runSessionId;
+  late int _seed;
+  late LevelId _levelId;
+  late PlayerCharacterId _playerCharacterId;
+  late RunMode _runMode;
+  late EquippedLoadoutDef _equippedLoadout;
 
   late int _runId;
   int? _lastRewardedRunId;
@@ -116,7 +128,14 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    _runId = widget.runId != 0 ? widget.runId : _createFallbackRunId();
+    _validateInitialRunInputs();
+    _runSessionId = widget.runSessionId;
+    _runId = widget.runId;
+    _seed = widget.seed;
+    _levelId = widget.levelId;
+    _playerCharacterId = widget.playerCharacterId;
+    _runMode = widget.runMode;
+    _equippedLoadout = widget.equippedLoadout;
     _initGame();
 
     // Start in "ready" (paused) until the user taps to begin.
@@ -207,16 +226,16 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     }
   }
 
-  int _createFallbackRunId() {
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final salt = _runIdRandom.nextInt(1 << 20);
-    return (nowMs << 20) | salt;
-  }
-
-  int _nextRunId() {
-    final appState = _maybeAppState();
-    if (appState != null) return appState.createRunId();
-    return _createFallbackRunId();
+  void _validateInitialRunInputs() {
+    if (widget.runSessionId.trim().isEmpty) {
+      throw StateError('RunnerGameWidget requires non-empty runSessionId.');
+    }
+    if (widget.runId <= 0) {
+      throw StateError('RunnerGameWidget requires runId > 0.');
+    }
+    if (widget.seed <= 0) {
+      throw StateError('RunnerGameWidget requires seed > 0.');
+    }
   }
 
   void _handleGameEvent(GameEvent event) {
@@ -266,7 +285,9 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     final nextGold = currentGold + event.goldEarned;
     _lastGoldTotal = nextGold;
 
-    unawaited(appState.awardRunGold(runId: runId, goldEarned: event.goldEarned));
+    unawaited(
+      appState.awardRunGold(runId: runId, goldEarned: event.goldEarned),
+    );
   }
 
   RunnerGameUiState _buildUiState({required bool runLoaded}) {
@@ -285,7 +306,53 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _controller.setPaused(false);
   }
 
-  void _restartGame() {
+  void _onRestartPressed() {
+    if (_restartInFlight) return;
+    unawaited(_restartGame());
+  }
+
+  Future<void> _restartGame() async {
+    final appState = _maybeAppState();
+    if (appState == null) {
+      _showRestartFailure(
+        const RunStartRemoteException(
+          code: 'unimplemented',
+          message: 'Run restart is unavailable in this environment.',
+        ),
+      );
+      return;
+    }
+    setState(() => _restartInFlight = true);
+    _controller.setPaused(true);
+    _clearInputs();
+    try {
+      final descriptor = await appState.prepareRunStartDescriptor(
+        expectedMode: _runMode,
+        expectedLevelId: _levelId,
+      );
+      if (!mounted) return;
+      _restartWithDescriptor(descriptor);
+    } catch (error) {
+      if (!mounted) return;
+      _showRestartFailure(error);
+    } finally {
+      if (mounted) {
+        setState(() => _restartInFlight = false);
+      }
+    }
+  }
+
+  void _showRestartFailure(Object error) {
+    final message =
+        error is RunStartRemoteException && error.isPreconditionFailed
+        ? 'Run restart requirements changed. Return to hub and start a new run.'
+        : 'Unable to restart run right now. Check your connection and try again.';
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
+    messenger.showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _restartWithDescriptor(RunStartDescriptor descriptor) {
     final oldController = _controller;
     final oldProjectilePreview = _projectileAimPreview;
     final oldMeleePreview = _meleeAimPreview;
@@ -299,7 +366,14 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       _pausedByLifecycle = false;
       _started = false;
       _exitConfirmOpen = false;
-      _runId = _nextRunId();
+      _runSessionId = descriptor.runSessionId;
+      _runId = descriptor.runId;
+      _seed = descriptor.seed;
+      _levelId = descriptor.levelId;
+      _playerCharacterId = descriptor.playerCharacterId;
+      _runMode = descriptor.runMode;
+      _equippedLoadout = descriptor.equippedLoadout;
+      _lastRewardedRunId = null;
       _lastGoldEarned = null;
       _lastGoldTotal = null;
       _initGame();
@@ -348,16 +422,14 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   void _initGame() {
-    final playerCharacter = PlayerCharacterRegistry.resolve(
-      widget.playerCharacterId,
-    );
+    final playerCharacter = PlayerCharacterRegistry.resolve(_playerCharacterId);
     _controller = GameController(
       core: GameCore(
-        seed: widget.seed,
+        seed: _seed,
         runId: _runId,
-        levelDefinition: LevelRegistry.byId(widget.levelId),
+        levelDefinition: LevelRegistry.byId(_levelId),
         playerCharacter: playerCharacter,
-        equippedLoadoutOverride: widget.equippedLoadout,
+        equippedLoadoutOverride: _equippedLoadout,
       ),
     );
     _controller.addEventListener(_handleGameEvent);
@@ -441,14 +513,15 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                       runEndedEvent?.tick ?? _controller.snapshot.tick;
                   return GameOverOverlay(
                     key: ValueKey(
-                      'gameOver-$runEndKey-${runEndedEvent?.reason}',
+                      'gameOver-$_runSessionId-$runEndKey-${runEndedEvent?.reason}',
                     ),
                     visible: true,
-                    onRestart: _restartGame,
+                    onRestart: _onRestartPressed,
+                    restartInProgress: _restartInFlight,
                     onExit: widget.onExit,
                     showExitButton: widget.showExitButton,
                     levelId: _controller.snapshot.levelId,
-                    runType: widget.runType,
+                    runMode: _runMode,
                     runEndedEvent: runEndedEvent,
                     scoreTuning: _controller.scoreTuning,
                     tickHz: _controller.tickHz,

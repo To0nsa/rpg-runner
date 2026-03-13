@@ -17,9 +17,12 @@ import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/game_core.dart';
 import 'package:runner_core/snapshots/game_state_snapshot.dart';
 import 'package:runner_core/tuning/score_tuning.dart';
+import 'package:run_protocol/replay_blob.dart';
+import 'replay/replay_quantization.dart';
 import 'tick_input_frame.dart';
 
 typedef GameEventListener = void Function(GameEvent event);
+typedef AppliedCommandFrameListener = void Function(ReplayCommandFrameV1 frame);
 
 /// Owns the simulation clock and provides a stable interface to UI/renderer.
 class GameController extends ChangeNotifier {
@@ -67,6 +70,13 @@ class GameController extends ChangeNotifier {
   /// Listeners are invoked for every event emitted by Core, before events are
   /// buffered into [_events].
   final List<GameEventListener> _eventListeners = <GameEventListener>[];
+
+  /// Optional observers of canonical applied command frames.
+  ///
+  /// Frames are emitted at the controller->core boundary after per-tick input
+  /// coalescing and command dedupe.
+  final List<AppliedCommandFrameListener> _appliedFrameListeners =
+      <AppliedCommandFrameListener>[];
 
   /// The most recent [RunEndedEvent], if any.
   ///
@@ -131,6 +141,15 @@ class GameController extends ChangeNotifier {
 
   void removeEventListener(GameEventListener listener) {
     _eventListeners.remove(listener);
+  }
+
+  void addAppliedCommandFrameListener(AppliedCommandFrameListener listener) {
+    if (_appliedFrameListeners.contains(listener)) return;
+    _appliedFrameListeners.add(listener);
+  }
+
+  void removeAppliedCommandFrameListener(AppliedCommandFrameListener listener) {
+    _appliedFrameListeners.remove(listener);
   }
 
   /// Pauses/unpauses the simulation.
@@ -301,7 +320,47 @@ class GameController extends ChangeNotifier {
       }
     }
 
+    ReplayCommandFrameV1? frameForObservers;
+    if (_appliedFrameListeners.isNotEmpty) {
+      var pressedMask = 0;
+      if (input.jumpPressed) {
+        pressedMask |= ReplayCommandFrameV1.pressedJumpBit;
+      }
+      if (input.dashPressed) {
+        pressedMask |= ReplayCommandFrameV1.pressedDashBit;
+      }
+      if (input.strikePressed) {
+        pressedMask |= ReplayCommandFrameV1.pressedStrikeBit;
+      }
+      if (input.projectilePressed) {
+        pressedMask |= ReplayCommandFrameV1.pressedProjectileBit;
+      }
+      if (input.secondaryPressed) {
+        pressedMask |= ReplayCommandFrameV1.pressedSecondaryBit;
+      }
+      if (input.spellPressed) {
+        pressedMask |= ReplayCommandFrameV1.pressedSpellBit;
+      }
+      frameForObservers = ReplayQuantization.quantizeFrame(
+        ReplayCommandFrameV1(
+          tick: tick,
+          moveAxis: axis != 0 ? axis : null,
+          aimDirX: input.aimDirSet ? input.aimDirX : null,
+          aimDirY: input.aimDirSet ? input.aimDirY : null,
+          pressedMask: pressedMask,
+          abilitySlotHeldChangedMask: input.abilitySlotHeldChangedMask,
+          abilitySlotHeldValueMask: input.abilitySlotHeldValueMask,
+        ),
+      );
+    }
+
     _core.applyCommands(_commandScratch);
+
+    if (frameForObservers != null) {
+      for (final listener in _appliedFrameListeners) {
+        listener(frameForObservers);
+      }
+    }
 
     // If this is a scratch fallback, it will be reset by the next use anyway.
     // For frames stored in the map we drop the instance after remove().

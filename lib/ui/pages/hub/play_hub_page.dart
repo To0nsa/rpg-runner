@@ -11,6 +11,7 @@ import 'components/hub_select_character_card.dart';
 import 'components/hub_select_level_card.dart';
 import 'components/hub_top_row.dart';
 import '../../state/app_state.dart';
+import '../../state/run_start_remote_exception.dart';
 import '../../state/selection_state.dart';
 import '../../theme/ui_tokens.dart';
 
@@ -22,6 +23,8 @@ class PlayHubPage extends StatefulWidget {
 }
 
 class _PlayHubPageState extends State<PlayHubPage> {
+  bool _preparingRunStart = false;
+
   @override
   void initState() {
     super.initState();
@@ -29,6 +32,32 @@ class _PlayHubPageState extends State<PlayHubPage> {
       if (!mounted) return;
       context.read<AppState>().startWarmup();
     });
+  }
+
+  Future<void> _startRun(AppState appState) async {
+    if (_preparingRunStart) return;
+    setState(() => _preparingRunStart = true);
+    try {
+      final descriptor = await appState.prepareRunStartDescriptor();
+      if (!mounted) return;
+      await Navigator.of(
+        context,
+      ).pushNamed(UiRoutes.run, arguments: descriptor);
+    } catch (error) {
+      debugPrint('Run start preparation failed: $error');
+      if (!mounted) return;
+      final message =
+          error is RunStartRemoteException && error.isPreconditionFailed
+          ? 'Run start requirements are not met for the selected mode yet.'
+          : 'Unable to start run right now. Check your connection and try again.';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } finally {
+      if (mounted) {
+        setState(() => _preparingRunStart = false);
+      }
+    }
   }
 
   @override
@@ -88,8 +117,8 @@ class _PlayHubPageState extends State<PlayHubPage> {
                       children: [
                         HubSelectedLevelCard(
                           levelId: selection.selectedLevelId,
-                          runTypeLabel: _runTypeLabel(
-                            selection.selectedRunType,
+                          runModeLabel: _runModeLabel(
+                            selection.selectedRunMode,
                           ),
                           onChange: () => Navigator.of(
                             context,
@@ -108,14 +137,11 @@ class _PlayHubPageState extends State<PlayHubPage> {
                   SizedBox(height: ui.space.lg),
                   Center(
                     child: AppButton(
-                      label: 'PLAY',
+                      label: _preparingRunStart ? 'PREPARING...' : 'PLAY',
                       size: AppButtonSize.lg,
-                      onPressed: () {
-                        final args = appState.buildRunStartArgs();
-                        Navigator.of(
-                          context,
-                        ).pushNamed(UiRoutes.run, arguments: args);
-                      },
+                      onPressed: _preparingRunStart
+                          ? null
+                          : () => _startRun(appState),
                     ),
                   ),
                 ],
@@ -128,11 +154,13 @@ class _PlayHubPageState extends State<PlayHubPage> {
   }
 }
 
-String _runTypeLabel(RunType runType) {
-  switch (runType) {
-    case RunType.practice:
+String _runModeLabel(RunMode runMode) {
+  switch (runMode) {
+    case RunMode.practice:
       return 'Practice (Random)';
-    case RunType.competitive:
+    case RunMode.competitive:
       return 'Competitive (Season)';
+    case RunMode.weekly:
+      return 'Weekly';
   }
 }

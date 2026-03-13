@@ -24,10 +24,11 @@ class GameOverOverlay extends StatefulWidget {
     super.key,
     required this.visible,
     required this.onRestart,
+    this.restartInProgress = false,
     required this.onExit,
     required this.showExitButton,
     required this.levelId,
-    required this.runType,
+    required this.runMode,
     required this.runEndedEvent,
     required this.scoreTuning,
     required this.tickHz,
@@ -38,10 +39,11 @@ class GameOverOverlay extends StatefulWidget {
 
   final bool visible;
   final VoidCallback onRestart;
+  final bool restartInProgress;
   final VoidCallback? onExit;
   final bool showExitButton;
   final LevelId levelId;
-  final RunType runType;
+  final RunMode runMode;
   final RunEndedEvent? runEndedEvent;
   final ScoreTuning scoreTuning;
   final int tickHz;
@@ -263,10 +265,14 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                       else
                         RestartExitButtons(
                           restartButton: AppButton(
-                            label: 'Restart',
+                            label: widget.restartInProgress
+                                ? 'Restarting...'
+                                : 'Restart',
                             variant: AppButtonVariant.secondary,
                             size: AppButtonSize.xs,
-                            onPressed: () => _completeThen(widget.onRestart),
+                            onPressed: widget.restartInProgress
+                                ? null
+                                : () => _completeThen(widget.onRestart),
                           ),
                           exitButton: widget.showExitButton
                               ? AppButton(
@@ -289,7 +295,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                   alignment: Alignment.topCenter,
                   child: LeaderboardPanel(
                     levelId: widget.levelId,
-                    runType: widget.runType,
+                    runMode: widget.runMode,
                     runEndedEvent: widget.runEndedEvent,
                     scoreTuning: widget.scoreTuning,
                     tickHz: widget.tickHz,

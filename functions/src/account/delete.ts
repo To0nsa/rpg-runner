@@ -10,6 +10,7 @@ import { normalizeDisplayNameForPolicy } from "../profile/validators.js";
 const playerProfilesCollection = "player_profiles";
 const displayNameIndexCollection = "display_name_index";
 const ownershipProfilesCollection = "ownership_profiles";
+const runSessionsCollection = "run_sessions";
 
 /**
  * Keep this list explicit until ghost storage schema is finalized.
@@ -38,6 +39,7 @@ export interface AccountDeleteResult {
     profileDocs: number;
     displayNameIndexDocs: number;
     ownershipDocs: number;
+    runSessionDocs: number;
     ghostDocs: number;
   };
 }
@@ -52,6 +54,7 @@ interface AccountDeleteCounters {
   profileDocs: number;
   displayNameIndexDocs: number;
   ownershipDocs: number;
+  runSessionDocs: number;
   ghostDocs: number;
 }
 
@@ -72,6 +75,7 @@ export async function deleteAccountAndData(
     profileDocs: 0,
     displayNameIndexDocs: 0,
     ownershipDocs: 0,
+    runSessionDocs: 0,
     ghostDocs: 0,
   };
   const deleteAuthUser = args.deleteAuthUser ?? defaultDeleteAuthUser;
@@ -82,6 +86,11 @@ export async function deleteAccountAndData(
     counters,
   });
   await deleteOwnershipData({
+    db: args.db,
+    uid: args.uid,
+    counters,
+  });
+  await deleteRunSessionData({
     db: args.db,
     uid: args.uid,
     counters,
@@ -216,6 +225,21 @@ async function deleteGhostData(args: {
   for (const ref of refsByPath.values()) {
     await args.db.recursiveDelete(ref);
     args.counters.ghostDocs += 1;
+  }
+}
+
+async function deleteRunSessionData(args: {
+  db: Firestore;
+  uid: string;
+  counters: AccountDeleteCounters;
+}): Promise<void> {
+  const query = await args.db
+    .collection(runSessionsCollection)
+    .where("uid", "==", args.uid)
+    .get();
+  for (const doc of query.docs) {
+    await args.db.recursiveDelete(doc.ref);
+    args.counters.runSessionDocs += 1;
   }
 }
 

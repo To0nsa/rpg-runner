@@ -20,14 +20,14 @@ void main() {
     test('fromJson without current schema falls back to defaults', () {
       final state = SelectionState.fromJson(<String, dynamic>{
         'levelId': LevelId.field.name,
-        'runType': RunType.practice.name,
+        'runType': RunMode.practice.name,
         'characterId': PlayerCharacterId.eloiseWip.name,
         'loadout': <String, Object?>{'abilityJumpId': 'migration.jump'},
         'buildName': 'Legacy',
       });
 
       expect(state.selectedLevelId, SelectionState.defaults.selectedLevelId);
-      expect(state.selectedRunType, SelectionState.defaults.selectedRunType);
+      expect(state.selectedRunMode, SelectionState.defaults.selectedRunMode);
       expect(
         state.selectedCharacterId,
         SelectionState.defaults.selectedCharacterId,
@@ -42,7 +42,7 @@ void main() {
       });
 
       expect(state.selectedLevelId, SelectionState.defaults.selectedLevelId);
-      expect(state.selectedRunType, SelectionState.defaults.selectedRunType);
+      expect(state.selectedRunMode, SelectionState.defaults.selectedRunMode);
       expect(
         state.selectedCharacterId,
         SelectionState.defaults.selectedCharacterId,

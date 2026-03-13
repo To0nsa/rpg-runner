@@ -18,7 +18,7 @@ class LeaderboardPanel extends StatefulWidget {
   const LeaderboardPanel({
     super.key,
     required this.levelId,
-    required this.runType,
+    required this.runMode,
     required this.runEndedEvent,
     required this.scoreTuning,
     required this.tickHz,
@@ -27,7 +27,7 @@ class LeaderboardPanel extends StatefulWidget {
   });
 
   final LevelId levelId;
-  final RunType runType;
+  final RunMode runMode;
   final RunEndedEvent? runEndedEvent;
   final ScoreTuning scoreTuning;
   final int tickHz;
@@ -56,7 +56,7 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
     if (event == null) {
       final entries = await _store.loadTop10(
         levelId: widget.levelId,
-        runType: widget.runType,
+        runMode: widget.runMode,
       );
       if (!mounted) return;
       setState(() {
@@ -74,7 +74,7 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
     );
     final snapshot = await _store.addResult(
       levelId: widget.levelId,
-      runType: widget.runType,
+      runMode: widget.runMode,
       result: draft,
     );
     if (!mounted) return;
@@ -88,9 +88,10 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
-    final runTypeLabel = switch (widget.runType) {
-      RunType.practice => 'Practice',
-      RunType.competitive => 'Competitive',
+    final runModeLabel = switch (widget.runMode) {
+      RunMode.practice => 'Practice',
+      RunMode.competitive => 'Competitive',
+      RunMode.weekly => 'Weekly',
     };
     final titleStyle = ui.text.body.copyWith(
       color: ui.colors.textPrimary,
@@ -128,7 +129,7 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${widget.levelId.displayName} $runTypeLabel Scoreboard',
+              '${widget.levelId.displayName} $runModeLabel Scoreboard',
               style: titleStyle,
             ),
             SizedBox(height: ui.space.xs),

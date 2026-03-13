@@ -12,7 +12,7 @@
     "serve": "corepack pnpm run build && firebase emulators:start --only functions,firestore",
     "shell": "corepack pnpm run build && firebase functions:shell",
     "deploy": "corepack pnpm run build && firebase deploy --only functions,firestore:rules",
-    "test": "corepack pnpm run build:test && firebase emulators:exec --only firestore \"node --test lib_test/test/ownership/ownership_callable.test.js lib_test/test/account/account_delete_callable.test.js\""
+    "test": "corepack pnpm run build:test && firebase emulators:exec --only firestore \"node --test lib_test/test/ownership/ownership_callable.test.js lib_test/test/account/account_delete_callable.test.js lib_test/test/runs/run_session_callable.test.js lib_test/test/runs/run_callables_auth_gating.test.js\""
   },
   "dependencies": {
     "firebase-admin": "^12.7.0",

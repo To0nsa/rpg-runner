@@ -1,7 +1,7 @@
 # Replay Validation Implementation Checklist
 
 Date: March 12, 2026  
-Status: Planned (0/7 phases complete)  
+Status: In progress (Phases 1-3 complete, Phase 4 in progress)  
 Source plan: `docs/building/replayValidation/replay-validation-plan.md`
 
 ## Goal
@@ -48,46 +48,47 @@ Objective:
 
 Tasks:
 
-- [ ] Confirm canonical naming and literals for:
+- [x] Confirm canonical naming and literals for:
       - `RunMode`: `practice|competitive|weekly`
       - board statuses: `scheduled|active|closed|disabled`
       - run-session states: `issued|uploading|uploaded|pending_validation|validating|validated|rejected|expired|cancelled|internal_error`
-- [ ] Lock window cadence and ids:
+- [x] Lock window cadence and ids:
       - Competitive season window = one UTC calendar month
       - Competitive `windowId` format = `YYYY-MM` (for example `2026-03`)
       - Weekly window = one week with unique `weekId`
-- [ ] Confirm environment ownership:
+- [x] Confirm environment ownership:
       - Functions control-plane service account
       - Cloud Tasks dispatch service account
       - validator runtime service account
-- [ ] [YOU - REQUIRED BEFORE PHASE 3] Create service accounts in
+- [x] [YOU - REQUIRED BEFORE PHASE 3] Create service accounts in
       `rpg-runner-d7add`:
       - `sa-run-control@rpg-runner-d7add.iam.gserviceaccount.com`
       - `sa-replay-task-dispatch@rpg-runner-d7add.iam.gserviceaccount.com`
       - `sa-replay-validator@rpg-runner-d7add.iam.gserviceaccount.com`
 - [ ] [YOU - REQUIRED BEFORE PHASE 3] Apply IAM bindings:
-      - `sa-run-control`:
+      - [x] `sa-run-control`:
         - `roles/datastore.user` (project)
         - `roles/cloudtasks.enqueuer` (queue `replay-validation`)
         - `roles/iam.serviceAccountTokenCreator` on itself
-      - `sa-replay-task-dispatch`:
+      - [ ] `sa-replay-task-dispatch`:
         - `roles/run.invoker` on Cloud Run `replay-validator`
-      - `sa-replay-validator`:
+        - deferred until `replay-validator` Cloud Run service exists (Phase 4)
+      - [x] `sa-replay-validator`:
         - `roles/datastore.user` (project)
         - Storage IAM Conditions for:
           - read `replay-submissions/**`
           - write/delete `ghosts/**`
-- [ ] [YOU - REQUIRED BEFORE PHASE 3] Deploy Functions runtime with service
+- [x] [YOU - REQUIRED BEFORE PHASE 3] Deploy Functions runtime with service
       account `sa-run-control`.
 - [ ] [YOU - REQUIRED BEFORE PHASE 4 TESTING] Provision execution surfaces:
-      - create Cloud Tasks queue `replay-validation`
-      - deploy private Cloud Run service `replay-validator`
-        using service account `sa-replay-validator`
-      - configure queue OIDC service account `sa-replay-task-dispatch`
+      - [x] create Cloud Tasks queue `replay-validation`
+      - [ ] deploy private Cloud Run service `replay-validator`
+            using service account `sa-replay-validator`
+      - [ ] configure queue OIDC service account `sa-replay-task-dispatch`
 - [ ] [YOU - REQUIRED BEFORE BOARD TOOLING ENABLEMENT] Create admin principal:
       - `group:rpg-runner-board-admins@<your-domain>`
       - restrict board-management endpoints to this principal only
-- [ ] Define initial operational defaults:
+- [x] Define initial operational defaults:
       - replay upload max size = `8 MiB` (`8,388,608` bytes)
       - upload grant TTL = `15 minutes`
       - run session expiry (`RunTicket.expiresAtMs`) = `24 hours`
@@ -117,28 +118,28 @@ Objective:
 
 Tasks:
 
-- [ ] Create package scaffold:
+- [x] Create package scaffold:
       - `packages/runner_core/pubspec.yaml`
       - `packages/runner_core/lib/runner_core.dart`
       - `packages/runner_core/lib/**`
       - `packages/runner_core/test/**`
-- [ ] Remove legacy in-app Core source tree after migration to
+- [x] Remove legacy in-app Core source tree after migration to
       `packages/runner_core`.
-- [ ] Export public core surface from `package:runner_core/runner_core.dart`.
-- [ ] Update Flutter app imports from legacy Core paths to
+- [x] Export public core surface from `package:runner_core/runner_core.dart`.
+- [x] Update Flutter app imports from legacy Core paths to
       `package:runner_core/**` in:
       - `lib/game/**`
       - `lib/ui/**`
       - `test/**`
-- [ ] Update root package wiring so app resolves local path dependency to
+- [x] Update root package wiring so app resolves local path dependency to
       `packages/runner_core`.
-- [ ] Enforce pure Dart boundaries:
+- [x] Enforce pure Dart boundaries:
       - no Flutter imports
       - no Flame imports
-- [ ] Add/port deterministic tests in `packages/runner_core/test/**` for:
+- [x] Add/port deterministic tests in `packages/runner_core/test/**` for:
       - same seed -> same canonical outcome
       - stable score/distance/duration/tick behavior
-- [ ] Add a headless smoke test that instantiates and ticks `GameCore` without
+- [x] Add a headless smoke test that instantiates and ticks `GameCore` without
       Flutter bootstrapping.
 
 Done when:
@@ -155,11 +156,11 @@ Objective:
 
 Tasks:
 
-- [ ] Create protocol package scaffold:
+- [x] Create protocol package scaffold:
       - `packages/run_protocol/pubspec.yaml`
       - `packages/run_protocol/lib/**`
       - `packages/run_protocol/test/**`
-- [ ] Implement protocol DTOs and enums:
+- [x] Implement protocol DTOs and enums:
       - `run_mode.dart`
       - `board_key.dart`
       - `board_manifest.dart`
@@ -169,27 +170,27 @@ Tasks:
       - `validated_run.dart`
       - `leaderboard_entry.dart`
       - `submission_status.dart`
-- [ ] Encode practice-mode boardless invariants in schema:
+- [x] Encode practice-mode boardless invariants in schema:
       - `ReplayBlobV1.boardId/boardKey` optional
       - `ValidatedRun.boardId/boardKey` optional
       - required for Competitive/Weekly only
-- [ ] Implement canonical sort-key builder utility shared by backend and
+- [x] Implement canonical sort-key builder utility shared by backend and
       validator.
-- [ ] Implement stable codec and digest rules in `lib/codecs/**`.
-- [ ] Add protocol tests:
+- [x] Implement stable codec and digest rules in `lib/codecs/**`.
+- [x] Add protocol tests:
       - encode/decode round-trip
       - canonical digest determinism
       - invalid payload rejection
-- [ ] Add applied-command observer to `lib/game/game_controller.dart`:
+- [x] Add applied-command observer to `lib/game/game_controller.dart`:
       - immutable frame per stepped tick
       - no raw gesture/pointer recording
-- [ ] Implement file-backed recorder pipeline:
+- [x] Implement file-backed recorder pipeline:
       - streaming frame write
       - streaming digest
       - finalize into replay blob
-- [ ] Centralize replay quantization policy in one shared module and ensure
+- [x] Centralize replay quantization policy in one shared module and ensure
       runtime play + replay capture use identical rules.
-- [ ] Add long-run replay reproducibility tests:
+- [x] Add long-run replay reproducibility tests:
       - replay bytes reproduced from same command stream
       - replayed result equals live canonical result
 
@@ -207,38 +208,48 @@ Objective:
 
 Tasks:
 
-- [ ] Refactor run mode domain in Flutter:
+- [x] Refactor run mode domain in Flutter:
       - replace `RunType` with `RunMode` in `lib/ui/state/selection_state.dart`
       - update run setup/hub/routes/args/UI labels
-- [ ] Introduce run-start descriptor flow in `lib/ui/state/app_state.dart`:
+- [x] Introduce run-start descriptor flow in `lib/ui/state/app_state.dart`:
       - replace `buildRunStartArgs()` with async `prepareRunStartDescriptor()`
       - require live auth and connectivity for all modes
-- [ ] Add backend domains and callable exports:
+- [x] Add backend domains and callable exports:
       - `functions/src/boards/**`
       - `functions/src/runs/**`
       - updates in `functions/src/index.ts`
-- [ ] Implement board load callable:
+- [x] Implement board load callable:
       - active board resolution
       - `gameCompatVersion` gating
       - board status handling (`disabled` blocks issuance)
-- [ ] Implement Competitive window rules:
+- [x] Implement Competitive window rules:
       - resolve current UTC month window id (`YYYY-MM`)
       - enforce month-boundary open/close timestamps
       - prevent overlapping active Competitive boards per level/month window
-- [ ] Implement `runSessionCreate`:
+- [x] Implement `runSessionCreate`:
       - derive authoritative start snapshot from canonical ownership state
       - bind ticket to uid/mode/loadout snapshot
       - board-bound for Competitive/Weekly
       - create `run_sessions/{runSessionId}` in `issued`
-- [ ] Update client run-prep adapters in `lib/ui/state/**` for board/ticket APIs.
-- [ ] Remove local reward-bearing seed authority and local timestamp `runId`
+- [x] Update client run-prep adapters in `lib/ui/state/**` for board/ticket APIs.
+- [x] Remove local reward-bearing seed authority and local timestamp `runId`
       authority for submittable runs.
-- [ ] Ensure starts fail closed without network/auth/session issuance.
-- [ ] Add tests:
+      - `RunnerGameWidget` now requires non-empty `runSessionId`, `runId > 0`,
+        and `seed > 0` (no local fallback issuance path)
+      - `createRunnerGameRoute` now requires server-issued
+        `runSessionId/runId/seed` and rejects fallback values
+- [x] Ensure starts fail closed without network/auth/session issuance.
+      - hub start path is fail-closed via board/ticket callables
+      - in-run restart now requests a fresh server run session/ticket (no local
+        restart issuance fallback)
+- [x] Add tests:
       - mode gating and board compat checks
       - Competitive month-window resolution and month rollover behavior
       - server-derived snapshot mismatch rejection
       - ticket issuance auth/user checks
+      - implemented in:
+        - `functions/test/runs/run_session_callable.test.ts`
+        - `functions/test/runs/run_callables_auth_gating.test.ts`
 
 Done when:
 
@@ -277,7 +288,7 @@ Tasks:
       - idempotent finalize for same metadata
       - conflict rejection for mismatched re-finalize
 - [ ] Add Cloud Tasks enqueue path from finalize.
-- [ ] Create validator service package:
+- [x] Create validator service package:
       - `services/replay_validator/pubspec.yaml`
       - `services/replay_validator/bin/server.dart`
       - `services/replay_validator/lib/src/**`
@@ -454,7 +465,7 @@ Gate D: Weekly Launch
 
 Run targeted checks as each phase lands:
 
-- [ ] `dart analyze lib test`
+- [x] `dart analyze lib test`
 - [ ] `flutter test test/core`
 - [ ] `flutter test test/game`
 - [ ] `flutter test test/ui`
@@ -463,10 +474,10 @@ Run targeted checks as each phase lands:
 
 Run these once new package/service directories exist:
 
-- [ ] `dart analyze packages/runner_core packages/run_protocol services/replay_validator`
-- [ ] `dart test packages/runner_core/test`
-- [ ] `dart test packages/run_protocol/test`
-- [ ] `dart test services/replay_validator/test`
+- [x] `dart analyze packages/runner_core packages/run_protocol services/replay_validator`
+- [x] `dart test packages/runner_core/test`
+- [x] `dart test packages/run_protocol/test`
+- [x] `dart test services/replay_validator/test`
 
 ## Exit Criteria
 

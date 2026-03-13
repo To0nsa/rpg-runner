@@ -104,13 +104,14 @@ class UiRouter {
         );
       case UiRoutes.run:
         final args = settings.arguments;
-        if (args is RunStartArgs) {
+        if (args is RunStartDescriptor) {
           return createRunnerGameRoute(
+            runSessionId: args.runSessionId,
             runId: args.runId,
             seed: args.seed,
             levelId: args.levelId,
             playerCharacterId: args.playerCharacterId,
-            runType: args.runType,
+            runMode: args.runMode,
             equippedLoadout: args.equippedLoadout,
             settings: settings,
             restoreOrientations: const [
