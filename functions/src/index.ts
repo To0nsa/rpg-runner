@@ -22,6 +22,9 @@ import {
 import {
   handleRunBoardsLoadActive,
   handleRunSessionCreate,
+  handleRunSessionCreateUploadGrant,
+  handleRunSessionFinalizeUpload,
+  handleRunSessionLoadStatus,
 } from "./runs/callable_handlers.js";
 
 if (getApps().length === 0) {
@@ -126,4 +129,16 @@ export const runBoardsLoadActive = onCall(async (request) => {
 
 export const runSessionCreate = onCall(async (request) => {
   return handleRunSessionCreate(request, db);
+});
+
+export const runSessionCreateUploadGrant = onCall(async (request) => {
+  return handleRunSessionCreateUploadGrant(request, db);
+});
+
+export const runSessionFinalizeUpload = onCall(async (request) => {
+  return handleRunSessionFinalizeUpload(request, db);
+});
+
+export const runSessionLoadStatus = onCall(async (request) => {
+  return handleRunSessionLoadStatus(request, db);
 });

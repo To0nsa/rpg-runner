@@ -8,7 +8,11 @@ import { resolveCompetitiveWindow } from "../../src/boards/windowing.js";
 import {
   handleRunBoardsLoadActive,
   handleRunSessionCreate,
+  handleRunSessionCreateUploadGrant,
+  handleRunSessionFinalizeUpload,
+  handleRunSessionLoadStatus,
 } from "../../src/runs/callable_handlers.js";
+import type { RunSubmissionDependencies } from "../../src/runs/submission_store.js";
 
 const firestoreEmulatorHost = process.env.FIRESTORE_EMULATOR_HOST;
 if (!firestoreEmulatorHost) {
@@ -130,6 +134,76 @@ test("handleRunBoardsLoadActive rejects game compatibility mismatch", async () =
   );
 });
 
+test("handleRunSessionCreateUploadGrant rejects unauthenticated requests", async () => {
+  await assert.rejects(
+    () =>
+      handleRunSessionCreateUploadGrant(
+        callableRequest(validUploadGrantPayload()),
+        db,
+        noOpSubmissionDependencies(),
+      ),
+    (error: { code?: string }) => error.code === "unauthenticated",
+  );
+});
+
+test("handleRunSessionCreateUploadGrant rejects userId/auth uid mismatch", async () => {
+  await assert.rejects(
+    () =>
+      handleRunSessionCreateUploadGrant(
+        callableRequest(validUploadGrantPayload({ userId: "uid_attacker" }), uid),
+        db,
+        noOpSubmissionDependencies(),
+      ),
+    (error: { code?: string }) => error.code === "permission-denied",
+  );
+});
+
+test("handleRunSessionFinalizeUpload rejects unauthenticated requests", async () => {
+  await assert.rejects(
+    () =>
+      handleRunSessionFinalizeUpload(
+        callableRequest(validFinalizePayload()),
+        db,
+        noOpSubmissionDependencies(),
+      ),
+    (error: { code?: string }) => error.code === "unauthenticated",
+  );
+});
+
+test("handleRunSessionFinalizeUpload rejects userId/auth uid mismatch", async () => {
+  await assert.rejects(
+    () =>
+      handleRunSessionFinalizeUpload(
+        callableRequest(validFinalizePayload({ userId: "uid_attacker" }), uid),
+        db,
+        noOpSubmissionDependencies(),
+      ),
+    (error: { code?: string }) => error.code === "permission-denied",
+  );
+});
+
+test("handleRunSessionLoadStatus rejects unauthenticated requests", async () => {
+  await assert.rejects(
+    () =>
+      handleRunSessionLoadStatus(
+        callableRequest(validLoadStatusPayload()),
+        db,
+      ),
+    (error: { code?: string }) => error.code === "unauthenticated",
+  );
+});
+
+test("handleRunSessionLoadStatus rejects userId/auth uid mismatch", async () => {
+  await assert.rejects(
+    () =>
+      handleRunSessionLoadStatus(
+        callableRequest(validLoadStatusPayload({ userId: "uid_attacker" }), uid),
+        db,
+      ),
+    (error: { code?: string }) => error.code === "permission-denied",
+  );
+});
+
 function callableRequest(
   data: Record<string, unknown>,
   authUid?: string,
@@ -171,8 +245,65 @@ function validBoardLoadPayload(
   };
 }
 
+function validUploadGrantPayload(
+  overrides: Partial<Record<string, unknown>> = {},
+): Record<string, unknown> {
+  return {
+    userId: uid,
+    sessionId: "session_1",
+    runSessionId: "run_session_1",
+    ...overrides,
+  };
+}
+
+function validFinalizePayload(
+  overrides: Partial<Record<string, unknown>> = {},
+): Record<string, unknown> {
+  return {
+    userId: uid,
+    sessionId: "session_1",
+    runSessionId: "run_session_1",
+    canonicalSha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    contentLengthBytes: 1024,
+    contentType: "application/octet-stream",
+    ...overrides,
+  };
+}
+
+function validLoadStatusPayload(
+  overrides: Partial<Record<string, unknown>> = {},
+): Record<string, unknown> {
+  return {
+    userId: uid,
+    sessionId: "session_1",
+    runSessionId: "run_session_1",
+    ...overrides,
+  };
+}
+
+function noOpSubmissionDependencies(): RunSubmissionDependencies {
+  return {
+    objectStore: {
+      async issueUploadGrant() {
+        return {
+          uploadUrl: "https://example.invalid/upload",
+          uploadMethod: "PUT",
+        } as const;
+      },
+      async loadMetadata() {
+        return {
+          contentLengthBytes: 1024,
+          contentType: "application/octet-stream",
+        };
+      },
+    },
+    taskDispatcher: {
+      async enqueueRunValidationTask() {},
+    },
+  };
+}
+
 async function clearCollection(dbValue: Firestore, name: string): Promise<void> {
   const docs = await dbValue.collection(name).listDocuments();
   await Promise.all(docs.map((docRef) => dbValue.recursiveDelete(docRef)));
 }
-

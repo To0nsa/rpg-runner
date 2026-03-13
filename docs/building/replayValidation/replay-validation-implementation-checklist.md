@@ -65,14 +65,13 @@ Tasks:
       - `sa-run-control@rpg-runner-d7add.iam.gserviceaccount.com`
       - `sa-replay-task-dispatch@rpg-runner-d7add.iam.gserviceaccount.com`
       - `sa-replay-validator@rpg-runner-d7add.iam.gserviceaccount.com`
-- [ ] [YOU - REQUIRED BEFORE PHASE 3] Apply IAM bindings:
+- [x] [YOU - REQUIRED BEFORE PHASE 3] Apply IAM bindings:
       - [x] `sa-run-control`:
         - `roles/datastore.user` (project)
         - `roles/cloudtasks.enqueuer` (queue `replay-validation`)
         - `roles/iam.serviceAccountTokenCreator` on itself
-      - [ ] `sa-replay-task-dispatch`:
+      - [x] `sa-replay-task-dispatch`:
         - `roles/run.invoker` on Cloud Run `replay-validator`
-        - deferred until `replay-validator` Cloud Run service exists (Phase 4)
       - [x] `sa-replay-validator`:
         - `roles/datastore.user` (project)
         - Storage IAM Conditions for:
@@ -80,11 +79,11 @@ Tasks:
           - write/delete `ghosts/**`
 - [x] [YOU - REQUIRED BEFORE PHASE 3] Deploy Functions runtime with service
       account `sa-run-control`.
-- [ ] [YOU - REQUIRED BEFORE PHASE 4 TESTING] Provision execution surfaces:
+- [x] [YOU - REQUIRED BEFORE PHASE 4 TESTING] Provision execution surfaces:
       - [x] create Cloud Tasks queue `replay-validation`
-      - [ ] deploy private Cloud Run service `replay-validator`
+      - [x] deploy private Cloud Run service `replay-validator`
             using service account `sa-replay-validator`
-      - [ ] configure queue OIDC service account `sa-replay-task-dispatch`
+      - [x] configure queue OIDC service account `sa-replay-task-dispatch`
 - [ ] [YOU - REQUIRED BEFORE BOARD TOOLING ENABLEMENT] Create admin principal:
       - `group:rpg-runner-board-admins@<your-domain>`
       - restrict board-management endpoints to this principal only
@@ -274,20 +273,25 @@ Tasks:
       - `run_submission_spool_store.dart`
       - `pending_run_submission.dart`
       - `run_submission_status.dart`
-- [ ] Implement callable/API surface in backend:
+- [x] Implement callable/API surface in backend:
       - `runSessionCreateUploadGrant`
       - `runSessionFinalizeUpload`
       - `runSessionLoadStatus`
-- [ ] Enforce upload grant constraints:
+      - runtime config requirements:
+        - `REPLAY_STORAGE_BUCKET` (required)
+        - `REPLAY_VALIDATOR_TASK_URL` or `REPLAY_VALIDATOR_URL` (required)
+        - `REPLAY_VALIDATION_QUEUE_LOCATION` (optional, default `europe-west1`)
+        - `REPLAY_VALIDATION_QUEUE_NAME` (optional, default `replay-validation`)
+- [x] Enforce upload grant constraints:
       - single run-session path
       - short-lived signed grant
       - size bounds
       - content-type constraints
-- [ ] Implement run-session state transitions and legal-transition checks:
+- [x] Implement run-session state transitions and legal-transition checks:
       - `issued -> uploading -> uploaded -> pending_validation -> validating -> terminal`
       - idempotent finalize for same metadata
       - conflict rejection for mismatched re-finalize
-- [ ] Add Cloud Tasks enqueue path from finalize.
+- [x] Add Cloud Tasks enqueue path from finalize.
 - [x] Create validator service package:
       - `services/replay_validator/pubspec.yaml`
       - `services/replay_validator/bin/server.dart`
@@ -311,6 +315,8 @@ Tasks:
       - bad digest/protocol rejection
       - enqueue retry safety
       - pending submission survives app restart
+      - implemented in this pass:
+        - `functions/test/runs/run_submission_callable.test.ts`
 
 Done when:
 
@@ -469,8 +475,8 @@ Run targeted checks as each phase lands:
 - [ ] `flutter test test/core`
 - [ ] `flutter test test/game`
 - [ ] `flutter test test/ui`
-- [ ] `corepack pnpm --dir functions build`
-- [ ] `corepack pnpm --dir functions test`
+- [x] `corepack pnpm --dir functions build`
+- [x] `corepack pnpm --dir functions test`
 
 Run these once new package/service directories exist:
 

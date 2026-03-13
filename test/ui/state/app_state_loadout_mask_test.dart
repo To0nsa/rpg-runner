@@ -4,6 +4,7 @@ import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/meta/meta_service.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
+import 'package:run_protocol/submission_status.dart';
 import 'package:run_protocol/run_ticket.dart';
 import 'package:rpg_runner/ui/state/app_state.dart';
 import 'package:rpg_runner/ui/state/auth_api.dart';
@@ -223,6 +224,38 @@ class _ScriptedRunSessionApi implements RunSessionApi {
   }) async {
     createRunSessionCalls += 1;
     return ticket;
+  }
+
+  @override
+  Future<RunUploadGrant> createUploadGrant({
+    required String userId,
+    required String sessionId,
+    required String runSessionId,
+  }) async {
+    throw UnimplementedError('createUploadGrant is not used in this test.');
+  }
+
+  @override
+  Future<SubmissionStatus> finalizeUpload({
+    required String userId,
+    required String sessionId,
+    required String runSessionId,
+    required String canonicalSha256,
+    required int contentLengthBytes,
+    String? contentType,
+    String? objectPath,
+    Map<String, Object?>? provisionalSummary,
+  }) async {
+    throw UnimplementedError('finalizeUpload is not used in this test.');
+  }
+
+  @override
+  Future<SubmissionStatus> loadSubmissionStatus({
+    required String userId,
+    required String sessionId,
+    required String runSessionId,
+  }) async {
+    throw UnimplementedError('loadSubmissionStatus is not used in this test.');
   }
 }
 
