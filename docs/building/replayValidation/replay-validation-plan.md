@@ -742,7 +742,7 @@ Use these defaults for first production rollout unless metrics force tuning:
 - UI `verification delayed` threshold: `5 minutes` after finalize enqueue
 - player exact-rank cache TTL: `60 seconds`
 - stale pending upload cutoff: `48 hours`
-- non-Top-10 validated replay blob retention: `30 days`
+- non-Top-10 validated replay blob retention: `15 days`
 - demoted ghost artifact grace retention: `7 days`
 - `run_sessions` retention after terminal state: `90 days`
 - `validated_runs` retention: `365 days`
@@ -765,7 +765,7 @@ Required policies:
   - default stale-upload TTL: `48 hours`
 - `replay-submissions/validated/...`
   - short TTL for non-Top-10 accepted runs
-  - default TTL: `30 days`
+  - default TTL: `15 days`
 - `ghosts/...`
   - retain while the ghost is exposed, plus a controlled demotion/grace window
   - default demotion grace: `7 days`

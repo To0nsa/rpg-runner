@@ -175,10 +175,43 @@ void main() {
     expect(find.text('Unoco Demon x1 -> 0'), findsOneWidget);
     expect(find.text('Skip'), findsNothing);
   });
+
+  testWidgets('Competitive mode does not write local leaderboard entries', (
+    tester,
+  ) async {
+    final store = _FakeLeaderboardStore();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameOverOverlay(
+          visible: true,
+          onRestart: () {},
+          onExit: null,
+          showExitButton: false,
+          levelId: LevelId.field,
+          runMode: RunMode.competitive,
+          runEndedEvent: _buildEvent(),
+          scoreTuning: _tuning,
+          tickHz: _tickHz,
+          leaderboardStore: store,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      find.text('Online leaderboard updates after validation.'),
+      findsOneWidget,
+    );
+    expect(store.addResultCalls, 0);
+  });
 }
 
 class _FakeLeaderboardStore implements LeaderboardStore {
   _FakeLeaderboardStore();
+
+  int addResultCalls = 0;
+  int loadTop10Calls = 0;
 
   late final RunResult _current = RunResult(
     runId: 42,
@@ -196,6 +229,7 @@ class _FakeLeaderboardStore implements LeaderboardStore {
     required RunMode runMode,
     required RunResult result,
   }) async {
+    addResultCalls += 1;
     return LeaderboardSnapshot(entries: [_current], current: _current);
   }
 
@@ -203,5 +237,8 @@ class _FakeLeaderboardStore implements LeaderboardStore {
   Future<List<RunResult>> loadTop10({
     required LevelId levelId,
     required RunMode runMode,
-  }) async => <RunResult>[];
+  }) async {
+    loadTop10Calls += 1;
+    return <RunResult>[];
+  }
 }

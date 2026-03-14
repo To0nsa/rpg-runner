@@ -9,6 +9,8 @@ import '../levels/level_id_ui.dart';
 import '../state/app_state.dart';
 import '../state/firebase_auth_api.dart';
 import '../state/firebase_account_deletion_api.dart';
+import '../state/firebase_ghost_api.dart';
+import '../state/firebase_leaderboard_api.dart';
 import '../state/firebase_loadout_ownership_api.dart';
 import '../state/firebase_run_boards_api.dart';
 import '../state/firebase_run_session_api.dart';
@@ -157,6 +159,8 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
             final ownershipApi = FirebaseLoadoutOwnershipApi();
             final runBoardsApi = FirebaseRunBoardsApi();
             final runSessionApi = FirebaseRunSessionApi();
+            final leaderboardApi = FirebaseLeaderboardApi();
+            final ghostApi = FirebaseGhostApi();
             final userProfileRemoteApi = FirebaseUserProfileRemoteApi();
             return AppState(
               authApi: authApi,
@@ -165,6 +169,8 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
               loadoutOwnershipApi: ownershipApi,
               runBoardsApi: runBoardsApi,
               runSessionApi: runSessionApi,
+              leaderboardApi: leaderboardApi,
+              ghostApi: ghostApi,
             );
           },
         ),

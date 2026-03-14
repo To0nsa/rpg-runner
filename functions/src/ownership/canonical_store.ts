@@ -12,31 +12,40 @@ import type {
   OwnershipCanonicalState,
   OwnershipCommandResult,
 } from "./contracts.js";
-import { starterCanonicalDocument, normalizeCanonicalState } from "./defaults.js";
+import { normalizeCanonicalState } from "./defaults.js";
 import { canonicalDocRef, defaultCanonicalProfileId } from "./firestore_paths.js";
+import { reconcilePendingRewardGrantsForTransaction } from "./reward_grants.js";
 
 export async function loadOrCreateCanonicalState(args: {
   db: Firestore;
   uid: string;
 }): Promise<OwnershipCanonicalState> {
   const { db, uid } = args;
-  const resolved = await resolveCanonicalState({
-    db,
-    uid,
+  return db.runTransaction(async (tx) => {
+    const resolved = await resolveCanonicalStateForTransaction({
+      db,
+      tx,
+      uid,
+    });
+    let canonical = resolved.canonical;
+    const reconciled = await reconcilePendingRewardGrantsForTransaction({
+      db,
+      tx,
+      uid,
+      canonicalState: canonical,
+    });
+    canonical = reconciled.canonicalState;
+    if (!resolved.exists) {
+      tx.set(resolved.canonicalRef, canonicalWriteData(uid, canonical));
+      return canonical;
+    }
+    if (reconciled.canonicalChanged) {
+      tx.set(resolved.canonicalRef, canonicalMergeWriteData(uid, canonical), {
+        merge: true,
+      });
+    }
+    return canonical;
   });
-  if (resolved.exists) {
-    return resolved.canonical;
-  }
-
-  const starterDoc = starterCanonicalDocument(uid, resolved.canonical.profileId);
-  await resolved.canonicalRef.set(canonicalWriteData(uid, {
-    profileId: starterDoc.profileId,
-    revision: starterDoc.revision,
-    selection: starterDoc.selection,
-    meta: starterDoc.meta,
-    progression: starterDoc.progression,
-  }));
-  return canonicalStateFromDocument(starterDoc, resolved.canonical.profileId, uid);
 }
 
 export async function resolveCanonicalStateForTransaction(args: {

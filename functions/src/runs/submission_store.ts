@@ -16,6 +16,7 @@ import {
 } from "./session_state.js";
 
 const runSessionsCollection = "run_sessions";
+const validatedRunsCollection = "validated_runs";
 
 const replayUploadMaxBytes = 8_388_608;
 const uploadGrantTtlMs = 15 * 60 * 1000;
@@ -333,12 +334,19 @@ export async function loadRunSessionSubmissionStatus(
   const snapshot = await runSessionRef.get();
   const session = decodeRunSessionSnapshot(snapshot, args.runSessionId);
   assertRunSessionOwner(session, args.uid);
+  let validatedRun: JsonObject | undefined;
+  if (session.state === "validated" || session.state === "rejected") {
+    validatedRun = await loadValidatedRun(args.db, session.runSessionId);
+  }
   return {
-    submissionStatus: toSubmissionStatus(session),
+    submissionStatus: toSubmissionStatus(session, validatedRun),
   };
 }
 
-function toSubmissionStatus(session: RunSessionSubmissionRecord): JsonObject {
+function toSubmissionStatus(
+  session: RunSessionSubmissionRecord,
+  validatedRun?: JsonObject,
+): JsonObject {
   const out: JsonObject = {
     runSessionId: session.runSessionId,
     state: session.state,
@@ -347,7 +355,25 @@ function toSubmissionStatus(session: RunSessionSubmissionRecord): JsonObject {
   if (session.message) {
     out.message = session.message;
   }
+  if (validatedRun) {
+    out.validatedRun = validatedRun;
+  }
   return out;
+}
+
+async function loadValidatedRun(
+  db: Firestore,
+  runSessionId: string,
+): Promise<JsonObject | undefined> {
+  const snapshot = await db.collection(validatedRunsCollection).doc(runSessionId).get();
+  if (!snapshot.exists) {
+    return undefined;
+  }
+  const data = snapshot.data();
+  if (!data || typeof data !== "object") {
+    return undefined;
+  }
+  return structuredClone(data) as JsonObject;
 }
 
 function pendingReplayObjectPath(uid: string, runSessionId: string): string {

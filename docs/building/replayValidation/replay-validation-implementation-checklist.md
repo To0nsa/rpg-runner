@@ -1,7 +1,7 @@
 # Replay Validation Implementation Checklist
 
 Date: March 12, 2026  
-Status: In progress (Phases 1-3 complete, Phase 4 in progress)  
+Status: In progress (Phases 1-6 complete, Phase 7 in progress)  
 Source plan: `docs/building/replayValidation/replay-validation-plan.md`
 
 ## Goal
@@ -96,7 +96,7 @@ Tasks:
       - UI `verification delayed` threshold = `5 minutes`
       - player rank cache TTL = `60 seconds`
       - stale pending upload cutoff = `48 hours`
-      - non-Top-10 validated replay blob TTL = `30 days`
+      - non-Top-10 validated replay blob TTL = `15 days`
       - demoted ghost artifact grace retention = `7 days`
       - `run_sessions` retention after terminal = `90 days`
       - `validated_runs` retention = `365 days`
@@ -264,7 +264,7 @@ Objective:
 
 Tasks:
 
-- [ ] Implement run submission client components in `lib/ui/state/**`:
+- [x] Implement run submission client components in `lib/ui/state/**`:
       - `run_boards_api.dart`
       - `firebase_run_boards_api.dart`
       - `run_session_api.dart`
@@ -297,26 +297,31 @@ Tasks:
       - `services/replay_validator/bin/server.dart`
       - `services/replay_validator/lib/src/**`
       - `services/replay_validator/test/**`
-- [ ] Implement worker algorithm:
+- [x] Implement worker algorithm:
       - lease acquire/release
       - blob fetch + digest verification
       - protocol sanity checks
       - headless core replay
       - validated run persistence
       - terminal session update
-- [ ] Implement retry/backoff and exhausted-retry terminalization
+- [x] Implement retry/backoff and exhausted-retry terminalization
       (`internal_error`).
-- [ ] Add cleanup jobs for:
+- [x] Add cleanup jobs for:
       - expired sessions
       - stale pending uploads
-- [ ] Add metrics/log dimensions (runSessionId-centric traceability).
-- [ ] Add tests:
+- [x] Add metrics/log dimensions (runSessionId-centric traceability).
+- [x] Add tests:
       - duplicate task idempotency
       - bad digest/protocol rejection
       - enqueue retry safety
       - pending submission survives app restart
       - implemented in this pass:
         - `functions/test/runs/run_submission_callable.test.ts`
+        - `functions/test/runs/run_cleanup.test.ts`
+        - `services/replay_validator/test/validator_worker_test.dart`
+        - `test/ui/state/run_submission_coordinator_test.dart`
+        - `test/ui/state/run_submission_spool_store_test.dart`
+        - `test/ui/state/app_state_run_submission_test.dart`
 
 Done when:
 
@@ -332,32 +337,42 @@ Objective:
 
 Tasks:
 
-- [ ] Implement validated run storage and projection updates:
+- [x] Implement validated run storage and projection updates:
       - `validated_runs/{runSessionId}`
       - `leaderboard_boards/{boardId}/player_bests/{uid}`
       - `leaderboard_boards/{boardId}/views/top10`
-- [ ] Implement reward grant writing:
+      - implemented via validator-side Firestore projection:
+        - `services/replay_validator/lib/src/run_session_repository.dart`
+        - `services/replay_validator/lib/src/leaderboard_projector.dart`
+- [x] Implement reward grant writing:
       - `reward_grants/{runSessionId}`
       - no direct ownership canonical writes from validator
-- [ ] Update ownership flows (`functions/src/ownership/**`) to reconcile unapplied
+- [x] Update ownership flows (`functions/src/ownership/**`) to reconcile unapplied
       grants transactionally.
-- [ ] Add leaderboard read APIs:
+      - load + execute ownership transactions reconcile pending grants and mark
+        `reward_grants/*` as `applied`
+- [x] Add leaderboard read APIs:
       - `leaderboardLoadBoard`
       - `leaderboardLoadMyRank`
-- [ ] Implement exact-rank query path from canonical `sortKey`.
-- [ ] Remove client-authoritative reward path:
+- [x] Implement exact-rank query path from canonical `sortKey`.
+- [x] Remove client-authoritative reward path:
       - `RunnerGameWidget` no longer calls `AppState.awardRunGold(...)`
       - stop trusting `RunEndedEvent.goldEarned` for authority
-- [ ] Remove local Competitive leaderboard authority:
+- [x] Remove local Competitive leaderboard authority:
       - no writes to `shared_prefs_leaderboard_store.dart` for Competitive
-- [ ] Preserve Practice local PB display as local-only (not online authority).
-- [ ] Update Game Over and leaderboard UI to show provisional/submission/validated
+- [x] Preserve Practice local PB display as local-only (not online authority).
+- [x] Update Game Over and leaderboard UI to show provisional/submission/validated
       states clearly.
-- [ ] Add tests:
-      - reward grant idempotency
-      - lower-than-best run does not replace best
-      - improved run updates best + top10
-      - Practice validated rewards with no leaderboard projection
+- [x] Add tests:
+      - [x] reward grant idempotency
+      - [x] lower-than-best run does not replace best
+      - [x] improved run updates best + top10
+      - [x] Practice validated rewards with no leaderboard projection
+      - implemented in:
+        - `functions/test/ownership/ownership_callable.test.ts`
+        - `functions/test/leaderboards/leaderboard_callable.test.ts`
+        - `services/replay_validator/test/validator_worker_test.dart`
+        - `services/replay_validator/test/leaderboard_projector_test.dart`
 
 Done when:
 
@@ -373,22 +388,33 @@ Objective:
 
 Tasks:
 
-- [ ] Implement ghost promotion flow on accepted Competitive/Weekly runs that are
+- [x] Implement ghost promotion flow on accepted Competitive/Weekly runs that are
       top10:
       - promote verified replay lineage to `ghosts/{boardId}/{entryId}/...`
-- [ ] Implement demotion handling:
+- [x] Implement demotion handling:
       - revoke ghost exposure when entry falls out of top10
       - retain/delete artifacts by retention policy
-- [ ] Implement ghost read surface:
+- [x] Implement ghost read surface:
       - `ghostLoadManifest` backend endpoint
       - client manifest/download API
-- [ ] Implement client ghost cache and replay bootstrapping from verified payload.
-- [ ] Implement deterministic ghost playback integration in run experience.
-- [ ] Ensure non-top10 accepted replays remain validation artifacts only with TTL.
-- [ ] Add tests:
-      - top10 promotion
-      - demotion exposure removal
-      - deterministic playback reproducibility from promoted ghost blob
+- [x] Implement client ghost cache and replay bootstrapping from verified payload.
+      - `lib/ui/state/ghost_replay_cache.dart` verifies replay digest +
+        manifest binding before caching/bootstrapping
+- [x] Implement deterministic ghost playback integration in run experience.
+      - `RunnerGameWidget` now advances an optional verified ghost replay in
+        lockstep and surfaces ghost status in-run
+- [x] Ensure non-top10 accepted replays remain validation artifacts only with TTL.
+      - cleanup now deletes stale `replay-submissions/validated/*` artifacts
+        only when they are not currently top10 ghost-exposed (`15 day` cutoff)
+- [x] Add tests:
+      - [x] top10 promotion
+      - [x] demotion exposure removal
+      - [x] deterministic playback reproducibility from promoted ghost blob
+      - implemented in:
+        - `services/replay_validator/test/ghost_publisher_test.dart`
+        - `functions/test/ghosts/ghost_callable.test.ts`
+        - `test/ui/state/ghost_replay_cache_test.dart`
+        - `test/game/replay/ghost_playback_runner_test.dart`
 
 Done when:
 
@@ -403,15 +429,22 @@ Objective:
 
 Tasks:
 
-- [ ] Add Weekly mode support in selection/run prep/navigation/UI labels.
-- [ ] Add weekly board key/window resolution (`windowId = weekId`) in backend.
-- [ ] Add weekly leaderboard browsing through online APIs.
-- [ ] Add weekly rollover handling (new board identities per week).
-- [ ] Wire weekly achievement/progression hooks to validated outcomes.
-- [ ] Add tests:
-      - weekly start gating
-      - week rollover board rotation behavior
-      - weekly leaderboard reads and rank behavior
+- [x] Add Weekly mode support in selection/run prep/navigation/UI labels.
+- [x] Add weekly board key/window resolution (`windowId = weekId`) in backend.
+- [x] Add weekly leaderboard browsing through online APIs.
+- [x] Add weekly rollover handling (new board identities per week).
+- [x] Wire weekly achievement/progression hooks to validated outcomes.
+      - ownership reward-grant reconciliation now updates
+        `progression.weeklyProgress` from validated weekly grants
+      - hub weekly badge now reflects current weekly validated progression
+- [x] Add tests:
+      - [x] weekly start gating
+      - [x] week rollover board rotation behavior
+      - [x] weekly leaderboard reads and rank behavior
+      - implemented in:
+        - `functions/test/runs/run_session_callable.test.ts`
+        - `functions/test/leaderboards/leaderboard_callable.test.ts`
+        - `test/ui/state/app_state_leaderboard_test.dart`
 
 Done when:
 
@@ -429,10 +462,10 @@ These are mandatory alongside phase work, not after all phases.
       - `services/replay_validator/**`
 - [ ] Keep IAM least-privilege boundaries enforced and documented.
 - [ ] Keep Firestore/Storage rules client-deny for authority collections/artifacts.
-- [ ] Keep account deletion coverage current as new collections are introduced:
+- [x] Keep account deletion coverage current as new collections are introduced:
       - update `functions/src/account/delete.ts`
       - update `functions/test/account/account_delete_callable.test.ts`
-- [ ] Keep retention cleanup jobs aligned with documented TTL policies.
+- [x] Keep retention cleanup jobs aligned with documented TTL policies.
 - [ ] Keep docs synchronized:
       - `docs/building/replayValidation/replay-validation-plan.md`
       - `AGENTS.md` files if boundaries/rules change

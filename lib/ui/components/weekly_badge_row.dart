@@ -6,10 +6,12 @@ import '../theme/ui_tokens.dart';
 class WeeklyBadgeRow extends StatelessWidget {
   const WeeklyBadgeRow({
     super.key,
+    required this.title,
     required this.onWeeklyPressed,
     required this.onWeeklyLeaderboardPressed,
   });
 
+  final String title;
   final VoidCallback? onWeeklyPressed;
   final VoidCallback onWeeklyLeaderboardPressed;
 
@@ -31,7 +33,7 @@ class WeeklyBadgeRow extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text('Weekly Challenge · Coming Soon', style: ui.text.body),
+            child: Text(title, style: ui.text.body),
           ),
           AppButton(
             label: 'PLAY',

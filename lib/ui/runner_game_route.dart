@@ -4,9 +4,11 @@ import 'package:flutter/services.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/players/player_character_definition.dart';
+import 'package:run_protocol/board_key.dart';
 import 'runner_game_widget.dart';
 import 'scoped/scoped_preferred_orientations.dart';
 import 'scoped/scoped_system_ui_mode.dart';
+import 'state/ghost_replay_cache.dart';
 import 'state/selection_state.dart';
 
 /// Embed-friendly route factory for hosting the mini-game in any Flutter app.
@@ -24,6 +26,9 @@ Route<void> createRunnerGameRoute({
   PlayerCharacterId playerCharacterId = PlayerCharacterId.eloise,
   RunMode runMode = RunMode.practice,
   EquippedLoadoutDef equippedLoadout = const EquippedLoadoutDef(),
+  String? boardId,
+  BoardKey? boardKey,
+  GhostReplayBootstrap? ghostReplayBootstrap,
   bool lockLandscape = true,
   List<DeviceOrientation>? restoreOrientations,
   SystemUiMode restoreSystemUiMode = SystemUiMode.edgeToEdge,
@@ -53,6 +58,9 @@ Route<void> createRunnerGameRoute({
         playerCharacterId: playerCharacterId,
         runMode: runMode,
         equippedLoadout: equippedLoadout,
+        boardId: boardId,
+        boardKey: boardKey,
+        ghostReplayBootstrap: ghostReplayBootstrap,
         onExit: () => Navigator.of(context).maybePop(),
       );
 

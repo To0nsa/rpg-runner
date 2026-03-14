@@ -202,34 +202,157 @@ class TownStoreState {
   }
 }
 
-class ProgressionState {
-  const ProgressionState({
-    required this.gold,
-    this.store = TownStoreState.initial,
+class WeeklyProgressState {
+  const WeeklyProgressState({
+    required this.schemaVersion,
+    required this.currentWindowId,
+    required this.currentWindowValidatedRuns,
+    required this.currentWindowGoldEarned,
+    required this.lifetimeValidatedRuns,
+    required this.lifetimeGoldEarned,
+    required this.lastWindowId,
+    required this.lastBoardId,
+    required this.lastRunSessionId,
+    required this.lastRewardGrantId,
+    required this.lastValidatedAtMs,
   });
 
-  final int gold;
-  final TownStoreState store;
+  final int schemaVersion;
+  final String currentWindowId;
+  final int currentWindowValidatedRuns;
+  final int currentWindowGoldEarned;
+  final int lifetimeValidatedRuns;
+  final int lifetimeGoldEarned;
+  final String lastWindowId;
+  final String lastBoardId;
+  final String lastRunSessionId;
+  final String lastRewardGrantId;
+  final int lastValidatedAtMs;
 
-  static const ProgressionState initial = ProgressionState(
-    gold: 0,
-    store: TownStoreState.initial,
+  static const WeeklyProgressState initial = WeeklyProgressState(
+    schemaVersion: 1,
+    currentWindowId: '',
+    currentWindowValidatedRuns: 0,
+    currentWindowGoldEarned: 0,
+    lifetimeValidatedRuns: 0,
+    lifetimeGoldEarned: 0,
+    lastWindowId: '',
+    lastBoardId: '',
+    lastRunSessionId: '',
+    lastRewardGrantId: '',
+    lastValidatedAtMs: 0,
   );
 
-  ProgressionState copyWith({int? gold, TownStoreState? store}) {
-    return ProgressionState(
-      gold: gold ?? this.gold,
-      store: store ?? this.store,
+  WeeklyProgressState copyWith({
+    int? schemaVersion,
+    String? currentWindowId,
+    int? currentWindowValidatedRuns,
+    int? currentWindowGoldEarned,
+    int? lifetimeValidatedRuns,
+    int? lifetimeGoldEarned,
+    String? lastWindowId,
+    String? lastBoardId,
+    String? lastRunSessionId,
+    String? lastRewardGrantId,
+    int? lastValidatedAtMs,
+  }) {
+    return WeeklyProgressState(
+      schemaVersion: schemaVersion ?? this.schemaVersion,
+      currentWindowId: currentWindowId ?? this.currentWindowId,
+      currentWindowValidatedRuns:
+          currentWindowValidatedRuns ?? this.currentWindowValidatedRuns,
+      currentWindowGoldEarned:
+          currentWindowGoldEarned ?? this.currentWindowGoldEarned,
+      lifetimeValidatedRuns: lifetimeValidatedRuns ?? this.lifetimeValidatedRuns,
+      lifetimeGoldEarned: lifetimeGoldEarned ?? this.lifetimeGoldEarned,
+      lastWindowId: lastWindowId ?? this.lastWindowId,
+      lastBoardId: lastBoardId ?? this.lastBoardId,
+      lastRunSessionId: lastRunSessionId ?? this.lastRunSessionId,
+      lastRewardGrantId: lastRewardGrantId ?? this.lastRewardGrantId,
+      lastValidatedAtMs: lastValidatedAtMs ?? this.lastValidatedAtMs,
     );
   }
 
   Map<String, Object?> toJson() {
-    return <String, Object?>{'gold': gold, 'store': store.toJson()};
+    return <String, Object?>{
+      'schemaVersion': schemaVersion,
+      'currentWindowId': currentWindowId,
+      'currentWindowValidatedRuns': currentWindowValidatedRuns,
+      'currentWindowGoldEarned': currentWindowGoldEarned,
+      'lifetimeValidatedRuns': lifetimeValidatedRuns,
+      'lifetimeGoldEarned': lifetimeGoldEarned,
+      'lastWindowId': lastWindowId,
+      'lastBoardId': lastBoardId,
+      'lastRunSessionId': lastRunSessionId,
+      'lastRewardGrantId': lastRewardGrantId,
+      'lastValidatedAtMs': lastValidatedAtMs,
+    };
+  }
+
+  factory WeeklyProgressState.fromJson(Map<String, dynamic> json) {
+    return WeeklyProgressState(
+      schemaVersion: _toInt(json['schemaVersion'], fallback: 1),
+      currentWindowId: _toString(json['currentWindowId']),
+      currentWindowValidatedRuns: _toInt(
+        json['currentWindowValidatedRuns'],
+        fallback: 0,
+      ),
+      currentWindowGoldEarned: _toInt(
+        json['currentWindowGoldEarned'],
+        fallback: 0,
+      ),
+      lifetimeValidatedRuns: _toInt(json['lifetimeValidatedRuns'], fallback: 0),
+      lifetimeGoldEarned: _toInt(json['lifetimeGoldEarned'], fallback: 0),
+      lastWindowId: _toString(json['lastWindowId']),
+      lastBoardId: _toString(json['lastBoardId']),
+      lastRunSessionId: _toString(json['lastRunSessionId']),
+      lastRewardGrantId: _toString(json['lastRewardGrantId']),
+      lastValidatedAtMs: _toInt(json['lastValidatedAtMs'], fallback: 0),
+    );
+  }
+}
+
+class ProgressionState {
+  const ProgressionState({
+    required this.gold,
+    this.store = TownStoreState.initial,
+    this.weekly = WeeklyProgressState.initial,
+  });
+
+  final int gold;
+  final TownStoreState store;
+  final WeeklyProgressState weekly;
+
+  static const ProgressionState initial = ProgressionState(
+    gold: 0,
+    store: TownStoreState.initial,
+    weekly: WeeklyProgressState.initial,
+  );
+
+  ProgressionState copyWith({
+    int? gold,
+    TownStoreState? store,
+    WeeklyProgressState? weekly,
+  }) {
+    return ProgressionState(
+      gold: gold ?? this.gold,
+      store: store ?? this.store,
+      weekly: weekly ?? this.weekly,
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'gold': gold,
+      'store': store.toJson(),
+      'weeklyProgress': weekly.toJson(),
+    };
   }
 
   factory ProgressionState.fromJson(Map<String, dynamic> json) {
     final goldRaw = json['gold'];
     final storeRaw = json['store'];
+    final weeklyRaw = json['weeklyProgress'];
     final gold = goldRaw is int
         ? goldRaw
         : (goldRaw is num ? goldRaw.toInt() : 0);
@@ -238,7 +361,18 @@ class ProgressionState {
         : (storeRaw is Map
               ? TownStoreState.fromJson(Map<String, dynamic>.from(storeRaw))
               : TownStoreState.initial);
-    return ProgressionState(gold: gold < 0 ? 0 : gold, store: store);
+    final weekly = weeklyRaw is Map<String, dynamic>
+        ? WeeklyProgressState.fromJson(weeklyRaw)
+        : (weeklyRaw is Map
+              ? WeeklyProgressState.fromJson(
+                  Map<String, dynamic>.from(weeklyRaw),
+                )
+              : WeeklyProgressState.initial);
+    return ProgressionState(
+      gold: gold < 0 ? 0 : gold,
+      store: store,
+      weekly: weekly,
+    );
   }
 }
 
@@ -252,4 +386,16 @@ T? _enumByName<T extends Enum>(List<T> values, String? name) {
     }
   }
   return null;
+}
+
+int _toInt(Object? raw, {required int fallback}) {
+  final value = raw is int ? raw : (raw is num ? raw.toInt() : fallback);
+  return value < 0 ? 0 : value;
+}
+
+String _toString(Object? raw) {
+  if (raw is! String) {
+    return '';
+  }
+  return raw.trim();
 }

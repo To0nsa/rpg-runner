@@ -126,6 +126,7 @@ beforeEach(async () => {
     clearOwnershipCollections(db),
     clearPlayerProfiles(db),
     clearDisplayNameIndex(db),
+    clearCollection(db, "reward_grants"),
   ]);
 });
 
@@ -219,6 +220,154 @@ test("awardRunGold rejects oversized gold payload", async () => {
 
   assert.equal(result.rejectedReason, "invalidCommand");
   assert.equal(result.canonicalState.progression.gold, 0);
+});
+
+test("loadOrCreateCanonicalState reconciles pending reward grants exactly once", async () => {
+  await db.collection("reward_grants").doc("grant_run_1").set({
+    uid,
+    runSessionId: "run_1",
+    state: "pending_apply",
+    goldAmount: 25,
+  });
+
+  const first = await loadOrCreateCanonicalState({ db, uid });
+  assert.equal(first.progression.gold, 25);
+  assert.deepEqual(first.progression.appliedRewardGrantIds, ["grant_run_1"]);
+
+  const second = await loadOrCreateCanonicalState({ db, uid });
+  assert.equal(second.progression.gold, 25);
+  assert.deepEqual(second.progression.appliedRewardGrantIds, ["grant_run_1"]);
+
+  const rewardGrant = await db.collection("reward_grants").doc("grant_run_1").get();
+  assert.equal(rewardGrant.exists, true);
+  assert.equal(rewardGrant.data()?.state, "applied");
+});
+
+test("weekly pending reward grants update weekly progression hooks", async () => {
+  await db.collection("reward_grants").doc("grant_weekly_1").set({
+    uid,
+    runSessionId: "run_weekly_1",
+    state: "pending_apply",
+    goldAmount: 25,
+    mode: "weekly",
+    boardId: "board_weekly_field_w11",
+    boardKey: {
+      mode: "weekly",
+      levelId: "field",
+      windowId: "2026-W11",
+      rulesetVersion: "rules-v1",
+      scoreVersion: "score-v1",
+    },
+    createdAtMs: 1700000000123,
+  });
+
+  const canonical = await loadOrCreateCanonicalState({ db, uid });
+  const weekly = weeklyProgress(canonical);
+
+  assert.equal(canonical.progression.gold, 25);
+  assert.equal(weekly.schemaVersion, 1);
+  assert.equal(weekly.currentWindowId, "2026-W11");
+  assert.equal(weekly.currentWindowValidatedRuns, 1);
+  assert.equal(weekly.currentWindowGoldEarned, 25);
+  assert.equal(weekly.lifetimeValidatedRuns, 1);
+  assert.equal(weekly.lifetimeGoldEarned, 25);
+  assert.equal(weekly.lastWindowId, "2026-W11");
+  assert.equal(weekly.lastBoardId, "board_weekly_field_w11");
+  assert.equal(weekly.lastRunSessionId, "run_weekly_1");
+  assert.equal(weekly.lastRewardGrantId, "grant_weekly_1");
+  assert.equal(weekly.lastValidatedAtMs, 1700000000123);
+
+  const rewardGrant = await db.collection("reward_grants").doc("grant_weekly_1").get();
+  assert.equal(rewardGrant.exists, true);
+  assert.equal(rewardGrant.data()?.state, "applied");
+});
+
+test("weekly progression hooks roll over when a new week grant is applied", async () => {
+  await db.collection("reward_grants").doc("grant_weekly_2").set({
+    uid,
+    runSessionId: "run_weekly_2",
+    state: "pending_apply",
+    goldAmount: 7,
+    mode: "weekly",
+    boardId: "board_weekly_field_w11",
+    boardKey: {
+      mode: "weekly",
+      levelId: "field",
+      windowId: "2026-W11",
+      rulesetVersion: "rules-v1",
+      scoreVersion: "score-v1",
+    },
+    createdAtMs: 1700000001000,
+  });
+
+  const first = await loadOrCreateCanonicalState({ db, uid });
+  assert.equal(first.progression.gold, 7);
+  assert.equal(weeklyProgress(first).currentWindowId, "2026-W11");
+
+  await db.collection("reward_grants").doc("grant_weekly_3").set({
+    uid,
+    runSessionId: "run_weekly_3",
+    state: "pending_apply",
+    goldAmount: 11,
+    mode: "weekly",
+    boardId: "board_weekly_field_w12",
+    boardKey: {
+      mode: "weekly",
+      levelId: "field",
+      windowId: "2026-W12",
+      rulesetVersion: "rules-v1",
+      scoreVersion: "score-v1",
+    },
+    createdAtMs: 1700000002000,
+  });
+
+  const second = await loadOrCreateCanonicalState({ db, uid });
+  const weekly = weeklyProgress(second);
+  assert.equal(second.progression.gold, 18);
+  assert.equal(weekly.currentWindowId, "2026-W12");
+  assert.equal(weekly.currentWindowValidatedRuns, 1);
+  assert.equal(weekly.currentWindowGoldEarned, 11);
+  assert.equal(weekly.lifetimeValidatedRuns, 2);
+  assert.equal(weekly.lifetimeGoldEarned, 18);
+  assert.equal(weekly.lastWindowId, "2026-W12");
+  assert.equal(weekly.lastBoardId, "board_weekly_field_w12");
+  assert.equal(weekly.lastRunSessionId, "run_weekly_3");
+  assert.equal(weekly.lastRewardGrantId, "grant_weekly_3");
+  assert.equal(weekly.lastValidatedAtMs, 1700000002000);
+});
+
+test("executeOwnershipCommand reconciles pending reward grants before apply", async () => {
+  const canonical = await loadOrCreateCanonicalState({ db, uid });
+  await db.collection("reward_grants").doc("grant_run_2").set({
+    uid,
+    runSessionId: "run_2",
+    state: "pending_apply",
+    goldAmount: 7,
+  });
+
+  const result = await executeOwnershipCommand({
+    db,
+    uid,
+    command: setProjectileSpellCommand({
+      expectedRevision: canonical.revision,
+      commandId: "cmd_reconcile_grant_then_apply",
+      spellId: "holyBolt",
+    }),
+  });
+
+  assert.equal(result.rejectedReason, null);
+  assert.equal(result.canonicalState.progression.gold, 7);
+  assert.deepEqual(result.canonicalState.progression.appliedRewardGrantIds, [
+    "grant_run_2",
+  ]);
+  assert.equal(
+    loadoutFor(result.canonicalState, "eloise").projectileSlotSpellId,
+    "holyBolt",
+  );
+
+  const rewardGrant = await db.collection("reward_grants").doc("grant_run_2").get();
+  assert.equal(rewardGrant.exists, true);
+  assert.equal(rewardGrant.data()?.state, "applied");
 });
 
 test("stale revision returns staleRevision and leaves canonical unchanged", async () => {
@@ -823,6 +972,38 @@ interface StoreStateRecord {
   refreshesUsedToday: number;
 }
 
+interface WeeklyProgressRecord {
+  schemaVersion: number;
+  currentWindowId: string;
+  currentWindowValidatedRuns: number;
+  currentWindowGoldEarned: number;
+  lifetimeValidatedRuns: number;
+  lifetimeGoldEarned: number;
+  lastWindowId: string;
+  lastBoardId: string;
+  lastRunSessionId: string;
+  lastRewardGrantId: string;
+  lastValidatedAtMs: number;
+}
+
+function weeklyProgress(canonical: OwnershipCanonicalState): WeeklyProgressRecord {
+  const progression = asRecord(canonical.progression);
+  const weekly = asRecord(progression.weeklyProgress);
+  return {
+    schemaVersion: asInteger(weekly.schemaVersion),
+    currentWindowId: asNonEmptyString(weekly.currentWindowId),
+    currentWindowValidatedRuns: asInteger(weekly.currentWindowValidatedRuns),
+    currentWindowGoldEarned: asInteger(weekly.currentWindowGoldEarned),
+    lifetimeValidatedRuns: asInteger(weekly.lifetimeValidatedRuns),
+    lifetimeGoldEarned: asInteger(weekly.lifetimeGoldEarned),
+    lastWindowId: asNonEmptyString(weekly.lastWindowId),
+    lastBoardId: asNonEmptyString(weekly.lastBoardId),
+    lastRunSessionId: asNonEmptyString(weekly.lastRunSessionId),
+    lastRewardGrantId: asNonEmptyString(weekly.lastRewardGrantId),
+    lastValidatedAtMs: asInteger(weekly.lastValidatedAtMs),
+  };
+}
+
 function storeState(canonical: OwnershipCanonicalState): StoreStateRecord {
   const progression = asRecord(canonical.progression);
   const store = asRecord(progression.store);
@@ -1012,5 +1193,10 @@ async function clearPlayerProfiles(dbValue: Firestore): Promise<void> {
 
 async function clearDisplayNameIndex(dbValue: Firestore): Promise<void> {
   const docs = await dbValue.collection("display_name_index").listDocuments();
+  await Promise.all(docs.map((docRef) => dbValue.recursiveDelete(docRef)));
+}
+
+async function clearCollection(dbValue: Firestore, name: string): Promise<void> {
+  const docs = await dbValue.collection(name).listDocuments();
   await Promise.all(docs.map((docRef) => dbValue.recursiveDelete(docRef)));
 }

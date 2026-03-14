@@ -5,7 +5,11 @@ import type {
 } from "firebase-admin/firestore";
 
 import type { JsonObject } from "../ownership/contracts.js";
-import { resolveWindowForMode, competitiveWindowBoundsFromId } from "./windowing.js";
+import {
+  resolveWindowForMode,
+  competitiveWindowBoundsFromId,
+  weeklyWindowBoundsFromId,
+} from "./windowing.js";
 import type { BoardKeyRecord, BoardManifestRecord } from "./contracts.js";
 import { parseBoardStatusValue } from "./validators.js";
 
@@ -77,6 +81,8 @@ export async function loadActiveBoardManifest(
   }
   if (board.mode === "competitive") {
     validateCompetitiveWindowBounds(board);
+  } else {
+    validateWeeklyWindowBounds(board);
   }
   return board;
 }
@@ -183,6 +189,19 @@ function validateCompetitiveWindowBounds(board: BoardManifestRecord): void {
   }
 }
 
+function validateWeeklyWindowBounds(board: BoardManifestRecord): void {
+  const expected = weeklyWindowBoundsFromId(board.windowId);
+  if (
+    board.opensAtMs !== expected.opensAtMs ||
+    board.closesAtMs !== expected.closesAtMs
+  ) {
+    throw new HttpsError(
+      "failed-precondition",
+      `Weekly board ${board.boardId} does not use exact ISO week boundaries.`,
+    );
+  }
+}
+
 function requireString(value: unknown, fieldName: string): string {
   if (typeof value !== "string" || value.trim().length === 0) {
     throw new HttpsError("failed-precondition", `${fieldName} must be a string`);
@@ -228,4 +247,3 @@ function requireMode(
   }
   return value;
 }
-

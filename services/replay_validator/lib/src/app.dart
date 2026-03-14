@@ -8,31 +8,67 @@ import 'board_repository.dart';
 import 'ghost_publisher.dart';
 import 'leaderboard_projector.dart';
 import 'metrics.dart';
+import 'google_api_helpers.dart';
 import 'replay_loader.dart';
 import 'reward_grant_writer.dart';
 import 'run_session_repository.dart';
 import 'validator_worker.dart';
 
 class ReplayValidatorApp {
-  ReplayValidatorApp({
-    required this.port,
-    ValidatorWorker? worker,
-  }) : worker =
-           worker ??
-           StubValidatorWorker(
-             replayLoader: UnimplementedReplayLoader(),
-             boardRepository: NoopBoardRepository(),
-             runSessionRepository: NoopRunSessionRepository(),
-             leaderboardProjector: NoopLeaderboardProjector(),
-             rewardGrantWriter: NoopRewardGrantWriter(),
-             ghostPublisher: NoopGhostPublisher(),
-             metrics: ConsoleValidatorMetrics(),
-           );
+  ReplayValidatorApp({required this.port, ValidatorWorker? worker})
+    : worker =
+          worker ??
+          StubValidatorWorker(
+            replayLoader: UnimplementedReplayLoader(),
+            boardRepository: NoopBoardRepository(),
+            runSessionRepository: NoopRunSessionRepository(),
+            leaderboardProjector: NoopLeaderboardProjector(),
+            rewardGrantWriter: NoopRewardGrantWriter(),
+            ghostPublisher: NoopGhostPublisher(),
+            metrics: ConsoleValidatorMetrics(),
+          );
 
   factory ReplayValidatorApp.fromEnvironment() {
     final rawPort = Platform.environment['PORT'];
     final parsedPort = int.tryParse(rawPort ?? '');
-    return ReplayValidatorApp(port: parsedPort ?? 8080);
+    final projectId =
+        _readEnv('GCLOUD_PROJECT') ?? _readEnv('GOOGLE_CLOUD_PROJECT');
+    final replayStorageBucket = _readEnv('REPLAY_STORAGE_BUCKET');
+    if (projectId == null || replayStorageBucket == null) {
+      return ReplayValidatorApp(port: parsedPort ?? 8080);
+    }
+    final apiProvider = GoogleCloudApiProvider();
+    return ReplayValidatorApp(
+      port: parsedPort ?? 8080,
+      worker: DeterministicValidatorWorker(
+        replayLoader: GoogleCloudStorageReplayLoader(
+          bucketName: replayStorageBucket,
+          apiProvider: apiProvider,
+        ),
+        boardRepository: FirestoreBoardRepository(
+          projectId: projectId,
+          apiProvider: apiProvider,
+        ),
+        runSessionRepository: FirestoreRunSessionRepository(
+          projectId: projectId,
+          apiProvider: apiProvider,
+        ),
+        leaderboardProjector: FirestoreLeaderboardProjector(
+          projectId: projectId,
+          apiProvider: apiProvider,
+        ),
+        rewardGrantWriter: FirestoreRewardGrantWriter(
+          projectId: projectId,
+          apiProvider: apiProvider,
+        ),
+        ghostPublisher: FirestoreGhostPublisher(
+          projectId: projectId,
+          replayStorageBucket: replayStorageBucket,
+          apiProvider: apiProvider,
+        ),
+        metrics: ConsoleValidatorMetrics(),
+      ),
+    );
   }
 
   final int port;
@@ -43,32 +79,24 @@ class ReplayValidatorApp {
       ..get('/healthz', _healthz)
       ..post('/tasks/validate', _validateTask);
 
-    return Pipeline()
-        .addMiddleware(logRequests())
-        .addHandler(router.call);
+    return Pipeline().addMiddleware(logRequests()).addHandler(router.call);
   }
 
   Future<Response> _healthz(Request request) async {
-    return _json(
-      HttpStatus.ok,
-      <String, Object?>{
-        'status': 'ok',
-        'service': 'replay-validator',
-      },
-    );
+    return _json(HttpStatus.ok, <String, Object?>{
+      'status': 'ok',
+      'service': 'replay-validator',
+    });
   }
 
   Future<Response> _validateTask(Request request) async {
     final decoded = await _decodeBody(request);
     final runSessionId = _extractRunSessionId(decoded);
     if (runSessionId == null) {
-      return _json(
-        HttpStatus.badRequest,
-        const <String, Object?>{
-          'error': 'invalid_request',
-          'message': 'Expected non-empty runSessionId in body.',
-        },
-      );
+      return _json(HttpStatus.badRequest, const <String, Object?>{
+        'error': 'invalid_request',
+        'message': 'Expected non-empty runSessionId in body.',
+      });
     }
 
     final result = await worker.validateRunSession(runSessionId: runSessionId);
@@ -76,16 +104,14 @@ class ReplayValidatorApp {
       ValidationDispatchStatus.accepted => HttpStatus.accepted,
       ValidationDispatchStatus.rejected => HttpStatus.ok,
       ValidationDispatchStatus.badRequest => HttpStatus.badRequest,
+      ValidationDispatchStatus.retryScheduled => HttpStatus.serviceUnavailable,
       ValidationDispatchStatus.notImplemented => HttpStatus.notImplemented,
     };
-    return _json(
-      statusCode,
-      <String, Object?>{
-        'runSessionId': runSessionId,
-        'status': result.status.name,
-        if (result.message != null) 'message': result.message,
-      },
-    );
+    return _json(statusCode, <String, Object?>{
+      'runSessionId': runSessionId,
+      'status': result.status.name,
+      if (result.message != null) 'message': result.message,
+    });
   }
 
   Future<Object?> _decodeBody(Request request) async {
@@ -129,3 +155,11 @@ class ReplayValidatorApp {
   }
 }
 
+String? _readEnv(String name) {
+  final raw = Platform.environment[name];
+  if (raw == null) {
+    return null;
+  }
+  final trimmed = raw.trim();
+  return trimmed.isEmpty ? null : trimmed;
+}

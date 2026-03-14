@@ -2,6 +2,7 @@ import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 
 import { deleteAccountAndData } from "./account/delete.js";
 import { parseAccountDeleteRequest } from "./account/validators.js";
@@ -26,6 +27,12 @@ import {
   handleRunSessionFinalizeUpload,
   handleRunSessionLoadStatus,
 } from "./runs/callable_handlers.js";
+import { runReplaySubmissionCleanup } from "./runs/cleanup.js";
+import {
+  handleLeaderboardLoadBoard,
+  handleLeaderboardLoadMyRank,
+} from "./leaderboards/callable_handlers.js";
+import { handleGhostLoadManifest } from "./ghosts/callable_handlers.js";
 
 if (getApps().length === 0) {
   initializeApp();
@@ -142,3 +149,26 @@ export const runSessionFinalizeUpload = onCall(async (request) => {
 export const runSessionLoadStatus = onCall(async (request) => {
   return handleRunSessionLoadStatus(request, db);
 });
+
+export const leaderboardLoadBoard = onCall(async (request) => {
+  return handleLeaderboardLoadBoard(request, db);
+});
+
+export const leaderboardLoadMyRank = onCall(async (request) => {
+  return handleLeaderboardLoadMyRank(request, db);
+});
+
+export const ghostLoadManifest = onCall(async (request) => {
+  return handleGhostLoadManifest(request, db);
+});
+
+export const runSubmissionCleanup = onSchedule(
+  {
+    schedule: "every 60 minutes",
+    timeZone: "Etc/UTC",
+  },
+  async () => {
+    const result = await runReplaySubmissionCleanup({ db });
+    console.log("runSubmissionCleanup", result);
+  },
+);

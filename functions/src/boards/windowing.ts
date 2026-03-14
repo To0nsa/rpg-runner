@@ -72,11 +72,49 @@ export function resolveWeeklyWindow(nowMs: number): ResolvedWindow {
   const opensAtMs = currentUtcDay - (isoDay - 1) * utcDayMs;
   const closesAtMs = opensAtMs + 7 * utcDayMs;
   const { isoYear, isoWeek } = isoWeekComponents(nowMs);
-  const windowId = `${isoYear}-W${String(isoWeek).padStart(2, "0")}`;
+  const windowId = weeklyWindowId(isoYear, isoWeek);
   return {
     windowId,
     opensAtMs,
     closesAtMs,
+  };
+}
+
+export function weeklyWindowBoundsFromId(windowId: string): ResolvedWindow {
+  const match = /^(\d{4})-W(\d{2})$/.exec(windowId);
+  if (!match) {
+    throw new HttpsError(
+      "failed-precondition",
+      `Weekly windowId must be YYYY-Www, got "${windowId}".`,
+    );
+  }
+
+  const isoYear = Number(match[1]);
+  const isoWeek = Number(match[2]);
+  if (
+    !Number.isInteger(isoYear) ||
+    !Number.isInteger(isoWeek) ||
+    isoWeek < 1 ||
+    isoWeek > 53
+  ) {
+    throw new HttpsError(
+      "failed-precondition",
+      `Weekly windowId must be YYYY-Www, got "${windowId}".`,
+    );
+  }
+
+  const opensAtMs = isoWeekStartMs(isoYear, isoWeek);
+  const normalized = resolveWeeklyWindow(opensAtMs);
+  if (normalized.windowId !== windowId) {
+    throw new HttpsError(
+      "failed-precondition",
+      `Weekly windowId must be a valid ISO week, got "${windowId}".`,
+    );
+  }
+  return {
+    windowId,
+    opensAtMs,
+    closesAtMs: opensAtMs + 7 * utcDayMs,
   };
 }
 
@@ -115,3 +153,13 @@ function isoWeekComponents(nowMs: number): { isoYear: number; isoWeek: number } 
   return { isoYear, isoWeek };
 }
 
+function weeklyWindowId(isoYear: number, isoWeek: number): string {
+  return `${isoYear}-W${String(isoWeek).padStart(2, "0")}`;
+}
+
+function isoWeekStartMs(isoYear: number, isoWeek: number): number {
+  const jan4Ms = Date.UTC(isoYear, 0, 4, 0, 0, 0, 0);
+  const jan4IsoDay = isoDayOfWeek(jan4Ms);
+  const week1StartMs = jan4Ms - (jan4IsoDay - 1) * utcDayMs;
+  return week1StartMs + (isoWeek - 1) * 7 * utcDayMs;
+}

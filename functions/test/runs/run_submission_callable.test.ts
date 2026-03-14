@@ -34,6 +34,7 @@ beforeEach(async () => {
   await Promise.all([
     clearCollection(db, "ownership_profiles"),
     clearCollection(db, "run_sessions"),
+    clearCollection(db, "validated_runs"),
   ]);
 });
 
@@ -279,6 +280,54 @@ test("finalize enqueue failure leaves session uploaded for safe retry", async ()
     deps,
   );
   assert.equal(retried.submissionStatus.state, "pending_validation");
+});
+
+test("load status returns validatedRun payload for terminal validated session", async () => {
+  const runSessionId = await createPracticeRunSession(db, uid);
+  await db.collection("run_sessions").doc(runSessionId).set(
+    {
+      state: "validated",
+      updatedAtMs: 1700000000001,
+    },
+    { merge: true },
+  );
+  await db.collection("validated_runs").doc(runSessionId).set({
+    runSessionId,
+    uid,
+    mode: "practice",
+    accepted: true,
+    score: 1234,
+    distanceMeters: 111,
+    durationSeconds: 22,
+    tick: 330,
+    endedReason: "playerDied",
+    goldEarned: 17,
+    stats: { collectibles: 2 },
+    replayDigest:
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    replayStorageRef: "replay-submissions/validated/run.bin.gz",
+    createdAtMs: 1700000000000,
+  });
+
+  const statusResponse = await handleRunSessionLoadStatus(
+    callableRequest(
+      {
+        userId: uid,
+        sessionId: "session_1",
+        runSessionId,
+      },
+      uid,
+    ),
+    db,
+  );
+
+  assert.equal(statusResponse.submissionStatus.state, "validated");
+  const validatedRun = statusResponse.submissionStatus.validatedRun as
+    | Record<string, unknown>
+    | undefined;
+  assert.ok(validatedRun);
+  assert.equal(validatedRun?.runSessionId, runSessionId);
+  assert.equal(validatedRun?.goldEarned, 17);
 });
 
 async function createPracticeRunSession(

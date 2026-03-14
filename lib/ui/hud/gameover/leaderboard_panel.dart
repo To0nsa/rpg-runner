@@ -52,6 +52,16 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
   }
 
   Future<void> _loadLeaderboard() async {
+    if (widget.runMode != RunMode.practice) {
+      if (!mounted) return;
+      setState(() {
+        _entries = const <RunResult>[];
+        _currentRunId = null;
+        _loaded = true;
+      });
+      return;
+    }
+
     final event = widget.runEndedEvent;
     if (event == null) {
       final entries = await _store.loadTop10(
@@ -101,7 +111,15 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
     final textStyle = spec.rowTextStyle;
 
     Widget content;
-    if (!_loaded) {
+    if (widget.runMode != RunMode.practice) {
+      content = Center(
+        child: Text(
+          'Online leaderboard updates after validation.',
+          style: ui.text.body,
+          textAlign: TextAlign.center,
+        ),
+      );
+    } else if (!_loaded) {
       content = const Center(child: Text('Loading leaderboard...'));
     } else if (_entries.isEmpty) {
       content = const Center(child: Text('No runs yet.'));

@@ -16,6 +16,7 @@ import 'score_breakdown_formatter.dart';
 import 'score_distribution.dart';
 import 'score_feed_controller.dart';
 import '../../components/app_button.dart';
+import '../../state/run_submission_status.dart';
 import '../../theme/ui_tokens.dart';
 // import '../../../core/spells/spell_id.dart';
 
@@ -32,8 +33,8 @@ class GameOverOverlay extends StatefulWidget {
     required this.runEndedEvent,
     required this.scoreTuning,
     required this.tickHz,
-    this.goldEarned,
-    this.totalGold,
+    this.provisionalGoldEarned,
+    this.runSubmissionStatus,
     this.leaderboardStore,
   });
 
@@ -47,8 +48,8 @@ class GameOverOverlay extends StatefulWidget {
   final RunEndedEvent? runEndedEvent;
   final ScoreTuning scoreTuning;
   final int tickHz;
-  final int? goldEarned;
-  final int? totalGold;
+  final int? provisionalGoldEarned;
+  final RunSubmissionStatus? runSubmissionStatus;
   final LeaderboardStore? leaderboardStore;
 
   @override
@@ -91,27 +92,84 @@ class _GameOverOverlayState extends State<GameOverOverlay>
   }
 
   Widget? _buildGoldPanel(BuildContext context) {
-    final goldEarned = widget.goldEarned;
-    if (goldEarned == null) return null;
-    final totalGold = widget.totalGold;
+    final status = widget.runSubmissionStatus;
+    final validatedGoldEarned = status?.serverStatus?.validatedRun?.goldEarned;
+    final provisionalGoldEarned = widget.provisionalGoldEarned;
+    final rejectedByValidation =
+        status?.phase == RunSubmissionPhase.rejected ||
+        status?.phase == RunSubmissionPhase.expired ||
+        status?.phase == RunSubmissionPhase.cancelled ||
+        status?.phase == RunSubmissionPhase.internalError;
+    if (validatedGoldEarned == null &&
+        provisionalGoldEarned == null &&
+        !rejectedByValidation) {
+      return null;
+    }
     final ui = context.ui;
 
     final labelStyle = ui.text.body.copyWith(
       color: ui.colors.textPrimary,
       fontWeight: FontWeight.w600,
     );
-    final valueStyle = ui.text.body.copyWith(
+    final successValueStyle = ui.text.body.copyWith(
+      color: ui.colors.success,
+      fontWeight: FontWeight.w700,
+    );
+    final provisionalValueStyle = ui.text.body.copyWith(
       color: ui.colors.accentStrong,
       fontWeight: FontWeight.w700,
     );
+    final rejectedValueStyle = ui.text.body.copyWith(
+      color: ui.colors.danger,
+      fontWeight: FontWeight.w700,
+    );
 
-    Widget buildRow(String label, String value) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('$label: ', style: labelStyle),
-          Text(value, style: valueStyle),
-        ],
+    final rows = <Widget>[];
+    if (validatedGoldEarned != null) {
+      rows.add(
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Gold granted: ', style: labelStyle),
+            Text('+$validatedGoldEarned', style: successValueStyle),
+          ],
+        ),
+      );
+    } else if (rejectedByValidation) {
+      rows.add(
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Gold granted: ', style: labelStyle),
+            Text('+0', style: rejectedValueStyle),
+          ],
+        ),
+      );
+      rows.add(SizedBox(height: ui.space.xxs));
+      rows.add(
+        Text(
+          'Run was not validated; no reward granted.',
+          style: ui.text.body.copyWith(color: ui.colors.textMuted),
+          textAlign: TextAlign.center,
+        ),
+      );
+    } else if (provisionalGoldEarned != null) {
+      rows.add(
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Provisional gold: ', style: labelStyle),
+            Text('+$provisionalGoldEarned', style: provisionalValueStyle),
+          ],
+        ),
+      );
+      rows.add(SizedBox(height: ui.space.xxs));
+      rows.add(
+        Text(
+          'Final reward is granted only after validation.',
+          style: ui.text.body.copyWith(color: ui.colors.textMuted),
+          textAlign: TextAlign.center,
+        ),
       );
     }
 
@@ -125,16 +183,69 @@ class _GameOverOverlayState extends State<GameOverOverlay>
           horizontal: ui.space.sm,
           vertical: ui.space.xs,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            buildRow('Gold earned', '+$goldEarned'),
-            if (totalGold != null) ...[
-              SizedBox(height: ui.space.xxs),
-              buildRow('Total gold', '$totalGold'),
-            ],
-          ],
+        child: Column(mainAxisSize: MainAxisSize.min, children: rows),
+      ),
+    );
+  }
+
+  Widget? _buildSubmissionStatusPanel(BuildContext context) {
+    final status = widget.runSubmissionStatus;
+    if (status == null) {
+      return null;
+    }
+    final ui = context.ui;
+    final labelStyle = ui.text.body.copyWith(
+      color: ui.colors.textPrimary,
+      fontWeight: FontWeight.w600,
+    );
+    final valueStyle = ui.text.body.copyWith(
+      color: _submissionStatusColor(status.phase, ui),
+      fontWeight: FontWeight.w700,
+    );
+
+    final rows = <Widget>[
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('Verification: ', style: labelStyle),
+          Text(_submissionStatusLabel(status.phase), style: valueStyle),
+        ],
+      ),
+    ];
+    if (status.verificationDelayed) {
+      rows.add(SizedBox(height: ui.space.xxs));
+      rows.add(
+        Text(
+          'Verification delayed',
+          style: ui.text.body.copyWith(color: ui.colors.danger),
         ),
+      );
+    }
+    final statusMessage = _normalizeSubmissionStatusMessage(status.message);
+    if (statusMessage != null) {
+      rows.add(SizedBox(height: ui.space.xxs));
+      rows.add(
+        Text(
+          statusMessage,
+          style: ui.text.body.copyWith(color: ui.colors.textMuted),
+          textAlign: TextAlign.center,
+          maxLines: 4,
+          overflow: TextOverflow.ellipsis,
+        ),
+      );
+    }
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: ui.colors.shadow.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(ui.radii.sm),
+      ),
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: ui.space.sm,
+          vertical: ui.space.xs,
+        ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: rows),
       ),
     );
   }
@@ -220,6 +331,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
         ? 'Collect Score'
         : 'Skip';
     final goldPanel = _buildGoldPanel(context);
+    final submissionPanel = _buildSubmissionStatusPanel(context);
     final rowLabels = [
       for (var i = 0; i < _feedController.rows.length; i += 1)
         formatScoreRow(
@@ -253,6 +365,10 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                       if (goldPanel != null) ...[
                         SizedBox(height: ui.space.xs + ui.space.xxs / 2),
                         goldPanel,
+                      ],
+                      if (submissionPanel != null) ...[
+                        SizedBox(height: ui.space.xs),
+                        submissionPanel,
                       ],
                       SizedBox(height: ui.space.sm + ui.space.xxs / 2),
                       if (showCollectButton)
@@ -396,6 +512,48 @@ String _projectileName(ProjectileId id) {
     case ProjectileId.waterBolt:
       return 'Water Bolt';
   }
+}
+
+String _submissionStatusLabel(RunSubmissionPhase phase) {
+  return switch (phase) {
+    RunSubmissionPhase.queued => 'Queued',
+    RunSubmissionPhase.requestingUploadGrant => 'Requesting Upload Grant',
+    RunSubmissionPhase.uploading => 'Uploading Replay',
+    RunSubmissionPhase.finalizing => 'Finalizing',
+    RunSubmissionPhase.retryScheduled => 'Retry Scheduled',
+    RunSubmissionPhase.pendingValidation => 'Waiting For Verification',
+    RunSubmissionPhase.validating => 'Validating',
+    RunSubmissionPhase.validated => 'Validated',
+    RunSubmissionPhase.rejected => 'Rejected',
+    RunSubmissionPhase.expired => 'Expired',
+    RunSubmissionPhase.cancelled => 'Cancelled',
+    RunSubmissionPhase.internalError => 'Internal Error',
+  };
+}
+
+String? _normalizeSubmissionStatusMessage(String? message) {
+  if (message == null) {
+    return null;
+  }
+  final normalized = message.replaceAll(RegExp(r'\s+'), ' ').trim();
+  if (normalized.isEmpty) {
+    return null;
+  }
+  if (normalized.length <= 240) {
+    return normalized;
+  }
+  return '${normalized.substring(0, 237)}...';
+}
+
+Color _submissionStatusColor(RunSubmissionPhase phase, UiTokens ui) {
+  return switch (phase) {
+    RunSubmissionPhase.validated => ui.colors.success,
+    RunSubmissionPhase.rejected ||
+    RunSubmissionPhase.expired ||
+    RunSubmissionPhase.cancelled ||
+    RunSubmissionPhase.internalError => ui.colors.danger,
+    _ => ui.colors.accentStrong,
+  };
 }
 
 /* String _spellName(SpellId id) {

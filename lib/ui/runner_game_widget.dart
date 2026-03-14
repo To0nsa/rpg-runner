@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:run_protocol/board_key.dart';
+import 'package:run_protocol/replay_blob.dart';
 
 import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/contracts/render_contract.dart';
@@ -15,6 +18,8 @@ import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/players/player_character_registry.dart';
 import '../game/game_controller.dart';
 import '../game/input/aim_preview.dart';
+import '../game/replay/run_recorder.dart';
+import '../game/replay/ghost_playback_runner.dart';
 import '../game/input/runner_input_router.dart';
 import '../game/runner_flame_game.dart';
 import 'app/ui_routes.dart';
@@ -28,6 +33,8 @@ import 'runner_game_ui_state.dart';
 import 'state/app_state.dart';
 import 'state/run_start_remote_exception.dart';
 import 'state/selection_state.dart';
+import 'state/ghost_replay_cache.dart';
+import 'state/run_submission_status.dart';
 import 'theme/ui_tokens.dart';
 import 'viewport/game_viewport.dart';
 import 'viewport/viewport_metrics.dart';
@@ -49,6 +56,9 @@ class RunnerGameWidget extends StatefulWidget {
     this.playerCharacterId = PlayerCharacterId.eloise,
     this.runMode = RunMode.practice,
     this.equippedLoadout = const EquippedLoadoutDef(),
+    this.boardId,
+    this.boardKey,
+    this.ghostReplayBootstrap,
     this.onExit,
     this.showExitButton = true,
     this.viewportMode = ViewportScaleMode.pixelPerfectContain,
@@ -76,6 +86,15 @@ class RunnerGameWidget extends StatefulWidget {
 
   /// Per-run loadout override (from menu / meta inventory).
   final EquippedLoadoutDef equippedLoadout;
+
+  /// Server-issued board identity for competitive/weekly runs.
+  final String? boardId;
+
+  /// Server-issued board key for competitive/weekly runs.
+  final BoardKey? boardKey;
+
+  /// Optional verified ghost replay payload to race against.
+  final GhostReplayBootstrap? ghostReplayBootstrap;
 
   final VoidCallback? onExit;
   final bool showExitButton;
@@ -106,11 +125,18 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   late PlayerCharacterId _playerCharacterId;
   late RunMode _runMode;
   late EquippedLoadoutDef _equippedLoadout;
+  late String? _boardId;
+  late BoardKey? _boardKey;
+  GhostReplayBootstrap? _ghostReplayBootstrap;
+  GhostPlaybackRunner? _ghostPlaybackRunner;
+  String? _ghostPlaybackInitError;
 
   late int _runId;
-  int? _lastRewardedRunId;
-  int? _lastGoldEarned;
-  int? _lastGoldTotal;
+  int? _provisionalGoldEarned;
+  RunSubmissionStatus? _runSubmissionStatus;
+  Timer? _runSubmissionPollTimer;
+  bool _runSubmissionPollInFlight = false;
+  String? _runSubmissionRunSessionId;
 
   late GameController _controller;
   late RunnerInputRouter _input;
@@ -122,6 +148,10 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   int _lastPlayerDamageTick = -1;
   int _lastChargeTier = 0;
   late RunnerFlameGame _game;
+  RunRecorder? _runRecorder;
+  bool _runRecorderInitializing = false;
+  String? _runRecorderInitError;
+  int _runRecorderGeneration = 0;
 
   @override
   void initState() {
@@ -136,6 +166,9 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _playerCharacterId = widget.playerCharacterId;
     _runMode = widget.runMode;
     _equippedLoadout = widget.equippedLoadout;
+    _boardId = widget.boardId;
+    _boardKey = widget.boardKey;
+    _ghostReplayBootstrap = widget.ghostReplayBootstrap;
     _initGame();
 
     // Start in "ready" (paused) until the user taps to begin.
@@ -184,6 +217,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   void _onControllerTick() {
+    _advanceGhostPlaybackToPlayerTick();
     _emitChargeHaptics();
 
     final damageTick = _controller.snapshot.hud.lastDamageTick;
@@ -192,6 +226,20 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     final hud = _controller.snapshot.hud;
     if (hud.chargeEnabled && hud.chargeActive) {
       _cancelHeldChargedAim();
+    }
+  }
+
+  void _advanceGhostPlaybackToPlayerTick() {
+    final runner = _ghostPlaybackRunner;
+    if (runner == null || runner.isComplete) {
+      return;
+    }
+    try {
+      runner.advanceToTick(_controller.tick);
+    } catch (error) {
+      debugPrint('Ghost playback failed: $error');
+      _ghostPlaybackRunner = null;
+      _ghostPlaybackInitError = '$error';
     }
   }
 
@@ -236,6 +284,27 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     if (widget.seed <= 0) {
       throw StateError('RunnerGameWidget requires seed > 0.');
     }
+    if (widget.runMode.requiresBoard) {
+      if (widget.boardId == null || widget.boardKey == null) {
+        throw StateError(
+          'RunnerGameWidget requires boardId and boardKey for '
+          '${widget.runMode.name} runs.',
+        );
+      }
+    }
+    final ghostBootstrap = widget.ghostReplayBootstrap;
+    if (ghostBootstrap != null) {
+      if (!widget.runMode.requiresBoard || widget.boardId == null) {
+        throw StateError(
+          'RunnerGameWidget ghost replay requires a board-bound run.',
+        );
+      }
+      if (ghostBootstrap.manifest.boardId != widget.boardId) {
+        throw StateError(
+          'RunnerGameWidget ghost replay boardId must match run boardId.',
+        );
+      }
+    }
   }
 
   void _handleGameEvent(GameEvent event) {
@@ -265,29 +334,266 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       return;
     }
     if (event is! RunEndedEvent) return;
-    _grantGold(event);
+    _captureProvisionalGold(event);
+    _enqueueReplaySubmission(event);
   }
 
-  void _grantGold(RunEndedEvent event) {
-    final runId = event.runId;
-    if (_lastRewardedRunId == runId) return;
+  void _captureProvisionalGold(RunEndedEvent event) {
+    _provisionalGoldEarned = event.goldEarned;
+  }
 
-    _lastRewardedRunId = runId;
-    _lastGoldEarned = event.goldEarned;
+  void _enqueueReplaySubmission(RunEndedEvent event) {
+    if (_runSubmissionRunSessionId == _runSessionId) {
+      return;
+    }
+    _runSubmissionRunSessionId = _runSessionId;
+    unawaited(_submitReplayForValidation(event));
+  }
 
+  Future<void> _submitReplayForValidation(RunEndedEvent event) async {
     final appState = _maybeAppState();
-    if (appState == null) {
-      _lastGoldTotal = null;
+    if (_runRecorder == null && _runRecorderInitializing) {
+      await _waitForRunRecorderReady();
+    }
+    final recorder = _runRecorder;
+    if (appState == null || recorder == null) {
+      if (!mounted) return;
+      setState(() {
+        _runSubmissionStatus = RunSubmissionStatus(
+          runSessionId: _runSessionId,
+          phase: RunSubmissionPhase.internalError,
+          updatedAtMs: DateTime.now().millisecondsSinceEpoch,
+          message: 'Replay submission prerequisites were unavailable.',
+        );
+      });
       return;
     }
 
-    final currentGold = appState.progression.gold;
-    final nextGold = currentGold + event.goldEarned;
-    _lastGoldTotal = nextGold;
+    try {
+      final summary = _buildReplayProvisionalSummary(event);
+      final finalized = await recorder.finalize(clientSummary: summary);
+      final replaySize = await finalized.replayBlobFile.length();
+      final status = await appState.submitRunReplay(
+        runSessionId: _runSessionId,
+        runMode: _runMode,
+        replayFilePath: finalized.replayBlobFile.path,
+        canonicalSha256: finalized.replayBlob.canonicalSha256,
+        contentLengthBytes: replaySize,
+        provisionalSummary: summary,
+      );
+      if (!mounted) return;
+      setState(() => _runSubmissionStatus = status);
+      _scheduleSubmissionStatusPolling(
+        appState: appState,
+        runSessionId: _runSessionId,
+        initialStatus: status,
+      );
+    } catch (error) {
+      debugPrint(
+        'Replay submission failed for runSessionId=$_runSessionId: $error',
+      );
+      if (!mounted) return;
+      setState(() {
+        _runSubmissionStatus = RunSubmissionStatus(
+          runSessionId: _runSessionId,
+          phase: RunSubmissionPhase.internalError,
+          updatedAtMs: DateTime.now().millisecondsSinceEpoch,
+          message: '$error',
+        );
+      });
+    }
+  }
 
-    unawaited(
-      appState.awardRunGold(runId: runId, goldEarned: event.goldEarned),
-    );
+  Future<void> _waitForRunRecorderReady() async {
+    const pollStep = Duration(milliseconds: 50);
+    const maxWait = Duration(seconds: 2);
+    var waited = Duration.zero;
+    while (_runRecorder == null &&
+        _runRecorderInitializing &&
+        waited < maxWait) {
+      await Future<void>.delayed(pollStep);
+      waited += pollStep;
+    }
+  }
+
+  Map<String, Object?> _buildReplayProvisionalSummary(RunEndedEvent event) {
+    return <String, Object?>{
+      'runId': event.runId,
+      'tick': event.tick,
+      'distance': event.distance,
+      'reason': event.reason.name,
+      'goldEarned': event.goldEarned,
+      'collectibles': event.stats.collectibles,
+      'collectibleScore': event.stats.collectibleScore,
+      'enemyKillCounts': event.stats.enemyKillCounts,
+    };
+  }
+
+  void _scheduleSubmissionStatusPolling({
+    required AppState appState,
+    required String runSessionId,
+    required RunSubmissionStatus initialStatus,
+  }) {
+    _stopSubmissionStatusPolling();
+    if (initialStatus.isTerminal) {
+      return;
+    }
+    _runSubmissionPollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      unawaited(
+        _refreshSubmissionStatus(
+          appState: appState,
+          runSessionId: runSessionId,
+        ),
+      );
+    });
+  }
+
+  Future<void> _refreshSubmissionStatus({
+    required AppState appState,
+    required String runSessionId,
+  }) async {
+    if (_runSubmissionPollInFlight) {
+      return;
+    }
+    _runSubmissionPollInFlight = true;
+    try {
+      final status = await appState.refreshRunSubmissionStatus(
+        runSessionId: runSessionId,
+      );
+      if (!mounted || runSessionId != _runSessionId) {
+        return;
+      }
+      setState(() => _runSubmissionStatus = status);
+      if (status.isTerminal) {
+        _stopSubmissionStatusPolling();
+      }
+    } catch (error) {
+      debugPrint(
+        'Replay status refresh failed for runSessionId=$runSessionId: $error',
+      );
+    } finally {
+      _runSubmissionPollInFlight = false;
+    }
+  }
+
+  void _stopSubmissionStatusPolling() {
+    _runSubmissionPollTimer?.cancel();
+    _runSubmissionPollTimer = null;
+    _runSubmissionPollInFlight = false;
+  }
+
+  void _onAppliedCommandFrame(ReplayCommandFrameV1 frame) {
+    final recorder = _runRecorder;
+    if (recorder == null) {
+      return;
+    }
+    try {
+      recorder.appendFrame(frame);
+    } catch (error) {
+      _runRecorderInitError = 'Replay recorder frame append failed: $error';
+      debugPrint(_runRecorderInitError);
+    }
+  }
+
+  Future<void> _initializeRunRecorder() async {
+    if (_runRecorderInitializing) {
+      return;
+    }
+    _runRecorderInitializing = true;
+    final generation = ++_runRecorderGeneration;
+    try {
+      final spoolDirectory = Directory(
+        '${Directory.systemTemp.path}${Platform.pathSeparator}rpg_runner${Platform.pathSeparator}replay_spool',
+      );
+      final recorder = await RunRecorder.create(
+        header: RunRecorderHeader(
+          runSessionId: _runSessionId,
+          boardId: _boardId,
+          boardKey: _boardKey,
+          tickHz: _controller.tickHz,
+          seed: _seed,
+          levelId: _levelId.name,
+          playerCharacterId: _playerCharacterId.name,
+          loadoutSnapshot: _loadoutSnapshot(_equippedLoadout),
+        ),
+        spoolDirectory: spoolDirectory,
+        fileStem: _runSessionId,
+      );
+      if (!mounted || generation != _runRecorderGeneration) {
+        await recorder.close();
+        return;
+      }
+      _runRecorder = recorder;
+      _runRecorderInitError = null;
+    } catch (error) {
+      if (!mounted || generation != _runRecorderGeneration) {
+        return;
+      }
+      _runRecorderInitError = 'Replay recorder initialization failed: $error';
+      debugPrint(_runRecorderInitError);
+    } finally {
+      if (mounted && generation == _runRecorderGeneration) {
+        _runRecorderInitializing = false;
+      }
+    }
+  }
+
+  void _initializeGhostPlaybackRunner() {
+    final bootstrap = _ghostReplayBootstrap;
+    if (bootstrap == null) {
+      _ghostPlaybackRunner = null;
+      _ghostPlaybackInitError = null;
+      return;
+    }
+    try {
+      final runner = GhostPlaybackRunner.fromReplayBlob(bootstrap.replayBlob);
+      _ghostPlaybackRunner = runner;
+      _ghostPlaybackInitError = null;
+    } catch (error) {
+      _ghostPlaybackRunner = null;
+      _ghostPlaybackInitError = '$error';
+      debugPrint(
+        'Ghost playback initialization failed for entryId='
+        '${bootstrap.manifest.entryId}: $error',
+      );
+    }
+  }
+
+  String? _ghostStatusLabel() {
+    final bootstrap = _ghostReplayBootstrap;
+    final runner = _ghostPlaybackRunner;
+    if (bootstrap == null) {
+      return null;
+    }
+    if (_ghostPlaybackInitError != null) {
+      return 'Ghost unavailable';
+    }
+    if (runner == null) {
+      return 'Ghost unavailable';
+    }
+    final rank = bootstrap.manifest.rank;
+    final distance = runner.distance.round();
+    if (runner.isComplete) {
+      return 'Ghost #$rank finished ${distance}m';
+    }
+    return 'Ghost #$rank ${distance}m';
+  }
+
+  Map<String, Object?> _loadoutSnapshot(EquippedLoadoutDef loadout) {
+    return <String, Object?>{
+      'mask': loadout.mask,
+      'mainWeaponId': loadout.mainWeaponId.name,
+      'offhandWeaponId': loadout.offhandWeaponId.name,
+      'spellBookId': loadout.spellBookId.name,
+      'projectileSlotSpellId': loadout.projectileSlotSpellId.name,
+      'accessoryId': loadout.accessoryId.name,
+      'abilityPrimaryId': loadout.abilityPrimaryId,
+      'abilitySecondaryId': loadout.abilitySecondaryId,
+      'abilityProjectileId': loadout.abilityProjectileId,
+      'abilitySpellId': loadout.abilitySpellId,
+      'abilityMobilityId': loadout.abilityMobilityId,
+      'abilityJumpId': loadout.abilityJumpId,
+    };
   }
 
   RunnerGameUiState _buildUiState({required bool runLoaded}) {
@@ -301,6 +607,19 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   void _startGame() {
+    if (_runRecorder == null) {
+      if (!_runRecorderInitializing) {
+        unawaited(_initializeRunRecorder());
+      }
+      final messenger = ScaffoldMessenger.maybeOf(context);
+      if (messenger != null) {
+        final message = _runRecorderInitError == null
+            ? 'Preparing replay recorder. Try starting again.'
+            : 'Replay recorder failed to initialize. Restart run to retry.';
+        messenger.showSnackBar(SnackBar(content: Text(message)));
+      }
+      return;
+    }
     setState(() => _started = true);
     _clearInputs();
     _controller.setPaused(false);
@@ -359,8 +678,11 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     final oldAimCancelHitboxRect = _aimCancelHitboxRect;
     final oldForceAimCancelSignal = _forceAimCancelSignal;
     final oldPlayerImpactFeedbackSignal = _playerImpactFeedbackSignal;
+    final oldRecorder = _runRecorder;
     oldController.removeEventListener(_handleGameEvent);
     oldController.removeListener(_onControllerTick);
+    oldController.removeAppliedCommandFrameListener(_onAppliedCommandFrame);
+    _stopSubmissionStatusPolling();
 
     setState(() {
       _pausedByLifecycle = false;
@@ -373,9 +695,17 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       _playerCharacterId = descriptor.playerCharacterId;
       _runMode = descriptor.runMode;
       _equippedLoadout = descriptor.equippedLoadout;
-      _lastRewardedRunId = null;
-      _lastGoldEarned = null;
-      _lastGoldTotal = null;
+      _boardId = descriptor.boardId;
+      _boardKey = descriptor.boardKey;
+      _ghostReplayBootstrap = descriptor.ghostReplayBootstrap;
+      _provisionalGoldEarned = null;
+      _runSubmissionStatus = null;
+      _runSubmissionRunSessionId = null;
+      _runRecorder = null;
+      _runRecorderInitError = null;
+      _runRecorderInitializing = false;
+      _ghostPlaybackRunner = null;
+      _ghostPlaybackInitError = null;
       _initGame();
     });
     _controller.setPaused(true);
@@ -389,6 +719,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       oldAimCancelHitboxRect.dispose();
       oldForceAimCancelSignal.dispose();
       oldPlayerImpactFeedbackSignal.dispose();
+      unawaited(oldRecorder?.close() ?? Future<void>.value());
     });
   }
 
@@ -434,6 +765,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     );
     _controller.addEventListener(_handleGameEvent);
     _controller.addListener(_onControllerTick);
+    _controller.addAppliedCommandFrameListener(_onAppliedCommandFrame);
     _input = RunnerInputRouter(controller: _controller);
     _projectileAimPreview = AimPreviewModel();
     _meleeAimPreview = AimPreviewModel();
@@ -449,13 +781,24 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       meleeAimPreview: _meleeAimPreview,
       playerCharacter: playerCharacter,
     );
+    _runRecorder = null;
+    _runRecorderInitError = null;
+    _runRecorderInitializing = false;
+    _initializeGhostPlaybackRunner();
+    unawaited(_initializeRunRecorder());
   }
 
   void _disposeGame() {
+    _stopSubmissionStatusPolling();
     _controller.removeEventListener(_handleGameEvent);
     _controller.removeListener(_onControllerTick);
+    _controller.removeAppliedCommandFrameListener(_onAppliedCommandFrame);
     _controller.shutdown();
     _controller.dispose();
+    unawaited(_runRecorder?.close() ?? Future<void>.value());
+    _runRecorder = null;
+    _ghostPlaybackRunner = null;
+    _ghostPlaybackInitError = null;
     _projectileAimPreview.dispose();
     _meleeAimPreview.dispose();
     _aimCancelHitboxRect.dispose();
@@ -525,8 +868,8 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                     runEndedEvent: runEndedEvent,
                     scoreTuning: _controller.scoreTuning,
                     tickHz: _controller.tickHz,
-                    goldEarned: _lastGoldEarned,
-                    totalGold: _lastGoldTotal,
+                    provisionalGoldEarned: _provisionalGoldEarned,
+                    runSubmissionStatus: _runSubmissionStatus,
                   );
                 }
                 return GameOverlay(
@@ -537,6 +880,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                   aimCancelHitboxRect: _aimCancelHitboxRect,
                   forceAimCancelSignal: _forceAimCancelSignal,
                   playerImpactFeedbackSignal: _playerImpactFeedbackSignal,
+                  ghostStatusLabel: _ghostStatusLabel(),
                   uiState: uiState,
                   onStart: _startGame,
                   onTogglePause: _togglePause,

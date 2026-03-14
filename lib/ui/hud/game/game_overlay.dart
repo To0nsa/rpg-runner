@@ -26,6 +26,7 @@ class GameOverlay extends StatelessWidget {
     required this.aimCancelHitboxRect,
     required this.forceAimCancelSignal,
     required this.playerImpactFeedbackSignal,
+    this.ghostStatusLabel,
     required this.uiState,
     required this.onStart,
     required this.onTogglePause,
@@ -43,6 +44,7 @@ class GameOverlay extends StatelessWidget {
   final ValueNotifier<Rect?> aimCancelHitboxRect;
   final ValueListenable<int> forceAimCancelSignal;
   final ValueListenable<int> playerImpactFeedbackSignal;
+  final String? ghostStatusLabel;
   final RunnerGameUiState uiState;
   final VoidCallback onStart;
   final VoidCallback onTogglePause;
@@ -179,7 +181,37 @@ class GameOverlay extends StatelessWidget {
           alignment: Alignment.topLeft,
           child: Padding(
             padding: const EdgeInsets.all(12),
-            child: TopLeftHudOverlay(controller: controller),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TopLeftHudOverlay(controller: controller),
+                if (ghostStatusLabel != null &&
+                    ghostStatusLabel!.trim().isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  DecoratedBox(
+                    decoration: const BoxDecoration(
+                      color: Color(0x9A000000),
+                      borderRadius: BorderRadius.all(Radius.circular(6)),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      child: Text(
+                        ghostStatusLabel!,
+                        style: const TextStyle(
+                          color: Color(0xFFEDEDED),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
         TopCenterHudOverlay(

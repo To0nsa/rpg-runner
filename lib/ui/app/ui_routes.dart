@@ -1,7 +1,9 @@
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
+import 'package:run_protocol/board_key.dart';
 import '../state/selection_state.dart';
+import '../state/ghost_replay_cache.dart';
 
 class UiRoutes {
   const UiRoutes._();
@@ -39,6 +41,9 @@ class RunStartDescriptor {
     required this.playerCharacterId,
     required this.runMode,
     required this.equippedLoadout,
+    this.boardId,
+    this.boardKey,
+    this.ghostReplayBootstrap,
   });
 
   final String runSessionId;
@@ -48,4 +53,36 @@ class RunStartDescriptor {
   final PlayerCharacterId playerCharacterId;
   final RunMode runMode;
   final EquippedLoadoutDef equippedLoadout;
+  final String? boardId;
+  final BoardKey? boardKey;
+  final GhostReplayBootstrap? ghostReplayBootstrap;
+
+  RunStartDescriptor copyWith({
+    String? runSessionId,
+    int? runId,
+    int? seed,
+    LevelId? levelId,
+    PlayerCharacterId? playerCharacterId,
+    RunMode? runMode,
+    EquippedLoadoutDef? equippedLoadout,
+    String? boardId,
+    BoardKey? boardKey,
+    GhostReplayBootstrap? ghostReplayBootstrap,
+    bool clearGhostReplayBootstrap = false,
+  }) {
+    return RunStartDescriptor(
+      runSessionId: runSessionId ?? this.runSessionId,
+      runId: runId ?? this.runId,
+      seed: seed ?? this.seed,
+      levelId: levelId ?? this.levelId,
+      playerCharacterId: playerCharacterId ?? this.playerCharacterId,
+      runMode: runMode ?? this.runMode,
+      equippedLoadout: equippedLoadout ?? this.equippedLoadout,
+      boardId: boardId ?? this.boardId,
+      boardKey: boardKey ?? this.boardKey,
+      ghostReplayBootstrap: clearGhostReplayBootstrap
+          ? null
+          : (ghostReplayBootstrap ?? this.ghostReplayBootstrap),
+    );
+  }
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
@@ -19,7 +20,13 @@ import 'package:run_protocol/run_ticket.dart';
 import '../app/ui_routes.dart';
 import 'account_deletion_api.dart';
 import 'auth_api.dart';
+import 'ghost_api.dart';
+import 'ghost_replay_cache.dart';
+import 'leaderboard_api.dart';
 import 'run_boards_api.dart';
+import 'run_submission_coordinator.dart';
+import 'run_submission_spool_store.dart';
+import 'run_submission_status.dart';
 import 'run_session_api.dart';
 import 'run_start_remote_exception.dart';
 import 'loadout_ownership_api.dart';
@@ -38,14 +45,33 @@ class AppState extends ChangeNotifier {
     required LoadoutOwnershipApi loadoutOwnershipApi,
     RunBoardsApi? runBoardsApi,
     RunSessionApi? runSessionApi,
+    LeaderboardApi? leaderboardApi,
+    GhostApi? ghostApi,
+    GhostReplayCache? ghostReplayCache,
+    RunSubmissionCoordinator? runSubmissionCoordinator,
+    RunSubmissionSpoolStore? runSubmissionSpoolStore,
   }) {
+    final resolvedRunSessionApi = runSessionApi ?? const NoopRunSessionApi();
+    final resolvedLeaderboardApi = leaderboardApi ?? const NoopLeaderboardApi();
+    final resolvedGhostApi = ghostApi ?? const NoopGhostApi();
+    final resolvedGhostReplayCache = ghostReplayCache ?? FileGhostReplayCache();
     return AppState._internal(
       authApi: authApi,
       userProfileRemoteApi: userProfileRemoteApi,
       accountDeletionApi: accountDeletionApi,
       loadoutOwnershipApi: loadoutOwnershipApi,
       runBoardsApi: runBoardsApi,
-      runSessionApi: runSessionApi,
+      runSessionApi: resolvedRunSessionApi,
+      leaderboardApi: resolvedLeaderboardApi,
+      ghostApi: resolvedGhostApi,
+      ghostReplayCache: resolvedGhostReplayCache,
+      runSubmissionCoordinator:
+          runSubmissionCoordinator ??
+          RunSubmissionCoordinator(
+            runSessionApi: resolvedRunSessionApi,
+            spoolStore:
+                runSubmissionSpoolStore ?? SharedPrefsRunSubmissionSpoolStore(),
+          ),
     );
   }
 
@@ -55,7 +81,11 @@ class AppState extends ChangeNotifier {
     AccountDeletionApi? accountDeletionApi,
     required LoadoutOwnershipApi loadoutOwnershipApi,
     RunBoardsApi? runBoardsApi,
-    RunSessionApi? runSessionApi,
+    required RunSessionApi runSessionApi,
+    required LeaderboardApi leaderboardApi,
+    required GhostApi ghostApi,
+    required GhostReplayCache ghostReplayCache,
+    required RunSubmissionCoordinator runSubmissionCoordinator,
   }) : _authApi = authApi,
        _profileRemoteApi =
            userProfileRemoteApi ?? const NoopUserProfileRemoteApi(),
@@ -63,7 +93,11 @@ class AppState extends ChangeNotifier {
            accountDeletionApi ?? const NoopAccountDeletionApi(),
        _ownershipApi = loadoutOwnershipApi,
        _runBoardsApi = runBoardsApi ?? const NoopRunBoardsApi(),
-       _runSessionApi = runSessionApi ?? const NoopRunSessionApi();
+       _runSessionApi = runSessionApi,
+       _leaderboardApi = leaderboardApi,
+       _ghostApi = ghostApi,
+       _ghostReplayCache = ghostReplayCache,
+       _runSubmissionCoordinator = runSubmissionCoordinator;
 
   final Random _random = Random();
   final AuthApi _authApi;
@@ -72,6 +106,10 @@ class AppState extends ChangeNotifier {
   final LoadoutOwnershipApi _ownershipApi;
   final RunBoardsApi _runBoardsApi;
   final RunSessionApi _runSessionApi;
+  final LeaderboardApi _leaderboardApi;
+  final GhostApi _ghostApi;
+  final GhostReplayCache _ghostReplayCache;
+  final RunSubmissionCoordinator _runSubmissionCoordinator;
 
   SelectionState _selection = SelectionState.defaults;
   MetaState _meta = const MetaService().createNew();
@@ -82,6 +120,8 @@ class AppState extends ChangeNotifier {
   int _ownershipRevision = 0;
   bool _bootstrapped = false;
   bool _warmupStarted = false;
+  final Map<String, RunSubmissionStatus> _runSubmissionStatuses =
+      <String, RunSubmissionStatus>{};
 
   SelectionState get selection => _selection;
   MetaState get meta => _meta;
@@ -91,6 +131,8 @@ class AppState extends ChangeNotifier {
   String get profileId => _profileId;
   bool get isBootstrapped => _bootstrapped;
   int get ownershipRevision => _ownershipRevision;
+  RunSubmissionStatus? runSubmissionStatusFor(String runSessionId) =>
+      _runSubmissionStatuses[runSessionId];
 
   Future<void> bootstrap({bool force = false}) async {
     if (_bootstrapped && !force) return;
@@ -485,6 +527,7 @@ class AppState extends ChangeNotifier {
     _authSession = AuthSession.unauthenticated;
     _profileId = defaultOwnershipProfileId;
     _ownershipRevision = 0;
+    _runSubmissionStatuses.clear();
     _bootstrapped = false;
     _warmupStarted = false;
     notifyListeners();
@@ -494,6 +537,126 @@ class AppState extends ChangeNotifier {
   void startWarmup() {
     if (_warmupStarted) return;
     _warmupStarted = true;
+    unawaited(_resumePendingRunSubmissions());
+  }
+
+  Future<RunSubmissionStatus> submitRunReplay({
+    required String runSessionId,
+    required RunMode runMode,
+    required String replayFilePath,
+    required String canonicalSha256,
+    required int contentLengthBytes,
+    String contentType = 'application/octet-stream',
+    Map<String, Object?>? provisionalSummary,
+  }) async {
+    final session = await _ensureAuthSession();
+    await _runSubmissionCoordinator.enqueueSubmission(
+      runSessionId: runSessionId,
+      runMode: runMode,
+      replayFilePath: replayFilePath,
+      canonicalSha256: canonicalSha256,
+      contentLengthBytes: contentLengthBytes,
+      contentType: contentType,
+      provisionalSummary: provisionalSummary,
+    );
+    final status = await _runSubmissionCoordinator.processRunSession(
+      userId: session.userId,
+      sessionId: session.sessionId,
+      runSessionId: runSessionId,
+    );
+    _runSubmissionStatuses[runSessionId] = status;
+    notifyListeners();
+    return status;
+  }
+
+  Future<RunSubmissionStatus> refreshRunSubmissionStatus({
+    required String runSessionId,
+  }) async {
+    final session = await _ensureAuthSession();
+    final status = await _runSubmissionCoordinator.refreshRunSessionStatus(
+      userId: session.userId,
+      sessionId: session.sessionId,
+      runSessionId: runSessionId,
+    );
+    _runSubmissionStatuses[runSessionId] = status;
+    notifyListeners();
+    return status;
+  }
+
+  Future<List<RunSubmissionStatus>> processPendingRunSubmissions() async {
+    final session = await _ensureAuthSession();
+    final statuses = await _runSubmissionCoordinator.processReadySubmissions(
+      userId: session.userId,
+      sessionId: session.sessionId,
+    );
+    if (statuses.isEmpty) {
+      return const <RunSubmissionStatus>[];
+    }
+    for (final status in statuses) {
+      _runSubmissionStatuses[status.runSessionId] = status;
+    }
+    notifyListeners();
+    return statuses;
+  }
+
+  Future<OnlineLeaderboardBoard> loadOnlineLeaderboardBoard({
+    required RunMode mode,
+    required LevelId levelId,
+  }) async {
+    if (!mode.requiresBoard) {
+      throw const RunStartRemoteException(
+        code: 'failed-precondition',
+        message: 'Practice mode does not have an online leaderboard board.',
+      );
+    }
+    final session = await _ensureAuthSession();
+    final boardManifest = await _runBoardsApi.loadActiveBoard(
+      userId: session.userId,
+      sessionId: session.sessionId,
+      mode: mode,
+      levelId: levelId,
+      gameCompatVersion: _defaultGameCompatVersion,
+    );
+    return _leaderboardApi.loadBoard(
+      userId: session.userId,
+      sessionId: session.sessionId,
+      boardId: boardManifest.boardId,
+    );
+  }
+
+  Future<OnlineLeaderboardMyRank> loadOnlineLeaderboardMyRank({
+    required String boardId,
+  }) async {
+    final session = await _ensureAuthSession();
+    return _leaderboardApi.loadMyRank(
+      userId: session.userId,
+      sessionId: session.sessionId,
+      boardId: boardId,
+    );
+  }
+
+  Future<GhostManifest> loadGhostManifest({
+    required String boardId,
+    required String entryId,
+  }) async {
+    final session = await _ensureAuthSession();
+    return _ghostApi.loadManifest(
+      userId: session.userId,
+      sessionId: session.sessionId,
+      boardId: boardId,
+      entryId: entryId,
+    );
+  }
+
+  Future<GhostReplayBootstrap> loadGhostReplayBootstrap({
+    required String boardId,
+    required String entryId,
+  }) async {
+    final manifest = await loadGhostManifest(
+      boardId: boardId,
+      entryId: entryId,
+    );
+    return _ghostReplayCache.loadReplay(manifest: manifest);
   }
 
   Future<RunStartDescriptor> prepareRunStartDescriptor({
@@ -543,7 +706,55 @@ class AppState extends ChangeNotifier {
       levelId: levelId,
       gameCompatVersion: _defaultGameCompatVersion,
     );
-    return _runStartDescriptorFromTicket(runTicket);
+    final descriptor = _runStartDescriptorFromTicket(runTicket);
+    if (!mode.requiresBoard || descriptor.boardId == null) {
+      return descriptor;
+    }
+    final ghostReplayBootstrap = await _tryLoadTopGhostReplayBootstrap(
+      userId: session.userId,
+      sessionId: session.sessionId,
+      boardId: descriptor.boardId!,
+    );
+    if (ghostReplayBootstrap == null) {
+      return descriptor;
+    }
+    return descriptor.copyWith(ghostReplayBootstrap: ghostReplayBootstrap);
+  }
+
+  Future<GhostReplayBootstrap?> _tryLoadTopGhostReplayBootstrap({
+    required String userId,
+    required String sessionId,
+    required String boardId,
+  }) async {
+    try {
+      final board = await _leaderboardApi.loadBoard(
+        userId: userId,
+        sessionId: sessionId,
+        boardId: boardId,
+      );
+      for (final entry in board.topEntries) {
+        if (!entry.ghostEligible) {
+          continue;
+        }
+        final entryId = entry.entryId.trim();
+        if (entryId.isEmpty) {
+          continue;
+        }
+        try {
+          return loadGhostReplayBootstrap(boardId: boardId, entryId: entryId);
+        } catch (error) {
+          debugPrint(
+            'Ghost bootstrap load failed for boardId=$boardId entryId=$entryId: '
+            '$error',
+          );
+        }
+      }
+    } catch (error) {
+      debugPrint(
+        'Ghost leaderboard bootstrap skipped for boardId=$boardId: $error',
+      );
+    }
+    return null;
   }
 
   RunStartDescriptor _runStartDescriptorFromTicket(RunTicket ticket) {
@@ -562,6 +773,8 @@ class AppState extends ChangeNotifier {
       playerCharacterId: parsedCharacterId,
       runMode: ticket.mode,
       equippedLoadout: equippedLoadout,
+      boardId: ticket.boardId,
+      boardKey: ticket.boardKey,
     );
   }
 
@@ -682,6 +895,14 @@ class AppState extends ChangeNotifier {
   }
 
   String? _stringOrNull(Object? raw) => raw is String ? raw : null;
+
+  Future<void> _resumePendingRunSubmissions() async {
+    try {
+      await processPendingRunSubmissions();
+    } catch (error) {
+      debugPrint('Pending replay submission resume failed: $error');
+    }
+  }
 
   Future<void> _setSelection(SelectionState nextSelection) async {
     final session = await _ensureAuthSession();

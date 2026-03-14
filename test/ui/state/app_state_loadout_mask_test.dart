@@ -4,12 +4,15 @@ import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/meta/meta_service.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
+import 'package:run_protocol/board_key.dart';
+import 'package:run_protocol/board_manifest.dart';
 import 'package:run_protocol/submission_status.dart';
 import 'package:run_protocol/run_ticket.dart';
 import 'package:rpg_runner/ui/state/app_state.dart';
 import 'package:rpg_runner/ui/state/auth_api.dart';
 import 'package:rpg_runner/ui/state/loadout_ownership_api.dart';
 import 'package:rpg_runner/ui/state/progression_state.dart';
+import 'package:rpg_runner/ui/state/run_boards_api.dart';
 import 'package:rpg_runner/ui/state/run_session_api.dart';
 import 'package:rpg_runner/ui/state/run_start_remote_exception.dart';
 import 'package:rpg_runner/ui/state/selection_state.dart';
@@ -206,6 +209,68 @@ void main() {
       expect(runSessionApi.createRunSessionCalls, 0);
     },
   );
+
+  test(
+    'prepareRunStartDescriptor carries board identity for ranked modes',
+    () async {
+      final boardKey = BoardKey(
+        mode: RunMode.competitive,
+        levelId: LevelId.field.name,
+        windowId: '2026-03',
+        rulesetVersion: 'rules-v1',
+        scoreVersion: 'score-v1',
+      );
+      final selection = SelectionState.defaults.copyWith(
+        selectedRunMode: RunMode.competitive,
+        selectedLevelId: LevelId.field,
+      );
+      final ownershipApi = _ScriptedOwnershipApi(
+        OwnershipCanonicalState(
+          profileId: 'profile_ranked_descriptor',
+          revision: 3,
+          selection: selection,
+          meta: const MetaService().createNew(),
+          progression: ProgressionState.initial,
+        ),
+      );
+      final runSessionApi = _ScriptedRunSessionApi(
+        RunTicket(
+          runSessionId: 'session_competitive',
+          uid: 'u1',
+          mode: RunMode.competitive,
+          boardId: 'board_2026_03_field',
+          boardKey: boardKey,
+          seed: 999,
+          tickHz: 60,
+          gameCompatVersion: '2026.03.0',
+          rulesetVersion: boardKey.rulesetVersion,
+          scoreVersion: boardKey.scoreVersion,
+          ghostVersion: 'ghost-v1',
+          levelId: LevelId.field.name,
+          playerCharacterId: PlayerCharacterId.eloise.name,
+          loadoutSnapshot: _practiceTicket().loadoutSnapshot,
+          loadoutDigest:
+              '0123456789012345678901234567890123456789012345678901234567890123',
+          issuedAtMs: 1,
+          expiresAtMs: 2,
+          singleUseNonce: 'nonce_competitive',
+        ),
+      );
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: ownershipApi,
+        runBoardsApi: _ScriptedRunBoardsApi(boardKey: boardKey),
+        runSessionApi: runSessionApi,
+      );
+      await appState.bootstrap(force: true);
+
+      final descriptor = await appState.prepareRunStartDescriptor();
+
+      expect(descriptor.runMode, RunMode.competitive);
+      expect(descriptor.boardId, 'board_2026_03_field');
+      expect(descriptor.boardKey, boardKey);
+    },
+  );
 }
 
 class _ScriptedRunSessionApi implements RunSessionApi {
@@ -256,6 +321,33 @@ class _ScriptedRunSessionApi implements RunSessionApi {
     required String runSessionId,
   }) async {
     throw UnimplementedError('loadSubmissionStatus is not used in this test.');
+  }
+}
+
+class _ScriptedRunBoardsApi implements RunBoardsApi {
+  _ScriptedRunBoardsApi({required this.boardKey});
+
+  final BoardKey boardKey;
+
+  @override
+  Future<BoardManifest> loadActiveBoard({
+    required String userId,
+    required String sessionId,
+    required RunMode mode,
+    required LevelId levelId,
+    required String gameCompatVersion,
+  }) async {
+    return BoardManifest(
+      boardId: 'board_2026_03_field',
+      boardKey: boardKey,
+      gameCompatVersion: gameCompatVersion,
+      ghostVersion: 'ghost-v1',
+      tickHz: 60,
+      seed: 999,
+      opensAtMs: 1,
+      closesAtMs: 2,
+      status: BoardStatus.active,
+    );
   }
 }
 

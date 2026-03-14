@@ -113,6 +113,9 @@ class UiRouter {
             playerCharacterId: args.playerCharacterId,
             runMode: args.runMode,
             equippedLoadout: args.equippedLoadout,
+            boardId: args.boardId,
+            boardKey: args.boardKey,
+            ghostReplayBootstrap: args.ghostReplayBootstrap,
             settings: settings,
             restoreOrientations: const [
               DeviceOrientation.landscapeLeft,

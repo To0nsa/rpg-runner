@@ -11,6 +11,7 @@ import 'components/hub_select_character_card.dart';
 import 'components/hub_select_level_card.dart';
 import 'components/hub_top_row.dart';
 import '../../state/app_state.dart';
+import '../../state/progression_state.dart';
 import '../../state/run_start_remote_exception.dart';
 import '../../state/selection_state.dart';
 import '../../theme/ui_tokens.dart';
@@ -60,6 +61,15 @@ class _PlayHubPageState extends State<PlayHubPage> {
     }
   }
 
+  Future<void> _startWeeklyRun(AppState appState) async {
+    if (_preparingRunStart) return;
+    if (appState.selection.selectedRunMode != RunMode.weekly) {
+      await appState.setRunMode(RunMode.weekly);
+    }
+    if (!mounted) return;
+    await _startRun(appState);
+  }
+
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
@@ -104,7 +114,8 @@ class _PlayHubPageState extends State<PlayHubPage> {
                   ),
                   SizedBox(height: ui.space.sm),
                   WeeklyBadgeRow(
-                    onWeeklyPressed: null,
+                    title: _weeklyBadgeTitle(appState.progression),
+                    onWeeklyPressed: () => _startWeeklyRun(appState),
                     onWeeklyLeaderboardPressed: () =>
                         Navigator.of(context).pushNamed(UiRoutes.leaderboards),
                   ),
@@ -163,4 +174,14 @@ String _runModeLabel(RunMode runMode) {
     case RunMode.weekly:
       return 'Weekly';
   }
+}
+
+String _weeklyBadgeTitle(ProgressionState progression) {
+  final weekly = progression.weekly;
+  if (weekly.currentWindowId.isEmpty || weekly.currentWindowValidatedRuns <= 0) {
+    return 'Weekly Challenge';
+  }
+  return 'Weekly ${weekly.currentWindowId} · '
+      '${weekly.currentWindowValidatedRuns} validated · '
+      '${weekly.currentWindowGoldEarned} gold';
 }

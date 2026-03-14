@@ -5,7 +5,10 @@ import { deleteApp, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 
 import { loadActiveBoardManifest } from "../../src/boards/store.js";
-import { resolveCompetitiveWindow } from "../../src/boards/windowing.js";
+import {
+  resolveCompetitiveWindow,
+  resolveWeeklyWindow,
+} from "../../src/boards/windowing.js";
 import { loadOrCreateCanonicalState } from "../../src/ownership/canonical_store.js";
 import {
   canonicalDocRef,
@@ -207,6 +210,70 @@ test("createRunSession binds competitive ticket to active monthly board", async 
   assert.equal(ticket.seed, 424242);
 });
 
+test("createRunSession binds weekly ticket to active weekly board", async () => {
+  const nowMs = Date.UTC(2026, 2, 12, 12, 0, 0, 0);
+  const window = resolveWeeklyWindow(nowMs);
+  const gameCompatVersion = "build-2026-03-12";
+
+  await loadOrCreateCanonicalState({ db, uid });
+  const canonicalRef = canonicalDocRef(db, uid, defaultCanonicalProfileId);
+  await canonicalRef.set(
+    {
+      selection: {
+        runMode: "weekly",
+        runType: "weekly",
+      },
+    },
+    { merge: true },
+  );
+
+  await db.collection("leaderboard_boards").doc("board_weekly").set({
+    boardId: "board_weekly",
+    mode: "weekly",
+    levelId: "field",
+    windowId: window.windowId,
+    boardKey: {
+      mode: "weekly",
+      levelId: "field",
+      windowId: window.windowId,
+      rulesetVersion: "rules-v1",
+      scoreVersion: "score-v1",
+    },
+    gameCompatVersion,
+    ghostVersion: "ghost-v1",
+    tickHz: 60,
+    seed: 818181,
+    opensAtMs: window.opensAtMs,
+    closesAtMs: window.closesAtMs,
+    status: "active",
+  });
+
+  const result = await createRunSession({
+    db,
+    uid,
+    mode: "weekly",
+    levelId: "field",
+    gameCompatVersion,
+    nowMs,
+  });
+  const ticket = result.runTicket;
+
+  assert.equal(ticket.mode, "weekly");
+  assert.equal(ticket.boardId, "board_weekly");
+  assert.deepEqual(ticket.boardKey, {
+    mode: "weekly",
+    levelId: "field",
+    windowId: window.windowId,
+    rulesetVersion: "rules-v1",
+    scoreVersion: "score-v1",
+  });
+  assert.equal(ticket.rulesetVersion, "rules-v1");
+  assert.equal(ticket.scoreVersion, "score-v1");
+  assert.equal(ticket.ghostVersion, "ghost-v1");
+  assert.equal(ticket.gameCompatVersion, gameCompatVersion);
+  assert.equal(ticket.seed, 818181);
+});
+
 test("createRunSession rejects stale level mismatch between request and canonical selection", async () => {
   await loadOrCreateCanonicalState({ db, uid });
 
@@ -266,6 +333,17 @@ test("resolveCompetitiveWindow rolls at UTC month boundary", () => {
   assert.equal(aprilWindow.windowId, "2026-04");
   assert.equal(aprilWindow.opensAtMs, Date.UTC(2026, 3, 1, 0, 0, 0, 0));
   assert.equal(aprilWindow.closesAtMs, Date.UTC(2026, 4, 1, 0, 0, 0, 0));
+});
+
+test("resolveWeeklyWindow rolls at UTC week boundary", () => {
+  const sundayEndMs = Date.UTC(2026, 2, 15, 23, 59, 59, 999);
+  const mondayStartMs = Date.UTC(2026, 2, 16, 0, 0, 0, 0);
+
+  const sundayWindow = resolveWeeklyWindow(sundayEndMs);
+  const mondayWindow = resolveWeeklyWindow(mondayStartMs);
+
+  assert.notEqual(sundayWindow.windowId, mondayWindow.windowId);
+  assert.equal(sundayWindow.closesAtMs, mondayWindow.opensAtMs);
 });
 
 test("createRunSession resolves board by month window across rollover", async () => {
@@ -355,6 +433,97 @@ test("createRunSession resolves board by month window across rollover", async ()
   assert.equal(
     (aprilResult.runTicket.boardKey as { windowId: string }).windowId,
     "2026-04",
+  );
+});
+
+test("createRunSession resolves weekly board by week window across rollover", async () => {
+  const sundayEndMs = Date.UTC(2026, 2, 15, 23, 59, 59, 999);
+  const mondayStartMs = Date.UTC(2026, 2, 16, 0, 0, 0, 0);
+  const gameCompatVersion = "build-2026-03-12";
+
+  await loadOrCreateCanonicalState({ db, uid });
+  const canonicalRef = canonicalDocRef(db, uid, defaultCanonicalProfileId);
+  await canonicalRef.set(
+    {
+      selection: {
+        runMode: "weekly",
+        runType: "weekly",
+      },
+    },
+    { merge: true },
+  );
+
+  const previousWeek = resolveWeeklyWindow(sundayEndMs);
+  const nextWeek = resolveWeeklyWindow(mondayStartMs);
+  assert.notEqual(previousWeek.windowId, nextWeek.windowId);
+
+  await db.collection("leaderboard_boards").doc("board_week_prev").set({
+    boardId: "board_week_prev",
+    mode: "weekly",
+    levelId: "field",
+    windowId: previousWeek.windowId,
+    boardKey: {
+      mode: "weekly",
+      levelId: "field",
+      windowId: previousWeek.windowId,
+      rulesetVersion: "rules-v1",
+      scoreVersion: "score-v1",
+    },
+    gameCompatVersion,
+    ghostVersion: "ghost-v1",
+    tickHz: 60,
+    seed: 515151,
+    opensAtMs: previousWeek.opensAtMs,
+    closesAtMs: previousWeek.closesAtMs,
+    status: "active",
+  });
+  await db.collection("leaderboard_boards").doc("board_week_next").set({
+    boardId: "board_week_next",
+    mode: "weekly",
+    levelId: "field",
+    windowId: nextWeek.windowId,
+    boardKey: {
+      mode: "weekly",
+      levelId: "field",
+      windowId: nextWeek.windowId,
+      rulesetVersion: "rules-v1",
+      scoreVersion: "score-v1",
+    },
+    gameCompatVersion,
+    ghostVersion: "ghost-v1",
+    tickHz: 60,
+    seed: 626262,
+    opensAtMs: nextWeek.opensAtMs,
+    closesAtMs: nextWeek.closesAtMs,
+    status: "active",
+  });
+
+  const previousResult = await createRunSession({
+    db,
+    uid,
+    mode: "weekly",
+    levelId: "field",
+    gameCompatVersion,
+    nowMs: sundayEndMs,
+  });
+  assert.equal(previousResult.runTicket.boardId, "board_week_prev");
+  assert.equal(
+    (previousResult.runTicket.boardKey as { windowId: string }).windowId,
+    previousWeek.windowId,
+  );
+
+  const nextResult = await createRunSession({
+    db,
+    uid,
+    mode: "weekly",
+    levelId: "field",
+    gameCompatVersion,
+    nowMs: mondayStartMs,
+  });
+  assert.equal(nextResult.runTicket.boardId, "board_week_next");
+  assert.equal(
+    (nextResult.runTicket.boardKey as { windowId: string }).windowId,
+    nextWeek.windowId,
   );
 });
 

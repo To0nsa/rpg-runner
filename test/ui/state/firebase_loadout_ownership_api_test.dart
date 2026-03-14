@@ -63,6 +63,45 @@ void main() {
     expect(source.lastCommand?.type, 'setAbilitySlot');
   });
 
+  test('loadCanonicalState decodes weekly progression payload', () async {
+    final source = _FakeFirebaseLoadoutOwnershipSource();
+    source.loadCanonicalResponse = <String, dynamic>{
+      'canonicalState': <String, dynamic>{
+        'profileId': 'p1',
+        'revision': 7,
+        'selection': SelectionState.defaults.toJson(),
+        'meta': const MetaService().createNew().toJson(),
+        'progression': <String, dynamic>{
+          'gold': 42,
+          'store': TownStoreState.initial.toJson(),
+          'weeklyProgress': <String, dynamic>{
+            'schemaVersion': 1,
+            'currentWindowId': '2026-W12',
+            'currentWindowValidatedRuns': 2,
+            'currentWindowGoldEarned': 18,
+            'lifetimeValidatedRuns': 5,
+            'lifetimeGoldEarned': 77,
+            'lastWindowId': '2026-W12',
+            'lastBoardId': 'board_weekly_field_w12',
+            'lastRunSessionId': 'run_weekly_3',
+            'lastRewardGrantId': 'grant_weekly_3',
+            'lastValidatedAtMs': 1700000002000,
+          },
+        },
+      },
+    };
+    final api = FirebaseLoadoutOwnershipApi(source: source);
+
+    final actual = await api.loadCanonicalState(userId: 'u1', sessionId: 's1');
+
+    expect(actual.progression.weekly.currentWindowId, '2026-W12');
+    expect(actual.progression.weekly.currentWindowValidatedRuns, 2);
+    expect(actual.progression.weekly.currentWindowGoldEarned, 18);
+    expect(actual.progression.weekly.lifetimeValidatedRuns, 5);
+    expect(actual.progression.weekly.lifetimeGoldEarned, 77);
+    expect(actual.progression.weekly.lastRunSessionId, 'run_weekly_3');
+  });
+
   test('throws when Firebase source fails and fallback is disabled', () async {
     final source = _FakeFirebaseLoadoutOwnershipSource()
       ..commandError = StateError('backend unavailable');

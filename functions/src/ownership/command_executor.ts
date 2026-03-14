@@ -1,4 +1,8 @@
-import type { Firestore } from "firebase-admin/firestore";
+import type {
+  DocumentReference,
+  Firestore,
+  Transaction,
+} from "firebase-admin/firestore";
 
 import { applyOwnershipCommand } from "./apply_command.js";
 import {
@@ -17,6 +21,7 @@ import type {
 } from "./contracts.js";
 import { canonicalJsonString, sha256Hex } from "./hash.js";
 import { idempotencyDocRef } from "./firestore_paths.js";
+import { reconcilePendingRewardGrantsForTransaction } from "./reward_grants.js";
 
 export async function executeOwnershipCommand(args: {
   db: Firestore;
@@ -37,10 +42,27 @@ export async function executeOwnershipCommand(args: {
     const canonicalRef = resolved.canonicalRef;
     const idempotencyRef = idempotencyDocRef(canonicalRef, command.commandId);
     const idempotencySnap = await tx.get(idempotencyRef);
-    const canonical = resolved.canonical;
+    const reconciled = await reconcilePendingRewardGrantsForTransaction({
+      db,
+      tx,
+      uid,
+      canonicalState: resolved.canonical,
+    });
+    const canonical = reconciled.canonicalState;
+    const shouldPersistCanonicalBeforeCommand =
+      !resolved.exists || reconciled.canonicalChanged;
 
     if (idempotencySnap.exists) {
       const stored = idempotencySnap.data() as IdempotencyDocument | undefined;
+      if (shouldPersistCanonicalBeforeCommand) {
+        persistCanonical({
+          tx,
+          canonicalRef,
+          uid,
+          canonical,
+          exists: resolved.exists,
+        });
+      }
       if (stored?.payloadHash === payloadHash) {
         return normalizeStoredResult(stored.result, canonical);
       }
@@ -50,8 +72,14 @@ export async function executeOwnershipCommand(args: {
     // Guard against command actor spoofing. Identity authority is auth uid.
     if (command.userId !== uid) {
       const rejected = rejectResult(canonical, "forbidden");
-      if (!resolved.exists) {
-        tx.set(canonicalRef, canonicalWriteData(uid, canonical));
+      if (shouldPersistCanonicalBeforeCommand) {
+        persistCanonical({
+          tx,
+          canonicalRef,
+          uid,
+          canonical,
+          exists: resolved.exists,
+        });
       }
       tx.set(idempotencyRef, idempotencyWriteData({ payloadHash, result: rejected }));
       return rejected;
@@ -59,8 +87,14 @@ export async function executeOwnershipCommand(args: {
 
     if (command.expectedRevision !== canonical.revision) {
       const rejected = rejectResult(canonical, "staleRevision");
-      if (!resolved.exists) {
-        tx.set(canonicalRef, canonicalWriteData(uid, canonical));
+      if (shouldPersistCanonicalBeforeCommand) {
+        persistCanonical({
+          tx,
+          canonicalRef,
+          uid,
+          canonical,
+          exists: resolved.exists,
+        });
       }
       tx.set(idempotencyRef, idempotencyWriteData({ payloadHash, result: rejected }));
       return rejected;
@@ -69,8 +103,14 @@ export async function executeOwnershipCommand(args: {
     const applyResult = applyOwnershipCommand(canonical, command);
     if (!applyResult.accepted) {
       const rejected = rejectResult(canonical, applyResult.rejectedReason);
-      if (!resolved.exists) {
-        tx.set(canonicalRef, canonicalWriteData(uid, canonical));
+      if (shouldPersistCanonicalBeforeCommand) {
+        persistCanonical({
+          tx,
+          canonicalRef,
+          uid,
+          canonical,
+          exists: resolved.exists,
+        });
       }
       tx.set(idempotencyRef, idempotencyWriteData({ payloadHash, result: rejected }));
       return rejected;
@@ -99,6 +139,24 @@ export async function executeOwnershipCommand(args: {
   });
 }
 
+function persistCanonical(args: {
+  tx: Transaction;
+  canonicalRef: DocumentReference;
+  uid: string;
+  canonical: OwnershipCanonicalState;
+  exists: boolean;
+}): void {
+  if (args.exists) {
+    args.tx.set(
+      args.canonicalRef,
+      canonicalMergeWriteData(args.uid, args.canonical),
+      { merge: true },
+    );
+    return;
+  }
+  args.tx.set(args.canonicalRef, canonicalWriteData(args.uid, args.canonical));
+}
+
 function rejectResult(
   canonical: OwnershipCanonicalState,
   reason: OwnershipRejectedReason,
@@ -123,12 +181,17 @@ function normalizeStoredResult(
       rejectedReason: "invalidCommand",
     };
   }
+  const storedCanonical = result.canonicalState;
+  const canonicalState =
+    storedCanonical && storedCanonical.revision > fallbackCanonical.revision
+      ? storedCanonical
+      : fallbackCanonical;
   return {
-    canonicalState: result.canonicalState ?? fallbackCanonical,
+    canonicalState,
     newRevision:
       typeof result.newRevision === "number"
-        ? result.newRevision
-        : (result.canonicalState?.revision ?? fallbackCanonical.revision),
+        ? Math.max(result.newRevision, canonicalState.revision)
+        : canonicalState.revision,
     replayedFromIdempotency: true,
     rejectedReason: result.rejectedReason ?? null,
   };
