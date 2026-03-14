@@ -710,13 +710,28 @@ class AppState extends ChangeNotifier {
     final levelId = expectedLevelId ?? canonicalLevelId;
 
     if (mode.requiresBoard) {
-      await _runBoardsApi.loadActiveBoard(
-        userId: session.userId,
-        sessionId: session.sessionId,
-        mode: mode,
-        levelId: levelId,
-        gameCompatVersion: _defaultGameCompatVersion,
-      );
+      try {
+        await _runBoardsApi.loadActiveBoard(
+          userId: session.userId,
+          sessionId: session.sessionId,
+          mode: mode,
+          levelId: levelId,
+          gameCompatVersion: _defaultGameCompatVersion,
+        );
+      } on RunStartRemoteException catch (error) {
+        if (error.isPreconditionFailed) {
+          rethrow;
+        }
+        debugPrint(
+          'Ranked board preflight failed for mode=${mode.name} '
+          'level=${levelId.name}; falling back to runSessionCreate: $error',
+        );
+      } catch (error) {
+        debugPrint(
+          'Ranked board preflight failed for mode=${mode.name} '
+          'level=${levelId.name}; falling back to runSessionCreate: $error',
+        );
+      }
     }
     final runTicket = await _runSessionApi.createRunSession(
       userId: session.userId,
@@ -760,7 +775,10 @@ class AppState extends ChangeNotifier {
           continue;
         }
         try {
-          return loadGhostReplayBootstrap(boardId: boardId, entryId: entryId);
+          return await loadGhostReplayBootstrap(
+            boardId: boardId,
+            entryId: entryId,
+          );
         } catch (error) {
           debugPrint(
             'Ghost bootstrap load failed for boardId=$boardId entryId=$entryId: '

@@ -6,10 +6,14 @@ import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:run_protocol/board_key.dart';
 import 'package:run_protocol/board_manifest.dart';
+import 'package:run_protocol/leaderboard_entry.dart';
 import 'package:run_protocol/submission_status.dart';
 import 'package:run_protocol/run_ticket.dart';
 import 'package:rpg_runner/ui/state/app_state.dart';
 import 'package:rpg_runner/ui/state/auth_api.dart';
+import 'package:rpg_runner/ui/state/ghost_api.dart';
+import 'package:rpg_runner/ui/state/ghost_replay_cache.dart';
+import 'package:rpg_runner/ui/state/leaderboard_api.dart';
 import 'package:rpg_runner/ui/state/loadout_ownership_api.dart';
 import 'package:rpg_runner/ui/state/progression_state.dart';
 import 'package:rpg_runner/ui/state/run_boards_api.dart';
@@ -272,6 +276,191 @@ void main() {
     },
   );
 
+  test(
+    'prepareRunStartDescriptor continues when ranked board preflight fails with non-precondition error',
+    () async {
+      final boardKey = BoardKey(
+        mode: RunMode.competitive,
+        levelId: LevelId.field.name,
+        windowId: '2026-03',
+        rulesetVersion: 'rules-v1',
+        scoreVersion: 'score-v1',
+      );
+      final selection = SelectionState.defaults.copyWith(
+        selectedRunMode: RunMode.competitive,
+        selectedLevelId: LevelId.field,
+      );
+      final ownershipApi = _ScriptedOwnershipApi(
+        OwnershipCanonicalState(
+          profileId: 'profile_ranked_board_soft_fail',
+          revision: 3,
+          selection: selection,
+          meta: const MetaService().createNew(),
+          progression: ProgressionState.initial,
+        ),
+      );
+      final runSessionApi = _RecordingRunSessionApi(
+        RunTicket(
+          runSessionId: 'session_competitive_after_soft_fail',
+          uid: 'u1',
+          mode: RunMode.competitive,
+          boardId: 'board_2026_03_field',
+          boardKey: boardKey,
+          seed: 999,
+          tickHz: 60,
+          gameCompatVersion: '2026.03.0',
+          rulesetVersion: boardKey.rulesetVersion,
+          scoreVersion: boardKey.scoreVersion,
+          ghostVersion: 'ghost-v1',
+          levelId: LevelId.field.name,
+          playerCharacterId: PlayerCharacterId.eloise.name,
+          loadoutSnapshot: _practiceTicket().loadoutSnapshot,
+          loadoutDigest:
+              '0123456789012345678901234567890123456789012345678901234567890123',
+          issuedAtMs: 1,
+          expiresAtMs: 2,
+          singleUseNonce: 'nonce_competitive_soft_fail',
+        ),
+      );
+      final runBoardsApi = _ThrowingRunBoardsApi(
+        const RunStartRemoteException(
+          code: 'internal',
+          message: 'transient board preflight failure',
+        ),
+      );
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: ownershipApi,
+        runBoardsApi: runBoardsApi,
+        runSessionApi: runSessionApi,
+      );
+      await appState.bootstrap(force: true);
+
+      final descriptor = await appState.prepareRunStartDescriptor();
+
+      expect(runBoardsApi.loadCalls, 1);
+      expect(runSessionApi.createRunSessionCalls, 1);
+      expect(descriptor.runMode, RunMode.competitive);
+      expect(descriptor.boardId, 'board_2026_03_field');
+    },
+  );
+
+  test(
+    'prepareRunStartDescriptor still fails fast when ranked board preflight fails with precondition error',
+    () async {
+      final selection = SelectionState.defaults.copyWith(
+        selectedRunMode: RunMode.competitive,
+        selectedLevelId: LevelId.field,
+      );
+      final ownershipApi = _ScriptedOwnershipApi(
+        OwnershipCanonicalState(
+          profileId: 'profile_ranked_board_hard_fail',
+          revision: 3,
+          selection: selection,
+          meta: const MetaService().createNew(),
+          progression: ProgressionState.initial,
+        ),
+      );
+      final runSessionApi = _RecordingRunSessionApi(_practiceTicket());
+      final runBoardsApi = _ThrowingRunBoardsApi(
+        const RunStartRemoteException(
+          code: 'failed-precondition',
+          message: 'board not active yet',
+        ),
+      );
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: ownershipApi,
+        runBoardsApi: runBoardsApi,
+        runSessionApi: runSessionApi,
+      );
+      await appState.bootstrap(force: true);
+
+      await expectLater(
+        () => appState.prepareRunStartDescriptor(),
+        throwsA(
+          isA<RunStartRemoteException>().having(
+            (value) => value.isPreconditionFailed,
+            'isPreconditionFailed',
+            isTrue,
+          ),
+        ),
+      );
+      expect(runBoardsApi.loadCalls, 1);
+      expect(runSessionApi.createRunSessionCalls, 0);
+    },
+  );
+
+  test(
+    'prepareRunStartDescriptor does not fail run start when ghost bootstrap download fails',
+    () async {
+      final boardKey = BoardKey(
+        mode: RunMode.competitive,
+        levelId: LevelId.field.name,
+        windowId: '2026-03',
+        rulesetVersion: 'rules-v1',
+        scoreVersion: 'score-v1',
+      );
+      final selection = SelectionState.defaults.copyWith(
+        selectedRunMode: RunMode.competitive,
+        selectedLevelId: LevelId.field,
+      );
+      final ownershipApi = _ScriptedOwnershipApi(
+        OwnershipCanonicalState(
+          profileId: 'profile_ghost_bootstrap_soft_fail',
+          revision: 3,
+          selection: selection,
+          meta: const MetaService().createNew(),
+          progression: ProgressionState.initial,
+        ),
+      );
+      final runSessionApi = _RecordingRunSessionApi(
+        RunTicket(
+          runSessionId: 'session_competitive_ghost_bootstrap_fail',
+          uid: 'u1',
+          mode: RunMode.competitive,
+          boardId: 'board_2026_03_field',
+          boardKey: boardKey,
+          seed: 999,
+          tickHz: 60,
+          gameCompatVersion: '2026.03.0',
+          rulesetVersion: boardKey.rulesetVersion,
+          scoreVersion: boardKey.scoreVersion,
+          ghostVersion: 'ghost-v1',
+          levelId: LevelId.field.name,
+          playerCharacterId: PlayerCharacterId.eloise.name,
+          loadoutSnapshot: _practiceTicket().loadoutSnapshot,
+          loadoutDigest:
+              '0123456789012345678901234567890123456789012345678901234567890123',
+          issuedAtMs: 1,
+          expiresAtMs: 2,
+          singleUseNonce: 'nonce_competitive_ghost_bootstrap_fail',
+        ),
+      );
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: ownershipApi,
+        runBoardsApi: _ScriptedRunBoardsApi(boardKey: boardKey),
+        runSessionApi: runSessionApi,
+        leaderboardApi: const _SingleGhostEntryLeaderboardApi(),
+        ghostApi: const _SingleGhostManifestApi(),
+        ghostReplayCache: const _ThrowingGhostReplayCache(
+          RunStartRemoteException(
+            code: 'ghost-download-failed',
+            message: 'Ghost download failed with status 403.',
+          ),
+        ),
+      );
+      await appState.bootstrap(force: true);
+
+      final descriptor = await appState.prepareRunStartDescriptor();
+
+      expect(runSessionApi.createRunSessionCalls, 1);
+      expect(descriptor.boardId, 'board_2026_03_field');
+      expect(descriptor.ghostReplayBootstrap, isNull);
+    },
+  );
+
   test('setRunMode forces weekly to featured level', () async {
     final initialSelection = SelectionState.defaults.copyWith(
       selectedLevelId: LevelId.forest,
@@ -519,6 +708,110 @@ class _RecordingRunBoardsApi extends _ScriptedRunBoardsApi {
       levelId: levelId,
       gameCompatVersion: gameCompatVersion,
     );
+  }
+}
+
+class _ThrowingRunBoardsApi implements RunBoardsApi {
+  _ThrowingRunBoardsApi(this.error);
+
+  final Object error;
+  int loadCalls = 0;
+
+  @override
+  Future<BoardManifest> loadActiveBoard({
+    required String userId,
+    required String sessionId,
+    required RunMode mode,
+    required LevelId levelId,
+    required String gameCompatVersion,
+  }) async {
+    loadCalls += 1;
+    throw error;
+  }
+}
+
+class _SingleGhostEntryLeaderboardApi implements LeaderboardApi {
+  const _SingleGhostEntryLeaderboardApi();
+
+  @override
+  Future<OnlineLeaderboardBoard> loadBoard({
+    required String userId,
+    required String sessionId,
+    required String boardId,
+  }) async {
+    return OnlineLeaderboardBoard(
+      boardId: boardId,
+      topEntries: <LeaderboardEntry>[
+        LeaderboardEntry(
+          boardId: 'board_2026_03_field',
+          entryId: 'entry_ghost_1',
+          runSessionId: 'run_ghost_1',
+          uid: 'u_ghost',
+          displayName: 'Ghost Player',
+          characterId: 'eloise',
+          score: 1000,
+          distanceMeters: 400,
+          durationSeconds: 120,
+          sortKey: '00001:00001:00120:entry_ghost_1',
+          ghostEligible: true,
+          updatedAtMs: 1,
+          rank: 1,
+        ),
+      ],
+      updatedAtMs: 1,
+    );
+  }
+
+  @override
+  Future<OnlineLeaderboardMyRank> loadMyRank({
+    required String userId,
+    required String sessionId,
+    required String boardId,
+  }) async {
+    throw UnimplementedError('loadMyRank is not used in this test.');
+  }
+}
+
+class _SingleGhostManifestApi implements GhostApi {
+  const _SingleGhostManifestApi();
+
+  @override
+  Future<GhostManifest> loadManifest({
+    required String userId,
+    required String sessionId,
+    required String boardId,
+    required String entryId,
+  }) async {
+    return GhostManifest(
+      boardId: boardId,
+      entryId: entryId,
+      runSessionId: 'run_ghost_1',
+      uid: 'u_ghost',
+      replayStorageRef: 'ghosts/$boardId/$entryId/ghost.bin.gz',
+      sourceReplayStorageRef:
+          'replay-submissions/pending/u_ghost/run_ghost_1/replay.bin.gz',
+      downloadUrl: 'https://example.test/ghost.bin.gz',
+      downloadUrlExpiresAtMs: DateTime.now().millisecondsSinceEpoch + 60000,
+      score: 1000,
+      distanceMeters: 400,
+      durationSeconds: 120,
+      sortKey: '00001:00001:00120:$entryId',
+      rank: 1,
+      updatedAtMs: 1,
+    );
+  }
+}
+
+class _ThrowingGhostReplayCache implements GhostReplayCache {
+  const _ThrowingGhostReplayCache(this.error);
+
+  final Object error;
+
+  @override
+  Future<GhostReplayBootstrap> loadReplay({
+    required GhostManifest manifest,
+  }) async {
+    throw error;
   }
 }
 

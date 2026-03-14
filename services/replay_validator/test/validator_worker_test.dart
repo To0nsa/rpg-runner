@@ -17,6 +17,14 @@ import 'package:replay_validator/src/run_session_repository.dart';
 import 'package:replay_validator/src/validator_worker.dart';
 
 void main() {
+  test('distanceUnitsToMeters converts world units to meters', () {
+    expect(distanceUnitsToMeters(0), 0);
+    expect(distanceUnitsToMeters(49.9), 0);
+    expect(distanceUnitsToMeters(50), 1);
+    expect(distanceUnitsToMeters(99.9), 1);
+    expect(distanceUnitsToMeters(149.9), 2);
+  });
+
   test('accepted practice replay marks terminal validated and writes reward', () async {
     final replayBlob = ReplayBlobV1.withComputedDigest(
       runSessionId: 'run_accepted',

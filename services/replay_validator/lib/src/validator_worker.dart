@@ -14,6 +14,7 @@ import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/scoring/run_score_breakdown.dart';
 import 'package:runner_core/spellBook/spell_book_id.dart';
+import 'package:runner_core/tuning/score_tuning.dart';
 import 'package:runner_core/weapons/weapon_id.dart';
 import 'package:run_protocol/codecs/canonical_json_codec.dart';
 import 'package:run_protocol/replay_blob.dart';
@@ -565,7 +566,7 @@ class DeterministicValidatorWorker implements ValidatorWorker {
       mode: ticket.mode,
       accepted: true,
       score: breakdown.totalPoints,
-      distanceMeters: runEnded.distance.round(),
+      distanceMeters: distanceUnitsToMeters(runEnded.distance),
       durationSeconds: (runEnded.tick / core.tickHz).round(),
       tick: runEnded.tick,
       endedReason: runEnded.reason.name,
@@ -813,3 +814,12 @@ final class _ValidationRejectedException implements Exception {
 
 int _defaultClockMs() => DateTime.now().millisecondsSinceEpoch;
 
+int distanceUnitsToMeters(
+  double distanceUnits, {
+  int unitsPerMeter = kWorldUnitsPerMeter,
+}) {
+  if (unitsPerMeter <= 0 || distanceUnits <= 0) {
+    return 0;
+  }
+  return (distanceUnits / unitsPerMeter).floor();
+}
