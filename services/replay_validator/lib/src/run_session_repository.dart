@@ -71,9 +71,7 @@ abstract class RunSessionRepository {
     required String runSessionId,
   });
 
-  Future<void> persistValidatedRun({
-    required ValidatedRun validatedRun,
-  });
+  Future<void> persistValidatedRun({required ValidatedRun validatedRun});
 
   Future<void> markTerminal({
     required String runSessionId,
@@ -175,12 +173,15 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
         message: 'runSessionId "$runSessionId" is already validating.',
       );
     }
-    if (state != 'pending_validation') {
+    // Accept both states to avoid a race where Cloud Tasks dispatches a freshly
+    // enqueued validation task before the finalize flow flips uploaded ->
+    // pending_validation.
+    if (state != 'pending_validation' && state != 'uploaded') {
       return RunSessionLeaseAcquireResult(
         status: RunSessionLeaseStatus.invalidState,
         message:
-            'runSessionId "$runSessionId" must be pending_validation; got '
-            '"$state".',
+            'runSessionId "$runSessionId" must be pending_validation or '
+            'uploaded; got "$state".',
       );
     }
 
@@ -249,9 +250,7 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
   }
 
   @override
-  Future<void> persistValidatedRun({
-    required ValidatedRun validatedRun,
-  }) async {
+  Future<void> persistValidatedRun({required ValidatedRun validatedRun}) async {
     final firestoreApi = await apiProvider.firestoreApi();
     final path = _validatedRunDocPath(validatedRun.runSessionId);
     final payload = validatedRun.toJson();
@@ -336,7 +335,9 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
         ? (decoded['runSessionId'] as String).trim()
         : fallbackRunSessionId;
     try {
-      final runTicket = RunTicket.fromJson(Map<String, Object?>.from(runTicketRaw));
+      final runTicket = RunTicket.fromJson(
+        Map<String, Object?>.from(runTicketRaw),
+      );
       final uploadedReplay = _decodeUploadedReplay(uploadedReplayRaw);
       final attempt = _readInt(decoded['validationAttempt']) ?? 0;
       return ValidatorRunSession(
