@@ -27,6 +27,7 @@ import {
   handleRunSessionFinalizeUpload,
   handleRunSessionLoadStatus,
 } from "./runs/callable_handlers.js";
+import { ensureManagedLeaderboardBoards } from "./boards/provisioning.js";
 import { runReplaySubmissionCleanup } from "./runs/cleanup.js";
 import {
   handleLeaderboardLoadBoard,
@@ -170,5 +171,16 @@ export const runSubmissionCleanup = onSchedule(
   async () => {
     const result = await runReplaySubmissionCleanup({ db });
     console.log("runSubmissionCleanup", result);
+  },
+);
+
+export const leaderboardBoardMaintenance = onSchedule(
+  {
+    schedule: "every 60 minutes",
+    timeZone: "Etc/UTC",
+  },
+  async () => {
+    const result = await ensureManagedLeaderboardBoards({ db });
+    console.log("leaderboardBoardMaintenance", result);
   },
 );

@@ -4,8 +4,10 @@ import 'package:provider/provider.dart';
 import '../../components/app_segmented_control.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
+import '../../levels/level_id_ui.dart';
 import '../../state/app_state.dart';
 import '../../state/selection_state.dart';
+import '../../theme/ui_tokens.dart';
 import 'level_select_section.dart';
 
 class LevelSetupPage extends StatelessWidget {
@@ -15,6 +17,9 @@ class LevelSetupPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
     final selection = appState.selection;
+    final weeklyForcedLevelId = selection.selectedRunMode == RunMode.weekly
+        ? appState.weeklyFeaturedLevelId
+        : null;
 
     return MenuScaffold(
       title: 'Select Level',
@@ -39,9 +44,20 @@ class LevelSetupPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
+            if (weeklyForcedLevelId != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  'Weekly uses a fixed level: '
+                  '${weeklyForcedLevelId.displayName}.',
+                  style: context.ui.text.body,
+                  textAlign: TextAlign.center,
+                ),
+              ),
             Center(
               child: LevelSelectSection(
                 selectedLevelId: selection.selectedLevelId,
+                forcedLevelId: weeklyForcedLevelId,
                 onSelectLevel: appState.setLevel,
               ),
             ),

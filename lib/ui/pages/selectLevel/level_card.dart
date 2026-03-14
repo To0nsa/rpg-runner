@@ -13,7 +13,7 @@ class LevelCard extends StatelessWidget {
   const LevelCard({
     super.key,
     required this.levelId,
-    required this.onTap,
+    this.onTap,
     this.selected = false,
     this.width,
     this.height = 120,
@@ -24,7 +24,7 @@ class LevelCard extends StatelessWidget {
   final LevelId levelId;
 
   /// Callback when the card is tapped.
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   /// Whether this card is currently selected.
   final bool selected;
@@ -41,41 +41,45 @@ class LevelCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
+    final enabled = onTap != null;
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: width,
-        height: height,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(borderRadius),
-          border: Border.all(
-            color: selected ? ui.colors.accentStrong : ui.colors.outline,
-            width: ui.sizes.borderWidth,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: ui.colors.shadow,
-              blurRadius: 8,
-              offset: Offset(0, 4),
+      child: Opacity(
+        opacity: enabled || selected ? 1.0 : 0.55,
+        child: Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(borderRadius),
+            border: Border.all(
+              color: selected ? ui.colors.accentStrong : ui.colors.outline,
+              width: ui.sizes.borderWidth,
             ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(borderRadius - 2),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              LevelParallaxPreview(
-                themeId: levelId.themeId,
-                alignment: Alignment.center,
-              ),
-              Center(
-                child: Text(
-                  levelId.displayName.toUpperCase(),
-                  style: ui.text.cardTitle,
-                ),
+            boxShadow: [
+              BoxShadow(
+                color: ui.colors.shadow,
+                blurRadius: 8,
+                offset: Offset(0, 4),
               ),
             ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(borderRadius - 2),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                LevelParallaxPreview(
+                  themeId: levelId.themeId,
+                  alignment: Alignment.center,
+                ),
+                Center(
+                  child: Text(
+                    levelId.displayName.toUpperCase(),
+                    style: ui.text.cardTitle,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

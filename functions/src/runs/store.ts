@@ -3,6 +3,7 @@ import { randomInt, randomUUID } from "node:crypto";
 import type { Firestore } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { ensureManagedBoardForModeLevel } from "../boards/provisioning.js";
 import { loadActiveBoardManifest } from "../boards/store.js";
 import { loadOrCreateCanonicalState } from "../ownership/canonical_store.js";
 import type { JsonObject, JsonValue } from "../ownership/contracts.js";
@@ -77,6 +78,13 @@ export async function createRunSession(
         "Practice mode cannot require a board.",
       );
     }
+    await ensureManagedBoardForModeLevel({
+      db: args.db,
+      mode: snapshot.mode,
+      levelId: snapshot.levelId,
+      nowMs,
+      includeNextWindows: false,
+    });
     const boardManifest = await loadActiveBoardManifest({
       db: args.db,
       mode: snapshot.mode,
@@ -193,4 +201,3 @@ function requireSelectionObject(value: unknown, fieldName: string): JsonObject {
   }
   return value as JsonObject;
 }
-

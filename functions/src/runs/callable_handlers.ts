@@ -1,6 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { ensureManagedBoardForModeLevel } from "../boards/provisioning.js";
 import { loadActiveBoardManifest, toBoardManifestJson } from "../boards/store.js";
 import type { JsonObject } from "../ownership/contracts.js";
 import { parseLoadActiveBoardRequest } from "../boards/validators.js";
@@ -42,6 +43,13 @@ export async function handleRunBoardsLoadActive(
   if (userId !== uid) {
     throw new HttpsError("permission-denied", "userId does not match auth uid.");
   }
+  await ensureManagedBoardForModeLevel({
+    db,
+    mode,
+    levelId,
+    nowMs,
+    includeNextWindows: false,
+  });
   const manifest = await loadActiveBoardManifest({
     db,
     mode,

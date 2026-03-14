@@ -271,6 +271,120 @@ void main() {
       expect(descriptor.boardKey, boardKey);
     },
   );
+
+  test('setRunMode forces weekly to featured level', () async {
+    final initialSelection = SelectionState.defaults.copyWith(
+      selectedLevelId: LevelId.forest,
+      selectedRunMode: RunMode.practice,
+    );
+    final ownershipApi = _ScriptedOwnershipApi(
+      OwnershipCanonicalState(
+        profileId: 'profile_weekly_mode_force',
+        revision: 1,
+        selection: initialSelection,
+        meta: const MetaService().createNew(),
+        progression: ProgressionState.initial,
+      ),
+    );
+    final appState = AppState(
+      authApi: _StaticAuthApi.authenticated(),
+      loadoutOwnershipApi: ownershipApi,
+    );
+    await appState.bootstrap(force: true);
+
+    await appState.setRunMode(RunMode.weekly);
+
+    expect(appState.selection.selectedRunMode, RunMode.weekly);
+    expect(appState.selection.selectedLevelId, appState.weeklyFeaturedLevelId);
+  });
+
+  test('setLevel keeps featured level while weekly mode is selected', () async {
+    final initialSelection = SelectionState.defaults.copyWith(
+      selectedRunMode: RunMode.weekly,
+      selectedLevelId: LevelId.field,
+    );
+    final ownershipApi = _ScriptedOwnershipApi(
+      OwnershipCanonicalState(
+        profileId: 'profile_weekly_level_lock',
+        revision: 1,
+        selection: initialSelection,
+        meta: const MetaService().createNew(),
+        progression: ProgressionState.initial,
+      ),
+    );
+    final appState = AppState(
+      authApi: _StaticAuthApi.authenticated(),
+      loadoutOwnershipApi: ownershipApi,
+    );
+    await appState.bootstrap(force: true);
+
+    await appState.setLevel(LevelId.forest);
+
+    expect(appState.selection.selectedRunMode, RunMode.weekly);
+    expect(appState.selection.selectedLevelId, appState.weeklyFeaturedLevelId);
+  });
+
+  test(
+    'prepareRunStartDescriptor normalizes stale weekly level before run start',
+    () async {
+      final boardKey = BoardKey(
+        mode: RunMode.weekly,
+        levelId: LevelId.field.name,
+        windowId: '2026-W11',
+        rulesetVersion: 'rules-v1',
+        scoreVersion: 'score-v1',
+      );
+      final staleWeeklySelection = SelectionState.defaults.copyWith(
+        selectedRunMode: RunMode.weekly,
+        selectedLevelId: LevelId.forest,
+      );
+      final ownershipApi = _ScriptedOwnershipApi(
+        OwnershipCanonicalState(
+          profileId: 'profile_weekly_normalize',
+          revision: 1,
+          selection: staleWeeklySelection,
+          meta: const MetaService().createNew(),
+          progression: ProgressionState.initial,
+        ),
+      );
+      final runBoardsApi = _RecordingRunBoardsApi();
+      final runSessionApi = _RecordingRunSessionApi(
+        RunTicket(
+          runSessionId: 'session_weekly_normalized',
+          uid: 'u1',
+          mode: RunMode.weekly,
+          boardId: 'board_2026_w11_field',
+          boardKey: boardKey,
+          seed: 999,
+          tickHz: 60,
+          gameCompatVersion: '2026.03.0',
+          rulesetVersion: boardKey.rulesetVersion,
+          scoreVersion: boardKey.scoreVersion,
+          ghostVersion: 'ghost-v1',
+          levelId: LevelId.field.name,
+          playerCharacterId: PlayerCharacterId.eloise.name,
+          loadoutSnapshot: _practiceTicket().loadoutSnapshot,
+          loadoutDigest:
+              '0123456789012345678901234567890123456789012345678901234567890123',
+          issuedAtMs: 1,
+          expiresAtMs: 2,
+          singleUseNonce: 'nonce_weekly',
+        ),
+      );
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: ownershipApi,
+        runBoardsApi: runBoardsApi,
+        runSessionApi: runSessionApi,
+      );
+      await appState.bootstrap(force: true);
+
+      await appState.prepareRunStartDescriptor();
+
+      expect(runBoardsApi.lastLevelId, appState.weeklyFeaturedLevelId);
+      expect(runSessionApi.lastLevelId, appState.weeklyFeaturedLevelId);
+    },
+  );
 }
 
 class _ScriptedRunSessionApi implements RunSessionApi {
@@ -324,6 +438,30 @@ class _ScriptedRunSessionApi implements RunSessionApi {
   }
 }
 
+class _RecordingRunSessionApi extends _ScriptedRunSessionApi {
+  _RecordingRunSessionApi(super.ticket);
+
+  LevelId? lastLevelId;
+
+  @override
+  Future<RunTicket> createRunSession({
+    required String userId,
+    required String sessionId,
+    required RunMode mode,
+    required LevelId levelId,
+    required String gameCompatVersion,
+  }) async {
+    lastLevelId = levelId;
+    return super.createRunSession(
+      userId: userId,
+      sessionId: sessionId,
+      mode: mode,
+      levelId: levelId,
+      gameCompatVersion: gameCompatVersion,
+    );
+  }
+}
+
 class _ScriptedRunBoardsApi implements RunBoardsApi {
   _ScriptedRunBoardsApi({required this.boardKey});
 
@@ -347,6 +485,39 @@ class _ScriptedRunBoardsApi implements RunBoardsApi {
       opensAtMs: 1,
       closesAtMs: 2,
       status: BoardStatus.active,
+    );
+  }
+}
+
+class _RecordingRunBoardsApi extends _ScriptedRunBoardsApi {
+  _RecordingRunBoardsApi()
+    : super(
+        boardKey: BoardKey(
+          mode: RunMode.weekly,
+          levelId: LevelId.field.name,
+          windowId: '2026-W11',
+          rulesetVersion: 'rules-v1',
+          scoreVersion: 'score-v1',
+        ),
+      );
+
+  LevelId? lastLevelId;
+
+  @override
+  Future<BoardManifest> loadActiveBoard({
+    required String userId,
+    required String sessionId,
+    required RunMode mode,
+    required LevelId levelId,
+    required String gameCompatVersion,
+  }) async {
+    lastLevelId = levelId;
+    return super.loadActiveBoard(
+      userId: userId,
+      sessionId: sessionId,
+      mode: mode,
+      levelId: levelId,
+      gameCompatVersion: gameCompatVersion,
     );
   }
 }
@@ -426,7 +597,16 @@ class _ScriptedOwnershipApi implements LoadoutOwnershipApi {
   Future<OwnershipCommandResult> setSelection(
     SetSelectionCommand command,
   ) async {
-    return _acceptedNoop();
+    final nextCanonical = _canonical.copyWith(
+      revision: _canonical.revision + 1,
+      selection: command.selection,
+    );
+    _canonical = nextCanonical;
+    return OwnershipCommandResult(
+      canonicalState: nextCanonical,
+      newRevision: nextCanonical.revision,
+      replayedFromIdempotency: false,
+    );
   }
 
   @override

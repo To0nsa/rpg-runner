@@ -36,6 +36,7 @@ import 'user_profile.dart';
 import 'user_profile_remote_api.dart';
 
 const String _defaultGameCompatVersion = '2026.03.0';
+const LevelId _defaultWeeklyFeaturedLevelId = LevelId.field;
 
 class AppState extends ChangeNotifier {
   factory AppState({
@@ -124,6 +125,7 @@ class AppState extends ChangeNotifier {
       <String, RunSubmissionStatus>{};
 
   SelectionState get selection => _selection;
+  LevelId get weeklyFeaturedLevelId => _defaultWeeklyFeaturedLevelId;
   MetaState get meta => _meta;
   ProgressionState get progression => _progression;
   UserProfile get profile => _profile;
@@ -199,12 +201,23 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> setLevel(LevelId levelId) async {
-    final nextSelection = _selection.copyWith(selectedLevelId: levelId);
+    final resolvedLevelId = _effectiveLevelForMode(
+      mode: _selection.selectedRunMode,
+      selectedLevelId: levelId,
+    );
+    final nextSelection = _selection.copyWith(selectedLevelId: resolvedLevelId);
     await _setSelection(nextSelection);
   }
 
   Future<void> setRunMode(RunMode runMode) async {
-    final nextSelection = _selection.copyWith(selectedRunMode: runMode);
+    final resolvedLevelId = _effectiveLevelForMode(
+      mode: runMode,
+      selectedLevelId: _selection.selectedLevelId,
+    );
+    final nextSelection = _selection.copyWith(
+      selectedRunMode: runMode,
+      selectedLevelId: resolvedLevelId,
+    );
     await _setSelection(nextSelection);
   }
 
@@ -671,6 +684,12 @@ class AppState extends ChangeNotifier {
       sessionId: session.sessionId,
     );
     _applyCanonicalState(canonical);
+    if (_selection.selectedRunMode == RunMode.weekly &&
+        _selection.selectedLevelId != _defaultWeeklyFeaturedLevelId) {
+      await _setSelection(
+        _selection.copyWith(selectedLevelId: _defaultWeeklyFeaturedLevelId),
+      );
+    }
     final canonicalMode = _selection.selectedRunMode;
     final canonicalLevelId = _selection.selectedLevelId;
     if (expectedMode != null && expectedMode != canonicalMode) {
@@ -956,5 +975,15 @@ class AppState extends ChangeNotifier {
     final nowMs = DateTime.now().microsecondsSinceEpoch;
     final salt = _random.nextInt(1 << 31);
     return 'cmd_${nowMs.toRadixString(36)}_${salt.toRadixString(36)}';
+  }
+
+  LevelId _effectiveLevelForMode({
+    required RunMode mode,
+    required LevelId selectedLevelId,
+  }) {
+    if (mode == RunMode.weekly) {
+      return _defaultWeeklyFeaturedLevelId;
+    }
+    return selectedLevelId;
   }
 }
