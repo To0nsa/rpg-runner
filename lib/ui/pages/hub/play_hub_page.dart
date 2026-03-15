@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../app/ui_routes.dart';
-import '../../components/app_button.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
+import '../../components/play_button.dart';
 import 'components/weekly_badge_row.dart';
 import 'components/hub_menu_icon_column.dart';
 import 'components/hub_select_character_card.dart';
@@ -147,28 +147,9 @@ class _PlayHubPageState extends State<PlayHubPage> {
                   ),
                   SizedBox(height: ui.space.lg),
                   Center(
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        AppButton(
-                          label: 'PLAY',
-                          size: AppButtonSize.lg,
-                          onPressed: _preparingRunStart
-                              ? null
-                              : () => _startRun(appState),
-                        ),
-                        if (_preparingRunStart)
-                          SizedBox(
-                            width: ui.sizes.iconSize.md,
-                            height: ui.sizes.iconSize.md,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                ui.colors.textPrimary,
-                              ),
-                            ),
-                          ),
-                      ],
+                    child: PlayButton(
+                      isLoading: _preparingRunStart,
+                      onPressed: () => _startRun(appState),
                     ),
                   ),
                 ],

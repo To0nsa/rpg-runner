@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../app/ui_routes.dart';
-import '../../components/app_button.dart';
 import '../../components/app_segmented_control.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
+import '../../components/play_button.dart';
 import '../../state/app_state.dart';
 import '../../state/run_start_remote_exception.dart';
 import '../../state/selection_state.dart';
@@ -83,10 +83,9 @@ class _LevelSetupPageState extends State<LevelSetupPage> {
             ),
             const SizedBox(height: 20),
             Center(
-              child: AppButton(
-                label: _preparingRunStart ? 'PREPARING...' : 'PLAY',
-                size: AppButtonSize.lg,
-                onPressed: _preparingRunStart ? null : () => _startRun(appState),
+              child: PlayButton(
+                isLoading: _preparingRunStart,
+                onPressed: () => _startRun(appState),
               ),
             ),
           ],
