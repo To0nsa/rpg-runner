@@ -58,6 +58,7 @@ class _LeaderboardsPageState extends State<LeaderboardsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final weeklyFeaturedLevelId = context.read<AppState>().weeklyFeaturedLevelId;
     final segmented = AppSegmentedControl<LeaderboardsRunFilter>(
       values: const [
         LeaderboardsRunFilter.practice,
@@ -89,9 +90,9 @@ class _LeaderboardsPageState extends State<LeaderboardsPage> {
             runMode: RunMode.competitive,
             initialIndex: _initialTabIndex,
           ),
-          LeaderboardsRunFilter.weekly => _OnlinePerLevelLeaderboards(
+          LeaderboardsRunFilter.weekly => _OnlineSingleLevelLeaderboard(
             runMode: RunMode.weekly,
-            initialIndex: _initialTabIndex,
+            levelId: weeklyFeaturedLevelId,
           ),
         },
       ),
@@ -269,6 +270,25 @@ class _OnlinePerLevelLeaderboards extends StatelessWidget {
   }
 }
 
+class _OnlineSingleLevelLeaderboard extends StatelessWidget {
+  const _OnlineSingleLevelLeaderboard({
+    required this.runMode,
+    required this.levelId,
+  });
+
+  final RunMode runMode;
+  final LevelId levelId;
+
+  @override
+  Widget build(BuildContext context) {
+    return _OnlineLeaderboardList(
+      key: ValueKey('${runMode.name}-${levelId.name}'),
+      runMode: runMode,
+      levelId: levelId,
+    );
+  }
+}
+
 class _OnlineLeaderboardList extends StatefulWidget {
   const _OnlineLeaderboardList({
     super.key,
@@ -382,7 +402,21 @@ class _OnlineLeaderboardListState extends State<_OnlineLeaderboardList> {
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return Center(
-            child: Text('Loading online leaderboard...', style: ui.text.body),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Loading online leaderboard.', style: ui.text.body),
+                SizedBox(height: ui.space.sm),
+                SizedBox(
+                  width: ui.sizes.iconSize.md,
+                  height: ui.sizes.iconSize.md,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: ui.colors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
           );
         }
         if (snapshot.hasError) {
@@ -448,7 +482,7 @@ class _OnlineLeaderboardListState extends State<_OnlineLeaderboardList> {
                   : LeaderboardTable(
                       entries: entries,
                       scrollable: true,
-                      trailingHeaderLabel: 'Ghost VS',
+                      trailingHeaderLabel: 'VS Ghost',
                       trailingBuilder: (context, rank, _) {
                         final source = topEntries[rank - 1];
                         final sourceEntryId = source.entryId.trim();
@@ -473,8 +507,8 @@ class _OnlineLeaderboardListState extends State<_OnlineLeaderboardList> {
                           iconSize: 18,
                           visualDensity: VisualDensity.compact,
                           tooltip: source.ghostEligible
-                              ? 'Race this ghost'
-                              : 'Ghost unavailable for this run',
+                              ? 'Race this ghost.'
+                              : 'Ghost unavailable for this run.',
                           onPressed: enabled
                               ? () => unawaited(_startGhostRun(source))
                               : null,

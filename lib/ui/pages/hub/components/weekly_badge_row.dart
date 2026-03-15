@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'app_button.dart';
-import '../theme/ui_tokens.dart';
+import '../../../components/app_button.dart';
+import '../../../theme/ui_tokens.dart';
 
 class WeeklyBadgeRow extends StatelessWidget {
   const WeeklyBadgeRow({
@@ -33,7 +33,11 @@ class WeeklyBadgeRow extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(title, style: ui.text.body),
+            child: Text(
+              title,
+              style: ui.text.body,
+              textAlign: TextAlign.center,
+            ),
           ),
           AppButton(
             label: 'PLAY',
