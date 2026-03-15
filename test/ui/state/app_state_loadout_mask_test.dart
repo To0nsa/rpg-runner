@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/levels/level_id.dart';
@@ -7,6 +9,7 @@ import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:run_protocol/board_key.dart';
 import 'package:run_protocol/board_manifest.dart';
 import 'package:run_protocol/leaderboard_entry.dart';
+import 'package:run_protocol/replay_blob.dart';
 import 'package:run_protocol/submission_status.dart';
 import 'package:run_protocol/run_ticket.dart';
 import 'package:rpg_runner/ui/state/app_state.dart';
@@ -462,6 +465,150 @@ void main() {
   );
 
   test(
+    'prepareRunStartDescriptor with blank ghostEntryId skips ghost bootstrap fetch',
+    () async {
+      final boardKey = BoardKey(
+        mode: RunMode.competitive,
+        levelId: LevelId.field.name,
+        windowId: '2026-03',
+        rulesetVersion: 'rules-v1',
+        scoreVersion: 'score-v1',
+      );
+      final selection = SelectionState.defaults.copyWith(
+        selectedRunMode: RunMode.competitive,
+        selectedLevelId: LevelId.field,
+      );
+      final ownershipApi = _ScriptedOwnershipApi(
+        OwnershipCanonicalState(
+          profileId: 'profile_blank_ghost_entry_skips_fetch',
+          revision: 3,
+          selection: selection,
+          meta: const MetaService().createNew(),
+          progression: ProgressionState.initial,
+        ),
+      );
+      final runSessionApi = _RecordingRunSessionApi(
+        RunTicket(
+          runSessionId: 'session_competitive_blank_ghost_entry',
+          uid: 'u1',
+          mode: RunMode.competitive,
+          boardId: 'board_2026_03_field',
+          boardKey: boardKey,
+          seed: 999,
+          tickHz: 60,
+          gameCompatVersion: '2026.03.0',
+          rulesetVersion: boardKey.rulesetVersion,
+          scoreVersion: boardKey.scoreVersion,
+          ghostVersion: 'ghost-v1',
+          levelId: LevelId.field.name,
+          playerCharacterId: PlayerCharacterId.eloise.name,
+          loadoutSnapshot: _practiceTicket().loadoutSnapshot,
+          loadoutDigest:
+              '0123456789012345678901234567890123456789012345678901234567890123',
+          issuedAtMs: 1,
+          expiresAtMs: 2,
+          singleUseNonce: 'nonce_competitive_blank_ghost_entry',
+        ),
+      );
+      final ghostApi = _RecordingGhostManifestApi();
+      final ghostReplayCache = _RecordingGhostReplayCacheForMaskTests();
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: ownershipApi,
+        runBoardsApi: _ScriptedRunBoardsApi(boardKey: boardKey),
+        runSessionApi: runSessionApi,
+        ghostApi: ghostApi,
+        ghostReplayCache: ghostReplayCache,
+      );
+      await appState.bootstrap(force: true);
+
+      final descriptor = await appState.prepareRunStartDescriptor(
+        ghostEntryId: '   ',
+      );
+
+      expect(runSessionApi.createRunSessionCalls, 1);
+      expect(descriptor.boardId, 'board_2026_03_field');
+      expect(descriptor.ghostReplayBootstrap, isNull);
+      expect(ghostApi.loadCalls, 0);
+      expect(ghostReplayCache.loadCalls, 0);
+    },
+  );
+
+  test(
+    'prepareRunStartDescriptor fetches requested ghost entry using ticket boardId',
+    () async {
+      final boardKey = BoardKey(
+        mode: RunMode.competitive,
+        levelId: LevelId.field.name,
+        windowId: '2026-03',
+        rulesetVersion: 'rules-v1',
+        scoreVersion: 'score-v1',
+      );
+      final selection = SelectionState.defaults.copyWith(
+        selectedRunMode: RunMode.competitive,
+        selectedLevelId: LevelId.field,
+      );
+      final ownershipApi = _ScriptedOwnershipApi(
+        OwnershipCanonicalState(
+          profileId: 'profile_requested_ghost_fetch',
+          revision: 3,
+          selection: selection,
+          meta: const MetaService().createNew(),
+          progression: ProgressionState.initial,
+        ),
+      );
+      final runSessionApi = _RecordingRunSessionApi(
+        RunTicket(
+          runSessionId: 'session_competitive_requested_ghost_fetch',
+          uid: 'u1',
+          mode: RunMode.competitive,
+          boardId: 'board_2026_03_field',
+          boardKey: boardKey,
+          seed: 999,
+          tickHz: 60,
+          gameCompatVersion: '2026.03.0',
+          rulesetVersion: boardKey.rulesetVersion,
+          scoreVersion: boardKey.scoreVersion,
+          ghostVersion: 'ghost-v1',
+          levelId: LevelId.field.name,
+          playerCharacterId: PlayerCharacterId.eloise.name,
+          loadoutSnapshot: _practiceTicket().loadoutSnapshot,
+          loadoutDigest:
+              '0123456789012345678901234567890123456789012345678901234567890123',
+          issuedAtMs: 1,
+          expiresAtMs: 2,
+          singleUseNonce: 'nonce_competitive_requested_ghost_fetch',
+        ),
+      );
+      final ghostApi = _RecordingGhostManifestApi();
+      final ghostReplayCache = _RecordingGhostReplayCacheForMaskTests();
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: ownershipApi,
+        runBoardsApi: _ScriptedRunBoardsApi(boardKey: boardKey),
+        runSessionApi: runSessionApi,
+        ghostApi: ghostApi,
+        ghostReplayCache: ghostReplayCache,
+      );
+      await appState.bootstrap(force: true);
+
+      final descriptor = await appState.prepareRunStartDescriptor(
+        ghostEntryId: 'entry_ghost_42',
+      );
+
+      expect(runSessionApi.createRunSessionCalls, 1);
+      expect(descriptor.boardId, 'board_2026_03_field');
+      expect(descriptor.ghostReplayBootstrap, isNotNull);
+      expect(ghostApi.loadCalls, 1);
+      expect(ghostApi.lastBoardId, 'board_2026_03_field');
+      expect(ghostApi.lastEntryId, 'entry_ghost_42');
+      expect(ghostReplayCache.loadCalls, 1);
+      expect(ghostReplayCache.lastManifestBoardId, 'board_2026_03_field');
+      expect(ghostReplayCache.lastManifestEntryId, 'entry_ghost_42');
+    },
+  );
+
+  test(
     'prepareRunStartDescriptor fails when requested ghost bootstrap download fails',
     () async {
       final boardKey = BoardKey(
@@ -846,6 +993,80 @@ class _SingleGhostEntryLeaderboardApi implements LeaderboardApi {
     required String boardId,
   }) async {
     throw UnimplementedError('loadMyRank is not used in this test.');
+  }
+}
+
+class _RecordingGhostManifestApi implements GhostApi {
+  int loadCalls = 0;
+  String? lastBoardId;
+  String? lastEntryId;
+
+  @override
+  Future<GhostManifest> loadManifest({
+    required String userId,
+    required String sessionId,
+    required String boardId,
+    required String entryId,
+  }) async {
+    loadCalls += 1;
+    lastBoardId = boardId;
+    lastEntryId = entryId;
+    return GhostManifest(
+      boardId: boardId,
+      entryId: entryId,
+      runSessionId: 'run_ghost_recording',
+      uid: 'u_ghost',
+      replayStorageRef: 'ghosts/$boardId/$entryId/ghost.bin.gz',
+      sourceReplayStorageRef:
+          'replay-submissions/pending/u_ghost/run_ghost_recording/replay.bin.gz',
+      downloadUrl: 'https://example.test/ghost.bin.gz',
+      downloadUrlExpiresAtMs: DateTime.now().millisecondsSinceEpoch + 60000,
+      score: 1000,
+      distanceMeters: 400,
+      durationSeconds: 120,
+      sortKey: '00001:00001:00120:$entryId',
+      rank: 1,
+      updatedAtMs: 1,
+    );
+  }
+}
+
+class _RecordingGhostReplayCacheForMaskTests implements GhostReplayCache {
+  int loadCalls = 0;
+  String? lastManifestBoardId;
+  String? lastManifestEntryId;
+
+  @override
+  Future<GhostReplayBootstrap> loadReplay({
+    required GhostManifest manifest,
+  }) async {
+    loadCalls += 1;
+    lastManifestBoardId = manifest.boardId;
+    lastManifestEntryId = manifest.entryId;
+    final replayBlob = ReplayBlobV1.withComputedDigest(
+      runSessionId: manifest.runSessionId,
+      boardId: manifest.boardId,
+      boardKey: const BoardKey(
+        mode: RunMode.competitive,
+        levelId: 'field',
+        windowId: '2026-03',
+        rulesetVersion: 'rules-v1',
+        scoreVersion: 'score-v1',
+      ),
+      tickHz: 60,
+      seed: 123,
+      levelId: 'field',
+      playerCharacterId: 'eloise',
+      loadoutSnapshot: _practiceTicket().loadoutSnapshot,
+      totalTicks: 0,
+      commandStream: const <ReplayCommandFrameV1>[],
+    );
+    return GhostReplayBootstrap(
+      manifest: manifest,
+      replayBlob: replayBlob,
+      cachedFile: File('ghost.recording.replay.json'),
+      cachedAtMs: 1,
+    );
   }
 }
 

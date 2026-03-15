@@ -4,6 +4,7 @@
 // renders a minimal representation (a player dot + debug text). This file is
 // intentionally tiny and non-authoritative: gameplay truth lives in Core.
 import 'dart:math' as dart_math;
+import 'dart:async';
 
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
@@ -13,9 +14,12 @@ import 'package:flutter/widgets.dart';
 import 'package:runner_core/contracts/render_contract.dart';
 import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/players/player_character_definition.dart';
+import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 import 'package:runner_core/snapshots/enums.dart';
+import 'package:runner_core/snapshots/game_state_snapshot.dart';
 import 'package:runner_core/snapshots/static_solid_snapshot.dart';
+import 'package:run_protocol/replay_blob.dart';
 import 'debug/debug_aabb_overlay.dart';
 import 'debug/render_debug_flags.dart';
 import 'components/player/player_animations.dart';
@@ -24,6 +28,7 @@ import 'components/enemies/enemy_render_registry.dart';
 import 'components/pickups/pickup_render_registry.dart';
 import 'components/projectiles/projectile_render_registry.dart';
 import 'components/sprite_anim/deterministic_anim_view_component.dart';
+import 'components/sprite_anim/sprite_anim_set.dart';
 import 'components/ground_surface_component.dart';
 import 'components/ground_band_parallax_foreground_component.dart';
 import 'tuning/player_render_tuning.dart';
@@ -46,6 +51,7 @@ const _priorityTemporaryFloorMask = -25;
 const _priorityGroundTiles = -20;
 const _priorityForegroundParallax = -10;
 const _priorityStaticSolids = -5;
+const _priorityGhostEntities = -4;
 const _priorityPlayer = -3;
 const _priorityEnemies = -2;
 const _priorityProjectiles = -1;
@@ -88,6 +94,9 @@ class RunnerFlameGame extends FlameGame {
     required this.projectileAimPreview,
     required this.meleeAimPreview,
     required this.playerCharacter,
+    this.ghostSnapshotListenable,
+    this.ghostEventsListenable,
+    this.ghostReplayBlobListenable,
     CombatFeedbackTuning combatFeedbackTuning = const CombatFeedbackTuning(),
   }) : _enemyRenderRegistry = EnemyRenderRegistry(
          enemyCatalog: controller.enemyCatalog,
@@ -111,6 +120,9 @@ class RunnerFlameGame extends FlameGame {
   /// UI-driven aim preview (render-only).
   final ValueListenable<AimPreviewState> projectileAimPreview;
   final ValueListenable<AimPreviewState> meleeAimPreview;
+  final ValueListenable<GameStateSnapshot?>? ghostSnapshotListenable;
+  final ValueListenable<List<GameEvent>>? ghostEventsListenable;
+  final ValueListenable<ReplayBlobV1?>? ghostReplayBlobListenable;
 
   /// The selected player character definition for this run (render-only usage).
   final PlayerCharacterDefinition playerCharacter;
@@ -160,10 +172,133 @@ class RunnerFlameGame extends FlameGame {
       <ProjectileHitEvent>[];
   final List<EntityVisualCueEvent> _pendingEntityVisualCueEvents =
       <EntityVisualCueEvent>[];
+  final Map<int, DeterministicAnimViewComponent> _ghostEnemies =
+      <int, DeterministicAnimViewComponent>{};
+  final Map<int, DeterministicAnimViewComponent> _ghostProjectiles =
+      <int, DeterministicAnimViewComponent>{};
+  final Map<int, int> _ghostProjectileSpawnTicks = <int, int>{};
+  final Map<int, EntityRenderSnapshot> _prevGhostEntitiesById =
+      <int, EntityRenderSnapshot>{};
+  final List<ProjectileHitEvent> _pendingGhostProjectileHitEvents =
+      <ProjectileHitEvent>[];
+  final List<EntityVisualCueEvent> _pendingGhostEntityVisualCueEvents =
+      <EntityVisualCueEvent>[];
+  DeterministicAnimViewComponent? _ghostPlayer;
+  int? _ghostPlayerEntityId;
+  GameStateSnapshot? _ghostPrevSnapshot;
+  GameStateSnapshot? _ghostSnapshot;
+  ReplayBlobV1? _ghostReplayBlob;
+  SpriteAnimSet? _ghostPlayerAnimSet;
+  String? _ghostPlayerAnimCharacterId;
+  bool _ghostPlayerAnimLoading = false;
+  bool _ghostLayerDisabled = false;
+  String? _ghostLayerDisableReason;
+
+  void _onGhostRenderFeedChanged() {
+    final replayBlob = ghostReplayBlobListenable?.value;
+    if (replayBlob == null) {
+      _ghostReplayBlob = null;
+      _ghostSnapshot = null;
+      _ghostPrevSnapshot = null;
+      _ghostPlayerAnimSet = null;
+      _ghostPlayerAnimCharacterId = null;
+      _ghostLayerDisabled = false;
+      _ghostLayerDisableReason = null;
+      _clearGhostViews();
+    } else {
+      _ghostReplayBlob = replayBlob;
+      if (replayBlob.playerCharacterId != _ghostPlayerAnimCharacterId &&
+          !_ghostPlayerAnimLoading) {
+        unawaited(_loadGhostPlayerAnimations(replayBlob));
+      }
+    }
+
+    final nextSnapshot = ghostSnapshotListenable?.value;
+    if (nextSnapshot != null) {
+      _ghostPrevSnapshot = _ghostSnapshot;
+      _ghostSnapshot = nextSnapshot;
+    }
+
+    final events = ghostEventsListenable?.value;
+    if (events != null && events.isNotEmpty) {
+      for (final event in events) {
+        if (event is ProjectileHitEvent) {
+          _pendingGhostProjectileHitEvents.add(event);
+          continue;
+        }
+        if (event is EntityVisualCueEvent) {
+          _pendingGhostEntityVisualCueEvents.add(event);
+        }
+      }
+    }
+  }
+
+  Future<void> _loadGhostPlayerAnimations(ReplayBlobV1 replayBlob) async {
+    _ghostPlayerAnimLoading = true;
+    try {
+      final characterId = _enumByName(
+        PlayerCharacterId.values,
+        replayBlob.playerCharacterId,
+        fieldName: 'ghostReplayBlob.playerCharacterId',
+      );
+      final character = PlayerCharacterRegistry.resolve(characterId);
+      _ghostPlayerAnimSet = await loadPlayerAnimations(
+        images,
+        renderAnim: character.renderAnim,
+      );
+      _ghostPlayerAnimCharacterId = replayBlob.playerCharacterId;
+      _ghostLayerDisabled = false;
+      _ghostLayerDisableReason = null;
+    } catch (error) {
+      _disableGhostLayer(
+        'ghost-player-animation-load-failed',
+        details: '$error',
+      );
+    } finally {
+      _ghostPlayerAnimLoading = false;
+    }
+  }
+
+  void _disableGhostLayer(String reasonCode, {String? details}) {
+    _ghostLayerDisabled = true;
+    _ghostLayerDisableReason = reasonCode;
+    _clearGhostViews();
+    final replayRunSessionId = _ghostReplayBlob?.runSessionId;
+    final replayBoardId = _ghostReplayBlob?.boardId;
+    debugPrint(
+      'Ghost layer disabled: reason=$reasonCode '
+      'runId=${controller.snapshot.runId} '
+      'tick=${controller.snapshot.tick} '
+      'replayRunSessionId=${replayRunSessionId ?? 'n/a'} '
+      'replayBoardId=${replayBoardId ?? 'n/a'} '
+      '${details == null ? '' : 'details=$details'}',
+    );
+  }
+
+  void _clearGhostViews() {
+    _ghostPlayerEntityId = null;
+    _ghostPlayer?.removeFromParent();
+    _ghostPlayer = null;
+    for (final view in _ghostEnemies.values) {
+      view.removeFromParent();
+    }
+    _ghostEnemies.clear();
+    for (final view in _ghostProjectiles.values) {
+      view.removeFromParent();
+    }
+    _ghostProjectiles.clear();
+    _ghostProjectileSpawnTicks.clear();
+    _prevGhostEntitiesById.clear();
+    _pendingGhostProjectileHitEvents.clear();
+    _pendingGhostEntityVisualCueEvents.clear();
+  }
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    ghostSnapshotListenable?.addListener(_onGhostRenderFeedChanged);
+    ghostEventsListenable?.addListener(_onGhostRenderFeedChanged);
+    ghostReplayBlobListenable?.addListener(_onGhostRenderFeedChanged);
     assert(() {
       playerCharacter.assertValid();
       return true;
@@ -340,6 +475,9 @@ class RunnerFlameGame extends FlameGame {
       alpha: alpha,
       cameraCenter: _cameraCenterScratch,
     );
+    _syncGhostLayer(alpha: alpha, cameraCenter: _cameraCenterScratch);
+    _flushPendingGhostEntityVisualCueEvents();
+    _flushPendingGhostProjectileHitEvents(cameraCenter: _cameraCenterScratch);
     final drawHitboxes =
         RenderDebugFlags.canUseRenderDebug &&
         RenderDebugFlags.drawActorHitboxes;
@@ -710,6 +848,304 @@ class RunnerFlameGame extends FlameGame {
     }
   }
 
+  void _syncGhostLayer({required double alpha, required Vector2 cameraCenter}) {
+    if (_ghostLayerDisabled) {
+      if (_ghostLayerDisableReason != null) {
+        // Read reason field so diagnostic context remains attached to disable state.
+      }
+      _clearGhostViews();
+      return;
+    }
+    final snapshot = _ghostSnapshot;
+    final replayBlob = _ghostReplayBlob;
+    final playerAnimSet = _ghostPlayerAnimSet;
+    if (snapshot == null || replayBlob == null || playerAnimSet == null) {
+      _clearGhostViews();
+      return;
+    }
+
+    _prevGhostEntitiesById.clear();
+    final prevGhostSnapshot = _ghostPrevSnapshot;
+    if (prevGhostSnapshot != null) {
+      for (final entity in prevGhostSnapshot.entities) {
+        _prevGhostEntitiesById[entity.id] = entity;
+      }
+    }
+
+    _syncGhostPlayer(
+      entities: snapshot.entities,
+      prevById: _prevGhostEntitiesById,
+      alpha: alpha,
+      cameraCenter: cameraCenter,
+      playerAnimSet: playerAnimSet,
+    );
+    _syncGhostEnemies(
+      entities: snapshot.entities,
+      prevById: _prevGhostEntitiesById,
+      alpha: alpha,
+      cameraCenter: cameraCenter,
+    );
+    _syncGhostProjectiles(
+      entities: snapshot.entities,
+      prevById: _prevGhostEntitiesById,
+      alpha: alpha,
+      cameraCenter: cameraCenter,
+      tick: snapshot.tick,
+    );
+  }
+
+  void _syncGhostPlayer({
+    required List<EntityRenderSnapshot> entities,
+    required Map<int, EntityRenderSnapshot> prevById,
+    required double alpha,
+    required Vector2 cameraCenter,
+    required SpriteAnimSet playerAnimSet,
+  }) {
+    EntityRenderSnapshot? playerEntity;
+    for (final entity in entities) {
+      if (entity.kind == EntityKind.player) {
+        playerEntity = entity;
+        break;
+      }
+    }
+
+    if (playerEntity == null) {
+      _ghostPlayerEntityId = null;
+      _ghostPlayer?.removeFromParent();
+      _ghostPlayer = null;
+      return;
+    }
+
+    var playerView = _ghostPlayer;
+    if (playerView == null) {
+      playerView = PlayerViewComponent(
+        animationSet: playerAnimSet,
+        renderScale: Vector2.all(_playerRenderTuning.scale),
+        feedbackTuning: _combatFeedbackTuning,
+      )
+        ..priority = _priorityGhostEntities
+        ..setVisualStyle(RenderVisualStyle.ghost);
+      _ghostPlayer = playerView;
+      world.add(playerView);
+    }
+
+    final prev = prevById[playerEntity.id] ?? playerEntity;
+    final worldX = math.lerpDouble(prev.pos.x, playerEntity.pos.x, alpha);
+    final worldY = math.lerpDouble(prev.pos.y, playerEntity.pos.y, alpha);
+    _snapScratch.setValues(
+      math.snapWorldToPixelsInCameraSpace1d(worldX, cameraCenter.x),
+      math.snapWorldToPixelsInCameraSpace1d(worldY, cameraCenter.y),
+    );
+    playerView.applySnapshot(
+      playerEntity,
+      tickHz: controller.tickHz,
+      pos: _snapScratch,
+    );
+    playerView.setStatusVisualMask(playerEntity.statusVisualMask);
+    _ghostPlayerEntityId = playerEntity.id;
+  }
+
+  void _syncGhostEnemies({
+    required List<EntityRenderSnapshot> entities,
+    required Map<int, EntityRenderSnapshot> prevById,
+    required double alpha,
+    required Vector2 cameraCenter,
+  }) {
+    final seen = _seenIdsScratch..clear();
+    for (final entity in entities) {
+      if (entity.kind != EntityKind.enemy) continue;
+      final enemyId = entity.enemyId;
+      final entry = enemyId == null ? null : _enemyRenderRegistry.entryFor(enemyId);
+      if (entry == null) {
+        _ghostEnemies.remove(entity.id)?.removeFromParent();
+        continue;
+      }
+
+      seen.add(entity.id);
+      var view = _ghostEnemies[entity.id];
+      if (view == null) {
+        view = entry.viewFactory(entry.animSet, entry.renderScale)
+          ..priority = _priorityGhostEntities
+          ..setFeedbackTuning(_combatFeedbackTuning)
+          ..setVisualStyle(RenderVisualStyle.ghost);
+        _ghostEnemies[entity.id] = view;
+        world.add(view);
+      }
+
+      final prev = prevById[entity.id] ?? entity;
+      final worldX = math.lerpDouble(prev.pos.x, entity.pos.x, alpha);
+      final worldY = math.lerpDouble(prev.pos.y, entity.pos.y, alpha);
+      _snapScratch.setValues(
+        math.snapWorldToPixelsInCameraSpace1d(worldX, cameraCenter.x),
+        math.snapWorldToPixelsInCameraSpace1d(worldY, cameraCenter.y),
+      );
+      view.applySnapshot(entity, tickHz: controller.tickHz, pos: _snapScratch);
+      view.setStatusVisualMask(entity.statusVisualMask);
+    }
+
+    if (_ghostEnemies.isEmpty) {
+      return;
+    }
+    final toRemove = _toRemoveScratch..clear();
+    for (final id in _ghostEnemies.keys) {
+      if (!seen.contains(id)) {
+        toRemove.add(id);
+      }
+    }
+    for (final id in toRemove) {
+      _ghostEnemies.remove(id)?.removeFromParent();
+    }
+  }
+
+  void _syncGhostProjectiles({
+    required List<EntityRenderSnapshot> entities,
+    required Map<int, EntityRenderSnapshot> prevById,
+    required double alpha,
+    required Vector2 cameraCenter,
+    required int tick,
+  }) {
+    final seen = _seenIdsScratch..clear();
+    for (final entity in entities) {
+      if (entity.kind != EntityKind.projectile) continue;
+      seen.add(entity.id);
+
+      final projectileId = entity.projectileId;
+      final entry = projectileId == null
+          ? null
+          : _projectileRenderRegistry.entryFor(projectileId);
+      if (entry == null) {
+        _ghostProjectiles.remove(entity.id)?.removeFromParent();
+        _ghostProjectileSpawnTicks.remove(entity.id);
+        continue;
+      }
+
+      var view = _ghostProjectiles[entity.id];
+      if (view == null) {
+        view = entry.viewFactory(entry.animSet, entry.renderScale)
+          ..priority = _priorityGhostEntities
+          ..setVisualStyle(RenderVisualStyle.ghost);
+        _ghostProjectiles[entity.id] = view;
+        _ghostProjectileSpawnTicks[entity.id] = tick;
+        world.add(view);
+      }
+
+      final prev = prevById[entity.id] ?? entity;
+      final worldX = math.lerpDouble(prev.pos.x, entity.pos.x, alpha);
+      final worldY = math.lerpDouble(prev.pos.y, entity.pos.y, alpha);
+      _snapScratch.setValues(
+        math.snapWorldToPixelsInCameraSpace1d(worldX, cameraCenter.x),
+        math.snapWorldToPixelsInCameraSpace1d(worldY, cameraCenter.y),
+      );
+
+      final spawnTick = _ghostProjectileSpawnTicks[entity.id] ?? tick;
+      final startTicks = entry.spawnAnimTicks(controller.tickHz);
+      final ageTicks = tick - spawnTick;
+      final animOverride =
+          startTicks > 0 && ageTicks >= 0 && ageTicks < startTicks
+          ? AnimKey.spawn
+          : AnimKey.idle;
+      final overrideAnimFrame = animOverride == AnimKey.spawn ? ageTicks : null;
+
+      view.applySnapshot(
+        entity,
+        tickHz: controller.tickHz,
+        pos: _snapScratch,
+        overrideAnim: animOverride,
+        overrideAnimFrame: overrideAnimFrame,
+      );
+      view.setStatusVisualMask(entity.statusVisualMask);
+
+      final spinSpeed = entry.spinSpeedRadPerSecond;
+      if (spinSpeed == 0.0) {
+        view.angle = entity.rotationRad;
+      } else {
+        final spinSeconds = (ageTicks.toDouble() + alpha) / controller.tickHz;
+        view.angle = entity.rotationRad + spinSpeed * spinSeconds;
+      }
+    }
+
+    if (_ghostProjectiles.isEmpty) {
+      return;
+    }
+    final toRemove = _toRemoveScratch..clear();
+    for (final id in _ghostProjectiles.keys) {
+      if (!seen.contains(id)) {
+        toRemove.add(id);
+      }
+    }
+    for (final id in toRemove) {
+      _ghostProjectiles.remove(id)?.removeFromParent();
+      _ghostProjectileSpawnTicks.remove(id);
+    }
+  }
+
+  void _flushPendingGhostEntityVisualCueEvents() {
+    if (_pendingGhostEntityVisualCueEvents.isEmpty) {
+      return;
+    }
+
+    for (final event in _pendingGhostEntityVisualCueEvents) {
+      final intensity01 = _visualCueIntensity01(event.intensityBp);
+      if (intensity01 <= 0.0) continue;
+
+      final DeterministicAnimViewComponent? view;
+      if (_ghostPlayerEntityId != null && event.entityId == _ghostPlayerEntityId) {
+        view = _ghostPlayer;
+      } else {
+        view = _ghostEnemies[event.entityId] ?? _ghostProjectiles[event.entityId];
+      }
+      if (view == null) continue;
+
+      switch (event.kind) {
+        case EntityVisualCueKind.directHit:
+          view.triggerDirectHitFlash(intensity01: intensity01);
+        case EntityVisualCueKind.dotPulse:
+          view.triggerDotPulse(
+            color: _combatFeedbackTuning.dotColorFor(event.damageType),
+            intensity01: intensity01,
+          );
+        case EntityVisualCueKind.resourcePulse:
+          view.triggerResourcePulse(
+            color: _combatFeedbackTuning.resourceColorFor(event.resourceType),
+            intensity01: intensity01,
+          );
+      }
+    }
+
+    _pendingGhostEntityVisualCueEvents.clear();
+  }
+
+  void _flushPendingGhostProjectileHitEvents({required Vector2 cameraCenter}) {
+    if (_pendingGhostProjectileHitEvents.isEmpty) {
+      return;
+    }
+
+    for (final event in _pendingGhostProjectileHitEvents) {
+      final entry = _projectileRenderRegistry.entryFor(event.projectileId);
+      if (entry == null) continue;
+
+      final hitAnim = entry.animSet.animations[AnimKey.hit];
+      if (hitAnim == null) continue;
+
+      final component = _CameraSpaceSnappedSpriteAnimationComponent(
+        animation: hitAnim,
+        size: entry.animSet.frameSize.clone(),
+        worldPosX: event.pos.x,
+        worldPosY: event.pos.y,
+        anchor: entry.animSet.anchor,
+        paint: Paint()..filterQuality = FilterQuality.none,
+        removeOnFinish: true,
+      )..priority = _priorityGhostEntities;
+
+      component.scale.setValues(entry.renderScale.x, entry.renderScale.y);
+      component.angle = event.rotationRad;
+      component.snapToCamera(cameraCenter);
+      world.add(component);
+    }
+
+    _pendingGhostProjectileHitEvents.clear();
+  }
+
   /// Synchronizes trigger/hitbox view components with the snapshot.
   ///
   /// Creates translucent red rectangle components for new triggers, updates
@@ -807,6 +1243,10 @@ class RunnerFlameGame extends FlameGame {
 
   @override
   void onRemove() {
+    ghostSnapshotListenable?.removeListener(_onGhostRenderFeedChanged);
+    ghostEventsListenable?.removeListener(_onGhostRenderFeedChanged);
+    ghostReplayBlobListenable?.removeListener(_onGhostRenderFeedChanged);
+    _clearGhostViews();
     controller.removeEventListener(_handleGameEvent);
     images.clearCache();
     super.onRemove();
@@ -821,6 +1261,67 @@ class RunnerFlameGame extends FlameGame {
   void _setLoadState(RunLoadPhase phase, double progress) {
     final clamped = progress.clamp(0.0, 1.0);
     loadState.value = RunLoadState(phase: phase, progress: clamped);
+  }
+
+  @visibleForTesting
+  bool get debugGhostLayerDisabled => _ghostLayerDisabled;
+
+  @visibleForTesting
+  String? get debugGhostLayerDisableReason => _ghostLayerDisableReason;
+
+  @visibleForTesting
+  bool get debugHasGhostPlayerView => _ghostPlayer != null;
+
+  @visibleForTesting
+  int? get debugGhostPlayerEntityId => _ghostPlayerEntityId;
+
+  @visibleForTesting
+  int get debugGhostEnemyCount => _ghostEnemies.length;
+
+  @visibleForTesting
+  int get debugGhostProjectileCount => _ghostProjectiles.length;
+
+  @visibleForTesting
+  void debugSetGhostRenderStateForTest({
+    GameStateSnapshot? snapshot,
+    GameStateSnapshot? prevSnapshot,
+    ReplayBlobV1? replayBlob,
+    SpriteAnimSet? playerAnimSet,
+    List<GameEvent>? events,
+  }) {
+    _ghostSnapshot = snapshot;
+    _ghostPrevSnapshot = prevSnapshot;
+    _ghostReplayBlob = replayBlob;
+    _ghostPlayerAnimSet = playerAnimSet;
+    _pendingGhostProjectileHitEvents.clear();
+    _pendingGhostEntityVisualCueEvents.clear();
+    if (events != null && events.isNotEmpty) {
+      for (final event in events) {
+        if (event is ProjectileHitEvent) {
+          _pendingGhostProjectileHitEvents.add(event);
+          continue;
+        }
+        if (event is EntityVisualCueEvent) {
+          _pendingGhostEntityVisualCueEvents.add(event);
+        }
+      }
+    }
+  }
+
+  @visibleForTesting
+  void debugSyncGhostLayerForTest({
+    double alpha = 0.0,
+    Vector2? cameraCenter,
+  }) {
+    final center = cameraCenter ?? Vector2.zero();
+    _syncGhostLayer(alpha: alpha, cameraCenter: center);
+    _flushPendingGhostEntityVisualCueEvents();
+    _flushPendingGhostProjectileHitEvents(cameraCenter: center);
+  }
+
+  @visibleForTesting
+  void debugDisableGhostLayerForTest(String reasonCode, {String? details}) {
+    _disableGhostLayer(reasonCode, details: details);
   }
 
   /// Bottom anchor for parallax layers, aligned to the visible ground top.
@@ -891,6 +1392,19 @@ class _CameraShakeController {
   static const double _oscillationRadPerSecond = 44.0 * 2.0 * dart_math.pi;
 
   double _lerp(double min, double max, double t) => min + (max - min) * t;
+}
+
+T _enumByName<T extends Enum>(
+  List<T> values,
+  String raw, {
+  required String fieldName,
+}) {
+  for (final value in values) {
+    if (value.name == raw) {
+      return value;
+    }
+  }
+  throw ArgumentError.value(raw, fieldName, 'Unsupported enum value.');
 }
 
 /// Temporary black backdrop mask from floor level downward.

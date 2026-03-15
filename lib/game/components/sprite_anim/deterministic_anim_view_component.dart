@@ -14,6 +14,8 @@ import '../../util/math_util.dart' as math;
 
 typedef AnimKeyFallbackResolver = AnimKey Function(AnimKey desired);
 
+enum RenderVisualStyle { live, ghost }
+
 class DeterministicAnimViewComponent
     extends SpriteAnimationGroupComponent<AnimKey> {
   DeterministicAnimViewComponent({
@@ -24,13 +26,15 @@ class DeterministicAnimViewComponent
     Vector2? renderScale,
     bool respectFacing = true,
     CombatFeedbackTuning feedbackTuning = const CombatFeedbackTuning(),
+    RenderVisualStyle visualStyle = RenderVisualStyle.live,
   }) : _animSet = animSet,
        _availableAnimations = animSet.animations,
        _oneShotKeys = animSet.oneShotKeys,
        _fallbackResolver = fallbackResolver,
        _baseScale = renderScale?.clone() ?? Vector2.all(1.0),
        _feedbackTuning = feedbackTuning,
-       _respectFacing = respectFacing,
+      _respectFacing = respectFacing,
+      _visualStyle = visualStyle,
        super(
          animations: animSet.animations,
          current: initial,
@@ -52,6 +56,7 @@ class DeterministicAnimViewComponent
   final Vector2 _baseScale;
   CombatFeedbackTuning _feedbackTuning;
   final bool _respectFacing;
+  RenderVisualStyle _visualStyle;
   int _statusVisualMask = EntityStatusVisualMask.none;
   double _directHitFlashSeconds = 0.0;
   double _directHitFlashDurationSeconds = 0.0;
@@ -68,6 +73,11 @@ class DeterministicAnimViewComponent
   /// Updates render feedback tuning at runtime.
   void setFeedbackTuning(CombatFeedbackTuning tuning) {
     _feedbackTuning = tuning;
+  }
+
+  /// Updates render visual style at runtime.
+  void setVisualStyle(RenderVisualStyle visualStyle) {
+    _visualStyle = visualStyle;
   }
 
   /// Sets persistent status visuals for this entity.
@@ -170,6 +180,43 @@ class DeterministicAnimViewComponent
   }
 
   @override
+  void render(Canvas canvas) {
+    if (_visualStyle != RenderVisualStyle.ghost) {
+      super.render(canvas);
+      return;
+    }
+
+    final originalFilter = paint.colorFilter;
+    final originalOpacity = opacity;
+    paint.colorFilter = const ColorFilter.mode(
+      Color.fromARGB(230, 0, 0, 0),
+      BlendMode.srcATop,
+    );
+    opacity = 1.0;
+
+    const outlineOffsets = <Offset>[
+      Offset(-1.0, -1.0),
+      Offset(-1.0, 0.0),
+      Offset(-1.0, 1.0),
+      Offset(1.0, 0.0),
+      Offset(1.0, -1.0),
+      Offset(1.0, 1.0),
+      Offset(0.0, -1.0),
+      Offset(0.0, 1.0),
+    ];
+    for (final offset in outlineOffsets) {
+      canvas.save();
+      canvas.translate(offset.dx, offset.dy);
+      super.render(canvas);
+      canvas.restore();
+    }
+
+    paint.colorFilter = originalFilter;
+    opacity = originalOpacity;
+    super.render(canvas);
+  }
+
+  @override
   void update(double dt) {
     _directHitFlashSeconds = dart_math.max(0.0, _directHitFlashSeconds - dt);
     _dotPulseSeconds = dart_math.max(0.0, _dotPulseSeconds - dt);
@@ -179,6 +226,10 @@ class DeterministicAnimViewComponent
   }
 
   void _applyVisualTint() {
+    if (_visualStyle == RenderVisualStyle.ghost) {
+      _applyGhostVisualTint();
+      return;
+    }
     double weightedRed = 0.0;
     double weightedGreen = 0.0;
     double weightedBlue = 0.0;
@@ -239,6 +290,49 @@ class DeterministicAnimViewComponent
     final alpha = totalAlpha.clamp(0.0, 1.0);
     final color = Color.fromARGB((alpha * 255.0).round(), red, green, blue);
     paint.colorFilter = ColorFilter.mode(color, BlendMode.srcATop);
+    opacity = 1.0;
+  }
+
+  void _applyGhostVisualTint() {
+    const ghostBaseAlpha = 0.72;
+    var totalAlpha = ghostBaseAlpha;
+
+    final statusOverlay = _statusOverlayForMask(_statusVisualMask);
+    totalAlpha += statusOverlay.$2 * 0.35;
+
+    if (_dotPulseSeconds > 0.0 && _dotPulseDurationSeconds > 0.0) {
+      final t = (_dotPulseSeconds / _dotPulseDurationSeconds).clamp(0.0, 1.0);
+      totalAlpha +=
+          _dotPulseStrength *
+          _fadeWeight(t, _feedbackTuning.dotPulse.fadeExponent) *
+          0.30;
+    }
+    if (_resourcePulseSeconds > 0.0 && _resourcePulseDurationSeconds > 0.0) {
+      final t = (_resourcePulseSeconds / _resourcePulseDurationSeconds).clamp(
+        0.0,
+        1.0,
+      );
+      totalAlpha +=
+          _resourcePulseStrength *
+          _fadeWeight(t, _feedbackTuning.resourcePulse.fadeExponent) *
+          0.30;
+    }
+    if (_directHitFlashSeconds > 0.0 && _directHitFlashDurationSeconds > 0.0) {
+      final t = (_directHitFlashSeconds / _directHitFlashDurationSeconds).clamp(
+        0.0,
+        1.0,
+      );
+      totalAlpha +=
+          _directHitFlashStrength *
+          _fadeWeight(t, _feedbackTuning.directHitPulse.fadeExponent) *
+          0.40;
+    }
+    final alpha = totalAlpha.clamp(0.55, 0.92);
+    paint.colorFilter = ColorFilter.mode(
+      Color.fromARGB((alpha * 255.0).round(), 255, 255, 255),
+      BlendMode.srcATop,
+    );
+    opacity = 1.0;
   }
 
   (Color, double) _statusOverlayForMask(int mask) {

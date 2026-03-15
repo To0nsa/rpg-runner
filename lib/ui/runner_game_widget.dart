@@ -16,7 +16,7 @@ import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/players/player_character_registry.dart';
-import 'package:runner_core/tuning/score_tuning.dart';
+import 'package:runner_core/snapshots/game_state_snapshot.dart';
 import '../game/game_controller.dart';
 import '../game/input/aim_preview.dart';
 import '../game/replay/run_recorder.dart';
@@ -113,6 +113,12 @@ class RunnerGameWidget extends StatefulWidget {
 class _RunnerGameWidgetState extends State<RunnerGameWidget>
     with WidgetsBindingObserver {
   final UiHaptics _haptics = const UiHapticsService();
+  final ValueNotifier<GameStateSnapshot?> _ghostSnapshotBridge =
+      ValueNotifier<GameStateSnapshot?>(null);
+  final ValueNotifier<List<GameEvent>> _ghostEventsBridge =
+      ValueNotifier<List<GameEvent>>(const <GameEvent>[]);
+    final ValueNotifier<ReplayBlobV1?> _ghostReplayBlobBridge =
+      ValueNotifier<ReplayBlobV1?>(null);
 
   bool _pausedByLifecycle = false;
   bool _started = false;
@@ -130,7 +136,6 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   late BoardKey? _boardKey;
   GhostReplayBootstrap? _ghostReplayBootstrap;
   GhostPlaybackRunner? _ghostPlaybackRunner;
-  String? _ghostPlaybackInitError;
 
   late int _runId;
   int? _provisionalGoldEarned;
@@ -237,11 +242,34 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     }
     try {
       runner.advanceToTick(_controller.tick);
+      _publishGhostRenderFeed();
     } catch (error) {
       debugPrint('Ghost playback failed: $error');
       _ghostPlaybackRunner = null;
-      _ghostPlaybackInitError = '$error';
+      _clearGhostRenderFeed();
     }
+  }
+
+  void _publishGhostRenderFeed() {
+    final runner = _ghostPlaybackRunner;
+    if (runner == null) {
+      _clearGhostRenderFeed();
+      return;
+    }
+    _ghostReplayBlobBridge.value = runner.replayBlob;
+    _ghostSnapshotBridge.value = runner.snapshot;
+    if (runner.drainedEvents.isEmpty) {
+      _ghostEventsBridge.value = const <GameEvent>[];
+      return;
+    }
+    _ghostEventsBridge.value = List<GameEvent>.unmodifiable(runner.drainedEvents);
+    runner.clearDrainedEvents();
+  }
+
+  void _clearGhostRenderFeed() {
+    _ghostReplayBlobBridge.value = null;
+    _ghostSnapshotBridge.value = null;
+    _ghostEventsBridge.value = const <GameEvent>[];
   }
 
   void _emitChargeHaptics() {
@@ -543,41 +571,21 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     final bootstrap = _ghostReplayBootstrap;
     if (bootstrap == null) {
       _ghostPlaybackRunner = null;
-      _ghostPlaybackInitError = null;
+      _clearGhostRenderFeed();
       return;
     }
     try {
       final runner = GhostPlaybackRunner.fromReplayBlob(bootstrap.replayBlob);
       _ghostPlaybackRunner = runner;
-      _ghostPlaybackInitError = null;
+      _publishGhostRenderFeed();
     } catch (error) {
       _ghostPlaybackRunner = null;
-      _ghostPlaybackInitError = '$error';
+      _clearGhostRenderFeed();
       debugPrint(
         'Ghost playback initialization failed for entryId='
         '${bootstrap.manifest.entryId}: $error',
       );
     }
-  }
-
-  String? _ghostStatusLabel() {
-    final bootstrap = _ghostReplayBootstrap;
-    final runner = _ghostPlaybackRunner;
-    if (bootstrap == null) {
-      return null;
-    }
-    if (_ghostPlaybackInitError != null) {
-      return 'Ghost unavailable';
-    }
-    if (runner == null) {
-      return 'Ghost unavailable';
-    }
-    final rank = bootstrap.manifest.rank;
-    final distanceMeters = (runner.distance / kWorldUnitsPerMeter).round();
-    if (runner.isComplete) {
-      return 'Ghost #$rank finished ${distanceMeters}m';
-    }
-    return 'Ghost #$rank ${distanceMeters}m';
   }
 
   Map<String, Object?> _loadoutSnapshot(EquippedLoadoutDef loadout) {
@@ -706,7 +714,6 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       _runRecorderInitError = null;
       _runRecorderInitializing = false;
       _ghostPlaybackRunner = null;
-      _ghostPlaybackInitError = null;
       _initGame();
     });
     _controller.setPaused(true);
@@ -781,6 +788,9 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       projectileAimPreview: _projectileAimPreview,
       meleeAimPreview: _meleeAimPreview,
       playerCharacter: playerCharacter,
+      ghostSnapshotListenable: _ghostSnapshotBridge,
+      ghostEventsListenable: _ghostEventsBridge,
+      ghostReplayBlobListenable: _ghostReplayBlobBridge,
     );
     _runRecorder = null;
     _runRecorderInitError = null;
@@ -799,7 +809,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     unawaited(_runRecorder?.close() ?? Future<void>.value());
     _runRecorder = null;
     _ghostPlaybackRunner = null;
-    _ghostPlaybackInitError = null;
+    _clearGhostRenderFeed();
     _projectileAimPreview.dispose();
     _meleeAimPreview.dispose();
     _aimCancelHitboxRect.dispose();
@@ -811,6 +821,9 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _disposeGame();
+    _ghostReplayBlobBridge.dispose();
+    _ghostSnapshotBridge.dispose();
+    _ghostEventsBridge.dispose();
     super.dispose();
   }
 
@@ -881,7 +894,6 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                   aimCancelHitboxRect: _aimCancelHitboxRect,
                   forceAimCancelSignal: _forceAimCancelSignal,
                   playerImpactFeedbackSignal: _playerImpactFeedbackSignal,
-                  ghostStatusLabel: _ghostStatusLabel(),
                   uiState: uiState,
                   onStart: _startGame,
                   onTogglePause: _togglePause,

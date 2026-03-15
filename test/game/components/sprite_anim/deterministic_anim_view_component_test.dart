@@ -10,23 +10,42 @@ import 'package:rpg_runner/game/components/sprite_anim/sprite_anim_set.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('ward status mask contributes persistent tint overlay', () async {
-    final image = await _singlePixelImage();
+  SpriteAnimSet buildAnimSet(ui.Image image) {
     final animation = SpriteAnimation(<SpriteAnimationFrame>[
       SpriteAnimationFrame(Sprite(image), 0.1),
     ]);
-    final animSet = SpriteAnimSet(
+    return SpriteAnimSet(
       animations: <AnimKey, SpriteAnimation>{AnimKey.idle: animation},
       stepTimeSecondsByKey: const <AnimKey, double>{AnimKey.idle: 0.1},
       oneShotKeys: const <AnimKey>{},
       frameSize: Vector2.all(1.0),
     );
+  }
+
+  test('ward status mask contributes persistent tint overlay', () async {
+    final image = await _singlePixelImage();
+    final animSet = buildAnimSet(image);
 
     final view = DeterministicAnimViewComponent(animSet: animSet);
     view.setStatusVisualMask(EntityStatusVisualMask.ward);
     view.update(1 / 60.0);
 
     expect(view.paint.colorFilter, isNotNull);
+    image.dispose();
+  });
+
+  test('ghost visual style applies monochrome tint and lowered opacity', () async {
+    final image = await _singlePixelImage();
+    final animSet = buildAnimSet(image);
+
+    final view = DeterministicAnimViewComponent(
+      animSet: animSet,
+      visualStyle: RenderVisualStyle.ghost,
+    );
+    view.update(1 / 60.0);
+
+    expect(view.paint.colorFilter, isNotNull);
+    expect(view.opacity, 1.0);
     image.dispose();
   });
 }

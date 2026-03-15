@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:run_protocol/board_key.dart';
 import 'package:run_protocol/replay_blob.dart';
 import 'package:run_protocol/run_mode.dart';
+import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 
 import 'package:rpg_runner/game/replay/ghost_playback_runner.dart';
@@ -32,6 +33,33 @@ void main() {
     expect(endedA.stats.collectibles, endedB.stats.collectibles);
     expect(endedA.stats.collectibleScore, endedB.stats.collectibleScore);
     expect(endedA.stats.enemyKillCounts, endedB.stats.enemyKillCounts);
+  });
+
+  test('ghost playback exposes current snapshot for render-only consumption', () {
+    final replayBlob = _buildReplayBlob(runSessionId: 'run_ghost_snapshot');
+    final runner = GhostPlaybackRunner.fromReplayBlob(replayBlob);
+
+    expect(runner.snapshot.tick, runner.tick);
+    runner.advanceToTick(20);
+    expect(runner.snapshot.tick, runner.tick);
+    expect(runner.snapshot.distance, closeTo(runner.distance, 0.000001));
+  });
+
+  test('ghost playback exposes drained events read-only and clearable', () {
+    final replayBlob = _buildReplayBlob(runSessionId: 'run_ghost_events');
+    final runner = GhostPlaybackRunner.fromReplayBlob(replayBlob);
+
+    runner.advanceToEnd();
+    final events = runner.drainedEvents;
+    expect(events.whereType<RunEndedEvent>(), isNotEmpty);
+    final firstEvent = events.first;
+    expect(
+      () => events.add(firstEvent),
+      throwsUnsupportedError,
+    );
+
+    runner.clearDrainedEvents();
+    expect(runner.drainedEvents, isEmpty);
   });
 }
 

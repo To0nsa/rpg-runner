@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:collection';
 
 import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/accessories/accessory_id.dart';
@@ -14,6 +15,7 @@ import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/spellBook/spell_book_id.dart';
 import 'package:runner_core/weapons/weapon_id.dart';
 import 'package:run_protocol/replay_blob.dart';
+import 'package:runner_core/snapshots/game_state_snapshot.dart';
 
 class GhostPlaybackRunner {
   GhostPlaybackRunner._({
@@ -56,15 +58,31 @@ class GhostPlaybackRunner {
   final ReplayBlobV1 replayBlob;
   final GameCore _core;
   final Map<int, ReplayCommandFrameV1> _frameByTick;
+  late GameStateSnapshot _snapshot = _core.buildSnapshot();
+  final List<GameEvent> _drainedEvents = <GameEvent>[];
 
   int _lastAdvancedTick = 0;
   RunEndedEvent? _runEndedEvent;
   bool _completed = false;
 
+  /// Current immutable snapshot of the ghost simulation.
+  ///
+  /// This is render-only data; gameplay authority remains in the live run.
+  GameStateSnapshot get snapshot => _snapshot;
+
   int get tick => _core.tick;
   bool get isComplete => _completed;
-  double get distance => _core.buildSnapshot().distance;
+  double get distance => _snapshot.distance;
   RunEndedEvent? get runEndedEvent => _runEndedEvent;
+
+  /// Read-only view of events drained from the ghost core since the last
+  /// [clearDrainedEvents] call.
+  List<GameEvent> get drainedEvents => UnmodifiableListView(_drainedEvents);
+
+  /// Clears buffered drained events after render consumers process them.
+  void clearDrainedEvents() {
+    _drainedEvents.clear();
+  }
 
   void advanceToTick(int targetTick) {
     if (_completed) {
@@ -89,6 +107,7 @@ class GhostPlaybackRunner {
           : _commandsFromReplayFrame(frame);
       _core.applyCommands(commands);
       _core.stepOneTick();
+      _snapshot = _core.buildSnapshot();
       _lastAdvancedTick = nextTick;
       _drainCoreEvents();
       if (_runEndedEvent != null || _core.gameOver) {
@@ -117,6 +136,7 @@ class GhostPlaybackRunner {
 
   void _drainCoreEvents() {
     for (final event in _core.drainEvents()) {
+      _drainedEvents.add(event);
       if (event is RunEndedEvent) {
         _runEndedEvent = event;
       }
