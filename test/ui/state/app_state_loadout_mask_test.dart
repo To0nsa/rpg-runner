@@ -392,7 +392,7 @@ void main() {
   );
 
   test(
-    'prepareRunStartDescriptor does not fail run start when ghost bootstrap download fails',
+    'prepareRunStartDescriptor does not attach ghost bootstrap unless a ghost entry is requested',
     () async {
       final boardKey = BoardKey(
         mode: RunMode.competitive,
@@ -458,6 +458,83 @@ void main() {
       expect(runSessionApi.createRunSessionCalls, 1);
       expect(descriptor.boardId, 'board_2026_03_field');
       expect(descriptor.ghostReplayBootstrap, isNull);
+    },
+  );
+
+  test(
+    'prepareRunStartDescriptor fails when requested ghost bootstrap download fails',
+    () async {
+      final boardKey = BoardKey(
+        mode: RunMode.competitive,
+        levelId: LevelId.field.name,
+        windowId: '2026-03',
+        rulesetVersion: 'rules-v1',
+        scoreVersion: 'score-v1',
+      );
+      final selection = SelectionState.defaults.copyWith(
+        selectedRunMode: RunMode.competitive,
+        selectedLevelId: LevelId.field,
+      );
+      final ownershipApi = _ScriptedOwnershipApi(
+        OwnershipCanonicalState(
+          profileId: 'profile_ghost_bootstrap_requested_soft_fail',
+          revision: 3,
+          selection: selection,
+          meta: const MetaService().createNew(),
+          progression: ProgressionState.initial,
+        ),
+      );
+      final runSessionApi = _RecordingRunSessionApi(
+        RunTicket(
+          runSessionId: 'session_competitive_ghost_bootstrap_requested_fail',
+          uid: 'u1',
+          mode: RunMode.competitive,
+          boardId: 'board_2026_03_field',
+          boardKey: boardKey,
+          seed: 999,
+          tickHz: 60,
+          gameCompatVersion: '2026.03.0',
+          rulesetVersion: boardKey.rulesetVersion,
+          scoreVersion: boardKey.scoreVersion,
+          ghostVersion: 'ghost-v1',
+          levelId: LevelId.field.name,
+          playerCharacterId: PlayerCharacterId.eloise.name,
+          loadoutSnapshot: _practiceTicket().loadoutSnapshot,
+          loadoutDigest:
+              '0123456789012345678901234567890123456789012345678901234567890123',
+          issuedAtMs: 1,
+          expiresAtMs: 2,
+          singleUseNonce: 'nonce_competitive_ghost_bootstrap_requested_fail',
+        ),
+      );
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: ownershipApi,
+        runBoardsApi: _ScriptedRunBoardsApi(boardKey: boardKey),
+        runSessionApi: runSessionApi,
+        leaderboardApi: const _SingleGhostEntryLeaderboardApi(),
+        ghostApi: const _SingleGhostManifestApi(),
+        ghostReplayCache: const _ThrowingGhostReplayCache(
+          RunStartRemoteException(
+            code: 'ghost-download-failed',
+            message: 'Ghost download failed with status 403.',
+          ),
+        ),
+      );
+      await appState.bootstrap(force: true);
+
+      await expectLater(
+        () => appState.prepareRunStartDescriptor(ghostEntryId: 'entry_ghost_1'),
+        throwsA(
+          isA<RunStartRemoteException>().having(
+            (value) => value.code,
+            'code',
+            'ghost-download-failed',
+          ),
+        ),
+      );
+
+      expect(runSessionApi.createRunSessionCalls, 1);
     },
   );
 

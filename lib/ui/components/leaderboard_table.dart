@@ -13,6 +13,9 @@ class LeaderboardTable extends StatelessWidget {
     this.showHeader = true,
     this.inset = true,
     this.scrollable = false,
+    this.trailingHeaderLabel,
+    this.trailingBuilder,
+    this.trailingColumnWidth = 84,
   });
 
   final List<RunResult> entries;
@@ -21,6 +24,10 @@ class LeaderboardTable extends StatelessWidget {
   final bool showHeader;
   final bool inset;
   final bool scrollable;
+  final String? trailingHeaderLabel;
+  final Widget Function(BuildContext context, int rank, RunResult entry)?
+  trailingBuilder;
+  final double trailingColumnWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +36,13 @@ class LeaderboardTable extends StatelessWidget {
 
     final children = <Widget>[];
     if (showHeader) {
-      children.add(_LeaderboardHeaderRow(spec: spec));
+      children.add(
+        _LeaderboardHeaderRow(
+          spec: spec,
+          trailingHeaderLabel: trailingHeaderLabel,
+          trailingColumnWidth: trailingColumnWidth,
+        ),
+      );
       if (spec.headerGap > 0) {
         children.add(SizedBox(height: spec.headerGap));
       }
@@ -46,6 +59,8 @@ class LeaderboardTable extends StatelessWidget {
           highlight: highlightRunId != null && entry.runId == highlightRunId,
           hideScore:
               hideScoreForRunId != null && entry.runId == hideScoreForRunId,
+          trailingChild: trailingBuilder?.call(context, rank, entry),
+          trailingColumnWidth: trailingColumnWidth,
         ),
       );
       if (i < entries.length - 1) {
@@ -70,9 +85,15 @@ class LeaderboardTable extends StatelessWidget {
 }
 
 class _LeaderboardHeaderRow extends StatelessWidget {
-  const _LeaderboardHeaderRow({required this.spec});
+  const _LeaderboardHeaderRow({
+    required this.spec,
+    required this.trailingHeaderLabel,
+    required this.trailingColumnWidth,
+  });
 
   final UiLeaderboardSpec spec;
+  final String? trailingHeaderLabel;
+  final double trailingColumnWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -91,6 +112,15 @@ class _LeaderboardHeaderRow extends StatelessWidget {
         cell('Score', spec.columns.score, TextAlign.right),
         cell('Distance', spec.columns.distance, TextAlign.right),
         cell('Time', spec.columns.time, TextAlign.right),
+        if (trailingHeaderLabel != null)
+          SizedBox(
+            width: trailingColumnWidth,
+            child: Text(
+              trailingHeaderLabel!,
+              style: style,
+              textAlign: TextAlign.center,
+            ),
+          ),
       ],
     );
 
@@ -108,6 +138,8 @@ class _LeaderboardRow extends StatelessWidget {
     required this.entry,
     required this.highlight,
     required this.hideScore,
+    required this.trailingChild,
+    required this.trailingColumnWidth,
   });
 
   final UiLeaderboardSpec spec;
@@ -115,6 +147,8 @@ class _LeaderboardRow extends StatelessWidget {
   final RunResult entry;
   final bool highlight;
   final bool hideScore;
+  final Widget? trailingChild;
+  final double trailingColumnWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -162,6 +196,11 @@ class _LeaderboardRow extends StatelessWidget {
             textAlign: TextAlign.right,
           ),
         ),
+        if (trailingChild != null)
+          SizedBox(
+            width: trailingColumnWidth,
+            child: Center(child: trailingChild),
+          ),
       ],
     );
 

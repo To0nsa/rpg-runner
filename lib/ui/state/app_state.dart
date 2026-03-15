@@ -675,6 +675,7 @@ class AppState extends ChangeNotifier {
   Future<RunStartDescriptor> prepareRunStartDescriptor({
     RunMode? expectedMode,
     LevelId? expectedLevelId,
+    String? ghostEntryId,
   }) async {
     final session = await _ensureAuthSession();
     // Force a live backend read before run start. If this fails, run start
@@ -744,54 +745,15 @@ class AppState extends ChangeNotifier {
     if (!mode.requiresBoard || descriptor.boardId == null) {
       return descriptor;
     }
-    final ghostReplayBootstrap = await _tryLoadTopGhostReplayBootstrap(
-      userId: session.userId,
-      sessionId: session.sessionId,
-      boardId: descriptor.boardId!,
-    );
-    if (ghostReplayBootstrap == null) {
+    final resolvedGhostEntryId = ghostEntryId?.trim();
+    if (resolvedGhostEntryId == null || resolvedGhostEntryId.isEmpty) {
       return descriptor;
     }
+    final ghostReplayBootstrap = await loadGhostReplayBootstrap(
+      boardId: descriptor.boardId!,
+      entryId: resolvedGhostEntryId,
+    );
     return descriptor.copyWith(ghostReplayBootstrap: ghostReplayBootstrap);
-  }
-
-  Future<GhostReplayBootstrap?> _tryLoadTopGhostReplayBootstrap({
-    required String userId,
-    required String sessionId,
-    required String boardId,
-  }) async {
-    try {
-      final board = await _leaderboardApi.loadBoard(
-        userId: userId,
-        sessionId: sessionId,
-        boardId: boardId,
-      );
-      for (final entry in board.topEntries) {
-        if (!entry.ghostEligible) {
-          continue;
-        }
-        final entryId = entry.entryId.trim();
-        if (entryId.isEmpty) {
-          continue;
-        }
-        try {
-          return await loadGhostReplayBootstrap(
-            boardId: boardId,
-            entryId: entryId,
-          );
-        } catch (error) {
-          debugPrint(
-            'Ghost bootstrap load failed for boardId=$boardId entryId=$entryId: '
-            '$error',
-          );
-        }
-      }
-    } catch (error) {
-      debugPrint(
-        'Ghost leaderboard bootstrap skipped for boardId=$boardId: $error',
-      );
-    }
-    return null;
   }
 
   RunStartDescriptor _runStartDescriptorFromTicket(RunTicket ticket) {

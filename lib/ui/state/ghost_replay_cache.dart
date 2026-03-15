@@ -38,15 +38,40 @@ class HttpGhostReplayDownloader implements GhostReplayDownloader {
     try {
       final request = await client.getUrl(url);
       final response = await request.close();
+      final responseBytes = await response
+          .expand((List<int> chunk) => chunk)
+          .toList();
       if (response.statusCode != HttpStatus.ok) {
+        final responseSnippet = _responseSnippet(responseBytes);
+        final suffix = responseSnippet == null ? '' : ' ($responseSnippet)';
         throw RunStartRemoteException(
           code: 'ghost-download-failed',
-          message: 'Ghost download failed with status ${response.statusCode}.',
+          message:
+              'Ghost download failed with status ${response.statusCode}$suffix.',
         );
       }
-      return response.expand((List<int> chunk) => chunk).toList();
+      return responseBytes;
     } finally {
       client.close(force: true);
+    }
+  }
+
+  String? _responseSnippet(List<int> bytes) {
+    if (bytes.isEmpty) {
+      return null;
+    }
+    try {
+      final text = utf8.decode(bytes, allowMalformed: true).trim();
+      if (text.isEmpty) {
+        return null;
+      }
+      final singleLine = text.replaceAll(RegExp(r'\s+'), ' ');
+      if (singleLine.length <= 160) {
+        return singleLine;
+      }
+      return '${singleLine.substring(0, 160)}...';
+    } catch (_) {
+      return null;
     }
   }
 }

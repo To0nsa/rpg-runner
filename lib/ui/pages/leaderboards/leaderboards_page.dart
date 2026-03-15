@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:runner_core/events/game_event.dart';
 
 import 'package:runner_core/levels/level_id.dart';
 import 'package:run_protocol/leaderboard_entry.dart';
+import '../../app/ui_routes.dart';
 import '../../components/app_segmented_control.dart';
 import '../../components/leaderboard_table.dart';
 import '../../components/menu_layout.dart';
@@ -282,6 +285,7 @@ class _OnlineLeaderboardList extends StatefulWidget {
 
 class _OnlineLeaderboardListState extends State<_OnlineLeaderboardList> {
   late Future<_OnlineLeaderboardData> _future;
+  String? _startingGhostEntryId;
 
   @override
   void initState() {
@@ -315,6 +319,59 @@ class _OnlineLeaderboardListState extends State<_OnlineLeaderboardList> {
     setState(() {
       _future = _load();
     });
+  }
+
+  Future<void> _startGhostRun(LeaderboardEntry entry) async {
+    if (_startingGhostEntryId != null) {
+      return;
+    }
+    final entryId = entry.entryId.trim();
+    if (!entry.ghostEligible || entryId.isEmpty) {
+      return;
+    }
+    setState(() => _startingGhostEntryId = entryId);
+    final appState = context.read<AppState>();
+    try {
+      if (appState.selection.selectedRunMode != widget.runMode) {
+        await appState.setRunMode(widget.runMode);
+      }
+      if (!mounted) {
+        return;
+      }
+      if (appState.selection.selectedLevelId != widget.levelId) {
+        await appState.setLevel(widget.levelId);
+      }
+      if (!mounted) {
+        return;
+      }
+      final descriptor = await appState.prepareRunStartDescriptor(
+        ghostEntryId: entryId,
+      );
+      if (!mounted) {
+        return;
+      }
+      await Navigator.of(
+        context,
+      ).pushNamed(UiRoutes.run, arguments: descriptor);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      final message = switch (error) {
+        RunStartRemoteException exception when exception.message != null =>
+          exception.message!,
+        RunStartRemoteException exception when exception.isPreconditionFailed =>
+          'Ghost run cannot start for this board entry right now.',
+        _ => 'Unable to start ghost run right now. Check your connection and try again.',
+      };
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } finally {
+      if (mounted) {
+        setState(() => _startingGhostEntryId = null);
+      }
+    }
   }
 
   @override
@@ -358,7 +415,8 @@ class _OnlineLeaderboardListState extends State<_OnlineLeaderboardList> {
           );
         }
 
-        final entries = _toRunResults(data.board.topEntries);
+        final topEntries = data.board.topEntries;
+        final entries = _toRunResults(topEntries);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -387,7 +445,43 @@ class _OnlineLeaderboardListState extends State<_OnlineLeaderboardList> {
                         textAlign: TextAlign.center,
                       ),
                     )
-                  : LeaderboardTable(entries: entries, scrollable: true),
+                  : LeaderboardTable(
+                      entries: entries,
+                      scrollable: true,
+                      trailingHeaderLabel: 'Ghost VS',
+                      trailingBuilder: (context, rank, _) {
+                        final source = topEntries[rank - 1];
+                        final sourceEntryId = source.entryId.trim();
+                        final isStarting =
+                            _startingGhostEntryId != null &&
+                            _startingGhostEntryId == sourceEntryId;
+                        final enabled =
+                            _startingGhostEntryId == null &&
+                            source.ghostEligible &&
+                            sourceEntryId.isNotEmpty;
+                        if (isStarting) {
+                          return SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: ui.colors.textPrimary,
+                            ),
+                          );
+                        }
+                        return IconButton(
+                          iconSize: 18,
+                          visualDensity: VisualDensity.compact,
+                          tooltip: source.ghostEligible
+                              ? 'Race this ghost'
+                              : 'Ghost unavailable for this run',
+                          onPressed: enabled
+                              ? () => unawaited(_startGhostRun(source))
+                              : null,
+                          icon: const Icon(Icons.play_arrow_rounded),
+                        );
+                      },
+                    ),
             ),
           ],
         );

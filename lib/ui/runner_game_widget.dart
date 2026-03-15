@@ -16,6 +16,7 @@ import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/players/player_character_registry.dart';
+import 'package:runner_core/tuning/score_tuning.dart';
 import '../game/game_controller.dart';
 import '../game/input/aim_preview.dart';
 import '../game/replay/run_recorder.dart';
@@ -572,11 +573,11 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       return 'Ghost unavailable';
     }
     final rank = bootstrap.manifest.rank;
-    final distance = runner.distance.round();
+    final distanceMeters = (runner.distance / kWorldUnitsPerMeter).round();
     if (runner.isComplete) {
-      return 'Ghost #$rank finished ${distance}m';
+      return 'Ghost #$rank finished ${distanceMeters}m';
     }
-    return 'Ghost #$rank ${distance}m';
+    return 'Ghost #$rank ${distanceMeters}m';
   }
 
   Map<String, Object?> _loadoutSnapshot(EquippedLoadoutDef loadout) {
