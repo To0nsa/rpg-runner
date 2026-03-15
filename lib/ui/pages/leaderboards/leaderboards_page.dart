@@ -575,6 +575,7 @@ List<RunResult> _toRunResults(List<LeaderboardEntry> entries) {
       distanceMeters: entry.distanceMeters,
       durationSeconds: entry.durationSeconds,
       tick: entry.durationSeconds * 60,
+      displayName: entry.displayName,
     );
   }, growable: false);
 }

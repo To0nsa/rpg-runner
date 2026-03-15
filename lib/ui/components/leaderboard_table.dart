@@ -29,6 +29,9 @@ class LeaderboardTable extends StatelessWidget {
   trailingBuilder;
   final double trailingColumnWidth;
 
+  bool get _showDisplayNameColumn =>
+      entries.any((entry) => (entry.displayName ?? '').trim().isNotEmpty);
+
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
@@ -39,6 +42,7 @@ class LeaderboardTable extends StatelessWidget {
       children.add(
         _LeaderboardHeaderRow(
           spec: spec,
+          showDisplayNameColumn: _showDisplayNameColumn,
           trailingHeaderLabel: trailingHeaderLabel,
           trailingColumnWidth: trailingColumnWidth,
         ),
@@ -59,6 +63,7 @@ class LeaderboardTable extends StatelessWidget {
           highlight: highlightRunId != null && entry.runId == highlightRunId,
           hideScore:
               hideScoreForRunId != null && entry.runId == hideScoreForRunId,
+          showDisplayNameColumn: _showDisplayNameColumn,
           trailingChild: trailingBuilder?.call(context, rank, entry),
           trailingColumnWidth: trailingColumnWidth,
         ),
@@ -87,11 +92,13 @@ class LeaderboardTable extends StatelessWidget {
 class _LeaderboardHeaderRow extends StatelessWidget {
   const _LeaderboardHeaderRow({
     required this.spec,
+    required this.showDisplayNameColumn,
     required this.trailingHeaderLabel,
     required this.trailingColumnWidth,
   });
 
   final UiLeaderboardSpec spec;
+  final bool showDisplayNameColumn;
   final String? trailingHeaderLabel;
   final double trailingColumnWidth;
 
@@ -109,6 +116,11 @@ class _LeaderboardHeaderRow extends StatelessWidget {
     final row = Row(
       children: [
         cell('#Rank', spec.columns.rank, TextAlign.left),
+        if (showDisplayNameColumn)
+          SizedBox(
+            width: _playerNameColumnWidth,
+            child: Text('Name', style: style, textAlign: TextAlign.left),
+          ),
         cell('Score', spec.columns.score, TextAlign.right),
         cell('Distance', spec.columns.distance, TextAlign.right),
         cell('Time', spec.columns.time, TextAlign.right),
@@ -146,6 +158,7 @@ class _LeaderboardRow extends StatelessWidget {
     required this.entry,
     required this.highlight,
     required this.hideScore,
+    required this.showDisplayNameColumn,
     required this.trailingChild,
     required this.trailingColumnWidth,
   });
@@ -155,6 +168,7 @@ class _LeaderboardRow extends StatelessWidget {
   final RunResult entry;
   final bool highlight;
   final bool hideScore;
+  final bool showDisplayNameColumn;
   final Widget? trailingChild;
   final double trailingColumnWidth;
 
@@ -180,6 +194,19 @@ class _LeaderboardRow extends StatelessWidget {
           column: spec.columns.rank,
           child: Text('#$rank', style: style),
         ),
+        if (showDisplayNameColumn)
+          SizedBox(
+            width: _playerNameColumnWidth,
+            child: Text(
+              (entry.displayName ?? '').trim().isEmpty
+                  ? 'Unknown'
+                  : entry.displayName!.trim(),
+              style: style,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.left,
+            ),
+          ),
         _LeaderboardColumnCell(
           column: spec.columns.score,
           child: Text(
@@ -221,6 +248,8 @@ class _LeaderboardRow extends StatelessWidget {
     return DecoratedBox(decoration: decoration, child: body);
   }
 }
+
+const double _playerNameColumnWidth = 132;
 
 String _formatTime(int totalSeconds) {
   final minutes = totalSeconds ~/ 60;

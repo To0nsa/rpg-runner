@@ -1,25 +1,56 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../app/ui_routes.dart';
+import '../../components/app_button.dart';
 import '../../components/app_segmented_control.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
-import '../../levels/level_id_ui.dart';
 import '../../state/app_state.dart';
+import '../../state/run_start_remote_exception.dart';
 import '../../state/selection_state.dart';
-import '../../theme/ui_tokens.dart';
 import 'level_select_section.dart';
 
-class LevelSetupPage extends StatelessWidget {
+class LevelSetupPage extends StatefulWidget {
   const LevelSetupPage({super.key});
+
+  @override
+  State<LevelSetupPage> createState() => _LevelSetupPageState();
+}
+
+class _LevelSetupPageState extends State<LevelSetupPage> {
+  bool _preparingRunStart = false;
+
+  Future<void> _startRun(AppState appState) async {
+    if (_preparingRunStart) return;
+    setState(() => _preparingRunStart = true);
+    try {
+      final descriptor = await appState.prepareRunStartDescriptor();
+      if (!mounted) return;
+      await Navigator.of(context).pushNamed(UiRoutes.run, arguments: descriptor);
+    } catch (error) {
+      if (!mounted) return;
+      final message =
+          error is RunStartRemoteException && error.isPreconditionFailed
+          ? 'Run start requirements are not met for the selected mode yet.'
+          : 'Unable to start run right now. Check your connection and try again.';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } finally {
+      if (mounted) {
+        setState(() => _preparingRunStart = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
     final selection = appState.selection;
-    final weeklyForcedLevelId = selection.selectedRunMode == RunMode.weekly
-        ? appState.weeklyFeaturedLevelId
-        : null;
+    final selectedRunMode = selection.selectedRunMode == RunMode.weekly
+      ? RunMode.competitive
+      : selection.selectedRunMode;
 
     return MenuScaffold(
       title: 'Select Level',
@@ -32,33 +63,30 @@ class LevelSetupPage extends StatelessWidget {
                 values: const [
                   RunMode.practice,
                   RunMode.competitive,
-                  RunMode.weekly,
                 ],
-                selected: selection.selectedRunMode,
+                selected: selectedRunMode,
                 onChanged: appState.setRunMode,
                 labelBuilder: (context, value) => switch (value) {
                   RunMode.practice => const Text('PRACTICE'),
                   RunMode.competitive => const Text('COMPETITIVE'),
-                  RunMode.weekly => const Text('WEEKLY'),
+                  RunMode.weekly => const SizedBox.shrink(),
                 },
               ),
             ),
             const SizedBox(height: 20),
-            if (weeklyForcedLevelId != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Text(
-                  'Weekly uses a fixed level: '
-                  '${weeklyForcedLevelId.displayName}.',
-                  style: context.ui.text.body,
-                  textAlign: TextAlign.center,
-                ),
-              ),
             Center(
               child: LevelSelectSection(
                 selectedLevelId: selection.selectedLevelId,
-                forcedLevelId: weeklyForcedLevelId,
+                forcedLevelId: null,
                 onSelectLevel: appState.setLevel,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Center(
+              child: AppButton(
+                label: _preparingRunStart ? 'PREPARING...' : 'PLAY',
+                size: AppButtonSize.lg,
+                onPressed: _preparingRunStart ? null : () => _startRun(appState),
               ),
             ),
           ],

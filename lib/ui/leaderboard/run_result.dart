@@ -11,6 +11,7 @@ class RunResult {
     required this.distanceMeters,
     required this.durationSeconds,
     required this.tick,
+    this.displayName,
   });
 
   final int runId;
@@ -20,10 +21,12 @@ class RunResult {
   final int distanceMeters;
   final int durationSeconds;
   final int tick;
+  final String? displayName;
 
   RunResult copyWith({
     int? runId,
     int? endedAtMs,
+    String? displayName,
   }) {
     return RunResult(
       runId: runId ?? this.runId,
@@ -33,6 +36,7 @@ class RunResult {
       distanceMeters: distanceMeters,
       durationSeconds: durationSeconds,
       tick: tick,
+      displayName: displayName ?? this.displayName,
     );
   }
 
@@ -44,6 +48,7 @@ class RunResult {
         'distanceMeters': distanceMeters,
         'durationSeconds': durationSeconds,
         'tick': tick,
+        'displayName': displayName,
       };
 
   static RunResult fromJson(Map<String, dynamic> json) {
@@ -57,6 +62,7 @@ class RunResult {
       distanceMeters: json['distanceMeters'] as int? ?? 0,
       durationSeconds: json['durationSeconds'] as int? ?? 0,
       tick: json['tick'] as int? ?? 0,
+      displayName: json['displayName'] as String?,
     );
   }
 
