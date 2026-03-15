@@ -126,7 +126,15 @@ class _LeaderboardHeaderRow extends StatelessWidget {
 
     return SizedBox(
       height: spec.headerHeight,
-      child: Center(child: row),
+      child: Center(
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: spec.rowPadding.left,
+            right: spec.rowPadding.right,
+          ),
+          child: row,
+        ),
+      ),
     );
   }
 }

@@ -463,7 +463,6 @@ class _OnlineLeaderboardListState extends State<_OnlineLeaderboardList> {
               ),
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: ui.space.xs),
             _MyRankLabel(myRank: data.myRank),
             SizedBox(height: ui.space.sm),
             Expanded(
