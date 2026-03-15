@@ -37,9 +37,9 @@ class LevelSetupPage extends StatelessWidget {
                 selected: selection.selectedRunMode,
                 onChanged: appState.setRunMode,
                 labelBuilder: (context, value) => switch (value) {
-                  RunMode.practice => const Text('Practice (Random)'),
-                  RunMode.competitive => const Text('Competitive (Season)'),
-                  RunMode.weekly => const Text('Weekly'),
+                  RunMode.practice => const Text('PRACTICE'),
+                  RunMode.competitive => const Text('COMPETITIVE'),
+                  RunMode.weekly => const Text('WEEKLY'),
                 },
               ),
             ),

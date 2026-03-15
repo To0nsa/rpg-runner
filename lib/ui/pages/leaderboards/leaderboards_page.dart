@@ -69,9 +69,9 @@ class _LeaderboardsPageState extends State<LeaderboardsPage> {
       size: AppSegmentedControlSize.sm,
       onChanged: (value) => setState(() => _runFilter = value),
       labelBuilder: (context, value) => switch (value) {
-        LeaderboardsRunFilter.practice => const Text('Practice (Random)'),
-        LeaderboardsRunFilter.competitive => const Text('Competitive (Season)'),
-        LeaderboardsRunFilter.weekly => const Text('Weekly'),
+        LeaderboardsRunFilter.practice => const Text('PRACTICE'),
+        LeaderboardsRunFilter.competitive => const Text('COMPETITIVE'),
+        LeaderboardsRunFilter.weekly => const Text('WEEKLY'),
       },
     );
 
@@ -456,7 +456,7 @@ class _OnlineLeaderboardListState extends State<_OnlineLeaderboardList> {
           children: [
             SizedBox(height: ui.space.sm),
             Text(
-              '${widget.levelId.displayName} ${widget.runMode.name} board',
+              '${widget.levelId.displayName.toUpperCase()} ${widget.runMode.name.toUpperCase()} BOARD',
               style: ui.text.body.copyWith(
                 color: ui.colors.textPrimary,
                 fontWeight: FontWeight.w600,
@@ -464,11 +464,7 @@ class _OnlineLeaderboardListState extends State<_OnlineLeaderboardList> {
               textAlign: TextAlign.center,
             ),
             SizedBox(height: ui.space.xs),
-            Text(
-              _myRankLabel(data.myRank),
-              style: ui.text.body.copyWith(color: ui.colors.textMuted),
-              textAlign: TextAlign.center,
-            ),
+            _MyRankLabel(myRank: data.myRank),
             SizedBox(height: ui.space.sm),
             Expanded(
               child: entries.isEmpty
@@ -531,6 +527,44 @@ class _OnlineLeaderboardData {
   final OnlineLeaderboardMyRank myRank;
 }
 
+class _MyRankLabel extends StatelessWidget {
+  const _MyRankLabel({required this.myRank});
+
+  final OnlineLeaderboardMyRank myRank;
+
+  @override
+  Widget build(BuildContext context) {
+    final ui = context.ui;
+    final baseStyle = ui.text.body.copyWith(color: ui.colors.textMuted);
+    final rank = myRank.rank;
+
+    if (rank == null) {
+      final label = myRank.totalPlayers <= 0
+          ? 'No ranked players yet.'
+          : 'You are not ranked on this board yet.';
+      return Text(label, style: baseStyle, textAlign: TextAlign.center);
+    }
+
+    return Text.rich(
+      TextSpan(
+        style: baseStyle,
+        children: [
+          const TextSpan(text: 'Your rank: '),
+          TextSpan(
+            text: '#$rank',
+            style: baseStyle.copyWith(
+              color: ui.colors.success,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          TextSpan(text: ' / ${myRank.totalPlayers}'),
+        ],
+      ),
+      textAlign: TextAlign.center,
+    );
+  }
+}
+
 List<RunResult> _toRunResults(List<LeaderboardEntry> entries) {
   return List<RunResult>.generate(entries.length, (index) {
     final entry = entries[index];
@@ -544,16 +578,6 @@ List<RunResult> _toRunResults(List<LeaderboardEntry> entries) {
       tick: entry.durationSeconds * 60,
     );
   }, growable: false);
-}
-
-String _myRankLabel(OnlineLeaderboardMyRank myRank) {
-  final rank = myRank.rank;
-  if (rank == null) {
-    return myRank.totalPlayers <= 0
-        ? 'No ranked players yet.'
-        : 'You are not ranked on this board yet.';
-  }
-  return 'Your rank: #$rank / ${myRank.totalPlayers}';
 }
 
 String _onlineErrorMessage(Object? error) {

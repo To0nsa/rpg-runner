@@ -184,18 +184,18 @@ class _PlayHubPageState extends State<PlayHubPage> {
 String _runModeLabel(RunMode runMode) {
   switch (runMode) {
     case RunMode.practice:
-      return 'Practice (Random)';
+      return 'PRACTICE';
     case RunMode.competitive:
-      return 'Competitive (Season)';
+      return 'COMPETITIVE';
     case RunMode.weekly:
-      return 'Weekly';
+      return 'WEEKLY';
   }
 }
 
 String _weeklyBadgeTitle(ProgressionState progression) {
   final weekly = progression.weekly;
   if (weekly.currentWindowId.isEmpty || weekly.currentWindowValidatedRuns <= 0) {
-    return 'Weekly Challenge';
+    return 'WEEKLY CHALLENGE';
   }
   return 'WEEKLY CHALLENGE ${weekly.currentWindowId}';
 }
