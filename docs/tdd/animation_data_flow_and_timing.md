@@ -5,8 +5,11 @@ This doc explains how authored animation data is consumed, which layer owns each
 ## 1) Ownership: who controls what
 
 - `AbilityDef` (`packages/runner_core/lib/abilities/ability_def.dart`)
-  - Owns gameplay action timing: `windupTicks`, `activeTicks`, `recoveryTicks`, `totalTicks`.
+  - Owns authored gameplay action timing: `windupTicks`, `activeTicks`, `recoveryTicks`.
   - Owns logical action animation choice: `animKey`.
+- `ActiveAbilityStateStore` (`packages/runner_core/lib/ecs/stores/active_ability_state_store.dart`)
+  - Owns runtime action timing state: `startTick`, `elapsedTicks`, `phase`, `totalTicks`.
+  - `totalTicks` is commit-time/runtime state (and may be adjusted by hold/recovery flow).
 - `ActiveAbilityPhaseSystem` (`packages/runner_core/lib/ecs/systems/active_ability_phase_system.dart`)
   - Advances `elapsedTicks` and phase each tick.
   - Clears active abilities when finished or forcibly interrupted.
@@ -87,7 +90,8 @@ This is expected unless you align gameplay duration and visual duration by desig
 ## 6) Practical tuning rules
 
 - If you want 1:1 visual-to-gameplay timing for an action:
-  - set `abilityTotalTicks` close to the strip length in ticks.
+  - set `windupTicks + activeTicks + recoveryTicks` close to the strip length in ticks.
+  - for hold-maintain abilities, compare expected hold window + recovery against strip length.
 - If you want fixed visual speed across abilities:
   - keep strip step times constant and balance with cooldown, damage, costs, and phase split.
 - If abilities need different visual rhythms:
@@ -124,4 +128,4 @@ When animation behavior looks wrong, check in this order:
 3. Resolver priority is not being overridden by stun/death/hit.
 4. Snapshot has expected `anim` and `animFrame`.
 5. Render set contains that key in `sourcesByKey`, `frameCountsByKey`, and `stepTimeSecondsByKey`.
-6. Compare `abilityTotalTicks` vs `fullStripTicks` for that key.
+6. Compare expected action ticks (`windup + active + recovery`, or hold window + recovery) vs `fullStripTicks` for that key.
