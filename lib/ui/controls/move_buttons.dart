@@ -26,6 +26,13 @@ class _MoveButtonsState extends State<MoveButtons> {
 
   double _axis = 0.0;
 
+  @override
+  void dispose() {
+    _pointerSides.clear();
+    _axis = 0.0;
+    super.dispose();
+  }
+
   void _syncAxis() {
     final leftHeld = _pointerSides.values.contains(_MoveSide.left);
     final rightHeld = _pointerSides.values.contains(_MoveSide.right);
@@ -51,6 +58,7 @@ class _MoveButtonsState extends State<MoveButtons> {
   }
 
   void _setPointerSide(int pointer, _MoveSide side) {
+    if (!mounted) return;
     final old = _pointerSides[pointer];
     if (old == side) return;
     _pointerSides[pointer] = side;
@@ -59,6 +67,7 @@ class _MoveButtonsState extends State<MoveButtons> {
   }
 
   void _removePointer(int pointer) {
+    if (!mounted) return;
     if (_pointerSides.remove(pointer) != null) {
       setState(() {});
       _syncAxis();
