@@ -78,26 +78,28 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     final ctx = _navigatorKey.currentContext;
+    final appState = ctx == null
+        ? null
+        : Provider.of<AppState>(ctx, listen: false);
     if (ctx != null) {
-      final appState = Provider.of<AppState>(ctx, listen: false);
       switch (state) {
         case AppLifecycleState.inactive:
           unawaited(
-            appState.flushOwnershipEdits(
+            appState!.flushOwnershipEdits(
               trigger: OwnershipFlushTrigger.lifecycleInactive,
             ),
           );
           break;
         case AppLifecycleState.paused:
           unawaited(
-            appState.flushOwnershipEdits(
+            appState!.flushOwnershipEdits(
               trigger: OwnershipFlushTrigger.lifecyclePaused,
             ),
           );
           break;
         case AppLifecycleState.detached:
           unawaited(
-            appState.flushOwnershipEdits(
+            appState!.flushOwnershipEdits(
               trigger: OwnershipFlushTrigger.lifecycleDetached,
             ),
           );
@@ -109,9 +111,7 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
       }
     }
     if (state == AppLifecycleState.resumed) {
-      final ctx = _navigatorKey.currentContext;
-      if (ctx != null) {
-        final appState = Provider.of<AppState>(ctx, listen: false);
+      if (appState != null) {
         unawaited(
           appState.flushOwnershipEdits(
             trigger: OwnershipFlushTrigger.connectivityRestored,

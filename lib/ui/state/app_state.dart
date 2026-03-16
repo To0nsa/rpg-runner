@@ -73,8 +73,8 @@ class AppState extends ChangeNotifier {
       leaderboardApi: resolvedLeaderboardApi,
       ghostApi: resolvedGhostApi,
       ghostReplayCache: resolvedGhostReplayCache,
-        ownershipSyncPolicy: ownershipSyncPolicy,
-        ownershipOutboxStore: ownershipOutboxStore,
+      ownershipSyncPolicy: ownershipSyncPolicy,
+      ownershipOutboxStore: ownershipOutboxStore,
       runSubmissionCoordinator:
           runSubmissionCoordinator ??
           RunSubmissionCoordinator(
@@ -109,8 +109,9 @@ class AppState extends ChangeNotifier {
        _leaderboardApi = leaderboardApi,
        _ghostApi = ghostApi,
        _ghostReplayCache = ghostReplayCache,
-         _ownershipSyncPolicy = ownershipSyncPolicy ?? OwnershipSyncPolicy.defaults,
-         _ownershipOutboxStore =
+       _ownershipSyncPolicy =
+           ownershipSyncPolicy ?? OwnershipSyncPolicy.defaults,
+       _ownershipOutboxStore =
            ownershipOutboxStore ?? InMemoryOwnershipOutboxStore(),
        _runSubmissionCoordinator = runSubmissionCoordinator;
 
@@ -322,6 +323,7 @@ class AppState extends ChangeNotifier {
     required AbilitySlot slot,
     required AbilityKey abilityId,
   }) async {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
     final currentLoadout = _selection.loadoutFor(characterId);
     final nextLoadout = _withAbilityInLoadout(
       loadout: currentLoadout,
@@ -340,8 +342,8 @@ class AppState extends ChangeNotifier {
           'slot': slot.name,
           'abilityId': abilityId,
         },
-        createdAtMs: DateTime.now().millisecondsSinceEpoch,
-        updatedAtMs: DateTime.now().millisecondsSinceEpoch,
+        createdAtMs: nowMs,
+        updatedAtMs: nowMs,
       ),
     );
   }
@@ -350,6 +352,7 @@ class AppState extends ChangeNotifier {
     required PlayerCharacterId characterId,
     required ProjectileId spellId,
   }) async {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
     final currentLoadout = _selection.loadoutFor(characterId);
     final nextLoadout = _copyLoadout(
       currentLoadout,
@@ -366,8 +369,8 @@ class AppState extends ChangeNotifier {
           'characterId': characterId.name,
           'spellId': spellId.name,
         },
-        createdAtMs: DateTime.now().millisecondsSinceEpoch,
-        updatedAtMs: DateTime.now().millisecondsSinceEpoch,
+        createdAtMs: nowMs,
+        updatedAtMs: nowMs,
       ),
     );
   }
@@ -434,6 +437,7 @@ class AppState extends ChangeNotifier {
     required GearSlot slot,
     required Object itemId,
   }) async {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
     final currentLoadout = _selection.loadoutFor(characterId);
     final nextLoadout = _withGearInLoadout(
       loadout: currentLoadout,
@@ -460,8 +464,8 @@ class AppState extends ChangeNotifier {
           'slot': slot.name,
           'itemId': _gearItemIdAsName(slot: slot, itemId: itemId),
         },
-        createdAtMs: DateTime.now().millisecondsSinceEpoch,
-        updatedAtMs: DateTime.now().millisecondsSinceEpoch,
+        createdAtMs: nowMs,
+        updatedAtMs: nowMs,
       ),
     );
   }
@@ -656,7 +660,10 @@ class AppState extends ChangeNotifier {
   void startWarmup() {
     if (_warmupStarted) return;
     _warmupStarted = true;
-    unawaited(_refreshOwnershipSyncStatusFromOutbox());
+    unawaited(() async {
+      await _refreshOwnershipSyncStatusFromOutbox();
+      notifyListeners();
+    }());
     unawaited(_resumePendingRunSubmissions());
   }
 
@@ -1113,7 +1120,8 @@ class AppState extends ChangeNotifier {
     final payloadHash = crypto.sha256
         .convert(utf8.encode(jsonEncode(command.payloadJson)))
         .toString();
-    final attempt = command.deliveryAttempt ??
+    final attempt =
+        command.deliveryAttempt ??
         OwnershipDeliveryAttempt(
           commandId: _newCommandId(),
           expectedRevision: _ownershipRevision,
@@ -1204,13 +1212,13 @@ class AppState extends ChangeNotifier {
       return true;
     }
     final latestPayloadHash = crypto.sha256
-      .convert(utf8.encode(jsonEncode(latest.payloadJson)))
-      .toString();
-    final referencePayloadHash =
-      sentPayloadHash ??
-      crypto.sha256
-        .convert(utf8.encode(jsonEncode(command.payloadJson)))
+        .convert(utf8.encode(jsonEncode(latest.payloadJson)))
         .toString();
+    final referencePayloadHash =
+        sentPayloadHash ??
+        crypto.sha256
+            .convert(utf8.encode(jsonEncode(command.payloadJson)))
+            .toString();
     return latestPayloadHash != referencePayloadHash;
   }
 
@@ -1306,7 +1314,9 @@ class AppState extends ChangeNotifier {
           ),
         );
       case OwnershipPendingCommandType.setLoadout:
-        throw UnsupportedError('setLoadout outbox delivery is not enabled yet.');
+        throw UnsupportedError(
+          'setLoadout outbox delivery is not enabled yet.',
+        );
     }
   }
 
@@ -1314,7 +1324,9 @@ class AppState extends ChangeNotifier {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final pending = await _ownershipOutboxStore.loadAll();
     final pendingSelectionCount = pending
-        .where((entry) => entry.policyTier == OwnershipSyncTier.selectionFastSync)
+        .where(
+          (entry) => entry.policyTier == OwnershipSyncTier.selectionFastSync,
+        )
         .length;
     int oldestPendingAgeMs = 0;
     if (pending.isNotEmpty) {
@@ -1354,6 +1366,7 @@ class AppState extends ChangeNotifier {
     if (_selection == nextSelection) {
       return;
     }
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
     _selection = nextSelection;
     notifyListeners();
     await _enqueueOwnershipCommand(
@@ -1362,8 +1375,8 @@ class AppState extends ChangeNotifier {
         commandType: OwnershipPendingCommandType.setSelection,
         policyTier: OwnershipSyncTier.selectionFastSync,
         payloadJson: <String, Object?>{'selection': nextSelection.toJson()},
-        createdAtMs: DateTime.now().millisecondsSinceEpoch,
-        updatedAtMs: DateTime.now().millisecondsSinceEpoch,
+        createdAtMs: nowMs,
+        updatedAtMs: nowMs,
       ),
     );
   }
@@ -1372,7 +1385,8 @@ class AppState extends ChangeNotifier {
     final pending = await _ownershipOutboxStore.loadByCoalesceKey(
       coalesceKey: 'selection',
     );
-    if (pending == null || pending.commandType != OwnershipPendingCommandType.setSelection) {
+    if (pending == null ||
+        pending.commandType != OwnershipPendingCommandType.setSelection) {
       return;
     }
     final selectionRaw = pending.payloadJson['selection'];
@@ -1469,8 +1483,9 @@ class AppState extends ChangeNotifier {
       case GearSlot.offhandWeapon:
         return _copyLoadout(
           loadout,
-          offhandWeaponId:
-              itemId is WeaponId ? itemId : loadout.offhandWeaponId,
+          offhandWeaponId: itemId is WeaponId
+              ? itemId
+              : loadout.offhandWeaponId,
         );
       case GearSlot.spellBook:
         return _copyLoadout(
@@ -1529,8 +1544,9 @@ class AppState extends ChangeNotifier {
         );
       case GearSlot.offhandWeapon:
         return equipped.copyWith(
-          offhandWeaponId:
-              itemId is WeaponId ? itemId : equipped.offhandWeaponId,
+          offhandWeaponId: itemId is WeaponId
+              ? itemId
+              : equipped.offhandWeaponId,
         );
       case GearSlot.spellBook:
         return equipped.copyWith(
@@ -1549,9 +1565,7 @@ class AppState extends ChangeNotifier {
       case GearSlot.offhandWeapon:
         return (itemId is WeaponId ? itemId : WeaponId.plainsteel).name;
       case GearSlot.spellBook:
-        return (itemId is SpellBookId
-                ? itemId
-                : SpellBookId.apprenticePrimer)
+        return (itemId is SpellBookId ? itemId : SpellBookId.apprenticePrimer)
             .name;
       case GearSlot.accessory:
         return (itemId is AccessoryId ? itemId : AccessoryId.strengthBelt).name;

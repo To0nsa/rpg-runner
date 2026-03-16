@@ -1,8 +1,27 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'ownership_pending_command.dart';
+
+List<OwnershipPendingCommand> _sortPendingCommands(
+  Iterable<OwnershipPendingCommand> entries,
+) {
+  final sorted = entries.toList(growable: false);
+  sorted.sort((a, b) {
+    final byCreated = a.createdAtMs.compareTo(b.createdAtMs);
+    if (byCreated != 0) {
+      return byCreated;
+    }
+    final byUpdated = a.updatedAtMs.compareTo(b.updatedAtMs);
+    if (byUpdated != 0) {
+      return byUpdated;
+    }
+    return a.coalesceKey.compareTo(b.coalesceKey);
+  });
+  return sorted;
+}
 
 abstract class OwnershipOutboxStore {
   Future<void> upsertCoalesced({required OwnershipPendingCommand command});
@@ -26,7 +45,9 @@ class InMemoryOwnershipOutboxStore implements OwnershipOutboxStore {
       <String, OwnershipPendingCommand>{};
 
   @override
-  Future<void> upsertCoalesced({required OwnershipPendingCommand command}) async {
+  Future<void> upsertCoalesced({
+    required OwnershipPendingCommand command,
+  }) async {
     final prior = _byKey[command.coalesceKey];
     _byKey[command.coalesceKey] = prior == null
         ? command
@@ -42,18 +63,7 @@ class InMemoryOwnershipOutboxStore implements OwnershipOutboxStore {
 
   @override
   Future<List<OwnershipPendingCommand>> loadAll() async {
-    final entries = _byKey.values.toList(growable: false);
-    entries.sort((a, b) {
-      final byCreated = a.createdAtMs.compareTo(b.createdAtMs);
-      if (byCreated != 0) {
-        return byCreated;
-      }
-      final byUpdated = a.updatedAtMs.compareTo(b.updatedAtMs);
-      if (byUpdated != 0) {
-        return byUpdated;
-      }
-      return a.coalesceKey.compareTo(b.coalesceKey);
-    });
+    final entries = _sortPendingCommands(_byKey.values);
     return List<OwnershipPendingCommand>.unmodifiable(entries);
   }
 
@@ -63,7 +73,9 @@ class InMemoryOwnershipOutboxStore implements OwnershipOutboxStore {
   }
 
   @override
-  Future<void> replaceAll({required List<OwnershipPendingCommand> commands}) async {
+  Future<void> replaceAll({
+    required List<OwnershipPendingCommand> commands,
+  }) async {
     _byKey
       ..clear()
       ..addEntries(commands.map((entry) => MapEntry(entry.coalesceKey, entry)));
@@ -84,25 +96,40 @@ class SharedPrefsOwnershipOutboxStore implements OwnershipOutboxStore {
   static const int _storageVersion = 2;
 
   final Future<SharedPreferences> Function() _prefsProvider;
+  Future<void> _mutationQueue = Future<void>.value();
+
+  Future<T> _enqueueMutation<T>(Future<T> Function() action) {
+    final completer = Completer<T>();
+    _mutationQueue = _mutationQueue.catchError((_) {}).then((_) async {
+      try {
+        completer.complete(await action());
+      } catch (error, stackTrace) {
+        completer.completeError(error, stackTrace);
+      }
+    });
+    return completer.future;
+  }
 
   @override
-  Future<void> upsertCoalesced({required OwnershipPendingCommand command}) async {
-    final existing = await loadAll();
-    final byKey = <String, OwnershipPendingCommand>{
-      for (final item in existing) item.coalesceKey: item,
-    };
-    final prior = byKey[command.coalesceKey];
-    byKey[command.coalesceKey] = prior == null
-        ? command
-        : command.copyWith(createdAtMs: prior.createdAtMs);
-    await _writeEntries(byKey.values.toList(growable: false));
+  Future<void> upsertCoalesced({required OwnershipPendingCommand command}) {
+    return _enqueueMutation(() async {
+      final existing = await _readAllEntries(sort: false);
+      final byKey = <String, OwnershipPendingCommand>{
+        for (final item in existing) item.coalesceKey: item,
+      };
+      final prior = byKey[command.coalesceKey];
+      byKey[command.coalesceKey] = prior == null
+          ? command
+          : command.copyWith(createdAtMs: prior.createdAtMs);
+      await _writeEntries(byKey.values.toList(growable: false));
+    });
   }
 
   @override
   Future<OwnershipPendingCommand?> loadByCoalesceKey({
     required String coalesceKey,
   }) async {
-    final entries = await loadAll();
+    final entries = await _readAllEntries(sort: false);
     for (final entry in entries) {
       if (entry.coalesceKey == coalesceKey) {
         return entry;
@@ -113,6 +140,12 @@ class SharedPrefsOwnershipOutboxStore implements OwnershipOutboxStore {
 
   @override
   Future<List<OwnershipPendingCommand>> loadAll() async {
+    return _readAllEntries(sort: true);
+  }
+
+  Future<List<OwnershipPendingCommand>> _readAllEntries({
+    required bool sort,
+  }) async {
     final prefs = await _prefsProvider();
     final raw = prefs.getString(storageKey);
     if (raw == null || raw.trim().isEmpty) {
@@ -130,38 +163,36 @@ class SharedPrefsOwnershipOutboxStore implements OwnershipOutboxStore {
         entries.add(parsed);
       }
     }
-    entries.sort((a, b) {
-      final byCreated = a.createdAtMs.compareTo(b.createdAtMs);
-      if (byCreated != 0) {
-        return byCreated;
-      }
-      final byUpdated = a.updatedAtMs.compareTo(b.updatedAtMs);
-      if (byUpdated != 0) {
-        return byUpdated;
-      }
-      return a.coalesceKey.compareTo(b.coalesceKey);
-    });
-    return List<OwnershipPendingCommand>.unmodifiable(entries);
+    if (!sort) {
+      return List<OwnershipPendingCommand>.unmodifiable(entries);
+    }
+    return List<OwnershipPendingCommand>.unmodifiable(
+      _sortPendingCommands(entries),
+    );
   }
 
   @override
-  Future<void> removeByCoalesceKey({required String coalesceKey}) async {
-    final existing = await loadAll();
-    final next = existing
-        .where((entry) => entry.coalesceKey != coalesceKey)
-        .toList(growable: false);
-    await _writeEntries(next);
+  Future<void> removeByCoalesceKey({required String coalesceKey}) {
+    return _enqueueMutation(() async {
+      final existing = await _readAllEntries(sort: false);
+      final next = existing
+          .where((entry) => entry.coalesceKey != coalesceKey)
+          .toList(growable: false);
+      await _writeEntries(next);
+    });
   }
 
   @override
   Future<void> replaceAll({required List<OwnershipPendingCommand> commands}) {
-    return _writeEntries(commands);
+    return _enqueueMutation(() => _writeEntries(commands));
   }
 
   @override
-  Future<void> clear() async {
-    final prefs = await _prefsProvider();
-    await prefs.remove(storageKey);
+  Future<void> clear() {
+    return _enqueueMutation(() async {
+      final prefs = await _prefsProvider();
+      await prefs.remove(storageKey);
+    });
   }
 
   Future<void> _writeEntries(List<OwnershipPendingCommand> entries) async {

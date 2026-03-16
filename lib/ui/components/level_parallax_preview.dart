@@ -57,9 +57,7 @@ class _LevelParallaxPreviewState extends State<LevelParallaxPreview> {
     if (_cacheKey == key) return;
 
     _cacheKey = key;
-    if (_layers.isNotEmpty) {
-      setState(() => _layers = const <AssetImage>[]);
-    }
+    // Keep current layers visible while next theme layers are loading.
     unawaited(_loadAndSwapLayers(key));
   }
 
