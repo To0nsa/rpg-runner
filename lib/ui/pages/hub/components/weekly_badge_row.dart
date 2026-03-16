@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 
 import '../../../components/app_button.dart';
+import '../../../components/play_button.dart';
 import '../../../theme/ui_tokens.dart';
 
 class WeeklyBadgeRow extends StatelessWidget {
   const WeeklyBadgeRow({
     super.key,
     required this.title,
+    required this.isWeeklyLoading,
     required this.onWeeklyPressed,
     required this.onWeeklyLeaderboardPressed,
   });
 
   final String title;
+  final bool isWeeklyLoading;
   final VoidCallback? onWeeklyPressed;
   final VoidCallback onWeeklyLeaderboardPressed;
 
@@ -39,10 +42,11 @@ class WeeklyBadgeRow extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
           ),
-          AppButton(
-            label: 'PLAY',
-            size: AppButtonSize.xxs,
+          PlayButton(
+            isLoading: isWeeklyLoading,
             onPressed: onWeeklyPressed,
+            size: AppButtonSize.xxs,
+            loadingIndicatorSize: ui.sizes.iconSize.sm,
           ),
           SizedBox(width: ui.space.xs),
           AppButton(

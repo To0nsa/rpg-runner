@@ -8,10 +8,14 @@ class PlayButton extends StatelessWidget {
     super.key,
     required this.isLoading,
     required this.onPressed,
+    this.size = AppButtonSize.lg,
+    this.loadingIndicatorSize,
   });
 
   final bool isLoading;
   final VoidCallback? onPressed;
+  final AppButtonSize size;
+  final double? loadingIndicatorSize;
 
   @override
   Widget build(BuildContext context) {
@@ -21,13 +25,13 @@ class PlayButton extends StatelessWidget {
       children: [
         AppButton(
           label: 'PLAY',
-          size: AppButtonSize.lg,
+          size: size,
           onPressed: isLoading ? null : onPressed,
         ),
         if (isLoading)
           SizedBox(
-            width: ui.sizes.iconSize.md,
-            height: ui.sizes.iconSize.md,
+            width: loadingIndicatorSize ?? ui.sizes.iconSize.md,
+            height: loadingIndicatorSize ?? ui.sizes.iconSize.md,
             child: CircularProgressIndicator(
               strokeWidth: 2,
               valueColor: AlwaysStoppedAnimation<Color>(ui.colors.textPrimary),

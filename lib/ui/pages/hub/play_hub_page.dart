@@ -5,6 +5,7 @@ import '../../app/ui_routes.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
 import '../../components/play_button.dart';
+import '../../levels/level_id_ui.dart';
 import 'components/weekly_badge_row.dart';
 import 'components/hub_menu_icon_column.dart';
 import 'components/hub_select_character_card.dart';
@@ -25,6 +26,7 @@ class PlayHubPage extends StatefulWidget {
 
 class _PlayHubPageState extends State<PlayHubPage> {
   bool _preparingRunStart = false;
+  _RunStartSource? _runStartSource;
 
   @override
   void initState() {
@@ -35,9 +37,15 @@ class _PlayHubPageState extends State<PlayHubPage> {
     });
   }
 
-  Future<void> _startRun(AppState appState) async {
+  Future<void> _startRun(
+    AppState appState, {
+    _RunStartSource source = _RunStartSource.main,
+  }) async {
     if (_preparingRunStart) return;
-    setState(() => _preparingRunStart = true);
+    setState(() {
+      _preparingRunStart = true;
+      _runStartSource = source;
+    });
     try {
       final descriptor = await appState.prepareRunStartDescriptor();
       if (!mounted) return;
@@ -56,7 +64,10 @@ class _PlayHubPageState extends State<PlayHubPage> {
       ).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) {
-        setState(() => _preparingRunStart = false);
+        setState(() {
+          _preparingRunStart = false;
+          _runStartSource = null;
+        });
       }
     }
   }
@@ -67,13 +78,14 @@ class _PlayHubPageState extends State<PlayHubPage> {
       await appState.setRunMode(RunMode.weekly);
     }
     if (!mounted) return;
-    await _startRun(appState);
+    await _startRun(appState, source: _RunStartSource.weekly);
   }
 
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
     final appState = context.watch<AppState>();
+    final progression = appState.progression;
     final selection = appState.selection;
     final profile = appState.profile;
     final gold = appState.progression.gold;
@@ -114,8 +126,13 @@ class _PlayHubPageState extends State<PlayHubPage> {
                   ),
                   SizedBox(height: ui.space.sm),
                   WeeklyBadgeRow(
-                    title: _weeklyBadgeTitle(appState.progression),
-                    onWeeklyPressed: () => _startWeeklyRun(appState),
+                    title: _weeklyBadgeTitle(progression, appState),
+                    isWeeklyLoading:
+                      _preparingRunStart &&
+                      _runStartSource == _RunStartSource.weekly,
+                    onWeeklyPressed: _preparingRunStart
+                      ? null
+                      : () => _startWeeklyRun(appState),
                     onWeeklyLeaderboardPressed: () =>
                         Navigator.of(context).pushNamed(UiRoutes.leaderboards),
                   ),
@@ -148,8 +165,12 @@ class _PlayHubPageState extends State<PlayHubPage> {
                   SizedBox(height: ui.space.lg),
                   Center(
                     child: PlayButton(
-                      isLoading: _preparingRunStart,
-                      onPressed: () => _startRun(appState),
+                      isLoading:
+                          _preparingRunStart &&
+                          _runStartSource == _RunStartSource.main,
+                      onPressed: _preparingRunStart
+                          ? null
+                          : () => _startRun(appState),
                     ),
                   ),
                 ],
@@ -162,6 +183,8 @@ class _PlayHubPageState extends State<PlayHubPage> {
   }
 }
 
+enum _RunStartSource { main, weekly }
+
 String _runModeLabel(RunMode runMode) {
   switch (runMode) {
     case RunMode.practice:
@@ -173,10 +196,9 @@ String _runModeLabel(RunMode runMode) {
   }
 }
 
-String _weeklyBadgeTitle(ProgressionState progression) {
+String _weeklyBadgeTitle(ProgressionState progression,AppState appState) {
+  final weeklyLevelName = appState.weeklyFeaturedLevelId.displayName
+      .toUpperCase();
   final weekly = progression.weekly;
-  if (weekly.currentWindowId.isEmpty || weekly.currentWindowValidatedRuns <= 0) {
-    return 'WEEKLY CHALLENGE';
-  }
-  return 'WEEKLY CHALLENGE ${weekly.currentWindowId}';
+  return 'WEEKLY ${weekly.currentWindowId} • $weeklyLevelName';
 }
