@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 
 import '../assets/ui_asset_lifecycle.dart';
@@ -36,7 +37,6 @@ class LevelParallaxPreview extends StatefulWidget {
 class _LevelParallaxPreviewState extends State<LevelParallaxPreview> {
   String? _cacheKey;
   List<AssetImage> _layers = const <AssetImage>[];
-  bool _precached = false;
 
   @override
   void didChangeDependencies() {
@@ -54,36 +54,32 @@ class _LevelParallaxPreviewState extends State<LevelParallaxPreview> {
 
   void _refreshLayers() {
     final key = widget.themeId ?? '__null__';
-    if (_cacheKey == key && _layers.isNotEmpty) return;
+    if (_cacheKey == key) return;
 
     _cacheKey = key;
-    _precached = false;
-
-    final lifecycle = context.read<UiAssetLifecycle>();
-    lifecycle
-        .getParallaxLayers(widget.themeId)
-        .then((layers) {
-          if (!mounted || _cacheKey != key) return;
-          setState(() => _layers = layers);
-          _schedulePrecache(layers);
-        })
-        .catchError((_) {
-          // Best-effort preview; ignore missing assets.
-        });
+    if (_layers.isNotEmpty) {
+      setState(() => _layers = const <AssetImage>[]);
+    }
+    unawaited(_loadAndSwapLayers(key));
   }
 
-  void _schedulePrecache(List<AssetImage> layers) {
-    if (_precached) return;
-    _precached = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      unawaited(
-        context.read<UiAssetLifecycle>().precacheParallaxLayers(
-          layers,
-          context,
-        ),
-      );
-    });
+  Future<void> _loadAndSwapLayers(String key) async {
+    final lifecycle = context.read<UiAssetLifecycle>();
+    try {
+      final layers = await lifecycle.getParallaxLayers(widget.themeId);
+      if (!mounted || _cacheKey != key) return;
+
+      // Keep currently rendered layers visible while pre-caching the next
+      // theme, then swap atomically to avoid visible one-frame flashes.
+      await lifecycle.precacheParallaxLayers(layers, context);
+      if (!mounted || _cacheKey != key) return;
+
+      if (!listEquals(_layers, layers)) {
+        setState(() => _layers = layers);
+      }
+    } catch (_) {
+      // Best-effort preview; ignore missing assets.
+    }
   }
 
   @override

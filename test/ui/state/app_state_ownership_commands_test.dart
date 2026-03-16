@@ -7,6 +7,7 @@ import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/ui/state/app_state.dart';
 import 'package:rpg_runner/ui/state/auth_api.dart';
 import 'package:rpg_runner/ui/state/loadout_ownership_api.dart';
+import 'package:rpg_runner/ui/state/ownership_sync_policy.dart';
 import 'package:rpg_runner/ui/state/progression_state.dart';
 import 'package:rpg_runner/ui/state/selection_state.dart';
 
@@ -34,6 +35,9 @@ void main() {
       await appState.setProjectileSpell(
         characterId: characterId,
         spellId: ProjectileId.holyBolt,
+      );
+      await appState.flushOwnershipEdits(
+        trigger: OwnershipFlushTrigger.manual,
       );
 
       expect(api.setAbilitySlotCalls, 1);

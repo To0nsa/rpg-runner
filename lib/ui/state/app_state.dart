@@ -9,6 +9,7 @@ import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/accessories/accessory_id.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/levels/level_id.dart';
+import 'package:runner_core/meta/equipped_gear.dart';
 import 'package:runner_core/meta/gear_slot.dart';
 import 'package:runner_core/meta/meta_service.dart';
 import 'package:runner_core/meta/meta_state.dart';
@@ -30,6 +31,10 @@ import 'run_submission_status.dart';
 import 'run_session_api.dart';
 import 'run_start_remote_exception.dart';
 import 'loadout_ownership_api.dart';
+import 'ownership_outbox_store.dart';
+import 'ownership_pending_command.dart';
+import 'ownership_sync_policy.dart';
+import 'ownership_sync_status.dart';
 import 'progression_state.dart';
 import 'selection_state.dart';
 import 'user_profile.dart';
@@ -49,6 +54,8 @@ class AppState extends ChangeNotifier {
     LeaderboardApi? leaderboardApi,
     GhostApi? ghostApi,
     GhostReplayCache? ghostReplayCache,
+    OwnershipSyncPolicy? ownershipSyncPolicy,
+    OwnershipOutboxStore? ownershipOutboxStore,
     RunSubmissionCoordinator? runSubmissionCoordinator,
     RunSubmissionSpoolStore? runSubmissionSpoolStore,
   }) {
@@ -66,6 +73,8 @@ class AppState extends ChangeNotifier {
       leaderboardApi: resolvedLeaderboardApi,
       ghostApi: resolvedGhostApi,
       ghostReplayCache: resolvedGhostReplayCache,
+        ownershipSyncPolicy: ownershipSyncPolicy,
+        ownershipOutboxStore: ownershipOutboxStore,
       runSubmissionCoordinator:
           runSubmissionCoordinator ??
           RunSubmissionCoordinator(
@@ -86,6 +95,8 @@ class AppState extends ChangeNotifier {
     required LeaderboardApi leaderboardApi,
     required GhostApi ghostApi,
     required GhostReplayCache ghostReplayCache,
+    OwnershipSyncPolicy? ownershipSyncPolicy,
+    OwnershipOutboxStore? ownershipOutboxStore,
     required RunSubmissionCoordinator runSubmissionCoordinator,
   }) : _authApi = authApi,
        _profileRemoteApi =
@@ -98,6 +109,9 @@ class AppState extends ChangeNotifier {
        _leaderboardApi = leaderboardApi,
        _ghostApi = ghostApi,
        _ghostReplayCache = ghostReplayCache,
+         _ownershipSyncPolicy = ownershipSyncPolicy ?? OwnershipSyncPolicy.defaults,
+         _ownershipOutboxStore =
+           ownershipOutboxStore ?? InMemoryOwnershipOutboxStore(),
        _runSubmissionCoordinator = runSubmissionCoordinator;
 
   final Random _random = Random();
@@ -110,6 +124,8 @@ class AppState extends ChangeNotifier {
   final LeaderboardApi _leaderboardApi;
   final GhostApi _ghostApi;
   final GhostReplayCache _ghostReplayCache;
+  final OwnershipSyncPolicy _ownershipSyncPolicy;
+  final OwnershipOutboxStore _ownershipOutboxStore;
   final RunSubmissionCoordinator _runSubmissionCoordinator;
 
   SelectionState _selection = SelectionState.defaults;
@@ -121,6 +137,9 @@ class AppState extends ChangeNotifier {
   int _ownershipRevision = 0;
   bool _bootstrapped = false;
   bool _warmupStarted = false;
+  OwnershipSyncStatus _ownershipSyncStatus = OwnershipSyncStatus.idle;
+  Timer? _ownershipFlushTimer;
+  Future<void>? _activeOwnershipFlush;
   final Map<String, RunSubmissionStatus> _runSubmissionStatuses =
       <String, RunSubmissionStatus>{};
 
@@ -133,8 +152,49 @@ class AppState extends ChangeNotifier {
   String get profileId => _profileId;
   bool get isBootstrapped => _bootstrapped;
   int get ownershipRevision => _ownershipRevision;
+  OwnershipSyncPolicy get ownershipSyncPolicy => _ownershipSyncPolicy;
+  OwnershipSyncStatus get ownershipSyncStatus => _ownershipSyncStatus;
   RunSubmissionStatus? runSubmissionStatusFor(String runSessionId) =>
       _runSubmissionStatuses[runSessionId];
+
+  Future<void> flushOwnershipEdits({
+    required OwnershipFlushTrigger trigger,
+  }) async {
+    final active = _activeOwnershipFlush;
+    if (active != null) {
+      await active;
+      return;
+    }
+    final pending = _flushOwnershipEditsInternal(trigger: trigger);
+    _activeOwnershipFlush = pending;
+    try {
+      await pending;
+    } finally {
+      if (identical(_activeOwnershipFlush, pending)) {
+        _activeOwnershipFlush = null;
+      }
+    }
+  }
+
+  Future<void> ensureOwnershipSyncedBeforeRunStart() {
+    return _ensureOwnershipSyncedBeforeRunStartInternal();
+  }
+
+  Future<void> ensureSelectionSyncedBeforeLeavingLevelSetup() {
+    return flushOwnershipEdits(trigger: OwnershipFlushTrigger.leaveLevelSetup);
+  }
+
+  Future<void> _ensureOwnershipSyncedBeforeRunStartInternal() async {
+    await flushOwnershipEdits(trigger: OwnershipFlushTrigger.runStart);
+    await _refreshOwnershipSyncStatusFromOutbox();
+    if (_ownershipSyncStatus.pendingCount > 0) {
+      throw const RunStartRemoteException(
+        code: 'failed-precondition',
+        message:
+            'Pending ownership changes are still syncing. Check your connection and try again.',
+      );
+    }
+  }
 
   Future<void> bootstrap({bool force = false}) async {
     if (_bootstrapped && !force) return;
@@ -206,7 +266,7 @@ class AppState extends ChangeNotifier {
       selectedLevelId: levelId,
     );
     final nextSelection = _selection.copyWith(selectedLevelId: resolvedLevelId);
-    await _setSelection(nextSelection);
+    await _updateSelectionOptimistically(nextSelection);
   }
 
   Future<void> setRunMode(RunMode runMode) async {
@@ -218,12 +278,27 @@ class AppState extends ChangeNotifier {
       selectedRunMode: runMode,
       selectedLevelId: resolvedLevelId,
     );
-    await _setSelection(nextSelection);
+    await _updateSelectionOptimistically(nextSelection);
+  }
+
+  Future<void> setRunModeAndLevel({
+    required RunMode runMode,
+    required LevelId levelId,
+  }) async {
+    final resolvedLevelId = _effectiveLevelForMode(
+      mode: runMode,
+      selectedLevelId: levelId,
+    );
+    final nextSelection = _selection.copyWith(
+      selectedRunMode: runMode,
+      selectedLevelId: resolvedLevelId,
+    );
+    await _updateSelectionOptimistically(nextSelection);
   }
 
   Future<void> setCharacter(PlayerCharacterId id) async {
     final nextSelection = _selection.copyWith(selectedCharacterId: id);
-    await _setSelection(nextSelection);
+    await _updateSelectionOptimistically(nextSelection);
   }
 
   Future<void> setLoadout(EquippedLoadoutDef loadout) async {
@@ -247,39 +322,54 @@ class AppState extends ChangeNotifier {
     required AbilitySlot slot,
     required AbilityKey abilityId,
   }) async {
-    final session = await _ensureAuthSession();
-    final result = await _ownershipApi.setAbilitySlot(
-      SetAbilitySlotCommand(
-        userId: session.userId,
-        sessionId: session.sessionId,
-        expectedRevision: _ownershipRevision,
-        commandId: _newCommandId(),
-        characterId: characterId,
-        slot: slot,
-        abilityId: abilityId,
+    final currentLoadout = _selection.loadoutFor(characterId);
+    final nextLoadout = _withAbilityInLoadout(
+      loadout: currentLoadout,
+      slot: slot,
+      abilityId: abilityId,
+    );
+    _selection = _selection.withLoadoutFor(characterId, nextLoadout);
+    notifyListeners();
+    await _enqueueOwnershipCommand(
+      OwnershipPendingCommand(
+        coalesceKey: 'ability:${characterId.name}:${slot.name}',
+        commandType: OwnershipPendingCommandType.setAbilitySlot,
+        policyTier: OwnershipSyncTier.writeBehind,
+        payloadJson: <String, Object?>{
+          'characterId': characterId.name,
+          'slot': slot.name,
+          'abilityId': abilityId,
+        },
+        createdAtMs: DateTime.now().millisecondsSinceEpoch,
+        updatedAtMs: DateTime.now().millisecondsSinceEpoch,
       ),
     );
-    _applyOwnershipResult(result);
-    notifyListeners();
   }
 
   Future<void> setProjectileSpell({
     required PlayerCharacterId characterId,
     required ProjectileId spellId,
   }) async {
-    final session = await _ensureAuthSession();
-    final result = await _ownershipApi.setProjectileSpell(
-      SetProjectileSpellCommand(
-        userId: session.userId,
-        sessionId: session.sessionId,
-        expectedRevision: _ownershipRevision,
-        commandId: _newCommandId(),
-        characterId: characterId,
-        spellId: spellId,
+    final currentLoadout = _selection.loadoutFor(characterId);
+    final nextLoadout = _copyLoadout(
+      currentLoadout,
+      projectileSlotSpellId: spellId,
+    );
+    _selection = _selection.withLoadoutFor(characterId, nextLoadout);
+    notifyListeners();
+    await _enqueueOwnershipCommand(
+      OwnershipPendingCommand(
+        coalesceKey: 'projectile:${characterId.name}',
+        commandType: OwnershipPendingCommandType.setProjectileSpell,
+        policyTier: OwnershipSyncTier.writeBehind,
+        payloadJson: <String, Object?>{
+          'characterId': characterId.name,
+          'spellId': spellId.name,
+        },
+        createdAtMs: DateTime.now().millisecondsSinceEpoch,
+        updatedAtMs: DateTime.now().millisecondsSinceEpoch,
       ),
     );
-    _applyOwnershipResult(result);
-    notifyListeners();
   }
 
   Future<void> learnProjectileSpell({
@@ -344,20 +434,36 @@ class AppState extends ChangeNotifier {
     required GearSlot slot,
     required Object itemId,
   }) async {
-    final session = await _ensureAuthSession();
-    final result = await _ownershipApi.equipGear(
-      EquipGearCommand(
-        userId: session.userId,
-        sessionId: session.sessionId,
-        expectedRevision: _ownershipRevision,
-        commandId: _newCommandId(),
-        characterId: characterId,
+    final currentLoadout = _selection.loadoutFor(characterId);
+    final nextLoadout = _withGearInLoadout(
+      loadout: currentLoadout,
+      slot: slot,
+      itemId: itemId,
+    );
+    _selection = _selection.withLoadoutFor(characterId, nextLoadout);
+    _meta = _meta.setEquippedFor(
+      characterId,
+      _withGearInMeta(
+        equipped: _meta.equippedFor(characterId),
         slot: slot,
         itemId: itemId,
       ),
     );
-    _applyOwnershipResult(result);
     notifyListeners();
+    await _enqueueOwnershipCommand(
+      OwnershipPendingCommand(
+        coalesceKey: 'gear:${characterId.name}:${slot.name}',
+        commandType: OwnershipPendingCommandType.equipGear,
+        policyTier: OwnershipSyncTier.writeBehind,
+        payloadJson: <String, Object?>{
+          'characterId': characterId.name,
+          'slot': slot.name,
+          'itemId': _gearItemIdAsName(slot: slot, itemId: itemId),
+        },
+        createdAtMs: DateTime.now().millisecondsSinceEpoch,
+        updatedAtMs: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
   }
 
   Future<void> setBuildName(String buildName) async {
@@ -550,6 +656,7 @@ class AppState extends ChangeNotifier {
   void startWarmup() {
     if (_warmupStarted) return;
     _warmupStarted = true;
+    unawaited(_refreshOwnershipSyncStatusFromOutbox());
     unawaited(_resumePendingRunSubmissions());
   }
 
@@ -677,6 +784,7 @@ class AppState extends ChangeNotifier {
     LevelId? expectedLevelId,
     String? ghostEntryId,
   }) async {
+    await ensureOwnershipSyncedBeforeRunStart();
     final session = await _ensureAuthSession();
     // Force a live backend read before run start. If this fails, run start
     // fails closed for all modes.
@@ -903,6 +1011,328 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  Future<void> _enqueueOwnershipCommand(OwnershipPendingCommand command) async {
+    await _ownershipOutboxStore.upsertCoalesced(command: command);
+    await _refreshOwnershipSyncStatusFromOutbox();
+    _scheduleOwnershipFlush(policyTier: command.policyTier);
+    notifyListeners();
+  }
+
+  void _scheduleOwnershipFlush({required OwnershipSyncTier policyTier}) {
+    final debounceMs = _ownershipSyncPolicy.debounceMsFor(policyTier);
+    _ownershipFlushTimer?.cancel();
+    if (debounceMs <= 0) {
+      unawaited(flushOwnershipEdits(trigger: OwnershipFlushTrigger.manual));
+      return;
+    }
+    _ownershipFlushTimer = Timer(Duration(milliseconds: debounceMs), () {
+      unawaited(flushOwnershipEdits(trigger: OwnershipFlushTrigger.manual));
+    });
+  }
+
+  Future<void> _flushOwnershipEditsInternal({
+    required OwnershipFlushTrigger trigger,
+  }) async {
+    _ownershipFlushTimer?.cancel();
+    _ownershipFlushTimer = null;
+    _ownershipSyncStatus = _ownershipSyncStatus.copyWith(
+      isFlushing: true,
+      clearLastSyncError: true,
+    );
+    notifyListeners();
+    try {
+      AuthSession? session;
+      while (true) {
+        final nowMs = DateTime.now().millisecondsSinceEpoch;
+        final pending = await _ownershipOutboxStore.loadAll();
+        OwnershipPendingCommand? ready;
+        OwnershipPendingCommand? fallbackReady;
+        int? earliestNextAttemptAtMs;
+        for (final candidate in pending) {
+          final attempt = candidate.deliveryAttempt;
+          final ageMs = nowMs - candidate.createdAtMs;
+          final exceededMaxStaleness =
+              ageMs >= _ownershipSyncPolicy.maxStalenessMs;
+          if (attempt == null ||
+              attempt.nextAttemptAtMs <= nowMs ||
+              exceededMaxStaleness) {
+            fallbackReady ??= candidate;
+            if (candidate.policyTier == OwnershipSyncTier.selectionFastSync) {
+              ready = candidate;
+              break;
+            }
+            continue;
+          }
+          final candidateNextAttemptAtMs = attempt.nextAttemptAtMs;
+          if (earliestNextAttemptAtMs == null ||
+              candidateNextAttemptAtMs < earliestNextAttemptAtMs) {
+            earliestNextAttemptAtMs = candidateNextAttemptAtMs;
+          }
+        }
+        ready ??= fallbackReady;
+        if (ready == null) {
+          if (earliestNextAttemptAtMs != null) {
+            final delayMs = earliestNextAttemptAtMs - nowMs;
+            _ownershipFlushTimer?.cancel();
+            _ownershipFlushTimer = Timer(
+              Duration(milliseconds: delayMs <= 0 ? 1 : delayMs),
+              () {
+                unawaited(
+                  flushOwnershipEdits(trigger: OwnershipFlushTrigger.manual),
+                );
+              },
+            );
+          }
+          break;
+        }
+        session ??= await _ensureAuthSession();
+        await _deliverPendingOwnershipCommand(session: session, command: ready);
+      }
+      await _refreshOwnershipSyncStatusFromOutbox();
+    } catch (error) {
+      _ownershipSyncStatus = _ownershipSyncStatus.copyWith(
+        lastSyncError: 'flush:${trigger.name}:$error',
+      );
+    } finally {
+      _ownershipSyncStatus = _ownershipSyncStatus.copyWith(isFlushing: false);
+      notifyListeners();
+    }
+  }
+
+  Future<void> _deliverPendingOwnershipCommand({
+    required AuthSession session,
+    required OwnershipPendingCommand command,
+  }) async {
+    final alreadySuperseded = await _isPendingCommandSuperseded(
+      command: command,
+    );
+    if (alreadySuperseded) {
+      return;
+    }
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final payloadHash = crypto.sha256
+        .convert(utf8.encode(jsonEncode(command.payloadJson)))
+        .toString();
+    final attempt = command.deliveryAttempt ??
+        OwnershipDeliveryAttempt(
+          commandId: _newCommandId(),
+          expectedRevision: _ownershipRevision,
+          attemptCount: 0,
+          nextAttemptAtMs: nowMs,
+          sentPayloadHash: payloadHash,
+        );
+    try {
+      final result = await _sendPendingOwnershipCommand(
+        session: session,
+        command: command,
+        attempt: attempt,
+      );
+      final superseded = await _isPendingCommandSuperseded(
+        command: command,
+        sentPayloadHash: payloadHash,
+      );
+      if (superseded) {
+        return;
+      }
+      if (result.rejectedReason == OwnershipRejectedReason.staleRevision) {
+        final canonical = await _ownershipApi.loadCanonicalState(
+          userId: session.userId,
+          sessionId: session.sessionId,
+        );
+        await _ownershipOutboxStore.upsertCoalesced(
+          command: command.copyWith(
+            updatedAtMs: nowMs,
+            clearDeliveryAttempt: true,
+          ),
+        );
+        _applyCanonicalState(canonical);
+        await _reconcileSelectionProjectionFromOutbox();
+        _ownershipSyncStatus = _ownershipSyncStatus.copyWith(
+          conflictCount: _ownershipSyncStatus.conflictCount + 1,
+        );
+        notifyListeners();
+        return;
+      }
+
+      _applyOwnershipResult(result);
+      await _ownershipOutboxStore.removeByCoalesceKey(
+        coalesceKey: command.coalesceKey,
+      );
+      await _reconcileSelectionProjectionFromOutbox();
+      notifyListeners();
+    } catch (_) {
+      final superseded = await _isPendingCommandSuperseded(
+        command: command,
+        sentPayloadHash: payloadHash,
+      );
+      if (superseded) {
+        return;
+      }
+      final nextAttemptCount = attempt.attemptCount + 1;
+      final delayMs = _ownershipSyncPolicy.retryDelayMsForAttempt(
+        nextAttemptCount,
+        random: _random,
+      );
+      final nextAttempt = attempt.copyWith(
+        attemptCount: nextAttemptCount,
+        nextAttemptAtMs: nowMs + delayMs,
+        sentPayloadHash: payloadHash,
+      );
+      await _ownershipOutboxStore.upsertCoalesced(
+        command: command.copyWith(
+          updatedAtMs: nowMs,
+          deliveryAttempt: nextAttempt,
+        ),
+      );
+      _ownershipSyncStatus = _ownershipSyncStatus.copyWith(
+        retryCount: _ownershipSyncStatus.retryCount + 1,
+      );
+    }
+  }
+
+  Future<bool> _isPendingCommandSuperseded({
+    required OwnershipPendingCommand command,
+    String? sentPayloadHash,
+  }) async {
+    final latest = await _ownershipOutboxStore.loadByCoalesceKey(
+      coalesceKey: command.coalesceKey,
+    );
+    if (latest == null) {
+      return false;
+    }
+    if (latest.updatedAtMs > command.updatedAtMs) {
+      return true;
+    }
+    final latestPayloadHash = crypto.sha256
+      .convert(utf8.encode(jsonEncode(latest.payloadJson)))
+      .toString();
+    final referencePayloadHash =
+      sentPayloadHash ??
+      crypto.sha256
+        .convert(utf8.encode(jsonEncode(command.payloadJson)))
+        .toString();
+    return latestPayloadHash != referencePayloadHash;
+  }
+
+  Future<OwnershipCommandResult> _sendPendingOwnershipCommand({
+    required AuthSession session,
+    required OwnershipPendingCommand command,
+    required OwnershipDeliveryAttempt attempt,
+  }) async {
+    switch (command.commandType) {
+      case OwnershipPendingCommandType.setSelection:
+        final selectionRaw = command.payloadJson['selection'];
+        if (selectionRaw is! Map) {
+          throw FormatException('setSelection payload is invalid.');
+        }
+        final selection = SelectionState.fromJson(
+          Map<String, dynamic>.from(selectionRaw),
+        );
+        return _ownershipApi.setSelection(
+          SetSelectionCommand(
+            userId: session.userId,
+            sessionId: session.sessionId,
+            expectedRevision: attempt.expectedRevision,
+            commandId: attempt.commandId,
+            selection: selection,
+          ),
+        );
+      case OwnershipPendingCommandType.setAbilitySlot:
+        final characterId = _enumByName(
+          PlayerCharacterId.values,
+          '${command.payloadJson['characterId']}',
+          fieldName: 'setAbilitySlot.characterId',
+        );
+        final slot = _enumByName(
+          AbilitySlot.values,
+          '${command.payloadJson['slot']}',
+          fieldName: 'setAbilitySlot.slot',
+        );
+        final abilityId = '${command.payloadJson['abilityId']}';
+        return _ownershipApi.setAbilitySlot(
+          SetAbilitySlotCommand(
+            userId: session.userId,
+            sessionId: session.sessionId,
+            expectedRevision: attempt.expectedRevision,
+            commandId: attempt.commandId,
+            characterId: characterId,
+            slot: slot,
+            abilityId: abilityId,
+          ),
+        );
+      case OwnershipPendingCommandType.setProjectileSpell:
+        final characterId = _enumByName(
+          PlayerCharacterId.values,
+          '${command.payloadJson['characterId']}',
+          fieldName: 'setProjectileSpell.characterId',
+        );
+        final spellId = _enumByName(
+          ProjectileId.values,
+          '${command.payloadJson['spellId']}',
+          fieldName: 'setProjectileSpell.spellId',
+        );
+        return _ownershipApi.setProjectileSpell(
+          SetProjectileSpellCommand(
+            userId: session.userId,
+            sessionId: session.sessionId,
+            expectedRevision: attempt.expectedRevision,
+            commandId: attempt.commandId,
+            characterId: characterId,
+            spellId: spellId,
+          ),
+        );
+      case OwnershipPendingCommandType.equipGear:
+        final characterId = _enumByName(
+          PlayerCharacterId.values,
+          '${command.payloadJson['characterId']}',
+          fieldName: 'equipGear.characterId',
+        );
+        final slot = _enumByName(
+          GearSlot.values,
+          '${command.payloadJson['slot']}',
+          fieldName: 'equipGear.slot',
+        );
+        final itemIdName = '${command.payloadJson['itemId']}';
+        final itemId = _gearItemFromName(slot: slot, itemIdName: itemIdName);
+        return _ownershipApi.equipGear(
+          EquipGearCommand(
+            userId: session.userId,
+            sessionId: session.sessionId,
+            expectedRevision: attempt.expectedRevision,
+            commandId: attempt.commandId,
+            characterId: characterId,
+            slot: slot,
+            itemId: itemId,
+          ),
+        );
+      case OwnershipPendingCommandType.setLoadout:
+        throw UnsupportedError('setLoadout outbox delivery is not enabled yet.');
+    }
+  }
+
+  Future<void> _refreshOwnershipSyncStatusFromOutbox() async {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final pending = await _ownershipOutboxStore.loadAll();
+    final pendingSelectionCount = pending
+        .where((entry) => entry.policyTier == OwnershipSyncTier.selectionFastSync)
+        .length;
+    int oldestPendingAgeMs = 0;
+    if (pending.isNotEmpty) {
+      final oldestCreatedAtMs = pending
+          .map((entry) => entry.createdAtMs)
+          .reduce((a, b) => a < b ? a : b);
+      oldestPendingAgeMs = nowMs - oldestCreatedAtMs;
+      if (oldestPendingAgeMs < 0) {
+        oldestPendingAgeMs = 0;
+      }
+    }
+    _ownershipSyncStatus = _ownershipSyncStatus.copyWith(
+      pendingCount: pending.length,
+      pendingSelectionCount: pendingSelectionCount,
+      oldestPendingAgeMs: oldestPendingAgeMs,
+    );
+  }
+
   Future<void> _setSelection(SelectionState nextSelection) async {
     final session = await _ensureAuthSession();
     final result = await _ownershipApi.setSelection(
@@ -916,6 +1346,43 @@ class AppState extends ChangeNotifier {
     );
     _applyOwnershipResult(result);
     notifyListeners();
+  }
+
+  Future<void> _updateSelectionOptimistically(
+    SelectionState nextSelection,
+  ) async {
+    if (_selection == nextSelection) {
+      return;
+    }
+    _selection = nextSelection;
+    notifyListeners();
+    await _enqueueOwnershipCommand(
+      OwnershipPendingCommand(
+        coalesceKey: 'selection',
+        commandType: OwnershipPendingCommandType.setSelection,
+        policyTier: OwnershipSyncTier.selectionFastSync,
+        payloadJson: <String, Object?>{'selection': nextSelection.toJson()},
+        createdAtMs: DateTime.now().millisecondsSinceEpoch,
+        updatedAtMs: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
+
+  Future<void> _reconcileSelectionProjectionFromOutbox() async {
+    final pending = await _ownershipOutboxStore.loadByCoalesceKey(
+      coalesceKey: 'selection',
+    );
+    if (pending == null || pending.commandType != OwnershipPendingCommandType.setSelection) {
+      return;
+    }
+    final selectionRaw = pending.payloadJson['selection'];
+    if (selectionRaw is! Map) {
+      return;
+    }
+    final projectedSelection = SelectionState.fromJson(
+      Map<String, dynamic>.from(selectionRaw),
+    );
+    _selection = projectedSelection;
   }
 
   void _applyOwnershipResult(OwnershipCommandResult result) {
@@ -965,5 +1432,163 @@ class AppState extends ChangeNotifier {
       return _defaultWeeklyFeaturedLevelId;
     }
     return selectedLevelId;
+  }
+
+  EquippedLoadoutDef _withAbilityInLoadout({
+    required EquippedLoadoutDef loadout,
+    required AbilitySlot slot,
+    required AbilityKey abilityId,
+  }) {
+    switch (slot) {
+      case AbilitySlot.primary:
+        return _copyLoadout(loadout, abilityPrimaryId: abilityId);
+      case AbilitySlot.secondary:
+        return _copyLoadout(loadout, abilitySecondaryId: abilityId);
+      case AbilitySlot.projectile:
+        return _copyLoadout(loadout, abilityProjectileId: abilityId);
+      case AbilitySlot.spell:
+        return _copyLoadout(loadout, abilitySpellId: abilityId);
+      case AbilitySlot.mobility:
+        return _copyLoadout(loadout, abilityMobilityId: abilityId);
+      case AbilitySlot.jump:
+        return _copyLoadout(loadout, abilityJumpId: abilityId);
+    }
+  }
+
+  EquippedLoadoutDef _withGearInLoadout({
+    required EquippedLoadoutDef loadout,
+    required GearSlot slot,
+    required Object itemId,
+  }) {
+    switch (slot) {
+      case GearSlot.mainWeapon:
+        return _copyLoadout(
+          loadout,
+          mainWeaponId: itemId is WeaponId ? itemId : loadout.mainWeaponId,
+        );
+      case GearSlot.offhandWeapon:
+        return _copyLoadout(
+          loadout,
+          offhandWeaponId:
+              itemId is WeaponId ? itemId : loadout.offhandWeaponId,
+        );
+      case GearSlot.spellBook:
+        return _copyLoadout(
+          loadout,
+          spellBookId: itemId is SpellBookId ? itemId : loadout.spellBookId,
+        );
+      case GearSlot.accessory:
+        return _copyLoadout(
+          loadout,
+          accessoryId: itemId is AccessoryId ? itemId : loadout.accessoryId,
+        );
+    }
+  }
+
+  EquippedLoadoutDef _copyLoadout(
+    EquippedLoadoutDef loadout, {
+    int? mask,
+    WeaponId? mainWeaponId,
+    WeaponId? offhandWeaponId,
+    SpellBookId? spellBookId,
+    ProjectileId? projectileSlotSpellId,
+    AccessoryId? accessoryId,
+    AbilityKey? abilityPrimaryId,
+    AbilityKey? abilitySecondaryId,
+    AbilityKey? abilityProjectileId,
+    AbilityKey? abilitySpellId,
+    AbilityKey? abilityMobilityId,
+    AbilityKey? abilityJumpId,
+  }) {
+    return EquippedLoadoutDef(
+      mask: mask ?? loadout.mask,
+      mainWeaponId: mainWeaponId ?? loadout.mainWeaponId,
+      offhandWeaponId: offhandWeaponId ?? loadout.offhandWeaponId,
+      spellBookId: spellBookId ?? loadout.spellBookId,
+      projectileSlotSpellId:
+          projectileSlotSpellId ?? loadout.projectileSlotSpellId,
+      accessoryId: accessoryId ?? loadout.accessoryId,
+      abilityPrimaryId: abilityPrimaryId ?? loadout.abilityPrimaryId,
+      abilitySecondaryId: abilitySecondaryId ?? loadout.abilitySecondaryId,
+      abilityProjectileId: abilityProjectileId ?? loadout.abilityProjectileId,
+      abilitySpellId: abilitySpellId ?? loadout.abilitySpellId,
+      abilityMobilityId: abilityMobilityId ?? loadout.abilityMobilityId,
+      abilityJumpId: abilityJumpId ?? loadout.abilityJumpId,
+    );
+  }
+
+  EquippedGear _withGearInMeta({
+    required EquippedGear equipped,
+    required GearSlot slot,
+    required Object itemId,
+  }) {
+    switch (slot) {
+      case GearSlot.mainWeapon:
+        return equipped.copyWith(
+          mainWeaponId: itemId is WeaponId ? itemId : equipped.mainWeaponId,
+        );
+      case GearSlot.offhandWeapon:
+        return equipped.copyWith(
+          offhandWeaponId:
+              itemId is WeaponId ? itemId : equipped.offhandWeaponId,
+        );
+      case GearSlot.spellBook:
+        return equipped.copyWith(
+          spellBookId: itemId is SpellBookId ? itemId : equipped.spellBookId,
+        );
+      case GearSlot.accessory:
+        return equipped.copyWith(
+          accessoryId: itemId is AccessoryId ? itemId : equipped.accessoryId,
+        );
+    }
+  }
+
+  String _gearItemIdAsName({required GearSlot slot, required Object itemId}) {
+    switch (slot) {
+      case GearSlot.mainWeapon:
+      case GearSlot.offhandWeapon:
+        return (itemId is WeaponId ? itemId : WeaponId.plainsteel).name;
+      case GearSlot.spellBook:
+        return (itemId is SpellBookId
+                ? itemId
+                : SpellBookId.apprenticePrimer)
+            .name;
+      case GearSlot.accessory:
+        return (itemId is AccessoryId ? itemId : AccessoryId.strengthBelt).name;
+    }
+  }
+
+  Object _gearItemFromName({
+    required GearSlot slot,
+    required String itemIdName,
+  }) {
+    switch (slot) {
+      case GearSlot.mainWeapon:
+      case GearSlot.offhandWeapon:
+        return _enumByName(
+          WeaponId.values,
+          itemIdName,
+          fieldName: 'equipGear.itemId',
+        );
+      case GearSlot.spellBook:
+        return _enumByName(
+          SpellBookId.values,
+          itemIdName,
+          fieldName: 'equipGear.itemId',
+        );
+      case GearSlot.accessory:
+        return _enumByName(
+          AccessoryId.values,
+          itemIdName,
+          fieldName: 'equipGear.itemId',
+        );
+    }
+  }
+
+  @override
+  void dispose() {
+    _ownershipFlushTimer?.cancel();
+    _ownershipFlushTimer = null;
+    super.dispose();
   }
 }

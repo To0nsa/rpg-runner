@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../assets/ui_asset_lifecycle.dart';
 import '../levels/level_id_ui.dart';
 import '../state/app_state.dart';
+import '../state/ownership_sync_policy.dart';
 import '../state/firebase_auth_api.dart';
 import '../state/firebase_account_deletion_api.dart';
 import '../state/firebase_ghost_api.dart';
@@ -15,6 +16,7 @@ import '../state/firebase_loadout_ownership_api.dart';
 import '../state/firebase_run_boards_api.dart';
 import '../state/firebase_run_session_api.dart';
 import '../state/firebase_user_profile_remote_api.dart';
+import '../state/ownership_outbox_store.dart';
 import '../theme/ui_button_theme.dart';
 import '../theme/ui_hub_theme.dart';
 import '../theme/ui_icon_button_theme.dart';
@@ -75,7 +77,47 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
+    final ctx = _navigatorKey.currentContext;
+    if (ctx != null) {
+      final appState = Provider.of<AppState>(ctx, listen: false);
+      switch (state) {
+        case AppLifecycleState.inactive:
+          unawaited(
+            appState.flushOwnershipEdits(
+              trigger: OwnershipFlushTrigger.lifecycleInactive,
+            ),
+          );
+          break;
+        case AppLifecycleState.paused:
+          unawaited(
+            appState.flushOwnershipEdits(
+              trigger: OwnershipFlushTrigger.lifecyclePaused,
+            ),
+          );
+          break;
+        case AppLifecycleState.detached:
+          unawaited(
+            appState.flushOwnershipEdits(
+              trigger: OwnershipFlushTrigger.lifecycleDetached,
+            ),
+          );
+          break;
+        case AppLifecycleState.resumed:
+          break;
+        case AppLifecycleState.hidden:
+          break;
+      }
+    }
     if (state == AppLifecycleState.resumed) {
+      final ctx = _navigatorKey.currentContext;
+      if (ctx != null) {
+        final appState = Provider.of<AppState>(ctx, listen: false);
+        unawaited(
+          appState.flushOwnershipEdits(
+            trigger: OwnershipFlushTrigger.connectivityRestored,
+          ),
+        );
+      }
       _applyGlobalSystemUiMode();
       _showResumeLoader();
     }
@@ -94,6 +136,7 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
     Route<dynamic>? route,
     Route<dynamic>? previousRoute,
   ) {
+    final removedRouteName = route?.settings.name;
     _hasSeenRoute = true;
     if (change == _UiRouteChange.pop || change == _UiRouteChange.remove) {
       _currentRouteName = previousRoute?.settings.name;
@@ -106,6 +149,23 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
     }
 
     _applyGlobalSystemUiMode();
+
+    if (change == _UiRouteChange.pop || change == _UiRouteChange.remove) {
+      final ctx = _navigatorKey.currentContext;
+      if (ctx != null) {
+        final appState = Provider.of<AppState>(ctx, listen: false);
+        if (removedRouteName == UiRoutes.setupLevel) {
+          unawaited(appState.ensureSelectionSyncedBeforeLeavingLevelSetup());
+        }
+        if (removedRouteName == UiRoutes.setupLoadout) {
+          unawaited(
+            appState.flushOwnershipEdits(
+              trigger: OwnershipFlushTrigger.leaveLoadoutSetup,
+            ),
+          );
+        }
+      }
+    }
 
     if (_currentRouteName == UiRoutes.hub) {
       unawaited(_warmHubSelection());
@@ -167,6 +227,7 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
               accountDeletionApi: accountDeletionApi,
               userProfileRemoteApi: userProfileRemoteApi,
               loadoutOwnershipApi: ownershipApi,
+              ownershipOutboxStore: SharedPrefsOwnershipOutboxStore(),
               runBoardsApi: runBoardsApi,
               runSessionApi: runSessionApi,
               leaderboardApi: leaderboardApi,

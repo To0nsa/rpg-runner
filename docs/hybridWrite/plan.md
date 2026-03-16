@@ -1,7 +1,82 @@
-# Ownership Hybrid Sync Plan (Loadout + Selection)
+# Ownership Hybrid Sync Implementation Plan (Loadout + Selection)
 
 Date: March 16, 2026  
-Status: Ready to implement
+Status: Implementation plan (one-pass capable)
+
+## Implementation Strategy
+
+Target delivery model: single cohesive PR (one pass) with no long-lived
+parallel path.
+
+Guardrails for one pass:
+
+- keep backend callable contracts unchanged
+- keep authority boundary unchanged (`AppState -> LoadoutOwnershipApi`)
+- migrate all Tier B/Tier C call sites in the same PR
+- add tests for coalescing, conflict recovery, and route/run sync barriers
+- block merge unless `dart analyze` and touched tests are green
+
+## Implementation Checklist (Execution Order)
+
+1. Define sync primitives
+  - add `ownership_sync_policy.dart`
+  - add `ownership_pending_command.dart`
+  - add `ownership_sync_status.dart`
+2. Add durable outbox store
+  - add `ownership_outbox_store.dart` using `SharedPreferences`
+  - implement schema versioning (`ui.ownership_outbox.v2`)
+3. Refactor `AppState` core pipeline
+  - add optimistic overlay model
+  - add enqueue/coalesce logic per policy tier
+  - add flush scheduler (Tier B debounced, Tier C urgent)
+  - add retry/backoff/jitter handling
+  - add stale-revision recovery with canonical reload and draft reapply
+4. Migrate command handlers
+  - Tier B: `setAbilitySlot`, `setProjectileSpell`, `equipGear`
+  - Tier C: `setRunMode`, `setLevel`, `setCharacter`
+  - keep Tier A immediate-authoritative
+5. Wire flush barriers
+  - app lifecycle pause/inactive/detached
+  - leave level setup route
+  - leave loadout route
+  - before run start
+  - connectivity restored
+6. Update call sites that currently chain sequential waits
+  - ghost-run preselection flow uses Tier C optimistic selection + one pre-run
+    barrier flush
+7. Add/adjust tests
+  - outbox durability
+  - coalescing correctness
+  - retry/idempotency behavior
+  - stale-revision recovery
+  - route/run barrier behavior
+8. Validate and ship
+  - `dart analyze`
+  - targeted `flutter test` for touched state/ui tests
+  - doc sanity pass
+
+## File-Level Work Plan
+
+Primary implementation files:
+
+- `lib/ui/state/app_state.dart`
+- `lib/ui/state/ownership_sync_policy.dart` (new)
+- `lib/ui/state/ownership_pending_command.dart` (new)
+- `lib/ui/state/ownership_sync_status.dart` (new)
+- `lib/ui/state/ownership_outbox_store.dart` (new)
+
+Integration files:
+
+- `lib/ui/app/ui_app.dart` (lifecycle-triggered flush)
+- `lib/ui/pages/selectLevel/level_setup_page.dart` (pre-exit Tier C barrier)
+- `lib/ui/pages/selectCharacter/loadout_setup_page.dart` (selection sync path)
+- `lib/ui/pages/hub/play_hub_page.dart` (pre-run barrier)
+- `lib/ui/pages/leaderboards/leaderboards_page.dart` (ghost-run preselection)
+
+Tests:
+
+- `test/ui/state/**` (new and updated unit tests)
+- route-level widget tests where barriers are enforced
 
 ## Goal
 
@@ -319,8 +394,8 @@ Phase 3:
 
 Phase 4:
 
-- optionally move `setCharacter` into Tier C (if desired)
 - remove legacy direct-send fallback from production path
+- harden telemetry dashboards and operational alerts for Tier B/Tier C
 
 ## Test Plan
 
