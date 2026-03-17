@@ -45,6 +45,7 @@ final class ValidatorRunSession {
     required this.runTicket,
     required this.uploadedReplay,
     required this.validationAttempt,
+    this.internalErrorFirstAtMs,
   });
 
   final String runSessionId;
@@ -52,6 +53,7 @@ final class ValidatorRunSession {
   final RunTicket runTicket;
   final UploadedReplayRef uploadedReplay;
   final int validationAttempt;
+  final int? internalErrorFirstAtMs;
 }
 
 final class RunSessionLeaseAcquireResult {
@@ -83,6 +85,7 @@ abstract class RunSessionRepository {
     required String runSessionId,
     required int nextAttemptAtMs,
     required String message,
+    int? internalErrorFirstAtMs,
   });
 }
 
@@ -102,6 +105,7 @@ class NoopRunSessionRepository implements RunSessionRepository {
     required String runSessionId,
     required int nextAttemptAtMs,
     required String message,
+    int? internalErrorFirstAtMs,
   }) async {}
 
   @override
@@ -294,6 +298,7 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
     required String runSessionId,
     required int nextAttemptAtMs,
     required String message,
+    int? internalErrorFirstAtMs,
   }) async {
     final firestoreApi = await apiProvider.firestoreApi();
     final path = _runSessionDocPath(runSessionId);
@@ -305,6 +310,7 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
           'updatedAtMs': nowMs,
           'validationNextAttemptAtMs': nextAttemptAtMs,
           'message': message,
+          'internalErrorFirstAtMs': internalErrorFirstAtMs,
         }),
       ),
       path,
@@ -313,6 +319,7 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
         'updatedAtMs',
         'validationNextAttemptAtMs',
         'message',
+        'internalErrorFirstAtMs',
       ],
     );
   }
@@ -346,6 +353,7 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
         runTicket: runTicket,
         uploadedReplay: uploadedReplay,
         validationAttempt: attempt,
+        internalErrorFirstAtMs: _readInt(decoded['internalErrorFirstAtMs']),
       );
     } on FormatException {
       return null;

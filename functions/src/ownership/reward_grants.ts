@@ -3,8 +3,11 @@ import type { Firestore, Transaction } from "firebase-admin/firestore";
 import type { JsonObject, OwnershipCanonicalState } from "./contracts.js";
 
 const rewardGrantsCollection = "reward_grants";
-const rewardGrantPendingState = "pending_apply";
-const rewardGrantAppliedState = "applied";
+const rewardGrantLifecycleProvisionalCreated = "provisional_created";
+const rewardGrantLifecycleProvisionalVisible = "provisional_visible";
+const rewardGrantLifecycleValidatedSettled = "validated_settled";
+const rewardGrantLifecycleRevocationVisible = "revocation_visible";
+const rewardGrantLifecycleRevokedFinal = "revoked_final";
 const maxAppliedRewardGrantIds = 512;
 const rewardGrantBatchLimit = 64;
 const weeklyProgressSchemaVersion = 1;
@@ -13,6 +16,7 @@ export interface RewardGrantReconcileResult {
   canonicalState: OwnershipCanonicalState;
   canonicalChanged: boolean;
   appliedGrantCount: number;
+  revokedGrantCount: number;
 }
 
 export async function reconcilePendingRewardGrantsForTransaction(args: {
@@ -33,6 +37,7 @@ export async function reconcilePendingRewardGrantsForTransaction(args: {
       canonicalState: args.canonicalState,
       canonicalChanged: false,
       appliedGrantCount: 0,
+      revokedGrantCount: 0,
     };
   }
 
@@ -57,50 +62,67 @@ export async function reconcilePendingRewardGrantsForTransaction(args: {
   const appliedRewardGrantIdSet = new Set(appliedRewardGrantIds);
 
   let appliedGrantCount = 0;
+  let revokedGrantCount = 0;
   for (const rewardGrantDoc of rewardGrantSnapshot.docs) {
     const rewardGrant = rewardGrantDoc.data() as Record<string, unknown>;
-    if (String(rewardGrant.state ?? "") !== rewardGrantPendingState) {
+    const stateResolution = resolveRewardGrantSettlementState(rewardGrant);
+
+    if (stateResolution === "settle") {
+      const grantId = rewardGrantDoc.id;
+      const goldAmount = parseInteger(rewardGrant.goldAmount) ?? 0;
+      if (!appliedRewardGrantIdSet.has(grantId)) {
+        const nonNegativeGoldAmount = Math.max(0, goldAmount);
+        const nextGold = gold + nonNegativeGoldAmount;
+        if (!Number.isSafeInteger(nextGold) || nextGold < 0) {
+          throw new Error(
+            `reward_grants/${grantId} would overflow progression.gold.`,
+          );
+        }
+        gold = nextGold;
+        appliedRewardGrantIds.push(grantId);
+        appliedRewardGrantIdSet.add(grantId);
+        canonicalChanged = true;
+        const weeklyChanged = applyWeeklyProgressHook({
+          progression,
+          rewardGrant,
+          grantId,
+          nowMs,
+          grantedGoldAmount: nonNegativeGoldAmount,
+        });
+        if (weeklyChanged) {
+          canonicalChanged = true;
+        }
+      }
+
+      args.tx.set(
+        rewardGrantDoc.ref,
+        {
+          lifecycleState: rewardGrantLifecycleValidatedSettled,
+          appliedAtMs: nowMs,
+          updatedAtMs: nowMs,
+          appliedProfileId: args.canonicalState.profileId,
+          appliedRevision: args.canonicalState.revision,
+        },
+        { merge: true },
+      );
+      appliedGrantCount += 1;
       continue;
     }
 
-    const grantId = rewardGrantDoc.id;
-    const goldAmount = parseInteger(rewardGrant.goldAmount) ?? 0;
-    if (!appliedRewardGrantIdSet.has(grantId)) {
-      const nonNegativeGoldAmount = Math.max(0, goldAmount);
-      const nextGold = gold + nonNegativeGoldAmount;
-      if (!Number.isSafeInteger(nextGold) || nextGold < 0) {
-        throw new Error(
-          `reward_grants/${grantId} would overflow progression.gold.`,
-        );
-      }
-      gold = nextGold;
-      appliedRewardGrantIds.push(grantId);
-      appliedRewardGrantIdSet.add(grantId);
-      canonicalChanged = true;
-      const weeklyChanged = applyWeeklyProgressHook({
-        progression,
-        rewardGrant,
-        grantId,
-        nowMs,
-        grantedGoldAmount: nonNegativeGoldAmount,
-      });
-      if (weeklyChanged) {
-        canonicalChanged = true;
-      }
+    if (stateResolution === "terminalize_revoked") {
+      // revocation_visible → revoked_final: no gold change, just close the lifecycle.
+      args.tx.set(
+        rewardGrantDoc.ref,
+        {
+          lifecycleState: rewardGrantLifecycleRevokedFinal,
+          updatedAtMs: nowMs,
+          revokedFinalAtMs: nowMs,
+          revokedFinalBy: "ownership_reconcile",
+        },
+        { merge: true },
+      );
+      revokedGrantCount += 1;
     }
-
-    args.tx.set(
-      rewardGrantDoc.ref,
-      {
-        state: rewardGrantAppliedState,
-        appliedAtMs: nowMs,
-        updatedAtMs: nowMs,
-        appliedProfileId: args.canonicalState.profileId,
-        appliedRevision: args.canonicalState.revision,
-      },
-      { merge: true },
-    );
-    appliedGrantCount += 1;
   }
 
   if (appliedRewardGrantIds.length > maxAppliedRewardGrantIds) {
@@ -116,6 +138,7 @@ export async function reconcilePendingRewardGrantsForTransaction(args: {
       canonicalState: args.canonicalState,
       canonicalChanged: false,
       appliedGrantCount,
+      revokedGrantCount,
     };
   }
 
@@ -128,6 +151,7 @@ export async function reconcilePendingRewardGrantsForTransaction(args: {
     },
     canonicalChanged: true,
     appliedGrantCount,
+    revokedGrantCount,
   };
 }
 
@@ -333,4 +357,31 @@ function readOptionalNonEmptyString(value: unknown): string | null {
   }
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function resolveRewardGrantSettlementState(
+  rewardGrant: Record<string, unknown>,
+): "settle" | "terminalize_revoked" | "skip" {
+  const lifecycleState = readOptionalNonEmptyString(rewardGrant.lifecycleState);
+  if (lifecycleState == null) {
+    return "skip";
+  }
+
+  if (lifecycleState === rewardGrantLifecycleValidatedSettled) {
+    return "settle";
+  }
+
+  if (lifecycleState === rewardGrantLifecycleRevocationVisible) {
+    return "terminalize_revoked";
+  }
+
+  if (
+    lifecycleState === rewardGrantLifecycleProvisionalCreated ||
+    lifecycleState === rewardGrantLifecycleProvisionalVisible ||
+    lifecycleState === rewardGrantLifecycleRevokedFinal
+  ) {
+    return "skip";
+  }
+
+  return "skip";
 }

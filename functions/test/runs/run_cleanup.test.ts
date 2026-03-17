@@ -226,27 +226,30 @@ test("run cleanup deletes validated_runs past retention cutoff", async () => {
   );
 });
 
-test("run cleanup deletes applied reward_grants past retention cutoff", async () => {
+test("run cleanup deletes only terminal settled reward_grants past retention cutoff", async () => {
   const nowMs = 800_000;
-  await db.collection("reward_grants").doc("grant_old_applied").set({
-    runSessionId: "grant_old_applied",
+  await db.collection("reward_grants").doc("grant_old_validated").set({
+    runSessionId: "grant_old_validated",
     uid: "uid_a",
-    state: "applied",
-    appliedAtMs: nowMs - 60_000,
+    lifecycleState: "validated_settled",
     updatedAtMs: nowMs - 60_000,
   });
-  await db.collection("reward_grants").doc("grant_old_pending").set({
-    runSessionId: "grant_old_pending",
+  await db.collection("reward_grants").doc("grant_old_revoked").set({
+    runSessionId: "grant_old_revoked",
     uid: "uid_a",
-    state: "pending_apply",
-    appliedAtMs: nowMs - 60_000,
-    updatedAtMs: nowMs - 60_000,
+    lifecycleState: "revoked_final",
+    updatedAtMs: nowMs - 59_000,
   });
-  await db.collection("reward_grants").doc("grant_fresh_applied").set({
-    runSessionId: "grant_fresh_applied",
+  await db.collection("reward_grants").doc("grant_old_provisional").set({
+    runSessionId: "grant_old_provisional",
+    uid: "uid_a",
+    lifecycleState: "provisional_visible",
+    updatedAtMs: nowMs - 58_000,
+  });
+  await db.collection("reward_grants").doc("grant_fresh_validated").set({
+    runSessionId: "grant_fresh_validated",
     uid: "uid_b",
-    state: "applied",
-    appliedAtMs: nowMs - 100,
+    lifecycleState: "validated_settled",
     updatedAtMs: nowMs - 100,
   });
 
@@ -260,18 +263,21 @@ test("run cleanup deletes applied reward_grants past retention cutoff", async ()
     },
   });
 
-  assert.equal(result.rewardGrantDeletedCount, 1);
-  assert.equal(result.rewardGrantScannedCount, 2);
+  assert.equal(result.rewardGrantDeletedCount, 2);
   assert.equal(
-    (await db.collection("reward_grants").doc("grant_old_applied").get()).exists,
+    (await db.collection("reward_grants").doc("grant_old_validated").get()).exists,
     false,
   );
   assert.equal(
-    (await db.collection("reward_grants").doc("grant_old_pending").get()).exists,
+    (await db.collection("reward_grants").doc("grant_old_revoked").get()).exists,
+    false,
+  );
+  assert.equal(
+    (await db.collection("reward_grants").doc("grant_old_provisional").get()).exists,
     true,
   );
   assert.equal(
-    (await db.collection("reward_grants").doc("grant_fresh_applied").get()).exists,
+    (await db.collection("reward_grants").doc("grant_fresh_validated").get()).exists,
     true,
   );
 });

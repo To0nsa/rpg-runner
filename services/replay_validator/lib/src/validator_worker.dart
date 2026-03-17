@@ -26,7 +26,7 @@ import 'ghost_publisher.dart';
 import 'leaderboard_projector.dart';
 import 'metrics.dart';
 import 'replay_loader.dart';
-import 'reward_grant_writer.dart';
+import 'reward_settlement_writer.dart';
 import 'run_session_repository.dart';
 
 enum ValidationDispatchStatus {
@@ -74,7 +74,11 @@ class DeterministicValidatorWorker implements ValidatorWorker {
     required this.rewardGrantWriter,
     required this.ghostPublisher,
     required this.metrics,
+    this.enableRewardSettlementWrites = true,
     this.maxRetryAttempts = 8,
+    this.internalErrorGraceWindow = const Duration(hours: 1),
+    this.incidentModeAutoRevokePaused = false,
+    this.incidentModeRetryDelay = const Duration(minutes: 15),
     List<Duration>? retryBackoffSchedule,
     int Function()? clockMs,
   }) : _retryBackoffSchedule =
@@ -88,7 +92,11 @@ class DeterministicValidatorWorker implements ValidatorWorker {
   final RewardGrantWriter rewardGrantWriter;
   final GhostPublisher ghostPublisher;
   final ValidatorMetrics metrics;
+  final bool enableRewardSettlementWrites;
   final int maxRetryAttempts;
+  final Duration internalErrorGraceWindow;
+  final bool incidentModeAutoRevokePaused;
+  final Duration incidentModeRetryDelay;
   final List<Duration> _retryBackoffSchedule;
   final int Function() _clockMs;
 
@@ -153,9 +161,11 @@ class DeterministicValidatorWorker implements ValidatorWorker {
         session: session,
       );
       await runSessionRepository.persistValidatedRun(validatedRun: acceptedRun);
-      await rewardGrantWriter.writeRewardGrant(
-        runSessionId: normalizedRunSessionId,
-      );
+      if (enableRewardSettlementWrites) {
+        await rewardGrantWriter.settleValidatedRewardGrant(
+          runSessionId: normalizedRunSessionId,
+        );
+      }
       if (session.runTicket.mode.requiresBoard) {
         await leaderboardProjector.projectValidatedRun(
           runSessionId: normalizedRunSessionId,
@@ -183,6 +193,12 @@ class DeterministicValidatorWorker implements ValidatorWorker {
         rejectionMessage: rejection.message,
       );
       await runSessionRepository.persistValidatedRun(validatedRun: rejectedRun);
+      if (enableRewardSettlementWrites) {
+        await rewardGrantWriter.settleRevokedRewardGrant(
+          runSessionId: normalizedRunSessionId,
+          settlementReason: rejection.reason,
+        );
+      }
       await runSessionRepository.markTerminal(
         runSessionId: normalizedRunSessionId,
         terminalState: RunSessionTerminalState.rejected,
@@ -202,6 +218,63 @@ class DeterministicValidatorWorker implements ValidatorWorker {
       final exhausted = attempt >= maxRetryAttempts;
       final message = 'validator failure on attempt $attempt: $error';
       if (exhausted) {
+        final nowMs = _clockMs();
+        final graceStartMs = session.internalErrorFirstAtMs ?? nowMs;
+        final graceWindowMs = internalErrorGraceWindow.inMilliseconds;
+        final graceDeadlineMs = graceStartMs + graceWindowMs;
+
+        if (incidentModeAutoRevokePaused) {
+          final nextAttemptAtMs = nowMs + incidentModeRetryDelay.inMilliseconds;
+          await runSessionRepository.markPendingValidationRetry(
+            runSessionId: normalizedRunSessionId,
+            nextAttemptAtMs: nextAttemptAtMs,
+            message:
+                '$message; incident mode active, reward revocation paused.',
+            internalErrorFirstAtMs: graceStartMs,
+          );
+          await metrics.recordDispatch(
+            runSessionId: normalizedRunSessionId,
+            status: ValidationDispatchStatus.retryScheduled.name,
+            phase: 'incident_mode_pause',
+            mode: mode,
+            attempt: attempt,
+            rejectionReason: RunSessionTerminalState.internalError.wireValue,
+            message:
+                '$message; incidentMode=true; graceStartAtMs=$graceStartMs; '
+                'nextAttemptAtMs=$nextAttemptAtMs',
+          );
+          return ValidationDispatchResult.retryScheduled(message: message);
+        }
+
+        if (graceWindowMs > 0 && nowMs < graceDeadlineMs) {
+          await runSessionRepository.markPendingValidationRetry(
+            runSessionId: normalizedRunSessionId,
+            nextAttemptAtMs: graceDeadlineMs,
+            message:
+                '$message; grace window active until $graceDeadlineMs before '
+                'auto-revoke.',
+            internalErrorFirstAtMs: graceStartMs,
+          );
+          await metrics.recordDispatch(
+            runSessionId: normalizedRunSessionId,
+            status: ValidationDispatchStatus.retryScheduled.name,
+            phase: 'internal_error_grace',
+            mode: mode,
+            attempt: attempt,
+            rejectionReason: RunSessionTerminalState.internalError.wireValue,
+            message:
+                '$message; graceStartAtMs=$graceStartMs; '
+                'graceDeadlineAtMs=$graceDeadlineMs',
+          );
+          return ValidationDispatchResult.retryScheduled(message: message);
+        }
+
+        if (enableRewardSettlementWrites) {
+          await rewardGrantWriter.settleRevokedRewardGrant(
+            runSessionId: normalizedRunSessionId,
+            settlementReason: RunSessionTerminalState.internalError.wireValue,
+          );
+        }
         await runSessionRepository.markTerminal(
           runSessionId: normalizedRunSessionId,
           terminalState: RunSessionTerminalState.internalError,
@@ -225,6 +298,7 @@ class DeterministicValidatorWorker implements ValidatorWorker {
         runSessionId: normalizedRunSessionId,
         nextAttemptAtMs: nextAttemptAtMs,
         message: message,
+        internalErrorFirstAtMs: null,
       );
       await metrics.recordDispatch(
         runSessionId: normalizedRunSessionId,

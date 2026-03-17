@@ -116,6 +116,8 @@ interface RunSessionDocLike {
 
 interface RewardGrantDocLike {
   state?: unknown;
+  lifecycleState?: unknown;
+  updatedAtMs?: unknown;
 }
 
 export interface GhostExposureLookup {
@@ -206,7 +208,7 @@ export async function runReplaySubmissionCleanup(args: {
     pageSize: defaultFirestoreRetentionPageSize,
   });
 
-  const rewardGrantOutcome = await deleteAppliedRewardGrantsPastRetention({
+  const rewardGrantOutcome = await deleteSettledRewardGrantsPastRetention({
     db: args.db,
     cutoffMs: nowMs - rewardGrantRetentionMs,
     maxDeletes: maxRewardGrantDeletesPerRun,
@@ -455,7 +457,7 @@ async function deleteValidatedRunsPastRetention(args: {
   };
 }
 
-async function deleteAppliedRewardGrantsPastRetention(args: {
+async function deleteSettledRewardGrantsPastRetention(args: {
   db: Firestore;
   cutoffMs: number;
   maxDeletes: number;
@@ -476,8 +478,8 @@ async function deleteAppliedRewardGrantsPastRetention(args: {
     scannedCount < args.maxScanCount
   ) {
     let query = rewardGrants
-      .where("appliedAtMs", "<=", args.cutoffMs)
-      .orderBy("appliedAtMs", "asc")
+      .where("updatedAtMs", "<=", args.cutoffMs)
+      .orderBy("updatedAtMs", "asc")
       .limit(args.pageSize);
     if (cursor) {
       query = query.startAfter(cursor);
@@ -493,7 +495,7 @@ async function deleteAppliedRewardGrantsPastRetention(args: {
         break;
       }
       const data = doc.data() as RewardGrantDocLike;
-      if (String(data.state ?? "") !== "applied") {
+      if (!isRewardGrantDeletionEligible(data)) {
         continue;
       }
       toDelete.push(doc);
@@ -510,6 +512,19 @@ async function deleteAppliedRewardGrantsPastRetention(args: {
     deletedCount,
     scannedCount,
   };
+}
+
+function isRewardGrantDeletionEligible(data: RewardGrantDocLike): boolean {
+  const lifecycleState = optionalTrimmedString(data.lifecycleState);
+  return lifecycleState === "validated_settled" || lifecycleState === "revoked_final";
+}
+
+function optionalTrimmedString(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 async function deleteStalePendingUploadObjects(args: {

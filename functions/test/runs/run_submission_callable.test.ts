@@ -35,6 +35,7 @@ beforeEach(async () => {
     clearCollection(db, "ownership_profiles"),
     clearCollection(db, "run_sessions"),
     clearCollection(db, "validated_runs"),
+    clearCollection(db, "reward_grants"),
   ]);
 });
 
@@ -95,6 +96,16 @@ test("upload grant + finalize moves run session to pending_validation and enqueu
     persisted.get("uploadedReplay.canonicalSha256"),
     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
   );
+
+  const rewardGrant = await db.collection("reward_grants").doc(runSessionId).get();
+  assert.equal(rewardGrant.exists, true);
+  assert.equal(rewardGrant.get("runSessionId"), runSessionId);
+  assert.equal(rewardGrant.get("uid"), uid);
+  assert.equal(rewardGrant.get("mode"), "practice");
+  assert.equal(rewardGrant.get("boardId"), undefined);
+  assert.equal(rewardGrant.get("boardKey"), undefined);
+  assert.equal(rewardGrant.get("lifecycleState"), "provisional_created");
+  assert.equal(rewardGrant.get("goldAmount"), 0);
 });
 
 test("finalize is idempotent for same replay metadata", async () => {
@@ -136,6 +147,63 @@ test("finalize is idempotent for same replay metadata", async () => {
   assert.equal(first.submissionStatus.state, "pending_validation");
   assert.equal(second.submissionStatus.state, "pending_validation");
   assert.equal(deps.taskDispatcher.enqueuedRunSessionIds.length, 1);
+});
+
+test("finalize skips provisional reward grant creation when rollout flag is disabled", async () => {
+  const previous = process.env.RUN_REWARD_PROVISIONAL_CREATE_ENABLED;
+  process.env.RUN_REWARD_PROVISIONAL_CREATE_ENABLED = "false";
+  try {
+    const deps = new FakeRunSubmissionDependencies();
+    const runSessionId = await createPracticeRunSession(db, uid);
+    const objectPath = `replay-submissions/pending/${uid}/${runSessionId}/replay.bin.gz`;
+
+    await handleRunSessionCreateUploadGrant(
+      callableRequest(
+        {
+          userId: uid,
+          sessionId: "session_1",
+          runSessionId,
+        },
+        uid,
+      ),
+      db,
+      deps,
+    );
+    deps.objectStore.setObjectMetadata(objectPath, {
+      contentLengthBytes: 2048,
+      contentType: "application/octet-stream",
+      generation: "rollout-off",
+    });
+
+    const response = await handleRunSessionFinalizeUpload(
+      callableRequest(
+        {
+          userId: uid,
+          sessionId: "session_1",
+          runSessionId,
+          canonicalSha256:
+            "abababababababababababababababababababababababababababababababab",
+          contentLengthBytes: 2048,
+          contentType: "application/octet-stream",
+          objectPath,
+          provisionalSummary: { goldEarned: 25 },
+        },
+        uid,
+      ),
+      db,
+      deps,
+    );
+
+    assert.equal(response.submissionStatus.state, "pending_validation");
+    const rewardGrant = await db.collection("reward_grants").doc(runSessionId).get();
+    assert.equal(rewardGrant.exists, false);
+  } finally {
+    if (previous == null) {
+      delete process.env.RUN_REWARD_PROVISIONAL_CREATE_ENABLED;
+    } else {
+      process.env.RUN_REWARD_PROVISIONAL_CREATE_ENABLED = previous;
+    }
+  }
 });
 
 test("finalize rejects conflicting metadata re-finalize", async () => {

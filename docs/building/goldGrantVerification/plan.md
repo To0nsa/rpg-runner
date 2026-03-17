@@ -40,7 +40,7 @@ Backend:
 Validator service:
 
 - `services/replay_validator/lib/src/validator_worker.dart`
-- `services/replay_validator/lib/src/reward_grant_writer.dart`
+- `services/replay_validator/lib/src/reward_settlement_writer.dart`
 
 Client/UI:
 
@@ -98,7 +98,6 @@ Reward revocation policy (explicit):
 
 Terminal `internal_error` policy (explicit):
 
-- if a run remains terminal `internal_error` after retry policy is exhausted, reward becomes `revocation_pending_apply` automatically after a grace window
 - if a run remains terminal `internal_error` after retry policy is exhausted, reward becomes `revocation_visible` automatically after a grace window
 - grace window default: 24h (configurable)
 - if incident mode is enabled, auto-revoke is paused and reward remains frozen provisional until operator decision
@@ -153,8 +152,8 @@ Ownership balance meaning:
 
 Index/retention:
 
-- keep existing retention cleanup compatibility
-- ensure cleanup only deletes terminal settled grants (`validated_final` / `revoked_final`)
+- keep lifecycle-aware retention behavior
+- ensure cleanup only deletes terminal settled grants (`validated_settled` / `revoked_final`)
 
 ### Submission status contract updates
 
@@ -180,7 +179,7 @@ Compatibility:
 
 - new fields are optional at first
 - old clients ignore unknown fields
-- new client treats missing `reward` as legacy fallback mode
+- new client treats missing `reward` as `none`
 
 ### Reward projection component
 
@@ -215,7 +214,7 @@ Refactor `functions/src/ownership/reward_grants.ts`:
 Refactor validator:
 
 - `validator_worker.dart` updates lifecycle to `validated_settled` or `revocation_visible`
-- remove grant creation responsibility from `reward_grant_writer.dart` (or convert to settlement writer)
+- remove grant creation responsibility from `reward_settlement_writer.dart` (or convert to settlement writer)
 
 ### Phase D - Status API includes reward projection
 
@@ -224,8 +223,7 @@ Update `loadRunSessionSubmissionStatus` to include `reward` section from grant d
 Projection precedence (strict):
 
 1. use `reward_grants/{runSessionId}` lifecycle as primary source
-2. if grant missing (migration/legacy only), derive temporary fallback from `run_sessions` + `validated_runs`
-3. once grant exists, never override reward projection from fallback sources
+2. use `run_sessions` + `validated_runs` only as supporting context for projection metadata
 
 Implementation note:
 
@@ -313,34 +311,25 @@ Cross-screen consistency:
 
 ## Coexistence and deprecation
 
-`awardRunGold` command path in ownership remains temporarily for non-replay legacy/debug contexts only.
+`awardRunGold` command path in ownership remains out-of-scope for replay reward lifecycle and must not be used by replay end-of-run flows.
 
 Exit criteria to deprecate:
 
 1. all replay-validated runs use reward lifecycle payload
 2. no production path invokes client `awardRunGold` on run end
-3. migration window closes with zero parity regressions
 
-## Migration plan
+## Rollout plan
 
-1. Add lifecycle fields + tolerant readers in backend and client.
-2. Backfill legacy `reward_grants` states:
-	 - `pending_apply` -> `provisional_created`
-	 - `applied` + validated session -> `validated_settled`
-	 - `applied` + rejected/expired/cancelled session -> `revocation_visible`
-3. Lock the invariant that all newly written canonical state keeps `progression.gold` verified-only.
-4. Existing balances are accepted as-is; this rollout does not include historical balance correction unless production data reveals a concrete migration bug.
-5. Enable finalize provisional creation (flagged).
-6. Enable validator settlement transitions.
-7. Switch UI to reward payload as primary source.
-8. Remove legacy fallback behavior after stable window.
+1. Lock the invariant that all newly written canonical state keeps `progression.gold` verified-only.
+2. Enable finalize provisional creation (flagged).
+3. Enable validator settlement transitions.
+4. Switch UI to reward payload as primary source.
 
-9. Update cleanup behavior in `functions/src/runs/cleanup.ts` for lifecycle-aware retention:
+5. Update cleanup behavior in `functions/src/runs/cleanup.ts` for lifecycle-aware retention:
 	- preserve non-terminal lifecycle states (`provisional_created`, `provisional_visible`, `revocation_visible`)
 	- only treat `validated_settled` and `revoked_final` as reward-terminal for deletion eligibility
-	- keep legacy `applied` handling during migration window only
 
-10. Verify ownership hybrid-write compatibility with `docs/building/ownershipHybridWrite/plan.md`:
+6. Verify ownership hybrid-write compatibility with `docs/building/ownershipHybridWrite/plan.md`:
 	- provisional reward display does not require local ownership mutation
 	- hybrid sync timing affects when verified gold appears globally, not whether provisional gold is spendable
 	- canonical gold remains stable and verified-only across sync boundaries
@@ -424,7 +413,7 @@ Backend unit/integration:
 - validated settlement applies spendable gold exactly once
 - revoked path does not require spendable gold rollback when reward never became verified spendable
 - purchase/refresh commands reject when only provisional reward would make the action affordable
-- purchase/refresh commands succeed once reward is `validated_settled` and canonical verified gold is refreshed/applied
+- purchase/refresh commands succeed once reward is `validated_settled` and canonical verified gold is refreshed/updated
 - every backend gold sink uses verified-only `progression.gold`
 - no backend command can consume provisional reward display value
 
@@ -433,12 +422,10 @@ Backend unit/integration:
 Backend unit/integration for the reward projection component/module:
 
 - project from `run_session` + `reward_grant` + `validated_run` into the canonical UI-facing `reward` payload
-- project `none` when no reward record exists and no fallback state should surface a reward
+- project `none` when no reward record exists
 - project `provisional` from `provisional_created` / `provisional_visible`
 - project `final` from `validated_settled`
 - project `revoked` from `revocation_visible` / `revoked_final`
-- use fallback derivation only when reward grant is missing during migration window
-- stop using fallback once reward grant exists
 - malformed or partially missing fields degrade safely without crashing callable responses
 - `spendableGoldDelta` stays `0` until verified settlement
 
@@ -471,18 +458,7 @@ Backend unit/integration:
 
 - `functions/src/runs/cleanup.ts` preserves non-terminal lifecycle states (`provisional_created`, `provisional_visible`, `revocation_visible`)
 - cleanup deletes only reward-terminal states eligible by retention (`validated_settled`, `revoked_final`)
-- legacy `applied` records remain compatible during migration window
 - cleanup does not delete records still required for UI projection or pending settlement
-
-### 7) Migration and backfill tests
-
-Backend unit/integration:
-
-- legacy `pending_apply` maps to `provisional_created`
-- legacy `applied` + validated session maps to `validated_settled`
-- legacy `applied` + rejected/expired/cancelled session maps to `revocation_visible`
-- migrated records preserve verified-only canonical gold invariant for new writes
-- fallback status derivation behaves correctly before and after reward grant backfill
 
 ### 8) Invariant and failure-path tests
 

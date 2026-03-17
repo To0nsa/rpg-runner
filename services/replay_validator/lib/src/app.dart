@@ -10,7 +10,7 @@ import 'leaderboard_projector.dart';
 import 'metrics.dart';
 import 'google_api_helpers.dart';
 import 'replay_loader.dart';
-import 'reward_grant_writer.dart';
+import 'reward_settlement_writer.dart';
 import 'run_session_repository.dart';
 import 'validator_worker.dart';
 
@@ -34,6 +34,16 @@ class ReplayValidatorApp {
     final projectId =
         _readEnv('GCLOUD_PROJECT') ?? _readEnv('GOOGLE_CLOUD_PROJECT');
     final replayStorageBucket = _readEnv('REPLAY_STORAGE_BUCKET');
+    final graceWindowMs =
+      _readPositiveIntEnv('VALIDATOR_INTERNAL_ERROR_GRACE_WINDOW_MS') ??
+      const Duration(hours: 1).inMilliseconds;
+    final incidentMode =
+      _readBoolEnv('VALIDATOR_INCIDENT_MODE_PAUSE_AUTO_REVOKE') ?? false;
+    final enableRewardSettlementWrites =
+      _readBoolEnv('VALIDATOR_REWARD_SETTLEMENT_WRITES_ENABLED') ?? true;
+    final incidentRetryDelayMs =
+      _readPositiveIntEnv('VALIDATOR_INCIDENT_MODE_RETRY_DELAY_MS') ??
+      const Duration(minutes: 15).inMilliseconds;
     if (projectId == null || replayStorageBucket == null) {
       return ReplayValidatorApp(port: parsedPort ?? 8080);
     }
@@ -67,6 +77,10 @@ class ReplayValidatorApp {
           apiProvider: apiProvider,
         ),
         metrics: ConsoleValidatorMetrics(),
+        enableRewardSettlementWrites: enableRewardSettlementWrites,
+        internalErrorGraceWindow: Duration(milliseconds: graceWindowMs),
+        incidentModeAutoRevokePaused: incidentMode,
+        incidentModeRetryDelay: Duration(milliseconds: incidentRetryDelayMs),
       ),
     );
   }
@@ -162,4 +176,30 @@ String? _readEnv(String name) {
   }
   final trimmed = raw.trim();
   return trimmed.isEmpty ? null : trimmed;
+}
+
+int? _readPositiveIntEnv(String name) {
+  final raw = _readEnv(name);
+  if (raw == null) {
+    return null;
+  }
+  final parsed = int.tryParse(raw);
+  if (parsed == null || parsed <= 0) {
+    return null;
+  }
+  return parsed;
+}
+
+bool? _readBoolEnv(String name) {
+  final raw = _readEnv(name)?.toLowerCase();
+  if (raw == null) {
+    return null;
+  }
+  if (raw == '1' || raw == 'true' || raw == 'yes' || raw == 'on') {
+    return true;
+  }
+  if (raw == '0' || raw == 'false' || raw == 'no' || raw == 'off') {
+    return false;
+  }
+  return null;
 }

@@ -222,11 +222,11 @@ test("awardRunGold rejects oversized gold payload", async () => {
   assert.equal(result.canonicalState.progression.gold, 0);
 });
 
-test("loadOrCreateCanonicalState reconciles pending reward grants exactly once", async () => {
+test("loadOrCreateCanonicalState reconciles settled reward grants exactly once", async () => {
   await db.collection("reward_grants").doc("grant_run_1").set({
     uid,
     runSessionId: "run_1",
-    state: "pending_apply",
+    lifecycleState: "validated_settled",
     goldAmount: 25,
   });
 
@@ -240,14 +240,139 @@ test("loadOrCreateCanonicalState reconciles pending reward grants exactly once",
 
   const rewardGrant = await db.collection("reward_grants").doc("grant_run_1").get();
   assert.equal(rewardGrant.exists, true);
-  assert.equal(rewardGrant.data()?.state, "applied");
+  assert.equal(rewardGrant.data()?.lifecycleState, "validated_settled");
 });
 
-test("weekly pending reward grants update weekly progression hooks", async () => {
+test("loadOrCreateCanonicalState keeps provisional rewards non-spendable", async () => {
+  await db.collection("reward_grants").doc("grant_run_provisional").set({
+    uid,
+    runSessionId: "run_provisional_1",
+    lifecycleState: "provisional_created",
+    goldAmount: 25,
+  });
+
+  const canonical = await loadOrCreateCanonicalState({ db, uid });
+  assert.equal(canonical.progression.gold, 0);
+  assert.deepEqual(canonical.progression.appliedRewardGrantIds, []);
+
+  const rewardGrant = await db
+    .collection("reward_grants")
+    .doc("grant_run_provisional")
+    .get();
+  assert.equal(rewardGrant.exists, true);
+  assert.equal(rewardGrant.data()?.lifecycleState, "provisional_created");
+});
+
+test("revocation_visible reward grant is terminalized to revoked_final on reconcile", async () => {
+  await db.collection("reward_grants").doc("grant_run_revocation").set({
+    uid,
+    runSessionId: "run_revocation_1",
+    lifecycleState: "revocation_visible",
+    goldAmount: 30,
+    settlementReason: "replay_invalid",
+    updatedAtMs: 1700000000000,
+  });
+
+  const canonical = await loadOrCreateCanonicalState({ db, uid });
+  // revoked grant must not contribute spendable gold
+  assert.equal(canonical.progression.gold, 0);
+  assert.deepEqual(canonical.progression.appliedRewardGrantIds, []);
+
+  const rewardGrant = await db
+    .collection("reward_grants")
+    .doc("grant_run_revocation")
+    .get();
+  assert.equal(rewardGrant.exists, true);
+  // lifecycle must be terminalized
+  assert.equal(rewardGrant.data()?.lifecycleState, "revoked_final");
+  assert.equal(rewardGrant.data()?.revokedFinalBy, "ownership_reconcile");
+});
+
+test("revoked_final reward grant is skipped idempotently on reconcile", async () => {
+  await db.collection("reward_grants").doc("grant_run_revoked_final").set({
+    uid,
+    runSessionId: "run_revoked_final_1",
+    lifecycleState: "revoked_final",
+    goldAmount: 15,
+    revokedFinalBy: "ownership_reconcile",
+    updatedAtMs: 1700000010000,
+    revokedFinalAtMs: 1700000010000,
+  });
+
+  const first = await loadOrCreateCanonicalState({ db, uid });
+  assert.equal(first.progression.gold, 0);
+  assert.deepEqual(first.progression.appliedRewardGrantIds, []);
+
+  const second = await loadOrCreateCanonicalState({ db, uid });
+  assert.equal(second.progression.gold, 0);
+
+  // lifecycleState must stay revoked_final with no mutation
+  const rewardGrant = await db
+    .collection("reward_grants")
+    .doc("grant_run_revoked_final")
+    .get();
+  assert.equal(rewardGrant.data()?.lifecycleState, "revoked_final");
+});
+
+test("purchaseStoreOffer rejects when gold is only provisional", async () => {
+  // seed a provisional grant — gold must not be spendable
+  await db.collection("reward_grants").doc("grant_run_provisional_store").set({
+    uid,
+    runSessionId: "run_provisional_store_1",
+    lifecycleState: "provisional_created",
+    goldAmount: 500,
+  });
+
+  const canonical = await loadOrCreateCanonicalState({ db, uid });
+  assert.equal(canonical.progression.gold, 0);
+
+  const offer = activeStoreOffers(canonical)[0];
+  assert.ok(offer);
+
+  const purchase = await executeOwnershipCommand({
+    db,
+    uid,
+    command: purchaseStoreOfferCommand({
+      expectedRevision: canonical.revision,
+      commandId: "cmd_store_purchase_provisional_insufficient",
+      offerId: offer.offerId,
+    }),
+  });
+
+  assert.equal(purchase.rejectedReason, "insufficientGold");
+  assert.equal(purchase.canonicalState.progression.gold, 0);
+});
+
+test("validated_settled reward grant applies spendable gold exactly once across multiple reconcile calls", async () => {
+  await db.collection("reward_grants").doc("grant_run_settled_once").set({
+    uid,
+    runSessionId: "run_settled_once_1",
+    lifecycleState: "validated_settled",
+    goldAmount: 50,
+  });
+
+  const first = await loadOrCreateCanonicalState({ db, uid });
+  assert.equal(first.progression.gold, 50);
+  assert.deepEqual(first.progression.appliedRewardGrantIds, ["grant_run_settled_once"]);
+
+  const second = await loadOrCreateCanonicalState({ db, uid });
+  assert.equal(second.progression.gold, 50);
+
+  const third = await loadOrCreateCanonicalState({ db, uid });
+  assert.equal(third.progression.gold, 50);
+
+  const rewardGrant = await db
+    .collection("reward_grants")
+    .doc("grant_run_settled_once")
+    .get();
+  assert.equal(rewardGrant.data()?.lifecycleState, "validated_settled");
+});
+
+test("weekly settled reward grants update weekly progression hooks", async () => {
   await db.collection("reward_grants").doc("grant_weekly_1").set({
     uid,
     runSessionId: "run_weekly_1",
-    state: "pending_apply",
+    lifecycleState: "validated_settled",
     goldAmount: 25,
     mode: "weekly",
     boardId: "board_weekly_field_w11",
@@ -279,14 +404,14 @@ test("weekly pending reward grants update weekly progression hooks", async () =>
 
   const rewardGrant = await db.collection("reward_grants").doc("grant_weekly_1").get();
   assert.equal(rewardGrant.exists, true);
-  assert.equal(rewardGrant.data()?.state, "applied");
+  assert.equal(rewardGrant.data()?.lifecycleState, "validated_settled");
 });
 
 test("weekly progression hooks roll over when a new week grant is applied", async () => {
   await db.collection("reward_grants").doc("grant_weekly_2").set({
     uid,
     runSessionId: "run_weekly_2",
-    state: "pending_apply",
+    lifecycleState: "validated_settled",
     goldAmount: 7,
     mode: "weekly",
     boardId: "board_weekly_field_w11",
@@ -307,7 +432,7 @@ test("weekly progression hooks roll over when a new week grant is applied", asyn
   await db.collection("reward_grants").doc("grant_weekly_3").set({
     uid,
     runSessionId: "run_weekly_3",
-    state: "pending_apply",
+    lifecycleState: "validated_settled",
     goldAmount: 11,
     mode: "weekly",
     boardId: "board_weekly_field_w12",
@@ -336,12 +461,12 @@ test("weekly progression hooks roll over when a new week grant is applied", asyn
   assert.equal(weekly.lastValidatedAtMs, 1700000002000);
 });
 
-test("executeOwnershipCommand reconciles pending reward grants before apply", async () => {
+test("executeOwnershipCommand reconciles settled reward grants before apply", async () => {
   const canonical = await loadOrCreateCanonicalState({ db, uid });
   await db.collection("reward_grants").doc("grant_run_2").set({
     uid,
     runSessionId: "run_2",
-    state: "pending_apply",
+    lifecycleState: "validated_settled",
     goldAmount: 7,
   });
 
@@ -367,7 +492,7 @@ test("executeOwnershipCommand reconciles pending reward grants before apply", as
 
   const rewardGrant = await db.collection("reward_grants").doc("grant_run_2").get();
   assert.equal(rewardGrant.exists, true);
-  assert.equal(rewardGrant.data()?.state, "applied");
+  assert.equal(rewardGrant.data()?.lifecycleState, "validated_settled");
 });
 
 test("stale revision returns staleRevision and leaves canonical unchanged", async () => {

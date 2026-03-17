@@ -17,6 +17,7 @@ import {
 
 const runSessionsCollection = "run_sessions";
 const validatedRunsCollection = "validated_runs";
+const rewardGrantsCollection = "reward_grants";
 
 const replayUploadMaxBytes = 8_388_608;
 const uploadGrantTtlMs = 15 * 60 * 1000;
@@ -24,15 +25,35 @@ const replayUploadContentType = "application/octet-stream";
 const replaySubmissionFileName = "replay.bin.gz";
 const replaySubmissionPathPrefix = "replay-submissions/pending";
 
+function isProvisionalRewardCreationEnabled(): boolean {
+  return readBooleanEnv("RUN_REWARD_PROVISIONAL_CREATE_ENABLED") ?? true;
+}
+
 interface RunSessionSubmissionRecord {
   runSessionId: string;
   uid: string;
+  mode?: "practice" | "competitive" | "weekly";
+  boardId?: string;
+  boardKey?: JsonObject;
   state: RunSessionState;
   expiresAtMs: number;
   updatedAtMs: number;
   message?: string;
   uploadLease?: UploadLeaseRecord;
   uploadedReplay?: UploadedReplayRecord;
+  provisionalSummary?: JsonObject;
+}
+
+type RewardPresentationStatus = "none" | "provisional" | "final" | "revoked";
+
+interface RewardProjectionRecord {
+  status: RewardPresentationStatus;
+  provisionalGold: number;
+  effectiveGoldDelta: number;
+  spendableGoldDelta: number;
+  updatedAtMs: number;
+  grantId?: string;
+  message?: string;
 }
 
 interface UploadLeaseRecord {
@@ -246,6 +267,9 @@ export async function finalizeRunSessionUpload(
   const runSessionRef = args.db
     .collection(runSessionsCollection)
     .doc(args.runSessionId);
+  const rewardGrantRef = args.db
+    .collection(rewardGrantsCollection)
+    .doc(args.runSessionId);
 
   let shouldEnqueue = false;
   await args.db.runTransaction(async (tx) => {
@@ -281,6 +305,8 @@ export async function finalizeRunSessionUpload(
       session.state === "pending_validation" ? "pending_validation" : "uploaded";
     shouldEnqueue = nextState === "uploaded";
 
+    const rewardGrantSnapshot = await tx.get(rewardGrantRef);
+
     tx.set(
       runSessionRef,
       {
@@ -291,6 +317,33 @@ export async function finalizeRunSessionUpload(
       },
       { merge: true },
     );
+
+    if (!rewardGrantSnapshot.exists && isProvisionalRewardCreationEnabled()) {
+      tx.set(rewardGrantRef, {
+        runSessionId: args.runSessionId,
+        uid: args.uid,
+        ...(session.mode ? { mode: session.mode } : {}),
+        ...(session.boardId ? { boardId: session.boardId } : {}),
+        ...(session.boardKey ? { boardKey: session.boardKey } : {}),
+        lifecycleState: "provisional_created",
+        goldAmount: readProvisionalGoldAmount(args.provisionalSummary),
+        createdAtMs: nowMs,
+        updatedAtMs: nowMs,
+        provisionalSummary: args.provisionalSummary ?? null,
+        validatedRunRef: `${validatedRunsCollection}/${args.runSessionId}`,
+      });
+    } else {
+      const rewardGrantData = rewardGrantSnapshot.data() as
+        | Record<string, unknown>
+        | undefined;
+      const rewardUid = requireOptionalString(rewardGrantData?.uid);
+      if (rewardUid && rewardUid !== args.uid) {
+        throw new HttpsError(
+          "failed-precondition",
+          "reward grant uid does not match authenticated run owner.",
+        );
+      }
+    }
   });
 
   if (shouldEnqueue) {
@@ -338,14 +391,20 @@ export async function loadRunSessionSubmissionStatus(
   if (session.state === "validated" || session.state === "rejected") {
     validatedRun = await loadValidatedRun(args.db, session.runSessionId);
   }
+  const rewardGrant = await loadRewardGrant(args.db, session.runSessionId);
+  const reward = projectSubmissionReward({
+    session,
+    rewardGrant,
+  });
   return {
-    submissionStatus: toSubmissionStatus(session, validatedRun),
+    submissionStatus: toSubmissionStatus(session, validatedRun, reward),
   };
 }
 
 function toSubmissionStatus(
   session: RunSessionSubmissionRecord,
   validatedRun?: JsonObject,
+  reward?: RewardProjectionRecord,
 ): JsonObject {
   const out: JsonObject = {
     runSessionId: session.runSessionId,
@@ -357,6 +416,22 @@ function toSubmissionStatus(
   }
   if (validatedRun) {
     out.validatedRun = validatedRun;
+  }
+  if (reward) {
+    const rewardPayload: JsonObject = {
+      status: reward.status,
+      provisionalGold: reward.provisionalGold,
+      effectiveGoldDelta: reward.effectiveGoldDelta,
+      spendableGoldDelta: reward.spendableGoldDelta,
+      updatedAtMs: reward.updatedAtMs,
+    };
+    if (reward.grantId) {
+      rewardPayload.grantId = reward.grantId;
+    }
+    if (reward.message) {
+      rewardPayload.message = reward.message;
+    }
+    out.reward = rewardPayload;
   }
   return out;
 }
@@ -374,6 +449,95 @@ async function loadValidatedRun(
     return undefined;
   }
   return structuredClone(data) as JsonObject;
+}
+
+async function loadRewardGrant(
+  db: Firestore,
+  runSessionId: string,
+): Promise<JsonObject | undefined> {
+  const snapshot = await db.collection(rewardGrantsCollection).doc(runSessionId).get();
+  if (!snapshot.exists) {
+    return undefined;
+  }
+  const data = snapshot.data();
+  if (!data || typeof data !== "object") {
+    return undefined;
+  }
+  return structuredClone(data) as JsonObject;
+}
+
+function projectSubmissionReward(args: {
+  session: RunSessionSubmissionRecord;
+  rewardGrant?: JsonObject;
+}): RewardProjectionRecord | undefined {
+  const rewardGrant = args.rewardGrant;
+  if (!rewardGrant) {
+    return undefined;
+  }
+
+  const grantId =
+    requireOptionalString(rewardGrant.runSessionId) ?? args.session.runSessionId;
+  const state = requireOptionalString(rewardGrant.lifecycleState);
+  const goldAmount = clampNonNegativeInt(rewardGrant.goldAmount);
+  const updatedAtMs =
+    integerOrNull(rewardGrant.updatedAtMs) ?? args.session.updatedAtMs;
+  const message =
+    requireOptionalString(rewardGrant.settlementReason) ?? args.session.message;
+
+  if (state === "provisional_created" || state === "provisional_visible") {
+    return {
+      status: "provisional",
+      provisionalGold: goldAmount,
+      effectiveGoldDelta: 0,
+      spendableGoldDelta: 0,
+      updatedAtMs,
+      grantId,
+      message,
+    };
+  }
+  if (state === "validated_settled") {
+    return {
+      status: "final",
+      provisionalGold: goldAmount,
+      effectiveGoldDelta: goldAmount,
+      spendableGoldDelta: goldAmount,
+      updatedAtMs,
+      grantId,
+      message,
+    };
+  }
+  if (state === "revocation_visible" || state === "revoked_final") {
+    return {
+      status: "revoked",
+      provisionalGold: goldAmount,
+      effectiveGoldDelta: 0,
+      spendableGoldDelta: 0,
+      updatedAtMs,
+      grantId,
+      message,
+    };
+  }
+
+  return undefined;
+}
+
+function readProvisionalGoldAmount(summary?: JsonObject): number {
+  if (!summary) {
+    return 0;
+  }
+  return clampNonNegativeInt(summary.goldEarned);
+}
+
+function clampNonNegativeInt(value: unknown): number {
+  const parsed = integerOrNull(value) ?? 0;
+  return parsed < 0 ? 0 : parsed;
+}
+
+function integerOrNull(value: unknown): number | null {
+  if (typeof value === "number" && Number.isInteger(value)) {
+    return value;
+  }
+  return null;
 }
 
 function pendingReplayObjectPath(uid: string, runSessionId: string): string {
@@ -457,17 +621,33 @@ function decodeRunSessionSnapshot(
   const expiresAtMs = requireInteger(data.expiresAtMs, "runSession.expiresAtMs");
   const updatedAtMs = requireInteger(data.updatedAtMs, "runSession.updatedAtMs");
   const message = requireOptionalString(data.message);
+  const mode = decodeOptionalRunMode(data.mode);
+  const ticketRewardContext = decodeRunTicketRewardContext(data.runTicket);
 
   return {
     runSessionId: requireOptionalString(data.runSessionId) ?? runSessionId,
     uid,
+    mode,
+    boardId: ticketRewardContext.boardId,
+    boardKey: ticketRewardContext.boardKey,
     state,
     expiresAtMs,
     updatedAtMs,
     message,
     uploadLease: decodeOptionalUploadLease(data.uploadLease),
     uploadedReplay: decodeOptionalUploadedReplay(data.uploadedReplay),
+    provisionalSummary: decodeOptionalJsonObject(data.provisionalSummary),
   };
+}
+
+function decodeOptionalJsonObject(value: unknown): JsonObject | undefined {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+  return structuredClone(value as Record<string, unknown>) as JsonObject;
 }
 
 function decodeOptionalUploadLease(value: unknown): UploadLeaseRecord | undefined {
@@ -529,6 +709,32 @@ function decodeOptionalUploadedReplay(
       object.finalizedAtMs,
       "runSession.uploadedReplay.finalizedAtMs",
     ),
+  };
+}
+
+function decodeOptionalRunMode(
+  value: unknown,
+): "practice" | "competitive" | "weekly" | undefined {
+  if (value !== "practice" && value !== "competitive" && value !== "weekly") {
+    return undefined;
+  }
+  return value;
+}
+
+function decodeRunTicketRewardContext(value: unknown): {
+  boardId?: string;
+  boardKey?: JsonObject;
+} {
+  const ticket = decodeOptionalJsonObject(value);
+  if (!ticket) {
+    return {};
+  }
+
+  const boardId = requireOptionalString(ticket.boardId);
+  const boardKey = decodeOptionalJsonObject(ticket.boardKey);
+  return {
+    boardId,
+    boardKey,
   };
 }
 
@@ -735,6 +941,31 @@ function requireEnv(name: string, message: string): string {
     throw new HttpsError("failed-precondition", message);
   }
   return value;
+}
+
+function readBooleanEnv(name: string): boolean | undefined {
+  const raw = process.env[name];
+  if (raw == null) {
+    return undefined;
+  }
+  const normalized = raw.trim().toLowerCase();
+  if (
+    normalized === "1" ||
+    normalized === "true" ||
+    normalized === "yes" ||
+    normalized === "on"
+  ) {
+    return true;
+  }
+  if (
+    normalized === "0" ||
+    normalized === "false" ||
+    normalized === "no" ||
+    normalized === "off"
+  ) {
+    return false;
+  }
+  return undefined;
 }
 
 function toOptionalString(value: unknown): string | undefined {

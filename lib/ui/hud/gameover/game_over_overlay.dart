@@ -16,9 +16,15 @@ import 'score_breakdown_formatter.dart';
 import 'score_distribution.dart';
 import 'score_feed_controller.dart';
 import '../../components/app_button.dart';
+import '../../components/gold_display.dart';
 import '../../state/run_submission_status.dart';
 import '../../theme/ui_tokens.dart';
 // import '../../../core/spells/spell_id.dart';
+
+const _enableGameOverRewardRow = bool.fromEnvironment(
+  'RUNNER_GAMEOVER_REWARD_ROW_ENABLED',
+  defaultValue: true,
+);
 
 class GameOverOverlay extends StatefulWidget {
   const GameOverOverlay({
@@ -34,6 +40,7 @@ class GameOverOverlay extends StatefulWidget {
     required this.scoreTuning,
     required this.tickHz,
     this.provisionalGoldEarned,
+    this.verifiedGold,
     this.runSubmissionStatus,
     this.leaderboardStore,
   });
@@ -49,6 +56,7 @@ class GameOverOverlay extends StatefulWidget {
   final ScoreTuning scoreTuning;
   final int tickHz;
   final int? provisionalGoldEarned;
+  final int? verifiedGold;
   final RunSubmissionStatus? runSubmissionStatus;
   final LeaderboardStore? leaderboardStore;
 
@@ -63,6 +71,9 @@ class _GameOverOverlayState extends State<GameOverOverlay>
 
   Ticker? _ticker;
   Duration _lastElapsed = Duration.zero;
+  static const double _goldCollectDurationSeconds = 0.35;
+  double _goldCollectProgress = 0;
+  late int _verifiedGoldBaseline;
 
   @override
   void initState() {
@@ -72,6 +83,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
       rows: _breakdown.rows,
       totalPoints: _breakdown.totalPoints,
     );
+    _verifiedGoldBaseline = _resolvedVerifiedGold();
   }
 
   RunScoreBreakdown _buildBreakdown() {
@@ -92,85 +104,15 @@ class _GameOverOverlayState extends State<GameOverOverlay>
   }
 
   Widget? _buildGoldPanel(BuildContext context) {
-    final status = widget.runSubmissionStatus;
-    final validatedGoldEarned = status?.serverStatus?.validatedRun?.goldEarned;
-    final provisionalGoldEarned = widget.provisionalGoldEarned;
-    final rejectedByValidation =
-        status?.phase == RunSubmissionPhase.rejected ||
-        status?.phase == RunSubmissionPhase.expired ||
-        status?.phase == RunSubmissionPhase.cancelled ||
-        status?.phase == RunSubmissionPhase.internalError;
-    if (validatedGoldEarned == null &&
-        provisionalGoldEarned == null &&
-        !rejectedByValidation) {
+    if (!_enableGameOverRewardRow) {
       return null;
     }
     final ui = context.ui;
-
-    final labelStyle = ui.text.body.copyWith(
-      color: ui.colors.textPrimary,
-      fontWeight: FontWeight.w600,
-    );
-    final successValueStyle = ui.text.body.copyWith(
-      color: ui.colors.success,
-      fontWeight: FontWeight.w700,
-    );
-    final provisionalValueStyle = ui.text.body.copyWith(
-      color: ui.colors.accentStrong,
-      fontWeight: FontWeight.w700,
-    );
-    final rejectedValueStyle = ui.text.body.copyWith(
-      color: ui.colors.danger,
-      fontWeight: FontWeight.w700,
-    );
-
-    final rows = <Widget>[];
-    if (validatedGoldEarned != null) {
-      rows.add(
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Gold granted: ', style: labelStyle),
-            Text('+$validatedGoldEarned', style: successValueStyle),
-          ],
-        ),
-      );
-    } else if (rejectedByValidation) {
-      rows.add(
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Gold granted: ', style: labelStyle),
-            Text('+0', style: rejectedValueStyle),
-          ],
-        ),
-      );
-      rows.add(SizedBox(height: ui.space.xxs));
-      rows.add(
-        Text(
-          'Run was not validated; no reward granted.',
-          style: ui.text.body.copyWith(color: ui.colors.textMuted),
-          textAlign: TextAlign.center,
-        ),
-      );
-    } else if (provisionalGoldEarned != null) {
-      rows.add(
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Provisional gold: ', style: labelStyle),
-            Text('+$provisionalGoldEarned', style: provisionalValueStyle),
-          ],
-        ),
-      );
-      rows.add(SizedBox(height: ui.space.xxs));
-      rows.add(
-        Text(
-          'Final reward is granted only after validation.',
-          style: ui.text.body.copyWith(color: ui.colors.textMuted),
-          textAlign: TextAlign.center,
-        ),
-      );
+    final earnedTotal = _resolvedEarnedGold();
+    final remaining = _remainingEarnedGold();
+    final actualGold = _displayedActualGold();
+    if (earnedTotal <= 0 && actualGold <= 0) {
+      return null;
     }
 
     return DecoratedBox(
@@ -183,14 +125,70 @@ class _GameOverOverlayState extends State<GameOverOverlay>
           horizontal: ui.space.sm,
           vertical: ui.space.xs,
         ),
-        child: Column(mainAxisSize: MainAxisSize.min, children: rows),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Gold earned: $remaining + ',
+              style: ui.text.body.copyWith(
+                color: ui.colors.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            GoldDisplay(
+              gold: actualGold,
+              variant: GoldDisplayVariant.body,
+            ),
+          ],
+        ),
       ),
     );
   }
 
+  int _resolvedVerifiedGold() {
+    final raw = widget.verifiedGold ?? 0;
+    return raw < 0 ? 0 : raw;
+  }
+
+  int _resolvedEarnedGold() {
+    if (!_enableGameOverRewardRow) {
+      return 0;
+    }
+    final fromReward = widget.runSubmissionStatus?.reward?.provisionalGold;
+    final raw = fromReward ?? widget.provisionalGoldEarned ?? 0;
+    if (raw <= 0) {
+      return 0;
+    }
+    if (widget.runSubmissionStatus?.isRewardRevoked == true) {
+      return 0;
+    }
+    return raw;
+  }
+
+  int _collectedEarnedGold() {
+    final total = _resolvedEarnedGold();
+    final progress = _goldCollectProgress.clamp(0, 1);
+    return (total * progress).round();
+  }
+
+  int _remainingEarnedGold() => _resolvedEarnedGold() - _collectedEarnedGold();
+
+  int _displayedActualGold() => _verifiedGoldBaseline + _collectedEarnedGold();
+
+  bool _hasUncollectedGold() => _remainingEarnedGold() > 0;
+
   Widget? _buildSubmissionStatusPanel(BuildContext context) {
     final status = widget.runSubmissionStatus;
     if (status == null) {
+      return null;
+    }
+    final shouldShow =
+        status.verificationDelayed ||
+        status.phase == RunSubmissionPhase.rejected ||
+        status.phase == RunSubmissionPhase.expired ||
+        status.phase == RunSubmissionPhase.cancelled ||
+        status.phase == RunSubmissionPhase.internalError;
+    if (!shouldShow) {
       return null;
     }
     final ui = context.ui;
@@ -258,7 +256,9 @@ class _GameOverOverlayState extends State<GameOverOverlay>
   }
 
   void _startTicker() {
-    _ticker?.dispose();
+    if (_ticker != null) {
+      return;
+    }
     _lastElapsed = Duration.zero;
     _ticker = createTicker(_onTick)..start();
   }
@@ -272,14 +272,27 @@ class _GameOverOverlayState extends State<GameOverOverlay>
   }
 
   void _onTick(Duration elapsed) {
-    if (_feedController.feedState != ScoreFeedState.feeding) return;
-
     final dt = (elapsed - _lastElapsed).inMicroseconds.toDouble() / 1000000.0;
     _lastElapsed = elapsed;
     if (dt <= 0) return;
 
-    final changed = _feedController.tick(dt);
-    if (_feedController.feedState == ScoreFeedState.complete) {
+    var changed = false;
+    if (_feedController.feedState == ScoreFeedState.feeding) {
+      changed = _feedController.tick(dt) || changed;
+    }
+
+    if (_goldCollectProgress < 1 && _resolvedEarnedGold() > 0) {
+      final next = (_goldCollectProgress + (dt / _goldCollectDurationSeconds))
+          .clamp(0, 1)
+          .toDouble();
+      if (next != _goldCollectProgress) {
+        _goldCollectProgress = next;
+        changed = true;
+      }
+    }
+
+    if (_feedController.feedState == ScoreFeedState.complete &&
+        _goldCollectProgress >= 1) {
       _stopTicker();
     }
     if (changed && mounted) setState(() {});
@@ -293,17 +306,30 @@ class _GameOverOverlayState extends State<GameOverOverlay>
   void _onCollectPressed() {
     if (_feedController.feedState == ScoreFeedState.idle) {
       _startFeed();
+      if (_hasUncollectedGold()) {
+        _startTicker();
+      }
       return;
     }
     if (_feedController.feedState == ScoreFeedState.feeding) {
       _completeFeed();
+      if (_hasUncollectedGold()) {
+        _goldCollectProgress = 1;
+      }
+      setState(() {});
+      return;
+    }
+    if (_hasUncollectedGold()) {
+      _goldCollectProgress = 1;
       setState(() {});
     }
   }
 
   void _completeThen(VoidCallback? action) {
-    if (_feedController.feedState != ScoreFeedState.complete) {
+    if (_feedController.feedState != ScoreFeedState.complete ||
+        _hasUncollectedGold()) {
       _completeFeed();
+      _goldCollectProgress = 1;
       setState(() {});
     }
     if (action == null) return;
@@ -323,8 +349,9 @@ class _GameOverOverlayState extends State<GameOverOverlay>
 
     final subtitleDeathReason = _buildSubtitleDeathReason(widget.runEndedEvent);
     final showCollectButton =
-        _feedController.totalPoints > 0 &&
-        _feedController.feedState != ScoreFeedState.complete;
+        (_feedController.totalPoints > 0 &&
+            _feedController.feedState != ScoreFeedState.complete) ||
+        _hasUncollectedGold();
     final showScoreInHeader =
         _feedController.feedState == ScoreFeedState.complete;
     final collectLabel = _feedController.feedState == ScoreFeedState.idle

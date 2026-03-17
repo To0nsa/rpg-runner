@@ -16,7 +16,7 @@ Turn the replay-validation production plan into an execution checklist with:
 ## Delivery Assumptions
 
 - Current Competitive leaderboard state is local-only and non-authoritative, so
-  no production leaderboard migration is required.
+      no production leaderboard data conversion is required.
 - Existing local Practice PB data can remain local and isolated from online
   authority.
 - Firebase Auth/Functions/Firestore/Storage are available in the same project as
@@ -122,10 +122,10 @@ Tasks:
       - `packages/runner_core/lib/runner_core.dart`
       - `packages/runner_core/lib/**`
       - `packages/runner_core/test/**`
-- [x] Remove legacy in-app Core source tree after migration to
+- [x] Remove previous in-app Core source tree after move to
       `packages/runner_core`.
 - [x] Export public core surface from `package:runner_core/runner_core.dart`.
-- [x] Update Flutter app imports from legacy Core paths to
+- [x] Update Flutter app imports from previous Core paths to
       `package:runner_core/**` in:
       - `lib/game/**`
       - `lib/ui/**`
@@ -350,7 +350,7 @@ Tasks:
 - [x] Update ownership flows (`functions/src/ownership/**`) to reconcile unapplied
       grants transactionally.
       - load + execute ownership transactions reconcile pending grants and mark
-        `reward_grants/*` as `applied`
+            `reward_grants/*` as `validated_settled` when verification is accepted
 - [x] Add leaderboard read APIs:
       - `leaderboardLoadBoard`
       - `leaderboardLoadMyRank`

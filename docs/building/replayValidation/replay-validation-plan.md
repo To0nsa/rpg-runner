@@ -228,7 +228,7 @@ packages/
 Current state:
 
 - deterministic gameplay lives in `packages/runner_core/lib/**`
-- legacy in-app Core source tree has been removed
+- previous in-app Core source tree has been removed
 - app/runtime imports use `package:runner_core/...`
 
 Rules:
@@ -290,7 +290,7 @@ services/
       board_repository.dart
       run_session_repository.dart
       leaderboard_projector.dart
-      reward_grant_writer.dart
+      reward_settlement_writer.dart
       ghost_publisher.dart
       metrics.dart
     test/
@@ -772,7 +772,7 @@ Required policies:
 - `leaderboard_boards/{boardId}/views/top10`
   - derived cache; safe to rebuild
 - `reward_grants`
-  - retain applied and unapplied grant audit trail
+  - retain lifecycle settlement audit trail
   - default retention: `365 days`
 
 Account deletion requirements:
@@ -1151,7 +1151,7 @@ Requirements:
 
 - submission state survives route exit
 - hub/profile/leaderboard pages can reflect pending and recently validated runs
-- progress refresh happens when a reward grant is observed as applied
+- progress refresh happens when a reward grant reaches `validated_settled`
 
 ### Failure and Recovery UX
 
@@ -1193,7 +1193,7 @@ If run start prerequisites cannot be verified:
 
 ## Direct Replacement Plan
 
-Do not leave parallel legacy authority paths behind.
+Do not leave parallel deprecated authority paths behind.
 
 When the validated run system cuts over:
 
@@ -1240,7 +1240,7 @@ network/auth/session issuance.
 
 ### Phase 1: Package extraction and deterministic replay harness
 
-- validate `packages/runner_core` package extraction and remove any legacy
+- validate `packages/runner_core` package extraction and remove any previous
   in-app Core tree remnants
 - update app imports to use the new package
 - add replay-focused determinism tests around the extracted core

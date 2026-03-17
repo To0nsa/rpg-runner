@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:runner_core/meta/meta_service.dart';
 import 'package:rpg_runner/ui/components/app_dialog.dart';
+import 'package:rpg_runner/ui/components/gold_display.dart';
 import 'package:rpg_runner/ui/pages/profile/profile_page.dart';
 import 'package:rpg_runner/ui/state/account_deletion_api.dart';
 import 'package:rpg_runner/ui/state/app_state.dart';
@@ -47,6 +48,29 @@ void main() {
 
     expect(find.text('Upgrade guest account'), findsNothing);
     expect(find.text('Link Play Games'), findsNothing);
+  });
+
+  testWidgets('profile gold row renders canonical progression gold', (
+    tester,
+  ) async {
+    final authApi = _StaticAuthApi(session: _anonymousSession());
+    final appState = AppState(
+      authApi: authApi,
+      loadoutOwnershipApi: _NoopOwnershipApi(gold: 222),
+    );
+    await appState.bootstrap(force: true);
+
+    await tester.pumpWidget(_TestApp(appState: appState));
+    await tester.pumpAndSettle();
+
+    final goldWidget = tester.widget<GoldDisplay>(
+      find.byWidgetPredicate((widget) {
+        return widget is GoldDisplay &&
+            widget.gold == 222 &&
+            widget.variant == GoldDisplayVariant.body;
+      }),
+    );
+    expect(goldWidget.gold, 222);
   });
 
   testWidgets('name edit shows specific duplicate-name error', (tester) async {
@@ -220,12 +244,16 @@ AuthSession _playGamesLinkedSession() {
 }
 
 class _NoopOwnershipApi implements LoadoutOwnershipApi {
+  _NoopOwnershipApi({this.gold = 0});
+
+  final int gold;
+
   OwnershipCanonicalState get _canonical => OwnershipCanonicalState(
     profileId: 'profile_noop',
     revision: 0,
     selection: SelectionState.defaults,
     meta: const MetaService().createNew(),
-    progression: ProgressionState.initial,
+    progression: ProgressionState.initial.copyWith(gold: gold),
   );
 
   OwnershipCommandResult get _accepted => OwnershipCommandResult(

@@ -303,6 +303,12 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     }
   }
 
+  int _verifiedGoldForGameOver() {
+    final appState = _maybeAppState();
+    final value = appState?.progression.gold ?? 0;
+    return value < 0 ? 0 : value;
+  }
+
   void _validateInitialRunInputs() {
     if (widget.runSessionId.trim().isEmpty) {
       throw StateError('RunnerGameWidget requires non-empty runSessionId.');
@@ -883,6 +889,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                     scoreTuning: _controller.scoreTuning,
                     tickHz: _controller.tickHz,
                     provisionalGoldEarned: _provisionalGoldEarned,
+                    verifiedGold: _verifiedGoldForGameOver(),
                     runSubmissionStatus: _runSubmissionStatus,
                   );
                 }

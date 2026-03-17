@@ -139,13 +139,13 @@ test("deleteAccountAndData removes UID-scoped profile, ownership, and ghost data
   await db.collection("reward_grants").doc("run_target").set({
     uid,
     runSessionId: "run_target",
-    state: "pending_apply",
+    lifecycleState: "provisional_created",
     goldAmount: 10,
   });
   await db.collection("reward_grants").doc("run_other").set({
     uid: otherUid,
     runSessionId: "run_other",
-    state: "pending_apply",
+    lifecycleState: "provisional_created",
     goldAmount: 11,
   });
 

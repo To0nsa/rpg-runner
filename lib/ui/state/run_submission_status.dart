@@ -49,6 +49,21 @@ final class RunSubmissionStatus {
   final protocol.SubmissionStatus? serverStatus;
   final PendingRunSubmission? pendingSubmission;
 
+    protocol.SubmissionReward? get reward => serverStatus?.reward;
+
+    int get provisionalGold => reward?.provisionalGold ?? 0;
+
+    int get spendableGoldDelta => reward?.spendableGoldDelta ?? 0;
+
+    bool get hasProvisionalReward =>
+      reward?.status == protocol.SubmissionRewardStatus.provisional;
+
+    bool get isRewardFinal =>
+      reward?.status == protocol.SubmissionRewardStatus.finalReward;
+
+    bool get isRewardRevoked =>
+      reward?.status == protocol.SubmissionRewardStatus.revoked;
+
   bool get isTerminal => phase.isTerminal;
 
   factory RunSubmissionStatus.fromPending(

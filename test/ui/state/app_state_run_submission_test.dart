@@ -16,6 +16,52 @@ import 'package:rpg_runner/ui/state/run_submission_status.dart';
 import 'package:rpg_runner/ui/state/selection_state.dart';
 
 void main() {
+  test('submitRunReplay preserves reward payload from server status', () async {
+    final runSessionApi = _FakeRunSessionApi(
+      finalizeStatus: const SubmissionStatus(
+        runSessionId: 'run_reward',
+        state: RunSessionState.pendingValidation,
+        updatedAtMs: 3000,
+        reward: SubmissionReward(
+          status: SubmissionRewardStatus.provisional,
+          provisionalGold: 17,
+          effectiveGoldDelta: 0,
+          spendableGoldDelta: 0,
+          updatedAtMs: 3000,
+          grantId: 'run_reward',
+        ),
+      ),
+    );
+    final coordinator = RunSubmissionCoordinator(
+      runSessionApi: runSessionApi,
+      spoolStore: _InMemorySpoolStore(),
+      replayUploader: _NoopReplayUploader(),
+      clock: () => 3000,
+    );
+    final appState = AppState(
+      authApi: _StaticAuthApi.authenticated(),
+      loadoutOwnershipApi: _StaticOwnershipApi(),
+      runSessionApi: runSessionApi,
+      runSubmissionCoordinator: coordinator,
+    );
+    await appState.bootstrap(force: true);
+
+    final status = await appState.submitRunReplay(
+      runSessionId: 'run_reward',
+      runMode: RunMode.practice,
+      replayFilePath: '/tmp/replay_reward.json',
+      canonicalSha256:
+          'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+      contentLengthBytes: 1024,
+    );
+
+    expect(status.hasProvisionalReward, isTrue);
+    expect(status.provisionalGold, 17);
+    expect(status.spendableGoldDelta, 0);
+    expect(appState.runSubmissionStatusFor('run_reward')?.hasProvisionalReward, isTrue);
+    expect(appState.runSubmissionStatusFor('run_reward')?.provisionalGold, 17);
+  });
+
   test('submitRunReplay stores latest status in AppState', () async {
     final runSessionApi = _FakeRunSessionApi(
       finalizeStatus: const SubmissionStatus(
@@ -192,6 +238,7 @@ class _FakeRunSessionApi implements RunSessionApi {
       updatedAtMs: finalizeStatus.updatedAtMs,
       message: finalizeStatus.message,
       validatedRun: finalizeStatus.validatedRun,
+      reward: finalizeStatus.reward,
     );
   }
 
@@ -207,6 +254,7 @@ class _FakeRunSessionApi implements RunSessionApi {
       updatedAtMs: finalizeStatus.updatedAtMs,
       message: finalizeStatus.message,
       validatedRun: finalizeStatus.validatedRun,
+      reward: finalizeStatus.reward,
     );
   }
 }
