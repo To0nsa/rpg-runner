@@ -958,6 +958,30 @@ class _SingleGhostEntryLeaderboardApi implements LeaderboardApi {
   const _SingleGhostEntryLeaderboardApi();
 
   @override
+  Future<OnlineLeaderboardBoardData> loadActiveBoardData({
+    required String userId,
+    required String sessionId,
+    required RunMode mode,
+    required LevelId levelId,
+    required String gameCompatVersion,
+  }) async {
+    final board = await loadBoard(
+      userId: userId,
+      sessionId: sessionId,
+      boardId: 'board_2026_03_field',
+    );
+    return OnlineLeaderboardBoardData(
+      board: board,
+      myRank: const OnlineLeaderboardMyRank(
+        boardId: 'board_2026_03_field',
+        myEntry: null,
+        rank: null,
+        totalPlayers: 1,
+      ),
+    );
+  }
+
+  @override
   Future<OnlineLeaderboardBoard> loadBoard({
     required String userId,
     required String sessionId,

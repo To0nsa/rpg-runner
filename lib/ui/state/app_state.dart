@@ -751,6 +751,26 @@ class AppState extends ChangeNotifier {
     );
   }
 
+  Future<OnlineLeaderboardBoardData> loadOnlineLeaderboardData({
+    required RunMode mode,
+    required LevelId levelId,
+  }) async {
+    if (!mode.requiresBoard) {
+      throw const RunStartRemoteException(
+        code: 'failed-precondition',
+        message: 'Practice mode does not have an online leaderboard board.',
+      );
+    }
+    final session = await _ensureAuthSession();
+    return _leaderboardApi.loadActiveBoardData(
+      userId: session.userId,
+      sessionId: session.sessionId,
+      mode: mode,
+      levelId: levelId,
+      gameCompatVersion: _defaultGameCompatVersion,
+    );
+  }
+
   Future<OnlineLeaderboardMyRank> loadOnlineLeaderboardMyRank({
     required String boardId,
   }) async {

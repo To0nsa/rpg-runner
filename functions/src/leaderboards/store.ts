@@ -21,6 +21,11 @@ export interface LeaderboardMyRankResult {
   totalPlayers: number;
 }
 
+export interface LeaderboardBoardWithMyRankResult {
+  board: LeaderboardBoardResult;
+  myRank: LeaderboardMyRankResult;
+}
+
 export async function loadLeaderboardBoard(args: {
   db: Firestore;
   boardId: string;
@@ -100,6 +105,87 @@ export async function loadLeaderboardMyRank(args: {
     },
     rank,
     totalPlayers,
+  };
+}
+
+export async function loadLeaderboardBoardWithMyRank(args: {
+  db: Firestore;
+  boardId: string;
+  uid: string;
+}): Promise<LeaderboardBoardWithMyRankResult> {
+  const boardRef = args.db.collection(leaderboardBoardsCollection).doc(args.boardId);
+  const boardSnap = await boardRef.get();
+  if (!boardSnap.exists) {
+    throw new HttpsError("not-found", `board ${args.boardId} was not found.`);
+  }
+
+  const [
+    top10ViewSnap,
+    playerBestSnap,
+    totalPlayersCount,
+  ] = await Promise.all([
+    boardRef.collection(boardViewsCollection).doc(top10ViewDocId).get(),
+    boardRef.collection(playerBestsCollection).doc(args.uid).get(),
+    boardRef.collection(playerBestsCollection).count().get(),
+  ]);
+
+  const top10FromView = decodeTop10View(top10ViewSnap, args.boardId);
+  let board: LeaderboardBoardResult;
+  if (top10FromView) {
+    board = top10FromView;
+  } else {
+    const topEntriesSnap = await boardRef
+      .collection(playerBestsCollection)
+      .orderBy("sortKey", "asc")
+      .limit(10)
+      .get();
+    const entries = topEntriesSnap.docs.map((doc, index) =>
+      decodeLeaderboardEntry(doc.data(), doc.id, index + 1),
+    );
+    board = {
+      boardId: args.boardId,
+      topEntries: entries,
+      updatedAtMs: Date.now(),
+    };
+  }
+
+  const totalPlayers = Number(totalPlayersCount.data().count ?? 0);
+  if (!playerBestSnap.exists) {
+    return {
+      board,
+      myRank: {
+        boardId: args.boardId,
+        myEntry: null,
+        rank: null,
+        totalPlayers,
+      },
+    };
+  }
+
+  const parsed = decodeLeaderboardEntry(
+    playerBestSnap.data(),
+    playerBestSnap.id,
+    undefined,
+  );
+  const sortKey = parsed.sortKey;
+  const betterCountSnap = await boardRef
+    .collection(playerBestsCollection)
+    .where("sortKey", "<", sortKey)
+    .count()
+    .get();
+  const betterCount = Number(betterCountSnap.data().count ?? 0);
+  const rank = betterCount + 1;
+  return {
+    board,
+    myRank: {
+      boardId: args.boardId,
+      myEntry: {
+        ...parsed,
+        rank,
+      },
+      rank,
+      totalPlayers,
+    },
   };
 }
 

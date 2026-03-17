@@ -325,14 +325,11 @@ class _OnlineLeaderboardListState extends State<_OnlineLeaderboardList> {
 
   Future<_OnlineLeaderboardData> _load() async {
     final appState = context.read<AppState>();
-    final board = await appState.loadOnlineLeaderboardBoard(
+    final data = await appState.loadOnlineLeaderboardData(
       mode: widget.runMode,
       levelId: widget.levelId,
     );
-    final myRank = await appState.loadOnlineLeaderboardMyRank(
-      boardId: board.boardId,
-    );
-    return _OnlineLeaderboardData(board: board, myRank: myRank);
+    return _OnlineLeaderboardData(board: data.board, myRank: data.myRank);
   }
 
   void _reload() {

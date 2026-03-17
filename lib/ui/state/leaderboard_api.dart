@@ -1,4 +1,6 @@
+import 'package:runner_core/levels/level_id.dart';
 import 'package:run_protocol/leaderboard_entry.dart';
+import 'package:run_protocol/run_mode.dart';
 
 import 'run_start_remote_exception.dart';
 
@@ -86,7 +88,33 @@ final class OnlineLeaderboardMyRank {
   }
 }
 
+final class OnlineLeaderboardBoardData {
+  const OnlineLeaderboardBoardData({required this.board, required this.myRank});
+
+  final OnlineLeaderboardBoard board;
+  final OnlineLeaderboardMyRank myRank;
+
+  factory OnlineLeaderboardBoardData.fromJson(Object? raw) {
+    if (raw is! Map) {
+      throw FormatException('onlineLeaderboardBoardData must be a JSON object.');
+    }
+    final json = Map<Object?, Object?>.from(raw);
+    return OnlineLeaderboardBoardData(
+      board: OnlineLeaderboardBoard.fromJson(json['board']),
+      myRank: OnlineLeaderboardMyRank.fromJson(json['myRank']),
+    );
+  }
+}
+
 abstract class LeaderboardApi {
+  Future<OnlineLeaderboardBoardData> loadActiveBoardData({
+    required String userId,
+    required String sessionId,
+    required RunMode mode,
+    required LevelId levelId,
+    required String gameCompatVersion,
+  });
+
   Future<OnlineLeaderboardBoard> loadBoard({
     required String userId,
     required String sessionId,
@@ -102,6 +130,20 @@ abstract class LeaderboardApi {
 
 class NoopLeaderboardApi implements LeaderboardApi {
   const NoopLeaderboardApi();
+
+  @override
+  Future<OnlineLeaderboardBoardData> loadActiveBoardData({
+    required String userId,
+    required String sessionId,
+    required RunMode mode,
+    required LevelId levelId,
+    required String gameCompatVersion,
+  }) {
+    throw const RunStartRemoteException(
+      code: 'unimplemented',
+      message: 'Leaderboard API is not configured for this environment.',
+    );
+  }
 
   @override
   Future<OnlineLeaderboardBoard> loadBoard({

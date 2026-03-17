@@ -1,5 +1,7 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/services.dart';
+import 'package:runner_core/levels/level_id.dart';
+import 'package:run_protocol/run_mode.dart';
 
 import 'leaderboard_api.dart';
 import 'run_start_remote_exception.dart';
@@ -9,6 +11,42 @@ class FirebaseLeaderboardApi implements LeaderboardApi {
     : _source = source ?? PluginFirebaseLeaderboardSource();
 
   final FirebaseLeaderboardSource _source;
+
+  @override
+  Future<OnlineLeaderboardBoardData> loadActiveBoardData({
+    required String userId,
+    required String sessionId,
+    required RunMode mode,
+    required LevelId levelId,
+    required String gameCompatVersion,
+  }) async {
+    try {
+      final response = await _source.loadActiveBoardData(
+        userId: userId,
+        sessionId: sessionId,
+        mode: mode,
+        levelId: levelId,
+        gameCompatVersion: gameCompatVersion,
+      );
+      return OnlineLeaderboardBoardData.fromJson(response);
+    } on RunStartRemoteException {
+      rethrow;
+    } on FirebaseFunctionsException catch (error) {
+      throw _mapFunctionsError(error);
+    } on PlatformException catch (error) {
+      throw _mapPlatformError(error);
+    } on FormatException catch (error) {
+      throw RunStartRemoteException(
+        code: 'invalid-response',
+        message: error.message,
+      );
+    } catch (error) {
+      throw RunStartRemoteException(
+        code: 'leaderboard-load-active-data-failed',
+        message: '$error',
+      );
+    }
+  }
 
   @override
   Future<OnlineLeaderboardBoard> loadBoard({
@@ -101,6 +139,14 @@ class FirebaseLeaderboardApi implements LeaderboardApi {
 }
 
 abstract class FirebaseLeaderboardSource {
+  Future<Map<String, dynamic>> loadActiveBoardData({
+    required String userId,
+    required String sessionId,
+    required RunMode mode,
+    required LevelId levelId,
+    required String gameCompatVersion,
+  });
+
   Future<Map<String, dynamic>> loadBoard({
     required String userId,
     required String sessionId,
@@ -117,13 +163,34 @@ abstract class FirebaseLeaderboardSource {
 class PluginFirebaseLeaderboardSource implements FirebaseLeaderboardSource {
   PluginFirebaseLeaderboardSource({
     FirebaseFunctions? functions,
+    this.loadActiveBoardDataCallableName = 'leaderboardLoadActiveBoardData',
     this.loadBoardCallableName = 'leaderboardLoadBoard',
     this.loadMyRankCallableName = 'leaderboardLoadMyRank',
   }) : _functions = functions ?? FirebaseFunctions.instance;
 
   final FirebaseFunctions _functions;
+  final String loadActiveBoardDataCallableName;
   final String loadBoardCallableName;
   final String loadMyRankCallableName;
+
+  @override
+  Future<Map<String, dynamic>> loadActiveBoardData({
+    required String userId,
+    required String sessionId,
+    required RunMode mode,
+    required LevelId levelId,
+    required String gameCompatVersion,
+  }) async {
+    final callable = _functions.httpsCallable(loadActiveBoardDataCallableName);
+    final result = await callable.call(<String, Object?>{
+      'userId': userId,
+      'sessionId': sessionId,
+      'mode': mode.name,
+      'levelId': levelId.name,
+      'gameCompatVersion': gameCompatVersion,
+    });
+    return _decodeMap(result.data);
+  }
 
   @override
   Future<Map<String, dynamic>> loadBoard({

@@ -246,6 +246,28 @@ class _StaticLeaderboardApi implements LeaderboardApi {
   const _StaticLeaderboardApi();
 
   @override
+  Future<OnlineLeaderboardBoardData> loadActiveBoardData({
+    required String userId,
+    required String sessionId,
+    required RunMode mode,
+    required LevelId levelId,
+    required String gameCompatVersion,
+  }) async {
+    return OnlineLeaderboardBoardData(
+      board: await loadBoard(
+        userId: userId,
+        sessionId: sessionId,
+        boardId: 'board_1',
+      ),
+      myRank: await loadMyRank(
+        userId: userId,
+        sessionId: sessionId,
+        boardId: 'board_1',
+      ),
+    );
+  }
+
+  @override
   Future<OnlineLeaderboardBoard> loadBoard({
     required String userId,
     required String sessionId,

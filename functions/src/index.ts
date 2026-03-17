@@ -30,6 +30,7 @@ import {
 import { ensureManagedLeaderboardBoards } from "./boards/provisioning.js";
 import { runReplaySubmissionCleanup } from "./runs/cleanup.js";
 import {
+  handleLeaderboardLoadActiveBoardData,
   handleLeaderboardLoadBoard,
   handleLeaderboardLoadMyRank,
 } from "./leaderboards/callable_handlers.js";
@@ -157,6 +158,10 @@ export const leaderboardLoadBoard = onCall(async (request) => {
 
 export const leaderboardLoadMyRank = onCall(async (request) => {
   return handleLeaderboardLoadMyRank(request, db);
+});
+
+export const leaderboardLoadActiveBoardData = onCall(async (request) => {
+  return handleLeaderboardLoadActiveBoardData(request, db);
 });
 
 export const ghostLoadManifest = onCall(async (request) => {

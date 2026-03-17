@@ -5,6 +5,7 @@ import { deleteApp, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 
 import {
+  handleLeaderboardLoadActiveBoardData,
   handleLeaderboardLoadBoard,
   handleLeaderboardLoadMyRank,
 } from "../../src/leaderboards/callable_handlers.js";
@@ -95,6 +96,45 @@ test("handleLeaderboardLoadMyRank rejects userId/auth uid mismatch", async () =>
             userId: "uid_other",
             sessionId: "session_1",
             boardId: "board_1",
+          },
+        },
+        db,
+      ),
+    (error: { code?: string }) => error.code === "permission-denied",
+  );
+});
+
+test("handleLeaderboardLoadActiveBoardData rejects unauthenticated requests", async () => {
+  await assert.rejects(
+    () =>
+      handleLeaderboardLoadActiveBoardData(
+        {
+          data: {
+            userId: "uid_1",
+            sessionId: "session_1",
+            mode: "competitive",
+            levelId: "field",
+            gameCompatVersion: "2026.03.0",
+          },
+        },
+        db,
+      ),
+    (error: { code?: string }) => error.code === "unauthenticated",
+  );
+});
+
+test("handleLeaderboardLoadActiveBoardData rejects userId/auth uid mismatch", async () => {
+  await assert.rejects(
+    () =>
+      handleLeaderboardLoadActiveBoardData(
+        {
+          auth: { uid: "uid_auth" },
+          data: {
+            userId: "uid_other",
+            sessionId: "session_1",
+            mode: "competitive",
+            levelId: "field",
+            gameCompatVersion: "2026.03.0",
           },
         },
         db,
@@ -213,6 +253,38 @@ test("weekly board load and my rank work through the same online API surface", a
   assert.equal(myRankResponse.myRank.totalPlayers, 3);
 });
 
+test("load active board data returns manifest + board + my rank", async () => {
+  await seedManagedActiveBoard(db, {
+    boardId: "board_competitive_live_field",
+    mode: "competitive",
+    levelId: "field",
+    windowId: "2026-03",
+  });
+  await seedBoardEntries(db, { boardId: "board_competitive_live_field" });
+
+  const response = await handleLeaderboardLoadActiveBoardData(
+    {
+      auth: { uid: "uid_2" },
+      data: {
+        userId: "uid_2",
+        sessionId: "session_1",
+        mode: "competitive",
+        levelId: "field",
+        gameCompatVersion: "2026.03.0",
+        nowMs: Date.UTC(2026, 2, 16, 12, 0, 0),
+      },
+    },
+    db,
+  );
+
+  assert.equal(response.boardManifest.boardId, "board_competitive_live_field");
+  assert.equal(response.board.boardId, "board_competitive_live_field");
+  assert.equal(response.board.topEntries.length, 3);
+  assert.equal(response.myRank.boardId, "board_competitive_live_field");
+  assert.equal(response.myRank.rank, 2);
+  assert.equal(response.myRank.totalPlayers, 3);
+});
+
 async function seedBoardWithEntries(
   dbValue: Firestore,
   args?: {
@@ -265,6 +337,81 @@ async function seedBoardWithEntries(
       entryId: "entry_3",
     }),
   );
+}
+
+async function seedBoardEntries(
+  dbValue: Firestore,
+  args: {
+    boardId: string;
+  },
+): Promise<void> {
+  const boardRef = dbValue.collection("leaderboard_boards").doc(args.boardId);
+  await boardRef.collection("player_bests").doc("uid_1").set(
+    leaderboardEntryDoc({
+      boardId: args.boardId,
+      uid: "uid_1",
+      sortKey: "0000000001:0000000001:0000000120:entry_1",
+      score: 1200,
+      distanceMeters: 400,
+      durationSeconds: 120,
+      entryId: "entry_1",
+    }),
+  );
+  await boardRef.collection("player_bests").doc("uid_2").set(
+    leaderboardEntryDoc({
+      boardId: args.boardId,
+      uid: "uid_2",
+      sortKey: "0000000002:0000000002:0000000130:entry_2",
+      score: 1100,
+      distanceMeters: 390,
+      durationSeconds: 130,
+      entryId: "entry_2",
+    }),
+  );
+  await boardRef.collection("player_bests").doc("uid_3").set(
+    leaderboardEntryDoc({
+      boardId: args.boardId,
+      uid: "uid_3",
+      sortKey: "0000000003:0000000003:0000000140:entry_3",
+      score: 1000,
+      distanceMeters: 380,
+      durationSeconds: 140,
+      entryId: "entry_3",
+    }),
+  );
+}
+
+async function seedManagedActiveBoard(
+  dbValue: Firestore,
+  args: {
+    boardId: string;
+    mode: "competitive" | "weekly";
+    levelId: string;
+    windowId: string;
+  },
+): Promise<void> {
+  const opensAtMs = Date.UTC(2026, 2, 1, 0, 0, 0);
+  const closesAtMs = Date.UTC(2026, 3, 1, 0, 0, 0);
+  await dbValue.collection("leaderboard_boards").doc(args.boardId).set({
+    boardId: args.boardId,
+    mode: args.mode,
+    levelId: args.levelId,
+    windowId: args.windowId,
+    boardKey: {
+      mode: args.mode,
+      levelId: args.levelId,
+      windowId: args.windowId,
+      rulesetVersion: "rules-v1",
+      scoreVersion: "score-v1",
+    },
+    gameCompatVersion: "2026.03.0",
+    ghostVersion: "ghost-v1",
+    tickHz: 60,
+    seed: 7,
+    opensAtMs,
+    closesAtMs,
+    status: "active",
+  });
 }
 
 function leaderboardEntryDoc(args: {

@@ -87,6 +87,28 @@ void main() {
     expect(leaderboardApi.lastLoadMyRankBoardId, 'board_2026_03_field');
   });
 
+  test('loadOnlineLeaderboardData delegates to combined leaderboard api', () async {
+    final leaderboardApi = _RecordingLeaderboardApi();
+    final appState = AppState(
+      authApi: _StaticAuthApi.authenticated(),
+      loadoutOwnershipApi: _StaticOwnershipApi(),
+      runBoardsApi: _RecordingRunBoardsApi(),
+      leaderboardApi: leaderboardApi,
+    );
+    await appState.bootstrap(force: true);
+
+    final data = await appState.loadOnlineLeaderboardData(
+      mode: RunMode.competitive,
+      levelId: LevelId.field,
+    );
+
+    expect(data.board.boardId, 'board_2026_03_field');
+    expect(data.myRank.rank, 7);
+    expect(leaderboardApi.loadActiveBoardDataCalls, 1);
+    expect(leaderboardApi.lastLoadActiveBoardMode, RunMode.competitive);
+    expect(leaderboardApi.lastLoadActiveBoardLevelId, LevelId.field);
+  });
+
   test('loadOnlineLeaderboardBoard rejects practice mode', () async {
     final appState = AppState(
       authApi: _StaticAuthApi.authenticated(),
@@ -159,8 +181,41 @@ class _RecordingRunBoardsApi implements RunBoardsApi {
 }
 
 class _RecordingLeaderboardApi implements LeaderboardApi {
+  int loadActiveBoardDataCalls = 0;
+  RunMode? lastLoadActiveBoardMode;
+  LevelId? lastLoadActiveBoardLevelId;
   String? lastLoadBoardBoardId;
   String? lastLoadMyRankBoardId;
+
+  @override
+  Future<OnlineLeaderboardBoardData> loadActiveBoardData({
+    required String userId,
+    required String sessionId,
+    required RunMode mode,
+    required LevelId levelId,
+    required String gameCompatVersion,
+  }) async {
+    loadActiveBoardDataCalls += 1;
+    lastLoadActiveBoardMode = mode;
+    lastLoadActiveBoardLevelId = levelId;
+    final boardId = switch (mode) {
+      RunMode.competitive => 'board_2026_03_field',
+      RunMode.weekly => 'board_2026_w11_field',
+      RunMode.practice => 'board_practice_unsupported',
+    };
+    return OnlineLeaderboardBoardData(
+      board: await loadBoard(
+        userId: userId,
+        sessionId: sessionId,
+        boardId: boardId,
+      ),
+      myRank: await loadMyRank(
+        userId: userId,
+        sessionId: sessionId,
+        boardId: boardId,
+      ),
+    );
+  }
 
   @override
   Future<OnlineLeaderboardBoard> loadBoard({
