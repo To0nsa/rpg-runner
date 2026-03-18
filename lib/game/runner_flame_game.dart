@@ -352,9 +352,11 @@ class RunnerFlameGame extends FlameGame {
       renderAnim: playerCharacter.renderAnim,
     );
     _setLoadState(RunLoadPhase.playerAnimationsLoaded, 0.55);
-    await _enemyRenderRegistry.load(images);
-    await _projectileRenderRegistry.load(images);
-    await _pickupRenderRegistry.load(images);
+    await Future.wait<void>(<Future<void>>[
+      _enemyRenderRegistry.load(images),
+      _projectileRenderRegistry.load(images),
+      _pickupRenderRegistry.load(images),
+    ]);
     _setLoadState(RunLoadPhase.registriesLoaded, 0.8);
     _player = PlayerViewComponent(
       animationSet: playerAnimations,

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/meta/meta_service.dart';
@@ -60,7 +62,50 @@ void main() {
     expect(status.spendableGoldDelta, 0);
     expect(appState.runSubmissionStatusFor('run_reward')?.hasProvisionalReward, isTrue);
     expect(appState.runSubmissionStatusFor('run_reward')?.provisionalGold, 17);
+    expect(appState.unverifiedGold, 17);
+    expect(appState.displayGold, 17);
   });
+
+  test(
+    'submitRunReplay surfaces provisionalSummary gold in displayGold before verification',
+    () async {
+      final runSessionApi = _FakeRunSessionApi(
+        finalizeStatus: const SubmissionStatus(
+          runSessionId: 'run_pending_reward',
+          state: RunSessionState.pendingValidation,
+          updatedAtMs: 4000,
+        ),
+      );
+      final coordinator = RunSubmissionCoordinator(
+        runSessionApi: runSessionApi,
+        spoolStore: _InMemorySpoolStore(),
+        replayUploader: _NoopReplayUploader(),
+        clock: () => 4000,
+      );
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: _StaticOwnershipApi(),
+        runSessionApi: runSessionApi,
+        runSubmissionCoordinator: coordinator,
+      );
+      await appState.bootstrap(force: true);
+
+      final status = await appState.submitRunReplay(
+        runSessionId: 'run_pending_reward',
+        runMode: RunMode.practice,
+        replayFilePath: '/tmp/replay_pending_reward.json',
+        canonicalSha256:
+            'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',
+        contentLengthBytes: 1024,
+        provisionalSummary: const <String, Object?>{'goldEarned': 23},
+      );
+
+      expect(status.hasProvisionalReward, isFalse);
+      expect(status.displayProvisionalGold, 23);
+      expect(appState.unverifiedGold, 23);
+      expect(appState.displayGold, 23);
+    },
+  );
 
   test('submitRunReplay stores latest status in AppState', () async {
     final runSessionApi = _FakeRunSessionApi(
@@ -99,6 +144,53 @@ void main() {
       RunSubmissionPhase.pendingValidation,
     );
   });
+
+  test(
+    'submitRunReplay updates displayGold immediately while submission is in flight',
+    () async {
+      final finalizeGate = Completer<void>();
+      final runSessionApi = _BlockingFinalizeRunSessionApi(
+        finalizeStatus: const SubmissionStatus(
+          runSessionId: 'run_immediate_gold',
+          state: RunSessionState.pendingValidation,
+          updatedAtMs: 5000,
+        ),
+        finalizeGate: finalizeGate.future,
+      );
+      final coordinator = RunSubmissionCoordinator(
+        runSessionApi: runSessionApi,
+        spoolStore: _InMemorySpoolStore(),
+        replayUploader: _NoopReplayUploader(),
+        clock: () => 5000,
+      );
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: _StaticOwnershipApi(),
+        runSessionApi: runSessionApi,
+        runSubmissionCoordinator: coordinator,
+      );
+      await appState.bootstrap(force: true);
+
+      final submitFuture = appState.submitRunReplay(
+        runSessionId: 'run_immediate_gold',
+        runMode: RunMode.practice,
+        replayFilePath: '/tmp/replay_immediate_gold.json',
+        canonicalSha256:
+            'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+        contentLengthBytes: 1024,
+        provisionalSummary: const <String, Object?>{'goldEarned': 31},
+      );
+
+      await Future<void>.delayed(Duration.zero);
+      expect(appState.unverifiedGold, 31);
+      expect(appState.displayGold, 31);
+
+      finalizeGate.complete();
+      await submitFuture;
+      expect(appState.unverifiedGold, 31);
+      expect(appState.displayGold, 31);
+    },
+  );
 
   test('processPendingRunSubmissions drains queued spool entries', () async {
     final runSessionApi = _FakeRunSessionApi(
@@ -255,6 +347,39 @@ class _FakeRunSessionApi implements RunSessionApi {
       message: finalizeStatus.message,
       validatedRun: finalizeStatus.validatedRun,
       reward: finalizeStatus.reward,
+    );
+  }
+}
+
+class _BlockingFinalizeRunSessionApi extends _FakeRunSessionApi {
+  _BlockingFinalizeRunSessionApi({
+    required super.finalizeStatus,
+    required Future<void> finalizeGate,
+  }) : _finalizeGate = finalizeGate;
+
+  final Future<void> _finalizeGate;
+
+  @override
+  Future<SubmissionStatus> finalizeUpload({
+    required String userId,
+    required String sessionId,
+    required String runSessionId,
+    required String canonicalSha256,
+    required int contentLengthBytes,
+    String? contentType,
+    String? objectPath,
+    Map<String, Object?>? provisionalSummary,
+  }) async {
+    await _finalizeGate;
+    return super.finalizeUpload(
+      userId: userId,
+      sessionId: sessionId,
+      runSessionId: runSessionId,
+      canonicalSha256: canonicalSha256,
+      contentLengthBytes: contentLengthBytes,
+      contentType: contentType,
+      objectPath: objectPath,
+      provisionalSummary: provisionalSummary,
     );
   }
 }

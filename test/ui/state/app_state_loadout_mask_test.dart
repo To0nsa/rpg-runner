@@ -266,7 +266,6 @@ void main() {
       final appState = AppState(
         authApi: _StaticAuthApi.authenticated(),
         loadoutOwnershipApi: ownershipApi,
-        runBoardsApi: _ScriptedRunBoardsApi(boardKey: boardKey),
         runSessionApi: runSessionApi,
       );
       await appState.bootstrap(force: true);
@@ -280,7 +279,7 @@ void main() {
   );
 
   test(
-    'prepareRunStartDescriptor continues when ranked board preflight fails with non-precondition error',
+    'prepareRunStartDescriptor does not preflight run boards before creating run session',
     () async {
       final boardKey = BoardKey(
         mode: RunMode.competitive,
@@ -327,8 +326,8 @@ void main() {
       );
       final runBoardsApi = _ThrowingRunBoardsApi(
         const RunStartRemoteException(
-          code: 'internal',
-          message: 'transient board preflight failure',
+          code: 'failed-precondition',
+          message: 'board preflight should not be called',
         ),
       );
       final appState = AppState(
@@ -341,56 +340,10 @@ void main() {
 
       final descriptor = await appState.prepareRunStartDescriptor();
 
-      expect(runBoardsApi.loadCalls, 1);
+      expect(runBoardsApi.loadCalls, 0);
       expect(runSessionApi.createRunSessionCalls, 1);
       expect(descriptor.runMode, RunMode.competitive);
       expect(descriptor.boardId, 'board_2026_03_field');
-    },
-  );
-
-  test(
-    'prepareRunStartDescriptor still fails fast when ranked board preflight fails with precondition error',
-    () async {
-      final selection = SelectionState.defaults.copyWith(
-        selectedRunMode: RunMode.competitive,
-        selectedLevelId: LevelId.field,
-      );
-      final ownershipApi = _ScriptedOwnershipApi(
-        OwnershipCanonicalState(
-          profileId: 'profile_ranked_board_hard_fail',
-          revision: 3,
-          selection: selection,
-          meta: const MetaService().createNew(),
-          progression: ProgressionState.initial,
-        ),
-      );
-      final runSessionApi = _RecordingRunSessionApi(_practiceTicket());
-      final runBoardsApi = _ThrowingRunBoardsApi(
-        const RunStartRemoteException(
-          code: 'failed-precondition',
-          message: 'board not active yet',
-        ),
-      );
-      final appState = AppState(
-        authApi: _StaticAuthApi.authenticated(),
-        loadoutOwnershipApi: ownershipApi,
-        runBoardsApi: runBoardsApi,
-        runSessionApi: runSessionApi,
-      );
-      await appState.bootstrap(force: true);
-
-      await expectLater(
-        () => appState.prepareRunStartDescriptor(),
-        throwsA(
-          isA<RunStartRemoteException>().having(
-            (value) => value.isPreconditionFailed,
-            'isPreconditionFailed',
-            isTrue,
-          ),
-        ),
-      );
-      expect(runBoardsApi.loadCalls, 1);
-      expect(runSessionApi.createRunSessionCalls, 0);
     },
   );
 
@@ -443,7 +396,6 @@ void main() {
       final appState = AppState(
         authApi: _StaticAuthApi.authenticated(),
         loadoutOwnershipApi: ownershipApi,
-        runBoardsApi: _ScriptedRunBoardsApi(boardKey: boardKey),
         runSessionApi: runSessionApi,
         leaderboardApi: const _SingleGhostEntryLeaderboardApi(),
         ghostApi: const _SingleGhostManifestApi(),
@@ -515,7 +467,6 @@ void main() {
       final appState = AppState(
         authApi: _StaticAuthApi.authenticated(),
         loadoutOwnershipApi: ownershipApi,
-        runBoardsApi: _ScriptedRunBoardsApi(boardKey: boardKey),
         runSessionApi: runSessionApi,
         ghostApi: ghostApi,
         ghostReplayCache: ghostReplayCache,
@@ -585,7 +536,6 @@ void main() {
       final appState = AppState(
         authApi: _StaticAuthApi.authenticated(),
         loadoutOwnershipApi: ownershipApi,
-        runBoardsApi: _ScriptedRunBoardsApi(boardKey: boardKey),
         runSessionApi: runSessionApi,
         ghostApi: ghostApi,
         ghostReplayCache: ghostReplayCache,
@@ -657,7 +607,6 @@ void main() {
       final appState = AppState(
         authApi: _StaticAuthApi.authenticated(),
         loadoutOwnershipApi: ownershipApi,
-        runBoardsApi: _ScriptedRunBoardsApi(boardKey: boardKey),
         runSessionApi: runSessionApi,
         leaderboardApi: const _SingleGhostEntryLeaderboardApi(),
         ghostApi: const _SingleGhostManifestApi(),
@@ -760,7 +709,6 @@ void main() {
           progression: ProgressionState.initial,
         ),
       );
-      final runBoardsApi = _RecordingRunBoardsApi();
       final runSessionApi = _RecordingRunSessionApi(
         RunTicket(
           runSessionId: 'session_weekly_normalized',
@@ -787,14 +735,12 @@ void main() {
       final appState = AppState(
         authApi: _StaticAuthApi.authenticated(),
         loadoutOwnershipApi: ownershipApi,
-        runBoardsApi: runBoardsApi,
         runSessionApi: runSessionApi,
       );
       await appState.bootstrap(force: true);
 
       await appState.prepareRunStartDescriptor();
 
-      expect(runBoardsApi.lastLevelId, appState.weeklyFeaturedLevelId);
       expect(runSessionApi.lastLevelId, appState.weeklyFeaturedLevelId);
     },
   );
@@ -866,66 +812,6 @@ class _RecordingRunSessionApi extends _ScriptedRunSessionApi {
   }) async {
     lastLevelId = levelId;
     return super.createRunSession(
-      userId: userId,
-      sessionId: sessionId,
-      mode: mode,
-      levelId: levelId,
-      gameCompatVersion: gameCompatVersion,
-    );
-  }
-}
-
-class _ScriptedRunBoardsApi implements RunBoardsApi {
-  _ScriptedRunBoardsApi({required this.boardKey});
-
-  final BoardKey boardKey;
-
-  @override
-  Future<BoardManifest> loadActiveBoard({
-    required String userId,
-    required String sessionId,
-    required RunMode mode,
-    required LevelId levelId,
-    required String gameCompatVersion,
-  }) async {
-    return BoardManifest(
-      boardId: 'board_2026_03_field',
-      boardKey: boardKey,
-      gameCompatVersion: gameCompatVersion,
-      ghostVersion: 'ghost-v1',
-      tickHz: 60,
-      seed: 999,
-      opensAtMs: 1,
-      closesAtMs: 2,
-      status: BoardStatus.active,
-    );
-  }
-}
-
-class _RecordingRunBoardsApi extends _ScriptedRunBoardsApi {
-  _RecordingRunBoardsApi()
-    : super(
-        boardKey: BoardKey(
-          mode: RunMode.weekly,
-          levelId: LevelId.field.name,
-          windowId: '2026-W11',
-          rulesetVersion: 'rules-v1',
-          scoreVersion: 'score-v1',
-        ),
-      );
-
-  LevelId? lastLevelId;
-
-  @override
-  Future<BoardManifest> loadActiveBoard({
-    required String userId,
-    required String sessionId,
-    required RunMode mode,
-    required LevelId levelId,
-    required String gameCompatVersion,
-  }) async {
-    lastLevelId = levelId;
-    return super.loadActiveBoard(
       userId: userId,
       sessionId: sessionId,
       mode: mode,

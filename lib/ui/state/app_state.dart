@@ -157,6 +157,13 @@ class AppState extends ChangeNotifier {
   OwnershipSyncStatus get ownershipSyncStatus => _ownershipSyncStatus;
   RunSubmissionStatus? runSubmissionStatusFor(String runSessionId) =>
       _runSubmissionStatuses[runSessionId];
+  int get unverifiedGold => _runSubmissionStatuses.values
+      .map((status) => status.displayProvisionalGold)
+      .fold<int>(0, (sum, amount) => sum + amount);
+  int get displayGold {
+    final total = _progression.gold + unverifiedGold;
+    return total < 0 ? 0 : total;
+  }
 
   Future<void> flushOwnershipEdits({
     required OwnershipFlushTrigger trigger,
@@ -677,7 +684,7 @@ class AppState extends ChangeNotifier {
     Map<String, Object?>? provisionalSummary,
   }) async {
     final session = await _ensureAuthSession();
-    await _runSubmissionCoordinator.enqueueSubmission(
+    final pending = await _runSubmissionCoordinator.enqueueSubmission(
       runSessionId: runSessionId,
       runMode: runMode,
       replayFilePath: replayFilePath,
@@ -686,6 +693,10 @@ class AppState extends ChangeNotifier {
       contentType: contentType,
       provisionalSummary: provisionalSummary,
     );
+    _runSubmissionStatuses[runSessionId] = RunSubmissionStatus.fromPending(
+      pending,
+    );
+    notifyListeners();
     final status = await _runSubmissionCoordinator.processRunSession(
       userId: session.userId,
       sessionId: session.sessionId,
@@ -813,13 +824,15 @@ class AppState extends ChangeNotifier {
   }) async {
     await ensureOwnershipSyncedBeforeRunStart();
     final session = await _ensureAuthSession();
-    // Force a live backend read before run start. If this fails, run start
-    // fails closed for all modes.
-    final canonical = await _ownershipApi.loadCanonicalState(
-      userId: session.userId,
-      sessionId: session.sessionId,
-    );
-    _applyCanonicalState(canonical);
+    // Restart flows pass expectedMode/expectedLevelId and still require a
+    // live canonical read so stale restarts fail fast.
+    if (expectedMode != null || expectedLevelId != null) {
+      final canonical = await _ownershipApi.loadCanonicalState(
+        userId: session.userId,
+        sessionId: session.sessionId,
+      );
+      _applyCanonicalState(canonical);
+    }
     if (_selection.selectedRunMode == RunMode.weekly &&
         _selection.selectedLevelId != _defaultWeeklyFeaturedLevelId) {
       await _setSelection(
@@ -844,31 +857,6 @@ class AppState extends ChangeNotifier {
     }
     final mode = expectedMode ?? canonicalMode;
     final levelId = expectedLevelId ?? canonicalLevelId;
-
-    if (mode.requiresBoard) {
-      try {
-        await _runBoardsApi.loadActiveBoard(
-          userId: session.userId,
-          sessionId: session.sessionId,
-          mode: mode,
-          levelId: levelId,
-          gameCompatVersion: _defaultGameCompatVersion,
-        );
-      } on RunStartRemoteException catch (error) {
-        if (error.isPreconditionFailed) {
-          rethrow;
-        }
-        debugPrint(
-          'Ranked board preflight failed for mode=${mode.name} '
-          'level=${levelId.name}; falling back to runSessionCreate: $error',
-        );
-      } catch (error) {
-        debugPrint(
-          'Ranked board preflight failed for mode=${mode.name} '
-          'level=${levelId.name}; falling back to runSessionCreate: $error',
-        );
-      }
-    }
     final runTicket = await _runSessionApi.createRunSession(
       userId: session.userId,
       sessionId: session.sessionId,
