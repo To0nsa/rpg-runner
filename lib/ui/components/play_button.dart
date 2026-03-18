@@ -8,12 +8,16 @@ class PlayButton extends StatelessWidget {
     super.key,
     required this.isLoading,
     required this.onPressed,
+    this.label = 'PLAY',
+    this.variant = AppButtonVariant.primary,
     this.size = AppButtonSize.lg,
     this.loadingIndicatorSize,
   });
 
   final bool isLoading;
   final VoidCallback? onPressed;
+  final String label;
+  final AppButtonVariant variant;
   final AppButtonSize size;
   final double? loadingIndicatorSize;
 
@@ -24,7 +28,8 @@ class PlayButton extends StatelessWidget {
       alignment: Alignment.center,
       children: [
         AppButton(
-          label: 'PLAY',
+          label: label,
+          variant: variant,
           size: size,
           onPressed: isLoading ? null : onPressed,
         ),

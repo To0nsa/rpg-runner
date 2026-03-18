@@ -266,6 +266,7 @@ Execution notes (2026-03-18):
 	- retry + back affordances on failure
 - Wired route handling in [lib/ui/app/ui_router.dart](lib/ui/app/ui_router.dart).
 - Updated hub start flow in [lib/ui/pages/hub/play_hub_page.dart](lib/ui/pages/hub/play_hub_page.dart) to navigate to bootstrap route.
+- Updated Select Level Play flow in [lib/ui/pages/selectLevel/level_setup_page.dart](lib/ui/pages/selectLevel/level_setup_page.dart) to navigate to bootstrap route after draft flush.
 - Added route/widget tests in [test/ui/pages/hub/run_start_bootstrap_page_test.dart](test/ui/pages/hub/run_start_bootstrap_page_test.dart):
 	- successful bootstrap transitions to run route
 	- failure path shows retry and retry re-attempts run-start prep

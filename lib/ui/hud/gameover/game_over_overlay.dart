@@ -16,6 +16,7 @@ import 'score_breakdown_formatter.dart';
 import 'score_distribution.dart';
 import 'score_feed_controller.dart';
 import '../../components/app_button.dart';
+import '../../components/play_button.dart';
 import '../../components/gold_display.dart';
 import '../../state/run_submission_status.dart';
 import '../../theme/ui_tokens.dart';
@@ -407,15 +408,12 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                         )
                       else
                         RestartExitButtons(
-                          restartButton: AppButton(
-                            label: widget.restartInProgress
-                                ? 'Restarting...'
-                                : 'Restart',
+                          restartButton: PlayButton(
+                            label: 'Restart',
                             variant: AppButtonVariant.secondary,
                             size: AppButtonSize.xs,
-                            onPressed: widget.restartInProgress
-                                ? null
-                                : () => _completeThen(widget.onRestart),
+                            isLoading: widget.restartInProgress,
+                            onPressed: () => _completeThen(widget.onRestart),
                           ),
                           exitButton: widget.showExitButton
                               ? AppButton(

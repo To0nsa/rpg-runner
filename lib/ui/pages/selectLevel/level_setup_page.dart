@@ -10,7 +10,6 @@ import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
 import '../../components/play_button.dart';
 import '../../state/app_state.dart';
-import '../../state/run_start_remote_exception.dart';
 import '../../state/selection_state.dart';
 import 'level_select_section.dart';
 
@@ -103,18 +102,22 @@ class _LevelSetupPageState extends State<LevelSetupPage> {
       _commitDebounceTimer?.cancel();
       _commitDebounceTimer = null;
       await _flushDraftSelection(bestEffort: false);
-      final descriptor = await appState.prepareRunStartDescriptor();
       if (!mounted) return;
-      await Navigator.of(context).pushNamed(UiRoutes.run, arguments: descriptor);
+      await Navigator.of(context).pushNamed(
+        UiRoutes.runBootstrap,
+        arguments: const RunStartBootstrapArgs(),
+      );
     } catch (error) {
       if (!mounted) return;
-      final message =
-          error is RunStartRemoteException && error.isPreconditionFailed
-          ? 'Run start requirements are not met for the selected mode yet.'
-          : 'Unable to start run right now. Check your connection and try again.';
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      ).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Unable to navigate to run start right now. Try again.',
+          ),
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _preparingRunStart = false);

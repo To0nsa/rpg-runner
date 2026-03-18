@@ -110,7 +110,7 @@ void main() {
     await tester.tap(find.byType(PlayButton));
     await tester.pumpAndSettle();
 
-    expect(find.text('run-route-marker'), findsOneWidget);
+    expect(find.text('run-bootstrap-route-marker'), findsOneWidget);
     expect(ownershipApi.setSelectionCalls, 1);
     expect(appState.ownershipSyncStatus.pendingSelectionCount, 0);
   });
@@ -189,6 +189,8 @@ class _TestApp extends StatelessWidget {
         ),
         home: const LevelSetupPage(),
         routes: <String, WidgetBuilder>{
+          UiRoutes.runBootstrap: (_) =>
+              const Scaffold(body: Text('run-bootstrap-route-marker')),
           UiRoutes.run: (_) => const Scaffold(body: Text('run-route-marker')),
         },
       ),
