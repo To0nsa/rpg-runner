@@ -49,20 +49,38 @@ final class RunSubmissionStatus {
   final protocol.SubmissionStatus? serverStatus;
   final PendingRunSubmission? pendingSubmission;
 
-    protocol.SubmissionReward? get reward => serverStatus?.reward;
+  protocol.SubmissionReward? get reward => serverStatus?.reward;
 
-    int get provisionalGold => reward?.provisionalGold ?? 0;
+  int get provisionalGold => reward?.provisionalGold ?? 0;
 
-    int get spendableGoldDelta => reward?.spendableGoldDelta ?? 0;
+  int get spendableGoldDelta => reward?.spendableGoldDelta ?? 0;
 
-    bool get hasProvisionalReward =>
+  bool get hasProvisionalReward =>
       reward?.status == protocol.SubmissionRewardStatus.provisional;
 
-    bool get isRewardFinal =>
+  bool get isRewardFinal =>
       reward?.status == protocol.SubmissionRewardStatus.finalReward;
 
-    bool get isRewardRevoked =>
+  bool get isRewardRevoked =>
       reward?.status == protocol.SubmissionRewardStatus.revoked;
+
+  int get displayProvisionalGold {
+    if (hasProvisionalReward) {
+      return provisionalGold > 0 ? provisionalGold : 0;
+    }
+    if (isTerminal) {
+      return 0;
+    }
+    final raw = pendingSubmission?.provisionalSummary?['goldEarned'];
+    if (raw is int) {
+      return raw > 0 ? raw : 0;
+    }
+    if (raw is num) {
+      final value = raw.toInt();
+      return value > 0 ? value : 0;
+    }
+    return 0;
+  }
 
   bool get isTerminal => phase.isTerminal;
 
