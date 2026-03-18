@@ -10,6 +10,7 @@ class LoaderContent extends StatelessWidget {
     this.subtitle = 'Lothringen',
     this.loadingMessage = 'Loading...',
     this.errorMessage,
+    this.continueLabel = 'Continue with defaults',
     this.onContinue,
   });
 
@@ -17,6 +18,7 @@ class LoaderContent extends StatelessWidget {
   final String subtitle;
   final String loadingMessage;
   final String? errorMessage;
+  final String continueLabel;
   final VoidCallback? onContinue;
 
   bool get _hasError => errorMessage != null;
@@ -78,7 +80,7 @@ class LoaderContent extends StatelessWidget {
             SizedBox(height: ui.space.md),
             FilledButton(
               onPressed: onContinue,
-              child: const Text('Continue with defaults'),
+              child: Text(continueLabel),
             ),
           ],
         ],

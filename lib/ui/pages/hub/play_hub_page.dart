@@ -13,7 +13,6 @@ import 'components/hub_select_level_card.dart';
 import 'components/hub_top_row.dart';
 import '../../state/app_state.dart';
 import '../../state/progression_state.dart';
-import '../../state/run_start_remote_exception.dart';
 import '../../state/selection_state.dart';
 import '../../theme/ui_tokens.dart';
 
@@ -38,7 +37,7 @@ class _PlayHubPageState extends State<PlayHubPage> {
   }
 
   Future<void> _startRun(
-    AppState appState, {
+    {
     _RunStartSource source = _RunStartSource.main,
   }) async {
     if (_preparingRunStart) return;
@@ -47,21 +46,24 @@ class _PlayHubPageState extends State<PlayHubPage> {
       _runStartSource = source;
     });
     try {
-      final descriptor = await appState.prepareRunStartDescriptor();
       if (!mounted) return;
       await Navigator.of(
         context,
-      ).pushNamed(UiRoutes.run, arguments: descriptor);
+      ).pushNamed(
+        UiRoutes.runBootstrap,
+        arguments: const RunStartBootstrapArgs(),
+      );
     } catch (error) {
       debugPrint('Run start preparation failed: $error');
-      if (!mounted) return;
-      final message =
-          error is RunStartRemoteException && error.isPreconditionFailed
-          ? 'Run start requirements are not met for the selected mode yet.'
-          : 'Unable to start run right now. Check your connection and try again.';
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Unable to navigate to run start right now. Try again.',
+            ),
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -78,7 +80,7 @@ class _PlayHubPageState extends State<PlayHubPage> {
       await appState.setRunMode(RunMode.weekly);
     }
     if (!mounted) return;
-    await _startRun(appState, source: _RunStartSource.weekly);
+    await _startRun(source: _RunStartSource.weekly);
   }
 
   @override
@@ -170,7 +172,7 @@ class _PlayHubPageState extends State<PlayHubPage> {
                           _runStartSource == _RunStartSource.main,
                       onPressed: _preparingRunStart
                           ? null
-                          : () => _startRun(appState),
+                          : () => _startRun(),
                     ),
                   ),
                 ],

@@ -23,7 +23,20 @@ class UiRoutes {
   static const String messages = '/meta/messages';
   static const String support = '/meta/support';
   static const String credits = '/credits';
+  static const String runBootstrap = '/run/bootstrap';
   static const String run = '/run';
+}
+
+class RunStartBootstrapArgs {
+  const RunStartBootstrapArgs({
+    this.expectedMode,
+    this.expectedLevelId,
+    this.ghostEntryId,
+  });
+
+  final RunMode? expectedMode;
+  final LevelId? expectedLevelId;
+  final String? ghostEntryId;
 }
 
 class LoaderArgs {

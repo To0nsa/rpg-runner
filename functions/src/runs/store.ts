@@ -43,10 +43,18 @@ export async function createRunSession(
   args: CreateRunSessionArgs,
 ): Promise<CreateRunSessionResult> {
   const nowMs = args.nowMs ?? Date.now();
+  const startedAtMs = Date.now();
+  let canonicalLoadMs = 0;
+  let boardResolveMs = 0;
+  let runSessionWriteMs = 0;
+  let boardEnsureAttempted = false;
+
+  const canonicalLoadStartMs = Date.now();
   const canonicalState = await loadOrCreateCanonicalState({
     db: args.db,
     uid: args.uid,
   });
+  canonicalLoadMs = Date.now() - canonicalLoadStartMs;
   const snapshot = deriveStartSnapshot(canonicalState.selection);
 
   if (snapshot.mode !== args.mode) {
@@ -70,6 +78,18 @@ export async function createRunSession(
     canonicalJsonString(snapshot.loadoutSnapshot as JsonValue),
   );
 
+  let boardContext:
+    | {
+        boardId: string;
+        boardKey: JsonObject;
+        seed: number;
+        tickHz: number;
+        gameCompatVersion: string;
+        rulesetVersion: string;
+        scoreVersion: string;
+        ghostVersion: string;
+      }
+    | undefined;
   let runTicket: JsonObject;
   if (runModeRequiresBoard(snapshot.mode)) {
     if (snapshot.mode === "practice") {
@@ -78,24 +98,21 @@ export async function createRunSession(
         "Practice mode cannot require a board.",
       );
     }
-    await ensureManagedBoardForModeLevel({
-      db: args.db,
-      mode: snapshot.mode,
-      levelId: snapshot.levelId,
-      nowMs,
-      includeNextWindows: false,
-    });
-    const boardManifest = await loadActiveBoardManifest({
+
+    const boardResolveStartMs = Date.now();
+    const boardManifest = await loadBoardManifestWithProvisioningFallback({
       db: args.db,
       mode: snapshot.mode,
       levelId: snapshot.levelId,
       gameCompatVersion: args.gameCompatVersion,
       nowMs,
+      onEnsureAttempt: () => {
+        boardEnsureAttempted = true;
+      },
     });
-    runTicket = {
-      runSessionId,
-      uid: args.uid,
-      mode: snapshot.mode,
+    boardResolveMs = Date.now() - boardResolveStartMs;
+
+    boardContext = {
       boardId: boardManifest.boardId,
       boardKey: {
         mode: boardManifest.boardKey.mode,
@@ -110,6 +127,20 @@ export async function createRunSession(
       rulesetVersion: boardManifest.boardKey.rulesetVersion,
       scoreVersion: boardManifest.boardKey.scoreVersion,
       ghostVersion: boardManifest.ghostVersion,
+    };
+
+    runTicket = {
+      runSessionId,
+      uid: args.uid,
+      mode: snapshot.mode,
+      boardId: boardContext.boardId,
+      boardKey: boardContext.boardKey,
+      seed: boardContext.seed,
+      tickHz: boardContext.tickHz,
+      gameCompatVersion: boardContext.gameCompatVersion,
+      rulesetVersion: boardContext.rulesetVersion,
+      scoreVersion: boardContext.scoreVersion,
+      ghostVersion: boardContext.ghostVersion,
       levelId: snapshot.levelId,
       playerCharacterId: snapshot.playerCharacterId,
       loadoutSnapshot: snapshot.loadoutSnapshot,
@@ -140,6 +171,12 @@ export async function createRunSession(
     runSessionId,
     uid: args.uid,
     mode: snapshot.mode,
+    ...(boardContext
+      ? {
+          boardId: boardContext.boardId,
+          boardKey: boardContext.boardKey,
+        }
+      : {}),
     state: runSessionIssuedState,
     levelId: snapshot.levelId,
     playerCharacterId: snapshot.playerCharacterId,
@@ -148,10 +185,75 @@ export async function createRunSession(
     expiresAtMs,
     updatedAtMs: issuedAtMs,
     createdAtMs: issuedAtMs,
-    runTicket,
   };
+
+  const runSessionWriteStartMs = Date.now();
   await args.db.collection(runSessionsCollection).doc(runSessionId).set(runSessionDoc);
+  runSessionWriteMs = Date.now() - runSessionWriteStartMs;
+
+  const totalMs = Date.now() - startedAtMs;
+  console.log("runSessionCreate_timing", {
+    mode: snapshot.mode,
+    levelId: snapshot.levelId,
+    boardRequired: runModeRequiresBoard(snapshot.mode),
+    boardEnsureAttempted,
+    canonicalLoadMs,
+    boardResolveMs,
+    runSessionWriteMs,
+    totalMs,
+  });
+
   return { runTicket };
+}
+
+async function loadBoardManifestWithProvisioningFallback(args: {
+  db: Firestore;
+  mode: Exclude<RunModeValue, "practice">;
+  levelId: string;
+  gameCompatVersion: string;
+  nowMs: number;
+  onEnsureAttempt: () => void;
+}) {
+  try {
+    return await loadActiveBoardManifest({
+      db: args.db,
+      mode: args.mode,
+      levelId: args.levelId,
+      gameCompatVersion: args.gameCompatVersion,
+      nowMs: args.nowMs,
+    });
+  } catch (error) {
+    if (!isMissingBoardError(error)) {
+      throw error;
+    }
+  }
+
+  args.onEnsureAttempt();
+  await ensureManagedBoardForModeLevel({
+    db: args.db,
+    mode: args.mode,
+    levelId: args.levelId,
+    nowMs: args.nowMs,
+    includeNextWindows: false,
+  });
+
+  return loadActiveBoardManifest({
+    db: args.db,
+    mode: args.mode,
+    levelId: args.levelId,
+    gameCompatVersion: args.gameCompatVersion,
+    nowMs: args.nowMs,
+  });
+}
+
+function isMissingBoardError(error: unknown): boolean {
+  if (!(error instanceof HttpsError)) {
+    return false;
+  }
+  if (error.code !== "failed-precondition") {
+    return false;
+  }
+  return error.message.startsWith("No board found for ");
 }
 
 function deriveStartSnapshot(selection: JsonObject): StartSnapshot {

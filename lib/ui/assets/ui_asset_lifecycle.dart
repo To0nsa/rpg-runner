@@ -2,8 +2,17 @@ import 'package:flame/cache.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/widgets.dart';
 
+import 'package:runner_core/contracts/render_anim_set_definition.dart';
+import 'package:runner_core/enemies/enemy_catalog.dart';
+import 'package:runner_core/enemies/enemy_id.dart';
+import 'package:runner_core/levels/level_id.dart';
+import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/players/player_character_registry.dart';
+import 'package:runner_core/projectiles/projectile_id.dart';
+import 'package:runner_core/projectiles/projectile_render_catalog.dart';
+import 'package:runner_core/pickups/pickup_render_catalog.dart';
+import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 import 'package:runner_core/snapshots/enums.dart';
 import '../../game/components/player/player_animations.dart';
 import '../../game/themes/parallax_theme_registry.dart';
@@ -49,6 +58,8 @@ class UiAssetLifecycle {
       <PlayerCharacterId, Future<IdleAnimBundle>>{};
   final Map<PlayerCharacterId, Future<IdleAnimBundle>> _runIdleInFlight =
       <PlayerCharacterId, Future<IdleAnimBundle>>{};
+    final Map<String, Future<void>> _runBootstrapWarmInFlight =
+      <String, Future<void>>{};
 
   final Map<AssetImage, Future<void>> _parallaxPrecacheInFlight =
       <AssetImage, Future<void>>{};
@@ -124,6 +135,32 @@ class UiAssetLifecycle {
     }
   }
 
+  /// Best-effort warmup for run-start assets while the bootstrap route is
+  /// visible.
+  ///
+  /// This keeps run-start asset orchestration in a single module and shifts
+  /// decode pressure before entering the run route.
+  Future<void> warmRunStartAssets({
+    required LevelId levelId,
+    required PlayerCharacterId characterId,
+    required BuildContext context,
+  }) {
+    final key = '${levelId.name}:${characterId.name}';
+    final existing = _runBootstrapWarmInFlight[key];
+    if (existing != null) return existing;
+
+    final future = _warmRunStartAssetsImpl(
+      levelId: levelId,
+      characterId: characterId,
+      context: context,
+    ).whenComplete(() {
+      _runBootstrapWarmInFlight.remove(key);
+    });
+
+    _runBootstrapWarmInFlight[key] = future;
+    return future;
+  }
+
   void trimHubCaches() {
     _hubParallaxCache.trim();
     _hubIdleCache.trim();
@@ -133,6 +170,7 @@ class UiAssetLifecycle {
     _runParallaxCache.clear();
     _runIdleCache.clear();
     _runIdleInFlight.clear();
+    _runBootstrapWarmInFlight.clear();
   }
 
   void purgeAll() {
@@ -142,6 +180,7 @@ class UiAssetLifecycle {
     _runIdleCache.clear();
     _hubIdleInFlight.clear();
     _runIdleInFlight.clear();
+    _runBootstrapWarmInFlight.clear();
     _parallaxPrecacheInFlight.clear();
     _idleImages.clearCache();
   }
@@ -190,6 +229,83 @@ class UiAssetLifecycle {
       img(theme.groundLayerAsset),
       for (final layer in theme.foregroundLayers) img(layer.assetPath),
     ];
+  }
+
+  Future<void> _warmRunStartAssetsImpl({
+    required LevelId levelId,
+    required PlayerCharacterId characterId,
+    required BuildContext context,
+  }) async {
+    try {
+      final themeId = LevelRegistry.byId(levelId).themeId;
+      final parallaxLayers = await getParallaxLayers(
+        themeId,
+        scope: AssetScope.run,
+      );
+      if (!context.mounted) return;
+
+      final relPaths = _collectRunStartImagePaths(
+        characterId: characterId,
+      );
+
+      final futures = <Future<void>>[
+        getIdle(characterId, scope: AssetScope.run).then((_) {}),
+        precacheParallaxLayers(parallaxLayers, context),
+      ];
+      for (final relPath in relPaths) {
+        futures.add(
+          _precacheImageOnce(
+            AssetImage('assets/images/$relPath'),
+            context,
+          ),
+        );
+      }
+
+      await Future.wait(futures);
+    } catch (_) {
+      // Best-effort warmup.
+    }
+  }
+
+  static Set<String> _collectRunStartImagePaths({
+    required PlayerCharacterId characterId,
+  }) {
+    final paths = <String>{};
+
+    void addFromRenderAnim(RenderAnimSetDefinition renderAnim) {
+      for (final rawPath in renderAnim.sourcesByKey.values) {
+        final path = rawPath.trim();
+        if (path.isNotEmpty) {
+          paths.add(path);
+        }
+      }
+    }
+
+    addFromRenderAnim(PlayerCharacterRegistry.resolve(characterId).renderAnim);
+
+    const enemyCatalog = EnemyCatalog();
+    for (final enemyId in EnemyId.values) {
+      addFromRenderAnim(enemyCatalog.get(enemyId).renderAnim);
+    }
+
+    const projectileCatalog = ProjectileRenderCatalog();
+    for (final projectileId in ProjectileId.values) {
+      if (projectileId == ProjectileId.unknown) continue;
+      addFromRenderAnim(projectileCatalog.get(projectileId));
+    }
+
+    const pickupCatalog = PickupRenderCatalog();
+    const pickupVariants = <int>[
+      PickupVariant.collectible,
+      PickupVariant.restorationHealth,
+      PickupVariant.restorationMana,
+      PickupVariant.restorationStamina,
+    ];
+    for (final variant in pickupVariants) {
+      addFromRenderAnim(pickupCatalog.get(variant));
+    }
+
+    return paths;
   }
 
   Future<void> _precacheImageOnce(AssetImage provider, BuildContext context) {

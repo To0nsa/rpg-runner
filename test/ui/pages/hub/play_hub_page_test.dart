@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:runner_core/meta/meta_service.dart';
 
+import 'package:rpg_runner/ui/app/ui_routes.dart';
+import 'package:rpg_runner/ui/components/app_button.dart';
 import 'package:rpg_runner/ui/pages/hub/components/hub_top_row.dart';
 import 'package:rpg_runner/ui/pages/hub/play_hub_page.dart';
 import 'package:rpg_runner/ui/assets/ui_asset_lifecycle.dart';
@@ -28,6 +30,30 @@ void main() {
     final topRow = tester.widget<HubTopRow>(find.byType(HubTopRow));
     expect(topRow.gold, 321);
   });
+
+  testWidgets('play tap transitions immediately to run bootstrap route', (
+    tester,
+  ) async {
+    final observer = _RecordingNavigatorObserver();
+    final appState = AppState(
+      authApi: _StaticAuthApi(),
+      loadoutOwnershipApi: _NoopOwnershipApi(gold: 321),
+    );
+    await appState.bootstrap(force: true);
+
+    await tester.pumpWidget(
+      _RoutedTestApp(appState: appState, observer: observer),
+    );
+    await tester.pump();
+
+    final playButtonFinder = find.byWidgetPredicate(
+      (widget) => widget is AppButton && widget.label == 'PLAY',
+    );
+    await tester.tap(playButtonFinder.last);
+    await tester.pump();
+
+    expect(observer.pushedRouteNames, contains(UiRoutes.runBootstrap));
+  });
 }
 
 class _TestApp extends StatelessWidget {
@@ -50,6 +76,57 @@ class _TestApp extends StatelessWidget {
         home: const PlayHubPage(),
       ),
     );
+  }
+}
+
+class _RoutedTestApp extends StatelessWidget {
+  const _RoutedTestApp({
+    required this.appState,
+    required this.observer,
+  });
+
+  final AppState appState;
+  final NavigatorObserver observer;
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<AppState>.value(value: appState),
+        Provider<UiAssetLifecycle>(create: (_) => UiAssetLifecycle()),
+      ],
+      child: MaterialApp(
+        theme: ThemeData(
+          useMaterial3: true,
+          extensions: [UiTokens.standard, UiButtonTheme.standard],
+        ),
+        navigatorObservers: [observer],
+        home: const PlayHubPage(),
+        onGenerateRoute: (settings) {
+          if (settings.name == UiRoutes.runBootstrap) {
+            return MaterialPageRoute<void>(
+              settings: settings,
+              builder: (_) => const Scaffold(
+                body: Center(
+                  child: Text('Run Bootstrap Placeholder'),
+                ),
+              ),
+            );
+          }
+          return null;
+        },
+      ),
+    );
+  }
+}
+
+class _RecordingNavigatorObserver extends NavigatorObserver {
+  final List<String?> pushedRouteNames = <String?>[];
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    pushedRouteNames.add(route.settings.name);
   }
 }
 
@@ -118,7 +195,8 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
   ) async => _accepted;
 
   @override
-  Future<OwnershipCommandResult> equipGear(EquipGearCommand command) async => _accepted;
+  Future<OwnershipCommandResult> equipGear(EquipGearCommand command) async =>
+      _accepted;
 
   @override
   Future<OwnershipCommandResult> learnProjectileSpell(
@@ -136,7 +214,9 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
   ) async => _accepted;
 
   @override
-  Future<OwnershipCommandResult> refreshStore(RefreshStoreCommand command) async => _accepted;
+  Future<OwnershipCommandResult> refreshStore(
+    RefreshStoreCommand command,
+  ) async => _accepted;
 
   @override
   Future<OwnershipCommandResult> resetOwnership(
@@ -149,7 +229,9 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
   ) async => _accepted;
 
   @override
-  Future<OwnershipCommandResult> setLoadout(SetLoadoutCommand command) async => _accepted;
+  Future<OwnershipCommandResult> setLoadout(
+    SetLoadoutCommand command,
+  ) async => _accepted;
 
   @override
   Future<OwnershipCommandResult> setProjectileSpell(
@@ -157,8 +239,12 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
   ) async => _accepted;
 
   @override
-  Future<OwnershipCommandResult> setSelection(SetSelectionCommand command) async => _accepted;
+  Future<OwnershipCommandResult> setSelection(
+    SetSelectionCommand command,
+  ) async => _accepted;
 
   @override
-  Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command) async => _accepted;
+  Future<OwnershipCommandResult> unlockGear(
+    UnlockGearCommand command,
+  ) async => _accepted;
 }

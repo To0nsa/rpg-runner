@@ -197,6 +197,10 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
     if (!_hasSeenRoute || _currentRouteName == UiRoutes.loader) {
       return;
     }
+    if (_currentRouteName == UiRoutes.runBootstrap ||
+        _currentRouteName == UiRoutes.run) {
+      return;
+    }
     final navigator = _navigatorKey.currentState;
     if (navigator == null) return;
 

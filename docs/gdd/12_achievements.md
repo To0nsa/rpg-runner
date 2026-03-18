@@ -1,190 +1,508 @@
-# Achievements
+# Achievement System Design (V1)
+
+## Purpose
 
 Achievements exist to:
-- Add **long-term goals** without adding raw power creep.
-- Teach and reinforce **skill expression** (timing, resource discipline, risk decisions).
-- Drive **repeat play** via Weekly participation + personal improvement loops.
-- Feed horizontal progression systems: **cosmetics, profile identity, Codex, QoL**, unlock currency.
 
-> Rule: Achievements must **never** grant permanent combat power in competitive contexts.
+* add **long-term goals** without adding raw power creep
+* teach and reinforce **skill expression** (timing, resource discipline, risk decisions)
+* drive **repeat play** through Weekly participation and personal improvement loops
+* feed horizontal progression systems such as **cosmetics, profile identity, Codex, QoL, and unlock currency**
+
+> **Non-negotiable rule:** achievements must **never** grant permanent combat power in competitive contexts.
 
 ---
 
-## 1. Modes & Integrity
+## Design Principles
 
-### 1.1 Mode eligibility
-Achievements can be tagged with one of:
-- **Any**: valid in Practice + Competitive/Weekly.
-- **Weekly**: only valid in Weekly Challenge (fixed seed/rules).
-- **Competitive**: only valid in competitive runs (if you split Weekly vs other competitive modes later).
-- **Practice**: only valid in Practice (usually for “lab/experimentation” achievements).
+1. **No competitive power rewards**
+   Achievements unlock cosmetics, profile identity, Codex content, QoL, or sidegrade/unlock currency only.
 
-### 1.2 Anti-cheese rules (baseline)
-- **No prestige achievements** (rank/top %) in Practice.
-- “Win”/“distance” achievements must require **non-trivial duration** (e.g., distance ≥ X OR time alive ≥ Y) to avoid “restart spam”.
-- Count-based achievements should be **lifetime totals** (not reset on uninstall) but expose per-season ladders optionally.
+2. **Deterministic resolution first**
+   Achievements must resolve from a stable run summary and a small set of explicit runtime events. Do not rely on UI state or inferred gameplay interpretation.
+
+3. **Server authority where integrity matters**
+   Weekly and any competitive mode must resolve from server-authoritative results or deterministic replay verification.
+
+4. **Skill over grind in prestige layers**
+   Weekly and mastery achievements should primarily reward execution, consistency, and improvement, not unhealthy volume.
+
+5. **Data-driven authoring**
+   Achievement definitions, thresholds, rewards, and mode restrictions must be data-authored, not hardcoded in gameplay logic.
+
+6. **V1 should stay narrow**
+   Only ship achievements backed by metrics the game can already measure clearly and cheaply.
+
+---
+
+## 1. Modes and Integrity
+
+### 1.1 Mode tags
+
+Each achievement has one mode tag:
+
+* **Any**: valid in Practice and Weekly/competitive-eligible runs
+* **Weekly**: valid only in Weekly Challenge runs under the fixed weekly ruleset
+* **Competitive**: valid only in competitive runs if you later split Weekly from other ranked modes
+* **Practice**: valid only in Practice, usually for experimentation or tutorial-like goals
+
+### 1.2 Baseline anti-cheese rules
+
+* Practice cannot award prestige achievements tied to rank, bracket, or leaderboard position.
+* Any achievement based on run completion, distance, or survival must require a **minimum valid run**.
+* Immediate quit, instant restart spam, or failed initialization must never count as a run completion.
+* Lifetime counters should persist across reinstall/login restoration when the profile backend exists.
+* Weekly achievements must validate against the exact **weekly ruleset identity** and submission contract.
+
+### 1.3 Minimum valid run
+
+A run is considered valid for achievement progress only if one of these is true:
+
+* distance reached `>= minDistanceForValidity`
+* time alive `>= minTimeAliveForValidity`
+* a valid completion state was reached
+
+Recommended V1 defaults:
+
+* `minDistanceForValidity = 300m`
+* `minTimeAliveForValidity = 60s`
+
+Tune later per mode if needed.
 
 ---
 
 ## 2. Categories
 
-We ship 4 categories (each with tiered thresholds):
-1) **Milestones** (pure progress counters)
-2) **Mastery** (skill checks)
-3) **Build Exploration** (variety / discovery)
-4) **Weekly / Seasonal** (retention hooks)
+V1 ships four categories:
+
+1. **Milestones** — pure long-term progress counters
+2. **Mastery** — execution and decision-making checks
+3. **Build Exploration** — variety, discovery, and loadout experimentation
+4. **Weekly / Seasonal** — participation, personal improvement, and prestige hooks
 
 ---
 
-## 3. Tiering model
+## 3. Tiering Model
 
-Each achievement can have 1–3 tiers:
-- **Bronze / Silver / Gold**
-- Thresholds are designed to be achievable across weeks/months.
-- Rewards scale per tier.
+Each achievement has one to three tiers:
 
-**Default threshold scaling** (guideline):
-- Bronze = “I tried it”
-- Silver = “I’m consistent”
-- Gold = “I’m committed / skilled”
+* **Bronze**
+* **Silver**
+* **Gold**
+
+Tier intent:
+
+* **Bronze** = I tried it
+* **Silver** = I can do it consistently
+* **Gold** = I am skilled or committed
+
+Tuning rule:
+
+* Bronze should usually be reachable in the first **1 to 3 sessions**
+* Silver should feel like short-term mastery or familiarity
+* Gold should usually land across **weeks**, not years
+* Only a very small number of capstones should be true long-haul goals
 
 ---
 
 ## 4. Tracking Metrics
 
-### 4.1 Core counters (minimal v1)
-- `runs_started_total`
-- `runs_completed_total`
-- `distance_total_m`
-- `best_distance_m` (per mode)
-- `time_alive_total_s`
-- `enemies_killed_total`
-- `bosses_killed_total` (if bosses exist later; keep optional)
-- `weekly_participations_total`
-- `weekly_streak_weeks` (consecutive participation)
-- `ghosts_beaten_total`
-- `parries_total`
-- `perfect_parries_total` (tight window)
-- `dodges_total` (or “damage avoided” events)
-- `damage_taken_total`
-- `no_hit_segments_completed_total`
-- `statuses_applied_total` + per-status counters (`bleed_applied_total`, `stun_applied_total`, etc.)
-- `unique_weapons_used_count` (lifetime)
-- `unique_abilities_used_count` (lifetime)
-- `unique_procs_triggered_count` (lifetime)
-- `resource_spent_total` (mana/stamina) + per-resource
-- `cooldowns_used_total` (ability casts)
+## 4.1 Core counters for V1
 
-### 4.2 Snapshot-proofing / determinism
-- Achievements should be resolved on **server-authoritative** results for Weekly/Competitive (or deterministic replay verification).
-- Practice can resolve locally, but still uses deterministic counters.
+These are the metrics V1 achievements are allowed to depend on:
 
----
+* `runs_started_total`
+* `runs_completed_total`
+* `distance_total_m`
+* `best_distance_m` (per mode where relevant)
+* `time_alive_total_s`
+* `enemies_killed_total`
+* `weekly_participations_total`
+* `weekly_streak_weeks`
+* `ghosts_beaten_total`
+* `parries_total`
+* `perfect_parries_total`
+* `damage_taken_total`
+* `no_hit_segments_completed_total`
+* `statuses_applied_total`
+* per-status totals such as `bleed_applied_total`, `stun_applied_total`, `slow_applied_total`, `drench_applied_total`, etc.
+* `unique_main_weapons_used_count`
+* `unique_offhands_used_count`
+* `unique_projectiles_used_count`
+* `unique_spellbooks_used_count`
+* `unique_accessories_used_count`
+* `unique_abilities_used_count`
+* `unique_procs_triggered_count`
+* `resource_spent_total`
+* per-resource totals such as `mana_spent_total`, `stamina_spent_total`
+* `cooldowns_used_total`
+* `kill_streak_without_damage_best`
 
-## 5. Rewards (non-power)
+## 4.2 Explicitly deferred metrics
 
-### 5.1 Reward types
-- **Cosmetics**: skins, trails, UI themes, emotes.
-- **Profile**: titles, badges, frames.
-- **Codex**: entries/unlocks (lore + mechanical tips).
-- **QoL**: additional loadout presets, training tools, stat breakdown overlays.
-- **Unlock Currency**: buys **sidegrades/unlocks**, not raw upgrades.
+The following are **not** required for V1 and should not block shipping the system:
 
-### 5.2 Default reward curve (v1 intent)
-- Bronze: small currency + Codex snippet
-- Silver: currency + badge
-- Gold: cosmetic or title (and optionally a QoL unlock if it’s a “meta” achievement)
+* boss kill counters
+* telegraph-avoidance counters
+* rank delta inside a week
+* time-window combo pattern evaluators
+* average-resource-under-threshold evaluators
+* calendar-day attendance unless profile/date infrastructure is already stable
+* loadout preset save counters unless presets are already implemented in UX and persistence
 
----
-
-## 6. Achievement List v1 (48 total, tiered)
-
-Legend:
-- **Mode**: Any / Weekly / Competitive / Practice
-- **Thresholds**: B/S/G
-
-### 6.1 Milestones (12)
-
-| ID | Name | Mode | Thresholds (B/S/G) | Notes |
-|---|---|---:|---|---|
-| M01 | First Steps | Any | Complete runs: 1 / 10 / 50 | Completion = “run ended legitimately” (not immediate quit) |
-| M02 | Marathoner | Any | Best distance: 2k / 10k / 50k meters | Per-mode best distance can be separate later |
-| M03 | Road Warrior | Any | Total distance: 25k / 250k / 2,500k meters | Lifetime grind, but reasonable |
-| M04 | Still Standing | Any | Time alive total: 30m / 5h / 50h | |
-| M05 | Slayer | Any | Enemies killed: 250 / 2,500 / 25,000 | |
-| M06 | Efficient | Any | Runs completed without revive: 5 / 25 / 100 | If revives exist |
-| M07 | Collector | Any | Collectibles picked: 100 / 1,000 / 10,000 | Uses your “collectibles” run stat |
-| M08 | Spell Budget | Any | Resource spent total: 5k / 50k / 500k | Sum mana+stamina, tracked separately too |
-| M09 | Cast Happy | Any | Ability casts: 250 / 2,500 / 25,000 | |
-| M10 | Clean Slate | Any | Finish runs with 0 unused healing: 3 / 15 / 50 | Forces planning; skip if no healing items |
-| M11 | Survivor | Any | Finish run with HP ≤ 10%: 1 / 5 / 20 | Clutch moments |
-| M12 | The Routine | Any | Play days: 3 / 14 / 60 | Distinct calendar days played |
-
-### 6.2 Mastery (12)
-
-| ID | Name | Mode | Thresholds (B/S/G) | Skill contract |
-|---|---|---:|---|---|
-| S01 | Parry Initiate | Any | Parries in one run: 3 / 10 / 25 | Teaches timing |
-| S02 | Perfect Form | Any | Perfect parries in one run: 1 / 5 / 15 | “Perfect” = tight window |
-| S03 | No-Hit Segment | Any | No-hit segments: 1 / 3 / 10 | Define segment = N seconds or N chunks |
-| S04 | Iron Lungs | Any | Survive with low resources (avg) in run: 1 / 5 / 20 | Avg mana+stamina under threshold |
-| S05 | Risk Taker | Any | Finish a run with 0 healing used: 1 / 5 / 20 | Not necessarily no-hit |
-| S06 | Tempo | Any | Use 3 abilities within X ticks repeatedly: 1 / 5 / 20 | Encourages combos |
-| S07 | Crowd Control | Any | Apply CC then kill within T seconds: 3 / 15 / 50 | CC = stun/slow/root |
-| S08 | Execution | Any | Kill streak without taking damage: 10 / 25 / 50 | |
-| S09 | Dodge Discipline | Any | Avoid X telegraphed attacks in a run: 3 / 10 / 25 | Needs “telegraph avoided” event |
-| S10 | Minimalist | Any | Reach distance with only 1 ability type used: 500m / 2k / 10k | Forces constraints |
-| S11 | Comeback | Any | Recover from ≤10% HP to ≥50% HP and survive 30s: 1 / 3 / 10 | Requires healing/regeneration |
-| S12 | Flawless | Weekly | Finish Weekly run with 0 hits taken: 1 / 2 / 5 | Weekly-only prestige |
-
-### 6.3 Build Exploration (12)
-
-| ID | Name | Mode | Thresholds (B/S/G) | Intent |
-|---|---|---:|---|---|
-| B01 | Loadout Tinkerer | Any | Unique loadouts saved: 2 / 10 / 25 | Promotes presets |
-| B02 | Weapon Tourist | Any | Unique Primary weapons used: 3 / 8 / 15 | Lifetime |
-| B03 | Offhand Dabbler | Any | Unique Offhand gear used: 2 / 6 / 12 | |
-| B04 | Arcane Arsenal | Any | Unique Projectile items used: 2 / 6 / 12 | |
-| B05 | Utility Specialist | Any | Unique Utility gear used: 2 / 6 / 12 | |
-| B06 | Ability Explorer | Any | Unique abilities used: 10 / 25 / 50 | Across all slots |
-| B07 | Proc Hunter | Any | Unique procs triggered: 5 / 12 / 25 | Includes gear procs |
-| B08 | Status Scientist | Any | Unique statuses applied: 3 / 6 / 10 | bleed/stun/burn/slow/etc |
-| B09 | Two-Handed Main | Any | Distance with 2H equipped: 1k / 10k / 50k | Encourages style |
-| B10 | Dual Setup | Any | Distance with 1H + offhand: 1k / 10k / 50k | |
-| B11 | Elemental Path | Any | Apply elemental statuses: 25 / 250 / 2,500 | burn/freeze/poison etc |
-| B12 | Control Path | Any | Apply control statuses: 25 / 250 / 2,500 | stun/slow/root etc |
-
-### 6.4 Weekly / Seasonal (12)
-
-| ID | Name | Mode | Thresholds (B/S/G) | Retention hook |
-|---|---|---:|---|---|
-| W01 | Weekly Visitor | Weekly | Participate: 1 / 5 / 20 | “Participate” = submit a run |
-| W02 | Consistency | Weekly | Weekly streak: 2 / 4 / 12 weeks | Consecutive weeks |
-| W03 | Personal Best | Weekly | Improve own weekly score: 1 / 5 / 20 | Week-over-week improvement |
-| W04 | Ghost Racer | Weekly | Beat ghosts: 1 / 10 / 50 | Any ghost count |
-| W05 | Top Bracket | Weekly | Place top: 50% / 20% / 5% | Percentile based |
-| W06 | Score Hunter | Weekly | Reach score thresholds: A / S / SS | Use your scoring ladder if present |
-| W07 | The Climb | Weekly | Improve rank within a week: 10 / 50 / 200 places | Requires rank tracking |
-| W08 | First Submit | Weekly | Submit within first 24h: 1 / 3 / 10 | Encourages early-week engagement |
-| W09 | Late Push | Weekly | Submit in last 24h: 1 / 3 / 10 | Encourages comeback |
-| W10 | Clean Run | Weekly | No revive used: 1 / 3 / 10 | Prestige |
-| W11 | Specialist Week | Weekly | Finish weekly using constrained archetype: 1 / 3 / 10 | Weekly rule can set archetype constraints |
-| W12 | Season Finisher | Competitive | Seasons completed: 1 / 2 / 5 | Season = N weeks; optional |
+These can be added later once telemetry contracts are stable.
 
 ---
 
-## 7. Implementation notes
+## 5. Resolution Model
 
-- Each achievement resolves from a **single event stream** (run summary + key events) to avoid “state divergence”.
-- Achievements are authored data; thresholds, mode tags, and rewards are not hardcoded.
-- “Weekly” achievements must validate against the **fixed seed/ruleset identity** to prevent cross-week carry.
+### 5.1 Single-source resolution
+
+Achievements resolve from:
+
+* a **run summary** for aggregate and end-of-run checks
+* a compact set of **explicit key events** for skill checks
+
+Avoid deriving achievements from transient presentation state.
+
+### 5.2 Resolution authority
+
+* **Practice**: may resolve locally
+* **Weekly / Competitive**: must resolve on server-authoritative run results or deterministic replay verification
+
+### 5.3 Progress scope
+
+Each achievement declares one scope:
+
+* `lifetime`
+* `single_run`
+* `weekly`
+* `season`
+
+### 5.4 Evaluator types
+
+V1 achievement logic should use a small evaluator set only:
+
+* `counter_threshold`
+* `best_value_threshold`
+* `run_predicate`
+* `unique_count_threshold`
+* `streak_threshold`
+* `percentile_threshold`
+* `personal_improvement_threshold`
+
+Anything more complex should be deferred until there is a strong need.
 
 ---
 
-## 8. Tuning checklist
+## 6. Rewards (Non-Power Only)
 
-- Bronze tiers should be achievable within the first **1–3 sessions**.
-- Gold tiers should be achievable within **weeks**, not years (except 1–2 capstones).
-- Weekly/Competitive tiers must not require unhealthy playtime; prefer **skill** over raw volume.
-- Add 1–2 “social flex” rewards (titles/frames) tied to Weekly prestige tiers.
+### 6.1 Reward types
 
+Achievements may grant:
+
+* **Cosmetics**: skins, trails, UI themes, emotes
+* **Profile**: titles, badges, frames
+* **Codex**: entries, lore pages, mechanical tips
+* **QoL**: loadout presets, training tools, stat breakdown overlays
+* **Unlock Currency**: used only for sidegrades, cosmetics, or utility unlocks
+
+### 6.2 Default reward curve
+
+* **Bronze**: small currency reward plus Codex snippet
+* **Silver**: currency plus badge or profile flair
+* **Gold**: title, cosmetic, frame, or notable QoL unlock
+
+### 6.3 Reward policy
+
+Never grant:
+
+* permanent damage bonuses
+* permanent defense bonuses
+* permanent stat growth
+* exclusive combat-affecting unlocks required for competitive parity
+
+---
+
+## 7. Achievement List (V1)
+
+V1 intentionally ships a **smaller, cleaner, implementation-safe set** instead of an oversized list with fuzzy contracts.
+
+Total: **24 achievements**
+
+* 6 Milestones
+* 6 Mastery
+* 6 Build Exploration
+* 6 Weekly / Seasonal
+
+---
+
+## 7.1 Milestones (6)
+
+| ID  | Name           | Mode | Thresholds (B/S/G)                            | Notes                                                         |
+| --- | -------------- | ---: | --------------------------------------------- | ------------------------------------------------------------- |
+| M01 | First Steps    |  Any | Complete runs: `1 / 10 / 50`                  | Completion must be a valid run end, not instant quit          |
+| M02 | Marathoner     |  Any | Best distance: `500m / 2,000m / 10,000m`      | Cleaner V1 thresholds than oversized capstones                |
+| M03 | Road Warrior   |  Any | Total distance: `5,000m / 50,000m / 250,000m` | Lifetime progress anchor                                      |
+| M04 | Still Standing |  Any | Time alive total: `15m / 3h / 20h`            | Good for early retention                                      |
+| M05 | Slayer         |  Any | Enemies killed: `100 / 1,000 / 10,000`        | Safe lifetime counter                                         |
+| M06 | Cast Happy     |  Any | Ability casts: `100 / 1,000 / 10,000`         | Uses cooldown/cast totals already aligned with runtime intent |
+
+### Why these stay
+
+These are cheap, deterministic, easy to explain, and useful for onboarding players into the overall progression loop.
+
+---
+
+## 7.2 Mastery (6)
+
+| ID  | Name           | Mode | Thresholds (B/S/G)                                                   | Skill contract                               |
+| --- | -------------- | ---: | -------------------------------------------------------------------- | -------------------------------------------- |
+| S01 | Parry Initiate |  Any | Parries in one run: `3 / 8 / 15`                                     | Teaches timing and reaction                  |
+| S02 | Perfect Form   |  Any | Perfect parries in one run: `1 / 3 / 8`                              | Requires tight-window execution              |
+| S03 | No-Hit Segment |  Any | No-hit segments completed: `1 / 3 / 8`                               | Segment duration must be explicitly authored |
+| S04 | Risk Taker     |  Any | Finish a valid run with `0` healing used: `1 / 3 / 10`               | Strong, readable constraint                  |
+| S05 | Execution      |  Any | Best kill streak without taking damage: `10 / 20 / 35`               | Clear skill expression                       |
+| S06 | Comeback       |  Any | Recover from `<=10% HP` to `>=50% HP` and survive `30s`: `1 / 3 / 8` | Clutch recovery event                        |
+
+### Why these stay
+
+These are the mastery checks that are both readable and worth implementing. They reward timing, control, and survival without requiring fragile interpretation systems.
+
+---
+
+## 7.3 Build Exploration (6)
+
+| ID  | Name              | Mode | Thresholds (B/S/G)                        | Intent                                     |
+| --- | ----------------- | ---: | ----------------------------------------- | ------------------------------------------ |
+| B01 | Weapon Tourist    |  Any | Unique main weapons used: `2 / 4 / 8`     | Encourages primary-slot exploration        |
+| B02 | Offhand Dabbler   |  Any | Unique offhands used: `2 / 4 / 8`         | Supports shield / offhand exploration      |
+| B03 | Arcane Arsenal    |  Any | Unique projectile items used: `2 / 4 / 8` | Promotes spell projectile variety          |
+| B04 | Spellbook Scholar |  Any | Unique spellbooks used: `2 / 4 / 8`       | Matches current spellbook identity layer   |
+| B05 | Ability Explorer  |  Any | Unique abilities used: `6 / 15 / 30`      | Cross-slot experimentation goal            |
+| B06 | Status Scientist  |  Any | Unique statuses applied: `3 / 6 / 10`     | Reinforces status vocabulary and discovery |
+
+### Why these stay
+
+They fit the current gear ecosystem cleanly: main weapon, offhand, projectile, spellbook, abilities, and status identities already matter in the game. They promote horizontal engagement without inventing fake complexity.
+
+### Explicit cut from old draft
+
+The old `Two-Handed Main` achievement is removed from V1. The current vertical slice should not ship achievements centered on a weapon style that is not part of the active roster focus.
+
+---
+
+## 7.4 Weekly / Seasonal (6)
+
+| ID  | Name           |   Mode | Thresholds (B/S/G)                                         | Retention / prestige role                              |
+| --- | -------------- | -----: | ---------------------------------------------------------- | ------------------------------------------------------ |
+| W01 | Weekly Visitor | Weekly | Submit valid weekly runs: `1 / 5 / 15`                     | Basic weekly participation hook                        |
+| W02 | Consistency    | Weekly | Weekly streak: `2 / 4 / 8` weeks                           | Consecutive engagement, not too punishing              |
+| W03 | Personal Best  | Weekly | Improve your own weekly best score: `1 / 3 / 10`           | Self-improvement loop                                  |
+| W04 | Ghost Racer    | Weekly | Beat ghosts: `1 / 5 / 20`                                  | Social/competitive mastery without raw rank dependence |
+| W05 | Top Bracket    | Weekly | Finish in top `50% / 20% / 5%`                             | Prestige achievement, Weekly only                      |
+| W06 | Flawless       | Weekly | Finish a valid Weekly run with `0` hits taken: `1 / 2 / 5` | High-skill prestige capstone                           |
+
+### Why these stay
+
+This set keeps Weekly focused on the right things:
+
+* show up
+* improve yourself
+* interact with ghosts
+* perform well under fixed rules
+* earn prestige through execution
+
+### Explicit cuts from old draft
+
+The following were removed from V1 because they add noise or verification cost without enough value:
+
+* submit in first 24h
+* submit in last 24h
+* rank climb within the same week
+* over-granular weekly attendance gimmicks
+
+Those are retention mechanics, not strong achievements.
+
+---
+
+## 8. Deferred Achievement Candidates
+
+These are valid future expansions, but should not be part of V1:
+
+* no-revive run chains
+* constrained archetype week rules
+* percentile + score ladder hybrids
+* proc-family achievements split by hook type
+* resource discipline achievements based on authored low-resource windows
+* telegraph dodge achievements
+* preset/loadout save achievements
+* season finisher achievements
+* per-element path achievements (`burn`, `freeze`, `poison`, etc.)
+* control path achievements (`stun`, `slow`, `silence`, etc.)
+
+Ship V1 first. Expand only when telemetry and UX support it cleanly.
+
+---
+
+## 9. Authoring Schema
+
+Each achievement should be authored as data.
+
+Suggested structure:
+
+```yaml
+id: W06
+name: Flawless
+category: weekly
+mode: weekly
+scope: weekly
+metric_type: run_predicate
+evaluator: run_predicate
+predicate_id: weekly_no_hit_clear
+min_valid_run:
+  distance_m: 300
+  time_alive_s: 60
+tiers:
+  - tier: bronze
+    threshold: 1
+    reward_bundle_id: reward_w06_b
+  - tier: silver
+    threshold: 2
+    reward_bundle_id: reward_w06_s
+  - tier: gold
+    threshold: 5
+    reward_bundle_id: reward_w06_g
+```
+
+Minimum recommended fields:
+
+* `id`
+* `name`
+* `category`
+* `mode`
+* `scope`
+* `metric_type`
+* `evaluator`
+* `metric_key` or `predicate_id`
+* `min_valid_run`
+* `tiers[]`
+* `reward_bundle_id`
+* `visibility`
+* `is_hidden_until_progress` if you want secret achievements later
+
+---
+
+## 10. Metric Contracts
+
+For every non-trivial achievement, define:
+
+* source metric or source event
+* evaluation scope
+* minimum valid run rule
+* fail conditions
+* whether progress can occur multiple times in one run
+* whether resolution is local or server-authoritative
+
+Examples:
+
+### S02 — Perfect Form
+
+* source event: `perfect_parry`
+* scope: `single_run`
+* valid modes: `Any`
+* progress rule: count number of `perfect_parry` events in the run
+* reset rule: counter resets at run start
+* validity: run must satisfy minimum valid run
+* authority: local in Practice, server-authoritative in Weekly
+
+### W03 — Personal Best
+
+* source metric: weekly submitted score
+* scope: `weekly`
+* valid modes: `Weekly`
+* progress rule: count a success when current week best score exceeds previous recorded week best for the player
+* authority: server-authoritative only
+
+### B06 — Status Scientist
+
+* source metric: unique status IDs applied across lifetime
+* scope: `lifetime`
+* valid modes: `Any`
+* progress rule: increment unique set when a status application is confirmed on a valid target
+* authority: local acceptable in Practice, authoritative summary preferred everywhere else
+
+---
+
+## 11. UI and UX Rules
+
+* Show category and tier clearly.
+* Show exact progress bars for milestone and exploration achievements.
+* Show mastery achievements with strict condition text, not vague flavor wording.
+* Weekly achievements should display the current weekly ruleset tag to avoid confusion.
+* Prestige achievements should surface profile-facing rewards clearly.
+* Avoid hidden math in descriptions; the player should understand what counts.
+
+Examples of good player-facing phrasing:
+
+* **Parry 8 attacks in a single valid run**
+* **Finish a valid Weekly run without taking a hit**
+* **Use 4 different spellbooks across your profile**
+
+Examples of bad phrasing:
+
+* **Play boldly**
+* **Become unstoppable**
+* **Master tempo**
+
+Flavor can exist in titles, not in unclear requirements.
+
+---
+
+## 12. Tuning Checklist
+
+Before shipping any achievement:
+
+* Is the metric already tracked explicitly?
+* Is the result deterministic?
+* Can the player understand the condition easily?
+* Can it be explained in one sentence without ambiguity?
+* Does it reward skill, variety, or healthy long-term engagement?
+* Can it be cheesed by restart spam, fake inputs, or edge-case state?
+* Does the reward avoid competitive power?
+
+If any answer is weak, cut or defer the achievement.
+
+---
+
+## 13. Final V1 Scope Summary
+
+### Ship now
+
+* **24 achievements** total
+* fully data-driven definitions
+* deterministic run-summary and explicit-event resolution
+* server-authoritative Weekly achievements
+* only non-power rewards
+
+### Do not ship in V1
+
+* fuzzy achievements requiring interpretation-heavy telemetry
+* achievements tied to unsupported or non-core roster fantasies
+* attendance gimmicks disguised as prestige
+* over-grindy thresholds that take months before feeling relevant
+
+---
+
+## Final Recommendation
+
+This achievement system should launch as a **clean, trustworthy, narrow V1 layer**.
+
+The win condition is not content count. The win condition is:
+
+* players understand what they are chasing
+* the backend resolves it correctly
+* rewards feel good without breaking balance
+* the system can expand later without rewrites
+
+That is the correct base for this game.

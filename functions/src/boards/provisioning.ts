@@ -53,6 +53,14 @@ export interface EnsureManagedBoardForModeLevelArgs {
   includeNextWindows?: boolean;
 }
 
+export function buildManagedBoardId(args: {
+  mode: RankedBoardMode;
+  levelId: string;
+  windowId: string;
+}): string {
+  return buildBoardId(args);
+}
+
 export function resolveBoardProvisioningConfig(
   env: NodeJS.ProcessEnv = process.env,
 ): BoardProvisioningConfig {

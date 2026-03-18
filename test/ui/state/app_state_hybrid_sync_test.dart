@@ -307,6 +307,91 @@ void main() {
     expect(ownershipApi.setSelectionCalls, 1);
     expect(appState.ownershipSyncStatus.pendingCount, 0);
   });
+
+  test('run-start sync fast-path skips flush when known-clean status is fresh', () async {
+    final ownershipApi = _RecordingOwnershipApi();
+    final outbox = _CountingOwnershipOutboxStore();
+    final appState = AppState(
+      authApi: _StaticAuthApi.authenticated(),
+      loadoutOwnershipApi: ownershipApi,
+      ownershipOutboxStore: outbox,
+    );
+
+    await appState.bootstrap(force: true);
+    appState.startWarmup();
+    await outbox.waitForLoadAllAtLeast(1);
+
+    final loadAllCallsBeforeRunStart = outbox.loadAllCalls;
+    await appState.ensureOwnershipSyncedBeforeRunStart();
+
+    expect(outbox.loadAllCalls, loadAllCallsBeforeRunStart);
+  });
+
+  test('run-start sync does full path when sync-status freshness is unknown', () async {
+    final ownershipApi = _RecordingOwnershipApi();
+    final outbox = _CountingOwnershipOutboxStore();
+    final appState = AppState(
+      authApi: _StaticAuthApi.authenticated(),
+      loadoutOwnershipApi: ownershipApi,
+      ownershipOutboxStore: outbox,
+    );
+
+    await appState.bootstrap(force: true);
+    expect(outbox.loadAllCalls, 0);
+
+    await appState.ensureOwnershipSyncedBeforeRunStart();
+
+    expect(outbox.loadAllCalls, greaterThan(0));
+  });
+}
+
+class _CountingOwnershipOutboxStore implements OwnershipOutboxStore {
+  final InMemoryOwnershipOutboxStore _delegate = InMemoryOwnershipOutboxStore();
+
+  int loadAllCalls = 0;
+
+  @override
+  Future<void> clear() {
+    return _delegate.clear();
+  }
+
+  @override
+  Future<OwnershipPendingCommand?> loadByCoalesceKey({
+    required String coalesceKey,
+  }) {
+    return _delegate.loadByCoalesceKey(coalesceKey: coalesceKey);
+  }
+
+  @override
+  Future<List<OwnershipPendingCommand>> loadAll() async {
+    loadAllCalls += 1;
+    return _delegate.loadAll();
+  }
+
+  @override
+  Future<void> removeByCoalesceKey({required String coalesceKey}) {
+    return _delegate.removeByCoalesceKey(coalesceKey: coalesceKey);
+  }
+
+  @override
+  Future<void> replaceAll({required List<OwnershipPendingCommand> commands}) {
+    return _delegate.replaceAll(commands: commands);
+  }
+
+  @override
+  Future<void> upsertCoalesced({required OwnershipPendingCommand command}) {
+    return _delegate.upsertCoalesced(command: command);
+  }
+
+  Future<void> waitForLoadAllAtLeast(int count) async {
+    for (var i = 0; i < 40; i++) {
+      if (loadAllCalls >= count) {
+        return;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+    fail('Timed out waiting for loadAllCalls >= $count. Actual: $loadAllCalls');
+  }
 }
 
 class _RecordingOwnershipApi implements LoadoutOwnershipApi {

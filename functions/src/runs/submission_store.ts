@@ -622,14 +622,19 @@ function decodeRunSessionSnapshot(
   const updatedAtMs = requireInteger(data.updatedAtMs, "runSession.updatedAtMs");
   const message = requireOptionalString(data.message);
   const mode = decodeOptionalRunMode(data.mode);
-  const ticketRewardContext = decodeRunTicketRewardContext(data.runTicket);
+  const boardId =
+    requireOptionalString(data.boardId) ??
+    decodeRunTicketRewardContext(data.runTicket).boardId;
+  const boardKey =
+    decodeOptionalJsonObject(data.boardKey) ??
+    decodeRunTicketRewardContext(data.runTicket).boardKey;
 
   return {
     runSessionId: requireOptionalString(data.runSessionId) ?? runSessionId,
     uid,
     mode,
-    boardId: ticketRewardContext.boardId,
-    boardKey: ticketRewardContext.boardKey,
+    boardId,
+    boardKey,
     state,
     expiresAtMs,
     updatedAtMs,

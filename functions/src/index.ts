@@ -46,6 +46,14 @@ setGlobalOptions({
 
 const db = getFirestore();
 
+const runSessionCreateRegion =
+  process.env.RUN_SESSION_CREATE_REGION?.trim() ||
+  process.env.FUNCTIONS_REGION?.trim() ||
+  "us-central1";
+const runSessionCreateMinInstances = readNonNegativeInt(
+  process.env.RUN_SESSION_CREATE_MIN_INSTANCES,
+);
+
 export const loadoutOwnershipLoadCanonicalState = onCall(async (request) => {
   const uid = request.auth?.uid;
   if (!uid) {
@@ -136,9 +144,17 @@ export const runBoardsLoadActive = onCall(async (request) => {
   return handleRunBoardsLoadActive(request, db);
 });
 
-export const runSessionCreate = onCall(async (request) => {
-  return handleRunSessionCreate(request, db);
-});
+export const runSessionCreate = onCall(
+  {
+    region: runSessionCreateRegion,
+    ...(runSessionCreateMinInstances !== undefined
+      ? { minInstances: runSessionCreateMinInstances }
+      : {}),
+  },
+  async (request) => {
+    return handleRunSessionCreate(request, db);
+  },
+);
 
 export const runSessionCreateUploadGrant = onCall(async (request) => {
   return handleRunSessionCreateUploadGrant(request, db);
@@ -189,3 +205,15 @@ export const leaderboardBoardMaintenance = onSchedule(
     console.log("leaderboardBoardMaintenance", result);
   },
 );
+
+function readNonNegativeInt(raw: string | undefined): number | undefined {
+  const value = raw?.trim();
+  if (!value) {
+    return undefined;
+  }
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return undefined;
+  }
+  return parsed;
+}

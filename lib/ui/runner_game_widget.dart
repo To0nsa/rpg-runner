@@ -26,8 +26,6 @@ import '../game/runner_flame_game.dart';
 import 'app/ui_routes.dart';
 import 'hud/game/game_overlay.dart';
 import 'hud/gameover/game_over_overlay.dart';
-import 'bootstrap/loader_content.dart';
-import 'components/menu_layout.dart';
 import 'haptics/haptics_cue.dart';
 import 'haptics/haptics_service.dart';
 import 'runner_game_ui_state.dart';
@@ -36,7 +34,6 @@ import 'state/run_start_remote_exception.dart';
 import 'state/selection_state.dart';
 import 'state/ghost_replay_cache.dart';
 import 'state/run_submission_status.dart';
-import 'theme/ui_tokens.dart';
 import 'viewport/game_viewport.dart';
 import 'viewport/viewport_metrics.dart';
 
@@ -855,7 +852,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                 key: ValueKey(_game),
                 game: _game,
                 autofocus: false,
-                loadingBuilder: (_) => const _RunLoadingView(),
+                loadingBuilder: null,
               ),
             );
 
@@ -917,22 +914,6 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
           },
         ),
       ],
-    );
-  }
-}
-
-class _RunLoadingView extends StatelessWidget {
-  const _RunLoadingView();
-
-  @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: context.ui.colors.background,
-      child: MenuLayout(
-        alignment: Alignment.center,
-        scrollable: false,
-        child: const LoaderContent(),
-      ),
     );
   }
 }

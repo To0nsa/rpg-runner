@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../bootstrap/loader_page.dart';
 import '../bootstrap/brand_splash_screen.dart';
 import '../pages/hub/play_hub_page.dart';
+import '../pages/hub/run_start_bootstrap_page.dart';
 import '../pages/leaderboards/leaderboards_page.dart';
 import '../pages/lab/loadout_lab_page.dart';
 import '../pages/meta/credits_page.dart';
@@ -101,6 +102,15 @@ class UiRouter {
         return MaterialPageRoute<void>(
           settings: settings,
           builder: (_) => const CreditsPage(),
+        );
+      case UiRoutes.runBootstrap:
+        final args = settings.arguments;
+        final bootstrapArgs = args is RunStartBootstrapArgs
+            ? args
+            : const RunStartBootstrapArgs();
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => RunStartBootstrapPage(args: bootstrapArgs),
         );
       case UiRoutes.run:
         final args = settings.arguments;

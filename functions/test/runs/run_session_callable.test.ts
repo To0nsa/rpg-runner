@@ -71,6 +71,41 @@ test("createRunSession issues boardless practice ticket from canonical selection
   const persisted = await db.collection("run_sessions").doc(runSessionId).get();
   assert.equal(persisted.exists, true);
   assert.equal(persisted.get("state"), "issued");
+  assert.equal(persisted.get("runTicket"), undefined);
+});
+
+test("createRunSession provisions missing ranked board and persists slim context", async () => {
+  const nowMs = Date.UTC(2026, 2, 12, 12, 0, 0, 0);
+  const gameCompatVersion = "2026.03.0";
+
+  await loadOrCreateCanonicalState({ db, uid });
+  const canonicalRef = canonicalDocRef(db, uid, defaultCanonicalProfileId);
+  await canonicalRef.set(
+    {
+      selection: {
+        runMode: "competitive",
+        runType: "competitive",
+      },
+    },
+    { merge: true },
+  );
+
+  const result = await createRunSession({
+    db,
+    uid,
+    mode: "competitive",
+    levelId: "field",
+    gameCompatVersion,
+    nowMs,
+  });
+
+  const runSessionId = result.runTicket.runSessionId as string;
+  const persisted = await db.collection("run_sessions").doc(runSessionId).get();
+  assert.equal(persisted.exists, true);
+  assert.equal(persisted.get("state"), "issued");
+  assert.equal(persisted.get("runTicket"), undefined);
+  assert.equal(typeof persisted.get("boardId"), "string");
+  assert.equal(typeof persisted.get("boardKey"), "object");
 });
 
 test("loadActiveBoardManifest rejects disabled board for current window", async () => {

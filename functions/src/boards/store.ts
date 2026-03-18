@@ -5,6 +5,7 @@ import type {
 } from "firebase-admin/firestore";
 
 import type { JsonObject } from "../ownership/contracts.js";
+import { buildManagedBoardId, type RankedBoardMode } from "./provisioning.js";
 import {
   resolveWindowForMode,
   competitiveWindowBoundsFromId,
@@ -29,6 +30,29 @@ export async function loadActiveBoardManifest(
   const nowMs = args.nowMs ?? Date.now();
   const resolvedWindow = resolveWindowForMode(args.mode, nowMs);
 
+  const managedBoardId = buildManagedBoardId({
+    mode: args.mode as RankedBoardMode,
+    levelId: args.levelId,
+    windowId: resolvedWindow.windowId,
+  });
+  const managedDocSnapshot = await args.db
+    .collection(leaderboardBoardsCollection)
+    .doc(managedBoardId)
+    .get();
+  if (managedDocSnapshot.exists) {
+    const board = decodeBoardManifestDocument(
+      managedDocSnapshot as QueryDocumentSnapshot,
+    );
+    return validateActiveBoardForRequest({
+      board,
+      mode: args.mode,
+      levelId: args.levelId,
+      gameCompatVersion: args.gameCompatVersion,
+      nowMs,
+      windowId: resolvedWindow.windowId,
+    });
+  }
+
   const boardSnapshot = await args.db
     .collection(leaderboardBoardsCollection)
     .where("mode", "==", args.mode)
@@ -44,6 +68,25 @@ export async function loadActiveBoardManifest(
     );
   }
 
+  const activeBoards = candidates.filter((value) => value.status === "active");
+  if (activeBoards.length > 1) {
+    throw new HttpsError(
+      "failed-precondition",
+      `Multiple active boards found for ${args.mode}/${args.levelId}/${resolvedWindow.windowId}.`,
+    );
+  }
+
+  if (activeBoards.length === 1) {
+    return validateActiveBoardForRequest({
+      board: activeBoards[0]!,
+      mode: args.mode,
+      levelId: args.levelId,
+      gameCompatVersion: args.gameCompatVersion,
+      nowMs,
+      windowId: resolvedWindow.windowId,
+    });
+  }
+
   const disabled = candidates.find((value) => value.status === "disabled");
   if (disabled) {
     throw new HttpsError(
@@ -52,28 +95,52 @@ export async function loadActiveBoardManifest(
     );
   }
 
-  const activeBoards = candidates.filter((value) => value.status === "active");
-  if (activeBoards.length === 0) {
-    throw new HttpsError(
-      "failed-precondition",
-      `Board is not active for ${args.mode}/${args.levelId}/${resolvedWindow.windowId}.`,
-    );
-  }
-  if (activeBoards.length > 1) {
-    throw new HttpsError(
-      "failed-precondition",
-      `Multiple active boards found for ${args.mode}/${args.levelId}/${resolvedWindow.windowId}.`,
-    );
-  }
+  throw new HttpsError(
+    "failed-precondition",
+    `Board is not active for ${args.mode}/${args.levelId}/${resolvedWindow.windowId}.`,
+  );
+}
 
-  const board = activeBoards[0]!;
+function validateActiveBoardForRequest(args: {
+  board: BoardManifestRecord;
+  mode: "competitive" | "weekly";
+  levelId: string;
+  gameCompatVersion: string;
+  nowMs: number;
+  windowId: string;
+}): BoardManifestRecord {
+  const { board } = args;
+  if (board.status !== "active") {
+    if (board.status === "disabled") {
+      throw new HttpsError(
+        "failed-precondition",
+        `Board ${board.boardId} is disabled for this window.`,
+      );
+    }
+    throw new HttpsError(
+      "failed-precondition",
+      `Board is not active for ${args.mode}/${args.levelId}/${args.windowId}.`,
+    );
+  }
+  if (board.mode !== args.mode || board.levelId !== args.levelId) {
+    throw new HttpsError(
+      "failed-precondition",
+      `Board ${board.boardId} does not match requested mode/level.`,
+    );
+  }
+  if (board.windowId !== args.windowId) {
+    throw new HttpsError(
+      "failed-precondition",
+      `Board ${board.boardId} does not match requested window ${args.windowId}.`,
+    );
+  }
   if (board.gameCompatVersion !== args.gameCompatVersion) {
     throw new HttpsError(
       "failed-precondition",
       `Board gameCompatVersion ${board.gameCompatVersion} does not match client ${args.gameCompatVersion}.`,
     );
   }
-  if (nowMs < board.opensAtMs || nowMs >= board.closesAtMs) {
+  if (args.nowMs < board.opensAtMs || args.nowMs >= board.closesAtMs) {
     throw new HttpsError(
       "failed-precondition",
       `Board ${board.boardId} is outside its active time window.`,

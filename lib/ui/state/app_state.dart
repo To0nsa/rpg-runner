@@ -42,6 +42,54 @@ import 'user_profile_remote_api.dart';
 
 const String _defaultGameCompatVersion = '2026.03.0';
 const LevelId _defaultWeeklyFeaturedLevelId = LevelId.field;
+const int _runTicketPrefetchCacheMaxEntries = 4;
+const int _runTicketPrefetchExpirySafetySkewMs = 5000;
+const int _runTicketPrefetchMinIntervalMs = 1500;
+const int _ownershipSyncStatusFreshnessMaxAgeMs = 1500;
+
+@immutable
+final class _RunTicketPrefetchKey {
+  const _RunTicketPrefetchKey({
+    required this.userId,
+    required this.ownershipRevision,
+    required this.gameCompatVersion,
+    required this.mode,
+    required this.levelId,
+    required this.playerCharacterId,
+    required this.loadoutDigest,
+  });
+
+  final String userId;
+  final int ownershipRevision;
+  final String gameCompatVersion;
+  final RunMode mode;
+  final LevelId levelId;
+  final PlayerCharacterId playerCharacterId;
+  final String loadoutDigest;
+
+  @override
+  bool operator ==(Object other) {
+    return other is _RunTicketPrefetchKey &&
+        other.userId == userId &&
+        other.ownershipRevision == ownershipRevision &&
+        other.gameCompatVersion == gameCompatVersion &&
+        other.mode == mode &&
+        other.levelId == levelId &&
+        other.playerCharacterId == playerCharacterId &&
+        other.loadoutDigest == loadoutDigest;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    userId,
+    ownershipRevision,
+    gameCompatVersion,
+    mode,
+    levelId,
+    playerCharacterId,
+    loadoutDigest,
+  );
+}
 
 class AppState extends ChangeNotifier {
   factory AppState({
@@ -141,8 +189,18 @@ class AppState extends ChangeNotifier {
   OwnershipSyncStatus _ownershipSyncStatus = OwnershipSyncStatus.idle;
   Timer? _ownershipFlushTimer;
   Future<void>? _activeOwnershipFlush;
+  int? _ownershipSyncStatusUpdatedAtMs;
   final Map<String, RunSubmissionStatus> _runSubmissionStatuses =
       <String, RunSubmissionStatus>{};
+    final Map<_RunTicketPrefetchKey, RunTicket> _runTicketPrefetchCache =
+      <_RunTicketPrefetchKey, RunTicket>{};
+    final Map<_RunTicketPrefetchKey, Future<void>> _runTicketPrefetchInFlight =
+      <_RunTicketPrefetchKey, Future<void>>{};
+    final Map<_RunTicketPrefetchKey, int> _runTicketPrefetchLruClockByKey =
+      <_RunTicketPrefetchKey, int>{};
+    final Map<_RunTicketPrefetchKey, int>
+    _runTicketPrefetchLastRequestedAtMsByKey = <_RunTicketPrefetchKey, int>{};
+    int _runTicketPrefetchLruClock = 0;
 
   SelectionState get selection => _selection;
   LevelId get weeklyFeaturedLevelId => _defaultWeeklyFeaturedLevelId;
@@ -192,7 +250,61 @@ class AppState extends ChangeNotifier {
     return flushOwnershipEdits(trigger: OwnershipFlushTrigger.leaveLevelSetup);
   }
 
+  Future<void> startRunTicketPrefetchForCurrentSelection() {
+    return startRunTicketPrefetchFor(
+      mode: _selection.selectedRunMode,
+      levelId: _selection.selectedLevelId,
+    );
+  }
+
+  Future<void> startRunTicketPrefetchFor({
+    required RunMode mode,
+    required LevelId levelId,
+  }) async {
+    if (_runSessionApi is NoopRunSessionApi) {
+      return;
+    }
+    final session = await _tryEnsureAuthSessionForRunTicketPrefetch();
+    if (session == null) {
+      return;
+    }
+    final effectiveLevelId = _effectiveLevelForMode(
+      mode: mode,
+      selectedLevelId: levelId,
+    );
+    final key = _runTicketPrefetchKeyFor(
+      userId: session.userId,
+      mode: mode,
+      levelId: effectiveLevelId,
+    );
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    if (!_shouldIssueRunTicketPrefetchRequest(key: key, nowMs: nowMs)) {
+      return;
+    }
+    final existing = _runTicketPrefetchInFlight[key];
+    if (existing != null) {
+      await existing;
+      return;
+    }
+    final completion = Completer<void>();
+    _runTicketPrefetchInFlight[key] = completion.future;
+    _runTicketPrefetchLastRequestedAtMsByKey[key] = nowMs;
+    try {
+      await _runTicketPrefetchForKey(key: key, session: session);
+      completion.complete();
+    } catch (error, stackTrace) {
+      completion.completeError(error, stackTrace);
+    } finally {
+      if (identical(_runTicketPrefetchInFlight[key], completion.future)) {
+        _runTicketPrefetchInFlight.remove(key);
+      }
+    }
+  }
+
   Future<void> _ensureOwnershipSyncedBeforeRunStartInternal() async {
+    if (_canFastReturnOwnershipSyncedBeforeRunStart()) {
+      return;
+    }
     await flushOwnershipEdits(trigger: OwnershipFlushTrigger.runStart);
     await _refreshOwnershipSyncStatusFromOutbox();
     if (_ownershipSyncStatus.pendingCount > 0) {
@@ -202,6 +314,24 @@ class AppState extends ChangeNotifier {
             'Pending ownership changes are still syncing. Check your connection and try again.',
       );
     }
+  }
+
+  bool _canFastReturnOwnershipSyncedBeforeRunStart() {
+    if (_activeOwnershipFlush != null || _ownershipSyncStatus.isFlushing) {
+      return false;
+    }
+    if (_ownershipSyncStatus.pendingCount != 0) {
+      return false;
+    }
+    final updatedAtMs = _ownershipSyncStatusUpdatedAtMs;
+    if (updatedAtMs == null) {
+      return false;
+    }
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    if (nowMs < updatedAtMs) {
+      return false;
+    }
+    return nowMs - updatedAtMs <= _ownershipSyncStatusFreshnessMaxAgeMs;
   }
 
   Future<void> bootstrap({bool force = false}) async {
@@ -337,6 +467,7 @@ class AppState extends ChangeNotifier {
       slot: slot,
       abilityId: abilityId,
     );
+    _clearRunTicketPrefetchState();
     _selection = _selection.withLoadoutFor(characterId, nextLoadout);
     notifyListeners();
     await _enqueueOwnershipCommand(
@@ -365,6 +496,7 @@ class AppState extends ChangeNotifier {
       currentLoadout,
       projectileSlotSpellId: spellId,
     );
+    _clearRunTicketPrefetchState();
     _selection = _selection.withLoadoutFor(characterId, nextLoadout);
     notifyListeners();
     await _enqueueOwnershipCommand(
@@ -451,6 +583,7 @@ class AppState extends ChangeNotifier {
       slot: slot,
       itemId: itemId,
     );
+    _clearRunTicketPrefetchState();
     _selection = _selection.withLoadoutFor(characterId, nextLoadout);
     _meta = _meta.setEquippedFor(
       characterId,
@@ -657,7 +790,9 @@ class AppState extends ChangeNotifier {
     _authSession = AuthSession.unauthenticated;
     _profileId = defaultOwnershipProfileId;
     _ownershipRevision = 0;
+    _ownershipSyncStatusUpdatedAtMs = null;
     _runSubmissionStatuses.clear();
+    _clearRunTicketPrefetchState();
     _bootstrapped = false;
     _warmupStarted = false;
     notifyListeners();
@@ -671,6 +806,15 @@ class AppState extends ChangeNotifier {
       await _refreshOwnershipSyncStatusFromOutbox();
       notifyListeners();
     }());
+    unawaited(startRunTicketPrefetchForCurrentSelection());
+    if (_selection.selectedRunMode != RunMode.weekly) {
+      unawaited(
+        startRunTicketPrefetchFor(
+          mode: RunMode.weekly,
+          levelId: _defaultWeeklyFeaturedLevelId,
+        ),
+      );
+    }
     unawaited(_resumePendingRunSubmissions());
   }
 
@@ -857,14 +1001,24 @@ class AppState extends ChangeNotifier {
     }
     final mode = expectedMode ?? canonicalMode;
     final levelId = expectedLevelId ?? canonicalLevelId;
-    final runTicket = await _runSessionApi.createRunSession(
-      userId: session.userId,
-      sessionId: session.sessionId,
-      mode: mode,
-      levelId: levelId,
-      gameCompatVersion: _defaultGameCompatVersion,
-    );
-    final descriptor = _runStartDescriptorFromTicket(runTicket);
+    final runTicket =
+        expectedMode != null || expectedLevelId != null
+        ? null
+        : _takeValidPrefetchedRunTicket(
+            userId: session.userId,
+            mode: mode,
+            levelId: levelId,
+          );
+    final resolvedTicket =
+        runTicket ??
+        await _runSessionApi.createRunSession(
+          userId: session.userId,
+          sessionId: session.sessionId,
+          mode: mode,
+          levelId: levelId,
+          gameCompatVersion: _defaultGameCompatVersion,
+        );
+    final descriptor = _runStartDescriptorFromTicket(resolvedTicket);
     if (!mode.requiresBoard || descriptor.boardId == null) {
       return descriptor;
     }
@@ -877,6 +1031,56 @@ class AppState extends ChangeNotifier {
       entryId: resolvedGhostEntryId,
     );
     return descriptor.copyWith(ghostReplayBootstrap: ghostReplayBootstrap);
+  }
+
+  RunTicket? _takeValidPrefetchedRunTicket({
+    required String userId,
+    required RunMode mode,
+    required LevelId levelId,
+  }) {
+    final key = _runTicketPrefetchKeyFor(
+      userId: userId,
+      mode: mode,
+      levelId: levelId,
+    );
+    final cached = _runTicketPrefetchCache.remove(key);
+    _runTicketPrefetchLruClockByKey.remove(key);
+    if (cached == null) {
+      return null;
+    }
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    if (!_isRunTicketEligibleForPrefetchCache(runTicket: cached, nowMs: nowMs)) {
+      return null;
+    }
+    if (!_matchesRunTicketPrefetchKey(ticket: cached, key: key)) {
+      return null;
+    }
+    return cached;
+  }
+
+  bool _matchesRunTicketPrefetchKey({
+    required RunTicket ticket,
+    required _RunTicketPrefetchKey key,
+  }) {
+    if (ticket.uid != key.userId) {
+      return false;
+    }
+    if (ticket.mode != key.mode) {
+      return false;
+    }
+    if (ticket.gameCompatVersion != key.gameCompatVersion) {
+      return false;
+    }
+    if (ticket.levelId != key.levelId.name) {
+      return false;
+    }
+    if (ticket.playerCharacterId != key.playerCharacterId.name) {
+      return false;
+    }
+    if (ticket.loadoutDigest != key.loadoutDigest) {
+      return false;
+    }
+    return true;
   }
 
   RunStartDescriptor _runStartDescriptorFromTicket(RunTicket ticket) {
@@ -1351,6 +1555,7 @@ class AppState extends ChangeNotifier {
       pendingSelectionCount: pendingSelectionCount,
       oldestPendingAgeMs: oldestPendingAgeMs,
     );
+    _ownershipSyncStatusUpdatedAtMs = nowMs;
   }
 
   Future<void> _setSelection(SelectionState nextSelection) async {
@@ -1375,6 +1580,7 @@ class AppState extends ChangeNotifier {
       return;
     }
     final nowMs = DateTime.now().millisecondsSinceEpoch;
+    _clearRunTicketPrefetchState();
     _selection = nextSelection;
     notifyListeners();
     await _enqueueOwnershipCommand(
@@ -1412,6 +1618,7 @@ class AppState extends ChangeNotifier {
   }
 
   void _applyCanonicalState(OwnershipCanonicalState canonical) {
+    _clearRunTicketPrefetchState();
     _profileId = canonical.profileId;
     _selection = canonical.selection;
     _meta = canonical.meta;
@@ -1421,8 +1628,161 @@ class AppState extends ChangeNotifier {
 
   Future<AuthSession> _ensureAuthSession() async {
     final session = await _authApi.ensureAuthenticatedSession();
+    if (_authSession.userId != session.userId ||
+        _authSession.sessionId != session.sessionId) {
+      _clearRunTicketPrefetchState();
+      _ownershipSyncStatusUpdatedAtMs = null;
+    }
     _authSession = session;
     return session;
+  }
+
+  Future<AuthSession?> _tryEnsureAuthSessionForRunTicketPrefetch() async {
+    try {
+      final session = await _ensureAuthSession();
+      if (!session.isAuthenticated) {
+        return null;
+      }
+      return session;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  _RunTicketPrefetchKey _runTicketPrefetchKeyFor({
+    required String userId,
+    required RunMode mode,
+    required LevelId levelId,
+  }) {
+    final characterId = _selection.selectedCharacterId;
+    final loadout = _selection.loadoutFor(characterId);
+    return _RunTicketPrefetchKey(
+      userId: userId,
+      ownershipRevision: _ownershipRevision,
+      gameCompatVersion: _defaultGameCompatVersion,
+      mode: mode,
+      levelId: levelId,
+      playerCharacterId: characterId,
+      loadoutDigest: _loadoutDigest(loadout),
+    );
+  }
+
+  bool _shouldIssueRunTicketPrefetchRequest({
+    required _RunTicketPrefetchKey key,
+    required int nowMs,
+  }) {
+    final lastRequestedAtMs = _runTicketPrefetchLastRequestedAtMsByKey[key];
+    if (lastRequestedAtMs == null) {
+      return true;
+    }
+    return nowMs - lastRequestedAtMs >= _runTicketPrefetchMinIntervalMs;
+  }
+
+  Future<void> _runTicketPrefetchForKey({
+    required _RunTicketPrefetchKey key,
+    required AuthSession session,
+  }) async {
+    try {
+      final runTicket = await _runSessionApi.createRunSession(
+        userId: session.userId,
+        sessionId: session.sessionId,
+        mode: key.mode,
+        levelId: key.levelId,
+        gameCompatVersion: key.gameCompatVersion,
+      );
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      if (!_isRunTicketEligibleForPrefetchCache(runTicket: runTicket, nowMs: nowMs)) {
+        return;
+      }
+      if (!_isRunTicketPrefetchKeyCurrent(key)) {
+        return;
+      }
+      _storeRunTicketPrefetch(key: key, runTicket: runTicket);
+    } catch (_) {
+      return;
+    }
+  }
+
+  bool _isRunTicketEligibleForPrefetchCache({
+    required RunTicket runTicket,
+    required int nowMs,
+  }) {
+    return nowMs + _runTicketPrefetchExpirySafetySkewMs < runTicket.expiresAtMs;
+  }
+
+  bool _isRunTicketPrefetchKeyCurrent(_RunTicketPrefetchKey key) {
+    if (_authSession.userId != key.userId) {
+      return false;
+    }
+    final effectiveLevelId = _effectiveLevelForMode(
+      mode: key.mode,
+      selectedLevelId: key.levelId,
+    );
+    final current = _runTicketPrefetchKeyFor(
+      userId: key.userId,
+      mode: key.mode,
+      levelId: effectiveLevelId,
+    );
+    return current == key;
+  }
+
+  void _storeRunTicketPrefetch({
+    required _RunTicketPrefetchKey key,
+    required RunTicket runTicket,
+  }) {
+    _runTicketPrefetchCache[key] = runTicket;
+    _runTicketPrefetchLruClock += 1;
+    _runTicketPrefetchLruClockByKey[key] = _runTicketPrefetchLruClock;
+    _evictRunTicketPrefetchLruIfNeeded();
+  }
+
+  void _evictRunTicketPrefetchLruIfNeeded() {
+    while (_runTicketPrefetchCache.length > _runTicketPrefetchCacheMaxEntries) {
+      _RunTicketPrefetchKey? oldestKey;
+      int? oldestClock;
+      for (final entry in _runTicketPrefetchLruClockByKey.entries) {
+        final key = entry.key;
+        if (!_runTicketPrefetchCache.containsKey(key)) {
+          continue;
+        }
+        if (oldestClock == null || entry.value < oldestClock) {
+          oldestClock = entry.value;
+          oldestKey = key;
+        }
+      }
+      if (oldestKey == null) {
+        break;
+      }
+      _runTicketPrefetchCache.remove(oldestKey);
+      _runTicketPrefetchLruClockByKey.remove(oldestKey);
+      _runTicketPrefetchLastRequestedAtMsByKey.remove(oldestKey);
+    }
+  }
+
+  String _loadoutDigest(EquippedLoadoutDef loadout) {
+    final canonical = <String>[
+      loadout.mask.toString(),
+      loadout.mainWeaponId.name,
+      loadout.offhandWeaponId.name,
+      loadout.spellBookId.name,
+      loadout.projectileSlotSpellId.name,
+      loadout.accessoryId.name,
+      loadout.abilityPrimaryId,
+      loadout.abilitySecondaryId,
+      loadout.abilityProjectileId,
+      loadout.abilitySpellId,
+      loadout.abilityMobilityId,
+      loadout.abilityJumpId,
+    ].join('|');
+    return crypto.sha256.convert(utf8.encode(canonical)).toString();
+  }
+
+  void _clearRunTicketPrefetchState() {
+    _runTicketPrefetchCache.clear();
+    _runTicketPrefetchInFlight.clear();
+    _runTicketPrefetchLruClockByKey.clear();
+    _runTicketPrefetchLastRequestedAtMsByKey.clear();
+    _runTicketPrefetchLruClock = 0;
   }
 
   AwardRunGoldCommand _newAwardRunGoldCommand({
@@ -1611,6 +1971,7 @@ class AppState extends ChangeNotifier {
   void dispose() {
     _ownershipFlushTimer?.cancel();
     _ownershipFlushTimer = null;
+    _clearRunTicketPrefetchState();
     super.dispose();
   }
 }
