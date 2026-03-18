@@ -53,6 +53,13 @@ const runSessionCreateRegion =
 const runSessionCreateMinInstances = readNonNegativeInt(
   process.env.RUN_SESSION_CREATE_MIN_INSTANCES,
 );
+const leaderboardRegion =
+  process.env.LEADERBOARD_REGION?.trim() ||
+  process.env.FUNCTIONS_REGION?.trim() ||
+  "us-central1";
+const leaderboardMinInstances = readNonNegativeInt(
+  process.env.LEADERBOARD_MIN_INSTANCES,
+);
 
 export const loadoutOwnershipLoadCanonicalState = onCall(async (request) => {
   const uid = request.auth?.uid;
@@ -168,17 +175,41 @@ export const runSessionLoadStatus = onCall(async (request) => {
   return handleRunSessionLoadStatus(request, db);
 });
 
-export const leaderboardLoadBoard = onCall(async (request) => {
-  return handleLeaderboardLoadBoard(request, db);
-});
+export const leaderboardLoadBoard = onCall(
+  {
+    region: leaderboardRegion,
+    ...(leaderboardMinInstances !== undefined
+      ? { minInstances: leaderboardMinInstances }
+      : {}),
+  },
+  async (request) => {
+    return handleLeaderboardLoadBoard(request, db);
+  },
+);
 
-export const leaderboardLoadMyRank = onCall(async (request) => {
-  return handleLeaderboardLoadMyRank(request, db);
-});
+export const leaderboardLoadMyRank = onCall(
+  {
+    region: leaderboardRegion,
+    ...(leaderboardMinInstances !== undefined
+      ? { minInstances: leaderboardMinInstances }
+      : {}),
+  },
+  async (request) => {
+    return handleLeaderboardLoadMyRank(request, db);
+  },
+);
 
-export const leaderboardLoadActiveBoardData = onCall(async (request) => {
-  return handleLeaderboardLoadActiveBoardData(request, db);
-});
+export const leaderboardLoadActiveBoardData = onCall(
+  {
+    region: leaderboardRegion,
+    ...(leaderboardMinInstances !== undefined
+      ? { minInstances: leaderboardMinInstances }
+      : {}),
+  },
+  async (request) => {
+    return handleLeaderboardLoadActiveBoardData(request, db);
+  },
+);
 
 export const ghostLoadManifest = onCall(async (request) => {
   return handleGhostLoadManifest(request, db);

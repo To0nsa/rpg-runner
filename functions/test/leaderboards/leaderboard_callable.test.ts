@@ -285,6 +285,37 @@ test("load active board data returns manifest + board + my rank", async () => {
   assert.equal(response.myRank.totalPlayers, 3);
 });
 
+test("load active board data provisions board when missing", async () => {
+  const response = await handleLeaderboardLoadActiveBoardData(
+    {
+      auth: { uid: "uid_2" },
+      data: {
+        userId: "uid_2",
+        sessionId: "session_1",
+        mode: "competitive",
+        levelId: "field",
+        gameCompatVersion: "2026.03.0",
+        nowMs: Date.UTC(2026, 2, 16, 12, 0, 0),
+      },
+    },
+    db,
+  );
+
+  assert.ok(typeof response.boardManifest.boardId === "string");
+  assert.notEqual(String(response.boardManifest.boardId).trim(), "");
+  assert.equal(response.board.boardId, response.boardManifest.boardId);
+  assert.equal(response.myRank.boardId, response.boardManifest.boardId);
+  assert.deepEqual(response.board.topEntries, []);
+  assert.equal(response.myRank.rank, null);
+  assert.equal(response.myRank.totalPlayers, 0);
+
+  const boardSnapshot = await db
+    .collection("leaderboard_boards")
+    .doc(String(response.boardManifest.boardId))
+    .get();
+  assert.equal(boardSnapshot.exists, true);
+});
+
 async function seedBoardWithEntries(
   dbValue: Firestore,
   args?: {

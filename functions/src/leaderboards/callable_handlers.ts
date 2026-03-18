@@ -82,14 +82,7 @@ export async function handleLeaderboardLoadActiveBoardData(
   if (userId !== uid) {
     throw new HttpsError("permission-denied", "userId does not match auth uid.");
   }
-  await ensureManagedBoardForModeLevel({
-    db,
-    mode,
-    levelId,
-    nowMs,
-    includeNextWindows: false,
-  });
-  const manifest = await loadActiveBoardManifest({
+  const manifest = await loadActiveBoardManifestWithProvisioningFallback({
     db,
     mode,
     levelId,
@@ -107,4 +100,40 @@ export async function handleLeaderboardLoadActiveBoardData(
     board: payload.board,
     myRank: payload.myRank,
   };
+}
+
+async function loadActiveBoardManifestWithProvisioningFallback(args: {
+  db: Firestore;
+  mode: "competitive" | "weekly";
+  levelId: string;
+  gameCompatVersion: string;
+  nowMs?: number;
+}) {
+  try {
+    return await loadActiveBoardManifest(args);
+  } catch (error) {
+    if (!isMissingBoardError(error)) {
+      throw error;
+    }
+  }
+
+  await ensureManagedBoardForModeLevel({
+    db: args.db,
+    mode: args.mode,
+    levelId: args.levelId,
+    nowMs: args.nowMs,
+    includeNextWindows: false,
+  });
+
+  return loadActiveBoardManifest(args);
+}
+
+function isMissingBoardError(error: unknown): boolean {
+  if (!(error instanceof HttpsError)) {
+    return false;
+  }
+  if (error.code !== "failed-precondition") {
+    return false;
+  }
+  return error.message.startsWith("No board found for ");
 }
