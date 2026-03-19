@@ -131,7 +131,8 @@ class DeterministicValidatorWorker implements ValidatorWorker {
     final lease = await runSessionRepository.acquireValidationLease(
       runSessionId: normalizedRunSessionId,
     );
-    if (lease.status != RunSessionLeaseStatus.acquired || lease.session == null) {
+    if (lease.status != RunSessionLeaseStatus.acquired ||
+        lease.session == null) {
       final message =
           lease.message ??
           _leaseStatusMessage(lease.status, normalizedRunSessionId);
@@ -164,14 +165,18 @@ class DeterministicValidatorWorker implements ValidatorWorker {
       if (enableRewardSettlementWrites) {
         await rewardGrantWriter.settleValidatedRewardGrant(
           runSessionId: normalizedRunSessionId,
+          validatedRun: acceptedRun,
         );
       }
       if (session.runTicket.mode.requiresBoard) {
         await leaderboardProjector.projectValidatedRun(
           runSessionId: normalizedRunSessionId,
+          validatedRun: acceptedRun,
+          characterId: session.runTicket.playerCharacterId,
         );
         await ghostPublisher.updateGhostArtifacts(
           runSessionId: normalizedRunSessionId,
+          validatedRun: acceptedRun,
         );
       }
       await runSessionRepository.markTerminal(
@@ -330,9 +335,14 @@ class DeterministicValidatorWorker implements ValidatorWorker {
     if (!session.runTicket.mode.requiresBoard) {
       return null;
     }
-    final board = await boardRepository.loadBoardForRunSession(
-      runSessionId: session.runSessionId,
-    );
+    final boardId = session.runTicket.boardId;
+    if (boardId == null || boardId.trim().isEmpty) {
+      throw const _ValidationRejectedException(
+        reason: 'board_not_found',
+        message: 'No active board metadata found for ranked run session.',
+      );
+    }
+    final board = await boardRepository.loadBoard(boardId: boardId);
     if (board == null) {
       throw const _ValidationRejectedException(
         reason: 'board_not_found',
@@ -376,8 +386,7 @@ class DeterministicValidatorWorker implements ValidatorWorker {
   }
 
   List<int> _maybeDecompressGzip(List<int> bytes) {
-    final isGzip =
-        bytes.length >= 2 && bytes[0] == 0x1f && bytes[1] == 0x8b;
+    final isGzip = bytes.length >= 2 && bytes[0] == 0x1f && bytes[1] == 0x8b;
     if (!isGzip) {
       return bytes;
     }
@@ -501,7 +510,9 @@ class DeterministicValidatorWorker implements ValidatorWorker {
         message: 'Replay boardId does not match ticket boardId.',
       );
     }
-    final replayBoardKeyJson = canonicalJsonEncode(replayBlob.boardKey!.toJson());
+    final replayBoardKeyJson = canonicalJsonEncode(
+      replayBlob.boardKey!.toJson(),
+    );
     final ticketBoardKeyJson = canonicalJsonEncode(ticket.boardKey!.toJson());
     if (replayBoardKeyJson != ticketBoardKeyJson) {
       throw const _ValidationRejectedException(
@@ -793,9 +804,8 @@ class DeterministicValidatorWorker implements ValidatorWorker {
     required String rejectionReason,
     required String rejectionMessage,
   }) {
-    final digest = ReplayDigest.isValidSha256Hex(
-      session.uploadedReplay.canonicalSha256,
-    )
+    final digest =
+        ReplayDigest.isValidSha256Hex(session.uploadedReplay.canonicalSha256)
         ? session.uploadedReplay.canonicalSha256
         : ('0' * 64);
     return ValidatedRun(

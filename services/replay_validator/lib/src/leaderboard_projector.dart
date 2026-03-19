@@ -7,12 +7,20 @@ import 'firestore_value_codec.dart';
 import 'google_api_helpers.dart';
 
 abstract class LeaderboardProjector {
-  Future<void> projectValidatedRun({required String runSessionId});
+  Future<void> projectValidatedRun({
+    required String runSessionId,
+    ValidatedRun? validatedRun,
+    String? characterId,
+  });
 }
 
 class NoopLeaderboardProjector implements LeaderboardProjector {
   @override
-  Future<void> projectValidatedRun({required String runSessionId}) async {}
+  Future<void> projectValidatedRun({
+    required String runSessionId,
+    ValidatedRun? validatedRun,
+    String? characterId,
+  }) async {}
 }
 
 abstract class LeaderboardProjectionStore {
@@ -70,41 +78,51 @@ class FirestoreLeaderboardProjector implements LeaderboardProjector {
   final int Function() _clockMs;
 
   @override
-  Future<void> projectValidatedRun({required String runSessionId}) async {
-    final validatedRun = await _store.loadValidatedRun(
-      runSessionId: runSessionId,
-    );
-    if (validatedRun == null ||
-        !validatedRun.accepted ||
-        !validatedRun.mode.requiresBoard ||
-        validatedRun.boardId == null) {
+  Future<void> projectValidatedRun({
+    required String runSessionId,
+    ValidatedRun? validatedRun,
+    String? characterId,
+  }) async {
+    final validatedRunMatch =
+        validatedRun != null && validatedRun.runSessionId == runSessionId
+        ? validatedRun
+        : null;
+    final resolvedValidatedRun =
+        validatedRunMatch ??
+        await _store.loadValidatedRun(runSessionId: runSessionId);
+    if (resolvedValidatedRun == null ||
+        !resolvedValidatedRun.accepted ||
+        !resolvedValidatedRun.mode.requiresBoard ||
+        resolvedValidatedRun.boardId == null) {
       return;
     }
 
-    final boardId = validatedRun.boardId!;
-    final uid = validatedRun.uid;
+    final boardId = resolvedValidatedRun.boardId!;
+    final uid = resolvedValidatedRun.uid;
     final nowMs = _clockMs();
     final displayName = await _store.loadDisplayName(uid: uid) ?? uid;
-    final characterId =
-        await _store.loadCharacterId(runSessionId: runSessionId) ?? 'eloise';
+    final resolvedCharacterId =
+        _nonEmptyString(characterId) ??
+        await _store.loadCharacterId(runSessionId: runSessionId) ??
+        'eloise';
     final candidate = LeaderboardEntry(
       boardId: boardId,
       entryId: runSessionId,
       runSessionId: runSessionId,
       uid: uid,
       displayName: displayName,
-      characterId: characterId,
-      score: validatedRun.score,
-      distanceMeters: validatedRun.distanceMeters,
-      durationSeconds: validatedRun.durationSeconds,
+      characterId: resolvedCharacterId,
+      score: resolvedValidatedRun.score,
+      distanceMeters: resolvedValidatedRun.distanceMeters,
+      durationSeconds: resolvedValidatedRun.durationSeconds,
       sortKey: buildLeaderboardSortKey(
-        score: validatedRun.score,
-        distanceMeters: validatedRun.distanceMeters,
-        durationSeconds: validatedRun.durationSeconds,
+        score: resolvedValidatedRun.score,
+        distanceMeters: resolvedValidatedRun.distanceMeters,
+        durationSeconds: resolvedValidatedRun.durationSeconds,
         entryId: runSessionId,
       ),
       ghostEligible: false,
-      replayStorageRef: validatedRun.replayStorageRef,
+      replayStorageRef: resolvedValidatedRun.replayStorageRef,
       updatedAtMs: nowMs,
     );
     final existing = await _store.loadPlayerBest(boardId: boardId, uid: uid);
@@ -417,3 +435,14 @@ LeaderboardEntry? _parseLeaderboardEntry(Object? raw) {
 }
 
 int _defaultClockMs() => DateTime.now().millisecondsSinceEpoch;
+
+String? _nonEmptyString(String? value) {
+  if (value == null) {
+    return null;
+  }
+  final trimmed = value.trim();
+  if (trimmed.isEmpty) {
+    return null;
+  }
+  return trimmed;
+}

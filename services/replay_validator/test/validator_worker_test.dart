@@ -25,70 +25,76 @@ void main() {
     expect(distanceUnitsToMeters(149.9), 2);
   });
 
-  test('accepted practice replay marks terminal validated and writes reward', () async {
-    final replayBlob = ReplayBlobV1.withComputedDigest(
-      runSessionId: 'run_accepted',
-      tickHz: 60,
-      seed: 1234,
-      levelId: 'field',
-      playerCharacterId: 'eloise',
-      loadoutSnapshot: _defaultLoadoutSnapshot(),
-      totalTicks: 0,
-      commandStream: const <ReplayCommandFrameV1>[],
-    );
-    final replayBytes = utf8.encode(jsonEncode(replayBlob.toJson()));
-    final session = _session(
-      runSessionId: replayBlob.runSessionId,
-      mode: RunMode.practice,
-      seed: replayBlob.seed,
-      digest: replayBlob.canonicalSha256,
-      contentLengthBytes: replayBytes.length,
-      validationAttempt: 1,
-    );
-    final repo = _FakeRunSessionRepository(
-      leaseResult: RunSessionLeaseAcquireResult(
-        status: RunSessionLeaseStatus.acquired,
-        session: session,
-      ),
-    );
-    final loader = _FakeReplayLoader(
-      bytesByRunSession: <String, List<int>>{
-        replayBlob.runSessionId: replayBytes,
-      },
-    );
-    final rewards = _FakeRewardGrantWriter();
-    final leaderboard = _FakeLeaderboardProjector();
-    final ghosts = _FakeGhostPublisher();
-    final metrics = _FakeValidatorMetrics();
-    final worker = DeterministicValidatorWorker(
-      replayLoader: loader,
-      boardRepository: _FakeBoardRepository(),
-      runSessionRepository: repo,
-      leaderboardProjector: leaderboard,
-      rewardGrantWriter: rewards,
-      ghostPublisher: ghosts,
-      metrics: metrics,
-      clockMs: () => 10_000,
-    );
+  test(
+    'accepted practice replay marks terminal validated and writes reward',
+    () async {
+      final replayBlob = ReplayBlobV1.withComputedDigest(
+        runSessionId: 'run_accepted',
+        tickHz: 60,
+        seed: 1234,
+        levelId: 'field',
+        playerCharacterId: 'eloise',
+        loadoutSnapshot: _defaultLoadoutSnapshot(),
+        totalTicks: 0,
+        commandStream: const <ReplayCommandFrameV1>[],
+      );
+      final replayBytes = utf8.encode(jsonEncode(replayBlob.toJson()));
+      final session = _session(
+        runSessionId: replayBlob.runSessionId,
+        mode: RunMode.practice,
+        seed: replayBlob.seed,
+        digest: replayBlob.canonicalSha256,
+        contentLengthBytes: replayBytes.length,
+        validationAttempt: 1,
+      );
+      final repo = _FakeRunSessionRepository(
+        leaseResult: RunSessionLeaseAcquireResult(
+          status: RunSessionLeaseStatus.acquired,
+          session: session,
+        ),
+      );
+      final loader = _FakeReplayLoader(
+        bytesByRunSession: <String, List<int>>{
+          replayBlob.runSessionId: replayBytes,
+        },
+      );
+      final rewards = _FakeRewardGrantWriter();
+      final leaderboard = _FakeLeaderboardProjector();
+      final ghosts = _FakeGhostPublisher();
+      final metrics = _FakeValidatorMetrics();
+      final worker = DeterministicValidatorWorker(
+        replayLoader: loader,
+        boardRepository: _FakeBoardRepository(),
+        runSessionRepository: repo,
+        leaderboardProjector: leaderboard,
+        rewardGrantWriter: rewards,
+        ghostPublisher: ghosts,
+        metrics: metrics,
+        clockMs: () => 10_000,
+      );
 
-    final result = await worker.validateRunSession(
-      runSessionId: replayBlob.runSessionId,
-    );
+      final result = await worker.validateRunSession(
+        runSessionId: replayBlob.runSessionId,
+      );
 
-    expect(result.status, ValidationDispatchStatus.accepted);
-    expect(repo.persistedValidatedRuns, hasLength(1));
-    expect(repo.persistedValidatedRuns.single.accepted, isTrue);
-    expect(rewards.validatedRunSessionIds, <String>[replayBlob.runSessionId]);
-    expect(rewards.revokedSettlements, isEmpty);
-    expect(leaderboard.runSessionIds, isEmpty);
-    expect(ghosts.runSessionIds, isEmpty);
-    expect(repo.terminalWrites, hasLength(1));
-    expect(
-      repo.terminalWrites.single.terminalState,
-      RunSessionTerminalState.validated,
-    );
-    expect(metrics.records.last.status, ValidationDispatchStatus.accepted.name);
-  });
+      expect(result.status, ValidationDispatchStatus.accepted);
+      expect(repo.persistedValidatedRuns, hasLength(1));
+      expect(repo.persistedValidatedRuns.single.accepted, isTrue);
+      expect(rewards.validatedRunSessionIds, <String>[replayBlob.runSessionId]);
+      expect(rewards.revokedSettlements, isEmpty);
+      expect(leaderboard.runSessionIds, isEmpty);
+      expect(ghosts.runSessionIds, isEmpty);
+      expect(repo.terminalWrites, hasLength(1));
+      expect(
+        repo.terminalWrites.single.terminalState,
+        RunSessionTerminalState.validated,
+      );
+      expect(
+        metrics.records.last.status,
+        ValidationDispatchStatus.accepted.name,
+      );
+    },
+  );
 
   test('invalid replay digest is rejected and terminalized', () async {
     final validBlob = ReplayBlobV1.withComputedDigest(
@@ -146,10 +152,16 @@ void main() {
     expect(result.status, ValidationDispatchStatus.rejected);
     expect(repo.persistedValidatedRuns, hasLength(1));
     expect(repo.persistedValidatedRuns.single.accepted, isFalse);
-    expect(repo.persistedValidatedRuns.single.rejectionReason, 'protocol_invalid');
+    expect(
+      repo.persistedValidatedRuns.single.rejectionReason,
+      'protocol_invalid',
+    );
     expect(rewards.validatedRunSessionIds, isEmpty);
     expect(rewards.revokedSettlements, hasLength(1));
-    expect(rewards.revokedSettlements.single.runSessionId, validBlob.runSessionId);
+    expect(
+      rewards.revokedSettlements.single.runSessionId,
+      validBlob.runSessionId,
+    );
     expect(rewards.revokedSettlements.single.reason, 'protocol_invalid');
     expect(repo.terminalWrites, hasLength(1));
     expect(
@@ -176,7 +188,9 @@ void main() {
       clockMs: () => 30_000,
     );
 
-    final result = await worker.validateRunSession(runSessionId: 'run_terminal');
+    final result = await worker.validateRunSession(
+      runSessionId: 'run_terminal',
+    );
 
     expect(result.status, ValidationDispatchStatus.accepted);
     expect(repo.persistedValidatedRuns, isEmpty);
@@ -283,100 +297,111 @@ void main() {
     );
   });
 
-  test('attempt budget exhaustion enters internal-error grace window', () async {
-    final session = _session(
-      runSessionId: 'run_exhausted',
-      mode: RunMode.practice,
-      seed: 11,
-      digest:
-          'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
-      contentLengthBytes: 16,
-      validationAttempt: 8,
-    );
-    final repo = _FakeRunSessionRepository(
-      leaseResult: RunSessionLeaseAcquireResult(
-        status: RunSessionLeaseStatus.acquired,
-        session: session,
-      ),
-    );
-    final loader = _FakeReplayLoader(
-      bytesByRunSession: const {},
-      errorByRunSession: <String, Object>{
-        'run_exhausted': Exception('persistent failure'),
-      },
-    );
-    final rewards = _FakeRewardGrantWriter();
-    final worker = DeterministicValidatorWorker(
-      replayLoader: loader,
-      boardRepository: _FakeBoardRepository(),
-      runSessionRepository: repo,
-      leaderboardProjector: _FakeLeaderboardProjector(),
-      rewardGrantWriter: rewards,
-      ghostPublisher: _FakeGhostPublisher(),
-      metrics: _FakeValidatorMetrics(),
-      clockMs: () => 1_000,
-    );
+  test(
+    'attempt budget exhaustion enters internal-error grace window',
+    () async {
+      final session = _session(
+        runSessionId: 'run_exhausted',
+        mode: RunMode.practice,
+        seed: 11,
+        digest:
+            'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+        contentLengthBytes: 16,
+        validationAttempt: 8,
+      );
+      final repo = _FakeRunSessionRepository(
+        leaseResult: RunSessionLeaseAcquireResult(
+          status: RunSessionLeaseStatus.acquired,
+          session: session,
+        ),
+      );
+      final loader = _FakeReplayLoader(
+        bytesByRunSession: const {},
+        errorByRunSession: <String, Object>{
+          'run_exhausted': Exception('persistent failure'),
+        },
+      );
+      final rewards = _FakeRewardGrantWriter();
+      final worker = DeterministicValidatorWorker(
+        replayLoader: loader,
+        boardRepository: _FakeBoardRepository(),
+        runSessionRepository: repo,
+        leaderboardProjector: _FakeLeaderboardProjector(),
+        rewardGrantWriter: rewards,
+        ghostPublisher: _FakeGhostPublisher(),
+        metrics: _FakeValidatorMetrics(),
+        clockMs: () => 1_000,
+      );
 
-    final result = await worker.validateRunSession(runSessionId: 'run_exhausted');
+      final result = await worker.validateRunSession(
+        runSessionId: 'run_exhausted',
+      );
 
-    expect(result.status, ValidationDispatchStatus.retryScheduled);
-    expect(repo.pendingRetryWrites, hasLength(1));
-    expect(repo.pendingRetryWrites.single.internalErrorFirstAtMs, 1000);
-    expect(rewards.validatedRunSessionIds, isEmpty);
-    expect(rewards.revokedSettlements, isEmpty);
-    expect(repo.terminalWrites, isEmpty);
-  });
+      expect(result.status, ValidationDispatchStatus.retryScheduled);
+      expect(repo.pendingRetryWrites, hasLength(1));
+      expect(repo.pendingRetryWrites.single.internalErrorFirstAtMs, 1000);
+      expect(rewards.validatedRunSessionIds, isEmpty);
+      expect(rewards.revokedSettlements, isEmpty);
+      expect(repo.terminalWrites, isEmpty);
+    },
+  );
 
-  test('grace window expiry auto-revokes and terminalizes internal_error', () async {
-    final session = _session(
-      runSessionId: 'run_grace_expired',
-      mode: RunMode.practice,
-      seed: 12,
-      digest:
-          'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
-      contentLengthBytes: 16,
-      validationAttempt: 9,
-      internalErrorFirstAtMs: 1000,
-    );
-    final repo = _FakeRunSessionRepository(
-      leaseResult: RunSessionLeaseAcquireResult(
-        status: RunSessionLeaseStatus.acquired,
-        session: session,
-      ),
-    );
-    final loader = _FakeReplayLoader(
-      bytesByRunSession: const {},
-      errorByRunSession: <String, Object>{
-        'run_grace_expired': Exception('persistent failure'),
-      },
-    );
-    final rewards = _FakeRewardGrantWriter();
-    final worker = DeterministicValidatorWorker(
-      replayLoader: loader,
-      boardRepository: _FakeBoardRepository(),
-      runSessionRepository: repo,
-      leaderboardProjector: _FakeLeaderboardProjector(),
-      rewardGrantWriter: rewards,
-      ghostPublisher: _FakeGhostPublisher(),
-      metrics: _FakeValidatorMetrics(),
-      internalErrorGraceWindow: const Duration(seconds: 1),
-      clockMs: () => 3000,
-    );
+  test(
+    'grace window expiry auto-revokes and terminalizes internal_error',
+    () async {
+      final session = _session(
+        runSessionId: 'run_grace_expired',
+        mode: RunMode.practice,
+        seed: 12,
+        digest:
+            'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+        contentLengthBytes: 16,
+        validationAttempt: 9,
+        internalErrorFirstAtMs: 1000,
+      );
+      final repo = _FakeRunSessionRepository(
+        leaseResult: RunSessionLeaseAcquireResult(
+          status: RunSessionLeaseStatus.acquired,
+          session: session,
+        ),
+      );
+      final loader = _FakeReplayLoader(
+        bytesByRunSession: const {},
+        errorByRunSession: <String, Object>{
+          'run_grace_expired': Exception('persistent failure'),
+        },
+      );
+      final rewards = _FakeRewardGrantWriter();
+      final worker = DeterministicValidatorWorker(
+        replayLoader: loader,
+        boardRepository: _FakeBoardRepository(),
+        runSessionRepository: repo,
+        leaderboardProjector: _FakeLeaderboardProjector(),
+        rewardGrantWriter: rewards,
+        ghostPublisher: _FakeGhostPublisher(),
+        metrics: _FakeValidatorMetrics(),
+        internalErrorGraceWindow: const Duration(seconds: 1),
+        clockMs: () => 3000,
+      );
 
-    final result = await worker.validateRunSession(
-      runSessionId: 'run_grace_expired',
-    );
+      final result = await worker.validateRunSession(
+        runSessionId: 'run_grace_expired',
+      );
 
-    expect(result.status, ValidationDispatchStatus.rejected);
-    expect(repo.pendingRetryWrites, isEmpty);
-    expect(rewards.revokedSettlements, hasLength(1));
-    expect(rewards.revokedSettlements.single.runSessionId, 'run_grace_expired');
-    expect(repo.terminalWrites, hasLength(1));
-    expect(
-      repo.terminalWrites.single.terminalState,
-      RunSessionTerminalState.internalError,
-    );
-  });
+      expect(result.status, ValidationDispatchStatus.rejected);
+      expect(repo.pendingRetryWrites, isEmpty);
+      expect(rewards.revokedSettlements, hasLength(1));
+      expect(
+        rewards.revokedSettlements.single.runSessionId,
+        'run_grace_expired',
+      );
+      expect(repo.terminalWrites, hasLength(1));
+      expect(
+        repo.terminalWrites.single.terminalState,
+        RunSessionTerminalState.internalError,
+      );
+    },
+  );
 
   test('incident mode pauses auto-revoke even after grace expiry', () async {
     final session = _session(
@@ -462,7 +487,8 @@ ValidatorRunSession _session({
       singleUseNonce: 'nonce',
     ),
     uploadedReplay: UploadedReplayRef(
-      objectPath: 'replay-submissions/pending/uid_1/$runSessionId/replay.bin.gz',
+      objectPath:
+          'replay-submissions/pending/uid_1/$runSessionId/replay.bin.gz',
       canonicalSha256: digest,
       contentLengthBytes: contentLengthBytes,
       contentType: 'application/octet-stream',
@@ -537,9 +563,7 @@ class _FakeRunSessionRepository implements RunSessionRepository {
   }
 
   @override
-  Future<void> persistValidatedRun({
-    required ValidatedRun validatedRun,
-  }) async {
+  Future<void> persistValidatedRun({required ValidatedRun validatedRun}) async {
     persistedValidatedRuns.add(validatedRun);
   }
 }
@@ -602,9 +626,7 @@ class _FakeReplayLoader implements ReplayLoader {
 
 class _FakeBoardRepository implements BoardRepository {
   @override
-  Future<Map<String, Object?>?> loadBoardForRunSession({
-    required String runSessionId,
-  }) async {
+  Future<Map<String, Object?>?> loadBoard({required String boardId}) async {
     return null;
   }
 }
@@ -615,6 +637,8 @@ class _FakeLeaderboardProjector implements LeaderboardProjector {
   @override
   Future<void> projectValidatedRun({
     required String runSessionId,
+    ValidatedRun? validatedRun,
+    String? characterId,
   }) async {
     runSessionIds.add(runSessionId);
   }
@@ -627,6 +651,7 @@ class _FakeRewardGrantWriter implements RewardGrantWriter {
   @override
   Future<void> settleValidatedRewardGrant({
     required String runSessionId,
+    ValidatedRun? validatedRun,
   }) async {
     validatedRunSessionIds.add(runSessionId);
   }
@@ -643,10 +668,7 @@ class _FakeRewardGrantWriter implements RewardGrantWriter {
 }
 
 class _RevokedSettlement {
-  const _RevokedSettlement({
-    required this.runSessionId,
-    required this.reason,
-  });
+  const _RevokedSettlement({required this.runSessionId, required this.reason});
 
   final String runSessionId;
   final String reason;
@@ -658,6 +680,7 @@ class _FakeGhostPublisher implements GhostPublisher {
   @override
   Future<void> updateGhostArtifacts({
     required String runSessionId,
+    ValidatedRun? validatedRun,
   }) async {
     runSessionIds.add(runSessionId);
   }

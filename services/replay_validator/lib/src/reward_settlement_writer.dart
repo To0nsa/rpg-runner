@@ -7,6 +7,7 @@ import 'google_api_helpers.dart';
 abstract class RewardGrantWriter {
   Future<void> settleValidatedRewardGrant({
     required String runSessionId,
+    ValidatedRun? validatedRun,
   });
 
   Future<void> settleRevokedRewardGrant({
@@ -19,6 +20,7 @@ class NoopRewardGrantWriter implements RewardGrantWriter {
   @override
   Future<void> settleValidatedRewardGrant({
     required String runSessionId,
+    ValidatedRun? validatedRun,
   }) async {}
 
   @override
@@ -48,19 +50,26 @@ class FirestoreRewardGrantWriter implements RewardGrantWriter {
   @override
   Future<void> settleValidatedRewardGrant({
     required String runSessionId,
+    ValidatedRun? validatedRun,
   }) async {
     final firestoreApi = await apiProvider.firestoreApi();
     final rewardDocPath = _rewardGrantDocPath(runSessionId);
 
     final nowMs = _clockMs();
-    final validatedRun = await _loadValidatedRun(
-      firestoreApi: firestoreApi,
-      runSessionId: runSessionId,
-    );
+    final validatedRunMatch =
+        validatedRun != null && validatedRun.runSessionId == runSessionId
+        ? validatedRun
+        : null;
+    final resolvedValidatedRun =
+        validatedRunMatch ??
+        await _loadValidatedRun(
+          firestoreApi: firestoreApi,
+          runSessionId: runSessionId,
+        );
     final acceptedGold =
-        validatedRun != null && validatedRun.accepted
-            ? validatedRun.goldEarned
-            : null;
+        resolvedValidatedRun != null && resolvedValidatedRun.accepted
+        ? resolvedValidatedRun.goldEarned
+        : null;
 
     try {
       await firestoreApi.projects.databases.documents.patch(
@@ -71,12 +80,14 @@ class FirestoreRewardGrantWriter implements RewardGrantWriter {
             'validatedAtMs': nowMs,
             if (acceptedGold != null && acceptedGold >= 0)
               'goldAmount': acceptedGold,
-            if (validatedRun != null) 'uid': validatedRun.uid,
-            if (validatedRun?.mode != null) 'mode': validatedRun!.mode.name,
-            if (validatedRun?.boardId != null) 'boardId': validatedRun!.boardId,
-            if (validatedRun?.boardKey != null)
-              'boardKey': validatedRun!.boardKey!.toJson(),
-            if (validatedRun != null)
+            if (resolvedValidatedRun != null) 'uid': resolvedValidatedRun.uid,
+            if (resolvedValidatedRun?.mode != null)
+              'mode': resolvedValidatedRun!.mode.name,
+            if (resolvedValidatedRun?.boardId != null)
+              'boardId': resolvedValidatedRun!.boardId,
+            if (resolvedValidatedRun?.boardKey != null)
+              'boardKey': resolvedValidatedRun!.boardKey!.toJson(),
+            if (resolvedValidatedRun != null)
               'validatedRunRef': 'validated_runs/$runSessionId',
             'lastTransitionBy': 'validator',
             'settlementReason': null,
@@ -151,7 +162,9 @@ class FirestoreRewardGrantWriter implements RewardGrantWriter {
     final validatedPath = _validatedRunDocPath(runSessionId);
     firestore.Document document;
     try {
-      document = await firestoreApi.projects.databases.documents.get(validatedPath);
+      document = await firestoreApi.projects.databases.documents.get(
+        validatedPath,
+      );
     } catch (error) {
       if (isApiNotFound(error)) {
         return null;

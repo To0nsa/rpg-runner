@@ -9,12 +9,18 @@ import 'google_api_helpers.dart';
 const Duration _defaultDemotionGrace = Duration(days: 7);
 
 abstract class GhostPublisher {
-  Future<void> updateGhostArtifacts({required String runSessionId});
+  Future<void> updateGhostArtifacts({
+    required String runSessionId,
+    ValidatedRun? validatedRun,
+  });
 }
 
 class NoopGhostPublisher implements GhostPublisher {
   @override
-  Future<void> updateGhostArtifacts({required String runSessionId}) async {}
+  Future<void> updateGhostArtifacts({
+    required String runSessionId,
+    ValidatedRun? validatedRun,
+  }) async {}
 }
 
 enum GhostManifestStatus { active, demoted }
@@ -115,18 +121,25 @@ class FirestoreGhostPublisher implements GhostPublisher {
   final Duration _demotionGrace;
 
   @override
-  Future<void> updateGhostArtifacts({required String runSessionId}) async {
-    final validatedRun = await _store.loadValidatedRun(
-      runSessionId: runSessionId,
-    );
-    if (validatedRun == null ||
-        !validatedRun.accepted ||
-        !validatedRun.mode.requiresBoard ||
-        validatedRun.boardId == null) {
+  Future<void> updateGhostArtifacts({
+    required String runSessionId,
+    ValidatedRun? validatedRun,
+  }) async {
+    final validatedRunMatch =
+        validatedRun != null && validatedRun.runSessionId == runSessionId
+        ? validatedRun
+        : null;
+    final resolvedValidatedRun =
+        validatedRunMatch ??
+        await _store.loadValidatedRun(runSessionId: runSessionId);
+    if (resolvedValidatedRun == null ||
+        !resolvedValidatedRun.accepted ||
+        !resolvedValidatedRun.mode.requiresBoard ||
+        resolvedValidatedRun.boardId == null) {
       return;
     }
 
-    final boardId = validatedRun.boardId!;
+    final boardId = resolvedValidatedRun.boardId!;
     final nowMs = _clockMs();
     final topEntries = await _store.loadTop10Entries(boardId: boardId);
     if (topEntries.isEmpty) {
