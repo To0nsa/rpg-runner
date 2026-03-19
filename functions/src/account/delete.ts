@@ -5,6 +5,7 @@ import type {
   Firestore,
 } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
+import { HttpsError } from "firebase-functions/v2/https";
 
 import { normalizeDisplayNameForPolicy } from "../profile/validators.js";
 
@@ -16,6 +17,7 @@ const validatedRunsCollection = "validated_runs";
 const rewardGrantsCollection = "reward_grants";
 const leaderboardBoardsCollection = "leaderboard_boards";
 const playerBestsCollection = "player_bests";
+const ghostManifestsCollection = "ghost_manifests";
 const boardViewsCollection = "views";
 const top10ViewDocId = "top10";
 
@@ -128,61 +130,87 @@ export async function deleteAccountAndData(
     ghostArtifactObjectDeletes: 0,
   };
   const deleteAuthUser = args.deleteAuthUser ?? defaultDeleteAuthUser;
-  const replayArtifactStore =
-    args.replayArtifactStore ?? createDefaultReplayArtifactStore();
+  const replayArtifactStore = await runDeleteStep(
+    "create replay artifact store",
+    async () => args.replayArtifactStore ?? createDefaultReplayArtifactStore(),
+  );
 
-  await deletePlayerProfileAndNameIndex({
-    db: args.db,
-    uid: args.uid,
-    counters,
-  });
-  await deleteOwnershipData({
-    db: args.db,
-    uid: args.uid,
-    counters,
-  });
-  const deletedRunSessionIds = await deleteRunSessionData({
-    db: args.db,
-    uid: args.uid,
-    counters,
-  });
-  const deletedValidatedRunSessionIds = await deleteValidatedRunData({
-    db: args.db,
-    uid: args.uid,
-    counters,
-  });
-  await deleteRewardGrantData({
-    db: args.db,
-    uid: args.uid,
-    counters,
-  });
-  const ghostDeleteOutcome = await deleteGhostData({
-    db: args.db,
-    uid: args.uid,
-    counters,
-  });
-  const affectedLeaderboardBoardIds = await deleteLeaderboardPlayerBestData({
-    db: args.db,
-    uid: args.uid,
-    counters,
-  });
-  await invalidateTop10ViewsForAffectedBoards({
-    db: args.db,
-    boardIds: affectedLeaderboardBoardIds,
-    counters,
-  });
-  await deleteReplayArtifacts({
-    uid: args.uid,
-    runSessionIds: mergeSets(
-      deletedRunSessionIds,
-      deletedValidatedRunSessionIds,
-      ghostDeleteOutcome.runSessionIds,
-    ),
-    ghostArtifactObjectPaths: ghostDeleteOutcome.ghostArtifactObjectPaths,
-    replayArtifactStore,
-    counters,
-  });
-  await deleteAuthUserIfPresent(deleteAuthUser, args.uid);
+  await runDeleteStep("delete profile and display-name index", async () =>
+    deletePlayerProfileAndNameIndex({
+      db: args.db,
+      uid: args.uid,
+      counters,
+    }),
+  );
+  await runDeleteStep("delete ownership state", async () =>
+    deleteOwnershipData({
+      db: args.db,
+      uid: args.uid,
+      counters,
+    }),
+  );
+  const deletedRunSessionIds = await runDeleteStep("delete run sessions", async () =>
+    deleteRunSessionData({
+      db: args.db,
+      uid: args.uid,
+      counters,
+    }),
+  );
+  const deletedValidatedRunSessionIds = await runDeleteStep(
+    "delete validated runs",
+    async () =>
+      deleteValidatedRunData({
+        db: args.db,
+        uid: args.uid,
+        counters,
+      }),
+  );
+  await runDeleteStep("delete reward grants", async () =>
+    deleteRewardGrantData({
+      db: args.db,
+      uid: args.uid,
+      counters,
+    }),
+  );
+  const ghostDeleteOutcome = await runDeleteStep("delete ghost documents", async () =>
+    deleteGhostData({
+      db: args.db,
+      uid: args.uid,
+      counters,
+    }),
+  );
+  const affectedLeaderboardBoardIds = await runDeleteStep(
+    "delete leaderboard player best entries",
+    async () =>
+      deleteLeaderboardPlayerBestData({
+        db: args.db,
+        uid: args.uid,
+        counters,
+      }),
+  );
+  await runDeleteStep("invalidate leaderboard cached views", async () =>
+    invalidateTop10ViewsForAffectedBoards({
+      db: args.db,
+      boardIds: affectedLeaderboardBoardIds,
+      counters,
+    }),
+  );
+  await runDeleteStep("delete replay and ghost artifacts", async () =>
+    deleteReplayArtifacts({
+      uid: args.uid,
+      runSessionIds: mergeSets(
+        deletedRunSessionIds,
+        deletedValidatedRunSessionIds,
+        ghostDeleteOutcome.runSessionIds,
+      ),
+      ghostArtifactObjectPaths: ghostDeleteOutcome.ghostArtifactObjectPaths,
+      replayArtifactStore,
+      counters,
+    }),
+  );
+  await runDeleteStep("delete Firebase Auth user", async () =>
+    deleteAuthUserIfPresent(deleteAuthUser, args.uid),
+  );
 
   return {
     status: "deleted",
@@ -306,34 +334,39 @@ async function deleteGhostData(args: {
     }
   }
 
-  const ghostManifestGroup = await args.db
-    .collectionGroup("ghost_manifests")
-    .where("uid", "==", args.uid)
-    .get();
-  for (const doc of ghostManifestGroup.docs) {
-    const manifest = doc.data() as GhostManifestDocument | undefined;
-    const runSessionId = readOptionalNonEmptyString(manifest?.runSessionId);
-    if (runSessionId) {
-      runSessionIds.add(runSessionId);
+  const boardRefs = await args.db
+    .collection(leaderboardBoardsCollection)
+    .listDocuments();
+  for (const boardRef of boardRefs) {
+    const manifestQuery = await boardRef
+      .collection(ghostManifestsCollection)
+      .where("uid", "==", args.uid)
+      .get();
+    for (const doc of manifestQuery.docs) {
+      const manifest = doc.data() as GhostManifestDocument | undefined;
+      const runSessionId = readOptionalNonEmptyString(manifest?.runSessionId);
+      if (runSessionId) {
+        runSessionIds.add(runSessionId);
+      }
+      const replayStorageRef = readStorageObjectPath(
+        manifest?.replayStorageRef,
+        ghostArtifactPathPrefix,
+      );
+      if (replayStorageRef) {
+        ghostArtifactObjectPaths.add(replayStorageRef);
+      }
+      const sourceReplayStorageRef = readStorageObjectPath(
+        manifest?.sourceReplayStorageRef,
+        replayValidatedPathPrefix,
+      );
+      const sourceRunSessionId = sourceReplayStorageRef
+        ? extractRunSessionIdFromValidatedObjectPath(sourceReplayStorageRef)
+        : null;
+      if (sourceRunSessionId) {
+        runSessionIds.add(sourceRunSessionId);
+      }
+      refsByPath.set(doc.ref.path, doc.ref);
     }
-    const replayStorageRef = readStorageObjectPath(
-      manifest?.replayStorageRef,
-      ghostArtifactPathPrefix,
-    );
-    if (replayStorageRef) {
-      ghostArtifactObjectPaths.add(replayStorageRef);
-    }
-    const sourceReplayStorageRef = readStorageObjectPath(
-      manifest?.sourceReplayStorageRef,
-      replayValidatedPathPrefix,
-    );
-    const sourceRunSessionId = sourceReplayStorageRef
-      ? extractRunSessionIdFromValidatedObjectPath(sourceReplayStorageRef)
-      : null;
-    if (sourceRunSessionId) {
-      runSessionIds.add(sourceRunSessionId);
-    }
-    refsByPath.set(doc.ref.path, doc.ref);
   }
 
   for (const ref of refsByPath.values()) {
@@ -410,17 +443,35 @@ async function deleteLeaderboardPlayerBestData(args: {
   counters: AccountDeleteCounters;
 }): Promise<Set<string>> {
   const boardIds = new Set<string>();
-  const query = await args.db
-    .collectionGroup(playerBestsCollection)
-    .where("uid", "==", args.uid)
-    .get();
-  for (const doc of query.docs) {
-    const boardId = doc.ref.parent.parent?.id.trim();
-    if (boardId && boardId.length > 0) {
-      boardIds.add(boardId);
+  const boardRefs = await args.db
+    .collection(leaderboardBoardsCollection)
+    .listDocuments();
+  for (const boardRef of boardRefs) {
+    const boardId = boardRef.id.trim();
+    if (boardId.length === 0) {
+      continue;
     }
-    await args.db.recursiveDelete(doc.ref);
-    args.counters.leaderboardPlayerBestDocs += 1;
+    const refsByPath = new Map<string, DocumentReference>();
+    const directRef = boardRef.collection(playerBestsCollection).doc(args.uid);
+    const directSnap = await directRef.get();
+    if (directSnap.exists) {
+      refsByPath.set(directRef.path, directRef);
+    }
+    const snapshot = await boardRef
+      .collection(playerBestsCollection)
+      .where("uid", "==", args.uid)
+      .get();
+    for (const doc of snapshot.docs) {
+      refsByPath.set(doc.ref.path, doc.ref);
+    }
+    if (refsByPath.size === 0) {
+      continue;
+    }
+    boardIds.add(boardId);
+    for (const ref of refsByPath.values()) {
+      await args.db.recursiveDelete(ref);
+      args.counters.leaderboardPlayerBestDocs += 1;
+    }
   }
   return boardIds;
 }
@@ -545,6 +596,126 @@ function readOptionalNonEmptyString(value: unknown): string | null {
   }
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+async function runDeleteStep<T>(
+  step: string,
+  operation: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    throw mapDeleteStepError({ step, error });
+  }
+}
+
+function mapDeleteStepError(args: {
+  step: string;
+  error: unknown;
+}): HttpsError {
+  if (args.error instanceof HttpsError) {
+    return args.error;
+  }
+  const code = readErrorCode(args.error);
+  const message = readErrorMessage(args.error);
+  const details = {
+    step: args.step,
+    upstreamCode: code ?? null,
+  };
+  if (
+    code === "auth/insufficient-permission" ||
+    message.includes("insufficient permission")
+  ) {
+    return new HttpsError(
+      "permission-denied",
+      `Account deletion failed during ${args.step}: backend service account is missing required Firebase Auth permissions.`,
+      details,
+    );
+  }
+  if (
+    code === "auth/invalid-credential" ||
+    message.includes("must initialize app with a certificate credential")
+  ) {
+    return new HttpsError(
+      "failed-precondition",
+      `Account deletion failed during ${args.step}: backend Firebase Auth credentials are not configured correctly.`,
+      details,
+    );
+  }
+  if (
+    code === "failed-precondition" ||
+    code === "9" ||
+    message.includes("failed_precondition") ||
+    message.includes("failed precondition")
+  ) {
+    return new HttpsError(
+      "failed-precondition",
+      `Account deletion failed during ${args.step}: Firestore precondition check failed. Ensure required indexes/preconditions are available, then retry.`,
+      details,
+    );
+  }
+  if (
+    code === "permission-denied" ||
+    code === "7" ||
+    code === "insufficient-permission" ||
+    message.includes("permission denied") ||
+    message.includes("insufficient permission") ||
+    message.includes("storage.objects.")
+  ) {
+    return new HttpsError(
+      "permission-denied",
+      `Account deletion failed during ${args.step}: backend service account is missing required permissions.`,
+      details,
+    );
+  }
+  if (
+    code === "deadline-exceeded" ||
+    code === "4" ||
+    message.includes("deadline exceeded")
+  ) {
+    return new HttpsError(
+      "deadline-exceeded",
+      `Account deletion timed out during ${args.step}. Retry and check backend performance limits.`,
+      details,
+    );
+  }
+  if (message.includes("replay_storage_bucket")) {
+    return new HttpsError(
+      "failed-precondition",
+      `Account deletion failed during ${args.step}: REPLAY_STORAGE_BUCKET must be configured.`,
+      details,
+    );
+  }
+  return new HttpsError(
+    "internal",
+    `Account deletion failed during ${args.step}.`,
+    details,
+  );
+}
+
+function readErrorCode(error: unknown): string | null {
+  if (!error || typeof error !== "object") {
+    return null;
+  }
+  const rawCode = (error as { code?: unknown }).code;
+  if (typeof rawCode === "string") {
+    return rawCode.trim().toLowerCase();
+  }
+  if (typeof rawCode === "number" && Number.isFinite(rawCode)) {
+    return String(rawCode);
+  }
+  return null;
+}
+
+function readErrorMessage(error: unknown): string {
+  if (!error || typeof error !== "object") {
+    return "";
+  }
+  const rawMessage = (error as { message?: unknown }).message;
+  if (typeof rawMessage !== "string") {
+    return "";
+  }
+  return rawMessage.trim().toLowerCase();
 }
 
 function mergeSets<T>(...sets: Set<T>[]): Set<T> {

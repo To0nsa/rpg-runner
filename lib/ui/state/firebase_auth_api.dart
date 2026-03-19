@@ -35,30 +35,37 @@ class FirebaseAuthApi implements AuthApi {
   Future<AuthSession> ensureAuthenticatedSession() async {
     var snapshot = await _readCurrentWithCachedFallback(forceRefresh: false);
     if (snapshot == null) {
-      final restored = await _source.tryRestorePlayGamesSession();
-      if (restored != null) {
-        return _toSession(restored);
-      }
-      return _toSession(await _source.signInAnonymously());
+      return _toSession(await _restoreOrCreateAnonymousSnapshot());
     }
 
     final now = _now();
     if (_expiresSoon(snapshot, now)) {
       snapshot =
           await _readCurrentWithCachedFallback(forceRefresh: true) ??
-          await _source.tryRestorePlayGamesSession() ??
-          await _source.signInAnonymously();
+          await _restoreOrCreateAnonymousSnapshot();
     }
 
     var session = _toSession(snapshot);
     if (!session.isAuthenticatedAt(now.millisecondsSinceEpoch)) {
       snapshot =
           await _readCurrentWithCachedFallback(forceRefresh: true) ??
-          await _source.tryRestorePlayGamesSession() ??
-          await _source.signInAnonymously();
+          await _restoreOrCreateAnonymousSnapshot();
       session = _toSession(snapshot);
     }
     return session;
+  }
+
+  Future<FirebaseAuthSessionSnapshot>
+  _restoreOrCreateAnonymousSnapshot() async {
+    final restored = await _source.tryRestorePlayGamesSession();
+    if (restored != null) {
+      return restored;
+    }
+    final cachedCurrent = await _source.readCachedCurrent();
+    if (cachedCurrent != null) {
+      return cachedCurrent;
+    }
+    return _source.signInAnonymously();
   }
 
   @override

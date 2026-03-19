@@ -86,6 +86,52 @@ void main() {
   );
 
   test(
+    'bootstrap does not create anonymous user when restore side-effects current user',
+    () async {
+      final now = DateTime.utc(2026, 3, 10, 12);
+      final source =
+          _FakeFirebaseAuthSessionSource(
+              current: null,
+              anonymousSignInSession: _snapshot(
+                userId: 'anon_u1',
+                token: 'token_u1_bootstrap',
+                now: now,
+              ),
+            )
+            ..restoreSideEffectSession = _snapshot(
+              userId: 'restored_u1',
+              token: 'token_restored',
+              now: now,
+              isAnonymous: false,
+              linkedProviders: const <AuthLinkProvider>{
+                AuthLinkProvider.playGames,
+              },
+            );
+      final authApi = FirebaseAuthApi(source: source, now: () => now);
+      final ownershipApi = _SessionScopedOwnershipApi(
+        profileId: 'test_profile',
+      );
+      final appState = AppState(
+        authApi: authApi,
+        loadoutOwnershipApi: ownershipApi,
+      );
+
+      await appState.bootstrap(force: true);
+
+      expect(appState.isBootstrapped, isTrue);
+      expect(appState.authSession.userId, 'restored_u1');
+      expect(appState.authSession.isAnonymous, isFalse);
+      expect(
+        appState.authSession.isProviderLinked(AuthLinkProvider.playGames),
+        isTrue,
+      );
+      expect(source.tryRestorePlayGamesSessionCalls, 1);
+      expect(source.readCachedCurrentCalls, 1);
+      expect(source.signInAnonymouslyCalls, 0);
+    },
+  );
+
+  test(
     'bootstrap falls back to cached Firebase user when token lookup fails offline',
     () async {
       final now = DateTime.utc(2026, 3, 10, 12);
@@ -444,6 +490,7 @@ class _FakeFirebaseAuthSessionSource implements FirebaseAuthSessionSource {
   FirebaseAuthSessionSnapshot? _current;
   final FirebaseAuthSessionSnapshot _anonymousSignInSession;
   FirebaseAuthSessionSnapshot? restoredSession;
+  FirebaseAuthSessionSnapshot? restoreSideEffectSession;
   final List<FirebaseAuthSessionSnapshot?> _forceRefreshQueue =
       <FirebaseAuthSessionSnapshot?>[];
   final Map<AuthLinkProvider, _FakeUpgradeOutcome> _upgradeOutcomes =
@@ -498,8 +545,13 @@ class _FakeFirebaseAuthSessionSource implements FirebaseAuthSessionSource {
     final restored = restoredSession;
     if (restored != null) {
       _current = restored;
+      return restored;
     }
-    return restored;
+    final sideEffect = restoreSideEffectSession;
+    if (sideEffect != null) {
+      _current = sideEffect;
+    }
+    return null;
   }
 
   @override

@@ -3,6 +3,7 @@ import { after, beforeEach, test } from "node:test";
 
 import { deleteApp, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
+import { HttpsError } from "firebase-functions/v2/https";
 
 import {
   deleteAccountAndData,
@@ -433,6 +434,85 @@ test("deleteAccountAndData tolerates already-missing auth user", async () => {
   assert.equal((await db.collection("ghost_runs").doc("g1").get()).exists, false);
 });
 
+test(
+  "deleteAccountAndData maps Firebase Auth permission errors to permission-denied",
+  async () => {
+    const uid = "uid_auth_permission_denied";
+    const authError = new Error(
+      "Insufficient permission to access the requested resource.",
+    ) as Error & { code?: string };
+    authError.code = "auth/insufficient-permission";
+
+    await assert.rejects(
+      deleteAccountAndData({
+        db,
+        uid,
+        replayArtifactStore: new InMemoryReplayArtifactStore(),
+        deleteAuthUser: async () => {
+          throw authError;
+        },
+      }),
+      (error: unknown) => {
+        assert.ok(error instanceof HttpsError);
+        assert.equal(error.code, "permission-denied");
+        assert.match(error.message, /firebase auth permissions/i);
+        return true;
+      },
+    );
+  },
+);
+
+test(
+  "deleteAccountAndData maps replay storage permission errors to permission-denied",
+  async () => {
+    const uid = "uid_storage_permission_denied";
+    const storageError = new Error(
+      "Permission 'storage.objects.list' denied on resource.",
+    ) as Error & { code?: number };
+    storageError.code = 7;
+
+    await assert.rejects(
+      deleteAccountAndData({
+        db,
+        uid,
+        replayArtifactStore: new ThrowingReplayArtifactStore(storageError),
+        deleteAuthUser: async () => {},
+      }),
+      (error: unknown) => {
+        assert.ok(error instanceof HttpsError);
+        assert.equal(error.code, "permission-denied");
+        assert.match(error.message, /missing required permissions/i);
+        return true;
+      },
+    );
+  },
+);
+
+test(
+  "deleteAccountAndData maps failed-precondition errors to explicit HttpsError",
+  async () => {
+    const uid = "uid_failed_precondition";
+    const firestoreError = new Error("FAILED_PRECONDITION: missing index") as
+      Error & { code?: number };
+    firestoreError.code = 9;
+
+    await assert.rejects(
+      deleteAccountAndData({
+        db,
+        uid,
+        replayArtifactStore: new ThrowingReplayArtifactStore(firestoreError),
+        deleteAuthUser: async () => {},
+      }),
+      (error: unknown) => {
+        assert.ok(error instanceof HttpsError);
+        assert.equal(error.code, "failed-precondition");
+        assert.match(error.message, /firestore precondition/i);
+        return true;
+      },
+    );
+  },
+);
+
 async function clearCollection(dbValue: Firestore, name: string): Promise<void> {
   const docs = await dbValue.collection(name).listDocuments();
   await Promise.all(docs.map((docRef) => dbValue.recursiveDelete(docRef)));
@@ -466,5 +546,17 @@ class InMemoryReplayArtifactStore implements ReplayArtifactStore {
 
   async deleteObjectIfExists(args: { objectPath: string }): Promise<boolean> {
     return this.objects.delete(args.objectPath);
+  }
+}
+
+class ThrowingReplayArtifactStore implements ReplayArtifactStore {
+  constructor(private readonly errorToThrow: unknown) {}
+
+  async deleteByPrefix(_args: { prefix: string }): Promise<number> {
+    throw this.errorToThrow;
+  }
+
+  async deleteObjectIfExists(_args: { objectPath: string }): Promise<boolean> {
+    throw this.errorToThrow;
   }
 }
