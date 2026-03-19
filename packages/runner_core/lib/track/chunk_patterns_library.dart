@@ -32,7 +32,7 @@ const List<ChunkPattern> easyPatterns = <ChunkPattern>[
       PlatformRel(x: 160, width: 160, aboveGroundTop: 48, thickness: _t),
     ],
     obstacles: <ObstacleRel>[],
-    groundGaps: <GapRel>[GapRel(x: 64, width: 96)],
+    groundGaps: <GapRel>[],
     spawnMarkers: <SpawnMarker>[
       SpawnMarker(
         enemyId: EnemyId.unocoDemon,
@@ -50,15 +50,15 @@ const List<ChunkPattern> easyPatterns = <ChunkPattern>[
     ],
     obstacles: <ObstacleRel>[],
     groundGaps: <GapRel>[],
-    spawnMarkers: <SpawnMarker>[
-      SpawnMarker(
-        enemyId: EnemyId.grojib,
-        x: 448,
-        chancePercent: 10,
-        salt: 0x12,
-      ),
-    ],
+    spawnMarkers: <SpawnMarker>[],
   ),
+  ChunkPattern(
+    name: 'single-obstacle',
+    platforms: <PlatformRel>[],
+    obstacles: <ObstacleRel>[ObstacleRel(x: 224, width: 48, height: 64)],
+    groundGaps: <GapRel>[],
+    spawnMarkers: <SpawnMarker>[],
+  )
 ];
 
 /// Full pattern pool for later chunks (index >= 3).
