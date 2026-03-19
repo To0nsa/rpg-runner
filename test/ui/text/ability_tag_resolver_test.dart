@@ -464,7 +464,7 @@ void main() {
     });
 
     test('keeps cost lines empty when authored cost is zero', () {
-      final tooltip = tooltipBuilder.build(ability('common.enemy_strike'));
+      final tooltip = tooltipBuilder.build(ability('grojib.strike'));
 
       expect(tooltip.costLines, isEmpty);
     });

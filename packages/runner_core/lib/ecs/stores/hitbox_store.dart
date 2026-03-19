@@ -1,3 +1,4 @@
+import '../../abilities/ability_def.dart';
 import '../../combat/damage_type.dart';
 import '../../combat/faction.dart';
 import '../../weapons/weapon_proc.dart';
@@ -7,6 +8,7 @@ import '../sparse_set.dart';
 class HitboxDef {
   const HitboxDef({
     required this.owner,
+    this.abilityId,
     required this.faction,
     required this.damage100,
     this.critChanceBp = 0,
@@ -21,6 +23,7 @@ class HitboxDef {
   });
 
   final EntityId owner;
+  final AbilityKey? abilityId;
   final Faction faction;
 
   /// Fixed-point: 100 = 1.0
@@ -44,6 +47,7 @@ class HitboxDef {
 /// They are queried by `HitboxDamageSystem`.
 class HitboxStore extends SparseSet {
   final List<EntityId> owner = <EntityId>[];
+  final List<AbilityKey?> abilityId = <AbilityKey?>[];
   final List<Faction> faction = <Faction>[];
 
   /// Fixed-point: 100 = 1.0
@@ -61,6 +65,7 @@ class HitboxStore extends SparseSet {
   void add(EntityId entity, HitboxDef def) {
     final i = addEntity(entity);
     owner[i] = def.owner;
+    abilityId[i] = def.abilityId;
     faction[i] = def.faction;
     damage100[i] = def.damage100;
     critChanceBp[i] = def.critChanceBp;
@@ -77,6 +82,7 @@ class HitboxStore extends SparseSet {
   @override
   void onDenseAdded(int denseIndex) {
     owner.add(0);
+    abilityId.add(null);
     faction.add(Faction.player);
     damage100.add(0);
     critChanceBp.add(0);
@@ -93,6 +99,7 @@ class HitboxStore extends SparseSet {
   @override
   void onSwapRemove(int removeIndex, int lastIndex) {
     owner[removeIndex] = owner[lastIndex];
+    abilityId[removeIndex] = abilityId[lastIndex];
     faction[removeIndex] = faction[lastIndex];
     damage100[removeIndex] = damage100[lastIndex];
     critChanceBp[removeIndex] = critChanceBp[lastIndex];
@@ -106,6 +113,7 @@ class HitboxStore extends SparseSet {
     dirY[removeIndex] = dirY[lastIndex];
 
     owner.removeLast();
+    abilityId.removeLast();
     faction.removeLast();
     damage100.removeLast();
     critChanceBp.removeLast();

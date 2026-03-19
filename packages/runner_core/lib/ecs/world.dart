@@ -24,6 +24,7 @@ import 'stores/ability_input_buffer_store.dart';
 import 'stores/enemies/enemy_store.dart';
 import 'stores/enemies/ground_enemy_chase_offset_store.dart';
 import 'stores/enemies/engagement_intent_store.dart';
+import 'stores/enemies/melee_combo_store.dart';
 import 'stores/enemies/melee_engagement_store.dart';
 import 'stores/enemies/nav_intent_store.dart';
 import 'stores/health_store.dart';
@@ -327,6 +328,9 @@ class EcsWorld {
   late final MeleeEngagementStore meleeEngagement = _register(
     MeleeEngagementStore(),
   );
+
+  /// Combo state for melee enemies (armed follow-up strike).
+  late final MeleeComboStore meleeCombo = _register(MeleeComboStore());
 
   /// Allocates a new [EntityId].
   ///

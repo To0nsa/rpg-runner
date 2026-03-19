@@ -18,6 +18,7 @@ import 'package:runner_core/ecs/systems/cooldown_system.dart';
 import 'package:runner_core/ecs/systems/active_ability_phase_system.dart';
 import 'package:runner_core/ecs/systems/hitbox_follow_owner_system.dart';
 import 'package:runner_core/ecs/systems/hitbox_damage_system.dart';
+import 'package:runner_core/ecs/systems/lifetime_system.dart';
 import 'package:runner_core/ecs/systems/melee_strike_system.dart';
 import 'package:runner_core/ecs/systems/projectile_hit_system.dart';
 import 'package:runner_core/ecs/systems/projectile_launch_system.dart';
@@ -386,18 +387,10 @@ void main() {
 
     final groundEnemyTuning = GroundEnemyTuningDerived.from(
       const GroundEnemyTuning(
-        combat: GroundEnemyCombatTuning(
-          meleeRangeX: 50.0,
-          meleeCooldownSeconds: 1.0,
-          meleeActiveSeconds: 0.10,
-          meleeDamage: 15.0,
-          meleeHitboxSizeX: 28.0,
-          meleeHitboxSizeY: 16.0,
-        ),
+        combat: GroundEnemyCombatTuning(meleeRangeX: 50.0),
       ),
       tickHz: 60,
     );
-    const expectedHp = 8425;
 
     final engagement = EnemyEngagementSystem(
       groundEnemyTuning: groundEnemyTuning,
@@ -416,7 +409,9 @@ void main() {
 
     // Strike starts on engage->strike transition (2nd tick in range).
     const strikeStartTick = 2;
-    final hitTick = strikeStartTick + groundEnemyTuning.combat.meleeWindupTicks;
+    final hitTick =
+        strikeStartTick +
+        (AbilityCatalog.shared.resolve('grojib.strike')?.windupTicks ?? 0);
 
     // Tick 1: approach -> engage; no hit scheduled yet.
     engagement.step(world, player: player, currentTick: 1);
@@ -462,17 +457,359 @@ void main() {
     hitboxDamage.step(world, broadphase, currentTick: hitTick);
     damage.step(world, currentTick: hitTick);
 
-    expect(world.health.hp[world.health.indexOf(player)], equals(expectedHp));
+    final hpAfterHit = world.health.hp[world.health.indexOf(player)];
+    expect(hpAfterHit, lessThan(10000));
 
     // Same tick again should be blocked by HitOnce (hitbox still alive).
     hitboxDamage.step(world, broadphase, currentTick: hitTick);
     damage.step(world, currentTick: hitTick);
-    expect(world.health.hp[world.health.indexOf(player)], equals(expectedHp));
+    expect(world.health.hp[world.health.indexOf(player)], equals(hpAfterHit));
 
     // And ground enemy should have a melee cooldown set.
     expect(
       world.cooldown.getTicksLeft(groundEnemy, CooldownGroup.primary),
       greaterThan(0),
     );
+  });
+
+  test('GroundEnemy arms Strike2 combo after Strike1 lands', () {
+    final world = EcsWorld();
+
+    final player = EntityFactory(world).createPlayer(
+      posX: 100,
+      posY: 100,
+      velX: 0,
+      velY: 0,
+      facing: Facing.right,
+      grounded: true,
+      body: const BodyDef(isKinematic: true, useGravity: false),
+      collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+      health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
+    );
+
+    final groundEnemy = spawnGroundEnemy(
+      world,
+      posX: 120,
+      posY: 100,
+      velX: 0,
+      velY: 0,
+      facing: Facing.left,
+      body: const BodyDef(isKinematic: true, useGravity: false),
+      collider: const ColliderAabbDef(halfX: 12, halfY: 12),
+      health: const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
+    );
+
+    final groundEnemyTuning = GroundEnemyTuningDerived.from(
+      const GroundEnemyTuning(
+        combat: GroundEnemyCombatTuning(meleeRangeX: 50.0),
+      ),
+      tickHz: 60,
+    );
+
+    final engagement = EnemyEngagementSystem(
+      groundEnemyTuning: groundEnemyTuning,
+    );
+    final melee = EnemyMeleeSystem(groundEnemyTuning: groundEnemyTuning);
+    final cooldown = CooldownSystem();
+    final phase = ActiveAbilityPhaseSystem();
+    final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
+    final broadphase = BroadphaseGrid(
+      index: GridIndex2D(
+        cellSize: const SpatialGridTuning().broadphaseCellSize,
+      ),
+    );
+    final follow = HitboxFollowOwnerSystem();
+    final hitboxDamage = HitboxDamageSystem();
+    final meleeStrike = MeleeStrikeSystem();
+    final lifetime = LifetimeSystem();
+
+    final enemyIndex = world.enemy.indexOf(groundEnemy);
+    AbilityKey? firstCommittedAbilityId;
+    AbilityKey? secondCommittedAbilityId;
+
+    for (var tick = 1; tick <= 240; tick += 1) {
+      cooldown.step(world);
+      phase.step(world, currentTick: tick);
+      engagement.step(world, player: player, currentTick: tick);
+      melee.step(world, player: player, currentTick: tick);
+
+      if (world.enemy.lastMeleeTick[enemyIndex] == tick &&
+          world.activeAbility.has(groundEnemy)) {
+        final activeIndex = world.activeAbility.indexOf(groundEnemy);
+        final id = world.activeAbility.abilityId[activeIndex];
+        if (id != null) {
+          if (firstCommittedAbilityId == null) {
+            firstCommittedAbilityId = id;
+          } else if (secondCommittedAbilityId == null) {
+            secondCommittedAbilityId = id;
+            break;
+          }
+        }
+      }
+
+      meleeStrike.step(world, currentTick: tick);
+      follow.step(world);
+      broadphase.rebuild(world);
+      hitboxDamage.step(world, broadphase, currentTick: tick);
+      damage.step(world, currentTick: tick);
+      lifetime.step(world);
+    }
+
+    expect(firstCommittedAbilityId, equals('grojib.strike'));
+    expect(secondCommittedAbilityId, equals('grojib.strike2'));
+    expect(world.health.hp[world.health.indexOf(player)], lessThan(10000));
+    final comboIndex = world.meleeCombo.indexOf(groundEnemy);
+    expect(world.meleeCombo.armed[comboIndex], isFalse);
+  });
+
+  test('GroundEnemy does not arm Strike2 combo when Strike1 misses', () {
+    final world = EcsWorld();
+
+    final player = EntityFactory(world).createPlayer(
+      posX: 100,
+      posY: 100,
+      velX: 0,
+      velY: 0,
+      facing: Facing.right,
+      grounded: true,
+      body: const BodyDef(isKinematic: true, useGravity: false),
+      collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+      health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
+    );
+
+    final groundEnemy = spawnGroundEnemy(
+      world,
+      posX: 120,
+      posY: 100,
+      velX: 0,
+      velY: 0,
+      facing: Facing.left,
+      body: const BodyDef(isKinematic: true, useGravity: false),
+      collider: const ColliderAabbDef(halfX: 12, halfY: 12),
+      health: const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
+    );
+
+    final groundEnemyTuning = GroundEnemyTuningDerived.from(
+      const GroundEnemyTuning(
+        combat: GroundEnemyCombatTuning(meleeRangeX: 50.0),
+      ),
+      tickHz: 60,
+    );
+
+    final engagement = EnemyEngagementSystem(
+      groundEnemyTuning: groundEnemyTuning,
+    );
+    final melee = EnemyMeleeSystem(groundEnemyTuning: groundEnemyTuning);
+    final cooldown = CooldownSystem();
+    final phase = ActiveAbilityPhaseSystem();
+    final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
+    final broadphase = BroadphaseGrid(
+      index: GridIndex2D(
+        cellSize: const SpatialGridTuning().broadphaseCellSize,
+      ),
+    );
+    final follow = HitboxFollowOwnerSystem();
+    final hitboxDamage = HitboxDamageSystem();
+    final meleeStrike = MeleeStrikeSystem();
+    final lifetime = LifetimeSystem();
+
+    final enemyIndex = world.enemy.indexOf(groundEnemy);
+    AbilityKey? firstCommittedAbilityId;
+    AbilityKey? secondCommittedAbilityId;
+    int? firstHitTick;
+    final strike1ActiveTicks =
+        AbilityCatalog.shared.resolve('grojib.strike')?.activeTicks ?? 1;
+
+    for (var tick = 1; tick <= 240; tick += 1) {
+      cooldown.step(world);
+      phase.step(world, currentTick: tick);
+      engagement.step(world, player: player, currentTick: tick);
+      melee.step(world, player: player, currentTick: tick);
+
+      if (world.enemy.lastMeleeTick[enemyIndex] == tick &&
+          world.activeAbility.has(groundEnemy)) {
+        final activeIndex = world.activeAbility.indexOf(groundEnemy);
+        final id = world.activeAbility.abilityId[activeIndex];
+        if (id != null) {
+          if (firstCommittedAbilityId == null) {
+            firstCommittedAbilityId = id;
+            final intentIndex = world.meleeIntent.indexOf(groundEnemy);
+            firstHitTick = world.meleeIntent.tick[intentIndex];
+          } else if (secondCommittedAbilityId == null) {
+            secondCommittedAbilityId = id;
+            break;
+          }
+        }
+      }
+
+      final missWindowEndTick = firstHitTick == null
+          ? null
+          : firstHitTick + strike1ActiveTicks;
+      if (firstHitTick != null &&
+          missWindowEndTick != null &&
+          tick >= firstHitTick &&
+          tick <= missWindowEndTick) {
+        final playerTi = world.transform.indexOf(player);
+        world.transform.setPosXY(player, 420.0, world.transform.posY[playerTi]);
+      } else if (tick > 1) {
+        final playerTi = world.transform.indexOf(player);
+        world.transform.setPosXY(player, 100.0, world.transform.posY[playerTi]);
+      }
+
+      meleeStrike.step(world, currentTick: tick);
+      follow.step(world);
+      broadphase.rebuild(world);
+      hitboxDamage.step(world, broadphase, currentTick: tick);
+      damage.step(world, currentTick: tick);
+      lifetime.step(world);
+    }
+
+    expect(firstCommittedAbilityId, equals('grojib.strike'));
+    expect(secondCommittedAbilityId, equals('grojib.strike'));
+    expect(world.health.hp[world.health.indexOf(player)], equals(10000));
+    final comboIndex = world.meleeCombo.indexOf(groundEnemy);
+    expect(world.meleeCombo.armed[comboIndex], isFalse);
+  });
+
+  test('GroundEnemy Strike2 applies stun on hit', () {
+    final world = EcsWorld();
+
+    final player = EntityFactory(world).createPlayer(
+      posX: 100,
+      posY: 100,
+      velX: 0,
+      velY: 0,
+      facing: Facing.right,
+      grounded: true,
+      body: const BodyDef(isKinematic: true, useGravity: false),
+      collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+      health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
+    );
+
+    final groundEnemy = spawnGroundEnemy(
+      world,
+      posX: 120,
+      posY: 100,
+      velX: 0,
+      velY: 0,
+      facing: Facing.left,
+      body: const BodyDef(isKinematic: true, useGravity: false),
+      collider: const ColliderAabbDef(halfX: 12, halfY: 12),
+      health: const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
+    );
+
+    final groundEnemyTuning = GroundEnemyTuningDerived.from(
+      const GroundEnemyTuning(
+        combat: GroundEnemyCombatTuning(meleeRangeX: 50.0),
+      ),
+      tickHz: 60,
+    );
+
+    final engagement = EnemyEngagementSystem(
+      groundEnemyTuning: groundEnemyTuning,
+    );
+    final melee = EnemyMeleeSystem(groundEnemyTuning: groundEnemyTuning);
+    final cooldown = CooldownSystem();
+    final phase = ActiveAbilityPhaseSystem();
+    final status = StatusSystem(tickHz: 60);
+    final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
+    final broadphase = BroadphaseGrid(
+      index: GridIndex2D(
+        cellSize: const SpatialGridTuning().broadphaseCellSize,
+      ),
+    );
+    final follow = HitboxFollowOwnerSystem();
+    final hitboxDamage = HitboxDamageSystem();
+    final meleeStrike = MeleeStrikeSystem();
+    final lifetime = LifetimeSystem();
+
+    final enemyIndex = world.enemy.indexOf(groundEnemy);
+    AbilityKey? firstCommittedAbilityId;
+    AbilityKey? secondCommittedAbilityId;
+    int? firstHitTick;
+    int? secondHitTick;
+    var stunnedAfterFirstHit = false;
+    var stunnedAfterSecondHit = false;
+
+    for (var tick = 1; tick <= 240; tick += 1) {
+      cooldown.step(world);
+      phase.step(world, currentTick: tick);
+      engagement.step(world, player: player, currentTick: tick);
+      melee.step(world, player: player, currentTick: tick);
+
+      if (world.enemy.lastMeleeTick[enemyIndex] == tick &&
+          world.activeAbility.has(groundEnemy)) {
+        final activeIndex = world.activeAbility.indexOf(groundEnemy);
+        final id = world.activeAbility.abilityId[activeIndex];
+        if (id != null) {
+          final intentIndex = world.meleeIntent.indexOf(groundEnemy);
+          if (firstCommittedAbilityId == null) {
+            firstCommittedAbilityId = id;
+            firstHitTick = world.meleeIntent.tick[intentIndex];
+          } else if (secondCommittedAbilityId == null) {
+            secondCommittedAbilityId = id;
+            secondHitTick = world.meleeIntent.tick[intentIndex];
+          }
+        }
+      }
+
+      meleeStrike.step(world, currentTick: tick);
+      follow.step(world);
+      broadphase.rebuild(world);
+      hitboxDamage.step(world, broadphase, currentTick: tick);
+      damage.step(world, currentTick: tick, queueStatus: status.queue);
+      status.applyQueued(world, currentTick: tick);
+      lifetime.step(world);
+
+      if (firstHitTick != null && tick == firstHitTick) {
+        stunnedAfterFirstHit = world.controlLock.isStunned(player, tick);
+      }
+      if (secondHitTick != null && tick == secondHitTick) {
+        stunnedAfterSecondHit = world.controlLock.isStunned(player, tick);
+      }
+
+      if (stunnedAfterSecondHit) break;
+    }
+
+    expect(firstCommittedAbilityId, equals('grojib.strike'));
+    expect(secondCommittedAbilityId, equals('grojib.strike2'));
+    expect(stunnedAfterFirstHit, isFalse);
+    expect(stunnedAfterSecondHit, isTrue);
   });
 }

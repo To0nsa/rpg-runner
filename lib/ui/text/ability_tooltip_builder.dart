@@ -250,7 +250,8 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
 
   String _notBuildDescription(AbilityDef def, AbilityTooltipContext ctx) {
     switch (def.id) {
-      case 'common.enemy_strike':
+      case 'grojib.strike':
+      case 'grojib.strike2':
         return 'Tap to strike in front of you.';
       case 'common.enemy_cast':
         return 'Hold then release to cast a ranged bolt.';
@@ -512,8 +513,8 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
       'status': dot.name,
       'dotDamage': formatFixed100(dot.damage100),
       'dotDuration': _formatDecimal(dot.durationSeconds),
-      if (damageBonus != null) 'damageBonus': damageBonus,
-      if (critBonus != null) 'critBonus': critBonus,
+      'damageBonus': ?damageBonus,
+      'critBonus': ?critBonus,
     };
 
     var template = _templateMeleeDot;

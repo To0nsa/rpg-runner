@@ -86,7 +86,7 @@ void main() {
     world.meleeIntent.set(
       caster,
       const MeleeIntentDef(
-        abilityId: 'common.enemy_strike',
+        abilityId: 'grojib.strike',
         slot: AbilitySlot.primary,
         damage100: 100,
         damageType: DamageType.physical,

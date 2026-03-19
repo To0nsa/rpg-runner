@@ -492,7 +492,7 @@ void main() {
 
         world.activeAbility.set(
           enemy,
-          id: 'common.enemy_strike',
+          id: 'grojib.strike',
           slot: AbilitySlot.primary,
           commitTick: 5,
           windupTicks: 0,
@@ -656,7 +656,7 @@ void main() {
 
         world.activeAbility.set(
           enemy,
-          id: 'common.enemy_strike',
+          id: 'grojib.strike',
           slot: AbilitySlot.primary,
           commitTick: 5,
           windupTicks: 0,
@@ -748,7 +748,7 @@ void main() {
         // Both strikeing and recently damaged.
         world.activeAbility.set(
           enemy,
-          id: 'common.enemy_strike',
+          id: 'grojib.strike',
           slot: AbilitySlot.primary,
           commitTick: 1,
           windupTicks: 0,
@@ -773,7 +773,7 @@ void main() {
         // Strikeing while moving.
         world.activeAbility.set(
           enemy,
-          id: 'common.enemy_strike',
+          id: 'grojib.strike',
           slot: AbilitySlot.primary,
           commitTick: 1,
           windupTicks: 0,

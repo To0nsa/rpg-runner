@@ -478,7 +478,7 @@ class GameCore {
       statsCache: _resolvedStatsCache,
     );
     _mobilityImpactSystem = MobilityImpactSystem(abilities: abilityCatalog);
-    _hitboxDamageSystem = HitboxDamageSystem();
+    _hitboxDamageSystem = HitboxDamageSystem(enemyCatalog: _enemyCatalog);
 
     // Pickup systems.
     _collectibleSystem = CollectibleSystem();
@@ -542,6 +542,7 @@ class GameCore {
     );
     _enemyEngagementSystem = EnemyEngagementSystem(
       groundEnemyTuning: _groundEnemyTuning,
+      enemyCatalog: _enemyCatalog,
     );
     _groundEnemyLocomotionSystem = GroundEnemyLocomotionSystem(
       groundEnemyTuning: _groundEnemyTuning,
@@ -555,7 +556,10 @@ class GameCore {
       projectiles: _projectiles,
       abilities: abilityCatalog,
     );
-    _enemyMeleeSystem = EnemyMeleeSystem(groundEnemyTuning: _groundEnemyTuning);
+    _enemyMeleeSystem = EnemyMeleeSystem(
+      groundEnemyTuning: _groundEnemyTuning,
+      enemyCatalog: _enemyCatalog,
+    );
   }
 
   /// Spawns the player entity at the start of a run.

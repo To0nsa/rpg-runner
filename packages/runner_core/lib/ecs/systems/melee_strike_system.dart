@@ -76,6 +76,7 @@ class MeleeStrikeSystem {
         hitbox,
         HitboxDef(
           owner: strikeer,
+          abilityId: intents.abilityId[ii],
           faction: faction,
           damage100: intents.damage100[ii],
           critChanceBp: intents.critChanceBp[ii],

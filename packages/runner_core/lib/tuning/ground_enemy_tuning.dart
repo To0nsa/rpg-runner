@@ -1,7 +1,7 @@
 /// Ground enemy AI tuning grouped by navigation/engagement/locomotion/combat.
 library;
 
-import '../util/tick_math.dart';
+const double _defaultGroundEnemyMeleeStandOffX = 56.0 * (2.0 / 3.0);
 
 class GroundEnemyTuning {
   const GroundEnemyTuning({
@@ -60,6 +60,7 @@ class GroundEnemyEngagementTuning {
     this.meleeArriveSlowRadiusX = 12.0,
     this.meleeStrikeSpeedMul = 0.25,
     this.meleeRecoverSpeedMul = 0.5,
+    this.meleeStandOffX = _defaultGroundEnemyMeleeStandOffX,
   });
 
   /// Extra buffer beyond melee range to enter engage state.
@@ -76,6 +77,12 @@ class GroundEnemyEngagementTuning {
 
   /// Speed multiplier during recover state.
   final double meleeRecoverSpeedMul;
+
+  /// Preferred stand-off target used in engage/strike/recover phases.
+  ///
+  /// This is clamped to [GroundEnemyCombatTuning.meleeRangeX] in derived
+  /// tuning so authored values cannot exceed engagement range.
+  final double meleeStandOffX;
 }
 
 /// Locomotion tuning (movement + jump).
@@ -104,47 +111,15 @@ class GroundEnemyLocomotionTuning {
   final double jumpSpeed;
 }
 
-/// Combat tuning (melee timing + damage).
+/// Combat tuning (range gating).
+///
+/// Per-strike timing, hitbox size, damage, and cooldown are authored on
+/// enemy ability definitions.
 class GroundEnemyCombatTuning {
-  const GroundEnemyCombatTuning({
-    this.meleeRangeX = 52.0,
-    this.meleeCooldownSeconds = 1.0,
-    this.meleeActiveSeconds = 0.10,
-    this.meleeAnimSeconds = 0.60,
-    this.meleeWindupSeconds = 0.18,
-    this.meleeDamage = 5.0,
-    this.meleeHitboxSizeX = 56.0,
-    this.meleeHitboxSizeY = 32.0,
-  });
+  const GroundEnemyCombatTuning({this.meleeRangeX = 52.0});
 
   /// Horizontal range to trigger melee strike (world units).
   final double meleeRangeX;
-
-  /// Cooldown between melee strikes (seconds).
-  final double meleeCooldownSeconds;
-
-  /// Duration melee hitbox is active (seconds).
-  final double meleeActiveSeconds;
-
-  /// Duration the melee strike animation should be visible (seconds).
-  ///
-  /// This can be longer than [meleeActiveSeconds] since the hitbox
-  /// window is often only a subset of the full animation.
-  final double meleeAnimSeconds;
-
-  /// Telegraph window before the melee hitbox becomes active (seconds).
-  ///
-  /// This delays hitbox spawn relative to the start of the strike animation.
-  final double meleeWindupSeconds;
-
-  /// Damage dealt by melee strike.
-  final double meleeDamage;
-
-  /// Melee hitbox width (world units).
-  final double meleeHitboxSizeX;
-
-  /// Melee hitbox height (world units).
-  final double meleeHitboxSizeY;
 }
 
 class GroundEnemyTuningDerived {
@@ -169,7 +144,7 @@ class GroundEnemyTuningDerived {
     final engagement = base.engagement;
 
     final meleeStandOffX = () {
-      final desired = combat.meleeHitboxSizeX * (2.0 / 3.0);
+      final desired = engagement.meleeStandOffX;
       if (desired.isNaN || desired.isInfinite) return 0.0;
       final clampedToRange = desired > combat.meleeRangeX
           ? combat.meleeRangeX
@@ -181,7 +156,7 @@ class GroundEnemyTuningDerived {
       tickHz: tickHz,
       base: base,
       navigation: base.navigation,
-      engagement: GroundEnemyEngagementTuningDerived(
+      engagement: GroundEnemyEngagementTuning(
         meleeEngageBufferX: engagement.meleeEngageBufferX,
         meleeEngageHysteresisX: engagement.meleeEngageHysteresisX,
         meleeArriveSlowRadiusX: engagement.meleeArriveSlowRadiusX,
@@ -190,89 +165,14 @@ class GroundEnemyTuningDerived {
         meleeStandOffX: meleeStandOffX,
       ),
       locomotion: base.locomotion,
-      combat: () {
-        final meleeCooldownTicks = ticksFromSecondsCeil(
-          combat.meleeCooldownSeconds,
-          tickHz,
-        );
-        final meleeActiveTicks = ticksFromSecondsCeil(
-          combat.meleeActiveSeconds,
-          tickHz,
-        );
-        final meleeAnimTicks = ticksFromSecondsCeil(
-          combat.meleeAnimSeconds,
-          tickHz,
-        );
-        final rawWindupTicks = ticksFromSecondsCeil(
-          combat.meleeWindupSeconds,
-          tickHz,
-        );
-        // Ensure the hit tick occurs while the strike animation is still visible.
-        final maxWindupTicks = meleeAnimTicks > 0 ? meleeAnimTicks - 1 : 0;
-        final meleeWindupTicks = rawWindupTicks > maxWindupTicks
-            ? maxWindupTicks
-            : rawWindupTicks;
-        return GroundEnemyCombatTuningDerived(
-          meleeRangeX: combat.meleeRangeX,
-          meleeCooldownSeconds: combat.meleeCooldownSeconds,
-          meleeActiveSeconds: combat.meleeActiveSeconds,
-          meleeAnimSeconds: combat.meleeAnimSeconds,
-          meleeWindupSeconds: combat.meleeWindupSeconds,
-          meleeDamage: combat.meleeDamage,
-          meleeHitboxSizeX: combat.meleeHitboxSizeX,
-          meleeHitboxSizeY: combat.meleeHitboxSizeY,
-          meleeCooldownTicks: meleeCooldownTicks,
-          meleeActiveTicks: meleeActiveTicks,
-          meleeAnimTicks: meleeAnimTicks,
-          meleeWindupTicks: meleeWindupTicks,
-        );
-      }(),
+      combat: GroundEnemyCombatTuning(meleeRangeX: combat.meleeRangeX),
     );
   }
 
   final int tickHz;
   final GroundEnemyTuning base;
   final GroundEnemyNavigationTuning navigation;
-  final GroundEnemyEngagementTuningDerived engagement;
+  final GroundEnemyEngagementTuning engagement;
   final GroundEnemyLocomotionTuning locomotion;
-  final GroundEnemyCombatTuningDerived combat;
-}
-
-class GroundEnemyEngagementTuningDerived extends GroundEnemyEngagementTuning {
-  const GroundEnemyEngagementTuningDerived({
-    required super.meleeEngageBufferX,
-    required super.meleeEngageHysteresisX,
-    required super.meleeArriveSlowRadiusX,
-    required super.meleeStrikeSpeedMul,
-    required super.meleeRecoverSpeedMul,
-    required this.meleeStandOffX,
-  });
-
-  /// Stand-off target used in engage/strike/recover phases.
-  ///
-  /// Derived from [GroundEnemyCombatTuning.meleeHitboxSizeX] so the player
-  /// sits well within the hitbox when the enemy is at its preferred slot.
-  final double meleeStandOffX;
-}
-
-class GroundEnemyCombatTuningDerived extends GroundEnemyCombatTuning {
-  const GroundEnemyCombatTuningDerived({
-    required super.meleeRangeX,
-    required super.meleeCooldownSeconds,
-    required super.meleeActiveSeconds,
-    required super.meleeAnimSeconds,
-    required super.meleeWindupSeconds,
-    required super.meleeDamage,
-    required super.meleeHitboxSizeX,
-    required super.meleeHitboxSizeY,
-    required this.meleeCooldownTicks,
-    required this.meleeActiveTicks,
-    required this.meleeAnimTicks,
-    required this.meleeWindupTicks,
-  });
-
-  final int meleeCooldownTicks;
-  final int meleeActiveTicks;
-  final int meleeAnimTicks;
-  final int meleeWindupTicks;
+  final GroundEnemyCombatTuning combat;
 }

@@ -1,4 +1,5 @@
 import '../../combat/damage.dart';
+import '../../enemies/enemy_catalog.dart';
 import '../../events/game_event.dart';
 import '../../util/fixed_math.dart';
 import '../hit/hit_resolver.dart';
@@ -14,6 +15,10 @@ import '../world.dart';
 /// *   Enforce "Hit Once" logic to prevent a single frame of strike from dealing damage every tick.
 /// *   Queue [DamageRequest]s for resolved hits.
 class HitboxDamageSystem {
+  HitboxDamageSystem({this.enemyCatalog = const EnemyCatalog()});
+
+  final EnemyCatalog enemyCatalog;
+
   /// Helper for spatial queries and overlap sorting.
   final HitResolver _resolver = HitResolver();
 
@@ -103,6 +108,7 @@ class HitboxDamageSystem {
 
         // Mark as hit so we don't damage them again this swing.
         world.hitOnce.markHit(hb, target);
+        _armEnemyComboOnLandedHit(world, hitboxIndex: hi);
 
         // Send the damage request.
         var amount100 = hitboxes.damage100[hi];
@@ -131,5 +137,23 @@ class HitboxDamageSystem {
         );
       }
     }
+  }
+
+  void _armEnemyComboOnLandedHit(EcsWorld world, {required int hitboxIndex}) {
+    final owner = world.hitbox.owner[hitboxIndex];
+    final comboIndex = world.meleeCombo.tryIndexOf(owner);
+    if (comboIndex == null) return;
+
+    final enemyIndex = world.enemy.tryIndexOf(owner);
+    if (enemyIndex == null) return;
+    final archetype = enemyCatalog.get(world.enemy.enemyId[enemyIndex]);
+    final primaryMeleeAbilityId = archetype.primaryMeleeAbilityId;
+    if (primaryMeleeAbilityId == null) return;
+    if (archetype.comboMeleeAbilityId == null) return;
+
+    final hitAbilityId = world.hitbox.abilityId[hitboxIndex];
+    if (hitAbilityId != primaryMeleeAbilityId) return;
+
+    world.meleeCombo.armed[comboIndex] = true;
   }
 }

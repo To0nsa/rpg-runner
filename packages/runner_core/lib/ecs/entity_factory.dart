@@ -128,6 +128,7 @@ class EntityFactory {
   /// - [EnemyStore]: Identifies the entity as an enemy and stores its type.
   /// - [AnimStateStore]: Animation state computed by [AnimSystem].
   /// - [MeleeEngagementStore]: Engagement state for melee AI.
+  /// - [MeleeComboStore]: Follow-up combo state for melee AI.
   /// - [NavIntentStore]: Navigation output for ground enemies.
   /// - [EngagementIntentStore]: Engagement output for melee enemies.
   ///
@@ -187,6 +188,7 @@ class EntityFactory {
       );
       world.navIntent.add(id);
       world.engagementIntent.add(id);
+      world.meleeCombo.add(id);
     }
     return id;
   }

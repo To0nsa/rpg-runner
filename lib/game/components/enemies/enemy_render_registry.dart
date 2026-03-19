@@ -29,6 +29,7 @@ enum EnemyDeathAnimPolicy { spawn, none }
 
 const Set<AnimKey> _defaultEnemyOneShotKeys = <AnimKey>{
   AnimKey.strike,
+  AnimKey.backStrike,
   AnimKey.hit,
   AnimKey.death,
 };

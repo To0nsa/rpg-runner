@@ -1,22 +1,27 @@
 import 'dart:math';
 
+import '../../abilities/ability_catalog.dart';
 import '../../abilities/ability_def.dart';
-
-import 'package:runner_core/ecs/entity_id.dart';
-
-import '../../enemies/enemy_id.dart';
+import '../../enemies/enemy_catalog.dart';
 import '../../tuning/ground_enemy_tuning.dart';
 import '../../util/deterministic_rng.dart';
 import '../../util/double_math.dart';
 import '../../util/fixed_math.dart';
+import '../entity_id.dart';
 import '../stores/enemies/melee_engagement_store.dart';
 import '../world.dart';
 
 /// Resolves melee engagement state and desired slots for ground enemies.
 class EnemyEngagementSystem {
-  EnemyEngagementSystem({required this.groundEnemyTuning});
+  EnemyEngagementSystem({
+    required this.groundEnemyTuning,
+    this.enemyCatalog = const EnemyCatalog(),
+    this.abilities = AbilityCatalog.shared,
+  });
 
   final GroundEnemyTuningDerived groundEnemyTuning;
+  final EnemyCatalog enemyCatalog;
+  final AbilityResolver abilities;
 
   /// Updates engagement intents for ground enemies.
   void step(
@@ -31,9 +36,11 @@ class EnemyEngagementSystem {
 
     final enemies = world.enemy;
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
-      if (enemies.enemyId[ei] != EnemyId.grojib) continue;
-
       final enemy = enemies.denseEntities[ei];
+      final archetype = enemyCatalog.get(enemies.enemyId[ei]);
+      final primaryMeleeAbilityId = archetype.primaryMeleeAbilityId;
+      if (primaryMeleeAbilityId == null) continue;
+
       if (world.deathState.has(enemy)) continue;
       final ti = world.transform.tryIndexOf(enemy);
       if (ti == null) continue;
@@ -76,14 +83,6 @@ class EnemyEngagementSystem {
       final chaseOffsetX = chaseOffset.chaseOffsetX[chaseIndex];
       final chaseSpeedScale = chaseOffset.chaseSpeedScale[chaseIndex];
       final actionSpeedBp = _actionSpeedBpForEntity(world, enemy);
-      final scaledMeleeAnimTicks = _scaleTicksForActionSpeed(
-        groundEnemyTuning.combat.meleeAnimTicks,
-        actionSpeedBp,
-      );
-      final scaledMeleeWindupTicks = _scaleTicksForActionSpeed(
-        groundEnemyTuning.combat.meleeWindupTicks,
-        actionSpeedBp,
-      );
 
       final navTargetX = world.navIntent.navTargetX[navIntentIndex];
 
@@ -92,6 +91,13 @@ class EnemyEngagementSystem {
       var preferredSide = world.meleeEngagement.preferredSide[meleeIndex];
       var strikeStartTick = world.meleeEngagement.strikeStartTick[meleeIndex];
       var plannedHitTick = world.meleeEngagement.plannedHitTick[meleeIndex];
+      var strikeAbilityId = world.meleeEngagement.strikeAbilityId[meleeIndex];
+      final currentStrikeTiming = strikeAbilityId == null
+          ? null
+          : _resolveMeleeTiming(
+              abilities.resolve(strikeAbilityId),
+              actionSpeedBp,
+            );
       if (ticksLeft > 0) {
         ticksLeft -= 1;
       }
@@ -129,6 +135,7 @@ class EnemyEngagementSystem {
             ticksLeft = 0;
             strikeStartTick = -1;
             plannedHitTick = -1;
+            strikeAbilityId = null;
           }
           break;
         case MeleeEngagementState.engage:
@@ -137,21 +144,40 @@ class EnemyEngagementSystem {
             ticksLeft = 0;
             strikeStartTick = -1;
             plannedHitTick = -1;
+            strikeAbilityId = null;
           } else {
             // Cooldown-gated transition into strike.
             final ci = world.cooldown.tryIndexOf(enemy);
             if (ci != null) {
+              final selectedAbilityId = _selectMeleeAbilityId(
+                world,
+                enemy: enemy,
+                archetype: archetype,
+                primaryMeleeAbilityId: primaryMeleeAbilityId,
+              );
+              final selectedAbility = abilities.resolve(selectedAbilityId);
+              final selectedTiming = _resolveMeleeTiming(
+                selectedAbility,
+                actionSpeedBp,
+              );
+              if (selectedAbility == null || selectedTiming == null) {
+                break;
+              }
+              final cooldownGroupId = selectedAbility.effectiveCooldownGroup(
+                AbilitySlot.primary,
+              );
               final cooldownReady = !world.cooldown.isOnCooldown(
                 enemy,
-                CooldownGroup.primary,
+                cooldownGroupId,
               );
               final inMeleeRange =
                   distToPlayerX <= groundEnemyTuning.combat.meleeRangeX;
               if (cooldownReady && inMeleeRange) {
                 state = MeleeEngagementState.strike;
-                ticksLeft = scaledMeleeAnimTicks;
+                ticksLeft = selectedTiming.totalTicks;
                 strikeStartTick = currentTick;
-                plannedHitTick = currentTick + scaledMeleeWindupTicks;
+                plannedHitTick = currentTick + selectedTiming.windupTicks;
+                strikeAbilityId = selectedAbilityId;
               }
             }
           }
@@ -159,9 +185,10 @@ class EnemyEngagementSystem {
         case MeleeEngagementState.strike:
           if (ticksLeft <= 0) {
             state = MeleeEngagementState.recover;
-            ticksLeft = scaledMeleeAnimTicks;
+            ticksLeft = currentStrikeTiming?.totalTicks ?? 0;
             strikeStartTick = -1;
             plannedHitTick = -1;
+            strikeAbilityId = null;
           }
           break;
         case MeleeEngagementState.recover:
@@ -169,6 +196,7 @@ class EnemyEngagementSystem {
             state = MeleeEngagementState.engage;
             strikeStartTick = -1;
             plannedHitTick = -1;
+            strikeAbilityId = null;
           }
           break;
       }
@@ -209,7 +237,45 @@ class EnemyEngagementSystem {
       world.meleeEngagement.preferredSide[meleeIndex] = preferredSide;
       world.meleeEngagement.strikeStartTick[meleeIndex] = strikeStartTick;
       world.meleeEngagement.plannedHitTick[meleeIndex] = plannedHitTick;
+      world.meleeEngagement.strikeAbilityId[meleeIndex] = strikeAbilityId;
     }
+  }
+
+  AbilityKey _selectMeleeAbilityId(
+    EcsWorld world, {
+    required EntityId enemy,
+    required EnemyArchetype archetype,
+    required AbilityKey primaryMeleeAbilityId,
+  }) {
+    final comboMeleeAbilityId = archetype.comboMeleeAbilityId;
+    if (comboMeleeAbilityId != null) {
+      final comboIndex = world.meleeCombo.tryIndexOf(enemy);
+      if (comboIndex != null && world.meleeCombo.armed[comboIndex]) {
+        return comboMeleeAbilityId;
+      }
+    }
+    return primaryMeleeAbilityId;
+  }
+
+  _MeleeTiming? _resolveMeleeTiming(AbilityDef? ability, int actionSpeedBp) {
+    if (ability == null) return null;
+    if (ability.hitDelivery is! MeleeHitDelivery) return null;
+    final windupTicks = _scaleTicksForActionSpeed(
+      _scaleAbilityTicks(ability.windupTicks),
+      actionSpeedBp,
+    );
+    final activeTicks = _scaleAbilityTicks(ability.activeTicks);
+    final totalBaseTicks =
+        ability.windupTicks + ability.activeTicks + ability.recoveryTicks;
+    final totalTicks = _scaleTicksForActionSpeed(
+      _scaleAbilityTicks(totalBaseTicks),
+      actionSpeedBp,
+    );
+    final clampedTotalTicks = max(totalTicks, windupTicks + activeTicks);
+    return _MeleeTiming(
+      windupTicks: windupTicks,
+      totalTicks: clampedTotalTicks,
+    );
   }
 
   int _actionSpeedBpForEntity(EcsWorld world, EntityId entity) {
@@ -223,6 +289,13 @@ class EnemyEngagementSystem {
     final clampedSpeedBp = clampInt(actionSpeedBp, 1000, 20000);
     if (clampedSpeedBp == bpScale) return ticks;
     return (ticks * bpScale + clampedSpeedBp - 1) ~/ clampedSpeedBp;
+  }
+
+  int _scaleAbilityTicks(int ticks) {
+    if (ticks <= 0) return 0;
+    if (groundEnemyTuning.tickHz == _abilityTickHz) return ticks;
+    final seconds = ticks / _abilityTickHz;
+    return (seconds * groundEnemyTuning.tickHz).ceil();
   }
 
   void _ensureChaseOffsetInitialized(
@@ -269,5 +342,13 @@ class EnemyEngagementSystem {
     chaseOffset.chaseSpeedScale[chaseIndex] = speedScale;
     chaseOffset.rngState[chaseIndex] = rngState;
   }
+
+  static const int _abilityTickHz = 60;
 }
 
+class _MeleeTiming {
+  const _MeleeTiming({required this.windupTicks, required this.totalTicks});
+
+  final int windupTicks;
+  final int totalTicks;
+}

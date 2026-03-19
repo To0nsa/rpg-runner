@@ -1,5 +1,6 @@
 import '../../entity_id.dart';
 import '../../sparse_set.dart';
+import '../../../abilities/ability_def.dart';
 
 /// Engagement state for melee-focused enemies.
 ///
@@ -23,6 +24,12 @@ class MeleeEngagementStore extends SparseSet {
   /// Tick when the melee hitbox should spawn for the current strike.
   final List<int> plannedHitTick = <int>[];
 
+  /// Ability selected for the current strike window.
+  ///
+  /// Written on engage -> strike transition so scheduling and commit resolve the
+  /// same authored ability.
+  final List<AbilityKey?> strikeAbilityId = <AbilityKey?>[];
+
   void add(EntityId entity) {
     final i = addEntity(entity);
     state[i] = MeleeEngagementState.approach;
@@ -30,6 +37,7 @@ class MeleeEngagementStore extends SparseSet {
     preferredSide[i] = 0;
     strikeStartTick[i] = -1;
     plannedHitTick[i] = -1;
+    strikeAbilityId[i] = null;
   }
 
   @override
@@ -39,6 +47,7 @@ class MeleeEngagementStore extends SparseSet {
     preferredSide.add(0);
     strikeStartTick.add(-1);
     plannedHitTick.add(-1);
+    strikeAbilityId.add(null);
   }
 
   @override
@@ -48,18 +57,15 @@ class MeleeEngagementStore extends SparseSet {
     preferredSide[removeIndex] = preferredSide[lastIndex];
     strikeStartTick[removeIndex] = strikeStartTick[lastIndex];
     plannedHitTick[removeIndex] = plannedHitTick[lastIndex];
+    strikeAbilityId[removeIndex] = strikeAbilityId[lastIndex];
 
     state.removeLast();
     ticksLeft.removeLast();
     preferredSide.removeLast();
     strikeStartTick.removeLast();
     plannedHitTick.removeLast();
+    strikeAbilityId.removeLast();
   }
 }
 
-enum MeleeEngagementState {
-  approach,
-  engage,
-  strike,
-  recover,
-}
+enum MeleeEngagementState { approach, engage, strike, recover }

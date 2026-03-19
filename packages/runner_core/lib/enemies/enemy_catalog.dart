@@ -7,6 +7,7 @@ import '../ecs/stores/health_store.dart';
 import '../ecs/stores/mana_store.dart';
 import '../ecs/stores/stamina_store.dart';
 import '../combat/creature_tag.dart';
+import '../abilities/ability_def.dart';
 import '../anim/anim_resolver.dart';
 import '../contracts/render_anim_set_definition.dart';
 import 'death_behavior.dart';
@@ -111,8 +112,9 @@ const double _grojibAnimDeathStepSeconds = 0.12;
 // The authored sheet has 20 columns on the strike row:
 // - frames 1..8  = Strike
 // - frames 9..20 = Strike2
-// Core only exposes AnimKey.strike, so we treat the full row as one animation.
 const int _grojibAnimStrikeFrames = 8;
+const int _grojibAnimStrike2FrameStart = 8;
+const int _grojibAnimStrike2Frames = 12;
 const double _grojibAnimStrikeStepSeconds = 0.06;
 
 const int _grojibAnimJumpFrames = 3;
@@ -131,6 +133,7 @@ const Map<AnimKey, int> _grojibAnimFrameCountsByKey = <AnimKey, int>{
   AnimKey.run: _grojibAnimMoveFrames,
   AnimKey.walk: _grojibAnimWalkFrames,
   AnimKey.strike: _grojibAnimStrikeFrames,
+  AnimKey.backStrike: _grojibAnimStrike2Frames,
   AnimKey.hit: _grojibAnimHitFrames,
   AnimKey.death: _grojibAnimDeathFrames,
   AnimKey.jump: _grojibAnimJumpFrames,
@@ -143,6 +146,7 @@ const Map<AnimKey, double> _grojibAnimStepTimeSecondsByKey = <AnimKey, double>{
   AnimKey.run: _grojibAnimMoveStepSeconds,
   AnimKey.walk: _grojibAnimWalkStepSeconds,
   AnimKey.strike: _grojibAnimStrikeStepSeconds,
+  AnimKey.backStrike: _grojibAnimStrikeStepSeconds,
   AnimKey.hit: _grojibAnimHitStepSeconds,
   AnimKey.death: _grojibAnimDeathStepSeconds,
   AnimKey.jump: _grojibAnimJumpStepSeconds,
@@ -157,6 +161,7 @@ const Map<AnimKey, String> _grojibAnimSourcesByKey = <AnimKey, String>{
   AnimKey.run: _grojibAnimSpriteSheetPath,
   AnimKey.walk: _grojibAnimSpriteSheetPath,
   AnimKey.strike: _grojibAnimSpriteSheetPath,
+  AnimKey.backStrike: _grojibAnimSpriteSheetPath,
   AnimKey.hit: _grojibAnimSpriteSheetPath,
   AnimKey.death: _grojibAnimSpriteSheetPath,
   AnimKey.jump: _grojibAnimSpriteSheetPath,
@@ -169,10 +174,15 @@ const Map<AnimKey, int> _grojibAnimRowByKey = <AnimKey, int>{
   AnimKey.run: 1,
   AnimKey.walk: 1,
   AnimKey.strike: 2,
+  AnimKey.backStrike: 2,
   AnimKey.hit: 3,
   AnimKey.death: 4,
   AnimKey.jump: 5,
   AnimKey.fall: 7,
+};
+
+const Map<AnimKey, int> _grojibAnimFrameStartByKey = <AnimKey, int>{
+  AnimKey.backStrike: _grojibAnimStrike2FrameStart,
 };
 
 const RenderAnimSetDefinition _grojibRenderAnim = RenderAnimSetDefinition(
@@ -180,6 +190,7 @@ const RenderAnimSetDefinition _grojibRenderAnim = RenderAnimSetDefinition(
   frameHeight: _grojibAnimFrameHeight,
   sourcesByKey: _grojibAnimSourcesByKey,
   rowByKey: _grojibAnimRowByKey,
+  frameStartByKey: _grojibAnimFrameStartByKey,
   anchorInFramePx: Vec2(77, _grojibAnimFrameHeight * 0.5),
   frameCountsByKey: _grojibAnimFrameCountsByKey,
   stepTimeSecondsByKey: _grojibAnimStepTimeSecondsByKey,
@@ -189,6 +200,7 @@ const AnimProfile _grojibAnimProfile = AnimProfile(
   minMoveSpeed: 1.0,
   runSpeedThresholdX: 120.0,
   supportsStun: true,
+  directionalStrike: true,
 );
 
 /// Defines the base stats and physics properties for an enemy type.
@@ -208,6 +220,8 @@ class EnemyArchetype {
     required this.deathAnimSeconds,
     this.deathBehavior = DeathBehavior.instant,
     this.primaryProjectileId,
+    this.primaryMeleeAbilityId,
+    this.comboMeleeAbilityId,
     this.artFacingDir = Facing.left,
     this.tags = const CreatureTagDef(),
     this.resistance = const DamageResistanceDef(),
@@ -244,6 +258,15 @@ class EnemyArchetype {
   ///
   /// When present, the [EnemyCastSystem] will use this to write projectile intents.
   final ProjectileId? primaryProjectileId;
+
+  /// Optional primary melee ability for this enemy.
+  ///
+  /// When present, melee engagement/commit systems resolve timing + payload from
+  /// this ability definition.
+  final AbilityKey? primaryMeleeAbilityId;
+
+  /// Optional follow-up melee ability used by combo-capable enemies.
+  final AbilityKey? comboMeleeAbilityId;
 
   /// Direction the authored art faces when not mirrored.
   ///
@@ -324,6 +347,8 @@ class EnemyCatalog {
           hitAnimSeconds: _grojibHitAnimSeconds,
           deathAnimSeconds: _grojibDeathAnimSeconds,
           deathBehavior: DeathBehavior.groundImpactThenDeath,
+          primaryMeleeAbilityId: 'grojib.strike',
+          comboMeleeAbilityId: 'grojib.strike2',
           tags: CreatureTagDef(mask: CreatureTagMask.humanoid),
         );
     }
