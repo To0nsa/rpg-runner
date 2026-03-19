@@ -234,10 +234,7 @@ void main() {
     );
     await tester.pump();
 
-    expect(
-      find.text('Online leaderboard updates after validation.'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('Provisional rank #??'), findsOneWidget);
     expect(store.addResultCalls, 0);
   });
 

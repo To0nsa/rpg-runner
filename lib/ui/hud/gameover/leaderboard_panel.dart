@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/levels/level_id.dart';
@@ -10,6 +11,9 @@ import '../../leaderboard/leaderboard_store.dart';
 import '../../leaderboard/run_result.dart';
 import '../../leaderboard/shared_prefs_leaderboard_store.dart';
 import '../../levels/level_id_ui.dart';
+import '../../state/app_state.dart';
+import '../../state/leaderboard_api.dart';
+import '../../state/run_start_remote_exception.dart';
 import '../../state/selection_state.dart';
 import '../../theme/ui_leaderboard_theme.dart';
 import '../../theme/ui_tokens.dart';
@@ -43,6 +47,7 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
   List<RunResult> _entries = const <RunResult>[];
   int? _currentRunId;
   bool _loaded = false;
+  String _rankedMessage = 'Loading rank summary...';
 
   @override
   void initState() {
@@ -53,10 +58,12 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
 
   Future<void> _loadLeaderboard() async {
     if (widget.runMode != RunMode.practice) {
+      final rankedMessage = await _buildRankedMessage();
       if (!mounted) return;
       setState(() {
         _entries = const <RunResult>[];
         _currentRunId = null;
+        _rankedMessage = rankedMessage;
         _loaded = true;
       });
       return;
@@ -114,7 +121,7 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
     if (widget.runMode != RunMode.practice) {
       content = Center(
         child: Text(
-          'Online leaderboard updates after validation.',
+          _rankedMessage,
           style: ui.text.body,
           textAlign: TextAlign.center,
         ),
@@ -173,5 +180,106 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
         return SizedBox(height: height, child: panel);
       },
     );
+  }
+
+  Future<String> _buildRankedMessage() async {
+    final candidate = _buildCandidateRunResult();
+    try {
+      final appState = context.read<AppState>();
+      final data = await appState.loadOnlineLeaderboardData(
+        mode: widget.runMode,
+        levelId: widget.levelId,
+      );
+      return _composeRankedMessage(data: data, candidate: candidate);
+    } on ProviderNotFoundException {
+      return candidate == null
+          ? 'Actual rank unavailable right now.'
+          : 'Actual rank unavailable.';
+    } on RunStartRemoteException catch (error) {
+      final fallback = candidate == null
+          ? 'Actual rank unavailable right now.'
+          : 'Actual rank unavailable.';
+      final message = error.message?.trim();
+      if (message == null || message.isEmpty) {
+        return fallback;
+      }
+      return '$fallback\n$message';
+    } catch (_) {
+      return candidate == null
+          ? 'Actual rank unavailable right now.'
+          : 'Actual rank unavailable.';
+    }
+  }
+
+  RunResult? _buildCandidateRunResult() {
+    final event = widget.runEndedEvent;
+    if (event == null) {
+      return null;
+    }
+    return buildRunResult(
+      event: event,
+      scoreTuning: widget.scoreTuning,
+      tickHz: widget.tickHz,
+      endedAtMs: DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+
+  String _composeRankedMessage({
+    required OnlineLeaderboardBoardData data,
+    required RunResult? candidate,
+  }) {
+    final rankSummary = _composeRankSummary(data.myRank.rank);
+    if (candidate == null) {
+      return '$rankSummary.';
+    }
+
+    final best = data.myRank.myEntry;
+    final improved = best == null || _isBetterThanBest(candidate, best);
+    if (improved) {
+      return '$rankSummary.';
+    }
+    return '$rankSummary, you have not done better this run.';
+  }
+
+  String _composeRankSummary(int? rank) {
+    final rankLabel = rank == null ? 'Unranked' : '#$rank';
+    final rankContext = _rankContextLabel(rank);
+    return 'Actual rank $rankLabel$rankContext';
+  }
+
+  String _rankContextLabel(int? rank) {
+    if (rank == null) {
+      return '';
+    }
+    if (rank == 1) {
+      return ' (1st place)';
+    }
+    if (rank == 2) {
+      return ' (2nd place, podium)';
+    }
+    if (rank == 3) {
+      return ' (3rd place, podium)';
+    }
+    if (rank <= 10) {
+      return ' (top 10)';
+    }
+    return '';
+  }
+
+  bool _isBetterThanBest(RunResult candidate, dynamic best) {
+    final bestScore = best.score as int;
+    final bestDistance = best.distanceMeters as int;
+    final bestDuration = best.durationSeconds as int;
+
+    if (candidate.score != bestScore) {
+      return candidate.score > bestScore;
+    }
+    if (candidate.distanceMeters != bestDistance) {
+      return candidate.distanceMeters > bestDistance;
+    }
+    if (candidate.durationSeconds != bestDuration) {
+      return candidate.durationSeconds < bestDuration;
+    }
+    return false;
   }
 }
