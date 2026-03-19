@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
 import 'package:runner_core/meta/meta_service.dart';
+import 'package:run_protocol/submission_status.dart';
 import 'package:rpg_runner/ui/components/app_dialog.dart';
 import 'package:rpg_runner/ui/components/gold_display.dart';
 import 'package:rpg_runner/ui/pages/profile/profile_page.dart';
@@ -11,7 +12,11 @@ import 'package:rpg_runner/ui/state/account_deletion_api.dart';
 import 'package:rpg_runner/ui/state/app_state.dart';
 import 'package:rpg_runner/ui/state/auth_api.dart';
 import 'package:rpg_runner/ui/state/loadout_ownership_api.dart';
+import 'package:rpg_runner/ui/state/pending_run_submission.dart';
 import 'package:rpg_runner/ui/state/progression_state.dart';
+import 'package:rpg_runner/ui/state/run_session_api.dart';
+import 'package:rpg_runner/ui/state/run_submission_coordinator.dart';
+import 'package:rpg_runner/ui/state/run_submission_spool_store.dart';
 import 'package:rpg_runner/ui/state/selection_state.dart';
 import 'package:rpg_runner/ui/state/user_profile.dart';
 import 'package:rpg_runner/ui/state/user_profile_remote_api.dart';
@@ -51,15 +56,39 @@ void main() {
     expect(find.text('Link Play Games'), findsNothing);
   });
 
-  testWidgets('profile gold row renders canonical progression gold', (
+  testWidgets('profile gold row includes unverified gold from app state', (
     tester,
   ) async {
     final authApi = _StaticAuthApi(session: _anonymousSession());
+    final runSessionApi = _StatusOnlyRunSessionApi(
+      const SubmissionStatus(
+        runSessionId: 'run_profile_pending',
+        state: RunSessionState.pendingValidation,
+        updatedAtMs: 1,
+        reward: SubmissionReward(
+          status: SubmissionRewardStatus.provisional,
+          provisionalGold: 17,
+          effectiveGoldDelta: 0,
+          spendableGoldDelta: 0,
+          updatedAtMs: 1,
+          grantId: 'run_profile_pending',
+        ),
+      ),
+    );
+    final coordinator = RunSubmissionCoordinator(
+      runSessionApi: runSessionApi,
+      spoolStore: _InMemorySpoolStore(),
+    );
     final appState = AppState(
       authApi: authApi,
       loadoutOwnershipApi: _NoopOwnershipApi(gold: 222),
+      runSessionApi: runSessionApi,
+      runSubmissionCoordinator: coordinator,
     );
     await appState.bootstrap(force: true);
+    await appState.refreshRunSubmissionStatus(
+      runSessionId: 'run_profile_pending',
+    );
 
     await tester.pumpWidget(_TestApp(appState: appState));
     await tester.pumpAndSettle();
@@ -67,11 +96,11 @@ void main() {
     final goldWidget = tester.widget<GoldDisplay>(
       find.byWidgetPredicate((widget) {
         return widget is GoldDisplay &&
-            widget.gold == 222 &&
+            widget.gold == 239 &&
             widget.variant == GoldDisplayVariant.body;
       }),
     );
-    expect(goldWidget.gold, 222);
+    expect(goldWidget.gold, 239);
   });
 
   testWidgets('name edit shows specific duplicate-name error', (tester) async {
@@ -384,6 +413,58 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
     RefreshStoreCommand command,
   ) async {
     return _accepted;
+  }
+}
+
+class _StatusOnlyRunSessionApi extends NoopRunSessionApi {
+  _StatusOnlyRunSessionApi(this.status);
+
+  final SubmissionStatus status;
+
+  @override
+  Future<SubmissionStatus> loadSubmissionStatus({
+    required String userId,
+    required String sessionId,
+    required String runSessionId,
+  }) async {
+    return SubmissionStatus(
+      runSessionId: runSessionId,
+      state: status.state,
+      updatedAtMs: status.updatedAtMs,
+      message: status.message,
+      validatedRun: status.validatedRun,
+      reward: status.reward,
+    );
+  }
+}
+
+class _InMemorySpoolStore implements RunSubmissionSpoolStore {
+  final Map<String, PendingRunSubmission> _entries =
+      <String, PendingRunSubmission>{};
+
+  @override
+  Future<void> clear() async {
+    _entries.clear();
+  }
+
+  @override
+  Future<PendingRunSubmission?> load({required String runSessionId}) async {
+    return _entries[runSessionId];
+  }
+
+  @override
+  Future<List<PendingRunSubmission>> loadAll() async {
+    return _entries.values.toList(growable: false);
+  }
+
+  @override
+  Future<void> remove({required String runSessionId}) async {
+    _entries.remove(runSessionId);
+  }
+
+  @override
+  Future<void> upsert({required PendingRunSubmission submission}) async {
+    _entries[submission.runSessionId] = submission;
   }
 }
 

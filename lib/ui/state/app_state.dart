@@ -192,15 +192,15 @@ class AppState extends ChangeNotifier {
   int? _ownershipSyncStatusUpdatedAtMs;
   final Map<String, RunSubmissionStatus> _runSubmissionStatuses =
       <String, RunSubmissionStatus>{};
-    final Map<_RunTicketPrefetchKey, RunTicket> _runTicketPrefetchCache =
+  final Map<_RunTicketPrefetchKey, RunTicket> _runTicketPrefetchCache =
       <_RunTicketPrefetchKey, RunTicket>{};
-    final Map<_RunTicketPrefetchKey, Future<void>> _runTicketPrefetchInFlight =
+  final Map<_RunTicketPrefetchKey, Future<void>> _runTicketPrefetchInFlight =
       <_RunTicketPrefetchKey, Future<void>>{};
-    final Map<_RunTicketPrefetchKey, int> _runTicketPrefetchLruClockByKey =
+  final Map<_RunTicketPrefetchKey, int> _runTicketPrefetchLruClockByKey =
       <_RunTicketPrefetchKey, int>{};
-    final Map<_RunTicketPrefetchKey, int>
-    _runTicketPrefetchLastRequestedAtMsByKey = <_RunTicketPrefetchKey, int>{};
-    int _runTicketPrefetchLruClock = 0;
+  final Map<_RunTicketPrefetchKey, int>
+  _runTicketPrefetchLastRequestedAtMsByKey = <_RunTicketPrefetchKey, int>{};
+  int _runTicketPrefetchLruClock = 0;
 
   SelectionState get selection => _selection;
   LevelId get weeklyFeaturedLevelId => _defaultWeeklyFeaturedLevelId;
@@ -847,6 +847,10 @@ class AppState extends ChangeNotifier {
       runSessionId: runSessionId,
     );
     _runSubmissionStatuses[runSessionId] = status;
+    await _syncCanonicalAfterSubmissionStatuses(
+      session: session,
+      statuses: <RunSubmissionStatus>[status],
+    );
     notifyListeners();
     return status;
   }
@@ -861,6 +865,10 @@ class AppState extends ChangeNotifier {
       runSessionId: runSessionId,
     );
     _runSubmissionStatuses[runSessionId] = status;
+    await _syncCanonicalAfterSubmissionStatuses(
+      session: session,
+      statuses: <RunSubmissionStatus>[status],
+    );
     notifyListeners();
     return status;
   }
@@ -877,6 +885,10 @@ class AppState extends ChangeNotifier {
     for (final status in statuses) {
       _runSubmissionStatuses[status.runSessionId] = status;
     }
+    await _syncCanonicalAfterSubmissionStatuses(
+      session: session,
+      statuses: statuses,
+    );
     notifyListeners();
     return statuses;
   }
@@ -1001,8 +1013,7 @@ class AppState extends ChangeNotifier {
     }
     final mode = expectedMode ?? canonicalMode;
     final levelId = expectedLevelId ?? canonicalLevelId;
-    final runTicket =
-        expectedMode != null || expectedLevelId != null
+    final runTicket = expectedMode != null || expectedLevelId != null
         ? null
         : _takeValidPrefetchedRunTicket(
             userId: session.userId,
@@ -1049,7 +1060,10 @@ class AppState extends ChangeNotifier {
       return null;
     }
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    if (!_isRunTicketEligibleForPrefetchCache(runTicket: cached, nowMs: nowMs)) {
+    if (!_isRunTicketEligibleForPrefetchCache(
+      runTicket: cached,
+      nowMs: nowMs,
+    )) {
       return null;
     }
     if (!_matchesRunTicketPrefetchKey(ticket: cached, key: key)) {
@@ -1227,6 +1241,29 @@ class AppState extends ChangeNotifier {
       await processPendingRunSubmissions();
     } catch (error) {
       debugPrint('Pending replay submission resume failed: $error');
+    }
+  }
+
+  Future<void> _syncCanonicalAfterSubmissionStatuses({
+    required AuthSession session,
+    required Iterable<RunSubmissionStatus> statuses,
+  }) async {
+    final shouldRefreshCanonical = statuses.any(
+      (status) => status.isRewardFinal,
+    );
+    if (!shouldRefreshCanonical) {
+      return;
+    }
+    try {
+      final canonical = await _ownershipApi.loadCanonicalState(
+        userId: session.userId,
+        sessionId: session.sessionId,
+      );
+      _applyCanonicalState(canonical);
+    } catch (error) {
+      debugPrint(
+        'Run submission canonical sync failed after final reward status: $error',
+      );
     }
   }
 
@@ -1691,7 +1728,10 @@ class AppState extends ChangeNotifier {
         gameCompatVersion: key.gameCompatVersion,
       );
       final nowMs = DateTime.now().millisecondsSinceEpoch;
-      if (!_isRunTicketEligibleForPrefetchCache(runTicket: runTicket, nowMs: nowMs)) {
+      if (!_isRunTicketEligibleForPrefetchCache(
+        runTicket: runTicket,
+        nowMs: nowMs,
+      )) {
         return;
       }
       if (!_isRunTicketPrefetchKeyCurrent(key)) {

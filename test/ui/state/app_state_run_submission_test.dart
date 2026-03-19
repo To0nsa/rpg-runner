@@ -60,7 +60,10 @@ void main() {
     expect(status.hasProvisionalReward, isTrue);
     expect(status.provisionalGold, 17);
     expect(status.spendableGoldDelta, 0);
-    expect(appState.runSubmissionStatusFor('run_reward')?.hasProvisionalReward, isTrue);
+    expect(
+      appState.runSubmissionStatusFor('run_reward')?.hasProvisionalReward,
+      isTrue,
+    );
     expect(appState.runSubmissionStatusFor('run_reward')?.provisionalGold, 17);
     expect(appState.unverifiedGold, 17);
     expect(appState.displayGold, 17);
@@ -189,6 +192,121 @@ void main() {
       await submitFuture;
       expect(appState.unverifiedGold, 31);
       expect(appState.displayGold, 31);
+    },
+  );
+
+  test(
+    'submitRunReplay syncs canonical gold when submission reward is final',
+    () async {
+      final runSessionApi = _FakeRunSessionApi(
+        finalizeStatus: const SubmissionStatus(
+          runSessionId: 'run_final_reward',
+          state: RunSessionState.validated,
+          updatedAtMs: 6000,
+          reward: SubmissionReward(
+            status: SubmissionRewardStatus.finalReward,
+            provisionalGold: 11,
+            effectiveGoldDelta: 11,
+            spendableGoldDelta: 11,
+            updatedAtMs: 6000,
+            grantId: 'run_final_reward',
+          ),
+        ),
+      );
+      final ownershipApi = _StaticOwnershipApi();
+      final coordinator = RunSubmissionCoordinator(
+        runSessionApi: runSessionApi,
+        spoolStore: _InMemorySpoolStore(),
+        replayUploader: _NoopReplayUploader(),
+        clock: () => 6000,
+      );
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: ownershipApi,
+        runSessionApi: runSessionApi,
+        runSubmissionCoordinator: coordinator,
+      );
+      await appState.bootstrap(force: true);
+      ownershipApi.setCanonicalState(_canonicalWithGold(gold: 11, revision: 2));
+
+      final status = await appState.submitRunReplay(
+        runSessionId: 'run_final_reward',
+        runMode: RunMode.practice,
+        replayFilePath: '/tmp/replay_final_reward.json',
+        canonicalSha256:
+            'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+        contentLengthBytes: 1024,
+      );
+
+      expect(status.isRewardFinal, isTrue);
+      expect(appState.unverifiedGold, 0);
+      expect(appState.displayGold, 11);
+      expect(ownershipApi.loadCanonicalStateCallCount, 2);
+    },
+  );
+
+  test(
+    'refreshRunSubmissionStatus syncs canonical gold when reward settles',
+    () async {
+      final runSessionApi = _MutableRunSessionApi(
+        finalizeStatus: const SubmissionStatus(
+          runSessionId: 'run_refresh_final',
+          state: RunSessionState.pendingValidation,
+          updatedAtMs: 7000,
+        ),
+      );
+      final ownershipApi = _StaticOwnershipApi();
+      final coordinator = RunSubmissionCoordinator(
+        runSessionApi: runSessionApi,
+        spoolStore: _InMemorySpoolStore(),
+        replayUploader: _NoopReplayUploader(),
+        clock: () => 7000,
+      );
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: ownershipApi,
+        runSessionApi: runSessionApi,
+        runSubmissionCoordinator: coordinator,
+      );
+      await appState.bootstrap(force: true);
+
+      await appState.submitRunReplay(
+        runSessionId: 'run_refresh_final',
+        runMode: RunMode.practice,
+        replayFilePath: '/tmp/replay_refresh_final.json',
+        canonicalSha256:
+            '9999999999999999999999999999999999999999999999999999999999999999',
+        contentLengthBytes: 1024,
+        provisionalSummary: const <String, Object?>{'goldEarned': 23},
+      );
+      expect(appState.unverifiedGold, 23);
+      expect(appState.displayGold, 23);
+
+      ownershipApi.setCanonicalState(_canonicalWithGold(gold: 23, revision: 2));
+      runSessionApi.setLoadStatus(
+        const SubmissionStatus(
+          runSessionId: 'run_refresh_final',
+          state: RunSessionState.validated,
+          updatedAtMs: 7100,
+          reward: SubmissionReward(
+            status: SubmissionRewardStatus.finalReward,
+            provisionalGold: 23,
+            effectiveGoldDelta: 23,
+            spendableGoldDelta: 23,
+            updatedAtMs: 7100,
+            grantId: 'run_refresh_final',
+          ),
+        ),
+      );
+
+      final status = await appState.refreshRunSubmissionStatus(
+        runSessionId: 'run_refresh_final',
+      );
+
+      expect(status.isRewardFinal, isTrue);
+      expect(appState.unverifiedGold, 0);
+      expect(appState.displayGold, 23);
+      expect(ownershipApi.loadCanonicalStateCallCount, 2);
     },
   );
 
@@ -384,6 +502,33 @@ class _BlockingFinalizeRunSessionApi extends _FakeRunSessionApi {
   }
 }
 
+class _MutableRunSessionApi extends _FakeRunSessionApi {
+  _MutableRunSessionApi({required super.finalizeStatus})
+    : _loadStatus = finalizeStatus;
+
+  SubmissionStatus _loadStatus;
+
+  void setLoadStatus(SubmissionStatus status) {
+    _loadStatus = status;
+  }
+
+  @override
+  Future<SubmissionStatus> loadSubmissionStatus({
+    required String userId,
+    required String sessionId,
+    required String runSessionId,
+  }) async {
+    return SubmissionStatus(
+      runSessionId: runSessionId,
+      state: _loadStatus.state,
+      updatedAtMs: _loadStatus.updatedAtMs,
+      message: _loadStatus.message,
+      validatedRun: _loadStatus.validatedRun,
+      reward: _loadStatus.reward,
+    );
+  }
+}
+
 class _StaticAuthApi implements AuthApi {
   _StaticAuthApi._(this._session);
 
@@ -420,16 +565,14 @@ class _StaticAuthApi implements AuthApi {
 }
 
 class _StaticOwnershipApi implements LoadoutOwnershipApi {
-  _StaticOwnershipApi()
-    : _canonical = OwnershipCanonicalState(
-        profileId: 'profile_static',
-        revision: 1,
-        selection: SelectionState.defaults,
-        meta: const MetaService().createNew(),
-        progression: ProgressionState.initial,
-      );
+  _StaticOwnershipApi() : _canonical = _canonicalWithGold(gold: 0, revision: 1);
 
-  final OwnershipCanonicalState _canonical;
+  OwnershipCanonicalState _canonical;
+  int loadCanonicalStateCallCount = 0;
+
+  void setCanonicalState(OwnershipCanonicalState canonical) {
+    _canonical = canonical;
+  }
 
   @override
   Future<OwnershipCommandResult> awardRunGold(
@@ -462,6 +605,7 @@ class _StaticOwnershipApi implements LoadoutOwnershipApi {
     required String userId,
     required String sessionId,
   }) async {
+    loadCanonicalStateCallCount += 1;
     return _canonical;
   }
 
@@ -524,4 +668,17 @@ class _StaticOwnershipApi implements LoadoutOwnershipApi {
       replayedFromIdempotency: false,
     );
   }
+}
+
+OwnershipCanonicalState _canonicalWithGold({
+  required int gold,
+  required int revision,
+}) {
+  return OwnershipCanonicalState(
+    profileId: 'profile_static',
+    revision: revision,
+    selection: SelectionState.defaults,
+    meta: const MetaService().createNew(),
+    progression: ProgressionState.initial.copyWith(gold: gold),
+  );
 }

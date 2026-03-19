@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:runner_core/meta/meta_service.dart';
+import 'package:run_protocol/submission_status.dart';
 
 import 'package:rpg_runner/ui/app/ui_routes.dart';
 import 'package:rpg_runner/ui/components/app_button.dart';
@@ -11,24 +12,52 @@ import 'package:rpg_runner/ui/assets/ui_asset_lifecycle.dart';
 import 'package:rpg_runner/ui/state/app_state.dart';
 import 'package:rpg_runner/ui/state/auth_api.dart';
 import 'package:rpg_runner/ui/state/loadout_ownership_api.dart';
+import 'package:rpg_runner/ui/state/pending_run_submission.dart';
 import 'package:rpg_runner/ui/state/progression_state.dart';
+import 'package:rpg_runner/ui/state/run_session_api.dart';
+import 'package:rpg_runner/ui/state/run_submission_coordinator.dart';
+import 'package:rpg_runner/ui/state/run_submission_spool_store.dart';
 import 'package:rpg_runner/ui/state/selection_state.dart';
 import 'package:rpg_runner/ui/theme/ui_button_theme.dart';
 import 'package:rpg_runner/ui/theme/ui_tokens.dart';
 
 void main() {
-  testWidgets('hub top row uses canonical progression gold', (tester) async {
+  testWidgets('hub top row includes unverified gold from app state', (
+    tester,
+  ) async {
+    final runSessionApi = _StatusOnlyRunSessionApi(
+      const SubmissionStatus(
+        runSessionId: 'run_hub_pending',
+        state: RunSessionState.pendingValidation,
+        updatedAtMs: 1,
+        reward: SubmissionReward(
+          status: SubmissionRewardStatus.provisional,
+          provisionalGold: 17,
+          effectiveGoldDelta: 0,
+          spendableGoldDelta: 0,
+          updatedAtMs: 1,
+          grantId: 'run_hub_pending',
+        ),
+      ),
+    );
+    final coordinator = RunSubmissionCoordinator(
+      runSessionApi: runSessionApi,
+      spoolStore: _InMemorySpoolStore(),
+    );
     final appState = AppState(
       authApi: _StaticAuthApi(),
       loadoutOwnershipApi: _NoopOwnershipApi(gold: 321),
+      runSessionApi: runSessionApi,
+      runSubmissionCoordinator: coordinator,
     );
     await appState.bootstrap(force: true);
+    await appState.refreshRunSubmissionStatus(runSessionId: 'run_hub_pending');
 
     await tester.pumpWidget(_TestApp(appState: appState));
     await tester.pump();
 
     final topRow = tester.widget<HubTopRow>(find.byType(HubTopRow));
-    expect(topRow.gold, 321);
+    expect(topRow.gold, 338);
   });
 
   testWidgets('play tap transitions immediately to run bootstrap route', (
@@ -80,10 +109,7 @@ class _TestApp extends StatelessWidget {
 }
 
 class _RoutedTestApp extends StatelessWidget {
-  const _RoutedTestApp({
-    required this.appState,
-    required this.observer,
-  });
+  const _RoutedTestApp({required this.appState, required this.observer});
 
   final AppState appState;
   final NavigatorObserver observer;
@@ -107,9 +133,7 @@ class _RoutedTestApp extends StatelessWidget {
             return MaterialPageRoute<void>(
               settings: settings,
               builder: (_) => const Scaffold(
-                body: Center(
-                  child: Text('Run Bootstrap Placeholder'),
-                ),
+                body: Center(child: Text('Run Bootstrap Placeholder')),
               ),
             );
           }
@@ -229,9 +253,8 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
   ) async => _accepted;
 
   @override
-  Future<OwnershipCommandResult> setLoadout(
-    SetLoadoutCommand command,
-  ) async => _accepted;
+  Future<OwnershipCommandResult> setLoadout(SetLoadoutCommand command) async =>
+      _accepted;
 
   @override
   Future<OwnershipCommandResult> setProjectileSpell(
@@ -244,7 +267,58 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
   ) async => _accepted;
 
   @override
-  Future<OwnershipCommandResult> unlockGear(
-    UnlockGearCommand command,
-  ) async => _accepted;
+  Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command) async =>
+      _accepted;
+}
+
+class _StatusOnlyRunSessionApi extends NoopRunSessionApi {
+  _StatusOnlyRunSessionApi(this.status);
+
+  final SubmissionStatus status;
+
+  @override
+  Future<SubmissionStatus> loadSubmissionStatus({
+    required String userId,
+    required String sessionId,
+    required String runSessionId,
+  }) async {
+    return SubmissionStatus(
+      runSessionId: runSessionId,
+      state: status.state,
+      updatedAtMs: status.updatedAtMs,
+      message: status.message,
+      validatedRun: status.validatedRun,
+      reward: status.reward,
+    );
+  }
+}
+
+class _InMemorySpoolStore implements RunSubmissionSpoolStore {
+  final Map<String, PendingRunSubmission> _entries =
+      <String, PendingRunSubmission>{};
+
+  @override
+  Future<void> clear() async {
+    _entries.clear();
+  }
+
+  @override
+  Future<PendingRunSubmission?> load({required String runSessionId}) async {
+    return _entries[runSessionId];
+  }
+
+  @override
+  Future<List<PendingRunSubmission>> loadAll() async {
+    return _entries.values.toList(growable: false);
+  }
+
+  @override
+  Future<void> remove({required String runSessionId}) async {
+    _entries.remove(runSessionId);
+  }
+
+  @override
+  Future<void> upsert({required PendingRunSubmission submission}) async {
+    _entries[submission.runSessionId] = submission;
+  }
 }

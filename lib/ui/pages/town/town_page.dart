@@ -79,6 +79,7 @@ class _TownPageState extends State<TownPage> {
       0,
       _dailyRefreshLimit - store.refreshesUsedToday,
     );
+    final displayGold = appState.displayGold;
     final canAnyOfferChange = _canAnyOfferChange(appState, store.activeOffers);
     final canRefreshForGold =
         !_purchaseInFlight &&
@@ -95,7 +96,7 @@ class _TownPageState extends State<TownPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             TownStoreCard(
-              gold: appState.progression.gold,
+              gold: displayGold,
               refreshesRemaining: refreshesRemaining,
               inFlight: _refreshInFlight,
               canRefresh: canRefreshForGold,
