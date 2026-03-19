@@ -27,6 +27,9 @@ class _ProfilePageState extends State<ProfilePage> {
   final _policy = const DisplayNamePolicy();
   bool _deleteInFlight = false;
   bool _playGamesLinkInFlight = false;
+  static const Key _deleteProgressIndicatorKey = Key(
+    'profile-delete-progress-indicator',
+  );
 
   static const Duration _cooldown = Duration(hours: 24);
 
@@ -349,11 +352,28 @@ class _ProfilePageState extends State<ProfilePage> {
           SizedBox(height: ui.space.sm),
           Align(
             alignment: Alignment.center,
-            child: AppButton(
-              label: _deleteInFlight ? 'Deleting...' : 'Delete account',
-              variant: AppButtonVariant.danger,
-              size: AppButtonSize.sm,
-              onPressed: _deleteInFlight ? null : _deleteAccountAndData,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                AppButton(
+                  label: 'Delete account',
+                  variant: AppButtonVariant.danger,
+                  size: AppButtonSize.sm,
+                  onPressed: _deleteInFlight ? null : _deleteAccountAndData,
+                ),
+                if (_deleteInFlight)
+                  SizedBox(
+                    width: ui.sizes.iconSize.sm,
+                    height: ui.sizes.iconSize.sm,
+                    child: CircularProgressIndicator(
+                      key: _deleteProgressIndicatorKey,
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        ui.colors.textPrimary,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ],

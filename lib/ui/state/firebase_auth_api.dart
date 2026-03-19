@@ -4,6 +4,18 @@ import 'package:flutter/services.dart';
 
 import 'auth_api.dart';
 
+/// Thrown when strict Play Games authentication cannot be established.
+class PlayGamesAuthRequiredException implements Exception {
+  const PlayGamesAuthRequiredException([
+    this.message = 'Play Games sign-in is required to continue.',
+  ]);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 /// Firebase-backed [AuthApi] adapter used by production UI composition.
 class FirebaseAuthApi implements AuthApi {
   FirebaseAuthApi({
@@ -17,6 +29,7 @@ class FirebaseAuthApi implements AuthApi {
   final FirebaseAuthSessionSource _source;
   final DateTime Function() _now;
   final Duration refreshLeeway;
+  Future<AuthSession>? _ensureSessionInFlight;
 
   @override
   Future<AuthSession> loadSession() async {
@@ -25,7 +38,10 @@ class FirebaseAuthApi implements AuthApi {
       return AuthSession.unauthenticated;
     }
     final session = _toSession(snapshot);
-    if (!session.isAuthenticatedAt(_now().millisecondsSinceEpoch)) {
+    if (!_sessionSatisfiesPlayGamesAuth(
+      session,
+      nowMs: _now().millisecondsSinceEpoch,
+    )) {
       return AuthSession.unauthenticated;
     }
     return session;
@@ -33,39 +49,80 @@ class FirebaseAuthApi implements AuthApi {
 
   @override
   Future<AuthSession> ensureAuthenticatedSession() async {
+    final inFlight = _ensureSessionInFlight;
+    if (inFlight != null) {
+      return inFlight;
+    }
+    final operation = _ensureAuthenticatedSessionInternal();
+    _ensureSessionInFlight = operation;
+    try {
+      return await operation;
+    } finally {
+      if (identical(_ensureSessionInFlight, operation)) {
+        _ensureSessionInFlight = null;
+      }
+    }
+  }
+
+  Future<AuthSession> _ensureAuthenticatedSessionInternal() async {
+    final now = _now();
+    final nowMs = now.millisecondsSinceEpoch;
     var snapshot = await _readCurrentWithCachedFallback(forceRefresh: false);
-    if (snapshot == null) {
-      return _toSession(await _restoreOrCreateAnonymousSnapshot());
+    if (snapshot == null || !_snapshotHasPlayGamesIdentity(snapshot)) {
+      snapshot = await _restoreRequiredPlayGamesSnapshot();
     }
 
-    final now = _now();
     if (_expiresSoon(snapshot, now)) {
-      snapshot =
-          await _readCurrentWithCachedFallback(forceRefresh: true) ??
-          await _restoreOrCreateAnonymousSnapshot();
+      final refreshed = await _readCurrentWithCachedFallback(
+        forceRefresh: true,
+      );
+      if (refreshed != null && _snapshotHasPlayGamesIdentity(refreshed)) {
+        snapshot = refreshed;
+      } else {
+        snapshot = await _restoreRequiredPlayGamesSnapshot();
+      }
     }
 
     var session = _toSession(snapshot);
-    if (!session.isAuthenticatedAt(now.millisecondsSinceEpoch)) {
-      snapshot =
-          await _readCurrentWithCachedFallback(forceRefresh: true) ??
-          await _restoreOrCreateAnonymousSnapshot();
-      session = _toSession(snapshot);
+    if (!_sessionSatisfiesPlayGamesAuth(session, nowMs: nowMs)) {
+      final refreshed = await _readCurrentWithCachedFallback(
+        forceRefresh: true,
+      );
+      if (refreshed != null &&
+          _snapshotSatisfiesPlayGamesAuth(refreshed, nowMs: nowMs)) {
+        session = _toSession(refreshed);
+      } else {
+        session = _toSession(await _restoreRequiredPlayGamesSnapshot());
+      }
+    }
+    if (!_sessionSatisfiesPlayGamesAuth(
+      session,
+      nowMs: _now().millisecondsSinceEpoch,
+    )) {
+      throw const PlayGamesAuthRequiredException();
     }
     return session;
   }
 
   Future<FirebaseAuthSessionSnapshot>
-  _restoreOrCreateAnonymousSnapshot() async {
+  _restoreRequiredPlayGamesSnapshot() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+      throw const PlayGamesAuthRequiredException(
+        'Play Games sign-in is supported on Android only.',
+      );
+    }
     final restored = await _source.tryRestorePlayGamesSession();
-    if (restored != null) {
+    final nowMs = _now().millisecondsSinceEpoch;
+    if (restored != null &&
+        _snapshotSatisfiesPlayGamesAuth(restored, nowMs: nowMs)) {
       return restored;
     }
     final cachedCurrent = await _source.readCachedCurrent();
-    if (cachedCurrent != null) {
+    if (cachedCurrent != null &&
+        _snapshotSatisfiesPlayGamesAuth(cachedCurrent, nowMs: nowMs)) {
       return cachedCurrent;
     }
-    return _source.signInAnonymously();
+    throw const PlayGamesAuthRequiredException();
   }
 
   @override
@@ -217,6 +274,31 @@ class FirebaseAuthApi implements AuthApi {
     return !expiresAt.isAfter(now.add(refreshLeeway));
   }
 
+  bool _snapshotSatisfiesPlayGamesAuth(
+    FirebaseAuthSessionSnapshot snapshot, {
+    required int nowMs,
+  }) {
+    final session = _toSession(snapshot);
+    return _sessionSatisfiesPlayGamesAuth(session, nowMs: nowMs);
+  }
+
+  bool _snapshotHasPlayGamesIdentity(FirebaseAuthSessionSnapshot snapshot) {
+    return _sessionHasPlayGamesIdentity(_toSession(snapshot));
+  }
+
+  bool _sessionSatisfiesPlayGamesAuth(
+    AuthSession session, {
+    required int nowMs,
+  }) {
+    return _sessionHasPlayGamesIdentity(session) &&
+        session.isAuthenticatedAt(nowMs);
+  }
+
+  bool _sessionHasPlayGamesIdentity(AuthSession session) {
+    return !session.isAnonymous &&
+        session.isProviderLinked(AuthLinkProvider.playGames);
+  }
+
   AuthSession _toSession(FirebaseAuthSessionSnapshot snapshot) {
     return AuthSession(
       userId: snapshot.userId,
@@ -311,8 +393,6 @@ abstract class FirebaseAuthSessionSource {
 
   Future<FirebaseAuthSessionSnapshot?> tryRestorePlayGamesSession();
 
-  Future<FirebaseAuthSessionSnapshot> signInAnonymously();
-
   Future<FirebaseAuthSessionSnapshot?> linkAuthProvider(
     AuthLinkProvider provider,
   );
@@ -364,17 +444,6 @@ class PluginFirebaseAuthSessionSource implements FirebaseAuthSessionSource {
   }
 
   @override
-  Future<FirebaseAuthSessionSnapshot> signInAnonymously() async {
-    final credential = await _auth.signInAnonymously();
-    final user = credential.user;
-    if (user == null) {
-      throw StateError('FirebaseAuth.signInAnonymously returned null user.');
-    }
-    final tokenResult = await user.getIdTokenResult(true);
-    return _toSnapshot(user, tokenResult);
-  }
-
-  @override
   Future<FirebaseAuthSessionSnapshot?> linkAuthProvider(
     AuthLinkProvider provider,
   ) async {
@@ -396,7 +465,7 @@ class PluginFirebaseAuthSessionSource implements FirebaseAuthSessionSource {
       );
     }
 
-    final user = await _loadCurrentOrAnonymousUser();
+    final user = _loadCurrentUserForProviderLink();
     if (_isProviderLinked(user, AuthLinkProvider.playGames)) {
       final tokenResult = await user.getIdTokenResult(true);
       return _toSnapshot(user, tokenResult);
@@ -476,14 +545,12 @@ class PluginFirebaseAuthSessionSource implements FirebaseAuthSessionSource {
     );
   }
 
-  Future<User> _loadCurrentOrAnonymousUser() async {
-    var user = _auth.currentUser;
+  User _loadCurrentUserForProviderLink() {
+    final user = _auth.currentUser;
     if (user == null) {
-      final anonymousCredential = await _auth.signInAnonymously();
-      user = anonymousCredential.user;
-    }
-    if (user == null) {
-      throw StateError('FirebaseAuth returned null user during provider link.');
+      throw const PlayGamesAuthRequiredException(
+        'Play Games sign-in is required before linking providers.',
+      );
     }
     return user;
   }

@@ -15,7 +15,7 @@ import 'package:rpg_runner/ui/state/user_profile_remote_api.dart';
 import 'package:rpg_runner/ui/theme/ui_tokens.dart';
 
 void main() {
-  testWidgets('continue with defaults navigates when fallback succeeds', (
+  testWidgets('retry navigates when second bootstrap attempt succeeds', (
     tester,
   ) async {
     final appState = AppState(
@@ -23,11 +23,14 @@ void main() {
       userProfileRemoteApi: const _StaticUserProfileRemoteApi(),
       loadoutOwnershipApi: _NoopOwnershipApi(),
     );
-    final bootstrapper = _StaticBootstrapper(
-      result: BootstrapResult.failure(
-        StateError('bootstrap failed'),
-        StackTrace.current,
-      ),
+    final bootstrapper = _QueueBootstrapper(
+      results: <BootstrapResult>[
+        BootstrapResult.failure(
+          StateError('bootstrap failed'),
+          StackTrace.current,
+        ),
+        BootstrapResult.success,
+      ],
     );
 
     await tester.pumpWidget(
@@ -38,25 +41,27 @@ void main() {
 
     expect(find.text('Bootstrap failed'), findsOneWidget);
 
-    await tester.tap(find.text('Continue with defaults'));
+    await tester.tap(find.text('Retry Play Games sign-in'));
     await tester.pumpAndSettle();
 
     expect(find.text('hub-page'), findsOneWidget);
+    expect(bootstrapper.calls, 2);
   });
 
-  testWidgets('continue with defaults keeps loader when fallback throws', (
-    tester,
-  ) async {
+  testWidgets('retry keeps loader when bootstrap still fails', (tester) async {
     final appState = AppState(
-      authApi: const _FailingAuthApi(),
+      authApi: const _StaticAuthApi(),
       userProfileRemoteApi: const _StaticUserProfileRemoteApi(),
       loadoutOwnershipApi: _NoopOwnershipApi(),
     );
-    final bootstrapper = _StaticBootstrapper(
-      result: BootstrapResult.failure(
-        StateError('bootstrap failed'),
-        StackTrace.current,
-      ),
+    final bootstrapper = _QueueBootstrapper(
+      results: <BootstrapResult>[
+        BootstrapResult.failure(
+          StateError('bootstrap failed'),
+          StackTrace.current,
+        ),
+        BootstrapResult.failure(StateError('retry failed'), StackTrace.current),
+      ],
     );
 
     await tester.pumpWidget(
@@ -65,12 +70,13 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    await tester.tap(find.text('Continue with defaults'));
+    await tester.tap(find.text('Retry Play Games sign-in'));
     await tester.pumpAndSettle();
 
     expect(find.text('Bootstrap failed'), findsOneWidget);
-    expect(find.textContaining('auth fallback failed'), findsOneWidget);
+    expect(find.textContaining('retry failed'), findsOneWidget);
     expect(find.text('hub-page'), findsNothing);
+    expect(bootstrapper.calls, 2);
   });
 
   testWidgets('long bootstrap error stays renderable without overflow', (
@@ -149,6 +155,26 @@ class _StaticBootstrapper extends AppBootstrapper {
   }
 }
 
+class _QueueBootstrapper extends AppBootstrapper {
+  _QueueBootstrapper({required List<BootstrapResult> results})
+    : _results = List<BootstrapResult>.from(results);
+
+  final List<BootstrapResult> _results;
+  int calls = 0;
+
+  @override
+  Future<BootstrapResult> run(AppState appState, {required bool force}) async {
+    calls += 1;
+    if (_results.isEmpty) {
+      return BootstrapResult.failure(
+        StateError('No queued bootstrap result.'),
+        StackTrace.current,
+      );
+    }
+    return _results.removeAt(0);
+  }
+}
+
 class _StaticAuthApi implements AuthApi {
   const _StaticAuthApi();
 
@@ -172,28 +198,6 @@ class _StaticAuthApi implements AuthApi {
       status: AuthLinkStatus.alreadyLinked,
       session: _session,
     );
-  }
-
-  @override
-  Future<void> clearSession() async {}
-}
-
-class _FailingAuthApi implements AuthApi {
-  const _FailingAuthApi();
-
-  @override
-  Future<AuthSession> ensureAuthenticatedSession() async {
-    throw StateError('auth fallback failed');
-  }
-
-  @override
-  Future<AuthSession> loadSession() async {
-    throw StateError('auth fallback failed');
-  }
-
-  @override
-  Future<AuthLinkResult> linkAuthProvider(AuthLinkProvider provider) async {
-    throw StateError('auth fallback failed');
   }
 
   @override

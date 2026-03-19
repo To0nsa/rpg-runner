@@ -6,8 +6,8 @@ This doc explains how identity is created in the app, how requests are authentic
 
 The app uses Firebase Authentication with this runtime policy:
 
-- Primary boot identity: anonymous Firebase user.
-- Optional account upgrade: link anonymous user to Play Games (Android).
+- Primary boot identity: Play Games-backed Firebase user (Android only).
+- Anonymous Firebase users are not created during bootstrap.
 - Backend authority: Firebase callable functions (`onCall`) using `request.auth.uid`.
 - Firestore client writes/reads for authoritative game data are denied by rules.
 
@@ -17,7 +17,7 @@ Authoritative data access (profile, ownership, runs, boards, ghosts, account del
 
 - Flutter auth adapter: `FirebaseAuthApi`
   - `lib/ui/state/firebase_auth_api.dart`
-  - Handles session discovery, refresh, anonymous sign-in fallback, provider linking.
+  - Handles session discovery, refresh, Play Games restore, and provider linking.
 - App orchestration: `AppState`
   - `lib/ui/state/app_state.dart`
   - Calls `ensureAuthenticatedSession()` before remote operations.
@@ -42,13 +42,14 @@ Boot route flow:
 `FirebaseAuthApi.ensureAuthenticatedSession()` behavior:
 
 - Try current Firebase user (`readCurrent(forceRefresh: false)`).
-- If no user:
+- Require a non-anonymous session linked to Play Games.
+- If no eligible session exists:
   - try Play Games restore (`tryRestorePlayGamesSession()`) on Android,
-  - else create anonymous user (`signInAnonymously()`).
+  - if restore fails, throw `PlayGamesAuthRequiredException`.
 - If token is near expiry, force refresh and retry.
-- If session is still invalid, retry refresh/restore/sign-in fallback chain.
+- If session is still invalid after refresh/restore, throw `PlayGamesAuthRequiredException`.
 
-This means the app does not rely on pre-existing login state; it guarantees an authenticated Firebase user before remote calls.
+This means bootstrap is intentionally fail-closed until Play Games auth succeeds.
 
 ## 4) App-level session shape
 
@@ -76,7 +77,7 @@ Play Games integration is Android-only.
 
 UI entry point:
 
-- `ProfilePage` offers "Link Play Games" when session is authenticated + anonymous + not already linked.
+- Runtime bootstrap requires Play Games identity, so anonymous-upgrade UI is not part of the normal startup path.
 
 ## 6) Callable request auth contract (server-side)
 

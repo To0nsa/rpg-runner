@@ -26,38 +26,45 @@ class LoaderPage extends StatefulWidget {
 
 class _LoaderPageState extends State<LoaderPage> {
   BootstrapResult? _result;
-  bool _starting = false;
+  bool _bootstrapInFlight = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _startBootstrap();
+      unawaited(_startBootstrap(enforceMinimumDuration: true));
     });
   }
 
-  Future<void> _startBootstrap() async {
-    if (_starting) return;
-    _starting = true;
+  Future<void> _startBootstrap({required bool enforceMinimumDuration}) async {
+    if (_bootstrapInFlight) return;
+    _bootstrapInFlight = true;
+    if (mounted) {
+      setState(() {
+        _result = null;
+      });
+    }
     final appState = context.read<AppState>();
     // Ensure the loading screen is visible for at least 2 seconds on cold start.
     // On resume, don't enforce an artificial minimum duration.
-    final minWait = widget.args.isResume
+    final minWait = !enforceMinimumDuration || widget.args.isResume
         ? Future<void>.value()
         : Future<void>.delayed(const Duration(seconds: 2));
-    final bootstrap = widget.bootstrapper.run(
-      appState,
-      force: widget.args.isResume,
-    );
-
-    final result = await bootstrap;
-    await minWait;
-    if (!mounted) return;
-    setState(() {
-      _result = result;
-    });
-    if (result.ok) {
-      _complete();
+    try {
+      final result = await widget.bootstrapper.run(
+        appState,
+        force: widget.args.isResume,
+      );
+      await minWait;
+      if (!mounted) return;
+      setState(() {
+        _result = result;
+      });
+      if (result.ok) {
+        _complete();
+      }
+    } finally {
+      _bootstrapInFlight = false;
     }
   }
 
@@ -79,19 +86,8 @@ class _LoaderPageState extends State<LoaderPage> {
     navigator.pushReplacementNamed(UiRoutes.hub);
   }
 
-  Future<void> _continueWithDefaults() async {
-    final appState = context.read<AppState>();
-    try {
-      await appState.applyDefaults();
-    } catch (error, stackTrace) {
-      if (!mounted) return;
-      setState(() {
-        _result = BootstrapResult.failure(error, stackTrace);
-      });
-      return;
-    }
-    if (!mounted) return;
-    _complete();
+  Future<void> _retryBootstrap() async {
+    await _startBootstrap(enforceMinimumDuration: false);
   }
 
   @override
@@ -106,7 +102,10 @@ class _LoaderPageState extends State<LoaderPage> {
         child: hasError
             ? LoaderContent(
                 errorMessage: '${_result!.error}',
-                onContinue: () => unawaited(_continueWithDefaults()),
+                continueLabel: 'Retry Play Games sign-in',
+                onContinue: _bootstrapInFlight
+                    ? null
+                    : () => unawaited(_retryBootstrap()),
               )
             : const LoaderContent(),
       ),

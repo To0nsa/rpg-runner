@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../components/app_button.dart';
 import '../theme/ui_tokens.dart';
 
 /// Shared loading visual used by bootstrap + run loading.
@@ -10,7 +11,7 @@ class LoaderContent extends StatelessWidget {
     this.subtitle = 'Lothringen',
     this.loadingMessage = 'Loading...',
     this.errorMessage,
-    this.continueLabel = 'Continue with defaults',
+    this.continueLabel = 'Retry',
     this.onContinue,
   });
 
@@ -78,9 +79,11 @@ class LoaderContent extends StatelessWidget {
           ),
           if (onContinue != null) ...[
             SizedBox(height: ui.space.md),
-            FilledButton(
+            AppButton(
+              label: continueLabel,
+              variant: AppButtonVariant.secondary,
+              size: AppButtonSize.lg,
               onPressed: onContinue,
-              child: Text(continueLabel),
             ),
           ],
         ],

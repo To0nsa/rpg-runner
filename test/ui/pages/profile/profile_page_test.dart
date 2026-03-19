@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
 import 'package:runner_core/meta/meta_service.dart';
 import 'package:rpg_runner/ui/components/app_dialog.dart';
 import 'package:rpg_runner/ui/components/gold_display.dart';
@@ -167,6 +168,43 @@ void main() {
     expect(
       platformCalls.any((call) => call.method == 'SystemNavigator.pop'),
       isTrue,
+    );
+  });
+
+  testWidgets('delete account shows loader while request is in flight', (
+    tester,
+  ) async {
+    final authApi = _StaticAuthApi(session: _anonymousSession());
+    final deletionApi = _PendingAccountDeletionApi();
+    final appState = AppState(
+      authApi: authApi,
+      accountDeletionApi: deletionApi,
+      loadoutOwnershipApi: _NoopOwnershipApi(),
+    );
+
+    await tester.pumpWidget(_TestApp(appState: appState));
+
+    await tester.tap(find.text('Delete account'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    await tester.tap(_dialogButton('Delete account'));
+    await tester.pump();
+
+    expect(deletionApi.calls, 1);
+    expect(
+      find.byKey(const Key('profile-delete-progress-indicator')),
+      findsOneWidget,
+    );
+
+    deletionApi.complete(
+      const AccountDeletionResult(status: AccountDeletionStatus.unsupported),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('profile-delete-progress-indicator')),
+      findsNothing,
     );
   });
 }
@@ -362,6 +400,28 @@ class _StaticAccountDeletionApi implements AccountDeletionApi {
   }) async {
     calls += 1;
     return result;
+  }
+}
+
+class _PendingAccountDeletionApi implements AccountDeletionApi {
+  final Completer<AccountDeletionResult> _completer =
+      Completer<AccountDeletionResult>();
+  int calls = 0;
+
+  void complete(AccountDeletionResult result) {
+    if (_completer.isCompleted) {
+      return;
+    }
+    _completer.complete(result);
+  }
+
+  @override
+  Future<AccountDeletionResult> deleteAccountAndData({
+    required String userId,
+    required String sessionId,
+  }) async {
+    calls += 1;
+    return _completer.future;
   }
 }
 
