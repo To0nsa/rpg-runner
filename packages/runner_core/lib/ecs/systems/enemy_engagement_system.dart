@@ -92,6 +92,14 @@ class EnemyEngagementSystem {
       var strikeStartTick = world.meleeEngagement.strikeStartTick[meleeIndex];
       var plannedHitTick = world.meleeEngagement.plannedHitTick[meleeIndex];
       var strikeAbilityId = world.meleeEngagement.strikeAbilityId[meleeIndex];
+      final preferredMeleeAbilityId = _selectMeleeAbilityId(
+        world,
+        enemy: enemy,
+        archetype: archetype,
+        primaryMeleeAbilityId: primaryMeleeAbilityId,
+      );
+      final preferredMeleeAbility = abilities.resolve(preferredMeleeAbilityId);
+      final meleeStandOffX = _resolveMeleeStandOffX(preferredMeleeAbility);
       final currentStrikeTiming = strikeAbilityId == null
           ? null
           : _resolveMeleeTiming(
@@ -149,13 +157,8 @@ class EnemyEngagementSystem {
             // Cooldown-gated transition into strike.
             final ci = world.cooldown.tryIndexOf(enemy);
             if (ci != null) {
-              final selectedAbilityId = _selectMeleeAbilityId(
-                world,
-                enemy: enemy,
-                archetype: archetype,
-                primaryMeleeAbilityId: primaryMeleeAbilityId,
-              );
-              final selectedAbility = abilities.resolve(selectedAbilityId);
+              final selectedAbilityId = preferredMeleeAbilityId;
+              final selectedAbility = preferredMeleeAbility;
               final selectedTiming = _resolveMeleeTiming(
                 selectedAbility,
                 actionSpeedBp,
@@ -203,7 +206,7 @@ class EnemyEngagementSystem {
 
       final engageTargetX =
           navTargetX +
-          preferredSide * groundEnemyTuning.engagement.meleeStandOffX;
+          preferredSide * meleeStandOffX;
 
       double desiredTargetX;
       var stateSpeedMul = 1.0;
@@ -276,6 +279,19 @@ class EnemyEngagementSystem {
       windupTicks: windupTicks,
       totalTicks: clampedTotalTicks,
     );
+  }
+
+  double _resolveMeleeStandOffX(AbilityDef? ability) {
+    if (ability == null) return 0.0;
+    final hitDelivery = ability.hitDelivery;
+    if (hitDelivery is! MeleeHitDelivery) return 0.0;
+    final desired =
+        hitDelivery.sizeX * groundEnemyTuning.engagement.meleeStandOffRatio;
+    if (desired.isNaN || desired.isInfinite) return 0.0;
+    final clampedToRange = desired > groundEnemyTuning.combat.meleeRangeX
+        ? groundEnemyTuning.combat.meleeRangeX
+        : desired;
+    return clampedToRange < 0.0 ? 0.0 : clampedToRange;
   }
 
   int _actionSpeedBpForEntity(EcsWorld world, EntityId entity) {

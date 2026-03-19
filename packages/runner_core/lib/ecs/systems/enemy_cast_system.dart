@@ -131,6 +131,8 @@ class EnemyCastSystem {
     required ProjectileItemDef projectile,
   }) {
     final tuning = unocoDemonTuning;
+    final hitDelivery = ability.hitDelivery;
+    if (hitDelivery is! ProjectileHitDelivery) return;
 
     var targetX = playerCenterX;
     var targetY = playerCenterY;
@@ -186,8 +188,9 @@ class EnemyCastSystem {
     );
     final commitTick = currentTick;
     final executeTick = commitTick + windupTicks;
+    final baseCooldownTicks = _scaleAbilityTicks(ability.cooldownTicks);
     final cooldownTicks = _scaleTicksForActionSpeed(
-      tuning.unocoDemonCastCooldownTicks,
+      baseCooldownTicks,
       actionSpeedBp,
     );
 
@@ -212,7 +215,7 @@ class EnemyCastSystem {
         dirY: targetY - enemyCenterY,
         fallbackDirX: 1.0,
         fallbackDirY: 0.0,
-        originOffset: tuning.base.unocoDemonCastOriginOffset,
+        originOffset: hitDelivery.originOffset,
         commitTick: commitTick,
         windupTicks: windupTicks,
         activeTicks: activeTicks,
@@ -258,5 +261,5 @@ class EnemyCastSystem {
   }
 
   static const int _abilityTickHz = 60;
-  static const AbilityKey _enemyAbilityId = 'common.enemy_cast';
+  static const AbilityKey _enemyAbilityId = 'unoco.enemy_cast';
 }

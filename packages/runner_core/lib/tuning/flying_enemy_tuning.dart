@@ -1,8 +1,6 @@
 /// Flying enemy AI tuning (steering, strikes).
 library;
 
-import '../util/tick_math.dart';
-
 class UnocoDemonTuning {
   const UnocoDemonTuning({
     this.unocoDemonHoverOffsetY = 150.0,
@@ -24,8 +22,6 @@ class UnocoDemonTuning {
     this.unocoDemonVerticalDeadzone = 20.0,
     this.unocoDemonAimLeadMinSeconds = 0.08,
     this.unocoDemonAimLeadMaxSeconds = 0.40,
-    this.unocoDemonCastCooldownSeconds = 2.5,
-    this.unocoDemonCastOriginOffset = 20.0,
   });
 
   // ── Steering ──
@@ -89,18 +85,12 @@ class UnocoDemonTuning {
   /// Max lead time when aiming at player (seconds).
   final double unocoDemonAimLeadMaxSeconds;
 
-  /// Cooldown between casts (seconds).
-  final double unocoDemonCastCooldownSeconds;
-
-  /// Projectile spawn offset from center (world units).
-  final double unocoDemonCastOriginOffset;
 }
 
 class UnocoDemonTuningDerived {
   const UnocoDemonTuningDerived._({
     required this.tickHz,
     required this.base,
-    required this.unocoDemonCastCooldownTicks,
   });
 
   factory UnocoDemonTuningDerived.from(
@@ -114,15 +104,9 @@ class UnocoDemonTuningDerived {
     return UnocoDemonTuningDerived._(
       tickHz: tickHz,
       base: base,
-      unocoDemonCastCooldownTicks: ticksFromSecondsCeil(
-        base.unocoDemonCastCooldownSeconds,
-        tickHz,
-      ),
     );
   }
 
   final int tickHz;
   final UnocoDemonTuning base;
-
-  final int unocoDemonCastCooldownTicks;
 }

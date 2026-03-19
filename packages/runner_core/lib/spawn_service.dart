@@ -33,6 +33,7 @@
 /// 6. Retry up to `maxAttempts` times.
 library;
 
+import 'abilities/ability_catalog.dart';
 import 'abilities/ability_def.dart';
 import 'ecs/entity_id.dart';
 import 'ecs/entity_factory.dart';
@@ -93,7 +94,8 @@ class SpawnService {
   /// - [world]: ECS world for entity creation and component access.
   /// - [entityFactory]: Factory for creating complex entities (enemies).
   /// - [enemyCatalog]: Archetype definitions for enemy types.
-  /// - [unocoDemonTuning]: Flying enemy hover offset and cooldowns.
+  /// - [unocoDemonTuning]: Flying enemy hover and cast-aim behavior tuning.
+  /// - [abilities]: Ability resolver used for enemy authored cooldowns.
   /// - [movement]: Movement tuning for ground enemy velocity limits.
   /// - [collectibleTuning]: Spawn density, spacing, and margins.
   /// - [restorationItemTuning]: Spawn frequency and item sizing.
@@ -109,6 +111,7 @@ class SpawnService {
     required RestorationItemTuning restorationItemTuning,
     required TrackTuning trackTuning,
     required int seed,
+    this.abilities = AbilityCatalog.shared,
   }) : _world = world,
        _entityFactory = entityFactory,
        _enemyCatalog = enemyCatalog,
@@ -129,6 +132,7 @@ class SpawnService {
   final RestorationItemTuning _restorationItemTuning;
   final TrackTuning _trackTuning;
   final int _seed;
+  final AbilityResolver abilities;
 
   // ─── Scratch buffers (reused to avoid allocation) ───
 
@@ -216,10 +220,17 @@ class SpawnService {
 
     // Pre-set cooldown to prevent immediate casting on spawn tick.
     // This ensures consistent early-game difficulty across runs.
+    final castAbility = abilities.resolve(_unocoEnemyCastAbilityId);
+    final cooldownGroupId =
+        castAbility?.effectiveCooldownGroup(AbilitySlot.projectile) ??
+        CooldownGroup.projectile;
+    final baseCooldownTicks = castAbility == null
+        ? 0
+        : _scaleAbilityTicks(castAbility.cooldownTicks);
     _world.cooldown.setTicksLeft(
       unocoDemon,
-      CooldownGroup.projectile,
-      _unocoDemonTuning.unocoDemonCastCooldownTicks,
+      cooldownGroupId,
+      baseCooldownTicks,
     );
 
     return unocoDemon;
@@ -619,6 +630,16 @@ class SpawnService {
 
     return false;
   }
+
+  int _scaleAbilityTicks(int ticks) {
+    if (ticks <= 0) return 0;
+    if (_unocoDemonTuning.tickHz == _abilityTickHz) return ticks;
+    final seconds = ticks / _abilityTickHz;
+    return (seconds * _unocoDemonTuning.tickHz).ceil();
+  }
+
+  static const int _abilityTickHz = 60;
+  static const AbilityKey _unocoEnemyCastAbilityId = 'unoco.enemy_cast';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

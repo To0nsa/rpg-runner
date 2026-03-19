@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:runner_core/abilities/ability_catalog.dart';
+import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/ecs/stores/body_store.dart';
 import 'package:runner_core/ecs/stores/collider_aabb_store.dart';
 import 'package:runner_core/ecs/stores/health_store.dart';
@@ -96,6 +98,21 @@ double _expectedChaseOffset({
     }
   }
   return offsetX;
+}
+
+double _derivedMeleeStandOffX({
+  required GroundEnemyTuningDerived derived,
+  required AbilityKey abilityId,
+}) {
+  final ability = AbilityCatalog.shared.resolve(abilityId);
+  if (ability == null) return 0.0;
+  final hitDelivery = ability.hitDelivery;
+  if (hitDelivery is! MeleeHitDelivery) return 0.0;
+  final desired = hitDelivery.sizeX * derived.engagement.meleeStandOffRatio;
+  final clampedToRange = desired > derived.combat.meleeRangeX
+      ? derived.combat.meleeRangeX
+      : desired;
+  return clampedToRange < 0.0 ? 0.0 : clampedToRange;
 }
 
 void main() {
@@ -211,18 +228,22 @@ void main() {
     final engageIndexA = world.meleeEngagement.indexOf(enemyA);
     final engageIndexB = world.meleeEngagement.indexOf(enemyB);
     final derived = GroundEnemyTuningDerived.from(baseTuning, tickHz: 60);
+    final meleeStandOffX = _derivedMeleeStandOffX(
+      derived: derived,
+      abilityId: 'grojib.strike',
+    );
     final targetAX = world.meleeEngagement.state[engageIndexA] ==
             MeleeEngagementState.approach
         ? playerX + chase.chaseOffsetX[chase.indexOf(enemyA)]
         : playerX +
             (world.meleeEngagement.preferredSide[engageIndexA] >= 0 ? 1 : -1) *
-                derived.engagement.meleeStandOffX;
+                meleeStandOffX;
     final targetBX = world.meleeEngagement.state[engageIndexB] ==
             MeleeEngagementState.approach
         ? playerX + chase.chaseOffsetX[chase.indexOf(enemyB)]
         : playerX +
             (world.meleeEngagement.preferredSide[engageIndexB] >= 0 ? 1 : -1) *
-                derived.engagement.meleeStandOffX;
+                meleeStandOffX;
 
     expect(
       world.transform.velX[tiA] * (targetAX - world.transform.posX[tiA]),
@@ -341,8 +362,12 @@ void main() {
       final enemy = spawnGroundEnemy(world, posX: playerX, posY: playerY);
       world.collision.grounded[world.collision.indexOf(enemy)] = true;
       final derived = GroundEnemyTuningDerived.from(baseTuning, tickHz: 60);
+      final meleeStandOffX = _derivedMeleeStandOffX(
+        derived: derived,
+        abilityId: 'grojib.strike',
+      );
       world.transform.posX[world.transform.indexOf(enemy)] =
-          playerX + derived.engagement.meleeStandOffX;
+          playerX + meleeStandOffX;
 
       final probe = SurfaceNavigatorProbe();
       final navigationSystem = EnemyNavigationSystem(surfaceNavigator: probe);

@@ -1,3 +1,5 @@
+import 'package:runner_core/combat/damage_type.dart';
+
 import '../../combat/status/status.dart';
 import '../../snapshots/enums.dart';
 import '../../weapons/weapon_proc.dart';
@@ -8,9 +10,6 @@ final Map<AbilityKey, AbilityDef> grojibAbilityDefs = <AbilityKey, AbilityDef>{
   'grojib.strike': AbilityDef(
     id: 'grojib.strike',
     category: AbilityCategory.melee,
-    allowedSlots: {AbilitySlot.primary},
-    targetingModel: TargetingModel.directional,
-    inputLifecycle: AbilityInputLifecycle.tap,
     hitDelivery: MeleeHitDelivery(
       sizeX: 56.0,
       sizeY: 32.0,
@@ -18,7 +17,8 @@ final Map<AbilityKey, AbilityDef> grojibAbilityDefs = <AbilityKey, AbilityDef>{
       offsetY: 0.0,
       hitPolicy: HitPolicy.oncePerTarget,
     ),
-    baseDamage: 500,
+    baseDamage: 800,
+    baseDamageType: DamageType.physical,
     windupTicks: 15,
     activeTicks: 4,
     recoveryTicks: 17,
@@ -28,9 +28,6 @@ final Map<AbilityKey, AbilityDef> grojibAbilityDefs = <AbilityKey, AbilityDef>{
   'grojib.strike2': AbilityDef(
     id: 'grojib.strike2',
     category: AbilityCategory.melee,
-    allowedSlots: {AbilitySlot.primary},
-    targetingModel: TargetingModel.directional,
-    inputLifecycle: AbilityInputLifecycle.tap,
     hitDelivery: MeleeHitDelivery(
       sizeX: 56.0,
       sizeY: 32.0,
@@ -38,7 +35,8 @@ final Map<AbilityKey, AbilityDef> grojibAbilityDefs = <AbilityKey, AbilityDef>{
       offsetY: 0.0,
       hitPolicy: HitPolicy.oncePerTarget,
     ),
-    baseDamage: 500,
+    baseDamage: 1000,
+    baseDamageType: DamageType.physical,
     windupTicks: 15,
     activeTicks: 4,
     recoveryTicks: 17,

@@ -1,6 +1,6 @@
-import 'catalog/common_ability_defs.dart';
 import 'catalog/eloise_ability_defs.dart';
 import 'catalog/grojib_ability_defs.dart';
+import 'catalog/unoco_ability_defs.dart';
 import 'ability_def.dart';
 
 /// Read-only ability definition lookup contract.
@@ -28,7 +28,7 @@ class AbilityCatalog implements AbilityResolver {
   /// and persisted run/telemetry data.
   static final Map<AbilityKey, AbilityDef> abilities =
       Map<AbilityKey, AbilityDef>.unmodifiable(<AbilityKey, AbilityDef>{
-        ...commonAbilityDefs,
+        ...unocoAbilityDefs,
         ...grojibAbilityDefs,
         ...eloiseAbilityDefs,
       });

@@ -1,7 +1,7 @@
 /// Ground enemy AI tuning grouped by navigation/engagement/locomotion/combat.
 library;
 
-const double _defaultGroundEnemyMeleeStandOffX = 56.0 * (2.0 / 3.0);
+const double _defaultGroundEnemyMeleeStandOffRatio = 2.0 / 3.0;
 
 class GroundEnemyTuning {
   const GroundEnemyTuning({
@@ -60,7 +60,7 @@ class GroundEnemyEngagementTuning {
     this.meleeArriveSlowRadiusX = 12.0,
     this.meleeStrikeSpeedMul = 0.25,
     this.meleeRecoverSpeedMul = 0.5,
-    this.meleeStandOffX = _defaultGroundEnemyMeleeStandOffX,
+    this.meleeStandOffRatio = _defaultGroundEnemyMeleeStandOffRatio,
   });
 
   /// Extra buffer beyond melee range to enter engage state.
@@ -78,11 +78,12 @@ class GroundEnemyEngagementTuning {
   /// Speed multiplier during recover state.
   final double meleeRecoverSpeedMul;
 
-  /// Preferred stand-off target used in engage/strike/recover phases.
+  /// Preferred stand-off ratio of authored melee hitbox width.
   ///
-  /// This is clamped to [GroundEnemyCombatTuning.meleeRangeX] in derived
-  /// tuning so authored values cannot exceed engagement range.
-  final double meleeStandOffX;
+  /// Effective stand-off distance is resolved as:
+  /// `abilityMeleeHitboxWidth * meleeStandOffRatio`, then clamped to
+  /// [GroundEnemyCombatTuning.meleeRangeX].
+  final double meleeStandOffRatio;
 }
 
 /// Locomotion tuning (movement + jump).
@@ -143,13 +144,10 @@ class GroundEnemyTuningDerived {
     final combat = base.combat;
     final engagement = base.engagement;
 
-    final meleeStandOffX = () {
-      final desired = engagement.meleeStandOffX;
+    final meleeStandOffRatio = () {
+      final desired = engagement.meleeStandOffRatio;
       if (desired.isNaN || desired.isInfinite) return 0.0;
-      final clampedToRange = desired > combat.meleeRangeX
-          ? combat.meleeRangeX
-          : desired;
-      return clampedToRange < 0.0 ? 0.0 : clampedToRange;
+      return desired < 0.0 ? 0.0 : desired;
     }();
 
     return GroundEnemyTuningDerived._(
@@ -162,7 +160,7 @@ class GroundEnemyTuningDerived {
         meleeArriveSlowRadiusX: engagement.meleeArriveSlowRadiusX,
         meleeStrikeSpeedMul: engagement.meleeStrikeSpeedMul,
         meleeRecoverSpeedMul: engagement.meleeRecoverSpeedMul,
-        meleeStandOffX: meleeStandOffX,
+        meleeStandOffRatio: meleeStandOffRatio,
       ),
       locomotion: base.locomotion,
       combat: GroundEnemyCombatTuning(meleeRangeX: combat.meleeRangeX),

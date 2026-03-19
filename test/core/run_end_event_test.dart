@@ -35,7 +35,7 @@ void main() {
     final world = EcsWorld();
     final projectile = const ProjectileCatalog().get(ProjectileId.thunderBolt);
     final thunderDamage = AbilityCatalog.shared
-        .resolve('common.enemy_cast')!
+        .resolve('unoco.enemy_cast')!
         .baseDamage;
 
     final player = EntityFactory(world).createPlayer(
