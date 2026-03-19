@@ -71,10 +71,10 @@ test("createRunSession issues boardless practice ticket from canonical selection
   const persisted = await db.collection("run_sessions").doc(runSessionId).get();
   assert.equal(persisted.exists, true);
   assert.equal(persisted.get("state"), "issued");
-  assert.equal(persisted.get("runTicket"), undefined);
+  assert.deepEqual(persisted.get("runTicket"), ticket);
 });
 
-test("createRunSession provisions missing ranked board and persists slim context", async () => {
+test("createRunSession provisions missing ranked board and persists run ticket context", async () => {
   const nowMs = Date.UTC(2026, 2, 12, 12, 0, 0, 0);
   const gameCompatVersion = "2026.03.0";
 
@@ -103,7 +103,7 @@ test("createRunSession provisions missing ranked board and persists slim context
   const persisted = await db.collection("run_sessions").doc(runSessionId).get();
   assert.equal(persisted.exists, true);
   assert.equal(persisted.get("state"), "issued");
-  assert.equal(persisted.get("runTicket"), undefined);
+  assert.deepEqual(persisted.get("runTicket"), result.runTicket);
   assert.equal(typeof persisted.get("boardId"), "string");
   assert.equal(typeof persisted.get("boardKey"), "object");
 });

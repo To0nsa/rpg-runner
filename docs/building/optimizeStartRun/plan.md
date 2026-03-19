@@ -204,10 +204,11 @@ In [functions/src/runs/store.ts](../../../functions/src/runs/store.ts):
 
 Goal: avoid provisioning writes on common hot path.
 
-### B4) Run Session Document Slimming
+### B4) Run Session Persistence Alignment
 
-Keep callable response unchanged (`runTicket` still returned), but reduce
-`run_sessions` write payload to fields needed by finalize/status flows in
+Keep callable response unchanged (`runTicket` still returned) and persist the
+authoritative `runTicket` in `run_sessions` so replay validation can bind
+uploads to issued run context. Preserve finalize/status compatibility in
 [functions/src/runs/submission_store.ts](../../../functions/src/runs/submission_store.ts).
 
 ### B5) Backend Observability and Verification

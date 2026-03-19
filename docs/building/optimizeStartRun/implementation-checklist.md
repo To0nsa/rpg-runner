@@ -331,8 +331,8 @@ Tasks:
 	- [x] load manifest first
 	- [x] ensure/provision only on not-found
 	- [x] single retry load after ensure
-- [x] Slim run session write payload in [functions/src/runs/submission_store.ts](functions/src/runs/submission_store.ts)
-	- [x] keep only downstream-required fields
+- [x] Align run session persistence for validator contract in [functions/src/runs/store.ts](functions/src/runs/store.ts)
+	- [x] persist authoritative `runTicket` in `run_sessions`
 	- [x] keep callable response unchanged
 - [x] Add step timings + structured summaries in [functions/src/runs/store.ts](functions/src/runs/store.ts)
 
@@ -356,7 +356,8 @@ Execution notes (2026-03-18):
 	- provision only on explicit missing-board condition
 	- single manifest retry after ensure
 - `run_sessions` writes in [functions/src/runs/store.ts](functions/src/runs/store.ts)
-  are slimmed to required fields (no embedded `runTicket`).
+  persist the authoritative `runTicket` required by replay validation lease
+  acquisition.
 - [functions/src/runs/submission_store.ts](functions/src/runs/submission_store.ts)
   now reads board context from top-level `boardId`/`boardKey` with legacy
   `runTicket` fallback for compatibility.

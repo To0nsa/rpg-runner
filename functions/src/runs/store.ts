@@ -171,6 +171,7 @@ export async function createRunSession(
     runSessionId,
     uid: args.uid,
     mode: snapshot.mode,
+    runTicket,
     ...(boardContext
       ? {
           boardId: boardContext.boardId,
