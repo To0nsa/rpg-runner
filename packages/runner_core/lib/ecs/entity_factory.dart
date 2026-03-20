@@ -12,6 +12,7 @@ import 'stores/combat/stat_modifier_store.dart';
 import 'stores/combat/status_immunity_store.dart';
 import 'stores/enemies/enemy_store.dart';
 import 'stores/faction_store.dart';
+import 'stores/enemies/flying_enemy_combat_mode_store.dart';
 import 'stores/enemies/flying_enemy_steering_store.dart';
 import 'stores/enemies/ground_enemy_chase_offset_store.dart';
 import 'stores/health_store.dart';
@@ -178,6 +179,10 @@ class EntityFactory {
       world.flyingEnemySteering.add(
         id,
         FlyingEnemySteeringDef(rngState: seedFrom(world.seed, id)),
+      );
+      world.flyingEnemyCombatMode.add(
+        id,
+        const FlyingEnemyCombatModeDef(mode: FlyingEnemyCombatMode.projectile),
       );
     }
     if (enemyId == EnemyId.grojib) {

@@ -7,6 +7,7 @@ import 'package:runner_core/ecs/stores/collider_aabb_store.dart';
 import 'package:runner_core/ecs/stores/health_store.dart';
 import 'package:runner_core/ecs/stores/mana_store.dart';
 import 'package:runner_core/ecs/stores/stamina_store.dart';
+import 'package:runner_core/ecs/stores/enemies/flying_enemy_combat_mode_store.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/ecs/spatial/broadphase_grid.dart';
 import 'package:runner_core/ecs/spatial/grid_index_2d.dart';
@@ -14,8 +15,11 @@ import 'package:runner_core/ecs/systems/damage_system.dart';
 import 'package:runner_core/ecs/systems/enemy_engagement_system.dart';
 import 'package:runner_core/ecs/systems/enemy_melee_system.dart';
 import 'package:runner_core/ecs/systems/enemy_cast_system.dart';
+import 'package:runner_core/ecs/systems/flying_enemy_combat_mode_system.dart';
+import 'package:runner_core/ecs/systems/flying_enemy_melee_system.dart';
 import 'package:runner_core/ecs/systems/cooldown_system.dart';
 import 'package:runner_core/ecs/systems/active_ability_phase_system.dart';
+import 'package:runner_core/ecs/systems/resource_regen_system.dart';
 import 'package:runner_core/ecs/systems/hitbox_follow_owner_system.dart';
 import 'package:runner_core/ecs/systems/hitbox_damage_system.dart';
 import 'package:runner_core/ecs/systems/lifetime_system.dart';
@@ -265,6 +269,335 @@ void main() {
     // After cooldown expiry, the demon should be able to cast again.
     expect(world.projectile.denseEntities.length, greaterThan(1));
   });
+
+  test('enemy cast spends mana on commit', () {
+    final world = EcsWorld();
+
+    final player = EntityFactory(world).createPlayer(
+      posX: 100,
+      posY: 100,
+      velX: 0,
+      velY: 0,
+      facing: Facing.right,
+      grounded: true,
+      body: const BodyDef(isKinematic: true, useGravity: false),
+      collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+      health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
+    );
+
+    final castAbility = AbilityCatalog.shared.resolve('unoco.enemy_cast')!;
+    final fireBolt = const ProjectileCatalog().get(ProjectileId.fireBolt);
+    final castCost = castAbility.resolveCostForWeaponType(fireBolt.weaponType);
+    final initialMana = castCost.manaCost100 + 500;
+
+    final unocoDemon = spawnUnocoDemon(
+      world,
+      posX: 130,
+      posY: 100,
+      velX: 0,
+      velY: 0,
+      facing: Facing.left,
+      body: const BodyDef(isKinematic: true, useGravity: false),
+      collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+      health: const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+      mana: ManaDef(
+        mana: initialMana,
+        manaMax: initialMana,
+        regenPerSecond100: 0,
+      ),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
+    );
+    world.cooldown.setTicksLeft(unocoDemon, CooldownGroup.projectile, 0);
+
+    final castSystem = EnemyCastSystem(
+      unocoDemonTuning: UnocoDemonTuningDerived.from(
+        const UnocoDemonTuning(),
+        tickHz: 60,
+      ),
+      enemyCatalog: const EnemyCatalog(),
+      projectiles: const ProjectileCatalog(),
+    );
+
+    castSystem.step(world, player: player, currentTick: 1);
+
+    final manaIndex = world.mana.indexOf(unocoDemon);
+    expect(
+      world.mana.mana[manaIndex],
+      equals(initialMana - castCost.manaCost100),
+    );
+    final intentIndex = world.projectileIntent.indexOf(unocoDemon);
+    expect(world.projectileIntent.tick[intentIndex], greaterThan(0));
+  });
+
+  test(
+    'enemy falls back to melee when OOM and resumes cast after mana regen',
+    () {
+      final world = EcsWorld();
+
+      final player = EntityFactory(world).createPlayer(
+        posX: 100,
+        posY: 100,
+        velX: 0,
+        velY: 0,
+        facing: Facing.right,
+        grounded: true,
+        body: const BodyDef(isKinematic: true, useGravity: false),
+        collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+        health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+        mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+        stamina: const StaminaDef(
+          stamina: 0,
+          staminaMax: 0,
+          regenPerSecond100: 0,
+        ),
+      );
+
+      final castAbility = AbilityCatalog.shared.resolve('unoco.enemy_cast')!;
+      final fireBolt = const ProjectileCatalog().get(ProjectileId.fireBolt);
+      final castCost = castAbility.resolveCostForWeaponType(
+        fireBolt.weaponType,
+      );
+      final lowMana = castCost.manaCost100 - 100;
+
+      final unocoDemon = spawnUnocoDemon(
+        world,
+        posX: 130,
+        posY: 100,
+        velX: 0,
+        velY: 0,
+        facing: Facing.left,
+        body: const BodyDef(isKinematic: true, useGravity: false),
+        collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+        health: const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+        mana: ManaDef(
+          mana: lowMana,
+          manaMax: castCost.manaCost100 + 1000,
+          regenPerSecond100: 600,
+        ),
+        stamina: const StaminaDef(
+          stamina: 0,
+          staminaMax: 0,
+          regenPerSecond100: 0,
+        ),
+      );
+      world.cooldown.setTicksLeft(unocoDemon, CooldownGroup.projectile, 0);
+      world.cooldown.setTicksLeft(unocoDemon, CooldownGroup.primary, 0);
+
+      final castSystem = EnemyCastSystem(
+        unocoDemonTuning: UnocoDemonTuningDerived.from(
+          const UnocoDemonTuning(),
+          tickHz: 60,
+        ),
+        enemyCatalog: const EnemyCatalog(),
+        projectiles: const ProjectileCatalog(),
+      );
+      final flyingCombatModeSystem = FlyingEnemyCombatModeSystem(
+        enemyCatalog: const EnemyCatalog(),
+        projectiles: const ProjectileCatalog(),
+      );
+      final flyingMeleeSystem = FlyingEnemyMeleeSystem(
+        unocoDemonTuning: UnocoDemonTuningDerived.from(
+          const UnocoDemonTuning(),
+          tickHz: 60,
+        ),
+        enemyCatalog: const EnemyCatalog(),
+      );
+      final cooldownSystem = CooldownSystem();
+      final phaseSystem = ActiveAbilityPhaseSystem();
+      final regenSystem = ResourceRegenSystem(tickHz: 60);
+
+      flyingCombatModeSystem.step(world);
+      castSystem.step(world, player: player, currentTick: 1);
+      flyingMeleeSystem.step(world, player: player, currentTick: 1);
+
+      final meleeIntentIndex = world.meleeIntent.indexOf(unocoDemon);
+      final projectileIntentIndex = world.projectileIntent.indexOf(unocoDemon);
+      expect(world.meleeIntent.tick[meleeIntentIndex], equals(-1));
+      expect(world.projectileIntent.tick[projectileIntentIndex], equals(-1));
+
+      // Force contact to allow fallback strike commit.
+      final enemyTransformIndex = world.transform.indexOf(unocoDemon);
+      world.transform.setPosXY(
+        unocoDemon,
+        116.0,
+        world.transform.posY[enemyTransformIndex],
+      );
+
+      flyingCombatModeSystem.step(world);
+      castSystem.step(world, player: player, currentTick: 2);
+      flyingMeleeSystem.step(world, player: player, currentTick: 2);
+      expect(
+        world.meleeIntent.abilityId[meleeIntentIndex],
+        equals('unoco.strike'),
+      );
+      expect(world.meleeIntent.tick[meleeIntentIndex], greaterThan(2));
+
+      var resumedCast = false;
+      for (var tick = 3; tick <= 180; tick += 1) {
+        cooldownSystem.step(world);
+        phaseSystem.step(world, currentTick: tick);
+        regenSystem.step(world);
+        flyingCombatModeSystem.step(world);
+        castSystem.step(world, player: player, currentTick: tick);
+        flyingMeleeSystem.step(world, player: player, currentTick: tick);
+        if (world.projectileIntent.tick[projectileIntentIndex] >= tick) {
+          resumedCast = true;
+          break;
+        }
+      }
+
+      expect(resumedCast, isTrue);
+      expect(
+        world.projectileIntent.abilityId[projectileIntentIndex],
+        equals('unoco.enemy_cast'),
+      );
+    },
+  );
+
+  test(
+    'melee fallback stays latched until one strike commit even if mana regenerates',
+    () {
+      final world = EcsWorld();
+
+      final player = EntityFactory(world).createPlayer(
+        posX: 100,
+        posY: 100,
+        velX: 0,
+        velY: 0,
+        facing: Facing.right,
+        grounded: true,
+        body: const BodyDef(isKinematic: true, useGravity: false),
+        collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+        health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+        mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+        stamina: const StaminaDef(
+          stamina: 0,
+          staminaMax: 0,
+          regenPerSecond100: 0,
+        ),
+      );
+
+      final castAbility = AbilityCatalog.shared.resolve('unoco.enemy_cast')!;
+      final fireBolt = const ProjectileCatalog().get(ProjectileId.fireBolt);
+      final castCost = castAbility.resolveCostForWeaponType(
+        fireBolt.weaponType,
+      );
+
+      final unocoDemon = spawnUnocoDemon(
+        world,
+        posX: 220,
+        posY: 100,
+        velX: 0,
+        velY: 0,
+        facing: Facing.left,
+        body: const BodyDef(isKinematic: true, useGravity: false),
+        collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+        health: const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+        mana: ManaDef(
+          mana: castCost.manaCost100 - 100,
+          manaMax: castCost.manaCost100 + 1000,
+          regenPerSecond100: 12000,
+        ),
+        stamina: const StaminaDef(
+          stamina: 0,
+          staminaMax: 0,
+          regenPerSecond100: 0,
+        ),
+      );
+      world.cooldown.setTicksLeft(unocoDemon, CooldownGroup.projectile, 0);
+      world.cooldown.setTicksLeft(unocoDemon, CooldownGroup.primary, 0);
+
+      final castSystem = EnemyCastSystem(
+        unocoDemonTuning: UnocoDemonTuningDerived.from(
+          const UnocoDemonTuning(),
+          tickHz: 60,
+        ),
+        enemyCatalog: const EnemyCatalog(),
+        projectiles: const ProjectileCatalog(),
+      );
+      final flyingCombatModeSystem = FlyingEnemyCombatModeSystem(
+        enemyCatalog: const EnemyCatalog(),
+        projectiles: const ProjectileCatalog(),
+      );
+      final flyingMeleeSystem = FlyingEnemyMeleeSystem(
+        unocoDemonTuning: UnocoDemonTuningDerived.from(
+          const UnocoDemonTuning(),
+          tickHz: 60,
+        ),
+        enemyCatalog: const EnemyCatalog(),
+      );
+      final regenSystem = ResourceRegenSystem(tickHz: 60);
+
+      flyingCombatModeSystem.step(world);
+      final modeIndex = world.flyingEnemyCombatMode.indexOf(unocoDemon);
+      expect(
+        world.flyingEnemyCombatMode.mode[modeIndex],
+        equals(FlyingEnemyCombatMode.meleeFallback),
+      );
+      expect(
+        world.flyingEnemyCombatMode.requiresFallbackStrike[modeIndex],
+        isTrue,
+      );
+
+      // Regen above cast cost before contact.
+      regenSystem.step(world);
+      expect(
+        world.mana.mana[world.mana.indexOf(unocoDemon)],
+        greaterThanOrEqualTo(castCost.manaCost100),
+      );
+
+      // Still latched to melee fallback until one strike is committed.
+      flyingCombatModeSystem.step(world);
+      castSystem.step(world, player: player, currentTick: 2);
+      flyingMeleeSystem.step(world, player: player, currentTick: 2);
+      expect(
+        world.flyingEnemyCombatMode.mode[modeIndex],
+        equals(FlyingEnemyCombatMode.meleeFallback),
+      );
+      expect(
+        world.projectileIntent.tick[world.projectileIntent.indexOf(unocoDemon)],
+        equals(-1),
+      );
+
+      // Move into contact and commit fallback strike.
+      final enemyTransformIndex = world.transform.indexOf(unocoDemon);
+      world.transform.setPosXY(
+        unocoDemon,
+        116.0,
+        world.transform.posY[enemyTransformIndex],
+      );
+      flyingCombatModeSystem.step(world);
+      castSystem.step(world, player: player, currentTick: 3);
+      flyingMeleeSystem.step(world, player: player, currentTick: 3);
+      final meleeIntentIndex = world.meleeIntent.indexOf(unocoDemon);
+      expect(
+        world.meleeIntent.abilityId[meleeIntentIndex],
+        equals('unoco.strike'),
+      );
+      expect(world.meleeIntent.tick[meleeIntentIndex], greaterThan(3));
+      expect(
+        world.flyingEnemyCombatMode.requiresFallbackStrike[modeIndex],
+        isFalse,
+      );
+
+      // Latch releases after one committed fallback strike.
+      flyingCombatModeSystem.step(world);
+      expect(
+        world.flyingEnemyCombatMode.mode[modeIndex],
+        equals(FlyingEnemyCombatMode.projectile),
+      );
+    },
+  );
 
   test('enemy projectile (thunder) damages player', () {
     final world = EcsWorld();

@@ -32,6 +32,9 @@ const double _unocoAnimStunStepSeconds = 0.12;
 const int _unocoAnimMoveFrames = 4;
 const double _unocoAnimMoveStepSeconds = 0.12;
 
+const int _unocoAnimStrikeFrames = 8;
+const double _unocoAnimStrikeStepSeconds = 0.06;
+
 const int _unocoAnimHitFrames = 4;
 const double _unocoAnimHitStepSeconds = 0.10;
 
@@ -47,6 +50,7 @@ const Map<AnimKey, int> _unocoAnimFrameCountsByKey = <AnimKey, int>{
   AnimKey.idle: _unocoAnimIdleFrames,
   AnimKey.stun: _unocoAnimStunFrames,
   AnimKey.run: _unocoAnimMoveFrames,
+  AnimKey.strike: _unocoAnimStrikeFrames,
   AnimKey.hit: _unocoAnimHitFrames,
   AnimKey.death: _unocoAnimDeathFrames,
 };
@@ -55,6 +59,7 @@ const Map<AnimKey, double> _unocoAnimStepTimeSecondsByKey = <AnimKey, double>{
   AnimKey.idle: _unocoAnimIdleStepSeconds,
   AnimKey.stun: _unocoAnimStunStepSeconds,
   AnimKey.run: _unocoAnimMoveStepSeconds,
+  AnimKey.strike: _unocoAnimStrikeStepSeconds,
   AnimKey.hit: _unocoAnimHitStepSeconds,
   AnimKey.death: _unocoAnimDeathStepSeconds,
 };
@@ -63,6 +68,7 @@ const Map<AnimKey, String> _unocoAnimSourcesByKey = <AnimKey, String>{
   AnimKey.idle: 'entities/enemies/unoco/flying.png',
   AnimKey.stun: 'entities/enemies/unoco/stun.png',
   AnimKey.run: 'entities/enemies/unoco/flying.png',
+  AnimKey.strike: 'entities/enemies/unoco/strike.png',
   AnimKey.hit: 'entities/enemies/unoco/hit.png',
   AnimKey.death: 'entities/enemies/unoco/death.png',
 };
@@ -81,7 +87,7 @@ const AnimProfile _unocoAnimProfile = AnimProfile(
   supportsWalk: false,
   supportsJumpFall: false,
   supportsStun: true,
-  strikeAnimKey: AnimKey.idle,
+  strikeAnimKey: AnimKey.strike,
 );
 
 // -----------------------------------------------------------------------------
@@ -317,6 +323,7 @@ class EnemyCatalog {
           deathAnimSeconds: _unocoDeathAnimSeconds,
           deathBehavior: DeathBehavior.instant,
           primaryProjectileId: ProjectileId.fireBolt,
+          primaryMeleeAbilityId: 'unoco.strike',
           artFacingDir: Facing.left,
           tags: CreatureTagDef(
             mask: CreatureTagMask.flying | CreatureTagMask.demon,

@@ -13,6 +13,7 @@ import '../../tuning/flying_enemy_tuning.dart';
 import '../../util/double_math.dart';
 import '../../util/fixed_math.dart';
 import '../entity_id.dart';
+import '../stores/enemies/flying_enemy_combat_mode_store.dart';
 import '../stores/projectile_intent_store.dart';
 import '../world.dart';
 
@@ -38,9 +39,9 @@ class EnemyCastSystem {
   }) {
     if (!world.transform.has(player)) return;
 
-    final ability = abilities.resolve(_enemyAbilityId);
-    if (ability == null) return;
-    final cooldownGroupId = ability.effectiveCooldownGroup(
+    final castAbility = abilities.resolve(_enemyAbilityId);
+    if (castAbility == null) return;
+    final castCooldownGroupId = castAbility.effectiveCooldownGroup(
       AbilitySlot.projectile,
     );
 
@@ -64,12 +65,15 @@ class EnemyCastSystem {
       final ti = world.transform.tryIndexOf(enemy);
       if (ti == null) continue;
 
-      if (!world.cooldown.has(enemy)) continue;
-      if (world.cooldown.isOnCooldown(enemy, cooldownGroupId)) continue;
-      if (world.controlLock.isStunned(enemy, currentTick)) continue;
-      if (world.controlLock.isLocked(enemy, LockFlag.cast, currentTick)) {
+      final modeIndex = world.flyingEnemyCombatMode.tryIndexOf(enemy);
+      if (modeIndex != null &&
+          world.flyingEnemyCombatMode.mode[modeIndex] ==
+              FlyingEnemyCombatMode.meleeFallback) {
         continue;
       }
+
+      if (!world.cooldown.has(enemy)) continue;
+      if (world.controlLock.isStunned(enemy, currentTick)) continue;
       if (world.activeAbility.hasActiveAbility(enemy)) continue;
 
       if (!world.projectileIntent.has(enemy)) {
@@ -81,11 +85,23 @@ class EnemyCastSystem {
       }
 
       final enemyId = enemies.enemyId[ei];
-      final projectileId = enemyCatalog.get(enemyId).primaryProjectileId;
+      final archetype = enemyCatalog.get(enemyId);
+      final projectileId = archetype.primaryProjectileId;
       if (projectileId == null) continue;
 
       final projectile = projectiles.get(projectileId);
       final projectileSpeed = projectile.speedUnitsPerSecond;
+      final castCost = castAbility.resolveCostForWeaponType(
+        projectile.weaponType,
+      );
+
+      if (!_canAffordCost(world, enemy: enemy, cost: castCost)) {
+        continue;
+      }
+      if (world.cooldown.isOnCooldown(enemy, castCooldownGroupId)) continue;
+      if (world.controlLock.isLocked(enemy, LockFlag.cast, currentTick)) {
+        continue;
+      }
 
       var enemyCenterX = world.transform.posX[ti];
       var enemyCenterY = world.transform.posY[ti];
@@ -97,7 +113,8 @@ class EnemyCastSystem {
 
       _writeProjectileIntent(
         world,
-        ability: ability,
+        ability: castAbility,
+        commitCost: castCost,
         projectileId: projectileId,
         projectile: projectile,
         enemyIndex: ei,
@@ -109,7 +126,7 @@ class EnemyCastSystem {
         playerVelY: playerVelY,
         projectileSpeed: projectileSpeed,
         currentTick: currentTick,
-        cooldownGroupId: cooldownGroupId,
+        cooldownGroupId: castCooldownGroupId,
       );
     }
   }
@@ -117,6 +134,7 @@ class EnemyCastSystem {
   void _writeProjectileIntent(
     EcsWorld world, {
     required AbilityDef ability,
+    required AbilityResourceCost commitCost,
     required int enemyIndex,
     required double enemyCenterX,
     required double enemyCenterY,
@@ -174,7 +192,6 @@ class EnemyCastSystem {
       weaponDamageType: projectile.damageType,
       weaponProcs: projectile.procs,
     );
-    final commitCost = ability.resolveCostForWeaponType(projectile.weaponType);
 
     final actionSpeedBp = _actionSpeedBpForEntity(world, enemy);
     final windupTicks = _scaleTicksForActionSpeed(
@@ -227,6 +244,7 @@ class EnemyCastSystem {
 
     // Commit side effects (Cooldown + ActiveAbility) must be applied manually
     // since enemies don't use AbilityActivationSystem.
+    _applyCommitResourceCosts(world, enemy: enemy, cost: commitCost);
     world.cooldown.startCooldown(enemy, cooldownGroupId, cooldownTicks);
     world.activeAbility.set(
       enemy,
@@ -238,6 +256,88 @@ class EnemyCastSystem {
       recoveryTicks: recoveryTicks,
       facingDir: world.enemy.facing[enemyIndex],
     );
+  }
+
+  bool _canAffordCost(
+    EcsWorld world, {
+    required EntityId enemy,
+    required AbilityResourceCost cost,
+  }) {
+    if (cost.manaCost100 > 0) {
+      final manaIndex = world.mana.tryIndexOf(enemy);
+      if (manaIndex == null) return false;
+      if (world.mana.mana[manaIndex] < cost.manaCost100) return false;
+    }
+    if (cost.staminaCost100 > 0) {
+      final staminaIndex = world.stamina.tryIndexOf(enemy);
+      if (staminaIndex == null) return false;
+      if (world.stamina.stamina[staminaIndex] < cost.staminaCost100) {
+        return false;
+      }
+    }
+    if (cost.healthCost100 > 0) {
+      final healthIndex = world.health.tryIndexOf(enemy);
+      if (healthIndex == null) return false;
+      if (world.health.hp[healthIndex] - cost.healthCost100 < _minCommitHp100) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  void _applyCommitResourceCosts(
+    EcsWorld world, {
+    required EntityId enemy,
+    required AbilityResourceCost cost,
+  }) {
+    if (cost.manaCost100 > 0) {
+      final manaIndex = world.mana.tryIndexOf(enemy);
+      assert(
+        manaIndex != null,
+        'Missing ManaStore on $enemy for manaCost=${cost.manaCost100}',
+      );
+      if (manaIndex != null) {
+        final current = world.mana.mana[manaIndex];
+        final max = world.mana.manaMax[manaIndex];
+        world.mana.mana[manaIndex] = clampInt(
+          current - cost.manaCost100,
+          0,
+          max,
+        );
+      }
+    }
+    if (cost.staminaCost100 > 0) {
+      final staminaIndex = world.stamina.tryIndexOf(enemy);
+      assert(
+        staminaIndex != null,
+        'Missing StaminaStore on $enemy for staminaCost=${cost.staminaCost100}',
+      );
+      if (staminaIndex != null) {
+        final current = world.stamina.stamina[staminaIndex];
+        final max = world.stamina.staminaMax[staminaIndex];
+        world.stamina.stamina[staminaIndex] = clampInt(
+          current - cost.staminaCost100,
+          0,
+          max,
+        );
+      }
+    }
+    if (cost.healthCost100 > 0) {
+      final healthIndex = world.health.tryIndexOf(enemy);
+      assert(
+        healthIndex != null,
+        'Missing HealthStore on $enemy for healthCost=${cost.healthCost100}',
+      );
+      if (healthIndex != null) {
+        final current = world.health.hp[healthIndex];
+        final max = world.health.hpMax[healthIndex];
+        world.health.hp[healthIndex] = clampInt(
+          current - cost.healthCost100,
+          _minCommitHp100,
+          max,
+        );
+      }
+    }
   }
 
   int _scaleAbilityTicks(int ticks) {
@@ -261,5 +361,6 @@ class EnemyCastSystem {
   }
 
   static const int _abilityTickHz = 60;
+  static const int _minCommitHp100 = 1;
   static const AbilityKey _enemyAbilityId = 'unoco.enemy_cast';
 }

@@ -374,12 +374,10 @@ class AbilityDef {
   AbilityDef({
     required this.id,
     required this.category,
-    Set<AbilitySlot> allowedSlots = const <AbilitySlot>{
-      AbilitySlot.projectile,
-    },
+    Set<AbilitySlot> allowedSlots = const <AbilitySlot>{AbilitySlot.projectile},
     this.hitDelivery = const SelfHitDelivery(),
     this.targetingModel = TargetingModel.none,
-    this.inputLifecycle = AbilityInputLifecycle.holdRelease,
+    this.inputLifecycle = AbilityInputLifecycle.tap,
     this.payloadSource = AbilityPayloadSource.none,
     this.baseDamage = 0,
     this.baseDamageType = DamageType.physical,
@@ -645,7 +643,7 @@ class AbilityDef {
   /// Suggested defaults:
   ///   0 = primary melee
   ///   1 = secondary melee
-///   2 = projectile spell
+  ///   2 = projectile spell
   ///   3 = mobility
   ///   4 = jump
   ///   5-7 = future/spell

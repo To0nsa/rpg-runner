@@ -487,12 +487,12 @@ void main() {
         expect(world.animState.anim[ai], equals(AnimKey.run));
       });
 
-      test('strike mapped to idle (no strike strip)', () {
+      test('strike uses dedicated strike strip', () {
         final enemy = spawnUnocoDemon(world, posX: 100, posY: 100);
 
         world.activeAbility.set(
           enemy,
-          id: 'grojib.strike',
+          id: 'unoco.strike',
           slot: AbilitySlot.primary,
           commitTick: 5,
           windupTicks: 0,
@@ -504,7 +504,7 @@ void main() {
         stepEnemies(8);
 
         final ai = world.animState.indexOf(enemy);
-        expect(world.animState.anim[ai], equals(AnimKey.idle));
+        expect(world.animState.anim[ai], equals(AnimKey.strike));
       });
 
       test('hit animation on damage', () {

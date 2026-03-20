@@ -15,6 +15,7 @@ import 'stores/combat/status_immunity_store.dart';
 import 'stores/collectible_store.dart';
 import 'stores/player/gravity_control_store.dart';
 import 'stores/player/jump_state_store.dart';
+import 'stores/enemies/flying_enemy_combat_mode_store.dart';
 import 'stores/enemies/flying_enemy_steering_store.dart';
 import 'stores/faction_store.dart';
 import 'stores/anim/anim_state_store.dart';
@@ -309,6 +310,11 @@ class EcsWorld {
   /// Steering behaviors for flying enemies.
   late final FlyingEnemySteeringStore flyingEnemySteering = _register(
     FlyingEnemySteeringStore(),
+  );
+
+  /// High-level combat mode selected for flying enemies.
+  late final FlyingEnemyCombatModeStore flyingEnemyCombatMode = _register(
+    FlyingEnemyCombatModeStore(),
   );
 
   /// AI state for ground enemies to create offset chasing behaviors.

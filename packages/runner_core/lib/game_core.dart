@@ -103,7 +103,9 @@ import 'ecs/systems/death_despawn_system.dart';
 import 'ecs/systems/enemy_cast_system.dart';
 import 'ecs/systems/enemy_death_state_system.dart';
 import 'ecs/systems/enemy_engagement_system.dart';
+import 'ecs/systems/flying_enemy_combat_mode_system.dart';
 import 'ecs/systems/flying_enemy_locomotion_system.dart';
+import 'ecs/systems/flying_enemy_melee_system.dart';
 import 'ecs/systems/ground_enemy_locomotion_system.dart';
 import 'ecs/systems/enemy_navigation_system.dart';
 import 'ecs/systems/gravity_system.dart';
@@ -550,10 +552,20 @@ class GameCore {
     _flyingEnemyLocomotionSystem = FlyingEnemyLocomotionSystem(
       unocoDemonTuning: _unocoDemonTuning,
     );
+    _flyingEnemyCombatModeSystem = FlyingEnemyCombatModeSystem(
+      enemyCatalog: _enemyCatalog,
+      projectiles: _projectiles,
+      abilities: abilityCatalog,
+    );
     _enemyCastSystem = EnemyCastSystem(
       unocoDemonTuning: _unocoDemonTuning,
       enemyCatalog: _enemyCatalog,
       projectiles: _projectiles,
+      abilities: abilityCatalog,
+    );
+    _flyingEnemyMeleeSystem = FlyingEnemyMeleeSystem(
+      unocoDemonTuning: _unocoDemonTuning,
+      enemyCatalog: _enemyCatalog,
       abilities: abilityCatalog,
     );
     _enemyMeleeSystem = EnemyMeleeSystem(
@@ -760,8 +772,10 @@ class GameCore {
   late EnemyNavigationSystem _enemyNavigationSystem;
   late EnemyEngagementSystem _enemyEngagementSystem;
   late GroundEnemyLocomotionSystem _groundEnemyLocomotionSystem;
+  late FlyingEnemyCombatModeSystem _flyingEnemyCombatModeSystem;
   late FlyingEnemyLocomotionSystem _flyingEnemyLocomotionSystem;
   late EnemyCastSystem _enemyCastSystem;
+  late FlyingEnemyMeleeSystem _flyingEnemyMeleeSystem;
   late EnemyMeleeSystem _enemyMeleeSystem;
   late final SurfaceGraphBuilder _surfaceGraphBuilder;
   late final JumpReachabilityTemplate _groundEnemyJumpTemplate;
@@ -1092,6 +1106,7 @@ class GameCore {
     // ─── Phase 3: AI, input, and movement ───
     _enemyNavigationSystem.step(_world, player: _player, currentTick: tick);
     _enemyEngagementSystem.step(_world, player: _player, currentTick: tick);
+    _flyingEnemyCombatModeSystem.step(_world);
     _groundEnemyLocomotionSystem.step(
       _world,
       player: _player,
@@ -1177,6 +1192,7 @@ class GameCore {
     // Player intents are written at commit-time in Phase 3 (AbilityActivationSystem),
     // then executed later via stamped executeTick. Keep ordering explicit for tie-breaks.
     _enemyCastSystem.step(_world, player: _player, currentTick: tick);
+    _flyingEnemyMeleeSystem.step(_world, player: _player, currentTick: tick);
     _enemyMeleeSystem.step(_world, player: _player, currentTick: tick);
 
     // ─── Phase 10: Strike execution ───

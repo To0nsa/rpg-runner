@@ -5,6 +5,7 @@ import '../../tuning/flying_enemy_tuning.dart';
 import '../../util/deterministic_rng.dart';
 import '../../util/double_math.dart';
 import '../../util/velocity_math.dart';
+import '../stores/enemies/flying_enemy_combat_mode_store.dart';
 import '../world.dart';
 
 /// Applies movement for flying enemies based on steering behaviors.
@@ -25,8 +26,13 @@ class FlyingEnemyLocomotionSystem {
     if (!world.transform.has(player)) return;
 
     final playerTi = world.transform.indexOf(player);
-    final playerX = world.transform.posX[playerTi];
-    final playerY = world.transform.posY[playerTi];
+    var playerCenterX = world.transform.posX[playerTi];
+    var playerCenterY = world.transform.posY[playerTi];
+    if (world.colliderAabb.has(player)) {
+      final playerAi = world.colliderAabb.indexOf(player);
+      playerCenterX += world.colliderAabb.offsetX[playerAi];
+      playerCenterY += world.colliderAabb.offsetY[playerAi];
+    }
 
     final steering = world.flyingEnemySteering;
     for (var i = 0; i < steering.denseEntities.length; i += 1) {
@@ -36,7 +42,7 @@ class FlyingEnemyLocomotionSystem {
       if (enemyTi == null) continue;
 
       if (world.controlLock.isStunned(enemy, currentTick)) {
-        // Option B: Freeze in place
+        // Option B: Freeze in place.
         world.transform.velX[enemyTi] = 0.0;
         world.transform.velY[enemyTi] = 0.0;
         continue;
@@ -59,8 +65,8 @@ class FlyingEnemyLocomotionSystem {
         enemy: enemy,
         enemyTi: enemyTi,
         steeringIndex: i,
-        playerX: playerX,
-        playerY: playerY,
+        playerCenterX: playerCenterX,
+        playerCenterY: playerCenterY,
         ex: ex,
         ey: ey,
         groundTopY: groundTopY,
@@ -75,8 +81,8 @@ class FlyingEnemyLocomotionSystem {
     required EntityId enemy,
     required int enemyTi,
     required int steeringIndex,
-    required double playerX,
-    required double playerY,
+    required double playerCenterX,
+    required double playerCenterY,
     required double ex,
     required double ey,
     required double groundTopY,
@@ -129,20 +135,43 @@ class FlyingEnemyLocomotionSystem {
       );
     }
 
-    final dx = playerX - ex;
+    final modeIndex = world.flyingEnemyCombatMode.tryIndexOf(enemy);
+    if (modeIndex == null) {
+      assert(
+        false,
+        'FlyingEnemyLocomotionSystem requires FlyingEnemyCombatModeStore on flying enemies; add it at spawn time.',
+      );
+      return;
+    }
+    if (world.flyingEnemyCombatMode.mode[modeIndex] ==
+        FlyingEnemyCombatMode.meleeFallback) {
+      desiredRange = _fallbackMeleeContactRange;
+    }
+    final locomotionMode =
+        world.flyingEnemyCombatMode.mode[modeIndex] ==
+            FlyingEnemyCombatMode.meleeFallback
+        ? _FlyingLocomotionMode.approachStrike
+        : _FlyingLocomotionMode.hover;
+
+    final dx = playerCenterX - ex;
     final distX = dx.abs();
     if (distX > 1e-6) {
       world.enemy.facing[enemyIndex] = dx >= 0 ? Facing.right : Facing.left;
     }
 
-    final slack = tuning.base.unocoDemonHoldSlack;
-    double desiredVelX = 0.0;
+    final slack = locomotionMode == _FlyingLocomotionMode.approachStrike
+        ? _approachStrikeSlackX
+        : tuning.base.unocoDemonHoldSlack;
+    var desiredVelX = 0.0;
     if (distX > 1e-6) {
       final dirToPlayerX = dx >= 0 ? 1.0 : -1.0;
       final error = distX - desiredRange;
 
       if (error.abs() > slack) {
-        final slowRadiusX = tuning.base.unocoDemonSlowRadiusX;
+        final slowRadiusX =
+            locomotionMode == _FlyingLocomotionMode.approachStrike
+            ? 0.0
+            : tuning.base.unocoDemonSlowRadiusX;
         final t = slowRadiusX > 0.0
             ? clampDouble((error.abs() - slack) / slowRadiusX, 0.0, 1.0)
             : 1.0;
@@ -151,31 +180,38 @@ class FlyingEnemyLocomotionSystem {
       }
     }
 
-    var flightTargetHoldLeftS =
-        steering.flightTargetHoldLeftS[steeringIndex];
+    var flightTargetHoldLeftS = steering.flightTargetHoldLeftS[steeringIndex];
     var flightTargetAboveGround =
         steering.flightTargetAboveGround[steeringIndex];
-    if (flightTargetHoldLeftS > 0.0) {
-      flightTargetHoldLeftS -= dtSeconds;
+    late final double targetY;
+    if (locomotionMode == _FlyingLocomotionMode.hover) {
+      if (flightTargetHoldLeftS > 0.0) {
+        flightTargetHoldLeftS -= dtSeconds;
+      } else {
+        flightTargetHoldLeftS = nextRange(
+          tuning.base.unocoDemonFlightTargetHoldMinSeconds,
+          tuning.base.unocoDemonFlightTargetHoldMaxSeconds,
+        );
+        flightTargetAboveGround = nextRange(
+          tuning.base.unocoDemonMinHeightAboveGround,
+          tuning.base.unocoDemonMaxHeightAboveGround,
+        );
+      }
+      targetY = groundTopY - flightTargetAboveGround;
     } else {
-      flightTargetHoldLeftS = nextRange(
-        tuning.base.unocoDemonFlightTargetHoldMinSeconds,
-        tuning.base.unocoDemonFlightTargetHoldMaxSeconds,
-      );
-      flightTargetAboveGround = nextRange(
-        tuning.base.unocoDemonMinHeightAboveGround,
-        tuning.base.unocoDemonMaxHeightAboveGround,
-      );
+      targetY = playerCenterY;
     }
-
-    final targetY = groundTopY - flightTargetAboveGround;
     final deltaY = targetY - ey;
-    double desiredVelY = clampDouble(
+    var desiredVelY = clampDouble(
       deltaY * tuning.base.unocoDemonVerticalKp,
       -tuning.base.unocoDemonMaxSpeedY,
       tuning.base.unocoDemonMaxSpeedY,
     );
-    if (deltaY.abs() <= tuning.base.unocoDemonVerticalDeadzone) {
+    final verticalDeadzone =
+        locomotionMode == _FlyingLocomotionMode.approachStrike
+        ? _approachStrikeDeadzoneY
+        : tuning.base.unocoDemonVerticalDeadzone;
+    if (deltaY.abs() <= verticalDeadzone) {
       desiredVelY = 0.0;
     }
 
@@ -197,5 +233,10 @@ class FlyingEnemyLocomotionSystem {
     steering.flightTargetAboveGround[steeringIndex] = flightTargetAboveGround;
     steering.rngState[steeringIndex] = rngState;
   }
+
+  static const double _fallbackMeleeContactRange = 0.0;
+  static const double _approachStrikeSlackX = 0.0;
+  static const double _approachStrikeDeadzoneY = 0.0;
 }
 
+enum _FlyingLocomotionMode { hover, approachStrike }
