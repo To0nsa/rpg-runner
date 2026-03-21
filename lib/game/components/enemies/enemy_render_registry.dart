@@ -113,6 +113,10 @@ class EnemyRenderRegistry {
       id: EnemyId.grojib,
       renderScale: Vector2.all(1.5),
     ),
+    EnemyId.hashash: EnemyRenderEntry(
+      id: EnemyId.hashash,
+      renderScale: Vector2.all(1.5),
+    ),
   };
 
   EnemyRenderEntry? entryFor(EnemyId id) {

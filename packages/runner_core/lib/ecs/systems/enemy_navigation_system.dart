@@ -1,6 +1,6 @@
 import 'package:runner_core/ecs/entity_id.dart';
 
-import '../../enemies/enemy_id.dart';
+import '../../combat/control_lock.dart';
 import '../../navigation/surface_navigator.dart';
 import '../../navigation/types/surface_graph.dart';
 import '../../navigation/types/surface_id.dart';
@@ -139,14 +139,16 @@ class EnemyNavigationSystem {
 
     final enemies = world.enemy;
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
-      if (enemies.enemyId[ei] != EnemyId.grojib) continue;
-
       final enemy = enemies.denseEntities[ei];
       if (world.deathState.has(enemy)) continue;
+      if (!world.surfaceNav.has(enemy)) continue;
       final ti = world.transform.tryIndexOf(enemy);
       if (ti == null) continue;
 
-      if (world.controlLock.isStunned(enemy, currentTick)) continue;
+      if (world.controlLock.isStunned(enemy, currentTick) ||
+          world.controlLock.isLocked(enemy, LockFlag.nav, currentTick)) {
+        continue;
+      }
 
       final navIndex = world.surfaceNav.tryIndexOf(enemy);
       if (navIndex == null) continue;
@@ -236,4 +238,3 @@ class EnemyNavigationSystem {
     }
   }
 }
-

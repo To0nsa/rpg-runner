@@ -34,4 +34,38 @@ void main() {
     expect(world.lastDamage.has(enemy), isTrue);
     expect(world.lastDamage.tick[world.lastDamage.indexOf(enemy)], equals(-1));
   });
+
+  test('createEnemy hashash wires the ground-enemy component stack', () {
+    final world = EcsWorld(seed: 42);
+    final enemy = EntityFactory(world).createEnemy(
+      enemyId: EnemyId.hashash,
+      posX: 0,
+      posY: 0,
+      velX: 0,
+      velY: 0,
+      facing: Facing.left,
+      body: const BodyDef(
+        isKinematic: false,
+        useGravity: true,
+        ignoreCeilings: true,
+      ),
+      collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+      health: const HealthDef(hp: 1000, hpMax: 1000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
+    );
+
+    expect(world.surfaceNav.has(enemy), isTrue);
+    expect(world.groundEnemyChaseOffset.has(enemy), isTrue);
+    expect(world.navIntent.has(enemy), isTrue);
+    expect(world.engagementIntent.has(enemy), isTrue);
+    expect(world.meleeEngagement.has(enemy), isTrue);
+    expect(world.meleeCombo.has(enemy), isTrue);
+    expect(world.flyingEnemySteering.has(enemy), isFalse);
+    expect(world.flyingEnemyCombatMode.has(enemy), isFalse);
+  });
 }

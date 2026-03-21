@@ -209,6 +209,127 @@ const AnimProfile _grojibAnimProfile = AnimProfile(
   directionalStrike: true,
 );
 
+// -----------------------------------------------------------------------------
+// Hashash (ground enemy) render animation sheet definitions (authoring-time)
+// -----------------------------------------------------------------------------
+
+const int _hashashAnimFrameWidth = 53;
+const int _hashashAnimFrameHeight = 38;
+
+const int _hashashAnimIdleFrames = 8;
+const double _hashashAnimIdleStepSeconds = 0.12;
+
+const int _hashashAnimWalkFrames = 8;
+const double _hashashAnimWalkStepSeconds = 0.08;
+
+const int _hashashAnimRunFrames = 8;
+const double _hashashAnimRunStepSeconds = 0.08;
+
+const int _hashashAnimDashFrames = 8;
+const double _hashashAnimDashStepSeconds = 0.07;
+
+const int _hashashAnimStrikeFrames = 13;
+const double _hashashAnimStrikeStepSeconds = 0.06;
+
+const int _hashashAnimHitFrames = 3;
+const double _hashashAnimHitStepSeconds = 0.10;
+
+const int _hashashAnimDeathFrames = 16;
+const double _hashashAnimDeathStepSeconds = 0.10;
+
+const int _hashashAnimJumpFrames = 3;
+const double _hashashAnimJumpStepSeconds = 0.10;
+
+const int _hashashAnimFallFrames = 3;
+const double _hashashAnimFallStepSeconds = 0.10;
+
+const int _hashashAnimSpawnFrames = 8;
+const double _hashashAnimSpawnStepSeconds = 0.12;
+
+const double _hashashHitAnimSeconds =
+    _hashashAnimHitFrames * _hashashAnimHitStepSeconds;
+const double _hashashDeathAnimSeconds =
+    _hashashAnimDeathFrames * _hashashAnimDeathStepSeconds;
+const double _hashashSpawnAnimSeconds =
+    _hashashAnimSpawnFrames * _hashashAnimSpawnStepSeconds;
+
+const Map<AnimKey, int> _hashashAnimFrameCountsByKey = <AnimKey, int>{
+  AnimKey.idle: _hashashAnimIdleFrames,
+  AnimKey.stun: _hashashAnimHitFrames,
+  AnimKey.walk: _hashashAnimWalkFrames,
+  AnimKey.run: _hashashAnimRunFrames,
+  AnimKey.dash: _hashashAnimDashFrames,
+  AnimKey.strike: _hashashAnimStrikeFrames,
+  AnimKey.hit: _hashashAnimHitFrames,
+  AnimKey.death: _hashashAnimDeathFrames,
+  AnimKey.jump: _hashashAnimJumpFrames,
+  AnimKey.fall: _hashashAnimFallFrames,
+  AnimKey.spawn: _hashashAnimSpawnFrames,
+};
+
+const Map<AnimKey, double> _hashashAnimStepTimeSecondsByKey = <AnimKey, double>{
+  AnimKey.idle: _hashashAnimIdleStepSeconds,
+  AnimKey.stun: _hashashAnimHitStepSeconds,
+  AnimKey.walk: _hashashAnimWalkStepSeconds,
+  AnimKey.run: _hashashAnimRunStepSeconds,
+  AnimKey.dash: _hashashAnimDashStepSeconds,
+  AnimKey.strike: _hashashAnimStrikeStepSeconds,
+  AnimKey.hit: _hashashAnimHitStepSeconds,
+  AnimKey.death: _hashashAnimDeathStepSeconds,
+  AnimKey.jump: _hashashAnimJumpStepSeconds,
+  AnimKey.fall: _hashashAnimFallStepSeconds,
+  AnimKey.spawn: _hashashAnimSpawnStepSeconds,
+};
+
+const String _hashashAnimSpriteSheetPath =
+    'entities/enemies/hashash/hashash.png';
+
+const Map<AnimKey, String> _hashashAnimSourcesByKey = <AnimKey, String>{
+  AnimKey.idle: _hashashAnimSpriteSheetPath,
+  AnimKey.stun: _hashashAnimSpriteSheetPath,
+  AnimKey.walk: _hashashAnimSpriteSheetPath,
+  AnimKey.run: _hashashAnimSpriteSheetPath,
+  AnimKey.dash: _hashashAnimSpriteSheetPath,
+  AnimKey.strike: _hashashAnimSpriteSheetPath,
+  AnimKey.hit: _hashashAnimSpriteSheetPath,
+  AnimKey.death: _hashashAnimSpriteSheetPath,
+  AnimKey.jump: _hashashAnimSpriteSheetPath,
+  AnimKey.fall: _hashashAnimSpriteSheetPath,
+  AnimKey.spawn: _hashashAnimSpriteSheetPath,
+};
+
+const Map<AnimKey, int> _hashashAnimRowByKey = <AnimKey, int>{
+  AnimKey.idle: 0,
+  AnimKey.walk: 1,
+  AnimKey.run: 1,
+  AnimKey.dash: 2,
+  AnimKey.strike: 3,
+  AnimKey.hit: 4,
+  AnimKey.stun: 4,
+  AnimKey.death: 5,
+  AnimKey.jump: 6,
+  AnimKey.fall: 8,
+  AnimKey.spawn: 11,
+};
+
+const RenderAnimSetDefinition _hashashRenderAnim = RenderAnimSetDefinition(
+  frameWidth: _hashashAnimFrameWidth,
+  frameHeight: _hashashAnimFrameHeight,
+  sourcesByKey: _hashashAnimSourcesByKey,
+  rowByKey: _hashashAnimRowByKey,
+  frameCountsByKey: _hashashAnimFrameCountsByKey,
+  stepTimeSecondsByKey: _hashashAnimStepTimeSecondsByKey,
+);
+
+const AnimProfile _hashashAnimProfile = AnimProfile(
+  minMoveSpeed: 1.0,
+  runSpeedThresholdX: 120.0,
+  locomotionDashSpeedThresholdX: 260.0,
+  supportsDash: true,
+  supportsSpawn: true,
+  supportsStun: true,
+);
+
 /// Defines the base stats and physics properties for an enemy type.
 ///
 /// This data is "static" (read-only) configuration used to initialize
@@ -224,6 +345,7 @@ class EnemyArchetype {
     required this.animProfile,
     required this.hitAnimSeconds,
     required this.deathAnimSeconds,
+    this.spawnAnimSeconds = 0.0,
     this.deathBehavior = DeathBehavior.instant,
     this.primaryProjectileId,
     this.primaryMeleeAbilityId,
@@ -256,6 +378,9 @@ class EnemyArchetype {
 
   /// Duration the death animation should be visible (seconds).
   final double deathAnimSeconds;
+
+  /// Duration the spawn animation should be visible (seconds).
+  final double spawnAnimSeconds;
 
   /// Behavior for death transition timing (instant vs ground impact).
   final DeathBehavior deathBehavior;
@@ -356,6 +481,33 @@ class EnemyCatalog {
           deathBehavior: DeathBehavior.groundImpactThenDeath,
           primaryMeleeAbilityId: 'grojib.strike',
           comboMeleeAbilityId: 'grojib.strike2',
+          tags: CreatureTagDef(mask: CreatureTagMask.humanoid),
+        );
+      case EnemyId.hashash:
+        return const EnemyArchetype(
+          body: BodyDef(
+            isKinematic: false,
+            useGravity: true,
+            ignoreCeilings: true,
+            gravityScale: 1.0,
+            sideMask: BodyDef.sideLeft | BodyDef.sideRight,
+          ),
+          collider: ColliderAabbDef(
+            halfX: 14.0,
+            halfY: 16.0,
+            offsetX: 0.0,
+            offsetY: 12.0,
+          ),
+          health: HealthDef(hp: 1600, hpMax: 1600, regenPerSecond100: 50),
+          mana: ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+          stamina: StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
+          renderAnim: _hashashRenderAnim,
+          animProfile: _hashashAnimProfile,
+          hitAnimSeconds: _hashashHitAnimSeconds,
+          deathAnimSeconds: _hashashDeathAnimSeconds,
+          spawnAnimSeconds: _hashashSpawnAnimSeconds,
+          deathBehavior: DeathBehavior.groundImpactThenDeath,
+          primaryMeleeAbilityId: 'hashash.strike',
           tags: CreatureTagDef(mask: CreatureTagMask.humanoid),
         );
     }

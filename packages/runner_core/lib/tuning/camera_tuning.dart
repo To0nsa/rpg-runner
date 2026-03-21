@@ -16,7 +16,7 @@ enum CameraVerticalMode {
 
 class CameraTuning {
   const CameraTuning({
-    this.speedLagMulX = 0.0,
+    this.speedLagMulX = 1.0,
     this.accelX = 1200.0,
     this.followThresholdRatio = 0.5,
     this.catchupLerp = 8.0,

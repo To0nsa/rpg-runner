@@ -1380,6 +1380,13 @@ class GameCore {
               spawnX: x,
               groundTopY: effectiveGroundTopY,
             );
+          case EnemyId.hashash:
+            _spawnService.spawnGroundEnemy(
+              enemyId: EnemyId.hashash,
+              spawnX: x,
+              groundTopY: effectiveGroundTopY,
+              spawnTick: tick,
+            );
         }
       },
       lowestResourceStat: _lowestResourceStat,

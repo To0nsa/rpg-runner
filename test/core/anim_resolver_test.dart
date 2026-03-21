@@ -162,5 +162,23 @@ void main() {
       expect(result.anim, AnimKey.run);
       expect(result.animFrame, 35);
     });
+
+    test('locomotion dash threshold upgrades high-speed run to dash', () {
+      const dashProfile = AnimProfile(
+        minMoveSpeed: 0.1,
+        runSpeedThresholdX: 2.0,
+        supportsWalk: true,
+        supportsDash: true,
+        locomotionDashSpeedThresholdX: 4.0,
+      );
+
+      final result = AnimResolver.resolve(
+        dashProfile,
+        AnimSignals.player(tick: 36, hp: 1, grounded: true, velX: 4.5),
+      );
+
+      expect(result.anim, AnimKey.dash);
+      expect(result.animFrame, 36);
+    });
   });
 }

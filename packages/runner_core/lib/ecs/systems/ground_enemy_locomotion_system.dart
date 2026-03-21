@@ -1,5 +1,6 @@
 import 'package:runner_core/ecs/entity_id.dart';
 
+import '../../combat/control_lock.dart';
 import '../../navigation/types/surface_graph.dart';
 import '../../snapshots/enums.dart';
 import '../../tuning/ground_enemy_tuning.dart';
@@ -40,7 +41,8 @@ class GroundEnemyLocomotionSystem {
       final enemyTi = world.transform.tryIndexOf(enemy);
       if (enemyTi == null) continue;
 
-      if (world.controlLock.isStunned(enemy, currentTick)) {
+      if (world.controlLock.isStunned(enemy, currentTick) ||
+          world.controlLock.isLocked(enemy, LockFlag.move, currentTick)) {
         world.transform.velX[enemyTi] = 0.0;
         // Keep velY for falling
         continue;
@@ -402,4 +404,3 @@ class GroundEnemyLocomotionSystem {
     return clampDouble(requiredAbs, 0.0, maxSpeedAbs);
   }
 }
-

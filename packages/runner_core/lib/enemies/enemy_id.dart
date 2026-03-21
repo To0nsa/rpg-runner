@@ -10,5 +10,7 @@ enum EnemyId {
 
   /// A basic ground chasing enemy that is affected by gravity.
   grojib,
-}
 
+  /// A nimble ground assassin that chases and jumps with the surface navigator.
+  hashash,
+}

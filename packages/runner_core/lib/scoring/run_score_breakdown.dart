@@ -125,6 +125,7 @@ RunScoreBreakdown buildRunScoreBreakdown({
 int _enemyKillScore(ScoreTuning tuning, EnemyId enemyId) {
   switch (enemyId) {
     case EnemyId.grojib:
+    case EnemyId.hashash:
       return tuning.groundEnemyKillScore;
     case EnemyId.unocoDemon:
       return tuning.unocoDemonKillScore;

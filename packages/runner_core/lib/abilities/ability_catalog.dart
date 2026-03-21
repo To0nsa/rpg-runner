@@ -1,5 +1,6 @@
 import 'catalog/eloise_ability_defs.dart';
 import 'catalog/grojib_ability_defs.dart';
+import 'catalog/hashash_ability_defs.dart';
 import 'catalog/unoco_ability_defs.dart';
 import 'ability_def.dart';
 
@@ -30,6 +31,7 @@ class AbilityCatalog implements AbilityResolver {
       Map<AbilityKey, AbilityDef>.unmodifiable(<AbilityKey, AbilityDef>{
         ...unocoAbilityDefs,
         ...grojibAbilityDefs,
+        ...hashashAbilityDefs,
         ...eloiseAbilityDefs,
       });
 

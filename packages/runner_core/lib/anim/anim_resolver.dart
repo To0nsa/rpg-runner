@@ -12,6 +12,7 @@ class AnimProfile {
   const AnimProfile({
     required this.minMoveSpeed,
     required this.runSpeedThresholdX,
+    this.locomotionDashSpeedThresholdX,
     this.supportsWalk = true,
     this.supportsJumpFall = true,
     this.supportsDash = false,
@@ -37,6 +38,7 @@ class AnimProfile {
 
   final double minMoveSpeed;
   final double runSpeedThresholdX;
+  final double? locomotionDashSpeedThresholdX;
   final bool supportsWalk;
   final bool supportsJumpFall;
   final bool supportsDash;
@@ -131,6 +133,8 @@ class AnimSignals {
     double velY = 0.0,
     int lastDamageTick = -1,
     int hitAnimTicks = 0,
+    int spawnStartTick = -1,
+    int spawnAnimTicks = 0,
     bool stunLocked = false,
     int stunStartTick = -1,
     AnimKey? activeActionAnim,
@@ -146,6 +150,8 @@ class AnimSignals {
       velY: velY,
       lastDamageTick: lastDamageTick,
       hitAnimTicks: hitAnimTicks,
+      spawnStartTick: spawnStartTick,
+      spawnAnimTicks: spawnAnimTicks,
       stunLocked: stunLocked,
       stunStartTick: stunStartTick,
       activeActionAnim: activeActionAnim,
@@ -191,7 +197,7 @@ class AnimResolver {
   /// 2. Death (if dying or dead)
   /// 3. Hit React (if taking damage)
   /// 4. Active Action (manual overrides from abilities)
-  /// 5. Movement (Jump/Fall > Spawn > Run > Walk > Idle)
+  /// 5. Movement (Jump/Fall > Spawn > Dash > Run > Walk > Idle)
   ///
   /// Frame-origin policy:
   /// - Relative-to-start: stun, death, hit, active action, spawn.
@@ -284,6 +290,12 @@ class AnimResolver {
     final speedX = signals.velX.abs();
     if (speedX <= profile.minMoveSpeed) {
       return AnimResult(anim: profile.idleAnimKey, animFrame: tick);
+    }
+    final locomotionDashSpeedThresholdX = profile.locomotionDashSpeedThresholdX;
+    if (profile.supportsDash &&
+        locomotionDashSpeedThresholdX != null &&
+        speedX >= locomotionDashSpeedThresholdX) {
+      return AnimResult(anim: profile.dashAnimKey, animFrame: tick);
     }
     if (profile.supportsWalk && speedX < profile.runSpeedThresholdX) {
       return AnimResult(anim: profile.walkAnimKey, animFrame: tick);

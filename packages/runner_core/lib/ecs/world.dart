@@ -61,6 +61,7 @@ import 'stores/reactive_damage_event_queue_store.dart';
 import 'stores/reactive_proc_cooldown_store.dart';
 import 'stores/stamina_store.dart';
 import 'stores/enemies/surface_nav_state_store.dart';
+import 'stores/spawn_state_store.dart';
 import 'stores/transform_store.dart';
 
 /// Minimal Entity Component System (ECS) world container.
@@ -301,6 +302,9 @@ class EcsWorld {
 
   /// Per-entity animation state computed by [AnimSystem].
   late final AnimStateStore animState = _register(AnimStateStore());
+
+  /// Per-entity spawn animation timing state.
+  late final SpawnStateStore spawnState = _register(SpawnStateStore());
 
   /// Tracks the currently active ability for animation purposes.
   late final ActiveAbilityStateStore activeAbility = _register(

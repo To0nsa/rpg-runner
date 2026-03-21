@@ -35,6 +35,7 @@ library;
 
 import 'abilities/ability_catalog.dart';
 import 'abilities/ability_def.dart';
+import 'combat/control_lock.dart';
 import 'ecs/entity_id.dart';
 import 'ecs/entity_factory.dart';
 import 'ecs/hit/aabb_hit_utils.dart';
@@ -55,6 +56,7 @@ import 'players/player_tuning.dart';
 import 'tuning/restoration_item_tuning.dart';
 import 'tuning/track_tuning.dart';
 import 'util/deterministic_rng.dart';
+import 'util/tick_math.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RNG Salt Constants
@@ -244,16 +246,20 @@ class SpawnService {
   /// The enemy inherits movement velocity limits from [MovementTuning]
   /// to ensure consistent chase behavior relative to player speed.
   ///
+  /// [enemyId] must be an archetype that uses ground locomotion.
+  ///
   /// Returns the [EntityId] of the newly created enemy.
   EntityId spawnGroundEnemy({
+    EnemyId enemyId = EnemyId.grojib,
     required double spawnX,
     required double groundTopY,
+    int? spawnTick,
   }) {
-    final archetype = _enemyCatalog.get(EnemyId.grojib);
+    final archetype = _enemyCatalog.get(enemyId);
 
     // Position so collider bottom touches ground.
-    return _entityFactory.createEnemy(
-      enemyId: EnemyId.grojib,
+    final enemy = _entityFactory.createEnemy(
+      enemyId: enemyId,
       posX: spawnX,
       posY:
           groundTopY - (archetype.collider.offsetY + archetype.collider.halfY),
@@ -279,6 +285,32 @@ class SpawnService {
       resistance: archetype.resistance,
       statusImmunity: archetype.statusImmunity,
     );
+    final collisionIndex = _world.collision.tryIndexOf(enemy);
+    if (collisionIndex != null) {
+      _world.collision.grounded[collisionIndex] = true;
+    }
+
+    if (spawnTick != null) {
+      final spawnAnimTicks = ticksFromSecondsCeil(
+        archetype.spawnAnimSeconds,
+        _movement.tickHz,
+      );
+      _world.spawnState.set(
+        entity: enemy,
+        startTickValue: spawnTick,
+        animTicksValue: spawnAnimTicks,
+      );
+      if (spawnAnimTicks > 0) {
+        _world.controlLock.addLock(
+          enemy,
+          _spawnIntroLockMask,
+          spawnAnimTicks,
+          spawnTick,
+        );
+      }
+    }
+
+    return enemy;
   }
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -640,6 +672,13 @@ class SpawnService {
 
   static const int _abilityTickHz = 60;
   static const AbilityKey _unocoEnemyCastAbilityId = 'unoco.enemy_cast';
+  static const int _spawnIntroLockMask =
+      LockFlag.move |
+      LockFlag.jump |
+      LockFlag.dash |
+      LockFlag.strike |
+      LockFlag.ranged |
+      LockFlag.nav;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

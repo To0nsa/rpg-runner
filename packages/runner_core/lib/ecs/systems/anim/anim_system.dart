@@ -36,6 +36,7 @@ class AnimSystem {
          directionalStrike: true,
        ) {
     _buildHitAnimTicksById(tickHz);
+    _buildSpawnAnimTicksById(tickHz);
   }
 
   /// Catalog for per-enemy configuration (hit windows, anim profiles).
@@ -47,12 +48,24 @@ class AnimSystem {
 
   /// Pre-computed hit animation durations in ticks per enemy type.
   late final Map<EnemyId, int> _hitAnimTicksById;
+  late final Map<EnemyId, int> _spawnAnimTicksById;
 
   void _buildHitAnimTicksById(int tickHz) {
     _hitAnimTicksById = <EnemyId, int>{};
     for (final id in EnemyId.values) {
       final seconds = enemyCatalog.get(id).hitAnimSeconds;
       _hitAnimTicksById[id] = ticksFromSecondsCeil(seconds, tickHz);
+    }
+  }
+
+  void _buildSpawnAnimTicksById(int tickHz) {
+    _spawnAnimTicksById = <EnemyId, int>{};
+    for (final id in EnemyId.values) {
+      final archetype = enemyCatalog.get(id);
+      final ticks = archetype.animProfile.supportsSpawn
+          ? ticksFromSecondsCeil(archetype.spawnAnimSeconds, tickHz)
+          : 0;
+      _spawnAnimTicksById[id] = ticks;
     }
   }
 
@@ -155,6 +168,14 @@ class AnimSystem {
           : world.deathState.deathStartTick[di];
 
       final hitAnimTicks = _hitAnimTicksById[enemyId] ?? 0;
+      final configuredSpawnAnimTicks = _spawnAnimTicksById[enemyId] ?? 0;
+      final spawnIndex = world.spawnState.tryIndexOf(e);
+      final spawnStartTick = spawnIndex == null
+          ? -1
+          : world.spawnState.startTick[spawnIndex];
+      final spawnAnimTicks = spawnIndex == null
+          ? configuredSpawnAnimTicks
+          : world.spawnState.animTicks[spawnIndex];
 
       // Phase 6: Active Action Layer (Enemies)
       final activeAction = _resolveActiveAction(
@@ -176,6 +197,8 @@ class AnimSystem {
         velY: common.velY,
         lastDamageTick: common.lastDamageTick,
         hitAnimTicks: hitAnimTicks,
+        spawnStartTick: spawnStartTick,
+        spawnAnimTicks: spawnAnimTicks,
         stunLocked: common.stunLocked,
         stunStartTick: common.stunStartTick,
         activeActionAnim: activeAction.anim,

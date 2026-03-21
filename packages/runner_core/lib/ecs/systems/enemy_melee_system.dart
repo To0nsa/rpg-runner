@@ -2,6 +2,7 @@ import 'dart:math';
 
 import '../../abilities/ability_catalog.dart';
 import '../../abilities/ability_def.dart';
+import '../../combat/control_lock.dart';
 import '../../enemies/enemy_catalog.dart';
 import '../../snapshots/enums.dart';
 import '../../tuning/ground_enemy_tuning.dart';
@@ -56,7 +57,10 @@ class EnemyMeleeSystem {
       final ti = world.transform.tryIndexOf(enemy);
       if (ti == null) continue;
 
-      if (world.controlLock.isStunned(enemy, currentTick)) continue;
+      if (world.controlLock.isStunned(enemy, currentTick) ||
+          world.controlLock.isLocked(enemy, LockFlag.strike, currentTick)) {
+        continue;
+      }
       if (world.activeAbility.hasActiveAbility(enemy)) continue;
 
       // Only write an intent on the first tick we enter the strike state.

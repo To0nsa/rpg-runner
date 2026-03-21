@@ -2,6 +2,7 @@ import 'dart:math';
 
 import '../../abilities/ability_catalog.dart';
 import '../../abilities/ability_def.dart';
+import '../../combat/control_lock.dart';
 import '../../enemies/enemy_catalog.dart';
 import '../../tuning/ground_enemy_tuning.dart';
 import '../../util/deterministic_rng.dart';
@@ -39,19 +40,21 @@ class EnemyEngagementSystem {
       final enemy = enemies.denseEntities[ei];
       final archetype = enemyCatalog.get(enemies.enemyId[ei]);
       final primaryMeleeAbilityId = archetype.primaryMeleeAbilityId;
-      if (primaryMeleeAbilityId == null) continue;
 
       if (world.deathState.has(enemy)) continue;
       final ti = world.transform.tryIndexOf(enemy);
       if (ti == null) continue;
 
-      if (world.controlLock.isStunned(enemy, currentTick)) continue;
+      if (world.controlLock.isStunned(enemy, currentTick) ||
+          world.controlLock.isLocked(enemy, LockFlag.strike, currentTick)) {
+        continue;
+      }
 
       final meleeIndex = world.meleeEngagement.tryIndexOf(enemy);
       if (meleeIndex == null) {
         assert(
           false,
-          'EnemyEngagementSystem requires MeleeEngagementStore on melee enemies; add it at spawn time.',
+          'EnemyEngagementSystem requires MeleeEngagementStore on ground enemies; add it at spawn time.',
         );
         continue;
       }
@@ -72,7 +75,7 @@ class EnemyEngagementSystem {
       if (engagementIndex == null) {
         assert(
           false,
-          'EnemyEngagementSystem requires EngagementIntentStore on melee enemies; add it at spawn time.',
+          'EnemyEngagementSystem requires EngagementIntentStore on ground enemies; add it at spawn time.',
         );
         continue;
       }
@@ -85,6 +88,23 @@ class EnemyEngagementSystem {
       final actionSpeedBp = _actionSpeedBpForEntity(world, enemy);
 
       final navTargetX = world.navIntent.navTargetX[navIntentIndex];
+
+      if (primaryMeleeAbilityId == null) {
+        final engagementIntent = world.engagementIntent;
+        engagementIntent.desiredTargetX[engagementIndex] =
+            navTargetX + chaseOffsetX;
+        engagementIntent.arrivalSlowRadiusX[engagementIndex] = 0.0;
+        engagementIntent.stateSpeedMul[engagementIndex] = 1.0;
+        engagementIntent.speedScale[engagementIndex] = chaseSpeedScale;
+
+        world.meleeEngagement.state[meleeIndex] = MeleeEngagementState.approach;
+        world.meleeEngagement.ticksLeft[meleeIndex] = 0;
+        world.meleeEngagement.preferredSide[meleeIndex] = 0;
+        world.meleeEngagement.strikeStartTick[meleeIndex] = -1;
+        world.meleeEngagement.plannedHitTick[meleeIndex] = -1;
+        world.meleeEngagement.strikeAbilityId[meleeIndex] = null;
+        continue;
+      }
 
       var state = world.meleeEngagement.state[meleeIndex];
       var ticksLeft = world.meleeEngagement.ticksLeft[meleeIndex];
@@ -204,9 +224,7 @@ class EnemyEngagementSystem {
           break;
       }
 
-      final engageTargetX =
-          navTargetX +
-          preferredSide * meleeStandOffX;
+      final engageTargetX = navTargetX + preferredSide * meleeStandOffX;
 
       double desiredTargetX;
       var stateSpeedMul = 1.0;

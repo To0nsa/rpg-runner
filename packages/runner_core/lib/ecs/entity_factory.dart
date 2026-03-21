@@ -137,6 +137,7 @@ class EntityFactory {
   /// - [EnemyId.unocoDemon]: Adds [FlyingEnemySteeringStore] for air movement.
   /// - [EnemyId.grojib]: Adds [SurfaceNavStateStore], [GroundEnemyChaseOffsetStore],
   ///   [NavIntentStore], and [EngagementIntentStore] for ground navigation/engagement.
+  /// - [EnemyId.hashash]: Uses the same ground-navigation stack as [EnemyId.grojib].
   EntityId createEnemy({
     required EnemyId enemyId,
     required double posX,
@@ -174,6 +175,7 @@ class EntityFactory {
     world.activeAbility.add(id);
     world.abilityCharge.add(id);
     world.animState.add(id);
+    world.spawnState.add(id);
     world.statusImmunity.add(id, statusImmunity);
     if (enemyId == EnemyId.unocoDemon) {
       world.flyingEnemySteering.add(
@@ -185,7 +187,7 @@ class EntityFactory {
         const FlyingEnemyCombatModeDef(mode: FlyingEnemyCombatMode.projectile),
       );
     }
-    if (enemyId == EnemyId.grojib) {
+    if (enemyId == EnemyId.grojib || enemyId == EnemyId.hashash) {
       world.surfaceNav.add(id);
       world.groundEnemyChaseOffset.add(
         id,

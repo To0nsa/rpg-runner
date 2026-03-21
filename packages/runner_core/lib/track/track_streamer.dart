@@ -151,6 +151,12 @@ class TrackStreamer {
         chunkWidth: tuning.chunkWidth,
         gridSnap: tuning.gridSnap,
       );
+      final pendingHashashSpawns = _spawnEnemiesForChunk(
+        pattern,
+        chunkIndex,
+        chunkStartX: startX,
+        spawnEnemy: spawnEnemy,
+      );
 
       // Track active chunk.
       _active.add(
@@ -161,6 +167,7 @@ class TrackStreamer {
           solids: solids,
           groundSegments: ground.segments,
           groundGaps: ground.gaps,
+          pendingHashashSpawns: pendingHashashSpawns,
         ),
       );
       spawnedChunks.add(
@@ -169,14 +176,6 @@ class TrackStreamer {
           startX: startX,
           patternName: pattern.name,
         ),
-      );
-
-      // Roll for enemy spawns.
-      _spawnEnemiesForChunk(
-        pattern,
-        chunkIndex,
-        chunkStartX: startX,
-        spawnEnemy: spawnEnemy,
       );
 
       _nextChunkIndex += 1;
@@ -190,6 +189,12 @@ class TrackStreamer {
       _active.removeAt(0); // O(n) but chunk count is small (~3-5).
       changed = true;
     }
+
+    // ── Spawn deferred hashash entries once their chunk becomes camera-right ──
+    _spawnDeferredHashashForVisibleChunk(
+      cameraRight: cameraRight,
+      spawnEnemy: spawnEnemy,
+    );
 
     // ── Rebuild flattened geometry lists if anything changed ──
     if (changed) {
@@ -219,14 +224,18 @@ class TrackStreamer {
   /// Rolls for enemy spawns defined in [pattern].
   ///
   /// Uses deterministic RNG keyed by seed, chunk index, and marker salt.
-  void _spawnEnemiesForChunk(
+  ///
+  /// Returns how many hashash spawns were deferred for edge-teleport spawning.
+  int _spawnEnemiesForChunk(
     ChunkPattern pattern,
     int chunkIndex, {
     required double chunkStartX,
     required SpawnEnemy spawnEnemy,
   }) {
     // Early-game safety: keep first few chunks enemy-free.
-    if (chunkIndex < noEnemyChunks) return;
+    if (chunkIndex < noEnemyChunks) return 0;
+
+    var pendingHashashSpawns = 0;
 
     for (var i = 0; i < pattern.spawnMarkers.length; i += 1) {
       final m = pattern.spawnMarkers[i];
@@ -237,9 +246,16 @@ class TrackStreamer {
       );
       if ((roll % 100) >= m.chancePercent) continue;
 
+      if (m.enemyId == EnemyId.hashash) {
+        pendingHashashSpawns += 1;
+        continue;
+      }
+
       final x = chunkStartX + m.x;
       spawnEnemy(m.enemyId, x);
     }
+
+    return pendingHashashSpawns;
   }
 
   /// Selects a chunk pattern deterministically from [seed] and [chunkIndex].
@@ -253,17 +269,66 @@ class TrackStreamer {
     final idx = h % pool.length;
     return pool[idx];
   }
+
+  void _spawnDeferredHashashForVisibleChunk({
+    required double cameraRight,
+    required SpawnEnemy spawnEnemy,
+  }) {
+    if (_active.isEmpty) return;
+
+    _ActiveChunk? visibleRightChunk;
+    for (final chunk in _active) {
+      if (cameraRight >= chunk.startX && cameraRight < chunk.endX) {
+        visibleRightChunk = chunk;
+        break;
+      }
+    }
+    visibleRightChunk ??= _active.last;
+    final pending = visibleRightChunk.pendingHashashSpawns;
+    if (pending <= 0) return;
+
+    final spawnX = _hashashEdgeSpawnX(visibleRightChunk);
+    for (var i = 0; i < pending; i += 1) {
+      spawnEnemy(EnemyId.hashash, spawnX);
+    }
+    visibleRightChunk.pendingHashashSpawns = 0;
+  }
+
+  double _hashashEdgeSpawnX(_ActiveChunk chunk) {
+    double minX = chunk.startX;
+    double maxX = chunk.endX;
+
+    if (chunk.groundSegments.isNotEmpty) {
+      var leftMost = chunk.groundSegments.first;
+      for (var i = 1; i < chunk.groundSegments.length; i += 1) {
+        final candidate = chunk.groundSegments[i];
+        if (candidate.minX < leftMost.minX) {
+          leftMost = candidate;
+        }
+      }
+      minX = leftMost.minX;
+      maxX = leftMost.maxX;
+    }
+
+    final preferred = minX + _hashashEdgeSpawnInsetX;
+    if (preferred < minX) return minX;
+    if (preferred > maxX) return maxX;
+    return preferred;
+  }
+
+  static const double _hashashEdgeSpawnInsetX = -96.0;
 }
 
 /// Tracks a spawned chunk's geometry while it's within camera culling bounds.
 class _ActiveChunk {
-  const _ActiveChunk({
+  _ActiveChunk({
     required this.index,
     required this.startX,
     required this.endX,
     required this.solids,
     required this.groundSegments,
     required this.groundGaps,
+    this.pendingHashashSpawns = 0,
   });
 
   /// Sequential chunk number.
@@ -283,4 +348,7 @@ class _ActiveChunk {
 
   /// Holes in the ground.
   final List<StaticGroundGap> groundGaps;
+
+  /// Deferred hashash spawns that should trigger when this chunk is camera-right.
+  int pendingHashashSpawns;
 }

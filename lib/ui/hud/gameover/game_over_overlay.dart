@@ -136,10 +136,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                 fontWeight: FontWeight.w600,
               ),
             ),
-            GoldDisplay(
-              gold: actualGold,
-              variant: GoldDisplayVariant.body,
-            ),
+            GoldDisplay(gold: actualGold, variant: GoldDisplayVariant.body),
           ],
         ),
       ),
@@ -513,6 +510,8 @@ String _enemyName(EnemyId id) {
       return 'Unoco Demon';
     case EnemyId.grojib:
       return 'Ground enemy';
+    case EnemyId.hashash:
+      return 'Hashash';
   }
 }
 

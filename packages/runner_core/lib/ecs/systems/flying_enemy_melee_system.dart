@@ -2,6 +2,7 @@ import 'dart:math';
 
 import '../../abilities/ability_catalog.dart';
 import '../../abilities/ability_def.dart';
+import '../../combat/control_lock.dart';
 import '../../enemies/enemy_catalog.dart';
 import '../../snapshots/enums.dart';
 import '../../tuning/flying_enemy_tuning.dart';
@@ -59,7 +60,10 @@ class FlyingEnemyMeleeSystem {
       final enemyTi = world.transform.tryIndexOf(enemy);
       if (enemyTi == null) continue;
       if (!world.cooldown.has(enemy)) continue;
-      if (world.controlLock.isStunned(enemy, currentTick)) continue;
+      if (world.controlLock.isStunned(enemy, currentTick) ||
+          world.controlLock.isLocked(enemy, LockFlag.strike, currentTick)) {
+        continue;
+      }
       if (world.activeAbility.hasActiveAbility(enemy)) continue;
       if (!_isInContactWithPlayer(world, enemy: enemy, player: player)) {
         continue;
