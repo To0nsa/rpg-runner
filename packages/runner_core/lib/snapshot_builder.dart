@@ -41,7 +41,6 @@ import 'util/vec2.dart';
 import 'abilities/ability_catalog.dart';
 import 'abilities/ability_def.dart';
 import 'abilities/effective_ability_cost.dart';
-import 'combat/control_lock.dart';
 import 'util/fixed_math.dart';
 import 'util/tick_math.dart';
 import 'loadout/loadout_validator.dart';
@@ -421,7 +420,8 @@ class SnapshotBuilder {
         anim: anim,
         grounded: onGround,
         animFrame: playerAnimFrame,
-        statusVisualMask: _statusVisualMaskForEntity(player, tick: tick),
+        statusVisualMask: _statusVisualMaskForEntity(player),
+        controlLockMask: _controlLockMaskForEntity(player),
       ),
     ];
 
@@ -654,7 +654,7 @@ class SnapshotBuilder {
   // Private Entity Collectors
   // ───────────────────────────────────────────────────────────────────────────
 
-  int _statusVisualMaskForEntity(EntityId entity, {required int tick}) {
+  int _statusVisualMaskForEntity(EntityId entity) {
     var mask = EntityStatusVisualMask.none;
 
     final slowIndex = world.slow.tryIndexOf(entity);
@@ -688,14 +688,11 @@ class SnapshotBuilder {
       mask |= EntityStatusVisualMask.drench;
     }
 
-    if (world.controlLock.isStunned(entity, tick)) {
-      mask |= EntityStatusVisualMask.stun;
-    }
-    if (world.controlLock.isLocked(entity, LockFlag.cast, tick)) {
-      mask |= EntityStatusVisualMask.silence;
-    }
-
     return mask;
+  }
+
+  int _controlLockMaskForEntity(EntityId entity) {
+    return world.controlLock.getActiveMask(entity);
   }
 
   /// Appends projectile entity snapshots to [entities].
@@ -926,7 +923,8 @@ class SnapshotBuilder {
           anim: anim,
           grounded: grounded,
           animFrame: animFrame,
-          statusVisualMask: _statusVisualMaskForEntity(e, tick: tick),
+          statusVisualMask: _statusVisualMaskForEntity(e),
+          controlLockMask: _controlLockMaskForEntity(e),
         ),
       );
     }

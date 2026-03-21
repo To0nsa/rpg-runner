@@ -4,6 +4,7 @@
 /// hides internal ECS storage details and provides only what the renderer needs.
 library;
 
+import '../combat/control_lock.dart';
 import '../enemies/enemy_id.dart';
 import '../util/vec2.dart';
 import '../projectiles/projectile_id.dart';
@@ -31,6 +32,7 @@ class EntityRenderSnapshot {
     this.rotationRad = 0.0,
     this.animFrame,
     this.statusVisualMask = EntityStatusVisualMask.none,
+    this.controlLockMask = EntityControlLockMask.none,
   });
 
   /// Stable entity identifier (protocol-stable).
@@ -85,7 +87,15 @@ class EntityRenderSnapshot {
   final int? animFrame;
 
   /// Bitmask of always-on status visuals for this entity.
+  ///
+  /// This is render-facing visual state only and must not encode control locks.
   final int statusVisualMask;
+
+  /// Bitmask of active gameplay control locks for this entity.
+  ///
+  /// Uses [EntityControlLockMask] contract bits.
+  /// This is gameplay lock state only; render should not infer tint from it.
+  final int controlLockMask;
 }
 
 /// Bitmask flags for persistent status visuals.
@@ -97,8 +107,22 @@ abstract class EntityStatusVisualMask {
   static const int vulnerable = 1 << 3;
   static const int weaken = 1 << 4;
   static const int drench = 1 << 5;
-  static const int stun = 1 << 6;
-  static const int silence = 1 << 7;
+}
+
+/// Snapshot contract bitmask flags for gameplay control locks.
+///
+/// Mirrors [LockFlag] semantics so render/UI can read lock state without
+/// depending on ECS store internals.
+abstract class EntityControlLockMask {
+  static const int none = 0;
+  static const int stun = LockFlag.stun;
+  static const int move = LockFlag.move;
+  static const int jump = LockFlag.jump;
+  static const int dash = LockFlag.dash;
+  static const int strike = LockFlag.strike;
+  static const int cast = LockFlag.cast;
+  static const int ranged = LockFlag.ranged;
+  static const int nav = LockFlag.nav;
 }
 
 /// Variant codes for pickup rendering.

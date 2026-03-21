@@ -232,17 +232,19 @@ void main() {
         ),
       ),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
-    expect(find.textContaining('Provisional rank #??'), findsOneWidget);
+    expect(find.text('Actual rank unavailable.'), findsOneWidget);
     expect(store.addResultCalls, 0);
+    expect(store.loadTop10Calls, 0);
   });
 
   group('GameOverOverlay gold panel reward states', () {
     RunSubmissionStatus _provisionalStatus({
       required int provisionalGold,
       String runSessionId = 'run_test',
-      protocol.RunSessionState state = protocol.RunSessionState.pendingValidation,
+      protocol.RunSessionState state =
+          protocol.RunSessionState.pendingValidation,
       RunSubmissionPhase phase = RunSubmissionPhase.pendingValidation,
     }) {
       return RunSubmissionStatus(
@@ -334,40 +336,41 @@ void main() {
       expect(find.textContaining('Gold earned:'), findsNothing);
     });
 
-    testWidgets('gold panel shows provisional reward from runSubmissionStatus', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: GameOverOverlay(
-            visible: true,
-            onRestart: () {},
-            onExit: null,
-            showExitButton: false,
-            levelId: LevelId.field,
-            runMode: RunMode.practice,
-            runEndedEvent: _buildEvent(),
-            scoreTuning: _tuning,
-            tickHz: _tickHz,
-            verifiedGold: 100,
-            runSubmissionStatus: _provisionalStatus(provisionalGold: 50),
+    testWidgets(
+      'gold panel shows provisional reward from runSubmissionStatus',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: GameOverOverlay(
+              visible: true,
+              onRestart: () {},
+              onExit: null,
+              showExitButton: false,
+              levelId: LevelId.field,
+              runMode: RunMode.practice,
+              runEndedEvent: _buildEvent(),
+              scoreTuning: _tuning,
+              tickHz: _tickHz,
+              verifiedGold: 100,
+              runSubmissionStatus: _provisionalStatus(provisionalGold: 50),
+            ),
           ),
-        ),
-      );
+        );
 
-      // Before collect: 50 earned remaining, 100 in wallet.
-      expect(find.text('Gold earned: 50 + '), findsOneWidget);
-      expect(find.text('100'), findsOneWidget);
+        // Before collect: 50 earned remaining, 100 in wallet.
+        expect(find.text('Gold earned: 50 + '), findsOneWidget);
+        expect(find.text('100'), findsOneWidget);
 
-      await tester.tap(find.text('Collect Score'));
-      await tester.pump();
-      await tester.tap(find.text('Skip'));
-      await tester.pump();
+        await tester.tap(find.text('Collect Score'));
+        await tester.pump();
+        await tester.tap(find.text('Skip'));
+        await tester.pump();
 
-      // After collect: 0 remaining, 150 in wallet.
-      expect(find.text('Gold earned: 0 + '), findsOneWidget);
-      expect(find.text('150'), findsOneWidget);
-    });
+        // After collect: 0 remaining, 150 in wallet.
+        expect(find.text('Gold earned: 0 + '), findsOneWidget);
+        expect(find.text('150'), findsOneWidget);
+      },
+    );
 
     testWidgets('gold panel shows final reward using provisionalGold field', (
       tester,
@@ -456,8 +459,9 @@ void main() {
       (tester) async {
         late StateSetter updateState;
         int verifiedGold = 100;
-        RunSubmissionStatus? runSubmissionStatus =
-            _provisionalStatus(provisionalGold: 50);
+        RunSubmissionStatus? runSubmissionStatus = _provisionalStatus(
+          provisionalGold: 50,
+        );
 
         await tester.pumpWidget(
           MaterialApp(

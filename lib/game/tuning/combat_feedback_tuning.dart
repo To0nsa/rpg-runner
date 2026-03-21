@@ -122,7 +122,5 @@ class CombatFeedbackTuning {
     EntityStatusVisualMask.vulnerable: Color(0xFFF472B6),
     EntityStatusVisualMask.weaken: Color(0xFFF59E0B),
     EntityStatusVisualMask.drench: Color(0xFF60A5FA),
-    EntityStatusVisualMask.stun: Color(0xFFEAB308),
-    EntityStatusVisualMask.silence: Color(0xFFA78BFA),
   };
 }

@@ -49,5 +49,32 @@ void main() {
     expect(hashash.single.anim, AnimKey.spawn);
     expect(hashash.single.animFrame, 0);
     expect(hashash.single.statusVisualMask, EntityStatusVisualMask.none);
+    expect(hashash.single.controlLockMask, isNonZero);
+    expect(
+      hashash.single.controlLockMask & EntityControlLockMask.move,
+      EntityControlLockMask.move,
+    );
+    expect(
+      hashash.single.controlLockMask & EntityControlLockMask.jump,
+      EntityControlLockMask.jump,
+    );
+    expect(
+      hashash.single.controlLockMask & EntityControlLockMask.dash,
+      EntityControlLockMask.dash,
+    );
+    expect(
+      hashash.single.controlLockMask & EntityControlLockMask.strike,
+      EntityControlLockMask.strike,
+    );
+    expect(
+      hashash.single.controlLockMask & EntityControlLockMask.ranged,
+      EntityControlLockMask.ranged,
+    );
+    expect(
+      hashash.single.controlLockMask & EntityControlLockMask.nav,
+      EntityControlLockMask.nav,
+    );
+    expect(hashash.single.controlLockMask & EntityControlLockMask.cast, isZero);
+    expect(hashash.single.controlLockMask & EntityControlLockMask.stun, isZero);
   });
 }
