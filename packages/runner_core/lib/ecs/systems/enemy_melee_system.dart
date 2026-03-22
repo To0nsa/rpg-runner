@@ -6,6 +6,7 @@ import '../../combat/control_lock.dart';
 import '../../enemies/enemy_catalog.dart';
 import '../../snapshots/enums.dart';
 import '../../tuning/ground_enemy_tuning.dart';
+import '../../util/ability_timing.dart';
 import '../../util/fixed_math.dart';
 import '../entity_id.dart';
 import '../stores/enemies/melee_engagement_store.dart';
@@ -217,12 +218,10 @@ class EnemyMeleeSystem {
 
   int _scaleAbilityTicks(int ticks) {
     if (ticks <= 0) return 0;
-    if (groundEnemyTuning.tickHz == _abilityTickHz) return ticks;
-    final seconds = ticks / _abilityTickHz;
+    if (groundEnemyTuning.tickHz == abilityAuthoringTickHz) return ticks;
+    final seconds = ticks / abilityAuthoringTickHz;
     return (seconds * groundEnemyTuning.tickHz).ceil();
   }
-
-  static const int _abilityTickHz = 60;
 }
 
 class _MeleeTiming {

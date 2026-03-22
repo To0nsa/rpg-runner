@@ -55,6 +55,7 @@ import 'tuning/flying_enemy_tuning.dart';
 import 'players/player_tuning.dart';
 import 'tuning/restoration_item_tuning.dart';
 import 'tuning/track_tuning.dart';
+import 'util/ability_timing.dart';
 import 'util/deterministic_rng.dart';
 import 'util/tick_math.dart';
 
@@ -665,12 +666,11 @@ class SpawnService {
 
   int _scaleAbilityTicks(int ticks) {
     if (ticks <= 0) return 0;
-    if (_unocoDemonTuning.tickHz == _abilityTickHz) return ticks;
-    final seconds = ticks / _abilityTickHz;
+    if (_unocoDemonTuning.tickHz == abilityAuthoringTickHz) return ticks;
+    final seconds = ticks / abilityAuthoringTickHz;
     return (seconds * _unocoDemonTuning.tickHz).ceil();
   }
 
-  static const int _abilityTickHz = 60;
   static const AbilityKey _unocoEnemyCastAbilityId = 'unoco.enemy_cast';
   static const int _spawnIntroLockMask =
       LockFlag.move |

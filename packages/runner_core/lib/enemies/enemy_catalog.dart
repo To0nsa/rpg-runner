@@ -140,6 +140,7 @@ const Map<AnimKey, int> _grojibAnimFrameCountsByKey = <AnimKey, int>{
   AnimKey.walk: _grojibAnimWalkFrames,
   AnimKey.strike: _grojibAnimStrikeFrames,
   AnimKey.backStrike: _grojibAnimStrike2Frames,
+  AnimKey.strike2: _grojibAnimStrike2Frames,
   AnimKey.hit: _grojibAnimHitFrames,
   AnimKey.death: _grojibAnimDeathFrames,
   AnimKey.jump: _grojibAnimJumpFrames,
@@ -153,6 +154,7 @@ const Map<AnimKey, double> _grojibAnimStepTimeSecondsByKey = <AnimKey, double>{
   AnimKey.walk: _grojibAnimWalkStepSeconds,
   AnimKey.strike: _grojibAnimStrikeStepSeconds,
   AnimKey.backStrike: _grojibAnimStrikeStepSeconds,
+  AnimKey.strike2: _grojibAnimStrikeStepSeconds,
   AnimKey.hit: _grojibAnimHitStepSeconds,
   AnimKey.death: _grojibAnimDeathStepSeconds,
   AnimKey.jump: _grojibAnimJumpStepSeconds,
@@ -168,6 +170,7 @@ const Map<AnimKey, String> _grojibAnimSourcesByKey = <AnimKey, String>{
   AnimKey.walk: _grojibAnimSpriteSheetPath,
   AnimKey.strike: _grojibAnimSpriteSheetPath,
   AnimKey.backStrike: _grojibAnimSpriteSheetPath,
+  AnimKey.strike2: _grojibAnimSpriteSheetPath,
   AnimKey.hit: _grojibAnimSpriteSheetPath,
   AnimKey.death: _grojibAnimSpriteSheetPath,
   AnimKey.jump: _grojibAnimSpriteSheetPath,
@@ -181,6 +184,7 @@ const Map<AnimKey, int> _grojibAnimRowByKey = <AnimKey, int>{
   AnimKey.walk: 1,
   AnimKey.strike: 2,
   AnimKey.backStrike: 2,
+  AnimKey.strike2: 2,
   AnimKey.hit: 3,
   AnimKey.death: 4,
   AnimKey.jump: 5,
@@ -189,6 +193,7 @@ const Map<AnimKey, int> _grojibAnimRowByKey = <AnimKey, int>{
 
 const Map<AnimKey, int> _grojibAnimFrameStartByKey = <AnimKey, int>{
   AnimKey.backStrike: _grojibAnimStrike2FrameStart,
+  AnimKey.strike2: _grojibAnimStrike2FrameStart,
 };
 
 const RenderAnimSetDefinition _grojibRenderAnim = RenderAnimSetDefinition(
@@ -246,6 +251,12 @@ const double _hashashAnimFallStepSeconds = 0.10;
 const int _hashashAnimSpawnFrames = 8;
 const double _hashashAnimSpawnStepSeconds = 0.12;
 
+const int _hashashAnimTeleportOutFrames = 8;
+const double _hashashAnimTeleportOutStepSeconds = 0.06;
+
+const int _hashashAnimAmbushFrames = 12;
+const double _hashashAnimAmbushStepSeconds = 0.06;
+
 const double _hashashHitAnimSeconds =
     _hashashAnimHitFrames * _hashashAnimHitStepSeconds;
 const double _hashashDeathAnimSeconds =
@@ -265,6 +276,8 @@ const Map<AnimKey, int> _hashashAnimFrameCountsByKey = <AnimKey, int>{
   AnimKey.jump: _hashashAnimJumpFrames,
   AnimKey.fall: _hashashAnimFallFrames,
   AnimKey.spawn: _hashashAnimSpawnFrames,
+  AnimKey.teleportOut: _hashashAnimTeleportOutFrames,
+  AnimKey.ambush: _hashashAnimAmbushFrames,
 };
 
 const Map<AnimKey, double> _hashashAnimStepTimeSecondsByKey = <AnimKey, double>{
@@ -279,6 +292,8 @@ const Map<AnimKey, double> _hashashAnimStepTimeSecondsByKey = <AnimKey, double>{
   AnimKey.jump: _hashashAnimJumpStepSeconds,
   AnimKey.fall: _hashashAnimFallStepSeconds,
   AnimKey.spawn: _hashashAnimSpawnStepSeconds,
+  AnimKey.teleportOut: _hashashAnimTeleportOutStepSeconds,
+  AnimKey.ambush: _hashashAnimAmbushStepSeconds,
 };
 
 const String _hashashAnimSpriteSheetPath =
@@ -296,6 +311,8 @@ const Map<AnimKey, String> _hashashAnimSourcesByKey = <AnimKey, String>{
   AnimKey.jump: _hashashAnimSpriteSheetPath,
   AnimKey.fall: _hashashAnimSpriteSheetPath,
   AnimKey.spawn: _hashashAnimSpriteSheetPath,
+  AnimKey.teleportOut: _hashashAnimSpriteSheetPath,
+  AnimKey.ambush: _hashashAnimSpriteSheetPath,
 };
 
 const Map<AnimKey, int> _hashashAnimRowByKey = <AnimKey, int>{
@@ -309,7 +326,9 @@ const Map<AnimKey, int> _hashashAnimRowByKey = <AnimKey, int>{
   AnimKey.death: 5,
   AnimKey.jump: 6,
   AnimKey.fall: 8,
+  AnimKey.teleportOut: 9,
   AnimKey.spawn: 11,
+  AnimKey.ambush: 10,
 };
 
 const RenderAnimSetDefinition _hashashRenderAnim = RenderAnimSetDefinition(

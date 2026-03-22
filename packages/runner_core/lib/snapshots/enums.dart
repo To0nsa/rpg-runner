@@ -29,6 +29,9 @@ enum AnimKey {
   roll,
   shieldBash,
   shieldBlock,
+  teleportOut,
+  ambush,
+  strike2,
 }
 
 /// Broad entity classification for rendering and (future) networking.

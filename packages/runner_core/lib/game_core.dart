@@ -79,6 +79,7 @@ import 'abilities/ability_catalog.dart';
 import 'abilities/ability_def.dart';
 import 'abilities/forced_interrupt_policy.dart';
 import 'accessories/accessory_catalog.dart';
+import 'combat/middleware/hashash_teleport_evade_middleware.dart';
 import 'combat/middleware/parry_middleware.dart';
 import 'combat/middleware/ward_middleware.dart';
 import 'combat/damage_type.dart';
@@ -109,6 +110,7 @@ import 'ecs/systems/flying_enemy_melee_system.dart';
 import 'ecs/systems/ground_enemy_locomotion_system.dart';
 import 'ecs/systems/enemy_navigation_system.dart';
 import 'ecs/systems/gravity_system.dart';
+import 'ecs/systems/hashash_teleport_ambush_system.dart';
 import 'ecs/systems/health_despawn_system.dart';
 import 'ecs/systems/hitbox_damage_system.dart';
 import 'ecs/systems/hitbox_follow_owner_system.dart';
@@ -413,6 +415,7 @@ class GameCore {
     _invulnerabilitySystem = InvulnerabilitySystem();
     _damageMiddlewareSystem = DamageMiddlewareSystem(
       middlewares: [
+        HashashTeleportEvadeMiddleware(tickHz: tickHz),
         ParryMiddleware(
           abilityIds: const <AbilityKey>{
             'eloise.aegis_riposte',
@@ -545,6 +548,10 @@ class GameCore {
     _enemyEngagementSystem = EnemyEngagementSystem(
       groundEnemyTuning: _groundEnemyTuning,
       enemyCatalog: _enemyCatalog,
+    );
+    _hashashTeleportAmbushSystem = HashashTeleportAmbushSystem(
+      tickHz: tickHz,
+      abilityResolver: abilityCatalog,
     );
     _groundEnemyLocomotionSystem = GroundEnemyLocomotionSystem(
       groundEnemyTuning: _groundEnemyTuning,
@@ -771,6 +778,7 @@ class GameCore {
   late final DeathDespawnSystem _deathDespawnSystem;
   late EnemyNavigationSystem _enemyNavigationSystem;
   late EnemyEngagementSystem _enemyEngagementSystem;
+  late HashashTeleportAmbushSystem _hashashTeleportAmbushSystem;
   late GroundEnemyLocomotionSystem _groundEnemyLocomotionSystem;
   late FlyingEnemyCombatModeSystem _flyingEnemyCombatModeSystem;
   late FlyingEnemyLocomotionSystem _flyingEnemyLocomotionSystem;
@@ -1104,6 +1112,11 @@ class GameCore {
     );
 
     // ─── Phase 3: AI, input, and movement ───
+    _hashashTeleportAmbushSystem.step(
+      _world,
+      player: _player,
+      currentTick: tick,
+    );
     _enemyNavigationSystem.step(_world, player: _player, currentTick: tick);
     _enemyEngagementSystem.step(_world, player: _player, currentTick: tick);
     _flyingEnemyCombatModeSystem.step(_world);

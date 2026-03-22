@@ -334,6 +334,9 @@ class AnimResolver {
       case AnimKey.parry:
       case AnimKey.shieldBash:
       case AnimKey.shieldBlock:
+      case AnimKey.teleportOut:
+      case AnimKey.ambush:
+      case AnimKey.strike2:
         // Explicitly allow authored one-off action strips.
         return key;
       default:

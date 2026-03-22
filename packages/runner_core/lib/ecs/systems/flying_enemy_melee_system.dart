@@ -6,6 +6,7 @@ import '../../combat/control_lock.dart';
 import '../../enemies/enemy_catalog.dart';
 import '../../snapshots/enums.dart';
 import '../../tuning/flying_enemy_tuning.dart';
+import '../../util/ability_timing.dart';
 import '../../util/fixed_math.dart';
 import '../entity_id.dart';
 import '../stores/enemies/flying_enemy_combat_mode_store.dart';
@@ -321,10 +322,9 @@ class FlyingEnemyMeleeSystem {
   int _scaleAbilityTicks(int ticks) {
     if (ticks <= 0) return 0;
     if (unocoDemonTuning.tickHz <= 0) return ticks;
-    final seconds = ticks / _abilityTickHz;
+    final seconds = ticks / abilityAuthoringTickHz;
     return (seconds * unocoDemonTuning.tickHz).ceil();
   }
 
-  static const int _abilityTickHz = 60;
   static const int _minCommitHp100 = 1;
 }

@@ -48,6 +48,6 @@ final Map<AbilityKey, AbilityDef> grojibAbilityDefs = <AbilityKey, AbilityDef>{
         chanceBp: 10000,
       ),
     ],
-    animKey: AnimKey.backStrike,
+    animKey: AnimKey.strike2,
   ),
 };

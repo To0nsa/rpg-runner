@@ -117,7 +117,7 @@ class GroundEnemyLocomotionTuning {
 /// Per-strike timing, hitbox size, damage, and cooldown are authored on
 /// enemy ability definitions.
 class GroundEnemyCombatTuning {
-  const GroundEnemyCombatTuning({this.meleeRangeX = 52.0});
+  const GroundEnemyCombatTuning({this.meleeRangeX = 40.0});
 
   /// Horizontal range to trigger melee strike (world units).
   final double meleeRangeX;

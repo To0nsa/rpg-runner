@@ -15,6 +15,7 @@ import '../../weapons/weapon_catalog.dart';
 import '../../weapons/weapon_proc.dart';
 import '../../stats/character_stats_resolver.dart';
 import '../../stats/resolved_stats_cache.dart';
+import '../../util/ability_timing.dart';
 import '../../util/fixed_math.dart';
 import '../../util/tick_math.dart';
 import '../entity_id.dart';
@@ -1701,12 +1702,11 @@ class AbilityActivationSystem {
 
   int _scaleAbilityTicks(int ticks) {
     if (ticks <= 0) return 0;
-    if (tickHz == _abilityTickHz) return ticks;
-    final seconds = ticks / _abilityTickHz;
+    if (tickHz == abilityAuthoringTickHz) return ticks;
+    final seconds = ticks / abilityAuthoringTickHz;
     return ticksFromSecondsCeil(seconds, tickHz);
   }
 
-  static const int _abilityTickHz = 60;
   static const int _minCommitHp100 = 1;
 
   void _cancelCombatOnMobilityPress(EcsWorld world, EntityId player) {

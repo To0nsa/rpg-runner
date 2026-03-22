@@ -15,10 +15,13 @@ import 'stores/faction_store.dart';
 import 'stores/enemies/flying_enemy_combat_mode_store.dart';
 import 'stores/enemies/flying_enemy_steering_store.dart';
 import 'stores/enemies/ground_enemy_chase_offset_store.dart';
+import 'stores/enemies/hashash_teleport_state_store.dart';
 import 'stores/health_store.dart';
 import 'stores/mana_store.dart';
 import 'stores/stamina_store.dart';
 import 'world.dart';
+
+const int _hashashTeleportSeedSalt = 0x48A55A9;
 
 /// Factory for creating complex entities composed of multiple components.
 ///
@@ -137,7 +140,8 @@ class EntityFactory {
   /// - [EnemyId.unocoDemon]: Adds [FlyingEnemySteeringStore] for air movement.
   /// - [EnemyId.grojib]: Adds [SurfaceNavStateStore], [GroundEnemyChaseOffsetStore],
   ///   [NavIntentStore], and [EngagementIntentStore] for ground navigation/engagement.
-  /// - [EnemyId.hashash]: Uses the same ground-navigation stack as [EnemyId.grojib].
+  /// - [EnemyId.hashash]: Uses the same ground-navigation stack as [EnemyId.grojib],
+  ///   plus [HashashTeleportStateStore] for evade/ambush behavior.
   EntityId createEnemy({
     required EnemyId enemyId,
     required double posX,
@@ -196,6 +200,14 @@ class EntityFactory {
       world.navIntent.add(id);
       world.engagementIntent.add(id);
       world.meleeCombo.add(id);
+    }
+    if (enemyId == EnemyId.hashash) {
+      world.hashashTeleport.add(
+        id,
+        HashashTeleportStateDef(
+          rngState: seedFrom(world.seed, id ^ _hashashTeleportSeedSalt),
+        ),
+      );
     }
     return id;
   }

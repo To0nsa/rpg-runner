@@ -5,6 +5,7 @@ import '../../abilities/ability_def.dart';
 import '../../combat/control_lock.dart';
 import '../../enemies/enemy_catalog.dart';
 import '../../tuning/ground_enemy_tuning.dart';
+import '../../util/ability_timing.dart';
 import '../../util/deterministic_rng.dart';
 import '../../util/double_math.dart';
 import '../../util/fixed_math.dart';
@@ -327,8 +328,8 @@ class EnemyEngagementSystem {
 
   int _scaleAbilityTicks(int ticks) {
     if (ticks <= 0) return 0;
-    if (groundEnemyTuning.tickHz == _abilityTickHz) return ticks;
-    final seconds = ticks / _abilityTickHz;
+    if (groundEnemyTuning.tickHz == abilityAuthoringTickHz) return ticks;
+    final seconds = ticks / abilityAuthoringTickHz;
     return (seconds * groundEnemyTuning.tickHz).ceil();
   }
 
@@ -376,8 +377,6 @@ class EnemyEngagementSystem {
     chaseOffset.chaseSpeedScale[chaseIndex] = speedScale;
     chaseOffset.rngState[chaseIndex] = rngState;
   }
-
-  static const int _abilityTickHz = 60;
 }
 
 class _MeleeTiming {

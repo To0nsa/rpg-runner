@@ -98,6 +98,22 @@ void main() {
       expect(result.animFrame, 3);
     });
 
+    test('strike2 active-action key remains allowed', () {
+      final result = AnimResolver.resolve(
+        profile,
+        AnimSignals.player(
+          tick: 20,
+          hp: 1,
+          grounded: true,
+          activeActionAnim: AnimKey.strike2,
+          activeActionFrame: 4,
+        ),
+      );
+
+      expect(result.anim, AnimKey.strike2);
+      expect(result.animFrame, 4);
+    });
+
     test('future start tick is clamped to non-negative frame', () {
       final result = AnimResolver.resolve(
         profile,

@@ -65,6 +65,7 @@ void main() {
     expect(world.engagementIntent.has(enemy), isTrue);
     expect(world.meleeEngagement.has(enemy), isTrue);
     expect(world.meleeCombo.has(enemy), isTrue);
+    expect(world.hashashTeleport.has(enemy), isTrue);
     expect(world.flyingEnemySteering.has(enemy), isFalse);
     expect(world.flyingEnemyCombatMode.has(enemy), isFalse);
   });

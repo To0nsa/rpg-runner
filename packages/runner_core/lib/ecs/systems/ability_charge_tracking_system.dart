@@ -1,6 +1,7 @@
 import '../../abilities/ability_catalog.dart';
 import '../../abilities/ability_def.dart';
 import '../../events/game_event.dart';
+import '../../util/ability_timing.dart';
 import '../../util/tick_math.dart';
 import '../world.dart';
 
@@ -126,10 +127,8 @@ class AbilityChargeTrackingSystem {
 
   int _scaleAbilityTicks(int ticks) {
     if (ticks <= 0) return 0;
-    if (tickHz == _abilityTickHz) return ticks;
-    final seconds = ticks / _abilityTickHz;
+    if (tickHz == abilityAuthoringTickHz) return ticks;
+    final seconds = ticks / abilityAuthoringTickHz;
     return ticksFromSecondsCeil(seconds, tickHz);
   }
-
-  static const int _abilityTickHz = 60;
 }

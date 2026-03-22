@@ -17,6 +17,7 @@ import 'stores/player/gravity_control_store.dart';
 import 'stores/player/jump_state_store.dart';
 import 'stores/enemies/flying_enemy_combat_mode_store.dart';
 import 'stores/enemies/flying_enemy_steering_store.dart';
+import 'stores/enemies/hashash_teleport_state_store.dart';
 import 'stores/faction_store.dart';
 import 'stores/anim/anim_state_store.dart';
 import 'stores/active_ability_state_store.dart';
@@ -324,6 +325,11 @@ class EcsWorld {
   /// AI state for ground enemies to create offset chasing behaviors.
   late final GroundEnemyChaseOffsetStore groundEnemyChaseOffset = _register(
     GroundEnemyChaseOffsetStore(),
+  );
+
+  /// Hashash teleport evade/ambush runtime state.
+  late final HashashTeleportStateStore hashashTeleport = _register(
+    HashashTeleportStateStore(),
   );
 
   /// Navigation intent output for ground enemies.

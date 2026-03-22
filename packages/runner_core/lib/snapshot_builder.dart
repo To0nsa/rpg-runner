@@ -41,6 +41,7 @@ import 'util/vec2.dart';
 import 'abilities/ability_catalog.dart';
 import 'abilities/ability_def.dart';
 import 'abilities/effective_ability_cost.dart';
+import 'util/ability_timing.dart';
 import 'util/fixed_math.dart';
 import 'util/tick_math.dart';
 import 'loadout/loadout_validator.dart';
@@ -494,8 +495,8 @@ class SnapshotBuilder {
 
   int _scaleAbilityTicks(int ticks) {
     if (ticks <= 0) return 0;
-    if (tickHz == _abilityTickHz) return ticks;
-    final seconds = ticks / _abilityTickHz;
+    if (tickHz == abilityAuthoringTickHz) return ticks;
+    final seconds = ticks / abilityAuthoringTickHz;
     return ticksFromSecondsCeil(seconds, tickHz);
   }
 
@@ -641,7 +642,6 @@ class SnapshotBuilder {
     return hp100 - healthCost100 >= _minCommitHp100;
   }
 
-  static const int _abilityTickHz = 60;
   static const int _minCommitHp100 = 1;
   static const List<AbilitySlot> _chargePreviewSlotPriority = <AbilitySlot>[
     AbilitySlot.projectile,

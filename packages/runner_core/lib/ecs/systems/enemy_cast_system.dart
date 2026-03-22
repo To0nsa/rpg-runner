@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import '../../abilities/ability_catalog.dart';
 import '../../abilities/ability_def.dart';
 import '../../combat/control_lock.dart';
@@ -10,8 +8,9 @@ import '../../projectiles/projectile_item_def.dart';
 import '../../projectiles/projectile_id.dart';
 import '../../snapshots/enums.dart';
 import '../../tuning/flying_enemy_tuning.dart';
-import '../../util/double_math.dart';
+import '../../util/ability_timing.dart';
 import '../../util/fixed_math.dart';
+import '../../util/target_prediction.dart';
 import '../entity_id.dart';
 import '../stores/enemies/flying_enemy_combat_mode_store.dart';
 import '../stores/projectile_intent_store.dart';
@@ -155,16 +154,24 @@ class EnemyCastSystem {
     var targetX = playerCenterX;
     var targetY = playerCenterY;
     if (projectileSpeed > 0.0) {
-      final dx = playerCenterX - enemyCenterX;
-      final dy = playerCenterY - enemyCenterY;
-      final distance = sqrt(dx * dx + dy * dy);
-      final leadSeconds = clampDouble(
-        distance / projectileSpeed,
-        tuning.base.unocoDemonAimLeadMinSeconds,
-        tuning.base.unocoDemonAimLeadMaxSeconds,
+      final leadSeconds = computeTravelLeadSeconds(
+        sourceX: enemyCenterX,
+        sourceY: enemyCenterY,
+        targetX: playerCenterX,
+        targetY: playerCenterY,
+        travelSpeedUnitsPerSecond: projectileSpeed,
+        minLeadSeconds: tuning.base.unocoDemonAimLeadMinSeconds,
+        maxLeadSeconds: tuning.base.unocoDemonAimLeadMaxSeconds,
       );
-      targetX = playerCenterX + playerVelX * leadSeconds;
-      targetY = playerCenterY + playerVelY * leadSeconds;
+      final predictedTarget = predictLinearTargetPosition(
+        targetX: playerCenterX,
+        targetY: playerCenterY,
+        targetVelX: playerVelX,
+        targetVelY: playerVelY,
+        leadSeconds: leadSeconds,
+      );
+      targetX = predictedTarget.$1;
+      targetY = predictedTarget.$2;
     }
 
     final castDirX = targetX - enemyCenterX;
@@ -343,7 +350,7 @@ class EnemyCastSystem {
   int _scaleAbilityTicks(int ticks) {
     if (ticks <= 0) return 0;
     if (unocoDemonTuning.tickHz <= 0) return ticks;
-    final seconds = ticks / _abilityTickHz;
+    final seconds = ticks / abilityAuthoringTickHz;
     return (seconds * unocoDemonTuning.tickHz).ceil();
   }
 
@@ -360,7 +367,6 @@ class EnemyCastSystem {
     return (ticks * bpScale + clampedSpeedBp - 1) ~/ clampedSpeedBp;
   }
 
-  static const int _abilityTickHz = 60;
   static const int _minCommitHp100 = 1;
   static const AbilityKey _enemyAbilityId = 'unoco.enemy_cast';
 }

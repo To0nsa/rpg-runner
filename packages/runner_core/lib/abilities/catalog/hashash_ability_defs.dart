@@ -28,4 +28,35 @@ final Map<AbilityKey, AbilityDef> hashashAbilityDefs = <AbilityKey, AbilityDef>{
     cooldownTicks: 52,
     animKey: AnimKey.strike,
   ),
+  'hashash.teleport_out': AbilityDef(
+    id: 'hashash.teleport_out',
+    category: AbilityCategory.mobility,
+    hitDelivery: const SelfHitDelivery(),
+    windupTicks: 0,
+    activeTicks: 32,
+    recoveryTicks: 0,
+    cooldownTicks: 0,
+    animKey: AnimKey.teleportOut,
+  ),
+  'hashash.ambush': AbilityDef(
+    id: 'hashash.ambush',
+    category: AbilityCategory.melee,
+    hitDelivery: MeleeHitDelivery(
+      sizeX: 52.0,
+      sizeY: 28.0,
+      offsetX: 2.0,
+      offsetY: 0.0,
+      hitPolicy: HitPolicy.oncePerTarget,
+    ),
+    baseDamage: 1200,
+    baseDamageType: DamageType.physical,
+    // Ambush row uses frame indices 1..9:
+    // - windup: frames 1..6
+    // - active: frames 7..9
+    windupTicks: 24,
+    activeTicks: 12,
+    recoveryTicks: 12,
+    cooldownTicks: 90,
+    animKey: AnimKey.ambush,
+  ),
 };
