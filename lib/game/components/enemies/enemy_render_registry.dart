@@ -29,6 +29,7 @@ enum EnemyDeathAnimPolicy { spawn, none }
 
 const Set<AnimKey> _defaultEnemyOneShotKeys = <AnimKey>{
   AnimKey.strike,
+  AnimKey.cast,
   AnimKey.backStrike,
   AnimKey.strike2,
   AnimKey.teleportOut,
@@ -118,6 +119,10 @@ class EnemyRenderRegistry {
     ),
     EnemyId.hashash: EnemyRenderEntry(
       id: EnemyId.hashash,
+      renderScale: Vector2.all(1.5),
+    ),
+    EnemyId.derf: EnemyRenderEntry(
+      id: EnemyId.derf,
       renderScale: Vector2.all(1.5),
     ),
   };

@@ -223,7 +223,7 @@ class SpawnService {
 
     // Pre-set cooldown to prevent immediate casting on spawn tick.
     // This ensures consistent early-game difficulty across runs.
-    final castAbility = abilities.resolve(_unocoEnemyCastAbilityId);
+    final castAbility = abilities.resolve(_unocoFireBoltCastAbilityId);
     final cooldownGroupId =
         castAbility?.effectiveCooldownGroup(AbilitySlot.projectile) ??
         CooldownGroup.projectile;
@@ -671,7 +671,7 @@ class SpawnService {
     return (seconds * _unocoDemonTuning.tickHz).ceil();
   }
 
-  static const AbilityKey _unocoEnemyCastAbilityId = 'unoco.enemy_cast';
+  static const AbilityKey _unocoFireBoltCastAbilityId = 'unoco.fire_bolt_cast';
   static const int _spawnIntroLockMask =
       LockFlag.move |
       LockFlag.jump |

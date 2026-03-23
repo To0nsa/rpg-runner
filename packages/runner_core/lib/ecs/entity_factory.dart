@@ -104,6 +104,7 @@ class EntityFactory {
     world.meleeIntent.add(id);
     world.mobilityIntent.add(id);
     world.projectileIntent.add(id);
+    world.targetPointIntent.add(id);
     world.selfIntent.add(id);
     world.equippedLoadout.add(id, equippedLoadout);
     world.statModifier.add(id);
@@ -165,6 +166,7 @@ class EntityFactory {
     world.collision.add(id);
     world.cooldown.add(id);
     world.projectileIntent.add(id);
+    world.targetPointIntent.add(id);
     world.creatureTag.add(id, tags);
     world.faction.add(id, const FactionDef(faction: Faction.enemy));
     world.health.add(id, health);

@@ -27,6 +27,7 @@ import 'components/player/player_view_component.dart';
 import 'components/enemies/enemy_render_registry.dart';
 import 'components/pickups/pickup_render_registry.dart';
 import 'components/projectiles/projectile_render_registry.dart';
+import 'components/spell_impacts/spell_impact_render_registry.dart';
 import 'components/sprite_anim/deterministic_anim_view_component.dart';
 import 'components/sprite_anim/sprite_anim_set.dart';
 import 'components/ground_surface_component.dart';
@@ -103,6 +104,7 @@ class RunnerFlameGame extends FlameGame {
        ),
        _combatFeedbackTuning = combatFeedbackTuning,
        _projectileRenderRegistry = ProjectileRenderRegistry(),
+       _spellImpactRenderRegistry = SpellImpactRenderRegistry(),
        _pickupRenderRegistry = PickupRenderRegistry(),
        super(
          camera: CameraComponent.withFixedResolution(
@@ -136,6 +138,7 @@ class RunnerFlameGame extends FlameGame {
   late final GroundSurfaceComponent _groundSurface;
   final EnemyRenderRegistry _enemyRenderRegistry;
   final ProjectileRenderRegistry _projectileRenderRegistry;
+  final SpellImpactRenderRegistry _spellImpactRenderRegistry;
   final PickupRenderRegistry _pickupRenderRegistry;
   final CombatFeedbackTuning _combatFeedbackTuning;
   final List<RectangleComponent> _staticSolids = <RectangleComponent>[];
@@ -170,6 +173,8 @@ class RunnerFlameGame extends FlameGame {
   final Vector2 _snapScratch = Vector2.zero();
   final List<ProjectileHitEvent> _pendingProjectileHitEvents =
       <ProjectileHitEvent>[];
+  final List<SpellImpactEvent> _pendingSpellImpactEvents =
+      <SpellImpactEvent>[];
   final List<EntityVisualCueEvent> _pendingEntityVisualCueEvents =
       <EntityVisualCueEvent>[];
   final Map<int, DeterministicAnimViewComponent> _ghostEnemies =
@@ -181,6 +186,8 @@ class RunnerFlameGame extends FlameGame {
       <int, EntityRenderSnapshot>{};
   final List<ProjectileHitEvent> _pendingGhostProjectileHitEvents =
       <ProjectileHitEvent>[];
+  final List<SpellImpactEvent> _pendingGhostSpellImpactEvents =
+      <SpellImpactEvent>[];
   final List<EntityVisualCueEvent> _pendingGhostEntityVisualCueEvents =
       <EntityVisualCueEvent>[];
   DeterministicAnimViewComponent? _ghostPlayer;
@@ -224,6 +231,10 @@ class RunnerFlameGame extends FlameGame {
       for (final event in events) {
         if (event is ProjectileHitEvent) {
           _pendingGhostProjectileHitEvents.add(event);
+          continue;
+        }
+        if (event is SpellImpactEvent) {
+          _pendingGhostSpellImpactEvents.add(event);
           continue;
         }
         if (event is EntityVisualCueEvent) {
@@ -290,6 +301,7 @@ class RunnerFlameGame extends FlameGame {
     _ghostProjectileSpawnTicks.clear();
     _prevGhostEntitiesById.clear();
     _pendingGhostProjectileHitEvents.clear();
+    _pendingGhostSpellImpactEvents.clear();
     _pendingGhostEntityVisualCueEvents.clear();
   }
 
@@ -355,6 +367,7 @@ class RunnerFlameGame extends FlameGame {
     await Future.wait<void>(<Future<void>>[
       _enemyRenderRegistry.load(images),
       _projectileRenderRegistry.load(images),
+      _spellImpactRenderRegistry.load(images),
       _pickupRenderRegistry.load(images),
     ]);
     _setLoadState(RunLoadPhase.registriesLoaded, 0.8);
@@ -477,9 +490,11 @@ class RunnerFlameGame extends FlameGame {
       alpha: alpha,
       cameraCenter: _cameraCenterScratch,
     );
+    _flushPendingSpellImpactEvents(cameraCenter: _cameraCenterScratch);
     _syncGhostLayer(alpha: alpha, cameraCenter: _cameraCenterScratch);
     _flushPendingGhostEntityVisualCueEvents();
     _flushPendingGhostProjectileHitEvents(cameraCenter: _cameraCenterScratch);
+    _flushPendingGhostSpellImpactEvents(cameraCenter: _cameraCenterScratch);
     final drawHitboxes =
         RenderDebugFlags.canUseRenderDebug &&
         RenderDebugFlags.drawActorHitboxes;
@@ -638,6 +653,10 @@ class RunnerFlameGame extends FlameGame {
     }
     if (event is ProjectileHitEvent) {
       _pendingProjectileHitEvents.add(event);
+      return;
+    }
+    if (event is SpellImpactEvent) {
+      _pendingSpellImpactEvents.add(event);
     }
   }
 
@@ -713,6 +732,34 @@ class RunnerFlameGame extends FlameGame {
     }
 
     _pendingProjectileHitEvents.clear();
+  }
+
+  void _flushPendingSpellImpactEvents({required Vector2 cameraCenter}) {
+    if (_pendingSpellImpactEvents.isEmpty) return;
+
+    for (final event in _pendingSpellImpactEvents) {
+      final entry = _spellImpactRenderRegistry.entryFor(event.impactId);
+      if (entry == null) continue;
+
+      final hitAnim = entry.animSet.animations[AnimKey.hit];
+      if (hitAnim == null) continue;
+
+      final component = _CameraSpaceSnappedSpriteAnimationComponent(
+        animation: hitAnim,
+        size: entry.animSet.frameSize.clone(),
+        worldPosX: event.pos.x,
+        worldPosY: event.pos.y,
+        anchor: entry.animSet.anchor,
+        paint: Paint()..filterQuality = FilterQuality.none,
+        removeOnFinish: true,
+      )..priority = _priorityProjectiles;
+
+      component.scale.setValues(entry.renderScale.x, entry.renderScale.y);
+      component.snapToCamera(cameraCenter);
+      world.add(component);
+    }
+
+    _pendingSpellImpactEvents.clear();
   }
 
   /// Synchronizes projectile view components with the snapshot.
@@ -1148,6 +1195,36 @@ class RunnerFlameGame extends FlameGame {
     _pendingGhostProjectileHitEvents.clear();
   }
 
+  void _flushPendingGhostSpellImpactEvents({required Vector2 cameraCenter}) {
+    if (_pendingGhostSpellImpactEvents.isEmpty) {
+      return;
+    }
+
+    for (final event in _pendingGhostSpellImpactEvents) {
+      final entry = _spellImpactRenderRegistry.entryFor(event.impactId);
+      if (entry == null) continue;
+
+      final hitAnim = entry.animSet.animations[AnimKey.hit];
+      if (hitAnim == null) continue;
+
+      final component = _CameraSpaceSnappedSpriteAnimationComponent(
+        animation: hitAnim,
+        size: entry.animSet.frameSize.clone(),
+        worldPosX: event.pos.x,
+        worldPosY: event.pos.y,
+        anchor: entry.animSet.anchor,
+        paint: Paint()..filterQuality = FilterQuality.none,
+        removeOnFinish: true,
+      )..priority = _priorityGhostEntities;
+
+      component.scale.setValues(entry.renderScale.x, entry.renderScale.y);
+      component.snapToCamera(cameraCenter);
+      world.add(component);
+    }
+
+    _pendingGhostSpellImpactEvents.clear();
+  }
+
   /// Synchronizes trigger/hitbox view components with the snapshot.
   ///
   /// Creates translucent red rectangle components for new triggers, updates
@@ -1296,11 +1373,16 @@ class RunnerFlameGame extends FlameGame {
     _ghostReplayBlob = replayBlob;
     _ghostPlayerAnimSet = playerAnimSet;
     _pendingGhostProjectileHitEvents.clear();
+    _pendingGhostSpellImpactEvents.clear();
     _pendingGhostEntityVisualCueEvents.clear();
     if (events != null && events.isNotEmpty) {
       for (final event in events) {
         if (event is ProjectileHitEvent) {
           _pendingGhostProjectileHitEvents.add(event);
+          continue;
+        }
+        if (event is SpellImpactEvent) {
+          _pendingGhostSpellImpactEvents.add(event);
           continue;
         }
         if (event is EntityVisualCueEvent) {
@@ -1319,6 +1401,7 @@ class RunnerFlameGame extends FlameGame {
     _syncGhostLayer(alpha: alpha, cameraCenter: center);
     _flushPendingGhostEntityVisualCueEvents();
     _flushPendingGhostProjectileHitEvents(cameraCenter: center);
+    _flushPendingGhostSpellImpactEvents(cameraCenter: center);
   }
 
   @visibleForTesting

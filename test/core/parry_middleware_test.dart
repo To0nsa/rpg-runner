@@ -166,4 +166,71 @@ void main() {
     expect(world.riposte.has(player), isFalse);
     expect(world.parryConsume.denseEntities, isEmpty);
   });
+
+  test('ParryMiddleware does not mitigate spell-impact hits', () {
+    final world = EcsWorld();
+    final player = EntityFactory(world).createPlayer(
+      posX: 0,
+      posY: 0,
+      velX: 0,
+      velY: 0,
+      facing: Facing.right,
+      grounded: true,
+      body: const BodyDef(isKinematic: true, useGravity: false),
+      collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+      health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
+    );
+
+    final enemy = world.createEntity();
+    world.health.add(
+      enemy,
+      const HealthDef(hp: 5000, hpMax: 5000, regenPerSecond100: 0),
+    );
+
+    world.activeAbility.set(
+      player,
+      id: 'eloise.aegis_riposte',
+      slot: AbilitySlot.secondary,
+      commitTick: 10,
+      windupTicks: 2,
+      activeTicks: 18,
+      recoveryTicks: 2,
+      facingDir: Facing.right,
+    );
+
+    final phaseSystem = ActiveAbilityPhaseSystem();
+    phaseSystem.step(world, currentTick: 12);
+
+    world.damageQueue.add(
+      DamageRequest(
+        target: player,
+        amount100: 1000,
+        source: enemy,
+        sourceKind: DeathSourceKind.spellImpact,
+      ),
+    );
+
+    final middleware = DamageMiddlewareSystem(
+      middlewares: [
+        ParryMiddleware(
+          abilityIds: const <AbilityKey>{'eloise.aegis_riposte'},
+          riposteBonusBp: 1234,
+          riposteLifetimeTicks: 7,
+        ),
+      ],
+    );
+    middleware.step(world, currentTick: 12);
+
+    expect(world.damageQueue.length, equals(1));
+    expect(world.damageQueue.flags[0] & DamageQueueFlags.canceled, equals(0));
+    expect(world.damageQueue.amount100[0], equals(1000));
+    expect(world.riposte.has(player), isFalse);
+    expect(world.parryConsume.denseEntities, isEmpty);
+  });
 }

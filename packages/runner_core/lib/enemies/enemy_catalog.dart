@@ -11,7 +11,6 @@ import '../abilities/ability_def.dart';
 import '../anim/anim_resolver.dart';
 import '../contracts/render_anim_set_definition.dart';
 import 'death_behavior.dart';
-import '../projectiles/projectile_id.dart';
 import '../snapshots/enums.dart';
 import '../util/vec2.dart';
 import 'enemy_id.dart';
@@ -349,10 +348,97 @@ const AnimProfile _hashashAnimProfile = AnimProfile(
   supportsStun: true,
 );
 
+// -----------------------------------------------------------------------------
+// Derf (stationary caster) render animation sheet definitions (authoring-time)
+// -----------------------------------------------------------------------------
+
+const int _derfAnimFrameWidth = 45;
+const int _derfAnimFrameHeight = 42;
+const String _derfAnimSpriteSheetPath = 'entities/enemies/derf/derf.png';
+
+const int _derfAnimIdleFrames = 6;
+const int _derfAnimCastFrames = 10;
+const int _derfAnimHitFrames = 3;
+const int _derfAnimDeathFrames = 12;
+
+const double _derfAnimIdleStepSeconds = 0.10;
+const double _derfAnimCastStepSeconds = 0.08;
+const double _derfAnimHitStepSeconds = 0.10;
+const double _derfAnimDeathStepSeconds = 0.10;
+
+const double _derfHitAnimSeconds = _derfAnimHitFrames * _derfAnimHitStepSeconds;
+const double _derfDeathAnimSeconds =
+    _derfAnimDeathFrames * _derfAnimDeathStepSeconds;
+
+const Map<AnimKey, String> _derfAnimSourcesByKey = <AnimKey, String>{
+  AnimKey.idle: _derfAnimSpriteSheetPath,
+  AnimKey.run: _derfAnimSpriteSheetPath,
+  AnimKey.cast: _derfAnimSpriteSheetPath,
+  AnimKey.hit: _derfAnimSpriteSheetPath,
+  AnimKey.death: _derfAnimSpriteSheetPath,
+};
+
+const Map<AnimKey, int> _derfAnimRowByKey = <AnimKey, int>{
+  AnimKey.idle: 0,
+  AnimKey.run: 0,
+  AnimKey.cast: 2,
+  AnimKey.hit: 5,
+  AnimKey.death: 6,
+};
+
+const Map<AnimKey, int> _derfAnimFrameCountsByKey = <AnimKey, int>{
+  AnimKey.idle: _derfAnimIdleFrames,
+  AnimKey.run: _derfAnimIdleFrames,
+  AnimKey.cast: _derfAnimCastFrames,
+  AnimKey.hit: _derfAnimHitFrames,
+  AnimKey.death: _derfAnimDeathFrames,
+};
+
+const Map<AnimKey, double> _derfAnimStepTimeSecondsByKey = <AnimKey, double>{
+  AnimKey.idle: _derfAnimIdleStepSeconds,
+  AnimKey.run: _derfAnimIdleStepSeconds,
+  AnimKey.cast: _derfAnimCastStepSeconds,
+  AnimKey.hit: _derfAnimHitStepSeconds,
+  AnimKey.death: _derfAnimDeathStepSeconds,
+};
+
+const RenderAnimSetDefinition _derfRenderAnim = RenderAnimSetDefinition(
+  frameWidth: _derfAnimFrameWidth,
+  frameHeight: _derfAnimFrameHeight,
+  sourcesByKey: _derfAnimSourcesByKey,
+  rowByKey: _derfAnimRowByKey,
+  frameCountsByKey: _derfAnimFrameCountsByKey,
+  stepTimeSecondsByKey: _derfAnimStepTimeSecondsByKey,
+);
+
+const AnimProfile _derfAnimProfile = AnimProfile(
+  minMoveSpeed: 1.0,
+  runSpeedThresholdX: 120.0,
+  supportsJumpFall: false,
+  supportsCast: true,
+  supportsStun: false,
+);
+
 /// Defines the base stats and physics properties for an enemy type.
 ///
 /// This data is "static" (read-only) configuration used to initialize
 /// the ECS components effectively when an enemy spawns.
+enum EnemyCastTargetPolicy {
+  /// Casts directly at the player's current center position.
+  playerCenter,
+
+  /// Predicts player center using deterministic lead.
+  predictedPlayerCenter,
+}
+
+enum EnemyFacingPolicy {
+  /// Facing is derived from movement/commits.
+  movementDriven,
+
+  /// Facing updates continuously toward the player.
+  facePlayerAlways,
+}
+
 class EnemyArchetype {
   const EnemyArchetype({
     required this.body,
@@ -366,7 +452,9 @@ class EnemyArchetype {
     required this.deathAnimSeconds,
     this.spawnAnimSeconds = 0.0,
     this.deathBehavior = DeathBehavior.instant,
-    this.primaryProjectileId,
+    this.primaryCastAbilityId,
+    this.castTargetPolicy = EnemyCastTargetPolicy.predictedPlayerCenter,
+    this.facingPolicy = EnemyFacingPolicy.movementDriven,
     this.primaryMeleeAbilityId,
     this.comboMeleeAbilityId,
     this.artFacingDir = Facing.left,
@@ -404,10 +492,14 @@ class EnemyArchetype {
   /// Behavior for death transition timing (instant vs ground impact).
   final DeathBehavior deathBehavior;
 
-  /// Optional primary projectile item for this enemy.
-  ///
-  /// When present, the [EnemyCastSystem] will use this to write projectile intents.
-  final ProjectileId? primaryProjectileId;
+  /// Optional primary cast ability for this enemy.
+  final AbilityKey? primaryCastAbilityId;
+
+  /// Target selection policy used by enemy cast systems.
+  final EnemyCastTargetPolicy castTargetPolicy;
+
+  /// Facing update policy for this archetype.
+  final EnemyFacingPolicy facingPolicy;
 
   /// Optional primary melee ability for this enemy.
   ///
@@ -466,7 +558,8 @@ class EnemyCatalog {
           hitAnimSeconds: _unocoHitAnimSeconds,
           deathAnimSeconds: _unocoDeathAnimSeconds,
           deathBehavior: DeathBehavior.instant,
-          primaryProjectileId: ProjectileId.fireBolt,
+          primaryCastAbilityId: 'unoco.fire_bolt_cast',
+          castTargetPolicy: EnemyCastTargetPolicy.predictedPlayerCenter,
           primaryMeleeAbilityId: 'unoco.strike',
           artFacingDir: Facing.left,
           tags: CreatureTagDef(
@@ -528,6 +621,35 @@ class EnemyCatalog {
           deathBehavior: DeathBehavior.groundImpactThenDeath,
           primaryMeleeAbilityId: 'hashash.strike',
           tags: CreatureTagDef(mask: CreatureTagMask.humanoid),
+        );
+      case EnemyId.derf:
+        return const EnemyArchetype(
+          body: BodyDef(
+            isKinematic: true,
+            useGravity: false,
+            gravityScale: 0.0,
+            sideMask: BodyDef.sideNone,
+          ),
+          collider: ColliderAabbDef(
+            halfX: 12.0,
+            halfY: 16.0,
+            offsetX: 0.0,
+            offsetY: 6.0,
+          ),
+          health: HealthDef(hp: 2200, hpMax: 2200, regenPerSecond100: 40),
+          mana: ManaDef(mana: 10000, manaMax: 10000, regenPerSecond100: 600),
+          stamina: StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
+          renderAnim: _derfRenderAnim,
+          animProfile: _derfAnimProfile,
+          hitAnimSeconds: _derfHitAnimSeconds,
+          deathAnimSeconds: _derfDeathAnimSeconds,
+          deathBehavior: DeathBehavior.instant,
+          primaryCastAbilityId: 'derf.fire_explosion',
+          castTargetPolicy: EnemyCastTargetPolicy.predictedPlayerCenter,
+          facingPolicy: EnemyFacingPolicy.facePlayerAlways,
+          artFacingDir: Facing.left,
+          tags: CreatureTagDef(mask: CreatureTagMask.humanoid),
+          resistance: DamageResistanceDef(fireBp: -3000, iceBp: 2000),
         );
     }
   }

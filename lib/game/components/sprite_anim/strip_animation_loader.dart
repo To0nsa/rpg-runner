@@ -126,7 +126,14 @@ Future<SpriteAnimSet> loadAnimSetFromDefinition(
   );
 
   // Default spawn to idle when no dedicated strip exists.
-  animSet.animations[AnimKey.spawn] ??= animSet.animations[AnimKey.idle]!;
+  // Some one-shot VFX sets (for example spell impacts) intentionally author
+  // only AnimKey.hit, so we fall back to the first available animation.
+  final idleOrFirst =
+      animSet.animations[AnimKey.idle] ??
+      (animSet.animations.isNotEmpty ? animSet.animations.values.first : null);
+  if (idleOrFirst != null) {
+    animSet.animations[AnimKey.spawn] ??= idleOrFirst;
+  }
 
   return animSet;
 }

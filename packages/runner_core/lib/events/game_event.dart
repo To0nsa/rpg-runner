@@ -17,11 +17,13 @@ import '../combat/status/status.dart';
 import '../enemies/enemy_id.dart';
 import '../projectiles/projectile_id.dart';
 import '../snapshots/enums.dart';
+import '../spell_impacts/spell_impact_id.dart';
 import '../util/vec2.dart';
 
 part 'run_events.dart';
 part 'enemy_events.dart';
 part 'projectile_events.dart';
+part 'spell_impact_events.dart';
 part 'ability_events.dart';
 part 'feedback_events.dart';
 

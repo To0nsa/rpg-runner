@@ -6,8 +6,8 @@ import '../ability_def.dart';
 
 /// Unoco Demon ability definitions.
 final Map<AbilityKey, AbilityDef> unocoAbilityDefs = <AbilityKey, AbilityDef>{
-  'unoco.enemy_cast': AbilityDef(
-    id: 'unoco.enemy_cast',
+  'unoco.fire_bolt_cast': AbilityDef(
+    id: 'unoco.fire_bolt_cast',
     category: AbilityCategory.ranged,
     targetingModel: TargetingModel.aimed,
     inputLifecycle: AbilityInputLifecycle.holdRelease,

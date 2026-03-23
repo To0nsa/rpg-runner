@@ -66,6 +66,13 @@ const List<ChunkPattern> easyPatterns = <ChunkPattern>[
     groundGaps: <GapRel>[],
     spawnMarkers: <SpawnMarker>[
       SpawnMarker(
+        enemyId: EnemyId.derf,
+        x: 248,
+        chancePercent: 100,
+        salt: 0x13,
+        placement: SpawnPlacementMode.obstacleTop,
+      ),
+      SpawnMarker(
         enemyId: EnemyId.hashash,
         x: 320,
         chancePercent: 100,
@@ -124,6 +131,13 @@ const List<ChunkPattern> allPatterns = <ChunkPattern>[
     obstacles: <ObstacleRel>[ObstacleRel(x: 128, width: 48, height: 64)],
     groundGaps: <GapRel>[GapRel(x: 176, width: 96)],
     spawnMarkers: <SpawnMarker>[
+      SpawnMarker(
+        enemyId: EnemyId.derf,
+        x: 152,
+        chancePercent: 100,
+        salt: 0x13,
+        placement: SpawnPlacementMode.obstacleTop,
+      ),
       SpawnMarker(
         enemyId: EnemyId.hashash,
         x: 320,
@@ -227,6 +241,13 @@ const List<ChunkPattern> allPatterns = <ChunkPattern>[
         x: 256,
         chancePercent: 17,
         salt: 0x0B,
+      ),
+      SpawnMarker(
+        enemyId: EnemyId.derf,
+        x: 360,
+        chancePercent: 100,
+        salt: 0x14,
+        placement: SpawnPlacementMode.obstacleTop,
       ),
       SpawnMarker(
         enemyId: EnemyId.unocoDemon,

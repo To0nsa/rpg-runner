@@ -665,7 +665,7 @@ void main() {
 
       world.activeAbility.set(
         enemy,
-        id: 'unoco.enemy_cast',
+        id: 'unoco.fire_bolt_cast',
         slot: AbilitySlot.projectile,
         commitTick: 10,
         windupTicks: 5,
@@ -705,7 +705,7 @@ void main() {
 
     world.activeAbility.set(
       enemy,
-      id: 'unoco.enemy_cast',
+      id: 'unoco.fire_bolt_cast',
       slot: AbilitySlot.projectile,
       commitTick: 10,
       windupTicks: 2,

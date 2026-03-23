@@ -63,6 +63,7 @@ import 'stores/reactive_proc_cooldown_store.dart';
 import 'stores/stamina_store.dart';
 import 'stores/enemies/surface_nav_state_store.dart';
 import 'stores/spawn_state_store.dart';
+import 'stores/target_point_intent_store.dart';
 import 'stores/transform_store.dart';
 
 /// Minimal Entity Component System (ECS) world container.
@@ -163,6 +164,11 @@ class EcsWorld {
   /// Tracks the player's intent to fire a projectile item (spell or throw).
   late final ProjectileIntentStore projectileIntent = _register(
     ProjectileIntentStore(),
+  );
+
+  /// Tracks the intent to execute a world-space target-point impact spell.
+  late final TargetPointIntentStore targetPointIntent = _register(
+    TargetPointIntentStore(),
   );
 
   /// Tracks the intent to use a self ability (parry, block, buff).

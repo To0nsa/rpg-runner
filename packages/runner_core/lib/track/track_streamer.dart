@@ -15,7 +15,20 @@ import 'chunk_pattern.dart';
 import 'chunk_pattern_pool.dart';
 
 /// Callback to spawn an enemy at a world X position.
-typedef SpawnEnemy = void Function(EnemyId enemyId, double x);
+typedef SpawnEnemy = void Function(SpawnEnemyRequest request);
+
+/// Spawn request payload emitted by [TrackStreamer].
+class SpawnEnemyRequest {
+  const SpawnEnemyRequest({
+    required this.enemyId,
+    required this.x,
+    required this.surfaceTopY,
+  });
+
+  final EnemyId enemyId;
+  final double x;
+  final double surfaceTopY;
+}
 
 /// Metadata for a newly spawned chunk, returned by [TrackStreamer.step].
 class TrackSpawnedChunk {
@@ -155,6 +168,8 @@ class TrackStreamer {
         pattern,
         chunkIndex,
         chunkStartX: startX,
+        solids: solids,
+        groundSegments: ground.segments,
         spawnEnemy: spawnEnemy,
       );
 
@@ -230,6 +245,8 @@ class TrackStreamer {
     ChunkPattern pattern,
     int chunkIndex, {
     required double chunkStartX,
+    required List<StaticSolid> solids,
+    required List<StaticGroundSegment> groundSegments,
     required SpawnEnemy spawnEnemy,
   }) {
     // Early-game safety: keep first few chunks enemy-free.
@@ -252,7 +269,19 @@ class TrackStreamer {
       }
 
       final x = chunkStartX + m.x;
-      spawnEnemy(m.enemyId, x);
+      final spawnSurfaceTopY = _resolveSpawnSurfaceTopY(
+        marker: m,
+        x: x,
+        solids: solids,
+        groundSegments: groundSegments,
+      );
+      spawnEnemy(
+        SpawnEnemyRequest(
+          enemyId: m.enemyId,
+          x: x,
+          surfaceTopY: spawnSurfaceTopY,
+        ),
+      );
     }
 
     return pendingHashashSpawns;
@@ -289,7 +318,13 @@ class TrackStreamer {
 
     final spawnX = _hashashEdgeSpawnX(visibleRightChunk);
     for (var i = 0; i < pending; i += 1) {
-      spawnEnemy(EnemyId.hashash, spawnX);
+      spawnEnemy(
+        SpawnEnemyRequest(
+          enemyId: EnemyId.hashash,
+          x: spawnX,
+          surfaceTopY: groundTopY,
+        ),
+      );
     }
     visibleRightChunk.pendingHashashSpawns = 0;
   }
@@ -317,6 +352,85 @@ class TrackStreamer {
   }
 
   static const double _hashashEdgeSpawnInsetX = -96.0;
+
+  double _resolveSpawnSurfaceTopY({
+    required SpawnMarker marker,
+    required double x,
+    required List<StaticSolid> solids,
+    required List<StaticGroundSegment> groundSegments,
+  }) {
+    switch (marker.placement) {
+      case SpawnPlacementMode.ground:
+        return groundTopY;
+      case SpawnPlacementMode.highestSurfaceAtX:
+        return _resolveHighestSurfaceTopYAtX(
+              x: x,
+              solids: solids,
+              groundSegments: groundSegments,
+            ) ??
+            groundTopY;
+      case SpawnPlacementMode.obstacleTop:
+        return _resolveObstacleTopYAtX(x: x, solids: solids) ??
+            _resolveHighestSurfaceTopYAtX(
+              x: x,
+              solids: solids,
+              groundSegments: groundSegments,
+            ) ??
+            groundTopY;
+    }
+  }
+
+  double? _resolveObstacleTopYAtX({
+    required double x,
+    required List<StaticSolid> solids,
+  }) {
+    _SurfaceCandidate? best;
+    for (var i = 0; i < solids.length; i += 1) {
+      final solid = solids[i];
+      if (solid.oneWayTop) continue;
+      if ((solid.sides & StaticSolid.sideTop) == 0) continue;
+      if (x < solid.minX || x > solid.maxX) continue;
+      final stableId = solid.localSolidIndex >= 0 ? solid.localSolidIndex : i;
+      final candidate = _SurfaceCandidate(yTop: solid.minY, stableId: stableId);
+      if (best == null || candidate.isHigherPriorityThan(best)) {
+        best = candidate;
+      }
+    }
+    return best?.yTop;
+  }
+
+  double? _resolveHighestSurfaceTopYAtX({
+    required double x,
+    required List<StaticSolid> solids,
+    required List<StaticGroundSegment> groundSegments,
+  }) {
+    _SurfaceCandidate? best;
+
+    for (var i = 0; i < groundSegments.length; i += 1) {
+      final segment = groundSegments[i];
+      if (x < segment.minX || x > segment.maxX) continue;
+      final stableId = segment.localSegmentIndex >= 0
+          ? 1000000 + segment.localSegmentIndex
+          : 1000000 + i;
+      final candidate = _SurfaceCandidate(yTop: segment.topY, stableId: stableId);
+      if (best == null || candidate.isHigherPriorityThan(best)) {
+        best = candidate;
+      }
+    }
+
+    for (var i = 0; i < solids.length; i += 1) {
+      final solid = solids[i];
+      if ((solid.sides & StaticSolid.sideTop) == 0) continue;
+      if (x < solid.minX || x > solid.maxX) continue;
+      final stableId = solid.localSolidIndex >= 0 ? solid.localSolidIndex : i;
+      final candidate = _SurfaceCandidate(yTop: solid.minY, stableId: stableId);
+      if (best == null || candidate.isHigherPriorityThan(best)) {
+        best = candidate;
+      }
+    }
+
+    return best?.yTop;
+  }
 }
 
 /// Tracks a spawned chunk's geometry while it's within camera culling bounds.
@@ -351,4 +465,19 @@ class _ActiveChunk {
 
   /// Deferred hashash spawns that should trigger when this chunk is camera-right.
   int pendingHashashSpawns;
+}
+
+class _SurfaceCandidate {
+  const _SurfaceCandidate({required this.yTop, required this.stableId});
+
+  final double yTop;
+  final int stableId;
+
+  bool isHigherPriorityThan(_SurfaceCandidate other) {
+    if (yTop < other.yTop - 1e-9) return true;
+    if ((yTop - other.yTop).abs() <= 1e-9 && stableId < other.stableId) {
+      return true;
+    }
+    return false;
+  }
 }

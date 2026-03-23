@@ -41,7 +41,6 @@ import 'collision/static_world_geometry_index.dart';
 import 'ecs/stores/restoration_item_store.dart' show RestorationStat;
 import 'ecs/systems/ground_enemy_locomotion_system.dart';
 import 'ecs/systems/enemy_navigation_system.dart';
-import 'enemies/enemy_id.dart';
 import 'navigation/surface_graph_builder.dart';
 import 'navigation/utils/jump_template.dart';
 import 'snapshots/ground_surface_snapshot.dart';
@@ -61,7 +60,7 @@ import 'tuning/track_tuning.dart';
 ///
 /// - [enemyId]: The type of enemy to spawn (ground or flying).
 /// - [x]: The world X coordinate for the spawn.
-typedef SpawnEnemyCallback = void Function(EnemyId enemyId, double x);
+typedef SpawnEnemyCallback = void Function(SpawnEnemyRequest request);
 
 /// Result of a single [TrackManager.step] call.
 ///

@@ -12,6 +12,8 @@ import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/projectiles/projectile_render_catalog.dart';
 import 'package:runner_core/pickups/pickup_render_catalog.dart';
+import 'package:runner_core/spell_impacts/spell_impact_id.dart';
+import 'package:runner_core/spell_impacts/spell_impact_render_catalog.dart';
 import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 import 'package:runner_core/snapshots/enums.dart';
 import '../../game/components/player/player_animations.dart';
@@ -303,6 +305,12 @@ class UiAssetLifecycle {
     ];
     for (final variant in pickupVariants) {
       addFromRenderAnim(pickupCatalog.get(variant));
+    }
+
+    const spellImpactCatalog = SpellImpactRenderCatalog();
+    for (final impactId in SpellImpactId.values) {
+      if (impactId == SpellImpactId.unknown) continue;
+      addFromRenderAnim(spellImpactCatalog.get(impactId));
     }
 
     return paths;

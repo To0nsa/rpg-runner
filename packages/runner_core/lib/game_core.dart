@@ -132,6 +132,7 @@ import 'ecs/systems/resource_regen_system.dart';
 import 'ecs/systems/restoration_item_system.dart';
 import 'ecs/systems/self_ability_system.dart';
 import 'ecs/systems/status_system.dart';
+import 'ecs/systems/target_point_impact_system.dart';
 import 'ecs/systems/control_lock_system.dart';
 import 'ecs/systems/anim/anim_system.dart';
 import 'ecs/systems/enemy_cull_system.dart';
@@ -495,6 +496,9 @@ class GameCore {
       projectiles: _projectiles,
       tickHz: tickHz,
     );
+    _targetPointImpactSystem = TargetPointImpactSystem(
+      queueImpactEvent: (event) => _events.add(event),
+    );
     _selfAbilitySystem = SelfAbilitySystem();
     _meleeStrikeSystem = MeleeStrikeSystem();
 
@@ -793,6 +797,7 @@ class GameCore {
   late final SelfAbilitySystem _selfAbilitySystem;
   late final MeleeStrikeSystem _meleeStrikeSystem;
   late final ProjectileLaunchSystem _projectileLaunchSystem;
+  late final TargetPointImpactSystem _targetPointImpactSystem;
   late final HitboxDamageSystem _hitboxDamageSystem;
   late final MobilityImpactSystem _mobilityImpactSystem;
   late final ResourceRegenSystem _resourceRegenSystem;
@@ -1084,7 +1089,7 @@ class GameCore {
     final effectiveGroundTopY = _levelDefinition.groundTopY;
 
     // ─── Phase 1: World generation ───
-    _stepTrackManager(effectiveGroundTopY);
+    _stepTrackManager();
 
     // ─── Phase 2: Timer decrements ───
     _cooldownSystem.step(_world);
@@ -1215,10 +1220,11 @@ class GameCore {
       queueStatus: _statusSystem.queue,
       queuePurge: _statusSystem.queuePurge,
     );
-    // Convert intents into actual hitboxes/projectiles.
+    // Convert intents into actual hitboxes/projectiles/target-point impacts.
     // Self abilities first so buffs/blocks/i-frames can affect spawns & downstream combat deterministically.
     _meleeStrikeSystem.step(_world, currentTick: tick);
     _projectileLaunchSystem.step(_world, currentTick: tick);
+    _targetPointImpactSystem.step(_world, currentTick: tick);
 
     // ─── Phase 11: Hitbox positioning ───
     // Update hitbox transforms to follow their owner entities.
@@ -1375,30 +1381,39 @@ class GameCore {
   /// Steps the track manager and handles enemy spawning callbacks.
   ///
   /// This is extracted from [stepOneTick] to keep the main loop readable.
-  void _stepTrackManager(double effectiveGroundTopY) {
+  void _stepTrackManager() {
     _trackManager.step(
       currentTick: tick,
       cameraLeft: _camera.left(),
       cameraRight: _camera.right(),
-      spawnEnemy: (enemyId, x) {
+      spawnEnemy: (request) {
+        final enemyId = request.enemyId;
+        final x = request.x;
+        final surfaceTopY = request.surfaceTopY;
         // Route spawn requests to the appropriate SpawnService method.
         switch (enemyId) {
           case EnemyId.unocoDemon:
             _spawnService.spawnUnocoDemon(
               spawnX: x,
-              groundTopY: effectiveGroundTopY,
+              groundTopY: surfaceTopY,
             );
           case EnemyId.grojib:
             _spawnService.spawnGroundEnemy(
               spawnX: x,
-              groundTopY: effectiveGroundTopY,
+              groundTopY: surfaceTopY,
             );
           case EnemyId.hashash:
             _spawnService.spawnGroundEnemy(
               enemyId: EnemyId.hashash,
               spawnX: x,
-              groundTopY: effectiveGroundTopY,
+              groundTopY: surfaceTopY,
               spawnTick: tick,
+            );
+          case EnemyId.derf:
+            _spawnService.spawnGroundEnemy(
+              enemyId: EnemyId.derf,
+              spawnX: x,
+              groundTopY: surfaceTopY,
             );
         }
       },

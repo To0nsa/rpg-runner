@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/tuning/score_tuning.dart';
@@ -49,6 +50,25 @@ RunEndedEvent _buildEvent() {
       enemyKillCounts: [1, 0],
     ),
     goldEarned: 2,
+  );
+}
+
+RunEndedEvent _buildDerfSpellImpactDeathEvent() {
+  return const RunEndedEvent(
+    runId: 2,
+    tick: _tick,
+    distance: _distanceUnits,
+    reason: RunEndReason.playerDied,
+    stats: RunEndStats(
+      collectibles: 0,
+      collectibleScore: 0,
+      enemyKillCounts: [0, 0],
+    ),
+    goldEarned: 0,
+    deathInfo: DeathInfo(
+      kind: DeathSourceKind.spellImpact,
+      enemyId: EnemyId.derf,
+    ),
   );
 }
 
@@ -237,6 +257,28 @@ void main() {
     expect(find.text('Actual rank unavailable.'), findsOneWidget);
     expect(store.addResultCalls, 0);
     expect(store.loadTop10Calls, 0);
+  });
+
+  testWidgets('GameOverOverlay shows Derf spell-impact death subtitle', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameOverOverlay(
+          visible: true,
+          onRestart: () {},
+          onExit: null,
+          showExitButton: false,
+          levelId: LevelId.field,
+          runMode: RunMode.practice,
+          runEndedEvent: _buildDerfSpellImpactDeathEvent(),
+          scoreTuning: _tuning,
+          tickHz: _tickHz,
+        ),
+      ),
+    );
+
+    expect(find.text('Incinerated by Derf\'s explosion.'), findsOneWidget);
   });
 
   group('GameOverOverlay gold panel reward states', () {

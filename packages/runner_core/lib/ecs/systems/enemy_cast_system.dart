@@ -1,8 +1,11 @@
 import '../../abilities/ability_catalog.dart';
 import '../../abilities/ability_def.dart';
 import '../../combat/control_lock.dart';
+import '../../combat/damage_type.dart';
+import '../../combat/hit_payload.dart';
 import '../../combat/hit_payload_builder.dart';
 import '../../enemies/enemy_catalog.dart';
+import '../../events/game_event.dart';
 import '../../projectiles/projectile_catalog.dart';
 import '../../projectiles/projectile_item_def.dart';
 import '../../projectiles/projectile_id.dart';
@@ -11,12 +14,14 @@ import '../../tuning/flying_enemy_tuning.dart';
 import '../../util/ability_timing.dart';
 import '../../util/fixed_math.dart';
 import '../../util/target_prediction.dart';
+import '../../weapons/weapon_proc.dart';
 import '../entity_id.dart';
 import '../stores/enemies/flying_enemy_combat_mode_store.dart';
 import '../stores/projectile_intent_store.dart';
+import '../stores/target_point_intent_store.dart';
 import '../world.dart';
 
-/// Handles enemy projectile strike decisions and writes projectile intents.
+/// Handles enemy cast decisions and writes execution intents.
 class EnemyCastSystem {
   EnemyCastSystem({
     required this.unocoDemonTuning,
@@ -30,39 +35,27 @@ class EnemyCastSystem {
   final ProjectileCatalog projectiles;
   final AbilityResolver abilities;
 
-  /// Evaluates casts for all enemies and writes projectile intents.
+  /// Evaluates casts for all enemies and writes execute intents.
   void step(
     EcsWorld world, {
     required EntityId player,
     required int currentTick,
   }) {
-    if (!world.transform.has(player)) return;
+    final playerTi = world.transform.tryIndexOf(player);
+    if (playerTi == null) return;
 
-    final castAbility = abilities.resolve(_enemyAbilityId);
-    if (castAbility == null) return;
-    final castCooldownGroupId = castAbility.effectiveCooldownGroup(
-      AbilitySlot.projectile,
-    );
-
-    final playerTi = world.transform.indexOf(player);
     final playerX = world.transform.posX[playerTi];
     final playerY = world.transform.posY[playerTi];
     final playerVelX = world.transform.velX[playerTi];
     final playerVelY = world.transform.velY[playerTi];
-    var playerCenterX = playerX;
-    var playerCenterY = playerY;
-    if (world.colliderAabb.has(player)) {
-      final ai = world.colliderAabb.indexOf(player);
-      playerCenterX += world.colliderAabb.offsetX[ai];
-      playerCenterY += world.colliderAabb.offsetY[ai];
-    }
+    final playerCenter = _entityCenter(world, player, fallbackX: playerX, fallbackY: playerY);
 
     final enemies = world.enemy;
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
       final enemy = enemies.denseEntities[ei];
       if (world.deathState.has(enemy)) continue;
-      final ti = world.transform.tryIndexOf(enemy);
-      if (ti == null) continue;
+      final enemyTi = world.transform.tryIndexOf(enemy);
+      if (enemyTi == null) continue;
 
       final modeIndex = world.flyingEnemyCombatMode.tryIndexOf(enemy);
       if (modeIndex != null &&
@@ -73,151 +66,233 @@ class EnemyCastSystem {
 
       if (!world.cooldown.has(enemy)) continue;
       if (world.controlLock.isStunned(enemy, currentTick)) continue;
-      if (world.activeAbility.hasActiveAbility(enemy)) continue;
-
-      if (!world.projectileIntent.has(enemy)) {
-        assert(
-          false,
-          'EnemyCastSystem requires ProjectileIntentStore on enemies; add it at spawn time.',
-        );
-        continue;
-      }
 
       final enemyId = enemies.enemyId[ei];
       final archetype = enemyCatalog.get(enemyId);
-      final projectileId = archetype.primaryProjectileId;
-      if (projectileId == null) continue;
+      final castAbilityId = archetype.primaryCastAbilityId;
+      if (castAbilityId == null) continue;
+      final castAbility = abilities.resolve(castAbilityId);
+      if (castAbility == null) continue;
 
-      final projectile = projectiles.get(projectileId);
-      final projectileSpeed = projectile.speedUnitsPerSecond;
-      final castCost = castAbility.resolveCostForWeaponType(
-        projectile.weaponType,
+      final enemyCenter = _entityCenter(
+        world,
+        enemy,
+        fallbackX: world.transform.posX[enemyTi],
+        fallbackY: world.transform.posY[enemyTi],
       );
-
-      if (!_canAffordCost(world, enemy: enemy, cost: castCost)) {
-        continue;
+      if (archetype.facingPolicy == EnemyFacingPolicy.facePlayerAlways) {
+        _faceEnemyTowardX(
+          world,
+          enemyIndex: ei,
+          targetX: playerCenter.$1,
+          sourceX: enemyCenter.$1,
+        );
       }
-      if (world.cooldown.isOnCooldown(enemy, castCooldownGroupId)) continue;
+      if (world.activeAbility.hasActiveAbility(enemy)) continue;
+
+      final castCost = _resolveCastCost(castAbility);
+      if (!_canAffordCost(world, enemy: enemy, cost: castCost)) continue;
+
+      final cooldownGroupId = castAbility.effectiveCooldownGroup(
+        AbilitySlot.projectile,
+      );
+      if (world.cooldown.isOnCooldown(enemy, cooldownGroupId)) continue;
       if (world.controlLock.isLocked(enemy, LockFlag.cast, currentTick)) {
         continue;
       }
 
-      var enemyCenterX = world.transform.posX[ti];
-      var enemyCenterY = world.transform.posY[ti];
-      if (world.colliderAabb.has(enemy)) {
-        final ai = world.colliderAabb.indexOf(enemy);
-        enemyCenterX += world.colliderAabb.offsetX[ai];
-        enemyCenterY += world.colliderAabb.offsetY[ai];
+      final actionSpeedBp = _actionSpeedBpForEntity(world, enemy);
+      final windupTicks = _scaleTicksForActionSpeed(
+        _scaleAbilityTicks(castAbility.windupTicks),
+        actionSpeedBp,
+      );
+      final activeTicks = _scaleAbilityTicks(castAbility.activeTicks);
+      final recoveryTicks = _scaleTicksForActionSpeed(
+        _scaleAbilityTicks(castAbility.recoveryTicks),
+        actionSpeedBp,
+      );
+      final commitTick = currentTick;
+      final executeTick = commitTick + windupTicks;
+      final baseCooldownTicks = _scaleAbilityTicks(castAbility.cooldownTicks);
+      final cooldownTicks = _scaleTicksForActionSpeed(
+        baseCooldownTicks,
+        actionSpeedBp,
+      );
+
+      final resolvedAim = _resolveAimPoint(
+        castAbility: castAbility,
+        castTargetPolicy: archetype.castTargetPolicy,
+        sourceX: enemyCenter.$1,
+        sourceY: enemyCenter.$2,
+        targetX: playerCenter.$1,
+        targetY: playerCenter.$2,
+        targetVelX: playerVelX,
+        targetVelY: playerVelY,
+        windupTicks: windupTicks,
+      );
+      final aimX = resolvedAim.$1;
+      final aimY = resolvedAim.$2;
+      _faceEnemyTowardX(
+        world,
+        enemyIndex: ei,
+        targetX: aimX,
+        sourceX: enemyCenter.$1,
+      );
+
+      final payload = _buildPayload(
+        world,
+        source: enemy,
+        ability: castAbility,
+        weaponDamageType: resolvedAim.$3,
+        weaponProcs: resolvedAim.$4,
+      );
+
+      final hitDelivery = castAbility.hitDelivery;
+      if (hitDelivery is ProjectileHitDelivery) {
+        if (!world.projectileIntent.has(enemy)) {
+          assert(
+            false,
+            'EnemyCastSystem requires ProjectileIntentStore on enemies; add it at spawn time.',
+          );
+          continue;
+        }
+        final projectile = projectiles.get(hitDelivery.projectileId);
+        _writeProjectileIntent(
+          world,
+          enemy: enemy,
+          ability: castAbility,
+          hitDelivery: hitDelivery,
+          payload: payload,
+          commitCost: castCost,
+          targetX: aimX,
+          targetY: aimY,
+          sourceX: enemyCenter.$1,
+          sourceY: enemyCenter.$2,
+          commitTick: commitTick,
+          executeTick: executeTick,
+          windupTicks: windupTicks,
+          activeTicks: activeTicks,
+          recoveryTicks: recoveryTicks,
+          cooldownTicks: cooldownTicks,
+          cooldownGroupId: cooldownGroupId,
+          projectileId: hitDelivery.projectileId,
+          projectile: projectile,
+        );
+      } else if (hitDelivery is TargetPointHitDelivery) {
+        if (!world.targetPointIntent.has(enemy)) {
+          assert(
+            false,
+            'EnemyCastSystem requires TargetPointIntentStore on enemies; add the component at spawn time.',
+          );
+          continue;
+        }
+        _writeTargetPointIntent(
+          world,
+          enemy: enemy,
+          ability: castAbility,
+          hitDelivery: hitDelivery,
+          payload: payload,
+          commitCost: castCost,
+          targetX: aimX,
+          targetY: aimY,
+          commitTick: commitTick,
+          executeTick: executeTick,
+          windupTicks: windupTicks,
+          activeTicks: activeTicks,
+          recoveryTicks: recoveryTicks,
+          cooldownTicks: cooldownTicks,
+          cooldownGroupId: cooldownGroupId,
+        );
+      } else {
+        continue;
       }
 
-      _writeProjectileIntent(
-        world,
-        ability: castAbility,
-        commitCost: castCost,
-        projectileId: projectileId,
-        projectile: projectile,
-        enemyIndex: ei,
-        enemyCenterX: enemyCenterX,
-        enemyCenterY: enemyCenterY,
-        playerCenterX: playerCenterX,
-        playerCenterY: playerCenterY,
-        playerVelX: playerVelX,
-        playerVelY: playerVelY,
-        projectileSpeed: projectileSpeed,
-        currentTick: currentTick,
-        cooldownGroupId: castCooldownGroupId,
+      _applyCommitResourceCosts(world, enemy: enemy, cost: castCost);
+      world.cooldown.startCooldown(enemy, cooldownGroupId, cooldownTicks);
+      world.activeAbility.set(
+        enemy,
+        id: castAbility.id,
+        slot: AbilitySlot.projectile,
+        commitTick: commitTick,
+        windupTicks: windupTicks,
+        activeTicks: activeTicks,
+        recoveryTicks: recoveryTicks,
+        facingDir: world.enemy.facing[ei],
       );
     }
   }
 
+  (double, double, DamageType?, List<WeaponProc>) _resolveAimPoint({
+    required AbilityDef castAbility,
+    required EnemyCastTargetPolicy castTargetPolicy,
+    required double sourceX,
+    required double sourceY,
+    required double targetX,
+    required double targetY,
+    required double targetVelX,
+    required double targetVelY,
+    required int windupTicks,
+  }) {
+    final hitDelivery = castAbility.hitDelivery;
+    DamageType? weaponDamageType;
+    List<WeaponProc> weaponProcs = const <WeaponProc>[];
+    var includeTravelLead = false;
+    var travelSpeedUnitsPerSecond = 0.0;
+
+    if (hitDelivery is ProjectileHitDelivery) {
+      final projectile = projectiles.get(hitDelivery.projectileId);
+      includeTravelLead = true;
+      travelSpeedUnitsPerSecond = projectile.speedUnitsPerSecond;
+      weaponDamageType = projectile.damageType;
+      weaponProcs = projectile.procs;
+    }
+
+    var leadSeconds = 0.0;
+    if (castTargetPolicy == EnemyCastTargetPolicy.predictedPlayerCenter) {
+      leadSeconds = computeCastLeadSeconds(
+        windupSeconds: _ticksToSeconds(windupTicks),
+        includeTravelLead: includeTravelLead,
+        sourceX: sourceX,
+        sourceY: sourceY,
+        targetX: targetX,
+        targetY: targetY,
+        travelSpeedUnitsPerSecond: travelSpeedUnitsPerSecond,
+        minTravelLeadSeconds: unocoDemonTuning.base.unocoDemonAimLeadMinSeconds,
+        maxTravelLeadSeconds: unocoDemonTuning.base.unocoDemonAimLeadMaxSeconds,
+      );
+    }
+
+    final predicted = predictLinearTargetPosition(
+      targetX: targetX,
+      targetY: targetY,
+      targetVelX: targetVelX,
+      targetVelY: targetVelY,
+      leadSeconds: leadSeconds,
+    );
+    return (predicted.$1, predicted.$2, weaponDamageType, weaponProcs);
+  }
+
   void _writeProjectileIntent(
     EcsWorld world, {
+    required EntityId enemy,
     required AbilityDef ability,
+    required ProjectileHitDelivery hitDelivery,
+    required HitPayload payload,
     required AbilityResourceCost commitCost,
-    required int enemyIndex,
-    required double enemyCenterX,
-    required double enemyCenterY,
-    required double playerCenterX,
-    required double playerCenterY,
-    required double playerVelX,
-    required double playerVelY,
-    required double projectileSpeed,
-    required int currentTick,
+    required double targetX,
+    required double targetY,
+    required double sourceX,
+    required double sourceY,
+    required int commitTick,
+    required int executeTick,
+    required int windupTicks,
+    required int activeTicks,
+    required int recoveryTicks,
+    required int cooldownTicks,
     required int cooldownGroupId,
     required ProjectileId projectileId,
     required ProjectileItemDef projectile,
   }) {
-    final tuning = unocoDemonTuning;
-    final hitDelivery = ability.hitDelivery;
-    if (hitDelivery is! ProjectileHitDelivery) return;
-
-    var targetX = playerCenterX;
-    var targetY = playerCenterY;
-    if (projectileSpeed > 0.0) {
-      final leadSeconds = computeTravelLeadSeconds(
-        sourceX: enemyCenterX,
-        sourceY: enemyCenterY,
-        targetX: playerCenterX,
-        targetY: playerCenterY,
-        travelSpeedUnitsPerSecond: projectileSpeed,
-        minLeadSeconds: tuning.base.unocoDemonAimLeadMinSeconds,
-        maxLeadSeconds: tuning.base.unocoDemonAimLeadMaxSeconds,
-      );
-      final predictedTarget = predictLinearTargetPosition(
-        targetX: playerCenterX,
-        targetY: playerCenterY,
-        targetVelX: playerVelX,
-        targetVelY: playerVelY,
-        leadSeconds: leadSeconds,
-      );
-      targetX = predictedTarget.$1;
-      targetY = predictedTarget.$2;
-    }
-
-    final castDirX = targetX - enemyCenterX;
-    if (castDirX.abs() > 1e-6) {
-      world.enemy.facing[enemyIndex] = castDirX >= 0
-          ? Facing.right
-          : Facing.left;
-    }
-
-    final enemy = world.enemy.denseEntities[enemyIndex];
-    final offenseIndex = world.offenseBuff.tryIndexOf(enemy);
-    final offensePowerBp =
-        offenseIndex != null && world.offenseBuff.ticksLeft[offenseIndex] > 0
-        ? world.offenseBuff.powerBonusBp[offenseIndex]
-        : 0;
-    final offenseCritBp =
-        offenseIndex != null && world.offenseBuff.ticksLeft[offenseIndex] > 0
-        ? world.offenseBuff.critBonusBp[offenseIndex]
-        : 0;
-    final payload = HitPayloadBuilder.build(
-      ability: ability,
-      source: enemy,
-      globalPowerBonusBp: offensePowerBp,
-      globalCritChanceBonusBp: offenseCritBp,
-      weaponDamageType: projectile.damageType,
-      weaponProcs: projectile.procs,
-    );
-
-    final actionSpeedBp = _actionSpeedBpForEntity(world, enemy);
-    final windupTicks = _scaleTicksForActionSpeed(
-      _scaleAbilityTicks(ability.windupTicks),
-      actionSpeedBp,
-    );
-    final activeTicks = _scaleAbilityTicks(ability.activeTicks);
-    final recoveryTicks = _scaleTicksForActionSpeed(
-      _scaleAbilityTicks(ability.recoveryTicks),
-      actionSpeedBp,
-    );
-    final commitTick = currentTick;
-    final executeTick = commitTick + windupTicks;
-    final baseCooldownTicks = _scaleAbilityTicks(ability.cooldownTicks);
-    final cooldownTicks = _scaleTicksForActionSpeed(
-      baseCooldownTicks,
-      actionSpeedBp,
-    );
-
     world.projectileIntent.set(
       enemy,
       ProjectileIntentDef(
@@ -235,8 +310,8 @@ class EnemyCastSystem {
         procs: payload.procs,
         ballistic: projectile.ballistic,
         gravityScale: projectile.gravityScale,
-        dirX: targetX - enemyCenterX,
-        dirY: targetY - enemyCenterY,
+        dirX: targetX - sourceX,
+        dirY: targetY - sourceY,
         fallbackDirX: 1.0,
         fallbackDirY: 0.0,
         originOffset: hitDelivery.originOffset,
@@ -248,21 +323,116 @@ class EnemyCastSystem {
         tick: executeTick,
       ),
     );
+  }
 
-    // Commit side effects (Cooldown + ActiveAbility) must be applied manually
-    // since enemies don't use AbilityActivationSystem.
-    _applyCommitResourceCosts(world, enemy: enemy, cost: commitCost);
-    world.cooldown.startCooldown(enemy, cooldownGroupId, cooldownTicks);
-    world.activeAbility.set(
+  void _writeTargetPointIntent(
+    EcsWorld world, {
+    required EntityId enemy,
+    required AbilityDef ability,
+    required TargetPointHitDelivery hitDelivery,
+    required HitPayload payload,
+    required AbilityResourceCost commitCost,
+    required double targetX,
+    required double targetY,
+    required int commitTick,
+    required int executeTick,
+    required int windupTicks,
+    required int activeTicks,
+    required int recoveryTicks,
+    required int cooldownTicks,
+    required int cooldownGroupId,
+  }) {
+    world.targetPointIntent.set(
       enemy,
-      id: ability.id,
-      slot: AbilitySlot.projectile,
-      commitTick: commitTick,
-      windupTicks: windupTicks,
-      activeTicks: activeTicks,
-      recoveryTicks: recoveryTicks,
-      facingDir: world.enemy.facing[enemyIndex],
+      TargetPointIntentDef(
+        abilityId: ability.id,
+        slot: AbilitySlot.projectile,
+        damage100: payload.damage100,
+        critChanceBp: payload.critChanceBp,
+        staminaCost100: commitCost.staminaCost100,
+        manaCost100: commitCost.manaCost100,
+        cooldownTicks: cooldownTicks,
+        cooldownGroupId: cooldownGroupId,
+        damageType: payload.damageType,
+        procs: payload.procs,
+        halfX: hitDelivery.halfX,
+        halfY: hitDelivery.halfY,
+        hitPolicy: hitDelivery.hitPolicy,
+        sourceKind: DeathSourceKind.spellImpact,
+        impactEffectId: hitDelivery.impactEffectId,
+        targetX: targetX,
+        targetY: targetY,
+        commitTick: commitTick,
+        windupTicks: windupTicks,
+        activeTicks: activeTicks,
+        recoveryTicks: recoveryTicks,
+        tick: executeTick,
+      ),
     );
+  }
+
+  (double, double) _entityCenter(
+    EcsWorld world,
+    EntityId entity, {
+    required double fallbackX,
+    required double fallbackY,
+  }) {
+    var x = fallbackX;
+    var y = fallbackY;
+    if (world.colliderAabb.has(entity)) {
+      final ai = world.colliderAabb.indexOf(entity);
+      x += world.colliderAabb.offsetX[ai];
+      y += world.colliderAabb.offsetY[ai];
+    }
+    return (x, y);
+  }
+
+  void _faceEnemyTowardX(
+    EcsWorld world, {
+    required int enemyIndex,
+    required double targetX,
+    required double sourceX,
+  }) {
+    final dirX = targetX - sourceX;
+    if (dirX.abs() <= 1e-6) return;
+    world.enemy.facing[enemyIndex] = dirX >= 0 ? Facing.right : Facing.left;
+  }
+
+  HitPayload _buildPayload(
+    EcsWorld world, {
+    required EntityId source,
+    required AbilityDef ability,
+    required DamageType? weaponDamageType,
+    required List<WeaponProc> weaponProcs,
+  }) {
+    final offenseIndex = world.offenseBuff.tryIndexOf(source);
+    final offensePowerBp =
+        offenseIndex != null && world.offenseBuff.ticksLeft[offenseIndex] > 0
+        ? world.offenseBuff.powerBonusBp[offenseIndex]
+        : 0;
+    final offenseCritBp =
+        offenseIndex != null && world.offenseBuff.ticksLeft[offenseIndex] > 0
+        ? world.offenseBuff.critBonusBp[offenseIndex]
+        : 0;
+    return HitPayloadBuilder.build(
+      ability: ability,
+      source: source,
+      globalPowerBonusBp: offensePowerBp,
+      globalCritChanceBonusBp: offenseCritBp,
+      weaponDamageType: weaponDamageType,
+      weaponProcs: weaponProcs,
+    );
+  }
+
+  AbilityResourceCost _resolveCastCost(AbilityDef castAbility) {
+    final hitDelivery = castAbility.hitDelivery;
+    if (hitDelivery is ProjectileHitDelivery) {
+      final projectile = projectiles.tryGet(hitDelivery.projectileId);
+      if (projectile != null) {
+        return castAbility.resolveCostForWeaponType(projectile.weaponType);
+      }
+    }
+    return castAbility.resolveCostForWeaponType(null);
   }
 
   bool _canAffordCost(
@@ -354,6 +524,11 @@ class EnemyCastSystem {
     return (seconds * unocoDemonTuning.tickHz).ceil();
   }
 
+  double _ticksToSeconds(int ticks) {
+    if (ticks <= 0 || unocoDemonTuning.tickHz <= 0) return 0.0;
+    return ticks / unocoDemonTuning.tickHz;
+  }
+
   int _actionSpeedBpForEntity(EcsWorld world, EntityId entity) {
     final modifierIndex = world.statModifier.tryIndexOf(entity);
     if (modifierIndex == null) return bpScale;
@@ -368,5 +543,4 @@ class EnemyCastSystem {
   }
 
   static const int _minCommitHp100 = 1;
-  static const AbilityKey _enemyAbilityId = 'unoco.enemy_cast';
 }

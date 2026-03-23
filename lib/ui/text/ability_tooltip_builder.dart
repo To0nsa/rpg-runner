@@ -253,7 +253,7 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
       case 'grojib.strike':
       case 'grojib.strike2':
         return 'Tap to strike in front of you.';
-      case 'unoco.enemy_cast':
+      case 'unoco.fire_bolt_cast':
         return 'Hold then release to cast a ranged bolt.';
       case 'eloise.jump':
         return 'Tap to jump.';

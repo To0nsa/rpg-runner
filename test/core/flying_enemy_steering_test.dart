@@ -142,7 +142,7 @@ void main() {
         ),
       );
 
-      final castAbility = AbilityCatalog.shared.resolve('unoco.enemy_cast')!;
+      final castAbility = AbilityCatalog.shared.resolve('unoco.fire_bolt_cast')!;
       final fireBolt = const ProjectileCatalog().get(ProjectileId.fireBolt);
       final castCost = castAbility.resolveCostForWeaponType(
         fireBolt.weaponType,
@@ -243,7 +243,7 @@ void main() {
         ),
       );
 
-      final castAbility = AbilityCatalog.shared.resolve('unoco.enemy_cast')!;
+      final castAbility = AbilityCatalog.shared.resolve('unoco.fire_bolt_cast')!;
       final fireBolt = const ProjectileCatalog().get(ProjectileId.fireBolt);
       final castCost = castAbility.resolveCostForWeaponType(
         fireBolt.weaponType,
@@ -326,7 +326,7 @@ void main() {
         ),
       );
 
-      final castAbility = AbilityCatalog.shared.resolve('unoco.enemy_cast')!;
+      final castAbility = AbilityCatalog.shared.resolve('unoco.fire_bolt_cast')!;
       final fireBolt = const ProjectileCatalog().get(ProjectileId.fireBolt);
       final castCost = castAbility.resolveCostForWeaponType(
         fireBolt.weaponType,

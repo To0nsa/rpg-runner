@@ -476,6 +476,8 @@ String _buildDeathSubtitle(DeathInfo? info) {
       return 'You succumbed to a status effect.';
     case DeathSourceKind.unknown:
       return 'You died.';
+    case DeathSourceKind.spellImpact:
+      return _buildSpellImpactDeath(info);
   }
 }
 
@@ -504,6 +506,17 @@ String _buildMeleeDeath(DeathInfo info) {
   return 'Killed by a melee strike from a ${_enemyName(info.enemyId!)}.';
 }
 
+String _buildSpellImpactDeath(DeathInfo info) {
+  final enemyId = info.enemyId;
+  if (enemyId == null) {
+    return 'You were consumed by a spell impact.';
+  }
+  if (enemyId == EnemyId.derf) {
+    return 'Incinerated by Derf\'s explosion.';
+  }
+  return 'Killed by a spell impact from ${_enemyName(enemyId)}.';
+}
+
 String _enemyName(EnemyId id) {
   switch (id) {
     case EnemyId.unocoDemon:
@@ -512,6 +525,8 @@ String _enemyName(EnemyId id) {
       return 'Ground enemy';
     case EnemyId.hashash:
       return 'Hashash';
+    case EnemyId.derf:
+      return 'Derf';
   }
 }
 

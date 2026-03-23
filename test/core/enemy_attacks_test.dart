@@ -291,7 +291,7 @@ void main() {
       ),
     );
 
-    final castAbility = AbilityCatalog.shared.resolve('unoco.enemy_cast')!;
+    final castAbility = AbilityCatalog.shared.resolve('unoco.fire_bolt_cast')!;
     final fireBolt = const ProjectileCatalog().get(ProjectileId.fireBolt);
     final castCost = castAbility.resolveCostForWeaponType(fireBolt.weaponType);
     final initialMana = castCost.manaCost100 + 500;
@@ -362,7 +362,7 @@ void main() {
         ),
       );
 
-      final castAbility = AbilityCatalog.shared.resolve('unoco.enemy_cast')!;
+      final castAbility = AbilityCatalog.shared.resolve('unoco.fire_bolt_cast')!;
       final fireBolt = const ProjectileCatalog().get(ProjectileId.fireBolt);
       final castCost = castAbility.resolveCostForWeaponType(
         fireBolt.weaponType,
@@ -459,7 +459,7 @@ void main() {
       expect(resumedCast, isTrue);
       expect(
         world.projectileIntent.abilityId[projectileIntentIndex],
-        equals('unoco.enemy_cast'),
+        equals('unoco.fire_bolt_cast'),
       );
     },
   );
@@ -487,7 +487,7 @@ void main() {
         ),
       );
 
-      final castAbility = AbilityCatalog.shared.resolve('unoco.enemy_cast')!;
+      final castAbility = AbilityCatalog.shared.resolve('unoco.fire_bolt_cast')!;
       final fireBolt = const ProjectileCatalog().get(ProjectileId.fireBolt);
       final castCost = castAbility.resolveCostForWeaponType(
         fireBolt.weaponType,
@@ -602,7 +602,7 @@ void main() {
   test('enemy projectile (thunder) damages player', () {
     final world = EcsWorld();
     final thunderDamage = AbilityCatalog.shared
-        .resolve('unoco.enemy_cast')!
+        .resolve('unoco.fire_bolt_cast')!
         .baseDamage;
     final projectile = const ProjectileCatalog().get(ProjectileId.thunderBolt);
 

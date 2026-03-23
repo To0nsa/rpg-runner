@@ -1,9 +1,18 @@
 import '../../abilities/ability_def.dart';
 import '../../combat/damage_type.dart';
 import '../../combat/faction.dart';
+import '../../events/game_event.dart';
 import '../../weapons/weapon_proc.dart';
 import '../entity_id.dart';
 import '../sparse_set.dart';
+
+enum HitboxAttachment {
+  /// Hitbox position is recalculated every tick from owner + offset.
+  followOwner,
+
+  /// Hitbox remains fixed at its spawn-world position.
+  worldAnchor,
+}
 
 class HitboxDef {
   const HitboxDef({
@@ -14,6 +23,9 @@ class HitboxDef {
     this.critChanceBp = 0,
     required this.damageType,
     this.procs = const <WeaponProc>[],
+    this.hitPolicy = HitPolicy.oncePerTarget,
+    this.sourceKind = DeathSourceKind.meleeHitbox,
+    this.attachment = HitboxAttachment.followOwner,
     required this.halfX,
     required this.halfY,
     required this.offsetX,
@@ -33,6 +45,9 @@ class HitboxDef {
   final int critChanceBp;
   final DamageType damageType;
   final List<WeaponProc> procs;
+  final HitPolicy hitPolicy;
+  final DeathSourceKind sourceKind;
+  final HitboxAttachment attachment;
   final double halfX;
   final double halfY;
   final double offsetX;
@@ -55,6 +70,9 @@ class HitboxStore extends SparseSet {
   final List<int> critChanceBp = <int>[];
   final List<DamageType> damageType = <DamageType>[];
   final List<List<WeaponProc>> procs = <List<WeaponProc>>[];
+  final List<HitPolicy> hitPolicy = <HitPolicy>[];
+  final List<DeathSourceKind> sourceKind = <DeathSourceKind>[];
+  final List<HitboxAttachment> attachment = <HitboxAttachment>[];
   final List<double> halfX = <double>[];
   final List<double> halfY = <double>[];
   final List<double> offsetX = <double>[];
@@ -71,6 +89,9 @@ class HitboxStore extends SparseSet {
     critChanceBp[i] = def.critChanceBp;
     damageType[i] = def.damageType;
     procs[i] = def.procs;
+    hitPolicy[i] = def.hitPolicy;
+    sourceKind[i] = def.sourceKind;
+    attachment[i] = def.attachment;
     halfX[i] = def.halfX;
     halfY[i] = def.halfY;
     offsetX[i] = def.offsetX;
@@ -88,6 +109,9 @@ class HitboxStore extends SparseSet {
     critChanceBp.add(0);
     damageType.add(DamageType.physical);
     procs.add(const <WeaponProc>[]);
+    hitPolicy.add(HitPolicy.oncePerTarget);
+    sourceKind.add(DeathSourceKind.meleeHitbox);
+    attachment.add(HitboxAttachment.followOwner);
     halfX.add(0);
     halfY.add(0);
     offsetX.add(0);
@@ -105,6 +129,9 @@ class HitboxStore extends SparseSet {
     critChanceBp[removeIndex] = critChanceBp[lastIndex];
     damageType[removeIndex] = damageType[lastIndex];
     procs[removeIndex] = procs[lastIndex];
+    hitPolicy[removeIndex] = hitPolicy[lastIndex];
+    sourceKind[removeIndex] = sourceKind[lastIndex];
+    attachment[removeIndex] = attachment[lastIndex];
     halfX[removeIndex] = halfX[lastIndex];
     halfY[removeIndex] = halfY[lastIndex];
     offsetX[removeIndex] = offsetX[lastIndex];
@@ -119,6 +146,9 @@ class HitboxStore extends SparseSet {
     critChanceBp.removeLast();
     damageType.removeLast();
     procs.removeLast();
+    hitPolicy.removeLast();
+    sourceKind.removeLast();
+    attachment.removeLast();
     halfX.removeLast();
     halfY.removeLast();
     offsetX.removeLast();

@@ -13,4 +13,7 @@ enum EnemyId {
 
   /// A nimble ground assassin that chases and jumps with the surface navigator.
   hashash,
+
+  /// A stationary caster perched on obstacle tops.
+  derf,
 }

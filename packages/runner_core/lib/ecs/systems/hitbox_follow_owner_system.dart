@@ -1,4 +1,5 @@
 import '../entity_id.dart';
+import '../stores/hitbox_store.dart';
 import '../world.dart';
 
 /// Synchronizes the position of hitbox entities with their owners.
@@ -25,15 +26,19 @@ class HitboxFollowOwnerSystem {
 
     for (var hi = 0; hi < hitboxes.denseEntities.length; hi += 1) {
       final hitbox = hitboxes.denseEntities[hi];
-      
+
       // Safety: The hitbox entity itself must have a Transform component to be positioned.
       if (!world.transform.has(hitbox)) {
         _toDespawn.add(hitbox);
         continue;
       }
 
+      if (hitboxes.attachment[hi] == HitboxAttachment.worldAnchor) {
+        continue;
+      }
+
       final owner = hitboxes.owner[hi];
-      
+
       // If the owner has been destroyed or lacks a transform,
       // we cannot position the hitbox relative to it.
       final ownerTi = world.transform.tryIndexOf(owner);

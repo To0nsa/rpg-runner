@@ -1,4 +1,5 @@
 import '../projectiles/projectile_id.dart';
+import '../spell_impacts/spell_impact_id.dart';
 import '../combat/damage_type.dart';
 import '../combat/status/status.dart';
 import '../snapshots/enums.dart';
@@ -139,6 +140,29 @@ class ProjectileHitDelivery extends HitDeliveryDef {
 /// For abilities that affect the user (Buff/Block) or have no hitbox (Dash).
 class SelfHitDelivery extends HitDeliveryDef {
   const SelfHitDelivery();
+}
+
+/// World-space impact delivery authored for non-projectile spell hits.
+///
+/// Impact hitboxes are spawned at the resolved target point and remain
+/// world-anchored for their active window.
+class TargetPointHitDelivery extends HitDeliveryDef {
+  const TargetPointHitDelivery({
+    required this.halfX,
+    required this.halfY,
+    this.hitPolicy = HitPolicy.oncePerTarget,
+    this.impactEffectId = SpellImpactId.unknown,
+  });
+
+  /// World-space half extents of the spawned impact hitbox.
+  final double halfX;
+  final double halfY;
+
+  /// Delivery cadence during one activation.
+  final HitPolicy hitPolicy;
+
+  /// Optional render event id emitted when the impact executes.
+  final SpellImpactId impactEffectId;
 }
 
 /// Authored contact-impact payload for mobility abilities (dash/roll).

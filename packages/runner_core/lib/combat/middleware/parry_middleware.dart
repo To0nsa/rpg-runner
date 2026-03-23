@@ -54,8 +54,12 @@ class ParryMiddleware implements DamageMiddleware {
 
     if (world.activeAbility.phase[ai] != AbilityPhase.active) return;
 
-    // "Hit" only: do not block tick-based damage that comes from already-applied statuses.
-    if (queue.sourceKind[index] == DeathSourceKind.statusEffect) return;
+    // "Hit" only: do not block tick-based damage from already-applied statuses
+    // or world-space spell impacts.
+    if (queue.sourceKind[index] == DeathSourceKind.statusEffect ||
+        queue.sourceKind[index] == DeathSourceKind.spellImpact) {
+      return;
+    }
 
     final startTick = world.activeAbility.startTick[ai];
 

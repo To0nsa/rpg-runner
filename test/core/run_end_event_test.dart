@@ -35,7 +35,7 @@ void main() {
     final world = EcsWorld();
     final projectile = const ProjectileCatalog().get(ProjectileId.thunderBolt);
     final thunderDamage = AbilityCatalog.shared
-        .resolve('unoco.enemy_cast')!
+        .resolve('unoco.fire_bolt_cast')!
         .baseDamage;
 
     final player = EntityFactory(world).createPlayer(
@@ -157,6 +157,83 @@ void main() {
     expect(world.lastDamage.kind[li], DeathSourceKind.meleeHitbox);
     expect(world.lastDamage.hasEnemyId[li], isTrue);
     expect(world.lastDamage.enemyId[li], EnemyId.grojib);
+    expect(world.lastDamage.hasProjectileId[li], isFalse);
+    expect(world.lastDamage.hasSourceProjectileId[li], isFalse);
+  });
+
+  test('spell-impact kill records death metadata', () {
+    final world = EcsWorld();
+
+    final player = EntityFactory(world).createPlayer(
+      posX: 100,
+      posY: 100,
+      velX: 0,
+      velY: 0,
+      facing: Facing.right,
+      grounded: true,
+      body: const BodyDef(isKinematic: true, useGravity: false),
+      collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+      health: const HealthDef(hp: 400, hpMax: 400, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
+    );
+
+    final enemy = EntityFactory(world).createEnemy(
+      enemyId: EnemyId.derf,
+      posX: 120,
+      posY: 100,
+      velX: 0,
+      velY: 0,
+      facing: Facing.left,
+      body: const BodyDef(isKinematic: true, useGravity: false),
+      collider: const ColliderAabbDef(halfX: 8, halfY: 8),
+      health: const HealthDef(hp: 2000, hpMax: 2000, regenPerSecond100: 0),
+      mana: const ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
+      stamina: const StaminaDef(
+        stamina: 0,
+        staminaMax: 0,
+        regenPerSecond100: 0,
+      ),
+    );
+
+    final hitbox = world.createEntity();
+    world.transform.add(hitbox, posX: 100, posY: 100, velX: 0, velY: 0);
+    world.hitbox.add(
+      hitbox,
+      HitboxDef(
+        owner: enemy,
+        faction: Faction.enemy,
+        damage100: 1000,
+        damageType: DamageType.fire,
+        sourceKind: DeathSourceKind.spellImpact,
+        halfX: 8,
+        halfY: 8,
+        offsetX: 0,
+        offsetY: 0,
+        dirX: 1,
+        dirY: 0,
+      ),
+    );
+    world.hitOnce.add(hitbox);
+
+    final broadphase = BroadphaseGrid(
+      index: GridIndex2D(
+        cellSize: const SpatialGridTuning().broadphaseCellSize,
+      ),
+    )..rebuild(world);
+    final hitboxDamage = HitboxDamageSystem();
+    final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
+    hitboxDamage.step(world, broadphase, currentTick: 5);
+    damage.step(world, currentTick: 5);
+
+    final li = world.lastDamage.indexOf(player);
+    expect(world.lastDamage.kind[li], DeathSourceKind.spellImpact);
+    expect(world.lastDamage.hasEnemyId[li], isTrue);
+    expect(world.lastDamage.enemyId[li], EnemyId.derf);
     expect(world.lastDamage.hasProjectileId[li], isFalse);
     expect(world.lastDamage.hasSourceProjectileId[li], isFalse);
   });

@@ -46,6 +46,11 @@ abstract final class AbilityInterrupt {
       world.projectileIntent.tick[i] = -1;
       world.projectileIntent.commitTick[i] = -1;
     }
+    if (world.targetPointIntent.has(entity)) {
+      final i = world.targetPointIntent.indexOf(entity);
+      world.targetPointIntent.tick[i] = -1;
+      world.targetPointIntent.commitTick[i] = -1;
+    }
     if (world.mobilityIntent.has(entity)) {
       final i = world.mobilityIntent.indexOf(entity);
       world.mobilityIntent.tick[i] = -1;

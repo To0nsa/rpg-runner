@@ -16,7 +16,13 @@ enum RunEndReason {
 }
 
 /// Identifies the category of damage source that caused death.
-enum DeathSourceKind { projectile, meleeHitbox, statusEffect, unknown }
+enum DeathSourceKind {
+  projectile,
+  meleeHitbox,
+  statusEffect,
+  unknown,
+  spellImpact,
+}
 
 /// Detailed context about what killed the player.
 class DeathInfo {

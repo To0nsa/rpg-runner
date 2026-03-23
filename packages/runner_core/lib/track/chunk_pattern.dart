@@ -93,12 +93,25 @@ class GapRel {
 }
 
 /// Chunk-relative enemy spawn marker with probabilistic activation.
+enum SpawnPlacementMode {
+  /// Spawn on chunk ground top Y.
+  ground,
+
+  /// Spawn on the highest valid surface at marker X.
+  highestSurfaceAtX,
+
+  /// Spawn on obstacle top at marker X, with fallback to highest surface.
+  obstacleTop,
+}
+
+/// Chunk-relative enemy spawn marker with probabilistic activation.
 class SpawnMarker {
   const SpawnMarker({
     required this.enemyId,
     required this.x,
     required this.chancePercent,
     required this.salt,
+    this.placement = SpawnPlacementMode.ground,
   }) : assert(chancePercent >= 0),
        assert(chancePercent <= 100);
 
@@ -113,4 +126,7 @@ class SpawnMarker {
 
   /// Extra entropy to differentiate markers with same position.
   final int salt;
+
+  /// Spawn Y-placement policy at marker X.
+  final SpawnPlacementMode placement;
 }

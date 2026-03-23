@@ -30,6 +30,35 @@ double computeTravelLeadSeconds({
   );
 }
 
+/// Computes final lead-time for cast prediction.
+///
+/// - Always includes [windupSeconds].
+/// - Optionally includes projectile travel lead when [includeTravelLead] is true.
+double computeCastLeadSeconds({
+  required double windupSeconds,
+  required bool includeTravelLead,
+  required double sourceX,
+  required double sourceY,
+  required double targetX,
+  required double targetY,
+  required double travelSpeedUnitsPerSecond,
+  required double minTravelLeadSeconds,
+  required double maxTravelLeadSeconds,
+}) {
+  var lead = windupSeconds <= 0.0 ? 0.0 : windupSeconds;
+  if (!includeTravelLead) return lead;
+  lead += computeTravelLeadSeconds(
+    sourceX: sourceX,
+    sourceY: sourceY,
+    targetX: targetX,
+    targetY: targetY,
+    travelSpeedUnitsPerSecond: travelSpeedUnitsPerSecond,
+    minLeadSeconds: minTravelLeadSeconds,
+    maxLeadSeconds: maxTravelLeadSeconds,
+  );
+  return lead;
+}
+
 /// Predicts target position after [leadSeconds] using linear velocity.
 (double x, double y) predictLinearTargetPosition({
   required double targetX,

@@ -1,6 +1,6 @@
 import '../../combat/damage.dart';
 import '../../enemies/enemy_catalog.dart';
-import '../../events/game_event.dart';
+import '../../abilities/ability_def.dart';
 import '../../util/fixed_math.dart';
 import '../hit/hit_resolver.dart';
 import '../spatial/broadphase_grid.dart';
@@ -49,7 +49,8 @@ class HitboxDamageSystem {
 
       // Hitboxes must have a HitOnce state to track who they've already damaged.
       // This prevents "machine gun" damage from a lingering sword swing.
-      if (!world.hitOnce.has(hb)) continue;
+      final hitPolicy = hitboxes.hitPolicy[hi];
+      if (hitPolicy != HitPolicy.everyTick && !world.hitOnce.has(hb)) continue;
 
       final hbTi = world.transform.indexOf(hb);
       final hbCx = world.transform.posX[hbTi];
@@ -104,10 +105,14 @@ class HitboxDamageSystem {
         final target = broadphase.targets.entities[ti];
 
         // "Hit Once" Check: Has this specific hitbox entity already struck this specific target entity?
-        if (world.hitOnce.hasHit(hb, target)) continue;
+        if (hitPolicy != HitPolicy.everyTick && world.hitOnce.hasHit(hb, target)) {
+          continue;
+        }
 
         // Mark as hit so we don't damage them again this swing.
-        world.hitOnce.markHit(hb, target);
+        if (hitPolicy != HitPolicy.everyTick) {
+          world.hitOnce.markHit(hb, target);
+        }
         _armEnemyComboOnLandedHit(world, hitboxIndex: hi);
 
         // Send the damage request.
@@ -131,7 +136,7 @@ class HitboxDamageSystem {
             damageType: hitboxes.damageType[hi],
             procs: hitboxes.procs[hi],
             source: owner,
-            sourceKind: DeathSourceKind.meleeHitbox,
+            sourceKind: hitboxes.sourceKind[hi],
             sourceEnemyId: enemyId,
           ),
         );

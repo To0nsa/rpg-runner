@@ -90,4 +90,20 @@ void main() {
 
     expect(gate.flushTick(8), isNull);
   });
+
+  test('treats spell-impact as direct combat impact', () {
+    final gate = PlayerImpactFeedbackGate(tickHz: 60);
+
+    gate.recordAppliedDamage(
+      tick: 30,
+      playerTarget: true,
+      appliedAmount100: 750,
+      sourceKind: DeathSourceKind.spellImpact,
+    );
+
+    final event = gate.flushTick(30);
+    expect(event, isNotNull);
+    expect(event!.amount100, equals(750));
+    expect(event.sourceKind, equals(DeathSourceKind.spellImpact));
+  });
 }

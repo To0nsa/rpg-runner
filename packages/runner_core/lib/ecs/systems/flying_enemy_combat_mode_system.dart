@@ -23,7 +23,6 @@ class FlyingEnemyCombatModeSystem {
 
   /// Writes combat mode for all flying enemies.
   void step(EcsWorld world) {
-    final castAbility = abilities.resolve(_enemyCastAbilityId);
     final steering = world.flyingEnemySteering;
     for (var i = 0; i < steering.denseEntities.length; i += 1) {
       final enemy = steering.denseEntities[i];
@@ -44,7 +43,6 @@ class FlyingEnemyCombatModeSystem {
       final nextDecision = _resolveCombatMode(
         world,
         enemy: enemy,
-        castAbility: castAbility,
         currentMode: currentMode,
         requiresFallbackStrike: requiresFallbackStrike,
       );
@@ -57,17 +55,9 @@ class FlyingEnemyCombatModeSystem {
   _CombatModeDecision _resolveCombatMode(
     EcsWorld world, {
     required EntityId enemy,
-    required AbilityDef? castAbility,
     required FlyingEnemyCombatMode currentMode,
     required bool requiresFallbackStrike,
   }) {
-    if (castAbility == null) {
-      return const _CombatModeDecision(
-        mode: FlyingEnemyCombatMode.projectile,
-        requiresFallbackStrike: false,
-      );
-    }
-
     final enemyIndex = world.enemy.tryIndexOf(enemy);
     if (enemyIndex == null) {
       return const _CombatModeDecision(
@@ -76,16 +66,15 @@ class FlyingEnemyCombatModeSystem {
       );
     }
     final archetype = enemyCatalog.get(world.enemy.enemyId[enemyIndex]);
-
-    final projectileId = archetype.primaryProjectileId;
-    if (projectileId == null) {
+    final castAbilityId = archetype.primaryCastAbilityId;
+    if (castAbilityId == null) {
       return const _CombatModeDecision(
         mode: FlyingEnemyCombatMode.projectile,
         requiresFallbackStrike: false,
       );
     }
-    final projectile = projectiles.tryGet(projectileId);
-    if (projectile == null) {
+    final castAbility = abilities.resolve(castAbilityId);
+    if (castAbility == null) {
       return const _CombatModeDecision(
         mode: FlyingEnemyCombatMode.projectile,
         requiresFallbackStrike: false,
@@ -108,9 +97,7 @@ class FlyingEnemyCombatModeSystem {
       );
     }
 
-    final castCost = castAbility.resolveCostForWeaponType(
-      projectile.weaponType,
-    );
+    final castCost = _resolveCastCost(castAbility);
     final hasManaDeficit = _hasManaDeficit(world, enemy: enemy, cost: castCost);
     if (hasManaDeficit) {
       return const _CombatModeDecision(
@@ -146,7 +133,16 @@ class FlyingEnemyCombatModeSystem {
     return world.mana.mana[manaIndex] < cost.manaCost100;
   }
 
-  static const AbilityKey _enemyCastAbilityId = 'unoco.enemy_cast';
+  AbilityResourceCost _resolveCastCost(AbilityDef castAbility) {
+    final hitDelivery = castAbility.hitDelivery;
+    if (hitDelivery is ProjectileHitDelivery) {
+      final projectile = projectiles.tryGet(hitDelivery.projectileId);
+      if (projectile != null) {
+        return castAbility.resolveCostForWeaponType(projectile.weaponType);
+      }
+    }
+    return castAbility.resolveCostForWeaponType(null);
+  }
 }
 
 class _CombatModeDecision {

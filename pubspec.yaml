@@ -88,6 +88,7 @@ flutter:
     # BEGIN AUTO-ASSETS
     - assets/images/entities/collectibles/
     - assets/images/entities/enemies/
+    - assets/images/entities/enemies/derf/
     - assets/images/entities/enemies/grojib/
     - assets/images/entities/enemies/hashash/
     - assets/images/entities/enemies/unoco/

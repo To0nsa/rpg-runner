@@ -1728,6 +1728,11 @@ class AbilityActivationSystem {
       world.projectileIntent.tick[i] = -1;
       world.projectileIntent.commitTick[i] = -1;
     }
+    if (world.targetPointIntent.has(player)) {
+      final i = world.targetPointIntent.indexOf(player);
+      world.targetPointIntent.tick[i] = -1;
+      world.targetPointIntent.commitTick[i] = -1;
+    }
     if (world.selfIntent.has(player)) {
       final i = world.selfIntent.indexOf(player);
       world.selfIntent.tick[i] = -1;

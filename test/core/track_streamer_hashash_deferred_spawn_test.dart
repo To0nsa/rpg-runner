@@ -40,9 +40,15 @@ void main() {
       noEnemyChunks: 0,
     );
 
-    final spawns = <({EnemyId enemyId, double x})>[];
-    void onSpawn(EnemyId enemyId, double x) {
-      spawns.add((enemyId: enemyId, x: x));
+    final spawns = <({EnemyId enemyId, double x, double surfaceTopY})>[];
+    void onSpawn(SpawnEnemyRequest request) {
+      spawns.add(
+        (
+          enemyId: request.enemyId,
+          x: request.x,
+          surfaceTopY: request.surfaceTopY,
+        ),
+      );
     }
 
     streamer.step(cameraLeft: 0.0, cameraRight: 650.0, spawnEnemy: onSpawn);
