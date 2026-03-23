@@ -43,7 +43,7 @@ extension _SceneView on _EditorHomePageState {
                 children: [
                   Expanded(
                     child: Text(
-                      'Scene View',
+                      'Collider Scene View',
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                   ),
@@ -65,7 +65,9 @@ extension _SceneView on _EditorHomePageState {
                     const Positioned.fill(
                       child: ColoredBox(color: Color(0xFF111A22)),
                     ),
-                    const CustomPaint(painter: _ViewportPixelGridPainter()),
+                    CustomPaint(
+                      painter: _ViewportPixelGridPainter(zoom: scale),
+                    ),
                     if (resolvedReference != null &&
                         referenceAnimView != null &&
                         resolvedImage != null)

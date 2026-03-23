@@ -2,7 +2,7 @@ part of '../editor_home_page.dart';
 
 extension _SceneZoom on _EditorHomePageState {
   static const double _zoomMin = 0.1;
-  static const double _zoomMax = 8.0;
+  static const double _zoomMax = 12.0;
   static const double _zoomStep = 0.1;
   static const double _zoomEpsilon = 0.000001;
 
