@@ -5,30 +5,18 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
-import '../../../entities/entity_domain_plugin.dart';
 import '../../../entities/entity_domain_models.dart';
 import '../../../domain/authoring_types.dart';
 import '../../../session/editor_session_controller.dart';
 import '../chunkCreator/chunk_creator_page.dart';
 import '../entities/inspector/entity_inspector_panel.dart';
+import 'home_routes.dart';
 
 part '../entities/entities_page.dart';
 part '../entities/scene/scene_zoom.dart';
 part '../entities/scene/scene_grid.dart';
 part '../entities/scene/widgets/scene_anim_controls.dart';
 part '../entities/scene/scene_view.dart';
-
-class _EditorHomeRoute {
-  const _EditorHomeRoute({
-    required this.id,
-    required this.label,
-    this.pluginId,
-  });
-
-  final String id;
-  final String label;
-  final String? pluginId;
-}
 
 class EditorHomePage extends StatefulWidget {
   const EditorHomePage({super.key, required this.controller});
@@ -40,25 +28,6 @@ class EditorHomePage extends StatefulWidget {
 }
 
 class _EditorHomePageState extends State<EditorHomePage> {
-  static const String _entitiesRouteId = 'entities';
-  static const String _workspaceOverviewRouteId = 'workspace_overview';
-  static const String _chunkCreatorRouteId = 'chunk_creator';
-  static const List<_EditorHomeRoute> _homeRoutes = <_EditorHomeRoute>[
-    _EditorHomeRoute(
-      id: _entitiesRouteId,
-      label: 'Entities',
-      pluginId: EntityDomainPlugin.pluginId,
-    ),
-    _EditorHomeRoute(
-      id: _workspaceOverviewRouteId,
-      label: 'Workspace Overview',
-    ),
-    _EditorHomeRoute(
-      id: _chunkCreatorRouteId,
-      label: 'Chunk Creator',
-    ),
-  ];
-
   late final TextEditingController _workspaceController;
   late final TextEditingController _halfXController;
   late final TextEditingController _halfYController;
@@ -75,7 +44,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
   String? _selectedEntryId;
   String? _selectedDiffPath;
   String? _selectedArtifactTitle;
-  String _selectedRouteId = _entitiesRouteId;
+  String _selectedRouteId = entitiesRouteId;
   String _searchQuery = '';
   EntityType? _entityTypeFilter;
   bool _showDirtyOnly = false;
@@ -135,7 +104,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
     return AnimatedBuilder(
       animation: widget.controller,
       builder: (context, _) {
-        final isEntitiesRoute = _selectedRouteId == _entitiesRouteId;
+        final isEntitiesRoute = _selectedRouteId == entitiesRouteId;
         final entityScene = widget.controller.entityScene;
         final visibleEntries = entityScene == null
             ? const <EntityEntry>[]
@@ -188,7 +157,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
         DropdownButton<String>(
           value: _selectedRouteId,
           items: [
-            for (final route in _homeRoutes)
+            for (final route in homeRoutes)
               DropdownMenuItem<String>(
                 value: route.id,
                 child: Text(route.label),
@@ -266,11 +235,9 @@ class _EditorHomePageState extends State<EditorHomePage> {
     List<EntityEntry> visibleEntries,
   ) {
     switch (_selectedRouteId) {
-      case _entitiesRouteId:
+      case entitiesRouteId:
         return _buildEntitiesPage(entityScene, visibleEntries);
-      case _workspaceOverviewRouteId:
-        return _buildWorkspaceOverviewPage(entityScene, visibleEntries);
-      case _chunkCreatorRouteId:
+      case chunkCreatorRouteId:
         return const ChunkCreatorPage();
       default:
         return const Center(child: Text('Unknown editor page.'));
@@ -278,13 +245,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
   }
 
   void _syncPluginForRoute(String routeId) {
-    _EditorHomeRoute? route;
-    for (final candidate in _homeRoutes) {
-      if (candidate.id == routeId) {
-        route = candidate;
-        break;
-      }
-    }
+    final route = findHomeRouteById(routeId);
     if (route == null) {
       return;
     }
@@ -300,110 +261,6 @@ class _EditorHomePageState extends State<EditorHomePage> {
       return;
     }
     widget.controller.setSelectedPluginId(requiredPluginId);
-  }
-
-  Widget _buildWorkspaceOverviewPage(
-    EntityScene? entityScene,
-    List<EntityEntry> visibleEntries,
-  ) {
-    final totalEntries = entityScene?.entries.length ?? 0;
-    AuthoringDomainPlugin? plugin;
-    for (final candidate in widget.controller.availablePlugins) {
-      if (candidate.id == widget.controller.selectedPluginId) {
-        plugin = candidate;
-        break;
-      }
-    }
-    final pluginLabel = plugin?.displayName ?? widget.controller.selectedPluginId;
-    final workspacePath = widget.controller.workspacePath;
-    final statusText = widget.controller.isLoading
-        ? 'Loading workspace...'
-        : widget.controller.isExporting
-        ? 'Exporting changes...'
-        : widget.controller.loadError == null
-        ? 'Ready'
-        : 'Load error';
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Workspace Overview',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 12),
-            Text('Status: $statusText'),
-            Text('Page: ${_homeRoutes.firstWhere((route) => route.id == _selectedRouteId).label}'),
-            Text('Domain: $pluginLabel'),
-            Text('Workspace: $workspacePath'),
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                _buildOverviewStatCard(
-                  label: 'Visible Entries',
-                  value: '${visibleEntries.length}',
-                ),
-                _buildOverviewStatCard(
-                  label: 'Total Entries',
-                  value: '$totalEntries',
-                ),
-                _buildOverviewStatCard(
-                  label: 'Dirty Entries',
-                  value: '${widget.controller.dirtyEntryCount}',
-                ),
-                _buildOverviewStatCard(
-                  label: 'Dirty Files',
-                  value: '${widget.controller.dirtyFileCount}',
-                ),
-                _buildOverviewStatCard(
-                  label: 'Errors',
-                  value: '${widget.controller.errorCount}',
-                ),
-                _buildOverviewStatCard(
-                  label: 'Warnings',
-                  value: '${widget.controller.warningCount}',
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            const Text(
-              'Use the page selector to switch tools. Entities is where entity authoring happens.',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOverviewStatCard({required String label, required String value}) {
-    return SizedBox(
-      width: 170,
-      child: Card(
-        margin: EdgeInsets.zero,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: Theme.of(context).textTheme.labelMedium,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                value,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   Future<void> _confirmAndApplyToFiles() async {
