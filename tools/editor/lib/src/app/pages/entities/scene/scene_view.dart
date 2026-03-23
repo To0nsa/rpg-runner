@@ -1,26 +1,37 @@
-part of '../editor_home_page.dart';
+part of '../../home/editor_home_page.dart';
 
 extension _SceneView on _EditorHomePageState {
   static const Size _fixedViewportSize = Size(800, 500);
 
-  Widget _buildViewportPanel(ColliderEntry? selectedEntry) {
+  Widget _buildViewportPanel(EntityEntry? selectedEntry) {
     if (selectedEntry == null) {
       return const Card(
         child: Padding(
           padding: EdgeInsets.all(12),
-          child: Text('No collider entry selected.'),
+          child: Text('No entity selected.'),
         ),
       );
     }
 
     final scale = _sceneZoom;
     final resolvedReference = _resolveReferenceVisual(selectedEntry);
+    final animKeys = resolvedReference == null
+        ? const <String>[]
+        : _sortedAnimKeys(resolvedReference);
+    final activeAnimKey = resolvedReference?.resolveAnimKey(_sceneAnimKey);
     final referenceAnimView = resolvedReference == null
         ? null
-        : _effectiveReferenceAnimView(resolvedReference);
+        : _effectiveReferenceAnimView(
+            resolvedReference,
+            selectedAnimKey: activeAnimKey,
+          );
     if (referenceAnimView != null) {
       unawaited(_ensureReferenceImageLoaded(referenceAnimView.absolutePath));
     }
+    final frameCount = referenceAnimView == null
+        ? 1
+        : _effectiveReferenceFrameCount(referenceAnimView);
+    final frameIndex = _effectiveReferenceFrameIndex(frameCount);
     final resolvedImage = referenceAnimView == null
         ? null
         : _referenceImageCache[referenceAnimView.absolutePath];
@@ -29,7 +40,10 @@ extension _SceneView on _EditorHomePageState {
         : _effectiveReferenceRow(referenceAnimView);
     final referenceFrame = referenceAnimView == null
         ? 0
-        : _effectiveReferenceFrame(referenceAnimView);
+        : _effectiveReferenceFrame(
+            referenceAnimView,
+            frameIndex: frameIndex,
+          );
 
     return Card(
       child: Padding(
@@ -39,15 +53,33 @@ extension _SceneView on _EditorHomePageState {
           children: [
             SizedBox(
               width: _fixedViewportSize.width,
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Text(
-                      'Collider Scene View',
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        'Entity Scene View',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      const Spacer(),
+                      _buildSceneZoomControls(),
+                    ],
                   ),
-                  _buildSceneZoomControls(),
+                  if (animKeys.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Spacer(),
+                        _buildSceneAnimControls(
+                          animKeys: animKeys,
+                          activeAnimKey: activeAnimKey,
+                          frameIndex: frameIndex,
+                          frameCount: frameCount,
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -91,7 +123,7 @@ extension _SceneView on _EditorHomePageState {
                         ),
                       ),
                     CustomPaint(
-                      painter: _ColliderViewportPainter(
+                      painter: _EntityBoundsPainter(
                         entry: selectedEntry,
                         scale: scale,
                       ),
@@ -106,7 +138,7 @@ extension _SceneView on _EditorHomePageState {
     );
   }
 
-  _ResolvedReferenceVisual? _resolveReferenceVisual(ColliderEntry entry) {
+  _ResolvedReferenceVisual? _resolveReferenceVisual(EntityEntry entry) {
     final reference = entry.referenceVisual;
     final workspace = widget.controller.workspace;
     if (reference == null || workspace == null) {
@@ -211,14 +243,36 @@ extension _SceneView on _EditorHomePageState {
     return (anchorPx / frameSize).clamp(0.0, 1.0);
   }
 
+  List<String> _sortedAnimKeys(_ResolvedReferenceVisual reference) {
+    final keys = reference.animViewsByKey.keys.toList(growable: false);
+    keys.sort();
+    return keys;
+  }
+
   _ResolvedReferenceAnimView? _effectiveReferenceAnimView(
-    _ResolvedReferenceVisual reference,
-  ) {
-    final key = reference.resolveAnimKey(null);
+    _ResolvedReferenceVisual reference, {
+    required String? selectedAnimKey,
+  }) {
+    final key = reference.resolveAnimKey(selectedAnimKey);
     if (key == null) {
       return null;
     }
     return reference.animViewsByKey[key];
+  }
+
+  int _effectiveReferenceFrameCount(_ResolvedReferenceAnimView reference) {
+    final count = reference.defaultFrameCount;
+    if (count == null || count <= 0) {
+      return 1;
+    }
+    return count;
+  }
+
+  int _effectiveReferenceFrameIndex(int frameCount) {
+    if (frameCount <= 1) {
+      return 0;
+    }
+    return _sceneAnimFrameIndex.clamp(0, frameCount - 1);
   }
 
   int _effectiveReferenceRow(_ResolvedReferenceAnimView reference) {
@@ -226,10 +280,14 @@ extension _SceneView on _EditorHomePageState {
     return row < 0 ? 0 : row;
   }
 
-  int _effectiveReferenceFrame(_ResolvedReferenceAnimView reference) {
+  int _effectiveReferenceFrame(
+    _ResolvedReferenceAnimView reference, {
+    required int frameIndex,
+  }) {
+    final absoluteFrame = reference.defaultFrameStart + frameIndex;
     final minFrame = reference.defaultFrameStart;
-    final maxFrame = reference.maxFrameIndex ?? 9999;
-    return reference.defaultFrameStart.clamp(minFrame, maxFrame);
+    final maxFrame = reference.maxFrameIndex ?? absoluteFrame;
+    return absoluteFrame.clamp(minFrame, maxFrame);
   }
 
   Future<void> _ensureReferenceImageLoaded(String absolutePath) async {
@@ -513,39 +571,39 @@ class _ReferenceFramePainter extends CustomPainter {
   }
 }
 
-class _ColliderViewportPainter extends CustomPainter {
-  const _ColliderViewportPainter({required this.entry, required this.scale});
+class _EntityBoundsPainter extends CustomPainter {
+  const _EntityBoundsPainter({required this.entry, required this.scale});
 
-  final ColliderEntry entry;
+  final EntityEntry entry;
   final double scale;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final colliderCenter = _ViewportGeometry.colliderCenter(
+    final entityCenter = _ViewportGeometry.entityCenter(
       size,
       entry.offsetX,
       entry.offsetY,
       scale,
     );
-    final colliderRect = _ViewportGeometry.colliderRect(
-      center: colliderCenter,
+    final entityRect = _ViewportGeometry.entityRect(
+      center: entityCenter,
       halfX: entry.halfX,
       halfY: entry.halfY,
       scale: scale,
     );
 
     final fillPaint = Paint()..color = const Color(0x5522D3EE);
-    canvas.drawRect(colliderRect, fillPaint);
+    canvas.drawRect(entityRect, fillPaint);
 
     final strokePaint = Paint()
       ..color = const Color(0xFF7CE5FF)
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
-    canvas.drawRect(colliderRect, strokePaint);
+    canvas.drawRect(entityRect, strokePaint);
   }
 
   @override
-  bool shouldRepaint(covariant _ColliderViewportPainter oldDelegate) {
+  bool shouldRepaint(covariant _EntityBoundsPainter oldDelegate) {
     return oldDelegate.entry.halfX != entry.halfX ||
         oldDelegate.entry.halfY != entry.halfY ||
         oldDelegate.entry.offsetX != entry.offsetX ||
@@ -558,7 +616,7 @@ class _ViewportGeometry {
   static Offset canvasCenter(Size size) =>
       Offset(size.width * 0.5, size.height * 0.5);
 
-  static Offset colliderCenter(
+  static Offset entityCenter(
     Size size,
     double offsetX,
     double offsetY,
@@ -572,7 +630,7 @@ class _ViewportGeometry {
     );
   }
 
-  static Rect colliderRect({
+  static Rect entityRect({
     required Offset center,
     required double halfX,
     required double halfY,
@@ -588,3 +646,4 @@ class _ViewportGeometry {
     );
   }
 }
+

@@ -1,4 +1,4 @@
-part of '../editor_home_page.dart';
+part of '../../home/editor_home_page.dart';
 
 class _ViewportPixelGridPainter extends CustomPainter {
   const _ViewportPixelGridPainter({required this.zoom});

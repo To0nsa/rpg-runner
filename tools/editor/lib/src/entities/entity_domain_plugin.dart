@@ -5,26 +5,26 @@ import 'package:path/path.dart' as p;
 
 import '../domain/authoring_types.dart';
 import '../workspace/editor_workspace.dart';
-import 'collider_domain_models.dart';
-import 'collider_source_parser.dart';
+import 'entity_domain_models.dart';
+import 'entity_source_parser.dart';
 
-class ColliderDomainPlugin implements AuthoringDomainPlugin {
-  static const String pluginId = 'collider';
+class EntityDomainPlugin implements AuthoringDomainPlugin {
+  static const String pluginId = 'entities';
   static const double _changeEpsilon = 0.000001;
 
   @override
   String get id => pluginId;
 
   @override
-  String get displayName => 'Entity Colliders';
+  String get displayName => 'Entities';
 
   @override
   Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
-    final parseResult = ColliderSourceParser().parse(workspace);
-    final baseline = <String, ColliderEntry>{
+    final parseResult = EntitySourceParser().parse(workspace);
+    final baseline = <String, EntityEntry>{
       for (final entry in parseResult.entries) entry.id: entry,
     };
-    return ColliderDocument(
+    return EntityDocument(
       entries: parseResult.entries,
       baselineById: baseline,
       runtimeGridCellSize: parseResult.runtimeGridCellSize,
@@ -34,7 +34,7 @@ class ColliderDomainPlugin implements AuthoringDomainPlugin {
 
   @override
   List<ValidationIssue> validate(AuthoringDocument document) {
-    final colliderDocument = _asColliderDocument(document);
+    final colliderDocument = _asEntityDocument(document);
     final issues = <ValidationIssue>[...colliderDocument.loadIssues];
 
     for (final entry in colliderDocument.entries) {
@@ -106,8 +106,8 @@ class ColliderDomainPlugin implements AuthoringDomainPlugin {
 
   @override
   EditableScene buildEditableScene(AuthoringDocument document) {
-    final colliderDocument = _asColliderDocument(document);
-    final sorted = List<ColliderEntry>.from(colliderDocument.entries)
+    final colliderDocument = _asEntityDocument(document);
+    final sorted = List<EntityEntry>.from(colliderDocument.entries)
       ..sort((a, b) {
         final typeCompare = a.entityType.index.compareTo(b.entityType.index);
         if (typeCompare != 0) {
@@ -115,7 +115,7 @@ class ColliderDomainPlugin implements AuthoringDomainPlugin {
         }
         return a.id.compareTo(b.id);
       });
-    return ColliderScene(
+    return EntityScene(
       entries: sorted,
       runtimeGridCellSize: colliderDocument.runtimeGridCellSize,
     );
@@ -126,7 +126,7 @@ class ColliderDomainPlugin implements AuthoringDomainPlugin {
     AuthoringDocument document,
     AuthoringCommand command,
   ) {
-    final colliderDocument = _asColliderDocument(document);
+    final colliderDocument = _asEntityDocument(document);
     if (command.kind != 'update_entry') {
       return colliderDocument;
     }
@@ -143,7 +143,7 @@ class ColliderDomainPlugin implements AuthoringDomainPlugin {
       return colliderDocument;
     }
 
-    ColliderEntry? targetEntry;
+    EntityEntry? targetEntry;
     for (final entry in colliderDocument.entries) {
       if (entry.id == targetId) {
         targetEntry = entry;
@@ -202,7 +202,7 @@ class ColliderDomainPlugin implements AuthoringDomainPlugin {
         })
         .toList(growable: false);
 
-    return ColliderDocument(
+    return EntityDocument(
       entries: updatedEntries,
       baselineById: colliderDocument.baselineById,
       runtimeGridCellSize: colliderDocument.runtimeGridCellSize,
@@ -216,7 +216,7 @@ class ColliderDomainPlugin implements AuthoringDomainPlugin {
     required AuthoringDocument document,
     required ExportMode mode,
   }) async {
-    final colliderDocument = _asColliderDocument(document);
+    final colliderDocument = _asEntityDocument(document);
     final changedEntries = _changedEntries(colliderDocument);
 
     if (changedEntries.isEmpty) {
@@ -225,9 +225,9 @@ class ColliderDomainPlugin implements AuthoringDomainPlugin {
         applied: false,
         artifacts: const <ExportArtifact>[
           ExportArtifact(
-            title: 'collider_summary.md',
+            title: 'entity_summary.md',
             content:
-                '# Collider Export\n\nchangedEntries: 0\n\nNo collider edits detected.',
+                '# Entity Export\n\nchangedEntries: 0\n\nNo entity edits detected.',
           ),
         ],
       );
@@ -248,17 +248,17 @@ class ColliderDomainPlugin implements AuthoringDomainPlugin {
 
       final artifacts = <ExportArtifact>[
         ExportArtifact(
-          title: 'collider_summary.md',
+          title: 'entity_summary.md',
           content: _buildSummary(
             mode: mode,
             changedEntries: changedEntries,
             filePatches: filePatches,
           ),
         ),
-        ExportArtifact(title: 'collider_changes.patch', content: unifiedPatch),
+        ExportArtifact(title: 'entity_changes.patch', content: unifiedPatch),
         if (backupPaths.isNotEmpty)
           ExportArtifact(
-            title: 'collider_backups.md',
+            title: 'entity_backups.md',
             content: _buildBackupsArtifact(backupPaths),
           ),
         for (final patch in filePatches)
@@ -279,8 +279,8 @@ class ColliderDomainPlugin implements AuthoringDomainPlugin {
         applied: false,
         artifacts: [
           ExportArtifact(
-            title: 'collider_export_error.md',
-            content: '# Collider Export Error\n\n$error',
+            title: 'entity_export_error.md',
+            content: '# Entity Export Error\n\n$error',
           ),
         ],
       );
@@ -292,7 +292,7 @@ class ColliderDomainPlugin implements AuthoringDomainPlugin {
     EditorWorkspace workspace, {
     required AuthoringDocument document,
   }) {
-    final colliderDocument = _asColliderDocument(document);
+    final colliderDocument = _asEntityDocument(document);
     final changedEntries = _changedEntries(colliderDocument);
     if (changedEntries.isEmpty) {
       return const PendingChanges();
@@ -320,8 +320,8 @@ class ColliderDomainPlugin implements AuthoringDomainPlugin {
     );
   }
 
-  List<ColliderEntry> _changedEntries(ColliderDocument document) {
-    final changed = <ColliderEntry>[];
+  List<EntityEntry> _changedEntries(EntityDocument document) {
+    final changed = <EntityEntry>[];
     for (final entry in document.entries) {
       final baseline = document.baselineById[entry.id];
       if (baseline == null || _isChanged(entry, baseline)) {
@@ -333,8 +333,8 @@ class ColliderDomainPlugin implements AuthoringDomainPlugin {
 
   List<_ResolvedFilePatch> _resolveFilePatches(
     EditorWorkspace workspace, {
-    required ColliderDocument document,
-    required List<ColliderEntry> changedEntries,
+    required EntityDocument document,
+    required List<EntityEntry> changedEntries,
   }) {
     final editsByPath = <String, List<_ResolvedEdit>>{};
 
@@ -492,11 +492,11 @@ class ColliderDomainPlugin implements AuthoringDomainPlugin {
   }
 
   List<_ResolvedEdit> _buildEditsForEntry(
-    ColliderEntry current,
-    ColliderEntry baseline,
+    EntityEntry current,
+    EntityEntry baseline,
   ) {
     final edits = <_ResolvedEdit>[];
-    if (_colliderChanged(current, baseline)) {
+    if (_entityBoundsChanged(current, baseline)) {
       edits.add(
         _ResolvedEdit(
           entryId: current.id,
@@ -570,21 +570,21 @@ class ColliderDomainPlugin implements AuthoringDomainPlugin {
     return edits;
   }
 
-  bool _colliderChanged(ColliderEntry current, ColliderEntry baseline) {
+  bool _entityBoundsChanged(EntityEntry current, EntityEntry baseline) {
     return !_almostEqual(current.halfX, baseline.halfX) ||
         !_almostEqual(current.halfY, baseline.halfY) ||
         !_almostEqual(current.offsetX, baseline.offsetX) ||
         !_almostEqual(current.offsetY, baseline.offsetY);
   }
 
-  bool _isChanged(ColliderEntry current, ColliderEntry baseline) {
-    return _colliderChanged(current, baseline) ||
+  bool _isChanged(EntityEntry current, EntityEntry baseline) {
+    return _entityBoundsChanged(current, baseline) ||
         _referenceChanged(current.referenceVisual, baseline.referenceVisual);
   }
 
   bool _referenceChanged(
-    ColliderReferenceVisual? current,
-    ColliderReferenceVisual? baseline,
+    EntityReferenceVisual? current,
+    EntityReferenceVisual? baseline,
   ) {
     if (current == null && baseline == null) {
       return false;
@@ -606,23 +606,23 @@ class ColliderDomainPlugin implements AuthoringDomainPlugin {
 
   bool _almostEqual(double a, double b) => (a - b).abs() <= _changeEpsilon;
 
-  String _buildReplacementSnippet(ColliderEntry entry) {
+  String _buildReplacementSnippet(EntityEntry entry) {
     switch (entry.sourceBinding.kind) {
-      case ColliderSourceBindingKind.enemyColliderAabbExpression:
-        return _enemyColliderSnippet(entry);
-      case ColliderSourceBindingKind.playerColliderArgs:
-        return _playerColliderSnippet(entry);
-      case ColliderSourceBindingKind.projectileColliderArgs:
-        return _projectileColliderSnippet(entry);
-      case ColliderSourceBindingKind.referenceAnchorVec2Expression:
-      case ColliderSourceBindingKind.referenceRenderScaleScalar:
+      case EntitySourceBindingKind.enemyAabbExpression:
+        return _enemyEntitySnippet(entry);
+      case EntitySourceBindingKind.playerArgs:
+        return _playerEntitySnippet(entry);
+      case EntitySourceBindingKind.projectileArgs:
+        return _projectileEntitySnippet(entry);
+      case EntitySourceBindingKind.referenceAnchorVec2Expression:
+      case EntitySourceBindingKind.referenceRenderScaleScalar:
         throw StateError(
-          'Unsupported collider snippet binding kind: ${entry.sourceBinding.kind}',
+          'Unsupported entity snippet binding kind: ${entry.sourceBinding.kind}',
         );
     }
   }
 
-  String _enemyColliderSnippet(ColliderEntry entry) {
+  String _enemyEntitySnippet(EntityEntry entry) {
     return 'ColliderAabbDef('
         'halfX: ${_formatDoubleLiteral(entry.halfX)}, '
         'halfY: ${_formatDoubleLiteral(entry.halfY)}, '
@@ -630,7 +630,7 @@ class ColliderDomainPlugin implements AuthoringDomainPlugin {
         'offsetY: ${_formatDoubleLiteral(entry.offsetY)})';
   }
 
-  String _playerColliderSnippet(ColliderEntry entry) {
+  String _playerEntitySnippet(EntityEntry entry) {
     final width = entry.halfX * 2;
     final height = entry.halfY * 2;
     return 'colliderWidth: ${_formatDoubleLiteral(width)},\n'
@@ -639,7 +639,7 @@ class ColliderDomainPlugin implements AuthoringDomainPlugin {
         '  colliderOffsetY: ${_formatDoubleLiteral(entry.offsetY)},';
   }
 
-  String _projectileColliderSnippet(ColliderEntry entry) {
+  String _projectileEntitySnippet(EntityEntry entry) {
     final sizeX = entry.halfX * 2;
     final sizeY = entry.halfY * 2;
     return 'colliderSizeX: ${_formatDoubleLiteral(sizeX)},\n'
@@ -658,11 +658,11 @@ class ColliderDomainPlugin implements AuthoringDomainPlugin {
 
   String _buildSummary({
     required ExportMode mode,
-    required List<ColliderEntry> changedEntries,
+    required List<EntityEntry> changedEntries,
     required List<_ResolvedFilePatch> filePatches,
   }) {
     final lines = <String>[
-      '# Collider Export',
+      '# Entity Export',
       '',
       'mode: ${mode.name}',
       'changedEntries: ${changedEntries.length}',
@@ -681,7 +681,7 @@ class ColliderDomainPlugin implements AuthoringDomainPlugin {
 
   String _buildBackupsArtifact(List<String> backupPaths) {
     final lines = <String>[
-      '# Collider Backup Files',
+      '# Entity Backup Files',
       '',
       'Backup files were written before direct write apply.',
       '',
@@ -885,10 +885,10 @@ class ColliderDomainPlugin implements AuthoringDomainPlugin {
     return hunks;
   }
 
-  ColliderDocument _asColliderDocument(AuthoringDocument document) {
-    if (document is! ColliderDocument) {
+  EntityDocument _asEntityDocument(AuthoringDocument document) {
+    if (document is! EntityDocument) {
       throw StateError(
-        'ColliderDomainPlugin expected ColliderDocument but got '
+        'EntityDomainPlugin expected EntityDocument but got '
         '${document.runtimeType}.',
       );
     }
@@ -952,3 +952,5 @@ class _UnifiedDiffHunk {
   final int newCount;
   final List<String> lines;
 }
+
+

@@ -2,11 +2,11 @@ import 'package:flutter/foundation.dart';
 
 import '../domain/authoring_types.dart';
 
-enum ColliderEntityType { player, enemy, projectile }
+enum EntityType { player, enemy, projectile }
 
 @immutable
-class ColliderReferenceVisual {
-  const ColliderReferenceVisual({
+class EntityReferenceVisual {
+  const EntityReferenceVisual({
     required this.assetPath,
     this.frameWidth,
     this.frameHeight,
@@ -20,7 +20,7 @@ class ColliderReferenceVisual {
     this.defaultFrameCount,
     this.defaultGridColumns,
     this.defaultAnimKey,
-    this.animViewsByKey = const <String, ColliderReferenceAnimView>{},
+    this.animViewsByKey = const <String, EntityReferenceAnimView>{},
   });
 
   final String assetPath;
@@ -28,22 +28,22 @@ class ColliderReferenceVisual {
   final double? frameHeight;
   final double? anchorXPx;
   final double? anchorYPx;
-  final ColliderSourceBinding? anchorBinding;
+  final EntitySourceBinding? anchorBinding;
   final double? renderScale;
-  final ColliderSourceBinding? renderScaleBinding;
+  final EntitySourceBinding? renderScaleBinding;
   final int defaultRow;
   final int defaultFrameStart;
   final int? defaultFrameCount;
   final int? defaultGridColumns;
   final String? defaultAnimKey;
-  final Map<String, ColliderReferenceAnimView> animViewsByKey;
+  final Map<String, EntityReferenceAnimView> animViewsByKey;
 
-  ColliderReferenceVisual copyWith({
+  EntityReferenceVisual copyWith({
     double? anchorXPx,
     double? anchorYPx,
     double? renderScale,
   }) {
-    return ColliderReferenceVisual(
+    return EntityReferenceVisual(
       assetPath: assetPath,
       frameWidth: frameWidth,
       frameHeight: frameHeight,
@@ -63,8 +63,8 @@ class ColliderReferenceVisual {
 }
 
 @immutable
-class ColliderReferenceAnimView {
-  const ColliderReferenceAnimView({
+class EntityReferenceAnimView {
+  const EntityReferenceAnimView({
     required this.key,
     required this.assetPath,
     this.row = 0,
@@ -82,8 +82,8 @@ class ColliderReferenceAnimView {
 }
 
 @immutable
-class ColliderEntry {
-  const ColliderEntry({
+class EntityEntry {
+  const EntityEntry({
     required this.id,
     required this.label,
     required this.entityType,
@@ -98,23 +98,23 @@ class ColliderEntry {
 
   final String id;
   final String label;
-  final ColliderEntityType entityType;
+  final EntityType entityType;
   final double halfX;
   final double halfY;
   final double offsetX;
   final double offsetY;
   final String sourcePath;
-  final ColliderSourceBinding sourceBinding;
-  final ColliderReferenceVisual? referenceVisual;
+  final EntitySourceBinding sourceBinding;
+  final EntityReferenceVisual? referenceVisual;
 
-  ColliderEntry copyWith({
+  EntityEntry copyWith({
     double? halfX,
     double? halfY,
     double? offsetX,
     double? offsetY,
-    ColliderReferenceVisual? referenceVisual,
+    EntityReferenceVisual? referenceVisual,
   }) {
-    return ColliderEntry(
+    return EntityEntry(
       id: id,
       label: label,
       entityType: entityType,
@@ -129,41 +129,41 @@ class ColliderEntry {
   }
 }
 
-class ColliderDocument extends AuthoringDocument {
-  const ColliderDocument({
+class EntityDocument extends AuthoringDocument {
+  const EntityDocument({
     required this.entries,
     required this.baselineById,
     required this.runtimeGridCellSize,
     this.loadIssues = const <ValidationIssue>[],
   });
 
-  final List<ColliderEntry> entries;
-  final Map<String, ColliderEntry> baselineById;
+  final List<EntityEntry> entries;
+  final Map<String, EntityEntry> baselineById;
   final double runtimeGridCellSize;
   final List<ValidationIssue> loadIssues;
 }
 
-class ColliderScene extends EditableScene {
-  const ColliderScene({
+class EntityScene extends EditableScene {
+  const EntityScene({
     required this.entries,
     required this.runtimeGridCellSize,
   });
 
-  final List<ColliderEntry> entries;
+  final List<EntityEntry> entries;
   final double runtimeGridCellSize;
 }
 
-enum ColliderSourceBindingKind {
-  enemyColliderAabbExpression,
-  playerColliderArgs,
-  projectileColliderArgs,
+enum EntitySourceBindingKind {
+  enemyAabbExpression,
+  playerArgs,
+  projectileArgs,
   referenceAnchorVec2Expression,
   referenceRenderScaleScalar,
 }
 
 @immutable
-class ColliderSourceBinding {
-  const ColliderSourceBinding({
+class EntitySourceBinding {
+  const EntitySourceBinding({
     required this.kind,
     required this.sourcePath,
     required this.startOffset,
@@ -171,9 +171,13 @@ class ColliderSourceBinding {
     required this.sourceSnippet,
   });
 
-  final ColliderSourceBindingKind kind;
+  final EntitySourceBindingKind kind;
   final String sourcePath;
   final int startOffset;
   final int endOffset;
   final String sourceSnippet;
 }
+
+
+
+

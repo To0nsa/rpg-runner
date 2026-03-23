@@ -1,4 +1,4 @@
-part of '../editor_home_page.dart';
+part of '../../home/editor_home_page.dart';
 
 extension _SceneZoom on _EditorHomePageState {
   static const double _zoomMin = 0.1;

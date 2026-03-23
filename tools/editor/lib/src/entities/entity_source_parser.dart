@@ -6,21 +6,21 @@ import 'package:path/path.dart' as p;
 
 import '../domain/authoring_types.dart';
 import '../workspace/editor_workspace.dart';
-import 'collider_domain_models.dart';
+import 'entity_domain_models.dart';
 
-class ColliderParseResult {
-  const ColliderParseResult({
+class EntityParseResult {
+  const EntityParseResult({
     required this.entries,
     required this.issues,
     required this.runtimeGridCellSize,
   });
 
-  final List<ColliderEntry> entries;
+  final List<EntityEntry> entries;
   final List<ValidationIssue> issues;
   final double runtimeGridCellSize;
 }
 
-class ColliderSourceParser {
+class EntitySourceParser {
   static const String enemyCatalogPath =
       'packages/runner_core/lib/enemies/enemy_catalog.dart';
   static const String playerCharactersDir =
@@ -39,8 +39,8 @@ class ColliderSourceParser {
       'packages/runner_core/lib/tuning/spatial_grid_tuning.dart';
   static const double defaultRuntimeGridCellSize = 32.0;
 
-  ColliderParseResult parse(EditorWorkspace workspace) {
-    final entries = <ColliderEntry>[];
+  EntityParseResult parse(EditorWorkspace workspace) {
+    final entries = <EntityEntry>[];
     final issues = <ValidationIssue>[];
     final renderScaleConfig = _parseRenderScaleConfig(workspace);
     final runtimeGridCellSize =
@@ -74,21 +74,21 @@ class ColliderSourceParser {
     );
 
     _validateUniqueIds(entries, issues);
-    return ColliderParseResult(
+    return EntityParseResult(
       entries: entries,
       issues: issues,
       runtimeGridCellSize: runtimeGridCellSize,
     );
   }
 
-  List<ColliderEntry> _parseEnemies(
+  List<EntityEntry> _parseEnemies(
     EditorWorkspace workspace,
     List<ValidationIssue> issues, {
     required Map<String, _ResolvedScalarValue> enemyRenderScaleById,
   }) {
     final source = _readSource(workspace, enemyCatalogPath, issues);
     if (source == null) {
-      return const <ColliderEntry>[];
+      return const <EntityEntry>[];
     }
 
     final unit = _parseUnit(source, enemyCatalogPath, issues);
@@ -108,7 +108,7 @@ class ColliderSourceParser {
           sourcePath: enemyCatalogPath,
         ),
       );
-      return const <ColliderEntry>[];
+      return const <EntityEntry>[];
     }
 
     final switchStmt = _findFirstSwitch(getMethod.body);
@@ -121,10 +121,10 @@ class ColliderSourceParser {
           sourcePath: enemyCatalogPath,
         ),
       );
-      return const <ColliderEntry>[];
+      return const <EntityEntry>[];
     }
 
-    final entries = <ColliderEntry>[];
+    final entries = <EntityEntry>[];
     for (final member in switchStmt.members) {
       if (member is! SwitchPatternCase && member is! SwitchCase) {
         continue;
@@ -195,17 +195,17 @@ class ColliderSourceParser {
         enemyRenderScaleById[enemyName],
       );
       entries.add(
-        ColliderEntry(
+        EntityEntry(
           id: 'enemy.$enemyName',
           label: 'Enemy: ${_titleCaseCamel(enemyName)}',
-          entityType: ColliderEntityType.enemy,
+          entityType: EntityType.enemy,
           halfX: halfX,
           halfY: halfY,
           offsetX: offsetX,
           offsetY: offsetY,
           sourcePath: enemyCatalogPath,
-          sourceBinding: ColliderSourceBinding(
-            kind: ColliderSourceBindingKind.enemyColliderAabbExpression,
+          sourceBinding: EntitySourceBinding(
+            kind: EntitySourceBindingKind.enemyAabbExpression,
             sourcePath: enemyCatalogPath,
             startOffset: start,
             endOffset: end,
@@ -219,7 +219,7 @@ class ColliderSourceParser {
     return entries;
   }
 
-  List<ColliderEntry> _parsePlayers(
+  List<EntityEntry> _parsePlayers(
     EditorWorkspace workspace,
     List<ValidationIssue> issues, {
     required _ResolvedScalarValue? playerRenderScale,
@@ -234,10 +234,10 @@ class ColliderSourceParser {
           sourcePath: playerCharactersDir,
         ),
       );
-      return const <ColliderEntry>[];
+      return const <EntityEntry>[];
     }
 
-    final entries = <ColliderEntry>[];
+    final entries = <EntityEntry>[];
     for (final entity in directory.listSync().whereType<File>()) {
       if (!entity.path.toLowerCase().endsWith('.dart')) {
         continue;
@@ -335,17 +335,17 @@ class ColliderSourceParser {
           final start = widthArg.offset;
           final end = offsetYArg.end;
           entries.add(
-            ColliderEntry(
+            EntityEntry(
               id: 'player.$idBase',
               label: 'Player: ${_titleCaseCamel(idBase)}',
-              entityType: ColliderEntityType.player,
+              entityType: EntityType.player,
               halfX: width * 0.5,
               halfY: height * 0.5,
               offsetX: offsetX,
               offsetY: offsetY,
               sourcePath: relativePath,
-              sourceBinding: ColliderSourceBinding(
-                kind: ColliderSourceBindingKind.playerColliderArgs,
+              sourceBinding: EntitySourceBinding(
+                kind: EntitySourceBindingKind.playerArgs,
                 sourcePath: relativePath,
                 startOffset: start,
                 endOffset: end,
@@ -360,15 +360,15 @@ class ColliderSourceParser {
     return entries;
   }
 
-  List<ColliderEntry> _parseProjectiles(
+  List<EntityEntry> _parseProjectiles(
     EditorWorkspace workspace,
     List<ValidationIssue> issues, {
-    required Map<String, ColliderReferenceVisual> projectileReferenceVisualById,
+    required Map<String, EntityReferenceVisual> projectileReferenceVisualById,
     required Map<String, _ResolvedScalarValue> projectileRenderScaleById,
   }) {
     final source = _readSource(workspace, projectileCatalogPath, issues);
     if (source == null) {
-      return const <ColliderEntry>[];
+      return const <EntityEntry>[];
     }
 
     final unit = _parseUnit(source, projectileCatalogPath, issues);
@@ -383,7 +383,7 @@ class ColliderSourceParser {
           sourcePath: projectileCatalogPath,
         ),
       );
-      return const <ColliderEntry>[];
+      return const <EntityEntry>[];
     }
 
     final switchStmt = _findFirstSwitch(getMethod.body);
@@ -397,10 +397,10 @@ class ColliderSourceParser {
           sourcePath: projectileCatalogPath,
         ),
       );
-      return const <ColliderEntry>[];
+      return const <EntityEntry>[];
     }
 
-    final entries = <ColliderEntry>[];
+    final entries = <EntityEntry>[];
     for (final member in switchStmt.members) {
       if (member is! SwitchPatternCase && member is! SwitchCase) {
         continue;
@@ -459,17 +459,17 @@ class ColliderSourceParser {
         projectileRenderScaleById[projectileName],
       );
       entries.add(
-        ColliderEntry(
+        EntityEntry(
           id: 'projectile.$projectileName',
           label: 'Projectile: ${_titleCaseCamel(projectileName)}',
-          entityType: ColliderEntityType.projectile,
+          entityType: EntityType.projectile,
           halfX: sizeX * 0.5,
           halfY: sizeY * 0.5,
           offsetX: 0.0,
           offsetY: 0.0,
           sourcePath: projectileCatalogPath,
-          sourceBinding: ColliderSourceBinding(
-            kind: ColliderSourceBindingKind.projectileColliderArgs,
+          sourceBinding: EntitySourceBinding(
+            kind: EntitySourceBindingKind.projectileArgs,
             sourcePath: projectileCatalogPath,
             startOffset: start,
             endOffset: end,
@@ -482,13 +482,13 @@ class ColliderSourceParser {
     return entries;
   }
 
-  Map<String, ColliderReferenceVisual> _parseProjectileReferenceVisuals(
+  Map<String, EntityReferenceVisual> _parseProjectileReferenceVisuals(
     EditorWorkspace workspace,
     List<ValidationIssue> issues,
   ) {
     final source = _readSource(workspace, projectileRenderCatalogPath, issues);
     if (source == null) {
-      return const <String, ColliderReferenceVisual>{};
+      return const <String, EntityReferenceVisual>{};
     }
     final unit = _parseUnit(source, projectileRenderCatalogPath, issues);
     final resolver = _ConstValueResolver(
@@ -508,14 +508,14 @@ class ColliderSourceParser {
           sourcePath: projectileRenderCatalogPath,
         ),
       );
-      return const <String, ColliderReferenceVisual>{};
+      return const <String, EntityReferenceVisual>{};
     }
     final switchStmt = _findFirstSwitch(getMethod.body);
     if (switchStmt == null) {
-      return const <String, ColliderReferenceVisual>{};
+      return const <String, EntityReferenceVisual>{};
     }
 
-    final visualById = <String, ColliderReferenceVisual>{};
+    final visualById = <String, EntityReferenceVisual>{};
     for (final member in switchStmt.members) {
       if (member is! SwitchPatternCase && member is! SwitchCase) {
         continue;
@@ -582,8 +582,8 @@ class ColliderSourceParser {
     final end = start + valueMatch.length;
     return _ResolvedScalarValue(
       value: value,
-      binding: ColliderSourceBinding(
-        kind: ColliderSourceBindingKind.referenceRenderScaleScalar,
+      binding: EntitySourceBinding(
+        kind: EntitySourceBindingKind.referenceRenderScaleScalar,
         sourcePath: playerRenderTuningPath,
         startOffset: start,
         endOffset: end,
@@ -627,8 +627,8 @@ class ColliderSourceParser {
       final end = start + scaleRaw.length;
       map[id] = _ResolvedScalarValue(
         value: scale,
-        binding: ColliderSourceBinding(
-          kind: ColliderSourceBindingKind.referenceRenderScaleScalar,
+        binding: EntitySourceBinding(
+          kind: EntitySourceBindingKind.referenceRenderScaleScalar,
           sourcePath: sourcePath,
           startOffset: start,
           endOffset: end,
@@ -665,14 +665,14 @@ class ColliderSourceParser {
     return double.tryParse(match.group(1)!);
   }
 
-  ColliderReferenceVisual? _withRenderScale(
-    ColliderReferenceVisual? reference,
+  EntityReferenceVisual? _withRenderScale(
+    EntityReferenceVisual? reference,
     _ResolvedScalarValue? renderScale,
   ) {
     if (reference == null || renderScale == null) {
       return reference;
     }
-    return ColliderReferenceVisual(
+    return EntityReferenceVisual(
       assetPath: reference.assetPath,
       frameWidth: reference.frameWidth,
       frameHeight: reference.frameHeight,
@@ -911,7 +911,7 @@ class ColliderSourceParser {
   }
 
   void _validateUniqueIds(
-    List<ColliderEntry> entries,
+    List<EntityEntry> entries,
     List<ValidationIssue> issues,
   ) {
     final seen = <String>{};
@@ -958,7 +958,7 @@ class ColliderSourceParser {
 class _ConstValueResolver {
   _ConstValueResolver({
     required CompilationUnit unit,
-    required ColliderSourceParser parser,
+    required EntitySourceParser parser,
     required String sourcePath,
     required String sourceContent,
   }) : _parser = parser,
@@ -966,12 +966,12 @@ class _ConstValueResolver {
        _sourceContent = sourceContent,
        _initializerByName = _collectConstInitializers(unit);
 
-  final ColliderSourceParser _parser;
+  final EntitySourceParser _parser;
   final String _sourcePath;
   final String _sourceContent;
   final Map<String, Expression> _initializerByName;
 
-  ColliderReferenceVisual? resolveRenderVisualByName(String variableName) {
+  EntityReferenceVisual? resolveRenderVisualByName(String variableName) {
     final expression = _initializerByName[variableName];
     if (expression == null) {
       return null;
@@ -979,7 +979,7 @@ class _ConstValueResolver {
     return resolveRenderVisual(expression);
   }
 
-  ColliderReferenceVisual? resolveRenderVisual(Expression expression) {
+  EntityReferenceVisual? resolveRenderVisual(Expression expression) {
     final resolved = _resolveExpression(expression, <String>{});
     final arguments = _renderAnimArguments(resolved);
     if (arguments == null) {
@@ -1007,7 +1007,7 @@ class _ConstValueResolver {
     final anchorPoint = _resolveVec2(anchorPointExpr);
     final anchorBinding = _resolveExpressionBinding(
       anchorPointExpr,
-      ColliderSourceBindingKind.referenceAnchorVec2Expression,
+      EntitySourceBindingKind.referenceAnchorVec2Expression,
     );
 
     final sourcesExpr = _parser._namedArgumentExpression(
@@ -1030,14 +1030,14 @@ class _ConstValueResolver {
       _parser._namedArgumentExpression(arguments, 'gridColumnsByKey'),
     );
 
-    final animViewsByKey = <String, ColliderReferenceAnimView>{};
+    final animViewsByKey = <String, EntityReferenceAnimView>{};
     for (final entry in sourceByAnimKey.entries) {
       final key = entry.key;
       final assetPath = entry.value;
       if (assetPath.isEmpty) {
         continue;
       }
-      animViewsByKey[key] = ColliderReferenceAnimView(
+      animViewsByKey[key] = EntityReferenceAnimView(
         key: key,
         assetPath: assetPath,
         row: rowByAnimKey[key] ?? 0,
@@ -1059,7 +1059,7 @@ class _ConstValueResolver {
       return null;
     }
 
-    return ColliderReferenceVisual(
+    return EntityReferenceVisual(
       assetPath: defaultAnimView.assetPath,
       frameWidth: frameWidth,
       frameHeight: frameHeight,
@@ -1075,9 +1075,9 @@ class _ConstValueResolver {
     );
   }
 
-  ColliderSourceBinding? _resolveExpressionBinding(
+  EntitySourceBinding? _resolveExpressionBinding(
     Expression? expression,
-    ColliderSourceBindingKind kind,
+    EntitySourceBindingKind kind,
   ) {
     if (expression == null) {
       return null;
@@ -1088,7 +1088,7 @@ class _ConstValueResolver {
     if (start < 0 || end <= start || end > _sourceContent.length) {
       return null;
     }
-    return ColliderSourceBinding(
+    return EntitySourceBinding(
       kind: kind,
       sourcePath: _sourcePath,
       startOffset: start,
@@ -1320,9 +1320,11 @@ class _ResolvedScalarValue {
   const _ResolvedScalarValue({required this.value, required this.binding});
 
   final double value;
-  final ColliderSourceBinding binding;
+  final EntitySourceBinding binding;
 }
 
 extension<T> on Iterable<T> {
   T? get firstOrNull => isEmpty ? null : first;
 }
+
+

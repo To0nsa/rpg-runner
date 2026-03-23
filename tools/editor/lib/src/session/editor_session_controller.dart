@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import '../collider/collider_domain_models.dart';
+import '../entities/entity_domain_models.dart';
 import '../domain/authoring_plugin_registry.dart';
 import '../domain/authoring_types.dart';
 import '../workspace/editor_workspace.dart';
@@ -62,8 +62,10 @@ class EditorSessionController extends ChangeNotifier {
   int get dirtyEntryCount => _pendingChanges.changedEntryIds.length;
   int get dirtyFileCount => _pendingChanges.fileDiffs.length;
 
-  ColliderScene? get colliderScene =>
-      _scene is ColliderScene ? _scene as ColliderScene : null;
+  EntityScene? get entityScene =>
+      _scene is EntityScene ? _scene as EntityScene : null;
+
+  
 
   int get errorCount => _issues
       .where((issue) => issue.severity == ValidationSeverity.error)
@@ -274,3 +276,5 @@ class EditorSessionController extends ChangeNotifier {
     }
   }
 }
+
+

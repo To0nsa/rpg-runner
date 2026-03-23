@@ -1,16 +1,16 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
-import '../collider/collider_domain_plugin.dart';
+import '../entities/entity_domain_plugin.dart';
 import '../domain/authoring_plugin_registry.dart';
 import '../session/editor_session_controller.dart';
-import 'editor_home_page.dart';
+import 'pages/home/editor_home_page.dart';
 
 void runEditorApp({required String initialWorkspacePath}) {
-  final registry = AuthoringPluginRegistry(plugins: [ColliderDomainPlugin()]);
+  final registry = AuthoringPluginRegistry(plugins: [EntityDomainPlugin()]);
 
   final controller = EditorSessionController(
     pluginRegistry: registry,
-    initialPluginId: ColliderDomainPlugin.pluginId,
+    initialPluginId: EntityDomainPlugin.pluginId,
     initialWorkspacePath: initialWorkspacePath,
   );
 
@@ -36,3 +36,4 @@ class RunnerEditorApp extends StatelessWidget {
     );
   }
 }
+

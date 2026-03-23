@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../collider/collider_domain_models.dart';
+import '../../../../entities/entity_domain_models.dart';
 
-class EditorInspectorPanel extends StatelessWidget {
-  const EditorInspectorPanel({
+class EntityInspectorPanel extends StatelessWidget {
+  const EntityInspectorPanel({
     super.key,
     required this.selectedEntry,
     required this.isDirty,
@@ -19,7 +19,7 @@ class EditorInspectorPanel extends StatelessWidget {
     required this.onApply,
   });
 
-  final ColliderEntry? selectedEntry;
+  final EntityEntry? selectedEntry;
   final bool isDirty;
   final TextEditingController halfXController;
   final TextEditingController halfYController;
@@ -39,7 +39,7 @@ class EditorInspectorPanel extends StatelessWidget {
       return const Card(
         child: Padding(
           padding: EdgeInsets.all(12),
-          child: Text('No collider entry selected.'),
+          child: Text('No entity selected.'),
         ),
       );
     }
@@ -47,7 +47,7 @@ class EditorInspectorPanel extends StatelessWidget {
     final reference = selected.referenceVisual;
     final canEditRenderScale = reference?.renderScaleBinding != null;
     final canEditAnchor = reference?.anchorBinding != null;
-    final colliderType = _resolvedColliderType(selected);
+    final shapeType = _resolvedShapeType(selected);
 
     return Card(
       child: Padding(
@@ -130,7 +130,7 @@ class EditorInspectorPanel extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Collider "$colliderType"',
+              'Shape "$shapeType"',
               style: Theme.of(context).textTheme.titleSmall,
             ),
             const SizedBox(height: 6),
@@ -187,14 +187,14 @@ class EditorInspectorPanel extends StatelessWidget {
     );
   }
 
-  String _resolvedColliderType(ColliderEntry entry) {
+  String _resolvedShapeType(EntityEntry entry) {
     switch (entry.sourceBinding.kind) {
-      case ColliderSourceBindingKind.enemyColliderAabbExpression:
-      case ColliderSourceBindingKind.playerColliderArgs:
-      case ColliderSourceBindingKind.projectileColliderArgs:
+      case EntitySourceBindingKind.enemyAabbExpression:
+      case EntitySourceBindingKind.playerArgs:
+      case EntitySourceBindingKind.projectileArgs:
         return 'rectangle';
-      case ColliderSourceBindingKind.referenceAnchorVec2Expression:
-      case ColliderSourceBindingKind.referenceRenderScaleScalar:
+      case EntitySourceBindingKind.referenceAnchorVec2Expression:
+      case EntitySourceBindingKind.referenceRenderScaleScalar:
         return 'unknown';
     }
   }
@@ -239,3 +239,5 @@ class _InspectorLabeledFieldRow extends StatelessWidget {
     );
   }
 }
+
+

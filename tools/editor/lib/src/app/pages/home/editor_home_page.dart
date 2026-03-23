@@ -5,14 +5,30 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
-import '../collider/collider_domain_models.dart';
-import '../domain/authoring_types.dart';
-import '../session/editor_session_controller.dart';
-import 'inspector/editor_inspector_panel.dart';
+import '../../../entities/entity_domain_plugin.dart';
+import '../../../entities/entity_domain_models.dart';
+import '../../../domain/authoring_types.dart';
+import '../../../session/editor_session_controller.dart';
+import '../chunkCreator/chunk_creator_page.dart';
+import '../entities/inspector/entity_inspector_panel.dart';
 
-part 'scene/scene_zoom.dart';
-part 'scene/scene_grid.dart';
-part 'scene/scene_view.dart';
+part '../entities/entities_page.dart';
+part '../entities/scene/scene_zoom.dart';
+part '../entities/scene/scene_grid.dart';
+part '../entities/scene/widgets/scene_anim_controls.dart';
+part '../entities/scene/scene_view.dart';
+
+class _EditorHomeRoute {
+  const _EditorHomeRoute({
+    required this.id,
+    required this.label,
+    this.pluginId,
+  });
+
+  final String id;
+  final String label;
+  final String? pluginId;
+}
 
 class EditorHomePage extends StatefulWidget {
   const EditorHomePage({super.key, required this.controller});
@@ -24,6 +40,25 @@ class EditorHomePage extends StatefulWidget {
 }
 
 class _EditorHomePageState extends State<EditorHomePage> {
+  static const String _entitiesRouteId = 'entities';
+  static const String _workspaceOverviewRouteId = 'workspace_overview';
+  static const String _chunkCreatorRouteId = 'chunk_creator';
+  static const List<_EditorHomeRoute> _homeRoutes = <_EditorHomeRoute>[
+    _EditorHomeRoute(
+      id: _entitiesRouteId,
+      label: 'Entities',
+      pluginId: EntityDomainPlugin.pluginId,
+    ),
+    _EditorHomeRoute(
+      id: _workspaceOverviewRouteId,
+      label: 'Workspace Overview',
+    ),
+    _EditorHomeRoute(
+      id: _chunkCreatorRouteId,
+      label: 'Chunk Creator',
+    ),
+  ];
+
   late final TextEditingController _workspaceController;
   late final TextEditingController _halfXController;
   late final TextEditingController _halfYController;
@@ -40,10 +75,13 @@ class _EditorHomePageState extends State<EditorHomePage> {
   String? _selectedEntryId;
   String? _selectedDiffPath;
   String? _selectedArtifactTitle;
+  String _selectedRouteId = _entitiesRouteId;
   String _searchQuery = '';
-  ColliderEntityType? _entityTypeFilter;
+  EntityType? _entityTypeFilter;
   bool _showDirtyOnly = false;
   double _sceneZoom = 1.0;
+  String? _sceneAnimKey;
+  int _sceneAnimFrameIndex = 0;
   final Map<String, ui.Image> _referenceImageCache = <String, ui.Image>{};
   final Set<String> _referenceImageLoading = <String>{};
   final Set<String> _referenceImageFailed = <String>{};
@@ -97,13 +135,16 @@ class _EditorHomePageState extends State<EditorHomePage> {
     return AnimatedBuilder(
       animation: widget.controller,
       builder: (context, _) {
-        final colliderScene = widget.controller.colliderScene;
-        final visibleEntries = colliderScene == null
-            ? const <ColliderEntry>[]
-            : _filteredEntries(colliderScene.entries);
-        _ensureSelection(colliderScene, visibleEntries);
-        _ensureDiffSelection(widget.controller.pendingChanges);
-        _ensureArtifactSelection(widget.controller.lastExportResult);
+        final isEntitiesRoute = _selectedRouteId == _entitiesRouteId;
+        final entityScene = widget.controller.entityScene;
+        final visibleEntries = entityScene == null
+            ? const <EntityEntry>[]
+            : _filteredEntries(entityScene.entries);
+        if (isEntitiesRoute) {
+          _ensureSelection(entityScene, visibleEntries);
+          _ensureDiffSelection(widget.controller.pendingChanges);
+          _ensureArtifactSelection(widget.controller.lastExportResult);
+        }
         return Scaffold(
           appBar: AppBar(title: const Text('RPG Runner Editor')),
           body: Padding(
@@ -115,7 +156,9 @@ class _EditorHomePageState extends State<EditorHomePage> {
                 const SizedBox(height: 16),
                 _buildStatusRow(),
                 const SizedBox(height: 16),
-                Expanded(child: _buildSceneBody(colliderScene, visibleEntries)),
+                Expanded(
+                  child: _buildSelectedRoutePage(entityScene, visibleEntries),
+                ),
               ],
             ),
           ),
@@ -143,19 +186,22 @@ class _EditorHomePageState extends State<EditorHomePage> {
           ),
         ),
         DropdownButton<String>(
-          value: widget.controller.selectedPluginId,
+          value: _selectedRouteId,
           items: [
-            for (final plugin in widget.controller.availablePlugins)
+            for (final route in _homeRoutes)
               DropdownMenuItem<String>(
-                value: plugin.id,
-                child: Text(plugin.displayName),
+                value: route.id,
+                child: Text(route.label),
               ),
           ],
           onChanged: (value) {
-            if (value == null) {
+            if (value == null || value == _selectedRouteId) {
               return;
             }
-            widget.controller.setSelectedPluginId(value);
+            setState(() {
+              _selectedRouteId = value;
+            });
+            _syncPluginForRoute(value);
           },
         ),
         FilledButton.icon(
@@ -215,6 +261,151 @@ class _EditorHomePageState extends State<EditorHomePage> {
     );
   }
 
+  Widget _buildSelectedRoutePage(
+    EntityScene? entityScene,
+    List<EntityEntry> visibleEntries,
+  ) {
+    switch (_selectedRouteId) {
+      case _entitiesRouteId:
+        return _buildEntitiesPage(entityScene, visibleEntries);
+      case _workspaceOverviewRouteId:
+        return _buildWorkspaceOverviewPage(entityScene, visibleEntries);
+      case _chunkCreatorRouteId:
+        return const ChunkCreatorPage();
+      default:
+        return const Center(child: Text('Unknown editor page.'));
+    }
+  }
+
+  void _syncPluginForRoute(String routeId) {
+    _EditorHomeRoute? route;
+    for (final candidate in _homeRoutes) {
+      if (candidate.id == routeId) {
+        route = candidate;
+        break;
+      }
+    }
+    if (route == null) {
+      return;
+    }
+    final requiredPluginId = route.pluginId;
+    if (requiredPluginId == null ||
+        requiredPluginId == widget.controller.selectedPluginId) {
+      return;
+    }
+    final hasPlugin = widget.controller.availablePlugins.any(
+      (plugin) => plugin.id == requiredPluginId,
+    );
+    if (!hasPlugin) {
+      return;
+    }
+    widget.controller.setSelectedPluginId(requiredPluginId);
+  }
+
+  Widget _buildWorkspaceOverviewPage(
+    EntityScene? entityScene,
+    List<EntityEntry> visibleEntries,
+  ) {
+    final totalEntries = entityScene?.entries.length ?? 0;
+    AuthoringDomainPlugin? plugin;
+    for (final candidate in widget.controller.availablePlugins) {
+      if (candidate.id == widget.controller.selectedPluginId) {
+        plugin = candidate;
+        break;
+      }
+    }
+    final pluginLabel = plugin?.displayName ?? widget.controller.selectedPluginId;
+    final workspacePath = widget.controller.workspacePath;
+    final statusText = widget.controller.isLoading
+        ? 'Loading workspace...'
+        : widget.controller.isExporting
+        ? 'Exporting changes...'
+        : widget.controller.loadError == null
+        ? 'Ready'
+        : 'Load error';
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Workspace Overview',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 12),
+            Text('Status: $statusText'),
+            Text('Page: ${_homeRoutes.firstWhere((route) => route.id == _selectedRouteId).label}'),
+            Text('Domain: $pluginLabel'),
+            Text('Workspace: $workspacePath'),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                _buildOverviewStatCard(
+                  label: 'Visible Entries',
+                  value: '${visibleEntries.length}',
+                ),
+                _buildOverviewStatCard(
+                  label: 'Total Entries',
+                  value: '$totalEntries',
+                ),
+                _buildOverviewStatCard(
+                  label: 'Dirty Entries',
+                  value: '${widget.controller.dirtyEntryCount}',
+                ),
+                _buildOverviewStatCard(
+                  label: 'Dirty Files',
+                  value: '${widget.controller.dirtyFileCount}',
+                ),
+                _buildOverviewStatCard(
+                  label: 'Errors',
+                  value: '${widget.controller.errorCount}',
+                ),
+                _buildOverviewStatCard(
+                  label: 'Warnings',
+                  value: '${widget.controller.warningCount}',
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'Use the page selector to switch tools. Entities is where entity authoring happens.',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOverviewStatCard({required String label, required String value}) {
+    return SizedBox(
+      width: 170,
+      child: Card(
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _confirmAndApplyToFiles() async {
     final pendingChanges = widget.controller.pendingChanges;
     if (!pendingChanges.hasChanges) {
@@ -232,7 +423,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
         return AlertDialog(
           title: const Text('Apply Changes To Files'),
           content: Text(
-            'This will write $changedEntries edited collider entries across '
+            'This will write $changedEntries edited entity entries across '
             '$changedFiles file(s).\n\n'
             'A .bak backup file will be written for each modified source file '
             'before applying changes.',
@@ -289,7 +480,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
 
   int _backupCount(ExportResult exportResult) {
     for (final artifact in exportResult.artifacts) {
-      if (artifact.title != 'collider_backups.md') {
+      if (artifact.title != 'entity_backups.md') {
         continue;
       }
       final lines = artifact.content
@@ -337,62 +528,9 @@ class _EditorHomePageState extends State<EditorHomePage> {
     );
   }
 
-  Widget _buildSceneBody(
-    ColliderScene? colliderScene,
-    List<ColliderEntry> visibleEntries,
-  ) {
-    final error = widget.controller.loadError;
-    if (error != null) {
-      return _ErrorPanel(message: error);
-    }
-    if (widget.controller.isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (colliderScene == null) {
-      return const Center(child: Text('No scene loaded.'));
-    }
-
-    final selectedEntry = _selectedEntry(colliderScene);
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          flex: 5,
-          child: _buildEntryListPanel(
-            scene: colliderScene,
-            visibleEntries: visibleEntries,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          flex: 4,
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: _buildViewportPanel(selectedEntry),
-                ),
-                const SizedBox(height: 12),
-                _buildInspector(selectedEntry),
-                const SizedBox(height: 12),
-                SizedBox(height: 180, child: _buildValidationPanel()),
-                const SizedBox(height: 12),
-                SizedBox(height: 300, child: _buildPendingDiffPanel()),
-                const SizedBox(height: 12),
-                SizedBox(height: 230, child: _buildExportPanel()),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildEntryListPanel({
-    required ColliderScene scene,
-    required List<ColliderEntry> visibleEntries,
+    required EntityScene scene,
+    required List<EntityEntry> visibleEntries,
   }) {
     final dirtyVisibleCount = visibleEntries
         .where((entry) => widget.controller.dirtyEntryIds.contains(entry.id))
@@ -445,15 +583,15 @@ class _EditorHomePageState extends State<EditorHomePage> {
                         _typeFilterChip(label: 'All', type: null),
                         _typeFilterChip(
                           label: 'Players',
-                          type: ColliderEntityType.player,
+                          type: EntityType.player,
                         ),
                         _typeFilterChip(
                           label: 'Enemies',
-                          type: ColliderEntityType.enemy,
+                          type: EntityType.enemy,
                         ),
                         _typeFilterChip(
                           label: 'Projectiles',
-                          type: ColliderEntityType.projectile,
+                          type: EntityType.projectile,
                         ),
                         FilterChip(
                           selected: _showDirtyOnly,
@@ -496,7 +634,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
         ),
         const SizedBox(height: 8),
         Expanded(
-          child: _ColliderTable(
+          child: _EntityTable(
             entries: visibleEntries,
             selectedId: _selectedEntryId,
             dirtyEntryIds: widget.controller.dirtyEntryIds,
@@ -511,7 +649,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
 
   ChoiceChip _typeFilterChip({
     required String label,
-    required ColliderEntityType? type,
+    required EntityType? type,
   }) {
     return ChoiceChip(
       selected: _entityTypeFilter == type,
@@ -524,8 +662,8 @@ class _EditorHomePageState extends State<EditorHomePage> {
     );
   }
 
-  Widget _buildInspector(ColliderEntry? selectedEntry) {
-    return EditorInspectorPanel(
+  Widget _buildInspector(EntityEntry? selectedEntry) {
+    return EntityInspectorPanel(
       selectedEntry: selectedEntry,
       isDirty:
           selectedEntry != null &&
@@ -706,7 +844,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
     );
   }
 
-  List<ColliderEntry> _filteredEntries(List<ColliderEntry> entries) {
+  List<EntityEntry> _filteredEntries(List<EntityEntry> entries) {
     final query = _searchQuery;
     return entries
         .where((entry) {
@@ -729,8 +867,8 @@ class _EditorHomePageState extends State<EditorHomePage> {
   }
 
   void _selectAdjacentDirty(
-    ColliderScene scene,
-    List<ColliderEntry> visibleEntries, {
+    EntityScene scene,
+    List<EntityEntry> visibleEntries, {
     required bool reverse,
   }) {
     final dirtyEntries = visibleEntries
@@ -751,8 +889,8 @@ class _EditorHomePageState extends State<EditorHomePage> {
     _selectEntryById(scene, targetEntry.id);
   }
 
-  void _selectEntryById(ColliderScene scene, String entryId) {
-    ColliderEntry? entry;
+  void _selectEntryById(EntityScene scene, String entryId) {
+    EntityEntry? entry;
     for (final candidate in scene.entries) {
       if (candidate.id == entryId) {
         entry = candidate;
@@ -772,12 +910,13 @@ class _EditorHomePageState extends State<EditorHomePage> {
   }
 
   void _resetViewportSelectionState() {
-    // No interactive viewport state to reset in simplified scene view.
+    _sceneAnimKey = null;
+    _sceneAnimFrameIndex = 0;
   }
 
   void _ensureSelection(
-    ColliderScene? scene,
-    List<ColliderEntry> visibleEntries,
+    EntityScene? scene,
+    List<EntityEntry> visibleEntries,
   ) {
     if (scene == null || visibleEntries.isEmpty) {
       _resetViewportSelectionState();
@@ -863,7 +1002,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
     return artifacts.first;
   }
 
-  ColliderEntry? _selectedEntry(ColliderScene scene) {
+  EntityEntry? _selectedEntry(EntityScene scene) {
     final selectedId = _selectedEntryId;
     if (selectedId == null) {
       return null;
@@ -876,7 +1015,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
     return null;
   }
 
-  void _syncInspectorFromEntry(ColliderEntry? entry) {
+  void _syncInspectorFromEntry(EntityEntry? entry) {
     if (entry == null) {
       _halfXController.text = '';
       _halfYController.text = '';
@@ -907,7 +1046,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
         reference?.frameHeight?.toStringAsFixed(3) ?? '';
   }
 
-  void _applyInspectorEdits(ColliderEntry selectedEntry) {
+  void _applyInspectorEdits(EntityEntry selectedEntry) {
     final halfX = double.tryParse(_halfXController.text.trim());
     final halfY = double.tryParse(_halfYController.text.trim());
     final offsetX = double.tryParse(_offsetXController.text.trim());
@@ -916,7 +1055,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
     if (halfX == null || halfY == null || offsetX == null || offsetY == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('All collider fields must be valid numbers.'),
+          content: Text('All entity size/offset fields must be valid numbers.'),
         ),
       );
       return;
@@ -1022,15 +1161,15 @@ class _EditorHomePageState extends State<EditorHomePage> {
   }
 }
 
-class _ColliderTable extends StatelessWidget {
-  const _ColliderTable({
+class _EntityTable extends StatelessWidget {
+  const _EntityTable({
     required this.entries,
     required this.selectedId,
     required this.dirtyEntryIds,
     required this.onSelect,
   });
 
-  final List<ColliderEntry> entries;
+  final List<EntityEntry> entries;
   final String? selectedId;
   final Set<String> dirtyEntryIds;
   final ValueChanged<String> onSelect;
@@ -1085,3 +1224,5 @@ class _ErrorPanel extends StatelessWidget {
     );
   }
 }
+
+

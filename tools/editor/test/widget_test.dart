@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
-import 'package:runner_editor/src/app/editor_home_page.dart';
-import 'package:runner_editor/src/collider/collider_domain_models.dart';
-import 'package:runner_editor/src/collider/collider_domain_plugin.dart';
+import 'package:runner_editor/src/app/pages/home/editor_home_page.dart';
+import 'package:runner_editor/src/entities/entity_domain_models.dart';
+import 'package:runner_editor/src/entities/entity_domain_plugin.dart';
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/session/editor_session_controller.dart';
@@ -26,9 +26,9 @@ void main() {
   EditorSessionController buildController() {
     return EditorSessionController(
       pluginRegistry: AuthoringPluginRegistry(
-        plugins: [ColliderDomainPlugin()],
+        plugins: [EntityDomainPlugin()],
       ),
-      initialPluginId: ColliderDomainPlugin.pluginId,
+      initialPluginId: EntityDomainPlugin.pluginId,
       initialWorkspacePath: resolveWorkspacePath(),
     );
   }
@@ -41,32 +41,32 @@ void main() {
       await controller.loadWorkspace();
 
       expect(controller.loadError, isNull);
-      expect(controller.colliderScene, isNotNull);
+      expect(controller.entityScene, isNotNull);
 
-      final entries = controller.colliderScene!.entries;
+      final entries = controller.entityScene!.entries;
       final ids = entries.map((entry) => entry.id).join(', ');
       final enemyCount = entries
-          .where((entry) => entry.entityType == ColliderEntityType.enemy)
+          .where((entry) => entry.entityType == EntityType.enemy)
           .length;
       final playerCount = entries
-          .where((entry) => entry.entityType == ColliderEntityType.player)
+          .where((entry) => entry.entityType == EntityType.player)
           .length;
       final projectileCount = entries
-          .where((entry) => entry.entityType == ColliderEntityType.projectile)
+          .where((entry) => entry.entityType == EntityType.projectile)
           .length;
       final issueSummary = controller.issues
           .map((issue) => '${issue.code}:${issue.sourcePath}')
           .join(' | ');
       expect(entries, isNotEmpty);
       expect(
-        entries.any((entry) => entry.entityType == ColliderEntityType.enemy),
+        entries.any((entry) => entry.entityType == EntityType.enemy),
         isTrue,
         reason:
             'ids=[$ids], counts(enemy=$enemyCount, player=$playerCount, '
             'projectile=$projectileCount), issues=[$issueSummary]',
       );
       expect(
-        entries.any((entry) => entry.entityType == ColliderEntityType.player),
+        entries.any((entry) => entry.entityType == EntityType.player),
         isTrue,
         reason:
             'ids=[$ids], counts(enemy=$enemyCount, player=$playerCount, '
@@ -74,7 +74,7 @@ void main() {
       );
       expect(
         entries.any(
-          (entry) => entry.entityType == ColliderEntityType.projectile,
+          (entry) => entry.entityType == EntityType.projectile,
         ),
         isTrue,
       );
@@ -100,7 +100,7 @@ void main() {
     final controller = buildController();
     await controller.loadWorkspace();
 
-    final entry = controller.colliderScene!.entries.first;
+    final entry = controller.entityScene!.entries.first;
     controller.applyCommand(
       AuthoringCommand(
         kind: 'update_entry',
@@ -136,7 +136,7 @@ void main() {
       final controller = buildController();
       await controller.loadWorkspace();
 
-      final enemy = controller.colliderScene!.entries.firstWhere(
+      final enemy = controller.entityScene!.entries.firstWhere(
         (entry) => entry.id.startsWith('enemy.'),
       );
       final originalHalfX = enemy.halfX;
@@ -154,7 +154,7 @@ void main() {
         ),
       );
 
-      final edited = controller.colliderScene!.entries.firstWhere(
+      final edited = controller.entityScene!.entries.firstWhere(
         (entry) => entry.id == enemy.id,
       );
       expect(edited.halfX, originalHalfX + 2.0);
@@ -165,7 +165,7 @@ void main() {
 
       controller.undo();
 
-      final undone = controller.colliderScene!.entries.firstWhere(
+      final undone = controller.entityScene!.entries.firstWhere(
         (entry) => entry.id == enemy.id,
       );
       expect(undone.halfX, originalHalfX);
@@ -174,7 +174,7 @@ void main() {
 
       controller.redo();
 
-      final redone = controller.colliderScene!.entries.firstWhere(
+      final redone = controller.entityScene!.entries.firstWhere(
         (entry) => entry.id == enemy.id,
       );
       expect(redone.halfX, originalHalfX + 2.0);
@@ -189,9 +189,9 @@ void main() {
     try {
       _writeColliderFixture(fixtureRoot.path);
       final workspace = EditorWorkspace(rootPath: fixtureRoot.path);
-      final plugin = ColliderDomainPlugin();
+      final plugin = EntityDomainPlugin();
       final loaded = await plugin.loadFromRepo(workspace);
-      final document = loaded as ColliderDocument;
+      final document = loaded as EntityDocument;
 
       final enemy = document.entries.firstWhere(
         (entry) => entry.id.startsWith('enemy.'),
@@ -219,7 +219,7 @@ void main() {
       expect(export.applied, isTrue);
       expect(
         export.artifacts.any(
-          (artifact) => artifact.title == 'collider_backups.md',
+          (artifact) => artifact.title == 'entity_backups.md',
         ),
         isTrue,
       );
@@ -252,9 +252,9 @@ void main() {
     try {
       _writeColliderFixture(fixtureRoot.path);
       final workspace = EditorWorkspace(rootPath: fixtureRoot.path);
-      final plugin = ColliderDomainPlugin();
+      final plugin = EntityDomainPlugin();
       final loaded = await plugin.loadFromRepo(workspace);
-      final document = loaded as ColliderDocument;
+      final document = loaded as EntityDocument;
 
       final projectile = document.entries.firstWhere(
         (entry) => entry.id == 'projectile.fireBolt',
@@ -291,13 +291,13 @@ void main() {
       try {
         _writeColliderFixture(fixtureRoot.path, broadphaseCellSize: 48.0);
         final workspace = EditorWorkspace(rootPath: fixtureRoot.path);
-        final plugin = ColliderDomainPlugin();
+        final plugin = EntityDomainPlugin();
         final loaded = await plugin.loadFromRepo(workspace);
-        final document = loaded as ColliderDocument;
+        final document = loaded as EntityDocument;
 
         expect(document.runtimeGridCellSize, closeTo(48.0, 0.0001));
 
-        final scene = plugin.buildEditableScene(document) as ColliderScene;
+        final scene = plugin.buildEditableScene(document) as EntityScene;
         expect(scene.runtimeGridCellSize, closeTo(48.0, 0.0001));
       } finally {
         fixtureRoot.deleteSync(recursive: true);
@@ -314,9 +314,9 @@ void main() {
       try {
         _writeColliderFixture(fixtureRoot.path, includeReferenceBindings: true);
         final workspace = EditorWorkspace(rootPath: fixtureRoot.path);
-        final plugin = ColliderDomainPlugin();
+        final plugin = EntityDomainPlugin();
         final loaded = await plugin.loadFromRepo(workspace);
-        final document = loaded as ColliderDocument;
+        final document = loaded as EntityDocument;
 
         final projectile = document.entries.firstWhere(
           (entry) => entry.id == 'projectile.fireBolt',
@@ -349,7 +349,7 @@ void main() {
           mode: ExportMode.previewPatch,
         );
         final patchArtifact = export.artifacts.firstWhere(
-          (artifact) => artifact.title == 'collider_changes.patch',
+          (artifact) => artifact.title == 'entity_changes.patch',
         );
         expect(
           patchArtifact.content,
@@ -378,9 +378,9 @@ void main() {
     try {
       _writeColliderFixture(fixtureRoot.path);
       final workspace = EditorWorkspace(rootPath: fixtureRoot.path);
-      final plugin = ColliderDomainPlugin();
+      final plugin = EntityDomainPlugin();
       final loaded = await plugin.loadFromRepo(workspace);
-      final document = loaded as ColliderDocument;
+      final document = loaded as EntityDocument;
 
       final enemy = document.entries.firstWhere(
         (entry) => entry.id.startsWith('enemy.'),
@@ -416,7 +416,7 @@ void main() {
 
       expect(export.applied, isFalse);
       final errorArtifact = export.artifacts.firstWhere(
-        (artifact) => artifact.title == 'collider_export_error.md',
+        (artifact) => artifact.title == 'entity_export_error.md',
       );
       expect(errorArtifact.content, contains('Source drift detected'));
       expect(
@@ -703,3 +703,5 @@ class SpatialGridTuning {
 ''');
   }
 }
+
+
