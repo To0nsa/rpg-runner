@@ -3,13 +3,12 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../collider/collider_domain_models.dart';
 import '../domain/authoring_types.dart';
 import '../session/editor_session_controller.dart';
+import 'inspector/editor_inspector_panel.dart';
 
 part 'scene/editor_home_page_scene_view.dart';
 
@@ -23,12 +22,6 @@ class EditorHomePage extends StatefulWidget {
 }
 
 class _EditorHomePageState extends State<EditorHomePage> {
-  static const double _viewportMinHalfExtent = 0.1;
-  static const double _viewportMinZoom = 0.2;
-  static const double _viewportMaxZoom = 6.0;
-  static const double _valueEpsilon = 0.000001;
-  static const double _fallbackRuntimeGridCellSize = 32.0;
-
   late final TextEditingController _workspaceController;
   late final TextEditingController _halfXController;
   late final TextEditingController _halfYController;
@@ -36,32 +29,17 @@ class _EditorHomePageState extends State<EditorHomePage> {
   late final TextEditingController _offsetYController;
   late final TextEditingController _anchorXPxController;
   late final TextEditingController _anchorYPxController;
+  late final TextEditingController _frameWidthController;
+  late final TextEditingController _frameHeightController;
   late final TextEditingController _renderScaleController;
   late final TextEditingController _searchController;
-  late final FocusNode _viewportFocusNode;
 
   String? _selectedEntryId;
   String? _selectedDiffPath;
   String? _selectedArtifactTitle;
-  _ViewportDragSession? _dragSession;
-  _ViewportPanSession? _panSession;
-  String? _draftEntryId;
-  double? _draftHalfX;
-  double? _draftHalfY;
-  double? _draftOffsetX;
-  double? _draftOffsetY;
-  double _viewportZoom = 1.0;
-  Offset _viewportPanPixels = Offset.zero;
   String _searchQuery = '';
   ColliderEntityType? _entityTypeFilter;
   bool _showDirtyOnly = false;
-  double? _snapFactor = 0.25;
-  bool _showReferenceLayer = true;
-  bool _showReferencePoints = true;
-  double _referenceOpacity = 0.8;
-  String? _referenceAnimKeyOverride;
-  int? _referenceRowOverride;
-  int? _referenceFrameOverride;
   final Map<String, ui.Image> _referenceImageCache = <String, ui.Image>{};
   final Set<String> _referenceImageLoading = <String>{};
   final Set<String> _referenceImageFailed = <String>{};
@@ -78,9 +56,10 @@ class _EditorHomePageState extends State<EditorHomePage> {
     _offsetYController = TextEditingController();
     _anchorXPxController = TextEditingController();
     _anchorYPxController = TextEditingController();
+    _frameWidthController = TextEditingController();
+    _frameHeightController = TextEditingController();
     _renderScaleController = TextEditingController();
     _searchController = TextEditingController();
-    _viewportFocusNode = FocusNode(debugLabel: 'colliderViewport');
     WidgetsBinding.instance.addPostFrameCallback((_) {
       widget.controller.loadWorkspace();
     });
@@ -95,9 +74,10 @@ class _EditorHomePageState extends State<EditorHomePage> {
     _offsetYController.dispose();
     _anchorXPxController.dispose();
     _anchorYPxController.dispose();
+    _frameWidthController.dispose();
+    _frameHeightController.dispose();
     _renderScaleController.dispose();
     _searchController.dispose();
-    _viewportFocusNode.dispose();
     for (final image in _referenceImageCache.values) {
       image.dispose();
     }
@@ -383,8 +363,8 @@ class _EditorHomePageState extends State<EditorHomePage> {
           child: SingleChildScrollView(
             child: Column(
               children: [
-                SizedBox(
-                  height: 280,
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
                   child: _buildViewportPanel(selectedEntry),
                 ),
                 const SizedBox(height: 12),
@@ -538,151 +518,23 @@ class _EditorHomePageState extends State<EditorHomePage> {
   }
 
   Widget _buildInspector(ColliderEntry? selectedEntry) {
-    if (selectedEntry == null) {
-      return const Card(
-        child: Padding(
-          padding: EdgeInsets.all(12),
-          child: Text('No collider entry selected.'),
-        ),
-      );
-    }
-
-    final isDirty = widget.controller.dirtyEntryIds.contains(selectedEntry.id);
-    final reference = selectedEntry.referenceVisual;
-    final canEditRenderScale = reference?.renderScaleBinding != null;
-    final canEditAnchor = reference?.anchorBinding != null;
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    selectedEntry.id,
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                ),
-                Chip(label: Text(isDirty ? 'Dirty' : 'Clean')),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(selectedEntry.sourcePath),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _halfXController,
-                    decoration: const InputDecoration(
-                      labelText: 'halfX',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: _halfYController,
-                    decoration: const InputDecoration(
-                      labelText: 'halfY',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _offsetXController,
-                    decoration: const InputDecoration(
-                      labelText: 'offsetX',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: _offsetYController,
-                    decoration: const InputDecoration(
-                      labelText: 'offsetY',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _renderScaleController,
-                    readOnly: !canEditRenderScale,
-                    decoration: InputDecoration(
-                      labelText: 'renderScale',
-                      border: const OutlineInputBorder(),
-                      helperText: canEditRenderScale
-                          ? null
-                          : (reference == null
-                                ? 'No render metadata'
-                                : 'Read-only (source binding unavailable)'),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: _anchorXPxController,
-                    readOnly: !canEditAnchor,
-                    decoration: InputDecoration(
-                      labelText: 'anchorPoint.x',
-                      border: const OutlineInputBorder(),
-                      helperText: canEditAnchor
-                          ? null
-                          : (reference == null
-                                ? 'No render metadata'
-                                : 'Read-only (source binding unavailable)'),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _anchorYPxController,
-                    readOnly: !canEditAnchor,
-                    decoration: const InputDecoration(
-                      labelText: 'anchorPoint.y',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Spacer(),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton(
-                onPressed: () => _applyInspectorEdits(selectedEntry),
-                child: const Text('Apply Values'),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return EditorInspectorPanel(
+      selectedEntry: selectedEntry,
+      isDirty:
+          selectedEntry != null &&
+          widget.controller.dirtyEntryIds.contains(selectedEntry.id),
+      halfXController: _halfXController,
+      halfYController: _halfYController,
+      offsetXController: _offsetXController,
+      offsetYController: _offsetYController,
+      anchorXPxController: _anchorXPxController,
+      anchorYPxController: _anchorYPxController,
+      frameWidthController: _frameWidthController,
+      frameHeightController: _frameHeightController,
+      renderScaleController: _renderScaleController,
+      onApply: selectedEntry == null
+          ? null
+          : () => _applyInspectorEdits(selectedEntry),
     );
   }
 
@@ -913,14 +765,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
   }
 
   void _resetViewportSelectionState() {
-    _dragSession = null;
-    _panSession = null;
-    _clearDraft();
-    _viewportZoom = 1.0;
-    _viewportPanPixels = Offset.zero;
-    _referenceAnimKeyOverride = null;
-    _referenceRowOverride = null;
-    _referenceFrameOverride = null;
+    // No interactive viewport state to reset in simplified scene view.
   }
 
   void _ensureSelection(
@@ -1033,6 +878,8 @@ class _EditorHomePageState extends State<EditorHomePage> {
       _renderScaleController.text = '';
       _anchorXPxController.text = '';
       _anchorYPxController.text = '';
+      _frameWidthController.text = '';
+      _frameHeightController.text = '';
       return;
     }
 
@@ -1047,6 +894,10 @@ class _EditorHomePageState extends State<EditorHomePage> {
         reference?.renderScale?.toStringAsFixed(3) ?? '';
     _anchorXPxController.text = reference?.anchorXPx?.toStringAsFixed(3) ?? '';
     _anchorYPxController.text = reference?.anchorYPx?.toStringAsFixed(3) ?? '';
+    _frameWidthController.text =
+        reference?.frameWidth?.toStringAsFixed(3) ?? '';
+    _frameHeightController.text =
+        reference?.frameHeight?.toStringAsFixed(3) ?? '';
   }
 
   void _applyInspectorEdits(ColliderEntry selectedEntry) {
@@ -1094,9 +945,6 @@ class _EditorHomePageState extends State<EditorHomePage> {
       }
     }
 
-    _dragSession = null;
-    _panSession = null;
-    _clearDraft();
     _applyEntryValues(
       selectedEntry.id,
       halfX: halfX,
@@ -1186,45 +1034,21 @@ class _ColliderTable extends StatelessWidget {
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
         child: DataTable(
-          columns: const [
-            DataColumn(label: Text('ID')),
-            DataColumn(label: Text('Type')),
-            DataColumn(label: Text('halfX')),
-            DataColumn(label: Text('halfY')),
-            DataColumn(label: Text('offsetX')),
-            DataColumn(label: Text('offsetY')),
-          ],
+          showCheckboxColumn: false,
+          columns: const [DataColumn(label: Text('ID'))],
           rows: entries
               .map((entry) {
                 final isDirty = dirtyEntryIds.contains(entry.id);
                 return DataRow(
                   selected: entry.id == selectedId,
                   onSelectChanged: (_) => onSelect(entry.id),
-                  cells: [
-                    DataCell(Text(isDirty ? '* ${entry.id}' : entry.id)),
-                    DataCell(Text(_typeLabel(entry.entityType))),
-                    DataCell(Text(entry.halfX.toStringAsFixed(2))),
-                    DataCell(Text(entry.halfY.toStringAsFixed(2))),
-                    DataCell(Text(entry.offsetX.toStringAsFixed(2))),
-                    DataCell(Text(entry.offsetY.toStringAsFixed(2))),
-                  ],
+                  cells: [DataCell(Text(isDirty ? '* ${entry.id}' : entry.id))],
                 );
               })
               .toList(growable: false),
         ),
       ),
     );
-  }
-
-  String _typeLabel(ColliderEntityType entityType) {
-    switch (entityType) {
-      case ColliderEntityType.player:
-        return 'player';
-      case ColliderEntityType.enemy:
-        return 'enemy';
-      case ColliderEntityType.projectile:
-        return 'projectile';
-    }
   }
 }
 
