@@ -10,7 +10,9 @@ import '../domain/authoring_types.dart';
 import '../session/editor_session_controller.dart';
 import 'inspector/editor_inspector_panel.dart';
 
-part 'scene/editor_home_page_scene_view.dart';
+part 'scene/scene_zoom.dart';
+part 'scene/scene_grid.dart';
+part 'scene/scene_view.dart';
 
 class EditorHomePage extends StatefulWidget {
   const EditorHomePage({super.key, required this.controller});
@@ -33,6 +35,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
   late final TextEditingController _frameHeightController;
   late final TextEditingController _renderScaleController;
   late final TextEditingController _searchController;
+  late final TextEditingController _sceneZoomController;
 
   String? _selectedEntryId;
   String? _selectedDiffPath;
@@ -40,6 +43,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
   String _searchQuery = '';
   ColliderEntityType? _entityTypeFilter;
   bool _showDirtyOnly = false;
+  double _sceneZoom = 1.0;
   final Map<String, ui.Image> _referenceImageCache = <String, ui.Image>{};
   final Set<String> _referenceImageLoading = <String>{};
   final Set<String> _referenceImageFailed = <String>{};
@@ -60,6 +64,8 @@ class _EditorHomePageState extends State<EditorHomePage> {
     _frameHeightController = TextEditingController();
     _renderScaleController = TextEditingController();
     _searchController = TextEditingController();
+    _sceneZoomController = TextEditingController();
+    _syncSceneZoomText();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       widget.controller.loadWorkspace();
     });
@@ -78,6 +84,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
     _frameHeightController.dispose();
     _renderScaleController.dispose();
     _searchController.dispose();
+    _sceneZoomController.dispose();
     for (final image in _referenceImageCache.values) {
       image.dispose();
     }

@@ -1,6 +1,6 @@
 part of '../editor_home_page.dart';
 
-extension _EditorHomePageSceneView on _EditorHomePageState {
+extension _SceneView on _EditorHomePageState {
   static const Size _fixedViewportSize = Size(800, 500);
 
   Widget _buildViewportPanel(ColliderEntry? selectedEntry) {
@@ -13,7 +13,7 @@ extension _EditorHomePageSceneView on _EditorHomePageState {
       );
     }
 
-    final scale = _computeViewportScale(_fixedViewportSize, selectedEntry);
+    final scale = _sceneZoom;
     final resolvedReference = _resolveReferenceVisual(selectedEntry);
     final referenceAnimView = resolvedReference == null
         ? null
@@ -34,68 +34,74 @@ extension _EditorHomePageSceneView on _EditorHomePageState {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
-        child: SizedBox(
-          width: _fixedViewportSize.width,
-          height: _fixedViewportSize.height,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFF1B2A36)),
-            ),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                const Positioned.fill(
-                  child: ColoredBox(color: Color(0xFF111A22)),
-                ),
-                const CustomPaint(painter: _ViewportPixelGridPainter()),
-                if (resolvedReference != null &&
-                    referenceAnimView != null &&
-                    resolvedImage != null)
-                  CustomPaint(
-                    painter: _ReferenceFramePainter(
-                      image: resolvedImage,
-                      row: referenceRow,
-                      frame: referenceFrame,
-                      destinationRect: _referenceRect(
-                        scale: scale,
-                        viewportSize: _fixedViewportSize,
-                        reference: resolvedReference,
-                      ),
-                      anchorX: resolvedReference.anchorX,
-                      anchorY: resolvedReference.anchorY,
-                      showReferencePoints: false,
-                      frameWidth: resolvedReference.frameWidth,
-                      frameHeight: resolvedReference.frameHeight,
-                      gridColumns: referenceAnimView.defaultGridColumns,
-                      drawMarkerLabels: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: _fixedViewportSize.width,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Scene View',
+                      style: Theme.of(context).textTheme.titleSmall,
                     ),
                   ),
-                CustomPaint(
-                  painter: _ColliderViewportPainter(
-                    entry: selectedEntry,
-                    scale: scale,
-                  ),
-                ),
-              ],
+                  _buildSceneZoomControls(),
+                ],
+              ),
             ),
-          ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: _fixedViewportSize.width,
+              height: _fixedViewportSize.height,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFF1B2A36)),
+                ),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    const Positioned.fill(
+                      child: ColoredBox(color: Color(0xFF111A22)),
+                    ),
+                    const CustomPaint(painter: _ViewportPixelGridPainter()),
+                    if (resolvedReference != null &&
+                        referenceAnimView != null &&
+                        resolvedImage != null)
+                      CustomPaint(
+                        painter: _ReferenceFramePainter(
+                          image: resolvedImage,
+                          row: referenceRow,
+                          frame: referenceFrame,
+                          destinationRect: _referenceRect(
+                            scale: scale,
+                            viewportSize: _fixedViewportSize,
+                            reference: resolvedReference,
+                          ),
+                          anchorX: resolvedReference.anchorX,
+                          anchorY: resolvedReference.anchorY,
+                          showReferencePoints: false,
+                          frameWidth: resolvedReference.frameWidth,
+                          frameHeight: resolvedReference.frameHeight,
+                          gridColumns: referenceAnimView.defaultGridColumns,
+                          drawMarkerLabels: false,
+                        ),
+                      ),
+                    CustomPaint(
+                      painter: _ColliderViewportPainter(
+                        entry: selectedEntry,
+                        scale: scale,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
-  }
-
-  double _computeViewportScale(Size size, ColliderEntry entry) {
-    final minSide = math.max(1.0, math.min(size.width, size.height));
-    const viewportPadding = 28.0;
-    final usableSide = math.max(1.0, minSide - viewportPadding * 2);
-    final maxWorldSpan = math.max(
-      24.0,
-      math.max(
-        entry.halfX + entry.offsetX.abs(),
-        entry.halfY + entry.offsetY.abs(),
-      ),
-    );
-    return usableSide / (maxWorldSpan * 2.0);
   }
 
   _ResolvedReferenceVisual? _resolveReferenceVisual(ColliderEntry entry) {
@@ -347,57 +353,6 @@ class _ResolvedReferenceAnimView {
     }
     return defaultFrameStart + count - 1;
   }
-}
-
-class _ViewportPixelGridPainter extends CustomPainter {
-  const _ViewportPixelGridPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    _paintGridLayer(canvas, size, spacingPx: 1, color: const Color(0x0D9FB4C7));
-    _paintGridLayer(
-      canvas,
-      size,
-      spacingPx: 16,
-      color: const Color(0x1E9FB4C7),
-    );
-    _paintGridLayer(
-      canvas,
-      size,
-      spacingPx: 32,
-      color: const Color(0x389FB4C7),
-    );
-  }
-
-  void _paintGridLayer(
-    Canvas canvas,
-    Size size, {
-    required int spacingPx,
-    required Color color,
-  }) {
-    if (spacingPx <= 0) {
-      return;
-    }
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1;
-
-    for (var x = 0; x <= size.width; x += spacingPx) {
-      final alignedX = x + 0.5;
-      canvas.drawLine(
-        Offset(alignedX, 0),
-        Offset(alignedX, size.height),
-        paint,
-      );
-    }
-    for (var y = 0; y <= size.height; y += spacingPx) {
-      final alignedY = y + 0.5;
-      canvas.drawLine(Offset(0, alignedY), Offset(size.width, alignedY), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _ViewportPixelGridPainter oldDelegate) => false;
 }
 
 class _ReferenceFramePainter extends CustomPainter {
