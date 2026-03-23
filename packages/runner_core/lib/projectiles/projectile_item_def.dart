@@ -13,7 +13,6 @@ class ProjectileItemDef {
     required this.lifetimeSeconds,
     required this.colliderSizeX,
     required this.colliderSizeY,
-    this.originOffset = 0.0,
     this.ballistic = false,
     this.gravityScale = 1.0,
     this.damageType = DamageType.physical,
@@ -28,7 +27,6 @@ class ProjectileItemDef {
   final double lifetimeSeconds;
   final double colliderSizeX;
   final double colliderSizeY;
-  final double originOffset;
   final bool ballistic;
   final double gravityScale;
 

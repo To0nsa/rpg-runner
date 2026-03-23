@@ -459,6 +459,7 @@ class EnemyArchetype {
     this.spawnAnimSeconds = 0.0,
     this.deathBehavior = DeathBehavior.instant,
     this.primaryCastAbilityId,
+    this.castOriginOffset,
     this.castTargetPolicy = EnemyCastTargetPolicy.predictedPlayerCenter,
     this.facingPolicy = EnemyFacingPolicy.movementDriven,
     this.primaryMeleeAbilityId,
@@ -500,6 +501,11 @@ class EnemyArchetype {
 
   /// Optional primary cast ability for this enemy.
   final AbilityKey? primaryCastAbilityId;
+
+  /// Optional projectile cast origin offset owned by this caster.
+  ///
+  /// When null, cast systems derive a fallback offset from collider size.
+  final double? castOriginOffset;
 
   /// Target selection policy used by enemy cast systems.
   final EnemyCastTargetPolicy castTargetPolicy;
@@ -565,6 +571,7 @@ class EnemyCatalog {
           deathAnimSeconds: _unocoDeathAnimSeconds,
           deathBehavior: DeathBehavior.instant,
           primaryCastAbilityId: 'unoco.fire_bolt_cast',
+          castOriginOffset: 20.0,
           castTargetPolicy: EnemyCastTargetPolicy.predictedPlayerCenter,
           primaryMeleeAbilityId: 'unoco.strike',
           artFacingDir: Facing.left,

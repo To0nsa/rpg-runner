@@ -18,7 +18,6 @@ void main() {
     expect(item.lifetimeSeconds, 1.3);
     expect(item.colliderSizeX, 18.0);
     expect(item.colliderSizeY, 8.0);
-    expect(item.originOffset, 30.0);
     expect(item.ballistic, isFalse);
     expect(item.gravityScale, 1.0);
     expect(item.procs, hasLength(1));
@@ -59,7 +58,6 @@ void main() {
     expect(item.lifetimeSeconds, 1.3);
     expect(item.colliderSizeX, 18.0);
     expect(item.colliderSizeY, 8.0);
-    expect(item.originOffset, 30.0);
     expect(item.ballistic, isFalse);
     expect(item.gravityScale, 1.0);
     expect(item.procs, hasLength(1));
@@ -100,7 +98,6 @@ void main() {
     expect(item.lifetimeSeconds, 1.3);
     expect(item.colliderSizeX, 18.0);
     expect(item.colliderSizeY, 8.0);
-    expect(item.originOffset, 30.0);
     expect(item.ballistic, isFalse);
     expect(item.gravityScale, 1.0);
     expect(item.procs, hasLength(1));
@@ -143,7 +140,6 @@ void main() {
     expect(item.lifetimeSeconds, 1.3);
     expect(item.colliderSizeX, 18.0);
     expect(item.colliderSizeY, 8.0);
-    expect(item.originOffset, 22.0);
     expect(item.ballistic, isFalse);
     expect(item.gravityScale, 1.0);
     expect(item.procs, hasLength(1));

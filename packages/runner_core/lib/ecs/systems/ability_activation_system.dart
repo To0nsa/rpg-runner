@@ -7,6 +7,7 @@ import '../../abilities/effective_ability_cost.dart';
 import '../../accessories/accessory_catalog.dart';
 import '../../combat/damage_type.dart';
 import '../../combat/hit_payload_builder.dart';
+import '../../combat/cast_origin_offset.dart';
 import '../../snapshots/enums.dart';
 import '../../projectiles/projectile_id.dart';
 import '../../projectiles/projectile_catalog.dart';
@@ -46,6 +47,7 @@ class AbilityActivationSystem {
     required this.projectiles,
     required this.spellBooks,
     required this.accessories,
+    this.playerCastOriginOffset,
     ResolvedStatsCache? statsCache,
   }) : _statsCache =
            statsCache ??
@@ -64,6 +66,7 @@ class AbilityActivationSystem {
   final ProjectileCatalog projectiles;
   final SpellBookCatalog spellBooks;
   final AccessoryCatalog accessories;
+  final double? playerCastOriginOffset;
 
   final ResolvedStatsCache _statsCache;
 
@@ -998,7 +1001,11 @@ class AbilityActivationSystem {
     final ProjectileId projectileId;
     final bool ballistic;
     final double gravityScale;
-    final double originOffset;
+    final originOffset = resolveCasterProjectileOriginOffset(
+      world,
+      player,
+      authoredCasterOffset: playerCastOriginOffset,
+    );
     final double projectileBaseSpeedUnitsPerSecond;
     DamageType? weaponDamageType;
     List<WeaponProc> weaponProcs = const <WeaponProc>[];
@@ -1028,11 +1035,6 @@ class AbilityActivationSystem {
         ballistic = projectile.ballistic;
         gravityScale = projectile.gravityScale;
         projectileBaseSpeedUnitsPerSecond = projectile.speedUnitsPerSecond;
-        originOffset =
-            projectile.weaponType == WeaponType.spell &&
-                projectile.originOffset == 0
-            ? _spellOriginOffset(world, player)
-            : projectile.originOffset;
         weaponDamageType = projectile.damageType;
         weaponProcs = _resolveProjectilePayloadProcs(
           world,
@@ -1054,7 +1056,6 @@ class AbilityActivationSystem {
             .speedUnitsPerSecond;
         ballistic = false;
         gravityScale = 1.0;
-        originOffset = _spellOriginOffset(world, player);
         weaponDamageType = spellBook.damageType;
         weaponProcs = spellBook.procs;
         break;
@@ -1549,17 +1550,6 @@ class AbilityActivationSystem {
     if (t0 >= 0.0) best = t0;
     if (t1 >= 0.0 && (best == null || t1 < best)) best = t1;
     return best;
-  }
-
-  double _spellOriginOffset(EcsWorld world, EntityId player) {
-    var maxHalfExtent = 0.0;
-    if (world.colliderAabb.has(player)) {
-      final aabbi = world.colliderAabb.indexOf(player);
-      final halfX = world.colliderAabb.halfX[aabbi];
-      final halfY = world.colliderAabb.halfY[aabbi];
-      maxHalfExtent = halfX > halfY ? halfX : halfY;
-    }
-    return maxHalfExtent * 0.5;
   }
 
   ResolvedCharacterStats _resolvedStatsForLoadout(

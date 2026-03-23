@@ -24,6 +24,7 @@ const PlayerCatalog testPlayerCatalogDefaults = PlayerCatalog(
   colliderHeight: 46.0,
   colliderOffsetX: 0.0,
   colliderOffsetY: -6.0,
+  castOriginOffset: 30.0,
   tags: CreatureTagDef(mask: CreatureTagMask.humanoid),
   resistance: DamageResistanceDef(),
   statusImmunity: StatusImmunityDef(),
@@ -47,6 +48,7 @@ PlayerCatalog testPlayerCatalog({
   double? colliderHeight,
   double? colliderOffsetX,
   double? colliderOffsetY,
+  double? castOriginOffset,
   CreatureTagDef? tags,
   DamageResistanceDef? resistance,
   StatusImmunityDef? statusImmunity,
@@ -73,6 +75,8 @@ PlayerCatalog testPlayerCatalog({
         colliderOffsetX ?? testPlayerCatalogDefaults.colliderOffsetX,
     colliderOffsetY:
         colliderOffsetY ?? testPlayerCatalogDefaults.colliderOffsetY,
+    castOriginOffset:
+        castOriginOffset ?? testPlayerCatalogDefaults.castOriginOffset,
     tags: tags ?? testPlayerCatalogDefaults.tags,
     resistance: resistance ?? testPlayerCatalogDefaults.resistance,
     statusImmunity: statusImmunity ?? testPlayerCatalogDefaults.statusImmunity,

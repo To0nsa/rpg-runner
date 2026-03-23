@@ -78,8 +78,9 @@ void main() {
       expect(projectiles.length, 1);
 
       final p = projectiles.single;
-      final item = const ProjectileCatalog().get(ProjectileId.fireBolt);
-      expect(p.pos.x, closeTo(playerPosX + item.originOffset, 1e-9));
+      final expectedOffset =
+          catalog.castOriginOffset ?? catalog.colliderMaxHalfExtent * 0.5;
+      expect(p.pos.x, closeTo(playerPosX + expectedOffset, 1e-9));
       expect(p.pos.y, closeTo(playerPosY, 1e-9));
 
       final ability = AbilityCatalog.shared.resolve('eloise.quick_shot')!;

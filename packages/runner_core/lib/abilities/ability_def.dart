@@ -123,17 +123,14 @@ class ProjectileHitDelivery extends HitDeliveryDef {
     this.pierce = false,
     this.chain = false,
     this.chainCount = 0,
-    this.originOffset = 0.0,
     this.hitPolicy = HitPolicy.oncePerTarget,
   }) : assert(chainCount >= 0, 'Chain count must be non-negative'),
-       assert(!chain || chainCount > 0, 'If chain is true, count must be > 0'),
-       assert(originOffset >= 0.0, 'originOffset cannot be negative');
+       assert(!chain || chainCount > 0, 'If chain is true, count must be > 0');
 
   final ProjectileId projectileId;
   final bool pierce;
   final bool chain;
   final int chainCount;
-  final double originOffset;
   final HitPolicy hitPolicy;
 }
 

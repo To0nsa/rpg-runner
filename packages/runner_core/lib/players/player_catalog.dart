@@ -36,6 +36,7 @@ class PlayerCatalog {
     required this.colliderHeight,
     required this.colliderOffsetX,
     required this.colliderOffsetY,
+    this.castOriginOffset,
     required this.tags,
     required this.resistance,
     required this.statusImmunity,
@@ -83,6 +84,11 @@ class PlayerCatalog {
   /// Optional collider center offset from entity `Transform.pos`.
   final double colliderOffsetX;
   final double colliderOffsetY;
+
+  /// Optional projectile cast origin offset owned by this caster.
+  ///
+  /// When null, cast systems derive a fallback offset from collider size.
+  final double? castOriginOffset;
 
   double get colliderHalfX => colliderWidth * 0.5;
   double get colliderHalfY => colliderHeight * 0.5;

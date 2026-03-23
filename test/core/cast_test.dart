@@ -7,7 +7,6 @@ import 'package:runner_core/ecs/stores/body_store.dart';
 import 'package:runner_core/game_core.dart';
 import '../support/test_level.dart';
 import 'package:runner_core/players/player_character_registry.dart';
-import 'package:runner_core/projectiles/projectile_catalog.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/players/player_tuning.dart';
@@ -139,9 +138,8 @@ void main() {
       expect(projectiles.length, 1);
 
       final p = projectiles.single;
-      final expectedOffset = const ProjectileCatalog()
-          .get(catalog.projectileSlotSpellId)
-          .originOffset;
+      final expectedOffset =
+          catalog.castOriginOffset ?? catalog.colliderMaxHalfExtent * 0.5;
       expect(p.pos.x, closeTo(playerPosX + expectedOffset, 1e-9));
       expect(p.pos.y, closeTo(playerPosY, 1e-9));
 

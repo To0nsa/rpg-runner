@@ -11,10 +11,7 @@ final Map<AbilityKey, AbilityDef> unocoAbilityDefs = <AbilityKey, AbilityDef>{
     category: AbilityCategory.ranged,
     targetingModel: TargetingModel.aimed,
     inputLifecycle: AbilityInputLifecycle.holdRelease,
-    hitDelivery: ProjectileHitDelivery(
-      projectileId: ProjectileId.fireBolt,
-      originOffset: 20.0,
-    ),
+    hitDelivery: ProjectileHitDelivery(projectileId: ProjectileId.fireBolt),
     defaultCost: AbilityResourceCost(manaCost100: 2500),
     windupTicks: 6,
     activeTicks: 2,

@@ -481,6 +481,7 @@ class GameCore {
       projectiles: _projectiles,
       spellBooks: _spellBooks,
       accessories: _accessories,
+      playerCastOriginOffset: _playerCharacter.catalog.castOriginOffset,
       statsCache: _resolvedStatsCache,
     );
     _mobilityImpactSystem = MobilityImpactSystem(abilities: abilityCatalog);
@@ -1393,15 +1394,9 @@ class GameCore {
         // Route spawn requests to the appropriate SpawnService method.
         switch (enemyId) {
           case EnemyId.unocoDemon:
-            _spawnService.spawnUnocoDemon(
-              spawnX: x,
-              groundTopY: surfaceTopY,
-            );
+            _spawnService.spawnUnocoDemon(spawnX: x, groundTopY: surfaceTopY);
           case EnemyId.grojib:
-            _spawnService.spawnGroundEnemy(
-              spawnX: x,
-              groundTopY: surfaceTopY,
-            );
+            _spawnService.spawnGroundEnemy(spawnX: x, groundTopY: surfaceTopY);
           case EnemyId.hashash:
             _spawnService.spawnGroundEnemy(
               enemyId: EnemyId.hashash,

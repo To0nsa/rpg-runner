@@ -186,6 +186,7 @@ const PlayerCatalog eloiseCatalog = PlayerCatalog(
   colliderHeight: 46.0,
   colliderOffsetX: 0.0,
   colliderOffsetY: 0.0,
+  castOriginOffset: 30.0,
   tags: CreatureTagDef(mask: CreatureTagMask.humanoid),
   resistance: DamageResistanceDef(),
   statusImmunity: StatusImmunityDef(),

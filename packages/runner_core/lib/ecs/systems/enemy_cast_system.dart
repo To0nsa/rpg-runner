@@ -1,6 +1,7 @@
 import '../../abilities/ability_catalog.dart';
 import '../../abilities/ability_def.dart';
 import '../../combat/control_lock.dart';
+import '../../combat/cast_origin_offset.dart';
 import '../../combat/damage_type.dart';
 import '../../combat/hit_payload.dart';
 import '../../combat/hit_payload_builder.dart';
@@ -48,7 +49,12 @@ class EnemyCastSystem {
     final playerY = world.transform.posY[playerTi];
     final playerVelX = world.transform.velX[playerTi];
     final playerVelY = world.transform.velY[playerTi];
-    final playerCenter = _entityCenter(world, player, fallbackX: playerX, fallbackY: playerY);
+    final playerCenter = _entityCenter(
+      world,
+      player,
+      fallbackX: playerX,
+      fallbackY: playerY,
+    );
 
     final enemies = world.enemy;
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
@@ -161,7 +167,7 @@ class EnemyCastSystem {
           world,
           enemy: enemy,
           ability: castAbility,
-          hitDelivery: hitDelivery,
+          casterOriginOffset: archetype.castOriginOffset,
           payload: payload,
           commitCost: castCost,
           targetX: aimX,
@@ -276,7 +282,7 @@ class EnemyCastSystem {
     EcsWorld world, {
     required EntityId enemy,
     required AbilityDef ability,
-    required ProjectileHitDelivery hitDelivery,
+    required double? casterOriginOffset,
     required HitPayload payload,
     required AbilityResourceCost commitCost,
     required double targetX,
@@ -293,6 +299,11 @@ class EnemyCastSystem {
     required ProjectileId projectileId,
     required ProjectileItemDef projectile,
   }) {
+    final originOffset = resolveCasterProjectileOriginOffset(
+      world,
+      enemy,
+      authoredCasterOffset: casterOriginOffset,
+    );
     world.projectileIntent.set(
       enemy,
       ProjectileIntentDef(
@@ -314,7 +325,7 @@ class EnemyCastSystem {
         dirY: targetY - sourceY,
         fallbackDirX: 1.0,
         fallbackDirY: 0.0,
-        originOffset: hitDelivery.originOffset,
+        originOffset: originOffset,
         commitTick: commitTick,
         windupTicks: windupTicks,
         activeTicks: activeTicks,
