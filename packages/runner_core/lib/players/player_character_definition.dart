@@ -198,22 +198,20 @@ class PlayerCharacterDefinition {
         }
       }
 
-      final anchor = renderAnim.anchorInFramePx;
-      if (anchor != null) {
-        if (!anchor.x.isFinite || !anchor.y.isFinite) {
-          throw StateError(
-            'PlayerCharacterDefinition($id) renderAnim.anchorInFramePx must be finite (got $anchor)',
-          );
-        }
-        if (anchor.x < 0 ||
-            anchor.x > renderAnim.frameWidth ||
-            anchor.y < 0 ||
-            anchor.y > renderAnim.frameHeight) {
-          throw StateError(
-            'PlayerCharacterDefinition($id) renderAnim.anchorInFramePx must be within the frame '
-            '(0..${renderAnim.frameWidth}, 0..${renderAnim.frameHeight}). Got $anchor',
-          );
-        }
+      final anchor = renderAnim.anchorPoint;
+      if (!anchor.x.isFinite || !anchor.y.isFinite) {
+        throw StateError(
+          'PlayerCharacterDefinition($id) renderAnim.anchorPoint must be finite (got $anchor)',
+        );
+      }
+      if (anchor.x < 0 ||
+          anchor.x > renderAnim.frameWidth ||
+          anchor.y < 0 ||
+          anchor.y > renderAnim.frameHeight) {
+        throw StateError(
+          'PlayerCharacterDefinition($id) renderAnim.anchorPoint must be within the frame '
+          '(0..${renderAnim.frameWidth}, 0..${renderAnim.frameHeight}). Got $anchor',
+        );
       }
 
       // Tuning invariants (only basic sanity checks here).

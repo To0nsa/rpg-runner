@@ -9,9 +9,9 @@ class RenderAnimSetDefinition {
   const RenderAnimSetDefinition({
     required this.frameWidth,
     required this.frameHeight,
+    required this.anchorPoint,
     required this.sourcesByKey,
     this.rowByKey = const <AnimKey, int>{},
-    this.anchorInFramePx,
     this.frameStartByKey = const <AnimKey, int>{},
     this.gridColumnsByKey = const <AnimKey, int>{},
     required this.frameCountsByKey,
@@ -34,14 +34,12 @@ class RenderAnimSetDefinition {
   /// If a key is missing, render assumes row 0 (strip compatibility).
   final Map<AnimKey, int> rowByKey;
 
-  /// Optional anchor/pivot location inside a single source frame (in pixels).
-  ///
-  /// When null, render uses `Anchor.center`.
+  /// Anchor/pivot location inside a single source frame (in pixels).
   ///
   /// This is useful when the authored art is not centered on the logical
   /// collider (e.g. enemies with long weapons/tails). The renderer treats the
   /// Core snapshot position as the world-space position of this anchor.
-  final Vec2? anchorInFramePx;
+  final Vec2 anchorPoint;
 
   /// Optional 0-based frame start offset per [AnimKey] for strip reuse.
   ///

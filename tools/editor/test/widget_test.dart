@@ -306,7 +306,7 @@ void main() {
   );
 
   test(
-    'export preview writes anchorInFramePx and renderScale reference edits',
+    'export preview writes anchorPoint and renderScale reference edits',
     () async {
       final fixtureRoot = Directory.systemTemp.createTempSync(
         'runner_editor_fixture_',
@@ -586,7 +586,7 @@ class RenderAnimSetDefinition {
   const RenderAnimSetDefinition({
     required this.frameWidth,
     required this.frameHeight,
-    this.anchorInFramePx,
+    required this.anchorPoint,
     required this.sourcesByKey,
     this.rowByKey = const <AnimKey, int>{},
     this.frameStartByKey = const <AnimKey, int>{},
@@ -597,7 +597,7 @@ class RenderAnimSetDefinition {
 
   final int frameWidth;
   final int frameHeight;
-  final Vec2? anchorInFramePx;
+  final Vec2 anchorPoint;
   final Map<AnimKey, String> sourcesByKey;
   final Map<AnimKey, int> rowByKey;
   final Map<AnimKey, int> frameStartByKey;
@@ -645,7 +645,7 @@ const Map<AnimKey, int> _fireBoltFrameCountsByKey = <AnimKey, int>{
 const RenderAnimSetDefinition _fireBoltRenderAnim = RenderAnimSetDefinition(
   frameWidth: 48,
   frameHeight: 48,
-  anchorInFramePx: ${includeReferenceBindings ? 'Vec2(12.0, 24.0),' : 'null,'}
+  anchorPoint: ${includeReferenceBindings ? 'Vec2(12.0, 24.0),' : 'Vec2(24.0, 24.0),'}
   sourcesByKey: _fireBoltSourcesByKey,
   rowByKey: _fireBoltRowByKey,
   frameStartByKey: _fireBoltFrameStartByKey,

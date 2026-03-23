@@ -75,6 +75,7 @@ const Map<AnimKey, String> _unocoAnimSourcesByKey = <AnimKey, String>{
 const RenderAnimSetDefinition _unocoRenderAnim = RenderAnimSetDefinition(
   frameWidth: _unocoAnimFrameWidth,
   frameHeight: _unocoAnimFrameHeight,
+  anchorPoint: Vec2(_unocoAnimFrameWidth * 0.5, _unocoAnimFrameHeight * 0.5),
   sourcesByKey: _unocoAnimSourcesByKey,
   frameCountsByKey: _unocoAnimFrameCountsByKey,
   stepTimeSecondsByKey: _unocoAnimStepTimeSecondsByKey,
@@ -198,10 +199,10 @@ const Map<AnimKey, int> _grojibAnimFrameStartByKey = <AnimKey, int>{
 const RenderAnimSetDefinition _grojibRenderAnim = RenderAnimSetDefinition(
   frameWidth: _grojibAnimFrameWidth,
   frameHeight: _grojibAnimFrameHeight,
+  anchorPoint: Vec2(77, _grojibAnimFrameHeight * 0.5),
   sourcesByKey: _grojibAnimSourcesByKey,
   rowByKey: _grojibAnimRowByKey,
   frameStartByKey: _grojibAnimFrameStartByKey,
-  anchorInFramePx: Vec2(77, _grojibAnimFrameHeight * 0.5),
   frameCountsByKey: _grojibAnimFrameCountsByKey,
   stepTimeSecondsByKey: _grojibAnimStepTimeSecondsByKey,
 );
@@ -333,6 +334,10 @@ const Map<AnimKey, int> _hashashAnimRowByKey = <AnimKey, int>{
 const RenderAnimSetDefinition _hashashRenderAnim = RenderAnimSetDefinition(
   frameWidth: _hashashAnimFrameWidth,
   frameHeight: _hashashAnimFrameHeight,
+  anchorPoint: Vec2(
+    _hashashAnimFrameWidth * 0.5,
+    _hashashAnimFrameHeight * 0.5,
+  ),
   sourcesByKey: _hashashAnimSourcesByKey,
   rowByKey: _hashashAnimRowByKey,
   frameCountsByKey: _hashashAnimFrameCountsByKey,
@@ -405,6 +410,7 @@ const Map<AnimKey, double> _derfAnimStepTimeSecondsByKey = <AnimKey, double>{
 const RenderAnimSetDefinition _derfRenderAnim = RenderAnimSetDefinition(
   frameWidth: _derfAnimFrameWidth,
   frameHeight: _derfAnimFrameHeight,
+  anchorPoint: Vec2(_derfAnimFrameWidth * 0.5, _derfAnimFrameHeight * 0.5),
   sourcesByKey: _derfAnimSourcesByKey,
   rowByKey: _derfAnimRowByKey,
   frameCountsByKey: _derfAnimFrameCountsByKey,

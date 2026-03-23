@@ -17,7 +17,7 @@ Future<SpriteAnimSet> loadStripAnimations(
   required int frameHeight,
   required Map<AnimKey, String> sourcesByKey,
   Map<AnimKey, int> rowByKey = const <AnimKey, int>{},
-  Vec2? anchorInFramePx,
+  required Vec2 anchorPoint,
   Map<AnimKey, int> frameStartByKey = const <AnimKey, int>{},
   Map<AnimKey, int> gridColumnsByKey = const <AnimKey, int>{},
   required Map<AnimKey, int> frameCountsByKey,
@@ -26,20 +26,18 @@ Future<SpriteAnimSet> loadStripAnimations(
 }) async {
   final frameSize = Vector2(frameWidth.toDouble(), frameHeight.toDouble());
 
-  final anchor = switch (anchorInFramePx) {
-    null => Anchor.center,
-    final a => () {
-      assert(
-        a.x >= 0 && a.x <= frameWidth,
-        'anchorInFramePx.x must be in [0, $frameWidth] (got ${a.x}).',
-      );
-      assert(
-        a.y >= 0 && a.y <= frameHeight,
-        'anchorInFramePx.y must be in [0, $frameHeight] (got ${a.y}).',
-      );
-      return Anchor(a.x / frameWidth, a.y / frameHeight);
-    }(),
-  };
+  assert(
+    anchorPoint.x >= 0 && anchorPoint.x <= frameWidth,
+    'anchorPoint.x must be in [0, $frameWidth] (got ${anchorPoint.x}).',
+  );
+  assert(
+    anchorPoint.y >= 0 && anchorPoint.y <= frameHeight,
+    'anchorPoint.y must be in [0, $frameHeight] (got ${anchorPoint.y}).',
+  );
+  final anchor = Anchor(
+    anchorPoint.x / frameWidth,
+    anchorPoint.y / frameHeight,
+  );
 
   final keysByPath = <String, List<AnimKey>>{};
   for (final entry in sourcesByKey.entries) {
@@ -117,7 +115,7 @@ Future<SpriteAnimSet> loadAnimSetFromDefinition(
     frameHeight: renderAnim.frameHeight,
     sourcesByKey: renderAnim.sourcesByKey,
     rowByKey: renderAnim.rowByKey,
-    anchorInFramePx: renderAnim.anchorInFramePx,
+    anchorPoint: renderAnim.anchorPoint,
     frameStartByKey: renderAnim.frameStartByKey,
     gridColumnsByKey: renderAnim.gridColumnsByKey,
     frameCountsByKey: renderAnim.frameCountsByKey,

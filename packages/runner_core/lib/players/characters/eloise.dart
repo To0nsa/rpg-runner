@@ -16,6 +16,7 @@ import '../player_character_definition.dart';
 import '../player_catalog.dart';
 import '../player_tuning.dart';
 import '../../contracts/render_anim_set_definition.dart';
+import '../../util/vec2.dart';
 
 /// Baseline character definition: Éloïse.
 ///
@@ -152,6 +153,7 @@ const Map<AnimKey, String> eloiseAnimSourcesByKey = <AnimKey, String>{
 const RenderAnimSetDefinition eloiseRenderAnim = RenderAnimSetDefinition(
   frameWidth: eloiseAnimFrameWidth,
   frameHeight: eloiseAnimFrameHeight,
+  anchorPoint: Vec2(eloiseAnimFrameWidth * 0.5, eloiseAnimFrameHeight * 0.5),
   sourcesByKey: eloiseAnimSourcesByKey,
   frameCountsByKey: eloiseAnimFrameCountsByKey,
   stepTimeSecondsByKey: eloiseAnimStepTimeSecondsByKey,
@@ -253,4 +255,3 @@ const PlayerCharacterDefinition eloiseCharacter = PlayerCharacterDefinition(
   catalog: eloiseCatalog,
   tuning: eloiseTuning,
 );
-

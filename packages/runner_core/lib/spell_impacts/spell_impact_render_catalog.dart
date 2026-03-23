@@ -1,5 +1,6 @@
 import '../contracts/render_anim_set_definition.dart';
 import '../snapshots/enums.dart';
+import '../util/vec2.dart';
 import 'spell_impact_id.dart';
 
 const int _fireExplosionFrameWidth = 64;
@@ -23,14 +24,19 @@ const Map<AnimKey, int> _fireExplosionGridColumnsByKey = <AnimKey, int>{
 const Map<AnimKey, double> _fireExplosionStepTimeSecondsByKey =
     <AnimKey, double>{AnimKey.hit: _fireExplosionStepSeconds};
 
-const RenderAnimSetDefinition _fireExplosionRenderAnim = RenderAnimSetDefinition(
-  frameWidth: _fireExplosionFrameWidth,
-  frameHeight: _fireExplosionFrameHeight,
-  sourcesByKey: _fireExplosionSourcesByKey,
-  frameCountsByKey: _fireExplosionFrameCountsByKey,
-  gridColumnsByKey: _fireExplosionGridColumnsByKey,
-  stepTimeSecondsByKey: _fireExplosionStepTimeSecondsByKey,
-);
+const RenderAnimSetDefinition _fireExplosionRenderAnim =
+    RenderAnimSetDefinition(
+      frameWidth: _fireExplosionFrameWidth,
+      frameHeight: _fireExplosionFrameHeight,
+      anchorPoint: Vec2(
+        _fireExplosionFrameWidth * 0.5,
+        _fireExplosionFrameHeight * 0.5,
+      ),
+      sourcesByKey: _fireExplosionSourcesByKey,
+      frameCountsByKey: _fireExplosionFrameCountsByKey,
+      gridColumnsByKey: _fireExplosionGridColumnsByKey,
+      stepTimeSecondsByKey: _fireExplosionStepTimeSecondsByKey,
+    );
 
 /// Lookup table for spell-impact render animation definitions.
 class SpellImpactRenderCatalog {

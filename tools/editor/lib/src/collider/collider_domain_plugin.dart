@@ -93,7 +93,7 @@ class ColliderDomainPlugin implements AuthoringDomainPlugin {
               severity: ValidationSeverity.error,
               code: 'invalid_anchor',
               message:
-                  '${entry.id} has invalid anchorInFramePx ($anchorX, $anchorY)',
+                  '${entry.id} has invalid anchorPoint ($anchorX, $anchorY)',
               sourcePath: reference.anchorBinding?.sourcePath,
             ),
           );
@@ -551,7 +551,7 @@ class ColliderDomainPlugin implements AuthoringDomainPlugin {
       final anchorY = currentReference.anchorYPx;
       if (binding == null || anchorX == null || anchorY == null) {
         throw StateError(
-          'Entry ${current.id} anchorInFramePx changed but no writable source binding exists.',
+          'Entry ${current.id} anchorPoint changed but no writable source binding exists.',
         );
       }
       edits.add(

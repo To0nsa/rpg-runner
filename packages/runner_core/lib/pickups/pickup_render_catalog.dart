@@ -1,6 +1,7 @@
 import '../contracts/render_anim_set_definition.dart';
 import '../snapshots/entity_render_snapshot.dart';
 import '../snapshots/enums.dart';
+import '../util/vec2.dart';
 
 const int _frameW = 16;
 const int _frameH = 16;
@@ -22,6 +23,7 @@ RenderAnimSetDefinition _rowFromSheet({
   return RenderAnimSetDefinition(
     frameWidth: _frameW,
     frameHeight: _frameH,
+    anchorPoint: Vec2(_frameW * 0.5, _frameH * 0.5),
     sourcesByKey: <AnimKey, String>{AnimKey.idle: assetPath},
     frameCountsByKey: _frameCountsByKey,
     stepTimeSecondsByKey: _stepTimeSecondsByKey,

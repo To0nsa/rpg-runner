@@ -1,5 +1,6 @@
 import '../contracts/render_anim_set_definition.dart';
 import '../snapshots/enums.dart';
+import '../util/vec2.dart';
 import 'projectile_id.dart';
 
 // -----------------------------------------------------------------------------
@@ -38,6 +39,7 @@ const Map<AnimKey, String> _iceBoltSourcesByKey = <AnimKey, String>{
 const RenderAnimSetDefinition _iceBoltRenderAnim = RenderAnimSetDefinition(
   frameWidth: _iceBoltFrameWidth,
   frameHeight: _iceBoltFrameHeight,
+  anchorPoint: Vec2(_iceBoltFrameWidth * 0.5, _iceBoltFrameHeight * 0.5),
   sourcesByKey: _iceBoltSourcesByKey,
   frameCountsByKey: _iceBoltFrameCountsByKey,
   stepTimeSecondsByKey: _iceBoltStepTimeSecondsByKey,
@@ -79,6 +81,10 @@ const Map<AnimKey, String> _thunderBoltSourcesByKey = <AnimKey, String>{
 const RenderAnimSetDefinition _thunderBoltRenderAnim = RenderAnimSetDefinition(
   frameWidth: _thunderBoltFrameWidth,
   frameHeight: _thunderBoltFrameHeight,
+  anchorPoint: Vec2(
+    _thunderBoltFrameWidth * 0.5,
+    _thunderBoltFrameHeight * 0.5,
+  ),
   sourcesByKey: _thunderBoltSourcesByKey,
   frameCountsByKey: _thunderBoltFrameCountsByKey,
   stepTimeSecondsByKey: _thunderBoltStepTimeSecondsByKey,
@@ -125,6 +131,7 @@ const Map<AnimKey, String> _fireBoltSourcesByKey = <AnimKey, String>{
 const RenderAnimSetDefinition _fireBoltRenderAnim = RenderAnimSetDefinition(
   frameWidth: _fireBoltFrameWidth,
   frameHeight: _fireBoltFrameHeight,
+  anchorPoint: Vec2(_fireBoltFrameWidth * 0.5, _fireBoltFrameHeight * 0.5),
   sourcesByKey: _fireBoltSourcesByKey,
   frameStartByKey: _fireBoltFrameStartByKey,
   frameCountsByKey: _fireBoltFrameCountsByKey,
@@ -172,6 +179,7 @@ const Map<AnimKey, String> _acidBoltSourcesByKey = <AnimKey, String>{
 const RenderAnimSetDefinition _acidBoltRenderAnim = RenderAnimSetDefinition(
   frameWidth: _acidBoltFrameWidth,
   frameHeight: _acidBoltFrameHeight,
+  anchorPoint: Vec2(_acidBoltFrameWidth * 0.5, _acidBoltFrameHeight * 0.5),
   sourcesByKey: _acidBoltSourcesByKey,
   frameStartByKey: _acidBoltFrameStartByKey,
   frameCountsByKey: _acidBoltFrameCountsByKey,
@@ -220,6 +228,7 @@ const Map<AnimKey, String> _darkBoltSourcesByKey = <AnimKey, String>{
 const RenderAnimSetDefinition _darkBoltRenderAnim = RenderAnimSetDefinition(
   frameWidth: _darkBoltFrameWidth,
   frameHeight: _darkBoltFrameHeight,
+  anchorPoint: Vec2(_darkBoltFrameWidth * 0.5, _darkBoltFrameHeight * 0.5),
   sourcesByKey: _darkBoltSourcesByKey,
   rowByKey: _darkBoltRowByKey,
   frameCountsByKey: _darkBoltFrameCountsByKey,
@@ -268,6 +277,7 @@ const Map<AnimKey, String> _earthBoltSourcesByKey = <AnimKey, String>{
 const RenderAnimSetDefinition _earthBoltRenderAnim = RenderAnimSetDefinition(
   frameWidth: _earthBoltFrameWidth,
   frameHeight: _earthBoltFrameHeight,
+  anchorPoint: Vec2(_earthBoltFrameWidth * 0.5, _earthBoltFrameHeight * 0.5),
   sourcesByKey: _earthBoltSourcesByKey,
   rowByKey: _earthBoltRowByKey,
   frameCountsByKey: _earthBoltFrameCountsByKey,
@@ -310,6 +320,7 @@ const Map<AnimKey, String> _holyBoltSourcesByKey = <AnimKey, String>{
 const RenderAnimSetDefinition _holyBoltRenderAnim = RenderAnimSetDefinition(
   frameWidth: _holyBoltFrameWidth,
   frameHeight: _holyBoltFrameHeight,
+  anchorPoint: Vec2(_holyBoltFrameWidth * 0.5, _holyBoltFrameHeight * 0.5),
   sourcesByKey: _holyBoltSourcesByKey,
   frameCountsByKey: _holyBoltFrameCountsByKey,
   stepTimeSecondsByKey: _holyBoltStepTimeSecondsByKey,
@@ -369,6 +380,7 @@ const Map<AnimKey, String> _waterBoltSourcesByKey = <AnimKey, String>{
 const RenderAnimSetDefinition _waterBoltRenderAnim = RenderAnimSetDefinition(
   frameWidth: _waterBoltFrameWidth,
   frameHeight: _waterBoltFrameHeight,
+  anchorPoint: Vec2(_waterBoltFrameWidth * 0.5, _waterBoltFrameHeight * 0.5),
   sourcesByKey: _waterBoltSourcesByKey,
   rowByKey: _waterBoltRowByKey,
   frameStartByKey: _waterBoltFrameStartByKey,

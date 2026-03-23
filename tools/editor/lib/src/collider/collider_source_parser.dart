@@ -1000,13 +1000,13 @@ class _ConstValueResolver {
     final frameHeight = frameHeightExpr == null
         ? null
         : _resolveDouble(frameHeightExpr);
-    final anchorInFrameExpr = _parser._namedArgumentExpression(
+    final anchorPointExpr = _parser._namedArgumentExpression(
       arguments,
-      'anchorInFramePx',
+      'anchorPoint',
     );
-    final anchorInFramePx = _resolveVec2(anchorInFrameExpr);
+    final anchorPoint = _resolveVec2(anchorPointExpr);
     final anchorBinding = _resolveExpressionBinding(
-      anchorInFrameExpr,
+      anchorPointExpr,
       ColliderSourceBindingKind.referenceAnchorVec2Expression,
     );
 
@@ -1063,8 +1063,8 @@ class _ConstValueResolver {
       assetPath: defaultAnimView.assetPath,
       frameWidth: frameWidth,
       frameHeight: frameHeight,
-      anchorXPx: anchorInFramePx?.x,
-      anchorYPx: anchorInFramePx?.y,
+      anchorXPx: anchorPoint?.x,
+      anchorYPx: anchorPoint?.y,
       anchorBinding: anchorBinding,
       defaultRow: defaultAnimView.row,
       defaultFrameStart: defaultAnimView.frameStart,
