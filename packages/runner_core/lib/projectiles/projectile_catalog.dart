@@ -25,8 +25,8 @@ class ProjectileCatalog {
           weaponType: WeaponType.spell,
           speedUnitsPerSecond: 600.0,
           lifetimeSeconds: 1.3,
-          colliderSizeX: 18.0,
-          colliderSizeY: 8.0,
+          colliderSizeX: 25.0,
+          colliderSizeY: 9.0,
           damageType: DamageType.ice,
           procs: <WeaponProc>[
             WeaponProc(
@@ -41,8 +41,8 @@ class ProjectileCatalog {
           weaponType: WeaponType.spell,
           speedUnitsPerSecond: 600.0,
           lifetimeSeconds: 1.3,
-          colliderSizeX: 18.0,
-          colliderSizeY: 8.0,
+          colliderSizeX: 30.0,
+          colliderSizeY: 10.0,
           damageType: DamageType.fire,
           procs: <WeaponProc>[
             WeaponProc(
@@ -57,8 +57,8 @@ class ProjectileCatalog {
           weaponType: WeaponType.spell,
           speedUnitsPerSecond: 500.0,
           lifetimeSeconds: 1.3,
-          colliderSizeX: 18.0,
-          colliderSizeY: 8.0,
+          colliderSizeX: 16.0,
+          colliderSizeY: 12.0,
           damageType: DamageType.acid,
           procs: <WeaponProc>[
             WeaponProc(
@@ -73,8 +73,8 @@ class ProjectileCatalog {
           weaponType: WeaponType.spell,
           speedUnitsPerSecond: 550.0,
           lifetimeSeconds: 1.3,
-          colliderSizeX: 18.0,
-          colliderSizeY: 8.0,
+          colliderSizeX: 12.5,
+          colliderSizeY: 13.5,
           damageType: DamageType.dark,
           procs: <WeaponProc>[
             WeaponProc(
@@ -105,7 +105,7 @@ class ProjectileCatalog {
           weaponType: WeaponType.spell,
           speedUnitsPerSecond: 550.0,
           lifetimeSeconds: 1.3,
-          colliderSizeX: 18.0,
+          colliderSizeX: 25.0,
           colliderSizeY: 8.0,
           damageType: DamageType.holy,
           procs: <WeaponProc>[
@@ -121,8 +121,8 @@ class ProjectileCatalog {
           weaponType: WeaponType.spell,
           speedUnitsPerSecond: 550.0,
           lifetimeSeconds: 1.3,
-          colliderSizeX: 18.0,
-          colliderSizeY: 8.0,
+          colliderSizeX: 22.0,
+          colliderSizeY: 9.0,
           damageType: DamageType.water,
           procs: <WeaponProc>[
             WeaponProc(
@@ -137,7 +137,7 @@ class ProjectileCatalog {
           weaponType: WeaponType.spell,
           speedUnitsPerSecond: 650.0,
           lifetimeSeconds: 1.3,
-          colliderSizeX: 18.0,
+          colliderSizeX: 23.0,
           colliderSizeY: 8.0,
           damageType: DamageType.thunder,
           procs: <WeaponProc>[

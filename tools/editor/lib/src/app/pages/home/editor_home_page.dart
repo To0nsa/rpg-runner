@@ -57,6 +57,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
   String? _sceneAnimKey;
   int _sceneAnimFrameIndex = 0;
   bool _sceneCtrlPanActive = false;
+  _SceneHandleDrag? _sceneHandleDrag;
   final Map<String, ui.Image> _referenceImageCache = <String, ui.Image>{};
   final Set<String> _referenceImageLoading = <String>{};
   final Set<String> _referenceImageFailed = <String>{};
@@ -783,6 +784,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
     _sceneAnimKey = null;
     _sceneAnimFrameIndex = 0;
     _sceneCtrlPanActive = false;
+    _sceneHandleDrag = null;
     _scheduleSceneViewportCentering();
   }
 

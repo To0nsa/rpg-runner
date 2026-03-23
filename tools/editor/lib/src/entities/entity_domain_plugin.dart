@@ -694,7 +694,7 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
     final sizeX = entry.halfX * 2;
     final sizeY = entry.halfY * 2;
     return 'colliderSizeX: ${_formatDoubleLiteral(sizeX)},\n'
-        '          colliderSizeY: ${_formatDoubleLiteral(sizeY)},';
+        '          colliderSizeY: ${_formatDoubleLiteral(sizeY)}';
   }
 
   String _formatDoubleLiteral(double value) {

@@ -2,6 +2,11 @@ part of '../../home/editor_home_page.dart';
 
 extension _SceneView on _EditorHomePageState {
   static const Size _fixedViewportSize = Size(800, 500);
+  static const double _colliderHandleRadius = 6.0;
+  static const double _colliderHandleHitRadius = 14.0;
+  static const double _anchorHandleRadius = 4.5;
+  static const double _anchorHandleHitRadius = 8.0;
+  static const double _minColliderHalfExtent = 1.0;
 
   Widget _buildViewportPanel(EntityEntry? selectedEntry) {
     if (selectedEntry == null) {
@@ -132,10 +137,24 @@ extension _SceneView on _EditorHomePageState {
     required int referenceFrame,
   }) {
     final canvas = Listener(
-      onPointerDown: _onSceneCanvasPointerDown,
-      onPointerMove: _onSceneCanvasPointerMove,
-      onPointerUp: _onSceneCanvasPointerEnd,
-      onPointerCancel: _onSceneCanvasPointerEnd,
+      onPointerDown: (event) {
+        _onSceneCanvasPointerDown(
+          event,
+          selectedEntry: selectedEntry,
+          resolvedReference: resolvedReference,
+          canvasSize: canvasSize,
+          scale: scale,
+        );
+      },
+      onPointerMove: (event) {
+        _onSceneCanvasPointerMove(event);
+      },
+      onPointerUp: (event) {
+        _onSceneCanvasPointerEnd(event);
+      },
+      onPointerCancel: (event) {
+        _onSceneCanvasPointerEnd(event);
+      },
       onPointerSignal: _onSceneCanvasPointerSignal,
       child: SizedBox(
         width: canvasSize.width,
@@ -177,6 +196,22 @@ extension _SceneView on _EditorHomePageState {
     required int referenceRow,
     required int referenceFrame,
   }) {
+    final referenceRect = resolvedReference == null
+        ? null
+        : _referenceRect(
+            scale: scale,
+            viewportSize: canvasSize,
+            reference: resolvedReference,
+          );
+    final anchorHandleCenter =
+        resolvedReference == null || referenceRect == null
+        ? null
+        : _referenceAnchorHandleCenter(
+            referenceRect: referenceRect,
+            reference: resolvedReference,
+          );
+    final activeHandle = _activeSceneHandle(selectedEntry.id);
+
     return DecoratedBox(
       decoration: BoxDecoration(
         border: Border.all(color: const Color(0xFF1B2A36)),
@@ -195,11 +230,7 @@ extension _SceneView on _EditorHomePageState {
                   image: resolvedImage,
                   row: referenceRow,
                   frame: referenceFrame,
-                  destinationRect: _referenceRect(
-                    scale: scale,
-                    viewportSize: canvasSize,
-                    reference: resolvedReference,
-                  ),
+                  destinationRect: referenceRect!,
                   anchorX: resolvedReference.anchorX,
                   anchorY: resolvedReference.anchorY,
                   showReferencePoints: false,
@@ -210,7 +241,15 @@ extension _SceneView on _EditorHomePageState {
                 ),
               ),
             CustomPaint(
-              painter: _EntityBoundsPainter(entry: selectedEntry, scale: scale),
+              painter: _EntityBoundsPainter(
+                entry: selectedEntry,
+                scale: scale,
+                handleRadius: _colliderHandleRadius,
+                activeHandle: _activeColliderHandle(activeHandle),
+                anchorHandleCenter: anchorHandleCenter,
+                anchorHandleRadius: _anchorHandleRadius,
+                anchorSelected: activeHandle == _SceneHandleType.anchor,
+              ),
             ),
           ],
         ),
@@ -259,13 +298,75 @@ extension _SceneView on _EditorHomePageState {
     return Size(width.ceilToDouble(), height.ceilToDouble());
   }
 
-  void _onSceneCanvasPointerDown(PointerDownEvent event) {
+  void _onSceneCanvasPointerDown(
+    PointerDownEvent event, {
+    required EntityEntry selectedEntry,
+    required _ResolvedReferenceVisual? resolvedReference,
+    required Size canvasSize,
+    required double scale,
+  }) {
     final isPrimaryMouseDown = (event.buttons & kPrimaryButton) != 0;
+    if (!isPrimaryMouseDown) {
+      return;
+    }
     _sceneCtrlPanActive =
         isPrimaryMouseDown && HardwareKeyboard.instance.isControlPressed;
+    if (_sceneCtrlPanActive) {
+      _sceneHandleDrag = null;
+      return;
+    }
+    final handle = _hitTestSceneHandle(
+      pointerPosition: event.localPosition,
+      selectedEntry: selectedEntry,
+      resolvedReference: resolvedReference,
+      canvasSize: canvasSize,
+      scale: scale,
+    );
+    if (handle == null) {
+      _sceneHandleDrag = null;
+      return;
+    }
+    final referenceVisual = selectedEntry.referenceVisual;
+    final startAnchorXPx =
+        referenceVisual?.anchorXPx ??
+        (resolvedReference == null
+            ? 0.0
+            : resolvedReference.anchorX * resolvedReference.frameWidth);
+    final startAnchorYPx =
+        referenceVisual?.anchorYPx ??
+        (resolvedReference == null
+            ? 0.0
+            : resolvedReference.anchorY * resolvedReference.frameHeight);
+    _sceneHandleDrag = _SceneHandleDrag(
+      pointer: event.pointer,
+      entryId: selectedEntry.id,
+      handle: handle,
+      startLocalPosition: event.localPosition,
+      scale: scale,
+      startHalfX: selectedEntry.halfX,
+      startHalfY: selectedEntry.halfY,
+      startOffsetX: selectedEntry.offsetX,
+      startOffsetY: selectedEntry.offsetY,
+      startAnchorXPx: startAnchorXPx,
+      startAnchorYPx: startAnchorYPx,
+      referenceFrameWidth: resolvedReference?.frameWidth ?? 1.0,
+      referenceFrameHeight: resolvedReference?.frameHeight ?? 1.0,
+      referenceRenderScale: resolvedReference?.renderScale ?? 1.0,
+    );
+    _updateState(() {});
   }
 
   void _onSceneCanvasPointerMove(PointerMoveEvent event) {
+    final activeDrag = _sceneHandleDrag;
+    if (activeDrag != null && event.pointer == activeDrag.pointer) {
+      if ((event.buttons & kPrimaryButton) == 0) {
+        _sceneHandleDrag = null;
+        _updateState(() {});
+        return;
+      }
+      _applySceneHandleDrag(activeDrag, event.localPosition);
+      return;
+    }
     if (!_sceneCtrlPanActive) {
       return;
     }
@@ -277,6 +378,11 @@ extension _SceneView on _EditorHomePageState {
   }
 
   void _onSceneCanvasPointerEnd(PointerEvent event) {
+    final activeDrag = _sceneHandleDrag;
+    if (activeDrag != null && event.pointer == activeDrag.pointer) {
+      _sceneHandleDrag = null;
+      _updateState(() {});
+    }
     _sceneCtrlPanActive = false;
   }
 
@@ -302,6 +408,240 @@ extension _SceneView on _EditorHomePageState {
         _zoomOut();
       }
     }
+  }
+
+  _SceneHandleType? _activeSceneHandle(String entryId) {
+    final activeDrag = _sceneHandleDrag;
+    if (activeDrag == null || activeDrag.entryId != entryId) {
+      return null;
+    }
+    return activeDrag.handle;
+  }
+
+  _SceneColliderHandle? _activeColliderHandle(_SceneHandleType? handle) {
+    if (handle == null || handle == _SceneHandleType.anchor) {
+      return null;
+    }
+    return handle.toColliderHandle();
+  }
+
+  _SceneHandleType? _hitTestSceneHandle({
+    required Offset pointerPosition,
+    required EntityEntry selectedEntry,
+    required _ResolvedReferenceVisual? resolvedReference,
+    required Size canvasSize,
+    required double scale,
+  }) {
+    final canDragAnchor = _canDragReferenceAnchor(selectedEntry);
+    if (canDragAnchor && resolvedReference != null) {
+      final anchorCenter = _referenceAnchorHandleCenter(
+        referenceRect: _referenceRect(
+          scale: scale,
+          viewportSize: canvasSize,
+          reference: resolvedReference,
+        ),
+        reference: resolvedReference,
+      );
+      if (_isPointerWithinHandle(
+        pointerPosition: pointerPosition,
+        handleCenter: anchorCenter,
+        hitRadius: _anchorHandleHitRadius,
+      )) {
+        return _SceneHandleType.anchor;
+      }
+    }
+
+    final handles = _ViewportGeometry.entityHandles(
+      size: canvasSize,
+      offsetX: selectedEntry.offsetX,
+      offsetY: selectedEntry.offsetY,
+      halfX: selectedEntry.halfX,
+      halfY: selectedEntry.halfY,
+      scale: scale,
+    );
+    for (final candidate in _SceneColliderHandle.values) {
+      final center = handles.centerFor(candidate);
+      if (_isPointerWithinHandle(
+        pointerPosition: pointerPosition,
+        handleCenter: center,
+        hitRadius: _colliderHandleHitRadius,
+      )) {
+        return _SceneHandleTypeMapping.fromColliderHandle(candidate);
+      }
+    }
+    return null;
+  }
+
+  bool _isPointerWithinHandle({
+    required Offset pointerPosition,
+    required Offset handleCenter,
+    required double hitRadius,
+  }) {
+    final delta = handleCenter - pointerPosition;
+    final distanceSquared = delta.dx * delta.dx + delta.dy * delta.dy;
+    return distanceSquared <= hitRadius * hitRadius;
+  }
+
+  bool _canDragReferenceAnchor(EntityEntry entry) {
+    final reference = entry.referenceVisual;
+    return reference != null && reference.anchorBinding != null;
+  }
+
+  Offset _referenceAnchorHandleCenter({
+    required Rect referenceRect,
+    required _ResolvedReferenceVisual reference,
+  }) {
+    return Offset(
+      referenceRect.left + referenceRect.width * reference.anchorX,
+      referenceRect.top + referenceRect.height * reference.anchorY,
+    );
+  }
+
+  void _applySceneHandleDrag(_SceneHandleDrag drag, Offset pointerPosition) {
+    if (_selectedEntryId != drag.entryId || drag.scale <= 0) {
+      return;
+    }
+
+    if (drag.handle == _SceneHandleType.anchor) {
+      _applySceneAnchorDrag(drag: drag, pointerPosition: pointerPosition);
+      return;
+    }
+
+    final delta = pointerPosition - drag.startLocalPosition;
+    final deltaWorldX = delta.dx / drag.scale;
+    final deltaWorldY = delta.dy / drag.scale;
+
+    var nextHalfX = drag.startHalfX;
+    var nextHalfY = drag.startHalfY;
+    var nextOffsetX = drag.startOffsetX;
+    var nextOffsetY = drag.startOffsetY;
+
+    switch (drag.handle.toColliderHandle()) {
+      case _SceneColliderHandle.center:
+        nextOffsetX = _snapToPixel(drag.startOffsetX + deltaWorldX);
+        nextOffsetY = _snapToPixel(drag.startOffsetY + deltaWorldY);
+        break;
+      case _SceneColliderHandle.top:
+        final startTop = drag.startOffsetY - drag.startHalfY;
+        final fixedBottom = drag.startOffsetY + drag.startHalfY;
+        final maxTop = fixedBottom - (_minColliderHalfExtent * 2);
+        var nextTop = _snapToPixel(startTop + deltaWorldY);
+        if (nextTop > maxTop) {
+          nextTop = maxTop;
+        }
+        nextHalfY = (fixedBottom - nextTop) * 0.5;
+        nextOffsetY = nextTop + nextHalfY;
+        break;
+      case _SceneColliderHandle.right:
+        final fixedLeft = drag.startOffsetX - drag.startHalfX;
+        final startRight = drag.startOffsetX + drag.startHalfX;
+        final minRight = fixedLeft + (_minColliderHalfExtent * 2);
+        var nextRight = _snapToPixel(startRight + deltaWorldX);
+        if (nextRight < minRight) {
+          nextRight = minRight;
+        }
+        nextHalfX = (nextRight - fixedLeft) * 0.5;
+        nextOffsetX = fixedLeft + nextHalfX;
+        break;
+    }
+
+    if (!_colliderValuesChanged(
+      halfX: nextHalfX,
+      halfY: nextHalfY,
+      offsetX: nextOffsetX,
+      offsetY: nextOffsetY,
+      baseline: drag,
+    )) {
+      return;
+    }
+
+    _syncInspectorFromValues(
+      halfX: nextHalfX,
+      halfY: nextHalfY,
+      offsetX: nextOffsetX,
+      offsetY: nextOffsetY,
+    );
+    _applyEntryValues(
+      drag.entryId,
+      halfX: nextHalfX,
+      halfY: nextHalfY,
+      offsetX: nextOffsetX,
+      offsetY: nextOffsetY,
+    );
+  }
+
+  void _applySceneAnchorDrag({
+    required _SceneHandleDrag drag,
+    required Offset pointerPosition,
+  }) {
+    final canvasUnitsPerAnchorX = drag.referenceRenderScale * drag.scale;
+    final canvasUnitsPerAnchorY = drag.referenceRenderScale * drag.scale;
+    if (canvasUnitsPerAnchorX <= 0 || canvasUnitsPerAnchorY <= 0) {
+      return;
+    }
+
+    final delta = pointerPosition - drag.startLocalPosition;
+    final nextAnchorXPx = _snapToPixel(
+      (drag.startAnchorXPx + (delta.dx / canvasUnitsPerAnchorX)).clamp(
+        0.0,
+        drag.referenceFrameWidth,
+      ),
+    );
+    final nextAnchorYPx = _snapToPixel(
+      (drag.startAnchorYPx + (delta.dy / canvasUnitsPerAnchorY)).clamp(
+        0.0,
+        drag.referenceFrameHeight,
+      ),
+    );
+
+    if (!_anchorValuesChanged(
+      anchorXPx: nextAnchorXPx,
+      anchorYPx: nextAnchorYPx,
+      baseline: drag,
+    )) {
+      return;
+    }
+
+    _anchorXPxController.text = nextAnchorXPx.toStringAsFixed(3);
+    _anchorYPxController.text = nextAnchorYPx.toStringAsFixed(3);
+    _applyEntryValues(
+      drag.entryId,
+      halfX: drag.startHalfX,
+      halfY: drag.startHalfY,
+      offsetX: drag.startOffsetX,
+      offsetY: drag.startOffsetY,
+      anchorXPx: nextAnchorXPx,
+      anchorYPx: nextAnchorYPx,
+    );
+  }
+
+  double _snapToPixel(double value) {
+    if (!value.isFinite) {
+      return 0;
+    }
+    return value.roundToDouble();
+  }
+
+  bool _colliderValuesChanged({
+    required double halfX,
+    required double halfY,
+    required double offsetX,
+    required double offsetY,
+    required _SceneHandleDrag baseline,
+  }) {
+    return (halfX - baseline.startHalfX).abs() > 0.000001 ||
+        (halfY - baseline.startHalfY).abs() > 0.000001 ||
+        (offsetX - baseline.startOffsetX).abs() > 0.000001 ||
+        (offsetY - baseline.startOffsetY).abs() > 0.000001;
+  }
+
+  bool _anchorValuesChanged({
+    required double anchorXPx,
+    required double anchorYPx,
+    required _SceneHandleDrag baseline,
+  }) {
+    return (anchorXPx - baseline.startAnchorXPx).abs() > 0.000001 ||
+        (anchorYPx - baseline.startAnchorYPx).abs() > 0.000001;
   }
 
   void _panSceneViewportBy({required Offset delta}) {
@@ -554,6 +894,93 @@ extension _SceneView on _EditorHomePageState {
   }
 }
 
+enum _SceneColliderHandle { center, top, right }
+
+enum _SceneHandleType { colliderCenter, colliderTop, colliderRight, anchor }
+
+extension _SceneHandleTypeMapping on _SceneHandleType {
+  static _SceneHandleType fromColliderHandle(_SceneColliderHandle handle) {
+    switch (handle) {
+      case _SceneColliderHandle.center:
+        return _SceneHandleType.colliderCenter;
+      case _SceneColliderHandle.top:
+        return _SceneHandleType.colliderTop;
+      case _SceneColliderHandle.right:
+        return _SceneHandleType.colliderRight;
+    }
+  }
+
+  _SceneColliderHandle toColliderHandle() {
+    switch (this) {
+      case _SceneHandleType.colliderCenter:
+        return _SceneColliderHandle.center;
+      case _SceneHandleType.colliderTop:
+        return _SceneColliderHandle.top;
+      case _SceneHandleType.colliderRight:
+        return _SceneColliderHandle.right;
+      case _SceneHandleType.anchor:
+        throw StateError('Anchor handle does not map to collider handle.');
+    }
+  }
+}
+
+class _SceneHandleDrag {
+  const _SceneHandleDrag({
+    required this.pointer,
+    required this.entryId,
+    required this.handle,
+    required this.startLocalPosition,
+    required this.scale,
+    required this.startHalfX,
+    required this.startHalfY,
+    required this.startOffsetX,
+    required this.startOffsetY,
+    required this.startAnchorXPx,
+    required this.startAnchorYPx,
+    required this.referenceFrameWidth,
+    required this.referenceFrameHeight,
+    required this.referenceRenderScale,
+  });
+
+  final int pointer;
+  final String entryId;
+  final _SceneHandleType handle;
+  final Offset startLocalPosition;
+  final double scale;
+  final double startHalfX;
+  final double startHalfY;
+  final double startOffsetX;
+  final double startOffsetY;
+  final double startAnchorXPx;
+  final double startAnchorYPx;
+  final double referenceFrameWidth;
+  final double referenceFrameHeight;
+  final double referenceRenderScale;
+}
+
+class _ViewportEntityHandles {
+  const _ViewportEntityHandles({
+    required this.center,
+    required this.top,
+    required this.right,
+  });
+
+  final Offset center;
+  final Offset top;
+  final Offset right;
+
+  Offset centerFor(_SceneColliderHandle handle) {
+    switch (handle) {
+      case _SceneColliderHandle.center:
+        return center;
+      case _SceneColliderHandle.top:
+        return top;
+      case _SceneColliderHandle.right:
+        return right;
+    }
+  }
+}
+
 class _ResolvedReferenceVisual {
   const _ResolvedReferenceVisual({
     required this.frameWidth,
@@ -679,6 +1106,11 @@ class _ReferenceFramePainter extends CustomPainter {
         ..filterQuality = FilterQuality.medium
         ..isAntiAlias = true,
     );
+    final frameBorderPaint = Paint()
+      ..color = const Color(0xCCFFFFFF)
+      ..strokeWidth = 1.2
+      ..style = PaintingStyle.stroke;
+    canvas.drawRect(destinationRect, frameBorderPaint);
 
     if (!showReferencePoints) {
       return;
@@ -773,21 +1205,36 @@ class _ReferenceFramePainter extends CustomPainter {
 }
 
 class _EntityBoundsPainter extends CustomPainter {
-  const _EntityBoundsPainter({required this.entry, required this.scale});
+  const _EntityBoundsPainter({
+    required this.entry,
+    required this.scale,
+    required this.handleRadius,
+    required this.anchorHandleRadius,
+    required this.anchorSelected,
+    this.anchorHandleCenter,
+    this.activeHandle,
+  });
 
   final EntityEntry entry;
   final double scale;
+  final double handleRadius;
+  final double anchorHandleRadius;
+  final bool anchorSelected;
+  final Offset? anchorHandleCenter;
+  final _SceneColliderHandle? activeHandle;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final entityCenter = _ViewportGeometry.entityCenter(
-      size,
-      entry.offsetX,
-      entry.offsetY,
-      scale,
+    final handles = _ViewportGeometry.entityHandles(
+      size: size,
+      offsetX: entry.offsetX,
+      offsetY: entry.offsetY,
+      halfX: entry.halfX,
+      halfY: entry.halfY,
+      scale: scale,
     );
     final entityRect = _ViewportGeometry.entityRect(
-      center: entityCenter,
+      center: handles.center,
       halfX: entry.halfX,
       halfY: entry.halfY,
       scale: scale,
@@ -801,6 +1248,60 @@ class _EntityBoundsPainter extends CustomPainter {
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
     canvas.drawRect(entityRect, strokePaint);
+
+    _paintHandle(
+      canvas,
+      center: handles.center,
+      selected: activeHandle == _SceneColliderHandle.center,
+    );
+    _paintHandle(
+      canvas,
+      center: handles.top,
+      selected: activeHandle == _SceneColliderHandle.top,
+    );
+    _paintHandle(
+      canvas,
+      center: handles.right,
+      selected: activeHandle == _SceneColliderHandle.right,
+    );
+    final anchorCenter = anchorHandleCenter;
+    if (anchorCenter != null) {
+      _paintAnchorHandle(
+        canvas,
+        center: anchorCenter,
+        selected: anchorSelected,
+      );
+    }
+  }
+
+  void _paintHandle(
+    Canvas canvas, {
+    required Offset center,
+    required bool selected,
+  }) {
+    final fillPaint = Paint()
+      ..color = selected ? const Color(0xFFFFD97A) : const Color(0xFFE8F4FF);
+    final strokePaint = Paint()
+      ..color = selected ? const Color(0xFFE59E00) : const Color(0xFF0F1D28)
+      ..strokeWidth = 1.3
+      ..style = PaintingStyle.stroke;
+    canvas.drawCircle(center, handleRadius, fillPaint);
+    canvas.drawCircle(center, handleRadius, strokePaint);
+  }
+
+  void _paintAnchorHandle(
+    Canvas canvas, {
+    required Offset center,
+    required bool selected,
+  }) {
+    final fillPaint = Paint()
+      ..color = selected ? const Color(0xFFFF7A7A) : const Color(0xFFFF3D3D);
+    final strokePaint = Paint()
+      ..color = const Color(0xFF2A0B0B)
+      ..strokeWidth = 1.2
+      ..style = PaintingStyle.stroke;
+    canvas.drawCircle(center, anchorHandleRadius, fillPaint);
+    canvas.drawCircle(center, anchorHandleRadius, strokePaint);
   }
 
   @override
@@ -809,7 +1310,12 @@ class _EntityBoundsPainter extends CustomPainter {
         oldDelegate.entry.halfY != entry.halfY ||
         oldDelegate.entry.offsetX != entry.offsetX ||
         oldDelegate.entry.offsetY != entry.offsetY ||
-        oldDelegate.scale != scale;
+        oldDelegate.scale != scale ||
+        oldDelegate.handleRadius != handleRadius ||
+        oldDelegate.anchorHandleRadius != anchorHandleRadius ||
+        oldDelegate.anchorSelected != anchorSelected ||
+        oldDelegate.anchorHandleCenter != anchorHandleCenter ||
+        oldDelegate.activeHandle != activeHandle;
   }
 }
 
@@ -844,6 +1350,28 @@ class _ViewportGeometry {
       center.dy - halfHeight,
       center.dx + halfWidth,
       center.dy + halfHeight,
+    );
+  }
+
+  static _ViewportEntityHandles entityHandles({
+    required Size size,
+    required double offsetX,
+    required double offsetY,
+    required double halfX,
+    required double halfY,
+    required double scale,
+  }) {
+    final center = entityCenter(size, offsetX, offsetY, scale);
+    final rect = entityRect(
+      center: center,
+      halfX: halfX,
+      halfY: halfY,
+      scale: scale,
+    );
+    return _ViewportEntityHandles(
+      center: center,
+      top: Offset(rect.center.dx, rect.top),
+      right: Offset(rect.right, rect.center.dy),
     );
   }
 }
