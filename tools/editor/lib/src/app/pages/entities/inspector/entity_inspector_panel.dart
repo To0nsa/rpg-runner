@@ -16,6 +16,7 @@ class EntityInspectorPanel extends StatelessWidget {
     required this.frameWidthController,
     required this.frameHeightController,
     required this.renderScaleController,
+    required this.castOriginOffsetController,
     required this.onApply,
   });
 
@@ -30,6 +31,7 @@ class EntityInspectorPanel extends StatelessWidget {
   final TextEditingController frameWidthController;
   final TextEditingController frameHeightController;
   final TextEditingController renderScaleController;
+  final TextEditingController castOriginOffsetController;
   final VoidCallback? onApply;
 
   @override
@@ -47,7 +49,13 @@ class EntityInspectorPanel extends StatelessWidget {
     final reference = selected.referenceVisual;
     final canEditRenderScale = reference?.renderScaleBinding != null;
     final canEditAnchor = reference?.anchorBinding != null;
+    final canEditCastOriginOffset = selected.castOriginOffsetBinding != null;
     final shapeType = _resolvedShapeType(selected);
+    final artFacingDirection = switch (selected.artFacingDirection) {
+      EntityArtFacingDirection.left => 'left',
+      EntityArtFacingDirection.right => 'right',
+      null => 'n/a',
+    };
 
     return Card(
       child: Padding(
@@ -77,17 +85,17 @@ class EntityInspectorPanel extends StatelessWidget {
                 TextField(
                   controller: frameWidthController,
                   readOnly: true,
-                  decoration: const InputDecoration(
+                  decoration: _inspectorInputDecoration(
                     labelText: 'frameWidth',
-                    border: OutlineInputBorder(),
+                    readOnly: true,
                   ),
                 ),
                 TextField(
                   controller: frameHeightController,
                   readOnly: true,
-                  decoration: const InputDecoration(
+                  decoration: _inspectorInputDecoration(
                     labelText: 'frameHeight',
-                    border: OutlineInputBorder(),
+                    readOnly: true,
                   ),
                 ),
               ],
@@ -99,17 +107,17 @@ class EntityInspectorPanel extends StatelessWidget {
                 TextField(
                   controller: anchorXPxController,
                   readOnly: !canEditAnchor,
-                  decoration: const InputDecoration(
+                  decoration: _inspectorInputDecoration(
                     labelText: 'anchorPoint.x',
-                    border: OutlineInputBorder(),
+                    readOnly: !canEditAnchor,
                   ),
                 ),
                 TextField(
                   controller: anchorYPxController,
                   readOnly: !canEditAnchor,
-                  decoration: const InputDecoration(
+                  decoration: _inspectorInputDecoration(
                     labelText: 'anchorPoint.y',
-                    border: OutlineInputBorder(),
+                    readOnly: !canEditAnchor,
                   ),
                 ),
               ],
@@ -121,16 +129,47 @@ class EntityInspectorPanel extends StatelessWidget {
                 TextField(
                   controller: renderScaleController,
                   readOnly: !canEditRenderScale,
-                  decoration: const InputDecoration(
+                  decoration: _inspectorInputDecoration(
                     labelText: 'renderScale',
-                    border: OutlineInputBorder(),
+                    readOnly: !canEditRenderScale,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
+            _InspectorLabeledFieldRow(
+              subtitle: 'Art facing direction',
+              fields: [
+                _InspectorReadOnlyField(
+                  labelText: 'artFacingDir',
+                  value: artFacingDirection,
+                ),
+              ],
+            ),
+            if (selected.isCaster) ...[
+              const SizedBox(height: 12),
+              Text('Caster', style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 6),
+              _InspectorLabeledFieldRow(
+                subtitle: 'Cast origin offset',
+                fields: [
+                  TextField(
+                    controller: castOriginOffsetController,
+                    readOnly: !canEditCastOriginOffset,
+                    decoration: _inspectorInputDecoration(
+                      labelText: 'castOriginOffset',
+                      readOnly: !canEditCastOriginOffset,
+                      hintText: selected.castOriginOffset == null
+                          ? 'auto (collider fallback)'
+                          : null,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 8),
             Text(
-              'Shape "$shapeType"',
+              'Collider "$shapeType"',
               style: Theme.of(context).textTheme.titleSmall,
             ),
             const SizedBox(height: 6),
@@ -193,11 +232,47 @@ class EntityInspectorPanel extends StatelessWidget {
       case EntitySourceBindingKind.playerArgs:
       case EntitySourceBindingKind.projectileArgs:
         return 'rectangle';
+      case EntitySourceBindingKind.castOriginOffsetScalar:
       case EntitySourceBindingKind.referenceAnchorVec2Expression:
       case EntitySourceBindingKind.referenceRenderScaleScalar:
         return 'unknown';
     }
   }
+}
+
+class _InspectorReadOnlyField extends StatelessWidget {
+  const _InspectorReadOnlyField({required this.labelText, required this.value});
+
+  final String labelText;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      key: ValueKey('$labelText:$value'),
+      initialValue: value,
+      readOnly: true,
+      decoration: _inspectorInputDecoration(
+        labelText: labelText,
+        readOnly: true,
+      ),
+    );
+  }
+}
+
+InputDecoration _inspectorInputDecoration({
+  required String labelText,
+  required bool readOnly,
+  String? hintText,
+}) {
+  return InputDecoration(
+    labelText: labelText,
+    hintText: hintText,
+    border: const OutlineInputBorder(),
+    suffixIcon: readOnly
+        ? const Tooltip(message: 'Read-only', child: Icon(Icons.lock_outline))
+        : null,
+  );
 }
 
 class _InspectorLabeledFieldRow extends StatelessWidget {
@@ -239,5 +314,3 @@ class _InspectorLabeledFieldRow extends StatelessWidget {
     );
   }
 }
-
-

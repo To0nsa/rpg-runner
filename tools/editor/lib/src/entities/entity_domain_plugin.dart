@@ -70,6 +70,19 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
           ),
         );
       }
+      final castOriginOffset = entry.castOriginOffset;
+      if (castOriginOffset != null && !castOriginOffset.isFinite) {
+        issues.add(
+          ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: 'invalid_cast_origin_offset',
+            message:
+                '${entry.id} has invalid castOriginOffset ($castOriginOffset)',
+            sourcePath:
+                entry.castOriginOffsetBinding?.sourcePath ?? entry.sourcePath,
+          ),
+        );
+      }
       final reference = entry.referenceVisual;
       if (reference != null) {
         final renderScale = reference.renderScale;
@@ -139,6 +152,7 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
     final anchorXPx = command.payload['anchorXPx'];
     final anchorYPx = command.payload['anchorYPx'];
     final renderScale = command.payload['renderScale'];
+    final castOriginOffset = command.payload['castOriginOffset'];
     if (targetId is! String) {
       return colliderDocument;
     }
@@ -173,6 +187,9 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
     final nextRenderScale = renderScale is num
         ? renderScale.toDouble()
         : currentReference?.renderScale;
+    final nextCastOriginOffset = castOriginOffset is num
+        ? castOriginOffset.toDouble()
+        : currentEntry.castOriginOffset;
     final nextReference = currentReference?.copyWith(
       anchorXPx: nextAnchorXPx,
       anchorYPx: nextAnchorYPx,
@@ -183,6 +200,10 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
         _almostEqual(nextHalfY, currentEntry.halfY) &&
         _almostEqual(nextOffsetX, currentEntry.offsetX) &&
         _almostEqual(nextOffsetY, currentEntry.offsetY) &&
+        _nullableAlmostEqual(
+          nextCastOriginOffset,
+          currentEntry.castOriginOffset,
+        ) &&
         !_referenceChanged(nextReference, currentReference)) {
       return colliderDocument;
     }
@@ -197,6 +218,7 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
             halfY: nextHalfY,
             offsetX: nextOffsetX,
             offsetY: nextOffsetY,
+            castOriginOffset: nextCastOriginOffset,
             referenceVisual: nextReference,
           );
         })
@@ -509,6 +531,30 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
       );
     }
 
+    if (!_nullableAlmostEqual(
+      current.castOriginOffset,
+      baseline.castOriginOffset,
+    )) {
+      final binding = baseline.castOriginOffsetBinding;
+      final value = current.castOriginOffset;
+      if (binding == null || value == null) {
+        throw StateError(
+          'Entry ${current.id} castOriginOffset changed but no writable '
+          'source binding exists.',
+        );
+      }
+      edits.add(
+        _ResolvedEdit(
+          entryId: current.id,
+          sourcePath: binding.sourcePath,
+          startOffset: binding.startOffset,
+          endOffset: binding.endOffset,
+          beforeSnippet: binding.sourceSnippet,
+          afterSnippet: _formatDoubleLiteral(value),
+        ),
+      );
+    }
+
     final currentReference = current.referenceVisual;
     final baselineReference = baseline.referenceVisual;
     if (currentReference == null || baselineReference == null) {
@@ -579,6 +625,10 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
 
   bool _isChanged(EntityEntry current, EntityEntry baseline) {
     return _entityBoundsChanged(current, baseline) ||
+        !_nullableAlmostEqual(
+          current.castOriginOffset,
+          baseline.castOriginOffset,
+        ) ||
         _referenceChanged(current.referenceVisual, baseline.referenceVisual);
   }
 
@@ -614,6 +664,7 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
         return _playerEntitySnippet(entry);
       case EntitySourceBindingKind.projectileArgs:
         return _projectileEntitySnippet(entry);
+      case EntitySourceBindingKind.castOriginOffsetScalar:
       case EntitySourceBindingKind.referenceAnchorVec2Expression:
       case EntitySourceBindingKind.referenceRenderScaleScalar:
         throw StateError(
@@ -952,5 +1003,3 @@ class _UnifiedDiffHunk {
   final int newCount;
   final List<String> lines;
 }
-
-

@@ -38,6 +38,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
   late final TextEditingController _frameWidthController;
   late final TextEditingController _frameHeightController;
   late final TextEditingController _renderScaleController;
+  late final TextEditingController _castOriginOffsetController;
   late final TextEditingController _searchController;
   late final TextEditingController _sceneZoomController;
 
@@ -70,6 +71,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
     _frameWidthController = TextEditingController();
     _frameHeightController = TextEditingController();
     _renderScaleController = TextEditingController();
+    _castOriginOffsetController = TextEditingController();
     _searchController = TextEditingController();
     _sceneZoomController = TextEditingController();
     _syncSceneZoomText();
@@ -90,6 +92,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
     _frameWidthController.dispose();
     _frameHeightController.dispose();
     _renderScaleController.dispose();
+    _castOriginOffsetController.dispose();
     _searchController.dispose();
     _sceneZoomController.dispose();
     for (final image in _referenceImageCache.values) {
@@ -534,6 +537,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
       frameWidthController: _frameWidthController,
       frameHeightController: _frameHeightController,
       renderScaleController: _renderScaleController,
+      castOriginOffsetController: _castOriginOffsetController,
       onApply: selectedEntry == null
           ? null
           : () => _applyInspectorEdits(selectedEntry),
@@ -771,10 +775,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
     _sceneAnimFrameIndex = 0;
   }
 
-  void _ensureSelection(
-    EntityScene? scene,
-    List<EntityEntry> visibleEntries,
-  ) {
+  void _ensureSelection(EntityScene? scene, List<EntityEntry> visibleEntries) {
     if (scene == null || visibleEntries.isEmpty) {
       _resetViewportSelectionState();
       _selectedEntryId = null;
@@ -883,6 +884,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
       _anchorYPxController.text = '';
       _frameWidthController.text = '';
       _frameHeightController.text = '';
+      _castOriginOffsetController.text = '';
       return;
     }
 
@@ -901,6 +903,8 @@ class _EditorHomePageState extends State<EditorHomePage> {
         reference?.frameWidth?.toStringAsFixed(3) ?? '';
     _frameHeightController.text =
         reference?.frameHeight?.toStringAsFixed(3) ?? '';
+    _castOriginOffsetController.text =
+        entry.castOriginOffset?.toStringAsFixed(3) ?? '';
   }
 
   void _applyInspectorEdits(EntityEntry selectedEntry) {
@@ -922,6 +926,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
     double? renderScale;
     double? anchorXPx;
     double? anchorYPx;
+    double? castOriginOffset;
     if (reference != null) {
       if (reference.renderScaleBinding != null) {
         renderScale = double.tryParse(_renderScaleController.text.trim());
@@ -947,6 +952,19 @@ class _EditorHomePageState extends State<EditorHomePage> {
         }
       }
     }
+    if (selectedEntry.castOriginOffsetBinding != null) {
+      castOriginOffset = double.tryParse(
+        _castOriginOffsetController.text.trim(),
+      );
+      if (castOriginOffset == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('castOriginOffset must be a valid number.'),
+          ),
+        );
+        return;
+      }
+    }
 
     _applyEntryValues(
       selectedEntry.id,
@@ -957,6 +975,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
       renderScale: renderScale,
       anchorXPx: anchorXPx,
       anchorYPx: anchorYPx,
+      castOriginOffset: castOriginOffset,
     );
   }
 
@@ -969,6 +988,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
     double? renderScale,
     double? anchorXPx,
     double? anchorYPx,
+    double? castOriginOffset,
   }) {
     final payload = <String, Object?>{
       'id': entryId,
@@ -985,6 +1005,9 @@ class _EditorHomePageState extends State<EditorHomePage> {
     }
     if (anchorYPx != null) {
       payload['anchorYPx'] = anchorYPx;
+    }
+    if (castOriginOffset != null) {
+      payload['castOriginOffset'] = castOriginOffset;
     }
     widget.controller.applyCommand(
       AuthoringCommand(kind: 'update_entry', payload: payload),
@@ -1081,5 +1104,3 @@ class _ErrorPanel extends StatelessWidget {
     );
   }
 }
-
-

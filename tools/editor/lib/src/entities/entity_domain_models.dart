@@ -4,6 +4,8 @@ import '../domain/authoring_types.dart';
 
 enum EntityType { player, enemy, projectile }
 
+enum EntityArtFacingDirection { left, right }
+
 @immutable
 class EntityReferenceVisual {
   const EntityReferenceVisual({
@@ -94,6 +96,10 @@ class EntityEntry {
     required this.sourcePath,
     required this.sourceBinding,
     this.referenceVisual,
+    this.artFacingDirection,
+    this.isCaster = false,
+    this.castOriginOffset,
+    this.castOriginOffsetBinding,
   });
 
   final String id;
@@ -106,6 +112,10 @@ class EntityEntry {
   final String sourcePath;
   final EntitySourceBinding sourceBinding;
   final EntityReferenceVisual? referenceVisual;
+  final EntityArtFacingDirection? artFacingDirection;
+  final bool isCaster;
+  final double? castOriginOffset;
+  final EntitySourceBinding? castOriginOffsetBinding;
 
   EntityEntry copyWith({
     double? halfX,
@@ -113,6 +123,10 @@ class EntityEntry {
     double? offsetX,
     double? offsetY,
     EntityReferenceVisual? referenceVisual,
+    EntityArtFacingDirection? artFacingDirection,
+    bool? isCaster,
+    double? castOriginOffset,
+    EntitySourceBinding? castOriginOffsetBinding,
   }) {
     return EntityEntry(
       id: id,
@@ -125,6 +139,11 @@ class EntityEntry {
       sourcePath: sourcePath,
       sourceBinding: sourceBinding,
       referenceVisual: referenceVisual ?? this.referenceVisual,
+      artFacingDirection: artFacingDirection ?? this.artFacingDirection,
+      isCaster: isCaster ?? this.isCaster,
+      castOriginOffset: castOriginOffset ?? this.castOriginOffset,
+      castOriginOffsetBinding:
+          castOriginOffsetBinding ?? this.castOriginOffsetBinding,
     );
   }
 }
@@ -144,10 +163,7 @@ class EntityDocument extends AuthoringDocument {
 }
 
 class EntityScene extends EditableScene {
-  const EntityScene({
-    required this.entries,
-    required this.runtimeGridCellSize,
-  });
+  const EntityScene({required this.entries, required this.runtimeGridCellSize});
 
   final List<EntityEntry> entries;
   final double runtimeGridCellSize;
@@ -157,6 +173,7 @@ enum EntitySourceBindingKind {
   enemyAabbExpression,
   playerArgs,
   projectileArgs,
+  castOriginOffsetScalar,
   referenceAnchorVec2Expression,
   referenceRenderScaleScalar,
 }
@@ -177,7 +194,3 @@ class EntitySourceBinding {
   final int endOffset;
   final String sourceSnippet;
 }
-
-
-
-

@@ -25,9 +25,7 @@ void main() {
 
   EditorSessionController buildController() {
     return EditorSessionController(
-      pluginRegistry: AuthoringPluginRegistry(
-        plugins: [EntityDomainPlugin()],
-      ),
+      pluginRegistry: AuthoringPluginRegistry(plugins: [EntityDomainPlugin()]),
       initialPluginId: EntityDomainPlugin.pluginId,
       initialWorkspacePath: resolveWorkspacePath(),
     );
@@ -73,9 +71,7 @@ void main() {
             'projectile=$projectileCount), issues=[$issueSummary]',
       );
       expect(
-        entries.any(
-          (entry) => entry.entityType == EntityType.projectile,
-        ),
+        entries.any((entry) => entry.entityType == EntityType.projectile),
         isTrue,
       );
       final entriesWithAnimKeys = entries
@@ -93,8 +89,55 @@ void main() {
       );
       expect(playerEloise.referenceVisual, isNotNull);
       expect(playerEloise.referenceVisual!.renderScale, closeTo(0.75, 0.0001));
+      expect(playerEloise.artFacingDirection, EntityArtFacingDirection.right);
+      expect(playerEloise.isCaster, isTrue);
+      expect(playerEloise.castOriginOffset, closeTo(30.0, 0.0001));
+      expect(playerEloise.castOriginOffsetBinding, isNotNull);
+
+      final enemyUnoco = entries.firstWhere(
+        (entry) => entry.id == 'enemy.unocoDemon',
+      );
+      expect(enemyUnoco.artFacingDirection, EntityArtFacingDirection.left);
+      expect(enemyUnoco.isCaster, isTrue);
+      expect(enemyUnoco.castOriginOffset, closeTo(20.0, 0.0001));
+      expect(enemyUnoco.castOriginOffsetBinding, isNotNull);
     },
   );
+
+  test('export preview contains edited castOriginOffset snippet', () async {
+    final controller = buildController();
+    await controller.loadWorkspace();
+
+    final player = controller.entityScene!.entries.firstWhere(
+      (entry) =>
+          entry.id == 'player.eloise' && entry.castOriginOffsetBinding != null,
+    );
+    final baselineCastOriginOffset = player.castOriginOffset;
+    expect(baselineCastOriginOffset, isNotNull);
+
+    controller.applyCommand(
+      AuthoringCommand(
+        kind: 'update_entry',
+        payload: {
+          'id': player.id,
+          'halfX': player.halfX,
+          'halfY': player.halfY,
+          'offsetX': player.offsetX,
+          'offsetY': player.offsetY,
+          'castOriginOffset': baselineCastOriginOffset! + 5.0,
+        },
+      ),
+    );
+
+    await controller.exportPreview();
+    final export = controller.lastExportResult;
+    expect(export, isNotNull);
+    final patchArtifact = export!.artifacts.firstWhere(
+      (artifact) => artifact.title.endsWith('.patch'),
+    );
+    expect(patchArtifact.content, contains('castOriginOffset'));
+    expect(patchArtifact.content, contains('35.0'));
+  });
 
   test('export preview contains edited collider snippet', () async {
     final controller = buildController();
@@ -703,5 +746,3 @@ class SpatialGridTuning {
 ''');
   }
 }
-
-

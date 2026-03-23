@@ -180,6 +180,33 @@ class EntitySourceParser {
       }
       final offsetX = _doubleNamedArg(colliderArgs, 'offsetX') ?? 0.0;
       final offsetY = _doubleNamedArg(colliderArgs, 'offsetY') ?? 0.0;
+      final artFacingDirection =
+          _facingFromExpression(
+            _namedArgumentExpression(
+              returnExpr.argumentList.arguments,
+              'artFacingDir',
+            ),
+          ) ??
+          EntityArtFacingDirection.left;
+      final castOriginOffsetArg = _namedArgument(
+        returnExpr.argumentList.arguments,
+        'castOriginOffset',
+      );
+      final castOriginOffset = castOriginOffsetArg == null
+          ? null
+          : _doubleFromExpression(castOriginOffsetArg.expression);
+      final castOriginOffsetBinding = _scalarBindingFromNamedArg(
+        sourcePath: enemyCatalogPath,
+        source: source,
+        kind: EntitySourceBindingKind.castOriginOffsetScalar,
+        namedArg: castOriginOffsetArg,
+      );
+      final isCaster =
+          _hasNonNullNamedArgument(
+            returnExpr.argumentList.arguments,
+            'primaryCastAbilityId',
+          ) ||
+          castOriginOffset != null;
 
       final start = colliderValueExpr.offset;
       final end = colliderValueExpr.end;
@@ -212,6 +239,10 @@ class EntitySourceParser {
             sourceSnippet: source.substring(start, end),
           ),
           referenceVisual: referenceVisual,
+          artFacingDirection: artFacingDirection,
+          isCaster: isCaster,
+          castOriginOffset: castOriginOffset,
+          castOriginOffsetBinding: castOriginOffsetBinding,
         ),
       );
     }
@@ -324,6 +355,23 @@ class EntitySourceParser {
             continue;
           }
 
+          final artFacingDirection =
+              _facingFromExpression(_namedArgumentExpression(args, 'facing')) ??
+              EntityArtFacingDirection.right;
+          final castOriginOffsetArg = _namedArgument(args, 'castOriginOffset');
+          final castOriginOffset = castOriginOffsetArg == null
+              ? null
+              : _doubleFromExpression(castOriginOffsetArg.expression);
+          final castOriginOffsetBinding = _scalarBindingFromNamedArg(
+            sourcePath: relativePath,
+            source: source,
+            kind: EntitySourceBindingKind.castOriginOffsetScalar,
+            namedArg: castOriginOffsetArg,
+          );
+          final isCaster =
+              _hasNonNullNamedArgument(args, 'abilityProjectileId') ||
+              _hasNonNullNamedArgument(args, 'abilitySpellId') ||
+              castOriginOffset != null;
           final idBase = _playerIdFromCatalogVariable(variable.name.lexeme);
           final parsedReferenceVisual = resolver.resolveRenderVisualByName(
             '${idBase}RenderAnim',
@@ -352,6 +400,10 @@ class EntitySourceParser {
                 sourceSnippet: source.substring(start, end),
               ),
               referenceVisual: referenceVisual,
+              artFacingDirection: artFacingDirection,
+              isCaster: isCaster,
+              castOriginOffset: castOriginOffset,
+              castOriginOffsetBinding: castOriginOffsetBinding,
             ),
           );
         }
@@ -888,6 +940,50 @@ class EntitySourceParser {
     return _doubleFromExpression(expression);
   }
 
+  bool _hasNonNullNamedArgument(NodeList<Expression> arguments, String name) {
+    final expression = _namedArgumentExpression(arguments, name);
+    if (expression == null) {
+      return false;
+    }
+    return expression is! NullLiteral;
+  }
+
+  EntityArtFacingDirection? _facingFromExpression(Expression? expression) {
+    if (expression == null) {
+      return null;
+    }
+    final value = _enumCaseName(expression);
+    return switch (value) {
+      'left' => EntityArtFacingDirection.left,
+      'right' => EntityArtFacingDirection.right,
+      _ => null,
+    };
+  }
+
+  EntitySourceBinding? _scalarBindingFromNamedArg({
+    required String sourcePath,
+    required String source,
+    required EntitySourceBindingKind kind,
+    required NamedExpression? namedArg,
+  }) {
+    final expression = namedArg?.expression;
+    if (expression == null) {
+      return null;
+    }
+    final start = expression.offset;
+    final end = expression.end;
+    if (start < 0 || end <= start || end > source.length) {
+      return null;
+    }
+    return EntitySourceBinding(
+      kind: kind,
+      sourcePath: sourcePath,
+      startOffset: start,
+      endOffset: end,
+      sourceSnippet: source.substring(start, end),
+    );
+  }
+
   double? _doubleFromExpression(Expression expression) {
     if (expression is DoubleLiteral) {
       return expression.value;
@@ -1326,5 +1422,3 @@ class _ResolvedScalarValue {
 extension<T> on Iterable<T> {
   T? get firstOrNull => isEmpty ? null : first;
 }
-
-
