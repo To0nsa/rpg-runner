@@ -74,6 +74,7 @@ extension _SceneZoom on _EditorHomePageState {
     _updateState(() {
       _sceneZoom = next;
     });
+    _scheduleSceneViewportCentering();
     _syncSceneZoomText();
   }
 
@@ -93,10 +94,7 @@ extension _SceneZoom on _EditorHomePageState {
   }
 
   double? _parseZoomFromPercentText(String raw) {
-    final normalized = raw
-        .trim()
-        .replaceAll('%', '')
-        .replaceAll(',', '.');
+    final normalized = raw.trim().replaceAll('%', '').replaceAll(',', '.');
     if (normalized.isEmpty) {
       return null;
     }

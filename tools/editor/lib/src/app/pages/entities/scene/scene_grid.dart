@@ -4,6 +4,7 @@ class _ViewportPixelGridPainter extends CustomPainter {
   const _ViewportPixelGridPainter({required this.zoom});
 
   static const double _minSpacingToPaint = 1.0;
+  static const double _axisStrokeWidth = 2.0;
   final double zoom;
 
   @override
@@ -26,6 +27,7 @@ class _ViewportPixelGridPainter extends CustomPainter {
       worldSpacingPx: 32,
       color: const Color(0x389FB4C7),
     );
+    _paintAxes(canvas, size);
   }
 
   void _paintGridLayer(
@@ -81,6 +83,18 @@ class _ViewportPixelGridPainter extends CustomPainter {
     for (var y = center.dy - spacingPx; y >= 0; y -= spacingPx) {
       drawHorizontal(y);
     }
+  }
+
+  void _paintAxes(Canvas canvas, Size size) {
+    final center = _ViewportGeometry.canvasCenter(size);
+    final paint = Paint()
+      ..color = const Color(0xCC9FB4C7)
+      ..strokeWidth = _axisStrokeWidth;
+
+    final axisX = center.dx.floorToDouble() + 0.5;
+    final axisY = center.dy.floorToDouble() + 0.5;
+    canvas.drawLine(Offset(axisX, 0), Offset(axisX, size.height), paint);
+    canvas.drawLine(Offset(0, axisY), Offset(size.width, axisY), paint);
   }
 
   @override

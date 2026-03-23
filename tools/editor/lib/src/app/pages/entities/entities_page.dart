@@ -22,22 +22,11 @@ extension _EntitiesPage on _EditorHomePageState {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
-          flex: 5,
-          child: _buildEntryListPanel(
-            scene: entityScene,
-            visibleEntries: visibleEntries,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
           flex: 4,
           child: SingleChildScrollView(
             child: Column(
               children: [
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: _buildViewportPanel(selectedEntry),
-                ),
+                _buildViewportPanel(selectedEntry),
                 const SizedBox(height: 12),
                 _buildInspector(selectedEntry),
                 const SizedBox(height: 12),
@@ -50,8 +39,15 @@ extension _EntitiesPage on _EditorHomePageState {
             ),
           ),
         ),
+        const SizedBox(width: 12),
+        Expanded(
+          flex: 5,
+          child: _buildEntryListPanel(
+            scene: entityScene,
+            visibleEntries: visibleEntries,
+          ),
+        ),
       ],
     );
   }
 }
-

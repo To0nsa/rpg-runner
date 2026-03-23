@@ -40,102 +40,303 @@ extension _SceneView on _EditorHomePageState {
         : _effectiveReferenceRow(referenceAnimView);
     final referenceFrame = referenceAnimView == null
         ? 0
-        : _effectiveReferenceFrame(
-            referenceAnimView,
-            frameIndex: frameIndex,
-          );
+        : _effectiveReferenceFrame(referenceAnimView, frameIndex: frameIndex);
+    final sceneCanvasSize = _sceneCanvasSize(
+      selectedEntry: selectedEntry,
+      reference: resolvedReference,
+      scale: scale,
+    );
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: _fixedViewportSize.width,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final viewportWidth = constraints.maxWidth.isFinite
+            ? math.min(_fixedViewportSize.width, constraints.maxWidth)
+            : _fixedViewportSize.width;
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: viewportWidth,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Entity Scene View',
-                        style: Theme.of(context).textTheme.titleSmall,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Entity Scene View',
+                              style: Theme.of(context).textTheme.titleSmall,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: _buildSceneZoomControls(),
+                            ),
+                          ),
+                        ],
                       ),
-                      const Spacer(),
-                      _buildSceneZoomControls(),
-                    ],
-                  ),
-                  if (animKeys.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Spacer(),
-                        _buildSceneAnimControls(
-                          animKeys: animKeys,
-                          activeAnimKey: activeAnimKey,
-                          frameIndex: frameIndex,
-                          frameCount: frameCount,
+                      if (animKeys.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: _buildSceneAnimControls(
+                              animKeys: animKeys,
+                              activeAnimKey: activeAnimKey,
+                              frameIndex: frameIndex,
+                              frameCount: frameCount,
+                            ),
+                          ),
                         ),
                       ],
-                    ),
-                  ],
-                ],
-              ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: viewportWidth,
+                  height: _fixedViewportSize.height,
+                  child: _buildScrollableSceneCanvas(
+                    canvasSize: sceneCanvasSize,
+                    scale: scale,
+                    selectedEntry: selectedEntry,
+                    resolvedReference: resolvedReference,
+                    referenceAnimView: referenceAnimView,
+                    resolvedImage: resolvedImage,
+                    referenceRow: referenceRow,
+                    referenceFrame: referenceFrame,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: _fixedViewportSize.width,
-              height: _fixedViewportSize.height,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFF1B2A36)),
-                ),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    const Positioned.fill(
-                      child: ColoredBox(color: Color(0xFF111A22)),
-                    ),
-                    CustomPaint(
-                      painter: _ViewportPixelGridPainter(zoom: scale),
-                    ),
-                    if (resolvedReference != null &&
-                        referenceAnimView != null &&
-                        resolvedImage != null)
-                      CustomPaint(
-                        painter: _ReferenceFramePainter(
-                          image: resolvedImage,
-                          row: referenceRow,
-                          frame: referenceFrame,
-                          destinationRect: _referenceRect(
-                            scale: scale,
-                            viewportSize: _fixedViewportSize,
-                            reference: resolvedReference,
-                          ),
-                          anchorX: resolvedReference.anchorX,
-                          anchorY: resolvedReference.anchorY,
-                          showReferencePoints: false,
-                          frameWidth: resolvedReference.frameWidth,
-                          frameHeight: resolvedReference.frameHeight,
-                          gridColumns: referenceAnimView.defaultGridColumns,
-                          drawMarkerLabels: false,
-                        ),
-                      ),
-                    CustomPaint(
-                      painter: _EntityBoundsPainter(
-                        entry: selectedEntry,
-                        scale: scale,
-                      ),
-                    ),
-                  ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildScrollableSceneCanvas({
+    required Size canvasSize,
+    required double scale,
+    required EntityEntry selectedEntry,
+    required _ResolvedReferenceVisual? resolvedReference,
+    required _ResolvedReferenceAnimView? referenceAnimView,
+    required ui.Image? resolvedImage,
+    required int referenceRow,
+    required int referenceFrame,
+  }) {
+    final canvas = Listener(
+      onPointerDown: _onSceneCanvasPointerDown,
+      onPointerMove: _onSceneCanvasPointerMove,
+      onPointerUp: _onSceneCanvasPointerEnd,
+      onPointerCancel: _onSceneCanvasPointerEnd,
+      onPointerSignal: _onSceneCanvasPointerSignal,
+      child: SizedBox(
+        width: canvasSize.width,
+        height: canvasSize.height,
+        child: _buildSceneCanvas(
+          canvasSize: canvasSize,
+          scale: scale,
+          selectedEntry: selectedEntry,
+          resolvedReference: resolvedReference,
+          referenceAnimView: referenceAnimView,
+          resolvedImage: resolvedImage,
+          referenceRow: referenceRow,
+          referenceFrame: referenceFrame,
+        ),
+      ),
+    );
+
+    return ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+      child: SingleChildScrollView(
+        controller: _sceneVerticalScrollController,
+        scrollDirection: Axis.vertical,
+        child: SingleChildScrollView(
+          controller: _sceneHorizontalScrollController,
+          scrollDirection: Axis.horizontal,
+          child: canvas,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSceneCanvas({
+    required Size canvasSize,
+    required double scale,
+    required EntityEntry selectedEntry,
+    required _ResolvedReferenceVisual? resolvedReference,
+    required _ResolvedReferenceAnimView? referenceAnimView,
+    required ui.Image? resolvedImage,
+    required int referenceRow,
+    required int referenceFrame,
+  }) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFF1B2A36)),
+      ),
+      child: ClipRect(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            const Positioned.fill(child: ColoredBox(color: Color(0xFF111A22))),
+            CustomPaint(painter: _ViewportPixelGridPainter(zoom: scale)),
+            if (resolvedReference != null &&
+                referenceAnimView != null &&
+                resolvedImage != null)
+              CustomPaint(
+                painter: _ReferenceFramePainter(
+                  image: resolvedImage,
+                  row: referenceRow,
+                  frame: referenceFrame,
+                  destinationRect: _referenceRect(
+                    scale: scale,
+                    viewportSize: canvasSize,
+                    reference: resolvedReference,
+                  ),
+                  anchorX: resolvedReference.anchorX,
+                  anchorY: resolvedReference.anchorY,
+                  showReferencePoints: false,
+                  frameWidth: resolvedReference.frameWidth,
+                  frameHeight: resolvedReference.frameHeight,
+                  gridColumns: referenceAnimView.defaultGridColumns,
+                  drawMarkerLabels: false,
                 ),
               ),
+            CustomPaint(
+              painter: _EntityBoundsPainter(entry: selectedEntry, scale: scale),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Size _sceneCanvasSize({
+    required EntityEntry selectedEntry,
+    required _ResolvedReferenceVisual? reference,
+    required double scale,
+  }) {
+    const panPadding = 280.0;
+    var halfSpanX =
+        selectedEntry.offsetX.abs() * scale + selectedEntry.halfX * scale;
+    var halfSpanY =
+        selectedEntry.offsetY.abs() * scale + selectedEntry.halfY * scale;
+
+    if (reference != null) {
+      final frameWidth = reference.frameWidth * reference.renderScale * scale;
+      final frameHeight = reference.frameHeight * reference.renderScale * scale;
+      final frameHalfSpanX = math.max(
+        reference.anchorX * frameWidth,
+        (1.0 - reference.anchorX) * frameWidth,
+      );
+      final frameHalfSpanY = math.max(
+        reference.anchorY * frameHeight,
+        (1.0 - reference.anchorY) * frameHeight,
+      );
+      if (frameHalfSpanX > halfSpanX) {
+        halfSpanX = frameHalfSpanX;
+      }
+      if (frameHalfSpanY > halfSpanY) {
+        halfSpanY = frameHalfSpanY;
+      }
+    }
+
+    final width = math.max(
+      _fixedViewportSize.width,
+      (halfSpanX + panPadding) * 2,
+    );
+    final height = math.max(
+      _fixedViewportSize.height,
+      (halfSpanY + panPadding) * 2,
+    );
+    return Size(width.ceilToDouble(), height.ceilToDouble());
+  }
+
+  void _onSceneCanvasPointerDown(PointerDownEvent event) {
+    final isPrimaryMouseDown = (event.buttons & kPrimaryButton) != 0;
+    _sceneCtrlPanActive =
+        isPrimaryMouseDown && HardwareKeyboard.instance.isControlPressed;
+  }
+
+  void _onSceneCanvasPointerMove(PointerMoveEvent event) {
+    if (!_sceneCtrlPanActive) {
+      return;
+    }
+    if ((event.buttons & kPrimaryButton) == 0) {
+      _sceneCtrlPanActive = false;
+      return;
+    }
+    _panSceneViewportBy(delta: event.delta);
+  }
+
+  void _onSceneCanvasPointerEnd(PointerEvent event) {
+    _sceneCtrlPanActive = false;
+  }
+
+  void _onSceneCanvasPointerSignal(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent) {
+      return;
+    }
+    if (!HardwareKeyboard.instance.isControlPressed) {
+      return;
+    }
+    final deltaY = event.scrollDelta.dy;
+    if (deltaY.abs() <= 0.0) {
+      return;
+    }
+    // Mouse wheels usually emit ~120 px "notches". Trackpads emit smaller
+    // continuous deltas, so normalize to at least one zoom step.
+    final rawSteps = (deltaY.abs() / 120.0).round();
+    final steps = rawSteps < 1 ? 1 : rawSteps;
+    for (var i = 0; i < steps; i += 1) {
+      if (deltaY < 0) {
+        _zoomIn();
+      } else {
+        _zoomOut();
+      }
+    }
+  }
+
+  void _panSceneViewportBy({required Offset delta}) {
+    if (!_sceneHorizontalScrollController.hasClients ||
+        !_sceneVerticalScrollController.hasClients) {
+      return;
+    }
+    final horizontalPosition = _sceneHorizontalScrollController.position;
+    final verticalPosition = _sceneVerticalScrollController.position;
+    final nextX = (_sceneHorizontalScrollController.offset - delta.dx).clamp(
+      0.0,
+      horizontalPosition.maxScrollExtent,
+    );
+    final nextY = (_sceneVerticalScrollController.offset - delta.dy).clamp(
+      0.0,
+      verticalPosition.maxScrollExtent,
+    );
+    _sceneHorizontalScrollController.jumpTo(nextX);
+    _sceneVerticalScrollController.jumpTo(nextY);
+  }
+
+  void _scheduleSceneViewportCentering() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          !_sceneHorizontalScrollController.hasClients ||
+          !_sceneVerticalScrollController.hasClients) {
+        return;
+      }
+      final horizontalPosition = _sceneHorizontalScrollController.position;
+      final verticalPosition = _sceneVerticalScrollController.position;
+      final targetX = horizontalPosition.maxScrollExtent * 0.5;
+      final targetY = verticalPosition.maxScrollExtent * 0.5;
+      _sceneHorizontalScrollController.jumpTo(targetX);
+      _sceneVerticalScrollController.jumpTo(targetY);
+    });
   }
 
   _ResolvedReferenceVisual? _resolveReferenceVisual(EntityEntry entry) {
@@ -646,4 +847,3 @@ class _ViewportGeometry {
     );
   }
 }
-

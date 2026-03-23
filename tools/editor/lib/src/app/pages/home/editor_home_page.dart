@@ -3,7 +3,9 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../entities/entity_domain_models.dart';
 import '../../../domain/authoring_types.dart';
@@ -41,6 +43,8 @@ class _EditorHomePageState extends State<EditorHomePage> {
   late final TextEditingController _castOriginOffsetController;
   late final TextEditingController _searchController;
   late final TextEditingController _sceneZoomController;
+  late final ScrollController _sceneHorizontalScrollController;
+  late final ScrollController _sceneVerticalScrollController;
 
   String? _selectedEntryId;
   String? _selectedDiffPath;
@@ -52,6 +56,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
   double _sceneZoom = 1.0;
   String? _sceneAnimKey;
   int _sceneAnimFrameIndex = 0;
+  bool _sceneCtrlPanActive = false;
   final Map<String, ui.Image> _referenceImageCache = <String, ui.Image>{};
   final Set<String> _referenceImageLoading = <String>{};
   final Set<String> _referenceImageFailed = <String>{};
@@ -74,6 +79,8 @@ class _EditorHomePageState extends State<EditorHomePage> {
     _castOriginOffsetController = TextEditingController();
     _searchController = TextEditingController();
     _sceneZoomController = TextEditingController();
+    _sceneHorizontalScrollController = ScrollController();
+    _sceneVerticalScrollController = ScrollController();
     _syncSceneZoomText();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       widget.controller.loadWorkspace();
@@ -95,6 +102,8 @@ class _EditorHomePageState extends State<EditorHomePage> {
     _castOriginOffsetController.dispose();
     _searchController.dispose();
     _sceneZoomController.dispose();
+    _sceneHorizontalScrollController.dispose();
+    _sceneVerticalScrollController.dispose();
     for (final image in _referenceImageCache.values) {
       image.dispose();
     }
@@ -773,6 +782,8 @@ class _EditorHomePageState extends State<EditorHomePage> {
   void _resetViewportSelectionState() {
     _sceneAnimKey = null;
     _sceneAnimFrameIndex = 0;
+    _sceneCtrlPanActive = false;
+    _scheduleSceneViewportCentering();
   }
 
   void _ensureSelection(EntityScene? scene, List<EntityEntry> visibleEntries) {
