@@ -7,10 +7,12 @@ class EnemyDef {
   const EnemyDef({
     required this.enemyId,
     this.facing = Facing.left,
-  });
+    Facing? artFacing,
+  }) : artFacing = artFacing ?? facing;
 
   final EnemyId enemyId;
   final Facing facing;
+  final Facing artFacing;
 }
 
 /// Minimal enemy marker + per-enemy state.
@@ -20,6 +22,7 @@ class EnemyDef {
 class EnemyStore extends SparseSet {
   final List<EnemyId> enemyId = <EnemyId>[];
   final List<Facing> facing = <Facing>[];
+  final List<Facing> artFacing = <Facing>[];
   final List<int> lastMeleeTick = <int>[];
   final List<Facing> lastMeleeFacing = <Facing>[];
   final List<int> lastMeleeAnimTicks = <int>[];
@@ -28,6 +31,7 @@ class EnemyStore extends SparseSet {
     final i = addEntity(entity);
     enemyId[i] = def.enemyId;
     facing[i] = def.facing;
+    artFacing[i] = def.artFacing;
     lastMeleeTick[i] = -1;
     lastMeleeFacing[i] = def.facing;
     lastMeleeAnimTicks[i] = 0;
@@ -37,6 +41,7 @@ class EnemyStore extends SparseSet {
   void onDenseAdded(int denseIndex) {
     enemyId.add(EnemyId.unocoDemon);
     facing.add(Facing.left);
+    artFacing.add(Facing.left);
     lastMeleeTick.add(-1);
     lastMeleeFacing.add(Facing.left);
     lastMeleeAnimTicks.add(0);
@@ -46,15 +51,16 @@ class EnemyStore extends SparseSet {
   void onSwapRemove(int removeIndex, int lastIndex) {
     enemyId[removeIndex] = enemyId[lastIndex];
     facing[removeIndex] = facing[lastIndex];
+    artFacing[removeIndex] = artFacing[lastIndex];
     lastMeleeTick[removeIndex] = lastMeleeTick[lastIndex];
     lastMeleeFacing[removeIndex] = lastMeleeFacing[lastIndex];
     lastMeleeAnimTicks[removeIndex] = lastMeleeAnimTicks[lastIndex];
 
     enemyId.removeLast();
     facing.removeLast();
+    artFacing.removeLast();
     lastMeleeTick.removeLast();
     lastMeleeFacing.removeLast();
     lastMeleeAnimTicks.removeLast();
   }
 }
-

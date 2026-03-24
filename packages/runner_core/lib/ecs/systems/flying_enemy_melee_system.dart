@@ -8,6 +8,7 @@ import '../../snapshots/enums.dart';
 import '../../tuning/flying_enemy_tuning.dart';
 import '../../util/ability_timing.dart';
 import '../../util/fixed_math.dart';
+import '../collider_aabb_utils.dart';
 import '../entity_id.dart';
 import '../stores/enemies/flying_enemy_combat_mode_store.dart';
 import '../stores/melee_intent_store.dart';
@@ -39,7 +40,12 @@ class FlyingEnemyMeleeSystem {
       playerCenterX = world.transform.posX[playerTi];
       if (world.colliderAabb.has(player)) {
         final ai = world.colliderAabb.indexOf(player);
-        playerCenterX += world.colliderAabb.offsetX[ai];
+        playerCenterX = colliderCenterX(
+          world,
+          entity: player,
+          transformIndex: playerTi,
+          colliderIndex: ai,
+        );
       }
     }
 
@@ -104,7 +110,12 @@ class FlyingEnemyMeleeSystem {
       var enemyCenterX = world.transform.posX[enemyTi];
       if (world.colliderAabb.has(enemy)) {
         final ai = world.colliderAabb.indexOf(enemy);
-        enemyCenterX += world.colliderAabb.offsetX[ai];
+        enemyCenterX = colliderCenterX(
+          world,
+          entity: enemy,
+          transformIndex: enemyTi,
+          colliderIndex: ai,
+        );
       }
 
       final actionSpeedBp = _actionSpeedBpForEntity(world, enemy);
@@ -226,7 +237,12 @@ class FlyingEnemyMeleeSystem {
     var enemyHalfY = 0.0;
     if (world.colliderAabb.has(enemy)) {
       final colliderIndex = world.colliderAabb.indexOf(enemy);
-      enemyCenterX += world.colliderAabb.offsetX[colliderIndex];
+      enemyCenterX = colliderCenterX(
+        world,
+        entity: enemy,
+        transformIndex: enemyTransformIndex,
+        colliderIndex: colliderIndex,
+      );
       enemyCenterY += world.colliderAabb.offsetY[colliderIndex];
       enemyHalfX = world.colliderAabb.halfX[colliderIndex];
       enemyHalfY = world.colliderAabb.halfY[colliderIndex];
@@ -238,7 +254,12 @@ class FlyingEnemyMeleeSystem {
     var playerHalfY = 0.0;
     if (world.colliderAabb.has(player)) {
       final colliderIndex = world.colliderAabb.indexOf(player);
-      playerCenterX += world.colliderAabb.offsetX[colliderIndex];
+      playerCenterX = colliderCenterX(
+        world,
+        entity: player,
+        transformIndex: playerTransformIndex,
+        colliderIndex: colliderIndex,
+      );
       playerCenterY += world.colliderAabb.offsetY[colliderIndex];
       playerHalfX = world.colliderAabb.halfX[colliderIndex];
       playerHalfY = world.colliderAabb.halfY[colliderIndex];

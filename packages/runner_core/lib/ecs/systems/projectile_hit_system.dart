@@ -4,6 +4,7 @@ import '../../combat/damage.dart';
 import '../../events/game_event.dart';
 import '../../snapshots/enums.dart';
 import '../../util/vec2.dart';
+import '../collider_aabb_utils.dart';
 import '../entity_id.dart';
 import '../hit/hit_resolver.dart';
 import '../stores/enemies/enemy_store.dart';
@@ -64,7 +65,12 @@ class ProjectileHitSystem {
       // - [offsetX/Y]: Center offset relative to transform.
       // - [halfX]: Interpreted as half-length of the capsule shaft.
       // - [halfY]: Interpreted as the radius (thickness) of the projectile.
-      final pcx = transforms.posX[ti] + colliders.offsetX[ci];
+      final pcx = colliderCenterX(
+        world,
+        entity: p,
+        transformIndex: ti,
+        colliderIndex: ci,
+      );
       final pcy = transforms.posY[ti] + colliders.offsetY[ci];
 
       final halfLength = colliders.halfX[ci];

@@ -173,8 +173,7 @@ class RunnerFlameGame extends FlameGame {
   final Vector2 _snapScratch = Vector2.zero();
   final List<ProjectileHitEvent> _pendingProjectileHitEvents =
       <ProjectileHitEvent>[];
-  final List<SpellImpactEvent> _pendingSpellImpactEvents =
-      <SpellImpactEvent>[];
+  final List<SpellImpactEvent> _pendingSpellImpactEvents = <SpellImpactEvent>[];
   final List<EntityVisualCueEvent> _pendingEntityVisualCueEvents =
       <EntityVisualCueEvent>[];
   final Map<int, DeterministicAnimViewComponent> _ghostEnemies =
@@ -525,11 +524,18 @@ class RunnerFlameGame extends FlameGame {
       offsetXFor: (e) {
         switch (e.kind) {
           case EntityKind.player:
-            return playerCharacter.catalog.colliderOffsetX;
+            final authoredOffsetX = playerCharacter.catalog.colliderOffsetX;
+            final artFacing = playerCharacter.catalog.facing;
+            return e.facing == artFacing ? authoredOffsetX : -authoredOffsetX;
           case EntityKind.enemy:
             final enemyId = e.enemyId;
             if (enemyId == null) return 0.0;
-            return controller.enemyCatalog.get(enemyId).collider.offsetX;
+            final authoredOffsetX = controller.enemyCatalog
+                .get(enemyId)
+                .collider
+                .offsetX;
+            final artFacing = e.artFacingDir ?? e.facing;
+            return e.facing == artFacing ? authoredOffsetX : -authoredOffsetX;
           default:
             return 0.0;
         }
@@ -967,13 +973,14 @@ class RunnerFlameGame extends FlameGame {
 
     var playerView = _ghostPlayer;
     if (playerView == null) {
-      playerView = PlayerViewComponent(
-        animationSet: playerAnimSet,
-        renderScale: Vector2.all(_playerRenderTuning.scale),
-        feedbackTuning: _combatFeedbackTuning,
-      )
-        ..priority = _priorityGhostEntities
-        ..setVisualStyle(RenderVisualStyle.ghost);
+      playerView =
+          PlayerViewComponent(
+              animationSet: playerAnimSet,
+              renderScale: Vector2.all(_playerRenderTuning.scale),
+              feedbackTuning: _combatFeedbackTuning,
+            )
+            ..priority = _priorityGhostEntities
+            ..setVisualStyle(RenderVisualStyle.ghost);
       _ghostPlayer = playerView;
       world.add(playerView);
     }
@@ -1004,7 +1011,9 @@ class RunnerFlameGame extends FlameGame {
     for (final entity in entities) {
       if (entity.kind != EntityKind.enemy) continue;
       final enemyId = entity.enemyId;
-      final entry = enemyId == null ? null : _enemyRenderRegistry.entryFor(enemyId);
+      final entry = enemyId == null
+          ? null
+          : _enemyRenderRegistry.entryFor(enemyId);
       if (entry == null) {
         _ghostEnemies.remove(entity.id)?.removeFromParent();
         continue;
@@ -1138,10 +1147,12 @@ class RunnerFlameGame extends FlameGame {
       if (intensity01 <= 0.0) continue;
 
       final DeterministicAnimViewComponent? view;
-      if (_ghostPlayerEntityId != null && event.entityId == _ghostPlayerEntityId) {
+      if (_ghostPlayerEntityId != null &&
+          event.entityId == _ghostPlayerEntityId) {
         view = _ghostPlayer;
       } else {
-        view = _ghostEnemies[event.entityId] ?? _ghostProjectiles[event.entityId];
+        view =
+            _ghostEnemies[event.entityId] ?? _ghostProjectiles[event.entityId];
       }
       if (view == null) continue;
 
@@ -1393,10 +1404,7 @@ class RunnerFlameGame extends FlameGame {
   }
 
   @visibleForTesting
-  void debugSyncGhostLayerForTest({
-    double alpha = 0.0,
-    Vector2? cameraCenter,
-  }) {
+  void debugSyncGhostLayerForTest({double alpha = 0.0, Vector2? cameraCenter}) {
     final center = cameraCenter ?? Vector2.zero();
     _syncGhostLayer(alpha: alpha, cameraCenter: center);
     _flushPendingGhostEntityVisualCueEvents();

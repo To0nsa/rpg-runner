@@ -69,6 +69,7 @@ class EntityFactory {
     required double velX,
     required double velY,
     required Facing facing,
+    Facing? artFacing,
     required bool grounded,
     required BodyDef body,
     required ColliderAabbDef collider,
@@ -87,7 +88,7 @@ class EntityFactory {
     world.abilityCharge.add(id);
     world.activeAbility.add(id);
     world.animState.add(id);
-    world.movement.add(id, facing: facing);
+    world.movement.add(id, facing: facing, artFacing: artFacing);
     world.jumpState.add(id);
     world.body.add(id, body);
     world.colliderAabb.add(id, collider);
@@ -150,6 +151,7 @@ class EntityFactory {
     required double velX,
     required double velY,
     required Facing facing,
+    Facing? artFacing,
     required BodyDef body,
     required ColliderAabbDef collider,
     required HealthDef health,
@@ -177,7 +179,14 @@ class EntityFactory {
     world.meleeEngagement.add(id);
     world.statModifier.add(id);
     world.stamina.add(id, stamina);
-    world.enemy.add(id, EnemyDef(enemyId: enemyId, facing: facing));
+    world.enemy.add(
+      id,
+      EnemyDef(
+        enemyId: enemyId,
+        facing: facing,
+        artFacing: artFacing ?? facing,
+      ),
+    );
     world.activeAbility.add(id);
     world.abilityCharge.add(id);
     world.animState.add(id);

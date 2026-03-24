@@ -882,7 +882,6 @@ class SnapshotBuilder {
       if (!world.transform.has(e)) continue;
       final ti = world.transform.indexOf(e);
       final enemyId = enemies.enemyId[ei];
-      final enemyArchetype = enemyCatalog.get(enemyId);
 
       Vec2? size;
       if (world.colliderAabb.has(e)) {
@@ -919,7 +918,7 @@ class SnapshotBuilder {
           size: size,
           enemyId: enemyId,
           facing: enemies.facing[ei],
-          artFacingDir: enemyArchetype.artFacingDir,
+          artFacingDir: enemies.artFacing[ei],
           anim: anim,
           grounded: grounded,
           animFrame: animFrame,

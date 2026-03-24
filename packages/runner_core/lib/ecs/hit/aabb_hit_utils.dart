@@ -1,4 +1,5 @@
 import '../../combat/faction.dart';
+import '../collider_aabb_utils.dart';
 import '../entity_id.dart';
 import '../world.dart';
 
@@ -26,6 +27,7 @@ bool areAllies(Faction a, Faction b) => a == b;
 class DamageableTargetCache {
   /// The [EntityId] of the target.
   final List<EntityId> entities = <EntityId>[];
+
   /// The [Faction] of the target.
   final List<Faction> factions = <Faction>[];
 
@@ -71,8 +73,17 @@ class DamageableTargetCache {
 
       // 4. Pre-calculate world-space AABB to save work during hit tests.
       // (Transform Pos + Collider Offset)
-      final cx = world.transform.posX[ti] + world.colliderAabb.offsetX[aabbi];
-      final cy = world.transform.posY[ti] + world.colliderAabb.offsetY[aabbi];
+      final cx = colliderCenterX(
+        world,
+        entity: e,
+        transformIndex: ti,
+        colliderIndex: aabbi,
+      );
+      final cy = colliderCenterY(
+        world,
+        transformIndex: ti,
+        colliderIndex: aabbi,
+      );
 
       // 5. Commit valid target to cache.
       entities.add(e);
@@ -130,24 +141,40 @@ bool aabbOverlapsCenters({
 /// Helper that resolves entity indices to world components and checks overlap.
 bool aabbOverlapsWorldColliders(
   EcsWorld world, {
+  required EntityId aEntity,
   required int aTransformIndex,
   required int aAabbIndex,
+  required EntityId bEntity,
   required int bTransformIndex,
   required int bAabbIndex,
 }) {
   // 1. Resolve world-space AABB for Entity A.
-  final aCenterX = world.transform.posX[aTransformIndex] +
-      world.colliderAabb.offsetX[aAabbIndex];
-  final aCenterY = world.transform.posY[aTransformIndex] +
-      world.colliderAabb.offsetY[aAabbIndex];
+  final aCenterX = colliderCenterX(
+    world,
+    entity: aEntity,
+    transformIndex: aTransformIndex,
+    colliderIndex: aAabbIndex,
+  );
+  final aCenterY = colliderCenterY(
+    world,
+    transformIndex: aTransformIndex,
+    colliderIndex: aAabbIndex,
+  );
   final aHalfX = world.colliderAabb.halfX[aAabbIndex];
   final aHalfY = world.colliderAabb.halfY[aAabbIndex];
 
   // 2. Resolve world-space AABB for Entity B.
-  final bCenterX = world.transform.posX[bTransformIndex] +
-      world.colliderAabb.offsetX[bAabbIndex];
-  final bCenterY = world.transform.posY[bTransformIndex] +
-      world.colliderAabb.offsetY[bAabbIndex];
+  final bCenterX = colliderCenterX(
+    world,
+    entity: bEntity,
+    transformIndex: bTransformIndex,
+    colliderIndex: bAabbIndex,
+  );
+  final bCenterY = colliderCenterY(
+    world,
+    transformIndex: bTransformIndex,
+    colliderIndex: bAabbIndex,
+  );
   final bHalfX = world.colliderAabb.halfX[bAabbIndex];
   final bHalfY = world.colliderAabb.halfY[bAabbIndex];
 

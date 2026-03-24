@@ -5,6 +5,7 @@ import '../../tuning/flying_enemy_tuning.dart';
 import '../../util/deterministic_rng.dart';
 import '../../util/double_math.dart';
 import '../../util/velocity_math.dart';
+import '../collider_aabb_utils.dart';
 import '../stores/enemies/flying_enemy_combat_mode_store.dart';
 import '../world.dart';
 
@@ -30,7 +31,12 @@ class FlyingEnemyLocomotionSystem {
     var playerCenterY = world.transform.posY[playerTi];
     if (world.colliderAabb.has(player)) {
       final playerAi = world.colliderAabb.indexOf(player);
-      playerCenterX += world.colliderAabb.offsetX[playerAi];
+      playerCenterX = colliderCenterX(
+        world,
+        entity: player,
+        transformIndex: playerTi,
+        colliderIndex: playerAi,
+      );
       playerCenterY += world.colliderAabb.offsetY[playerAi];
     }
 

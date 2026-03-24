@@ -3,6 +3,7 @@ import '../../abilities/ability_def.dart';
 import '../../combat/damage.dart';
 import '../../combat/status/status.dart';
 import '../../events/game_event.dart';
+import '../collider_aabb_utils.dart';
 import '../hit/hit_resolver.dart';
 import '../spatial/broadphase_grid.dart';
 import '../world.dart';
@@ -60,9 +61,12 @@ class MobilityImpactSystem {
         continue;
       }
 
-      final sourceCenterX =
-          transforms.posX[sourceTransformIndex] +
-          colliders.offsetX[sourceColliderIndex];
+      final sourceCenterX = colliderCenterX(
+        world,
+        entity: source,
+        transformIndex: sourceTransformIndex,
+        colliderIndex: sourceColliderIndex,
+      );
       final sourceCenterY =
           transforms.posY[sourceTransformIndex] +
           colliders.offsetY[sourceColliderIndex];

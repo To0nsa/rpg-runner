@@ -1,3 +1,4 @@
+import '../collider_aabb_utils.dart';
 import '../entity_id.dart';
 import '../world.dart';
 import '../stores/restoration_item_store.dart';
@@ -27,7 +28,7 @@ class RestorationItemSystem {
     final items = world.restorationItem;
     // Early exit if no items exist to process.
     if (items.denseEntities.isEmpty) return;
-    
+
     _toDespawn.clear();
     final despawnLimit = cameraLeft - tuning.despawnBehindCameraMargin;
 
@@ -38,14 +39,19 @@ class RestorationItemSystem {
 
     final pTi = transforms.tryIndexOf(player);
     final pCi = colliders.tryIndexOf(player);
-    
+
     // Bounds: Min/Max X/Y
     double pMinX = 0, pMaxX = 0, pMinY = 0, pMaxY = 0;
     bool playerActive = false;
 
     if (pTi != null && pCi != null) {
       playerActive = true;
-      final cx = transforms.posX[pTi] + colliders.offsetX[pCi];
+      final cx = colliderCenterX(
+        world,
+        entity: player,
+        transformIndex: pTi,
+        colliderIndex: pCi,
+      );
       final cy = transforms.posY[pTi] + colliders.offsetY[pCi];
       final hx = colliders.halfX[pCi];
       final hy = colliders.halfY[pCi];
@@ -59,16 +65,21 @@ class RestorationItemSystem {
     final count = items.denseEntities.length;
     for (var ii = 0; ii < count; ii += 1) {
       final e = items.denseEntities[ii];
-      
+
       final ti = transforms.tryIndexOf(e);
       // Skip items that are missing spatial components (malformed entities).
       if (ti == null) continue;
-      
+
       final ci = colliders.tryIndexOf(e);
       if (ci == null) continue;
 
-      final cx = transforms.posX[ti] + colliders.offsetX[ci];
-      
+      final cx = colliderCenterX(
+        world,
+        entity: e,
+        transformIndex: ti,
+        colliderIndex: ci,
+      );
+
       // 1. Despawn Logic (Garbage Collection)
       if (cx < despawnLimit) {
         _toDespawn.add(e);
@@ -82,10 +93,11 @@ class RestorationItemSystem {
         final hy = colliders.halfY[ci];
 
         // AABB Overlap Logic:
-        final overlaps = (cx - hx) < pMaxX && 
-                         (cx + hx) > pMinX && 
-                         (cy - hy) < pMaxY && 
-                         (cy + hy) > pMinY;
+        final overlaps =
+            (cx - hx) < pMaxX &&
+            (cx + hx) > pMinX &&
+            (cy - hy) < pMaxY &&
+            (cy + hy) > pMinY;
 
         if (overlaps) {
           _applyRestore(
@@ -145,8 +157,7 @@ class RestorationItemSystem {
           if (max > 0) {
             final restore = (max * percentBp) ~/ bpScale;
             final next = world.stamina.stamina[index] + restore;
-            world.stamina.stamina[index] =
-                next > max ? max : next;
+            world.stamina.stamina[index] = next > max ? max : next;
           }
         }
     }

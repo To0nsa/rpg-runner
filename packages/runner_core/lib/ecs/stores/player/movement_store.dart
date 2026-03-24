@@ -22,11 +22,13 @@ class MovementStore extends SparseSet {
   final List<double> mobilitySpeedX = <double>[];
 
   final List<Facing> facing = <Facing>[];
+  final List<Facing> artFacing = <Facing>[];
   final List<int> facingLockTicksLeft = <int>[];
 
-  void add(EntityId entity, {required Facing facing}) {
+  void add(EntityId entity, {required Facing facing, Facing? artFacing}) {
     final i = addEntity(entity);
     this.facing[i] = facing;
+    this.artFacing[i] = artFacing ?? facing;
   }
 
   bool isDashing(EntityId entity) => dashTicksLeft[indexOf(entity)] > 0;
@@ -39,6 +41,7 @@ class MovementStore extends SparseSet {
     dashSpeedScale.add(1.0);
     mobilitySpeedX.add(0.0);
     facing.add(Facing.right);
+    artFacing.add(Facing.right);
     facingLockTicksLeft.add(0);
   }
 
@@ -50,6 +53,7 @@ class MovementStore extends SparseSet {
     dashSpeedScale[removeIndex] = dashSpeedScale[lastIndex];
     mobilitySpeedX[removeIndex] = mobilitySpeedX[lastIndex];
     facing[removeIndex] = facing[lastIndex];
+    artFacing[removeIndex] = artFacing[lastIndex];
     facingLockTicksLeft[removeIndex] = facingLockTicksLeft[lastIndex];
 
     dashTicksLeft.removeLast();
@@ -58,6 +62,7 @@ class MovementStore extends SparseSet {
     dashSpeedScale.removeLast();
     mobilitySpeedX.removeLast();
     facing.removeLast();
+    artFacing.removeLast();
     facingLockTicksLeft.removeLast();
   }
 }

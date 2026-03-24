@@ -38,6 +38,7 @@ import 'abilities/ability_def.dart';
 import 'combat/control_lock.dart';
 import 'ecs/entity_id.dart';
 import 'ecs/entity_factory.dart';
+import 'ecs/collider_aabb_utils.dart';
 import 'ecs/hit/aabb_hit_utils.dart';
 import 'ecs/stores/body_store.dart';
 import 'ecs/stores/collider_aabb_store.dart';
@@ -211,6 +212,7 @@ class SpawnService {
       velX: 0.0,
       velY: 0.0,
       facing: Facing.left,
+      artFacing: archetype.artFacingDir,
       body: archetype.body,
       collider: archetype.collider,
       health: archetype.health,
@@ -267,6 +269,7 @@ class SpawnService {
       velX: 0.0,
       velY: 0.0,
       facing: Facing.left,
+      artFacing: archetype.artFacingDir,
       body: BodyDef(
         enabled: archetype.body.enabled,
         isKinematic: archetype.body.isKinematic,
@@ -645,7 +648,12 @@ class SpawnService {
       // Read collectible's world-space AABB.
       final ti = _world.transform.indexOf(e);
       final ai = _world.colliderAabb.indexOf(e);
-      final cx = _world.transform.posX[ti] + _world.colliderAabb.offsetX[ai];
+      final cx = colliderCenterX(
+        _world,
+        entity: e,
+        transformIndex: ti,
+        colliderIndex: ai,
+      );
       final cy = _world.transform.posY[ti] + _world.colliderAabb.offsetY[ai];
 
       final overlaps = aabbOverlapsMinMax(

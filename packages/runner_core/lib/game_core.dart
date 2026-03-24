@@ -87,6 +87,7 @@ import 'combat/status/status.dart';
 import 'collision/static_world_geometry_index.dart';
 import 'commands/command.dart';
 import 'contracts/render_contract.dart';
+import 'ecs/collider_aabb_utils.dart';
 import 'ecs/entity_factory.dart';
 import 'ecs/entity_id.dart';
 import 'ecs/spatial/broadphase_grid.dart';
@@ -636,6 +637,7 @@ class GameCore {
       velX: 0.0,
       velY: 0.0,
       facing: playerArchetype.facing,
+      artFacing: playerArchetype.facing,
       grounded: true,
       body: playerArchetype.body,
       collider: playerCollider,
@@ -1519,7 +1521,12 @@ class GameCore {
     }
     final ti = _world.transform.indexOf(_player);
     final ai = _world.colliderAabb.indexOf(_player);
-    final centerX = _world.transform.posX[ti] + _world.colliderAabb.offsetX[ai];
+    final centerX = colliderCenterX(
+      _world,
+      entity: _player,
+      transformIndex: ti,
+      colliderIndex: ai,
+    );
     return centerX + _world.colliderAabb.halfX[ai];
   }
 

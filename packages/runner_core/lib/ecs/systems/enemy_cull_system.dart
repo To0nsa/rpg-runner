@@ -1,4 +1,5 @@
 import '../../tuning/track_tuning.dart';
+import '../collider_aabb_utils.dart';
 import '../entity_id.dart';
 import '../world.dart';
 
@@ -43,7 +44,12 @@ class EnemyCullSystem {
 
       final ci = world.colliderAabb.tryIndexOf(e);
       if (ci != null) {
-        cx += world.colliderAabb.offsetX[ci];
+        cx = colliderCenterX(
+          world,
+          entity: e,
+          transformIndex: ti,
+          colliderIndex: ci,
+        );
         cy += world.colliderAabb.offsetY[ci];
         maxX = cx + world.colliderAabb.halfX[ci];
         bottomY = cy + world.colliderAabb.halfY[ci];

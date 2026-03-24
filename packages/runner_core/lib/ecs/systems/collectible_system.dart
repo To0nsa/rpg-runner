@@ -1,3 +1,4 @@
+import '../collider_aabb_utils.dart';
 import '../hit/aabb_hit_utils.dart';
 import '../entity_id.dart';
 import '../world.dart';
@@ -42,8 +43,13 @@ class CollectibleSystem {
       // Skip if entity is missing required components (malformed entity).
       if (ti == null || ai == null) continue;
 
-      final centerX = world.transform.posX[ti] + world.colliderAabb.offsetX[ai];
-      
+      final centerX = colliderCenterX(
+        world,
+        entity: e,
+        transformIndex: ti,
+        colliderIndex: ai,
+      );
+
       // 1. Culling: Despawn if far behind the camera.
       if (centerX < despawnLimit) {
         _toDespawn.add(e);
@@ -54,8 +60,10 @@ class CollectibleSystem {
       if (canCollect) {
         final overlaps = aabbOverlapsWorldColliders(
           world,
+          aEntity: e,
           aTransformIndex: ti,
           aAabbIndex: ai,
+          bEntity: player,
           bTransformIndex: playerTi,
           bAabbIndex: playerAi,
         );

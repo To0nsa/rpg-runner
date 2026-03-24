@@ -1,6 +1,7 @@
 import '../../collision/static_world_geometry_index.dart';
 import '../../players/player_tuning.dart';
 import '../../util/fixed_math.dart';
+import '../collider_aabb_utils.dart';
 import '../queries.dart';
 import '../stores/body_store.dart';
 import '../world.dart';
@@ -78,7 +79,11 @@ class CollisionSystem {
 
       final halfX = world.colliderAabb.halfX[aabbi];
       final halfY = world.colliderAabb.halfY[aabbi];
-      final offsetX = world.colliderAabb.offsetX[aabbi];
+      final offsetX = colliderEffectiveOffsetX(
+        world,
+        entity: e,
+        colliderIndex: aabbi,
+      );
       final offsetY = world.colliderAabb.offsetY[aabbi];
 
       final prevCenterX = prevPosX + offsetX;

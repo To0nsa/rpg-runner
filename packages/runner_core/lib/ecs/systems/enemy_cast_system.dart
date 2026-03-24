@@ -16,6 +16,7 @@ import '../../util/ability_timing.dart';
 import '../../util/fixed_math.dart';
 import '../../util/target_prediction.dart';
 import '../../weapons/weapon_proc.dart';
+import '../collider_aabb_utils.dart';
 import '../entity_id.dart';
 import '../stores/enemies/flying_enemy_combat_mode_store.dart';
 import '../stores/projectile_intent_store.dart';
@@ -392,7 +393,17 @@ class EnemyCastSystem {
     var y = fallbackY;
     if (world.colliderAabb.has(entity)) {
       final ai = world.colliderAabb.indexOf(entity);
-      x += world.colliderAabb.offsetX[ai];
+      final ti = world.transform.tryIndexOf(entity);
+      if (ti != null) {
+        x = colliderCenterX(
+          world,
+          entity: entity,
+          transformIndex: ti,
+          colliderIndex: ai,
+        );
+      } else {
+        x += colliderEffectiveOffsetX(world, entity: entity, colliderIndex: ai);
+      }
       y += world.colliderAabb.offsetY[ai];
     }
     return (x, y);
