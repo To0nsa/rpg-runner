@@ -35,6 +35,5 @@ Phase 2 foundations are implemented:
 - numeric editing for selected collider entries
 - undo/redo command stack for edits
 - per-entry dirty markers and live file-level diff previews
-- deterministic export preview artifacts
 - apply-ready unified diff patch artifact (`.patch`)
 - direct-write export mode using source-range replacement guards

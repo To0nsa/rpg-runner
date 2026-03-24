@@ -217,16 +217,6 @@ class _EditorHomePageState extends State<EditorHomePage> {
           icon: const Icon(Icons.redo),
           label: const Text('Redo'),
         ),
-        OutlinedButton.icon(
-          onPressed:
-              widget.controller.scene == null ||
-                  widget.controller.isLoading ||
-                  widget.controller.isExporting
-              ? null
-              : widget.controller.exportPreview,
-          icon: const Icon(Icons.file_present_outlined),
-          label: const Text('Export Preview'),
-        ),
         FilledButton.icon(
           onPressed:
               widget.controller.scene == null ||
@@ -366,7 +356,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
     final statusText = widget.controller.isLoading
         ? 'Loading...'
         : widget.controller.isExporting
-        ? 'Exporting...'
+        ? 'Applying...'
         : widget.controller.loadError == null
         ? 'Ready'
         : 'Load error';
@@ -383,15 +373,15 @@ class _EditorHomePageState extends State<EditorHomePage> {
         ),
         Chip(label: Text('Dirty files: ${widget.controller.dirtyFileCount}')),
         if (widget.controller.exportError != null)
-          const Chip(label: Text('Export error')),
+          const Chip(label: Text('Apply error')),
         if (widget.controller.pendingChangesError != null)
           const Chip(label: Text('Diff error')),
         if (widget.controller.lastExportResult != null)
           Chip(
             label: Text(
               widget.controller.lastExportResult!.applied
-                  ? 'Last export: applied'
-                  : 'Last export: preview',
+                  ? 'Last apply: wrote files'
+                  : 'Last apply: no changes',
             ),
           ),
       ],
@@ -654,7 +644,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
     );
   }
 
-  Widget _buildExportPanel() {
+  Widget _buildApplyResultPanel() {
     final exportResult = widget.controller.lastExportResult;
     final exportError = widget.controller.exportError;
     final artifact = _selectedArtifact(exportResult);
@@ -665,7 +655,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Export', style: Theme.of(context).textTheme.titleSmall),
+            Text('Apply Result', style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 8),
             if (exportError != null) ...[
               SelectableText(
@@ -677,8 +667,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
               const SizedBox(height: 8),
             ],
             if (exportResult != null) ...[
-              Text('mode: ${exportResult.mode.name}'),
-              Text('applied: ${exportResult.applied}'),
+              Text('files written: ${exportResult.applied ? 'yes' : 'no'}'),
               if (exportResult.artifacts.length > 1) ...[
                 const SizedBox(height: 8),
                 DropdownButton<String>(
@@ -704,7 +693,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
             ],
             Expanded(
               child: artifact == null
-                  ? const Text('No export preview generated yet.')
+                  ? const Text('No apply result yet.')
                   : SingleChildScrollView(
                       child: SelectableText(artifact.content),
                     ),

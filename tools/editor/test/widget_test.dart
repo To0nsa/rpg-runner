@@ -104,7 +104,7 @@ void main() {
     },
   );
 
-  test('export preview contains edited castOriginOffset snippet', () async {
+  test('pending changes contain edited castOriginOffset snippet', () async {
     final controller = buildController();
     await controller.loadWorkspace();
 
@@ -129,17 +129,16 @@ void main() {
       ),
     );
 
-    await controller.exportPreview();
-    final export = controller.lastExportResult;
-    expect(export, isNotNull);
-    final patchArtifact = export!.artifacts.firstWhere(
-      (artifact) => artifact.title.endsWith('.patch'),
-    );
-    expect(patchArtifact.content, contains('castOriginOffset'));
-    expect(patchArtifact.content, contains('35.0'));
+    final pendingFileDiffs = controller.pendingChanges.fileDiffs;
+    expect(pendingFileDiffs, isNotEmpty);
+    final combinedDiff = pendingFileDiffs
+        .map((fileDiff) => fileDiff.unifiedDiff)
+        .join('\n');
+    expect(combinedDiff, contains('castOriginOffset'));
+    expect(combinedDiff, contains('35.0'));
   });
 
-  test('export preview contains edited collider snippet', () async {
+  test('pending changes contain edited collider snippet', () async {
     final controller = buildController();
     await controller.loadWorkspace();
 
@@ -157,20 +156,15 @@ void main() {
       ),
     );
 
-    await controller.exportPreview();
-
-    final export = controller.lastExportResult;
-    expect(export, isNotNull);
-    expect(export!.artifacts, isNotEmpty);
-    final content = export.artifacts.first.content;
-    expect(content, contains(entry.id));
-    expect(content, contains('changedEntries: 1'));
-    final patchArtifact = export.artifacts.where(
-      (artifact) => artifact.title.endsWith('.patch'),
-    );
-    expect(patchArtifact, isNotEmpty);
-    expect(patchArtifact.first.content, contains('diff --git a/'));
-    expect(patchArtifact.first.content, contains('@@ -'));
+    final pending = controller.pendingChanges;
+    expect(pending.changedEntryIds, contains(entry.id));
+    expect(pending.changedEntryIds.length, 1);
+    expect(pending.fileDiffs, isNotEmpty);
+    final combinedDiff = pending.fileDiffs
+        .map((fileDiff) => fileDiff.unifiedDiff)
+        .join('\n');
+    expect(combinedDiff, contains('diff --git a/'));
+    expect(combinedDiff, contains('@@ -'));
   });
 
   test(
@@ -256,7 +250,6 @@ void main() {
       final export = await plugin.exportToRepo(
         workspace,
         document: edited,
-        mode: ExportMode.directWrite,
       );
 
       expect(export.applied, isTrue);
@@ -349,7 +342,7 @@ void main() {
   );
 
   test(
-    'export preview writes anchorPoint and renderScale reference edits',
+    'direct write export writes anchorPoint and renderScale reference edits',
     () async {
       final fixtureRoot = Directory.systemTemp.createTempSync(
         'runner_editor_fixture_',
@@ -389,7 +382,6 @@ void main() {
         final export = await plugin.exportToRepo(
           workspace,
           document: edited,
-          mode: ExportMode.previewPatch,
         );
         final patchArtifact = export.artifacts.firstWhere(
           (artifact) => artifact.title == 'entity_changes.patch',
@@ -454,7 +446,6 @@ void main() {
       final export = await plugin.exportToRepo(
         workspace,
         document: edited,
-        mode: ExportMode.previewPatch,
       );
 
       expect(export.applied, isFalse);

@@ -21,8 +21,6 @@ abstract class EditableScene {
   const EditableScene();
 }
 
-enum ExportMode { previewPatch, directWrite }
-
 enum ValidationSeverity { info, warning, error }
 
 @immutable
@@ -51,12 +49,10 @@ class ExportArtifact {
 @immutable
 class ExportResult {
   const ExportResult({
-    required this.mode,
     required this.applied,
     this.artifacts = const <ExportArtifact>[],
   });
 
-  final ExportMode mode;
   final bool applied;
   final List<ExportArtifact> artifacts;
 }
@@ -105,7 +101,6 @@ abstract class AuthoringDomainPlugin {
   Future<ExportResult> exportToRepo(
     EditorWorkspace workspace, {
     required AuthoringDocument document,
-    required ExportMode mode,
   });
 
   PendingChanges describePendingChanges(

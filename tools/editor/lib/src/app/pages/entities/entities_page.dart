@@ -34,7 +34,7 @@ extension _EntitiesPage on _EditorHomePageState {
                 const SizedBox(height: 12),
                 SizedBox(height: 300, child: _buildPendingDiffPanel()),
                 const SizedBox(height: 12),
-                SizedBox(height: 230, child: _buildExportPanel()),
+                SizedBox(height: 230, child: _buildApplyResultPanel()),
               ],
             ),
           ),

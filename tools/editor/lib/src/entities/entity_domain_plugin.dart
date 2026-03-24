@@ -236,14 +236,12 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
   Future<ExportResult> exportToRepo(
     EditorWorkspace workspace, {
     required AuthoringDocument document,
-    required ExportMode mode,
   }) async {
     final colliderDocument = _asEntityDocument(document);
     final changedEntries = _changedEntries(colliderDocument);
 
     if (changedEntries.isEmpty) {
       return ExportResult(
-        mode: mode,
         applied: false,
         artifacts: const <ExportArtifact>[
           ExportArtifact(
@@ -262,17 +260,12 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
         changedEntries: changedEntries,
       );
       final unifiedPatch = _buildUnifiedDiffArtifact(filePatches);
-      var backupPaths = const <String>[];
-
-      if (mode == ExportMode.directWrite) {
-        backupPaths = _applyDirectWriteWithBackups(workspace, filePatches);
-      }
+      final backupPaths = _applyDirectWriteWithBackups(workspace, filePatches);
 
       final artifacts = <ExportArtifact>[
         ExportArtifact(
           title: 'entity_summary.md',
           content: _buildSummary(
-            mode: mode,
             changedEntries: changedEntries,
             filePatches: filePatches,
           ),
@@ -291,13 +284,11 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
       ];
 
       return ExportResult(
-        mode: mode,
-        applied: mode == ExportMode.directWrite,
+        applied: true,
         artifacts: artifacts,
       );
     } catch (error) {
       return ExportResult(
-        mode: mode,
         applied: false,
         artifacts: [
           ExportArtifact(
@@ -708,14 +699,12 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
   }
 
   String _buildSummary({
-    required ExportMode mode,
     required List<EntityEntry> changedEntries,
     required List<_ResolvedFilePatch> filePatches,
   }) {
     final lines = <String>[
       '# Entity Export',
       '',
-      'mode: ${mode.name}',
       'changedEntries: ${changedEntries.length}',
       'files: ${filePatches.length}',
       '',

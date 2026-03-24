@@ -194,18 +194,7 @@ class EditorSessionController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> exportPreview() async {
-    await _export(mode: ExportMode.previewPatch, reloadAfterApply: false);
-  }
-
   Future<void> exportDirectWrite() async {
-    await _export(mode: ExportMode.directWrite, reloadAfterApply: true);
-  }
-
-  Future<void> _export({
-    required ExportMode mode,
-    required bool reloadAfterApply,
-  }) async {
     final document = _document;
     final workspace = _workspace;
     if (document == null || workspace == null || _isExporting) {
@@ -219,10 +208,9 @@ class EditorSessionController extends ChangeNotifier {
       final result = await plugin.exportToRepo(
         workspace,
         document: document,
-        mode: mode,
       );
       _lastExportResult = result;
-      if (reloadAfterApply && result.applied) {
+      if (result.applied) {
         await loadWorkspace();
         _lastExportResult = result;
       }
