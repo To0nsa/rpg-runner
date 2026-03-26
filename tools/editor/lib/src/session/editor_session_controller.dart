@@ -65,8 +65,6 @@ class EditorSessionController extends ChangeNotifier {
   EntityScene? get entityScene =>
       _scene is EntityScene ? _scene as EntityScene : null;
 
-  
-
   int get errorCount => _issues
       .where((issue) => issue.severity == ValidationSeverity.error)
       .length;

@@ -32,16 +32,16 @@ extension _SceneZoom on _EditorHomePageState {
           ),
         ),
         const SizedBox(width: 8),
-        OutlinedButton.icon(
-          onPressed: _zoomOut,
-          icon: const Icon(Icons.zoom_out, size: 18),
-          label: const Text('Zoom Out'),
-        ),
-        const SizedBox(width: 8),
-        OutlinedButton.icon(
-          onPressed: _zoomIn,
-          icon: const Icon(Icons.zoom_in, size: 18),
-          label: const Text('Zoom In'),
+        SizedBox(
+          width: 220,
+          child: Slider(
+            min: _zoomMin,
+            max: _zoomMax,
+            divisions: ((_zoomMax - _zoomMin) / _zoomStep).round(),
+            value: _sceneZoom.clamp(_zoomMin, _zoomMax),
+            label: '${_formatZoomPercent(_sceneZoom)}%',
+            onChanged: _setZoom,
+          ),
         ),
       ],
     );

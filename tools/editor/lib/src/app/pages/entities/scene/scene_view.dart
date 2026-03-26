@@ -107,15 +107,34 @@ extension _SceneView on _EditorHomePageState {
                 SizedBox(
                   width: viewportWidth,
                   height: _fixedViewportSize.height,
-                  child: _buildScrollableSceneCanvas(
-                    canvasSize: sceneCanvasSize,
-                    scale: scale,
-                    selectedEntry: selectedEntry,
-                    resolvedReference: resolvedReference,
-                    referenceAnimView: referenceAnimView,
-                    resolvedImage: resolvedImage,
-                    referenceRow: referenceRow,
-                    referenceFrame: referenceFrame,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        _buildScrollableSceneCanvas(
+                          canvasSize: sceneCanvasSize,
+                          scale: scale,
+                          selectedEntry: selectedEntry,
+                          resolvedReference: resolvedReference,
+                          referenceAnimView: referenceAnimView,
+                          resolvedImage: resolvedImage,
+                          referenceRow: referenceRow,
+                          referenceFrame: referenceFrame,
+                        ),
+                        IgnorePointer(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: const ui.Color.fromARGB(255, 101, 171, 211),
+                                width: 1,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],

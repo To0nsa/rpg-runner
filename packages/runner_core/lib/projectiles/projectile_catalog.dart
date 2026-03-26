@@ -41,8 +41,8 @@ class ProjectileCatalog {
           weaponType: WeaponType.spell,
           speedUnitsPerSecond: 600.0,
           lifetimeSeconds: 1.3,
-          colliderSizeX: 30.0,
-          colliderSizeY: 10.0,
+          colliderSizeX: 31.5,
+          colliderSizeY: 10.8438,
           damageType: DamageType.fire,
           procs: <WeaponProc>[
             WeaponProc(
@@ -73,7 +73,7 @@ class ProjectileCatalog {
           weaponType: WeaponType.spell,
           speedUnitsPerSecond: 550.0,
           lifetimeSeconds: 1.3,
-          colliderSizeX: 12.5,
+          colliderSizeX: 14.625,
           colliderSizeY: 13.5,
           damageType: DamageType.dark,
           procs: <WeaponProc>[
@@ -90,7 +90,7 @@ class ProjectileCatalog {
           speedUnitsPerSecond: 500.0,
           lifetimeSeconds: 1.3,
           colliderSizeX: 18.0,
-          colliderSizeY: 8.0,
+          colliderSizeY: 10.0,
           damageType: DamageType.earth,
           procs: <WeaponProc>[
             WeaponProc(
@@ -105,8 +105,8 @@ class ProjectileCatalog {
           weaponType: WeaponType.spell,
           speedUnitsPerSecond: 550.0,
           lifetimeSeconds: 1.3,
-          colliderSizeX: 25.0,
-          colliderSizeY: 8.0,
+          colliderSizeX: 27.5,
+          colliderSizeY: 9.0,
           damageType: DamageType.holy,
           procs: <WeaponProc>[
             WeaponProc(
@@ -121,8 +121,8 @@ class ProjectileCatalog {
           weaponType: WeaponType.spell,
           speedUnitsPerSecond: 550.0,
           lifetimeSeconds: 1.3,
-          colliderSizeX: 22.0,
-          colliderSizeY: 9.0,
+          colliderSizeX: 23.0,
+          colliderSizeY: 10.5,
           damageType: DamageType.water,
           procs: <WeaponProc>[
             WeaponProc(
@@ -137,7 +137,7 @@ class ProjectileCatalog {
           weaponType: WeaponType.spell,
           speedUnitsPerSecond: 650.0,
           lifetimeSeconds: 1.3,
-          colliderSizeX: 23.0,
+          colliderSizeX: 26.5,
           colliderSizeY: 8.0,
           damageType: DamageType.thunder,
           procs: <WeaponProc>[

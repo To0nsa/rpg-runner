@@ -34,10 +34,10 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
 
   @override
   List<ValidationIssue> validate(AuthoringDocument document) {
-    final colliderDocument = _asEntityDocument(document);
-    final issues = <ValidationIssue>[...colliderDocument.loadIssues];
+    final entityDocument = _asEntityDocument(document);
+    final issues = <ValidationIssue>[...entityDocument.loadIssues];
 
-    for (final entry in colliderDocument.entries) {
+    for (final entry in entityDocument.entries) {
       if (!entry.halfX.isFinite || entry.halfX <= 0) {
         issues.add(
           ValidationIssue(
@@ -119,8 +119,8 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
 
   @override
   EditableScene buildEditableScene(AuthoringDocument document) {
-    final colliderDocument = _asEntityDocument(document);
-    final sorted = List<EntityEntry>.from(colliderDocument.entries)
+    final entityDocument = _asEntityDocument(document);
+    final sorted = List<EntityEntry>.from(entityDocument.entries)
       ..sort((a, b) {
         final typeCompare = a.entityType.index.compareTo(b.entityType.index);
         if (typeCompare != 0) {
@@ -130,7 +130,7 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
       });
     return EntityScene(
       entries: sorted,
-      runtimeGridCellSize: colliderDocument.runtimeGridCellSize,
+      runtimeGridCellSize: entityDocument.runtimeGridCellSize,
     );
   }
 
@@ -139,9 +139,9 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
     AuthoringDocument document,
     AuthoringCommand command,
   ) {
-    final colliderDocument = _asEntityDocument(document);
+    final entityDocument = _asEntityDocument(document);
     if (command.kind != 'update_entry') {
-      return colliderDocument;
+      return entityDocument;
     }
 
     final targetId = command.payload['id'];
@@ -154,11 +154,11 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
     final renderScale = command.payload['renderScale'];
     final castOriginOffset = command.payload['castOriginOffset'];
     if (targetId is! String) {
-      return colliderDocument;
+      return entityDocument;
     }
 
     EntityEntry? targetEntry;
-    for (final entry in colliderDocument.entries) {
+    for (final entry in entityDocument.entries) {
       if (entry.id == targetId) {
         targetEntry = entry;
         break;
@@ -166,7 +166,7 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
     }
     final currentEntry = targetEntry;
     if (currentEntry == null) {
-      return colliderDocument;
+      return entityDocument;
     }
 
     final nextHalfX = halfX is num ? halfX.toDouble() : currentEntry.halfX;
@@ -205,10 +205,10 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
           currentEntry.castOriginOffset,
         ) &&
         !_referenceChanged(nextReference, currentReference)) {
-      return colliderDocument;
+      return entityDocument;
     }
 
-    final updatedEntries = colliderDocument.entries
+    final updatedEntries = entityDocument.entries
         .map((entry) {
           if (entry.id != targetId) {
             return entry;
@@ -226,9 +226,9 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
 
     return EntityDocument(
       entries: updatedEntries,
-      baselineById: colliderDocument.baselineById,
-      runtimeGridCellSize: colliderDocument.runtimeGridCellSize,
-      loadIssues: colliderDocument.loadIssues,
+      baselineById: entityDocument.baselineById,
+      runtimeGridCellSize: entityDocument.runtimeGridCellSize,
+      loadIssues: entityDocument.loadIssues,
     );
   }
 
@@ -237,8 +237,8 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
     EditorWorkspace workspace, {
     required AuthoringDocument document,
   }) async {
-    final colliderDocument = _asEntityDocument(document);
-    final changedEntries = _changedEntries(colliderDocument);
+    final entityDocument = _asEntityDocument(document);
+    final changedEntries = _changedEntries(entityDocument);
 
     if (changedEntries.isEmpty) {
       return ExportResult(
@@ -256,7 +256,7 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
     try {
       final filePatches = _resolveFilePatches(
         workspace,
-        document: colliderDocument,
+        document: entityDocument,
         changedEntries: changedEntries,
       );
       final unifiedPatch = _buildUnifiedDiffArtifact(filePatches);
@@ -305,15 +305,15 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
     EditorWorkspace workspace, {
     required AuthoringDocument document,
   }) {
-    final colliderDocument = _asEntityDocument(document);
-    final changedEntries = _changedEntries(colliderDocument);
+    final entityDocument = _asEntityDocument(document);
+    final changedEntries = _changedEntries(entityDocument);
     if (changedEntries.isEmpty) {
       return const PendingChanges();
     }
 
     final filePatches = _resolveFilePatches(
       workspace,
-      document: colliderDocument,
+      document: entityDocument,
       changedEntries: changedEntries,
     );
 
@@ -678,7 +678,7 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
     return 'colliderWidth: ${_formatDoubleLiteral(width)},\n'
         '  colliderHeight: ${_formatDoubleLiteral(height)},\n'
         '  colliderOffsetX: ${_formatDoubleLiteral(entry.offsetX)},\n'
-        '  colliderOffsetY: ${_formatDoubleLiteral(entry.offsetY)},';
+        '  colliderOffsetY: ${_formatDoubleLiteral(entry.offsetY)}';
   }
 
   String _projectileEntitySnippet(EntityEntry entry) {
