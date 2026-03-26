@@ -8,12 +8,10 @@ class LevelSelectSection extends StatelessWidget {
     super.key,
     required this.selectedLevelId,
     required this.onSelectLevel,
-    this.forcedLevelId,
   });
 
   final LevelId selectedLevelId;
   final ValueChanged<LevelId> onSelectLevel;
-  final LevelId? forcedLevelId;
 
   @override
   Widget build(BuildContext context) {
@@ -23,18 +21,11 @@ class LevelSelectSection extends StatelessWidget {
       alignment: WrapAlignment.center,
       children: [
         for (final levelId in LevelId.values)
-          Builder(
-            builder: (context) {
-              final forced = forcedLevelId;
-              final selectable = forced == null || forced == levelId;
-              final effectiveSelected = forced ?? selectedLevelId;
-              return LevelCard(
-                levelId: levelId,
-                selected: levelId == effectiveSelected,
-                width: 200,
-                onTap: selectable ? () => onSelectLevel(levelId) : null,
-              );
-            },
+          LevelCard(
+            levelId: levelId,
+            selected: levelId == selectedLevelId,
+            width: 200,
+            onTap: () => onSelectLevel(levelId),
           ),
       ],
     );

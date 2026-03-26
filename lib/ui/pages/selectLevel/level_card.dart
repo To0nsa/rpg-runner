@@ -72,6 +72,12 @@ class LevelCard extends StatelessWidget {
                   themeId: levelId.themeId,
                   alignment: Alignment.center,
                 ),
+                if (!selected)
+                  Positioned.fill(
+                    child: ColoredBox(
+                      color: ui.colors.shadow.withValues(alpha: 0.60),
+                    ),
+                  ),
                 Center(
                   child: Text(
                     levelId.displayName.toUpperCase(),

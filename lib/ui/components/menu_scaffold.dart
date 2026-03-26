@@ -20,6 +20,7 @@ class MenuScaffold extends StatelessWidget {
     this.centerAppBarTitle = false,
     this.showAppBar = true,
     this.useBodySafeArea = false,
+    this.drawAppBarOverBackground = true,
   });
 
   /// The main content of the page.
@@ -49,6 +50,12 @@ class MenuScaffold extends StatelessWidget {
   /// Whether to wrap the body in [SafeArea]. Defaults to false.
   final bool useBodySafeArea;
 
+  /// Whether the AppBar should overlay the background image.
+  ///
+  /// When enabled, the background extends behind the AppBar and body content
+  /// is offset to remain below the toolbar. Defaults to true.
+  final bool drawAppBarOverBackground;
+
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
@@ -57,18 +64,39 @@ class MenuScaffold extends StatelessWidget {
       resolvedTitle = Text(title!, style: ui.text.title);
     }
 
+    final shouldOverlayAppBar = showAppBar && drawAppBarOverBackground;
     final scaffoldAppBar = showAppBar
         ? AppBar(
             title: resolvedTitle,
-            backgroundColor: ui.colors.background,
+            backgroundColor: shouldOverlayAppBar
+                ? Colors.transparent
+                : ui.colors.background,
+            surfaceTintColor: shouldOverlayAppBar ? Colors.transparent : null,
+            shadowColor: shouldOverlayAppBar ? Colors.transparent : null,
+            elevation: shouldOverlayAppBar ? 0 : null,
+            scrolledUnderElevation: shouldOverlayAppBar ? 0 : null,
             iconTheme: IconThemeData(color: ui.colors.textPrimary),
             centerTitle: centerAppBarTitle,
             titleSpacing: appBarTitle != null ? 0 : null,
           )
         : null;
 
+    Widget content = useBodySafeArea
+        ? SafeArea(maintainBottomViewPadding: true, child: child)
+        : child;
+
+    if (shouldOverlayAppBar) {
+      content = Padding(
+        padding: EdgeInsets.only(
+          top: MediaQuery.paddingOf(context).top + kToolbarHeight,
+        ),
+        child: content,
+      );
+    }
+
     return Scaffold(
       backgroundColor: ui.colors.background,
+      extendBodyBehindAppBar: shouldOverlayAppBar,
       appBar: scaffoldAppBar,
       body: Stack(
         fit: StackFit.expand,
@@ -82,10 +110,7 @@ class MenuScaffold extends StatelessWidget {
                   alignment: Alignment.bottomCenter,
                 ),
           ),
-          if (useBodySafeArea)
-            SafeArea(maintainBottomViewPadding: true, child: child)
-          else
-            child,
+          content,
         ],
       ),
     );

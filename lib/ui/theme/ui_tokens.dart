@@ -16,7 +16,7 @@ class UiBrandPalette {
   static const steelBlueInsetBottom = Color(0xFF10161C);
 
   static const wornGoldBorder = Color(0xFF8E7A4F);
-  static const wornGoldOutline = Color(0xB38E7A4F);
+  static const wornGoldOutline = Color.fromARGB(255, 142, 122, 79);
   static const wornGoldInsetBorder = Color(0xFFAE9664);
   static const wornGoldGlow = Color(0x1A8E7A4F);
 

@@ -180,7 +180,6 @@ class _LevelSetupPageState extends State<LevelSetupPage> {
               Center(
                 child: LevelSelectSection(
                   selectedLevelId: _draftLevelId,
-                  forcedLevelId: null,
                   onSelectLevel: _onLevelChanged,
                 ),
               ),
