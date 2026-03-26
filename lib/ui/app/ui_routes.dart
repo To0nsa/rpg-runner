@@ -18,10 +18,8 @@ class UiRoutes {
   static const String loadoutLab = '/lab';
   static const String leaderboards = '/leaderboards';
   static const String options = '/meta/options';
-  static const String library = '/meta/library';
   static const String town = '/meta/town';
   static const String messages = '/meta/messages';
-  static const String support = '/meta/support';
   static const String credits = '/credits';
   static const String runBootstrap = '/run/bootstrap';
   static const String run = '/run';

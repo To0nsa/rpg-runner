@@ -20,7 +20,7 @@ Widgets should stay focused on presentation and orchestration, not backend or ga
 
 - `lib/ui/app/`: `UiApp`, routes, navigation shell
 - `lib/ui/bootstrap/`: startup loader, brand splash, profile-name setup
-- `lib/ui/pages/`: hub, level/setup, town, options, library, support, messages, credits, lab, profile, leaderboards
+- `lib/ui/pages/`: hub, level/setup, town, options, messages, credits, lab, profile, leaderboards
 - `lib/ui/hud/` and `lib/ui/controls/`: in-run overlays and input widgets
 - `lib/ui/components/`, `lib/ui/text/`, `lib/ui/icons/`, `lib/ui/theme/`: shared design system pieces
 - `lib/ui/state/`: `AppState`, auth/profile/ownership/account-deletion APIs, Firebase-backed implementations

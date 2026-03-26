@@ -384,7 +384,7 @@ It is a practical engineering status check against the checklist above. It is no
 ### Missing
 
 - [ ] A public privacy-policy page / URL.
-- [ ] A privacy-policy link or privacy-policy text inside the app. The current support page is still a placeholder (`lib/ui/pages/meta/support_page.dart`).
+- [ ] A privacy-policy link or privacy-policy text inside the app.
 - [ ] An out-of-app account-deletion page or form on the web.
 - [ ] A real support / privacy contact channel such as a support email or web form.
 - [ ] A privacy policy that covers the exact data already processed today, including Firebase Auth identifiers, Play Games linking, display name, `displayNameLastChangedAtMs`, onboarding-completion status, server-side ownership / loadout / progression data, and local leaderboard data.

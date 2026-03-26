@@ -9,8 +9,6 @@ import '../pages/leaderboards/leaderboards_page.dart';
 import '../pages/lab/loadout_lab_page.dart';
 import '../pages/meta/credits_page.dart';
 import '../pages/town/town_page.dart';
-import '../pages/meta/support_page.dart';
-import '../pages/meta/library_page.dart';
 import '../pages/meta/options_page.dart';
 import '../pages/meta/messages_page.dart';
 import '../pages/profile/profile_page.dart';
@@ -78,20 +76,10 @@ class UiRouter {
           settings: settings,
           builder: (_) => const OptionsPage(),
         );
-      case UiRoutes.library:
-        return MaterialPageRoute<void>(
-          settings: settings,
-          builder: (_) => const LibraryPage(),
-        );
       case UiRoutes.town:
         return MaterialPageRoute<void>(
           settings: settings,
           builder: (_) => const TownPage(),
-        );
-      case UiRoutes.support:
-        return MaterialPageRoute<void>(
-          settings: settings,
-          builder: (_) => const SupportPage(),
         );
       case UiRoutes.messages:
         return MaterialPageRoute<void>(

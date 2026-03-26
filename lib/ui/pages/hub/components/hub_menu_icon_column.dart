@@ -6,21 +6,17 @@ import '../../../components/app_icon_button.dart';
 class HubMenuIconColumn extends StatelessWidget {
   const HubMenuIconColumn({
     super.key,
-    required this.onCodexPressed,
     required this.onTownPressed,
     required this.onProfilePressed,
     required this.onLeaderboardsPressed,
     required this.onMessagesPressed,
-    required this.onSupportPressed,
     required this.onOptionsPressed,
   });
 
-  final VoidCallback onCodexPressed;
   final VoidCallback onTownPressed;
   final VoidCallback onProfilePressed;
   final VoidCallback onLeaderboardsPressed;
   final VoidCallback onMessagesPressed;
-  final VoidCallback onSupportPressed;
   final VoidCallback onOptionsPressed;
 
   @override
@@ -29,54 +25,29 @@ class HubMenuIconColumn extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppIconButton(
-              icon: Icons.library_books,
-              label: 'Codex',
-              onPressed: onCodexPressed,
-            ),
-            AppIconButton(
-              icon: Icons.storefront,
-              label: 'Town',
-              onPressed: onTownPressed,
-            ),
-          ],
+        AppIconButton(
+          icon: Icons.storefront,
+          tooltip: 'Town',
+          onPressed: onTownPressed,
         ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppIconButton(
-              icon: Icons.person,
-              label: 'Profile',
-              onPressed: onProfilePressed,
-            ),
-            AppIconButton(
-              icon: Icons.leaderboard,
-              label: 'Top',
-              onPressed: onLeaderboardsPressed,
-            ),
-          ],
+        AppIconButton(
+          icon: Icons.person,
+          tooltip: 'Profile',
+          onPressed: onProfilePressed,
         ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppIconButton(
-              icon: Icons.message,
-              label: 'Messages',
-              onPressed: onMessagesPressed,
-            ),
-            AppIconButton(
-              icon: Icons.monetization_on,
-              label: 'Support',
-              onPressed: onSupportPressed,
-            ),
-          ],
+        AppIconButton(
+          icon: Icons.leaderboard,
+          tooltip: 'Top',
+          onPressed: onLeaderboardsPressed,
+        ),
+        AppIconButton(
+          icon: Icons.message,
+          tooltip: 'Messages',
+          onPressed: onMessagesPressed,
         ),
         AppIconButton(
           icon: Icons.settings,
-          label: 'Options',
+          tooltip: 'Options',
           onPressed: onOptionsPressed,
         ),
       ],

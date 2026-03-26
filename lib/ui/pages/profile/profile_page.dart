@@ -258,6 +258,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 Container(
                   padding: EdgeInsets.all(ui.space.md),
                   decoration: BoxDecoration(
+                    color: UiBrandPalette.cardBackground,
                     border: Border.all(
                       color: ui.colors.outline,
                       width: ui.sizes.borderWidth,
@@ -331,6 +332,7 @@ class _ProfilePageState extends State<ProfilePage> {
       width: double.infinity,
       padding: EdgeInsets.all(ui.space.md),
       decoration: BoxDecoration(
+        color: UiBrandPalette.cardBackground,
         border: Border.all(
           color: ui.colors.danger.withValues(alpha: 0.7),
           width: ui.sizes.borderWidth,
@@ -387,6 +389,7 @@ class _ProfilePageState extends State<ProfilePage> {
       width: double.infinity,
       padding: EdgeInsets.all(ui.space.md),
       decoration: BoxDecoration(
+        color: UiBrandPalette.cardBackground,
         border: Border.all(
           color: ui.colors.outline,
           width: ui.sizes.borderWidth,

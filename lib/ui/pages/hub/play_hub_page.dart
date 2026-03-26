@@ -102,8 +102,6 @@ class _PlayHubPageState extends State<PlayHubPage> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             HubMenuIconColumn(
-              onCodexPressed: () =>
-                  Navigator.of(context).pushNamed(UiRoutes.library),
               onTownPressed: () =>
                   Navigator.of(context).pushNamed(UiRoutes.town),
               onProfilePressed: () =>
@@ -112,8 +110,6 @@ class _PlayHubPageState extends State<PlayHubPage> {
                   Navigator.of(context).pushNamed(UiRoutes.leaderboards),
               onMessagesPressed: () =>
                   Navigator.of(context).pushNamed(UiRoutes.messages),
-              onSupportPressed: () =>
-                  Navigator.of(context).pushNamed(UiRoutes.support),
               onOptionsPressed: () =>
                   Navigator.of(context).pushNamed(UiRoutes.options),
             ),
