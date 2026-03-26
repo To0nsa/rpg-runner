@@ -35,16 +35,14 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
     super.dispose();
   }
 
-  Future<void> _complete({required bool skipped}) async {
+  Future<void> _complete() async {
     if (_saving) return;
     setState(() => _saving = true);
 
     final appState = context.read<AppState>();
 
     try {
-      await appState.completeNamePrompt(
-        displayName: skipped ? null : _controller.text,
-      );
+      await appState.completeNamePrompt(displayName: _controller.text);
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -64,7 +62,7 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
       setState(() => _error = err);
       return;
     }
-    await _complete(skipped: false);
+    await _complete();
   }
 
   String _displayNameSaveError(Object error) {
@@ -93,7 +91,7 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
                 ),
                 SizedBox(height: ui.space.xs),
                 Text(
-                  'This is optional. You can change it later in Profile.',
+                  'This is required. You can change it later in Profile.',
                   style: ui.text.body.copyWith(color: ui.colors.textMuted),
                   textAlign: TextAlign.center,
                 ),
@@ -128,16 +126,7 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     AppButton(
-                      label: 'Skip',
-                      size: AppButtonSize.xs,
-                      variant: AppButtonVariant.secondary,
-                      onPressed: _saving
-                          ? null
-                          : () => _complete(skipped: true),
-                    ),
-                    SizedBox(width: ui.space.sm),
-                    AppButton(
-                      label: 'Confirm',
+                      label: 'Continue',
                       size: AppButtonSize.md,
                       onPressed: _saving ? null : _confirm,
                     ),

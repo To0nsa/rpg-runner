@@ -15,6 +15,27 @@ import 'package:rpg_runner/ui/theme/ui_button_theme.dart';
 import 'package:rpg_runner/ui/theme/ui_tokens.dart';
 
 void main() {
+  testWidgets('setup page requires a non-empty name', (tester) async {
+    final appState = AppState(
+      authApi: const _StaticAuthApi(),
+      loadoutOwnershipApi: _NoopOwnershipApi(),
+      userProfileRemoteApi: const _FailingUserProfileRemoteApi(
+        error: UserProfileRemoteException(
+          code: 'unavailable',
+          message: 'network down',
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(_TestApp(appState: appState));
+
+    await tester.tap(find.text('Confirm'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Name is required.'), findsOneWidget);
+    expect(find.text('hub-page'), findsNothing);
+  });
+
   testWidgets('setup page shows network-specific save error', (tester) async {
     final appState = AppState(
       authApi: const _StaticAuthApi(),
