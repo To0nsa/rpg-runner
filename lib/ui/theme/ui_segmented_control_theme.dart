@@ -38,7 +38,7 @@ class UiSegmentedControlTheme extends ThemeExtension<UiSegmentedControlTheme> {
     background: UiBrandPalette.steelBlueSurfaceBottom,
     selectedBackground: UiBrandPalette.wornGoldInsetBorder,
     foreground: UiBrandPalette.steelBlueForeground,
-    selectedForeground: UiBrandPalette.baseBackground,
+    selectedForeground: UiBrandPalette.cardBackground,
     border: UiBrandPalette.wornGoldBorder,
     sizes: UiSegmentedControlSizes(
       sm: UiSegmentedControlSizeMetrics(height: 32, paddingHorizontal: 8),

@@ -27,6 +27,7 @@ class WeeklyBadgeRow extends StatelessWidget {
         vertical: ui.space.xs,
       ),
       decoration: BoxDecoration(
+        color: UiBrandPalette.cardBackground,
         border: Border.all(
           color: ui.colors.outline,
           width: ui.sizes.borderWidth,
@@ -38,7 +39,7 @@ class WeeklyBadgeRow extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: ui.text.body,
+              style: ui.text.cardLabel,
               textAlign: TextAlign.center,
             ),
           ),

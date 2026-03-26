@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 class UiBrandPalette {
   const UiBrandPalette._();
 
-  static const baseBackground = Color.fromARGB(50, 15, 20, 26);
-  static const cardBackground = Color.fromARGB(50, 19, 26, 34);
+  static const baseBackground = Color.fromARGB(255, 15, 20, 26);
+  static const cardBackground = Color.fromARGB(153, 31, 43, 56);
 
   static const steelBlueBackground = Color.fromARGB(50, 29, 39, 49);
   static const steelBlueForeground = Color(0xFFD2DAE3);
@@ -16,7 +16,7 @@ class UiBrandPalette {
   static const steelBlueInsetBottom = Color(0xFF10161C);
 
   static const wornGoldBorder = Color(0xFF8E7A4F);
-  static const wornGoldOutline = Color.fromARGB(255, 142, 122, 79);
+  static const wornGoldOutline = Color(0xB38E7A4F);
   static const wornGoldInsetBorder = Color(0xFFAE9664);
   static const wornGoldGlow = Color(0x1A8E7A4F);
 

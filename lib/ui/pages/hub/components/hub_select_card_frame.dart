@@ -34,13 +34,11 @@ class HubSelectCardFrame extends StatelessWidget {
       height: hub.selectCardHeight,
       // Card border, shadow, and border radius
       decoration: BoxDecoration(
-        color: frameColor ?? ui.colors.cardBackground,
         borderRadius: BorderRadius.circular(ui.radii.md),
         border: Border.all(
           color: ui.colors.outline,
           width: ui.sizes.borderWidth,
         ),
-        boxShadow: ui.shadows.card,
       ),
       // Card content
       child: ClipRRect(
