@@ -96,9 +96,17 @@ class _LoaderPageState extends State<LoaderPage> {
 
     return MenuScaffold(
       showAppBar: false,
+      useBodySafeArea: false,
+      background: Image.asset(
+        'assets/images/backgrounds/loader_bg.png',
+        fit: BoxFit.fitWidth,
+        alignment: Alignment.bottomCenter,
+      ),
       child: MenuLayout(
         alignment: Alignment.center,
         scrollable: hasError,
+        maxWidth: double.infinity,
+        horizontalPadding: 0,
         child: hasError
             ? LoaderContent(
                 errorMessage: '${_result!.error}',

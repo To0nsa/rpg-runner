@@ -86,6 +86,7 @@ flutter:
 
   assets:
     # BEGIN AUTO-ASSETS
+    - assets/images/backgrounds/
     - assets/images/entities/collectibles/
     - assets/images/entities/enemies/
     - assets/images/entities/enemies/derf/

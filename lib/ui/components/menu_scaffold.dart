@@ -5,7 +5,7 @@ import '../theme/ui_tokens.dart';
 /// A scaffold wrapper for menu pages with consistent theme-token styling.
 ///
 /// Handles:
-/// - Brand background
+/// - Optional full-page background behind content
 /// - Optional AppBar with back button
 /// - SafeArea for content
 ///
@@ -14,14 +14,20 @@ class MenuScaffold extends StatelessWidget {
   const MenuScaffold({
     super.key,
     required this.child,
+    this.background,
     this.title,
     this.appBarTitle,
     this.centerAppBarTitle = false,
     this.showAppBar = true,
+    this.useBodySafeArea = false,
   });
 
   /// The main content of the page.
   final Widget child;
+
+  /// Full-page background rendered behind [child].
+  /// If omitted, a default background image is used.
+  final Widget? background;
 
   /// Optional title for the AppBar. If null, no title is shown.
   final String? title;
@@ -40,6 +46,9 @@ class MenuScaffold extends StatelessWidget {
   /// Whether to show the AppBar with back button. Defaults to true.
   final bool showAppBar;
 
+  /// Whether to wrap the body in [SafeArea]. Defaults to false.
+  final bool useBodySafeArea;
+
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
@@ -47,24 +56,35 @@ class MenuScaffold extends StatelessWidget {
     final resolvedTitle =
         appBarTitle ??
         (title != null
-            ? Text(
-                title!,
-                style: ui.text.title.copyWith(
-                  color: ui.colors.textPrimary,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                ),
-              )
+            ? Text(title!, style: ui.text.title)
             : null);
     final appBarWidget = AppBar(
       title: resolvedTitle,
       backgroundColor: ui.colors.background,
       iconTheme: IconThemeData(color: ui.colors.textPrimary),
-      // We provide our own SafeArea so all menu pages share one safe-area
-      // policy from the app shell MediaQuery configuration.
       primary: false,
       centerTitle: centerAppBarTitle,
       titleSpacing: appBarTitle != null ? 0 : null,
+    );
+
+    final bodyContent = useBodySafeArea
+        ? SafeArea(maintainBottomViewPadding: true, child: child)
+        : child;
+
+    final resolvedBackground =
+        background ??
+        Image.asset(
+          'assets/images/backgrounds/playHub_bgDark.png',
+          fit: BoxFit.fitWidth,
+          alignment: Alignment.bottomCenter,
+        );
+
+    final body = Stack(
+      fit: StackFit.expand,
+      children: [
+        Positioned.fill(child: resolvedBackground),
+        bodyContent,
+      ],
     );
 
     return Scaffold(
@@ -77,7 +97,7 @@ class MenuScaffold extends StatelessWidget {
               child: SafeArea(bottom: false, child: appBarWidget),
             )
           : null,
-      body: SafeArea(maintainBottomViewPadding: true, child: child),
+      body: body,
     );
   }
 }

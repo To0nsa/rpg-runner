@@ -76,6 +76,7 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
     final ui = context.ui;
     return MenuScaffold(
       showAppBar: false,
+      useBodySafeArea: true,
       child: MenuLayout(
         child: Center(
           child: ConstrainedBox(

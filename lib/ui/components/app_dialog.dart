@@ -27,7 +27,7 @@ class AppDialog extends StatelessWidget {
       insetPadding: EdgeInsets.all(ui.space.sm),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(ui.radii.md),
-        side: BorderSide(color: ui.colors.outline.withValues(alpha: 0.35)),
+        side: BorderSide(color: ui.colors.outline),
       ),
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),

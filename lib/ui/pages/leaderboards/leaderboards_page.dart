@@ -58,7 +58,9 @@ class _LeaderboardsPageState extends State<LeaderboardsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final weeklyFeaturedLevelId = context.read<AppState>().weeklyFeaturedLevelId;
+    final weeklyFeaturedLevelId = context
+        .read<AppState>()
+        .weeklyFeaturedLevelId;
     final segmented = AppSegmentedControl<LeaderboardsRunFilter>(
       values: const [
         LeaderboardsRunFilter.practice,
@@ -78,6 +80,7 @@ class _LeaderboardsPageState extends State<LeaderboardsPage> {
     return MenuScaffold(
       appBarTitle: segmented,
       centerAppBarTitle: true,
+      useBodySafeArea: true,
       child: MenuLayout(
         scrollable: false,
         child: switch (_runFilter) {
@@ -379,7 +382,8 @@ class _OnlineLeaderboardListState extends State<_OnlineLeaderboardList> {
           exception.message!,
         RunStartRemoteException exception when exception.isPreconditionFailed =>
           'Ghost run cannot start for this board entry right now.',
-        _ => 'Unable to start ghost run right now. Check your connection and try again.',
+        _ =>
+          'Unable to start ghost run right now. Check your connection and try again.',
       };
       ScaffoldMessenger.of(
         context,

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../components/app_button.dart';
 import '../theme/ui_tokens.dart';
 
-/// Shared loading visual used by bootstrap + run loading.
 class LoaderContent extends StatelessWidget {
   const LoaderContent({
     super.key,
@@ -27,67 +26,69 @@ class LoaderContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
-    final titleColor = ui.colors.textPrimary;
-    final mutedTextColor = ui.colors.textMuted;
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          subtitle,
-          style: TextStyle(
-            fontFamily: 'Cinzel',
-            fontSize: 24,
-            fontWeight: FontWeight.w700,
-            color: titleColor,
-            letterSpacing: 2,
-          ),
-        ),
-        Text(
-          title,
-          // Game title style only used here.
-          style: TextStyle(
-            fontFamily: 'Cinzel',
-            fontSize: 36,
-            fontWeight: FontWeight.w700,
-            color: titleColor,
-            letterSpacing: 2,
-          ),
-        ),
-        SizedBox(height: ui.space.lg),
-        if (!_hasError) ...[
-          CircularProgressIndicator(color: ui.colors.textPrimary),
-          SizedBox(height: ui.space.md),
+    final titleColor = Color(0xFF354656);
+
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
           Text(
-            loadingMessage,
-            style: ui.text.body.copyWith(color: mutedTextColor),
-          ),
-        ],
-        if (_hasError) ...[
-          Text(
-            'Bootstrap failed',
-            style: ui.text.body.copyWith(
-              color: ui.colors.danger,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+            subtitle,
+            style: TextStyle(
+              fontFamily: 'Cinzel',
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: titleColor,
+              letterSpacing: 2,
             ),
           ),
-          SizedBox(height: ui.space.xs),
           Text(
-            errorMessage!,
-            textAlign: TextAlign.center,
-            style: ui.text.body.copyWith(color: mutedTextColor),
+            title,
+            style: TextStyle(
+              fontFamily: 'Cinzel',
+              fontSize: 36,
+              fontWeight: FontWeight.w700,
+              color: titleColor,
+              letterSpacing: 2,
+            ),
           ),
-          if (onContinue != null) ...[
-            SizedBox(height: ui.space.md),
-            AppButton(
-              label: continueLabel,
-              variant: AppButtonVariant.secondary,
-              size: AppButtonSize.lg,
-              onPressed: onContinue,
+          SizedBox(height: ui.space.lg),
+          if (!_hasError) ...[
+            CircularProgressIndicator(color: ui.colors.textPrimary),
+            SizedBox(height: ui.space.xs),
+            Text(
+              loadingMessage,
+              style: ui.text.body.copyWith(color: ui.colors.textPrimary),
             ),
           ],
+          if (_hasError) ...[
+            Text(
+              'Bootstrap failed',
+              style: ui.text.body.copyWith(
+                color: ui.colors.danger,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(height: ui.space.xs),
+            Text(
+              errorMessage!,
+              textAlign: TextAlign.center,
+              style: ui.text.body.copyWith(color: ui.colors.textPrimary),
+            ),
+            if (onContinue != null) ...[
+              SizedBox(height: ui.space.md),
+              AppButton(
+                label: continueLabel,
+                variant: AppButtonVariant.secondary,
+                size: AppButtonSize.lg,
+                onPressed: onContinue,
+              ),
+            ],
+          ],
         ],
-      ],
+      ),
     );
   }
 }

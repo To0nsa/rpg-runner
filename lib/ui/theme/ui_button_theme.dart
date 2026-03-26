@@ -17,8 +17,7 @@ class UiButtonTheme extends ThemeExtension<UiButtonTheme> {
     this.disabledBackgroundAlpha = 0.4,
     this.disabledForegroundAlpha = 0.5,
     this.disabledBorderAlpha = 0.4,
-    this.pressedOverlayAlpha = 0.09,
-    this.hoverOverlayAlpha = 0.05,
+    this.pressedOverlayAlpha = 0.17,
   });
 
   final UiButtonVariantTheme primary;
@@ -31,7 +30,6 @@ class UiButtonTheme extends ThemeExtension<UiButtonTheme> {
   final double disabledForegroundAlpha;
   final double disabledBorderAlpha;
   final double pressedOverlayAlpha;
-  final double hoverOverlayAlpha;
 
   static const UiButtonTheme standard = UiButtonTheme(
     primary: UiButtonVariantTheme(
@@ -147,7 +145,6 @@ class UiButtonTheme extends ThemeExtension<UiButtonTheme> {
     double? disabledForegroundAlpha,
     double? disabledBorderAlpha,
     double? pressedOverlayAlpha,
-    double? hoverOverlayAlpha,
   }) {
     return UiButtonTheme(
       primary: primary ?? this.primary,
@@ -161,7 +158,6 @@ class UiButtonTheme extends ThemeExtension<UiButtonTheme> {
           disabledForegroundAlpha ?? this.disabledForegroundAlpha,
       disabledBorderAlpha: disabledBorderAlpha ?? this.disabledBorderAlpha,
       pressedOverlayAlpha: pressedOverlayAlpha ?? this.pressedOverlayAlpha,
-      hoverOverlayAlpha: hoverOverlayAlpha ?? this.hoverOverlayAlpha,
     );
   }
 

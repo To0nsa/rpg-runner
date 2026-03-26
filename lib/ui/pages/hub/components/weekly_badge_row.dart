@@ -46,7 +46,7 @@ class WeeklyBadgeRow extends StatelessWidget {
             isLoading: isWeeklyLoading,
             onPressed: onWeeklyPressed,
             size: AppButtonSize.xxs,
-            loadingIndicatorSize: ui.sizes.iconSize.sm,
+            showLoadingIndicator: false,
           ),
           SizedBox(width: ui.space.xs),
           AppButton(

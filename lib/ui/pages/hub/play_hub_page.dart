@@ -36,8 +36,7 @@ class _PlayHubPageState extends State<PlayHubPage> {
     });
   }
 
-  Future<void> _startRun(
-    {
+  Future<void> _startRun({
     _RunStartSource source = _RunStartSource.main,
   }) async {
     if (_preparingRunStart) return;
@@ -47,9 +46,7 @@ class _PlayHubPageState extends State<PlayHubPage> {
     });
     try {
       if (!mounted) return;
-      await Navigator.of(
-        context,
-      ).pushNamed(
+      await Navigator.of(context).pushNamed(
         UiRoutes.runBootstrap,
         arguments: const RunStartBootstrapArgs(),
       );
@@ -94,6 +91,12 @@ class _PlayHubPageState extends State<PlayHubPage> {
 
     return MenuScaffold(
       showAppBar: false,
+      useBodySafeArea: false,
+      background: Image.asset(
+        'assets/images/backgrounds/playHub_bgDark.png',
+        fit: BoxFit.fitWidth,
+        alignment: Alignment.bottomCenter,
+      ),
       child: MenuLayout(
         horizontalPadding: ui.space.lg,
         child: Row(
@@ -130,11 +133,11 @@ class _PlayHubPageState extends State<PlayHubPage> {
                   WeeklyBadgeRow(
                     title: _weeklyBadgeTitle(progression, appState),
                     isWeeklyLoading:
-                      _preparingRunStart &&
-                      _runStartSource == _RunStartSource.weekly,
+                        _preparingRunStart &&
+                        _runStartSource == _RunStartSource.weekly,
                     onWeeklyPressed: _preparingRunStart
-                      ? null
-                      : () => _startWeeklyRun(appState),
+                        ? null
+                        : () => _startWeeklyRun(appState),
                     onWeeklyLeaderboardPressed: () =>
                         Navigator.of(context).pushNamed(UiRoutes.leaderboards),
                   ),
@@ -170,9 +173,8 @@ class _PlayHubPageState extends State<PlayHubPage> {
                       isLoading:
                           _preparingRunStart &&
                           _runStartSource == _RunStartSource.main,
-                      onPressed: _preparingRunStart
-                          ? null
-                          : () => _startRun(),
+                      showLoadingIndicator: false,
+                      onPressed: _preparingRunStart ? null : () => _startRun(),
                     ),
                   ),
                 ],
@@ -198,7 +200,7 @@ String _runModeLabel(RunMode runMode) {
   }
 }
 
-String _weeklyBadgeTitle(ProgressionState progression,AppState appState) {
+String _weeklyBadgeTitle(ProgressionState progression, AppState appState) {
   final weeklyLevelName = appState.weeklyFeaturedLevelId.displayName
       .toUpperCase();
   final weekly = progression.weekly;

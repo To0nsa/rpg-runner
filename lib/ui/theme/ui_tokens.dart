@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 class UiBrandPalette {
   const UiBrandPalette._();
 
-  static const baseBackground = Color(0xFF0F141A);
-  static const cardBackground = Color(0xFF131A22);
+  static const baseBackground = Color.fromARGB(50, 15, 20, 26);
+  static const cardBackground = Color.fromARGB(50, 19, 26, 34);
 
-  static const steelBlueBackground = Color(0xFF1D2731);
+  static const steelBlueBackground = Color.fromARGB(50, 29, 39, 49);
   static const steelBlueForeground = Color(0xFFD2DAE3);
   static const steelBlueMutedText = Color(0xB3D2DAE3);
   static const steelBlueSurfaceTop = Color(0xFF354656);

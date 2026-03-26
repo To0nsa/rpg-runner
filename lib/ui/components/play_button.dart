@@ -11,6 +11,7 @@ class PlayButton extends StatelessWidget {
     this.label = 'PLAY',
     this.variant = AppButtonVariant.primary,
     this.size = AppButtonSize.lg,
+    this.showLoadingIndicator = true,
     this.loadingIndicatorSize,
   });
 
@@ -19,6 +20,7 @@ class PlayButton extends StatelessWidget {
   final String label;
   final AppButtonVariant variant;
   final AppButtonSize size;
+  final bool showLoadingIndicator;
   final double? loadingIndicatorSize;
 
   @override
@@ -33,7 +35,7 @@ class PlayButton extends StatelessWidget {
           size: size,
           onPressed: isLoading ? null : onPressed,
         ),
-        if (isLoading)
+        if (isLoading && showLoadingIndicator)
           SizedBox(
             width: loadingIndicatorSize ?? ui.sizes.iconSize.md,
             height: loadingIndicatorSize ?? ui.sizes.iconSize.md,

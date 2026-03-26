@@ -14,11 +14,13 @@ class HubSelectCardFrame extends StatelessWidget {
     required this.background,
     required this.child,
     this.onTap,
+    this.frameColor,
   });
 
   final Widget background;
   final Widget child;
   final VoidCallback? onTap;
+  final Color? frameColor;
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +34,7 @@ class HubSelectCardFrame extends StatelessWidget {
       height: hub.selectCardHeight,
       // Card border, shadow, and border radius
       decoration: BoxDecoration(
-        color: ui.colors.cardBackground,
+        color: frameColor ?? ui.colors.cardBackground,
         borderRadius: BorderRadius.circular(ui.radii.md),
         border: Border.all(
           color: ui.colors.outline,

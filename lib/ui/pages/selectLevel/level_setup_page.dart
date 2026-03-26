@@ -109,9 +109,7 @@ class _LevelSetupPageState extends State<LevelSetupPage> {
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
             'Unable to navigate to run start right now. Try again.',
@@ -162,16 +160,14 @@ class _LevelSetupPageState extends State<LevelSetupPage> {
       onPopInvokedWithResult: _commitDraftSelectionAndPopIfNeeded,
       child: MenuScaffold(
         title: 'Select Level',
+        useBodySafeArea: true,
         child: MenuLayout(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Center(
                 child: AppSegmentedControl<RunMode>(
-                  values: const [
-                    RunMode.practice,
-                    RunMode.competitive,
-                  ],
+                  values: const [RunMode.practice, RunMode.competitive],
                   selected: _draftRunMode,
                   onChanged: _onRunModeChanged,
                   labelBuilder: (context, value) => switch (value) {
@@ -193,6 +189,7 @@ class _LevelSetupPageState extends State<LevelSetupPage> {
               Center(
                 child: PlayButton(
                   isLoading: _preparingRunStart,
+                  showLoadingIndicator: false,
                   onPressed: () => _startRun(appState),
                 ),
               ),

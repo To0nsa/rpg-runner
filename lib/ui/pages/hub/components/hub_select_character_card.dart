@@ -6,7 +6,6 @@ import 'hub_select_card_body.dart';
 import 'hub_select_card_frame.dart';
 import '../../../components/player_idle_preview.dart';
 import '../../../theme/ui_hub_theme.dart';
-import '../../../theme/ui_tokens.dart';
 
 /// Hub card showing the currently selected character and build name.
 class HubSelectCharacterCard extends StatelessWidget {
@@ -23,15 +22,13 @@ class HubSelectCharacterCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ui = context.ui;
     final hub = context.hub;
     final def = PlayerCharacterRegistry.resolve(characterId);
 
     return HubSelectCardFrame(
       onTap: onChange,
-      background: DecoratedBox(
-        decoration: BoxDecoration(color: ui.colors.cardBackground),
-      ),
+      frameColor: Colors.transparent,
+      background: const ColoredBox(color: Colors.transparent),
       child: HubSelectCardBody(
         label: 'CHARACTER SELECTION',
         title: def.displayName,

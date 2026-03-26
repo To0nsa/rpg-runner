@@ -28,23 +28,12 @@ class AppButton extends StatefulWidget {
 class _AppButtonState extends State<AppButton> {
   static const Duration _stateAnimationDuration = Duration(milliseconds: 120);
 
-  bool _hovered = false;
+  // Tracks pointer-down highlight state to render pressed visuals.
   bool _pressed = false;
-  bool _focused = false;
-
-  void _setHovered(bool value) {
-    if (_hovered == value) return;
-    setState(() => _hovered = value);
-  }
 
   void _setPressed(bool value) {
     if (_pressed == value) return;
     setState(() => _pressed = value);
-  }
-
-  void _setFocused(bool value) {
-    if (_focused == value) return;
-    setState(() => _focused = value);
   }
 
   Color _blendOver({
@@ -58,7 +47,6 @@ class _AppButtonState extends State<AppButton> {
 
   Color _resolveSurfaceColor({
     required Color base,
-    required Color foreground,
     required UiButtonTheme buttons,
     required bool enabled,
   }) {
@@ -66,42 +54,30 @@ class _AppButtonState extends State<AppButton> {
       return base.withValues(alpha: buttons.disabledBackgroundAlpha);
     }
 
-    var color = base;
     if (_pressed) {
-      color = _blendOver(
-        base: color,
+      base = _blendOver(
+        base: base,
         overlay: UiBrandPalette.black,
-        alpha: buttons.pressedOverlayAlpha + 0.08,
+        alpha: buttons.pressedOverlayAlpha,
       );
-    } else {
-      if (_hovered) {
-        color = _blendOver(
-          base: color,
-          overlay: foreground,
-          alpha: buttons.hoverOverlayAlpha + 0.04,
-        );
-      }
-      if (_focused) {
-        color = _blendOver(base: color, overlay: foreground, alpha: 0.08);
-      }
     }
-    return color;
+    return base;
   }
 
   Color _resolveBorderColor({
     required Color base,
-    required Color foreground,
     required UiButtonTheme buttons,
     required bool enabled,
   }) {
     if (!enabled) {
       return base.withValues(alpha: buttons.disabledBorderAlpha);
     }
+
     if (_pressed) {
-      return _blendOver(base: base, overlay: UiBrandPalette.black, alpha: 0.1);
-    }
-    if (_hovered || _focused) {
-      return _blendOver(base: base, overlay: foreground, alpha: 0.12);
+      return _blendOver(
+        base: base,
+        overlay: UiBrandPalette.black,
+        alpha: buttons.pressedOverlayAlpha);
     }
     return base;
   }
@@ -111,12 +87,15 @@ class _AppButtonState extends State<AppButton> {
     final ui = context.ui;
     final buttons = context.buttons;
 
+    // 1) Resolve all theme-driven visual tokens for this button.
     final spec = buttons.resolveSpec(
       ui: ui,
       variant: widget.variant,
       size: widget.size,
     );
     final enabled = widget.onPressed != null;
+
+    // 2) Build geometry for the beveled frame and inset panel.
     final outerRadius = BorderRadius.circular(ui.radii.sm);
     final bevelInset = math.max(1.0, ui.sizes.borderWidth);
     final innerRadius = BorderRadius.circular(
@@ -128,37 +107,31 @@ class _AppButtonState extends State<AppButton> {
 
     final outerTop = _resolveSurfaceColor(
       base: spec.surfaceTop,
-      foreground: spec.foreground,
       buttons: buttons,
       enabled: enabled,
     );
     final outerBottom = _resolveSurfaceColor(
       base: spec.surfaceBottom,
-      foreground: spec.foreground,
       buttons: buttons,
       enabled: enabled,
     );
     final innerTop = _resolveSurfaceColor(
       base: spec.insetTop,
-      foreground: spec.foreground,
       buttons: buttons,
       enabled: enabled,
     );
     final innerBottom = _resolveSurfaceColor(
       base: spec.insetBottom,
-      foreground: spec.foreground,
       buttons: buttons,
       enabled: enabled,
     );
     final outerBorder = _resolveBorderColor(
       base: spec.border,
-      foreground: spec.foreground,
       buttons: buttons,
       enabled: enabled,
     );
     final innerBorder = _resolveBorderColor(
       base: spec.insetBorder,
-      foreground: spec.foreground,
       buttons: buttons,
       enabled: enabled,
     );
@@ -183,18 +156,12 @@ class _AppButtonState extends State<AppButton> {
       height: textStyle.height,
       forceStrutHeight: true,
     );
-    final pressedOffset = enabled && _pressed ? 1.5 : 0.0;
-    final glowStrength = !enabled
-        ? 0.0
-        : _focused
-        ? 0.45
-        : _hovered
-        ? 0.25
-        : 0.0;
+    // 3) Nudge on press for physical button feedback.
+    final pressedOffsetY = enabled && _pressed ? 1.5 : 0.0;
+    final pressedOffsetX = enabled && _pressed ? 0.5 : 0.0;
     final shadowColor = enabled
         ? spec.shadow
         : spec.shadow.withValues(alpha: buttons.disabledBackgroundAlpha);
-    final glowColor = spec.glow.withValues(alpha: spec.glow.a * glowStrength);
 
     return SizedBox(
       width: spec.width,
@@ -202,8 +169,9 @@ class _AppButtonState extends State<AppButton> {
       child: AnimatedContainer(
         duration: _stateAnimationDuration,
         curve: Curves.easeOutCubic,
-        transform: Matrix4.translationValues(0, pressedOffset, 0),
+        transform: Matrix4.translationValues(pressedOffsetX, pressedOffsetY, 0),
         decoration: BoxDecoration(
+          // 4) Outer shell: border + gradient + drop shadow.
           borderRadius: outerRadius,
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -215,18 +183,12 @@ class _AppButtonState extends State<AppButton> {
             BoxShadow(
               color: shadowColor,
               blurRadius: _pressed ? 4 : 10,
-              offset: Offset(0, _pressed ? 2 : 5),
+              offset: Offset(_pressed ? 0.5 : 0, _pressed ? 2 : 5),
             ),
-            if (glowStrength > 0)
-              BoxShadow(
-                color: glowColor,
-                blurRadius: 16,
-                spreadRadius: 1,
-                offset: const Offset(0, 0),
-              ),
           ],
         ),
         child: Padding(
+          // 5) Inset gap that creates the bevel effect.
           padding: EdgeInsets.all(bevelInset),
           child: ClipRRect(
             borderRadius: innerRadius,
@@ -234,6 +196,7 @@ class _AppButtonState extends State<AppButton> {
               type: MaterialType.transparency,
               child: Ink(
                 decoration: BoxDecoration(
+                  // 6) Inner panel: inset gradient and border.
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
@@ -242,18 +205,14 @@ class _AppButtonState extends State<AppButton> {
                   border: Border.all(color: innerBorder),
                 ),
                 child: InkWell(
+                  // 7) Interaction layer and press highlight behavior.
                   onTap: widget.onPressed,
-                  onHover: enabled ? _setHovered : null,
-                  onFocusChange: enabled ? _setFocused : null,
                   onHighlightChanged: enabled ? _setPressed : null,
                   customBorder: RoundedRectangleBorder(
                     borderRadius: contentRadius,
                   ),
                   splashColor: textColor.withValues(
                     alpha: buttons.pressedOverlayAlpha + 0.06,
-                  ),
-                  hoverColor: textColor.withValues(
-                    alpha: buttons.hoverOverlayAlpha,
                   ),
                   highlightColor: textColor.withValues(
                     alpha: buttons.pressedOverlayAlpha,
@@ -263,6 +222,7 @@ class _AppButtonState extends State<AppButton> {
                     child: SizedBox.expand(
                       child: Align(
                         alignment: Alignment.center,
+                        // 8) Centered label layer.
                         child: Text(
                           widget.label,
                           maxLines: 1,

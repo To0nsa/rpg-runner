@@ -10,10 +10,7 @@ import '../../state/app_state.dart';
 import '../../state/run_start_remote_exception.dart';
 
 class RunStartBootstrapPage extends StatefulWidget {
-  const RunStartBootstrapPage({
-    required this.args,
-    super.key,
-  });
+  const RunStartBootstrapPage({required this.args, super.key});
 
   final RunStartBootstrapArgs args;
 
@@ -57,10 +54,7 @@ class _RunStartBootstrapPageState extends State<RunStartBootstrapPage> {
       );
       if (!mounted) return;
       final navigator = Navigator.of(context);
-      await navigator.pushReplacementNamed(
-        UiRoutes.run,
-        arguments: descriptor,
-      );
+      await navigator.pushReplacementNamed(UiRoutes.run, arguments: descriptor);
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -86,9 +80,17 @@ class _RunStartBootstrapPageState extends State<RunStartBootstrapPage> {
     final hasError = errorMessage != null;
     return MenuScaffold(
       showAppBar: false,
+      useBodySafeArea: false,
+      background: Image.asset(
+        'assets/images/backgrounds/loader_bg.png',
+        fit: BoxFit.fitWidth,
+        alignment: Alignment.bottomCenter,
+      ),
       child: MenuLayout(
         alignment: Alignment.center,
         scrollable: hasError,
+        maxWidth: double.infinity,
+        horizontalPadding: 0,
         child: LoaderContent(
           loadingMessage: 'Preparing run...',
           errorMessage: errorMessage,
