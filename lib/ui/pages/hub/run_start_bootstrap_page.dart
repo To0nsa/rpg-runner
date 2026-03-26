@@ -4,8 +4,7 @@ import 'package:provider/provider.dart';
 import '../../app/ui_routes.dart';
 import '../../assets/ui_asset_lifecycle.dart';
 import '../../bootstrap/loader_content.dart';
-import '../../components/menu_layout.dart';
-import '../../components/menu_scaffold.dart';
+import '../../components/loader_shell.dart';
 import '../../state/app_state.dart';
 import '../../state/run_start_remote_exception.dart';
 
@@ -78,25 +77,13 @@ class _RunStartBootstrapPageState extends State<RunStartBootstrapPage> {
   Widget build(BuildContext context) {
     final errorMessage = _errorMessage;
     final hasError = errorMessage != null;
-    return MenuScaffold(
-      showAppBar: false,
-      useBodySafeArea: false,
-      background: Image.asset(
-        'assets/images/backgrounds/loader_bg.png',
-        fit: BoxFit.fitWidth,
-        alignment: Alignment.bottomCenter,
-      ),
-      child: MenuLayout(
-        alignment: Alignment.center,
-        scrollable: hasError,
-        maxWidth: double.infinity,
-        horizontalPadding: 0,
-        child: LoaderContent(
-          loadingMessage: 'Preparing run...',
-          errorMessage: errorMessage,
-          onContinue: _inFlight ? null : () => _prepareAndNavigate(),
-          continueLabel: _inFlight ? 'Retrying...' : 'Retry',
-        ),
+    return LoaderShell(
+      scrollable: hasError,
+      child: LoaderContent(
+        loadingMessage: 'Preparing run...',
+        errorMessage: errorMessage,
+        onContinue: _inFlight ? null : _prepareAndNavigate,
+        continueLabel: _inFlight ? 'Retrying...' : 'Retry',
       ),
     );
   }

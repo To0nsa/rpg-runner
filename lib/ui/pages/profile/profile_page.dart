@@ -77,10 +77,6 @@ class _ProfilePageState extends State<ProfilePage> {
     ).showSnackBar(const SnackBar(content: Text('Name updated')));
   }
 
-  String? _displayNameSaveError(Object error) {
-    return displayNameSaveErrorText(error);
-  }
-
   String _accountDeletionFailureMessage(AccountDeletionResult result) {
     switch (result.status) {
       case AccountDeletionStatus.requiresRecentLogin:
@@ -247,7 +243,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
     return MenuScaffold(
       title: 'Profile',
-      showAppBar: true,
       child: MenuLayout(
         child: Center(
           child: ConstrainedBox(
@@ -255,16 +250,7 @@ class _ProfilePageState extends State<ProfilePage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  padding: EdgeInsets.all(ui.space.md),
-                  decoration: BoxDecoration(
-                    color: UiBrandPalette.cardBackground,
-                    border: Border.all(
-                      color: ui.colors.outline,
-                      width: ui.sizes.borderWidth,
-                    ),
-                    borderRadius: BorderRadius.circular(ui.radii.md),
-                  ),
+                _ProfileCardPanel(
                   child: Column(
                     children: [
                       _buildDisplayNameRow(profile),
@@ -301,7 +287,7 @@ class _ProfilePageState extends State<ProfilePage> {
               displayText: _fallbackName(currentName),
               hintText: 'Enter name',
               validator: (value) => _validateDisplayName(profile, value),
-              errorTextFromError: _displayNameSaveError,
+              errorTextFromError: displayNameSaveErrorText,
               onCommit: _commitDisplayName,
             ),
           ),
@@ -328,17 +314,9 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _buildDangerZoneCard() {
     final ui = context.ui;
-    return Container(
+    return _ProfileCardPanel(
       width: double.infinity,
-      padding: EdgeInsets.all(ui.space.md),
-      decoration: BoxDecoration(
-        color: UiBrandPalette.cardBackground,
-        border: Border.all(
-          color: ui.colors.danger.withValues(alpha: 0.7),
-          width: ui.sizes.borderWidth,
-        ),
-        borderRadius: BorderRadius.circular(ui.radii.md),
-      ),
+      borderColor: ui.colors.danger.withValues(alpha: 0.7),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -385,17 +363,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _buildPlayGamesUpgradeCard() {
     final ui = context.ui;
-    return Container(
+    return _ProfileCardPanel(
       width: double.infinity,
-      padding: EdgeInsets.all(ui.space.md),
-      decoration: BoxDecoration(
-        color: UiBrandPalette.cardBackground,
-        border: Border.all(
-          color: ui.colors.outline,
-          width: ui.sizes.borderWidth,
-        ),
-        borderRadius: BorderRadius.circular(ui.radii.md),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -420,6 +389,32 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ProfileCardPanel extends StatelessWidget {
+  const _ProfileCardPanel({required this.child, this.width, this.borderColor});
+
+  final Widget child;
+  final double? width;
+  final Color? borderColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final ui = context.ui;
+    return Container(
+      width: width,
+      padding: EdgeInsets.all(ui.space.md),
+      decoration: BoxDecoration(
+        color: UiBrandPalette.cardBackground,
+        border: Border.all(
+          color: borderColor ?? ui.colors.outline,
+          width: ui.sizes.borderWidth,
+        ),
+        borderRadius: BorderRadius.circular(ui.radii.md),
+      ),
+      child: child,
     );
   }
 }

@@ -91,11 +91,6 @@ class _PlayHubPageState extends State<PlayHubPage> {
 
     return MenuScaffold(
       showAppBar: false,
-      background: Image.asset(
-        'assets/images/backgrounds/playHub_bgDark.png',
-        fit: BoxFit.fitWidth,
-        alignment: Alignment.bottomCenter,
-      ),
       child: MenuLayout(
         horizontalPadding: ui.space.lg,
         child: Row(

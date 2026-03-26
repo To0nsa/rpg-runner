@@ -3,14 +3,11 @@ import 'package:flutter/services.dart';
 
 import '../bootstrap/loader_page.dart';
 import '../bootstrap/brand_splash_screen.dart';
+import '../components/placeholder_page.dart';
 import '../pages/hub/play_hub_page.dart';
 import '../pages/hub/run_start_bootstrap_page.dart';
 import '../pages/leaderboards/leaderboards_page.dart';
-import '../pages/lab/loadout_lab_page.dart';
-import '../pages/meta/credits_page.dart';
 import '../pages/town/town_page.dart';
-import '../pages/meta/options_page.dart';
-import '../pages/meta/messages_page.dart';
 import '../pages/profile/profile_page.dart';
 import '../pages/selectLevel/level_setup_page.dart';
 import '../pages/selectCharacter/loadout_setup_page.dart';
@@ -21,85 +18,45 @@ import 'ui_routes.dart';
 class UiRouter {
   const UiRouter._();
 
+  static Route<void> _pageRoute(RouteSettings settings, Widget page) {
+    return MaterialPageRoute<void>(settings: settings, builder: (_) => page);
+  }
+
+  static T _argsOr<T>(Object? args, T fallback) {
+    return args is T ? args : fallback;
+  }
+
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
       case UiRoutes.brandSplash:
-        return MaterialPageRoute<void>(
-          settings: settings,
-          builder: (_) => const BrandSplashScreen(),
-        );
+        return _pageRoute(settings, const BrandSplashScreen());
       case UiRoutes.loader:
-        final args = settings.arguments is LoaderArgs
-            ? settings.arguments as LoaderArgs
-            : const LoaderArgs();
-        return MaterialPageRoute<void>(
-          settings: settings,
-          builder: (_) => LoaderPage(args: args),
-        );
+        final args = _argsOr(settings.arguments, const LoaderArgs());
+        return _pageRoute(settings, LoaderPage(args: args));
       case UiRoutes.hub:
-        return MaterialPageRoute<void>(
-          settings: settings,
-          builder: (_) => const PlayHubPage(),
-        );
+        return _pageRoute(settings, const PlayHubPage());
       case UiRoutes.setupLevel:
-        return MaterialPageRoute<void>(
-          settings: settings,
-          builder: (_) => const LevelSetupPage(),
-        );
+        return _pageRoute(settings, const LevelSetupPage());
       case UiRoutes.setupLoadout:
-        return MaterialPageRoute<void>(
-          settings: settings,
-          builder: (_) => const LoadoutSetupPage(),
-        );
+        return _pageRoute(settings, const LoadoutSetupPage());
       case UiRoutes.setupProfileName:
-        return MaterialPageRoute<void>(
-          settings: settings,
-          builder: (_) => const ProfileNameSetupPage(),
-        );
+        return _pageRoute(settings, const ProfileNameSetupPage());
       case UiRoutes.profile:
-        return MaterialPageRoute<void>(
-          settings: settings,
-          builder: (_) => const ProfilePage(),
-        );
-      case UiRoutes.loadoutLab:
-        return MaterialPageRoute<void>(
-          settings: settings,
-          builder: (_) => const LoadoutLabPage(),
-        );
+        return _pageRoute(settings, const ProfilePage());
       case UiRoutes.leaderboards:
-        return MaterialPageRoute<void>(
-          settings: settings,
-          builder: (_) => const LeaderboardsPage(),
-        );
+        return _pageRoute(settings, const LeaderboardsPage());
       case UiRoutes.options:
-        return MaterialPageRoute<void>(
-          settings: settings,
-          builder: (_) => const OptionsPage(),
-        );
+        return _pageRoute(settings, const PlaceholderPage(title: 'Options'));
       case UiRoutes.town:
-        return MaterialPageRoute<void>(
-          settings: settings,
-          builder: (_) => const TownPage(),
-        );
+        return _pageRoute(settings, const TownPage());
       case UiRoutes.messages:
-        return MaterialPageRoute<void>(
-          settings: settings,
-          builder: (_) => const MessagesPage(),
-        );
-      case UiRoutes.credits:
-        return MaterialPageRoute<void>(
-          settings: settings,
-          builder: (_) => const CreditsPage(),
-        );
+        return _pageRoute(settings, const PlaceholderPage(title: 'Messages'));
       case UiRoutes.runBootstrap:
-        final args = settings.arguments;
-        final bootstrapArgs = args is RunStartBootstrapArgs
-            ? args
-            : const RunStartBootstrapArgs();
-        return MaterialPageRoute<void>(
-          settings: settings,
-          builder: (_) => RunStartBootstrapPage(args: bootstrapArgs),
+        final bootstrapArgs = _argsOr(
+          settings.arguments,
+          const RunStartBootstrapArgs(),
         );
+        return _pageRoute(settings, RunStartBootstrapPage(args: bootstrapArgs));
       case UiRoutes.run:
         final args = settings.arguments;
         if (args is RunStartDescriptor) {
@@ -122,15 +79,9 @@ class UiRouter {
             restoreSystemUiMode: SystemUiMode.immersiveSticky,
           );
         }
-        return MaterialPageRoute<void>(
-          settings: settings,
-          builder: (_) => const PlayHubPage(),
-        );
+        return _pageRoute(settings, const PlayHubPage());
       default:
-        return MaterialPageRoute<void>(
-          settings: settings,
-          builder: (_) => const PlayHubPage(),
-        );
+        return _pageRoute(settings, const PlayHubPage());
     }
   }
 }

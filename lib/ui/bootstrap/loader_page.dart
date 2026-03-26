@@ -4,8 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../app/ui_routes.dart';
-import '../components/menu_layout.dart';
-import '../components/menu_scaffold.dart';
+import '../components/loader_shell.dart';
 import '../state/app_state.dart';
 import 'app_bootstrapper.dart';
 import 'loader_content.dart';
@@ -86,37 +85,23 @@ class _LoaderPageState extends State<LoaderPage> {
     navigator.pushReplacementNamed(UiRoutes.hub);
   }
 
-  Future<void> _retryBootstrap() async {
-    await _startBootstrap(enforceMinimumDuration: false);
-  }
-
   @override
   Widget build(BuildContext context) {
     final hasError = _result != null && !_result!.ok;
 
-    return MenuScaffold(
-      showAppBar: false,
-      useBodySafeArea: false,
-      background: Image.asset(
-        'assets/images/backgrounds/loader_bg.png',
-        fit: BoxFit.fitWidth,
-        alignment: Alignment.bottomCenter,
-      ),
-      child: MenuLayout(
-        alignment: Alignment.center,
-        scrollable: hasError,
-        maxWidth: double.infinity,
-        horizontalPadding: 0,
-        child: hasError
-            ? LoaderContent(
-                errorMessage: '${_result!.error}',
-                continueLabel: 'Retry Play Games sign-in',
-                onContinue: _bootstrapInFlight
-                    ? null
-                    : () => unawaited(_retryBootstrap()),
-              )
-            : const LoaderContent(),
-      ),
+    return LoaderShell(
+      scrollable: hasError,
+      child: hasError
+          ? LoaderContent(
+              errorMessage: '${_result!.error}',
+              continueLabel: 'Retry Play Games sign-in',
+              onContinue: _bootstrapInFlight
+                  ? null
+                  : () => unawaited(
+                      _startBootstrap(enforceMinimumDuration: false),
+                    ),
+            )
+          : const LoaderContent(),
     );
   }
 }

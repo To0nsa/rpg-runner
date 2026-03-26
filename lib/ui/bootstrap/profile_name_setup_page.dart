@@ -25,11 +25,6 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
   bool _saving = false;
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
@@ -47,7 +42,7 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
       if (!mounted) return;
       setState(() {
         _saving = false;
-        _error = _displayNameSaveError(error);
+        _error = displayNameSaveErrorText(error);
       });
       return;
     }
@@ -63,10 +58,6 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
       return;
     }
     await _complete();
-  }
-
-  String _displayNameSaveError(Object error) {
-    return displayNameSaveErrorText(error);
   }
 
   @override
@@ -119,18 +110,18 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
                       borderRadius: BorderRadius.circular(ui.radii.md),
                     ),
                   ),
-                  onChanged: (_) => setState(() => _error = null),
+                  onChanged: (_) {
+                    if (_error == null) {
+                      return;
+                    }
+                    setState(() => _error = null);
+                  },
                 ),
                 SizedBox(height: ui.space.md + ui.space.xxs),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    AppButton(
-                      label: 'Continue',
-                      size: AppButtonSize.md,
-                      onPressed: _saving ? null : _confirm,
-                    ),
-                  ],
+                AppButton(
+                  label: 'Confirm',
+                  size: AppButtonSize.md,
+                  onPressed: _saving ? null : _confirm,
                 ),
               ],
             ),

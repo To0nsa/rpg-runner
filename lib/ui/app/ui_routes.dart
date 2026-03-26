@@ -15,12 +15,10 @@ class UiRoutes {
   static const String setupLevel = '/setup/level';
   static const String setupLoadout = '/setup/loadout';
   static const String profile = '/profile';
-  static const String loadoutLab = '/lab';
   static const String leaderboards = '/leaderboards';
   static const String options = '/meta/options';
   static const String town = '/meta/town';
   static const String messages = '/meta/messages';
-  static const String credits = '/credits';
   static const String runBootstrap = '/run/bootstrap';
   static const String run = '/run';
 }

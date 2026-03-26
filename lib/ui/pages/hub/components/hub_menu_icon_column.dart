@@ -21,36 +21,57 @@ class HubMenuIconColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final actions = <_HubMenuAction>[
+      _HubMenuAction(
+        icon: Icons.storefront,
+        tooltip: 'Town',
+        onPressed: onTownPressed,
+      ),
+      _HubMenuAction(
+        icon: Icons.person,
+        tooltip: 'Profile',
+        onPressed: onProfilePressed,
+      ),
+      _HubMenuAction(
+        icon: Icons.leaderboard,
+        tooltip: 'Top',
+        onPressed: onLeaderboardsPressed,
+      ),
+      _HubMenuAction(
+        icon: Icons.message,
+        tooltip: 'Messages',
+        onPressed: onMessagesPressed,
+      ),
+      _HubMenuAction(
+        icon: Icons.settings,
+        tooltip: 'Options',
+        onPressed: onOptionsPressed,
+      ),
+    ];
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        AppIconButton(
-          icon: Icons.storefront,
-          tooltip: 'Town',
-          onPressed: onTownPressed,
-        ),
-        AppIconButton(
-          icon: Icons.person,
-          tooltip: 'Profile',
-          onPressed: onProfilePressed,
-        ),
-        AppIconButton(
-          icon: Icons.leaderboard,
-          tooltip: 'Top',
-          onPressed: onLeaderboardsPressed,
-        ),
-        AppIconButton(
-          icon: Icons.message,
-          tooltip: 'Messages',
-          onPressed: onMessagesPressed,
-        ),
-        AppIconButton(
-          icon: Icons.settings,
-          tooltip: 'Options',
-          onPressed: onOptionsPressed,
-        ),
+        for (final action in actions)
+          AppIconButton(
+            icon: action.icon,
+            tooltip: action.tooltip,
+            onPressed: action.onPressed,
+          ),
       ],
     );
   }
+}
+
+class _HubMenuAction {
+  const _HubMenuAction({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
 }

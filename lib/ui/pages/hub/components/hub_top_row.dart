@@ -80,41 +80,36 @@ class _HubTopRowState extends State<HubTopRow> {
     final timeStr =
         '${_now.hour.toString().padLeft(2, '0')}:${_now.minute.toString().padLeft(2, '0')}';
 
-    return Container(
-      padding: EdgeInsets.zero,
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              widget.displayName,
-              style: ui.text.headline,
-              overflow: TextOverflow.ellipsis,
-            ),
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            widget.displayName,
+            style: ui.text.headline,
+            overflow: TextOverflow.ellipsis,
           ),
-          SizedBox(width: ui.space.sm),
-          GoldDisplay(gold: widget.gold, variant: GoldDisplayVariant.headline),
-          SizedBox(width: ui.space.md),
-          Container(
-            width: ui.sizes.dividerThickness,
-            height: ui.space.lg,
-            color: ui.colors.textPrimary,
-          ),
-          SizedBox(width: ui.space.xs),
-          // Battery
-          Icon(_batteryIcon, color: _batteryColor, size: ui.sizes.iconSize.sm),
-          SizedBox(width: ui.space.xxs),
-          Text('$_batteryLevel%', style: ui.text.body),
-          SizedBox(width: ui.space.md),
-          // Time
-          Icon(
-            Icons.access_time,
-            color: ui.colors.outlineStrong,
-            size: ui.sizes.iconSize.sm,
-          ),
-          SizedBox(width: ui.space.xxs),
-          Text(timeStr, style: ui.text.body),
-        ],
-      ),
+        ),
+        SizedBox(width: ui.space.sm),
+        GoldDisplay(gold: widget.gold, variant: GoldDisplayVariant.headline),
+        SizedBox(width: ui.space.md),
+        Container(
+          width: ui.sizes.dividerThickness,
+          height: ui.space.lg,
+          color: ui.colors.textPrimary,
+        ),
+        SizedBox(width: ui.space.xs),
+        Icon(_batteryIcon, color: _batteryColor, size: ui.sizes.iconSize.sm),
+        SizedBox(width: ui.space.xxs),
+        Text('$_batteryLevel%', style: ui.text.body),
+        SizedBox(width: ui.space.md),
+        Icon(
+          Icons.access_time,
+          color: ui.colors.outlineStrong,
+          size: ui.sizes.iconSize.sm,
+        ),
+        SizedBox(width: ui.space.xxs),
+        Text(timeStr, style: ui.text.body),
+      ],
     );
   }
 }
