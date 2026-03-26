@@ -57,24 +57,15 @@ class MenuScaffold extends StatelessWidget {
       resolvedTitle = Text(title!, style: ui.text.title);
     }
 
-    PreferredSizeWidget? scaffoldAppBar;
-    if (showAppBar) {
-      final topPadding = MediaQuery.paddingOf(context).top;
-      final appBarWidget = AppBar(
-        title: resolvedTitle,
-        backgroundColor: ui.colors.background,
-        iconTheme: IconThemeData(color: ui.colors.textPrimary),
-        primary: false,
-        centerTitle: centerAppBarTitle,
-        titleSpacing: appBarTitle != null ? 0 : null,
-      );
-      scaffoldAppBar = PreferredSize(
-        preferredSize: Size.fromHeight(
-          topPadding + appBarWidget.preferredSize.height,
-        ),
-        child: SafeArea(bottom: false, child: appBarWidget),
-      );
-    }
+    final scaffoldAppBar = showAppBar
+        ? AppBar(
+            title: resolvedTitle,
+            backgroundColor: ui.colors.background,
+            iconTheme: IconThemeData(color: ui.colors.textPrimary),
+            centerTitle: centerAppBarTitle,
+            titleSpacing: appBarTitle != null ? 0 : null,
+          )
+        : null;
 
     return Scaffold(
       backgroundColor: ui.colors.background,
