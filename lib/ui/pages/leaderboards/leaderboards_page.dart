@@ -80,7 +80,6 @@ class _LeaderboardsPageState extends State<LeaderboardsPage> {
     return MenuScaffold(
       appBarTitle: segmented,
       centerAppBarTitle: true,
-      useBodySafeArea: true,
       child: MenuLayout(
         scrollable: false,
         child: switch (_runFilter) {

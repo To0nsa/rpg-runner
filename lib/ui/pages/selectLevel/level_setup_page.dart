@@ -160,7 +160,6 @@ class _LevelSetupPageState extends State<LevelSetupPage> {
       onPopInvokedWithResult: _commitDraftSelectionAndPopIfNeeded,
       child: MenuScaffold(
         title: 'Select Level',
-        useBodySafeArea: true,
         child: MenuLayout(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

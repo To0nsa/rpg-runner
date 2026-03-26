@@ -81,7 +81,6 @@ class _LoadoutSetupPageState extends State<LoadoutSetupPage> {
           ),
         ),
         centerAppBarTitle: true,
-        useBodySafeArea: true,
         child: MenuLayout(
           scrollable: false,
           child: _LoadoutSetupBody(characterId: selectedDef.id),

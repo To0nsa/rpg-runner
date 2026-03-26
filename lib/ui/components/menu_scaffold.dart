@@ -52,52 +52,51 @@ class MenuScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
-    final topPadding = MediaQuery.paddingOf(context).top;
-    final resolvedTitle =
-        appBarTitle ??
-        (title != null
-            ? Text(title!, style: ui.text.title)
-            : null);
-    final appBarWidget = AppBar(
-      title: resolvedTitle,
-      backgroundColor: ui.colors.background,
-      iconTheme: IconThemeData(color: ui.colors.textPrimary),
-      primary: false,
-      centerTitle: centerAppBarTitle,
-      titleSpacing: appBarTitle != null ? 0 : null,
-    );
+    Widget? resolvedTitle = appBarTitle;
+    if (resolvedTitle == null && title != null) {
+      resolvedTitle = Text(title!, style: ui.text.title);
+    }
 
-    final bodyContent = useBodySafeArea
-        ? SafeArea(maintainBottomViewPadding: true, child: child)
-        : child;
-
-    final resolvedBackground =
-        background ??
-        Image.asset(
-          'assets/images/backgrounds/playHub_bgDark.png',
-          fit: BoxFit.fitWidth,
-          alignment: Alignment.bottomCenter,
-        );
-
-    final body = Stack(
-      fit: StackFit.expand,
-      children: [
-        Positioned.fill(child: resolvedBackground),
-        bodyContent,
-      ],
-    );
+    PreferredSizeWidget? scaffoldAppBar;
+    if (showAppBar) {
+      final topPadding = MediaQuery.paddingOf(context).top;
+      final appBarWidget = AppBar(
+        title: resolvedTitle,
+        backgroundColor: ui.colors.background,
+        iconTheme: IconThemeData(color: ui.colors.textPrimary),
+        primary: false,
+        centerTitle: centerAppBarTitle,
+        titleSpacing: appBarTitle != null ? 0 : null,
+      );
+      scaffoldAppBar = PreferredSize(
+        preferredSize: Size.fromHeight(
+          topPadding + appBarWidget.preferredSize.height,
+        ),
+        child: SafeArea(bottom: false, child: appBarWidget),
+      );
+    }
 
     return Scaffold(
       backgroundColor: ui.colors.background,
-      appBar: showAppBar
-          ? PreferredSize(
-              preferredSize: Size.fromHeight(
-                topPadding + appBarWidget.preferredSize.height,
-              ),
-              child: SafeArea(bottom: false, child: appBarWidget),
-            )
-          : null,
-      body: body,
+      appBar: scaffoldAppBar,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned.fill(
+            child:
+                background ??
+                Image.asset(
+                  'assets/images/backgrounds/playHub_bgDark.png',
+                  fit: BoxFit.fitWidth,
+                  alignment: Alignment.bottomCenter,
+                ),
+          ),
+          if (useBodySafeArea)
+            SafeArea(maintainBottomViewPadding: true, child: child)
+          else
+            child,
+        ],
+      ),
     );
   }
 }

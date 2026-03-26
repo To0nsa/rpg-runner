@@ -90,7 +90,6 @@ class _TownPageState extends State<TownPage> {
 
     return MenuScaffold(
       title: 'Town Store',
-      useBodySafeArea: true,
       child: MenuLayout(
         maxWidth: 1200,
         child: Column(

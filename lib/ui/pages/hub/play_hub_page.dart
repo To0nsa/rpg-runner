@@ -91,7 +91,6 @@ class _PlayHubPageState extends State<PlayHubPage> {
 
     return MenuScaffold(
       showAppBar: false,
-      useBodySafeArea: false,
       background: Image.asset(
         'assets/images/backgrounds/playHub_bgDark.png',
         fit: BoxFit.fitWidth,

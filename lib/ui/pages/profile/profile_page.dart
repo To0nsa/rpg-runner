@@ -248,7 +248,6 @@ class _ProfilePageState extends State<ProfilePage> {
     return MenuScaffold(
       title: 'Profile',
       showAppBar: true,
-      useBodySafeArea: true,
       child: MenuLayout(
         child: Center(
           child: ConstrainedBox(
