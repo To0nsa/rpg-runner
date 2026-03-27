@@ -1,4 +1,4 @@
-import '../state/user_profile_remote_api.dart';
+import '../state/profile/user_profile_remote_api.dart';
 
 String displayNameSaveErrorText(Object error) {
   if (error is UserProfileRemoteException) {

@@ -9,8 +9,8 @@ import '../../components/app_segmented_control.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
 import '../../components/play_button.dart';
-import '../../state/app_state.dart';
-import '../../state/selection_state.dart';
+import '../../state/app/app_state.dart';
+import '../../state/ownership/selection_state.dart';
 import 'level_select_section.dart';
 
 class LevelSetupPage extends StatefulWidget {

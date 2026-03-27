@@ -10,10 +10,10 @@ import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
 import '../../profile/display_name_save_error.dart';
 import '../../profile/display_name_policy.dart';
-import '../../state/account_deletion_api.dart';
-import '../../state/app_state.dart';
-import '../../state/auth_api.dart';
-import '../../state/user_profile.dart';
+import '../../state/profile/account_deletion_api.dart';
+import '../../state/app/app_state.dart';
+import '../../state/auth/auth_api.dart';
+import '../../state/profile/user_profile.dart';
 import '../../theme/ui_tokens.dart';
 
 class ProfilePage extends StatefulWidget {

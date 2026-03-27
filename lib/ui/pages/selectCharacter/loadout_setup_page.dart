@@ -7,7 +7,7 @@ import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/players/player_character_registry.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
-import '../../state/app_state.dart';
+import '../../state/app/app_state.dart';
 import '../../theme/ui_tokens.dart';
 import 'gears_tab.dart';
 import 'skills_tab.dart';

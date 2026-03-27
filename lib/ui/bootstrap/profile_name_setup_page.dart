@@ -7,7 +7,7 @@ import '../components/menu_layout.dart';
 import '../components/menu_scaffold.dart';
 import '../profile/display_name_save_error.dart';
 import '../profile/display_name_policy.dart';
-import '../state/app_state.dart';
+import '../state/app/app_state.dart';
 import '../theme/ui_tokens.dart';
 
 class ProfileNameSetupPage extends StatefulWidget {

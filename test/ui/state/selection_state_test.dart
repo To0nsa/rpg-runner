@@ -4,7 +4,7 @@ import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/players/player_character_registry.dart';
-import 'package:rpg_runner/ui/state/selection_state.dart';
+import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 
 void main() {
   group('SelectionState per-character loadouts', () {

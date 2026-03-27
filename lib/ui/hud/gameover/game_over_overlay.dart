@@ -8,7 +8,7 @@ import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/scoring/run_score_breakdown.dart';
 import 'package:runner_core/tuning/score_tuning.dart';
 import '../../leaderboard/leaderboard_store.dart';
-import '../../state/selection_state.dart';
+import '../../state/ownership/selection_state.dart';
 import 'game_over_header.dart';
 import 'leaderboard_panel.dart';
 import 'restart_exit_buttons.dart';
@@ -18,7 +18,7 @@ import 'score_feed_controller.dart';
 import '../../components/app_button.dart';
 import '../../components/play_button.dart';
 import '../../components/gold_display.dart';
-import '../../state/run_submission_status.dart';
+import '../../state/run/run_submission_status.dart';
 import '../../theme/ui_tokens.dart';
 // import '../../../core/spells/spell_id.dart';
 

@@ -4,7 +4,7 @@ import 'package:runner_core/levels/level_id.dart';
 import 'package:run_protocol/run_mode.dart';
 
 import 'leaderboard_api.dart';
-import 'run_start_remote_exception.dart';
+import '../run/run_start_remote_exception.dart';
 
 class FirebaseLeaderboardApi implements LeaderboardApi {
   FirebaseLeaderboardApi({FirebaseLeaderboardSource? source})

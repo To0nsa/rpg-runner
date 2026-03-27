@@ -14,10 +14,10 @@ import '../../components/menu_scaffold.dart';
 import '../../leaderboard/run_result.dart';
 import '../../leaderboard/shared_prefs_leaderboard_store.dart';
 import '../../levels/level_id_ui.dart';
-import '../../state/app_state.dart';
-import '../../state/leaderboard_api.dart';
-import '../../state/run_start_remote_exception.dart';
-import '../../state/selection_state.dart';
+import '../../state/app/app_state.dart';
+import '../../state/boards/leaderboard_api.dart';
+import '../../state/run/run_start_remote_exception.dart';
+import '../../state/ownership/selection_state.dart';
 import '../../theme/ui_tokens.dart';
 
 enum LeaderboardsRunFilter { practice, competitive, weekly }

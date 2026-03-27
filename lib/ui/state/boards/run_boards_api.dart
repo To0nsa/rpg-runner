@@ -2,7 +2,7 @@ import 'package:runner_core/levels/level_id.dart';
 import 'package:run_protocol/board_manifest.dart';
 import 'package:run_protocol/run_mode.dart';
 
-import 'run_start_remote_exception.dart';
+import '../run/run_start_remote_exception.dart';
 
 abstract class RunBoardsApi {
   Future<BoardManifest> loadActiveBoard({

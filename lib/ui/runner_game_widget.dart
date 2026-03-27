@@ -29,11 +29,11 @@ import 'hud/gameover/game_over_overlay.dart';
 import 'haptics/haptics_cue.dart';
 import 'haptics/haptics_service.dart';
 import 'runner_game_ui_state.dart';
-import 'state/app_state.dart';
-import 'state/run_start_remote_exception.dart';
-import 'state/selection_state.dart';
-import 'state/ghost_replay_cache.dart';
-import 'state/run_submission_status.dart';
+import 'state/app/app_state.dart';
+import 'state/run/run_start_remote_exception.dart';
+import 'state/ownership/selection_state.dart';
+import 'state/boards/ghost_replay_cache.dart';
+import 'state/run/run_submission_status.dart';
 import 'viewport/game_viewport.dart';
 import 'viewport/viewport_metrics.dart';
 

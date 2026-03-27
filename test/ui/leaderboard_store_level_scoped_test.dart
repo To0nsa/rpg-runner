@@ -5,7 +5,7 @@ import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:rpg_runner/ui/leaderboard/run_result.dart';
 import 'package:rpg_runner/ui/leaderboard/shared_prefs_leaderboard_store.dart';
-import 'package:rpg_runner/ui/state/selection_state.dart';
+import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 
 RunResult _result({required int score}) {
   return RunResult(

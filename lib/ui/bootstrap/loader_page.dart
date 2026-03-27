@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../app/ui_routes.dart';
 import '../components/loader_shell.dart';
-import '../state/app_state.dart';
+import '../state/app/app_state.dart';
 import 'app_bootstrapper.dart';
 import 'loader_content.dart';
 

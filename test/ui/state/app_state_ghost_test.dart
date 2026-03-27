@@ -4,13 +4,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:run_protocol/board_key.dart';
 import 'package:runner_core/meta/meta_service.dart';
 
-import 'package:rpg_runner/ui/state/app_state.dart';
-import 'package:rpg_runner/ui/state/auth_api.dart';
-import 'package:rpg_runner/ui/state/ghost_api.dart';
-import 'package:rpg_runner/ui/state/ghost_replay_cache.dart';
-import 'package:rpg_runner/ui/state/loadout_ownership_api.dart';
-import 'package:rpg_runner/ui/state/progression_state.dart';
-import 'package:rpg_runner/ui/state/selection_state.dart';
+import 'package:rpg_runner/ui/state/app/app_state.dart';
+import 'package:rpg_runner/ui/state/auth/auth_api.dart';
+import 'package:rpg_runner/ui/state/boards/ghost_api.dart';
+import 'package:rpg_runner/ui/state/boards/ghost_replay_cache.dart';
+import 'package:rpg_runner/ui/state/ownership/loadout_ownership_api.dart';
+import 'package:rpg_runner/ui/state/ownership/progression_state.dart';
+import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 import 'package:run_protocol/replay_blob.dart';
 
 void main() {

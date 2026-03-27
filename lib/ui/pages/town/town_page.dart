@@ -18,9 +18,9 @@ import '../../components/app_dialog.dart';
 import '../../components/gold_display.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
-import '../../state/app_state.dart';
-import '../../state/loadout_ownership_api.dart';
-import '../../state/progression_state.dart';
+import '../../state/app/app_state.dart';
+import '../../state/ownership/loadout_ownership_api.dart';
+import '../../state/ownership/progression_state.dart';
 import '../../theme/ui_tokens.dart';
 import 'town_store_widgets.dart';
 

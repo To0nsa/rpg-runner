@@ -8,8 +8,8 @@ import 'package:run_protocol/board_key.dart';
 import 'runner_game_widget.dart';
 import 'scoped/scoped_preferred_orientations.dart';
 import 'scoped/scoped_system_ui_mode.dart';
-import 'state/ghost_replay_cache.dart';
-import 'state/selection_state.dart';
+import 'state/boards/ghost_replay_cache.dart';
+import 'state/ownership/selection_state.dart';
 
 /// Embed-friendly route factory for hosting the mini-game in any Flutter app.
 ///

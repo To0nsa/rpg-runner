@@ -5,7 +5,7 @@ import 'dart:math' as math;
 import 'package:run_protocol/replay_blob.dart';
 
 import 'ghost_api.dart';
-import 'run_start_remote_exception.dart';
+import '../run/run_start_remote_exception.dart';
 
 final class GhostReplayBootstrap {
   const GhostReplayBootstrap({

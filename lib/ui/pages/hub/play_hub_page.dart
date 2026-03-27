@@ -11,9 +11,9 @@ import 'components/hub_menu_icon_column.dart';
 import 'components/hub_select_character_card.dart';
 import 'components/hub_select_level_card.dart';
 import 'components/hub_top_row.dart';
-import '../../state/app_state.dart';
-import '../../state/progression_state.dart';
-import '../../state/selection_state.dart';
+import '../../state/app/app_state.dart';
+import '../../state/ownership/progression_state.dart';
+import '../../state/ownership/selection_state.dart';
 import '../../theme/ui_tokens.dart';
 
 class PlayHubPage extends StatefulWidget {

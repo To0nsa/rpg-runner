@@ -2,7 +2,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/services.dart';
 
 import 'ghost_api.dart';
-import 'run_start_remote_exception.dart';
+import '../run/run_start_remote_exception.dart';
 
 class FirebaseGhostApi implements GhostApi {
   FirebaseGhostApi({FirebaseGhostSource? source})

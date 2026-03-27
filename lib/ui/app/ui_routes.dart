@@ -2,8 +2,8 @@ import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:run_protocol/board_key.dart';
-import '../state/selection_state.dart';
-import '../state/ghost_replay_cache.dart';
+import '../state/ownership/selection_state.dart';
+import '../state/boards/ghost_replay_cache.dart';
 
 class UiRoutes {
   const UiRoutes._();

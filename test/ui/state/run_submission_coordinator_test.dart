@@ -4,12 +4,12 @@ import 'package:run_protocol/run_mode.dart';
 import 'package:run_protocol/run_ticket.dart';
 import 'package:run_protocol/submission_status.dart';
 
-import 'package:rpg_runner/ui/state/pending_run_submission.dart';
-import 'package:rpg_runner/ui/state/run_session_api.dart';
-import 'package:rpg_runner/ui/state/run_submission_coordinator.dart';
-import 'package:rpg_runner/ui/state/run_submission_spool_store.dart';
-import 'package:rpg_runner/ui/state/run_submission_status.dart';
-import 'package:rpg_runner/ui/state/run_start_remote_exception.dart';
+import 'package:rpg_runner/ui/state/run/pending_run_submission.dart';
+import 'package:rpg_runner/ui/state/run/run_session_api.dart';
+import 'package:rpg_runner/ui/state/run/run_submission_coordinator.dart';
+import 'package:rpg_runner/ui/state/run/run_submission_spool_store.dart';
+import 'package:rpg_runner/ui/state/run/run_submission_status.dart';
+import 'package:rpg_runner/ui/state/run/run_start_remote_exception.dart';
 
 void main() {
   group('RunSubmissionCoordinator', () {

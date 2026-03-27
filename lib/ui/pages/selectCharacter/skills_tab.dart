@@ -6,7 +6,7 @@ import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/meta/ability_ownership_state.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import '../../app/ui_routes.dart';
-import '../../state/app_state.dart';
+import '../../state/app/app_state.dart';
 import '../../text/ability_tooltip_context_helper.dart';
 import '../../text/ability_tooltip_builder.dart';
 import '../../theme/ui_tokens.dart';

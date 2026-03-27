@@ -3,9 +3,9 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:rpg_runner/ui/state/ownership_outbox_store.dart';
-import 'package:rpg_runner/ui/state/ownership_pending_command.dart';
-import 'package:rpg_runner/ui/state/ownership_sync_policy.dart';
+import 'package:rpg_runner/ui/state/ownership/ownership_outbox_store.dart';
+import 'package:rpg_runner/ui/state/ownership/ownership_pending_command.dart';
+import 'package:rpg_runner/ui/state/ownership/ownership_sync_policy.dart';
 
 void main() {
   group('SharedPrefsOwnershipOutboxStore', () {

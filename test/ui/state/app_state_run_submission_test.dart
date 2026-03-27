@@ -6,16 +6,16 @@ import 'package:runner_core/meta/meta_service.dart';
 import 'package:run_protocol/run_ticket.dart';
 import 'package:run_protocol/submission_status.dart';
 
-import 'package:rpg_runner/ui/state/app_state.dart';
-import 'package:rpg_runner/ui/state/auth_api.dart';
-import 'package:rpg_runner/ui/state/loadout_ownership_api.dart';
-import 'package:rpg_runner/ui/state/pending_run_submission.dart';
-import 'package:rpg_runner/ui/state/progression_state.dart';
-import 'package:rpg_runner/ui/state/run_session_api.dart';
-import 'package:rpg_runner/ui/state/run_submission_coordinator.dart';
-import 'package:rpg_runner/ui/state/run_submission_spool_store.dart';
-import 'package:rpg_runner/ui/state/run_submission_status.dart';
-import 'package:rpg_runner/ui/state/selection_state.dart';
+import 'package:rpg_runner/ui/state/app/app_state.dart';
+import 'package:rpg_runner/ui/state/auth/auth_api.dart';
+import 'package:rpg_runner/ui/state/ownership/loadout_ownership_api.dart';
+import 'package:rpg_runner/ui/state/run/pending_run_submission.dart';
+import 'package:rpg_runner/ui/state/ownership/progression_state.dart';
+import 'package:rpg_runner/ui/state/run/run_session_api.dart';
+import 'package:rpg_runner/ui/state/run/run_submission_coordinator.dart';
+import 'package:rpg_runner/ui/state/run/run_submission_spool_store.dart';
+import 'package:rpg_runner/ui/state/run/run_submission_status.dart';
+import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 
 void main() {
   test('submitRunReplay preserves reward payload from server status', () async {

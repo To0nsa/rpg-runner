@@ -11,7 +11,7 @@ import 'package:runner_core/weapons/weapon_id.dart';
 import '../../components/app_button.dart';
 import '../../components/gameIcon/game_icon.dart';
 import '../../components/gold_display.dart';
-import '../../state/progression_state.dart';
+import '../../state/ownership/progression_state.dart';
 import '../../text/ability_tooltip_builder.dart';
 import '../../text/ability_tooltip_context_helper.dart';
 import '../../text/ability_text.dart';

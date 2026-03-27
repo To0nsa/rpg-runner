@@ -10,9 +10,9 @@ import 'package:rpg_runner/ui/hud/gameover/game_over_overlay.dart';
 import 'package:rpg_runner/ui/hud/gameover/leaderboard_panel.dart';
 import 'package:rpg_runner/ui/leaderboard/leaderboard_store.dart';
 import 'package:rpg_runner/ui/leaderboard/run_result.dart';
-import 'package:rpg_runner/ui/state/selection_state.dart';
+import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 import 'package:run_protocol/submission_status.dart' as protocol;
-import 'package:rpg_runner/ui/state/run_submission_status.dart';
+import 'package:rpg_runner/ui/state/run/run_submission_status.dart';
 
 // Test constants matching _buildEvent().
 const _distanceUnits = 500.0;

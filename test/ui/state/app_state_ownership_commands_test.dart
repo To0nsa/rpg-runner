@@ -4,12 +4,12 @@ import 'package:runner_core/accessories/accessory_id.dart';
 import 'package:runner_core/meta/gear_slot.dart';
 import 'package:runner_core/meta/meta_service.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
-import 'package:rpg_runner/ui/state/app_state.dart';
-import 'package:rpg_runner/ui/state/auth_api.dart';
-import 'package:rpg_runner/ui/state/loadout_ownership_api.dart';
-import 'package:rpg_runner/ui/state/ownership_sync_policy.dart';
-import 'package:rpg_runner/ui/state/progression_state.dart';
-import 'package:rpg_runner/ui/state/selection_state.dart';
+import 'package:rpg_runner/ui/state/app/app_state.dart';
+import 'package:rpg_runner/ui/state/auth/auth_api.dart';
+import 'package:rpg_runner/ui/state/ownership/loadout_ownership_api.dart';
+import 'package:rpg_runner/ui/state/ownership/ownership_sync_policy.dart';
+import 'package:rpg_runner/ui/state/ownership/progression_state.dart';
+import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 
 void main() {
   test(

@@ -1,8 +1,8 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rpg_runner/ui/state/firebase_user_profile_remote_api.dart';
-import 'package:rpg_runner/ui/state/user_profile_remote_api.dart';
+import 'package:rpg_runner/ui/state/profile/firebase_user_profile_remote_api.dart';
+import 'package:rpg_runner/ui/state/profile/user_profile_remote_api.dart';
 
 void main() {
   test('loadProfile decodes wrapped profile payload', () async {

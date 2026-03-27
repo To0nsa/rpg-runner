@@ -2,8 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:run_protocol/run_mode.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:rpg_runner/ui/state/pending_run_submission.dart';
-import 'package:rpg_runner/ui/state/run_submission_spool_store.dart';
+import 'package:rpg_runner/ui/state/run/pending_run_submission.dart';
+import 'package:rpg_runner/ui/state/run/run_submission_spool_store.dart';
 
 void main() {
   group('SharedPrefsRunSubmissionSpoolStore', () {

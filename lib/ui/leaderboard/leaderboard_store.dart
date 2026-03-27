@@ -1,5 +1,5 @@
 import 'package:runner_core/levels/level_id.dart';
-import '../state/selection_state.dart';
+import '../state/ownership/selection_state.dart';
 
 import 'run_result.dart';
 

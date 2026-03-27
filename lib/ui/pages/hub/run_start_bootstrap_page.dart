@@ -5,8 +5,8 @@ import '../../app/ui_routes.dart';
 import '../../assets/ui_asset_lifecycle.dart';
 import '../../bootstrap/loader_content.dart';
 import '../../components/loader_shell.dart';
-import '../../state/app_state.dart';
-import '../../state/run_start_remote_exception.dart';
+import '../../state/app/app_state.dart';
+import '../../state/run/run_start_remote_exception.dart';
 
 class RunStartBootstrapPage extends StatefulWidget {
   const RunStartBootstrapPage({required this.args, super.key});

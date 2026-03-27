@@ -6,7 +6,7 @@ import 'package:run_protocol/board_manifest.dart';
 import 'package:run_protocol/run_mode.dart';
 
 import 'run_boards_api.dart';
-import 'run_start_remote_exception.dart';
+import '../run/run_start_remote_exception.dart';
 
 class FirebaseRunBoardsApi implements RunBoardsApi {
   FirebaseRunBoardsApi({FirebaseRunBoardsSource? source})

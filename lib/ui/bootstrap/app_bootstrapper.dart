@@ -1,4 +1,4 @@
-import '../state/app_state.dart';
+import '../state/app/app_state.dart';
 
 class BootstrapResult {
   const BootstrapResult._({required this.ok, this.error, this.stackTrace});

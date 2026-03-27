@@ -6,9 +6,9 @@ import 'package:run_protocol/board_key.dart';
 import 'package:run_protocol/replay_blob.dart';
 import 'package:run_protocol/run_mode.dart';
 
-import 'package:rpg_runner/ui/state/ghost_api.dart';
-import 'package:rpg_runner/ui/state/ghost_replay_cache.dart';
-import 'package:rpg_runner/ui/state/run_start_remote_exception.dart';
+import 'package:rpg_runner/ui/state/boards/ghost_api.dart';
+import 'package:rpg_runner/ui/state/boards/ghost_replay_cache.dart';
+import 'package:rpg_runner/ui/state/run/run_start_remote_exception.dart';
 
 void main() {
   test('downloads and caches verified ghost replay blob', () async {

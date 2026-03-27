@@ -1,7 +1,7 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rpg_runner/ui/state/account_deletion_api.dart';
-import 'package:rpg_runner/ui/state/firebase_account_deletion_api.dart';
+import 'package:rpg_runner/ui/state/profile/account_deletion_api.dart';
+import 'package:rpg_runner/ui/state/profile/firebase_account_deletion_api.dart';
 
 void main() {
   test('decodes wrapped deletion result status payload', () async {
