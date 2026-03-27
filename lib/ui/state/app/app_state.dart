@@ -40,6 +40,14 @@ import '../ownership/selection_state.dart';
 import '../profile/user_profile.dart';
 import '../profile/user_profile_remote_api.dart';
 
+part 'controllers/controller_base.dart';
+part 'controllers/auth_profile_controller.dart';
+part 'controllers/selection_ownership_controller.dart';
+part 'controllers/ownership_sync_controller.dart';
+part 'controllers/run_submission_controller.dart';
+part 'controllers/boards_controller.dart';
+part 'controllers/run_start_controller.dart';
+
 const String _defaultGameCompatVersion = '2026.03.0';
 const LevelId _defaultWeeklyFeaturedLevelId = LevelId.field;
 const int _runTicketPrefetchCacheMaxEntries = 4;
@@ -161,7 +169,14 @@ class AppState extends ChangeNotifier {
            ownershipSyncPolicy ?? OwnershipSyncPolicy.defaults,
        _ownershipOutboxStore =
            ownershipOutboxStore ?? InMemoryOwnershipOutboxStore(),
-       _runSubmissionCoordinator = runSubmissionCoordinator;
+       _runSubmissionCoordinator = runSubmissionCoordinator {
+    _authProfileController = _AppStateAuthProfileController(this);
+    _selectionOwnershipController = _AppStateSelectionOwnershipController(this);
+    _ownershipSyncController = _AppStateOwnershipSyncController(this);
+    _runSubmissionController = _AppStateRunSubmissionController(this);
+    _boardsController = _AppStateBoardsController(this);
+    _runStartController = _AppStateRunStartController(this);
+  }
 
   final Random _random = Random();
   final AuthApi _authApi;
@@ -176,6 +191,13 @@ class AppState extends ChangeNotifier {
   final OwnershipSyncPolicy _ownershipSyncPolicy;
   final OwnershipOutboxStore _ownershipOutboxStore;
   final RunSubmissionCoordinator _runSubmissionCoordinator;
+  late final _AppStateAuthProfileController _authProfileController;
+  late final _AppStateSelectionOwnershipController
+  _selectionOwnershipController;
+  late final _AppStateOwnershipSyncController _ownershipSyncController;
+  late final _AppStateRunSubmissionController _runSubmissionController;
+  late final _AppStateBoardsController _boardsController;
+  late final _AppStateRunStartController _runStartController;
 
   SelectionState _selection = SelectionState.defaults;
   MetaState _meta = const MetaService().createNew();
@@ -223,600 +245,121 @@ class AppState extends ChangeNotifier {
     return total < 0 ? 0 : total;
   }
 
-  Future<void> flushOwnershipEdits({
-    required OwnershipFlushTrigger trigger,
-  }) async {
-    final active = _activeOwnershipFlush;
-    if (active != null) {
-      await active;
-      return;
-    }
-    final pending = _flushOwnershipEditsInternal(trigger: trigger);
-    _activeOwnershipFlush = pending;
-    try {
-      await pending;
-    } finally {
-      if (identical(_activeOwnershipFlush, pending)) {
-        _activeOwnershipFlush = null;
-      }
-    }
-  }
+  Future<void> bootstrap({bool force = false}) =>
+      _authProfileController.bootstrap(force: force);
 
-  Future<void> ensureOwnershipSyncedBeforeRunStart() {
-    return _ensureOwnershipSyncedBeforeRunStartInternal();
-  }
+  Future<void> applyDefaults() => _authProfileController.applyDefaults();
 
-  Future<void> ensureSelectionSyncedBeforeLeavingLevelSetup() {
-    return flushOwnershipEdits(trigger: OwnershipFlushTrigger.leaveLevelSetup);
-  }
+  Future<void> updateDisplayName(String displayName) =>
+      _authProfileController.updateDisplayName(displayName);
 
-  Future<void> startRunTicketPrefetchForCurrentSelection() {
-    return startRunTicketPrefetchFor(
-      mode: _selection.selectedRunMode,
-      levelId: _selection.selectedLevelId,
-    );
-  }
+  Future<void> completeNamePrompt({String? displayName}) =>
+      _authProfileController.completeNamePrompt(displayName: displayName);
 
-  Future<void> startRunTicketPrefetchFor({
-    required RunMode mode,
-    required LevelId levelId,
-  }) async {
-    if (_runSessionApi is NoopRunSessionApi) {
-      return;
-    }
-    final session = await _tryEnsureAuthSessionForRunTicketPrefetch();
-    if (session == null) {
-      return;
-    }
-    final effectiveLevelId = _effectiveLevelForMode(
-      mode: mode,
-      selectedLevelId: levelId,
-    );
-    final key = _runTicketPrefetchKeyFor(
-      userId: session.userId,
-      mode: mode,
-      levelId: effectiveLevelId,
-    );
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    if (!_shouldIssueRunTicketPrefetchRequest(key: key, nowMs: nowMs)) {
-      return;
-    }
-    final existing = _runTicketPrefetchInFlight[key];
-    if (existing != null) {
-      await existing;
-      return;
-    }
-    final completion = Completer<void>();
-    _runTicketPrefetchInFlight[key] = completion.future;
-    _runTicketPrefetchLastRequestedAtMsByKey[key] = nowMs;
-    try {
-      await _runTicketPrefetchForKey(key: key, session: session);
-      completion.complete();
-    } catch (error, stackTrace) {
-      completion.completeError(error, stackTrace);
-    } finally {
-      if (identical(_runTicketPrefetchInFlight[key], completion.future)) {
-        _runTicketPrefetchInFlight.remove(key);
-      }
-    }
-  }
+  Future<AuthLinkResult> linkAuthProvider(AuthLinkProvider provider) =>
+      _authProfileController.linkAuthProvider(provider);
 
-  Future<void> _ensureOwnershipSyncedBeforeRunStartInternal() async {
-    if (_canFastReturnOwnershipSyncedBeforeRunStart()) {
-      return;
-    }
-    await flushOwnershipEdits(trigger: OwnershipFlushTrigger.runStart);
-    await _refreshOwnershipSyncStatusFromOutbox();
-    if (_ownershipSyncStatus.pendingCount > 0) {
-      throw const RunStartRemoteException(
-        code: 'failed-precondition',
-        message:
-            'Pending ownership changes are still syncing. Check your connection and try again.',
-      );
-    }
-  }
+  Future<AccountDeletionResult> deleteAccountAndData() =>
+      _authProfileController.deleteAccountAndData();
 
-  bool _canFastReturnOwnershipSyncedBeforeRunStart() {
-    if (_activeOwnershipFlush != null || _ownershipSyncStatus.isFlushing) {
-      return false;
-    }
-    if (_ownershipSyncStatus.pendingCount != 0) {
-      return false;
-    }
-    final updatedAtMs = _ownershipSyncStatusUpdatedAtMs;
-    if (updatedAtMs == null) {
-      return false;
-    }
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    if (nowMs < updatedAtMs) {
-      return false;
-    }
-    return nowMs - updatedAtMs <= _ownershipSyncStatusFreshnessMaxAgeMs;
-  }
+  void startWarmup() => _authProfileController.startWarmup();
 
-  Future<void> bootstrap({bool force = false}) async {
-    if (_bootstrapped && !force) return;
-    final session = await _ensureAuthSession();
-    final loadedProfile = await _profileRemoteApi.loadProfile(
-      userId: session.userId,
-      sessionId: session.sessionId,
-    );
-    final canonical = await _ownershipApi.loadCanonicalState(
-      userId: session.userId,
-      sessionId: session.sessionId,
-    );
-    _profile = loadedProfile;
-    _applyCanonicalState(canonical);
-    _bootstrapped = true;
-    notifyListeners();
-  }
+  Future<void> setLevel(LevelId levelId) =>
+      _selectionOwnershipController.setLevel(levelId);
 
-  Future<void> applyDefaults() async {
-    final session = await _ensureAuthSession();
-    try {
-      _profile = await _profileRemoteApi.loadProfile(
-        userId: session.userId,
-        sessionId: session.sessionId,
-      );
-    } catch (error) {
-      debugPrint('Profile fallback load failed: $error');
-      _profile = UserProfile.empty;
-    }
-
-    OwnershipCanonicalState canonical;
-    try {
-      canonical = await _ownershipApi.loadCanonicalState(
-        userId: session.userId,
-        sessionId: session.sessionId,
-      );
-    } catch (error) {
-      debugPrint('Ownership fallback load failed: $error');
-      canonical = OwnershipCanonicalState(
-        profileId: defaultOwnershipProfileId,
-        revision: 0,
-        selection: SelectionState.defaults,
-        meta: const MetaService().createNew(),
-        progression: ProgressionState.initial,
-      );
-    }
-    _applyCanonicalState(canonical);
-
-    try {
-      final resetResult = await _ownershipApi.resetOwnership(
-        ResetOwnershipCommand(
-          userId: session.userId,
-          sessionId: session.sessionId,
-          expectedRevision: _ownershipRevision,
-          commandId: _newCommandId(),
-        ),
-      );
-      _applyOwnershipResult(resetResult);
-    } catch (error) {
-      debugPrint('Ownership fallback reset failed: $error');
-    }
-    _bootstrapped = true;
-    notifyListeners();
-  }
-
-  Future<void> setLevel(LevelId levelId) async {
-    final resolvedLevelId = _effectiveLevelForMode(
-      mode: _selection.selectedRunMode,
-      selectedLevelId: levelId,
-    );
-    final nextSelection = _selection.copyWith(selectedLevelId: resolvedLevelId);
-    await _updateSelectionOptimistically(nextSelection);
-  }
-
-  Future<void> setRunMode(RunMode runMode) async {
-    final resolvedLevelId = _effectiveLevelForMode(
-      mode: runMode,
-      selectedLevelId: _selection.selectedLevelId,
-    );
-    final nextSelection = _selection.copyWith(
-      selectedRunMode: runMode,
-      selectedLevelId: resolvedLevelId,
-    );
-    await _updateSelectionOptimistically(nextSelection);
-  }
+  Future<void> setRunMode(RunMode runMode) =>
+      _selectionOwnershipController.setRunMode(runMode);
 
   Future<void> setRunModeAndLevel({
     required RunMode runMode,
     required LevelId levelId,
-  }) async {
-    final resolvedLevelId = _effectiveLevelForMode(
-      mode: runMode,
-      selectedLevelId: levelId,
-    );
-    final nextSelection = _selection.copyWith(
-      selectedRunMode: runMode,
-      selectedLevelId: resolvedLevelId,
-    );
-    await _updateSelectionOptimistically(nextSelection);
-  }
+  }) => _selectionOwnershipController.setRunModeAndLevel(
+    runMode: runMode,
+    levelId: levelId,
+  );
 
-  Future<void> setCharacter(PlayerCharacterId id) async {
-    final nextSelection = _selection.copyWith(selectedCharacterId: id);
-    await _updateSelectionOptimistically(nextSelection);
-  }
+  Future<void> setCharacter(PlayerCharacterId id) =>
+      _selectionOwnershipController.setCharacter(id);
 
-  Future<void> setLoadout(EquippedLoadoutDef loadout) async {
-    final session = await _ensureAuthSession();
-    final result = await _ownershipApi.setLoadout(
-      SetLoadoutCommand(
-        userId: session.userId,
-        sessionId: session.sessionId,
-        expectedRevision: _ownershipRevision,
-        commandId: _newCommandId(),
-        characterId: _selection.selectedCharacterId,
-        loadout: loadout,
-      ),
-    );
-    _applyOwnershipResult(result);
-    notifyListeners();
-  }
+  Future<void> setLoadout(EquippedLoadoutDef loadout) =>
+      _selectionOwnershipController.setLoadout(loadout);
 
   Future<void> setAbilitySlot({
     required PlayerCharacterId characterId,
     required AbilitySlot slot,
     required AbilityKey abilityId,
-  }) async {
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final currentLoadout = _selection.loadoutFor(characterId);
-    final nextLoadout = _withAbilityInLoadout(
-      loadout: currentLoadout,
-      slot: slot,
-      abilityId: abilityId,
-    );
-    _clearRunTicketPrefetchState();
-    _selection = _selection.withLoadoutFor(characterId, nextLoadout);
-    notifyListeners();
-    await _enqueueOwnershipCommand(
-      OwnershipPendingCommand(
-        coalesceKey: 'ability:${characterId.name}:${slot.name}',
-        commandType: OwnershipPendingCommandType.setAbilitySlot,
-        policyTier: OwnershipSyncTier.writeBehind,
-        payloadJson: <String, Object?>{
-          'characterId': characterId.name,
-          'slot': slot.name,
-          'abilityId': abilityId,
-        },
-        createdAtMs: nowMs,
-        updatedAtMs: nowMs,
-      ),
-    );
-  }
+  }) => _selectionOwnershipController.setAbilitySlot(
+    characterId: characterId,
+    slot: slot,
+    abilityId: abilityId,
+  );
 
   Future<void> setProjectileSpell({
     required PlayerCharacterId characterId,
     required ProjectileId spellId,
-  }) async {
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final currentLoadout = _selection.loadoutFor(characterId);
-    final nextLoadout = _copyLoadout(
-      currentLoadout,
-      projectileSlotSpellId: spellId,
-    );
-    _clearRunTicketPrefetchState();
-    _selection = _selection.withLoadoutFor(characterId, nextLoadout);
-    notifyListeners();
-    await _enqueueOwnershipCommand(
-      OwnershipPendingCommand(
-        coalesceKey: 'projectile:${characterId.name}',
-        commandType: OwnershipPendingCommandType.setProjectileSpell,
-        policyTier: OwnershipSyncTier.writeBehind,
-        payloadJson: <String, Object?>{
-          'characterId': characterId.name,
-          'spellId': spellId.name,
-        },
-        createdAtMs: nowMs,
-        updatedAtMs: nowMs,
-      ),
-    );
-  }
+  }) => _selectionOwnershipController.setProjectileSpell(
+    characterId: characterId,
+    spellId: spellId,
+  );
 
   Future<void> learnProjectileSpell({
     required PlayerCharacterId characterId,
     required ProjectileId spellId,
-  }) async {
-    final session = await _ensureAuthSession();
-    final result = await _ownershipApi.learnProjectileSpell(
-      LearnProjectileSpellCommand(
-        userId: session.userId,
-        sessionId: session.sessionId,
-        expectedRevision: _ownershipRevision,
-        commandId: _newCommandId(),
-        characterId: characterId,
-        spellId: spellId,
-      ),
-    );
-    _applyOwnershipResult(result);
-    notifyListeners();
-  }
+  }) => _selectionOwnershipController.learnProjectileSpell(
+    characterId: characterId,
+    spellId: spellId,
+  );
 
   Future<void> learnSpellAbility({
     required PlayerCharacterId characterId,
     required AbilityKey abilityId,
-  }) async {
-    final session = await _ensureAuthSession();
-    final result = await _ownershipApi.learnSpellAbility(
-      LearnSpellAbilityCommand(
-        userId: session.userId,
-        sessionId: session.sessionId,
-        expectedRevision: _ownershipRevision,
-        commandId: _newCommandId(),
-        characterId: characterId,
-        abilityId: abilityId,
-      ),
-    );
-    _applyOwnershipResult(result);
-    notifyListeners();
-  }
+  }) => _selectionOwnershipController.learnSpellAbility(
+    characterId: characterId,
+    abilityId: abilityId,
+  );
 
-  Future<void> unlockGear({
-    required GearSlot slot,
-    required Object itemId,
-  }) async {
-    final session = await _ensureAuthSession();
-    final result = await _ownershipApi.unlockGear(
-      UnlockGearCommand(
-        userId: session.userId,
-        sessionId: session.sessionId,
-        expectedRevision: _ownershipRevision,
-        commandId: _newCommandId(),
-        slot: slot,
-        itemId: itemId,
-      ),
-    );
-    _applyOwnershipResult(result);
-    notifyListeners();
-  }
+  Future<void> unlockGear({required GearSlot slot, required Object itemId}) =>
+      _selectionOwnershipController.unlockGear(slot: slot, itemId: itemId);
 
   Future<void> equipGear({
     required PlayerCharacterId characterId,
     required GearSlot slot,
     required Object itemId,
-  }) async {
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final currentLoadout = _selection.loadoutFor(characterId);
-    final nextLoadout = _withGearInLoadout(
-      loadout: currentLoadout,
-      slot: slot,
-      itemId: itemId,
-    );
-    _clearRunTicketPrefetchState();
-    _selection = _selection.withLoadoutFor(characterId, nextLoadout);
-    _meta = _meta.setEquippedFor(
-      characterId,
-      _withGearInMeta(
-        equipped: _meta.equippedFor(characterId),
-        slot: slot,
-        itemId: itemId,
-      ),
-    );
-    notifyListeners();
-    await _enqueueOwnershipCommand(
-      OwnershipPendingCommand(
-        coalesceKey: 'gear:${characterId.name}:${slot.name}',
-        commandType: OwnershipPendingCommandType.equipGear,
-        policyTier: OwnershipSyncTier.writeBehind,
-        payloadJson: <String, Object?>{
-          'characterId': characterId.name,
-          'slot': slot.name,
-          'itemId': _gearItemIdAsName(slot: slot, itemId: itemId),
-        },
-        createdAtMs: nowMs,
-        updatedAtMs: nowMs,
-      ),
-    );
-  }
+  }) => _selectionOwnershipController.equipGear(
+    characterId: characterId,
+    slot: slot,
+    itemId: itemId,
+  );
 
-  Future<void> setBuildName(String buildName) async {
-    final normalized = SelectionState.normalizeBuildName(buildName);
-    if (normalized == _selection.buildName) return;
-    final nextSelection = _selection.copyWith(buildName: normalized);
-    await _setSelection(nextSelection);
-  }
+  Future<void> setBuildName(String buildName) =>
+      _selectionOwnershipController.setBuildName(buildName);
 
-  Future<void> updateDisplayName(String displayName) async {
-    final session = await _ensureAuthSession();
-    final trimmed = displayName.trim();
-    if (trimmed == _profile.displayName) {
-      return;
-    }
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final shouldSetCooldown = _profile.displayName.isNotEmpty;
-    final nextProfile = await _profileRemoteApi.updateProfile(
-      userId: session.userId,
-      sessionId: session.sessionId,
-      update: UserProfileUpdate(
-        displayName: trimmed,
-        displayNameLastChangedAtMs: shouldSetCooldown
-            ? nowMs
-            : _profile.displayNameLastChangedAtMs,
-      ),
-    );
-    _profile = nextProfile;
-    notifyListeners();
-  }
-
-  Future<void> completeNamePrompt({String? displayName}) async {
-    final session = await _ensureAuthSession();
-    final trimmed = displayName?.trim();
-    final shouldUpdateDisplayName = trimmed != null && trimmed.isNotEmpty;
-    final shouldSetCooldown =
-        shouldUpdateDisplayName && _profile.displayName.isNotEmpty;
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final nextProfile = await _profileRemoteApi.updateProfile(
-      userId: session.userId,
-      sessionId: session.sessionId,
-      update: UserProfileUpdate(
-        displayName: shouldUpdateDisplayName ? trimmed : null,
-        displayNameLastChangedAtMs: shouldUpdateDisplayName
-            ? (shouldSetCooldown ? nowMs : _profile.displayNameLastChangedAtMs)
-            : null,
-        namePromptCompleted: true,
-      ),
-    );
-    _profile = nextProfile;
-    notifyListeners();
-  }
-
-  Future<void> awardRunGold({
-    required int runId,
-    required int goldEarned,
-  }) async {
-    if (goldEarned <= 0) {
-      return;
-    }
-    final session = await _ensureAuthSession();
-    var result = await _ownershipApi.awardRunGold(
-      _newAwardRunGoldCommand(
-        session: session,
+  Future<void> awardRunGold({required int runId, required int goldEarned}) =>
+      _selectionOwnershipController.awardRunGold(
         runId: runId,
         goldEarned: goldEarned,
-      ),
-    );
-    if (result.rejectedReason == OwnershipRejectedReason.staleRevision) {
-      final canonical = await _ownershipApi.loadCanonicalState(
-        userId: session.userId,
-        sessionId: session.sessionId,
       );
-      _applyCanonicalState(canonical);
-      result = await _ownershipApi.awardRunGold(
-        _newAwardRunGoldCommand(
-          session: session,
-          runId: runId,
-          goldEarned: goldEarned,
-        ),
-      );
-    }
-    _applyOwnershipResult(result);
-    notifyListeners();
-  }
 
   Future<OwnershipCommandResult> purchaseStoreOffer({
     required String offerId,
-  }) async {
-    final session = await _ensureAuthSession();
-    var result = await _ownershipApi.purchaseStoreOffer(
-      PurchaseStoreOfferCommand(
-        userId: session.userId,
-        sessionId: session.sessionId,
-        expectedRevision: _ownershipRevision,
-        commandId: 'purchase_store_offer_${_newCommandId()}',
-        offerId: offerId,
-      ),
-    );
-    if (result.rejectedReason == OwnershipRejectedReason.staleRevision) {
-      final canonical = await _ownershipApi.loadCanonicalState(
-        userId: session.userId,
-        sessionId: session.sessionId,
-      );
-      _applyCanonicalState(canonical);
-      result = await _ownershipApi.purchaseStoreOffer(
-        PurchaseStoreOfferCommand(
-          userId: session.userId,
-          sessionId: session.sessionId,
-          expectedRevision: _ownershipRevision,
-          commandId: 'purchase_store_offer_${_newCommandId()}',
-          offerId: offerId,
-        ),
-      );
-    }
-    _applyOwnershipResult(result);
-    notifyListeners();
-    return result;
-  }
+  }) => _selectionOwnershipController.purchaseStoreOffer(offerId: offerId);
 
   Future<OwnershipCommandResult> refreshStore({
     required StoreRefreshMethod method,
     String? refreshGrantId,
-  }) async {
-    final session = await _ensureAuthSession();
-    var result = await _ownershipApi.refreshStore(
-      RefreshStoreCommand(
-        userId: session.userId,
-        sessionId: session.sessionId,
-        expectedRevision: _ownershipRevision,
-        commandId: 'refresh_store_${method.name}_${_newCommandId()}',
-        method: method,
-        refreshGrantId: refreshGrantId,
-      ),
-    );
-    if (result.rejectedReason == OwnershipRejectedReason.staleRevision) {
-      final canonical = await _ownershipApi.loadCanonicalState(
-        userId: session.userId,
-        sessionId: session.sessionId,
-      );
-      _applyCanonicalState(canonical);
-      result = await _ownershipApi.refreshStore(
-        RefreshStoreCommand(
-          userId: session.userId,
-          sessionId: session.sessionId,
-          expectedRevision: _ownershipRevision,
-          commandId: 'refresh_store_${method.name}_${_newCommandId()}',
-          method: method,
-          refreshGrantId: refreshGrantId,
-        ),
-      );
-    }
-    _applyOwnershipResult(result);
-    notifyListeners();
-    return result;
-  }
+  }) => _selectionOwnershipController.refreshStore(
+    method: method,
+    refreshGrantId: refreshGrantId,
+  );
 
-  Future<AuthLinkResult> linkAuthProvider(AuthLinkProvider provider) async {
-    final result = await _authApi.linkAuthProvider(provider);
-    _authSession = result.session;
-    notifyListeners();
-    return result;
-  }
+  Future<void> flushOwnershipEdits({required OwnershipFlushTrigger trigger}) =>
+      _ownershipSyncController.flushOwnershipEdits(trigger: trigger);
 
-  Future<AccountDeletionResult> deleteAccountAndData() async {
-    final session = await _ensureAuthSession();
-    final result = await _accountDeletionApi.deleteAccountAndData(
-      userId: session.userId,
-      sessionId: session.sessionId,
-    );
-    if (!result.succeeded) {
-      return result;
-    }
+  Future<void> ensureOwnershipSyncedBeforeRunStart() =>
+      _ownershipSyncController.ensureOwnershipSyncedBeforeRunStart();
 
-    await _authApi.clearSession();
-    _selection = SelectionState.defaults;
-    _meta = const MetaService().createNew();
-    _progression = ProgressionState.initial;
-    _profile = UserProfile.empty;
-    _authSession = AuthSession.unauthenticated;
-    _profileId = defaultOwnershipProfileId;
-    _ownershipRevision = 0;
-    _ownershipSyncStatusUpdatedAtMs = null;
-    _runSubmissionStatuses.clear();
-    _clearRunTicketPrefetchState();
-    _bootstrapped = false;
-    _warmupStarted = false;
-    notifyListeners();
-    return result;
-  }
-
-  void startWarmup() {
-    if (_warmupStarted) return;
-    _warmupStarted = true;
-    unawaited(() async {
-      await _refreshOwnershipSyncStatusFromOutbox();
-      notifyListeners();
-    }());
-    unawaited(startRunTicketPrefetchForCurrentSelection());
-    if (_selection.selectedRunMode != RunMode.weekly) {
-      unawaited(
-        startRunTicketPrefetchFor(
-          mode: RunMode.weekly,
-          levelId: _defaultWeeklyFeaturedLevelId,
-        ),
-      );
-    }
-    unawaited(_resumePendingRunSubmissions());
-  }
+  Future<void> ensureSelectionSyncedBeforeLeavingLevelSetup() =>
+      _ownershipSyncController.ensureSelectionSyncedBeforeLeavingLevelSetup();
 
   Future<RunSubmissionStatus> submitRunReplay({
     required String runSessionId,
@@ -826,369 +369,94 @@ class AppState extends ChangeNotifier {
     required int contentLengthBytes,
     String contentType = 'application/octet-stream',
     Map<String, Object?>? provisionalSummary,
-  }) async {
-    final session = await _ensureAuthSession();
-    final pending = await _runSubmissionCoordinator.enqueueSubmission(
-      runSessionId: runSessionId,
-      runMode: runMode,
-      replayFilePath: replayFilePath,
-      canonicalSha256: canonicalSha256,
-      contentLengthBytes: contentLengthBytes,
-      contentType: contentType,
-      provisionalSummary: provisionalSummary,
-    );
-    _runSubmissionStatuses[runSessionId] = RunSubmissionStatus.fromPending(
-      pending,
-    );
-    notifyListeners();
-    final status = await _runSubmissionCoordinator.processRunSession(
-      userId: session.userId,
-      sessionId: session.sessionId,
-      runSessionId: runSessionId,
-    );
-    _runSubmissionStatuses[runSessionId] = status;
-    await _syncCanonicalAfterSubmissionStatuses(
-      session: session,
-      statuses: <RunSubmissionStatus>[status],
-    );
-    notifyListeners();
-    return status;
-  }
+  }) => _runSubmissionController.submitRunReplay(
+    runSessionId: runSessionId,
+    runMode: runMode,
+    replayFilePath: replayFilePath,
+    canonicalSha256: canonicalSha256,
+    contentLengthBytes: contentLengthBytes,
+    contentType: contentType,
+    provisionalSummary: provisionalSummary,
+  );
 
   Future<RunSubmissionStatus> refreshRunSubmissionStatus({
     required String runSessionId,
-  }) async {
-    final session = await _ensureAuthSession();
-    final status = await _runSubmissionCoordinator.refreshRunSessionStatus(
-      userId: session.userId,
-      sessionId: session.sessionId,
-      runSessionId: runSessionId,
-    );
-    _runSubmissionStatuses[runSessionId] = status;
-    await _syncCanonicalAfterSubmissionStatuses(
-      session: session,
-      statuses: <RunSubmissionStatus>[status],
-    );
-    notifyListeners();
-    return status;
-  }
+  }) => _runSubmissionController.refreshRunSubmissionStatus(
+    runSessionId: runSessionId,
+  );
 
-  Future<List<RunSubmissionStatus>> processPendingRunSubmissions() async {
-    final session = await _ensureAuthSession();
-    final statuses = await _runSubmissionCoordinator.processReadySubmissions(
-      userId: session.userId,
-      sessionId: session.sessionId,
-    );
-    if (statuses.isEmpty) {
-      return const <RunSubmissionStatus>[];
-    }
-    for (final status in statuses) {
-      _runSubmissionStatuses[status.runSessionId] = status;
-    }
-    await _syncCanonicalAfterSubmissionStatuses(
-      session: session,
-      statuses: statuses,
-    );
-    notifyListeners();
-    return statuses;
-  }
+  Future<List<RunSubmissionStatus>> processPendingRunSubmissions() =>
+      _runSubmissionController.processPendingRunSubmissions();
 
   Future<OnlineLeaderboardBoard> loadOnlineLeaderboardBoard({
     required RunMode mode,
     required LevelId levelId,
-  }) async {
-    if (!mode.requiresBoard) {
-      throw const RunStartRemoteException(
-        code: 'failed-precondition',
-        message: 'Practice mode does not have an online leaderboard board.',
-      );
-    }
-    final session = await _ensureAuthSession();
-    final boardManifest = await _runBoardsApi.loadActiveBoard(
-      userId: session.userId,
-      sessionId: session.sessionId,
-      mode: mode,
-      levelId: levelId,
-      gameCompatVersion: _defaultGameCompatVersion,
-    );
-    return _leaderboardApi.loadBoard(
-      userId: session.userId,
-      sessionId: session.sessionId,
-      boardId: boardManifest.boardId,
-    );
-  }
+  }) => _boardsController.loadOnlineLeaderboardBoard(
+    mode: mode,
+    levelId: levelId,
+  );
 
   Future<OnlineLeaderboardBoardData> loadOnlineLeaderboardData({
     required RunMode mode,
     required LevelId levelId,
-  }) async {
-    if (!mode.requiresBoard) {
-      throw const RunStartRemoteException(
-        code: 'failed-precondition',
-        message: 'Practice mode does not have an online leaderboard board.',
-      );
-    }
-    final session = await _ensureAuthSession();
-    return _leaderboardApi.loadActiveBoardData(
-      userId: session.userId,
-      sessionId: session.sessionId,
-      mode: mode,
-      levelId: levelId,
-      gameCompatVersion: _defaultGameCompatVersion,
-    );
-  }
+  }) =>
+      _boardsController.loadOnlineLeaderboardData(mode: mode, levelId: levelId);
 
   Future<OnlineLeaderboardMyRank> loadOnlineLeaderboardMyRank({
     required String boardId,
-  }) async {
-    final session = await _ensureAuthSession();
-    return _leaderboardApi.loadMyRank(
-      userId: session.userId,
-      sessionId: session.sessionId,
-      boardId: boardId,
-    );
-  }
+  }) => _boardsController.loadOnlineLeaderboardMyRank(boardId: boardId);
 
   Future<GhostManifest> loadGhostManifest({
     required String boardId,
     required String entryId,
-  }) async {
-    final session = await _ensureAuthSession();
-    return _ghostApi.loadManifest(
-      userId: session.userId,
-      sessionId: session.sessionId,
-      boardId: boardId,
-      entryId: entryId,
-    );
-  }
+  }) => _boardsController.loadGhostManifest(boardId: boardId, entryId: entryId);
 
   Future<GhostReplayBootstrap> loadGhostReplayBootstrap({
     required String boardId,
     required String entryId,
-  }) async {
-    final manifest = await loadGhostManifest(
-      boardId: boardId,
-      entryId: entryId,
-    );
-    return _ghostReplayCache.loadReplay(manifest: manifest);
-  }
+  }) => _boardsController.loadGhostReplayBootstrap(
+    boardId: boardId,
+    entryId: entryId,
+  );
+
+  Future<void> startRunTicketPrefetchForCurrentSelection() =>
+      _runStartController.startRunTicketPrefetchForCurrentSelection();
+
+  Future<void> startRunTicketPrefetchFor({
+    required RunMode mode,
+    required LevelId levelId,
+  }) => _runStartController.startRunTicketPrefetchFor(
+    mode: mode,
+    levelId: levelId,
+  );
 
   Future<RunStartDescriptor> prepareRunStartDescriptor({
     RunMode? expectedMode,
     LevelId? expectedLevelId,
     String? ghostEntryId,
-  }) async {
-    await ensureOwnershipSyncedBeforeRunStart();
-    final session = await _ensureAuthSession();
-    // Restart flows pass expectedMode/expectedLevelId and still require a
-    // live canonical read so stale restarts fail fast.
-    if (expectedMode != null || expectedLevelId != null) {
-      final canonical = await _ownershipApi.loadCanonicalState(
-        userId: session.userId,
-        sessionId: session.sessionId,
-      );
-      _applyCanonicalState(canonical);
-    }
-    if (_selection.selectedRunMode == RunMode.weekly &&
-        _selection.selectedLevelId != _defaultWeeklyFeaturedLevelId) {
-      await _setSelection(
-        _selection.copyWith(selectedLevelId: _defaultWeeklyFeaturedLevelId),
-      );
-    }
-    final canonicalMode = _selection.selectedRunMode;
-    final canonicalLevelId = _selection.selectedLevelId;
-    if (expectedMode != null && expectedMode != canonicalMode) {
-      throw const RunStartRemoteException(
-        code: 'failed-precondition',
-        message:
-            'Run mode changed in canonical state. Return to hub before restart.',
-      );
-    }
-    if (expectedLevelId != null && expectedLevelId != canonicalLevelId) {
-      throw const RunStartRemoteException(
-        code: 'failed-precondition',
-        message:
-            'Selected level changed in canonical state. Return to hub before restart.',
-      );
-    }
-    final mode = expectedMode ?? canonicalMode;
-    final levelId = expectedLevelId ?? canonicalLevelId;
-    final runTicket = expectedMode != null || expectedLevelId != null
-        ? null
-        : _takeValidPrefetchedRunTicket(
-            userId: session.userId,
-            mode: mode,
-            levelId: levelId,
-          );
-    final resolvedTicket =
-        runTicket ??
-        await _runSessionApi.createRunSession(
-          userId: session.userId,
-          sessionId: session.sessionId,
-          mode: mode,
-          levelId: levelId,
-          gameCompatVersion: _defaultGameCompatVersion,
-        );
-    final descriptor = _runStartDescriptorFromTicket(resolvedTicket);
-    if (!mode.requiresBoard || descriptor.boardId == null) {
-      return descriptor;
-    }
-    final resolvedGhostEntryId = ghostEntryId?.trim();
-    if (resolvedGhostEntryId == null || resolvedGhostEntryId.isEmpty) {
-      return descriptor;
-    }
-    final ghostReplayBootstrap = await loadGhostReplayBootstrap(
-      boardId: descriptor.boardId!,
-      entryId: resolvedGhostEntryId,
-    );
-    return descriptor.copyWith(ghostReplayBootstrap: ghostReplayBootstrap);
-  }
+  }) => _runStartController.prepareRunStartDescriptor(
+    expectedMode: expectedMode,
+    expectedLevelId: expectedLevelId,
+    ghostEntryId: ghostEntryId,
+  );
 
-  RunTicket? _takeValidPrefetchedRunTicket({
-    required String userId,
-    required RunMode mode,
-    required LevelId levelId,
-  }) {
-    final key = _runTicketPrefetchKeyFor(
-      userId: userId,
-      mode: mode,
-      levelId: levelId,
-    );
-    final cached = _runTicketPrefetchCache.remove(key);
-    _runTicketPrefetchLruClockByKey.remove(key);
-    if (cached == null) {
-      return null;
-    }
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    if (!_isRunTicketEligibleForPrefetchCache(
-      runTicket: cached,
-      nowMs: nowMs,
-    )) {
-      return null;
-    }
-    if (!_matchesRunTicketPrefetchKey(ticket: cached, key: key)) {
-      return null;
-    }
-    return cached;
-  }
+  Future<void> _enqueueOwnershipCommand(OwnershipPendingCommand command) =>
+      _ownershipSyncController._enqueueOwnershipCommand(command);
 
-  bool _matchesRunTicketPrefetchKey({
-    required RunTicket ticket,
-    required _RunTicketPrefetchKey key,
-  }) {
-    if (ticket.uid != key.userId) {
-      return false;
-    }
-    if (ticket.mode != key.mode) {
-      return false;
-    }
-    if (ticket.gameCompatVersion != key.gameCompatVersion) {
-      return false;
-    }
-    if (ticket.levelId != key.levelId.name) {
-      return false;
-    }
-    if (ticket.playerCharacterId != key.playerCharacterId.name) {
-      return false;
-    }
-    if (ticket.loadoutDigest != key.loadoutDigest) {
-      return false;
-    }
-    return true;
-  }
+  Future<void> _refreshOwnershipSyncStatusFromOutbox() =>
+      _ownershipSyncController._refreshOwnershipSyncStatusFromOutbox();
 
-  RunStartDescriptor _runStartDescriptorFromTicket(RunTicket ticket) {
-    final parsedLevelId = _levelIdFromWire(ticket.levelId);
-    final parsedCharacterId = _characterIdFromWire(ticket.playerCharacterId);
-    final fallbackLoadout = _selection.loadoutFor(parsedCharacterId);
-    final equippedLoadout = _equippedLoadoutFromSnapshot(
-      ticket.loadoutSnapshot,
-      fallback: fallbackLoadout,
-    );
-    return RunStartDescriptor(
-      runSessionId: ticket.runSessionId,
-      runId: _runIdFromRunSessionId(ticket.runSessionId),
-      seed: ticket.seed,
-      levelId: parsedLevelId,
-      playerCharacterId: parsedCharacterId,
-      runMode: ticket.mode,
-      equippedLoadout: equippedLoadout,
-      boardId: ticket.boardId,
-      boardKey: ticket.boardKey,
-    );
-  }
+  Future<void> _setSelection(SelectionState nextSelection) =>
+      _selectionOwnershipController._setSelection(nextSelection);
 
-  int _runIdFromRunSessionId(String runSessionId) {
-    final digestBytes = crypto.sha256.convert(utf8.encode(runSessionId)).bytes;
-    final digestWord = ByteData.sublistView(
-      Uint8List.fromList(digestBytes),
-      0,
-      4,
-    ).getUint32(0, Endian.big);
-    final positive = digestWord & 0x7fffffff;
-    return positive == 0 ? 1 : positive;
-  }
+  Future<void> _reconcileSelectionProjectionFromOutbox() =>
+      _selectionOwnershipController._reconcileSelectionProjectionFromOutbox();
 
-  LevelId _levelIdFromWire(String levelId) {
-    return _enumByName(LevelId.values, levelId, fieldName: 'runTicket.levelId');
-  }
+  Future<void> _resumePendingRunSubmissions() =>
+      _runSubmissionController._resumePendingRunSubmissions();
 
-  PlayerCharacterId _characterIdFromWire(String characterId) {
-    return _enumByName(
-      PlayerCharacterId.values,
-      characterId,
-      fieldName: 'runTicket.playerCharacterId',
-    );
-  }
-
-  EquippedLoadoutDef _equippedLoadoutFromSnapshot(
-    Map<String, Object?> snapshot, {
-    required EquippedLoadoutDef fallback,
-  }) {
-    return EquippedLoadoutDef(
-      mask: _intOrFallback(snapshot['mask'], fallback.mask),
-      mainWeaponId: _enumFromStringOrFallback(
-        WeaponId.values,
-        snapshot['mainWeaponId'],
-        fallback.mainWeaponId,
-      ),
-      offhandWeaponId: _enumFromStringOrFallback(
-        WeaponId.values,
-        snapshot['offhandWeaponId'],
-        fallback.offhandWeaponId,
-      ),
-      spellBookId: _enumFromStringOrFallback(
-        SpellBookId.values,
-        snapshot['spellBookId'],
-        fallback.spellBookId,
-      ),
-      projectileSlotSpellId: _enumFromStringOrFallback(
-        ProjectileId.values,
-        snapshot['projectileSlotSpellId'],
-        fallback.projectileSlotSpellId,
-      ),
-      accessoryId: _enumFromStringOrFallback(
-        AccessoryId.values,
-        snapshot['accessoryId'],
-        fallback.accessoryId,
-      ),
-      abilityPrimaryId:
-          _stringOrNull(snapshot['abilityPrimaryId']) ??
-          fallback.abilityPrimaryId,
-      abilitySecondaryId:
-          _stringOrNull(snapshot['abilitySecondaryId']) ??
-          fallback.abilitySecondaryId,
-      abilityProjectileId:
-          _stringOrNull(snapshot['abilityProjectileId']) ??
-          fallback.abilityProjectileId,
-      abilitySpellId:
-          _stringOrNull(snapshot['abilitySpellId']) ?? fallback.abilitySpellId,
-      abilityMobilityId:
-          _stringOrNull(snapshot['abilityMobilityId']) ??
-          fallback.abilityMobilityId,
-      abilityJumpId:
-          _stringOrNull(snapshot['abilityJumpId']) ?? fallback.abilityJumpId,
-    );
+  void _notifyListeners() {
+    notifyListeners();
   }
 
   T _enumByName<T extends Enum>(
@@ -1236,420 +504,6 @@ class AppState extends ChangeNotifier {
 
   String? _stringOrNull(Object? raw) => raw is String ? raw : null;
 
-  Future<void> _resumePendingRunSubmissions() async {
-    try {
-      await processPendingRunSubmissions();
-    } catch (error) {
-      debugPrint('Pending replay submission resume failed: $error');
-    }
-  }
-
-  Future<void> _syncCanonicalAfterSubmissionStatuses({
-    required AuthSession session,
-    required Iterable<RunSubmissionStatus> statuses,
-  }) async {
-    final shouldRefreshCanonical = statuses.any(
-      (status) => status.isRewardFinal,
-    );
-    if (!shouldRefreshCanonical) {
-      return;
-    }
-    try {
-      final canonical = await _ownershipApi.loadCanonicalState(
-        userId: session.userId,
-        sessionId: session.sessionId,
-      );
-      _applyCanonicalState(canonical);
-    } catch (error) {
-      debugPrint(
-        'Run submission canonical sync failed after final reward status: $error',
-      );
-    }
-  }
-
-  Future<void> _enqueueOwnershipCommand(OwnershipPendingCommand command) async {
-    await _ownershipOutboxStore.upsertCoalesced(command: command);
-    await _refreshOwnershipSyncStatusFromOutbox();
-    _scheduleOwnershipFlush(policyTier: command.policyTier);
-    notifyListeners();
-  }
-
-  void _scheduleOwnershipFlush({required OwnershipSyncTier policyTier}) {
-    final debounceMs = _ownershipSyncPolicy.debounceMsFor(policyTier);
-    _ownershipFlushTimer?.cancel();
-    if (debounceMs <= 0) {
-      unawaited(flushOwnershipEdits(trigger: OwnershipFlushTrigger.manual));
-      return;
-    }
-    _ownershipFlushTimer = Timer(Duration(milliseconds: debounceMs), () {
-      unawaited(flushOwnershipEdits(trigger: OwnershipFlushTrigger.manual));
-    });
-  }
-
-  Future<void> _flushOwnershipEditsInternal({
-    required OwnershipFlushTrigger trigger,
-  }) async {
-    _ownershipFlushTimer?.cancel();
-    _ownershipFlushTimer = null;
-    _ownershipSyncStatus = _ownershipSyncStatus.copyWith(
-      isFlushing: true,
-      clearLastSyncError: true,
-    );
-    notifyListeners();
-    try {
-      AuthSession? session;
-      while (true) {
-        final nowMs = DateTime.now().millisecondsSinceEpoch;
-        final pending = await _ownershipOutboxStore.loadAll();
-        OwnershipPendingCommand? ready;
-        OwnershipPendingCommand? fallbackReady;
-        int? earliestNextAttemptAtMs;
-        for (final candidate in pending) {
-          final attempt = candidate.deliveryAttempt;
-          final ageMs = nowMs - candidate.createdAtMs;
-          final exceededMaxStaleness =
-              ageMs >= _ownershipSyncPolicy.maxStalenessMs;
-          if (attempt == null ||
-              attempt.nextAttemptAtMs <= nowMs ||
-              exceededMaxStaleness) {
-            fallbackReady ??= candidate;
-            if (candidate.policyTier == OwnershipSyncTier.selectionFastSync) {
-              ready = candidate;
-              break;
-            }
-            continue;
-          }
-          final candidateNextAttemptAtMs = attempt.nextAttemptAtMs;
-          if (earliestNextAttemptAtMs == null ||
-              candidateNextAttemptAtMs < earliestNextAttemptAtMs) {
-            earliestNextAttemptAtMs = candidateNextAttemptAtMs;
-          }
-        }
-        ready ??= fallbackReady;
-        if (ready == null) {
-          if (earliestNextAttemptAtMs != null) {
-            final delayMs = earliestNextAttemptAtMs - nowMs;
-            _ownershipFlushTimer?.cancel();
-            _ownershipFlushTimer = Timer(
-              Duration(milliseconds: delayMs <= 0 ? 1 : delayMs),
-              () {
-                unawaited(
-                  flushOwnershipEdits(trigger: OwnershipFlushTrigger.manual),
-                );
-              },
-            );
-          }
-          break;
-        }
-        session ??= await _ensureAuthSession();
-        await _deliverPendingOwnershipCommand(session: session, command: ready);
-      }
-      await _refreshOwnershipSyncStatusFromOutbox();
-    } catch (error) {
-      _ownershipSyncStatus = _ownershipSyncStatus.copyWith(
-        lastSyncError: 'flush:${trigger.name}:$error',
-      );
-    } finally {
-      _ownershipSyncStatus = _ownershipSyncStatus.copyWith(isFlushing: false);
-      notifyListeners();
-    }
-  }
-
-  Future<void> _deliverPendingOwnershipCommand({
-    required AuthSession session,
-    required OwnershipPendingCommand command,
-  }) async {
-    final alreadySuperseded = await _isPendingCommandSuperseded(
-      command: command,
-    );
-    if (alreadySuperseded) {
-      return;
-    }
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final payloadHash = crypto.sha256
-        .convert(utf8.encode(jsonEncode(command.payloadJson)))
-        .toString();
-    final attempt =
-        command.deliveryAttempt ??
-        OwnershipDeliveryAttempt(
-          commandId: _newCommandId(),
-          expectedRevision: _ownershipRevision,
-          attemptCount: 0,
-          nextAttemptAtMs: nowMs,
-          sentPayloadHash: payloadHash,
-        );
-    try {
-      final result = await _sendPendingOwnershipCommand(
-        session: session,
-        command: command,
-        attempt: attempt,
-      );
-      final superseded = await _isPendingCommandSuperseded(
-        command: command,
-        sentPayloadHash: payloadHash,
-      );
-      if (superseded) {
-        return;
-      }
-      if (result.rejectedReason == OwnershipRejectedReason.staleRevision) {
-        final canonical = await _ownershipApi.loadCanonicalState(
-          userId: session.userId,
-          sessionId: session.sessionId,
-        );
-        await _ownershipOutboxStore.upsertCoalesced(
-          command: command.copyWith(
-            updatedAtMs: nowMs,
-            clearDeliveryAttempt: true,
-          ),
-        );
-        _applyCanonicalState(canonical);
-        await _reconcileSelectionProjectionFromOutbox();
-        _ownershipSyncStatus = _ownershipSyncStatus.copyWith(
-          conflictCount: _ownershipSyncStatus.conflictCount + 1,
-        );
-        notifyListeners();
-        return;
-      }
-
-      _applyOwnershipResult(result);
-      await _ownershipOutboxStore.removeByCoalesceKey(
-        coalesceKey: command.coalesceKey,
-      );
-      await _reconcileSelectionProjectionFromOutbox();
-      notifyListeners();
-    } catch (_) {
-      final superseded = await _isPendingCommandSuperseded(
-        command: command,
-        sentPayloadHash: payloadHash,
-      );
-      if (superseded) {
-        return;
-      }
-      final nextAttemptCount = attempt.attemptCount + 1;
-      final delayMs = _ownershipSyncPolicy.retryDelayMsForAttempt(
-        nextAttemptCount,
-        random: _random,
-      );
-      final nextAttempt = attempt.copyWith(
-        attemptCount: nextAttemptCount,
-        nextAttemptAtMs: nowMs + delayMs,
-        sentPayloadHash: payloadHash,
-      );
-      await _ownershipOutboxStore.upsertCoalesced(
-        command: command.copyWith(
-          updatedAtMs: nowMs,
-          deliveryAttempt: nextAttempt,
-        ),
-      );
-      _ownershipSyncStatus = _ownershipSyncStatus.copyWith(
-        retryCount: _ownershipSyncStatus.retryCount + 1,
-      );
-    }
-  }
-
-  Future<bool> _isPendingCommandSuperseded({
-    required OwnershipPendingCommand command,
-    String? sentPayloadHash,
-  }) async {
-    final latest = await _ownershipOutboxStore.loadByCoalesceKey(
-      coalesceKey: command.coalesceKey,
-    );
-    if (latest == null) {
-      return false;
-    }
-    if (latest.updatedAtMs > command.updatedAtMs) {
-      return true;
-    }
-    final latestPayloadHash = crypto.sha256
-        .convert(utf8.encode(jsonEncode(latest.payloadJson)))
-        .toString();
-    final referencePayloadHash =
-        sentPayloadHash ??
-        crypto.sha256
-            .convert(utf8.encode(jsonEncode(command.payloadJson)))
-            .toString();
-    return latestPayloadHash != referencePayloadHash;
-  }
-
-  Future<OwnershipCommandResult> _sendPendingOwnershipCommand({
-    required AuthSession session,
-    required OwnershipPendingCommand command,
-    required OwnershipDeliveryAttempt attempt,
-  }) async {
-    switch (command.commandType) {
-      case OwnershipPendingCommandType.setSelection:
-        final selectionRaw = command.payloadJson['selection'];
-        if (selectionRaw is! Map) {
-          throw FormatException('setSelection payload is invalid.');
-        }
-        final selection = SelectionState.fromJson(
-          Map<String, dynamic>.from(selectionRaw),
-        );
-        return _ownershipApi.setSelection(
-          SetSelectionCommand(
-            userId: session.userId,
-            sessionId: session.sessionId,
-            expectedRevision: attempt.expectedRevision,
-            commandId: attempt.commandId,
-            selection: selection,
-          ),
-        );
-      case OwnershipPendingCommandType.setAbilitySlot:
-        final characterId = _enumByName(
-          PlayerCharacterId.values,
-          '${command.payloadJson['characterId']}',
-          fieldName: 'setAbilitySlot.characterId',
-        );
-        final slot = _enumByName(
-          AbilitySlot.values,
-          '${command.payloadJson['slot']}',
-          fieldName: 'setAbilitySlot.slot',
-        );
-        final abilityId = '${command.payloadJson['abilityId']}';
-        return _ownershipApi.setAbilitySlot(
-          SetAbilitySlotCommand(
-            userId: session.userId,
-            sessionId: session.sessionId,
-            expectedRevision: attempt.expectedRevision,
-            commandId: attempt.commandId,
-            characterId: characterId,
-            slot: slot,
-            abilityId: abilityId,
-          ),
-        );
-      case OwnershipPendingCommandType.setProjectileSpell:
-        final characterId = _enumByName(
-          PlayerCharacterId.values,
-          '${command.payloadJson['characterId']}',
-          fieldName: 'setProjectileSpell.characterId',
-        );
-        final spellId = _enumByName(
-          ProjectileId.values,
-          '${command.payloadJson['spellId']}',
-          fieldName: 'setProjectileSpell.spellId',
-        );
-        return _ownershipApi.setProjectileSpell(
-          SetProjectileSpellCommand(
-            userId: session.userId,
-            sessionId: session.sessionId,
-            expectedRevision: attempt.expectedRevision,
-            commandId: attempt.commandId,
-            characterId: characterId,
-            spellId: spellId,
-          ),
-        );
-      case OwnershipPendingCommandType.equipGear:
-        final characterId = _enumByName(
-          PlayerCharacterId.values,
-          '${command.payloadJson['characterId']}',
-          fieldName: 'equipGear.characterId',
-        );
-        final slot = _enumByName(
-          GearSlot.values,
-          '${command.payloadJson['slot']}',
-          fieldName: 'equipGear.slot',
-        );
-        final itemIdName = '${command.payloadJson['itemId']}';
-        final itemId = _gearItemFromName(slot: slot, itemIdName: itemIdName);
-        return _ownershipApi.equipGear(
-          EquipGearCommand(
-            userId: session.userId,
-            sessionId: session.sessionId,
-            expectedRevision: attempt.expectedRevision,
-            commandId: attempt.commandId,
-            characterId: characterId,
-            slot: slot,
-            itemId: itemId,
-          ),
-        );
-      case OwnershipPendingCommandType.setLoadout:
-        throw UnsupportedError(
-          'setLoadout outbox delivery is not enabled yet.',
-        );
-    }
-  }
-
-  Future<void> _refreshOwnershipSyncStatusFromOutbox() async {
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final pending = await _ownershipOutboxStore.loadAll();
-    final pendingSelectionCount = pending
-        .where(
-          (entry) => entry.policyTier == OwnershipSyncTier.selectionFastSync,
-        )
-        .length;
-    int oldestPendingAgeMs = 0;
-    if (pending.isNotEmpty) {
-      final oldestCreatedAtMs = pending
-          .map((entry) => entry.createdAtMs)
-          .reduce((a, b) => a < b ? a : b);
-      oldestPendingAgeMs = nowMs - oldestCreatedAtMs;
-      if (oldestPendingAgeMs < 0) {
-        oldestPendingAgeMs = 0;
-      }
-    }
-    _ownershipSyncStatus = _ownershipSyncStatus.copyWith(
-      pendingCount: pending.length,
-      pendingSelectionCount: pendingSelectionCount,
-      oldestPendingAgeMs: oldestPendingAgeMs,
-    );
-    _ownershipSyncStatusUpdatedAtMs = nowMs;
-  }
-
-  Future<void> _setSelection(SelectionState nextSelection) async {
-    final session = await _ensureAuthSession();
-    final result = await _ownershipApi.setSelection(
-      SetSelectionCommand(
-        userId: session.userId,
-        sessionId: session.sessionId,
-        expectedRevision: _ownershipRevision,
-        commandId: _newCommandId(),
-        selection: nextSelection,
-      ),
-    );
-    _applyOwnershipResult(result);
-    notifyListeners();
-  }
-
-  Future<void> _updateSelectionOptimistically(
-    SelectionState nextSelection,
-  ) async {
-    if (_selection == nextSelection) {
-      return;
-    }
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    _clearRunTicketPrefetchState();
-    _selection = nextSelection;
-    notifyListeners();
-    await _enqueueOwnershipCommand(
-      OwnershipPendingCommand(
-        coalesceKey: 'selection',
-        commandType: OwnershipPendingCommandType.setSelection,
-        policyTier: OwnershipSyncTier.selectionFastSync,
-        payloadJson: <String, Object?>{'selection': nextSelection.toJson()},
-        createdAtMs: nowMs,
-        updatedAtMs: nowMs,
-      ),
-    );
-  }
-
-  Future<void> _reconcileSelectionProjectionFromOutbox() async {
-    final pending = await _ownershipOutboxStore.loadByCoalesceKey(
-      coalesceKey: 'selection',
-    );
-    if (pending == null ||
-        pending.commandType != OwnershipPendingCommandType.setSelection) {
-      return;
-    }
-    final selectionRaw = pending.payloadJson['selection'];
-    if (selectionRaw is! Map) {
-      return;
-    }
-    final projectedSelection = SelectionState.fromJson(
-      Map<String, dynamic>.from(selectionRaw),
-    );
-    _selection = projectedSelection;
-  }
-
   void _applyOwnershipResult(OwnershipCommandResult result) {
     _applyCanonicalState(result.canonicalState);
   }
@@ -1686,158 +540,12 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  _RunTicketPrefetchKey _runTicketPrefetchKeyFor({
-    required String userId,
-    required RunMode mode,
-    required LevelId levelId,
-  }) {
-    final characterId = _selection.selectedCharacterId;
-    final loadout = _selection.loadoutFor(characterId);
-    return _RunTicketPrefetchKey(
-      userId: userId,
-      ownershipRevision: _ownershipRevision,
-      gameCompatVersion: _defaultGameCompatVersion,
-      mode: mode,
-      levelId: levelId,
-      playerCharacterId: characterId,
-      loadoutDigest: _loadoutDigest(loadout),
-    );
-  }
-
-  bool _shouldIssueRunTicketPrefetchRequest({
-    required _RunTicketPrefetchKey key,
-    required int nowMs,
-  }) {
-    final lastRequestedAtMs = _runTicketPrefetchLastRequestedAtMsByKey[key];
-    if (lastRequestedAtMs == null) {
-      return true;
-    }
-    return nowMs - lastRequestedAtMs >= _runTicketPrefetchMinIntervalMs;
-  }
-
-  Future<void> _runTicketPrefetchForKey({
-    required _RunTicketPrefetchKey key,
-    required AuthSession session,
-  }) async {
-    try {
-      final runTicket = await _runSessionApi.createRunSession(
-        userId: session.userId,
-        sessionId: session.sessionId,
-        mode: key.mode,
-        levelId: key.levelId,
-        gameCompatVersion: key.gameCompatVersion,
-      );
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      if (!_isRunTicketEligibleForPrefetchCache(
-        runTicket: runTicket,
-        nowMs: nowMs,
-      )) {
-        return;
-      }
-      if (!_isRunTicketPrefetchKeyCurrent(key)) {
-        return;
-      }
-      _storeRunTicketPrefetch(key: key, runTicket: runTicket);
-    } catch (_) {
-      return;
-    }
-  }
-
-  bool _isRunTicketEligibleForPrefetchCache({
-    required RunTicket runTicket,
-    required int nowMs,
-  }) {
-    return nowMs + _runTicketPrefetchExpirySafetySkewMs < runTicket.expiresAtMs;
-  }
-
-  bool _isRunTicketPrefetchKeyCurrent(_RunTicketPrefetchKey key) {
-    if (_authSession.userId != key.userId) {
-      return false;
-    }
-    final effectiveLevelId = _effectiveLevelForMode(
-      mode: key.mode,
-      selectedLevelId: key.levelId,
-    );
-    final current = _runTicketPrefetchKeyFor(
-      userId: key.userId,
-      mode: key.mode,
-      levelId: effectiveLevelId,
-    );
-    return current == key;
-  }
-
-  void _storeRunTicketPrefetch({
-    required _RunTicketPrefetchKey key,
-    required RunTicket runTicket,
-  }) {
-    _runTicketPrefetchCache[key] = runTicket;
-    _runTicketPrefetchLruClock += 1;
-    _runTicketPrefetchLruClockByKey[key] = _runTicketPrefetchLruClock;
-    _evictRunTicketPrefetchLruIfNeeded();
-  }
-
-  void _evictRunTicketPrefetchLruIfNeeded() {
-    while (_runTicketPrefetchCache.length > _runTicketPrefetchCacheMaxEntries) {
-      _RunTicketPrefetchKey? oldestKey;
-      int? oldestClock;
-      for (final entry in _runTicketPrefetchLruClockByKey.entries) {
-        final key = entry.key;
-        if (!_runTicketPrefetchCache.containsKey(key)) {
-          continue;
-        }
-        if (oldestClock == null || entry.value < oldestClock) {
-          oldestClock = entry.value;
-          oldestKey = key;
-        }
-      }
-      if (oldestKey == null) {
-        break;
-      }
-      _runTicketPrefetchCache.remove(oldestKey);
-      _runTicketPrefetchLruClockByKey.remove(oldestKey);
-      _runTicketPrefetchLastRequestedAtMsByKey.remove(oldestKey);
-    }
-  }
-
-  String _loadoutDigest(EquippedLoadoutDef loadout) {
-    final canonical = <String>[
-      loadout.mask.toString(),
-      loadout.mainWeaponId.name,
-      loadout.offhandWeaponId.name,
-      loadout.spellBookId.name,
-      loadout.projectileSlotSpellId.name,
-      loadout.accessoryId.name,
-      loadout.abilityPrimaryId,
-      loadout.abilitySecondaryId,
-      loadout.abilityProjectileId,
-      loadout.abilitySpellId,
-      loadout.abilityMobilityId,
-      loadout.abilityJumpId,
-    ].join('|');
-    return crypto.sha256.convert(utf8.encode(canonical)).toString();
-  }
-
   void _clearRunTicketPrefetchState() {
     _runTicketPrefetchCache.clear();
     _runTicketPrefetchInFlight.clear();
     _runTicketPrefetchLruClockByKey.clear();
     _runTicketPrefetchLastRequestedAtMsByKey.clear();
     _runTicketPrefetchLruClock = 0;
-  }
-
-  AwardRunGoldCommand _newAwardRunGoldCommand({
-    required AuthSession session,
-    required int runId,
-    required int goldEarned,
-  }) {
-    return AwardRunGoldCommand(
-      userId: session.userId,
-      sessionId: session.sessionId,
-      expectedRevision: _ownershipRevision,
-      commandId: 'award_run_gold_${runId}_${_newCommandId()}',
-      runId: runId,
-      goldEarned: goldEarned,
-    );
   }
 
   String _newCommandId() {
@@ -1854,130 +562,6 @@ class AppState extends ChangeNotifier {
       return _defaultWeeklyFeaturedLevelId;
     }
     return selectedLevelId;
-  }
-
-  EquippedLoadoutDef _withAbilityInLoadout({
-    required EquippedLoadoutDef loadout,
-    required AbilitySlot slot,
-    required AbilityKey abilityId,
-  }) {
-    switch (slot) {
-      case AbilitySlot.primary:
-        return _copyLoadout(loadout, abilityPrimaryId: abilityId);
-      case AbilitySlot.secondary:
-        return _copyLoadout(loadout, abilitySecondaryId: abilityId);
-      case AbilitySlot.projectile:
-        return _copyLoadout(loadout, abilityProjectileId: abilityId);
-      case AbilitySlot.spell:
-        return _copyLoadout(loadout, abilitySpellId: abilityId);
-      case AbilitySlot.mobility:
-        return _copyLoadout(loadout, abilityMobilityId: abilityId);
-      case AbilitySlot.jump:
-        return _copyLoadout(loadout, abilityJumpId: abilityId);
-    }
-  }
-
-  EquippedLoadoutDef _withGearInLoadout({
-    required EquippedLoadoutDef loadout,
-    required GearSlot slot,
-    required Object itemId,
-  }) {
-    switch (slot) {
-      case GearSlot.mainWeapon:
-        return _copyLoadout(
-          loadout,
-          mainWeaponId: itemId is WeaponId ? itemId : loadout.mainWeaponId,
-        );
-      case GearSlot.offhandWeapon:
-        return _copyLoadout(
-          loadout,
-          offhandWeaponId: itemId is WeaponId
-              ? itemId
-              : loadout.offhandWeaponId,
-        );
-      case GearSlot.spellBook:
-        return _copyLoadout(
-          loadout,
-          spellBookId: itemId is SpellBookId ? itemId : loadout.spellBookId,
-        );
-      case GearSlot.accessory:
-        return _copyLoadout(
-          loadout,
-          accessoryId: itemId is AccessoryId ? itemId : loadout.accessoryId,
-        );
-    }
-  }
-
-  EquippedLoadoutDef _copyLoadout(
-    EquippedLoadoutDef loadout, {
-    int? mask,
-    WeaponId? mainWeaponId,
-    WeaponId? offhandWeaponId,
-    SpellBookId? spellBookId,
-    ProjectileId? projectileSlotSpellId,
-    AccessoryId? accessoryId,
-    AbilityKey? abilityPrimaryId,
-    AbilityKey? abilitySecondaryId,
-    AbilityKey? abilityProjectileId,
-    AbilityKey? abilitySpellId,
-    AbilityKey? abilityMobilityId,
-    AbilityKey? abilityJumpId,
-  }) {
-    return EquippedLoadoutDef(
-      mask: mask ?? loadout.mask,
-      mainWeaponId: mainWeaponId ?? loadout.mainWeaponId,
-      offhandWeaponId: offhandWeaponId ?? loadout.offhandWeaponId,
-      spellBookId: spellBookId ?? loadout.spellBookId,
-      projectileSlotSpellId:
-          projectileSlotSpellId ?? loadout.projectileSlotSpellId,
-      accessoryId: accessoryId ?? loadout.accessoryId,
-      abilityPrimaryId: abilityPrimaryId ?? loadout.abilityPrimaryId,
-      abilitySecondaryId: abilitySecondaryId ?? loadout.abilitySecondaryId,
-      abilityProjectileId: abilityProjectileId ?? loadout.abilityProjectileId,
-      abilitySpellId: abilitySpellId ?? loadout.abilitySpellId,
-      abilityMobilityId: abilityMobilityId ?? loadout.abilityMobilityId,
-      abilityJumpId: abilityJumpId ?? loadout.abilityJumpId,
-    );
-  }
-
-  EquippedGear _withGearInMeta({
-    required EquippedGear equipped,
-    required GearSlot slot,
-    required Object itemId,
-  }) {
-    switch (slot) {
-      case GearSlot.mainWeapon:
-        return equipped.copyWith(
-          mainWeaponId: itemId is WeaponId ? itemId : equipped.mainWeaponId,
-        );
-      case GearSlot.offhandWeapon:
-        return equipped.copyWith(
-          offhandWeaponId: itemId is WeaponId
-              ? itemId
-              : equipped.offhandWeaponId,
-        );
-      case GearSlot.spellBook:
-        return equipped.copyWith(
-          spellBookId: itemId is SpellBookId ? itemId : equipped.spellBookId,
-        );
-      case GearSlot.accessory:
-        return equipped.copyWith(
-          accessoryId: itemId is AccessoryId ? itemId : equipped.accessoryId,
-        );
-    }
-  }
-
-  String _gearItemIdAsName({required GearSlot slot, required Object itemId}) {
-    switch (slot) {
-      case GearSlot.mainWeapon:
-      case GearSlot.offhandWeapon:
-        return (itemId is WeaponId ? itemId : WeaponId.plainsteel).name;
-      case GearSlot.spellBook:
-        return (itemId is SpellBookId ? itemId : SpellBookId.apprenticePrimer)
-            .name;
-      case GearSlot.accessory:
-        return (itemId is AccessoryId ? itemId : AccessoryId.strengthBelt).name;
-    }
   }
 
   Object _gearItemFromName({

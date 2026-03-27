@@ -16,8 +16,8 @@ void main() {
     expect(item.damageType, DamageType.dark);
     expect(item.speedUnitsPerSecond, 550.0);
     expect(item.lifetimeSeconds, 1.3);
-    expect(item.colliderSizeX, 18.0);
-    expect(item.colliderSizeY, 8.0);
+    expect(item.colliderSizeX, 14.625);
+    expect(item.colliderSizeY, 13.5);
     expect(item.ballistic, isFalse);
     expect(item.gravityScale, 1.0);
     expect(item.procs, hasLength(1));
@@ -57,7 +57,7 @@ void main() {
     expect(item.speedUnitsPerSecond, 500.0);
     expect(item.lifetimeSeconds, 1.3);
     expect(item.colliderSizeX, 18.0);
-    expect(item.colliderSizeY, 8.0);
+    expect(item.colliderSizeY, 10.0);
     expect(item.ballistic, isFalse);
     expect(item.gravityScale, 1.0);
     expect(item.procs, hasLength(1));
@@ -96,8 +96,8 @@ void main() {
     expect(item.damageType, DamageType.holy);
     expect(item.speedUnitsPerSecond, 550.0);
     expect(item.lifetimeSeconds, 1.3);
-    expect(item.colliderSizeX, 18.0);
-    expect(item.colliderSizeY, 8.0);
+    expect(item.colliderSizeX, 27.5);
+    expect(item.colliderSizeY, 9.0);
     expect(item.ballistic, isFalse);
     expect(item.gravityScale, 1.0);
     expect(item.procs, hasLength(1));
@@ -138,8 +138,8 @@ void main() {
     expect(item.damageType, DamageType.water);
     expect(item.speedUnitsPerSecond, 550.0);
     expect(item.lifetimeSeconds, 1.3);
-    expect(item.colliderSizeX, 18.0);
-    expect(item.colliderSizeY, 8.0);
+    expect(item.colliderSizeX, 23.0);
+    expect(item.colliderSizeY, 10.5);
     expect(item.ballistic, isFalse);
     expect(item.gravityScale, 1.0);
     expect(item.procs, hasLength(1));
