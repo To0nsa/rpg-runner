@@ -20,9 +20,9 @@ import '../util/math_util.dart';
 /// - `0.0` = static (doesn't move with camera)
 /// - `1.0` = moves 1:1 with camera (no parallax effect)
 /// - Values between create the classic parallax depth illusion
-class PixelParallaxBackdropComponent extends Component
+class PixelParallaxBackdrop extends Component
     with HasGameReference<FlameGame> {
-  PixelParallaxBackdropComponent({
+  PixelParallaxBackdrop({
     required this.virtualWidth,
     required this.virtualHeight,
     required this.layers,

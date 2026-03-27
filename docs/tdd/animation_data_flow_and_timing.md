@@ -53,7 +53,7 @@ This policy is locked by resolver tests in `test/core/anim_resolver_test.dart`.
 
 ## 4) How render computes visible frame
 
-In `DeterministicAnimViewComponent.applySnapshot` (`lib/game/components/sprite_anim/deterministic_anim_view_component.dart`):
+In `DeterministicAnimView.applySnapshot` (`lib/game/components/sprite_anim/deterministic_anim_view.dart`):
 
 1. Read `anim` and `animFrame` from snapshot.
 2. Compute `ticksPerFrame` from `SpriteAnimSet.ticksPerFrameFor(key, tickHz)`.

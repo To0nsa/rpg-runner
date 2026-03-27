@@ -136,7 +136,7 @@ Current defaults:
 - Render mapping/tuning:
   - `lib/game/tuning/combat_feedback_tuning.dart`
   - `lib/game/runner_flame_game.dart`
-  - `lib/game/components/sprite_anim/deterministic_anim_view_component.dart`
+  - `lib/game/components/sprite_anim/deterministic_anim_view.dart`
 - UI impact mapping:
   - `lib/ui/runner_game_widget.dart`
   - `lib/ui/hud/game/player_impact_border_overlay.dart`

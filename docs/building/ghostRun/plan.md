@@ -191,7 +191,7 @@ Introduce reusable grayscale ghost styling for animated entity views.
 
 ### Files
 
-- `lib/game/components/sprite_anim/deterministic_anim_view_component.dart`
+- `lib/game/components/sprite_anim/deterministic_anim_view.dart`
   - or adjacent ghost-specific component in same module
 
 ### Acceptance

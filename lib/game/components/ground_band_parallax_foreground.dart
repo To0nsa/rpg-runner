@@ -8,15 +8,15 @@ import '../game_controller.dart';
 import '../spatial/world_view_transform.dart';
 import '../util/math_util.dart';
 import 'ground_surface_layout.dart';
-import 'pixel_parallax_backdrop_component.dart';
+import 'pixel_parallax_backdrop.dart';
 
 /// Renders parallax foreground layers clipped to ground surface bands.
 ///
 /// This keeps foreground coverage aligned with authoritative Core ground spans,
 /// so foreground and floor share the same gaps.
-class GroundBandParallaxForegroundComponent extends Component
+class GroundBandParallaxForeground extends Component
     with HasGameReference<FlameGame> {
-  GroundBandParallaxForegroundComponent({
+  GroundBandParallaxForeground({
     required this.controller,
     required this.virtualWidth,
     required this.virtualHeight,

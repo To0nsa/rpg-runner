@@ -4,11 +4,11 @@ library;
 import 'package:flame/components.dart';
 
 import 'package:runner_core/snapshots/enums.dart';
-import '../sprite_anim/deterministic_anim_view_component.dart';
+import '../sprite_anim/deterministic_anim_view.dart';
 import '../sprite_anim/sprite_anim_set.dart';
 
-class PlayerViewComponent extends DeterministicAnimViewComponent {
-  PlayerViewComponent({
+class PlayerView extends DeterministicAnimView {
+  PlayerView({
     required SpriteAnimSet animationSet,
     Vector2? renderSize,
     super.renderScale,

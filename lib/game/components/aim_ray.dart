@@ -11,8 +11,8 @@ import '../input/aim_preview.dart';
 ///
 /// Reacts to [AimPreviewState] to show the player where their projectile
 /// or ability will land.
-class AimRayComponent extends Component {
-  AimRayComponent({
+class AimRay extends Component {
+  AimRay({
     required this.controller,
     required this.preview,
     required this.length,

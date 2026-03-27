@@ -4,7 +4,7 @@ import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 import 'package:runner_core/snapshots/enums.dart';
-import 'package:rpg_runner/game/components/sprite_anim/deterministic_anim_view_component.dart';
+import 'package:rpg_runner/game/components/sprite_anim/deterministic_anim_view.dart';
 import 'package:rpg_runner/game/components/sprite_anim/sprite_anim_set.dart';
 
 void main() {
@@ -26,7 +26,7 @@ void main() {
     final image = await _singlePixelImage();
     final animSet = buildAnimSet(image);
 
-    final view = DeterministicAnimViewComponent(animSet: animSet);
+    final view = DeterministicAnimView(animSet: animSet);
     view.setStatusVisualMask(EntityStatusVisualMask.ward);
     view.update(1 / 60.0);
 
@@ -38,7 +38,7 @@ void main() {
     final image = await _singlePixelImage();
     final animSet = buildAnimSet(image);
 
-    final view = DeterministicAnimViewComponent(
+    final view = DeterministicAnimView(
       animSet: animSet,
       visualStyle: RenderVisualStyle.ghost,
     );

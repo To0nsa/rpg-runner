@@ -25,7 +25,7 @@ Derived from [docs/building/ghostRun/plan.md](docs/building/ghostRun/plan.md), c
   - [lib/ui/runner_game_widget.dart](lib/ui/runner_game_widget.dart)
   - [lib/game/runner_flame_game.dart](lib/game/runner_flame_game.dart)
 - [ ] No reusable monochrome ghost style mode in render components.
-  - [lib/game/components/sprite_anim/deterministic_anim_view_component.dart](lib/game/components/sprite_anim/deterministic_anim_view_component.dart)
+  - [lib/game/components/sprite_anim/deterministic_anim_view.dart](lib/game/components/sprite_anim/deterministic_anim_view.dart)
 - [ ] Ghost still represented by HUD text label.
   - [lib/ui/hud/game/game_overlay.dart](lib/ui/hud/game/game_overlay.dart)
 
@@ -82,7 +82,7 @@ Acceptance:
 - [x] Ensure ghost supports all status effect visuals (same mask handling path).
 
 Files:
-- [lib/game/components/sprite_anim/deterministic_anim_view_component.dart](lib/game/components/sprite_anim/deterministic_anim_view_component.dart)
+- [lib/game/components/sprite_anim/deterministic_anim_view.dart](lib/game/components/sprite_anim/deterministic_anim_view.dart)
 
 Acceptance:
 - [x] Ghost entities are black/white and readable.

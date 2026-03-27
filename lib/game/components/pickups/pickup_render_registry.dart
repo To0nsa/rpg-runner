@@ -8,7 +8,7 @@ import 'package:runner_core/contracts/render_anim_set_definition.dart';
 import 'package:runner_core/pickups/pickup_render_catalog.dart';
 import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 import 'package:runner_core/snapshots/enums.dart';
-import '../sprite_anim/deterministic_anim_view_component.dart';
+import '../sprite_anim/deterministic_anim_view.dart';
 import '../sprite_anim/sprite_anim_set.dart';
 import '../sprite_anim/strip_animation_loader.dart';
 
@@ -20,16 +20,16 @@ typedef PickupAnimLoader =
     });
 
 typedef PickupViewFactory =
-    DeterministicAnimViewComponent Function(
+    DeterministicAnimView Function(
       SpriteAnimSet animSet,
       Vector2 renderScale,
     );
 
-DeterministicAnimViewComponent _defaultPickupViewFactory(
+DeterministicAnimView _defaultPickupViewFactory(
   SpriteAnimSet animSet,
   Vector2 renderScale,
 ) {
-  return DeterministicAnimViewComponent(
+  return DeterministicAnimView(
     animSet: animSet,
     renderSize: Vector2(animSet.frameSize.x, animSet.frameSize.y),
     renderScale: renderScale,

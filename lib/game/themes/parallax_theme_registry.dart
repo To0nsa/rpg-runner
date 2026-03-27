@@ -2,7 +2,7 @@
 library;
 
 import 'parallax_theme.dart';
-import '../components/pixel_parallax_backdrop_component.dart';
+import '../components/pixel_parallax_backdrop.dart';
 
 /// Returns the [ParallaxTheme] for a given Core `themeId`.
 ///

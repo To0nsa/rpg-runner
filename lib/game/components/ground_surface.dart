@@ -13,9 +13,9 @@ import 'ground_surface_layout.dart';
 ///
 /// This component consumes `snapshot.groundSurfaces` and aligns the visual top
 /// edge to authoritative surface `topY`. Collision/geometry remains Core-owned.
-class GroundSurfaceComponent extends Component
+class GroundSurface extends Component
     with HasGameReference<FlameGame> {
-  GroundSurfaceComponent({
+  GroundSurface({
     required this.assetPath,
     required this.controller,
     required this.virtualWidth,

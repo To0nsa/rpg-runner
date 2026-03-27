@@ -16,9 +16,9 @@ typedef AnimKeyFallbackResolver = AnimKey Function(AnimKey desired);
 
 enum RenderVisualStyle { live, ghost }
 
-class DeterministicAnimViewComponent
+class DeterministicAnimView
     extends SpriteAnimationGroupComponent<AnimKey> {
-  DeterministicAnimViewComponent({
+  DeterministicAnimView({
     required SpriteAnimSet animSet,
     AnimKey initial = AnimKey.idle,
     AnimKeyFallbackResolver? fallbackResolver,

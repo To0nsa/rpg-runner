@@ -1,7 +1,7 @@
 /// Render-layer parallax theme configuration.
 library;
 
-import '../components/pixel_parallax_backdrop_component.dart';
+import '../components/pixel_parallax_backdrop.dart';
 
 class ParallaxTheme {
   const ParallaxTheme({

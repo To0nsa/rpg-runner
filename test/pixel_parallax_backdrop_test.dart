@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rpg_runner/game/components/pixel_parallax_backdrop_component.dart';
+import 'package:rpg_runner/game/components/pixel_parallax_backdrop.dart';
 
 void main() {
-  group('PixelParallaxBackdropComponent.resolveLayerTopY', () {
+  group('PixelParallaxBackdrop.resolveLayerTopY', () {
     test('falls back to viewport-bottom anchoring when anchor is null', () {
-      final topY = PixelParallaxBackdropComponent.resolveLayerTopY(
+      final topY = PixelParallaxBackdrop.resolveLayerTopY(
         viewHeight: 270,
         imageHeight: 256,
         bottomAnchorY: null,
@@ -14,7 +14,7 @@ void main() {
     });
 
     test('anchors layer bottom to provided view-space Y', () {
-      final topY = PixelParallaxBackdropComponent.resolveLayerTopY(
+      final topY = PixelParallaxBackdrop.resolveLayerTopY(
         viewHeight: 270,
         imageHeight: 256,
         bottomAnchorY: 220.0,
@@ -24,7 +24,7 @@ void main() {
     });
 
     test('falls back to viewport-bottom anchoring for non-finite anchor', () {
-      final topY = PixelParallaxBackdropComponent.resolveLayerTopY(
+      final topY = PixelParallaxBackdrop.resolveLayerTopY(
         viewHeight: 270,
         imageHeight: 256,
         bottomAnchorY: double.nan,
