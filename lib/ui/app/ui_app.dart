@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -218,14 +219,43 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
       providers: [
         ChangeNotifierProvider(
           create: (_) {
+            final functions = FirebaseFunctions.instanceFor(
+              region: 'europe-west1',
+            );
             final authApi = FirebaseAuthApi();
-            final accountDeletionApi = FirebaseAccountDeletionApi();
-            final ownershipApi = FirebaseLoadoutOwnershipApi();
-            final runBoardsApi = FirebaseRunBoardsApi();
-            final runSessionApi = FirebaseRunSessionApi();
-            final leaderboardApi = FirebaseLeaderboardApi();
-            final ghostApi = FirebaseGhostApi();
-            final userProfileRemoteApi = FirebaseUserProfileRemoteApi();
+            final accountDeletionApi = FirebaseAccountDeletionApi(
+              source: PluginFirebaseAccountDeletionSource(
+                functions: functions,
+              ),
+            );
+            final ownershipApi = FirebaseLoadoutOwnershipApi(
+              source: PluginFirebaseLoadoutOwnershipSource(
+                functions: functions,
+              ),
+            );
+            final runBoardsApi = FirebaseRunBoardsApi(
+              source: PluginFirebaseRunBoardsSource(
+                functions: functions,
+              ),
+            );
+            final runSessionApi = FirebaseRunSessionApi(
+              source: PluginFirebaseRunSessionSource(
+                functions: functions,
+              ),
+            );
+            final leaderboardApi = FirebaseLeaderboardApi(
+              source: PluginFirebaseLeaderboardSource(
+                functions: functions,
+              ),
+            );
+            final ghostApi = FirebaseGhostApi(
+              source: PluginFirebaseGhostSource(functions: functions),
+            );
+            final userProfileRemoteApi = FirebaseUserProfileRemoteApi(
+              source: PluginFirebaseUserProfileRemoteSource(
+                functions: functions,
+              ),
+            );
             return AppState(
               authApi: authApi,
               accountDeletionApi: accountDeletionApi,

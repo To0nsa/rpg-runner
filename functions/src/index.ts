@@ -40,7 +40,11 @@ if (getApps().length === 0) {
   initializeApp();
 }
 
+const defaultFunctionsRegion =
+  process.env.FUNCTIONS_REGION?.trim() || "europe-west1";
+
 setGlobalOptions({
+  region: defaultFunctionsRegion,
   serviceAccount: "sa-run-control@rpg-runner-d7add.iam.gserviceaccount.com",
 });
 
@@ -48,15 +52,13 @@ const db = getFirestore();
 
 const runSessionCreateRegion =
   process.env.RUN_SESSION_CREATE_REGION?.trim() ||
-  process.env.FUNCTIONS_REGION?.trim() ||
-  "us-central1";
+  defaultFunctionsRegion;
 const runSessionCreateMinInstances = readNonNegativeInt(
   process.env.RUN_SESSION_CREATE_MIN_INSTANCES,
 );
 const leaderboardRegion =
   process.env.LEADERBOARD_REGION?.trim() ||
-  process.env.FUNCTIONS_REGION?.trim() ||
-  "us-central1";
+  defaultFunctionsRegion;
 const leaderboardMinInstances = readNonNegativeInt(
   process.env.LEADERBOARD_MIN_INSTANCES,
 );

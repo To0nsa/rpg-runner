@@ -345,7 +345,7 @@ Execution notes (2026-03-18):
 
 - `runSessionCreate` callable now has explicit runtime options in
   [functions/src/index.ts](functions/src/index.ts):
-	- region from `RUN_SESSION_CREATE_REGION`/`FUNCTIONS_REGION` (fallback `us-central1`)
+	- region from `RUN_SESSION_CREATE_REGION`/`FUNCTIONS_REGION` (fallback `europe-west1`)
 	- `minInstances` from `RUN_SESSION_CREATE_MIN_INSTANCES` when set
 - Active board lookup in [functions/src/boards/store.ts](functions/src/boards/store.ts)
   now performs deterministic managed-doc lookup first, then compatibility
